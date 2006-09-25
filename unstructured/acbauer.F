@@ -1,0 +1,362 @@
+      subroutine getmincoord(xmin, zmin)
+      implicit none
+      real xmin, zmin, p_xmin,p_zmin 
+      double precision dp_xmin, dp_zmin
+      logical initialized       !Has the minimum been calculated?
+      common /acbblock/ p_xmin, p_zmin, initialized
+      data initialized/0/
+      
+      if(initialized .eq. 0) then
+         call getmincoord2(dp_xmin, dp_zmin)
+         p_xmin = dp_xmin 
+         p_zmin = dp_zmin
+         initialized = 1
+      endif
+      xmin = p_xmin
+      zmin = p_zmin
+      return
+      end
+!===================
+      subroutine getmaxcoord(xmax, zmax)
+      implicit none
+      real xmax, zmax, p_xmax,p_zmax 
+      double precision dp_xmax, dp_zmax
+      logical initialized       !Has the maximum been calculated?
+      common /acbblock2/ p_xmax, p_zmax, initialized
+      data initialized/0/
+      
+      if(initialized .eq. 0) then
+         call getmaxcoord2(dp_xmax, dp_zmax)
+         p_xmax = dp_xmax 
+         p_zmax = dp_zmax
+         initialized = 1
+      endif
+
+      xmax = p_xmax
+      zmax = p_zmax
+      return
+      end
+!===================
+      subroutine getboundingboxsize(alx, alz)
+      implicit none
+      real xmin, xmax, zmin, zmax, alx, alz
+      call getmincoord(xmin, zmin)
+      call getmaxcoord(xmax, zmax)
+
+      alx = xmax - xmin
+      alz = zmax - zmin
+      return
+      end
+!===================
+      subroutine getelmparams(elmid, a, b, c, theta)
+      implicit none
+      real a, b, c, theta, x1, x2, x3, z1, z2, z3
+      real x2p, x3p, z2p, z3p
+      integer elmid, nodeids(4)
+      double precision coords(3)
+      
+!      write(*,*) 'elmid ===',elmid
+      call nodfac(elmid, nodeids)
+      call xyznod(nodeids(1),coords)
+      x1 = coords(1)
+      z1 = coords(2)
+      call xyznod(nodeids(2),coords)
+      x2 = coords(1)
+      z2 = coords(2)
+      call xyznod(nodeids(3),coords)
+      x3 = coords(1)
+      z3 = coords(2)
+
+      theta = atan2(z2-z1,x2-x1)
+      x2 = x2 - x1
+      z2 = z2 - z1
+      x3 = x3 - x1
+      z3 = z3 - z1
+      x2p = cos(-theta) * x2 - sin(-theta) * z2
+      z2p = sin(-theta) * x2 + cos(-theta) * z2
+      x3p = cos(-theta) * x3 - sin(-theta) * z3
+      z3p = sin(-theta) * x3 + cos(-theta) * z3
+      if(z2p .gt. 0.0001 .or. z2p .lt. -0.0001) then
+         write(*,*) "z2p should be 0.d0 but is ", z2p
+      endif
+      a = x2p-x3p
+      b = x3p
+      c = z3p
+      if(c .le. 0.) then
+         write(*,*) 'clockwise node ordering for element',elmid
+         call safestop(6894)
+      endif
+
+      end subroutine getelmparams
+!=====
+! my routine to print out arrays
+      subroutine printarray(aa,n,m, string)
+      implicit none
+      double precision aa(*), sum, pos, max
+      integer n, i, m
+      character*8 string
+      
+      write(*,*) 'printarray has string ',string
+      open(10,file='check.txt',form='formatted')
+      sum = 0.
+      max = 0.
+      do i=1,n
+         write(10,1002) m, i, aa(i)
+         pos = aa(i)
+         if(pos .lt. 0.) pos = -pos
+         if(max .lt. pos) max = pos
+         sum = sum + pos
+      enddo
+      write(10,1003) sum, max
+ 1002 format(i3, i6, e12.4)
+ 1003 format('sum is ',e12.4,' max is ',e12.4)
+      close(10)
+      if(m.eq.0) call safestop(0)
+      return
+      end
+
+
+!==========
+! my routine to print out arrays
+      subroutine iprintarray(aa,n,m)
+      implicit none
+      integer aa(*), sum, pos
+      integer n, i, m
+      
+      open(10,file='check.txt',form='formatted')
+      sum = 0
+      do i=1,n
+         write(10,*) m, i, aa(i)
+         pos = aa(i)
+         if(pos .lt. 0.) pos = -pos
+         sum = sum + pos
+      enddo
+      write(10,*) sum
+      close(10)
+      if(m.eq.0) call safestop(0)
+      return
+      end
+!====================
+      subroutine global2local(itri, x, z, si, eta)
+      implicit none
+      integer itri, nodes(4)
+      real x, z, si, eta, a, b, c, theta, co, sn, x1, z1
+      double precision coord(3)
+
+      call nodfac(itri, nodes)
+      call xyznod(nodes(1), coord) 
+      x1 = coord(1)
+      z1 = coord(2)
+      call getelmparams(itri, a, b, c, theta)
+      co = cos(theta)
+      sn = sin(theta)
+      si  = (x-x1)*co + (z-z1)*sn - b
+      eta =-(x-x1)*sn + (z-z1)*co
+      
+      return
+      end
+!====================
+      subroutine local2global(itri, si, eta, x, z)
+      implicit none
+      integer itri, nodes(4)
+      real x, z, si, eta, a, b, c, theta, co, sn, x1, z1
+      double precision coord(3)
+
+      call nodfac(itri, nodes)
+      call xyznod(itri, coord)
+      x1 = coord(1)
+      z1 = coord(2)
+      call getelmparams(itri, a, b, c, theta)
+      co = cos(theta)
+      sn = sin(theta)
+      x = x1 + co*(b+si) - sn*eta
+      z = z1 + sn*(b+si) + co*eta
+      
+      return
+      end
+!============================================================
+      subroutine printmesh()
+      implicit none
+
+      integer i, itri, nodeids(4), numfaces, numnodes
+      real a, b, c, theta
+      double precision coords(3)
+
+      call numnod(numnodes)
+      do i=1,numnodes
+         call xyznod(i, coords)
+         write(*,10)  i, coords(1), coords(2), coords(3)
+      enddo
+      call numfac(numfaces)
+      do itri=1, numfaces
+         call nodfac(itri,nodeids)
+         write(*,*) itri, nodeids(1), nodeids(2), nodeids(3)
+         call getelmparams(itri, a, b, c, theta)
+         write(*,12) itri, a, b, c, theta
+      enddo
+
+!      call safestop (28)
+
+ 10   format(i3, x, 3(x, e8.3))
+ 12   format('params ',i3, x, 4(x, e10.4))
+
+      return
+      end
+
+!============================================================
+      subroutine getdeex(itri, deex)
+      use t_data
+      implicit none
+      integer itri
+      real area, deex, length
+      double precision coords(9)
+      integer nodeids(4)
+
+      area = .5*(atri(itri)+btri(itri))*ctri(itri)
+      call nodfac(itri, nodeids)
+      call xyznod(nodeids(1),coords)
+      call xyznod(nodeids(2),coords(4))
+      call xyznod(nodeids(3),coords(7))
+      
+      deex = (coords(4)-coords(1))*(coords(4)-coords(1)) +
+     &     (coords(5)-coords(2))*(coords(5)-coords(2))
+      length =  (coords(4)-coords(7))*(coords(4)-coords(7)) +
+     &     (coords(5)-coords(8))*(coords(5)-coords(8))
+      if(deex .gt. length) deex = length
+      length = (coords(1)-coords(7))*(coords(1)-coords(7)) +
+     &     (coords(2)-coords(8))*(coords(2)-coords(8))
+
+      if(deex .gt. length) deex = length
+
+      deex = 2.*area/sqrt(deex)
+      return
+      end
+
+!============================================================
+      subroutine exportfield2(itype,numvare, dum, iwhich)
+      use p_data
+      use t_data
+      use basic
+      implicit none
+      integer itype, numvare, numelms, itri, idof, iii, ii, numdof,
+     &     i, index, k, isforder, itensororder, iwhich, id
+    
+      real si, eta, x, z, wlocal(18), dum(*), rlocal(18), sum, 
+     &     avector(20), temp
+      double precision coords(3)
+      double precision, allocatable:: vals(:), dx(:), dz(:)
+      
+!     
+!.....itype=1 for first velocity (flux) variable
+!
+      itensororder = 1          ! the order of the tensor
+      isforder = 5              ! the order of lagrange shape functions used
+      id = 1                    !field id
+      call createfield("phi", itensororder, isforder, id) 
+      call getnumlagrangetriinterppoint(isforder, numdof)
+
+      allocate(dx(numdof), dz(numdof), vals(numdof)) ! vals should take into account the tensor order for non-scalars!
+      dx = 0.d0
+      dz = 0.d0
+      call numfac(numelms)
+      do itri=1,numelms
+         call getlagrangetriinterppoint(itri, isforder, dx, dz) ! interpolation points in global CS
+         do idof=1,numdof
+            x = dx(idof)
+            z = dz(idof)
+            call evaluate(x,z,vals(idof), temp, dum, itype, numvare)
+         enddo ! idof loop
+         call setfieldontri(itri, itensororder, isforder, vals, id)
+      enddo ! itri loop
+
+!.....update the field
+      
+      call outputfield(iwhich, id);
+      deallocate(dx,dz, vals)
+           
+      return
+      end
+!============================================================
+c     Elements 1 through n1 are assigned to proc 0, elements n0+1 
+c     through n0+n1 are assigned to proc 1, ..., where the element
+c     numbers are global (local are 1 through ni, i:= proc #).
+c     This function returns the number of global elements numbered
+c     before the first one on this proc (proc 0 returns 0, proc 1 
+c     returns n0,...).
+      subroutine getprevglobalitri(itrifirst)
+      implicit none
+      integer maxprocs
+      parameter (maxprocs = 100)
+      integer itrifirst, ier, numelms, myrank, maxrank, i
+      integer globalnumelms(maxprocs), itemp(maxprocs)
+      include 'mpif.h'
+      
+      
+      call numfac(numelms)
+      itrifirst = numelms
+      call MPI_COMM_RANK(MPI_COMM_WORLD, myrank, ier)
+      call MPI_COMM_SIZE(MPI_COMM_WORLD, maxrank, ier)
+      if(maxrank .gt. maxprocs) call safestop(324)
+      do i=1,maxrank
+         itemp(i) = 0
+      enddo
+      itemp(myrank+1) = numelms
+      call MPI_ALLREDUCE(itemp, globalnumelms, maxrank, MPI_INTEGER,
+     1     MPI_SUM, MPI_COMM_WORLD, ier)
+c     MPI_SCAN doesn't seem to work???
+c      call MPI_SCAN(itrifirst, itemp, MPI_INTEGER, MPI_SUM, 
+c     &     MPI_COMM_WORLD, ier)
+c      write(*,*) 'stuff',itrifirst,numelms, myrank
+
+      if (ier /= 0) then 
+         print *,'Error with MPI:',ier
+         call safestop(387)
+      endif
+
+      itrifirst = 0
+      do i=1,myrank
+         itrifirst = itrifirst + globalnumelms(i)
+      enddo
+      return
+      end
+!==================
+      subroutine tecplot(dofs, nv)
+      use t_data
+      use basic
+      implicit none
+      integer i, j, nv, mnew, nnew
+      real dofs(*), val, temp, dum, x, z, deexnew, deeznew
+      
+      open(10,file='orig.plt',form='formatted')
+      
+      mnew = 41
+      nnew = 41
+      deexnew = 4./40.
+      deeznew = 4./40.
+      write(10,1)
+ 1    format('VARIABLES = "X", "Y", "TEMP"')
+      write(10,2) nnew*mnew,(nnew-1)*(mnew-1)
+ 2    format('ZONE N=',i8,' ET=QUADRILATERAL E=',i8,' F=FEPOINT')
+      do j=1,mnew
+         z = (j-1)*deeznew
+         do i=1,nnew
+            x = (i-1)*deexnew
+            call evaluate(x,z,val, temp, dofs, 1, nv)
+            write(10,3) x,z,val
+         enddo
+      enddo
+
+ 3    format(f12.5,1x,f12.5,1xf12.5)
+      do j=1,mnew-1
+         do i=1,nnew-1
+            write(10,4) i+(j-1)*nnew,i+1+(j-1)*nnew,i+1+j*nnew,
+     &           i+j*nnew
+         enddo
+      enddo
+ 4    format(i8,1x,i8,1x,i8,1x,i8)
+
+      close(10)
+
+      return
+      end
+!================================
