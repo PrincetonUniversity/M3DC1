@@ -601,13 +601,14 @@ subroutine onestep
      else
         call inverse(den,deni)
      endif
+     if(myrank.eq.0) call oneplot(deni,1,1,"n^-1",0)
   endif
 
 !  call conserve_tflux()
   
   ! Advance Velocity
   ! ================
-  
+
   ! Calculate LU decomposition of velocity matrix if needed
   if(ntime.le.ntimer+1.or. &
        (linear.eq.0 .and. mod(ntime,nskip).eq.0)) then
@@ -693,6 +694,7 @@ subroutine onestep
 !      enddo
   veln = vel
   vel = vtemp
+
 !
 ! Advance Density
 ! ===============
@@ -755,6 +757,7 @@ subroutine onestep
      den = vtemp
      !      call printarray(den, 150, 0, 'den vtem')
   endif
+
 !
 ! Advance Pressure
 ! ================

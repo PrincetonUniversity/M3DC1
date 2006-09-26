@@ -1337,70 +1337,51 @@ end function v2vchin
 
 ! V3chin
 ! ======
-subroutine v3chin(itri,i,j,ssterm, ddterm, rrterm)
+real function v3chin(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  
   real :: temp
 
   if(idens.eq.0) then
-     temp = - int2(g25(:,OP_DR,i),g25(:,OP_DR,j),weight_25,25) &
-          -   int2(g25(:,OP_DZ,i),g25(:,OP_DZ,j),weight_25,25)
+     temp = - int2(e(:,OP_DR),f(:,OP_DR),weight_79,79) &
+          -   int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79)
   else
-     temp = - int3(g79(:,OP_DR,i),g79(:,OP_DR,j),nt79(:,OP_1),weight_79,79) &
-          -   int3(g79(:,OP_DZ,i),g79(:,OP_DZ,j),nt79(:,OP_1),weight_79,79)
+     temp = - int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_1),weight_79,79) &
+          -   int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1),weight_79,79)
   endif
 
-  ssterm(3,3) = ssterm(3,3) + temp
-  ddterm(3,3) = ddterm(3,3) + temp
-
-end subroutine v3chin
+  v3chin = temp
+  return
+end function v3chin
 
 
 
 ! V3chimu
 ! =======
-subroutine v3chimu(itri,i,j,ssterm, ddterm, rrterm)
+real function v3chimu(e,f)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
-  integer :: i3
+  real, intent(in), dimension(79,OP_NUM) :: e,f
   real :: temp
 
-  temp = int2(g25(:,OP_LP,i),g25(:,OP_LP,j),weight_25,25)
+  temp = int2(e(:,OP_LP),f(:,OP_LP),weight_79,79)
   if(itor.eq.1) then
-     temp = temp + 2.*int3(ri_79,g79(:,OP_DR,i),g79(:,OP_LP,j),weight_79,79)
+     temp = temp + 2.*int3(ri_79,e(:,OP_DR),f(:,OP_LP),weight_79,79)
   endif
 
-  ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp*amu
-  ddterm(3,3) = ddterm(3,3) + (1.-thimp)*dt*temp*amu
-
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     ! EQUILIBRIUM TERM
-     i3 = isvaln(itri,i) + 12
-     
-     temp = int2(g25(:,OP_LP,i),ch025(:,OP_LP),weight_25,25)
-     if(itor.eq.1) then
-        temp = temp + 2.*int3(ri_79,g79(:,OP_DR,i),ch025(:,OP_LP),weight_79,79)
-     endif
-  
-     r4(i3) = r4(i3) + dt*temp*amu
-  endif
-
-end subroutine v3chimu
+  v3chimu = temp*amu
+  return
+end function v3chimu
 
 
 ! V3umu
@@ -1467,44 +1448,26 @@ end subroutine v3un
 
 ! V3p
 ! ===
-subroutine v3p(itri,i,j,ssterm, ddterm, rrterm)
+real function v3p(e,f)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
-  integer :: i3
+  real, intent(in), dimension(79,OP_NUM) :: e,f
   real :: temp
 
-  temp = int2(g25(:,OP_DZ,i),g25(:,OP_DZ,j),weight_25,25) &
-       + int2(g25(:,OP_DR,i),g25(:,OP_DR,j),weight_25,25)
+  temp = int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
+       + int2(e(:,OP_DR),f(:,OP_DR),weight_79,79)
 
   if(itor.eq.1) then
-     temp = temp + 2.*int3(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j),weight_79,79)
+     temp = temp + 2.*int3(ri_79,e(:,OP_1),f(:,OP_DR),weight_79,79)
   endif
 
-  rrterm(3,3) = rrterm(3,3) + dt*temp
-
-  ! EQUILIBRIUM TERM
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     i3 = isvaln(itri,i) + 12
-
-     temp = int2(g25(:,OP_DZ,i),p079(:,OP_DZ),weight_25,25) &
-          + int2(g25(:,OP_DR,i),p079(:,OP_DR),weight_25,25)
-     
-     if(itor.eq.1) then
-        temp = temp + 2.*int3(ri_79,g79(:,OP_1,i),p079(:,OP_DR),weight_79,79)
-     endif
-
-     r4(i3) = r4(i3) + dt*temp
-  endif
-
-end subroutine v3p
+  v3p = temp
+  return
+end function v3p
 
 
 
@@ -1596,119 +1559,58 @@ end function v3psipsi
 
 ! V3bb
 ! ====
-subroutine v3bb(itri,i,j,ssterm, ddterm, rrterm)
+real function v3bb(e,f,g)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
 
-  integer :: i3
   real :: temp
 
-  temp = int4(ri2_79,g79(:,OP_DZ,i),g79(:,OP_1,j),bz179(:,OP_DZ),weight_79,79) &
-       + int4(ri2_79,g79(:,OP_DR,i),g79(:,OP_1,j),bz179(:,OP_DR),weight_79,79) &
-       + int4(ri2_79,g79(:,OP_DZ,i),bz179(:,OP_1),g79(:,OP_DZ,j),weight_79,79) &
-       + int4(ri2_79,g79(:,OP_DR,i),bz179(:,OP_1),g79(:,OP_DR,j),weight_79,79)
+  temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DZ),weight_79,79) &
+       + int4(ri2_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DR),weight_79,79)
 
   if(itor.eq.1) then
      temp = temp + 2.* &
-          (int4(ri3_79,g79(:,OP_1,i),g79(:,OP_1,j),bz179(:,OP_DR),weight_79,79) &
-          +int4(ri3_79,g79(:,OP_1,i),bz179(:,OP_1),g79(:,OP_DR,j),weight_79,79))
+          int4(ri3_79,e(:,OP_1),f(:,OP_1),g(:,OP_DR),weight_79,79)
   endif
 
-  rrterm(3,2) = rrterm(3,2) + dt*temp/2.
-
-
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-
-     temp = int4(ri2_79,g79(:,OP_DZ,i),g79(:,OP_1,j),bz079(:,OP_DZ),weight_79,79) &
-          + int4(ri2_79,g79(:,OP_DR,i),g79(:,OP_1,j),bz079(:,OP_DR),weight_79,79) &
-          + int4(ri2_79,g79(:,OP_DZ,i),bz079(:,OP_1),g79(:,OP_DZ,j),weight_79,79) &
-          + int4(ri2_79,g79(:,OP_DR,i),bz079(:,OP_1),g79(:,OP_DR,j),weight_79,79)
-     
-     if(itor.eq.1) then
-        temp = temp + 2.* &
-             (int4(ri3_79,g79(:,OP_1,i),g79(:,OP_1,j),bz079(:,OP_DR),weight_79,79) &
-             +int4(ri3_79,g79(:,OP_1,i),bz079(:,OP_1),g79(:,OP_DR,j),weight_79,79))
-     endif
-
-     rrterm(3,2) = rrterm(3,2) + dt*temp
-
-     ! EQUILIBRIUM TERM
-     i3 = isvaln(itri,i) + 12
-
-     temp = int4(ri2_79,g79(:,OP_DZ,i),bz079(:,OP_1),bz079(:,OP_DZ),weight_79,79) &
-          + int4(ri2_79,g79(:,OP_DR,i),bz079(:,OP_1),bz079(:,OP_DR),weight_79,79)
-     
-     if(itor.eq.1) then
-        temp = temp + 2.*int4(ri3_79,g79(:,OP_1,i),bz079(:,OP_1),bz079(:,OP_DR),weight_79,79)
-     endif
-
-     r4(i3) = r4(i3) + dt*temp
-  endif
-
-end subroutine v3bb
-
-
+  v3bb = temp
+  return
+end function v3bb
 
 
 ! V3psisb1
 ! ========
-subroutine v3psisb1(itri,i,j,ssterm, ddterm, rrterm)
+real function v3psisb1(e,f,g)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
-  integer :: i3
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
 
-  temp = int4(ri2_79,g79(:,OP_DZ,i),g79(:,OP_GS,j),sb179(:,OP_DZ),weight_79,79) &
-       + int4(ri2_79,g79(:,OP_DR,i),g79(:,OP_GS,j),sb179(:,OP_DR),weight_79,79) &
-       + int4(ri2_79,g79(:,OP_DZ,i),sb179(:,OP_GS),g79(:,OP_DZ,j),weight_79,79) &
-       + int4(ri2_79,g79(:,OP_DR,i),sb179(:,OP_GS),g79(:,OP_DR,j),weight_79,79)
+  temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_GS),g(:,OP_DZ),weight_79,79) &
+       + int4(ri2_79,e(:,OP_DR),f(:,OP_GS),g(:,OP_DR),weight_79,79)
 
   if(itor.eq.1) then
      temp = temp + 2.* &
-          (int4(ri3_79,g79(:,OP_1,i),g79(:,OP_GS,j),sb179(:,OP_DR),weight_79,79) &
-          +int4(ri3_79,g79(:,OP_1,i),sb179(:,OP_GS),g79(:,OP_DR,j),weight_79,79))
+          int4(ri3_79,e(:,OP_1),f(:,OP_GS),g(:,OP_DR),weight_79,79)
   endif
 
-  rrterm(3,1) = rrterm(3,1) + thimp*dt*dt*temp
+  v3psisb1 = temp
 
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     i3 = isvaln(itri,i) + 12
-     
-     temp = int4(ri2_79,g79(:,OP_DZ,i),ps079(:,OP_GS),sb179(:,OP_DZ),weight_79,79) &
-          + int4(ri2_79,g79(:,OP_DR,i),ps079(:,OP_GS),sb179(:,OP_DR),weight_79,79) &
-          + int4(ri2_79,g79(:,OP_DZ,i),sb179(:,OP_GS),ps079(:,OP_DZ),weight_79,79) &
-          + int4(ri2_79,g79(:,OP_DR,i),sb179(:,OP_GS),ps079(:,OP_DR),weight_79,79)
-     
-     if(itor.eq.1) then
-        temp = temp + 2.* &
-             (int4(ri3_79,g79(:,OP_1,i),ps079(:,OP_GS),sb179(:,OP_DR),weight_79,79) &
-             +int4(ri3_79,g79(:,OP_1,i),sb179(:,OP_GS),ps079(:,OP_DR),weight_79,79))
-     endif
-
-     r4(i3) = r4(i3) + thimp*dt*dt*temp
-  endif
-
-end subroutine v3psisb1
+end function v3psisb1
 
 
 ! V3bsb2
 ! ======
-subroutine v3bsb2(itri,i,j,ssterm, ddterm, rrterm)
+real function v3bsb2(e,f,g)
 
   use basic
   use arrays
@@ -1716,35 +1618,19 @@ subroutine v3bsb2(itri,i,j,ssterm, ddterm, rrterm)
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
 
-  integer :: i3
   real :: temp
 
-  temp = -int4(ri2_79,g79(:,OP_LP,i),g79(:,OP_1,j),sb279(:,OP_1),weight_79,79)
+  temp = -int4(ri2_79,e(:,OP_LP),f(:,OP_1),g(:,OP_1),weight_79,79)
 
   if(itor.eq.1) then
-     temp = temp + 4.*int4(ri4_79,g79(:,OP_1,i),g79(:,OP_1,j),sb279(:,OP_1),weight_79,79)
+     temp = temp + 4.*int4(ri4_79,e(:,OP_1),f(:,OP_1),g(:,OP_1),weight_79,79)
   endif
 
-  rrterm(3,2) = rrterm(3,2) + thimp*dt*dt*temp
-
-
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-
-     i3 = isvaln(itri,i) + 12
-
-     temp = -int4(ri2_79,g79(:,OP_LP,i),bz079(:,OP_1),sb279(:,OP_1),weight_79,79)
-
-     if(itor.eq.1) then
-        temp = temp + 4.*int4(ri4_79,g79(:,OP_1,i),bz079(:,OP_1),sb279(:,OP_1),weight_79,79)
-     endif
-
-     r4(i3) = r4(i3) + thimp*dt*dt*temp
-  endif
-
-end subroutine v3bsb2
+  v3bsb2 = temp
+  return
+end function v3bsb2
 
 
 ! V3upsipsi
@@ -1752,7 +1638,6 @@ end subroutine v3bsb2
 real function v3upsipsi(e,f,g,h)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
