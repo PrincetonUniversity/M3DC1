@@ -25,7 +25,8 @@ subroutine ludefvel_t
 
   real :: v3up, v3chip, v3psipsi, v3upsipsi, v3chipsipsi, v3chibb, v3chichin, &
        v1chin, v1uchin, v1chichin, v2vchin, v2chipsib, v1chipsipsi, v1chibb, &
-       v1ubb, v3ubb, v3uun, v3uchin, v3vpsib
+       v1ubb, v3ubb, v3uun, v3uchin, v3vpsib, v3chin, v3p, v3chimu, v3bb, &
+       v3psisb1, v3bsb2
 
   tfield = 0.
   telm = 0.
@@ -139,17 +140,10 @@ subroutine ludefvel_t
            ! NUMVAR = 3
            ! ~~~~~~~~~~
            if(numvar.ge.3) then
-              if(itor.eq.1) then
-                 call v3umu(itri,i,j,ssterm, ddterm, rrterm)
-              endif
-              call v3chin(itri,i,j,ssterm, ddterm, rrterm)     ! passed: 1
-              call v3chimu(itri,i,j,ssterm, ddterm, rrterm)    ! passed: 1
-              call v3p(itri,i,j,ssterm, ddterm, rrterm)        ! passed: 1
-
-              call v3bb(itri,i,j,ssterm, ddterm, rrterm)       ! passed: 1
-              call v3psisb1(itri,i,j,ssterm, ddterm, rrterm)   ! passed: 1
-              call v3bsb2(itri,i,j,ssterm, ddterm, rrterm)     ! passed: 1
-
+!!$              if(itor.eq.1) then
+!!$                 call v3umu(itri,i,j,ssterm, ddterm, rrterm)
+!!$              endif
+!!$
               temp = v1uchin(g79(:,:,i),g79(:,:,j),ch179,nt79)        ! passed: 1
               ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
               ddterm(1,1) = ddterm(1,1) + (.5-thimp)*dt*temp
@@ -164,7 +158,7 @@ subroutine ludefvel_t
               ssterm(1,3) = ssterm(1,3) -     thimp *dt*temp
               ddterm(1,3) = ddterm(1,3) + (.5-thimp)*dt*temp
 
-              temp = 0*v1chipsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79)  & ! FAILED: 1
+              temp = 0*v1chipsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79)  & ! 
                    + v1chibb    (g79(:,:,i),g79(:,:,j),bzt79,bzt79)
               ssterm(1,3) = ssterm(1,3) - thimp*    thimp *dt*dt*temp
               ddterm(1,3) = ddterm(1,3) + thimp*(1.-thimp)*dt*dt*temp
@@ -183,36 +177,56 @@ subroutine ludefvel_t
 
               temp = v3uun  (g79(:,:,i),g79(:,:,j),ph179,nt79) &
                    + v3uun  (g79(:,:,i),ph179,g79(:,:,j),nt79) &
-                   + 0.*v3uchin(g79(:,:,i),g79(:,:,j),ch179,nt79)             ! FAILED: 1
+                   + 0.*v3uchin(g79(:,:,i),g79(:,:,j),ch179,nt79)          ! 
               ssterm(3,1) = ssterm(3,1) -     thimp *dt*temp
               ddterm(3,1) = ddterm(3,1) + (.5-thimp)*dt*temp
 
-              temp = v3up     (g79(:,:,i),g79(:,:,j),pt79) &               ! passed: 1
-!                   + v3upsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79) &       ! FAILED: 1
-                   + v3ubb    (g79(:,:,i),g79(:,:,j),bzt79,bzt79)          ! passed: 1
+              temp = v3up     (g79(:,:,i),g79(:,:,j),pt79) &               ! 
+!                   + v3upsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79) &       ! 
+                   + v3ubb    (g79(:,:,i),g79(:,:,j),bzt79,bzt79)          ! 
               ssterm(3,1) = ssterm(3,1) - thimp*    thimp *dt*dt*temp
               ddterm(3,1) = ddterm(3,1) + thimp*(1.-thimp)*dt*dt*temp
 
-              temp = v3vpsib(g79(:,:,i),g79(:,:,j),pst79,bzt79)             ! passed: 1
+              temp = v3vpsib(g79(:,:,i),g79(:,:,j),pst79,bzt79)             ! 
               ssterm(3,2) = ssterm(3,2) - thimp*    thimp *dt*dt*temp
               ddterm(3,2) = ddterm(3,2) + thimp*(1.-thimp)*dt*dt*temp
 
-              temp = 0.*v3uchin  (g79(:,:,i),ph179,g79(:,:,j),nt79) &    ! FAILED: 1
-                   + v3chichin(g79(:,:,i),g79(:,:,j),ch179,nt79) &    ! passed: 1
-                   + v3chichin(g79(:,:,i),ch179,g79(:,:,j),nt79)      ! passed: 1
+              temp = v3chin(g79(:,:,i),g79(:,:,j),nt79)        ! passed: 1
+              ssterm(3,3) = ssterm(3,3) + temp
+              ddterm(3,3) = ddterm(3,3) + temp
+
+              temp = v3chimu    (g79(:,:,i),g79(:,:,j))        ! passed: 1
+              ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp
+              ddterm(3,3) = ddterm(3,3) + (1.-thimp)*dt*temp
+
+              temp = 0.*v3uchin  (g79(:,:,i),ph179,g79(:,:,j),nt79) &    ! 
+                   + v3chichin(g79(:,:,i),g79(:,:,j),ch179,nt79) &    ! 
+                   + v3chichin(g79(:,:,i),ch179,g79(:,:,j),nt79)      ! 
               ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp
               ddterm(3,3) = ddterm(3,3) + (.5-thimp)*dt*temp
-              
-              temp = v3chip     (g79(:,:,i),g79(:,:,j),pt79) &         ! passed: 1
-!                   + v3chipsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79) &  ! FAILED: 1
-                   + v3chibb    (g79(:,:,i),g79(:,:,j),bzt79,bzt79)    ! passed: 1
+                           
+              temp =  v3chip     (g79(:,:,i),g79(:,:,j),pt79) &         !
+!                   + v3chipsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79) &  ! 
+                   + v3chibb    (g79(:,:,i),g79(:,:,j),bzt79,bzt79)    !
               ssterm(3,3) = ssterm(3,3) - thimp*    thimp *dt*dt*temp
               ddterm(3,3) = ddterm(3,3) + thimp*(1.-thimp)*dt*dt*temp
 
-              rrterm(3,1) = rrterm(3,1) + &
-                   dt* &
-                   (v3psipsi(g79(:,:,i),g79(:,:,j),pss79) &       ! passed: 1
-                   +v3psipsi(g79(:,:,i),pss79,g79(:,:,j)))        ! passed: 1
+              rrterm(3,1) = rrterm(3,1) +                    &
+                   dt*                                       &
+                   (v3psipsi(g79(:,:,i),g79(:,:,j),pss79)    &       ! passed: 1
+                   +v3psipsi(g79(:,:,i),pss79,g79(:,:,j))) + &       ! passed: 1
+                   thimp*dt*dt*                              &
+                   (v3psisb1(g79(:,:,i),g79(:,:,j),sb179)    &       ! passed: 1  
+                   +v3psisb1(g79(:,:,i),sb179,g79(:,:,j)))           ! passed: 1
+
+              rrterm(3,2) = rrterm(3,2) + dt*            &
+                   (v3bb(g79(:,:,i),g79(:,:,j),bzs79)    &           ! passed: 1
+                   +v3bb(g79(:,:,i),bzs79,g79(:,:,j))) + &           ! passed: 1
+                   thimp*dt*dt*                          &
+                   (v3bsb2(g79(:,:,i),g79(:,:,j),sb279))             ! passed: 1
+              
+              rrterm(3,3) = rrterm(3,3) + dt* &
+                   v3p(g79(:,:,i),g79(:,:,j))
 
               if(linear.eq.1 .or. eqsubtract.eq.1) then
                  temp = v1uchin(g79(:,:,i),g79(:,:,j),ch079,nt79)
@@ -275,31 +289,39 @@ subroutine ludefvel_t
                       (v3up  (g79(:,:,i),ph079,g79(:,:,j)) &
                       +v3chip(g79(:,:,i),ch079,g79(:,:,j)))
 
+                 r4(i3) = r4(i3) + &
+                      dt* &
+                      (v3chimu (g79(:,:,i),ch079)) + &
+                      thimp*dt*dt* &
+                      (v3psisb1(g79(:,:,i),ps079,sb179) &
+                      +v3psisb1(g79(:,:,i),sb179,ps079) &
+                      +v3bsb2  (g79(:,:,i),bz079,sb279))
+
                  ! DENSITY TERMS
                  r4(i1) = r4(i1) + dt* &
                       (v1uchin  (g79(:,:,i),ph079,ch079,nt79) &
                       +v1chichin(g79(:,:,i),ch079,ch079,nt79))
                  r4(i3) = r4(i3) + dt* &
-                      (v3uun    (g79(:,:,i),ph079,ph079,nt79) &
+                      (v3p      (g79(:,:,i),p079)             &
+                      +v3uun    (g79(:,:,i),ph079,ph079,nt79) &
                       +v3uchin  (g79(:,:,i),ph079,ch079,nt79) &
                       +v3chichin(g79(:,:,i),ch079,ch079,nt79))
-
+                 
                  ! EQUILIBRIUM TERMS
                  r4(i2) = r4(i2) + &
                       thimp*dt*dt* &
                       (v2chipsib  (g79(:,:,i),ch079,ps079,bz079))
                  r4(i3) = r4(i3) + &
                       dt* &
-                      (v3psipsi(g79(:,:,i),ps079,ps079)) + &
+                      (v3psipsi   (g79(:,:,i),ps079,ps079)) + &
                       thimp*dt*dt* &
                       (v3up       (g79(:,:,i),ph079,p079) &
+                      +v3bb       (g79(:,:,i),bz079,bz079) &
                       +v3vpsib    (g79(:,:,i),vz079,ps079,bz079) &
                       +v3chip     (g79(:,:,i),ch079,p079) &
                       +v3chipsipsi(g79(:,:,i),ch079,ps079,ps079) &
                       +v3chibb    (g79(:,:,i),ch079,bz079,bz079))
               endif
-
-
            endif
 
            call insert_val(s1matrix_sm,ssterm(1,1),i1,j1,1)

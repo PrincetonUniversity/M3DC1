@@ -109,7 +109,11 @@ subroutine phiequ(dum, numberingid)
                  enddo
               endif
               if(numvar.ge.3) then
-                 dum(ibegin+12) = p0 - pi0
+                 if(ipres.eq.0) then
+                    dum(ibegin+12) = p0
+                 else
+                    dum(ibegin+12) = p0 - pi0
+                 endif
                  do i=ibegin+13,ibegin+17
                     dum(i) = 0.
                  enddo
@@ -133,7 +137,11 @@ subroutine phiequ(dum, numberingid)
               
               if(numvar.ge.3) then
                  kb = k**2*beta
-                 dum(ibegin+12) = 0.5*kb*dum(ibegin)**2
+                 if(ipres.eq.0) then
+                    dum(ibegin+12) = 0.5*kb*dum(ibegin)**2 + p0
+                 else
+                    dum(ibegin+12) = 0.5*kb*dum(ibegin)**2 + p0 - pi0
+                 endif
                  dum(ibegin+13) = kb*dum(ibegin)*dum(ibegin+1)
                  dum(ibegin+14) = kb*dum(ibegin)*dum(ibegin+2)
                  dum(ibegin+15) = kb*(dum(ibegin+1)**2+                      &
