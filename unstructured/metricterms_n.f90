@@ -1884,7 +1884,6 @@ end function v3uun
 real function v3uchin(e,f,g,h)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
@@ -2040,6 +2039,25 @@ subroutine b1psiu(itri,i,j,ssterm, ddterm, rrterm, qqterm)
   endif
 
 end subroutine b1psiu
+
+
+! B1psichi
+! =======
+real function b1psichi(e,f,g)
+
+  use basic
+  use nintegrate_mod
+  
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+
+  real :: temp
+
+  temp = -int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
+       -  int3(e(:,OP_1),f(:,OP_DR),g(:,OP_DR),weight_79,79)
+
+  b1psichi = temp
+  return
+end function
 
 
 ! B1psieta
@@ -2270,6 +2288,25 @@ subroutine b2bu(itri,i,j,ssterm, ddterm, rrterm, qqterm)
 end subroutine b2bu
 
 
+! B2bchi
+! ======
+real function b2bchi(e,f,g)
+
+  use basic
+  use nintegrate_mod
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+
+  real :: temp
+
+  temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DZ),weight_79,79) &
+       + int4(ri2_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DR),weight_79,79)
+
+  b2bchi = temp
+  return
+end function b2bchi
+
+
 ! B2psiv
 ! ======
 subroutine b2psiv(itri,i,j,ssterm, ddterm, rrterm, qqterm)
@@ -2389,6 +2426,25 @@ subroutine b2psipsid(itri,i,j,ssterm, ddterm, rrterm, qqterm)
   endif
 end subroutine b2psipsid
 
+! B2ped
+real function b2ped(e,f,g)
+
+  use basic
+  use nintegrate_mod
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real :: temp
+  
+  if(idens.eq.0) then
+     temp = 0.
+  else
+     temp = int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
+          - int4(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
+  endif
+
+  b2ped = temp
+  return
+end function b2ped
 
 !===============================================================================
 ! B3 TERMS
@@ -2589,7 +2645,7 @@ end subroutine n1nu
 !===============================================================================
 
 ! P1pu
-! ~~~~
+! ====
 real function p1pu(e,f,g)
 
   use basic
@@ -2614,7 +2670,7 @@ end function p1pu
 
 
 ! P1pchi
-! ~~~~~~
+! ======
 real function p1pchi(e,f,g)
 
   use basic

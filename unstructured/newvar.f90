@@ -52,39 +52,41 @@ subroutine newvar(inarray,outarray,numnodes,numvard,itype,iop,ibound)
   numnodes6 = 6*numnodes
   allocate(temp(numnodes6))
 
-  if(ibound.eq.1) then 
-     ifirst = ifirsts6_lu
-  else
+  select case(ibound)
+  case(0)
      ifirst = ifirsts3_lu
-  endif
+  case(1)
+     ifirst = ifirsts6_lu
+  case default
+     print *, 'Error: ibound not defined.', ibound
+     return
+  end select
 
   ! compute LU decomposition only once
   if(ifirst.eq.0) then
 
-     if(ibound.eq.1) then
-        ifirsts6_lu = 1
+     call numfac(numelms)
 
-        ! allocate boundary array
+     if(ibound.gt.0) then
         nbound = 0
         do i=1,numnodes
            call zonenod(i,izone,izonedim)
            if(izonedim .ne. 2) nbound = nbound + 1
         enddo
-        nbound = 12*nbound
+        nbound = 12*nbound    
+     endif
 
-        allocate(iboundds(nbound))
-     else
+     ! allocate matrix
+     select case(ibound)
+     case(0)
+        call zero_array(s3matrix_sm, spo_numvar1, 53)
         ifirsts3_lu = 1
-     endif
-
-     call numfac(numelms)
+     case(1)
+        call zero_array(s6matrix_sm, spo_numvar1, 53)
+        ifirsts6_lu = 1
+        allocate(iboundds(nbound))
+     end select
   
-     ! define matrix
-     if(ibound.eq.1) then
-        call zero_array(s6matrix_sm,spo_numvar1,53)
-     else
-        call zero_array(s3matrix_sm,spo_numvar1,53)
-     endif
      do itri=1,numelms
         call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
         call calcdterm(itri, dterm, fintl)
@@ -93,29 +95,26 @@ subroutine newvar(inarray,outarray,numnodes,numvard,itype,iop,ibound)
               jone = isval1(itri,j)
               ione = isval1(itri,i)
 
-              if(ibound.eq.1) then
-                 call insert_val(s6matrix_sm, dterm(i,j), ione, jone, 1)
-              else
+              select case(ibound)
+              case(0)
                  call insert_val(s3matrix_sm, dterm(i,j), ione, jone, 1)
-              endif
-              
+              case(1)
+                 call insert_val(s6matrix_sm, dterm(i,j), ione, jone, 1)
+              end select
            enddo
         enddo
      enddo
 
-     ! finalize matrix
-     if(ibound.eq.1) then
-        ! apply boundary conditions
+     select case(ibound)
+     case(0)
+        call finalize_array(s3matrix_sm)
+     case(1)
         call boundaryds(iboundds,nbcds,itype)
         do i=1,nbcds
            call set_diri_bc(s6matrix_sm, iboundds(i))
         enddo
-  
         call finalize_array(s6matrix_sm)
-     else
-        call finalize_array(s3matrix_sm)
-     endif
-
+     end select
   endif
 
 
@@ -134,18 +133,17 @@ subroutine newvar(inarray,outarray,numnodes,numvard,itype,iop,ibound)
               
   end select
 
-
   ! solve linear equation
-  if(ibound.eq.1) then
-     ! complete the imposition of the boundary conditions,
+
+  select case(ibound)
+  case(0)
+     call solve(s3matrix_sm,temp,ier)
+  case(1)
      do i=1,nbcds
         temp(iboundds(i)) = 0.
      enddo
-
      call solve(s6matrix_sm,temp,ier)
-  else
-     call solve(s3matrix_sm,temp,ier)
-  endif
+  end select
 
   if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "newvar: after solve"
 
