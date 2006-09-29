@@ -228,7 +228,7 @@ subroutine newvar_SB1(temp)
   real, intent(out) :: temp(*)
 
   integer :: itri, i, ione, numelms
-  real :: sum, factor, x, z, xmin, zmin, avec(20)
+  real :: sum, factor, x, z, xmin, zmin, avec(20), dbf
 
   double precision :: cogcoords(3)
 
@@ -341,7 +341,7 @@ subroutine newvar_SB2(temp)
   real, intent(out) :: temp(*)
 
   integer :: itri, i, ione, j, j1, j01, numelms
-  real :: sum, factor, x, z, xmin, zmin, avec(20)
+  real :: sum, factor, x, z, xmin, zmin, avec(20), dbf
 
   double precision :: cogcoords(3)
 

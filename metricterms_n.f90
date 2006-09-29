@@ -1,56 +1,56 @@
+module metricterms_n
+
+implicit none
+
+contains
+
 !===============================================================================
 ! V1 TERMS
 !===============================================================================
 
 
-! V1umu  (velocity diffusion)
-! ===========================
-subroutine v1umu(itri,i,j,ssterm, ddterm, rrterm)
+! V1umu
+! =====
+real function v1umu(e,f)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
+  real, intent(in), dimension(79,OP_NUM) :: e,f
   real :: temp
 
-  temp = int2(g25(:,OP_GS,i),g25(:,OP_LP,j),weight_25,25)
-  temp = -amu*temp
+  temp = -int2(e(:,OP_GS),f(:,OP_LP),weight_79,79)
 
-  ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
-  ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
-
-end subroutine v1umu
+  v1umu = temp
+  return
+end function v1umu
 
 
-! V1un (vorticity advection)
-! ===========================
-subroutine v1un(itri,i,j,ssterm, ddterm, rrterm)
+! V1un
+! ====
+real function v1un(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
 
   if(idens.eq.0) then
-     temp = int2(g25(:,OP_DR,i),g25(:,OP_DR,j),weight_25,25) &
-          + int2(g25(:,OP_DZ,i),g25(:,OP_DZ,j),weight_25,25)
+     temp = int2(e(:,OP_DR),f(:,OP_DR),weight_79,79) &
+          + int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79)
   else
-     temp = int3(g79(:,OP_DR,i),g79(:,OP_DR,j),nt79(:,OP_1),weight_79,79) &
-          + int3(g79(:,OP_DZ,i),g79(:,OP_DZ,j),nt79(:,OP_1),weight_79,79)
+     temp = int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_1),weight_79,79) &
+          + int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1),weight_79,79)
   endif
 
-  ssterm(1,1) = ssterm(1,1) + temp
-  ddterm(1,1) = ddterm(1,1) + temp  
-end subroutine v1un
+  v1un = temp
+  return
+end function v1un
 
 
 ! V1chin
@@ -80,195 +80,51 @@ end function v1chin
 
 ! V1uun
 ! =====
-subroutine v1uun(itri,i,j,ssterm, ddterm, rrterm)
+real function v1uun(e,f,g,h)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
-  integer :: i1
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   real :: temp
            
   if(idens.eq.0) then
 
-     ! Linearize in u(1)
-     ! ~~~~~~~~~~~~~~~~~
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
-        temp = int4(r_79,g79(:,OP_DR,i),g79(:,OP_DZ,j),ph079(:,OP_LP),weight_79,79) &
-             - int4(r_79,g79(:,OP_DZ,i),g79(:,OP_DR,j),ph079(:,OP_LP),weight_79,79)
-        if(itor.eq.1) then
-           temp = temp &
-             + int3(g79(:,OP_1,i ),g79(:,OP_DZ, j),ph079(:,OP_LP),weight_79,79) &
-             + int3(g79(:,OP_1,i ),g79(:,OP_DZZ,j),ph079(:,OP_DZ),weight_79,79) &
-             + int3(g79(:,OP_1,i ),g79(:,OP_DRZ,j),ph079(:,OP_DR),weight_79,79) &
-             + int3(g79(:,OP_DZ,i),g79(:,OP_DZ, j),ph079(:,OP_DZ),weight_79,79) &
-             + int3(g79(:,OP_DR,i),g79(:,OP_DZ, j),ph079(:,OP_DR),weight_79,79)
-        endif
-        ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
-        ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
-     endif
-
-     temp = int4(r_79,g79(:,OP_DR,i),g79(:,OP_DZ,j),ph179(:,OP_LP),weight_79,79) &
-          - int4(r_79,g79(:,OP_DZ,i),g79(:,OP_DR,j),ph179(:,OP_LP),weight_79,79)
+     temp = int4(r_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_LP),weight_79,79) &
+          - int4(r_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_LP),weight_79,79)
      if(itor.eq.1) then
         temp = temp &
-          + int3(g79(:,OP_1, i),g79(:,OP_DZ, j),ph179(:,OP_LP),weight_79,79) &
-          + int3(g79(:,OP_1, i),g79(:,OP_DZZ,j),ph179(:,OP_DZ),weight_79,79) &
-          + int3(g79(:,OP_1, i),g79(:,OP_DRZ,j),ph179(:,OP_DR),weight_79,79) &
-          + int3(g79(:,OP_DZ,i),g79(:,OP_DZ, j),ph179(:,OP_DZ),weight_79,79) &
-          + int3(g79(:,OP_DR,i),g79(:,OP_DZ, j),ph179(:,OP_DR),weight_79,79)
+             + int3(e(:,OP_1 ),f(:,OP_DZ ),g(:,OP_LP),weight_79,79) &
+             + int3(e(:,OP_1 ),f(:,OP_DZZ),g(:,OP_DZ),weight_79,79) &
+             + int3(e(:,OP_1 ),f(:,OP_DRZ),g(:,OP_DR),weight_79,79) &
+             + int3(e(:,OP_DZ),f(:,OP_DZ ),g(:,OP_DZ),weight_79,79) &
+             + int3(e(:,OP_DR),f(:,OP_DZ ),g(:,OP_DR),weight_79,79)
      endif
-     ssterm(1,1) = ssterm(1,1) -      thimp *dt*temp
-     ddterm(1,1) = ddterm(1,1) + (0.5-thimp)*dt*temp
-             
-     ! Linearize in u(2)
-     ! ~~~~~~~~~~~~~~~~~
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
-        temp = int4(r_79,g79(:,OP_DR,i),ph079(:,OP_DZ),g79(:,OP_LP,j),weight_79,79) &
-             - int4(r_79,g79(:,OP_DZ,i),ph079(:,OP_DR),g79(:,OP_LP,j),weight_79,79)
-        if(itor.eq.1) then
-           temp = temp &
-             + int3(g79(:,OP_1, i),ph079(:,OP_DZ ),g79(:,OP_LP,j),weight_79,79) &
-             + int3(g79(:,OP_1, i),ph079(:,OP_DZZ),g79(:,OP_DZ,j),weight_79,79) &
-             + int3(g79(:,OP_1, i),ph079(:,OP_DRZ),g79(:,OP_DR,j),weight_79,79) &
-             + int3(g79(:,OP_DZ,i),ph079(:,OP_DZ ),g79(:,OP_DZ,j),weight_79,79) &
-             + int3(g79(:,OP_DR,i),ph079(:,OP_DZ ),g79(:,OP_DR,j),weight_79,79)
-        endif
-        ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
-        ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
-     endif
-              
-     temp = int4(r_79,g79(:,OP_DR,i),ph179(:,OP_DZ),g79(:,OP_LP,j),weight_79,79) &
-          - int4(r_79,g79(:,OP_DZ,i),ph179(:,OP_DR),g79(:,OP_LP,j),weight_79,79)
-     if(itor.eq.1) then
-        temp = temp &
-          + int3(g79(:,OP_1, i),ph179(:,OP_DZ),g79(:,OP_LP,j),weight_79,79) &
-          + int3(g79(:,OP_1, i),ph179(:,OP_DZZ),g79(:,OP_DZ,j),weight_79,79) &
-          + int3(g79(:,OP_1, i),ph179(:,OP_DRZ),g79(:,OP_DR,j),weight_79,79) &
-          + int3(g79(:,OP_DZ,i),ph179(:,OP_DZ),g79(:,OP_DZ,j),weight_79,79) &
-          + int3(g79(:,OP_DR,i),ph179(:,OP_DZ),g79(:,OP_DR,j),weight_79,79)
-     endif
-     ssterm(1,1) = ssterm(1,1) -      thimp *dt*temp
-     ddterm(1,1) = ddterm(1,1) + (0.5-thimp)*dt*temp
-              
   else
 
-     ! Linearize in u(1)
-     ! ~~~~~~~~~~~~~~~~~
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
-        temp = -int5(r_79,g79(:,OP_1, i),g79(:,OP_DZ,j),ph079(:,OP_DRR),nt79(:,OP_DR),weight_79,79) &
-             +  int5(r_79,g79(:,OP_1, i),g79(:,OP_DR,j),ph079(:,OP_DRZ),nt79(:,OP_DR),weight_79,79) &
-             -  int5(r_79,g79(:,OP_1, i),g79(:,OP_DZ,j),ph079(:,OP_DRZ),nt79(:,OP_DZ),weight_79,79) &
-             +  int5(r_79,g79(:,OP_1, i),g79(:,OP_DR,j),ph079(:,OP_DZZ),nt79(:,OP_DZ),weight_79,79) &
-             +  int5(r_79,g79(:,OP_1, i),g79(:,OP_DZ,j),ph079(:,OP_LP ),nt79(:,OP_DR),weight_79,79) &
-             -  int5(r_79,g79(:,OP_1, i),g79(:,OP_DR,j),ph079(:,OP_LP ),nt79(:,OP_DZ),weight_79,79) &
-             +  int5(r_79,g79(:,OP_DR,i),g79(:,OP_DZ,j),ph079(:,OP_LP ),nt79(:,OP_1),weight_79,79) &
-             -  int5(r_79,g79(:,OP_DZ,i),g79(:,OP_DR,j),ph079(:,OP_LP ),nt79(:,OP_1),weight_79,79)
-        if(itor.eq.1) then
-           temp = temp &
-             +  int4(g79(:,OP_1 ,i),g79(:,OP_DZ, j),ph079(:,OP_LP),nt79(:,OP_1),weight_79,79) &
-             +  int4(g79(:,OP_1 ,i),g79(:,OP_DZZ,j),ph079(:,OP_DR),nt79(:,OP_1),weight_79,79) &
-             +  int4(g79(:,OP_1 ,i),g79(:,OP_DRZ,j),ph079(:,OP_DZ),nt79(:,OP_1),weight_79,79) &
-             +  int4(g79(:,OP_DZ,i),g79(:,OP_DZ, j),ph079(:,OP_DR),nt79(:,OP_1),weight_79,79) &
-             +  int4(g79(:,OP_DZ,i),g79(:,OP_DR, j),ph079(:,OP_DZ),nt79(:,OP_1),weight_79,79)
-        endif
-        ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
-        ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
-     endif
-
-     temp = -int5(r_79,g79(:,OP_1, i),g79(:,OP_DZ,j),ph179(:,OP_DRR),nt79(:,OP_DR),weight_79,79) &
-          +  int5(r_79,g79(:,OP_1, i),g79(:,OP_DR,j),ph179(:,OP_DRZ),nt79(:,OP_DR),weight_79,79) &
-          -  int5(r_79,g79(:,OP_1, i),g79(:,OP_DZ,j),ph179(:,OP_DRZ),nt79(:,OP_DZ),weight_79,79) &
-          +  int5(r_79,g79(:,OP_1, i),g79(:,OP_DR,j),ph179(:,OP_DZZ),nt79(:,OP_DZ),weight_79,79) &
-          +  int5(r_79,g79(:,OP_1, i),g79(:,OP_DZ,j),ph179(:,OP_LP ),nt79(:,OP_DR),weight_79,79) &
-          -  int5(r_79,g79(:,OP_1, i),g79(:,OP_DR,j),ph179(:,OP_LP ),nt79(:,OP_DZ),weight_79,79) &
-          +  int5(r_79,g79(:,OP_DR,i),g79(:,OP_DZ,j),ph179(:,OP_LP ),nt79(:,OP_1),weight_79,79) &
-          -  int5(r_79,g79(:,OP_DZ,i),g79(:,OP_DR,j),ph179(:,OP_LP ),nt79(:,OP_1),weight_79,79)
+     temp = -int5(r_79,e(:,OP_1 ),f(:,OP_DZ),g(:,OP_DRR),h(:,OP_DR),weight_79,79) &
+          +  int5(r_79,e(:,OP_1 ),f(:,OP_DR),g(:,OP_DRZ),h(:,OP_DR),weight_79,79) &
+          -  int5(r_79,e(:,OP_1 ),f(:,OP_DZ),g(:,OP_DRZ),h(:,OP_DZ),weight_79,79) &
+          +  int5(r_79,e(:,OP_1 ),f(:,OP_DR),g(:,OP_DZZ),h(:,OP_DZ),weight_79,79) &
+          +  int5(r_79,e(:,OP_1 ),f(:,OP_DZ),g(:,OP_LP ),h(:,OP_DR),weight_79,79) &
+          -  int5(r_79,e(:,OP_1 ),f(:,OP_DR),g(:,OP_LP ),h(:,OP_DZ),weight_79,79) &
+          +  int5(r_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_LP ),h(:,OP_1 ),weight_79,79) &
+          -  int5(r_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_LP ),h(:,OP_1 ),weight_79,79)
      if(itor.eq.1) then
         temp = temp &
-          +  int4(g79(:,OP_1 ,i),g79(:,OP_DZ, j),ph179(:,OP_LP),nt79(:,OP_1),weight_79,79) &
-          +  int4(g79(:,OP_1 ,i),g79(:,OP_DZZ,j),ph179(:,OP_DR),nt79(:,OP_1),weight_79,79) &
-          +  int4(g79(:,OP_1 ,i),g79(:,OP_DRZ,j),ph179(:,OP_DZ),nt79(:,OP_1),weight_79,79) &
-          +  int4(g79(:,OP_DZ,i),g79(:,OP_DZ, j),ph179(:,OP_DR),nt79(:,OP_1),weight_79,79) &
-          +  int4(g79(:,OP_DZ,i),g79(:,OP_DR, j),ph179(:,OP_DZ),nt79(:,OP_1),weight_79,79)
+          +  int4(e(:,OP_1 ),f(:,OP_DZ ),g(:,OP_LP),h(:,OP_1),weight_79,79) &
+          +  int4(e(:,OP_1 ),f(:,OP_DZZ),g(:,OP_DR),h(:,OP_1),weight_79,79) &
+          +  int4(e(:,OP_1 ),f(:,OP_DRZ),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+          +  int4(e(:,OP_DZ),f(:,OP_DZ ),g(:,OP_DR),h(:,OP_1),weight_79,79) &
+          +  int4(e(:,OP_DZ),f(:,OP_DR ),g(:,OP_DZ),h(:,OP_1),weight_79,79)
      endif
-     ssterm(1,1) = ssterm(1,1) -      thimp *dt*temp
-     ddterm(1,1) = ddterm(1,1) + (0.5-thimp)*dt*temp
-
-     ! Linearize in u(2)
-     ! ~~~~~~~~~~~~~~~~~
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
-        temp = -int5(r_79,g79(:,OP_1, i),ph079(:,OP_DZ),g79(:,OP_DRR,j),nt79(:,OP_DR),weight_79,79) &
-             +  int5(r_79,g79(:,OP_1, i),ph079(:,OP_DR),g79(:,OP_DRZ,j),nt79(:,OP_DR),weight_79,79) &
-             -  int5(r_79,g79(:,OP_1, i),ph079(:,OP_DZ),g79(:,OP_DRZ,j),nt79(:,OP_DZ),weight_79,79) &
-             +  int5(r_79,g79(:,OP_1, i),ph079(:,OP_DR),g79(:,OP_DZZ,j),nt79(:,OP_DZ),weight_79,79) &
-             +  int5(r_79,g79(:,OP_1, i),ph079(:,OP_DZ),g79(:,OP_LP, j),nt79(:,OP_DR),weight_79,79) &
-             -  int5(r_79,g79(:,OP_1, i),ph079(:,OP_DR),g79(:,OP_LP, j),nt79(:,OP_DZ),weight_79,79) &
-             +  int5(r_79,g79(:,OP_DR,i),ph079(:,OP_DZ),g79(:,OP_LP, j),nt79(:,OP_1),weight_79,79) &
-             -  int5(r_79,g79(:,OP_DZ,i),ph079(:,OP_DR),g79(:,OP_LP, j),nt79(:,OP_1),weight_79,79)
-        if(itor.eq.1) then
-           temp = temp &
-             +  int4(g79(:,OP_1 ,i),ph079(:,OP_DZ ),g79(:,OP_LP,j),nt79(:,OP_1),weight_79,79) &
-             +  int4(g79(:,OP_1 ,i),ph079(:,OP_DZZ),g79(:,OP_DR,j),nt79(:,OP_1),weight_79,79) &
-             +  int4(g79(:,OP_1 ,i),ph079(:,OP_DRZ),g79(:,OP_DZ,j),nt79(:,OP_1),weight_79,79) &
-             +  int4(g79(:,OP_DZ,i),ph079(:,OP_DZ ),g79(:,OP_DR,j),nt79(:,OP_1),weight_79,79) &
-             +  int4(g79(:,OP_DZ,i),ph079(:,OP_DR ),g79(:,OP_DZ,j),nt79(:,OP_1),weight_79,79)
-        endif
-        ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
-        ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
-     endif
-
-     temp = -int5(r_79,g79(:,OP_1, i),ph179(:,OP_DZ),g79(:,OP_DRR,j),nt79(:,OP_DR),weight_79,79) &
-          +  int5(r_79,g79(:,OP_1, i),ph179(:,OP_DR),g79(:,OP_DRZ,j),nt79(:,OP_DR),weight_79,79) &
-          -  int5(r_79,g79(:,OP_1, i),ph179(:,OP_DZ),g79(:,OP_DRZ,j),nt79(:,OP_DZ),weight_79,79) &
-          +  int5(r_79,g79(:,OP_1, i),ph179(:,OP_DR),g79(:,OP_DZZ,j),nt79(:,OP_DZ),weight_79,79) &
-          +  int5(r_79,g79(:,OP_1, i),ph179(:,OP_DZ),g79(:,OP_LP, j),nt79(:,OP_DR),weight_79,79) &
-          -  int5(r_79,g79(:,OP_1, i),ph179(:,OP_DR),g79(:,OP_LP, j),nt79(:,OP_DZ),weight_79,79) &
-          +  int5(r_79,g79(:,OP_DR,i),ph179(:,OP_DZ),g79(:,OP_LP, j),nt79(:,OP_1),weight_79,79) &
-          -  int5(r_79,g79(:,OP_DZ,i),ph179(:,OP_DR),g79(:,OP_LP, j),nt79(:,OP_1),weight_79,79)
-     if(itor.eq.1) then
-        temp = temp &
-          +  int4(g79(:,OP_1 ,i),ph179(:,OP_DZ ),g79(:,OP_LP,j),nt79(:,OP_1),weight_79,79) &
-          +  int4(g79(:,OP_1 ,i),ph179(:,OP_DZZ),g79(:,OP_DR,j),nt79(:,OP_1),weight_79,79) &
-          +  int4(g79(:,OP_1 ,i),ph179(:,OP_DRZ),g79(:,OP_DZ,j),nt79(:,OP_1),weight_79,79) &
-          +  int4(g79(:,OP_DZ,i),ph179(:,OP_DZ ),g79(:,OP_DR,j),nt79(:,OP_1),weight_79,79) &
-          +  int4(g79(:,OP_DZ,i),ph179(:,OP_DR ),g79(:,OP_DZ,j),nt79(:,OP_1),weight_79,79)
-     endif
-     ssterm(1,1) = ssterm(1,1) -      thimp *dt*temp
-     ddterm(1,1) = ddterm(1,1) + (0.5-thimp)*dt*temp
-
-     ! Linearize in n
-     ! ~~~~~~~~~~~~~~
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
-        i1 = isvaln(itri,i)
-
-        temp = -int5(r_79,g79(:,OP_1, i),ph079(:,OP_DZ),ph079(:,OP_DRR),nt79(:,OP_DR),weight_79,79) &
-             +  int5(r_79,g79(:,OP_1, i),ph079(:,OP_DR),ph079(:,OP_DRZ),nt79(:,OP_DR),weight_79,79) &
-             -  int5(r_79,g79(:,OP_1, i),ph079(:,OP_DZ),ph079(:,OP_DRZ),nt79(:,OP_DZ),weight_79,79) &
-             +  int5(r_79,g79(:,OP_1, i),ph079(:,OP_DR),ph079(:,OP_DZZ),nt79(:,OP_DZ),weight_79,79) &
-             +  int5(r_79,g79(:,OP_1, i),ph079(:,OP_DZ),ph079(:,OP_LP ),nt79(:,OP_DR),weight_79,79) &
-             -  int5(r_79,g79(:,OP_1, i),ph079(:,OP_DR),ph079(:,OP_LP ),nt79(:,OP_DZ),weight_79,79) &
-             +  int5(r_79,g79(:,OP_DR,i),ph079(:,OP_DZ),ph079(:,OP_LP ),nt79(:,OP_1),weight_79,79) &
-             -  int5(r_79,g79(:,OP_DZ,i),ph079(:,OP_DR),ph079(:,OP_LP ),nt79(:,OP_1),weight_79,79)
-        if(itor.eq.1) then
-           temp = temp &
-             +  int4(g79(:,OP_1 ,i),ph079(:,OP_DZ ),ph079(:,OP_LP),nt79(:,OP_1),weight_79,79) &
-             +  int4(g79(:,OP_1 ,i),ph079(:,OP_DZZ),ph079(:,OP_DR),nt79(:,OP_1),weight_79,79) &
-             +  int4(g79(:,OP_1 ,i),ph079(:,OP_DRZ),ph079(:,OP_DZ),nt79(:,OP_1),weight_79,79) &
-             +  int4(g79(:,OP_DZ,i),ph079(:,OP_DZ ),ph079(:,OP_DR),nt79(:,OP_1),weight_79,79) &
-             +  int4(g79(:,OP_DZ,i),ph079(:,OP_DR ),ph079(:,OP_DZ),nt79(:,OP_1),weight_79,79)
-        endif
-        r4(i1) = r4(i1) + dt*temp
-     endif
-
   endif
 
-end subroutine v1uun
+  v1uun = temp
+  return
+end function v1uun
 
 
 ! v1uchin
@@ -343,300 +199,139 @@ end function v1chichin
 
 ! V1psisb1
 ! ========
-subroutine v1psisb1(itri,i,j,ssterm, ddterm, rrterm)
+real function v1psisb1(e,f,g)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
-  integer :: i1
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
 
-  temp = int4(ri3_79,g79(:,OP_DZ,i),g79(:,OP_GS,j),sb179(:,OP_DR),weight_79,79) &
-       - int4(ri3_79,g79(:,OP_DR,i),g79(:,OP_GS,j),sb179(:,OP_DZ),weight_79,79) &
-       + int4(ri3_79,g79(:,OP_DZ,i),g79(:,OP_DR,j),sb179(:,OP_GS),weight_79,79) &
-       - int4(ri3_79,g79(:,OP_DR,i),g79(:,OP_DZ,j),sb179(:,OP_GS),weight_79,79)
+  temp = int4(ri3_79,e(:,OP_DZ),f(:,OP_GS),g(:,OP_DR),weight_79,79) &
+       - int4(ri3_79,e(:,OP_DR),f(:,OP_GS),g(:,OP_DZ),weight_79,79) &
+       + int4(ri3_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_GS),weight_79,79) &
+       - int4(ri3_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_GS),weight_79,79)
 
-  rrterm(1,1) = rrterm(1,1) + thimp *dt*dt*temp
-
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     i1 = isvaln(itri,i)
-
-     temp = int4(ri3_79,g79(:,OP_DZ,i),ph079(:,OP_GS),sb179(:,OP_DR),weight_79,79) &
-          - int4(ri3_79,g79(:,OP_DR,i),ph079(:,OP_GS),sb179(:,OP_DZ),weight_79,79) &
-          + int4(ri3_79,g79(:,OP_DZ,i),ph079(:,OP_DR),sb179(:,OP_GS),weight_79,79) &
-          - int4(ri3_79,g79(:,OP_DR,i),ph079(:,OP_DZ),sb179(:,OP_GS),weight_79,79)
-
-     r4(i1) = r4(i1) + thimp*dt*dt*temp
-  end if
-
-end subroutine v1psisb1
+  v1psisb1 = temp
+  return
+end function v1psisb1
 
 
 ! V1psipsi
 ! ========
-subroutine v1psipsi(itri,i,j,ssterm, ddterm, rrterm)
+real function v1psipsi(e,f,g)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
-  integer :: i1
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
           
-  temp = int4(ri3_79,g79(:,OP_DZ,i),g79(:,OP_GS,j),ps179(:,OP_DR),weight_79,79) &
-       - int4(ri3_79,g79(:,OP_DR,i),g79(:,OP_GS,j),ps179(:,OP_DZ),weight_79,79) &
-       + int4(ri3_79,g79(:,OP_DZ,i),ps179(:,OP_GS),g79(:,OP_DR,j),weight_79,79) &
-       - int4(ri3_79,g79(:,OP_DR,i),ps179(:,OP_GS),g79(:,OP_DZ,j),weight_79,79)
-  rrterm(1,1) = rrterm(1,1) + dt*temp/2.
+  temp = int4(ri3_79,e(:,OP_DZ),f(:,OP_GS),g(:,OP_DR),weight_79,79) &
+       - int4(ri3_79,e(:,OP_DR),f(:,OP_GS),g(:,OP_DZ),weight_79,79)
 
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     i1 = isval1(itri,i)
-
-     temp = int4(ri3_79,g79(:,OP_DZ,i),g79(:,OP_GS,j),ps079(:,OP_DR),weight_79,79) &
-          - int4(ri3_79,g79(:,OP_DR,i),g79(:,OP_GS,j),ps079(:,OP_DZ),weight_79,79) &
-          + int4(ri3_79,g79(:,OP_DZ,i),ps079(:,OP_GS),g79(:,OP_DR,j),weight_79,79) &
-          - int4(ri3_79,g79(:,OP_DR,i),ps079(:,OP_GS),g79(:,OP_DZ,j),weight_79,79)
-     rrterm(1,1) = rrterm(1,1) + dt*temp
-
-     ! EQUILIBRIUM TERM
-     temp = int4(ri3_79,g79(:,OP_DZ,i),ps079(:,OP_GS),ps079(:,OP_DR),weight_79,79) &
-          - int4(ri3_79,g79(:,OP_DR,i),ps079(:,OP_GS),ps079(:,OP_DZ),weight_79,79)
-     r4(i1) = r4(i1) + dt*temp
-  endif
-  
-
-end subroutine v1psipsi
+  v1psipsi = temp
+  return
+end function v1psipsi
 
 
 ! V1upsipsi
 ! =========
-subroutine v1upsipsi(itri,i,j,ssterm, ddterm, rrterm)
+real function v1upsipsi(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   real :: temp
 
-  ! Linearize in u
-  ! ~~~~~~~~~~~~~~
-           
   ! |psi(1), u|
-  temp79a = g79(:,OP_DR, j)*pst79(:,OP_DZ ) - g79(:,OP_DZ, j)*pst79(:,OP_DR)
+  temp79a = f(:,OP_DR )*g(:,OP_DZ ) - f(:,OP_DZ )*g(:,OP_DR )
   ! |psi(1), u|,r
-  temp79b = g79(:,OP_DRR,j)*pst79(:,OP_DZ ) - g79(:,OP_DRZ,j)*pst79(:,OP_DR ) &
-       +    g79(:,OP_DR, j)*pst79(:,OP_DRZ) - g79(:,OP_DZ, j)*pst79(:,OP_DRR)
+  temp79b = f(:,OP_DRR)*g(:,OP_DZ ) - f(:,OP_DRZ)*g(:,OP_DR ) &
+       +    f(:,OP_DR )*g(:,OP_DRZ) - f(:,OP_DZ )*g(:,OP_DRR)
   ! |psi(1), u|,z
-  temp79c = g79(:,OP_DRZ,j)*pst79(:,OP_DZ ) - g79(:,OP_DZZ,j)*pst79(:,OP_DR ) &
-       +    g79(:,OP_DR, j)*pst79(:,OP_DZZ) - g79(:,OP_DZ, j)*pst79(:,OP_DRZ)
+  temp79c = f(:,OP_DRZ)*g(:,OP_DZ ) - f(:,OP_DZZ)*g(:,OP_DR ) &
+       +    f(:,OP_DR )*g(:,OP_DZZ) - f(:,OP_DZ )*g(:,OP_DRZ)
 
   ! |psi(2), nu|
-  temp79d = g79(:,OP_DR, i)*pst79(:,OP_DZ ) - g79(:,OP_DZ, i)*pst79(:,OP_DR)
+  temp79d = e(:,OP_DR )*h(:,OP_DZ ) - e(:,OP_DZ )*h(:,OP_DR)
   ! |psi(2), nu|,r
-  temp79e = g79(:,OP_DRR,i)*pst79(:,OP_DZ ) - g79(:,OP_DRZ,i)*pst79(:,OP_DR ) &
-       +    g79(:,OP_DR, i)*pst79(:,OP_DRZ) - g79(:,OP_DZ, i)*pst79(:,OP_DRR)
+  temp79e = e(:,OP_DRR)*h(:,OP_DZ ) - e(:,OP_DRZ)*h(:,OP_DR ) &
+       +    e(:,OP_DR )*h(:,OP_DRZ) - e(:,OP_DZ )*h(:,OP_DRR)
   ! |psi(2), nu|,z
-  temp79f = g79(:,OP_DRZ,i)*pst79(:,OP_DZ ) - g79(:,OP_DZZ,i)*pst79(:,OP_DR ) &
-       +    g79(:,OP_DR, i)*pst79(:,OP_DZZ) - g79(:,OP_DZ, i)*pst79(:,OP_DRZ)
+  temp79f = e(:,OP_DRZ)*h(:,OP_DZ ) - e(:,OP_DZZ)*h(:,OP_DR ) &
+       +    e(:,OP_DR )*h(:,OP_DZZ) - e(:,OP_DZ )*h(:,OP_DRZ)
   
-  temp = int4(ri2_79,g79(:,OP_DR,i),temp79c,pst79(:,OP_GS),weight_79,79) &
-       - int4(ri2_79,g79(:,OP_DZ,i),temp79b,pst79(:,OP_GS),weight_79,79) &
+  temp = int4(ri2_79,e(:,OP_DR),temp79c,h(:,OP_GS),weight_79,79) &
+       - int4(ri2_79,e(:,OP_DZ),temp79b,h(:,OP_GS),weight_79,79) &
        - int3(ri2_79,temp79b,temp79e,weight_79,79) &
        - int3(ri2_79,temp79c,temp79f,weight_79,79)
   if(itor.eq.1) then
      temp = temp &
        + int3(ri3_79,temp79b,temp79d,weight_79,79) &
        - int3(ri3_79,temp79a,temp79e,weight_79,79) &
-       - int4(ri3_79,g79(:,OP_DZ,i),temp79a,pst79(:,OP_GS),weight_79,79) &
+       - int4(ri3_79,e(:,OP_DZ),temp79a,h(:,OP_GS),weight_79,79) &
        + int3(ri4_79,temp79a,temp79d,weight_79,79)
   endif
-  ssterm(1,1) = ssterm(1,1) - thimp*    thimp *dt*dt*temp
-  ddterm(1,1) = ddterm(1,1) + thimp*(1.-thimp)*dt*dt*temp
 
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     ! Linearize in psi(1)
-     ! ~~~~~~~~~~~~~~~~~~~
-     tm79 = ps079 + ps179/2.
-     
-     ! |psi(1), u|   
-     temp79a = ph079(:,OP_DR)*g79(:,OP_DZ,j) - ph079(:,OP_DZ)*g79(:,OP_DR,j)
-     ! |psi(1), u|,r
-     temp79b = ph079(:,OP_DRR)*g79(:,OP_DZ, j) - ph079(:,OP_DRZ)*g79(:,OP_DR, j) &
-          +    ph079(:,OP_DR )*g79(:,OP_DRZ,j) - ph079(:,OP_DZ )*g79(:,OP_DRR,j)
-     ! |psi(1), u|,z
-     temp79c = ph079(:,OP_DRZ)*g79(:,OP_DZ, j) - ph079(:,OP_DZZ)*g79(:,OP_DR, j) &
-          +    ph079(:,OP_DR )*g79(:,OP_DZZ,j) - ph079(:,OP_DZ )*g79(:,OP_DRZ,j)
-     
-     ! |psi(2), nu|
-     temp79d = g79(:,OP_DR,i)*tm79(:,OP_DZ) - g79(:,OP_DZ,i)*tm79(:,OP_DR)
-     ! |psi(2), nu|,r
-     temp79e = g79(:,OP_DRR,i)*tm79(:,OP_DZ ) - g79(:,OP_DRZ,i)*tm79(:,OP_DR ) &
-          +    g79(:,OP_DR, i)*tm79(:,OP_DRZ) - g79(:,OP_DZ, i)*tm79(:,OP_DRR)
-     ! |psi(2), nu|,z
-     temp79f = g79(:,OP_DRZ,i)*tm79(:,OP_DZ ) - g79(:,OP_DZZ,i)*tm79(:,OP_DR ) &
-          +    g79(:,OP_DR, i)*tm79(:,OP_DZZ) - g79(:,OP_DZ, i)*tm79(:,OP_DRZ)
-     
-     temp = int4(ri2_79,g79(:,OP_DR,i),temp79c,tm79(:,OP_GS),weight_79,79) &
-          - int4(ri2_79,g79(:,OP_DZ,i),temp79b,tm79(:,OP_GS),weight_79,79) &
-          - int3(ri2_79,temp79b,temp79e,weight_79,79) &
-          - int3(ri2_79,temp79c,temp79f,weight_79,79)
-     if(itor.eq.1) then
-        temp = temp &
-          + int3(ri3_79,temp79b,temp79d,weight_79,79) &
-          - int3(ri3_79,temp79a,temp79e,weight_79,79) &
-          - int4(ri3_79,g79(:,OP_DZ,i),temp79a,tm79(:,OP_GS),weight_79,79) &
-          + int3(ri4_79,temp79a,temp79d,weight_79,79)
-     endif
-     rrterm(1,1) = rrterm(1,1) + thimp*dt*dt*temp
-     
-
-     ! Linearize in psi(2)
-     ! ~~~~~~~~~~~~~~~~~~~
-
-     ! |psi(1), u|
-     temp79a = ph079(:,OP_DR)*tm79(:,OP_DZ) - ph079(:,OP_DZ)*tm79(:,OP_DR)
-     ! |psi(1), u|,r
-     temp79b = ph079(:,OP_DRR)*tm79(:,OP_DZ ) - ph079(:,OP_DRZ)*tm79(:,OP_DR ) &
-          +    ph079(:,OP_DR )*tm79(:,OP_DRZ) - ph079(:,OP_DZ )*tm79(:,OP_DRR)
-     ! |psi(1), u|,z
-     temp79c = ph079(:,OP_DRZ)*tm79(:,OP_DZ ) - ph079(:,OP_DZZ)*tm79(:,OP_DR ) &
-          +    ph079(:,OP_DR )*tm79(:,OP_DZZ) - ph079(:,OP_DZ )*tm79(:,OP_DRZ)
-     
-     ! |psi(2), nu|
-     temp79d = g79(:,OP_DR,i)*g79(:,OP_DZ, j) - g79(:,OP_DZ,i)*g79(:,OP_DR,j)
-     ! |psi(2), nu|,r
-     temp79e = g79(:,OP_DRR,i)*g79(:,OP_DZ, j) - g79(:,OP_DRZ,i)*g79(:,OP_DR, j) &
-          +    g79(:,OP_DR, i)*g79(:,OP_DRZ,j) - g79(:,OP_DZ, i)*g79(:,OP_DRR,j)
-     ! |psi(2), nu|,z
-     temp79f = g79(:,OP_DRZ,i)*g79(:,OP_DZ, j) - g79(:,OP_DZZ,i)*g79(:,OP_DR, j) &
-          +    g79(:,OP_DR, i)*g79(:,OP_DZZ,j) - g79(:,OP_DZ, i)*g79(:,OP_DRZ,j)
-     
-     temp = int4(ri2_79,g79(:,OP_DR,i),temp79c,g79(:,OP_GS,j),weight_79,79) &
-          - int4(ri2_79,g79(:,OP_DZ,i),temp79b,g79(:,OP_GS,j),weight_79,79) &
-          - int3(ri2_79,temp79b,temp79e,weight_79,79) &
-          - int3(ri2_79,temp79c,temp79f,weight_79,79)
-     if(itor.eq.1) then
-        temp = temp &
-          + int3(ri3_79,temp79b,temp79d,weight_79,79) &
-          - int3(ri3_79,temp79a,temp79e,weight_79,79) &
-          - int4(ri3_79,g79(:,OP_DZ,i),temp79a,g79(:,OP_GS,j),weight_79,79) &
-          + int3(ri4_79,temp79a,temp79d,weight_79,79)
-     endif
-     rrterm(1,1) = rrterm(1,1) + thimp*dt*dt*temp
-  endif
-end subroutine v1upsipsi
+  v1upsipsi = temp
+  return
+end function v1upsipsi
 
 
 ! V1vpsib
-! =========================================================================
-subroutine v1vpsib(itri,i,j,ssterm, ddterm, rrterm)
+! =======
+real function v1vpsib(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   real :: temp
 
-  if(itor.eq.0) return
-
-  ! Linearize in v
-  ! ~~~~~~~~~~~~~~
-  temp = int5(ri6_79,g79(:,OP_DZ,i),g79(:,OP_DZ,j),pst79(:,OP_DR),bzt79(:,OP_1),weight_79,79) &
-       - int5(ri6_79,g79(:,OP_DZ,i),g79(:,OP_DR,j),pst79(:,OP_DZ),bzt79(:,OP_1),weight_79,79) &
-       + int5(ri7_79,g79(:,OP_DZ,i),g79(:,OP_1,j),pst79(:,OP_DZ),bzt79(:,OP_1),weight_79,79)
-
-  ssterm(1,2) = ssterm(1,2) - thimp*    thimp *dt*dt*temp
-  ddterm(1,2) = ddterm(1,2) + thimp*(1.-thimp)*dt*dt*temp
-
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     ! Linearize in psi
-     ! ~~~~~~~~~~~~~~~~
-     temp = int5(ri6_79,g79(:,OP_DZ,i),vz079(:,OP_DZ),g79(:,OP_DR,j),bz179(:,OP_1),weight_79,79)/2. &
-          - int5(ri6_79,g79(:,OP_DZ,i),vz079(:,OP_DR),g79(:,OP_DZ,j),bz179(:,OP_1),weight_79,79)/2. &
-          + int5(ri6_79,g79(:,OP_DZ,i),vz079(:,OP_DZ),g79(:,OP_DR,j),bz079(:,OP_1),weight_79,79) &
-          - int5(ri6_79,g79(:,OP_DZ,i),vz079(:,OP_DR),g79(:,OP_DZ,j),bz079(:,OP_1),weight_79,79) &
-          + int5(ri7_79,g79(:,OP_DZ,i),vz079(:,OP_1),g79(:,OP_DZ,j),bz179(:,OP_1),weight_79,79)/2. &
-          + int5(ri7_79,g79(:,OP_DZ,i),vz079(:,OP_1),g79(:,OP_DZ,j),bz079(:,OP_1),weight_79,79)
-
-     rrterm(1,1) = rrterm(1,1) + thimp*dt*dt*temp
-
-     ! Linearize in bz
-     ! ~~~~~~~~~~~~~~~
-     temp = int5(ri6_79,g79(:,OP_DZ,i),vz079(:,OP_DZ),ps179(:,OP_DR),g79(:,OP_1,j),weight_79,79)/2. &
-          - int5(ri6_79,g79(:,OP_DZ,i),vz079(:,OP_DR),ps179(:,OP_DZ),g79(:,OP_1,j),weight_79,79)/2. &
-          + int5(ri6_79,g79(:,OP_DZ,i),vz079(:,OP_DZ),ps079(:,OP_DR),g79(:,OP_1,j),weight_79,79) &
-          - int5(ri6_79,g79(:,OP_DZ,i),vz079(:,OP_DR),ps079(:,OP_DZ),g79(:,OP_1,j),weight_79,79) &
-          + int5(ri7_79,g79(:,OP_DZ,i),vz079(:,OP_1),ps179(:,OP_DZ),g79(:,OP_1,j),weight_79,79)/2. &
-          + int5(ri7_79,g79(:,OP_DZ,i),vz079(:,OP_1),ps079(:,OP_DZ),g79(:,OP_1,j),weight_79,79)
-
-     rrterm(1,2) = rrterm(1,2) + thimp*dt*dt*temp
-
+  if(itor.eq.0) then
+     temp = 0.
+  else
+     temp = int5(ri6_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),weight_79,79) &
+          - int5(ri6_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+          + int5(ri7_79,e(:,OP_DZ),f(:,OP_1 ),g(:,OP_DZ),h(:,OP_1),weight_79,79)
   endif
 
-
-end subroutine v1vpsib
+  v1vpsib = temp
+  return
+end function v1vpsib
 
 
 ! V1bb 
 ! ====
-subroutine v1bb(itri,i,j,ssterm, ddterm, rrterm)
+real function v1bb(e,f,g)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
-  integer :: i1
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
 
-  if(itor.eq.0) return
-
-  temp = -2.* &
-       (int4(ri4_79,g79(:,OP_1,i),g79(:,OP_1,j),bz179(:,OP_DZ),weight_79,79) &
-       +int4(ri4_79,g79(:,OP_1,i),bz179(:,OP_1),g79(:,OP_DZ,j),weight_79,79))
-
-  rrterm(1,2) = rrterm(1,2) + dt*temp/2.
-
-
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     temp = -2.* &
-          (int4(ri4_79,g79(:,OP_1,i),g79(:,OP_1,j),bz079(:,OP_DZ),weight_79,79) &
-          +int4(ri4_79,g79(:,OP_1,i),bz079(:,OP_1),g79(:,OP_DZ,j),weight_79,79))
-     
-     rrterm(1,2) = rrterm(1,2) + dt*temp
-
-
-     ! EQUILIBRIUM TERM
-     i1 = isvaln(itri,i)
-
-     temp = -2.*int4(ri4_79,g79(:,OP_1,i),bz079(:,OP_1),bz079(:,OP_DZ),weight_79,79)
-
-     r4(i1) = r4(i1) + dt*temp
+  if(itor.eq.0) then
+     temp = 0.
+  else
+     temp = -2.*int4(ri4_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZ),weight_79,79) 
   endif
-end subroutine v1bb
+
+  v1bb = temp
+  return
+end function v1bb
 
 
 ! V1ubb 
@@ -741,35 +436,25 @@ end function v1chibb
 
 ! V1bsb2
 ! ======
-subroutine v1bsb2(itri,i,j,ssterm, ddterm, rrterm)
+real function v1bsb2(e,f,g)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
-  integer :: i2
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
 
-  if(itor.eq.0) return
+  if(itor.eq.0) then 
+     temp = 0.
+  else
+     temp = 2.*int4(ri4_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_1),weight_79,79)
+  endif
 
-  temp = 2.*int4(ri4_79,g79(:,OP_DZ,i),g79(:,OP_1,j),sb279(:,OP_1),weight_79,79)
-
-  rrterm(1,1) = rrterm(1,1) + thimp*dt*dt*temp
-
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     i2 = isvaln(itri,i) + 6
-     
-     temp = 2.*int4(ri4_79,g79(:,OP_DZ,i),ph079(:,OP_1),sb279(:,OP_1),weight_79,79)
-
-     r4(i2) = r4(i2) + thimp*dt*dt*temp
-  end if
-
-end subroutine v1bsb2
+  v1bsb2 = temp
+  return
+end function v1bsb2
 
 
 !===============================================================================
@@ -777,471 +462,154 @@ end subroutine v1bsb2
 !===============================================================================
 
 
-! V2v
-! ===========================
-subroutine v2v(itri,i,j,ssterm, ddterm, rrterm)
+! V2vn
+! ====
+real function v2vn(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
 
   if(idens.eq.0) then
-     temp = int2(g25(:,OP_1,i),g25(:,OP_1,j),weight_25,25)
+     temp = int2(e(:,OP_1),f(:,OP_1),weight_79,79)
   else
-     temp = int3(g79(:,OP_1,i),g79(:,OP_1,j),nt79(:,itri),weight_79,79)
+     temp = int3(e(:,OP_1),f(:,OP_1),g(:,OP_1),weight_79,79)
   endif
 
-  ssterm(2,2) = ssterm(2,2) + temp
-  ddterm(2,2) = ddterm(2,2) + temp
-
-end subroutine v2v
+  v2vn = temp
+  return
+end function v2vn
 
 
 ! V2vmu
-! ===========================
-subroutine v2vmu(itri,i,j,ssterm, ddterm, rrterm)
+! =====
+real function v2vmu(e,f)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
-  integer :: i2
+  real, intent(in), dimension(79,OP_NUM) :: e,f
   real :: temp
 
-  temp = -int2(g25(:,OP_DZ,i),g25(:,OP_DZ,j),weight_25,25) &
-       -  int2(g25(:,OP_DR,i),g25(:,OP_DR,j),weight_25,25)
+  temp = -int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
+       -  int2(e(:,OP_DR),f(:,OP_DR),weight_79,79)
   if(itor.eq.1) then
-     temp = temp - int3(ri3_79,g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
+     temp = temp - int3(ri3_79,e(:,OP_1),f(:,OP_1),weight_79,79)
   endif
 
+  v2vmu = temp
+  return
+end function v2vmu
 
-  ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp*amu
-  ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp*amu
-
-
-  ! EQUILIBRIUM TERM
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     i2 = isvaln(itri,i) + 6
-
-     temp = -int2(g25(:,OP_DZ,i),vz025(:,OP_DZ),weight_25,25) &
-          -  int2(g25(:,OP_DR,i),vz025(:,OP_DR),weight_25,25)
-     if(itor.eq.1) then
-        temp = temp - int3(ri3_79,g79(:,OP_1,i),vz025(:,OP_1),weight_79,79)
-     endif
-
-     r4(i2) = r4(i2) + dt*temp*amu
-  endif
-
-end subroutine v2vmu
 
 ! V2vun
 ! =====
-subroutine v2vun(itri,i,j,ssterm, ddterm, rrterm)
+real function v2vun(e,f,g,h)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
-  integer :: i2
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   real :: temp
 
   if(idens.eq.0) then
-     temp = int3(g79(:,OP_1,i),g79(:,OP_DR,j),ph179(:,OP_DZ),weight_79,79) &
-          - int3(g79(:,OP_1,i),g79(:,OP_DZ,j),ph179(:,OP_DR),weight_79,79)
+     temp = int3(e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
+          - int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
   else
-     temp = int4(g79(:,OP_1,i),g79(:,OP_DR,j),ph179(:,OP_DZ),nt79(:,OP_1),weight_79,79) &
-          - int4(g79(:,OP_1,i),g79(:,OP_DZ,j),ph179(:,OP_DR),nt79(:,OP_1),weight_79,79)
+     temp = int4(e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+          - int4(e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),weight_79,79)
   endif
 
-  ssterm(2,2) = ssterm(2,2) -      thimp *dt*temp
-  ddterm(2,2) = ddterm(2,2) + (0.5-thimp)*dt*temp
-
-  if(idens.eq.0) then
-     temp = int3(g79(:,OP_1,i),vz179(:,OP_DR),g79(:,OP_DZ,j),weight_79,79) &
-          - int3(g79(:,OP_1,i),vz179(:,OP_DZ),g79(:,OP_DR,j),weight_79,79)
-  else
-     temp = int4(g79(:,OP_1,i),vz179(:,OP_DR),g79(:,OP_DZ,j),nt79(:,OP_1),weight_79,79) &
-          - int4(g79(:,OP_1,i),vz179(:,OP_DZ),g79(:,OP_DR,j),nt79(:,OP_1),weight_79,79)
-  endif
-
-  ssterm(2,1) = ssterm(2,1) -      thimp *dt*temp
-  ddterm(2,1) = ddterm(2,1) + (0.5-thimp)*dt*temp
-  
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     if(idens.eq.0) then
-        temp = int3(g79(:,OP_1,i),g79(:,OP_DR,j),ph079(:,OP_DZ),weight_79,79) &
-             - int3(g79(:,OP_1,i),g79(:,OP_DZ,j),ph079(:,OP_DR),weight_79,79)
-     else
-        temp = int4(g79(:,OP_1,i),g79(:,OP_DR,j),ph079(:,OP_DZ),nt79(:,OP_1),weight_79,79) &
-             - int4(g79(:,OP_1,i),g79(:,OP_DZ,j),ph079(:,OP_DR),nt79(:,OP_1),weight_79,79)
-     endif
-
-     ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
-     ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
-
-     if(idens.eq.0) then
-        temp = int3(g79(:,OP_1,i),vz079(:,OP_DR),g79(:,OP_DZ,j),weight_79,79) &
-             - int3(g79(:,OP_1,i),vz079(:,OP_DZ),g79(:,OP_DR,j),weight_79,79)
-     else
-        temp = int4(g79(:,OP_1,i),vz079(:,OP_DR),g79(:,OP_DZ,j),nt79(:,OP_1),weight_79,79) &
-             - int4(g79(:,OP_1,i),vz079(:,OP_DZ),g79(:,OP_DR,j),nt79(:,OP_1),weight_79,79)
-     endif
-
-     ssterm(2,1) = ssterm(2,1) -     thimp *dt*temp
-     ddterm(2,1) = ddterm(2,1) + (1.-thimp)*dt*temp
-
-     i2 = isvaln(itri,i) + 6
-
-     if(idens.eq.1) then
-        temp = int4(g79(:,OP_1,i),vz079(:,OP_DR),ph079(:,OP_DZ),n179(:,OP_1),weight_79,79) &
-             - int4(g79(:,OP_1,i),vz079(:,OP_DZ),ph079(:,OP_DR),n179(:,OP_1),weight_79,79)
-
-        r4(i2) = r4(i2) + dt*temp
-     endif
-
-     ! EQUILIBRIUM TERM
-     if(idens.eq.0) then
-        temp = int3(g79(:,OP_1,i),vz079(:,OP_DR),ph079(:,OP_DZ),weight_79,79) &
-             - int3(g79(:,OP_1,i),vz079(:,OP_DZ),ph079(:,OP_DR),weight_79,79)
-     else
-        temp = int4(g79(:,OP_1,i),vz079(:,OP_DR),ph079(:,OP_DZ),n079(:,OP_1),weight_79,79) &
-             - int4(g79(:,OP_1,i),vz079(:,OP_DZ),ph079(:,OP_DR),n079(:,OP_1),weight_79,79)
-     endif
-
-     r4(i2) = r4(i2) + dt*temp
-  endif
-
-end subroutine v2vun
+  v2vun = temp
+  return
+end function v2vun
 
 
 ! V2psib
-! ===========================
-subroutine v2psib(itri,i,j,ssterm, ddterm, rrterm)
+! ======
+real function v2psib(e,f,g)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
-  integer :: i2
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
 
-  ! Linearize in psi
-  ! ~~~~~~~~~~~~~~~~
-  temp = 0.5* &
-       (int4(ri2_79,g79(:,OP_1,i),g79(:,OP_DR,j),bz179(:,OP_DZ),weight_79,79) &
-       -int4(ri2_79,g79(:,OP_1,i),g79(:,OP_DZ,j),bz179(:,OP_DR),weight_79,79))
+  temp = int4(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
+       - int4(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
 
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     temp = temp + &
-          (int4(ri2_79,g79(:,OP_1,i),g79(:,OP_DR,j),bz079(:,OP_DZ),weight_79,79) &
-          -int4(ri2_79,g79(:,OP_1,i),g79(:,OP_DZ,j),bz079(:,OP_DR),weight_79,79))
-  endif
-
-  rrterm(2,1) = rrterm(2,1) + dt*temp
-
-  ! Linearize in bz
-  ! ~~~~~~~~~~~~~~~
-  temp = 0.5* &
-       (int4(ri2_79,g79(:,OP_1,i),ps179(:,OP_DR),g79(:,OP_DZ,j),weight_79,79) &
-       -int4(ri2_79,g79(:,OP_1,i),ps179(:,OP_DZ),g79(:,OP_DR,j),weight_79,79))
-
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     temp = temp + &
-          (int4(ri2_79,g79(:,OP_1,i),ps079(:,OP_DR),g79(:,OP_DZ,j),weight_79,79) &
-          -int4(ri2_79,g79(:,OP_1,i),ps079(:,OP_DZ),g79(:,OP_DR,j),weight_79,79))
-  endif
-
-  rrterm(2,2) = rrterm(2,2) + dt*temp
-
-  ! EQUILIBRIUM TERM
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     i2 = isvaln(itri,i) + 6
-
-     temp = int4(ri2_79,g79(:,OP_1,i),ps079(:,OP_DR),bz079(:,OP_DZ),weight_79,79) &
-          - int4(ri2_79,g79(:,OP_1,i),ps079(:,OP_DZ),bz079(:,OP_DR),weight_79,79)
-
-     r4(i2) = r4(i2) + dt*temp
-  endif  
-
-end subroutine v2psib
-
-
-! V2psisb1
-! ========
-subroutine v2psisb1(itri,i,j,ssterm, ddterm, rrterm)
-
-  use basic
-  use arrays
-  use nintegrate_mod
-
-  implicit none
-
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
-  integer :: i2
-  real :: temp
-
-  temp = int4(ri2_79,g79(:,OP_1,i),sb179(:,OP_DR),g79(:,OP_DZ,j),weight_79,79) &
-       - int4(ri2_79,g79(:,OP_1,i),sb179(:,OP_DZ),g79(:,OP_DR,j),weight_79,79)
-
-  rrterm(2,2) = rrterm(2,2) + thimp*dt*dt*temp
-
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     i2 = isvaln(itri,i) + 6
-
-     temp = int4(ri2_79,g79(:,OP_1,i),sb179(:,OP_DR),bz079(:,OP_DZ),weight_79,79) &
-          - int4(ri2_79,g79(:,OP_1,i),sb179(:,OP_DZ),bz079(:,OP_DR),weight_79,79)
-
-     r4(i2) = r4(i2) + thimp*dt*dt*temp
-  endif  
-
-end subroutine v2psisb1
-
-
-! V2psisb2
-! ========
-subroutine v2psisb2(itri,i,j,ssterm, ddterm, rrterm)
-
-  use basic
-  use arrays
-  use nintegrate_mod
-
-  implicit none
-
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
-  integer :: i2
-  real :: temp
-
-  temp = int4(ri2_79,g79(:,OP_1,i),g79(:,OP_DR,j),sb279(:,OP_DZ),weight_79,79) &
-       - int4(ri2_79,g79(:,OP_1,i),g79(:,OP_DZ,j),sb279(:,OP_DR),weight_79,79)
-
-  rrterm(2,1) = rrterm(2,1) + thimp*dt*dt*temp
-
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     i2 = isvaln(itri,i) + 6
-
-     temp = int4(ri2_79,g79(:,OP_1,i),ps079(:,OP_DR),sb279(:,OP_DZ),weight_79,79) &
-          - int4(ri2_79,g79(:,OP_1,i),ps079(:,OP_DZ),sb279(:,OP_DR),weight_79,79)
-
-     r4(i2) = r4(i2) + thimp*dt*dt*temp
-  endif  
-
-end subroutine v2psisb2
+  v2psib = temp
+  return
+end function v2psib
 
 
 ! V2vpsipsi
 ! =========
-subroutine v2vpsipsi(itri,i,j,ssterm, ddterm, rrterm)
+real function v2vpsipsi(e,f,g,h)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
-  integer :: i2
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   real :: temp
 
 
-  ! Linearize in v
-  ! ~~~~~~~~~~~~~~
-
   ! [nu,psi(2)] + nu*psi(2)_z/r
-  temp79a = g79(:,OP_DZ,i)*pst79(:,OP_DR) - g79(:,OP_DR,i)*pst79(:,OP_DZ)
-  if(itor.eq.1) temp79a = temp79a + ri_79*g79(:,OP_1,i)*pst79(:,OP_DZ)
+  temp79a = e(:,OP_DZ)*h(:,OP_DR) - e(:,OP_DR)*h(:,OP_DZ)
+  if(itor.eq.1) temp79a = temp79a + ri_79*e(:,OP_1)*h(:,OP_DZ)
 
   ! [v,psi(1)] + v*psi(1)_z/r
-  temp79b = g79(:,OP_DZ,j)*pst79(:,OP_DR) - g79(:,OP_DR,j)*pst79(:,OP_DZ)
-  if(itor.eq.1) temp79b = temp79b + ri_79*g79(:,OP_1,j)*pst79(:,OP_DZ)
+  temp79b = f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ)
+  if(itor.eq.1) temp79b = temp79b + ri_79*f(:,OP_1)*g(:,OP_DZ)
 
   temp = -int3(ri4_79, temp79a, temp79b, weight_79, 79)
 
-  ssterm(2,2) = ssterm(2,2) - thimp*    thimp *dt*dt*temp
-  ddterm(2,2) = ddterm(2,2) + thimp*(1.-thimp)*dt*dt*temp
-
-
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-
-     ! Linearize in psi(1)
-     ! ~~~~~~~~~~~~~~~~~~~
-     
-     ! [nu,psi(2)] + nu*psi(2)_z/r
-     temp79a = (g79(:,OP_DZ,i)*ps179(:,OP_DR) - g79(:,OP_DR,i)*ps179(:,OP_DZ))/2. &
-          + g79(:,OP_DZ,i)*ps079(:,OP_DR) - g79(:,OP_DR,i)*ps079(:,OP_DZ)
-     if(itor.eq.1) temp79a = temp79a + ri_79*g79(:,OP_1,i)*(ps079(:,OP_DZ)+ps179(:,OP_DZ)/2.)
-
-     ! [v,psi(1)] + v*psi(1)_z/r
-     temp79b = vz079(:,OP_DZ)*g79(:,OP_DR,j) - vz079(:,OP_DR)*g79(:,OP_DZ,j)
-     if(itor.eq.1) temp79b = temp79b + ri_79*vz079(:,OP_1)*g79(:,OP_DZ,j)
-
-     temp = -int3(ri4_79, temp79a, temp79b, weight_79, 79)
-  
-     rrterm(2,1) = rrterm(2,1) + thimp*dt*dt*temp
-  
-
-     ! Linearize in psi(2)
-     ! ~~~~~~~~~~~~~~~~~~~
-     
-     ! [nu,psi(2)] + nu*psi(2)_z/r
-     temp79a = g79(:,OP_DZ,i)*g79(:,OP_DR,j) - g79(:,OP_DR,i)*g79(:,OP_DZ,j)
-     if(itor.eq.1) temp79a = temp79a + ri_79*g79(:,OP_1,i)*g79(:,OP_DZ,j)
-
-     ! [v,psi(1)] + v*psi(1)_z/r
-     temp79b = (vz079(:,OP_DZ)*ps179(:,OP_DR) - vz079(:,OP_DR)*ps179(:,OP_DZ))/2. &
-          + g79(:,OP_DZ,i)*ps079(:,OP_DR) - g79(:,OP_DR,i)*ps079(:,OP_DZ)
-     if(itor.eq.1) temp79b = temp79b + ri_79*vz079(:,OP_1)*(ps079(:,OP_DZ)+ps179(:,OP_DZ)/2.)
-
-     temp = -int3(ri4_79, temp79a, temp79b, weight_79, 79)
-  
-     rrterm(2,1) = rrterm(2,1) + thimp*dt*dt*temp
-
-     ! EQUILIBRIUM TERM
-     i2 = isvaln(itri, i) + 6
-        
-     ! [nu,psi(2)] + nu*psi(2)_z/r
-     temp79a = g79(:,OP_DZ,i)*ps079(:,OP_DR) - g79(:,OP_DR,i)*ps079(:,OP_DZ)
-     if(itor.eq.1) temp79a = temp79a + ri_79*g79(:,OP_1,i)*ps079(:,OP_DZ)
-     
-     ! [v,psi(1)] + v*psi(1)_z/r
-     temp79b = vz079(:,OP_DZ)*ps079(:,OP_DR) - vz079(:,OP_DR)*ps079(:,OP_DZ)
-     if(itor.eq.1) temp79b = temp79b + ri_79*vz079(:,OP_1)*ps079(:,OP_DZ)
-     
-     temp = -int3(ri4_79, temp79a, temp79b, weight_79, 79)
-     
-     r4(i2) = r4(i2) + thimp*dt*dt*temp
-  endif
-
-end subroutine v2vpsipsi
+  v2vpsipsi = temp
+  return
+end function v2vpsipsi
 
 
 ! V2upsib
 ! =========
-subroutine v2upsib(itri,i,j,ssterm, ddterm, rrterm)
+real function v2upsib(e,f,g,h)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
-  integer :: i2
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   real :: temp
 
 
-  ! Linearize in v
-  ! ~~~~~~~~~~~~~~
-
   ! [nu,bz] + nu*bz_z/r
-  temp79a = g79(:,OP_DZ,i)*bzt79(:,OP_DR) - g79(:,OP_DR,i)*bzt79(:,OP_DZ)
-  if(itor.eq.1) temp79a = temp79a + ri_79*g79(:,OP_1,i)*bzt79(:,OP_DZ)
+  temp79a = e(:,OP_DZ)*h(:,OP_DR) - e(:,OP_DR)*h(:,OP_DZ)
+  if(itor.eq.1) temp79a = temp79a + ri_79*e(:,OP_1)*h(:,OP_DZ)
 
   ! [nu,psi] + nu*psi_z/r
-  temp79b = g79(:,OP_DZ,i)*pst79(:,OP_DR) - g79(:,OP_DR,i)*pst79(:,OP_DZ)
-  if(itor.eq.1) temp79b = temp79b + ri_79*g79(:,OP_1,i)*pst79(:,OP_DZ)
+  temp79b = e(:,OP_DZ)*g(:,OP_DR) - e(:,OP_DR)*g(:,OP_DZ)
+  if(itor.eq.1) temp79b = temp79b + ri_79*e(:,OP_1)*g(:,OP_DZ)
 
+  temp = int4(ri_79, f(:,OP_DZ), g(:,OP_DR), temp79a, weight_79, 79)  &
+       - int4(ri_79, f(:,OP_DR), g(:,OP_DZ), temp79a, weight_79, 79)  &
+       + int4(ri3_79, f(:,OP_DR), h(:,OP_DZ), temp79b, weight_79, 79) &
+       - int4(ri3_79, f(:,OP_DZ), h(:,OP_DR), temp79b, weight_79, 79)
 
-  temp = int4(ri_79, g79(:,OP_DZ,j), pst79(:,OP_DR), temp79a, weight_79, 79)  &
-       - int4(ri_79, g79(:,OP_DR,j), pst79(:,OP_DZ), temp79a, weight_79, 79)  &
-       + int4(ri3_79, g79(:,OP_DR,j), bzt79(:,OP_DZ), temp79b, weight_79, 79) &
-       - int4(ri3_79, g79(:,OP_DZ,j), bzt79(:,OP_DR), temp79b, weight_79, 79)
-
-  ssterm(2,1) = ssterm(2,1) - thimp*    thimp *dt*dt*temp
-  ddterm(2,1) = ddterm(2,1) + thimp*(1.-thimp)*dt*dt*temp
-
-
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-
-     ! Linearize in psi
-     ! ~~~~~~~~~~~~~~~~
-     tm79 = bz079 + bz179/2.
-
-     ! [nu,bz] + nu*bz_z/r
-     temp79a = g79(:,OP_DZ,i)*tm79(:,OP_DR) - g79(:,OP_DR,i)*tm79(:,OP_DZ)
-     if(itor.eq.1) temp79a = temp79a + ri_79*g79(:,OP_1,i)*tm79(:,OP_DZ)
-
-     ! [nu,psi] + nu*psi_z/r
-     temp79b = g79(:,OP_DZ,i)*g79(:,OP_DR,j) - g79(:,OP_DR,i)*g79(:,OP_DZ,j)
-     if(itor.eq.1) temp79b = temp79b + ri_79*g79(:,OP_1,i)*g79(:,OP_DZ,j)
-
-     temp = int4(ri_79, vz079(:,OP_DZ), g79(:,OP_DR,j), temp79a, weight_79, 79) &
-          - int4(ri_79, vz079(:,OP_DR), g79(:,OP_DZ,j), temp79a, weight_79, 79) &
-          + int4(ri3_79, vz079(:,OP_DR), tm79(:,OP_DZ), temp79b, weight_79, 79) &
-          - int4(ri3_79, vz079(:,OP_DZ), tm79(:,OP_DR), temp79b, weight_79, 79)
-
-     rrterm(2,1) = rrterm(2,1) + thimp**dt*dt*temp
-
-
-     ! Linearize in bz
-     ! ~~~~~~~~~~~~~~~
-     tm79 = ps079 + ps179/2.
-
-     ! [nu,bz] + nu*bz_z/r
-     temp79a = g79(:,OP_DZ,i)*g79(:,OP_DR,j) - g79(:,OP_DR,i)*g79(:,OP_DZ,j)
-     if(itor.eq.1) temp79a = temp79a + ri_79*g79(:,OP_1,i)*g79(:,OP_DZ,j)
-
-     ! [nu,psi] + nu*psi_z/r
-     temp79b = g79(:,OP_DZ,i)*tm79(:,OP_DR) - g79(:,OP_DR,i)*tm79(:,OP_DZ)
-     if(itor.eq.1) temp79b = temp79b + ri_79*g79(:,OP_1,i)*tm79(:,OP_DZ)
-
-     temp = int4(ri_79, vz079(:,OP_DZ), tm79(:,OP_DR), temp79a, weight_79, 79)   &
-          - int4(ri_79, vz079(:,OP_DR), tm79(:,OP_DZ), temp79a, weight_79, 79)   &
-          + int4(ri3_79, vz079(:,OP_DR), g79(:,OP_DZ,j), temp79b, weight_79, 79) &
-          - int4(ri3_79, vz079(:,OP_DZ), g79(:,OP_DR,j), temp79b, weight_79, 79)
-
-     rrterm(2,2) = rrterm(2,2) + thimp**dt*dt*temp
-
-
-     ! EQUILIBRIUM TERM
-
-     i2 = isvaln(itri,i)
-
-     ! [nu,bz] + nu*bz_z/r
-     temp79a = g79(:,OP_DZ,i)*bz079(:,OP_DR) - g79(:,OP_DR,i)*bz079(:,OP_DZ)
-     if(itor.eq.1) temp79a = temp79a + ri_79*g79(:,OP_1,i)*bz079(:,OP_DZ)
-
-     ! [nu,psi] + nu*psi_z/r
-     temp79b = g79(:,OP_DZ,i)*ps079(:,OP_DR) - g79(:,OP_DR,i)*ps079(:,OP_DZ)
-     if(itor.eq.1) temp79b = temp79b + ri_79*g79(:,OP_1,i)*ps079(:,OP_DZ)
-
-     temp = int4(ri_79, vz079(:,OP_DZ), ps079(:,OP_DR), temp79a, weight_79, 79)  &
-          - int4(ri_79, vz079(:,OP_DR), ps079(:,OP_DZ), temp79a, weight_79, 79)  &
-          + int4(ri3_79, vz079(:,OP_DR), bz079(:,OP_DZ), temp79b, weight_79, 79) &
-          - int4(ri3_79, vz079(:,OP_DZ), bz079(:,OP_DR), temp79b, weight_79, 79)
-
-     r4(i2) = r4(i2) + dt*temp
-  endif
-
-end subroutine v2upsib
+  v2upsib = temp
+  return
+end function v2upsib
 
 
 ! v2upsisb2
@@ -1386,64 +754,49 @@ end function v3chimu
 
 ! V3umu
 ! =====
-subroutine v3umu(itri,i,j,ssterm, ddterm, rrterm)
+real function v3umu(e,f)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
-  integer :: i3
+  real, intent(in), dimension(79,OP_NUM) :: e,f
   real :: temp
 
-  if(itor.eq.0) return
-
-  temp = -4.*int3(ri_79,g79(:,OP_DZ,i),g79(:,OP_DR,j),weight_79,79)
-
-  ssterm(3,1) = ssterm(3,1) -     thimp *dt*temp*amu
-  ddterm(3,1) = ddterm(3,1) + (1.-thimp)*dt*temp*amu
-
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     ! EQUILIBRIUM TERM
-     i3 = isvaln(itri,i) + 12
-     
-     temp = -4.*int3(ri_79,g79(:,OP_DZ,i),ph079(:,OP_DR),weight_79,79)
-  
-     r4(i3) = r4(i3) + dt*temp*amu
+  if(itor.eq.0) then
+     temp = 0.
+  else
+     temp = -4.*int3(ri_79,e(:,OP_DZ),f(:,OP_DR),weight_79,79)
   endif
 
-end subroutine v3umu
+  v3umu = temp
+  return
+end function v3umu
 
 
 ! V3un
 ! ====
-subroutine v3un(itri,i,j,ssterm, ddterm, rrterm)
+real function v3un(e,f,g)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm
-
-  integer :: i3
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
 
-  if(idens.eq.0) return
+  if(idens.eq.0) then
+     temp = 0.
+  else
+     temp = int4(r_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
+          - int4(r_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79) 
+  endif
 
-  temp = int4(r_79,g79(:,OP_1,i),g79(:,OP_DR,j),nt79(:,OP_DZ),weight_79,79) &
-       - int4(r_79,g79(:,OP_1,i),g79(:,OP_DZ,j),nt79(:,OP_DR),weight_79,79) 
-
-  ssterm(3,1) = ssterm(3,1) + temp
-  ddterm(3,1) = ddterm(3,1) + temp
-
-end subroutine v3un
+  v3un = temp
+  return
+end function v3un
 
 
 ! V3p
@@ -1987,58 +1340,41 @@ end function v3chichin
 
 ! B1psi
 ! =====
-subroutine b1psi(itri,i,j,ssterm, ddterm, rrterm, qqterm)
+real function b1psi(e,f)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm, qqterm
-
+  real, intent(in), dimension(79,OP_NUM) :: e,f
   real :: temp
 
-  temp = int2(g25(:,OP_1,i),g25(:,OP_1,j),weight_25,25)
-  ssterm(1,1) = ssterm(1,1) + temp
-  ddterm(1,1) = ddterm(1,1) + temp
+  temp = int2(e(:,OP_1),f(:,OP_1),weight_79,79)
 
-end subroutine b1psi
+  b1psi = temp
+  return
+end function b1psi
 
 
-! B1psiu (flux advection)
-! =======================
-subroutine b1psiu(itri,i,j,ssterm, ddterm, rrterm, qqterm)
+! B1psiu
+! ======
+real function b1psiu(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm, qqterm
-
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
 
-  temp = int4(r_79,g79(:,OP_1,i),g79(:,OP_DR,j),pht79(:,OP_DZ),weight_79,79) &
-       - int4(r_79,g79(:,OP_1,i),g79(:,OP_DZ,j),pht79(:,OP_DR),weight_79,79)
-
-  ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
-  ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
+  temp = int4(r_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
+       - int4(r_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
   
-  temp = int4(r_79,g79(:,OP_1,i),ps179(:,OP_DR),g79(:,OP_DZ,j),weight_79,79) &
-       - int4(r_79,g79(:,OP_1,i),ps179(:,OP_DZ),g79(:,OP_DR,j),weight_79,79)
-  rrterm(1,1) = rrterm(1,1) + thimp*dt*temp
-  qqterm(1,1) = qqterm(1,1) - thimp*dt*temp 
-
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     temp = int4(r_79,g79(:,OP_1,i),ps079(:,OP_DR),g79(:,OP_DZ,j),weight_79,79) &
-          - int4(r_79,g79(:,OP_1,i),ps079(:,OP_DZ),g79(:,OP_DR,j),weight_79,79)
-     rrterm(1,1) = rrterm(1,1) +     thimp *dt*temp
-     qqterm(1,1) = qqterm(1,1) + (1.-thimp)*dt*temp
-  endif
-
-end subroutine b1psiu
+  b1psiu = temp
+  return
+end function b1psiu
 
 
 ! B1psichi
@@ -2062,124 +1398,52 @@ end function
 
 ! B1psieta
 ! ========
-subroutine b1psieta(itri,i,j,ssterm, ddterm, rrterm, qqterm)
+real function b1psieta(e,f)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm, qqterm
-
-  integer :: i1
+  real, intent(in), dimension(79,OP_NUM) :: e,f
   real :: temp
 
-  temp =-int2(g25(:,OP_DR,i),g25(:,OP_DR,j),weight_25,25) &
-       - int2(g25(:,OP_DZ,i),g25(:,OP_DZ,j),weight_25,25)
+  temp =-int2(e(:,OP_DR),f(:,OP_DR),weight_79,79) &
+       - int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79)
   if(itor.eq.1) then
-     temp = temp - 2.*int3(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j),weight_79,79)
+     temp = temp - 2.*int3(ri_79,e(:,OP_1),f(:,OP_DR),weight_79,79)
   endif
 
-  ssterm(1,1) = ssterm(1,1) - dt*    thimp *temp*etar
-  ddterm(1,1) = ddterm(1,1) + dt*(1.-thimp)*temp*etar
-
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     i1 = isvaln(itri,i)
-
-     temp =-int2(g25(:,OP_DR,i),ps025(:,OP_DR),weight_25,25) &
-          - int2(g25(:,OP_DZ,i),ps025(:,OP_DZ),weight_25,25)
-     if(itor.eq.1) then
-        temp = temp - 2.*int3(ri_79,g79(:,OP_1,i),ps079(:,OP_DR),weight_79,79)
-     endif
-
-     q4(i1) = q4(i1) + dt*temp*etar
-  endif
-
-end subroutine b1psieta
+  b1psieta = temp
+  return
+end function b1psieta
 
 
 ! B1psibd
 ! =======
-subroutine b1psibd(itri,i,j,ssterm, ddterm, rrterm, qqterm)
+real function b1psibd(e,f,g,h)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm, qqterm
-
-  integer :: i2
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   real :: temp
 
   ! Linearize in psi
   ! ~~~~~~~~~~~~~~~~
   if(idens.eq.0) then
-     temp = int4(ri_79,g79(:,OP_1,i),g79(:,OP_DZ,j),bz179(:,OP_DR),weight_79,79) &
-          - int4(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j),bz179(:,OP_DZ),weight_79,79)
+     temp = int4(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79) &
+          - int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79)
   else
-     temp = int5(ri_79,g79(:,OP_1,i),g79(:,OP_DZ,j),bz179(:,OP_DR),ni79(:,OP_1),weight_79,79) &
-          - int5(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j),bz179(:,OP_DZ),ni79(:,OP_1),weight_79,79)
+     temp = int5(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),weight_79,79) &
+          - int5(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),weight_79,79)
   endif
 
-  ssterm(1,1) = ssterm(1,1) -      thimp *dt*temp*dbf
-  ddterm(1,1) = ddterm(1,1) + (0.5-thimp)*dt*temp*dbf
-
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     if(idens.eq.0) then
-        temp = int4(ri_79,g79(:,OP_1,i),g79(:,OP_DZ,j),bz079(:,OP_DR),weight_79,79) &
-             - int4(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j),bz079(:,OP_DZ),weight_79,79)
-     else
-        temp = int5(ri_79,g79(:,OP_1,i),g79(:,OP_DZ,j),bz079(:,OP_DR),ni79(:,OP_1),weight_79,79) &
-             - int5(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j),bz079(:,OP_DZ),ni79(:,OP_1),weight_79,79)
-     endif   
-
-     ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp*dbf
-     ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp*dbf
-  endif
-
-
-  ! Linearize in bz
-  ! ~~~~~~~~~~~~~~~
-  if(idens.eq.0) then
-     temp = int4(ri_79,g79(:,OP_1,i),ps179(:,OP_DZ),g79(:,OP_DR,j),weight_79,79) &
-          - int4(ri_79,g79(:,OP_1,i),ps179(:,OP_DR),g79(:,OP_DZ,j),weight_79,79)
-  else
-     temp = int5(ri_79,g79(:,OP_1,i),ps179(:,OP_DZ),g79(:,OP_DR,j),ni79(:,OP_1),weight_79,79) &
-          - int5(ri_79,g79(:,OP_1,i),ps179(:,OP_DR),g79(:,OP_DZ,j),ni79(:,OP_1),weight_79,79)
-  endif
-
-  ssterm(1,2) = ssterm(1,2) -      thimp *dt*temp*dbf
-  ddterm(1,2) = ddterm(1,2) + (0.5-thimp)*dt*temp*dbf
-
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     if(idens.eq.0) then
-        temp = int4(ri_79,g79(:,OP_1,i),ps179(:,OP_DZ),g79(:,OP_DR,j),weight_79,79) &
-             - int4(ri_79,g79(:,OP_1,i),ps179(:,OP_DR),g79(:,OP_DZ,j),weight_79,79)
-     else
-        temp = int5(ri_79,g79(:,OP_1,i),ps179(:,OP_DZ),g79(:,OP_DR,j),ni79(:,OP_1),weight_79,79) &
-             - int5(ri_79,g79(:,OP_1,i),ps179(:,OP_DR),g79(:,OP_DZ,j),ni79(:,OP_1),weight_79,79)
-     endif
-
-     ssterm(1,2) = ssterm(1,2) -     thimp *dt*temp*dbf
-     ddterm(1,2) = ddterm(1,2) + (1.-thimp)*dt*temp*dbf
-  endif
-
-  ! Linearize in 1/n + Equilibrium term
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     i2 = isvaln(itri,i) + 6
-
-     temp = int5(ri_79,g79(:,OP_1,i),ps179(:,OP_DZ),g79(:,OP_DR,j),ni79(:,OP_1),weight_79,79) &
-          - int5(ri_79,g79(:,OP_1,i),ps179(:,OP_DR),g79(:,OP_DZ,j),ni79(:,OP_1),weight_79,79)
-     q4(i2) = q4(i2) + dt*temp*dbf
-
-  endif
-end subroutine b1psibd
+  b1psibd = temp
+  return
+end function b1psibd
 
 
 !===============================================================================
@@ -2188,104 +1452,61 @@ end subroutine b1psibd
 
 ! B2b
 ! ===
-subroutine b2b(itri,i,j,ssterm, ddterm, rrterm, qqterm)
+real function b2b(e,f)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm, qqterm
-
+  real, intent(in), dimension(79,OP_NUM) :: e,f
   real :: temp
 
-  temp = int2(g25(:,OP_1,i),g25(:,OP_1,j),weight_25,25)
+  temp = int2(e(:,OP_1),f(:,OP_1),weight_79,79)
 
-  ssterm(2,2) = ssterm(2,2) + temp
-  ddterm(2,2) = ddterm(2,2) + temp
-
-end subroutine b2b
+  b2b = temp
+  return
+end function b2b
 
 
 ! B2beta
 ! ======
-subroutine b2beta(itri,i,j,ssterm, ddterm, rrterm, qqterm)
+real function b2beta(e,f)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm, qqterm
-
-  integer :: i2
+  real, intent(in), dimension(79,OP_NUM) :: e,f
   real :: temp
 
-  temp = -int3(ri2_79,g79(:,OP_DZ,i),g79(:,OP_DZ,j),weight_79,79) &
-       -  int3(ri2_79,g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79)
+  temp = -int3(ri2_79,e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
+       -  int3(ri2_79,e(:,OP_DR),f(:,OP_DR),weight_79,79)
 
-  ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp*etar
-  ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp*etar
-
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     i2 = isvaln(itri,i) + 6
-
-     temp = -int3(ri2_79,g79(:,OP_DZ,i),bz079(:,OP_DZ),weight_79,79) &
-          -  int3(ri2_79,g79(:,OP_DR,i),bz079(:,OP_DR),weight_79,79)
-
-     q4(i2) = q4(i2) + dt*temp*etar
-  endif
-
-end subroutine b2beta
+  b2beta = temp
+  return
+end function b2beta
 
 
 ! B2bu
 ! ====
-subroutine b2bu(itri,i,j,ssterm, ddterm, rrterm, qqterm)
+real function b2bu(e,f,g)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm, qqterm
-
-  integer :: i2
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
 
-  temp = int4(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j),pht79(:,OP_DZ),weight_79,79) &
-       - int4(ri_79,g79(:,OP_1,i),g79(:,OP_DZ,j),pht79(:,OP_DR),weight_79,79)
+  temp = int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
+       - int4(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
 
-  ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
-  ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
-
-  temp = int4(ri_79,g79(:,OP_1,i),bzt79(:,OP_DR),g79(:,OP_DZ,j),weight_79,79) &
-       - int4(ri_79,g79(:,OP_1,i),bzt79(:,OP_DZ),g79(:,OP_DR,j),weight_79,79)
-
-  rrterm(2,1) = rrterm(2,1) + thimp*dt*temp
-  qqterm(2,1) = qqterm(2,1) - thimp*dt*temp
-
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-       temp = int4(ri_79,g79(:,OP_1,i),bz079(:,OP_DR),g79(:,OP_DZ,j),weight_79,79) &
-            - int4(ri_79,g79(:,OP_1,i),bz079(:,OP_DZ),g79(:,OP_DR,j),weight_79,79)
-
-       qqterm(2,1) = qqterm(2,1) + dt*temp
-
-       ! EQUILIBRIUM TERM
-       i2 = isvaln(itri,i) + 6
-
-       temp = int4(ri_79,g79(:,OP_1,i),bz079(:,OP_DR),ph079(:,OP_DZ),weight_79,79) &
-            - int4(ri_79,g79(:,OP_1,i),bz079(:,OP_DZ),ph079(:,OP_DR),weight_79,79)
-
-       r4(i2) = r4(i2) + dt*temp
-  endif
-
-end subroutine b2bu
+  b2bu = temp
+  return
+end function b2bu
 
 
 ! B2bchi
@@ -2309,124 +1530,54 @@ end function b2bchi
 
 ! B2psiv
 ! ======
-subroutine b2psiv(itri,i,j,ssterm, ddterm, rrterm, qqterm)
+real function b2psiv(e,f,g)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm, qqterm
-
-  integer :: i2
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
 
-  ! Linearize in psi
-  ! ~~~~~~~~~~~~~~~~
-  temp = int4(ri2_79,g79(:,OP_1,i),g79(:,OP_DR,j),vzt79(:,OP_DZ),weight_79,79) &
-       - int4(ri2_79,g79(:,OP_1,i),g79(:,OP_DZ,j),vzt79(:,OP_DR),weight_79,79)
+  temp = int4(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
+       - int4(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
   if(itor.eq.1) then
-     temp = temp + int4(ri3_79,g79(:,OP_1,i),g79(:,OP_DZ,j),vzt79(:,OP_1),weight_79,79)
+     temp = temp + int4(ri3_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_1),weight_79,79)
   endif
 
-  ssterm(2,1) = ssterm(2,1) -     thimp *dt*temp
-  ddterm(2,1) = ddterm(2,1) + (1.-thimp)*dt*temp
-
-  ! Linearize in v
-  ! ~~~~~~~~~~~~~~
-  temp = int4(ri2_79,g79(:,OP_1,i),pst79(:,OP_DR),g79(:,OP_DZ,j),weight_79,79) &
-       - int4(ri2_79,g79(:,OP_1,i),pst79(:,OP_DZ),g79(:,OP_DR,j),weight_79,79)
-  if(itor.eq.1) then
-     temp = temp + int4(ri3_79,g79(:,OP_1,i),pst79(:,OP_DZ),g79(:,OP_1,j),weight_79,79)
-  endif
-  rrterm(2,2) = rrterm(2,2) + thimp*dt*temp
-  qqterm(2,2) = qqterm(2,2) - thimp*dt*temp
-
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     temp = int4(ri2_79,g79(:,OP_1,i),ps079(:,OP_DR),g79(:,OP_DZ,j),weight_79,79) &
-          - int4(ri2_79,g79(:,OP_1,i),ps079(:,OP_DZ),g79(:,OP_DR,j),weight_79,79)
-     if(itor.eq.1) then
-        temp = temp + int4(ri3_79,g79(:,OP_1,i),ps079(:,OP_DZ),g79(:,OP_1,j),weight_79,79)
-     endif
-     qqterm(2,2) = qqterm(2,2) + dt*temp
-
-     ! EQUILIBRIUM TERM
-     i2 = isvaln(itri,i)
-     temp = int4(ri2_79,g79(:,OP_1,i),ps079(:,OP_DR),vz079(:,OP_DZ),weight_79,79) &
-          - int4(ri2_79,g79(:,OP_1,i),ps079(:,OP_DZ),vz079(:,OP_DR),weight_79,79)
-     if(itor.eq.1) then
-        temp = temp + int4(ri3_79,g79(:,OP_1,i),ps079(:,OP_DZ),vz079(:,OP_1),weight_79,79)
-     endif
-     r4(i2) = r4(i2) + dt*temp
-  endif
-
-end subroutine b2psiv
+  b2psiv = temp
+  return
+end function b2psiv
 
 
 ! B2psipsid
 ! =========
-subroutine b2psipsid(itri,i,j,ssterm, ddterm, rrterm, qqterm)
+real function b2psipsid(e,f,g,h)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm, qqterm
-
-  integer :: i2
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   real :: temp
 
   if(idens.eq.0) then
-     temp = int4(ri3_79,g79(:,OP_DR,i),g79(:,OP_DZ,j),ps179(:,OP_GS),weight_79,79) &
-          - int4(ri3_79,g79(:,OP_DZ,i),g79(:,OP_DR,j),ps179(:,OP_GS),weight_79,79) &
-          + int4(ri3_79,g79(:,OP_DR,i),ps179(:,OP_DZ),g79(:,OP_GS,j),weight_79,79) &
-          - int4(ri3_79,g79(:,OP_DZ,i),ps179(:,OP_DR),g79(:,OP_GS,j),weight_79,79)
+     temp = int4(ri3_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_GS),weight_79,79) &
+          - int4(ri3_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_GS),weight_79,79)
   else
-     temp = int5(ri3_79,g79(:,OP_DR,i),g79(:,OP_DZ,j),ps179(:,OP_GS),ni79(:,OP_1),weight_79,79) &
-          - int5(ri3_79,g79(:,OP_DZ,i),g79(:,OP_DR,j),ps179(:,OP_GS),ni79(:,OP_1),weight_79,79) &
-          + int5(ri3_79,g79(:,OP_DR,i),ps179(:,OP_DZ),g79(:,OP_GS,j),ni79(:,OP_1),weight_79,79) &
-          - int5(ri3_79,g79(:,OP_DZ,i),ps179(:,OP_DR),g79(:,OP_GS,j),ni79(:,OP_1),weight_79,79)
+     temp = int5(ri3_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_GS),ni79(:,OP_1),weight_79,79) &
+          - int5(ri3_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_GS),ni79(:,OP_1),weight_79,79)
   endif
-
-  ssterm(2,1) = ssterm(2,1) -      thimp *dt*temp*dbf
-  ddterm(2,1) = ddterm(2,1) + (0.5-thimp)*dt*temp*dbf
-
   
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     if(idens.eq.0) then
-        temp = int4(ri3_79,g79(:,OP_DR,i),g79(:,OP_DZ,j),ps079(:,OP_GS),weight_79,79) &
-             - int4(ri3_79,g79(:,OP_DZ,i),g79(:,OP_DR,j),ps079(:,OP_GS),weight_79,79) &
-             + int4(ri3_79,g79(:,OP_DR,i),ps079(:,OP_DZ),g79(:,OP_GS,j),weight_79,79) &
-             - int4(ri3_79,g79(:,OP_DZ,i),ps079(:,OP_DR),g79(:,OP_GS,j),weight_79,79)
-     else
-        temp = int5(ri3_79,g79(:,OP_DR,i),g79(:,OP_DZ,j),ps079(:,OP_GS),ni79(:,OP_1),weight_79,79) &
-             - int5(ri3_79,g79(:,OP_DZ,i),g79(:,OP_DR,j),ps079(:,OP_GS),ni79(:,OP_1),weight_79,79) &
-             + int5(ri3_79,g79(:,OP_DR,i),ps079(:,OP_DZ),g79(:,OP_GS,j),ni79(:,OP_1),weight_79,79) &
-             - int5(ri3_79,g79(:,OP_DZ,i),ps079(:,OP_DR),g79(:,OP_GS,j),ni79(:,OP_1),weight_79,79)
-     endif
-  
-     ssterm(2,1) = ssterm(2,1) -     thimp *dt*temp*dbf
-     ddterm(2,1) = ddterm(2,1) + (1.-thimp)*dt*temp*dbf
+  b2psipsid = temp
+  return 
+end function b2psipsid
 
-     ! Linearize in ni
-     ! ~~~~~~~~~~~~~~~
-     if(idens.eq.1) then
-        i2 = isvaln(itri,i)
-
-        temp = int5(ri3_79,g79(:,OP_DR,i),ps079(:,OP_DZ),ps079(:,OP_GS),ni79(:,OP_1),weight_79,79) &
-             - int5(ri3_79,g79(:,OP_DZ,i),ps079(:,OP_DR),ps079(:,OP_GS),ni79(:,OP_1),weight_79,79)
-
-        r4(i2) = r4(i2) + dt*temp*dbf
-     endif
-  endif
-end subroutine b2psipsid
 
 ! B2ped
+! =====
 real function b2ped(e,f,g)
 
   use basic
@@ -2452,24 +1603,21 @@ end function b2ped
 
 ! B3pe
 ! ====
-subroutine b3pe(itri,i,j,ssterm, ddterm, rrterm, qqterm)
+real function b3pe(e,f)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout), dimension(3,3) :: ssterm, ddterm, rrterm, qqterm
-
+  real, intent(in), dimension(79,OP_NUM) :: e,f
   real :: temp
 
-  temp = int2(g25(:,OP_1,i),g25(:,OP_1,j),weight_25,25)
+  temp = int2(e(:,OP_1),f(:,OP_1),weight_79,79)
 
-  ssterm(3,3) = ssterm(3,3) + temp
-  ddterm(3,3) = ddterm(3,3) + temp
-
-end subroutine b3pe
+  b3pe = temp
+  return
+end function b3pe
 
 
 ! B3psipsieta
@@ -2563,81 +1711,65 @@ end function
 
 ! N1n
 ! ===
-subroutine n1n(itri,i,j,ssterm, ddterm, rrterm, qqterm)
+real function n1n(e,f)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout) :: ssterm, ddterm
-  real, intent(inout), dimension(3) :: rrterm, qqterm
-
+  real, intent(in), dimension(79,OP_NUM) :: e,f
   real :: temp
 
-  temp = int2(g25(:,OP_1,i),g25(:,OP_1,j),weight_25,25)
+  temp = int2(e(:,OP_1),f(:,OP_1),weight_79,79)
 
-  ssterm = ssterm + temp
-  ddterm = ddterm + temp
-
-end subroutine n1n
-
+  n1n = temp
+  return
+end function n1n
 
 
-! N1nu  (velocity diffusion)
-! =========================
-subroutine n1nu(itri,i,j,ssterm, ddterm, rrterm, qqterm)
+
+! N1nu
+! ====
+real function n1nu(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  integer, intent(in) :: itri, i, j
-  real, intent(inout) :: ssterm, ddterm
-  real, intent(inout), dimension(3) :: rrterm, qqterm
-
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
 
-  ! Linearize in n
-  ! ~~~~~~~~~~~~~~
-
-  temp = int4(r_79, g79(:,OP_1,i), g79(:,OP_DR,j), pht79(:,OP_DZ), weight_79,79) &
-       - int4(r_79, g79(:,OP_1,i), g79(:,OP_DZ,j), pht79(:,OP_DR), weight_79,79)
+  temp = int4(r_79, e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
+       - int4(r_79, e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
   if(itor.eq.1) then
-     temp = temp + 2.*int3(g79(:,OP_1,i), g79(:,OP_1,j), pht79(:,OP_DZ), weight_79,79)
+     temp = temp + 2.*int3(e(:,OP_1),f(:,OP_1),g(:,OP_DZ),weight_79,79)
   endif
 
-  ssterm = ssterm -     thimp *dt*temp
-  ddterm = ddterm + (1.-thimp)*dt*temp
+  n1nu = temp
+  return
+end function n1nu
 
 
-  ! Linearize in u
-  ! ~~~~~~~~~~~~~~
+! N1nchi
+! ======
+real function n1nchi(e,f,g)
 
-  temp = int4(r_79, g79(:,OP_1,i), n179(:,OP_DR), g79(:,OP_DZ,j), weight_79,79) &
-       - int4(r_79, g79(:,OP_1,i), n179(:,OP_DZ), g79(:,OP_DR,j), weight_79,79)
-  if(itor.eq.1) then
-     temp = temp + 2.*int3(g79(:,OP_1,i), n179(:,OP_1), g79(:,OP_DZ,j), weight_79,79)
-  endif
+  use basic
+  use nintegrate_mod
 
-  rrterm(1) = rrterm(1) + thimp*dt*temp
-  qqterm(1) = qqterm(1) - thimp*dt*temp
+  implicit none
 
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
-     temp = int4(r_79, g79(:,OP_1,i), n079(:,OP_DR), g79(:,OP_DZ,j), weight_79,79) &
-          - int4(r_79, g79(:,OP_1,i), n079(:,OP_DZ), g79(:,OP_DR,j), weight_79,79)
-     if(itor.eq.1) then
-        temp = temp + 2.*int3(g79(:,OP_1,i), n079(:,OP_1), g79(:,OP_DZ,j), weight_79,79)
-     endif
-     
-     rrterm(1) = rrterm(1) +     thimp *dt*temp
-     qqterm(1) = qqterm(1) + (1.-thimp)*dt*temp
-  endif
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real :: temp
 
+  temp = int3(e(:,OP_DZ),f(:,OP_1),g(:,OP_DZ),weight_79,79) &
+       + int3(e(:,OP_DR),f(:,OP_1),g(:,OP_DR),weight_79,79)
 
-end subroutine n1nu
+  n1nchi = temp
+  return
+end function n1nchi
 
 
 !===============================================================================
@@ -2693,3 +1825,5 @@ real function p1pchi(e,f,g)
 
   return
 end function p1pchi
+
+end module metricterms_n
