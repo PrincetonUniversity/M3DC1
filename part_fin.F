@@ -103,7 +103,7 @@
       use sparse
       implicit none
       integer numnodes, numvard,iplace, mmnn6, numelms,
-     &     ibegind, iendplusoned
+     &     ibegind, iendplusoned, ibeginsm, iendplusonesm
       real ssterm(3,3), deex
       real  outarray(numnodes*6*numvard),inarray(numnodes*6),
      &     aterm(18,18), bterm(18,18),fintl(-6:maxi,-6:maxi),
@@ -153,9 +153,9 @@
               ssterm(1,2) =-aterm(i,j)
               ssterm(2,1) =  +dt*hyp*thimpsm*bterm(i,j)
               ssterm(2,2) = aterm(i,j)
-              call insert_val(s7matrix_sm,ssterm(1,1),itwo,jtwo,1)
-              call insert_val(s7matrix_sm,ssterm(1,2),itwo,jtwo+6,1)
-              call insert_val(s7matrix_sm,ssterm(2,1),itwo+6,jtwo,1)
+              call insert_val(s7matrix_sm,ssterm(1,1),itwo  ,jtwo  ,1)
+              call insert_val(s7matrix_sm,ssterm(1,2),itwo  ,jtwo+6,1)
+              call insert_val(s7matrix_sm,ssterm(2,1),itwo+6,jtwo  ,1)
               call insert_val(s7matrix_sm,ssterm(2,2),itwo+6,jtwo+6,1)
            enddo
         enddo
@@ -177,18 +177,18 @@
          call calcdterm(itri, dterm, fintl)
          call getdeex(itri,deex)
          hyp = hyperc*deex**2*amu
-        do i=1,18
-        do j=1,18
-            jone = isval1(itri,j)
-            itwo = isval2(itri,i)
-!
-            temp(itwo+6) = temp(itwo+6)+(dterm(i,j)               
-     &             - dt*hyp*(1.-thimpsm)*bterm(i,j))*inarray(jone)
-!
-        enddo
-        enddo
-      enddo
+         do i=1,18
+            do j=1,18
+               jone = isval1(itri,j)
+               itwo = isval2(itri,i)
 
+               temp(itwo+6) = temp(itwo+6)+(dterm(i,j)               
+     &              - dt*hyp*(1.-thimpsm)*bterm(i,j))*inarray(jone)
+
+            enddo
+         enddo
+      enddo
+      
       do l=1,nbcsm
       if(iboundsm(l).le.0 .or. iboundsm(l).gt.mmnn6*numvarsm) then
         write(*,*) "error in smoother"
@@ -204,14 +204,11 @@
 !.....store solution
       do l=1,numnodes
          call entdofs(numvard, l, 0, ibegind, iendplusoned)
-         call entdofs(numvarsm, l, 0, ibegind, iendplusoned)
+         call entdofs(numvarsm, l, 0, ibeginsm, iendplusonesm)
          do i=0,5
 c     acbauer 2/1/06 -- possibly a bug, temp should probably be accessed at ibeginsm+i
-c$$$            outarray(ibegind+6*(iplace-1)+i) = 
-c$$$     &           temp(ibeginsm+6+i)
-!     nferraro 8/11/06 -- ibeginsm is never defined.. use ibegind.
             outarray(ibegind+6*(iplace-1)+i) = 
-     &           temp(ibegind+6+i)
+     &           temp(ibeginsm+6+i)
 
 c         do i=1,6
 c         outarray(6*((l-1)*numvard +(iplace-1))+i)                      &

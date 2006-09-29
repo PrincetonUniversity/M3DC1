@@ -98,7 +98,7 @@ module basic
   character*10 :: datec, timec
   
 ! initialization quantities
-  integer ifirstd1_lu, ifirsts1_lu, ifirstd2_lu, ifirsts2_lu,       &
+  integer ifirstd1_lu, ifirsts1_lu, ifirstd2_lu, ifirsts2_lu,    &
        ifirstr1_lu, ifirstr2_lu, ifirstq2_lu, ifirsts3_lu,       &
        ifirsts4_lu, ifirsts5_lu, ifirsts6_lu, ifirsts7_lu,       &
        ifirsts8_lu, ifirstd8_lu, ifirstq8_lu, ifirstr8_lu
@@ -574,11 +574,11 @@ subroutine onestep
 
   implicit none
 
-  integer :: l, jer, i, numnodes
+  integer :: l, jer, i, jone, j, itri
   integer :: ibegin, iendplusone, ibeginnv, iendplusonenv
-  real :: eerror, ediff, etotd
+  real :: eerror, ediff, etotd, sum, fintl(-6:maxi,-6:maxi), d2term(18)
   integer, allocatable:: itemp(:)
-  integer :: ndofs
+  integer :: ndofs, numelms, numnodes
 
   real :: tstart, tend
   
@@ -587,6 +587,7 @@ subroutine onestep
   etotd = 1.
 
   call numnod(numnodes)
+  call numfac(numelms)
 
   ! define the current vector jphi and the RHS vectors sb1 and sb2
   !      call newvar(phi,jphi,numnodes,numvar,1,VAR_J,1)
@@ -658,35 +659,42 @@ subroutine onestep
 
 !
 !.....coding to calculate the error in the delsquared chi equation
-!!$      chierror = 0
-!!$      sum = 0
-!!$      if(numvar.ge.3) then
-!!$         call newvar(vtemp,com,numnodes,numvar,3,VAR_COM,0)
-!!$         do itri=1,numelms
-!!$            call calcfint(fintl, maxi, atri(itri), 
-!!$     &           btri(itri), ctri(itri))
-!!$            call calcd2term(itri, d2term, fintl)
-!!$            do j=1,18
-!!$               jone = isval1(itri,j)
-!!$               chierror = chierror + d2term(j)*com(jone)
-!!$            enddo
-!!$         enddo                  ! loop over itri
-!!$
-!!$         call smoother3(com,vtemp,numnodes,numvar,3)
-!!$         call newvar(vtemp,com,numnodes,numvar,3,VAR_COM,0)
-!!$         
-!!$      endif
-!!$
-!!$      if(hyperc.gt.0) then
-!!$!
-!!$!.......calculate vorticity, apply smoothing operator, and redefine vor array
-!!$         call newvar(vtemp,vor,numnodes,numvar,1,VAR_VOR,1)
-!!$         call smoother1(vor,vtemp,numnodes,numvar,1)
-!!$         call newvar(vtemp,vor,numnodes,numvar,1,VAR_VOR,1)
-!!$
-!!$      endif
-!!$
-!!$!.....new velocity solution at time n+1 (or n* for second order advance)
+      chierror = 0
+      sum = 0
+      if(numvar.ge.3) then
+         call newvar(vtemp,com,numnodes,numvar,3,VAR_COM,0)
+
+         do itri=1,numelms
+            call calcfint(fintl, maxi, atri(itri),btri(itri), ctri(itri))
+            call calcd2term(itri, d2term, fintl)
+            do j=1,18
+               jone = isval1(itri,j)
+               chierror = chierror + d2term(j)*com(jone)
+            enddo
+         enddo                  ! loop over itri
+         if(myrank.eq.0 .and. iprint.ge.1) then
+            print *, "Error in com = ", chierror 
+         endif
+
+         if(hyperc.gt.0) then
+            call smoother3(com,vtemp,numnodes,numvar,3)
+            call newvar(vtemp,com,numnodes,numvar,3,VAR_COM,0)
+         endif
+         call oneplot(com,1,1,"com",0)
+
+      endif
+
+      call newvar(vtemp,vor,numnodes,numvar,1,VAR_VOR,1)
+
+      if(hyperc.gt.0) then
+!
+!.......calculate vorticity, apply smoothing operator, and redefine vor array
+         call smoother1(vor,vtemp,numnodes,numvar,1)
+         call newvar(vtemp,vor,numnodes,numvar,1,VAR_VOR,1)
+         call oneplot(com,1,1,"vor",0)
+      endif
+
+!.....new velocity solution at time n+1 (or n* for second order advance)
 !      call numdofs(numvar, ndofs)
 !      do i=1,ndofs
 !         veln(i) = vel(i)
