@@ -29,8 +29,6 @@ real, dimension(79, OP_NUM) :: pss79, bzs79, phs79, vzs79, chs79
 real, dimension(79, OP_NUM) :: sb179, sb279
 real, dimension(79) :: temp79a, temp79b, temp79c, temp79d, temp79e, temp79f
 
-real :: dbf
-
 real, dimension(25) :: si_25, eta_25, weight_25
 real, dimension(79) :: si_79, eta_79, weight_79
 

@@ -29,10 +29,10 @@ NEWOBJS1 = superlu_mod.o supralu_dist_mod.o sparse_params.o \
 	$(COMMONDIR)dcreate_dist_matrix.o \
         $(COMMONDIR)writeHDF5.o 
 
-NEWOBJS2 = fin.o part_fin.o ludef.o ludef_t.o\
+NEWOBJS2 = fin.o part_fin.o metricterms_n.o ludef.o ludef_t.o\
 	  part_fin3.o boundary.o unknown.o restart.o \
 	  acbauer.o sort.o metricterms.o errorcalc.o compare.o \
-	  gradshafranov.o init_conds.o output.o metricterms_n.o
+	  gradshafranov.o init_conds.o output.o 
 
 SCORECDIR = /l/mhd/acbauer/develop/
 SCORECVERS = -stable
