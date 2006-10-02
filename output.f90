@@ -239,6 +239,7 @@ subroutine output
      if(idens.eq.1) call oneplot(den,1,1,"n-p",1)
   else
      if(eqsubtract.eq.1) then
+!        call plotit(vel,phi,0)
         call plotit(vel+vel0,phi+phi0,1)
         if(idens.eq.1) call oneplot(den+den0,1,1,"n-t",1)
      else
