@@ -747,7 +747,7 @@ real function v3chimu(e,f)
      temp = temp + 2.*int3(ri_79,e(:,OP_DR),f(:,OP_LP),weight_79,79)
   endif
 
-  v3chimu = temp*amu
+  v3chimu = temp
   return
 end function v3chimu
 

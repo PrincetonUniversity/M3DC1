@@ -93,52 +93,36 @@ subroutine ludefvel_t
 
            ! NUMVAR = 1
            ! ~~~~~~~~~~
-           temp = v1un(g79(:,:,i),g79(:,:,j),nt79)
+           temp = v1un(g79(:,:,i),g79(:,:,j),nt79)                  ! passed: 1,2
            ssterm(1,1) = ssterm(1,1) + temp
            ddterm(1,1) = ddterm(1,1) + temp  
 
-           temp = v1umu(g79(:,:,i),g79(:,:,j))*amu &
+           temp = v1umu(g79(:,:,i),g79(:,:,j))*amu &                ! passed: 1,2
                 + thimp*dt* &
-                (v1upsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79))
+                (v1upsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79))      ! passed: 1,2
            ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
            ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
 
-           temp = v1uun(g79(:,:,i),g79(:,:,j),ph179,nt79) &
-                + v1uun(g79(:,:,i),ph179,g79(:,:,j),nt79)
+           temp = v1uun(g79(:,:,i),g79(:,:,j),ph179,nt79) &         ! passed: 1,2
+                + v1uun(g79(:,:,i),ph179,g79(:,:,j),nt79)           ! passed: 1,2
            ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
            ddterm(1,1) = ddterm(1,1) + (.5-thimp)*dt*temp
 
            rrterm(1,1) = rrterm(1,1) + dt* &
-                (v1psipsi(g79(:,:,i),g79(:,:,j),pss79)  &
-                +v1psipsi(g79(:,:,i),pss79,g79(:,:,j))) &
+                (v1psipsi(g79(:,:,i),g79(:,:,j),pss79)  &           ! passed: 1,2
+                +v1psipsi(g79(:,:,i),pss79,g79(:,:,j))) &           ! passed: 1,2
                 + thimp*dt*dt* &
                 (v1psisb1 (g79(:,:,i),g79(:,:,j),sb179))
 
            if(linear.eq.1 .or. eqsubtract.eq.1) then
-              temp = v1uun(g79(:,:,i),g79(:,:,j),ph079,nt79) &
-                   + v1uun(g79(:,:,i),ph079,g79(:,:,j),nt79)
+              temp = v1uun(g79(:,:,i),g79(:,:,j),ph079,nt79) &      ! passed: 1,2
+                   + v1uun(g79(:,:,i),ph079,g79(:,:,j),nt79)        ! passed: 1,2
               ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
               ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
 
               rrterm(1,1) = rrterm(1,1) + thimp*dt*dt* &
-                (v1upsipsi(g79(:,:,i),ph079,g79(:,:,j),pss79) &
-                +v1upsipsi(g79(:,:,i),ph079,pss79,g79(:,:,j)))
-
-              r4(i1) = r4(i1) + dt* &
-                   (v1umu    (g79(:,:,i),ps079)) &
-                   + thimp*dt*dt* &
-                   (v1psisb1 (g79(:,:,i),ps079,sb179))
-
-              ! DENSITY TERMS
-              r4(i1) = r4(i1) + dt* &
-                   (v1un     (g79(:,:,i),ph079,nt79)         &
-                   +v1uun    (g79(:,:,i),ph079,ph079,nt79))
-
-              ! EQUILIBRIUM TERMS
-              r4(i1) = r4(i1) + dt* &
-                   (v1psipsi (g79(:,:,i),ps079,ps079)) &
-                   + thimp*dt*dt* &
-                   (v1upsipsi(g79(:,:,i),ph079,ps079,ps079))
+                (v1upsipsi(g79(:,:,i),ph079,g79(:,:,j),pss79) &     ! passed: 1,2
+                +v1upsipsi(g79(:,:,i),ph079,pss79,g79(:,:,j)))      ! passed: 1,2
            endif
 
            ! NUMVAR = 2
@@ -216,30 +200,6 @@ subroutine ludefvel_t
 
                  rrterm(2,2) = rrterm(2,2) + thimp*dt*dt* &
                       (v2upsib  (g79(:,:,i),ph079,pss79,g79(:,:,j)))
-
-                 r4(i1) = r4(i1) + thimp*dt*dt* &
-                      (v1bsb2(g79(:,:,i),bz079,sb279))
-                 r4(i2) = r4(i2) + dt* &
-                      (v2vmu(g79(:,:,i),vz079)*amu)
-
-                 ! DENSITY TERMS
-                 r4(i2) = r4(i2) + dt* &
-                      (v2vun(g79(:,:,i),vz079,ph079,nt79)) &
-                      + thimp*dt*dt* &
-                      (v2psib(g79(:,:,i),sb179,bz079) &
-                      +v2psib(g79(:,:,i),ps079,sb279))
-                 
-                 ! EQUILIBRIUM TERM
-                 r4(i1) = r4(i1) + dt* &
-                      (v1bb     (g79(:,:,i),bz079,bz079)) &
-                      + thimp*dt*dt* &
-                      (v1ubb    (g79(:,:,i),ph079,bz079,bz079) &
-                      +v1vpsib  (g79(:,:,i),vz079,ps079,bz079))
-                 r4(i2) = r4(i2) + dt* &
-                      (v2psib   (g79(:,:,i),ps079,bz079)) &
-                      + thimp*dt*dt* &
-                      (v2upsib  (g79(:,:,i),ph079,ps079,bz079) &
-                      +v2vpsipsi(g79(:,:,i),vz079,ps079,ps079))
 
               endif
            endif
@@ -398,40 +358,6 @@ subroutine ludefvel_t
                  rrterm(3,3) = rrterm(3,3) + thimp*dt*dt* &
                       (v3up  (g79(:,:,i),ph079,g79(:,:,j)) &
                       +v3chip(g79(:,:,i),ch079,g79(:,:,j)))
-
-                 r4(i3) = r4(i3) + &
-                      dt* &
-                      (v3umu   (g79(:,:,i),ph079)*amu &
-                      +v3chimu (g79(:,:,i),ch079))  + &
-                      thimp*dt*dt* &
-                      (v3psisb1(g79(:,:,i),ps079,sb179) &
-                      +v3psisb1(g79(:,:,i),sb179,ps079) &
-                      +v3bsb2  (g79(:,:,i),bz079,sb279))
-
-                 ! DENSITY TERMS
-                 r4(i1) = r4(i1) + dt* &
-                      (v1uchin  (g79(:,:,i),ph079,ch079,nt79) &
-                      +v1chichin(g79(:,:,i),ch079,ch079,nt79))
-                 r4(i3) = r4(i3) + dt* &
-                      (v3p      (g79(:,:,i),p079)             &
-                      +v3uun    (g79(:,:,i),ph079,ph079,nt79) &
-                      +v3uchin  (g79(:,:,i),ph079,ch079,nt79) &
-                      +v3chichin(g79(:,:,i),ch079,ch079,nt79))
-                 
-                 ! EQUILIBRIUM TERMS
-                 r4(i2) = r4(i2) + &
-                      thimp*dt*dt* &
-                      (v2chipsib  (g79(:,:,i),ch079,ps079,bz079))
-                 r4(i3) = r4(i3) + &
-                      dt* &
-                      (v3psipsi   (g79(:,:,i),ps079,ps079)) + &
-                      thimp*dt*dt* &
-                      (v3up       (g79(:,:,i),ph079,p079) &
-                      +v3bb       (g79(:,:,i),bz079,bz079) &
-                      +v3vpsib    (g79(:,:,i),vz079,ps079,bz079) &
-                      +v3chip     (g79(:,:,i),ch079,p079) &
-                      +v3chipsipsi(g79(:,:,i),ch079,ps079,ps079) &
-                      +v3chibb    (g79(:,:,i),ch079,bz079,bz079))
               endif
            endif
 
@@ -467,6 +393,96 @@ subroutine ludefvel_t
               call insert_val(r1matrix_sm,rrterm(3,2),i1+12,j1+6, 1)
            endif
         enddo               ! on j
+
+        ! Definition of R4
+        ! ================
+        if(linear.eq.1 .or. eqsubtract.eq.1) then
+           r4(i1) = r4(i1) + dt* &
+                (v1umu    (g79(:,:,i),ph079)) &                   ! passed: 1, 2
+                + thimp*dt*dt* &
+                (v1psisb1 (g79(:,:,i),ps079,sb179))               ! passed: 1, 2
+
+           ! DENSITY TERMS
+           r4(i1) = r4(i1) + dt* &
+                (v1un     (g79(:,:,i),ph079,nt79)         &       ! passed: 1, 2 
+                +v1uun    (g79(:,:,i),ph079,ph079,nt79))          ! passed: 1, 2
+
+           ! EQUILIBRIUM TERMS
+           r4(i1) = r4(i1) + dt* &
+                (v1psipsi (g79(:,:,i),ps079,ps079)) &             ! passed: 1, 2
+                + thimp*dt*dt* &
+                (v1upsipsi(g79(:,:,i),ph079,ps079,ps079))         ! passed: 1, 2
+
+           if(numvar.ge.2) then
+              r4(i1) = r4(i1) + thimp*dt*dt* &
+                   (v1bsb2(g79(:,:,i),bz079,sb279))
+              r4(i2) = r4(i2) + dt* &
+                   (v2vmu(g79(:,:,i),vz079)*amu)
+              
+              ! DENSITY TERMS
+              r4(i2) = r4(i2) + dt* &
+                   (v2vun(g79(:,:,i),vz079,ph079,nt79)) &
+                   + thimp*dt*dt* &
+                   (v2psib(g79(:,:,i),sb179,bz079) &
+                   +v2psib(g79(:,:,i),ps079,sb279))
+              
+              ! EQUILIBRIUM TERM
+              r4(i1) = r4(i1) + dt* &
+                   (v1bb     (g79(:,:,i),bz079,bz079)) &
+                   + thimp*dt*dt* &
+                   (v1ubb    (g79(:,:,i),ph079,bz079,bz079) &
+                   +v1vpsib  (g79(:,:,i),vz079,ps079,bz079))
+              r4(i2) = r4(i2) + dt* &
+                   (v2psib   (g79(:,:,i),ps079,bz079)) &
+                   + thimp*dt*dt* &
+                   (v2upsib  (g79(:,:,i),ph079,ps079,bz079) &
+                   +v2vpsipsi(g79(:,:,i),vz079,ps079,ps079))
+           endif
+
+           if(numvar.ge.3) then
+              
+              r4(i3) = r4(i3) + &
+                   dt* &
+                   (v3umu   (g79(:,:,i),ph079)*amu &
+                   +v3chimu (g79(:,:,i),ch079)*amu) + &
+                   thimp*dt*dt* &
+                   (v3psisb1(g79(:,:,i),ps079,sb179) &
+                   +v3psisb1(g79(:,:,i),sb179,ps079) &
+                   +v3bsb2  (g79(:,:,i),bz079,sb279))
+
+              ! DENSITY TERMS
+              r4(i1) = r4(i1) + dt* &
+                   (v1uchin  (g79(:,:,i),ph079,ch079,nt79) &
+                   +v1chichin(g79(:,:,i),ch079,ch079,nt79))
+              r4(i3) = r4(i3) + dt* &
+                   (v3uun    (g79(:,:,i),ph079,ph079,nt79) &
+                   +v3uchin  (g79(:,:,i),ph079,ch079,nt79) &
+                   +v3chichin(g79(:,:,i),ch079,ch079,nt79))
+              
+              ! EQUILIBRIUM TERMS
+              r4(i1) = r4(i1) + thimp*dt*dt* &
+                    (v1chipsipsi(g79(:,:,i),ch079,ps079,ps079) &
+                    +v1chibb    (g79(:,:,i),ch079,bz079,bz079))
+              r4(i2) = r4(i2) + &
+                   thimp*dt*dt* &
+                   (v2chipsib  (g79(:,:,i),ch079,ps079,bz079))
+              r4(i3) = r4(i3) + &
+                   dt* &
+                   (v3p        (g79(:,:,i),p079)              &
+                   +v3psipsi   (g79(:,:,i),ps079,ps079)       &
+                   +v3bb       (g79(:,:,i),bz079,bz079)) +    &
+                   thimp*dt*dt* &
+                   (v3up       (g79(:,:,i),ph079,p079)        &
+                   +v3upsipsi  (g79(:,:,i),ph079,ps079,ps079) &
+                   +v3ubb      (g79(:,:,i),ph079,bz079,bz079) &
+                   +v3vpsib    (g79(:,:,i),vz079,ps079,bz079) &
+                   +v3chip     (g79(:,:,i),ch079,p079)        &
+                   +v3chipsipsi(g79(:,:,i),ch079,ps079,ps079) &
+                   +v3chibb    (g79(:,:,i),ch079,bz079,bz079))
+              
+           endif ! on numvar.ge.3
+        endif    ! on linear.eq.1 .or. eqsubtract.eq.1
+
      enddo                  ! on i
 
      if(myrank.eq.0 .and. itimer.eq.1) then
@@ -629,13 +645,6 @@ subroutine ludefphi_t
               temp = b1psiu(g79(:,:,i),ps079,g79(:,:,j))
               rrterm(1,1) = rrterm(1,1) +     thimp *dt*temp
               qqterm(1,1) = qqterm(1,1) + (1.-thimp)*dt*temp
-
-              q4(i1) = q4(i1) + dt* &
-                   (b1psieta(g79(:,:,i),ps079)*etar)
-
-              ! EQUILIBRIUM TERMS
-              q4(i1) = q4(i1) + dt* &
-                   (b1psiu(g79(:,:,i),ps079,ph079))
            endif
 
            ! NUMVAR = 2
@@ -697,21 +706,6 @@ subroutine ludefphi_t
                  temp = b2psiv(g79(:,:,i),ps079,g79(:,:,j))
                  rrterm(2,2) = rrterm(2,2) +     thimp *dt*temp
                  qqterm(2,2) = qqterm(2,2) + (1.-thimp)*dt*temp
-
-                 q4(i2) = q4(i2) + dt* &
-                      b2beta (g79(:,:,i),bz079)*etar
-
-                 ! DENSITY TERMS
-                 q4(i1) = q4(i1) + dt* &
-                      b1psibd(g79(:,:,i),ps079,bz079,ni79)*dbf
-                 q4(i2) = q4(i2) + dt* &
-                      b2psipsid(g79(:,:,i),ps079,ps079,ni79)*dbf
-
-                 ! EQUILIBRIUM TERMS
-                 q4(i2) = q4(i2) + dt* &
-                      (b2psiv(g79(:,:,i),ps079,vz079) &
-                      +b2bu  (g79(:,:,i),bz079,ph079))
-
               endif
            endif
 
@@ -724,7 +718,7 @@ subroutine ludefphi_t
               ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
 
               temp = b1psichi(g79(:,:,i),ps179,g79(:,:,j))             ! passed: 1
-              rrterm(1,3) = ssterm(1,3) + thimp*dt*temp
+              rrterm(1,3) = rrterm(1,3) + thimp*dt*temp
               qqterm(1,3) = qqterm(1,3) - thimp*dt*temp
 
               temp = b2bchi(g79(:,:,i),g79(:,:,j),cht79)               ! passed: 1
@@ -739,7 +733,7 @@ subroutine ludefphi_t
               rrterm(2,3) = ssterm(2,3) + thimp*dt*temp
               qqterm(2,3) = qqterm(2,3) - thimp*dt*temp
 
-              temp = b3pebd(g79(:,:,i),pe179,g79(:,:,j),ni79)*dbf      ! passed: 1
+              temp = b3pebd(g79(:,:,i),pe179,g79(:,:,j),ni79)*dbf*pefac   ! passed: 1
               ssterm(3,2) = ssterm(3,2) - thimp*dt*temp
               ddterm(3,2) = ddterm(3,2) - thimp*dt*temp
 
@@ -747,60 +741,40 @@ subroutine ludefphi_t
               ssterm(3,3) = ssterm(3,3) + temp
               ddterm(3,3) = ddterm(3,3) + temp
 
-              temp = b3pebd(g79(:,:,i),g79(:,:,j),bzt79,ni79)*dbf &    ! passed: 1
-                   + p1pu  (g79(:,:,i),g79(:,:,j),pht79)          &    ! passed: 1
-                   + p1pchi(g79(:,:,i),g79(:,:,j),cht79)               ! passed: 1
+              temp = b3pebd(g79(:,:,i),g79(:,:,j),bzt79,ni79)*dbf*pefac & ! passed: 1
+                   + p1pu  (g79(:,:,i),g79(:,:,j),pht79)          &       ! passed: 1
+                   + p1pchi(g79(:,:,i),g79(:,:,j),cht79)                  ! passed: 1
               ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp
               ddterm(3,3) = ddterm(3,3) + (1.-thimp)*dt*temp
 
-              temp = p1pu(g79(:,:,i),pe179,g79(:,:,j))                 ! passed: 1
+              temp = p1pu(g79(:,:,i),pe179,g79(:,:,j))                    ! passed: 1
               rrterm(3,1) = rrterm(3,1) + thimp*dt*temp
               qqterm(3,1) = qqterm(3,1) - thimp*dt*temp
 
-              temp = p1pchi(g79(:,:,i),pe179,g79(:,:,j))               ! passed: 1
+              temp = p1pchi(g79(:,:,i),pe179,g79(:,:,j))                  ! passed: 1
               rrterm(3,3) = rrterm(3,3) + thimp*dt*temp
               qqterm(3,3) = qqterm(3,3) - thimp*dt*temp
 
-
               if(linear.eq.1 .or. eqsubtract.eq.1) then
-
                  temp = b1psichi(g79(:,:,i),ps079,g79(:,:,j))
-                 rrterm(1,3) = ssterm(1,3) +     thimp *dt*temp
+                 rrterm(1,3) = rrterm(1,3) +     thimp *dt*temp
                  qqterm(1,3) = qqterm(1,3) + (1.-thimp)*dt*temp
 
                  temp = b2bchi(g79(:,:,i),bz079,g79(:,:,j))
-                 rrterm(2,3) = ssterm(2,3) +     thimp *dt*temp
+                 rrterm(2,3) = rrterm(2,3) +     thimp *dt*temp
                  qqterm(2,3) = qqterm(2,3) + (1.-thimp)*dt*temp
 
                  temp = b3pebd(g79(:,:,i),pe079,g79(:,:,j),ni79)*dbf*pefac
-                 
                  ssterm(3,2) = ssterm(3,2) -     thimp *dt*temp
                  ddterm(3,2) = ddterm(3,2) + (1.-thimp)*dt*temp
 
                  temp = p1pu(g79(:,:,i),pe079,g79(:,:,j))
-                 
                  rrterm(3,1) = rrterm(3,1) +     thimp *dt*temp
                  qqterm(3,1) = qqterm(3,1) + (1.-thimp)*dt*temp
 
-                 temp = p1pchi(g79(:,:,i),pe079,g79(:,:,j))
-                 
+                 temp = p1pchi(g79(:,:,i),pe079,g79(:,:,j))                
                  rrterm(3,3) = rrterm(3,3) +     thimp *dt*temp
                  qqterm(3,3) = qqterm(3,3) + (1.-thimp)*dt*temp
-
-                 ! DENSITY TERMS
-                 q4(i2) = q4(i2) + dt* &
-                      (b2ped (g79(:,:,i),pe079,ni79)*dbf)
-                 q4(i3) = q4(i3) + dt* &
-                      (b3pebd(g79(:,:,i),pe079,bz079,ni79)*dbf*pefac)
-
-                 ! EQUILIBRIUM TERMS
-                 q4(i1) = q4(i1) + dt* &
-                      (b1psichi(g79(:,:,i),ps079,ch079))
-                 q4(i2) = q4(i2) + dt* &
-                      (b2bchi(g79(:,:,i),bz079,ch079))
-                 q4(i3) = q4(i3) + dt* &
-                      (p1pu  (g79(:,:,i),pe079,ph079) &
-                      +p1pchi(g79(:,:,i),pe079,ch079))
               endif
            endif
 
@@ -844,8 +818,52 @@ subroutine ludefphi_t
               call insert_val(q2matrix_sm,qqterm(3,1),i1+12,j1,   1)
               call insert_val(q2matrix_sm,qqterm(3,2),i1+12,j1+6, 1)
            endif
-        enddo
-     enddo
+        enddo ! on j
+
+        if(linear.eq.1 .or. eqsubtract.eq.1) then
+
+           q4(i1) = q4(i1) + dt* &
+                (b1psieta(g79(:,:,i),ps079)*etar)
+
+           ! EQUILIBRIUM TERMS
+           q4(i1) = q4(i1) + dt* &
+                (b1psiu(g79(:,:,i),ps079,ph079))
+
+           if(numvar.ge.2) then
+              q4(i2) = q4(i2) + dt* &
+                   b2beta (g79(:,:,i),bz079)*etar
+              
+              ! DENSITY TERMS
+              q4(i1) = q4(i1) + dt* &
+                   b1psibd(g79(:,:,i),ps079,bz079,ni79)*dbf
+              q4(i2) = q4(i2) + dt* &
+                   b2psipsid(g79(:,:,i),ps079,ps079,ni79)*dbf
+
+              ! EQUILIBRIUM TERMS
+              q4(i2) = q4(i2) + dt* &
+                   (b2psiv(g79(:,:,i),ps079,vz079) &
+                   +b2bu  (g79(:,:,i),bz079,ph079))
+           endif
+
+           if(numvar.ge.3) then
+              ! DENSITY TERMS
+              q4(i2) = q4(i2) + dt* &
+                   (b2ped (g79(:,:,i),pe079,ni79)*dbf)
+              q4(i3) = q4(i3) + dt* &
+                   (b3pebd(g79(:,:,i),pe079,bz079,ni79)*dbf*pefac)
+              
+              ! EQUILIBRIUM TERMS
+              q4(i1) = q4(i1) + dt* &
+                   (b1psichi(g79(:,:,i),ps079,ch079))
+              q4(i2) = q4(i2) + dt* &
+                   (b2bchi(g79(:,:,i),bz079,ch079))
+              q4(i3) = q4(i3) + dt* &
+                   (p1pu  (g79(:,:,i),pe079,ph079) &
+                   +p1pchi(g79(:,:,i),pe079,ch079))
+           endif
+        endif
+
+     enddo ! on i
 
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
