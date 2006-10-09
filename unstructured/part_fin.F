@@ -61,15 +61,13 @@
      &     phi0(maxdofs1*numvar), phi1(maxdofs1*numvar),   
      &     b1vector(maxdofs1*numvar), b2vector(maxdofs1*numvar),               
      &     b3vector(maxdofs1*numvar),vtemp(maxdofs1*numvar),
-     &     phitimen(maxdofs1*numvar),
-     &     veltimen(maxdofs1*numvar), r4(maxdofs1*numvar), 
-     &     q4(maxdofs1*numvar))
+     &     r4(maxdofs1*numvar),q4(maxdofs1*numvar))
 !
       allocate(fun1(maxdofs1),fun4(maxdofs1),fun2(maxdofs1),               &
      &     fun3(maxdofs1), jphi(maxdofs1),jphi0(maxdofs1),                 &
      &     sb1(maxdofs1), sb2(maxdofs1), sb3(maxdofs1), vor(maxdofs1),     &
      &     vor0(maxdofs1),  com(maxdofs1), com0(maxdofs1),                 & 
-     &     den(maxdofs1), den0(maxdofs1),                                  &
+     &     den(maxdofs1), den0(maxdofs1),denn(maxdofs1),                   &
      &     deni(maxdofs1), pres(maxdofs1), pres0(maxdofs1))
 !
 !.....boundary arrays

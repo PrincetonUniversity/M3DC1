@@ -439,7 +439,7 @@ subroutine define_fields_25(itri)
   endif
   
   if(idens.eq.1) then
-     call calcavector(itri, den, 1, 1, avec)
+     call calcavector(itri, denn, 1, 1, avec)
      call eval_ops(avec, si_25, eta_25, ttri(itri), ri_25,25, n125)
      
      if(linear.eq.1 .or. eqsubtract.eq.1) then
@@ -510,7 +510,7 @@ subroutine define_fields_79(itri)
   else
      pht79 = ph179
      pst79 = ps179
-     phs79 = ph179
+     phs79 = ph179/2.
      pss79 = ps179/2.
   endif
 
@@ -584,7 +584,7 @@ subroutine define_fields_79(itri)
   endif
   
   if(idens.eq.1) then
-     call calcavector(itri, den, 1, 1, avec)
+     call calcavector(itri, denn, 1, 1, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, n179)
      
      if(linear.eq.1 .or. eqsubtract.eq.1) then

@@ -246,6 +246,7 @@ subroutine output
         call plotit(vel,phi,1)
         if(idens.eq.1) call oneplot(den,1,1,"n-t",1)
      endif
+     if(idens.eq.1) call oneplot(deni,1,1,"n^-1",0)
   endif
   
   ! plot linearized solution

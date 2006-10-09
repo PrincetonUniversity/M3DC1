@@ -45,7 +45,6 @@ subroutine ludefvel_t
      call zero_array(r1matrix_sm,spo_numvar3, 113)
   endif
 
-  veln = vel
   vels = vel
   r4 = 0.
       
@@ -165,7 +164,7 @@ subroutine ludefvel_t
               rrterm(2,1) = rrterm(2,1) + dt* &
                    (v2psib(g79(:,:,i),g79(:,:,j),bzs79)) &
                    + thimp*dt*dt* &
-                   (v2psib   (g79(:,:,i),g79(:,:,j),sb279))
+                   (v2psib(g79(:,:,i),g79(:,:,j),sb279))
 
               rrterm(2,2) = rrterm(2,2) + dt* &
                    (v2psib(g79(:,:,i),pss79,g79(:,:,j))) &
@@ -245,14 +244,14 @@ subroutine ludefvel_t
 
               temp = v3uun  (g79(:,:,i),g79(:,:,j),ph179,nt79) &      ! passed: 1
                    + v3uun  (g79(:,:,i),ph179,g79(:,:,j),nt79) !&      ! passed: 1
-!!$                   + v3uchin(g79(:,:,i),g79(:,:,j),ch179,nt79)          ! FAILED: 1
+!!$!                   + v3uchin(g79(:,:,i),g79(:,:,j),ch179,nt79)        !
               ssterm(3,1) = ssterm(3,1) -     thimp *dt*temp
               ddterm(3,1) = ddterm(3,1) + (.5-thimp)*dt*temp
 
               temp = v3umu   (g79(:,:,i),g79(:,:,j)) &
                    +thimp*dt* &
                    (v3up     (g79(:,:,i),g79(:,:,j),pt79) &               ! 
-!!$                   +v3upsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79) &        !
+!!$!                   +v3upsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79) &        !
                    +v3ubb    (g79(:,:,i),g79(:,:,j),bzt79,bzt79))          ! 
               ssterm(3,1) = ssterm(3,1) -     thimp *dt*temp
               ddterm(3,1) = ddterm(3,1) + (1.-thimp)*dt*temp
@@ -265,7 +264,7 @@ subroutine ludefvel_t
               ssterm(3,3) = ssterm(3,3) + temp
               ddterm(3,3) = ddterm(3,3) + temp
 
-              temp = v3chimu    (g79(:,:,i),g79(:,:,j))        ! passed: 1
+              temp = v3chimu    (g79(:,:,i),g79(:,:,j))*amu      ! passed: 1
               ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp
               ddterm(3,3) = ddterm(3,3) + (1.-thimp)*dt*temp
 
@@ -276,7 +275,7 @@ subroutine ludefvel_t
               ddterm(3,3) = ddterm(3,3) + (.5-thimp)*dt*temp
                            
               temp =  v3chip     (g79(:,:,i),g79(:,:,j),pt79) &         ! passed: 1
-!!$                   + v3chipsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79) &  ! FAILED: 1
+!!$!                   + v3chipsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79) &  ! FAILED: 1
                    + v3chibb    (g79(:,:,i),g79(:,:,j),bzt79,bzt79)     ! passed: 1
               ssterm(3,3) = ssterm(3,3) - thimp*    thimp *dt*dt*temp
               ddterm(3,3) = ddterm(3,3) + thimp*(1.-thimp)*dt*dt*temp
@@ -541,7 +540,6 @@ subroutine ludefphi_t
   real :: tstart, tend, tfield, telm
 
   real :: temp
-!!$  real :: b3pebd, p1pu, p1pchi, b1psichi, b2ped, b2bchi
 
   double precision cogcoords(3)
 
@@ -632,7 +630,7 @@ subroutine ludefphi_t
            ssterm(1,1) = ssterm(1,1) + temp
            ddterm(1,1) = ddterm(1,1) + temp
 
-           temp = b1psieta(g79(:,:,i),g79(:,:,j))*etar &
+           temp = b1psieta(g79(:,:,i),g79(:,:,j))*etar  &
                 + b1psiu  (g79(:,:,i),g79(:,:,j),pht79)
            ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
            ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
@@ -650,7 +648,7 @@ subroutine ludefphi_t
            ! NUMVAR = 2
            ! ~~~~~~~~~~
            if(numvar.ge.2) then
-              
+
               temp = b1psibd(g79(:,:,i),g79(:,:,j),bz179,ni79)*dbf              
               ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
               ddterm(1,1) = ddterm(1,1) + (.5-thimp)*dt*temp
@@ -677,6 +675,11 @@ subroutine ludefphi_t
               ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
               ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
 
+!!$              temp = b2bbd(g79(:,:,i),g79(:,:,j),bz179,ni79)*dbf &
+!!$                   + b2bbd(g79(:,:,i),bz179,g79(:,:,j),ni79)*dbf
+!!$              ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
+!!$              ddterm(2,2) = ddterm(2,2) + (.5-thimp)*dt*temp
+
               temp = b2bu  (g79(:,:,i),bz179,g79(:,:,j))
               rrterm(2,1) = rrterm(2,1) + thimp*dt*temp
               qqterm(2,1) = qqterm(2,1) - thimp*dt*temp
@@ -687,7 +690,7 @@ subroutine ludefphi_t
 
               if(linear.eq.1 .or. eqsubtract.eq.1) then
                  temp = b1psibd(g79(:,:,i),g79(:,:,j),bz079,ni79)*dbf              
-                 ssterm(1,1) = ssterm(1,1) -      thimp *dt*temp
+                 ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
                  ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
 
                  temp = b1psibd(g79(:,:,i),ps079,g79(:,:,j),ni79)*dbf              
@@ -698,6 +701,11 @@ subroutine ludefphi_t
                       + b2psipsid(g79(:,:,i),ps079,g79(:,:,j),ni79)*dbf
                  ssterm(2,1) = ssterm(2,1) -     thimp *dt*temp
                  ddterm(2,1) = ddterm(2,1) + (1.-thimp)*dt*temp
+
+                 temp = b2bbd (g79(:,:,i),g79(:,:,j),bz079,ni79)*dbf &
+                      + b2bbd (g79(:,:,i),bz079,g79(:,:,j),ni79)*dbf
+                 ssterm(2,2) = ssterm(2,2) +     thimp *dt*temp
+                 ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
 
                  temp = b2bu  (g79(:,:,i),bz079,g79(:,:,j))
                  rrterm(2,1) = rrterm(2,1) +     thimp *dt*temp
@@ -713,36 +721,46 @@ subroutine ludefphi_t
            ! ~~~~~~~~~~
            if(numvar.ge.3) then
 
-              temp = b1psichi(g79(:,:,i),g79(:,:,j),cht79)             ! passed: 1
+              temp = b1psichi(g79(:,:,i),g79(:,:,j),cht79)                ! passed: 1
               ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
               ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
 
-              temp = b1psichi(g79(:,:,i),ps179,g79(:,:,j))             ! passed: 1
+              temp = b1psichi(g79(:,:,i),ps179,g79(:,:,j))                ! passed: 1
               rrterm(1,3) = rrterm(1,3) + thimp*dt*temp
               qqterm(1,3) = qqterm(1,3) - thimp*dt*temp
 
-              temp = b2bchi(g79(:,:,i),g79(:,:,j),cht79)               ! passed: 1
+              temp = b2bchi(g79(:,:,i),g79(:,:,j),cht79)                  ! passed: 1
               ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
               ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
 
-              temp = b2ped(g79(:,:,i),g79(:,:,j),ni79)*dbf             ! passed: 1
+              temp = b2ped(g79(:,:,i),g79(:,:,j),ni79)*dbf                ! passed: 1
               ssterm(2,3) = ssterm(2,3) -     thimp *dt*temp
-              ddterm(2,3) = ddterm(2,3) - (1.-thimp)*dt*temp
+              ddterm(2,3) = ddterm(2,3) + (1.-thimp)*dt*temp
 
-              temp = b2bchi(g79(:,:,i),bz179,g79(:,:,j))               ! passed: 1
-              rrterm(2,3) = ssterm(2,3) + thimp*dt*temp
+              temp = b2bchi(g79(:,:,i),bz179,g79(:,:,j))                  ! passed: 1
+              rrterm(2,3) = rrterm(2,3) + thimp*dt*temp
               qqterm(2,3) = qqterm(2,3) - thimp*dt*temp
+
+              temp = b3psipsieta(g79(:,:,i),g79(:,:,j),ps179)*etar &
+                   + b3psipsieta(g79(:,:,i),ps179,g79(:,:,j))*etar
+              ssterm(3,1) = ssterm(3,1) -     thimp *dt*temp
+              ddterm(3,1) = ddterm(3,1) + (.5-thimp)*dt*temp
 
               temp = b3pebd(g79(:,:,i),pe179,g79(:,:,j),ni79)*dbf*pefac   ! passed: 1
               ssterm(3,2) = ssterm(3,2) - thimp*dt*temp
               ddterm(3,2) = ddterm(3,2) - thimp*dt*temp
+
+              temp = b3bbeta(g79(:,:,i),g79(:,:,j),bz179)*etar &
+                   + b3bbeta(g79(:,:,i),bz179,g79(:,:,j))*etar
+              ssterm(3,2) = ssterm(3,2) -     thimp *dt*temp
+              ddterm(3,2) = ddterm(3,2) + (.5-thimp)*dt*temp
 
               temp = b3pe(g79(:,:,i),g79(:,:,j))
               ssterm(3,3) = ssterm(3,3) + temp
               ddterm(3,3) = ddterm(3,3) + temp
 
               temp = b3pebd(g79(:,:,i),g79(:,:,j),bzt79,ni79)*dbf*pefac & ! passed: 1
-                   + p1pu  (g79(:,:,i),g79(:,:,j),pht79)          &       ! passed: 1
+                   + p1pu  (g79(:,:,i),g79(:,:,j),pht79)                & ! passed: 1
                    + p1pchi(g79(:,:,i),g79(:,:,j),cht79)                  ! passed: 1
               ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp
               ddterm(3,3) = ddterm(3,3) + (1.-thimp)*dt*temp
@@ -764,6 +782,16 @@ subroutine ludefphi_t
                  rrterm(2,3) = rrterm(2,3) +     thimp *dt*temp
                  qqterm(2,3) = qqterm(2,3) + (1.-thimp)*dt*temp
 
+                 temp = b3psipsieta(g79(:,:,i),g79(:,:,j),ps079)*etar &
+                      + b3psipsieta(g79(:,:,i),ps079,g79(:,:,j))*etar
+                 ssterm(3,1) = ssterm(3,1) -     thimp *dt*temp
+                 ddterm(3,1) = ddterm(3,1) + (1.-thimp)*dt*temp
+
+                 temp = b3bbeta(g79(:,:,i),g79(:,:,j),bz079)*etar &
+                      + b3bbeta(g79(:,:,i),bz079,g79(:,:,j))*etar
+                 ssterm(3,2) = ssterm(3,2) -     thimp *dt*temp
+                 ddterm(3,2) = ddterm(3,2) + (1.-thimp)*dt*temp
+
                  temp = b3pebd(g79(:,:,i),pe079,g79(:,:,j),ni79)*dbf*pefac
                  ssterm(3,2) = ssterm(3,2) -     thimp *dt*temp
                  ddterm(3,2) = ddterm(3,2) + (1.-thimp)*dt*temp
@@ -784,16 +812,16 @@ subroutine ludefphi_t
            call insert_val(q2matrix_sm,qqterm(1,1),i1,j1,1)
            if(numvar.ge.2) then
               call insert_val(s2matrix_sm,ssterm(1,2),i1  ,j1+6,1)
-              call insert_val(s2matrix_sm,ssterm(2,1),i1+6,j1,1)
+              call insert_val(s2matrix_sm,ssterm(2,1),i1+6,j1  ,1)
               call insert_val(s2matrix_sm,ssterm(2,2),i1+6,j1+6,1)
               call insert_val(d2matrix_sm,ddterm(1,2),i1  ,j1+6,1)
-              call insert_val(d2matrix_sm,ddterm(2,1),i1+6,j1,1)
+              call insert_val(d2matrix_sm,ddterm(2,1),i1+6,j1  ,1)
               call insert_val(d2matrix_sm,ddterm(2,2),i1+6,j1+6,1)
               call insert_val(r2matrix_sm,rrterm(1,2),i1  ,j1+6,1)
-              call insert_val(r2matrix_sm,rrterm(2,1),i1+6,j1,1)
+              call insert_val(r2matrix_sm,rrterm(2,1),i1+6,j1  ,1)
               call insert_val(r2matrix_sm,rrterm(2,2),i1+6,j1+6,1)
               call insert_val(q2matrix_sm,qqterm(1,2),i1  ,j1+6,1)
-              call insert_val(q2matrix_sm,qqterm(2,1),i1+6,j1,1)
+              call insert_val(q2matrix_sm,qqterm(2,1),i1+6,j1  ,1)
               call insert_val(q2matrix_sm,qqterm(2,2),i1+6,j1+6,1)
            endif
            if(numvar .eq. 3) then
@@ -831,13 +859,14 @@ subroutine ludefphi_t
 
            if(numvar.ge.2) then
               q4(i2) = q4(i2) + dt* &
-                   b2beta (g79(:,:,i),bz079)*etar
+                   (b2beta     (g79(:,:,i),bz079)*etar)
               
               ! DENSITY TERMS
               q4(i1) = q4(i1) + dt* &
-                   b1psibd(g79(:,:,i),ps079,bz079,ni79)*dbf
+                   (b1psibd  (g79(:,:,i),ps079,bz079,ni79)*dbf)
               q4(i2) = q4(i2) + dt* &
-                   b2psipsid(g79(:,:,i),ps079,ps079,ni79)*dbf
+                   (b2psipsid(g79(:,:,i),ps079,ps079,ni79)*dbf &
+                   +b2bbd    (g79(:,:,i),bz079,bz079,ni79)*dbf)
 
               ! EQUILIBRIUM TERMS
               q4(i2) = q4(i2) + dt* &
@@ -846,6 +875,10 @@ subroutine ludefphi_t
            endif
 
            if(numvar.ge.3) then
+              q4(i3) = q4(i3) + dt* &
+                   (b3psipsieta(g79(:,:,i),ps079,ps079)*etar &
+                   +b3bbeta    (g79(:,:,i),bz079,bz079)*etar)
+
               ! DENSITY TERMS
               q4(i2) = q4(i2) + dt* &
                    (b2ped (g79(:,:,i),pe079,ni79)*dbf)
@@ -937,10 +970,6 @@ subroutine ludefden_t
      call zero_array(r8matrix_sm,spo_numvar3,183)
   endif
 
-#ifdef mpi
-
-#endif
-
 !!$  en1 = 0
 
   do itri=1,numelms
@@ -970,7 +999,8 @@ subroutine ludefden_t
            ssterm = ssterm + temp
            ddterm = ddterm + temp
 
-           temp = n1nu  (g79(:,:,i),g79(:,:,j),pht79)
+           temp = n1ndenm(g79(:,:,i),g79(:,:,j))*(dt*denm) &
+                + n1nu   (g79(:,:,i),g79(:,:,j),pht79)
            ssterm = ssterm -     thimp *dt*temp
            ddterm = ddterm + (1.-thimp)*dt*temp
 
@@ -982,9 +1012,6 @@ subroutine ludefden_t
               temp = n1nu  (g79(:,:,i),n079,g79(:,:,j))
               rrterm(1) = rrterm(1) +     thimp *dt*temp
               qqterm(1) = qqterm(1) + (1.-thimp)*dt*temp
-!!$              ! EQUILIBRIUM TERMS
-!!$              en1(ione) = en1(ione) + dt* &
-!!$                   (n1nu  (g79(:,:,i),n079,ph079))
            endif
 
            ! NUMVAR = 3
@@ -1002,10 +1029,6 @@ subroutine ludefden_t
                  temp = n1nchi(g79(:,:,i),n079,g79(:,:,j))
                  rrterm(3) = rrterm(3) +     thimp *dt*temp
                  qqterm(3) = qqterm(3) + (1.-thimp)*dt*temp
-                 
-!!$              ! EQUILIBRIUM TERMS
-!!$              en1(ione) = en1(ione) + dt* &
-!!$                   (n1nchi(g79(:,:,i),n079,ch079))
               endif
            endif
 
@@ -1023,6 +1046,21 @@ subroutine ludefden_t
            endif
 
         enddo                     ! on i
+
+        if(linear.eq.1 .or. eqsubtract.eq.1) then
+!!$           ! EQUILIBRIUM TERMS
+!!$           en1(ione) = en1(ione) + dt* &
+!!$                (n1ndenm(g79(:,:,i),n079)*(dt*denm)
+!!$                +n1nu   (g79(:,:,i),n079,ph079))
+
+           if(numvar.ge.3) then
+                               
+!!$              ! EQUILIBRIUM TERMS
+!!$              en1(ione) = en1(ione) + dt* &
+!!$                   (n1nchi(g79(:,:,i),n079,ch079))
+           endif
+        endif
+
      enddo                     ! on j
   enddo                     ! on itri
   !

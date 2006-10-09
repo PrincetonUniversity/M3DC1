@@ -20,7 +20,7 @@ module basic
   use p_data
 
   ! transport coefficients
-  real :: amu, etar, kappa
+  real :: amu, etar, kappa, denm
   real :: hyper,hyperi,hyperv,hyperc,hyperp
 
   ! physical parameters
@@ -78,7 +78,7 @@ module basic
        tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,cb,     &
        bzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,      &
        kappa,iper,jper,iprint,itimer,xzero,zzero,beta,pi0,   &
-       eqsubtract,ianalytic
+       eqsubtract,ianalytic,denm
 
   !     derived quantities
   real :: tt,gamma4,gamma2,gamma3,dpsii,psimin,psilim,pi,              &
@@ -133,17 +133,16 @@ module arrays
   real, allocatable :: psibounds(:), velbounds(:), combounds(:)
 
   ! arrays defined at all vertices
-  real(r8) ,allocatable::                                         &
+  real(r8), allocatable::                                         &
        b1vecini(:), vel(:), vels(:), veln(:),                     &
        velold(:), vel0(:), vel1(:),                               &
        b2vecini(:), phi(:), phis(:),                              &
        phiold(:), phi0(:), phi1(:),                               &
        jphi(:),jphi0(:),sb1(:),sb2(:),sb3(:),vor(:),vor0(:),      &
-       com(:),com0(:),den(:),den0(:),deni(:),denold(:),           &
+       com(:),com0(:),den(:),den0(:),deni(:),denold(:),denn(:),   &
        pres(:),pres0(:),r4(:),q4(:),                              &
        b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
        b5vector(:), vtemp(:),                                     &
-       phitimen(:), veltimen(:),                                  &
        fun1(:),fun4(:),fun2(:),fun3(:)                            
 
 end module arrays
@@ -385,7 +384,6 @@ Program Reducedquintic
   ! calculate the equilibrium current density
   if(itaylor.ne.4) then
      call newvar(phi0,jphi0,numnodes,numvar,1,VAR_J,1)
-     if(myrank.eq.0) call oneplot(jphi0,1,1,"j0",0)
   else
      jphi0 = 0
   endif
@@ -589,11 +587,8 @@ subroutine onestep
   call numnod(numnodes)
   call numfac(numelms)
 
-  ! define the current vector jphi and the RHS vectors sb1 and sb2
-  !      call newvar(phi,jphi,numnodes,numvar,1,VAR_J,1)
-  call newvar(phi,sb1,numnodes,numvar,1,VAR_SB1,1)
-  if(numvar.ge.2) call newvar(phi,sb2,numnodes,numvar,1,VAR_SB2,1)
-  if(numvar.ge.3) call newvar(phi,sb3,numnodes,numvar,1,VAR_SB3,1)
+  denn = den
+  veln = vel
 
   ! define the inverse density array deni
   if(idens.eq.1) then
@@ -602,8 +597,14 @@ subroutine onestep
      else
         call inverse(den,deni)
      endif
-     if(myrank.eq.0) call oneplot(deni,1,1,"n^-1",0)
   endif
+
+  ! define the current vector jphi and the RHS vectors sb1 and sb2
+  !      call newvar(phi,jphi,numnodes,numvar,1,VAR_J,1)
+  call newvar(phi,sb1,numnodes,numvar,1,VAR_SB1,1)
+!!$  if(numvar.ge.2) call newvar(phi,sb2,numnodes,numvar,1,VAR_SB2,1)
+  sb2 = 0.
+  if(numvar.ge.3) call newvar(phi,sb3,numnodes,numvar,1,VAR_SB3,1)
 
 !  call conserve_tflux()
   
@@ -659,48 +660,48 @@ subroutine onestep
 
 !
 !.....coding to calculate the error in the delsquared chi equation
-      chierror = 0
-      sum = 0
-      if(numvar.ge.3) then
-         call newvar(vtemp,com,numnodes,numvar,3,VAR_COM,0)
+  chierror = 0
+  sum = 0
+  if(numvar.ge.3) then
+     call newvar(vtemp,com,numnodes,numvar,3,VAR_COM,0)
+     
+     do itri=1,numelms
+        call calcfint(fintl, maxi, atri(itri),btri(itri), ctri(itri))
+        call calcd2term(itri, d2term, fintl)
+        do j=1,18
+           jone = isval1(itri,j)
+           chierror = chierror + d2term(j)*com(jone)
+        enddo
+     enddo                  ! loop over itri
+     if(myrank.eq.0 .and. iprint.ge.1) then
+        print *, "Error in com = ", chierror 
+     endif
+     
+     if(hyperc.gt.0) then
+        call smoother3(com,vtemp,numnodes,numvar,3)
+        call newvar(vtemp,com,numnodes,numvar,3,VAR_COM,0)
+     endif
+     call oneplot(com,1,1,"com",0)
+     
+  endif
 
-         do itri=1,numelms
-            call calcfint(fintl, maxi, atri(itri),btri(itri), ctri(itri))
-            call calcd2term(itri, d2term, fintl)
-            do j=1,18
-               jone = isval1(itri,j)
-               chierror = chierror + d2term(j)*com(jone)
-            enddo
-         enddo                  ! loop over itri
-         if(myrank.eq.0 .and. iprint.ge.1) then
-            print *, "Error in com = ", chierror 
-         endif
-
-         if(hyperc.gt.0) then
-            call smoother3(com,vtemp,numnodes,numvar,3)
-            call newvar(vtemp,com,numnodes,numvar,3,VAR_COM,0)
-         endif
-         call oneplot(com,1,1,"com",0)
-
-      endif
-
-      call newvar(vtemp,vor,numnodes,numvar,1,VAR_VOR,1)
-
-      if(hyperc.gt.0) then
-!
-!.......calculate vorticity, apply smoothing operator, and redefine vor array
-         call smoother1(vor,vtemp,numnodes,numvar,1)
-         call newvar(vtemp,vor,numnodes,numvar,1,VAR_VOR,1)
-         call oneplot(com,1,1,"vor",0)
-      endif
+  call newvar(vtemp,vor,numnodes,numvar,1,VAR_VOR,1)
+  
+  if(hyperc.gt.0) then
+     !
+     !.......calculate vorticity, apply smoothing operator, and redefine vor array
+     call smoother1(vor,vtemp,numnodes,numvar,1)
+     call newvar(vtemp,vor,numnodes,numvar,1,VAR_VOR,1)
+     call oneplot(com,1,1,"vor",0)
+  endif
 
 !.....new velocity solution at time n+1 (or n* for second order advance)
-!      call numdofs(numvar, ndofs)
-!      do i=1,ndofs
-!         veln(i) = vel(i)
-!         vel(i) = vtemp(i)
-!      enddo
-  veln = vel
+!!$      call numdofs(numvar, ndofs)
+!!$      do i=1,ndofs
+!!$         veln(i) = vel(i)
+!!$         vel(i) = vtemp(i)
+!!$      enddo
+!!$  veln = vel
   vel = vtemp
 
 !
