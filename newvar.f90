@@ -248,10 +248,6 @@ subroutine newvar_SB1(temp)
      dbf = db*factor
      
      ! calculate the local sampling points and weights for numerical integration
-     call area_to_local(25,                                            &
-          alpha_25,beta_25,gamma_25,area_weight_25,                    &
-          atri(itri), btri(itri), ctri(itri),                          &
-          si_25, eta_25, weight_25)
      call area_to_local(79,                                            &
           alpha_79,beta_79,gamma_79,area_weight_79,                    &
           atri(itri), btri(itri), ctri(itri),                          &
@@ -361,10 +357,6 @@ subroutine newvar_SB2(temp)
      dbf = db*factor
 
      ! calculate the local sampling points and weights for numerical integration
-     call area_to_local(25,                                            &
-          alpha_25,beta_25,gamma_25,area_weight_25,                    &
-          atri(itri), btri(itri), ctri(itri),                          &
-          si_25, eta_25, weight_25)
      call area_to_local(79,                                            &
           alpha_79,beta_79,gamma_79,area_weight_79,                    &
           atri(itri), btri(itri), ctri(itri),                          &

@@ -324,7 +324,7 @@ subroutine denequ(dum, numberingid)
         d4 = fpp*x**2*z*ri**2 + fp*(  z*ri - x**2*z*ri**3)
 
         kb = k**2*beta
-        dum(ibegin) = 0.5*kb*d1**2
+        dum(ibegin) = 0.5*kb*d1**2 + 1.
 
         dum(ibegin+1) = kb*d1*d2
         dum(ibegin+2) = kb*d1*d3

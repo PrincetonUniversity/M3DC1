@@ -1576,6 +1576,39 @@ real function b2psipsid(e,f,g,h)
 end function b2psipsid
 
 
+! B2bbd
+! =====
+real function b2bbd(e,f,g,h)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  real :: temp
+
+  if(idens.eq.0) then
+     temp = 0.
+     if(itor.eq.1) then
+        temp = temp &
+             + 2.*int4(ri4_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZ),weight_79,79)
+     endif
+  else
+     temp = int5(ri3_79,e(:,OP_1),f(:,OP_1),g(:,OP_DR),h(:,OP_DZ),weight_79,79) &
+          - int5(ri3_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZ),h(:,OP_DR),weight_79,79)
+     if(itor.eq.1) then
+        temp = temp &
+             + 2.*int5(ri4_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZ),h(:,OP_1),weight_79,79)
+     endif
+  endif
+  
+  b2bbd = temp
+  return 
+end function b2bbd
+
+
+
 ! B2ped
 ! =====
 real function b2ped(e,f,g)
@@ -1638,12 +1671,12 @@ real function b3psipsieta(e,f,g)
      return
   endif
 
-  temp = (gam-1.)*etar*int4(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),weight_79,79)
+  temp = (gam-1.)*int4(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),weight_79,79)
 
   b3psipsieta = temp
   
   return
-end function
+end function b3psipsieta
 
 
 ! B3bbeta
@@ -1664,14 +1697,14 @@ real function b3bbeta(e,f,g)
      return
   endif
 
-  temp = (gam-1.)*etar* &
+  temp = (gam-1.)* &
        (int4(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
        +int4(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),weight_79,79))
 
   b3bbeta = temp
   
   return
-end function
+end function b3bbeta
 
 
 ! B3pebd
@@ -1701,7 +1734,7 @@ real function b3pebd(e,f,g,h)
   b3pebd = temp
   
   return
-end function
+end function b3pebd
 
 
 
@@ -1726,6 +1759,26 @@ real function n1n(e,f)
   n1n = temp
   return
 end function n1n
+
+
+! N1ndenm
+! =======
+real function n1ndenm(e,f)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f
+  real :: temp
+
+  temp =-int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
+       - int2(e(:,OP_DR),f(:,OP_DR),weight_79,79)
+
+  n1ndenm = temp
+  return
+end function n1ndenm
 
 
 
