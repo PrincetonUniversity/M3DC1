@@ -140,7 +140,7 @@ module arrays
        phiold(:), phi0(:), phi1(:),                               &
        jphi(:),jphi0(:),sb1(:),sb2(:),sb3(:),vor(:),vor0(:),      &
        com(:),com0(:),den(:),den0(:),deni(:),denold(:),denn(:),   &
-       pres(:),pres0(:),r4(:),q4(:),                              &
+       pres(:),pres0(:),r4(:),q4(:),qn4(:),                       &
        b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
        b5vector(:), vtemp(:),                                     &
        fun1(:),fun4(:),fun2(:),fun3(:)                            
@@ -741,7 +741,7 @@ subroutine onestep
         call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
         do i=0,iendplusone-ibegin-1
            vtemp(ibegin+i) = vtemp(ibegin+i) + itemp(ibegin+i) * &
-                (b2vector(ibeginnv+i) + b3vector(ibeginnv+i))
+                (b2vector(ibeginnv+i) + b3vector(ibeginnv+i) + qn4(ibegin+i))
            itemp(ibegin+i) = 0
         enddo
      enddo
