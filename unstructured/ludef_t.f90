@@ -702,10 +702,10 @@ subroutine ludefphi_t
                  ssterm(2,1) = ssterm(2,1) -     thimp *dt*temp
                  ddterm(2,1) = ddterm(2,1) + (1.-thimp)*dt*temp
 
-                 temp = b2bbd (g79(:,:,i),g79(:,:,j),bz079,ni79)*dbf &
-                      + b2bbd (g79(:,:,i),bz079,g79(:,:,j),ni79)*dbf
-                 ssterm(2,2) = ssterm(2,2) +     thimp *dt*temp
-                 ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
+!!$                 temp = b2bbd (g79(:,:,i),g79(:,:,j),bz079,ni79)*dbf &
+!!$                      + b2bbd (g79(:,:,i),bz079,g79(:,:,j),ni79)*dbf
+!!$                 ssterm(2,2) = ssterm(2,2) +     thimp *dt*temp
+!!$                 ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
 
                  temp = b2bu  (g79(:,:,i),bz079,g79(:,:,j))
                  rrterm(2,1) = rrterm(2,1) +     thimp *dt*temp
@@ -866,7 +866,8 @@ subroutine ludefphi_t
                    (b1psibd  (g79(:,:,i),ps079,bz079,ni79)*dbf)
               q4(i2) = q4(i2) + dt* &
                    (b2psipsid(g79(:,:,i),ps079,ps079,ni79)*dbf &
-                   +b2bbd    (g79(:,:,i),bz079,bz079,ni79)*dbf)
+!!$                   +b2bbd    (g79(:,:,i),bz079,bz079,ni79)*dbf)
+                   )
 
               ! EQUILIBRIUM TERMS
               q4(i2) = q4(i2) + dt* &
@@ -970,7 +971,7 @@ subroutine ludefden_t
      call zero_array(r8matrix_sm,spo_numvar3,183)
   endif
 
-!!$  en1 = 0
+  qn4 = 0
 
   do itri=1,numelms
 
@@ -1048,16 +1049,19 @@ subroutine ludefden_t
         enddo                     ! on i
 
         if(linear.eq.1 .or. eqsubtract.eq.1) then
-!!$           ! EQUILIBRIUM TERMS
-!!$           en1(ione) = en1(ione) + dt* &
-!!$                (n1ndenm(g79(:,:,i),n079)*(dt*denm)
-!!$                +n1nu   (g79(:,:,i),n079,ph079))
+
+           qn4(ione) = qn4(ione) + dt* &
+                (n1ndenm(g79(:,:,i),n079)*(dt*denm))
+
+           ! EQUILIBRIUM TERMS
+           qn4(ione) = qn4(ione) + dt* &
+                (n1nu   (g79(:,:,i),n079,ph079))
 
            if(numvar.ge.3) then
                                
-!!$              ! EQUILIBRIUM TERMS
-!!$              en1(ione) = en1(ione) + dt* &
-!!$                   (n1nchi(g79(:,:,i),n079,ch079))
+              ! EQUILIBRIUM TERMS
+              qn4(ione) = qn4(ione) + dt* &
+                   (n1nchi(g79(:,:,i),n079,ch079))
            endif
         endif
 
