@@ -784,6 +784,32 @@ subroutine sparseR8d_zero_row(this, ig)
   this%values(ifirst:ilast) = 0.
 
 end subroutine sparseR8d_zero_row
+subroutine sparseR8d_output(this)
+  
+  implicit none
+
+  type(sparseR8d_obj), intent(in) :: this
+
+  integer :: i, row, j
+
+  print *, 'Outputting matrix.out ', this%nnz_loc
+
+  open(77, file='matrix.out', form='formatted', status='unknown')
+  rewind(77)
+
+  row = this%fst_row-1
+  j = 1
+  do i=1, this%nnz_loc
+      do while(i.eq.this%rowptr(j)+1)
+        row = row+1
+        j = j+1
+     end do
+     write(77,'(I7,I7,1pE12.4)') row, this%colind(i), this%values(i)
+  enddo
+
+  close(77)
+  
+end subroutine sparseR8d_output
 !===========================================================
 integer function sparseR8d_is_local_row(this, i1)
 

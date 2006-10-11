@@ -69,6 +69,7 @@ subroutine newvarb(inarray,outarray,mmnn,numvard,iplace,iop)
 
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+      if(myrank.eq.0 .and. iprint.gt.0) write(*,*) "newvarb called with iop=",iop
 
   mmnn6 = 6*m*n
 !  allocate(phin(mmnn6),temp(mmnn6),temptemp(mmnn6))
@@ -186,16 +187,17 @@ subroutine newvarb(inarray,outarray,mmnn,numvard,iplace,iop)
   filenum = 0
 
   select case(iop)
-  case(7) 
-     filenum = 105
-  case(11) 
-     filenum = 151
-  case(12) 
-     filenum = 107
-  case(13) 
-     filenum = 152
-  case(14) 
-     filenum = 153
+! case(7)
+!    filenum = 105
+! case(11)
+!    filenum = 151
+! case(12)
+!    filenum = 107
+! case(13)
+!    filenum = 152
+! case(14)
+!    filenum = 153
+!    filenum = 153
   case(15) 
      filenum = 101
   case(16) 

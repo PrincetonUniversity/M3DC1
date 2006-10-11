@@ -13,6 +13,8 @@ contains
 ! subroutine writeit
 ! subroutine wrrestart
 ! subroutine rdrestart
+! subroutine netcdfout
+! subroutine handle_err
 
 subroutine openf
 
@@ -69,6 +71,15 @@ subroutine openf
      open(13,file='C1J-per',form='formatted',status='unknown')
      open(19,file='C1phi-full',form='formatted',status='unknown')
      open(20,file='C1vor-full',form='formatted',status='unknown')
+      if(linear.eq.0 .and. itaylor.eq.3) then
+       open(25,file='C1VxBU',form='formatted',status='unknown')
+       open(26,file='C1VxBC',form='formatted',status='unknown')
+       open(27,file='C1ETAJ',form='formatted',status='unknown')
+       open(28,file='C1EPHI',form='formatted',status='unknown')
+       open(29,file='C1JxB',form='formatted',status='unknown')
+       open(30,file='C1HYPR',form='formatted',status='unknown')
+       open(32,file='C1VxBT',form='formatted',status='unknown')
+      endif
      if(numvar.ge.2) then
         open(15,file='C1I-per',form='formatted',status='unknown')
         open(21,file='C1v-full',form='formatted',status='unknown')
@@ -116,10 +127,10 @@ subroutine output
   use superlu
 
   implicit none
-  integer :: i, j, ivertex, irect, jrect, i1, i3, indexmid
+  integer :: i, j, ivertex, irect, jrect, i1, i3, indexmid, ix
   real :: x, z, ans, ans2, gamma
   real :: etot, etoto, etotd, etoth, ediff, error, enorm, denom, percerr
-  real :: vmaxsq, vnew, vmax, x1, x2, z1, z2, val1, dum1, val2, dum2
+  real :: vmaxsq, vnew, vmax, x1, x2, z1, z2, val1, dum1, val2, dum2, superlutime
 
   ! calculate maximum perturbed current for printout
   ajmax = 0.
@@ -149,7 +160,7 @@ subroutine output
   if(numvar.ne.3) then
      error = ediff - etotd - etoth
   else
-     error = ediff - etoth
+     error = ediff - ekinph - ekinth
   endif
   if(myrank.eq.0) write(65,2001) ntime,error,                       &
        (ekinp-ekinpo)/dt,-ekinpd,-ekinph,                             &
@@ -225,8 +236,10 @@ subroutine output
   call evaluate(x1,z1,val1,dum1,phi,1,numvar)
   call evaluate(x2,z2,val2,dum2,phi,1,numvar)
   graphit(ntime,25) = 0.5*(val2-val1)
+      graphit(ntime,49) = val2
   if(ntime.gt.1) then
      graphit(ntime,26) = (graphit(ntime,25)-graphit(ntime-1,25))/dt
+      graphit(ntime,50) = (graphit(ntime,49)-graphit(ntime-1,49))/dt
   endif
   graphit(ntime,27) = (ekin3 - ekin3o)/dt
   graphit(ntime,28) = (emag3 - emag3o)/dt
@@ -249,6 +262,13 @@ subroutine output
   graphit(ntime,43) = emagp + emagt
   graphit(ntime,44) = emag3
   graphit(ntime,45) = ekinp+ekint+ekin3+emagp+emagt+emag3
+!....added 9/13/06
+  graphit(ntime,46) = ntime
+  graphit(ntime,47) = dt
+  graphit(ntime,48) = thimp
+!
+!...note.....locations 49 and 50 defined above
+!
 
   ! subtract off initial conditions
   if(ntime.gt.0) then
@@ -264,9 +284,34 @@ subroutine output
      percerr = etot/enorm
      if(myrank.eq.0) write(66,2002) ntime,time,                        &
           ekinp,emagp,ekint,emagt,ekin3,emag3,etot,ekin,percerr
+      superlutime = graphit(ntime  ,37) - graphit(ntime  ,36)                  &
+                  -(graphit(ntime-1,37) - graphit(ntime-1,36))
+      write(*,2003) ntime,superlutime
+ 2003 format("superlutime for timestep", i5, 1pe12.4)
 2001 format(/,i5,1pe12.4,3(/1p6e12.4))
 2002 format(i5,1p10e12.4)
   endif
+!
+!
+!.....compute some midplane arrays for elvis graphics
+     z = alz/2
+     do ix = 1,irs
+        x = (ix-1)*alx*(1./(1.+isym))/(irs-1)
+        call evaluate(x,z,psiarray(ix),dum1,phi,1,numvar)
+        call evaluate(x,z,curarray(ix),dum1,jphi,1,1)
+        call evaluate(x,z,densarray(ix),dum1,dent,1,1)
+        call evaluate(x,z,pearray(ix),dum1,phi,3,numvar)
+        if(elvis.gt.0) then
+          call evaluate(x,z,ephiarray(ix),dum1,ephi,1,1)
+          call evaluate(x,z,jcbarray(ix),dum1,eph5,1,1)
+          call evaluate(x,z,vcbarray(ix),dum1,eph7,1,1)
+          call evaluate(x,z,etajarray(ix),dum1,eph4,1,1)
+          call evaluate(x,z,hyprarray(ix),dum1,eph6,1,1)
+        endif
+     enddo
+!
+!.....end of computing midplane arrays for elvis graphics
+!
   if(ntime.eq.0) return
   ! check if it is time for plots and to write restart file
   if(mod(ntime,ntimepr).ne.0) then
@@ -278,74 +323,55 @@ subroutine output
   endif
   iframe = iframe + 1
   ihdf5 = 0
- 
-  if(linear.eq.0) then ! nonlinear
-     vel1 = vel + vel0
-     phi1 = phi + phi0
-     call plotit(vel1,phi1,1)
-     if(jper.eq.1) call plotit(vel,phi,0)
-  else                 ! linear
-     if(ntime.eq.0) call plotit(vel0,phi0,1)
-     call plotit(vel,phi,0)
-  endif
+      if(iprint.gt.0) write(*,*) "before first call to plotit"
 
+  ! plot full perturbation
+  vel1 = vel + vel0
+  phi1 = phi + phi0
+  if(linear.eq.0) call plotit(vel1,phi1,1)
+  if(linear.eq.0 .and. jper.eq.1) call plotit(vel,phi,0)
+  !plot equilibrium for linear run
+  if(linear.eq.1.and.ntime.eq.0) call plotit(vel0,phi0,1)
+  !plot linearized solution
+  if(linear.eq.1) call plotit(vel,phi,0)
+      if(iprint.gt.0) write(*,*) "before first call to oneplot"
   if(idens.eq.1) then
-    call oneplot(2,dent,1,1,"dent")
-    call oneplot(3,deni,1,1,"deni")
-    call oneplot(4,den0,1,1,"den0")
-    call oneplot(1,den,1,1,"den ")
+    call oneplot(0,2,dent,1,1,"dent")
+    call oneplot(0,3,deni,1,1,"deni")
+    call oneplot(0,4,den0,1,1,"den0")
+    call oneplot(24,1,den,1,1,"den ")
   endif
 !
 !....special diagnostic plot of toroidal electric field added 06/04/06...SCJ
-  if(linear.eq.0 .and. itaylor.eq.3) then
-     call oneplot(2,eph2,1,1,"VxBU")
-     call oneplot(3,eph3,1,1,"VxBC")
-     call oneplot(4,eph4,1,1,"etaJ")
-     call oneplot(0,ephi,1,1,"ephi")
-     
-     call oneplot(2,eph5,1,1,"JxB ")
-     call oneplot(3,eph6,1,1,"hypr")
-     call oneplot(4,eph7,1,1,"VxBT")
-     call oneplot(0,ephi,1,1,"ephi")
-  endif
+      if(linear.eq.0 .and. itaylor.eq.3) then
+      call oneplot(25,2,eph2,1,1,"VxBU")
+      call oneplot(26,3,eph3,1,1,"VxBC")
+      call oneplot(27,4,eph4,1,1,"etaJ")
+      call oneplot(28,1,ephi,1,1,"ephi")
+
+      call oneplot(29,2,eph5,1,1,"JxB ")
+      call oneplot(30,3,eph6,1,1,"hypr")
+      call oneplot(32,4,eph7,1,1,"VxBT")
+      call oneplot(0,1,ephi,1,1,"ephi")
+      endif
+!
 
   if(gyro.eq.1) then
-     call oneplot(2,bsqr,1,1,"b^2 ")
-     call oneplot(0,bsqri,1,1,"b^-2")
-!     call oneplot(0,galph,1,1,"galp")
-!     call oneplot(0,ggam,1,1,"ggam")
-!     call oneplot(0,gw1,1,1,"gw1 ")
-!     if(numvar.ge.2) then
-!        call oneplot(0,gmu,1,1,"gmu ")
-!        call oneplot(0,gw2,1,1,"gw2 ")
-!        call oneplot(0,gw2,1,1,"gw3 ")
-!     endif
+     call oneplot(0,2,bsqr,1,1,"b^2 ")
+     call oneplot(0,1,bsqri,1,1,"b^-2")
   endif
-
   ! end of special DEBUG Plotting
-  if(ipres.eq.1) then
-     call oneplot(2,sphip,1,1,"sphp")
+   if(ipres.eq.1) then
+     call oneplot(0,2,sphip,1,1,"sphp")
      if(linear.ne.1) then
-        call oneplot(3,pres,1,1,"pres")
-        call oneplot(0,pres+pres0,1,1,'p-t ')
+        call oneplot(0,3,pres,1,1,"pres")
+        call oneplot(0,1,pres+pres0,1,1,'p-t ')
      else
-        call oneplot(3,pres0,1,1,'p-0  ')
-        call oneplot(0,pres,1,1,"p-p ")
+      call oneplot(0,3,pres0,1,1,'p-0  ')
+        call oneplot(0,1,pres,1,1,"p-p ")
      endif
   endif
 
-  if(chipar.ne.0. .and. numvar.ge.3) then
-!     call oneplot(0,bsqr,1,1,"b^2 ")
-!     call oneplot(0,bsqri,1,1,"b^-2")
-!     call oneplot(0,deni,1,1,"n^-1")
-!     call oneplot(0,tw1,1,1,"tw1 ")
-!     call oneplot(0,tw2,1,1,"tw2 ")
-!     call oneplot(0,tw3,1,1,"tw3 ")
-     call oneplot(0,tw4,1,1,"tw4 ")
-     call oneplot(0,tw5,1,1,"tw5 ")
-     call oneplot(0,tw40,1,1,"tw40")
-     call oneplot(0,tw50,1,1,"tw50")
-  endif
 
 4444 format(1p10e12.4)
 #ifndef nohdf
@@ -405,7 +431,7 @@ subroutine plotenergy(graphit,ntimep,maxts,mstart,numvarp)
         ymax = max(ymax,graphit(i,27),graphit(i,28))
      enddo
   endif
-  ymax = min (ymax,2.)
+  ymax = min (ymax,4.)
       
   ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
   ymax = ymax + .05*ydiff
@@ -453,37 +479,38 @@ subroutine plotenergy(graphit,ntimep,maxts,mstart,numvarp)
        -1,-1,0.,0.)
   call frame(0)
   
-  ymin = graphit(mstart,25)
-  ymax = graphit(mstart,25)
+  ymin = min(graphit(mstart,25),graphit(mstart,49))
+  ymax = max(graphit(mstart,25),graphit(mstart,49))
   do i=mstart+1,maxts
-     ymin = min(ymin,graphit(i,25))
-     ymax = max(ymax,graphit(i,25))
+     ymin = min(ymin,graphit(i,25),graphit(i,49))
+     ymax = max(ymax,graphit(i,25),graphit(i,49))
   enddo
-  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
   ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
   ymax = ymax + .05*ydiff
   ymin = ymin - .05*ydiff
   call mapg(tmin,tmax,ymin,ymax,.142,.800,.150,.50)
-  call tracec(1h*,graphit(mstart,8), graphit(mstart,25),ntime,-1,-1,0.,0.)
+  call tracec(1hD,graphit(mstart,8), graphit(mstart,25),ntime,-1,-1,0.,0.)
+  call tracec(1hX,graphit(mstart,8), graphit(mstart,49),ntime,-1,-1,0.,0.)
   call setch(2.,2.0,1,2,0,-1)
-  write(s100,9025) graphit(maxts,25)
-9025 format("  psi",1pe12.4)
+  write(s100,9025) graphit(maxts,25),graphit(maxts,49)
+9025 format("  psi",1p2e12.4)
   call gtext(s100,80,0)
   
-  ymin = graphit(mstart,26)
-  ymax = graphit(mstart,26)
+  ymin = min(graphit(mstart,26),graphit(mstart,50))
+  ymax = max(graphit(mstart,26),graphit(mstart,50))
   do i=mstart+1,maxts
-     ymin = min(ymin,graphit(i,26))
-     ymax = max(ymax,graphit(i,26))
+     ymin = min(ymin,graphit(i,26),graphit(i,50))
+     ymax = max(ymax,graphit(i,26),graphit(i,50))
   enddo
   ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
   ymax = ymax + .05*ydiff
   ymin = ymin - .05*ydiff
   call mapg(tmin,tmax,ymin,ymax,.142,.800,.650,1.0)
-  call tracec(1h*,graphit(mstart,8), graphit(mstart,26),ntime,-1,-1,0.,0.)
+  call tracec(1hD,graphit(mstart,8), graphit(mstart,26),ntime,-1,-1,0.,0.)
+  call tracec(1hX,graphit(mstart,8), graphit(mstart,50),ntime,-1,-1,0.,0.)
   call setch(2.,19.,1,2,0,-1)
-  write(s100,9026) graphit(maxts,26)
-9026 format("  psidot",1pe12.4)
+  write(s100,9026) graphit(maxts,26),graphit(maxts,50)
+9026 format("  psidot",1p2e12.4)
   call gtext(s100,80,0)
   call frame(0)
   
@@ -566,18 +593,18 @@ subroutine plotenergy(graphit,ntimep,maxts,mstart,numvarp)
   ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
   ymax = ymax + .05*ydiff
   ymin = ymin - .05*ydiff
-  call mapg(tmin,tmax,ymin,ymax,.142,.800,.650,1.0)
-  call tracec(1h*,graphit(mstart,8), graphit(mstart,33),ntime,-1,-1,0.,0.)
-  call tracec(1hR,graphit(mstart,8), graphit(mstart,35),ntime,-1,-1,0.,0.)
-  call tracec(1hE,graphit(mstart,8), graphit(mstart,36),ntime,-1,-1,0.,0.)
-  call tracec(1hS,graphit(mstart,8), graphit(mstart,37),ntime,-1,-1,0.,0.)
-  call tracec(1hO,graphit(mstart,8), graphit(mstart,38),ntime,-1,-1,0.,0.)
-  call tracec(1hM,graphit(mstart,8), graphit(mstart,39),ntime,-1,-1,0.,0.)
-  call tracec(1hI,graphit(mstart,8), graphit(mstart,41),ntime,-1,-1,0.,0.)
-  call tracec(1hA,graphit(mstart,8), graphit(mstart,40),ntime,-1,-1,0.,0.)
+  call mapg(graphit(mstart,46),graphit(ntime,46),ymin,ymax,.142,.800,.650,1.0)
+  call tracec(1h*,graphit(mstart,46), graphit(mstart,33),ntime,-1,-1,0.,0.)
+  call tracec(1hR,graphit(mstart,46), graphit(mstart,35),ntime,-1,-1,0.,0.)
+  call tracec(1hE,graphit(mstart,46), graphit(mstart,36),ntime,-1,-1,0.,0.)
+  call tracec(1hS,graphit(mstart,46), graphit(mstart,37),ntime,-1,-1,0.,0.)
+  call tracec(1hO,graphit(mstart,46), graphit(mstart,38),ntime,-1,-1,0.,0.)
+  call tracec(1hM,graphit(mstart,46), graphit(mstart,39),ntime,-1,-1,0.,0.)
+  call tracec(1hI,graphit(mstart,46), graphit(mstart,41),ntime,-1,-1,0.,0.)
+  call tracec(1hA,graphit(mstart,46), graphit(mstart,40),ntime,-1,-1,0.,0.)
   call setch(2.,19.,1,2,0,-1)
-  write(s100,9033) graphit(maxts,33)
-9033 format("  cputim",1pe12.4)
+  write(s100,9035) graphit(maxts,33)
+9035 format("  cputim",1pe12.4)
   call gtext(s100,80,0)
   
   ymin = 1.
@@ -586,11 +613,41 @@ subroutine plotenergy(graphit,ntimep,maxts,mstart,numvarp)
      ymin = min(ymin,graphit(i,34))
      ymax = max(ymax,graphit(i,34))
   enddo
-  call mapg(tmin,tmax,ymin,ymax,.142,.800,.150,0.5)
-  call tracec(1h*,graphit(mstart,8), graphit(mstart,34),ntime,-1,-1,0.,0.)
+  call mapg(graphit(mstart,46),graphit(ntime,46),ymin,ymax,.142,.800,.150,0.5)
+  call tracec(1h*,graphit(mstart,46), graphit(mstart,34),ntime,-1,-1,0.,0.)
   call setch(2.,2.0,1,2,0,-1)
   write(s100,9034) graphit(maxts,34)
 9034 format("no proc.",1pe12.4)
+  call gtext(s100,80,0)
+  call frame(0)
+!...new graph added 9/13/06
+  ymin = 0.
+  ymax = graphit(mstart,47)
+  do i=mstart+1,maxts
+     ymin = min(ymin,graphit(i,47))
+     ymax = max(ymax,graphit(i,47))
+  enddo
+  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
+  ymax = ymax + .05*ydiff
+  ymin = ymin - .05*ydiff
+  call mapg(tmin,tmax,ymin,ymax,.142,.800,.650,1.0)
+  call tracec(1h*,graphit(mstart,8), graphit(mstart,47),ntime,-1,-1,0.,0.)
+  call setch(2.,19.,1,2,0,-1)
+  write(s100,9033) graphit(maxts,47)
+9033 format("  timestep",1pe12.4)
+  call gtext(s100,80,0)
+  
+  ymin = 0.
+  ymax = 1.1
+  do i=mstart+1,maxts
+     ymin = min(ymin,graphit(i,48))
+     ymax = max(ymax,graphit(i,48))
+  enddo
+  call mapg(tmin,tmax,ymin,ymax,.142,.800,.150,0.5)
+  call tracec(1h*,graphit(mstart,8), graphit(mstart,48),ntime,-1,-1,0.,0.)
+  call setch(2.,2.0,1,2,0,-1)
+  write(s100,9036) graphit(maxts,48)
+9036 format("theta-imp",1pe12.4)
   call gtext(s100,80,0)
   call frame(0)
   
@@ -711,278 +768,284 @@ subroutine plotit(vel,phi,ilin)
         if(inum.eq.2) then
            if(ilin.eq.0) write(15,1102) zval(ix),xval(ix),             &
                 (plot(ix,iz),iz=1,irs)
-        endif
-        if(inum.eq.3) then
-           if(ilin.eq.0) write(17,1102) zval(ix),xval(ix),                &
-                (plot(ix,iz),iz=1,irs)
-        endif
+      endif
+      if(inum.eq.3) then
+         if(ilin.eq.0) write(17,1102) zval(ix),xval(ix),               &
+              (plot(ix,iz),iz=1,irs)
+      endif
 
-        if(inum.eq.1) then
-           if(ilin.eq.1) write(12,1102) zval(ix),xval(ix),                   &
-                (plot(ix,iz),iz=1,irs)
-           if(ilin.eq.1) write(14,1102) zval(ix),xval(ix),                   &
-                (plot2(ix,iz),iz=1,irs)
-        endif
-        if(inum.eq.2) then
-           if(ilin.eq.1) write(16,1102) zval(ix),xval(ix),                   &
-                (plot(ix,iz),iz=1,irs)
-        endif
-        if(inum.eq.3) then
-           if(ilin.eq.1) write(18,1102) zval(ix),xval(ix),                   &
-                (plot(ix,iz),iz=1,irs)
-        endif
-        
-     enddo
-     
-     ! output waveform for wave propagation test
-     if((itaylor.eq.4).and.(inum.eq.1)) then
-        if(ntime.eq.0) then
-           write(40,*) irs
-        endif
-        write(40,*) (plot(ix,1),ix=1,irs)
-     endif
+      if(inum.eq.1) then
+         if(ilin.eq.1) then
+           write(12,1102) zval(ix),xval(ix),(plot(ix,iz),iz=1,irs)
+!          psiarray(ix) = plot(ix,(irs-1)/2+1)
+         endif
+         if(ilin.eq.1) then
+              write(14,1102) zval(ix),xval(ix),(plot2(ix,iz),iz=1,irs)
+!             curarray(ix) = plot2(ix,(irs-1)/2+1)
+              endif
+      endif
+      if(inum.eq.2) then
+         if(ilin.eq.1) write(16,1102) zval(ix),xval(ix),                   &
+              (plot(ix,iz),iz=1,irs)
+      endif
+      if(inum.eq.3) then
+         if(ilin.eq.1) then
+           write(18,1102) zval(ix),xval(ix),(plot(ix,iz),iz=1,irs)
+!          pearray(ix) = plot(ix,(irs-1)/2+1)
+         endif
+      endif
+      
+   enddo
+   
+   ! output waveform for wave propagation test
+   if((itaylor.eq.4).and.(inum.eq.1)) then
+      if(ntime.eq.0) then
+         write(40,*) irs
+      endif
+      write(40,*) (plot(ix,1),ix=1,irs)
+   endif
 
    ! WRITE HDF5 files
 #ifndef nohdf
-     if(inum.eq.1) then
-        if(ilin.eq.0) then
-           strs = 'psi-perturbed'
-           call writeHDF5(iframe-1,ihdf5,plot,irs,irs,strs)
-           maf(0)=max(maf(0),maxval(plot))
-           mif(0)=min(mif(0),minval(plot))
-           call writeHDF5scalar(iframe-1,ihdf5,maf(0),maxst)
-           call writeHDF5scalar(iframe-1,ihdf5,mif(0),minst)
-           ihdf5 =     ihdf5+1
-           
-           strs = 'J-perturbed'
-           call writeHDF5(iframe-1,ihdf5,plot2,irs,irs,strs)
-           maf(2)=max(maf(2),maxval(plot2))
-           mif(2)=min(mif(2),minval(plot2))
-           call writeHDF5scalar(iframe-1,ihdf5,maf(2),maxst)
-           call writeHDF5scalar(iframe-1,ihdf5,mif(2),minst)
-           ihdf5 =     ihdf5+1
-        endif
-     endif
-     
-     if(inum.eq.2) then
-        if(ilin.eq.0) then
-           strs = 'I-perturbed'
-           call writeHDF5(iframe-1,ihdf5,plot,irs,irs,strs)
-           maf(4)=max(maf(4),maxval(plot))
-           mif(4)=min(mif(4),minval(plot))
-           call writeHDF5scalar(iframe-1,ihdf5,maf(4),maxst)
-           call writeHDF5scalar(iframe-1,ihdf5,mif(4),minst)
-           ihdf5 =     ihdf5+1
-        endif
-     endif
-     
-     if(inum.eq.3) then
-        if(ilin.eq.0) then
-           strs = 'Pe-perturbed'
-           call writeHDF5(iframe-1,ihdf5,plot,irs,irs,strs)
-           maf(6)=max(maf(6),maxval(plot))
-           mif(6)=min(mif(6),minval(plot))
-           call writeHDF5scalar(iframe-1,ihdf5,maf(6),maxst)
-           call writeHDF5scalar(iframe-1,ihdf5,mif(6),minst)
-           ihdf5 =     ihdf5+1
-        endif
-     endif
-     
-     if(inum.eq.1) then
-        if(ilin.eq.1) then
-           strs = 'psi-full'
-           call writeHDF5(iframe-1,ihdf5,plot,irs,irs,strs)
-           maf(1)=max(maf(1),maxval(plot))
-           mif(1)=min(mif(1),minval(plot))
-           call writeHDF5scalar(iframe-1,ihdf5,maf(1),maxst)
-           call writeHDF5scalar(iframe-1,ihdf5,mif(1),minst)
-           ihdf5 =     ihdf5+1
-           
-           strs = 'J-full'
-           call writeHDF5(iframe-1,ihdf5,plot2,irs,irs,strs)
-           maf(3)=max(maf(3),maxval(plot2))
-           mif(3)=min(mif(3),minval(plot2))
-           call writeHDF5scalar(iframe-1,ihdf5,maf(3),maxst)
-           call writeHDF5scalar(iframe-1,ihdf5,mif(3),minst)
-           ihdf5 =     ihdf5+1
-        endif
-     endif
-     if(inum.eq.2) then
-        if(ilin.eq.1) then
-           strs = 'I-full'
-           call writeHDF5(iframe-1,ihdf5,plot,irs,irs,strs)
-           maf(5)=max(maf(5),maxval(plot))
-           mif(5)=min(mif(5),minval(plot))
-           call writeHDF5scalar(iframe-1,ihdf5,maf(5),maxst)
-           call writeHDF5scalar(iframe-1,ihdf5,mif(5),minst)
-           ihdf5 =     ihdf5+1
-        endif
-     endif
-     if(inum.eq.3) then
-        if(ilin.eq.1) then
-           strs = 'Pe-full'
-           call writeHDF5(iframe-1,ihdf5,plot,irs,irs,strs)
-           maf(7)=max(maf(7),maxval(plot))
-           mif(7)=min(mif(7),minval(plot))
-           call writeHDF5scalar(iframe-1,ihdf5,maf(7),maxst)
-           call writeHDF5scalar(iframe-1,ihdf5,mif(7),minst)
-           ihdf5 =     ihdf5+1
-        endif
-     endif
-     if(iprint.eq.1) write(*,*) "after HDF5 write"
-     ! end of write HDF5 files
+   if(inum.eq.1) then
+      if(ilin.eq.0) then
+         strs = 'psi-perturbed'
+         call writeHDF5(iframe-1,ihdf5,plot,irs,irs,strs)
+         maf(0)=max(maf(0),maxval(plot))
+         mif(0)=min(mif(0),minval(plot))
+         call writeHDF5scalar(iframe-1,ihdf5,maf(0),maxst)
+         call writeHDF5scalar(iframe-1,ihdf5,mif(0),minst)
+         ihdf5 =     ihdf5+1
+         
+         strs = 'J-perturbed'
+         call writeHDF5(iframe-1,ihdf5,plot2,irs,irs,strs)
+         maf(2)=max(maf(2),maxval(plot2))
+         mif(2)=min(mif(2),minval(plot2))
+         call writeHDF5scalar(iframe-1,ihdf5,maf(2),maxst)
+         call writeHDF5scalar(iframe-1,ihdf5,mif(2),minst)
+         ihdf5 =     ihdf5+1
+      endif
+   endif
+   
+   if(inum.eq.2) then
+      if(ilin.eq.0) then
+         strs = 'I-perturbed'
+         call writeHDF5(iframe-1,ihdf5,plot,irs,irs,strs)
+         maf(4)=max(maf(4),maxval(plot))
+         mif(4)=min(mif(4),minval(plot))
+         call writeHDF5scalar(iframe-1,ihdf5,maf(4),maxst)
+         call writeHDF5scalar(iframe-1,ihdf5,mif(4),minst)
+         ihdf5 =     ihdf5+1
+      endif
+   endif
+
+   if(inum.eq.3) then
+      if(ilin.eq.0) then
+         strs = 'Pe-perturbed'
+         call writeHDF5(iframe-1,ihdf5,plot,irs,irs,strs)
+         maf(6)=max(maf(6),maxval(plot))
+         mif(6)=min(mif(6),minval(plot))
+         call writeHDF5scalar(iframe-1,ihdf5,maf(6),maxst)
+         call writeHDF5scalar(iframe-1,ihdf5,mif(6),minst)
+         ihdf5 =     ihdf5+1
+      endif
+   endif
+
+   if(inum.eq.1) then
+      if(ilin.eq.1) then
+         strs = 'psi-full'
+         call writeHDF5(iframe-1,ihdf5,plot,irs,irs,strs)
+         maf(1)=max(maf(1),maxval(plot))
+         mif(1)=min(mif(1),minval(plot))
+         call writeHDF5scalar(iframe-1,ihdf5,maf(1),maxst)
+         call writeHDF5scalar(iframe-1,ihdf5,mif(1),minst)
+         ihdf5 =     ihdf5+1
+         
+         strs = 'J-full'
+         call writeHDF5(iframe-1,ihdf5,plot2,irs,irs,strs)
+         maf(3)=max(maf(3),maxval(plot2))
+         mif(3)=min(mif(3),minval(plot2))
+         call writeHDF5scalar(iframe-1,ihdf5,maf(3),maxst)
+         call writeHDF5scalar(iframe-1,ihdf5,mif(3),minst)
+         ihdf5 =     ihdf5+1
+      endif
+   endif
+   if(inum.eq.2) then
+      if(ilin.eq.1) then
+         strs = 'I-full'
+         call writeHDF5(iframe-1,ihdf5,plot,irs,irs,strs)
+         maf(5)=max(maf(5),maxval(plot))
+         mif(5)=min(mif(5),minval(plot))
+         call writeHDF5scalar(iframe-1,ihdf5,maf(5),maxst)
+         call writeHDF5scalar(iframe-1,ihdf5,mif(5),minst)
+         ihdf5 =     ihdf5+1
+      endif
+   endif
+   if(inum.eq.3) then
+      if(ilin.eq.1) then
+         strs = 'Pe-full'
+         call writeHDF5(iframe-1,ihdf5,plot,irs,irs,strs)
+         maf(7)=max(maf(7),maxval(plot))
+         mif(7)=min(mif(7),minval(plot))
+         call writeHDF5scalar(iframe-1,ihdf5,maf(7),maxst)
+         call writeHDF5scalar(iframe-1,ihdf5,mif(7),minst)
+         ihdf5 =     ihdf5+1
+      endif
+   endif
+   if(iprint.eq.1) write(*,*) "after HDF5 write"
+   ! end of write HDF5 files
 #endif
 
-     
-     if(isym.eq.0) then
-        iresmid = (irs-1)/2 + 1
-        iresqtr = (irs-1)/4 + 1
-     else
-        iresmid = 1.
-        iresqtr = (irs-1)/2 + 1
-     endif
-     
-     if(jsym.eq.0) then
-        jresmid = (irs-1)/2 + 1
-        jresqtr = (irs-1)/4 + 1
-     else
-        jresmid = 1.
-        jresqtr = (irs-1)/2 + 1
-     endif
-     
-     do ii = 1,irs
-        plotmidx(ii) = plot(ii,jresmid)
-        plotmidz(ii) = plot(iresmid,ii)
-        plotqtrx(ii) = plot(ii,jresqtr)
-        plotqtrz(ii) = plot(iresqtr,ii)
-     enddo
-     
-     plotmin = plot(1,1)
-     plotmax = plot(1,1)
-     do ix=1,irs
-        do iz=1,irs
-           plotmin = min(plotmin,plot(ix,iz))
-           plotmax = max(plotmax,plot(ix,iz))
-        enddo
-     enddo
-     small = 1.e-12
-     if(plotmin.ge.plotmax-small) go to 100
-     cval(1) = plotmin
-     cval(2) = plotmax
-     numplots = numplots+1
-     
-     ! lower right
-     if(jsym.eq.0) then
-        call map(xzero,alxp+xzero,0.,alzp,.67,1.0,.170,.500)
-        call rcontr(-25,cval,0,plot,irs,xval,1,irs,1,zval,1,irs,1+jsym)
-        call mapg(xzero,alxp+xzero,plotmin,plotmax,.67,1.0,.05,.170)
-        call trace(xval,plotmidx,irs,-1,-1,0.,0.)
-        call tracec(1hQ,xval,plotqtrx,irs,-1,-1,0.,0.)
-        call mapg(plotmin,plotmax,0.,alzp,.55,.670,.170,.500)
-        call trace(plotmidz,zval,irs,-1,-1,0.,0.)
-        call tracec(1hQ,plotqtrz,zval,irs,-1,-1,0.,0.)
-     else  ! jsym=1 coding follows
-        call map(xzero,alxp+xzero,0.,alzp,.67,1.0,.335,.500)
-        call rcontr(-25,cval,0,plot,irs,xval,1,irs,1,zval,1,irs,2)
-        call map(xzero,alxp+xzero,-alzp,0,.67,1.0,.170,.335)
-        call rcontr(-25,cval,0,plot,irs,xval,1,irs,1,-zval,1,irs,2)
-        call mapg(xzero,alxp+xzero,plotmin,plotmax,.67,1.0,.05,.170)
-        call trace(xval,plotmidx,irs,-1,-1,0.,0.)
-        call tracec(1hQ,xval,plotqtrx,irs,-1,-1,0.,0.)
-        call mapg(plotmin,plotmax,-alzp,alzp,.55,.670,.170,.500)
-        call trace(plotmidz,-zval,irs,-1,-1,0.,0.)
-        call tracec(1hQ,plotqtrz,-zval,irs,-1,-1,0.,0.)
-        call trace(plotmidz,zval,irs,-1,-1,0.,0.)
-        call tracec(1hQ,plotqtrz,zval,irs,-1,-1,0.,0.)
-     endif ! on jsym
-     
-     call setch(33.,4.0,1,2,0,-1)
-     if(inum.eq.1) then
-        if(ilin.eq.0)write(s100,9005)
-        if(ilin.eq.1)write(s100,8005)
-8005    format(" PSI-T")
-9005    format(" PSI-P")
-     endif
-     if(inum.eq.2) then
-        if(ilin.eq.0)write(s100,9015)
-        if(ilin.eq.1)write(s100,8006)
-8006    format(" I-T")
-9015    format(" I-P")
-     endif
-     if(inum.eq.3) then
-        if(ilin.eq.0)write(s100,9025)
-        if(ilin.eq.1)write(s100,8007)
-8007    format(" p-T")
-9025    format(" p-P")
-     endif
-     
-     
-     call gtext(s100,80,0)
-     write(s100,9006) plotmin
-     call gtext(s100,80,0)
-     write(s100,9008) plotmax
-     call gtext(s100,80,0)
+
+   if(isym.eq.0) then
+      iresmid = (irs-1)/2 + 1
+      iresqtr = (irs-1)/4 + 1
+   else
+      iresmid = 1.
+      iresqtr = (irs-1)/2 + 1
+   endif
+
+   if(jsym.eq.0) then
+      jresmid = (irs-1)/2 + 1
+      jresqtr = (irs-1)/4 + 1
+   else
+      jresmid = 1.
+      jresqtr = (irs-1)/2 + 1
+   endif
+   
+   do ii = 1,irs
+      plotmidx(ii) = plot(ii,jresmid)
+      plotmidz(ii) = plot(iresmid,ii)
+      plotqtrx(ii) = plot(ii,jresqtr)
+      plotqtrz(ii) = plot(iresqtr,ii)
+   enddo
+
+   plotmin = plot(1,1)
+   plotmax = plot(1,1)
+   do ix=1,irs
+      do iz=1,irs
+         plotmin = min(plotmin,plot(ix,iz))
+         plotmax = max(plotmax,plot(ix,iz))
+      enddo
+   enddo
+   small = 1.e-12
+    if(plotmin.ge.plotmax-small) go to 100
+   cval(1) = plotmin
+   cval(2) = plotmax
+   numplots = numplots+1
+
+   ! lower right
+   if(jsym.eq.0) then
+      call map(xzero,alxp+xzero,0.,alzp,.67,1.0,.170,.500)
+      call rcontr(-25,cval,0,plot,irs,xval,1,irs,1,zval,1,irs,1+jsym)
+      call mapg(xzero,alxp+xzero,plotmin,plotmax,.67,1.0,.05,.170)
+      call trace(xval,plotmidx,irs,-1,-1,0.,0.)
+      call tracec(1hQ,xval,plotqtrx,irs,-1,-1,0.,0.)
+      call mapg(plotmin,plotmax,0.,alzp,.55,.670,.170,.500)
+      call trace(plotmidz,zval,irs,-1,-1,0.,0.)
+      call tracec(1hQ,plotqtrz,zval,irs,-1,-1,0.,0.)
+   else  ! jsym=1 coding follows
+      call map(xzero,alxp+xzero,0.,alzp,.67,1.0,.335,.500)
+      call rcontr(-25,cval,0,plot,irs,xval,1,irs,1,zval,1,irs,2)
+      call map(xzero,alxp+xzero,-alzp,0,.67,1.0,.170,.335)
+      call rcontr(-25,cval,0,plot,irs,xval,1,irs,1,-zval,1,irs,2)
+      call mapg(xzero,alxp+xzero,plotmin,plotmax,.67,1.0,.05,.170)
+      call trace(xval,plotmidx,irs,-1,-1,0.,0.)
+      call tracec(1hQ,xval,plotqtrx,irs,-1,-1,0.,0.)
+      call mapg(plotmin,plotmax,-alzp,alzp,.55,.670,.170,.500)
+      call trace(plotmidz,-zval,irs,-1,-1,0.,0.)
+      call tracec(1hQ,plotqtrz,-zval,irs,-1,-1,0.,0.)
+      call trace(plotmidz,zval,irs,-1,-1,0.,0.)
+      call tracec(1hQ,plotqtrz,zval,irs,-1,-1,0.,0.)
+   endif ! on jsym
+   
+   call setch(33.,4.0,1,2,0,-1)
+   if(inum.eq.1) then
+      if(ilin.eq.0)write(s100,9005)
+      if(ilin.eq.1)write(s100,8005)
+8005  format(" PSI-T")
+9005  format(" PSI-P")
+   endif
+   if(inum.eq.2) then
+      if(ilin.eq.0)write(s100,9015)
+      if(ilin.eq.1)write(s100,8006)
+8006  format(" I-T")
+9015  format(" I-P")
+   endif
+   if(inum.eq.3) then
+      if(ilin.eq.0)write(s100,9025)
+      if(ilin.eq.1)write(s100,8007)
+8007  format(" p-T")
+9025  format(" p-P")
+   endif
+   
+   
+   call gtext(s100,80,0)
+   write(s100,9006) plotmin
+   call gtext(s100,80,0)
+   write(s100,9008) plotmax
+   call gtext(s100,80,0)
 9006 format(1pe10.2)
 9008 format(1pe10.2)
-     
-100  continue
-     plotmin2 = plot2(1,1)
-     plotmax2 = plot2(1,1)
-     do ix=1,irs
-        do iz=1,irs
-           plotmin2 = min(plotmin2,plot2(ix,iz))
-           plotmax2 = max(plotmax2,plot2(ix,iz))
-        enddo
-     enddo
-     if(plotmin2 .ge. plotmax2) go to 210
-     cval(1) = plotmin2
-     cval(2) = plotmax2
-     numplots = numplots+1
-     do ii = 1,irs
-        plotmidx(ii) = plot2(ii,jresmid)
-        plotmidz(ii)  = plot2(iresmid,ii)
-        plotqtrx(ii) = plot2(ii,jresqtr)
-        plotqtrz(ii) = plot2(iresqtr,ii)
-     enddo
-     
-     ! lower left
-     call map(xzero,alxp+xzero,0.,alzp,0.17,0.5,.17,.500)
-     call rcontr(-25,cval,0,plot2,irs,xval,1,irs,1,zval,1,irs,1+jsym)
-     
-     call mapg(xzero,alxp+xzero,plotmin2,plotmax2,.17,0.5,.05,.170)
-     call trace(xval,plotmidx,irs,-1,-1,0.,0.)
-     call tracec(1hQ,xval,plotqtrx,irs,-1,-1,0.,0.)
-     call mapg(plotmin2,plotmax2,0.,alzp,.05,.170,.170,.500)
-     call trace(plotmidz,zval,irs,-1,-1,0.,0.)
-     call tracec(1hQ,plotqtrz,zval,irs,-1,-1,0.,0.)
-     call setch(1.,4.0,1,2,0,-1)
-     if(ilin.eq.0) then
-        if(itor.eq.0) then
-           if(inum.eq.1) write(s100,9105)
-           if(inum.eq.2) write(s100,8205)
-           if(inum.eq.3) write(s100,8215)
-        endif
-        if(itor.eq.1) write(s100,9205)
-     endif
-     if(ilin.eq.1) then
-        if(inum.eq.1)write(s100,8105)
-        if(inum.eq.2)write(s100,8205)
-        if(inum.eq.3) write(s100,8215)
-     endif
+   
+100 continue
+   plotmin2 = plot2(1,1)
+   plotmax2 = plot2(1,1)
+   do ix=1,irs
+      do iz=1,irs
+         plotmin2 = min(plotmin2,plot2(ix,iz))
+         plotmax2 = max(plotmax2,plot2(ix,iz))
+      enddo
+   enddo
+    if(plotmin2 .ge. plotmax2) go to 210
+   cval(1) = plotmin2
+   cval(2) = plotmax2
+   numplots = numplots+1
+   do ii = 1,irs
+      plotmidx(ii) = plot2(ii,jresmid)
+      plotmidz(ii)  = plot2(iresmid,ii)
+      plotqtrx(ii) = plot2(ii,jresqtr)
+      plotqtrz(ii) = plot2(iresqtr,ii)
+   enddo
+   
+   ! lower left
+   call map(xzero,alxp+xzero,0.,alzp,0.17,0.5,.17,.500)
+   call rcontr(-25,cval,0,plot2,irs,xval,1,irs,1,zval,1,irs,1+jsym)
+   
+   call mapg(xzero,alxp+xzero,plotmin2,plotmax2,.17,0.5,.05,.170)
+   call trace(xval,plotmidx,irs,-1,-1,0.,0.)
+   call tracec(1hQ,xval,plotqtrx,irs,-1,-1,0.,0.)
+   call mapg(plotmin2,plotmax2,0.,alzp,.05,.170,.170,.500)
+   call trace(plotmidz,zval,irs,-1,-1,0.,0.)
+   call tracec(1hQ,plotqtrz,zval,irs,-1,-1,0.,0.)
+   call setch(1.,4.0,1,2,0,-1)
+   if(ilin.eq.0) then
+      if(itor.eq.0) then
+         if(inum.eq.1) write(s100,9105)
+         if(inum.eq.2) write(s100,8205)
+         if(inum.eq.3) write(s100,8215)
+      endif
+      if(itor.eq.1) write(s100,9205)
+   endif
+   if(ilin.eq.1) then
+      if(inum.eq.1)write(s100,8105)
+      if(inum.eq.2)write(s100,8205)
+      if(inum.eq.3) write(s100,8215)
+   endif
 9105 format("D^2 PSI")
 9205 format("D^* PSI")
 8105 format("J-T")
 8205 format("D^2 I")
 8215 format("D^2 p")
-     call gtext(s100,80,0)
-     write(s100,9106) plotmin2
+   call gtext(s100,80,0)
+   write(s100,9106) plotmin2
 9106 format(1pe10.2)
-     call gtext(s100,80,0)
-     write(s100,9106) plotmax2
-     call gtext(s100,80,0)
-210  continue
-     if(itor.eq.1) go to 300
-     
+   call gtext(s100,80,0)
+   write(s100,9106) plotmax2
+   call gtext(s100,80,0)
+210 continue
+   if(itor.eq.1) go to 300
+   
    if(inum.eq.1) then
       if(ilin.eq.1) write(19,1101) ntime,ilin,inum
       if(ilin.eq.1) write(20,1101) ntime,ilin,inum
@@ -1004,15 +1067,20 @@ subroutine plotit(vel,phi,ilin)
       enddo
       
       if(inum.eq.1) then
-         write(19,1102) zval(ix),xval(ix), (plot(ix,iz),iz=1,irs)
-         write(20,1102) zval(ix),xval(ix), (plot2(ix,iz),iz=1,irs)
+         if(ilin.eq.1) write(19,1102) zval(ix),xval(ix),                   &
+              (plot(ix,iz),iz=1,irs)
+         if(ilin.eq.1) write(20,1102) zval(ix),xval(ix),                   &
+              (plot2(ix,iz),iz=1,irs)
       endif
       if(inum.eq.2) then
-         write(21,1102) zval(ix),xval(ix), (plot(ix,iz),iz=1,irs)
+         if(ilin.eq.1) write(21,1102) zval(ix),xval(ix),                   &
+              (plot(ix,iz),iz=1,irs)
       endif
       if(inum.eq.3) then
-         write(22,1102) zval(ix),xval(ix), (plot(ix,iz),iz=1,irs)
-         write(23,1102) zval(ix),xval(ix), (plot2(ix,iz),iz=1,irs)
+        if(ilin.eq.1) write(22,1102) zval(ix),xval(ix),                   &
+             (plot(ix,iz),iz=1,irs)
+        if(ilin.eq.1) write(23,1102) zval(ix),xval(ix),                   &
+             (plot2(ix,iz),iz=1,irs)
      endif
 1102 format(1p10e12.4)
   enddo
@@ -1191,10 +1259,10 @@ return
 end subroutine plotit
 
 !============================================================
-subroutine oneplot(iplot,dum,inum,numvare,label)
+subroutine oneplot(lu,iplot,dum,inum,numvare,label)
   use basic
 
-  integer, intent(in) :: iplot, inum, numvare
+  integer, intent(in) :: lu, iplot, inum, numvare
   real, dimension(*) :: dum
   character*5, intent(in) :: label
 
@@ -1206,12 +1274,6 @@ subroutine oneplot(iplot,dum,inum,numvare,label)
   integer :: ix, iz, iresmid, iresqtr, jresmid, jresqtr, ii
   real :: x, z, plotmin, plotmax, x1, x2, z1, z2
 
-  if(iplot.eq.0) then
-      x1 = 0.67
-      x2 = 1.0
-      z1 = 0.670
-      z2 = 1.00
-  else
       go to (1,2,3,4),iplot
  1    continue
       x1 = 0.67
@@ -1237,13 +1299,12 @@ subroutine oneplot(iplot,dum,inum,numvare,label)
       z1 = 0.670
       z2 = 1.00
  5    continue
-  endif
+ 
+      if(lu.ne.0) then
+        write(lu,1101) ntime, inum
+      endif
 
-!      if(iplot.eq.1) then
-!        if(idens.eq.1) write(24,1101) ntime,ilin,inum
-!      endif
-
-1101 format("ntime, ilin  inum  =",3i5)
+1101 format("ntime,  inum  =",2i5)
   do ix = 1,irs
      x = (ix-1)*alx*(1./(1.+isym))/(irs-1)
      xval(ix) = x + xzero
@@ -1252,9 +1313,14 @@ subroutine oneplot(iplot,dum,inum,numvare,label)
         zval(iz) = z
         call evaluate(x,z,plot(ix,iz),plot2(ix,iz),dum,inum,numvare)
      enddo
-     if(iplot.eq.1) then
-        if(idens.eq.1) write(24,1102) zval(ix),xval(ix),                   &
-             (plot(ix,iz),iz=1,irs)
+     if(lu.ne.0) then
+        write(lu,1102) zval(ix),xval(ix),(plot(ix,iz),iz=1,irs)
+!       if(lu.eq.24) densarray(ix) = plot(ix,(irs-1)/2+1)
+!       if(lu.eq.27) etajarray(ix) = plot(ix,(irs-1)/2+1)
+!       if(lu.eq.28) ephiarray(ix) = plot(ix,(irs-1)/2+1)
+!       if(lu.eq.29)  jcbarray(ix) = plot(ix,(irs-1)/2+1)
+!       if(lu.eq.30) hyprarray(ix) = plot(ix,(irs-1)/2+1)
+!       if(lu.eq.32)  vcbarray(ix) = plot(ix,(irs-1)/2+1)
 1102    format(1p10e12.4)
      endif
   enddo
@@ -1320,7 +1386,6 @@ subroutine oneplot(iplot,dum,inum,numvare,label)
   endif
 
 101  if(iplot.le.1) call frame(0)
-
   return
   
 end subroutine oneplot
@@ -2076,7 +2141,7 @@ subroutine wrrestart
   write(56) (jphi0(j1),j1=1,mmnn6)
   
   write(56) ntime,time
-  write(56) ((graphit(itime,igr),igr=1,maxplots),itime=1,ntime)
+  write(56) ((graphit(itime,igr),igr=1,maxplots),itime=0,ntime)
   write(56) ekin,emag,ekind,emagd,ekinp,emagp,ekinpd,emagpd,ekint,    &
        emagt,ekintd,emagtd,ekinph,ekinth,emagph,emagth,          &
        ekin3,ekin3d,ekin3h,emag3,emag3d,emag3h,tflux,gbound
@@ -2135,7 +2200,7 @@ subroutine rdrestart
   read(56) (jphi0(j1),j1=1,mmnn6)
 
   read(56) ntimer,timer
-  read(56) ((graphit(itime,igr),igr=1,maxplots),itime=1,ntimer)
+  read(56) ((graphit(itime,igr),igr=1,maxplots),itime=0,ntimer)
   read(56) ekin,emag,ekind,emagd,ekinp,emagp,ekinpd,emagpd,ekint,   &
        emagt,ekintd,emagtd,ekinph,ekinth,emagph,emagth,        &
        ekin3,ekin3d,ekin3h,emag3,emag3d,emag3h,tflux,gbound
@@ -2146,5 +2211,416 @@ subroutine rdrestart
           "  * * *")
   return
 end subroutine rdrestart
+ subroutine netcdfout
+ use netcdf
 
+ use basic
+ use arrays
+!
+ implicit none
+!
+ integer ncid   !  netCDF file ID   (defined by NF90_create)
+ integer status ! error status return
+ integer ifirst_netcdf ! flag for first call
+ data ifirst_netcdf/0/
+ integer timedim_id, rdim_id, zdim_id   ! dimension variables
+ integer time_id ,r_id    !  independent variables 
+ integer delta_ekin_id, delta_emag_id, n_etotd_id, n_emagd_id, delta_error_id,        &
+         n_etoth_id, delta_emagt_id, delta_ekint_id, delta_ekin3_id, delta_emag3_id,  &
+         ekin_id, emag_id, epress_id, etotal_id, psidif_id, psix_id, psidifdot_id,    &
+         psixdot_id, tflux_id, chierror_id, totcur_id, vmax_id, totaltime_id,         &
+         tread_id, plus_telements_id, plus_tsolve_id, tonestep_id, plus_tmpi_id,      &
+         plus_tinit_id, plus_tadotb_id, maxrank_id, dt_id, thimp_id
+ integer current_id, flux_id, ephi_id,                                  &
+         jcb_id, vcb_id, etaj_id, hypr_id, dens_id, pe_id          !  1D + time variable id's
+ integer jj
+ real rarray(irs)
+      character*60 string
+
+
+ if(ifirst_netcdf == 0) then
+  ifirst_netcdf = 1
+!
+! ...create the output file and define the file id ncid
+  if(irestart == 0) then
+ 100 continue
+    status = NF90_CREATE(netcdffilename,NF90_CLOBBER,ncid)
+    if(status /= nf90_noerr) call handle_err(status,1)
+
+ 
+!
+! ...define dimensions that will be used
+    status = NF90_DEF_DIM(ncid,'time',NF90_UNLIMITED,timedim_id)
+    if(status /= nf90_noerr) call handle_err(status,2)
+    status = NF90_DEF_DIM(ncid,'R', irs, rdim_id)
+    if(status /= nf90_noerr) call handle_err(status,3)
+    status = NF90_DEF_DIM(ncid,'Z', irs, zdim_id)
+    if(status /= nf90_noerr) call handle_err(status,4)
+!
+! ...define independent variables
+    status = NF90_DEF_VAR(ncid,'time',NF90_DOUBLE,timedim_id,time_id)
+    if(status /= nf90_noerr) call handle_err(status,5)
+    status = NF90_DEF_VAR(ncid,'r',NF90_DOUBLE,rdim_id,r_id)
+    if(status /= nf90_noerr) call handle_err(status,6)
+!
+!....define scalar functions of time variable only
+    status = NF90_DEF_VAR(ncid,'delta_ekin',NF90_DOUBLE,timedim_id,delta_ekin_id)
+    if(status /= nf90_noerr) call handle_err(status,1)
+    status = NF90_DEF_VAR(ncid,'delta_emag',NF90_DOUBLE,timedim_id,delta_emag_id)
+    if(status /= nf90_noerr) call handle_err(status,2)
+    status = NF90_DEF_VAR(ncid,'N_etotd',NF90_DOUBLE,timedim_id,N_etotd_id)
+    if(status /= nf90_noerr) call handle_err(status,17)  
+    status = NF90_DEF_VAR(ncid,'N_emagd',NF90_DOUBLE,timedim_id,N_emagd_id)
+    if(status /= nf90_noerr) call handle_err(status,7)
+    status = NF90_DEF_VAR(ncid,'delta_error',NF90_DOUBLE,timedim_id,delta_error_id)
+    if(status /= nf90_noerr) call handle_err(status,18)
+    status = NF90_DEF_VAR(ncid,'N_etoth',NF90_DOUBLE,timedim_id,N_etoth_id)
+    if(status /= nf90_noerr) call handle_err(status,21)
+    status = NF90_DEF_VAR(ncid,'delta_emagt',NF90_DOUBLE,timedim_id,delta_emagt_id)
+    if(status /= nf90_noerr) call handle_err(status,20)
+    status = NF90_DEF_VAR(ncid,'delta_ekint',NF90_DOUBLE,timedim_id,delta_ekint_id)
+    if(status /= nf90_noerr) call handle_err(status,19)
+    status = NF90_DEF_VAR(ncid,'delta_ekin3',NF90_DOUBLE,timedim_id,delta_ekin3_id)
+    if(status /= nf90_noerr) call handle_err(status,27)
+    status = NF90_DEF_VAR(ncid,'delta_emag3',NF90_DOUBLE,timedim_id,delta_emag3_id)
+    if(status /= nf90_noerr) call handle_err(status,28)
+    status = NF90_DEF_VAR(ncid,'ekin',NF90_DOUBLE,timedim_id,ekin_id)
+    if(status /= nf90_noerr) call handle_err(status,42)
+    status = NF90_DEF_VAR(ncid,'emag',NF90_DOUBLE,timedim_id,emag_id)
+    if(status /= nf90_noerr) call handle_err(status,43)
+    status = NF90_DEF_VAR(ncid,'epress',NF90_DOUBLE,timedim_id,epress_id)
+    if(status /= nf90_noerr) call handle_err(status,44)
+    status = NF90_DEF_VAR(ncid,'etotal',NF90_DOUBLE,timedim_id,etotal_id)
+    if(status /= nf90_noerr) call handle_err(status,45)  
+    status = NF90_DEF_VAR(ncid,'psidif',NF90_DOUBLE,timedim_id,psidif_id)
+    if(status /= nf90_noerr) call handle_err(status,25)
+    status = NF90_DEF_VAR(ncid,'psix',NF90_DOUBLE,timedim_id,psix_id)
+    if(status /= nf90_noerr) call handle_err(status,49)
+    status = NF90_DEF_VAR(ncid,'psidifdot',NF90_DOUBLE,timedim_id,psidifdot_id)
+    if(status /= nf90_noerr) call handle_err(status,26)
+    status = NF90_DEF_VAR(ncid,'psixdot',NF90_DOUBLE,timedim_id,psixdot_id)
+    if(status /= nf90_noerr) call handle_err(status,50)
+    status = NF90_DEF_VAR(ncid,'tflux',NF90_DOUBLE,timedim_id,tflux_id)
+    if(status /= nf90_noerr) call handle_err(status,29)
+    status = NF90_DEF_VAR(ncid,'chierror',NF90_DOUBLE,timedim_id,chierror_id)
+    if(status /= nf90_noerr) call handle_err(status,30)
+    status = NF90_DEF_VAR(ncid,'totcur',NF90_DOUBLE,timedim_id,totcur_id)
+    if(status /= nf90_noerr) call handle_err(status,31)
+    status = NF90_DEF_VAR(ncid,'vmax',NF90_DOUBLE,timedim_id,vmax_id)
+    if(status /= nf90_noerr) call handle_err(status,32)
+    status = NF90_DEF_VAR(ncid,'totaltime',NF90_DOUBLE,timedim_id,totaltime_id)
+    if(status /= nf90_noerr) call handle_err(status,33)
+    status = NF90_DEF_VAR(ncid,'tread',NF90_DOUBLE,timedim_id,tread_id)
+    if(status /= nf90_noerr) call handle_err(status,35)
+    status = NF90_DEF_VAR(ncid,'plus_telements',NF90_DOUBLE,timedim_id,plus_telements_id)
+    if(status /= nf90_noerr) call handle_err(status,36)
+    status = NF90_DEF_VAR(ncid,'plus_tsolve',NF90_DOUBLE,timedim_id,plus_tsolve_id)
+    if(status /= nf90_noerr) call handle_err(status,37)
+    status = NF90_DEF_VAR(ncid,'tonestep',NF90_DOUBLE,timedim_id,tonestep_id)
+    if(status /= nf90_noerr) call handle_err(status,38)
+    status = NF90_DEF_VAR(ncid,'plus_tmpi',NF90_DOUBLE,timedim_id,plus_tmpi_id)
+    if(status /= nf90_noerr) call handle_err(status,39)
+    status = NF90_DEF_VAR(ncid,'plus_tinit',NF90_DOUBLE,timedim_id,plus_tinit_id)
+    if(status /= nf90_noerr) call handle_err(status,41)
+    status = NF90_DEF_VAR(ncid,'plus_tadotb',NF90_DOUBLE,timedim_id,plus_tadotb_id)
+    if(status /= nf90_noerr) call handle_err(status,40)
+    status = NF90_DEF_VAR(ncid,'maxrank',NF90_DOUBLE,timedim_id,maxrank_id)
+    if(status /= nf90_noerr) call handle_err(status,34)
+    status = NF90_DEF_VAR(ncid,'dt',NF90_DOUBLE,timedim_id,dt_id)
+    if(status /= nf90_noerr) call handle_err(status,47)
+    status = NF90_DEF_VAR(ncid,'thimp',NF90_DOUBLE,timedim_id,thimp_id)
+    if(status /= nf90_noerr) call handle_err(status,48)
+!
+!
+!
+!....define functions of time and of R
+    status = NF90_DEF_VAR(ncid,'current',NF90_DOUBLE,   &
+                                     (/rdim_id,timedim_id /),current_id)
+         if(status /= nf90_noerr) call handle_err(status,9)
+    status = NF90_DEF_VAR(ncid,'pressure',NF90_DOUBLE,   &
+                                     (/rdim_id,timedim_id /),pe_id)
+         if(status /= nf90_noerr) call handle_err(status,10)
+    status = NF90_DEF_VAR(ncid,'flux',NF90_DOUBLE,   &
+                                     (/rdim_id,timedim_id /),flux_id)
+         if(status /= nf90_noerr) call handle_err(status,11)
+    status = NF90_DEF_VAR(ncid,'E_phi',NF90_DOUBLE,   &
+                                     (/rdim_id,timedim_id /),ephi_id)
+         if(status /= nf90_noerr) call handle_err(status,12)
+    status = NF90_DEF_VAR(ncid,'JxB',NF90_DOUBLE,   &
+                                     (/rdim_id,timedim_id /),jcb_id)
+         if(status /= nf90_noerr) call handle_err(status,13)
+    status = NF90_DEF_VAR(ncid,'VxB',NF90_DOUBLE,   &
+                                     (/rdim_id,timedim_id /),vcb_id)
+         if(status /= nf90_noerr) call handle_err(status,14)
+    status = NF90_DEF_VAR(ncid,'etaxJ',NF90_DOUBLE,   &
+                                     (/rdim_id,timedim_id /),etaj_id)
+         if(status /= nf90_noerr) call handle_err(status,15)
+    status = NF90_DEF_VAR(ncid,'hypr',NF90_DOUBLE,   &
+                                     (/rdim_id,timedim_id /),hypr_id)
+         if(status /= nf90_noerr) call handle_err(status,16)
+    status = NF90_DEF_VAR(ncid,'density',NF90_DOUBLE,   &
+                                     (/rdim_id,timedim_id /),dens_id)
+         if(status /= nf90_noerr) call handle_err(status,17)
+!
+!....define dimensions of time
+    status = NF90_PUT_ATT(ncid,time_id,'units','seconds')
+         if(status /= nf90_noerr) call handle_err(status,18)
+!
+! ...define attribute for ElVis to start monitoring netCDF file
+    status = NF90_PUT_ATT(ncid,NF90_GLOBAL,'running','true')
+         if(status /= nf90_noerr) call handle_err(status,19)
+!
+!....end define mode
+    status = NF90_ENDDEF(ncid)
+         if(status /= nf90_noerr) call handle_err(status,20)
+!
+!
+!....input data for r variable
+    rarray = (/ ((alxp*(jj-1))/(irs-1), jj=1,irs) /)
+         status = NF90_PUT_VAR(ncid,r_id,rarray)
+         if(status /= nf90_noerr) call handle_err(status,21)
+  else    ! on restart == 0
+!
+!....try and open existing file, otherwise open new file
+    status = NF90_OPEN(netcdffilename,NF90_WRITE,ncid) 
+         if(status /= nf90_noerr) go to 100
+!
+    status = NF90_REDEF(ncid)
+         if(status /= nf90_noerr) call handle_err(status,220)
+    status = NF90_PUT_ATT(ncid,NF90_GLOBAL,'running','true')
+         if(status /= nf90_noerr) call handle_err(status,19)
+    status = NF90_ENDDEF(ncid)
+         if(status /= nf90_noerr) call handle_err(status,120)
+!
+!   nf90_inq_varid calls for independent variables
+    status = NF90_INQ_VARID(ncid,'time',time_id)
+         if(status /= nf90_noerr) call handle_err(status,5)
+    status = NF90_INQ_VARID(ncid,'r',r_id)
+         if(status /= nf90_noerr) call handle_err(status,6)
+!
+!...functions of time variable only
+    status = NF90_INQ_VARID(ncid,'delta_ekin',delta_ekin_id)
+         if(status /= nf90_noerr) call handle_err(status,1)
+    status = NF90_INQ_VARID(ncid,'delta_emag',delta_emag_id)
+         if(status /= nf90_noerr) call handle_err(status,2)
+    status = NF90_INQ_VARID(ncid,'N_etotd',N_etotd_id)
+         if(status /= nf90_noerr) call handle_err(status,17)  
+    status = NF90_INQ_VARID(ncid,'N_emagd',N_emagd_id)
+         if(status /= nf90_noerr) call handle_err(status,7)
+    status = NF90_INQ_VARID(ncid,'delta_error',delta_error_id)
+         if(status /= nf90_noerr) call handle_err(status,18)
+    status = NF90_INQ_VARID(ncid,'N_etoth',N_etoth_id)
+         if(status /= nf90_noerr) call handle_err(status,21)
+    status = NF90_INQ_VARID(ncid,'delta_emagt',delta_emagt_id)
+         if(status /= nf90_noerr) call handle_err(status,20)
+    status = NF90_INQ_VARID(ncid,'delta_ekint',delta_ekint_id)
+         if(status /= nf90_noerr) call handle_err(status,19)
+    status = NF90_INQ_VARID(ncid,'delta_ekin3',delta_ekin3_id)
+         if(status /= nf90_noerr) call handle_err(status,27)
+    status = NF90_INQ_VARID(ncid,'delta_emag3',delta_emag3_id)
+         if(status /= nf90_noerr) call handle_err(status,28)
+    status = NF90_INQ_VARID(ncid,'ekin',ekin_id)
+         if(status /= nf90_noerr) call handle_err(status,42)
+    status = NF90_INQ_VARID(ncid,'emag',emag_id)
+         if(status /= nf90_noerr) call handle_err(status,43)
+    status = NF90_INQ_VARID(ncid,'epress',epress_id)
+         if(status /= nf90_noerr) call handle_err(status,44)
+    status = NF90_INQ_VARID(ncid,'etotal',etotal_id)
+         if(status /= nf90_noerr) call handle_err(status,45)  
+    status = NF90_INQ_VARID(ncid,'psidif',psidif_id)
+         if(status /= nf90_noerr) call handle_err(status,25)
+    status = NF90_INQ_VARID(ncid,'psix',psix_id)
+         if(status /= nf90_noerr) call handle_err(status,49)
+    status = NF90_INQ_VARID(ncid,'psidifdot',psidifdot_id)
+         if(status /= nf90_noerr) call handle_err(status,26)
+    status = NF90_INQ_VARID(ncid,'psixdot',psixdot_id)
+         if(status /= nf90_noerr) call handle_err(status,50)
+    status = NF90_INQ_VARID(ncid,'tflux',tflux_id)
+         if(status /= nf90_noerr) call handle_err(status,29)
+    status = NF90_INQ_VARID(ncid,'chierror',chierror_id)
+         if(status /= nf90_noerr) call handle_err(status,30)
+    status = NF90_INQ_VARID(ncid,'totcur',totcur_id)
+         if(status /= nf90_noerr) call handle_err(status,31)
+    status = NF90_INQ_VARID(ncid,'vmax',vmax_id)
+         if(status /= nf90_noerr) call handle_err(status,32)
+    status = NF90_INQ_VARID(ncid,'totaltime',totaltime_id)
+         if(status /= nf90_noerr) call handle_err(status,33)
+    status = NF90_INQ_VARID(ncid,'tread',tread_id)
+         if(status /= nf90_noerr) call handle_err(status,35)
+    status = NF90_INQ_VARID(ncid,'plus_telements',plus_telements_id)
+         if(status /= nf90_noerr) call handle_err(status,36)
+    status = NF90_INQ_VARID(ncid,'plus_tsolve',plus_tsolve_id)
+         if(status /= nf90_noerr) call handle_err(status,37)
+    status = NF90_INQ_VARID(ncid,'tonestep',tonestep_id)
+         if(status /= nf90_noerr) call handle_err(status,38)
+    status = NF90_INQ_VARID(ncid,'plus_tmpi',plus_tmpi_id)
+         if(status /= nf90_noerr) call handle_err(status,39)
+    status = NF90_INQ_VARID(ncid,'plus_tinit',plus_tinit_id)
+         if(status /= nf90_noerr) call handle_err(status,41)
+    status = NF90_INQ_VARID(ncid,'plus_tadotb',plus_tadotb_id)
+         if(status /= nf90_noerr) call handle_err(status,40)
+    status = NF90_INQ_VARID(ncid,'maxrank',maxrank_id)
+         if(status /= nf90_noerr) call handle_err(status,34)
+    status = NF90_INQ_VARID(ncid,'dt',dt_id)
+         if(status /= nf90_noerr) call handle_err(status,47)
+    status = NF90_INQ_VARID(ncid,'thimp',thimp_id)
+         if(status /= nf90_noerr) call handle_err(status,48)
+!
+!...functions of time and of R
+    status = NF90_INQ_VARID(ncid,'current',current_id)
+         if(status /= nf90_noerr) call handle_err(status,9)
+    status = NF90_INQ_VARID(ncid,'pressure',pe_id)
+         if(status /= nf90_noerr) call handle_err(status,10)
+    status = NF90_INQ_VARID(ncid,'flux',flux_id)
+         if(status /= nf90_noerr) call handle_err(status,11)
+    status = NF90_INQ_VARID(ncid,'E_phi',ephi_id)
+         if(status /= nf90_noerr) call handle_err(status,12)
+    status = NF90_INQ_VARID(ncid,'JxB',jcb_id)
+         if(status /= nf90_noerr) call handle_err(status,13)
+    status = NF90_INQ_VARID(ncid,'VxB',vcb_id)
+         if(status /= nf90_noerr) call handle_err(status,14)
+    status = NF90_INQ_VARID(ncid,'etaxJ',etaj_id)
+         if(status /= nf90_noerr) call handle_err(status,15)
+    status = NF90_INQ_VARID(ncid,'hypr',hypr_id)
+         if(status /= nf90_noerr) call handle_err(status,16)
+    status = NF90_INQ_VARID(ncid,'density',dens_id)
+         if(status /= nf90_noerr) call handle_err(status,17)
+!
+  endif
+ endif    ! on ifirst_netcdf == 0
+!
+!....file is now in data mode...input data for present timestep
+!
+!....insert present value of time
+  status = NF90_PUT_VAR(ncid,time_id,time,(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,22)
+!
+!
+!....insert scalar functions of time
+!
+  status = NF90_PUT_VAR(ncid,delta_ekin_id,graphit(ntime,1),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,1)
+  status = NF90_PUT_VAR(ncid,delta_emag_id,graphit(ntime,2),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,2)
+  status = NF90_PUT_VAR(ncid,n_etotd_id,graphit(ntime,17),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,17)
+  status = NF90_PUT_VAR(ncid,n_emagd_id,graphit(ntime,7),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,7)
+  status = NF90_PUT_VAR(ncid,delta_error_id,graphit(ntime,18),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,18)
+  status = NF90_PUT_VAR(ncid,n_etoth_id,graphit(ntime,21),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,21)
+  status = NF90_PUT_VAR(ncid,delta_emagt_id,graphit(ntime,20),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,20)
+  status = NF90_PUT_VAR(ncid,delta_ekint_id,graphit(ntime,19),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,19)
+  status = NF90_PUT_VAR(ncid,delta_ekin3_id,graphit(ntime,27),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,27)
+  status = NF90_PUT_VAR(ncid,delta_emag3_id,graphit(ntime,28),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,28)
+  status = NF90_PUT_VAR(ncid,ekin_id,graphit(ntime,42),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,42)
+  status = NF90_PUT_VAR(ncid,emag_id,graphit(ntime,43),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,43)
+  status = NF90_PUT_VAR(ncid,epress_id,graphit(ntime,44),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,44)
+  status = NF90_PUT_VAR(ncid,etotal_id,graphit(ntime,45),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,45)
+  status = NF90_PUT_VAR(ncid,psidif_id,graphit(ntime,25),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,25)
+  status = NF90_PUT_VAR(ncid,psix_id,graphit(ntime,49),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,49)
+  status = NF90_PUT_VAR(ncid,psidifdot_id,graphit(ntime,26),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,26)
+  status = NF90_PUT_VAR(ncid,psixdot_id,graphit(ntime,50),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,50)
+  status = NF90_PUT_VAR(ncid,tflux_id,graphit(ntime,29),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,29)
+  status = NF90_PUT_VAR(ncid,chierror_id,graphit(ntime,30),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,30)
+  status = NF90_PUT_VAR(ncid,totcur_id,graphit(ntime,31),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,31)
+  status = NF90_PUT_VAR(ncid,vmax_id,graphit(ntime,32),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,32)
+  status = NF90_PUT_VAR(ncid,totaltime_id,graphit(ntime,33),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,33)
+  status = NF90_PUT_VAR(ncid,tread_id,graphit(ntime,35),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,35)
+  status = NF90_PUT_VAR(ncid,plus_telements_id,graphit(ntime,36),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,36)
+  status = NF90_PUT_VAR(ncid,plus_tsolve_id,graphit(ntime,37),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,37)
+  status = NF90_PUT_VAR(ncid,tonestep_id,graphit(ntime,38),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,38)
+  status = NF90_PUT_VAR(ncid,plus_tmpi_id,graphit(ntime,39),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,39)
+  status = NF90_PUT_VAR(ncid,plus_tinit_id,graphit(ntime,41),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,41)
+  status = NF90_PUT_VAR(ncid,plus_tadotb_id,graphit(ntime,40),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,40)
+  status = NF90_PUT_VAR(ncid,maxrank_id,graphit(ntime,34),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,34)
+  status = NF90_PUT_VAR(ncid,dt_id,graphit(ntime,47),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,47)
+  status = NF90_PUT_VAR(ncid,thimp_id,graphit(ntime,48),(/ ntime /))
+         if(status /= nf90_noerr) call handle_err(status,48)
+
+!
+!
+!
+!....insert functions of r and time
+!
+  status = NF90_PUT_VAR(ncid,current_id,curarray,(/1,ntime/),(/irs,1/))
+         if(status /= nf90_noerr) call handle_err(status,25)
+  status = NF90_PUT_VAR(ncid,flux_id,psiarray,(/1,ntime/))
+         if(status /= nf90_noerr) call handle_err(status,26)
+  status = NF90_PUT_VAR(ncid,ephi_id,ephiarray,(/1,ntime/),(/irs,1/))
+         if(status /= nf90_noerr) call handle_err(status,27)
+  status = NF90_PUT_VAR(ncid,jcb_id,jcbarray,(/1,ntime/),(/irs,1/))
+         if(status /= nf90_noerr) call handle_err(status,28)
+  status = NF90_PUT_VAR(ncid,vcb_id,vcbarray,(/1,ntime/),(/irs,1/))
+         if(status /= nf90_noerr) call handle_err(status,29)
+  status = NF90_PUT_VAR(ncid,etaj_id,etajarray,(/1,ntime/),(/irs,1/))
+         if(status /= nf90_noerr) call handle_err(status,30)
+  status = NF90_PUT_VAR(ncid,hypr_id,hyprarray,(/1,ntime/),(/irs,1/))
+         if(status /= nf90_noerr) call handle_err(status,31)
+  status = NF90_PUT_VAR(ncid,dens_id,densarray,(/1,ntime/),(/irs,1/))
+         if(status /= nf90_noerr) call handle_err(status,32)
+  status = NF90_PUT_VAR(ncid,pe_id,pearray,(/1,ntime/),(/irs,1/))
+         if(status /= nf90_noerr) call handle_err(status,33)
+!
+  status = nf90_sync(ncid)
+         if(status /= nf90_noerr) call handle_err(status,34)
+!
+  if(ntime.ne.ntimemax) return
+!
+!...close file
+!
+  status = nf90_redef(ncid)
+         if(status /= nf90_noerr) call handle_err(status,35)
+!
+  status = NF90_PUT_ATT(ncid,NF90_GLOBAL,'running','false')
+         if(status /= nf90_noerr) call handle_err(status,36)
+
+  status = nf90_enddef(ncid)
+         if(status /= nf90_noerr) call handle_err(status,37)
+!
+  status = nf90_close(ncid)
+         if(status /= nf90_noerr) call handle_err(status,38)
+!
+!.....copy netcdf file into local directory for saving
+      string(1:3) = "cp "
+      string(4:43) = netcdffilename
+      string(44:60) = " ./C1monitor.cdf "
+      call system(string)
+! 
+  end subroutine netcdfout
+ subroutine handle_err(status,loc)
+ use netcdf
+  integer, intent (in) :: status,loc
+  if(status /= nf90_noerr) then
+    print *, trim(nf90_strerror(status)),loc
+      call safestop(loc)
+  endif
+ end subroutine handle_err
 end module inout_mod

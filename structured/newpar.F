@@ -1,6 +1,6 @@
 !123456789-123456789-123456789-123456789-123456789-123456789-123456789-23
 !
-!     VERSION 12.0   09/24/06
+!     VERSION 12.1   10/01/06
 !     runs with three velocity variables (numvar=3)
 !     added terms for electron pressure in ludefphi
 !       write HDF5 files
@@ -75,9 +75,9 @@
       implicit none
       integer  maxi,ntimep,irs,ntri,ntridim,ioddm,maxfiles,             &
      &         maxhdf5,maxplots
-      parameter(maxplots=50,maxi=20,ntimep=10000,irs=201,ntridim=1984,  &
+      parameter(maxplots=60,maxi=20,ntimep=10000,irs=201,ntridim=1984,  &
      &          ioddm=2, maxfiles=100, maxhdf5=30)
-      character*10, parameter :: version="M3D-C1 12.0"
+      character*11, parameter :: version="M3D-C1 12.1"
       end module p_data
 !
       module basic
@@ -90,7 +90,8 @@
       integer n,m,linear,maxs,ntimemax,ntimepr,itor,ioddmx,isetup,      &
      &   irestart,iper,jper,itaylor,itest,isecondorder,imask,nskip,     &
      &        numvar,istart,idens,ipres,itaylorw,isym,jsym,eqsubtract,  &
-     &        isemii,gyro
+     &        isemii,elvis, gyro
+      character*40 netcdffilename
 !
 !.....input quantities---defined in subroutine input or in namelist
 !
@@ -98,7 +99,7 @@
      &        n,m,linear,maxs,ntimemax,ntimepr,itor,ioddmx,isetup,      &
      &   irestart,iper,jper,itaylor,itest,isecondorder,imask,nskip,     &
      &        numvar,istart,idens,ipres,itaylorw,isym,jsym,eqsubtract,  &
-     &        isemii, iprint,gyro,                                      &
+     &        isemii, iprint,elvis,gyro,netcdffilename,                 &
      &        alx,alz,xzero,zzero,thimp,amu,amuc,etar,dt,p1,p2,p0,pi0,  &
      &        tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,cb,         &
      &        bzero,hyper,hyperi,hyperv,hyperc,gam,beta,eps,tau,        &
@@ -121,6 +122,10 @@
      &     emag3h,emag3d,emag3ho,emag3do,tflux,chierror,totcur, area
       real   xary(0:irs-1),yary(0:irs-1),mif(0:maxhdf5-1),              &
      & maf(0:maxhdf5-1)
+!.....define some arrays for transmitting to ElVis files
+      real curarray(irs),psiarray(irs),ephiarray(irs),jcbarray(irs),    &
+     &     vcbarray(irs),etajarray(irs),hyprarray(irs),densarray(irs),  &
+     &     pearray(irs)
       character*8 filename(79)
       character*10 datec, timec
       data filename /8hscratch1, 8hscratch2, 8hscratch3, 8hscratch4,    &
@@ -326,15 +331,16 @@
 !
       if(myrank.eq.0) then
          call date_and_time( datec, timec)
-         write(*,1001) datec(1:4),datec(5:6),datec(7:8),                &
+         write(*,1001) version, datec(1:4),datec(5:6),datec(7:8),                &
      &        timec(1:2),timec(3:4),timec(5:8)
- 1001    format("M3D-C1 VERSION 12.0    DATE: "a4,1x,a2,1x,a2,3x,       &
+ 1001    format("VERSION ",a11,  "  DATE: "a4,1x,a2,1x,a2,3x,           &
      &        "TIME: "a2,":",a2,":",a4,/)
       endif
 !
       pi = acos(-1.)
 !.....special switch installed 12/03/04 to write slu matrices
       idebug = 0
+      islutype = 0
 !
 !.....special switch to provide timing information if set
       itimer = 1
@@ -472,11 +478,11 @@
          timer = 0.
          if(idens.eq.1) then
             call denequ(den0)
-            if(myrank.eq.0) call oneplot(0,den0,1,1,"den0")
+            if(myrank.eq.0) call oneplot(0,0,den0,1,1,"den0")
          endif                  ! on idens .eq.1
          if(ipres.eq.1) then
             call presequ(pres0)
-            if(myrank.eq.0) call oneplot(0,pres0,1,1,"p0  ")
+            if(myrank.eq.0) call oneplot(0,0,pres0,1,1,"p0  ")
          endif                  ! on ipres.eq.1
          if(itor.eq.0) then
             velold = 0
@@ -519,7 +525,7 @@
 !        calculate the equilibrium current density
          if(itaylor.ne.4 .and. itaylor.ne.6) then
             call newvarb(phi0,jphi0,m*n,numvar,1,1)
-            if(myrank.eq.0) call oneplot(0,jphi0,1,1,"jphi0")
+            if(myrank.eq.0) call oneplot(0,0,jphi0,1,1,"jphi0")
          else
             jphi0 = 0
          endif
@@ -604,10 +610,15 @@
          if(myrank.eq.0) call output
          if(linear.eq.1) call scaleback
          if(ekin .gt. 100.) go to 100
+         if(myrank.eq.0 .and. elvis.gt.0) call netcdfout
       enddo ! ntime
 !
 !
+      go to 102
  100  continue
+      ntimemax = ntime
+      if(myrank.eq.0 .and. elvis.gt.0) call netcdfout
+  102 continue
 
       if(myrank.eq.0 .and. iprint.eq.1) then
          print *, 'Deallocating matrices...'
@@ -865,6 +876,13 @@
       if(ntime.le.ntimer+1.or.                                          &
      &     (linear.eq.0 .and. mod(ntime,nskip).eq.0)) then
          call ludefvel
+!
+!......special option to output matrix and quit
+       if(idebug.eq.1 .and. islutype.eq.1) then
+       call sparseR8d_output(s1matrix_lu)
+       call safestop(0)
+       endif
+!
       endif
       if(grav.ne.0. .and. idens.gt.0) call r4def
       if(myrank.eq.0) call second(tbeforeadotb)
@@ -1245,13 +1263,15 @@
       call energy
 !
 !.....calculate some arrays for diagnostic plots
-      if(mod(ntime,ntimepr).eq.0) then
+      if(mod(ntime,ntimepr).eq.0 .or. elvis.gt.0) then
+      if(myrank.eq.0 .and. iprint.gt.0) write(*,*) "b calls to newvarb"
         call newvarb(phi,ephi,m*n,numvar,1,8)
         call newvarb(phi,eph2,m*n,numvar,1,9)
         call newvarb(phi,eph3,m*n,numvar,1,10)
         call newvarb(phi,eph4,m*n,numvar,1,11)
         call newvarb(phi,eph5,m*n,numvar,1,12)
         call newvarb(phi,eph6,m*n,numvar,1,13)
+      if(myrank.eq.0 .and. iprint.gt.0) write(*,*) "a calls to newvarb"
         eph7 = eph2 + eph3
       endif  ! on mod(ntime,ntimepr)
 !
@@ -4611,7 +4631,9 @@ c$$$      endif
       allocate(jphi(mmnn6),jphi0(mmnn6), sphi1(mmnn6), sphi2(mmnn6),    &
      &     vor(mmnn6), vor0(mmnn6),  com(mmnn6), com0(mmnn6),           &
      &     den(mmnn6), den0(mmnn6),  dent(mmnn6), deni(mmnn6),          &
-     &    sphip(mmnn6),sphie(mmnn6),pres(mmnn6),pres0(mmnn6),bsi(mmnn6))
+     &    sphip(mmnn6),sphie(mmnn6),pres(mmnn6),pres0(mmnn6),bsi(mmnn6),&
+     &    ephi(mmnn6),eph2(mmnn6),eph3(mmnn6),eph4(mmnn6),eph5(mmnn6),   &
+     &    eph6(mmnn6),eph7(mmnn6))
 !
       if(itor.eq.1) then
          allocate(fun1(mmnn6),fun2(mmnn6),fun3(mmnn6),fun4(mmnn6))

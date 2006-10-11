@@ -123,7 +123,7 @@
       endif
         enddo
       enddo
-      if(myrank.eq.0) call oneplot(0,phi,1,1,"phi ")
+      if(myrank.eq.0) call oneplot(0,0,phi,1,1,"phi ")
 !
       do l=1,nbcgs
         i = iboundgs(l)
@@ -192,7 +192,7 @@
 !.....start of iteration loop on plasma current
  500  continue
       itnum = itnum + 1
-      if(myrank.eq.0) call oneplot(0,b1vecini,1,1,"b1vecini")
+      if(myrank.eq.0) call oneplot(0,0,b1vecini,1,1,"b1vecini")
 !
 !.....apply boundary conditions
       do l=1,nbcgs
@@ -208,7 +208,7 @@
       do i=1,nrags
       phi(i) = th*b1vecini(i) + (1.-th)*phi(i)
       enddo
-      if(myrank.eq.0) call oneplot(0,phi,1,1,"phi ")
+      if(myrank.eq.0) call oneplot(0,0,phi,1,1,"phi ")
       th = 0.9
 !
 !
@@ -351,11 +351,11 @@
       ntime = itnum
       temp = -(fun1+gamma2*fun2+gamma3*fun3+gamma4*fun4)     
       if(myrank.eq.0) call plotit(phi,temp,0)
-      if(myrank.eq.0) call oneplot(0,temp,1,1,"temp")
-      if(myrank.eq.0) call oneplot(4,fun1,1,1,"Rp-p")
-      if(myrank.eq.0) call oneplot(3,fun2,1,1,"G1-p")
-      if(myrank.eq.0) call oneplot(2,fun3,1,1,"G2-p")
-      if(myrank.eq.0) call oneplot(0,fun4,1,1,"G3-p")
+      if(myrank.eq.0) call oneplot(0,0,temp,1,1,"temp")
+      if(myrank.eq.0) call oneplot(0,4,fun1,1,1,"Rp-p")
+      if(myrank.eq.0) call oneplot(0,3,fun2,1,1,"G1-p")
+      if(myrank.eq.0) call oneplot(0,2,fun3,1,1,"G2-p")
+      if(myrank.eq.0) call oneplot(0,0,fun4,1,1,"G3-p")
 #ifdef mpi
       call sparseR8d_del(gsmatrix_lu,jer)
 #else
