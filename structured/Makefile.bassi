@@ -12,12 +12,11 @@ F77 = mpxlf -c
 F90 = mpxlf90 -c
 
 PPOPTS = -Dmpi -DBIT64 -Dnohdf
-CCOPTS = $(INCLUDE)
-F77OPTS = $(INCLUDE) -qsave -qextname
-F90OPTS = $(INCLUDE) -qsave -qextname
-#TV80OPTS = $(INCLUDE) -qextname
-DBESJOPTS = $(INCLUDE) -qextname=dbesj0,dbesj1,fdump
-TV80OPTS = $(INCLUDE) -qextname=plote,tracec,mapg,frame,setch,gtext,setch,map,rcontr,trace,ncarcgm,dders
+CCOPTS = $(INCLUDE) -O3
+F77OPTS = $(INCLUDE) -qsave -qextname -O3
+F90OPTS = $(INCLUDE) -qsave -qextname -O3
+DBESJOPTS = $(INCLUDE) -qextname=dbesj0,dbesj1,fdump -O3
+TV80OPTS = $(INCLUDE) -qextname=plote,tracec,mapg,frame,setch,gtext,setch,map,rcontr,trace,ncarcgm,dders -O3
 
 COMMONDIR = ../common/
 
