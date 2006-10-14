@@ -1,0 +1,61 @@
+BIN = gonewp
+
+INCLUDE = -I$(SUPERLU_DIST_SRC) $(HDF5_INCLUDE) -I$(NETCDF_INCLUDE)
+LIBS = $(HDF5) $(NETCDF) $(NCAR) $(SUPERLU_DIST) $(NAG) \
+	-L/usr/X11R6/lib -lX11
+
+LOADER = mpxlf90
+PP = xlc -E
+#CC = gcc -c -mpe -maix64
+CC = mpcc -c
+F77 = mpxlf -c
+F90 = mpxlf90 -c
+
+PPOPTS = -Dmpi -DBIT64 -Dnohdf
+CCOPTS = $(INCLUDE)
+F77OPTS = $(INCLUDE) -qsave -qextname
+F90OPTS = $(INCLUDE) -qsave -qextname
+#TV80OPTS = $(INCLUDE) -qextname
+DBESJOPTS = $(INCLUDE) -qextname=dbesj0,dbesj1,fdump
+TV80OPTS = $(INCLUDE) -qextname=plote,tracec,mapg,frame,setch,gtext,setch,map,rcontr,trace,ncarcgm,dders
+
+COMMONDIR = ../common/
+
+OBJS =  $(COMMONDIR)tv80lib.o $(COMMONDIR)subp.o $(COMMONDIR)dbesj0.o \
+	$(COMMONDIR)dbesj1.o $(COMMONDIR)fdump.o \
+	$(COMMONDIR)superlu_c2f_wrap.o superlupara.o superlu_mod.o \
+	$(COMMONDIR)dcreate_dist_matrix.o  $(COMMONDIR)writeHDF5.o \
+	supralu_dist_mod.o \
+	opdef_mod.o newvar_mod.o init_conds_mod.o \
+	mesh_mod.o inout_mod.o gradshafranov.o newpar.o 
+
+all : $(BIN)
+
+$(BIN) : $(OBJS)
+	$(LOADER) -o $@ $(OBJS) $(LIBS)
+
+clean :
+	rm -f $(OBJS) *.mod $(BIN) *~ *.i *.o 
+
+%.o: %.F
+	$(PP) $(PPOPTS) $< > $<.i
+	$(F77) $(F77OPTS) -qsuffix=f=i $<.i -o $@
+
+%.o: %.f
+	$(F77) $(F77OPTS) $< -o $@
+
+%.o: %.f90
+	$(PP) $(PPOPTS) $< > $<.i
+	$(F90) $(F90OPTS) -qsuffix=f=i $<.i -o $@
+
+%.o: %.c
+	$(CC) $(CCOPTS) $< -o $@
+
+$(COMMONDIR)tv80lib.o : $(COMMONDIR)tv80lib.f
+	$(F77) $(TV80OPTS) $< -o $@
+
+$(COMMONDIR)dbesj0.o : $(COMMONDIR)dbesj0.f
+	$(F77) $(DBESJOPTS) $< -o $@
+
+$(COMMONDIR)dbesj1.o : $(COMMONDIR)dbesj1.f
+	$(F77) $(DBESJOPTS) $< -o $@
