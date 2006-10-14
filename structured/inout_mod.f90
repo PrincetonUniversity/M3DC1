@@ -4,694 +4,6 @@ implicit none
 
 contains
 
-! subroutine openf
-! subroutine output
-! subroutine plotenergy
-! subroutine plotit
-! subroutine input
-! subroutine readit
-! subroutine writeit
-! subroutine wrrestart
-! subroutine rdrestart
-! subroutine netcdfout
-! subroutine handle_err
-
-subroutine openf
-
-  ! open output files and initialize NCAR graphics
-  use p_data
-  use t_data
-  use basic
-  use arrays
-  
-  implicit none
-
-  integer :: maxhdf, jj
-
-  maxhdf = 0
-
-  if (myrank.eq.0) then !Serialize I/O
-     call ncarcgm(1,'C1new.cgm')
-     call dders(-1)
-
-#ifndef nohdf
-     !  define evenly spaced coordinates and create new HDF5 file
-     xary = (/ ((alxp*jj)/(irs-1), jj=0,irs-1) /)
-     yary = (/ ((alzp*jj)/(irs-1), jj=0,irs-1) /)
-     if(numvar.eq.1) then
-        if(linear.eq.1) maxhdf=4
-        if(linear.eq.0) maxhdf=6
-     endif
-
-     if(numvar.eq.2) then
-        if(linear.eq.1) maxhdf=6
-        if(linear.eq.0) maxhdf=9
-     endif
-
-     if(numvar.eq.3) then
-        if(linear.eq.1) maxhdf=9
-        if(linear.eq.0) maxhdf=13
-     endif
-
-     call createHDF5(xary,irs,yary,irs,maxhdf)
-#endif
-
-     ! initialize minimum and maximum
-     maf = -1.e20
-     mif =  1.e20
-
-     ! open ascii output files
-     if(itaylor.eq.4) then
-        open(40,file="C1wave.out",form='formatted',status='unknown')
-     endif
-     open(9, file='C1new.out',form='formatted',status='unknown')
-     open(65, file='C1error.out',form='formatted',status='unknown')
-     open(66, file='C1ener.out',form='formatted',status='unknown')
-     open(11,file='C1psi-per',form='formatted',status='unknown')
-     open(13,file='C1J-per',form='formatted',status='unknown')
-     open(19,file='C1phi-full',form='formatted',status='unknown')
-     open(20,file='C1vor-full',form='formatted',status='unknown')
-      if(linear.eq.0 .and. itaylor.eq.3) then
-       open(25,file='C1VxBU',form='formatted',status='unknown')
-       open(26,file='C1VxBC',form='formatted',status='unknown')
-       open(27,file='C1ETAJ',form='formatted',status='unknown')
-       open(28,file='C1EPHI',form='formatted',status='unknown')
-       open(29,file='C1JxB',form='formatted',status='unknown')
-       open(30,file='C1HYPR',form='formatted',status='unknown')
-       open(32,file='C1VxBT',form='formatted',status='unknown')
-      endif
-     if(numvar.ge.2) then
-        open(15,file='C1I-per',form='formatted',status='unknown')
-        open(21,file='C1v-full',form='formatted',status='unknown')
-        if(numvar.ge.3) then
-           open(17,file='C1pe-per',form='formatted',status='unknown')
-           open(22,file='C1chi-full',form='formatted',status='unknown')
-           open(23,file='C1div-full',form='formatted',status='unknown')
-        endif
-     endif
-     open(12,file='C1psi-full',form='formatted',status='unknown')
-     open(14,file='C1J-full',form='formatted',status='unknown')
-     if(numvar.ge.2) then
-        open(16,file='C1I-full',form='formatted',status='unknown')
-        if(numvar.ge.3) then
-           open(18,file='C1pe-full',form='formatted',status='unknown')
-        endif ! on numvar.ge.3
-     endif ! on numvar.ge.2
-     if(idens.eq.1) then
-        open(24,file='C1density',form='formatted',status='unknown')
-     endif
-     if(idebug.ge.1) open(31,file='matrix.txt',form='formatted',    &
-          status='unknown')
-     write(9,*) version
-     write(9,1001) datec(1:4),datec(5:6),datec(7:8),                   &
-          timec(1:2),timec(3:4),timec(5:8)
-1001 format("DATE: "a4,1x,a2,1x,a2,3x,          &
-          "TIME: "a2,":",a2,":",a4,/)
-  endif
-
-  if(itor.ne.0 .and. ntridim.lt.ntri) then
-     write(*,5222) itor, ntridim, ntri
-5222 format(" ERROR:  ntridim must be .eq. ntri for itor.ne.0",      &
-          "   itor,ntridim,ntri =", 3i6)
-     call safestop(5222)
-  endif
-  return
-end subroutine openf
-
-! ==========================================================
-subroutine output
-  use p_data
-  use t_data
-  use basic
-  use arrays
-  use superlu
-
-  implicit none
-  integer :: i, j, ivertex, irect, jrect, i1, i3, indexmid, ix
-  real :: x, z, ans, ans2, gamma
-  real :: etot, etoto, etotd, etoth, ediff, error, enorm, denom, percerr
-  real :: vmaxsq, vnew, vmax, x1, x2, z1, z2, val1, dum1, val2, dum2, superlutime
-
-  ! calculate maximum perturbed current for printout
-  ajmax = 0.
-  do i=2,400
-     do j=2,400
-        x = (i-1)*alx*(1./(1.+isym))/400.
-        z = (j-1)*alz*(1./(1.+jsym))/400.
-        call evaluate(x,z,ans,ans2,phi,2,numvar)
-        ajmax = max(ans2,ajmax)
-     enddo
-  enddo
-
-  ! search for the location of the magnetic axis and separatrices
-  !      call axis(phi,xsep,zsep,1)
-  xsep = 0.
-  zsep = 0.
-  etoto= ekino+emago
-  etot = ekin + emag
-  ediff = (etot-etoto)/dt
-  denom = dt*(ekin + ekino)
-  if(denom.ne.0) gamma = (ekin - ekino)/denom
-  etotd = .5*(ekind+emagd+ekindo+emagdo)
-  etoth = .5*(ekinph +ekinth +ekin3h +emagph +emagth +emag3h        &
-       +ekinpho+ekintho+ekin3ho+emagpho+emagtho+emag3ho)
-  
-  ! NOTE:  changed 1/15/06 when Ohmic & Viscous Heating  added to Pressure
-  if(numvar.ne.3) then
-     error = ediff - etotd - etoth
-  else
-     error = ediff - ekinph - ekinth
-  endif
-  if(myrank.eq.0) write(65,2001) ntime,error,                       &
-       (ekinp-ekinpo)/dt,-ekinpd,-ekinph,                             &
-       (emagp-emagpo)/dt,-emagpd,-emagph,                             &
-       (ekint-ekinto)/dt,-ekintd,-ekinth,                             &
-       (emagt-emagto)/dt,-emagtd,-emagth,                             &
-       (ekin3-ekin3o)/dt,-ekin3d,-ekin3h,                             &
-       (emag3-emag3o)/dt,-emag3d,-emag3h
-  enorm = max( abs((ekin-ekino)/dt), abs((emag-emago)/dt),          &
-       abs( etotd) , abs(etoth) )
-
-  graphit(ntime,1) = (ekin - ekino)/dt
-
-  ! calculate the maximum poloidal velocity at a grid point
-  vmaxsq = 0
-  ivertex = 0
-  do jrect=1,m
-     do irect=1,n
-        ivertex = ivertex + 1
-        if((jsym.eq.0 .and. jrect.eq.1) .or. jrect.eq.m) go to 100
-        i1 = 6*numvar*(ivertex-1)
-        i3 = i1 + 12
-        vnew = vel(i1+2)**2 + vel(i1+3)**2
-        if(numvar.ge.3) then
-           vnew = vnew + vel(i3+2)**2 + vel(i3+3)**2                  &  
-                +2.*(vel(i3+2)*vel(i1+3)-vel(i3+3)*vel(i1+2))
-        endif
-        vmaxsq = max(vmaxsq,vnew)
-100     continue
-     enddo
-  enddo
-  vmax = sqrt(vmaxsq)
-  graphit(ntime,2) = (emag - emago)/dt
-  graphit(ntime,3) = ediff
-  graphit(ntime,4) = gamma
-  graphit(ntime,5) = ekind
-  graphit(ntime,6) = emagd
-  graphit(ntime,7) = -.5*(emagd+emagdo)
-  graphit(ntime,8) = time
-  graphit(ntime,9) = xsep(1)
-  graphit(ntime,10) = zsep(1)
-  graphit(ntime,11) = xsep(2)
-  graphit(ntime,12) = zsep(2)
-  graphit(ntime,13) = xsep(3) 
-  graphit(ntime,14) = zsep(3)
-  graphit(ntime,15) = xsep(4)
-  graphit(ntime,16) = zsep(4)
-  graphit(ntime,17) = -etotd
-  graphit(ntime,18) = error
-  graphit(ntime,19) = (ekint - ekinto)/dt
-  graphit(ntime,20) = (emagt - emagto)/dt
-  graphit(ntime,21)= -(etoth)
-  graphit(ntime,22) = -ekinth
-  graphit(ntime,23) = emagph
-  graphit(ntime,24) = emagth
-  indexmid = 6*numvar*(n*m - 1)/2 + 1
-  ! graphit(ntime,25) = phi(indexmid)
-  ! new definition 10/30/04
-  if(isym.eq.0) then
-     x1 = alx
-     x2 = alx/2.
-  else
-     x1 = alx/2.
-     x2 = 0.
-  endif
-  if(jsym.eq.0) then
-     z1 = alz/2.
-     z2 = alz/2.
-  else
-     z1 = 0.
-     z2 = 0.
-  endif
-  call evaluate(x1,z1,val1,dum1,phi,1,numvar)
-  call evaluate(x2,z2,val2,dum2,phi,1,numvar)
-  graphit(ntime,25) = 0.5*(val2-val1)
-      graphit(ntime,49) = val2
-  if(ntime.gt.1) then
-     graphit(ntime,26) = (graphit(ntime,25)-graphit(ntime-1,25))/dt
-      graphit(ntime,50) = (graphit(ntime,49)-graphit(ntime-1,49))/dt
-  endif
-  graphit(ntime,27) = (ekin3 - ekin3o)/dt
-  graphit(ntime,28) = (emag3 - emag3o)/dt
-  graphit(ntime,29) = tflux
-  graphit(ntime,30) = chierror
-  graphit(ntime,31) = totcur
-  graphit(ntime,32) = vmax
-  graphit(ntime,33) = ttotal-tfirst
-  graphit(ntime,34) = maxrank
-  graphit(ntime,35) = tread
-  graphit(ntime,36) = telements + tread
-  graphit(ntime,37) = tsolve + telements + tread
-  graphit(ntime,38) = tonestep
-  graphit(ntime,39) = tsolve + telements + tread + tadotb + tinit    &
-       + tmpi
-  graphit(ntime,40) = tsolve + telements + tread + tadotb
-  graphit(ntime,41) = tsolve + telements + tread + tadotb + tinit
-  
-  graphit(ntime,42) = ekinp+ekint+ekin3
-  graphit(ntime,43) = emagp + emagt
-  graphit(ntime,44) = emag3
-  graphit(ntime,45) = ekinp+ekint+ekin3+emagp+emagt+emag3
-!....added 9/13/06
-  graphit(ntime,46) = ntime
-  graphit(ntime,47) = dt
-  graphit(ntime,48) = thimp
-!
-!...note.....locations 49 and 50 defined above
-!
-
-  ! subtract off initial conditions
-  if(ntime.gt.0) then
-     graphit(ntime,42) = graphit(ntime,42) - graphit(0,42)
-     graphit(ntime,43) = graphit(ntime,43) - graphit(0,43)
-     graphit(ntime,44) = graphit(ntime,44) - graphit(0,44)
-     graphit(ntime,45) = graphit(ntime,45) - graphit(0,45)
-     
-     ! special debug write
-     etot = graphit(ntime,45)
-     enorm=abs(ekinp)+abs(emagp)+abs(ekint)+abs(emagt)                 &
-          +abs(ekin3)+abs(emag3)
-     percerr = etot/enorm
-     if(myrank.eq.0) write(66,2002) ntime,time,                        &
-          ekinp,emagp,ekint,emagt,ekin3,emag3,etot,ekin,percerr
-      superlutime = graphit(ntime  ,37) - graphit(ntime  ,36)                  &
-                  -(graphit(ntime-1,37) - graphit(ntime-1,36))
-      write(*,2003) ntime,superlutime
- 2003 format("superlutime for timestep", i5, 1pe12.4)
-2001 format(/,i5,1pe12.4,3(/1p6e12.4))
-2002 format(i5,1p10e12.4)
-  endif
-!
-!
-!.....compute some midplane arrays for elvis graphics
-     z = alz/2
-     do ix = 1,irs
-        x = (ix-1)*alx*(1./(1.+isym))/(irs-1)
-        call evaluate(x,z,psiarray(ix),dum1,phi,1,numvar)
-        call evaluate(x,z,curarray(ix),dum1,jphi,1,1)
-        call evaluate(x,z,densarray(ix),dum1,dent,1,1)
-        call evaluate(x,z,pearray(ix),dum1,phi,3,numvar)
-        if(elvis.gt.0) then
-          call evaluate(x,z,ephiarray(ix),dum1,ephi,1,1)
-          call evaluate(x,z,jcbarray(ix),dum1,eph5,1,1)
-          call evaluate(x,z,vcbarray(ix),dum1,eph7,1,1)
-          call evaluate(x,z,etajarray(ix),dum1,eph4,1,1)
-          call evaluate(x,z,hyprarray(ix),dum1,eph6,1,1)
-        endif
-     enddo
-!
-!.....end of computing midplane arrays for elvis graphics
-!
-  if(ntime.eq.0) return
-  ! check if it is time for plots and to write restart file
-  if(mod(ntime,ntimepr).ne.0) then
-     if(ntime.eq.0) then
-        write(*,4110)
-        write(9,4110)
-     endif
-     go to 50
-  endif
-  iframe = iframe + 1
-  ihdf5 = 0
-      if(iprint.gt.0) write(*,*) "before first call to plotit"
-
-  ! plot full perturbation
-  vel1 = vel + vel0
-  phi1 = phi + phi0
-  if(linear.eq.0) call plotit(vel1,phi1,1)
-  if(linear.eq.0 .and. jper.eq.1) call plotit(vel,phi,0)
-  !plot equilibrium for linear run
-  if(linear.eq.1.and.ntime.eq.0) call plotit(vel0,phi0,1)
-  !plot linearized solution
-  if(linear.eq.1) call plotit(vel,phi,0)
-      if(iprint.gt.0) write(*,*) "before first call to oneplot"
-  if(idens.eq.1) then
-    call oneplot(0,2,dent,1,1,"dent")
-    call oneplot(0,3,deni,1,1,"deni")
-    call oneplot(0,4,den0,1,1,"den0")
-    call oneplot(24,1,den,1,1,"den ")
-  endif
-!
-!....special diagnostic plot of toroidal electric field added 06/04/06...SCJ
-      if(linear.eq.0 .and. itaylor.eq.3) then
-      call oneplot(25,2,eph2,1,1,"VxBU")
-      call oneplot(26,3,eph3,1,1,"VxBC")
-      call oneplot(27,4,eph4,1,1,"etaJ")
-      call oneplot(28,1,ephi,1,1,"ephi")
-
-      call oneplot(29,2,eph5,1,1,"JxB ")
-      call oneplot(30,3,eph6,1,1,"hypr")
-      call oneplot(32,4,eph7,1,1,"VxBT")
-      call oneplot(0,1,ephi,1,1,"ephi")
-      endif
-!
-
-  if(gyro.eq.1) then
-     call oneplot(0,2,bsqr,1,1,"b^2 ")
-     call oneplot(0,1,bsqri,1,1,"b^-2")
-  endif
-  ! end of special DEBUG Plotting
-   if(ipres.eq.1) then
-     call oneplot(0,2,sphip,1,1,"sphp")
-     if(linear.ne.1) then
-        call oneplot(0,3,pres,1,1,"pres")
-        call oneplot(0,1,pres+pres0,1,1,'p-t ')
-     else
-      call oneplot(0,3,pres0,1,1,'p-0  ')
-        call oneplot(0,1,pres,1,1,"p-p ")
-     endif
-  endif
-
-
-4444 format(1p10e12.4)
-#ifndef nohdf
-  call writeHDF5time(iframe-1,time)
-#endif
-  call wrrestart
-  write(*,4110)
-  write(9,4110)
-4110 format(//,"cycle    time",                                        &
-          "      ekin      rrate     ediff",                                &
-          "     etotd      etoth     error       gamma")
-  nlast = ntime
-50 continue
-  
-  if(ntime.ge.5 .and. facd.eq.0) then
-     errori = errori + dt*abs(error)/abs(enorm)
-     enormi = enormi + dt 
-     if(enormi.ne.0) ratioi = errori/enormi
-  endif
-
-  write(*,4111) ntime,time,ekin,graphit(ntime,26),ediff,etotd,      &
-       etoth,error,gamma,ratioi,vmax 
-  write(9,4111) ntime,time,ekin,graphit(ntime,26),ediff,etotd,      &
-       etoth,error,gamma,ratioi,vmax 
-4111 format(i5,1p7e10.2,1pe14.6,1pe12.4,1pe14.6)
-4411 format(i5,1p4e12.4)
-  return
-end subroutine output
-!============================================================================
-subroutine plotenergy(graphit,ntimep,maxts,mstart,numvarp)
-
-  implicit none
-
-  real, intent(in), dimension(0:ntimep,*) :: graphit
-  integer, intent(in) :: ntimep, maxts, mstart, numvarp
-  character*80 :: s100
-  integer :: ntime, i
-  real :: tmin, tmax
-  real :: ymin, ymax, ydiff
-
-! first plot incremental energy change each cycle
-  tmin = graphit(1,8)
-  tmax = graphit(maxts,8)
-  ntime = maxts+1-mstart
-
-  ymin = 0.
-  ymax = 0.
-  do i=mstart,maxts
-     ymin = min(ymin,graphit(i,1),graphit(i,2),graphit(i,19),        &
-          graphit(i,17),graphit(i,18),graphit(i,21),graphit(i,20))
-     ymax = max(ymax,graphit(i,1),graphit(i,2),graphit(i,19),        &
-          graphit(i,17),graphit(i,18),graphit(i,21),graphit(i,20))
-  enddo
-  if(numvarp.ge.3) then
-     do i=mstart,maxts
-        ymin = min(ymin,graphit(i,27),graphit(i,28))
-        ymax = max(ymax,graphit(i,27),graphit(i,28))
-     enddo
-  endif
-  ymax = min (ymax,4.)
-      
-  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
-  ymax = ymax + .05*ydiff
-  ymin = ymin - .05*ydiff
-  call mapg(tmin,tmax,ymin,ymax,.142,.800,.200,1.0)
-  call tracec(1hK, graphit(mstart,8), graphit(mstart,1) ,ntime, -1,-1,0.,0.)
-  call tracec(1hM, graphit(mstart,8), graphit(mstart,2) ,ntime, -1,-1,0.,0.)
-  call tracec(1hD, graphit(mstart,8), graphit(mstart,17),ntime, -1,-1,0.,0.)
-  call tracec(1hR, graphit(mstart,8), graphit(mstart,7), ntime, -1,-1,0.,0.)
-  call tracec(1h*, graphit(mstart,8), graphit(mstart,18),ntime, -1,-1,0.,0.)
-  call tracec(1hH,graphit(mstart,8), graphit(mstart,21), ntime, -1,-1,0.,0.)
-  if(numvarp.ge.2) then
-     call tracec(1hI, graphit(mstart,8), graphit(mstart,20),ntime, -1,-1,0.,0.)
-     call tracec(1hV, graphit(mstart,8), graphit(mstart,19),ntime, -1,-1,0.,0.)
-     if(numvarp.ge.3) then
-        call tracec(1hC, graphit(mstart,8), graphit(mstart,27),ntime, &
-             -1,-1,0.,0.)
-        call tracec(1hP, graphit(mstart,8), graphit(mstart,28),ntime, &
-             -1,-1,0.,0.)
-     endif
-  endif
-  call frame(0)
-
-  ! now plot cumulative energies
-  ymin = 0.
-  ymax = 0.
-  do i=mstart,maxts
-     ymin = min(ymin,graphit(i,42),graphit(i,43),graphit(i,44),        &
-          graphit(i,45))
-     ymax = max(ymax,graphit(i,42),graphit(i,43),graphit(i,44),        &
-          graphit(i,45))
-  enddo
-
-  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
-  ymax = ymax + .05*ydiff
-  ymin = ymin - .05*ydiff
-  call mapg(tmin,tmax,ymin,ymax,.142,.800,.200,1.0)
-  call tracec(1hK, graphit(mstart,8), graphit(mstart,42) ,ntime,     &
-       -1,-1,0.,0.)
-  call tracec(1hM, graphit(mstart,8), graphit(mstart,43) ,ntime,     &
-       -1,-1,0.,0.)
-  call tracec(1hP, graphit(mstart,8), graphit(mstart,44),ntime,     &
-       -1,-1,0.,0.)
-  call tracec(1hE, graphit(mstart,8), graphit(mstart,45),ntime,      &
-       -1,-1,0.,0.)
-  call frame(0)
-  
-  ymin = min(graphit(mstart,25),graphit(mstart,49))
-  ymax = max(graphit(mstart,25),graphit(mstart,49))
-  do i=mstart+1,maxts
-     ymin = min(ymin,graphit(i,25),graphit(i,49))
-     ymax = max(ymax,graphit(i,25),graphit(i,49))
-  enddo
-  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
-  ymax = ymax + .05*ydiff
-  ymin = ymin - .05*ydiff
-  call mapg(tmin,tmax,ymin,ymax,.142,.800,.150,.50)
-  call tracec(1hD,graphit(mstart,8), graphit(mstart,25),ntime,-1,-1,0.,0.)
-  call tracec(1hX,graphit(mstart,8), graphit(mstart,49),ntime,-1,-1,0.,0.)
-  call setch(2.,2.0,1,2,0,-1)
-  write(s100,9025) graphit(maxts,25),graphit(maxts,49)
-9025 format("  psi",1p2e12.4)
-  call gtext(s100,80,0)
-  
-  ymin = min(graphit(mstart,26),graphit(mstart,50))
-  ymax = max(graphit(mstart,26),graphit(mstart,50))
-  do i=mstart+1,maxts
-     ymin = min(ymin,graphit(i,26),graphit(i,50))
-     ymax = max(ymax,graphit(i,26),graphit(i,50))
-  enddo
-  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
-  ymax = ymax + .05*ydiff
-  ymin = ymin - .05*ydiff
-  call mapg(tmin,tmax,ymin,ymax,.142,.800,.650,1.0)
-  call tracec(1hD,graphit(mstart,8), graphit(mstart,26),ntime,-1,-1,0.,0.)
-  call tracec(1hX,graphit(mstart,8), graphit(mstart,50),ntime,-1,-1,0.,0.)
-  call setch(2.,19.,1,2,0,-1)
-  write(s100,9026) graphit(maxts,26),graphit(maxts,50)
-9026 format("  psidot",1p2e12.4)
-  call gtext(s100,80,0)
-  call frame(0)
-  
-  ymin = graphit(mstart,29)
-  ymax = graphit(mstart,29)
-  do i=mstart+1,maxts
-     ymin = min(ymin,graphit(i,29))
-     ymax = max(ymax,graphit(i,29))
-  enddo
-  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
-  ymax = ymax + .05*ydiff
-  ymin = ymin - .05*ydiff
-  call mapg(tmin,tmax,ymin,ymax,.142,.800,.150,.50)
-  call tracec(1h*,graphit(mstart,8), graphit(mstart,29),ntime,-1,-1,0.,0.)
-  call setch(2.,2.0,1,2,0,-1)
-  write(s100,9029) graphit(maxts,29)
-9029 format("  tflux",1pe12.4)
-  call gtext(s100,80,0)
-  
-  if(numvarp.ge.3) then
-     ymin = graphit(mstart,30)
-     ymax = graphit(mstart,30)
-     do i=mstart+1,maxts
-        ymin = min(ymin,graphit(i,30))
-        ymax = max(ymax,graphit(i,30))
-     enddo
-     ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
-     ymax = ymax + .05*ydiff
-     ymin = ymin - .05*ydiff
-     call mapg(tmin,tmax,ymin,ymax,.142,.800,.650,1.0)
-     call tracec(1h*,graphit(mstart,8), graphit(mstart,30),ntime,-1,-1,0.,0.)
-     call setch(2.,19.,1,2,0,-1)
-     write(s100,9030) graphit(maxts,30)
-9030 format("  chierror",1pe12.4)
-     call gtext(s100,80,0)
-  endif
-  
-  call frame(0)
-  
-  ymin = graphit(mstart,31)
-  ymax = graphit(mstart,31)
-  do i=mstart+1,maxts
-     ymin = min(ymin,graphit(i,31))
-     ymax = max(ymax,graphit(i,31))
-  enddo
-  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
-  ymax = ymax + .05*ydiff
-  ymin = ymin - .05*ydiff
-  call mapg(tmin,tmax,ymin,ymax,.142,.800,.650,1.0)
-  call tracec(1h*,graphit(mstart,8), graphit(mstart,31),ntime,-1,-1,0.,0.)
-  call setch(2.,19.,1,2,0,-1)
-  write(s100,9031) graphit(maxts,31)
-9031 format("  totcur",1pe12.4)
-  call gtext(s100,80,0)
-  
-  ymin = graphit(mstart,32)
-  ymax = graphit(mstart,32)
-  do i=mstart+1,maxts
-     ymin = min(ymin,graphit(i,32))
-     ymax = max(ymax,graphit(i,32))
-  enddo
-  ymax = min(ymax,2.)
-  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
-  ymax = ymax + .05*ydiff
-  ymin = ymin - .05*ydiff
-  call mapg(tmin,tmax,ymin,ymax,.142,.800,.150,0.5)
-  call tracec(1h*,graphit(mstart,8), graphit(mstart,32),ntime,-1,-1,0.,0.)
-  call setch(2.,2.0,1,2,0,-1)
-  write(s100,9032) graphit(maxts,32)
-9032 format("   vmax ",1pe12.4)
-  call gtext(s100,80,0)
-  call frame(0)
-  
-  ymin = 0.
-  ymax = graphit(mstart,33)
-  do i=mstart+1,maxts
-     ymin = min(ymin,graphit(i,33))
-     ymax = max(ymax,graphit(i,33))
-  enddo
-  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
-  ymax = ymax + .05*ydiff
-  ymin = ymin - .05*ydiff
-  call mapg(graphit(mstart,46),graphit(ntime,46),ymin,ymax,.142,.800,.650,1.0)
-  call tracec(1h*,graphit(mstart,46), graphit(mstart,33),ntime,-1,-1,0.,0.)
-  call tracec(1hR,graphit(mstart,46), graphit(mstart,35),ntime,-1,-1,0.,0.)
-  call tracec(1hE,graphit(mstart,46), graphit(mstart,36),ntime,-1,-1,0.,0.)
-  call tracec(1hS,graphit(mstart,46), graphit(mstart,37),ntime,-1,-1,0.,0.)
-  call tracec(1hO,graphit(mstart,46), graphit(mstart,38),ntime,-1,-1,0.,0.)
-  call tracec(1hM,graphit(mstart,46), graphit(mstart,39),ntime,-1,-1,0.,0.)
-  call tracec(1hI,graphit(mstart,46), graphit(mstart,41),ntime,-1,-1,0.,0.)
-  call tracec(1hA,graphit(mstart,46), graphit(mstart,40),ntime,-1,-1,0.,0.)
-  call setch(2.,19.,1,2,0,-1)
-  write(s100,9035) graphit(maxts,33)
-9035 format("  cputim",1pe12.4)
-  call gtext(s100,80,0)
-  
-  ymin = 1.
-  ymax = 2.
-  do i=mstart+1,maxts
-     ymin = min(ymin,graphit(i,34))
-     ymax = max(ymax,graphit(i,34))
-  enddo
-  call mapg(graphit(mstart,46),graphit(ntime,46),ymin,ymax,.142,.800,.150,0.5)
-  call tracec(1h*,graphit(mstart,46), graphit(mstart,34),ntime,-1,-1,0.,0.)
-  call setch(2.,2.0,1,2,0,-1)
-  write(s100,9034) graphit(maxts,34)
-9034 format("no proc.",1pe12.4)
-  call gtext(s100,80,0)
-  call frame(0)
-!...new graph added 9/13/06
-  ymin = 0.
-  ymax = graphit(mstart,47)
-  do i=mstart+1,maxts
-     ymin = min(ymin,graphit(i,47))
-     ymax = max(ymax,graphit(i,47))
-  enddo
-  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
-  ymax = ymax + .05*ydiff
-  ymin = ymin - .05*ydiff
-  call mapg(tmin,tmax,ymin,ymax,.142,.800,.650,1.0)
-  call tracec(1h*,graphit(mstart,8), graphit(mstart,47),ntime,-1,-1,0.,0.)
-  call setch(2.,19.,1,2,0,-1)
-  write(s100,9033) graphit(maxts,47)
-9033 format("  timestep",1pe12.4)
-  call gtext(s100,80,0)
-  
-  ymin = 0.
-  ymax = 1.1
-  do i=mstart+1,maxts
-     ymin = min(ymin,graphit(i,48))
-     ymax = max(ymax,graphit(i,48))
-  enddo
-  call mapg(tmin,tmax,ymin,ymax,.142,.800,.150,0.5)
-  call tracec(1h*,graphit(mstart,8), graphit(mstart,48),ntime,-1,-1,0.,0.)
-  call setch(2.,2.0,1,2,0,-1)
-  write(s100,9036) graphit(maxts,48)
-9036 format("theta-imp",1pe12.4)
-  call gtext(s100,80,0)
-  call frame(0)
-  
-  return
-  
-  ! plot positions of the critical points
-  ymin = 0.
-  ymax = 0.
-  do i=1,ntime
-     ymin = min(ymin,graphit(i,9),graphit(i,11),                     &
-          graphit(i,13),graphit(i,15))
-     ymax = max(ymax,graphit(i,9),graphit(i,11),                     &
-          graphit(i,13),graphit(i,15))
-  enddo
-  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
-  ymax = ymax + .05*ydiff
-  ymin = ymin - .05*ydiff
-  call mapg(tmin,tmax,ymin,ymax,0.1,0.45,0.2,0.8)
-  call tracec(1h1, graphit(mstart,8), graphit(mstart,9),ntime,-1,-1,0.,0.)
-  call tracec(1h2, graphit(mstart,8), graphit(mstart,11),ntime,-1,-1,0.,0.)
-  call tracec(1h3, graphit(mstart,8), graphit(mstart,13),ntime,-1,-1,0.,0.)
-  call tracec(1h4, graphit(mstart,8), graphit(mstart,15),ntime,-1,-1,0.,0.)
-  ymin = 0.
-  ymax = 0.
-  do i=1,ntime
-     ymin = min(ymin,graphit(i,10),graphit(i,12),                    &
-          graphit(i,14),graphit(i,16))
-     ymax = max(ymax,graphit(i,10),graphit(i,12),                    &
-          graphit(i,14),graphit(i,16))
-  enddo
-  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
-  ymax = ymax + .05*ydiff
-  ymin = ymin - .05*ydiff
-
-  call mapg(tmin,tmax,ymin,ymax,.55,0.90,0.2,0.8)
-  call tracec(1h1, graphit(mstart,8), graphit(mstart,10) ,ntime,-1,-1,0.,0.)
-  call tracec(1h2, graphit(mstart,8), graphit(mstart,22) ,ntime,-1,-1,0.,0.)
-  call tracec(1h3, graphit(mstart,8), graphit(mstart,14),ntime,-1,-1,0.,0.)
-  call tracec(1h4, graphit(mstart,8), graphit(mstart,16),ntime,-1,-1,0.,0.)
-  
-  return
-end subroutine plotenergy
-
-!============================================================
 subroutine plotit(vel,phi,ilin)
   use basic
 
@@ -1391,6 +703,697 @@ subroutine oneplot(lu,iplot,dum,inum,numvare,label)
 end subroutine oneplot
 
 !============================================================
+
+
+subroutine openf
+
+  ! open output files and initialize NCAR graphics
+  use p_data
+  use t_data
+  use basic
+  use arrays
+  
+  implicit none
+
+  integer :: maxhdf, jj
+
+  if(myrank.eq.0 .and. iprint.gt.0) then
+     print *, "Entering openf."
+  endif
+
+  maxhdf = 0
+
+  if (myrank.eq.0) then !Serialize I/O
+     call ncarcgm(1,'C1new.cgm')
+     print *, "done ncarcgm"
+     call dders(-1)
+     print *, "done dders"
+
+#ifndef nohdf
+     !  define evenly spaced coordinates and create new HDF5 file
+     xary = (/ ((alxp*jj)/(irs-1), jj=0,irs-1) /)
+     yary = (/ ((alzp*jj)/(irs-1), jj=0,irs-1) /)
+     if(numvar.eq.1) then
+        if(linear.eq.1) maxhdf=4
+        if(linear.eq.0) maxhdf=6
+     endif
+
+     if(numvar.eq.2) then
+        if(linear.eq.1) maxhdf=6
+        if(linear.eq.0) maxhdf=9
+     endif
+
+     if(numvar.eq.3) then
+        if(linear.eq.1) maxhdf=9
+        if(linear.eq.0) maxhdf=13
+     endif
+
+     call createHDF5(xary,irs,yary,irs,maxhdf)
+     print *, "done createHDF5"
+#endif
+
+     ! initialize minimum and maximum
+     maf = -1.e20
+     mif =  1.e20
+
+     ! open ascii output files
+     if(itaylor.eq.4) then
+        open(40,file="C1wave.out",form='formatted',status='unknown')
+     endif
+     open(9, file='C1new.out',form='formatted',status='unknown')
+     open(65, file='C1error.out',form='formatted',status='unknown')
+     open(66, file='C1ener.out',form='formatted',status='unknown')
+     open(11,file='C1psi-per',form='formatted',status='unknown')
+     open(13,file='C1J-per',form='formatted',status='unknown')
+     open(19,file='C1phi-full',form='formatted',status='unknown')
+     open(20,file='C1vor-full',form='formatted',status='unknown')
+      if(linear.eq.0 .and. itaylor.eq.3) then
+       open(25,file='C1VxBU',form='formatted',status='unknown')
+       open(26,file='C1VxBC',form='formatted',status='unknown')
+       open(27,file='C1ETAJ',form='formatted',status='unknown')
+       open(28,file='C1EPHI',form='formatted',status='unknown')
+       open(29,file='C1JxB',form='formatted',status='unknown')
+       open(30,file='C1HYPR',form='formatted',status='unknown')
+       open(32,file='C1VxBT',form='formatted',status='unknown')
+      endif
+     if(numvar.ge.2) then
+        open(15,file='C1I-per',form='formatted',status='unknown')
+        open(21,file='C1v-full',form='formatted',status='unknown')
+        if(numvar.ge.3) then
+           open(17,file='C1pe-per',form='formatted',status='unknown')
+           open(22,file='C1chi-full',form='formatted',status='unknown')
+           open(23,file='C1div-full',form='formatted',status='unknown')
+        endif
+     endif
+     open(12,file='C1psi-full',form='formatted',status='unknown')
+     open(14,file='C1J-full',form='formatted',status='unknown')
+     if(numvar.ge.2) then
+        open(16,file='C1I-full',form='formatted',status='unknown')
+        if(numvar.ge.3) then
+           open(18,file='C1pe-full',form='formatted',status='unknown')
+        endif ! on numvar.ge.3
+     endif ! on numvar.ge.2
+     if(idens.eq.1) then
+        open(24,file='C1density',form='formatted',status='unknown')
+     endif
+     if(idebug.ge.1) open(31,file='matrix.txt',form='formatted',    &
+          status='unknown')
+     write(9,*) version
+     write(9,1001) datec(1:4),datec(5:6),datec(7:8),                   &
+          timec(1:2),timec(3:4),timec(5:8)
+1001 format("DATE: ",a4,1x,a2,1x,a2,3x,          &
+          "TIME: ",a2,":",a2,":",a4,/)
+  endif
+
+  if(itor.ne.0 .and. ntridim.lt.ntri) then
+     write(*,5222) itor, ntridim, ntri
+5222 format(" ERROR:  ntridim must be .eq. ntri for itor.ne.0",      &
+          "   itor,ntridim,ntri =", 3i6)
+     call safestop(5222)
+  endif
+
+  if(myrank.eq.0 .and. iprint.gt.0) then
+     print *, "Exiting openf."
+  endif
+
+
+  return
+end subroutine openf
+
+! ==========================================================
+subroutine output
+  use p_data
+  use t_data
+  use basic
+  use arrays
+  use superlu
+
+  implicit none
+  integer :: i, j, ivertex, irect, jrect, i1, i3, indexmid, ix
+  real :: x, z, ans, ans2, gamma
+  real :: etot, etoto, etotd, etoth, ediff, error, enorm, denom, percerr
+  real :: vmaxsq, vnew, vmax, x1, x2, z1, z2, val1, dum1, val2, dum2, superlutime
+
+  ! calculate maximum perturbed current for printout
+  ajmax = 0.
+  do i=2,400
+     do j=2,400
+        x = (i-1)*alx*(1./(1.+isym))/400.
+        z = (j-1)*alz*(1./(1.+jsym))/400.
+        call evaluate(x,z,ans,ans2,phi,2,numvar)
+        ajmax = max(ans2,ajmax)
+     enddo
+  enddo
+
+  ! search for the location of the magnetic axis and separatrices
+  !      call axis(phi,xsep,zsep,1)
+  xsep = 0.
+  zsep = 0.
+  etoto= ekino+emago
+  etot = ekin + emag
+  ediff = (etot-etoto)/dt
+  denom = dt*(ekin + ekino)
+  if(denom.ne.0) gamma = (ekin - ekino)/denom
+  etotd = .5*(ekind+emagd+ekindo+emagdo)
+  etoth = .5*(ekinph +ekinth +ekin3h +emagph +emagth +emag3h        &
+       +ekinpho+ekintho+ekin3ho+emagpho+emagtho+emag3ho)
+  
+  ! NOTE:  changed 1/15/06 when Ohmic & Viscous Heating  added to Pressure
+  if(numvar.ne.3) then
+     error = ediff - etotd - etoth
+  else
+     error = ediff - ekinph - ekinth
+  endif
+  if(myrank.eq.0) write(65,2001) ntime,error,                       &
+       (ekinp-ekinpo)/dt,-ekinpd,-ekinph,                             &
+       (emagp-emagpo)/dt,-emagpd,-emagph,                             &
+       (ekint-ekinto)/dt,-ekintd,-ekinth,                             &
+       (emagt-emagto)/dt,-emagtd,-emagth,                             &
+       (ekin3-ekin3o)/dt,-ekin3d,-ekin3h,                             &
+       (emag3-emag3o)/dt,-emag3d,-emag3h
+  enorm = max( abs((ekin-ekino)/dt), abs((emag-emago)/dt),          &
+       abs( etotd) , abs(etoth) )
+
+  graphit(ntime,1) = (ekin - ekino)/dt
+
+  ! calculate the maximum poloidal velocity at a grid point
+  vmaxsq = 0
+  ivertex = 0
+  do jrect=1,m
+     do irect=1,n
+        ivertex = ivertex + 1
+        if((jsym.eq.0 .and. jrect.eq.1) .or. jrect.eq.m) go to 100
+        i1 = 6*numvar*(ivertex-1)
+        i3 = i1 + 12
+        vnew = vel(i1+2)**2 + vel(i1+3)**2
+        if(numvar.ge.3) then
+           vnew = vnew + vel(i3+2)**2 + vel(i3+3)**2                  &  
+                +2.*(vel(i3+2)*vel(i1+3)-vel(i3+3)*vel(i1+2))
+        endif
+        vmaxsq = max(vmaxsq,vnew)
+100     continue
+     enddo
+  enddo
+  vmax = sqrt(vmaxsq)
+  graphit(ntime,2) = (emag - emago)/dt
+  graphit(ntime,3) = ediff
+  graphit(ntime,4) = gamma
+  graphit(ntime,5) = ekind
+  graphit(ntime,6) = emagd
+  graphit(ntime,7) = -.5*(emagd+emagdo)
+  graphit(ntime,8) = time
+  graphit(ntime,9) = xsep(1)
+  graphit(ntime,10) = zsep(1)
+  graphit(ntime,11) = xsep(2)
+  graphit(ntime,12) = zsep(2)
+  graphit(ntime,13) = xsep(3) 
+  graphit(ntime,14) = zsep(3)
+  graphit(ntime,15) = xsep(4)
+  graphit(ntime,16) = zsep(4)
+  graphit(ntime,17) = -etotd
+  graphit(ntime,18) = error
+  graphit(ntime,19) = (ekint - ekinto)/dt
+  graphit(ntime,20) = (emagt - emagto)/dt
+  graphit(ntime,21)= -(etoth)
+  graphit(ntime,22) = -ekinth
+  graphit(ntime,23) = emagph
+  graphit(ntime,24) = emagth
+  indexmid = 6*numvar*(n*m - 1)/2 + 1
+  ! graphit(ntime,25) = phi(indexmid)
+  ! new definition 10/30/04
+  if(isym.eq.0) then
+     x1 = alx
+     x2 = alx/2.
+  else
+     x1 = alx/2.
+     x2 = 0.
+  endif
+  if(jsym.eq.0) then
+     z1 = alz/2.
+     z2 = alz/2.
+  else
+     z1 = 0.
+     z2 = 0.
+  endif
+  call evaluate(x1,z1,val1,dum1,phi,1,numvar)
+  call evaluate(x2,z2,val2,dum2,phi,1,numvar)
+  graphit(ntime,25) = 0.5*(val2-val1)
+      graphit(ntime,49) = val2
+  if(ntime.gt.1) then
+     graphit(ntime,26) = (graphit(ntime,25)-graphit(ntime-1,25))/dt
+      graphit(ntime,50) = (graphit(ntime,49)-graphit(ntime-1,49))/dt
+  endif
+  graphit(ntime,27) = (ekin3 - ekin3o)/dt
+  graphit(ntime,28) = (emag3 - emag3o)/dt
+  graphit(ntime,29) = tflux
+  graphit(ntime,30) = chierror
+  graphit(ntime,31) = totcur
+  graphit(ntime,32) = vmax
+  graphit(ntime,33) = ttotal-tfirst
+  graphit(ntime,34) = maxrank
+  graphit(ntime,35) = tread
+  graphit(ntime,36) = telements + tread
+  graphit(ntime,37) = tsolve + telements + tread
+  graphit(ntime,38) = tonestep
+  graphit(ntime,39) = tsolve + telements + tread + tadotb + tinit    &
+       + tmpi
+  graphit(ntime,40) = tsolve + telements + tread + tadotb
+  graphit(ntime,41) = tsolve + telements + tread + tadotb + tinit
+  
+  graphit(ntime,42) = ekinp+ekint+ekin3
+  graphit(ntime,43) = emagp + emagt
+  graphit(ntime,44) = emag3
+  graphit(ntime,45) = ekinp+ekint+ekin3+emagp+emagt+emag3
+!....added 9/13/06
+  graphit(ntime,46) = ntime
+  graphit(ntime,47) = dt
+  graphit(ntime,48) = thimp
+!
+!...note.....locations 49 and 50 defined above
+!
+
+  ! subtract off initial conditions
+  if(ntime.gt.0) then
+     graphit(ntime,42) = graphit(ntime,42) - graphit(0,42)
+     graphit(ntime,43) = graphit(ntime,43) - graphit(0,43)
+     graphit(ntime,44) = graphit(ntime,44) - graphit(0,44)
+     graphit(ntime,45) = graphit(ntime,45) - graphit(0,45)
+     
+     ! special debug write
+     etot = graphit(ntime,45)
+     enorm=abs(ekinp)+abs(emagp)+abs(ekint)+abs(emagt)                 &
+          +abs(ekin3)+abs(emag3)
+     percerr = etot/enorm
+     if(myrank.eq.0) write(66,2002) ntime,time,                        &
+          ekinp,emagp,ekint,emagt,ekin3,emag3,etot,ekin,percerr
+      superlutime = graphit(ntime  ,37) - graphit(ntime  ,36)                  &
+                  -(graphit(ntime-1,37) - graphit(ntime-1,36))
+      write(*,2003) ntime,superlutime
+ 2003 format("superlutime for timestep", i5, 1pe12.4)
+2001 format(/,i5,1pe12.4,3(/1p6e12.4))
+2002 format(i5,1p10e12.4)
+  endif
+!
+!
+!.....compute some midplane arrays for elvis graphics
+     z = alz/2
+     do ix = 1,irs
+        x = (ix-1)*alx*(1./(1.+isym))/(irs-1)
+        call evaluate(x,z,psiarray(ix),dum1,phi,1,numvar)
+        call evaluate(x,z,curarray(ix),dum1,jphi,1,1)
+        call evaluate(x,z,densarray(ix),dum1,dent,1,1)
+        call evaluate(x,z,pearray(ix),dum1,phi,3,numvar)
+        if(elvis.gt.0) then
+          call evaluate(x,z,ephiarray(ix),dum1,ephi,1,1)
+          call evaluate(x,z,jcbarray(ix),dum1,eph5,1,1)
+          call evaluate(x,z,vcbarray(ix),dum1,eph7,1,1)
+          call evaluate(x,z,etajarray(ix),dum1,eph4,1,1)
+          call evaluate(x,z,hyprarray(ix),dum1,eph6,1,1)
+        endif
+     enddo
+!
+!.....end of computing midplane arrays for elvis graphics
+!
+  if(ntime.eq.0) return
+  ! check if it is time for plots and to write restart file
+  if(mod(ntime,ntimepr).ne.0) then
+     if(ntime.eq.0) then
+        write(*,4110)
+        write(9,4110)
+     endif
+     go to 50
+  endif
+  iframe = iframe + 1
+  ihdf5 = 0
+      if(iprint.gt.0) write(*,*) "before first call to plotit"
+
+  ! plot full perturbation
+  vel1 = vel + vel0
+  phi1 = phi + phi0
+  if(linear.eq.0) call plotit(vel1,phi1,1)
+  if(linear.eq.0 .and. jper.eq.1) call plotit(vel,phi,0)
+  !plot equilibrium for linear run
+  if(linear.eq.1.and.ntime.eq.0) call plotit(vel0,phi0,1)
+  !plot linearized solution
+  if(linear.eq.1) call plotit(vel,phi,0)
+      if(iprint.gt.0) write(*,*) "before first call to oneplot"
+  if(idens.eq.1) then
+    call oneplot(0,2,dent,1,1,"dent ")
+    call oneplot(0,3,deni,1,1,"deni ")
+    call oneplot(0,4,den0,1,1,"den0 ")
+    call oneplot(24,1,den,1,1,"den  ")
+  endif
+!
+!....special diagnostic plot of toroidal electric field added 06/04/06...SCJ
+      if(linear.eq.0 .and. itaylor.eq.3) then
+      call oneplot(25,2,eph2,1,1,"VxBU ")
+      call oneplot(26,3,eph3,1,1,"VxBC ")
+      call oneplot(27,4,eph4,1,1,"etaJ ")
+      call oneplot(28,1,ephi,1,1,"ephi ")
+
+      call oneplot(29,2,eph5,1,1,"JxB  ")
+      call oneplot(30,3,eph6,1,1,"hypr ")
+      call oneplot(32,4,eph7,1,1,"VxBT ")
+      call oneplot(0,1,ephi,1,1,"ephi ")
+      endif
+!
+
+  if(gyro.eq.1) then
+     call oneplot(0,2,bsqr,1,1,"b^2  ")
+     call oneplot(0,1,bsqri,1,1,"b^-2 ")
+  endif
+  ! end of special DEBUG Plotting
+   if(ipres.eq.1) then
+     call oneplot(0,2,sphip,1,1,"sphp ")
+     if(linear.ne.1) then
+        call oneplot(0,3,pres,1,1,"pres ")
+        call oneplot(0,1,pres+pres0,1,1,'p-t  ')
+     else
+      call oneplot(0,3,pres0,1,1,'p-0  ')
+        call oneplot(0,1,pres,1,1,"p-p  ")
+     endif
+  endif
+
+
+4444 format(1p10e12.4)
+#ifndef nohdf
+  call writeHDF5time(iframe-1,time)
+#endif
+  call wrrestart
+  write(*,4110)
+  write(9,4110)
+4110 format(/,"cycle    time",                            &
+          "      ekin      rrate     ediff",              &
+          "     etotd      etoth     error       gamma")
+  nlast = ntime
+50 continue
+  
+  if(ntime.ge.5 .and. facd.eq.0) then
+     errori = errori + dt*abs(error)/abs(enorm)
+     enormi = enormi + dt 
+     if(enormi.ne.0) ratioi = errori/enormi
+  endif
+
+  write(*,4111) ntime,time,ekin,graphit(ntime,26),ediff,etotd,      &
+       etoth,error,gamma,ratioi,vmax 
+  write(9,4111) ntime,time,ekin,graphit(ntime,26),ediff,etotd,      &
+       etoth,error,gamma,ratioi,vmax 
+4111 format(i5,1p7e10.2,1pe14.6,1pe12.4,1pe14.6)
+4411 format(i5,1p4e12.4)
+  return
+end subroutine output
+!============================================================================
+subroutine plotenergy(graphit,ntimep,maxts,mstart,numvarp)
+
+  implicit none
+
+  real, intent(in), dimension(0:ntimep,*) :: graphit
+  integer, intent(in) :: ntimep, maxts, mstart, numvarp
+  character*80 :: s100
+  integer :: ntime, i
+  real :: tmin, tmax
+  real :: ymin, ymax, ydiff
+
+! first plot incremental energy change each cycle
+  tmin = graphit(1,8)
+  tmax = graphit(maxts,8)
+  ntime = maxts+1-mstart
+
+  ymin = 0.
+  ymax = 0.
+  do i=mstart,maxts
+     ymin = min(ymin,graphit(i,1),graphit(i,2),graphit(i,19),        &
+          graphit(i,17),graphit(i,18),graphit(i,21),graphit(i,20))
+     ymax = max(ymax,graphit(i,1),graphit(i,2),graphit(i,19),        &
+          graphit(i,17),graphit(i,18),graphit(i,21),graphit(i,20))
+  enddo
+  if(numvarp.ge.3) then
+     do i=mstart,maxts
+        ymin = min(ymin,graphit(i,27),graphit(i,28))
+        ymax = max(ymax,graphit(i,27),graphit(i,28))
+     enddo
+  endif
+  ymax = min (ymax,4.)
+      
+  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
+  ymax = ymax + .05*ydiff
+  ymin = ymin - .05*ydiff
+  call mapg(tmin,tmax,ymin,ymax,.142,.800,.200,1.0)
+  call tracec(1hK, graphit(mstart,8), graphit(mstart,1) ,ntime, -1,-1,0.,0.)
+  call tracec(1hM, graphit(mstart,8), graphit(mstart,2) ,ntime, -1,-1,0.,0.)
+  call tracec(1hD, graphit(mstart,8), graphit(mstart,17),ntime, -1,-1,0.,0.)
+  call tracec(1hR, graphit(mstart,8), graphit(mstart,7), ntime, -1,-1,0.,0.)
+  call tracec(1h*, graphit(mstart,8), graphit(mstart,18),ntime, -1,-1,0.,0.)
+  call tracec(1hH,graphit(mstart,8), graphit(mstart,21), ntime, -1,-1,0.,0.)
+  if(numvarp.ge.2) then
+     call tracec(1hI, graphit(mstart,8), graphit(mstart,20),ntime, -1,-1,0.,0.)
+     call tracec(1hV, graphit(mstart,8), graphit(mstart,19),ntime, -1,-1,0.,0.)
+     if(numvarp.ge.3) then
+        call tracec(1hC, graphit(mstart,8), graphit(mstart,27),ntime, &
+             -1,-1,0.,0.)
+        call tracec(1hP, graphit(mstart,8), graphit(mstart,28),ntime, &
+             -1,-1,0.,0.)
+     endif
+  endif
+  call frame(0)
+
+  ! now plot cumulative energies
+  ymin = 0.
+  ymax = 0.
+  do i=mstart,maxts
+     ymin = min(ymin,graphit(i,42),graphit(i,43),graphit(i,44),        &
+          graphit(i,45))
+     ymax = max(ymax,graphit(i,42),graphit(i,43),graphit(i,44),        &
+          graphit(i,45))
+  enddo
+
+  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
+  ymax = ymax + .05*ydiff
+  ymin = ymin - .05*ydiff
+  call mapg(tmin,tmax,ymin,ymax,.142,.800,.200,1.0)
+  call tracec(1hK, graphit(mstart,8), graphit(mstart,42) ,ntime,     &
+       -1,-1,0.,0.)
+  call tracec(1hM, graphit(mstart,8), graphit(mstart,43) ,ntime,     &
+       -1,-1,0.,0.)
+  call tracec(1hP, graphit(mstart,8), graphit(mstart,44),ntime,     &
+       -1,-1,0.,0.)
+  call tracec(1hE, graphit(mstart,8), graphit(mstart,45),ntime,      &
+       -1,-1,0.,0.)
+  call frame(0)
+  
+  ymin = min(graphit(mstart,25),graphit(mstart,49))
+  ymax = max(graphit(mstart,25),graphit(mstart,49))
+  do i=mstart+1,maxts
+     ymin = min(ymin,graphit(i,25),graphit(i,49))
+     ymax = max(ymax,graphit(i,25),graphit(i,49))
+  enddo
+  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
+  ymax = ymax + .05*ydiff
+  ymin = ymin - .05*ydiff
+  call mapg(tmin,tmax,ymin,ymax,.142,.800,.150,.50)
+  call tracec(1hD,graphit(mstart,8), graphit(mstart,25),ntime,-1,-1,0.,0.)
+  call tracec(1hX,graphit(mstart,8), graphit(mstart,49),ntime,-1,-1,0.,0.)
+  call setch(2.,2.0,1,2,0,-1)
+  write(s100,9025) graphit(maxts,25),graphit(maxts,49)
+9025 format("  psi",1p2e12.4)
+  call gtext(s100,80,0)
+  
+  ymin = min(graphit(mstart,26),graphit(mstart,50))
+  ymax = max(graphit(mstart,26),graphit(mstart,50))
+  do i=mstart+1,maxts
+     ymin = min(ymin,graphit(i,26),graphit(i,50))
+     ymax = max(ymax,graphit(i,26),graphit(i,50))
+  enddo
+  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
+  ymax = ymax + .05*ydiff
+  ymin = ymin - .05*ydiff
+  call mapg(tmin,tmax,ymin,ymax,.142,.800,.650,1.0)
+  call tracec(1hD,graphit(mstart,8), graphit(mstart,26),ntime,-1,-1,0.,0.)
+  call tracec(1hX,graphit(mstart,8), graphit(mstart,50),ntime,-1,-1,0.,0.)
+  call setch(2.,19.,1,2,0,-1)
+  write(s100,9026) graphit(maxts,26),graphit(maxts,50)
+9026 format("  psidot",1p2e12.4)
+  call gtext(s100,80,0)
+  call frame(0)
+  
+  ymin = graphit(mstart,29)
+  ymax = graphit(mstart,29)
+  do i=mstart+1,maxts
+     ymin = min(ymin,graphit(i,29))
+     ymax = max(ymax,graphit(i,29))
+  enddo
+  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
+  ymax = ymax + .05*ydiff
+  ymin = ymin - .05*ydiff
+  call mapg(tmin,tmax,ymin,ymax,.142,.800,.150,.50)
+  call tracec(1h*,graphit(mstart,8), graphit(mstart,29),ntime,-1,-1,0.,0.)
+  call setch(2.,2.0,1,2,0,-1)
+  write(s100,9029) graphit(maxts,29)
+9029 format("  tflux",1pe12.4)
+  call gtext(s100,80,0)
+  
+  if(numvarp.ge.3) then
+     ymin = graphit(mstart,30)
+     ymax = graphit(mstart,30)
+     do i=mstart+1,maxts
+        ymin = min(ymin,graphit(i,30))
+        ymax = max(ymax,graphit(i,30))
+     enddo
+     ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
+     ymax = ymax + .05*ydiff
+     ymin = ymin - .05*ydiff
+     call mapg(tmin,tmax,ymin,ymax,.142,.800,.650,1.0)
+     call tracec(1h*,graphit(mstart,8), graphit(mstart,30),ntime,-1,-1,0.,0.)
+     call setch(2.,19.,1,2,0,-1)
+     write(s100,9030) graphit(maxts,30)
+9030 format("  chierror",1pe12.4)
+     call gtext(s100,80,0)
+  endif
+  
+  call frame(0)
+  
+  ymin = graphit(mstart,31)
+  ymax = graphit(mstart,31)
+  do i=mstart+1,maxts
+     ymin = min(ymin,graphit(i,31))
+     ymax = max(ymax,graphit(i,31))
+  enddo
+  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
+  ymax = ymax + .05*ydiff
+  ymin = ymin - .05*ydiff
+  call mapg(tmin,tmax,ymin,ymax,.142,.800,.650,1.0)
+  call tracec(1h*,graphit(mstart,8), graphit(mstart,31),ntime,-1,-1,0.,0.)
+  call setch(2.,19.,1,2,0,-1)
+  write(s100,9031) graphit(maxts,31)
+9031 format("  totcur",1pe12.4)
+  call gtext(s100,80,0)
+  
+  ymin = graphit(mstart,32)
+  ymax = graphit(mstart,32)
+  do i=mstart+1,maxts
+     ymin = min(ymin,graphit(i,32))
+     ymax = max(ymax,graphit(i,32))
+  enddo
+  ymax = min(ymax,2.)
+  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
+  ymax = ymax + .05*ydiff
+  ymin = ymin - .05*ydiff
+  call mapg(tmin,tmax,ymin,ymax,.142,.800,.150,0.5)
+  call tracec(1h*,graphit(mstart,8), graphit(mstart,32),ntime,-1,-1,0.,0.)
+  call setch(2.,2.0,1,2,0,-1)
+  write(s100,9032) graphit(maxts,32)
+9032 format("   vmax ",1pe12.4)
+  call gtext(s100,80,0)
+  call frame(0)
+  
+  ymin = 0.
+  ymax = graphit(mstart,33)
+  do i=mstart+1,maxts
+     ymin = min(ymin,graphit(i,33))
+     ymax = max(ymax,graphit(i,33))
+  enddo
+  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
+  ymax = ymax + .05*ydiff
+  ymin = ymin - .05*ydiff
+  call mapg(graphit(mstart,46),graphit(ntime,46),ymin,ymax,.142,.800,.650,1.0)
+  call tracec(1h*,graphit(mstart,46), graphit(mstart,33),ntime,-1,-1,0.,0.)
+  call tracec(1hR,graphit(mstart,46), graphit(mstart,35),ntime,-1,-1,0.,0.)
+  call tracec(1hE,graphit(mstart,46), graphit(mstart,36),ntime,-1,-1,0.,0.)
+  call tracec(1hS,graphit(mstart,46), graphit(mstart,37),ntime,-1,-1,0.,0.)
+  call tracec(1hO,graphit(mstart,46), graphit(mstart,38),ntime,-1,-1,0.,0.)
+  call tracec(1hM,graphit(mstart,46), graphit(mstart,39),ntime,-1,-1,0.,0.)
+  call tracec(1hI,graphit(mstart,46), graphit(mstart,41),ntime,-1,-1,0.,0.)
+  call tracec(1hA,graphit(mstart,46), graphit(mstart,40),ntime,-1,-1,0.,0.)
+  call setch(2.,19.,1,2,0,-1)
+  write(s100,9035) graphit(maxts,33)
+9035 format("  cputim",1pe12.4)
+  call gtext(s100,80,0)
+  
+  ymin = 1.
+  ymax = 2.
+  do i=mstart+1,maxts
+     ymin = min(ymin,graphit(i,34))
+     ymax = max(ymax,graphit(i,34))
+  enddo
+  call mapg(graphit(mstart,46),graphit(ntime,46),ymin,ymax,.142,.800,.150,0.5)
+  call tracec(1h*,graphit(mstart,46), graphit(mstart,34),ntime,-1,-1,0.,0.)
+  call setch(2.,2.0,1,2,0,-1)
+  write(s100,9034) graphit(maxts,34)
+9034 format("no proc.",1pe12.4)
+  call gtext(s100,80,0)
+  call frame(0)
+!...new graph added 9/13/06
+  ymin = 0.
+  ymax = graphit(mstart,47)
+  do i=mstart+1,maxts
+     ymin = min(ymin,graphit(i,47))
+     ymax = max(ymax,graphit(i,47))
+  enddo
+  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
+  ymax = ymax + .05*ydiff
+  ymin = ymin - .05*ydiff
+  call mapg(tmin,tmax,ymin,ymax,.142,.800,.650,1.0)
+  call tracec(1h*,graphit(mstart,8), graphit(mstart,47),ntime,-1,-1,0.,0.)
+  call setch(2.,19.,1,2,0,-1)
+  write(s100,9033) graphit(maxts,47)
+9033 format("  timestep",1pe12.4)
+  call gtext(s100,80,0)
+  
+  ymin = 0.
+  ymax = 1.1
+  do i=mstart+1,maxts
+     ymin = min(ymin,graphit(i,48))
+     ymax = max(ymax,graphit(i,48))
+  enddo
+  call mapg(tmin,tmax,ymin,ymax,.142,.800,.150,0.5)
+  call tracec(1h*,graphit(mstart,8), graphit(mstart,48),ntime,-1,-1,0.,0.)
+  call setch(2.,2.0,1,2,0,-1)
+  write(s100,9036) graphit(maxts,48)
+9036 format("theta-imp",1pe12.4)
+  call gtext(s100,80,0)
+  call frame(0)
+  
+  return
+  
+  ! plot positions of the critical points
+  ymin = 0.
+  ymax = 0.
+  do i=1,ntime
+     ymin = min(ymin,graphit(i,9),graphit(i,11),                     &
+          graphit(i,13),graphit(i,15))
+     ymax = max(ymax,graphit(i,9),graphit(i,11),                     &
+          graphit(i,13),graphit(i,15))
+  enddo
+  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
+  ymax = ymax + .05*ydiff
+  ymin = ymin - .05*ydiff
+  call mapg(tmin,tmax,ymin,ymax,0.1,0.45,0.2,0.8)
+  call tracec(1h1, graphit(mstart,8), graphit(mstart,9),ntime,-1,-1,0.,0.)
+  call tracec(1h2, graphit(mstart,8), graphit(mstart,11),ntime,-1,-1,0.,0.)
+  call tracec(1h3, graphit(mstart,8), graphit(mstart,13),ntime,-1,-1,0.,0.)
+  call tracec(1h4, graphit(mstart,8), graphit(mstart,15),ntime,-1,-1,0.,0.)
+  ymin = 0.
+  ymax = 0.
+  do i=1,ntime
+     ymin = min(ymin,graphit(i,10),graphit(i,12),                    &
+          graphit(i,14),graphit(i,16))
+     ymax = max(ymax,graphit(i,10),graphit(i,12),                    &
+          graphit(i,14),graphit(i,16))
+  enddo
+  ydiff = ymax - ymin + .01*abs(ymax) + 1.e-8
+  ymax = ymax + .05*ydiff
+  ymin = ymin - .05*ydiff
+
+  call mapg(tmin,tmax,ymin,ymax,.55,0.90,0.2,0.8)
+  call tracec(1h1, graphit(mstart,8), graphit(mstart,10) ,ntime,-1,-1,0.,0.)
+  call tracec(1h2, graphit(mstart,8), graphit(mstart,22) ,ntime,-1,-1,0.,0.)
+  call tracec(1h3, graphit(mstart,8), graphit(mstart,14),ntime,-1,-1,0.,0.)
+  call tracec(1h4, graphit(mstart,8), graphit(mstart,16),ntime,-1,-1,0.,0.)
+  
+  return
+end subroutine plotenergy
+
+!============================================================
 subroutine input
   use basic
 
@@ -1403,6 +1406,10 @@ subroutine input
 !     itest = 4 for Taylor problem  (Fitzpatrick base case)
 !     itest = 5 for tilting columns - two fluid (linear)
 !
+
+  if(myrank.eq.0 .and. iprint.gt.0) then
+     print *, "Entering input."
+  endif
 
   ! switch for second order time advance:
   isecondorder = 0
@@ -1836,6 +1843,11 @@ subroutine input
   endif
   
   if(myrank.eq.0) write(*,nml=inputnl)
+
+    if(myrank.eq.0 .and. iprint.gt.0) then
+     print *, "Exiting input."
+  endif
+
   return
 end subroutine input
 
@@ -2115,7 +2127,9 @@ subroutine wrrestart
 
   data ifirstrs/1/
   mmnn18 = m*n*numvar*6
-  if(ifirstrs .ne. 1) call rename('C1restartout','C1restartouto')
+!  if(ifirstrs .ne. 1) call rename('C1restartout','C1restartouto')
+  if(ifirstrs .ne. 1) call system("mv C1restartout C1restartouto")
+
   ifirstrs = 0
   open(56,file='C1restartout',form='unformatted',status='unknown')
   write(56) (vel(j1),j1=1,mmnn18)
@@ -2242,12 +2256,18 @@ end subroutine rdrestart
   ifirst_netcdf = 1
 !
 ! ...create the output file and define the file id ncid
-  if(irestart == 0) then
- 100 continue
+
+  status = nf90_noerr
+  if(irestart.ne.0) then
+!
+!....try and open existing file, otherwise open new file
+     status = NF90_OPEN(netcdffilename,NF90_WRITE,ncid) 
+  endif
+
+  if(irestart.eq.0 .or. status.ne.nf90_noerr) then
     status = NF90_CREATE(netcdffilename,NF90_CLOBBER,ncid)
     if(status /= nf90_noerr) call handle_err(status,1)
 
- 
 !
 ! ...define dimensions that will be used
     status = NF90_DEF_DIM(ncid,'time',NF90_UNLIMITED,timedim_id)
@@ -2380,10 +2400,6 @@ end subroutine rdrestart
          status = NF90_PUT_VAR(ncid,r_id,rarray)
          if(status /= nf90_noerr) call handle_err(status,21)
   else    ! on restart == 0
-!
-!....try and open existing file, otherwise open new file
-    status = NF90_OPEN(netcdffilename,NF90_WRITE,ncid) 
-         if(status /= nf90_noerr) go to 100
 !
     status = NF90_REDEF(ncid)
          if(status /= nf90_noerr) call handle_err(status,220)

@@ -178,7 +178,7 @@
 !
       module arrays
       use p_data
-      integer, parameter :: r8 = selected_real_kind(12,100)
+
 !     indices
       integer p,q,r,s
       integer, allocatable:: iboundgs(:), iboundv(:), iboundp(:),       &
@@ -188,7 +188,12 @@
       real, allocatable:: psibounds(:), velbounds(:), combounds(:) 
 !
 !.....arrays defined at all vertices
+#ifndef BIT64
+      integer, parameter :: r8 = selected_real_kind(12,100)
       real(r8) ,allocatable::                                           &
+#else
+      real, allocatable::
+#endif
      &       b1vecini(:), vel(:), vels(:), veln(:),                     &
      &        velold(:), vel0(:), vel1(:),                              &
      &       b2vecini(:), phi(:), phis(:),                              &
@@ -449,7 +454,7 @@
 !     for the wave propagation test, output calculated frequency and 
 !     eigenvectors
       if((itaylor.eq.4).and.(myrank.eq.0)) then
-         write(*,*), "calculating eigenmodes"
+         write(*,*) "calculating eigenmodes"
          call wave_perturbation(0,0,0,5)
       endif
 !
@@ -478,11 +483,11 @@
          timer = 0.
          if(idens.eq.1) then
             call denequ(den0)
-            if(myrank.eq.0) call oneplot(0,0,den0,1,1,"den0")
+            if(myrank.eq.0) call oneplot(0,0,den0,1,1,"den0 ")
          endif                  ! on idens .eq.1
          if(ipres.eq.1) then
             call presequ(pres0)
-            if(myrank.eq.0) call oneplot(0,0,pres0,1,1,"p0  ")
+            if(myrank.eq.0) call oneplot(0,0,pres0,1,1,"p0   ")
          endif                  ! on ipres.eq.1
          if(itor.eq.0) then
             velold = 0
@@ -748,7 +753,7 @@
  999  continue
 !
 !
-      if (myrank.eq.0) call plote
+      if (myrank.eq.0) call plote()
       call safestop(2)
       write(*,*) myrank
 !
@@ -3594,6 +3599,11 @@ c$$$      endif
       use mesh_mod
       implicit none
       integer nhalf, mhalf
+
+      if(myrank.eq.0 .and. iprint.gt.0) then
+         print *, "Entering init."
+      endif
+
 !
       if(myrank.eq.0) call second(tfirst) !Get current system time in seconds
       tread = 0.
@@ -3630,6 +3640,7 @@ c$$$      endif
 !
 !.....define all input parameters (choose by test problem)
       call input
+
       ntimemin = min(2,ntimemax-1)
       iboundmax = 12*numvar*(n+m-2)
 !
@@ -3719,6 +3730,10 @@ c$$$      endif
       call openf
 !
 !.....end of section defining geometrical parameters for triangles
+
+      if(myrank.eq.0 .and. iprint.gt.0) then
+         print *, "Exiting init."
+      endif
 
       return
       end
@@ -4204,9 +4219,13 @@ c$$$      endif
       return
 #else
       type(sparseR8d_obj) :: slumatrix
-      integer, parameter :: r8d = selected_real_kind(12,100)
 
+#ifndef BIT64
+      integer, parameter :: r8d = selected_real_kind(12,100)
       real(r8d) :: val
+#else
+      real :: val
+#endif
       integer ::  globsize, nlocal, remainder, firstrow, blocksize
       logical ::  newrow_flag
       integer :: ibig, jbig, il, jl, itype, icol, jcol, irow, ier
@@ -4585,8 +4604,11 @@ c$$$      endif
 !     external etime
 !     dimension tarray(2)
 !     tcpu = etime(tarray)       
+#ifndef BIT64
       integer*8 nticks, tickspersec
-!      integer nticks, tickspersec
+#else
+      integer nticks, tickspersec
+#endif
       intrinsic system_clock
       call system_clock(count=nticks, count_rate=tickspersec)
 
@@ -4607,6 +4629,10 @@ c$$$      endif
       implicit none
 
       integer :: mmnn, mmnn18, mmnn18s, mmnn6, nbound, n6
+
+      if(myrank.eq.0 .and. iprint.gt.0) then
+         print *, "Entering space."
+      endif
 
       mmnn = m*n
       mmnn18 = m*n*numvar*6
@@ -4742,6 +4768,11 @@ c$$$      endif
 !     &       qq(9,mmnn,n6,n6),sstemp(9,mmnn,n6,n6))
       allocate(sstemp(9,mmnn,n6,n6))
       allocate(ss(9,mmnn,n6,n6))
+
+      if(myrank.eq.0 .and. iprint.gt.0) then
+         print *, "Exiting space."
+      endif
+
       return
       end
 !==============================================================
@@ -4774,8 +4805,12 @@ c$$$      endif
       use superlu
       dimension ssterm(3,3)
       real  outarray(mmnn*6*numvard),inarray(mmnn*6)
+#ifndef BIT64
       integer, parameter :: r9a = selected_real_kind(12,100)
       real(r9a), allocatable:: temp(:)
+#else
+      real, allocatable :: temp(:)
+#endif
       integer,  save, allocatable:: iboundsm(:)
       integer, save :: nbcsm
 !
@@ -4957,8 +4992,12 @@ c$$$      endif
       integer, intent(in) :: numvard, iplace, mmnn
 
       real, dimension(3,3) :: ssterm
+#ifndef BIT64
       integer, parameter :: r9a = selected_real_kind(12,100)
       real(r9a), allocatable:: temp(:)
+#else
+      real, allocatable :: temp(:)
+#endif
       integer,  save, allocatable:: iboundsm(:)
       integer, save :: nbcsm
       integer :: itri, iodd, l, lx, lz, ier, jer, jone, i, j, ll

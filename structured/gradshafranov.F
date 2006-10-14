@@ -10,8 +10,12 @@
       implicit none
 
       real   int1,int4,int2,int3,lhs,cfac(18),g0
+#ifndef BIT64
       integer, parameter ::  r8c = selected_real_kind(12,100)
       real(r8c), allocatable::temp(:)
+#else
+      real, allocatable::temp(:)
+#endif
       integer :: mmnn6, nrags, numvargs, mbandsgs, msizegs
       integer :: m_lgs, nnz_lgs, ifs_rgs, ineg
       integer :: itri, iodd, ll, j, jj, jjj, i, ii, iii, lx, lz, j1, i1
@@ -123,7 +127,7 @@
       endif
         enddo
       enddo
-      if(myrank.eq.0) call oneplot(0,0,phi,1,1,"phi ")
+      if(myrank.eq.0) call oneplot(0,0,phi,1,1,"phi  ")
 !
       do l=1,nbcgs
         i = iboundgs(l)
@@ -192,7 +196,7 @@
 !.....start of iteration loop on plasma current
  500  continue
       itnum = itnum + 1
-      if(myrank.eq.0) call oneplot(0,0,b1vecini,1,1,"b1vecini")
+      if(myrank.eq.0) call oneplot(0,0,b1vecini,1,1,"b1vec")
 !
 !.....apply boundary conditions
       do l=1,nbcgs
@@ -208,7 +212,7 @@
       do i=1,nrags
       phi(i) = th*b1vecini(i) + (1.-th)*phi(i)
       enddo
-      if(myrank.eq.0) call oneplot(0,0,phi,1,1,"phi ")
+      if(myrank.eq.0) call oneplot(0,0,phi,1,1,"phi  ")
       th = 0.9
 !
 !
@@ -351,11 +355,11 @@
       ntime = itnum
       temp = -(fun1+gamma2*fun2+gamma3*fun3+gamma4*fun4)     
       if(myrank.eq.0) call plotit(phi,temp,0)
-      if(myrank.eq.0) call oneplot(0,0,temp,1,1,"temp")
-      if(myrank.eq.0) call oneplot(0,4,fun1,1,1,"Rp-p")
-      if(myrank.eq.0) call oneplot(0,3,fun2,1,1,"G1-p")
-      if(myrank.eq.0) call oneplot(0,2,fun3,1,1,"G2-p")
-      if(myrank.eq.0) call oneplot(0,0,fun4,1,1,"G3-p")
+      if(myrank.eq.0) call oneplot(0,0,temp,1,1,"temp ")
+      if(myrank.eq.0) call oneplot(0,4,fun1,1,1,"Rp-p ")
+      if(myrank.eq.0) call oneplot(0,3,fun2,1,1,"G1-p ")
+      if(myrank.eq.0) call oneplot(0,2,fun3,1,1,"G2-p ")
+      if(myrank.eq.0) call oneplot(0,0,fun4,1,1,"G3-p ")
 #ifdef mpi
       call sparseR8d_del(gsmatrix_lu,jer)
 #else

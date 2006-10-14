@@ -50,8 +50,12 @@ subroutine newvarb(inarray,outarray,mmnn,numvard,iplace,iop)
   integer :: mmnn, numvard, iplace, iop
   real ::  inarray(mmnn*6*numvard), outarray(mmnn*6)
 
+#ifndef BIT64
   integer, parameter :: r8a = selected_real_kind(12,100)
   real(r8a), allocatable :: phin(:),temp(:)
+#else
+  real, allocatable :: phin(:), temp(:)
+#endif
   integer, save, allocatable :: iboundds(:)
   real :: temparr(18,18)
   real :: denf, hypp, termbf
@@ -665,8 +669,14 @@ subroutine newvar(inarray,outarray,mmnn,numvard,iplace,iop)
 #endif
   integer mmnn, numvard, iplace, iop
   real  inarray(mmnn*6*numvard),outarray(mmnn*6)
+
+#ifndef BIT64
   integer, parameter :: r8a = selected_real_kind(12,100)
-  real(r8a), allocatable:: phin(:),temp(:)
+  real(r8a), allocatable :: phin(:),temp(:)
+#else
+  real, allocatable :: phin(:), temp(:)
+#endif
+
   integer, save, allocatable:: iboundds(:)
   real temparr(18,18)
   integer filenum
@@ -1084,9 +1094,13 @@ subroutine newvarbv(inarray,outarray,mmnn,numvard,iplace,iop)
   implicit none
 
   integer :: mmnn, numvard, iplace, iop
-  real  :: inarray(mmnn*6*numvard),outarray(mmnn*6)
+  real :: inarray(mmnn*6*numvard),outarray(mmnn*6)
+#ifndef BIT64
   integer, parameter :: r8a = selected_real_kind(12,100)
   real(r8a), allocatable:: phin(:),temp(:)
+#else
+  real, allocatable :: phin(:), temp(:)
+#endif
   integer, save, allocatable:: iboundds(:)
   integer, save :: nbcds
   integer :: nrads, numvards, mmnn6, ier, jer, msizeds

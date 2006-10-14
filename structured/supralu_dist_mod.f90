@@ -13,7 +13,11 @@ module supralu_dist_mod
 
   type sparseR8d_obj
      !Shape & data holders
+#ifndef BIT64
      real(r8), pointer :: values(:) !Storage for local nonzero matrix elements
+#else
+     real, pointer :: values(:) !Storage for local nonzero matrix elements
+#endif
      integer, pointer  :: colind(:) !Column indices of the nonzeroes
      integer, pointer  :: rowptr(:) !Beginnings of rows in values, colind
      integer, pointer  :: recvcounts(:) !number of local rows, by processor
@@ -182,7 +186,11 @@ subroutine sparseR8d_set_next(this, col, newrow_flag, value, ier)
   type(sparseR8d_obj)  :: this
   integer, intent(in)  :: col
   logical, intent(in)  :: newrow_flag ! .TRUE. if new column, .FALSE. otherwise
+#ifndef BIT64
   real(r8), intent(in) :: value
+#else
+  real, intent(in) :: value
+#endif
   integer, intent(out) :: ier
 
   ier = 0
@@ -229,7 +237,11 @@ subroutine sparseR8d_set_next_block(this, blocksize, col0, newrow_flag, &
   integer, intent(in)  :: blocksize
   integer, intent(in)  :: col0
   logical, intent(in)  :: newrow_flag
+#ifndef BIT64
   real(r8), intent(in) :: values(blocksize)
+#else
+  real, intent(in) :: values(blocksize)
+#endif
   integer, intent(out) :: ier
 
   integer col
@@ -393,11 +405,20 @@ subroutine sparseR8d_solve(this, rhs, ier)
   include 'mpif.h'
 
   type(sparseR8d_obj)     :: this
-  real(r8), intent(inout) :: rhs(:)
   integer, intent(out)    :: ier
+
+#ifndef BIT64
+  real(r8), intent(inout) :: rhs(:)
 
   real(r8)              :: berr(1)  !Backward error holder
   real(r8), allocatable :: b(:)     !RHS/solution vector holder
+#else
+  real, intent(inout) :: rhs(:)
+
+  real              :: berr(1)  !Backward error holder
+  real, allocatable :: b(:)     !RHS/solution vector holder
+#endif
+
   integer fstrow, info, ldb, nrow, ncol, nnzloc
 
   ier = 0
@@ -460,12 +481,22 @@ subroutine sparseR8d_solve_part(this, b, sol, ier)
   implicit none
   include 'mpif.h'
 
-  type(sparseR8d_obj)     :: this
-  real(r8), intent(inout) :: b(:)
-  real(r8), intent(out) :: sol(:)   !RHS/solution vector holder
   integer, intent(out)    :: ier
 
+
+#ifndef BIT64
+  real(r8), intent(inout) :: b(:)
+  real(r8), intent(out) :: sol(:)   !RHS/solution vector holder
+
   real(r8) :: berr(1)  !Backward error holder
+#else
+  real, intent(inout) :: b(:)
+  real, intent(out) :: sol(:)   !RHS/solution vector holder
+
+  real :: berr(1)  !Backward error holder
+#endif
+
+  type(sparseR8d_obj)     :: this
   integer :: info
 
   ier = 0
@@ -502,7 +533,11 @@ end subroutine sparseR8d_solve_part
 subroutine sparseR8d_driver(this, rhs, ier)
   implicit none
   type(sparseR8d_obj)     :: this
+#ifndef BIT64
   real(r8), intent(inout) :: rhs(:)
+#else
+  real, intent(inout) :: rhs(:)
+#endif
   integer, intent(out)    :: ier
 
   !Create the supermatrix
@@ -520,12 +555,21 @@ subroutine sparseR8d_A_dot_x(this, x, res, ier)
   implicit none
   include 'mpif.h'
 
+  integer, intent(out) :: ier
   type(sparseR8d_obj) :: this
+
+#ifndef BIT64
   real(r8), intent(in) :: x(this%n) ! global input vector
   real(r8), intent(out) :: res(this%n) ! global result
-  integer, intent(out) :: ier
 
   real(r8), dimension(:), allocatable, save :: locres
+#else
+  real, intent(in) :: x(this%n) ! global input vector
+  real, intent(out) :: res(this%n) ! global result
+
+  real, dimension(:), allocatable, save :: locres
+#endif
+
   integer, save :: lastsize=-1
   integer row, inz
 

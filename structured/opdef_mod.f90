@@ -9,6 +9,11 @@ subroutine ireaddef
 
   integer :: itype
 
+  if(myrank.eq.0 .and. iprint.gt.0) then
+     print *, "Entering ireaddef."
+  endif
+
+
   iread = 0
   ntensor = 79
 
@@ -107,6 +112,11 @@ subroutine ireaddef
 
 400  continue
   end do
+
+  if(myrank.eq.0 .and. iprint.gt.0) then
+     print *, "Exiting ireaddef."
+  endif
+
 
 end subroutine ireaddef
 

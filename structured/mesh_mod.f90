@@ -53,6 +53,11 @@ subroutine incbdef
 
   integer :: ibign, ibigm, ibig
 
+  if(myrank.eq.0 .and. iprint.gt.0) then
+     print *, "Entering incbdef."
+  endif
+
+
   ! jbig = ibig + incb(ibig,l),l=1,itypemax(ibig)
   
   ! region #1...interior
@@ -256,6 +261,10 @@ subroutine incbdef
      endif
   endif
 
+  if(myrank.eq.0 .and. iprint.gt.0) then
+     print *, "Exiting incbdef."
+  endif
+
   return
 end subroutine incbdef
 
@@ -271,6 +280,11 @@ subroutine tridef
   real, dimension(18,18) :: rot
   integer :: itri, iodd, irect, jrect, k, j, jj, jjj, q, ll
   real :: ve, sum
+
+  if(myrank.eq.0 .and. iprint.gt.0) then
+     print *, "Entering tridef."
+  endif
+
 
   itri = 0
       
@@ -347,6 +361,10 @@ subroutine tridef
         zcord(ll) = deez*(jrect-1)
      enddo
   enddo
+
+  if(myrank.eq.0 .and. iprint.gt.0) then
+     print *, "Exiting tridef."
+  endif
      
   return
 end subroutine tridef
