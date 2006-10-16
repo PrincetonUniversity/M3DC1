@@ -184,6 +184,9 @@
 !.....parameters for taylor problem (itaylor=1)
       eps = .01
 !
+!.....gravitational acceleration
+      grav = 0.
+!
       if(itest.eq.0) then
         open(5,file='C1input',form='formatted',status='old')
         read(5,nml=inputnl)

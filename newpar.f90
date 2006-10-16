@@ -28,6 +28,7 @@ module basic
   real :: db          ! ion skin depth
   real :: cb
   real :: gam         ! ratio of specific heats
+  real :: grav        ! gravitational acceleration
 
   ! general equilibrium parameters
   integer :: irestart ! 1 = reads restart file as initial condition
@@ -78,7 +79,7 @@ module basic
        tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,cb,     &
        bzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,      &
        kappa,iper,jper,iprint,itimer,xzero,zzero,beta,pi0,   &
-       eqsubtract,ianalytic,denm
+       eqsubtract,ianalytic,denm,grav
 
   !     derived quantities
   real :: tt,gamma4,gamma2,gamma3,dpsii,psimin,psilim,pi,              &
