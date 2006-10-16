@@ -457,6 +457,89 @@ real function v1bsb2(e,f,g)
 end function v1bsb2
 
 
+! V1ngrav
+! =======
+real function v1ngrav(e,f)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f
+  real :: temp
+
+  temp = int3(ri_79,e(:,OP_1),f(:,OP_DR),weight_79,79)
+
+  v1ngrav = temp
+  return
+end function v1ngrav
+
+
+! V1ungrav
+! ========
+real function v1ungrav(e,f,g)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real :: temp
+
+  temp = int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
+       - int3(e(:,OP_DR),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
+
+  if(itor.eq.1) then
+       temp = temp - 2.*int4(ri_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_1),weight_79,79)
+  endif
+
+  v1ungrav = temp
+  return
+end function v1ungrav
+
+
+! V1chingrav
+! ==========
+real function v1chingrav(e,f,g)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real :: temp
+
+  temp = int4(ri_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
+       + int4(ri_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_DR),weight_79,79) &
+       + int4(ri_79,e(:,OP_DR),f(:,OP_LP),g(:,OP_1 ),weight_79,79)
+
+  v1chingrav = temp
+  return
+end function v1chingrav
+
+
+! V1ndenmgrav
+! ===========
+real function v1ndenmgrav(e,f)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f
+  real :: temp
+
+  temp = -int3(ri_79,e(:,OP_DR),f(:,OP_LP),weight_79,79)
+
+  v1ndenmgrav = temp
+  return
+end function v1ndenmgrav
+
+
 !===============================================================================
 ! V2 TERMS
 !===============================================================================
@@ -1332,6 +1415,90 @@ real function v3chichin(e,f,g,h)
 
   return
 end function v3chichin
+
+
+! V3ngrav
+! =======
+real function v3ngrav(e,f)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f
+  real :: temp
+
+  temp = -int2(e(:,OP_1),f(:,OP_DZ),weight_79,79)
+
+  v3ngrav = temp
+  return
+end function v3ngrav
+
+
+! V3ungrav
+! ========
+real function v3ungrav(e,f,g)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real :: temp
+
+  temp = int4(r_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DR),weight_79,79) &
+       - int4(r_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_DZ),weight_79,79)
+
+  if(itor.eq.1) then
+     temp = temp + 2.*int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1),weight_79,79)
+  endif
+
+  v3ungrav = temp
+  return
+end function v3ungrav
+
+
+! V3chingrav
+! ==========
+real function v3chingrav(e,f,g)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real :: temp
+
+  temp =-int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
+       - int3(e(:,OP_DZ),f(:,OP_DR),g(:,OP_DR),weight_79,79) &
+       - int3(e(:,OP_DZ),f(:,OP_LP),g(:,OP_1 ),weight_79,79)
+
+  v3chingrav = temp
+  return
+end function v3chingrav
+
+
+! V3ndenmgrav
+! ===========
+real function v3ndenmgrav(e,f)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f
+  real :: temp
+
+  temp = int2(e(:,OP_DZ),f(:,OP_LP),weight_79,79)
+
+  v3ndenmgrav = temp
+  return
+end function v3ndenmgrav
+
 
 !===============================================================================
 ! B1 TERMS

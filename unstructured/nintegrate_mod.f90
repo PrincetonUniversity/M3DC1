@@ -252,13 +252,13 @@ subroutine eval_ops(avector,si,eta,theta,rinv,ngauss,outarr)
   real, dimension(OP_NUM) :: sum
   real :: co, sn, co2, sn2, cosn, temp
 
-  if(itor.eq.1) then
+!!$  if(itor.eq.1) then
      co = cos(theta)
      sn = sin(theta)
-  else
-     co = 1.
-     sn = 0.
-  endif
+!!$  else
+!!$     co = 1.
+!!$     sn = 0.
+!!$  endif
   co2 = co*co
   sn2 = sn*sn
   cosn = co*sn
