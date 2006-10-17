@@ -141,6 +141,11 @@ subroutine ludefvel_t
               ssterm(1,2) = ssterm(1,2) - thimp*    thimp *dt*dt*temp
               ddterm(1,2) = ddterm(1,2) + thimp*(1.-thimp)*dt*dt*temp
 
+              temp = v1vvn(g79(:,:,i),g79(:,:,j),vz179,nt79) &
+                   + v1vvn(g79(:,:,i),vz179,g79(:,:,j),nt79)
+              ssterm(1,2) = ssterm(1,2) -     thimp *dt*temp
+              ddterm(1,2) = ddterm(1,2) + (.5-thimp)*dt*temp
+
               temp = v2vun(g79(:,:,i),vz179,g79(:,:,j),nt79)
               ssterm(2,1) = ssterm(2,1) -     thimp *dt*temp
               ddterm(2,1) = ddterm(2,1) + (.5-thimp)*dt*temp
@@ -177,6 +182,11 @@ subroutine ludefvel_t
                    (v2psib(g79(:,:,i),sb179,g79(:,:,j)))
 
               if(linear.eq.1 .or. eqsubtract.eq.1) then
+
+                 temp = v1vvn(g79(:,:,i),g79(:,:,j),vz079,nt79) &
+                      + v1vvn(g79(:,:,i),vz079,g79(:,:,j),nt79)
+                 ssterm(1,2) = ssterm(1,2) -     thimp *dt*temp
+                 ddterm(1,2) = ddterm(1,2) + (1.-thimp)*dt*temp
                  
                  temp = v2vun(g79(:,:,i),vz079,g79(:,:,j),nt79)
                  ssterm(2,1) = ssterm(2,1) -     thimp *dt*temp
@@ -273,6 +283,11 @@ subroutine ludefvel_t
               ssterm(3,2) = ssterm(3,2) - thimp*    thimp *dt*dt*temp
               ddterm(3,2) = ddterm(3,2) + thimp*(1.-thimp)*dt*dt*temp
 
+              temp = v3vvn(g79(:,:,i),g79(:,:,j),vz179,nt79) &
+                   + v3vvn(g79(:,:,i),vz179,g79(:,:,j),nt79)
+              ssterm(3,2) = ssterm(3,2) -     thimp *dt*temp
+              ddterm(3,2) = ddterm(3,2) + (.5-thimp)*dt*temp
+
               temp = v3chin(g79(:,:,i),g79(:,:,j),nt79)        ! passed: 1
               ssterm(3,3) = ssterm(3,3) + temp
               ddterm(3,3) = ddterm(3,3) + temp
@@ -336,6 +351,11 @@ subroutine ludefvel_t
                       + v3uchin(g79(:,:,i),g79(:,:,j),ch079,nt79)
                  ssterm(3,1) = ssterm(3,1) -     thimp *dt*temp
                  ddterm(3,1) = ddterm(3,1) + (1.-thimp)*dt*temp
+
+                 temp = v3vvn(g79(:,:,i),g79(:,:,j),vz079,nt79) &
+                      + v3vvn(g79(:,:,i),vz079,g79(:,:,j),nt79)
+                 ssterm(3,2) = ssterm(3,2) -     thimp *dt*temp
+                 ddterm(3,2) = ddterm(3,2) + (1.-thimp)*dt*temp
 
                  temp = v3uchin  (g79(:,:,i),ph079,g79(:,:,j),nt79) &
                       + v3chichin(g79(:,:,i),g79(:,:,j),ch079,nt79) &
@@ -454,6 +474,8 @@ subroutine ludefvel_t
 !!$                      +v1ndenmgrav(g79(:,:,i),nt79))
 
               endif
+              r4(i1) = r4(i1) + dt* &
+                   (v1vvn(g79(:,:,i),vz079,vz079,nt79))
               r4(i2) = r4(i2) + dt* &
                    (v2vun(g79(:,:,i),vz079,ph079,nt79)) &
                    + thimp*dt*dt* &
@@ -491,6 +513,7 @@ subroutine ludefvel_t
               r4(i3) = r4(i3) + dt* &
                    (v3uun    (g79(:,:,i),ph079,ph079,nt79) &
                    +v3uchin  (g79(:,:,i),ph079,ch079,nt79) &
+                   +v3vvn    (g79(:,:,i),vz079,vz079,nt79) &
                    +v3chichin(g79(:,:,i),ch079,ch079,nt79))
               
               ! EQUILIBRIUM TERMS
@@ -796,7 +819,8 @@ subroutine ludefphi_t
 
               temp = b3pebd(g79(:,:,i),g79(:,:,j),bzt79,ni79)*dbf*pefac & ! passed: 1
                    + p1pu  (g79(:,:,i),g79(:,:,j),pht79)                & ! passed: 1
-                   + p1pchi(g79(:,:,i),g79(:,:,j),cht79)                  ! passed: 1
+                   + p1pchi(g79(:,:,i),g79(:,:,j),cht79)                & ! passed: 1
+                   + b3pedkappa(g79(:,:,i),g79(:,:,j),ni79)*kappat*(gam-1.)
               ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp
               ddterm(3,3) = ddterm(3,3) + (1.-thimp)*dt*temp
 
@@ -913,7 +937,8 @@ subroutine ludefphi_t
            if(numvar.ge.3) then
               q4(i3) = q4(i3) + dt* &
                    (b3psipsieta(g79(:,:,i),ps079,ps079)*etar &
-                   +b3bbeta    (g79(:,:,i),bz079,bz079)*etar)
+                   +b3bbeta    (g79(:,:,i),bz079,bz079)*etar &
+                   +b3pedkappa (g79(:,:,i),pe079,ni79 )*kappat*(gam-1.))
 
               ! DENSITY TERMS
               q4(i2) = q4(i2) + dt* &

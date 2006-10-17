@@ -20,7 +20,7 @@ module basic
   use p_data
 
   ! transport coefficients
-  real :: amu, etar, kappa, denm
+  real :: amu, etar, kappa, denm, kappat
   real :: hyper,hyperi,hyperv,hyperc,hyperp
 
   ! physical parameters
@@ -79,7 +79,7 @@ module basic
        tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,cb,     &
        bzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,      &
        kappa,iper,jper,iprint,itimer,xzero,zzero,beta,pi0,   &
-       eqsubtract,ianalytic,denm,grav
+       eqsubtract,ianalytic,denm,grav,kappat
 
   !     derived quantities
   real :: tt,gamma4,gamma2,gamma3,dpsii,psimin,psilim,pi,              &
