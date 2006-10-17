@@ -127,8 +127,36 @@ real function v1uun(e,f,g,h)
 end function v1uun
 
 
+! v1vvn
+! =====
+real function v1vvn(e,f,g,h)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  real :: temp  
+
+  if(itor.eq.0) then
+     temp = 0.
+  else
+     if(idens.eq.0) then
+        temp = 2.*int4(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZ),weight_79,79)
+     else
+        temp = 2.*int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZ),h(:,OP_1 ),weight_79,79) &
+             +    int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_1 ),h(:,OP_DZ),weight_79,79)
+     endif
+  endif
+
+  v1vvn = temp
+  return
+end function v1vvn
+
+
 ! v1uchin
-! ~~~~~~~
+! =======
 real function v1uchin(e,f,g,h)
 
   use basic
@@ -604,11 +632,17 @@ real function v2vun(e,f,g,h)
   real :: temp
 
   if(idens.eq.0) then
-     temp = int3(e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
-          - int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
+     temp = int4(r_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
+          - int4(r_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
+     if(itor.eq.1) then
+        temp = temp + int3(e(:,OP_1),f(:,OP_1),g(:,OP_DZ),weight_79,79)
+     endif
   else
-     temp = int4(e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
-          - int4(e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),weight_79,79)
+     temp = int5(r_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+          - int5(r_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),weight_79,79)
+     if(itor.eq.1) then
+        temp = temp + int4(e(:,OP_1),f(:,OP_1),g(:,OP_DZ),h(:,OP_1),weight_79,79)
+     endif
   endif
 
   v2vun = temp
@@ -769,11 +803,18 @@ real function v2vchin(e,f,g,h)
   real :: temp
 
   if(idens.eq.0) then
-     temp =-int4(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
-          - int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),weight_79,79)
+     temp =-int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
+          - int3(e(:,OP_1),f(:,OP_DR),g(:,OP_DR),weight_79,79)
+     if(itor.eq.1) then
+        temp = temp - int4(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DR),weight_79,79)
+     endif
   else
-     temp =-int5(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
-          - int5(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),h(:,OP_1),weight_79,79)
+     temp =-int4(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+          - int4(e(:,OP_1),f(:,OP_DR),g(:,OP_DR),h(:,OP_1),weight_79,79)
+     if(itor.eq.1) then
+        temp = temp - int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DR),h(:,OP_1),weight_79,79)
+     endif
+
   endif
 
   v2vchin = temp
@@ -1313,6 +1354,38 @@ real function v3uun(e,f,g,h)
   v3uun = temp
   return
 end function v3uun
+
+
+! V3vvn
+! =====
+real function v3vvn(e,f,g,h)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e, f, g, h
+  real :: temp
+
+  if(itor.eq.0) then
+     temp = 0.
+  else
+     if(idens.eq.0) then
+        temp = 2.* &
+             (int4(ri_79 ,e(:,OP_1),f(:,OP_1),g(:,OP_DR),weight_79,79) &
+             -int4(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_1 ),weight_79,79))
+     else 
+        temp = int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_1 ),h(:,OP_DR),weight_79,79) &
+             + 2.* &
+             (int5(ri_79 ,e(:,OP_1),f(:,OP_1),g(:,OP_DR),h(:,OP_1 ),weight_79,79) &
+             -int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_1 ),h(:,OP_1 ),weight_79,79))
+     endif
+  endif
+
+  v3vvn = temp
+  return
+end function v3vvn
 
 
 ! V3uchin
@@ -1902,6 +1975,35 @@ real function b3pebd(e,f,g,h)
   
   return
 end function b3pebd
+
+
+! B3pedkappa
+! ==========
+real function b3pedkappa(e,f,g)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real :: temp
+
+  if(idens.eq.0) then
+     temp = &
+          - int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
+          - int2(e(:,OP_DR),f(:,OP_DR),weight_79,79)
+  else 
+     temp = &
+          - int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1 ),weight_79,79) &
+          - int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_1 ),weight_79,79) &
+          - int3(e(:,OP_DZ),f(:,OP_1 ),g(:,OP_DZ),weight_79,79) &
+          - int3(e(:,OP_DR),f(:,OP_1 ),g(:,OP_DR),weight_79,79)
+  endif
+
+  b3pedkappa = temp  
+  return
+end function b3pedkappa
 
 
 
