@@ -1,3 +1,5 @@
+#define REAL64 real
+
 module inout_mod
 
 implicit none
@@ -9,7 +11,11 @@ subroutine plotit(vel,phi,ilin)
 
   implicit none
 
+#ifndef BIT64
   real, dimension(*) :: vel, phi
+#else
+  REAL64, dimension(*) :: vel, phi
+#endif
   integer, intent(in) :: ilin
 
   real, dimension(irs,irs) :: plot, plot2
@@ -575,7 +581,11 @@ subroutine oneplot(lu,iplot,dum,inum,numvare,label)
   use basic
 
   integer, intent(in) :: lu, iplot, inum, numvare
+#ifndef BIT64
   real, dimension(*) :: dum
+#else
+  REAL64, dimension(*) :: dum
+#endif
   character*5, intent(in) :: label
 
   real :: cval(irs),plot(irs,irs),plot2(irs,irs),                 &
@@ -2111,6 +2121,7 @@ subroutine writeit
   if(itor.ne.0) write(55)  (((hterm(itri,i,j),itri=1,ntridim),i=1,18),j=1,18)
   
   close(55)
+
   return
 end subroutine writeit
 

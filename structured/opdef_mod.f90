@@ -139,6 +139,10 @@ subroutine opdef1
   real :: sumh3, sumh5, sumk0, sumk1, sumk2, sumh2
   real :: sumx0, sumy0, sumx1, sumy1, sumx2, sumy2
   real :: f
+
+  if(myrank.eq.0 .and. iprint.gt.0) then
+     print *, "Entering opdef1."
+  endif
   
   do iodd=1,ioddmx
   
@@ -520,6 +524,10 @@ subroutine opdef1
            
         enddo ! on ll
      enddo !on iodd
+  endif
+
+  if(myrank.eq.0 .and. iprint.gt.0) then
+     print *, "Exiting opdef1."
   endif
   
   return

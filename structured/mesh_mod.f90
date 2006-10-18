@@ -326,11 +326,10 @@ subroutine tridef
      ! cubic variation
 
      call tmatrix(ti,20,atri(iodd),btri(iodd),ctri(iodd))
-     
 
      ! calculate the rotation matrix rot
      call rotation(rot,18,ttri(iodd))
-     
+
      ! form the matrix g by multiplying ti and rot
      do k=1,20
         do jjj=1,3
@@ -521,7 +520,7 @@ subroutine tmatrix(ti,ndim,a,b,c)
      enddo
   enddo
   det = 0.
-!  call f03aaf(ti,20,20,det,wkspce,ifail)
+!!$  call f03aaf(ti,20,20,det,wkspce,ifail)
 
   diff = det - danaly
   percent = 100* diff / danaly
@@ -541,8 +540,10 @@ subroutine tmatrix(ti,ndim,a,b,c)
         ti(i,j) = t(i,j)
      enddo
   enddo
-  call f07adf(20,20,ti,20,ipiv,info1)
-  call f07ajf(20,ti,20,ipiv,wkspce,400,info2)
+!!$  call f07adf(20,20,ti,20,ipiv,info1)
+  call dgetrf(20,20,ti,20,ipiv,info1)
+!!$  call f07ajf(20,ti,20,ipiv,wkspce,400,info2)
+  call dgetri(20,ti,20,ipiv,wkspce,400,info2)
   if(info1.ne.0.or.info2.ne.0)write(*,1002) info1,info2
 1002 format(3i5)
   

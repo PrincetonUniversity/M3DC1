@@ -1,3 +1,5 @@
+#define REAL64 real
+
 module newvar_mod
 
 implicit none
@@ -48,13 +50,14 @@ subroutine newvarb(inarray,outarray,mmnn,numvard,iplace,iop)
   implicit none
 #endif
   integer :: mmnn, numvard, iplace, iop
-  real ::  inarray(mmnn*6*numvard), outarray(mmnn*6)
 
 #ifndef BIT64
   integer, parameter :: r8a = selected_real_kind(12,100)
   real(r8a), allocatable :: phin(:),temp(:)
+  real ::  inarray(mmnn*6*numvard), outarray(mmnn*6)
 #else
-  real, allocatable :: phin(:), temp(:)
+  REAL64, allocatable :: phin(:), temp(:)
+  REAL64 ::  inarray(mmnn*6*numvard), outarray(mmnn*6)
 #endif
   integer, save, allocatable :: iboundds(:)
   real :: temparr(18,18)
@@ -73,7 +76,7 @@ subroutine newvarb(inarray,outarray,mmnn,numvard,iplace,iop)
 
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-      if(myrank.eq.0 .and. iprint.gt.0) write(*,*) "newvarb called with iop=",iop
+  if(myrank.eq.0 .and. iprint.gt.0) write(*,*) "newvarb called with iop=",iop
 
   mmnn6 = 6*m*n
 !  allocate(phin(mmnn6),temp(mmnn6),temptemp(mmnn6))
@@ -668,13 +671,14 @@ subroutine newvar(inarray,outarray,mmnn,numvard,iplace,iop)
   implicit none
 #endif
   integer mmnn, numvard, iplace, iop
-  real  inarray(mmnn*6*numvard),outarray(mmnn*6)
 
 #ifndef BIT64
   integer, parameter :: r8a = selected_real_kind(12,100)
   real(r8a), allocatable :: phin(:),temp(:)
+  real  inarray(mmnn*6*numvard),outarray(mmnn*6)
 #else
-  real, allocatable :: phin(:), temp(:)
+  REAL64, allocatable :: phin(:), temp(:)
+  REAL64 :: inarray(mmnn*6*numvard),outarray(mmnn*6)
 #endif
 
   integer, save, allocatable:: iboundds(:)
@@ -1094,12 +1098,14 @@ subroutine newvarbv(inarray,outarray,mmnn,numvard,iplace,iop)
   implicit none
 
   integer :: mmnn, numvard, iplace, iop
-  real :: inarray(mmnn*6*numvard),outarray(mmnn*6)
+
 #ifndef BIT64
   integer, parameter :: r8a = selected_real_kind(12,100)
   real(r8a), allocatable:: phin(:),temp(:)
+  real :: inarray(mmnn*6*numvard),outarray(mmnn*6)
 #else
-  real, allocatable :: phin(:), temp(:)
+  REAL64, allocatable :: phin(:), temp(:)
+  REAL64 :: inarray(mmnn*6*numvard),outarray(mmnn*6)
 #endif
   integer, save, allocatable:: iboundds(:)
   integer, save :: nbcds

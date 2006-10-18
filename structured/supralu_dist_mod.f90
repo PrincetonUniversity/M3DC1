@@ -3,6 +3,8 @@
 ! Modified 3/9/06 to use distributed compressed row storage to parallelize
 !  matrix construction. J. Breslau.
 
+#define REAL64 real
+
 module supralu_dist_mod
   implicit none
 
@@ -16,7 +18,7 @@ module supralu_dist_mod
 #ifndef BIT64
      real(r8), pointer :: values(:) !Storage for local nonzero matrix elements
 #else
-     real, pointer :: values(:) !Storage for local nonzero matrix elements
+     REAL64, pointer :: values(:) !Storage for local nonzero matrix elements
 #endif
      integer, pointer  :: colind(:) !Column indices of the nonzeroes
      integer, pointer  :: rowptr(:) !Beginnings of rows in values, colind
@@ -189,7 +191,7 @@ subroutine sparseR8d_set_next(this, col, newrow_flag, value, ier)
 #ifndef BIT64
   real(r8), intent(in) :: value
 #else
-  real, intent(in) :: value
+  REAL64, intent(in) :: value
 #endif
   integer, intent(out) :: ier
 
@@ -240,7 +242,7 @@ subroutine sparseR8d_set_next_block(this, blocksize, col0, newrow_flag, &
 #ifndef BIT64
   real(r8), intent(in) :: values(blocksize)
 #else
-  real, intent(in) :: values(blocksize)
+  REAL64, intent(in) :: values(blocksize)
 #endif
   integer, intent(out) :: ier
 
@@ -413,10 +415,10 @@ subroutine sparseR8d_solve(this, rhs, ier)
   real(r8)              :: berr(1)  !Backward error holder
   real(r8), allocatable :: b(:)     !RHS/solution vector holder
 #else
-  real, intent(inout) :: rhs(:)
+  REAL64, intent(inout) :: rhs(:)
 
-  real              :: berr(1)  !Backward error holder
-  real, allocatable :: b(:)     !RHS/solution vector holder
+  REAL64                :: berr(1)  !Backward error holder
+  REAL64, allocatable   :: b(:)     !RHS/solution vector holder
 #endif
 
   integer fstrow, info, ldb, nrow, ncol, nnzloc
@@ -490,10 +492,10 @@ subroutine sparseR8d_solve_part(this, b, sol, ier)
 
   real(r8) :: berr(1)  !Backward error holder
 #else
-  real, intent(inout) :: b(:)
-  real, intent(out) :: sol(:)   !RHS/solution vector holder
+  REAL64, intent(inout) :: b(:)
+  REAL64, intent(out) :: sol(:)   !RHS/solution vector holder
 
-  real :: berr(1)  !Backward error holder
+  REAL64 :: berr(1)  !Backward error holder
 #endif
 
   type(sparseR8d_obj)     :: this
@@ -536,7 +538,7 @@ subroutine sparseR8d_driver(this, rhs, ier)
 #ifndef BIT64
   real(r8), intent(inout) :: rhs(:)
 #else
-  real, intent(inout) :: rhs(:)
+  REAL64, intent(inout) :: rhs(:)
 #endif
   integer, intent(out)    :: ier
 
@@ -564,10 +566,10 @@ subroutine sparseR8d_A_dot_x(this, x, res, ier)
 
   real(r8), dimension(:), allocatable, save :: locres
 #else
-  real, intent(in) :: x(this%n) ! global input vector
-  real, intent(out) :: res(this%n) ! global result
+  REAL64, intent(in) :: x(this%n) ! global input vector
+  REAL64, intent(out) :: res(this%n) ! global result
 
-  real, dimension(:), allocatable, save :: locres
+  REAL64, dimension(:), allocatable, save :: locres
 #endif
 
   integer, save :: lastsize=-1

@@ -1,3 +1,5 @@
+#define REAL64 real
+
 module init_conds_mod
 
 implicit none
@@ -26,7 +28,11 @@ subroutine velequ(dum)
   
   implicit none
 
+#ifndef BIT64
   real, intent(out), dimension(*) :: dum
+#else
+  REAL64, intent(out), dimension(*) :: dum
+#endif
 
   real :: x, z
   integer :: lx, lz, l, i0, i
@@ -65,7 +71,11 @@ subroutine phiequ(dum)
 
   implicit none
 
+#ifndef BIT64
   real, intent(out), dimension(*) :: dum
+#else
+  REAL64, intent(out), dimension(*) :: dum
+#endif
 
   integer :: lx, lz, i0, l, i, ifail1, ifail2, ifail3
   real :: x, z, ff, fp, fpp, r, alam
@@ -443,7 +453,11 @@ subroutine denequ(dum)
 
   implicit none
 
+#ifndef BIT64
   real, intent(out), dimension(*) :: dum
+#else
+  REAL64, intent(out), dimension(*) :: dum
+#endif
 
   integer :: lx, lz, l, i0, ifail1, ifail2, ifail3, ii
   real :: x, z, r, ri, arg, rsq
@@ -594,7 +608,11 @@ subroutine presequ(dum)
   
   implicit none
 
+#ifndef BIT64
   real, intent(out), dimension(*) :: dum
+#else
+  REAL64, intent(out), dimension(*) :: dum
+#endif
 
   integer :: lx, lz, l, i0
   real :: x, z, rsq
@@ -711,7 +729,11 @@ subroutine velinit(dum)
 
   implicit none
 
+#ifndef BIT64
   real, intent(out), dimension(*) :: dum
+#else
+  REAL64, intent(out), dimension(*) :: dum
+#endif
 
   integer :: lx, lz, i0, i, l
   real :: phiper, vzper, chiper
@@ -946,7 +968,12 @@ subroutine phiinit(dum)
 
   implicit none
 
+#ifndef BIT64
   real, intent(out), dimension(*) :: dum
+#else
+  REAL64, intent(out), dimension(*) :: dum
+#endif
+
   integer :: lx, lz, i0, l, i
   real :: x, z, r, r0
   real :: psiper, bzper, peper, akx, akz, loc, locp, locpp
@@ -1214,7 +1241,11 @@ subroutine deninit(dum)
 
   implicit none
 
+#ifndef BIT64
   real, intent(out), dimension(*) :: dum
+#else
+  REAL64, intent(out), dimension(*) :: dum
+#endif
 
   integer :: lx, lz, l, i0
   real :: x, z, akx, akz
@@ -1332,7 +1363,11 @@ subroutine presinit(dum)
 
   implicit none
   
+#ifndef BIT64
   real, intent(out), dimension(*) :: dum
+#else
+  REAL64, intent(out), dimension(*) :: dum
+#endif
 
   integer :: lx, lz, l, i0
   real :: x, z, akz

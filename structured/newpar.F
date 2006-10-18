@@ -60,6 +60,8 @@
 !     direct writing to superlu matrix in ludef* and newvar*
 !     changed toroidal flux correction
 !
+#define REAL64 real
+!
       module p_data
 !
 !.....contains all parameters
@@ -192,7 +194,7 @@
       integer, parameter :: r8 = selected_real_kind(12,100)
       real(r8) ,allocatable::                                           &
 #else
-      real, allocatable::
+      REAL64, allocatable::
 #endif
      &       b1vecini(:), vel(:), vels(:), veln(:),                     &
      &        velold(:), vel0(:), vel1(:),                              &
@@ -338,8 +340,8 @@
          call date_and_time( datec, timec)
          write(*,1001) version, datec(1:4),datec(5:6),datec(7:8),                &
      &        timec(1:2),timec(3:4),timec(5:8)
- 1001    format("VERSION ",a11,  "  DATE: "a4,1x,a2,1x,a2,3x,           &
-     &        "TIME: "a2,":",a2,":",a4,/)
+ 1001    format("VERSION ",a11,  "  DATE: ",a4,1x,a2,1x,a2,3x,           &
+     &        "TIME: ",a2,":",a2,":",a4,/)
       endif
 !
       pi = acos(-1.)
@@ -361,6 +363,8 @@
 !
 !.....define the operators in terms of local coordinates
       call ireaddef
+!
+      print *, "gtri: ", gtri(1,1,:)
 !
 !     initialize superlu matrices
       nrank = n*m*6*numvar
@@ -4224,7 +4228,7 @@ c$$$      endif
       integer, parameter :: r8d = selected_real_kind(12,100)
       real(r8d) :: val
 #else
-      real :: val
+      REAL64 :: val
 #endif
       integer ::  globsize, nlocal, remainder, firstrow, blocksize
       logical ::  newrow_flag
@@ -4559,7 +4563,7 @@ c$$$      endif
       c = ctri(iodd)
       si  = (x-x1)*cos(theta) + (z-z1)*sin(theta) - b
       eta =-(x-x1)*sin(theta) + (z-z1)*cos(theta)
-      small = 1.e-12
+      small = 1.e-6
       if( si.gt.a+small .or. si.lt.-(b+small) .or.                      &
      &    eta .lt.-small .or.eta.gt.c+small) then
       write(*,2222) x,x1,z,z1,si,eta,a,b,c,iodd,itri
@@ -4809,7 +4813,7 @@ c$$$      endif
       integer, parameter :: r9a = selected_real_kind(12,100)
       real(r9a), allocatable:: temp(:)
 #else
-      real, allocatable :: temp(:)
+      REAL64, allocatable :: temp(:)
 #endif
       integer,  save, allocatable:: iboundsm(:)
       integer, save :: nbcsm
@@ -4996,7 +5000,7 @@ c$$$      endif
       integer, parameter :: r9a = selected_real_kind(12,100)
       real(r9a), allocatable:: temp(:)
 #else
-      real, allocatable :: temp(:)
+      REAL64, allocatable :: temp(:)
 #endif
       integer,  save, allocatable:: iboundsm(:)
       integer, save :: nbcsm

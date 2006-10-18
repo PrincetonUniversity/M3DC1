@@ -1,3 +1,5 @@
+#define REAL64 real
+
 !============================================================
       subroutine gradshafranov
       use p_data
@@ -14,7 +16,7 @@
       integer, parameter ::  r8c = selected_real_kind(12,100)
       real(r8c), allocatable::temp(:)
 #else
-      real, allocatable::temp(:)
+      REAL64, allocatable::temp(:)
 #endif
       integer :: mmnn6, nrags, numvargs, mbandsgs, msizegs
       integer :: m_lgs, nnz_lgs, ifs_rgs, ineg
