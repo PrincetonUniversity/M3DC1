@@ -55,7 +55,6 @@ subroutine ludefvel_t
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
      ! calculate the field values and derivatives at the sampling points
-!     call define_fields_25(itri)
      call define_fields_79(itri)
      
      if(myrank.eq.0 .and. itimer.eq.1) then
@@ -262,8 +261,8 @@ subroutine ludefvel_t
               ddterm(3,1) = ddterm(3,1) + temp
 
               temp = v3uun  (g79(:,:,i),g79(:,:,j),ph179,nt79) &      ! passed: 1
-                   + v3uun  (g79(:,:,i),ph179,g79(:,:,j),nt79) !&      ! passed: 1
-!!$!                   + v3uchin(g79(:,:,i),g79(:,:,j),ch179,nt79)        !
+                   + v3uun  (g79(:,:,i),ph179,g79(:,:,j),nt79) &      ! passed: 1
+                   + v3uchin(g79(:,:,i),g79(:,:,j),ch179,nt79)        ! passed: 1
               ssterm(3,1) = ssterm(3,1) -     thimp *dt*temp
               ddterm(3,1) = ddterm(3,1) + (.5-thimp)*dt*temp
 
@@ -296,7 +295,7 @@ subroutine ludefvel_t
               ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp
               ddterm(3,3) = ddterm(3,3) + (1.-thimp)*dt*temp
 
-              temp = 0*v3uchin  (g79(:,:,i),ph179,g79(:,:,j),nt79) &    ! FAILED: 1
+              temp = v3uchin  (g79(:,:,i),ph179,g79(:,:,j),nt79) &    ! ***
                    + v3chichin(g79(:,:,i),g79(:,:,j),ch179,nt79) &    ! passed: 1
                    + v3chichin(g79(:,:,i),ch179,g79(:,:,j),nt79)      ! passed: 1
               ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp
@@ -644,7 +643,6 @@ subroutine ludefphi_t
 
      ! calculate the field values and derivatives at the sampling points
      call define_fields_79(itri)
-!     call define_fields_25(itri)
 
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
@@ -733,10 +731,10 @@ subroutine ludefphi_t
               ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
               ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
 
-!!$              temp = b2bbd(g79(:,:,i),g79(:,:,j),bz179,ni79)*dbf &
-!!$                   + b2bbd(g79(:,:,i),bz179,g79(:,:,j),ni79)*dbf
-!!$              ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
-!!$              ddterm(2,2) = ddterm(2,2) + (.5-thimp)*dt*temp
+              temp = b2bbd(g79(:,:,i),g79(:,:,j),bz179,ni79)*dbf &
+                   + b2bbd(g79(:,:,i),bz179,g79(:,:,j),ni79)*dbf
+              ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
+              ddterm(2,2) = ddterm(2,2) + (.5-thimp)*dt*temp
 
               temp = b2bu  (g79(:,:,i),bz179,g79(:,:,j))
               rrterm(2,1) = rrterm(2,1) + thimp*dt*temp
@@ -760,10 +758,10 @@ subroutine ludefphi_t
                  ssterm(2,1) = ssterm(2,1) -     thimp *dt*temp
                  ddterm(2,1) = ddterm(2,1) + (1.-thimp)*dt*temp
 
-!!$                 temp = b2bbd (g79(:,:,i),g79(:,:,j),bz079,ni79)*dbf &
-!!$                      + b2bbd (g79(:,:,i),bz079,g79(:,:,j),ni79)*dbf
-!!$                 ssterm(2,2) = ssterm(2,2) +     thimp *dt*temp
-!!$                 ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
+                 temp = b2bbd (g79(:,:,i),g79(:,:,j),bz079,ni79)*dbf &
+                      + b2bbd (g79(:,:,i),bz079,g79(:,:,j),ni79)*dbf
+                 ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
+                 ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
 
                  temp = b2bu  (g79(:,:,i),bz079,g79(:,:,j))
                  rrterm(2,1) = rrterm(2,1) +     thimp *dt*temp
@@ -925,8 +923,7 @@ subroutine ludefphi_t
                    (b1psibd  (g79(:,:,i),ps079,bz079,ni79)*dbf)
               q4(i2) = q4(i2) + dt* &
                    (b2psipsid(g79(:,:,i),ps079,ps079,ni79)*dbf &
-!!$                   +b2bbd    (g79(:,:,i),bz079,bz079,ni79)*dbf)
-                   )
+                   +b2bbd    (g79(:,:,i),bz079,bz079,ni79)*dbf)
 
               ! EQUILIBRIUM TERMS
               q4(i2) = q4(i2) + dt* &

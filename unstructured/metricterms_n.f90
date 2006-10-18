@@ -1401,28 +1401,30 @@ real function v3uchin(e,f,g,h)
 
   real :: temp
 
-  if(idens.eq.0) then
-     temp = 2.* &
-          (int3(e(:,OP_1),f(:,OP_DR ),g(:,OP_DRZ),weight_79,79) &
-          -int3(e(:,OP_1),f(:,OP_DZZ),g(:,OP_DZ ),weight_79,79) &
-          -int3(e(:,OP_1),f(:,OP_DRZ),g(:,OP_DR ),weight_79,79) &
-          -int3(e(:,OP_1),f(:,OP_DZ ),g(:,OP_DRR),weight_79,79))
-     if(itor.eq.1) then
-        temp = temp &
-             -2.*int4(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
-     endif
-  else
-     temp = 2.* &
-          (int4(e(:,OP_1),f(:,OP_DR ),g(:,OP_DRZ),h(:,OP_1),weight_79,79) &
-          -int4(e(:,OP_1),f(:,OP_DZZ),g(:,OP_DZ ),h(:,OP_1),weight_79,79) &
-          -int4(e(:,OP_1),f(:,OP_DRZ),g(:,OP_DR ),h(:,OP_1),weight_79,79) &
-          -int4(e(:,OP_1),f(:,OP_DZ ),g(:,OP_DRR),h(:,OP_1),weight_79,79))
-     if(itor.eq.1) then
-        temp = temp &
-             -2.*int5(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),weight_79,79)
-     endif
+  temp79a = r_79*e(:,OP_DR)
+  if(itor.eq.1) temp79a = temp79a + 2.*e(:,OP_1)
+  if(idens.eq.1) temp79a = temp79a*h(:,OP_1)
+
+  temp = int3(temp79a,f(:,OP_DR ),g(:,OP_DRZ),weight_79,79) &
+       - int3(temp79a,f(:,OP_DZZ),g(:,OP_DZ ),weight_79,79) &
+       - int3(temp79a,f(:,OP_DRZ),g(:,OP_DR ),weight_79,79) &
+       - int3(temp79a,f(:,OP_DZ ),g(:,OP_DRR),weight_79,79)
+  if(itor.eq.1) then
+     temp = temp - int4(ri_79,temp79a,f(:,OP_DZ),g(:,OP_DR),weight_79,79)
   endif
 
+  temp79a = r_79*e(:,OP_DZ)
+  if(idens.eq.1) temp79a = temp79a*h(:,OP_1)
+
+  temp = temp &
+       + int3(temp79a,f(:,OP_DRZ),g(:,OP_DZ ),weight_79,79) &
+       + int3(temp79a,f(:,OP_DR ),g(:,OP_DZZ),weight_79,79) &
+       + int3(temp79a,f(:,OP_DRR),g(:,OP_DR ),weight_79,79) &
+       - int3(temp79a,f(:,OP_DZ ),g(:,OP_DRZ),weight_79,79)
+  if(itor.eq.1) then
+     temp = temp + int4(ri_79,temp79a,f(:,OP_DR),g(:,OP_DR),weight_79,79)
+  endif
+  
   v3uchin = temp
   return
 end function v3uchin
