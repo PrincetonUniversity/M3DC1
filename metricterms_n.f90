@@ -2150,4 +2150,33 @@ real function p1pchi(e,f,g)
   return
 end function p1pchi
 
+
+! P1kappar
+! ========
+real function p1kappar(e,f,g,h,i,j)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h,i,j
+  real :: temp
+
+  temp79a = ri2_79*(e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))*j(:,OP_1)
+
+  if(idens.eq.0) then
+     temp = int3(temp79a,g(:,OP_DR),h(:,OP_DZ),weight_79,79) &
+          - int3(temp79a,g(:,OP_DZ),h(:,OP_DR),weight_79,79)
+  else
+     temp = int4(temp79a,g(:,OP_DR),h(:,OP_DZ),i(:,OP_1 ),weight_79,79) &
+          - int4(temp79a,g(:,OP_DZ),h(:,OP_DR),i(:,OP_1 ),weight_79,79) &
+          + int4(temp79a,g(:,OP_DR),h(:,OP_1 ),i(:,OP_DZ),weight_79,79) &
+          - int4(temp79a,g(:,OP_DZ),h(:,OP_1 ),i(:,OP_DR),weight_79,79)
+  endif
+
+  p1kappar = temp
+  return
+end function p1kappar
+
 end module metricterms_n

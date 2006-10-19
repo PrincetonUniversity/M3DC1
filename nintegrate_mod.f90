@@ -21,7 +21,7 @@ real, dimension(25, OP_NUM) :: pst25, bzt25, pet25, nt25, pt25, pht25, vzt25, ch
 
 real, dimension(79) :: r_79, r2_79, ri_79, ri2_79, ri3_79, ri4_79, ri5_79, ri6_79, ri7_79
 real, dimension(79, OP_NUM, 18) :: g79
-real, dimension(79, OP_NUM) :: tm79, ni79
+real, dimension(79, OP_NUM) :: tm79, ni79, b2i79
 real, dimension(79, OP_NUM) :: ps079, bz079, pe079, n079, p079, ph079, vz079, ch079
 real, dimension(79, OP_NUM) :: ps179, bz179, pe179, n179, p179, ph179, vz179, ch179
 real, dimension(79, OP_NUM) :: pst79, bzt79, pet79, nt79, pt79, pht79, vzt79, cht79
@@ -597,6 +597,12 @@ subroutine define_fields_79(itri)
 
      call calcavector(itri, deni, 1, 1, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ni79)
+  endif
+
+  if(numvar.eq.1) then
+     b2i79(:,OP_1) = 1./(pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2)
+  else
+     b2i79(:,OP_1) = 1./(pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2 + bzt79(:,OP_1)**2)
   endif
 
   do i=1,18

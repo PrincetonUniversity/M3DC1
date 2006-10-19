@@ -830,6 +830,18 @@ subroutine ludefphi_t
               rrterm(3,3) = rrterm(3,3) + thimp*dt*temp
               qqterm(3,3) = qqterm(3,3) - thimp*dt*temp
 
+              ! Anisotropic Heat Flux
+              if(kappar.ne.0) then
+                 temp = p1kappar(g79(:,:,i),g79(:,:,j),ps179,pet79,ni79,b2i79)*kappar &
+                      + p1kappar(g79(:,:,i),ps179,g79(:,:,j),pet79,ni79,b2i79)*kappar
+                 ssterm(3,1) = ssterm(3,1) +     thimp *dt*temp
+                 ddterm(3,1) = ddterm(3,1) - (.5-thimp)*dt*temp
+
+                 temp = p1kappar(g79(:,:,i),pst79,pst79,g79(:,:,j),ni79,b2i79)*kappar
+                 ssterm(3,3) = ssterm(3,3) +     thimp *dt*temp
+                 ddterm(3,3) = ddterm(3,3) - (1.-thimp)*dt*temp
+              endif
+
               if(linear.eq.1 .or. eqsubtract.eq.1) then
                  temp = b1psichi(g79(:,:,i),ps079,g79(:,:,j))
                  rrterm(1,3) = rrterm(1,3) +     thimp *dt*temp
@@ -860,6 +872,14 @@ subroutine ludefphi_t
                  temp = p1pchi(g79(:,:,i),pe079,g79(:,:,j))                
                  rrterm(3,3) = rrterm(3,3) +     thimp *dt*temp
                  qqterm(3,3) = qqterm(3,3) + (1.-thimp)*dt*temp
+
+                 ! Anisotropic Heat Flux
+                 if(kappar.ne.0) then
+                    temp = p1kappar(g79(:,:,i),g79(:,:,j),ps079,pet79,ni79,b2i79)*kappar &
+                         + p1kappar(g79(:,:,i),ps079,g79(:,:,j),pet79,ni79,b2i79)*kappar
+                    ssterm(3,1) = ssterm(3,1) +     thimp *dt*temp
+                    ddterm(3,1) = ddterm(3,1) - (1.-thimp)*dt*temp
+                 endif
               endif
            endif
 
