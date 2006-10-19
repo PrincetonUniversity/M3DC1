@@ -364,7 +364,16 @@
 !.....define the operators in terms of local coordinates
       call ireaddef
 !
-      print *, "gtri: ", gtri(1,1,:)
+      if(isetup.ne.0) then
+         call opdef1
+         call opdef2
+         if (myrank.eq.0) then
+            call writeit
+         endif
+         if(ntimemax.eq.0) go to 999
+      else
+         call readit
+      endif
 !
 !     initialize superlu matrices
       nrank = n*m*6*numvar
@@ -434,17 +443,7 @@
       if(myrank.eq.0) write(*,*) "done allocating."
 
       if (ier.ne.0) call safestop(5)
-!
-!
-      if(isetup.ne.0) then
-         call opdef1
-         call opdef2
-         if (myrank.eq.0) then
-            call writeit
-         endif
-      else
-         call readit
-      endif
+
 !
 !.....calculate the RHS (forcing function)
       call rhsdef
@@ -2521,9 +2520,10 @@ c$$$      endif
                 ddterm(2,1) = ddterm(2,1) - dt*u12terml*denf            &
      &              *(thimp*(phi(k1)+phi0(k01))-(0.5*phi(k1)+phi0(k01)))
 !
-                ssterm(2,2) = ssterm(2,2) + dt*u78terml*denf            &
+!>>> Changed +dt's to -dt's 10/19/06.  NMF.
+                ssterm(2,2) = ssterm(2,2) - dt*u78terml*denf            &
      &                *thimp*(phi(k2)+phi0(k2))
-                ddterm(2,2) = ddterm(2,2) + dt*u78terml*denf            &
+                ddterm(2,2) = ddterm(2,2) - dt*u78terml*denf            &
      &               *(thimp*(phi(k2)+phi0(k2))-(0.5*phi(k2)+phi0(k2)))
 !
               if(numvar.ge.3) then
