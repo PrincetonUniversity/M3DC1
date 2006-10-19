@@ -20,7 +20,12 @@ module basic
   use p_data
 
   ! transport coefficients
-  real :: amu, etar, kappa, denm, kappat
+  real :: amu         ! viscosity
+  real :: etar        ! resistivity
+  real :: kappa       ! pressure diffusion
+  real :: kappat      ! isotropic temperature conductivity
+  real :: kappar      ! anisotropic (field-aligned) temperature conductivity
+  real :: denm        ! artificial density diffusion
   real :: hyper,hyperi,hyperv,hyperc,hyperp
 
   ! physical parameters
@@ -35,6 +40,7 @@ module basic
   integer :: itaylor  ! equilibrium
   real :: bzero       ! guide field
   real :: p0, pi0     ! total, ion pressures
+  real :: ln          ! length of equilibrium gradient
   real :: eps         ! size of initial perturbation
 
   ! toroidal equilibrium parameters
@@ -79,7 +85,7 @@ module basic
        tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,cb,     &
        bzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,      &
        kappa,iper,jper,iprint,itimer,xzero,zzero,beta,pi0,   &
-       eqsubtract,ianalytic,denm,grav,kappat
+       eqsubtract,ianalytic,denm,grav,kappat,kappar,ln
 
   !     derived quantities
   real :: tt,gamma4,gamma2,gamma3,dpsii,psimin,psilim,pi,              &
@@ -144,7 +150,7 @@ module arrays
        pres(:),pres0(:),r4(:),q4(:),qn4(:),                       &
        b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
        b5vector(:), vtemp(:),                                     &
-       fun1(:),fun4(:),fun2(:),fun3(:)                            
+       fun1(:),fun4(:),fun2(:),fun3(:)
 
 end module arrays
 

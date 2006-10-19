@@ -225,6 +225,22 @@ subroutine phiequ(dum, numberingid)
             enddo
          endif
 
+      case(7)  ! heat conduction test
+
+         dum(ibegin) = z
+         dum(ibegin+1) = 0.0
+         dum(ibegin+2) = 1.0
+         dum(ibegin+3) = 0.0
+         dum(ibegin+4) = 0.0
+         dum(ibegin+5) = 0.0
+         
+         if(numvar.ge.2) then
+            dum(ibegin+6) = bzero
+            do i=ibegin+7,ibegin+11
+               dum(i) = 0.
+            enddo
+         endif
+
       case(100) ! test case
          
          akx = 2.*pi/alx
@@ -427,6 +443,7 @@ subroutine phiinit(dum)
   integer :: l, numnodes, ibegin, iendplusone
   real x, z, akx, akz, akx2, omega, befo, alx, alz, xmin, zmin
   real dum(*)
+  real :: peper, r, r0, loc, locp
   double precision :: coords(3)
 
 ! start a loop over the number of vertices to define initial conditions
@@ -482,6 +499,26 @@ subroutine phiinit(dum)
            dum(ibegin+10) = 0.
            dum(ibegin+11) =  0.
         endif ! on numvar.ge.2
+
+     case(7) ! heat conduction test
+        if(ipres.eq.1) then
+           peper = eps*(p0-pi0)        
+        else
+           peper = eps*p0
+        endif
+
+        r = sqrt(x**2+z**2+eps)
+        r0 = 0.0
+        
+        loc = alx/ln
+        locp = alz/ln
+
+        dum(ibegin+12) = peper*exp(-((x-r0)/loc)**2-(z/locp)**2)
+        dum(ibegin+13) = -2.*(x-r0)*dum(ibegin+12)/loc**2
+        dum(ibegin+14) = -2.*z*dum(ibegin+12)/locp**2
+        dum(ibegin+15) = 2.*(2.*((x-r0)/loc)**2 - 1.)*dum(ibegin+12)/loc**2
+        dum(ibegin+16) = 4.*(x-r0)*z*dum(ibegin+12)/(loc*locp)**2
+        dum(ibegin+17) = 2.*(2.*(z/locp)**2 - 1.)*dum(ibegin+12)/locp**2
    
      end select
 
