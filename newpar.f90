@@ -59,7 +59,6 @@ module basic
   integer :: imask    ! 1 = ignore 2-fluid terms near boundaries
   integer :: ntimemax ! number of timesteps
   integer :: nskip    ! number of timesteps per matrix recalculation
-  integer :: ianalytic   ! 0=numerical 1=analytic integration
   real :: dt          ! timestep
   real :: thimp       ! implicitness parameter
   real :: facw, facd
@@ -85,7 +84,7 @@ module basic
        tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,cb,     &
        bzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,      &
        kappa,iper,jper,iprint,itimer,xzero,zzero,beta,pi0,   &
-       eqsubtract,ianalytic,denm,grav,kappat,kappar,ln
+       eqsubtract,denm,grav,kappat,kappar,ln
 
   !     derived quantities
   real :: tt,gamma4,gamma2,gamma3,dpsii,psimin,psilim,pi,              &
@@ -146,7 +145,7 @@ module arrays
        b2vecini(:), phi(:), phis(:),                              &
        phiold(:), phi0(:), phi1(:),                               &
        jphi(:),jphi0(:),sb1(:),sb2(:),sb3(:),vor(:),vor0(:),      &
-       com(:),com0(:),den(:),den0(:),deni(:),denold(:),denn(:),   &
+       com(:),com0(:),den(:),den0(:),denold(:),                   &
        pres(:),pres0(:),r4(:),q4(:),qn4(:),                       &
        b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
        b5vector(:), vtemp(:),                                     &
@@ -287,15 +286,6 @@ Program Reducedquintic
   if(maxrank .gt. 1) then
      write(*,*) 'Currently analysis can only be done with 1 proc'
      call safestop(42)
-  endif
-
-  ! print out information about triangle #1
-  if(myrank.eq.0) then
-     call nodfac(1,nodeids)
-     call xyznod(nodeids(1), coords)
-     write(*,*) "a,b,c,theta = ",                                   &
-            atri(1), btri(1), ctri(1), ttri(1)
-     write(*,*) "x1, z1", coords(1), coords(2)
   endif
 
   ! sparse_params_objects
@@ -594,17 +584,14 @@ subroutine onestep
   call numnod(numnodes)
   call numfac(numelms)
 
-  denn = den
-  veln = vel
-
   ! define the inverse density array deni
-  if(idens.eq.1) then
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
-        call inverse(den+den0,deni)
-     else
-        call inverse(den,deni)
-     endif
-  endif
+!!$  if(idens.eq.1) then
+!!$     if(linear.eq.1 .or. eqsubtract.eq.1) then
+!!$        call inverse(den+den0,deni)
+!!$     else
+!!$        call inverse(den,deni)
+!!$     endif
+!!$  endif
 
   ! define the current vector jphi and the RHS vectors sb1 and sb2
   !      call newvar(phi,jphi,numnodes,numvar,1,VAR_J,1)
@@ -614,30 +601,22 @@ subroutine onestep
   if(numvar.ge.3) call newvar(phi,sb3,numnodes,numvar,1,VAR_SB3,1)
 
 !  call conserve_tflux()
+
+  if(ntime.le.ntimer+1.or. (linear.eq.0 .and. mod(ntime,nskip).eq.0)) then
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     call ludefall
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        write(*,*) " onestep: Time spent in ludefall:", tend - tstart
+     endif
+  endif
+
+  veln = vel
   
   ! Advance Velocity
   ! ================
 
   ! Calculate LU decomposition of velocity matrix if needed
-  if(ntime.le.ntimer+1.or. &
-       (linear.eq.0 .and. mod(ntime,nskip).eq.0)) then
-     if(myrank.eq.0 .and. iprint.eq.1) then
-        write(*,*) "Calling ludefvel_t.."
-     endif
-
-     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     if(ianalytic.eq.1) then
-        call ludefvel
-     else
-        call ludefvel_t
-     endif
-     if(myrank.eq.0 .and. itimer.eq.1) then
-        call second(tend)
-        write(*,*) " onestep: Time spent in ludefvel:", tend - tstart
-     endif
-         
-     if(myrank.eq.0 .and. iprint.eq.1) write(*,*) "Done ludefvel_t"
-  endif
 
   ! b1vector = r1matrix_sm * phi(n)
   if(iprint.ge.1) write(*,*) "before sparseR8_A_dot_X"
@@ -708,26 +687,12 @@ subroutine onestep
 !!$         veln(i) = vel(i)
 !!$         vel(i) = vtemp(i)
 !!$      enddo
-!!$  veln = vel
   vel = vtemp
 
 !
 ! Advance Density
 ! ===============
   if(idens.eq.1) then
-     if(ntime.le.ntimer+1.or.                                           &
-          (linear.eq.0 .and. mod(ntime,nskip).eq.0)) then
-        if(myrank.eq.0 .and. itimer.ge.1) call second(tstart)
-        if(ianalytic.eq.1) then
-           call ludefden
-        else
-           call ludefden_t
-        endif
-        if(myrank.eq.0 .and. itimer.ge.1) then
-           call second(tend)
-           print *, 'Time spent in ludefden: ', tend-tstart
-        endif
-     endif
      if(iprint.ge.1) write(*,*) "s8handle"
 
      ! b2vector = r8matrix_lu * vel(n+1)
@@ -782,30 +747,7 @@ subroutine onestep
 ! ==============
   
   ! Calculate LU decomposition of field matrix if needed
-  if(ntime.le.ntimer+1.or.                                             &
-       (linear.eq.0 .and. mod(ntime,nskip).eq.0)) then
-     if(myrank.eq.0 .and. iprint.eq.1) then
-        write(*,*) "Calling ludefphi_t.."
-     endif
 
-     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-
-     if(ianalytic.eq.1) then
-        call ludefphi
-     else
-        call ludefphi_t
-     endif
-
-     if(myrank.eq.0 .and. itimer.eq.1) then
-        call second(tend)
-        write(*,*) " onestep: Time spent in ludefphi: ", tend - tstart
-     endif
-         
-     if(myrank.eq.0 .and. iprint.eq.1) then
-        write(*,*) "Done ludefphi_t."
-     endif
-  endif
-  if(iprint.ge.1) write(*,*) "s2handle" 
 #ifdef mpi
 
   ! b2vector = r2matrix_lu * vel(n+1)

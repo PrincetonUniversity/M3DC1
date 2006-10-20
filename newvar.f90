@@ -282,8 +282,13 @@ subroutine newvar_SB1(temp)
         endif
 
         if(idens.eq.1) then
-           call calcavector(itri, deni, 1, 1, avec)
-           call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ni79)
+           if(linear.eq.1 .or. eqsubtract.eq.1) then
+              call calcavector(itri, den+den0, 1, 1, avec)
+           else
+              call calcavector(itri, den, 1, 1, avec)
+           endif
+           call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, nt79)
+           ni79(:,OP_1  ) = 1./nt79(:,OP_1)
         endif
      endif
 
@@ -406,8 +411,13 @@ subroutine newvar_SB2(temp)
      endif
      
      if(idens.eq.1) then
-        call calcavector(itri, deni, 1, 1, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ni79)
+        if(linear.eq.1 .or. eqsubtract.eq.1) then
+           call calcavector(itri, den+den0, 1, 1, avec)
+        else
+           call calcavector(itri, den, 1, 1, avec)
+        endif
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, nt79)
+        ni79(:,OP_1  ) = 1./nt79(:,OP_1)
      endif
 
      do i=1,18

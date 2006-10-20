@@ -359,7 +359,7 @@ subroutine define_fields_25(itri)
   ri4_25 = ri2_25*ri2_25
   r2_25 = r_25*r_25
 
-  call calcavector(itri, veln, 1, numvar, avec)
+  call calcavector(itri, vel, 1, numvar, avec)
   call eval_ops(avec, si_25, eta_25, ttri(itri), ri_25,25, ph125)
   call calcavector(itri, phi, 1, numvar, avec)
   call eval_ops(avec, si_25, eta_25, ttri(itri), ri_25,25, ps125)
@@ -377,7 +377,7 @@ subroutine define_fields_25(itri)
   endif
 
   if(numvar.ge.2) then
-     call calcavector(itri, veln, 2, numvar, avec)
+     call calcavector(itri, vel, 2, numvar, avec)
      call eval_ops(avec, si_25, eta_25, ttri(itri), ri_25,25, vz125)
      call calcavector(itri, phi, 2, numvar, avec)
      call eval_ops(avec, si_25, eta_25, ttri(itri), ri_25,25, bz125)
@@ -395,7 +395,7 @@ subroutine define_fields_25(itri)
      endif
     
      if(numvar.ge.3) then
-        call calcavector(itri, veln, 3, numvar, avec)
+        call calcavector(itri, vel, 3, numvar, avec)
         call eval_ops(avec, si_25, eta_25, ttri(itri), ri_25,25, ch125)
 
         if(ipres.eq.1) then
@@ -439,7 +439,7 @@ subroutine define_fields_25(itri)
   endif
   
   if(idens.eq.1) then
-     call calcavector(itri, denn, 1, 1, avec)
+     call calcavector(itri, den, 1, 1, avec)
      call eval_ops(avec, si_25, eta_25, ttri(itri), ri_25,25, n125)
      
      if(linear.eq.1 .or. eqsubtract.eq.1) then
@@ -493,7 +493,7 @@ subroutine define_fields_79(itri)
   call calcavector(itri, sb1, 1, 1, avec)
   call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, sb179)
   
-  call calcavector(itri, veln, 1, numvar, avec)
+  call calcavector(itri, vel, 1, numvar, avec)
   call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ph179)
   call calcavector(itri, phi, 1, numvar, avec)
   call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ps179)
@@ -518,7 +518,7 @@ subroutine define_fields_79(itri)
      call calcavector(itri, sb2, 1, 1, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, sb279)
 
-     call calcavector(itri, veln, 2, numvar, avec)
+     call calcavector(itri, vel, 2, numvar, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, vz179)
      call calcavector(itri, phi, 2, numvar, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, bz179)
@@ -538,7 +538,7 @@ subroutine define_fields_79(itri)
      endif
     
      if(numvar.ge.3) then
-        call calcavector(itri, veln, 3, numvar, avec)
+        call calcavector(itri, vel, 3, numvar, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ch179)
 
         if(ipres.eq.1) then
@@ -584,7 +584,7 @@ subroutine define_fields_79(itri)
   endif
   
   if(idens.eq.1) then
-     call calcavector(itri, denn, 1, 1, avec)
+     call calcavector(itri, den, 1, 1, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, n179)
      
      if(linear.eq.1 .or. eqsubtract.eq.1) then
@@ -595,8 +595,15 @@ subroutine define_fields_79(itri)
         nt79 = n179
      endif
 
-     call calcavector(itri, deni, 1, 1, avec)
-     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ni79)
+     ! calculate 1/n
+     ni79(:,OP_1  ) = 1./nt79(:,OP_1)
+     temp79a = -ni79(:,OP_1)**2
+     ni79(:,OP_DR ) = temp79a*nt79(:,OP_DR)
+     ni79(:,OP_DZ ) = temp79a*nt79(:,OP_DZ)
+     temp79b = -2.*temp79a*ni79(:,OP_1)
+     ni79(:,OP_DRR) = temp79b*nt79(:,OP_DR)**2           +temp79a*nt79(:,OP_DRR)
+     ni79(:,OP_DRZ) = temp79b*nt79(:,OP_DR)*nt79(:,OP_DZ)+temp79a*nt79(:,OP_DRZ)
+     ni79(:,OP_DZZ) = temp79b*nt79(:,OP_DZ)**2           +temp79a*nt79(:,OP_DZZ)
   endif
 
   if(numvar.eq.1) then
