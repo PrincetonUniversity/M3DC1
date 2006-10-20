@@ -596,14 +596,16 @@ subroutine define_fields_79(itri)
      endif
 
      ! calculate 1/n
-     ni79(:,OP_1  ) = 1./nt79(:,OP_1)
-     temp79a = -ni79(:,OP_1)**2
-     ni79(:,OP_DR ) = temp79a*nt79(:,OP_DR)
-     ni79(:,OP_DZ ) = temp79a*nt79(:,OP_DZ)
-     temp79b = -2.*temp79a*ni79(:,OP_1)
-     ni79(:,OP_DRR) = temp79b*nt79(:,OP_DR)**2           +temp79a*nt79(:,OP_DRR)
-     ni79(:,OP_DRZ) = temp79b*nt79(:,OP_DR)*nt79(:,OP_DZ)+temp79a*nt79(:,OP_DRZ)
-     ni79(:,OP_DZZ) = temp79b*nt79(:,OP_DZ)**2           +temp79a*nt79(:,OP_DZZ)
+     call calcavector(itri, deni, 1, 1, avec)
+     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ni79)
+!!$     ni79(:,OP_1  ) = 1./nt79(:,OP_1)
+!!$     temp79a = -ni79(:,OP_1)**2
+!!$     ni79(:,OP_DR ) = temp79a*nt79(:,OP_DR)
+!!$     ni79(:,OP_DZ ) = temp79a*nt79(:,OP_DZ)
+!!$     temp79b = -2.*temp79a*ni79(:,OP_1)
+!!$     ni79(:,OP_DRR) = temp79b*nt79(:,OP_DR)**2           +temp79a*nt79(:,OP_DRR)
+!!$     ni79(:,OP_DRZ) = temp79b*nt79(:,OP_DR)*nt79(:,OP_DZ)+temp79a*nt79(:,OP_DRZ)
+!!$     ni79(:,OP_DZZ) = temp79b*nt79(:,OP_DZ)**2           +temp79a*nt79(:,OP_DZZ)
   endif
 
   if(numvar.eq.1) then

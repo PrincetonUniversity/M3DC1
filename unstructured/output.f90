@@ -253,7 +253,7 @@ subroutine output
   
   call oneplot(sb1,1,1,"sb1 ",0)
   if(numvar.ge.2) call oneplot(sb2,1,1,"sb2 ",0)
-!  if(idens.eq.1) call oneplot(deni,1,1,"deni")
+  if(idens.eq.1) call oneplot(deni,1,1,"deni",0)
 
   call writeHDF5time(iframe-1,time)
   call wrrestart

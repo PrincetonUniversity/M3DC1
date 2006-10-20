@@ -67,7 +67,7 @@
      &     fun3(maxdofs1), jphi(maxdofs1),jphi0(maxdofs1),                 &
      &     sb1(maxdofs1), sb2(maxdofs1), sb3(maxdofs1), vor(maxdofs1),     &
      &     vor0(maxdofs1),  com(maxdofs1), com0(maxdofs1),                 & 
-     &     den(maxdofs1), den0(maxdofs1),                                  &
+     &     den(maxdofs1), den0(maxdofs1),  deni(maxdofs1),                 &
      &     pres(maxdofs1), pres0(maxdofs1),                                &
      &     qn4(maxdofs1))
 !

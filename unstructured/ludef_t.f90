@@ -18,7 +18,7 @@ subroutine ludefall
 #endif
 
   integer :: itri, numelms, i
-  real :: x, z, xmin, zmin, factor, pefac, dbf
+  real :: x, z, xmin, zmin, factor, dbf
 !  real :: deex, hypf
 
   real :: tstart, tend, tfield, telm
@@ -664,16 +664,6 @@ subroutine ludefphi_n(itri,dbf)
   integer :: i, i1, i2, i3, j, j1
   real, dimension(3,3) :: ssterm, ddterm, rrterm, qqterm
   real :: temp
-
-  real :: pefac
-
-  if(ipres.eq.1) then
-     pefac = 1.
-  else
-     pefac = (p0-pi0)/p0
-  endif
-
-  
 
      do i=1,18
 
