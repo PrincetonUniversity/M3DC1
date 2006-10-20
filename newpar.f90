@@ -74,6 +74,7 @@ module basic
   
   integer :: maxs,itest,isecondorder,istart
   real :: beta
+  real :: pefac
 !
 !.....input quantities---defined in subroutine input or in namelist
 !
@@ -145,7 +146,7 @@ module arrays
        b2vecini(:), phi(:), phis(:),                              &
        phiold(:), phi0(:), phi1(:),                               &
        jphi(:),jphi0(:),sb1(:),sb2(:),sb3(:),vor(:),vor0(:),      &
-       com(:),com0(:),den(:),den0(:),denold(:),                   &
+       com(:),com0(:),den(:),den0(:),denold(:),deni(:),           &
        pres(:),pres0(:),r4(:),q4(:),qn4(:),                       &
        b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
        b5vector(:), vtemp(:),                                     &
@@ -249,16 +250,6 @@ Program Reducedquintic
 #else
   print *, 'starting program'
 #endif
-  call numnod(numnodes)
-  call numfac(numelms)
-  write(*,*) 'numnodes and numfaces',numnodes,numelms
-
-  ! arrays for triangle parameters
-  allocate(atri(numelms),btri(numelms),ctri(numelms),ttri(numelms),      &
-       gtri(20,18,numelms)) 
-  
-  call precalc_whattri()
-
   if(myrank.eq.0) then
      call date_and_time( datec, timec)
      write(*,1001) datec(1:4),datec(5:6),datec(7:8),                        &
@@ -268,6 +259,16 @@ Program Reducedquintic
   endif
 
   pi = acos(-1.)
+
+  call numnod(numnodes)
+  call numfac(numelms)
+  write(*,*) 'numnodes and numfaces',numnodes,numelms
+
+  ! arrays for triangle parameters
+  allocate(atri(numelms),btri(numelms),ctri(numelms),ttri(numelms),      &
+       gtri(20,18,numelms)) 
+  
+  call precalc_whattri()
   
   ! special switch installed 12/03/04 to write slu matrices
   idebug = 0
@@ -287,6 +288,19 @@ Program Reducedquintic
      write(*,*) 'Currently analysis can only be done with 1 proc'
      call safestop(42)
   endif
+
+
+  if(ipres.eq.1) then
+     pefac = 1.
+  else
+     if(p0.gt.0) then
+        pefac = (p0-pi0)/p0
+     else
+        pefac = 0.
+     endif
+     print *, "pefac = ", pefac
+  endif
+
 
   ! sparse_params_objects
   allocate(spo_numvar1, spo_numvar2, spo_numvar3)
@@ -585,19 +599,18 @@ subroutine onestep
   call numfac(numelms)
 
   ! define the inverse density array deni
-!!$  if(idens.eq.1) then
-!!$     if(linear.eq.1 .or. eqsubtract.eq.1) then
-!!$        call inverse(den+den0,deni)
-!!$     else
-!!$        call inverse(den,deni)
-!!$     endif
-!!$  endif
+  if(idens.eq.1) then
+     if(linear.eq.1 .or. eqsubtract.eq.1) then
+        call inverse(den+den0,deni)
+     else
+        call inverse(den,deni)
+     endif
+  endif
 
   ! define the current vector jphi and the RHS vectors sb1 and sb2
   !      call newvar(phi,jphi,numnodes,numvar,1,VAR_J,1)
   call newvar(phi,sb1,numnodes,numvar,1,VAR_SB1,1)
-!!$  if(numvar.ge.2) call newvar(phi,sb2,numnodes,numvar,1,VAR_SB2,1)
-  sb2 = 0.
+  if(numvar.ge.2) call newvar(phi,sb2,numnodes,numvar,1,VAR_SB2,1)
   if(numvar.ge.3) call newvar(phi,sb3,numnodes,numvar,1,VAR_SB3,1)
 
 !  call conserve_tflux()
