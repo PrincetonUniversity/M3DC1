@@ -469,9 +469,9 @@ subroutine newvar_SB2(temp)
 
         ! [pe, 1/n]
         if(numvar.ge.3 .and. idens.eq.1) then
-           sum = sum &
-                + int4(ri_79,g79(:,OP_1,i),ni79(:,OP_DZ),pet79(:,OP_DR),weight_79,79) &
-                - int4(ri_79,g79(:,OP_1,i),ni79(:,OP_DR),pet79(:,OP_DZ),weight_79,79)
+           sum = sum + pefac*dbf* &
+                (int4(ri_79,g79(:,OP_1,i),ni79(:,OP_DZ),pet79(:,OP_DR),weight_79,79) &
+                -int4(ri_79,g79(:,OP_1,i),ni79(:,OP_DR),pet79(:,OP_DZ),weight_79,79))
         endif
 
         temp(ione) = temp(ione) + sum

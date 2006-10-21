@@ -823,6 +823,31 @@ end function v2vchin
 
 
 
+! v2vhypv
+! =======
+real function v2vhypv(e,f)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f
+  real :: temp
+
+  temp = -int2(e(:,OP_LP),f(:,OP_LP),weight_79,79)
+
+  if(itor.eq.1) then
+     temp = temp - 2.* &
+          (int3(ri2_79,e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
+          +int3(ri2_79,e(:,OP_DR),f(:,OP_DR),weight_79,79)) &
+          + 3.*int3(ri4_79,e(:,OP_1),f(:,OP_1),weight_79,79)
+  endif
+
+  v2vhypv = temp
+  return
+end function v2vhypv
+
 !===============================================================================
 ! V3 TERMS
 !===============================================================================
