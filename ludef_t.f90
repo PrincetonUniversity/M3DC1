@@ -19,7 +19,7 @@ subroutine ludefall
 
   integer :: itri, numelms, i
   real :: x, z, xmin, zmin, factor, dbf
-!  real :: deex, hypf
+  real :: deex
 
   real :: tstart, tend, tfield, telm
   real :: temp
@@ -93,7 +93,7 @@ subroutine ludefall
         tfield = tfield + tend - tstart
      endif
      
-!     call getdeex(itri,deex)   
+     call getdeex(itri,deex)   
 
      if(imask.eq.1) then
         call cogfac(itri,cogcoords)
@@ -107,7 +107,7 @@ subroutine ludefall
 
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
-     call ludefvel_n(itri,dbf)
+     call ludefvel_n(itri,dbf,deex)
      call ludefphi_n(itri,dbf)
      if(idens.eq.1) call ludefden_n(itri,dbf)
 
@@ -162,7 +162,7 @@ subroutine ludefall
 
 end subroutine ludefall
 
-subroutine ludefvel_n(itri,dbf)
+subroutine ludefvel_n(itri,dbf,deex)
 
   use basic
   use nintegrate_mod
@@ -174,11 +174,15 @@ subroutine ludefvel_n(itri,dbf)
   implicit none
 
   integer, intent(in) :: itri
-  real, intent(in) :: dbf
+  real, intent(in) :: dbf, deex
 
   integer :: i, i1, i2, i3, j, j1
   real, dimension(3,3) :: ssterm, ddterm, rrterm
   real :: temp
+  real :: hypv, thimpv
+
+  thimpv = 1.
+  hypv = hyperv*deex**2
 
   do i=1,18
 
@@ -262,18 +266,24 @@ subroutine ludefvel_n(itri,dbf)
            ssterm(2,2) = ssterm(2,2) + temp
            ddterm(2,2) = ddterm(2,2) + temp
 
-           temp = v2vmu(g79(:,:,i),g79(:,:,j))*amu &
+           temp = v2vmu  (g79(:,:,i),g79(:,:,j))*amu &
                 + thimp*dt* &
                 (v2vpsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79))
            ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
            ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
 
+           if(hyperv.ne.0) then
+              temp = v2vhypv(g79(:,:,i),g79(:,:,j))*amu*hypv
+              ssterm(2,2) = ssterm(2,2) -     thimpv *dt*temp
+              ddterm(2,2) = ddterm(2,2) + (1.-thimpv)*dt*temp
+           endif
+
            temp = v2vun(g79(:,:,i),g79(:,:,j),ph179,nt79)
            ssterm(2,2) = ssterm(2,2) -      thimp *dt*temp
            ddterm(2,2) = ddterm(2,2) + (0.5-thimp)*dt*temp
 
-           rrterm(1,2) = rrterm(1,2) + thimp*dt*dt* &
-                (v1bsb2   (g79(:,:,i),g79(:,:,j),sb279))
+!!$           rrterm(1,2) = rrterm(1,2) + thimp*dt*dt* &
+!!$                (v1bsb2   (g79(:,:,i),g79(:,:,j),sb279))
            
            rrterm(2,1) = rrterm(2,1) + dt* &
                 (v2psib(g79(:,:,i),g79(:,:,j),bzs79)) &
@@ -428,7 +438,7 @@ subroutine ludefvel_n(itri,dbf)
                 (v3bb(g79(:,:,i),g79(:,:,j),bzs79)    &           ! passed: 1
                 +v3bb(g79(:,:,i),bzs79,g79(:,:,j))) + &           ! passed: 1
                 thimp*dt*dt*                          &
-                (v3bsb2(g79(:,:,i),g79(:,:,j),sb279))             ! passed: 1
+                (v3bsb2(g79(:,:,i),g79(:,:,j),sb279))
            
            rrterm(3,3) = rrterm(3,3) + dt* &
                 v3p(g79(:,:,i),g79(:,:,j))                        ! passed: 1
@@ -567,7 +577,8 @@ subroutine ludefvel_n(itri,dbf)
            r4(i1) = r4(i1) + thimp*dt*dt* &
                 (v1bsb2(g79(:,:,i),bz079,sb279))
            r4(i2) = r4(i2) + dt* &
-                (v2vmu(g79(:,:,i),vz079)*amu)
+                (v2vmu  (g79(:,:,i),vz079)*amu &
+                +v2vhypv(g79(:,:,i),vz079)*amu*hypv)
            
            ! DENSITY TERMS
            if(grav.ne.0) then          
@@ -677,8 +688,6 @@ subroutine ludefphi_n(itri,dbf)
            ddterm = 0.
            rrterm = 0.
            qqterm = 0.
-
-!           hypf = hyper*deex**2
 
            j1 = isvaln(itri,j)
 
