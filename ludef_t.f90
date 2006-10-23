@@ -383,9 +383,9 @@ subroutine ludefvel_n(itri,dbf,deex)
            
            temp = v3umu   (g79(:,:,i),g79(:,:,j)) &
                 +thimp*dt* &
-                (v3up     (g79(:,:,i),g79(:,:,j),pt79) &               ! 
-!!$!                   +v3upsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79) &        !
-                +v3ubb    (g79(:,:,i),g79(:,:,j),bzt79,bzt79))          !
+                (v3up     (g79(:,:,i),g79(:,:,j),pt79) &               ! passed: 1
+                +v3upsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79) &        ! passed: 1
+                +v3ubb    (g79(:,:,i),g79(:,:,j),bzt79,bzt79))         ! passed: 1
            if(grav.ne.0) then
               temp = temp + thimp*dt* &
                    v3ungrav(g79(:,:,i),g79(:,:,j),nt79)*grav
@@ -410,15 +410,15 @@ subroutine ludefvel_n(itri,dbf,deex)
            ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp
            ddterm(3,3) = ddterm(3,3) + (1.-thimp)*dt*temp
            
-           temp = v3uchin  (g79(:,:,i),ph179,g79(:,:,j),nt79) &    ! ***
+           temp = v3uchin  (g79(:,:,i),ph179,g79(:,:,j),nt79) &    ! passed: 1
                 + v3chichin(g79(:,:,i),g79(:,:,j),ch179,nt79) &    ! passed: 1
                 + v3chichin(g79(:,:,i),ch179,g79(:,:,j),nt79)      ! passed: 1
            ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp
            ddterm(3,3) = ddterm(3,3) + (.5-thimp)*dt*temp
            
-           temp =  v3chip     (g79(:,:,i),g79(:,:,j),pt79) &         ! passed: 1
-!!$!                   + v3chipsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79) &  ! FAILED: 1
-                + v3chibb    (g79(:,:,i),g79(:,:,j),bzt79,bzt79)     ! passed: 1
+           temp = v3chip     (g79(:,:,i),g79(:,:,j),pt79)        &  ! passed: 1
+                + v3chipsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79) &  ! ***
+                + v3chibb    (g79(:,:,i),g79(:,:,j),bzt79,bzt79)    ! passed: 1
            if(grav.ne.0) then
               temp = temp + &
                    v3chingrav(g79(:,:,i),g79(:,:,j),nt79)*grav
