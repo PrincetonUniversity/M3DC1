@@ -1148,28 +1148,29 @@ real function v3upsipsi(e,f,g,h)
 
   real :: temp
 
-  ! Linearize in u
-  ! ~~~~~~~~~~~~~~
-
-  ! [b,c]
-  temp79a = f(:,OP_DZ )*g(:,OP_DR ) - f(:,OP_DR )*g(:,OP_DZ)
-
-  ! [b,c],r
+  ! [f,g],r
   temp79b = f(:,OP_DRZ)*g(:,OP_DR ) - f(:,OP_DRR)*g(:,OP_DZ) &
        +    f(:,OP_DZ )*g(:,OP_DRR) - f(:,OP_DR )*g(:,OP_DRZ)
 
-  ! [b,c],z
+  ! [f,g],z
   temp79c = f(:,OP_DZZ)*g(:,OP_DR ) - f(:,OP_DRZ)*g(:,OP_DZ) &
        +    f(:,OP_DZ )*g(:,OP_DRZ) - f(:,OP_DR )*g(:,OP_DZZ)
 
-  temp =-int4(ri_79,temp79b,e(:,OP_DRZ),h(:,OP_DRZ),weight_79,79) & 
-       - int4(ri_79,temp79b,e(:,OP_DRR),h(:,OP_DRR),weight_79,79) &
-       - int4(ri_79,temp79c,e(:,OP_DZZ),h(:,OP_DZZ),weight_79,79) & 
-       - int4(ri_79,temp79c,e(:,OP_DRZ),h(:,OP_DRZ),weight_79,79) &
-       + int4(ri_79,e(:,OP_DR),temp79b,h(:,OP_GS),weight_79,79) &
-       + int4(ri_79,e(:,OP_DZ),temp79c,h(:,OP_GS),weight_79,79)
+  temp =-int4(ri_79,temp79b,e(:,OP_DRR),h(:,OP_DR ),weight_79,79) & 
+       - int4(ri_79,temp79b,e(:,OP_DR ),h(:,OP_DRR),weight_79,79) &
+       - int4(ri_79,temp79b,e(:,OP_DRZ),h(:,OP_DZ ),weight_79,79) & 
+       - int4(ri_79,temp79b,e(:,OP_DZ ),h(:,OP_DRZ),weight_79,79) &
+       - int4(ri_79,temp79c,e(:,OP_DRZ),h(:,OP_DR ),weight_79,79) & 
+       - int4(ri_79,temp79c,e(:,OP_DR ),h(:,OP_DRZ),weight_79,79) &
+       - int4(ri_79,temp79c,e(:,OP_DZZ),h(:,OP_DZ ),weight_79,79) & 
+       - int4(ri_79,temp79c,e(:,OP_DZ ),h(:,OP_DZZ),weight_79,79) &
+       + int4(ri_79,temp79b,e(:,OP_DR ),h(:,OP_GS ),weight_79,79) &
+       + int4(ri_79,temp79c,e(:,OP_DZ ),h(:,OP_GS ),weight_79,79)
 
   if(itor.eq.1) then
+     ! [f,g]
+     temp79a = f(:,OP_DZ )*g(:,OP_DR ) - f(:,OP_DR )*g(:,OP_DZ)
+
      temp = temp &
           + int4(ri2_79,e(:,OP_DR ),temp79a,h(:,OP_GS ),weight_79,79) &
           - int4(ri2_79,e(:,OP_DRZ),temp79a,h(:,OP_DZ ),weight_79,79) &
@@ -1260,19 +1261,15 @@ real function v3chipsipsi(e,f,g,h)
   implicit none
 
   real, intent(in), dimension(79,OP_NUM) :: e, f, g, h
-
   real :: temp
 
-  ! <f,g>
-  temp79a = f(:,OP_DR )*g(:,OP_DR ) + f(:,OP_DZ )*g(:,OP_DZ )
-
   ! <f,g>,r
-  temp79b = f(:,OP_DRR)*g(:,OP_DR ) + f(:,OP_DZ )*g(:,OP_DRZ) &
-       +    f(:,OP_DRR)*g(:,OP_DR ) + f(:,OP_DZ )*g(:,OP_DRZ)
+  temp79b = f(:,OP_DRR)*g(:,OP_DR ) + f(:,OP_DRZ)*g(:,OP_DZ ) &
+       +    f(:,OP_DR )*g(:,OP_DRR) + f(:,OP_DZ )*g(:,OP_DRZ)
 
   ! <f,g>,z
-  temp79c = f(:,OP_DRZ)*g(:,OP_DR ) + f(:,OP_DZ )*g(:,OP_DZZ) &
-       +    f(:,OP_DRZ)*g(:,OP_DR ) + f(:,OP_DZ )*g(:,OP_DZZ)
+  temp79c = f(:,OP_DRZ)*g(:,OP_DR ) + f(:,OP_DZZ)*g(:,OP_DZ ) &
+       +    f(:,OP_DR )*g(:,OP_DRZ) + f(:,OP_DZ )*g(:,OP_DZZ)
 
   temp = int4(ri2_79,temp79b,e(:,OP_DRZ),h(:,OP_DZ ),weight_79,79) &
        + int4(ri2_79,temp79b,e(:,OP_DRR),h(:,OP_DR ),weight_79,79) &
@@ -1295,7 +1292,6 @@ real function v3chipsipsi(e,f,g,h)
   endif
 
   v3chipsipsi = temp
-
   return
 end function v3chipsipsi
 
