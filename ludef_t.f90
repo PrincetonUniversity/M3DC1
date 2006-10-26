@@ -93,7 +93,7 @@ subroutine ludefall
         tfield = tfield + tend - tstart
      endif
      
-     call getdeex(itri,deex)   
+     call getdeex(itri,deex)
 
      if(imask.eq.1) then
         call cogfac(itri,cogcoords)
@@ -108,7 +108,7 @@ subroutine ludefall
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
      call ludefvel_n(itri,dbf,deex)
-     call ludefphi_n(itri,dbf)
+     call ludefphi_n(itri,dbf,deex)
      if(idens.eq.1) call ludefden_n(itri,dbf)
 
   end do
@@ -659,7 +659,7 @@ subroutine ludefvel_n(itri,dbf,deex)
 end subroutine ludefvel_n
 
 
-subroutine ludefphi_n(itri,dbf)
+subroutine ludefphi_n(itri,dbf,deex)
   use basic
   use nintegrate_mod
   use metricterms_n
@@ -670,322 +670,325 @@ subroutine ludefphi_n(itri,dbf)
   implicit none
 
   integer, intent(in) :: itri
-  real, intent(in) :: dbf
+  real, intent(in) :: dbf,deex
 
   integer :: i, i1, i2, i3, j, j1
   real, dimension(3,3) :: ssterm, ddterm, rrterm, qqterm
-  real :: temp
+  real :: temp, hypf, hypi
 
-     do i=1,18
+  hypf = hyper *deex**2
+  hypi = hyperi*deex**2
 
-        i1 = isvaln(itri,i)
-        i2 = i1 + 6
-        i3 = i2 + 6
+  do i=1,18
 
-        do j=1,18
+     i1 = isvaln(itri,i)
+     i2 = i1 + 6
+     i3 = i2 + 6
 
-           ssterm = 0.
-           ddterm = 0.
-           rrterm = 0.
-           qqterm = 0.
+     do j=1,18
+        
+        ssterm = 0.
+        ddterm = 0.
+        rrterm = 0.
+        qqterm = 0.
 
-           j1 = isvaln(itri,j)
+        j1 = isvaln(itri,j)
 
-           ! NUMVAR = 1
-           ! ~~~~~~~~~~
-           temp = b1psi(g79(:,:,i),g79(:,:,j))
-           ssterm(1,1) = ssterm(1,1) + temp
-           ddterm(1,1) = ddterm(1,1) + temp
+        ! NUMVAR = 1
+        ! ~~~~~~~~~~
+        temp = b1psi(g79(:,:,i),g79(:,:,j))
+        ssterm(1,1) = ssterm(1,1) + temp
+        ddterm(1,1) = ddterm(1,1) + temp
 
-           temp = b1psieta(g79(:,:,i),g79(:,:,j))*etar  &
-                + b1psiu  (g79(:,:,i),g79(:,:,j),pht79)
+        temp = b1psieta(g79(:,:,i),g79(:,:,j),hypf)*etar  &
+             + b1psiu  (g79(:,:,i),g79(:,:,j),pht79)
+        ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
+        ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
+
+        temp = b1psiu(g79(:,:,i),ps179,g79(:,:,j))
+        rrterm(1,1) = rrterm(1,1) + thimp*dt*temp
+        qqterm(1,1) = qqterm(1,1) - thimp*dt*temp
+
+        if(linear.eq.1 .or. eqsubtract.eq.1) then
+           temp = b1psiu(g79(:,:,i),ps079,g79(:,:,j))
+           rrterm(1,1) = rrterm(1,1) +     thimp *dt*temp
+           qqterm(1,1) = qqterm(1,1) + (1.-thimp)*dt*temp
+        endif
+
+        ! NUMVAR = 2
+        ! ~~~~~~~~~~
+        if(numvar.ge.2) then
+           
+           temp = b1psibd(g79(:,:,i),g79(:,:,j),bz179,ni79)*dbf              
            ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
-           ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
+           ddterm(1,1) = ddterm(1,1) + (.5-thimp)*dt*temp
+           
+           temp = b1psibd(g79(:,:,i),ps179,g79(:,:,j),ni79)*dbf              
+           ssterm(1,2) = ssterm(1,2) -     thimp *dt*temp
+           ddterm(1,2) = ddterm(1,2) + (.5-thimp)*dt*temp
+           
+           temp = b2psiv   (g79(:,:,i),g79(:,:,j),vzt79)
+           ssterm(2,1) = ssterm(2,1) -     thimp *dt*temp
+           ddterm(2,1) = ddterm(2,1) + (1.-thimp)*dt*temp
 
-           temp = b1psiu(g79(:,:,i),ps179,g79(:,:,j))
-           rrterm(1,1) = rrterm(1,1) + thimp*dt*temp
-           qqterm(1,1) = qqterm(1,1) - thimp*dt*temp
+           temp = b2psipsid(g79(:,:,i),g79(:,:,j),ps179,ni79)*dbf &
+                + b2psipsid(g79(:,:,i),ps179,g79(:,:,j),ni79)*dbf
+           ssterm(2,1) = ssterm(2,1) -     thimp *dt*temp
+           ddterm(2,1) = ddterm(2,1) + (.5-thimp)*dt*temp
+
+           temp = b2b(g79(:,:,i),g79(:,:,j))
+           ssterm(2,2) = ssterm(2,2) + temp
+           ddterm(2,2) = ddterm(2,2) + temp
+
+           temp = b2beta(g79(:,:,i),g79(:,:,j),hypi)*etar &
+                + b2bu  (g79(:,:,i),g79(:,:,j),pht79)
+           ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
+           ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
+
+           temp = b2bbd(g79(:,:,i),g79(:,:,j),bz179,ni79)*dbf &
+                + b2bbd(g79(:,:,i),bz179,g79(:,:,j),ni79)*dbf
+           ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
+           ddterm(2,2) = ddterm(2,2) + (.5-thimp)*dt*temp
+
+           temp = b2bu  (g79(:,:,i),bz179,g79(:,:,j))
+           rrterm(2,1) = rrterm(2,1) + thimp*dt*temp
+           qqterm(2,1) = qqterm(2,1) - thimp*dt*temp
+
+           temp = b2psiv(g79(:,:,i),ps179,g79(:,:,j))
+           rrterm(2,2) = rrterm(2,2) + thimp*dt*temp
+           qqterm(2,2) = qqterm(2,2) - thimp*dt*temp
 
            if(linear.eq.1 .or. eqsubtract.eq.1) then
-              temp = b1psiu(g79(:,:,i),ps079,g79(:,:,j))
-              rrterm(1,1) = rrterm(1,1) +     thimp *dt*temp
-              qqterm(1,1) = qqterm(1,1) + (1.-thimp)*dt*temp
-           endif
-
-           ! NUMVAR = 2
-           ! ~~~~~~~~~~
-           if(numvar.ge.2) then
-
-              temp = b1psibd(g79(:,:,i),g79(:,:,j),bz179,ni79)*dbf              
+              temp = b1psibd(g79(:,:,i),g79(:,:,j),bz079,ni79)*dbf              
               ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
-              ddterm(1,1) = ddterm(1,1) + (.5-thimp)*dt*temp
-
-              temp = b1psibd(g79(:,:,i),ps179,g79(:,:,j),ni79)*dbf              
+              ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
+              
+              temp = b1psibd(g79(:,:,i),ps079,g79(:,:,j),ni79)*dbf              
               ssterm(1,2) = ssterm(1,2) -     thimp *dt*temp
-              ddterm(1,2) = ddterm(1,2) + (.5-thimp)*dt*temp
+              ddterm(1,2) = ddterm(1,2) + (1.-thimp)*dt*temp
 
-              temp = b2psiv   (g79(:,:,i),g79(:,:,j),vzt79)
+              temp = b2psipsid(g79(:,:,i),g79(:,:,j),ps079,ni79)*dbf &
+                   + b2psipsid(g79(:,:,i),ps079,g79(:,:,j),ni79)*dbf
               ssterm(2,1) = ssterm(2,1) -     thimp *dt*temp
               ddterm(2,1) = ddterm(2,1) + (1.-thimp)*dt*temp
 
-              temp = b2psipsid(g79(:,:,i),g79(:,:,j),ps179,ni79)*dbf &
-                   + b2psipsid(g79(:,:,i),ps179,g79(:,:,j),ni79)*dbf
-              ssterm(2,1) = ssterm(2,1) -     thimp *dt*temp
-              ddterm(2,1) = ddterm(2,1) + (.5-thimp)*dt*temp
-
-              temp = b2b(g79(:,:,i),g79(:,:,j))
-              ssterm(2,2) = ssterm(2,2) + temp
-              ddterm(2,2) = ddterm(2,2) + temp
-
-              temp = b2beta(g79(:,:,i),g79(:,:,j))*etar &
-                   + b2bu  (g79(:,:,i),g79(:,:,j),pht79)
+              temp = b2bbd (g79(:,:,i),g79(:,:,j),bz079,ni79)*dbf &
+                   + b2bbd (g79(:,:,i),bz079,g79(:,:,j),ni79)*dbf
               ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
               ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
 
-              temp = b2bbd(g79(:,:,i),g79(:,:,j),bz179,ni79)*dbf &
-                   + b2bbd(g79(:,:,i),bz179,g79(:,:,j),ni79)*dbf
-              ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
-              ddterm(2,2) = ddterm(2,2) + (.5-thimp)*dt*temp
+              temp = b2bu  (g79(:,:,i),bz079,g79(:,:,j))
+              rrterm(2,1) = rrterm(2,1) +     thimp *dt*temp
+              qqterm(2,1) = qqterm(2,1) + (1.-thimp)*dt*temp
 
-              temp = b2bu  (g79(:,:,i),bz179,g79(:,:,j))
-              rrterm(2,1) = rrterm(2,1) + thimp*dt*temp
-              qqterm(2,1) = qqterm(2,1) - thimp*dt*temp
-
-              temp = b2psiv(g79(:,:,i),ps179,g79(:,:,j))
-              rrterm(2,2) = rrterm(2,2) + thimp*dt*temp
-              qqterm(2,2) = qqterm(2,2) - thimp*dt*temp
-
-              if(linear.eq.1 .or. eqsubtract.eq.1) then
-                 temp = b1psibd(g79(:,:,i),g79(:,:,j),bz079,ni79)*dbf              
-                 ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
-                 ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
-
-                 temp = b1psibd(g79(:,:,i),ps079,g79(:,:,j),ni79)*dbf              
-                 ssterm(1,2) = ssterm(1,2) -     thimp *dt*temp
-                 ddterm(1,2) = ddterm(1,2) + (1.-thimp)*dt*temp
-
-                 temp = b2psipsid(g79(:,:,i),g79(:,:,j),ps079,ni79)*dbf &
-                      + b2psipsid(g79(:,:,i),ps079,g79(:,:,j),ni79)*dbf
-                 ssterm(2,1) = ssterm(2,1) -     thimp *dt*temp
-                 ddterm(2,1) = ddterm(2,1) + (1.-thimp)*dt*temp
-
-                 temp = b2bbd (g79(:,:,i),g79(:,:,j),bz079,ni79)*dbf &
-                      + b2bbd (g79(:,:,i),bz079,g79(:,:,j),ni79)*dbf
-                 ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
-                 ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
-
-                 temp = b2bu  (g79(:,:,i),bz079,g79(:,:,j))
-                 rrterm(2,1) = rrterm(2,1) +     thimp *dt*temp
-                 qqterm(2,1) = qqterm(2,1) + (1.-thimp)*dt*temp
-
-                 temp = b2psiv(g79(:,:,i),ps079,g79(:,:,j))
-                 rrterm(2,2) = rrterm(2,2) +     thimp *dt*temp
-                 qqterm(2,2) = qqterm(2,2) + (1.-thimp)*dt*temp
-              endif
-           endif
-
-           ! NUMVAR = 3
-           ! ~~~~~~~~~~
-           if(numvar.ge.3) then
-
-              temp = b1psichi(g79(:,:,i),g79(:,:,j),cht79)                ! passed: 1
-              ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
-              ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
-
-              temp = b1psichi(g79(:,:,i),ps179,g79(:,:,j))                ! passed: 1
-              rrterm(1,3) = rrterm(1,3) + thimp*dt*temp
-              qqterm(1,3) = qqterm(1,3) - thimp*dt*temp
-
-              temp = b2bchi(g79(:,:,i),g79(:,:,j),cht79)                  ! passed: 1
-              ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
-              ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
-
-              temp = b2ped(g79(:,:,i),g79(:,:,j),ni79)*dbf                ! passed: 1
-              ssterm(2,3) = ssterm(2,3) -     thimp *dt*temp
-              ddterm(2,3) = ddterm(2,3) + (1.-thimp)*dt*temp
-
-              temp = b2bchi(g79(:,:,i),bz179,g79(:,:,j))                  ! passed: 1
-              rrterm(2,3) = rrterm(2,3) + thimp*dt*temp
-              qqterm(2,3) = qqterm(2,3) - thimp*dt*temp
-
-              temp = b3psipsieta(g79(:,:,i),g79(:,:,j),ps179)*etar &
-                   + b3psipsieta(g79(:,:,i),ps179,g79(:,:,j))*etar
-              ssterm(3,1) = ssterm(3,1) -     thimp *dt*temp
-              ddterm(3,1) = ddterm(3,1) + (.5-thimp)*dt*temp
-
-              temp = b3pebd(g79(:,:,i),pe179,g79(:,:,j),ni79)*dbf*pefac   ! passed: 1
-              ssterm(3,2) = ssterm(3,2) - thimp*dt*temp
-              ddterm(3,2) = ddterm(3,2) - thimp*dt*temp
-
-              temp = b3bbeta(g79(:,:,i),g79(:,:,j),bz179)*etar &
-                   + b3bbeta(g79(:,:,i),bz179,g79(:,:,j))*etar
-              ssterm(3,2) = ssterm(3,2) -     thimp *dt*temp
-              ddterm(3,2) = ddterm(3,2) + (.5-thimp)*dt*temp
-
-              temp = b3pe(g79(:,:,i),g79(:,:,j))
-              ssterm(3,3) = ssterm(3,3) + temp
-              ddterm(3,3) = ddterm(3,3) + temp
-
-              temp = b3pebd(g79(:,:,i),g79(:,:,j),bzt79,ni79)*dbf*pefac & ! passed: 1
-                   + p1pu  (g79(:,:,i),g79(:,:,j),pht79)                & ! passed: 1
-                   + p1pchi(g79(:,:,i),g79(:,:,j),cht79)                & ! passed: 1
-                   + b3pedkappa(g79(:,:,i),g79(:,:,j),ni79)*kappat*(gam-1.)
-              ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp
-              ddterm(3,3) = ddterm(3,3) + (1.-thimp)*dt*temp
-
-              temp = p1pu(g79(:,:,i),pe179,g79(:,:,j))                    ! passed: 1
-              rrterm(3,1) = rrterm(3,1) + thimp*dt*temp
-              qqterm(3,1) = qqterm(3,1) - thimp*dt*temp
-
-              temp = p1pchi(g79(:,:,i),pe179,g79(:,:,j))                  ! passed: 1
-              rrterm(3,3) = rrterm(3,3) + thimp*dt*temp
-              qqterm(3,3) = qqterm(3,3) - thimp*dt*temp
-
-              ! Anisotropic Heat Flux
-              if(kappar.ne.0) then
-                 temp = p1kappar(g79(:,:,i),g79(:,:,j),ps179,pet79,ni79,b2i79)*kappar &
-                      + p1kappar(g79(:,:,i),ps179,g79(:,:,j),pet79,ni79,b2i79)*kappar
-                 ssterm(3,1) = ssterm(3,1) +     thimp *dt*temp
-                 ddterm(3,1) = ddterm(3,1) - (.5-thimp)*dt*temp
-
-                 temp = p1kappar(g79(:,:,i),pst79,pst79,g79(:,:,j),ni79,b2i79)*kappar
-                 ssterm(3,3) = ssterm(3,3) +     thimp *dt*temp
-                 ddterm(3,3) = ddterm(3,3) - (1.-thimp)*dt*temp
-              endif
-
-              if(linear.eq.1 .or. eqsubtract.eq.1) then
-                 temp = b1psichi(g79(:,:,i),ps079,g79(:,:,j))
-                 rrterm(1,3) = rrterm(1,3) +     thimp *dt*temp
-                 qqterm(1,3) = qqterm(1,3) + (1.-thimp)*dt*temp
-
-                 temp = b2bchi(g79(:,:,i),bz079,g79(:,:,j))
-                 rrterm(2,3) = rrterm(2,3) +     thimp *dt*temp
-                 qqterm(2,3) = qqterm(2,3) + (1.-thimp)*dt*temp
-
-                 temp = b3psipsieta(g79(:,:,i),g79(:,:,j),ps079)*etar &
-                      + b3psipsieta(g79(:,:,i),ps079,g79(:,:,j))*etar
-                 ssterm(3,1) = ssterm(3,1) -     thimp *dt*temp
-                 ddterm(3,1) = ddterm(3,1) + (1.-thimp)*dt*temp
-
-                 temp = b3bbeta(g79(:,:,i),g79(:,:,j),bz079)*etar &
-                      + b3bbeta(g79(:,:,i),bz079,g79(:,:,j))*etar
-                 ssterm(3,2) = ssterm(3,2) -     thimp *dt*temp
-                 ddterm(3,2) = ddterm(3,2) + (1.-thimp)*dt*temp
-
-                 temp = b3pebd(g79(:,:,i),pe079,g79(:,:,j),ni79)*dbf*pefac
-                 ssterm(3,2) = ssterm(3,2) -     thimp *dt*temp
-                 ddterm(3,2) = ddterm(3,2) + (1.-thimp)*dt*temp
-
-                 temp = p1pu(g79(:,:,i),pe079,g79(:,:,j))
-                 rrterm(3,1) = rrterm(3,1) +     thimp *dt*temp
-                 qqterm(3,1) = qqterm(3,1) + (1.-thimp)*dt*temp
-
-                 temp = p1pchi(g79(:,:,i),pe079,g79(:,:,j))                
-                 rrterm(3,3) = rrterm(3,3) +     thimp *dt*temp
-                 qqterm(3,3) = qqterm(3,3) + (1.-thimp)*dt*temp
-
-                 ! Anisotropic Heat Flux
-                 if(kappar.ne.0) then
-                    temp = p1kappar(g79(:,:,i),g79(:,:,j),ps079,pet79,ni79,b2i79)*kappar &
-                         + p1kappar(g79(:,:,i),ps079,g79(:,:,j),pet79,ni79,b2i79)*kappar
-                    ssterm(3,1) = ssterm(3,1) +     thimp *dt*temp
-                    ddterm(3,1) = ddterm(3,1) - (1.-thimp)*dt*temp
-                 endif
-              endif
-           endif
-
-           call insert_val(s2matrix_sm,ssterm(1,1),i1,j1,1)
-           call insert_val(d2matrix_sm,ddterm(1,1),i1,j1,1)
-           call insert_val(r2matrix_sm,rrterm(1,1),i1,j1,1)
-           call insert_val(q2matrix_sm,qqterm(1,1),i1,j1,1)
-           if(numvar.ge.2) then
-              call insert_val(s2matrix_sm,ssterm(1,2),i1  ,j1+6,1)
-              call insert_val(s2matrix_sm,ssterm(2,1),i1+6,j1  ,1)
-              call insert_val(s2matrix_sm,ssterm(2,2),i1+6,j1+6,1)
-              call insert_val(d2matrix_sm,ddterm(1,2),i1  ,j1+6,1)
-              call insert_val(d2matrix_sm,ddterm(2,1),i1+6,j1  ,1)
-              call insert_val(d2matrix_sm,ddterm(2,2),i1+6,j1+6,1)
-              call insert_val(r2matrix_sm,rrterm(1,2),i1  ,j1+6,1)
-              call insert_val(r2matrix_sm,rrterm(2,1),i1+6,j1  ,1)
-              call insert_val(r2matrix_sm,rrterm(2,2),i1+6,j1+6,1)
-              call insert_val(q2matrix_sm,qqterm(1,2),i1  ,j1+6,1)
-              call insert_val(q2matrix_sm,qqterm(2,1),i1+6,j1  ,1)
-              call insert_val(q2matrix_sm,qqterm(2,2),i1+6,j1+6,1)
-           endif
-           if(numvar .eq. 3) then
-              call insert_val(s2matrix_sm,ssterm(1,3),i1,   j1+12,1)
-              call insert_val(s2matrix_sm,ssterm(2,3),i1+6, j1+12,1)
-              call insert_val(s2matrix_sm,ssterm(3,3),i1+12,j1+12,1)
-              call insert_val(s2matrix_sm,ssterm(3,1),i1+12,j1,   1)
-              call insert_val(s2matrix_sm,ssterm(3,2),i1+12,j1+6, 1)
-              call insert_val(d2matrix_sm,ddterm(1,3),i1,   j1+12,1)
-              call insert_val(d2matrix_sm,ddterm(2,3),i1+6, j1+12,1)
-              call insert_val(d2matrix_sm,ddterm(3,3),i1+12,j1+12,1)
-              call insert_val(d2matrix_sm,ddterm(3,1),i1+12,j1,   1)
-              call insert_val(d2matrix_sm,ddterm(3,2),i1+12,j1+6, 1)
-              call insert_val(r2matrix_sm,rrterm(1,3),i1,   j1+12,1)
-              call insert_val(r2matrix_sm,rrterm(2,3),i1+6, j1+12,1)
-              call insert_val(r2matrix_sm,rrterm(3,3),i1+12,j1+12,1)
-              call insert_val(r2matrix_sm,rrterm(3,1),i1+12,j1,   1)
-              call insert_val(r2matrix_sm,rrterm(3,2),i1+12,j1+6, 1)
-              call insert_val(q2matrix_sm,qqterm(1,3),i1,   j1+12,1)
-              call insert_val(q2matrix_sm,qqterm(2,3),i1+6, j1+12,1)
-              call insert_val(q2matrix_sm,qqterm(3,3),i1+12,j1+12,1)
-              call insert_val(q2matrix_sm,qqterm(3,1),i1+12,j1,   1)
-              call insert_val(q2matrix_sm,qqterm(3,2),i1+12,j1+6, 1)
-           endif
-        enddo ! on j
-
-        if(linear.eq.1 .or. eqsubtract.eq.1) then
-
-           q4(i1) = q4(i1) + dt* &
-                (b1psieta(g79(:,:,i),ps079)*etar)
-
-           ! EQUILIBRIUM TERMS
-           q4(i1) = q4(i1) + dt* &
-                (b1psiu(g79(:,:,i),ps079,ph079))
-
-           if(numvar.ge.2) then
-              q4(i2) = q4(i2) + dt* &
-                   (b2beta     (g79(:,:,i),bz079)*etar)
-              
-              ! DENSITY TERMS
-              q4(i1) = q4(i1) + dt* &
-                   (b1psibd  (g79(:,:,i),ps079,bz079,ni79)*dbf)
-              q4(i2) = q4(i2) + dt* &
-                   (b2psipsid(g79(:,:,i),ps079,ps079,ni79)*dbf &
-                   +b2bbd    (g79(:,:,i),bz079,bz079,ni79)*dbf)
-
-              ! EQUILIBRIUM TERMS
-              q4(i2) = q4(i2) + dt* &
-                   (b2psiv(g79(:,:,i),ps079,vz079) &
-                   +b2bu  (g79(:,:,i),bz079,ph079))
-           endif
-
-           if(numvar.ge.3) then
-              q4(i3) = q4(i3) + dt* &
-                   (b3psipsieta(g79(:,:,i),ps079,ps079)*etar &
-                   +b3bbeta    (g79(:,:,i),bz079,bz079)*etar &
-                   +b3pedkappa (g79(:,:,i),pe079,ni79 )*kappat*(gam-1.))
-
-              ! DENSITY TERMS
-              q4(i2) = q4(i2) + dt* &
-                   (b2ped (g79(:,:,i),pe079,ni79)*dbf)
-              q4(i3) = q4(i3) + dt* &
-                   (b3pebd(g79(:,:,i),pe079,bz079,ni79)*dbf*pefac)
-              
-              ! EQUILIBRIUM TERMS
-              q4(i1) = q4(i1) + dt* &
-                   (b1psichi(g79(:,:,i),ps079,ch079))
-              q4(i2) = q4(i2) + dt* &
-                   (b2bchi(g79(:,:,i),bz079,ch079))
-              q4(i3) = q4(i3) + dt* &
-                   (p1pu  (g79(:,:,i),pe079,ph079) &
-                   +p1pchi(g79(:,:,i),pe079,ch079))
+              temp = b2psiv(g79(:,:,i),ps079,g79(:,:,j))
+              rrterm(2,2) = rrterm(2,2) +     thimp *dt*temp
+              qqterm(2,2) = qqterm(2,2) + (1.-thimp)*dt*temp
            endif
         endif
 
-     enddo ! on i
+        ! NUMVAR = 3
+        ! ~~~~~~~~~~
+        if(numvar.ge.3) then
+
+           temp = b1psichi(g79(:,:,i),g79(:,:,j),cht79)                ! passed: 1
+           ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
+           ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
+
+           temp = b1psichi(g79(:,:,i),ps179,g79(:,:,j))                ! passed: 1
+           rrterm(1,3) = rrterm(1,3) + thimp*dt*temp
+           qqterm(1,3) = qqterm(1,3) - thimp*dt*temp
+
+           temp = b2bchi(g79(:,:,i),g79(:,:,j),cht79)                  ! passed: 1
+           ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
+           ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
+
+           temp = b2ped(g79(:,:,i),g79(:,:,j),ni79)*dbf                ! passed: 1
+           ssterm(2,3) = ssterm(2,3) -     thimp *dt*temp
+           ddterm(2,3) = ddterm(2,3) + (1.-thimp)*dt*temp
+
+           temp = b2bchi(g79(:,:,i),bz179,g79(:,:,j))                  ! passed: 1
+           rrterm(2,3) = rrterm(2,3) + thimp*dt*temp
+           qqterm(2,3) = qqterm(2,3) - thimp*dt*temp
+
+           temp = b3psipsieta(g79(:,:,i),g79(:,:,j),ps179)*etar &
+                + b3psipsieta(g79(:,:,i),ps179,g79(:,:,j))*etar
+           ssterm(3,1) = ssterm(3,1) -     thimp *dt*temp
+           ddterm(3,1) = ddterm(3,1) + (.5-thimp)*dt*temp
+
+           temp = b3pebd(g79(:,:,i),pe179,g79(:,:,j),ni79)*dbf*pefac   ! passed: 1
+           ssterm(3,2) = ssterm(3,2) - thimp*dt*temp
+           ddterm(3,2) = ddterm(3,2) - thimp*dt*temp
+
+           temp = b3bbeta(g79(:,:,i),g79(:,:,j),bz179)*etar &
+                + b3bbeta(g79(:,:,i),bz179,g79(:,:,j))*etar
+           ssterm(3,2) = ssterm(3,2) -     thimp *dt*temp
+           ddterm(3,2) = ddterm(3,2) + (.5-thimp)*dt*temp
+
+           temp = b3pe(g79(:,:,i),g79(:,:,j))
+           ssterm(3,3) = ssterm(3,3) + temp
+           ddterm(3,3) = ddterm(3,3) + temp
+
+           temp = b3pebd(g79(:,:,i),g79(:,:,j),bzt79,ni79)*dbf*pefac & ! passed: 1
+                + p1pu  (g79(:,:,i),g79(:,:,j),pht79)                & ! passed: 1
+                + p1pchi(g79(:,:,i),g79(:,:,j),cht79)                & ! passed: 1
+                + b3pedkappa(g79(:,:,i),g79(:,:,j),ni79)*kappat*(gam-1.)
+           ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp
+           ddterm(3,3) = ddterm(3,3) + (1.-thimp)*dt*temp
+
+           temp = p1pu(g79(:,:,i),pe179,g79(:,:,j))                    ! passed: 1
+           rrterm(3,1) = rrterm(3,1) + thimp*dt*temp
+           qqterm(3,1) = qqterm(3,1) - thimp*dt*temp
+
+           temp = p1pchi(g79(:,:,i),pe179,g79(:,:,j))                  ! passed: 1
+           rrterm(3,3) = rrterm(3,3) + thimp*dt*temp
+           qqterm(3,3) = qqterm(3,3) - thimp*dt*temp
+
+           ! Anisotropic Heat Flux
+           if(kappar.ne.0) then
+              temp = p1kappar(g79(:,:,i),g79(:,:,j),ps179,pet79,ni79,b2i79)*kappar &
+                   + p1kappar(g79(:,:,i),ps179,g79(:,:,j),pet79,ni79,b2i79)*kappar
+              ssterm(3,1) = ssterm(3,1) +     thimp *dt*temp
+              ddterm(3,1) = ddterm(3,1) - (.5-thimp)*dt*temp
+
+              temp = p1kappar(g79(:,:,i),pst79,pst79,g79(:,:,j),ni79,b2i79)*kappar
+              ssterm(3,3) = ssterm(3,3) +     thimp *dt*temp
+              ddterm(3,3) = ddterm(3,3) - (1.-thimp)*dt*temp
+           endif
+              
+           if(linear.eq.1 .or. eqsubtract.eq.1) then
+              temp = b1psichi(g79(:,:,i),ps079,g79(:,:,j))
+              rrterm(1,3) = rrterm(1,3) +     thimp *dt*temp
+              qqterm(1,3) = qqterm(1,3) + (1.-thimp)*dt*temp
+
+              temp = b2bchi(g79(:,:,i),bz079,g79(:,:,j))
+              rrterm(2,3) = rrterm(2,3) +     thimp *dt*temp
+              qqterm(2,3) = qqterm(2,3) + (1.-thimp)*dt*temp
+
+              temp = b3psipsieta(g79(:,:,i),g79(:,:,j),ps079)*etar &
+                   + b3psipsieta(g79(:,:,i),ps079,g79(:,:,j))*etar
+              ssterm(3,1) = ssterm(3,1) -     thimp *dt*temp
+              ddterm(3,1) = ddterm(3,1) + (1.-thimp)*dt*temp
+
+              temp = b3bbeta(g79(:,:,i),g79(:,:,j),bz079)*etar &
+                   + b3bbeta(g79(:,:,i),bz079,g79(:,:,j))*etar
+              ssterm(3,2) = ssterm(3,2) -     thimp *dt*temp
+              ddterm(3,2) = ddterm(3,2) + (1.-thimp)*dt*temp
+
+              temp = b3pebd(g79(:,:,i),pe079,g79(:,:,j),ni79)*dbf*pefac
+              ssterm(3,2) = ssterm(3,2) -     thimp *dt*temp
+              ddterm(3,2) = ddterm(3,2) + (1.-thimp)*dt*temp
+
+              temp = p1pu(g79(:,:,i),pe079,g79(:,:,j))
+              rrterm(3,1) = rrterm(3,1) +     thimp *dt*temp
+              qqterm(3,1) = qqterm(3,1) + (1.-thimp)*dt*temp
+
+              temp = p1pchi(g79(:,:,i),pe079,g79(:,:,j))                
+              rrterm(3,3) = rrterm(3,3) +     thimp *dt*temp
+              qqterm(3,3) = qqterm(3,3) + (1.-thimp)*dt*temp
+
+              ! Anisotropic Heat Flux
+              if(kappar.ne.0) then
+                 temp = p1kappar(g79(:,:,i),g79(:,:,j),ps079,pet79,ni79,b2i79)*kappar &
+                      + p1kappar(g79(:,:,i),ps079,g79(:,:,j),pet79,ni79,b2i79)*kappar
+                 ssterm(3,1) = ssterm(3,1) +     thimp *dt*temp
+                 ddterm(3,1) = ddterm(3,1) - (1.-thimp)*dt*temp
+              endif
+           endif
+        endif
+
+        call insert_val(s2matrix_sm,ssterm(1,1),i1,j1,1)
+        call insert_val(d2matrix_sm,ddterm(1,1),i1,j1,1)
+        call insert_val(r2matrix_sm,rrterm(1,1),i1,j1,1)
+        call insert_val(q2matrix_sm,qqterm(1,1),i1,j1,1)
+        if(numvar.ge.2) then
+           call insert_val(s2matrix_sm,ssterm(1,2),i1  ,j1+6,1)
+           call insert_val(s2matrix_sm,ssterm(2,1),i1+6,j1  ,1)
+           call insert_val(s2matrix_sm,ssterm(2,2),i1+6,j1+6,1)
+           call insert_val(d2matrix_sm,ddterm(1,2),i1  ,j1+6,1)
+           call insert_val(d2matrix_sm,ddterm(2,1),i1+6,j1  ,1)
+           call insert_val(d2matrix_sm,ddterm(2,2),i1+6,j1+6,1)
+           call insert_val(r2matrix_sm,rrterm(1,2),i1  ,j1+6,1)
+           call insert_val(r2matrix_sm,rrterm(2,1),i1+6,j1  ,1)
+           call insert_val(r2matrix_sm,rrterm(2,2),i1+6,j1+6,1)
+           call insert_val(q2matrix_sm,qqterm(1,2),i1  ,j1+6,1)
+           call insert_val(q2matrix_sm,qqterm(2,1),i1+6,j1  ,1)
+           call insert_val(q2matrix_sm,qqterm(2,2),i1+6,j1+6,1)
+        endif
+        if(numvar .eq. 3) then
+           call insert_val(s2matrix_sm,ssterm(1,3),i1,   j1+12,1)
+           call insert_val(s2matrix_sm,ssterm(2,3),i1+6, j1+12,1)
+           call insert_val(s2matrix_sm,ssterm(3,3),i1+12,j1+12,1)
+           call insert_val(s2matrix_sm,ssterm(3,1),i1+12,j1,   1)
+           call insert_val(s2matrix_sm,ssterm(3,2),i1+12,j1+6, 1)
+           call insert_val(d2matrix_sm,ddterm(1,3),i1,   j1+12,1)
+           call insert_val(d2matrix_sm,ddterm(2,3),i1+6, j1+12,1)
+           call insert_val(d2matrix_sm,ddterm(3,3),i1+12,j1+12,1)
+           call insert_val(d2matrix_sm,ddterm(3,1),i1+12,j1,   1)
+           call insert_val(d2matrix_sm,ddterm(3,2),i1+12,j1+6, 1)
+           call insert_val(r2matrix_sm,rrterm(1,3),i1,   j1+12,1)
+           call insert_val(r2matrix_sm,rrterm(2,3),i1+6, j1+12,1)
+           call insert_val(r2matrix_sm,rrterm(3,3),i1+12,j1+12,1)
+           call insert_val(r2matrix_sm,rrterm(3,1),i1+12,j1,   1)
+           call insert_val(r2matrix_sm,rrterm(3,2),i1+12,j1+6, 1)
+           call insert_val(q2matrix_sm,qqterm(1,3),i1,   j1+12,1)
+           call insert_val(q2matrix_sm,qqterm(2,3),i1+6, j1+12,1)
+           call insert_val(q2matrix_sm,qqterm(3,3),i1+12,j1+12,1)
+           call insert_val(q2matrix_sm,qqterm(3,1),i1+12,j1,   1)
+           call insert_val(q2matrix_sm,qqterm(3,2),i1+12,j1+6, 1)
+        endif
+     enddo ! on j
+     
+     if(linear.eq.1 .or. eqsubtract.eq.1) then
+        
+        q4(i1) = q4(i1) + dt* &
+             (b1psieta(g79(:,:,i),ps079,hypf)*etar)
+
+        ! EQUILIBRIUM TERMS
+        q4(i1) = q4(i1) + dt* &
+             (b1psiu(g79(:,:,i),ps079,ph079))
+
+        if(numvar.ge.2) then
+           q4(i2) = q4(i2) + dt* &
+                (b2beta     (g79(:,:,i),bz079,hypi)*etar)
+              
+           ! DENSITY TERMS
+           q4(i1) = q4(i1) + dt* &
+                (b1psibd  (g79(:,:,i),ps079,bz079,ni79)*dbf)
+           q4(i2) = q4(i2) + dt* &
+                (b2psipsid(g79(:,:,i),ps079,ps079,ni79)*dbf &
+                +b2bbd    (g79(:,:,i),bz079,bz079,ni79)*dbf)
+
+           ! EQUILIBRIUM TERMS
+           q4(i2) = q4(i2) + dt* &
+                (b2psiv(g79(:,:,i),ps079,vz079) &
+                +b2bu  (g79(:,:,i),bz079,ph079))
+        endif
+
+        if(numvar.ge.3) then
+           q4(i3) = q4(i3) + dt* &
+                (b3psipsieta(g79(:,:,i),ps079,ps079)*etar &
+                +b3bbeta    (g79(:,:,i),bz079,bz079)*etar &
+                +b3pedkappa (g79(:,:,i),pe079,ni79 )*kappat*(gam-1.))
+
+           ! DENSITY TERMS
+           q4(i2) = q4(i2) + dt* &
+                (b2ped (g79(:,:,i),pe079,ni79)*dbf)
+           q4(i3) = q4(i3) + dt* &
+                (b3pebd(g79(:,:,i),pe079,bz079,ni79)*dbf*pefac)
+              
+           ! EQUILIBRIUM TERMS
+           q4(i1) = q4(i1) + dt* &
+                (b1psichi(g79(:,:,i),ps079,ch079))
+           q4(i2) = q4(i2) + dt* &
+                (b2bchi(g79(:,:,i),bz079,ch079))
+           q4(i3) = q4(i3) + dt* &
+                (p1pu  (g79(:,:,i),pe079,ph079) &
+                +p1pchi(g79(:,:,i),pe079,ch079))
+        endif
+     endif
+     
+  enddo ! on i
 
 end subroutine ludefphi_n
 

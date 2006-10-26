@@ -222,13 +222,14 @@ subroutine newvar_SB1(temp)
   use t_data
   use arrays
   use nintegrate_mod
-  
+  use metricterms_n
+
   implicit none
 
   real, intent(out) :: temp(*)
 
   integer :: itri, i, ione, numelms
-  real :: sum, factor, x, z, xmin, zmin, avec(20), dbf
+  real :: sum, factor, x, z, xmin, zmin, avec(20), dbf, deex, hypf
 
   double precision :: cogcoords(3)
 
@@ -246,6 +247,9 @@ subroutine newvar_SB1(temp)
         factor = 1.
      endif
      dbf = db*factor
+
+     call getdeex(itri,deex)
+     hypf = hyper * deex**2
      
      ! calculate the local sampling points and weights for numerical integration
      call area_to_local(79,                                            &
@@ -282,13 +286,6 @@ subroutine newvar_SB1(temp)
         endif
 
         if(idens.eq.1) then
-!!$           if(linear.eq.1 .or. eqsubtract.eq.1) then
-!!$              call calcavector(itri, den+den0, 1, 1, avec)
-!!$           else
-!!$              call calcavector(itri, den, 1, 1, avec)
-!!$           endif
-!!$           call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, nt79)
-!!$           ni79(:,OP_1  ) = 1./nt79(:,OP_1)
            call calcavector(itri, deni, 1, 1, avec)
            call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ni79)
         endif
@@ -300,30 +297,13 @@ subroutine newvar_SB1(temp)
      end do
 
      ! Evaluate matrix elements
+     ! ~~~~~~~~~~~~~~~~~~~~~~~~
      do i=1,18
         ione = isval1(itri,i)
 
-        sum = 0.
-
-        ! -etar*J
-        sum = sum - etar* &
-             (int2(g79(:,OP_DR,i),pst79(:,OP_DR),weight_79,79) &
-             +int2(g79(:,OP_DZ,i),pst79(:,OP_DZ),weight_79,79))
-        if(itor.eq.1) then
-           sum = sum - 2.*etar*int3(ri_79,g79(:,OP_1,i),pst79(:,OP_DR),weight_79,79)
-        endif
-        
-        ! [psi,b]/n
+        sum = b1psieta(g79(:,:,i),pst79,hypf)*etar
         if(numvar.ge.2) then
-           if(idens.eq.1) then
-              sum = sum + dbf* &
-                  (int5(ri_79,g79(:,OP_1,i),pst79(:,OP_DZ),bzt79(:,OP_DR),ni79(:,OP_1),weight_79, 79) &
-                  -int5(ri_79,g79(:,OP_1,i),pst79(:,OP_DR),bzt79(:,OP_DZ),ni79(:,OP_1),weight_79, 79))
-           else
-              sum = sum + dbf* &
-                   +(int4(ri_79,g79(:,OP_1,i),pst79(:,OP_DZ),bzt79(:,OP_DR),weight_79, 79) &
-                   - int4(ri_79,g79(:,OP_1,i),pst79(:,OP_DR),bzt79(:,OP_DZ),weight_79, 79))
-           endif
+           sum = sum + b1psibd(g79(:,:,i),pst79,bzt79,ni79)
         endif
 
         temp(ione) = temp(ione) + sum
@@ -338,13 +318,14 @@ subroutine newvar_SB2(temp)
   use t_data
   use arrays
   use nintegrate_mod
+  use metricterms_n
   
   implicit none
 
   real, intent(out) :: temp(*)
 
   integer :: itri, i, ione, j, j1, j01, numelms
-  real :: sum, factor, x, z, xmin, zmin, avec(20), dbf
+  real :: sum, factor, x, z, xmin, zmin, avec(20), dbf, deex, hypi
 
   double precision :: cogcoords(3)
 
@@ -363,7 +344,11 @@ subroutine newvar_SB2(temp)
      endif
      dbf = db*factor
 
-     ! calculate the local sampling points and weights for numerical integration
+     call getdeex(itri,deex)
+     hypi = hyperi* deex**2
+
+     ! calculate the local field values
+     ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      call area_to_local(79,                                            &
           alpha_79,beta_79,gamma_79,area_weight_79,                    &
           atri(itri), btri(itri), ctri(itri),                          &
@@ -413,13 +398,6 @@ subroutine newvar_SB2(temp)
      endif
      
      if(idens.eq.1) then
-!!$        if(linear.eq.1 .or. eqsubtract.eq.1) then
-!!$           call calcavector(itri, den+den0, 1, 1, avec)
-!!$        else
-!!$           call calcavector(itri, den, 1, 1, avec)
-!!$        endif
-!!$        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, nt79)
-!!$        ni79(:,OP_1  ) = 1./nt79(:,OP_1)
         call calcavector(itri, deni, 1, 1, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ni79)
      endif
@@ -429,49 +407,16 @@ subroutine newvar_SB2(temp)
      end do
 
      ! Evaluate matrix elements
+     ! ~~~~~~~~~~~~~~~~~~~~~~~~
      do i=1,18
         ione = isval1(itri,i)
 
-        sum = 0.
+        sum = b2psipsid(g79(:,:,i),pst79,pst79,ni79) &
+             +b2bbd    (g79(:,:,i),bzt79,bzt79,ni79) &
+             +b2beta   (g79(:,:,i),bzt79,hypi)*etar
 
-        ! (eta,I)+eta*J
-        sum = sum - etar*&
-             (int3(ri2_79,g79(:,OP_DZ,i),bzt79(:,OP_DZ),weight_79,79) &
-             +int3(ri2_79,g79(:,OP_DR,i),bzt79(:,OP_DR),weight_79,79))
-
-        ! [J/n, psi]
-        if(idens.eq.0) then
-           sum = sum + dbf* &
-                (int4(ri3_79,g79(:,OP_DR,i),pst79(:,OP_DZ),pst79(:,OP_GS),weight_79,79) &
-                -int4(ri3_79,g79(:,OP_DZ,i),pst79(:,OP_DR),pst79(:,OP_GS),weight_79,79))
-        else
-           sum = sum + dbf* &
-                (int5(ri3_79,g79(:,OP_DR,i),pst79(:,OP_DZ),pst79(:,OP_GS),ni79(:,OP_1),weight_79,79) &
-                -int5(ri3_79,g79(:,OP_DZ,i),pst79(:,OP_DR),pst79(:,OP_GS),ni79(:,OP_1),weight_79,79))
-        endif
-
-        ! I*[1/n,I]
-        if(idens.eq.1) then
-           sum = sum + dbf* &
-                (int5(ri3_79,g79(:,OP_1,i),bzt79(:,OP_DR),bzt79(:,OP_1),ni79(:,OP_DZ),weight_79,79) &
-                -int5(ri3_79,g79(:,OP_1,i),bzt79(:,OP_DZ),bzt79(:,OP_1),ni79(:,OP_DR),weight_79,79))
-        endif
-
-        if(itor.eq.1) then
-           if(idens.eq.0) then
-              sum = sum + dbf*2.* &
-                   int4(ri4_79,g79(:,OP_1,i),bzt79(:,OP_1),bzt79(:,OP_DZ),weight_79,79)
-           else
-              sum = sum + dbf*2.* &
-                   int5(ri4_79,g79(:,OP_1,i),bzt79(:,OP_1),bzt79(:,OP_DZ),ni79(:,OP_1),weight_79,79)
-           endif
-        endif
-
-        ! [pe, 1/n]
-        if(numvar.ge.3 .and. idens.eq.1) then
-           sum = sum + pefac*dbf* &
-                (int4(ri_79,g79(:,OP_1,i),ni79(:,OP_DZ),pet79(:,OP_DR),weight_79,79) &
-                -int4(ri_79,g79(:,OP_1,i),ni79(:,OP_DR),pet79(:,OP_DZ),weight_79,79))
+        if(numvar.ge.3) then
+           sum = sum + b2ped(g79(:,:,i),pet79,ni79)
         endif
 
         temp(ione) = temp(ione) + sum

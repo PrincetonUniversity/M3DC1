@@ -1661,7 +1661,7 @@ end function
 
 ! B1psieta
 ! ========
-real function b1psieta(e,f)
+real function b1psieta(e,f,hyp)
 
   use basic
   use nintegrate_mod
@@ -1669,12 +1669,22 @@ real function b1psieta(e,f)
   implicit none
 
   real, intent(in), dimension(79,OP_NUM) :: e,f
+  real, intent(in) :: hyp
   real :: temp
 
   temp =-int2(e(:,OP_DR),f(:,OP_DR),weight_79,79) &
        - int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79)
   if(itor.eq.1) then
      temp = temp - 2.*int3(ri_79,e(:,OP_1),f(:,OP_DR),weight_79,79)
+  endif
+
+  if(hyp.ne.0) then
+     temp = temp - hyp*int2(e(:,OP_LP),f(:,OP_GS),weight_79,79)
+     if(itor.eq.1) then
+        temp = temp + hyp*2.* &
+             (int3(ri_79,e(:,OP_LP),f(:,OP_DR),weight_79,79) &
+             -int3(ri_79,e(:,OP_1 ),f(:,OP_DR),weight_79,79))
+     endif
   endif
 
   b1psieta = temp
@@ -1734,7 +1744,7 @@ end function b2b
 
 ! B2beta
 ! ======
-real function b2beta(e,f)
+real function b2beta(e,f,hyp)
 
   use basic
   use nintegrate_mod
@@ -1742,10 +1752,18 @@ real function b2beta(e,f)
   implicit none
 
   real, intent(in), dimension(79,OP_NUM) :: e,f
+  real, intent(in) :: hyp
   real :: temp
 
   temp = -int3(ri2_79,e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
        -  int3(ri2_79,e(:,OP_DR),f(:,OP_DR),weight_79,79)
+
+  if(hyp.ne.0) then
+     temp = temp - hyp*int3(ri2_79,e(:,OP_LP),f(:,OP_GS),weight_79,79)
+     if(itor.eq.1) then
+        temp = temp + 2.*hyp*int3(ri3_79,e(:,OP_DR),f(:,OP_GS),weight_79,79)
+     endif
+  endif
 
   b2beta = temp
   return
