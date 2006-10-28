@@ -130,6 +130,9 @@ subroutine newvar(inarray,outarray,numnodes,numvard,itype,iop,ibound)
 
   case(VAR_SB2)
      call newvar_SB2(temp)
+
+  case(VAR_SP1)
+     call newvar_SP1(temp)
               
   end select
 
@@ -425,5 +428,132 @@ subroutine newvar_SB2(temp)
 
 end subroutine newvar_SB2
 
+
+
+! Pressure source term
+! ====================
+subroutine newvar_SP1(temp)
+
+  use basic
+  use t_data
+  use arrays
+  use nintegrate_mod
+  use metricterms_n
+  
+  implicit none
+
+  real, intent(out) :: temp(*)
+
+  integer :: itri, i, ione, j, j1, j01, numelms
+  real :: sum, factor, x, z, xmin, zmin, avec(20), dbf, deex, hypi
+
+  double precision :: cogcoords(3)
+
+  call numfac(numelms)
+  call getmincoord(xmin,zmin)
+
+  do itri=1,numelms
+
+     if(imask.eq.1) then
+        call cogfac(itri,cogcoords)
+        x = cogcoords(1)-xmin
+        z = cogcoords(2)-zmin
+        call mask(x,z,factor)
+     else
+        factor = 1.
+     endif
+     dbf = db*factor
+
+     call getdeex(itri,deex)
+     hypi = hyperi* deex**2
+
+     ! calculate the local field values
+     ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     call area_to_local(79,                                            &
+          alpha_79,beta_79,gamma_79,area_weight_79,                    &
+          atri(itri), btri(itri), ctri(itri),                          &
+          si_79, eta_79, weight_79)
+
+     call calcr(itri, si_79, eta_79, 79, r_79)
+     ri_79 = 1./r_79
+     ri2_79 = ri_79*ri_79
+     ri3_79 = ri2_79*ri_79
+     ri4_79 = ri2_79*ri2_79
+  
+     call calcavector(itri, phi, 1, numvar, avec)
+     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ps179)
+
+     if(linear.eq.1 .or. eqsubtract.eq.1) then
+        call calcavector(itri, phi0, 1, numvar, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ps079)
+        pst79 = ps079 + ps179
+     else
+        pst79 = ps179
+     endif
+     
+     call calcavector(itri, phi, 2, numvar, avec)
+     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, bz179)
+        
+     if(linear.eq.1 .or. eqsubtract.eq.1) then
+        call calcavector(itri, phi0, 2, numvar, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, bz079)
+        bzt79 = bz079 + bz179
+     else
+        bzt79 = bz179
+     endif
+
+     call calcavector(itri, phi, 3, numvar, avec)
+     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, pe179)
+        
+     if(linear.eq.1 .or. eqsubtract.eq.1) then
+        call calcavector(itri, phi0, 3, numvar, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, pe079)
+        pet79 = pe079 + pe179
+     else
+        pet79 = pe179
+     endif
+
+     if(ipres.eq.1) then
+        call calcavector(itri, pres, 1, 1, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, p179)
+        
+        if(linear.eq.1 .or. eqsubtract.eq.1) then
+           call calcavector(itri, pres0, 1, 1, avec)
+           call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, p079)
+           pt79 = p079 + p179
+        else
+           pt79 = p179
+        endif
+     else
+        pt79 = pet79        
+     endif
+
+     if(idens.eq.1) then
+        call calcavector(itri, deni, 1, 1, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ni79)
+     endif
+
+     b2i79(:,OP_1) = 1./(pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2 + bzt79(:,OP_1)**2)
+
+     do i=1,18
+        call eval_ops(gtri(:,i,itri), si_79, eta_79, ttri(itri), ri_79, 79, g79(:,:,i))
+     end do
+
+     ! Evaluate matrix elements
+     ! ~~~~~~~~~~~~~~~~~~~~~~~~
+     do i=1,18
+        ione = isval1(itri,i)
+
+        sum = b3pebd     (g79(:,:,i),pet79,bzt79,ni79)   &
+             +b3psipsieta(g79(:,:,i),pst79,pst79)*etar   &
+             +b3bbeta    (g79(:,:,i),bzt79,bzt79)*etar   &
+             +b3pedkappa (g79(:,:,i),pt79, ni79 )*kappat &
+             +p1kappar   (g79(:,:,1),pst79,pst79,pt79,ni79,b2i79)*kappar
+
+        temp(ione) = temp(ione) + sum
+     end do
+  enddo
+
+end subroutine newvar_SP1
 
 end module newvar_mod

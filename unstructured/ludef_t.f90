@@ -114,6 +114,9 @@ subroutine ludefall
   end do
 
   ! Impose boundary conditions
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
+  
+  ! Velocity boundary conditions
   velbounds = 0.
   call boundaryv(iboundv,nbcv)
   if(nbcv .gt. iboundmax) then
@@ -128,7 +131,8 @@ subroutine ludefall
   call finalize_array(d1matrix_sm)
   call finalize_array(r1matrix_sm)
 
-    call boundaryp(iboundp,nbcp)
+  ! Field boundary conditions
+  call boundaryp(iboundp,nbcp)
   if(nbcp .gt. iboundmax) then
      write(*,4882) nbcp, iboundmax
 4882 format(" ERROR: nbcp > iboundmax", 2i5)
@@ -142,6 +146,7 @@ subroutine ludefall
   call finalize_array(r2matrix_sm)
   call finalize_array(q2matrix_sm)
 
+  ! Density boundary conditions
   if(idens.eq.1) then
      call boundaryds(iboundn,nbcn,1)
      if(nbcn .gt. iboundmax) then
@@ -406,7 +411,7 @@ subroutine ludefvel_n(itri,dbf,deex)
            ssterm(3,3) = ssterm(3,3) + temp
            ddterm(3,3) = ddterm(3,3) + temp
            
-           temp = v3chimu    (g79(:,:,i),g79(:,:,j))*amu      ! passed: 1
+           temp = v3chimu    (g79(:,:,i),g79(:,:,j))*2.*amuc       ! passed: 1
            ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp
            ddterm(3,3) = ddterm(3,3) + (1.-thimp)*dt*temp
            
@@ -417,7 +422,7 @@ subroutine ludefvel_n(itri,dbf,deex)
            ddterm(3,3) = ddterm(3,3) + (.5-thimp)*dt*temp
            
            temp = v3chip     (g79(:,:,i),g79(:,:,j),pt79)        &  ! passed: 1
-                + v3chipsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79) &  ! ***
+                + v3chipsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79) &  ! passed: 1
                 + v3chibb    (g79(:,:,i),g79(:,:,j),bzt79,bzt79)    ! passed: 1
            if(grav.ne.0) then
               temp = temp + &
@@ -619,7 +624,9 @@ subroutine ludefvel_n(itri,dbf,deex)
                 thimp*dt*dt* &
                 (v3psisb1(g79(:,:,i),ps079,sb179) &
                 +v3psisb1(g79(:,:,i),sb179,ps079) &
-                +v3bsb2  (g79(:,:,i),bz079,sb279))
+                +v3bsb2  (g79(:,:,i),bz079,sb279) &
+                +v3p     (g79(:,:,i),sp179))
+                
            
            ! DENSITY TERMS
            r4(i1) = r4(i1) + dt* &

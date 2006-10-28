@@ -26,7 +26,7 @@ real, dimension(79, OP_NUM) :: ps079, bz079, pe079, n079, p079, ph079, vz079, ch
 real, dimension(79, OP_NUM) :: ps179, bz179, pe179, n179, p179, ph179, vz179, ch179
 real, dimension(79, OP_NUM) :: pst79, bzt79, pet79, nt79, pt79, pht79, vzt79, cht79
 real, dimension(79, OP_NUM) :: pss79, bzs79, phs79, vzs79, chs79
-real, dimension(79, OP_NUM) :: sb179, sb279
+real, dimension(79, OP_NUM) :: sb179, sb279, sb379, sp179
 real, dimension(79) :: temp79a, temp79b, temp79c, temp79d, temp79e, temp79f
 
 real, dimension(25) :: si_25, eta_25, weight_25
@@ -538,6 +538,11 @@ subroutine define_fields_79(itri)
      endif
     
      if(numvar.ge.3) then
+        call calcavector(itri, sp1, 1, 1, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, sp179)
+        call calcavector(itri, sb3, 1, 1, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, sb379)
+
         call calcavector(itri, vel, 3, numvar, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ch179)
 
