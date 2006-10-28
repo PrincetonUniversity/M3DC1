@@ -1054,6 +1054,14 @@ subroutine output
     call oneplot(24,1,den,1,1,"den  ")
   endif
 !
+!....plot source terms
+  if(numvar.ge.2) call oneplot(0,2,sphi2,1,1,"sph2")
+  if(numvar.ge.3) then
+     call oneplot(0,3,sphip,1,1,"sphp")
+     if(ipres.eq.1) call oneplot(0,4,sphie,1,1,"sphe")
+  endif
+  call oneplot(0,1,sphi1,1,1,"sph1")
+!
 !....special diagnostic plot of toroidal electric field added 06/04/06...SCJ
       if(linear.eq.0 .and. itaylor.eq.3) then
       call oneplot(25,2,eph2,1,1,"VxBU ")

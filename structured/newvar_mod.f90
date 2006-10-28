@@ -194,6 +194,8 @@ subroutine newvarb(inarray,outarray,mmnn,numvard,iplace,iop)
   filenum = 0
 
   select case(iop)
+  case(4)
+     if(numvar.ge.2) filenum = 105
 ! case(7)
 !    filenum = 105
 ! case(11)
@@ -221,6 +223,10 @@ subroutine newvarb(inarray,outarray,mmnn,numvard,iplace,iop)
 
   ! position files with metric terms
   if(filenum.ne.0) rewind(filenum)
+  if(iop.eq.5 .and. idens.eq.1) then
+     rewind(101)
+     rewind(103)
+  endif
   if(iop.eq.6) then
      if(iread(09).ne.0) rewind(109)
      if(iread(10).ne.0) rewind(110)
@@ -241,6 +247,12 @@ subroutine newvarb(inarray,outarray,mmnn,numvard,iplace,iop)
 
      if(filenum.ne.0) then
         read(filenum) ir1,ir2,ir3,((temparr(k,l),l=1,18),k=1,18)
+     endif
+     if(iop.eq.5 .and. idens.eq.1) then
+        if(iread(01).eq.1)                                             &
+             read(101) ir1,ir2,ir3,((u3terml(k,l),l=1,18),k=1,18)
+        if(iread(03).eq.1)                                             &
+             read(103) ir1,ir2,ir3,((u1terml(k,l),l=1,18),k=1,18)
      endif
      if(iop.eq.6) then
         if(iread(09).eq.1)                                             &
@@ -303,11 +315,18 @@ subroutine newvarb(inarray,outarray,mmnn,numvard,iplace,iop)
               k1= isvaln(itri,k)
               k2= k1 + 6
      
-              ! NOTE: this may need to be modified to add back in the
-              ! equilibrium part for linear=0
-              sum = sum + dbf*k0term(iodd,i,j,k)                       &
-                   *(phi(k2)*(0.5*phi(j1)+phi0(j01))                   &
-                   + phi(j1)*(0.5*phi(k2)+phi0(k2)))
+              if(idens.eq.0) then
+                 sum = sum + dbf*k0term(iodd,i,j,k)                         &
+                      *((phi(k2)+phi0(k2) )*(phi(j1)+phi0(j01))             &
+                      + (phi(j1)+phi0(j01))*(phi(k2)+phi0(k2) ))/2.
+              else
+                 do l=1,18
+                    lone = isval1(itri,l)
+                    sum = sum + dbf*temparr(k,l)*deni(lone)                    &
+                         *((phi(k2)+phi0(k2) )*(phi(j1)+phi0(j01))             &
+                         + (phi(j1)+phi0(j01))*(phi(k2)+phi0(k2) ))/2.
+                 end do
+              endif
            enddo               ! on k
         endif                  ! numvar.ge.2
         go to 200
@@ -322,14 +341,31 @@ subroutine newvarb(inarray,outarray,mmnn,numvard,iplace,iop)
         endif
         do k=1,18
            kone = isval1(itri,k)
-           k1= isvaln(itri,k)
-           k2= k1 + 6
+           k1 = isvaln(itri,k)
+           k2 = k1 + 6
+           k3 = k2 + 6
            k01 = isval0(itri,k)
            
-           ! NOTE: this may need to be modified to add back in the equilibrium
-           !       part for linear=0
-           sum = sum + dbf*(g0term(iodd,i,j,k)+g0term(iodd,i,k,j))     &
-                *phi(j1)*(0.5*phi(k1)+phi0(k01))
+           if(idens.eq.0) then
+              sum = sum + dbf*(g0term(iodd,i,j,k)+g0term(iodd,i,k,j))     &
+                   *(phi(j1)+phi0(j01))*(phi(k1)+phi0(k01))/2.
+           else
+              do l=1,18
+                 lone = isval1(itri,l)
+                 l1 = isvaln(itri,l)
+                 l2 = l1+6
+
+                 sum = sum + dbf*u1terml(k,l)*                            &
+                      (phi(j1)+phi0(j01))*(phi(k1)+phi0(k01))*deni(lone)
+                 sum = sum + dbf*u3terml(k,l)*                            &
+                      deni(jone)*(phi(k2)+phi0(k2))*(phi(l2)+phi0(l2))  
+              end do
+              if(numvar.ge.3) then
+                 sum = sum + pefac*dbf*k0term(iodd,i,j,k)*                &
+                      deni(jone)*(phi(k3)+phi0(k3))
+              endif
+           endif
+
         enddo                  ! on k
         go to 200
         

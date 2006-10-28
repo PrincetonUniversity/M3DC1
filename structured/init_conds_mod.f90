@@ -159,7 +159,12 @@ subroutine phiequ(dum)
         !.......define pressure
         if(numvar.ge.3) then
            kb = k**2*beta
-           dum(i0+13) = 0.5*kb*dum(i0+1)**2
+           if(ipres.eq.0) then
+              dum(i0+13) = 0.5*kb*dum(i0+1)**2 + p0
+           else
+              dum(i0+13) = 0.5*kb*dum(i0+1)**2 + p0 - pi0
+           endif
+!           dum(i0+13) = 0.5*kb*dum(i0+1)**2
            dum(i0+14) = kb*dum(i0+1)*dum(i0+2)
            dum(i0+15) = kb*dum(i0+1)*dum(i0+3)
            dum(i0+16) = kb*(dum(i0+2)**2+dum(i0+1)*dum(i0+4))
@@ -521,7 +526,8 @@ subroutine denequ(dum)
 
      ! define density
      kb = k**2*beta
-     dum(i0+1) = 0.5*kb*d1**2
+     dum(i0+1) = 0.5*kb*d1**2 + 1.
+!!$     dum(i0+1) = 0.5*kb*d1**2
      dum(i0+2) = kb*d1*d2
      dum(i0+3) = kb*d1*d3
      dum(i0+4) = kb*(d2**2+d1*d4)

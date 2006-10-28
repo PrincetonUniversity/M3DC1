@@ -111,7 +111,7 @@
       real    deex,deez,tt,gamma4,gamma2,gamma3,dpsii,psimin,psilim,pi, &
      &  time,timer,ajmax,thdts,ththmdts,thsqudts,errori,enormi,ratioi,  &
      &  tread, telements, tfirst,ttotal,tsolve,tonestep,tmpi,gbound,    &
-     &  tadotb,tinit,tnewvarb
+     &  tadotb,tinit,tnewvarb,pefac
       integer ni(20),mi(20),nreg,nbcgs,nbcp,nbcv,nbcn,                  &
      &  iboundmax ,ntime,ntimer,nrank,msize,ntimemin,                   &
      &  nlast, iread(maxfiles), ntensor, iframe, ihdf5, idebug,         &
@@ -201,7 +201,7 @@
      &       b2vecini(:), phi(:), phis(:),                              &
      &        phiold(:), phi0(:), phi1(:), phip(:),                     &
      &       jphi(:),jphi0(:),sphi1(:),sphi2(:),vor(:),vor0(:),         &
-     &       com(:),com0(:),den(:),den0(:),dent(:),deni(:),             &
+     &       com(:),com0(:),den(:),den0(:),dent(:),deni(:),denold(:),   &
      &       pres(:),pres0(:),r4(:),q4(:),r4temp(:),bsi(:),r40(:),      &
      &       b1vector(:), b2vector(:), b3vector(:),q34(:),q34temp(:),   &
      &       vtemp(:),phistar(:),ohmic(:),viscous(:),                   &
@@ -364,6 +364,12 @@
 !.....define the operators in terms of local coordinates
       call ireaddef
 !
+      if(ipres.eq.1) then
+         pefac = 1.
+      else
+         pefac = (p0-pi0)/p0
+      endif
+!
       if(isetup.ne.0) then
          call opdef1
          call opdef2
@@ -511,6 +517,8 @@
          endif
          vel0 = velold
          phi0 = phiold 
+         denold = den0
+
 !......calculate initial perturbed fields
          call velinit(vel)
          call phiinit(phi)
@@ -527,7 +535,10 @@
             vel0 = 0
             phi = phi + phi0
             phi0 = 0
-!
+            if(idens.eq.1) then
+               den = den + den0
+               den0 = 0
+            endif
          endif     
 !     
 !        calculate the equilibrium current density
@@ -617,7 +628,7 @@
          if(myrank.eq.0) call second(ttotal)
          if(myrank.eq.0) call output
          if(linear.eq.1) call scaleback
-         if(ekin .gt. 100.) go to 100
+c$$$         if(ekin .gt. 100.) go to 100
          if(myrank.eq.0 .and. elvis.gt.0) call netcdfout
       enddo ! ntime
 !
@@ -803,16 +814,16 @@
 !
       if(iprint.eq.1 .and. myrank.eq.0) write(*,*) "starting onestep"
 !
-!.....define the current vector jphi and the RHS vectors sphi1 and sphi2
-      call newvarb(phi,jphi,m*n,numvar,1,1)
-      call newvarb(phi,sphi1,m*n,numvar,1,4)
-      if(numvar.ge.2) call newvarb(phi,sphi2,m*n,numvar,1,5)
-!
 !.....define the inverse density array deni
       if(idens.eq.1) then
          dent = den + den0
          call inverse(dent,deni)
       endif
+!
+!.....define the current vector jphi and the RHS vectors sphi1 and sphi2
+      call newvarb(phi,jphi,m*n,numvar,1,1)
+      call newvarb(phi,sphi1,m*n,numvar,1,4)
+      if(numvar.ge.2) call newvarb(phi,sphi2,m*n,numvar,1,5)
 !
 !.....Define magnetic field strength variables
       if(gyro.eq.1 .or. chipar.ne.0) then
@@ -1056,6 +1067,9 @@
 !     set density boundary conditions
          do l=1,nbcn
             vtemp(iboundn(l)) = 0.
+            if(linear.eq.0 .and. eqsubtract.eq.0) then
+               vtemp(iboundn(l)) = vtemp(iboundn(l))+denold(iboundn(l))
+            endif
          enddo
          if(myrank.eq.0) call second(tafteradotb)
          tadotb = tadotb + tafteradotb-tbeforeadotb
@@ -1198,7 +1212,7 @@
 !.....Calculate LU decomposition of field matrix if needed
       if(ntime.le.ntimer+1.or.                                             &
      &     (linear.eq.0 .and. mod(ntime,nskip).eq.0)) then
-          call ludefphi
+         call ludefphi         
       endif
       if(iprint.ge.1) write(*,*) "s2handle" 
       if(myrank.eq.0) call second(tbeforeadotb)
@@ -1921,12 +1935,12 @@ c$$$      endif
 !
                ssterm(3,1) = ssterm(3,1) + thsqudts*(                   &
      &        c10erm2(k,l)*(phi0(l01)+phi(l1))*(phi0(k01)+phi(k1))      &
-     &  +     c11erm2(k,l)*(phi0(l01)+phi(l1))*(jphi0(kone)+jphi(kone)) &
+c$$$     &  +     c11erm2(k,l)*(phi0(l01)+phi(l1))*(jphi0(kone)+jphi(kone)) &
      &       +c14erml(k,l)*(phi0(l2)+phi(l2))*(phi0(k2)+phi(k2)))
 !
                ddterm(3,1) = ddterm(3,1) + ththmdts*(                   &
      &        c10erm2(k,l)*(phi0(l01)+phi(l1))*(phi0(k01)+phi(k1))      &
-     &  +     c11erm2(k,l)*(phi0(l01)+phi(l1))*(jphi0(kone)+jphi(kone)) &
+c$$$     &  +     c11erm2(k,l)*(phi0(l01)+phi(l1))*(jphi0(kone)+jphi(kone)) &
      &       +c14erml(k,l)*(phi0(l2)+phi(l2))*(phi0(k2)+phi(k2)))
 !
                if(idens.gt.0) then
@@ -1949,12 +1963,12 @@ c$$$      endif
 !
                ssterm(3,3) = ssterm(3,3) + thsqudts*                    &
      &        (c13erml(k,l)*(phi0(l01)+phi(l1))*(phi0(k01)+phi(k1))     &
-     &        +c12erml(k,l)*(phi0(k01)+phi(k1))*(jphi0(lone)+jphi(lone))&
+c$$$     &        +c12erml(k,l)*(phi0(k01)+phi(k1))*(jphi0(lone)+jphi(lone))&
      &        +c15erml(k,l)*(phi0(l2)+phi(l2))*(phi0(k2)+phi(k2)))
 !
                ddterm(3,3) = ddterm(3,3) + ththmdts*                    &
      &        (c13erml(k,l)*(phi0(l01)+phi(l1))*(phi0(k01)+phi(k1))     &
-     &        +c12erml(k,l)*(phi0(k01)+phi(k1))*(jphi0(lone)+jphi(lone))&
+c$$$     &        +c12erml(k,l)*(phi0(k01)+phi(k1))*(jphi0(lone)+jphi(lone))&
      &        +c15erml(k,l)*(phi0(l2)+phi(l2))*(phi0(k2)+phi(k2)))
 !
 !......semi-implicit terms added 03/12/06
@@ -2127,11 +2141,7 @@ c$$$      endif
       real o2, chif
 
       ! this factor multiplies pe terms
-      if(ipres.eq.0) then
-         o2 = (p0-pi0)/p0
-      else
-         o2 = 1.
-      endif     
+      o2 = pefac
 !
 !     implicit parameter for hyperviscosity terms
       if(myrank.eq.0 .and. itimer.gt.0) call second(tstartludefphi)
@@ -2359,8 +2369,8 @@ c$$$      endif
      &                   g2term(iodd,j,k,i)*(veln(k3)+vel0(k3))
 !
                     ddterm(1,1)=ddterm(1,1)                             &
-     &                 -dt*g2term(iodd,j,k,i)*(thimp*(vel(k3)+vel0(k3)) &
-     &                               -(0.5*vel(k3)+vel0(k3)))
+     &                 -dt*g2term(iodd,j,k,i)*(thimp*(veln(k3)+vel0(k3)) &
+     &                               -(0.5*veln(k3)+vel0(k3)))
 !
 !
                  rrterm(1,3)=rrterm(1,3) + thimp*dt*g2term(iodd,k,j,i)* &
@@ -2374,8 +2384,8 @@ c$$$      endif
      &                   g2term(iodd,i,k,j)*(veln(k3)+vel0(k3))
 !
                     ddterm(2,2)=ddterm(2,2) +                           &
-     &                   dt*g2term(iodd,i,k,j)*(thimp*(vel(k3)+vel0(k3)) &
-     &                   -(0.5*vel(k3)+vel0(k3)))
+     &                  dt*g2term(iodd,i,k,j)*(thimp*(veln(k3)+vel0(k3)) &
+     &                  -(0.5*veln(k3)+vel0(k3)))
 !
 !
                     rrterm(2,3)=rrterm(2,3)- thimp*dt*g2term(iodd,i,j,k) &
@@ -2391,17 +2401,17 @@ c$$$      endif
      &                 (thimp*(phi(k3)+phi0(k3))-(0.5*phi(k3)+phi0(k3)))
 !
                     ssterm(3,3) = ssterm(3,3) + thimp*dt*               &
-     &                   (k0term(iodd,i,j,k)*(vel(k1)+vel0(k1))         &
+     &                   (k0term(iodd,i,j,k)*(veln(k1)+vel0(k1))         &
      &                  +(g2term(iodd,i,k,j)-(gam-1)*k2term(iodd,i,k,j)) &
-     &                   *(vel(k3)+vel0(k3))                            &
+     &                   *(veln(k3)+vel0(k3))                            &
      &          - (gam-1.)*kappat*(g2term(iodd,i,k,j)+g2term(iodd,i,j,k)  &
      &                           - hypp*g13erm(iodd,i,k,j))*deni(kone))
 !
                     ddterm(3,3) = ddterm(3,3) +       dt*               &
-     &                   (k0term(iodd,i,j,k)*(thimp*(  vel(k1)+vel0(k1)) &
-     &                   -(0.5*vel(k1)+vel0(k1)))                       &
+     &                  (k0term(iodd,i,j,k)*(thimp*(  veln(k1)+vel0(k1)) &
+     &                   -(0.5*veln(k1)+vel0(k1)))                       &
      &                  +(g2term(iodd,i,k,j)-(gam-1)*k2term(iodd,i,k,j)) &
-     &               *(thimp*(vel(k3)+vel0(k3))-(0.5*vel(k3)+vel0(k3))) &
+     &              *(thimp*(veln(k3)+vel0(k3))-(0.5*veln(k3)+vel0(k3))) &
      &          + (gam-1.)*kappat*(g2term(iodd,i,k,j)+g2term(iodd,i,j,k) &
      &                - hypp*g13erm(iodd,i,k,j))*(1.-thimp)*deni(kone))
 !
@@ -2439,16 +2449,16 @@ c$$$      endif
 !.....changed def of viscous term on 08/08/06
 !             viscous(i3) = viscous(i3) + (gam-1.)*amu*                  &
 !    &             (k1term(iodd,i,j,k)* vor(kone)*vor(jone)              &
-!    &             - g2term(iodd,k,j,i)*vel(k2)*vel(j2))                 &
+!    &             - g2term(iodd,k,j,i)*veln(k2)*veln(j2))                 &
 !    &         + (gam-1.)*amuc*k1term(iodd,i,j,k)*com(kone)*com(jone)
 !
               viscous(i3) = viscous(i3) + (gam-1.)*amu*                  &
-     &         (  g14erm(iodd,i,j,k)*vel(j1)*vel(k1)                     &
-     &           -g2term(iodd,k,j,i)*vel(k2)*vel(j2))
+     &         (  g14erm(iodd,i,j,k)*veln(j1)*veln(k1)                     &
+     &           -g2term(iodd,k,j,i)*veln(k2)*veln(j2))
               viscous(i3) = viscous(i3) + (gam-1.)*.5*(amu+amuc)*        &
-     &            g16erm(iodd,i,j,k)*vel(j1)*vel(k3)
+     &            g16erm(iodd,i,j,k)*veln(j1)*veln(k3)
               viscous(i3) =viscous(i3) + (gam-1.)*amuc*                  &
-     &         (  g15erm(iodd,i,j,k)*vel(j3)*vel(k3))
+     &         (  g15erm(iodd,i,j,k)*veln(j3)*veln(k3))
 
               if(idens.eq.0) then
 !
@@ -2772,8 +2782,8 @@ c$$$      endif
      &              g2term(iodd,i,k,j)*(veln(k3)+vel0(k3))
 !     
                ddterm(1,1)=ddterm(1,1)                                  &
-     &              +dt*g2term(iodd,i,k,j)*(thimp*(vel(k3)+vel0(k3))    &
-     &              -(0.5*vel(k3)+vel0(k3)))
+     &              +dt*g2term(iodd,i,k,j)*(thimp*(veln(k3)+vel0(k3))    &
+     &              -(0.5*veln(k3)+vel0(k3)))
 !
 !     
                rrterm(1,3)=rrterm(1,3) - thimp*dt*g2term(iodd,i,j,k)*   &
@@ -4660,7 +4670,7 @@ c$$$      endif
 !
       allocate(jphi(mmnn6),jphi0(mmnn6), sphi1(mmnn6), sphi2(mmnn6),    &
      &     vor(mmnn6), vor0(mmnn6),  com(mmnn6), com0(mmnn6),           &
-     &     den(mmnn6), den0(mmnn6),  dent(mmnn6), deni(mmnn6),          &
+     &    den(mmnn6),den0(mmnn6),dent(mmnn6),deni(mmnn6),denold(mmnn6), &
      &    sphip(mmnn6),sphie(mmnn6),pres(mmnn6),pres0(mmnn6),bsi(mmnn6),&
      &    ephi(mmnn6),eph2(mmnn6),eph3(mmnn6),eph4(mmnn6),eph5(mmnn6),   &
      &    eph6(mmnn6),eph7(mmnn6))
