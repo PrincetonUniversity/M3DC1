@@ -187,6 +187,9 @@
 !.....gravitational acceleration
       grav = 0.
 !
+!.....1 = conserve toroidal flux
+      iconstflux = 0
+!
       if(itest.eq.0) then
         open(5,file='C1input',form='formatted',status='old')
         read(5,nml=inputnl)

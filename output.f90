@@ -253,6 +253,10 @@ subroutine output
   
   call oneplot(sb1,1,1,"sb1 ",0)
   if(numvar.ge.2) call oneplot(sb2,1,1,"sb2 ",0)
+  if(numvar.ge.3) then
+     call oneplot(sp1,1,1,"sp1 ",0)
+     if(ipres.eq.1) call oneplot(sb3,1,1,"sb3 ",0)
+  endif
   if(idens.eq.1) call oneplot(deni,1,1,"deni",0)
 
   call writeHDF5time(iframe-1,time)

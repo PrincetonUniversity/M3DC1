@@ -20,7 +20,8 @@ module basic
   use p_data
 
   ! transport coefficients
-  real :: amu         ! viscosity
+  real :: amu         ! incompressible viscosity
+  real :: amuc        ! compressible viscosity
   real :: etar        ! resistivity
   real :: kappa       ! pressure diffusion
   real :: kappat      ! isotropic temperature conductivity
@@ -51,17 +52,19 @@ module basic
   real :: p1, p2
 
   ! numerical parameters
-  integer :: linear   ! 1 = linear simulation; 0 = nonlinear simulation
+  integer :: linear      ! 1 = linear simulation; 0 = nonlinear simulation
   integer :: eqsubtract  ! 1 = subtract equilibrium in noninear simulations
-  integer :: numvar
-  integer :: idens    ! evolve density
-  integer :: ipres    ! evolve total and electron pressures separately
-  integer :: imask    ! 1 = ignore 2-fluid terms near boundaries
-  integer :: ntimemax ! number of timesteps
-  integer :: nskip    ! number of timesteps per matrix recalculation
-  real :: dt          ! timestep
-  real :: thimp       ! implicitness parameter
+  integer :: numvar      ! 1 = 2-field; 2 = reduced MHD; 3 = compressible MHD
+  integer :: idens       ! evolve density
+  integer :: ipres       ! evolve total and electron pressures separately
+  integer :: imask       ! 1 = ignore 2-fluid terms near boundaries
+  integer :: ntimemax    ! number of timesteps
+  integer :: nskip       ! number of timesteps per matrix recalculation
+  integer :: iconstflux  ! 1 = conserve toroidal flux
+  real :: dt             ! timestep
+  real :: thimp          ! implicitness parameter
   real :: facw, facd
+  
 
   ! output parameters
   integer :: iprint   ! print extra debugging info
@@ -85,7 +88,7 @@ module basic
        tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,cb,     &
        bzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,      &
        kappa,iper,jper,iprint,itimer,xzero,zzero,beta,pi0,   &
-       eqsubtract,denm,grav,kappat,kappar,ln
+       eqsubtract,denm,grav,kappat,kappar,ln,amuc,iconstflux
 
   !     derived quantities
   real :: tt,gamma4,gamma2,gamma3,dpsii,psimin,psilim,pi,              &
@@ -145,8 +148,9 @@ module arrays
        velold(:), vel0(:), vel1(:),                               &
        b2vecini(:), phi(:), phis(:),                              &
        phiold(:), phi0(:), phi1(:),                               &
-       jphi(:),jphi0(:),sb1(:),sb2(:),sb3(:),vor(:),vor0(:),      &
-       com(:),com0(:),den(:),den0(:),denold(:),deni(:),           &
+       jphi(:),jphi0(:),sb1(:),sb2(:),sb3(:),sp1(:),              &
+       vor(:),vor0(:),com(:),com0(:),                             &
+       den(:),den0(:),denold(:),deni(:),                          &
        pres(:),pres0(:),r4(:),q4(:),qn4(:),                       &
        b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
        b5vector(:), vtemp(:),                                     &
@@ -611,9 +615,16 @@ subroutine onestep
   !      call newvar(phi,jphi,numnodes,numvar,1,VAR_J,1)
   call newvar(phi,sb1,numnodes,numvar,1,VAR_SB1,1)
   if(numvar.ge.2) call newvar(phi,sb2,numnodes,numvar,1,VAR_SB2,1)
-  if(numvar.ge.3) call newvar(phi,sb3,numnodes,numvar,1,VAR_SB3,1)
+  if(numvar.ge.3) then
+     call newvar(phi,sp1,numnodes,numvar,1,VAR_SP1,1)
+     if(ipres.eq.1) then
+        call newvar(phi,sb3,numnodes,numvar,1,VAR_SB3,1)
+     else
+        sb3 = sp1
+     endif
+  end if
 
-!  call conserve_tflux()
+  if(numvar.ge.2 .and. iconstflux.eq.1) call conserve_tflux()
 
   if(ntime.le.ntimer+1.or. (linear.eq.0 .and. mod(ntime,nskip).eq.0)) then
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -850,7 +861,7 @@ subroutine conserve_tflux()
 
         if(numvar.ge.2) then
            j2 = isvaln(itri,j) + 6
-           tflux = tflux + d2term(j)*phi(j2)
+           tflux = tflux + d2term(j)*(phi(j2) + phi0(j2) - phiold(j2))
         endif
 
      enddo
@@ -868,8 +879,6 @@ subroutine conserve_tflux()
         phi(index) = phi(index) - correction
      enddo
   endif
-  
-  if(myrank.eq.0 .and. iprint.eq.1) write(*,*) "tflux, gbound",tflux,gbound
-  if(myrank.eq.0) write(9,*) "tflux, gbound",tflux,gbound
 
+  return
 end subroutine conserve_tflux
