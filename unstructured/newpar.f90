@@ -198,7 +198,7 @@ Program Reducedquintic
   integer, intent(in) :: isfirst, inmyrank, inmaxrank
 #endif
   integer :: j, i, ier, numvars, ifail, maxts, numelms, numnodes
-  integer :: index1, index2
+  integer :: index1, index2, ndofs
   real :: dens, dtmin, ratemin, ratemax, temp(5)
 
   real :: tstart, tend
@@ -379,19 +379,31 @@ Program Reducedquintic
   endif                     !  end of the branch on restart/no restart
 
   ! correct for left-handed coordinates
-  do i=1,numnodes
-     call entdofs(numvar, i, 0, ibegin, iendplusone)
-     if(numvar.eq.1) then
-        j = 5
-     else
-        j = 11
-     endif
-     phi(ibegin:ibegin+j) = -phi(ibegin:ibegin+j)
-     vel(ibegin:ibegin+j) = -vel(ibegin:ibegin+j)
-     phi0(ibegin:ibegin+j) = -phi0(ibegin:ibegin+j)
-     vel0(ibegin:ibegin+j) = -vel0(ibegin:ibegin+j)
-     phiold(ibegin:ibegin+j) = -phiold(ibegin:ibegin+j)
-     velold(ibegin:ibegin+j) = -velold(ibegin:ibegin+j)
+!!$  do i=1,numnodes
+!!$     call entdofs(numvar, i, 0, ibegin, iendplusone)
+!!$     if(numvar.eq.1) then
+!!$        j = 5
+!!$     else
+!!$        j = 11
+!!$     endif
+!!$     phi(ibegin:ibegin+j) = -phi(ibegin:ibegin+j)
+!!$     vel(ibegin:ibegin+j) = -vel(ibegin:ibegin+j)
+!!$     phi0(ibegin:ibegin+j) = -phi0(ibegin:ibegin+j)
+!!$     vel0(ibegin:ibegin+j) = -vel0(ibegin:ibegin+j)
+!!$     phiold(ibegin:ibegin+j) = -phiold(ibegin:ibegin+j)
+!!$     velold(ibegin:ibegin+j) = -velold(ibegin:ibegin+j)
+!!$  enddo
+! the above code looks like it just makes all of the dofs/unknowns negative
+! which is what the code below does while also taking into account
+! properly that multiple nodes may share the same dof/unknown
+  call numdofs(numvar, ndofs)
+  do i=1,ndofs
+     phi(i) = -phi(i)
+     vel(i) = -vel(i)
+     phi0(i) = -phi0(i)
+     vel0(i) = -vel0(i)
+     phiold(i) = -phiold(i)
+     velold(i) = -velold(i)
   enddo
 
   if(myrank.eq.0) call plotit(vel,phi,0)
