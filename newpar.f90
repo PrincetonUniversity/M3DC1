@@ -311,9 +311,6 @@ Program Reducedquintic
   maxts = ntime-1
 
 101 continue
-  if(maxrank .eq. 1) call printarray(den, 1, 0, 'den end!')
-  if(maxrank .gt. 1) call writeglobaldofs(den, 1, myrank, maxrank,'den end!') 
-  call printlocalarray(den, 1, 'den end!')
   if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'about to export field'
 !      call exportfield2(1,numvar,phi, 0) ! 0 for now for adaptive-loop.sh script
 !      call exportfield2(1,numvar,jphi, 1)
