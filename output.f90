@@ -233,31 +233,31 @@ subroutine output
   if(linear.eq.1) then
      if(ntime.eq.0) then
         call plotit(vel0,phi0,1)
-        if(idens.eq.1) call oneplot(den0,1,1,"n-0",0)
+        if(idens.eq.1 .and. maxrank .eq. 1) call oneplot(den0,1,1,"n-0",0)
      endif
      call plotit(vel,phi,0)
-     if(idens.eq.1) call oneplot(den,1,1,"n-p",1)
+     if(idens.eq.1 .and. maxrank .eq. 1) call oneplot(den,1,1,"n-p",1)
   else
      if(eqsubtract.eq.1) then
 !        call plotit(vel,phi,0)
         call plotit(vel+vel0,phi+phi0,1)
-        if(idens.eq.1) call oneplot(den+den0,1,1,"n-t",1)
+        if(idens.eq.1 .and. maxrank .eq. 1) call oneplot(den+den0,1,1,"n-t",1)
      else
         call plotit(vel,phi,1)
-        if(idens.eq.1) call oneplot(den,1,1,"n-t",1)
+        if(idens.eq.1 .and. maxrank .eq. 1) call oneplot(den,1,1,"n-t",1)
      endif
 !!$     if(idens.eq.1) call oneplot(deni,1,1,"n^-1",0)
   endif
   
   ! plot linearized solution
   
-  call oneplot(sb1,1,1,"sb1 ",0)
-  if(numvar.ge.2) call oneplot(sb2,1,1,"sb2 ",0)
-  if(numvar.ge.3) then
+  if(maxrank .eq. 1) call oneplot(sb1,1,1,"sb1 ",0)
+  if(numvar.ge.2 .and. maxrank .eq. 1) call oneplot(sb2,1,1,"sb2 ",0)
+  if(numvar.ge.3 .and. maxrank .eq. 1) then
      call oneplot(sp1,1,1,"sp1 ",0)
      if(ipres.eq.1) call oneplot(sb3,1,1,"sb3 ",0)
   endif
-  if(idens.eq.1) call oneplot(deni,1,1,"deni",0)
+  if(idens.eq.1 .and. maxrank .eq. 1) call oneplot(deni,1,1,"deni",0)
 
   call writeHDF5time(iframe-1,time)
   call wrrestart

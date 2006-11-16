@@ -42,7 +42,7 @@
 
       call numnod(numnodes)
       call numfac(numelms)
-      ntri   = 2*numelms
+      ntri   = 2*numelms !should this be ntri = numelms???
 
       nbound = 0 ! number of boundary vertices
       do i=1,numnodes
@@ -52,24 +52,47 @@
       nbound = 12*nbound*numvar
 !
 !.....arrays defined at all vertices
-      allocate(b1vecini(maxdofs1*numvar),vel(maxdofs1*numvar),
-     &     vels(maxdofs1*numvar), velold(maxdofs1*numvar), 
-     &     veln(maxdofs1*numvar), denold(maxdofs1*numvar),
-     &     vel0(maxdofs1*numvar), vel1(maxdofs1*numvar),  
-     &     b2vecini(maxdofs1*numvar), phi(maxdofs1*numvar), 
-     &     phis(maxdofs1*numvar), phiold(maxdofs1*numvar), 
-     &     phi0(maxdofs1*numvar), phi1(maxdofs1*numvar),   
-     &     b1vector(maxdofs1*numvar), b2vector(maxdofs1*numvar),               
-     &     b3vector(maxdofs1*numvar),vtemp(maxdofs1*numvar),
-     &     r4(maxdofs1*numvar),q4(maxdofs1*numvar))
-!
-      allocate(fun1(maxdofs1),fun4(maxdofs1),fun2(maxdofs1),              &
-     &     fun3(maxdofs1), jphi(maxdofs1),jphi0(maxdofs1),                &
-     &     sb1(maxdofs1), sb2(maxdofs1), sb3(maxdofs1), sp1(maxdofs1),    &
-     &     vor(maxdofs1), vor0(maxdofs1), com(maxdofs1), com0(maxdofs1),  & 
-     &     den(maxdofs1), den0(maxdofs1), deni(maxdofs1),                 &
-     &     pres(maxdofs1), pres0(maxdofs1),                               &
-     &     qn4(maxdofs1))
+c     created with ordering specified by numvar
+      call createvec(b1vecini, numvar)
+      call createvec(vel, numvar)
+      call createvec(vels, numvar)
+      call createvec(velold, numvar)
+      call createvec(veln, numvar)
+      call createvec(denold, numvar)
+      call createvec(vel0, numvar)
+      call createvec(vel1, numvar)
+      call createvec(b2vecini, numvar)
+      call createvec(phi, numvar)
+      call createvec(phis, numvar)
+      call createvec(phiold, numvar)
+      call createvec(phi0, numvar)
+      call createvec(phi1, numvar)
+      call createvec(b1vector, numvar)
+      call createvec(b2vector, numvar)
+      call createvec(b3vector, numvar)
+      call createvec(vtemp, numvar)
+      call createvec(r4, numvar)
+      call createvec(q4, numvar)
+      call createvec(fun1, 1)
+      call createvec(fun4, 1)
+      call createvec(fun2, 1)
+      call createvec(fun3, 1)
+      call createvec(jphi, 1)
+      call createvec(jphi0, 1)
+      call createvec(sb1, 1)
+      call createvec(sb2, 1)
+      call createvec(sb3, 1)
+      call createvec(sp1, 1)
+      call createvec(vor, 1)
+      call createvec(vor0, 1)
+      call createvec(com, 1)
+      call createvec(com0, 1)
+      call createvec(den, 1)
+      call createvec(den0, 1)
+      call createvec(deni, 1)
+      call createvec(pres, 1)
+      call createvec(pres0, 1)
+      call createvec(qn4, 1)
 !
 !.....boundary arrays
       allocate(iboundgs(nbound),iboundv(nbound),iboundp(nbound),        &
@@ -81,7 +104,7 @@
      &         isval2(ntri,18))
 !
 !.....metric terms involved in toroidal geometry
-      allocate(rinv(maxdofs1))
+      allocate(rinv(numnodes*6))
 !
       return
       end
@@ -98,10 +121,9 @@
       use t_data
       use basic
       use arrays
-      use sparse_matrix
       use sparse
       implicit none
-      integer numnodes, numvard,iplace, mmnn6, numelms,
+      integer numnodes, numvard,iplace, ndofs_sm, numelms,
      &     ibegind, iendplusoned, ibeginsm, iendplusonesm
       real ssterm(3,3), deex
       real  outarray(numnodes*6*numvard),inarray(numnodes*6),
@@ -111,12 +133,13 @@
       real(r9a), allocatable:: temp(:)
       integer,  save, allocatable:: iboundsm(:)
       real hyp, thimpsm
-      integer nranksm, numvarsm, itri, i, j,izone,izonedim,
+      integer numvarsm, itri, i, j,izone,izonedim,
      1     l, jone, ier, jtwo, itwo, nbcsm, nbound
 !
+      numvarsm = 2
       call numfac(numelms)
-      mmnn6 = 6*numnodes
-      allocate(temp(2*mmnn6))
+      call createvec(temp, numvarsm)
+      call numdofs(numvarsm, ndofs_sm)
       temp = 0
       thimpsm = 1.
 ! 
@@ -130,13 +153,11 @@
       nbound = 12*numvar*nbound
       allocate(iboundsm(2*nbound))
 !
-      numvarsm = 2
-      nranksm = numnodes*6*numvarsm
 !
 !.....compute LU decomposition only once
 !
 !.....form matrix
-      call zero_array(s7matrix_sm,spo_numvar2,57)
+      call zeroarray(s7matrix_sm,numvar2_numbering)
       do itri=1,numelms
          call getdeex(itri,deex)
          call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
@@ -152,10 +173,10 @@
               ssterm(1,2) =-aterm(i,j)
               ssterm(2,1) =  +dt*hyp*thimpsm*bterm(i,j)
               ssterm(2,2) = aterm(i,j)
-              call insert_val(s7matrix_sm,ssterm(1,1),itwo  ,jtwo  ,1)
-              call insert_val(s7matrix_sm,ssterm(1,2),itwo  ,jtwo+6,1)
-              call insert_val(s7matrix_sm,ssterm(2,1),itwo+6,jtwo  ,1)
-              call insert_val(s7matrix_sm,ssterm(2,2),itwo+6,jtwo+6,1)
+              call insertval(s7matrix_sm,ssterm(1,1),itwo  ,jtwo  ,1)
+              call insertval(s7matrix_sm,ssterm(1,2),itwo  ,jtwo+6,1)
+              call insertval(s7matrix_sm,ssterm(2,1),itwo+6,jtwo  ,1)
+              call insertval(s7matrix_sm,ssterm(2,2),itwo+6,jtwo+6,1)
            enddo
         enddo
       enddo
@@ -164,9 +185,9 @@
       call boundarysm(iboundsm,nbcsm,iplace)
       ! bc stuff...
       do i=1,nbcsm
-         call set_diri_bc(s7matrix_sm, iboundsm(i))
+         call setdiribc(s7matrix_sm, iboundsm(i))
       enddo
-      call finalize_array(s7matrix_sm)
+      call finalizearray4solve(s7matrix_sm)
 !
  500  continue
 !
@@ -189,12 +210,13 @@
       enddo
       
       do l=1,nbcsm
-      if(iboundsm(l).le.0 .or. iboundsm(l).gt.mmnn6*numvarsm) then
+      if(iboundsm(l).le.0 .or. iboundsm(l).gt.ndofs_sm) then
         write(*,*) "error in smoother"
         call safestop(98)
       endif
       temp(iboundsm(l)) = combounds(l)
       enddo
+      call sumshareddofs(temp)
 !
 !.....perform LU backsubstitution to get outarray solution
       call solve(s7matrix_sm,temp,ier)
@@ -215,7 +237,7 @@ c     &     = temp(6*((l-1)*numvarsm+        1 )+i)
          enddo
       enddo
 !
-      deallocate(temp)
+      call deletevec(temp)
       return
 !
       end
@@ -272,11 +294,15 @@ c     &     = temp(6*((l-1)*numvarsm+        1 )+i)
       use basic
       use arrays
       implicit none
+#ifdef mpi
+      include "mpif.h"
+#endif
       integer itri, i, j, j1, i1, jone, ione,
      &     j01, i01, k, kone, j2, i2, j3, i3
       real terma, termb, termd, hypf, hypi, hypv, hypc, aterm(18,18),
      &     gamfac, deex, dofs(20), g2term(18,18),fintl(-6:maxi,-6:maxi),
      &     bterm(18,18), dterm(18,18), d2term(18)
+      double precision temp(18), temp2(18)
       integer numelms
 
       call numfac(numelms)
@@ -442,10 +468,60 @@ c same here with ntime = 1      if(ntime .eq. 1) call printarray(jphi0, 150, 0, 
 !    
  8900 format(/," ntime=",i5)
  8901 format(1p5e12.4)
-      write(*,*) 'EKINP EKINT EKIN3 ', ekinp, ekint, ekin3      
+! parallel updating of values summed over elements
+#ifdef mpi
+      if(maxrank .gt. 1) then
+         temp(1) = ekinp
+         temp(2) = emagp
+         temp(3) = ekinpd
+         temp(4) = emagpd      
+         temp(5) = ekint
+         temp(6) = emagt
+         temp(7) = ekintd
+         temp(8) = emagtd
+         temp(9) = ekinph
+         temp(10) = ekinth
+         temp(11) = emagph
+         temp(12) = emagth
+         temp(13) = ekin3
+         temp(14) = ekin3d
+         temp(15) = ekin3h
+         temp(16) = emag3
+         temp(17) = emag3d
+         temp(18) = emag3h
+         
+         call mpi_allreduce(temp, temp2, 18, MPI_DOUBLE_PRECISION, 
+     &        MPI_SUM, MPI_COMM_WORLD, i)
+         
+         
+         ekinp = temp2(1)
+         emagp = temp2(2)
+         ekinpd = temp2(3)
+         emagpd = temp2(4)      
+         ekint = temp2(5)
+         emagt = temp2(6)
+         ekintd = temp2(7)
+         emagtd = temp2(8)
+         ekinph = temp2(9)
+         ekinth = temp2(10)
+         emagph = temp2(11)
+         emagth = temp2(12)
+         ekin3 = temp2(13)
+         ekin3d = temp2(14)
+         ekin3h = temp2(15)
+         emag3 = temp2(16)
+         emag3d = temp2(17)
+         emag3h = temp2(18)
+      endif !if maxrank .gt. 1
+#endif !ifdef mpi
+      if(myrank .eq. 0) then
+         write(*,*) 'EKINP EKINT EKIN3 ', ekinp, ekint, ekin3      
+      endif
       ekin = ekinp + ekint + ekin3
       emag = emagp + emagt + emag3
-      write(*,*) 'emag===', emag,emagp, emagt,emag3,ntime
+      if(myrank .eq. 0) then
+         write(*,*) 'emag===', emag,emagp, emagt,emag3,ntime
+      endif
       ekind = ekinpd + ekintd + ekin3d
       emagd = emagpd + emagtd + emag3d
 !
@@ -503,43 +579,6 @@ c same here with ntime = 1      if(ntime .eq. 1) call printarray(jphi0, 150, 0, 
       end
 
 !============================================================
-      subroutine defineident(slumatrix)
-!     test program to define identity matrix
-      use p_data
-      use basic
-#ifdef mpi
-      use supralu_dist_mod
-      implicit none
-      type(sparseR8d_obj) :: slumatrix
-#else
-      use supralu_mod
-      implicit none
-      type(sparseR8_obj) :: slumatrix
-#endif
-      integer numnodes, ier, jbig, jl, irow
-      logical :: newcol_flag
-      integer, parameter :: r8e = selected_real_kind(12,100)
-      real(r8e) :: val
-!
-      call numnod(numnodes)
-      ier = 0.
-!     
-      do jbig=1,numnodes
-        do jl=1,6*numvar
-          newcol_flag = .true.
-          irow = (jbig-1)*6*numvar + jl-1
-          val = 1.
-#ifdef mpi
-          call sparseR8d_set_next(slumatrix,irow,newcol_flag,val,ier)
-#else
-          call sparseR8_set_next(slumatrix,irow,newcol_flag,val,ier)
-#endif
-        enddo
-      enddo
-!
-      return
-      end
-!============================================================
       subroutine inverse(inarray,outarray)
 !
 !     calculates the inverse of the numvar=1 arrary inarray, and puts
@@ -550,13 +589,13 @@ c same here with ntime = 1      if(ntime .eq. 1) call printarray(jphi0, 150, 0, 
       use basic
       use arrays
       implicit none
-      integer l, numnodes, ibegin, iendplusone
+      integer l, ndofs, ibegin
 !
       real inarray(*),outarray(*)
 !
-      call numnod(numnodes)
-      do l=1,numnodes
-         call entdofs(1, l, 0, ibegin, iendplusone)
+      call numdofs(1, ndofs)
+      do l=1,ndofs/6
+         ibegin = (l-1)*6+1
          outarray(ibegin) = 1./inarray(ibegin)
          outarray(ibegin+1) = -inarray(ibegin+1)/inarray(ibegin)**2
          outarray(ibegin+2) = -inarray(ibegin+2)/inarray(ibegin)**2
@@ -587,7 +626,6 @@ c same here with ntime = 1      if(ntime .eq. 1) call printarray(jphi0, 150, 0, 
       use t_data
       use basic
       use arrays
-      use sparse_matrix
       use sparse
       implicit none
       integer numnodes, numnodes1, l, i, numvards, 
@@ -605,7 +643,8 @@ c same here with ntime = 1      if(ntime .eq. 1) call printarray(jphi0, 150, 0, 
       call numfac(numelms)
       call numnod(numnodes1)
       call numdofs(1, ndofs)
-      allocate (phin(ndofs),temp(ndofs))
+      call createvec(phin, 1)
+      call createvec(temp, 1)
 !.....put psi into a numvar=1 storage array
       do l=1,numnodes1
          call entdofs(1, l, 0, ibegin, iendplusone)
@@ -631,8 +670,8 @@ c same here with ntime = 1      if(ntime .eq. 1) call printarray(jphi0, 150, 0, 
 !.....compute LU decomposition only once
 !
 !.....form matrices
-      call zero_array(s4matrix_sm,spo_numvar1,54)
-      call zero_array(d4matrix_sm,spo_numvar1,64)
+      call zeroarray(s4matrix_sm,numvar1_numbering)
+      call zeroarray(d4matrix_sm,numvar1_numbering)
       do itri=1,numelms
          call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
          call calcaterm(itri, aterm, fintl)
@@ -643,8 +682,8 @@ c same here with ntime = 1      if(ntime .eq. 1) call printarray(jphi0, 150, 0, 
             ione = isval1(itri,i)
             ssterm(1,1) = dterm(i,j)
             ddterm(1,1) = aterm(i,j)
-            call insert_val(s4matrix_sm, ssterm(1,1),ione,jone,1)
-            call insert_val(d4matrix_sm, ddterm(1,1),ione,jone,1)
+            call insertval(s4matrix_sm, ssterm(1,1),ione,jone,1)
+            call insertval(d4matrix_sm, ddterm(1,1),ione,jone,1)
 !
         enddo
         enddo
@@ -655,10 +694,10 @@ c same here with ntime = 1      if(ntime .eq. 1) call printarray(jphi0, 150, 0, 
 !
       ! bc stuff...
       do i=1,nbcds
-         call set_diri_bc(s4matrix_sm, iboundds(i))
+         call setdiribc(s4matrix_sm, iboundds(i))
       enddo
-      call finalize_array(s4matrix_sm)
-      call finalize_array(d4matrix_sm)
+      call finalizearray4solve(s4matrix_sm)
+      call finalizearray4multiply(d4matrix_sm)
 !
 !.....perform LU decomposition of sparse matrix "s4matrix"
 !     store result in opaque object "s4handle"
@@ -667,8 +706,7 @@ c same here with ntime = 1      if(ntime .eq. 1) call printarray(jphi0, 150, 0, 
       temp = 0
 !
 !.....multiply operator matrix d4matrix_sm times phin to get RHS temp
-      call matrix_vector_mult(d4matrix_sm,phin,temp,
-     &     d4matrix_sm%spo_ptr%numcols)
+      call matrixvectormult(d4matrix_sm,phin,temp)
       do l=1,nbcds
       temp(iboundds(l)) = 0.
       enddo
@@ -678,7 +716,8 @@ c same here with ntime = 1      if(ntime .eq. 1) call printarray(jphi0, 150, 0, 
       call solve(s4matrix_sm,temp,ier)
       outarray = temp
 !
-      deallocate (phin,temp)
+      call deletevec(phin)
+      call deletevec(temp)
       return
 !
       end
@@ -772,8 +811,12 @@ c same here with ntime = 1      if(ntime .eq. 1) call printarray(jphi0, 150, 0, 
            enddo
 !.....end of do loops on i
 !
- 505  continue
-       
+ 505  continue  ! end of loop over numelms
+! since a proc is contributing values to parts of the vector
+! it does not own, we call sumshareddofs so that these values
+! get summed up for all values shared by multiple procs
+! and then update these values
+      call sumshareddofs(b1vecini)
 c      call safestop(1111)
       return
       end

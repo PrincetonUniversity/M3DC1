@@ -4,17 +4,13 @@ subroutine ludefall
   use t_data
   use basic
   use arrays
-  use sparse_matrix
   use sparse
   use nintegrate_mod
   use metricterms_n
 
+  implicit none
 #ifdef mpi
-  use supralu_dist_mod
-  implicit none
   include 'mpif.h'
-#else
-  implicit none
 #endif
 
   integer :: itri, numelms, i
@@ -34,44 +30,44 @@ subroutine ludefall
   
   ! form field matrices
   if(idens.eq.1) then
-     call zero_array(s8matrix_sm,spo_numvar1,58)
-     call zero_array(d8matrix_sm,spo_numvar1,68)
+     call zeroarray(s8matrix_sm,numvar1_numbering)
+     call zeroarray(d8matrix_sm,numvar1_numbering)
   endif
   if(numvar .eq. 1) then
-     call zero_array(s1matrix_sm,spo_numvar1,511)
-     call zero_array(d1matrix_sm,spo_numvar1,611)
-     call zero_array(r1matrix_sm,spo_numvar1,111)
-     call zero_array(s2matrix_sm,spo_numvar1,521)
-     call zero_array(d2matrix_sm,spo_numvar1,621)
-     call zero_array(r2matrix_sm,spo_numvar1,121)
-     call zero_array(q2matrix_sm,spo_numvar1,921)
+     call zeroarray(s1matrix_sm,numvar1_numbering)
+     call zeroarray(d1matrix_sm,numvar1_numbering)
+     call zeroarray(r1matrix_sm,numvar1_numbering)
+     call zeroarray(s2matrix_sm,numvar1_numbering)
+     call zeroarray(d2matrix_sm,numvar1_numbering)
+     call zeroarray(r2matrix_sm,numvar1_numbering)
+     call zeroarray(q2matrix_sm,numvar1_numbering)
      if(idens.eq.1) then
-        call zero_array(q8matrix_sm,spo_numvar1,981)
-        call zero_array(r8matrix_sm,spo_numvar1,181)
+        call zeroarray(q8matrix_sm,numvar1_numbering)
+        call zeroarray(r8matrix_sm,numvar1_numbering)
      endif
   else if(numvar .eq. 2) then
-     call zero_array(s1matrix_sm,spo_numvar2,512)
-     call zero_array(d1matrix_sm,spo_numvar2,612)
-     call zero_array(r1matrix_sm,spo_numvar2,112)
-     call zero_array(s2matrix_sm,spo_numvar2,522)
-     call zero_array(d2matrix_sm,spo_numvar2,622)
-     call zero_array(r2matrix_sm,spo_numvar2,122)
-     call zero_array(q2matrix_sm,spo_numvar2,922)
+     call zeroarray(s1matrix_sm,numvar2_numbering)
+     call zeroarray(d1matrix_sm,numvar2_numbering)
+     call zeroarray(r1matrix_sm,numvar2_numbering)
+     call zeroarray(s2matrix_sm,numvar2_numbering)
+     call zeroarray(d2matrix_sm,numvar2_numbering)
+     call zeroarray(r2matrix_sm,numvar2_numbering)
+     call zeroarray(q2matrix_sm,numvar2_numbering)
      if(idens.eq.1) then
-        call zero_array(q8matrix_sm,spo_numvar2,982)
-        call zero_array(r8matrix_sm,spo_numvar2,182)
+        call zeroarray(q8matrix_sm,numvar2_numbering)
+        call zeroarray(r8matrix_sm,numvar2_numbering)
      endif
   else 
-     call zero_array(s1matrix_sm,spo_numvar3,513)
-     call zero_array(d1matrix_sm,spo_numvar3,613)
-     call zero_array(r1matrix_sm,spo_numvar3,113)
-     call zero_array(s2matrix_sm,spo_numvar3,523)
-     call zero_array(d2matrix_sm,spo_numvar3,623)
-     call zero_array(r2matrix_sm,spo_numvar3,123)
-     call zero_array(q2matrix_sm,spo_numvar3,923)
+     call zeroarray(s1matrix_sm,numvar3_numbering)
+     call zeroarray(d1matrix_sm,numvar3_numbering)
+     call zeroarray(r1matrix_sm,numvar3_numbering)
+     call zeroarray(s2matrix_sm,numvar3_numbering)
+     call zeroarray(d2matrix_sm,numvar3_numbering)
+     call zeroarray(r2matrix_sm,numvar3_numbering)
+     call zeroarray(q2matrix_sm,numvar3_numbering)
      if(idens.eq.1) then
-        call zero_array(q8matrix_sm,spo_numvar3,983)
-        call zero_array(r8matrix_sm,spo_numvar3,183)
+        call zeroarray(q8matrix_sm,numvar3_numbering)
+        call zeroarray(r8matrix_sm,numvar3_numbering)
      endif
   endif
 
@@ -79,8 +75,6 @@ subroutine ludefall
   q4 = 0.
   if(idens.eq.1) qn4 = 0.
   
-! acbauer -- load-balance here
-
   do itri=1,numelms
 
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -112,6 +106,13 @@ subroutine ludefall
      if(idens.eq.1) call ludefden_n(itri,dbf)
 
   end do
+  ! since a proc is contributing values to parts of the vector
+  ! it does not own, we call sumshareddofs so that these values
+  ! get summed up for all values shared by multiple procs
+  ! and then update these values
+  call sumshareddofs(r4)
+  call sumshareddofs(q4)
+  if(idens.eq.1) call sumshareddofs(qn4)
 
   ! Impose boundary conditions
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -125,11 +126,11 @@ subroutine ludefall
      call safestop(3)
   endif
   do i=1,nbcv
-     call set_diri_bc(s1matrix_sm, iboundv(i))
+     call setdiribc(s1matrix_sm, iboundv(i))
   enddo
-  call finalize_array(s1matrix_sm)
-  call finalize_array(d1matrix_sm)
-  call finalize_array(r1matrix_sm)
+  call finalizearray4solve(s1matrix_sm)
+  call finalizearray4multiply(d1matrix_sm)
+  call finalizearray4multiply(r1matrix_sm)
 
   ! Field boundary conditions
   call boundaryp(iboundp,nbcp)
@@ -139,12 +140,12 @@ subroutine ludefall
      call safestop(9) 
   endif
   do i=1,nbcp
-     call set_diri_bc(s2matrix_sm,iboundp(i))
+     call setdiribc(s2matrix_sm,iboundp(i))
   enddo
-  call finalize_array(s2matrix_sm)
-  call finalize_array(d2matrix_sm)
-  call finalize_array(r2matrix_sm)
-  call finalize_array(q2matrix_sm)
+  call finalizearray4solve(s2matrix_sm)
+  call finalizearray4multiply(d2matrix_sm)
+  call finalizearray4multiply(r2matrix_sm)
+  call finalizearray4multiply(q2matrix_sm)
 
   ! Density boundary conditions
   if(idens.eq.1) then
@@ -156,13 +157,13 @@ subroutine ludefall
      endif
      
      do i=1,nbcn
-        call set_diri_bc(s8matrix_sm, iboundn(i))
+        call setdiribc(s8matrix_sm, iboundn(i))
      enddo
 
-     call finalize_array(s8matrix_sm)
-     call finalize_array(d8matrix_sm)
-     call finalize_array(q8matrix_sm)
-     call finalize_array(r8matrix_sm)
+     call finalizearray4solve(s8matrix_sm)
+     call finalizearray4multiply(d8matrix_sm)
+     call finalizearray4multiply(q8matrix_sm)
+     call finalizearray4multiply(r8matrix_sm)
   endif ! on idens.eq.1
 
 end subroutine ludefall
@@ -174,7 +175,6 @@ subroutine ludefvel_n(itri,dbf,deex)
   use metricterms_n
   use arrays
   use sparse
-  use sparse_matrix
 
   implicit none
 
@@ -516,36 +516,36 @@ subroutine ludefvel_n(itri,dbf,deex)
            endif
         endif
         
-        call insert_val(s1matrix_sm,ssterm(1,1),i1,j1,1)
-        call insert_val(d1matrix_sm,ddterm(1,1),i1,j1,1)
-        call insert_val(r1matrix_sm,rrterm(1,1),i1,j1,1)
+        call insertval(s1matrix_sm,ssterm(1,1),i1,j1,1)
+        call insertval(d1matrix_sm,ddterm(1,1),i1,j1,1)
+        call insertval(r1matrix_sm,rrterm(1,1),i1,j1,1)
         if(numvar.ge.2) then
-           call insert_val(s1matrix_sm,ssterm(1,2),i1  ,j1+6,1)
-           call insert_val(s1matrix_sm,ssterm(2,1),i1+6,j1  ,1)
-           call insert_val(s1matrix_sm,ssterm(2,2),i1+6,j1+6,1)
-           call insert_val(d1matrix_sm,ddterm(1,2),i1  ,j1+6,1)
-           call insert_val(d1matrix_sm,ddterm(2,1),i1+6,j1  ,1)
-           call insert_val(d1matrix_sm,ddterm(2,2),i1+6,j1+6,1)
-           call insert_val(r1matrix_sm,rrterm(1,2),i1  ,j1+6,1)
-           call insert_val(r1matrix_sm,rrterm(2,1),i1+6,j1  ,1)
-           call insert_val(r1matrix_sm,rrterm(2,2),i1+6,j1+6,1)
+           call insertval(s1matrix_sm,ssterm(1,2),i1  ,j1+6,1)
+           call insertval(s1matrix_sm,ssterm(2,1),i1+6,j1  ,1)
+           call insertval(s1matrix_sm,ssterm(2,2),i1+6,j1+6,1)
+           call insertval(d1matrix_sm,ddterm(1,2),i1  ,j1+6,1)
+           call insertval(d1matrix_sm,ddterm(2,1),i1+6,j1  ,1)
+           call insertval(d1matrix_sm,ddterm(2,2),i1+6,j1+6,1)
+           call insertval(r1matrix_sm,rrterm(1,2),i1  ,j1+6,1)
+           call insertval(r1matrix_sm,rrterm(2,1),i1+6,j1  ,1)
+           call insertval(r1matrix_sm,rrterm(2,2),i1+6,j1+6,1)
         endif
         if(numvar.ge.3) then
-           call insert_val(s1matrix_sm,ssterm(1,3),i1,   j1+12,1)
-           call insert_val(s1matrix_sm,ssterm(2,3),i1+6, j1+12,1)
-           call insert_val(s1matrix_sm,ssterm(3,3),i1+12,j1+12,1)
-           call insert_val(s1matrix_sm,ssterm(3,1),i1+12,j1,   1)
-           call insert_val(s1matrix_sm,ssterm(3,2),i1+12,j1+6, 1)
-           call insert_val(d1matrix_sm,ddterm(1,3),i1,   j1+12,1)
-           call insert_val(d1matrix_sm,ddterm(2,3),i1+6, j1+12,1)
-           call insert_val(d1matrix_sm,ddterm(3,3),i1+12,j1+12,1)
-           call insert_val(d1matrix_sm,ddterm(3,1),i1+12,j1,   1)
-           call insert_val(d1matrix_sm,ddterm(3,2),i1+12,j1+6, 1)
-           call insert_val(r1matrix_sm,rrterm(1,3),i1,   j1+12,1)
-           call insert_val(r1matrix_sm,rrterm(2,3),i1+6, j1+12,1)
-           call insert_val(r1matrix_sm,rrterm(3,3),i1+12,j1+12,1)
-           call insert_val(r1matrix_sm,rrterm(3,1),i1+12,j1,   1)
-           call insert_val(r1matrix_sm,rrterm(3,2),i1+12,j1+6, 1)
+           call insertval(s1matrix_sm,ssterm(1,3),i1,   j1+12,1)
+           call insertval(s1matrix_sm,ssterm(2,3),i1+6, j1+12,1)
+           call insertval(s1matrix_sm,ssterm(3,3),i1+12,j1+12,1)
+           call insertval(s1matrix_sm,ssterm(3,1),i1+12,j1,   1)
+           call insertval(s1matrix_sm,ssterm(3,2),i1+12,j1+6, 1)
+           call insertval(d1matrix_sm,ddterm(1,3),i1,   j1+12,1)
+           call insertval(d1matrix_sm,ddterm(2,3),i1+6, j1+12,1)
+           call insertval(d1matrix_sm,ddterm(3,3),i1+12,j1+12,1)
+           call insertval(d1matrix_sm,ddterm(3,1),i1+12,j1,   1)
+           call insertval(d1matrix_sm,ddterm(3,2),i1+12,j1+6, 1)
+           call insertval(r1matrix_sm,rrterm(1,3),i1,   j1+12,1)
+           call insertval(r1matrix_sm,rrterm(2,3),i1+6, j1+12,1)
+           call insertval(r1matrix_sm,rrterm(3,3),i1+12,j1+12,1)
+           call insertval(r1matrix_sm,rrterm(3,1),i1+12,j1,   1)
+           call insertval(r1matrix_sm,rrterm(3,2),i1+12,j1+6, 1)
         endif
      enddo               ! on j
      
@@ -672,7 +672,6 @@ subroutine ludefphi_n(itri,dbf,deex)
   use metricterms_n
   use arrays
   use sparse
-  use sparse_matrix
 
   implicit none
 
@@ -904,45 +903,45 @@ subroutine ludefphi_n(itri,dbf,deex)
            endif
         endif
 
-        call insert_val(s2matrix_sm,ssterm(1,1),i1,j1,1)
-        call insert_val(d2matrix_sm,ddterm(1,1),i1,j1,1)
-        call insert_val(r2matrix_sm,rrterm(1,1),i1,j1,1)
-        call insert_val(q2matrix_sm,qqterm(1,1),i1,j1,1)
+        call insertval(s2matrix_sm,ssterm(1,1),i1,j1,1)
+        call insertval(d2matrix_sm,ddterm(1,1),i1,j1,1)
+        call insertval(r2matrix_sm,rrterm(1,1),i1,j1,1)
+        call insertval(q2matrix_sm,qqterm(1,1),i1,j1,1)
         if(numvar.ge.2) then
-           call insert_val(s2matrix_sm,ssterm(1,2),i1  ,j1+6,1)
-           call insert_val(s2matrix_sm,ssterm(2,1),i1+6,j1  ,1)
-           call insert_val(s2matrix_sm,ssterm(2,2),i1+6,j1+6,1)
-           call insert_val(d2matrix_sm,ddterm(1,2),i1  ,j1+6,1)
-           call insert_val(d2matrix_sm,ddterm(2,1),i1+6,j1  ,1)
-           call insert_val(d2matrix_sm,ddterm(2,2),i1+6,j1+6,1)
-           call insert_val(r2matrix_sm,rrterm(1,2),i1  ,j1+6,1)
-           call insert_val(r2matrix_sm,rrterm(2,1),i1+6,j1  ,1)
-           call insert_val(r2matrix_sm,rrterm(2,2),i1+6,j1+6,1)
-           call insert_val(q2matrix_sm,qqterm(1,2),i1  ,j1+6,1)
-           call insert_val(q2matrix_sm,qqterm(2,1),i1+6,j1  ,1)
-           call insert_val(q2matrix_sm,qqterm(2,2),i1+6,j1+6,1)
+           call insertval(s2matrix_sm,ssterm(1,2),i1  ,j1+6,1)
+           call insertval(s2matrix_sm,ssterm(2,1),i1+6,j1  ,1)
+           call insertval(s2matrix_sm,ssterm(2,2),i1+6,j1+6,1)
+           call insertval(d2matrix_sm,ddterm(1,2),i1  ,j1+6,1)
+           call insertval(d2matrix_sm,ddterm(2,1),i1+6,j1  ,1)
+           call insertval(d2matrix_sm,ddterm(2,2),i1+6,j1+6,1)
+           call insertval(r2matrix_sm,rrterm(1,2),i1  ,j1+6,1)
+           call insertval(r2matrix_sm,rrterm(2,1),i1+6,j1  ,1)
+           call insertval(r2matrix_sm,rrterm(2,2),i1+6,j1+6,1)
+           call insertval(q2matrix_sm,qqterm(1,2),i1  ,j1+6,1)
+           call insertval(q2matrix_sm,qqterm(2,1),i1+6,j1  ,1)
+           call insertval(q2matrix_sm,qqterm(2,2),i1+6,j1+6,1)
         endif
         if(numvar .eq. 3) then
-           call insert_val(s2matrix_sm,ssterm(1,3),i1,   j1+12,1)
-           call insert_val(s2matrix_sm,ssterm(2,3),i1+6, j1+12,1)
-           call insert_val(s2matrix_sm,ssterm(3,3),i1+12,j1+12,1)
-           call insert_val(s2matrix_sm,ssterm(3,1),i1+12,j1,   1)
-           call insert_val(s2matrix_sm,ssterm(3,2),i1+12,j1+6, 1)
-           call insert_val(d2matrix_sm,ddterm(1,3),i1,   j1+12,1)
-           call insert_val(d2matrix_sm,ddterm(2,3),i1+6, j1+12,1)
-           call insert_val(d2matrix_sm,ddterm(3,3),i1+12,j1+12,1)
-           call insert_val(d2matrix_sm,ddterm(3,1),i1+12,j1,   1)
-           call insert_val(d2matrix_sm,ddterm(3,2),i1+12,j1+6, 1)
-           call insert_val(r2matrix_sm,rrterm(1,3),i1,   j1+12,1)
-           call insert_val(r2matrix_sm,rrterm(2,3),i1+6, j1+12,1)
-           call insert_val(r2matrix_sm,rrterm(3,3),i1+12,j1+12,1)
-           call insert_val(r2matrix_sm,rrterm(3,1),i1+12,j1,   1)
-           call insert_val(r2matrix_sm,rrterm(3,2),i1+12,j1+6, 1)
-           call insert_val(q2matrix_sm,qqterm(1,3),i1,   j1+12,1)
-           call insert_val(q2matrix_sm,qqterm(2,3),i1+6, j1+12,1)
-           call insert_val(q2matrix_sm,qqterm(3,3),i1+12,j1+12,1)
-           call insert_val(q2matrix_sm,qqterm(3,1),i1+12,j1,   1)
-           call insert_val(q2matrix_sm,qqterm(3,2),i1+12,j1+6, 1)
+           call insertval(s2matrix_sm,ssterm(1,3),i1,   j1+12,1)
+           call insertval(s2matrix_sm,ssterm(2,3),i1+6, j1+12,1)
+           call insertval(s2matrix_sm,ssterm(3,3),i1+12,j1+12,1)
+           call insertval(s2matrix_sm,ssterm(3,1),i1+12,j1,   1)
+           call insertval(s2matrix_sm,ssterm(3,2),i1+12,j1+6, 1)
+           call insertval(d2matrix_sm,ddterm(1,3),i1,   j1+12,1)
+           call insertval(d2matrix_sm,ddterm(2,3),i1+6, j1+12,1)
+           call insertval(d2matrix_sm,ddterm(3,3),i1+12,j1+12,1)
+           call insertval(d2matrix_sm,ddterm(3,1),i1+12,j1,   1)
+           call insertval(d2matrix_sm,ddterm(3,2),i1+12,j1+6, 1)
+           call insertval(r2matrix_sm,rrterm(1,3),i1,   j1+12,1)
+           call insertval(r2matrix_sm,rrterm(2,3),i1+6, j1+12,1)
+           call insertval(r2matrix_sm,rrterm(3,3),i1+12,j1+12,1)
+           call insertval(r2matrix_sm,rrterm(3,1),i1+12,j1,   1)
+           call insertval(r2matrix_sm,rrterm(3,2),i1+12,j1+6, 1)
+           call insertval(q2matrix_sm,qqterm(1,3),i1,   j1+12,1)
+           call insertval(q2matrix_sm,qqterm(2,3),i1+6, j1+12,1)
+           call insertval(q2matrix_sm,qqterm(3,3),i1+12,j1+12,1)
+           call insertval(q2matrix_sm,qqterm(3,1),i1+12,j1,   1)
+           call insertval(q2matrix_sm,qqterm(3,2),i1+12,j1+6, 1)
         endif
      enddo ! on j
      
@@ -1007,7 +1006,6 @@ subroutine ludefden_n(itri,dbf)
   use metricterms_n
   use arrays
   use sparse
-  use sparse_matrix
 
   implicit none
 
@@ -1071,17 +1069,17 @@ subroutine ludefden_n(itri,dbf)
               endif
            endif
 
-           call insert_val(s8matrix_sm, ssterm, ione, jone, 1)
-           call insert_val(d8matrix_sm, ddterm, ione, jone, 1)
-           call insert_val(r8matrix_sm, rrterm(1), i1, j1, 1)
-           call insert_val(q8matrix_sm, qqterm(1), i1, j1, 1)
+           call insertval(s8matrix_sm, ssterm, ione, jone, 1)
+           call insertval(d8matrix_sm, ddterm, ione, jone, 1)
+           call insertval(r8matrix_sm, rrterm(1), i1, j1, 1)
+           call insertval(q8matrix_sm, qqterm(1), i1, j1, 1)
            if(numvar.ge.2) then
-              call insert_val(r8matrix_sm,rrterm(2), i1,j1+6,1)
-              call insert_val(q8matrix_sm,qqterm(2), i1,j1+6,1)
+              call insertval(r8matrix_sm,rrterm(2), i1,j1+6,1)
+              call insertval(q8matrix_sm,qqterm(2), i1,j1+6,1)
            endif
            if(numvar.ge.3) then
-              call insert_val(r8matrix_sm,rrterm(3), i1,j1+12,1)
-              call insert_val(q8matrix_sm,qqterm(3), i1,j1+12,1)
+              call insertval(r8matrix_sm,rrterm(3), i1,j1+12,1)
+              call insertval(q8matrix_sm,qqterm(3), i1,j1+12,1)
            endif
 
         enddo                     ! on j

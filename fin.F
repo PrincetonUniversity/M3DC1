@@ -26,11 +26,10 @@
 !===================================
       subroutine safestop(iarg)
 #ifdef mpi
-      use supralu_dist_mod
       implicit none
       include 'mpif.h'
       integer ier, iarg
-      call SLUD_exit
+      call sludexit
       call MPI_Finalize(ier)
       if (ier /= 0) print *,'Error terminating MPI:',ier
 #else 

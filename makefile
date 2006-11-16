@@ -21,21 +21,19 @@ COMPBESJ = ifort -c $(NEWFLAGS)  $(COMMONDIR)$(@F:.o=.f)
 LOADER = ifort
 CCOMPILE = icc -c
 
-NEWOBJS1 = superlu_mod.o supralu_dist_mod.o sparse_params.o \
-	sparse_matrix.o nintegrate_mod.o newvar.o \
+NEWOBJS1 = M3Dmodules.o nintegrate_mod.o metricterms_n.o newvar.o \
 	$(COMMONDIR)tv80lib.o $(COMMONDIR)subp.o \
 	$(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
-        $(COMMONDIR)fdump.o $(COMMONDIR)superlu_c2f_wrap.o \
-	$(COMMONDIR)dcreate_dist_matrix.o \
+        $(COMMONDIR)fdump.o \
         $(COMMONDIR)writeHDF5.o 
 
-NEWOBJS2 = fin.o part_fin.o metricterms_n.o ludef_t.o \
+NEWOBJS2 = fin.o part_fin.o ludef_t.o \
 	  part_fin3.o boundary.o unknown.o restart.o \
 	  acbauer.o sort.o metricterms.o errorcalc.o compare.o \
 	  gradshafranov.o init_conds.o output.o 
 
 SCORECDIR = /l/mhd/acbauer/develop/
-SCORECVERS = -stable
+SCORECVERS =
 
 LDRNEW = \
         -L$(SCORECDIR)FMDB$(SCORECVERS)/FMDB/lib/ia64_linux \
@@ -44,23 +42,24 @@ LDRNEW = \
 	-Wl,-rpath,$(SCORECDIR)FMDB$(SCORECVERS)/SCORECModel/lib/ia64_linux \
 	-L$(SCORECDIR)FMDB$(SCORECVERS)/SCORECUtil/lib/ia64_linux \
 	-Wl,-rpath,$(SCORECDIR)FMDB$(SCORECVERS)/SCORECUtil/lib/ia64_linux \
-	-L$(SCORECDIR)trellis$(SCORECVERS)/Examples/PPPL/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)trellis$(SCORECVERS)/Examples/PPPL/lib/ia64_linux \
-	-L$(SCORECDIR)trellis$(SCORECVERS)/Field/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)trellis$(SCORECVERS)/Field/lib/ia64_linux \
-	-L$(SCORECDIR)trellis$(SCORECVERS)/Core/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)trellis$(SCORECVERS)/Core/lib/ia64_linux \
-	-L$(SCORECDIR)trellis$(SCORECVERS)/Solver/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)trellis$(SCORECVERS)/Solver/lib/ia64_linux \
+	-L$(SCORECDIR)mctk$(SCORECVERS)/Examples/PPPL/lib/ia64_linux \
+	-Wl,-rpath,$(SCORECDIR)mctk$(SCORECVERS)/Examples/PPPL/lib/ia64_linux \
+	-L$(SCORECDIR)mctk$(SCORECVERS)/Field/lib/ia64_linux \
+	-Wl,-rpath,$(SCORECDIR)mctk$(SCORECVERS)/Field/lib/ia64_linux \
+	-L$(SCORECDIR)mctk$(SCORECVERS)/Core/lib/ia64_linux \
+	-Wl,-rpath,$(SCORECDIR)mctk$(SCORECVERS)/Core/lib/ia64_linux \
+	-L$(SCORECDIR)mctk$(SCORECVERS)/Solver/lib/ia64_linux \
+	-Wl,-rpath,$(SCORECDIR)mctk$(SCORECVERS)/Solver/lib/ia64_linux \
 	-L$(SCORECDIR)meshAdapt$(SCORECVERS)/meshAdapt/lib/ia64_linux \
 	-Wl,-rpath,$(SCORECDIR)meshAdapt$(SCORECVERS)/meshAdapt/lib/ia64_linux \
 	-L$(SCORECDIR)meshAdapt$(SCORECVERS)/meshTools/lib/ia64_linux \
 	-Wl,-rpath,$(SCORECDIR)meshAdapt$(SCORECVERS)/meshTools/lib/ia64_linux \
 	-L$(SCORECDIR)meshAdapt$(SCORECVERS)/templateRefine/lib/ia64_linux \
 	-Wl,-rpath,$(SCORECDIR)meshAdapt$(SCORECVERS)/templateRefine/lib/ia64_linux \
-	-lFMDB-meshmodel-O -lSCORECModel-O -lSCORECUtil-O -lField-O -lCore-O \
-	-lmeshAdapt-O -ltemplateRefine-O -lmeshTools-O -lSolver-O -lPPPL-O \
-	-L/l/mhd/acbauer/autopack/1.3.2/lib/mhd -lautopack-O \
+	-lFMDB-meshmodel-mpich2-O -lSCORECModel-mpich2-O -lSCORECUtil-mpich2-O -lField-mpich2-O -lCore-mpich2-O \
+	-lmeshAdapt-mpich2-O -ltemplateRefine-mpich2-O -lmeshTools-mpich2-O -lSolver-mpich2-O -lPPPL-mpich2-O \
+	-L$(AUTOPACK_HOME)/lib/ia64-sgi -Wl,-rpath,$(AUTOPACK_HOME)/lib/ia64-sgi -lautopack-O \
+	-L$(PARMETIS_HOME)/lib -Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis \
         -L$(NTCCHOME)/lib -lezcdf \
         -L$(NETCDFHOME)/lib -lnetcdf \
         -L$(SUPERLU_DIST_HOME)/lib -lsuperlu \
@@ -78,7 +77,7 @@ LDRNEW = \
 gonewp: $(NEWOBJS1) newpar.o newpar-lib.o $(NEWOBJS2)
 	ifort -shared -o libnewpar.so $(NEWOBJS1) newpar-lib.o $(NEWOBJS2) 
 	$(LOADER) -o $@ $(NEWOBJS1) newpar.o  $(NEWOBJS2) $(LDRNEW)
-	rm -rf C1restartout check.txt
+	rm -rf C1restartout check.txt check1.txt check0.txt
 
 newpar-lib.o: $(NEWDIR)newpar.f90
 	$(COMPNEWLIB)
