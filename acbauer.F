@@ -103,6 +103,7 @@
       sum = 0.
       max = 0.
 
+#ifdef REGULAR
       do i=1,n
          write(10,1002) m, i, aa(i)
          pos = aa(i)
@@ -110,6 +111,59 @@
          if(max .lt. pos) max = pos
          sum = sum + pos
       enddo
+#endif
+#define NOPER
+#ifdef NOPER
+      j = 1
+      do i=7,24
+         write(10,1002) m, j, aa(i)
+         pos = aa(i)
+         if(pos .lt. 0.) pos = -pos
+         if(max .lt. pos) max = pos
+         sum = sum + pos
+         j = j + 1
+      enddo
+      do i=31,48
+         write(10,1002) m, j, aa(i)
+         pos = aa(i)
+         if(pos .lt. 0.) pos = -pos
+         if(max .lt. pos) max = pos
+         sum = sum + pos
+         j = j + 1
+      enddo
+      do i=61,72
+         write(10,1002) m, j, aa(i)
+         pos = aa(i)
+         if(pos .lt. 0.) pos = -pos
+         if(max .lt. pos) max = pos
+         sum = sum + pos
+         j = j + 1
+      enddo
+      do i=1,6
+         write(10,1002) m, j, aa(i)
+         pos = aa(i)
+         if(pos .lt. 0.) pos = -pos
+         if(max .lt. pos) max = pos
+         sum = sum + pos
+         j = j + 1
+      enddo
+      do i=25,30
+         write(10,1002) m, j, aa(i)
+         pos = aa(i)
+         if(pos .lt. 0.) pos = -pos
+         if(max .lt. pos) max = pos
+         sum = sum + pos
+         j = j + 1
+      enddo
+      do i=49,60
+         write(10,1002) m, j, aa(i)
+         pos = aa(i)
+         if(pos .lt. 0.) pos = -pos
+         if(max .lt. pos) max = pos
+         sum = sum + pos
+         j = j + 1
+      enddo
+#endif
 
       write(10,1003) sum, max
  1002 format(i3, i6, e12.4)

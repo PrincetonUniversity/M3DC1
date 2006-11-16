@@ -147,7 +147,7 @@ Program Reducedquintic
      timer = 0.
      if(idens.eq.1) then
         call denequ(den0, 1)
-        den0 = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
+        if(iper .eq. 1 .or. jper .eq. 1) den0 = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
         if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'finished denequ'
         if(maxrank.eq.1) call oneplot(den0,1,1,"den0",1)
         if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'finished oneplot'
@@ -176,9 +176,9 @@ Program Reducedquintic
         velold = 0.
         phiold = 0.
         call velequ(velold, numvar)
-        velold = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
+        if(iper .eq. 1 .or. jper .eq. 1) velold = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
         call phiequ(phiold, numvar)
-        phiold = 0. ! acbauer - temp fix for periodic bc's on 11/14/06
+        if(iper .eq. 1 .or. jper .eq. 1) phiold = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
      endif
 
      vel0 = velold
@@ -187,12 +187,12 @@ Program Reducedquintic
 
      ! calculate initial perturbed fields
      call velinit(vel)
-     vel = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
+     if(iper .eq. 1 .or. jper .eq. 1) vel = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
      call phiinit(phi)
-     phi = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
+     if(iper .eq. 1 .or. jper .eq. 1) phi = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
      if(idens.eq.1) then
         call deninit(den)
-        den = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
+        if(iper .eq. 1 .or. jper .eq. 1) den = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
      endif
 
      phis = 0
@@ -311,7 +311,9 @@ Program Reducedquintic
   maxts = ntime-1
 
 101 continue
-
+  if(maxrank .eq. 1) call printarray(den, 1, 0, 'den end!')
+  if(maxrank .gt. 1) call writeglobaldofs(den, 1, myrank, maxrank,'den end!') 
+  call printlocalarray(den, 1, 'den end!')
   if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'about to export field'
 !      call exportfield2(1,numvar,phi, 0) ! 0 for now for adaptive-loop.sh script
 !      call exportfield2(1,numvar,jphi, 1)

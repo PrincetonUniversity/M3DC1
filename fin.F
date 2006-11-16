@@ -83,6 +83,7 @@
       subroutine input
       use basic
       use arrays
+      use sparse
       implicit none
 !
 !.....set itest .ne. 0 for a particular test problem
@@ -434,10 +435,13 @@
       go to 100
  100  continue
 !
-      call createdofnumbering(1, iper, jper, 6, 0, 0, 0, maxdofs1)
-      call createdofnumbering(2, iper, jper, 12, 0, 0, 0, maxdofs2)
+      call createdofnumbering(numvar1_numbering, iper, jper, 
+     &     6, 0, 0, 0, maxdofs1)
+      call createdofnumbering(numvar2_numbering, iper, jper, 
+     &     12, 0, 0, 0, maxdofs2)
       if(numvar .ge. 3) then
-         call createdofnumbering(3, iper, jper, 18, 0, 0, 0, maxdofs3)
+         call createdofnumbering(numvar3_numbering, iper, jper, 
+     &        18, 0, 0, 0, maxdofs3)
       endif
 
       if(myrank.eq.0) write(*,nml=inputnl)

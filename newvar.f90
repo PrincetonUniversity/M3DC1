@@ -425,7 +425,11 @@ subroutine newvar_SB2(temp)
         temp(ione) = temp(ione) + sum
      end do
   enddo
-
+  ! since a proc is contributing values to parts of the vector
+  ! it does not own, we call sumshareddofs so that these values
+  ! get summed up for all values shared by multiple procs
+  ! and then update these values
+  call sumshareddofs(temp)
 end subroutine newvar_SB2
 
 
