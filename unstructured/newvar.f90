@@ -11,7 +11,7 @@ integer, parameter :: VAR_SP1 = 7
 contains
 
 !============================================================
-subroutine newvar(inarray,outarray,numnodes,numvard,itype,iop,ibound)
+subroutine newvar(inarray,outarray,numvard,itype,iop,ibound)
 
   ! define a new variable with no boundary conditions applied
   !
@@ -30,28 +30,25 @@ subroutine newvar(inarray,outarray,numnodes,numvard,itype,iop,ibound)
   use t_data
   use basic
   use arrays
-  use sparse_matrix
   use sparse
 
   implicit none
   
-  integer, intent(in) :: numnodes, numvard, itype, iop, ibound
-  real, intent(in) :: inarray(numnodes*6*numvard)
-  real, intent(out) :: outarray(numnodes*6)
+  integer, intent(in) :: numvard, itype, iop, ibound
+  real, intent(in) :: inarray(*) ! length using numvard ordering
+  real, intent(out) :: outarray(*) ! length using numvar=1 ordering
 
   integer :: i, j, ione, jone, itri, ier, ifirst
-  integer :: numnodes6, numelms
+  integer :: numnodes, numelms, ndof
   integer :: izone, izonedim, nbound, nbcds
   real :: fintl(-6:maxi,-6:maxi)
   real :: dterm(18,18)
+  real(r8), allocatable:: temp(:)
 
-  integer, parameter :: r8a = selected_real_kind(12,100)
-  real(r8a), allocatable :: temp(:)
   integer, save, allocatable :: iboundds(:)
 
-  numnodes6 = 6*numnodes
-  allocate(temp(numnodes6))
-
+  !inarray sum matches first time through
+  call createvec(temp, 1)
   select case(ibound)
   case(0)
      ifirst = ifirsts3_lu
@@ -61,6 +58,7 @@ subroutine newvar(inarray,outarray,numnodes,numvard,itype,iop,ibound)
      print *, 'Error: ibound not defined.', ibound
      return
   end select
+  call numnod(numnodes)
 
   ! compute LU decomposition only once
   if(ifirst.eq.0) then
@@ -79,27 +77,26 @@ subroutine newvar(inarray,outarray,numnodes,numvard,itype,iop,ibound)
      ! allocate matrix
      select case(ibound)
      case(0)
-        call zero_array(s3matrix_sm, spo_numvar1, 53)
+        call zeroarray(s3matrix_sm, numvar1_numbering)
         ifirsts3_lu = 1
      case(1)
-        call zero_array(s6matrix_sm, spo_numvar1, 53)
+        call zeroarray(s6matrix_sm, numvar1_numbering)
         ifirsts6_lu = 1
         allocate(iboundds(nbound))
      end select
-  
+
      do itri=1,numelms
         call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
         call calcdterm(itri, dterm, fintl)
         do j=1,18
+           jone = isval1(itri,j)
            do i=1,18
-              jone = isval1(itri,j)
               ione = isval1(itri,i)
-
               select case(ibound)
               case(0)
-                 call insert_val(s3matrix_sm, dterm(i,j), ione, jone, 1)
+                 call insertval(s3matrix_sm, dterm(i,j), ione, jone, 1)
               case(1)
-                 call insert_val(s6matrix_sm, dterm(i,j), ione, jone, 1)
+                 call insertval(s6matrix_sm, dterm(i,j), ione, jone, 1)
               end select
            enddo
         enddo
@@ -107,16 +104,15 @@ subroutine newvar(inarray,outarray,numnodes,numvard,itype,iop,ibound)
 
      select case(ibound)
      case(0)
-        call finalize_array(s3matrix_sm)
+        call finalizearray4solve(s3matrix_sm)
      case(1)
         call boundaryds(iboundds,nbcds,itype)
         do i=1,nbcds
-           call set_diri_bc(s6matrix_sm, iboundds(i))
+           call setdiribc(s6matrix_sm, iboundds(i))
         enddo
-        call finalize_array(s6matrix_sm)
+        call finalizearray4solve(s6matrix_sm)
      end select
   endif
-
 
   temp = 0.
 
@@ -135,7 +131,6 @@ subroutine newvar(inarray,outarray,numnodes,numvard,itype,iop,ibound)
      call newvar_SP1(temp)
               
   end select
-
   ! solve linear equation
 
   select case(ibound)
@@ -148,11 +143,13 @@ subroutine newvar(inarray,outarray,numnodes,numvard,itype,iop,ibound)
      call solve(s6matrix_sm,temp,ier)
   end select
 
-  if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "newvar: after solve"
-
-  outarray = temp
+  if(iprint.ge.1) write(*,*) "newvar: after solve", myrank
+  call numdofs(1, ndof)
+  do i=1,ndof
+     outarray(i) = temp(i)
+  enddo
   
-  deallocate(temp)
+  call deletevec(temp)
 
 end subroutine newvar
 
@@ -171,7 +168,7 @@ subroutine newvar_gradshafranov(temp,inarr,numvard,itype)
   real, intent(in) :: inarr(*)
   real, intent(out) :: temp(*)
 
-  integer :: itri, i, j, ione, j1, numelms, jone
+  integer :: itri, i, j, ione, j1, numelms
   real :: sum
 
   call numfac(numelms)
@@ -195,16 +192,11 @@ subroutine newvar_gradshafranov(temp,inarr,numvard,itype)
         call eval_ops(gtri(:,i,itri), si_79, eta_79, ttri(itri), &
              ri_79, 79, g79(:,:,i))
      end do
-
      do i=1,18
         ione = isval1(itri,i)
-
         sum = 0.
-
         do j=1,18
            j1 = isvaln(itri,j)
-           jone = isval1(itri,j)
-
            sum = sum - inarr(j1 + 6*(itype-1)) * &
                 (int2(g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79) &
                 +int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j),weight_79,79))
@@ -216,7 +208,11 @@ subroutine newvar_gradshafranov(temp,inarr,numvard,itype)
         temp(ione) = temp(ione) + sum
      end do
   enddo
-
+  ! since a proc is contributing values to parts of the vector
+  ! it does not own, we call sumshareddofs so that these values
+  ! get summed up for all values shared by multiple procs
+  ! and then update these values
+  call sumshareddofs(temp)
 end subroutine newvar_gradshafranov
 
 subroutine newvar_SB1(temp)
@@ -312,7 +308,11 @@ subroutine newvar_SB1(temp)
         temp(ione) = temp(ione) + sum
      end do
   enddo
-
+  ! since a proc is contributing values to parts of the vector
+  ! it does not own, we call sumshareddofs so that these values
+  ! get summed up for all values shared by multiple procs
+  ! and then update these values
+  call sumshareddofs(temp)
 end subroutine newvar_SB1
 
 subroutine newvar_SB2(temp)
@@ -553,7 +553,11 @@ subroutine newvar_SP1(temp)
         temp(ione) = temp(ione) + sum
      end do
   enddo
-
+  ! since a proc is contributing values to parts of the vector
+  ! it does not own, we call sumshareddofs so that these values
+  ! get summed up for all values shared by multiple procs
+  ! and then update these values
+  call sumshareddofs(temp)
 end subroutine newvar_SP1
 
 end module newvar_mod

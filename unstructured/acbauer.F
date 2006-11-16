@@ -92,14 +92,17 @@
 ! my routine to print out arrays
       subroutine printarray(aa,n,m, string)
       implicit none
+      include "mpif.h"
       double precision aa(*), sum, pos, max
-      integer n, i, m
+      integer n, i, m, j, myrank
       character*8 string
       
       write(*,*) 'printarray has string ',string
+      call MPI_COMM_RANK(MPI_COMM_WORLD, myrank, j)
       open(10,file='check.txt',form='formatted')
       sum = 0.
       max = 0.
+
       do i=1,n
          write(10,1002) m, i, aa(i)
          pos = aa(i)
@@ -107,6 +110,7 @@
          if(max .lt. pos) max = pos
          sum = sum + pos
       enddo
+
       write(10,1003) sum, max
  1002 format(i3, i6, e12.4)
  1003 format('sum is ',e12.4,' max is ',e12.4)
@@ -114,8 +118,40 @@
       if(m.eq.0) call safestop(0)
       return
       end
-
-
+!==========
+!=====
+! my routine to print out arrays
+      subroutine printlocalarray(aa,numberingid,string)
+      implicit none
+      include 'mpif.h'
+      double precision aa(*), coords(3), sum
+      integer n, i, m, j, numnodes, ibegin, iendplusone
+      integer numberingid, myrank
+      character*8 string
+      
+      
+      call MPI_COMM_RANK(MPI_COMM_WORLD, myrank, i)
+      sum = 0.
+      write(*,*) 'printlocalarray has string ',string
+      open(10,file='check.txt',form='formatted')
+      call numnod(numnodes)
+      do i=1,numnodes
+         call xyznod(i, coords)
+         if(coords(1) .gt. 2.4 .and. coords(1) .lt. 2.6 .and. 
+     &        coords(2) .gt. 2.4 .and. coords(2) .lt. 2.6) then
+            call entdofs(numberingid, i, 0, ibegin, iendplusone)
+            do j=ibegin,iendplusone-1
+!               write(10,*) aa(j)
+               write(*,*) myrank, aa(j)
+               sum = sum + dabs(aa(j))
+            enddo
+         endif
+      enddo 
+      close(10)
+      write(*,*) 'sum is ',sum
+      call safestop(8292)
+      return
+      end
 !==========
 ! my routine to print out arrays
       subroutine iprintarray(aa,n,m)
@@ -136,6 +172,56 @@
       if(m.eq.0) call safestop(0)
       return
       end
+!====================
+      subroutine writeglobaldofs(vec, orderingid, myrank, maxrank,
+     &     string)
+      implicit none
+      include 'mpif.h'
+      integer i, j, orderingid, myrank, maxrank, icounter,
+     &     mpitag, ierr, iprocdof, iarray(2), ndofs
+      real vec(*)
+      double precision dvals(2), pos
+      character*8 string
+
+      mpitag = 4998
+      icounter = 0
+      call numprocdofs(orderingid, iprocdof)
+      dvals(1) = 0.
+      dvals(2) = 0.
+      if(myrank .ne. 0) then
+         call mpi_recv(iarray, 2, MPI_INTEGER, myrank-1, mpitag,
+     &        MPI_COMM_WORLD, j, ierr)
+         call mpi_wait(i,j)
+         icounter = iarray(1)
+         open(10,file='check1.txt',form='formatted')
+      else
+         write(*,*) 'printarray has string ',string
+         open(10,file='check0.txt',form='formatted')
+      endif
+
+      do i=1,iprocdof
+         write(10,1002) 0, i+icounter, vec(i)
+c         write(*,*) 0, i+icounter, vec(i)
+         pos = vec(i)
+         if(pos .lt. 0.) pos = -pos
+         if(dvals(1) .lt. pos) dvals(1) = pos
+         dvals(2) = dvals(2) + pos
+      enddo
+      write(10,1003) dvals(2), dvals(1)
+      write(*,1003) dvals(2), dvals(1)
+      close(10)
+ 1002 format(i3, i6, e12.4)
+ 1003 format('sum is ',e12.4,' max is ',e12.4)
+      icounter = icounter + iprocdof
+      if(myrank .ne. maxrank - 1) then
+         iarray(1) = icounter
+         iarray(2) = icounter
+         call mpi_send(iarray, 2, MPI_INTEGER, myrank+1, mpitag,
+     &        MPI_COMM_WORLD, ierr)
+      endif
+      call safestop(4841)
+      return 
+      end      
 !====================
       subroutine global2local(itri, x, z, si, eta)
       implicit none
@@ -238,7 +324,7 @@
       use t_data
       use basic
       implicit none
-      integer itype, numvare, numelms, itri, idof, iii, ii, numdof,
+      integer itype, numvare, numelms, itri, idof, iii, ii, ndof,
      &     i, index, k, isforder, itensororder, iwhich, id
     
       real si, eta, x, z, wlocal(18), dum(*), rlocal(18), sum, 
@@ -253,15 +339,15 @@
       isforder = 5              ! the order of lagrange shape functions used
       id = 1                    !field id
       call createfield("phi", itensororder, isforder, id) 
-      call getnumlagrangetriinterppoint(isforder, numdof)
+      call getnumlagrangetriinterppoint(isforder, ndof)
 
-      allocate(dx(numdof), dz(numdof), vals(numdof)) ! vals should take into account the tensor order for non-scalars!
+      allocate(dx(ndof), dz(ndof), vals(ndof)) ! vals should take into account the tensor order for non-scalars!
       dx = 0.d0
       dz = 0.d0
       call numfac(numelms)
       do itri=1,numelms
          call getlagrangetriinterppoint(itri, isforder, dx, dz) ! interpolation points in global CS
-         do idof=1,numdof
+         do idof=1,ndof
             x = dx(idof)
             z = dz(idof)
             call evaluate(x,z,vals(idof), temp, dum, itype, numvare)
@@ -277,7 +363,7 @@
       return
       end
 !============================================================
-c     Elements 1 through n1 are assigned to proc 0, elements n0+1 
+c     Elements 1 through n0 are assigned to proc 0, elements n0+1 
 c     through n0+n1 are assigned to proc 1, ..., where the element
 c     numbers are global (local are 1 through ni, i:= proc #).
 c     This function returns the number of global elements numbered
@@ -359,4 +445,3 @@ c      write(*,*) 'stuff',itrifirst,numelms, myrank
 
       return
       end
-!================================

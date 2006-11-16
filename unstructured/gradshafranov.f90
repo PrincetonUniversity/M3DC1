@@ -4,7 +4,6 @@ subroutine gradshafranov
   use t_data
   use basic
   use arrays
-  use sparse_matrix
   use sparse
 
   use nintegrate_mod
@@ -43,14 +42,16 @@ subroutine gradshafranov
   call getmincoord(xmin, zmin)
   call numnod(numnodes)
   call numfac(numelms)
-
+  
+  write(*,*) "this function has not been updated to work in parallel"
+  call safestop
   allocate (temp(maxdofs1))
   numvargs = 1
   
   ! compute LU decomposition only once
 
   ! form matrices
-  call zero_array(gsmatrix_sm,spo_numvar1,65)
+  call zeroarray(gsmatrix_sm,numvar1_numbering)
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
@@ -78,7 +79,7 @@ subroutine gradshafranov
            sum = int3(ri_79, g79(:,OP_DR,i), g79(:,OP_DR,j),weight_79,79) &
                 +int3(ri_79, g79(:,OP_DZ,i), g79(:,OP_DZ,j),weight_79,79)
 
-           call insert_val(gsmatrix_sm, -sum, i1,j1,1)
+           call insertval(gsmatrix_sm, -sum, i1,j1,1)
 
         enddo
      enddo
@@ -140,7 +141,7 @@ subroutine gradshafranov
   if(myrank.eq.0 .and. iprint.gt.0) write(*,*) "done initializing phi"
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  if(myrank.eq.0) call oneplot(phi,1,numvargs,"phi ",0)
+  if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(phi,1,numvargs,"phi ",0)
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      tplot = tplot + tend - tstart
@@ -149,9 +150,9 @@ subroutine gradshafranov
   psibounds = 0.
   do i=1,nbcgs
      psibounds(i) = phi(iboundgs(i))
-     call set_diri_bc(gsmatrix_sm, iboundgs(i))
+     call setdiribc(gsmatrix_sm, iboundgs(i))
   enddo
-  call finalize_array(gsmatrix_sm)
+  call finalizearray4solve(gsmatrix_sm)
  
   write(*,*) "before call to dsupralu", xzero
  
@@ -176,7 +177,7 @@ subroutine gradshafranov
 500 continue
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  if(myrank.eq.0) call oneplot(b1vecini,1,1,"b1vecini",0)
+  if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(b1vecini,1,1,"b1vecini",0)
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      tplot = tplot + tend - tstart
@@ -190,8 +191,10 @@ subroutine gradshafranov
   itnum = itnum + 1
 
   ! perform LU backsubstitution to get psi solution
+  write(*,*) 'about to solve gradshaf',myrank
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   call solve(gsmatrix_sm,b1vecini,ier)
+  write(*,*) ' solved gradshaf',myrank
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      tsol = tsol + tend - tstart
@@ -200,7 +203,7 @@ subroutine gradshafranov
   phi = th*b1vecini + (1.-th)*phi
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  if(myrank.eq.0) call oneplot(phi,1,numvargs,"phi ",0)
+  if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(phi,1,numvargs,"phi ",0)
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      tplot = tplot + tend - tstart
@@ -350,15 +353,17 @@ subroutine gradshafranov
   temp = -(fun1+gamma2*fun2+gamma3*fun3+gamma4*fun4)     
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  call plotit(phi,temp,0)
-  call oneplot(temp,1,1,"temp",0)
-  if(myrank.eq.0) call oneplot(fun1,1,1,"fun1",0)
-  if(myrank.eq.0) call oneplot(fun2,1,1,"fun2",0)
-  if(myrank.eq.0) call oneplot(fun3,1,1,"fun3",0)
-  if(myrank.eq.0) call oneplot(fun4,1,1,"fun4",0)
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     tplot = tplot + tend - tstart
+  if(maxrank .eq. 1) then
+     call plotit(phi,temp,0)
+     call oneplot(temp,1,1,"temp",0)
+     if(myrank.eq.0) call oneplot(fun1,1,1,"fun1",0)
+     if(myrank.eq.0) call oneplot(fun2,1,1,"fun2",0)
+     if(myrank.eq.0) call oneplot(fun3,1,1,"fun3",0)
+     if(myrank.eq.0) call oneplot(fun4,1,1,"fun4",0)
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        tplot = tplot + tend - tstart
+     endif
   endif
 
   deallocate (temp)
@@ -404,6 +409,7 @@ subroutine magaxis(phi,xguess,zguess)
   endif
 
   itrit = 0
+  call safestop(9832)
   call whattri(xguess,zguess,itrit,x1,z1)
 
   call getboundingboxsize(alx, alz)
@@ -484,6 +490,7 @@ subroutine magaxis(phi,xguess,zguess)
   endif
 
   ! determine if this new point is nearby
+  call safestop(482)
   call whattri(xnew,znew,itrinew,x1,z1)
   if( (xnew-x)**2 + (znew-z)**2 .le. 2.*deex**2                     &
        .and. xnew .gt. 0 .and. xnew.lt.alx                            &
@@ -870,7 +877,7 @@ subroutine deltafun(x,z,dum,val)
   integer :: itri, i, ii, iii, k, ibegin, iendplusone, index
   real :: x1, z1, b, theta, si, eta, sum
   
-
+  call safestop(4421)
   call whattri(x,z,itri,x1,z1)
 
   ! calculate local coordinates

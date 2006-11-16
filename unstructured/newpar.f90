@@ -1,174 +1,3 @@
-module p_data
-
-  implicit none
-  
-  integer :: maxi     ! highest degree polynomial kept in nonlinear calculations
-  integer :: ntimep   ! maximum number of timesteps
-  integer :: ires     ! linear resolution of the plot files
-  integer :: ntri     ! maximum number of HDF5 files
-  integer :: ntridim  ! 
-  integer :: maxhdf5
-  integer :: maxplots ! maximum dimension of the graph array
-
-  parameter(maxplots=50, maxi=20, ntimep=1000, ires=201, maxhdf5=30)
-  
-  integer, dimension(ires, ires) :: whichtri
-
-end module p_data
-
-module basic
-  use p_data
-
-  ! transport coefficients
-  real :: amu         ! incompressible viscosity
-  real :: amuc        ! compressible viscosity
-  real :: etar        ! resistivity
-  real :: kappa       ! pressure diffusion
-  real :: kappat      ! isotropic temperature conductivity
-  real :: kappar      ! anisotropic (field-aligned) temperature conductivity
-  real :: denm        ! artificial density diffusion
-  real :: hyper,hyperi,hyperv,hyperc,hyperp
-
-  ! physical parameters
-  integer :: itor     ! 1 = cylindrical coordinates; 0 = cartesian coordinates
-  real :: db          ! ion skin depth
-  real :: cb
-  real :: gam         ! ratio of specific heats
-  real :: grav        ! gravitational acceleration
-
-  ! general equilibrium parameters
-  integer :: irestart ! 1 = reads restart file as initial condition
-  integer :: itaylor  ! equilibrium
-  real :: bzero       ! guide field
-  real :: p0, pi0     ! total, ion pressures
-  real :: ln          ! length of equilibrium gradient
-  real :: eps         ! size of initial perturbation
-
-  ! toroidal equilibrium parameters
-  real :: xmag, zmag  ! position of magnetic axis
-  real :: xlim, zlim  ! position of limiter
-  real :: tcuro       ! toroidal current
-  real :: djdpsi
-  real :: p1, p2
-
-  ! numerical parameters
-  integer :: linear      ! 1 = linear simulation; 0 = nonlinear simulation
-  integer :: eqsubtract  ! 1 = subtract equilibrium in noninear simulations
-  integer :: numvar      ! 1 = 2-field; 2 = reduced MHD; 3 = compressible MHD
-  integer :: idens       ! evolve density
-  integer :: ipres       ! evolve total and electron pressures separately
-  integer :: imask       ! 1 = ignore 2-fluid terms near boundaries
-  integer :: ntimemax    ! number of timesteps
-  integer :: nskip       ! number of timesteps per matrix recalculation
-  integer :: iconstflux  ! 1 = conserve toroidal flux
-  real :: dt             ! timestep
-  real :: thimp          ! implicitness parameter
-  real :: facw, facd
-  
-
-  ! output parameters
-  integer :: iprint   ! print extra debugging info
-  integer :: itimer   ! print timing info
-  integer :: ntimepr  ! number of timesteps per output  
-
-  ! domain parameters
-  integer :: iper, jper ! periodic boundary conditions
-  real :: xzero, zzero  ! cooridinates of lower left corner of domain
-  
-  integer :: maxs,itest,isecondorder,istart
-  real :: beta
-  real :: pefac
-!
-!.....input quantities---defined in subroutine input or in namelist
-!
-  namelist / inputnl/                                        &
-       linear,maxs,ntimemax,ntimepr,itor,                    &
-       irestart,itaylor,itest,isecondorder,imask,nskip,      &
-       numvar,istart,idens,ipres,thimp,amu,etar,dt,p1,p2,p0, &
-       tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,cb,     &
-       bzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,      &
-       kappa,iper,jper,iprint,itimer,xzero,zzero,beta,pi0,   &
-       eqsubtract,denm,grav,kappat,kappar,ln,amuc,iconstflux
-
-  !     derived quantities
-  real :: tt,gamma4,gamma2,gamma3,dpsii,psimin,psilim,pi,              &
-       time,timer,ajmax,errori,enormi,ratioi,                          &
-       tmesh, tsetup, tfirst,tsolve,tsecond,tzero,tthird,gbound
-  integer ::  ni(20),mi(20) ,nbcgs,nbcp,nbcv,nbcn,iboundmax,           &
-       ntime,ntimer,nrank,ntimemin,ntensor, iframe,                    &
-       ihdf5, idebug, islutype
-  real :: ekin, emag, ekind, emagd, ekino, emago, ekindo, emagdo,      &
-       ekint,emagt,ekintd,emagtd,ekinto,emagto,ekintdo,emagtdo,        &
-       ekinp,emagp,ekinpd,emagpd,ekinpo,emagpo,ekinpdo,emagpdo,        &
-       ekinph,ekinth,emagph,emagth,ekinpho,ekintho,emagpho,emagtho,    &
-       ekin3,ekin3d,ekin3h,emag3,ekin3o,ekin3do,ekin3ho,emag3o,        &
-       emag3h,emag3d,emag3ho,emag3do,tflux,chierror,totcur, area
-  real :: xary(0:ires-1),yary(0:ires-1),mif(0:maxhdf5-1),maf(0:maxhdf5-1)
-  character*8 :: filename(50)
-  character*10 :: datec, timec
-  
-! initialization quantities
-  integer ifirstd1_lu, ifirsts1_lu, ifirstd2_lu, ifirsts2_lu,    &
-       ifirstr1_lu, ifirstr2_lu, ifirstq2_lu, ifirsts3_lu,       &
-       ifirsts4_lu, ifirsts5_lu, ifirsts6_lu, ifirsts7_lu,       &
-       ifirsts8_lu, ifirstd8_lu, ifirstq8_lu, ifirstr8_lu
-
-  data mi /0,1,0,2,1,0,3,2,1,0,4,3,2,1,0,5,3,2,1,0/
-  data ni /0,0,1,0,1,2,0,1,2,3,0,1,2,3,4,0,2,3,4,5/
-  data iframe /0/
-
-! MPI variable(s)
-  integer myrank, maxrank
-end module basic
-
-module t_data
-  use p_data
-
-  ! variables used to define the triangles
-  real, allocatable :: atri(:),btri(:),ctri(:),ttri(:),gtri(:,:,:)
-  real, allocatable :: rinv(:)
-  integer, allocatable :: ist(:,:)
-end module t_data
-
-module arrays
-  use p_data
-  integer, parameter :: r8 = selected_real_kind(12,100)
-  ! indices
-  integer :: p,q,r,s
-  integer :: maxdofs1, maxdofs2, maxdofs3
-  integer, allocatable :: iboundgs(:), iboundv(:), iboundp(:), iboundn(:)
-  integer, allocatable :: isvaln(:,:),isval1(:,:),isval2(:,:)
-  real :: fint(-6:maxi,-6:maxi), xi(3),zi(3),df(0:4,0:4)
-  real :: xsep(5), zsep(5), graphit(0:ntimep,maxplots)
-  real, allocatable :: psibounds(:), velbounds(:), combounds(:)
-
-  ! arrays defined at all vertices
-  real(r8), allocatable::                                         &
-       b1vecini(:), vel(:), vels(:), veln(:),                     &
-       velold(:), vel0(:), vel1(:),                               &
-       b2vecini(:), phi(:), phis(:),                              &
-       phiold(:), phi0(:), phi1(:),                               &
-       jphi(:),jphi0(:),sb1(:),sb2(:),sb3(:),sp1(:),              &
-       vor(:),vor0(:),com(:),com0(:),                             &
-       den(:),den0(:),denold(:),deni(:),                          &
-       pres(:),pres0(:),r4(:),q4(:),qn4(:),                       &
-       b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
-       b5vector(:), vtemp(:),                                     &
-       fun1(:),fun4(:),fun2(:),fun3(:)
-
-end module arrays
-
-module sparse
-  use sparse_matrix
-  type(sparse_params_obj), pointer :: spo_numvar1, spo_numvar2, spo_numvar3
-  type(sparse_matrix_obj) :: s6matrix_sm, s8matrix_sm, s7matrix_sm, &
-       s4matrix_sm, s3matrix_sm, s5matrix_sm, s1matrix_sm,    &
-       s2matrix_sm, d1matrix_sm, d2matrix_sm, d4matrix_sm,    &
-       d8matrix_sm, r1matrix_sm, r2matrix_sm, r8matrix_sm,    &   
-       q2matrix_sm, q8matrix_sm, gsmatrix_sm
-  
-end module sparse
-
 #ifdef IS_LIBRARY
 subroutine reducedquintic(isfirst, inmyrank, inmaxrank)
 #else
@@ -185,13 +14,9 @@ Program Reducedquintic
   use arrays
   use newvar_mod
   use sparse
-  use sparse_params
+  implicit none
 #ifdef mpi
-  use supralu_dist_mod
-  implicit none
   include 'mpif.h'
-#else
-  implicit none
 #endif
 
 #ifdef IS_LIBRARY
@@ -222,12 +47,14 @@ Program Reducedquintic
      call safestop(1)
   endif
   ! initialize the SUPERLU process grid
-  call SLUD_init
+  call sludinit
   call MPI_Comm_size(MPI_COMM_WORLD,maxrank,ier)
   if (ier /= 0) then
      print *,'Error in MPI_Comm_size:',ier
      call safestop(1)
   endif
+  ! initialize autopack
+  call AP_INIT()
 #endif
 #ifdef IS_LIBRARY
   write(*,*) 'input is myrank, maxrank, isfirst', inmyrank, &
@@ -272,8 +99,7 @@ Program Reducedquintic
   allocate(atri(numelms),btri(numelms),ctri(numelms),ttri(numelms),      &
        gtri(20,18,numelms)) 
   
-  call precalc_whattri()
-  
+  if(maxrank .eq. 1) call precalc_whattri()
   ! special switch installed 12/03/04 to write slu matrices
   idebug = 0
 
@@ -288,12 +114,6 @@ Program Reducedquintic
      print *, 'Time spent in init: ', tend-tstart
   endif
 
-  if(maxrank .gt. 1) then
-     write(*,*) 'Currently analysis can only be done with 1 proc'
-     call safestop(42)
-  endif
-
-
   if(ipres.eq.1) then
      pefac = 1.
   else
@@ -306,18 +126,12 @@ Program Reducedquintic
   endif
 
 
-  ! sparse_params_objects
-  allocate(spo_numvar1, spo_numvar2, spo_numvar3)
-  call init_spo(spo_numvar1,1)
-  if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'finished with init_spo'
-  if(numvar .ge. 2) call init_spo(spo_numvar2,2)
-  if(numvar .ge. 3) call init_spo(spo_numvar3,3)
-
   ! calculate the RHS (forcing function)
   call rhsdef
-  
   if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'finished rhsdef'
-
+  call numprocdofs(1, j)
+  call numdofs(1, ndofs)
+  write(*,*) 'proc, owned dofs, needed dofs',myrank, j, ndofs
   ! note that the matrix indices now refer to vertices, not triangles.
   ! ...............................................................
 
@@ -333,8 +147,9 @@ Program Reducedquintic
      timer = 0.
      if(idens.eq.1) then
         call denequ(den0, 1)
+        den0 = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
         if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'finished denequ'
-        if(myrank.eq.0) call oneplot(den0,1,1,"den0",1)
+        if(maxrank.eq.1) call oneplot(den0,1,1,"den0",1)
         if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'finished oneplot'
      endif
 
@@ -361,7 +176,9 @@ Program Reducedquintic
         velold = 0.
         phiold = 0.
         call velequ(velold, numvar)
+        velold = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
         call phiequ(phiold, numvar)
+        phiold = 0. ! acbauer - temp fix for periodic bc's on 11/14/06
      endif
 
      vel0 = velold
@@ -370,8 +187,13 @@ Program Reducedquintic
 
      ! calculate initial perturbed fields
      call velinit(vel)
+     vel = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
      call phiinit(phi)
-     if(idens.eq.1) call deninit(den)
+     phi = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
+     if(idens.eq.1) then
+        call deninit(den)
+        den = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
+     endif
 
      phis = 0
      vels = 0
@@ -406,11 +228,11 @@ Program Reducedquintic
      velold(i) = -velold(i)
   enddo
 
-  if(myrank.eq.0) call plotit(vel,phi,0)
+  if(maxrank.eq.1) call plotit(vel,phi,0)
 
   ! calculate the equilibrium current density
   if(itaylor.ne.4) then
-     call newvar(phi0,jphi0,numnodes,numvar,1,VAR_J,1)
+     call newvar(phi0,jphi0,numvar,1,VAR_J,1)
   else
      jphi0 = 0
   endif
@@ -435,7 +257,7 @@ Program Reducedquintic
      endif
   endif
 
-  call plotit(vel+vel0,phi+phi0,1)
+  if(maxrank .eq. 1) call plotit(vel+vel0,phi+phi0,1)
 
 !  call axis(phi,xsep,zsep,0)
 
@@ -468,7 +290,7 @@ Program Reducedquintic
      
      if(myrank.eq.0) then
         if(itimer.eq.1) call second(tstart)
-        call output
+        if(maxrank .eq. 1) call output
         if(itimer.eq.1) then
            call second(tend)
            write(*,*) "Time spent in output: ", tend - tstart
@@ -532,28 +354,24 @@ Program Reducedquintic
   if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'done writing the restart file'
       
 !     free memory from sparse matrices
-  call free_smo(gsmatrix_sm)
-  call free_smo(s6matrix_sm)
-  call free_smo(s8matrix_sm)
-  call free_smo(s7matrix_sm)
-  call free_smo(s4matrix_sm)
-  call free_smo(s3matrix_sm)
-  call free_smo(s5matrix_sm)
-  call free_smo(s1matrix_sm)
-  call free_smo(s2matrix_sm)
-  call free_smo(d1matrix_sm)
-  call free_smo(d2matrix_sm)
-  call free_smo(d4matrix_sm)
-  call free_smo(d8matrix_sm)
-  call free_smo(r1matrix_sm)
-  call free_smo(r2matrix_sm)
-  call free_smo(r8matrix_sm)
-  call free_smo(q2matrix_sm)
-  call free_smo(q8matrix_sm)
-  call free_spo(spo_numvar1)
-  if(numvar .ge. 2) call free_spo(spo_numvar2)
-  if(numvar .ge. 3) call free_spo(spo_numvar3)
-  deallocate(spo_numvar1, spo_numvar2, spo_numvar3)
+  call freesmo(gsmatrix_sm)
+  call freesmo(s6matrix_sm)
+  call freesmo(s8matrix_sm)
+  call freesmo(s7matrix_sm)
+  call freesmo(s4matrix_sm)
+  call freesmo(s3matrix_sm)
+  call freesmo(s5matrix_sm)
+  call freesmo(s1matrix_sm)
+  call freesmo(s2matrix_sm)
+  call freesmo(d1matrix_sm)
+  call freesmo(d2matrix_sm)
+  call freesmo(d4matrix_sm)
+  call freesmo(d8matrix_sm)
+  call freesmo(r1matrix_sm)
+  call freesmo(r2matrix_sm)
+  call freesmo(r8matrix_sm)
+  call freesmo(q2matrix_sm)
+  call freesmo(q8matrix_sm)  
   call deletesearchstructure()
   if (myrank.eq.0) call plote
   
@@ -606,6 +424,7 @@ subroutine onestep
   integer :: ndofs, numelms, numnodes
 
   real :: tstart, tend
+  real(r8), allocatable:: temp(:)
   
   ! acbauer -- these variables are not initialized before use
   ediff = 1.
@@ -613,6 +432,7 @@ subroutine onestep
 
   call numnod(numnodes)
   call numfac(numelms)
+  call numdofs(1, ndofs)
 
   ! define the inverse density array deni
   if(idens.eq.1) then
@@ -624,13 +444,13 @@ subroutine onestep
   endif
 
   ! define the current vector jphi and the RHS vectors sb1 and sb2
-  !      call newvar(phi,jphi,numnodes,numvar,1,VAR_J,1)
-  call newvar(phi,sb1,numnodes,numvar,1,VAR_SB1,1)
-  if(numvar.ge.2) call newvar(phi,sb2,numnodes,numvar,1,VAR_SB2,1)
+  !      call newvar(phi,jphi,numvar,1,VAR_J,1)
+  call newvar(phi,sb1,numvar,1,VAR_SB1,1)
+  if(numvar.ge.2) call newvar(phi,sb2,numvar,1,VAR_SB2,1)
   if(numvar.ge.3) then
-     call newvar(phi,sp1,numnodes,numvar,1,VAR_SP1,1)
+     call newvar(phi,sp1,numvar,1,VAR_SP1,1)
      if(ipres.eq.1) then
-        call newvar(phi,sb3,numnodes,numvar,1,VAR_SB3,1)
+        call newvar(phi,sb3,numvar,1,VAR_SB3,1)
      else
         sb3 = sp1
      endif
@@ -656,12 +476,12 @@ subroutine onestep
 
   ! b1vector = r1matrix_sm * phi(n)
   if(iprint.ge.1) write(*,*) "before sparseR8_A_dot_X"
-  call matrix_vector_mult(r1matrix_sm, phi, b1vector, r1matrix_sm%spo_ptr%numcols)
+  call matrixvectormult(r1matrix_sm, phi, b1vector)
   
   ! vtemp = d1matrix_sm * vel(n)
   vtemp = 0.
   if(iprint.eq.1)write(*,*) "before second sparseR8_A_dot_X"
-  call matrix_vector_mult(d1matrix_sm,vel,vtemp, d1matrix_sm%spo_ptr%numcols)
+  call matrixvectormult(d1matrix_sm,vel,vtemp)
 
   vtemp = vtemp + dt*facd*b1vecini + b1vector + r4
 
@@ -685,7 +505,7 @@ subroutine onestep
   chierror = 0
   sum = 0
   if(numvar.ge.3) then
-     call newvar(vtemp,com,numnodes,numvar,3,VAR_COM,0)
+     call newvar(vtemp,com,numvar,3,VAR_COM,0)
      
      do itri=1,numelms
         call calcfint(fintl, maxi, atri(itri),btri(itri), ctri(itri))
@@ -701,20 +521,20 @@ subroutine onestep
      
      if(hyperc.gt.0) then
         call smoother3(com,vtemp,numnodes,numvar,3)
-        call newvar(vtemp,com,numnodes,numvar,3,VAR_COM,0)
+        call newvar(vtemp,com,numvar,3,VAR_COM,0)
      endif
-     call oneplot(com,1,1,"com",0)
+     if(maxrank .eq. 1) call oneplot(com,1,1,"com",0)
      
   endif
 
-  call newvar(vtemp,vor,numnodes,numvar,1,VAR_VOR,1)
+  call newvar(vtemp,vor,numvar,1,VAR_VOR,1)
   
   if(hyperc.gt.0) then
      !
      !.......calculate vorticity, apply smoothing operator, and redefine vor array
      call smoother1(vor,vtemp,numnodes,numvar,1)
-     call newvar(vtemp,vor,numnodes,numvar,1,VAR_VOR,1)
-     call oneplot(com,1,1,"vor",0)
+     call newvar(vtemp,vor,numvar,1,VAR_VOR,1)
+     if(maxrank .eq. 1) call oneplot(com,1,1,"vor",0)
   endif
 
 !.....new velocity solution at time n+1 (or n* for second order advance)
@@ -732,23 +552,24 @@ subroutine onestep
      if(iprint.ge.1) write(*,*) "s8handle"
 
      ! b2vector = r8matrix_lu * vel(n+1)
-     call matrix_vector_mult(r8matrix_sm,vel,b2vector, r8matrix_sm%spo_ptr%numcols)
+     call matrixvectormult(r8matrix_sm,vel,b2vector)
 
      ! b3vector = q8matrix_sm * vel(n)
-     call matrix_vector_mult(q8matrix_sm,veln,b3vector, q8matrix_sm%spo_ptr%numcols)
+     call matrixvectormult(q8matrix_sm,veln,b3vector)
 
-     ! vtemp = d8matrix_sm * phi(n)
-     vtemp = 0.
-     call matrix_vector_mult(d8matrix_sm,den,vtemp, d8matrix_sm%spo_ptr%numcols)
-     allocate(itemp(numnodes*6)) ! this is used to make sure that we don't double count the sum for periodic dofs
-     do l=1,numnodes*6
-        itemp(l) = 1
-     enddo
+     ! temp = d8matrix_sm * phi(n)
+     call createvec(temp, 1)
+     temp = 0.
+     call matrixvectormult(d8matrix_sm,den,temp)
+     call numdofs(numvar,ndofs)
+     allocate(itemp(ndofs)) ! this is used to make sure that we don't double count the sum for periodic dofs
+     itemp = 1
+
      do l=1,numnodes
         call entdofs(1, l, 0, ibegin, iendplusone)
         call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
         do i=0,iendplusone-ibegin-1
-           vtemp(ibegin+i) = vtemp(ibegin+i) + itemp(ibegin+i) * &
+           temp(ibegin+i) = temp(ibegin+i) + itemp(ibegin+i) * &
                 (b2vector(ibeginnv+i) + b3vector(ibeginnv+i) + qn4(ibegin+i))
            itemp(ibegin+i) = 0
         enddo
@@ -756,23 +577,23 @@ subroutine onestep
      deallocate(itemp)
 
      do l=1,nbcn
-        vtemp(iboundn(l)) = 0.
+        temp(iboundn(l)) = 0.
         if(linear.eq.0 .and. eqsubtract.eq.0) then
-           vtemp(iboundn(l)) = vtemp(iboundn(l)) + denold(iboundn(l))
+           temp(iboundn(l)) = temp(iboundn(l)) + denold(iboundn(l))
         endif
      enddo
 
      ! solve linear system...LU decomposition done first time
-! -- okay to here      call printarray(vtemp, 150, 0, 'vtemp on')
-     call solve(s8matrix_sm, vtemp, jer)
+! -- okay to here      call printarray(temp, 150, 0, 'vtemp on')
+     call solve(s8matrix_sm, temp, jer)
      if(jer.ne.0) then
         write(*,*) 'after 2nd sparseR8d_solve', jer
         call safestop(29)
      endif
 
      ! new field solution at time n+1 (or n* for second order advance)
-     den = vtemp
-     !      call printarray(den, 150, 0, 'den vtem')
+     den = temp
+     call deletevec(temp)
   endif
 
 !
@@ -787,14 +608,14 @@ subroutine onestep
 #ifdef mpi
 
   ! b2vector = r2matrix_lu * vel(n+1)
-  call matrix_vector_mult(r2matrix_sm,vel,b2vector, r2matrix_sm%spo_ptr%numcols)
+  call matrixvectormult(r2matrix_sm,vel,b2vector)
 
   ! b3vector = q2matrix_lu * vel(n)
-  call matrix_vector_mult(q2matrix_sm,veln,b3vector, q2matrix_sm%spo_ptr%numcols)
+  call matrixvectormult(q2matrix_sm,veln,b3vector)
 
   ! vtemp = d2matrix_sm * phi(n)
   vtemp = 0.
-  call matrix_vector_mult(d2matrix_sm,phi,vtemp, d2matrix_sm%spo_ptr%numcols)
+  call matrixvectormult(d2matrix_sm,phi,vtemp)
 
   vtemp = vtemp + dt*facd*b2vecini + b2vector + b3vector + q4
   
