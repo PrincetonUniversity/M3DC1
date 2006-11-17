@@ -175,24 +175,27 @@
 !==========
 !=====
 ! my routine to print out arrays
-      subroutine printlocalarray(aa,numberingid,string)
+      subroutine printlocalarray(aa,numberingid, x,z, string)
       implicit none
       include 'mpif.h'
-      double precision aa(*), coords(3), sum
+      double precision aa(*), coords(3), sum, sum2, x, z, tol
       integer n, i, m, j, numnodes, ibegin, iendplusone
-      integer numberingid, myrank
+      integer numberingid, myrank, ndofs
       character*8 string
       
-      
+      tol = .001 ! tolerance for how close to node
       call MPI_COMM_RANK(MPI_COMM_WORLD, myrank, i)
       sum = 0.
       write(*,*) 'printlocalarray has string ',string
-      open(10,file='check.txt',form='formatted')
+      write(*,*) 'checking at',x,z
+!      open(10,file='check.txt',form='formatted')
       call numnod(numnodes)
       do i=1,numnodes
          call xyznod(i, coords)
-         if(coords(1) .gt. 2.4 .and. coords(1) .lt. 2.6 .and. 
-     &        coords(2) .gt. 2.4 .and. coords(2) .lt. 2.6) then
+         if(coords(1) .gt. x-tol .and. 
+     &        coords(1) .lt. x+tol .and. 
+     &        coords(2) .gt. z-tol .and. 
+     &        coords(2) .lt. z+tol) then
             call entdofs(numberingid, i, 0, ibegin, iendplusone)
             do j=ibegin,iendplusone-1
 !               write(10,*) aa(j)
@@ -201,8 +204,16 @@
             enddo
          endif
       enddo 
-      close(10)
-      write(*,*) 'sum is ',sum
+!      close(10)
+      write(*,*) 'local sum is ',sum, myrank
+      call numprocdofs(numberingid, ndofs)
+      sum = 0
+      do i=1,ndofs
+         sum = sum + dabs(aa(i))
+      enddo
+      call MPI_ALLREDUCE(sum, sum2, 1, MPI_DOUBLE_PRECISION, 
+     &     MPI_SUM, MPI_COMM_WORLD, i)
+      if(myrank .eq. 0) write(*,*) 'global sum is',sum2
       call safestop(8292)
       return
       end
