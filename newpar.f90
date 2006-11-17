@@ -505,7 +505,7 @@ subroutine onestep
   sum = 0
   if(numvar.ge.3) then
      call newvar(vtemp,com,numvar,3,VAR_COM,0)
-     
+
      do itri=1,numelms
         call calcfint(fintl, maxi, atri(itri),btri(itri), ctri(itri))
         call calcd2term(itri, d2term, fintl)
@@ -672,10 +672,12 @@ subroutine conserve_tflux()
   use arrays
 
   implicit none
-
-  integer :: numelms, numnodes, index, itri, j, jone, j2, ivertex
+  include "mpif.h"
+  
+  integer :: numelms, numnodes, index, itri, j, jone, j2, ivertex, ier, ndofs
   real :: correction
   real :: d2term(18), fintl(-6:maxi,-6:maxi)
+  double precision :: valsin(3), valsout(3)
 
   call numnod(numnodes)
   call numfac(numelms)
@@ -702,6 +704,17 @@ subroutine conserve_tflux()
      enddo
   enddo                     ! loop over itri
 
+  if(maxrank .gt. 1) then
+     valsin(1) = totcur
+     valsin(2) = area
+     valsin(3) = tflux
+     call MPI_ALLREDUCE(valsin, valsout, 3, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
+     totcur = valsout(1)
+     area = valsout(2)
+     tflux = valsout(3)
+  endif
+
+
   ! adjust toroidal field and boundary condition to conserve toroidal flux
   if(numvar.ge.2) then
      correction = tflux/area
@@ -709,6 +722,10 @@ subroutine conserve_tflux()
      do ivertex=1,numnodes
         index = 6*numvar*(ivertex-1) + 7
         phi(index) = phi(index) - correction
+     enddo
+     call numdofs(numvar, ndofs)
+     do j=7,ndofs,6*numvar
+        phi(j) = phi(j) - correction
      enddo
   endif
 
