@@ -30,6 +30,7 @@ Program Reducedquintic
 
   double precision :: coords(3)
   integer :: nodeids(4)
+  integer :: allocatable itemp(:)
 
   integer :: ibegin, iendplusone
 
@@ -201,32 +202,27 @@ Program Reducedquintic
   endif                     !  end of the branch on restart/no restart
 
   ! correct for left-handed coordinates
-!!$  do i=1,numnodes
-!!$     call entdofs(numvar, i, 0, ibegin, iendplusone)
-!!$     if(numvar.eq.1) then
-!!$        j = 5
-!!$     else
-!!$        j = 11
-!!$     endif
-!!$     phi(ibegin:ibegin+j) = -phi(ibegin:ibegin+j)
-!!$     vel(ibegin:ibegin+j) = -vel(ibegin:ibegin+j)
-!!$     phi0(ibegin:ibegin+j) = -phi0(ibegin:ibegin+j)
-!!$     vel0(ibegin:ibegin+j) = -vel0(ibegin:ibegin+j)
-!!$     phiold(ibegin:ibegin+j) = -phiold(ibegin:ibegin+j)
-!!$     velold(ibegin:ibegin+j) = -velold(ibegin:ibegin+j)
-!!$  enddo
-! the above code looks like it just makes all of the dofs/unknowns negative
-! which is what the code below does while also taking into account
-! properly that multiple nodes may share the same dof/unknown
   call numdofs(numvar, ndofs)
-  do i=1,ndofs
-     phi(i) = -phi(i)
-     vel(i) = -vel(i)
-     phi0(i) = -phi0(i)
-     vel0(i) = -vel0(i)
-     phiold(i) = -phiold(i)
-     velold(i) = -velold(i)
+  allocate(itemp(ndofs))
+  itemp = 1
+  if(numvar.eq.1) then
+     j = 5
+  else
+     j = 11
+  endif
+  do i=1,numnodes
+     call entdofs(numvar, i, 0, ibegin, iendplusone)
+     if(itemp(ibegin) .eq. 1) then
+        phi(ibegin:ibegin+j) = -phi(ibegin:ibegin+j)
+        vel(ibegin:ibegin+j) = -vel(ibegin:ibegin+j)
+        phi0(ibegin:ibegin+j) = -phi0(ibegin:ibegin+j)
+        vel0(ibegin:ibegin+j) = -vel0(ibegin:ibegin+j)
+        phiold(ibegin:ibegin+j) = -phiold(ibegin:ibegin+j)
+        velold(ibegin:ibegin+j) = -velold(ibegin:ibegin+j)
+        itemp(ibegin) = 0
+     endif
   enddo
+  deallocate(itemp)
 
   if(maxrank.eq.1) call plotit(vel,phi,0)
 
@@ -674,12 +670,11 @@ subroutine conserve_tflux()
   implicit none
   include "mpif.h"
   
-  integer :: numelms, numnodes, index, itri, j, jone, j2, ivertex, ier, ndofs
+  integer :: numelms, index, itri, j, jone, j2, ivertex, ier, ndofs
   real :: correction
   real :: d2term(18), fintl(-6:maxi,-6:maxi)
   double precision :: valsin(3), valsout(3)
 
-  call numnod(numnodes)
   call numfac(numelms)
 
   totcur = 0
@@ -719,10 +714,6 @@ subroutine conserve_tflux()
   if(numvar.ge.2) then
      correction = tflux/area
      gbound = gbound - correction
-     do ivertex=1,numnodes
-        index = 6*numvar*(ivertex-1) + 7
-        phi(index) = phi(index) - correction
-     enddo
      call numdofs(numvar, ndofs)
      do j=7,ndofs,6*numvar
         phi(j) = phi(j) - correction
