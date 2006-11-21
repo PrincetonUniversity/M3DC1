@@ -43,6 +43,9 @@
 !       went back to old form for viscous heating term
 !       o6 option for GEM test problem
 !       sphie defined as full pressure source term for ipres=0
+!       moved allocation of superlu arrays to after opdef
+!       removed b1vecini and b1vecini arrays
+!       added regularization term "regular" for chi equation
 !
 !     NMF contributions (4/24/06):
 !     ----------------------------
@@ -77,9 +80,9 @@
       implicit none
       integer  maxi,ntimep,irs,ntri,ntridim,ioddm,maxfiles,             &
      &         maxhdf5,maxplots
-      parameter(maxplots=60,maxi=20,ntimep=10000,irs=201,ntridim=1984,  &
+      parameter(maxplots=60,maxi=20,ntimep=10000,irs=201,ntridim=1,     &
      &          ioddm=2, maxfiles=100, maxhdf5=30)
-      character*11, parameter :: version="M3D-C1 12.1"
+      character*11, parameter :: version="M3D-C1 12.2"
       end module p_data
 !
       module basic
@@ -88,7 +91,8 @@
       real alx,alxp,alz,alzp,xzero,zzero,thimp,amu,etar,dt,p1,p2,p0,pi0, &
      &     tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,cb,            &
      &     bzero,hyper,hyperi,hyperv,hyperc,gam,beta,eps,tau,           &
-     &     kappa,kappat,hyperp,del,denm,bzerosi,grav,ln,amuc,chipar
+     &     kappa,kappat,hyperp,del,denm,bzerosi,grav,ln,amuc,chipar,    &
+     &     regular
       integer n,m,linear,maxs,ntimemax,ntimepr,itor,ioddmx,isetup,      &
      &   irestart,iper,jper,itaylor,itest,isecondorder,imask,nskip,     &
      &        numvar,istart,idens,ipres,itaylorw,isym,jsym,eqsubtract,  &
@@ -105,7 +109,8 @@
      &        alx,alz,xzero,zzero,thimp,amu,amuc,etar,dt,p1,p2,p0,pi0,  &
      &        tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,cb,         &
      &        bzero,hyper,hyperi,hyperv,hyperc,gam,beta,eps,tau,        &
-     &        kappa,kappat,hyperp,del,denm,bzerosi,grav,ln,chipar
+     &        kappa,kappat,hyperp,del,denm,bzerosi,grav,ln,chipar,      &
+     &        regular
 !
 !     derived quantities
       real    deex,deez,tt,gamma4,gamma2,gamma3,dpsii,psimin,psilim,pi, &
@@ -196,9 +201,9 @@
 #else
       REAL64, allocatable::
 #endif
-     &       b1vecini(:), vel(:), vels(:), veln(:),                     &
+     &        vel(:), vels(:), veln(:),                                 &
      &        velold(:), vel0(:), vel1(:),                              &
-     &       b2vecini(:), phi(:), phis(:),                              &
+     &        phi(:), phis(:),                                           &
      &        phiold(:), phi0(:), phi1(:), phip(:),                     &
      &       jphi(:),jphi0(:),sphi1(:),sphi2(:),vor(:),vor0(:),         &
      &       com(:),com0(:),den(:),den0(:),dent(:),deni(:),denold(:),   &
@@ -875,18 +880,18 @@ c$$$         if(ekin .gt. 100.) go to 100
       enddo                     ! loop over iodd
      
 !.....adjust toroidal field and boundary condition to conserve toroidal flux
-      if(numvar.ge.2) then
-         correction = tflux/area
-         gbound = gbound - correction
-         ivertex = 0
-         do jrect=1,m
-            do irect=1,n
-               ivertex = ivertex + 1
-               index = 6*numvar*(ivertex-1) + 7
-               phi(index) = phi(index) - correction
-            enddo
-         enddo
-      endif
+!     if(numvar.ge.2) then
+!        correction = tflux/area
+!        gbound = gbound - correction
+!        ivertex = 0
+!        do jrect=1,m
+!           do irect=1,n
+!              ivertex = ivertex + 1
+!              index = 6*numvar*(ivertex-1) + 7
+!              phi(index) = phi(index) - correction
+!           enddo
+!        enddo
+!     endif
 !
 ! Advance VEL ===========================================
 ! 
@@ -950,7 +955,7 @@ c$$$         if(ekin .gt. 100.) go to 100
          call safestop(35)
       endif
 
-      vtemp = vtemp + dt*facd*b1vecini + b1vector + r4 + r40
+      vtemp = vtemp +   b1vector + r4 + r40
 
       do l=1,nbcv
          vtemp(iboundv(l)) = velbounds(l)
@@ -995,6 +1000,7 @@ c$$$         if(ekin .gt. 100.) go to 100
                enddo            ! loop over irect
             enddo               ! loop over jrect
          enddo                  ! loop over iodd
+!
 !
          if(hyperc.gt.0) then
             call smoother3(com,vtemp,m*n,numvar,3)
@@ -1245,7 +1251,7 @@ c$$$         if(ekin .gt. 100.) go to 100
 #endif
       if(myrank.eq.0) call second(tafteradotb)
       tadotb = tadotb + tafteradotb-tbeforeadotb
-      vtemp = vtemp + dt*facd*b2vecini + b2vector + b3vector            &
+      vtemp = vtemp +  b2vector + b3vector                              &
      &     + dt*(ohmic + viscous)
      &     + dt*q34
       do l=1,nbcp
@@ -1605,6 +1611,7 @@ c$$$      endif
            endif
            if(numvar.ge.3) then
               ssterm(3,3) = terma*(1-idens) -   thimp *dt*2.*amuc*termb
+     &               - regular*termd
               ddterm(3,3) = terma*(1-idens)+(1.-thimp)*dt*2.*amuc*termb
               rrterm(3,3) = - dt*terma
            endif
@@ -1700,8 +1707,11 @@ c$$$      endif
      &            *(thimp*(vel(k1)+vel0(k1))-(0.5*vel(k1)+vel0(k1)))
 
               if(idens.gt.0) then
-                ssterm(1,3) = ssterm(1,3)+dent(kone)*k0term(iodd,i,j,k)
-                ddterm(1,3) = ddterm(1,3)+dent(kone)*k0term(iodd,i,j,k)
+!....changed 11/19/06
+                ssterm(1,3) = ssterm(1,3)-dent(kone)*k0term(iodd,k,j,i)
+                ddterm(1,3) = ddterm(1,3)-dent(kone)*k0term(iodd,k,j,i)
+!               ssterm(1,3) = ssterm(1,3)+dent(kone)*k0term(iodd,i,j,k)
+!               ddterm(1,3) = ddterm(1,3)+dent(kone)*k0term(iodd,i,j,k)
               endif                  
 !
               ssterm(2,2) = ssterm(2,2)-dt*g2term(iodd,j,k,i)*(1-idens) &
@@ -1730,8 +1740,11 @@ c$$$      endif
      &              (thimp*(vel(k1)+vel0(k1))-(0.5*vel(k1)+vel0(k1)))
 !
               if(idens.gt.0) then
-                ssterm(3,1) = ssterm(3,1)-dent(kone)*k0term(iodd,i,j,k)
-                ddterm(3,1) = ddterm(3,1)-dent(kone)*k0term(iodd,i,j,k)
+!....changed 11/19/06   scj
+                ssterm(3,1) = ssterm(3,1)+dent(kone)*k0term(iodd,k,j,i)
+                ddterm(3,1) = ddterm(3,1)+dent(kone)*k0term(iodd,k,j,i)
+!               ssterm(3,1) = ssterm(3,1)-dent(kone)*k0term(iodd,i,j,k)
+!               ddterm(3,1) = ddterm(3,1)-dent(kone)*k0term(iodd,i,j,k)
               endif 
 !
 !
@@ -3697,8 +3710,8 @@ c$$$      endif
       nreg = (n+iper-1)*(m+jper-1)*2/ioddmx
 !
 !.....zero out big arrays
-      b1vecini = 0.
-      b2vecini = 0.
+!     b1vecini = 0.
+!     b2vecini = 0.
       d2term = 0
       aterm = 0
       bterm = 0
@@ -3823,16 +3836,16 @@ c$$$      endif
             enddo
 !
 !............velocity perturbations
-             b1vecini(i1) = b1vecini(i1) - term                         &
-     &                    *((pi/alx)**2+(pi/alz)**2)
-             if(numvar.ge.2) b1vecini(i2) = b1vecini(i2)
+!            b1vecini(i1) = b1vecini(i1) - term                         &
+!    &                    *((pi/alx)**2+(pi/alz)**2)
+!            if(numvar.ge.2) b1vecini(i2) = b1vecini(i2)
 !    &              - term*((pi/alx)**2+(pi/alz)**2)
-             if(numvar.ge.3) b1vecini(i3) = 0.
+!            if(numvar.ge.3) b1vecini(i3) = 0.
 !
 !............fluxes
-             b2vecini(i1) = 0.
-             if(numvar.ge.2) b2vecini(i2) = 0.
-             if(numvar.ge.3) b2vecini(i3) = 0.
+!            b2vecini(i1) = 0.
+!            if(numvar.ge.2) b2vecini(i2) = 0.
+!            if(numvar.ge.3) b2vecini(i3) = 0.
 !
            enddo
            enddo
@@ -4656,16 +4669,14 @@ c$$$      endif
       nbound = 12*numvar*(n+m-2)
 !
 !.....arrays defined at all vertices
-      allocate(b1vecini(mmnn18), vel(mmnn18), vels(mmnn18),veln(mmnn18), &
+      allocate( vel(mmnn18), vels(mmnn18),veln(mmnn18),                 &
      &        velold(mmnn18), vel0(mmnn18), vel1(mmnn18),               &
-     &       b2vecini(mmnn18), phi(mmnn18), phis(mmnn18),               &
+     &        phi(mmnn18), phis(mmnn18),                                &
      &      phiold(mmnn18s), phi0(mmnn18s), phi1(mmnn18), phip(mmnn18), &
      & b1vector(mmnn18), b2vector(mmnn18),ohmic(mmnn18),viscous(mmnn18), &
      &       b3vector(mmnn18), vtemp(mmnn18),                           &
      &       r4(mmnn18),q4(mmnn18),                                     &
      &       r40(mmnn18),q34(mmnn18),q34temp(mmnn18))
-!     allocate(phitimen(mmnn18), veltimen(mmnn18), r4temp(mmnn18),       &
-!     &     phistar(mmnn18))
       allocate(r4temp(mmnn18))
 !
       allocate(jphi(mmnn6),jphi0(mmnn6), sphi1(mmnn6), sphi2(mmnn6),    &
@@ -4757,7 +4768,9 @@ c$$$      endif
       endif
 !
 !.....metric terms involved in toroidal geometry
+      if(itor.eq.1) then
       allocate(hterm(ntridim,18,18),termh2(ioddm,18,18,20),rinv(mmnn6))
+      endif
 !
 !     intermediate metric terms with 1-3 indices                        
       allocate(d2matrix(20),     bmatrix(20,20),  amatrix(20,20),       &
@@ -5051,7 +5064,7 @@ c$$$      endif
             ssterm(1,1) = dterm(iodd,i,j)
             ssterm(1,2) =-aterm(iodd,i,j)
             ssterm(2,1) =  +dt*hyp*thimpsm*bterm(iodd,i,j)
-            ssterm(2,2) = aterm(iodd,i,j)
+            ssterm(2,2) = aterm(iodd,i,j) - regular*dterm(iodd,i,j)
             call increment(ss,m*n,itwo,jtwo,ssterm,numvarsm,10)
 !
         enddo
@@ -5439,8 +5452,8 @@ c$$$      endif
       ibound(index-1) = 6*numvarsm*((m-1)*n ) + 8
       ibound(index  ) = 6*numvarsm*( m*n - 1) + 8
  513  continue
-      index = index + 1
-      ibound(index) = 6*numvarsm*(m*n-2) + 7
+!     index = index + 1
+!     ibound(index) = 6*numvarsm*(m*n-2) + 7
       nbc = index
       return
       end

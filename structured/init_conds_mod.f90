@@ -164,7 +164,6 @@ subroutine phiequ(dum)
            else
               dum(i0+13) = 0.5*kb*dum(i0+1)**2 + p0 - pi0
            endif
-!           dum(i0+13) = 0.5*kb*dum(i0+1)**2
            dum(i0+14) = kb*dum(i0+1)*dum(i0+2)
            dum(i0+15) = kb*dum(i0+1)*dum(i0+3)
            dum(i0+16) = kb*(dum(i0+2)**2+dum(i0+1)*dum(i0+4))
@@ -494,45 +493,14 @@ subroutine denequ(dum)
 
      ! for itaylor = 0, use the equilibrium given in R. Richard, et al,
      !     Phys. Fluids B, 2 (3) 1990 p 489
+     ! ..... uniform density
 
-     r = sqrt(x**2 + z**2)
-     ri = 0.
-     if(r.ne.0) ri = 1./r
-     arg = k*r
-     if(r.le.1) then
-        befo = 2./s17aef(k,ifail1)
-        j0 = s17aef(arg,ifail2)
-        j1 = s17aff(arg,ifail3)
-        ff = .5*befo
-        fp = 0
-        fpp = -.125*k**2*befo
-        if(arg.ne.0)  then
-           ff   = befo*j1/arg
-           fp  = befo*(j0 - 2.*j1/arg)/r
-           fpp = befo*(-3*j0 + 6.*j1/arg - arg*j1)/r**2
-        endif
-     else
-        ff   = (1.-1./r**2)
-        fp  = 2./r**3
-        fpp = -6/r**4
-     endif
-   
-     d1 = ff* z
-     d3 = fp*z**2*ri + ff
-     d2 = fp*z*x *ri
-     d6 = fpp*z**3  *ri**2 + fp*(3*z*ri - z**3  *ri**3)
-     d5 = fpp*z**2*x*ri**2 + fp*(  x*ri - z**2*x*ri**3)
-     d4 = fpp*x**2*z*ri**2 + fp*(  z*ri - x**2*z*ri**3)
-
-     ! define density
-     kb = k**2*beta
-     dum(i0+1) = 0.5*kb*d1**2 + 1.
-!!$     dum(i0+1) = 0.5*kb*d1**2
-     dum(i0+2) = kb*d1*d2
-     dum(i0+3) = kb*d1*d3
-     dum(i0+4) = kb*(d2**2+d1*d4)
-     dum(i0+5) = kb*(d2*d3+d1*d5)
-     dum(i0+6) = kb*(d3**2+d1*d6)
+     dum(i0+1) = 1.0
+     dum(i0+2) = 0.
+     dum(i0+3) = 0.
+     dum(i0+4) = 0.
+     dum(i0+5) = 0.
+     dum(i0+6) = 0.
      
      go to 502
 500  continue
@@ -743,7 +711,7 @@ subroutine velinit(dum)
 
   integer :: lx, lz, i0, i, l
   real :: phiper, vzper, chiper
-  real :: f,fx,fxx,fxz,fz,fzz,g,gx,gz,gxz,gxx,gzz
+  real :: f,fx,fxx,fxz,fz,fzz,g,gx,gz,gxz,gxx,gzz,uzero,czero,befo
   real :: x, z, akx, akz, loc, locp, locpp
   real rsq
 
@@ -764,6 +732,36 @@ subroutine velinit(dum)
      if(itaylor.eq.5) go to 300
      if(itaylor.eq.6) go to 375
      if(itaylor.eq.7) go to 250
+!
+     if(itaylor.eq.0) then
+       befo = eps*exp(-(x**2+z**2))
+       uzero = befo*cos(z)
+       czero = befo*sin(z)
+       dum(i0+1) = uzero
+       dum(i0+2) = - 2.*x*uzero
+       dum(i0+3) = - 2.*z*uzero - czero
+       dum(i0+4) = (-2.+4.*x**2)*uzero
+       dum(i0+5) = 4.*x*z*uzero + 2.*x*czero
+       dum(i0+6) = (-3.+4.*z**2)*uzero + 4.*z*czero
+
+       if(numvar.ge.2) then
+         do i=7,12
+           dum(i0+i) = 0
+         enddo
+       endif
+       if(numvar.ge.3) then
+         dum(i0+13) = czero
+         dum(i0+14) = -2*x*czero
+         dum(i0+15) = -2*z*czero + uzero
+         dum(i0+16) = (-2.+4*x**2)*czero
+         dum(i0+17) = 4.*x*z*czero - 2.*x*uzero
+         dum(i0+18) = (-3.+4.*z**2)*czero - 4*z*uzero
+       endif
+
+       
+go to 502
+     endif
+     
      
      do i=i0+1,i0+6*numvar
         dum(i) = 0.

@@ -475,6 +475,7 @@ subroutine opdef1
            
         enddo ! on jp
         
+        if(itor.ne.0) then
         do p=1,20
            sumh2 = 0
            do k=1,20
@@ -485,6 +486,7 @@ subroutine opdef1
            enddo ! on k
            termh2(iodd,i,j,p) = sumh2
         enddo ! on p
+        endif! on itor
         
      enddo ! on j
   enddo ! on i
@@ -882,12 +884,13 @@ subroutine opdef2
              do s=1,20
                msum = mi(p)+mi(q)+mi(r)+mi(s)
                nsum = ni(p)+ni(q)+ni(r)+ni(s)
-               tensor(p,q,r,s) = mi(q)*mi(r)*mi(p)*(mi(r)+mi(q)-2)      &
-                            *fint(msum-4,nsum)                          &
-                               + ni(q)*ni(r)*ni(p)*(ni(r)+ni(p)-2)      &
-                            *fint(msum,nsum-4)                          &
-              + (mi(p)*ni(r)*ni(q)*(ni(q)+ni(r))                        &
-                +ni(p)*mi(r)*mi(q)*(mi(q)+mi(r)))*fint(msum-2,nsum-2)
+                tensor(p,q,r,s) = 0.
+!               tensor(p,q,r,s) = mi(q)*mi(r)*mi(p)*(mi(r)+mi(q)-2)      &
+!                            *fint(msum-4,nsum)                          &
+!                               + ni(q)*ni(r)*ni(p)*(ni(r)+ni(p)-2)      &
+!                            *fint(msum,nsum-4)                          &
+!              + (mi(p)*ni(r)*ni(q)*(ni(q)+ni(r))                        &
+!                +ni(p)*mi(r)*mi(q)*(mi(q)+mi(r)))*fint(msum-2,nsum-2)
              enddo
            enddo
          enddo
@@ -899,7 +902,7 @@ subroutine opdef2
 !
        go to 200
 !
-!     C13 (formerly P12)
+!     C13 (formerly P12)...modified 10/22/06 to combine with C12
   115  continue
        do p=1,20
          do q=1,20
@@ -907,56 +910,45 @@ subroutine opdef2
              do s=1,20
                msum = mi(p)+mi(q)+mi(r)+mi(s)
                nsum = ni(p)+ni(q)+ni(r)+ni(s)
-               tensor(p,q,r,s) = &
-                    -((mi(p)-1)*mi(p)*mi(q)*mi(r)*(mi(q)+mi(r)-2)*mi(s)) &
-                    * fint(msum-6,nsum)                                  &
-                    -((ni(p)-1)*ni(p)*ni(q)*ni(r)*(ni(q)+ni(r)-2)*ni(s)) &
-                    * fint(msum,nsum-6)                                  &
-                    -(mi(s)*((mi(p)-1)*mi(p)*mi(r)*ni(q)*ni(r) +         &
-                      mi(q)*((-1 + mi(p))*mi(p)*ni(q)*ni(r) +            &
-                      mi(r)*(1 + mi(p) - mi(s))*ni(p)*(ni(q) + ni(r))))  &
-                      + mi(q)*mi(r)*((-2 + mi(q) + mi(r))*mi(s)*ni(p) +  &
-                      mi(p)*(-2 + mi(q) + mi(r) - 2*ni(p) +              &
-                      (mi(q) + mi(r))*ni(p) + mi(s)*(ni(q) + ni(r))))*   &
-                      ni(s) - mi(p)*mi(q)*mi(r)*(-2 + mi(q) + mi(r))*    &
-                      ni(s)**2) * fint(msum-4,nsum-2)                    &
-                    +(mi(s)*(-1 - mi(p) + mi(s))*ni(p)*ni(q)*ni(r)*      &
-                     (ni(q)+ni(r)-2) - (mi(q)*((mi(p) +                  &
-                     (mi(p) + mi(s))*ni(p))*ni(q)*ni(r) +                &
-                     mi(r)*(-1 + ni(p))*ni(p)*(ni(q) + ni(r))) +         &
-                     ni(q)*ni(r)*(mi(r)*mi(s)*ni(p) +                    &
-                     mi(p)*(mi(r)*(1 + ni(p)) +                          &
-                     mi(s)*(-2 + ni(q) + ni(r)))))*ni(s) +               & 
-                     mi(p)*(mi(q) + mi(r))*ni(q)*ni(r)*ni(s)**2)         &
-                    * fint(msum-2,nsum-4) 
+                tensor(p,q,r,s) =                                                                    &
+                       -(mi(p)-1)*mi(s)*mi(p)*mi(r)*mi(q)*(mi(r)+mi(q)-2)*fint(msum-6,nsum)          &
+                +(((mi(s)-1)*ni(r)*ni(q)-mi(r)*mi(q)*(ni(p)+ni(s)))*mi(s)*mi(p)*(ni(r)+ni(q))        &
+                  +((ni(s)-ni(p)-1)*mi(p)-ni(p)*mi(s))*ni(s)*mi(r)*mi(q)*(mi(r)+mi(q)-2)             &
+               +((mi(s)-1)*ni(p)*mi(r)*mi(q)-ni(r)*ni(q)*mi(p)*(mi(p)+mi(s)-2))*mi(s)*(mi(r)+mi(q))) &
+                                       *fint(msum-4,nsum-2)                                          &
+                +(((ni(s)-1)*mi(r)*mi(q)-ni(r)*ni(q)*(mi(p)+mi(s)))*ni(s)*ni(p)*(mi(r)+mi(q))        &
+                  +((mi(s)-mi(p)-1)*ni(p)-mi(p)*ni(s))*mi(s)*ni(r)*ni(q)*(ni(r)+ni(q)-2)             &
+               +((ni(s)-1)*mi(p)*ni(r)*ni(q)-mi(r)*mi(q)*ni(p)*(ni(p)+ni(s)-2))*ni(s)*(ni(r)+ni(q))) &
+                                       *fint(msum-2,nsum-4)                                          &
+                  -(ni(p)-1)*ni(s)*ni(p)*ni(r)*ni(q)*(ni(r)+ni(q)-2)*fint(msum,nsum-6)                
+!....Nate's coding
+!              tensor(p,q,r,s) = &
+!                   -((mi(p)-1)*mi(p)*mi(q)*mi(r)*(mi(q)+mi(r)-2)*mi(s)) &
+!                   * fint(msum-6,nsum)                                  &
+!                   -((ni(p)-1)*ni(p)*ni(q)*ni(r)*(ni(q)+ni(r)-2)*ni(s)) &
+!                   * fint(msum,nsum-6)                                  &
+!                   -(mi(s)*((mi(p)-1)*mi(p)*mi(r)*ni(q)*ni(r) +         &
+!                     mi(q)*((-1 + mi(p))*mi(p)*ni(q)*ni(r) +            &
+!                     mi(r)*(1 + mi(p) - mi(s))*ni(p)*(ni(q) + ni(r))))  &
+!                     + mi(q)*mi(r)*((-2 + mi(q) + mi(r))*mi(s)*ni(p) +  &
+!                     mi(p)*(-2 + mi(q) + mi(r) - 2*ni(p) +              &
+!                     (mi(q) + mi(r))*ni(p) + mi(s)*(ni(q) + ni(r))))*   &
+!                     ni(s) - mi(p)*mi(q)*mi(r)*(-2 + mi(q) + mi(r))*    &
+!                     ni(s)**2) * fint(msum-4,nsum-2)                    &
+!                   +(mi(s)*(-1 - mi(p) + mi(s))*ni(p)*ni(q)*ni(r)*      &
+!                    (ni(q)+ni(r)-2) - (mi(q)*((mi(p) +                  &
+!                    (mi(p) + mi(s))*ni(p))*ni(q)*ni(r) +                &
+!                    mi(r)*(-1 + ni(p))*ni(p)*(ni(q) + ni(r))) +         &
+!                    ni(q)*ni(r)*(mi(r)*mi(s)*ni(p) +                    &
+!                    mi(p)*(mi(r)*(1 + ni(p)) +                          &
+!                    mi(s)*(-2 + ni(q) + ni(r)))))*ni(s) +               &
+!                    mi(p)*(mi(q) + mi(r))*ni(q)*ni(r)*ni(s)**2)         &
+!                   * fint(msum-2,nsum-4)
              enddo
            enddo
          enddo
        enddo
        go to 200
-       ! old version
-       do p=1,20
-         do q=1,20
-           do r=1,20
-             do s=1,20
-               msum = mi(p)+mi(q)+mi(r)+mi(s)
-               nsum = ni(p)+ni(q)+ni(r)+ni(s)
-               tensor(p,q,r,s) =-mi(s)*mi(p)*mi(r)*mi(q)*(mi(q)+mi(r)-2)&
-                      *(mi(p)+mi(s)-2)*fint(msum-6,nsum)                &
-               -(ni(p)*ni(s)*mi(r)*mi(q)*(mi(r)+mi(q)-2)*(mi(p)+mi(s))  &
-                +mi(p)*mi(s)*mi(r)*mi(q)*(ni(r)+ni(q))*(ni(p)+ni(s))    &
-                +ni(r)*ni(q)*mi(p)*mi(s)*(mi(r)+mi(q))*(mi(p)+mi(s)-2)) &
-                                                    *fint(msum-4,nsum-2)&
-               -(mi(p)*mi(s)*ni(r)*ni(q)*(ni(r)+ni(q)-2)*(ni(p)+ni(s))  &
-                +ni(p)*ni(s)*ni(r)*ni(q)*(mi(r)+mi(q))*(mi(p)+mi(s))    &
-                +mi(r)*mi(q)*ni(p)*ni(s)*(ni(r)+ni(q))*(ni(p)+ni(s)-2)) &
-                                                    *fint(msum-2,nsum-4)&
-                               - ni(s)*ni(p)*ni(r)*ni(q)*(ni(q)+ni(r)-2)&
-                      *(ni(p)+ni(s)-2)*fint(msum,nsum-6)
-             enddo
-           enddo
-         enddo
-       enddo
 !
 !     NOT USED
  116  continue
@@ -980,19 +972,6 @@ subroutine opdef2
         enddo
       enddo
       go to 200
-      do p=1,20
-        do q=1,20
-          do r=1,20
-            do s=1,20
-              msum = mi(p)+mi(q)+mi(r)+mi(s)
-              nsum = ni(p)+ni(q)+ni(r)+ni(s)
-              tensor(p,q,r,s) = (mi(s)*ni(q)-ni(s)*mi(q))               &
-               *( mi(p)*(mi(s)+mi(q)+mi(r)-1)*fint(msum-3,nsum-1)       &
-                 +ni(p)*(ni(s)+ni(q)+ni(r)-1)*fint(msum-1,nsum-3))
-            enddo
-          enddo
-        enddo
-      enddo
 !
 !     NOT USED
  118  continue
@@ -1272,7 +1251,7 @@ subroutine opdef2
 !
       go to 200
 !
-!     C10
+!     C10........new version coded 10/22/06 incorporating C11
  133  continue
       do p=1,20
         do q=1,20
@@ -1299,14 +1278,22 @@ subroutine opdef2
               msum = mi(p)+mi(q)+mi(r)+mi(s)
               nsum = ni(p)+ni(q)+ni(r)+ni(s)
               tensor(p,q,r,s) = -(mi(s)*ni(q)-mi(q)*ni(s))              &
-                      *((mi(s)+mi(q)-1)*(mi(p)*mi(r)*(mi(p)+mi(r)-2)    &
+                      *((mi(s)+mi(q)-1)*mi(p)*mi(r)*(mi(p)-1)           &
                              *fint(msum-5,nsum-1)                       &
-                                       +ni(p)*ni(r)*(mi(p)+mi(r))       &
-                             *fint(msum-3,nsum-3))                      &
-                       +(ni(s)+ni(q)-1)*(mi(p)*mi(r)*(ni(p)+ni(r))      &
+                     +((ni(p)*ni(r)*(mi(p)+mi(r))-mi(p)*ni(r)*(ni(r)-1))*(mi(s)+mi(q)-1)   &
+                      +(mi(p)*mi(r)*(ni(p)+ni(r))-ni(p)*mi(r)*(mi(r)-1))*(ni(s)+ni(q)-1))      &
                              *fint(msum-3,nsum-3)                       &
-                                       +ni(p)*ni(r)*(ni(p)+ni(r)-2)     &
-                             *fint(msum-1,nsum-5)))
+                       +(ni(s)+ni(q)-1)*ni(p)*ni(r)*(ni(p)-1)          &
+                             *fint(msum-1,nsum-5))
+!              tensor(p,q,r,s) = -(mi(s)*ni(q)-mi(q)*ni(s))              &
+!                      *((mi(s)+mi(q)-1)*(mi(p)*mi(r)*(mi(p)+mi(r)-2)    &
+!                             *fint(msum-5,nsum-1)                       &
+!                                       +ni(p)*ni(r)*(mi(p)+mi(r))       &
+!                             *fint(msum-3,nsum-3))                      &
+!                       +(ni(s)+ni(q)-1)*(mi(p)*mi(r)*(ni(p)+ni(r))      &
+!                             *fint(msum-3,nsum-3)                       &
+!                                       +ni(p)*ni(r)*(ni(p)+ni(r)-2)     &
+!                             *fint(msum-1,nsum-5)))
             enddo
           enddo
         enddo
@@ -1325,9 +1312,10 @@ subroutine opdef2
             do s=1,20
               msum = mi(p)+mi(q)+mi(r)+mi(s)
               nsum = ni(p)+ni(q)+ni(r)+ni(s)
-              tensor(p,q,r,s) = (mi(s)*ni(q)-mi(q)*ni(s))               &
-                        *(mi(p)*(mi(s)+mi(q)-1)*fint(msum-3,nsum-1)     &
-                         +ni(p)*(ni(s)+ni(q)-1)*fint(msum-1,nsum-3))
+               tensor(p,q,r,s) = 0.
+!              tensor(p,q,r,s) = (mi(s)*ni(q)-mi(q)*ni(s))               &
+!                        *(mi(p)*(mi(s)+mi(q)-1)*fint(msum-3,nsum-1)     &
+!                         +ni(p)*(ni(s)+ni(q)-1)*fint(msum-1,nsum-3))
             enddo
           enddo
         enddo

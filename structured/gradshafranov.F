@@ -14,9 +14,13 @@
       real   int1,int4,int2,int3,lhs,cfac(18),g0
 #ifndef BIT64
       integer, parameter ::  r8c = selected_real_kind(12,100)
-      real(r8c), allocatable::temp(:)
+      real(r8c), allocatable::temp(:),b1vecini(:)
 #else
+<<<<<<< .mine
+      real, allocatable::temp(:),b1vecini(:)
+=======
       REAL64, allocatable::temp(:)
+>>>>>>> .r16
 #endif
       integer :: mmnn6, nrags, numvargs, mbandsgs, msizegs
       integer :: m_lgs, nnz_lgs, ifs_rgs, ineg
@@ -38,7 +42,7 @@
 !
       if(iprint.eq.1) write(*,*) "gradshafranov called"
       mmnn6 = m*n*6
-      allocate (temp(mmnn6))
+      allocate (temp(mmnn6),b1vecini(mmnn6))
       numvargs = 1
       nrags = n*m*6
       call jbdecomp1(n*m, 6*numvargs, m_lgs, nnz_lgs, ifs_rgs)

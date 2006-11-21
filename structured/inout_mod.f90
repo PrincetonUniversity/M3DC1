@@ -656,7 +656,7 @@ subroutine oneplot(lu,iplot,dum,inum,numvare,label)
      enddo
   enddo
   
-  if(plotmax .gt. plotmin) then
+  if(plotmax .gt. plotmin + 1.e-12) then
      cval(1) = plotmin
      cval(2) = plotmax
      call map(xzero,alxp+xzero,0.,alzp,x1,x2,z1,z2)
@@ -1064,15 +1064,15 @@ subroutine output
 !
 !....special diagnostic plot of toroidal electric field added 06/04/06...SCJ
       if(linear.eq.0 .and. itaylor.eq.3) then
-      call oneplot(25,2,eph2,1,1,"VxBU ")
-      call oneplot(26,3,eph3,1,1,"VxBC ")
-      call oneplot(27,4,eph4,1,1,"etaJ ")
-      call oneplot(28,1,ephi,1,1,"ephi ")
+!     call oneplot(25,2,eph2,1,1,"VxBU ")
+!     call oneplot(26,3,eph3,1,1,"VxBC ")
+!     call oneplot(27,4,eph4,1,1,"etaJ ")
+!     call oneplot(28,1,ephi,1,1,"ephi ")
 
-      call oneplot(29,2,eph5,1,1,"JxB  ")
-      call oneplot(30,3,eph6,1,1,"hypr ")
-      call oneplot(32,4,eph7,1,1,"VxBT ")
-      call oneplot(0,1,ephi,1,1,"ephi ")
+!     call oneplot(29,2,eph5,1,1,"JxB  ")
+!     call oneplot(30,3,eph6,1,1,"hypr ")
+!     call oneplot(32,4,eph7,1,1,"VxBT ")
+!     call oneplot(0,1,ephi,1,1,"ephi ")
       endif
 !
 
@@ -1497,6 +1497,8 @@ subroutine input
   ! 2-fluid coefficients
   cb = 0.000
   db = 0.00
+  ! regularization coefficient
+  regular = 1.e-6
   
   ! masking switch (0 no mask,  1 mask hyper terms at boundary
   imask = 0
@@ -2088,7 +2090,9 @@ subroutine writeit
 
   integer :: iodd, i, j, k, itri
 
+      write(*,*) "before open 55 in writeup"
   open(55,file='setup',form='unformatted',status='unknown')
+      write(*,*) "after open 55 in writeup"
   
   write(55) n,m,ioddm,iper,jper,alx,alz
   write(55) ((d2term(iodd,i),iodd=1,2),i=1,18)
