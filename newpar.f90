@@ -30,7 +30,7 @@ Program Reducedquintic
 
   double precision :: coords(3)
   integer :: nodeids(4)
-  integer :: allocatable itemp(:)
+  integer, allocatable:: itemp(:)
 
   integer :: ibegin, iendplusone
 
