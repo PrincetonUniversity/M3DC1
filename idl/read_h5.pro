@@ -1,4 +1,4 @@
-pro time_slice, data, t, slice
+function time_slice, data, t
    names = tag_names(data)
    label = string(FORMAT='("TIME_",I3.3)', t)
 
@@ -6,10 +6,10 @@ pro time_slice, data, t, slice
    nmax = max(ncmp, i)
    if(nmax eq 0) then begin
        print, label, " not found."
-       return
+       return, 0
    endif
 
-   slice = data.(i)
+   return, data.(i)
 end
 
 pro plot_mesh, slice, color=col, linestyle=lin, oplot=oplot
@@ -139,9 +139,9 @@ pro plot_field, name, time, lines=lines, nlevels=nlevels, points=p, $
                 range=range
   print, "Reading data..."
 
-  result = h5_parse('test.h5', /read_data)
+  result = h5_parse('C1.h5', /read_data)
 
-  time_slice, result, time, slice
+  slice = time_slice(result, time)
 
   names = tag_names(slice.fields)
   ncmp = strcmp(name, names, /fold_case)

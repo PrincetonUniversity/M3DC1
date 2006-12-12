@@ -5,7 +5,7 @@ module hdf5_output
   implicit none
 
   integer(HID_T) :: file_id, offset, global_elms
-  character(LEN=7), parameter :: hdf5_filename = "test.h5"
+  character(LEN=7), parameter :: hdf5_filename = "C1.h5"
 
 contains
 
