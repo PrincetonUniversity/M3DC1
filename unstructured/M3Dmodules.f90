@@ -94,8 +94,7 @@ module basic
        time,timer,ajmax,errori,enormi,ratioi,                          &
        tmesh, tsetup, tfirst,tsolve,tsecond,tzero,tthird,gbound
   integer ::  ni(20),mi(20) ,nbcgs,nbcp,nbcv,nbcn,iboundmax,           &
-       ntime,ntimer,nrank,ntimemin,ntensor, iframe,                    &
-       ihdf5, idebug, islutype
+       ntime,ntimer,nrank,ntimemin,ntensor,idebug, islutype
   real :: ekin, emag, ekind, emagd, ekino, emago, ekindo, emagdo,      &
        ekint,emagt,ekintd,emagtd,ekinto,emagto,ekintdo,emagtdo,        &
        ekinp,emagp,ekinpd,emagpd,ekinpo,emagpo,ekinpdo,emagpdo,        &
@@ -114,7 +113,6 @@ module basic
 
   data mi /0,1,0,2,1,0,3,2,1,0,4,3,2,1,0,5,3,2,1,0/
   data ni /0,0,1,0,1,2,0,1,2,3,0,1,2,3,4,0,2,3,4,5/
-  data iframe /0/
 
 ! MPI variable(s)
   integer myrank, maxrank

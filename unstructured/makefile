@@ -1,6 +1,6 @@
 SHELL=/bin/bash
 
-CFOPTS = -r8 -save -Dmpi -ftz -fpp
+CFOPTS = -r8 -save -Dmpi -ftz -fpp  -I${LIBDIR}
 TVOPTS =
 
 NEWDIR = ./
@@ -25,12 +25,12 @@ NEWOBJS1 = M3Dmodules.o nintegrate_mod.o metricterms_n.o newvar.o \
 	$(COMMONDIR)tv80lib.o $(COMMONDIR)subp.o \
 	$(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
         $(COMMONDIR)fdump.o \
-        $(COMMONDIR)writeHDF5.o 
+#        $(COMMONDIR)writeHDF5.o 
 
 NEWOBJS2 = fin.o part_fin.o ludef_t.o \
 	  part_fin3.o boundary.o unknown.o restart.o \
 	  acbauer.o sort.o metricterms.o errorcalc.o compare.o \
-	  gradshafranov.o init_conds.o output.o 
+	  gradshafranov.o init_conds.o hdf5_output.o output.o 
 
 SCORECDIR = /l/mhd/acbauer/develop/
 SCORECVERS =-stable2
@@ -67,8 +67,8 @@ LDRNEW = \
         -L$(F90HOME)/lib -lifport -lifcore -lifcoremt -lunwind \
 	-Wl,-rpath,$(F90HOME)/lib \
         -L$(MKLHOME)/lib/64 -lguide -lmkl_lapack -lmkl_ipf -lpthread \
-        -L$(HDF5_HOME)/lib -lhdf5 \
-	-Wl,-rpath,$(HDF5_HOME)/lib \
+        -L${LIBDIR} -lhdf5 -lhdf5_fortran \
+	-Wl,--rpath -Wl,${LIBDIR} \
 	-L$(CCHOME)/lib -lipr \
 	-Wl,-rpath,$(CCHOME)/lib \
         -L/usr/X11R6/lib -lX11 -lmpi -lcprts -lcxa

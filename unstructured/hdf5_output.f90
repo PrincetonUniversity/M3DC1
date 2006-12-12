@@ -1,0 +1,384 @@
+module hdf5_output
+  
+  use hdf5
+
+  implicit none
+
+  integer(HID_T) :: file_id, offset, global_elms
+  character(LEN=7), parameter :: hdf5_filename = "test.h5"
+
+contains
+
+
+  ! hdf5_initialize
+  ! ===============
+  subroutine hdf5_initialize(error)
+    use hdf5
+
+    implicit none
+
+    include 'mpif.h'
+   
+    integer, intent(out) :: error
+    
+    integer(HID_T) :: plist_id
+    integer :: info
+
+    call h5open_f(error)
+    if(error.lt.0) then
+       print *, "Error: could not initialize HDF5 library: ", error
+       return
+    endif
+    
+    info = MPI_INFO_NULL
+
+    ! Set up the file access property list with parallel I/O
+    call h5pcreate_f(H5P_FILE_ACCESS_F, plist_id, error)
+    call h5pset_fapl_mpio_f(plist_id, MPI_COMM_WORLD, info, error)
+
+!!$    call h5fcreate_f(hdf5_filename, H5F_ACC_TRUNC_F, file_id, error)
+    
+    call h5fcreate_f(hdf5_filename, H5F_ACC_TRUNC_F, file_id, error, &
+         access_prp = plist_id)
+    if(error.lt.0) then
+       print *, "Error: could not open ", hdf5_filename, " for HDF5 output: ", error
+    endif
+
+    call h5pclose_f(plist_id, error)
+
+  end subroutine hdf5_initialize
+
+
+  ! hdf5_finalize
+  ! =============
+  subroutine hdf5_finalize(error)
+    use hdf5
+    
+    implicit none
+    
+    integer, intent(out) :: error
+    
+    ! Close the file.
+    call h5fclose_f(file_id, error)
+    if(error .lt. 0) print *, "Error closing hdf5 file"
+
+    call h5close_f(error)
+    if(error .lt. 0) print *, "Error closing hdf5 library"
+    
+  end subroutine hdf5_finalize
+
+
+  ! write_int_attr
+  ! ==============
+  subroutine write_int_attr(parent_id, name, value, error)
+    use hdf5
+    
+    implicit none
+    
+    integer(HID_T), intent(in) :: parent_id
+    character(LEN=*), intent(in) :: name
+    integer, intent(in)  :: value
+    integer, intent(out) :: error
+    
+    integer(HID_T) :: dspace_id, attr_id
+    integer(HSIZE_T), dimension(1) :: dims = 1
+
+    call h5screate_f(H5S_SCALAR_F, dspace_id, error)
+    
+    call h5acreate_f(parent_id, name, H5T_NATIVE_INTEGER, dspace_id, attr_id, error)
+    call h5awrite_f(attr_id, H5T_NATIVE_INTEGER, value, dims, error)
+    call h5aclose_f(attr_id, error)
+    call h5sclose_f(dspace_id, error)
+    
+  end subroutine write_int_attr
+
+  ! write_real_attr
+  ! ===============
+  subroutine write_real_attr(parent_id, name, value, error)
+    use hdf5
+    
+    implicit none
+    
+    integer(HID_T), intent(in) :: parent_id
+    character(LEN=*), intent(in) :: name
+    real, intent(in)  :: value
+    integer, intent(out) :: error
+    
+    integer(HID_T) :: dspace_id, attr_id
+    integer(HSIZE_T), dimension(1) :: dims = 1
+
+    call h5screate_f(H5S_SCALAR_F, dspace_id, error)
+    
+    call h5acreate_f(parent_id, name, H5T_NATIVE_DOUBLE, dspace_id, attr_id, error)
+    call h5awrite_f(attr_id, H5T_NATIVE_DOUBLE, value, dims, error)
+    call h5aclose_f(attr_id, error)
+    call h5sclose_f(dspace_id, error)
+    
+  end subroutine write_real_attr
+
+
+  ! write_vec_attr
+  ! ==============
+  subroutine write_vec_attr(parent_id, name, values, len, error)
+    use hdf5
+    
+    implicit none
+    
+    integer(HID_T), intent(in) :: parent_id
+    character(LEN=*), intent(in) :: name
+    integer, intent(in) :: len
+    real, dimension(len), intent(in)  :: values
+    integer, intent(out) :: error
+    
+    integer(HID_T) :: dspace_id, attr_id
+    integer(HSIZE_T), dimension(1) :: dims
+
+    dims(1) = len
+
+    call h5screate_simple_f(1, dims, dspace_id, error)
+    call h5acreate_f(parent_id, name, H5T_NATIVE_DOUBLE, dspace_id, attr_id, error)
+    call h5awrite_f(attr_id, H5T_NATIVE_DOUBLE, values, dims, error)
+    call h5aclose_f(attr_id, error)
+    call h5sclose_f(dspace_id, error)
+    
+  end subroutine write_vec_attr
+
+
+  ! output_field
+  ! ============
+  subroutine output_field(parent_id, name, values, ndofs, nelms, error)
+    use hdf5
+    
+    implicit none
+    
+    integer(HID_T), intent(in) :: parent_id
+    character(LEN=*), intent(in) :: name
+    integer, intent(in) :: ndofs, nelms
+    real, dimension(ndofs, nelms), intent(in) :: values
+    integer, intent(out) :: error
+    
+    integer, parameter ::  rank = 2
+    integer(HID_T) :: filespace, memspace, dset_id, plist_id
+    integer(HSIZE_T), dimension(rank) :: local_dims, global_dims
+    integer(HSSIZE_T), dimension(rank) :: off
+    
+    local_dims(1) = ndofs
+    local_dims(2) = nelms
+    global_dims(1) = ndofs
+    global_dims(2) = global_elms
+    off(1) = 0
+    off(2) = offset
+    
+    ! Create global dataset
+    call h5screate_simple_f(rank, global_dims, filespace, error)
+    call h5dcreate_f(parent_id, name, H5T_NATIVE_DOUBLE, filespace, &
+         dset_id, error)
+    call h5sclose_f(filespace, error)
+    
+    ! Select local hyperslab within dataset
+    call h5screate_simple_f(rank, local_dims, memspace, error)
+    call h5dget_space_f(dset_id, filespace, error)
+    call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, off, local_dims, error)
+    call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, error)
+    call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_COLLECTIVE_F, error)
+  
+    ! Write the dataset
+    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, global_dims, error, &
+         file_space_id = filespace, mem_space_id = memspace, xfer_prp = plist_id)
+
+    ! Close HDF5 handles
+    call h5sclose_f(filespace, error)
+    call h5sclose_f(memspace, error)
+    
+    call h5dclose_f(dset_id, error)
+    call h5pclose_f(plist_id, error)
+
+  end subroutine output_field
+
+end module hdf5_output
+
+
+
+! hdf5_write_time_slice
+! =====================
+subroutine hdf5_write_time_slice(error)
+  use hdf5
+  use hdf5_output
+  use basic
+
+  implicit none
+  
+  include 'mpif.h'
+
+  integer, intent(out) :: error
+
+  character(LEN=19) :: time_group_name
+  integer(HID_T) :: time_group_id, mesh_group_id
+  integer :: nelms
+    
+  call numfac(nelms)
+
+  ! Calculate offset of current process
+  call mpi_scan(nelms, offset, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, error)
+  offset = offset - nelms
+  print *, "Offset of ", myrank, " = ", offset
+  call mpi_allreduce(nelms, global_elms, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, error)
+  print *, "Global elms = ", global_elms
+
+  ! Create the time group
+  write(time_group_name, '("time_"I3.3)'), ntime
+  call h5gcreate_f(file_id, time_group_name, time_group_id, error)
+
+  ! Write attributes
+  call write_int_attr(time_group_id, "nspace", 2, error)
+
+  ! Output the mesh data
+  call output_mesh(time_group_id, nelms, error)
+
+  ! Output the field data  
+  call output_fields(time_group_id, error)
+    
+  ! Close the time group
+  call h5gclose_f(time_group_id, error)  
+
+end subroutine hdf5_write_time_slice
+
+
+! output_mesh
+! ===========
+subroutine output_mesh(time_group_id, nelms, error)
+  use hdf5
+  use hdf5_output
+  use t_data
+
+  implicit none
+
+  integer(HID_T), intent(in) :: time_group_id
+  integer, intent(in) :: nelms
+  integer, intent(out) :: error
+
+  integer(HID_T) :: mesh_group_id
+  integer :: i
+  real, dimension(6,nelms) :: elm_data
+  double precision, dimension(3) :: coords
+  integer, dimension(4) :: nodeids
+  real :: alx, alz
+
+  ! Create the group
+  call h5gcreate_f(time_group_id, "mesh", mesh_group_id, error) 
+
+  ! Write attributes
+  call write_int_attr(mesh_group_id, "nelms", global_elms, error)
+  call getboundingboxsize(alx, alz)
+  call write_real_attr(mesh_group_id, "width", alx, error)
+  call write_real_attr(mesh_group_id, "height", alz, error)
+
+  ! Output the mesh data
+  do i=1, nelms
+     call nodfac(i,nodeids)
+     call xyznod(nodeids(1), coords)
+
+     elm_data(1,i) = atri(i)
+     elm_data(2,i) = btri(i)
+     elm_data(3,i) = ctri(i)
+     elm_data(4,i) = ttri(i)
+     elm_data(5,i) = coords(1)
+     elm_data(6,i) = coords(2)
+  end do
+  call output_field(mesh_group_id, "elements", elm_data, 6, nelms, error)
+
+  ! Close the group
+  call h5gclose_f(mesh_group_id, error)
+end subroutine output_mesh
+
+
+! output_fields
+! =============
+subroutine output_fields(time_group_id, error)
+  use hdf5
+  use hdf5_output
+  use basic
+  use arrays
+  
+  implicit none
+
+  integer(HID_T), intent(in) :: time_group_id
+  integer, intent(out) :: error
+  
+  integer(HID_T) :: group_id
+  integer :: i, nelms, nfields
+  real, dimension(20) :: avec
+  real, allocatable :: dum(:,:)
+  
+  nfields = 0
+  call numfac(nelms)
+  
+  allocate(dum(20,nelms))
+
+  ! Create the fields group
+  call h5gcreate_f(time_group_id, "fields", group_id, error)
+
+  ! Output the fields
+  ! ~~~~~~~~~~~~~~~~~
+  ! psi
+  do i=1, nelms
+     call calcavector(i, phi, 1, numvar, dum(:,i))
+  end do
+  call output_field(group_id, "psi", dum, 20, nelms, error)
+  nfields = nfields + 1
+
+  ! phi
+  do i=1, nelms
+     call calcavector(i, vel, 1, numvar, dum(:,i))
+  end do
+  call output_field(group_id, "phi", dum, 20, nelms, error)
+  nfields = nfields + 1
+
+  if(numvar.ge.2) then
+     ! I
+     do i=1, nelms
+        call calcavector(i, phi, 2, numvar, dum(:,i))
+     end do
+     call output_field(group_id, "I", dum, 20, nelms, error)
+     nfields = nfields + 1
+
+     ! V
+     do i=1, nelms
+        call calcavector(i, vel, 2, numvar, dum(:,i))
+     end do
+     call output_field(group_id, "V", dum, 20, nelms, error)
+     nfields = nfields + 1
+  endif
+
+  if(numvar.ge.3) then
+     ! Pe
+     do i=1, nelms
+        call calcavector(i, phi, 3, numvar, dum(:,i))
+     end do
+     call output_field(group_id, "Pe", dum, 20, nelms, error)
+     nfields = nfields + 1
+
+     ! chi
+     do i=1, nelms
+        call calcavector(i, vel, 3, numvar, dum(:,i))
+     end do
+     call output_field(group_id, "chi", dum, 20, nelms, error)
+     nfields = nfields + 1
+  endif
+
+  if(idens.eq.1) then
+     ! den
+     do i=1, nelms
+        call calcavector(i, den, 1, 1, dum(:,i))
+     end do
+     call output_field(group_id, "den", dum, 20, nelms, error)
+     nfields = nfields + 1
+  endif
+
+  call write_int_attr(group_id, "nfields", nfields, error)
+
+  ! Close the mesh group
+  call h5gclose_f(group_id, error)
+
+  deallocate(dum)
+end subroutine output_fields

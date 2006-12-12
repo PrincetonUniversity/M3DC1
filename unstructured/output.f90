@@ -54,7 +54,7 @@ subroutine openf
         if(linear.eq.0) maxhdf=13
      endif
          
-     call createHDF5(xary,ires,yary,ires,maxhdf)
+!!$     call createHDF5(xary,ires,yary,ires,maxhdf)
 
      ! initialize minimum and maximum
      maf = -1.e20
@@ -226,8 +226,6 @@ subroutine output
      endif
      go to 50
   endif
-  iframe = iframe + 1
-  ihdf5 = 0
 
   ! plot full perturbation
   if(linear.eq.1) then
@@ -259,7 +257,6 @@ subroutine output
   endif
   if(idens.eq.1 .and. maxrank .eq. 1) call oneplot(deni,1,1,"deni",0)
 
-  call writeHDF5time(iframe-1,time)
   call wrrestart
   write(*,4110)
   write(FILE__C1NEW,4110)
@@ -483,11 +480,7 @@ subroutine plotit(vel,phi,ilin)
   real ::  xval(ires),zval(ires),plotmidx(ires),plotmidz(ires)
   real ::plotqtrx(ires),plotqtrz(ires), alx, alz
   character*80 s100
-  character*13 strs
-  character*3 maxst,minst
 
-  maxst = 'max'
-  minst = 'min'
   call getboundingboxsize(alx, alz)
 !  call getmincoord(xmin,zmin)
 
@@ -564,95 +557,6 @@ subroutine plotit(vel,phi,ilin)
                 write(FILE__PE_FULL,1102) zval(ix),xval(ix),(plot(ix,iz),iz=1,ires)
         endif
      enddo
-
-     ! WRITE HDF5 files
-     if(inum.eq.1) then
-        if(ilin.eq.0) then
-           strs = 'psi-perturbed'
-           call writeHDF5(iframe-1,ihdf5,plot,ires,ires,strs)
-           maf(0)=max(maf(0),maxval(plot))
-           mif(0)=min(mif(0),minval(plot))
-           call writeHDF5scalar(iframe-1,ihdf5,maf(0),maxst)
-           call writeHDF5scalar(iframe-1,ihdf5,mif(0),minst)
-           ihdf5 =     ihdf5+1
-           
-           strs = 'J-perturbed'
-           call writeHDF5(iframe-1,ihdf5,plot2,ires,ires,strs)
-           maf(2)=max(maf(2),maxval(plot2))
-           mif(2)=min(mif(2),minval(plot2))
-           call writeHDF5scalar(iframe-1,ihdf5,maf(2),maxst)
-           call writeHDF5scalar(iframe-1,ihdf5,mif(2),minst)
-           ihdf5 =     ihdf5+1
-        endif
-     endif
-
-     if(inum.eq.2) then
-        if(ilin.eq.0) then
-           strs = 'I-perturbed'
-           call writeHDF5(iframe-1,ihdf5,plot,ires,ires,strs)
-           maf(4)=max(maf(4),maxval(plot))
-           mif(4)=min(mif(4),minval(plot))
-           call writeHDF5scalar(iframe-1,ihdf5,maf(4),maxst)
-           call writeHDF5scalar(iframe-1,ihdf5,mif(4),minst)
-           ihdf5 =     ihdf5+1
-        endif
-     endif
-
-     if(inum.eq.3) then
-        if(ilin.eq.0) then
-           strs = 'Pe-perturbed'
-           call writeHDF5(iframe-1,ihdf5,plot,ires,ires,strs)
-           maf(6)=max(maf(6),maxval(plot))
-           mif(6)=min(mif(6),minval(plot))
-           call writeHDF5scalar(iframe-1,ihdf5,maf(6),maxst)
-           call writeHDF5scalar(iframe-1,ihdf5,mif(6),minst)
-           ihdf5 =     ihdf5+1
-        endif
-     endif
-
-     if(inum.eq.1) then
-        if(ilin.eq.1) then
-           strs = 'psi-full'
-           call writeHDF5(iframe-1,ihdf5,plot,ires,ires,strs)
-           maf(1)=max(maf(1),maxval(plot))
-           mif(1)=min(mif(1),minval(plot))
-           call writeHDF5scalar(iframe-1,ihdf5,maf(1),maxst)
-           call writeHDF5scalar(iframe-1,ihdf5,mif(1),minst)
-           ihdf5 =     ihdf5+1
-           
-           strs = 'J-full'
-           call writeHDF5(iframe-1,ihdf5,plot2,ires,ires,strs)
-           maf(3)=max(maf(3),maxval(plot2))
-           mif(3)=min(mif(3),minval(plot2))
-           call writeHDF5scalar(iframe-1,ihdf5,maf(3),maxst)
-           call writeHDF5scalar(iframe-1,ihdf5,mif(3),minst)
-           ihdf5 =     ihdf5+1
-        endif
-     endif
-     if(inum.eq.2) then
-        if(ilin.eq.1) then
-           strs = 'I-full'
-           call writeHDF5(iframe-1,ihdf5,plot,ires,ires,strs)
-           maf(5)=max(maf(5),maxval(plot))
-           mif(5)=min(mif(5),minval(plot))
-           call writeHDF5scalar(iframe-1,ihdf5,maf(5),maxst)
-           call writeHDF5scalar(iframe-1,ihdf5,mif(5),minst)
-           ihdf5 =     ihdf5+1
-        endif
-     endif
-     if(inum.eq.3) then
-        if(ilin.eq.1) then
-           strs = 'Pe-full'
-           call writeHDF5(iframe-1,ihdf5,plot,ires,ires,strs)
-           maf(7)=max(maf(7),maxval(plot))
-           mif(7)=min(mif(7),minval(plot))
-           call writeHDF5scalar(iframe-1,ihdf5,maf(7),maxst)
-           call writeHDF5scalar(iframe-1,ihdf5,mif(7),minst)
-           ihdf5 =     ihdf5+1
-        endif
-     endif
-
-     ! end of write HDF5 files
 
      iresmid = (ires-1)/2 + 1
      iresqtr = (ires-1)/4 + 1
@@ -803,56 +707,6 @@ subroutine plotit(vel,phi,ilin)
         endif
 1102    format(1p10e12.4)
      enddo
-     ! write HDF5 files
-     if(inum.eq.1) then
-        if(ilin.eq.0) then
-           strs = 'phi-full'
-           call writeHDF5(iframe-1,ihdf5,plot,ires,ires,strs)
-           maf(8)=max(maf(8),maxval(plot))
-           mif(8)=min(mif(8),minval(plot))
-           call writeHDF5scalar(iframe-1,ihdf5,maf(8),maxst)
-           call writeHDF5scalar(iframe-1,ihdf5,mif(8),minst)
-           ihdf5 =     ihdf5+1
-           
-           strs = "vor-full"
-           call writeHDF5(iframe-1,ihdf5,plot2,ires,ires,strs)
-           maf(9)=max(maf(9),maxval(plot2))
-           mif(9)=min(mif(9),minval(plot2))
-           call writeHDF5scalar(iframe-1,ihdf5,maf(9),maxst)
-           call writeHDF5scalar(iframe-1,ihdf5,mif(9),minst)
-           ihdf5 =     ihdf5+1
-        endif
-     endif
-     if(inum.eq.2) then
-        if(ilin.eq.0) then
-           strs = 'V-full'
-           call writeHDF5(iframe-1,ihdf5,plot,ires,ires,strs)
-           maf(10)=max(maf(10),maxval(plot))
-           mif(10)=min(mif(10),minval(plot))
-           call writeHDF5scalar(iframe-1,ihdf5,maf(10),maxst)
-           call writeHDF5scalar(iframe-1,ihdf5,mif(10),minst)
-           ihdf5 =     ihdf5+1
-        endif
-     endif
-     if(inum.eq.3) then
-        if(ilin.eq.0) then
-           strs = 'chi-full'
-           call writeHDF5(iframe-1,ihdf5,plot,ires,ires,strs)
-           maf(11)=max(maf(11),maxval(plot))
-           mif(11)=min(mif(11),minval(plot))
-           call writeHDF5scalar(iframe-1,ihdf5,maf(11),maxst)
-           call writeHDF5scalar(iframe-1,ihdf5,mif(11),minst)
-           ihdf5 =     ihdf5+1
-           
-           strs = 'div-full'
-           call writeHDF5(iframe-1,ihdf5,plot2,ires,ires,strs)
-           maf(12)=max(maf(12),maxval(plot2))
-           mif(12)=min(mif(12),minval(plot2))
-           call writeHDF5scalar(iframe-1,ihdf5,maf(12),maxst)
-           call writeHDF5scalar(iframe-1,ihdf5,mif(12),minst)
-           ihdf5 =     ihdf5+1
-        endif
-     endif
 
      plotmin = plot(1,1)
      plotmax = plot(1,1)
@@ -1061,6 +915,182 @@ subroutine oneplot(dum,inum,numvare,label,iplot)
 
 end subroutine oneplot
 !===================================
+
+!!$subroutine hdf5_output()
+!!$  use basic
+!!$  use arrays
+!!$
+!!$  implicit none
+!!$
+!!$  integer :: ix, iz, ihdf5
+!!$  integer, save :: iframe = 0
+!!$  real :: x, z, alx, alz
+!!$  real, dimension(ires) :: xval, zval
+!!$  real, dimension(ires,ires) :: plot, plot2
+!!$  character(LEN=13) ::  strs
+!!$  character(LEN=3) ::  maxst,minst
+!!$
+!!$  maxst = 'max'
+!!$  minst = 'min'
+!!$
+!!$  call getboundingboxsize(alx, alz)
+!!$
+!!$  ihdf5 = 0
+!!$
+!!$  do ix = 1,ires
+!!$     x = (ix-1)*alx/(ires-1)
+!!$     xval(ix) = x + xzero
+!!$     do iz = 1,ires
+!!$        z = (iz-1)*alz/(ires-1)
+!!$        zval(iz) = z
+!!$        call evaluate(x,z,plot(ix,iz),plot2(ix,iz),phi,1,numvar,whichtri(ix,iz))
+!!$     enddo
+!!$  enddo
+!!$
+!!$  if(linear.eq.1 .or. eqsubtract.eq.1) then
+!!$     strs = 'psi-perturbed'
+!!$  else
+!!$     strs = 'psi-full'
+!!$  endif
+!!$  call writeHDF5(iframe,ihdf5,plot,ires,ires,strs)
+!!$  maf(0)=max(maf(0),maxval(plot))
+!!$  mif(0)=min(mif(0),minval(plot))
+!!$  call writeHDF5scalar(iframe,ihdf5,maf(0),maxst)
+!!$  call writeHDF5scalar(iframe,ihdf5,mif(0),minst)
+!!$  ihdf5 =     ihdf5+1
+!!$
+!!$  if(linear.eq.1 .or. eqsubtract.eq.1) then
+!!$     strs = 'J-perturbed'
+!!$  else
+!!$     strs = 'J-full'
+!!$  endif           
+!!$  call writeHDF5(iframe,ihdf5,plot2,ires,ires,strs)
+!!$  maf(2)=max(maf(2),maxval(plot2))
+!!$  mif(2)=min(mif(2),minval(plot2))
+!!$  call writeHDF5scalar(iframe,ihdf5,maf(2),maxst)
+!!$  call writeHDF5scalar(iframe,ihdf5,mif(2),minst)
+!!$  ihdf5 =     ihdf5+1
+!!$
+!!$
+!!$  do ix = 1,ires
+!!$     x = (ix-1)*alx/(ires-1)
+!!$     xval(ix) = x + xzero
+!!$     do iz = 1,ires
+!!$        z = (iz-1)*alz/(ires-1)
+!!$        zval(iz) = z
+!!$        call evaluate(x,z,plot(ix,iz),plot2(ix,iz),phi,2,numvar,whichtri(ix,iz))
+!!$     enddo
+!!$  enddo
+!!$
+!!$  if(linear.eq.1 .or. eqsubtract.eq.1) then
+!!$     strs = 'I-perturbed'
+!!$  else
+!!$     strs = 'I-full'
+!!$  endif  
+!!$  call writeHDF5(iframe,ihdf5,plot,ires,ires,strs)
+!!$  maf(4)=max(maf(4),maxval(plot))
+!!$  mif(4)=min(mif(4),minval(plot))
+!!$  call writeHDF5scalar(iframe,ihdf5,maf(4),maxst)
+!!$  call writeHDF5scalar(iframe,ihdf5,mif(4),minst)
+!!$  ihdf5 =     ihdf5+1
+!!$
+!!$
+!!$  do ix = 1,ires
+!!$     x = (ix-1)*alx/(ires-1)
+!!$     xval(ix) = x + xzero
+!!$     do iz = 1,ires
+!!$        z = (iz-1)*alz/(ires-1)
+!!$        zval(iz) = z
+!!$        call evaluate(x,z,plot(ix,iz),plot2(ix,iz),phi,3,numvar,whichtri(ix,iz))
+!!$     enddo
+!!$  enddo
+!!$
+!!$  if(linear.eq.1 .or. eqsubtract.eq.1) then
+!!$     strs = 'Pe-perturbed'
+!!$  else
+!!$     strs = 'Pe-full'
+!!$  endif  
+!!$  call writeHDF5(iframe,ihdf5,plot,ires,ires,strs)
+!!$  maf(6)=max(maf(6),maxval(plot))
+!!$  mif(6)=min(mif(6),minval(plot))
+!!$  call writeHDF5scalar(iframe,ihdf5,maf(6),maxst)
+!!$  call writeHDF5scalar(iframe,ihdf5,mif(6),minst)
+!!$  ihdf5 =     ihdf5+1    
+!!$
+!!$
+!!$  do ix = 1,ires
+!!$     x = (ix-1)*alx/(ires-1)
+!!$     xval(ix) = x + xzero
+!!$     do iz = 1,ires
+!!$        z = (iz-1)*alz/(ires-1)
+!!$        zval(iz) = z
+!!$        call evaluate(x,z,plot(ix,iz),plot2(ix,iz),vel,1,numvar,whichtri(ix,iz))
+!!$     enddo
+!!$  enddo
+!!$
+!!$  if(linear.eq.1 .or. eqsubtract.eq.1) then
+!!$     strs = 'phi-perturbed'
+!!$  else
+!!$     strs = 'phi-full'
+!!$  endif  
+!!$  call writeHDF5(iframe,ihdf5,plot,ires,ires,strs)
+!!$  maf(8)=max(maf(8),maxval(plot))
+!!$  mif(8)=min(mif(8),minval(plot))
+!!$  call writeHDF5scalar(iframe,ihdf5,maf(8),maxst)
+!!$  call writeHDF5scalar(iframe,ihdf5,mif(8),minst)
+!!$  ihdf5 =     ihdf5+1
+!!$
+!!$
+!!$  do ix = 1,ires
+!!$     x = (ix-1)*alx/(ires-1)
+!!$     xval(ix) = x + xzero
+!!$     do iz = 1,ires
+!!$        z = (iz-1)*alz/(ires-1)
+!!$        zval(iz) = z
+!!$        call evaluate(x,z,plot(ix,iz),plot2(ix,iz),vel,2,numvar,whichtri(ix,iz))
+!!$     enddo
+!!$  enddo
+!!$           
+!!$  if(linear.eq.1 .or. eqsubtract.eq.1) then
+!!$     strs = 'V-perturbed'
+!!$  else
+!!$     strs = 'V-full'
+!!$  endif  
+!!$  call writeHDF5(iframe,ihdf5,plot,ires,ires,strs)
+!!$  maf(10)=max(maf(10),maxval(plot))
+!!$  mif(10)=min(mif(10),minval(plot))
+!!$  call writeHDF5scalar(iframe,ihdf5,maf(10),maxst)
+!!$  call writeHDF5scalar(iframe,ihdf5,mif(10),minst)
+!!$  ihdf5 =     ihdf5+1
+!!$
+!!$
+!!$  do ix = 1,ires
+!!$     x = (ix-1)*alx/(ires-1)
+!!$     xval(ix) = x + xzero
+!!$     do iz = 1,ires
+!!$        z = (iz-1)*alz/(ires-1)
+!!$        zval(iz) = z
+!!$        call evaluate(x,z,plot(ix,iz),plot2(ix,iz),vel,3,numvar,whichtri(ix,iz))
+!!$     enddo
+!!$  enddo
+!!$
+!!$  if(linear.eq.1 .or. eqsubtract.eq.1) then
+!!$     strs = 'chi-perturbed'
+!!$  else
+!!$     strs = 'chi-full'
+!!$  endif  
+!!$  call writeHDF5(iframe,ihdf5,plot,ires,ires,strs)
+!!$  maf(11)=max(maf(11),maxval(plot))
+!!$  mif(11)=min(mif(11),minval(plot))
+!!$  call writeHDF5scalar(iframe,ihdf5,maf(11),maxst)
+!!$  call writeHDF5scalar(iframe,ihdf5,mif(11),minst)
+!!$  ihdf5 =     ihdf5+1
+!!$
+!!$  call writeHDF5time(iframe,time)
+!!$  iframe = iframe + 1
+!!$           
+!!$end subroutine hdf5_output
+!!$!===================================
 
 subroutine precalc_whattri()
 
