@@ -14,6 +14,7 @@ Program Reducedquintic
   use arrays
   use newvar_mod
   use sparse
+  use hdf5_output
   implicit none
 #ifdef mpi
   include 'mpif.h'
@@ -24,15 +25,18 @@ Program Reducedquintic
 #endif
   integer :: j, i, ier, numvars, ifail, maxts, numelms, numnodes
   integer :: index1, index2, ndofs
+
   real :: dens, dtmin, ratemin, ratemax, temp(5)
 
   real :: tstart, tend
 
   double precision :: coords(3)
   integer :: nodeids(4)
-  integer, allocatable:: itemp(:)
+
+  integer, allocatable ::  itemp(:)
 
   integer :: ibegin, iendplusone
+  integer :: get_offset
 
 #ifdef mpi
 #ifndef IS_LIBRARY
@@ -115,6 +119,12 @@ Program Reducedquintic
      print *, 'Time spent in init: ', tend-tstart
   endif
 
+  ! initialize hdf5
+  call hdf5_initialize(ier)
+  if(ier.lt.0) then 
+     print *, "Error initializing HDF5"
+  end if
+
   if(ipres.eq.1) then
      pefac = 1.
   else
@@ -149,9 +159,7 @@ Program Reducedquintic
      if(idens.eq.1) then
         call denequ(den0, 1)
         if(iper .eq. 1 .or. jper .eq. 1) den0 = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
-        if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'finished denequ'
         if(maxrank.eq.1) call oneplot(den0,1,1,"den0",1)
-        if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'finished oneplot'
      endif
 
      if(itor.eq.1 .and. itaylor.eq.1) then
@@ -237,7 +245,6 @@ Program Reducedquintic
   vor0 = 0.
   com0 = 0.
 
-
   ! combine the equilibrium and perturbed fields of linear=0
   ! unless eqsubtract = 1
   if(linear.eq.0 .and. eqsubtract.eq.0) then
@@ -271,6 +278,8 @@ Program Reducedquintic
   ntime = ntimer
   call energy
 !      if (myrank.eq.0) call output
+  call hdf5_write_time_slice(ier)
+
   if(ntimemax.le.ntimer) go to 101
 
   do ntime=ntimer+1,ntimemax
@@ -292,6 +301,13 @@ Program Reducedquintic
            write(*,*) "Time spent in output: ", tend - tstart
         endif
      endif
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     call hdf5_write_time_slice(ier)
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        write(*,*) "Time spent in hdf5_write_time_slice: ", tend - tstart
+     end if
+     
 
 !     if(linear.eq.1) call scaleback
 
@@ -347,6 +363,7 @@ Program Reducedquintic
   if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'writing the restart file'
   call wrrestart
   if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'done writing the restart file'
+
       
 !     free memory from sparse matrices
   call freesmo(gsmatrix_sm)
@@ -382,6 +399,9 @@ Program Reducedquintic
 5001 format("ifail .ne. 0 after call to f04aaf")
 7011 format(1p6e20.12)
 7012 format(6e20.12)
+
+  ! finalize hdf5
+  call hdf5_finalize(ier)
 
 #ifdef IS_LIBRARY
   return
@@ -487,7 +507,12 @@ subroutine onestep
 
   ! solve linear system with rhs in vtemp (note LU-decomp done first time)
   if(myrank.eq.0 .and. iprint.eq.1) write(*,*) "before dsupralu_solve_s1handle"
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   call solve(s1matrix_sm, vtemp, jer)
+  if(myrank.eq.0 .and. itimer.eq.1) then
+     call second(tend)
+     write(*,*) " onestep: Time spent in vel solve:", tend - tstart
+  endif
   if(myrank.eq.0 .and. iprint.eq.1) write(*,*) "after dsupralu_solve_s1handle"
   if(jer.ne.0) then
      write(*,*) 'after sparseR8d_solve', jer
@@ -580,7 +605,12 @@ subroutine onestep
 
      ! solve linear system...LU decomposition done first time
 ! -- okay to here      call printarray(temp, 150, 0, 'vtemp on')
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call solve(s8matrix_sm, temp, jer)
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        write(*,*) " onestep: Time spent in den solve:", tend - tstart
+     endif
      if(jer.ne.0) then
         write(*,*) 'after 2nd sparseR8d_solve', jer
         call safestop(29)
@@ -602,6 +632,7 @@ subroutine onestep
 
 #ifdef mpi
 
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   ! b2vector = r2matrix_lu * vel(n+1)
   call matrixvectormult(r2matrix_sm,vel,b2vector)
 
@@ -611,6 +642,11 @@ subroutine onestep
   ! vtemp = d2matrix_sm * phi(n)
   vtemp = 0.
   call matrixvectormult(d2matrix_sm,phi,vtemp)
+
+  if(myrank.eq.0 .and. itimer.eq.1) then
+     call second(tend)
+     write(*,*) " onestep: Time spent in field matrixvectormult:", tend - tstart
+  endif
 
   vtemp = vtemp + dt*facd*b2vecini + b2vector + b3vector + q4
   
@@ -623,8 +659,12 @@ subroutine onestep
   enddo
 
   ! solve linear system...LU decomposition done first time
-
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   call solve(s2matrix_sm, vtemp, jer)
+  if(myrank.eq.0 .and. itimer.eq.1) then
+     call second(tend)
+     write(*,*) " onestep: Time spent in field solve:", tend - tstart
+  endif
   if(jer.ne.0) then
      write(*,*) 'after 2nd sparseR8d_solve', jer
      call safestop(29)
