@@ -24,16 +24,16 @@ CCOMPILE = icc -c
 NEWOBJS1 = M3Dmodules.o nintegrate_mod.o metricterms_n.o newvar.o \
 	$(COMMONDIR)tv80lib.o $(COMMONDIR)subp.o \
 	$(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
-        $(COMMONDIR)fdump.o \
+        $(COMMONDIR)fdump.o hdf5_output.o \
 #        $(COMMONDIR)writeHDF5.o 
 
 NEWOBJS2 = fin.o part_fin.o ludef_t.o \
 	  part_fin3.o boundary.o unknown.o restart.o \
 	  acbauer.o sort.o metricterms.o errorcalc.o compare.o \
-	  gradshafranov.o init_conds.o hdf5_output.o output.o 
+	  gradshafranov.o init_conds.o  output.o 
 
 SCORECDIR = /l/mhd/acbauer/develop/
-SCORECVERS =-stable2
+SCORECVERS =-stable3
 
 LDRNEW = \
         -L$(SCORECDIR)FMDB$(SCORECVERS)/FMDB/lib/ia64_linux \
@@ -56,7 +56,7 @@ LDRNEW = \
 	-Wl,-rpath,$(SCORECDIR)meshAdapt$(SCORECVERS)/meshTools/lib/ia64_linux \
 	-L$(SCORECDIR)meshAdapt$(SCORECVERS)/templateRefine/lib/ia64_linux \
 	-Wl,-rpath,$(SCORECDIR)meshAdapt$(SCORECVERS)/templateRefine/lib/ia64_linux \
-	-lFMDB-meshmodel-mpich2-O -lSCORECModel-mpich2-O -lSCORECUtil-mpich2-O -lField-mpich2-O -lCore-mpich2-O \
+	-lFMDB-mpich2-O -lSCORECModel-mpich2-O -lSCORECUtil-mpich2-O -lField-mpich2-O -lCore-mpich2-O \
 	-lmeshAdapt-mpich2-O -ltemplateRefine-mpich2-O -lmeshTools-mpich2-O -lSolver-mpich2-O -lPPPL-mpich2-O \
 	-L$(AUTOPACK_HOME)/lib/ia64-sgi -Wl,-rpath,$(AUTOPACK_HOME)/lib/ia64-sgi -lautopack-O \
 	-L$(PARMETIS_HOME)/lib -Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis \
