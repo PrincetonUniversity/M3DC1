@@ -9,9 +9,9 @@ OBJS =  $(COMMONDIR)tv80lib.o $(COMMONDIR)subp.o $(COMMONDIR)dbesj0.o \
 	$(COMMONDIR)superlu_c2f_wrap.o superlupara.o superlu_mod.o \
 	$(COMMONDIR)dcreate_dist_matrix.o  $(COMMONDIR)writeHDF5.o \
 	supralu_dist_mod.o \
-	opdef_mod.o newvar_mod.o init_conds_mod.o \
-        mesh_mod.o inout_mod.o gradshafranov.o \
-	newpar.o
+	inout_mod.o newpar.o opdef_mod.o newvar_mod.o init_conds_mod.o \
+        mesh_mod.o  gradshafranov.o
+	
 
 
 LDRNEW = \

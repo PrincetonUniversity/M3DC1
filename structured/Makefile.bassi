@@ -14,11 +14,11 @@ F90 = mpxlf90 -c
 PPOPTS = -Dmpi -DBIT64 -Dnohdf
 CCOPTS = $(INCLUDE) -O3 -qstrict
 F77OPTS = $(INCLUDE) -qsave -qextname -O3 -qstrict -qautodbl=dbl4
-F90OPTS = $(INCLUDE) -qsave -qextname -O3 -qstrict -qautodbl=dbl4
+F90OPTS = $(INCLUDE) -qsave  -qextname -O3 -qstrict -qautodbl=dbl4
 DBESJOPTS = $(INCLUDE) -qextname=dbesj0,dbesj1,fdump -O3 -qstrict -qautodbl=dbl4
 TV80OPTS = $(INCLUDE) -qextname=plote,tracec,mapg,frame,setch,gtext,setch,map,rcontr,trace,ncarcgm,dders -O3 -qstrict
 
-COMMONDIR = ../common/
+COMMONDIR = ./
 
 OBJS =  $(COMMONDIR)tv80lib.o $(COMMONDIR)subp.o $(COMMONDIR)dbesj0.o \
 	$(COMMONDIR)dbesj1.o $(COMMONDIR)fdump.o \
@@ -45,7 +45,7 @@ clean :
 
 %.o: %.f90
 	$(PP) $(PPOPTS) $< > $<.i
-	$(F90) $(F90OPTS) -qsuffix=f=i $<.i -o $@
+	$(F90) $(F90OPTS) -qsuffix=f90:cpp=F90 $<.i -o $@
 
 %.o: %.c
 	$(CC) $(CCOPTS) $< -o $@

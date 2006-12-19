@@ -2,8 +2,8 @@ BIN = gonewp
 
 LOADER = ifort
 CC = icc -c -I.. -I$(SUPERLU_DIST_HOME)/SRC
-F90 = ifort -c -I.. -I$(SUPERLU_DIST_HOME)/SRC
-F77 = ifort -c -I.. -I$(SUPERLU_DIST_HOME)/SRC
+F90 = ifort  -c -I.. -I$(SUPERLU_DIST_HOME)/SRC
+F77 = ifort  -c -I.. -I$(SUPERLU_DIST_HOME)/SRC
 
 #CC = icc -c -I.. -I/usr/local/SuperLU_DIST_2.0/SRC
 #F90 = ifort -c -I.. -I/usr/local/SuperLU_DIST_2.0/SRC

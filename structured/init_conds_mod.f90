@@ -463,13 +463,9 @@ subroutine denequ(dum)
   REAL64, intent(out), dimension(*) :: dum
 #endif
 
-  integer :: lx, lz, l, i0, ifail1, ifail2, ifail3, ii
-  real :: x, z, r, ri, arg, rsq
-  real :: k, j0, j1, kb, ff, fp, fpp, d1, d2, d3, d4, d5, d6
-  real :: n0, pn0, ppn0, befo
-  real :: s17aef, s17aff
+  integer :: lx, lz, l, i0, ii
+  real :: x, z, rsq,  n0, pn0, ppn0
   
-  k = 3.8317059702
 
   ! initialize equilibrium to be the Strauss and Longcope solution
   
@@ -590,9 +586,7 @@ subroutine presequ(dum)
 
   integer :: lx, lz, l, i0
   real :: x, z, rsq
-  real ::  k
 
-  k = 3.8317059702
 
   ! initialize equilibrium to be the Strauss and Longcope solution
 

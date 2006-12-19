@@ -578,6 +578,12 @@ end subroutine plotit
 
 !============================================================
 subroutine oneplot(lu,iplot,dum,inum,numvare,label)
+!
+!....lu:  if nonzero, writes file on that logical unit
+!....iplot:  1-4...which quadrant plot appears, if=1, calls frame
+!....dum:    numvar=numvare array, location inum being plotted
+!....label:  5 character label
+!
   use basic
 
   integer, intent(in) :: lu, iplot, inum, numvare
@@ -656,7 +662,7 @@ subroutine oneplot(lu,iplot,dum,inum,numvare,label)
      enddo
   enddo
   
-  if(plotmax .gt. plotmin + 1.e-12) then
+  if(plotmax .gt. plotmin + 1.e-10) then
      cval(1) = plotmin
      cval(2) = plotmax
      call map(xzero,alxp+xzero,0.,alzp,x1,x2,z1,z2)
@@ -705,7 +711,7 @@ subroutine oneplot(lu,iplot,dum,inum,numvare,label)
      call gtext(s100,80,0)
      write(s100,9007) plotmax
      call gtext(s100,80,0)
-  endif
+  endif   ! on plotmax .gt. plotmin + 1.e-10
 
 101  if(iplot.le.1) call frame(0)
   return
@@ -844,6 +850,7 @@ subroutine output
   real :: etot, etoto, etotd, etoth, ediff, error, enorm, denom, percerr
   real :: vmaxsq, vnew, vmax, x1, x2, z1, z2, val1, dum1, val2, dum2, superlutime
 
+      if(iprint.ge.1) write(*,*) ntime,  "output called"
   ! calculate maximum perturbed current for printout
   ajmax = 0.
   do i=2,400
@@ -1038,9 +1045,8 @@ subroutine output
       if(iprint.gt.0) write(*,*) "before first call to plotit"
 
   ! plot full perturbation
-  vel1 = vel + vel0
   phi1 = phi + phi0
-  if(linear.eq.0) call plotit(vel1,phi1,1)
+  if(linear.eq.0) call plotit(vel,phi1,1)
   if(linear.eq.0 .and. jper.eq.1) call plotit(vel,phi,0)
   !plot equilibrium for linear run
   if(linear.eq.1.and.ntime.eq.0) call plotit(vel0,phi0,1)
@@ -1055,12 +1061,18 @@ subroutine output
   endif
 !
 !....plot source terms
-  if(numvar.ge.2) call oneplot(0,2,sphi2,1,1,"sph2")
+  if(numvar.ge.2) call oneplot(0,2,sphi2,1,1,"sph2 ")
   if(numvar.ge.3) then
-     call oneplot(0,3,sphip,1,1,"sphp")
-     if(ipres.eq.1) call oneplot(0,4,sphie,1,1,"sphe")
+     call oneplot(0,3,sphip,1,1,"sphp ")
+     call oneplot(0,4,sphik,1,1,"sphk ")
   endif
-  call oneplot(0,1,sphi1,1,1,"sph1")
+  call oneplot(0,1,sphi1,1,1,"sph1 ")
+!
+! debug plotting of ohmic and viscous source terms
+  if(numvar.ge.2) call oneplot(0,3,ohmic  ,2,numvar,"ohm2 ")
+  if(numvar.ge.3) call oneplot(0,4,ohmic  ,3,numvar,"ohm3 ")
+  if(numvar.ge.3) call oneplot(0,2,viscous,3,numvar,"visc ")
+                  call oneplot(0,1,ohmic  ,1,numvar,"ohm1 ")
 !
 !....special diagnostic plot of toroidal electric field added 06/04/06...SCJ
       if(linear.eq.0 .and. itaylor.eq.3) then
@@ -1498,7 +1510,7 @@ subroutine input
   cb = 0.000
   db = 0.00
   ! regularization coefficient
-  regular = 1.e-6
+  regular = 1.e-7
   
   ! masking switch (0 no mask,  1 mask hyper terms at boundary
   imask = 0
@@ -2162,7 +2174,7 @@ subroutine wrrestart
   write(56) (phi0(j1),j1=1,mmnn18)
   write(56) (phis(j1),j1=1,mmnn18)
   write(56) (phiold(j1),j1=1,mmnn18)
-  write(56) (velold(j1),j1=1,mmnn18)
+  write(56) (veln(j1),j1=1,mmnn18)
   
   mmnn6 = 6*m*n
   write(56) (jphi(j1),j1=1,mmnn6)
@@ -2209,7 +2221,7 @@ subroutine rdrestart
   read(56) (phi0(j1),j1=1,mmnn18)
   read(56) (phis(j1),j1=1,mmnn18)
   read(56) (phiold(j1),j1=1,mmnn18)
-  read(56) (velold(j1),j1=1,mmnn18)
+  read(56) (veln(j1),j1=1,mmnn18)
 !
 !....DEBUG
 !     if(myrank.le.0) then
