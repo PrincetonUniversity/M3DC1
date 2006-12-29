@@ -77,10 +77,10 @@ subroutine newvar(inarray,outarray,numvard,itype,iop,ibound)
      ! allocate matrix
      select case(ibound)
      case(0)
-        call zeroarray(s3matrix_sm, numvar1_numbering)
+        call zeroarray4solve(s3matrix_sm, numvar1_numbering)
         ifirsts3_lu = 1
      case(1)
-        call zeroarray(s6matrix_sm, numvar1_numbering)
+        call zeroarray4solve(s6matrix_sm, numvar1_numbering)
         ifirsts6_lu = 1
         allocate(iboundds(nbound))
      end select

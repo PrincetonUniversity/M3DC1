@@ -167,6 +167,7 @@ module arrays
          call numdofs(numberingid, ndof)
          allocate(vec(ndof))
          call createppplvec(vec, numberingid)
+         vec = 0.
       else
          write(*,*) 'vector is already created'
       endif
