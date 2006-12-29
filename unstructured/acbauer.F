@@ -428,49 +428,7 @@ c         write(*,*) 0, i+icounter, vec(i)
       return
       end
 !============================================================
-c     Elements 1 through n0 are assigned to proc 0, elements n0+1 
-c     through n0+n1 are assigned to proc 1, ..., where the element
-c     numbers are global (local are 1 through ni, i:= proc #).
-c     This function returns the number of global elements numbered
-c     before the first one on this proc (proc 0 returns 0, proc 1 
-c     returns n0,...).
-      subroutine getprevglobalitri(itrifirst)
-      implicit none
-      integer maxprocs
-      parameter (maxprocs = 100)
-      integer itrifirst, ier, numelms, myrank, maxrank, i
-      integer globalnumelms(maxprocs), itemp(maxprocs)
-      include 'mpif.h'
-      
-      
-      call numfac(numelms)
-      itrifirst = numelms
-      call MPI_COMM_RANK(MPI_COMM_WORLD, myrank, ier)
-      call MPI_COMM_SIZE(MPI_COMM_WORLD, maxrank, ier)
-      if(maxrank .gt. maxprocs) call safestop(324)
-      do i=1,maxrank
-         itemp(i) = 0
-      enddo
-      itemp(myrank+1) = numelms
-      call MPI_ALLREDUCE(itemp, globalnumelms, maxrank, MPI_INTEGER,
-     1     MPI_SUM, MPI_COMM_WORLD, ier)
-c     MPI_SCAN doesn't seem to work???
-c      call MPI_SCAN(itrifirst, itemp, MPI_INTEGER, MPI_SUM, 
-c     &     MPI_COMM_WORLD, ier)
-c      write(*,*) 'stuff',itrifirst,numelms, myrank
 
-      if (ier /= 0) then 
-         print *,'Error with MPI:',ier
-         call safestop(387)
-      endif
-
-      itrifirst = 0
-      do i=1,myrank
-         itrifirst = itrifirst + globalnumelms(i)
-      enddo
-      return
-      end
-!==================
       subroutine tecplot(dofs, nv)
       use t_data
       use basic
@@ -510,3 +468,27 @@ c      write(*,*) 'stuff',itrifirst,numelms, myrank
 
       return
       end
+
+
+!==================
+      subroutine printvalatnode(vals, numbering)
+      implicit none
+      integer, parameter :: r8 = selected_real_kind(12,100)
+      real(r8) vals(*)
+      double precision coords(3)
+      integer numbering, i, j, nnodes, ibegin, iendplusone
+
+      call numnod(nnodes)
+      do i=1,nnodes
+         call xyznod(i, coords)
+         if(coords(1) .lt. .002d0 .and. coords(2) .lt. .002d0) then
+            call entdofs(numbering, i, 0, ibegin, iendplusone)
+            do j=ibegin,iendplusone-1
+               write(*,*) j, vals(j)
+            enddo
+         endif
+      enddo
+
+      return
+      end
+

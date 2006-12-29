@@ -49,7 +49,7 @@
 !.....compute LU decomposition only once
 !
 !.....form matrix
-      call zeroarray(s5matrix_sm,numvar2_numbering)
+      call zeroarray4solve(s5matrix_sm,numvar2_numbering)
       do itri=1,numelms
          call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
          call calcaterm(itri, aterm, fintl)

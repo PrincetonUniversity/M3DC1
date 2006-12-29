@@ -78,6 +78,7 @@ c     created with ordering specified by numvar
       call createvec(fun2, 1)
       call createvec(fun3, 1)
       call createvec(jphi, 1)
+      jphi = 0.
       call createvec(jphi0, 1)
       call createvec(sb1, 1)
       call createvec(sb2, 1)
@@ -157,7 +158,7 @@ c     created with ordering specified by numvar
 !.....compute LU decomposition only once
 !
 !.....form matrix
-      call zeroarray(s7matrix_sm,numvar2_numbering)
+      call zeroarray4solve(s7matrix_sm,numvar2_numbering)
       do itri=1,numelms
          call getdeex(itri,deex)
          call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
@@ -256,8 +257,8 @@ c     &     = temp(6*((l-1)*numvarsm+        1 )+i)
       if(ekin .gt. .001) alpha = sqrt(.001/ekin)
       vel = alpha*vel
       do i=301,360
-!         write(*,*) 'acbauer is not sure why this is'
-!         call safestop(334)
+         write(*,*) 'acbauer is not sure why this is in scaleback'
+         call safestop(334)
          vel(i) = 1.
       enddo
       phi = alpha*phi
@@ -491,7 +492,7 @@ c same here with ntime = 1      if(ntime .eq. 1) call printarray(jphi0, 150, 0, 
          temp(18) = emag3h
          
          call mpi_allreduce(temp, temp2, 18, MPI_DOUBLE_PRECISION, 
-     &        MPI_SUM, MPI_COMM_WORLD, i)
+     &        MPI_SUM, MPI_COMM_WORLD, i) !checked that this should be MPI_DOUBLE_PRECISION
          
          
          ekinp = temp2(1)
@@ -670,8 +671,8 @@ c same here with ntime = 1      if(ntime .eq. 1) call printarray(jphi0, 150, 0, 
 !.....compute LU decomposition only once
 !
 !.....form matrices
-      call zeroarray(s4matrix_sm,numvar1_numbering)
-      call zeroarray(d4matrix_sm,numvar1_numbering)
+      call zeroarray4solve(s4matrix_sm,numvar1_numbering)
+      call zeroarray4multiply(d4matrix_sm,numvar1_numbering)
       do itri=1,numelms
          call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
          call calcaterm(itri, aterm, fintl)

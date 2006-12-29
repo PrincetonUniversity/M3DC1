@@ -30,44 +30,44 @@ subroutine ludefall
   
   ! form field matrices
   if(idens.eq.1) then
-     call zeroarray(s8matrix_sm,numvar1_numbering)
-     call zeroarray(d8matrix_sm,numvar1_numbering)
+     call zeroarray4solve(s8matrix_sm,numvar1_numbering)
+     call zeroarray4multiply(d8matrix_sm,numvar1_numbering)
   endif
   if(numvar .eq. 1) then
-     call zeroarray(s1matrix_sm,numvar1_numbering)
-     call zeroarray(d1matrix_sm,numvar1_numbering)
-     call zeroarray(r1matrix_sm,numvar1_numbering)
-     call zeroarray(s2matrix_sm,numvar1_numbering)
-     call zeroarray(d2matrix_sm,numvar1_numbering)
-     call zeroarray(r2matrix_sm,numvar1_numbering)
-     call zeroarray(q2matrix_sm,numvar1_numbering)
+     call zeroarray4solve(s1matrix_sm,numvar1_numbering)
+     call zeroarray4multiply(d1matrix_sm,numvar1_numbering)
+     call zeroarray4multiply(r1matrix_sm,numvar1_numbering)
+     call zeroarray4solve(s2matrix_sm,numvar1_numbering)
+     call zeroarray4multiply(d2matrix_sm,numvar1_numbering)
+     call zeroarray4multiply(r2matrix_sm,numvar1_numbering)
+     call zeroarray4multiply(q2matrix_sm,numvar1_numbering)
      if(idens.eq.1) then
-        call zeroarray(q8matrix_sm,numvar1_numbering)
-        call zeroarray(r8matrix_sm,numvar1_numbering)
+        call zeroarray4multiply(q8matrix_sm,numvar1_numbering)
+        call zeroarray4multiply(r8matrix_sm,numvar1_numbering)
      endif
   else if(numvar .eq. 2) then
-     call zeroarray(s1matrix_sm,numvar2_numbering)
-     call zeroarray(d1matrix_sm,numvar2_numbering)
-     call zeroarray(r1matrix_sm,numvar2_numbering)
-     call zeroarray(s2matrix_sm,numvar2_numbering)
-     call zeroarray(d2matrix_sm,numvar2_numbering)
-     call zeroarray(r2matrix_sm,numvar2_numbering)
-     call zeroarray(q2matrix_sm,numvar2_numbering)
+     call zeroarray4solve(s1matrix_sm,numvar2_numbering)
+     call zeroarray4multiply(d1matrix_sm,numvar2_numbering)
+     call zeroarray4multiply(r1matrix_sm,numvar2_numbering)
+     call zeroarray4solve(s2matrix_sm,numvar2_numbering)
+     call zeroarray4multiply(d2matrix_sm,numvar2_numbering)
+     call zeroarray4multiply(r2matrix_sm,numvar2_numbering)
+     call zeroarray4multiply(q2matrix_sm,numvar2_numbering)
      if(idens.eq.1) then
-        call zeroarray(q8matrix_sm,numvar2_numbering)
-        call zeroarray(r8matrix_sm,numvar2_numbering)
+        call zeroarray4multiply(q8matrix_sm,numvar2_numbering)
+        call zeroarray4multiply(r8matrix_sm,numvar2_numbering)
      endif
   else 
-     call zeroarray(s1matrix_sm,numvar3_numbering)
-     call zeroarray(d1matrix_sm,numvar3_numbering)
-     call zeroarray(r1matrix_sm,numvar3_numbering)
-     call zeroarray(s2matrix_sm,numvar3_numbering)
-     call zeroarray(d2matrix_sm,numvar3_numbering)
-     call zeroarray(r2matrix_sm,numvar3_numbering)
-     call zeroarray(q2matrix_sm,numvar3_numbering)
+     call zeroarray4solve(s1matrix_sm,numvar3_numbering)
+     call zeroarray4multiply(d1matrix_sm,numvar3_numbering)
+     call zeroarray4multiply(r1matrix_sm,numvar3_numbering)
+     call zeroarray4solve(s2matrix_sm,numvar3_numbering)
+     call zeroarray4multiply(d2matrix_sm,numvar3_numbering)
+     call zeroarray4multiply(r2matrix_sm,numvar3_numbering)
+     call zeroarray4multiply(q2matrix_sm,numvar3_numbering)
      if(idens.eq.1) then
-        call zeroarray(q8matrix_sm,numvar3_numbering)
-        call zeroarray(r8matrix_sm,numvar3_numbering)
+        call zeroarray4multiply(q8matrix_sm,numvar3_numbering)
+        call zeroarray4multiply(r8matrix_sm,numvar3_numbering)
      endif
   endif
 

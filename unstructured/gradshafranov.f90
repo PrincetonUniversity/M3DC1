@@ -51,7 +51,7 @@ subroutine gradshafranov
   ! compute LU decomposition only once
 
   ! form matrices
-  call zeroarray(gsmatrix_sm,numvar1_numbering)
+  call zeroarray4solve(gsmatrix_sm,numvar1_numbering)
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 

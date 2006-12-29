@@ -33,7 +33,7 @@ NEWOBJS2 = fin.o part_fin.o ludef_t.o \
 	  gradshafranov.o init_conds.o  output.o 
 
 SCORECDIR = /l/mhd/acbauer/develop/
-SCORECVERS =-stable3
+SCORECVERS =-stable4
 
 LDRNEW = \
         -L$(SCORECDIR)FMDB$(SCORECVERS)/FMDB/lib/ia64_linux \
