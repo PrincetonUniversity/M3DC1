@@ -135,7 +135,9 @@ Program Reducedquintic
      endif
      print *, "pefac = ", pefac
   endif
-
+  
+  ! output simulation parameters
+  call hdf5_write_parameters(ier)
 
   ! calculate the RHS (forcing function)
   call rhsdef
@@ -156,57 +158,58 @@ Program Reducedquintic
   else
      ntimer = 0
      timer = 0.
-     if(idens.eq.1) then
-        call denequ(den0, 1)
-        if(iper .eq. 1 .or. jper .eq. 1) den0 = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
-        if(maxrank.eq.1) call oneplot(den0,1,1,"den0",1)
-     endif
+     call initial_conditions()
 
-     if(itor.eq.1 .and. itaylor.eq.1) then
-        numvars = numvar
+     if(idens.eq.1 .and. maxrank.eq.1) call oneplot(den0,1,1,"den0",1)
 
-        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-        call gradshafranov
-        if(myrank.eq.0 .and. itimer.eq.1) then
-           call second(tend)
-           write(*,*) "Time spent in gradshafranov: ", tend - tstart
-        endif
-
-        numvar = numvars
-!        phiold = phi
-        do i=1,numnodes
-           do j=1,6
-              index2 = (i-1)*6*numvar + j
-              index1 = (i-1)*6 + j
-              phiold(index2) = phi(index1)
-           enddo
-        enddo
-     else
-        velold = 0.
-        phiold = 0.
-        call velequ(velold, numvar)
-        if(iper .eq. 1 .or. jper .eq. 1) velold = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
-        call phiequ(phiold, numvar)
-        if(iper .eq. 1 .or. jper .eq. 1) phiold = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
-     endif
-
-     vel0 = velold
-     phi0 = phiold
+     velold = vel0
+     phiold = phi0
      denold = den0
-
-     ! calculate initial perturbed fields
-     call velinit(vel)
-     if(iper .eq. 1 .or. jper .eq. 1) vel = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
-     call phiinit(phi)
-     if(iper .eq. 1 .or. jper .eq. 1) phi = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
-     if(idens.eq.1) then
-        call deninit(den)
-        if(iper .eq. 1 .or. jper .eq. 1) den = 1. ! acbauer - temp fix for periodic bc's on 11/14/06
-     endif
-
-     phis = 0
-     vels = 0
-     dens = 0
+!!$     if(idens.eq.1) then
+!!$        call denequ(den0, 1)
+!!$        if(maxrank.eq.1) call oneplot(den0,1,1,"den0",1)
+!!$     endif
+!!$
+!!$     if(itor.eq.1 .and. itaylor.eq.1) then
+!!$        numvars = numvar
+!!$
+!!$        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+!!$        call gradshafranov
+!!$        if(myrank.eq.0 .and. itimer.eq.1) then
+!!$           call second(tend)
+!!$           write(*,*) "Time spent in gradshafranov: ", tend - tstart
+!!$        endif
+!!$
+!!$        numvar = numvars
+!!$!        phiold = phi
+!!$        do i=1,numnodes
+!!$           do j=1,6
+!!$              index2 = (i-1)*6*numvar + j
+!!$              index1 = (i-1)*6 + j
+!!$              phiold(index2) = phi(index1)
+!!$           enddo
+!!$        enddo
+!!$     else
+!!$        velold = 0.
+!!$        phiold = 0.
+!!$        call velequ(velold, numvar)
+!!$        call phiequ(phiold, numvar)
+!!$     endif
+!!$
+!!$     vel0 = velold
+!!$     phi0 = phiold
+!!$     denold = den0
+!!$
+!!$     ! calculate initial perturbed fields
+!!$     call velinit(vel)
+!!$     call phiinit(phi)
+!!$     if(idens.eq.1) then
+!!$        call deninit(den)
+!!$     endif
+!!$
+!!$     phis = 0
+!!$     vels = 0
+!!$     dens = 0
   endif                     !  end of the branch on restart/no restart
 
   ! correct for left-handed coordinates
@@ -260,7 +263,7 @@ Program Reducedquintic
      endif
   endif
 
-  if(maxrank .eq. 1) call plotit(vel+vel0,phi+phi0,1)
+!  if(maxrank .eq. 1) call plotit(vel+vel0,phi+phi0,1)
 
 !  call axis(phi,xsep,zsep,0)
 
@@ -277,7 +280,7 @@ Program Reducedquintic
   dtmin = 0.001*dt
   ntime = ntimer
   call energy
-!      if (myrank.eq.0) call output
+  if (maxrank .eq. 1) call output
   call hdf5_write_time_slice(ier)
 
   if(ntimemax.le.ntimer) go to 101
@@ -311,10 +314,10 @@ Program Reducedquintic
 
 !     if(linear.eq.1) call scaleback
 
-     if(ekin .gt. 100.) then
-        write(*,*) 'ekin is greater than 100'
-        go to 100
-     endif
+!!$     if(ekin .gt. 100.) then
+!!$        write(*,*) 'ekin is greater than 100'
+!!$        go to 100
+!!$     endif
   enddo ! ntime
 
  100  continue
@@ -385,7 +388,10 @@ Program Reducedquintic
   call freesmo(q2matrix_sm)
   call freesmo(q8matrix_sm)  
   call deletesearchstructure()
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Calling plote..."
   if (myrank.eq.0) call plote
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Calling plote..."
   
 5002 format(" tsolve =", 1pe11.4,   "  numvar =", 0p1i4,               &
           "   amu,etar =", 1p2e10.2,  /,"  dt,thimp =",1p2e10.2,          &
@@ -400,15 +406,12 @@ Program Reducedquintic
 7011 format(1p6e20.12)
 7012 format(6e20.12)
 
-  ! finalize hdf5
-  call hdf5_finalize(ier)
-
 #ifdef IS_LIBRARY
   return
 end subroutine reducedquintic
 
 #else
-  write(*,*) myrank
+  print *, myrank, "stopping"
   call safestop(2)
 
 end Program Reducedquintic
@@ -554,7 +557,7 @@ subroutine onestep
      !.......calculate vorticity, apply smoothing operator, and redefine vor array
      call smoother1(vor,vtemp,numnodes,numvar,1)
      call newvar(vtemp,vor,numvar,1,VAR_VOR,1)
-     if(maxrank .eq. 1) call oneplot(com,1,1,"vor",0)
+     if(maxrank .eq. 1) call oneplot(vor,1,1,"vor",0)
   endif
 
 !.....new velocity solution at time n+1 (or n* for second order advance)

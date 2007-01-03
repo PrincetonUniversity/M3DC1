@@ -12,30 +12,30 @@ function time_slice, data, t
    return, data.(i)
 end
 
-pro plot_mesh, slice, color=col, linestyle=lin, oplot=oplot
-   nelms = slice.mesh.nelms._data
+pro plot_mesh, mesh, color=col, linestyle=lin, oplot=oplot
+   nelms = mesh.nelms._data
    
    if(not keyword_set(oplot)) then begin
-       plot, slice.mesh.elements._data[4,*], $
-         slice.mesh.elements._data[5,*], psym = 3
+       plot, mesh.elements._data[4,*], $
+         mesh.elements._data[5,*], psym = 3
    endif  
 
    for i=0, nelms-1 do begin
-       a = slice.mesh.elements._data[0,i]
-       b = slice.mesh.elements._data[1,i]
-       c = slice.mesh.elements._data[2,i]
-       t = slice.mesh.elements._data[3,i]
-       x = slice.mesh.elements._data[4,i]
-       y = slice.mesh.elements._data[5,i]
+       a = mesh.elements._data[0,i]
+       b = mesh.elements._data[1,i]
+       c = mesh.elements._data[2,i]
+       t = mesh.elements._data[3,i]
+       x = mesh.elements._data[4,i]
+       y = mesh.elements._data[5,i]
 
        p1 = [x, y]
        p2 = p1 + [(b+a) * cos(t), (b+a) * sin(t)]
        p3 = p1 + [b * cos(t) - c * sin(t), $
                   b * sin(t) + c * cos(t)]
        
-        oplot, [p1[0], p2[0]], [p1[1], p2[1]], color=col, linestyle=lin
-        oplot, [p2[0], p3[0]], [p2[1], p3[1]], color=col, linestyle=lin
-        oplot, [p3[0], p1[0]], [p3[1], p1[1]], color=col, linestyle=lin
+       oplot, [p1[0], p2[0]], [p1[1], p2[1]], color=col, linestyle=lin
+       oplot, [p2[0], p3[0]], [p2[1], p3[1]], color=col, linestyle=lin
+       oplot, [p3[0], p1[0]], [p3[1], p1[1]], color=col, linestyle=lin
    end
 end
 
@@ -67,10 +67,10 @@ function eval, field, localpos, elm
    return, sum
 end
 
+
 function eval_field, field, mesh, x=xi, y=yi, points=p
 
    nelms = mesh.nelms._data 
-   print, nelms, " elements."
 
    if(n_elements(p) eq 0) then p = 100
    
@@ -114,8 +114,8 @@ function eval_field, field, mesh, x=xi, y=yi, points=p
 
            while(pos[0] le maxpos[0]) do begin
                localpos = [(pos[0]-x)*co + (pos[1]-y)*sn - b, $
-                          -(pos[0]-x)*sn + (pos[1]-y)*co]
-
+                           -(pos[0]-x)*sn + (pos[1]-y)*co]
+               
                if(is_in_tri(localpos,a,b,c) eq 1) then begin
                    result[index[0], index[1]] = eval(field, localpos, i)
                endif
@@ -134,33 +134,71 @@ function eval_field, field, mesh, x=xi, y=yi, points=p
    return, result
 end
 
+function read_field, name, time, mesh=mesh, filename=filename
+   if(n_elements(filename) eq 0) then filename='C1.h5'
+
+   result = h5_parse(filename, /read_data)
+
+   slice = time_slice(result, time)
+
+   names = tag_names(slice.fields)
+   ncmp = strcmp(name, names, /fold_case)
+   nmax = max(ncmp, i)
+   if(nmax eq 0) then begin
+       print, "Field ", name, " not found."
+       print, names
+       return, 0
+   endif
+   
+   mesh = slice.mesh
+
+   return, slice.fields.(i)._data
+end
+
 
 pro plot_field, name, time, lines=lines, nlevels=nlevels, points=p, $
-                range=range
-  print, "Reading data..."
+                range=range, filename=filename, mesh=plotmesh
 
-  result = h5_parse('C1.h5', /read_data)
+   print, "Reading data..."
+   field = read_field(name, time, mesh=mesh, filename=filename)
 
-  slice = time_slice(result, time)
+   print, "Evaluating field..."
+   data = eval_field(field, mesh, p=p, x=x, y=y)
 
-  names = tag_names(slice.fields)
-  ncmp = strcmp(name, names, /fold_case)
-  nmax = max(ncmp, i)
-  if(nmax eq 0) then begin
-      print, "Field ", name, " not found."
-      print, names
-      return
-  endif
+   print, "Plotting..."
+   contour_and_legend, data, x, y, nlevels=nlevels, lines=lines, range=range
 
-  field = slice.fields.(i)._data
+   if(keyword_set(plotmesh)) then begin
+       plot_mesh, mesh, color=color(2), /oplot
+   endif
 
-  print, "Evaluating field..."
+   print, "Done."
+end
 
-  data = eval_field(field, slice.mesh, p=p, x=x, y=y)
+pro compare, file1, file2, time, names=names
 
-  print, "Plotting..."
+   if(n_elements(names) eq 0) then begin
+       names = ['psi', 'phi']
+   endif
 
-  contour_and_legend, data, x, y, nlevels=nlevels, lines=lines, range=range
+   for i=0, n_elements(names)-1 do begin
+       print, "====================="
+       print, "Comparing ", names[i]
+       print, "---------------------"
+
+       field1 = read_field(names[i], time, filename=file1, mesh=mesh1)
+       field2 = read_field(names[i], time, filename=file2, mesh=mesh2)
+
+       vals1 = eval_field(field1, mesh1)
+       vals2 = eval_field(field2, mesh2)
+
+       rms = sqrt((vals1 - vals2)^2)
+       d = mean(rms)
+       v = variance(rms)
+
+       print, "Mean/variance of RMS error in ", names[i], " = ", $
+         d, " / ",  v
+   end
 end
 
 

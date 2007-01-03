@@ -137,7 +137,7 @@ module arrays
   integer, allocatable :: isvaln(:,:),isval1(:,:),isval2(:,:)
   real :: fint(-6:maxi,-6:maxi), xi(3),zi(3),df(0:4,0:4)
   real :: xsep(5), zsep(5), graphit(0:ntimep,maxplots)
-  real, allocatable :: psibounds(:), velbounds(:), combounds(:)
+  real, allocatable :: psibounds(:), velbounds(:)
 
   ! arrays defined at all vertices
   real(r8), allocatable::                                         &

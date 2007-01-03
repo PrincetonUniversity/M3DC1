@@ -36,8 +36,6 @@ contains
     call h5pcreate_f(H5P_FILE_ACCESS_F, plist_id, error)
     call h5pset_fapl_mpio_f(plist_id, MPI_COMM_WORLD, info, error)
 
-!!$    call h5fcreate_f(hdf5_filename, H5F_ACC_TRUNC_F, file_id, error)
-    
     call h5fcreate_f(hdf5_filename, H5F_ACC_TRUNC_F, file_id, error, &
          access_prp = plist_id)
     if(error.lt.0) then
@@ -198,6 +196,32 @@ contains
 end module hdf5_output
 
 
+! hdf5_write_parameters
+! =====================
+subroutine hdf5_write_parameters(error)
+  use hdf5
+  use hdf5_output
+  use basic
+
+  implicit none
+
+  integer, intent(out) :: error
+
+  integer(HID_T) :: root_id
+
+  call h5gopen_f(file_id, "/", root_id, error)
+
+  call write_int_attr(root_id, "numvar"     , numvar,     error)
+  call write_int_attr(root_id, "idens"      , idens,      error)
+  call write_int_attr(root_id, "linear"     , linear,     error)
+  call write_int_attr(root_id, "eqsubtract" , eqsubtract, error)
+  call write_int_attr(root_id, "iper"       , iper,       error)
+  call write_int_attr(root_id, "jper"       , jper,       error)
+
+  call h5gclose_f(root_id, error)
+
+end subroutine hdf5_write_parameters
+
 
 ! hdf5_write_time_slice
 ! =====================
@@ -240,6 +264,9 @@ subroutine hdf5_write_time_slice(error)
     
   ! Close the time group
   call h5gclose_f(time_group_id, error)  
+
+  ! Flush the data to disk
+  call h5fflush_f(file_id, H5F_SCOPE_GLOBAL_F, error)
 
 end subroutine hdf5_write_time_slice
 
@@ -334,6 +361,20 @@ subroutine output_fields(time_group_id, error)
   call output_field(group_id, "phi", dum, 20, nelms, error)
   nfields = nfields + 1
 
+  ! chi
+  do i=1, nelms
+     call calcavector(i, vor, 1, 1, dum(:,i))
+  end do
+  call output_field(group_id, "vor", dum, 20, nelms, error)
+  nfields = nfields + 1
+
+  ! sb1
+  do i=1, nelms
+     call calcavector(i, sb1, 1, 1, dum(:,i))
+  end do
+  call output_field(group_id, "sb1", dum, 20, nelms, error)
+  nfields = nfields + 1
+
   if(numvar.ge.2) then
      ! I
      do i=1, nelms
@@ -348,6 +389,14 @@ subroutine output_fields(time_group_id, error)
      end do
      call output_field(group_id, "V", dum, 20, nelms, error)
      nfields = nfields + 1
+
+     ! sb2
+     do i=1, nelms
+        call calcavector(i, sb2, 1, 1, dum(:,i))
+     end do
+     call output_field(group_id, "sb2", dum, 20, nelms, error)
+     nfields = nfields + 1
+
   endif
 
   if(numvar.ge.3) then
@@ -363,6 +412,20 @@ subroutine output_fields(time_group_id, error)
         call calcavector(i, vel, 3, numvar, dum(:,i))
      end do
      call output_field(group_id, "chi", dum, 20, nelms, error)
+     nfields = nfields + 1
+
+     ! com
+     do i=1, nelms
+        call calcavector(i, com, 1, 1, dum(:,i))
+     end do
+     call output_field(group_id, "com", dum, 20, nelms, error)
+     nfields = nfields + 1
+
+     ! sb3
+     do i=1, nelms
+        call calcavector(i, sb3, 1, 1, dum(:,i))
+     end do
+     call output_field(group_id, "sb3", dum, 20, nelms, error)
      nfields = nfields + 1
   endif
 

@@ -124,12 +124,8 @@
           call entdofs(numvarsm, l, 0, ibeginsm, iendplusonesm)
           do i=0,5
              outarray(ibegind+6*(iplace-1)+i) =
-     &            temp(ibeginsm+6+i)
+     &            temp(ibeginsm+i)
           enddo
-c          do i=1,6     
-c             outarray(6*((l-1)*numvard +(iplace-1))+i)                      &
-c     &            = temp(6*((l-1)*numvarsm+        1 )+i)
-c          enddo
        enddo
        
 !

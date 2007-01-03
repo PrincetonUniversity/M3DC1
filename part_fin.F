@@ -98,7 +98,7 @@ c     created with ordering specified by numvar
 !.....boundary arrays
       allocate(iboundgs(nbound),iboundv(nbound),iboundp(nbound),        &
      &     iboundn(nbound),                                             &
-     &     psibounds(nbound),velbounds(nbound),combounds(nbound))
+     &     psibounds(nbound),velbounds(nbound))
 !
 !.....arrays associated with the triangles
       allocate(ist(ntri,3),isvaln(ntri,18),isval1(ntri,18),             &
@@ -139,13 +139,16 @@ c     created with ordering specified by numvar
 !
       numvarsm = 2
       call numfac(numelms)
-      call createvec(temp, numvarsm)
+c$$$      call createvec(temp, numvarsm)
+c$$$      call numdofs(numvarsm, ndofs_sm)
       call numdofs(numvarsm, ndofs_sm)
+      call createvec(temp, numvarsm)
       temp = 0
       thimpsm = 1.
 ! 
       if(ifirsts7_lu.ne.0) go to 500
       ifirsts7_lu = 1
+
       nbound = 0
       do i=1,numnodes
          call zonenod(i,izone,izonedim)
@@ -215,7 +218,7 @@ c     created with ordering specified by numvar
         write(*,*) "error in smoother"
         call safestop(98)
       endif
-      temp(iboundsm(l)) = combounds(l)
+      temp(iboundsm(l)) = 0.
       enddo
       call sumshareddofs(temp)
 !
@@ -228,13 +231,8 @@ c     created with ordering specified by numvar
          call entdofs(numvard, l, 0, ibegind, iendplusoned)
          call entdofs(numvarsm, l, 0, ibeginsm, iendplusonesm)
          do i=0,5
-c     acbauer 2/1/06 -- possibly a bug, temp should probably be accessed at ibeginsm+i
             outarray(ibegind+6*(iplace-1)+i) = 
-     &           temp(ibeginsm+6+i)
-
-c         do i=1,6
-c         outarray(6*((l-1)*numvard +(iplace-1))+i)                      &
-c     &     = temp(6*((l-1)*numvarsm+        1 )+i)
+     &           temp(ibeginsm+i)
          enddo
       enddo
 !

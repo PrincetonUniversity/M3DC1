@@ -25,17 +25,27 @@
       end
 !===================================
       subroutine safestop(iarg)
-#ifdef mpi
+
+      use basic
+      use hdf5_output
+
       implicit none
+      
+      integer, intent(in) :: iarg
+
       include 'mpif.h'
-      integer ier, iarg
+
+      integer :: ier
+      
+      ! finalize hdf5
+      print *, "finalizing hdf5..."
+      call hdf5_finalize(ier)
+      print *, "done."
+
       call sludexit
       call MPI_Finalize(ier)
       if (ier /= 0) print *,'Error terminating MPI:',ier
-#else 
-      implicit none
-      integer iarg
-#endif
+
       close(UNIT=9, STATUS='KEEP')
       write(*,*) "stoped at", iarg
       stop

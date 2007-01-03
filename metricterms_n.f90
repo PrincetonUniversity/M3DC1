@@ -2218,4 +2218,178 @@ real function p1kappar(e,f,g,h,i,j)
   return
 end function p1kappar
 
+
+
+! ==============================================================
+! Ohmic heating terms
+! ==============================================================
+
+! qpsipsieta
+! ==========
+real function qpsipsieta(e,f,g,h,i)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real, intent(in) :: h, i
+  real :: temp
+
+  temp = h*int4(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),weight_79,79)
+
+  qpsipsieta = temp
+  return
+end function qpsipsieta
+
+! qbbeta
+! ======
+real function qbbeta(e,f,g,h,i)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real, intent(in) :: h, i
+  real :: temp
+
+  temp = h* &
+       (int4(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
+       +int4(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),weight_79,79))
+
+  qbbeta = temp
+  return
+end function qbbeta
+
+
+! ==============================================================
+! Viscous heating terms
+! ==============================================================
+
+! quumu
+! =====
+real function quumu(e,f,g,h,i,j)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real, intent(in) :: h, i, j
+  real :: temp
+
+  temp = -h* &
+       (   int4(r2_79,e(:,OP_1),f(:,OP_LP ),g(:,OP_LP ),weight_79,79) &
+       +4.*int4(r2_79,e(:,OP_1),f(:,OP_DRZ),g(:,OP_DRZ),weight_79,79) &
+       -4.*int4(r2_79,e(:,OP_1),f(:,OP_DZZ),g(:,OP_DRR),weight_79,79))
+
+  if(itor.eq.1) then
+     temp = temp + 4.*h* &
+          (int4(r_79,e(:,OP_1),f(:,OP_DZZ),g(:,OP_DR),weight_79,79) &
+          -int4(r_79,e(:,OP_1),f(:,OP_DRZ),g(:,OP_DZ),weight_79,79) &
+          -int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),weight_79,79))
+     temp = temp - 8.*(i-h)*int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),weight_79,79)
+  end if
+
+  quumu = temp
+  return
+end function quumu
+
+
+! quchimu
+! =======
+real function quchimu(e,f,g,h,i,j)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real, intent(in) :: h, i, j
+  real :: temp
+
+  if(itor.eq.0) then
+     quchimu = 0.
+     return
+  endif
+
+  temp = 4.*h* &
+       (int4(r_79,e(:,OP_1),f(:,OP_DZZ),g(:,OP_DRZ),weight_79,79) &
+       -int4(r_79,e(:,OP_1),f(:,OP_DRZ),g(:,OP_DZZ),weight_79,79) &
+       -int4(r_79,e(:,OP_1),f(:,OP_DRR),g(:,OP_DRZ),weight_79,79) &
+       +int4(r_79,e(:,OP_1),f(:,OP_DRZ),g(:,OP_DRR),weight_79,79) &
+       -int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZZ),weight_79,79) &
+       -int3(e(:,OP_1),f(:,OP_DR),g(:,OP_DRZ),weight_79,79) &
+       +int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_LP ),weight_79,79))
+
+  quchimu = temp
+  return
+end function quchimu
+
+
+! qvvmu
+! =====
+real function qvvmu(e,f,g,h,i)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real, intent(in) :: h, i
+  real :: temp
+
+  temp = -h* &
+       (int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
+       +int3(e(:,OP_1),f(:,OP_DR),g(:,OP_DR),weight_79,79))
+  
+  if(itor.eq.1) then
+     temp = temp + h* &
+          (2.*int4( r_79,e(:,OP_1),f(:,OP_1),f(:,OP_DR),weight_79,79) &
+          -   int4(ri_79,e(:,OP_1),f(:,OP_1),f(:,OP_1 ),weight_79,79))
+  endif
+
+  qvvmu = temp
+  return
+end function qvvmu
+
+
+! qchichimu
+! =========
+real function qchichimu(e,f,g,h,i,j)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real, intent(in) :: h, i, j
+  real :: temp
+
+  temp = -2.*h* &
+       (   int3(e(:,OP_1),f(:,OP_DZZ),g(:,OP_DZZ),weight_79,79) &
+       +2.*int3(e(:,OP_1),f(:,OP_DRZ),g(:,OP_DRZ),weight_79,79) &
+       +   int3(e(:,OP_1),f(:,OP_DRR),g(:,OP_DZZ),weight_79,79)) &
+       -2.*(i-h)*int3(e(:,OP_1),f(:,OP_LP),g(:,OP_LP),weight_79,79)
+  
+  if(itor.eq.1) then
+     temp = temp - 2.*h*int4(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),weight_79,79)
+  endif
+
+  qchichimu = temp
+  return
+end function qchichimu
+
 end module metricterms_n
+
+
+
+
+
