@@ -254,11 +254,11 @@ c$$$      call numdofs(numvarsm, ndofs_sm)
       alpha = 1.
       if(ekin .gt. .001) alpha = sqrt(.001/ekin)
       vel = alpha*vel
-      do i=301,360
-         write(*,*) 'acbauer is not sure why this is in scaleback'
-         call safestop(334)
-         vel(i) = 1.
-      enddo
+c      do i=301,360
+c         write(*,*) 'acbauer is not sure why this is in scaleback'
+c         call safestop(334)
+c         vel(i) = 1.
+c      enddo
       phi = alpha*phi
 !
       alphas = alpha*alpha
