@@ -210,33 +210,33 @@ Program Reducedquintic
 !!$     phis = 0
 !!$     vels = 0
 !!$     dens = 0
-  endif                     !  end of the branch on restart/no restart
 
   ! correct for left-handed coordinates
-  call numdofs(numvar, ndofs)
-  allocate(itemp(ndofs))
-  itemp = 1
-  if(numvar.eq.1) then
-     j = 5
-  else
-     j = 11
-  endif
-  do i=1,numnodes
-     call entdofs(numvar, i, 0, ibegin, iendplusone)
-     if(itemp(ibegin) .eq. 1) then
-        phi(ibegin:ibegin+j) = -phi(ibegin:ibegin+j)
-        vel(ibegin:ibegin+j) = -vel(ibegin:ibegin+j)
-        phi0(ibegin:ibegin+j) = -phi0(ibegin:ibegin+j)
-        vel0(ibegin:ibegin+j) = -vel0(ibegin:ibegin+j)
-        phiold(ibegin:ibegin+j) = -phiold(ibegin:ibegin+j)
-        velold(ibegin:ibegin+j) = -velold(ibegin:ibegin+j)
-        itemp(ibegin) = 0
+     call numdofs(numvar, ndofs)
+     allocate(itemp(ndofs))
+     itemp = 1
+     if(numvar.eq.1) then
+        j = 5
+     else
+        j = 11
      endif
-  enddo
-  deallocate(itemp)
-
-  if(maxrank.eq.1) call plotit(vel,phi,0)
-
+     do i=1,numnodes
+        call entdofs(numvar, i, 0, ibegin, iendplusone)
+        if(itemp(ibegin) .eq. 1) then
+           phi(ibegin:ibegin+j) = -phi(ibegin:ibegin+j)
+           vel(ibegin:ibegin+j) = -vel(ibegin:ibegin+j)
+           phi0(ibegin:ibegin+j) = -phi0(ibegin:ibegin+j)
+           vel0(ibegin:ibegin+j) = -vel0(ibegin:ibegin+j)
+           phiold(ibegin:ibegin+j) = -phiold(ibegin:ibegin+j)
+           velold(ibegin:ibegin+j) = -velold(ibegin:ibegin+j)
+           itemp(ibegin) = 0
+        endif
+     enddo
+     deallocate(itemp)
+     
+     if(maxrank.eq.1) call plotit(vel,phi,0)
+     
+  endif                     !  end of the branch on restart/no restart
   ! calculate the equilibrium current density
   if(itaylor.ne.4) then
      call newvar(phi0,jphi0,numvar,1,VAR_J,1)
@@ -296,13 +296,11 @@ Program Reducedquintic
      endif
 !     call exportfield2(1,numvar,phi, ntime)
      
-     if(myrank.eq.0) then
-        if(itimer.eq.1) call second(tstart)
-        if(maxrank .eq. 1) call output
-        if(itimer.eq.1) then
-           call second(tend)
-           write(*,*) "Time spent in output: ", tend - tstart
-        endif
+     if(itimer.eq.1) call second(tstart)
+     call output
+     if(itimer.eq.1) then
+        call second(tend)
+        write(*,*) "Time spent in output: ", tend - tstart
      endif
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call hdf5_write_time_slice(ier)
@@ -364,10 +362,10 @@ Program Reducedquintic
   endif
 999 continue
   if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'writing the restart file'
+  ntime = max(ntime, ntimer)-1
   call wrrestart
   if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'done writing the restart file'
 
-      
 !     free memory from sparse matrices
   call freesmo(gsmatrix_sm)
   call freesmo(s6matrix_sm)
