@@ -742,6 +742,13 @@ endif
         if(ibc.eq.0) then
           call sparseR8d_solve_part(s3matrix_lu,temp,outarray,ier)
         else
+
+  ! complete the imposition of the boundary conditions,
+  do l=1,nbcds
+     if(sparseR8d_is_local_row(s6matrix_lu, iboundds(l)).eq.1) then
+        temp(iboundds(l)-s6matrix_lu%fst_row) = 0.
+     endif
+  enddo
           call sparseR8d_solve_part(s6matrix_lu,temp,outarray,ier)
         endif
 

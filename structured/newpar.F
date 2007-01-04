@@ -1,3 +1,4 @@
+
 !123456789-123456789-123456789-123456789-123456789-123456789-123456789-23
 !
 !     VERSION 12.1   10/01/06
@@ -51,6 +52,11 @@
 !      combined newvar and newvarb into newvarc
 !       removed sphie...replaced with sphik
 !       put more terms in q34def
+!-------------
+!      added iboundv2 to allow linear superposition bc
+!      used this to set del^2(chi)=0 on boundary
+!      corrected bug in def of sphi20
+!      added "regular" in ddterm in ludefvel
 !
 !
 !==> NOTE:  gam should be removed from opdef routines by redefining some operators
@@ -197,8 +203,9 @@
 
 !     indices
       integer p,q,r,s
-      integer, allocatable:: iboundgs(:), iboundv(:), iboundp(:),       &
-     & iboundn(:), isvaln(:,:),isval0(:,:),isval1(:,:),isval2(:,:)  
+      integer, allocatable:: iboundgs(:), iboundv(:), iboundv2(:),      &
+     & iboundp(:), iboundn(:), isvaln(:,:),isval0(:,:),isval1(:,:),     &
+     & isval2(:,:)
       real    fint(-6:maxi,-6:maxi), xi(3),zi(3),df(0:4,0:4),           &
      &        xsep(5), zsep(5), graphit(0:ntimep,maxplots)
       real, allocatable:: psibounds(:), velbounds(:), combounds(:) 
@@ -464,7 +471,9 @@
 
 !
 !.....calculate the RHS (forcing function)
+      if(myrank.eq.0.and.iprint.gt.0) write(*,*) "before rhsdef"
       call rhsdef
+      if(myrank.eq.0.and.iprint.gt.0) write(*,*) "after rhsdef"
 !  
 !     end of loop over all triangles defining matrices   
 !.....note that the matrix indices now refer to vertices, not triangles.
@@ -530,6 +539,7 @@
          vel0 = veln
          phi0 = phiold 
          denold = den0
+      if(myrank.eq.0.and.iprint.gt.0) write(*,*) "before init"
 
 !......calculate initial perturbed fields
          call velinit(vel)
@@ -560,6 +570,7 @@
          else
             jphi0 = 0
          endif
+      if(myrank.eq.0.and.iprint.gt.0) write(*,*) "after defining jphi0"
 
 !     
 !        calculate the equilibrium vorticity and velocity divergence
@@ -632,6 +643,9 @@
       endif
 
       do ntime=ntimer+1,ntimemax
+      if(myrank.eq.0 .and. iprint.gt.0) then
+      write(*,*) "start of time loop, ntime=",ntime
+      endif
          time = time + dt
          if(myrank.eq.0 .and. iprint.eq.1)
      &        write(*,*) "calling onestep..."
@@ -777,7 +791,7 @@
      &  "  hyper,hyperi,hyperv,hyperc,actual hyper = ",  1p5e12.4,  /,  &
      &  "  ratemin,ratemax,ajmax,reconflux = ",1p4e12.4) 
  5003 format(" linear, itaylor(2),iper,jper,isetup, imask, irestart: ", &
-     & 8i4, / ," alx, alz, facd, bzero, eps ", 1p5e12.4)
+     & 8i4, / ," alx, alz, facd, bzero, eps, amuc ", 1p6e12.4)
  2323 format(1p5e12.4)
  2121 format(" start of time dependent loop")
  5001 format("ifail .ne. 0 after call to f04aaf")
@@ -833,7 +847,7 @@
         lineval = 1       !  linear piece
         call newvarc(1,phi ,sphi2 ,m*n,numvar,1,5)
         lineval = 0       !  equilibrium piece
-        call newvarc(1,phi0,sphi20,m*n,numvar,1,4)
+        call newvarc(1,phi0,sphi20,m*n,numvar,1,5)
       endif
 !
 !.....Define magnetic field strength variables
@@ -915,11 +929,6 @@
 !
          call ludefvel
 !
-!......special option to output matrix and quit
-       if(idebug.eq.1 .and. islutype.eq.1) then
-       call sparseR8d_output(s1matrix_lu)
-       call safestop(0)
-       endif
 !
       endif
       if(grav.ne.0. .and. idens.gt.0) call r4def
@@ -972,6 +981,9 @@
       vtemp = vtemp +   b1vector + r4 + r40
 
       do l=1,nbcv
+        if(iboundv2(l).gt.0) then
+           vtemp(iboundv2(l)) = vtemp(iboundv2(l)) - vtemp(iboundv(l))
+        endif
          vtemp(iboundv(l)) = velbounds(l)
       enddo
       if(myrank.eq.0) call second(tafteradotb)
@@ -1016,10 +1028,17 @@
          enddo                  ! loop over iodd
 !
 !
+      if(idebug.eq.1 .and. islutype.eq.1) then
+      call debugvectorout(vtemp,numvar,90)
+      call debugvectorout(com,1,92)
+      endif
          if(hyperc.gt.0) then
             call smoother3(com,vtemp,m*n,numvar,3)
             call newvarc(0,vtemp,com,m*n,numvar,3,3)
          endif
+      if(idebug.eq.1 .and. islutype.eq.1) then
+      call debugvectorout(com,1,93)
+      endif
 !
       endif
 !
@@ -1039,6 +1058,11 @@
         vel = vtemp
       endif
 !
+!......special option to output matrix and quit
+       if(idebug.eq.1 .and. islutype.eq.1) then
+       call debugvectorout(vel,numvar,91)
+       call safestop(0)
+       endif
 !
 ! Advance DENSITY ========================================================
       if(iprint.eq.1 .and. myrank.eq.0) write(*,*) "advancing den"
@@ -1420,13 +1444,9 @@
 
 !
       if(myrank.eq.0 .and. itimer.gt.0) call second(tstartludefvel)
-!>>>  zero, count, and icon appear never to be used.
-!      zero = 0.
-!      count = zero
       hypv = hyperv*deex**2
       thimpv = 1.
       icount = 0
-!      icon = 1
 !
 c$$$      if(ifirsts1_lu.eq.1) then
 c$$$         call f_Destroy_LU(s1matrix_lu%n, SLUprocgrid,              &
@@ -1635,6 +1655,7 @@ c$$$      endif
               ssterm(3,3) = terma*(1-idens) -   thimp *dt*2.*amuc*termb
      &               - regular*termd
               ddterm(3,3) = terma*(1-idens)+(1.-thimp)*dt*2.*amuc*termb
+     &               - regular*termd
               rrterm(3,3) = - dt*terma
               r40(i3) = r40(i3) - thdts*terma*(sphip(jone)+sphik(jone))
 !
@@ -1733,11 +1754,8 @@ c$$$      endif
      &            *(thimp*(vel(k1)+vel0(k1))-(0.5*vel(k1)+vel0(k1)))
 
               if(idens.gt.0) then
-!....changed 11/19/06
                 ssterm(1,3) = ssterm(1,3)-dent(kone)*k0term(iodd,k,j,i)
                 ddterm(1,3) = ddterm(1,3)-dent(kone)*k0term(iodd,k,j,i)
-!               ssterm(1,3) = ssterm(1,3)+dent(kone)*k0term(iodd,i,j,k)
-!               ddterm(1,3) = ddterm(1,3)+dent(kone)*k0term(iodd,i,j,k)
               endif                  
 !
               ssterm(2,2) = ssterm(2,2)-dt*g2term(iodd,j,k,i)*(1-idens) &
@@ -1766,11 +1784,8 @@ c$$$      endif
      &              (thimp*(vel(k1)+vel0(k1))-(0.5*vel(k1)+vel0(k1)))
 !
               if(idens.gt.0) then
-!....changed 11/19/06   scj
                 ssterm(3,1) = ssterm(3,1)+dent(kone)*k0term(iodd,k,j,i)
                 ddterm(3,1) = ddterm(3,1)+dent(kone)*k0term(iodd,k,j,i)
-!               ssterm(3,1) = ssterm(3,1)-dent(kone)*k0term(iodd,i,j,k)
-!               ddterm(3,1) = ddterm(3,1)-dent(kone)*k0term(iodd,i,j,k)
               endif 
 !
 !
@@ -2109,16 +2124,23 @@ c$$$      endif
 !.....modify the s-matrix, inserting the boundary conditions
 !
 !.....calculate boundary conditions
-      call boundaryv(iboundv,nbcv)
+      call boundaryv(iboundv,iboundv2,nbcv)
       if(nbcv .gt. iboundmax) then
          write(*,4888) nbcv, iboundmax
  4888    format(" ERROR: nbcv > iboundmax", 2i5)
          call safestop(3)
       endif
+!
+!.....allow for possibility of zeroing a linear combination of two elements
+!......special option to output matrix
+       if(idebug.eq.1 .and. islutype.eq.1) then
+       call sparseR8d_output(s1matrix_lu)
+       endif
 
       do l=1,nbcv
 
          i = iboundv(l)
+         i2= iboundv2(l)
 
          if(sparseR8d_is_local_row(s1matrix_lu, i).eq.1) then
             if(i.le.0 .or. i.ge.m*n*6*numvar+1) then
@@ -2126,8 +2148,17 @@ c$$$      endif
  3341          format(" error in iboundv index",3i5)
                call safestop(3341)
             endif
+!
+!...........check for second nonzero element on this row
+            if(i2.gt.0) then
+!............combine rows
+             call sparseR8d_combine_row(s1matrix_lu,i2,i)
+            endif
             call sparseR8d_zero_row(s1matrix_lu,i)
-            call sparseR8d_increment(s1matrix_lu,i,i,1.,numvar,1)
+            call sparseR8d_increment (s1matrix_lu,i,i ,1.,numvar,1)
+            if(i2.gt.0) then
+             call sparseR8d_increment(s1matrix_lu,i,i2,1.,numvar,1)
+            endif
          endif
        enddo
     
@@ -2541,7 +2572,6 @@ c$$$      endif
                 ddterm(2,1) = ddterm(2,1) - dt*u12terml*denf            &
      &              *(thimp*(phi(k1)+phi0(k01))-(0.5*phi(k1)+phi0(k01)))
 !
-!>>> Changed +dt's to -dt's 10/19/06.  NMF.
                 ssterm(2,2) = ssterm(2,2) - dt*u78terml*denf            &
      &                *thimp*(phi(k2)+phi0(k2))
                 ddterm(2,2) = ddterm(2,2) - dt*u78terml*denf            &
@@ -3074,17 +3104,20 @@ c$$$      endif
       return
       end
 !==============================================================
-      subroutine boundaryv(ibound,nbc)
+      subroutine boundaryv(ibound,ibound2,nbc)
       use basic
       use arrays
       implicit none
       real x, ak, epsdot
-      integer index, indext, lx, lz, nbc
+      integer index, indext, lx, lz, nbc, nbound
 !
 !.....defines the velocity boundary conditions for a rectangular region
-      integer ibound(*)
+      integer ibound(*),ibound2(*)
 !
       velbounds = 0
+      nbound = 12*numvar*(n+m-2)
+      ibound (1:nbound) = 0
+      ibound2(1:nbound) = 0
 !
 !.....FIRST EQUATION:  Velocity stream function PHI
       index = 0
@@ -3254,6 +3287,16 @@ c$$$      endif
          index = index+2
          ibound(index-1) = 6*numvar*(          lx-1) + 17
          ibound(index  ) = 6*numvar*((m-1)*n + lx-1) + 17
+!
+!        ....added 12/24/06
+!.....second x derivative
+         index = index+2
+         ibound(index-1) = 6*numvar*(          lx-1) + 16
+         ibound(index  ) = 6*numvar*((m-1)*n + lx-1) + 16
+!.....second y derivative....to be added to above
+         ibound2(index-1) = 6*numvar*(          lx-1) + 18
+         ibound2(index  ) = 6*numvar*((m-1)*n + lx-1) + 18
+
       enddo
   526 continue
 !.....start loop on left and right boundaries (x-direction)
@@ -4286,7 +4329,7 @@ c$$$      endif
                   val = aa(itype,ibig,il,jl)
                   call sparseR8d_set_next(slumatrix, icol, newrow_flag, &
      &                 val, ier)
-                  if(idebug.ge.1 .and. islutype .eq. 1) then
+                  if(idebug.ge.1 .and. islutype.eq.1) then
                      irow = (ibig-1)*blocksize + il - 1
                      if(myrank.eq.0) write(31,1001) irow,jcol,val
  1001                format(2i10,1pe20.12)
@@ -4298,7 +4341,7 @@ c$$$      endif
          enddo                  !il
       enddo                     !ibig
 !
-      if(idebug.ge.1 .and. islutype.eq. 1 .and. myrank.eq.0) then
+      if(idebug.ge.1 .and. islutype.eq.1 .and. myrank.eq.0) then
         close(31)
       endif
 !
@@ -4706,9 +4749,9 @@ c$$$      endif
       allocate(incb(mmnn,9),itypemax(mmnn),xcord(mmnn),zcord(mmnn))
 !
 !.....boundary arrays
-      allocate(iboundgs(nbound),iboundv(nbound),iboundp(nbound),        &
-     &     psibounds(nbound),velbounds(nbound),combounds(nbound),       &
-     &     iboundn(12*(n+m-2)))
+      allocate(iboundgs(nbound),iboundv(nbound),iboundv2(nbound),       &
+     &     iboundp(nbound), psibounds(nbound),velbounds(nbound),        &
+     &     combounds(nbound), iboundn(12*(n+m-2)))
 !
 !.....arrays associated with the triangles
       allocate(ist(ntri,3),isvaln(ntri,18),isval1(ntri,18),             &
@@ -4840,7 +4883,7 @@ c$$$      endif
 #else
       REAL64, allocatable :: temp(:)
 #endif
-      integer,  save, allocatable:: iboundsm(:)
+      integer,  save, allocatable:: iboundsm(:), iboundsm2(:)
       integer, save :: nbcsm
 !
       mmnn6 = 6*mmnn
@@ -4851,7 +4894,7 @@ c$$$      endif
 ! 
       if(ifirsts5_lu.ne.0) go to 500
       ifirsts5_lu = 1
-      allocate(iboundsm(24*(n+m-2)))
+      allocate(iboundsm(24*(n+m-2)),iboundsm2(24*(n+m-2)))
 !
       numvarsm = 2
       nrasm = n*m*6*numvarsm
@@ -4883,7 +4926,7 @@ c$$$      endif
       enddo  !  on iodd
 !
 !......define indices for boundary arrays
-      call boundarysm(iboundsm,nbcsm,iplace)
+      call boundarysm(iboundsm,iboundsm2,nbcsm,iplace)
 !
 !.....modify the s-matrix, inserting the boundary conditions
       do l=1,nbcsm
@@ -5027,9 +5070,9 @@ c$$$      endif
 #else
       REAL64, allocatable :: temp(:)
 #endif
-      integer,  save, allocatable:: iboundsm(:)
+      integer,  save, allocatable:: iboundsm(:), iboundsm2(:)
       integer, save :: nbcsm
-      integer :: itri, iodd, l, lx, lz, ier, jer, jone, i, j, ll
+      integer :: itri, iodd, l, lx, lz, ier, jer, jone, i, j, ll, i2
       integer :: itwo, jtwo, nrasm, mmnn6
       integer :: m_lsm, nnz_lsm, ifs_rsm, msizesm, numvarsm
       real :: tafterinit, tbeforeinit, tbeforesolve, taftersolve
@@ -5044,7 +5087,7 @@ c$$$      endif
 ! 
       if(ifirsts7_lu.ne.0) go to 500
       ifirsts7_lu = 1
-      allocate(iboundsm(24*(n+m-2)))
+      allocate(iboundsm(24*(n+m-2)),iboundsm2(24*(n+m-2)))
 !
       nrasm = n*m*6*numvarsm
       msizesm = 9*n*m*(6*numvarsm)**2
@@ -5075,22 +5118,35 @@ c$$$      endif
       enddo
 !
 !......define indices for boundary arrays
-      call boundarysm(iboundsm,nbcsm,iplace)
+      if(myrank.eq.0 .and. iprint.eq.1) then
+        write(*,*) "before boundarysm in smoother3"
+      endif
+!
+      call boundarysm(iboundsm,iboundsm2,nbcsm,iplace)
+!
+      if(myrank.eq.0 .and. iprint.eq.1) then
+        write(*,*) "after boundarysm in smoother3"
+      endif
 !
 !.....modify the s-matrix, inserting the boundary conditions
       do l=1,nbcsm
         i = iboundsm(l)
+        i2= iboundsm2(l)
+        if(i2.gt.0) then
+          call combinerow(ss,n*m,i,i2,numvarsm)
+        endif
         do j= 1,nrasm
             if(i.le.0 .or. i.ge.m*n*6*numvarsm+1) then
             write(*,3343) i,l,iboundsm(l)
  3343       format(" error in iboundsm index",3i5)
             call safestop(3343)
-          endif
-         call assign(ss,n*m,i,j,0.,numvarsm)
+            endif
+        call assign(ss,n*m,i,j,0.,numvarsm)
         enddo
-      enddo
-      do l=1,nbcsm
-         call assign(ss,n*m,iboundsm(l),iboundsm(l),1.,numvarsm)
+           call assign(ss,n*m,i,i, 1.,numvarsm)
+         if(i2.gt.0) then
+           call assign(ss,n*m,i,i2,1.,numvarsm)
+         endif
       enddo
       if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "before init"
       if(myrank.eq.0) call second(tbeforeinit)
@@ -5159,14 +5215,16 @@ c$$$      endif
         enddo
       enddo
       enddo
-!!.....added 5/26/06 SCJ....(should remove combounds altogether)
-      combounds = 0
+!
       do l=1,nbcsm
       if(iboundsm(l).le.0 .or. iboundsm(l).gt.mmnn6*numvarsm) then
         write(*,*) "error in smoother 3"
         call safestop(98)
       endif
-      temp(iboundsm(l)) = combounds(l)
+      if(iboundv2(l).gt.0) then
+        temp(iboundv2(l)) = temp(iboundv2(l)) - temp(iboundv(l))
+      endif
+      temp(iboundsm(l)) = 0.
       enddo
 !
 !.....perform LU backsubstitution to get outarray solution
@@ -5197,12 +5255,15 @@ c$$$      endif
 !
       end
 !============================================================
-      subroutine boundarysm(ibound,nbc,iplace)
+      subroutine boundarysm(ibound,ibound2,nbc,iplace)
       use basic
       use arrays
 !
 !.....defines the velocity boundary conditions for a rectangular region
-      dimension ibound(*)
+      dimension ibound(*),ibound2(*)
+      nbound=24*(n+m-2)
+      ibound(1:nbound) = 0
+      ibound2(1:nbound) = 0
       velbounds = 0
       combounds = 0
       numvarsm = 2
@@ -5324,7 +5385,7 @@ c$$$      endif
       nbc = index
       return
 !
-!.....start of boundary conditions for smoother3
+!.....start of boundary conditions for oldsmoother3
  600  continue
       combounds = 0
       if(jper.ge.1) go to 526
@@ -5431,6 +5492,13 @@ c$$$      endif
       index = index+2
       ibound(index-1) = 6*numvarsm*(          lx-1) + 11
       ibound(index  ) = 6*numvarsm*((m-1)*n + lx-1) + 11
+!....set delsquared = 0 using both ibound and ibound2
+      index = index+2
+      ibound(index-1) = 6*numvarsm*(          lx-1) + 10
+      ibound(index  ) = 6*numvarsm*((m-1)*n + lx-1) + 10
+
+      ibound2(index-1) = 6*numvarsm*(          lx-1) + 12
+      ibound2(index  ) = 6*numvarsm*((m-1)*n + lx-1) + 12
       enddo
   536 continue
 !.....start loop on left and right boundaries (x-direction)
@@ -6235,3 +6303,49 @@ c$$$      endif
       return
       end
 !======================================================
+      subroutine debugvectorout(dum,numvarl,lu)
+      use basic
+      dimension dum(*)
+!
+!     open (lu,file="vector.out",form="formatted",status="unknown")
+      do lz=1,m
+      do lx=1,n
+      index = 6*numvarl*( (lz-1)*n + lx-1)
+      write(lu,1991) lx,lz, (dum(index+j),j=1,6)
+      if(numvarl.gt.1) write(lu,1992) (dum(index+j),j=7,12)
+      if(numvarl.gt.2) write(lu,1992) (dum(index+j),j=13,18)
+      enddo
+      enddo
+      return
+ 1991 format(2i7,1p6e12.4)
+ 1992 format(14x,1p6e12.4)
+      end
+      subroutine combinerow(aa,mmnn,i1,i2,numvara)
+!
+!....combine rows i1 and i2 into i2
+      use p_data
+      use t_data
+      use basic
+
+      implicit none
+
+      real, intent(out), dimension(9,mmnn,6*numvara,6*numvara) :: aa
+      integer, intent(in) :: mmnn, i1, i2, numvara
+
+      integer :: nlocal, ibig, l, isl, j, is2
+!
+      nlocal = 6*numvara
+      ibig = (i1-1)/nlocal + 1
+      do l=1,itypemax(ibig)
+      do j=1,nlocal
+!
+      isl = i1 - (ibig-1)*nlocal
+      is2 = i2 - (ibig-1)*nlocal
+!
+      aa(l,ibig,is2, j ) = aa(l,ibig,is2, j ) - aa(l,ibig,isl, j )
+!
+      enddo
+      enddo
+      return
+      end
+!============================================================

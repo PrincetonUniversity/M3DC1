@@ -830,13 +830,34 @@ subroutine sparseR8d_zero_row(this, ig)
   this%values(ifirst:ilast) = 0.
 
 end subroutine sparseR8d_zero_row
+!===========================================================
+subroutine sparseR8d_combine_row(this, ig, ih)
+  use t_data
+  use basic
+
+  implicit none
+
+  type(sparseR8d_obj), intent(inout) :: this
+  integer, intent(in) :: ig, ih
+  
+  integer :: ifirstg, ilastg, ifirsth, jcol
+ 
+  ifirstg = this%rowptr(ig-this%fst_row)+1
+  ilastg = this%rowptr(ig-this%fst_row+1)
+  ifirsth = this%rowptr(ih-this%fst_row)+1
+
+      do jcol=ifirstg,ilastg
+      this%values(jcol) = this%values(jcol)-this%values(jcol-ifirstg+ifirsth)
+      enddo
+
+end subroutine sparseR8d_combine_row
 subroutine sparseR8d_output(this)
   
   implicit none
 
   type(sparseR8d_obj), intent(in) :: this
 
-  integer :: i, row, j
+  integer :: i, row, j, lastrow
 
   print *, 'Outputting matrix.out ', this%nnz_loc
 
@@ -850,7 +871,10 @@ subroutine sparseR8d_output(this)
         row = row+1
         j = j+1
      end do
-     write(77,'(I7,I7,1pE12.4)') row, this%colind(i), this%values(i)
+     lastrow = this%fst_row + this%m_loc - 1
+     if(row .le. lastrow) then
+       write(77,'(2I7,1pE12.4)') row, this%colind(i), this%values(i)
+     endif
   enddo
 
   close(77)
