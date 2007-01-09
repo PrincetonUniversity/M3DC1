@@ -1,3 +1,54 @@
+subroutine set_boundary_condition(iboundarr, iboundright, numvari)
+
+  use basic
+
+  implicit none
+
+  integer, dimension(6,*) :: iboundarr
+  integer, dimension(6) :: iboundright
+  integer, intent(in) :: numvari
+
+  integer :: ibottom, iright, itop, ileft, izone, izonedim
+  integer :: numnodes, i, ibegin, iendplusone
+  real :: theta, co, sn
+
+  if(iper.eq.1 .and. jper.eq.1) return
+
+  call getmodeltags(ibottom, iright, itop, ileft)
+
+  do i=1, numnodes 
+     call zonenod(i,izone,izonedim)
+     call entdofs(numvari, i, 0, ibegin, iendplusone)
+
+     if(izonedim .eq. 1) then
+        if     (izone.eq.ibottom) then
+           if(jper.eq.1) cycle
+           theta = -pi/2.
+        else if(izone.eq.iright) then
+           if(iper.eq.1) cycle
+           theta = 0.
+        else if(izone.eq.itop) then    
+           if(jper.eq.1) cycle
+           theta = pi/2.
+        else if(izone.eq.ileft) then
+           if(iper.eq.1) cycle
+           theta = pi
+        else
+           print *, "Error: unknown izone ", izone
+        end if
+        
+        co = cos(theta)
+        sn = sin(theta)
+   
+     else if(izonedim .eq. 0) then
+        
+     endif
+  end do
+  
+
+end subroutine set_boundary_condition
+
+
 ! Dirichlet Boundary Conditions
 ! =============================
 subroutine boundaryds(ibound,nbc,jsymtype)
@@ -60,12 +111,14 @@ subroutine boundaryds(ibound,nbc,jsymtype)
 end subroutine boundaryds
 
 
-! Velocity Boundary Conditions (no-slip)
-! ======================================
-subroutine boundaryv(ibound,nbc)
+! Velocity Boundary Conditions
+! ============================
+subroutine boundaryv(ibound,ibound2,nbc)
   use basic
   implicit none
-  integer :: numnodes, i, izone, ibound(*), nbc, izonedim
+  integer, dimension(*) :: ibound, ibound2
+  integer, intent(out) :: nbc 
+  integer :: numnodes, i, izone, izonedim
   integer :: ibottom, iright, itop, ileft, ibegin, iendplusone
 
   call getmodeltags(ibottom, iright, itop, ileft)
@@ -117,16 +170,18 @@ subroutine boundaryv(ibound,nbc)
               ibound(nbc+2) = ibegin+7
               ibound(nbc+3) = ibegin+9
               nbc =  nbc+3
-              if(hyperv.ne.0 .and. imask.ne.1) then
-                 ibound(nbc+1) = ibegin+8
-                 ibound(nbc+2) = ibegin+10
-                 nbc =  nbc+2
-              endif
+!!$              if(hyperv.ne.0 .and. imask.ne.1) then
+!!$                 ibound(nbc+1) = ibegin+8
+!!$                 ibound(nbc+2) = ibegin+10
+!!$                 nbc =  nbc+2
+!!$              endif
            endif
            if(numvar.ge.3) then
               ibound(nbc+1) = ibegin+14
-              ibound(nbc+2) = ibegin+16
-              nbc =  nbc+2
+              ibound(nbc+2) = ibegin+15
+              ibound2(nbc+2)= ibegin+17
+              ibound(nbc+3) = ibegin+16
+              nbc =  nbc+3
            endif
         endif
 
@@ -149,12 +204,12 @@ subroutine boundaryv(ibound,nbc)
         if(numvar.ge.2) then
            ibound(nbc+1) = ibegin+6
            nbc =  nbc+1
-           if(hyperv.ne.0 .and. imask.ne.1) then
-              if(iper.eq.0 .and. jper.eq.0) then
-                 ibound(nbc+1) = ibegin+10
-                 nbc =  nbc+1
-              endif
-           endif
+!!$           if(hyperv.ne.0 .and. imask.ne.1) then
+!!$              if(iper.eq.0 .and. jper.eq.0) then
+!!$                 ibound(nbc+1) = ibegin+10
+!!$                 nbc =  nbc+1
+!!$              endif
+!!$           endif
            if(iper.eq.0) then
               ibound(nbc+1) = ibegin+8
               ibound(nbc+2) = ibegin+11
@@ -177,7 +232,9 @@ subroutine boundaryv(ibound,nbc)
            endif
            if(jper.eq.0) then
               ibound(nbc+1) = ibegin+14
-              nbc =  nbc+1
+              ibound(nbc+2) = ibegin+15
+              ibound2(nbc+2)= ibegin+17
+              nbc =  nbc+2
            endif
         endif
 
@@ -309,7 +366,7 @@ subroutine boundaryp(ibound,nbc)
 
         if(numvar.ge.3) then
            ibound(nbc+1) = ibegin+12
-           nbc = nbc+1
+           nbc =  nbc+1
            if(iper.eq.0) then
               ibound(nbc+1) = ibegin+14
               ibound(nbc+2) = ibegin+17
@@ -331,11 +388,15 @@ end subroutine boundaryp
 
 ! Smoother boundary conditions
 ! ============================
-subroutine boundarysm(ibound,nbc,iplace)
+subroutine boundarysm(ibound,ibound2,nbc,iplace)
   use basic
   implicit none
   
-  integer :: numnodes, i, izone, ibound(*), nbc, izonedim, iplace
+  integer, dimension(*) :: ibound, ibound2
+  integer, intent(in) :: iplace
+  integer, intent(out) :: nbc
+
+  integer :: numnodes, i, izone, izonedim
   integer :: ibottom, iright, itop, ileft, ibegin, iendplusone, numvarsm
 
   call getmodeltags(ibottom, iright, itop, ileft)
@@ -388,8 +449,10 @@ subroutine boundarysm(ibound,nbc,iplace)
                  nbc =  nbc+4
               else
                  ibound(nbc+1) = ibegin+8
-                 ibound(nbc+2) = ibegin+10
-                 nbc =  nbc+2
+                 ibound(nbc+2) = ibegin+9
+                 ibound2(nbc+2)= ibegin+11
+                 ibound(nbc+3) = ibegin+10
+                 nbc =  nbc+3
               endif
            endif
         endif
@@ -433,7 +496,9 @@ subroutine boundarysm(ibound,nbc,iplace)
               endif
               if(jper.eq.0) then
                  ibound(nbc+1) = ibegin+8
-                 nbc =  nbc+1
+                 ibound(nbc+2) = ibegin+9
+                 ibound2(nbc+2)= ibegin+11
+                 nbc =  nbc+2
               endif
            endif
         endif

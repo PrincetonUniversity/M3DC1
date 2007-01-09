@@ -5,6 +5,7 @@ module hdf5_output
   implicit none
 
   integer(HID_T) :: file_id, offset, global_elms
+  integer :: times_output
   character(LEN=7), parameter :: hdf5_filename = "C1.h5"
 
 contains
@@ -20,9 +21,11 @@ contains
     include 'mpif.h'
    
     integer, intent(out) :: error
-    
-    integer(HID_T) :: plist_id
+
+    integer(HID_T) :: root_id, plist_id
     integer :: info
+
+    times_output = 0
 
     call h5open_f(error)
     if(error.lt.0) then
@@ -43,6 +46,11 @@ contains
     endif
 
     call h5pclose_f(plist_id, error)
+
+    call h5gopen_f(file_id, "/", root_id, error)
+    call write_int_attr(root_id, "ntime", 0, error)
+
+    call h5gclose_f(root_id, error)
 
   end subroutine hdf5_initialize
 
@@ -89,6 +97,30 @@ contains
     call h5sclose_f(dspace_id, error)
     
   end subroutine write_int_attr
+
+  ! update_int_attr
+  ! ===============
+  subroutine update_int_attr(parent_id, name, value, error)
+    use hdf5
+    
+    implicit none
+    
+    integer(HID_T), intent(in) :: parent_id
+    character(LEN=*), intent(in) :: name
+    integer, intent(in)  :: value
+    integer, intent(out) :: error
+    
+    integer(HID_T) :: dspace_id, attr_id
+    integer(HSIZE_T), dimension(1) :: dims = 1
+
+    call h5screate_f(H5S_SCALAR_F, dspace_id, error)
+    
+    call h5aopen_name_f(parent_id, name, attr_id, error)
+    call h5awrite_f(attr_id, H5T_NATIVE_INTEGER, value, dims, error)
+    call h5aclose_f(attr_id, error)
+    call h5sclose_f(dspace_id, error)
+    
+  end subroutine update_int_attr
 
   ! write_real_attr
   ! ===============
@@ -169,7 +201,7 @@ contains
     
     ! Create global dataset
     call h5screate_simple_f(rank, global_dims, filespace, error)
-    call h5dcreate_f(parent_id, name, H5T_NATIVE_DOUBLE, filespace, &
+    call h5dcreate_f(parent_id, name, H5T_NATIVE_REAL, filespace, &
          dset_id, error)
     call h5sclose_f(filespace, error)
     
@@ -192,6 +224,59 @@ contains
     call h5pclose_f(plist_id, error)
 
   end subroutine output_field
+
+  ! output_scalar
+  ! =================
+  subroutine output_scalar(parent_id, name, value, time, error)
+    use hdf5
+
+    implicit none
+    
+    integer(HID_T), intent(in) :: parent_id
+    character(LEN=*), intent(in) :: name
+    real, intent(in) :: value
+    integer, intent(in) :: time
+    integer, intent(out) :: error
+
+    integer :: rank = 1
+    integer(HSIZE_T) :: chunk_size(1) = (/ 10 /)
+    integer(HSIZE_T) :: dims(1)
+    integer(HSIZE_T) :: local_dims(1) = (/ 1 /)
+    integer(HSIZE_T) :: offset(1)
+    integer(HSIZE_T) :: maxdims(1)
+    real :: values(1)
+    integer(HID_T) :: memspace, filespace, dset_id, p_id
+
+    dims(1) = time+1
+    offset(1) = time
+    maxdims(1) = H5S_UNLIMITED_F
+    values(1) = value
+    
+    if(time.eq.0) then
+       call h5screate_simple_f(rank, dims, filespace, error, maxdims)
+       call h5pcreate_f(H5P_DATASET_CREATE_F, p_id, error)
+       call h5pset_chunk_f(p_id, rank, chunk_size, error)
+       call h5dcreate_f(parent_id, name, H5T_NATIVE_REAL, filespace, dset_id, error, p_id)
+       call h5pclose_f(p_id, error)
+       call h5sclose_f(filespace, error)
+    else
+       call h5dopen_f(parent_id, name, dset_id, error)
+       call h5dextend_f(dset_id, dims, error)
+    endif
+
+    call h5screate_simple_f(rank, local_dims, memspace, error)
+    call h5dget_space_f(dset_id, filespace, error)
+    call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, offset, local_dims, error)
+
+    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, local_dims, error, &
+         file_space_id = filespace, mem_space_id = memspace)
+
+    ! Close HDF5 handles
+    call h5sclose_f(filespace, error)
+    call h5sclose_f(memspace, error)
+    call h5dclose_f(dset_id, error)
+
+  end subroutine output_scalar
 
 end module hdf5_output
 
@@ -222,6 +307,57 @@ subroutine hdf5_write_parameters(error)
 
 end subroutine hdf5_write_parameters
 
+! hdf5_write_scalars
+! ==================
+subroutine hdf5_write_scalars(error)
+  use basic
+  use hdf5_output
+
+  implicit none
+
+  integer, intent(out) :: error
+
+  integer(HID_T) :: root_id, scalar_group_id
+
+  call h5gopen_f(file_id, "/", root_id, error)
+
+  if(ntime.eq.0) then
+     call h5gcreate_f(root_id, "scalars", scalar_group_id, error)
+  else
+     call h5gopen_f(root_id, "scalars", scalar_group_id, error)
+  endif
+  
+  call output_scalar(scalar_group_id, "time" , time  , ntime, error)
+  call output_scalar(scalar_group_id, "E_MP" , emagp , ntime, error)
+  call output_scalar(scalar_group_id, "E_KP" , ekinp , ntime, error)
+  call output_scalar(scalar_group_id, "E_MPD", emagpd, ntime, error)
+  call output_scalar(scalar_group_id, "E_KPD", ekinpd, ntime, error)
+  call output_scalar(scalar_group_id, "E_MPH", emagph, ntime, error)
+  call output_scalar(scalar_group_id, "E_KPH", ekinph, ntime, error)
+  
+  if(numvar.ge.2) then
+     call output_scalar(scalar_group_id, "E_MT" , emagt , ntime, error)
+     call output_scalar(scalar_group_id, "E_KT" , ekint , ntime, error)
+     call output_scalar(scalar_group_id, "E_MTD", emagtd, ntime, error)
+     call output_scalar(scalar_group_id, "E_KTD", ekintd, ntime, error)
+     call output_scalar(scalar_group_id, "E_MTH", emagth, ntime, error)
+     call output_scalar(scalar_group_id, "E_KTH", ekinth, ntime, error)
+  endif
+
+  if(numvar.ge.3) then
+     call output_scalar(scalar_group_id, "E_P" , emag3, ntime, error)
+     call output_scalar(scalar_group_id, "E_K3", ekin3, ntime, error)
+     call output_scalar(scalar_group_id, "E_PD", emag3d, ntime, error)
+     call output_scalar(scalar_group_id, "E_K3D", ekin3d, ntime, error)
+     call output_scalar(scalar_group_id, "E_PH", emag3h, ntime, error)
+     call output_scalar(scalar_group_id, "E_K3H", ekin3h, ntime, error)
+  endif
+
+  call h5gclose_f(scalar_group_id, error)
+  call h5gclose_f(root_id, error)
+
+end subroutine hdf5_write_scalars
+
 
 ! hdf5_write_time_slice
 ! =====================
@@ -237,7 +373,7 @@ subroutine hdf5_write_time_slice(error)
   integer, intent(out) :: error
 
   character(LEN=19) :: time_group_name
-  integer(HID_T) :: time_group_id, mesh_group_id
+  integer(HID_T) :: time_group_id, mesh_group_id, root_id
   integer :: nelms
     
   call numfac(nelms)
@@ -250,10 +386,11 @@ subroutine hdf5_write_time_slice(error)
   print *, "Global elms = ", global_elms
 
   ! Create the time group
-  write(time_group_name, '("time_"I3.3)'), ntime
+  write(time_group_name, '("time_"I3.3)'), times_output
   call h5gcreate_f(file_id, time_group_name, time_group_id, error)
 
   ! Write attributes
+  call write_real_attr(time_group_id, "time", time, error)
   call write_int_attr(time_group_id, "nspace", 2, error)
 
   ! Output the mesh data
@@ -267,6 +404,11 @@ subroutine hdf5_write_time_slice(error)
 
   ! Flush the data to disk
   call h5fflush_f(file_id, H5F_SCOPE_GLOBAL_F, error)
+
+  times_output = times_output + 1
+  call h5gopen_f(file_id, "/", root_id, error)
+  call update_int_attr(root_id, "ntime", times_output, error)
+  call h5gclose_f(root_id, error)
 
 end subroutine hdf5_write_time_slice
 
@@ -368,12 +510,12 @@ subroutine output_fields(time_group_id, error)
   call output_field(group_id, "vor", dum, 20, nelms, error)
   nfields = nfields + 1
 
-  ! sb1
-  do i=1, nelms
-     call calcavector(i, sb1, 1, 1, dum(:,i))
-  end do
-  call output_field(group_id, "sb1", dum, 20, nelms, error)
-  nfields = nfields + 1
+!!$  ! sb1
+!!$  do i=1, nelms
+!!$     call calcavector(i, sb1, 1, 1, dum(:,i))
+!!$  end do
+!!$  call output_field(group_id, "sb1", dum, 20, nelms, error)
+!!$  nfields = nfields + 1
 
   if(numvar.ge.2) then
      ! I
@@ -390,12 +532,12 @@ subroutine output_fields(time_group_id, error)
      call output_field(group_id, "V", dum, 20, nelms, error)
      nfields = nfields + 1
 
-     ! sb2
-     do i=1, nelms
-        call calcavector(i, sb2, 1, 1, dum(:,i))
-     end do
-     call output_field(group_id, "sb2", dum, 20, nelms, error)
-     nfields = nfields + 1
+!!$     ! sb2
+!!$     do i=1, nelms
+!!$        call calcavector(i, sb2, 1, 1, dum(:,i))
+!!$     end do
+!!$     call output_field(group_id, "sb2", dum, 20, nelms, error)
+!!$     nfields = nfields + 1
 
   endif
 
@@ -414,19 +556,19 @@ subroutine output_fields(time_group_id, error)
      call output_field(group_id, "chi", dum, 20, nelms, error)
      nfields = nfields + 1
 
-     ! com
-     do i=1, nelms
-        call calcavector(i, com, 1, 1, dum(:,i))
-     end do
-     call output_field(group_id, "com", dum, 20, nelms, error)
-     nfields = nfields + 1
+!!$     ! com
+!!$     do i=1, nelms
+!!$        call calcavector(i, com, 1, 1, dum(:,i))
+!!$     end do
+!!$     call output_field(group_id, "com", dum, 20, nelms, error)
+!!$     nfields = nfields + 1
 
-     ! sb3
-     do i=1, nelms
-        call calcavector(i, sb3, 1, 1, dum(:,i))
-     end do
-     call output_field(group_id, "sb3", dum, 20, nelms, error)
-     nfields = nfields + 1
+!!$     ! sb3
+!!$     do i=1, nelms
+!!$        call calcavector(i, sb3, 1, 1, dum(:,i))
+!!$     end do
+!!$     call output_field(group_id, "sb3", dum, 20, nelms, error)
+!!$     nfields = nfields + 1
   endif
 
   if(idens.eq.1) then

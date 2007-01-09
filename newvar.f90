@@ -146,7 +146,11 @@ subroutine newvar(inarray,outarray,numvard,itype,iop,ibound)
   if(iprint.ge.1) write(*,*) "newvar: after solve", myrank
   call numdofs(1, ndof)
   do i=1,ndof
-     outarray(i) = temp(i)
+     if(iop.eq.VAR_J) then
+        outarray(i) = -temp(i)
+     else
+        outarray(i) = temp(i)
+     endif
   enddo
   
   call deletevec(temp)
@@ -300,7 +304,7 @@ subroutine newvar_SB1(temp)
      do i=1,18
         ione = isval1(itri,i)
 
-        sum = b1psieta(g79(:,:,i),pst79,hypf)*etar
+        sum = b1psieta(g79(:,:,i),pst79,etar,hypf)
         if(numvar.ge.2) then
            sum = sum + b1psibd(g79(:,:,i),pst79,bzt79,ni79)
         endif
@@ -416,7 +420,7 @@ subroutine newvar_SB2(temp)
 
         sum = b2psipsid(g79(:,:,i),pst79,pst79,ni79) &
              +b2bbd    (g79(:,:,i),bzt79,bzt79,ni79) &
-             +b2beta   (g79(:,:,i),bzt79,hypi)*etar
+             +b2beta   (g79(:,:,i),bzt79,etar,hypi)
 
         if(numvar.ge.3) then
            sum = sum + b2ped(g79(:,:,i),pet79,ni79)
@@ -449,7 +453,7 @@ subroutine newvar_SP1(temp)
   real, intent(out) :: temp(*)
 
   integer :: itri, i, ione, j, j1, j01, numelms
-  real :: sum, factor, x, z, xmin, zmin, avec(20), dbf, deex, hypi
+  real :: sum, factor, x, z, xmin, zmin, avec(20), dbf, deex, hypi, hypp
 
   double precision :: cogcoords(3)
 
@@ -469,7 +473,8 @@ subroutine newvar_SP1(temp)
      dbf = db*factor
 
      call getdeex(itri,deex)
-     hypi = hyperi* deex**2
+     hypi = hyperi*deex**2
+     hypp = hyperp*deex**2
 
      ! calculate the local field values
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -551,7 +556,7 @@ subroutine newvar_SP1(temp)
         sum = b3pebd     (g79(:,:,i),pet79,bzt79,ni79)   &
              +b3psipsieta(g79(:,:,i),pst79,pst79)*etar   &
              +b3bbeta    (g79(:,:,i),bzt79,bzt79)*etar   &
-             +b3pedkappa (g79(:,:,i),pt79, ni79 )*kappat &
+             +b3pedkappa (g79(:,:,i),pt79, ni79,kappat,hypp) &
              +p1kappar   (g79(:,:,i),pst79,pst79,pt79,ni79,b2i79)*kappar
 
         temp(ione) = temp(ione) + sum

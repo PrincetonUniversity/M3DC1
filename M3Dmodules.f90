@@ -64,6 +64,7 @@ module basic
   real :: dt             ! timestep
   real :: thimp          ! implicitness parameter
   real :: facw, facd
+  real :: regular        ! regularization constant in chi equation
 
   ! output parameters
   integer :: iprint   ! print extra debugging info
@@ -87,7 +88,8 @@ module basic
        tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,cb,     &
        bzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,      &
        kappa,iper,jper,iprint,itimer,xzero,zzero,beta,pi0,   &
-       eqsubtract,denm,grav,kappat,kappar,ln,amuc,iconstflux
+       eqsubtract,denm,grav,kappat,kappar,ln,amuc,iconstflux,&
+       regular
 
   !     derived quantities
   real :: tt,gamma4,gamma2,gamma3,dpsii,psimin,psilim,pi,              &
@@ -133,7 +135,7 @@ module arrays
   ! indices
   integer :: p,q,r,s
   integer :: maxdofs1, maxdofs2, maxdofs3
-  integer, allocatable :: iboundgs(:), iboundv(:), iboundp(:), iboundn(:)
+  integer, allocatable :: iboundgs(:), iboundv(:), iboundv2(:), iboundp(:), iboundn(:)
   integer, allocatable :: isvaln(:,:),isval1(:,:),isval2(:,:)
   real :: fint(-6:maxi,-6:maxi), xi(3),zi(3),df(0:4,0:4)
   real :: xsep(5), zsep(5), graphit(0:ntimep,maxplots)

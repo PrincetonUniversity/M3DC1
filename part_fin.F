@@ -96,8 +96,8 @@ c     created with ordering specified by numvar
       call createvec(qn4, 1)
 !
 !.....boundary arrays
-      allocate(iboundgs(nbound),iboundv(nbound),iboundp(nbound),        &
-     &     iboundn(nbound),                                             &
+      allocate(iboundgs(nbound),iboundv(nbound),iboundv2(nbound),       &
+     &     iboundp(nbound),iboundn(nbound),                             &
      &     psibounds(nbound),velbounds(nbound))
 !
 !.....arrays associated with the triangles
@@ -132,7 +132,7 @@ c     created with ordering specified by numvar
      &     dterm(18,18)
       integer, parameter :: r9a = selected_real_kind(12,100)
       real(r9a), allocatable:: temp(:)
-      integer,  save, allocatable:: iboundsm(:)
+      integer,  save, allocatable :: iboundsm(:), iboundsm2(:)
       real hyp, thimpsm
       integer numvarsm, itri, i, j,izone,izonedim,
      1     l, jone, ier, jtwo, itwo, nbcsm, nbound
@@ -155,7 +155,7 @@ c$$$      call numdofs(numvarsm, ndofs_sm)
          if(izonedim .ne. 2) nbound = nbound + 1
       enddo
       nbound = 12*numvar*nbound
-      allocate(iboundsm(2*nbound))
+      allocate(iboundsm(2*nbound),iboundsm2(2*nbound))
 !
 !
 !.....compute LU decomposition only once
@@ -176,7 +176,7 @@ c$$$      call numdofs(numvarsm, ndofs_sm)
               ssterm(1,1) = dterm(i,j)
               ssterm(1,2) =-aterm(i,j)
               ssterm(2,1) =  +dt*hyp*thimpsm*bterm(i,j)
-              ssterm(2,2) = aterm(i,j)
+              ssterm(2,2) = aterm(i,j) - regular*dterm(i,j)
               call insertval(s7matrix_sm,ssterm(1,1),itwo  ,jtwo  ,1)
               call insertval(s7matrix_sm,ssterm(1,2),itwo  ,jtwo+6,1)
               call insertval(s7matrix_sm,ssterm(2,1),itwo+6,jtwo  ,1)
@@ -186,10 +186,13 @@ c$$$      call numdofs(numvarsm, ndofs_sm)
       enddo
 !
 !......define indices for boundary arrays
-      call boundarysm(iboundsm,nbcsm,iplace)
+      call boundarysm(iboundsm,iboundsm2,nbcsm,iplace)
       ! bc stuff...
       do i=1,nbcsm
          call setdiribc(s7matrix_sm, iboundsm(i))
+c$$$         if(iboundsm2(i) .ne. 0) then
+c$$$            call insertval(s7matrix_sm,1.,iboundsm(i),iboundsm2(i),0)
+c$$$         endif
       enddo
       call finalizearray4solve(s7matrix_sm)
 !
@@ -232,7 +235,7 @@ c$$$      call numdofs(numvarsm, ndofs_sm)
          call entdofs(numvarsm, l, 0, ibeginsm, iendplusonesm)
          do i=0,5
             outarray(ibegind+6*(iplace-1)+i) = 
-     &           temp(ibeginsm+i)
+     &           temp(ibeginsm+6+i)
          enddo
       enddo
 !
@@ -287,245 +290,250 @@ c      enddo
       return
       end
 !============================
-      subroutine energy 
-      use p_data
-      use t_data
-      use basic
-      use arrays
-      implicit none
-#ifdef mpi
-      include "mpif.h"
-#endif
-      integer itri, i, j, j1, i1, jone, ione,
-     &     j01, i01, k, kone, j2, i2, j3, i3
-      real terma, termb, termd, hypf, hypi, hypv, hypc, aterm(18,18),
-     &     gamfac, deex, dofs(20), g2term(18,18),fintl(-6:maxi,-6:maxi),
-     &     bterm(18,18), dterm(18,18), d2term(18)
-      double precision temp(18), temp2(18)
-      integer numelms
-
-      call numfac(numelms)
-!
-      ekino = ekin
-      emago = emag
-      ekindo = ekind
-      emagdo = emagd
-!
-      ekinpo = ekinp
-      emagpo = emagp
-      ekinpdo = ekinpd
-      emagpdo = emagpd
-!
-      ekinto = ekint
-      emagto = emagt
-      ekintdo = ekintd
-      emagtdo = emagtd
-!
-      ekinpho = ekinph
-      ekintho = ekinth
-      emagpho = emagph
-      emagtho = emagth
-!
-      ekin3o = ekin3 
-      ekin3do = ekin3d
-      ekin3ho = ekin3h 
-      emag3o = emag3
-      emag3do = emag3d
-      emag3ho = emag3h
-!
-      ekin = 0.
-      emag = 0.
-      ekind = 0.
-      emagd = 0.
-      ekinp = 0.
-      emagp = 0.
-      ekinpd = 0.
-      emagpd = 0.      
-      ekint = 0.
-      emagt = 0.
-      ekintd = 0.
-      emagtd = 0.
-      ekinph = 0
-      ekinth = 0.
-      emagph = 0.
-      emagth = 0.
-      ekin3 = 0.
-      ekin3d = 0.
-      ekin3h = 0.
-      emag3 = 0.
-      emag3d = 0.
-      emag3h = 0.
-!
-!     volume terms
-      do itri=1,numelms
-         call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
-         call calcaterm(itri, aterm, fintl)
-         call calcbterm(itri, bterm, fintl)
-         call calcdterm(itri, dterm, fintl)
-         if(idens .ne. 0) then
-            call getlocaldofs(itri, 1, dofs, 1., den, isval1, 
-     &           0., den, isval1)
-            call calcg2term(itri, g2term, fintl, dofs, 1, 2, 3)
-         endif
-         if(numvar. ge. 3) call calcd2term(itri, d2term, fintl)
-         call getdeex(itri,deex)
-         hypf = hyper*deex**2
-         hypi = hyperi*deex**2
-         hypv = hyperv*deex**2
-         hypc = hyperc*deex**2
-         do j=1,18
-            do i=1,18
-               terma = aterm(i,j)
-               termb = bterm(i,j)
-               termd = dterm(i,j)
-                                !
-               j1 = isvaln(itri,j)
-               i1 = isvaln(itri,i)
-               ione = isval1(itri,i)
-               jone = isval1(itri,j)
-! below changed by acbauer to use isvaln instead of isval0
-               j01 = isvaln(itri,j)
-               i01 = isvaln(itri,i)
-!
-               if(idens.eq.0) then
-                  ekinp = ekinp - .5*terma*((vel(i1)+vel0(i1))*         &
-     &                 (vel(j1)+vel0(j1))-vel0(i1)*vel0(j1))
-               else
-                  ekinp = ekinp - .5*g2term(i,j) * ((vel(i1)+vel0(i1))*
-     &                 (vel(j1)+vel0(j1))-vel0(i1)*vel0(j1))
-               endif
-!
-               emagp = emagp - .5*terma* ((phi(i1)+phi0(i01))*(phi(j1)  &
-     &              +phi0(j01))-phi0(i01)*phi0(j01))
-c               write(*,*) emag p, terma, i1, j1
-!
-               ekinpd= ekinpd - termb*amu*((vel(i1)+vel0(i1))*(vel(j1)  &
-     &              +vel0(j1))-vel0(i1)*vel0(j1))
-!
-               emagpd= emagpd - termb*etar*((phi(i1)+phi0(i01))*(phi(j1)&
-     &              +phi0(j01))-phi0(i01)*phi0(j01))
-!
-               ekinph= ekinph + terma*hypc*amu*((vor(ione)+vor0(ione))* &
-     &          (vor(jone)+vor0(jone))-vor0(ione)*vor0(jone))
-!
-               emagph= emagph + terma*hypf*etar*                        &
-     &              ((jphi(ione)+jphi0(ione))*(jphi(jone)+jphi0(jone))- &
-     &                jphi0(ione)*jphi0(jone))
-!
-!
-               if(numvar.ge.2) then
-                  j2 = j1 + 6
-                  i2 = i1 + 6
-!
-                  emagt = emagt + .5*termd*((phi(i2)+phi0(i2))*         &
-     &                 (phi(j2)+phi0(j2))-phi0(i2)*phi0(j2))
-!
-                  ekintd= ekintd + amu*terma*((vel(i2)+vel0(i2))*       &
-     &                 (vel(j2)+vel0(j2))-vel0(i2)*vel0(j2))
-                  ekinth= ekinth - amu*termb*hypv*((vel(i2)+vel0(i2))*  &
-     &                 (vel(j2)+vel0(j2))-vel0(i2)*vel0(j2))
-!
-                  emagtd= emagtd + etar*terma*((phi(i2)+phi0(i2))*      &
-     &                 (phi(j2)+phi0(j2))-phi0(i2)*phi0(j2))
-                  emagth= emagth - etar*termb*hypi*((phi(i2)+phi0(i2))* &
-     &                 (phi(j2)+phi0(j2))-phi0(i2)*phi0(j2))
-!
-               endif
-               if(numvar.ge.3) then
-                  j3 = j1 + 12
-                  i3 = i1 + 12
-                  if(idens.eq.0) then
-                     ekin3 = ekin3 - 0.5*terma*((vel(i3)+vel0(i3))*     &
-     &                    (vel(j3)+vel0(j3))-vel0(i3)*vel0(j3))
-                  else
-                     do k=1,18
-                        kone = isval1(itri,k)
-                     enddo
-                  endif
-!
-!
-                  ekin3d= ekin3d - amu*termb*((vel(i3)+vel0(i3))*       &
-     &                 (vel(j3)+vel0(j3))-vel0(i3)*vel0(j3))
-!
-                  ekin3h= ekin3h + terma*hypc*amu*                      &
-     &                 ((com(ione)+com0(ione))*(com(jone)+com0(jone))-  &
-     &                 com0(ione)*com0(jone))
-!
-               endif
-
-            enddo               ! end of loop on i
-!
-            if(numvar.ge.3) then
-               gamfac = 1.
-               if(gam-1.0 .ne. 0.) gamfac = 1./(gam-1.)
-               emag3 = emag3 + gamfac*d2term(j)*phi(j3)
-            endif
-!
-         enddo                  ! end of loop on j
-      enddo     ! end of loop on itri
-c same here with ntime = 1      if(ntime .eq. 1) call printarray(jphi0, 150, 0, 'jphi0 ne')
-!    
- 8900 format(/," ntime=",i5)
- 8901 format(1p5e12.4)
-! parallel updating of values summed over elements
-#ifdef mpi
-      if(maxrank .gt. 1) then
-         temp(1) = ekinp
-         temp(2) = emagp
-         temp(3) = ekinpd
-         temp(4) = emagpd      
-         temp(5) = ekint
-         temp(6) = emagt
-         temp(7) = ekintd
-         temp(8) = emagtd
-         temp(9) = ekinph
-         temp(10) = ekinth
-         temp(11) = emagph
-         temp(12) = emagth
-         temp(13) = ekin3
-         temp(14) = ekin3d
-         temp(15) = ekin3h
-         temp(16) = emag3
-         temp(17) = emag3d
-         temp(18) = emag3h
-         
-         call mpi_allreduce(temp, temp2, 18, MPI_DOUBLE_PRECISION, 
-     &        MPI_SUM, MPI_COMM_WORLD, i) !checked that this should be MPI_DOUBLE_PRECISION
-         
-         
-         ekinp = temp2(1)
-         emagp = temp2(2)
-         ekinpd = temp2(3)
-         emagpd = temp2(4)      
-         ekint = temp2(5)
-         emagt = temp2(6)
-         ekintd = temp2(7)
-         emagtd = temp2(8)
-         ekinph = temp2(9)
-         ekinth = temp2(10)
-         emagph = temp2(11)
-         emagth = temp2(12)
-         ekin3 = temp2(13)
-         ekin3d = temp2(14)
-         ekin3h = temp2(15)
-         emag3 = temp2(16)
-         emag3d = temp2(17)
-         emag3h = temp2(18)
-      endif !if maxrank .gt. 1
-#endif !ifdef mpi
-      if(myrank .eq. 0) then
-         write(*,*) 'EKINP EKINT EKIN3 ', ekinp, ekint, ekin3      
-      endif
-      ekin = ekinp + ekint + ekin3
-      emag = emagp + emagt + emag3
-      if(myrank .eq. 0) then
-         write(*,*) 'emag===', emag,emagp, emagt,emag3,ntime
-      endif
-      ekind = ekinpd + ekintd + ekin3d
-      emagd = emagpd + emagtd + emag3d
-!
-      return
-      end
+c$$$      subroutine energy 
+c$$$      use p_data
+c$$$      use t_data
+c$$$      use basic
+c$$$      use arrays
+c$$$      implicit none
+c$$$#ifdef mpi
+c$$$      include "mpif.h"
+c$$$#endif
+c$$$      integer itri, i, j, j1, i1, jone, ione,
+c$$$     &     j01, i01, k, kone, j2, i2, j3, i3
+c$$$      real terma, termb, termd, hypf, hypi, hypv, hypc, aterm(18,18),
+c$$$     &     gamfac, deex, dofs(20), g2term(18,18),fintl(-6:maxi,-6:maxi),
+c$$$     &     bterm(18,18), dterm(18,18), d2term(18)
+c$$$      double precision temp(18), temp2(18)
+c$$$      integer numelms
+c$$$
+c$$$      call numfac(numelms)
+c$$$!
+c$$$      ekino = ekin
+c$$$      emago = emag
+c$$$      ekindo = ekind
+c$$$      emagdo = emagd
+c$$$!
+c$$$      ekinpo = ekinp
+c$$$      emagpo = emagp
+c$$$      ekinpdo = ekinpd
+c$$$      emagpdo = emagpd
+c$$$!
+c$$$      ekinto = ekint
+c$$$      emagto = emagt
+c$$$      ekintdo = ekintd
+c$$$      emagtdo = emagtd
+c$$$!
+c$$$      ekinpho = ekinph
+c$$$      ekintho = ekinth
+c$$$      emagpho = emagph
+c$$$      emagtho = emagth
+c$$$!
+c$$$      ekin3o = ekin3 
+c$$$      ekin3do = ekin3d
+c$$$      ekin3ho = ekin3h 
+c$$$      emag3o = emag3
+c$$$      emag3do = emag3d
+c$$$      emag3ho = emag3h
+c$$$!
+c$$$      ekin = 0.
+c$$$      emag = 0.
+c$$$      ekind = 0.
+c$$$      emagd = 0.
+c$$$      ekinp = 0.
+c$$$      emagp = 0.
+c$$$      ekinpd = 0.
+c$$$      emagpd = 0.      
+c$$$      ekint = 0.
+c$$$      emagt = 0.
+c$$$      ekintd = 0.
+c$$$      emagtd = 0.
+c$$$      ekinph = 0
+c$$$      ekinth = 0.
+c$$$      emagph = 0.
+c$$$      emagth = 0.
+c$$$      ekin3 = 0.
+c$$$      ekin3d = 0.
+c$$$      ekin3h = 0.
+c$$$      emag3 = 0.
+c$$$      emag3d = 0.
+c$$$      emag3h = 0.
+c$$$!
+c$$$!     volume terms
+c$$$      do itri=1,numelms
+c$$$         call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
+c$$$         call calcaterm(itri, aterm, fintl)
+c$$$         call calcbterm(itri, bterm, fintl)
+c$$$         call calcdterm(itri, dterm, fintl)
+c$$$         if(idens .ne. 0) then
+c$$$            call getlocaldofs(itri, 1, dofs, 1., den, isval1, 
+c$$$     &           0., den, isval1)
+c$$$            call calcg2term(itri, g2term, fintl, dofs, 1, 2, 3)
+c$$$         endif
+c$$$         if(numvar. ge. 3) call calcd2term(itri, d2term, fintl)
+c$$$         call getdeex(itri,deex)
+c$$$         hypf = hyper*deex**2
+c$$$         hypi = hyperi*deex**2
+c$$$         hypv = hyperv*deex**2
+c$$$         hypc = hyperc*deex**2
+c$$$         do j=1,18
+c$$$            do i=1,18
+c$$$               terma = aterm(i,j)
+c$$$               termb = bterm(i,j)
+c$$$               termd = dterm(i,j)
+c$$$                                !
+c$$$               j1 = isvaln(itri,j)
+c$$$               i1 = isvaln(itri,i)
+c$$$               ione = isval1(itri,i)
+c$$$               jone = isval1(itri,j)
+c$$$! below changed by acbauer to use isvaln instead of isval0
+c$$$               j01 = isvaln(itri,j)
+c$$$               i01 = isvaln(itri,i)
+c$$$!
+c$$$               if(idens.eq.0) then
+c$$$                  ekinp = ekinp - .5*terma*((vel(i1)+vel0(i1))*         &
+c$$$     &                 (vel(j1)+vel0(j1))-vel0(i1)*vel0(j1))
+c$$$               else
+c$$$                  ekinp = ekinp - .5*g2term(i,j) * ((vel(i1)+vel0(i1))*
+c$$$     &                 (vel(j1)+vel0(j1))-vel0(i1)*vel0(j1))
+c$$$               endif
+c$$$!
+c$$$               emagp = emagp - .5*terma* ((phi(i1)+phi0(i01))*(phi(j1)  &
+c$$$     &              +phi0(j01))-phi0(i01)*phi0(j01))
+c$$$c               write(*,*) emag p, terma, i1, j1
+c$$$!
+c$$$               ekinpd= ekinpd - termb*amu*((vel(i1)+vel0(i1))*(vel(j1)  &
+c$$$     &              +vel0(j1))-vel0(i1)*vel0(j1))
+c$$$!
+c$$$               emagpd= emagpd - termb*etar*((phi(i1)+phi0(i01))*(phi(j1)&
+c$$$     &              +phi0(j01))-phi0(i01)*phi0(j01))
+c$$$!
+c$$$               ekinph= ekinph + terma*hypc*amu*((vor(ione)+vor0(ione))* &
+c$$$     &          (vor(jone)+vor0(jone))-vor0(ione)*vor0(jone))
+c$$$!
+c$$$               emagph= emagph + terma*hypf*etar*                        &
+c$$$     &              ((jphi(ione)+jphi0(ione))*(jphi(jone)+jphi0(jone))- &
+c$$$     &                jphi0(ione)*jphi0(jone))
+c$$$!
+c$$$!
+c$$$               if(numvar.ge.2) then
+c$$$                  j2 = j1 + 6
+c$$$                  i2 = i1 + 6
+c$$$!
+c$$$                  emagt = emagt + .5*termd*((phi(i2)+phi0(i2))*         &
+c$$$     &                 (phi(j2)+phi0(j2))-phi0(i2)*phi0(j2))
+c$$$!
+c$$$                  ekintd= ekintd + amu*terma*((vel(i2)+vel0(i2))*       &
+c$$$     &                 (vel(j2)+vel0(j2))-vel0(i2)*vel0(j2))
+c$$$                  ekinth= ekinth - amu*termb*hypv*((vel(i2)+vel0(i2))*  &
+c$$$     &                 (vel(j2)+vel0(j2))-vel0(i2)*vel0(j2))
+c$$$!
+c$$$                  emagtd= emagtd + etar*terma*((phi(i2)+phi0(i2))*      &
+c$$$     &                 (phi(j2)+phi0(j2))-phi0(i2)*phi0(j2))
+c$$$                  emagth= emagth - etar*termb*hypi*((phi(i2)+phi0(i2))* &
+c$$$     &                 (phi(j2)+phi0(j2))-phi0(i2)*phi0(j2))
+c$$$!
+c$$$               endif
+c$$$               if(numvar.ge.3) then
+c$$$                  j3 = j1 + 12
+c$$$                  i3 = i1 + 12
+c$$$                  if(idens.eq.0) then
+c$$$                     ekin3 = ekin3 - 0.5*terma*((vel(i3)+vel0(i3))*     &
+c$$$     &                    (vel(j3)+vel0(j3))-vel0(i3)*vel0(j3))
+c$$$                  else
+c$$$                     do k=1,18
+c$$$                        kone = isval1(itri,k)
+c$$$
+c$$$                        ekin3 = ekin3 - .5*g2term(iodd,i,j,k)*dent(kone)*(1+jsym)   &
+c$$$     &      *((vel(i3)+vel0(i3))*(vel(j3)+vel0(j3))-vel0(i3)*vel0(j3))  &
+c$$$     &                    + k0term(iodd,k,j,i)*dent(kone)*(1+jsym)      &
+c$$$     &      *((vel(i1)+vel0(i1))*(vel(j3)+vel0(j3))-vel0(i1)*vel0(j3))
+c$$$                     enddo
+c$$$                  endif
+c$$$!
+c$$$!
+c$$$                  ekin3d= ekin3d - amu*termb*((vel(i3)+vel0(i3))*       &
+c$$$     &                 (vel(j3)+vel0(j3))-vel0(i3)*vel0(j3))
+c$$$!
+c$$$                  ekin3h= ekin3h + terma*hypc*amu*                      &
+c$$$     &                 ((com(ione)+com0(ione))*(com(jone)+com0(jone))-  &
+c$$$     &                 com0(ione)*com0(jone))
+c$$$!
+c$$$               endif
+c$$$
+c$$$            enddo               ! end of loop on i
+c$$$!
+c$$$            if(numvar.ge.3) then
+c$$$               gamfac = 1.
+c$$$               if(gam-1.0 .ne. 0.) gamfac = 1./(gam-1.)
+c$$$               emag3 = emag3 + gamfac*d2term(j)*phi(j3)
+c$$$            endif
+c$$$!
+c$$$         enddo                  ! end of loop on j
+c$$$      enddo     ! end of loop on itri
+c$$$c same here with ntime = 1      if(ntime .eq. 1) call printarray(jphi0, 150, 0, 'jphi0 ne')
+c$$$!    
+c$$$ 8900 format(/," ntime=",i5)
+c$$$ 8901 format(1p5e12.4)
+c$$$! parallel updating of values summed over elements
+c$$$#ifdef mpi
+c$$$      if(maxrank .gt. 1) then
+c$$$         temp(1) = ekinp
+c$$$         temp(2) = emagp
+c$$$         temp(3) = ekinpd
+c$$$         temp(4) = emagpd      
+c$$$         temp(5) = ekint
+c$$$         temp(6) = emagt
+c$$$         temp(7) = ekintd
+c$$$         temp(8) = emagtd
+c$$$         temp(9) = ekinph
+c$$$         temp(10) = ekinth
+c$$$         temp(11) = emagph
+c$$$         temp(12) = emagth
+c$$$         temp(13) = ekin3
+c$$$         temp(14) = ekin3d
+c$$$         temp(15) = ekin3h
+c$$$         temp(16) = emag3
+c$$$         temp(17) = emag3d
+c$$$         temp(18) = emag3h
+c$$$         
+c$$$         call mpi_allreduce(temp, temp2, 18, MPI_DOUBLE_PRECISION, 
+c$$$     &        MPI_SUM, MPI_COMM_WORLD, i) !checked that this should be MPI_DOUBLE_PRECISION
+c$$$         
+c$$$         
+c$$$         ekinp = temp2(1)
+c$$$         emagp = temp2(2)
+c$$$         ekinpd = temp2(3)
+c$$$         emagpd = temp2(4)      
+c$$$         ekint = temp2(5)
+c$$$         emagt = temp2(6)
+c$$$         ekintd = temp2(7)
+c$$$         emagtd = temp2(8)
+c$$$         ekinph = temp2(9)
+c$$$         ekinth = temp2(10)
+c$$$         emagph = temp2(11)
+c$$$         emagth = temp2(12)
+c$$$         ekin3 = temp2(13)
+c$$$         ekin3d = temp2(14)
+c$$$         ekin3h = temp2(15)
+c$$$         emag3 = temp2(16)
+c$$$         emag3d = temp2(17)
+c$$$         emag3h = temp2(18)
+c$$$      endif !if maxrank .gt. 1
+c$$$#endif !ifdef mpi
+c$$$      if(myrank .eq. 0) then
+c$$$         write(*,*) 'EKINP EKINT EKIN3 ', ekinp, ekint, ekin3      
+c$$$      endif
+c$$$      ekin = ekinp + ekint + ekin3
+c$$$      emag = emagp + emagt + emag3
+c$$$      if(myrank .eq. 0) then
+c$$$         write(*,*) 'emag===', emag,emagp, emagt,emag3,ntime
+c$$$      endif
+c$$$      ekind = ekinpd + ekintd + ekin3d
+c$$$      emagd = emagpd + emagtd + emag3d
+c$$$!
+c$$$      return
+c$$$      end
 !===========================
       subroutine fun(x,z,df,alx,alz)
       implicit none

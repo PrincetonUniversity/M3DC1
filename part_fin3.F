@@ -24,7 +24,7 @@
       real  outarray(numnodes*6*numvard),inarray(numnodes*6)
       integer, parameter :: r9a = selected_real_kind(12,100)
       real(r9a), allocatable:: temp(:)
-      integer,  save, allocatable:: iboundsm(:)
+      integer,  save, allocatable:: iboundsm(:), iboundsm2(:)
 !
       numvarsm = 2
       call numnod(numnodes1)
@@ -43,7 +43,7 @@
          if(izonedim .ne. 2) nbound = nbound + 1
       enddo
       nbound = 24 * nbound
-      allocate(iboundsm(nbound))
+      allocate(iboundsm(nbound),iboundsm2(nbound))
 !
 !
 !.....compute LU decomposition only once
@@ -74,7 +74,7 @@
       enddo
 !
 !......define indices for boundary arrays
-      call boundarysm(iboundsm,nbcsm,iplace)
+      call boundarysm(iboundsm,iboundsm2,nbcsm,iplace)
       ! bc stuff...
       do i=1,nbcsm
          call setdiribc(s5matrix_sm, iboundsm(i))
@@ -124,7 +124,7 @@
           call entdofs(numvarsm, l, 0, ibeginsm, iendplusonesm)
           do i=0,5
              outarray(ibegind+6*(iplace-1)+i) =
-     &            temp(ibeginsm+i)
+     &            temp(ibeginsm+6+i)
           enddo
        enddo
        
