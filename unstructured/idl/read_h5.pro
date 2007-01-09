@@ -1,16 +1,21 @@
-function time_slice, data, t
-   names = tag_names(data)
-   label = string(FORMAT='("TIME_",I3.3)', t)
+function ntime, filename
 
-   ncmp = strcmp(label, names)
-   nmax = max(ncmp, i)
-   if(nmax eq 0) then begin
-       print, label, " not found."
-       return, 0
-   endif
+   file_id = h5f_open(filename)
+   root_id = h5g_open(file_id, "/")
+   ntime_id = h5a_open_name(root_id, "ntime")
+   t = h5a_read(ntime_id)
+   h5a_close, ntime_id
+   h5g_close, root_id
+   h5f_close, file_id
 
-   return, data.(i)
+   return, t
 end
+
+function time_name, t
+   label = string(FORMAT='("time_",I3.3)', t)
+   return, label
+end
+
 
 pro plot_mesh, mesh, color=col, linestyle=lin, oplot=oplot
    nelms = mesh.nelms._data
@@ -137,36 +142,41 @@ end
 function read_field, name, time, mesh=mesh, filename=filename
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
-   result = h5_parse(filename, /read_data)
-
-   slice = time_slice(result, time)
-
-   names = tag_names(slice.fields)
-   ncmp = strcmp(name, names, /fold_case)
-   nmax = max(ncmp, i)
-   if(nmax eq 0) then begin
-       print, "Field ", name, " not found."
-       print, names
+   nt = ntime(filename)
+   if(time ge nt) then begin
+       print, "Error: there are only ", nt-1, " time slices."
        return, 0
    endif
-   
-   mesh = slice.mesh
 
-   return, slice.fields.(i)._data
+   file_id = h5f_open(filename)
+
+   time_group_id = h5g_open(file_id, time_name(time))
+   mesh = h5_parse(time_group_id, 'mesh', /read_data)   
+
+   field_group_id = h5g_open(time_group_id, 'fields')
+   field = h5_parse(field_group_id, name, /read_data)
+
+   h5g_close, field_group_id
+   h5g_close, time_group_id
+   h5f_close, file_id
+
+   return, field._data
 end
 
 
-pro plot_field, name, time, lines=lines, nlevels=nlevels, points=p, $
-                range=range, filename=filename, mesh=plotmesh
+pro plot_field, name, time, points=p, filename=filename, mesh=plotmesh, $
+                _EXTRA = ex
 
    print, "Reading data..."
    field = read_field(name, time, mesh=mesh, filename=filename)
+
+   if(n_elements(field) le 1) then return
 
    print, "Evaluating field..."
    data = eval_field(field, mesh, p=p, x=x, y=y)
 
    print, "Plotting..."
-   contour_and_legend, data, x, y, nlevels=nlevels, lines=lines, range=range
+   contour_and_legend, data, x, y, _EXTRA=ex
 
    if(keyword_set(plotmesh)) then begin
        plot_mesh, mesh, color=color(2), /oplot
@@ -201,5 +211,63 @@ pro compare, file1, file2, time, names=names
    end
 end
 
+pro plot_energy, filename=filename, diff=diff
+
+   if(n_elements(filename) eq 0) then filename='C1.h5'
+
+
+   file_id = h5f_open(filename)
+   root_id = h5g_open(file_id, "/")
+   scalars = h5_parse(root_id, "scalars")
+   h5g_close, root_id
+   h5f_close, file_id
+
+   !x.title = '!8t!3'
+
+   loadct, 12
+   dc = !d.table_size / 7
+
+   N = n_elements(scalars.time._data)
+
+   E_K = scalars.E_KP._data + scalars.E_KT._data + scalars.E_K3._data
+   E_M = scalars.E_MP._data + scalars.E_MT._data + scalars.E_P._data
+
+   E = E_K + E_M
+
+   E_D = scalars.E_KPD._data + scalars.E_KTD._data + scalars.E_K3D._data $
+     +   scalars.E_MPD._data + scalars.E_MTD._data + scalars.E_PD._data
+   E_H = scalars.E_KPH._data + scalars.E_KTH._data + scalars.E_K3H._data $
+     +   scalars.E_MPH._data + scalars.E_MTH._data + scalars.E_PH._data
+
+   E_D[1:N-1] = (E_D[1:N-1] + E_D[0:N-2])/2.
+   E_H[1:N-1] = (E_H[1:N-1] + E_H[0:N-2])/2.
+
+   Error = deriv(E) - E_D - E_H   
+
+   if(keyword_set(diff)) then begin
+       E = deriv(scalars.time._data,E)
+       E_K = deriv(scalars.time._data, E_K)
+       E_M = deriv(scalars.time._data, E_M)
+       !y.title = '!6d!8E!6/d!8t!3'
+   endif else begin
+       !y.title = '!6 Energy!3'
+   endelse
+
+
+   !y.range = [min([E, E_K, E_M, -E_D, -E_H]), $
+               max([E, E_K, E_M, -E_D, -E_H])]
+
+   plot, scalars.time._data, E, /ylog
+   oplot, scalars.time._data, E_K, color=dc
+   oplot, scalars.time._data, E_M, color=2*dc
+   oplot, scalars.time._data, -E_D, color=3*dc
+   oplot, scalars.time._data, -E_H, color=4*dc
+   oplot, scalars.time._data, Error, color=5*dc
+
+   plot_legend, ['Total', 'Kinetic', 'Magnetic', $
+                 'Diffusive', 'Hyper-Diffusive', 'Error'] , $
+     color=[-1,1,2,3,4,5,6,7,8,9]*dc, /ylog
+
+end
 
 

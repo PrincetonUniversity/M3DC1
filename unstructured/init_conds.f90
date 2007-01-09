@@ -110,7 +110,7 @@ subroutine cylinder_equ(x, z, inode)
 
   integer :: ibegin, iendplusone
   real, parameter :: k = 3.8317059702
-  real :: rr, ri, arg, befo, ff, fp, fpp, j0, j1, kb
+  real :: rr, ri, arg, befo, uzero, czero, ff, fp, fpp, j0, j1, kb
   real :: d1, d2, d3, d4, d5, d6
   real :: s17aef, s17aff
   integer :: ifail1, ifail2, ifail3
@@ -188,21 +188,21 @@ subroutine cylinder_equ(x, z, inode)
 
   if(idens.eq.1) then
      call entdofs(1, inode, 0, ibegin, iendplusone)
-
-     d1 = ff* z
-     d3 = fp*z**2*ri + ff
-     d2 = fp*z*x *ri
-     d6 = fpp*z**3  *ri**2 + fp*(3*z*ri - z**3  *ri**3)
-     d5 = fpp*z**2*x*ri**2 + fp*(  x*ri - z**2*x*ri**3)
-     d4 = fpp*x**2*z*ri**2 + fp*(  z*ri - x**2*z*ri**3)
-
-     kb = k**2*beta
-     den0(ibegin) = 0.5*kb*d1**2 + 1.
-     den0(ibegin+1) = kb*d1*d2
-     den0(ibegin+2) = kb*d1*d3
-     den0(ibegin+3) = kb*(d2**2+d1*d4)
-     den0(ibegin+4) = kb*(d2*d3+d1*d5)
-     den0(ibegin+5) = kb*(d3**2+d1*d6)
+     call constant_field(den0(ibegin:ibegin+5), 1.)
+!!$     d1 = ff* z
+!!$     d3 = fp*z**2*ri + ff
+!!$     d2 = fp*z*x *ri
+!!$     d6 = fpp*z**3  *ri**2 + fp*(3*z*ri - z**3  *ri**3)
+!!$     d5 = fpp*z**2*x*ri**2 + fp*(  x*ri - z**2*x*ri**3)
+!!$     d4 = fpp*x**2*z*ri**2 + fp*(  z*ri - x**2*z*ri**3)
+!!$
+!!$     kb = k**2*beta
+!!$     den0(ibegin) = 0.5*kb*d1**2 + 1.
+!!$     den0(ibegin+1) = kb*d1*d2
+!!$     den0(ibegin+2) = kb*d1*d3
+!!$     den0(ibegin+3) = kb*(d2**2+d1*d4)
+!!$     den0(ibegin+4) = kb*(d2*d3+d1*d5)
+!!$     den0(ibegin+5) = kb*(d3**2+d1*d6)
   endif
 
 end subroutine cylinder_equ
@@ -217,13 +217,31 @@ subroutine cylinder_per(x, z, inode)
   integer, intent(in) :: inode
 
   integer :: ibegin, iendplusone
+  real :: befo, uzero, czero
   
   call entdofs(numvar, inode, 0, ibegin, iendplusone)
 
-  call constant_field(vel(ibegin   :ibegin+5 ), 0.)
-  if(numvar.ge.2)  call constant_field(vel(ibegin+6 :ibegin+11), 0.)
-  if(numvar.ge.3)  call constant_field(vel(ibegin+12:ibegin+17), 0.)
+  befo = eps*exp(-(x**2+z**2))
+  uzero = befo*cos(z)
+  czero = befo*sin(z)
+  vel(ibegin  ) = uzero
+  vel(ibegin+1) = - 2.*x*uzero
+  vel(ibegin+2) = - 2.*z*uzero - czero
+  vel(ibegin+3) = (-2.+4.*x**2)*uzero
+  vel(ibegin+4) = 4.*x*z*uzero + 2.*x*czero
+  vel(ibegin+5) = (-3.+4.*z**2)*uzero + 4.*z*czero
   
+  if(numvar.ge.2) call constant_field(vel(ibegin+6:ibegin+11), 0.)
+
+  if(numvar.ge.3) then
+     vel(ibegin+12) = czero
+     vel(ibegin+13) = -2*x*czero
+     vel(ibegin+14) = -2*z*czero + uzero
+     vel(ibegin+15) = (-2.+4*x**2)*czero
+     vel(ibegin+16) = 4.*x*z*czero - 2.*x*uzero
+     vel(ibegin+17) = (-3.+4.*z**2)*czero - 4*z*uzero
+  endif
+
   call constant_field(phi(ibegin   :ibegin+5 ), 0.)
   if(numvar.ge.2)  call constant_field(phi(ibegin+6 :ibegin+11), 0.)
   if(numvar.ge.3)  call constant_field(phi(ibegin+12:ibegin+17), 0.)

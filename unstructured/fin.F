@@ -203,6 +203,7 @@
       if(itest.eq.0) then
         open(5,file='C1input',form='formatted',status='old')
         read(5,nml=inputnl)
+        if(amuc.eq.0) amuc = amu
         go to 100
       endif
       go to (1,2,3,4,5,6,7,8,9,10), itest

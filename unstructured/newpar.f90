@@ -165,53 +165,8 @@ Program Reducedquintic
      velold = vel0
      phiold = phi0
      denold = den0
-!!$     if(idens.eq.1) then
-!!$        call denequ(den0, 1)
-!!$        if(maxrank.eq.1) call oneplot(den0,1,1,"den0",1)
-!!$     endif
-!!$
-!!$     if(itor.eq.1 .and. itaylor.eq.1) then
-!!$        numvars = numvar
-!!$
-!!$        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-!!$        call gradshafranov
-!!$        if(myrank.eq.0 .and. itimer.eq.1) then
-!!$           call second(tend)
-!!$           write(*,*) "Time spent in gradshafranov: ", tend - tstart
-!!$        endif
-!!$
-!!$        numvar = numvars
-!!$!        phiold = phi
-!!$        do i=1,numnodes
-!!$           do j=1,6
-!!$              index2 = (i-1)*6*numvar + j
-!!$              index1 = (i-1)*6 + j
-!!$              phiold(index2) = phi(index1)
-!!$           enddo
-!!$        enddo
-!!$     else
-!!$        velold = 0.
-!!$        phiold = 0.
-!!$        call velequ(velold, numvar)
-!!$        call phiequ(phiold, numvar)
-!!$     endif
-!!$
-!!$     vel0 = velold
-!!$     phi0 = phiold
-!!$     denold = den0
-!!$
-!!$     ! calculate initial perturbed fields
-!!$     call velinit(vel)
-!!$     call phiinit(phi)
-!!$     if(idens.eq.1) then
-!!$        call deninit(den)
-!!$     endif
-!!$
-!!$     phis = 0
-!!$     vels = 0
-!!$     dens = 0
 
-  ! correct for left-handed coordinates
+     ! correct for left-handed coordinates
      call numdofs(numvar, ndofs)
      allocate(itemp(ndofs))
      itemp = 1
@@ -235,18 +190,14 @@ Program Reducedquintic
      deallocate(itemp)
      
      if(maxrank.eq.1) call plotit(vel,phi,0)
-     
   endif                     !  end of the branch on restart/no restart
+
   ! calculate the equilibrium current density
   if(itaylor.ne.4) then
      call newvar(phi0,jphi0,numvar,1,VAR_J,1)
   else
      jphi0 = 0
   endif
-
-  ! calculate the equilibrium vorticity and velocity divergence
-  vor0 = 0.
-  com0 = 0.
 
   ! combine the equilibrium and perturbed fields of linear=0
   ! unless eqsubtract = 1
@@ -261,6 +212,19 @@ Program Reducedquintic
         den = den + den0
         den0 = 0.
      endif
+  endif
+
+  ! calculate the equilibrium vorticity and velocity divergence
+  call newvar(vel,vor,numvar,1,VAR_VOR,1)
+  call newvar(vel0,vor0,numvar,1,VAR_VOR,1)
+  call newvar(phi,jphi,numvar,1,VAR_J,1)
+  call newvar(phi0,jphi0,numvar,1,VAR_J,1)
+  if(numvar.ge.3) then 
+     call newvar(vel,com,numvar,1,VAR_COM,1)
+     call newvar(vel0,com0,numvar,1,VAR_COM,1)
+  else
+     com = 0.
+     com0 = 0.
   endif
 
 !  if(maxrank .eq. 1) call plotit(vel+vel0,phi+phi0,1)
@@ -281,6 +245,7 @@ Program Reducedquintic
   ntime = ntimer
   call energy
   if (maxrank .eq. 1) call output
+  call hdf5_write_scalars(ier)
   call hdf5_write_time_slice(ier)
 
   if(ntimemax.le.ntimer) go to 101
@@ -297,13 +262,14 @@ Program Reducedquintic
 !     call exportfield2(1,numvar,phi, ntime)
      
      if(itimer.eq.1) call second(tstart)
-     call output
+     if(maxrank .eq. 1) call output
      if(itimer.eq.1) then
         call second(tend)
         write(*,*) "Time spent in output: ", tend - tstart
      endif
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     call hdf5_write_time_slice(ier)
+     call hdf5_write_scalars(ier)
+     if(mod(ntime,ntimepr).eq.0) call hdf5_write_time_slice(ier)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         write(*,*) "Time spent in hdf5_write_time_slice: ", tend - tstart
@@ -499,10 +465,13 @@ subroutine onestep
   if(iprint.eq.1)write(*,*) "before second sparseR8_A_dot_X"
   call matrixvectormult(d1matrix_sm,vel,vtemp)
 
-  vtemp = vtemp + dt*facd*b1vecini + b1vector + r4
+  vtemp = vtemp + b1vector + r4
 
   ! apply boundary conditions
   do l=1,nbcv
+!!$     if(iboundv2(l).gt.0) then
+!!$        vtemp(iboundv2(l)) = vtemp(iboundv2(l)) - vtemp(iboundv(l))
+!!$     endif
      vtemp(iboundv(l)) = velbounds(l)
   enddo
 
@@ -649,7 +618,7 @@ subroutine onestep
      write(*,*) " onestep: Time spent in field matrixvectormult:", tend - tstart
   endif
 
-  vtemp = vtemp + dt*facd*b2vecini + b2vector + b3vector + q4
+  vtemp = vtemp + b2vector + b3vector + q4
   
   ! Insert boundary conditions
   do l=1,nbcp
@@ -676,7 +645,13 @@ subroutine onestep
 !      phiold = phi
   phi = vtemp
 
+
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   call energy
+  if(myrank.eq.0 .and. itimer.eq.1) then
+     call second(tend)
+     write(*,*) " onestep: Time spent in energy:", tend - tstart
+  endif
 
   eerror = 0.
   if(ntime.gt.5) then
@@ -763,3 +738,234 @@ subroutine conserve_tflux()
 
   return
 end subroutine conserve_tflux
+
+
+
+subroutine energy
+
+  use p_data
+  use t_data
+  use basic
+  use arrays
+  use nintegrate_mod
+
+  implicit none
+#ifdef mpi
+  include "mpif.h"
+#endif
+  integer :: itri, i
+  real :: terma, termb, termd, hypf, hypi, hypv, hypc
+  real :: gamfac, deex
+  double precision temp(18), temp2(18)
+  integer :: numelms
+  real, dimension(20) :: avec
+  real, dimension(79, OP_NUM) :: vot79, cot79, jt79
+
+  call numfac(numelms)
+
+  ekino = ekin
+  emago = emag
+  ekindo = ekind
+  emagdo = emagd
+
+  ekinpo = ekinp
+  emagpo = emagp
+  ekinpdo = ekinpd
+  emagpdo = emagpd
+
+  ekinto = ekint
+  emagto = emagt
+  ekintdo = ekintd
+  emagtdo = emagtd
+
+  ekinpho = ekinph
+  ekintho = ekinth
+  emagpho = emagph
+  emagtho = emagth
+
+  ekin3o = ekin3 
+  ekin3do = ekin3d
+  ekin3ho = ekin3h 
+  emag3o = emag3
+  emag3do = emag3d
+  emag3ho = emag3h
+  
+  ekin = 0.
+  emag = 0.
+  ekind = 0.
+  emagd = 0.
+  ekinp = 0.
+  emagp = 0.
+  ekinpd = 0.
+  emagpd = 0.      
+  ekint = 0.
+  emagt = 0.
+  ekintd = 0.
+  emagtd = 0.
+  ekinph = 0
+  ekinth = 0.
+  emagph = 0.
+  emagth = 0.
+  ekin3 = 0.
+  ekin3d = 0.
+  ekin3h = 0.
+  emag3 = 0.
+  emag3d = 0.
+  emag3h = 0.
+
+
+  ! volume terms
+  do itri=1,numelms
+     ! calculate the field values and derivatives at the sampling points
+     call define_fields_79(itri)
+
+     call calcavector(itri, vor+vor0, 1, 1, avec)
+     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, vot79)
+     call calcavector(itri, jphi+jphi0, 1, 1, avec)
+     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, jt79)
+
+     if(numvar.ge.3) then
+        call calcavector(itri, com+com0, 1, 1, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, cot79)
+     endif
+
+     call getdeex(itri,deex)
+     hypf = hyper *deex**2
+     hypi = hyperi*deex**2
+     hypv = hyperv*deex**2
+     hypc = hyperc*deex**2
+
+     if(idens.eq.0) then
+        ekinp = ekinp + .5* &
+             (int2(pht79(:,OP_DZ),pht79(:,OP_DZ),weight_79,79) &
+             +int2(pht79(:,OP_DR),pht79(:,OP_DR),weight_79,79))
+     else
+        ekinp = ekinp + .5* &
+             (int3(pht79(:,OP_DZ),pht79(:,OP_DZ),nt79(:,OP_1),weight_79,79) &
+             +int3(pht79(:,OP_DR),pht79(:,OP_DR),nt79(:,OP_1),weight_79,79))
+     endif
+
+     emagp = emagp + .5* &
+             (int2(pst79(:,OP_DZ),pst79(:,OP_DZ),weight_79,79) &
+             +int2(pst79(:,OP_DR),pst79(:,OP_DR),weight_79,79))
+
+     ekinpd = ekinpd - amu*int2(pht79(:,OP_LP),pht79(:,OP_LP),weight_79,79)
+
+     emagpd = emagpd - etar*int2(pst79(:,OP_GS),pst79(:,OP_GS),weight_79,79)
+
+     ekinph = ekinph - hypc*amu* &
+          (int2(vot79(:,OP_DZ),vot79(:,OP_DZ),weight_79,79) &
+          +int2(vot79(:,OP_DR),vot79(:,OP_DR),weight_79,79))
+
+     emagph = emagph - hypf*etar* &
+          (int2(jt79(:,OP_DZ),jt79(:,OP_DZ),weight_79,79) &
+          +int2(jt79(:,OP_DR),jt79(:,OP_DR),weight_79,79))
+
+     if(numvar.ge.2) then
+        if(idens.eq.0) then
+           ekint = ekint + .5*int2(vzt79(:,OP_1),vzt79(:,OP_1),weight_79,79)
+        else
+           ekint = ekint + .5*int3(vzt79(:,OP_1),vzt79(:,OP_1),nt79(:,OP_1),weight_79,79)
+        endif
+
+        emagt = emagt + .5*int2(bzt79(:,OP_1),bzt79(:,OP_1),weight_79,79)
+
+        ekintd = ekintd - amu* &
+             (int2(vzt79(:,OP_DZ),vzt79(:,OP_DZ),weight_79,79) &
+             +int2(vzt79(:,OP_DR),vzt79(:,OP_DR),weight_79,79))
+
+        ekinth = ekinth - amu*hypv*int2(vzt79(:,OP_LP),vzt79(:,OP_LP),weight_79,79)
+
+        emagtd = emagtd - etar* &
+             (int2(bzt79(:,OP_DZ),bzt79(:,OP_DZ),weight_79,79) &
+             +int2(bzt79(:,OP_DR),bzt79(:,OP_DR),weight_79,79))
+
+        emagth = emagth - etar*hypi*int2(bzt79(:,OP_LP),bzt79(:,OP_LP),weight_79,79)
+     endif
+
+     if(numvar.ge.3) then
+        if(idens.eq.0) then
+           ekin3 = ekin3 + .5* &
+                (int2(cht79(:,OP_DZ),cht79(:,OP_DZ),weight_79,79) &
+                +int2(cht79(:,OP_DR),cht79(:,OP_DR),weight_79,79))
+        else
+           ekin3 = ekin3 + .5* &
+                (int3(cht79(:,OP_DZ),cht79(:,OP_DZ),nt79(:,OP_1),weight_79,79) &
+                +int3(cht79(:,OP_DR),cht79(:,OP_DR),nt79(:,OP_1),weight_79,79))
+        endif
+        
+        emag3 = emag3 + int1(pt79,weight_79,79) / (gam - 1.)
+        
+        ekin3d = ekin3d - amuc*int2(pht79(:,OP_LP),pht79(:,OP_LP),weight_79,79)
+        
+        ekin3h = ekin3h - hypc*amuc* &
+             (int2(cot79(:,OP_DZ),cot79(:,OP_DZ),weight_79,79) &
+             +int2(cot79(:,OP_DR),cot79(:,OP_DR),weight_79,79))
+     endif
+
+  enddo     ! end of loop on itri
+
+! parallel updating of values summed over elements
+#ifdef mpi
+  if(maxrank .gt. 1) then
+     temp(1) = ekinp
+     temp(2) = emagp
+     temp(3) = ekinpd
+     temp(4) = emagpd      
+     temp(5) = ekint
+     temp(6) = emagt
+     temp(7) = ekintd
+     temp(8) = emagtd
+     temp(9) = ekinph
+     temp(10) = ekinth
+     temp(11) = emagph
+     temp(12) = emagth
+     temp(13) = ekin3
+     temp(14) = ekin3d
+     temp(15) = ekin3h
+     temp(16) = emag3
+     temp(17) = emag3d
+     temp(18) = emag3h
+         
+     call mpi_allreduce(temp, temp2, 18, MPI_DOUBLE_PRECISION,  &
+          MPI_SUM, MPI_COMM_WORLD, i) !checked that this should be MPI_DOUBLE_PRECISION
+         
+     ekinp = temp2(1)
+     emagp = temp2(2)
+     ekinpd = temp2(3)
+     emagpd = temp2(4)      
+     ekint = temp2(5)
+     emagt = temp2(6)
+     ekintd = temp2(7)
+     emagtd = temp2(8)
+     ekinph = temp2(9)
+     ekinth = temp2(10)
+     emagph = temp2(11)
+     emagth = temp2(12)
+     ekin3 = temp2(13)
+     ekin3d = temp2(14)
+     ekin3h = temp2(15)
+     emag3 = temp2(16)
+     emag3d = temp2(17)
+     emag3h = temp2(18)
+  endif !if maxrank .gt. 1
+#endif !ifdef mpi
+
+  ekin = ekinp + ekint + ekin3
+  emag = emagp + emagt + emag3
+  ekind = ekinpd + ekintd + ekin3d
+  emagd = emagpd + emagtd + emag3d
+
+  if(myrank.eq.0) then
+     print *, "Energy at ntime = ", ntime
+     print *, "ekinp, ekint, ekin3 = ", ekinp, ekint, ekin3
+     print *, "ekinpd, ekintd, ekin3d = ", ekinpd, ekintd, ekin3d
+     print *, "ekinph, ekinth, ekin3h = ", ekinph, ekinth, ekin3h
+     print *, "emagp, emagt, emag3 = ", emagp, emagt, emag3
+     print *, "emagpd, emagd, emag3d = ", emagpd, emagtd, emag3d
+     print *, "emagph, emagth, emag3h = ", emagph, emagth, emag3h
+  endif
+
+  return
+      
+end subroutine energy

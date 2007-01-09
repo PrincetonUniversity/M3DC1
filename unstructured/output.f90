@@ -863,8 +863,7 @@ subroutine oneplot(dum,inum,numvare,label,iplot)
         call evaluate(x,z,plot(ix,iz),plot2(ix,iz),dum,inum,numvare,whichtri(ix,iz))
      enddo
      if(iplot.eq.1) then
-        if(idens.eq.1) write(FILE__DENSITY,1102) zval(ix),xval(ix),                   &
-             (plot(ix,iz),iz=1,ires)
+        write(FILE__DENSITY,1102) zval(ix),xval(ix),(plot(ix,iz),iz=1,ires)
 1102    format(1p10e12.4)
      endif
   enddo
