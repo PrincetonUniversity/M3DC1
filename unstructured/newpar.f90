@@ -515,22 +515,14 @@ subroutine onestep
 
      ! calculate vorticity, apply smoothing operator, and redefine vor array
      call smoother1(vor,vtemp,numnodes,numvar,1)
-!!$     if(maxrank .eq. 1) call oneplot(vtemp,1,numvar,"vte3",0)
      call newvar_gs(vtemp,vor,numvar,1,1)
-!!$     if(maxrank .eq. 1) call oneplot(vor,1,1,"vor",0)
   endif
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      print *, " onestep: Time spent in smoothers", tend - tstart
   endif
 
-
 !.....new velocity solution at time n+1 (or n* for second order advance)
-!!$      call numdofs(numvar, ndofs)
-!!$      do i=1,ndofs
-!!$         veln(i) = vel(i)
-!!$         vel(i) = vtemp(i)
-!!$      enddo
   vel = vtemp
 
 !
