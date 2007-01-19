@@ -3,14 +3,14 @@
       real xmin, zmin, p_xmin,p_zmin 
       double precision dp_xmin, dp_zmin
       logical initialized       !Has the minimum been calculated?
-      common /acbblock/ p_xmin, p_zmin, initialized
-      data initialized/0/
+!      common /acbblock/ p_xmin, p_zmin, initialized
+      data initialized/.false./
       
-      if(initialized .eq. 0) then
+      if(initialized .eqv. .false.) then
          call getmincoord2(dp_xmin, dp_zmin)
          p_xmin = dp_xmin 
          p_zmin = dp_zmin
-         initialized = 1
+         initialized = .true.
       endif
       xmin = p_xmin
       zmin = p_zmin
@@ -22,14 +22,14 @@
       real xmax, zmax, p_xmax,p_zmax 
       double precision dp_xmax, dp_zmax
       logical initialized       !Has the maximum been calculated?
-      common /acbblock2/ p_xmax, p_zmax, initialized
-      data initialized/0/
+!      common /acbblock2/ p_xmax, p_zmax, initialized
+      data initialized/.false./
       
-      if(initialized .eq. 0) then
+      if(initialized .eqv. .false.) then
          call getmaxcoord2(dp_xmax, dp_zmax)
          p_xmax = dp_xmax 
          p_zmax = dp_zmax
-         initialized = 1
+         initialized = .true.
       endif
 
       xmax = p_xmax

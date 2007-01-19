@@ -82,7 +82,8 @@
 !     tcpu = etime(tarray) 
       implicit none
       real tcpu
-      integer*8 nticks, tickspersec
+!      integer*8 nticks, tickspersec
+      integer nticks, tickspersec
       intrinsic system_clock
       call system_clock(count=nticks, count_rate=tickspersec)
       tcpu = 0.

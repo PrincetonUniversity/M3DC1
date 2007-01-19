@@ -92,8 +92,8 @@ subroutine openf
 
      write(FILE__C1NEW,1001) datec(1:4),datec(5:6),datec(7:8),                   &
           timec(1:2),timec(3:4),timec(5:8)
-1001 format("M3D-C1T VERSION 0.1    DATE: "a4,1x,a2,1x,a2,3x,               &
-          "TIME: "a2,":",a2,":",a4,/)
+1001 format("M3D-C1T VERSION 0.1    DATE: ",a4,1x,a2,1x,a2,3x,               &
+          "TIME: ",a2,":",a2,":",a4,/)
   endif
 
 end subroutine openf
@@ -261,7 +261,7 @@ subroutine output
   write(*,4110)
   write(FILE__C1NEW,4110)
 
-4110 format(//,"cycle    time",                                        &
+4110 format(/, "cycle    time",                                        &
           "      ekin      rrate     ediff",                                &
           "     etotd      etoth     error       gamma")
 50 continue
