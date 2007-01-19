@@ -278,7 +278,8 @@ contains
 
     call h5screate_simple_f(1, local_dims, memspace, error)
     call h5dget_space_f(dset_id, filespace, error)
-    call h5sselect_elements_f(filespace, H5S_SELECT_SET_F, 1, local_dims(1), coord, error)
+!    call h5sselect_elements_f(filespace, H5S_SELECT_SET_F, 1, local_dims(1), coord, error)
+    call h5sselect_elements_f(filespace, H5S_SELECT_SET_F, 1, 1, coord, error)
 
     call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, local_dims, error, &
          file_space_id = filespace, mem_space_id = memspace)
@@ -406,7 +407,7 @@ subroutine hdf5_write_time_slice(error)
   print *, "Global elms = ", global_elms
 
   ! Create the time group
-  write(time_group_name, '("time_"I3.3)'), times_output
+  write(time_group_name, '("time_",I3.3)') times_output
   call h5gcreate_f(file_id, time_group_name, time_group_id, error)
 
   ! Write attributes

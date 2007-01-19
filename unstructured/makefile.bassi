@@ -1,0 +1,126 @@
+SHELL=/bin/bash
+
+COMMONDIR = ../common/
+
+#INCLUDE = -I$(COMMONDIR) -I$(NTCCHOME)/mod -I$(LIBDIR) \
+#	  -I$(SUPERLU_DIST_HOME) -I$(HDF5_HOME)/include
+
+INCLUDE = -I$(COMMONDIR) $(HDF5_INCLUDE)
+
+LOADER = mpxlf90
+PP     = xlc -E
+F90    = mpxlf90 -c
+F77    = mpxlf -c
+CC     = mpcc -c
+
+PPOPTS = -Dmpi
+F90OPTS = -qautodbl=dbl4 -qsave -qextname -qstrict -O3 $(INCLUDE)  
+F77OPTS = -qautodbl=dbl4 -qsave -qextname -qstrict -O3 $(INCLUDE)
+DBESJDBESJOPTS = -O3 -qstrict -qautodbl=dbl4 $(INCLUDE) \
+	-qextname=dbesj0,dbesj1,fdump 
+TV80OPTS= -O3 -qstrict $(INCLUDE) \
+	-qextname=plote,tracec,mapg,frame,setch,gtext,setch,map,r\contr,trace,ncarcgm,dders 
+
+NEWOBJS1 = M3Dmodules.o nintegrate_mod.o metricterms_n.o newvar.o \
+	$(COMMONDIR)tv80lib.o $(COMMONDIR)subp.o \
+	$(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
+        $(COMMONDIR)fdump.o diagnostics.o hdf5_output.o
+
+NEWOBJS2 = fin.o part_fin.o ludef_t.o \
+	  part_fin3.o boundary.o unknown.o restart.o \
+	  acbauer.o sort.o metricterms.o errorcalc.o compare.o \
+	  gradshafranov.o init_conds.o  output.o 
+
+SCORECDIR = /l/mhd/acbauer/develop/
+SCORECVERS =-stable4
+
+LDRNEW = \
+        -L$(SCORECDIR)FMDB$(SCORECVERS)/FMDB/lib/ia64_linux \
+	-Wl,-R$(SCORECDIR)FMDB$(SCORECVERS)/FMDB/lib/ia64_linux \
+	-L$(SCORECDIR)FMDB$(SCORECVERS)/SCORECModel/lib/ia64_linux \
+	-Wl,-R$(SCORECDIR)FMDB$(SCORECVERS)/SCORECModel/lib/ia64_linux \
+	-L$(SCORECDIR)FMDB$(SCORECVERS)/SCORECUtil/lib/ia64_linux \
+	-Wl,-R$(SCORECDIR)FMDB$(SCORECVERS)/SCORECUtil/lib/ia64_linux \
+	-L$(SCORECDIR)mctk$(SCORECVERS)/Examples/PPPL/lib/ia64_linux \
+	-Wl,-R$(SCORECDIR)mctk$(SCORECVERS)/Examples/PPPL/lib/ia64_linux \
+	-L$(SCORECDIR)mctk$(SCORECVERS)/Field/lib/ia64_linux \
+	-Wl,-R$(SCORECDIR)mctk$(SCORECVERS)/Field/lib/ia64_linux \
+	-L$(SCORECDIR)mctk$(SCORECVERS)/Core/lib/ia64_linux \
+	-Wl,-R$(SCORECDIR)mctk$(SCORECVERS)/Core/lib/ia64_linux \
+	-L$(SCORECDIR)mctk$(SCORECVERS)/Solver/lib/ia64_linux \
+	-Wl,-R$(SCORECDIR)mctk$(SCORECVERS)/Solver/lib/ia64_linux \
+	-L$(SCORECDIR)meshAdapt$(SCORECVERS)/meshAdapt/lib/ia64_linux \
+	-Wl,-R$(SCORECDIR)meshAdapt$(SCORECVERS)/meshAdapt/lib/ia64_linux \
+	-L$(SCORECDIR)meshAdapt$(SCORECVERS)/meshTools/lib/ia64_linux \
+	-Wl,-R$(SCORECDIR)meshAdapt$(SCORECVERS)/meshTools/lib/ia64_linux \
+	-L$(SCORECDIR)meshAdapt$(SCORECVERS)/templateRefine/lib/ia64_linux \
+	-Wl,-R$(SCORECDIR)meshAdapt$(SCORECVERS)/templateRefine/lib/ia64_linux \
+	-lFMDB-mpich2-O -lSCORECModel-mpich2-O -lSCORECUtil-mpich2-O -lField-mpich2-O -lCore-mpich2-O \
+	-lmeshAdapt-mpich2-O -ltemplateRefine-mpich2-O -lmeshTools-mpich2-O -lSolver-mpich2-O -lPPPL-mpich2-O \
+	-L$(AUTOPACK_HOME)/lib/ia64-sgi -Wl,-R,$(AUTOPACK_HOME)/lib/ia64-sgi -lautopack-O \
+	$(METIS) \
+        $(NETCDF) \
+        $(SUPERLU_DIST) \
+	$(NCAR) \
+	$(HDF5) \
+
+gonewp: $(NEWOBJS1) newpar.o newpar-lib.o $(NEWOBJS2)
+	$(F90) -bshared -o libnewpar.so $(NEWOBJS1) newpar-lib.o $(NEWOBJS2) 
+	$(LOADER) $(NEWOBJS1) newpar.o  $(NEWOBJS2) $(LDRNEW) -o $@
+	rm -rf C1restartout check.txt check1.txt check0.txt
+
+newpar-lib.o: newpar.f90
+	$(PP) $(PPOPTS) $< > $<.i
+	$(F90) $(F90OPTS) -DIS_LIBRARY -qsuffix=f=i $<.i -o $@
+
+$(COMMONDIR)tv80lib.o: $(COMMONDIR)tv80lib.f
+	$(F77) $(TV80OPTS) $< -o $@ 
+
+$(COMMONDIR)dbesj0.o : $(COMMONDIR)dbesj0.f
+	$(F77) $(DBESJOPTS) $< -o $@
+
+$(COMMONDIR)dbesj1.o : $(COMMONDIR)dbesj1.f
+	$(F77) $(DBESJOPTS) $< -o $@
+
+%.o : %.c
+	$(CC) $(CCOPTS) $< -o $@
+
+%.o: %.f
+	$(F77) $(F77OPTS) $< -o $@
+
+%.o: %.F
+	$(PP) $(PPOPTS) $< > $<.i
+	$(F77) $(F77OPTS) -qsuffix=f=i $<.i -o $@
+	rm $<.i
+
+%.o: %.f90
+	$(PP) $(PPOPTS) $< > $<.i
+	$(F90) $(F90OPTS) -qsuffix=f=i $<.i -o $@
+	rm $<.i
+
+clean:
+	rm -f gonewp*
+	rm -f $(NEWOBJS1)
+	rm -f $(NEWOBJS2)
+	rm -f *.o 
+	rm -f *.mod 
+	rm -f *~
+	rm -f *.so
+	rm -f *.i
+
+fullclean:
+	rm -f gonewp* 
+	rm -r lib*so
+	rm -f *.o 
+	rm -f *.mod 
+	rm -f out.* fort* new.* restartout PI* core*
+	rm -f setup* 
+	rm -f *~
+	rm -f *.i
+
+
+
+
+
+
+

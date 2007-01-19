@@ -87,8 +87,8 @@ Program Reducedquintic
      call date_and_time( datec, timec)
      write(*,1001) datec(1:4),datec(5:6),datec(7:8),                        &
           timec(1:2),timec(3:4),timec(5:8)
-1001 format("M3D-C1 VERSION 1.0    DATE: "a4,1x,a2,1x,a2,3x,               &
-          "TIME: "a2,":",a2,":",a4,/)
+1001 format("M3D-C1 VERSION 1.0    DATE: ", a4,1x,a2,1x,a2,3x,               &
+          "TIME: ",a2,":",a2,":",a4,/)
   endif
 
   pi = acos(-1.)
@@ -1005,7 +1005,7 @@ subroutine energy
      emag3d = temp2(17)
      emag3h = temp2(18)
   endif !if maxrank .gt. 1
-#endif !ifdef mpi
+#endif
 
   ekin = ekinp + ekint + ekin3
   emag = emagp + emagt + emag3
@@ -1025,3 +1025,4 @@ subroutine energy
   return
       
 end subroutine energy
+

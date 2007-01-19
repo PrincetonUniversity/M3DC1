@@ -485,7 +485,7 @@ subroutine magaxis(phi,xguess,zguess)
   znew = z1 + sn*(b+sinew) + co*etanew
   
   if(myrank.eq.0 .and. iprint.gt.0) then
-     write(*,*), "Found maximum at: ", xnew, znew
+     write(*,*) "Found maximum at: ", xnew, znew
   endif
 
   ! determine if this new point is nearby
