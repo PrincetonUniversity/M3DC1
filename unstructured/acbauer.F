@@ -473,8 +473,7 @@ c         write(*,*) 0, i+icounter, vec(i)
 !==================
       subroutine printvalatnode(vals, numbering)
       implicit none
-      integer, parameter :: r8 = selected_real_kind(12,100)
-      real(r8) vals(*)
+      real vals(*)
       double precision coords(3)
       integer numbering, i, j, nnodes, ibegin, iendplusone
 

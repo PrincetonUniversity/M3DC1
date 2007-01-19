@@ -11,8 +11,7 @@ subroutine gradshafranov
   implicit none
   
   real   gsint1,gsint4,gsint2,gsint3,lhs,cfac(18)
-  integer, parameter ::  r8c = selected_real_kind(12,100)
-  real(r8c), allocatable::temp(:)
+  real, allocatable::temp(:)
 
   integer :: itri,i,i1,j,j1,jone, k
   integer :: numelms, numnodes, ibegin, iendplusone

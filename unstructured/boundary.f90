@@ -58,7 +58,11 @@ subroutine boundaryds(ibound,nbc,jsymtype)
   ! jsymtype = 1 for even up-down symmetry
   !          = 2 for odd   "        "
 
-  integer :: numnodes, i, izone, ibound(*), nbc, jsymtype, izonedim, j
+  integer, dimension(*), intent(out) :: ibound
+  integer, intent(in) :: jsymtype
+  integer, intent(out) :: nbc
+
+  integer :: numnodes, i, izone, izonedim, j
   integer :: ibottom, iright, itop, ileft, ibegin, iendplusone
 
   call getmodeltags(ibottom, iright, itop, ileft)
@@ -145,11 +149,11 @@ subroutine boundaryv(ibound,ibound2,nbc)
               ibound(nbc+2) = ibegin+8
               ibound(nbc+3) = ibegin+11
               nbc =  nbc+3
-              if(hyperv.ne.0 .and. imask.ne.1) then
-                 ibound(nbc+1) = ibegin+7
-                 ibound(nbc+2) = ibegin+10
-                 nbc =  nbc+2
-              endif
+!!$              if(hyperv.ne.0 .and. imask.ne.1) then
+!!$                 ibound(nbc+1) = ibegin+7
+!!$                 ibound(nbc+2) = ibegin+10
+!!$                 nbc =  nbc+2
+!!$              endif
            endif
            if(numvar.ge.3) then
               ibound(nbc+1) = ibegin+13
@@ -419,18 +423,16 @@ subroutine boundarysm(ibound,ibound2,nbc,iplace)
            ibound(nbc+2) = ibegin+2
            ibound(nbc+3) = ibegin+5
            nbc =  nbc+3
-           if(numvar.ge.2) then
-              if(iplace.lt.3) then
-                 ibound(nbc+1) = ibegin+6
-                 ibound(nbc+2) = ibegin+8
-                 ibound(nbc+3) = ibegin+9
-                 ibound(nbc+4) = ibegin+11
-                 nbc =  nbc+4
-              else
-                 ibound(nbc+1) = ibegin+7
-                 ibound(nbc+2) = ibegin+10
-                 nbc =  nbc+2
-              endif
+           if(iplace.lt.3) then
+              ibound(nbc+1) = ibegin+6
+              ibound(nbc+2) = ibegin+8
+              ibound(nbc+3) = ibegin+9
+              ibound(nbc+4) = ibegin+11
+              nbc =  nbc+4
+           else
+              ibound(nbc+1) = ibegin+7
+              ibound(nbc+2) = ibegin+10
+              nbc =  nbc+2
            endif
            
         ! top/bottom boundaries
@@ -440,20 +442,19 @@ subroutine boundarysm(ibound,ibound2,nbc,iplace)
            ibound(nbc+2) = ibegin+1
            ibound(nbc+3) = ibegin+3
            nbc =  nbc+3
-           if(numvar.ge.2) then
-              if(iplace.lt.3) then
-                 ibound(nbc+1) = ibegin+6
-                 ibound(nbc+2) = ibegin+7
-                 ibound(nbc+3) = ibegin+9
-                 ibound(nbc+4) = ibegin+11
-                 nbc =  nbc+4
-              else
-                 ibound(nbc+1) = ibegin+8
-                 ibound(nbc+2) = ibegin+9
-                 ibound2(nbc+2)= ibegin+11
-                 ibound(nbc+3) = ibegin+10
-                 nbc =  nbc+3
-              endif
+
+           if(iplace.lt.3) then
+              ibound(nbc+1) = ibegin+6
+              ibound(nbc+2) = ibegin+7
+              ibound(nbc+3) = ibegin+9
+              ibound(nbc+4) = ibegin+11
+              nbc =  nbc+4
+           else
+              ibound(nbc+1) = ibegin+8
+              ibound(nbc+2) = ibegin+9
+              ibound2(nbc+2)= ibegin+11
+              ibound(nbc+3) = ibegin+10
+              nbc =  nbc+3
            endif
         endif
 
@@ -473,33 +474,31 @@ subroutine boundarysm(ibound,ibound2,nbc,iplace)
            nbc =  nbc+2
         endif
 
-        if(numvar.ge.2) then
-           if(iplace.lt.3) then
-              ibound(nbc+1) = ibegin+6
+        if(iplace.lt.3) then
+           ibound(nbc+1) = ibegin+6
+           ibound(nbc+2) = ibegin+9
+           ibound(nbc+3) = ibegin+11
+           nbc =  nbc+3
+           if(iper.eq.0) then
+              ibound(nbc+1) = ibegin+8
+              nbc =  nbc+1
+           endif
+           if(jper.eq.0) then
+              ibound(nbc+1) = ibegin+7
+              nbc =  nbc+1
+           endif
+        else
+           ibound(nbc+1) = ibegin+10
+           nbc = nbc+1
+           if(iper.eq.0) then
+              ibound(nbc+1) = ibegin+7
+              nbc =  nbc+1
+           endif
+           if(jper.eq.0) then
+              ibound(nbc+1) = ibegin+8
               ibound(nbc+2) = ibegin+9
-              ibound(nbc+3) = ibegin+11
-              nbc =  nbc+3
-              if(iper.eq.0) then
-                 ibound(nbc+1) = ibegin+8
-                 nbc =  nbc+1
-              endif
-              if(jper.eq.0) then
-                 ibound(nbc+1) = ibegin+7
-                 nbc =  nbc+1
-              endif
-           else
-              ibound(nbc+1) = ibegin+10
-              nbc = nbc+1
-              if(iper.eq.0) then
-                 ibound(nbc+1) = ibegin+7
-                 nbc =  nbc+1
-              endif
-              if(jper.eq.0) then
-                 ibound(nbc+1) = ibegin+8
-                 ibound(nbc+2) = ibegin+9
-                 ibound2(nbc+2)= ibegin+11
-                 nbc =  nbc+2
-              endif
+              ibound2(nbc+2)= ibegin+11
+              nbc =  nbc+2
            endif
         endif
      endif

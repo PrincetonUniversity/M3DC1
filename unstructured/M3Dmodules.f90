@@ -142,7 +142,7 @@ module arrays
   real, allocatable :: psibounds(:), velbounds(:)
 
   ! arrays defined at all vertices
-  real(r8), allocatable::                                         &
+  real, allocatable::                                             &
        b1vecini(:), vel(:), vels(:), veln(:),                     &
        velold(:), vel0(:), vel1(:),                               &
        b2vecini(:), phi(:), phis(:),                              &
@@ -160,7 +160,7 @@ module arrays
     subroutine createvec(vec, numberingid)
       implicit none
       integer numberingid, i, ndof
-      real(r8), allocatable ::  vec(:)
+      real, allocatable ::  vec(:)
       
 !      write(*,*) 'numbering id is ',numberingid
       ! if vec has not been created vec == 0
@@ -178,7 +178,7 @@ module arrays
     subroutine deletevec(vec)
       implicit none
       integer numberingid, i
-      real(r8), allocatable :: vec(:) 
+      real, allocatable :: vec(:) 
       
       call checkveccreated(vec, i)
       if(i .ne. 0) then

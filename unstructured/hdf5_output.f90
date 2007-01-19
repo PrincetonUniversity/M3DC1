@@ -10,6 +10,19 @@ module hdf5_output
 
 contains
 
+  ! hdf5_flush
+  ! ==========
+  subroutine hdf5_flush(error)
+    use hdf5
+  
+    implicit none
+
+    integer, intent(out) :: error
+
+    ! Flush the data to disk
+    call h5fflush_f(file_id, H5F_SCOPE_GLOBAL_F, error)
+  end subroutine hdf5_flush
+
 
   ! hdf5_initialize
   ! ===============
@@ -238,24 +251,23 @@ contains
     integer, intent(in) :: time
     integer, intent(out) :: error
 
-    integer :: rank = 1
-    integer(HSIZE_T) :: chunk_size(1) = (/ 10 /)
+    integer(HSIZE_T) :: chunk_size(1) = (/ 100 /)
     integer(HSIZE_T) :: dims(1)
-    integer(HSIZE_T) :: local_dims(1) = (/ 1 /)
-    integer(HSIZE_T) :: offset(1)
     integer(HSIZE_T) :: maxdims(1)
+    integer(HSIZE_T) :: local_dims(1) = (/ 1 /)
+    integer(HSIZE_T), dimension(1,1) :: coord
     real :: values(1)
     integer(HID_T) :: memspace, filespace, dset_id, p_id
 
     dims(1) = time+1
-    offset(1) = time
     maxdims(1) = H5S_UNLIMITED_F
     values(1) = value
+    coord(1,1) = time + 1
     
     if(time.eq.0) then
-       call h5screate_simple_f(rank, dims, filespace, error, maxdims)
+       call h5screate_simple_f(1, dims, filespace, error, maxdims)
        call h5pcreate_f(H5P_DATASET_CREATE_F, p_id, error)
-       call h5pset_chunk_f(p_id, rank, chunk_size, error)
+       call h5pset_chunk_f(p_id, 1, chunk_size, error)
        call h5dcreate_f(parent_id, name, H5T_NATIVE_REAL, filespace, dset_id, error, p_id)
        call h5pclose_f(p_id, error)
        call h5sclose_f(filespace, error)
@@ -264,9 +276,9 @@ contains
        call h5dextend_f(dset_id, dims, error)
     endif
 
-    call h5screate_simple_f(rank, local_dims, memspace, error)
+    call h5screate_simple_f(1, local_dims, memspace, error)
     call h5dget_space_f(dset_id, filespace, error)
-    call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, offset, local_dims, error)
+    call h5sselect_elements_f(filespace, H5S_SELECT_SET_F, 1, local_dims(1), coord, error)
 
     call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, local_dims, error, &
          file_space_id = filespace, mem_space_id = memspace)
@@ -311,6 +323,7 @@ end subroutine hdf5_write_parameters
 ! ==================
 subroutine hdf5_write_scalars(error)
   use basic
+  use diagnostics
   use hdf5_output
 
   implicit none
@@ -318,6 +331,8 @@ subroutine hdf5_write_scalars(error)
   integer, intent(out) :: error
 
   integer(HID_T) :: root_id, scalar_group_id
+
+  real :: temp
 
   call h5gopen_f(file_id, "/", root_id, error)
 
@@ -351,6 +366,11 @@ subroutine hdf5_write_scalars(error)
      call output_scalar(scalar_group_id, "E_K3D", ekin3d, ntime, error)
      call output_scalar(scalar_group_id, "E_PH", emag3h, ntime, error)
      call output_scalar(scalar_group_id, "E_K3H", ekin3h, ntime, error)
+  endif
+
+  if(itaylor.eq.3) then
+     temp = reconnected_flux()
+     call output_scalar(scalar_group_id, "Reconnected_Flux", temp, ntime, error)
   endif
 
   call h5gclose_f(scalar_group_id, error)
@@ -401,9 +421,6 @@ subroutine hdf5_write_time_slice(error)
     
   ! Close the time group
   call h5gclose_f(time_group_id, error)  
-
-  ! Flush the data to disk
-  call h5fflush_f(file_id, H5F_SCOPE_GLOBAL_F, error)
 
   times_output = times_output + 1
   call h5gopen_f(file_id, "/", root_id, error)
@@ -503,12 +520,12 @@ subroutine output_fields(time_group_id, error)
   call output_field(group_id, "phi", dum, 20, nelms, error)
   nfields = nfields + 1
 
-  ! chi
-  do i=1, nelms
-     call calcavector(i, vor, 1, 1, dum(:,i))
-  end do
-  call output_field(group_id, "vor", dum, 20, nelms, error)
-  nfields = nfields + 1
+!!$  ! vor
+!!$  do i=1, nelms
+!!$     call calcavector(i, vor, 1, 1, dum(:,i))
+!!$  end do
+!!$  call output_field(group_id, "vor", dum, 20, nelms, error)
+!!$  nfields = nfields + 1
 
 !!$  ! sb1
 !!$  do i=1, nelms

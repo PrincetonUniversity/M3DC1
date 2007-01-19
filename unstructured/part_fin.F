@@ -130,8 +130,7 @@ c     created with ordering specified by numvar
       real  outarray(numnodes*6*numvard),inarray(numnodes*6),
      &     aterm(18,18), bterm(18,18),fintl(-6:maxi,-6:maxi),
      &     dterm(18,18)
-      integer, parameter :: r9a = selected_real_kind(12,100)
-      real(r9a), allocatable:: temp(:)
+      real, allocatable:: temp(:)
       integer,  save, allocatable :: iboundsm(:), iboundsm2(:)
       real hyp, thimpsm
       integer numvarsm, itri, i, j,izone,izonedim,
@@ -641,8 +640,7 @@ c$$$      end
      &     iendplusone, ibeginnv, iendplusonenv, ndofs
       real ssterm, ddterm
       dimension ssterm(3,3),ddterm(3,3)
-      integer, parameter :: r8b = selected_real_kind(12,100)
-      real(r8b), allocatable::phin(:),temp(:)
+      real, allocatable::phin(:),temp(:)
       integer, save, allocatable::iboundds(:)
       real inarray(:),outarray(:)
       real aterm(18,18), dterm(18,18), fintl(-6:maxi,-6:maxi)

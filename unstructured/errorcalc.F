@@ -274,8 +274,12 @@ c     takes local (xl,zl) coords and maps to global (xg,zg)
 
       w = 1.-xl-zl
       if(w .lt. 0.) w = 0.
-      xg = w*coords(0) + xl*coords(4) + zl*coords(7)
-      zg = w*coords(1) + xl*coords(5) + zl*coords(8)
+c$$$      xg = w*coords(0) + xl*coords(4) + zl*coords(7)
+c$$$      zg = w*coords(1) + xl*coords(5) + zl*coords(8)
+
+      xg = w*coords(1) + xl*coords(5) + zl*coords(8)
+      zg = w*coords(2) + xl*coords(6) + zl*coords(9)
+
 
       return
       end

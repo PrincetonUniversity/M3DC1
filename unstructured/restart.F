@@ -94,7 +94,7 @@ c     first put in information to check on run information
      1     inumelms, immnn18, inumvar, iiper, ijper, imyrank,
      2     imaxrank, numelms
       character (len=30) :: fname, oldfname
-      real(r8) mytemp(10000)
+      real mytemp(10000)
 
       call createfilename(fname, oldfname)
       call numdofs(numvar, mmnn18)
