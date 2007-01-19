@@ -1,31 +1,22 @@
 SHELL=/bin/bash
 
-CFOPTS = -r8 -save -Dmpi -ftz -fpp  -I${LIBDIR}
-TVOPTS =
-
-NEWDIR = ./
-NEWINC = ./
-
 COMMONDIR = ../common/
 
-NTCCMOD = $(NTCCHOME)/mod
-NEWFLAGS =  $(CFOPTS)  -I$(NEWINC) -I$(COMMONDIR) -I$(NTCCMOD)
-TV80FLAGS = $(TVOPTS)  -I$(NEWINC) -I$(NTCCMOD)
+INCLUDE = -I$(COMMONDIR) -I$(NTCCHOME)/mod -I$(LIBDIR) \
+	  -I$(SUPERLU_DIST_HOME) -I$(HDF5_HOME)/include
 
-F90 = ifort -c
-COMPNEW = $(F90) -c $(NEWFLAGS) $<
-COMPNEWLIB = $(F90) -c $(NEWFLAGS) -o newpar-lib.o -DIS_LIBRARY $(NEWDIR)newpar.f90
-
-COMPTV80 = ifort -c $(TV80FLAGS)  $(COMMONDIR)$(@F:.o=.f)
-COMPBESJ = ifort -c $(NEWFLAGS)  $(COMMONDIR)$(@F:.o=.f)
 LOADER = ifort
-CCOMPILE = icc -c
+F90    = ifort -c
+F77    = ifort -c
+CC     = icc -c
+
+F90OPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE)  
+F77OPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE)
 
 NEWOBJS1 = M3Dmodules.o nintegrate_mod.o metricterms_n.o newvar.o \
 	$(COMMONDIR)tv80lib.o $(COMMONDIR)subp.o \
 	$(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
-        $(COMMONDIR)fdump.o diagnostics.o hdf5_output.o \
-#        $(COMMONDIR)writeHDF5.o 
+        $(COMMONDIR)fdump.o diagnostics.o hdf5_output.o
 
 NEWOBJS2 = fin.o part_fin.o ludef_t.o \
 	  part_fin3.o boundary.o unknown.o restart.o \
@@ -76,107 +67,26 @@ LDRNEW = \
 
 gonewp: $(NEWOBJS1) newpar.o newpar-lib.o $(NEWOBJS2)
 	ifort -shared -o libnewpar.so $(NEWOBJS1) newpar-lib.o $(NEWOBJS2) 
-	$(LOADER) -o $@ $(NEWOBJS1) newpar.o  $(NEWOBJS2) $(LDRNEW)
+	$(LOADER) $(NEWOBJS1) newpar.o  $(NEWOBJS2) $(LDRNEW) -o $@
 	rm -rf C1restartout check.txt check1.txt check0.txt
 
-newpar-lib.o: $(NEWDIR)newpar.f90
-	$(COMPNEWLIB)
-
-newpar.o: $(NEWDIR)newpar.f90
-	$(COMPNEW)
-	$(COMPNEWLIB)
-
-acbauer.o: $(NEWDIR)acbauer.F
-	$(COMPNEW)
-
-compare.o: $(NEWDIR)compare.F
-	$(COMPNEW)
-
-errorcalc.o: $(NEWDIR)errorcalc.F
-	$(COMPNEW)
-
-metricterms.o: $(NEWDIR)metricterms.F
-	$(COMPNEW)
-
-fin.o: $(NEWDIR)fin.F
-	$(COMPNEW)
-
-ludef.o: $(NEWDIR)ludef.F
-	$(COMPNEW)
-
-sort.o: $(NEWDIR)sort.F
-	$(COMPNEW)
-
-restart.o: $(NEWDIR)restart.F
-	$(COMPNEW)
-
-part_fin.o: $(NEWDIR)part_fin.F
-	$(COMPNEW)
-
-part_fin2.o: $(NEWDIR)part_fin2.F
-	$(COMPNEW)
-
-part_fin3.o: $(NEWDIR)part_fin3.F
-	$(COMPNEW)
-
-unknown.o: $(NEWDIR)unknown.F
-	$(COMPNEW)
-
-sparse_params.o: $(NEWDIR)sparse_params.F
-	$(COMPNEW)
-
-sparse_matrix.o: $(NEWDIR)sparse_matrix.F
-	$(COMPNEW)
+newpar-lib.o: newpar.f90
+	$(F90) $(F90OPTS) -DIS_LIBRARY $< -o $@
 
 $(COMMONDIR)tv80lib.o: $(COMMONDIR)tv80lib.f
-	$(COMPTV80) -o $@ 
+	$(F77) $< -o $@ 
 
-$(COMMONDIR)dbesj0.o: $(COMMONDIR)dbesj0.f
-	$(COMPBESJ) -o $@
+%.o : %.c
+	$(CC) $(CCOPTS) $< -o $@
 
-$(COMMONDIR)dbesj1.o: $(COMMONDIR)dbesj1.f
-	$(COMPBESJ) -o $@
-
-$(COMMONDIR)fdump.o: $(COMMONDIR)fdump.f
-	$(COMPBESJ) -o $@
-
-$(COMMONDIR)subp.o: $(COMMONDIR)subp.f90
-	ifort -c $(NEWFLAGS) $< -o $@
-
-basic_mod.o: $(NEWDIR)basic_mod.f90
-	ifort -c $(NEWFLAGS) $< -o $@
-
-$(COMMONDIR)superlu_mod.o: $(COMMONDIR)superlu_mod.f90
-	ifort -c $(NEWFLAGS) $< -o $@
-
-supralu_dist_mod.o: supralu_dist_mod.f90
-	ifort -c $(NEWFLAGS) $< -o $@
-
-$(COMMONDIR)superlu_c2f_wrap.o: $(COMMONDIR)superlu_c2f_wrap.c
-	$(CCOMPILE)  -I${SUPERLU_DIST_HOME} \
-	$< -c -o $@
-
-$(COMMONDIR)dcreate_dist_matrix.o: $(COMMONDIR)dcreate_dist_matrix.c
-	$(CCOMPILE)  -I${SUPERLU_DIST_HOME} \
-	$< -c -o $@
-
-c_fortran_dgssv.o: $(NEWDIR)c_fortran_dgssv.c
-	$(CCOMPILE) $< -c -o $@
-
-$(COMMONDIR)writeHDF5.o: $(COMMONDIR)writeHDF5.c
-	$(CCOMPILE)  -I$(HDF5_HOME)/include $< -o $@
-
-
-%.o: %.c
-	-rm -f $(*F)_err
-	-date > $(*F)_err
-	$(CCOMPILE)  -o $@ $<  >>& $(*F)_err
+%.o: %.f
+	$(F77) $(F77OPTS) $< -o $@
 
 %.o: %.F
-	$(F90) $(CFOPTS) $< -o $@
+	$(F77) $(F77OPTS) $< -o $@
 
 %.o: %.f90
-	$(F90) $(CFOPTS) $< -o $@
+	$(F77) $(F90OPTS) $< -o $@
 
 clean:
 	rm -f gonewp*
