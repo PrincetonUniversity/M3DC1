@@ -12,22 +12,28 @@
       use basic
       use arrays
       use sparse
+
       implicit none
-      integer numnodes, itri, numnodes1, ndof_2,
-     &      ll, i, j, numvarsm, jtwo, itwo, nbcsm, iplace, l, 
-     &     ier, jer, jone, numvard, nbound, numelms,izone,izonedim,
+
+      integer, intent(in) :: numnodes, numvard, iplace
+      real, intent(out) :: outarray(numnodes*6*numvard)
+      real, intent(in)  ::  inarray(numnodes*6)
+
+
+      integer :: itri, ndof_2,
+     &     i, j, numvarsm, jtwo, itwo, nbcsm, l, 
+     &     ier, jone, nbound, numelms, izone,izonedim,
      &     ibegind, iendplusoned, ibeginsm, iendplusonesm
-      real hyp, thimpsm, ssterm, ddterm, deex, 
-     &     aterm(18,18), bterm(18,18),fintl(-6:maxi,-6:maxi),
-     &     dterm(18,18)
-      dimension ssterm(3,3),ddterm(3,3) 
-      real  outarray(numnodes*6*numvard),inarray(numnodes*6)
-      integer, parameter :: r9a = selected_real_kind(12,100)
-      real(r9a), allocatable:: temp(:)
-      integer,  save, allocatable:: iboundsm(:), iboundsm2(:)
+      real :: hyp, thimpsm, deex
+      real, dimension(18,18) :: aterm, bterm, dterm
+      real, dimension(-6:maxi,-6:maxi) :: fintl(-6:maxi,-6:maxi)
+
+      real, dimension(2,2) :: ssterm
+      real, allocatable :: temp(:)
+
+      integer, save, allocatable :: iboundsm(:), iboundsm2(:)
 !
       numvarsm = 2
-      call numnod(numnodes1)
       call numfac(numelms)
       call numdofs(numvarsm, ndof_2)
       call createvec(temp, numvarsm)
@@ -38,7 +44,7 @@
       ifirsts5_lu = 1
 
       nbound = 0
-      do i=1,numnodes1
+      do i=1,numnodes
          call zonenod(i,izone,izonedim)
          if(izonedim .ne. 2) nbound = nbound + 1
       enddo
@@ -55,26 +61,27 @@
          call calcaterm(itri, aterm, fintl)
          call calcbterm(itri, bterm, fintl)
          call calcdterm(itri, dterm, fintl)
-        call getdeex(itri,deex)
-        hyp = hyperc*deex**2*amu
-        do i=1,18
-          do j=1,18
-             jtwo = isval2(itri,j)
-             itwo = isval2(itri,i)
-             ssterm(1,1) = dterm(i,j)
-             ssterm(1,2) =-aterm(i,j)
-             ssterm(2,1) =  +dt*hyp*thimpsm*bterm(i,j)
-             ssterm(2,2) = aterm(i,j)
-             call insertval(s5matrix_sm,ssterm(1,1),itwo,jtwo,1)
-             call insertval(s5matrix_sm,ssterm(1,2),itwo,jtwo+6,1)
-             call insertval(s5matrix_sm,ssterm(2,1),itwo+6,jtwo,1)
-             call insertval(s5matrix_sm,ssterm(2,2),itwo+6,jtwo+6,1)             
-          enddo
-       enddo
+         call getdeex(itri,deex)
+         hyp = hyperc*deex**2*amu
+         do i=1,18
+            do j=1,18
+               jtwo = isval2(itri,j)
+               itwo = isval2(itri,i)
+               ssterm(1,1) = dterm(i,j)
+               ssterm(1,2) =-aterm(i,j)
+               ssterm(2,1) =  +dt*hyp*thimpsm*bterm(i,j)
+               ssterm(2,2) = aterm(i,j)
+               call insertval(s5matrix_sm,ssterm(1,1),itwo,  jtwo,  1)
+               call insertval(s5matrix_sm,ssterm(1,2),itwo,  jtwo+6,1)
+               call insertval(s5matrix_sm,ssterm(2,1),itwo+6,jtwo,  1)
+               call insertval(s5matrix_sm,ssterm(2,2),itwo+6,jtwo+6,1)             
+            enddo
+         enddo
       enddo
 !
 !......define indices for boundary arrays
       call boundarysm(iboundsm,iboundsm2,nbcsm,iplace)
+
       ! bc stuff...
       do i=1,nbcsm
          call setdiribc(s5matrix_sm, iboundsm(i))
@@ -87,25 +94,25 @@
          call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
          call calcdterm(itri, dterm, fintl)
         
-        call getdeex(itri,deex)
-        hyp = hyperc*deex**2*amu
-        do i=1,18
-        do j=1,18
-            jone = isval1(itri,j)
+         call getdeex(itri,deex)
+         hyp = hyperc*deex**2*amu
+         do i=1,18
             itwo = isval2(itri,i)
+            do j=1,18
+               jone = isval1(itri,j)
 !
-            temp(itwo+6) = temp(itwo+6)+(dterm(i,j)                             &
-     &             - dt*hyp*(1.-thimpsm)*bterm(i,j))*inarray(jone)
+               temp(itwo+6) = temp(itwo+6)+(dterm(i,j)                             &
+     &              - dt*hyp*(1.-thimpsm)*bterm(i,j))*inarray(jone)
 !
-        enddo
-        enddo
+            enddo
+         enddo
       enddo
       do l=1,nbcsm
-      if(iboundsm(l).le.0 .or. iboundsm(l).gt.ndof_2) then
-        write(*,*) "error in smoother"
-        call safestop(98)
-        endif
-      temp(iboundsm(l)) = 0.
+         if(iboundsm(l).le.0 .or. iboundsm(l).gt.ndof_2) then
+            write(*,*) "error in smoother"
+            call safestop(98)
+         endif
+         temp(iboundsm(l)) = 0.
       enddo
 ! since a proc is contributing values to parts of the vector
 ! it does not own, we call sumshareddofs so that these values
@@ -119,18 +126,19 @@
       if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "after solve"
 !
 !.....store solution
-       do l=1,numnodes1
-          call entdofs(numvard, l, 0, ibegind, iendplusoned)
-          call entdofs(numvarsm, l, 0, ibeginsm, iendplusonesm)
-          do i=0,5
-             outarray(ibegind+6*(iplace-1)+i) =
-     &            temp(ibeginsm+6+i)
-          enddo
-       enddo
+      do l=1,numnodes
+         call entdofs(numvard, l, 0, ibegind, iendplusoned)
+         call entdofs(numvarsm, l, 0, ibeginsm, iendplusonesm)
+         do i=0,5
+            outarray(ibegind+6*(iplace-1)+i) =
+     &           temp(ibeginsm+6+i)
+         enddo
+      enddo
        
 !
-       call deletevec(temp)
+      call deletevec(temp)
       return
 !
       end
 !============================================================
+

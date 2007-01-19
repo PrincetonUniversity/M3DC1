@@ -24,7 +24,7 @@ CCOMPILE = icc -c
 NEWOBJS1 = M3Dmodules.o nintegrate_mod.o metricterms_n.o newvar.o \
 	$(COMMONDIR)tv80lib.o $(COMMONDIR)subp.o \
 	$(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
-        $(COMMONDIR)fdump.o hdf5_output.o \
+        $(COMMONDIR)fdump.o diagnostics.o hdf5_output.o \
 #        $(COMMONDIR)writeHDF5.o 
 
 NEWOBJS2 = fin.o part_fin.o ludef_t.o \

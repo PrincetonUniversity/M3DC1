@@ -36,7 +36,11 @@
 
       x2 = x
       z2 = z
+
       call usesearchstructure(x2,z2,itri)
+
+      if(itri.lt.0) return
+
       call nodfac(itri,nodeids)
       call xyznod(nodeids(1), coords)
       xref = coords(1)
