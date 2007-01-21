@@ -29,9 +29,14 @@ subroutine ireaddef
      endif
 !
 ! the following are not used
+     if(itype.eq.31) go to 400
+     if(itype.eq.32) go to 400
+     if(itype.eq.33) go to 400
      if(itype.eq.34) go to 400
      if(itype.eq.35) go to 400
      if(itype.eq.36) go to 400
+     if(itype.eq.47) go to 400
+     if(itype.eq.48) go to 400
      if(itype.eq.49) go to 400
      if(itype.eq.50) go to 400
      if(numvar.le.1) then
@@ -39,7 +44,7 @@ subroutine ireaddef
         if(itype.eq. 2) go to 400 
         if(itype.eq. 3) go to 400
         if(itype.eq. 4) go to 400
-!!$        if(itype.eq. 5) go to 400
+        if(itype.eq. 5) go to 400
         if(itype.eq. 6) go to 400
         if(itype.eq. 9) go to 400
         if(itype.eq.10) go to 400
@@ -49,8 +54,6 @@ subroutine ireaddef
         if(itype.eq.21) go to 400
         if(itype.eq.22) go to 400
 !
-        if(itype.eq.47) go to 400
-        if(itype.eq.48) go to 400
         if(itype.eq.51) go to 400
         if(itype.eq.52) go to 400
         if(itype.eq.53) go to 400
@@ -77,8 +80,6 @@ subroutine ireaddef
         if(itype.eq.28) go to 400
         if(itype.eq.29) go to 400
         if(itype.eq.30) go to 400
-        if(itype.eq.31) go to 400
-        if(itype.eq.32) go to 400
 !
         if(itype.eq.35) go to 400
         if(itype.eq.37) go to 400
@@ -137,7 +138,7 @@ subroutine opdef1
   integer :: ii, iii, jj, jjj, jp, jjp, jjjp
   real :: terma, termb, termd, termd2, termq, termx, termy
   real :: gfac, gk, gl, fackj, sum, co, sn
-  real :: sumg0, sumg2, sumg3, sumg4, sumg5, sumg6, sumg7, sumg8, sumg9
+  real :: sumg0, sumg2, sumg3, sumg4, sumg5, sug6a, sug6b, sumg7, sumg8, sumg9
   real :: sug10, sug11, sug12, sug13, sug14, sug15, sug16            
   real :: sumh3, sumh5, sumk0, sumk1, sumk2, sumh2
   real :: sumx0, sumy0, sumx1, sumy1, sumx2, sumy2
@@ -218,15 +219,16 @@ subroutine opdef1
            termg5(p,q,r) = mi(p)*mi(r)*fint(msum-2,nsum)                &
                           +ni(p)*ni(r)*fint(msum,nsum-2)
 
-           termg6(p,q,r) =                                               &
+           terg6a(p,q,r) =                                               &
                 - mi(p)*mi(r)*mi(q)*(mi(r)+mi(q)-2) *fint(msum-4,nsum)   &
                 -(mi(p)*ni(r)*ni(q)*(mi(r)+mi(q)  )                      &
                  +ni(p)*mi(r)*mi(q)*(ni(r)+ni(q)  ))*fint(msum-2,nsum-2) &
-                - ni(p)*ni(r)*ni(q)*(ni(r)+ni(q)-2) *fint(msum  ,nsum-4) &
-             +gam*(mi(q)*(mi(q)-1)*mi(p)*(mi(p)-1) *fint(msum-4,nsum)    &
+                - ni(p)*ni(r)*ni(q)*(ni(r)+ni(q)-2) *fint(msum  ,nsum-4) 
+           terg6b(p,q,r) =                                             &
+                  mi(q)*(mi(q)-1)*mi(p)*(mi(p)-1) *fint(msum-4,nsum)    &
                 +(mi(q)*(mi(q)-1)*ni(p)*(ni(p)-1)                        &
                  +mi(p)*(mi(p)-1)*ni(q)*(ni(q)-1))*fint(msum-2,nsum-2)   &
-                 +ni(q)*(ni(q)-1)*ni(p)*(ni(p)-1) *fint(msum  ,nsum-4))
+                 +ni(q)*(ni(q)-1)*ni(p)*(ni(p)-1) *fint(msum  ,nsum-4)  
 
            termg7(p,q,r) =  -(mi(r)*ni(q)-mi(q)*ni(r))               &
                 *(mi(p)*(mi(r)+mi(q)-1)*fint(msum-3,nsum-1)          &
@@ -256,20 +258,10 @@ subroutine opdef1
                 mi(q)*ni(q)*mi(r)*ni(r)                               &
                 -mi(q)*(mi(q)-1)*ni(r)*(ni(r)-1))*fint(msum-2,nsum-2)
 !
-!...........changed on 12/15/06...scj
             terg12(p,q,r) =                                          &
                   mi(q)*(mi(q)-1)*mi(r)*(mi(r)-1)*fint(msum-4,nsum)  &
                  +ni(q)*(ni(q)-1)*ni(r)*(ni(r)-1)*fint(msum,nsum-4)  &
                  +2*mi(q)*ni(q)*mi(r)*ni(r)*fint(msum-2,nsum-2)
-               
-!           terg12(p,q,r) =                                          &
-!                  mi(q)*(mi(q)-1)*(mi(p)+mi(r))*(mi(p)+mi(r)-1)     &
-!                *fint(msum-4,nsum)                                  &
-!                +(mi(q)*(mi(q)-1)*(ni(p)+ni(r))*(ni(p)+ni(r)-1)     &
-!                + ni(q)*(ni(q)-1)*(mi(p)+mi(r))*(mi(p)+mi(r)-1))    &
-!                *fint(msum-2,nsum-2)                                &
-!                + ni(q)*(ni(q)-1)*(ni(p)+ni(r))*(ni(p)+ni(r)-1)     &
-!                *fint(msum,nsum-4)
 
            terg13(p,q,r) =                                        &
                  ((mi(q)+mi(r))*(mi(q)+mi(r)-1)*mi(p)*(mi(p)-1))  &
@@ -392,7 +384,8 @@ subroutine opdef1
            sumg3 = 0.
            sumg4 = 0.
            sumg5 = 0.
-           sumg6 = 0.
+           sug6a = 0.
+           sug6b = 0.
            sumg7 = 0.
            sumg8 = 0.
            sumg9 = 0.
@@ -425,7 +418,8 @@ subroutine opdef1
                     sumg3 = sumg3 + termg3(k,l,p)*gfac
                     sumg4 = sumg4 + termg4(k,l,p)*gfac
                     sumg5 = sumg5 + termg5(k,l,p)*gfac
-                    sumg6 = sumg6 + termg6(k,l,p)*gfac
+                    sug6a = sug6a + terg6a(k,l,p)*gfac
+                    sug6b = sug6b + terg6b(k,l,p)*gfac
                     sumg7 = sumg7 + termg7(k,l,p)*gfac
                     sumg8 = sumg8 + termg8(k,l,p)*gfac
                     sumg9 = sumg9 + termg9(k,l,p)*gfac
@@ -456,7 +450,8 @@ subroutine opdef1
            g3term(iodd,i,j,jp) = g3term(iodd,i,j,jp) + sumg3
            g4term(iodd,i,j,jp) = g4term(iodd,i,j,jp) + sumg4
            g5term(iodd,i,j,jp) = g5term(iodd,i,j,jp) + sumg5
-           g6term(iodd,i,j,jp) = g6term(iodd,i,j,jp) + sumg6
+           g6aerm(iodd,i,j,jp) = g6aerm(iodd,i,j,jp) + sug6a
+           g6berm(iodd,i,j,jp) = g6berm(iodd,i,j,jp) + sug6b
            g7term(iodd,i,j,jp) = g7term(iodd,i,j,jp) + sumg7
            g8term(iodd,i,j,jp) = g8term(iodd,i,j,jp) + sumg8
            g9term(iodd,i,j,jp) = g9term(iodd,i,j,jp) + sumg9
@@ -583,8 +578,8 @@ subroutine opdef2
 !     28     C16
 !     29     C17
 !     30     C18
-!     31     C19
-!     32     C20
+!     31     C19 not used 1/12/07
+!     32     C20 not used 1/12/07
 !
 !
 !     37     V3
@@ -597,8 +592,8 @@ subroutine opdef2
 !     44     V16
 !     45     V5
 !     46     V6
-!     47     U7
-!     48     U8
+!     47     U7 not used 1/12/07
+!     48     U8 not used 1/12/07
 !     49     not used
 !     50     not used
 !     51     GMU
@@ -809,6 +804,7 @@ subroutine opdef2
       go to 200
 !
 !     U5
+! .....replaced U5 --> V7+gam*U5 on 1/11/07
  109  continue
       do p=1,20
         do q=1,20
@@ -816,8 +812,7 @@ subroutine opdef2
             do s=1,20
               msum = mi(p)+mi(q)+mi(r)+mi(s)
               nsum = ni(p)+ni(q)+ni(r)+ni(s)
-              tensor(p,q,r,s)=((mi(q)*ni(r)-mi(r)*ni(q))                 &
-                 + gam*(mi(s)*ni(r)-mi(r)*ni(s)))*fint(msum-1,nsum-1)
+              tensor(p,q,r,s)=(mi(s)*ni(r)-mi(r)*ni(s))*fint(msum-1,nsum-1)
             enddo
           enddo
         enddo
@@ -825,6 +820,7 @@ subroutine opdef2
       go to 200
 !
 !     U6 = U5(q <-> r)
+! ....replaced U6 --> V8+gam*U6 on 1/11/07
  110  continue
       do p=1,20
         do q=1,20
@@ -832,8 +828,7 @@ subroutine opdef2
             do s=1,20
               msum = mi(p)+mi(q)+mi(r)+mi(s)
               nsum = ni(p)+ni(q)+ni(r)+ni(s)
-              tensor(p,q,r,s)=((mi(r)*ni(q)-mi(q)*ni(r))                 &
-                 + gam*(mi(s)*ni(q)-mi(q)*ni(s)))*fint(msum-1,nsum-1)
+              tensor(p,q,r,s)=(mi(s)*ni(q)-mi(q)*ni(s))*fint(msum-1,nsum-1)
             enddo
           enddo
         enddo
@@ -1196,6 +1191,7 @@ subroutine opdef2
       go to 200
 !
 !     C15
+!                  ...... def changed (s <-> r) on Jan 11,07 but should be equivalent
  127  continue
       do p=1,20
         do q=1,20
@@ -1203,9 +1199,9 @@ subroutine opdef2
             do s=1,20
               msum = mi(p)+mi(q)+mi(r)+mi(s)
               nsum = ni(p)+ni(q)+ni(r)+ni(s)
-              tensor(p,q,r,s) =-(mi(s)*ni(q)-ni(s)*mi(q))               &
-               *( mi(p)*(mi(p)-1)*fint(msum-3,nsum-1)                   &
-                 +ni(p)*(ni(p)-1)*fint(msum-1,nsum-3))
+              tensor(p,q,r,s) =-(mi(r)*ni(q)-mi(q)*ni(r))               &
+                     *(mi(p)*(mi(p)-1)*fint(msum-3,nsum-1)              &
+                      +ni(p)*(ni(p)-1)*fint(msum-1,nsum-3))
             enddo
           enddo
         enddo
@@ -1220,7 +1216,7 @@ subroutine opdef2
             do s=1,20
               msum = mi(p)+mi(q)+mi(r)+mi(s)
               nsum = ni(p)+ni(q)+ni(r)+ni(s)
-              tensor(p,q,r,s) =-(mi(s)*ni(r)-ni(s)*mi(r))               &
+              tensor(p,q,r,s) =-(mi(q)*ni(r)-mi(r)*ni(q))               &
                *( mi(p)*(mi(p)-1)*fint(msum-3,nsum-1)                   &
                  +ni(p)*(ni(p)-1)*fint(msum-1,nsum-3))
             enddo
@@ -1270,6 +1266,7 @@ subroutine opdef2
       go to 200
 !
 !     C19
+!......not used...should remove
  131  continue
       do p=1,20
         do q=1,20
@@ -1287,6 +1284,7 @@ subroutine opdef2
       go to 200
 !
 !     C20
+!......not used...should remove
  132  continue
 !
       do p=1,20
@@ -1366,6 +1364,7 @@ subroutine opdef2
       go to 200
 !
 !     V11
+!.....changed definition on 1/11/07
  139  continue
       do p=1,20
         do q=1,20
@@ -1374,12 +1373,12 @@ subroutine opdef2
               msum = mi(p)+mi(q)+mi(r)+mi(s)
               nsum = ni(p)+ni(q)+ni(r)+ni(s)
               tensor(p,q,r,s) =                                         &
-              mi(q)*((mi(q)-1)*(mi(r)*(ni(p)+ni(s)+2*ni(r))             &
-              -mi(p)*ni(r))+mi(r)*(mi(s)*(ni(r)-ni(q))                  &
-                   -(mi(r)-1)*(ni(s)+2*ni(q))))*fint(msum-3,nsum-1)     &
-             -ni(q)*((ni(q)-1)*(ni(r)*(mi(p)+mi(s)+2*mi(r))             &
-              -ni(p)*mi(r))+ni(r)*(ni(s)*(mi(r)-mi(q))                  &
-                   -(ni(r)-1)*(mi(s)+2*mi(q))))*fint(msum-1,nsum-3)
+              -((mi(p)*ni(q)-mi(q)*ni(p))*mi(r)*(mi(r)-1)               &
+              +(mi(q)*ni(r)-mi(r)*ni(q))*mi(p)                          &
+                              *(mi(q)+mi(r)-1))*fint(msum-3,nsum-1)     &
+              -((mi(p)*ni(q)-mi(q)*ni(p))*ni(r)*(ni(r)-1)               &
+              +(mi(q)*ni(r)-mi(r)*ni(q))*ni(p)                          &
+                              *(ni(q)+ni(r)-1))*fint(msum-1,nsum-3)
             enddo
           enddo
         enddo
@@ -1395,12 +1394,12 @@ subroutine opdef2
               msum = mi(p)+mi(q)+mi(r)+mi(s)
               nsum = ni(p)+ni(q)+ni(r)+ni(s)
               tensor(p,q,r,s) =                                         &
-              mi(r)*((mi(r)-1)*(mi(q)*(ni(p)+ni(s)+2*ni(q))             &
-              -mi(p)*ni(q))+mi(q)*(mi(s)*(ni(q)-ni(r))                  &
-                   -(mi(q)-1)*(ni(s)+2*ni(r))))*fint(msum-3,nsum-1)     &
-             -ni(r)*((ni(r)-1)*(ni(q)*(mi(p)+mi(s)+2*mi(q))             &
-              -ni(p)*mi(q))+ni(q)*(ni(s)*(mi(q)-mi(r))                  &
-                   -(ni(q)-1)*(mi(s)+2*mi(r))))*fint(msum-1,nsum-3)
+              -((mi(p)*ni(r)-mi(r)*ni(p))*mi(q)*(mi(q)-1)               &
+              +(mi(r)*ni(q)-mi(q)*ni(r))*mi(p)                          &
+                              *(mi(r)+mi(q)-1))*fint(msum-3,nsum-1)     &
+              -((mi(p)*ni(r)-mi(r)*ni(p))*ni(q)*(ni(q)-1)               &
+              +(mi(r)*ni(q)-mi(q)*ni(r))*ni(p)                          &
+                              *(ni(r)+ni(q)-1))*fint(msum-1,nsum-3)
             enddo
           enddo
         enddo
@@ -1448,6 +1447,7 @@ subroutine opdef2
       go to 200
 !
 !     V15
+!     changed 01/11/07
  143  continue
       do p=1,20
         do q=1,20
@@ -1455,11 +1455,12 @@ subroutine opdef2
             do s=1,20
               msum = mi(p)+mi(q)+mi(r)+mi(s)
               nsum = ni(p)+ni(q)+ni(r)+ni(s)
-              tensor(p,q,r,s) =                                         &
-                (2.*mi(q)*ni(r)*(ni(q)*mi(r) - (mi(q)-1)*(ni(r)-1))     &
-                +ni(q)*mi(r)*(mi(s)*ni(r)-(mi(r)-1)*ni(s))              &
-                +mi(q)*ni(r)*(mi(r)*ni(s)-(ni(r)-1)*mi(s)))             &
-                              *fint(msum-2,nsum-2)
+              tensor(p,q,r,s) =                                          &
+     &          -0.5*mi(p)*mi(r)*mi(q)*(mi(r)-mi(q))*fint(msum-4,nsum)   &
+     &    + (mi(p)*mi(r)*ni(q)*(ni(q)-1) + ni(p)*ni(r)*mi(q)*(mi(q)-1)   &
+     &       -0.5*mi(p)*ni(r)*ni(q)*(mi(r)+mi(q))                        &
+     &       -0.5*ni(p)*mi(r)*mi(q)*(ni(r)+ni(q)))*fint(msum-2,nsum-2)   &
+     &          -0.5*ni(p)*ni(r)*ni(q)*(ni(r)-ni(q))*fint(msum,nsum-4)
             enddo
           enddo
         enddo
@@ -1475,10 +1476,11 @@ subroutine opdef2
               msum = mi(p)+mi(q)+mi(r)+mi(s)
               nsum = ni(p)+ni(q)+ni(r)+ni(s)
               tensor(p,q,r,s) =                                         &
-                (2.*mi(r)*ni(q)*(ni(r)*mi(q) - (mi(r)-1)*(ni(q)-1))     &
-                +ni(r)*mi(q)*(mi(s)*ni(q)-(mi(q)-1)*ni(s))              &
-                +mi(r)*ni(q)*(mi(q)*ni(s)-(ni(q)-1)*mi(s)))             &
-                              *fint(msum-2,nsum-2)
+     &          -0.5*mi(p)*mi(q)*mi(r)*(mi(q)-mi(r))*fint(msum-4,nsum)   &
+     &    + (mi(p)*mi(q)*ni(r)*(ni(r)-1) + ni(p)*ni(q)*mi(r)*(mi(r)-1)   &
+     &       -0.5*mi(p)*ni(q)*ni(r)*(mi(q)+mi(r))                        &
+     &       -0.5*ni(p)*mi(q)*mi(r)*(ni(q)+ni(r)))*fint(msum-2,nsum-2)   &
+     &          -0.5*ni(p)*ni(q)*ni(r)*(ni(q)-ni(r))*fint(msum,nsum-4)
             enddo
           enddo
         enddo
@@ -1522,6 +1524,7 @@ subroutine opdef2
       go to 200
 !
 !     U7
+!......no longer used (1/11/07)   (same as U5)
  147  continue
       do p=1,20
         do q=1,20
@@ -1538,6 +1541,7 @@ subroutine opdef2
       go to 200
 !
 !     U8 = U7(q <->r)
+!....no longer used (1/11/07)...replaced with U6
  148  continue
       do p=1,20
         do q=1,20

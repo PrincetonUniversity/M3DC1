@@ -241,7 +241,7 @@
      &        k0term (:,:,:,:), k1term (:,:,:,:), k2term (:,:,:,:),     &
      &        g0term (:,:,:,:), g2term (:,:,:,:), g3term (:,:,:,:),     &
      &        g4term (:,:,:,:), g5term (:,:,:,:),                       &
-     &        g6term (:,:,:,:), g7term (:,:,:,:),                       &
+     &        g6aerm (:,:,:,:), g6berm (:,:,:,:), g7term (:,:,:,:),     &
      &        g8term (:,:,:,:), g9term (:,:,:,:),                       &
      &        g10erm (:,:,:,:), g11erm (:,:,:,:),                       &
      &        g12erm (:,:,:,:), g13erm (:,:,:,:), g14erm (:,:,:,:),     &
@@ -280,19 +280,19 @@
      &        hterm(:,:,:), termh2(:,:,:,:),                            &
 !
 !     intermediate metric terms with 1-3 indices                        
-     &       d2matrix(:),     bmatrix(:,:),  amatrix(:,:),              &
-     &        dmatrix(:,:),  qmatrix(:,:), ttermij(:,:),                &
-     &       xmatrix(:,:), ymatrix(:,:),                                &
-     &       termg0(:,:,:), termg2(:,:,:), termg3(:,:,:),               &
-     &       termg4(:,:,:), termg5(:,:,:), termg6(:,:,:),               &
-     &       termg7(:,:,:), termg8(:,:,:), termg9(:,:,:),               &
-     &       terg10(:,:,:), terg11(:,:,:), terg12(:,:,:),               &
-     &       terg13(:,:,:), terg14(:,:,:), terg15(:,:,:),               &
-     &       terg16(:,:,:), termh (:,:,:), termh3(:,:,:),               &
-     &       termh5(:,:,:), termk0(:,:,:), termk1(:,:,:),               &
-     &       termk2(:,:,:), tensor(:,:,:,:), tterm(:,:,:,:),            &
-     &       termx0(:,:,:), termx1(:,:,:), termx2(:,:,:),               &
-     &       termy0(:,:,:), termy1(:,:,:), termy2(:,:,:),
+     &     d2matrix(:),     bmatrix(:,:),  amatrix(:,:),                &
+     &     dmatrix(:,:),  qmatrix(:,:), ttermij(:,:),                   &
+     &     xmatrix(:,:), ymatrix(:,:),                                  &
+     &     termg0(:,:,:), termg2(:,:,:), termg3(:,:,:),                 &
+     &     termg4(:,:,:), termg5(:,:,:), terg6a(:,:,:), terg6b(:,:,:),  &
+     &     termg7(:,:,:), termg8(:,:,:), termg9(:,:,:),                 &
+     &     terg10(:,:,:), terg11(:,:,:), terg12(:,:,:),                 &
+     &     terg13(:,:,:), terg14(:,:,:), terg15(:,:,:),                 &
+     &     terg16(:,:,:), termh (:,:,:), termh3(:,:,:),                 &
+     &     termh5(:,:,:), termk0(:,:,:), termk1(:,:,:),                 &
+     &     termk2(:,:,:), tensor(:,:,:,:), tterm(:,:,:,:),              & 
+     &     termx0(:,:,:), termx1(:,:,:), termx2(:,:,:),                 &
+     &     termy0(:,:,:), termy1(:,:,:), termy2(:,:,:),
 !     these contain the data that is given to superlu
 !
      &       ss(:,:,:,:), sstemp(:,:,:,:) !,dd(:,:,:,:), rr(:,:,:,:),   &
@@ -978,6 +978,7 @@
          call safestop(35)
       endif
 
+!....>>>>>debug remove r40
       vtemp = vtemp +   b1vector + r4 + r40
 
       do l=1,nbcv
@@ -1529,10 +1530,10 @@ c$$$      endif
      &       read(129) ir1,ir2,ir3,((c17erml(k,l),l=1,18),k=1,18)
         if(iread(30).eq.1)                                              &
      &       read(130) ir1,ir2,ir3,((c18erml(k,l),l=1,18),k=1,18)
-        if(iread(31).eq.1)                                              &
-     &       read(131) ir1,ir2,ir3,((c19erml(k,l),l=1,18),k=1,18)
-        if(iread(32).eq.1)                                              &
-     &       read(132) ir1,ir2,ir3,((c20erml(k,l),l=1,18),k=1,18)
+!       if(iread(31).eq.1)                                              &
+!    &       read(131) ir1,ir2,ir3,((c19erml(k,l),l=1,18),k=1,18)
+!       if(iread(32).eq.1)                                              &
+!    &       read(132) ir1,ir2,ir3,((c20erml(k,l),l=1,18),k=1,18)
 !
         if(iread(37).eq.1)                                              &
      &       read(137) ir1,ir2,ir3,((v3terml(k,l),l=1,18),k=1,18)
@@ -1801,14 +1802,14 @@ c$$$      endif
      &                 (h3term(iodd,i,j,k)*sphi1(kone)*phi0(j01)        &
      &                 +h5term(iodd,i,j,k)*sphi2(kone)*phi0(j2))
 !
-              ssterm(3,3) = ssterm(3,3) - thsqudts*g6term(iodd,i,j,k)   &
-     &                                          *pressure               &
+              ssterm(3,3) = ssterm(3,3) - thsqudts                      &
+     &            *(g6aerm(iodd,i,j,k)+gam*g6berm(iodd,i,j,k))*pressure &
      &         +(1-idens)*dt*g9term(iodd,i,j,k)*thimp*(vel(k1)+vel0(k1))&
      &         +(1-idens)*dt*(g10erm(iodd,i,k,j)+g10erm(iodd,i,j,k))*   &
      &                thimp*(vel(k3)+vel0(k3))
 !
-              ddterm(3,3) = ddterm(3,3) - ththmdts*g6term(iodd,i,j,k)   &
-     &                                          *pressure               &
+              ddterm(3,3) = ddterm(3,3) - ththmdts                      &
+     &            *(g6aerm(iodd,i,j,k)+gam*g6berm(iodd,i,j,k))*pressure &
      &         +(1-idens)*dt*g9term(iodd,i,j,k)*                        &
      &              (thimp*(vel(k1)+vel0(k1))-(0.5*vel(k1)+vel0(k1)))   &
      &        +(1-idens)*dt*(g10erm(iodd,i,k,j)+g10erm(iodd,i,j,k))*    &
@@ -2006,10 +2007,10 @@ c$$$      endif
      &                -(0.5*vel(k3)+vel0(k3))))
                endif            ! on idens.gt.0
 !
-               ssterm(3,2) = ssterm(3,2) + thsqudts*c19erml(k,l)        &
+               ssterm(3,2) = ssterm(3,2) + thsqudts*c15erml(k,l)        &
      &              *(phi(k1)+phi0(k01))*(phi(l2)+phi0(l2))
 
-               ddterm(3,2) = ddterm(3,2) + ththmdts*c19erml(k,l)        &
+               ddterm(3,2) = ddterm(3,2) + ththmdts*c15erml(k,l)        &
      &              *(phi(k1)+phi0(k01))*(phi(l2)+phi0(l2))
 !
                ssterm(3,3) = ssterm(3,3) + thsqudts*                    &
@@ -2198,7 +2199,7 @@ c$$$      endif
       integer itype, iodd, itri, ll, irect, jrect
       integer ir1, ir2, ir3, ier
       real ssterm(3,3),ddterm(3,3),rrterm(3,3),qqterm(3,3)
-      real gmix, terma, termb, termd, u12terml, u78terml, termbf
+      real gmix, terma, termb, termd, u12terml, u56terml, termbf
       real t24terml, t35terml, temp
       real x, z, dbf, factor, hypf, hypi, hypp, denf
       real tstartludefphi, tendludefphi, tbeforeread, tafterread
@@ -2254,10 +2255,14 @@ c$$$      endif
      &       read(109) ir1,ir2,ir3,((u5terml(k,l),l=1,18),k=1,18)
         if(iread(10).eq.1)                                              &
      &       read(110) ir1,ir2,ir3,((u6terml(k,l),l=1,18),k=1,18)
-        if(iread(47).eq.1)                                              &
-     &       read(147) ir1,ir2,ir3,((u7terml(k,l),l=1,18),k=1,18)
-        if(iread(48).eq.1)                                              &
-     &       read(148) ir1,ir2,ir3,((u8terml(k,l),l=1,18),k=1,18)
+        if(iread(05).eq.1)                                              &
+     &     read(105) ir1,ir2,ir3,((v7terml(k,l),l=1,18),k=1,18)
+        if(iread(06).eq.1)                                              &
+     &       read(106) ir1,ir2,ir3,((v8terml(k,l),l=1,18),k=1,18)
+!       if(iread(47).eq.1)                                              &
+!    &       read(147) ir1,ir2,ir3,((u7terml(k,l),l=1,18),k=1,18)
+!       if(iread(48).eq.1)                                              &
+!    &       read(148) ir1,ir2,ir3,((u8terml(k,l),l=1,18),k=1,18)
         if(iread(73).eq.1)                                              &
      &       read(173) ir1,ir2,ir3,((t1terml(k,l),l=1,18),k=1,18)
         if(iread(74).eq.1)                                              &
@@ -2324,17 +2329,11 @@ c$$$      endif
             ssterm(1,1) =  termd -     thimp  *dt*etar*(terma-termbf)  
             ddterm(1,1) =  termd + (1.-thimp) *dt*etar*(terma-termbf)   
 !
-!           if(linear.eq.0) then
-!              ohmic(i1) = ohmic(i1) + etar*(terma-termbf)*phi0(j01)
-!           endif               ! on linear.eq.0
 !
             if(numvar.ge.2) then
 !
               ssterm(2,2) =  termd   - thimp *dt*etar*(terma-hypi*termb) 
               ddterm(2,2) =  termd+(1.-thimp)*dt*etar*(terma-hypi*termb) 
-!             if(linear.eq.0) then
-!                ohmic(i2) = ohmic(i2)+etar*(terma-hypi*termb)*phi0(j2)
-!             endif            ! on linear.eq.0
 !
               if(numvar.ge.3) then
 !     
@@ -2379,7 +2378,7 @@ c$$$      endif
      &                *thimp*(phi(k2)+phi0(k2))
 !     
                  ddterm(1,1)=ddterm(1,1) - dbf*dt*k0term(iodd,i,j,k)    &
-     &                *(thimp*(phi(k2)+phi0(k2))-(0.5*phi(k2)+phi0(k2)))
+     &               *(thimp*(phi(k2)+phi0(k2))-(0.5*phi(k2)+phi0(k2)))
 !
                  ssterm(1,2) = ssterm(1,2) - dt*dbf*k0term(iodd,i,k,j)  &
      &                *thimp*(phi(k1)+phi0(k01))
@@ -2448,8 +2447,8 @@ c$$$      endif
                     rrterm(2,3)=rrterm(2,3)- thimp*dt*g2term(iodd,i,j,k)&
      &                   *(phi(k2)+phi0(k2))
 !
-                    qqterm(2,3)=qqterm(2,3) + dt*g2term(iodd,i,j,k)*    &
-     &            (thimp*(phi(k2)+phi0(k2))-(0.5*phi(k2)+phi0(k2)))
+                    qqterm(2,3)=qqterm(2,3) + dt*g2term(iodd,i,j,k)     &
+     &               *(thimp*(phi(k2)+phi0(k2))-(0.5*phi(k2)+phi0(k2)))
 !
                    rrterm(3,1)=rrterm(3,1) - dt*thimp*k0term(iodd,i,k,j)&
      &           *(phi(k3)+phi0(k3))
@@ -2471,41 +2470,6 @@ c$$$      endif
      &              *(thimp*(veln(k3)+vel0(k3))-(0.5*veln(k3)+vel0(k3)))&
      &          + (gam-1.)*kappat*(g2term(iodd,i,k,j)+g2term(iodd,i,j,k)&
      &                - hypp*g13erm(iodd,i,k,j))*(1.-thimp)*deni(kone))
-!
-!
-!      Ohmic heating term  (added 1/12/06) Viscous added 1/19/06
-!             if(linear.eq.1) then
-!             ohmic(i3) = ohmic(i3) + (gam-1.)*etar*                    &
-!    &           (k1term(iodd,i,j,k)*((jphi(kone)+jphi0(kone))          &
-!    &                              *(jphi(jone)+jphi0(jone))           &
-!    &                               -jphi0(kone)*jphi0(jone))          &
-!    &        -g2term(iodd,k,j,i)*((phi(k2)+phi0(k2))*(phi(j2)+phi0(j2))&
-!    &                                -phi0(k2)*phi0(j2))               &
-!    &        -hypf*g2term(iodd,k,j,i)*((jphi(kone)+jphi0(kone))        &
-!    &                                 *(jphi(jone)+jphi0(jone))        &
-!    &                                      -jphi0(kone)*jphi0(jone))   &
-!    &        +hypi*g12erm(iodd,i,j,k)*((phi(k2)+phi0(k2))              &
-!    &                                 *(phi(j2)+phi0(j2))              &
-!    &                                 -phi0(k2)*phi0(j2)))
-!             else ! on linear
-!             ohmic(i3) = ohmic(i3) + (gam-1.)*etar*(                   &
-!    &            k1term(iodd,i,j,k)*(jphi(kone)+jphi0(kone))           &
-!    &                              *(jphi(jone)+jphi0(jone))           &
-!    &        -g2term(iodd,k,j,i)*(phi(k2)+phi0(k2))*(phi(j2)+phi0(j2)) &
-!    &        -hypf*g2term(iodd,k,j,i)*(jphi(kone)+jphi0(kone))         &
-!    &                                 *(jphi(jone)+jphi0(jone))        &
-!    &        +hypi*g12erm(iodd,i,j,k)*(phi(k2)+phi0(k2))               &
-!    &                                *(phi(j2)+phi0(j2)))
-!             endif ! on linear
-!
-!
-!             viscous(i3) = viscous(i3) + (gam-1.)*amu*                 &
-!    &         (  g14erm(iodd,i,j,k)*veln(j1)*veln(k1)                  &
-!    &           -g2term(iodd,k,j,i)*veln(k2)*veln(j2))
-!             viscous(i3) = viscous(i3) + (gam-1.)*.5*(amu+amuc)*       &
-!    &            g16erm(iodd,i,j,k)*veln(j1)*veln(k3)
-!             viscous(i3) =viscous(i3) + (gam-1.)*amuc*                 &
-!    &         (  g15erm(iodd,i,j,k)*veln(j3)*veln(k3))
 
               if(idens.eq.0) then
 !
@@ -2566,31 +2530,32 @@ c$$$      endif
      &              *(thimp*(phi(k1)+phi0(k01))-(0.5*phi(k1)+phi0(k01)))
 !
                 u12terml = u1terml(k,l)+u2terml(k,l)
-                u78terml = u7terml(k,l)+u8terml(k,l)
+                u56terml = u5terml(k,l)+u6terml(k,l)
                 ssterm(2,1) = ssterm(2,1) - dt*u12terml*denf            &
      &                *thimp*(phi(k1)+phi0(k01))
                 ddterm(2,1) = ddterm(2,1) - dt*u12terml*denf            &
      &              *(thimp*(phi(k1)+phi0(k01))-(0.5*phi(k1)+phi0(k01)))
 !
-                ssterm(2,2) = ssterm(2,2) - dt*u78terml*denf            &
+                ssterm(2,2) = ssterm(2,2) - dt*u56terml*denf            &
      &                *thimp*(phi(k2)+phi0(k2))
-                ddterm(2,2) = ddterm(2,2) - dt*u78terml*denf            &
+                ddterm(2,2) = ddterm(2,2) - dt*u56terml*denf            &
      &               *(thimp*(phi(k2)+phi0(k2))-(0.5*phi(k2)+phi0(k2)))
 !
               if(numvar.ge.3) then
 !
-              ssterm(3,2)=ssterm(3,2) - dt*denf*pefac*u6terml(k,l)      &
-     &           *thimp*(phi(k3)+phi0(k3))
+              ssterm(3,2)=ssterm(3,2) - dt*denf*pefac                   &
+     &         *(v8terml(k,l)+gam*u6terml(k,l))*thimp*(phi(k3)+phi0(k3))
 !
-              ddterm(3,2)=ddterm(3,2) - dt*denf*pefac*u6terml(k,l)      &
-     &           *(thimp*(phi(k3)+phi0(k3))-(0.5*phi(k3)+phi0(k3)))
+              ddterm(3,2)=ddterm(3,2) - dt*denf*pefac                   &
+     &               *(v8terml(k,l)+gam*u6terml(k,l))                   &
+     &               *(thimp*(phi(k3)+phi0(k3))-(0.5*phi(k3)+phi0(k3)))
 !
-              ssterm(3,3) = ssterm(3,3)                                 &
-     &            -dt*denf*pefac*u5terml(k,l)*thimp*(phi(k2)+phi0(k2))
+              ssterm(3,3) = ssterm(3,3)-dt*denf*pefac                   &
+     &         *(v7terml(k,l)+gam*u5terml(k,l))*thimp*(phi(k2)+phi0(k2))
 !
-              ddterm(3,3) = ddterm(3,3)                                 &
-     &            -dt*denf*pefac*u5terml(k,l)*(thimp*(phi(k2)+phi0(k2)) &
-     &                                 -(0.5*phi(k2)+phi0(k2)))         &
+              ddterm(3,3) = ddterm(3,3)-dt*denf*pefac                   &
+     &               *(v7terml(k,l)+gam*u5terml(k,l))                   &
+     &               *(thimp*(phi(k2)+phi0(k2))-(0.5*phi(k2)+phi0(k2)))
 !
 !
 
@@ -2646,23 +2611,6 @@ c$$$      endif
       enddo                     ! on j
       enddo                     ! on i
       enddo                     ! on iodd
-#ifdef mpi
-!     icount = 6*numvar*m*n
-!     vtemp = ohmic
-!     call MPI_ALLREDUCE(vtemp,ohmic,icount,MPI_DOUBLE_PRECISION,       &
-!    &     MPI_SUM, MPI_COMM_WORLD,ier)
-!     if(ier /= 0) then
-!        print *,'Error with MPI_allreduce-ohmic',ier
-!        call safestop(1)
-!     endif
-!     vtemp = viscous
-!     call MPI_ALLREDUCE(vtemp,viscous,icount,MPI_DOUBLE_PRECISION,     &
-!    &     MPI_SUM, MPI_COMM_WORLD,ier)
-!     if(ier /= 0) then
-!        print *,'Error with MPI_allreduce-viscous',ier
-!        call safestop(1)
-!     endif
-#endif
 !     
       if(myrank.eq.0 .and. itimer.gt.0) call second(tbeforeinit)
       tmpi = tmpi + tbeforeinit-tafterelements
@@ -3764,7 +3712,8 @@ c$$$      endif
       g0term = 0
       g4term = 0
       g5term = 0
-      g6term = 0
+      g6aerm = 0
+      g6berm = 0
       g7term = 0.
       g8term = 0.
       g9term = 0.
@@ -4767,12 +4716,12 @@ c$$$      endif
      &         k2term (ioddm,18,18,18), g0term (ioddm,18,18,18),        &
      &         g2term (ioddm,18,18,18), g3term (ioddm,18,18,18),        &
      &         g4term (ioddm,18,18,18), g5term (ioddm,18,18,18),        &
-     &         g6term (ioddm,18,18,18), g7term (ioddm,18,18,18),        &
+     &         g6aerm (ioddm,18,18,18), g7term (ioddm,18,18,18),        &
      &         g8term (ioddm,18,18,18), g9term (ioddm,18,18,18),        &
      &         g10erm (ioddm,18,18,18), g11erm (ioddm,18,18,18),        &
      &         g12erm (ioddm,18,18,18), g13erm (ioddm,18,18,18),        &
      &         g14erm (ioddm,18,18,18), g15erm (ioddm,18,18,18),        &
-     &         g16erm (ioddm,18,18,18),                                 &
+     &         g16erm (ioddm,18,18,18), g6berm (ioddm,18,18,18),        &
      &         h3term (ioddm,18,18,18), h5term (ioddm,18,18,18),        &
      &         x0term (ioddm,18,18,18), y0term (ioddm,18,18,18),        &
      &         x1term (ioddm,18,18,18), y1term (ioddm,18,18,18),        &
@@ -4822,7 +4771,7 @@ c$$$      endif
      &        dmatrix(20,20),  qmatrix(20,20),                          &
      &       xmatrix(20,20),   ymatrix(20,20),                          &
      &       termg0(20,20,20), termg2(20,20,20), termg3(20,20,20),      &
-     &       termg4(20,20,20), termg5(20,20,20), termg6(20,20,20),      &
+     &       termg4(20,20,20), termg5(20,20,20), terg6a(20,20,20),      &
      &       termg7(20,20,20), termg8(20,20,20), termg9(20,20,20),      &
      &       terg10(20,20,20), terg11(20,20,20), terg12(20,20,20),      &
      &       terg13(20,20,20), terg14(20,20,20), terg15(20,20,20),      &
@@ -4830,7 +4779,7 @@ c$$$      endif
      &       termh5(20,20,20), termk0(20,20,20), termk1(20,20,20),      &
      &       termk2(20,20,20), termx0(20,20,20), termy0(20,20,20),      &
      &       termx1(20,20,20), termy1(20,20,20), termx2(20,20,20),      &
-     &       termy2(20,20,20))
+     &       termy2(20,20,20), terg6b(20,20,20))
 !
 !
 !     these contain the data that is given to superlu
@@ -6029,6 +5978,7 @@ c$$$      endif
       endif
       if(idens.gt.0) then
          rewind(109)
+         rewind(105)
       endif
 !
       do iodd=1,ioddmx
@@ -6048,6 +5998,8 @@ c$$$      endif
       if(idens.gt.0) then
         if(iread(09).eq.1)                                              &
      &     read(109) ir1,ir2,ir3,((u5terml(k,l),l=1,18),k=1,18)
+        if(iread(05).eq.1)                                              &
+     &     read(105) ir1,ir2,ir3,((v7terml(k,l),l=1,18),k=1,18)
       endif
 !
       do jrect=jfirst,jlast
@@ -6098,8 +6050,9 @@ c$$$      endif
                   lone = isval1(itri,l)
                   if(idens.gt.0) then
                       denf = deni(lone)*dbf
-                      q34(i3) = q34(i3) + denf*u5terml(k,l)             &
-     &                     *pefac*phi0(k2)*phi0(j3)*(1-linear)
+                      q34(i3) = q34(i3)                                 &
+     &                        + denf*(v7terml(k,l)+gam*u5terml(k,l))    &
+     &                              *pefac*phi0(k2)*phi0(j3)*(1-linear)
                   endif
 !             
                   if(chipar.ne.0.) then

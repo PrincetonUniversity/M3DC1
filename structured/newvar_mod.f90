@@ -78,6 +78,7 @@ subroutine newvarc(ibc,inarray,outarray,mmnn,numvard,iplace,iop)
   real temparr(18,18)
   integer filenum
   real ssterm, sum, terma, termb, hypp, denf, gmix, factor, x, z, dbf, termbf
+  real hypf, hypi
   integer mmnn6, lx, lz, nrads, numvards, msizeds, iodd
   integer ier, jer, itri, irect, jrect, ll, ibc
   integer ir1, ir2, ir3, nbcds, jsymtype
@@ -449,17 +450,51 @@ endif
         ! ---------------------------------
 117     continue
         
-!.......add in ohmic and viscous heating.....
-!                      (if test is needed because we are inside i and j loop)
-        if(j.eq.1) then
-          sum = sum + ohmic(i3) + viscous(i3)
-        endif
-!        
+      hypf = hyper*deex**2
+      hypi = hyperi*deex**2
         do k=1,18
            kone = isval1(itri,k)
            k1 = isvaln(itri,k)
            k2 = k1 + 6
            k3 = k2 + 6
+!.......add in ohmic and viscous heating.....
+!        
+              if(linear.eq.1) then
+              sum       = sum       + (gam-1.)*etar*                    &
+     &           (k1term(iodd,i,j,k)*((jphi(kone)+jphi0(kone))          &
+     &                              *(jphi(jone)+jphi0(jone))           &
+     &                               -jphi0(kone)*jphi0(jone))          &
+     &        -g2term(iodd,k,j,i)*((phi(k2)+phi0(k2))*(phi(j2)+phi0(j2))&
+     &                                -phi0(k2)*phi0(j2))               &
+     &        -hypf*g2term(iodd,k,j,i)*((jphi(kone)+jphi0(kone))        &
+     &                                 *(jphi(jone)+jphi0(jone))        &
+     &                                      -jphi0(kone)*jphi0(jone))   &
+     &        +hypi*g12erm(iodd,i,j,k)*((phi(k2)+phi0(k2))              &
+     &                                 *(phi(j2)+phi0(j2))              &
+     &                                 -phi0(k2)*phi0(j2)))
+              else ! on linear
+              sum       = sum       + (gam-1.)*etar*(                   &
+     &            k1term(iodd,i,j,k)*(jphi(kone)+jphi0(kone))           &
+     &                              *(jphi(jone)+jphi0(jone))           &
+     &        -g2term(iodd,k,j,i)*(phi(k2)+phi0(k2))*(phi(j2)+phi0(j2)) &
+     &        -hypf*g2term(iodd,k,j,i)*(jphi(kone)+jphi0(kone))         &
+     &                                 *(jphi(jone)+jphi0(jone))        &
+     &        +hypi*g12erm(iodd,i,j,k)*(phi(k2)+phi0(k2))               &
+     &                                *(phi(j2)+phi0(j2)))
+              endif ! on linear
+!
+!
+              sum         = sum         + (gam-1.)*amu*                 &
+     &         (  g14erm(iodd,i,j,k)*vel(j1)*vel(k1)                    &
+     &           -g2term(iodd,k,j,i)*vel(k2)*vel(j2))
+              sum         = sum         + (gam-1.)*amu*                 &
+     &            g16erm(iodd,i,j,k)*vel(j1)*vel(k3)
+              sum         =sum         + (gam-1.)*amuc*                 &
+     &         (  g15erm(iodd,i,j,k)*vel(j3)*vel(k3))
+!
+!...should be (after g17erm gets defined):
+!               viscous(i3) = viscous(i3) + (gam-1.)*vel(j3)*vel(k3)*   &
+!     &      (amu*g15erm(iodd,i,j,k) + 2*(amuc-amu)*g17erm(iodd,i,j,k))
            if(idens.eq.0) then
               sum = sum + dbf*k0term(iodd,i,k,j)                          &
                     *((phi(k3)+phi0(k3))*(phi(j2)+phi0(j2))               &
