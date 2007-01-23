@@ -1,16 +1,24 @@
+      block data acbblockdata
+      integer init1, init2
+      double precision p_xmin, p_zmin, p_xmax, p_zmax
+      common /acbblock/ p_xmin, p_zmin, p_xmax, p_zmax, init1, init2
+      data init1/0/,init2/0/
+      end
+
+
       subroutine getmincoord(xmin, zmin)
       implicit none
-      real xmin, zmin, p_xmin,p_zmin 
       double precision dp_xmin, dp_zmin
-      logical initialized       !Has the minimum been calculated?
-!      common /acbblock/ p_xmin, p_zmin, initialized
-      data initialized/.false./
+      integer init1,init2
+      real p_xmin, p_zmin, p_xmax, p_zmax, xmin, zmin
+      common /acbblock/p_xmin, p_zmin, p_xmax, p_zmax, init1, init2
       
-      if(initialized .eqv. .false.) then
+      if(init1 .eq. 0) then
          call getmincoord2(dp_xmin, dp_zmin)
          p_xmin = dp_xmin 
          p_zmin = dp_zmin
-         initialized = .true.
+         init1 = 1
+	 write(*,*) 'initialized min coordinate'
       endif
       xmin = p_xmin
       zmin = p_zmin
@@ -19,17 +27,17 @@
 !===================
       subroutine getmaxcoord(xmax, zmax)
       implicit none
-      real xmax, zmax, p_xmax,p_zmax 
+      real xmax, zmax, p_xmax,p_zmax , p_zmin, p_xmin
       double precision dp_xmax, dp_zmax
-      logical initialized       !Has the maximum been calculated?
-!      common /acbblock2/ p_xmax, p_zmax, initialized
-      data initialized/.false./
+      integer init1, init2
+      common /acbblock/p_xmin, p_zmin, p_xmax, p_zmax, init1, init2
       
-      if(initialized .eqv. .false.) then
+      if(init2.eq. 0) then
          call getmaxcoord2(dp_xmax, dp_zmax)
          p_xmax = dp_xmax 
          p_zmax = dp_zmax
-         initialized = .true.
+         init2 = 1
+         write(*,*) 'initialized max coordinate'
       endif
 
       xmax = p_xmax

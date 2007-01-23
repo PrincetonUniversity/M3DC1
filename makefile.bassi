@@ -1,5 +1,5 @@
 SHELL=/bin/bash
-
+AUTOPACK_HOME = /project/projectdirs/mp288/acbauer/develop/autopack/1.3.2
 COMMONDIR = ../common/
 
 #INCLUDE = -I$(COMMONDIR) -I$(NTCCHOME)/mod -I$(LIBDIR) \
@@ -7,19 +7,18 @@ COMMONDIR = ../common/
 
 INCLUDE = -I$(COMMONDIR) $(HDF5_INCLUDE)
 
-LOADER = mpxlf90
-PP     = xlc -E
-F90    = mpxlf90 -c
-F77    = mpxlf -c
-CC     = mpcc -c
-
+LOADER = mpCC_r
+PP     = xlc_r -E 
+F90    = mpxlf90_r -c
+F77    = mpxlf_r -c
+CC     = mpcc_r -c
+QEXTNAME = -qextname=numdofs,sludexit,sludinit,ap_init,loadmesh,numnod,numfac,getmincoord2,getmaxcoord2,usesearchstructure,nodfac,xyznod,createdofnumbering,zonenod,checkveccreated,deleteppplvec,createppplvec,entdofs,sumshareddofs,numprocdofs,cogfac,zeroarray4solve,insertval,getmodeltags,setdiribc,finalizearray4solve,solve,zeroarray4multiply,finalizearray4multiply,matrixvectormult,freesmo,deletesearchstructure
+#,gpl,gqacwk,gclrwk,gqclip,gsclip,gtx
 PPOPTS = -Dmpi
-F90OPTS = -qautodbl=dbl4 -qsave -qextname -qstrict -O3 $(INCLUDE)  
-F77OPTS = -qautodbl=dbl4 -qsave -qextname -qstrict -O3 $(INCLUDE)
-DBESJDBESJOPTS = -O3 -qstrict -qautodbl=dbl4 $(INCLUDE) \
-	-qextname=dbesj0,dbesj1,fdump 
-TV80OPTS= -O3 -qstrict $(INCLUDE) \
-	-qextname=plote,tracec,mapg,frame,setch,gtext,setch,map,r\contr,trace,ncarcgm,dders 
+F90OPTS = -qautodbl=dbl4 -qsave $(QEXTNAME) -qstrict -O3 $(INCLUDE)  
+F77OPTS = -qautodbl=dbl4 -qsave $(QEXTNAME) -O3 $(INCLUDE)
+DBESJDBESJOPTS = -O3 -qstrict -qautodbl=dbl4 $(INCLUDE) $(QEXTNAME)
+TV80OPTS=  -qsave -O3 -qstrict $(INCLUDE) $(QEXTNAME)
 
 NEWOBJS1 = M3Dmodules.o nintegrate_mod.o metricterms_n.o newvar.o \
 	$(COMMONDIR)tv80lib.o $(COMMONDIR)subp.o \
@@ -31,38 +30,30 @@ NEWOBJS2 = fin.o part_fin.o ludef_t.o \
 	  acbauer.o sort.o metricterms.o errorcalc.o compare.o \
 	  gradshafranov.o init_conds.o  output.o 
 
-SCORECDIR = /l/mhd/acbauer/develop/
-SCORECVERS =-stable4
+SCORECDIR = /project/projectdirs/mp288/acbauer/develop/
+#SCORECVERS =-stable4
 
 LDRNEW = \
-        -L$(SCORECDIR)FMDB$(SCORECVERS)/FMDB/lib/ia64_linux \
-	-Wl,-R$(SCORECDIR)FMDB$(SCORECVERS)/FMDB/lib/ia64_linux \
-	-L$(SCORECDIR)FMDB$(SCORECVERS)/SCORECModel/lib/ia64_linux \
-	-Wl,-R$(SCORECDIR)FMDB$(SCORECVERS)/SCORECModel/lib/ia64_linux \
-	-L$(SCORECDIR)FMDB$(SCORECVERS)/SCORECUtil/lib/ia64_linux \
-	-Wl,-R$(SCORECDIR)FMDB$(SCORECVERS)/SCORECUtil/lib/ia64_linux \
-	-L$(SCORECDIR)mctk$(SCORECVERS)/Examples/PPPL/lib/ia64_linux \
-	-Wl,-R$(SCORECDIR)mctk$(SCORECVERS)/Examples/PPPL/lib/ia64_linux \
-	-L$(SCORECDIR)mctk$(SCORECVERS)/Field/lib/ia64_linux \
-	-Wl,-R$(SCORECDIR)mctk$(SCORECVERS)/Field/lib/ia64_linux \
-	-L$(SCORECDIR)mctk$(SCORECVERS)/Core/lib/ia64_linux \
-	-Wl,-R$(SCORECDIR)mctk$(SCORECVERS)/Core/lib/ia64_linux \
-	-L$(SCORECDIR)mctk$(SCORECVERS)/Solver/lib/ia64_linux \
-	-Wl,-R$(SCORECDIR)mctk$(SCORECVERS)/Solver/lib/ia64_linux \
-	-L$(SCORECDIR)meshAdapt$(SCORECVERS)/meshAdapt/lib/ia64_linux \
-	-Wl,-R$(SCORECDIR)meshAdapt$(SCORECVERS)/meshAdapt/lib/ia64_linux \
-	-L$(SCORECDIR)meshAdapt$(SCORECVERS)/meshTools/lib/ia64_linux \
-	-Wl,-R$(SCORECDIR)meshAdapt$(SCORECVERS)/meshTools/lib/ia64_linux \
-	-L$(SCORECDIR)meshAdapt$(SCORECVERS)/templateRefine/lib/ia64_linux \
-	-Wl,-R$(SCORECDIR)meshAdapt$(SCORECVERS)/templateRefine/lib/ia64_linux \
-	-lFMDB-mpich2-O -lSCORECModel-mpich2-O -lSCORECUtil-mpich2-O -lField-mpich2-O -lCore-mpich2-O \
-	-lmeshAdapt-mpich2-O -ltemplateRefine-mpich2-O -lmeshTools-mpich2-O -lSolver-mpich2-O -lPPPL-mpich2-O \
-	-L$(AUTOPACK_HOME)/lib/ia64-sgi -Wl,-R,$(AUTOPACK_HOME)/lib/ia64-sgi -lautopack-O \
-	$(METIS) \
-        $(NETCDF) \
+        -L$(SCORECDIR)FMDB$(SCORECVERS)/FMDB/lib/ibm_5  \
+        -L$(SCORECDIR)FMDB$(SCORECVERS)/SCORECModel/lib/ibm_5 \
+        -L$(SCORECDIR)FMDB$(SCORECVERS)/SCORECUtil/lib/ibm_5 \
+        -L$(SCORECDIR)mctk$(SCORECVERS)/Examples/PPPL/lib/ibm_5 \
+        -L$(SCORECDIR)mctk$(SCORECVERS)/Field/lib/ibm_5 \
+        -L$(SCORECDIR)mctk$(SCORECVERS)/Core/lib/ibm_5 \
+        -L$(SCORECDIR)mctk$(SCORECVERS)/Solver/lib/ibm_5 \
+        -L$(SCORECDIR)meshAdapt$(SCORECVERS)/meshAdapt/lib/ibm_5 \
+        -L$(SCORECDIR)meshAdapt$(SCORECVERS)/meshTools/lib/ibm_5 \
+        -L$(SCORECDIR)meshAdapt$(SCORECVERS)/templateRefine/lib/ibm_5 \
+        -lFMDB-mpich2-O -lSCORECModel-mpich2-O -lSCORECUtil-mpich2-O -lField-mpich2-O -lCore-mpich2-O \
+        -lmeshAdapt-mpich2-O -ltemplateRefine-mpich2-O -lmeshTools-mpich2-O -lSolver-mpich2-O -lPPPL-mpich2-O \
+        -L$(AUTOPACK_HOME)/lib/IBM -lautopack-O \
+        $(METIS) -lparmetis -lmetis \
+        -L$(NETCDF_LIB) -lnetcdf \
         $(SUPERLU_DIST) \
-	$(NCAR) \
-	$(HDF5) \
+        $(NCAR) \
+        ${HDF5}  \
+        -lessl -lblas  -lxlfpmt4 -L/usr/vacpp/lib -lC -lpthreads -lm -lc -lxlopt -lxlf -lxlomp_ser -lxlf90
+
 
 gonewp: $(NEWOBJS1) newpar.o newpar-lib.o $(NEWOBJS2)
 	$(F90) -bshared -o libnewpar.so $(NEWOBJS1) newpar-lib.o $(NEWOBJS2) 
@@ -107,6 +98,7 @@ clean:
 	rm -f *~
 	rm -f *.so
 	rm -f *.i
+	rm -f ../common/*.o
 
 fullclean:
 	rm -f gonewp* 
