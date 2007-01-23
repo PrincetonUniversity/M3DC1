@@ -31,7 +31,7 @@ NEWOBJS2 = fin.o part_fin.o ludef_t.o \
 	  gradshafranov.o init_conds.o  output.o 
 
 SCORECDIR = /project/projectdirs/mp288/acbauer/develop/
-#SCORECVERS =-stable4
+SCORECVERS =-stable4
 
 LDRNEW = \
         -L$(SCORECDIR)FMDB$(SCORECVERS)/FMDB/lib/ibm_5  \
