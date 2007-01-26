@@ -44,7 +44,7 @@ subroutine ireaddef
         if(itype.eq. 2) go to 400 
         if(itype.eq. 3) go to 400
         if(itype.eq. 4) go to 400
-        if(itype.eq. 5) go to 400
+!!$        if(itype.eq. 5) go to 400
         if(itype.eq. 6) go to 400
         if(itype.eq. 9) go to 400
         if(itype.eq.10) go to 400
@@ -1147,17 +1147,32 @@ subroutine opdef2
              do s=1,20
                msum = mi(p)+mi(q)+mi(r)+mi(s)
                nsum = ni(p)+ni(q)+ni(r)+ni(s)
-                tensor(p,q,r,s) =                                                                    &
-                       -(mi(p)-1)*mi(s)*mi(p)*mi(r)*mi(q)*(mi(r)+mi(q)-2)*fint(msum-6,nsum)          &
-                +(((mi(s)-1)*ni(r)*ni(q)-mi(r)*mi(q)*(ni(p)+ni(s)))*mi(s)*mi(p)*(ni(r)+ni(q))        &
-                  +((ni(s)-ni(p)-1)*mi(p)-ni(p)*mi(s))*ni(s)*mi(r)*mi(q)*(mi(r)+mi(q)-2)             &
-               +((mi(s)-1)*ni(p)*mi(r)*mi(q)-ni(r)*ni(q)*mi(p)*(mi(p)+mi(s)-2))*mi(s)*(mi(r)+mi(q))) &
-                                       *fint(msum-4,nsum-2)                                          &
-                +(((ni(s)-1)*mi(r)*mi(q)-ni(r)*ni(q)*(mi(p)+mi(s)))*ni(s)*ni(p)*(mi(r)+mi(q))        &
-                  +((mi(s)-mi(p)-1)*ni(p)-mi(p)*ni(s))*mi(s)*ni(r)*ni(q)*(ni(r)+ni(q)-2)             &
-               +((ni(s)-1)*mi(p)*ni(r)*ni(q)-mi(r)*mi(q)*ni(p)*(ni(p)+ni(s)-2))*ni(s)*(ni(r)+ni(q))) &
-                                       *fint(msum-2,nsum-4)                                          &
-                  -(ni(p)-1)*ni(s)*ni(p)*ni(r)*ni(q)*(ni(r)+ni(q)-2)*fint(msum,nsum-6)                
+                tensor(p,q,r,s) =                                                                      &
+                     -((-1 + mi(p))*mi(p)*mi(q)*mi(r)*(-2 + mi(q) + mi(r))*mi(s))*fint(msum-6,nsum)    & 
+                     -((-1 + ni(p))*ni(p)*ni(q)*ni(r)*(-2 + ni(q) + ni(r))*ni(s))*fint(msum,nsum-6) +  &
+                     (mi(s)*(-((-1 + mi(p))*mi(p)*mi(r)*ni(q)*ni(r)) + &
+                     mi(q)*(-((-1 + mi(p))*mi(p)*ni(q)*ni(r)) - &
+                     mi(r)*(1 + mi(p) - mi(s))*ni(p)*(ni(q) + ni(r)))) - &
+                     mi(q)*mi(r)*((-2 + mi(q) + mi(r))*mi(s)*ni(p) + &
+                     mi(p)*(-2 + mi(q) + mi(r) - 2*ni(p) + (mi(q) + mi(r))*ni(p) + &
+                     mi(s)*(ni(q) + ni(r))))*ni(s) + &
+                     mi(p)*mi(q)*mi(r)*(-2 + mi(q) + mi(r))*ni(s)**2)*fint(msum-4,nsum-2) + &
+                     (mi(s)*(-1 - mi(p) + mi(s))*ni(p)*ni(q)*ni(r)*(-2 + ni(q) + ni(r)) - &
+                     (mi(q)*((mi(p) + (mi(p) + mi(s))*ni(p))*ni(q)*ni(r) + &
+                     mi(r)*(-1 + ni(p))*ni(p)*(ni(q) + ni(r))) + &
+                     ni(q)*ni(r)*(mi(r)*mi(s)*ni(p) + &
+                     mi(p)*(mi(r)*(1 + ni(p)) + mi(s)*(-2 + ni(q) + ni(r)))))*ni(s) + &
+                     mi(p)*(mi(q) + mi(r))*ni(q)*ni(r)*ni(s)**2)*fint(msum-2,nsum-4)
+!!$                       -(mi(p)-1)*mi(s)*mi(p)*mi(r)*mi(q)*(mi(r)+mi(q)-2)*fint(msum-6,nsum)          &
+!!$                +(((mi(s)-1)*ni(r)*ni(q)-mi(r)*mi(q)*(ni(p)+ni(s)))*mi(s)*mi(p)*(ni(r)+ni(q))        &
+!!$                  +((ni(s)-ni(p)-1)*mi(p)-ni(p)*mi(s))*ni(s)*mi(r)*mi(q)*(mi(r)+mi(q)-2)             &
+!!$               +((mi(s)-1)*ni(p)*mi(r)*mi(q)-ni(r)*ni(q)*mi(p)*(mi(p)+mi(s)-2))*mi(s)*(mi(r)+mi(q))) &
+!!$                                       *fint(msum-4,nsum-2)                                          &
+!!$                +(((ni(s)-1)*mi(r)*mi(q)-ni(r)*ni(q)*(mi(p)+mi(s)))*ni(s)*ni(p)*(mi(r)+mi(q))        &
+!!$                  +((mi(s)-mi(p)-1)*ni(p)-mi(p)*ni(s))*mi(s)*ni(r)*ni(q)*(ni(r)+ni(q)-2)             &
+!!$               +((ni(s)-1)*mi(p)*ni(r)*ni(q)-mi(r)*mi(q)*ni(p)*(ni(p)+ni(s)-2))*ni(s)*(ni(r)+ni(q))) &
+!!$                                       *fint(msum-2,nsum-4)                                          &
+!!$                  -(ni(p)-1)*ni(s)*ni(p)*ni(r)*ni(q)*(ni(r)+ni(q)-2)*fint(msum,nsum-6)                
              enddo
            enddo
          enddo
