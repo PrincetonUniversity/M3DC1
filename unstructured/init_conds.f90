@@ -408,7 +408,16 @@ subroutine gem_reconnection_equ(x, z, inode)
   phi0(ibegin+2) = tanh(2.*z)  
   phi0(ibegin+3) = 0.0
   phi0(ibegin+4) = 0.0
-  phi0(ibegin+5) = 2.*sech(2.*z)**2
+!  phi0(ibegin+5) = 2.*sech(2.*z)**2
+  phi0(ibegin+5) = 2.*(1.-tanh(2.*z)**2)
+
+!!$  phi0(ibegin)   = z**2/2.
+!!$  phi0(ibegin+1) = 0.0
+!!$  phi0(ibegin+2) = z
+!!$  phi0(ibegin+3) = 0.0
+!!$  phi0(ibegin+4) = 0.0
+!!$  phi0(ibegin+5) = 1.
+
 
   ! if numvar = 2, then use Bz to satisfy force balance
   if(numvar.eq.2) then
@@ -587,7 +596,7 @@ subroutine solovev_equ(x, z, inode)
   aspect_ratio = xmag / (xmag - xlim)
   yb = 2.*aspect_ratio / (1. + aspect_ratio**2)
   d = 0.1
-  e = 3.
+  e = 1.5
   psib = 1.
   r0 = xmag
   y = (x/r0)**2 - 1.

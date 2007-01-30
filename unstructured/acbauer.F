@@ -366,28 +366,43 @@ c         write(*,*) 0, i+icounter, vec(i)
       subroutine getdeex(itri, deex)
       use t_data
       implicit none
-      integer itri
-      real area, deex, length
-      double precision coords(9)
-      integer nodeids(4)
-
-      area = .5*(atri(itri)+btri(itri))*ctri(itri)
-      call nodfac(itri, nodeids)
-      call xyznod(nodeids(1),coords)
-      call xyznod(nodeids(2),coords(4))
-      call xyznod(nodeids(3),coords(7))
       
-      deex = (coords(4)-coords(1))*(coords(4)-coords(1)) +
-     &     (coords(5)-coords(2))*(coords(5)-coords(2))
-      length =  (coords(4)-coords(7))*(coords(4)-coords(7)) +
-     &     (coords(5)-coords(8))*(coords(5)-coords(8))
-      if(deex .gt. length) deex = length
-      length = (coords(1)-coords(7))*(coords(1)-coords(7)) +
-     &     (coords(2)-coords(8))*(coords(2)-coords(8))
+      integer, intent(in) :: itri
+      real, intent(out) :: deex
+      
+c$$$      real area, length
+c$$$      double precision coords(9)
+c$$$      integer nodeids(4)
 
-      if(deex .gt. length) deex = length
+      real :: alx, alz
+      integer :: numnodes, numfaces, numedges, numregions
 
-      deex = 2.*area/sqrt(deex)
+c$$$      area = .5*(atri(itri)+btri(itri))*ctri(itri)
+c$$$      call nodfac(itri, nodeids)
+c$$$      call xyznod(nodeids(1),coords)
+c$$$      call xyznod(nodeids(2),coords(4))
+c$$$      call xyznod(nodeids(3),coords(7))
+c$$$      
+c$$$      deex = (coords(4)-coords(1))*(coords(4)-coords(1)) +
+c$$$     &       (coords(5)-coords(2))*(coords(5)-coords(2))
+c$$$      length =  (coords(4)-coords(7))*(coords(4)-coords(7)) +
+c$$$     &          (coords(5)-coords(8))*(coords(5)-coords(8))
+c$$$      if(deex .gt. length) deex = length
+c$$$      length = (coords(1)-coords(7))*(coords(1)-coords(7)) +
+c$$$     &         (coords(2)-coords(8))*(coords(2)-coords(8))
+c$$$
+c$$$      if(deex .gt. length) deex = length
+c$$$
+c$$$      deex = 2.*area/sqrt(deex)
+
+      call getboundingboxsize(alx,alz)
+      call numglobalents(numnodes, numedges, numfaces, numregions)
+
+      deex = sqrt(alx*alz/2.*numfaces)
+
+      deex = alx/30.
+      print *, "shouldn't be here!", deex
+
       return
       end
 
