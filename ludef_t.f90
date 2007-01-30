@@ -303,8 +303,8 @@ subroutine ludefvel_n(itri,dbf)
            ssterm(2,2) = ssterm(2,2) -      thimp *dt*temp
            ddterm(2,2) = ddterm(2,2) + (0.5-thimp)*dt*temp
 
-!!$           rrterm(1,2) = rrterm(1,2) + thimp*dt*dt* &
-!!$                (v1bsb2   (g79(:,:,i),g79(:,:,j),sb279))
+           rrterm(1,2) = rrterm(1,2) + thimp*dt*dt* &
+                (v1bsb2   (g79(:,:,i),g79(:,:,j),sb279))
            
            rrterm(2,1) = rrterm(2,1) + dt* &
                 (v2psib(g79(:,:,i),g79(:,:,j),bzs79)) &
