@@ -396,7 +396,7 @@ subroutine magaxis(phi,xguess,zguess)
   real :: sum, sum1, sum2, sum3, sum4, sum5
   real :: term1, term2, term3, term4, term5
   real :: pt, pt1, pt2, p11, p22, p12, denom, sinew, etanew, xnew
-  real :: znew, deex, alx, alz
+  real :: znew, alx, alz
   real, dimension(20) :: wlocal, avector
 
   !     locates the magnetic axis and the value of psi there
@@ -412,7 +412,7 @@ subroutine magaxis(phi,xguess,zguess)
   call whattri(xguess,zguess,itrit,x1,z1)
 
   call getboundingboxsize(alx, alz)
-  call getdeex(itrit,deex)
+!  call getdeex(itrit,deex)
   itri = itrit
 
   inews = 0

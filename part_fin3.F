@@ -24,7 +24,7 @@
      &     i, j, numvarsm, jtwo, itwo, nbcsm, l, 
      &     ier, jone, nbound, numelms, izone,izonedim,
      &     ibegind, iendplusoned, ibeginsm, iendplusonesm
-      real :: hyp, thimpsm, deex
+      real :: hyp, thimpsm
       real, dimension(18,18) :: aterm, bterm, dterm
       real, dimension(-6:maxi,-6:maxi) :: fintl(-6:maxi,-6:maxi)
 
@@ -61,7 +61,7 @@
          call calcaterm(itri, aterm, fintl)
          call calcbterm(itri, bterm, fintl)
          call calcdterm(itri, dterm, fintl)
-         call getdeex(itri,deex)
+!         call getdeex(itri,deex)
          hyp = hyperc*deex**2*amu
          do i=1,18
             do j=1,18
@@ -94,7 +94,7 @@
          call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
          call calcdterm(itri, dterm, fintl)
         
-         call getdeex(itri,deex)
+!         call getdeex(itri,deex)
          hyp = hyperc*deex**2*amu
          do i=1,18
             itwo = isval2(itri,i)

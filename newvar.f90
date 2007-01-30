@@ -77,11 +77,14 @@ subroutine define_sources()
   use metricterms_n
 
   implicit none
+
+  include 'mpif.h'
   
   integer :: itri, numelms, i, ione, ndof, def_fields
-  real :: x, z, xmin, zmin, hyp, hypi, hypv, hypc, hypp, deex, dbf, factor, temp
+  real :: x, z, xmin, zmin, hypf, hypi, hypv, hypc, hypp, dbf, factor
 
-  double precision :: cogcoords(3)
+  double precision, dimension(3)  :: cogcoords
+  double precision, dimension(18) :: temp, temp2
 
   real, dimension(20) :: avec
 
@@ -89,11 +92,68 @@ subroutine define_sources()
   if(numvar.ge.2) sb2 = 0
   if(numvar.ge.3) sp1 = 0
 
-  ! Determine which fields need to be calculated
-  def_fields = FIELD_PSI
-  if(numvar.ge.2) def_fields = def_fields + FIELD_I
-  if(numvar.ge.3) def_fields = def_fields + FIELD_PHI + FIELD_V + FIELD_CHI + &
-          FIELD_PE + FIELD_P + FIELD_B2I + FIELD_J + FIELD_COM + FIELD_VOR
+  ekino = ekin
+  emago = emag
+  ekindo = ekind
+  emagdo = emagd
+!
+  ekinpo = ekinp
+  emagpo = emagp
+  ekinpdo = ekinpd
+  emagpdo = emagpd
+!
+  ekinto = ekint
+  emagto = emagt
+  ekintdo = ekintd
+  emagtdo = emagtd
+!
+  ekinpho = ekinph
+  ekintho = ekinth
+  emagpho = emagph
+  emagtho = emagth
+!
+  ekin3o = ekin3 
+  ekin3do = ekin3d
+  ekin3ho = ekin3h 
+  emag3o = emag3
+  emag3do = emag3d
+  emag3ho = emag3h
+!  
+  ekin = 0.
+  emag = 0.
+  ekind = 0.
+  emagd = 0.
+  ekinp = 0.
+  emagp = 0.
+  ekinpd = 0.
+  emagpd = 0.      
+  ekint = 0.
+  emagt = 0.
+  ekintd = 0.
+  emagtd = 0.
+  ekinph = 0
+  ekinth = 0.
+  emagph = 0.
+  emagth = 0.
+  ekin3 = 0.
+  ekin3d = 0.
+  ekin3h = 0.
+  emag3 = 0.
+  emag3d = 0.
+  emag3h = 0.
+
+
+  hypf  = hyper *deex**2
+  hypi = hyperi*deex**2
+  hypv = hyperv*deex**2
+  hypc = hyperc*deex**2
+  hypp = hyperp*deex**2
+
+  ! Specify which fields need to be calculated
+  def_fields = FIELD_PSI + FIELD_PHI + FIELD_VOR + FIELD_J
+  if(numvar.ge.2) def_fields = def_fields + FIELD_I + FIELD_V
+  if(numvar.ge.3) def_fields = def_fields + FIELD_CHI + &
+          FIELD_PE + FIELD_P + FIELD_B2I + FIELD_COM
   if(idens.eq.1) def_fields = def_fields + FIELD_NI 
 
   call getmincoord(xmin,zmin)
@@ -112,18 +172,17 @@ subroutine define_sources()
      endif
      dbf = db*factor
 
-     call getdeex(itri,deex)
-     hyp  = hyper *deex**2
-     hypi = hyperi*deex**2
-     hypv = hyperv*deex**2
-     hypc = hyperc*deex**2
-     hypp = hyperp*deex**2
+!     call getdeex(itri,deex)
+
      call define_fields_79(itri, def_fields)
     
      do i=1,18
         ione = isval1(itri,i)
         
-        sb1(ione) = sb1(ione) + b1psieta(g79(:,:,i),pst79,etar,hyp)
+
+        ! Definition of Source Terms
+        ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
+        sb1(ione) = sb1(ione) + b1psieta(g79(:,:,i),pst79,etar,hypf)
 
         if(numvar.ge.2) then
            sb1(ione) = sb1(ione) + b1psibd(g79(:,:,i),pst79,bzt79,ni79)*dbf
@@ -139,14 +198,14 @@ subroutine define_sources()
 
            sp1(ione) = sp1(ione) &
                 + b3psipsieta(g79(:,:,i),pst79,pst79)*etar   &
-                + b3bbeta    (g79(:,:,i),bzt79,bzt79)*etar   &
-                + b3pedkappa (g79(:,:,i),pt79, ni79,kappat,hypp) &
-                + p1kappar   (g79(:,:,i),pst79,pst79,pt79,ni79,b2i79)*kappar &
-                + b3pebd(g79(:,:,i),pet79,bzt79,ni79)*dbf*pefac
-
+                + b3bbeta    (g79(:,:,i),bzt79,bzt79)*etar   ! &
+!!$                + b3pedkappa (g79(:,:,i),pt79, ni79,kappat,hypp) &
+!!$                + p1kappar   (g79(:,:,i),pst79,pst79,pt79,ni79,b2i79)*kappar*(gam-1.) &
+!!$                + b3pebd(g79(:,:,i),pet79,bzt79,ni79)*dbf*pefac
+!!$
            ! ohmic heating         
            sp1(ione) = sp1(ione) + (gam-1.)* &
-                (qpsipsieta(g79(:,:,i),pst79,pst79,etar,hyp,jt79) &
+                (qpsipsieta(g79(:,:,i),pst79,pst79,etar,hypf,jt79) &
                 +qbbeta    (g79(:,:,i),bzt79,bzt79,etar,hypi))
 
            ! viscous heating
@@ -156,18 +215,156 @@ subroutine define_sources()
                 +quchimu  (g79(:,:,i),pht79,cht79,amu,amuc,hypc) &
                 +0.*qchichimu(g79(:,:,i),cht79,cht79,amu,amuc,hypc))
         endif ! on numvar.ge.3
-
      end do
 
-  end do 
+     ! Definition of energy
+     ! ~~~~~~~~~~~~~~~~~~~~
+     if(idens.eq.0) then
+        ekinp = ekinp + .5* &
+             (int3(r2_79,pht79(:,OP_DZ),pht79(:,OP_DZ),weight_79,79) &
+             +int3(r2_79,pht79(:,OP_DR),pht79(:,OP_DR),weight_79,79))
+     else
+        ekinp = ekinp + .5* &
+             (int4(r2_79,pht79(:,OP_DZ),pht79(:,OP_DZ),nt79(:,OP_1),weight_79,79) &
+             +int4(r2_79,pht79(:,OP_DR),pht79(:,OP_DR),nt79(:,OP_1),weight_79,79))
+     endif
 
+     ekinpd = ekinpd - amu*int2(pht79(:,OP_LP),pht79(:,OP_LP),weight_79,79)
+        
+     ekinph = ekinph - hypc*amu* &
+          (int2(vot79(:,OP_DZ),vot79(:,OP_DZ),weight_79,79) &
+          +int2(vot79(:,OP_DR),vot79(:,OP_DR),weight_79,79))
 
-  ! Solve equations
+     emagp = emagp + .5* &
+          (int3(ri2_79,pst79(:,OP_DZ),pst79(:,OP_DZ),weight_79,79) &
+          +int3(ri2_79, pst79(:,OP_DR),pst79(:,OP_DR),weight_79,79))
+
+     emagpd = emagpd - etar*int3(ri2_79,pst79(:,OP_GS),pst79(:,OP_GS),weight_79,79)
+
+     emagph = emagph - hypf*etar* &
+          (int2(jt79(:,OP_DZ),jt79(:,OP_DZ),weight_79,79) &
+          +int2(jt79(:,OP_DR),jt79(:,OP_DR),weight_79,79))
+
+     if(numvar.ge.2) then
+        if(idens.eq.0) then
+           ekint = ekint + .5*int2(vzt79(:,OP_1),vzt79(:,OP_1),weight_79,79)
+        else
+           ekint = ekint + .5*int3(vzt79(:,OP_1),vzt79(:,OP_1),nt79(:,OP_1),weight_79,79)
+        endif
+
+        ekintd = ekintd - amu* &
+             (int2(vzt79(:,OP_DZ),vzt79(:,OP_DZ),weight_79,79) &
+             +int2(vzt79(:,OP_DR),vzt79(:,OP_DR),weight_79,79))
+
+        ekinth = ekinth - amu*hypv*int2(vzt79(:,OP_LP),vzt79(:,OP_LP),weight_79,79)
+        
+        emagt = emagt + .5*int3(ri2_79,bzt79(:,OP_1),bzt79(:,OP_1),weight_79,79)
+           
+        emagtd = emagtd - etar* &
+             (int2(bzt79(:,OP_DZ),bzt79(:,OP_DZ),weight_79,79) &
+             +int2(bzt79(:,OP_DR),bzt79(:,OP_DR),weight_79,79))
+           
+        emagth = emagth - etar*hypi*int2(bzt79(:,OP_LP),bzt79(:,OP_LP),weight_79,79)
+     endif
+
+     if(numvar.ge.3) then
+        if(idens.eq.0) then
+           ekin3 = ekin3 + .5* &
+                (int2(cht79(:,OP_DZ),cht79(:,OP_DZ),weight_79,79) &
+                +int2(cht79(:,OP_DR),cht79(:,OP_DR),weight_79,79))
+           if(itor.eq.1) then
+              ekin3 = ekin3 + &
+                   (int3(r_79,cht79(:,OP_DZ),pht79(:,OP_DR),weight_79,79) &
+                   -int3(r_79,cht79(:,OP_DR),pht79(:,OP_DZ),weight_79,79))
+           endif
+        else
+           ekin3 = ekin3 + .5* &
+                (int3(cht79(:,OP_DZ),cht79(:,OP_DZ),nt79(:,OP_1),weight_79,79) &
+                +int3(cht79(:,OP_DR),cht79(:,OP_DR),nt79(:,OP_1),weight_79,79))
+           if(itor.eq.1) then
+              ekin3 = ekin3 + &
+                   (int4(r_79,cht79(:,OP_DZ),pht79(:,OP_DR),nt79(:,OP_1),weight_79,79) &
+                   -int4(r_79,cht79(:,OP_DR),pht79(:,OP_DZ),nt79(:,OP_1),weight_79,79))
+           endif
+        endif
+           
+        ekin3d = ekin3d - amuc*int2(pht79(:,OP_LP),pht79(:,OP_LP),weight_79,79)
+           
+        ekin3h = ekin3h - hypc*amuc* &
+             (int2(cot79(:,OP_DZ),cot79(:,OP_DZ),weight_79,79) &
+             +int2(cot79(:,OP_DR),cot79(:,OP_DR),weight_79,79))
+        
+        emag3 = emag3 + int1(pt79,weight_79,79) / (gam - 1.)
+           
+     endif
+  end do
+
+  ! Solve source term equations
   call numdofs(1, ndof)
 
   call solve_newvar(sb1, 1, ndof)
   if(numvar.ge.2) call solve_newvar(sb2, 1, ndof)
   if(numvar.ge.3) call solve_newvar(sp1, 1, ndof)
+
+
+  ! Allreduce energy terms
+  if(maxrank .gt. 1) then
+     temp(1) = ekinp
+     temp(2) = emagp
+     temp(3) = ekinpd
+     temp(4) = emagpd      
+     temp(5) = ekint
+     temp(6) = emagt
+     temp(7) = ekintd
+     temp(8) = emagtd
+     temp(9) = ekinph
+     temp(10) = ekinth
+     temp(11) = emagph
+     temp(12) = emagth
+     temp(13) = ekin3
+     temp(14) = ekin3d
+     temp(15) = ekin3h
+     temp(16) = emag3
+     temp(17) = emag3d
+     temp(18) = emag3h
+         
+     call mpi_allreduce(temp, temp2, 18, MPI_DOUBLE_PRECISION,  &
+          MPI_SUM, MPI_COMM_WORLD, i) !checked that this should be MPI_DOUBLE_PRECISION
+         
+     ekinp = temp2(1)
+     emagp = temp2(2)
+     ekinpd = temp2(3)
+     emagpd = temp2(4)      
+     ekint = temp2(5)
+     emagt = temp2(6)
+     ekintd = temp2(7)
+     emagtd = temp2(8)
+     ekinph = temp2(9)
+     ekinth = temp2(10)
+     emagph = temp2(11)
+     emagth = temp2(12)
+     ekin3 = temp2(13)
+     ekin3d = temp2(14)
+     ekin3h = temp2(15)
+     emag3 = temp2(16)
+     emag3d = temp2(17)
+     emag3h = temp2(18)
+  endif !if maxrank .gt. 1
+
+  ekin = ekinp + ekint + ekin3
+  emag = emagp + emagt + emag3
+  ekind = ekinpd + ekintd + ekin3d
+  emagd = emagpd + emagtd + emag3d
+
+  if(myrank.eq.0) then
+     print *, "Energy at ntime = ", ntime
+     print *, "ekinp, ekint, ekin3 = ", ekinp, ekint, ekin3
+     print *, "ekinpd, ekintd, ekin3d = ", ekinpd, ekintd, ekin3d
+     print *, "ekinph, ekinth, ekin3h = ", ekinph, ekinth, ekin3h
+     print *, "emagp, emagt, emag3 = ", emagp, emagt, emag3
+     print *, "emagpd, emagd, emag3d = ", emagpd, emagtd, emag3d
+     print *, "emagph, emagth, emag3h = ", emagph, emagth, emag3h
+  endif
 
 end subroutine define_sources
 
@@ -187,14 +384,9 @@ subroutine newvar_gs(inarray,outarray,numvard,itype,ibound)
   real, intent(in) :: inarray(*) ! length using numvard ordering
   real, intent(out) :: outarray(*) ! length using numvar=1 ordering
 
-!!$  real, allocatable :: temp(:)
-
   integer :: ndof, ier, numelms, itri, i, j, ione, j1
   real :: sum
 
-!!$  call createvec(temp, 1)
-!!$
-!!$  temp = 0
   call numdofs(1, ndof)
   do i=1, ndof
      outarray(i) = 0.
@@ -230,15 +422,12 @@ subroutine newvar_gs(inarray,outarray,numvard,itype,ibound)
                    2.*int3(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j),weight_79,79)
            endif
         end do
-!!$        temp(ione) = temp(ione) + sum
         outarray(ione) = outarray(ione) + sum
      end do
   enddo
 
   ! solve linear equation
   call solve_newvar(outarray, ibound, ndof)
-  
-!!$  call deletevec(temp)
 
 end subroutine newvar_gs
 

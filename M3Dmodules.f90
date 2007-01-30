@@ -27,6 +27,7 @@ module basic
   real :: kappat      ! isotropic temperature conductivity
   real :: kappar      ! anisotropic (field-aligned) temperature conductivity
   real :: denm        ! artificial density diffusion
+  real :: deex        ! scale length of hyperviscosity term
   real :: hyper,hyperi,hyperv,hyperc,hyperp
 
   ! physical parameters
@@ -89,7 +90,7 @@ module basic
        bzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,      &
        kappa,iper,jper,iprint,itimer,xzero,zzero,beta,pi0,   &
        eqsubtract,denm,grav,kappat,kappar,ln,amuc,iconstflux,&
-       regular
+       regular,deex
 
   !     derived quantities
   real :: tt,gamma4,gamma2,gamma3,dpsii,psimin,psilim,pi,              &
@@ -127,6 +128,7 @@ module t_data
   real, allocatable :: atri(:),btri(:),ctri(:),ttri(:),gtri(:,:,:)
   real, allocatable :: rinv(:)
   integer, allocatable :: ist(:,:)
+
 end module t_data
 
 module arrays

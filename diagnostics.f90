@@ -39,3 +39,42 @@ contains
   end function reconnected_flux
 
 end module diagnostics
+
+
+! ======================================================================
+! calc_chi_error
+! --------------
+!
+! calculates the error in the equation Laplacian(chi) = com
+! ======================================================================
+subroutine calc_chi_error(chierror)
+
+  use arrays
+  use t_data
+
+  implicit none
+
+  include "mpif.h"
+
+  real, intent(out) :: chierror
+
+  integer :: ier, itri, j, jone, numelms
+  real :: chierror_local
+  real :: fintl(-6:maxi,-6:maxi), d2term(18)
+
+  call numfac(numelms)
+
+  chierror_local = 0
+
+  do itri=1,numelms
+     call calcfint(fintl, maxi, atri(itri),btri(itri), ctri(itri))
+     call calcd2term(itri, d2term, fintl)
+     do j=1,18
+        jone = isval1(itri,j)
+        chierror_local = chierror_local + d2term(j)*com(jone)
+     enddo
+  enddo                  ! loop over itri
+  call mpi_allreduce(chierror_local, chierror, 1, MPI_DOUBLE, &
+       MPI_SUM, MPI_COMM_WORLD, ier)
+
+end subroutine calc_chi_error

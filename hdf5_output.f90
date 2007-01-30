@@ -398,6 +398,7 @@ subroutine hdf5_write_time_slice(error)
   character(LEN=19) :: time_group_name
   integer(HID_T) :: time_group_id, mesh_group_id, root_id
   integer :: nelms
+!  integer :: global_nodes, global_edges, global_regions
     
   call numfac(nelms)
 
@@ -405,6 +406,7 @@ subroutine hdf5_write_time_slice(error)
   call mpi_scan(nelms, offset, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, error)
   offset = offset - nelms
   print *, "Offset of ", myrank, " = ", offset
+!  call numglobalents(global_nodes, gobal_edges, global_elms, global_regions)
   call mpi_allreduce(nelms, global_elms, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, error)
   print *, "Global elms = ", global_elms
 

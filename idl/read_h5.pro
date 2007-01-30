@@ -1,4 +1,4 @@
-function to_title, name
+function translate, name
    if(strcmp(name, 'psi') eq 1) then return, "!7w"
    if(strcmp(name, 'phi') eq 1) then return, "!8U"
    if(strcmp(name, 'chi') eq 1) then return, "!7v"
@@ -52,13 +52,18 @@ function time_name, t
 end
 
 
-pro plot_mesh, mesh, color=col, linestyle=lin, oplot=oplot
+pro plot_mesh, mesh, color=col, linestyle=lin, oplot=oplot, _EXTRA=ex
    nelms = mesh.nelms._data
    
    if(not keyword_set(oplot)) then begin
        plot, mesh.elements._data[4,*], $
-         mesh.elements._data[5,*], psym = 3
+         mesh.elements._data[5,*], psym = 3, _EXTRA=ex
    endif  
+
+   if(n_elements(col) ne 0) then begin
+       print, 'hi!'
+       loadct, 12
+   endif
 
    for i=0, nelms-1 do begin
        a = mesh.elements._data[0,i]
@@ -73,9 +78,9 @@ pro plot_mesh, mesh, color=col, linestyle=lin, oplot=oplot
        p3 = p1 + [b * cos(t) - c * sin(t), $
                   b * sin(t) + c * cos(t)]
        
-       oplot, [p1[0], p2[0]], [p1[1], p2[1]], color=col, linestyle=lin
-       oplot, [p2[0], p3[0]], [p2[1], p3[1]], color=col, linestyle=lin
-       oplot, [p3[0], p1[0]], [p3[1], p1[1]], color=col, linestyle=lin
+       oplot, [p1[0],p2[0]], [p1[1],p2[1]], color=col, linestyle=lin, thick=.2
+       oplot, [p2[0],p3[0]], [p2[1],p3[1]], color=col, linestyle=lin, thick=.2
+       oplot, [p3[0],p1[0]], [p3[1],p1[1]], color=col, linestyle=lin, thick=.2
    end
 end
 
@@ -94,25 +99,38 @@ function is_in_tri, localp, a, b, c
 end
 
 
-function eval, field, localpos, elm
+function eval, field, localpos, elm, operation=op
 
    mi = [0,1,0,2,1,0,3,2,1,0,4,3,2,1,0,5,3,2,1,0]
    ni = [0,0,1,0,1,2,0,1,2,3,0,1,2,3,4,0,2,3,4,5]
    sum = 0.
 
+   if(n_elements(op) eq 0) then op = 1
+
    for p=0, 19 do begin
-       sum = sum + field[p,elm]*(localpos[0]^mi[p]*localpos[1]^ni[p])
+       case op of
+           1: sum = sum + field[p,elm]*(localpos[0]^mi[p]*localpos[1]^ni[p])
+           7: begin
+               if(mi[p] ge 2) then $
+                 sum = sum + field[p,elm]* $
+                 mi[p]*(mi[p]-1)*localpos[0]^(mi[p]-2)*localpos[1]^ni[p]
+               if(ni[p] ge 2) then $
+                 sum = sum + field[p,elm]* $
+                 ni[p]*(ni[p]-1)*localpos[1]^(ni[p]-2)*localpos[0]^mi[p]
+           end
+       end
    end
 
    return, sum
 end
 
 
-function eval_field, field, mesh, x=xi, y=yi, points=p
+function eval_field, field, mesh, x=xi, y=yi, points=p, operation=op
 
    nelms = mesh.nelms._data 
 
    if(n_elements(p) eq 0) then p = 100
+   if(n_elements(op) eq 0) then op = 1
    
    minpos = fltarr(2)
    maxpos = fltarr(2)
@@ -159,7 +177,7 @@ function eval_field, field, mesh, x=xi, y=yi, points=p
                            -(pos[0]-x)*sn + (pos[1]-y)*co]
                
                if(is_in_tri(localpos,a,b,c) eq 1) then begin
-                   result[index[0], index[1]] = eval(field, localpos, i)
+                   result[index[0], index[1]] = eval(field, localpos, i, op=op)
                endif
                
                pos[0] = pos[0] + dx
@@ -229,6 +247,17 @@ function read_field, name, slices=time, mesh=mesh, filename=filename, time=t, $
 
    file_id = h5f_open(filename)
 
+   if(1 eq strcmp('j', name)) then begin
+       newname = 'psi'
+       op = 7
+   endif else if (1 eq strcmp('vor', name)) then begin
+       newname = 'phi'
+       op = 7
+   endif else begin
+       newname = name
+       op = 1
+   endelse   
+
    for i=time[0], time[1] do begin
 
        print, 'Time ', i
@@ -238,7 +267,7 @@ function read_field, name, slices=time, mesh=mesh, filename=filename, time=t, $
        mesh = h5_parse(time_group_id, 'mesh', /read_data)   
 
        field_group_id = h5g_open(time_group_id, 'fields')
-       field = h5_parse(field_group_id, name, /read_data)
+       field = h5_parse(field_group_id, newname, /read_data)
 
        time_id = h5a_open_name(time_group_id, "time")
        t[i-time[0]] = h5a_read(time_id)
@@ -250,7 +279,7 @@ function read_field, name, slices=time, mesh=mesh, filename=filename, time=t, $
        print, '  evaluating...'
 
        data[i-time[0],*,*]=eval_field(field._data, mesh, $
-                                      points=pts, x=x, y=y)
+                                      points=pts, x=x, y=y, op=op)
    end
 
    h5f_close, file_id
@@ -260,26 +289,27 @@ end
 
 
 pro plot_field, name, time, points=p, filename=filename, mesh=plotmesh, $
-                _EXTRA = ex
+                mcolor=mc, _EXTRA = ex
 
    field = read_field(name, slices=time, mesh=mesh, filename=filename, $,
                       time=t, x=x, y=y, points=p)
+   if(n_elements(field) le 1) then return
 
    print, "Plotting..."
    !x.title = '!8x/L!3'
    !y.title = '!8y/L!3'
    if(t gt 0) then begin
-       title = "!8" + to_title(name) + $
+       title = "!8" + translate(name) + $
          string(FORMAT='("!6(!8t!6 = ",G0," !7X!D!8i0!N!6!U-1!N)!3")', t)
    endif else begin
-       title = "!8" + to_title(name) + $
+       title = "!8" + translate(name) + $
          string(FORMAT='("!6(!8t!6 = ",G0,")!3")', t)
    endelse
 
    contour_and_legend, field, x, y, title=title, _EXTRA=ex
 
    if(keyword_set(plotmesh)) then begin
-       plot_mesh, mesh, color=color(2), /oplot
+       plot_mesh, mesh, color=100, /oplot
    endif
 
    print, "Done."
@@ -308,7 +338,7 @@ pro compare, file1, file2, time, names=names
    end
 end
 
-pro plot_energy, filename=filename, diff=diff
+pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
@@ -345,45 +375,58 @@ pro plot_energy, filename=filename, diff=diff
 ;   E_D[1:N-1] = (E_D[1:N-1] + E_D[0:N-2])/2.
 ;   E_H[1:N-1] = (E_H[1:N-1] + E_H[0:N-2])/2.
 
-   if(nv ge 3) then begin
-       Error = deriv(scalars.time._data, E) - E_D - E_H   
+;  Account for energy terms not included in the physical model
+   if(nv le 2) then begin
+       dissipated = E_D + E_H
    endif else begin
-       Error = deriv(scalars.time._data, E) - E_H
+       dissipated = scalars.E_KPH._data + scalars.E_KTH._data
    endelse
 
+   Error = E - E[0]
+   total_lost = 0.
+   for i=1, n_elements(Error)-1 do begin
+       dt = scalars.time._data[i]-scalars.time._data[i-1]
+       total_lost = total_lost + dissipated[i]*dt
+       Error[i] = Error[i] - total_lost
+       print, dissipated[i]*dt, total_lost, E[i], Error[i]
+   endfor
+
+   if(keyword_set(norm)) then begin
+       E = E - E[0]
+       E_K = E_K - E_K[0]
+       E_M = E_M - E_M[0]
+       E_D = E_D - E_D[0]
+       E_H = E_H - E_H[0]
+   endif
 
    if(keyword_set(diff)) then begin
        E = deriv(scalars.time._data,E)
        E_K = deriv(scalars.time._data, E_K)
        E_M = deriv(scalars.time._data, E_M)
        E_D = deriv(scalars.time._data, E_D)
-       ylog = 0
+       E_H = deriv(scalars.time._data, E_H)
        !y.title = '!6d!8E!6/d!8t!3'
    endif else begin
-       ylog = 1
        !y.title = '!6 Energy!3'
    endelse
 
    !x.range = 0
-   if(!y.range[0] eq 0 and !y.range[1] eq 0) then begin
-       !y.range = [min([E, E_K, E_M, -E_D, -E_H], /nan)/2., $
-                   max([E, E_K,  E_M, -E_D, -E_H], /nan)*2.]
-       if((ylog eq 1) and (!y.range[0] le 0.)) then !y.range[0] = 1e-5
-   endif
+;   if(!y.range[0] eq 0 and !y.range[1] eq 0) then begin
+;       !y.range = [min([E, E_K, E_M, -E_D, -E_H], /nan), $
+;                   max([E, E_K, E_M, -E_D, -E_H], /nan)]
+;       if((ylog eq 1) and (!y.range[0] le 0.)) then !y.range[0] = 1e-5
+;  endif
 
    plot, scalars.time._data, E, ylog=ylog
    oplot, scalars.time._data, E_K, color=dc, linestyle = 2
    oplot, scalars.time._data, E_M, color=2*dc, linestyle = 2
    oplot, scalars.time._data, -E_D, color=3*dc, linestyle = 1
    oplot, scalars.time._data, -E_H, color=4*dc, linestyle = 1
-   oplot, scalars.time._data, abs(Error), color=5*dc, linestyle = 1
+   oplot, scalars.time._data, Error, color=5*dc, linestyle = 1
 
    plot_legend, ['Total', 'Kinetic', 'Magnetic', $
                  'Diffusive', 'Hyper-Diffusive', '|Error|'] , $
      color=[-1,1,2,3,4,5,6,7,8,9]*dc, ylog=ylog
-
-   print, "Error = ", Error
-
 end
 
 

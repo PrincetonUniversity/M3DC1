@@ -64,7 +64,7 @@
       real sumx, sumz, x1, z1, wlocal, dum, x, z, theta, b, co, 
      &     sn, si, eta, sum, avector, sum1, sum2, sum3, sum4, sum5, 
      &     term1, term2, term3, term4, term5, pt, pt1, pt2, p11, 
-     &     p22, p12, denom, sinew, etanew, xnew, znew, xsep, zsep, deex
+     &     p22, p12, denom, sinew, etanew, xnew, znew, xsep, zsep
       dimension xsep(*),zsep(*)
       dimension dum(*),wlocal(20),avector(20)
       real xcord, zcord
@@ -178,7 +178,7 @@ c     below is not tested by acbauer
 !
 !.....determine if this new point is nearby
       call whattri(xnew,znew,itrinew,x1,z1)
-      call getdeex(itri,deex)
+!      call getdeex(itri,deex)
       if( (xnew-x)**2 + (znew-z)**2 .le. 2*deex**2                      &
      &   .and. xnew .gt. 0 .and. xnew.lt.4.                             &
      &   .and. znew .gt. 0 .and. znew.lt.4) then
