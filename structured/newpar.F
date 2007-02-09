@@ -95,7 +95,7 @@
       implicit none
       integer  maxi,ntimep,irs,ntri,ntridim,ioddm,maxfiles,             &
      &         maxhdf5,maxplots
-      parameter(maxplots=60,maxi=20,ntimep=10000,irs=201,ntridim=1,     &
+      parameter(maxplots=60,maxi=20,ntimep=10000,irs=201,ntridim=7564,  &
      &          ioddm=2, maxfiles=100, maxhdf5=30)
       character*11, parameter :: version="M3D-C1 12.2"
       end module p_data
@@ -525,14 +525,12 @@
             call velequ(veln)
             call phiequ(phiold)
          else
-            numvars = numvar
             call gradshafranov
-            numvar = numvars
             do i=1,n*m
                do j=1,6
                   index2 = (i-1)*6*numvar + j
                   index1 = (i-1)*6 + j
-                  phiold(index2) = vel(index1)
+                  phiold(index2) = phi(index1)
                enddo
             enddo
          endif

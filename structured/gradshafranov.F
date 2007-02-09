@@ -11,7 +11,7 @@
 
       implicit none
 
-      real   int1,int4,int2,int3,lhs,cfac(18),g0
+      real   int1,int4,int2,int3,lhs,cfac(18),g0,norm
 #ifndef BIT64
       integer, parameter ::  r8c = selected_real_kind(12,100)
       real(r8c), allocatable::temp(:),b1vecini(:)
@@ -22,7 +22,7 @@
       REAL64, allocatable::temp(:)
 >>>>>>> .r16
 #endif
-      integer :: mmnn6, nrags, numvargs, mbandsgs, msizegs
+      integer :: mmnn6, nrags,  mbandsgs, msizegs,icount
       integer :: m_lgs, nnz_lgs, ifs_rgs, ineg
       integer :: itri, iodd, ll, j, jj, jjj, i, ii, iii, lx, lz, j1, i1
       integer :: l, i0, jjp, jjjp, jp, k, ier, jer, itnum, jsp
@@ -43,15 +43,16 @@
       if(iprint.eq.1) write(*,*) "gradshafranov called"
       mmnn6 = m*n*6
       allocate (temp(mmnn6),b1vecini(mmnn6))
-      numvargs = 1
+      phi = 0
       nrags = n*m*6
-      call jbdecomp1(n*m, 6*numvargs, m_lgs, nnz_lgs, ifs_rgs)
+      call jbdecomp1(n*m, 6, m_lgs, nnz_lgs, ifs_rgs)
       mbandsgs = (n+2)*6-1
-      msizegs = 9*n*m*(6*numvargs)**2
+      msizegs = 9*n*m*(6)**2
       base = 0
 !
 !.....compute LU decomposition only once
 !
+      icount = 0
 !.....form matrices
       ss = 0
       itri = 0
@@ -68,6 +69,13 @@
             j1 = 6*ist(itri,jjj)+jj
             i1 = 6*ist(itri,iii)+ii
             call increment(ss,m*n,i1,j1,terma,1,10)
+            if(iprint.gt.0 .and. myrank .eq. 0) then
+            icount = icount + 1
+            if(icount .ge.100 .and. icount .le. 110) then
+              write(*,1099) ll,iodd,itri,i1,j1,terma
+ 1099         format("ll,iodd,itri,i1,j1,terma",5i5,1pe12.4)
+            endif
+            endif
 !
           enddo
           enddo
@@ -138,17 +146,17 @@
       do l=1,nbcgs
         i = iboundgs(l)
         psibounds(l) = phi(iboundgs(l))
-            if(i.le.0 .or. i.ge.m*n*6*numvargs+1) then
+            if(i.le.0 .or. i.ge.m*n*6+1) then
             if(iprint.eq.1) write(*,3344) i,l,iboundgs(l)
  3344       format(" error in iboundgs index",3i5)
             call safestop(3344)
           endif
         do j= 1,nrags
-           call assign(ss,n*m,i,j,0.,numvargs)
+           call assign(ss,n*m,i,j,0.,1)
         enddo
       enddo
       do l=1,nbcgs
-          call assign(ss,n*m,iboundgs(l),iboundgs(l),1.,numvargs)
+          call assign(ss,n*m,iboundgs(l),iboundgs(l),1.,1)
       enddo
 ! 
       if(iprint.eq.1) write(*,*) "before first call to sparseR8"
@@ -202,7 +210,7 @@
 !.....start of iteration loop on plasma current
  500  continue
       itnum = itnum + 1
-      if(myrank.eq.0) call oneplot(0,0,b1vecini,1,1,"b1vec")
+      if(myrank.eq.0) call oneplot(0,0,b1vecini,1,1,"RJPHI")
 !
 !.....apply boundary conditions
       do l=1,nbcgs
@@ -215,8 +223,17 @@
 #else
       call dsupralu_solve(gshandle,b1vecini(1),ier)
 #endif
+      icount = 0
       do i=1,nrags
       phi(i) = th*b1vecini(i) + (1.-th)*phi(i)
+      icount = icount + 1
+      if(myrank.eq.0 .and. iprint.gt.0) then
+      if(icount.ge.500 .and. icount .le. 510) then
+        write(*,1089) i,phi(i),b1vecini(i)
+ 1089   format("i,phi(i),b1vecini(i)",i5,1p2e12.4)
+      endif
+      endif
+!
       enddo
       if(myrank.eq.0) call oneplot(0,0,phi,1,1,"phi  ")
       th = 0.9
@@ -225,6 +242,7 @@
 !.....calculate the error
       sum = 0.
       count = 0.
+      norm = 0.
       do lx=1,n
         x = xzero + (lx-1)*deex
         do lz=1,m
@@ -235,11 +253,12 @@
           rhs =  -(fun1(i0+1)+gamma2*fun2(i0+1)+                        &
      &             gamma3*fun3(i0+1)+gamma4*fun4(i0+1))
         sum = sum + (lhs-rhs)**2
+        norm = norm + lhs**2
         count = count + 1
  202    continue
         enddo
       enddo
-      error = sqrt(sum/(n*m))
+      error = sqrt(sum/norm)
       write(*,*) "gradshafranov: error = ", error
 !
 !.....calculate psi at the magnetic axis and the limiter
@@ -247,13 +266,13 @@
       zguess = zmag - zzero
       if(iprint.eq.1) write(*,*) "before magaxis",xguess,zguess,                 &
      &                 phi(6*(n*(m-1)/2 + (n-1)/2)+1)
-      call magaxis(phi,xguess,zguess)
+      call magaxis(xguess,zguess)
       xmag = xguess + xzero
       zmag = zguess + zzero
 !
       xrel = xlim - xzero
       zrel = zlim - zzero
-      call evaluate(xrel,zrel,psilim,ajlim,phi,1,numvargs)
+      call evaluate(xrel,zrel,psilim,ajlim,phi,1,1)
       dpsii = 1./(psilim-psimin)
       if(iprint.eq.1) write(*,*) "xmag,zmag",xmag,zmag
       if(iprint.eq.1) write(*,*) "xlim,zlim",xlim,zlim
@@ -323,7 +342,7 @@
 !     degree of freedom in gamma3.  Could be used to fix qprime(0)
       q0 = 1.
       qstar = 4.
-      g0 = 36.4
+      g0 = bzero*xzero
       gamma2 =-2.*xmag*(xmag*p0*p1 + (2.*g0/(xmag**2*q0*dpsii)))
       gamma3 = -(xmag*djdpsi/dpsii + 2*xmag**2*p0*p2)
       gamma4 = -(tcuro + gamma2*int2 + gamma3*int3 + int1)/int4
@@ -357,15 +376,14 @@
 !.....end of loop to define RHS vector 
 !
 !.....diagnostic plots
-      if(itnum.le.30) go to 500
+      if(itnum.le.50) go to 500
       ntime = itnum
       temp = -(fun1+gamma2*fun2+gamma3*fun3+gamma4*fun4)     
-      if(myrank.eq.0) call plotit(phi,temp,0)
       if(myrank.eq.0) call oneplot(0,0,temp,1,1,"temp ")
       if(myrank.eq.0) call oneplot(0,4,fun1,1,1,"Rp-p ")
       if(myrank.eq.0) call oneplot(0,3,fun2,1,1,"G1-p ")
       if(myrank.eq.0) call oneplot(0,2,fun3,1,1,"G2-p ")
-      if(myrank.eq.0) call oneplot(0,0,fun4,1,1,"G3-p ")
+      if(myrank.eq.0) call oneplot(0,1,fun4,1,1,"G3-p ")
 #ifdef mpi
       call sparseR8d_del(gsmatrix_lu,jer)
 #else
@@ -737,166 +755,12 @@
       return
       end
 ! ================================================
-      subroutine axis(dum,xsep,zsep,itime)
+      subroutine magaxis(xguess,zguess)
       use basic
-      use p_data
       use t_data
       use mesh_mod
-      dimension xsep(*),zsep(*)
-      dimension dum(*),wlocal(20),avector(20)
-!
-!     itime=0 for first call
-!          =1 for subsequent calls
-!     
-!     locates the magnetic axis and separatrix locations
-!
-!.....evaluate the solution to get the value [ans] at one point (x,z)
-
-!     loop over all triangles
-      nsep = 0
-      itrit = 0
-      nmax = n-1
-      if(iper.eq.1) nmax = n
-      do ioddt=1,2
-      do jrectt=1,m-1
-      do irectt=1,nmax
-      iodd = ioddt
-      jrect = jrectt
-      irect = irectt
-      itrit = itrit + 1
-      itri = itrit
-!
-      inews = 0
- 300  inews = inews+1
-      z1 = (jrect-1)*deez
-      x1 = (irect-1)*deex
-!
-!.....construct the 18 vector corresponding to this triangle
-!.....calculate the index and local coordinates for this triangle
-      sumx = 0.
-      sumz = 0.
-      do iii=1,3    
-        do ii=1,6
-          i = (iii-1)*6 + ii
-          index = numvar*6*ist(itri,iii)+ii
-          wlocal(i) = dum(index)
-        enddo
-        index = ist(itri,iii) + 1
-        sumx = sumx + xcord(index)
-        sumz = sumz + zcord(index)
-      enddo
-        if(inews.le.1) then
-        x = sumx/3.
-        z = sumz/3.
-                       endif
-!
-!.....calculate local coordinates
-      theta = ttri(iodd)
-      b = btri(iodd)
-      co = cos(theta)
-      sn = sin(theta)
-      si  = (x-x1)*co + (z-z1)*sn - b
-      eta =-(x-x1)*sn + (z-z1)*co
-!
-!     calculate the function value corresponding to this point
-      do i=1,20
-        sum = 0.
-        do k=1,18
-          sum = sum + gtri(i,k,iodd)*wlocal(k)
-        enddo
-        avector(i) = sum
-      enddo
-      inewt = 0
- 301  continue
-      inewt = inewt + 1
-!
-!.....evaluate the polynomial and second derivative
-      sum = 0.
-      sum1 = 0.
-      sum2 = 0.
-      sum3 = 0.
-      sum4 = 0.
-      sum5 = 0.
-      do i=1,20
-        sum = sum + avector(i)*si**mi(i)*eta**ni(i)
-        term1 = 0.
-        if(mi(i).ge.1) term1 = mi(i)*si**(mi(i)-1)*eta**ni(i)
-        term2 = 0.
-        if(ni(i).ge.1) term2 = ni(i)*si**mi(i)*eta**(ni(i)-1)
-        term3 = 0.
-        if(mi(i).ge.2) term3 = mi(i)*(mi(i)-1)*si**(mi(i)-2)*eta**ni(i)
-        term4 = 0.
-        if(ni(i).ge.2) term4 = ni(i)*(ni(i)-1)*si**mi(i)*eta**(ni(i)-2)
-        term5 = 0.
-        if(ni(i)*mi(i) .ge. 1)                                          &
-     &                 term5 = mi(i)*ni(i)*si**(mi(i)-1)*eta**(ni(i)-1)
-        sum1 = sum1 + avector(i)*term1
-        sum2 = sum2 + avector(i)*term2
-        sum3 = sum3 + avector(i)*term3
-        sum4 = sum4 + avector(i)*term4
-        sum5 = sum5 + avector(i)*term5
-      enddo
-      pt  = sum
-      pt1  = sum1
-      pt2  = sum2
-      p11 = sum3
-      p22 = sum4
-      p12 = sum5
-!
-      denom =  p22*p11 - p12**2
-      sinew = si -  ( p22*pt1 - p12*pt2)/denom
-      etanew= eta - (-p12*pt1 + p11*pt2)/denom
-      xnew = x1 + co*(b+sinew) - sn*etanew
-      znew = z1 + sn*(b+sinew) + co*etanew
-!
-!.....determine if this new point is nearby
-      call whattri(xnew,znew,itrinew,ioddnew,x1,z1)
-      if( (xnew-x)**2 + (znew-z)**2 .le. deex**2+deez**2                &
-     &   .and. xnew .gt. 0 .and. xnew.lt.alx                             &
-     &   .and. znew .gt. 0 .and. znew.lt.alz) then
-            x = xnew
-            z = znew
-            itri = itrinew
-            irect = (x/deex) + 1
-            jrect = (z/deez) + 1
-            iodd = ioddnew
-            if(inews.le.4 )go to 300
-            if(inews.eq.5) then
-!
-              if(nsep.eq.0) then
-                nsep = 1
-                xsep(nsep) = x
-                zsep(nsep) = z
-              else
-                do isep = 1,nsep
-                if(sqrt((x-xsep(isep))**2+(z-zsep(isep))**2)            &
-     &           .le. .001*deex) go to 400
-                enddo
-                nsep = nsep + 1
-                xsep(nsep) = x
-                zsep(nsep) = z
- 400            continue
-              endif
-!
-            endif
- 3001       format(1p2e12.4)
-      endif
-!
-      enddo
-      enddo
-      enddo
-!
-!.....end of loop over all triangles
-!     return
-      end
-!
-!============================================================
-      subroutine magaxis(phi,xguess,zguess)
-      use basic
-      use p_data
-      use t_data
-      use mesh_mod
-      dimension phi(*),wlocal(20),avector(20)
+      use arrays
+      dimension wlocal(20),avector(20)
 
       if(myrank.eq.0 .and. iprint.gt.0) then
          write(*,*) "magaxis called with xguess, yguess", xguess, zguess
@@ -915,6 +779,9 @@
  300  inews = inews+1
       z1 = (jrect-1)*deez
       x1 = (irect-1)*deex
+      if(myrank.eq.0 .and. iprint.gt.0) then
+        write(*,*) "irect,jrect,x1,z1,itri",irect,jrect,x1,z1,itri
+      endif
 !
 !.....construct the 18 vector corresponding to this triangle
 !.....calculate the index and local coordinates for this triangle
@@ -923,7 +790,7 @@
       do iii=1,3    
         do ii=1,6
           i = (iii-1)*6 + ii
-          index = numvar*6*ist(itri,iii)+ii
+          index = isval1(itri,i)
           wlocal(i) = phi(index)
         enddo
       enddo
@@ -948,6 +815,10 @@
         enddo
         avector(i) = sum
       enddo
+      if(myrank.eq.0 .and. iprint.gt.0) then
+      write(*,*) "si,eta,b,theta", si,eta,b,theta
+      write(*,*)  (wlocal(i),i=1,18)
+      endif
       inewt = 0
  301  continue
       inewt = inewt + 1
@@ -987,6 +858,7 @@
 !
       if(myrank.eq.0 .and. iprint.gt.0) then
          write(*,*) "pt,pt1,pt2,p11pp22,p12", pt,pt1,pt2,p11,p22,p12
+      write(*,*) "avector",(avector(i),i=1,20)
       endif
 !
       denom = p22*p11 - p12**2
@@ -1128,10 +1000,10 @@
       end
 !============================================================
       subroutine deltafun(x,z,b1vecini,val)
-      use p_data
       use t_data
       use basic
       use mesh_mod
+      use arrays
       dimension b1vecini(*)
 !
 !.....calculate the source term associated with a delta
@@ -1168,7 +1040,7 @@
       do iii=1,3     
         do ii=1,6
           i = (iii-1)*6 + ii
-          index = numvar*6*ist(itri,iii)+ii
+          index = isval1(itri,i)
           sum = 0.
           do k=1,20
             sum = sum + gtri(k,i,iodd)*si**mi(k)*eta**ni(k)
@@ -1203,7 +1075,7 @@ c$$$
 c$$$         do lz=1,m+jper
 c$$$            z = (lz-1)*deez
 c$$$            l = lx + (lz-1)*n
-c$$$            i0 = (l-1)*numvar*6
+c$$$            i0 = (l-1)*1*6
 c$$$
 c$$$            dum(i0+1)   = a*exp(-0.5*((x-x0)**2 + (z-z0)**2)/dr**2)
 c$$$            dum(i0+2) = -(x-x0)*dum(i0+1)/dr**2
