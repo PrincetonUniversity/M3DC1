@@ -74,7 +74,7 @@ subroutine calc_chi_error(chierror)
         chierror_local = chierror_local + d2term(j)*com(jone)
      enddo
   enddo                  ! loop over itri
-  call mpi_allreduce(chierror_local, chierror, 1, MPI_DOUBLE, &
+  call mpi_allreduce(chierror_local, chierror, 1, MPI_DOUBLE_PRECISION, &
        MPI_SUM, MPI_COMM_WORLD, ier)
 
 end subroutine calc_chi_error
