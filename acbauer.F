@@ -413,7 +413,7 @@ c$$$      deex = 2.*area/sqrt(deex)
       use basic
       implicit none
       integer itype, numvare, numelms, itri, idof, iii, ii, ndof,
-     &     i, index, k, isforder, itensororder, iwhich, id
+     &     i, index, k, isforder, itensororder, iwhich
     
       real si, eta, x, z, wlocal(18), dum(*), rlocal(18), sum, 
      &     avector(20), temp
@@ -425,10 +425,8 @@ c$$$      deex = 2.*area/sqrt(deex)
 !
       itensororder = 1          ! the order of the tensor
       isforder = 5              ! the order of lagrange shape functions used
-      id = 1                    !field id
-      call createfield("phi", itensororder, isforder, id) 
+      call createfield("phi", itensororder, isforder, iwhich) 
       call getnumlagrangetriinterppoint(isforder, ndof)
-
       allocate(dx(ndof), dz(ndof), vals(ndof)) ! vals should take into account the tensor order for non-scalars!
       dx = 0.d0
       dz = 0.d0
@@ -438,14 +436,13 @@ c$$$      deex = 2.*area/sqrt(deex)
          do idof=1,ndof
             x = dx(idof)
             z = dz(idof)
-            call evaluate(x,z,vals(idof), temp, dum, itype, numvare)
+            call evaluate(x,z,vals(idof), temp, dum,itype,numvare, itri)
          enddo ! idof loop
-         call setfieldontri(itri, itensororder, isforder, vals, id)
+         call setfieldontri(itri, itensororder, isforder, vals, iwhich)
       enddo ! itri loop
 
 !.....update the field
-      
-      call outputfield(iwhich, id);
+      call outputfield(iwhich, iwhich)
       deallocate(dx,dz, vals)
            
       return
