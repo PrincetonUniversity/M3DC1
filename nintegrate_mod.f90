@@ -44,7 +44,7 @@ real, dimension(79, OP_NUM) :: ps079, bz079, pe079, n079, p079, ph079, vz079, ch
 real, dimension(79, OP_NUM) :: ps179, bz179, pe179, n179, p179, ph179, vz179, ch179
 real, dimension(79, OP_NUM) :: pst79, bzt79, pet79, nt79, pt79, pht79, vzt79, cht79
 real, dimension(79, OP_NUM) :: pss79, bzs79, phs79, vzs79, chs79
-real, dimension(79, OP_NUM) :: sb179, sb279, sp179, jt79, cot79, vot79
+real, dimension(79, OP_NUM) :: sb179, sb279, sp179, jt79, cot79, vot79, pit79
 real, dimension(79) :: temp79a, temp79b, temp79c, temp79d, temp79e, temp79f
 
 real, dimension(25) :: si_25, eta_25, weight_25
@@ -645,6 +645,12 @@ subroutine define_fields_79(itri, fields)
      else
         pet79 = pe179
         pt79  =  p179
+     endif
+
+     if(ipres.eq.1) then
+        pit79 = pt79 - pet79
+     else
+        pit79 = pet79 * pi0/p0
      endif
   endif
   

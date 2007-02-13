@@ -467,7 +467,57 @@ subroutine ludefvel_n(itri,dbf)
                 (v3bsb2(g79(:,:,i),g79(:,:,j),sb279))
            
            rrterm(3,3) = rrterm(3,3) + dt* &
-                v3p(g79(:,:,i),g79(:,:,j))                  
+                v3p(g79(:,:,i),g79(:,:,j))
+
+           if(gyro.eq.1) then
+              temp = g1ub      (g79(:,:,i),g79(:,:,j),      bzt79,pit79,b2i79) &
+                   + g1upsipsib(g79(:,:,i),g79(:,:,j),pst79,bzt79,pit79,b2i79)
+              ssterm(1,1) = ssterm(1,1) +     thimp *dt*temp
+              ddterm(1,1) = ddterm(1,1) - (1.-thimp)*dt*temp
+
+              temp = g1vpsi      (g79(:,:,i),g79(:,:,j),pst79,      pit79,b2i79) &
+                   + g1vpsipsipsi(g79(:,:,i),g79(:,:,j),pst79,      pit79,b2i79) &
+                   + g1vpsibb    (g79(:,:,i),g79(:,:,j),pst79,bzt79,pit79,b2i79)
+              ssterm(1,2) = ssterm(1,2) +     thimp *dt*temp
+              ddterm(1,2) = ddterm(1,2) - (1.-thimp)*dt*temp
+
+              temp = g1chib      (g79(:,:,i),g79(:,:,j),      bzt79,pit79,b2i79) &
+                   + g1chipsipsib(g79(:,:,i),g79(:,:,j),pst79,bzt79,pit79,b2i79)
+              ssterm(1,3) = ssterm(1,3) +     thimp *dt*temp
+              ddterm(1,3) = ddterm(1,3) - (1.-thimp)*dt*temp
+
+              temp = g2upsi      (g79(:,:,i),g79(:,:,j),pst79,      pit79,b2i79) &
+                   + g2upsipsipsi(g79(:,:,i),g79(:,:,j),pst79,      pit79,b2i79) &
+                   + g2upsibb    (g79(:,:,i),g79(:,:,j),pst79,bzt79,pit79,b2i79)
+              ssterm(2,1) = ssterm(2,1) +     thimp *dt*temp
+              ddterm(2,1) = ddterm(2,1) - (1.-thimp)*dt*temp
+
+              temp = g2vb(g79(:,:,i),g79(:,:,j),pst79,bzt79,pit79,b2i79)
+              ssterm(2,2) = ssterm(2,2) +     thimp *dt*temp
+              ddterm(2,2) = ddterm(2,2) - (1.-thimp)*dt*temp
+
+              temp = g2chipsi      (g79(:,:,i),g79(:,:,j),pst79,      pit79,b2i79) &
+                   + g2chipsipsipsi(g79(:,:,i),g79(:,:,j),pst79,      pit79,b2i79) &
+                   + g2chipsibb    (g79(:,:,i),g79(:,:,j),pst79,bzt79,pit79,b2i79)
+              ssterm(2,3) = ssterm(2,3) +     thimp *dt*temp
+              ddterm(2,3) = ddterm(2,3) - (1.-thimp)*dt*temp
+
+              temp = g3ub      (g79(:,:,i),g79(:,:,j),bzt79,      pit79,b2i79) &
+                   + g3upsipsib(g79(:,:,i),g79(:,:,j),pst79,bzt79,pit79,b2i79)
+              ssterm(3,1) = ssterm(3,1) +     thimp *dt*temp
+              ddterm(3,1) = ddterm(3,1) - (1.-thimp)*dt*temp
+
+              temp = g3vpsi      (g79(:,:,i),g79(:,:,j),pst79,      pit79,b2i79) &
+                   + g3vpsipsipsi(g79(:,:,i),g79(:,:,j),pst79,      pit79,b2i79) &
+                   + g3vpsibb    (g79(:,:,i),g79(:,:,j),pst79,bzt79,pit79,b2i79)
+              ssterm(3,2) = ssterm(3,2) +     thimp *dt*temp
+              ddterm(3,2) = ddterm(3,2) - (1.-thimp)*dt*temp
+
+              temp = g3chib      (g79(:,:,i),g79(:,:,j),      bzt79,pit79,b2i79) &
+                   + g3chipsipsib(g79(:,:,i),g79(:,:,j),pst79,bzt79,pit79,b2i79)
+              ssterm(3,3) = ssterm(3,3) +     thimp *dt*temp
+              ddterm(3,3) = ddterm(3,3) - (1.-thimp)*dt*temp
+           endif
            
            if(linear.eq.1 .or. eqsubtract.eq.1) then
               temp = v1uchin(g79(:,:,i),g79(:,:,j),ch079,nt79)
@@ -573,7 +623,7 @@ subroutine ludefvel_n(itri,dbf)
      ! Definition of R4
      ! ================
      if(numvar.ge.3) then
-           r4(i3) = r4(i3) + thimp*dt*dt*v3p(g79(:,:,i),sp179)
+        r4(i3) = r4(i3) + thimp*dt*dt*v3p(g79(:,:,i),sp179)
      endif
 
      if(grav.ne.0) then          
