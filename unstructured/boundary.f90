@@ -152,11 +152,6 @@ subroutine boundaryv(ibound,ibound2,nbc)
               ibound(nbc+2) = ibegin+8
               ibound(nbc+3) = ibegin+11
               nbc =  nbc+3
-!!$              if(hyperv.ne.0 .and. imask.ne.1) then
-!!$                 ibound(nbc+1) = ibegin+7
-!!$                 ibound(nbc+2) = ibegin+10
-!!$                 nbc =  nbc+2
-!!$              endif
            endif
            if(numvar.ge.3) then
               ibound(nbc+1) = ibegin+13
@@ -177,11 +172,6 @@ subroutine boundaryv(ibound,ibound2,nbc)
               ibound(nbc+2) = ibegin+7
               ibound(nbc+3) = ibegin+9
               nbc =  nbc+3
-!!$              if(hyperv.ne.0 .and. imask.ne.1) then
-!!$                 ibound(nbc+1) = ibegin+8
-!!$                 ibound(nbc+2) = ibegin+10
-!!$                 nbc =  nbc+2
-!!$              endif
            endif
            if(numvar.ge.3) then
               ibound(nbc+1) = ibegin+14
@@ -211,12 +201,6 @@ subroutine boundaryv(ibound,ibound2,nbc)
         if(numvar.ge.2) then
            ibound(nbc+1) = ibegin+6
            nbc =  nbc+1
-!!$           if(hyperv.ne.0 .and. imask.ne.1) then
-!!$              if(iper.eq.0 .and. jper.eq.0) then
-!!$                 ibound(nbc+1) = ibegin+10
-!!$                 nbc =  nbc+1
-!!$              endif
-!!$           endif
            if(iper.eq.0) then
               ibound(nbc+1) = ibegin+8
               ibound(nbc+2) = ibegin+11
@@ -281,11 +265,6 @@ subroutine boundaryp(ibound,nbc)
            ibound(nbc+2) = ibegin+2
            ibound(nbc+3) = ibegin+5
            nbc =  nbc+3
-!!$           if(hyper.ne.0 .and. imask.ne.1) then
-!!$              ibound(nbc+1) = ibegin+1
-!!$              ibound(nbc+2) = ibegin+4
-!!$              nbc =  nbc+2
-!!$           endif
            if(numvar.ge.2) then
               psibounds(nbc+1) = gbound
               ibound(nbc+1) = ibegin+6
@@ -307,11 +286,6 @@ subroutine boundaryp(ibound,nbc)
            ibound(nbc+2) = ibegin+1
            ibound(nbc+3) = ibegin+3
            nbc =  nbc+3
-!!$           if(hyper.ne.0 .and. imask.ne.1) then
-!!$              ibound(nbc+1) = ibegin+2
-!!$              ibound(nbc+2) = ibegin+4
-!!$              nbc =  nbc+2
-!!$           endif
            if(numvar.ge.2) then
               psibounds(nbc+1) = gbound
               ibound(nbc+1) = ibegin+6
@@ -336,25 +310,12 @@ subroutine boundaryp(ibound,nbc)
            ibound(nbc+1) = ibegin+2
            ibound(nbc+2) = ibegin+5
            nbc = nbc +2
-!!$           if(hyper.ne.0 .and. imask.ne.1) then
-!!$              ibound(nbc+1) = ibegin+1
-!!$              nbc =  nbc+1
-!!$           endif
         endif
         if(jper.eq.0) then
            ibound(nbc+1) = ibegin+1
            ibound(nbc+2) = ibegin+3
            nbc =  nbc+2
-!!$          if(hyper.ne.0 .and. imask.ne.1) then
-!!$              ibound(nbc+1) = ibegin+4
-!!$              nbc =  nbc+1
-!!$           endif
-!!$           if(hyper.ne.0 .and. imask.ne.1) then
-!!$              ibound(nbc+1) = ibegin+2
-!!$              nbc =  nbc+1
-!!$           endif
         endif
-
         if(numvar.ge.2) then
            psibounds(nbc+1) = gbound
            ibound(nbc+1) = ibegin+6

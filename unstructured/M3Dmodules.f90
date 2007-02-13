@@ -58,6 +58,7 @@ module basic
   integer :: numvar      ! 1 = 2-field; 2 = reduced MHD; 3 = compressible MHD
   integer :: idens       ! evolve density
   integer :: ipres       ! evolve total and electron pressures separately
+  integer :: gyro        ! include gyroviscosity
   integer :: imask       ! 1 = ignore 2-fluid terms near boundaries
   integer :: ntimemax    ! number of timesteps
   integer :: nskip       ! number of timesteps per matrix recalculation
@@ -90,7 +91,7 @@ module basic
        bzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,      &
        kappa,iper,jper,iprint,itimer,xzero,zzero,beta,pi0,   &
        eqsubtract,denm,grav,kappat,kappar,ln,amuc,iconstflux,&
-       regular,deex
+       regular,deex,gyro
 
   !     derived quantities
   real :: tt,gamma4,gamma2,gamma3,dpsii,psimin,psilim,pi,              &

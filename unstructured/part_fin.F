@@ -18,8 +18,13 @@
       alpha = 6./(r1 - r2)
       rmid = (r1+r2)/2.
 !
-      rnorm = sqrt(alx*alz)/4.
-      r = sqrt( (x-xmin-alx*.5)**2 + (z-zmin-alz*.5)**2)/rnorm
+      if(iper.eq.0) then
+         rnorm = sqrt(alx*alz)/4.
+         r = sqrt( (x-xmin-alx*.5)**2 + (z-zmin-alz*.5)**2)/rnorm
+      else
+         rnorm = alz/4.
+         r = abs(z-zmin-alz/2.)/rnorm
+      endif
 !
       factor = (1 + tanh(-alpha*(r-rmid)))*.5
 !
