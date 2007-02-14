@@ -116,12 +116,6 @@ Program Reducedquintic
      print *, 'Time spent in init: ', tend-tstart
   endif
 
-  ! initialize hdf5
-  call hdf5_initialize(ier)
-  if(ier.lt.0) then 
-     print *, "Error initializing HDF5"
-  end if
-
   if(ipres.eq.1) then
      pefac = 1.
   else
@@ -132,9 +126,6 @@ Program Reducedquintic
      endif
      print *, "pefac = ", pefac
   endif
-  
-  ! output simulation parameters
-  call hdf5_write_parameters(ier)
 
   ! calculate the RHS (forcing function)
   call rhsdef
@@ -204,13 +195,19 @@ Program Reducedquintic
      endif
   endif                     !  end of the branch on restart/no restart
 
+  ! initialize hdf5
+  call hdf5_initialize(ntimer, ier)
+  if(ier.lt.0) then 
+     print *, "Error initializing HDF5"
+  end if
+  
+  ! output simulation parameters
+  if(irestart.eq.0) call hdf5_write_parameters(ier)
+
   
   ! create the newvar matrices
   call create_newvar_matrix(s6matrix_sm, 1)
   call create_newvar_matrix(s3matrix_sm, 0)
-
-  ! calculate the equilibrium vorticity and velocity divergence
-
 
 !  call axis(phi,xsep,zsep,0)
 
@@ -267,10 +264,12 @@ Program Reducedquintic
 
   ! output initial conditions
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (maxrank .eq. 1) call output
-  call hdf5_write_scalars(ier)
-  call hdf5_write_time_slice(ier)
-  call hdf5_flush(ier)
+  if(irestart.eq.0) then
+     if (maxrank .eq. 1) call output
+     call hdf5_write_scalars(ier)
+     call hdf5_write_time_slice(ier)
+     call hdf5_flush(ier)
+  endif
 
   if(ntimemax.le.ntimer) go to 101
 
