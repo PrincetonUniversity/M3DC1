@@ -52,15 +52,15 @@ c     first put in information to check on run information
       enddo
 !
       call numdofs(1, mmnn6)
-      do j1=1,mmnn6     
-         write(56) jphi(j1)
-      enddo
-      do j1=1,mmnn6       
-         write(56) vor(j1)
-      enddo
-      do j1=1,mmnn6       
-         write(56) com(j1)
-      enddo
+c$$$      do j1=1,mmnn6     
+c$$$         write(56) jphi(j1)
+c$$$      enddo
+c$$$      do j1=1,mmnn6       
+c$$$         write(56) vor(j1)
+c$$$      enddo
+c$$$      do j1=1,mmnn6       
+c$$$         write(56) com(j1)
+c$$$      enddo
       do j1=1,mmnn6       
          write(56) den(j1)
       enddo
@@ -70,6 +70,15 @@ c     first put in information to check on run information
       do j1=1,mmnn6       
          write(56) denold(j1)
       enddo
+c$$$      do j1=1,mmnn6       
+c$$$         write(56) sb1(j1)
+c$$$      enddo
+c$$$      do j1=1,mmnn6       
+c$$$         write(56) sb2(j1)
+c$$$      enddo
+c$$$      do j1=1,mmnn6       
+c$$$         write(56) sp1(j1)
+c$$$      enddo
 !
       write(56) ntime,time
 !      write(56) ((graphit(itime,igr),igr=1,maxplots),itime=1,ntime)
@@ -180,15 +189,15 @@ c     first put in information to check on run information
 !
 !
       call numdofs(1, mmnn6)
-      do j1=1,mmnn6
-         read(56) jphi(j1)
-      enddo
-      do j1=1,mmnn6
-         read(56) vor(j1)
-      enddo
-      do j1=1,mmnn6
-         read(56) com(j1)
-      enddo
+c$$$      do j1=1,mmnn6
+c$$$         read(56) jphi(j1)
+c$$$      enddo
+c$$$      do j1=1,mmnn6
+c$$$         read(56) vor(j1)
+c$$$      enddo
+c$$$      do j1=1,mmnn6
+c$$$         read(56) com(j1)
+c$$$      enddo
       do j1=1,mmnn6
          read(56) den(j1)
       enddo
@@ -198,6 +207,16 @@ c     first put in information to check on run information
       do j1=1,mmnn6
          read(56) denold(j1)
       enddo
+c$$$      do j1=1,mmnn6       
+c$$$         read(56) sb1(j1)
+c$$$      enddo
+c$$$      do j1=1,mmnn6       
+c$$$         read(56) sb2(j1)
+c$$$      enddo
+c$$$      do j1=1,mmnn6       
+c$$$         read(56) sp1(j1)
+c$$$      enddo
+
 !
       read(56) ntimer,timer
 c      read(56) ((graphit(itime,igr),igr=1,maxplots),itime=1,ntimer)

@@ -326,8 +326,8 @@ pro compare, file1, file2, time, names=names
        print, "Comparing ", names[i]
        print, "---------------------"
 
-       vals1 = read_field(names[i], time, filename=file1)
-       vals2 = read_field(names[i], time, filename=file2)
+       vals1 = read_field(names[i], slices=time, filename=file1)
+       vals2 = read_field(names[i], slices=time, filename=file2)
 
        rms = sqrt((vals1 - vals2)^2)
        d = mean(rms)
@@ -335,6 +335,10 @@ pro compare, file1, file2, time, names=names
 
        print, "Mean/variance of RMS error in ", names[i], " = ", $
          d, " / ",  v
+   end
+
+   if(i eq 1) then begin
+       contour_and_legend, vals1-vals2
    end
 end
 

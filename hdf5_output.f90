@@ -26,44 +26,56 @@ contains
 
   ! hdf5_initialize
   ! ===============
-  subroutine hdf5_initialize(error)
+  subroutine hdf5_initialize(ntime, error)
     use hdf5
 
     implicit none
 
     include 'mpif.h'
    
+    integer, intent(in) :: ntime
     integer, intent(out) :: error
 
     integer(HID_T) :: root_id, plist_id
     integer :: info
-
-    times_output = 0
 
     call h5open_f(error)
     if(error.lt.0) then
        print *, "Error: could not initialize HDF5 library: ", error
        return
     endif
-    
-    info = MPI_INFO_NULL
 
     ! Set up the file access property list with parallel I/O
     call h5pcreate_f(H5P_FILE_ACCESS_F, plist_id, error)
     call h5pset_fapl_mpio_f(plist_id, MPI_COMM_WORLD, info, error)
 
-    call h5fcreate_f(hdf5_filename, H5F_ACC_TRUNC_F, file_id, error, &
-         access_prp = plist_id)
-    if(error.lt.0) then
-       print *, "Error: could not open ", hdf5_filename, " for HDF5 output: ", error
+    ! if ntime.eq.0 then create hdf5 file
+    if(ntime.eq.0) then
+       info = MPI_INFO_NULL
+
+       call h5fcreate_f(hdf5_filename, H5F_ACC_TRUNC_F, file_id, error, &
+            access_prp = plist_id)
+       if(error.lt.0) then
+          print *, "Error: could not open ", hdf5_filename, " for HDF5 output: ", error
+       endif
+
+       call h5gopen_f(file_id, "/", root_id, error)
+       call write_int_attr(root_id, "ntime", 0, error)
+       call h5gclose_f(root_id, error)
+
+       times_output = 0
+    else
+    ! else open hdf5 file
+       call h5fopen_f(hdf5_filename, H5F_ACC_RDWR_F, file_id, error, &
+            access_prp = plist_id)
+       if(error.lt.0) then
+          print *, "Error: could not open ", hdf5_filename, " for HDF5 output: ", error
+       endif
+
+       times_output = ntime + 1
     endif
 
     call h5pclose_f(plist_id, error)
-
-    call h5gopen_f(file_id, "/", root_id, error)
-    call write_int_attr(root_id, "ntime", 0, error)
-
-    call h5gclose_f(root_id, error)
 
   end subroutine hdf5_initialize
 
@@ -405,10 +417,10 @@ subroutine hdf5_write_time_slice(error)
   ! Calculate offset of current process
   call mpi_scan(nelms, offset, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, error)
   offset = offset - nelms
-  print *, "Offset of ", myrank, " = ", offset
+!  print *, "Offset of ", myrank, " = ", offset
 !  call numglobalents(global_nodes, gobal_edges, global_elms, global_regions)
   call mpi_allreduce(nelms, global_elms, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, error)
-  print *, "Global elms = ", global_elms
+!  print *, "Global elms = ", global_elms
 
   ! Create the time group
   write(time_group_name, '("time_",I3.3)') times_output
