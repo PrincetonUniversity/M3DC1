@@ -109,12 +109,7 @@ Program Reducedquintic
   itest=0
 
   ! initialize needed variables and define geometry and triangles
-  if(myrank.eq.0 .and. itimer.ge.1) call second(tstart)
   call init
-  if(myrank.eq.0 .and. itimer.ge.1) then
-     call second(tend)
-     print *, 'Time spent in init: ', tend-tstart
-  endif
 
   if(ipres.eq.1) then
      pefac = 1.
@@ -124,7 +119,7 @@ Program Reducedquintic
      else
         pefac = 0.
      endif
-     print *, "pefac = ", pefac
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "pefac = ", pefac
   endif
 
   ! calculate the RHS (forcing function)
@@ -203,7 +198,6 @@ Program Reducedquintic
   
   ! output simulation parameters
   if(irestart.eq.0) call hdf5_write_parameters(ier)
-
   
   ! create the newvar matrices
   call create_newvar_matrix(s6matrix_sm, 1)
@@ -212,8 +206,6 @@ Program Reducedquintic
 !  call axis(phi,xsep,zsep,0)
 
 ! start the time dependent loop
-
-
   ifail=0
   ier = 0
 
@@ -223,7 +215,6 @@ Program Reducedquintic
   ratioi = 0.
   dtmin = 0.001*dt
   ntime = ntimer
-
 
   ! define auxiliary variables
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -271,6 +262,7 @@ Program Reducedquintic
      call hdf5_flush(ier)
   endif
 
+  ! if there are no timesteps to calculate, then skip time loop
   if(ntimemax.le.ntimer) go to 101
 
   ! main time loop

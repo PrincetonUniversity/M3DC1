@@ -94,7 +94,7 @@ module basic
        regular,deex,gyro
 
   !     derived quantities
-  real :: tt,gamma4,gamma2,gamma3,dpsii,psimin,psilim,pi,              &
+  real :: tt,pi,                                                       &
        time,timer,ajmax,errori,enormi,ratioi,                          &
        tmesh, tsetup, tfirst,tsolve,tsecond,tzero,tthird,gbound
   integer ::  ni(20),mi(20) ,nbcgs,nbcp,nbcv,nbcn,iboundmax,           &
@@ -146,9 +146,9 @@ module arrays
 
   ! arrays defined at all vertices
   real, allocatable::                                             &
-       b1vecini(:), vel(:), vels(:), veln(:),                     &
+       vel(:), vels(:), veln(:),                                  &
        velold(:), vel0(:), vel1(:),                               &
-       b2vecini(:), phi(:), phis(:),                              &
+       phi(:), phis(:),                                           &
        phiold(:), phi0(:), phi1(:),                               &
        jphi(:),jphi0(:),sb1(:),sb2(:),sb3(:),sp1(:),              &
        vor(:),vor0(:),com(:),com0(:),                             &

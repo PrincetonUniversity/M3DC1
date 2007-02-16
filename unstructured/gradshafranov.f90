@@ -1,5 +1,42 @@
+module gradshafranov
+
+  implicit none
+  
+  real, allocatable :: psi(:), fun1(:), fun2(:), fun3(:), fun4(:)
+  real :: psimin, psilim, dpsii
+  real :: gamma2, gamma3, gamma4
+
+  integer, parameter :: numvargs = 1
+
+contains
+
+subroutine gradshafranov_init()
+
+  use basic
+  use arrays
+
+  implicit none
+
+  integer :: l, numnodes, ibegin, iendplusone
+
+  call numnod(numnodes)
+  do l=1, numnodes
+     call entdofs(numvar, l, 0, ibegin, iendplusone)
+
+     call static_equ(ibegin)
+     
+     if(idens.eq.1) then
+        call entdofs(1, l, 0, ibegin, iendplusone)
+        call constant_field(den0 (ibegin:ibegin+5), 1)
+     endif
+  enddo
+
+  call gradshafranov_solve()
+  
+end subroutine gradshafranov_init
+
 !============================================================
-subroutine gradshafranov
+subroutine gradshafranov_solve
   use p_data
   use t_data
   use basic
@@ -9,26 +46,32 @@ subroutine gradshafranov
   use nintegrate_mod
 
   implicit none
+
+  include 'mpif.h'
   
+  integer, parameter :: iterations = 20
+
   real   gsint1,gsint4,gsint2,gsint3,lhs,cfac(18)
-  real, allocatable::temp(:)
+  real, allocatable :: temp(:), b1vecini(:)
 
   integer :: itri,i,i1,j,j1,jone, k
-  integer :: numelms, numnodes, ibegin, iendplusone
-  integer :: ineg, itnum, ier, numvargs
+  integer :: numelms, numnodes
+  integer :: ibegin, iendplusone, ibeginn, iendplusonen
+  integer :: ineg, itnum, ier
   integer :: itop, iright, ibottom, ileft, izone, izonedim
   real :: dterm(18,18), sterm(18,18), error
   real :: fac, aminor, bv, fintl(-6:maxi,-6:maxi)
   real :: g, gx, gz, gxx, gxz, gzz, g0
   real :: gv, gvx, gvz, gvxx, gvxz, gvzz
   real :: x,z, xmin, zmin, xrel, zrel, xguess, zguess
-  real :: th, sum, count, rhs, ajlim, curr, q0, qstar
-  real :: dofs(20)
+  real :: th, sum, rhs, ajlim, curr, q0, qstar
+  real, dimension(5) :: temp1, temp2
   double precision :: coords(3)
  
   real, dimension(20) :: avec
   
   real :: tstart, tend, tsol, tmagaxis, tfundef, tplot
+
 
   if(myrank.eq.0 .and. iprint.gt.0) write(*,*) "gradshafranov called"
 
@@ -41,19 +84,25 @@ subroutine gradshafranov
   call getmincoord(xmin, zmin)
   call numnod(numnodes)
   call numfac(numelms)
-  
-  write(*,*) "this function has not been updated to work in parallel"
-  call safestop
-  allocate (temp(maxdofs1))
-  numvargs = 1
-  
-  ! compute LU decomposition only once
 
-  ! form matrices
-  call zeroarray4solve(gsmatrix_sm,numvar1_numbering)
+  ! allocate memory for arrays
+  call createvec(temp, numvargs)
+  call createvec(b1vecini, numvargs)
+  call createvec(psi, numvargs)
+  call createvec(fun1, numvargs)
+  call createvec(fun4, numvargs)
+  call createvec(fun2, numvargs)
+  call createvec(fun3, numvargs)
+  
+
+  ! form the grad-sharfranov matrix
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
+  call zeroarray4solve(gsmatrix_sm,numvar1_numbering)
+
+  ! populate the matrix
   do itri=1,numelms
 
      ! calculate the local sampling points and weights for numerical integration
@@ -75,29 +124,33 @@ subroutine gradshafranov
            j1 = isval1(itri,j)
            i1 = isval1(itri,i)
 
-           sum = int3(ri_79, g79(:,OP_DR,i), g79(:,OP_DR,j),weight_79,79) &
-                +int3(ri_79, g79(:,OP_DZ,i), g79(:,OP_DZ,j),weight_79,79)
+           temp79a = -ri_79* &
+                (g79(:,OP_DR,i)*g79(:,OP_DR,j) &
+                +g79(:,OP_DZ,i)*g79(:,OP_DZ,j) &
+                +g79(:,OP_1, i)*g79(:,OP_DR,j)*ri_79)
+           sum = int1(temp79a,weight_79,79)
 
-           call insertval(gsmatrix_sm, -sum, i1,j1,1)
-
+           call insertval(gsmatrix_sm, sum, i1,j1,1)
         enddo
      enddo
   enddo
 
+  ! insert boundary conditions
+  call boundarygs(iboundgs,nbcgs)
+  do i=1,nbcgs
+     call setdiribc(gsmatrix_sm, iboundgs(i))
+  enddo
+  call finalizearray4solve(gsmatrix_sm)
+
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
-     write(*,*) "Time defining GS matrix: ", tend - tstart
+     write(*,*) " gradshafranov: Time defining GS matrix: ", tend - tstart
   endif
-  
-  ! modify the s-matrix, inserting the boundary conditions
-  
-  ! define indices for boundary arrays
-  if(myrank.eq.0 .and. iprint.gt.0) write(*,*) "before call to boundarygs"
-  call boundarygs(iboundgs,nbcgs)
-  
-  if(myrank.eq.0 .and. iprint.gt.0) write(*,*) "after call to boundarygs", nbcgs
-  
-  ! define initial values based on filiment with current tcuro
+
+
+  ! Define initial values of psi
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ! based on filiment with current tcuro
   ! and vertical field of strength bv given by shafranov formula
   ! NOTE:  This formula assumes (li/2 + beta_P) = 1.2
   fac = tcuro/(2.*pi)
@@ -105,267 +158,361 @@ subroutine gradshafranov
   aminor = abs(xmag-xlim)
   bv = (1./(4.*pi*xmag))*(alog(8.*xmag/aminor) - 1.5 + 1.2)
 
-  if(myrank.eq.0 .and. iprint.gt.0) then
-     write(*,*) "xmin, xmag, xlim", xmin, xmag, xlim
-     write(*,*) "zmin, zmag, zlim", zmin, zmag, zlim
-  endif
-
-  if(myrank.eq.0 .and. iprint.gt.0) write(*,*) "initializing phi"
   do i=1,numnodes
 
      call zonenod(i,izone, izonedim)
 
-     if(izonedim .eq. 1 .or. izonedim.eq.0) then
+!!$     if(izonedim .eq. 1 .or. izonedim.eq.0) then
         call xyznod(i,coords)
         x = coords(1) - xmin + xzero
         z = coords(2) - zmin + zzero
 
         call entdofs(numvargs, i, 0, ibegin, iendplusone)
 
-        call gvect(x,z,xmag,zmag,1,g,gx,gz,gxx,gxz,gzz,0,ineg)
-        call gvect(x,z,102.,xmag,1,gv,gvx,gvz,gvxx,gvxz,gvzz,1,ineg)
+!!$        if(izone.eq.itop .or. izone.eq.ibottom) then
+           call gvect1(x,z,xmag,zmag,g,gx,gz,gxx,gxz,gzz,0,ineg)
+           call gvect1(x,z,102.,xmag,gv,gvx,gvz,gvxx,gvxz,gvzz,1,ineg)
+!!$        else if(izone.eq.ileft .or. izone.eq.iright) then
+!!$           call gvect1(x,z,xmag,zmag,g,gx,gz,gxx,gxz,gzz,0,ineg)
+!!$           call gvect1(x,z,102.,12.,gv,gvx,gvz,gvxx,gvxz,gvzz,1,ineg)
+!!$        endif
 
-        phi(ibegin  ) = (g  +  gv*bv)*fac
-        phi(ibegin+1) = (gx + gvx*bv)*fac
-        phi(ibegin+2) = (gz + gvz*bv)*fac
-        phi(ibegin+3) = (gxx+gvxx*bv)*fac
-        phi(ibegin+4) = (gxz+gvxz*bv)*fac
-        phi(ibegin+5) = (gzz+gvzz*bv)*fac
+        psi(ibegin  ) = (g  +  gv*bv)*fac
+        psi(ibegin+1) = (gx + gvx*bv)*fac
+        psi(ibegin+2) = (gz + gvz*bv)*fac
+        psi(ibegin+3) = (gxx+gvxx*bv)*fac
+        psi(ibegin+4) = (gxz+gvxz*bv)*fac
+        psi(ibegin+5) = (gzz+gvzz*bv)*fac
 
-!        term1 = gxx - gx/x +gzz
-!        term2 = gvxx-gvx/x +gvzz        
-     endif
+!!$     endif
   enddo
-
-  if(myrank.eq.0 .and. iprint.gt.0) write(*,*) "done initializing phi"
-
+  
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(phi,1,numvargs,"phi ",0)
+  if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(psi,1,numvargs,"psi ",0)
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      tplot = tplot + tend - tstart
   endif
-  
+ 
+  ! store boundary conditions on psi
   psibounds = 0.
   do i=1,nbcgs
-     psibounds(i) = phi(iboundgs(i))
-     call setdiribc(gsmatrix_sm, iboundgs(i))
+     psibounds(i) = psi(iboundgs(i))
   enddo
-  call finalizearray4solve(gsmatrix_sm)
- 
-  write(*,*) "before call to dsupralu", xzero
- 
-  b1vecini = 0
-  
+
   ! define initial b1vecini associated with delta-function source
   !     corresponding to current tcuro at location (xmag,zmag)
   xrel = xmag-xzero
   zrel = zmag-zzero
 
+  b1vecini = 0
   call deltafun(xrel,zrel,b1vecini,tcuro)
   
-!!$  write(*,3004)
-!!$3004 format("      curr        xmag        zmag",                      &
-!!$          "      psimin      psilim      error")
-  itnum = 0
   th = 1.
-  error = 0.
   
   !-------------------------------------------------------------------
   ! start of iteration loop on plasma current
-500 continue
+  do itnum=1, iterations
 
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(b1vecini,1,1,"b1vecini",0)
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     tplot = tplot + tend - tstart
-  endif
-
-  ! apply boundary conditions
-  do i=1,nbcgs
-     b1vecini(iboundgs(i)) = psibounds(i)
-  enddo
-
-  itnum = itnum + 1
-
-  ! perform LU backsubstitution to get psi solution
-  write(*,*) 'about to solve gradshaf',myrank
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  call solve(gsmatrix_sm,b1vecini,ier)
-  write(*,*) ' solved gradshaf',myrank
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     tsol = tsol + tend - tstart
-  endif
-
-  phi = th*b1vecini + (1.-th)*phi
-
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(phi,1,numvargs,"phi ",0)
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     tplot = tplot + tend - tstart
-  endif
-
-  th = 0.9
-
-  ! calculate the error
-  sum = 0.
-  count = 0.
-
-  if(myrank.eq.0 .and. iprint.gt.0) write(*,*) "calculating error:"
-  do i=1,numnodes
-
-     call xyznod(i,coords)
-     x = coords(1) - xmin + xzero
-     z = coords(2) - zmin + zzero
-     
-     call entdofs(numvargs, i, 0, ibegin, iendplusone)
-
-     if(phi(ibegin).le.psilim) then
-        lhs = (phi(ibegin+3)-phi(ibegin+1)/x+phi(ibegin+5))/x
-        rhs =  -(fun1(ibegin)+gamma2*fun2(ibegin)+                        &
-             gamma3*fun3(ibegin)+gamma4*fun4(ibegin))
-        sum = sum + (lhs-rhs)**2
-        count = count + 1
-     endif
-  enddo
-
-  error = sqrt(sum/numnodes)
-
-  if(myrank.eq.0 .and. iprint.gt.0) write(*,*) "gradshafranov: error = ", error
-  
-  ! calculate psi at the magnetic axis and the limiter
-  xguess = xmag - xzero
-  zguess = zmag - zzero
-
-  write(*,*) xmag, xzero, zmag, zzero
-
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  call magaxis(phi,xguess,zguess)
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     tmagaxis = tmagaxis + tend - tstart
-  endif
-
-
-  xmag = xguess + xzero
-  zmag = zguess + zzero
-  
-  xrel = xlim - xzero
-  zrel = zlim - zzero
-  call evaluate(xrel,zrel,psilim,ajlim,phi,1,numvargs,0)
-  dpsii = 1./(psilim-psimin)
-  
-  ! define the pressure and toroidal field functions
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  call fundef
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     tfundef = tfundef + tend - tstart
-  endif
-  
-  ! start of loop over triangles to compute integrals needed to keep
-  !     total current and q_0 constant using gamma4, gamma2, gamma3
-  gsint1 = 0.
-  gsint4 = 0.
-  gsint2 = 0.
-  gsint3 = 0.
-  curr = 0.
-  itri = 0.
-  do itri=1,numelms
-
-     call calcfint(fintl,maxi,atri(itri),btri(itri),ctri(itri))
-     call calcsterm(itri, sterm, fintl)
-
-     do j=1,18
-        cfac(j) = 0.
-        do k=1,20
-           cfac(j) = cfac(j) + gtri(k,j,itri)*fint(mi(k),ni(k))
-        enddo
-     enddo
-
-     do i=1,18
-        i1 = isvaln(itri,i)
-        
-        gsint1 = gsint1 + cfac(i)*fun1(i1)
-        gsint4 = gsint4 + cfac(i)*fun4(i1)
-        gsint2 = gsint2 + cfac(i)*fun2(i1)
-        gsint3 = gsint3 + cfac(i)*fun3(i1)
-        do j=1,18
-           jone = isval1(itri,j)
-           curr = curr + sterm(i,j)*phi(i1)*rinv(jone)
-        enddo
-     enddo
-
-  enddo
-
-  ! end of loop to define gamma4, gamma2, gamma3
-  write(*,1001) itnum, curr, xmag, zmag, psimin, psilim, error
-1001 format(i5,1p3e12.4,1p2e20.12,1pe12.4) 
-
-  ! choose gamma2 to fix q0/qstar.  Note that there is an additional
-  ! degree of freedom in gamma3.  Could be used to fix qprime(0)
-  q0 = 1.
-  qstar = 4.
-  g0 = 36.4
-!  gamma2 =-xmag*(xmag*p0*p1 + (tcuro*qstar/(pi*aminor**2*q0*dpsii)))
-!  gamma3 = -(.5*djdpsi/dpsii + p0*p2)
-  gamma2 =- 2.*xmag*(xmag*p0*p1 + (2.*g0/(xmag**2*q0*dpsii)))
-  gamma3 = -(xmag*djdpsi/dpsii + 2*xmag**2*p0*p2)
-  gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
-  
-  if(myrank.eq.0 .and. iprint.gt.0) then
-     write(*,*) "gsint1, gsint2, gsint3, gsint4", gsint1, gsint2, gsint3, gsint4
-     write(*,*) "gamma2, gamma3, gamma4", gamma2, gamma3, gamma4
-  endif
-
-  ! start loop over elements to define RHS vector
-  b1vecini = 0.
-
-  do itri=1,numelms
-
-     call calcfint(fintl,maxi,atri(itri),btri(itri),ctri(itri))
-     call calcdterm(itri, dterm, fintl)
-
-     do i=1,18
-        i1 = isvaln(itri,i)
-        sum = 0.
-
-        do j=1,18
-           j1 = isvaln(itri,j)
-           
-           sum = sum - dterm(i,j)*(fun1(j1) + gamma4*fun4(j1)               &
-                +  gamma2*fun2(j1) + gamma3*fun3(j1))
-        enddo
-
-        b1vecini(i1) =  b1vecini(i1) + sum
-     enddo
-  enddo
-
-  ! end of loop to define RHS vector 
-  !
-  ! diagnostic plots
-  if(itnum.le.10) go to 500
-  ntime = itnum
-  temp = -(fun1+gamma2*fun2+gamma3*fun3+gamma4*fun4)     
-
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  if(maxrank .eq. 1) then
-     call plotit(phi,temp,0)
-     call oneplot(temp,1,1,"temp",0)
-     if(myrank.eq.0) call oneplot(fun1,1,1,"fun1",0)
-     if(myrank.eq.0) call oneplot(fun2,1,1,"fun2",0)
-     if(myrank.eq.0) call oneplot(fun3,1,1,"fun3",0)
-     if(myrank.eq.0) call oneplot(fun4,1,1,"fun4",0)
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(b1vecini,1,numvargs,"b1vecini",0)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         tplot = tplot + tend - tstart
      endif
-  endif
 
-  deallocate (temp)
+     ! apply boundary conditions
+     do i=1,nbcgs
+        b1vecini(iboundgs(i)) = psibounds(i)
+     enddo
+
+     ! perform LU backsubstitution to get psi solution
+     write(*,*) 'about to solve gradshaf',myrank
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     call solve(gsmatrix_sm,b1vecini,ier)
+     write(*,*) ' solved gradshaf',myrank
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        tsol = tsol + tend - tstart
+     endif
+
+     psi = th*b1vecini + (1.-th)*psi
+
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(psi,1,numvargs,"psi ",0)
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        tplot = tplot + tend - tstart
+     endif
+     th = 0.9
+
+     ! calculate the error
+     ! (nodes shared between processes are currenly overcounted)
+     sum = 0.
+     do i=1,numnodes
+        
+        call xyznod(i,coords)
+        x = coords(1) - xmin + xzero
+        z = coords(2) - zmin + zzero
+        
+        call entdofs(numvargs, i, 0, ibegin, iendplusone)
+
+        if(psi(ibegin).le.psilim) then
+           lhs = (psi(ibegin+3)-psi(ibegin+1)/x+psi(ibegin+5))/x
+           rhs =  -(fun1(ibegin)+gamma2*fun2(ibegin)+                        &
+                gamma3*fun3(ibegin)+gamma4*fun4(ibegin))
+           sum = sum + (lhs-rhs)**2
+        endif
+     enddo
+
+     if(maxrank.gt.1) then
+        temp1(1) = sum
+        temp1(2) = numnodes
+        call mpi_allreduce(temp1, temp2, 2, MPI_DOUBLE_PRECISION, &
+             MPI_SUM, MPI_COMM_WORLD, ier)
+        error = sqrt(temp2(1)/temp2(2))
+     else
+        error = sqrt(sum/numnodes)
+     endif
+     
+     if(myrank.eq.0 .and. iprint.gt.0) &
+          print *, "gradshafranov: error = ", error
+
+     
+     ! calculate psi at the magnetic axis
+     xguess = xmag - xzero
+     zguess = zmag - zzero    
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     call magaxis(xguess,zguess)
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        tmagaxis = tmagaxis + tend - tstart
+     endif
+     xmag = xguess + xzero
+     zmag = zguess + zzero
+     
+     ! calculate psi at the limiter
+     xrel = xlim - xzero
+     zrel = zlim - zzero
+     itri = 0.
+     call evaluate(xrel,zrel,psilim,ajlim,psi,1,numvargs,itri)
+    
+
+     ! define the pressure and toroidal field functions
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     call fundef
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        tfundef = tfundef + tend - tstart
+     endif
+
+     
+     ! start of loop over triangles to compute integrals needed to keep
+     !     total current and q_0 constant using gamma4, gamma2, gamma3
+     gsint1 = 0.
+     gsint4 = 0.
+     gsint2 = 0.
+     gsint3 = 0.
+     curr = 0.
+     do itri=1,numelms
+
+        call calcfint(fintl,maxi,atri(itri),btri(itri),ctri(itri))
+        call calcsterm(itri, sterm, fintl)
+
+        do j=1,18
+           cfac(j) = 0.
+           do k=1,20
+              cfac(j) = cfac(j) + gtri(k,j,itri)*fint(mi(k),ni(k))
+           enddo
+        enddo
+
+        do i=1,18
+           i1 = isval1(itri,i)
+           
+           gsint1 = gsint1 + cfac(i)*fun1(i1)
+           gsint4 = gsint4 + cfac(i)*fun4(i1)
+           gsint2 = gsint2 + cfac(i)*fun2(i1)
+           gsint3 = gsint3 + cfac(i)*fun3(i1)
+           do j=1,18
+              jone = isval1(itri,j)
+              curr = curr + sterm(i,j)*psi(i1)*rinv(jone)
+           enddo
+        enddo        
+     enddo
+
+     if(maxrank.gt.1) then
+        temp1(1) = curr
+        temp1(2) = gsint1
+        temp1(3) = gsint2
+        temp1(4) = gsint3
+        temp1(5) = gsint4
+        call mpi_allreduce(temp1, temp2, 5, MPI_DOUBLE_PRECISION, &
+             MPI_SUM, MPI_COMM_WORLD, ier)
+        curr   = temp2(1)
+        gsint1 = temp2(2)
+        gsint2 = temp2(3)
+        gsint3 = temp2(4)
+        gsint4 = temp2(5)
+     end if
+
+     if(myrank.eq.0 .and. iprint.ge.1) then 
+        print *, "gradshafranov: curr = ", curr
+!!$        print *, "gradshafranov: curr, gsint1, gsint2, gsint3, gsint4 = ", &
+!!$             curr, gsint1, gsint2, gsint3, gsint4
+     endif
+
+
+     ! choose gamma2 to fix q0/qstar.  Note that there is an additional
+     ! degree of freedom in gamma3.  Could be used to fix qprime(0)
+     q0 = 1.
+     qstar = 4.
+     g0 = 36.4
+     !  gamma2 =-xmag*(xmag*p0*p1 + (tcuro*qstar/(pi*aminor**2*q0*dpsii)))
+     !  gamma3 = -(.5*djdpsi/dpsii + p0*p2)
+     gamma2 =- 2.*xmag*(xmag*p0*p1 + (2.*g0/(xmag**2*q0*dpsii)))
+     gamma3 = -(xmag*djdpsi/dpsii + 2*xmag**2*p0*p2)
+     gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
+  
+!!$  if(myrank.eq.0 .and. iprint.gt.0) then
+!!$     write(*,*) "gsint1, gsint2, gsint3, gsint4", gsint1, gsint2, gsint3, gsint4
+!!$     write(*,*) "gamma2, gamma3, gamma4", gamma2, gamma3, gamma4
+!!$  endif
+!!$     print *, "myrank, gamma2, gamma3, gamma4", &
+!!$          myrank, gamma2, gamma3, gamma4
+     
+     ! start loop over elements to define RHS vector
+     b1vecini = 0.
+
+     do itri=1,numelms
+
+        call calcfint(fintl,maxi,atri(itri),btri(itri),ctri(itri))
+        call calcdterm(itri, dterm, fintl)
+        
+        do i=1,18
+           i1 = isval1(itri,i)
+           sum = 0.
+           
+           do j=1,18
+              j1 = isval1(itri,j)
+              
+              sum = sum - dterm(i,j)*(fun1(j1) + gamma4*fun4(j1)               &
+                   +  gamma2*fun2(j1) + gamma3*fun3(j1))
+           enddo
+           
+           b1vecini(i1) =  b1vecini(i1) + sum
+        enddo
+     enddo
+     call sumshareddofs(b1vecini)
+  end do ! on itnum
+
+
+
+  ! populate phi0 array
+  ! ~~~~~~~~~~~~~~~~~~~
+  do i=1,numnodes
+     !.....defines the source functions for the GS equation:
+     call entdofs(numvargs, i, 0, ibegin, iendplusone)
+     call entdofs(numvar, i, 0, ibeginn, iendplusonen)
+
+     phi0(ibeginn:ibeginn+5) = psi(ibegin:ibegin+5)
+
+!     fun4 = G1/R
+!     fun2 = G2/R
+!     fun3 = G3/R    
+!     I = sqrt(bzero**2 + gamma*G)
+     if(numvar.ge.2) then
+        call xyznod(i,coords)
+        x = coords(1) - xmin + xzero
+
+        temp(ibegin:ibegin+5) = &
+              gamma2*fun2(ibegin:ibegin+5) &
+             +gamma3*fun3(ibegin:ibegin+5) &
+             +gamma4*fun4(ibegin:ibegin+5)
+        if(bzero**2 + temp(ibegin)*x .le. 0.) then
+           call constant_field(phi0(ibegin+6 :ibegin+11), 0.)
+        else           
+           phi0(ibeginn+6) = sqrt(bzero**2 + temp(ibegin)*x)
+           phi0(ibeginn+7) = 0.5*(temp(ibegin+1)*x + temp(ibegin))/phi0(ibeginn+6)
+           phi0(ibeginn+8) = 0.5*temp(ibegin+2)*x/phi0(ibeginn+6)
+           phi0(ibeginn+9) = 0.5*(temp(ibegin+3)*x + 2.*temp(ibegin+1))/phi0(ibeginn+6) &
+                - 0.25*(temp(ibegin+1)*x + temp(ibegin))**2/phi0(ibeginn+6)**3
+           phi0(ibeginn+10)= 0.5*(temp(ibegin+4)*x + temp(ibegin+2))/phi0(ibeginn+6) &
+                - 0.25*(temp(ibegin+1)*x + temp(ibegin))*temp(ibegin+2)*x/phi0(ibeginn+6)**3
+           phi0(ibeginn+11)= 0.5*(temp(ibegin+5)*x)/phi0(ibeginn+6) &
+                - 0.25*(temp(ibegin+2)*x)**2/phi0(ibeginn+6)**3
+        endif
+     end if
+
+!     p = p0*(1. + p1*Psi + p2*Psi**2)
+     if(numvar.ge.3) then
+        sum = p0 - pi0*ipres
+        temp(ibegin) = (psi(ibegin) - psimin)/(psilim - psimin)
+        temp(ibegin+1:ibegin+5) = psi(ibegin+1:ibegin+5)/(psilim - psimin)
+
+        if(temp(ibegin) .lt. 0 .or. temp(ibegin) .gt. 1) then
+           call constant_field(phi0(ibeginn+12:ibeginn+17), sum*(1.+p1+p2))
+        else
+           phi0(ibeginn+12) = sum*(1.+p1*temp(ibegin)+p2*temp(ibegin)**2)
+           phi0(ibeginn+13) = sum*(p1+2.*p2*temp(ibegin))*temp(ibegin+1)
+           phi0(ibeginn+14) = sum*(p1+2.*p2*temp(ibegin))*temp(ibegin+2)
+           phi0(ibeginn+15) = sum*(p1*temp(ibegin+3) + &
+                2.*p2*(temp(ibegin+1)**2 + temp(ibegin)*temp(ibegin+3)))
+           phi0(ibeginn+16) = sum*(p1*temp(ibegin+4) + &
+                2.*p2*(temp(ibegin+1)*temp(ibegin+2) + temp(ibegin)*temp(ibegin+4)))
+           phi0(ibeginn+17) = sum*(p1*temp(ibegin+5) + &
+                2.*p2*(temp(ibegin+2)**2 + temp(ibegin)*temp(ibegin+5)))
+        endif
+
+        if(ipres.eq.1) then
+           call entdofs(1, i, 0, ibeginn, iendplusonen)
+
+           sum = p0
+
+           if(temp(ibegin) .lt. 0 .or. temp(ibegin) .gt. 1) then
+              call constant_field(pres0(ibeginn:ibeginn+5), sum*(1.+p1+p2))
+           else
+              pres0(ibeginn)   = sum*(1.+p1*temp(ibegin)+p2*temp(ibegin)**2)
+              pres0(ibeginn+1) = sum*(p1+2.*p2*temp(ibegin))*temp(ibegin+1)
+              pres0(ibeginn+2) = sum*(p1+2.*p2*temp(ibegin))*temp(ibegin+2)
+              pres0(ibeginn+3) = sum*(p1*temp(ibegin+3) + &
+                   2.*p2*(temp(ibegin+1)**2 + temp(ibegin)*temp(ibegin+3)))
+              pres0(ibeginn+4) = sum*(p1*temp(ibegin+4) + &
+                   2.*p2*(temp(ibegin+1)*temp(ibegin+2) + temp(ibegin)*temp(ibegin+4)))
+              pres0(ibeginn+5) = sum*(p1*temp(ibegin+5) + &
+                   2.*p2*(temp(ibegin+2)**2 + temp(ibegin)*temp(ibegin+5)))
+           end if
+        endif
+     end if
+
+  end do
+
+!!$  ntime = itnum
+
+!!$  ! diagnostic plots
+!!$  if(maxrank .eq. 1) then
+!!$     if(itimer.eq.1) call second(tstart)
+!!$     temp = -(fun1+gamma2*fun2+gamma3*fun3+gamma4*fun4)     
+!!$     call plotit(phi0,temp,1)
+!!$     call oneplot(temp,1,1,"temp",0)
+!!$     if(myrank.eq.0) call oneplot(fun1,1,1,"fun1",0)
+!!$     if(myrank.eq.0) call oneplot(fun2,1,1,"fun2",0)
+!!$     if(myrank.eq.0) call oneplot(fun3,1,1,"fun3",0)
+!!$     if(myrank.eq.0) call oneplot(fun4,1,1,"fun4",0)
+!!$     if(myrank.eq.0 .and. itimer.eq.1) then
+!!$        call second(tend)
+!!$        tplot = tplot + tend - tstart
+!!$     endif
+!!$  endif
+
+  ! free memory
+  call deletevec(temp)
+  call deletevec(b1vecini)
+  call deletevec(psi)
+  call deletevec(fun1)
+  call deletevec(fun4)
+  call deletevec(fun2)
+  call deletevec(fun3)
+
 
   if(myrank.eq.0 .and. itimer.eq.1) then
      write(*,*) "gradshafranov: Time spent in magaxis: ", tmagaxis
@@ -376,9 +523,11 @@ subroutine gradshafranov
 
   return
 
-end subroutine gradshafranov
+end subroutine gradshafranov_solve
+
+
 !==================================
-subroutine magaxis(phi,xguess,zguess)
+subroutine magaxis(xguess,zguess)
   use basic
   use p_data
   use t_data
@@ -386,135 +535,186 @@ subroutine magaxis(phi,xguess,zguess)
 
   implicit none
 
-  real, intent(in) :: phi(*)
+  include 'mpif.h'
+
   real, intent(inout) :: xguess, zguess
 
-  integer :: itri, itrit, jrect, irect, inews, iii
-  integer :: ii, i, index, k, inewt, itrinew, ibegin, iendplusone
-  integer :: numvargs
+  integer, parameter :: iterations = 5
+
+  integer :: itri, itrit, itrinew, inews
+  integer :: ii, i, ier
   real :: x1, z1, x, z, theta, b, co, sn, si, eta
   real :: sum, sum1, sum2, sum3, sum4, sum5
   real :: term1, term2, term3, term4, term5
-  real :: pt, pt1, pt2, p11, p22, p12, denom, sinew, etanew, xnew
-  real :: znew, alx, alz
-  real, dimension(20) :: wlocal, avector
+  real :: pt, pt1, pt2, p11, p22, p12
+  real :: xnew, znew, denom, sinew, etanew
+  real :: alx, alz
+  real, dimension(20) :: avector
+  real, dimension(3) :: temp1, temp2
 
   !     locates the magnetic axis and the value of psi there
 
-  numvargs = 1
-
-  if(myrank.eq.0 .and. iprint.gt.0) then
-     write(*,*) "magaxis called with xguess, yguess", xguess, zguess
-  endif
-
-  itrit = 0
-  call safestop(9832)
-  call whattri(xguess,zguess,itrit,x1,z1)
+  if(myrank.eq.0 .and. iprint.gt.0) &
+       print *,  "magaxis: guess=", xguess, zguess
 
   call getboundingboxsize(alx, alz)
-!  call getdeex(itrit,deex)
-  itri = itrit
 
+  itrit = 0
   inews = 0
-300 inews = inews+1
 
-  call calcavector(itri, phi, 1, numvargs, avector)
+  call whattri(xguess,zguess,itrit,x1,z1)
+
+  itri = itrit
+  x = xguess
+  z = zguess
   
-  if(inews.le.1) then
-     x = xguess
-     z = zguess
-  endif
+  do inews=1, iterations
 
-  ! calculate local coordinates
-  theta = ttri(itri)
-  b = btri(itri)
-  co = cos(theta)
-  sn = sin(theta)
-  si  = (x-x1)*co + (z-z1)*sn - b
-  eta =-(x-x1)*sn + (z-z1)*co
+     ! calculate position of minimum
+     if(itri.gt.0) then
+        call calcavector(itri, psi, 1, numvargs, avector)
+         
+        ! calculate local coordinates
+        theta = ttri(itri)
+        b = btri(itri)
+        co = cos(theta)
+        sn = sin(theta)
+        si  = (x-x1)*co + (z-z1)*sn - b
+        eta =-(x-x1)*sn + (z-z1)*co
   
-  inewt = 0
-301 continue
-  inewt = inewt + 1
+        ! evaluate the polynomial and second derivative
+        sum = 0.
+        sum1 = 0.
+        sum2 = 0.
+        sum3 = 0.
+        sum4 = 0.
+        sum5 = 0.
+        do i=1,20
+           sum = sum + avector(i)*si**mi(i)*eta**ni(i)
+           term1 = 0.
+           if(mi(i).ge.1) term1 = mi(i)*si**(mi(i)-1)*eta**ni(i)
+           term2 = 0.
+           if(ni(i).ge.1) term2 = ni(i)*si**mi(i)*eta**(ni(i)-1)
+           term3 = 0.
+           if(mi(i).ge.2) term3 = mi(i)*(mi(i)-1)*si**(mi(i)-2)*eta**ni(i)
+           term4 = 0.
+           if(ni(i).ge.2) term4 = ni(i)*(ni(i)-1)*si**mi(i)*eta**(ni(i)-2)
+           term5 = 0.
+           if(ni(i)*mi(i) .ge. 1)                                          &
+                term5 = mi(i)*ni(i)*si**(mi(i)-1)*eta**(ni(i)-1)
+           
+           sum1 = sum1 + avector(i)*term1
+           sum2 = sum2 + avector(i)*term2
+           sum3 = sum3 + avector(i)*term3
+           sum4 = sum4 + avector(i)*term4
+           sum5 = sum5 + avector(i)*term5
+        enddo
+        pt  = sum
+        pt1 = sum1
+        pt2 = sum2
+        p11 = sum3
+        p22 = sum4
+        p12 = sum5
+     
+        denom = p22*p11 - p12**2
+        sinew = si -  ( p22*pt1 - p12*pt2)/denom
+        etanew= eta - (-p12*pt1 + p11*pt2)/denom
+!!$        denom = 4.*p22*p11 - p12**2
+!!$        sinew = si -  ( 2.*p22*pt1 - p12*pt2)/denom
+!!$        etanew= eta - (-p12*pt1 + 2.*p11*pt2)/denom
+        xnew = x1 + co*(b+sinew) - sn*etanew
+        znew = z1 + sn*(b+sinew) + co*etanew
 
-  ! evaluate the polynomial and second derivative
-  sum = 0.
-  sum1 = 0.
-  sum2 = 0.
-  sum3 = 0.
-  sum4 = 0.
-  sum5 = 0.
-  do i=1,20
-     sum = sum + avector(i)*si**mi(i)*eta**ni(i)
-     term1 = 0.
-     if(mi(i).ge.1) term1 = mi(i)*si**(mi(i)-1)*eta**ni(i)
-     term2 = 0.
-     if(ni(i).ge.1) term2 = ni(i)*si**mi(i)*eta**(ni(i)-1)
-     term3 = 0.
-     if(mi(i).ge.2) term3 = mi(i)*(mi(i)-1)*si**(mi(i)-2)*eta**ni(i)
-     term4 = 0.
-     if(ni(i).ge.2) term4 = ni(i)*(ni(i)-1)*si**mi(i)*eta**(ni(i)-2)
-     term5 = 0.
-     if(ni(i)*mi(i) .ge. 1)                                          &
-          term5 = mi(i)*ni(i)*si**(mi(i)-1)*eta**(ni(i)-1)
-
-     sum1 = sum1 + avector(i)*term1
-     sum2 = sum2 + avector(i)*term2
-     sum3 = sum3 + avector(i)*term3
-     sum4 = sum4 + avector(i)*term4
-     sum5 = sum5 + avector(i)*term5
-  enddo
-  pt  = sum
-  pt1  = sum1
-  pt2  = sum2
-  p11 = sum3
-  p22 = sum4
-  p12 = sum5
-
-  if(myrank.eq.0 .and. iprint.gt.0) then
-     write(*,*) "pt,pt1,pt2,p11pp22,p12", pt,pt1,pt2,p11,p22,p12
-  endif
-
-!  denom = p22*p11 - p12**2
-!  sinew = si -  ( p22*pt1 - p12*pt2)/denom
-!  etanew= eta - (-p12*pt1 + p11*pt2)/denom
-  denom = 4.*p22*p11 - p12**2
-  sinew = si -  ( 2.*p22*pt1 - p12*pt2)/denom
-  etanew= eta - (-p12*pt1 + 2.*p11*pt2)/denom
-  xnew = x1 + co*(b+sinew) - sn*etanew
-  znew = z1 + sn*(b+sinew) + co*etanew
-  
-  if(myrank.eq.0 .and. iprint.gt.0) then
-     write(*,*) "Found maximum at: ", xnew, znew
-  endif
-
-  ! determine if this new point is nearby
-  call safestop(482)
-  call whattri(xnew,znew,itrinew,x1,z1)
-  if( (xnew-x)**2 + (znew-z)**2 .le. 2.*deex**2                     &
-       .and. xnew .gt. 0 .and. xnew.lt.alx                            &
-       .and. znew .gt. 0 .and. znew.lt.alz) then
-     x = xnew
-     z = znew
-     itri = itrinew
-     irect = (x/deex) + 1
-     jrect = (z/deex) + 1
-     if(inews.le.4 )go to 300
-     if(inews.eq.5) then
-        xguess = x
-        zguess = z
-        psimin = pt
-        return
+        if(iprint.gt.0) print *, "magaxis: minimum at ", xnew, znew
+     else
+        xnew = 0.
+        znew = 0.
+     endif  ! on itri.gt.0
+     
+     if(maxrank.gt.1) then
+        temp1(1) = xnew
+        temp1(2) = znew
+        call mpi_allreduce(temp1, temp2, 2, &
+             MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
+        xnew = temp2(1)
+        znew = temp2(2)
      endif
-3001 format(1p2e12.4)
+     
+     call whattri(xnew,znew,itrinew,x1,z1) 
+     
+     if(itrinew.gt.0) then
+        ! check to see whether the new minimum is outside the simulation domain
+        if(xnew .lt. 0 .or. xnew.gt.alx .or. &
+             znew .lt. 0 .or. znew.gt.alz) then
+           i = 1
+        else
+           i = 0
+           x = xnew
+           z = znew
+        endif
+     else
+        i = 0
+        x = 0
+        z = 0
+        pt = 0
+     endif
+     itri = itrinew
+     
+     ! tell all processors whether or not the new minimum is within the domain 
+     if(maxrank.gt.1) &
+        call mpi_allreduce(i, ii, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ier)
+
+     ! if not, safestop.
+     if(ii.eq.1) then
+        write(*,3333) inews,x,z,xnew,znew
+3333       format("magaxis: new minimum outside domain. ",i3,1p4e12.4)
+        call safestop(27)       
+     endif
+  end do
+
+  xguess = x
+  zguess = z
+  psimin = pt
+
+  if(maxrank.gt.1) then
+     temp1(1) = xguess
+     temp1(2) = zguess
+     temp1(3) = psimin
+     call mpi_allreduce(temp1, temp2, 3, &
+          MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
+     xguess = temp2(1)
+     zguess = temp2(2)
+     psimin = temp2(3)
   endif
-
-  ! error exit
-  write(*,3333) inews,x,z,xnew,znew
-3333 format(" error exit from magaxis",i3,1p4e12.4)
-  call safestop(27)
-
+  
 end subroutine magaxis
+
+!============================================================
+subroutine gvect1(r,z,xi,zi,g,gr,gz,grr,grz,gzz,nmult,ineg)
+  integer, intent(in) :: nmult
+  integer, intent(out) :: ineg
+  real, intent(in) :: r, z, xi, zi
+  real, intent(out) :: g,gr,gz,grr,grz,gzz
+
+  real, dimension(1) :: rv, zv, xiv, ziv
+  real, dimension(1) :: gv,grv,gzv,grrv,grzv,gzzv
+
+  rv(1) = r
+  zv(1) = z
+  xiv(1) = xi
+  ziv(1) = zi
+
+  call gvect(rv,zv,xiv,ziv,1,gv,grv,gzv,grrv,grzv,gzzv,nmult,ineg)
+
+  g = gv(1)
+  gr = grv(1)
+  gz = gzv(1)
+  grr = grrv(1)
+  grz = grzv(1)
+  gzz = gzzv(1)
+
+end subroutine gvect1
+
 
 !============================================================
 subroutine gvect(r,z,xi,zi,n,g,gr,gz,grr,grz,gzz,nmult,ineg)
@@ -526,10 +726,10 @@ subroutine gvect(r,z,xi,zi,n,g,gr,gz,grr,grz,gzz,nmult,ineg)
   integer, intent(out) :: ineg
   real, dimension(n), intent(in) :: r, z, xi, zi
   real, dimension(n), intent(out) :: g,gr,gz,grr,grz,gzz
-  
-!!$  dimension r(n),z(n),xi(n),zi(n),g(n),gr(n),gz(n),                 &
-!!$       grz(n),gzz(n),grr(n)
 
+!!$  real, intent(in)  :: r, z, xi, zi
+!!$  real, intent(out) :: g,gr,gz,grr,grz,gzz
+  
   real :: a0,a1,a2,a3,a4
   real :: b0,b1,b2,b3,b4
   real :: c1,c2,c3,c4
@@ -835,7 +1035,7 @@ subroutine boundarygs(ibound,nbc)
   do i=1,numnodes
 
      call zonenod(i,izone, izonedim)
-     call entdofs(1, i, 0, ibegin, iendplusone)
+     call entdofs(numvargs, i, 0, ibegin, iendplusone)
 
      if(izonedim .eq. 1) then ! an edge...
         if(izone .eq. itop .or. izone .eq. ibottom) then
@@ -876,28 +1076,32 @@ subroutine deltafun(x,z,dum,val)
   integer :: itri, i, ii, iii, k, ibegin, iendplusone, index
   real :: x1, z1, b, theta, si, eta, sum
   
-  call safestop(4421)
   call whattri(x,z,itri,x1,z1)
 
-  ! calculate local coordinates
-  theta = ttri(itri)
-  b = btri(itri)
-  si  = (x-x1)*cos(theta) + (z-z1)*sin(theta) - b
-  eta =-(x-x1)*sin(theta) + (z-z1)*cos(theta)
+  if(itri.gt.0) then
 
-  ! calculate the contribution to b1vecini
-  do iii=1,3     
-     call entdofs(1, ist(itri, iii)+1, 0, ibegin, iendplusone)
-     do ii=1,6
-        i = (iii-1)*6 + ii
-        index = ibegin+ii-1
-        sum = 0.
-        do k=1,20
-           sum = sum + gtri(k,i,itri)*si**mi(k)*eta**ni(k)
+     ! calculate local coordinates
+     theta = ttri(itri)
+     b = btri(itri)
+     si  = (x-x1)*cos(theta) + (z-z1)*sin(theta) - b
+     eta =-(x-x1)*sin(theta) + (z-z1)*cos(theta)
+
+     ! calculate the contribution to b1vecini
+     do iii=1,3     
+        call entdofs(1, ist(itri, iii)+1, 0, ibegin, iendplusone)
+        do ii=1,6
+           i = (iii-1)*6 + ii
+           index = ibegin+ii-1
+           sum = 0.
+           do k=1,20
+              sum = sum + gtri(k,i,itri)*si**mi(k)*eta**ni(k)
+           enddo
+           dum(index) = dum(index) + sum*val
         enddo
-        dum(index) = dum(index) + sum*val
      enddo
-  enddo
+  end if
+
+  call sumshareddofs(dum)
 
 end subroutine deltafun
 !============================================================
@@ -912,10 +1116,9 @@ subroutine fundef
   use arrays
   use basic
   
-  implicit none
-
+  implicit none 
   integer :: l, numnodes, k, ibegin, iendplusone
-  real :: x, z, xmin, zmin, psi, psix, psiy, psixx, psixy, psiyy, fbig
+  real :: x, z, xmin, zmin, pso, psox, psoy, psoxx, psoxy, psoyy, fbig
   real :: fbigp, fbigpp, g4big, g4bigp, g4bigpp, g2big, g2bigp
   real :: g2bigpp, g3big, g3bigp, g3bigpp
   double precision :: coords(3)
@@ -930,76 +1133,77 @@ subroutine fundef
      x = coords(1) - xmin + xzero
      z = coords(2) - zmin + zzero
 
-     call entdofs(1, l, 0, ibegin, iendplusone)
-     psi =  (phi(ibegin)-psimin)*dpsii
-     if(psi .lt. 0 .or. psi .gt. 1) go to 500
-     psix = phi(ibegin+1)*dpsii
-     psiy = phi(ibegin+2)*dpsii
-     psixx= phi(ibegin+3)*dpsii
-     psixy= phi(ibegin+4)*dpsii
-     psiyy= phi(ibegin+5)*dpsii
+     call entdofs(numvargs, l, 0, ibegin, iendplusone)
+     pso =  (psi(ibegin)-psimin)*dpsii
+     if(pso .lt. 0. .or. pso .gt. 1.) go to 500
+     psox = psi(ibegin+1)*dpsii
+     psoy = psi(ibegin+2)*dpsii
+     psoxx= psi(ibegin+3)*dpsii
+     psoxy= psi(ibegin+4)*dpsii
+     psoyy= psi(ibegin+5)*dpsii
      
-     fbig = p0*dpsii*(p1 + 2.*p2*psi - 3.*(20 + 10*p1+4.*p2)*psi**2       &
-          + 4.*(45.+20.*p1+6*p2)*psi**3 - 5*(36.+15*p1+4*p2)*psi**4       &
-          + 6.*(10.+4.*p1+p2)*psi**5)
-     fbigp = p0*dpsii*(2.*p2 - 6.*(20 + 10*p1+4.*p2)*psi                  &
-          + 12.*(45.+20.*p1+6*p2)*psi**2 - 20.*(36.+15*p1+4*p2)*psi**3    &
-          + 30.*(10.+4.*p1+p2)*psi**4)
+     fbig = p0*dpsii*(p1 + 2.*p2*pso - 3.*(20 + 10*p1+4.*p2)*pso**2       &
+          + 4.*(45.+20.*p1+6*p2)*pso**3 - 5*(36.+15*p1+4*p2)*pso**4       &
+          + 6.*(10.+4.*p1+p2)*pso**5)
+     fbigp = p0*dpsii*(2.*p2 - 6.*(20 + 10*p1+4.*p2)*pso                  &
+          + 12.*(45.+20.*p1+6*p2)*pso**2 - 20.*(36.+15*p1+4*p2)*pso**3    &
+          + 30.*(10.+4.*p1+p2)*pso**4)
      fbigpp= p0*dpsii*(- 6.*(20 + 10*p1+4.*p2)                            &
-          + 24.*(45.+20.*p1+6*p2)*psi - 60.*(36.+15*p1+4*p2)*psi**2       &
-          + 120.*(10.+4.*p1+p2)*psi**3)
-     fun1(ibegin) = x*fbig
-     fun1(ibegin+1) = fbig + x*fbigp*psix
-     fun1(ibegin+2) =        x*fbigp*psiy
-     fun1(ibegin+3) = 2.*fbigp*psix + x*(fbigpp*psix**2+fbigp*psixx)
-     fun1(ibegin+4) = fbigp*psiy + x*(fbigpp*psix*psiy +fbigp*psixy)
-     fun1(ibegin+5) = x*(fbigpp*psiy**2 + fbigp*psiyy)
+          + 24.*(45.+20.*p1+6*p2)*pso - 60.*(36.+15*p1+4*p2)*pso**2       &
+          + 120.*(10.+4.*p1+p2)*pso**3)
 
-!!$     g4big =   dpsii*(-psi**2+3.*psi**3-3.*psi**4+psi**5)
-!!$     g4bigp =  dpsii*(-2*psi+9.*psi**2-12.*psi**3+5.*psi**4)
-!!$     g4bigpp = dpsii*(-2 + 18.*psi-36.*psi**2+20*psi**3)
-     g4big = dpsii*(-60*psi**2+180*psi**3-180*psi**4+60*psi**5)
-     g4bigp= dpsii*(-120*psi+540*psi**2-720*psi**3+300*psi**4)
-     g4bigpp=dpsii*(-120   +1080*psi  -2160*psi**2+1200*psi**3)
+     fun1(ibegin) = x*fbig
+     fun1(ibegin+1) = fbig + x*fbigp*psox
+     fun1(ibegin+2) =        x*fbigp*psoy
+     fun1(ibegin+3) = 2.*fbigp*psox + x*(fbigpp*psox**2+fbigp*psoxx)
+     fun1(ibegin+4) = fbigp*psoy + x*(fbigpp*psox*psoy +fbigp*psoxy)
+     fun1(ibegin+5) = x*(fbigpp*psoy**2 + fbigp*psoyy)
+
+!!$     g4big =   dpsii*(-pso**2+3.*pso**3-3.*pso**4+pso**5)
+!!$     g4bigp =  dpsii*(-2*pso+9.*pso**2-12.*pso**3+5.*pso**4)
+!!$     g4bigpp = dpsii*(-2 + 18.*pso-36.*pso**2+20*pso**3)
+     g4big = dpsii*(-60*pso**2+180*pso**3-180*pso**4+60*pso**5)
+     g4bigp= dpsii*(-120*pso+540*pso**2-720*pso**3+300*pso**4)
+     g4bigpp=dpsii*(-120   +1080*pso  -2160*pso**2+1200*pso**3)
 
      fun4(ibegin)  = g4big/x
-     fun4(ibegin+1)= g4bigp*psix/x - g4big/x**2
-     fun4(ibegin+2)= g4bigp*psiy/x
-     fun4(ibegin+3)= (g4bigpp*psix**2 + g4bigp*psixx)/x                  &
-          - 2*g4bigp*psix/x**2 + 2.*g4big/x**3
-     fun4(ibegin+4)= (g4bigpp*psix*psiy+g4bigp*psixy)/x                  &
-          - g4bigp*psiy/x**2
-     fun4(ibegin+5)=  (g4bigpp*psiy**2 + g4bigp*psiyy)/x
+     fun4(ibegin+1)= g4bigp*psox/x - g4big/x**2
+     fun4(ibegin+2)= g4bigp*psoy/x
+     fun4(ibegin+3)= (g4bigpp*psox**2 + g4bigp*psoxx)/x                  &
+          - 2*g4bigp*psox/x**2 + 2.*g4big/x**3
+     fun4(ibegin+4)= (g4bigpp*psox*psoy+g4bigp*psoxy)/x                  &
+          - g4bigp*psoy/x**2
+     fun4(ibegin+5)=  (g4bigpp*psoy**2 + g4bigp*psoyy)/x
 
-     g2big =  dpsii*(1 - 30.*psi**2 + 80.*psi**3                     &
-          - 75.*psi**4 + 24.*psi**5)
-     g2bigp =  dpsii*(-60.*psi + 240.*psi**2                         &
-          - 300.*psi**3 + 120.*psi**4)
-     g2bigpp =  dpsii*(-60. + 480.*psi                               &
-          - 900.*psi**2 + 480.*psi**3)
+     g2big =  dpsii*(1 - 30.*pso**2 + 80.*pso**3                     &
+          - 75.*pso**4 + 24.*pso**5)
+     g2bigp =  dpsii*(-60.*pso + 240.*pso**2                         &
+          - 300.*pso**3 + 120.*pso**4)
+     g2bigpp =  dpsii*(-60. + 480.*pso                               &
+          - 900.*pso**2 + 480.*pso**3)
      fun2(ibegin)  =  g2big/x
-     fun2(ibegin+1)=  g2bigp*psix/x - g2big/x**2
-     fun2(ibegin+2)=  g2bigp*psiy/x
-     fun2(ibegin+3)=  (g2bigpp*psix**2 + g2bigp*psixx)/x                 &
-          - 2*g2bigp*psix/x**2 + 2.*g2big/x**3
-     fun2(ibegin+4)=(g2bigpp*psix*psiy+g2bigp*psixy)/x                   &
-          - g2bigp*psiy/x**2
-     fun2(ibegin+5)= (g2bigpp*psiy**2 + g2bigp*psiyy)/x
+     fun2(ibegin+1)=  g2bigp*psox/x - g2big/x**2
+     fun2(ibegin+2)=  g2bigp*psoy/x
+     fun2(ibegin+3)=  (g2bigpp*psox**2 + g2bigp*psoxx)/x                 &
+          - 2*g2bigp*psox/x**2 + 2.*g2big/x**3
+     fun2(ibegin+4)=(g2bigpp*psox*psoy+g2bigp*psoxy)/x                   &
+          - g2bigp*psoy/x**2
+     fun2(ibegin+5)= (g2bigpp*psoy**2 + g2bigp*psoyy)/x
 
-     g3big =  dpsii*(2.*psi - 12.*psi**2 + 24.*psi**3                &
-          - 20.*psi**4 + 6.*psi**5)
-     g3bigp =  dpsii*(2. - 24.*psi + 72.*psi**2                      &
-          - 80.*psi**3 + 30*psi**4)
-     g3bigpp =  dpsii*(- 24. + 144.*psi                              &
-          - 240.*psi**2 + 120*psi**3)
+     g3big =  dpsii*(2.*pso - 12.*pso**2 + 24.*pso**3                &
+          - 20.*pso**4 + 6.*pso**5)
+     g3bigp =  dpsii*(2. - 24.*pso + 72.*pso**2                      &
+          - 80.*pso**3 + 30*pso**4)
+     g3bigpp =  dpsii*(- 24. + 144.*pso                              &
+          - 240.*pso**2 + 120*pso**3)
      fun3(ibegin)= g3big/x
-     fun3(ibegin+1)= g3bigp*psix/x - g3big/x**2
-     fun3(ibegin+2)= g3bigp*psiy/x
-     fun3(ibegin+3)= (g3bigpp*psix**2 + g3bigp*psixx)/x                  &
-          - 2*g3bigp*psix/x**2 + 2.*g3big/x**3
-     fun3(ibegin+4)= (g3bigpp*psix*psiy+g3bigp*psixy)/x                  &
-          - g3bigp*psiy/x**2
-     fun3(ibegin+5)=  (g3bigpp*psiy**2 + g3bigp*psiyy)/x
+     fun3(ibegin+1)= g3bigp*psox/x - g3big/x**2
+     fun3(ibegin+2)= g3bigp*psoy/x
+     fun3(ibegin+3)= (g3bigpp*psox**2 + g3bigp*psoxx)/x                  &
+          - 2*g3bigp*psox/x**2 + 2.*g3big/x**3
+     fun3(ibegin+4)= (g3bigpp*psox*psoy+g3bigp*psoxy)/x                  &
+          - g3bigp*psoy/x**2
+     fun3(ibegin+5)=  (g3bigpp*psoy**2 + g3bigp*psoyy)/x
 
      go to 501
 500  continue
@@ -1014,3 +1218,6 @@ subroutine fundef
   
   return
 end subroutine fundef
+
+
+end module gradshafranov

@@ -899,15 +899,19 @@ subroutine evaluate(x,z,ans,ans2,dum,itype,numvare,itri)
   use nintegrate_mod
 
   implicit none
+
+  include 'mpif.h'
+
   integer, intent(inout) :: itype, numvare, itri
   real, intent(in) :: x, z, dum(*)
   real, intent(out) :: ans, ans2
 
-  integer :: p, nodeids(4)
+  integer :: p, nodeids(4), ier
   real :: x1, z1, xmin, zmin
   real, dimension(20) :: avector
   real :: ri, si, eta, co, sn
   real :: term1, term2
+  real, dimension(2) :: temp1, temp2
 
   double precision :: coords(3)
 
@@ -931,54 +935,63 @@ subroutine evaluate(x,z,ans,ans2,dum,itype,numvare,itri)
   ans = 0.
   ans2 = 0.
 
-  if(itri.lt.0) return
+  if(itri.gt.0) then
 
-  ! calculate local coordinates
-  co = cos(ttri(itri))
-  sn = sin(ttri(itri))
-
-  si  = (x-x1)*co + (z-z1)*sn - btri(itri)
-  eta =-(x-x1)*sn + (z-z1)*co
-
-  ! calculate the inverse radius
-  if(itor.eq.1) then
-     call getmincoord(xmin, zmin)
-     ri = 1./(x - xmin + xzero)
-  else
-     ri = 1.
-  endif
-
-  ! calculate the value of the function
-  call calcavector(itri, dum, itype, numvare, avector)
+     ! calculate local coordinates
+     co = cos(ttri(itri))
+     sn = sin(ttri(itri))
   
-  do p=1,20
-     
-     term1 = si**mi(p)*eta**ni(p)
-     term2 = 0.
-     
-     if(mi(p).ge.1) then
-        if(itor.eq.1) then
-           term2 = term2 - 2.*co*(mi(p)*si**(mi(p)-1) * eta**ni(p))*ri
-        endif
-           
-        if(mi(p).ge.2) then
-           term2 = term2 + si**(mi(p)-2)*(mi(p)-1)*mi(p) * eta**ni(p)
-        endif
+     si  = (x-x1)*co + (z-z1)*sn - btri(itri)
+     eta =-(x-x1)*sn + (z-z1)*co
+
+     ! calculate the inverse radius
+     if(itor.eq.1) then
+        call getmincoord(xmin, zmin)
+        ri = 1./(x - xmin + xzero)
+     else
+        ri = 1.
      endif
+
+     ! calculate the value of the function
+     call calcavector(itri, dum, itype, numvare, avector)
      
-     if(ni(p).ge.1) then
-        if(itor.eq.1) then
-           term2 = term2 + 2.*sn*(si**mi(p) * eta**(ni(p)-1)*ni(p))*ri
-        endif
+     do p=1,20
+     
+        term1 = si**mi(p)*eta**ni(p)
+        term2 = 0.
         
-        if(ni(p).ge.2) then
-           term2 = term2 + si**mi(p) * eta**(ni(p)-2)*(ni(p)-1)*ni(p)
+        if(mi(p).ge.1) then
+           if(itor.eq.1) then
+              term2 = term2 - 2.*co*(mi(p)*si**(mi(p)-1) * eta**ni(p))*ri
+           endif
+           
+           if(mi(p).ge.2) then
+              term2 = term2 + si**(mi(p)-2)*(mi(p)-1)*mi(p) * eta**ni(p)
+           endif
         endif
-     endif
      
-     ans = ans + avector(p)*term1
-     ans2 = ans2 + avector(p)*term2
-  enddo
+        if(ni(p).ge.1) then
+           if(itor.eq.1) then
+              term2 = term2 + 2.*sn*(si**mi(p) * eta**(ni(p)-1)*ni(p))*ri
+           endif
+           
+           if(ni(p).ge.2) then
+              term2 = term2 + si**mi(p) * eta**(ni(p)-2)*(ni(p)-1)*ni(p)
+           endif
+        endif
+     
+        ans = ans + avector(p)*term1
+        ans2 = ans2 + avector(p)*term2
+     enddo
+  endif
+     
+  if(maxrank.gt.1) then
+     temp1(1) = ans
+     temp1(2) = ans2
+     call mpi_allreduce(temp1, temp2, 2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
+     ans = temp2(1)
+     ans2 = temp2(2)
+  endif
 
 end subroutine evaluate
 !============================================================
