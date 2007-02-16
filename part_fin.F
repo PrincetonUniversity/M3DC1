@@ -58,7 +58,6 @@
 !
 !.....arrays defined at all vertices
 c     created with ordering specified by numvar
-      call createvec(b1vecini, numvar)
       call createvec(vel, numvar)
       call createvec(vels, numvar)
       call createvec(velold, numvar)
@@ -66,7 +65,6 @@ c     created with ordering specified by numvar
       call createvec(denold, numvar)
       call createvec(vel0, numvar)
       call createvec(vel1, numvar)
-      call createvec(b2vecini, numvar)
       call createvec(phi, numvar)
       call createvec(phis, numvar)
       call createvec(phiold, numvar)
@@ -78,10 +76,6 @@ c     created with ordering specified by numvar
       call createvec(vtemp, numvar)
       call createvec(r4, numvar)
       call createvec(q4, numvar)
-      call createvec(fun1, 1)
-      call createvec(fun4, 1)
-      call createvec(fun2, 1)
-      call createvec(fun3, 1)
       call createvec(jphi, 1)
       jphi = 0.
       call createvec(jphi0, 1)
@@ -500,7 +494,7 @@ c      enddo
       real term, sum, fac1, fac2, fac3, fact, f, alx, alz
 !
       call getboundingboxsize(alx, alz)
-      b1vecini = 0.
+c$$$      b1vecini = 0.
       call numfac(numelms)
 
       do 505 itri=1,numelms
@@ -561,16 +555,16 @@ c      enddo
             enddo
 !
 !............velocity perturbations
-             b1vecini(i1) = b1vecini(i1) - term                         &
-     &                    *((pi/alx)**2+(pi/alz)**2)
-             if(numvar.ge.2) b1vecini(i2) = b1vecini(i2)
-!    &              - term*((pi/alx)**2+(pi/alz)**2)
-             if(numvar.ge.3) b1vecini(i3) = 0.
-!
-!............fluxes
-             b2vecini(i1) = 0.
-             if(numvar.ge.2) b2vecini(i2) = 0.
-             if(numvar.ge.3) b2vecini(i3) = 0.
+c$$$             b1vecini(i1) = b1vecini(i1) - term                         &
+c$$$     &                    *((pi/alx)**2+(pi/alz)**2)
+c$$$             if(numvar.ge.2) b1vecini(i2) = b1vecini(i2)
+c$$$!    &              - term*((pi/alx)**2+(pi/alz)**2)
+c$$$             if(numvar.ge.3) b1vecini(i3) = 0.
+c$$$!
+c$$$!............fluxes
+c$$$             b2vecini(i1) = 0.
+c$$$             if(numvar.ge.2) b2vecini(i2) = 0.
+c$$$             if(numvar.ge.3) b2vecini(i3) = 0.
 !
            enddo
            enddo
@@ -581,7 +575,7 @@ c      enddo
 ! it does not own, we call sumshareddofs so that these values
 ! get summed up for all values shared by multiple procs
 ! and then update these values
-      call sumshareddofs(b1vecini)
+c$$$      call sumshareddofs(b1vecini)
 c      call safestop(1111)
       return
       end
@@ -648,8 +642,8 @@ c      call safestop(1111)
 !
 !
 !.....zero out big arrays
-      b1vecini = 0.
-      b2vecini = 0.
+c$$$      b1vecini = 0.
+c$$$      b2vecini = 0.
       eterm = 0
       rinv = 0.
 !

@@ -1,56 +1,3 @@
-!=====================================
-subroutine initial_conditions()
-  use basic
-
-  implicit none
-
-  integer :: ibegin, iendplusone, l, numnodes
-  real :: x, z, alx, alz, xmin, zmin
-  double precision :: coords(3)
-
-  call getmincoord(xmin, zmin)
-  call getboundingboxsize(alx, alz)
-
-  call numnod(numnodes)
-  do l=1, numnodes
-     call xyznod(l, coords)
-
-     if(itor.eq.0) then
-
-        x = coords(1) - xmin - alx*.5
-        z = coords(2) - zmin - alz*.5
-
-        select case(itaylor)
-        case(0)
-           call cylinder_equ(x, z, l)
-           call cylinder_per(x, z, l)
-        case(1)
-           call taylor_reconnection_equ(x, z, l)
-           call taylor_reconnection_per(x, z, l)
-        case(2)
-           call force_free_equ(x, z, l)
-           call force_free_per(x, z, l)
-        case(3)
-           call gem_reconnection_equ(x, z, l)
-           call gem_reconnection_per(x, z, l)
-        case(4)
-           call wave_equ(x, z, l)
-           call wave_per(x, z, l)
-        end select
-     else
-        x = coords(1) + xzero - xmin
-        z = coords(2) + zzero - zmin - alz*.5
-
-        select case(itaylor)
-        case(0)
-           call solovev_equ(x, z, l)
-           call solovev_per(x, z, l)
-        end select
-     endif
-  enddo
-
-end subroutine initial_conditions
-
 !==============================
 subroutine constant_field(outarr, val)
   implicit none
@@ -95,10 +42,40 @@ subroutine plane_wave(x, z, outarr, kx, kz, amp, phase)
 end subroutine plane_wave
 
 
-
 !==============================================================================
 ! Tilting Cylinder (itaylor = 0)
 !==============================================================================
+module tilting_cylinder
+
+  implicit none
+
+  real, parameter :: k = 3.8317059702
+
+contains
+
+subroutine tilting_cylinder_init()
+  implicit none
+
+  integer :: l, numnodes
+  real :: x, z, alx, alz, xmin, zmin
+  double precision :: coords(3)
+
+  call getmincoord(xmin, zmin)
+  call getboundingboxsize(alx, alz)
+
+  call numnod(numnodes)
+  do l=1, numnodes
+     call xyznod(l, coords)
+
+     x = coords(1) - xmin - alx*.5
+     z = coords(2) - zmin - alz*.5
+
+     call cylinder_equ(x, z, l)
+     call cylinder_per(x, z, l)
+  enddo
+
+end subroutine tilting_cylinder_init
+
 subroutine cylinder_equ(x, z, inode)
   use basic
   use arrays
@@ -109,7 +86,6 @@ subroutine cylinder_equ(x, z, inode)
   integer, intent(in) :: inode
 
   integer :: ibegin, iendplusone
-  real, parameter :: k = 3.8317059702
   real :: rr, ri, arg, befo, uzero, czero, ff, fp, fpp, j0, j1, kb
   real :: d1, d2, d3, d4, d5, d6
   real :: s17aef, s17aff
@@ -119,10 +95,10 @@ subroutine cylinder_equ(x, z, inode)
 
   call static_equ(ibegin)
 
-!.....Use the equilibrium given in R. Richard, et al,
-!     Phys. Fluids B, 2 (3) 1990 p 489
-!.....(also Strauss and Longcope)
-!
+  !.....Use the equilibrium given in R. Richard, et al,
+  !     Phys. Fluids B, 2 (3) 1990 p 489
+  !.....(also Strauss and Longcope)
+  !
   rr = sqrt(x**2 + z**2)
   ri = 0.
   if(rr.ne.0) ri = 1./rr
@@ -239,11 +215,43 @@ subroutine cylinder_per(x, z, inode)
 
 end subroutine cylinder_per
 
+end module tilting_cylinder
+
 
 
 !==============================================================================
 ! Taylor Reconnection (itaylor = 1)
 !==============================================================================
+
+module taylor_reconnection
+
+contains
+
+
+subroutine taylor_reconnection_init()
+  implicit none
+
+  integer :: l, numnodes
+  real :: x, z, alx, alz, xmin, zmin
+  double precision :: coords(3)
+
+  call getmincoord(xmin, zmin)
+  call getboundingboxsize(alx, alz)
+
+  call numnod(numnodes)
+  do l=1, numnodes
+     call xyznod(l, coords)
+
+     x = coords(1) - xmin - alx*.5
+     z = coords(2) - zmin - alz*.5
+
+     call taylor_reconnection_equ(x, z, l)
+     call taylor_reconnection_per(x, z, l)
+  enddo
+
+end subroutine taylor_reconnection_init
+
+
 
 subroutine taylor_reconnection_equ(x, z, inode)
   use basic
@@ -305,10 +313,39 @@ subroutine taylor_reconnection_per(x, z, inode)
 end subroutine taylor_reconnection_per
 
 
+end module taylor_reconnection
+
 
 !==============================================================================
 ! Force-Free Taylor State (itaylor = 2)
 !==============================================================================
+module force_free_state
+
+contains
+
+subroutine force_free_init()
+  implicit none
+
+  integer :: l, numnodes
+  real :: x, z, alx, alz, xmin, zmin
+  double precision :: coords(3)
+
+  call getmincoord(xmin, zmin)
+  call getboundingboxsize(alx, alz)
+
+  call numnod(numnodes)
+  do l=1, numnodes
+     call xyznod(l, coords)
+
+     x = coords(1) - xmin - alx*.5
+     z = coords(2) - zmin - alz*.5
+
+     call force_free_equ(x, z, l)
+     call force_free_per(x, z, l)
+  enddo
+
+end subroutine force_free_init
+
 subroutine force_free_equ(x, z, inode)
   use basic
   use arrays
@@ -384,9 +421,38 @@ subroutine force_free_per(x, z, inode)
 
 end subroutine force_free_per
 
+end module force_free_state
+
 !==============================================================================
 ! GEM Reconnection (itaylor = 3)
 !==============================================================================
+module gem_reconnection
+
+contains
+
+subroutine gem_reconnection_init()
+  implicit none
+
+  integer :: l, numnodes
+  real :: x, z, alx, alz, xmin, zmin
+  double precision :: coords(3)
+
+  call getmincoord(xmin, zmin)
+  call getboundingboxsize(alx, alz)
+
+  call numnod(numnodes)
+  do l=1, numnodes
+     call xyznod(l, coords)
+
+     x = coords(1) - xmin - alx*.5
+     z = coords(2) - zmin - alz*.5
+
+     call gem_reconnection_equ(x, z, l)
+     call gem_reconnection_per(x, z, l)
+  enddo
+
+end subroutine gem_reconnection_init
+
 subroutine gem_reconnection_equ(x, z, inode)
   use basic
   use arrays
@@ -487,10 +553,49 @@ subroutine gem_reconnection_per(x, z, inode)
 
 end subroutine gem_reconnection_per
 
+end module gem_reconnection
+
 
 !==============================================================================
 ! Wave Propagation (itaylor = 4)
 !==============================================================================
+module wave_propagation
+
+  implicit none
+  real, private :: alx, alz, akx, akx2, omega
+
+contains
+
+subroutine wave_init()
+  use basic
+
+  implicit none
+
+  integer :: l, numnodes
+  real :: x, z, xmin, zmin
+  double precision :: coords(3)
+
+  call getmincoord(xmin, zmin)
+  call getboundingboxsize(alx, alz)
+
+  akx = 2.*pi/alx
+  akx2 = akx**2
+  omega = sqrt(akx2 + .5*db**2*akx2**2                                 &
+       + db*akx2*sqrt(akx2 + .25*db**2*akx2**2))
+
+  call numnod(numnodes)
+  do l=1, numnodes
+     call xyznod(l, coords)
+
+     x = coords(1) - xmin - alx*.5
+     z = coords(2) - zmin - alz*.5
+
+     call wave_equ(x, z, l)
+     call wave_per(x, z, l)
+  enddo
+
+end subroutine wave_init
+
 subroutine wave_equ(x, z, inode)
   use basic
   use arrays
@@ -533,16 +638,9 @@ subroutine wave_per(x, z, inode)
   integer, intent(in) :: inode
 
   integer :: ibegin, iendplusone
-  real :: alx, alz, akx, akx2, omega
+  real :: alx, alz, omega
 
   call entdofs(numvar, inode, 0, ibegin, iendplusone)
-
-  call getboundingboxsize(alx, alz)
-
-  akx = 2.*pi/alx
-  akx2 = akx**2
-  omega = sqrt(akx2 + .5*db**2*akx2**2                                 &
-       + db*akx2*sqrt(akx2 + .25*db**2*akx2**2))
   
   call plane_wave(x, z, vel(ibegin:ibegin+5), akx, 0, &
        eps*akx/omega, pi/2.)
@@ -562,10 +660,41 @@ subroutine wave_per(x, z, inode)
 
 end subroutine wave_per
 
+end module wave_propagation
+
 
 !==============================================================================
 ! Solov'ev Equilibrium (itor = 1, itaylor = 0)
 !==============================================================================
+module solovev
+
+contains
+
+subroutine solovev_init()
+  use basic
+
+  implicit none
+
+  integer :: l, numnodes
+  real :: x, z, alx, alz, xmin, zmin
+  double precision :: coords(3)
+
+  call getmincoord(xmin, zmin)
+  call getboundingboxsize(alx, alz)
+
+  call numnod(numnodes)
+  do l=1, numnodes
+     call xyznod(l, coords)
+
+     x = coords(1) + xzero - xmin
+     z = coords(2) + zzero - zmin - alz*.5
+
+     call solovev_equ(x, z, l)
+     call solovev_per(x, z, l)
+  enddo
+
+end subroutine solovev_init
+
 subroutine solovev_equ(x, z, inode)
   use basic
   use arrays
@@ -667,3 +796,54 @@ subroutine solovev_per(x, z, inode)
 
 end subroutine solovev_per
 
+end module solovev
+
+
+
+
+!=====================================
+subroutine initial_conditions()
+  use basic
+
+  use tilting_cylinder
+  use taylor_reconnection
+  use force_free_state
+  use gem_reconnection
+  use wave_propagation
+  use solovev
+  use gradshafranov
+
+  implicit none
+
+  integer :: ibegin, iendplusone, l, numnodes
+  real :: x, z, alx, alz, xmin, zmin
+  double precision :: coords(3)
+
+  call getmincoord(xmin, zmin)
+  call getboundingboxsize(alx, alz)
+
+  if(itor.eq.0) then
+     ! slab equilibria
+     select case(itaylor)
+     case(0)
+        call tilting_cylinder_init()
+     case(1)
+        call taylor_reconnection_init()
+     case(2)
+        call force_free_init()
+     case(3)
+        call gem_reconnection_init()
+     case(4)
+        call wave_init()
+     end select
+  else
+     ! toroidal equilibria
+     select case(itaylor)
+     case(0)
+        call solovev_init()
+     case(1)
+        call gradshafranov_init()
+     end select
+  endif
+
+end subroutine initial_conditions
