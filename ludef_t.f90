@@ -287,7 +287,7 @@ subroutine ludefvel_n(itri,dbf)
            ssterm(2,2) = ssterm(2,2) + temp
            ddterm(2,2) = ddterm(2,2) + temp
 
-           temp = v2vmu  (g79(:,:,i),g79(:,:,j))*amu &
+           temp = v2vmu  (g79(:,:,i),g79(:,:,j),amu) &
                 + thimp*dt* &
                 (v2vpsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79))
            ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
@@ -358,7 +358,7 @@ subroutine ludefvel_n(itri,dbf)
         if(numvar.ge.3) then
 
            ! regularize the chi equation
-           temp = -regular*int2(g79(:,:,i),g79(:,:,j),weight_79,79)
+           temp = -regular*int2(g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
            ssterm(3,3) = ssterm(3,3) + temp
            ddterm(3,3) = ddterm(3,3) + temp
            
@@ -407,7 +407,7 @@ subroutine ludefvel_n(itri,dbf)
            ssterm(3,1) = ssterm(3,1) -     thimp *dt*temp
            ddterm(3,1) = ddterm(3,1) + (.5-thimp)*dt*temp
            
-           temp = v3umu   (g79(:,:,i),g79(:,:,j)) &
+           temp = v3umu   (g79(:,:,i),g79(:,:,j),amu,amuc) &
                 +thimp*dt* &
                 (v3up     (g79(:,:,i),g79(:,:,j),pt79) &
                 +v3upsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79) &
@@ -657,7 +657,7 @@ subroutine ludefvel_n(itri,dbf)
            r4(i1) = r4(i1) + thimp*dt*dt* &
                 (v1bsb2(g79(:,:,i),bz079,sb279))
            r4(i2) = r4(i2) + dt* &
-                (v2vmu  (g79(:,:,i),vz079)*amu &
+                (v2vmu  (g79(:,:,i),vz079,amu) &
                 +v2vhypv(g79(:,:,i),vz079)*amu*hypv)
            
            ! DENSITY TERMS
@@ -694,7 +694,7 @@ subroutine ludefvel_n(itri,dbf)
            
            r4(i3) = r4(i3) + &
                 dt* &
-                (v3umu   (g79(:,:,i),ph079)*amu &
+                (v3umu   (g79(:,:,i),ph079,amu,amuc) &
                 +v3chimu (g79(:,:,i),ch079)*amu) + &
                 thimp*dt*dt* &
                 (v3psisb1(g79(:,:,i),ps079,sb179) &

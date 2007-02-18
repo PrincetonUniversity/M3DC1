@@ -27,7 +27,7 @@ subroutine gradshafranov_init()
      
      if(idens.eq.1) then
         call entdofs(1, l, 0, ibegin, iendplusone)
-        call constant_field(den0 (ibegin:ibegin+5), 1)
+        call constant_field(den0(ibegin:ibegin+5), 1.)
      endif
   enddo
 
@@ -49,7 +49,7 @@ subroutine gradshafranov_solve
 
   include 'mpif.h'
   
-  integer, parameter :: iterations = 20
+  integer, parameter :: iterations = 50
 
   real   gsint1,gsint4,gsint2,gsint3,lhs,cfac(18)
   real, allocatable :: temp(:), b1vecini(:)
@@ -171,6 +171,7 @@ subroutine gradshafranov_solve
 
 !!$        if(izone.eq.itop .or. izone.eq.ibottom) then
            call gvect1(x,z,xmag,zmag,g,gx,gz,gxx,gxz,gzz,0,ineg)
+!!$           call gvect1(x,z,102.,xmag,gv,gvx,gvz,gvxx,gvxz,gvzz,1,ineg)
            call gvect1(x,z,102.,xmag,gv,gvx,gvz,gvxx,gvxz,gvzz,1,ineg)
 !!$        else if(izone.eq.ileft .or. izone.eq.iright) then
 !!$           call gvect1(x,z,xmag,zmag,g,gx,gz,gxx,gxz,gzz,0,ineg)
@@ -419,7 +420,7 @@ subroutine gradshafranov_solve
 !     fun4 = G1/R
 !     fun2 = G2/R
 !     fun3 = G3/R    
-!     I = sqrt(bzero**2 + gamma*G)
+!     I = sqrt(bzero**2 + r*gamma*G)
      if(numvar.ge.2) then
         call xyznod(i,coords)
         x = coords(1) - xmin + xzero
@@ -429,7 +430,7 @@ subroutine gradshafranov_solve
              +gamma3*fun3(ibegin:ibegin+5) &
              +gamma4*fun4(ibegin:ibegin+5)
         if(bzero**2 + temp(ibegin)*x .le. 0.) then
-           call constant_field(phi0(ibegin+6 :ibegin+11), 0.)
+           call constant_field(phi0(ibeginn+6 :ibeginn+11), 0.)
         else           
            phi0(ibeginn+6) = sqrt(bzero**2 + temp(ibegin)*x)
            phi0(ibeginn+7) = 0.5*(temp(ibegin+1)*x + temp(ibegin))/phi0(ibeginn+6)
@@ -1135,85 +1136,84 @@ subroutine fundef
 
      call entdofs(numvargs, l, 0, ibegin, iendplusone)
      pso =  (psi(ibegin)-psimin)*dpsii
-     if(pso .lt. 0. .or. pso .gt. 1.) go to 500
-     psox = psi(ibegin+1)*dpsii
-     psoy = psi(ibegin+2)*dpsii
-     psoxx= psi(ibegin+3)*dpsii
-     psoxy= psi(ibegin+4)*dpsii
-     psoyy= psi(ibegin+5)*dpsii
+     if(pso .lt. 0. .or. pso .gt. 1.) then
+        do k=0,5
+           fun1(ibegin+k) = 0.
+           fun4(ibegin+k) = 0.
+           fun2(ibegin+k) = 0.
+           fun3(ibegin+k) = 0.
+        enddo
+     else
+        psox = psi(ibegin+1)*dpsii
+        psoy = psi(ibegin+2)*dpsii
+        psoxx= psi(ibegin+3)*dpsii
+        psoxy= psi(ibegin+4)*dpsii
+        psoyy= psi(ibegin+5)*dpsii
      
-     fbig = p0*dpsii*(p1 + 2.*p2*pso - 3.*(20 + 10*p1+4.*p2)*pso**2       &
-          + 4.*(45.+20.*p1+6*p2)*pso**3 - 5*(36.+15*p1+4*p2)*pso**4       &
-          + 6.*(10.+4.*p1+p2)*pso**5)
-     fbigp = p0*dpsii*(2.*p2 - 6.*(20 + 10*p1+4.*p2)*pso                  &
-          + 12.*(45.+20.*p1+6*p2)*pso**2 - 20.*(36.+15*p1+4*p2)*pso**3    &
-          + 30.*(10.+4.*p1+p2)*pso**4)
-     fbigpp= p0*dpsii*(- 6.*(20 + 10*p1+4.*p2)                            &
-          + 24.*(45.+20.*p1+6*p2)*pso - 60.*(36.+15*p1+4*p2)*pso**2       &
-          + 120.*(10.+4.*p1+p2)*pso**3)
+        fbig = p0*dpsii*(p1 + 2.*p2*pso - 3.*(20 + 10*p1+4.*p2)*pso**2       &
+             + 4.*(45.+20.*p1+6*p2)*pso**3 - 5*(36.+15*p1+4*p2)*pso**4       &
+             + 6.*(10.+4.*p1+p2)*pso**5)
+        fbigp = p0*dpsii*(2.*p2 - 6.*(20 + 10*p1+4.*p2)*pso                  &
+             + 12.*(45.+20.*p1+6*p2)*pso**2 - 20.*(36.+15*p1+4*p2)*pso**3    &
+             + 30.*(10.+4.*p1+p2)*pso**4)
+        fbigpp= p0*dpsii*(- 6.*(20 + 10*p1+4.*p2)                            &
+             + 24.*(45.+20.*p1+6*p2)*pso - 60.*(36.+15*p1+4*p2)*pso**2       &
+             + 120.*(10.+4.*p1+p2)*pso**3)
 
-     fun1(ibegin) = x*fbig
-     fun1(ibegin+1) = fbig + x*fbigp*psox
-     fun1(ibegin+2) =        x*fbigp*psoy
-     fun1(ibegin+3) = 2.*fbigp*psox + x*(fbigpp*psox**2+fbigp*psoxx)
-     fun1(ibegin+4) = fbigp*psoy + x*(fbigpp*psox*psoy +fbigp*psoxy)
-     fun1(ibegin+5) = x*(fbigpp*psoy**2 + fbigp*psoyy)
+        fun1(ibegin) = x*fbig
+        fun1(ibegin+1) = fbig + x*fbigp*psox
+        fun1(ibegin+2) =        x*fbigp*psoy
+        fun1(ibegin+3) = 2.*fbigp*psox + x*(fbigpp*psox**2+fbigp*psoxx)
+        fun1(ibegin+4) = fbigp*psoy + x*(fbigpp*psox*psoy +fbigp*psoxy)
+        fun1(ibegin+5) = x*(fbigpp*psoy**2 + fbigp*psoyy)
 
 !!$     g4big =   dpsii*(-pso**2+3.*pso**3-3.*pso**4+pso**5)
 !!$     g4bigp =  dpsii*(-2*pso+9.*pso**2-12.*pso**3+5.*pso**4)
 !!$     g4bigpp = dpsii*(-2 + 18.*pso-36.*pso**2+20*pso**3)
-     g4big = dpsii*(-60*pso**2+180*pso**3-180*pso**4+60*pso**5)
-     g4bigp= dpsii*(-120*pso+540*pso**2-720*pso**3+300*pso**4)
-     g4bigpp=dpsii*(-120   +1080*pso  -2160*pso**2+1200*pso**3)
+        g4big = dpsii*(-60*pso**2+180*pso**3-180*pso**4+60*pso**5)
+        g4bigp= dpsii*(-120*pso+540*pso**2-720*pso**3+300*pso**4)
+        g4bigpp=dpsii*(-120   +1080*pso  -2160*pso**2+1200*pso**3)
 
-     fun4(ibegin)  = g4big/x
-     fun4(ibegin+1)= g4bigp*psox/x - g4big/x**2
-     fun4(ibegin+2)= g4bigp*psoy/x
-     fun4(ibegin+3)= (g4bigpp*psox**2 + g4bigp*psoxx)/x                  &
-          - 2*g4bigp*psox/x**2 + 2.*g4big/x**3
-     fun4(ibegin+4)= (g4bigpp*psox*psoy+g4bigp*psoxy)/x                  &
-          - g4bigp*psoy/x**2
-     fun4(ibegin+5)=  (g4bigpp*psoy**2 + g4bigp*psoyy)/x
-
-     g2big =  dpsii*(1 - 30.*pso**2 + 80.*pso**3                     &
-          - 75.*pso**4 + 24.*pso**5)
-     g2bigp =  dpsii*(-60.*pso + 240.*pso**2                         &
-          - 300.*pso**3 + 120.*pso**4)
-     g2bigpp =  dpsii*(-60. + 480.*pso                               &
-          - 900.*pso**2 + 480.*pso**3)
-     fun2(ibegin)  =  g2big/x
-     fun2(ibegin+1)=  g2bigp*psox/x - g2big/x**2
-     fun2(ibegin+2)=  g2bigp*psoy/x
-     fun2(ibegin+3)=  (g2bigpp*psox**2 + g2bigp*psoxx)/x                 &
-          - 2*g2bigp*psox/x**2 + 2.*g2big/x**3
-     fun2(ibegin+4)=(g2bigpp*psox*psoy+g2bigp*psoxy)/x                   &
-          - g2bigp*psoy/x**2
-     fun2(ibegin+5)= (g2bigpp*psoy**2 + g2bigp*psoyy)/x
-
-     g3big =  dpsii*(2.*pso - 12.*pso**2 + 24.*pso**3                &
-          - 20.*pso**4 + 6.*pso**5)
-     g3bigp =  dpsii*(2. - 24.*pso + 72.*pso**2                      &
-          - 80.*pso**3 + 30*pso**4)
-     g3bigpp =  dpsii*(- 24. + 144.*pso                              &
-          - 240.*pso**2 + 120*pso**3)
-     fun3(ibegin)= g3big/x
-     fun3(ibegin+1)= g3bigp*psox/x - g3big/x**2
-     fun3(ibegin+2)= g3bigp*psoy/x
-     fun3(ibegin+3)= (g3bigpp*psox**2 + g3bigp*psoxx)/x                  &
-          - 2*g3bigp*psox/x**2 + 2.*g3big/x**3
-     fun3(ibegin+4)= (g3bigpp*psox*psoy+g3bigp*psoxy)/x                  &
-          - g3bigp*psoy/x**2
-     fun3(ibegin+5)=  (g3bigpp*psoy**2 + g3bigp*psoyy)/x
-
-     go to 501
-500  continue
-     do k=0,5
-        fun1(ibegin+k) = 0.
-        fun4(ibegin+k) = 0.
-        fun2(ibegin+k) = 0.
-        fun3(ibegin+k) = 0.
-     enddo
-501  continue
+        fun4(ibegin)  = g4big/x
+        fun4(ibegin+1)= g4bigp*psox/x - g4big/x**2
+        fun4(ibegin+2)= g4bigp*psoy/x
+        fun4(ibegin+3)= (g4bigpp*psox**2 + g4bigp*psoxx)/x                  &
+             - 2*g4bigp*psox/x**2 + 2.*g4big/x**3
+        fun4(ibegin+4)= (g4bigpp*psox*psoy+g4bigp*psoxy)/x                  &
+             - g4bigp*psoy/x**2
+        fun4(ibegin+5)=  (g4bigpp*psoy**2 + g4bigp*psoyy)/x
+        
+        g2big =  dpsii*(1 - 30.*pso**2 + 80.*pso**3                     &
+             - 75.*pso**4 + 24.*pso**5)
+        g2bigp =  dpsii*(-60.*pso + 240.*pso**2                         &
+             - 300.*pso**3 + 120.*pso**4)
+        g2bigpp =  dpsii*(-60. + 480.*pso                               &
+             - 900.*pso**2 + 480.*pso**3)
+        fun2(ibegin)  =  g2big/x
+        fun2(ibegin+1)=  g2bigp*psox/x - g2big/x**2
+        fun2(ibegin+2)=  g2bigp*psoy/x
+        fun2(ibegin+3)=  (g2bigpp*psox**2 + g2bigp*psoxx)/x                 &
+             - 2*g2bigp*psox/x**2 + 2.*g2big/x**3
+        fun2(ibegin+4)=(g2bigpp*psox*psoy+g2bigp*psoxy)/x                   &
+             - g2bigp*psoy/x**2
+        fun2(ibegin+5)= (g2bigpp*psoy**2 + g2bigp*psoyy)/x
+        
+        g3big =  dpsii*(2.*pso - 12.*pso**2 + 24.*pso**3                &
+             - 20.*pso**4 + 6.*pso**5)
+        g3bigp =  dpsii*(2. - 24.*pso + 72.*pso**2                      &
+             - 80.*pso**3 + 30*pso**4)
+        g3bigpp =  dpsii*(- 24. + 144.*pso                              &
+             - 240.*pso**2 + 120*pso**3)
+        fun3(ibegin)= g3big/x
+        fun3(ibegin+1)= g3bigp*psox/x - g3big/x**2
+        fun3(ibegin+2)= g3bigp*psoy/x
+        fun3(ibegin+3)= (g3bigpp*psox**2 + g3bigp*psoxx)/x                  &
+             - 2*g3bigp*psox/x**2 + 2.*g3big/x**3
+        fun3(ibegin+4)= (g3bigpp*psox*psoy+g3bigp*psoxy)/x                  &
+             - g3bigp*psoy/x**2
+        fun3(ibegin+5)=  (g3bigpp*psoy**2 + g3bigp*psoyy)/x
+        
+     endif
   enddo
   
   return

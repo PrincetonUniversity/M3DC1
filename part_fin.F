@@ -81,7 +81,6 @@ c     created with ordering specified by numvar
       call createvec(jphi0, 1)
       call createvec(sb1, 1)
       call createvec(sb2, 1)
-      call createvec(sb3, 1)
       call createvec(sp1, 1)
       call createvec(vor, 1)
       call createvec(vor0, 1)
