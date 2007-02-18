@@ -60,10 +60,7 @@ pro plot_mesh, mesh, color=col, linestyle=lin, oplot=oplot, _EXTRA=ex
          mesh.elements._data[5,*], psym = 3, _EXTRA=ex
    endif  
 
-   if(n_elements(col) ne 0) then begin
-       print, 'hi!'
-       loadct, 12
-   endif
+   if(n_elements(col) ne 0) then loadct, 12
 
    for i=0, nelms-1 do begin
        a = mesh.elements._data[0,i]
@@ -81,6 +78,10 @@ pro plot_mesh, mesh, color=col, linestyle=lin, oplot=oplot, _EXTRA=ex
        oplot, [p1[0],p2[0]], [p1[1],p2[1]], color=col, linestyle=lin, thick=.2
        oplot, [p2[0],p3[0]], [p2[1],p3[1]], color=col, linestyle=lin, thick=.2
        oplot, [p3[0],p1[0]], [p3[1],p1[1]], color=col, linestyle=lin, thick=.2
+
+       if(i eq 0) then begin
+           oplot, [p1[0],p2[0]], [p1[1],p2[1]], color=200, psym=4
+       endif
    end
 end
 

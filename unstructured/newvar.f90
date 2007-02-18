@@ -143,7 +143,7 @@ subroutine define_sources()
   emag3h = 0.
 
 
-  hypf  = hyper *deex**2
+  hypf = hyper *deex**2
   hypi = hyperi*deex**2
   hypv = hyperv*deex**2
   hypc = hyperc*deex**2

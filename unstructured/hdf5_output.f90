@@ -537,19 +537,19 @@ subroutine output_fields(time_group_id, error)
   call output_field(group_id, "phi", dum, 20, nelms, error)
   nfields = nfields + 1
 
-!!$  ! vor
-!!$  do i=1, nelms
-!!$     call calcavector(i, vor, 1, 1, dum(:,i))
-!!$  end do
-!!$  call output_field(group_id, "vor", dum, 20, nelms, error)
-!!$  nfields = nfields + 1
+  ! vor
+  do i=1, nelms
+     call calcavector(i, vor, 1, 1, dum(:,i))
+  end do
+  call output_field(group_id, "vor", dum, 20, nelms, error)
+  nfields = nfields + 1
 
-!!$  ! sb1
-!!$  do i=1, nelms
-!!$     call calcavector(i, sb1, 1, 1, dum(:,i))
-!!$  end do
-!!$  call output_field(group_id, "sb1", dum, 20, nelms, error)
-!!$  nfields = nfields + 1
+  ! sb1
+  do i=1, nelms
+     call calcavector(i, sb1, 1, 1, dum(:,i))
+  end do
+  call output_field(group_id, "sb1", dum, 20, nelms, error)
+  nfields = nfields + 1
 
   if(numvar.ge.2) then
      ! I
@@ -566,12 +566,12 @@ subroutine output_fields(time_group_id, error)
      call output_field(group_id, "V", dum, 20, nelms, error)
      nfields = nfields + 1
 
-!!$     ! sb2
-!!$     do i=1, nelms
-!!$        call calcavector(i, sb2, 1, 1, dum(:,i))
-!!$     end do
-!!$     call output_field(group_id, "sb2", dum, 20, nelms, error)
-!!$     nfields = nfields + 1
+     ! sb2
+     do i=1, nelms
+        call calcavector(i, sb2, 1, 1, dum(:,i))
+     end do
+     call output_field(group_id, "sb2", dum, 20, nelms, error)
+     nfields = nfields + 1
 
   endif
 
@@ -590,20 +590,21 @@ subroutine output_fields(time_group_id, error)
      call output_field(group_id, "chi", dum, 20, nelms, error)
      nfields = nfields + 1
 
-!!$     ! com
-!!$     do i=1, nelms
-!!$        call calcavector(i, com, 1, 1, dum(:,i))
-!!$     end do
-!!$     call output_field(group_id, "com", dum, 20, nelms, error)
-!!$     nfields = nfields + 1
+     ! com
+     do i=1, nelms
+        call calcavector(i, com, 1, 1, dum(:,i))
+     end do
+     call output_field(group_id, "com", dum, 20, nelms, error)
+     nfields = nfields + 1
 
-!!$     ! sb3
-!!$     do i=1, nelms
-!!$        call calcavector(i, sb3, 1, 1, dum(:,i))
-!!$     end do
-!!$     call output_field(group_id, "sb3", dum, 20, nelms, error)
-!!$     nfields = nfields + 1
+     ! sb3
+     do i=1, nelms
+        call calcavector(i, sp1, 1, 1, dum(:,i))
+     end do
+     call output_field(group_id, "sp1", dum, 20, nelms, error)
+     nfields = nfields + 1
   endif
+
 
   if(idens.eq.1) then
      ! den

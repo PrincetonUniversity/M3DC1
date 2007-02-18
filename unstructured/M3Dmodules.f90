@@ -150,7 +150,7 @@ module arrays
        velold(:), vel0(:), vel1(:),                               &
        phi(:), phis(:),                                           &
        phiold(:), phi0(:), phi1(:),                               &
-       jphi(:),jphi0(:),sb1(:),sb2(:),sb3(:),sp1(:),              &
+       jphi(:),jphi0(:),sb1(:),sb2(:),sp1(:),                     &
        vor(:),vor0(:),com(:),com0(:),                             &
        den(:),den0(:),denold(:),deni(:),                          &
        pres(:),pres0(:),r4(:),q4(:),qn4(:),                       &

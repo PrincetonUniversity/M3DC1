@@ -349,8 +349,8 @@ real function v1ubb(e,f,g,h)
      temp = 0.
   else
      temp = 2.* &
-          (int5(ri5_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DR),g(:,OP_1),weight_79,79) &
-          -int5(ri5_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_DZ),g(:,OP_1),weight_79,79))
+          (int5(ri5_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),weight_79,79) &
+          -int5(ri5_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),weight_79,79))
   endif
   
   v1ubb = temp
@@ -378,8 +378,8 @@ real function v1chipsipsi(e,f,g,h)
   temp79c = f(:,OP_DZZ)*g(:,OP_DZ ) + f(:,OP_DRZ)*g(:,OP_DR ) &
        +    f(:,OP_DZ )*g(:,OP_DZZ) + f(:,OP_DR )*g(:,OP_DRZ)
 
-  temp = int4(ri2_79,h(:,OP_GS ),e(:,OP_DR ),temp79c,weight_79,79) &
-       - int4(ri2_79,h(:,OP_GS ),e(:,OP_DZ ),temp79b,weight_79,79) &
+  temp = int4(ri3_79,h(:,OP_GS ),e(:,OP_DR ),temp79c,weight_79,79) &
+       - int4(ri3_79,h(:,OP_GS ),e(:,OP_DZ ),temp79b,weight_79,79) &
        + int4(ri3_79,e(:,OP_DZZ),h(:,OP_DR ),temp79c,weight_79,79) &
        - int4(ri3_79,e(:,OP_DRZ),h(:,OP_DZ ),temp79c,weight_79,79) &
        + int4(ri3_79,e(:,OP_DZ ),h(:,OP_DRZ),temp79c,weight_79,79) &
@@ -391,8 +391,6 @@ real function v1chipsipsi(e,f,g,h)
 
   if(itor.eq.1) then
      temp = temp &
-          + int4(ri4_79,e(:,OP_DR),h(:,OP_DZ),temp79b,weight_79,79) &
-          - int4(ri4_79,e(:,OP_DZ),h(:,OP_DR),temp79b,weight_79,79) &
           + int4(ri4_79,e(:,OP_DR),h(:,OP_DZ),temp79b,weight_79,79) &
           - int4(ri4_79,e(:,OP_DZ),h(:,OP_DR),temp79b,weight_79,79)
   endif
@@ -569,7 +567,7 @@ end function v2vn
 
 ! V2vmu
 ! =====
-real function v2vmu(e,f)
+real function v2vmu(e,f,g)
 
   use basic
   use nintegrate_mod
@@ -577,12 +575,14 @@ real function v2vmu(e,f)
   implicit none
 
   real, intent(in), dimension(79,OP_NUM) :: e,f
+  real, intent(in) :: g
   real :: temp
 
-  temp = -int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
-       -  int2(e(:,OP_DR),f(:,OP_DR),weight_79,79)
+  temp = -g * &
+       (int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
+       +int2(e(:,OP_DR),f(:,OP_DR),weight_79,79))
   if(itor.eq.1) then
-     temp = temp - int3(ri3_79,e(:,OP_1),f(:,OP_1),weight_79,79)
+     temp = temp - g*int3(ri2_79,e(:,OP_1),f(:,OP_1),weight_79,79)
   endif
 
   v2vmu = temp
@@ -743,6 +743,7 @@ real function v2chipsib(e,f,g,h)
   temp79a = h(:,OP_1 )*f(:,OP_GS) &
        +    h(:,OP_DZ)*f(:,OP_DZ) + h(:,OP_DR)*f(:,OP_DR)
   temp79b = e(:,OP_DZ)*g(:,OP_DR) - e(:,OP_DR)*g(:,OP_DZ)
+  if(itor.eq.1) temp79b = temp79b + ri_79*e(:,OP_1)*g(:,OP_DZ)
 
   temp = int5(ri2_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_DZ),weight_79,79) &
        + int5(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_DR),h(:,OP_DZ),weight_79,79) &
@@ -752,8 +753,7 @@ real function v2chipsib(e,f,g,h)
   if(itor.eq.1) then
      temp = temp &
           - int5(ri3_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_DZ),weight_79,79) &
-          - int5(ri3_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),h(:,OP_DZ),weight_79,79) &
-          + int4(ri5_79,temp79a,e(:,OP_1),g(:,OP_DZ),weight_79,79)
+          - int5(ri3_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),h(:,OP_DZ),weight_79,79)
   endif
 
   v2chipsib = temp
@@ -874,7 +874,7 @@ end function v3chimu
 
 ! V3umu
 ! =====
-real function v3umu(e,f)
+real function v3umu(e,f,g,h)
 
   use basic
   use nintegrate_mod
@@ -882,12 +882,16 @@ real function v3umu(e,f)
   implicit none
 
   real, intent(in), dimension(79,OP_NUM) :: e,f
+  real, intent(in) :: g,h
   real :: temp
 
   if(itor.eq.0) then
      temp = 0.
   else
-     temp = -4.*int3(ri_79,e(:,OP_DZ),f(:,OP_DR),weight_79,79)
+     temp = -2.* &
+          ((g-2.*h)*int3(ri_79,e(:,OP_DZ),f(:,OP_LP),weight_79,79) &
+          +    4.*h*int3(ri_79,e(:,OP_DZ),f(:,OP_DR),weight_79,79))
+          
   endif
 
   v3umu = temp
@@ -931,8 +935,6 @@ real function v3p(e,f)
   real, intent(in), dimension(79,OP_NUM) :: e,f
   real :: temp
 
-!!$  temp = -int3(ri_79,e(:,OP_1),f(:,OP_GS),weight_79,79)
-
   temp = int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
        + int2(e(:,OP_DR),f(:,OP_DR),weight_79,79)
 
@@ -968,7 +970,7 @@ real function v3up(e,f,g)
           -int3(e(:,OP_DR),f(:,OP_DZ),g(:,OP_DR),weight_79,79) &
           -2.*gam* &
           (int3(e(:,OP_LP),f(:,OP_DZ),g(:,OP_1),weight_79,79) &
-          +int4(ri_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_1),weight_79,79)))
+          +2.*int4(ri_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_1),weight_79,79)))
   endif
 
   v3up = temp
@@ -1019,11 +1021,11 @@ real function v3psipsi(e,f,g)
 
   real :: temp
 
-  temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_GS),g(:,OP_DZ),weight_79,79) &
-       + int4(ri2_79,e(:,OP_DR),f(:,OP_GS),g(:,OP_DR),weight_79,79)
+  temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_GS),weight_79,79) &
+       + int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_GS),weight_79,79)
 
   if(itor.eq.1) then
-     temp = temp + 2.*int4(ri3_79,e(:,OP_1),f(:,OP_GS),g(:,OP_DR),weight_79,79)
+     temp = temp + 2.*int4(ri3_79,e(:,OP_1),f(:,OP_DR),g(:,OP_GS),weight_79,79)
   endif
 
   v3psipsi = temp
