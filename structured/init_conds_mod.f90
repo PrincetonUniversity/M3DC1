@@ -509,12 +509,13 @@ subroutine denequ(dum)
 400  continue
      
      ! GEM reconnection (itaylor=3)
-     dum(i0+1) = sech(2.*z)**2 + 0.2
+!            (NOTE: GEM density for facden=1, constant density for facden=0.)
+     dum(i0+1) = facden*(sech(2.*z)**2 + 0.2) + (1.-facden)
      dum(i0+2) = 0.
-     dum(i0+3) = -4.*sech(2.*z)**2*tanh(2.*z)
+     dum(i0+3) = -facden*4.*sech(2.*z)**2*tanh(2.*z)
      dum(i0+4) = 0.
      dum(i0+5) = 0.
-     dum(i0+6) = -8.*sech(2.*z)**2*(sech(2.*z)**2-2.*tanh(2.*z)**2)
+     dum(i0+6) = -facden*8.*sech(2.*z)**2*(sech(2.*z)**2-2.*tanh(2.*z)**2)
      go to 502     
      
 300  continue

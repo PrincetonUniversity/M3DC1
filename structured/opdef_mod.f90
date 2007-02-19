@@ -29,7 +29,6 @@ subroutine ireaddef
      endif
 !
 ! the following are not used
-     if(itype.eq.31) go to 400
      if(itype.eq.32) go to 400
      if(itype.eq.33) go to 400
      if(itype.eq.34) go to 400
@@ -48,6 +47,7 @@ subroutine ireaddef
         if(itype.eq. 6) go to 400
         if(itype.eq. 9) go to 400
         if(itype.eq.10) go to 400
+        if(itype.eq.30) go to 400
 !
         if(itype.eq.17) go to 400
         if(itype.eq.18) go to 400
@@ -79,7 +79,7 @@ subroutine ireaddef
         if(itype.eq.27) go to 400
         if(itype.eq.28) go to 400
         if(itype.eq.29) go to 400
-        if(itype.eq.30) go to 400
+        if(itype.eq.31) go to 400
 !
         if(itype.eq.35) go to 400
         if(itype.eq.37) go to 400
@@ -578,7 +578,7 @@ subroutine opdef2
 !     28     C16
 !     29     C17
 !     30     C18
-!     31     C19 not used 1/12/07
+!     31     C19
 !     32     C20 not used 1/12/07
 !
 !
@@ -1078,7 +1078,7 @@ subroutine opdef2
       enddo
       go to 200
 !
-!     C10
+!     C10 = C9 (r <-> q) after symmetrization is removed
  122  continue
       do p=1,20
         do q=1,20
@@ -1086,11 +1086,9 @@ subroutine opdef2
             do s=1,20
               msum = mi(p)+mi(q)+mi(r)+mi(s)
               nsum = ni(p)+ni(q)+ni(r)+ni(s)
-              tensor(p,q,r,s) = -0.5*((mi(q)*ni(p)-mi(p)*ni(q))         &
-                                     *(mi(s)*ni(r)-mi(r)*ni(s))         &
-                                     +(mi(s)*ni(p)-mi(p)*ni(s))         &
-                                     *(mi(q)*ni(r)-mi(r)*ni(q)))        &
-                              *fint(msum-2,nsum-2)
+              tensor(p,q,r,s) =  (mi(p)*ni(q)-mi(q)*ni(p))              &
+                                *(mi(s)*ni(r)-mi(r)*ni(s))              &
+                                *fint(msum-2,nsum-2)
             enddo
           enddo
         enddo
@@ -1223,7 +1221,7 @@ subroutine opdef2
       enddo
       go to 200
 !
-!     C16
+!     C16 = C15 (r<->q)
  128  continue
       do p=1,20
         do q=1,20
@@ -1260,7 +1258,7 @@ subroutine opdef2
       enddo
       go to 200
 !
-!     C18
+!     C18 = C9 (q->r, r->s, s->q) after symmetrization is removed
  130  continue
       do p=1,20
         do q=1,20
@@ -1268,11 +1266,9 @@ subroutine opdef2
             do s=1,20
               msum = mi(p)+mi(q)+mi(r)+mi(s)
               nsum = ni(p)+ni(q)+ni(r)+ni(s)
-              tensor(p,q,r,s) =                                         &
-               -mi(p)*mi(r)*(mi(p)-1)*(mi(r)+mi(s)-1)*fint(msum-4,nsum) &
-           -(mi(p)*ni(r)*(mi(p)-1)*(ni(r)+ni(s)-1)                      &
-            +ni(p)*mi(r)*(ni(p)-1)*(mi(r)+mi(s)-1))*fint(msum-2,nsum-2) &
-               -ni(p)*ni(r)*(ni(p)-1)*(ni(r)+ni(s)-1)*fint(msum,nsum-4)
+              tensor(p,q,r,s) = (mi(s)*ni(p)-mi(p)*ni(s))               &
+                               *(mi(r)*ni(q)-mi(q)*ni(r))               &
+                              *fint(msum-2,nsum-2)
             enddo
           enddo
         enddo
@@ -1280,8 +1276,7 @@ subroutine opdef2
 !
       go to 200
 !
-!     C19
-!......not used...should remove
+!     C19 = C15 (s<->q)
  131  continue
       do p=1,20
         do q=1,20
@@ -1289,7 +1284,7 @@ subroutine opdef2
             do s=1,20
               msum = mi(p)+mi(q)+mi(r)+mi(s)
               nsum = ni(p)+ni(q)+ni(r)+ni(s)
-              tensor(p,q,r,s) =-(mi(r)*ni(q)-mi(q)*ni(r))               &
+              tensor(p,q,r,s) =-(mi(r)*ni(s)-mi(s)*ni(r))               &
                      *(mi(p)*(mi(p)-1)*fint(msum-3,nsum-1)              &
                       +ni(p)*(ni(p)-1)*fint(msum-1,nsum-3))
             enddo

@@ -44,6 +44,7 @@ subroutine newvarc(ibc,inarray,outarray,mmnn,numvard,iplace,iop)
 !     iop=23 defines eph4 ... eta J part
 !     iop=24 defines eph5 ... J x B part
 !     iop=25 defines eph6 ... hyper-resistivity part
+!     iop=26 defines initial ion velocity
 !
 !
 !     The LU decomposition of the mass-matrix takes place the first-time 
@@ -350,7 +351,7 @@ endif
 
         go to (101,101,101,104,105, 116,117,140,140,140,                &
                140,140,140,140,125, 125,125,128,128,108,                &
-               109,110,111,112,113),iop
+               109,110,111,112,113, 114),iop
         write(*,*) "Error: iop not defined for newvar: ", iop
 
 101     sum = sum + aterm(iodd,i,j)*phin(jone)
@@ -757,6 +758,12 @@ endif
            sum = sum + etar*(-termbf)*phi(j1)   
 !
          go to 200
+114      continue
+!....calculate the initial ion current velocity
+        do k=1,18
+           kone = isval1(itri,k)
+           sum = sum - velion*dbf*deni(jone)*jphi0(kone)*k1term(iodd,i,j,k)
+        enddo
 
 200     continue
         if(ibc.eq.0) then

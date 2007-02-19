@@ -661,6 +661,7 @@ subroutine oneplot(lu,iplot,dum,inum,numvare,label)
         plotmax = max(plotmax,plot(ix,iz))
      enddo
   enddo
+      if(plotmax.le.plotmin + 1.e-10) plotmax = plotmax + 1.
   
   if(plotmax .gt. plotmin + 1.e-10) then
      cval(1) = plotmin
@@ -1571,6 +1572,12 @@ subroutine input
   ! parameters for taylor problem (itaylor=1)
   eps = .01
   tau = 1.
+
+!.....factor multiplying density variation for itaylor=3
+      facden = 1.
+
+!      fraction of ion current for 2-fluid equilibrium
+      velion = 0.
   
   if(itest.eq.0) then
      open(5,file='C1input',form='formatted',status='old')

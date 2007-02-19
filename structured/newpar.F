@@ -107,7 +107,7 @@
      &     tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,cb,            &
      &     bzero,hyper,hyperi,hyperv,hyperc,gam,beta,eps,tau,           &
      &     kappa,kappat,hyperp,del,denm,bzerosi,grav,ln,amuc,chipar,    &
-     &     regular
+     &     regular, facden, velion
       integer n,m,linear,maxs,ntimemax,ntimepr,itor,ioddmx,isetup,      &
      &   irestart,iper,jper,itaylor,itest,isecondorder,imask,nskip,     &
      &        numvar,istart,idens,ipres,itaylorw,isym,jsym,eqsubtract,  &
@@ -125,7 +125,7 @@
      &        tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,cb,         &
      &        bzero,hyper,hyperi,hyperv,hyperc,gam,beta,eps,tau,        &
      &        kappa,kappat,hyperp,del,denm,bzerosi,grav,ln,chipar,      &
-     &        regular
+     &        regular,facden,velion
 !
 !     derived quantities
       real    deex,deez,tt,gamma4,gamma2,gamma3,dpsii,psimin,psilim,pi, &
@@ -328,7 +328,7 @@
 #endif
 
       integer ier, lx, lz, l, ione, i, j, index1, index2, ifail
-      integer maxts, numvars
+      integer maxts
       real dtmin, ratemin, ratemax, actualhyper
       integer  nran1, msize1, m_lo1, nnz_lo1, ifs_ro1
 
@@ -569,6 +569,24 @@
             jphi0 = 0
          endif
       if(myrank.eq.0.and.iprint.gt.0) write(*,*) "after defining jphi0"
+!
+!......added 02/10/07
+!      for two fluid run, define initial toroidal velocity as ion current
+!                (note:  sphip being used for temporary storage)
+        if(velion.gt.0 .and. numvar.ge.2 .and. db.gt.0) then
+         call inverse(den0,deni)
+          call newvarc(1,jphi0,sphip,m*n,1,1,26)
+            do i=1,n*m
+               do j=1,6
+                  index2 = (i-1)*6*numvar + 6 + j
+                  index1 = (i-1)*6 + j
+!
+                  vel0(index2) = sphip(index1)
+               enddo
+            enddo
+          sphip = 0.
+        endif
+       if(myrank.eq.0) call oneplot(0,0,vel0,2,numvar,"vel0 ")
 
 !     
 !        calculate the equilibrium vorticity and velocity divergence
@@ -1528,8 +1546,8 @@ c$$$      endif
      &       read(129) ir1,ir2,ir3,((c17erml(k,l),l=1,18),k=1,18)
         if(iread(30).eq.1)                                              &
      &       read(130) ir1,ir2,ir3,((c18erml(k,l),l=1,18),k=1,18)
-!       if(iread(31).eq.1)                                              &
-!    &       read(131) ir1,ir2,ir3,((c19erml(k,l),l=1,18),k=1,18)
+        if(iread(31).eq.1)                                              &
+     &       read(131) ir1,ir2,ir3,((c19erml(k,l),l=1,18),k=1,18)
 !       if(iread(32).eq.1)                                              &
 !    &       read(132) ir1,ir2,ir3,((c20erml(k,l),l=1,18),k=1,18)
 !
@@ -1649,6 +1667,7 @@ c$$$      endif
      &                 + thimpv *dt*amu*hypvf*termb
               ddterm(2,2) = termd*(1-idens) + (1.-thimp)*dt*amu*terma   &
      &             - (1.-thimpv)*dt*amu*hypvf*termb
+              r40(i2) = r40(i2) + dt*amu*(terma - hypvf*termb)*vel0(j2)
            endif
            if(numvar.ge.3) then
               ssterm(3,3) = terma*(1-idens) -   thimp *dt*2.*amuc*termb
@@ -1902,6 +1921,17 @@ c$$$      endif
      &                  - (0.5*vel(k1)+vel0(k1)))
                 endif           ! on idens
 !
+!...............added 2/10/07 ... corrected 2/17/07
+                rrterm(2,1) = rrterm(2,1) + thdts                       &
+     &               *(c10erml(k,l)+c18erml(k,l))*(.5*phi(l1)+phi0(l01))&
+     &               *vel0(k2)
+!
+!...............added 2/17/07
+                r40(i2) = r40(i2) + thdts*c9terml(k,l)                  &
+     &                  *phi0(l01)*phi0(k01)*vel0(j2)
+!
+                
+!
 !             gyroviscous contribution:
 !             -------------------------
               if(gyro.eq.1) then
@@ -1993,6 +2023,10 @@ c$$$      endif
      &        c11erml(k,l)*(phi0(l01)+phi(l1))*(phi0(k01)+phi(k1))      &
      &       +c15erml(k,l)*(phi0(l2)+phi(l2))*(phi0(k2)+phi(k2)))
 !
+!.....added 02/10/07
+               rrterm(3,1) = rrterm(3,1) - thdts                        &
+     &        *c16erml(k,l)*vel0(k2)*(0.5*phi(l2)+phi0(l2))
+!
                if(idens.gt.0) then
                   ssterm(3,1) = ssterm(3,1) + dt*thimp*dent(lone)       &
      &                *( (v15erml(k,l)+v16erml(k,l))*(vel(k1)+vel0(k1)) &
@@ -2011,6 +2045,10 @@ c$$$      endif
                ddterm(3,2) = ddterm(3,2) + ththmdts*c15erml(k,l)        &
      &              *(phi(k1)+phi0(k01))*(phi(l2)+phi0(l2))
 !
+!.....added 02/10/07
+               rrterm(3,2) = rrterm(3,2) - thdts                        &
+     &        *c19erml(k,l)*vel0(l2)*(0.5*phi(k1)+phi0(k01))
+!
                ssterm(3,3) = ssterm(3,3) + thsqudts*                    &
      &        (c13erml(k,l)*(phi0(l01)+phi(l1))*(phi0(k01)+phi(k1))     &
      &        +c17erml(k,l)*(phi0(l2)+phi(l2))*(phi0(k2)+phi(k2)))
@@ -2018,6 +2056,10 @@ c$$$      endif
                ddterm(3,3) = ddterm(3,3) + ththmdts*                    &
      &        (c13erml(k,l)*(phi0(l01)+phi(l1))*(phi0(k01)+phi(k1))     &
      &        +c17erml(k,l)*(phi0(l2)+phi(l2))*(phi0(k2)+phi(k2)))
+!
+!.....added 02/17/07
+               r40(i3) = r40(i3) - thdts                                &
+     &        *c15erml(k,l)*vel0(j2)*phi0(k01)*phi0(l2)
 !
 !......semi-implicit terms added 03/12/06
                if(isemii.gt.0) then
@@ -6175,7 +6217,7 @@ c$$$      endif
                endif ! numvar.ge.2
             endif               ! on linear.eq.0
 !
-            if(numvar.ge.3) then
+
             do k=1,18
               k1= isvaln(itri,k)
               k01 = isval0(itri,k)
@@ -6185,7 +6227,8 @@ c$$$      endif
 
 !
               if(linear.eq.1) then
-              ohmic(i3) = ohmic(i3) + (gam-1.)*etar*                    &
+              if(numvar.ge.3) then
+                ohmic(i3) = ohmic(i3) + (gam-1.)*etar*                    &
      &           (k1term(iodd,i,j,k)*((jphi(kone)+jphi0(kone))          &
      &                              *(jphi(jone)+jphi0(jone))           &
      &                               -jphi0(kone)*jphi0(jone))          &
@@ -6197,8 +6240,14 @@ c$$$      endif
      &        +hypi*g12erm(iodd,i,j,k)*((phi(k2)+phi0(k2))              &
      &                                 *(phi(j2)+phi0(j2))              &
      &                                 -phi0(k2)*phi0(j2)))
+              endif                ! on numvar.ge.3
               else ! on linear
-              ohmic(i3) = ohmic(i3) + (gam-1.)*etar*(                   &
+              if(numvar.ge.2) then
+                ohmic(i2) = ohmic(i2) +dt*k0term(iodd,i,j,k)            &
+     &                    *phi0(k01)*vel0(j2)
+              endif                ! on numvar.ge.2
+              if(numvar.ge.3) then
+                ohmic(i3) = ohmic(i3) + (gam-1.)*etar*(                 &
      &            k1term(iodd,i,j,k)*(jphi(kone)+jphi0(kone))           &
      &                              *(jphi(jone)+jphi0(jone))           &
      &        -g2term(iodd,k,j,i)*(phi(k2)+phi0(k2))*(phi(j2)+phi0(j2)) &
@@ -6206,12 +6255,14 @@ c$$$      endif
      &                                 *(jphi(jone)+jphi0(jone))        &
      &        +hypi*g12erm(iodd,i,j,k)*(phi(k2)+phi0(k2))               &
      &                                *(phi(j2)+phi0(j2)))
+              endif                ! on numvar.ge.3
               endif ! on linear
 !
 !
+            if(numvar.ge.3) then
               viscous(i3) = viscous(i3) + (gam-1.)*amu*                 &
      &         (  g14erm(iodd,i,j,k)*vel(j1)*vel(k1)                    &
-     &           -g2term(iodd,k,j,i)*vel(k2)*vel(j2))
+     &        -g2term(iodd,k,j,i)*(vel(k2)+vel0(k2))*(vel(j2)+vel0(j2)))
               viscous(i3) = viscous(i3) + (gam-1.)*amu*                 &
      &            g16erm(iodd,i,j,k)*vel(j1)*vel(k3)
               viscous(i3) =viscous(i3) + (gam-1.)*amuc*                 &
@@ -6220,10 +6271,10 @@ c$$$      endif
 !...should be (after g17erm gets defined):
 !               viscous(i3) = viscous(i3) + (gam-1.)*vel(j3)*vel(k3)*   &
 !     &      (amu*g15erm(iodd,i,j,k) + 2*(amuc-amu)*g17erm(iodd,i,j,k))
-
+            endif                ! on numvar.ge.3
 !
             enddo       ! on k
-            endif                ! on numvar.ge.3
+
         enddo ! on irect
         enddo ! on jrect
 !

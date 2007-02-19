@@ -16,11 +16,7 @@
       integer, parameter ::  r8c = selected_real_kind(12,100)
       real(r8c), allocatable::temp(:),b1vecini(:)
 #else
-<<<<<<< .mine
       real, allocatable::temp(:),b1vecini(:)
-=======
-      REAL64, allocatable::temp(:)
->>>>>>> .r16
 #endif
       integer :: mmnn6, nrags,  mbandsgs, msizegs,icount
       integer :: m_lgs, nnz_lgs, ifs_rgs, ineg
