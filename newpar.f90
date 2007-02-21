@@ -23,15 +23,11 @@ Program Reducedquintic
 #ifdef IS_LIBRARY
   integer, intent(in) :: isfirst, inmyrank, inmaxrank
 #endif
-  integer :: j, i, ier, numvars, ifail, maxts, numelms, numnodes
-  integer :: index1, index2, ndofs, ibegin, iendplusone
-  integer :: ibegin1, iendplusone1
+  integer :: j, i, ier, ifail, maxts, numelms, numnodes
+  integer :: ndofs, ibegin, iendplusone
 
-  real :: dens, dtmin, ratemin, ratemax
+  real :: dtmin, ratemin, ratemax
   real :: tstart, tend
-
-  double precision :: coords(3)
-  integer :: nodeids(4)
 
   integer, allocatable ::  itemp(:)
 
@@ -228,12 +224,12 @@ Program Reducedquintic
      endif
   endif
   !   toroidal current
-  call newvar_gs(phi+phi0, jphi, numvar,1,1)
+  call newvar_gs(phi+phi0,jphi,1,1)
   !   vorticity
-  call newvar_gs(vel, vor, numvar,1,1)
+  call newvar_gs(vel, vor,1,1)
   !   compression
   if(numvar.ge.3) then 
-     call newvar_gs(vel+vel0, com, numvar,3,0)
+     call newvar_gs(vel+vel0,com,3,0)
   else
      com = 0.
   endif
@@ -324,21 +320,21 @@ Program Reducedquintic
 
 !  call errorcalc(numvar, phi, 1)
 !
-  if (myrank.eq.0) then
-     write(*,5002) tsolve-tfirst,                                      &
-          numvar,amu,etar,dt,thimp,cb,db,hyper,hyperi,hyperv,hyperc,      &
-          ratemin,ratemax,ajmax,graphit(ntimemax,25)
-     write(*,5003) linear, itaylor, 0, imask, irestart,                &
-          facd,bzero,eps
+!!$  if(maxrank.gt.1 .and. myrank.eq.0) then
+!!$     write(*,5002) tsolve-tfirst,                                      &
+!!$          numvar,amu,etar,dt,thimp,db,hyper,hyperi,hyperv,hyperc,      &
+!!$          ratemin,ratemax,ajmax,graphit(ntimemax,25)
+!!$     write(*,5003) linear, itaylor, 0, imask, irestart,                &
+!!$          facd,bzero,eps
+!!$
+!!$     write(FILE__C1NEW,5002) tsolve-tfirst,                            &
+!!$          numvar,amu,etar,dt,thimp,db,hyper,hyperi,hyperv,hyperc,      &
+!!$          ratemin,ratemax,ajmax,graphit(ntimemax,25)
+!!$     write(FILE__C1NEW,5003) linear, itaylor, 0, imask, irestart,      &
+!!$          facd,bzero,eps
+!!$  endif
 
-     write(9,5002) tsolve-tfirst,                                      &
-          numvar,amu,etar,dt,thimp,cb,db,hyper,hyperi,hyperv,hyperc,      &
-          ratemin,ratemax,ajmax,graphit(ntimemax,25)
-     write(9,5003) linear, itaylor, 0, imask, irestart,                &
-          facd,bzero,eps
-  endif
-
-  if(ntime.gt.1 .and. myrank.eq.0) then
+  if(ntime.gt.1 .and. myrank.eq.0 .and. maxrank.eq.1) then
      call plotenergy(graphit,ntimep,maxts,ntimemin,numvar)
      open(99,file='C1graphit',form='formatted',status='unknown')
      write(99,8001) maxts
@@ -375,7 +371,7 @@ Program Reducedquintic
   call freesmo(q8matrix_sm)  
   call deletesearchstructure()
 
-  if (myrank.eq.0) call plote
+  if (myrank.eq.0 .and. maxrank.eq.1) call plote
   
 5002 format(" tsolve =", 1pe11.4,   "  numvar =", 0p1i4,               &
           "   amu,etar =", 1p2e10.2,  /,"  dt,thimp =",1p2e10.2,          &
@@ -427,10 +423,6 @@ subroutine onestep
   real, allocatable :: temp(:)
   
   call numnod(numnodes)
-
-  ! conserve toroidal flux
-  ! ~~~~~~~~~~~~~~~~~~~~~~
-  if(numvar.ge.2 .and. iconstflux.eq.1) call conserve_tflux()
 
 
   ! calculate matrices for time advance
@@ -490,7 +482,7 @@ subroutine onestep
 !.....coding to calculate the error in the delsquared chi equation
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   if(numvar.ge.3) then
-     call newvar_gs(vtemp,com,numvar,3,0)
+     call newvar_gs(vtemp,com,3,0)
 
 !!$     call calc_chi_error(chierror)
 !!$     if(myrank.eq.0 .and. iprint.ge.1) then
@@ -499,17 +491,17 @@ subroutine onestep
      
      if(hyperc.gt.0) then
         call smoother3(com,vtemp,numnodes,numvar,3)
-        call newvar_gs(vtemp,com,numvar,3,0)
+        call newvar_gs(vtemp,com,3,0)
      endif
   endif
 
-  call newvar_gs(vtemp,vor,numvar,1,1)
+  call newvar_gs(vtemp,vor,1,1)
   
   if(hyperc.gt.0) then
 
      ! calculate vorticity, apply smoothing operator, and redefine vor array
      call smoother1(vor,vtemp,numnodes,numvar,1)
-     call newvar_gs(vtemp,vor,numvar,1,1)
+     call newvar_gs(vtemp,vor,1,1)
   endif
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
@@ -629,6 +621,11 @@ subroutine onestep
 !      phiold = phi
   phi = vtemp
 
+  ! conserve flux
+  ! ~~~~~~~~~~~~~
+  if(iconspflux.eq.1) call conserve_pflux
+  if(numvar.ge.2 .and. iconstflux.eq.1) call conserve_tflux
+
 
   ! define auxiliary variables
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -642,7 +639,7 @@ subroutine onestep
      endif
   endif
   !   toroidal current
-  call newvar_gs(phi+phi0, jphi, numvar,1,1)
+  call newvar_gs(phi+phi0, jphi,1,1)
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      write(*,*) " onestep: Time spent defining auxiliary varibles:", tend - tstart
@@ -678,7 +675,7 @@ subroutine conserve_tflux
   implicit none
   include "mpif.h"
   
-  integer :: numelms, index, itri, j, jone, j2, ivertex, ier, ndofs
+  integer :: numelms, itri, j, jone, j2, ier, ndofs
   real :: correction
   real :: d2term(18), fintl(-6:maxi,-6:maxi)
   double precision :: valsin(3), valsout(3)
@@ -711,7 +708,8 @@ subroutine conserve_tflux
      valsin(1) = totcur
      valsin(2) = area
      valsin(3) = tflux
-     call MPI_ALLREDUCE(valsin, valsout, 3, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
+     call MPI_ALLREDUCE(valsin, valsout, 3, MPI_DOUBLE_PRECISION, &
+          MPI_SUM, MPI_COMM_WORLD, ier)
      totcur = valsout(1)
      area = valsout(2)
      tflux = valsout(3)
@@ -726,9 +724,81 @@ subroutine conserve_tflux
      do j=7,ndofs,6*numvar
         phi(j) = phi(j) - correction
      enddo
+     if(myrank.eq.0) then
+        print *, "Correction to toroidal flux: "
+        print *, " area, correction, gbound", area, correction, gbound
+     end if
   endif
 
   return
 end subroutine conserve_tflux
+
+
+! ======================================================================
+! conserve_pflux
+! --------------
+!
+! adjusts the boundary conditions to conserve poloidal flux
+!
+! ======================================================================
+subroutine conserve_pflux
+
+  use basic
+  use t_data
+  use arrays
+
+  implicit none
+  include "mpif.h"
+  
+  integer :: numelms, itri, j, jone, j1, ier, ndofs
+  real :: correction, pflux
+  real :: d2term(18), fintl(-6:maxi,-6:maxi)
+  double precision :: valsin(3), valsout(3)
+
+  call numfac(numelms)
+
+  area = 0.
+  pflux = 0.
+  ! calculate the total perturbed current and area, and toroidal flux
+  do itri=1,numelms
+     call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
+     call calcd2term(itri, d2term, fintl)
+     do j=1,18
+        jone = isval1(itri,j)
+
+        j1 = isvaln(itri,j)
+        pflux = pflux + d2term(j)*(phi(j1) + phi0(j1) - phiold(j1))
+     enddo
+     do j=1,13,6
+        area = area + d2term(j)
+     enddo
+  enddo                     ! loop over itri
+
+  if(maxrank .gt. 1) then
+     valsin(1) = area
+     valsin(2) = pflux
+     call MPI_ALLREDUCE(valsin, valsout, 2, MPI_DOUBLE_PRECISION, &
+          MPI_SUM, MPI_COMM_WORLD, ier)
+     area = valsout(1)
+     pflux = valsout(2)
+  endif
+
+
+  ! adjust poloidal field and boundary condition to conserve poloidal flux
+  correction = pflux/area
+  fbound = fbound - correction
+  call numdofs(numvar, ndofs)
+  do j=1,ndofs,6*numvar
+     phi(j) = phi(j) - correction
+  enddo
+
+  if(myrank.eq.0) then
+     print *, "Correction to poloidal flux: "
+     print *, " pflux, area, correction, fbound", &
+          pflux, area, correction, fbound
+  end if
+
+  return
+end subroutine conserve_pflux
 
 

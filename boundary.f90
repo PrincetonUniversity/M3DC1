@@ -261,6 +261,7 @@ subroutine boundaryp(ibound,nbc)
         ! left/right boundaries
         ! ~~~~~~~~~~~~~~~~~~~~~
         if(iper.eq.0 .and. (izone.eq.ileft .or. izone.eq.iright)) then
+           psibounds(nbc+1) = fbound
            ibound(nbc+1) = ibegin
            ibound(nbc+2) = ibegin+2
            ibound(nbc+3) = ibegin+5
@@ -282,6 +283,7 @@ subroutine boundaryp(ibound,nbc)
         ! top/bottom boundaries
         ! ~~~~~~~~~~~~~~~~~~~~~
         else if(jper.eq.0 .and. (izone.eq.itop .or. izone .eq. ibottom)) then
+           psibounds(nbc+1) = fbound
            ibound(nbc+1) = ibegin
            ibound(nbc+2) = ibegin+1
            ibound(nbc+3) = ibegin+3
@@ -304,6 +306,7 @@ subroutine boundaryp(ibound,nbc)
         ! corner points
         ! ~~~~~~~~~~~~~
      else if(izonedim .eq. 0) then
+        psibounds(nbc+1) = fbound
         ibound(nbc+1) = ibegin
         nbc =  nbc+1
         if(iper.eq.0) then

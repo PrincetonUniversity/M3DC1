@@ -594,23 +594,11 @@ c      call safestop(1111)
       call second(tfirst)  !Get current system time in seconds
       call numnod(numnodes)
 
-      ifirstd1_lu = 0
-      ifirsts1_lu = 0
-      ifirstd2_lu = 0
-      ifirsts2_lu = 0
-      ifirstr1_lu = 0
-      ifirstr2_lu = 0
-      ifirstq2_lu = 0
-      ifirsts3_lu = 0
       ifirsts4_lu = 0
       ifirsts5_lu = 0
-      ifirsts6_lu = 0
       ifirsts7_lu = 0
-      ifirsts8_lu = 0
-      ifirstd8_lu = 0
-      ifirstq8_lu = 0
-      ifirstr8_lu = 0
 
+      fbound = 0.
       gbound = 0.
 !
 !.....define all input parameters (choose by test problem)
@@ -652,7 +640,7 @@ c$$$      b2vecini = 0.
       if(itor.eq.1) call rinvdef(rinv)
 !
 !     open all needed output files
-      call openf
+      if(maxrank.eq.1 .and. myrank.eq.0) call openf
 
 !
 !.....end of section defining geometrical parameters for triangles

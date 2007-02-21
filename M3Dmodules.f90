@@ -6,11 +6,9 @@ module p_data
   integer :: ntimep   ! maximum number of timesteps
   integer :: ires     ! linear resolution of the plot files
   integer :: ntri     ! maximum number of HDF5 files
-  integer :: ntridim  ! 
-  integer :: maxhdf5
   integer :: maxplots ! maximum dimension of the graph array
 
-  parameter(maxplots=50, maxi=20, ntimep=1000, ires=201, maxhdf5=30)
+  parameter(maxplots=50, maxi=20, ntimep=1000, ires=201)
   
   integer, dimension(ires, ires) :: whichtri
 
@@ -33,7 +31,6 @@ module basic
   ! physical parameters
   integer :: itor     ! 1 = cylindrical coordinates; 0 = cartesian coordinates
   real :: db          ! ion skin depth
-  real :: cb
   real :: gam         ! ratio of specific heats
   real :: grav        ! gravitational acceleration
 
@@ -63,6 +60,7 @@ module basic
   integer :: ntimemax    ! number of timesteps
   integer :: nskip       ! number of timesteps per matrix recalculation
   integer :: iconstflux  ! 1 = conserve toroidal flux
+  integer :: iconspflux  ! 1 = conserve poloidal flux
   real :: dt             ! timestep
   real :: thimp          ! implicitness parameter
   real :: facw, facd
@@ -91,12 +89,12 @@ module basic
        bzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,      &
        kappa,iper,jper,iprint,itimer,xzero,zzero,beta,pi0,   &
        eqsubtract,denm,grav,kappat,kappar,ln,amuc,iconstflux,&
-       regular,deex,gyro
+       regular,deex,gyro,iconspflux
 
   !     derived quantities
   real :: tt,pi,                                                       &
        time,timer,ajmax,errori,enormi,ratioi,                          &
-       tmesh, tsetup, tfirst,tsolve,tsecond,tzero,tthird,gbound
+       tmesh, tsetup, tfirst,tsolve,tsecond,tzero,tthird,gbound,fbound
   integer ::  ni(20),mi(20) ,nbcgs,nbcp,nbcv,nbcn,iboundmax,           &
        ntime,ntimer,nrank,ntimemin,ntensor,idebug, islutype
   real :: ekin, emag, ekind, emagd, ekino, emago, ekindo, emagdo,      &
@@ -105,15 +103,11 @@ module basic
        ekinph,ekinth,emagph,emagth,ekinpho,ekintho,emagpho,emagtho,    &
        ekin3,ekin3d,ekin3h,emag3,ekin3o,ekin3do,ekin3ho,emag3o,        &
        emag3h,emag3d,emag3ho,emag3do,tflux,chierror,totcur, area
-  real :: xary(0:ires-1),yary(0:ires-1),mif(0:maxhdf5-1),maf(0:maxhdf5-1)
   character*8 :: filename(50)
   character*10 :: datec, timec
   
 ! initialization quantities
-  integer ifirstd1_lu, ifirsts1_lu, ifirstd2_lu, ifirsts2_lu,    &
-       ifirstr1_lu, ifirstr2_lu, ifirstq2_lu, ifirsts3_lu,       &
-       ifirsts4_lu, ifirsts5_lu, ifirsts6_lu, ifirsts7_lu,       &
-       ifirsts8_lu, ifirstd8_lu, ifirstq8_lu, ifirstr8_lu
+  integer :: ifirsts4_lu, ifirsts5_lu, ifirsts7_lu
 
   data mi /0,1,0,2,1,0,3,2,1,0,4,3,2,1,0,5,3,2,1,0/
   data ni /0,0,1,0,1,2,0,1,2,3,0,1,2,3,4,0,2,3,4,5/
@@ -155,8 +149,7 @@ module arrays
        den(:),den0(:),denold(:),deni(:),                          &
        pres(:),pres0(:),r4(:),q4(:),qn4(:),                       &
        b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
-       b5vector(:), vtemp(:),                                     &
-       fun1(:),fun4(:),fun2(:),fun3(:)
+       b5vector(:), vtemp(:)
 
   contains
 !================================

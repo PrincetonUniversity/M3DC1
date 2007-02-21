@@ -373,6 +373,8 @@ subroutine define_fields_25(itri)
   ri4_25 = ri2_25*ri2_25
   r2_25 = r_25*r_25
 
+  weight_25 = weight_25*r_25
+
   call calcavector(itri, vel, 1, numvar, avec)
   call eval_ops(avec, si_25, eta_25, ttri(itri), ri_25,25, ph125)
   call calcavector(itri, phi, 1, numvar, avec)

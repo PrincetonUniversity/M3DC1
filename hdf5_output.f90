@@ -323,12 +323,16 @@ subroutine hdf5_write_parameters(error)
 
   call h5gopen_f(file_id, "/", root_id, error)
 
-  call write_int_attr(root_id, "numvar"     , numvar,     error)
-  call write_int_attr(root_id, "idens"      , idens,      error)
-  call write_int_attr(root_id, "linear"     , linear,     error)
-  call write_int_attr(root_id, "eqsubtract" , eqsubtract, error)
-  call write_int_attr(root_id, "iper"       , iper,       error)
-  call write_int_attr(root_id, "jper"       , jper,       error)
+  call write_int_attr (root_id, "numvar"     , numvar,     error)
+  call write_int_attr (root_id, "idens"      , idens,      error)
+  call write_int_attr (root_id, "linear"     , linear,     error)
+  call write_int_attr (root_id, "eqsubtract" , eqsubtract, error)
+  call write_int_attr (root_id, "iper"       , iper,       error)
+  call write_int_attr (root_id, "jper"       , jper,       error)
+  call write_real_attr(root_id, "xzero"      , xzero,      error)
+  call write_real_attr(root_id, "zzero"      , zzero,      error)
+  call write_real_attr(root_id, "xlim"       , xlim,       error)
+  call write_real_attr(root_id, "zlim"       , zlim,       error)
 
   call h5gclose_f(root_id, error)
 
@@ -408,7 +412,7 @@ subroutine hdf5_write_time_slice(error)
   integer, intent(out) :: error
 
   character(LEN=19) :: time_group_name
-  integer(HID_T) :: time_group_id, mesh_group_id, root_id
+  integer(HID_T) :: time_group_id, root_id
   integer :: nelms
 !  integer :: global_nodes, global_edges, global_regions
     
@@ -510,7 +514,6 @@ subroutine output_fields(time_group_id, error)
   
   integer(HID_T) :: group_id
   integer :: i, nelms, nfields
-  real, dimension(20) :: avec
   real, allocatable :: dum(:,:)
   
   nfields = 0

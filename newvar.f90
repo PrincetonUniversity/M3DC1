@@ -86,8 +86,6 @@ subroutine define_sources()
   double precision, dimension(3)  :: cogcoords
   double precision, dimension(18) :: temp, temp2
 
-  real, dimension(20) :: avec
-
   sb1 = 0
   if(numvar.ge.2) sb2 = 0
   if(numvar.ge.3) sp1 = 0
@@ -302,9 +300,9 @@ subroutine define_sources()
   ! Solve source term equations
   call numdofs(1, ndof)
 
-  call solve_newvar(sb1, 1, ndof)
-  if(numvar.ge.2) call solve_newvar(sb2, 1, ndof)
-  if(numvar.ge.3) call solve_newvar(sp1, 1, ndof)
+  call solve_newvar(sb1, 1)
+  if(numvar.ge.2) call solve_newvar(sb2, 1)
+  if(numvar.ge.3) call solve_newvar(sp1, 1)
 
 
   ! Allreduce energy terms
@@ -371,7 +369,7 @@ end subroutine define_sources
 
 ! newvar_gs
 ! =========
-subroutine newvar_gs(inarray,outarray,numvard,itype,ibound)
+subroutine newvar_gs(inarray,outarray,itype,ibound)
 
   use basic
   use t_data
@@ -380,11 +378,11 @@ subroutine newvar_gs(inarray,outarray,numvard,itype,ibound)
 
   implicit none
 
-  integer, intent(in) :: numvard, itype, ibound
+  integer, intent(in) :: itype, ibound
   real, intent(in) :: inarray(*) ! length using numvard ordering
   real, intent(out) :: outarray(*) ! length using numvar=1 ordering
 
-  integer :: ndof, ier, numelms, itri, i, j, ione, j1
+  integer :: ndof, numelms, itri, i, j, ione, j1
   real :: sum
 
   call numdofs(1, ndof)
@@ -427,20 +425,20 @@ subroutine newvar_gs(inarray,outarray,numvard,itype,ibound)
   enddo
 
   ! solve linear equation
-  call solve_newvar(outarray, ibound, ndof)
+  call solve_newvar(outarray, ibound)
 
 end subroutine newvar_gs
 
 
 ! solve_newvar
 ! ============
-subroutine solve_newvar(rhs, ibound, ndof)
+subroutine solve_newvar(rhs, ibound)
 
   use sparse
 
   implicit none
 
-  integer, intent(in) :: ibound, ndof
+  integer, intent(in) :: ibound
   real, dimension(*), intent(inout) :: rhs
 
   integer :: i, ier

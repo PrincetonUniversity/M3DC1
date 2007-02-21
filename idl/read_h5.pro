@@ -8,17 +8,34 @@ function translate, name
    return, "!8" + name
 end
 
-function ntime, filename
+function read_attribute, group_id, name
+   nmembers = h5a_get_num_attrs(group_id)
+
+   for i=0, nmembers-1 do begin
+       attr_id = h5a_open_idx(group_id, i)
+       if(strcmp(name, h5a_get_name(attr_id), /fold_case)) then begin
+           result = h5a_read(attr_id)
+           h5a_close, attr_id
+           return, result
+       endif
+       h5a_close, attr_id
+   end
+   
+   print, "Error: cannot find attribute ", name
+
+   return, 0
+end
+
+function read_parameter, name, filename=filename
+   if(n_elements(filename) eq 0) then filename='C1.h5'
 
    file_id = h5f_open(filename)
    root_id = h5g_open(file_id, "/")
-   ntime_id = h5a_open_name(root_id, "ntime")
-   t = h5a_read(ntime_id)
-   h5a_close, ntime_id
+   attr = read_attribute(root_id, name)
    h5g_close, root_id
    h5f_close, file_id
 
-   return, t
+   return, attr
 end
 
 function read_scalars, filename=filename
@@ -31,19 +48,6 @@ function read_scalars, filename=filename
    h5f_close, file_id
 
    return, scalars
-end
-
-function numvar, filename
-
-   file_id = h5f_open(filename)
-   root_id = h5g_open(file_id, "/")
-   ntime_id = h5a_open_name(root_id, "numvar")
-   nv = h5a_read(ntime_id)
-   h5a_close, ntime_id
-   h5g_close, root_id
-   h5f_close, file_id
-
-   return, nv
 end
 
 function time_name, t
@@ -189,8 +193,10 @@ function eval_field, field, mesh, x=xi, y=yi, points=p, operation=op
        end
    end
 
-   xi = findgen(p)*(xrange[1]-xrange[0])/(p-1.) + xrange[0]
-   yi = findgen(p)*(yrange[1]-yrange[0])/(p-1.) + yrange[0]
+   xi = findgen(p)*(xrange[1]-xrange[0])/(p-1.) + xrange[0] $
+     + read_parameter("xzero", filename=filename)
+   yi = findgen(p)*(yrange[1]-yrange[0])/(p-1.) + yrange[0] $
+     + read_parameter("zzero", filename=filename)
 
    return, result
 end
@@ -198,7 +204,7 @@ end
 function read_raw_field, name, time, mesh=mesh, filename=filename, time=t
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
-   nt = ntime(filename)
+   nt = read_parameter("ntime", filename=filename)
 
    if(time ge nt) then begin
        print, "Error: there are only ", nt-1, " time slices."
@@ -230,7 +236,7 @@ function read_field, name, slices=time, mesh=mesh, filename=filename, time=t, $
    if(n_elements(filename) eq 0) then filename='C1.h5'
    if(n_elements(pts) eq 0) then pts = 50
 
-   nt = ntime(filename)
+   nt = read_parameter("ntime", filename=filename)
 
    if(n_elements(time) eq 0) then begin
        time = [0,nt-1]
@@ -347,7 +353,7 @@ pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
-   nv = numvar(filename)
+   nv = read_parameter("numvar", filename=filename)
 
    scalars = read_scalars(filename=filename)
 
@@ -440,9 +446,32 @@ pro plot_field_mpeg, fieldname, mpegame=mpegname, range=range, points=pts, $
     if(n_elements(mpegname) eq 0) then mpegname = fieldname + '.mpeg'
     if(n_elements(pts) eq 0) then pts = 50
 
-    nt = ntime('C1.h5')
+    nt = get_parameters("ntime")
 
     data = read_field(fieldname, mesh=mesh, x=x, y=y, points=pts)
 
     contour_and_legend_mpeg, mpegname, data, x, y, _EXTRA=ex
+end
+
+
+pro plot_lcfs, time, color=color
+    pts = 201
+
+    psi = read_field('psi', slice=time, points=pts, x=x, y=y)
+
+    xlim = read_parameter("xlim")
+    print, "xlim = ", xlim
+
+    ; find index corresponding to limiter
+    d = min(x-xlim, ilim, /absolute)
+    
+    ; find value of flux at the limiter
+    psilim = max(psi[0,ilim,*])
+    print, "psi(xlim) = ", psilim
+
+    ; plot contour
+    if(n_elements(color) ne 0) then loadct, 12
+    contour, psi, x, y, /overplot, nlevels=1, levels=psilim, $
+      color=color, thick=2
+
 end
