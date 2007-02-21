@@ -29,72 +29,48 @@ subroutine openf
   use basic
   use arrays
   implicit none
-  integer :: jj, maxhdf
+  integer :: jj
   real :: alx, alz
 
   call getboundingboxsize(alx, alz)
 
-  maxhdf = 0
+  call ncarcgm(1,'C1new.cgm')
+  call dders(-1)
 
-  if (myrank.eq.0) then !Serialize I/O
-     call ncarcgm(1,'C1new.cgm')
-     call dders(-1)
-
-     ! define evenly spaced coordinates and create new HDF5 file
-     xary = (/ ((alx*jj)/(ires-1), jj=0,ires-1) /)
-     yary = (/ ((alz*jj)/(ires-1), jj=0,ires-1) /)
-     if(numvar.eq.1) then
-        if(linear.eq.1) maxhdf=4
-        if(linear.eq.0) maxhdf=6
-     else if(numvar.eq.2) then
-        if(linear.eq.1) maxhdf=6
-        if(linear.eq.0) maxhdf=9
-     else if(numvar.eq.3) then
-        if(linear.eq.1) maxhdf=9
-        if(linear.eq.0) maxhdf=13
+  ! open ascii output files
+  open(FILE__C1NEW, file='C1new.out',form='formatted',status='unknown')
+  open(FILE__ERROR, file='C1error.out',form='formatted',status='unknown')
+  open(FILE__PSI_PER,file='C1psi-per',form='formatted',status='unknown')
+  open(FILE__J_PER,file='C1J-per',form='formatted',status='unknown')
+  open(FILE__PHI_FULL,file='C1phi-full',form='formatted',status='unknown')
+  open(FILE__VOR_FULL,file='C1vor-full',form='formatted',status='unknown')
+  if(numvar.ge.2) then
+     open(FILE__I_PER,file='C1I-per',form='formatted',status='unknown')
+     open(FILE__V_FULL,file='C1v-full',form='formatted',status='unknown')
+     if(numvar.ge.3) then
+        open(FILE__PE_PER,file='C1pe-per',form='formatted',status='unknown')
+        open(FILE__CHI_FULL,file='C1chi-full',form='formatted',status='unknown')
+        open(FILE__DIV_FULL,file='C1div-full',form='formatted',status='unknown')
      endif
-         
-!!$     call createHDF5(xary,ires,yary,ires,maxhdf)
-
-     ! initialize minimum and maximum
-     maf = -1.e20
-     mif =  1.e20
-
-     ! open ascii output files
-     open(FILE__C1NEW, file='C1new.out',form='formatted',status='unknown')
-     open(FILE__ERROR, file='C1error.out',form='formatted',status='unknown')
-     open(FILE__PSI_PER,file='C1psi-per',form='formatted',status='unknown')
-     open(FILE__J_PER,file='C1J-per',form='formatted',status='unknown')
-     open(FILE__PHI_FULL,file='C1phi-full',form='formatted',status='unknown')
-     open(FILE__VOR_FULL,file='C1vor-full',form='formatted',status='unknown')
-     if(numvar.ge.2) then
-        open(FILE__I_PER,file='C1I-per',form='formatted',status='unknown')
-        open(FILE__V_FULL,file='C1v-full',form='formatted',status='unknown')
-        if(numvar.ge.3) then
-           open(FILE__PE_PER,file='C1pe-per',form='formatted',status='unknown')
-           open(FILE__CHI_FULL,file='C1chi-full',form='formatted',status='unknown')
-           open(FILE__DIV_FULL,file='C1div-full',form='formatted',status='unknown')
-        endif
+  endif
+  open(FILE__PSI_FULL,file='C1psi-full',form='formatted',status='unknown')
+  open(FILE__J_FULL,file='C1J-full',form='formatted',status='unknown')
+  if(numvar.ge.2) then
+     open(FILE__I_FULL,file='C1I-full',form='formatted',status='unknown')
+     if(numvar.ge.3) then
+        open(FILE__PE_FULL,file='C1pe-full',form='formatted',status='unknown')
      endif
-     open(FILE__PSI_FULL,file='C1psi-full',form='formatted',status='unknown')
-     open(FILE__J_FULL,file='C1J-full',form='formatted',status='unknown')
-     if(numvar.ge.2) then
-        open(FILE__I_FULL,file='C1I-full',form='formatted',status='unknown')
-        if(numvar.ge.3) then
-           open(FILE__PE_FULL,file='C1pe-full',form='formatted',status='unknown')
-        endif
-     endif
-     if(idens.eq.1) then
-        open(FILE__DENSITY,file='C1density',form='formatted',status='unknown')
-     endif
-     if(idebug.ge.1) &
-          open(FILE__MATRIX,file='matrix.txt',form='formatted', status='unknown')
-
-     write(FILE__C1NEW,1001) datec(1:4),datec(5:6),datec(7:8),                   &
-          timec(1:2),timec(3:4),timec(5:8)
+  endif
+  if(idens.eq.1) then
+     open(FILE__DENSITY,file='C1density',form='formatted',status='unknown')
+  endif
+  if(idebug.ge.1) &
+       open(FILE__MATRIX,file='matrix.txt',form='formatted', status='unknown')
+  
+  write(FILE__C1NEW,1001) datec(1:4),datec(5:6),datec(7:8),                   &
+       timec(1:2),timec(3:4),timec(5:8)
 1001 format("M3D-C1T VERSION 0.1    DATE: ",a4,1x,a2,1x,a2,3x,               &
           "TIME: ",a2,":",a2,":",a4,/)
-  endif
 
 end subroutine openf
 !============================================================

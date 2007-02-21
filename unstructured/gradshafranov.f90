@@ -6,6 +6,8 @@ module gradshafranov
   real :: psimin, psilim, dpsii
   real :: gamma2, gamma3, gamma4
 
+  
+
   integer, parameter :: numvargs = 1
 
 contains
@@ -37,7 +39,7 @@ end subroutine gradshafranov_init
 
 !============================================================
 subroutine gradshafranov_solve
-  use p_data
+
   use t_data
   use basic
   use arrays
@@ -49,7 +51,7 @@ subroutine gradshafranov_solve
 
   include 'mpif.h'
   
-  integer, parameter :: iterations = 50
+  integer, parameter :: iterations = 100
 
   real   gsint1,gsint4,gsint2,gsint3,lhs,cfac(18)
   real, allocatable :: temp(:), b1vecini(:)
@@ -64,7 +66,10 @@ subroutine gradshafranov_solve
   real :: g, gx, gz, gxx, gxz, gzz, g0
   real :: gv, gvx, gvz, gvxx, gvxz, gvzz
   real :: x,z, xmin, zmin, xrel, zrel, xguess, zguess
-  real :: th, sum, rhs, ajlim, curr, q0, qstar
+  real :: th, sum, rhs, ajlim, curr, q0, qstar, norm
+  real :: g1, g1x, g1z, g1xx, g1xz, g1zz
+  real :: g2, g2x, g2z, g2xx, g2xz, g2zz
+  real :: g3, g3x, g3z, g3xx, g3xz, g3zz
   real, dimension(5) :: temp1, temp2
   double precision :: coords(3)
  
@@ -126,8 +131,7 @@ subroutine gradshafranov_solve
 
            temp79a = -ri_79* &
                 (g79(:,OP_DR,i)*g79(:,OP_DR,j) &
-                +g79(:,OP_DZ,i)*g79(:,OP_DZ,j) &
-                +g79(:,OP_1, i)*g79(:,OP_DR,j)*ri_79)
+                +g79(:,OP_DZ,i)*g79(:,OP_DZ,j))
            sum = int1(temp79a,weight_79,79)
 
            call insertval(gsmatrix_sm, sum, i1,j1,1)
@@ -171,7 +175,6 @@ subroutine gradshafranov_solve
 
 !!$        if(izone.eq.itop .or. izone.eq.ibottom) then
            call gvect1(x,z,xmag,zmag,g,gx,gz,gxx,gxz,gzz,0,ineg)
-!!$           call gvect1(x,z,102.,xmag,gv,gvx,gvz,gvxx,gvxz,gvzz,1,ineg)
            call gvect1(x,z,102.,xmag,gv,gvx,gvz,gvxx,gvxz,gvzz,1,ineg)
 !!$        else if(izone.eq.ileft .or. izone.eq.iright) then
 !!$           call gvect1(x,z,xmag,zmag,g,gx,gz,gxx,gxz,gzz,0,ineg)
@@ -250,6 +253,7 @@ subroutine gradshafranov_solve
      ! calculate the error
      ! (nodes shared between processes are currenly overcounted)
      sum = 0.
+     norm = 0.
      do i=1,numnodes
         
         call xyznod(i,coords)
@@ -263,17 +267,18 @@ subroutine gradshafranov_solve
            rhs =  -(fun1(ibegin)+gamma2*fun2(ibegin)+                        &
                 gamma3*fun3(ibegin)+gamma4*fun4(ibegin))
            sum = sum + (lhs-rhs)**2
+           norm = norm + lhs**2
         endif
      enddo
 
      if(maxrank.gt.1) then
         temp1(1) = sum
-        temp1(2) = numnodes
+        temp1(2) = norm
         call mpi_allreduce(temp1, temp2, 2, MPI_DOUBLE_PRECISION, &
              MPI_SUM, MPI_COMM_WORLD, ier)
         error = sqrt(temp2(1)/temp2(2))
      else
-        error = sqrt(sum/numnodes)
+        error = sqrt(sum/norm)
      endif
      
      if(myrank.eq.0 .and. iprint.gt.0) &
@@ -296,8 +301,8 @@ subroutine gradshafranov_solve
      xrel = xlim - xzero
      zrel = zlim - zzero
      itri = 0.
+
      call evaluate(xrel,zrel,psilim,ajlim,psi,1,numvargs,itri)
-    
 
      ! define the pressure and toroidal field functions
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -307,6 +312,12 @@ subroutine gradshafranov_solve
         tfundef = tfundef + tend - tstart
      endif
 
+!!$     if(maxrank.eq.1) then
+!!$        if(myrank.eq.0) call oneplot(fun1,1,1,"fun1",0)
+!!$        if(myrank.eq.0) call oneplot(fun2,1,1,"fun2",0)
+!!$        if(myrank.eq.0) call oneplot(fun3,1,1,"fun3",0)
+!!$        if(myrank.eq.0) call oneplot(fun4,1,1,"fun4",0)
+!!$     endif
      
      ! start of loop over triangles to compute integrals needed to keep
      !     total current and q_0 constant using gamma4, gamma2, gamma3
@@ -338,6 +349,7 @@ subroutine gradshafranov_solve
               jone = isval1(itri,j)
               curr = curr + sterm(i,j)*psi(i1)*rinv(jone)
            enddo
+          
         enddo        
      enddo
 
@@ -358,8 +370,6 @@ subroutine gradshafranov_solve
 
      if(myrank.eq.0 .and. iprint.ge.1) then 
         print *, "gradshafranov: curr = ", curr
-!!$        print *, "gradshafranov: curr, gsint1, gsint2, gsint3, gsint4 = ", &
-!!$             curr, gsint1, gsint2, gsint3, gsint4
      endif
 
 
@@ -367,17 +377,20 @@ subroutine gradshafranov_solve
      ! degree of freedom in gamma3.  Could be used to fix qprime(0)
      q0 = 1.
      qstar = 4.
-     g0 = 36.4
+     g0 = bzero*xzero
      !  gamma2 =-xmag*(xmag*p0*p1 + (tcuro*qstar/(pi*aminor**2*q0*dpsii)))
      !  gamma3 = -(.5*djdpsi/dpsii + p0*p2)
      gamma2 =- 2.*xmag*(xmag*p0*p1 + (2.*g0/(xmag**2*q0*dpsii)))
      gamma3 = -(xmag*djdpsi/dpsii + 2*xmag**2*p0*p2)
+     gamma2 = gamma2 / 2.
+     gamma3 = gamma3 / 2.
+
      gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
-  
-!!$  if(myrank.eq.0 .and. iprint.gt.0) then
-!!$     write(*,*) "gsint1, gsint2, gsint3, gsint4", gsint1, gsint2, gsint3, gsint4
-!!$     write(*,*) "gamma2, gamma3, gamma4", gamma2, gamma3, gamma4
-!!$  endif
+
+  if(myrank.eq.0 .and. iprint.gt.0) then
+     write(*,*) "gsint1, gsint2, gsint3, gsint4", gsint1, gsint2, gsint3, gsint4
+     write(*,*) "gamma2, gamma3, gamma4", gamma2, gamma3, gamma4
+  endif
 !!$     print *, "myrank, gamma2, gamma3, gamma4", &
 !!$          myrank, gamma2, gamma3, gamma4
      
@@ -396,8 +409,9 @@ subroutine gradshafranov_solve
            do j=1,18
               j1 = isval1(itri,j)
               
-              sum = sum - dterm(i,j)*(fun1(j1) + gamma4*fun4(j1)               &
-                   +  gamma2*fun2(j1) + gamma3*fun3(j1))
+              sum = sum &
+                   - dterm(i,j)*(fun1(j1) + gamma4*fun4(j1)               &
+                        + gamma2*fun2(j1) + gamma3*fun3(j1))
            enddo
            
            b1vecini(i1) =  b1vecini(i1) + sum
@@ -420,48 +434,162 @@ subroutine gradshafranov_solve
 !     fun4 = G1/R
 !     fun2 = G2/R
 !     fun3 = G3/R    
-!     I = sqrt(bzero**2 + r*gamma*G)
+!     I = sqrt(g0**2 + r*gamma*G)
      if(numvar.ge.2) then
         call xyznod(i,coords)
         x = coords(1) - xmin + xzero
 
-        temp(ibegin:ibegin+5) = &
-              gamma2*fun2(ibegin:ibegin+5) &
-             +gamma3*fun3(ibegin:ibegin+5) &
-             +gamma4*fun4(ibegin:ibegin+5)
-        if(bzero**2 + temp(ibegin)*x .le. 0.) then
-           call constant_field(phi0(ibeginn+6 :ibeginn+11), 0.)
-        else           
-           phi0(ibeginn+6) = sqrt(bzero**2 + temp(ibegin)*x)
-           phi0(ibeginn+7) = 0.5*(temp(ibegin+1)*x + temp(ibegin))/phi0(ibeginn+6)
-           phi0(ibeginn+8) = 0.5*temp(ibegin+2)*x/phi0(ibeginn+6)
-           phi0(ibeginn+9) = 0.5*(temp(ibegin+3)*x + 2.*temp(ibegin+1))/phi0(ibeginn+6) &
-                - 0.25*(temp(ibegin+1)*x + temp(ibegin))**2/phi0(ibeginn+6)**3
-           phi0(ibeginn+10)= 0.5*(temp(ibegin+4)*x + temp(ibegin+2))/phi0(ibeginn+6) &
-                - 0.25*(temp(ibegin+1)*x + temp(ibegin))*temp(ibegin+2)*x/phi0(ibeginn+6)**3
-           phi0(ibeginn+11)= 0.5*(temp(ibegin+5)*x)/phi0(ibeginn+6) &
-                - 0.25*(temp(ibegin+2)*x)**2/phi0(ibeginn+6)**3
+        temp(ibegin) = (psi(ibegin) - psimin)/(psilim - psimin)
+        temp(ibegin+1:ibegin+5) = psi(ibegin+1:ibegin+5)/(psilim - psimin)
+        if(temp(ibegin) .lt. 0. .or. temp(ibegin) .gt. 1.) then
+           call constant_field(phi0(ibeginn+6 :ibeginn+11), bzero*xzero)
+        else
+           g1  = temp(ibegin) - 10.*temp(ibegin)**3 + 20.*temp(ibegin)**4 &
+                - 15.*temp(ibegin)**5 + 4.*temp(ibegin)**6
+           g1x = temp(ibegin+1)*(1. - 30.*temp(ibegin)**2 + 80.*temp(ibegin)**3 &
+                - 75.*temp(ibegin)**4 + 24.*temp(ibegin)**5)
+           g1z = temp(ibegin+2)*(1. - 30.*temp(ibegin)**2 + 80.*temp(ibegin)**3 &
+                - 75.*temp(ibegin)**4 + 24.*temp(ibegin)**5)
+           g1xx= temp(ibegin+3)  *(1. - 30.*temp(ibegin)**2 + 80.*temp(ibegin)**3 &
+                - 75.*temp(ibegin)**4 + 24.*temp(ibegin)**5) + &
+                temp(ibegin+1)**2*(1. - 60.*temp(ibegin)    +240.*temp(ibegin)**2 &
+                -300.*temp(ibegin)**3 +120.*temp(ibegin)**5)
+           g1xz= temp(ibegin+4)  *(1. - 30.*temp(ibegin)**2 + 80.*temp(ibegin)**3 &
+                - 75.*temp(ibegin)**4 + 24.*temp(ibegin)**5) + &
+                temp(ibegin+1)*temp(ibegin+2)* &
+                (1. - 60.*temp(ibegin)    +240.*temp(ibegin)**2 &
+                -300.*temp(ibegin)**3 +120.*temp(ibegin)**5)
+           g1zz= temp(ibegin+5)  *(1. - 30.*temp(ibegin)**2 + 80.*temp(ibegin)**3 &
+                - 75.*temp(ibegin)**4 + 24.*temp(ibegin)**5) + &
+                temp(ibegin+2)**2*(1. - 60.*temp(ibegin)    +240.*temp(ibegin)**2 &
+                -300.*temp(ibegin)**3 +120.*temp(ibegin)**5)
+
+           g2  = temp(ibegin)**2 - 4.*temp(ibegin)**3 + 6.*temp(ibegin)**4 &
+                - 4.*temp(ibegin)**5 + temp(ibegin)**6
+           g2x = temp(ibegin+1)*(2.*temp(ibegin) - 12.*temp(ibegin)**2 &
+                + 24.*temp(ibegin)**3 - 20.*temp(ibegin)**4 +  6.*temp(ibegin)**5)
+           g2z = temp(ibegin+2)*(2.*temp(ibegin) - 12.*temp(ibegin)**2 &
+                + 24.*temp(ibegin)**3 - 20.*temp(ibegin)**4 +  6.*temp(ibegin)**5)
+           g2xx= temp(ibegin+3)*(2.*temp(ibegin) - 12.*temp(ibegin)**2 &
+                + 24.*temp(ibegin)**3 - 20.*temp(ibegin)**4 +  6.*temp(ibegin)**5) + &
+                temp(ibegin+1)**2*(2. - 24.*temp(ibegin) &
+                + 72.*temp(ibegin)**2 - 80.*temp(ibegin)**3 + 30.*temp(ibegin)**4)
+           g2xz= temp(ibegin+4)*(2.*temp(ibegin) - 12.*temp(ibegin)**2 &
+                + 24.*temp(ibegin)**3 - 20.*temp(ibegin)**4 +  6.*temp(ibegin)**5) + &
+                temp(ibegin+1)*temp(ibegin+2)*(2. - 24.*temp(ibegin) &
+                + 72.*temp(ibegin)**2 - 80.*temp(ibegin)**3 + 30.*temp(ibegin)**4)
+           g2zz= temp(ibegin+5)*(2.*temp(ibegin) - 12.*temp(ibegin)**2 &
+                + 24.*temp(ibegin)**3 - 20.*temp(ibegin)**4 +  6.*temp(ibegin)**5) + &
+                temp(ibegin+2)**2*(2. - 24.*temp(ibegin) &
+                + 72.*temp(ibegin)**2 - 80.*temp(ibegin)**3 + 30.*temp(ibegin)**4)
+
+
+           g3 = 1. - 20.*temp(ibegin)**3 + 45.*temp(ibegin)**4 &
+                - 36.*temp(ibegin)**5 + 10.*temp(ibegin)**6
+           g3x = temp(ibegin+1)*(-60.*temp(ibegin)**2 +180.*temp(ibegin)**3 &
+                -180.*temp(ibegin)**4 + 60.*temp(ibegin)**5)
+           g3z = temp(ibegin+2)*(-60.*temp(ibegin)**2 +180.*temp(ibegin)**3 &
+                -180.*temp(ibegin)**4 + 60.*temp(ibegin)**5)
+           g3xx= temp(ibegin+3)*(-60.*temp(ibegin)**2 +180.*temp(ibegin)**3 &
+                -180.*temp(ibegin)**4 + 60.*temp(ibegin)**5) + &
+                 temp(ibegin+1)**2*(-120.*temp(ibegin) +540.*temp(ibegin)**2 &
+                -720.*temp(ibegin)**3 +300.*temp(ibegin)**4)
+           g3xz= temp(ibegin+4)*(-60.*temp(ibegin)**2 +180.*temp(ibegin)**3 &
+                -180.*temp(ibegin)**4 + 60.*temp(ibegin)**5) + &
+                 temp(ibegin+1)*temp(ibegin+2)*(-120.*temp(ibegin) +540.*temp(ibegin)**2 &
+                -720.*temp(ibegin)**3 +300.*temp(ibegin)**4)
+           g3zz= temp(ibegin+5)*(-60.*temp(ibegin)**2 +180.*temp(ibegin)**3 &
+                -180.*temp(ibegin)**4 + 60.*temp(ibegin)**5) + &
+                 temp(ibegin+2)**2*(-120.*temp(ibegin) +540.*temp(ibegin)**2 &
+                -720.*temp(ibegin)**3 +300.*temp(ibegin)**4)
+
+
+           phi0(ibeginn+6) = sqrt((bzero*xzero)**2 + gamma2*g1 + gamma3*g2 + gamma4*g3)
+           phi0(ibeginn+7) = 0.5*(gamma2*g1x + gamma3*g2x + gamma4*g3x) &
+                / phi0(ibeginn+6)
+           phi0(ibeginn+8) = 0.5*(gamma2*g1z + gamma3*g2z + gamma4*g3z) &
+                / phi0(ibeginn+6)
+           phi0(ibeginn+9) = 0.5*(gamma2*g1xx + gamma3*g2xx + gamma4*g3xx) &
+                / phi0(ibeginn+6) - &
+                (0.5*(gamma2*g1x + gamma3*g2x + gamma4*g3x))**2 &
+                / phi0(ibeginn+6)**3
+           phi0(ibeginn+10) = 0.5*(gamma2*g1xz + gamma3*g2xz + gamma4*g3xz) &
+                / phi0(ibeginn+6) - &
+                0.5*(gamma2*g1x + gamma3*g2x + gamma4*g3x)* &
+                0.5*(gamma2*g1z + gamma3*g2z + gamma4*g3z)  &
+                / phi0(ibeginn+6)**3
+           phi0(ibeginn+11) = 0.5*(gamma2*g1zz + gamma3*g2zz + gamma4*g3zz) &
+                / phi0(ibeginn+6) - &
+                (0.5*(gamma2*g1z + gamma3*g2z + gamma4*g3z))**2 &
+                / phi0(ibeginn+6)**3
+
+
         endif
+
+!!$        phi0(ibeginn+6:ibeginn+11) = -phi0(ibeginn+6:ibeginn+11)
      end if
 
 !     p = p0*(1. + p1*Psi + p2*Psi**2)
      if(numvar.ge.3) then
         sum = p0 - pi0*ipres
-        temp(ibegin) = (psi(ibegin) - psimin)/(psilim - psimin)
-        temp(ibegin+1:ibegin+5) = psi(ibegin+1:ibegin+5)/(psilim - psimin)
 
         if(temp(ibegin) .lt. 0 .or. temp(ibegin) .gt. 1) then
-           call constant_field(phi0(ibeginn+12:ibeginn+17), sum*(1.+p1+p2))
+           call constant_field(phi0(ibeginn+12:ibeginn+17), 0.)
         else
-           phi0(ibeginn+12) = sum*(1.+p1*temp(ibegin)+p2*temp(ibegin)**2)
-           phi0(ibeginn+13) = sum*(p1+2.*p2*temp(ibegin))*temp(ibegin+1)
-           phi0(ibeginn+14) = sum*(p1+2.*p2*temp(ibegin))*temp(ibegin+2)
-           phi0(ibeginn+15) = sum*(p1*temp(ibegin+3) + &
-                2.*p2*(temp(ibegin+1)**2 + temp(ibegin)*temp(ibegin+3)))
-           phi0(ibeginn+16) = sum*(p1*temp(ibegin+4) + &
-                2.*p2*(temp(ibegin+1)*temp(ibegin+2) + temp(ibegin)*temp(ibegin+4)))
-           phi0(ibeginn+17) = sum*(p1*temp(ibegin+5) + &
-                2.*p2*(temp(ibegin+2)**2 + temp(ibegin)*temp(ibegin+5)))
+           phi0(ibeginn+12) = sum* &
+                (1.+p1*temp(ibegin)+p2*temp(ibegin)**2 &
+                -(20. + 10.*p1 + 4.*p2)*temp(ibegin)**3 &
+                +(45. + 20.*p1 + 6.*p2)*temp(ibegin)**4 &
+                -(36. + 15.*p1 + 4.*p2)*temp(ibegin)**5 &
+                +(10. + 4.*p1 + p2)*temp(ibegin)**6)
+           phi0(ibeginn+13) = sum*temp(ibegin+1)* &
+                (p1+2.*p2*temp(ibegin) &
+                -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
+                +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
+                -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
+                +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5)
+           phi0(ibeginn+14) = sum*temp(ibegin+2)* &
+                (p1+2.*p2*temp(ibegin) &
+                -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
+                +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
+                -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
+                +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5)
+           phi0(ibeginn+15) = sum*temp(ibegin+3)* &
+                (p1+2.*p2*temp(ibegin) &
+                -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
+                +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
+                -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
+                +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5) + &
+                sum*temp(ibegin+1)**2* &
+                (2.*p2 &
+                -6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
+                +13.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
+                -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
+                +30.*(10. + 4.*p1 + p2)*temp(ibegin)**4)
+           phi0(ibeginn+16) = sum*temp(ibegin+4)* &
+                (p1+2.*p2*temp(ibegin) &
+                -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
+                +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
+                -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
+                +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5) + &
+                sum*temp(ibegin+1)*temp(ibegin+2)* &
+                (2.*p2 &
+                -6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
+                +13.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
+                -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
+                +30.*(10. + 4.*p1 + p2)*temp(ibegin)**4)
+           phi0(ibeginn+17) = sum*temp(ibegin+5)* &
+                (p1+2.*p2*temp(ibegin) &
+                -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
+                +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
+                -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
+                +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5) + &
+                sum*temp(ibegin+2)**2* &
+                (2.*p2 &
+                -6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
+                +13.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
+                -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
+                +30.*(10. + 4.*p1 + p2)*temp(ibegin)**4)
         endif
 
         if(ipres.eq.1) then
@@ -469,18 +597,63 @@ subroutine gradshafranov_solve
 
            sum = p0
 
-           if(temp(ibegin) .lt. 0 .or. temp(ibegin) .gt. 1) then
-              call constant_field(pres0(ibeginn:ibeginn+5), sum*(1.+p1+p2))
-           else
-              pres0(ibeginn)   = sum*(1.+p1*temp(ibegin)+p2*temp(ibegin)**2)
-              pres0(ibeginn+1) = sum*(p1+2.*p2*temp(ibegin))*temp(ibegin+1)
-              pres0(ibeginn+2) = sum*(p1+2.*p2*temp(ibegin))*temp(ibegin+2)
-              pres0(ibeginn+3) = sum*(p1*temp(ibegin+3) + &
-                   2.*p2*(temp(ibegin+1)**2 + temp(ibegin)*temp(ibegin+3)))
-              pres0(ibeginn+4) = sum*(p1*temp(ibegin+4) + &
-                   2.*p2*(temp(ibegin+1)*temp(ibegin+2) + temp(ibegin)*temp(ibegin+4)))
-              pres0(ibeginn+5) = sum*(p1*temp(ibegin+5) + &
-                   2.*p2*(temp(ibegin+2)**2 + temp(ibegin)*temp(ibegin+5)))
+        if(temp(ibegin) .lt. 0 .or. temp(ibegin) .gt. 1) then
+           call constant_field(pres0(ibeginn:ibeginn+5), 0.)
+        else
+           pres0(ibeginn) = sum* &
+                (1.+p1*temp(ibegin)+p2*temp(ibegin)**2 &
+                -(20. + 10.*p1 + 4.*p2)*temp(ibegin)**3 &
+                +(45. + 20.*p1 + 6.*p2)*temp(ibegin)**4 &
+                -(36. + 15.*p1 + 4.*p2)*temp(ibegin)**5 &
+                +(10. + 4.*p1 + p2)*temp(ibegin)**6)
+           pres0(ibeginn+1) = sum*temp(ibegin+1)* &
+                (p1+2.*p2*temp(ibegin) &
+                -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
+                +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
+                -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
+                +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5)
+           pres0(ibeginn+2) = sum*temp(ibegin+2)* &
+                (p1+2.*p2*temp(ibegin) &
+                -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
+                +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
+                -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
+                +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5)
+           pres0(ibeginn+3) = sum*temp(ibegin+3)* &
+                (p1+2.*p2*temp(ibegin) &
+                -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
+                +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
+                -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
+                +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5) + &
+                sum*temp(ibegin+1)**2* &
+                (2.*p2 &
+                -6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
+                +13.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
+                -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
+                +30.*(10. + 4.*p1 + p2)*temp(ibegin)**4)
+           pres0(ibeginn+4) = sum*temp(ibegin+4)* &
+                (p1+2.*p2*temp(ibegin) &
+                -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
+                +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
+                -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
+                +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5) + &
+                sum*temp(ibegin+1)*temp(ibegin+2)* &
+                (2.*p2 &
+                -6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
+                +13.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
+                -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
+                +30.*(10. + 4.*p1 + p2)*temp(ibegin)**4)
+           pres0(ibeginn+5) = sum*temp(ibegin+5)* &
+                (p1+2.*p2*temp(ibegin) &
+                -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
+                +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
+                -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
+                +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5) + &
+                sum*temp(ibegin+2)**2* &
+                (2.*p2 &
+                -6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
+                +13.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
+                -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
+                +30.*(10. + 4.*p1 + p2)*temp(ibegin)**4)
            end if
         endif
      end if
@@ -530,7 +703,6 @@ end subroutine gradshafranov_solve
 !==================================
 subroutine magaxis(xguess,zguess)
   use basic
-  use p_data
   use t_data
   use nintegrate_mod
 
@@ -570,6 +742,8 @@ subroutine magaxis(xguess,zguess)
   z = zguess
   
   do inews=1, iterations
+
+     print *, "x1, z1 = ", x1, z1
 
      ! calculate position of minimum
      if(itri.gt.0) then
@@ -626,6 +800,8 @@ subroutine magaxis(xguess,zguess)
         xnew = x1 + co*(b+sinew) - sn*etanew
         znew = z1 + sn*(b+sinew) + co*etanew
 
+!!$        if(iprint.gt.0) print *, "pt,pt1,pt2,p11,p12,p22 ", &
+!!$             pt,pt1,pt2,p11,p12,p22
         if(iprint.gt.0) print *, "magaxis: minimum at ", xnew, znew
      else
         xnew = 0.
@@ -660,12 +836,15 @@ subroutine magaxis(xguess,zguess)
         pt = 0
      endif
      itri = itrinew
-     
-     ! tell all processors whether or not the new minimum is within the domain 
-     if(maxrank.gt.1) &
-        call mpi_allreduce(i, ii, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ier)
 
-     ! if not, safestop.
+     ! tell all processors whether or not the new minimum is within the domain 
+     if(maxrank.gt.1) then
+        call mpi_allreduce(i, ii, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ier)
+     else
+        ii = i
+     endif
+
+     ! if not within the domain, safestop.
      if(ii.eq.1) then
         write(*,3333) inews,x,z,xnew,znew
 3333       format("magaxis: new minimum outside domain. ",i3,1p4e12.4)
@@ -1065,9 +1244,9 @@ end subroutine boundarygs
 
 subroutine deltafun(x,z,dum,val)
 
-  use p_data
   use t_data
   use basic
+  use arrays
 
   implicit none
 
@@ -1088,18 +1267,21 @@ subroutine deltafun(x,z,dum,val)
      eta =-(x-x1)*sin(theta) + (z-z1)*cos(theta)
 
      ! calculate the contribution to b1vecini
-     do iii=1,3     
-        call entdofs(1, ist(itri, iii)+1, 0, ibegin, iendplusone)
-        do ii=1,6
-           i = (iii-1)*6 + ii
+     do i=1,18
+!!$     do iii=1,3     
+!!$        call entdofs(numvargs, ist(itri, iii)+1, 0, ibegin, iendplusone)
+!!$        do ii=1,6
+!!$           i = (iii-1)*6 + ii
            index = ibegin+ii-1
+           index = isval1(itri,i)
+
            sum = 0.
            do k=1,20
               sum = sum + gtri(k,i,itri)*si**mi(k)*eta**ni(k)
            enddo
            dum(index) = dum(index) + sum*val
         enddo
-     enddo
+!!$     enddo
   end if
 
   call sumshareddofs(dum)
@@ -1114,11 +1296,15 @@ subroutine fundef
 !     fun2 = G2/R
 !     fun3 = G3/R
 
-  use arrays
+  ! fun1 = r*p'
+  ! fun4 = G1'/r
+  ! fun2 = G2'/r
+  ! fun3 = G3'/r
+
   use basic
   
   implicit none 
-  integer :: l, numnodes, k, ibegin, iendplusone
+  integer :: l, numnodes, i, ibegin, iendplusone
   real :: x, z, xmin, zmin, pso, psox, psoy, psoxx, psoxy, psoyy, fbig
   real :: fbigp, fbigpp, g4big, g4bigp, g4bigpp, g2big, g2bigp
   real :: g2bigpp, g3big, g3bigp, g3bigpp
@@ -1126,6 +1312,8 @@ subroutine fundef
 
   call getmincoord(xmin, zmin)
   dpsii = 1./(psilim - psimin)
+
+  print *, "dpsii = ", dpsii
 
   call numnod(numnodes)
   do l=1,numnodes
@@ -1136,12 +1324,13 @@ subroutine fundef
 
      call entdofs(numvargs, l, 0, ibegin, iendplusone)
      pso =  (psi(ibegin)-psimin)*dpsii
+
      if(pso .lt. 0. .or. pso .gt. 1.) then
-        do k=0,5
-           fun1(ibegin+k) = 0.
-           fun4(ibegin+k) = 0.
-           fun2(ibegin+k) = 0.
-           fun3(ibegin+k) = 0.
+        do i=0,5
+           fun1(ibegin+i) = 0.
+           fun4(ibegin+i) = 0.
+           fun2(ibegin+i) = 0.
+           fun3(ibegin+i) = 0.
         enddo
      else
         psox = psi(ibegin+1)*dpsii
@@ -1150,17 +1339,17 @@ subroutine fundef
         psoxy= psi(ibegin+4)*dpsii
         psoyy= psi(ibegin+5)*dpsii
      
-        fbig = p0*dpsii*(p1 + 2.*p2*pso - 3.*(20 + 10*p1+4.*p2)*pso**2       &
-             + 4.*(45.+20.*p1+6*p2)*pso**3 - 5*(36.+15*p1+4*p2)*pso**4       &
+        fbig = p0*dpsii*(p1 + 2.*p2*pso - 3.*(20. + 10.*p1+4.*p2)*pso**2     &
+             + 4.*(45.+20.*p1+6.*p2)*pso**3 - 5*(36.+15.*p1+4.*p2)*pso**4    &
              + 6.*(10.+4.*p1+p2)*pso**5)
-        fbigp = p0*dpsii*(2.*p2 - 6.*(20 + 10*p1+4.*p2)*pso                  &
+        fbigp = p0*dpsii*(2.*p2 - 6.*(20. + 10.*p1+4.*p2)*pso                &
              + 12.*(45.+20.*p1+6*p2)*pso**2 - 20.*(36.+15*p1+4*p2)*pso**3    &
              + 30.*(10.+4.*p1+p2)*pso**4)
-        fbigpp= p0*dpsii*(- 6.*(20 + 10*p1+4.*p2)                            &
+        fbigpp= p0*dpsii*(- 6.*(20. + 10.*p1+4.*p2)                          &
              + 24.*(45.+20.*p1+6*p2)*pso - 60.*(36.+15*p1+4*p2)*pso**2       &
              + 120.*(10.+4.*p1+p2)*pso**3)
 
-        fun1(ibegin) = x*fbig
+        fun1(ibegin)   = x*fbig
         fun1(ibegin+1) = fbig + x*fbigp*psox
         fun1(ibegin+2) =        x*fbigp*psoy
         fun1(ibegin+3) = 2.*fbigp*psox + x*(fbigpp*psox**2+fbigp*psoxx)
@@ -1212,9 +1401,12 @@ subroutine fundef
         fun3(ibegin+4)= (g3bigpp*psox*psoy+g3bigp*psoxy)/x                  &
              - g3bigp*psoy/x**2
         fun3(ibegin+5)=  (g3bigpp*psoy**2 + g3bigp*psoyy)/x
-        
      endif
   enddo
+
+  fun2 = fun2 / 2.
+  fun3 = fun3 / 2.
+  fun4 = fun4 / 2.
   
   return
 end subroutine fundef

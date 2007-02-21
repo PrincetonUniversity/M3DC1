@@ -10,7 +10,7 @@ F90    = ifort -c
 F77    = ifort -c
 CC     = icc -c
 
-F90OPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE)  
+F90OPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE) -warn unused
 F77OPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE)
 
 NEWOBJS1 = M3Dmodules.o nintegrate_mod.o metricterms_n.o newvar.o \
