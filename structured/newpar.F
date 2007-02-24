@@ -513,8 +513,24 @@
          timer = 0.
          if(idens.eq.1) then
             call denequ(den0)
-            if(myrank.eq.0) call oneplot(0,0,den0,1,1,"den0 ")
+            call inverse(den0,deni)
+         else
+            do i=1,n*m
+                 index1 = (i-1)*6 + 1
+                 den0(index1) = 1.
+                 deni(index1) = 1.
+                 dent(index1) = 1.
+                 den (index1) = 0.
+               do j=2,6
+                 index1 = (i-1)*6 + j
+                 den0(index1) = 0.
+                 deni(index1) = 0.
+                 dent(index1) = 0.
+                 den (index1) = 0.
+               enddo
+            enddo
          endif                  ! on idens .eq.1
+            if(myrank.eq.0) call oneplot(0,0,den0,1,1,"den0 ")
          if(ipres.eq.1) then
             call presequ(pres0)
             if(myrank.eq.0) call oneplot(0,0,pres0,1,1,"p0   ")
@@ -574,7 +590,6 @@
 !      for two fluid run, define initial toroidal velocity as ion current
 !                (note:  sphip being used for temporary storage)
         if(velion.gt.0 .and. numvar.ge.2 .and. db.gt.0) then
-         call inverse(den0,deni)
           call newvarc(1,jphi0,sphip,m*n,1,1,26)
             do i=1,n*m
                do j=1,6
@@ -679,60 +694,61 @@
       ntimemax = ntime
       if(myrank.eq.0 .and. elvis.gt.0) call netcdfout
   102 continue
+      if(myrank .ne. 0) go to 999
 
       if(myrank.eq.0 .and. iprint.eq.1) then
          print *, 'Deallocating matrices...'
       endif
 #ifdef mpi
-      deallocate(jbiglist)
-      deallocate(origcolind)
+!     deallocate(jbiglist)
+!     deallocate(origcolind)
 
-      if(idens.eq.1 .or. ipres.eq.1) deallocate(origcolind1)
-      
-      call sparseR8d_del(s1matrix_lu,ier)
-      call sparseR8d_free(s1matrix_lu,ier)
-      call sparseR8d_del(s2matrix_lu,ier)
-      call sparseR8d_free(s2matrix_lu,ier)
-      if(ifirsts3_lu.ne.0) then
-         call sparseR8d_del(s3matrix_lu,ier)
-         call sparseR8d_free(s3matrix_lu,ier)
-      endif
-      if(ifirsts5_lu.ne.0) then
-         call sparseR8d_del(s5matrix_lu,ier)
-         call sparseR8d_free(s5matrix_lu,ier)
-      endif
-      if(ifirsts6_lu.ne.0) then
-         call sparseR8d_del(s6matrix_lu,ier)
-         call sparseR8d_free(s6matrix_lu,ier)
-      endif
-      if(ifirsts7_lu.ne.0) then
-         call sparseR8d_del(s7matrix_lu,ier)
-         call sparseR8d_free(s7matrix_lu,ier)
-      endif
-      if(ifirstsa_lu.ne.0) then
-         call sparseR8d_del(samatrix_lu,ier)
-         call sparseR8d_free(samatrix_lu,ier)
-      endif
-      call sparseR8d_free(d1matrix_lu,ier)
-      call sparseR8d_free(d2matrix_lu,ier)
-      call sparseR8d_free(d3matrix_lu,ier)
-      call sparseR8d_free(r1matrix_lu,ier)
-      call sparseR8d_free(r2matrix_lu,ier)
-      call sparseR8d_free(q2matrix_lu,ier)
-      if(idens.gt.0) then
-         call sparseR8d_del(s8matrix_lu,ier)
-         call sparseR8d_free(s8matrix_lu,ier)
-         call sparseR8d_free(d8matrix_lu,ier)
-         call sparseR8d_free(r8matrix_lu,ier)
-         call sparseR8d_free(q8matrix_lu,ier)
-      endif
-      if(ipres.eq.1) then
-         call sparseR8d_del(s9matrix_lu,ier)
-         call sparseR8d_free(s9matrix_lu,ier)
-         call sparseR8d_free(d9matrix_lu,ier)
-         call sparseR8d_free(r9matrix_lu,ier)
-         call sparseR8d_free(q9matrix_lu,ier)
-      endif
+!     if(idens.eq.1 .or. ipres.eq.1) deallocate(origcolind1)
+!
+!     call sparseR8d_del(s1matrix_lu,ier)
+!     call sparseR8d_free(s1matrix_lu,ier)
+!     call sparseR8d_del(s2matrix_lu,ier)
+!     call sparseR8d_free(s2matrix_lu,ier)
+!     if(ifirsts3_lu.ne.0) then
+!        call sparseR8d_del(s3matrix_lu,ier)
+!        call sparseR8d_free(s3matrix_lu,ier)
+!     endif
+!     if(ifirsts5_lu.ne.0) then
+!        call sparseR8d_del(s5matrix_lu,ier)
+!        call sparseR8d_free(s5matrix_lu,ier)
+!     endif
+!     if(ifirsts6_lu.ne.0) then
+!        call sparseR8d_del(s6matrix_lu,ier)
+!        call sparseR8d_free(s6matrix_lu,ier)
+!     endif
+!     if(ifirsts7_lu.ne.0) then
+!        call sparseR8d_del(s7matrix_lu,ier)
+!        call sparseR8d_free(s7matrix_lu,ier)
+!     endif
+!     if(ifirstsa_lu.ne.0) then
+!        call sparseR8d_del(samatrix_lu,ier)
+!        call sparseR8d_free(samatrix_lu,ier)
+!     endif
+!     call sparseR8d_free(d1matrix_lu,ier)
+!     call sparseR8d_free(d2matrix_lu,ier)
+!     call sparseR8d_free(d3matrix_lu,ier)
+!     call sparseR8d_free(r1matrix_lu,ier)
+!     call sparseR8d_free(r2matrix_lu,ier)
+!     call sparseR8d_free(q2matrix_lu,ier)
+!     if(idens.gt.0) then
+!        call sparseR8d_del(s8matrix_lu,ier)
+!        call sparseR8d_free(s8matrix_lu,ier)
+!        call sparseR8d_free(d8matrix_lu,ier)
+!        call sparseR8d_free(r8matrix_lu,ier)
+!        call sparseR8d_free(q8matrix_lu,ier)
+!     endif
+!     if(ipres.eq.1) then
+!        call sparseR8d_del(s9matrix_lu,ier)
+!        call sparseR8d_free(s9matrix_lu,ier)
+!        call sparseR8d_free(d9matrix_lu,ier)
+!        call sparseR8d_free(r9matrix_lu,ier)
+!        call sparseR8d_free(q9matrix_lu,ier)
+!     endif
 #else 
       call dsupralu_del(s1handle, jer)
       call sparseR8_free(s1matrix_lu,ier)
@@ -995,6 +1011,7 @@
       endif
 
 !....>>>>>debug remove r40
+!     r40 = 0.
       vtemp = vtemp +   b1vector + r4 + r40
 
       do l=1,nbcv
@@ -1083,7 +1100,7 @@
 !
 ! Advance DENSITY ========================================================
       if(iprint.eq.1 .and. myrank.eq.0) write(*,*) "advancing den"
-      if(idens.gt.0) then
+      if(idens.gt.0 .and. facden .gt.0) then
          if(ntime.le.ntimer+1.or.                                       &
      &        (linear.eq.0 .and. mod(ntime,nskip).eq.0)) then
             call ludefden
@@ -1148,7 +1165,7 @@
 #else
 !
 !.....solve linear system using LU decomp encoded in s8handle, rhs in vtemp
-      if(iprint.eq.1) write(*,*) "before dsupralu_solve ... s8handle",  &
+        if(iprint.eq.1) write(*,*) "before dsupralu_solve ... s8handle",&
      &        s8handle
          call dsupralu_solve(s8handle, vtemp, jer)
          if(jer.ne.0) then
@@ -2514,24 +2531,27 @@ c$$$      endif
               if(idens.eq.0) then
 !
               ssterm(3,2)=ssterm(3,2) - dt*dbf*k0term(iodd,i,k,j)       &
-     &           *thimp*(phi(k3)+phi0(k3))
+     &           *thimp*(phi(k3)+phi0(k3))*pefac
 !
               ddterm(3,2)=ddterm(3,2) - dt*dbf*k0term(iodd,i,k,j)*      &
-     &           (thimp*(phi(k3)+phi0(k3))-(0.5*phi(k3)+phi0(k3)))
+     &           (thimp*(phi(k3)+phi0(k3))-(0.5*phi(k3)+phi0(k3)))      &
+     &           *pefac
 !
               ssterm(3,3) = ssterm(3,3)                                 &
      &            -dt*dbf*k0term(iodd,i,j,k)*thimp*(phi(k2)+phi0(k2))   &
+     &             *pefac
 !
               ddterm(3,3) = ddterm(3,3)                                 &
      &            -dt*dbf*k0term(iodd,i,j,k)*(thimp*(phi(k2)+phi0(k2))  &
      &                                 -(0.5*phi(k2)+phi0(k2)))         &
+     &                                  *pefac
 !
               else ! on idens.eq.0
                  ssterm(2,3)=ssterm(2,3) - dt*dbf*k0term(iodd,i,k,j)    &
-     &                *thimp *deni(kone)
+     &                *thimp *deni(kone)*pefac
 !
                  ddterm(2,3)=ddterm(2,3) + dt*dbf*k0term(iodd,i,k,j)    &
-     &                *(1-thimp)*deni(kone)
+     &                *(1-thimp)*deni(kone)*pefac
 !
 !
               endif ! on idens
@@ -5904,7 +5924,7 @@ c$$$      endif
 #else
       implicit none
 #endif
-      integer icount, irect, jrect, iodd, itri, ll, jfirst, jlast
+      integer icount, irect, jrect, iodd, itri, ll, jfirst,jlast
       integer i, i1, i3
       integer j, jone
       integer ier
@@ -5987,7 +6007,7 @@ c$$$      endif
 #else
       implicit none
 #endif
-      integer icount, irect, jrect, iodd, itri, ll, jfirst, jlast
+      integer icount, irect, jrect, iodd, itri, ll, jfirst,jlast
       integer i, i1, i2, i3
       integer j, j1, j2, j3, jone, j01
       integer k, k1, k2, k3, k01, kone

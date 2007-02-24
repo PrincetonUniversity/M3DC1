@@ -23,7 +23,7 @@
       integer :: itri, iodd, ll, j, jj, jjj, i, ii, iii, lx, lz, j1, i1
       integer :: l, i0, jjp, jjjp, jp, k, ier, jer, itnum, jsp
       real :: terma, x, z, aminor, fac, bv, termd, term1, term2
-      real :: g, gx, gz, gxx, gxz, gzz
+      real :: g, gx, gz, gxx, gxz, gzz, rnorm
       real :: gv, gvx, gvz, gvxx, gvxz, gvzz
       real :: th, sum, count, rhs, ajlim, curr, q0, qstar
       real :: xrel, zrel, error, xguess, zguess
@@ -94,6 +94,7 @@
 !.....minor radius
       aminor = abs(xmag-xlim)
       bv = (1./(4.*pi*xmag))*(alog(8.*xmag/aminor) - 1.5 + 1.2)
+      rnorm = xzero+alx/2.
       do lx=1,n
       x = xzero + (lx-1)*deex
         do lz=1,m,m-1
@@ -101,7 +102,7 @@
           l = lx + (lz-1)*n
           i0 = (l-1)*6
           call gvect(x,z,xmag,zmag,1,g,gx,gz,gxx,gxz,gzz,0,ineg)
-          call gvect(x,z,102.,xmag,1,gv,gvx,gvz,gvxx,gvxz,gvzz,1,ineg)
+          call gvect(x,z,102.,rnorm,1,gv,gvx,gvz,gvxx,gvxz,gvzz,1,ineg)
           phi(i0+1) = (g  +  gv*bv)*fac
           phi(i0+2) = (gx + gvx*bv)*fac
           phi(i0+3) = (gz + gvz*bv)*fac
@@ -123,7 +124,7 @@
           l = lx + (lz-1)*n
           i0 = (l-1)*6
           call gvect(x,z,xmag,zmag,1,g,gx,gz,gxx,gxz,gzz,0,ineg)
-          call gvect(x,z,102.,12.,1,gv,gvx,gvz,gvxx,gvxz,gvzz,1,ineg)
+          call gvect(x,z,102.,rnorm,1,gv,gvx,gvz,gvxx,gvxz,gvzz,1,ineg)
           phi(i0+1) = (g  +  gv*bv)*fac
           phi(i0+2) = (gx + gvx*bv)*fac
           phi(i0+3) = (gz + gvz*bv)*fac
@@ -232,7 +233,7 @@
 !
       enddo
       if(myrank.eq.0) call oneplot(0,0,phi,1,1,"phi  ")
-      th = 0.9
+      th = 0.5
 !
 !
 !.....calculate the error
@@ -372,7 +373,7 @@
 !.....end of loop to define RHS vector 
 !
 !.....diagnostic plots
-      if(itnum.le.50) go to 500
+      if(itnum.le.80) go to 500
       ntime = itnum
       temp = -(fun1+gamma2*fun2+gamma3*fun3+gamma4*fun4)     
       if(myrank.eq.0) call oneplot(0,0,temp,1,1,"temp ")

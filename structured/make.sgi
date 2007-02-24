@@ -10,7 +10,7 @@ F77 = ifort  -c -I.. -I$(SUPERLU_DIST_HOME)/SRC
 #F77 = ifort -c -I.. -I/usr/local/SuperLU_DIST_2.0/SRC
 
 
-CFOPTS = -r8 -save -Dmpi -ftz -fpp -warn unused
+CFOPTS = -r8  -save -Dmpi -ftz -fpp -warn unused
 
 FFLIBS = -L$(F90HOME)/lib -lifport -lifcore -lifcoremt -lunwind
 LAPACKLIBS = -L$(MKLHOME)/lib/64 -lguide -lmkl_lapack -lmkl_ipf

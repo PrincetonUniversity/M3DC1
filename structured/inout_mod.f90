@@ -29,7 +29,7 @@ subroutine plotit(vel,phi,ilin)
   integer :: iresmid, iresqtr, jresmid, jresqtr
   real :: x, z, plotmin, plotmin2, plotmax, plotmax2, small
 
-  if(iprint.gt.0) write(*,*) "start of plotit"
+  if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "start of plotit"
   maxst = 'max'
   minst = 'min'
 
@@ -210,7 +210,7 @@ subroutine plotit(vel,phi,ilin)
          ihdf5 =     ihdf5+1
       endif
    endif
-   if(iprint.eq.1) write(*,*) "after HDF5 write"
+   if(myrank.eq.0 .and. iprint.ge.1)write(*,*) "after HDF5 write"
    ! end of write HDF5 files
 #endif
 
@@ -734,7 +734,7 @@ subroutine openf
 
   integer :: maxhdf, jj
 
-  if(myrank.eq.0 .and. iprint.gt.0) then
+  if(myrank.eq.0 .and. iprint.ge.1) then
      print *, "Entering openf."
   endif
 
@@ -829,7 +829,7 @@ subroutine openf
      call safestop(5222)
   endif
 
-  if(myrank.eq.0 .and. iprint.gt.0) then
+  if(myrank.eq.0 .and. iprint.ge.1) then
      print *, "Exiting openf."
   endif
 
@@ -851,7 +851,7 @@ subroutine output
   real :: etot, etoto, etotd, etoth, ediff, error, enorm, denom, percerr
   real :: vmaxsq, vnew, vmax, x1, x2, z1, z2, val1, dum1, val2, dum2, superlutime
 
-      if(iprint.ge.1) write(*,*) ntime,  "output called"
+      if(myrank.eq.0 .and. iprint.ge.1) write(*,*) ntime,  "output called"
   ! calculate maximum perturbed current for printout
   ajmax = 0.
   do i=2,400
@@ -863,6 +863,7 @@ subroutine output
      enddo
   enddo
 
+      if(myrank.eq.0 .and. iprint.ge.1) write(*,*) ntime,  "after ajmax"
   ! search for the location of the magnetic axis and separatrices
   !      call axis(phi,xsep,zsep,1)
   xsep = 0.
@@ -892,6 +893,7 @@ subroutine output
   enorm = max( abs((ekin-ekino)/dt), abs((emag-emago)/dt),          &
        abs( etotd) , abs(etoth) )
 
+      if(myrank.eq.0 .and. iprint.ge.1) write(*,*) ntime,  "after enorm"
   graphit(ntime,1) = (ekin - ekino)/dt
 
   ! calculate the maximum poloidal velocity at a grid point
@@ -913,6 +915,7 @@ subroutine output
      enddo
   enddo
   vmax = sqrt(vmaxsq)
+      if(myrank.eq.0 .and. iprint.ge.1) write(*,*) ntime,  "after vmaxsq"
   graphit(ntime,2) = (emag - emago)/dt
   graphit(ntime,3) = ediff
   graphit(ntime,4) = gamma
@@ -1002,6 +1005,7 @@ subroutine output
      enorm=abs(ekinp)+abs(emagp)+abs(ekint)+abs(emagt)                 &
           +abs(ekin3)+abs(emag3)
      percerr = etot/enorm
+      if(myrank.eq.0 .and. iprint.ge.1)write(*,*) "enorm=", enorm
      if(myrank.eq.0) write(66,2002) ntime,time,                        &
           ekinp,emagp,ekint,emagt,ekin3,emag3,etot,ekin,percerr
       superlutime = graphit(ntime  ,37) - graphit(ntime  ,36)                  &
@@ -1012,6 +1016,7 @@ subroutine output
 2002 format(i5,1p10e12.4)
   endif
 !
+      if(myrank.eq.0 .and. iprint.ge.1) write(*,*) ntime,  "after superlutimewrite"
 !
 !.....compute some midplane arrays for elvis graphics
      z = alz/2
@@ -1043,7 +1048,7 @@ subroutine output
   endif
   iframe = iframe + 1
   ihdf5 = 0
-      if(iprint.gt.0) write(*,*) "before first call to plotit"
+      if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "before first call to plotit"
 
   ! plot full perturbation
   phi1 = phi + phi0
@@ -1053,7 +1058,7 @@ subroutine output
   if(linear.eq.1.and.ntime.eq.0) call plotit(vel0,phi0,1)
   !plot linearized solution
   if(linear.eq.1) call plotit(vel,phi,0)
-      if(iprint.gt.0) write(*,*) "before first call to oneplot"
+      if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "before first call to oneplot"
   if(idens.eq.1) then
     call oneplot(0,2,dent,1,1,"dent ")
     call oneplot(0,3,deni,1,1,"deni ")
@@ -1438,7 +1443,7 @@ subroutine input
 !     itest = 5 for tilting columns - two fluid (linear)
 !
 
-  if(myrank.eq.0 .and. iprint.gt.0) then
+  if(myrank.eq.0 .and. iprint.ge.1) then
      print *, "Entering input."
   endif
 
@@ -1453,6 +1458,9 @@ subroutine input
 
   ! density advance parameter: 0 no advance,  1-advance density
   idens = 1
+!
+!  pressure advance:  0 use electron pressure as pressure, 1-advance pressure
+  ipres = 0
 
   ! restart parameter 0-no restart, 1 restart
   irestart = 0
@@ -1883,7 +1891,7 @@ subroutine input
   
   if(myrank.eq.0) write(*,nml=inputnl)
 
-    if(myrank.eq.0 .and. iprint.gt.0) then
+    if(myrank.eq.0 .and. iprint.ge.1) then
      print *, "Exiting input."
   endif
 
@@ -1997,7 +2005,7 @@ subroutine readit
   CALL MPI_Bcast(sterm, count,MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD, ier)
   CALL MPI_Bcast(xterm, count,MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD, ier)
   CALL MPI_Bcast(yterm, count,MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD, ier)
-  if(iprint.eq.1) then
+  if(iprint.ge.1)then
      call MPI_Barrier(MPI_COMM_WORLD, ier) 
      write(*,112) myrank, (sterm(1,1,i),i=1,4)
      write(9+myrank,112) myrank,  (sterm(1,1,i),i=1,4)

@@ -497,15 +497,15 @@ endif
 !               viscous(i3) = viscous(i3) + (gam-1.)*vel(j3)*vel(k3)*   &
 !     &      (amu*g15erm(iodd,i,j,k) + 2*(amuc-amu)*g17erm(iodd,i,j,k))
            if(idens.eq.0) then
-              sum = sum + dbf*k0term(iodd,i,k,j)                          &
-                    *((phi(k3)+phi0(k3))*(phi(j2)+phi0(j2))               &
+              sum = sum + dbf*k0term(iodd,i,k,j)*pefac                  &
+                    *((phi(k3)+phi0(k3))*(phi(j2)+phi0(j2))             &
                       -phi0(k3)*phi0(j2)*linear)
            else
               do l=1,18
                  lone = isval1(itri,l)
                  denf = deni(lone)*dbf
-                 sum = sum + denf*u5terml(k,l)*pefac                      &
-                    *((phi(j3)+phi0(j3))*(phi(k2)+phi0(k2))               &
+                 sum = sum + denf*(temparr(k,l)+gam*u5terml(k,l))*pefac &
+                    *((phi(j3)+phi0(j3))*(phi(k2)+phi0(k2))             &
                       -phi0(j3)*phi0(k2)*linear)
               enddo               ! on l
            endif ! on idens.eq.0
@@ -660,7 +660,7 @@ endif
              if(numvar.ge.2) then
                if(idens.eq.0) then
 !
-                 sum = sum + dbf*k0term(iodd,i,j,k)*thimp*(phi(k2)+phi0(k2))      &
+                 sum = sum + dbf*k0term(iodd,i,j,k)*(phi(k2)+phi0(k2))      &
                                                          *(phi(j1)+phi0(j01))
 !
                endif ! on idens.eq.0
