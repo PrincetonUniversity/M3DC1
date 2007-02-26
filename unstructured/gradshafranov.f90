@@ -51,7 +51,7 @@ subroutine gradshafranov_solve
 
   include 'mpif.h'
   
-  integer, parameter :: iterations = 100
+  integer, parameter :: iterations = 50
 
   real   gsint1,gsint4,gsint2,gsint3,lhs,cfac(18)
   real, allocatable :: temp(:), b1vecini(:)
@@ -72,9 +72,7 @@ subroutine gradshafranov_solve
   real :: g3, g3x, g3z, g3xx, g3xz, g3zz
   real, dimension(5) :: temp1, temp2
   double precision :: coords(3)
- 
-  real, dimension(20) :: avec
-  
+   
   real :: tstart, tend, tsol, tmagaxis, tfundef, tplot
 
 
@@ -382,9 +380,13 @@ subroutine gradshafranov_solve
      !  gamma3 = -(.5*djdpsi/dpsii + p0*p2)
      gamma2 =- 2.*xmag*(xmag*p0*p1 + (2.*g0/(xmag**2*q0*dpsii)))
      gamma3 = -(xmag*djdpsi/dpsii + 2*xmag**2*p0*p2)
-     gamma2 = gamma2 / 2.
-     gamma3 = gamma3 / 2.
-
+!!$     gamma2 = gamma2 / 2.
+!!$     gamma3 = gamma3 / 2.
+     
+     ! Nate:
+     gamma2 =  - xmag*(xmag*p0*p1 + 2.*g0*(psilim-psimin)/(xmag**2*q0))
+     gamma3 =  - (djdpsi*(psilim-psimin)/2. + p0*p2)
+     
      gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
 
   if(myrank.eq.0 .and. iprint.gt.0) then
@@ -522,14 +524,9 @@ subroutine gradshafranov_solve
                 / phi0(ibeginn+6) - &
                 (0.5*(gamma2*g1z + gamma3*g2z + gamma4*g3z))**2 &
                 / phi0(ibeginn+6)**3
-
-
         endif
-
-!!$        phi0(ibeginn+6:ibeginn+11) = -phi0(ibeginn+6:ibeginn+11)
      end if
 
-!     p = p0*(1. + p1*Psi + p2*Psi**2)
      if(numvar.ge.3) then
         sum = p0 - pi0*ipres
 
@@ -541,55 +538,55 @@ subroutine gradshafranov_solve
                 -(20. + 10.*p1 + 4.*p2)*temp(ibegin)**3 &
                 +(45. + 20.*p1 + 6.*p2)*temp(ibegin)**4 &
                 -(36. + 15.*p1 + 4.*p2)*temp(ibegin)**5 &
-                +(10. + 4.*p1 + p2)*temp(ibegin)**6)
+                +(10. +  4.*p1 +    p2)*temp(ibegin)**6)
            phi0(ibeginn+13) = sum*temp(ibegin+1)* &
                 (p1+2.*p2*temp(ibegin) &
                 -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
                 +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
                 -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
-                +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5)
+                +6.*(10. +  4.*p1 +    p2)*temp(ibegin)**5)
            phi0(ibeginn+14) = sum*temp(ibegin+2)* &
                 (p1+2.*p2*temp(ibegin) &
                 -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
                 +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
                 -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
-                +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5)
+                +6.*(10. +  4.*p1 +    p2)*temp(ibegin)**5)
            phi0(ibeginn+15) = sum*temp(ibegin+3)* &
                 (p1+2.*p2*temp(ibegin) &
                 -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
                 +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
                 -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
-                +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5) + &
+                +6.*(10. +  4.*p1 +    p2)*temp(ibegin)**5) + &
                 sum*temp(ibegin+1)**2* &
                 (2.*p2 &
                 -6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
                 +13.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
                 -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
-                +30.*(10. + 4.*p1 + p2)*temp(ibegin)**4)
+                +30.*(10. +  4.*p1 +    p2)*temp(ibegin)**4)
            phi0(ibeginn+16) = sum*temp(ibegin+4)* &
                 (p1+2.*p2*temp(ibegin) &
                 -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
                 +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
                 -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
-                +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5) + &
+                +6.*(10. +  4.*p1 +    p2)*temp(ibegin)**5) + &
                 sum*temp(ibegin+1)*temp(ibegin+2)* &
                 (2.*p2 &
-                -6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
+                - 6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
                 +13.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
                 -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
-                +30.*(10. + 4.*p1 + p2)*temp(ibegin)**4)
+                +30.*(10. +  4.*p1 +    p2)*temp(ibegin)**4)
            phi0(ibeginn+17) = sum*temp(ibegin+5)* &
                 (p1+2.*p2*temp(ibegin) &
                 -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
                 +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
                 -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
-                +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5) + &
+                +6.*(10. +  4.*p1 +    p2)*temp(ibegin)**5) + &
                 sum*temp(ibegin+2)**2* &
                 (2.*p2 &
-                -6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
+                - 6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
                 +13.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
                 -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
-                +30.*(10. + 4.*p1 + p2)*temp(ibegin)**4)
+                +30.*(10. +  4.*p1 +    p2)*temp(ibegin)**4)
         endif
 
         if(ipres.eq.1) then
@@ -597,63 +594,63 @@ subroutine gradshafranov_solve
 
            sum = p0
 
-        if(temp(ibegin) .lt. 0 .or. temp(ibegin) .gt. 1) then
-           call constant_field(pres0(ibeginn:ibeginn+5), 0.)
-        else
-           pres0(ibeginn) = sum* &
-                (1.+p1*temp(ibegin)+p2*temp(ibegin)**2 &
-                -(20. + 10.*p1 + 4.*p2)*temp(ibegin)**3 &
-                +(45. + 20.*p1 + 6.*p2)*temp(ibegin)**4 &
-                -(36. + 15.*p1 + 4.*p2)*temp(ibegin)**5 &
-                +(10. + 4.*p1 + p2)*temp(ibegin)**6)
-           pres0(ibeginn+1) = sum*temp(ibegin+1)* &
-                (p1+2.*p2*temp(ibegin) &
-                -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
-                +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
-                -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
-                +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5)
-           pres0(ibeginn+2) = sum*temp(ibegin+2)* &
-                (p1+2.*p2*temp(ibegin) &
-                -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
-                +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
-                -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
-                +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5)
-           pres0(ibeginn+3) = sum*temp(ibegin+3)* &
-                (p1+2.*p2*temp(ibegin) &
-                -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
-                +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
-                -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
-                +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5) + &
-                sum*temp(ibegin+1)**2* &
-                (2.*p2 &
-                -6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
-                +13.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
-                -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
-                +30.*(10. + 4.*p1 + p2)*temp(ibegin)**4)
-           pres0(ibeginn+4) = sum*temp(ibegin+4)* &
-                (p1+2.*p2*temp(ibegin) &
-                -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
-                +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
-                -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
-                +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5) + &
-                sum*temp(ibegin+1)*temp(ibegin+2)* &
-                (2.*p2 &
-                -6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
-                +13.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
-                -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
-                +30.*(10. + 4.*p1 + p2)*temp(ibegin)**4)
-           pres0(ibeginn+5) = sum*temp(ibegin+5)* &
-                (p1+2.*p2*temp(ibegin) &
-                -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
-                +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
-                -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
-                +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5) + &
-                sum*temp(ibegin+2)**2* &
-                (2.*p2 &
-                -6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
-                +13.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
-                -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
-                +30.*(10. + 4.*p1 + p2)*temp(ibegin)**4)
+           if(temp(ibegin) .lt. 0 .or. temp(ibegin) .gt. 1) then
+              call constant_field(pres0(ibeginn:ibeginn+5), 0.)
+           else
+              pres0(ibeginn) = sum* &
+                   (1.+p1*temp(ibegin)+p2*temp(ibegin)**2 &
+                   -(20. + 10.*p1 + 4.*p2)*temp(ibegin)**3 &
+                   +(45. + 20.*p1 + 6.*p2)*temp(ibegin)**4 &
+                   -(36. + 15.*p1 + 4.*p2)*temp(ibegin)**5 &
+                   +(10. + 4.*p1 + p2)*temp(ibegin)**6)
+              pres0(ibeginn+1) = sum*temp(ibegin+1)* &
+                   (p1+2.*p2*temp(ibegin) &
+                   -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
+                   +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
+                   -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
+                   +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5)
+              pres0(ibeginn+2) = sum*temp(ibegin+2)* &
+                   (p1+2.*p2*temp(ibegin) &
+                   -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
+                   +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
+                   -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
+                   +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5)
+              pres0(ibeginn+3) = sum*temp(ibegin+3)* &
+                   (p1+2.*p2*temp(ibegin) &
+                   -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
+                   +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
+                   -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
+                   +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5) + &
+                   sum*temp(ibegin+1)**2* &
+                   (2.*p2 &
+                   -6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
+                   +13.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
+                   -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
+                   +30.*(10. + 4.*p1 + p2)*temp(ibegin)**4)
+              pres0(ibeginn+4) = sum*temp(ibegin+4)* &
+                   (p1+2.*p2*temp(ibegin) &
+                   -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
+                   +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
+                   -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
+                   +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5) + &
+                   sum*temp(ibegin+1)*temp(ibegin+2)* &
+                   (2.*p2 &
+                   -6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
+                   +13.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
+                   -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
+                   +30.*(10. + 4.*p1 + p2)*temp(ibegin)**4)
+              pres0(ibeginn+5) = sum*temp(ibegin+5)* &
+                   (p1+2.*p2*temp(ibegin) &
+                   -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
+                   +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
+                   -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
+                   +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5) + &
+                   sum*temp(ibegin+2)**2* &
+                   (2.*p2 &
+                   -6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
+                   +13.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
+                   -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
+                   +30.*(10. + 4.*p1 + p2)*temp(ibegin)**4)
            end if
         endif
      end if
@@ -715,7 +712,7 @@ subroutine magaxis(xguess,zguess)
   integer, parameter :: iterations = 5
 
   integer :: itri, itrit, itrinew, inews
-  integer :: ii, i, ier
+  integer :: i, ier
   real :: x1, z1, x, z, theta, b, co, sn, si, eta
   real :: sum, sum1, sum2, sum3, sum4, sum5
   real :: term1, term2, term3, term4, term5
@@ -742,8 +739,6 @@ subroutine magaxis(xguess,zguess)
   z = zguess
   
   do inews=1, iterations
-
-     print *, "x1, z1 = ", x1, z1
 
      ! calculate position of minimum
      if(itri.gt.0) then
@@ -800,14 +795,13 @@ subroutine magaxis(xguess,zguess)
         xnew = x1 + co*(b+sinew) - sn*etanew
         znew = z1 + sn*(b+sinew) + co*etanew
 
-!!$        if(iprint.gt.0) print *, "pt,pt1,pt2,p11,p12,p22 ", &
-!!$             pt,pt1,pt2,p11,p12,p22
         if(iprint.gt.0) print *, "magaxis: minimum at ", xnew, znew
      else
         xnew = 0.
         znew = 0.
      endif  ! on itri.gt.0
      
+     ! communicate new minimum to all processors
      if(maxrank.gt.1) then
         temp1(1) = xnew
         temp1(2) = znew
@@ -817,39 +811,27 @@ subroutine magaxis(xguess,zguess)
         znew = temp2(2)
      endif
      
+     ! check to see whether the new minimum is outside the simulation domain
+     if(xnew .lt. 0 .or. xnew.gt.alx .or. &
+          znew .lt. 0 .or. znew.gt.alz) then
+        ! if not within the domain, safestop.
+
+        write(*,3333) inews,x,z,xnew,znew
+3333    format("magaxis: new minimum outside domain. ",i3,1p4e12.4)
+        call safestop(27)       
+     else
+        x = xnew
+        z = znew
+     endif
+
      call whattri(xnew,znew,itrinew,x1,z1) 
      
-     if(itrinew.gt.0) then
-        ! check to see whether the new minimum is outside the simulation domain
-        if(xnew .lt. 0 .or. xnew.gt.alx .or. &
-             znew .lt. 0 .or. znew.gt.alz) then
-           i = 1
-        else
-           i = 0
-           x = xnew
-           z = znew
-        endif
-     else
-        i = 0
+     if(itrinew.le.0) then
         x = 0
         z = 0
         pt = 0
      endif
      itri = itrinew
-
-     ! tell all processors whether or not the new minimum is within the domain 
-     if(maxrank.gt.1) then
-        call mpi_allreduce(i, ii, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ier)
-     else
-        ii = i
-     endif
-
-     ! if not within the domain, safestop.
-     if(ii.eq.1) then
-        write(*,3333) inews,x,z,xnew,znew
-3333       format("magaxis: new minimum outside domain. ",i3,1p4e12.4)
-        call safestop(27)       
-     endif
   end do
 
   xguess = x
@@ -1203,10 +1185,10 @@ subroutine boundarygs(ibound,nbc)
 
   implicit none
   
-  integer, intent(out) :: ibound(*),nbc
+  integer, intent(out) :: ibound(*), nbc
 
-  integer numnodes, i, izone, iplace, izonedim, j
-  integer ibottom, iright, itop, ileft, ibegin, iendplusone
+  integer :: numnodes, i, izone, izonedim
+  integer :: ibottom, iright, itop, ileft, ibegin, iendplusone
   
   call getmodeltags(ibottom, iright, itop, ileft)
   call numnod(numnodes)
@@ -1253,7 +1235,7 @@ subroutine deltafun(x,z,dum,val)
   real, intent(in) :: x, z, val
   real, intent(out) :: dum(*)
 
-  integer :: itri, i, ii, iii, k, ibegin, iendplusone, index
+  integer :: itri, i, k, index
   real :: x1, z1, b, theta, si, eta, sum
   
   call whattri(x,z,itri,x1,z1)
@@ -1268,20 +1250,14 @@ subroutine deltafun(x,z,dum,val)
 
      ! calculate the contribution to b1vecini
      do i=1,18
-!!$     do iii=1,3     
-!!$        call entdofs(numvargs, ist(itri, iii)+1, 0, ibegin, iendplusone)
-!!$        do ii=1,6
-!!$           i = (iii-1)*6 + ii
-           index = ibegin+ii-1
-           index = isval1(itri,i)
+        index = isval1(itri,i)
 
-           sum = 0.
-           do k=1,20
-              sum = sum + gtri(k,i,itri)*si**mi(k)*eta**ni(k)
-           enddo
-           dum(index) = dum(index) + sum*val
+        sum = 0.
+        do k=1,20
+           sum = sum + gtri(k,i,itri)*si**mi(k)*eta**ni(k)
         enddo
-!!$     enddo
+        dum(index) = dum(index) + sum*val
+     enddo
   end if
 
   call sumshareddofs(dum)
@@ -1372,7 +1348,7 @@ subroutine fundef
              - g4bigp*psoy/x**2
         fun4(ibegin+5)=  (g4bigpp*psoy**2 + g4bigp*psoyy)/x
         
-        g2big =  dpsii*(1 - 30.*pso**2 + 80.*pso**3                     &
+        g2big =  dpsii*(1. - 30.*pso**2 + 80.*pso**3                     &
              - 75.*pso**4 + 24.*pso**5)
         g2bigp =  dpsii*(-60.*pso + 240.*pso**2                         &
              - 300.*pso**3 + 120.*pso**4)

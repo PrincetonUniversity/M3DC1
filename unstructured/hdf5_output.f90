@@ -72,7 +72,9 @@ contains
           print *, "Error: could not open ", hdf5_filename, " for HDF5 output: ", error
        endif
 
-       times_output = ntime + 1
+       call h5gopen_f(file_id, "/", root_id, error)
+       call read_int_attr(root_id, "ntime", times_output, error)
+       call h5gclose_f(root_id, error)
     endif
 
     call h5pclose_f(plist_id, error)
@@ -98,6 +100,26 @@ contains
     
   end subroutine hdf5_finalize
 
+  ! read_int_attr
+  ! =============
+  subroutine read_int_attr(parent_id, name, value, error)
+    use hdf5
+    
+    implicit none
+    
+    integer(HID_T), intent(in) :: parent_id
+    character(LEN=*), intent(in) :: name
+    integer, intent(out)  :: value
+    integer, intent(out) :: error
+    
+    integer(HID_T) :: attr_id
+    integer(HSIZE_T), dimension(1) :: dims = 1
+
+    call h5aopen_name_f(parent_id, name, attr_id, error)
+    call h5aread_f(attr_id, H5T_NATIVE_INTEGER, value, dims, error)
+    call h5aclose_f(attr_id, error)
+    
+  end subroutine read_int_attr
 
   ! write_int_attr
   ! ==============
@@ -360,6 +382,11 @@ subroutine hdf5_write_scalars(error)
   else
      call h5gopen_f(root_id, "scalars", scalar_group_id, error)
   endif
+
+  call output_scalar(scalar_group_id, "toroidal_flux"    , totcur, ntime, error)
+  call output_scalar(scalar_group_id, "poloidal_flux"    , pflux , ntime, error)
+  call output_scalar(scalar_group_id, "toroidal_current" , tflux , ntime, error)
+
   
   call output_scalar(scalar_group_id, "time" , time  , ntime, error)
   call output_scalar(scalar_group_id, "E_MP" , emagp , ntime, error)
@@ -554,6 +581,13 @@ subroutine output_fields(time_group_id, error)
   call output_field(group_id, "sb1", dum, 20, nelms, error)
   nfields = nfields + 1
 
+  ! eta
+  do i=1, nelms
+     call calcavector(i, resistivity, 1, 1, dum(:,i))
+  end do
+  call output_field(group_id, "eta", dum, 20, nelms, error)
+  nfields = nfields + 1
+
   if(numvar.ge.2) then
      ! I
      do i=1, nelms
@@ -579,13 +613,28 @@ subroutine output_fields(time_group_id, error)
   endif
 
   if(numvar.ge.3) then
-     ! Pe
-     do i=1, nelms
-        call calcavector(i, phi, 3, numvar, dum(:,i))
-     end do
-     call output_field(group_id, "Pe", dum, 20, nelms, error)
-     nfields = nfields + 1
-
+     ! P and Pe
+     if(ipres.eq.1) then
+        do i=1, nelms
+           call calcavector(i, phi, 3, numvar, dum(:,i))
+        end do
+        call output_field(group_id, "Pe", dum, 20, nelms, error)
+        nfields = nfields + 1
+        do i=1, nelms
+           call calcavector(i, pres, 1, 1, dum(:,i))
+        end do
+        call output_field(group_id, "P", dum, 20, nelms, error)
+        nfields = nfields + 1
+     else
+        do i=1, nelms
+           call calcavector(i, phi, 3, numvar, dum(:,i))
+        end do
+        call output_field(group_id, "Pe", pefac*dum, 20, nelms, error)
+        nfields = nfields + 1
+        call output_field(group_id, "P", dum, 20, nelms, error)
+        nfields = nfields + 1
+     endif
+     
      ! chi
      do i=1, nelms
         call calcavector(i, vel, 3, numvar, dum(:,i))

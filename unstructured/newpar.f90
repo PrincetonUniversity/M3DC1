@@ -15,6 +15,8 @@ Program Reducedquintic
   use newvar_mod
   use sparse
   use hdf5_output
+  use diagnostics
+
   implicit none
 #ifdef mpi
   include 'mpif.h'
@@ -223,6 +225,8 @@ Program Reducedquintic
         call inverse(den,deni)
      endif
   endif
+  !   resistivity
+  call newvar_eta
   !   toroidal current
   call newvar_gs(phi+phi0,jphi,1,1)
   !   vorticity
@@ -236,6 +240,19 @@ Program Reducedquintic
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      write(*,*) " onestep: Time spent defining auxiliary varibles:", tend - tstart
+  endif
+
+
+  ! calculate other quantities of interest
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+  call total_flux
+  pflux0 = pflux
+  tflux0 = tflux
+  totcur0 = totcur
+  if(myrank.eq.0 .and. itimer.eq.1) then
+     call second(tend)
+     write(*,*) " onestep: Time spent other quantities:", tend - tstart
   endif
 
 
@@ -411,6 +428,7 @@ subroutine onestep
   use arrays
   use sparse
   use newvar_mod
+  use diagnostics
 
   implicit none
 
@@ -423,6 +441,10 @@ subroutine onestep
   real, allocatable :: temp(:)
   
   call numnod(numnodes)
+
+  ! apply loop voltage
+  ! ~~~~~~~~~~~~~~~~~~
+  fbound = fbound + dt*vloop/(2.*pi)
 
 
   ! calculate matrices for time advance
@@ -621,11 +643,6 @@ subroutine onestep
 !      phiold = phi
   phi = vtemp
 
-  ! conserve flux
-  ! ~~~~~~~~~~~~~
-  if(iconspflux.eq.1) call conserve_pflux
-  if(numvar.ge.2 .and. iconstflux.eq.1) call conserve_tflux
-
 
   ! define auxiliary variables
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -638,11 +655,27 @@ subroutine onestep
         call inverse(den,deni)
      endif
   endif
+  !   resistivity
+  call newvar_eta
   !   toroidal current
   call newvar_gs(phi+phi0, jphi,1,1)
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      write(*,*) " onestep: Time spent defining auxiliary varibles:", tend - tstart
+  endif
+
+
+  ! calculate other quantities of interest
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+  call total_flux
+  if(iconspflux.eq.1 .or. (iconstflux.eq.1 .and. numvar.ge.2)) then
+     call conserve_flux
+     call total_flux
+  endif
+  if(myrank.eq.0 .and. itimer.eq.1) then
+     call second(tend)
+     write(*,*) " onestep: Time spent other quantities:", tend - tstart
   endif
 
 
@@ -653,152 +686,53 @@ subroutine onestep
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      write(*,*) " onestep: Time spent defining sources:", tend - tstart
-  endif
-
+  endif 
 
 end subroutine onestep
 
 
 ! ======================================================================
-! conserve_tflux
+! conserve_flux
 ! --------------
 !
-! adjusts the boundary conditions to conserve toroidal flux
+! adjusts the boundary conditions to conserve flux
 !
 ! ======================================================================
-subroutine conserve_tflux
+subroutine conserve_flux
 
   use basic
-  use t_data
   use arrays
+  use diagnostics
 
   implicit none
-  include "mpif.h"
   
-  integer :: numelms, itri, j, jone, j2, ier, ndofs
-  real :: correction
-  real :: d2term(18), fintl(-6:maxi,-6:maxi)
-  double precision :: valsin(3), valsout(3)
+  integer :: ndofs, j
 
-  call numfac(numelms)
-
-  totcur = 0
-  area = 0.
-  tflux = 0.
-  ! calculate the total perturbed current and area, and toroidal flux
-  do itri=1,numelms
-     call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
-     call calcd2term(itri, d2term, fintl)
-     do j=1,18
-        jone = isval1(itri,j)
-        totcur = totcur + d2term(j)*jphi(jone)
-
-        if(numvar.ge.2) then
-           j2 = isvaln(itri,j) + 6
-           tflux = tflux + d2term(j)*(phi(j2) + phi0(j2) - phiold(j2))
-        endif
-
-     enddo
-     do j=1,13,6
-        area = area + d2term(j)
-     enddo
-  enddo                     ! loop over itri
-
-  if(maxrank .gt. 1) then
-     valsin(1) = totcur
-     valsin(2) = area
-     valsin(3) = tflux
-     call MPI_ALLREDUCE(valsin, valsout, 3, MPI_DOUBLE_PRECISION, &
-          MPI_SUM, MPI_COMM_WORLD, ier)
-     totcur = valsout(1)
-     area = valsout(2)
-     tflux = valsout(3)
-  endif
-
-
-  ! adjust toroidal field and boundary condition to conserve toroidal flux
-  if(numvar.ge.2) then
-     correction = tflux/area
-     gbound = gbound - correction
+  ! adjust toroidal field and boundary condition to conserve poloidal flux
+  if(iconspflux.eq.1) then
+     fbound = (pflux0-pflux)/area
      call numdofs(numvar, ndofs)
-     do j=7,ndofs,6*numvar
-        phi(j) = phi(j) - correction
+     do j=1,ndofs,6*numvar
+        phi(j) = phi(j) + fbound
      enddo
      if(myrank.eq.0) then
-        print *, "Correction to toroidal flux: "
-        print *, " area, correction, gbound", area, correction, gbound
+        print *, "Correction to toroidal flux: ", fbound*area
+     end if
+     fbound = fbound - dt*vloop/(2.*pi)
+  endif
+
+  ! adjust toroidal field and boundary condition to conserve toroidal flux
+  if(numvar.ge.2 .and. iconstflux.eq.1) then
+     gbound = (tflux0-tflux)/area
+     call numdofs(numvar, ndofs)
+     do j=7,ndofs,6*numvar
+        phi(j) = phi(j) + gbound
+     enddo
+     if(myrank.eq.0) then
+        print *, "Correction to toroidal flux: ", gbound*area
      end if
   endif
 
   return
-end subroutine conserve_tflux
-
-
-! ======================================================================
-! conserve_pflux
-! --------------
-!
-! adjusts the boundary conditions to conserve poloidal flux
-!
-! ======================================================================
-subroutine conserve_pflux
-
-  use basic
-  use t_data
-  use arrays
-
-  implicit none
-  include "mpif.h"
-  
-  integer :: numelms, itri, j, jone, j1, ier, ndofs
-  real :: correction, pflux
-  real :: d2term(18), fintl(-6:maxi,-6:maxi)
-  double precision :: valsin(3), valsout(3)
-
-  call numfac(numelms)
-
-  area = 0.
-  pflux = 0.
-  ! calculate the total perturbed current and area, and toroidal flux
-  do itri=1,numelms
-     call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
-     call calcd2term(itri, d2term, fintl)
-     do j=1,18
-        jone = isval1(itri,j)
-
-        j1 = isvaln(itri,j)
-        pflux = pflux + d2term(j)*(phi(j1) + phi0(j1) - phiold(j1))
-     enddo
-     do j=1,13,6
-        area = area + d2term(j)
-     enddo
-  enddo                     ! loop over itri
-
-  if(maxrank .gt. 1) then
-     valsin(1) = area
-     valsin(2) = pflux
-     call MPI_ALLREDUCE(valsin, valsout, 2, MPI_DOUBLE_PRECISION, &
-          MPI_SUM, MPI_COMM_WORLD, ier)
-     area = valsout(1)
-     pflux = valsout(2)
-  endif
-
-
-  ! adjust poloidal field and boundary condition to conserve poloidal flux
-  correction = pflux/area
-  fbound = fbound - correction
-  call numdofs(numvar, ndofs)
-  do j=1,ndofs,6*numvar
-     phi(j) = phi(j) - correction
-  enddo
-
-  if(myrank.eq.0) then
-     print *, "Correction to poloidal flux: "
-     print *, " pflux, area, correction, fbound", &
-          pflux, area, correction, fbound
-  end if
-
-  return
-end subroutine conserve_pflux
-
+end subroutine conserve_flux
 

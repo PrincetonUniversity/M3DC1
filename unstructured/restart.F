@@ -3,6 +3,7 @@
       use t_data
       use basic
       use arrays
+
       implicit none
       integer mmnn18, j1, mmnn6, ifirstrs, numnodes, numelms 
       real ekinemagt
@@ -52,15 +53,6 @@ c     first put in information to check on run information
       enddo
 !
       call numdofs(1, mmnn6)
-c$$$      do j1=1,mmnn6     
-c$$$         write(56) jphi(j1)
-c$$$      enddo
-c$$$      do j1=1,mmnn6       
-c$$$         write(56) vor(j1)
-c$$$      enddo
-c$$$      do j1=1,mmnn6       
-c$$$         write(56) com(j1)
-c$$$      enddo
       do j1=1,mmnn6       
          write(56) den(j1)
       enddo
@@ -70,21 +62,9 @@ c$$$      enddo
       do j1=1,mmnn6       
          write(56) denold(j1)
       enddo
-c$$$      do j1=1,mmnn6       
-c$$$         write(56) sb1(j1)
-c$$$      enddo
-c$$$      do j1=1,mmnn6       
-c$$$         write(56) sb2(j1)
-c$$$      enddo
-c$$$      do j1=1,mmnn6       
-c$$$         write(56) sp1(j1)
-c$$$      enddo
 !
       write(56) ntime,time
-!      write(56) ((graphit(itime,igr),igr=1,maxplots),itime=1,ntime)
-      write(56) ekin,emag,ekind,emagd,ekinp,emagp,ekinpd,emagpd,
-     &     ekint, emagt,ekintd,emagtd,ekinph,ekinth,emagph,emagth,          
-     &     ekin3,ekin3d,ekin3h,emag3,emag3d,emag3h,tflux,gbound,facd
+      write(56) totcur0,pflux0,tflux0,gbound,facd
       close(56)
       write(9,1201) ntime,time
  1201 format("* * * restart file written at cycle,time = ",i5,1pe12.4,    &
@@ -175,29 +155,8 @@ c$$$      enddo
       do j1=1,mmnn18
          read(56) phiold(j1)
       enddo
-!
-!....DEBUG
-!     if(myrank.le.0) then
-!     do jj=1,m
-!     write(98,1002) jj
-!1002 format("jj =",i3)
-!     write(98,1001) (vel(j1),j1=jj*18-5,jj*18)
-!1001 format(1p6e12.4)
-!     enddo
-!     endif
-!     call safestop(2)
-!
-!
+
       call numdofs(1, mmnn6)
-c$$$      do j1=1,mmnn6
-c$$$         read(56) jphi(j1)
-c$$$      enddo
-c$$$      do j1=1,mmnn6
-c$$$         read(56) vor(j1)
-c$$$      enddo
-c$$$      do j1=1,mmnn6
-c$$$         read(56) com(j1)
-c$$$      enddo
       do j1=1,mmnn6
          read(56) den(j1)
       enddo
@@ -207,23 +166,10 @@ c$$$      enddo
       do j1=1,mmnn6
          read(56) denold(j1)
       enddo
-c$$$      do j1=1,mmnn6       
-c$$$         read(56) sb1(j1)
-c$$$      enddo
-c$$$      do j1=1,mmnn6       
-c$$$         read(56) sb2(j1)
-c$$$      enddo
-c$$$      do j1=1,mmnn6       
-c$$$         read(56) sp1(j1)
-c$$$      enddo
 
 !
       read(56) ntimer,timer
-c      read(56) ((graphit(itime,igr),igr=1,maxplots),itime=1,ntimer)
-      read(56) ekin,emag,ekind,emagd,ekinp,emagp,ekinpd,emagpd,ekint,   &
-     &          emagt,ekintd,emagtd,ekinph,ekinth,emagph,emagth,        &
-     &          ekin3,ekin3d,ekin3h,emag3,emag3d,emag3h,tflux,gbound,
-     &          facd
+      read(56) totcur0,pflux0,tflux0,gbound,facd
       close(56)
       write(*,1201) ntimer,timer
       write(9,1201) ntimer,timer

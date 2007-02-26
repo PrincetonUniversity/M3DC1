@@ -29,7 +29,7 @@ subroutine openf
   use basic
   use arrays
   implicit none
-  integer :: jj
+
   real :: alx, alz
 
   call getboundingboxsize(alx, alz)
@@ -81,6 +81,7 @@ subroutine output
   use basic
   use arrays
   use output_files
+  use diagnostics
 
   implicit none
   integer :: i, j, i1, i3, ivertex, indexmid, numnodes

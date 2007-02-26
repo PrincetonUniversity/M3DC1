@@ -889,7 +889,7 @@ real function v3umu(e,f,g,h)
      temp = 0.
   else
      temp = -2.* &
-          ((g-2.*h)*int3(ri_79,e(:,OP_DZ),f(:,OP_LP),weight_79,79) &
+          ((g-2.*h)*int2(      e(:,OP_DZ),f(:,OP_LP),weight_79,79) &
           +    4.*h*int3(ri_79,e(:,OP_DZ),f(:,OP_DR),weight_79,79))
           
   endif
@@ -1731,22 +1731,24 @@ real function b1psieta(e,f,g,h)
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
-  real, intent(in) :: g, h
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real, intent(in) :: h
   real :: temp
 
-  temp = -g* &
-       (int2(e(:,OP_DR),f(:,OP_DR),weight_79,79) &
-       +int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79))
+  temp = -(int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_1 ),weight_79,79) &
+          +int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1 ),weight_79,79) &
+          +int3(e(:,OP_1 ),f(:,OP_DR),g(:,OP_DR),weight_79,79) &
+          +int3(e(:,OP_1 ),f(:,OP_DZ),g(:,OP_DZ),weight_79,79))
   if(itor.eq.1) then
-     temp = temp - 2.*g*int3(ri_79,e(:,OP_1),f(:,OP_DR),weight_79,79)
+     temp = temp - 2.*int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),weight_79,79)
   endif
 
   if(h.ne.0) then
-     temp = temp - g*h*int2(e(:,OP_LP),f(:,OP_GS),weight_79,79)
-     if(itor.eq.1) then
-        temp = temp + 2.*g*h*int3(ri_79,e(:,OP_LP),f(:,OP_DR),weight_79,79)
-     endif
+     temp79a = e(:,OP_1)*g(:,OP_LP) + e(:,OP_LP)*g(:,OP_1) &
+          + 2.*(e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR))
+
+     temp = temp - h*int2(temp79a,f(:,OP_GS),weight_79,79)
+     if(itor.eq.1) temp = temp + 2.*h*int3(ri_79,temp79a,f(:,OP_DR),weight_79,79)
   endif
 
   b1psieta = temp
@@ -1813,19 +1815,19 @@ real function b2beta(e,f,g,h)
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
-  real, intent(in) :: g, h
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real, intent(in) :: h
   real :: temp
 
-  temp = -g* &
-       (int3(ri2_79,e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
-       +int3(ri2_79,e(:,OP_DR),f(:,OP_DR),weight_79,79))
+  temp = -(int4(ri2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1),weight_79,79) &
+          +int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1),weight_79,79))
 
   if(h.ne.0) then
-     temp = temp - g*h*int3(ri2_79,e(:,OP_LP),f(:,OP_GS),weight_79,79)
-     if(itor.eq.1) then
-        temp = temp + 2.*g*h*int3(ri3_79,e(:,OP_DR),f(:,OP_GS),weight_79,79)
-     endif
+     temp79a = ri2_79*(e(:,OP_LP)*g(:,OP_1) + &
+          e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR))
+     if(itor.eq.1) temp79a = temp79a - 2.*ri3_79*e(:,OP_DR)*g(:,OP_1)
+
+     temp = temp - h*int2(temp79a,f(:,OP_GS),weight_79,79)
   endif
 
   b2beta = temp
@@ -1911,8 +1913,8 @@ real function b2psipsid(e,f,g,h)
      temp = int4(ri3_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_GS),weight_79,79) &
           - int4(ri3_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_GS),weight_79,79)
   else
-     temp = int5(ri3_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_GS),ni79(:,OP_1),weight_79,79) &
-          - int5(ri3_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_GS),ni79(:,OP_1),weight_79,79)
+     temp = int5(ri3_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_GS),h(:,OP_1),weight_79,79) &
+          - int5(ri3_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_GS),h(:,OP_1),weight_79,79)
   endif
   
   b2psipsid = temp
@@ -1999,14 +2001,14 @@ end function b3pe
 
 ! B3psipsieta
 ! ===========
-real function b3psipsieta(e,f,g)
+real function b3psipsieta(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   
   real :: temp
 
@@ -2015,7 +2017,7 @@ real function b3psipsieta(e,f,g)
      return
   endif
 
-  temp = (gam-1.)*int4(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),weight_79,79)
+  temp = (gam-1.)*int5(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),h(:,OP_1),weight_79,79)
 
   b3psipsieta = temp
   
@@ -2025,14 +2027,14 @@ end function b3psipsieta
 
 ! B3bbeta
 ! =======
-real function b3bbeta(e,f,g)
+real function b3bbeta(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   
   real :: temp
 
@@ -2042,8 +2044,8 @@ real function b3bbeta(e,f,g)
   endif
 
   temp = (gam-1.)* &
-       (int4(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
-       +int4(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),weight_79,79))
+       (int5(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+       +int5(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),h(:,OP_1),weight_79,79))
 
   b3bbeta = temp
   
@@ -2310,27 +2312,27 @@ real function qpsipsieta(e,f,g,h,i,j)
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,j
-  real, intent(in) :: h, i
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h,j
+  real, intent(in) :: i
   real :: temp
 
 !!$  temp = h*int4(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),weight_79,79)
-  temp = h*int4(ri2_79,e(:,OP_1),j(:,OP_1),j(:,OP_1),weight_79,79)
+  temp = int5(ri2_79,e(:,OP_1),j(:,OP_1),j(:,OP_1),h(:,OP_1),weight_79,79)
 
   ! hyper-resistive terms
   if(i.ne.0) then
-     temp = temp + i*h* &
-          (int4(ri2_79,e(:,OP_1),j(:,OP_DZ),j(:,OP_DZ),weight_79,79) &
-          +int4(ri2_79,e(:,OP_1),j(:,OP_DR),j(:,OP_DR),weight_79,79))
+     temp = temp + i* &
+          (int5(ri2_79,e(:,OP_1),j(:,OP_DZ),j(:,OP_DZ),h(:,OP_1),weight_79,79) &
+          +int5(ri2_79,e(:,OP_1),j(:,OP_DR),j(:,OP_DR),h(:,OP_1),weight_79,79))
      if(itor.eq.1) then
-        temp = temp + 2.*i*h* &
-             (int4(ri3_79,e(:,OP_DZ),j(:,OP_1 ),g(:,OP_DRZ),weight_79,79) &
-             +int4(ri3_79,e(:,OP_DR),j(:,OP_1 ),g(:,OP_DRR),weight_79,79) &
-             +int4(ri3_79,e(:,OP_1 ),j(:,OP_DZ),g(:,OP_DRZ),weight_79,79) &
-             +int4(ri3_79,e(:,OP_1 ),j(:,OP_DR),g(:,OP_DRR),weight_79,79) &
-             +int4(ri4_79,e(:,OP_1 ),j(:,OP_1 ),g(:,OP_DRR),weight_79,79) &
-             +int4(ri4_79,e(:,OP_1 ),j(:,OP_1 ),g(:,OP_GS ),weight_79,79) &
-             -int4(ri5_79,e(:,OP_1 ),j(:,OP_1 ),g(:,OP_DR ),weight_79,79))
+        temp = temp + 2.*i* &
+             (int5(ri3_79,e(:,OP_DZ),j(:,OP_1 ),g(:,OP_DRZ),h(:,OP_1),weight_79,79) &
+             +int5(ri3_79,e(:,OP_DR),j(:,OP_1 ),g(:,OP_DRR),h(:,OP_1),weight_79,79) &
+             +int5(ri3_79,e(:,OP_1 ),j(:,OP_DZ),g(:,OP_DRZ),h(:,OP_1),weight_79,79) &
+             +int5(ri3_79,e(:,OP_1 ),j(:,OP_DR),g(:,OP_DRR),h(:,OP_1),weight_79,79) &
+             +int5(ri4_79,e(:,OP_1 ),j(:,OP_1 ),g(:,OP_DRR),h(:,OP_1),weight_79,79) &
+             +int5(ri4_79,e(:,OP_1 ),j(:,OP_1 ),g(:,OP_GS ),h(:,OP_1),weight_79,79) &
+             -int5(ri5_79,e(:,OP_1 ),j(:,OP_1 ),g(:,OP_DR ),h(:,OP_1),weight_79,79))
      endif
   endif
 
@@ -2347,25 +2349,24 @@ real function qbbeta(e,f,g,h,i)
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real, intent(in) :: h, i
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  real, intent(in) :: i
   real :: temp
 
-  temp = h* &
-       (int4(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
-       +int4(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),weight_79,79))
+  temp = int5(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+       + int5(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),h(:,OP_1),weight_79,79)
 
   if(i.ne.0) then
-     temp = temp + h*i* &
-          (   int4(ri2_79,e(:,OP_1),f(:,OP_GS ),g(:,OP_GS ),weight_79,79) &
-          +2.*int4(ri2_79,e(:,OP_1),f(:,OP_DRZ),g(:,OP_DRZ),weight_79,79) &
-          -2.*int4(ri2_79,e(:,OP_1),f(:,OP_DZZ),g(:,OP_DRR),weight_79,79))
+     temp = temp + i* &
+          (   int5(ri2_79,e(:,OP_1),f(:,OP_GS ),g(:,OP_GS ),h(:,OP_1),weight_79,79) &
+          +2.*int5(ri2_79,e(:,OP_1),f(:,OP_DRZ),g(:,OP_DRZ),h(:,OP_1),weight_79,79) &
+          -2.*int5(ri2_79,e(:,OP_1),f(:,OP_DZZ),g(:,OP_DRR),h(:,OP_1),weight_79,79))
 
      if(itor.eq.1) then
-        temp = temp + 2.*h*i* &
-          (int4(ri3_79,e(:,OP_1),f(:,OP_DZZ),g(:,OP_DR ),weight_79,79) &
-          -int4(ri3_79,e(:,OP_1),f(:,OP_DRZ),g(:,OP_DZ ),weight_79,79) &
-          +int4(ri4_79,e(:,OP_1),f(:,OP_DZ ),g(:,OP_DZ ),weight_79,79))
+        temp = temp + 2.*i* &
+          (int5(ri3_79,e(:,OP_1),f(:,OP_DZZ),g(:,OP_DR),h(:,OP_1),weight_79,79) &
+          -int5(ri3_79,e(:,OP_1),f(:,OP_DRZ),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+          +int5(ri4_79,e(:,OP_1),f(:,OP_DZ ),g(:,OP_DZ),h(:,OP_1),weight_79,79))
      endif
   endif
 
