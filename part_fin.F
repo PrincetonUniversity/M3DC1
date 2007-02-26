@@ -92,6 +92,7 @@ c     created with ordering specified by numvar
       call createvec(pres, 1)
       call createvec(pres0, 1)
       call createvec(qn4, 1)
+      call createvec(resistivity, 1)
 !
 !.....boundary arrays
       allocate(iboundgs(nbound),iboundv(nbound),iboundv2(nbound),       &

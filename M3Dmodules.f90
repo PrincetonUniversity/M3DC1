@@ -33,6 +33,7 @@ module basic
   real :: db          ! ion skin depth
   real :: gam         ! ratio of specific heats
   real :: grav        ! gravitational acceleration
+  real :: vloop       ! loop voltage
 
   ! general equilibrium parameters
   integer :: irestart ! 1 = reads restart file as initial condition
@@ -89,7 +90,7 @@ module basic
        bzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,      &
        kappa,iper,jper,iprint,itimer,xzero,zzero,beta,pi0,   &
        eqsubtract,denm,grav,kappat,kappar,ln,amuc,iconstflux,&
-       regular,deex,gyro,iconspflux
+       regular,deex,gyro,iconspflux,vloop
 
   !     derived quantities
   real :: tt,pi,                                                       &
@@ -102,7 +103,7 @@ module basic
        ekinp,emagp,ekinpd,emagpd,ekinpo,emagpo,ekinpdo,emagpdo,        &
        ekinph,ekinth,emagph,emagth,ekinpho,ekintho,emagpho,emagtho,    &
        ekin3,ekin3d,ekin3h,emag3,ekin3o,ekin3do,ekin3ho,emag3o,        &
-       emag3h,emag3d,emag3ho,emag3do,tflux,chierror,totcur, area
+       emag3h,emag3d,emag3ho,emag3do,chierror,pflux0,tflux0,totcur0
   character*8 :: filename(50)
   character*10 :: datec, timec
   
@@ -149,7 +150,7 @@ module arrays
        den(:),den0(:),denold(:),deni(:),                          &
        pres(:),pres0(:),r4(:),q4(:),qn4(:),                       &
        b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
-       b5vector(:), vtemp(:)
+       b5vector(:), vtemp(:), resistivity(:)
 
   contains
 !================================
@@ -173,7 +174,7 @@ module arrays
 !================================
     subroutine deletevec(vec)
       implicit none
-      integer numberingid, i
+      integer :: i
       real, allocatable :: vec(:) 
       
       call checkveccreated(vec, i)

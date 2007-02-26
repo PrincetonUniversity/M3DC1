@@ -29,6 +29,7 @@ integer, parameter :: FIELD_B2I =  4096
 integer, parameter :: FIELD_SB1 =  8192
 integer, parameter :: FIELD_SB2 = 16384
 integer, parameter :: FIELD_SP1 = 32768
+integer, parameter :: FIELD_ETA = 65536
 
 
 real, dimension(25) :: r_25, r2_25, ri_25, ri2_25, ri3_25, ri4_25
@@ -44,7 +45,7 @@ real, dimension(79, OP_NUM) :: ps079, bz079, pe079, n079, p079, ph079, vz079, ch
 real, dimension(79, OP_NUM) :: ps179, bz179, pe179, n179, p179, ph179, vz179, ch179
 real, dimension(79, OP_NUM) :: pst79, bzt79, pet79, nt79, pt79, pht79, vzt79, cht79
 real, dimension(79, OP_NUM) :: pss79, bzs79, phs79, vzs79, chs79
-real, dimension(79, OP_NUM) :: sb179, sb279, sp179, jt79, cot79, vot79, pit79
+real, dimension(79, OP_NUM) :: sb179, sb279, sp179, jt79, cot79, vot79, pit79, eta79
 real, dimension(79) :: temp79a, temp79b, temp79c, temp79d, temp79e, temp79f
 
 real, dimension(25) :: si_25, eta_25, weight_25
@@ -710,6 +711,14 @@ subroutine define_fields_79(itri, fields)
         b2i79(:,OP_1) = 1./(pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2 + bzt79(:,OP_1)**2)
      endif
   endif
+
+
+  ! ETA
+  ! ~~~
+  if(iand(fields, FIELD_ETA).eq.FIELD_ETA) then
+     call calcavector(itri, resistivity, 1, 1, avec)
+     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, eta79)
+  end if
 
   do i=1,18
      call eval_ops(gtri(:,i,itri), si_79, eta_79, ttri(itri), ri_79, 79, g79(:,:,i))

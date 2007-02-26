@@ -18,7 +18,6 @@ subroutine ludefall
   real :: x, z, xmin, zmin, factor, dbf
 
   real :: tstart, tend, tfield, telm
-  real :: temp
 
   double precision cogcoords(3)
 
@@ -76,7 +75,7 @@ subroutine ludefall
   if(idens.eq.1) qn4 = 0.
   
   ! Determine which fields need to be calculated
-  def_fields = FIELD_PSI + FIELD_PHI + FIELD_SB1
+  def_fields = FIELD_PSI + FIELD_PHI + FIELD_SB1 + FIELD_ETA
   if(numvar.ge.2) def_fields = def_fields + FIELD_V + FIELD_I + FIELD_SB2
   if(numvar.ge.3) def_fields = def_fields + &
        FIELD_CHI + FIELD_PE  + FIELD_SP1 + FIELD_B2I + FIELD_J
@@ -221,7 +220,7 @@ subroutine ludefvel_n(itri,dbf)
 
         ! NUMVAR = 1
         ! ~~~~~~~~~~
-        temp = v1un(g79(:,:,i),g79(:,:,j),nt79)                
+        temp = v1un(g79(:,:,i),g79(:,:,j),nt79)
         ssterm(1,1) = ssterm(1,1) + temp
         ddterm(1,1) = ddterm(1,1) + temp  
 
@@ -427,11 +426,11 @@ subroutine ludefvel_n(itri,dbf)
                 + v3vvn(g79(:,:,i),vz179,g79(:,:,j),nt79)
            ssterm(3,2) = ssterm(3,2) -     thimp *dt*temp
            ddterm(3,2) = ddterm(3,2) + (.5-thimp)*dt*temp
-           
+
            temp = v3chin(g79(:,:,i),g79(:,:,j),nt79)
            ssterm(3,3) = ssterm(3,3) + temp
            ddterm(3,3) = ddterm(3,3) + temp
-           
+
            temp = v3chimu    (g79(:,:,i),g79(:,:,j))*2.*amuc   
            ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp
            ddterm(3,3) = ddterm(3,3) + (1.-thimp)*dt*temp
@@ -623,7 +622,7 @@ subroutine ludefvel_n(itri,dbf)
      ! Definition of R4
      ! ================
      if(numvar.ge.3) then
-        r4(i3) = r4(i3) + thimp*dt*dt*v3p(g79(:,:,i),sp179)
+!!$        r4(i3) = r4(i3) + thimp*dt*dt*v3p(g79(:,:,i),sp179)
      endif
 
      if(grav.ne.0) then          
@@ -783,7 +782,7 @@ subroutine ludefphi_n(itri,dbf)
         ssterm(1,1) = ssterm(1,1) + temp
         ddterm(1,1) = ddterm(1,1) + temp
 
-        temp = b1psieta(g79(:,:,i),g79(:,:,j),etar,hypf)  &
+        temp = b1psieta(g79(:,:,i),g79(:,:,j),eta79,hypf)  &
              + b1psiu  (g79(:,:,i),g79(:,:,j),pht79)
         ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
         ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
@@ -823,7 +822,7 @@ subroutine ludefphi_n(itri,dbf)
            ssterm(2,2) = ssterm(2,2) + temp
            ddterm(2,2) = ddterm(2,2) + temp
 
-           temp = b2beta(g79(:,:,i),g79(:,:,j),etar,hypi) &
+           temp = b2beta(g79(:,:,i),g79(:,:,j),eta79,hypi) &
                 + b2bu  (g79(:,:,i),g79(:,:,j),pht79)
            ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
            ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
@@ -894,8 +893,8 @@ subroutine ludefphi_n(itri,dbf)
            rrterm(2,3) = rrterm(2,3) + thimp*dt*temp
            qqterm(2,3) = qqterm(2,3) - thimp*dt*temp
 
-           temp = b3psipsieta(g79(:,:,i),g79(:,:,j),ps179)*etar &
-                + b3psipsieta(g79(:,:,i),ps179,g79(:,:,j))*etar
+           temp = b3psipsieta(g79(:,:,i),g79(:,:,j),ps179,eta79) &
+                + b3psipsieta(g79(:,:,i),ps179,g79(:,:,j),eta79)
            ssterm(3,1) = ssterm(3,1) -     thimp *dt*temp
            ddterm(3,1) = ddterm(3,1) + (.5-thimp)*dt*temp
 
@@ -903,8 +902,8 @@ subroutine ludefphi_n(itri,dbf)
            ssterm(3,2) = ssterm(3,2) - thimp*dt*temp
            ddterm(3,2) = ddterm(3,2) - thimp*dt*temp
 
-           temp = b3bbeta(g79(:,:,i),g79(:,:,j),bz179)*etar &
-                + b3bbeta(g79(:,:,i),bz179,g79(:,:,j))*etar
+           temp = b3bbeta(g79(:,:,i),g79(:,:,j),bz179,eta79) &
+                + b3bbeta(g79(:,:,i),bz179,g79(:,:,j),eta79)
            ssterm(3,2) = ssterm(3,2) -     thimp *dt*temp
            ddterm(3,2) = ddterm(3,2) + (.5-thimp)*dt*temp
 
@@ -950,13 +949,13 @@ subroutine ludefphi_n(itri,dbf)
               rrterm(2,3) = rrterm(2,3) +     thimp *dt*temp
               qqterm(2,3) = qqterm(2,3) + (1.-thimp)*dt*temp
 
-              temp = b3psipsieta(g79(:,:,i),g79(:,:,j),ps079)*etar &
-                   + b3psipsieta(g79(:,:,i),ps079,g79(:,:,j))*etar
+              temp = b3psipsieta(g79(:,:,i),g79(:,:,j),ps079,eta79) &
+                   + b3psipsieta(g79(:,:,i),ps079,g79(:,:,j),eta79)
               ssterm(3,1) = ssterm(3,1) -     thimp *dt*temp
               ddterm(3,1) = ddterm(3,1) + (1.-thimp)*dt*temp
 
-              temp = b3bbeta(g79(:,:,i),g79(:,:,j),bz079)*etar &
-                   + b3bbeta(g79(:,:,i),bz079,g79(:,:,j))*etar
+              temp = b3bbeta(g79(:,:,i),g79(:,:,j),bz079,eta79) &
+                   + b3bbeta(g79(:,:,i),bz079,g79(:,:,j),eta79)
               ssterm(3,2) = ssterm(3,2) -     thimp *dt*temp
               ddterm(3,2) = ddterm(3,2) + (1.-thimp)*dt*temp
 
@@ -1027,8 +1026,8 @@ subroutine ludefphi_n(itri,dbf)
      if(numvar.ge.3) then
         ! ohmic heating
         q4(i3) = q4(i3) + dt*(gam-1.)* &
-             (qpsipsieta(g79(:,:,i),pst79,pst79,etar,hypf,jt79) &
-             +qbbeta    (g79(:,:,i),bzt79,bzt79,etar,hypi))
+             (qpsipsieta(g79(:,:,i),pst79,pst79,eta79,hypf,jt79) &
+             +qbbeta    (g79(:,:,i),bzt79,bzt79,eta79,hypi))
 
         ! viscous heating
         if(ipres.eq.0) then
@@ -1043,7 +1042,7 @@ subroutine ludefphi_n(itri,dbf)
      if(linear.eq.1 .or. eqsubtract.eq.1) then
         
         q4(i1) = q4(i1) + dt* &
-             (b1psieta(g79(:,:,i),ps079,etar,hypf))
+             (b1psieta(g79(:,:,i),ps079,eta79,hypf))
 
         ! EQUILIBRIUM TERMS
         q4(i1) = q4(i1) + dt* &
@@ -1051,7 +1050,7 @@ subroutine ludefphi_n(itri,dbf)
 
         if(numvar.ge.2) then
            q4(i2) = q4(i2) + dt* &
-                (b2beta     (g79(:,:,i),bz079,etar,hypi))
+                (b2beta     (g79(:,:,i),bz079,eta79,hypi))
               
            ! DENSITY TERMS
            q4(i1) = q4(i1) + dt* &
@@ -1068,8 +1067,8 @@ subroutine ludefphi_n(itri,dbf)
 
         if(numvar.ge.3) then
            q4(i3) = q4(i3) + dt* &
-                (b3psipsieta(g79(:,:,i),ps079,ps079)*etar &
-                +b3bbeta    (g79(:,:,i),bz079,bz079)*etar &
+                (b3psipsieta(g79(:,:,i),ps079,ps079,eta79) &
+                +b3bbeta    (g79(:,:,i),bz079,bz079,eta79) &
                 +b3pedkappa (g79(:,:,i),pe079,ni79,kappat,hypp)*(gam-1.))
 
            ! DENSITY TERMS

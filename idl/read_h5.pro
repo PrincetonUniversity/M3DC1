@@ -4,6 +4,7 @@ function translate, name
    if(strcmp(name, 'chi') eq 1) then return, "!7v"
    if(strcmp(name, 'vor') eq 1) then return, "!17z!9.GX!17v"
    if(strcmp(name, 'com') eq 1) then return, "!9G.!17v"
+   if(strcmp(name, 'eta') eq 1) then return, "!7g!3"
    
    return, "!8" + name
 end
@@ -26,7 +27,7 @@ function read_attribute, group_id, name
    return, 0
 end
 
-function read_parameter, name, filename=filename
+function read_parameter, name, filename=filename, print=pr
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
    file_id = h5f_open(filename)
@@ -34,6 +35,8 @@ function read_parameter, name, filename=filename
    attr = read_attribute(root_id, name)
    h5g_close, root_id
    h5f_close, file_id
+
+   if(keyword_set(pr)) then print, name, " = ", attr
 
    return, attr
 end
@@ -130,7 +133,10 @@ function eval, field, localpos, elm, operation=op
 end
 
 
-function eval_field, field, mesh, x=xi, y=yi, points=p, operation=op
+function eval_field, field, mesh, x=xi, y=yi, points=p, operation=op, $
+                     filename=filename
+
+   if(n_elements(filename) eq 0) then filename='C1.h5'
 
    nelms = mesh.nelms._data 
 
@@ -285,8 +291,8 @@ function read_field, name, slices=time, mesh=mesh, filename=filename, time=t, $
 
        print, '  evaluating...'
 
-       data[i-time[0],*,*]=eval_field(field._data, mesh, $
-                                      points=pts, x=x, y=y, op=op)
+       data[i-time[0],*,*]=eval_field(field._data, mesh, points=pts, $
+                                      x=x, y=y, op=op, filename=filename)
    end
 
    h5f_close, file_id

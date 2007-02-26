@@ -148,7 +148,7 @@ subroutine define_sources()
   hypp = hyperp*deex**2
 
   ! Specify which fields need to be calculated
-  def_fields = FIELD_PSI + FIELD_PHI + FIELD_VOR + FIELD_J
+  def_fields = FIELD_PSI + FIELD_PHI + FIELD_VOR + FIELD_J + FIELD_ETA
   if(numvar.ge.2) def_fields = def_fields + FIELD_I + FIELD_V
   if(numvar.ge.3) def_fields = def_fields + FIELD_CHI + &
           FIELD_PE + FIELD_P + FIELD_B2I + FIELD_COM
@@ -177,41 +177,40 @@ subroutine define_sources()
      do i=1,18
         ione = isval1(itri,i)
         
-
         ! Definition of Source Terms
         ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
-        sb1(ione) = sb1(ione) + b1psieta(g79(:,:,i),pst79,etar,hypf)
+!!$        sb1(ione) = sb1(ione) + b1psieta(g79(:,:,i),pst79,eta79,hypf)
 
         if(numvar.ge.2) then
            sb1(ione) = sb1(ione) + b1psibd(g79(:,:,i),pst79,bzt79,ni79)*dbf
 
            sb2(ione) = sb2(ione)  &
                 + b2psipsid(g79(:,:,i),pst79,pst79,ni79)*dbf &
-                + b2bbd    (g79(:,:,i),bzt79,bzt79,ni79)*dbf &
-                + b2beta   (g79(:,:,i),bzt79,etar,hypi)
+                + b2bbd    (g79(:,:,i),bzt79,bzt79,ni79)*dbf ! &
+!!$                + b2beta   (g79(:,:,i),bzt79,eta79,hypi)
         endif
 
         if(numvar.ge.3) then
            sb2(ione) = sb2(ione) + b2ped(g79(:,:,i),pet79,ni79)*dbf*pefac
 
            sp1(ione) = sp1(ione) &
-                + b3psipsieta(g79(:,:,i),pst79,pst79)*etar   &
-                + b3bbeta    (g79(:,:,i),bzt79,bzt79)*etar   &
+!!$                + b3psipsieta(g79(:,:,i),pst79,pst79,eta79)   &
+!!$                + b3bbeta    (g79(:,:,i),bzt79,bzt79,eta79)   &
 !!$                + b3pedkappa (g79(:,:,i),pt79,ni79,kappat,hypp)*(gam-1.) &
                 + p1kappar   (g79(:,:,i),pst79,pst79,pet79,ni79,b2i79)*kappar*(gam-1.) &
                 + b3pebd(g79(:,:,i),pet79,bzt79,ni79)*dbf*pefac
 
            ! ohmic heating         
-           sp1(ione) = sp1(ione) + (gam-1.)* &
-                (qpsipsieta(g79(:,:,i),pst79,pst79,etar,hypf,jt79) &
-                +qbbeta    (g79(:,:,i),bzt79,bzt79,etar,hypi))
+!!$           sp1(ione) = sp1(ione) + (gam-1.)* &
+!!$                (qpsipsieta(g79(:,:,i),pst79,pst79,eta79,hypf,jt79) &
+!!$                +qbbeta    (g79(:,:,i),bzt79,bzt79,eta79,hypi))
 
            ! viscous heating
-           sp1(ione) = sp1(ione) - (gam-1.)* &
-                (quumu    (g79(:,:,i),pht79,pht79,amu,amuc,hypc) &
-                +qvvmu    (g79(:,:,i),vzt79,vzt79,amu,     hypv) &
-                +quchimu  (g79(:,:,i),pht79,cht79,amu,amuc,hypc) &
-                +0.*qchichimu(g79(:,:,i),cht79,cht79,amu,amuc,hypc))
+!!$           sp1(ione) = sp1(ione) - (gam-1.)* &
+!!$                (quumu    (g79(:,:,i),pht79,pht79,amu,amuc,hypc) &
+!!$                +qvvmu    (g79(:,:,i),vzt79,vzt79,amu,     hypv) &
+!!$                +quchimu  (g79(:,:,i),pht79,cht79,amu,amuc,hypc) &
+!!$                +0.*qchichimu(g79(:,:,i),cht79,cht79,amu,amuc,hypc))
         endif ! on numvar.ge.3
      end do
 
@@ -237,11 +236,12 @@ subroutine define_sources()
           (int3(ri2_79,pst79(:,OP_DZ),pst79(:,OP_DZ),weight_79,79) &
           +int3(ri2_79, pst79(:,OP_DR),pst79(:,OP_DR),weight_79,79))
 
-     emagpd = emagpd - etar*int3(ri2_79,pst79(:,OP_GS),pst79(:,OP_GS),weight_79,79)
+     emagpd = emagpd - &
+          int4(ri2_79,pst79(:,OP_GS),pst79(:,OP_GS),eta79(:,OP_1),weight_79,79)
 
-     emagph = emagph - hypf*etar* &
-          (int2(jt79(:,OP_DZ),jt79(:,OP_DZ),weight_79,79) &
-          +int2(jt79(:,OP_DR),jt79(:,OP_DR),weight_79,79))
+     emagph = emagph - hypf* &
+          (int3(jt79(:,OP_DZ),jt79(:,OP_DZ),eta79(:,OP_1),weight_79,79) &
+          +int3(jt79(:,OP_DR),jt79(:,OP_DR),eta79(:,OP_1),weight_79,79))
 
      if(numvar.ge.2) then
         if(idens.eq.0) then
@@ -258,11 +258,12 @@ subroutine define_sources()
         
         emagt = emagt + .5*int3(ri2_79,bzt79(:,OP_1),bzt79(:,OP_1),weight_79,79)
            
-        emagtd = emagtd - etar* &
-             (int2(bzt79(:,OP_DZ),bzt79(:,OP_DZ),weight_79,79) &
-             +int2(bzt79(:,OP_DR),bzt79(:,OP_DR),weight_79,79))
+        emagtd = emagtd - &
+             (int3(bzt79(:,OP_DZ),bzt79(:,OP_DZ),eta79(:,OP_1),weight_79,79) &
+             +int3(bzt79(:,OP_DR),bzt79(:,OP_DR),eta79(:,OP_1),weight_79,79))
            
-        emagth = emagth - etar*hypi*int2(bzt79(:,OP_LP),bzt79(:,OP_LP),weight_79,79)
+        emagth = emagth - &
+             hypi*int3(bzt79(:,OP_LP),bzt79(:,OP_LP),eta79(:,OP_1),weight_79,79)
      endif
 
      if(numvar.ge.3) then
@@ -428,6 +429,147 @@ subroutine newvar_gs(inarray,outarray,itype,ibound)
   call solve_newvar(outarray, ibound)
 
 end subroutine newvar_gs
+
+
+! newvar_eta
+! ==========
+subroutine newvar_eta()
+
+  use basic
+  use t_data
+  use arrays
+  use nintegrate_mod
+
+  implicit none
+
+  real :: minpe
+  integer :: i, ione, itri, numelms, def_fields
+
+  minpe = p0/100.
+
+  resistivity = 0.
+  def_fields = 0.
+  if(idens.eq.1)  def_fields = def_fields + FIELD_N
+  if(numvar.ge.3) def_fields = def_fields + FIELD_PE
+
+  ! Calculate RHS
+  call numfac(numelms)
+  do itri=1,numelms
+
+     ! calculate the local sampling points and weights for numerical integration
+     call area_to_local(79,                                            &
+          alpha_79,beta_79,gamma_79,area_weight_79,                    &
+          atri(itri), btri(itri), ctri(itri),                          &
+          si_79, eta_79, weight_79)
+
+     call calcr(itri, si_79, eta_79, 79, r_79)
+     ri_79 = 1./r_79
+
+     call define_fields_79(itri, def_fields)
+
+     do i=1,18
+        call eval_ops(gtri(:,i,itri), si_79, eta_79, ttri(itri), ri_79, 79, g79(:,:,i))
+     end do
+
+     do i=1,18
+        ione = isval1(itri,i)       
+
+        if(numvar.ge.3) then
+           temp79b = max(pefac*pet79(:,OP_1),minpe)
+                     
+           if(idens.eq.0) then
+!              temp79a = sqrt((1./(pefac*pet79(:,OP_1) + minpe))**3)
+              temp79a = sqrt(1./temp79b**3)
+           else
+!              temp79a = sqrt((nt79(:,OP_1)/(pefac*pet79(:,OP_1) + minpe))**3)
+              temp79a = sqrt((nt79(:,OP_1)/temp79b)**3)
+           endif
+        else
+           if(idens.eq.0) then
+              temp79a = sqrt((1./max(p0 - pi0,minpe))**3)
+           else
+              temp79a = sqrt((nt79(:,OP_1)/max(p0 - pi0,minpe))**3)
+           endif
+        endif
+
+        resistivity(ione) = resistivity(ione) + &
+             etar*int2(g79(:,OP_1,i), temp79a, weight_79,79)
+     end do
+  enddo
+
+  ! solve linear equation
+  call solve_newvar(resistivity, 0)
+
+!!$  real :: minpe, sqrttemp
+!!$  real, dimension(6) :: temp
+!!$  integer :: numnodes, ibegin, ibegin1, iendplusone, iendplusone1, i
+!!$  
+!!$  call numnod(numnodes)
+!!$
+!!$  minpe = 1.
+!!$
+!!$  dent = den + den0 
+!!$
+!!$  do i=1, numnodes
+!!$     
+!!$     call entdofs(numvar, i, 0, ibegin, iendplusone)
+!!$     call entdofs(numvar, i, 0, ibegin1, iendplusone1)
+!!$
+!!$     pet(ibegin1:ibegin1+5) = phi(ibegin+12:ibegin+17) + phi0(ibegin+12:ibegin+17)
+!!$     
+!!$     if(ipres.eq.0) pet(ibegin1:ibegin1+5) = pefac*pet(ibegin1:ibegin1+5)
+!!$
+!!$     if(idens.eq.0) then
+!!$        temp(1) = 1./(pet(ibegin1) + minpe)
+!!$        temp(2) = -pet(ibegin1+1)/(pet(ibegin1) + minpe)**2
+!!$        temp(3) = -pet(ibegin1+2)/(pet(ibegin1) + minpe)**2
+!!$        temp(4) = -pet(ibegin1+3)/(pet(ibegin1) + minpe)**2 &
+!!$             + 2.*pet(ibegin1+1)**2/(pet(ibegin1) + minpe)**3 
+!!$        temp(5) = -pet(ibegin1+4)/(pet(ibegin1) + minpe)**2 &
+!!$             + 2.*pet(ibegin1+1)*pet(ibegin1+2) / (pet(ibegin1) + minpe)**3 
+!!$        temp(6) = -pet(ibegin1+5)/(pet(ibegin1) + minpe)**2 &
+!!$             + 2.*pet(ibegin1+2)**2/(pet(ibegin1) + minpe)**3 
+!!$
+!!$        sqrttemp = sqrt(temp(1))
+!!$
+!!$        resistivity(ibegin1)   =     sqrttemp**3
+!!$        resistivity(ibegin1+1) = 1.5*sqrttemp*temp(2)
+!!$        resistivity(ibegin1+2) = 1.5*sqrttemp*temp(3)
+!!$        resistivity(ibegin1+3) = 1.5*sqrttemp*temp(4) + 0.75/sqrttemp*temp(2)**2
+!!$        resistivity(ibegin1+4) = 1.5*sqrttemp*temp(5) + 0.75/sqrttemp*temp(2)*temp(3)
+!!$        resistivity(ibegin1+5) = 1.5*sqrttemp*temp(6) + 0.75/sqrttemp*temp(3)**2
+!!$     else
+!!$        temp(1) = dent(ibegin1)/(pet(ibegin1) + minpe)
+!!$        temp(2) = (dent(ibegin1+1) - dent(ibegin1)*pet(ibegin1+1)/(pet(ibegin1) + minpe)) &
+!!$             / (pet(ibegin1) + minpe)
+!!$        temp(3) = (dent(ibegin1+2) - dent(ibegin1)*pet(ibegin1+2)/(pet(ibegin1) + minpe)) &
+!!$             / (pet(ibegin1) + minpe)
+!!$        temp(4) = dent(ibegin1+3) / (pet(ibegin1) + minpe) &
+!!$             - (2.*dent(ibegin1+1)*pet(ibegin1+1)+dent(ibegin1)*pet(ibegin1+3)) &
+!!$              /(pet(ibegin1) + minpe)**2 &
+!!$             + 2.*dent(ibegin1)*pet(ibegin1+1)**2 / (pet(ibegin1) + minpe)**3 
+!!$        temp(5) = dent(ibegin1+4) / (pet(ibegin1) + minpe) &
+!!$             - (dent(ibegin1+1)*pet(ibegin1+2)+dent(ibegin1+2)*pet(ibegin1+1)+ &
+!!$                dent(ibegin1)*pet(ibegin1+4)) &
+!!$              /(pet(ibegin1) + minpe)**2 &
+!!$             + 2.*dent(ibegin1)*pet(ibegin1+1)*pet(ibegin1+2) / (pet(ibegin1) + minpe)**3 
+!!$        temp(6) = dent(ibegin1+5) / (pet(ibegin1) + minpe) &
+!!$             - (2.*dent(ibegin1+2)*pet(ibegin1+2)+dent(ibegin1)*pet(ibegin1+5)) &
+!!$              /(pet(ibegin1) + minpe)**2 &
+!!$             + 2.*dent(ibegin1)*pet(ibegin1+2)**2 / (pet(ibegin1) + minpe)**3 
+!!$
+!!$        sqrttemp = sqrt(temp(1))
+!!$
+!!$        resistivity(ibegin1)   =     sqrttemp**3
+!!$        resistivity(ibegin1+1) = 1.5*sqrttemp*temp(2)
+!!$        resistivity(ibegin1+2) = 1.5*sqrttemp*temp(3)
+!!$        resistivity(ibegin1+3) = 1.5*sqrttemp*temp(4) + 0.75/sqrttemp*temp(2)**2
+!!$        resistivity(ibegin1+4) = 1.5*sqrttemp*temp(5) + 0.75/sqrttemp*temp(2)*temp(3)
+!!$        resistivity(ibegin1+5) = 1.5*sqrttemp*temp(6) + 0.75/sqrttemp*temp(3)**2
+!!$     endif
+!!$  end do
+
+end subroutine newvar_eta
 
 
 ! solve_newvar
