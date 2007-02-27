@@ -7,3 +7,10 @@ and run with:
 ./structMesh.x <number of nodes in the x-direction> <number of nodes in the z-direction> <x-length or rectangular domain> <z-length of rectangular domain>
 
 Note that the domain is 0 <= x <= x-length or rectangular domain , 0 <= z <= z-length of rectangular domain
+
+After running structMesh, the output will be a file called struct.sms.  To be 
+able to use this with M3D-C1, this file must be processed by
+<SCOREC SOFTWARE PATH>/mctk/Examples/PPPL/PPPL/test/DISCRETE/main struct.sms
+which will output a struct-dmg.sms and struct.dmg file which can be used to
+run M3D-C1.
+
