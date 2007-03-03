@@ -4,9 +4,7 @@ module gradshafranov
   
   real, allocatable :: psi(:), fun1(:), fun2(:), fun3(:), fun4(:)
   real :: psimin, psilim, dpsii
-  real :: gamma2, gamma3, gamma4
-
-  
+  real :: gamma2, gamma3, gamma4  
 
   integer, parameter :: numvargs = 1
 
@@ -51,26 +49,27 @@ subroutine gradshafranov_solve
 
   include 'mpif.h'
   
-  integer, parameter :: iterations = 50
+  integer, parameter :: iterations = 80
 
   real   gsint1,gsint4,gsint2,gsint3,lhs,cfac(18)
   real, allocatable :: temp(:), b1vecini(:)
+  integer, allocatable :: iboundgs(:)
 
   integer :: itri,i,i1,j,j1,jone, k
   integer :: numelms, numnodes
   integer :: ibegin, iendplusone, ibeginn, iendplusonen
-  integer :: ineg, itnum, ier
-  integer :: itop, iright, ibottom, ileft, izone, izonedim
-  real :: dterm(18,18), sterm(18,18), error
+  integer :: ineg, itnum, ier, nbcgs
+  real :: dterm(18,18), sterm(18,18)
   real :: fac, aminor, bv, fintl(-6:maxi,-6:maxi)
   real :: g, gx, gz, gxx, gxz, gzz, g0
   real :: gv, gvx, gvz, gvxx, gvxz, gvzz
-  real :: x,z, xmin, zmin, xrel, zrel, xguess, zguess
-  real :: th, sum, rhs, ajlim, curr, q0, qstar, norm
+  real :: x,z, xmin, zmin, xrel, zrel, xguess, zguess, error
+  real :: th, sum, rhs, ajlim, curr, q0, qstar, norm, rnorm
   real :: g1, g1x, g1z, g1xx, g1xz, g1zz
   real :: g2, g2x, g2z, g2xx, g2xz, g2zz
   real :: g3, g3x, g3z, g3xx, g3xz, g3zz
   real, dimension(5) :: temp1, temp2
+  real :: alx, alz
   double precision :: coords(3)
    
   real :: tstart, tend, tsol, tmagaxis, tfundef, tplot
@@ -83,7 +82,6 @@ subroutine gradshafranov_solve
   tfundef = 0.
   tplot = 0.
 
-  call getmodeltags(ibottom, iright, itop, ileft)
   call getmincoord(xmin, zmin)
   call numnod(numnodes)
   call numfac(numelms)
@@ -96,6 +94,7 @@ subroutine gradshafranov_solve
   call createvec(fun4, numvargs)
   call createvec(fun2, numvargs)
   call createvec(fun3, numvargs)
+  allocate(iboundgs(6*numnodes*numvargs))
   
 
   ! form the grad-sharfranov matrix
@@ -123,8 +122,8 @@ subroutine gradshafranov_solve
      end do
     
      do j=1,18
+        j1 = isval1(itri,j)
         do i=1,18
-           j1 = isval1(itri,j)
            i1 = isval1(itri,i)
 
            temp79a = -ri_79* &
@@ -138,6 +137,7 @@ subroutine gradshafranov_solve
   enddo
 
   ! insert boundary conditions
+  iboundgs = 0.
   call boundarygs(iboundgs,nbcgs)
   do i=1,nbcgs
      call setdiribc(gsmatrix_sm, iboundgs(i))
@@ -159,43 +159,37 @@ subroutine gradshafranov_solve
   ! minor radius
   aminor = abs(xmag-xlim)
   bv = (1./(4.*pi*xmag))*(alog(8.*xmag/aminor) - 1.5 + 1.2)
+  call getboundingboxsize(alx,alz)
+  rnorm = xzero + alx/2.
+  psi = 0.
 
   do i=1,numnodes
 
-     call zonenod(i,izone, izonedim)
+     call xyznod(i,coords)
+     x = coords(1) - xmin + xzero
+     z = coords(2) - zmin + zzero
 
-!!$     if(izonedim .eq. 1 .or. izonedim.eq.0) then
-        call xyznod(i,coords)
-        x = coords(1) - xmin + xzero
-        z = coords(2) - zmin + zzero
+     call entdofs(numvargs, i, 0, ibegin, iendplusone)
 
-        call entdofs(numvargs, i, 0, ibegin, iendplusone)
+     call gvect1(x,z,xmag,zmag,g,gx,gz,gxx,gxz,gzz,0,ineg)
+     call gvect1(x,z,102.,rnorm,gv,gvx,gvz,gvxx,gvxz,gvzz,1,ineg)
 
-!!$        if(izone.eq.itop .or. izone.eq.ibottom) then
-           call gvect1(x,z,xmag,zmag,g,gx,gz,gxx,gxz,gzz,0,ineg)
-           call gvect1(x,z,102.,xmag,gv,gvx,gvz,gvxx,gvxz,gvzz,1,ineg)
-!!$        else if(izone.eq.ileft .or. izone.eq.iright) then
-!!$           call gvect1(x,z,xmag,zmag,g,gx,gz,gxx,gxz,gzz,0,ineg)
-!!$           call gvect1(x,z,102.,12.,gv,gvx,gvz,gvxx,gvxz,gvzz,1,ineg)
-!!$        endif
-
-        psi(ibegin  ) = (g  +  gv*bv)*fac
-        psi(ibegin+1) = (gx + gvx*bv)*fac
-        psi(ibegin+2) = (gz + gvz*bv)*fac
-        psi(ibegin+3) = (gxx+gvxx*bv)*fac
-        psi(ibegin+4) = (gxz+gvxz*bv)*fac
-        psi(ibegin+5) = (gzz+gvzz*bv)*fac
-
-!!$     endif
+     psi(ibegin  ) = (g  +  gv*bv)*fac
+     psi(ibegin+1) = (gx + gvx*bv)*fac
+     psi(ibegin+2) = (gz + gvz*bv)*fac
+     psi(ibegin+3) = (gxx+gvxx*bv)*fac
+     psi(ibegin+4) = (gxz+gvxz*bv)*fac
+     psi(ibegin+5) = (gzz+gvzz*bv)*fac
   enddo
   
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(psi,1,numvargs,"psi ",0)
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     tplot = tplot + tend - tstart
-  endif
+!!$  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+!!$  if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(psi,1,numvargs,"psi ",0)
+!!$  if(myrank.eq.0 .and. itimer.eq.1) then
+!!$     call second(tend)
+!!$     tplot = tplot + tend - tstart
+!!$  endif
  
+
   ! store boundary conditions on psi
   psibounds = 0.
   do i=1,nbcgs
@@ -216,12 +210,12 @@ subroutine gradshafranov_solve
   ! start of iteration loop on plasma current
   do itnum=1, iterations
 
-     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(b1vecini,1,numvargs,"b1vecini",0)
-     if(myrank.eq.0 .and. itimer.eq.1) then
-        call second(tend)
-        tplot = tplot + tend - tstart
-     endif
+!!$     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+!!$     if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(b1vecini,1,numvargs,"b1vecini",0)
+!!$     if(myrank.eq.0 .and. itimer.eq.1) then
+!!$        call second(tend)
+!!$        tplot = tplot + tend - tstart
+!!$     endif
 
      ! apply boundary conditions
      do i=1,nbcgs
@@ -240,13 +234,41 @@ subroutine gradshafranov_solve
 
      psi = th*b1vecini + (1.-th)*psi
 
+!!$     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+!!$     if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(psi,1,numvargs,"psi ",0)
+!!$     if(myrank.eq.0 .and. itimer.eq.1) then
+!!$        call second(tend)
+!!$        tplot = tplot + tend - tstart
+!!$     endif
+     th = 0.5
+    
+     ! calculate psi at the magnetic axis
+     xguess = xmag - xzero
+     zguess = zmag - zzero    
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(psi,1,numvargs,"psi ",0)
+     call magaxis(xguess,zguess)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
-        tplot = tplot + tend - tstart
+        tmagaxis = tmagaxis + tend - tstart
      endif
-     th = 0.9
+     xmag = xguess + xzero
+     zmag = zguess + zzero
+     
+     ! calculate psi at the limiter
+     xrel = xlim - xzero
+     zrel = zlim - zzero
+     itri = 0.
+
+     call evaluate(xrel,zrel,psilim,ajlim,psi,1,numvargs,itri)
+
+     ! define the pressure and toroidal field functions
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     call fundef
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        tfundef = tfundef + tend - tstart
+     endif
+
 
      ! calculate the error
      ! (nodes shared between processes are currenly overcounted)
@@ -281,41 +303,6 @@ subroutine gradshafranov_solve
      
      if(myrank.eq.0 .and. iprint.gt.0) &
           print *, "gradshafranov: error = ", error
-
-     
-     ! calculate psi at the magnetic axis
-     xguess = xmag - xzero
-     zguess = zmag - zzero    
-     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     call magaxis(xguess,zguess)
-     if(myrank.eq.0 .and. itimer.eq.1) then
-        call second(tend)
-        tmagaxis = tmagaxis + tend - tstart
-     endif
-     xmag = xguess + xzero
-     zmag = zguess + zzero
-     
-     ! calculate psi at the limiter
-     xrel = xlim - xzero
-     zrel = zlim - zzero
-     itri = 0.
-
-     call evaluate(xrel,zrel,psilim,ajlim,psi,1,numvargs,itri)
-
-     ! define the pressure and toroidal field functions
-     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     call fundef
-     if(myrank.eq.0 .and. itimer.eq.1) then
-        call second(tend)
-        tfundef = tfundef + tend - tstart
-     endif
-
-!!$     if(maxrank.eq.1) then
-!!$        if(myrank.eq.0) call oneplot(fun1,1,1,"fun1",0)
-!!$        if(myrank.eq.0) call oneplot(fun2,1,1,"fun2",0)
-!!$        if(myrank.eq.0) call oneplot(fun3,1,1,"fun3",0)
-!!$        if(myrank.eq.0) call oneplot(fun4,1,1,"fun4",0)
-!!$     endif
      
      ! start of loop over triangles to compute integrals needed to keep
      !     total current and q_0 constant using gamma4, gamma2, gamma3
@@ -376,25 +363,22 @@ subroutine gradshafranov_solve
      q0 = 1.
      qstar = 4.
      g0 = bzero*xzero
-     !  gamma2 =-xmag*(xmag*p0*p1 + (tcuro*qstar/(pi*aminor**2*q0*dpsii)))
-     !  gamma3 = -(.5*djdpsi/dpsii + p0*p2)
-     gamma2 =- 2.*xmag*(xmag*p0*p1 + (2.*g0/(xmag**2*q0*dpsii)))
-     gamma3 = -(xmag*djdpsi/dpsii + 2*xmag**2*p0*p2)
+!!$     gamma2 = -2.*xmag*(xmag*p0*p1 + (2.*g0/(xmag**2*q0*dpsii)))
+!!$     gamma3 = -(xmag*djdpsi/dpsii + 2*xmag**2*p0*p2)
+
 !!$     gamma2 = gamma2 / 2.
 !!$     gamma3 = gamma3 / 2.
-     
-     ! Nate:
+!!$     
+!!$     ! Nate:
      gamma2 =  - xmag*(xmag*p0*p1 + 2.*g0*(psilim-psimin)/(xmag**2*q0))
      gamma3 =  - (djdpsi*(psilim-psimin)/2. + p0*p2)
-     
-     gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
 
-  if(myrank.eq.0 .and. iprint.gt.0) then
-     write(*,*) "gsint1, gsint2, gsint3, gsint4", gsint1, gsint2, gsint3, gsint4
-     write(*,*) "gamma2, gamma3, gamma4", gamma2, gamma3, gamma4
-  endif
-!!$     print *, "myrank, gamma2, gamma3, gamma4", &
-!!$          myrank, gamma2, gamma3, gamma4
+     gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
+     
+     if(myrank.eq.0 .and. iprint.gt.0) then
+        write(*,*) "gsint1, gsint2, gsint3, gsint4", gsint1, gsint2, gsint3, gsint4
+        write(*,*) "gamma2, gamma3, gamma4", gamma2, gamma3, gamma4
+     endif
      
      ! start loop over elements to define RHS vector
      b1vecini = 0.
@@ -411,15 +395,16 @@ subroutine gradshafranov_solve
            do j=1,18
               j1 = isval1(itri,j)
               
-              sum = sum &
-                   - dterm(i,j)*(fun1(j1) + gamma4*fun4(j1)               &
-                        + gamma2*fun2(j1) + gamma3*fun3(j1))
+              sum = sum - dterm(i,j)* &
+                   (       fun1(j1) + gamma4*fun4(j1)               &
+                   +gamma2*fun2(j1) + gamma3*fun3(j1))
            enddo
            
            b1vecini(i1) =  b1vecini(i1) + sum
         enddo
      enddo
      call sumshareddofs(b1vecini)
+
   end do ! on itnum
 
 
@@ -433,18 +418,16 @@ subroutine gradshafranov_solve
 
      phi0(ibeginn:ibeginn+5) = psi(ibegin:ibegin+5)
 
-!     fun4 = G1/R
-!     fun2 = G2/R
-!     fun3 = G3/R    
-!     I = sqrt(g0**2 + r*gamma*G)
+!    I = sqrt(g0**2 + gamma_i*G_i)
      if(numvar.ge.2) then
         call xyznod(i,coords)
         x = coords(1) - xmin + xzero
 
-        temp(ibegin) = (psi(ibegin) - psimin)/(psilim - psimin)
-        temp(ibegin+1:ibegin+5) = psi(ibegin+1:ibegin+5)/(psilim - psimin)
+        dpsii = 1./(psilim - psimin)
+        temp(ibegin) = (psi(ibegin) - psimin)*dpsii
+        temp(ibegin+1:ibegin+5) = psi(ibegin+1:ibegin+5)*dpsii
         if(temp(ibegin) .lt. 0. .or. temp(ibegin) .gt. 1.) then
-           call constant_field(phi0(ibeginn+6 :ibeginn+11), bzero*xzero)
+           call constant_field(phi0(ibeginn+6 :ibeginn+11), g0)
         else
            g1  = temp(ibegin) - 10.*temp(ibegin)**3 + 20.*temp(ibegin)**4 &
                 - 15.*temp(ibegin)**5 + 4.*temp(ibegin)**6
@@ -454,17 +437,17 @@ subroutine gradshafranov_solve
                 - 75.*temp(ibegin)**4 + 24.*temp(ibegin)**5)
            g1xx= temp(ibegin+3)  *(1. - 30.*temp(ibegin)**2 + 80.*temp(ibegin)**3 &
                 - 75.*temp(ibegin)**4 + 24.*temp(ibegin)**5) + &
-                temp(ibegin+1)**2*(1. - 60.*temp(ibegin)    +240.*temp(ibegin)**2 &
-                -300.*temp(ibegin)**3 +120.*temp(ibegin)**5)
+                temp(ibegin+1)**2*(-60.*temp(ibegin)+240.*temp(ibegin)**2 &
+                -300.*temp(ibegin)**3 +120.*temp(ibegin)**4)
            g1xz= temp(ibegin+4)  *(1. - 30.*temp(ibegin)**2 + 80.*temp(ibegin)**3 &
                 - 75.*temp(ibegin)**4 + 24.*temp(ibegin)**5) + &
                 temp(ibegin+1)*temp(ibegin+2)* &
-                (1. - 60.*temp(ibegin)    +240.*temp(ibegin)**2 &
-                -300.*temp(ibegin)**3 +120.*temp(ibegin)**5)
+                (-60.*temp(ibegin)   +240.*temp(ibegin)**2 &
+                -300.*temp(ibegin)**3 +120.*temp(ibegin)**4)
            g1zz= temp(ibegin+5)  *(1. - 30.*temp(ibegin)**2 + 80.*temp(ibegin)**3 &
                 - 75.*temp(ibegin)**4 + 24.*temp(ibegin)**5) + &
-                temp(ibegin+2)**2*(1. - 60.*temp(ibegin)    +240.*temp(ibegin)**2 &
-                -300.*temp(ibegin)**3 +120.*temp(ibegin)**5)
+                temp(ibegin+2)**2*(-60.*temp(ibegin)+240.*temp(ibegin)**2 &
+                -300.*temp(ibegin)**3 +120.*temp(ibegin)**4)
 
            g2  = temp(ibegin)**2 - 4.*temp(ibegin)**3 + 6.*temp(ibegin)**4 &
                 - 4.*temp(ibegin)**5 + temp(ibegin)**6
@@ -506,7 +489,7 @@ subroutine gradshafranov_solve
                 -720.*temp(ibegin)**3 +300.*temp(ibegin)**4)
 
 
-           phi0(ibeginn+6) = sqrt((bzero*xzero)**2 + gamma2*g1 + gamma3*g2 + gamma4*g3)
+           phi0(ibeginn+6) = sqrt(g0**2 + gamma2*g1 + gamma3*g2 + gamma4*g3)
            phi0(ibeginn+7) = 0.5*(gamma2*g1x + gamma3*g2x + gamma4*g3x) &
                 / phi0(ibeginn+6)
            phi0(ibeginn+8) = 0.5*(gamma2*g1z + gamma3*g2z + gamma4*g3z) &
@@ -559,8 +542,8 @@ subroutine gradshafranov_solve
                 +6.*(10. +  4.*p1 +    p2)*temp(ibegin)**5) + &
                 sum*temp(ibegin+1)**2* &
                 (2.*p2 &
-                -6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
-                +13.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
+                - 6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
+                +12.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
                 -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
                 +30.*(10. +  4.*p1 +    p2)*temp(ibegin)**4)
            phi0(ibeginn+16) = sum*temp(ibegin+4)* &
@@ -572,7 +555,7 @@ subroutine gradshafranov_solve
                 sum*temp(ibegin+1)*temp(ibegin+2)* &
                 (2.*p2 &
                 - 6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
-                +13.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
+                +12.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
                 -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
                 +30.*(10. +  4.*p1 +    p2)*temp(ibegin)**4)
            phi0(ibeginn+17) = sum*temp(ibegin+5)* &
@@ -584,7 +567,7 @@ subroutine gradshafranov_solve
                 sum*temp(ibegin+2)**2* &
                 (2.*p2 &
                 - 6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
-                +13.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
+                +12.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
                 -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
                 +30.*(10. +  4.*p1 +    p2)*temp(ibegin)**4)
         endif
@@ -623,8 +606,8 @@ subroutine gradshafranov_solve
                    +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5) + &
                    sum*temp(ibegin+1)**2* &
                    (2.*p2 &
-                   -6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
-                   +13.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
+                   - 6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
+                   +12.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
                    -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
                    +30.*(10. + 4.*p1 + p2)*temp(ibegin)**4)
               pres0(ibeginn+4) = sum*temp(ibegin+4)* &
@@ -635,8 +618,8 @@ subroutine gradshafranov_solve
                    +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5) + &
                    sum*temp(ibegin+1)*temp(ibegin+2)* &
                    (2.*p2 &
-                   -6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
-                   +13.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
+                   - 6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
+                   +12.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
                    -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
                    +30.*(10. + 4.*p1 + p2)*temp(ibegin)**4)
               pres0(ibeginn+5) = sum*temp(ibegin+5)* &
@@ -647,8 +630,8 @@ subroutine gradshafranov_solve
                    +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5) + &
                    sum*temp(ibegin+2)**2* &
                    (2.*p2 &
-                   -6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
-                   +13.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
+                   - 6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
+                   +12.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
                    -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
                    +30.*(10. + 4.*p1 + p2)*temp(ibegin)**4)
            end if
@@ -683,7 +666,7 @@ subroutine gradshafranov_solve
   call deletevec(fun4)
   call deletevec(fun2)
   call deletevec(fun3)
-
+  deallocate(iboundgs)
 
   if(myrank.eq.0 .and. itimer.eq.1) then
      write(*,*) "gradshafranov: Time spent in magaxis: ", tmagaxis
@@ -1204,12 +1187,12 @@ subroutine boundarygs(ibound,nbc)
            ibound(nbc+1) = ibegin
            ibound(nbc+2) = ibegin+1
            ibound(nbc+3) = ibegin+3
-           nbc = nbc+3
+           nbc =  nbc+3
         else
            ibound(nbc+1) = ibegin
            ibound(nbc+2) = ibegin+2
            ibound(nbc+3) = ibegin+5
-           nbc = nbc+3
+           nbc =  nbc+3
         endif
      else if(izonedim .eq. 0) then
         ibound(nbc+1) = ibegin
@@ -1218,12 +1201,13 @@ subroutine boundarygs(ibound,nbc)
         ibound(nbc+4) = ibegin+3
         ibound(nbc+5) = ibegin+4
         ibound(nbc+6) = ibegin+5
-        nbc = nbc + 6
+        nbc =  nbc+6
      endif
   enddo
 
 end subroutine boundarygs
 
+! ===========================================================
 subroutine deltafun(x,z,dum,val)
 
   use t_data
@@ -1267,15 +1251,10 @@ end subroutine deltafun
 subroutine fundef
 
 !.....defines the source functions for the GS equation:
-!     fun1 = R*p' 
-!     fun4 = G1/R
-!     fun2 = G2/R
-!     fun3 = G3/R
-
   ! fun1 = r*p'
-  ! fun4 = G1'/r
-  ! fun2 = G2'/r
-  ! fun3 = G3'/r
+  ! fun4 = G1'/2r
+  ! fun2 = G2'/2r
+  ! fun3 = G3'/2r
 
   use basic
   
@@ -1343,7 +1322,7 @@ subroutine fundef
         fun4(ibegin+1)= g4bigp*psox/x - g4big/x**2
         fun4(ibegin+2)= g4bigp*psoy/x
         fun4(ibegin+3)= (g4bigpp*psox**2 + g4bigp*psoxx)/x                  &
-             - 2*g4bigp*psox/x**2 + 2.*g4big/x**3
+             - 2.*g4bigp*psox/x**2 + 2.*g4big/x**3
         fun4(ibegin+4)= (g4bigpp*psox*psoy+g4bigp*psoxy)/x                  &
              - g4bigp*psoy/x**2
         fun4(ibegin+5)=  (g4bigpp*psoy**2 + g4bigp*psoyy)/x
@@ -1358,7 +1337,7 @@ subroutine fundef
         fun2(ibegin+1)=  g2bigp*psox/x - g2big/x**2
         fun2(ibegin+2)=  g2bigp*psoy/x
         fun2(ibegin+3)=  (g2bigpp*psox**2 + g2bigp*psoxx)/x                 &
-             - 2*g2bigp*psox/x**2 + 2.*g2big/x**3
+             - 2.*g2bigp*psox/x**2 + 2.*g2big/x**3
         fun2(ibegin+4)=(g2bigpp*psox*psoy+g2bigp*psoxy)/x                   &
              - g2bigp*psoy/x**2
         fun2(ibegin+5)= (g2bigpp*psoy**2 + g2bigp*psoyy)/x
@@ -1366,14 +1345,14 @@ subroutine fundef
         g3big =  dpsii*(2.*pso - 12.*pso**2 + 24.*pso**3                &
              - 20.*pso**4 + 6.*pso**5)
         g3bigp =  dpsii*(2. - 24.*pso + 72.*pso**2                      &
-             - 80.*pso**3 + 30*pso**4)
+             - 80.*pso**3 + 30.*pso**4)
         g3bigpp =  dpsii*(- 24. + 144.*pso                              &
-             - 240.*pso**2 + 120*pso**3)
+             - 240.*pso**2 + 120.*pso**3)
         fun3(ibegin)= g3big/x
         fun3(ibegin+1)= g3bigp*psox/x - g3big/x**2
         fun3(ibegin+2)= g3bigp*psoy/x
         fun3(ibegin+3)= (g3bigpp*psox**2 + g3bigp*psoxx)/x                  &
-             - 2*g3bigp*psox/x**2 + 2.*g3big/x**3
+             - 2.*g3bigp*psox/x**2 + 2.*g3big/x**3
         fun3(ibegin+4)= (g3bigpp*psox*psoy+g3bigp*psoxy)/x                  &
              - g3bigp*psoy/x**2
         fun3(ibegin+5)=  (g3bigpp*psoy**2 + g3bigp*psoyy)/x

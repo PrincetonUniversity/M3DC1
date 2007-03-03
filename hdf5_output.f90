@@ -553,6 +553,14 @@ subroutine output_fields(time_group_id, error)
 
   ! Output the fields
   ! ~~~~~~~~~~~~~~~~~
+  
+!!$  ! tempvar
+!!$  do i=1, nelms
+!!$     call calcavector(i, tempvar, 1, 1, dum(:,i))
+!!$  end do
+!!$  call output_field(group_id, "tempvar", dum, 20, nelms, error)
+!!$  nfields = nfields + 1  
+
   ! psi
   do i=1, nelms
      call calcavector(i, phi, 1, numvar, dum(:,i))
@@ -567,12 +575,19 @@ subroutine output_fields(time_group_id, error)
   call output_field(group_id, "phi", dum, 20, nelms, error)
   nfields = nfields + 1
 
-  ! vor
+  ! jphi
   do i=1, nelms
-     call calcavector(i, vor, 1, 1, dum(:,i))
+     call calcavector(i, jphi, 1, 1, dum(:,i))
   end do
-  call output_field(group_id, "vor", dum, 20, nelms, error)
+  call output_field(group_id, "jphi", dum, 20, nelms, error)
   nfields = nfields + 1
+
+!!$  ! vor
+!!$  do i=1, nelms
+!!$     call calcavector(i, vor, 1, 1, dum(:,i))
+!!$  end do
+!!$  call output_field(group_id, "vor", dum, 20, nelms, error)
+!!$  nfields = nfields + 1
 
   ! sb1
   do i=1, nelms
@@ -642,12 +657,12 @@ subroutine output_fields(time_group_id, error)
      call output_field(group_id, "chi", dum, 20, nelms, error)
      nfields = nfields + 1
 
-     ! com
-     do i=1, nelms
-        call calcavector(i, com, 1, 1, dum(:,i))
-     end do
-     call output_field(group_id, "com", dum, 20, nelms, error)
-     nfields = nfields + 1
+!!$     ! com
+!!$     do i=1, nelms
+!!$        call calcavector(i, com, 1, 1, dum(:,i))
+!!$     end do
+!!$     call output_field(group_id, "com", dum, 20, nelms, error)
+!!$     nfields = nfields + 1
 
      ! sb3
      do i=1, nelms

@@ -86,6 +86,9 @@ subroutine ludefall
      def_fields = def_fields + FIELD_VOR + FIELD_COM
   endif
 
+  ! TEMPORARY
+  if(numvar.lt.3.) def_fields = def_fields + FIELD_J
+
   ! Loop over local elements
   do itri=1,numelms
 
@@ -222,7 +225,7 @@ subroutine ludefvel_n(itri,dbf)
         ! ~~~~~~~~~~
         temp = v1un(g79(:,:,i),g79(:,:,j),nt79)
         ssterm(1,1) = ssterm(1,1) + temp
-        ddterm(1,1) = ddterm(1,1) + temp  
+        ddterm(1,1) = ddterm(1,1) + temp
 
         temp = v1umu(g79(:,:,i),g79(:,:,j))*amu &              
              + thimp*dt* &
@@ -234,14 +237,14 @@ subroutine ludefvel_n(itri,dbf)
         ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
         ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
         
-        temp = v1uun(g79(:,:,i),g79(:,:,j),ph179,nt79) &       
-             + v1uun(g79(:,:,i),ph179,g79(:,:,j),nt79)         
+        temp = v1uun(g79(:,:,i),g79(:,:,j),ph179,nt79) &
+             + v1uun(g79(:,:,i),ph179,g79(:,:,j),nt79)
         ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
         ddterm(1,1) = ddterm(1,1) + (.5-thimp)*dt*temp
         
         rrterm(1,1) = rrterm(1,1)  + dt* &
-             (v1psipsi(g79(:,:,i),g79(:,:,j),pss79)  &         
-             +v1psipsi(g79(:,:,i),pss79,g79(:,:,j))) &         
+             (v1psipsi(g79(:,:,i),g79(:,:,j),pss79)  &
+             +v1psipsi(g79(:,:,i),pss79,g79(:,:,j))) &
              + thimp*dt*dt* &
              (v1psisb1 (g79(:,:,i),g79(:,:,j),sb179))
         
@@ -302,8 +305,13 @@ subroutine ludefvel_n(itri,dbf)
            ssterm(2,2) = ssterm(2,2) -      thimp *dt*temp
            ddterm(2,2) = ddterm(2,2) + (0.5-thimp)*dt*temp
 
-           rrterm(1,2) = rrterm(1,2) + thimp*dt*dt* &
+           rrterm(1,2) = rrterm(1,2) + dt* &
+                (v1bb     (g79(:,:,i),g79(:,:,j),bzs79)  &
+                +v1bb     (g79(:,:,i),bzs79,g79(:,:,j))) &
+               + thimp*dt*dt* &
                 (v1bsb2   (g79(:,:,i),g79(:,:,j),sb279))
+!!$           rrterm(1,2) = rrterm(1,2) + dt* &
+!!$                v1bb(g79(:,:,i),g79(:,:,j),bzt79)
            
            rrterm(2,1) = rrterm(2,1) + dt* &
                 (v2psib(g79(:,:,i),g79(:,:,j),bzs79)) &
@@ -333,10 +341,7 @@ subroutine ludefvel_n(itri,dbf)
               rrterm(1,1) = rrterm(1,1) + thimp*dt*dt* &
                    (v1vpsib  (g79(:,:,i),vz079,g79(:,:,j),bzs79))
               
-              rrterm(1,2) = rrterm(1,2) + dt* &
-                   (v1bb     (g79(:,:,i),g79(:,:,j),bzs79) &
-                   +v1bb     (g79(:,:,i),bzs79,g79(:,:,j))) &
-                   + thimp*dt*dt* &
+              rrterm(1,2) = rrterm(1,2) + thimp*dt*dt* &
                    (v1ubb    (g79(:,:,i),ph079,g79(:,:,j),bzs79) &
                    +v1ubb    (g79(:,:,i),ph079,bzs79,g79(:,:,j)) &
                    +v1vpsib  (g79(:,:,i),vz079,pss79,g79(:,:,j)))
@@ -364,11 +369,11 @@ subroutine ludefvel_n(itri,dbf)
            temp = v1uchin(g79(:,:,i),g79(:,:,j),ch179,nt79)       
            ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
            ddterm(1,1) = ddterm(1,1) + (.5-thimp)*dt*temp
-           
+
            temp = v1chin(g79(:,:,i),g79(:,:,j),nt79)
            ssterm(1,3) = ssterm(1,3) - temp
            ddterm(1,3) = ddterm(1,3) - temp
-           
+
            temp = v1uchin  (g79(:,:,i),ph179,g79(:,:,j),nt79) &
                 + v1chichin(g79(:,:,i),g79(:,:,j),ch179,nt79) &
                 + v1chichin(g79(:,:,i),ch179,g79(:,:,j),nt79)
@@ -395,11 +400,11 @@ subroutine ludefvel_n(itri,dbf)
            temp = v2chipsib(g79(:,:,i),g79(:,:,j),pst79,bzt79) 
            ssterm(2,3) = ssterm(2,3) - thimp*    thimp *dt*dt*temp
            ddterm(2,3) = ddterm(2,3) + thimp*(1.-thimp)*dt*dt*temp
-           
+
            temp = v3un(g79(:,:,i),g79(:,:,j),nt79)
            ssterm(3,1) = ssterm(3,1) + temp
            ddterm(3,1) = ddterm(3,1) + temp
-           
+
            temp = v3uun  (g79(:,:,i),g79(:,:,j),ph179,nt79) &
                 + v3uun  (g79(:,:,i),ph179,g79(:,:,j),nt79) &
                 + v3uchin(g79(:,:,i),g79(:,:,j),ch179,nt79)
@@ -434,7 +439,7 @@ subroutine ludefvel_n(itri,dbf)
            temp = v3chimu    (g79(:,:,i),g79(:,:,j))*2.*amuc   
            ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp
            ddterm(3,3) = ddterm(3,3) + (1.-thimp)*dt*temp
-           
+
            temp = v3uchin  (g79(:,:,i),ph179,g79(:,:,j),nt79) &
                 + v3chichin(g79(:,:,i),g79(:,:,j),ch179,nt79) &
                 + v3chichin(g79(:,:,i),ch179,g79(:,:,j),nt79)  
@@ -622,7 +627,7 @@ subroutine ludefvel_n(itri,dbf)
      ! Definition of R4
      ! ================
      if(numvar.ge.3) then
-!!$        r4(i3) = r4(i3) + thimp*dt*dt*v3p(g79(:,:,i),sp179)
+        r4(i3) = r4(i3) + thimp*dt*dt*v3p(g79(:,:,i),sp179)
      endif
 
      if(grav.ne.0) then          

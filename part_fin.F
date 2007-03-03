@@ -78,14 +78,11 @@ c     created with ordering specified by numvar
       call createvec(q4, numvar)
       call createvec(jphi, 1)
       jphi = 0.
-      call createvec(jphi0, 1)
       call createvec(sb1, 1)
       call createvec(sb2, 1)
       call createvec(sp1, 1)
       call createvec(vor, 1)
-      call createvec(vor0, 1)
       call createvec(com, 1)
-      call createvec(com0, 1)
       call createvec(den, 1)
       call createvec(den0, 1)
       call createvec(deni, 1)
@@ -93,9 +90,10 @@ c     created with ordering specified by numvar
       call createvec(pres0, 1)
       call createvec(qn4, 1)
       call createvec(resistivity, 1)
+      call createvec(tempvar,1)
 !
 !.....boundary arrays
-      allocate(iboundgs(nbound),iboundv(nbound),iboundv2(nbound),       &
+      allocate(iboundv(nbound),iboundv2(nbound),                        &
      &     iboundp(nbound),iboundn(nbound),                             &
      &     psibounds(nbound),velbounds(nbound))
 !

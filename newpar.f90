@@ -230,7 +230,7 @@ Program Reducedquintic
   !   toroidal current
   call newvar_gs(phi+phi0,jphi,1,1)
   !   vorticity
-  call newvar_gs(vel, vor,1,1)
+  call newvar_gs(vel+vel0, vor,1,1)
   !   compression
   if(numvar.ge.3) then 
      call newvar_gs(vel+vel0,com,3,0)
@@ -640,7 +640,6 @@ subroutine onestep
 #endif
 
 ! new field solution at time n+1 (or n* for second order advance)
-!      phiold = phi
   phi = vtemp
 
 
