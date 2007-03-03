@@ -1274,9 +1274,9 @@
             call newvarc(0,phi0,tw50,m*n,numvar,3,19)
          endif
 
+      endif
 !        assemble q34 matrix term
          call q34def
-      endif
 !
 !.....Calculate LU decomposition of field matrix if needed
       if(ntime.le.ntimer+1.or.                                          &
@@ -5995,6 +5995,11 @@ c$$$      endif
 
 !============================================================
       subroutine q34def
+!
+!     define additional terms for the field equations that are not proportioal
+!     to perturbed quantities and are not part of the ohmic or viscous terms
+!         (note q34 gets multiplied by dt in onestep)
+!
       use p_data
       use t_data
       use basic
@@ -6011,7 +6016,7 @@ c$$$      endif
       integer i, i1, i2, i3
       integer j, j1, j2, j3, jone, j01
       integer k, k1, k2, k3, k01, kone
-      integer l, lone
+      integer l, l1, l2, lone
       integer ier, ir1, ir2, ir3
       real :: factor, chif, x, z, dbf, gmix,  denf, hypp
 
@@ -6037,6 +6042,8 @@ c$$$      endif
          rewind(177)
       endif
       if(idens.gt.0) then
+        rewind(101)
+        rewind(103)
          rewind(109)
          rewind(105)
       endif
@@ -6056,10 +6063,14 @@ c$$$      endif
      &     read(177) ir1,ir2,ir3,((t5terml(k,l),l=1,18),k=1,18)
       endif
       if(idens.gt.0) then
-        if(iread(09).eq.1)                                              &
-     &     read(109) ir1,ir2,ir3,((u5terml(k,l),l=1,18),k=1,18)
+        if(iread(01).eq.1)                                              &
+     &     read(101) ir1,ir2,ir3,((u3terml(k,l),l=1,18),k=1,18)
+        if(iread(03).eq.1)                                              &
+     &     read(103) ir1,ir2,ir3,((u1terml(k,l),l=1,18),k=1,18)
         if(iread(05).eq.1)                                              &
      &     read(105) ir1,ir2,ir3,((v7terml(k,l),l=1,18),k=1,18)
+        if(iread(09).eq.1)                                              &
+     &     read(109) ir1,ir2,ir3,((u5terml(k,l),l=1,18),k=1,18)
       endif
 !
       do jrect=jfirst,jlast
@@ -6086,41 +6097,69 @@ c$$$      endif
          dbf = db*factor
          hypp = hyperp*deex**2
 
-
-         ! electron pressure source term
-         q34(i3) = q34(i3) +  kappa*(aterm(iodd,i,j)                    &
+         if(numvar.ge.3) then
+           q34(i3) = q34(i3) +  kappa*(aterm(iodd,i,j)                  &
      &                        -hypp*bterm(iodd,i,j))*(1-linear)*phi0(j3) 
+         endif
 !
- 
-
             do k=1,18 
                k1 = isvaln(itri,k)
                k2 = k1 + 6
                k3 = k2 + 6
                k01 = isval0(itri,k)
                kone = isval1(itri,k)
-               gmix = g2term(iodd,i,k,j)+g2term(iodd,i,j,k)
-               q34(i3) = q34(i3) + (gam-1.)*kappat*(gmix                &
+!
+               if(numvar.ge.2) then
+                 q34(i2) = q34(i2) +  k0term(iodd,i,j,k)                &
+     &                               *phi0(k01)*vel0(j2)
+           
+                 if(idens.eq.0) then
+                   q34(i2) = q34(i2) +  dbf                             &
+     &                   *(g0term(iodd,i,j,k)+g0term(iodd,i,k,j))/2.    &
+     &                    *phi0(j01)*phi0(k01)
+                 endif   ! on idens=0
+               endif                ! on numvar.ge.2
+!
+               if(numvar.ge.3) then
+                 gmix = g2term(iodd,i,k,j)+g2term(iodd,i,j,k)           &
+                 q34(i3) = q34(i3) + (gam-1.)*kappat*(gmix              &
      &         - hypp*g13erm(iodd,i,k,j))*deni(kone)*phi0(j3)*(1-linear)
-               if(idens.eq.0) then
-                 q34(i3) = q34(i3) + dbf*k0term(iodd,i,k,j)             &
+                 if(idens.eq.0) then
+                   q34(i3) = q34(i3) + dbf*k0term(iodd,i,k,j)           &
      &                          *phi0(k3)*phi0(j2)*(1-linear)
-               endif              
+                 else ! on idens.eq.0
+                   q34(i2) = q34(i2)+ pefac*dbf*k0term(iodd,i,j,k)      &
+     &                     *deni(jone)*phi0(k3)
+                 endif  ! on idens
+               endif ! on numvar.ge.3              
                do l=1,18
                   lone = isval1(itri,l)
-                  if(idens.gt.0) then
+                  l1 = isvaln(itri,l)
+                  l2 = l1+6
+                  q34(i1) = q34(i1) + dbf*u3terml(k,l)*deni(lone)       &
+     &                               *phi0(j01)*phi0(k2)
+                  if(numvar.ge.2) then
+                    q34(i2) = q34(i2) + dbf*u1terml(k,l)*deni(lone)     &
+     &                                  *phi0(j01)*phi0(k01)        
+                    q34(i2) = q34(i2) + dbf*u3terml(k,l)*deni(jone)     &
+     &                                  *phi0(k2 )*phi0(l2)
+                  endif ! on numvar.ge.2
+ 
+                  if(numvar.ge.3) then
+                    if(idens.gt.0) then
                       denf = deni(lone)*dbf
                       q34(i3) = q34(i3)                                 &
      &                        + denf*(v7terml(k,l)+gam*u5terml(k,l))    &
      &                              *pefac*phi0(k2)*phi0(j3)*(1-linear)
-                  endif
+                    endif ! on idens
 !             
-                  if(chipar.ne.0.) then
-                  q34(i3) = q34(i3) - 0.5*chif*                         &
+                    if(chipar.ne.0.) then
+                      q34(i3) = q34(i3) - 0.5*chif*                     &
      &                 ((t3terml(k,l) + t5terml(k,l))*tw50(lone)        &
      &                 -(t2terml(k,l) + t4terml(k,l))*tw40(lone))*      &
      &                 phi0(j01)*phi0(k01)*(1-linear)
-                  endif
+                    endif ! on chipar
+                  endif ! on numvar.ge.3
                   
                enddo
             enddo
@@ -6262,10 +6301,6 @@ c$$$      endif
      &                                 -phi0(k2)*phi0(j2)))
               endif                ! on numvar.ge.3
               else ! on linear
-              if(numvar.ge.2) then
-                ohmic(i2) = ohmic(i2) +dt*k0term(iodd,i,j,k)            &
-     &                    *phi0(k01)*vel0(j2)
-              endif                ! on numvar.ge.2
               if(numvar.ge.3) then
                 ohmic(i3) = ohmic(i3) + (gam-1.)*etar*(                 &
      &            k1term(iodd,i,j,k)*(jphi(kone)+jphi0(kone))           &
