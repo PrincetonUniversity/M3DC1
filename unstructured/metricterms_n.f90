@@ -230,8 +230,8 @@ real function v1psipsi(e,f,g)
   real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
           
-  temp = int4(ri3_79,e(:,OP_DZ),f(:,OP_GS),g(:,OP_DR),weight_79,79) &
-       - int4(ri3_79,e(:,OP_DR),f(:,OP_GS),g(:,OP_DZ),weight_79,79)
+  temp = int4(ri3_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_GS),weight_79,79) &
+       - int4(ri3_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_GS),weight_79,79)
 
   v1psipsi = temp
   return
@@ -2234,7 +2234,7 @@ real function p1pu(e,f,g)
   temp = int4(r_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
        - int4(r_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
   if(itor.eq.1) then
-     temp = temp + 2.*gam*int4(r_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZ),weight_79,79)
+     temp = temp + 2.*gam*int3(e(:,OP_1),f(:,OP_1),g(:,OP_DZ),weight_79,79)
   endif
 
   p1pu = temp

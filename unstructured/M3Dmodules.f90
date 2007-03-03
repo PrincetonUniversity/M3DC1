@@ -96,7 +96,7 @@ module basic
   real :: tt,pi,                                                       &
        time,timer,ajmax,errori,enormi,ratioi,                          &
        tmesh, tsetup, tfirst,tsolve,tsecond,tzero,tthird,gbound,fbound
-  integer ::  ni(20),mi(20) ,nbcgs,nbcp,nbcv,nbcn,iboundmax,           &
+  integer ::  ni(20),mi(20),nbcp,nbcv,nbcn,iboundmax,                  &
        ntime,ntimer,nrank,ntimemin,ntensor,idebug, islutype
   real :: ekin, emag, ekind, emagd, ekino, emago, ekindo, emagdo,      &
        ekint,emagt,ekintd,emagtd,ekinto,emagto,ekintdo,emagtdo,        &
@@ -133,7 +133,7 @@ module arrays
   ! indices
   integer :: p,q,r,s
   integer :: maxdofs1, maxdofs2, maxdofs3
-  integer, allocatable :: iboundgs(:), iboundv(:), iboundv2(:), iboundp(:), iboundn(:)
+  integer, allocatable :: iboundv(:), iboundv2(:), iboundp(:), iboundn(:)
   integer, allocatable :: isvaln(:,:),isval1(:,:),isval2(:,:)
   real :: fint(-6:maxi,-6:maxi), xi(3),zi(3),df(0:4,0:4)
   real :: xsep(5), zsep(5), graphit(0:ntimep,maxplots)
@@ -145,12 +145,12 @@ module arrays
        velold(:), vel0(:), vel1(:),                               &
        phi(:), phis(:),                                           &
        phiold(:), phi0(:), phi1(:),                               &
-       jphi(:),jphi0(:),sb1(:),sb2(:),sp1(:),                     &
-       vor(:),vor0(:),com(:),com0(:),                             &
+       jphi(:),sb1(:),sb2(:),sp1(:),                              &
+       vor(:),com(:),                                             &
        den(:),den0(:),denold(:),deni(:),                          &
        pres(:),pres0(:),r4(:),q4(:),qn4(:),                       &
        b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
-       b5vector(:), vtemp(:), resistivity(:)
+       b5vector(:), vtemp(:), resistivity(:), tempvar(:)
 
   contains
 !================================

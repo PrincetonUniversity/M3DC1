@@ -333,8 +333,8 @@ subroutine eval_ops(avector,si,eta,theta,rinv,ngauss,outarr)
         ! cylindrical correction to Laplacian
         sum(OP_GS) = sum(OP_LP)
         if(itor.eq.1) then
-           sum(OP_GS) = sum(OP_GS) - 2.*sum(OP_DR)*rinv(k)
-           sum(OP_LP) = sum(OP_LP) +    sum(OP_DR)*rinv(k)
+           sum(OP_GS) = sum(OP_GS) - sum(OP_DR)*rinv(k)
+           sum(OP_LP) = sum(OP_LP) + sum(OP_DR)*rinv(k)
         endif
 
         do op=1,OP_NUM
@@ -506,6 +506,8 @@ subroutine define_fields_79(itri, fields)
   ri6_79 = ri3_79*ri3_79
   ri7_79 = ri4_79*ri3_79
   r2_79 = r_79*r_79
+
+  weight_79 = weight_79 * r_79
 
   ! SB1
   ! ~~~
