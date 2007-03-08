@@ -141,7 +141,11 @@
 !.....viscosity, resistivity, and heat conduction
       amu = .00010
       etar = .00010
+      eta0 = 0.
       kappa = .001
+!
+!.....loop voltage
+      vloop = 0.
 !
 !......toroidal magnetic field
       bzero = 1.

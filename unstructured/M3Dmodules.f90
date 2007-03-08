@@ -20,7 +20,7 @@ module basic
   ! transport coefficients
   real :: amu         ! incompressible viscosity
   real :: amuc        ! compressible viscosity
-  real :: etar        ! resistivity
+  real :: etar, eta0  ! resistivity = etar + eta0/T^(3/2)
   real :: kappa       ! pressure diffusion
   real :: kappat      ! isotropic temperature conductivity
   real :: kappar      ! anisotropic (field-aligned) temperature conductivity
@@ -90,7 +90,7 @@ module basic
        bzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,      &
        kappa,iper,jper,iprint,itimer,xzero,zzero,beta,pi0,   &
        eqsubtract,denm,grav,kappat,kappar,ln,amuc,iconstflux,&
-       regular,deex,gyro,iconspflux,vloop
+       regular,deex,gyro,iconspflux,vloop,eta0
 
   !     derived quantities
   real :: tt,pi,                                                       &

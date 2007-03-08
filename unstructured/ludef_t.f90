@@ -86,9 +86,6 @@ subroutine ludefall
      def_fields = def_fields + FIELD_VOR + FIELD_COM
   endif
 
-  ! TEMPORARY
-  if(numvar.lt.3.) def_fields = def_fields + FIELD_J
-
   ! Loop over local elements
   do itri=1,numelms
 
@@ -310,8 +307,6 @@ subroutine ludefvel_n(itri,dbf)
                 +v1bb     (g79(:,:,i),bzs79,g79(:,:,j))) &
                + thimp*dt*dt* &
                 (v1bsb2   (g79(:,:,i),g79(:,:,j),sb279))
-!!$           rrterm(1,2) = rrterm(1,2) + dt* &
-!!$                v1bb(g79(:,:,i),g79(:,:,j),bzt79)
            
            rrterm(2,1) = rrterm(2,1) + dt* &
                 (v2psib(g79(:,:,i),g79(:,:,j),bzs79)) &
@@ -1040,7 +1035,7 @@ subroutine ludefphi_n(itri,dbf)
                 (quumu    (g79(:,:,i),pht79,pht79,amu,amuc,hypc) &
                 +qvvmu    (g79(:,:,i),vzt79,vzt79,amu,     hypv) &
                 +quchimu  (g79(:,:,i),pht79,cht79,amu,amuc,hypc) &
-                +0.*qchichimu(g79(:,:,i),cht79,cht79,amu,amuc,hypc))
+                +qchichimu(g79(:,:,i),cht79,cht79,amu,amuc,hypc))
         endif
      endif
      

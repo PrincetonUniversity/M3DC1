@@ -171,7 +171,7 @@ subroutine define_sources()
   if(numvar.ge.2) def_fields = def_fields + FIELD_I + FIELD_V
   if(numvar.ge.3) def_fields = def_fields + FIELD_CHI + &
           FIELD_PE + FIELD_P + FIELD_B2I + FIELD_COM
-  if(idens.eq.1) def_fields = def_fields + FIELD_NI 
+  if(idens.eq.1) def_fields = def_fields + FIELD_N + FIELD_NI 
 
   call getmincoord(xmin,zmin)
   
@@ -231,7 +231,7 @@ subroutine define_sources()
                 (quumu    (g79(:,:,i),pht79,pht79,amu,amuc,hypc) &
                 +qvvmu    (g79(:,:,i),vzt79,vzt79,amu,     hypv) &
                 +quchimu  (g79(:,:,i),pht79,cht79,amu,amuc,hypc) &
-                +0.*qchichimu(g79(:,:,i),cht79,cht79,amu,amuc,hypc))
+                +qchichimu(g79(:,:,i),cht79,cht79,amu,amuc,hypc))
         endif ! on numvar.ge.3
      end do
 
@@ -349,8 +349,9 @@ subroutine define_sources()
      temp(17) = emag3d
      temp(18) = emag3h
          
+     !checked that this should be MPI_DOUBLE_PRECISION
      call mpi_allreduce(temp, temp2, 18, MPI_DOUBLE_PRECISION,  &
-          MPI_SUM, MPI_COMM_WORLD, i) !checked that this should be MPI_DOUBLE_PRECISION
+          MPI_SUM, MPI_COMM_WORLD, i) 
          
      ekinp = temp2(1)
      emagp = temp2(2)
@@ -377,7 +378,7 @@ subroutine define_sources()
   ekind = ekinpd + ekintd + ekin3d
   emagd = emagpd + emagtd + emag3d
 
-  if(myrank.eq.0) then
+  if(myrank.eq.0 .and. iprint.ge.1) then
      print *, "Energy at ntime = ", ntime
      print *, "ekinp, ekint, ekin3 = ", ekinp, ekint, ekin3
      print *, "ekinpd, ekintd, ekin3d = ", ekinpd, ekintd, ekin3d
@@ -502,22 +503,25 @@ subroutine newvar_eta()
            temp79b = max(pefac*pet79(:,OP_1),minpe)
                      
            if(idens.eq.0) then
-!              temp79a = sqrt((1./(pefac*pet79(:,OP_1) + minpe))**3)
-              temp79a = sqrt(1./temp79b**3)
+              temp79a = sqrt((1./(pefac*pet79(:,OP_1) + minpe))**3)
+!!$              temp79a = sqrt(1./temp79b**3)
            else
-!              temp79a = sqrt((nt79(:,OP_1)/(pefac*pet79(:,OP_1) + minpe))**3)
-              temp79a = sqrt((nt79(:,OP_1)/temp79b)**3)
+              temp79a = sqrt((nt79(:,OP_1)/(pefac*pet79(:,OP_1) + minpe))**3)
+!!$              temp79a = sqrt((nt79(:,OP_1)/temp79b)**3)
            endif
         else
            if(idens.eq.0) then
-              temp79a = sqrt((1./max(p0 - pi0,minpe))**3)
+              temp79a = sqrt((1./(p0-pi0 + minpe))**3)
+!!$              temp79a = sqrt((1./max(p0 - pi0,minpe))**3)
            else
-              temp79a = sqrt((nt79(:,OP_1)/max(p0 - pi0,minpe))**3)
+              temp79a = sqrt((nt79(:,OP_1)/(p0-pi0 + minpe))**3)
+!!$              temp79a = sqrt((nt79(:,OP_1)/max(p0 - pi0,minpe))**3)
            endif
         endif
 
-        resistivity(ione) = resistivity(ione) + &
-             etar*int2(g79(:,OP_1,i), temp79a, weight_79,79)
+        resistivity(ione) = resistivity(ione) &
+             + etar*int1(g79(:,OP_1,i),weight_79,79) &
+             + eta0*int2(g79(:,OP_1,i),temp79a, weight_79,79)
      end do
   enddo
 

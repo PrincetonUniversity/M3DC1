@@ -389,9 +389,6 @@ pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog
 
    E = E_K + E_M
 
-;   E_D[1:N-1] = (E_D[1:N-1] + E_D[0:N-2])/2.
-;   E_H[1:N-1] = (E_H[1:N-1] + E_H[0:N-2])/2.
-
 ;  Account for energy terms not included in the physical model
    if(nv le 2) then begin
        dissipated = E_D + E_H
@@ -400,13 +397,17 @@ pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog
    endelse
 
    Error = E - E[0]
-   total_lost = 0.
+   total_lost = fltarr(n_elements(Error))
+   total_lost[0] = 0.
    for i=1, n_elements(Error)-1 do begin
        dt = scalars.time._data[i]-scalars.time._data[i-1]
-       total_lost = total_lost + dissipated[i]*dt
-       Error[i] = Error[i] - total_lost
-       print, dissipated[i]*dt, total_lost, E[i], Error[i]
+       total_lost[i] = total_lost[i-1] + $
+         dt*(dissipated[i-1] + dissipated[i])/2.
    endfor
+
+   Error = Error - total_lost
+
+   print, Error / E
 
    if(keyword_set(norm)) then begin
        E = E - E[0]
@@ -439,11 +440,12 @@ pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog
    oplot, scalars.time._data, E_M, color=2*dc, linestyle = 2
    oplot, scalars.time._data, -E_D, color=3*dc, linestyle = 1
    oplot, scalars.time._data, -E_H, color=4*dc, linestyle = 1
-   oplot, scalars.time._data, Error, color=5*dc, linestyle = 1
+   oplot, scalars.time._data, Error, color=5*dc, linestyle = 3
 
    plot_legend, ['Total', 'Kinetic', 'Magnetic', $
                  'Diffusive', 'Hyper-Diffusive', '|Error|'] , $
-     color=[-1,1,2,3,4,5,6,7,8,9]*dc, ylog=ylog
+     color=[-1,1,2,3,4,5,6,7,8,9]*dc, ylog=ylog, $
+     linestyle = [0,2,2,1,1,3]
 end
 
 
