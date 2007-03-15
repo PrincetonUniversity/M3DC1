@@ -300,9 +300,9 @@ real function v1vpsib(e,f,g,h)
   if(itor.eq.0) then
      temp = 0.
   else
-     temp = int5(ri6_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),weight_79,79) &
-          - int5(ri6_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
-          + int5(ri7_79,e(:,OP_DZ),f(:,OP_1 ),g(:,OP_DZ),h(:,OP_1),weight_79,79)
+     temp = 2.*(int5(ri6_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),weight_79,79) &
+               -int5(ri6_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+               +int5(ri7_79,e(:,OP_DZ),f(:,OP_1 ),g(:,OP_DZ),h(:,OP_1),weight_79,79))
   endif
 
   v1vpsib = temp
@@ -727,6 +727,34 @@ real function v2upsisb2(e,f,g,h)
 end function v2upsisb2
 
 
+! v2ubsb1
+! =======
+real function v2ubsb1(e,f,g,h)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  real :: temp
+
+  if(itor.eq.0) then
+     v2ubsb1 = 0.
+     return
+  end if
+
+  temp79a = e(:,OP_DZ)*h(:,OP_DR) - e(:,OP_DR)*h(:,OP_DZ) &
+       + ri_79*e(:,OP_1)*h(:,OP_DZ)
+
+  temp = int4(ri3_79,temp79a,f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
+       - int4(ri3_79,temp79a,f(:,OP_DZ),g(:,OP_DR),weight_79,79)
+
+  v2ubsb1 = temp
+  return
+end function v2ubsb1
+
+
 ! v2chipsib
 ! =========
 real function v2chipsib(e,f,g,h)
@@ -818,6 +846,68 @@ real function v2vhypv(e,f)
   v2vhypv = temp
   return
 end function v2vhypv
+
+
+! v2chibsb1
+! =========
+real function v2chibsb1(e,f,g,h)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  real :: temp
+
+  if(itor.eq.0) then
+     v2chibsb1 = 0.
+     return
+  end if
+
+  temp79a = e(:,OP_DZ)*h(:,OP_DR) - e(:,OP_DR)*h(:,OP_DZ) &
+       + ri_79*e(:,OP_1)*h(:,OP_DZ)
+
+  temp79b = g(:,OP_1)*f(:,OP_GS) + g(:,OP_DZ)*f(:,OP_DZ) + g(:,OP_DR)*f(:,OP_DR)
+
+  temp = int3(ri4_79,temp79a,temp79b,weight_79,79)
+
+  v2chibsb1 = temp
+  return
+end function v2chibsb1
+
+
+! v2vpsisb1
+! =========
+real function v2vpsisb1(e,f,g,h)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  real :: temp
+
+  if(itor.eq.0) then
+     v2vpsisb1 = 0.
+     return
+  end if
+
+  temp79a = e(:,OP_DZ)*h(:,OP_DR) - e(:,OP_DR)*h(:,OP_DZ) &
+       + ri_79*e(:,OP_1)*h(:,OP_DZ)
+
+  temp79b = f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ) &
+       + ri_79*f(:,OP_1)*g(:,OP_DZ)
+
+  temp = -int3(ri4_79,temp79a,temp79b,weight_79,79)
+
+  v2vpsisb1 = temp
+  return
+end function v2vpsisb1
+
+
+
 
 !===============================================================================
 ! V3 TERMS
@@ -968,7 +1058,7 @@ real function v3up(e,f,g)
      temp = temp + 2.* &
           (int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
           -int3(e(:,OP_DR),f(:,OP_DZ),g(:,OP_DR),weight_79,79) &
-          -2.*gam* &
+          -gam* &
           (int3(e(:,OP_LP),f(:,OP_DZ),g(:,OP_1),weight_79,79) &
           +2.*int4(ri_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_1),weight_79,79)))
   endif
@@ -1258,12 +1348,12 @@ real function v3chipsipsi(e,f,g,h)
        - int4(ri2_79,temp79b,e(:,OP_DR ),h(:,OP_GS ),weight_79,79)
   if(itor.eq.1) then
      temp = temp + 2.* &
-          (int4(ri3_79,temp79c,e(:,OP_1  ),h(:,OP_DRZ),weight_79,79) &
-          +int4(ri3_79,temp79b,e(:,OP_1  ),h(:,OP_DRR),weight_79,79) &
-          +int4(ri3_79,temp79c,e(:,OP_DRZ),h(:,OP_1  ),weight_79,79) &
-          +int4(ri3_79,temp79b,e(:,OP_DRR),h(:,OP_1  ),weight_79,79) &
-          -int4(ri3_79,temp79b,e(:,OP_1  ),h(:,OP_GS ),weight_79,79) &
-          -int4(ri4_79,temp79b,e(:,OP_1  ),h(:,OP_DR ),weight_79,79))
+          (int4(ri3_79,temp79c,e(:,OP_1 ),h(:,OP_DRZ),weight_79,79) &
+          +int4(ri3_79,temp79b,e(:,OP_1 ),h(:,OP_DRR),weight_79,79) &
+          +int4(ri3_79,temp79c,e(:,OP_DZ),h(:,OP_DR ),weight_79,79) &
+          +int4(ri3_79,temp79b,e(:,OP_DR),h(:,OP_DR ),weight_79,79) &
+          -int4(ri3_79,temp79b,e(:,OP_1 ),h(:,OP_GS ),weight_79,79) &
+          -int4(ri4_79,temp79b,e(:,OP_1 ),h(:,OP_DR ),weight_79,79))
   endif
 
   v3chipsipsi = temp
@@ -1360,38 +1450,6 @@ real function v3uun(e,f,g,h)
              + 2.*int4(     e(:,OP_1 ),f(:,OP_DR), g(:,OP_DR),h(:,OP_1),weight_79,79)
      endif
   endif
-
-!!$  if(idens.eq.0) then
-!!$     temp = int4(r2_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_DRZ),weight_79,79) &
-!!$          - int4(r2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DRR),weight_79,79) &
-!!$          + int4(r2_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_DRZ),weight_79,79) &
-!!$          - int4(r2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_DZZ),weight_79,79)
-!!$     if(itor.eq.1) then
-!!$        temp = temp &
-!!$             + int4(r_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_DZ ),weight_79,79) &
-!!$             - int4(r_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_DZ ),weight_79,79) &
-!!$             - int4(r_79,e(:,OP_DZ),g(:,OP_DR),f(:,OP_DZ ),weight_79,79) &
-!!$             + int4(r_79,e(:,OP_DR),g(:,OP_DZ),f(:,OP_DZ ),weight_79,79) &
-!!$             + int4(r_79,e(:,OP_1 ),f(:,OP_DZ),g(:,OP_DRZ),weight_79,79) &
-!!$             - int4(r_79,e(:,OP_1 ),f(:,OP_DR),g(:,OP_DZZ),weight_79,79)
-!!$     endif
-!!$  else
-!!$     temp = int5(r2_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_DRZ),h(:,OP_1),weight_79,79) &
-!!$          - int5(r2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DRR),h(:,OP_1),weight_79,79) &
-!!$          + int5(r2_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_DRZ),h(:,OP_1),weight_79,79) &
-!!$          - int5(r2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_DZZ),h(:,OP_1),weight_79,79)
-!!$     if(itor.eq.1) then
-!!$        temp = temp &
-!!$             + int5(r_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_DZ ),h(:,OP_1 ),weight_79,79) &
-!!$             - int5(r_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_DZ ),h(:,OP_1 ),weight_79,79) &
-!!$             - int5(r_79,e(:,OP_DZ),g(:,OP_DR),f(:,OP_DZ ),h(:,OP_1 ),weight_79,79) &
-!!$             + int5(r_79,e(:,OP_DR),g(:,OP_DZ),f(:,OP_DZ ),h(:,OP_1 ),weight_79,79) &
-!!$             + int5(r_79,e(:,OP_1 ),f(:,OP_DZ),g(:,OP_DRZ),h(:,OP_1 ),weight_79,79) &
-!!$             - int5(r_79,e(:,OP_1 ),f(:,OP_DR),g(:,OP_DZZ),h(:,OP_1 ),weight_79,79) &
-!!$             - int5(r_79,e(:,OP_1 ),f(:,OP_DZ),g(:,OP_DZ ),h(:,OP_DR),weight_79,79) &
-!!$             + int5(r_79,e(:,OP_1 ),f(:,OP_DR),g(:,OP_DZ ),h(:,OP_DZ),weight_79,79)
-!!$     endif
-!!$  endif
 
   v3uun = temp
   return
@@ -1490,30 +1548,6 @@ real function v3uchin(e,f,g,h)
              - 2.*int5(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),weight_79,79)
      endif
   endif
-
-!!$  temp79a = r_79*e(:,OP_DR)
-!!$  if(itor.eq.1) temp79a = temp79a + 2.*e(:,OP_1)
-!!$  if(idens.eq.1) temp79a = temp79a*h(:,OP_1)
-!!$
-!!$  temp = int3(temp79a,f(:,OP_DR ),g(:,OP_DRZ),weight_79,79) &
-!!$       - int3(temp79a,f(:,OP_DZZ),g(:,OP_DZ ),weight_79,79) &
-!!$       - int3(temp79a,f(:,OP_DRZ),g(:,OP_DR ),weight_79,79) &
-!!$       - int3(temp79a,f(:,OP_DZ ),g(:,OP_DRR),weight_79,79)
-!!$  if(itor.eq.1) then
-!!$     temp = temp - int4(ri_79,temp79a,f(:,OP_DZ),g(:,OP_DR),weight_79,79)
-!!$  endif
-!!$
-!!$  temp79a = r_79*e(:,OP_DZ)
-!!$  if(idens.eq.1) temp79a = temp79a*h(:,OP_1)
-!!$
-!!$  temp = temp &
-!!$       + int3(temp79a,f(:,OP_DRZ),g(:,OP_DZ ),weight_79,79) &
-!!$       + int3(temp79a,f(:,OP_DR ),g(:,OP_DZZ),weight_79,79) &
-!!$       + int3(temp79a,f(:,OP_DRR),g(:,OP_DR ),weight_79,79) &
-!!$       - int3(temp79a,f(:,OP_DZ ),g(:,OP_DRZ),weight_79,79)
-!!$  if(itor.eq.1) then
-!!$     temp = temp + int4(ri_79,temp79a,f(:,OP_DR),g(:,OP_DR),weight_79,79)
-!!$  endif
   
   v3uchin = temp
   return
@@ -1536,14 +1570,15 @@ real function v3chichin(e,f,g,h)
   real :: temp
 
   if(idens.eq.0) then
-     temp = int3(e(:,OP_DZ),f(:,OP_DZZ),g(:,OP_DZ ),weight_79,79) &
-          + int3(e(:,OP_DZ),f(:,OP_DRZ),g(:,OP_DR ),weight_79,79) &
-          + int3(e(:,OP_DZ),f(:,OP_DZ ),g(:,OP_DZZ),weight_79,79) &
-          + int3(e(:,OP_DZ),f(:,OP_DR ),g(:,OP_DRZ),weight_79,79) &
-          + int3(e(:,OP_DR),f(:,OP_DRZ),g(:,OP_DZ ),weight_79,79) &
-          + int3(e(:,OP_DR),f(:,OP_DRR),g(:,OP_DR ),weight_79,79) &
-          + int3(e(:,OP_DR),f(:,OP_DZ ),g(:,OP_DRZ),weight_79,79) &
-          + int3(e(:,OP_DR),f(:,OP_DR ),g(:,OP_DRR),weight_79,79)
+     temp = 0.5* &
+          (int3(e(:,OP_DZ),f(:,OP_DZZ),g(:,OP_DZ ),weight_79,79) &
+          +int3(e(:,OP_DZ),f(:,OP_DRZ),g(:,OP_DR ),weight_79,79) &
+          +int3(e(:,OP_DZ),f(:,OP_DZ ),g(:,OP_DZZ),weight_79,79) &
+          +int3(e(:,OP_DZ),f(:,OP_DR ),g(:,OP_DRZ),weight_79,79) &
+          +int3(e(:,OP_DR),f(:,OP_DRZ),g(:,OP_DZ ),weight_79,79) &
+          +int3(e(:,OP_DR),f(:,OP_DRR),g(:,OP_DR ),weight_79,79) &
+          +int3(e(:,OP_DR),f(:,OP_DZ ),g(:,OP_DRZ),weight_79,79) &
+          +int3(e(:,OP_DR),f(:,OP_DR ),g(:,OP_DRR),weight_79,79))
      if(itor.eq.1) then
         temp = temp &
           + int4(ri_79,e(:,OP_1 ),f(:,OP_DRZ),g(:,OP_DZ ),weight_79,79) &
@@ -1552,14 +1587,15 @@ real function v3chichin(e,f,g,h)
           + int4(ri_79,e(:,OP_1 ),f(:,OP_DR ),g(:,OP_DRR),weight_79,79)
      endif
   else
-     temp = int4(e(:,OP_DZ),f(:,OP_DZZ),g(:,OP_DZ ),h(:,OP_1),weight_79,79) &
-          + int4(e(:,OP_DZ),f(:,OP_DRZ),g(:,OP_DR ),h(:,OP_1),weight_79,79) &
-          + int4(e(:,OP_DZ),f(:,OP_DZ ),g(:,OP_DZZ),h(:,OP_1),weight_79,79) &
-          + int4(e(:,OP_DZ),f(:,OP_DR ),g(:,OP_DRZ),h(:,OP_1),weight_79,79) &
-          + int4(e(:,OP_DR),f(:,OP_DRZ),g(:,OP_DZ ),h(:,OP_1),weight_79,79) &
-          + int4(e(:,OP_DR),f(:,OP_DRR),g(:,OP_DR ),h(:,OP_1),weight_79,79) &
-          + int4(e(:,OP_DR),f(:,OP_DZ ),g(:,OP_DRZ),h(:,OP_1),weight_79,79) &
-          + int4(e(:,OP_DR),f(:,OP_DR ),g(:,OP_DRR),h(:,OP_1),weight_79,79)
+     temp = 0.5* &
+          (int4(e(:,OP_DZ),f(:,OP_DZZ),g(:,OP_DZ ),h(:,OP_1),weight_79,79) &
+          +int4(e(:,OP_DZ),f(:,OP_DRZ),g(:,OP_DR ),h(:,OP_1),weight_79,79) &
+          +int4(e(:,OP_DZ),f(:,OP_DZ ),g(:,OP_DZZ),h(:,OP_1),weight_79,79) &
+          +int4(e(:,OP_DZ),f(:,OP_DR ),g(:,OP_DRZ),h(:,OP_1),weight_79,79) &
+          +int4(e(:,OP_DR),f(:,OP_DRZ),g(:,OP_DZ ),h(:,OP_1),weight_79,79) &
+          +int4(e(:,OP_DR),f(:,OP_DRR),g(:,OP_DR ),h(:,OP_1),weight_79,79) &
+          +int4(e(:,OP_DR),f(:,OP_DZ ),g(:,OP_DRZ),h(:,OP_1),weight_79,79) &
+          +int4(e(:,OP_DR),f(:,OP_DR ),g(:,OP_DRR),h(:,OP_1),weight_79,79))
      if(itor.eq.1) then
         temp = temp &
           + int5(ri_79,e(:,OP_1 ),f(:,OP_DRZ),g(:,OP_DZ ),h(:,OP_1 ),weight_79,79) &
@@ -1569,9 +1605,7 @@ real function v3chichin(e,f,g,h)
      endif
   endif
 
-  temp = temp / 2.
   v3chichin = temp
-
   return
 end function v3chichin
 

@@ -69,6 +69,9 @@ pro plot_mesh, mesh, color=col, linestyle=lin, oplot=oplot, _EXTRA=ex
 
    if(n_elements(col) ne 0) then loadct, 12
 
+   xzero = read_parameter("xzero", filename=filename)
+   zzero = read_parameter("zzero", filename=filename)
+
    for i=0, nelms-1 do begin
        a = mesh.elements._data[0,i]
        b = mesh.elements._data[1,i]
@@ -82,13 +85,12 @@ pro plot_mesh, mesh, color=col, linestyle=lin, oplot=oplot, _EXTRA=ex
        p3 = p1 + [b * cos(t) - c * sin(t), $
                   b * sin(t) + c * cos(t)]
        
-       oplot, [p1[0],p2[0]], [p1[1],p2[1]], color=col, linestyle=lin, thick=.2
-       oplot, [p2[0],p3[0]], [p2[1],p3[1]], color=col, linestyle=lin, thick=.2
-       oplot, [p3[0],p1[0]], [p3[1],p1[1]], color=col, linestyle=lin, thick=.2
-
-       if(i eq 0) then begin
-           oplot, [p1[0],p2[0]], [p1[1],p2[1]], color=200, psym=4
-       endif
+       oplot, [p1[0],p2[0]]+xzero, [p1[1],p2[1]]+zzero, $
+         color=col, linestyle=lin, thick=.2
+       oplot, [p2[0],p3[0]]+xzero, [p2[1],p3[1]]+zzero, $
+         color=col, linestyle=lin, thick=.2
+       oplot, [p3[0],p1[0]]+xzero, [p3[1],p1[1]]+zzero, $
+         color=col, linestyle=lin, thick=.2
    end
 end
 

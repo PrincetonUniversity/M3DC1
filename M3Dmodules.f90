@@ -61,7 +61,6 @@ module basic
   integer :: ntimemax    ! number of timesteps
   integer :: nskip       ! number of timesteps per matrix recalculation
   integer :: iconstflux  ! 1 = conserve toroidal flux
-  integer :: iconspflux  ! 1 = conserve poloidal flux
   real :: dt             ! timestep
   real :: thimp          ! implicitness parameter
   real :: facw, facd
@@ -90,7 +89,7 @@ module basic
        bzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,      &
        kappa,iper,jper,iprint,itimer,xzero,zzero,beta,pi0,   &
        eqsubtract,denm,grav,kappat,kappar,ln,amuc,iconstflux,&
-       regular,deex,gyro,iconspflux,vloop,eta0
+       regular,deex,gyro,vloop,eta0
 
   !     derived quantities
   real :: tt,pi,                                                       &
@@ -103,7 +102,7 @@ module basic
        ekinp,emagp,ekinpd,emagpd,ekinpo,emagpo,ekinpdo,emagpdo,        &
        ekinph,ekinth,emagph,emagth,ekinpho,ekintho,emagpho,emagtho,    &
        ekin3,ekin3d,ekin3h,emag3,ekin3o,ekin3do,ekin3ho,emag3o,        &
-       emag3h,emag3d,emag3ho,emag3do,chierror,pflux0,tflux0,totcur0
+       emag3h,emag3d,emag3ho,emag3do,chierror,tflux0,totcur0
   character*8 :: filename(50)
   character*10 :: datec, timec
   
