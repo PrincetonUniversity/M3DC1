@@ -347,6 +347,7 @@ subroutine hdf5_write_parameters(error)
 
   call write_int_attr (root_id, "numvar"     , numvar,     error)
   call write_int_attr (root_id, "idens"      , idens,      error)
+  call write_int_attr (root_id, "gyro"       , gyro,       error)
   call write_int_attr (root_id, "linear"     , linear,     error)
   call write_int_attr (root_id, "eqsubtract" , eqsubtract, error)
   call write_int_attr (root_id, "iper"       , iper,       error)
@@ -355,6 +356,7 @@ subroutine hdf5_write_parameters(error)
   call write_real_attr(root_id, "zzero"      , zzero,      error)
   call write_real_attr(root_id, "xlim"       , xlim,       error)
   call write_real_attr(root_id, "zlim"       , zlim,       error)
+  call write_real_attr(root_id, "vloop"      , vloop,      error)
 
   call h5gclose_f(root_id, error)
 
@@ -384,7 +386,6 @@ subroutine hdf5_write_scalars(error)
   endif
 
   call output_scalar(scalar_group_id, "toroidal_flux"    , totcur, ntime, error)
-  call output_scalar(scalar_group_id, "poloidal_flux"    , pflux , ntime, error)
   call output_scalar(scalar_group_id, "toroidal_current" , tflux , ntime, error)
 
   
@@ -554,13 +555,6 @@ subroutine output_fields(time_group_id, error)
   ! Output the fields
   ! ~~~~~~~~~~~~~~~~~
   
-!!$  ! tempvar
-!!$  do i=1, nelms
-!!$     call calcavector(i, tempvar, 1, 1, dum(:,i))
-!!$  end do
-!!$  call output_field(group_id, "tempvar", dum, 20, nelms, error)
-!!$  nfields = nfields + 1  
-
   ! psi
   do i=1, nelms
      call calcavector(i, phi, 1, numvar, dum(:,i))
@@ -680,6 +674,13 @@ subroutine output_fields(time_group_id, error)
      end do
      call output_field(group_id, "den", dum, 20, nelms, error)
      nfields = nfields + 1
+
+     ! deni
+     do i=1, nelms
+        call calcavector(i, deni, 1, 1, dum(:,i))
+     end do
+     call output_field(group_id, "deni", dum, 20, nelms, error)
+     nfields = nfields + 1  
   endif
 
   call write_int_attr(group_id, "nfields", nfields, error)

@@ -247,7 +247,6 @@ Program Reducedquintic
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   call total_flux
-  pflux0 = pflux
   tflux0 = tflux
   totcur0 = totcur
   if(myrank.eq.0 .and. itimer.eq.1) then
@@ -668,7 +667,7 @@ subroutine onestep
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   call total_flux
-  if(iconspflux.eq.1 .or. (iconstflux.eq.1 .and. numvar.ge.2)) then
+  if(iconstflux.eq.1 .and. numvar.ge.2) then
      call conserve_flux
      call total_flux
   endif
@@ -706,19 +705,6 @@ subroutine conserve_flux
   implicit none
   
   integer :: ndofs, j
-
-  ! adjust toroidal field and boundary condition to conserve poloidal flux
-  if(iconspflux.eq.1) then
-     fbound = (pflux0-pflux)/area
-     call numdofs(numvar, ndofs)
-     do j=1,ndofs,6*numvar
-        phi(j) = phi(j) + fbound
-     enddo
-     if(myrank.eq.0) then
-        print *, "Correction to toroidal flux: ", fbound*area
-     end if
-     fbound = fbound - dt*vloop/(2.*pi)
-  endif
 
   ! adjust toroidal field and boundary condition to conserve toroidal flux
   if(numvar.ge.2 .and. iconstflux.eq.1) then

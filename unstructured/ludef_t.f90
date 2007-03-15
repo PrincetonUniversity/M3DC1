@@ -391,7 +391,7 @@ subroutine ludefvel_n(itri,dbf)
            temp = v2vchin(g79(:,:,i),vz179,g79(:,:,j),nt79)
            ssterm(2,3) = ssterm(2,3) -     thimp *dt*temp
            ddterm(2,3) = ddterm(2,3) + (.5-thimp)*dt*temp
-           
+
            temp = v2chipsib(g79(:,:,i),g79(:,:,j),pst79,bzt79) 
            ssterm(2,3) = ssterm(2,3) - thimp*    thimp *dt*dt*temp
            ddterm(2,3) = ddterm(2,3) + thimp*(1.-thimp)*dt*dt*temp
@@ -1035,7 +1035,7 @@ subroutine ludefphi_n(itri,dbf)
                 (quumu    (g79(:,:,i),pht79,pht79,amu,amuc,hypc) &
                 +qvvmu    (g79(:,:,i),vzt79,vzt79,amu,     hypv) &
                 +quchimu  (g79(:,:,i),pht79,cht79,amu,amuc,hypc) &
-                +qchichimu(g79(:,:,i),cht79,cht79,amu,amuc,hypc))
+                +0.*qchichimu(g79(:,:,i),cht79,cht79,amu,amuc,hypc))
         endif
      endif
      

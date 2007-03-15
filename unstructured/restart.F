@@ -64,7 +64,7 @@ c     first put in information to check on run information
       enddo
 !
       write(56) ntime,time
-      write(56) totcur0,pflux0,tflux0,gbound,facd
+      write(56) totcur0,tflux0,gbound,facd
       close(56)
       write(9,1201) ntime,time
  1201 format("* * * restart file written at cycle,time = ",i5,1pe12.4,    &
@@ -169,7 +169,7 @@ c     first put in information to check on run information
 
 !
       read(56) ntimer,timer
-      read(56) totcur0,pflux0,tflux0,gbound,facd
+      read(56) totcur0,tflux0,gbound,facd
       close(56)
       write(*,1201) ntimer,timer
       write(9,1201) ntimer,timer
