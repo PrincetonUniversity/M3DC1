@@ -107,7 +107,7 @@ subroutine define_sources()
   if(numvar.ge.2) sb2 = 0.
   if(numvar.ge.3) sp1 = 0.
 
-  tempvar = 0.
+!!$  tempvar = 0.
 
   ekino = ekin
   emago = emag
@@ -190,7 +190,9 @@ subroutine define_sources()
      dbf = db*factor
 
      call define_fields_79(itri, def_fields)
-    
+
+     if(isources.eq.1) then
+   
      do i=1,18
         ione = isval1(itri,i)
 
@@ -200,40 +202,42 @@ subroutine define_sources()
         
         ! Definition of Source Terms
         ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
-!!$        sb1(ione) = sb1(ione) + b1psieta(g79(:,:,i),pst79,eta79,hypf)
+        sb1(ione) = sb1(ione) + b1psieta(g79(:,:,i),pst79,eta79,hypf)
 
         if(numvar.ge.2) then
            sb1(ione) = sb1(ione) + b1psibd(g79(:,:,i),pst79,bzt79,ni79)*dbf
 
            sb2(ione) = sb2(ione)  &
                 + b2psipsid(g79(:,:,i),pst79,pst79,ni79)*dbf &
-                + b2bbd    (g79(:,:,i),bzt79,bzt79,ni79)*dbf ! &
-!!$                + b2beta   (g79(:,:,i),bzt79,eta79,hypi)
+                + b2bbd    (g79(:,:,i),bzt79,bzt79,ni79)*dbf &
+                + b2beta   (g79(:,:,i),bzt79,eta79,hypi)
         endif
 
         if(numvar.ge.3) then
            sb2(ione) = sb2(ione) + b2ped(g79(:,:,i),pet79,ni79)*dbf*pefac
 
            sp1(ione) = sp1(ione) &
-!!$                + b3psipsieta(g79(:,:,i),pst79,pst79,eta79)   &
-!!$                + b3bbeta    (g79(:,:,i),bzt79,bzt79,eta79)   &
+                + b3psipsieta(g79(:,:,i),pst79,pst79,eta79)   &
+                + b3bbeta    (g79(:,:,i),bzt79,bzt79,eta79)   &
 !!$                + b3pedkappa (g79(:,:,i),pt79,ni79,kappat,hypp)*(gam-1.) &
                 + p1kappar   (g79(:,:,i),pst79,pst79,pet79,ni79,b2i79)*kappar*(gam-1.) &
                 + b3pebd(g79(:,:,i),pet79,bzt79,ni79)*dbf*pefac
 
-!!$           ! ohmic heating         
-!!$           sp1(ione) = sp1(ione) + (gam-1.)* &
-!!$                (qpsipsieta(g79(:,:,i),pst79,pst79,eta79,hypf,jt79) &
-!!$                +qbbeta    (g79(:,:,i),bzt79,bzt79,eta79,hypi))
-!!$
-!!$           ! viscous heating
-!!$           sp1(ione) = sp1(ione) - (gam-1.)* &
-!!$                (quumu    (g79(:,:,i),pht79,pht79,amu,amuc,hypc) &
-!!$                +qvvmu    (g79(:,:,i),vzt79,vzt79,amu,     hypv) &
-!!$                +quchimu  (g79(:,:,i),pht79,cht79,amu,amuc,hypc) &
-!!$                +0.*qchichimu(g79(:,:,i),cht79,cht79,amu,amuc,hypc))
+           ! ohmic heating         
+           sp1(ione) = sp1(ione) + (gam-1.)* &
+                (qpsipsieta(g79(:,:,i),pst79,pst79,eta79,hypf,jt79) &
+                +qbbeta    (g79(:,:,i),bzt79,bzt79,eta79,hypi))
+
+           ! viscous heating
+           sp1(ione) = sp1(ione) - (gam-1.)* &
+                (quumu    (g79(:,:,i),pht79,pht79,amu,amuc,hypc) &
+                +qvvmu    (g79(:,:,i),vzt79,vzt79,amu,     hypv) &
+                +quchimu  (g79(:,:,i),pht79,cht79,amu,amuc,hypc) &
+                +0.*qchichimu(g79(:,:,i),cht79,cht79,amu,amuc,hypc))
         endif ! on numvar.ge.3
      end do
+
+     endif ! on isources
 
      ! Definition of energy
      ! ~~~~~~~~~~~~~~~~~~~~
@@ -322,9 +326,11 @@ subroutine define_sources()
   ! Solve source term equations
   call numdofs(1, ndof)
 
-  call solve_newvar(sb1, 1)
-  if(numvar.ge.2) call solve_newvar(sb2, 1)
-  if(numvar.ge.3) call solve_newvar(sp1, 1)
+  if(isources.eq.1) then
+     call solve_newvar(sb1, 1)
+     if(numvar.ge.2) call solve_newvar(sb2, 1)
+     if(numvar.ge.3) call solve_newvar(sp1, 1)
+  endif
 !!$ 
 !!$  call solve_newvar(tempvar, 1)
 

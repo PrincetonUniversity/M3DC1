@@ -75,15 +75,17 @@ subroutine ludefall
   if(idens.eq.1) qn4 = 0.
   
   ! Determine which fields need to be calculated
-  def_fields = FIELD_PSI + FIELD_PHI + FIELD_SB1 + FIELD_ETA
-  if(numvar.ge.2) def_fields = def_fields + FIELD_V + FIELD_I + FIELD_SB2
+  def_fields = FIELD_PSI + FIELD_PHI + FIELD_ETA
+  if(numvar.ge.2) def_fields = def_fields + FIELD_V + FIELD_I
   if(numvar.ge.3) def_fields = def_fields + &
-       FIELD_CHI + FIELD_PE  + FIELD_SP1 + FIELD_B2I + FIELD_J
+       FIELD_CHI + FIELD_PE + FIELD_B2I + FIELD_J
   if(idens.eq.1) def_fields = def_fields + FIELD_N + FIELD_NI
-  if(ipres.eq.1) then
-     def_fields = def_fields + FIELD_P
-  else if(hyperc.ne.0) then
-     def_fields = def_fields + FIELD_VOR + FIELD_COM
+  if(ipres.eq.1) def_fields = def_fields + FIELD_P
+
+  if(isources.eq.1) then
+     def_fields = def_fields + FIELD_SB1
+     if(numvar.ge.2) def_fields = def_fields + FIELD_SB2
+     if(numvar.ge.3) def_fields = def_fields + FIELD_SP1
   endif
 
   ! Loop over local elements
@@ -443,7 +445,7 @@ subroutine ludefvel_n(itri,dbf)
            
            temp = v3chip     (g79(:,:,i),g79(:,:,j),pt79)        &
                 + v3chipsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79) &
-                + v3chibb    (g79(:,:,i),g79(:,:,j),bzt79,bzt79)  
+                + v3chibb    (g79(:,:,i),g79(:,:,j),bzt79,bzt79)
            if(grav.ne.0) then
               temp = temp + &
                    v3chingrav(g79(:,:,i),g79(:,:,j),nt79)*grav

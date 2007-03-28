@@ -14,10 +14,12 @@ subroutine gradshafranov_init()
 
   use basic
   use arrays
+  use diagnostics
 
   implicit none
 
   integer :: l, numnodes, ibegin, iendplusone
+  real :: tstart, tend
 
   call numnod(numnodes)
   do l=1, numnodes
@@ -31,7 +33,12 @@ subroutine gradshafranov_init()
      endif
   enddo
 
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   call gradshafranov_solve()
+  if(myrank.eq.0 .and. itimer.eq.1) then 
+     call second(tend)
+     t_gs = tend - tstart
+  endif
   
 end subroutine gradshafranov_init
 
@@ -42,7 +49,7 @@ subroutine gradshafranov_solve
   use basic
   use arrays
   use sparse
-
+  use diagnostics
   use nintegrate_mod
 
   implicit none
@@ -64,12 +71,13 @@ subroutine gradshafranov_solve
   real :: g, gx, gz, gxx, gxz, gzz, g0
   real :: gv, gvx, gvz, gvxx, gvxz, gvzz
   real :: x,z, xmin, zmin, xrel, zrel, xguess, zguess, error
-  real :: th, sum, rhs, ajlim, curr, q0, qstar, norm, rnorm
+  real :: sum, rhs, ajlim, curr, q0, qstar, norm, rnorm
   real :: g1, g1x, g1z, g1xx, g1xz, g1zz
   real :: g2, g2x, g2z, g2xx, g2xz, g2zz
   real :: g3, g3x, g3z, g3xx, g3xz, g3zz
   real, dimension(5) :: temp1, temp2
   real :: alx, alz
+
   double precision :: coords(3)
    
   real :: tstart, tend, tsol, tmagaxis, tfundef, tplot
@@ -77,10 +85,11 @@ subroutine gradshafranov_solve
 
   if(myrank.eq.0 .and. iprint.gt.0) write(*,*) "gradshafranov called"
 
-  tmagaxis = 0.
-  tsol = 0.
-  tfundef = 0.
-  tplot = 0.
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart) ! t_gs_init
+
+  t_gs_magaxis = 0.
+  t_gs_solve = 0.
+  t_gs_fundef = 0.
 
   call getmincoord(xmin, zmin)
   call numnod(numnodes)
@@ -99,9 +108,6 @@ subroutine gradshafranov_solve
 
   ! form the grad-sharfranov matrix
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-
   call zeroarray4solve(gsmatrix_sm,numvar1_numbering)
 
   ! populate the matrix
@@ -146,7 +152,7 @@ subroutine gradshafranov_solve
 
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
-     write(*,*) " gradshafranov: Time defining GS matrix: ", tend - tstart
+     t_gs_init = tend - tstart
   endif
 
 
@@ -181,14 +187,6 @@ subroutine gradshafranov_solve
      psi(ibegin+4) = (gxz+gvxz*bv)*fac
      psi(ibegin+5) = (gzz+gvzz*bv)*fac
   enddo
-  
-!!$  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-!!$  if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(psi,1,numvargs,"psi ",0)
-!!$  if(myrank.eq.0 .and. itimer.eq.1) then
-!!$     call second(tend)
-!!$     tplot = tplot + tend - tstart
-!!$  endif
- 
 
   ! store boundary conditions on psi
   psibounds = 0.
@@ -203,19 +201,14 @@ subroutine gradshafranov_solve
 
   b1vecini = 0
   call deltafun(xrel,zrel,b1vecini,tcuro)
-  
-  th = 1.
-  
+ 
   !-------------------------------------------------------------------
   ! start of iteration loop on plasma current
   do itnum=1, iterations
 
-!!$     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-!!$     if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(b1vecini,1,numvargs,"b1vecini",0)
-!!$     if(myrank.eq.0 .and. itimer.eq.1) then
-!!$        call second(tend)
-!!$        tplot = tplot + tend - tstart
-!!$     endif
+     if(myrank.eq.0 .and. iprint.eq.1) print *, "GS: iteration = ", itnum
+     
+     if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(b1vecini,1,numvargs,"b1vecini",0)
 
      ! apply boundary conditions
      do i=1,nbcgs
@@ -223,33 +216,30 @@ subroutine gradshafranov_solve
      enddo
 
      ! perform LU backsubstitution to get psi solution
-     write(*,*) 'about to solve gradshaf',myrank
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call solve(gsmatrix_sm,b1vecini,ier)
-     write(*,*) ' solved gradshaf',myrank
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
-        tsol = tsol + tend - tstart
+        t_gs_solve = t_gs_solve + tend - tstart
      endif
 
-     psi = th*b1vecini + (1.-th)*psi
+     if(itnum.eq.1) then
+        psi = b1vecini
+     else
+        psi = 0.5*(b1vecini + psi)
+     endif
 
-!!$     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-!!$     if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(psi,1,numvargs,"psi ",0)
-!!$     if(myrank.eq.0 .and. itimer.eq.1) then
-!!$        call second(tend)
-!!$        tplot = tplot + tend - tstart
-!!$     endif
-     th = 0.5
+     if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(psi,1,numvargs,"psi ",0)
     
-     ! calculate psi at the magnetic axis
+     ! Find new magnetic axis (extremum of psi)
+     ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      xguess = xmag - xzero
      zguess = zmag - zzero    
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call magaxis(xguess,zguess)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
-        tmagaxis = tmagaxis + tend - tstart
+        t_gs_magaxis = t_gs_magaxis + tend - tstart
      endif
      xmag = xguess + xzero
      zmag = zguess + zzero
@@ -266,11 +256,12 @@ subroutine gradshafranov_solve
      call fundef
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
-        tfundef = tfundef + tend - tstart
+        t_gs_fundef = t_gs_fundef + tend - tstart
      endif
 
 
-     ! calculate the error
+     ! Calculate error in new solution
+     ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      ! (nodes shared between processes are currenly overcounted)
      sum = 0.
      norm = 0.
@@ -301,8 +292,7 @@ subroutine gradshafranov_solve
         error = sqrt(sum/norm)
      endif
      
-     if(myrank.eq.0 .and. iprint.gt.0) &
-          print *, "gradshafranov: error = ", error
+     if(myrank.eq.0 .and. iprint.gt.0) print *, "GS: error = ", error
      
      ! start of loop over triangles to compute integrals needed to keep
      !     total current and q_0 constant using gamma4, gamma2, gamma3
@@ -330,12 +320,13 @@ subroutine gradshafranov_solve
            gsint4 = gsint4 + cfac(i)*fun4(i1)
            gsint2 = gsint2 + cfac(i)*fun2(i1)
            gsint3 = gsint3 + cfac(i)*fun3(i1)
+
            do j=1,18
               jone = isval1(itri,j)
               curr = curr + sterm(i,j)*psi(i1)*rinv(jone)
            enddo
           
-        enddo        
+        enddo
      enddo
 
      if(maxrank.gt.1) then
@@ -354,7 +345,7 @@ subroutine gradshafranov_solve
      end if
 
      if(myrank.eq.0 .and. iprint.ge.1) then 
-        print *, "gradshafranov: curr = ", curr
+        print *, "GS: curr = ", curr
      endif
 
 
@@ -375,10 +366,10 @@ subroutine gradshafranov_solve
 
      gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
      
-     if(myrank.eq.0 .and. iprint.gt.0) then
-        write(*,*) "gsint1, gsint2, gsint3, gsint4", gsint1, gsint2, gsint3, gsint4
-        write(*,*) "gamma2, gamma3, gamma4", gamma2, gamma3, gamma4
-     endif
+!!$     if(myrank.eq.0 .and. iprint.gt.0) then
+!!$        write(*,*) "gsint1, gsint2, gsint3, gsint4", gsint1, gsint2, gsint3, gsint4
+!!$        write(*,*) "gamma2, gamma3, gamma4", gamma2, gamma3, gamma4
+!!$     endif
      
      ! start loop over elements to define RHS vector
      b1vecini = 0.
@@ -514,9 +505,9 @@ subroutine gradshafranov_solve
         sum = p0 - pi0*ipres
 
         if(temp(ibegin) .lt. 0 .or. temp(ibegin) .gt. 1) then
-           call constant_field(phi0(ibeginn+12:ibeginn+17), 0.)
+           call constant_field(phi0(ibeginn+12:ibeginn+17), pedge * sum/p0)
         else
-           phi0(ibeginn+12) = sum* &
+           phi0(ibeginn+12) = pedge * sum/p0 + sum* &
                 (1.+p1*temp(ibegin)+p2*temp(ibegin)**2 &
                 -(20. + 10.*p1 + 4.*p2)*temp(ibegin)**3 &
                 +(45. + 20.*p1 + 6.*p2)*temp(ibegin)**4 &
@@ -578,9 +569,9 @@ subroutine gradshafranov_solve
            sum = p0
 
            if(temp(ibegin) .lt. 0 .or. temp(ibegin) .gt. 1) then
-              call constant_field(pres0(ibeginn:ibeginn+5), 0.)
+              call constant_field(pres0(ibeginn:ibeginn+5), pedge)
            else
-              pres0(ibeginn) = sum* &
+              pres0(ibeginn) = pedge + sum* &
                    (1.+p1*temp(ibegin)+p2*temp(ibegin)**2 &
                    -(20. + 10.*p1 + 4.*p2)*temp(ibegin)**3 &
                    +(45. + 20.*p1 + 6.*p2)*temp(ibegin)**4 &
@@ -640,23 +631,6 @@ subroutine gradshafranov_solve
 
   end do
 
-!!$  ntime = itnum
-
-!!$  ! diagnostic plots
-!!$  if(maxrank .eq. 1) then
-!!$     if(itimer.eq.1) call second(tstart)
-!!$     temp = -(fun1+gamma2*fun2+gamma3*fun3+gamma4*fun4)     
-!!$     call plotit(phi0,temp,1)
-!!$     call oneplot(temp,1,1,"temp",0)
-!!$     if(myrank.eq.0) call oneplot(fun1,1,1,"fun1",0)
-!!$     if(myrank.eq.0) call oneplot(fun2,1,1,"fun2",0)
-!!$     if(myrank.eq.0) call oneplot(fun3,1,1,"fun3",0)
-!!$     if(myrank.eq.0) call oneplot(fun4,1,1,"fun4",0)
-!!$     if(myrank.eq.0 .and. itimer.eq.1) then
-!!$        call second(tend)
-!!$        tplot = tplot + tend - tstart
-!!$     endif
-!!$  endif
 
   ! free memory
   call deletevec(temp)
@@ -768,17 +742,13 @@ subroutine magaxis(xguess,zguess)
         p11 = sum3
         p22 = sum4
         p12 = sum5
-     
+
         denom = p22*p11 - p12**2
         sinew = si -  ( p22*pt1 - p12*pt2)/denom
         etanew= eta - (-p12*pt1 + p11*pt2)/denom
-!!$        denom = 4.*p22*p11 - p12**2
-!!$        sinew = si -  ( 2.*p22*pt1 - p12*pt2)/denom
-!!$        etanew= eta - (-p12*pt1 + 2.*p11*pt2)/denom
+
         xnew = x1 + co*(b+sinew) - sn*etanew
         znew = z1 + sn*(b+sinew) + co*etanew
-
-        if(iprint.gt.0) print *, "magaxis: minimum at ", xnew, znew
      else
         xnew = 0.
         znew = 0.
@@ -796,7 +766,8 @@ subroutine magaxis(xguess,zguess)
      
      ! check to see whether the new minimum is outside the simulation domain
      if(xnew .lt. 0 .or. xnew.gt.alx .or. &
-          znew .lt. 0 .or. znew.gt.alz) then
+          znew .lt. 0 .or. znew.gt.alz .or. &
+          isnan(xnew) .or. isnan(znew)) then
         ! if not within the domain, safestop.
 
         write(*,3333) inews,x,z,xnew,znew
@@ -831,6 +802,8 @@ subroutine magaxis(xguess,zguess)
      zguess = temp2(2)
      psimin = temp2(3)
   endif
+
+  if(myrank.eq.0 .and. iprint.gt.0) print *, "magaxis: minimum at ", xguess, zguess
   
 end subroutine magaxis
 
@@ -1267,8 +1240,6 @@ subroutine fundef
 
   call getmincoord(xmin, zmin)
   dpsii = 1./(psilim - psimin)
-
-  print *, "dpsii = ", dpsii
 
   call numnod(numnodes)
   do l=1,numnodes

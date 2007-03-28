@@ -74,22 +74,6 @@
       jlast  = ilast
       return
       end
-!==========================
-      subroutine second(tcpu)
-!     real*4 etime
-!     external etime
-!     dimension tarray(2)
-!     tcpu = etime(tarray) 
-      implicit none
-      real tcpu
-!      integer*8 nticks, tickspersec
-      integer nticks, tickspersec
-      intrinsic system_clock
-      call system_clock(count=nticks, count_rate=tickspersec)
-      tcpu = 0.
-      if(tickspersec .gt. 0) tcpu = nticks/(1.0*tickspersec)
-      return
-      end
 !============================================================
       subroutine input
       use basic
@@ -162,6 +146,9 @@
 !     masking switch (0 no mask,  1 mask hyper terms at boundary
       imask = 0
 !
+!     source terms in velcity advance (1 = include, 0 = exclude)
+      isources = 1
+!
 !......maximum in taylor expansion loop (5 is maximum)
       maxs = 5
 !.....how many cycles to skip before inverting matrix
@@ -189,6 +176,7 @@
       p0 = 0.01      
       p1 = -1.
       p2 = -2.
+      pedge = 0.
 !
 !     derivative of current wrt normalized poloidal flux
       djdpsi = 0.0
