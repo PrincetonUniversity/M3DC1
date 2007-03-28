@@ -214,6 +214,8 @@ Program Reducedquintic
   dtmin = 0.001*dt
   ntime = ntimer
 
+  if(itimer.eq.1) call reset_timings
+
   ! define auxiliary variables
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -239,7 +241,7 @@ Program Reducedquintic
   endif
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
-     write(*,*) " onestep: Time spent defining auxiliary varibles:", tend - tstart
+     t_aux = t_aux + tend - tstart
   endif
 
 
@@ -261,7 +263,7 @@ Program Reducedquintic
   call define_sources
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
-     write(*,*) " onestep: Time spent defining sources:", tend - tstart
+     t_sources = t_sources + tend - tstart
   endif
 
 
@@ -271,7 +273,12 @@ Program Reducedquintic
      if (maxrank .eq. 1) call output
      call hdf5_write_scalars(ier)
      call hdf5_write_time_slice(ier)
+     if(itimer.eq.1) then 
+        call hdf5_write_timings(ier)
+        call reset_timings
+     endif
      call hdf5_flush(ier)
+
   endif
 
   ! if there are no timesteps to calculate, then skip time loop
@@ -280,35 +287,26 @@ Program Reducedquintic
   ! main time loop
   ! ~~~~~~~~~~~~~~
   do ntime=ntimer+1,ntimemax
+
+     ! check for error
+     if(isnan(ekin) .or. isnan(emag)) then
+        print *, "Error: energy is NaN"
+        call safestop(3)
+     endif
+
+     !advance time
      time = time + dt
 
+     if(myrank.eq.1 .and. iprint.ge.1) print *, "Before onestep"
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call onestep
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
-        write(*,*) "Time spent in onestep: ", tend - tstart
+        t_onestep = t_onestep + tend - tstart
      endif
+     if(myrank.eq.1 .and. iprint.ge.1) print *, "After onestep"
 !     call exportfield2(1,numvar,phi, ntime)
-     
-     ! Write ictrans output
-     if(maxrank .eq. 1) then
-        if(itimer.eq.1) call second(tstart)
-        call output
-        if(itimer.eq.1) then
-           call second(tend)
-           write(*,*) "Time spent in output: ", tend - tstart
-        endif
-     endif
 
-     ! Write HDF5 output
-     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     call hdf5_write_scalars(ier)
-     if(mod(ntime,ntimepr).eq.0) call hdf5_write_time_slice(ier)
-     call hdf5_flush(ier)
-     if(myrank.eq.0 .and. itimer.eq.1) then
-        call second(tend)
-        write(*,*) "Time spent in hdf5 output: ", tend - tstart
-     end if
 
 !     if(linear.eq.1) call scaleback
 
@@ -316,10 +314,49 @@ Program Reducedquintic
 !!$        write(*,*) 'ekin is greater than 100'
 !!$        go to 100
 !!$     endif
+
+     
+     ! Write ictrans output
+     if(maxrank .eq. 1) then
+        if(myrank.eq.1 .and. iprint.ge.1) print *, "Before output"
+        if(itimer.eq.1) call second(tstart)
+        call output
+        if(itimer.eq.1) then
+           call second(tend)
+           t_output_cgm = t_output_cgm + tend - tstart
+        endif
+        if(myrank.eq.1 .and. iprint.ge.1) print *, "After onestep"
+     endif
+
+     ! Write HDF5 output
+     if(myrank.eq.1 .and. iprint.ge.1) print *, "Before hdf5 output"
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     call hdf5_write_scalars(ier)
+     if(mod(ntime,ntimepr).eq.0) then
+        call hdf5_write_time_slice(ier)
+     endif
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_output_hdf5 = t_output_hdf5 + tend - tstart
+     end if
+
+     if(itimer.eq.1) then
+        if(myrank.eq.0) call second(tstart)
+        call hdf5_write_timings(ier)
+        call reset_timings
+     end if
+
+     ! flush hdf5 data to disk
+     call hdf5_flush(ier)
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_output_hdf5 = t_output_hdf5 + tend - tstart
+     end if
+     if(myrank.eq.1 .and. iprint.ge.1) print *, "After hdf5 output"
+
   enddo ! ntime
 
  100  continue
-  call second(tsolve)
   
   maxts = ntime-1
 
@@ -389,11 +426,6 @@ Program Reducedquintic
 
   if (myrank.eq.0 .and. maxrank.eq.1) call plote
   
-5002 format(" tsolve =", 1pe11.4,   "  numvar =", 0p1i4,               &
-          "   amu,etar =", 1p2e10.2,  /,"  dt,thimp =",1p2e10.2,          &
-          "  cb,db=",1p2e12.2,/,                                          &
-          "  hyper,hyperi,hyperv,hyperc = ",  1p4e12.4,  /,               &
-          "  ratemin,ratemax,ajmax,reconflux = ",1p4e12.4) 
 5003 format(" linear, itaylor, isetup, imask, irestart: ",             &
           5i4, / ," facd, bzero, eps ", 1p3e12.4)
 2323 format(1p5e12.4)
@@ -453,7 +485,7 @@ subroutine onestep
      call ludefall
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
-        write(*,*) " onestep: Time spent in ludefall:", tend - tstart
+        t_ludefall = t_ludefall + tend - tstart
      endif
   endif
 
@@ -465,6 +497,8 @@ subroutine onestep
 
   ! Calculate LU decomposition of velocity matrix if needed
 
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+
   ! b1vector = r1matrix_sm * phi(n)
   if(iprint.ge.1) write(*,*) "before sparseR8_A_dot_X"
   call matrixvectormult(r1matrix_sm, phi, b1vector)
@@ -473,6 +507,11 @@ subroutine onestep
   vtemp = 0.
   if(iprint.eq.1)write(*,*) "before second sparseR8_A_dot_X"
   call matrixvectormult(d1matrix_sm,vel,vtemp)
+
+  if(myrank.eq.0 .and. itimer.eq.1) then
+     call second(tend)
+     t_mvm = t_mvm + tend - tstart
+  endif
 
   vtemp = vtemp + b1vector + r4
 
@@ -490,43 +529,52 @@ subroutine onestep
   call solve(s1matrix_sm, vtemp, jer)
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
-     write(*,*) " onestep: Time spent in vel solve:", tend - tstart
+     t_solve_v = t_solve_v + tend - tstart
   endif
   if(myrank.eq.0 .and. iprint.eq.1) write(*,*) "after dsupralu_solve_s1handle"
   if(jer.ne.0) then
      write(*,*) 'after sparseR8d_solve', jer
      call safestop(42)
   endif
-! ok to here     call printarray(vtemp, 150, 0, 'vtemp aa')
 
-!
-!.....coding to calculate the error in the delsquared chi equation
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  if(numvar.ge.3) then
-     call newvar_gs(vtemp,com,3,0)
 
-!!$     call calc_chi_error(chierror)
-!!$     if(myrank.eq.0 .and. iprint.ge.1) then
-!!$        print *, "Error in com = ", chierror 
-!!$     endif
-     
-     if(hyperc.gt.0) then
-        call smoother3(com,vtemp,numnodes,numvar,3)
+  ! apply smoothing operators
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(hyperc.gt.0) then
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+
+     ! smooth vorticity
+     call newvar_gs(vtemp,vor,1,1)
+     call smoother1(vor,vtemp,numnodes,numvar,1)
+
+     ! smooth compression
+     if(numvar.ge.3) then
         call newvar_gs(vtemp,com,3,0)
+
+!!$        !
+!!$        !.....coding to calculate the error in the delsquared chi equation
+!!$        call calc_chi_error(chierror)
+!!$        if(myrank.eq.0) then
+!!$           print *, "Error in com = ", chierror 
+!!$        endif
+
+        call smoother3(com,vtemp,numnodes,numvar,3)     
+     endif
+
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_smoother = t_smoother + tend - tstart
      endif
   endif
 
+  ! define vorticity and compression
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   call newvar_gs(vtemp,vor,1,1)
-  
-  if(hyperc.gt.0) then
-
-     ! calculate vorticity, apply smoothing operator, and redefine vor array
-     call smoother1(vor,vtemp,numnodes,numvar,1)
-     call newvar_gs(vtemp,vor,1,1)
-  endif
+  if(numvar.ge.3) call newvar_gs(vtemp,com,3,0)
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
-     print *, " onestep: Time spent in smoothers", tend - tstart
+     t_aux = t_aux + tend - tstart
   endif
 
 !.....new velocity solution at time n+1 (or n* for second order advance)
@@ -538,11 +586,19 @@ subroutine onestep
   if(idens.eq.1) then
      if(iprint.ge.1) write(*,*) "s8handle"
 
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+
      ! b2vector = r8matrix_lu * vel(n+1)
      call matrixvectormult(r8matrix_sm,vel,b2vector)
 
      ! b3vector = q8matrix_sm * vel(n)
      call matrixvectormult(q8matrix_sm,veln,b3vector)
+
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_mvm = t_mvm + tend - tstart
+     endif
+
 
      ! temp = d8matrix_sm * phi(n)
      call createvec(temp, 1)
@@ -576,7 +632,7 @@ subroutine onestep
      call solve(s8matrix_sm, temp, jer)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
-        write(*,*) " onestep: Time spent in den solve:", tend - tstart
+        t_solve_n = t_solve_n + tend - tstart
      endif
      if(jer.ne.0) then
         write(*,*) 'after 2nd sparseR8d_solve', jer
@@ -600,6 +656,7 @@ subroutine onestep
 #ifdef mpi
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+
   ! b2vector = r2matrix_lu * vel(n+1)
   call matrixvectormult(r2matrix_sm,vel,b2vector)
 
@@ -612,7 +669,7 @@ subroutine onestep
 
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
-     write(*,*) " onestep: Time spent in field matrixvectormult:", tend - tstart
+     t_mvm = t_mvm + tend - tstart
   endif
 
   vtemp = vtemp + b2vector + b3vector + q4
@@ -630,7 +687,7 @@ subroutine onestep
   call solve(s2matrix_sm, vtemp, jer)
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
-     write(*,*) " onestep: Time spent in field solve:", tend - tstart
+     t_solve_b = t_solve_b + tend - tstart
   endif
   if(jer.ne.0) then
      write(*,*) 'after 2nd sparseR8d_solve', jer
@@ -659,7 +716,7 @@ subroutine onestep
   call newvar_gs(phi+phi0, jphi,1,1)
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
-     write(*,*) " onestep: Time spent defining auxiliary varibles:", tend - tstart
+     t_aux = t_aux + tend - tstart
   endif
 
 
@@ -683,7 +740,7 @@ subroutine onestep
   call define_sources
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
-     write(*,*) " onestep: Time spent defining sources:", tend - tstart
+     t_sources = t_sources + tend - tstart
   endif 
 
 end subroutine onestep

@@ -485,3 +485,37 @@ pro plot_lcfs, time, color=color
       color=color, thick=2
 
 end
+
+
+pro plot_timings, filename=filename
+
+   if(n_elements(filename) eq 0) then filename = 'C1.h5'
+
+   file_id = h5f_open(filename)
+   root_id = h5g_open(file_id, "/")
+   timings = h5_parse(root_id, "timings", /read_data)
+   h5g_close, root_id
+   h5f_close, file_id
+
+   t_solve = timings.t_solve_b._data + timings.t_solve_v._data + $
+     timings.t_solve_n._data + timings.t_solve_p._data
+   t_output = timings.t_output_cgm._data + timings.t_output_hdf5._data + $
+     timings.t_output_reset._data
+
+   loadct, 12
+
+   plot, timings.t_onestep._data, title='!6Timings!3', $
+     xtitle='!6Time Step!3', ytitle='!8t!6 (s)!3'
+   oplot, timings.t_ludefall._data, linestyle=2, color=30
+   oplot, timings.t_sources._data, linestyle=1, color=60
+   oplot, timings.t_aux._data, linestyle=1, color=80
+   oplot, timings.t_smoother._data, linestyle=1, color=100
+   oplot, t_solve, linestyle=2, color=160
+   oplot, t_output, linestyle=2, color=200
+
+
+   plot_legend, ['Onestep', 'ludefall', 'sources', 'aux', $
+                 'smoother', 'solve', 'output'], $
+     linestyle=[0,2,1,1,1,2,2], color=[-1,30,60,80,100,160,200]
+
+end

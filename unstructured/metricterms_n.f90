@@ -250,8 +250,6 @@ real function v1upsipsi(e,f,g,h)
   real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   real :: temp
 
-  ! |psi(1), u|
-  temp79a = f(:,OP_DR )*g(:,OP_DZ ) - f(:,OP_DZ )*g(:,OP_DR )
   ! |psi(1), u|,r
   temp79b = f(:,OP_DRR)*g(:,OP_DZ ) - f(:,OP_DRZ)*g(:,OP_DR ) &
        +    f(:,OP_DR )*g(:,OP_DRZ) - f(:,OP_DZ )*g(:,OP_DRR)
@@ -259,8 +257,6 @@ real function v1upsipsi(e,f,g,h)
   temp79c = f(:,OP_DRZ)*g(:,OP_DZ ) - f(:,OP_DZZ)*g(:,OP_DR ) &
        +    f(:,OP_DR )*g(:,OP_DZZ) - f(:,OP_DZ )*g(:,OP_DRZ)
 
-  ! |psi(2), nu|
-  temp79d = e(:,OP_DR )*h(:,OP_DZ ) - e(:,OP_DZ )*h(:,OP_DR)
   ! |psi(2), nu|,r
   temp79e = e(:,OP_DRR)*h(:,OP_DZ ) - e(:,OP_DRZ)*h(:,OP_DR ) &
        +    e(:,OP_DR )*h(:,OP_DRZ) - e(:,OP_DZ )*h(:,OP_DRR)
@@ -273,6 +269,12 @@ real function v1upsipsi(e,f,g,h)
        - int3(ri2_79,temp79b,temp79e,weight_79,79) &
        - int3(ri2_79,temp79c,temp79f,weight_79,79)
   if(itor.eq.1) then
+     ! |psi(1), u|
+     temp79a = f(:,OP_DR)*g(:,OP_DZ) - f(:,OP_DZ)*g(:,OP_DR)
+
+     ! |psi(2), nu|
+     temp79d = e(:,OP_DR)*h(:,OP_DZ) - e(:,OP_DZ)*h(:,OP_DR)
+
      temp = temp &
        + int3(ri3_79,temp79b,temp79d,weight_79,79) &
        - int3(ri3_79,temp79a,temp79e,weight_79,79) &

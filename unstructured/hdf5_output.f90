@@ -6,6 +6,7 @@ module hdf5_output
 
   integer(HID_T) :: file_id, offset, global_elms
   integer :: times_output
+  logical :: initialized = .false.
   character(LEN=7), parameter :: hdf5_filename = "C1.h5"
 
 contains
@@ -79,6 +80,8 @@ contains
 
     call h5pclose_f(plist_id, error)
 
+    initialized = .true.
+
   end subroutine hdf5_initialize
 
 
@@ -91,6 +94,8 @@ contains
     
     integer, intent(out) :: error
     
+    if(.not. initialized) return
+
     ! Close the file.
     call h5fclose_f(file_id, error)
     if(error .lt. 0) print *, "Error closing hdf5 file"
@@ -352,6 +357,8 @@ subroutine hdf5_write_parameters(error)
   call write_int_attr (root_id, "eqsubtract" , eqsubtract, error)
   call write_int_attr (root_id, "iper"       , iper,       error)
   call write_int_attr (root_id, "jper"       , jper,       error)
+  call write_int_attr (root_id, "imask"      , imask,      error)
+  call write_int_attr (root_id, "isources"   , isources,   error)
   call write_real_attr(root_id, "xzero"      , xzero,      error)
   call write_real_attr(root_id, "zzero"      , zzero,      error)
   call write_real_attr(root_id, "xlim"       , xlim,       error)
@@ -385,8 +392,8 @@ subroutine hdf5_write_scalars(error)
      call h5gopen_f(root_id, "scalars", scalar_group_id, error)
   endif
 
-  call output_scalar(scalar_group_id, "toroidal_flux"    , totcur, ntime, error)
-  call output_scalar(scalar_group_id, "toroidal_current" , tflux , ntime, error)
+  call output_scalar(scalar_group_id, "toroidal_flux"    , tflux, ntime, error)
+  call output_scalar(scalar_group_id, "toroidal_current" , totcur , ntime, error)
 
   
   call output_scalar(scalar_group_id, "time" , time  , ntime, error)
@@ -424,6 +431,58 @@ subroutine hdf5_write_scalars(error)
   call h5gclose_f(root_id, error)
 
 end subroutine hdf5_write_scalars
+
+
+! hdf5_write_timings
+! ==================
+subroutine hdf5_write_timings(error)
+  use basic
+  use diagnostics
+  use hdf5_output
+
+  implicit none
+
+  integer, intent(out) :: error
+
+  integer(HID_T) :: root_id, timing_group_id
+
+  if(maxrank.gt.1) call distribute_timings
+
+  call h5gopen_f(file_id, "/", root_id, error)
+
+  if(ntime.eq.0) then
+     call h5gcreate_f(root_id, "timings", timing_group_id, error)
+
+     ! for grad-shafranov equilibrium, output gs times
+     if(itor.eq.1 .and. itaylor.eq.1) then
+        call write_real_attr(timing_group_id, "t_gs", t_gs, error) 
+        call write_real_attr(timing_group_id, "t_gs_magaxis", t_gs_magaxis, error) 
+        call write_real_attr(timing_group_id, "t_gs_fundef", t_gs_fundef, error)
+        call write_real_attr(timing_group_id, "t_gs_solve", t_gs_solve, error) 
+        call write_real_attr(timing_group_id, "t_gs_init", t_gs_init, error) 
+     endif
+  else
+     call h5gopen_f(root_id, "timings", timing_group_id, error)
+  endif
+
+  call output_scalar(timing_group_id, "t_ludefall"    , t_ludefall    , ntime, error)
+  call output_scalar(timing_group_id, "t_sources"     , t_sources     , ntime, error)
+  call output_scalar(timing_group_id, "t_smoother"    , t_smoother    , ntime, error)
+  call output_scalar(timing_group_id, "t_aux"         , t_aux         , ntime, error)
+  call output_scalar(timing_group_id, "t_solve_v"     , t_solve_v     , ntime, error)
+  call output_scalar(timing_group_id, "t_solve_b"     , t_solve_b     , ntime, error)
+  call output_scalar(timing_group_id, "t_solve_n"     , t_solve_n     , ntime, error)
+  call output_scalar(timing_group_id, "t_solve_p"     , t_solve_p     , ntime, error)
+  call output_scalar(timing_group_id, "t_output_cgm"  , t_output_cgm  , ntime, error)
+  call output_scalar(timing_group_id, "t_output_hdf5" , t_output_hdf5 , ntime, error)
+  call output_scalar(timing_group_id, "t_output_reset", t_output_reset, ntime, error)
+  call output_scalar(timing_group_id, "t_mvm"         , t_mvm         , ntime, error)
+  call output_scalar(timing_group_id, "t_onestep"     , t_onestep     , ntime, error)
+
+  call h5gclose_f(timing_group_id, error)
+  call h5gclose_f(root_id, error)
+
+end subroutine hdf5_write_timings
 
 
 ! hdf5_write_time_slice
@@ -584,11 +643,13 @@ subroutine output_fields(time_group_id, error)
 !!$  nfields = nfields + 1
 
   ! sb1
-  do i=1, nelms
-     call calcavector(i, sb1, 1, 1, dum(:,i))
-  end do
-  call output_field(group_id, "sb1", dum, 20, nelms, error)
-  nfields = nfields + 1
+  if(isources.eq.1) then
+     do i=1, nelms
+        call calcavector(i, sb1, 1, 1, dum(:,i))
+     end do
+     call output_field(group_id, "sb1", dum, 20, nelms, error)
+     nfields = nfields + 1
+  endif
 
   ! eta
   do i=1, nelms
@@ -612,12 +673,14 @@ subroutine output_fields(time_group_id, error)
      call output_field(group_id, "V", dum, 20, nelms, error)
      nfields = nfields + 1
 
-     ! sb2
-     do i=1, nelms
-        call calcavector(i, sb2, 1, 1, dum(:,i))
-     end do
-     call output_field(group_id, "sb2", dum, 20, nelms, error)
-     nfields = nfields + 1
+     if(isources.eq.1) then
+        ! sb2
+        do i=1, nelms
+           call calcavector(i, sb2, 1, 1, dum(:,i))
+        end do
+        call output_field(group_id, "sb2", dum, 20, nelms, error)
+        nfields = nfields + 1
+     endif
 
   endif
 
@@ -659,11 +722,13 @@ subroutine output_fields(time_group_id, error)
 !!$     nfields = nfields + 1
 
      ! sb3
-     do i=1, nelms
-        call calcavector(i, sp1, 1, 1, dum(:,i))
-     end do
-     call output_field(group_id, "sp1", dum, 20, nelms, error)
-     nfields = nfields + 1
+     if(isources.eq.1) then
+        do i=1, nelms
+           call calcavector(i, sp1, 1, 1, dum(:,i))
+        end do
+        call output_field(group_id, "sp1", dum, 20, nelms, error)
+        nfields = nfields + 1
+     endif
   endif
 
 

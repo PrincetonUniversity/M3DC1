@@ -66,9 +66,12 @@ c     first put in information to check on run information
       write(56) ntime,time
       write(56) totcur0,tflux0,gbound,facd
       close(56)
-      write(9,1201) ntime,time
- 1201 format("* * * restart file written at cycle,time = ",i5,1pe12.4,    &
-     &     "  * * *")
+
+      if(maxrank.eq.1) then
+         write(9,1201) ntime,time
+ 1201    format("* * * restart file written at cycle,time = ",i5,1pe12.4,    &
+     &        "  * * *")
+      endif
 
       return
       end
@@ -172,9 +175,11 @@ c     first put in information to check on run information
       read(56) totcur0,tflux0,gbound,facd
       close(56)
       write(*,1201) ntimer,timer
-      write(9,1201) ntimer,timer
- 1201 format("* * * restart file read at cycle,time = ",i5,1pe12.4,     &
-     &     "  * * *")
+      if(maxrank.eq.1) then
+         write(9,1201) ntimer,timer
+ 1201    format("* * * restart file read at cycle,time = ",i5,1pe12.4,     &
+     &        "  * * *")
+      endif
       return
       end
 !============================================================

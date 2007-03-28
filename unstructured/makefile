@@ -86,7 +86,7 @@ $(COMMONDIR)tv80lib.o: $(COMMONDIR)tv80lib.f
 	$(F77) $(F77OPTS) $< -o $@
 
 %.o: %.f90
-	$(F77) $(F90OPTS) $< -o $@
+	$(F90) $(F90OPTS) -fpic $< -o $@
 
 clean:
 	rm -f gonewp*

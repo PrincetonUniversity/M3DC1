@@ -8,7 +8,7 @@ module p_data
   integer :: ntri     ! maximum number of HDF5 files
   integer :: maxplots ! maximum dimension of the graph array
 
-  parameter(maxplots=50, maxi=20, ntimep=1000, ires=201)
+  parameter(maxplots=50, maxi=20, ntimep=10000, ires=201)
   
   integer, dimension(ires, ires) :: whichtri
 
@@ -48,7 +48,7 @@ module basic
   real :: xlim, zlim  ! position of limiter
   real :: tcuro       ! toroidal current
   real :: djdpsi
-  real :: p1, p2
+  real :: p1, p2, pedge
 
   ! numerical parameters
   integer :: linear      ! 1 = linear simulation; 0 = nonlinear simulation
@@ -61,6 +61,7 @@ module basic
   integer :: ntimemax    ! number of timesteps
   integer :: nskip       ! number of timesteps per matrix recalculation
   integer :: iconstflux  ! 1 = conserve toroidal flux
+  integer :: isources    ! 1 = include source terms in velocity advance
   real :: dt             ! timestep
   real :: thimp          ! implicitness parameter
   real :: facw, facd
@@ -89,12 +90,12 @@ module basic
        bzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,      &
        kappa,iper,jper,iprint,itimer,xzero,zzero,beta,pi0,   &
        eqsubtract,denm,grav,kappat,kappar,ln,amuc,iconstflux,&
-       regular,deex,gyro,vloop,eta0
+       regular,deex,gyro,vloop,eta0,isources, pedge
 
   !     derived quantities
   real :: tt,pi,                                                       &
        time,timer,ajmax,errori,enormi,ratioi,                          &
-       tmesh, tsetup, tfirst,tsolve,tsecond,tzero,tthird,gbound,fbound
+       gbound,fbound
   integer ::  ni(20),mi(20),nbcp,nbcv,nbcn,iboundmax,                  &
        ntime,ntimer,nrank,ntimemin,ntensor,idebug, islutype
   real :: ekin, emag, ekind, emagd, ekino, emago, ekindo, emagdo,      &

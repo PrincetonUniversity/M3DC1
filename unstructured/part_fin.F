@@ -590,7 +590,6 @@ c      call safestop(1111)
 
       call getboundingboxsize(alx, alz)
 !
-      call second(tfirst)  !Get current system time in seconds
       call numnod(numnodes)
 
       ifirsts4_lu = 0
