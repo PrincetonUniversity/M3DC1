@@ -519,3 +519,29 @@ pro plot_timings, filename=filename
      linestyle=[0,2,1,1,1,2,2], color=[-1,30,60,80,100,160,200]
 
 end
+
+
+pro plot_scalars, filename=filename
+
+   if(n_elements(filename) eq 0) then filename='C1.h5'
+
+   s = read_scalars(filename=filename)
+
+   m = max(strcmp(tag_names(s), "RECONNECTED_FLUX"))
+
+   !p.multi = [0,1,2+m]
+
+   !x.title = '!8t !7X!D!8i0!N!3'
+
+   plot, s.time._data, s.toroidal_current._data, $
+     title='!6Toroidal Current!3', $
+     ytitle='!8I!DT!N!6 (!8cB!D0!N/4!7p!8L!6)!3'
+   plot, s.time._data, s.toroidal_flux._data, $
+     title='!6Toroidal Flux!3', ytitle='!6Flux (!8L!U2!N B!D0!N)!3'
+   if(m gt 0) then begin
+       plot, s.time._data, s.reconnected_flux._data, $
+         title='!6Reconnected Flux!3'
+   endif
+
+   !p.multi=0
+end

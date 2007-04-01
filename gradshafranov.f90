@@ -767,7 +767,7 @@ subroutine magaxis(xguess,zguess)
      ! check to see whether the new minimum is outside the simulation domain
      if(xnew .lt. 0 .or. xnew.gt.alx .or. &
           znew .lt. 0 .or. znew.gt.alz .or. &
-          isnan(xnew) .or. isnan(znew)) then
+          xnew.ne.xnew .or. znew.ne.znew) then
         ! if not within the domain, safestop.
 
         write(*,3333) inews,x,z,xnew,znew

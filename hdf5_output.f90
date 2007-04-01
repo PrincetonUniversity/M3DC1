@@ -48,16 +48,17 @@ contains
 
     ! Set up the file access property list with parallel I/O
     call h5pcreate_f(H5P_FILE_ACCESS_F, plist_id, error)
+    info = MPI_INFO_NULL
     call h5pset_fapl_mpio_f(plist_id, MPI_COMM_WORLD, info, error)
 
     ! if ntime.eq.0 then create hdf5 file
     if(ntime.eq.0) then
-       info = MPI_INFO_NULL
-
        call h5fcreate_f(hdf5_filename, H5F_ACC_TRUNC_F, file_id, error, &
             access_prp = plist_id)
        if(error.lt.0) then
-          print *, "Error: could not open ", hdf5_filename, " for HDF5 output: ", error
+          print *, "Error: could not open ", hdf5_filename, &
+               " for HDF5 output.  error = ", error
+          return
        endif
 
        call h5gopen_f(file_id, "/", root_id, error)

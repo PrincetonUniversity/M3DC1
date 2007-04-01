@@ -7,6 +7,7 @@ subroutine ludefall
   use sparse
   use nintegrate_mod
   use metricterms_n
+  use diagnostics
 
   implicit none
 #ifdef mpi
