@@ -192,6 +192,7 @@ Program Reducedquintic
   call hdf5_initialize(ntimer, ier)
   if(ier.lt.0) then 
      print *, "Error initializing HDF5"
+     call safestop(5)
   end if
   
   ! output simulation parameters
@@ -289,7 +290,7 @@ Program Reducedquintic
   do ntime=ntimer+1,ntimemax
 
      ! check for error
-     if(isnan(ekin) .or. isnan(emag)) then
+     if(ekin.ne.ekin .or. emag.ne.emag) then
         print *, "Error: energy is NaN"
         call safestop(3)
      endif
@@ -567,15 +568,15 @@ subroutine onestep
      endif
   endif
 
-  ! define vorticity and compression
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  call newvar_gs(vtemp,vor,1,1)
-  if(numvar.ge.3) call newvar_gs(vtemp,com,3,0)
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_aux = t_aux + tend - tstart
-  endif
+!!$  ! define vorticity and compression
+!!$  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+!!$  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+!!$  call newvar_gs(vtemp,vor,1,1)
+!!$  if(numvar.ge.3) call newvar_gs(vtemp,com,3,0)
+!!$  if(myrank.eq.0 .and. itimer.eq.1) then
+!!$     call second(tend)
+!!$     t_aux = t_aux + tend - tstart
+!!$  endif
 
 !.....new velocity solution at time n+1 (or n* for second order advance)
   vel = vtemp
@@ -714,6 +715,10 @@ subroutine onestep
   call newvar_eta
   !   toroidal current
   call newvar_gs(phi+phi0, jphi,1,1)
+  !   vorticity
+  call newvar_gs(vtemp,vor,1,1)
+  !   compression
+  if(numvar.ge.3) call newvar_gs(vtemp,com,3,0)
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      t_aux = t_aux + tend - tstart

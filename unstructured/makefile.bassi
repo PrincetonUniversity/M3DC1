@@ -7,7 +7,7 @@ COMMONDIR = ../common/
 
 INCLUDE = -I$(COMMONDIR) $(HDF5_INCLUDE)
 
-LOADER = mpCC_r
+LOADER = mpCC_r -blpdata
 PP     = xlc_r -E 
 F90    = mpxlf90_r -c
 F77    = mpxlf_r -c

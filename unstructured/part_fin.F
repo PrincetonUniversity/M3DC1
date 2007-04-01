@@ -286,57 +286,7 @@ c      enddo
       return
       end
 !===========================
-      subroutine fun(x,z,df,alx,alz)
-      implicit none
-      integer i, j
-      real x, z, df, alx, alz, pi, anorm, akx, akz, snx, cox, snz, coz
-      dimension df(0:4, 0:4)
-!
-!.....source term and derivatives for initial perturbation
-!     first dimension of df is number of derivatives, second is
-!     number of x derivatives
-!
-      pi = acos(-1.)
-      anorm = ((pi/alx)**2+(pi/alz)**2)
-!
-      akx = pi/alx
-      akz = pi/alz
-!
-      snx = sin(akx*x)
-      cox = cos(akx*x)
-      snz = sin(akz*z)
-      coz = cos(akz*z)
-!
-      do i=0,4
-        do j=0,4
-          df(i,j) = 0.
-        enddo
-      enddo
-!.....first index is total derivatives, second is x derivative
-      df(0,0) = anorm       *snx*snz
-!
-      df(1,0) = anorm       *akz   *snx*coz
-      df(1,1) = anorm*akx          *cox*snz
-!
-      df(2,0) =-anorm       *akz**2*snx*snz
-      df(2,1) = anorm*akx*   akz   *cox*coz
-      df(2,2) =-anorm*akx**2       *snx*snz      
-!
-      df(3,0) =-anorm*       akz**3*snx*coz   
-      df(3,1) =-anorm*akx*   akz**2*cox*snz
-      df(3,2) =-anorm*akx**2*akz   *snx*coz
-      df(3,3) =-anorm*akx**3       *cox*snz
-!
-      df(4,0) = anorm*       akz**4*snx*snz
-      df(4,1) =-anorm*akx*   akz**3*cox*coz
-      df(4,2) = anorm*akx**2*akz**2*snx*snz
-      df(4,3) =-anorm*akx**3*akz   *cox*coz
-      df(4,4) = anorm*akx**4       *snx*snz
-!
-      return
-      end
 
-!============================================================
       subroutine inverse(inarray,outarray)
 !
 !     calculates the inverse of the numvar=1 arrary inarray, and puts
@@ -374,110 +324,6 @@ c      enddo
       return
       end
 !==================================
-      subroutine definerhs(inarray,outarray,numnodes)
-!
-!      This routine defines a new vector to be equal to the vector
-!      on the RHS
-!
-!
-      use p_data
-      use t_data
-      use basic
-      use arrays
-      use sparse
-      implicit none
-      integer numnodes, numnodes1, l, i, numvards, 
-     &     nrankds, itri, j, jone, ione, nbcds, 
-     &     ier, jer, nbound, numelms, izone, izonedim, ibegin,
-     &     iendplusone, ibeginnv, iendplusonenv, ndofs
-      real ssterm, ddterm
-      dimension ssterm(3,3),ddterm(3,3)
-      real, allocatable::phin(:),temp(:)
-      integer, save, allocatable::iboundds(:)
-      real inarray(:),outarray(:)
-      real aterm(18,18), dterm(18,18), fintl(-6:maxi,-6:maxi)
-!
-      call numfac(numelms)
-      call numnod(numnodes1)
-      call numdofs(1, ndofs)
-      call createvec(phin, 1)
-      call createvec(temp, 1)
-!.....put psi into a numvar=1 storage array
-      do l=1,numnodes1
-         call entdofs(1, l, 0, ibegin, iendplusone)
-         call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
-         do i=0,iendplusone-ibegin-1
-            phin(ibegin+i) = inarray(ibeginnv+i)
-         enddo
-      enddo
-!
-      if(ifirsts4_lu.ne.0) go to 500
-      ifirsts4_lu = 1
-      nbound = 0
-      do i=1,numnodes1
-         call zonenod(i,izone,izonedim)
-         if(izonedim .ne. 2) nbound = nbound + 1
-      enddo
-      nbound = 12*numvar*nbound
-      allocate(iboundds(nbound))
-!
-      numvards = 1
-      nrankds = ndofs*6
-!
-!.....compute LU decomposition only once
-!
-!.....form matrices
-      call zeroarray4solve(s4matrix_sm,numvar1_numbering)
-      call zeroarray4multiply(d4matrix_sm,numvar1_numbering)
-      do itri=1,numelms
-         call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
-         call calcaterm(itri, aterm, fintl)
-         call calcdterm(itri, dterm, fintl)
-        do j=1,18
-        do i=1,18
-            jone = isval1(itri,j)
-            ione = isval1(itri,i)
-            ssterm(1,1) = dterm(i,j)
-            ddterm(1,1) = aterm(i,j)
-            call insertval(s4matrix_sm, ssterm(1,1),ione,jone,1)
-            call insertval(d4matrix_sm, ddterm(1,1),ione,jone,1)
-!
-        enddo
-        enddo
-      enddo
-!
-!......define indices for boundary arrays
-      call boundaryds(iboundds,nbcds,1)
-!
-      ! bc stuff...
-      do i=1,nbcds
-         call setdiribc(s4matrix_sm, iboundds(i))
-      enddo
-      call finalizearray4solve(s4matrix_sm)
-      call finalizearray4multiply(d4matrix_sm)
-!
-!.....perform LU decomposition of sparse matrix "s4matrix"
-!     store result in opaque object "s4handle"
-      jer = 0
- 500  continue
-      temp = 0
-!
-!.....multiply operator matrix d4matrix_sm times phin to get RHS temp
-      call matrixvectormult(d4matrix_sm,phin,temp)
-      do l=1,nbcds
-      temp(iboundds(l)) = 0.
-      enddo
-!
-!.....perform LU backsubstitution to get outarray solution
-
-      call solve(s4matrix_sm,temp,ier)
-      outarray = temp
-!
-      call deletevec(phin)
-      call deletevec(temp)
-      return
-!
-      end
 !============================================================
       subroutine rhsdef
 !
@@ -489,68 +335,69 @@ c      enddo
       integer itri, i, j, iii, ii, i1, i2, i3, k, l, numelms,
      &     ibegin, iendplusone, ibegin2, iendplusone2, ibeginn,
      &     iendplusonen
-      real term, sum, fac1, fac2, fac3, fact, f, alx, alz
+c$$$      real term, sum, fac1, fac2, fac3, fact, alx, alz
+      real :: f
 !
-      call getboundingboxsize(alx, alz)
+c$$$      call getboundingboxsize(alx, alz)
 c$$$      b1vecini = 0.
       call numfac(numelms)
 
-      do 505 itri=1,numelms
-!     calculate matrix elements of the integration matrix fint
-        do i=-4,maxi
-        do j=-4,maxi
-        fint(i,j) = 0
-        if(i.ge.0 .and.j.ge.0)                                          &
-     &     fint(i,j) = f(i,j,atri(itri),btri(itri),ctri(itri))
-        enddo
-        enddo
-!.....x,z dependent part follows
-!
-!     expand x and z in terms of si and eta for this element
-      call local(xi,zi,btri(itri),ttri(itri),itri)
-!      write(*,400) itri,xi(1),xi(2),xi(3),zi(1),zi(2),zi(3)
-! 400  format('=',i3,6(f6.2))
-!
-!
-!     calculate the RHS function and it's first 2 derivatives
-      call fun(xi(1),zi(1),df,alx,alz)  
-!
-!.....start loops to compute the RHS vector for this triangular element,
-!
-       do iii=1,3
-          call entdofs(1, ist(itri,iii)+1, 0, ibegin, iendplusone)
-          call entdofs(2, ist(itri,iii)+1, 0, ibegin2, iendplusone2)
-          call entdofs(numvar, ist(itri,iii)+1,0,ibeginn, iendplusonen)
-         do ii=1,6
-           i = (iii-1)*6 + ii
-           isval1(itri,i) = ibegin+ii-1 ! 6*ist(itri,iii)+ii
-           isval2(itri,i) = ibegin2+ii-1 ! 12*ist(itri,iii)+ii
-           isvaln(itri,i) = ibeginn+ii-1  ! numvar*6*ist(itri,iii)+ii
-           i1 = isvaln(itri,i)
-           i2 = i1 + 6
-           i3 = i2 + 6
-!
-            term = 0
-            do k=1,20
-!
-             sum = 0
-             do j=0,4
-             do l=0,j
-               fac1 = df(j,l)
-               do p=0,l
-               fac2 = fac1*xi(2)**(l-p)  *xi(3)**p/(fact(p)*fact(l-p))
-               do q=0,j-l
-               fac3 = fac2*zi(2)**(j-l-q)*zi(3)**q/(fact(q)*fact(j-l-q))
-!
-               sum = sum + fac3*fint(mi(k)+j-p-q,ni(k)+p+q)
-!
-               enddo
-               enddo
-             enddo
-             enddo
-!
-             term =  term + gtri(k,i,itri)*sum
+      do itri=1,numelms
+!        calculate matrix elements of the integration matrix fint
+         do i=-4,maxi
+            do j=-4,maxi
+               fint(i,j) = 0
+               if(i.ge.0 .and.j.ge.0)                                          &
+     &              fint(i,j) = f(i,j,atri(itri),btri(itri),ctri(itri))
             enddo
+         enddo
+c$$$!.....x,z dependent part follows
+c$$$!
+c$$$!     expand x and z in terms of si and eta for this element
+c$$$         call local(xi,zi,btri(itri),ttri(itri),itri)
+c$$$!      write(*,400) itri,xi(1),xi(2),xi(3),zi(1),zi(2),zi(3)
+c$$$! 400  format('=',i3,6(f6.2))
+c$$$!
+c$$$!
+c$$$!     calculate the RHS function and its first 2 derivatives
+c$$$         call fun(xi(1),zi(1),df,alx,alz)  
+c$$$!
+c$$$!.....start loops to compute the RHS vector for this triangular element,
+c$$$!
+         do iii=1,3
+            call entdofs(1, ist(itri,iii)+1, 0, ibegin, iendplusone)
+            call entdofs(2, ist(itri,iii)+1, 0, ibegin2, iendplusone2)
+            call entdofs(numvar,ist(itri,iii)+1,0,ibeginn, iendplusonen)
+            do ii=1,6
+               i = (iii-1)*6 + ii
+               isval1(itri,i) = ibegin+ii-1 ! 6*ist(itri,iii)+ii
+               isval2(itri,i) = ibegin2+ii-1 ! 12*ist(itri,iii)+ii
+               isvaln(itri,i) = ibeginn+ii-1 ! numvar*6*ist(itri,iii)+ii
+c$$$           i1 = isvaln(itri,i)
+c$$$           i2 = i1 + 6
+c$$$           i3 = i2 + 6
+c$$$!
+c$$$            term = 0
+c$$$            do k=1,20
+c$$$!
+c$$$             sum = 0
+c$$$             do j=0,4
+c$$$             do l=0,j
+c$$$               fac1 = df(j,l)
+c$$$               do p=0,l
+c$$$               fac2 = fac1*xi(2)**(l-p)  *xi(3)**p/(fact(p)*fact(l-p))
+c$$$               do q=0,j-l
+c$$$               fac3 = fac2*zi(2)**(j-l-q)*zi(3)**q/(fact(q)*fact(j-l-q))
+c$$$!
+c$$$               sum = sum + fac3*fint(mi(k)+j-p-q,ni(k)+p+q)
+c$$$!
+c$$$               enddo
+c$$$               enddo
+c$$$             enddo
+c$$$             enddo
+c$$$!
+c$$$             term =  term + gtri(k,i,itri)*sum
+c$$$            enddo
 !
 !............velocity perturbations
 c$$$             b1vecini(i1) = b1vecini(i1) - term                         &
@@ -564,11 +411,11 @@ c$$$             b2vecini(i1) = 0.
 c$$$             if(numvar.ge.2) b2vecini(i2) = 0.
 c$$$             if(numvar.ge.3) b2vecini(i3) = 0.
 !
-           enddo
-           enddo
+            enddo
+         enddo
 !.....end of do loops on i
 !
- 505  continue  ! end of loop over numelms
+      enddo                     ! end of loop over numelms
 ! since a proc is contributing values to parts of the vector
 ! it does not own, we call sumshareddofs so that these values
 ! get summed up for all values shared by multiple procs
@@ -645,3 +492,159 @@ c$$$      b2vecini = 0.
       return
       end
 !============================================================
+c$$$      subroutine fun(x,z,df,alx,alz)
+c$$$      implicit none
+c$$$      integer i, j
+c$$$      real x, z, df, alx, alz, pi, anorm, akx, akz, snx, cox, snz, coz
+c$$$      dimension df(0:4, 0:4)
+c$$$!
+c$$$!.....source term and derivatives for initial perturbation
+c$$$!     first dimension of df is number of derivatives, second is
+c$$$!     number of x derivatives
+c$$$!
+c$$$      pi = acos(-1.)
+c$$$      anorm = ((pi/alx)**2+(pi/alz)**2)
+c$$$!
+c$$$      akx = pi/alx
+c$$$      akz = pi/alz
+c$$$!
+c$$$      snx = sin(akx*x)
+c$$$      cox = cos(akx*x)
+c$$$      snz = sin(akz*z)
+c$$$      coz = cos(akz*z)
+c$$$!
+c$$$      do i=0,4
+c$$$        do j=0,4
+c$$$          df(i,j) = 0.
+c$$$        enddo
+c$$$      enddo
+c$$$!.....first index is total derivatives, second is x derivative
+c$$$      df(0,0) = anorm       *snx*snz
+c$$$!
+c$$$      df(1,0) = anorm       *akz   *snx*coz
+c$$$      df(1,1) = anorm*akx          *cox*snz
+c$$$!
+c$$$      df(2,0) =-anorm       *akz**2*snx*snz
+c$$$      df(2,1) = anorm*akx*   akz   *cox*coz
+c$$$      df(2,2) =-anorm*akx**2       *snx*snz      
+c$$$!
+c$$$      df(3,0) =-anorm*       akz**3*snx*coz   
+c$$$      df(3,1) =-anorm*akx*   akz**2*cox*snz
+c$$$      df(3,2) =-anorm*akx**2*akz   *snx*coz
+c$$$      df(3,3) =-anorm*akx**3       *cox*snz
+c$$$!
+c$$$      df(4,0) = anorm*       akz**4*snx*snz
+c$$$      df(4,1) =-anorm*akx*   akz**3*cox*coz
+c$$$      df(4,2) = anorm*akx**2*akz**2*snx*snz
+c$$$      df(4,3) =-anorm*akx**3*akz   *cox*coz
+c$$$      df(4,4) = anorm*akx**4       *snx*snz
+c$$$!
+c$$$      return
+c$$$      end
+
+!============================================================
+
+c$$$      subroutine definerhs(inarray,outarray,numnodes)
+c$$$!
+c$$$!      This routine defines a new vector to be equal to the vector
+c$$$!      on the RHS
+c$$$!
+c$$$!
+c$$$      use p_data
+c$$$      use t_data
+c$$$      use basic
+c$$$      use arrays
+c$$$      use sparse
+c$$$      implicit none
+c$$$      integer numnodes, numnodes1, l, i, numvards, 
+c$$$     &     nrankds, itri, j, jone, ione, nbcds, 
+c$$$     &     ier, jer, nbound, numelms, izone, izonedim, ibegin,
+c$$$     &     iendplusone, ibeginnv, iendplusonenv, ndofs
+c$$$      real ssterm, ddterm
+c$$$      dimension ssterm(3,3),ddterm(3,3)
+c$$$      real, allocatable::phin(:),temp(:)
+c$$$      integer, save, allocatable::iboundds(:)
+c$$$      real inarray(:),outarray(:)
+c$$$      real aterm(18,18), dterm(18,18), fintl(-6:maxi,-6:maxi)
+c$$$!
+c$$$      call numfac(numelms)
+c$$$      call numnod(numnodes1)
+c$$$      call numdofs(1, ndofs)
+c$$$      call createvec(phin, 1)
+c$$$      call createvec(temp, 1)
+c$$$!.....put psi into a numvar=1 storage array
+c$$$      do l=1,numnodes1
+c$$$         call entdofs(1, l, 0, ibegin, iendplusone)
+c$$$         call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
+c$$$         do i=0,iendplusone-ibegin-1
+c$$$            phin(ibegin+i) = inarray(ibeginnv+i)
+c$$$         enddo
+c$$$      enddo
+c$$$!
+c$$$      if(ifirsts4_lu.ne.0) go to 500
+c$$$      ifirsts4_lu = 1
+c$$$      nbound = 0
+c$$$      do i=1,numnodes1
+c$$$         call zonenod(i,izone,izonedim)
+c$$$         if(izonedim .ne. 2) nbound = nbound + 1
+c$$$      enddo
+c$$$      nbound = 12*numvar*nbound
+c$$$      allocate(iboundds(nbound))
+c$$$!
+c$$$      numvards = 1
+c$$$      nrankds = ndofs*6
+c$$$!
+c$$$!.....compute LU decomposition only once
+c$$$!
+c$$$!.....form matrices
+c$$$      call zeroarray4solve(s4matrix_sm,numvar1_numbering)
+c$$$      call zeroarray4multiply(d4matrix_sm,numvar1_numbering)
+c$$$      do itri=1,numelms
+c$$$         call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
+c$$$         call calcaterm(itri, aterm, fintl)
+c$$$         call calcdterm(itri, dterm, fintl)
+c$$$        do j=1,18
+c$$$        do i=1,18
+c$$$            jone = isval1(itri,j)
+c$$$            ione = isval1(itri,i)
+c$$$            ssterm(1,1) = dterm(i,j)
+c$$$            ddterm(1,1) = aterm(i,j)
+c$$$            call insertval(s4matrix_sm, ssterm(1,1),ione,jone,1)
+c$$$            call insertval(d4matrix_sm, ddterm(1,1),ione,jone,1)
+c$$$!
+c$$$        enddo
+c$$$        enddo
+c$$$      enddo
+c$$$!
+c$$$!......define indices for boundary arrays
+c$$$      call boundaryds(iboundds,nbcds,1)
+c$$$!
+c$$$      ! bc stuff...
+c$$$      do i=1,nbcds
+c$$$         call setdiribc(s4matrix_sm, iboundds(i))
+c$$$      enddo
+c$$$      call finalizearray4solve(s4matrix_sm)
+c$$$      call finalizearray4multiply(d4matrix_sm)
+c$$$!
+c$$$!.....perform LU decomposition of sparse matrix "s4matrix"
+c$$$!     store result in opaque object "s4handle"
+c$$$      jer = 0
+c$$$ 500  continue
+c$$$      temp = 0
+c$$$!
+c$$$!.....multiply operator matrix d4matrix_sm times phin to get RHS temp
+c$$$      call matrixvectormult(d4matrix_sm,phin,temp)
+c$$$      do l=1,nbcds
+c$$$      temp(iboundds(l)) = 0.
+c$$$      enddo
+c$$$!
+c$$$!.....perform LU backsubstitution to get outarray solution
+c$$$
+c$$$      call solve(s4matrix_sm,temp,ier)
+c$$$      outarray = temp
+c$$$!
+c$$$      call deletevec(phin)
+c$$$      call deletevec(temp)
+c$$$      return
+c$$$!
+c$$$      end
