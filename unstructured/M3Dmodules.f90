@@ -96,7 +96,7 @@ module basic
   real :: tt,pi,                                                       &
        time,timer,ajmax,errori,enormi,ratioi,                          &
        gbound,fbound
-  integer ::  ni(20),mi(20),nbcp,nbcv,nbcn,iboundmax,                  &
+  integer ::  ni(20),mi(20),nbcp,nbcv,nbcn,nbcpres,iboundmax,          &
        ntime,ntimer,nrank,ntimemin,ntensor,idebug, islutype
   real :: ekin, emag, ekind, emagd, ekino, emago, ekindo, emagdo,      &
        ekint,emagt,ekintd,emagtd,ekinto,emagto,ekintdo,emagtdo,        &
@@ -133,7 +133,8 @@ module arrays
   ! indices
   integer :: p,q,r,s
   integer :: maxdofs1, maxdofs2, maxdofs3
-  integer, allocatable :: iboundv(:), iboundv2(:), iboundp(:), iboundn(:)
+  integer, allocatable :: iboundv(:), iboundv2(:), iboundp(:)
+  integer, allocatable :: iboundn(:), iboundpres(:)
   integer, allocatable :: isvaln(:,:),isval1(:,:),isval2(:,:)
   real :: fint(-6:maxi,-6:maxi), xi(3),zi(3),df(0:4,0:4)
   real :: xsep(5), zsep(5), graphit(0:ntimep,maxplots)
@@ -143,12 +144,12 @@ module arrays
   real, allocatable::                                             &
        vel(:), vels(:), veln(:),                                  &
        velold(:), vel0(:), vel1(:),                               &
-       phi(:), phis(:),                                           &
+       phi(:), phis(:), phip(:),                                  &
        phiold(:), phi0(:), phi1(:),                               &
        jphi(:),sb1(:),sb2(:),sp1(:),                              &
        vor(:),com(:),                                             &
        den(:),den0(:),denold(:),deni(:),                          &
-       pres(:),pres0(:),r4(:),q4(:),qn4(:),                       &
+       pres(:),pres0(:),presold(:),r4(:),q4(:),qn4(:),qp4(:),     &
        b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
        b5vector(:), vtemp(:), resistivity(:), tempvar(:)
 
@@ -210,6 +211,10 @@ module sparse
   integer, parameter :: q2matrix_sm = 16
   integer, parameter :: q8matrix_sm = 17
   integer, parameter :: gsmatrix_sm = 18
+  integer, parameter :: s9matrix_sm = 19
+  integer, parameter :: d9matrix_sm = 20
+  integer, parameter :: r9matrix_sm = 21
+  integer, parameter :: q9matrix_sm = 22
   
 end module sparse
-!!$
+

@@ -145,7 +145,8 @@ Program Reducedquintic
 
      velold = vel0
      phiold = phi0
-     denold = den0
+     if(idens.eq.1) denold = den0
+     if(ipres.eq.1) presold = pres0
 
      ! correct for left-handed coordinates
      call numdofs(numvar, ndofs)
@@ -184,6 +185,11 @@ Program Reducedquintic
         if(idens.eq.1) then
            den = den + den0
            den0 = 0.
+        endif
+
+        if(ipres.eq.1) then
+           pres = pres + pres0
+           pres0 = 0.
         endif
      endif
   endif                     !  end of the branch on restart/no restart
@@ -422,7 +428,13 @@ Program Reducedquintic
   call freesmo(r2matrix_sm)
   call freesmo(r8matrix_sm)
   call freesmo(q2matrix_sm)
-  call freesmo(q8matrix_sm)  
+  call freesmo(q8matrix_sm) 
+  if(ipres.eq.1) then 
+     call freesmo(s9matrix_sm)
+     call freesmo(d9matrix_sm)
+     call freesmo(r9matrix_sm)
+     call freesmo(q9matrix_sm)
+  endif
   call deletesearchstructure()
 
   if (myrank.eq.0 .and. maxrank.eq.1) call plote
@@ -495,18 +507,27 @@ subroutine onestep
 
   ! Advance Velocity
   ! ================
-
-  ! Calculate LU decomposition of velocity matrix if needed
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Velocity"
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
   ! b1vector = r1matrix_sm * phi(n)
-  if(iprint.ge.1) write(*,*) "before sparseR8_A_dot_X"
-  call matrixvectormult(r1matrix_sm, phi, b1vector)
+  if(ipres.eq.1 .and. numvar.ge.3) then
+     ! replace electron pressure with total pressure
+     do l=1,numnodes
+        call entdofs(1, l, 0, ibegin, iendplusone)
+        call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
+
+        phip(ibeginnv   :ibeginnv+11) = phi(ibeginnv:ibeginnv+11)
+        phip(ibeginnv+12:ibeginnv+17) = pres(ibegin:ibegin+5)
+     enddo
+     call matrixvectormult(r1matrix_sm, phip, b1vector)
+  else
+     call matrixvectormult(r1matrix_sm, phi , b1vector)
+  endif
   
   ! vtemp = d1matrix_sm * vel(n)
   vtemp = 0.
-  if(iprint.eq.1)write(*,*) "before second sparseR8_A_dot_X"
   call matrixvectormult(d1matrix_sm,vel,vtemp)
 
   if(myrank.eq.0 .and. itimer.eq.1) then
@@ -518,23 +539,18 @@ subroutine onestep
 
   ! apply boundary conditions
   do l=1,nbcv
-!!$     if(iboundv2(l).gt.0) then
-!!$        vtemp(iboundv2(l)) = vtemp(iboundv2(l)) - vtemp(iboundv(l))
-!!$     endif
      vtemp(iboundv(l)) = velbounds(l)
   enddo
 
   ! solve linear system with rhs in vtemp (note LU-decomp done first time)
-  if(myrank.eq.0 .and. iprint.eq.1) write(*,*) "before dsupralu_solve_s1handle"
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   call solve(s1matrix_sm, vtemp, jer)
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      t_solve_v = t_solve_v + tend - tstart
   endif
-  if(myrank.eq.0 .and. iprint.eq.1) write(*,*) "after dsupralu_solve_s1handle"
   if(jer.ne.0) then
-     write(*,*) 'after sparseR8d_solve', jer
+     write(*,*) 'Error in velocity solve', jer
      call safestop(42)
   endif
 
@@ -568,16 +584,6 @@ subroutine onestep
      endif
   endif
 
-!!$  ! define vorticity and compression
-!!$  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!!$  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-!!$  call newvar_gs(vtemp,vor,1,1)
-!!$  if(numvar.ge.3) call newvar_gs(vtemp,com,3,0)
-!!$  if(myrank.eq.0 .and. itimer.eq.1) then
-!!$     call second(tend)
-!!$     t_aux = t_aux + tend - tstart
-!!$  endif
-
 !.....new velocity solution at time n+1 (or n* for second order advance)
   vel = vtemp
 
@@ -585,7 +591,7 @@ subroutine onestep
 ! Advance Density
 ! ===============
   if(idens.eq.1) then
-     if(iprint.ge.1) write(*,*) "s8handle"
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Density"
 
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
@@ -636,7 +642,7 @@ subroutine onestep
         t_solve_n = t_solve_n + tend - tstart
      endif
      if(jer.ne.0) then
-        write(*,*) 'after 2nd sparseR8d_solve', jer
+        write(*,*) 'Error in density solve', jer
         call safestop(29)
      endif
 
@@ -648,14 +654,75 @@ subroutine onestep
 !
 ! Advance Pressure
 ! ================
+  if(ipres.eq.1) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Pressure"
+
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+
+     ! b2vector = r9matrix_lu * vel(n+1)
+     call matrixvectormult(r9matrix_sm,vel,b2vector)
+
+     ! b3vector = q9matrix_sm * vel(n)
+     call matrixvectormult(q9matrix_sm,veln,b3vector)
+
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_mvm = t_mvm + tend - tstart
+     endif
+
+     ! temp = d8matrix_sm * phi(n)
+     call createvec(temp, 1)
+     temp = 0.
+     call matrixvectormult(d9matrix_sm,pres,temp)
+
+     call numdofs(numvar,ndofs)
+     allocate(itemp(ndofs)) ! this is used to make sure that we don't double count the sum for periodic dofs
+     itemp = 1
+
+     do l=1,numnodes
+        call entdofs(1, l, 0, ibegin, iendplusone)
+        call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
+        do i=0,iendplusone-ibegin-1
+           temp(ibegin+i) = temp(ibegin+i) + itemp(ibegin+i) * &
+                (b2vector(ibeginnv+i) + b3vector(ibeginnv+i) + qp4(ibegin+i))
+           itemp(ibegin+i) = 0
+        enddo
+     enddo
+     deallocate(itemp)
+
+     ! apply boundary conditions
+     do l=1,nbcpres
+        temp(iboundpres(l)) = 0.
+        if(linear.eq.0 .and. eqsubtract.eq.0) then
+           temp(iboundpres(l)) = temp(iboundpres(l)) + presold(iboundpres(l))
+        endif
+     enddo
+
+     ! solve linear system...LU decomposition done first time
+! -- okay to here      call printarray(temp, 150, 0, 'vtemp on')
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     call solve(s9matrix_sm, temp, jer)
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_solve_p = t_solve_p + tend - tstart
+     endif
+     if(jer.ne.0) then
+        write(*,*) 'Error in pressure solve', jer
+        call safestop(29)
+     endif
+
+     ! new field solution at time n+1 (or n* for second order advance)
+     pres = temp
+     call deletevec(temp)
+  endif
+
+
 !
 ! Advance Fields
 ! ==============
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Fields"
   
-  ! Calculate LU decomposition of field matrix if needed
-
-#ifdef mpi
-
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
   ! b2vector = r2matrix_lu * vel(n+1)
@@ -691,12 +758,11 @@ subroutine onestep
      t_solve_b = t_solve_b + tend - tstart
   endif
   if(jer.ne.0) then
-     write(*,*) 'after 2nd sparseR8d_solve', jer
+     write(*,*) 'Error in field solve', jer
      call safestop(29)
   endif
-#endif
 
-! new field solution at time n+1 (or n* for second order advance)
+  ! new field solution at time n+1 (or n* for second order advance)
   phi = vtemp
 
 

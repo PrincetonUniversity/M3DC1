@@ -353,6 +353,7 @@ subroutine hdf5_write_parameters(error)
 
   call write_int_attr (root_id, "numvar"     , numvar,     error)
   call write_int_attr (root_id, "idens"      , idens,      error)
+  call write_int_attr (root_id, "ipres"      , ipres,      error)
   call write_int_attr (root_id, "gyro"       , gyro,       error)
   call write_int_attr (root_id, "linear"     , linear,     error)
   call write_int_attr (root_id, "eqsubtract" , eqsubtract, error)

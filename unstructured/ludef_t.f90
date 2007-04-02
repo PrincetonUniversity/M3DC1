@@ -70,10 +70,17 @@ subroutine ludefall
         call zeroarray4multiply(r8matrix_sm,numvar3_numbering)
      endif
   endif
-
+  if(ipres.eq.1) then
+     call zeroarray4solve(s9matrix_sm,numvar1_numbering)
+     call zeroarray4multiply(d9matrix_sm,numvar1_numbering)
+     call zeroarray4multiply(q9matrix_sm,numvar3_numbering)
+     call zeroarray4multiply(r9matrix_sm,numvar3_numbering)
+  endif
+  
   r4 = 0.
   q4 = 0.
   if(idens.eq.1) qn4 = 0.
+  if(ipres.eq.1) qp4 = 0.
   
   ! Determine which fields need to be calculated
   def_fields = FIELD_PSI + FIELD_PHI + FIELD_ETA
@@ -119,6 +126,7 @@ subroutine ludefall
      call ludefvel_n(itri,dbf)
      call ludefphi_n(itri,dbf)
      if(idens.eq.1) call ludefden_n(itri,dbf)
+     if(ipres.eq.1) call ludefpres_n(itri,dbf)
 
   end do
   ! since a proc is contributing values to parts of the vector
@@ -183,6 +191,25 @@ subroutine ludefall
      call finalizearray4multiply(q8matrix_sm)
      call finalizearray4multiply(r8matrix_sm)
   endif ! on idens.eq.1
+
+  ! Pressure boundary conditions
+  if(ipres.eq.1) then
+     call boundarypres(iboundpres,nbcpres,1)
+     if(nbcpres .gt. iboundmax) then
+        write(*,4883) nbcpres, iboundmax
+4884    format(" ERROR: nbcpres > iboundmax", 2i5)
+        call safestop(9) 
+     endif
+     
+     do i=1,nbcpres
+        call setdiribc(s9matrix_sm, iboundpres(i))
+     enddo
+
+     call finalizearray4solve(s9matrix_sm)
+     call finalizearray4multiply(d9matrix_sm)
+     call finalizearray4multiply(q9matrix_sm)
+     call finalizearray4multiply(r9matrix_sm)
+  endif ! on ipres.eq.1
 
 end subroutine ludefall
 
@@ -1203,3 +1230,127 @@ subroutine ludefden_n(itri,dbf)
 
   enddo                     ! on i
 end subroutine ludefden_n
+
+
+subroutine ludefpres_n(itri,dbf)
+
+  use basic
+  use nintegrate_mod
+  use metricterms_n
+  use arrays
+  use sparse
+
+  implicit none
+
+  integer, intent(in) :: itri
+  real, intent(in) :: dbf
+
+  integer :: i, i1, ione, j, j1, jone
+  real :: ssterm, ddterm
+  real, dimension(3) :: rrterm, qqterm
+  real :: temp, hypp
+
+  hypp = hyperp*deex**2
+
+  do i=1,18
+     ione = isval1(itri,i)
+     i1 = isvaln(itri,i)
+     
+     do j=1,18         
+        ssterm = 0.
+        ddterm = 0.
+        rrterm = 0.
+        qqterm = 0.
+
+        jone = isval1(itri,j)
+        j1 = isvaln(itri,j)
+
+
+        ! NUMVAR = 1
+        ! ~~~~~~~~~~
+        temp = int2(g79(:,:,i),g79(:,:,j),weight_79,79)
+        ssterm = ssterm + temp
+        ddterm = ddterm + temp
+        
+        temp = p1pu   (g79(:,:,i),g79(:,:,j),pht79)
+        ssterm = ssterm -     thimp *dt*temp
+        ddterm = ddterm + (1.-thimp)*dt*temp
+
+        temp = p1pu(g79(:,:,i),p179,g79(:,:,j))
+        rrterm(1) = rrterm(1) + thimp*dt*temp
+        qqterm(1) = qqterm(1) - thimp*dt*temp
+
+        if(linear.eq.1 .or. eqsubtract.eq.1) then
+           temp = p1pu  (g79(:,:,i),p079,g79(:,:,j))
+           rrterm(1) = rrterm(1) +     thimp *dt*temp
+           qqterm(1) = qqterm(1) + (1.-thimp)*dt*temp
+        endif
+
+        ! NUMVAR = 3
+        ! ~~~~~~~~~~
+        if(numvar.ge.3) then
+           temp = p1pchi    (g79(:,:,i),g79(:,:,j),cht79) &
+                + b3pedkappa(g79(:,:,i),g79(:,:,j),ni79,kappat,hypp)*(gam-1.) &
+                + p1kappar  (g79(:,:,i),ps079,ps079,g79(:,:,j),ni79,b2i79)*kappar*(gam-1.)
+           ssterm = ssterm -     thimp *dt*temp
+           ddterm = ddterm + (1.-thimp)*dt*temp
+           
+           temp = p1pchi(g79(:,:,i),p179,g79(:,:,j))
+           rrterm(3) = rrterm(3) + thimp*dt*temp
+           qqterm(3) = qqterm(3) - thimp*dt*temp
+
+           if(linear.eq.1 .or. eqsubtract.eq.1) then
+              temp = p1pchi(g79(:,:,i),p079,g79(:,:,j))
+              rrterm(3) = rrterm(3) +     thimp *dt*temp
+              qqterm(3) = qqterm(3) + (1.-thimp)*dt*temp
+           endif
+        endif
+        
+        call insertval(s9matrix_sm, ssterm, ione, jone, 1)
+        call insertval(d9matrix_sm, ddterm, ione, jone, 1)
+        call insertval(r9matrix_sm, rrterm(1), i1, j1, 1)
+        call insertval(q9matrix_sm, qqterm(1), i1, j1, 1)
+        if(numvar.ge.2) then
+           call insertval(r9matrix_sm,rrterm(2), i1,j1+6,1)
+           call insertval(q9matrix_sm,qqterm(2), i1,j1+6,1)
+        endif
+        if(numvar.ge.3) then
+           call insertval(r9matrix_sm,rrterm(3), i1,j1+12,1)
+           call insertval(q9matrix_sm,qqterm(3), i1,j1+12,1)
+        endif
+
+     enddo                     ! on j
+
+     qp4(ione) = qp4(ione) + dt* &
+          (b3psipsieta(g79(:,:,i),pst79,pst79,eta79))
+
+     if(numvar.ge.2) then
+        qp4(ione) = qp4(ione) + dt* &
+             (b3bbeta(g79(:,:,i),bzt79,bzt79,eta79))
+     endif
+
+     if(numvar.ge.3) then
+        qp4(ione) = qp4(ione) + dt* &
+             (b3pebd(g79(:,:,i),pet79,bzt79,ni79))
+     endif
+
+     if(linear.eq.1 .or. eqsubtract.eq.1) then
+                
+        qp4(ione) = qp4(ione) + dt* &
+             + b3pedkappa(g79(:,:,i),p079,ni79,kappat,hypp)*(gam-1.) &
+             + p1kappar  (g79(:,:,i),ps079,ps079,p079,ni79,b2i79)*kappar*(gam-1.)
+
+        ! EQUILIBRIUM TERMS
+        qp4(ione) = qp4(ione) + dt* &
+             (p1pu   (g79(:,:,i),p079,ph079))
+
+       
+        if(numvar.ge.3) then
+           ! EQUILIBRIUM TERMS
+           qp4(ione) = qp4(ione) + dt* &
+                (p1pchi(g79(:,:,i),p079,ch079))
+        endif
+     endif
+
+  enddo                     ! on i
+end subroutine ludefpres_n

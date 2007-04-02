@@ -33,6 +33,8 @@
 
       integer, save, allocatable :: iboundsm(:), iboundsm2(:)
 !
+      if(myrank.eq.0 .and. iprint.eq.1) print *, " smoother1"
+
       numvarsm = 2
       call numfac(numelms)
       call numdofs(numvarsm, ndof_2)
@@ -123,7 +125,10 @@
 !.....perform LU backsubstitution to get outarray solution
 
       call solve(s5matrix_sm,temp,ier)
-      if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "after solve"
+      if(ier.ne.0) then
+         print *, "Error in smoother1 solve"
+         call safestop(101)
+      end if
 !
 !.....store solution
       do l=1,numnodes
