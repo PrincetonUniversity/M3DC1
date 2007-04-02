@@ -85,13 +85,15 @@ subroutine cylinder_equ(x, z, inode)
   real, intent(in) :: x, z
   integer, intent(in) :: inode
 
-  integer :: ibegin, iendplusone
-  real :: rr, ri, arg, befo, uzero, czero, ff, fp, fpp, j0, j1, kb
-  real :: d1, d2, d3, d4, d5, d6
+  integer :: ibegin, iendplusone, ibegin1, iendplusone1
+  real :: rr, ri, arg, befo, ff, fp, fpp, j0, j1, kb
   real :: s17aef, s17aff
   integer :: ifail1, ifail2, ifail3
 
   call entdofs(numvar, inode, 0, ibegin, iendplusone)
+  if(idens.eq.1 .or. ipres.eq.1) then
+     call entdofs(1, inode, 0, ibegin1, iendplusone1)
+  endif
 
   call static_equ(ibegin)
 
@@ -129,8 +131,9 @@ subroutine cylinder_equ(x, z, inode)
   phi0(ibegin+5) = fpp*z**3  *ri**2 + fp*(3*z*ri - z**3  *ri**3)
 
   if(rr.gt.1) then
-     if(numvar.ge.2) call constant_field(phi0(ibegin+6 :ibegin+11), bzero   )
-     if(numvar.ge.3) call constant_field(phi0(ibegin+12:ibegin+17), p0-pi0*ipres)
+     if(numvar.ge.2) call constant_field(phi0 (ibegin+6 :ibegin+11), bzero   )
+     if(numvar.ge.3) call constant_field(phi0 (ibegin+12:ibegin+17), p0-pi0*ipres)
+     if(ipres.eq.1)  call constant_field(pres0(ibegin1  :ibegin1+5), p0)
   else 
      if(numvar.ge.2) then
         kb = k**2*(1.-beta)
@@ -148,7 +151,7 @@ subroutine cylinder_equ(x, z, inode)
              + phi0(ibegin+2)**2+phi0(ibegin)*phi0(ibegin+5))
         
         if(numvar.ge.3) then
-           kb = k**2*beta
+           kb = k**2*beta*(p0 - pi0*ipres)/p0
            phi0(ibegin+12) = 0.5*kb*phi0(ibegin)**2 + p0 - pi0*ipres
            phi0(ibegin+13) = kb*phi0(ibegin)*phi0(ibegin+1)
            phi0(ibegin+14) = kb*phi0(ibegin)*phi0(ibegin+2)
@@ -160,11 +163,23 @@ subroutine cylinder_equ(x, z, inode)
                 phi0(ibegin)*phi0(ibegin+5))
         endif
      endif
+
+     if(ipres.eq.1) then
+        kb = k**2*beta
+        pres0(ibegin1  ) = 0.5*kb*phi0(ibegin)**2 + p0
+        pres0(ibegin1+1) = kb*phi0(ibegin)*phi0(ibegin+1)
+        pres0(ibegin1+2) = kb*phi0(ibegin)*phi0(ibegin+2)
+        pres0(ibegin1+3) = kb*(phi0(ibegin+1)**2+                      &
+             phi0(ibegin)*phi0(ibegin+3))
+        pres0(ibegin1+4) = kb*(phi0(ibegin+1)*phi0(ibegin+2)+          &
+             phi0(ibegin)*phi0(ibegin+4))
+        pres0(ibegin1+5) = kb*(phi0(ibegin+2)**2+                      &
+             phi0(ibegin)*phi0(ibegin+5))
+     endif
   endif
 
   if(idens.eq.1) then
-     call entdofs(1, inode, 0, ibegin, iendplusone)
-     call constant_field(den0(ibegin:ibegin+5), 1.)
+     call constant_field(den0(ibegin1:ibegin1+5), 1.)
   endif
 
 end subroutine cylinder_equ
@@ -178,10 +193,13 @@ subroutine cylinder_per(x, z, inode)
   real, intent(in) :: x, z
   integer, intent(in) :: inode
 
-  integer :: ibegin, iendplusone
+  integer :: ibegin, iendplusone, ibegin1, iendplusone1
   real :: befo, uzero, czero
   
   call entdofs(numvar, inode, 0, ibegin, iendplusone)
+  if(idens.eq.1 .or. ipres.eq.1) then
+     call entdofs(1, inode, 0, ibegin1, iendplusone1)
+  endif
 
   befo = eps*exp(-(x**2+z**2))
   uzero = befo*cos(z)
@@ -204,14 +222,11 @@ subroutine cylinder_per(x, z, inode)
      vel(ibegin+17) = (-3.+4.*z**2)*czero - 4*z*uzero
   endif
 
-  call constant_field(phi(ibegin   :ibegin+5 ), 0.)
-  if(numvar.ge.2)  call constant_field(phi(ibegin+6 :ibegin+11), 0.)
-  if(numvar.ge.3)  call constant_field(phi(ibegin+12:ibegin+17), 0.)
-
-  if(idens.eq.1) then
-     call entdofs(1, inode, 0, ibegin, iendplusone)
-     call constant_field(den(ibegin:ibegin+5 ), 0.)
-  endif
+  call constant_field(phi(ibegin:ibegin+5), 0.)
+  if(numvar.ge.2)  call constant_field(phi (ibegin+6 :ibegin+11), 0.)
+  if(numvar.ge.3)  call constant_field(phi (ibegin+12:ibegin+17), 0.)
+  if(ipres.eq.1)   call constant_field(pres(ibegin1  :ibegin1+5), 0.)
+  if(idens.eq.1)   call constant_field(den (ibegin1  :ibegin1+5), 0.)
 
 end subroutine cylinder_per
 
@@ -462,10 +477,13 @@ subroutine gem_reconnection_equ(x, z, inode)
   real, intent(in) :: x, z
   integer, intent(in) :: inode
 
-  integer :: ibegin, iendplusone
+  integer :: ibegin, iendplusone, ibegin1, iendplusone1
   real :: sech, pezero
 
   call entdofs(numvar, inode, 0, ibegin, iendplusone)
+  if(idens.eq.1 .or. ipres.eq.1) then
+     call entdofs(1, inode, 0, ibegin1, iendplusone1)
+  endif
 
   call static_equ(ibegin)
 
@@ -502,15 +520,24 @@ subroutine gem_reconnection_equ(x, z, inode)
      phi0(ibegin+17) = pezero*(-8.*sech(2.*z)**2*(sech(2.*z)**2-2.*tanh(2.*z)**2))
   endif
 
-  if(idens.eq.1) then
-     call entdofs(1, inode, 0, ibegin, iendplusone)
-     den0(ibegin) = sech(2*z)**2 + 0.2
-     den0(ibegin+1) = 0.
-     den0(ibegin+2) = -4.*sech(2*z)**2*tanh(2*z)
-     den0(ibegin+3) = 0.
-     den0(ibegin+4) = 0.
-     den0(ibegin+5) = -8.*sech(2*z)**2*(sech(2*z)**2-2.*tanh(2*z)**2)
+  if(ipres.eq.1) then
+     pres0(ibegin1  ) = p0*(sech(2.*z)**2 + 0.2)
+     pres0(ibegin1+1) = 0.
+     pres0(ibegin1+2) = p0*(-4.*sech(2.*z)**2*tanh(2.*z))
+     pres0(ibegin1+3) = 0.
+     pres0(ibegin1+4) = 0.
+     pres0(ibegin1+5) = p0*(-8.*sech(2.*z)**2*(sech(2.*z)**2-2.*tanh(2.*z)**2)) 
   endif
+
+  if(idens.eq.1) then
+     den0(ibegin1) = sech(2*z)**2 + 0.2
+     den0(ibegin1+1) = 0.
+     den0(ibegin1+2) = -4.*sech(2*z)**2*tanh(2*z)
+     den0(ibegin1+3) = 0.
+     den0(ibegin1+4) = 0.
+     den0(ibegin1+5) = -8.*sech(2*z)**2*(sech(2*z)**2-2.*tanh(2*z)**2)
+  endif
+
 end subroutine gem_reconnection_equ
 
 subroutine gem_reconnection_per(x, z, inode)
@@ -522,10 +549,13 @@ subroutine gem_reconnection_per(x, z, inode)
   real, intent(in) :: x, z
   integer, intent(in) :: inode
 
-  integer :: ibegin, iendplusone
+  integer :: ibegin, iendplusone, ibegin1, iendplusone1
   real :: akx, akz, alx, alz
 
   call entdofs(numvar, inode, 0, ibegin, iendplusone)
+  if(idens.eq.1 .or. ipres.eq.1) then
+     call entdofs(1, inode, 0, ibegin1, iendplusone1)
+  endif
 
   call getboundingboxsize(alx, alz)
 
@@ -543,13 +573,10 @@ subroutine gem_reconnection_per(x, z, inode)
   phi(ibegin+4) =  eps*sin(akx*x)*sin(akz*z)*akx*akz
   phi(ibegin+5) = -eps*cos(akx*x)*cos(akz*z)*akz**2
 
-  if(numvar.ge.2)  call constant_field(phi(ibegin+6 :ibegin+11), 0.)
-  if(numvar.ge.3)  call constant_field(phi(ibegin+12:ibegin+17), 0.)  
-
-  if(idens.eq.1) then
-     call entdofs(1, inode, 0, ibegin, iendplusone)
-     call constant_field(den(ibegin:ibegin+5), 0.)
-  end if
+  if(numvar.ge.2)  call constant_field(phi (ibegin+6 :ibegin+11), 0.)
+  if(numvar.ge.3)  call constant_field(phi (ibegin+12:ibegin+17), 0.)  
+  if(ipres.eq.1)   call constant_field(pres(ibegin1  :ibegin1+5), 0.)
+  if(idens.eq.1)   call constant_field(den (ibegin1  :ibegin1+5), 0.)
 
 end subroutine gem_reconnection_per
 
@@ -638,7 +665,7 @@ subroutine wave_per(x, z, inode)
   integer, intent(in) :: inode
 
   integer :: ibegin, iendplusone
-  real :: alx, alz, omega
+  real :: omega
 
   call entdofs(numvar, inode, 0, ibegin, iendplusone)
   
@@ -814,13 +841,6 @@ subroutine initial_conditions()
   use gradshafranov
 
   implicit none
-
-  integer :: ibegin, iendplusone, l, numnodes
-  real :: x, z, alx, alz, xmin, zmin
-  double precision :: coords(3)
-
-  call getmincoord(xmin, zmin)
-  call getboundingboxsize(alx, alz)
 
   if(itor.eq.0) then
      ! slab equilibria

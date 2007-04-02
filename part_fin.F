@@ -76,6 +76,15 @@ c     created with ordering specified by numvar
       call createvec(vtemp, numvar)
       call createvec(r4, numvar)
       call createvec(q4, numvar)
+
+      if(ipres.eq.1) then
+         call createvec(phip, numvar)
+         call createvec(pres, 1)
+         call createvec(pres0, 1)
+         call createvec(presold, 1)
+         call createvec(qp4, 1)
+      end if
+
       call createvec(jphi, 1)
       jphi = 0.
       call createvec(sb1, 1)
@@ -86,8 +95,6 @@ c     created with ordering specified by numvar
       call createvec(den, 1)
       call createvec(den0, 1)
       call createvec(deni, 1)
-      call createvec(pres, 1)
-      call createvec(pres0, 1)
       call createvec(qn4, 1)
       call createvec(resistivity, 1)
       call createvec(tempvar,1)
@@ -96,6 +103,7 @@ c     created with ordering specified by numvar
       allocate(iboundv(nbound),iboundv2(nbound),                        &
      &     iboundp(nbound),iboundn(nbound),                             &
      &     psibounds(nbound),velbounds(nbound))
+      if(ipres.eq.1) allocate(iboundpres(nbound))
 !
 !.....arrays associated with the triangles
       allocate(ist(ntri,3),isvaln(ntri,18),isval1(ntri,18),             &
@@ -133,10 +141,10 @@ c     created with ordering specified by numvar
       integer numvarsm, itri, i, j,izone,izonedim,
      1     l, jone, ier, jtwo, itwo, nbcsm, nbound
 !
+      if(myrank.eq.0 .and. iprint.eq.1) print *, " smoother3"
+
       numvarsm = 2
       call numfac(numelms)
-c$$$      call createvec(temp, numvarsm)
-c$$$      call numdofs(numvarsm, ndofs_sm)
       call numdofs(numvarsm, ndofs_sm)
       call createvec(temp, numvarsm)
       temp = 0
@@ -223,7 +231,10 @@ c$$$         endif
 !
 !.....perform LU backsubstitution to get outarray solution
       call solve(s7matrix_sm,temp,ier)
-      if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "after solve s7"
+      if(ier.ne.0) then
+         print *, "Error in smoother3 solve"
+         call safestop(102)
+      endif
 !
 !.....store solution
       do l=1,numnodes

@@ -62,7 +62,7 @@ subroutine boundaryds(ibound,nbc,jsymtype)
   integer, intent(in) :: jsymtype
   integer, intent(out) :: nbc
 
-  integer :: numnodes, i, izone, izonedim, j
+  integer :: numnodes, i, izone, izonedim
   integer :: ibottom, iright, itop, ileft, ibegin, iendplusone
 
   call getmodeltags(ibottom, iright, itop, ileft)
@@ -235,8 +235,8 @@ subroutine boundaryv(ibound,ibound2,nbc)
 end subroutine boundaryv
 
 
-! Pressure Boundary Conditions
-! ============================
+! Field Boundary Conditions
+! =========================
 subroutine boundaryp(ibound,nbc)
   use basic
   use arrays
@@ -355,6 +355,68 @@ subroutine boundaryp(ibound,nbc)
 
   return
 end subroutine boundaryp
+
+
+! Pressure Boundary Conditions
+! ============================
+subroutine boundarypres(ibound,nbc)
+  use basic
+  use arrays
+  implicit none
+  
+  integer :: numnodes, i, izone, ibound(*), nbc, izonedim
+  integer :: ibottom, iright, itop, ileft, ibegin, iendplusone
+
+  call getmodeltags(ibottom, iright, itop, ileft)
+  call numnod(numnodes)
+  psibounds = 0
+
+  nbc = 0
+
+  if(iper.eq.1 .and. jper.eq.1) return
+
+  do i=1,numnodes
+     call entdofs(1, i, 0, ibegin, iendplusone)
+     call zonenod(i,izone,izonedim)
+     if(izonedim .eq. 1) then
+
+        ! left/right boundaries
+        ! ~~~~~~~~~~~~~~~~~~~~~
+        if(iper.eq.0 .and. (izone.eq.ileft .or. izone.eq.iright)) then
+           ibound(nbc+1) = ibegin
+           ibound(nbc+2) = ibegin+2
+           ibound(nbc+3) = ibegin+5
+           nbc =  nbc+3
+           
+        ! top/bottom boundaries
+        ! ~~~~~~~~~~~~~~~~~~~~~
+        else if(jper.eq.0 .and. (izone.eq.itop .or. izone .eq. ibottom)) then
+           ibound(nbc+1) = ibegin
+           ibound(nbc+2) = ibegin+1
+           ibound(nbc+3) = ibegin+3
+           nbc =  nbc+3
+        end if
+
+        ! corner points
+        ! ~~~~~~~~~~~~~
+     else if(izonedim .eq. 0) then
+        ibound(nbc+1) = ibegin
+        nbc =  nbc+1
+        if(iper.eq.0) then
+           ibound(nbc+1) = ibegin+2
+           ibound(nbc+2) = ibegin+5
+           nbc =  nbc+2
+        endif
+        if(jper.eq.0) then
+           ibound(nbc+1) = ibegin+1
+           ibound(nbc+2) = ibegin+3
+           nbc =  nbc+2
+        endif
+     endif
+  enddo
+
+  return
+end subroutine boundarypres
 
 
 ! Smoother boundary conditions

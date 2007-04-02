@@ -2361,14 +2361,9 @@ real function qpsipsieta(e,f,g,h,i,j)
           (int5(ri2_79,e(:,OP_1),j(:,OP_DZ),j(:,OP_DZ),h(:,OP_1),weight_79,79) &
           +int5(ri2_79,e(:,OP_1),j(:,OP_DR),j(:,OP_DR),h(:,OP_1),weight_79,79))
      if(itor.eq.1) then
-        temp = temp + 2.*i* &
-             (int5(ri3_79,e(:,OP_DZ),j(:,OP_1 ),g(:,OP_DRZ),h(:,OP_1),weight_79,79) &
-             +int5(ri3_79,e(:,OP_DR),j(:,OP_1 ),g(:,OP_DRR),h(:,OP_1),weight_79,79) &
-             +int5(ri3_79,e(:,OP_1 ),j(:,OP_DZ),g(:,OP_DRZ),h(:,OP_1),weight_79,79) &
-             +int5(ri3_79,e(:,OP_1 ),j(:,OP_DR),g(:,OP_DRR),h(:,OP_1),weight_79,79) &
-             +int5(ri4_79,e(:,OP_1 ),j(:,OP_1 ),g(:,OP_DRR),h(:,OP_1),weight_79,79) &
-             +int5(ri4_79,e(:,OP_1 ),j(:,OP_1 ),g(:,OP_GS ),h(:,OP_1),weight_79,79) &
-             -int5(ri5_79,e(:,OP_1 ),j(:,OP_1 ),g(:,OP_DR ),h(:,OP_1),weight_79,79))
+        temp = temp - 2.*i* &
+             (int5(ri3_79,e(:,OP_1),j(:,OP_1),j(:,OP_DR),h(:,OP_1),weight_79,79) &
+             -int5(ri4_79,e(:,OP_1),j(:,OP_1),j(:,OP_1 ),h(:,OP_1),weight_79,79))
      endif
   endif
 
