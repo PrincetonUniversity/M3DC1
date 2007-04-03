@@ -115,9 +115,11 @@ contains
 
        call define_fields_79(itri, def_fields)
 
-       area = area + int1(ri_79,weight_79,79)
-       totcur = totcur - int2(ri2_79,pst79(:,OP_GS),weight_79,79)
-       if(numvar.ge.2) tflux = tflux + int2(ri2_79,bzt79(:,OP_1),weight_79,79)
+       if(ijacobian.eq.1) weight_79 = weight_79*ri_79
+
+       area = area + int0(weight_79,79)
+       totcur = totcur - int2(ri_79,pst79(:,OP_GS),weight_79,79)
+       if(numvar.ge.2) tflux = tflux + int2(ri_79,bzt79(:,OP_1),weight_79,79)
 
     enddo                     ! loop over itri
 

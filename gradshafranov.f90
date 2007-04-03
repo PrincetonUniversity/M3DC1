@@ -80,7 +80,7 @@ subroutine gradshafranov_solve
 
   double precision :: coords(3)
    
-  real :: tstart, tend, tsol, tmagaxis, tfundef, tplot
+  real :: tstart, tend
 
 
   if(myrank.eq.0 .and. iprint.gt.0) write(*,*) "gradshafranov called"
@@ -354,6 +354,12 @@ subroutine gradshafranov_solve
      q0 = 1.
      qstar = 4.
      g0 = bzero*xzero
+
+     if(numvar.eq.1) then
+        gamma2 = 0.
+        gamma3 = 0.
+        gamma4 = 0.
+     else
 !!$     gamma2 = -2.*xmag*(xmag*p0*p1 + (2.*g0/(xmag**2*q0*dpsii)))
 !!$     gamma3 = -(xmag*djdpsi/dpsii + 2*xmag**2*p0*p2)
 
@@ -361,10 +367,11 @@ subroutine gradshafranov_solve
 !!$     gamma3 = gamma3 / 2.
 !!$     
 !!$     ! Nate:
-     gamma2 =  - xmag*(xmag*p0*p1 + 2.*g0*(psilim-psimin)/(xmag**2*q0))
-     gamma3 =  - (djdpsi*(psilim-psimin)/2. + p0*p2)
-
-     gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
+        gamma2 =  - xmag*(xmag*p0*p1 + 2.*g0*(psilim-psimin)/(xmag**2*q0))
+        gamma3 =  - (djdpsi*(psilim-psimin)/2. + p0*p2)
+     
+        gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
+     endif
      
 !!$     if(myrank.eq.0 .and. iprint.gt.0) then
 !!$        write(*,*) "gsint1, gsint2, gsint3, gsint4", gsint1, gsint2, gsint3, gsint4
@@ -641,13 +648,6 @@ subroutine gradshafranov_solve
   call deletevec(fun2)
   call deletevec(fun3)
   deallocate(iboundgs)
-
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     write(*,*) "gradshafranov: Time spent in magaxis: ", tmagaxis
-     write(*,*) "gradshafranov: Time spent in fundef: ", tfundef
-     write(*,*) "gradshafranov: Time spent in solve: ", tsol
-     write(*,*) "gradshafranov: Time spent in plot: ", tplot
-  endif
 
   return
 

@@ -7,8 +7,9 @@ module p_data
   integer :: ires     ! linear resolution of the plot files
   integer :: ntri     ! maximum number of HDF5 files
   integer :: maxplots ! maximum dimension of the graph array
+  integer :: ijacobian
 
-  parameter(maxplots=50, maxi=20, ntimep=10000, ires=201)
+  parameter(maxplots=50, maxi=20, ntimep=10000, ires=201, ijacobian=1)
   
   integer, dimension(ires, ires) :: whichtri
 

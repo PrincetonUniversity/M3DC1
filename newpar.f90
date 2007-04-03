@@ -256,8 +256,10 @@ Program Reducedquintic
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   call total_flux
-  tflux0 = tflux
-  totcur0 = totcur
+  if(irestart.eq.0) then
+     tflux0 = tflux
+     totcur0 = totcur
+  endif
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      write(*,*) " onestep: Time spent other quantities:", tend - tstart

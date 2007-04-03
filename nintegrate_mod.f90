@@ -507,7 +507,7 @@ subroutine define_fields_79(itri, fields)
   ri7_79 = ri4_79*ri3_79
   r2_79 = r_79*r_79
 
-  weight_79 = weight_79 * r_79
+  if(ijacobian.eq.1) weight_79 = weight_79 * r_79
 
   ! SB1
   ! ~~~
@@ -729,7 +729,23 @@ subroutine define_fields_79(itri, fields)
 end subroutine define_fields_79
 
 
+!==============================================
+real function int0(weight,ngauss)
 
+  integer, intent(in) :: ngauss
+  real, dimension(ngauss), intent(in) :: weight
+
+  integer :: k
+  real :: ksum
+
+  ksum = 0.
+  do k=1, ngauss
+     ksum = ksum + weight(k)
+  enddo
+
+  int0 = ksum
+
+end function int0
 !==============================================
 real function int1(vari,weight,ngauss)
 
