@@ -56,7 +56,7 @@ subroutine create_newvar_matrix(matrix, ibound)
         call eval_ops(gtri(:,i,itri), si_79, eta_79, ttri(itri), ri_79, 79, g79(:,:,i))
      end do
 
-     weight_79 = weight_79 * r_79
+     if(ijacobian.eq.1) weight_79 = weight_79 * r_79
 
      do j=1,18
         jone = isval1(itri,j)
@@ -238,6 +238,8 @@ subroutine define_sources()
      end do
 
      endif ! on isources
+
+     if(ijacobian.eq.1) weight_79 = weight_79 * ri_79
 
      ! Definition of energy
      ! ~~~~~~~~~~~~~~~~~~~~
@@ -433,7 +435,7 @@ subroutine newvar_gs(inarray,outarray,itype,ibound)
      call calcr(itri, si_79, eta_79, 79, r_79)
      ri_79 = 1./r_79
 
-     weight_79 = weight_79*r_79
+     if(ijacobian.eq.1) weight_79 = weight_79*r_79
 
      do i=1,18
         call eval_ops(gtri(:,i,itri), si_79, eta_79, ttri(itri), ri_79, 79, g79(:,:,i))

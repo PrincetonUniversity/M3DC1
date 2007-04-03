@@ -530,7 +530,7 @@ subroutine gem_reconnection_equ(x, z, inode)
   endif
 
   if(idens.eq.1) then
-     den0(ibegin1) = sech(2*z)**2 + 0.2
+     den0(ibegin1  ) = sech(2*z)**2 + 0.2
      den0(ibegin1+1) = 0.
      den0(ibegin1+2) = -4.*sech(2*z)**2*tanh(2*z)
      den0(ibegin1+3) = 0.

@@ -77,14 +77,15 @@ c     created with ordering specified by numvar
       call createvec(r4, numvar)
       call createvec(q4, numvar)
 
-      if(ipres.eq.1) then
+      if(ipres.eq.1) then 
          call createvec(phip, numvar)
+         call createvec(qp4, 1)
          call createvec(pres, 1)
          call createvec(pres0, 1)
          call createvec(presold, 1)
-         call createvec(qp4, 1)
-      end if
+      endif
 
+ 
       call createvec(jphi, 1)
       jphi = 0.
       call createvec(sb1, 1)

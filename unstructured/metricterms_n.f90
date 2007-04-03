@@ -268,6 +268,7 @@ real function v1upsipsi(e,f,g,h)
        - int4(ri2_79,e(:,OP_DZ),temp79b,h(:,OP_GS),weight_79,79) &
        - int3(ri2_79,temp79b,temp79e,weight_79,79) &
        - int3(ri2_79,temp79c,temp79f,weight_79,79)
+
   if(itor.eq.1) then
      ! |psi(1), u|
      temp79a = f(:,OP_DR)*g(:,OP_DZ) - f(:,OP_DZ)*g(:,OP_DR)

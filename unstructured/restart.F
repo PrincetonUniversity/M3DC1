@@ -62,6 +62,18 @@ c     first put in information to check on run information
       do j1=1,mmnn6       
          write(56) denold(j1)
       enddo
+
+      if(ipres.eq.1) then 
+         do j1=1,mmnn6       
+            write(56) pres(j1)
+         enddo
+         do j1=1,mmnn6       
+            write(56) pres0(j1)
+         enddo
+         do j1=1,mmnn6       
+            write(56) presold(j1)
+         enddo
+      endif
 !
       write(56) ntime,time
       write(56) totcur0,tflux0,gbound,facd
@@ -170,6 +182,17 @@ c     first put in information to check on run information
          read(56) denold(j1)
       enddo
 
+      if(ipres.eq.1) then 
+         do j1=1,mmnn6       
+            read(56) pres(j1)
+         enddo
+         do j1=1,mmnn6       
+            read(56) pres0(j1)
+         enddo
+         do j1=1,mmnn6       
+            read(56) presold(j1)
+         enddo
+      endif
 !
       read(56) ntimer,timer
       read(56) totcur0,tflux0,gbound,facd
