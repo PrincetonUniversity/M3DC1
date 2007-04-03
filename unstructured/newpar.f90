@@ -782,11 +782,11 @@ subroutine onestep
   !   resistivity
   call newvar_eta
   !   toroidal current
-  call newvar_gs(phi+phi0, jphi,1,1)
+  call newvar_gs(phi+phi0,jphi,1,1)
   !   vorticity
-  call newvar_gs(vtemp,vor,1,1)
+  call newvar_gs(vel+vel0,vor,1,1)
   !   compression
-  if(numvar.ge.3) call newvar_gs(vtemp,com,3,0)
+  if(numvar.ge.3) call newvar_gs(vel+vel0,com,3,0)
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      t_aux = t_aux + tend - tstart

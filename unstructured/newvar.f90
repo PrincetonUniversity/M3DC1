@@ -148,7 +148,7 @@ subroutine define_sources()
   emagt = 0.
   ekintd = 0.
   emagtd = 0.
-  ekinph = 0
+  ekinph = 0.
   ekinth = 0.
   emagph = 0.
   emagth = 0.
@@ -478,7 +478,8 @@ subroutine newvar_eta()
   real :: minpe
   integer :: i, ione, itri, numelms, def_fields
 
-  minpe = p0/100.
+!!$  minpe = p0/100.
+  minpe = 0.
 
   resistivity = 0.
   def_fields = 0.
