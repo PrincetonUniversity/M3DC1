@@ -398,6 +398,10 @@ pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog
        dissipated = scalars.E_KPH._data + scalars.E_KTH._data
    endelse
 
+   vloop = read_parameter('vloop', filename=filename)
+   eloop = vloop * scalars.toroidal_current._data / (2.*3.14159625)
+   dissipated = dissipated - eloop
+
    Error = E - E[0]
    total_lost = fltarr(n_elements(Error))
    total_lost[0] = 0.
@@ -423,14 +427,11 @@ pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog
        E = deriv(scalars.time._data,E)
        E_K = deriv(scalars.time._data, E_K)
        E_M = deriv(scalars.time._data, E_M)
-       E_D = deriv(scalars.time._data, E_D)
-       E_H = deriv(scalars.time._data, E_H)
        !y.title = '!6d!8E!6/d!8t!3'
    endif else begin
        !y.title = '!6 Energy!3'
    endelse
 
-   !x.range = 0
 ;   if(!y.range[0] eq 0 and !y.range[1] eq 0) then begin
 ;       !y.range = [min([E, E_K, E_M, -E_D, -E_H], /nan), $
 ;                   max([E, E_K, E_M, -E_D, -E_H], /nan)]

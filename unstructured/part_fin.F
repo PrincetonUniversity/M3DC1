@@ -52,9 +52,10 @@
       nbound = 0 ! number of boundary vertices
       do i=1,numnodes
          call zonenod(i, izone, izonedim)
-         if(izonedim .ne. 2) nbound = nbound + 1
+c$$$         if(izonedim .ne. 2) nbound = nbound + 1
+         if(izonedim.le.1) nbound = nbound + 6
       enddo
-      nbound = 12*nbound*numvar
+c$$$      nbound = 12*nbound*numvar
 !
 !.....arrays defined at all vertices
 c     created with ordering specified by numvar
@@ -101,10 +102,15 @@ c     created with ordering specified by numvar
       call createvec(tempvar,1)
 !
 !.....boundary arrays
-      allocate(iboundv(nbound),iboundv2(nbound),                        &
-     &     iboundp(nbound),iboundn(nbound),                             &
-     &     psibounds(nbound),velbounds(nbound))
+c$$$      allocate(iboundv(nbound),iboundv2(nbound),                        &
+c$$$     &     iboundp(nbound),iboundn(nbound),                             &
+c$$$     &     psibounds(nbound),velbounds(nbound))
+c$$$      if(ipres.eq.1) allocate(iboundpres(nbound))
+      allocate(iboundv(numvar*nbound),iboundv2(numvar*nbound),          &
+     &     iboundp(numvar*nbound),iboundn(nbound),                      &
+     &     psibounds(numvar*nbound),velbounds(numvar*nbound))
       if(ipres.eq.1) allocate(iboundpres(nbound))
+
 !
 !.....arrays associated with the triangles
       allocate(ist(ntri,3),isvaln(ntri,18),isval1(ntri,18),             &
@@ -157,10 +163,11 @@ c     created with ordering specified by numvar
       nbound = 0
       do i=1,numnodes
          call zonenod(i,izone,izonedim)
-         if(izonedim .ne. 2) nbound = nbound + 1
+c$$$         if(izonedim .ne. 2) nbound = nbound + 1
+         if(izonedim.le.1) nbound = nbound + 6
       enddo
-      nbound = 12*numvar*nbound
-      allocate(iboundsm(2*nbound),iboundsm2(2*nbound))
+c$$$      nbound = 12*numvar*nbound
+      allocate(iboundsm(numvarsm*nbound),iboundsm2(numvarsm*nbound))
 !
 !
 !.....compute LU decomposition only once

@@ -6,7 +6,6 @@ subroutine ludefall
   use arrays
   use sparse
   use nintegrate_mod
-  use metricterms_n
   use diagnostics
 
   implicit none
@@ -217,9 +216,15 @@ subroutine ludefvel_n(itri,dbf)
 
   use basic
   use nintegrate_mod
-  use metricterms_n
   use arrays
   use sparse
+
+#ifdef NEW_VELOCITY
+  use metricterms_new
+#else
+  use metricterms_n
+#endif
+
 
   implicit none
 
@@ -271,9 +276,12 @@ subroutine ludefvel_n(itri,dbf)
         
         rrterm(1,1) = rrterm(1,1)  + dt* &
              (v1psipsi(g79(:,:,i),g79(:,:,j),pss79)  &
-             +v1psipsi(g79(:,:,i),pss79,g79(:,:,j))) &
-             + thimp*dt*dt* &
+             +v1psipsi(g79(:,:,i),pss79,g79(:,:,j)))
+
+        if(isources.eq.1) then
+           rrterm(1,1) = rrterm(1,1) + thimp*dt*dt* &
              (v1psisb1 (g79(:,:,i),g79(:,:,j),sb179))
+        endif
         
         if(linear.eq.1 .or. eqsubtract.eq.1) then
            temp = v1uun(g79(:,:,i),g79(:,:,j),ph079,nt79) &    
@@ -316,17 +324,11 @@ subroutine ludefvel_n(itri,dbf)
            ssterm(2,2) = ssterm(2,2) + temp
            ddterm(2,2) = ddterm(2,2) + temp
 
-           temp = v2vmu  (g79(:,:,i),g79(:,:,j),amu) &
+           temp = v2vmu  (g79(:,:,i),g79(:,:,j),amu,hypv) &
                 + thimp*dt* &
                 (v2vpsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79))
            ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
            ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
-
-           if(hyperv.ne.0) then
-              temp = v2vhypv(g79(:,:,i),g79(:,:,j))*amu*hypv
-              ssterm(2,2) = ssterm(2,2) -     thimpv *dt*temp
-              ddterm(2,2) = ddterm(2,2) + (1.-thimpv)*dt*temp
-           endif
 
            temp = v2vun(g79(:,:,i),g79(:,:,j),ph179,nt79)
            ssterm(2,2) = ssterm(2,2) -      thimp *dt*temp
@@ -334,19 +336,22 @@ subroutine ludefvel_n(itri,dbf)
 
            rrterm(1,2) = rrterm(1,2) + dt* &
                 (v1bb     (g79(:,:,i),g79(:,:,j),bzs79)  &
-                +v1bb     (g79(:,:,i),bzs79,g79(:,:,j))) &
-               + thimp*dt*dt* &
-                (v1bsb2   (g79(:,:,i),g79(:,:,j),sb279))
+                +v1bb     (g79(:,:,i),bzs79,g79(:,:,j)))
            
            rrterm(2,1) = rrterm(2,1) + dt* &
-                (v2psib(g79(:,:,i),g79(:,:,j),bzs79)) &
-                + thimp*dt*dt* &
-                (v2psib(g79(:,:,i),g79(:,:,j),sb279))
+                (v2psib(g79(:,:,i),g79(:,:,j),bzs79))
 
            rrterm(2,2) = rrterm(2,2) + dt* &
-                (v2psib(g79(:,:,i),pss79,g79(:,:,j))) &
-                + thimp*dt*dt* &
+                (v2psib(g79(:,:,i),pss79,g79(:,:,j)))
+
+           if(isources.eq.1) then 
+              rrterm(1,2) = rrterm(2,1) + thimp*dt*dt* &
+                (v1bsb2   (g79(:,:,i),g79(:,:,j),sb279))
+              rrterm(2,1) = rrterm(2,1) + thimp*dt*dt* &
+                   (v2psib(g79(:,:,i),g79(:,:,j),sb279))
+              rrterm(2,2) = rrterm(2,2) + thimp*dt*dt* &
                 (v2psib(g79(:,:,i),sb179,g79(:,:,j)))
+           endif
 
            if(linear.eq.1 .or. eqsubtract.eq.1) then
               
@@ -396,8 +401,8 @@ subroutine ludefvel_n(itri,dbf)
            ddterm(1,1) = ddterm(1,1) + (.5-thimp)*dt*temp
 
            temp = v1chin(g79(:,:,i),g79(:,:,j),nt79)
-           ssterm(1,3) = ssterm(1,3) - temp
-           ddterm(1,3) = ddterm(1,3) - temp
+           ssterm(1,3) = ssterm(1,3) + temp
+           ddterm(1,3) = ddterm(1,3) + temp
 
            temp = v1uchin  (g79(:,:,i),ph179,g79(:,:,j),nt79) &
                 + v1chichin(g79(:,:,i),g79(:,:,j),ch179,nt79) &
@@ -431,8 +436,8 @@ subroutine ludefvel_n(itri,dbf)
            ddterm(3,1) = ddterm(3,1) + temp
 
            temp = v3uun  (g79(:,:,i),g79(:,:,j),ph179,nt79) &
-                + v3uun  (g79(:,:,i),ph179,g79(:,:,j),nt79) &
-                + v3uchin(g79(:,:,i),g79(:,:,j),ch179,nt79)
+               +  v3uun  (g79(:,:,i),ph179,g79(:,:,j),nt79) &
+               +  v3uchin(g79(:,:,i),g79(:,:,j),ch179,nt79)
            ssterm(3,1) = ssterm(3,1) -     thimp *dt*temp
            ddterm(3,1) = ddterm(3,1) + (.5-thimp)*dt*temp
            
@@ -480,23 +485,30 @@ subroutine ludefvel_n(itri,dbf)
            endif
            ssterm(3,3) = ssterm(3,3) - thimp*    thimp *dt*dt*temp
            ddterm(3,3) = ddterm(3,3) + thimp*(1.-thimp)*dt*dt*temp
-           
+
            rrterm(3,1) = rrterm(3,1) +                    &
                 dt*                                       &
                 (v3psipsi(g79(:,:,i),g79(:,:,j),pss79)    & 
-                +v3psipsi(g79(:,:,i),pss79,g79(:,:,j))) + & 
-                thimp*dt*dt*                              &
-                (v3psisb1(g79(:,:,i),g79(:,:,j),sb179)    & 
-                +v3psisb1(g79(:,:,i),sb179,g79(:,:,j)))     
+                +v3psipsi(g79(:,:,i),pss79,g79(:,:,j)))           
            
            rrterm(3,2) = rrterm(3,2) + dt*            &
                 (v3bb(g79(:,:,i),g79(:,:,j),bzs79)    &     
-                +v3bb(g79(:,:,i),bzs79,g79(:,:,j))) + &     
-                thimp*dt*dt*                          &
-                (v3bsb2(g79(:,:,i),g79(:,:,j),sb279))
-           
+                +v3bb(g79(:,:,i),bzs79,g79(:,:,j)))
+
            rrterm(3,3) = rrterm(3,3) + dt* &
                 v3p(g79(:,:,i),g79(:,:,j))
+
+           if(isources.eq.1) then 
+              rrterm(3,1) = rrterm(3,1) + & 
+                   thimp*dt*dt*                              &
+                   (v3psisb1(g79(:,:,i),g79(:,:,j),sb179)    & 
+                   +v3psisb1(g79(:,:,i),sb179,g79(:,:,j)))
+
+              rrterm(3,2) = rrterm(3,2) + &
+                   thimp*dt*dt*                          &
+                   (v3bsb2(g79(:,:,i),g79(:,:,j),sb279))
+           end if
+
 
            if(gyro.eq.1) then
               temp = g1ub      (g79(:,:,i),g79(:,:,j),      bzt79,pit79,b2i79) &
@@ -667,9 +679,11 @@ subroutine ludefvel_n(itri,dbf)
      
      if(linear.eq.1 .or. eqsubtract.eq.1) then
         r4(i1) = r4(i1) + dt* &
-             (v1umu    (g79(:,:,i),ph079)) &                   ! passed: 1, 2
-             + thimp*dt*dt* &
-             (v1psisb1 (g79(:,:,i),ps079,sb179))               ! passed: 1, 2
+             (v1umu    (g79(:,:,i),ph079))
+        if(isources.eq.1) then
+           r4(i1) = r4(i1) + thimp*dt*dt* &
+                (v1psisb1 (g79(:,:,i),ps079,sb179))               ! passed: 1, 2
+        endif
         
         ! DENSITY TERMS
         r4(i1) = r4(i1) + dt* &
@@ -686,8 +700,7 @@ subroutine ludefvel_n(itri,dbf)
            r4(i1) = r4(i1) + thimp*dt*dt* &
                 (v1bsb2(g79(:,:,i),bz079,sb279))
            r4(i2) = r4(i2) + dt* &
-                (v2vmu  (g79(:,:,i),vz079,amu) &
-                +v2vhypv(g79(:,:,i),vz079)*amu*hypv)
+                (v2vmu  (g79(:,:,i),vz079,amu,hypv))
            
            ! DENSITY TERMS
            if(grav.ne.0) then          
@@ -701,10 +714,12 @@ subroutine ludefvel_n(itri,dbf)
            r4(i1) = r4(i1) + dt* &
                 (v1vvn(g79(:,:,i),vz079,vz079,nt79))
            r4(i2) = r4(i2) + dt* &
-                (v2vun(g79(:,:,i),vz079,ph079,nt79)) &
-                + thimp*dt*dt* &
-                (v2psib(g79(:,:,i),sb179,bz079) &
-                +v2psib(g79(:,:,i),ps079,sb279))
+                (v2vun(g79(:,:,i),vz079,ph079,nt79))
+           if(isources.eq.1) then
+              r4(i2) = r4(i2) + thimp*dt*dt* &
+                   (v2psib(g79(:,:,i),sb179,bz079) &
+                   +v2psib(g79(:,:,i),ps079,sb279))
+           endif
            
            ! EQUILIBRIUM TERM
            r4(i1) = r4(i1) + dt* &
@@ -721,14 +736,15 @@ subroutine ludefvel_n(itri,dbf)
         
         if(numvar.ge.3) then
            
-           r4(i3) = r4(i3) + &
-                dt* &
+           r4(i3) = r4(i3) + dt* &
                 (v3umu   (g79(:,:,i),ph079,amu,amuc) &
-                +v3chimu (g79(:,:,i),ch079)*amu) + &
-                thimp*dt*dt* &
+                +v3chimu (g79(:,:,i),ch079)*amu)
+           if(isources.eq.1) then
+              r4(i3) = r4(i3) + thimp*dt*dt* &
                 (v3psisb1(g79(:,:,i),ps079,sb179) &
                 +v3psisb1(g79(:,:,i),sb179,ps079) &
                 +v3bsb2  (g79(:,:,i),bz079,sb279))
+           endif
                 
            
            ! DENSITY TERMS
@@ -772,9 +788,15 @@ end subroutine ludefvel_n
 subroutine ludefphi_n(itri,dbf)
   use basic
   use nintegrate_mod
-  use metricterms_n
   use arrays
   use sparse
+
+#ifdef NEW_VELOCITY
+  use metricterms_new
+#else
+  use metricterms_n
+#endif
+
 
   implicit none
 
@@ -1128,9 +1150,15 @@ subroutine ludefden_n(itri,dbf)
 
   use basic
   use nintegrate_mod
-  use metricterms_n
   use arrays
   use sparse
+
+#ifdef NEW_VELOCITY
+  use metricterms_new
+#else
+  use metricterms_n
+#endif
+
 
   implicit none
 
@@ -1236,9 +1264,15 @@ subroutine ludefpres_n(itri,dbf)
 
   use basic
   use nintegrate_mod
-  use metricterms_n
   use arrays
   use sparse
+
+#ifdef NEW_VELOCITY
+  use metricterms_new
+#else
+  use metricterms_n
+#endif
+
 
   implicit none
 

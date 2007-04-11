@@ -89,6 +89,13 @@ Program Reducedquintic
           "TIME: ",a2,":",a2,":",a4,/)
   endif
 
+  if(myrank.eq.0) print*, &
+#ifdef NEW_VELOCITY
+       "V = grad(U)xgrad(phi) + V grad(phi) + grad(chi)"
+#else
+       "V = r^2 grad(U)xgrad(phi) + r V grad(phi) + grad(chi)"
+#endif
+
   pi = acos(-1.)
 
   call numnod(numnodes)
