@@ -69,8 +69,8 @@ real function v1chin(e,f,g)
   if(idens.eq.0) then
      temp = 0.
   else
-     temp = int4(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79) &
-          - int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79)
+     temp = int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
+          - int4(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
   endif
 
   v1chin = temp
@@ -180,7 +180,7 @@ real function v1chichin(e,f,g,h)
   real :: temp
 
   if(idens.eq.0) then
-     temp = 0
+     temp = 0.
   else
      temp = -0.5* &
           (int5(ri_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_DR),weight_79,79) &
@@ -570,7 +570,7 @@ end function v2vn
 
 ! V2vmu
 ! =====
-real function v2vmu(e,f,g)
+real function v2vmu(e,f,g,h)
 
   use basic
   use nintegrate_mod
@@ -578,7 +578,7 @@ real function v2vmu(e,f,g)
   implicit none
 
   real, intent(in), dimension(79,OP_NUM) :: e,f
-  real, intent(in) :: g
+  real, intent(in) :: g,h
   real :: temp
 
   temp = -g * &
@@ -586,6 +586,15 @@ real function v2vmu(e,f,g)
        +int2(e(:,OP_DR),f(:,OP_DR),weight_79,79))
   if(itor.eq.1) then
      temp = temp - g*int3(ri2_79,e(:,OP_1),f(:,OP_1),weight_79,79)
+  endif
+
+  temp = temp - g*h*int2(e(:,OP_LP),f(:,OP_LP),weight_79,79)
+
+  if(itor.eq.1) then
+     temp = temp - g*h* &
+          ( 2.*int3(ri2_79,e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
+          + 2.*int3(ri2_79,e(:,OP_DR),f(:,OP_DR),weight_79,79)) &
+          + 3.*int3(ri4_79,e(:,OP_1),f(:,OP_1),weight_79,79)
   endif
 
   v2vmu = temp
@@ -822,33 +831,6 @@ real function v2vchin(e,f,g,h)
   v2vchin = temp
   return
 end function v2vchin
-
-
-
-! v2vhypv
-! =======
-real function v2vhypv(e,f)
-
-  use basic
-  use nintegrate_mod
-
-  implicit none
-
-  real, intent(in), dimension(79,OP_NUM) :: e,f
-  real :: temp
-
-  temp = -int2(e(:,OP_LP),f(:,OP_LP),weight_79,79)
-
-  if(itor.eq.1) then
-     temp = temp - 2.* &
-          (int3(ri2_79,e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
-          +int3(ri2_79,e(:,OP_DR),f(:,OP_DR),weight_79,79)) &
-          + 3.*int3(ri4_79,e(:,OP_1),f(:,OP_1),weight_79,79)
-  endif
-
-  v2vhypv = temp
-  return
-end function v2vhypv
 
 
 ! v2chibsb1

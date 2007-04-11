@@ -10,17 +10,21 @@ F90    = ifort -c
 F77    = ifort -c
 CC     = icc -c
 
-F90OPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE) -warn unused
-F77OPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE)
+F90OPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE) -DNEW_VELOCITY
+F77OPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE) -DNEW_VELOCITY
+#F90OPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE)
+#F77OPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE)
 
-NEWOBJS1 = M3Dmodules.o nintegrate_mod.o metricterms_n.o newvar.o \
+
+
+NEWOBJS1 = M3Dmodules.o nintegrate_mod.o metricterms_n.o metricterms_new.o newvar.o \
 	$(COMMONDIR)tv80lib.o $(COMMONDIR)subp.o \
 	$(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
         $(COMMONDIR)fdump.o diagnostics.o hdf5_output.o
 
 NEWOBJS2 = fin.o part_fin.o ludef_t.o \
 	  part_fin3.o boundary.o unknown.o restart.o \
-	  acbauer.o sort.o metricterms.o errorcalc.o compare.o \
+	  acbauer.o metricterms.o errorcalc.o compare.o \
 	  gradshafranov.o init_conds.o  output.o 
 
 SCORECDIR = /l/mhd/acbauer/develop/

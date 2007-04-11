@@ -89,7 +89,12 @@ subroutine define_sources()
   use t_data
   use arrays
   use nintegrate_mod
+
+#ifdef NEW_VELOCITY
+  use metricterms_new
+#else
   use metricterms_n
+#endif
 
   implicit none
 
@@ -239,10 +244,28 @@ subroutine define_sources()
 
      endif ! on isources
 
-     if(ijacobian.eq.1) weight_79 = weight_79 * ri_79
+!!$     if(ijacobian.eq.1) weight_79 = weight_79 * ri_79
 
      ! Definition of energy
      ! ~~~~~~~~~~~~~~~~~~~~
+
+#ifdef NEW_VELOCITY
+     if(idens.eq.0) then
+        ekinp = ekinp + .5* &
+             (int3(ri2_79,pht79(:,OP_DZ),pht79(:,OP_DZ),weight_79,79) &
+             +int3(ri2_79,pht79(:,OP_DR),pht79(:,OP_DR),weight_79,79))
+     else
+        ekinp = ekinp + .5* &
+             (int4(ri2_79,pht79(:,OP_DZ),pht79(:,OP_DZ),nt79(:,OP_1),weight_79,79) &
+             +int4(ri2_79,pht79(:,OP_DR),pht79(:,OP_DR),nt79(:,OP_1),weight_79,79))
+     endif
+
+     ekinpd = ekinpd - amu*int3(ri2_79,pht79(:,OP_GS),pht79(:,OP_GS),weight_79,79)
+        
+     ekinph = ekinph - hypc*amu* &
+          (int3(ri2_79,vot79(:,OP_DZ),vot79(:,OP_DZ),weight_79,79) &
+          +int3(ri2_79,vot79(:,OP_DR),vot79(:,OP_DR),weight_79,79))
+#else
      if(idens.eq.0) then
         ekinp = ekinp + .5* &
              (int3(r2_79,pht79(:,OP_DZ),pht79(:,OP_DZ),weight_79,79) &
@@ -256,8 +279,9 @@ subroutine define_sources()
      ekinpd = ekinpd - amu*int3(r2_79,pht79(:,OP_LP ),pht79(:,OP_LP ),weight_79,79)
         
      ekinph = ekinph - hypc*amu* &
-          (int2(vot79(:,OP_DZ),vot79(:,OP_DZ),weight_79,79) &
-          +int2(vot79(:,OP_DR),vot79(:,OP_DR),weight_79,79))
+          (int3(r2_79,vot79(:,OP_DZ),vot79(:,OP_DZ),weight_79,79) &
+          +int3(r2_79,vot79(:,OP_DR),vot79(:,OP_DR),weight_79,79))
+#endif
 
      emagp = emagp + .5* &
           (int3(ri2_79,pst79(:,OP_DZ),pst79(:,OP_DZ),weight_79,79) &
@@ -267,10 +291,26 @@ subroutine define_sources()
           int4(ri2_79,pst79(:,OP_GS),pst79(:,OP_GS),eta79(:,OP_1),weight_79,79)
 
      emagph = emagph - hypf* &
-          (int3(jt79(:,OP_DZ),jt79(:,OP_DZ),eta79(:,OP_1),weight_79,79) &
-          +int3(jt79(:,OP_DR),jt79(:,OP_DR),eta79(:,OP_1),weight_79,79))
+          (int4(ri2_79,jt79(:,OP_DZ),jt79(:,OP_DZ),eta79(:,OP_1),weight_79,79) &
+          +int4(ri2_79,jt79(:,OP_DR),jt79(:,OP_DR),eta79(:,OP_1),weight_79,79))
 
      if(numvar.ge.2) then
+
+#ifdef NEW_VELOCITY
+        if(idens.eq.0) then
+           ekint = ekint + &
+                .5*int3(ri2_79,vzt79(:,OP_1),vzt79(:,OP_1),weight_79,79)
+        else
+           ekint = ekint + &
+                .5*int4(ri2_79,vzt79(:,OP_1),vzt79(:,OP_1),nt79(:,OP_1),weight_79,79)
+        endif
+
+        ekintd = ekintd - amu* &
+             (int3(ri2_79,vzt79(:,OP_DZ),vzt79(:,OP_DZ),weight_79,79) &
+             +int3(ri2_79,vzt79(:,OP_DR),vzt79(:,OP_DR),weight_79,79))
+
+        ekinth = ekinth - amu*hypv*int3(ri2_79,vzt79(:,OP_GS),vzt79(:,OP_GS),weight_79,79)
+#else
         if(idens.eq.0) then
            ekint = ekint + .5*int2(vzt79(:,OP_1),vzt79(:,OP_1),weight_79,79)
         else
@@ -281,16 +321,17 @@ subroutine define_sources()
              (int2(vzt79(:,OP_DZ),vzt79(:,OP_DZ),weight_79,79) &
              +int2(vzt79(:,OP_DR),vzt79(:,OP_DR),weight_79,79))
 
-        ekinth = ekinth - amu*hypv*int2(vzt79(:,OP_LP),vzt79(:,OP_LP),weight_79,79)
+        ekinth = ekinth - amu*hypv*int2(vzt79(:,OP_GS),vzt79(:,OP_GS),weight_79,79)
+#endif
         
         emagt = emagt + .5*int3(ri2_79,bzt79(:,OP_1),bzt79(:,OP_1),weight_79,79)
            
         emagtd = emagtd - &
-             (int3(bzt79(:,OP_DZ),bzt79(:,OP_DZ),eta79(:,OP_1),weight_79,79) &
-             +int3(bzt79(:,OP_DR),bzt79(:,OP_DR),eta79(:,OP_1),weight_79,79))
+             (int4(ri2_79,bzt79(:,OP_DZ),bzt79(:,OP_DZ),eta79(:,OP_1),weight_79,79) &
+             +int4(ri2_79,bzt79(:,OP_DR),bzt79(:,OP_DR),eta79(:,OP_1),weight_79,79))
            
         emagth = emagth - &
-             hypi*int3(bzt79(:,OP_LP),bzt79(:,OP_LP),eta79(:,OP_1),weight_79,79)
+             hypi*int4(ri2_79,bzt79(:,OP_GS),bzt79(:,OP_GS),eta79(:,OP_1),weight_79,79)
      endif
 
      if(numvar.ge.3) then
