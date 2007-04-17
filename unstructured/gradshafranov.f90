@@ -236,7 +236,7 @@ subroutine gradshafranov_solve
      xguess = xmag - xzero
      zguess = zmag - zzero    
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     call magaxis(xguess,zguess)
+     call magaxis(xguess,zguess,psi,numvargs)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_gs_magaxis = t_gs_magaxis + tend - tstart
@@ -638,6 +638,9 @@ subroutine gradshafranov_solve
 
   end do
 
+  ! correct for left-handedness
+  psimin = -psimin
+  psilim = -psilim
 
   ! free memory
   call deletevec(temp)
@@ -655,7 +658,7 @@ end subroutine gradshafranov_solve
 
 
 !==================================
-subroutine magaxis(xguess,zguess)
+subroutine magaxis(xguess,zguess,phin,numvari)
   use basic
   use t_data
   use nintegrate_mod
@@ -665,6 +668,8 @@ subroutine magaxis(xguess,zguess)
   include 'mpif.h'
 
   real, intent(inout) :: xguess, zguess
+  real, intent(in), dimension(*) :: phin
+  integer, intent(in) :: numvari
 
   integer, parameter :: iterations = 5
 
@@ -678,6 +683,7 @@ subroutine magaxis(xguess,zguess)
   real :: alx, alz
   real, dimension(20) :: avector
   real, dimension(3) :: temp1, temp2
+
 
   !     locates the magnetic axis and the value of psi there
 
@@ -699,7 +705,7 @@ subroutine magaxis(xguess,zguess)
 
      ! calculate position of minimum
      if(itri.gt.0) then
-        call calcavector(itri, psi, 1, numvargs, avector)
+        call calcavector(itri, phin, 1, numvari, avector)
          
         ! calculate local coordinates
         theta = ttri(itri)

@@ -514,18 +514,31 @@ subroutine newvar_eta()
   use arrays
   use nintegrate_mod
 
+  use gradshafranov
+
   implicit none
 
-  real :: minpe
+  real :: minpe, ajlim, xguess, zguess
   integer :: i, ione, itri, numelms, def_fields
-
-!!$  minpe = p0/100.
-  minpe = 0.
 
   resistivity = 0.
   def_fields = 0.
   if(idens.eq.1)  def_fields = def_fields + FIELD_N
   if(numvar.ge.3) def_fields = def_fields + FIELD_PE
+
+  if(itor.eq.1 .and. numvar.lt.3) &
+       def_fields = def_fields + FIELD_PSI
+
+  if(itor.eq.1 .and. numvar.lt.3) then
+     itri = 0.
+     call evaluate(xlim-xzero,zlim-zzero,psilim,ajlim,phi,1,numvar,itri)
+
+     xguess = xmag - xzero
+     zguess = zmag - zzero    
+     call magaxis(xguess,zguess,phi,numvargs)
+     xmag = xguess + xzero
+     zmag = zguess + zzero
+  endif
 
   ! Calculate RHS
   call numfac(numelms)
@@ -546,28 +559,45 @@ subroutine newvar_eta()
         call eval_ops(gtri(:,i,itri), si_79, eta_79, ttri(itri), ri_79, 79, g79(:,:,i))
      end do
 
+     ! for the grad-shafranov simulation with numvar < 3,
+     ! calculate the pressure assuming that p(psi) = p0(psi)
+     if(numvar.lt.3 .and. itor.eq.1) then
+        temp79c = (pst79(:,OP_1) - psimin)/(psilim - psimin)
+
+        do i=1,79
+           if(temp79c(i).lt.0) then
+              pet79(i,OP_1) = p0-pi0*ipres
+           else if(temp79c(i).gt.1) then
+              pet79(i,OP_1) = pedge*(p0-pi0*ipres)/p0
+           else
+              pet79(i,OP_1) = pedge*(p0-pi0*ipres)/p0 + &
+                   (p0-pi0*ipres)* &
+                   (1.+p1*temp79c(i)+p2*temp79c(i)**2 &
+                   -(20. + 10.*p1 + 4.*p2)*temp79c(i)**3 &
+                   +(45. + 20.*p1 + 6.*p2)*temp79c(i)**4 &
+                   -(36. + 15.*p1 + 4.*p2)*temp79c(i)**5 &
+                   +(10. + 4.*p1 + p2)*temp79c(i)**6)
+           endif
+        end do
+     endif
+
+     if(numvar.ge.3 .or. itor.eq.1) then
+                   
+        if(idens.eq.0) then
+           temp79a = sqrt((1./(pefac*pet79(:,OP_1)))**3)
+        else
+           temp79a = sqrt((nt79(:,OP_1)/(pefac*pet79(:,OP_1)))**3)
+        endif
+     else
+        if(idens.eq.0) then
+           temp79a = sqrt((1./(p0-pi0))**3)
+        else
+           temp79a = sqrt((nt79(:,OP_1)/(p0-pi0))**3)
+        endif
+     endif
+
      do i=1,18
         ione = isval1(itri,i)       
-
-        if(numvar.ge.3) then
-           temp79b = max(pefac*pet79(:,OP_1),minpe)
-                     
-           if(idens.eq.0) then
-              temp79a = sqrt((1./(pefac*pet79(:,OP_1) + minpe))**3)
-!!$              temp79a = sqrt(1./temp79b**3)
-           else
-              temp79a = sqrt((nt79(:,OP_1)/(pefac*pet79(:,OP_1) + minpe))**3)
-!!$              temp79a = sqrt((nt79(:,OP_1)/temp79b)**3)
-           endif
-        else
-           if(idens.eq.0) then
-              temp79a = sqrt((1./(p0-pi0 + minpe))**3)
-!!$              temp79a = sqrt((1./max(p0 - pi0,minpe))**3)
-           else
-              temp79a = sqrt((nt79(:,OP_1)/(p0-pi0 + minpe))**3)
-!!$              temp79a = sqrt((nt79(:,OP_1)/max(p0 - pi0,minpe))**3)
-           endif
-        endif
 
         resistivity(ione) = resistivity(ione) &
              + etar*int1(g79(:,OP_1,i),weight_79,79) &

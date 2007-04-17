@@ -482,6 +482,7 @@ subroutine onestep
   use sparse
   use newvar_mod
   use diagnostics
+  use gradshafranov
 
   implicit none
 
@@ -498,7 +499,6 @@ subroutine onestep
   ! apply loop voltage
   ! ~~~~~~~~~~~~~~~~~~
   fbound = fbound + dt*vloop/(2.*pi)
-
 
   ! calculate matrices for time advance
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

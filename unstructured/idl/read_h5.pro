@@ -304,7 +304,7 @@ end
 
 
 pro plot_field, name, time, points=p, filename=filename, mesh=plotmesh, $
-                mcolor=mc, _EXTRA = ex
+                mcolor=mc, lcfs=lcfs, _EXTRA = ex
 
    field = read_field(name, slices=time, mesh=mesh, filename=filename, $,
                       time=t, x=x, y=y, points=p)
@@ -323,8 +323,12 @@ pro plot_field, name, time, points=p, filename=filename, mesh=plotmesh, $
 
    contour_and_legend, field, x, y, title=title, _EXTRA=ex
 
+   if(keyword_set(lcfs)) then begin
+       plot_lcfs, time, color=130
+   endif
+
    if(keyword_set(plotmesh)) then begin
-       plot_mesh, mesh, color=100, /oplot
+       plot_mesh, mesh, color=220, /oplot
    endif
 
    print, "Done."

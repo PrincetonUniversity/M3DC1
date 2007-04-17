@@ -324,11 +324,17 @@ subroutine ludefvel_n(itri,dbf)
            ssterm(2,2) = ssterm(2,2) + temp
            ddterm(2,2) = ddterm(2,2) + temp
 
-           temp = v2vmu  (g79(:,:,i),g79(:,:,j),amu,hypv) &
+           temp = v2vmu  (g79(:,:,i),g79(:,:,j),amu) &
                 + thimp*dt* &
                 (v2vpsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79))
            ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
            ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
+
+           if(hypv.gt.0) then
+              temp = v2vhypv(g79(:,:,i),g79(:,:,j),amu,hypv)
+              ssterm(2,2) = ssterm(2,2) -     thimpv *dt*temp
+              ddterm(2,2) = ddterm(2,2) + (1.-thimpv)*dt*temp
+           endif
 
            temp = v2vun(g79(:,:,i),g79(:,:,j),ph179,nt79)
            ssterm(2,2) = ssterm(2,2) -      thimp *dt*temp
@@ -700,7 +706,8 @@ subroutine ludefvel_n(itri,dbf)
            r4(i1) = r4(i1) + thimp*dt*dt* &
                 (v1bsb2(g79(:,:,i),bz079,sb279))
            r4(i2) = r4(i2) + dt* &
-                (v2vmu  (g79(:,:,i),vz079,amu,hypv))
+                (v2vmu  (g79(:,:,i),vz079,amu) &
+                +v2vhypv(g79(:,:,i),vz079,amu,hypv))
            
            ! DENSITY TERMS
            if(grav.ne.0) then          

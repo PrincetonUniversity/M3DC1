@@ -570,7 +570,33 @@ end function v2vn
 
 ! V2vmu
 ! =====
-real function v2vmu(e,f,g,h)
+real function v2vmu(e,f,g)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f
+  real, intent(in) :: g
+  real :: temp
+
+  temp = -g * &
+       (int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
+       +int2(e(:,OP_DR),f(:,OP_DR),weight_79,79))
+  if(itor.eq.1) then
+     temp = temp - g*int3(ri2_79,e(:,OP_1),f(:,OP_1),weight_79,79)
+  endif
+
+  v2vmu = temp
+  return
+end function v2vmu
+
+
+
+! V2vhypv
+! =======
+real function v2vhypv(e,f,g,h)
 
   use basic
   use nintegrate_mod
@@ -581,14 +607,7 @@ real function v2vmu(e,f,g,h)
   real, intent(in) :: g,h
   real :: temp
 
-  temp = -g * &
-       (int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
-       +int2(e(:,OP_DR),f(:,OP_DR),weight_79,79))
-  if(itor.eq.1) then
-     temp = temp - g*int3(ri2_79,e(:,OP_1),f(:,OP_1),weight_79,79)
-  endif
-
-  temp = temp - g*h*int2(e(:,OP_LP),f(:,OP_LP),weight_79,79)
+  temp = - g*h*int2(e(:,OP_LP),f(:,OP_LP),weight_79,79)
 
   if(itor.eq.1) then
      temp = temp - g*h* &
@@ -597,9 +616,9 @@ real function v2vmu(e,f,g,h)
           + 3.*int3(ri4_79,e(:,OP_1),f(:,OP_1),weight_79,79)
   endif
 
-  v2vmu = temp
+  v2vhypv = temp
   return
-end function v2vmu
+end function v2vhypv
 
 
 ! V2vun
