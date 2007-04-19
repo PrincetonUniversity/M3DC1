@@ -17,18 +17,20 @@ F77OPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE) -DNEW_VELOCITY
 
 
 
-NEWOBJS1 = M3Dmodules.o nintegrate_mod.o metricterms_n.o metricterms_new.o newvar.o \
+NEWOBJS1 = M3Dmodules.o nintegrate_mod.o metricterms_n.o metricterms_new.o \
+	diagnostics.o gradshafranov.o newvar.o \
 	$(COMMONDIR)tv80lib.o $(COMMONDIR)subp.o \
 	$(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
-        $(COMMONDIR)fdump.o diagnostics.o hdf5_output.o
+        $(COMMONDIR)fdump.o hdf5_output.o
 
 NEWOBJS2 = fin.o part_fin.o ludef_t.o \
 	  part_fin3.o boundary.o unknown.o restart.o \
 	  acbauer.o metricterms.o errorcalc.o compare.o \
-	  gradshafranov.o init_conds.o  output.o 
+	  init_conds.o  output.o 
 
 SCORECDIR = /l/mhd/acbauer/develop/
-SCORECVERS =-stable4
+SCORECVERS =-stable5
+SCORECOPT = -O
 
 LDRNEW = \
         -L$(SCORECDIR)FMDB$(SCORECVERS)/FMDB/lib/ia64_linux \
@@ -51,8 +53,8 @@ LDRNEW = \
 	-Wl,-rpath,$(SCORECDIR)meshAdapt$(SCORECVERS)/meshTools/lib/ia64_linux \
 	-L$(SCORECDIR)meshAdapt$(SCORECVERS)/templateRefine/lib/ia64_linux \
 	-Wl,-rpath,$(SCORECDIR)meshAdapt$(SCORECVERS)/templateRefine/lib/ia64_linux \
-	-lFMDB-mpich2-O -lSCORECModel-mpich2-O -lSCORECUtil-mpich2-O -lField-mpich2-O -lCore-mpich2-O \
-	-lmeshAdapt-mpich2-O -ltemplateRefine-mpich2-O -lmeshTools-mpich2-O -lSolver-mpich2-O -lPPPL-mpich2-O \
+	-lFMDB-mpich2$(SCORECOPT) -lSCORECModel-mpich2$(SCORECOPT) -lSCORECUtil-mpich2$(SCORECOPT) -lField-mpich2$(SCORECOPT) -lCore-mpich2$(SCORECOPT) \
+	-lmeshAdapt-mpich2$(SCORECOPT) -ltemplateRefine-mpich2$(SCORECOPT) -lmeshTools-mpich2$(SCORECOPT) -lSolver-mpich2$(SCORECOPT) -lPPPL-mpich2$(SCORECOPT) \
 	-L$(AUTOPACK_HOME)/lib/ia64-sgi -Wl,-rpath,$(AUTOPACK_HOME)/lib/ia64-sgi -lautopack-O \
 	-L$(PARMETIS_HOME)/lib -Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis \
         -L$(NTCCHOME)/lib -lezcdf \
@@ -72,7 +74,6 @@ LDRNEW = \
 gonewp: $(NEWOBJS1) newpar.o newpar-lib.o $(NEWOBJS2)
 	ifort -shared -o libnewpar.so $(NEWOBJS1) newpar-lib.o $(NEWOBJS2) 
 	$(LOADER) $(NEWOBJS1) newpar.o  $(NEWOBJS2) $(LDRNEW) -o $@
-	rm -rf C1restartout check.txt check1.txt check0.txt
 
 newpar-lib.o: newpar.f90
 	$(F90) $(F90OPTS) -DIS_LIBRARY $< -o $@

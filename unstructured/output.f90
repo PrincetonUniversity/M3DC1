@@ -233,7 +233,7 @@ subroutine output
   endif
   if(idens.eq.1 .and. maxrank .eq. 1) call oneplot(deni,1,1,"deni",0)
 
-  call wrrestart
+  call wrrestart(time, ntime)
   write(*,4110)
   write(FILE__C1NEW,4110)
 

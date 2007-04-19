@@ -407,43 +407,18 @@ c$$$      deex = 2.*area/sqrt(deex)
       end
 
 !============================================================
-      subroutine exportfield2(itype,numvare, dum, iwhich)
+c     itype is for which numvar field
+c     dum is the array of dofs/PPPLVector.val
+c     numvare is the numvar for dum
+      subroutine exportfield(dum)
       use p_data
       use t_data
       use basic
       implicit none
-      integer itype, numvare, numelms, itri, idof, iii, ii, ndof,
-     &     i, index, k, isforder, itensororder, iwhich
-    
-      real si, eta, x, z, wlocal(18), dum(*), rlocal(18), sum, 
-     &     avector(20), temp
-      double precision coords(3)
-      double precision, allocatable:: vals(:), dx(:), dz(:)
-      
-!     
-!.....itype=1 for first velocity (flux) variable
-!
-      itensororder = 1          ! the order of the tensor
-      isforder = 5              ! the order of lagrange shape functions used
-      call createfield("phi", itensororder, isforder, iwhich) 
-      call getnumlagrangetriinterppoint(isforder, ndof)
-      allocate(dx(ndof), dz(ndof), vals(ndof)) ! vals should take into account the tensor order for non-scalars!
-      dx = 0.d0
-      dz = 0.d0
-      call numfac(numelms)
-      do itri=1,numelms
-         call getlagrangetriinterppoint(itri, isforder, dx, dz) ! interpolation points in global CS
-         do idof=1,ndof
-            x = dx(idof)
-            z = dz(idof)
-            call evaluate(x,z,vals(idof), temp, dum,itype,numvare, itri)
-         enddo ! idof loop
-         call setfieldontri(itri, itensororder, isforder, vals, iwhich)
-      enddo ! itri loop
+      integer itype
+      real dum(*)
 
-!.....update the field
-      call outputfield(iwhich, iwhich)
-      deallocate(dx,dz, vals)
+      call createfieldrq(1, dum)
            
       return
       end

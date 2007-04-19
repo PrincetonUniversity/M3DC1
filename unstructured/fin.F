@@ -42,6 +42,10 @@
       call hdf5_finalize(ier)
       print *, "done."
 
+      print *, "finalizing SCOREC software..."
+      call clearscorecdata()
+      print *, "done."
+
       call sludexit
       call MPI_Finalize(ier)
       if (ier /= 0) print *,'Error terminating MPI:',ier

@@ -30,6 +30,7 @@ Program Reducedquintic
 
   real :: dtmin, ratemin, ratemax
   real :: tstart, tend
+  real :: tolerance
 
   integer, allocatable ::  itemp(:)
 
@@ -378,8 +379,11 @@ Program Reducedquintic
 
 101 continue
   if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'about to export field'
-!      call exportfield2(1,numvar,phi, 0) ! 0 for now for adaptive-loop.sh script
-!      call exportfield2(1,numvar,jphi, 1)
+! below is for mesh adaptation
+!  tolerance = .00005 
+!  if(maxrank .eq. 1) then
+!     call integratedadapt(vel, 2, tolerance)
+!  endif
   ratemin = 0.
   ratemax = 0.
   do ntime=ntimemin,maxts
@@ -415,8 +419,7 @@ Program Reducedquintic
   endif
 999 continue
   if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'writing the restart file'
-  ntime = max(ntime, ntimer)-1
-  call wrrestart
+  call wrrestart(time, max(maxts, ntimer))
   if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'done writing the restart file'
 
 !     free memory from sparse matrices
@@ -445,6 +448,10 @@ Program Reducedquintic
      call freesmo(q9matrix_sm)
   endif
   call deletesearchstructure()
+!  free memory for numberings
+  call deletedofnumbering(1)
+  call deletedofnumbering(2)
+  call deletedofnumbering(3)
 
   if (myrank.eq.0 .and. maxrank.eq.1) call plote
   
