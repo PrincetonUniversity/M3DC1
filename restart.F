@@ -1,12 +1,12 @@
-      subroutine wrrestart
+      subroutine wrrestart(timein, ntimein)
       use p_data
       use t_data
       use basic
       use arrays
 
       implicit none
-      integer mmnn18, j1, mmnn6, ifirstrs, numnodes, numelms 
-      real ekinemagt
+      integer mmnn18, j1, mmnn6, ifirstrs, numnodes, numelms, ntimein
+      real timein
       data ifirstrs/1/
       character (len=30) :: fname, oldfname
 
@@ -75,13 +75,13 @@ c     first put in information to check on run information
          enddo
       endif
 !
-      write(56) ntime,time
+      write(56) ntimein,timein
       write(56) totcur0,tflux0,gbound,facd,fbound
       close(56)
 
       if(maxrank.eq.1) then
          write(9,1201) ntime,time
- 1201    format("* * * restart file written at cycle,time = ",i5,1pe12.4,    &
+ 1201   format("* * * restart file written at cycle,time = ",i5,1pe12.4,    
      &        "  * * *")
       endif
 
@@ -250,3 +250,236 @@ c     first put in information to check on run information
       
       return
       end
+!============================================================
+      subroutine wrrestartglobal(timein, ntimein)
+      use p_data
+      use t_data
+      use basic
+      use arrays
+      implicit none
+      include 'mpif.h'
+      integer ifirstrs2, numdofsglobal, mpitag, status, 
+     &     ierr, request, numentsglobal(4), i, numnodes, j, globalid,
+     &     begindofnumber, enddofnumberplusone, ntimein
+      real timein
+      integer recvinfo(8)
+      data ifirstrs2/1/
+
+      if(ifirstrs2 .ne. 1 .and. myrank .eq. 0) then
+         call rename('C1restart', 'C1restarto')
+      endif
+      ifirstrs2 = 0
+      mpitag = 9070
+      do i=1,8
+         recvinfo(i) = i
+      enddo
+      if(myrank .ne. 0) then
+         ! unaligned access warnings on PPPL sgi machines is from communication here
+         call MPI_Recv(recvinfo(2), 4, MPI_INTEGER, myrank-1, 
+     &        mpitag, MPI_COMM_WORLD, status, ierr)
+         if(ierr .ne. MPI_SUCCESS) then
+            write(*,*) 'MPI recv problem in restart'
+            call safestop(828)
+         endif         
+         call MPI_Wait(request, status, ierr)
+         if(ierr .ne. MPI_SUCCESS) then
+            write(*,*) 'MPI wait problem in restart'
+            call safestop(829)
+         endif         
+#ifdef _AIX
+	 print *, "must use wrrestart on ibm instead of wrrestartglobal"
+ 	 call safestop(9229)
+#else
+         open(56,file='C1restart',form='unformatted',status='old',
+     &        ACCESS='append')
+#endif
+         endfile 56
+      else
+         if(ifirstrs2 .ne. 1) call rename('C1restart', 'C1restarto')
+         ifirstrs2 = 0
+         open(56,file='C1restart',form='unformatted',status='unknown')
+c     first put in information to check on run information
+         call numglobaldofs(numvar, numdofsglobal)
+         call numglobalents(numentsglobal(1),numentsglobal(2),
+     &        numentsglobal(3), numentsglobal(4))
+         write(56) numentsglobal(1)!, numentsglobal(2), numentsglobal(3)
+         write(56) numentsglobal(2)
+         write(56) numentsglobal(3)
+         write(56) numdofsglobal
+         write(56) numvar
+         write(56) iper
+         write(56) jper   
+         write(56) ntimein,timein
+         write(56) totcur0,tflux0,gbound,facd
+      endif
+
+      call numnod(numnodes)
+      do j=1,numnodes
+         call entglobalid(j, 0, globalid)
+         write(56) globalid
+         call entdofs(numvar, j, 0, begindofnumber, 
+     &        enddofnumberplusone)
+         do i=begindofnumber,enddofnumberplusone-1
+            write(56) vel(i)
+         enddo
+         do i=begindofnumber,enddofnumberplusone-1
+            write(56) vel0(i)
+         enddo
+         do i=begindofnumber,enddofnumberplusone-1
+            write(56) vels(i)
+         enddo
+         do i=begindofnumber,enddofnumberplusone-1
+            write(56) velold(i)
+         enddo
+         do i=begindofnumber,enddofnumberplusone-1
+            write(56) phi(i)
+         enddo
+         do i=begindofnumber,enddofnumberplusone-1
+            write(56) phi0(i)
+         enddo
+         do i=begindofnumber,enddofnumberplusone-1
+            write(56) phis(i)
+         enddo
+         do i=begindofnumber,enddofnumberplusone-1
+            write(56) phiold(i)
+         enddo
+         call entdofs(1, j, 0, begindofnumber, 
+     &        enddofnumberplusone)
+         do i=begindofnumber,enddofnumberplusone-1
+            write(56) jphi(i)
+         enddo         
+         do i=begindofnumber,enddofnumberplusone-1
+            write(56) vor(i)
+         enddo         
+         do i=begindofnumber,enddofnumberplusone-1
+            write(56) com(i)
+         enddo         
+         do i=begindofnumber,enddofnumberplusone-1
+            write(56) den(i)
+         enddo         
+         do i=begindofnumber,enddofnumberplusone-1
+            write(56) den0(i)
+         enddo         
+         do i=begindofnumber,enddofnumberplusone-1
+            write(56) denold(i)
+         enddo         
+      enddo 
+      i = -1
+c     below specifies that this is the last line
+      if(myrank .eq. maxrank-1) write(56) i
+
+      close(56)
+      if(myrank .ne. maxrank-1) then
+         call MPI_Send(recvinfo(2), 4, MPI_INTEGER, myrank+1,
+     &        mpitag, MPI_COMM_WORLD, ierr)
+         if(ierr .ne. MPI_SUCCESS) then
+            write(*,*) 'MPI send problem in restart'
+            call safestop(827)
+         endif
+      endif
+!      write(9,1201) ntime,time !9 is FILE__C1NEW
+      call MPI_Barrier(MPI_COMM_WORLD, i)
+      
+ 1201 format("* * * restart file written at cycle,time = ",i5,1pe12.4,    &
+     &     "  * * *")
+
+      return
+      end
+!============================================================
+      subroutine rdrestartglobal
+      use p_data
+      use t_data
+      use basic
+      use arrays
+      implicit none
+      include 'mpif.h'
+      integer numdofsglobal, numentsglobal(4), i, numnodes, j, globalid,
+     &     begindofnumber, enddofnumberplusone, in1, in2, in3, nodeid
+      real tempvariable
+
+      open(56,file='C1restart',form='unformatted',status='old')
+      
+c     first put in information to check on run information
+      call numglobaldofs(numvar, numdofsglobal)
+      call numglobalents(numentsglobal(1),numentsglobal(2),
+     &     numentsglobal(3), numentsglobal(4))
+      read(56) in1!, in2, in3
+      read(56) in2
+      read(56) in3
+      write(*,*) 'in',in1, in2, in3
+      if(in1 .ne. numentsglobal(1) .or. in2 .ne. numentsglobal(2) .or.
+     &     in3 .ne. numentsglobal(3)) then
+         write(*,*) 'Mesh does not match for rdrestartglobal', in1, in2, in3,
+     &        numentsglobal(1), numentsglobal(2), numentsglobal(3)
+         call safestop(567)
+      endif
+      read(56) numdofsglobal
+      read(56) numvar
+      read(56) iper
+      read(56) jper   
+      read(56) ntimer,timer
+      read(56) totcur0,tflux0,gbound,facd
+      write(*,*) 'in restartglobal times are ', ntimer, timer
+      call numnod(numnodes)
+      read(56) globalid
+      do while(globalid .ne. -1)
+         call globalidnod(globalid, nodeid)
+         if(nodeid .ne. -1) then ! this node exists on this proc
+            call entdofs(numvar, nodeid, 0, begindofnumber, 
+     &           enddofnumberplusone)
+            do i=begindofnumber,enddofnumberplusone-1
+               read(56) vel(i)
+            enddo
+            do i=begindofnumber,enddofnumberplusone-1
+               read(56) vel0(i)
+            enddo
+            do i=begindofnumber,enddofnumberplusone-1
+               read(56) vels(i)
+            enddo
+            do i=begindofnumber,enddofnumberplusone-1
+               read(56) velold(i)
+            enddo
+            do i=begindofnumber,enddofnumberplusone-1
+               read(56) phi(i)
+            enddo
+            do i=begindofnumber,enddofnumberplusone-1
+               read(56) phi0(i)
+            enddo
+            do i=begindofnumber,enddofnumberplusone-1
+               read(56) phis(i)
+            enddo
+            do i=begindofnumber,enddofnumberplusone-1
+               read(56) phiold(i)
+            enddo
+            call entdofs(1, nodeid, 0, begindofnumber, 
+     &           enddofnumberplusone)
+            do i=begindofnumber,enddofnumberplusone-1
+               read(56) jphi(i)
+            enddo         
+            do i=begindofnumber,enddofnumberplusone-1
+               read(56) vor(i)
+            enddo         
+            do i=begindofnumber,enddofnumberplusone-1
+               read(56) com(i)
+            enddo         
+            do i=begindofnumber,enddofnumberplusone-1
+               read(56) den(i)
+            enddo         
+            do i=begindofnumber,enddofnumberplusone-1
+               read(56) den0(i)
+            enddo         
+            do i=begindofnumber,enddofnumberplusone-1
+               read(56) denold(i)
+            enddo         
+         else ! node is not on this proc
+            do i=1,numvar*6*8 + 6*6 ! the number of dof values at this node
+               read(56) tempvariable
+            enddo
+         endif
+         read(56) globalid
+      enddo 
+      
+      close(56)
+      return
+      end
+!============================================================
