@@ -51,7 +51,7 @@
       if (ier /= 0) print *,'Error terminating MPI:',ier
 
       close(UNIT=9, STATUS='KEEP')
-      write(*,*) "stoped at", iarg
+      write(*,*) "stopped at", iarg
       stop
       end
 !==========================================

@@ -213,8 +213,8 @@ Program Reducedquintic
   if(irestart.eq.0) call hdf5_write_parameters(ier)
   
   ! create the newvar matrices
-  call create_newvar_matrix(s6matrix_sm, 1)
-  call create_newvar_matrix(s3matrix_sm, 0)
+  call create_newvar_matrix(s6matrix_sm, NV_DCBOUND)
+  call create_newvar_matrix(s3matrix_sm, NV_NOBOUND)
 
 !  call axis(phi,xsep,zsep,0)
 
@@ -245,12 +245,12 @@ Program Reducedquintic
   !   resistivity
   call newvar_eta
   !   toroidal current
-  call newvar_gs(phi+phi0,jphi,1,1)
+  call newvar_d2(phi+phi0,jphi,1,NV_DCBOUND,NV_GS)
   !   vorticity
-  call newvar_gs(vel+vel0, vor,1,1)
+  call newvar_d2(vel+vel0, vor,1,NV_DCBOUND,NV_GS)
   !   compression
   if(numvar.ge.3) then 
-     call newvar_gs(vel+vel0,com,3,0)
+     call newvar_d2(vel+vel0,com,3,NV_NOBOUND,NV_LP)
   else
      com = 0.
   endif
@@ -554,9 +554,11 @@ subroutine onestep
   vtemp = vtemp + b1vector + r4
 
   ! apply boundary conditions
-  do l=1,nbcv
-     vtemp(iboundv(l)) = velbounds(l)
-  enddo
+!!$  do l=1,nbcv
+!!$     vtemp(iboundv(l)) = velbounds(l)
+!!$  enddo
+  call boundary_vel(s1matrix_sm, vtemp)
+  call finalizearray4solve(s1matrix_sm)
 
   ! solve linear system with rhs in vtemp (note LU-decomp done first time)
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -577,12 +579,12 @@ subroutine onestep
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
      ! smooth vorticity
-     call newvar_gs(vtemp,vor,1,1)
+     call newvar_d2(vtemp,vor,1,NV_DCBOUND,NV_GS)
      call smoother1(vor,vtemp,numnodes,numvar,1)
 
      ! smooth compression
      if(numvar.ge.3) then
-        call newvar_gs(vtemp,com,3,0)
+        call newvar_d2(vtemp,com,3,NV_NOBOUND,NV_LP)
 
 !!$        !
 !!$        !.....coding to calculate the error in the delsquared chi equation
@@ -759,12 +761,14 @@ subroutine onestep
   vtemp = vtemp + b2vector + b3vector + q4
   
   ! Insert boundary conditions
-  do l=1,nbcp
-     vtemp(iboundp(l)) = psibounds(l)
-     if(linear.eq.0 .and. eqsubtract.eq.0) then
-        vtemp(iboundp(l)) = vtemp(iboundp(l)) + phiold(iboundp(l))
-     endif
-  enddo
+!!$  do l=1,nbcp
+!!$     vtemp(iboundp(l)) = psibounds(l)
+!!$     if(linear.eq.0 .and. eqsubtract.eq.0) then
+!!$        vtemp(iboundp(l)) = vtemp(iboundp(l)) + phiold(iboundp(l))
+!!$     endif
+!!$  enddo
+  call boundary_mag(s2matrix_sm, vtemp)
+  call finalizearray4solve(s2matrix_sm)
 
   ! solve linear system...LU decomposition done first time
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -781,7 +785,6 @@ subroutine onestep
   ! new field solution at time n+1 (or n* for second order advance)
   phi = vtemp
 
-
   ! define auxiliary variables
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -796,11 +799,11 @@ subroutine onestep
   !   resistivity
   call newvar_eta
   !   toroidal current
-  call newvar_gs(phi+phi0,jphi,1,1)
+  call newvar_d2(phi+phi0,jphi,1,NV_DCBOUND,NV_GS)
   !   vorticity
-  call newvar_gs(vel+vel0,vor,1,1)
+  call newvar_d2(vel+vel0,vor,1,NV_DCBOUND,NV_GS)
   !   compression
-  if(numvar.ge.3) call newvar_gs(vel+vel0,com,3,0)
+  if(numvar.ge.3) call newvar_d2(vel+vel0,com,3,NV_NOBOUND,NV_LP)
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      t_aux = t_aux + tend - tstart

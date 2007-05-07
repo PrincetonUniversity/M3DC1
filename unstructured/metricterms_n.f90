@@ -1837,7 +1837,7 @@ real function b2b(e,f)
   real, intent(in), dimension(79,OP_NUM) :: e,f
   real :: temp
 
-  temp = int2(e(:,OP_1),f(:,OP_1),weight_79,79)
+  temp = int3(ri2_79,e(:,OP_1),f(:,OP_1),weight_79,79)
 
   b2b = temp
   return

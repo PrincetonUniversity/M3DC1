@@ -5,6 +5,13 @@ module newvar_mod
   integer, allocatable :: ibound_newvar(:)
   integer :: nbc_newvar
 
+  integer, parameter :: NV_NOBOUND = 0
+  integer, parameter :: NV_DCBOUND = 1
+
+  integer, parameter :: NV_LP = 0
+  integer, parameter :: NV_GS = 1
+
+
 contains
 
 
@@ -29,7 +36,7 @@ subroutine create_newvar_matrix(matrix, ibound)
   call numfac(numelms)
 
   ! calculate number of boundary nodes and allocate array
-  if(ibound.eq.1) then
+  if(ibound.eq.NV_DCBOUND) then
      nbound = 0
      do i=1,numnodes
         call zonenod(i,izone,izonedim)
@@ -69,7 +76,7 @@ subroutine create_newvar_matrix(matrix, ibound)
   enddo
 
   ! apply boundary conditions
-  if(ibound.eq.1) then
+  if(ibound.eq.NV_DCBOUND) then
      call boundaryds(ibound_newvar,nbc_newvar,0)
      do i=1,nbc_newvar
         call setdiribc(matrix, ibound_newvar(i))
@@ -244,8 +251,6 @@ subroutine define_sources()
 
      endif ! on isources
 
-!!$     if(ijacobian.eq.1) weight_79 = weight_79 * ri_79
-
      ! Definition of energy
      ! ~~~~~~~~~~~~~~~~~~~~
 
@@ -291,8 +296,10 @@ subroutine define_sources()
           int4(ri2_79,pst79(:,OP_GS),pst79(:,OP_GS),eta79(:,OP_1),weight_79,79)
 
      emagph = emagph - hypf* &
-          (int4(ri2_79,jt79(:,OP_DZ),jt79(:,OP_DZ),eta79(:,OP_1),weight_79,79) &
-          +int4(ri2_79,jt79(:,OP_DR),jt79(:,OP_DR),eta79(:,OP_1),weight_79,79))
+          (int4(ri2_79,jt79(:,OP_DZ),jt79(:,OP_DZ),eta79(:,OP_1 ),weight_79,79) &
+          +int4(ri2_79,jt79(:,OP_DR),jt79(:,OP_DR),eta79(:,OP_1 ),weight_79,79) &
+          +int4(ri2_79,jt79(:,OP_1 ),jt79(:,OP_DZ),eta79(:,OP_DZ),weight_79,79) &
+          +int4(ri2_79,jt79(:,OP_1 ),jt79(:,OP_DR),eta79(:,OP_DR),weight_79,79))
 
      if(numvar.ge.2) then
 
@@ -330,11 +337,40 @@ subroutine define_sources()
              (int4(ri2_79,bzt79(:,OP_DZ),bzt79(:,OP_DZ),eta79(:,OP_1),weight_79,79) &
              +int4(ri2_79,bzt79(:,OP_DR),bzt79(:,OP_DR),eta79(:,OP_1),weight_79,79))
            
-        emagth = emagth - &
-             hypi*int4(ri2_79,bzt79(:,OP_GS),bzt79(:,OP_GS),eta79(:,OP_1),weight_79,79)
+        emagth = emagth - hypi* &
+             (int4(ri2_79,bzt79(:,OP_GS),bzt79(:,OP_GS),eta79(:,OP_1 ),weight_79,79) &
+             +int4(ri2_79,bzt79(:,OP_DZ),bzt79(:,OP_GS),eta79(:,OP_DZ),weight_79,79) &
+             +int4(ri2_79,bzt79(:,OP_DR),bzt79(:,OP_GS),eta79(:,OP_DR),weight_79,79))
      endif
 
      if(numvar.ge.3) then
+#ifdef NEW_VELOCITY
+        if(idens.eq.0) then
+           ekin3 = ekin3 + .5* &
+                (int2(cht79(:,OP_DZ),cht79(:,OP_DZ),weight_79,79) &
+                +int2(cht79(:,OP_DR),cht79(:,OP_DR),weight_79,79))
+           if(itor.eq.1) then
+              ekin3 = ekin3 + &
+                   (int3(ri_79,cht79(:,OP_DZ),pht79(:,OP_DR),weight_79,79) &
+                   -int3(ri_79,cht79(:,OP_DR),pht79(:,OP_DZ),weight_79,79))
+           endif
+        else
+           ekin3 = ekin3 + .5* &
+                (int3(cht79(:,OP_DZ),cht79(:,OP_DZ),nt79(:,OP_1),weight_79,79) &
+                +int3(cht79(:,OP_DR),cht79(:,OP_DR),nt79(:,OP_1),weight_79,79))
+           if(itor.eq.1) then
+              ekin3 = ekin3 + &
+                   (int4(ri_79,cht79(:,OP_DZ),pht79(:,OP_DR),nt79(:,OP_1),weight_79,79) &
+                   -int4(ri_79,cht79(:,OP_DR),pht79(:,OP_DZ),nt79(:,OP_1),weight_79,79))
+           endif
+        endif
+
+        ekin3d = ekin3d - 2.*amuc*int2(pht79(:,OP_LP),pht79(:,OP_LP),weight_79,79)
+           
+        ekin3h = ekin3h - 2.*hypc*amuc* &
+             (int2(cot79(:,OP_DZ),cot79(:,OP_DZ),weight_79,79) &
+             +int2(cot79(:,OP_DR),cot79(:,OP_DR),weight_79,79))
+#else
         if(idens.eq.0) then
            ekin3 = ekin3 + .5* &
                 (int2(cht79(:,OP_DZ),cht79(:,OP_DZ),weight_79,79) &
@@ -354,15 +390,15 @@ subroutine define_sources()
                    -int4(r_79,cht79(:,OP_DR),pht79(:,OP_DZ),nt79(:,OP_1),weight_79,79))
            endif
         endif
-           
+
         ekin3d = ekin3d - amuc*int2(pht79(:,OP_LP),pht79(:,OP_LP),weight_79,79)
            
         ekin3h = ekin3h - hypc*amuc* &
              (int2(cot79(:,OP_DZ),cot79(:,OP_DZ),weight_79,79) &
              +int2(cot79(:,OP_DR),cot79(:,OP_DR),weight_79,79))
-        
+#endif
+                   
         emag3 = emag3 + int1(pt79,weight_79,79) / (gam - 1.)
-           
      endif
   end do
 
@@ -370,9 +406,9 @@ subroutine define_sources()
   call numdofs(1, ndof)
 
   if(isources.eq.1) then
-     call solve_newvar(sb1, 1)
-     if(numvar.ge.2) call solve_newvar(sb2, 1)
-     if(numvar.ge.3) call solve_newvar(sp1, 1)
+     call solve_newvar(sb1, NV_DCBOUND)
+     if(numvar.ge.2) call solve_newvar(sb2, NV_DCBOUND)
+     if(numvar.ge.3) call solve_newvar(sp1, NV_DCBOUND)
   endif
 !!$ 
 !!$  call solve_newvar(tempvar, 1)
@@ -440,9 +476,9 @@ subroutine define_sources()
 end subroutine define_sources
 
 
-! newvar_gs
+! newvar_d2
 ! =========
-subroutine newvar_gs(inarray,outarray,itype,ibound)
+subroutine newvar_d2(inarray,outarray,itype,ibound,gs)
 
   use basic
   use t_data
@@ -454,8 +490,10 @@ subroutine newvar_gs(inarray,outarray,itype,ibound)
   integer, intent(in) :: itype, ibound
   real, intent(in) :: inarray(*) ! length using numvard ordering
   real, intent(out) :: outarray(*) ! length using numvar=1 ordering
+  integer, intent(in) :: gs ! NV_GS for grad-shafranov operator, NV_LP for laplacian
 
   integer :: ndof, numelms, itri, i, j, ione, j1
+
   real :: sum
 
   call numdofs(1, ndof)
@@ -487,10 +525,11 @@ subroutine newvar_gs(inarray,outarray,itype,ibound)
         sum = 0.
         do j=1,18
            j1 = isvaln(itri,j)
+
            sum = sum - inarray(j1 + 6*(itype-1)) * &
                 (int2(g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79) &
                 +int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j),weight_79,79))
-           if(itor.eq.1) then
+           if(itor.eq.1 .and. gs.eq.NV_GS) then
               sum = sum - inarray(j1 + 6*(itype-1)) * &
                    2.*int3(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j),weight_79,79)
            endif
@@ -502,7 +541,7 @@ subroutine newvar_gs(inarray,outarray,itype,ibound)
   ! solve linear equation
   call solve_newvar(outarray, ibound)
 
-end subroutine newvar_gs
+end subroutine newvar_d2
 
 
 ! newvar_eta
@@ -534,8 +573,12 @@ subroutine newvar_eta()
      call evaluate(xlim-xzero,zlim-zzero,psilim,ajlim,phi,1,numvar,itri)
 
      xguess = xmag - xzero
-     zguess = zmag - zzero    
-     call magaxis(xguess,zguess,phi,numvargs)
+     zguess = zmag - zzero
+     if(linear.eq.1 .or. eqsubtract.eq.1) then
+        call magaxis(xguess,zguess,phi+phi0,numvar)
+     else
+        call magaxis(xguess,zguess,phi,numvar)
+     endif
      xmag = xguess + xzero
      zmag = zguess + zzero
   endif
@@ -606,7 +649,7 @@ subroutine newvar_eta()
   enddo
 
   ! solve linear equation
-  call solve_newvar(resistivity, 0)
+  call solve_newvar(resistivity, NV_NOBOUND)
 
 end subroutine newvar_eta
 
@@ -626,7 +669,7 @@ subroutine solve_newvar(rhs, ibound)
 
   call sumshareddofs(rhs)
 
-  if(ibound.eq.1) then
+  if(ibound.eq.NV_DCBOUND) then
      do i=1,nbc_newvar
         rhs(ibound_newvar(i)) = 0.
      enddo
