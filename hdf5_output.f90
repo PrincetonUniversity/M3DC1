@@ -366,6 +366,7 @@ subroutine hdf5_write_parameters(error)
   call write_real_attr(root_id, "xlim"       , xlim,       error)
   call write_real_attr(root_id, "zlim"       , zlim,       error)
   call write_real_attr(root_id, "vloop"      , vloop,      error)
+  call write_real_attr(root_id, "gam"        , gam,        error)
 
   call h5gclose_f(root_id, error)
 

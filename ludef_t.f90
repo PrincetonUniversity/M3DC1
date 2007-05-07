@@ -140,34 +140,31 @@ subroutine ludefall
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
   
   ! Velocity boundary conditions
-  velbounds = 0.
-  call boundaryv(iboundv,iboundv2,nbcv)
-  if(nbcv .gt. iboundmax) then
-     write(*,4881) nbcv, iboundmax
-4881 format(" ERROR: nbcv > iboundmax", 2i5)
-     call safestop(3)
-  endif
-  do i=1,nbcv
-     call setdiribc(s1matrix_sm, iboundv(i))
-!!$     if(iboundv2(i) .ne. 0) then
-!!$        call insertval(s1matrix_sm,1.,iboundv(i),iboundv2(i),0)
-!!$     endif
-  enddo
-  call finalizearray4solve(s1matrix_sm)
+!!$  velbounds = 0.
+!!$  call boundaryv(iboundv,iboundv2,nbcv)
+!!$  if(nbcv .gt. iboundmax) then
+!!$     write(*,4881) nbcv, iboundmax
+!!$4881 format(" ERROR: nbcv > iboundmax", 2i5)
+!!$     call safestop(3)
+!!$  endif
+!!$  do i=1,nbcv
+!!$     call setdiribc(s1matrix_sm, iboundv(i))
+!!$  enddo
+!!$  call finalizearray4solve(s1matrix_sm)
   call finalizearray4multiply(d1matrix_sm)
   call finalizearray4multiply(r1matrix_sm)
 
   ! Field boundary conditions
-  call boundaryp(iboundp,nbcp)
-  if(nbcp .gt. iboundmax) then
-     write(*,4882) nbcp, iboundmax
-4882 format(" ERROR: nbcp > iboundmax", 2i5)
-     call safestop(9) 
-  endif
-  do i=1,nbcp
-     call setdiribc(s2matrix_sm,iboundp(i))
-  enddo
-  call finalizearray4solve(s2matrix_sm)
+!!$  call boundaryp(iboundp,nbcp)
+!!$  if(nbcp .gt. iboundmax) then
+!!$     write(*,4882) nbcp, iboundmax
+!!$4882 format(" ERROR: nbcp > iboundmax", 2i5)
+!!$     call safestop(9) 
+!!$  endif
+!!$  do i=1,nbcp
+!!$     call setdiribc(s2matrix_sm,iboundp(i))
+!!$  enddo
+!!$  call finalizearray4solve(s2matrix_sm)
   call finalizearray4multiply(d2matrix_sm)
   call finalizearray4multiply(r2matrix_sm)
   call finalizearray4multiply(q2matrix_sm)
@@ -495,7 +492,7 @@ subroutine ludefvel_n(itri,dbf)
            rrterm(3,1) = rrterm(3,1) +                    &
                 dt*                                       &
                 (v3psipsi(g79(:,:,i),g79(:,:,j),pss79)    & 
-                +v3psipsi(g79(:,:,i),pss79,g79(:,:,j)))           
+                +v3psipsi(g79(:,:,i),pss79,g79(:,:,j)))
            
            rrterm(3,2) = rrterm(3,2) + dt*            &
                 (v3bb(g79(:,:,i),g79(:,:,j),bzs79)    &     
@@ -824,7 +821,7 @@ subroutine ludefphi_n(itri,dbf)
 
      i1 = isvaln(itri,i)
      i2 = i1 + 6
-     i3 = i2 + 6
+     i3 = i2 + 6    
 
      do j=1,18
         
@@ -1094,7 +1091,7 @@ subroutine ludefphi_n(itri,dbf)
                 (quumu    (g79(:,:,i),pht79,pht79,amu,amuc,hypc) &
                 +qvvmu    (g79(:,:,i),vzt79,vzt79,amu,     hypv) &
                 +quchimu  (g79(:,:,i),pht79,cht79,amu,amuc,hypc) &
-                +0.*qchichimu(g79(:,:,i),cht79,cht79,amu,amuc,hypc))
+                +qchichimu(g79(:,:,i),cht79,cht79,amu,amuc,hypc))
         endif
      endif
      

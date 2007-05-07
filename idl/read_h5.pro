@@ -1,3 +1,13 @@
+function hdf5_file_test, filename
+   if(file_test(filename) eq 0) then begin
+       print, "Error: ", filename, " is not a valid file."
+       return, 0
+   endif else if(h5f_is_hdf5(filename) eq 0) then begin
+       print, "Error: ", filename, " is not a valid HDF5 file."
+       return, 0
+   endif else return, 1
+end
+
 function translate, name
    if(strcmp(name, 'psi') eq 1) then return, "!7w"
    if(strcmp(name, 'phi') eq 1) then return, "!8U"
@@ -30,6 +40,8 @@ end
 function read_parameter, name, filename=filename, print=pr
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
+   if(hdf5_file_test(filename) eq 0) then return, 0
+
    file_id = h5f_open(filename)
    root_id = h5g_open(file_id, "/")
    attr = read_attribute(root_id, name)
@@ -43,6 +55,8 @@ end
 
 function read_scalars, filename=filename
    if(n_elements(filename) eq 0) then filename='C1.h5'
+
+   if(hdf5_file_test(filename) eq 0) then return, 0
 
    file_id = h5f_open(filename)
    root_id = h5g_open(file_id, "/")
@@ -59,7 +73,8 @@ function time_name, t
 end
 
 
-pro plot_mesh, mesh, color=col, linestyle=lin, oplot=oplot, _EXTRA=ex
+pro plot_mesh, mesh, color=col, linestyle=lin, oplot=oplot, $
+               filename=filename, _EXTRA=ex
    nelms = mesh.nelms._data
    
    if(not keyword_set(oplot)) then begin
@@ -68,7 +83,7 @@ pro plot_mesh, mesh, color=col, linestyle=lin, oplot=oplot, _EXTRA=ex
    endif  
 
    if(n_elements(col) ne 0) then loadct, 12
-
+  
    xzero = read_parameter("xzero", filename=filename)
    zzero = read_parameter("zzero", filename=filename)
 
@@ -212,6 +227,8 @@ end
 function read_raw_field, name, time, mesh=mesh, filename=filename, time=t
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
+   if(hdf5_file_test(filename) eq 0) then return, 0
+
    nt = read_parameter("ntime", filename=filename)
 
    if(time ge nt) then begin
@@ -243,6 +260,8 @@ function read_field, name, slices=time, mesh=mesh, filename=filename, time=t, $
                      x=x, y=y, points=pts
    if(n_elements(filename) eq 0) then filename='C1.h5'
    if(n_elements(pts) eq 0) then pts = 50
+
+   if(hdf5_file_test(filename) eq 0) then return, 0
 
    nt = read_parameter("ntime", filename=filename)
 
@@ -299,16 +318,30 @@ function read_field, name, slices=time, mesh=mesh, filename=filename, time=t, $
 
    h5f_close, file_id
 
+   if(1 eq strcmp('j', name)) then data = -data
+
    return, data
 end
 
 
 pro plot_field, name, time, points=p, filename=filename, mesh=plotmesh, $
-                mcolor=mc, lcfs=lcfs, _EXTRA = ex
+                mcolor=mc, lcfs=lcfs, $
+                maskrange=maskrange, maskfield=maskfield,_EXTRA = ex
 
    field = read_field(name, slices=time, mesh=mesh, filename=filename, $,
                       time=t, x=x, y=y, points=p)
    if(n_elements(field) le 1) then return
+
+   if(n_elements(maskrange) eq 2) then begin
+       if(strcmp(name, maskfield) eq 1) then begin
+           psi = field
+       endif else begin
+           psi = read_field(maskfield, slices=time, mesh=mesh, $
+                            filename=filename, points=p)
+       endelse
+       mask = (psi ge maskrange[0]) and (psi le maskrange[1])
+       field = mask*field
+   endif
 
    print, "Plotting..."
    !x.title = '!8x/L!3'
@@ -323,12 +356,17 @@ pro plot_field, name, time, points=p, filename=filename, mesh=plotmesh, $
 
    contour_and_legend, field, x, y, title=title, _EXTRA=ex
 
-   if(keyword_set(lcfs)) then begin
-       plot_lcfs, time, color=130
+   if(keyword_set(lcfs) or n_elements(maskrange) ne 0) then begin
+       if(n_elements(psi) eq 0) then begin
+           plot_lcfs, time, color=130
+       endif else begin
+           plot_lcfs, time, color=130, val=maskrange[0], psi=psi, x=x, y=y
+           plot_lcfs, time, color=130, val=maskrange[1], psi=psi, x=x, y=y
+       endelse
    endif
 
    if(keyword_set(plotmesh)) then begin
-       plot_mesh, mesh, color=220, /oplot
+       plot_mesh, mesh, color=220, /oplot, filename=filename
    endif
 
    print, "Done."
@@ -425,7 +463,7 @@ pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog
        E_M = E_M - E_M[0]
        E_D = E_D - E_D[0]
        E_H = E_H - E_H[0]
-   endif
+   endif 
 
    if(keyword_set(diff)) then begin
        E = deriv(scalars.time._data,E)
@@ -436,11 +474,11 @@ pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog
        !y.title = '!6 Energy!3'
    endelse
 
-;   if(!y.range[0] eq 0 and !y.range[1] eq 0) then begin
-;       !y.range = [min([E, E_K, E_M, -E_D, -E_H], /nan), $
-;                   max([E, E_K, E_M, -E_D, -E_H], /nan)]
-;       if((ylog eq 1) and (!y.range[0] le 0.)) then !y.range[0] = 1e-5
-;  endif
+   !y.range=[min([E,E_K,E_M,-E_D,-E_H,Error]), $
+             max([E,E_K,E_M,-E_D,-E_H,Error])]
+   if(keyword_set(ylog) and (!y.range[0] lt 0)) then $
+     !y.range[0] = !y.range[1]*1e-8
+   if(keyword_set(ylog)) then !y.range[1] = !y.range[1]*10.
 
    plot, scalars.time._data, E, ylog=ylog
    oplot, scalars.time._data, E_K, color=dc, linestyle = 2
@@ -469,32 +507,38 @@ pro plot_field_mpeg, fieldname, mpegame=mpegname, range=range, points=pts, $
 end
 
 
-pro plot_lcfs, time, color=color
+pro plot_lcfs, time, color=color, val=psival, psi=psi, x=x, y=y
     pts = 201
 
-    psi = read_field('psi', slice=time, points=pts, x=x, y=y)
+    if(n_elements(psi) eq 0) then begin
+        psi = read_field('psi', slice=time, points=pts, x=x, y=y)
+    endif
 
-    xlim = read_parameter("xlim")
-    print, "xlim = ", xlim
+    ; if psival not passed, choose limiter value
+    if(n_elements(psival) eq 0) then begin
+        xlim = read_parameter("xlim")
+        print, "xlim = ", xlim
 
-    ; find index corresponding to limiter
-    d = min(x-xlim, ilim, /absolute)
+        ; find index corresponding to limiter
+        d = min(x-xlim, ilim, /absolute)
     
-    ; find value of flux at the limiter
-    psilim = max(psi[0,ilim,*])
-    print, "psi(xlim) = ", psilim
+        ; find value of flux at the limiter
+        psival = max(psi[0,ilim,*])
+        print, "psi(xlim) = ", psival
+    endif
 
     ; plot contour
     if(n_elements(color) ne 0) then loadct, 12
-    contour, psi, x, y, /overplot, nlevels=1, levels=psilim, $
+    contour, psi, x, y, /overplot, nlevels=1, levels=psival, $
       color=color, thick=2
-
 end
 
 
 pro plot_timings, filename=filename
 
    if(n_elements(filename) eq 0) then filename = 'C1.h5'
+
+   if(hdf5_file_test(filename) eq 0) then return
 
    file_id = h5f_open(filename)
    root_id = h5g_open(file_id, "/")
@@ -526,27 +570,65 @@ pro plot_timings, filename=filename
 end
 
 
-pro plot_scalars, filename=filename
+pro plot_scalars, filename=filename, bp=bp, tf=tf, it=it, bt=bt
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
    s = read_scalars(filename=filename)
 
-   m = max(strcmp(tag_names(s), "RECONNECTED_FLUX"))
+   if(keyword_set(it)) then p_it = 1 else p_it = 0
+   if(keyword_set(tf)) then p_tf = 1 else p_tf = 0
+   if(keyword_set(bp)) then p_bp = 1 else p_bp = 0
+   if(keyword_set(bt)) then p_bt = 1 else p_bt = 0
+   if(keyword_set(rf)) then begin
+       p_rf = max(strcmp(tag_names(s), "RECONNECTED_FLUX"))
+       if(p_rf eq 0) then print, 'No reconnected flux data.'
+   endif else p_rf = 0
 
-   !p.multi = [0,1,2+m]
+   tot = p_rf+p_bp+p_it+p_tf+p_bt
 
-   !x.title = '!8t !7X!D!8i0!N!3'
+   if(tot eq 0) then begin
+       print, 'No scalars specified.'
+       print, ' /it -- Toroidal current'
+       print, ' /tf -- Toroidal flux'
+       print, ' /rf -- Reconnected flux'
+       print, ' /bt -- Total beta'
+       print, ' /bp -- Poloidal beta'
+       return
+   end
 
-   plot, s.time._data, s.toroidal_current._data, $
-     title='!6Toroidal Current!3', $
-     ytitle='!8I!DT!N!6 (!8cB!D0!N/4!7p!8L!6)!3'
-   plot, s.time._data, s.toroidal_flux._data, $
-     title='!6Toroidal Flux!3', ytitle='!6Flux (!8L!U2!N B!D0!N)!3'
-   if(m gt 0) then begin
+   !p.multi = [0,1,tot]
+
+   !x.title = '!8t !6(!7s!D!8A!N!6)!3'
+
+   if(p_it gt 0) then begin
+       plot, s.time._data, s.toroidal_current._data, $
+         title='!6Toroidal Current!3', $
+         ytitle='!8I!DT!N!6 (!8cB!D0!N/4!7t!8L!6)!3'
+   endif
+   if(p_tf gt 0) then begin
+       plot, s.time._data, s.toroidal_flux._data, $
+         title='!6Toroidal Flux!3', ytitle='!6Flux (!8L!U2!N B!D0!N)!3'
+   endif
+   if(p_rf gt 0) then begin
        plot, s.time._data, s.reconnected_flux._data, $
          title='!6Reconnected Flux!3'
    endif
+   if(p_bp gt 0) then begin
+       gamma = read_parameter('gam', filename=filename)
+       if(gamma eq 0) then gamma=5./3.
+       plot, s.time._data, $
+         2.*(gamma-1.)*s.E_P._data/s.toroidal_current._data^2, $
+         title='!7b!D!8p!N!3', ytitle='!7b!D!8p!N!3'
+   endif
+   if(p_bt gt 0) then begin
+       gamma = read_parameter('gam', filename=filename)
+       if(gamma eq 0) then gamma=5./3.
+       plot, s.time._data, $
+         2.*(gamma-1.)*s.E_P._data/(s.E_MP._data + s.E_MT._data), $
+         title='!7b!3', ytitle='!7b!3'
+   endif
+
 
    !p.multi=0
 end
