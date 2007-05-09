@@ -325,7 +325,7 @@ end
 
 
 pro plot_field, name, time, points=p, filename=filename, mesh=plotmesh, $
-                mcolor=mc, lcfs=lcfs, $
+                mcolor=mc, lcfs=lcfs, title=title, $
                 maskrange=maskrange, maskfield=maskfield,_EXTRA = ex
 
    field = read_field(name, slices=time, mesh=mesh, filename=filename, $,
@@ -346,13 +346,15 @@ pro plot_field, name, time, points=p, filename=filename, mesh=plotmesh, $
    print, "Plotting..."
    !x.title = '!8x/L!3'
    !y.title = '!8y/L!3'
-   if(t gt 0) then begin
-       title = "!8" + translate(name) + $
-         string(FORMAT='("!6(!8t!6 = ",G0," !7X!D!8i0!N!6!U-1!N)!3")', t)
-   endif else begin
-       title = "!8" + translate(name) + $
-         string(FORMAT='("!6(!8t!6 = ",G0,")!3")', t)
-   endelse
+   if(n_elements(title) eq 0) then begin
+       if(t gt 0) then begin
+           title = "!8" + translate(name) + $
+             string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!3")', t)
+       endif else begin
+           title = "!8" + translate(name) + $
+             string(FORMAT='("!6(!8t!6 = ",G0,")!3")', t)
+       endelse
+   endif
 
    contour_and_legend, field, x, y, title=title, _EXTRA=ex
 
@@ -399,6 +401,90 @@ pro compare, file1, file2, time, names=names
    end
 end
 
+function energy_mag, filename=filename
+   if(n_elements(filename) eq 0) then filename='C1.h5'
+   
+   nv = read_parameter("numvar", filename=filename)
+   scalars = read_scalars(filename=filename)
+
+   E_M = scalars.E_MP._data
+   if(nv ge 2) then begin
+       E_M = E_M + scalars.E_MT._data
+   endif
+
+   return, E_M
+end
+
+
+function energy_kin, filename=filename
+   if(n_elements(filename) eq 0) then filename='C1.h5'
+   
+   nv = read_parameter("numvar", filename=filename)
+   scalars = read_scalars(filename=filename)
+
+   E_K = scalars.E_KP._data
+   if(nv ge 2) then begin
+       E_K = E_K + scalars.E_KT._data 
+   endif
+   if(nv ge 3) then begin
+       E_K = E_K + scalars.E_K3._data
+   endif
+
+   return, E_K
+end
+
+function energy, filename=filename, error=error
+      if(n_elements(filename) eq 0) then filename='C1.h5'
+
+   nv = read_parameter("numvar", filename=filename)
+   scalars = read_scalars(filename=filename)
+
+   N = n_elements(scalars.time._data)
+
+   E_K = scalars.E_KP._data
+   E_M = scalars.E_MP._data
+   E_D = scalars.E_KPD._data + scalars.E_MPD._data
+   E_H = scalars.E_KPH._data + scalars.E_MPH._data
+   if(nv ge 2) then begin
+       E_K = E_K + scalars.E_KT._data 
+       E_M = E_M + scalars.E_MT._data
+       E_D = E_D + scalars.E_KTD._data + scalars.E_MTD._data
+       E_H = E_H + scalars.E_KTH._data + scalars.E_MTH._data
+   endif
+   if(nv ge 3) then begin
+       E_K = E_K + scalars.E_K3._data
+       E_M = E_M + scalars.E_P._data
+       E_D = E_D + scalars.E_K3D._data + scalars.E_PD._data
+       E_H = E_H + scalars.E_K3H._data + scalars.E_PH._data
+   endif
+
+   E = E_K + E_M
+
+;  Account for energy terms not included in the physical model
+   if(nv le 2) then begin
+       dissipated = E_D + E_H
+   endif else begin
+       dissipated = scalars.E_KPH._data + scalars.E_KTH._data
+   endelse
+
+   vloop = read_parameter('vloop', filename=filename)
+   eloop = vloop * scalars.toroidal_current._data / (2.*3.14159625)
+   dissipated = dissipated - eloop
+
+   Error = E - E[0]
+   total_lost = fltarr(n_elements(Error))
+   total_lost[0] = 0.
+   for i=1, n_elements(Error)-1 do begin
+       dt = scalars.time._data[i]-scalars.time._data[i-1]
+       total_lost[i] = total_lost[i-1] + $
+         dt*(dissipated[i-1] + dissipated[i])/2.
+   endfor
+
+   Error = Error - total_lost
+
+   return, E
+end
+
 pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
@@ -414,7 +500,7 @@ pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog
 
    N = n_elements(scalars.time._data)
 
-   E_K = scalars.E_KP._data 
+   E_K = scalars.E_KP._data
    E_M = scalars.E_MP._data
    E_D = scalars.E_KPD._data + scalars.E_MPD._data
    E_H = scalars.E_KPH._data + scalars.E_MPH._data
@@ -570,65 +656,84 @@ pro plot_timings, filename=filename
 end
 
 
-pro plot_scalars, filename=filename, bp=bp, tf=tf, it=it, bt=bt
+pro plot_scalar, scalarname, filename=filename, names=names, $
+                 _EXTRA=extra, overplot=overplot, ylog=ylog, left=left
 
-   if(n_elements(filename) eq 0) then filename='C1.h5'
+  if(n_elements(filename) eq 0) then filename='C1.h5'
 
-   s = read_scalars(filename=filename)
+  !x.title = '!8t!6 (!7s!D!8A!N!6)!3'
 
-   if(keyword_set(it)) then p_it = 1 else p_it = 0
-   if(keyword_set(tf)) then p_tf = 1 else p_tf = 0
-   if(keyword_set(bp)) then p_bp = 1 else p_bp = 0
-   if(keyword_set(bt)) then p_bt = 1 else p_bt = 0
-   if(keyword_set(rf)) then begin
-       p_rf = max(strcmp(tag_names(s), "RECONNECTED_FLUX"))
-       if(p_rf eq 0) then print, 'No reconnected flux data.'
-   endif else p_rf = 0
+  nfiles = n_elements(filename)
+  if(nfiles gt 1) then begin
+      colors = colors(nfiles)
 
-   tot = p_rf+p_bp+p_it+p_tf+p_bt
+      plot_scalar, scalarname, filename=filename[0], $
+        color=colors[0], _EXTRA=extra, ylog=ylog
+      for i=1, nfiles-1 do begin
+          plot_scalar, scalarname, filename=filename[i], $
+            /overplot, color=colors[i], _EXTRA=extra, ylog=ylog
+      end
+      if(n_elements(names) gt 0) then begin
+          plot_legend, names, color=colors, ylog=ylog, left=left
+      endif    
 
-   if(tot eq 0) then begin
-       print, 'No scalars specified.'
-       print, ' /it -- Toroidal current'
-       print, ' /tf -- Toroidal flux'
-       print, ' /rf -- Reconnected flux'
-       print, ' /bt -- Total beta'
-       print, ' /bp -- Poloidal beta'
-       return
-   end
+      return
+  endif 
 
-   !p.multi = [0,1,tot]
+  s = read_scalars(filename=filename)
 
-   !x.title = '!8t !6(!7s!D!8A!N!6)!3'
-
-   if(p_it gt 0) then begin
-       plot, s.time._data, s.toroidal_current._data, $
-         title='!6Toroidal Current!3', $
-         ytitle='!8I!DT!N!6 (!8cB!D0!N/4!7t!8L!6)!3'
-   endif
-   if(p_tf gt 0) then begin
-       plot, s.time._data, s.toroidal_flux._data, $
-         title='!6Toroidal Flux!3', ytitle='!6Flux (!8L!U2!N B!D0!N)!3'
-   endif
-   if(p_rf gt 0) then begin
-       plot, s.time._data, s.reconnected_flux._data, $
-         title='!6Reconnected Flux!3'
-   endif
-   if(p_bp gt 0) then begin
-       gamma = read_parameter('gam', filename=filename)
-       if(gamma eq 0) then gamma=5./3.
-       plot, s.time._data, $
-         2.*(gamma-1.)*s.E_P._data/s.toroidal_current._data^2, $
-         title='!7b!D!8p!N!3', ytitle='!7b!D!8p!N!3'
-   endif
-   if(p_bt gt 0) then begin
-       gamma = read_parameter('gam', filename=filename)
-       if(gamma eq 0) then gamma=5./3.
-       plot, s.time._data, $
-         2.*(gamma-1.)*s.E_P._data/(s.E_MP._data + s.E_MT._data), $
-         title='!7b!3', ytitle='!7b!3'
-   endif
-
-
-   !p.multi=0
+  if(strcmp("toroidal current", scalarname, /fold_case) eq 1) or $
+    (strcmp("it", scalarname, /fold_case) eq 1) then begin
+      data = s.toroidal_current._data
+      title = '!6Toroidal Current!3'
+      ytitle = '!8I!DT!N!6 (!8cB!D0!N/4!7p!8L!6)!3'
+  endif else $
+    if (strcmp("toroidal flux", scalarname, /fold_case) eq 1) then begin
+      data = s.toroidal_flux._data
+      title = '!6Toroidal Flux!3'
+      ytitle = '!6Flux (!8L!U2!N B!D0!N)!3'
+  endif else $
+    if (strcmp("reconnected flux", scalarname, /fold_case) eq 1) then begin
+      data = s.reconnected_flux._data
+      title = '!6Reconnected Flux!3'
+  endif else $
+    if (strcmp("beta", scalarname, /fold_case) eq 1) then begin
+      if(nv lt 3) then begin
+          print, "Must be numvar = 3 for beta calculation"
+          return
+      endif
+      gamma = read_parameter('gam', filename=filename[i])
+      data = 2.*(gamma-1.)*s.E_P._data/(s.E_MP._data + s.E_MT._data)
+      title = '!7b!3'
+      ytitle = '!7b!3'
+  endif else if $
+    (strcmp("poloidal beta", scalarname, /fold_case) eq 1) or $
+    (strcmp("bp", scalarname, /fold_case) eq 1) then begin
+      nv = read_parameter("numvar", filename=filename[0])
+      if(nv lt 3) then begin
+          print, "Must be numvar = 3 for beta calculation"
+          return
+      endif
+      gamma = read_parameter('gam', filename=filename[i])
+      data = 2.*(gamma-1.)*s.E_P._data/s.toroidal_current._data^2
+      title = '!7b!D!8p!N!3'
+      ytitle = '!7b!D!8p!N!3'
+  endif else if $
+    (strcmp("kinetic energy", scalarname, /fold_case) eq 1) or $
+    (strcmp("ke", scalarname, /fold_case) eq 1)then begin
+      nv = read_parameter("numvar", filename=filename[0])
+       data = s.E_KP._data 
+       if(nv ge 2) then data = data + s.E_KT._data 
+       if(nv ge 3) then data = data + s.E_K3._data
+       title = '!6Kinetic Energy!3'
+       ytitle = '!6KE (!8B!D0!N!U!62!N/4!7p!6)!3'
+  endif else begin
+  endelse
+  
+  if(keyword_set(overplot)) then begin
+      oplot, s.time._data, data, _EXTRA=extra
+  endif else begin
+      plot, s.time._data, data, $
+        title=title, ytitle=ytitle, _EXTRA=extra, ylog=ylog
+  endelse
 end

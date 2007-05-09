@@ -181,9 +181,9 @@ subroutine boundary_mag(imatrix, rhs)
         endif
 
         ! clamp magnetic field at boundary
-        call boundary_clamp(imatrix, ibegin, normal, rhs, phiold(ibegin:ibegin+5))
+        call boundary_clamp(imatrix, ibegin, normal, rhs, phis(ibegin:ibegin+5))
         if(numvar.ge.2) then
-           call boundary_clamp(imatrix, ibegin+6, normal, rhs, phiold(ibegin+6:ibegin+11))
+           call boundary_clamp(imatrix, ibegin+6, normal, rhs, phis(ibegin+6:ibegin+11))
         endif
         ! add loop voltage
         rhs(ibegin) = rhs(ibegin) + fbound
@@ -207,10 +207,10 @@ subroutine boundary_mag(imatrix, rhs)
 
         ! clamp magnetic field
         call boundary_clamp_all(imatrix, ibegin)
-        rhs(ibegin:ibegin+5) = phiold(ibegin:ibegin+5)
+        rhs(ibegin:ibegin+5) = phis(ibegin:ibegin+5)
         if(numvar.ge.2) then
            call boundary_clamp_all(imatrix, ibegin+6)
-           rhs(ibegin+6:ibegin+11) = phiold(ibegin+6:ibegin+11)
+           rhs(ibegin+6:ibegin+11) = phis(ibegin+6:ibegin+11)
         endif
         ! add loop voltage
         rhs(ibegin) = rhs(ibegin) + fbound
