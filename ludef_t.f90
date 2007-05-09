@@ -31,6 +31,8 @@ subroutine ludefall
   if(idens.eq.1) then
      call zeroarray4solve(s8matrix_sm,numvar1_numbering)
      call zeroarray4multiply(d8matrix_sm,numvar1_numbering)
+     if(integrator.eq.1) &
+          call zeroarray4multiply(o8matrix_sm,numvar1_numbering)
   endif
   if(numvar .eq. 1) then
      call zeroarray4solve(s1matrix_sm,numvar1_numbering)
@@ -40,6 +42,10 @@ subroutine ludefall
      call zeroarray4multiply(d2matrix_sm,numvar1_numbering)
      call zeroarray4multiply(r2matrix_sm,numvar1_numbering)
      call zeroarray4multiply(q2matrix_sm,numvar1_numbering)
+     if(integrator.eq.1) then
+        call zeroarray4multiply(o1matrix_sm,numvar1_numbering)
+        call zeroarray4multiply(o2matrix_sm,numvar1_numbering)
+     endif
      if(idens.eq.1) then
         call zeroarray4multiply(q8matrix_sm,numvar1_numbering)
         call zeroarray4multiply(r8matrix_sm,numvar1_numbering)
@@ -52,6 +58,10 @@ subroutine ludefall
      call zeroarray4multiply(d2matrix_sm,numvar2_numbering)
      call zeroarray4multiply(r2matrix_sm,numvar2_numbering)
      call zeroarray4multiply(q2matrix_sm,numvar2_numbering)
+     if(integrator.eq.1) then
+        call zeroarray4multiply(o1matrix_sm,numvar2_numbering)
+        call zeroarray4multiply(o2matrix_sm,numvar2_numbering)
+     endif
      if(idens.eq.1) then
         call zeroarray4multiply(q8matrix_sm,numvar2_numbering)
         call zeroarray4multiply(r8matrix_sm,numvar2_numbering)
@@ -64,6 +74,10 @@ subroutine ludefall
      call zeroarray4multiply(d2matrix_sm,numvar3_numbering)
      call zeroarray4multiply(r2matrix_sm,numvar3_numbering)
      call zeroarray4multiply(q2matrix_sm,numvar3_numbering)
+     if(integrator.eq.1) then
+        call zeroarray4multiply(o1matrix_sm,numvar3_numbering)
+        call zeroarray4multiply(o2matrix_sm,numvar3_numbering)
+     endif
      if(idens.eq.1) then
         call zeroarray4multiply(q8matrix_sm,numvar3_numbering)
         call zeroarray4multiply(r8matrix_sm,numvar3_numbering)
@@ -74,6 +88,8 @@ subroutine ludefall
      call zeroarray4multiply(d9matrix_sm,numvar1_numbering)
      call zeroarray4multiply(q9matrix_sm,numvar3_numbering)
      call zeroarray4multiply(r9matrix_sm,numvar3_numbering)
+     if(integrator.eq.1) &
+          call zeroarray4multiply(o9matrix_sm,numvar1_numbering)
   endif
   
   r4 = 0.
@@ -153,6 +169,9 @@ subroutine ludefall
 !!$  call finalizearray4solve(s1matrix_sm)
   call finalizearray4multiply(d1matrix_sm)
   call finalizearray4multiply(r1matrix_sm)
+  if(integrator.eq.1) &
+       call finalizearray4multiply(o1matrix_sm)
+     
 
   ! Field boundary conditions
 !!$  call boundaryp(iboundp,nbcp)
@@ -168,6 +187,8 @@ subroutine ludefall
   call finalizearray4multiply(d2matrix_sm)
   call finalizearray4multiply(r2matrix_sm)
   call finalizearray4multiply(q2matrix_sm)
+  if(integrator.eq.1) &
+       call finalizearray4multiply(o2matrix_sm)
 
   ! Density boundary conditions
   if(idens.eq.1) then
@@ -186,6 +207,8 @@ subroutine ludefall
      call finalizearray4multiply(d8matrix_sm)
      call finalizearray4multiply(q8matrix_sm)
      call finalizearray4multiply(r8matrix_sm)
+     if(integrator.eq.1) &
+          call finalizearray4multiply(o8matrix_sm)
   endif ! on idens.eq.1
 
   ! Pressure boundary conditions
@@ -205,6 +228,8 @@ subroutine ludefall
      call finalizearray4multiply(d9matrix_sm)
      call finalizearray4multiply(q9matrix_sm)
      call finalizearray4multiply(r9matrix_sm)
+     if(integrator.eq.1) &
+          call finalizearray4multiply(o9matrix_sm)
   endif ! on ipres.eq.1
 
 end subroutine ludefall
@@ -229,7 +254,7 @@ subroutine ludefvel_n(itri,dbf)
   real, intent(in) :: dbf
 
   integer :: i, i1, i2, i3, j, j1
-  real, dimension(3,3) :: ssterm, ddterm, rrterm
+  real, dimension(3,3) :: ssterm, ddterm, rrterm, ooterm
   real :: temp
   real :: hypv, thimpv
 
@@ -249,12 +274,19 @@ subroutine ludefvel_n(itri,dbf)
         ssterm = 0.
         ddterm = 0.
         rrterm = 0.
+        ooterm = 0.
 
         ! NUMVAR = 1
         ! ~~~~~~~~~~
         temp = v1un(g79(:,:,i),g79(:,:,j),nt79)
-        ssterm(1,1) = ssterm(1,1) + temp
-        ddterm(1,1) = ddterm(1,1) + temp
+        if(integrator.eq.1 .and. ntime.gt.1) then
+           ssterm(1,1) = ssterm(1,1) + 1.5*temp
+           ddterm(1,1) = ddterm(1,1) + 2.0*temp
+           ooterm(1,1) = ooterm(1,1) - 0.5*temp
+        else 
+           ssterm(1,1) = ssterm(1,1) + temp
+           ddterm(1,1) = ddterm(1,1) + temp
+        endif
 
         temp = v1umu(g79(:,:,i),g79(:,:,j))*amu  &              
              + thimp*dt* &
@@ -318,8 +350,14 @@ subroutine ludefvel_n(itri,dbf)
            ddterm(2,1) = ddterm(2,1) + thimp*(1.-thimp)*dt*dt*temp
 
            temp = v2vn(g79(:,:,i),g79(:,:,j),nt79)
-           ssterm(2,2) = ssterm(2,2) + temp
-           ddterm(2,2) = ddterm(2,2) + temp
+           if(integrator.eq.1 .and. ntime.gt.1) then
+              ssterm(2,2) = ssterm(2,2) + 1.5*temp
+              ddterm(2,2) = ddterm(2,2) + 2.0*temp
+              ooterm(2,2) = ooterm(2,2) - 0.5*temp
+           else
+              ssterm(2,2) = ssterm(2,2) + temp
+              ddterm(2,2) = ddterm(2,2) + temp
+           endif
 
            temp = v2vmu  (g79(:,:,i),g79(:,:,j),amu) &
                 + thimp*dt* &
@@ -396,16 +434,28 @@ subroutine ludefvel_n(itri,dbf)
 
            ! regularize the chi equation
            temp = -regular*int2(g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
-           ssterm(3,3) = ssterm(3,3) + temp
-           ddterm(3,3) = ddterm(3,3) + temp
+           if(integrator.eq.1  .and. ntime.gt.1) then
+              ssterm(3,3) = ssterm(3,3) + 1.5*temp
+              ddterm(3,3) = ddterm(3,3) + 2.0*temp
+              ooterm(3,3) = ooterm(3,3) - 0.5*temp
+           else
+              ssterm(3,3) = ssterm(3,3) + temp
+              ddterm(3,3) = ddterm(3,3) + temp
+           endif
            
            temp = v1uchin(g79(:,:,i),g79(:,:,j),ch179,nt79)       
            ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
            ddterm(1,1) = ddterm(1,1) + (.5-thimp)*dt*temp
 
            temp = v1chin(g79(:,:,i),g79(:,:,j),nt79)
-           ssterm(1,3) = ssterm(1,3) + temp
-           ddterm(1,3) = ddterm(1,3) + temp
+           if(integrator.eq.1 .and. ntime.gt.1) then
+              ssterm(1,3) = ssterm(1,3) + 1.5*temp
+              ddterm(1,3) = ddterm(1,3) + 2.0*temp
+              ooterm(1,3) = ooterm(1,3) - 0.5*temp
+           else
+              ssterm(1,3) = ssterm(1,3) + temp
+              ddterm(1,3) = ddterm(1,3) + temp
+           endif
 
            temp = v1uchin  (g79(:,:,i),ph179,g79(:,:,j),nt79) &
                 + v1chichin(g79(:,:,i),g79(:,:,j),ch179,nt79) &
@@ -435,8 +485,14 @@ subroutine ludefvel_n(itri,dbf)
            ddterm(2,3) = ddterm(2,3) + thimp*(1.-thimp)*dt*dt*temp
 
            temp = v3un(g79(:,:,i),g79(:,:,j),nt79)
-           ssterm(3,1) = ssterm(3,1) + temp
-           ddterm(3,1) = ddterm(3,1) + temp
+           if(integrator.eq.1 .and. ntime.gt.1) then
+              ssterm(3,1) = ssterm(3,1) + 1.5*temp
+              ddterm(3,1) = ddterm(3,1) + 2.0*temp
+              ooterm(3,1) = ooterm(3,1) - 0.5*temp
+           else 
+              ssterm(3,1) = ssterm(3,1) + temp
+              ddterm(3,1) = ddterm(3,1) + temp
+           endif
 
            temp = v3uun  (g79(:,:,i),g79(:,:,j),ph179,nt79) &
                +  v3uun  (g79(:,:,i),ph179,g79(:,:,j),nt79) &
@@ -466,8 +522,14 @@ subroutine ludefvel_n(itri,dbf)
            ddterm(3,2) = ddterm(3,2) + (.5-thimp)*dt*temp
 
            temp = v3chin(g79(:,:,i),g79(:,:,j),nt79)
-           ssterm(3,3) = ssterm(3,3) + temp
-           ddterm(3,3) = ddterm(3,3) + temp
+           if(integrator.eq.1 .and. ntime.gt.1) then
+              ssterm(3,3) = ssterm(3,3) + 1.5*temp
+              ddterm(3,3) = ddterm(3,3) + 2.0*temp
+              ooterm(3,3) = ooterm(3,3) - 0.5*temp
+           else
+              ssterm(3,3) = ssterm(3,3) + temp
+              ddterm(3,3) = ddterm(3,3) + temp
+           endif
 
            temp = v3chimu    (g79(:,:,i),g79(:,:,j))*2.*amuc   
            ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp
@@ -634,6 +696,9 @@ subroutine ludefvel_n(itri,dbf)
         call insertval(s1matrix_sm,ssterm(1,1),i1,j1,1)
         call insertval(d1matrix_sm,ddterm(1,1),i1,j1,1)
         call insertval(r1matrix_sm,rrterm(1,1),i1,j1,1)
+        if(integrator.eq.1) then
+           call insertval(o1matrix_sm,ooterm(1,1),i1,j1,1)
+        endif
         if(numvar.ge.2) then
            call insertval(s1matrix_sm,ssterm(1,2),i1  ,j1+6,1)
            call insertval(s1matrix_sm,ssterm(2,1),i1+6,j1  ,1)
@@ -644,6 +709,11 @@ subroutine ludefvel_n(itri,dbf)
            call insertval(r1matrix_sm,rrterm(1,2),i1  ,j1+6,1)
            call insertval(r1matrix_sm,rrterm(2,1),i1+6,j1  ,1)
            call insertval(r1matrix_sm,rrterm(2,2),i1+6,j1+6,1)
+           if(integrator.eq.1) then
+              call insertval(o1matrix_sm,ooterm(1,2),i1  ,j1+6,1)
+              call insertval(o1matrix_sm,ooterm(2,1),i1+6,j1  ,1)
+              call insertval(o1matrix_sm,ooterm(2,2),i1+6,j1+6,1)
+           endif
         endif
         if(numvar.ge.3) then
            call insertval(s1matrix_sm,ssterm(1,3),i1,   j1+12,1)
@@ -661,6 +731,13 @@ subroutine ludefvel_n(itri,dbf)
            call insertval(r1matrix_sm,rrterm(3,3),i1+12,j1+12,1)
            call insertval(r1matrix_sm,rrterm(3,1),i1+12,j1,   1)
            call insertval(r1matrix_sm,rrterm(3,2),i1+12,j1+6, 1)
+           if(integrator.eq.1) then
+              call insertval(o1matrix_sm,ooterm(1,3),i1,   j1+12,1)
+              call insertval(o1matrix_sm,ooterm(2,3),i1+6, j1+12,1)
+              call insertval(o1matrix_sm,ooterm(3,3),i1+12,j1+12,1)
+              call insertval(o1matrix_sm,ooterm(3,1),i1+12,j1,   1)
+              call insertval(o1matrix_sm,ooterm(3,2),i1+12,j1+6, 1)
+           endif
         endif
      enddo               ! on j
 
@@ -808,7 +885,7 @@ subroutine ludefphi_n(itri,dbf)
   real, intent(in) :: dbf
 
   integer :: i, i1, i2, i3, j, j1
-  real, dimension(3,3) :: ssterm, ddterm, rrterm, qqterm
+  real, dimension(3,3) :: ssterm, ddterm, rrterm, qqterm, ooterm
   real :: temp, hypf, hypi, hypp, hypv, hypc
 
   hypf = hyper *deex**2
@@ -829,14 +906,21 @@ subroutine ludefphi_n(itri,dbf)
         ddterm = 0.
         rrterm = 0.
         qqterm = 0.
+        ooterm = 0.
 
         j1 = isvaln(itri,j)
 
         ! NUMVAR = 1
         ! ~~~~~~~~~~
         temp = b1psi(g79(:,:,i),g79(:,:,j))
-        ssterm(1,1) = ssterm(1,1) + temp
-        ddterm(1,1) = ddterm(1,1) + temp
+        if(integrator.eq.1 .and. ntime.gt.1) then
+           ssterm(1,1) = ssterm(1,1) + 1.5*temp
+           ddterm(1,1) = ddterm(1,1) + 2.0*temp
+           ooterm(1,1) = ooterm(1,1) - 0.5*temp
+        else
+           ssterm(1,1) = ssterm(1,1) + temp
+           ddterm(1,1) = ddterm(1,1) + temp
+        endif
 
         temp = b1psieta(g79(:,:,i),g79(:,:,j),eta79,hypf)  &
              + b1psiu  (g79(:,:,i),g79(:,:,j),pht79)
@@ -875,8 +959,14 @@ subroutine ludefphi_n(itri,dbf)
            ddterm(2,1) = ddterm(2,1) + (.5-thimp)*dt*temp
 
            temp = b2b(g79(:,:,i),g79(:,:,j))
-           ssterm(2,2) = ssterm(2,2) + temp
-           ddterm(2,2) = ddterm(2,2) + temp
+           if(integrator.eq.1 .and. ntime.gt.1) then
+              ssterm(2,2) = ssterm(2,2) + 1.5*temp
+              ddterm(2,2) = ddterm(2,2) + 2.0*temp
+              ooterm(2,2) = ooterm(2,2) - 0.5*temp
+           else
+              ssterm(2,2) = ssterm(2,2) + temp
+              ddterm(2,2) = ddterm(2,2) + temp
+           endif
 
            temp = b2beta(g79(:,:,i),g79(:,:,j),eta79,hypi) &
                 + b2bu  (g79(:,:,i),g79(:,:,j),pht79)
@@ -964,8 +1054,14 @@ subroutine ludefphi_n(itri,dbf)
            ddterm(3,2) = ddterm(3,2) + (.5-thimp)*dt*temp
 
            temp = b3pe(g79(:,:,i),g79(:,:,j))
-           ssterm(3,3) = ssterm(3,3) + temp
-           ddterm(3,3) = ddterm(3,3) + temp
+           if(integrator.eq.1 .and. ntime.gt.1) then
+              ssterm(3,3) = ssterm(3,3) + 1.5*temp
+              ddterm(3,3) = ddterm(3,3) + 2.0*temp
+              ooterm(3,3) = ooterm(3,3) - 0.5*temp
+           else
+              ssterm(3,3) = ssterm(3,3) + temp
+              ddterm(3,3) = ddterm(3,3) + temp
+           endif
 
            temp = b3pebd(g79(:,:,i),g79(:,:,j),bzt79,ni79)*dbf*pefac &
                 + p1pu  (g79(:,:,i),g79(:,:,j),pht79)                & 
@@ -1041,6 +1137,9 @@ subroutine ludefphi_n(itri,dbf)
         call insertval(d2matrix_sm,ddterm(1,1),i1,j1,1)
         call insertval(r2matrix_sm,rrterm(1,1),i1,j1,1)
         call insertval(q2matrix_sm,qqterm(1,1),i1,j1,1)
+        if(integrator.eq.1) then
+           call insertval(o2matrix_sm,ooterm(1,1),i1,j1,1)
+        endif
         if(numvar.ge.2) then
            call insertval(s2matrix_sm,ssterm(1,2),i1  ,j1+6,1)
            call insertval(s2matrix_sm,ssterm(2,1),i1+6,j1  ,1)
@@ -1054,6 +1153,11 @@ subroutine ludefphi_n(itri,dbf)
            call insertval(q2matrix_sm,qqterm(1,2),i1  ,j1+6,1)
            call insertval(q2matrix_sm,qqterm(2,1),i1+6,j1  ,1)
            call insertval(q2matrix_sm,qqterm(2,2),i1+6,j1+6,1)
+           if(integrator.eq.1) then
+              call insertval(o2matrix_sm,ooterm(1,2),i1  ,j1+6,1)
+              call insertval(o2matrix_sm,ooterm(2,1),i1+6,j1  ,1)
+              call insertval(o2matrix_sm,ooterm(2,2),i1+6,j1+6,1)
+           endif
         endif
         if(numvar .eq. 3) then
            call insertval(s2matrix_sm,ssterm(1,3),i1,   j1+12,1)
@@ -1076,6 +1180,13 @@ subroutine ludefphi_n(itri,dbf)
            call insertval(q2matrix_sm,qqterm(3,3),i1+12,j1+12,1)
            call insertval(q2matrix_sm,qqterm(3,1),i1+12,j1,   1)
            call insertval(q2matrix_sm,qqterm(3,2),i1+12,j1+6, 1)
+           if(integrator.eq.1) then
+              call insertval(o2matrix_sm,ooterm(1,3),i1,   j1+12,1)
+              call insertval(o2matrix_sm,ooterm(2,3),i1+6, j1+12,1)
+              call insertval(o2matrix_sm,ooterm(3,3),i1+12,j1+12,1)
+              call insertval(o2matrix_sm,ooterm(3,1),i1+12,j1,   1)
+              call insertval(o2matrix_sm,ooterm(3,2),i1+12,j1+6, 1)
+           endif
         endif
      enddo ! on j
 
@@ -1170,7 +1281,7 @@ subroutine ludefden_n(itri,dbf)
   real, intent(in) :: dbf
 
   integer :: i, i1, ione, j, j1, jone
-  real :: ssterm, ddterm
+  real :: ssterm, ddterm, ooterm
   real, dimension(3) :: rrterm, qqterm
   real :: temp, hypp
 
@@ -1185,6 +1296,7 @@ subroutine ludefden_n(itri,dbf)
         ddterm = 0.
         rrterm = 0.
         qqterm = 0.
+        ooterm = 0.
 
         jone = isval1(itri,j)
         j1 = isvaln(itri,j)
@@ -1192,8 +1304,14 @@ subroutine ludefden_n(itri,dbf)
         ! NUMVAR = 1
         ! ~~~~~~~~~~
         temp = n1n(g79(:,:,i),g79(:,:,j))
-        ssterm = ssterm + temp
-        ddterm = ddterm + temp
+        if(integrator.eq.1 .and. ntime.gt.1) then
+           ssterm = ssterm + 1.5*temp
+           ddterm = ddterm + 2.0*temp
+           ooterm = ooterm - 0.5*temp
+        else
+           ssterm = ssterm + temp
+           ddterm = ddterm + temp
+        endif
         
         temp = n1ndenm(g79(:,:,i),g79(:,:,j),dt*denm,hypp) &
              + n1nu   (g79(:,:,i),g79(:,:,j),pht79)
@@ -1232,6 +1350,9 @@ subroutine ludefden_n(itri,dbf)
         call insertval(d8matrix_sm, ddterm, ione, jone, 1)
         call insertval(r8matrix_sm, rrterm(1), i1, j1, 1)
         call insertval(q8matrix_sm, qqterm(1), i1, j1, 1)
+        if(integrator.eq.1) then
+           call insertval(o8matrix_sm, ooterm, ione, jone, 1)
+        endif
         if(numvar.ge.2) then
            call insertval(r8matrix_sm,rrterm(2), i1,j1+6,1)
            call insertval(q8matrix_sm,qqterm(2), i1,j1+6,1)
@@ -1284,7 +1405,7 @@ subroutine ludefpres_n(itri,dbf)
   real, intent(in) :: dbf
 
   integer :: i, i1, ione, j, j1, jone
-  real :: ssterm, ddterm
+  real :: ssterm, ddterm, ooterm
   real, dimension(3) :: rrterm, qqterm
   real :: temp, hypp
 
@@ -1299,6 +1420,7 @@ subroutine ludefpres_n(itri,dbf)
         ddterm = 0.
         rrterm = 0.
         qqterm = 0.
+        ooterm = 0.
 
         jone = isval1(itri,j)
         j1 = isvaln(itri,j)
@@ -1307,8 +1429,14 @@ subroutine ludefpres_n(itri,dbf)
         ! NUMVAR = 1
         ! ~~~~~~~~~~
         temp = int2(g79(:,:,i),g79(:,:,j),weight_79,79)
-        ssterm = ssterm + temp
-        ddterm = ddterm + temp
+        if(integrator.eq.1 .and. ntime.gt.1) then
+           ssterm = ssterm + 1.5*temp
+           ddterm = ddterm + 2.0*temp
+           ooterm = ooterm - 0.5*temp
+        else 
+           ssterm = ssterm + temp
+           ddterm = ddterm + temp
+        endif
         
         temp = p1pu   (g79(:,:,i),g79(:,:,j),pht79)
         ssterm = ssterm -     thimp *dt*temp
@@ -1348,6 +1476,9 @@ subroutine ludefpres_n(itri,dbf)
         call insertval(d9matrix_sm, ddterm, ione, jone, 1)
         call insertval(r9matrix_sm, rrterm(1), i1, j1, 1)
         call insertval(q9matrix_sm, qqterm(1), i1, j1, 1)
+        if(integrator.eq.1) then
+           call insertval(o9matrix_sm, ooterm, ione, jone, 1)
+        endif
         if(numvar.ge.2) then
            call insertval(r9matrix_sm,rrterm(2), i1,j1+6,1)
            call insertval(q9matrix_sm,qqterm(2), i1,j1+6,1)

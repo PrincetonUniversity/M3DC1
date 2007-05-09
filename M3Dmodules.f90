@@ -63,8 +63,9 @@ module basic
   integer :: nskip       ! number of timesteps per matrix recalculation
   integer :: iconstflux  ! 1 = conserve toroidal flux
   integer :: isources    ! 1 = include source terms in velocity advance
+  integer :: integrator  ! 0 = Crank-Nicholson, 1 = BDF2
   real :: dt             ! timestep
-  real :: thimp          ! implicitness parameter
+  real :: thimp          ! implicitness parameter (for Crank-Nicholson)
   real :: facw, facd
   real :: regular        ! regularization constant in chi equation
 
@@ -83,15 +84,15 @@ module basic
 !
 !.....input quantities---defined in subroutine input or in namelist
 !
-  namelist / inputnl/                                        &
-       linear,maxs,ntimemax,ntimepr,itor,                    &
-       irestart,itaylor,itest,isecondorder,imask,nskip,      &
-       numvar,istart,idens,ipres,thimp,amu,etar,dt,p1,p2,p0, &
-       tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,cb,     &
-       bzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,      &
-       kappa,iper,jper,iprint,itimer,xzero,zzero,beta,pi0,   &
-       eqsubtract,denm,grav,kappat,kappar,ln,amuc,iconstflux,&
-       regular,deex,gyro,vloop,eta0,isources, pedge
+  namelist / inputnl/                                          &
+       linear,maxs,ntimemax,ntimepr,itor,                      &
+       irestart,itaylor,itest,isecondorder,imask,nskip,        &
+       numvar,istart,idens,ipres,thimp,amu,etar,dt,p1,p2,p0,   &
+       tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,cb,       &
+       bzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,        &
+       kappa,iper,jper,iprint,itimer,xzero,zzero,beta,pi0,     &
+       eqsubtract,denm,grav,kappat,kappar,ln,amuc,iconstflux,  &
+       regular,deex,gyro,vloop,eta0,isources,pedge,integrator
 
   !     derived quantities
   real :: tt,pi,                                                       &
@@ -151,8 +152,9 @@ module arrays
        phiold(:), phi0(:), phi1(:),                               &
        jphi(:),sb1(:),sb2(:),sp1(:),                              &
        vor(:),com(:),                                             &
-       den(:),den0(:),denold(:),deni(:),                          &
-       pres(:),pres0(:),presold(:),r4(:),q4(:),qn4(:),qp4(:),     &
+       den(:),den0(:),denold(:),deni(:),dens(:),                  &
+       pres(:),pres0(:),presold(:),press(:),                      &
+       r4(:),q4(:),qn4(:),qp4(:),                                 &
        b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
        b5vector(:), vtemp(:), resistivity(:), tempvar(:)
 
@@ -382,6 +384,15 @@ module arrays
          return
       endif
 
+      call checksamevec(dens, vec, i)
+      if(i .eq. 1) then
+         if(allocated(dens)) deallocate(dens, STAT=i)
+         allocate(dens(ivecsize))
+         dens = 0.
+         call updateids(vec, dens)
+         return
+      endif
+
       call checksamevec(denold, vec, i)
       if(i .eq. 1) then
          if(allocated(denold)) deallocate(denold, STAT=i)
@@ -415,6 +426,15 @@ module arrays
          allocate(pres0(ivecsize))
          pres0 = 0.
          call updateids(vec, pres0)
+         return
+      endif
+
+      call checksamevec(press, vec, i)
+      if(i .eq. 1) then
+         if(allocated(press)) deallocate(press, STAT=i)
+         allocate(press(ivecsize))
+         press = 0.
+         call updateids(vec, press)
          return
       endif
 
@@ -578,6 +598,10 @@ module sparse
   integer, parameter :: d9matrix_sm = 20
   integer, parameter :: r9matrix_sm = 21
   integer, parameter :: q9matrix_sm = 22
+  integer, parameter :: o1matrix_sm = 23
+  integer, parameter :: o2matrix_sm = 24
+  integer, parameter :: o8matrix_sm = 25
+  integer, parameter :: o9matrix_sm = 26
   
 end module sparse
 

@@ -60,6 +60,9 @@ c     first put in information to check on run information
          write(56) den0(j1)
       enddo
       do j1=1,mmnn6       
+         write(56) dens(j1)
+      enddo
+      do j1=1,mmnn6       
          write(56) denold(j1)
       enddo
 
@@ -69,6 +72,9 @@ c     first put in information to check on run information
          enddo
          do j1=1,mmnn6       
             write(56) pres0(j1)
+         enddo
+         do j1=1,mmnn6       
+            write(56) press(j1)
          enddo
          do j1=1,mmnn6       
             write(56) presold(j1)
@@ -179,6 +185,9 @@ c     first put in information to check on run information
          read(56) den0(j1)
       enddo
       do j1=1,mmnn6
+         read(56) dens(j1)
+      enddo
+      do j1=1,mmnn6
          read(56) denold(j1)
       enddo
 
@@ -188,6 +197,9 @@ c     first put in information to check on run information
          enddo
          do j1=1,mmnn6       
             read(56) pres0(j1)
+         enddo
+         do j1=1,mmnn6       
+            read(56) press(j1)
          enddo
          do j1=1,mmnn6       
             read(56) presold(j1)

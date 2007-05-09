@@ -117,7 +117,10 @@
 !.....switch for Taylor Problem
       itaylor = 0
 !
-!.....implicitness parameter (thimp > 0.5 for stability)
+!.....time integrator: 0 = Crank-Nicholson, 1 = BDF2
+      integrator = 0
+!
+!.....CN implicitness parameter (thimp > 0.5 for stability)
       thimp = 0.5
 !
 !.....hyper-resistivity coefficients

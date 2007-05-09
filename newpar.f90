@@ -128,6 +128,17 @@ Program Reducedquintic
      if(myrank.eq.0 .and. iprint.ge.1) print *, "pefac = ", pefac
   endif
 
+  ! check time-integration options
+  select case(integrator)
+  case(1)
+     ! For BDF2 integration, first timestep is Crank-Nicholson with thimp=1,
+     ! and subsequent timesteps are BDF2.
+     if(myrank.eq.0) print *, "Time integration: BDF2."
+     thimp = 1.
+  case default
+     if(myrank.eq.0) print *, "Time integration: Crank-Nicholson."
+  end select
+
   ! calculate the RHS (forcing function)
   call rhsdef
   if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'finished rhsdef'
@@ -151,10 +162,10 @@ Program Reducedquintic
 
      if(idens.eq.1 .and. maxrank.eq.1) call oneplot(den0,1,1,"den0",1)
 
-     velold = vel0
-     phiold = phi0
-     if(idens.eq.1) denold = den0
-     if(ipres.eq.1) presold = pres0
+     vels = vel0
+     phis = phi0
+     if(idens.eq.1) dens = den0
+     if(ipres.eq.1) press = pres0
 
      ! correct for left-handed coordinates
      call numdofs(numvar, ndofs)
@@ -172,8 +183,8 @@ Program Reducedquintic
            vel(ibegin:ibegin+j) = -vel(ibegin:ibegin+j)
            phi0(ibegin:ibegin+j) = -phi0(ibegin:ibegin+j)
            vel0(ibegin:ibegin+j) = -vel0(ibegin:ibegin+j)
-           phiold(ibegin:ibegin+j) = -phiold(ibegin:ibegin+j)
-           velold(ibegin:ibegin+j) = -velold(ibegin:ibegin+j)
+           phis(ibegin:ibegin+j) = -phis(ibegin:ibegin+j)
+           vels(ibegin:ibegin+j) = -vels(ibegin:ibegin+j)
            itemp(ibegin) = 0
         endif
      enddo
@@ -200,6 +211,13 @@ Program Reducedquintic
            pres0 = 0.
         endif
      endif
+
+     ! initialize t(n-1) values
+     phiold = phi
+     velold = vel
+     if(idens.eq.1) denold = den
+     if(ipres.eq.1) presold = pres
+     
   endif                     !  end of the branch on restart/no restart
 
   ! initialize hdf5
@@ -447,6 +465,12 @@ Program Reducedquintic
      call freesmo(r9matrix_sm)
      call freesmo(q9matrix_sm)
   endif
+  if(integrator.eq.1) then
+     call freesmo(o1matrix_sm)
+     call freesmo(o2matrix_sm)
+     if(idens.eq.1) call freesmo(o8matrix_sm)
+     if(ipres.eq.1) call freesmo(o9matrix_sm)
+  endif
   call deletesearchstructure()
 !  free memory for numberings
   call deletedofnumbering(1)
@@ -499,7 +523,7 @@ subroutine onestep
   integer :: ndofs, numnodes
 
   real :: tstart, tend
-  real, allocatable :: temp(:)
+  real, allocatable :: temp(:), temp2(:)
   
   call numnod(numnodes)
 
@@ -509,7 +533,8 @@ subroutine onestep
 
   ! calculate matrices for time advance
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(ntime.le.ntimer+1.or. (linear.eq.0 .and. mod(ntime,nskip).eq.0)) then
+  if(ntime.le.ntimer+1.or. (linear.eq.0 .and. mod(ntime,nskip).eq.0) &
+       .or. (integrator.eq.1 .and. ntime.eq.1)) then
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call ludefall
      if(myrank.eq.0 .and. itimer.eq.1) then
@@ -552,6 +577,11 @@ subroutine onestep
   endif
 
   vtemp = vtemp + b1vector + r4
+
+  if(integrator.eq.1 .and. ntime.gt.1) then
+     call matrixvectormult(o1matrix_sm, velold, b1vector)
+     vtemp = vtemp + b1vector
+  endif
 
   ! apply boundary conditions
 !!$  do l=1,nbcv
@@ -603,6 +633,7 @@ subroutine onestep
   endif
 
 !.....new velocity solution at time n+1 (or n* for second order advance)
+  velold = vel
   vel = vtemp
 
 !
@@ -629,6 +660,7 @@ subroutine onestep
      call createvec(temp, 1)
      temp = 0.
      call matrixvectormult(d8matrix_sm,den,temp)
+    
      call numdofs(numvar,ndofs)
      allocate(itemp(ndofs)) ! this is used to make sure that we don't double count the sum for periodic dofs
      itemp = 1
@@ -639,15 +671,24 @@ subroutine onestep
         do i=0,iendplusone-ibegin-1
            temp(ibegin+i) = temp(ibegin+i) + itemp(ibegin+i) * &
                 (b2vector(ibeginnv+i) + b3vector(ibeginnv+i) + qn4(ibegin+i))
+
            itemp(ibegin+i) = 0
         enddo
      enddo
      deallocate(itemp)
 
+     if(integrator.eq.1 .and. ntime.gt.1) then
+        call createvec(temp2, 1)
+        call matrixvectormult(o8matrix_sm,denold,temp2)
+        temp = temp + temp2
+        call deletevec(temp2)
+     endif
+
+     ! insert boundary conditions
      do l=1,nbcn
         temp(iboundn(l)) = 0.
         if(linear.eq.0 .and. eqsubtract.eq.0) then
-           temp(iboundn(l)) = temp(iboundn(l)) + denold(iboundn(l))
+           temp(iboundn(l)) = temp(iboundn(l)) + dens(iboundn(l))
         endif
      enddo
 
@@ -665,6 +706,7 @@ subroutine onestep
      endif
 
      ! new field solution at time n+1 (or n* for second order advance)
+     denold = den
      den = temp
      call deletevec(temp)
   endif
@@ -708,11 +750,18 @@ subroutine onestep
      enddo
      deallocate(itemp)
 
+     if(integrator.eq.1 .and. ntime.gt.1) then
+        call createvec(temp2, 1)
+        call matrixvectormult(o9matrix_sm,presold,temp2)
+        temp = temp + temp2
+        call deletevec(temp2)
+     endif
+
      ! apply boundary conditions
      do l=1,nbcpres
         temp(iboundpres(l)) = 0.
         if(linear.eq.0 .and. eqsubtract.eq.0) then
-           temp(iboundpres(l)) = temp(iboundpres(l)) + presold(iboundpres(l))
+           temp(iboundpres(l)) = temp(iboundpres(l)) + press(iboundpres(l))
         endif
      enddo
 
@@ -730,6 +779,7 @@ subroutine onestep
      endif
 
      ! new field solution at time n+1 (or n* for second order advance)
+     presold = pres
      pres = temp
      call deletevec(temp)
   endif
@@ -759,12 +809,18 @@ subroutine onestep
   endif
 
   vtemp = vtemp + b2vector + b3vector + q4
-  
+
+  if(integrator.eq.1 .and. ntime.gt.1) then
+     call matrixvectormult(o2matrix_sm, phiold, b1vector)
+     vtemp = vtemp + b1vector
+  endif
+
+ 
   ! Insert boundary conditions
 !!$  do l=1,nbcp
 !!$     vtemp(iboundp(l)) = psibounds(l)
 !!$     if(linear.eq.0 .and. eqsubtract.eq.0) then
-!!$        vtemp(iboundp(l)) = vtemp(iboundp(l)) + phiold(iboundp(l))
+!!$        vtemp(iboundp(l)) = vtemp(iboundp(l)) + phis(iboundp(l))
 !!$     endif
 !!$  enddo
   call boundary_mag(s2matrix_sm, vtemp)
@@ -783,6 +839,7 @@ subroutine onestep
   endif
 
   ! new field solution at time n+1 (or n* for second order advance)
+  phiold = phi
   phi = vtemp
 
   ! define auxiliary variables
