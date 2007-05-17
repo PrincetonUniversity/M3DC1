@@ -45,11 +45,16 @@ module basic
   real :: eps         ! size of initial perturbation
 
   ! toroidal equilibrium parameters
+  integer :: divertors! number of divertors
   real :: xmag, zmag  ! position of magnetic axis
   real :: xlim, zlim  ! position of limiter
+  real :: xdiv, zdiv  ! position of divertor
   real :: tcuro       ! toroidal current
+  real :: divcur      ! current in divertor (as fraction of tcuro)
   real :: djdpsi
   real :: p1, p2, pedge
+  real :: expn        ! density = pressure**expn
+  
 
   ! numerical parameters
   integer :: linear      ! 1 = linear simulation; 0 = nonlinear simulation
@@ -92,7 +97,8 @@ module basic
        bzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,        &
        kappa,iper,jper,iprint,itimer,xzero,zzero,beta,pi0,     &
        eqsubtract,denm,grav,kappat,kappar,ln,amuc,iconstflux,  &
-       regular,deex,gyro,vloop,eta0,isources,pedge,integrator
+       regular,deex,gyro,vloop,eta0,isources,pedge,integrator, &
+       expn,divertors,xdiv,zdiv,divcur
 
   !     derived quantities
   real :: tt,pi,                                                       &
@@ -140,13 +146,12 @@ module arrays
   integer, allocatable :: isvaln(:,:),isval1(:,:),isval2(:,:)
   real :: fint(-6:maxi,-6:maxi), xi(3),zi(3),df(0:4,0:4)
   real :: xsep(5), zsep(5), graphit(0:ntimep,maxplots)
-  real, allocatable :: psibounds(:), velbounds(:)
 
   ! arrays defined at all vertices
   ! any change to this list of variables needs to be taken into
   ! account in the arrayresizevec subroutine
   real, allocatable::                                             &
-       vel(:), vels(:), veln(:),                                  &
+       vel(:), vels(:), veln(:), veloldn(:),                      &
        velold(:), vel0(:), vel1(:),                               &
        phi(:), phis(:), phip(:),                                  &
        phiold(:), phi0(:), phi1(:),                               &
@@ -598,10 +603,6 @@ module sparse
   integer, parameter :: d9matrix_sm = 20
   integer, parameter :: r9matrix_sm = 21
   integer, parameter :: q9matrix_sm = 22
-  integer, parameter :: o1matrix_sm = 23
-  integer, parameter :: o2matrix_sm = 24
-  integer, parameter :: o8matrix_sm = 25
-  integer, parameter :: o9matrix_sm = 26
   
 end module sparse
 

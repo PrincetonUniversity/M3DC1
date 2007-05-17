@@ -179,11 +179,22 @@ subroutine define_sources()
   hypp = hyperp*deex**2
 
   ! Specify which fields need to be calculated
-  def_fields = FIELD_PSI + FIELD_PHI + FIELD_VOR + FIELD_J + FIELD_ETA
+  def_fields = FIELD_PSI + FIELD_PHI + FIELD_J + FIELD_ETA
   if(numvar.ge.2) def_fields = def_fields + FIELD_I + FIELD_V
   if(numvar.ge.3) def_fields = def_fields + FIELD_CHI + &
-          FIELD_PE + FIELD_P + FIELD_B2I + FIELD_COM
-  if(idens.eq.1) def_fields = def_fields + FIELD_N + FIELD_NI 
+          FIELD_PE + FIELD_P
+  if(idens.eq.1) def_fields = def_fields + FIELD_N
+
+  if(isources.eq.1) then
+     if(idens.eq.1) def_fields = def_fields + FIELD_NI
+     if(kappar.ne.0) def_fields = def_fields + FIELD_B2I
+  endif
+
+  if(hypc.ne.0.) then 
+     def_fields = def_fields + FIELD_VOR
+     if(numvar.ge.3) def_fields = def_fields + FIELD_COM
+  end if
+
 
   call getmincoord(xmin,zmin)
   
@@ -587,56 +598,61 @@ subroutine newvar_eta()
   call numfac(numelms)
   do itri=1,numelms
 
-     ! calculate the local sampling points and weights for numerical integration
-     call area_to_local(79,                                            &
-          alpha_79,beta_79,gamma_79,area_weight_79,                    &
-          atri(itri), btri(itri), ctri(itri),                          &
-          si_79, eta_79, weight_79)
-
-     call calcr(itri, si_79, eta_79, 79, r_79)
-     ri_79 = 1./r_79
-
+!!$     ! calculate the local sampling points and weights for numerical integration
+!!$     call area_to_local(79,                                            &
+!!$          alpha_79,beta_79,gamma_79,area_weight_79,                    &
+!!$          atri(itri), btri(itri), ctri(itri),                          &
+!!$          si_79, eta_79, weight_79)
+!!$     
+!!$     call calcr(itri, si_79, eta_79, 79, r_79)
+!!$     ri_79 = 1./r_79
+!!$     
+!!$     do i=1,18
+!!$        call eval_ops(gtri(:,i,itri), si_79, eta_79, ttri(itri), ri_79, 79, g79(:,:,i))
+!!$     end do
      call define_fields_79(itri, def_fields)
 
-     do i=1,18
-        call eval_ops(gtri(:,i,itri), si_79, eta_79, ttri(itri), ri_79, 79, g79(:,:,i))
-     end do
+     if(eta0.ne.0) then
 
-     ! for the grad-shafranov simulation with numvar < 3,
-     ! calculate the pressure assuming that p(psi) = p0(psi)
-     if(numvar.lt.3 .and. itor.eq.1) then
-        temp79c = (pst79(:,OP_1) - psimin)/(psilim - psimin)
+        ! for the grad-shafranov simulation with numvar < 3,
+        ! calculate the pressure assuming that p(psi) = p0(psi)
+        if(numvar.lt.3 .and. itor.eq.1) then
+           temp79c = (pst79(:,OP_1) - psimin)/(psilim - psimin)
+           
+           do i=1,79
+              if(temp79c(i).lt.0) then
+                 pet79(i,OP_1) = p0-pi0*ipres
+              else if(temp79c(i).gt.1) then
+                 pet79(i,OP_1) = pedge*(p0-pi0*ipres)/p0
+              else
+                 pet79(i,OP_1) = pedge*(p0-pi0*ipres)/p0 + &
+                      (p0-pi0*ipres)* &
+                      (1.+p1*temp79c(i)+p2*temp79c(i)**2 &
+                      -(20. + 10.*p1 + 4.*p2)*temp79c(i)**3 &
+                      +(45. + 20.*p1 + 6.*p2)*temp79c(i)**4 &
+                      -(36. + 15.*p1 + 4.*p2)*temp79c(i)**5 &
+                      +(10. + 4.*p1 + p2)*temp79c(i)**6)
+              endif
+           end do
+        endif
 
-        do i=1,79
-           if(temp79c(i).lt.0) then
-              pet79(i,OP_1) = p0-pi0*ipres
-           else if(temp79c(i).gt.1) then
-              pet79(i,OP_1) = pedge*(p0-pi0*ipres)/p0
+        if(numvar.ge.3 .or. itor.eq.1) then
+           
+           if(idens.eq.0) then
+              temp79a = sqrt((1./(pefac*pet79(:,OP_1)))**3)
            else
-              pet79(i,OP_1) = pedge*(p0-pi0*ipres)/p0 + &
-                   (p0-pi0*ipres)* &
-                   (1.+p1*temp79c(i)+p2*temp79c(i)**2 &
-                   -(20. + 10.*p1 + 4.*p2)*temp79c(i)**3 &
-                   +(45. + 20.*p1 + 6.*p2)*temp79c(i)**4 &
-                   -(36. + 15.*p1 + 4.*p2)*temp79c(i)**5 &
-                   +(10. + 4.*p1 + p2)*temp79c(i)**6)
+              temp79a = sqrt((nt79(:,OP_1)/(pefac*pet79(:,OP_1)))**3)
            endif
-        end do
-     endif
+        else
+           if(idens.eq.0) then
+              temp79a = sqrt((1./(p0-pi0))**3)
+           else
+              temp79a = sqrt((nt79(:,OP_1)/(p0-pi0))**3)
+           endif
+        endif
 
-     if(numvar.ge.3 .or. itor.eq.1) then
-                   
-        if(idens.eq.0) then
-           temp79a = sqrt((1./(pefac*pet79(:,OP_1)))**3)
-        else
-           temp79a = sqrt((nt79(:,OP_1)/(pefac*pet79(:,OP_1)))**3)
-        endif
      else
-        if(idens.eq.0) then
-           temp79a = sqrt((1./(p0-pi0))**3)
-        else
-           temp79a = sqrt((nt79(:,OP_1)/(p0-pi0))**3)
-        endif
+        temp79a = 0.
      endif
 
      do i=1,18

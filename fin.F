@@ -184,6 +184,13 @@
       p1 = -1.
       p2 = -2.
       pedge = 0.
+      expn = 0.
+!
+!.....divertor information
+      divertors = 0.
+      xdiv = xmag
+      zdiv = zzero-1.
+      divcur = 0.1
 !
 !     derivative of current wrt normalized poloidal flux
       djdpsi = 0.0

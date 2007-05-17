@@ -5,6 +5,7 @@ module gradshafranov
   real, allocatable :: psi(:), fun1(:), fun2(:), fun3(:), fun4(:)
   real :: psimin, psilim, dpsii
   real :: gamma2, gamma3, gamma4  
+  integer :: itnum
 
   integer, parameter :: numvargs = 1
 
@@ -18,8 +19,15 @@ subroutine gradshafranov_init()
 
   implicit none
 
-  integer :: l, numnodes, ibegin, iendplusone
+  integer :: l, numnodes, ibegin, iendplusone, ibegin1, iendplusone1
   real :: tstart, tend
+
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+  call gradshafranov_solve()
+  if(myrank.eq.0 .and. itimer.eq.1) then 
+     call second(tend)
+     t_gs = tend - tstart
+  endif
 
   call numnod(numnodes)
   do l=1, numnodes
@@ -28,17 +36,36 @@ subroutine gradshafranov_init()
      call static_equ(ibegin)
      
      if(idens.eq.1) then
-        call entdofs(1, l, 0, ibegin, iendplusone)
-        call constant_field(den0(ibegin:ibegin+5), 1.)
+        call entdofs(1, l, 0, ibegin1, iendplusone1)
+        if(numvar.ge.3) then
+           if(ipres.eq.1) then
+              den0(ibegin1  ) = pres0(ibegin1)**expn
+              den0(ibegin1+1) = pres0(ibegin1)**(expn-1.)*pres0(ibegin1+1)*expn
+              den0(ibegin1+2) = pres0(ibegin1)**(expn-1.)*pres0(ibegin1+2)*expn
+              den0(ibegin1+3) = pres0(ibegin1)**(expn-1.)*pres0(ibegin1+3)*expn &
+                   + pres0(ibegin1)**(expn-2.)*pres0(ibegin1+1)**2.*expn*(expn-1.)
+              den0(ibegin1+4) = pres0(ibegin1)**(expn-1.)*pres0(ibegin1+4)*expn & 
+                   + pres0(ibegin1)**(expn-2.)*pres0(ibegin1+1)*pres0(ibegin1+2)&
+                   * expn*(expn-1.)
+              den0(ibegin1+5) = pres0(ibegin1)**(expn-1.)*pres0(ibegin1+5)*expn &
+                   + pres0(ibegin1)**(expn-2.)*pres0(ibegin1+2)**2.*expn*(expn-1.)
+           else
+              den0(ibegin1  ) = phi0(ibegin+12)**expn
+              den0(ibegin1+1) = phi0(ibegin+12)**(expn-1.)*phi0(ibegin+13)*expn
+              den0(ibegin1+2) = phi0(ibegin+12)**(expn-1.)*phi0(ibegin+14)*expn
+              den0(ibegin1+3) = phi0(ibegin+12)**(expn-1.)*phi0(ibegin+15)*expn &
+                   + phi0(ibegin+12)**(expn-2.)*phi0(ibegin+13)**2.*expn*(expn-1.)
+              den0(ibegin1+4) = phi0(ibegin+12)**(expn-1.)*phi0(ibegin+16)*expn & 
+                   + phi0(ibegin+12)**(expn-2.)*phi0(ibegin+13)*phi0(ibegin+14)&
+                   * expn*(expn-1.)
+              den0(ibegin1+5) = phi0(ibegin+12)**(expn-1.)*phi0(ibegin+17)*expn &
+                   + phi0(ibegin+12)**(expn-2.)*phi0(ibegin+14)**2.*expn*(expn-1.)
+           endif
+        else
+           call constant_field(den0(ibegin1:ibegin1+5), 1.)
+        endif
      endif
   enddo
-
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  call gradshafranov_solve()
-  if(myrank.eq.0 .and. itimer.eq.1) then 
-     call second(tend)
-     t_gs = tend - tstart
-  endif
   
 end subroutine gradshafranov_init
 
@@ -60,12 +87,11 @@ subroutine gradshafranov_solve
 
   real   gsint1,gsint4,gsint2,gsint3,lhs,cfac(18)
   real, allocatable :: temp(:), b1vecini(:)
-  integer, allocatable :: iboundgs(:)
 
   integer :: itri,i,i1,j,j1,jone, k
   integer :: numelms, numnodes
   integer :: ibegin, iendplusone, ibeginn, iendplusonen
-  integer :: ineg, itnum, ier, nbcgs
+  integer :: ineg, ier
   real :: dterm(18,18), sterm(18,18)
   real :: fac, aminor, bv, fintl(-6:maxi,-6:maxi)
   real :: g, gx, gz, gxx, gxz, gzz, g0
@@ -102,9 +128,7 @@ subroutine gradshafranov_solve
   call createvec(fun1, numvargs)
   call createvec(fun4, numvargs)
   call createvec(fun2, numvargs)
-  call createvec(fun3, numvargs)
-  allocate(iboundgs(6*numnodes*numvargs))
-  
+  call createvec(fun3, numvargs)  
 
   ! form the grad-sharfranov matrix
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -143,11 +167,7 @@ subroutine gradshafranov_solve
   enddo
 
   ! insert boundary conditions
-  iboundgs = 0.
-  call boundarygs(iboundgs,nbcgs)
-  do i=1,nbcgs
-     call setdiribc(gsmatrix_sm, iboundgs(i))
-  enddo
+  call boundary_gs(gsmatrix_sm, b1vecini)
   call finalizearray4solve(gsmatrix_sm)
 
   if(myrank.eq.0 .and. itimer.eq.1) then
@@ -186,12 +206,29 @@ subroutine gradshafranov_solve
      psi(ibegin+3) = (gxx+gvxx*bv)*fac
      psi(ibegin+4) = (gxz+gvxz*bv)*fac
      psi(ibegin+5) = (gzz+gvzz*bv)*fac
-  enddo
 
-  ! store boundary conditions on psi
-  psibounds = 0.
-  do i=1,nbcgs
-     psibounds(i) = psi(iboundgs(i))
+     if(divertors.ge.1) then
+        call gvect1(x,z,xdiv,zdiv,g,gx,gz,gxx,gxz,gzz,0,ineg)
+        psi(ibegin  ) = psi(ibegin  ) + fac*g  *divcur
+        psi(ibegin+1) = psi(ibegin+1) + fac*gx *divcur
+        psi(ibegin+2) = psi(ibegin+2) + fac*gz *divcur
+        psi(ibegin+3) = psi(ibegin+3) + fac*gxx*divcur
+        psi(ibegin+4) = psi(ibegin+4) + fac*gxz*divcur
+        psi(ibegin+5) = psi(ibegin+5) + fac*gzz*divcur
+        if(divertors.eq.2) then
+           call gvect1(x,z,xdiv,-zdiv,g,gx,gz,gxx,gxz,gzz,0,ineg)
+           psi(ibegin  ) = psi(ibegin  ) + fac*g  *divcur
+           psi(ibegin+1) = psi(ibegin+1) + fac*gx *divcur
+           psi(ibegin+2) = psi(ibegin+2) + fac*gz *divcur
+           psi(ibegin+3) = psi(ibegin+3) + fac*gxx*divcur
+           psi(ibegin+4) = psi(ibegin+4) + fac*gxz*divcur
+           psi(ibegin+5) = psi(ibegin+5) + fac*gzz*divcur
+        endif
+     endif
+
+     ! store boundary conditions on psi
+     call entdofs(numvar, i, 0, ibeginn, iendplusonen)
+     phis(ibeginn:ibeginn+5) = psi(ibegin:ibegin+5)
   enddo
 
   ! define initial b1vecini associated with delta-function source
@@ -211,9 +248,7 @@ subroutine gradshafranov_solve
      if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(b1vecini,1,numvargs,"b1vecini",0)
 
      ! apply boundary conditions
-     do i=1,nbcgs
-        b1vecini(iboundgs(i)) = psibounds(i)
-     enddo
+     call boundary_gs(0, b1vecini)
 
      ! perform LU backsubstitution to get psi solution
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -650,7 +685,6 @@ subroutine gradshafranov_solve
   call deletevec(fun4)
   call deletevec(fun2)
   call deletevec(fun3)
-  deallocate(iboundgs)
 
   return
 
@@ -1139,52 +1173,6 @@ subroutine gvect(r,z,xi,zi,n,g,gr,gz,grr,grz,gzz,nmult,ineg)
   
   return
 end subroutine gvect
-
-!============================================================
-subroutine boundarygs(ibound,nbc)
-
-  use basic
-
-  implicit none
-  
-  integer, intent(out) :: ibound(*), nbc
-
-  integer :: numnodes, i, izone, izonedim
-  integer :: ibottom, iright, itop, ileft, ibegin, iendplusone
-  
-  call getmodeltags(ibottom, iright, itop, ileft)
-  call numnod(numnodes)
-  nbc = 0
-
-  do i=1,numnodes
-
-     call zonenod(i,izone, izonedim)
-     call entdofs(numvargs, i, 0, ibegin, iendplusone)
-
-     if(izonedim .eq. 1) then ! an edge...
-        if(izone .eq. itop .or. izone .eq. ibottom) then
-           ibound(nbc+1) = ibegin
-           ibound(nbc+2) = ibegin+1
-           ibound(nbc+3) = ibegin+3
-           nbc =  nbc+3
-        else
-           ibound(nbc+1) = ibegin
-           ibound(nbc+2) = ibegin+2
-           ibound(nbc+3) = ibegin+5
-           nbc =  nbc+3
-        endif
-     else if(izonedim .eq. 0) then
-        ibound(nbc+1) = ibegin
-        ibound(nbc+2) = ibegin+1
-        ibound(nbc+3) = ibegin+2
-        ibound(nbc+4) = ibegin+3
-        ibound(nbc+5) = ibegin+4
-        ibound(nbc+6) = ibegin+5
-        nbc =  nbc+6
-     endif
-  enddo
-
-end subroutine boundarygs
 
 ! ===========================================================
 subroutine deltafun(x,z,dum,val)

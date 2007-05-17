@@ -31,8 +31,6 @@ subroutine ludefall
   if(idens.eq.1) then
      call zeroarray4solve(s8matrix_sm,numvar1_numbering)
      call zeroarray4multiply(d8matrix_sm,numvar1_numbering)
-     if(integrator.eq.1) &
-          call zeroarray4multiply(o8matrix_sm,numvar1_numbering)
   endif
   if(numvar .eq. 1) then
      call zeroarray4solve(s1matrix_sm,numvar1_numbering)
@@ -42,10 +40,6 @@ subroutine ludefall
      call zeroarray4multiply(d2matrix_sm,numvar1_numbering)
      call zeroarray4multiply(r2matrix_sm,numvar1_numbering)
      call zeroarray4multiply(q2matrix_sm,numvar1_numbering)
-     if(integrator.eq.1) then
-        call zeroarray4multiply(o1matrix_sm,numvar1_numbering)
-        call zeroarray4multiply(o2matrix_sm,numvar1_numbering)
-     endif
      if(idens.eq.1) then
         call zeroarray4multiply(q8matrix_sm,numvar1_numbering)
         call zeroarray4multiply(r8matrix_sm,numvar1_numbering)
@@ -58,10 +52,6 @@ subroutine ludefall
      call zeroarray4multiply(d2matrix_sm,numvar2_numbering)
      call zeroarray4multiply(r2matrix_sm,numvar2_numbering)
      call zeroarray4multiply(q2matrix_sm,numvar2_numbering)
-     if(integrator.eq.1) then
-        call zeroarray4multiply(o1matrix_sm,numvar2_numbering)
-        call zeroarray4multiply(o2matrix_sm,numvar2_numbering)
-     endif
      if(idens.eq.1) then
         call zeroarray4multiply(q8matrix_sm,numvar2_numbering)
         call zeroarray4multiply(r8matrix_sm,numvar2_numbering)
@@ -74,10 +64,6 @@ subroutine ludefall
      call zeroarray4multiply(d2matrix_sm,numvar3_numbering)
      call zeroarray4multiply(r2matrix_sm,numvar3_numbering)
      call zeroarray4multiply(q2matrix_sm,numvar3_numbering)
-     if(integrator.eq.1) then
-        call zeroarray4multiply(o1matrix_sm,numvar3_numbering)
-        call zeroarray4multiply(o2matrix_sm,numvar3_numbering)
-     endif
      if(idens.eq.1) then
         call zeroarray4multiply(q8matrix_sm,numvar3_numbering)
         call zeroarray4multiply(r8matrix_sm,numvar3_numbering)
@@ -88,8 +74,6 @@ subroutine ludefall
      call zeroarray4multiply(d9matrix_sm,numvar1_numbering)
      call zeroarray4multiply(q9matrix_sm,numvar3_numbering)
      call zeroarray4multiply(r9matrix_sm,numvar3_numbering)
-     if(integrator.eq.1) &
-          call zeroarray4multiply(o9matrix_sm,numvar1_numbering)
   endif
   
   r4 = 0.
@@ -169,9 +153,6 @@ subroutine ludefall
 !!$  call finalizearray4solve(s1matrix_sm)
   call finalizearray4multiply(d1matrix_sm)
   call finalizearray4multiply(r1matrix_sm)
-  if(integrator.eq.1) &
-       call finalizearray4multiply(o1matrix_sm)
-     
 
   ! Field boundary conditions
 !!$  call boundaryp(iboundp,nbcp)
@@ -187,8 +168,6 @@ subroutine ludefall
   call finalizearray4multiply(d2matrix_sm)
   call finalizearray4multiply(r2matrix_sm)
   call finalizearray4multiply(q2matrix_sm)
-  if(integrator.eq.1) &
-       call finalizearray4multiply(o2matrix_sm)
 
   ! Density boundary conditions
   if(idens.eq.1) then
@@ -207,8 +186,6 @@ subroutine ludefall
      call finalizearray4multiply(d8matrix_sm)
      call finalizearray4multiply(q8matrix_sm)
      call finalizearray4multiply(r8matrix_sm)
-     if(integrator.eq.1) &
-          call finalizearray4multiply(o8matrix_sm)
   endif ! on idens.eq.1
 
   ! Pressure boundary conditions
@@ -228,8 +205,6 @@ subroutine ludefall
      call finalizearray4multiply(d9matrix_sm)
      call finalizearray4multiply(q9matrix_sm)
      call finalizearray4multiply(r9matrix_sm)
-     if(integrator.eq.1) &
-          call finalizearray4multiply(o9matrix_sm)
   endif ! on ipres.eq.1
 
 end subroutine ludefall
@@ -254,9 +229,15 @@ subroutine ludefvel_n(itri,dbf)
   real, intent(in) :: dbf
 
   integer :: i, i1, i2, i3, j, j1
-  real, dimension(3,3) :: ssterm, ddterm, rrterm, ooterm
-  real :: temp
+  real, dimension(3,3) :: ssterm, ddterm, rrterm
+  real :: temp, bdf
   real :: hypv, thimpv
+
+  if(integrator.eq.1 .and. ntime.gt.1) then
+     bdf = 2.
+  else
+     bdf = 1.
+  endif
 
   thimpv = 1.
   hypv = hyperv*deex**2
@@ -274,34 +255,27 @@ subroutine ludefvel_n(itri,dbf)
         ssterm = 0.
         ddterm = 0.
         rrterm = 0.
-        ooterm = 0.
 
         ! NUMVAR = 1
         ! ~~~~~~~~~~
         temp = v1un(g79(:,:,i),g79(:,:,j),nt79)
-        if(integrator.eq.1 .and. ntime.gt.1) then
-           ssterm(1,1) = ssterm(1,1) + 1.5*temp
-           ddterm(1,1) = ddterm(1,1) + 2.0*temp
-           ooterm(1,1) = ooterm(1,1) - 0.5*temp
-        else 
-           ssterm(1,1) = ssterm(1,1) + temp
-           ddterm(1,1) = ddterm(1,1) + temp
-        endif
+        ssterm(1,1) = ssterm(1,1) + temp
+        ddterm(1,1) = ddterm(1,1) + temp*bdf
 
-        temp = v1umu(g79(:,:,i),g79(:,:,j))*amu  &              
+        temp = v1umu(g79(:,:,i),g79(:,:,j))*amu  &
              + thimp*dt* &
              (v1upsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79))
         if(grav.ne.0) then          
            temp = temp + thimp*dt*&
                 v1ungrav(g79(:,:,i),g79(:,:,j),nt79)*grav
         endif
-        ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
-        ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
+        ssterm(1,1) = ssterm(1,1) -     thimp     *dt*temp
+        ddterm(1,1) = ddterm(1,1) + (1.-thimp*bdf)*dt*temp
         
         temp = v1uun(g79(:,:,i),g79(:,:,j),ph179,nt79) &
              + v1uun(g79(:,:,i),ph179,g79(:,:,j),nt79)
-        ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
-        ddterm(1,1) = ddterm(1,1) + (.5-thimp)*dt*temp
+        ssterm(1,1) = ssterm(1,1) -     thimp     *dt*temp
+        ddterm(1,1) = ddterm(1,1) + (.5-thimp*bdf)*dt*temp
         
         rrterm(1,1) = rrterm(1,1)  + dt* &
              (v1psipsi(g79(:,:,i),g79(:,:,j),pss79)  &
@@ -315,8 +289,8 @@ subroutine ludefvel_n(itri,dbf)
         if(linear.eq.1 .or. eqsubtract.eq.1) then
            temp = v1uun(g79(:,:,i),g79(:,:,j),ph079,nt79) &    
                 + v1uun(g79(:,:,i),ph079,g79(:,:,j),nt79)      
-           ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
-           ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
+           ssterm(1,1) = ssterm(1,1) -     thimp     *dt*temp
+           ddterm(1,1) = ddterm(1,1) + (1.-thimp*bdf)*dt*temp
            
            rrterm(1,1) = rrterm(1,1) + thimp*dt*dt* &
                 (v1upsipsi(g79(:,:,i),ph079,g79(:,:,j),pss79) &
@@ -329,51 +303,45 @@ subroutine ludefvel_n(itri,dbf)
         if(numvar.ge.2) then
            
            temp = v1ubb(g79(:,:,i),g79(:,:,j),bzt79,bzt79)
-           ssterm(1,1) = ssterm(1,1) - thimp*    thimp *dt*dt*temp
-           ddterm(1,1) = ddterm(1,1) + thimp*(1.-thimp)*dt*dt*temp
+           ssterm(1,1) = ssterm(1,1) - thimp*    thimp     *dt*dt*temp
+           ddterm(1,1) = ddterm(1,1) + thimp*(1.-thimp*bdf)*dt*dt*temp
            
            temp = v1vpsib(g79(:,:,i),g79(:,:,j),pst79,bzt79)
-           ssterm(1,2) = ssterm(1,2) - thimp*    thimp *dt*dt*temp
-           ddterm(1,2) = ddterm(1,2) + thimp*(1.-thimp)*dt*dt*temp
+           ssterm(1,2) = ssterm(1,2) - thimp*    thimp     *dt*dt*temp
+           ddterm(1,2) = ddterm(1,2) + thimp*(1.-thimp*bdf)*dt*dt*temp
            
            temp = v1vvn(g79(:,:,i),g79(:,:,j),vz179,nt79) &
                 + v1vvn(g79(:,:,i),vz179,g79(:,:,j),nt79)
-           ssterm(1,2) = ssterm(1,2) -     thimp *dt*temp
-           ddterm(1,2) = ddterm(1,2) + (.5-thimp)*dt*temp
+           ssterm(1,2) = ssterm(1,2) -     thimp     *dt*temp
+           ddterm(1,2) = ddterm(1,2) + (.5-thimp*bdf)*dt*temp
            
            temp = v2vun(g79(:,:,i),vz179,g79(:,:,j),nt79)
-           ssterm(2,1) = ssterm(2,1) -     thimp *dt*temp
-           ddterm(2,1) = ddterm(2,1) + (.5-thimp)*dt*temp
+           ssterm(2,1) = ssterm(2,1) -     thimp     *dt*temp
+           ddterm(2,1) = ddterm(2,1) + (.5-thimp*bdf)*dt*temp
 
            temp = v2upsib(g79(:,:,i),g79(:,:,j),pst79,bzt79)
-           ssterm(2,1) = ssterm(2,1) - thimp*    thimp *dt*dt*temp
-           ddterm(2,1) = ddterm(2,1) + thimp*(1.-thimp)*dt*dt*temp
+           ssterm(2,1) = ssterm(2,1) - thimp*    thimp     *dt*dt*temp
+           ddterm(2,1) = ddterm(2,1) + thimp*(1.-thimp*bdf)*dt*dt*temp
 
            temp = v2vn(g79(:,:,i),g79(:,:,j),nt79)
-           if(integrator.eq.1 .and. ntime.gt.1) then
-              ssterm(2,2) = ssterm(2,2) + 1.5*temp
-              ddterm(2,2) = ddterm(2,2) + 2.0*temp
-              ooterm(2,2) = ooterm(2,2) - 0.5*temp
-           else
-              ssterm(2,2) = ssterm(2,2) + temp
-              ddterm(2,2) = ddterm(2,2) + temp
-           endif
+           ssterm(2,2) = ssterm(2,2) + temp
+           ddterm(2,2) = ddterm(2,2) + temp*bdf
 
            temp = v2vmu  (g79(:,:,i),g79(:,:,j),amu) &
                 + thimp*dt* &
                 (v2vpsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79))
-           ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
-           ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
+           ssterm(2,2) = ssterm(2,2) -     thimp     *dt*temp
+           ddterm(2,2) = ddterm(2,2) + (1.-thimp*bdf)*dt*temp
 
            if(hypv.gt.0) then
               temp = v2vhypv(g79(:,:,i),g79(:,:,j),amu,hypv)
-              ssterm(2,2) = ssterm(2,2) -     thimpv *dt*temp
-              ddterm(2,2) = ddterm(2,2) + (1.-thimpv)*dt*temp
+              ssterm(2,2) = ssterm(2,2) -     thimpv     *dt*temp
+              ddterm(2,2) = ddterm(2,2) + (1.-thimpv*bdf)*dt*temp
            endif
 
            temp = v2vun(g79(:,:,i),g79(:,:,j),ph179,nt79)
-           ssterm(2,2) = ssterm(2,2) -      thimp *dt*temp
-           ddterm(2,2) = ddterm(2,2) + (0.5-thimp)*dt*temp
+           ssterm(2,2) = ssterm(2,2) -      thimp     *dt*temp
+           ddterm(2,2) = ddterm(2,2) + (0.5-thimp*bdf)*dt*temp
 
            rrterm(1,2) = rrterm(1,2) + dt* &
                 (v1bb     (g79(:,:,i),g79(:,:,j),bzs79)  &
@@ -398,16 +366,16 @@ subroutine ludefvel_n(itri,dbf)
               
               temp = v1vvn(g79(:,:,i),g79(:,:,j),vz079,nt79) &
                    + v1vvn(g79(:,:,i),vz079,g79(:,:,j),nt79)
-              ssterm(1,2) = ssterm(1,2) -     thimp *dt*temp
-              ddterm(1,2) = ddterm(1,2) + (1.-thimp)*dt*temp
+              ssterm(1,2) = ssterm(1,2) -     thimp     *dt*temp
+              ddterm(1,2) = ddterm(1,2) + (1.-thimp*bdf)*dt*temp
               
               temp = v2vun(g79(:,:,i),vz079,g79(:,:,j),nt79)
-              ssterm(2,1) = ssterm(2,1) -     thimp *dt*temp
-              ddterm(2,1) = ddterm(2,1) + (1.-thimp)*dt*temp
+              ssterm(2,1) = ssterm(2,1) -     thimp     *dt*temp
+              ddterm(2,1) = ddterm(2,1) + (1.-thimp*bdf)*dt*temp
               
               temp = v2vun(g79(:,:,i),g79(:,:,j),ph079,nt79)
-              ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
-              ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
+              ssterm(2,2) = ssterm(2,2) -     thimp     *dt*temp
+              ddterm(2,2) = ddterm(2,2) + (1.-thimp*bdf)*dt*temp
               
               rrterm(1,1) = rrterm(1,1) + thimp*dt*dt* &
                    (v1vpsib  (g79(:,:,i),vz079,g79(:,:,j),bzs79))
@@ -434,34 +402,22 @@ subroutine ludefvel_n(itri,dbf)
 
            ! regularize the chi equation
            temp = -regular*int2(g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
-           if(integrator.eq.1  .and. ntime.gt.1) then
-              ssterm(3,3) = ssterm(3,3) + 1.5*temp
-              ddterm(3,3) = ddterm(3,3) + 2.0*temp
-              ooterm(3,3) = ooterm(3,3) - 0.5*temp
-           else
-              ssterm(3,3) = ssterm(3,3) + temp
-              ddterm(3,3) = ddterm(3,3) + temp
-           endif
+           ssterm(3,3) = ssterm(3,3) + temp
+           ddterm(3,3) = ddterm(3,3) + temp*bdf
            
            temp = v1uchin(g79(:,:,i),g79(:,:,j),ch179,nt79)       
-           ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
-           ddterm(1,1) = ddterm(1,1) + (.5-thimp)*dt*temp
+           ssterm(1,1) = ssterm(1,1) -     thimp     *dt*temp
+           ddterm(1,1) = ddterm(1,1) + (.5-thimp*bdf)*dt*temp
 
            temp = v1chin(g79(:,:,i),g79(:,:,j),nt79)
-           if(integrator.eq.1 .and. ntime.gt.1) then
-              ssterm(1,3) = ssterm(1,3) + 1.5*temp
-              ddterm(1,3) = ddterm(1,3) + 2.0*temp
-              ooterm(1,3) = ooterm(1,3) - 0.5*temp
-           else
-              ssterm(1,3) = ssterm(1,3) + temp
-              ddterm(1,3) = ddterm(1,3) + temp
-           endif
+           ssterm(1,3) = ssterm(1,3) + temp
+           ddterm(1,3) = ddterm(1,3) + temp*bdf
 
            temp = v1uchin  (g79(:,:,i),ph179,g79(:,:,j),nt79) &
                 + v1chichin(g79(:,:,i),g79(:,:,j),ch179,nt79) &
                 + v1chichin(g79(:,:,i),ch179,g79(:,:,j),nt79)
-           ssterm(1,3) = ssterm(1,3) -     thimp *dt*temp
-           ddterm(1,3) = ddterm(1,3) + (.5-thimp)*dt*temp
+           ssterm(1,3) = ssterm(1,3) -     thimp     *dt*temp
+           ddterm(1,3) = ddterm(1,3) + (.5-thimp*bdf)*dt*temp
            
            temp = v1chipsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79)  &
                 + v1chibb    (g79(:,:,i),g79(:,:,j),bzt79,bzt79)
@@ -469,36 +425,30 @@ subroutine ludefvel_n(itri,dbf)
               temp = temp &
                    + v1chingrav(g79(:,:,i),g79(:,:,j),nt79)*grav
            endif
-           ssterm(1,3) = ssterm(1,3) - thimp*    thimp *dt*dt*temp
-           ddterm(1,3) = ddterm(1,3) + thimp*(1.-thimp)*dt*dt*temp
+           ssterm(1,3) = ssterm(1,3) - thimp*    thimp     *dt*dt*temp
+           ddterm(1,3) = ddterm(1,3) + thimp*(1.-thimp*bdf)*dt*dt*temp
 
            temp = v2vchin(g79(:,:,i),g79(:,:,j),ch179,nt79)
-           ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
-           ddterm(2,2) = ddterm(2,2) + (.5-thimp)*dt*temp
+           ssterm(2,2) = ssterm(2,2) -     thimp     *dt*temp
+           ddterm(2,2) = ddterm(2,2) + (.5-thimp*bdf)*dt*temp
            
            temp = v2vchin(g79(:,:,i),vz179,g79(:,:,j),nt79)
-           ssterm(2,3) = ssterm(2,3) -     thimp *dt*temp
-           ddterm(2,3) = ddterm(2,3) + (.5-thimp)*dt*temp
+           ssterm(2,3) = ssterm(2,3) -     thimp     *dt*temp
+           ddterm(2,3) = ddterm(2,3) + (.5-thimp*bdf)*dt*temp
 
            temp = v2chipsib(g79(:,:,i),g79(:,:,j),pst79,bzt79) 
-           ssterm(2,3) = ssterm(2,3) - thimp*    thimp *dt*dt*temp
-           ddterm(2,3) = ddterm(2,3) + thimp*(1.-thimp)*dt*dt*temp
+           ssterm(2,3) = ssterm(2,3) - thimp*    thimp     *dt*dt*temp
+           ddterm(2,3) = ddterm(2,3) + thimp*(1.-thimp*bdf)*dt*dt*temp
 
            temp = v3un(g79(:,:,i),g79(:,:,j),nt79)
-           if(integrator.eq.1 .and. ntime.gt.1) then
-              ssterm(3,1) = ssterm(3,1) + 1.5*temp
-              ddterm(3,1) = ddterm(3,1) + 2.0*temp
-              ooterm(3,1) = ooterm(3,1) - 0.5*temp
-           else 
-              ssterm(3,1) = ssterm(3,1) + temp
-              ddterm(3,1) = ddterm(3,1) + temp
-           endif
+           ssterm(3,1) = ssterm(3,1) + temp
+           ddterm(3,1) = ddterm(3,1) + temp*bdf
 
            temp = v3uun  (g79(:,:,i),g79(:,:,j),ph179,nt79) &
                +  v3uun  (g79(:,:,i),ph179,g79(:,:,j),nt79) &
                +  v3uchin(g79(:,:,i),g79(:,:,j),ch179,nt79)
-           ssterm(3,1) = ssterm(3,1) -     thimp *dt*temp
-           ddterm(3,1) = ddterm(3,1) + (.5-thimp)*dt*temp
+           ssterm(3,1) = ssterm(3,1) -     thimp     *dt*temp
+           ddterm(3,1) = ddterm(3,1) + (.5-thimp*bdf)*dt*temp
            
            temp = v3umu   (g79(:,:,i),g79(:,:,j),amu,amuc) &
                 +thimp*dt* &
@@ -509,37 +459,31 @@ subroutine ludefvel_n(itri,dbf)
               temp = temp + thimp*dt* &
                    v3ungrav(g79(:,:,i),g79(:,:,j),nt79)*grav
            endif
-           ssterm(3,1) = ssterm(3,1) -     thimp *dt*temp
-           ddterm(3,1) = ddterm(3,1) + (1.-thimp)*dt*temp
+           ssterm(3,1) = ssterm(3,1) -     thimp     *dt*temp
+           ddterm(3,1) = ddterm(3,1) + (1.-thimp*bdf)*dt*temp
            
            temp = v3vpsib(g79(:,:,i),g79(:,:,j),pst79,bzt79)   
-           ssterm(3,2) = ssterm(3,2) - thimp*    thimp *dt*dt*temp
-           ddterm(3,2) = ddterm(3,2) + thimp*(1.-thimp)*dt*dt*temp
+           ssterm(3,2) = ssterm(3,2) - thimp*    thimp     *dt*dt*temp
+           ddterm(3,2) = ddterm(3,2) + thimp*(1.-thimp*bdf)*dt*dt*temp
            
            temp = v3vvn(g79(:,:,i),g79(:,:,j),vz179,nt79) &
                 + v3vvn(g79(:,:,i),vz179,g79(:,:,j),nt79)
-           ssterm(3,2) = ssterm(3,2) -     thimp *dt*temp
-           ddterm(3,2) = ddterm(3,2) + (.5-thimp)*dt*temp
+           ssterm(3,2) = ssterm(3,2) -     thimp     *dt*temp
+           ddterm(3,2) = ddterm(3,2) + (.5-thimp*bdf)*dt*temp
 
            temp = v3chin(g79(:,:,i),g79(:,:,j),nt79)
-           if(integrator.eq.1 .and. ntime.gt.1) then
-              ssterm(3,3) = ssterm(3,3) + 1.5*temp
-              ddterm(3,3) = ddterm(3,3) + 2.0*temp
-              ooterm(3,3) = ooterm(3,3) - 0.5*temp
-           else
-              ssterm(3,3) = ssterm(3,3) + temp
-              ddterm(3,3) = ddterm(3,3) + temp
-           endif
+           ssterm(3,3) = ssterm(3,3) + temp
+           ddterm(3,3) = ddterm(3,3) + temp*bdf
 
            temp = v3chimu    (g79(:,:,i),g79(:,:,j))*2.*amuc   
-           ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp
-           ddterm(3,3) = ddterm(3,3) + (1.-thimp)*dt*temp
+           ssterm(3,3) = ssterm(3,3) -     thimp     *dt*temp
+           ddterm(3,3) = ddterm(3,3) + (1.-thimp*bdf)*dt*temp
 
            temp = v3uchin  (g79(:,:,i),ph179,g79(:,:,j),nt79) &
                 + v3chichin(g79(:,:,i),g79(:,:,j),ch179,nt79) &
                 + v3chichin(g79(:,:,i),ch179,g79(:,:,j),nt79)  
-           ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp
-           ddterm(3,3) = ddterm(3,3) + (.5-thimp)*dt*temp
+           ssterm(3,3) = ssterm(3,3) -     thimp     *dt*temp
+           ddterm(3,3) = ddterm(3,3) + (.5-thimp*bdf)*dt*temp
            
            temp = v3chip     (g79(:,:,i),g79(:,:,j),pt79)        &
                 + v3chipsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79) &
@@ -548,8 +492,8 @@ subroutine ludefvel_n(itri,dbf)
               temp = temp + &
                    v3chingrav(g79(:,:,i),g79(:,:,j),nt79)*grav
            endif
-           ssterm(3,3) = ssterm(3,3) - thimp*    thimp *dt*dt*temp
-           ddterm(3,3) = ddterm(3,3) + thimp*(1.-thimp)*dt*dt*temp
+           ssterm(3,3) = ssterm(3,3) - thimp*    thimp     *dt*dt*temp
+           ddterm(3,3) = ddterm(3,3) + thimp*(1.-thimp*bdf)*dt*dt*temp
 
            rrterm(3,1) = rrterm(3,1) +                    &
                 dt*                                       &
@@ -578,86 +522,86 @@ subroutine ludefvel_n(itri,dbf)
            if(gyro.eq.1) then
               temp = g1ub      (g79(:,:,i),g79(:,:,j),      bzt79,pit79,b2i79) &
                    + g1upsipsib(g79(:,:,i),g79(:,:,j),pst79,bzt79,pit79,b2i79)
-              ssterm(1,1) = ssterm(1,1) +     thimp *dt*temp
-              ddterm(1,1) = ddterm(1,1) - (1.-thimp)*dt*temp
+              ssterm(1,1) = ssterm(1,1) +     thimp     *dt*temp
+              ddterm(1,1) = ddterm(1,1) - (1.-thimp*bdf)*dt*temp
 
               temp = g1vpsi      (g79(:,:,i),g79(:,:,j),pst79,      pit79,b2i79) &
                    + g1vpsipsipsi(g79(:,:,i),g79(:,:,j),pst79,      pit79,b2i79) &
                    + g1vpsibb    (g79(:,:,i),g79(:,:,j),pst79,bzt79,pit79,b2i79)
-              ssterm(1,2) = ssterm(1,2) +     thimp *dt*temp
-              ddterm(1,2) = ddterm(1,2) - (1.-thimp)*dt*temp
+              ssterm(1,2) = ssterm(1,2) +     thimp     *dt*temp
+              ddterm(1,2) = ddterm(1,2) - (1.-thimp*bdf)*dt*temp
 
               temp = g1chib      (g79(:,:,i),g79(:,:,j),      bzt79,pit79,b2i79) &
                    + g1chipsipsib(g79(:,:,i),g79(:,:,j),pst79,bzt79,pit79,b2i79)
-              ssterm(1,3) = ssterm(1,3) +     thimp *dt*temp
-              ddterm(1,3) = ddterm(1,3) - (1.-thimp)*dt*temp
+              ssterm(1,3) = ssterm(1,3) +     thimp     *dt*temp
+              ddterm(1,3) = ddterm(1,3) - (1.-thimp*bdf)*dt*temp
 
               temp = g2upsi      (g79(:,:,i),g79(:,:,j),pst79,      pit79,b2i79) &
                    + g2upsipsipsi(g79(:,:,i),g79(:,:,j),pst79,      pit79,b2i79) &
                    + g2upsibb    (g79(:,:,i),g79(:,:,j),pst79,bzt79,pit79,b2i79)
-              ssterm(2,1) = ssterm(2,1) +     thimp *dt*temp
-              ddterm(2,1) = ddterm(2,1) - (1.-thimp)*dt*temp
+              ssterm(2,1) = ssterm(2,1) +     thimp     *dt*temp
+              ddterm(2,1) = ddterm(2,1) - (1.-thimp*bdf)*dt*temp
 
               temp = g2vb(g79(:,:,i),g79(:,:,j),pst79,bzt79,pit79,b2i79)
-              ssterm(2,2) = ssterm(2,2) +     thimp *dt*temp
-              ddterm(2,2) = ddterm(2,2) - (1.-thimp)*dt*temp
+              ssterm(2,2) = ssterm(2,2) +     thimp     *dt*temp
+              ddterm(2,2) = ddterm(2,2) - (1.-thimp*bdf)*dt*temp
 
               temp = g2chipsi      (g79(:,:,i),g79(:,:,j),pst79,      pit79,b2i79) &
                    + g2chipsipsipsi(g79(:,:,i),g79(:,:,j),pst79,      pit79,b2i79) &
                    + g2chipsibb    (g79(:,:,i),g79(:,:,j),pst79,bzt79,pit79,b2i79)
-              ssterm(2,3) = ssterm(2,3) +     thimp *dt*temp
-              ddterm(2,3) = ddterm(2,3) - (1.-thimp)*dt*temp
+              ssterm(2,3) = ssterm(2,3) +     thimp     *dt*temp
+              ddterm(2,3) = ddterm(2,3) - (1.-thimp*bdf)*dt*temp
 
               temp = g3ub      (g79(:,:,i),g79(:,:,j),bzt79,      pit79,b2i79) &
                    + g3upsipsib(g79(:,:,i),g79(:,:,j),pst79,bzt79,pit79,b2i79)
-              ssterm(3,1) = ssterm(3,1) +     thimp *dt*temp
-              ddterm(3,1) = ddterm(3,1) - (1.-thimp)*dt*temp
+              ssterm(3,1) = ssterm(3,1) +     thimp     *dt*temp
+              ddterm(3,1) = ddterm(3,1) - (1.-thimp*bdf)*dt*temp
 
               temp = g3vpsi      (g79(:,:,i),g79(:,:,j),pst79,      pit79,b2i79) &
                    + g3vpsipsipsi(g79(:,:,i),g79(:,:,j),pst79,      pit79,b2i79) &
                    + g3vpsibb    (g79(:,:,i),g79(:,:,j),pst79,bzt79,pit79,b2i79)
-              ssterm(3,2) = ssterm(3,2) +     thimp *dt*temp
-              ddterm(3,2) = ddterm(3,2) - (1.-thimp)*dt*temp
+              ssterm(3,2) = ssterm(3,2) +     thimp     *dt*temp
+              ddterm(3,2) = ddterm(3,2) - (1.-thimp*bdf)*dt*temp
 
               temp = g3chib      (g79(:,:,i),g79(:,:,j),      bzt79,pit79,b2i79) &
                    + g3chipsipsib(g79(:,:,i),g79(:,:,j),pst79,bzt79,pit79,b2i79)
-              ssterm(3,3) = ssterm(3,3) +     thimp *dt*temp
-              ddterm(3,3) = ddterm(3,3) - (1.-thimp)*dt*temp
+              ssterm(3,3) = ssterm(3,3) +     thimp     *dt*temp
+              ddterm(3,3) = ddterm(3,3) - (1.-thimp*bdf)*dt*temp
            endif
            
            if(linear.eq.1 .or. eqsubtract.eq.1) then
               temp = v1uchin(g79(:,:,i),g79(:,:,j),ch079,nt79)
-              ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
-              ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
+              ssterm(1,1) = ssterm(1,1) -     thimp     *dt*temp
+              ddterm(1,1) = ddterm(1,1) + (1.-thimp*bdf)*dt*temp
               
               temp = v1uchin(g79(:,:,i),ph079,g79(:,:,j),nt79)
-              ssterm(1,3) = ssterm(1,3) -     thimp *dt*temp
-              ddterm(1,3) = ddterm(1,3) + (1.-thimp)*dt*temp
+              ssterm(1,3) = ssterm(1,3) -     thimp     *dt*temp
+              ddterm(1,3) = ddterm(1,3) + (1.-thimp*bdf)*dt*temp
               
               temp = v2vchin(g79(:,:,i),g79(:,:,j),ch079,nt79)
-              ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
-              ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
+              ssterm(2,2) = ssterm(2,2) -     thimp     *dt*temp
+              ddterm(2,2) = ddterm(2,2) + (1.-thimp*bdf)*dt*temp
               
               temp = v2vchin(g79(:,:,i),vz079,g79(:,:,j),nt79)
-              ssterm(2,3) = ssterm(2,3) -     thimp *dt*temp
-              ddterm(2,3) = ddterm(2,3) + (1.-thimp)*dt*temp
+              ssterm(2,3) = ssterm(2,3) -     thimp     *dt*temp
+              ddterm(2,3) = ddterm(2,3) + (1.-thimp*bdf)*dt*temp
               
               temp = v3uun  (g79(:,:,i),g79(:,:,j),ph079,nt79) &
                    + v3uun  (g79(:,:,i),ph079,g79(:,:,j),nt79) &
                    + v3uchin(g79(:,:,i),g79(:,:,j),ch079,nt79)
-              ssterm(3,1) = ssterm(3,1) -     thimp *dt*temp
-              ddterm(3,1) = ddterm(3,1) + (1.-thimp)*dt*temp
+              ssterm(3,1) = ssterm(3,1) -     thimp     *dt*temp
+              ddterm(3,1) = ddterm(3,1) + (1.-thimp*bdf)*dt*temp
               
               temp = v3vvn(g79(:,:,i),g79(:,:,j),vz079,nt79) &
                    + v3vvn(g79(:,:,i),vz079,g79(:,:,j),nt79)
-              ssterm(3,2) = ssterm(3,2) -     thimp *dt*temp
-              ddterm(3,2) = ddterm(3,2) + (1.-thimp)*dt*temp
+              ssterm(3,2) = ssterm(3,2) -     thimp     *dt*temp
+              ddterm(3,2) = ddterm(3,2) + (1.-thimp*bdf)*dt*temp
               
               temp = v3uchin  (g79(:,:,i),ph079,g79(:,:,j),nt79) &
                    + v3chichin(g79(:,:,i),g79(:,:,j),ch079,nt79) &
                    + v3chichin(g79(:,:,i),ch079,g79(:,:,j),nt79)
-              ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp
-              ddterm(3,3) = ddterm(3,3) + (1.-thimp)*dt*temp
+              ssterm(3,3) = ssterm(3,3) -     thimp     *dt*temp
+              ddterm(3,3) = ddterm(3,3) + (1.-thimp*bdf)*dt*temp
               
               rrterm(1,1) = rrterm(1,1) + thimp*dt*dt* &
                    (v1chipsipsi(g79(:,:,i),ch079,g79(:,:,j),pss79) &
@@ -696,9 +640,6 @@ subroutine ludefvel_n(itri,dbf)
         call insertval(s1matrix_sm,ssterm(1,1),i1,j1,1)
         call insertval(d1matrix_sm,ddterm(1,1),i1,j1,1)
         call insertval(r1matrix_sm,rrterm(1,1),i1,j1,1)
-        if(integrator.eq.1) then
-           call insertval(o1matrix_sm,ooterm(1,1),i1,j1,1)
-        endif
         if(numvar.ge.2) then
            call insertval(s1matrix_sm,ssterm(1,2),i1  ,j1+6,1)
            call insertval(s1matrix_sm,ssterm(2,1),i1+6,j1  ,1)
@@ -709,35 +650,23 @@ subroutine ludefvel_n(itri,dbf)
            call insertval(r1matrix_sm,rrterm(1,2),i1  ,j1+6,1)
            call insertval(r1matrix_sm,rrterm(2,1),i1+6,j1  ,1)
            call insertval(r1matrix_sm,rrterm(2,2),i1+6,j1+6,1)
-           if(integrator.eq.1) then
-              call insertval(o1matrix_sm,ooterm(1,2),i1  ,j1+6,1)
-              call insertval(o1matrix_sm,ooterm(2,1),i1+6,j1  ,1)
-              call insertval(o1matrix_sm,ooterm(2,2),i1+6,j1+6,1)
-           endif
         endif
         if(numvar.ge.3) then
            call insertval(s1matrix_sm,ssterm(1,3),i1,   j1+12,1)
            call insertval(s1matrix_sm,ssterm(2,3),i1+6, j1+12,1)
-           call insertval(s1matrix_sm,ssterm(3,3),i1+12,j1+12,1)
            call insertval(s1matrix_sm,ssterm(3,1),i1+12,j1,   1)
            call insertval(s1matrix_sm,ssterm(3,2),i1+12,j1+6, 1)
+           call insertval(s1matrix_sm,ssterm(3,3),i1+12,j1+12,1)
            call insertval(d1matrix_sm,ddterm(1,3),i1,   j1+12,1)
            call insertval(d1matrix_sm,ddterm(2,3),i1+6, j1+12,1)
-           call insertval(d1matrix_sm,ddterm(3,3),i1+12,j1+12,1)
            call insertval(d1matrix_sm,ddterm(3,1),i1+12,j1,   1)
            call insertval(d1matrix_sm,ddterm(3,2),i1+12,j1+6, 1)
+           call insertval(d1matrix_sm,ddterm(3,3),i1+12,j1+12,1)
            call insertval(r1matrix_sm,rrterm(1,3),i1,   j1+12,1)
            call insertval(r1matrix_sm,rrterm(2,3),i1+6, j1+12,1)
-           call insertval(r1matrix_sm,rrterm(3,3),i1+12,j1+12,1)
            call insertval(r1matrix_sm,rrterm(3,1),i1+12,j1,   1)
            call insertval(r1matrix_sm,rrterm(3,2),i1+12,j1+6, 1)
-           if(integrator.eq.1) then
-              call insertval(o1matrix_sm,ooterm(1,3),i1,   j1+12,1)
-              call insertval(o1matrix_sm,ooterm(2,3),i1+6, j1+12,1)
-              call insertval(o1matrix_sm,ooterm(3,3),i1+12,j1+12,1)
-              call insertval(o1matrix_sm,ooterm(3,1),i1+12,j1,   1)
-              call insertval(o1matrix_sm,ooterm(3,2),i1+12,j1+6, 1)
-           endif
+           call insertval(r1matrix_sm,rrterm(3,3),i1+12,j1+12,1)
         endif
      enddo               ! on j
 
@@ -885,8 +814,14 @@ subroutine ludefphi_n(itri,dbf)
   real, intent(in) :: dbf
 
   integer :: i, i1, i2, i3, j, j1
-  real, dimension(3,3) :: ssterm, ddterm, rrterm, qqterm, ooterm
-  real :: temp, hypf, hypi, hypp, hypv, hypc
+  real, dimension(3,3) :: ssterm, ddterm, rrterm, qqterm
+  real :: temp, hypf, hypi, hypp, hypv, hypc, bdf
+
+  if(integrator.eq.1 .and. ntime.gt.1) then
+     bdf = 2.
+  else
+     bdf = 1.
+  endif
 
   hypf = hyper *deex**2
   hypi = hyperi*deex**2
@@ -906,35 +841,28 @@ subroutine ludefphi_n(itri,dbf)
         ddterm = 0.
         rrterm = 0.
         qqterm = 0.
-        ooterm = 0.
 
         j1 = isvaln(itri,j)
 
         ! NUMVAR = 1
         ! ~~~~~~~~~~
         temp = b1psi(g79(:,:,i),g79(:,:,j))
-        if(integrator.eq.1 .and. ntime.gt.1) then
-           ssterm(1,1) = ssterm(1,1) + 1.5*temp
-           ddterm(1,1) = ddterm(1,1) + 2.0*temp
-           ooterm(1,1) = ooterm(1,1) - 0.5*temp
-        else
-           ssterm(1,1) = ssterm(1,1) + temp
-           ddterm(1,1) = ddterm(1,1) + temp
-        endif
+        ssterm(1,1) = ssterm(1,1) + temp
+        ddterm(1,1) = ddterm(1,1) + temp*bdf
 
         temp = b1psieta(g79(:,:,i),g79(:,:,j),eta79,hypf)  &
              + b1psiu  (g79(:,:,i),g79(:,:,j),pht79)
-        ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
-        ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
+        ssterm(1,1) = ssterm(1,1) -     thimp     *dt*temp
+        ddterm(1,1) = ddterm(1,1) + (1.-thimp*bdf)*dt*temp
 
         temp = b1psiu(g79(:,:,i),ps179,g79(:,:,j))
         rrterm(1,1) = rrterm(1,1) + thimp*dt*temp
-        qqterm(1,1) = qqterm(1,1) - thimp*dt*temp
+        qqterm(1,1) = qqterm(1,1) - thimp*dt*temp*bdf
 
         if(linear.eq.1 .or. eqsubtract.eq.1) then
            temp = b1psiu(g79(:,:,i),ps079,g79(:,:,j))
-           rrterm(1,1) = rrterm(1,1) +     thimp *dt*temp
-           qqterm(1,1) = qqterm(1,1) + (1.-thimp)*dt*temp
+           rrterm(1,1) = rrterm(1,1) +     thimp     *dt*temp
+           qqterm(1,1) = qqterm(1,1) + (1.-thimp*bdf)*dt*temp
         endif
 
         ! NUMVAR = 2
@@ -942,76 +870,70 @@ subroutine ludefphi_n(itri,dbf)
         if(numvar.ge.2) then
            
            temp = b1psibd(g79(:,:,i),g79(:,:,j),bz179,ni79)*dbf              
-           ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
-           ddterm(1,1) = ddterm(1,1) + (.5-thimp)*dt*temp
+           ssterm(1,1) = ssterm(1,1) -     thimp     *dt*temp
+           ddterm(1,1) = ddterm(1,1) + (.5-thimp*bdf)*dt*temp
            
            temp = b1psibd(g79(:,:,i),ps179,g79(:,:,j),ni79)*dbf              
-           ssterm(1,2) = ssterm(1,2) -     thimp *dt*temp
-           ddterm(1,2) = ddterm(1,2) + (.5-thimp)*dt*temp
+           ssterm(1,2) = ssterm(1,2) -     thimp     *dt*temp
+           ddterm(1,2) = ddterm(1,2) + (.5-thimp*bdf)*dt*temp
            
            temp = b2psiv   (g79(:,:,i),g79(:,:,j),vzt79)
-           ssterm(2,1) = ssterm(2,1) -     thimp *dt*temp
-           ddterm(2,1) = ddterm(2,1) + (1.-thimp)*dt*temp
+           ssterm(2,1) = ssterm(2,1) -     thimp     *dt*temp
+           ddterm(2,1) = ddterm(2,1) + (1.-thimp*bdf)*dt*temp
 
            temp = b2psipsid(g79(:,:,i),g79(:,:,j),ps179,ni79)*dbf &
                 + b2psipsid(g79(:,:,i),ps179,g79(:,:,j),ni79)*dbf
-           ssterm(2,1) = ssterm(2,1) -     thimp *dt*temp
-           ddterm(2,1) = ddterm(2,1) + (.5-thimp)*dt*temp
+           ssterm(2,1) = ssterm(2,1) -     thimp     *dt*temp
+           ddterm(2,1) = ddterm(2,1) + (.5-thimp*bdf)*dt*temp
 
            temp = b2b(g79(:,:,i),g79(:,:,j))
-           if(integrator.eq.1 .and. ntime.gt.1) then
-              ssterm(2,2) = ssterm(2,2) + 1.5*temp
-              ddterm(2,2) = ddterm(2,2) + 2.0*temp
-              ooterm(2,2) = ooterm(2,2) - 0.5*temp
-           else
-              ssterm(2,2) = ssterm(2,2) + temp
-              ddterm(2,2) = ddterm(2,2) + temp
-           endif
+           ssterm(2,2) = ssterm(2,2) + temp
+           ddterm(2,2) = ddterm(2,2) + temp*bdf
 
            temp = b2beta(g79(:,:,i),g79(:,:,j),eta79,hypi) &
                 + b2bu  (g79(:,:,i),g79(:,:,j),pht79)
-           ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
-           ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
+           ssterm(2,2) = ssterm(2,2) -     thimp     *dt*temp
+           ddterm(2,2) = ddterm(2,2) + (1.-thimp*bdf)*dt*temp
 
            temp = b2bbd(g79(:,:,i),g79(:,:,j),bz179,ni79)*dbf &
                 + b2bbd(g79(:,:,i),bz179,g79(:,:,j),ni79)*dbf
-           ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
-           ddterm(2,2) = ddterm(2,2) + (.5-thimp)*dt*temp
+           ssterm(2,2) = ssterm(2,2) -     thimp     *dt*temp
+           ddterm(2,2) = ddterm(2,2) + (.5-thimp*bdf)*dt*temp
 
            temp = b2bu  (g79(:,:,i),bz179,g79(:,:,j))
            rrterm(2,1) = rrterm(2,1) + thimp*dt*temp
-           qqterm(2,1) = qqterm(2,1) - thimp*dt*temp
+           qqterm(2,1) = qqterm(2,1) - thimp*dt*temp*bdf
 
            temp = b2psiv(g79(:,:,i),ps179,g79(:,:,j))
            rrterm(2,2) = rrterm(2,2) + thimp*dt*temp
-           qqterm(2,2) = qqterm(2,2) - thimp*dt*temp
+           qqterm(2,2) = qqterm(2,2) - thimp*dt*temp*bdf
 
            if(linear.eq.1 .or. eqsubtract.eq.1) then
               temp = b1psibd(g79(:,:,i),g79(:,:,j),bz079,ni79)*dbf              
-              ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
-              ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
+              ssterm(1,1) = ssterm(1,1) -     thimp     *dt*temp
+              ddterm(1,1) = ddterm(1,1) + (1.-thimp*bdf)*dt*temp
               
               temp = b1psibd(g79(:,:,i),ps079,g79(:,:,j),ni79)*dbf              
-              ssterm(1,2) = ssterm(1,2) -     thimp *dt*temp
-              ddterm(1,2) = ddterm(1,2) + (1.-thimp)*dt*temp
+              ssterm(1,2) = ssterm(1,2) -     thimp     *dt*temp
+              ddterm(1,2) = ddterm(1,2) + (1.-thimp*bdf)*dt*temp
 
               temp = b2psipsid(g79(:,:,i),g79(:,:,j),ps079,ni79)*dbf &
                    + b2psipsid(g79(:,:,i),ps079,g79(:,:,j),ni79)*dbf
-              ssterm(2,1) = ssterm(2,1) -     thimp *dt*temp
-              ddterm(2,1) = ddterm(2,1) + (1.-thimp)*dt*temp
+              ssterm(2,1) = ssterm(2,1) -     thimp     *dt*temp
+              ddterm(2,1) = ddterm(2,1) + (1.-thimp*bdf)*dt*temp
 
               temp = b2bbd (g79(:,:,i),g79(:,:,j),bz079,ni79)*dbf &
                    + b2bbd (g79(:,:,i),bz079,g79(:,:,j),ni79)*dbf
-              ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
-              ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
+              ssterm(2,2) = ssterm(2,2) -     thimp     *dt*temp
+              ddterm(2,2) = ddterm(2,2) + (1.-thimp*bdf)*dt*temp
 
               temp = b2bu  (g79(:,:,i),bz079,g79(:,:,j))
-              rrterm(2,1) = rrterm(2,1) +     thimp *dt*temp
-              qqterm(2,1) = qqterm(2,1) + (1.-thimp)*dt*temp
+              rrterm(2,1) = rrterm(2,1) +     thimp     *dt*temp
+              qqterm(2,1) = qqterm(2,1) + (1.-thimp*bdf)*dt*temp
 
               temp = b2psiv(g79(:,:,i),ps079,g79(:,:,j))
-              rrterm(2,2) = rrterm(2,2) +     thimp *dt*temp
-              qqterm(2,2) = qqterm(2,2) + (1.-thimp)*dt*temp
+              rrterm(2,2) = rrterm(2,2) +     thimp     *dt*temp
+              qqterm(2,2) = qqterm(2,2) + (1.-thimp*bdf)*dt*temp
            endif
         endif
 
@@ -1020,63 +942,57 @@ subroutine ludefphi_n(itri,dbf)
         if(numvar.ge.3) then
 
            temp = b1psichi(g79(:,:,i),g79(:,:,j),cht79)                
-           ssterm(1,1) = ssterm(1,1) -     thimp *dt*temp
-           ddterm(1,1) = ddterm(1,1) + (1.-thimp)*dt*temp
+           ssterm(1,1) = ssterm(1,1) -     thimp     *dt*temp
+           ddterm(1,1) = ddterm(1,1) + (1.-thimp*bdf)*dt*temp
 
            temp = b1psichi(g79(:,:,i),ps179,g79(:,:,j))                
            rrterm(1,3) = rrterm(1,3) + thimp*dt*temp
-           qqterm(1,3) = qqterm(1,3) - thimp*dt*temp
+           qqterm(1,3) = qqterm(1,3) - thimp*dt*temp*bdf
 
            temp = b2bchi(g79(:,:,i),g79(:,:,j),cht79)                  
-           ssterm(2,2) = ssterm(2,2) -     thimp *dt*temp
-           ddterm(2,2) = ddterm(2,2) + (1.-thimp)*dt*temp
+           ssterm(2,2) = ssterm(2,2) -     thimp     *dt*temp
+           ddterm(2,2) = ddterm(2,2) + (1.-thimp*bdf)*dt*temp
 
            temp = b2ped(g79(:,:,i),g79(:,:,j),ni79)*dbf*pefac
-           ssterm(2,3) = ssterm(2,3) -     thimp *dt*temp
-           ddterm(2,3) = ddterm(2,3) + (1.-thimp)*dt*temp
+           ssterm(2,3) = ssterm(2,3) -     thimp     *dt*temp
+           ddterm(2,3) = ddterm(2,3) + (1.-thimp*bdf)*dt*temp
 
            temp = b2bchi(g79(:,:,i),bz179,g79(:,:,j))                  
            rrterm(2,3) = rrterm(2,3) + thimp*dt*temp
-           qqterm(2,3) = qqterm(2,3) - thimp*dt*temp
+           qqterm(2,3) = qqterm(2,3) - thimp*dt*temp*bdf
 
            temp = b3psipsieta(g79(:,:,i),g79(:,:,j),ps179,eta79) &
                 + b3psipsieta(g79(:,:,i),ps179,g79(:,:,j),eta79)
-           ssterm(3,1) = ssterm(3,1) -     thimp *dt*temp
-           ddterm(3,1) = ddterm(3,1) + (.5-thimp)*dt*temp
+           ssterm(3,1) = ssterm(3,1) -     thimp     *dt*temp
+           ddterm(3,1) = ddterm(3,1) + (.5-thimp*bdf)*dt*temp
 
            temp = b3pebd(g79(:,:,i),pe179,g79(:,:,j),ni79)*dbf*pefac
            ssterm(3,2) = ssterm(3,2) - thimp*dt*temp
-           ddterm(3,2) = ddterm(3,2) - thimp*dt*temp
+           ddterm(3,2) = ddterm(3,2) - thimp*dt*temp*bdf
 
            temp = b3bbeta(g79(:,:,i),g79(:,:,j),bz179,eta79) &
                 + b3bbeta(g79(:,:,i),bz179,g79(:,:,j),eta79)
-           ssterm(3,2) = ssterm(3,2) -     thimp *dt*temp
-           ddterm(3,2) = ddterm(3,2) + (.5-thimp)*dt*temp
+           ssterm(3,2) = ssterm(3,2) -     thimp     *dt*temp
+           ddterm(3,2) = ddterm(3,2) + (.5-thimp*bdf)*dt*temp
 
            temp = b3pe(g79(:,:,i),g79(:,:,j))
-           if(integrator.eq.1 .and. ntime.gt.1) then
-              ssterm(3,3) = ssterm(3,3) + 1.5*temp
-              ddterm(3,3) = ddterm(3,3) + 2.0*temp
-              ooterm(3,3) = ooterm(3,3) - 0.5*temp
-           else
-              ssterm(3,3) = ssterm(3,3) + temp
-              ddterm(3,3) = ddterm(3,3) + temp
-           endif
+           ssterm(3,3) = ssterm(3,3) + temp
+           ddterm(3,3) = ddterm(3,3) + temp*bdf
 
            temp = b3pebd(g79(:,:,i),g79(:,:,j),bzt79,ni79)*dbf*pefac &
                 + p1pu  (g79(:,:,i),g79(:,:,j),pht79)                & 
                 + p1pchi(g79(:,:,i),g79(:,:,j),cht79)                & 
                 + b3pedkappa(g79(:,:,i),g79(:,:,j),ni79,kappat,hypp)*(gam-1.)
-           ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp
-           ddterm(3,3) = ddterm(3,3) + (1.-thimp)*dt*temp
+           ssterm(3,3) = ssterm(3,3) -     thimp     *dt*temp
+           ddterm(3,3) = ddterm(3,3) + (1.-thimp*bdf)*dt*temp
 
            temp = p1pu(g79(:,:,i),pe179,g79(:,:,j))
            rrterm(3,1) = rrterm(3,1) + thimp*dt*temp
-           qqterm(3,1) = qqterm(3,1) - thimp*dt*temp
+           qqterm(3,1) = qqterm(3,1) - thimp*dt*temp*bdf
 
            temp = p1pchi(g79(:,:,i),pe179,g79(:,:,j))
            rrterm(3,3) = rrterm(3,3) + thimp*dt*temp
-           qqterm(3,3) = qqterm(3,3) - thimp*dt*temp
+           qqterm(3,3) = qqterm(3,3) - thimp*dt*temp*bdf
 
            ! Anisotropic Heat Flux
            if(kappar.ne.0) then
@@ -1084,44 +1000,44 @@ subroutine ludefphi_n(itri,dbf)
                    (p1kappar(g79(:,:,i),g79(:,:,j),pst79,pet79,ni79,b2i79) &
                    +p1kappar(g79(:,:,i),pst79,g79(:,:,j),pet79,ni79,b2i79))
               ssterm(3,1) = ssterm(3,1) - thimp*dt*temp
-              ddterm(3,1) = ddterm(3,1) - thimp*dt*temp
+              ddterm(3,1) = ddterm(3,1) - thimp*dt*temp*bdf
 
               temp = kappar*(gam-1.)* &
                    p1kappar(g79(:,:,i),pst79,pst79,g79(:,:,j),ni79,b2i79)
-              ssterm(3,3) = ssterm(3,3) -     thimp *dt*temp
-              ddterm(3,3) = ddterm(3,3) + (1.-thimp)*dt*temp
+              ssterm(3,3) = ssterm(3,3) -     thimp     *dt*temp
+              ddterm(3,3) = ddterm(3,3) + (1.-thimp*bdf)*dt*temp
            endif 
               
            if(linear.eq.1 .or. eqsubtract.eq.1) then
               temp = b1psichi(g79(:,:,i),ps079,g79(:,:,j))
-              rrterm(1,3) = rrterm(1,3) +     thimp *dt*temp
-              qqterm(1,3) = qqterm(1,3) + (1.-thimp)*dt*temp
+              rrterm(1,3) = rrterm(1,3) +     thimp     *dt*temp
+              qqterm(1,3) = qqterm(1,3) + (1.-thimp*bdf)*dt*temp
 
               temp = b2bchi(g79(:,:,i),bz079,g79(:,:,j))
-              rrterm(2,3) = rrterm(2,3) +     thimp *dt*temp
-              qqterm(2,3) = qqterm(2,3) + (1.-thimp)*dt*temp
+              rrterm(2,3) = rrterm(2,3) +     thimp     *dt*temp
+              qqterm(2,3) = qqterm(2,3) + (1.-thimp*bdf)*dt*temp
 
               temp = b3psipsieta(g79(:,:,i),g79(:,:,j),ps079,eta79) &
                    + b3psipsieta(g79(:,:,i),ps079,g79(:,:,j),eta79)
-              ssterm(3,1) = ssterm(3,1) -     thimp *dt*temp
-              ddterm(3,1) = ddterm(3,1) + (1.-thimp)*dt*temp
+              ssterm(3,1) = ssterm(3,1) -     thimp     *dt*temp
+              ddterm(3,1) = ddterm(3,1) + (1.-thimp*bdf)*dt*temp
 
               temp = b3bbeta(g79(:,:,i),g79(:,:,j),bz079,eta79) &
                    + b3bbeta(g79(:,:,i),bz079,g79(:,:,j),eta79)
-              ssterm(3,2) = ssterm(3,2) -     thimp *dt*temp
-              ddterm(3,2) = ddterm(3,2) + (1.-thimp)*dt*temp
+              ssterm(3,2) = ssterm(3,2) -     thimp     *dt*temp
+              ddterm(3,2) = ddterm(3,2) + (1.-thimp*bdf)*dt*temp
 
               temp = b3pebd(g79(:,:,i),pe079,g79(:,:,j),ni79)*dbf*pefac
-              ssterm(3,2) = ssterm(3,2) -     thimp *dt*temp
-              ddterm(3,2) = ddterm(3,2) + (1.-thimp)*dt*temp
+              ssterm(3,2) = ssterm(3,2) -     thimp     *dt*temp
+              ddterm(3,2) = ddterm(3,2) + (1.-thimp*bdf)*dt*temp
 
               temp = p1pu(g79(:,:,i),pe079,g79(:,:,j))
-              rrterm(3,1) = rrterm(3,1) +     thimp *dt*temp
-              qqterm(3,1) = qqterm(3,1) + (1.-thimp)*dt*temp
+              rrterm(3,1) = rrterm(3,1) +     thimp     *dt*temp
+              qqterm(3,1) = qqterm(3,1) + (1.-thimp*bdf)*dt*temp
 
               temp = p1pchi(g79(:,:,i),pe079,g79(:,:,j))                
-              rrterm(3,3) = rrterm(3,3) +     thimp *dt*temp
-              qqterm(3,3) = qqterm(3,3) + (1.-thimp)*dt*temp
+              rrterm(3,3) = rrterm(3,3) +     thimp     *dt*temp
+              qqterm(3,3) = qqterm(3,3) + (1.-thimp*bdf)*dt*temp
 
               ! Anisotropic Heat Flux
               if(kappar.ne.0) then
@@ -1137,9 +1053,6 @@ subroutine ludefphi_n(itri,dbf)
         call insertval(d2matrix_sm,ddterm(1,1),i1,j1,1)
         call insertval(r2matrix_sm,rrterm(1,1),i1,j1,1)
         call insertval(q2matrix_sm,qqterm(1,1),i1,j1,1)
-        if(integrator.eq.1) then
-           call insertval(o2matrix_sm,ooterm(1,1),i1,j1,1)
-        endif
         if(numvar.ge.2) then
            call insertval(s2matrix_sm,ssterm(1,2),i1  ,j1+6,1)
            call insertval(s2matrix_sm,ssterm(2,1),i1+6,j1  ,1)
@@ -1153,11 +1066,6 @@ subroutine ludefphi_n(itri,dbf)
            call insertval(q2matrix_sm,qqterm(1,2),i1  ,j1+6,1)
            call insertval(q2matrix_sm,qqterm(2,1),i1+6,j1  ,1)
            call insertval(q2matrix_sm,qqterm(2,2),i1+6,j1+6,1)
-           if(integrator.eq.1) then
-              call insertval(o2matrix_sm,ooterm(1,2),i1  ,j1+6,1)
-              call insertval(o2matrix_sm,ooterm(2,1),i1+6,j1  ,1)
-              call insertval(o2matrix_sm,ooterm(2,2),i1+6,j1+6,1)
-           endif
         endif
         if(numvar .eq. 3) then
            call insertval(s2matrix_sm,ssterm(1,3),i1,   j1+12,1)
@@ -1180,13 +1088,6 @@ subroutine ludefphi_n(itri,dbf)
            call insertval(q2matrix_sm,qqterm(3,3),i1+12,j1+12,1)
            call insertval(q2matrix_sm,qqterm(3,1),i1+12,j1,   1)
            call insertval(q2matrix_sm,qqterm(3,2),i1+12,j1+6, 1)
-           if(integrator.eq.1) then
-              call insertval(o2matrix_sm,ooterm(1,3),i1,   j1+12,1)
-              call insertval(o2matrix_sm,ooterm(2,3),i1+6, j1+12,1)
-              call insertval(o2matrix_sm,ooterm(3,3),i1+12,j1+12,1)
-              call insertval(o2matrix_sm,ooterm(3,1),i1+12,j1,   1)
-              call insertval(o2matrix_sm,ooterm(3,2),i1+12,j1+6, 1)
-           endif
         endif
      enddo ! on j
 
@@ -1281,9 +1182,15 @@ subroutine ludefden_n(itri,dbf)
   real, intent(in) :: dbf
 
   integer :: i, i1, ione, j, j1, jone
-  real :: ssterm, ddterm, ooterm
+  real :: ssterm, ddterm
   real, dimension(3) :: rrterm, qqterm
-  real :: temp, hypp
+  real :: temp, hypp, bdf
+
+  if(integrator.eq.1 .and. ntime.gt.1) then
+     bdf = 2.
+  else
+     bdf = 1.
+  endif
 
   hypp = hyperp*deex**2
 
@@ -1296,7 +1203,6 @@ subroutine ludefden_n(itri,dbf)
         ddterm = 0.
         rrterm = 0.
         qqterm = 0.
-        ooterm = 0.
 
         jone = isval1(itri,j)
         j1 = isvaln(itri,j)
@@ -1304,45 +1210,39 @@ subroutine ludefden_n(itri,dbf)
         ! NUMVAR = 1
         ! ~~~~~~~~~~
         temp = n1n(g79(:,:,i),g79(:,:,j))
-        if(integrator.eq.1 .and. ntime.gt.1) then
-           ssterm = ssterm + 1.5*temp
-           ddterm = ddterm + 2.0*temp
-           ooterm = ooterm - 0.5*temp
-        else
-           ssterm = ssterm + temp
-           ddterm = ddterm + temp
-        endif
+        ssterm = ssterm + temp
+        ddterm = ddterm + temp*bdf
         
         temp = n1ndenm(g79(:,:,i),g79(:,:,j),dt*denm,hypp) &
              + n1nu   (g79(:,:,i),g79(:,:,j),pht79)
-        ssterm = ssterm -     thimp *dt*temp
-        ddterm = ddterm + (1.-thimp)*dt*temp
+        ssterm = ssterm -     thimp     *dt*temp
+        ddterm = ddterm + (1.-thimp*bdf)*dt*temp
 
         temp = n1nu(g79(:,:,i),n179,g79(:,:,j))
         rrterm(1) = rrterm(1) + thimp*dt*temp
-        qqterm(1) = qqterm(1) - thimp*dt*temp
+        qqterm(1) = qqterm(1) - thimp*dt*temp*bdf
 
         if(linear.eq.1 .or. eqsubtract.eq.1) then
            temp = n1nu  (g79(:,:,i),n079,g79(:,:,j))
-           rrterm(1) = rrterm(1) +     thimp *dt*temp
-           qqterm(1) = qqterm(1) + (1.-thimp)*dt*temp
+           rrterm(1) = rrterm(1) +     thimp     *dt*temp
+           qqterm(1) = qqterm(1) + (1.-thimp*bdf)*dt*temp
         endif
 
         ! NUMVAR = 3
         ! ~~~~~~~~~~
         if(numvar.ge.3) then
            temp = n1nchi(g79(:,:,i),g79(:,:,j),cht79)
-           ssterm = ssterm -     thimp *dt*temp
-           ddterm = ddterm + (1.-thimp)*dt*temp
+           ssterm = ssterm -     thimp     *dt*temp
+           ddterm = ddterm + (1.-thimp*bdf)*dt*temp
            
            temp = n1nchi(g79(:,:,i),n179,g79(:,:,j))
            rrterm(3) = rrterm(3) + thimp*dt*temp
-           qqterm(3) = qqterm(3) - thimp*dt*temp
+           qqterm(3) = qqterm(3) - thimp*dt*temp*bdf
 
            if(linear.eq.1 .or. eqsubtract.eq.1) then
               temp = n1nchi(g79(:,:,i),n079,g79(:,:,j))
-              rrterm(3) = rrterm(3) +     thimp *dt*temp
-              qqterm(3) = qqterm(3) + (1.-thimp)*dt*temp
+              rrterm(3) = rrterm(3) +     thimp     *dt*temp
+              qqterm(3) = qqterm(3) + (1.-thimp*bdf)*dt*temp
            endif
         endif
 
@@ -1350,9 +1250,6 @@ subroutine ludefden_n(itri,dbf)
         call insertval(d8matrix_sm, ddterm, ione, jone, 1)
         call insertval(r8matrix_sm, rrterm(1), i1, j1, 1)
         call insertval(q8matrix_sm, qqterm(1), i1, j1, 1)
-        if(integrator.eq.1) then
-           call insertval(o8matrix_sm, ooterm, ione, jone, 1)
-        endif
         if(numvar.ge.2) then
            call insertval(r8matrix_sm,rrterm(2), i1,j1+6,1)
            call insertval(q8matrix_sm,qqterm(2), i1,j1+6,1)
@@ -1405,9 +1302,15 @@ subroutine ludefpres_n(itri,dbf)
   real, intent(in) :: dbf
 
   integer :: i, i1, ione, j, j1, jone
-  real :: ssterm, ddterm, ooterm
+  real :: ssterm, ddterm
   real, dimension(3) :: rrterm, qqterm
-  real :: temp, hypp
+  real :: temp, hypp, bdf
+
+  if(integrator.eq.1 .and. ntime.gt.1) then
+     bdf = 2.
+  else
+     bdf = 1.
+  endif
 
   hypp = hyperp*deex**2
 
@@ -1420,7 +1323,6 @@ subroutine ludefpres_n(itri,dbf)
         ddterm = 0.
         rrterm = 0.
         qqterm = 0.
-        ooterm = 0.
 
         jone = isval1(itri,j)
         j1 = isvaln(itri,j)
@@ -1429,27 +1331,21 @@ subroutine ludefpres_n(itri,dbf)
         ! NUMVAR = 1
         ! ~~~~~~~~~~
         temp = int2(g79(:,:,i),g79(:,:,j),weight_79,79)
-        if(integrator.eq.1 .and. ntime.gt.1) then
-           ssterm = ssterm + 1.5*temp
-           ddterm = ddterm + 2.0*temp
-           ooterm = ooterm - 0.5*temp
-        else 
-           ssterm = ssterm + temp
-           ddterm = ddterm + temp
-        endif
+        ssterm = ssterm + temp
+        ddterm = ddterm + temp*bdf
         
         temp = p1pu   (g79(:,:,i),g79(:,:,j),pht79)
-        ssterm = ssterm -     thimp *dt*temp
-        ddterm = ddterm + (1.-thimp)*dt*temp
+        ssterm = ssterm -     thimp     *dt*temp
+        ddterm = ddterm + (1.-thimp*bdf)*dt*temp
 
         temp = p1pu(g79(:,:,i),p179,g79(:,:,j))
         rrterm(1) = rrterm(1) + thimp*dt*temp
-        qqterm(1) = qqterm(1) - thimp*dt*temp
+        qqterm(1) = qqterm(1) - thimp*dt*temp*bdf
 
         if(linear.eq.1 .or. eqsubtract.eq.1) then
            temp = p1pu  (g79(:,:,i),p079,g79(:,:,j))
-           rrterm(1) = rrterm(1) +     thimp *dt*temp
-           qqterm(1) = qqterm(1) + (1.-thimp)*dt*temp
+           rrterm(1) = rrterm(1) +     thimp     *dt*temp
+           qqterm(1) = qqterm(1) + (1.-thimp*bdf)*dt*temp
         endif
 
         ! NUMVAR = 3
@@ -1458,17 +1354,17 @@ subroutine ludefpres_n(itri,dbf)
            temp = p1pchi    (g79(:,:,i),g79(:,:,j),cht79) &
                 + b3pedkappa(g79(:,:,i),g79(:,:,j),ni79,kappat,hypp)*(gam-1.) &
                 + p1kappar  (g79(:,:,i),ps079,ps079,g79(:,:,j),ni79,b2i79)*kappar*(gam-1.)
-           ssterm = ssterm -     thimp *dt*temp
-           ddterm = ddterm + (1.-thimp)*dt*temp
+           ssterm = ssterm -     thimp     *dt*temp
+           ddterm = ddterm + (1.-thimp*bdf)*dt*temp
            
            temp = p1pchi(g79(:,:,i),p179,g79(:,:,j))
            rrterm(3) = rrterm(3) + thimp*dt*temp
-           qqterm(3) = qqterm(3) - thimp*dt*temp
+           qqterm(3) = qqterm(3) - thimp*dt*temp*bdf
 
            if(linear.eq.1 .or. eqsubtract.eq.1) then
               temp = p1pchi(g79(:,:,i),p079,g79(:,:,j))
-              rrterm(3) = rrterm(3) +     thimp *dt*temp
-              qqterm(3) = qqterm(3) + (1.-thimp)*dt*temp
+              rrterm(3) = rrterm(3) +     thimp     *dt*temp
+              qqterm(3) = qqterm(3) + (1.-thimp*bdf)*dt*temp
            endif
         endif
         
@@ -1476,9 +1372,6 @@ subroutine ludefpres_n(itri,dbf)
         call insertval(d9matrix_sm, ddterm, ione, jone, 1)
         call insertval(r9matrix_sm, rrterm(1), i1, j1, 1)
         call insertval(q9matrix_sm, qqterm(1), i1, j1, 1)
-        if(integrator.eq.1) then
-           call insertval(o9matrix_sm, ooterm, ione, jone, 1)
-        endif
         if(numvar.ge.2) then
            call insertval(r9matrix_sm,rrterm(2), i1,j1+6,1)
            call insertval(q9matrix_sm,qqterm(2), i1,j1+6,1)
