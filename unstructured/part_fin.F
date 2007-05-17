@@ -63,6 +63,7 @@ c     created with ordering specified by numvar
       call createvec(vels, numvar)
       call createvec(velold, numvar)
       call createvec(veln, numvar)
+      call createvec(veloldn, numvar)
       call createvec(vel0, numvar)
       call createvec(vel1, numvar)
       call createvec(phi, numvar)
@@ -81,6 +82,7 @@ c     created with ordering specified by numvar
          call createvec(phip, numvar)
          call createvec(qp4, 1)
          call createvec(pres, 1)
+         call createvec(press, 1)
          call createvec(pres0, 1)
          call createvec(presold, 1)
       endif
@@ -95,6 +97,7 @@ c     created with ordering specified by numvar
       call createvec(com, 1)
       call createvec(den, 1)
       call createvec(den0, 1)
+      call createvec(dens, 1)
       call createvec(deni, 1)
       call createvec(denold, 1)
       call createvec(qn4, 1)
@@ -102,13 +105,10 @@ c     created with ordering specified by numvar
       call createvec(tempvar,1)
 !
 !.....boundary arrays
-c$$$      allocate(iboundv(nbound),iboundv2(nbound),                        &
-c$$$     &     iboundp(nbound),iboundn(nbound),                             &
-c$$$     &     psibounds(nbound),velbounds(nbound))
-c$$$      if(ipres.eq.1) allocate(iboundpres(nbound))
+
       allocate(iboundv(numvar*nbound),iboundv2(numvar*nbound),          &
-     &     iboundp(numvar*nbound),iboundn(nbound),                      &
-     &     psibounds(numvar*nbound),velbounds(numvar*nbound))
+     &     iboundp(numvar*nbound),iboundn(nbound))
+
       if(ipres.eq.1) allocate(iboundpres(nbound))
 
 !

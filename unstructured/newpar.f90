@@ -264,13 +264,15 @@ Program Reducedquintic
   call newvar_eta
   !   toroidal current
   call newvar_d2(phi+phi0,jphi,1,NV_DCBOUND,NV_GS)
-  !   vorticity
-  call newvar_d2(vel+vel0, vor,1,NV_DCBOUND,NV_GS)
-  !   compression
-  if(numvar.ge.3) then 
-     call newvar_d2(vel+vel0,com,3,NV_NOBOUND,NV_LP)
-  else
-     com = 0.
+  if(hyperc.ne.0) then
+     !   vorticity
+     call newvar_d2(vel+vel0, vor,1,NV_DCBOUND,NV_GS)
+     !   compression
+     if(numvar.ge.3) then 
+        call newvar_d2(vel+vel0,com,3,NV_NOBOUND,NV_LP)
+     else
+        com = 0.
+     endif
   endif
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
@@ -465,12 +467,6 @@ Program Reducedquintic
      call freesmo(r9matrix_sm)
      call freesmo(q9matrix_sm)
   endif
-  if(integrator.eq.1) then
-     call freesmo(o1matrix_sm)
-     call freesmo(o2matrix_sm)
-     if(idens.eq.1) call freesmo(o8matrix_sm)
-     if(ipres.eq.1) call freesmo(o9matrix_sm)
-  endif
   call deletesearchstructure()
 !  free memory for numberings
   call deletedofnumbering(1)
@@ -544,6 +540,7 @@ subroutine onestep
   endif
 
   veln = vel
+  veloldn = velold
   
 
   ! Advance Velocity
@@ -578,11 +575,6 @@ subroutine onestep
 
   vtemp = vtemp + b1vector + r4
 
-  if(integrator.eq.1 .and. ntime.gt.1) then
-     call matrixvectormult(o1matrix_sm, velold, b1vector)
-     vtemp = vtemp + b1vector
-  endif
-
   ! apply boundary conditions
 !!$  do l=1,nbcv
 !!$     vtemp(iboundv(l)) = velbounds(l)
@@ -602,6 +594,9 @@ subroutine onestep
      call safestop(42)
   endif
 
+  if(integrator.eq.1 .and. ntime.gt.1) then
+     vtemp = (2.*vtemp - velold)/3.
+  endif
 
   ! apply smoothing operators
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -644,17 +639,25 @@ subroutine onestep
 
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
-     ! b2vector = r8matrix_lu * vel(n+1)
+     ! b2vector = r8matrix_sm * vel(n+1)
      call matrixvectormult(r8matrix_sm,vel,b2vector)
 
      ! b3vector = q8matrix_sm * vel(n)
      call matrixvectormult(q8matrix_sm,veln,b3vector)
 
+     ! b1vector = r8matrix_sm * vel(n-1)
+     if(integrator.eq.1 .and. ntime.gt.1) then
+        b2vector = 1.5*b2vector
+        call matrixvectormult(r8matrix_sm,veloldn,b1vector)
+        b1vector = 0.5*b1vector
+     else
+        b1vector = 0.
+     endif
+
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_mvm = t_mvm + tend - tstart
      endif
-
 
      ! temp = d8matrix_sm * phi(n)
      call createvec(temp, 1)
@@ -670,19 +673,13 @@ subroutine onestep
         call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
         do i=0,iendplusone-ibegin-1
            temp(ibegin+i) = temp(ibegin+i) + itemp(ibegin+i) * &
-                (b2vector(ibeginnv+i) + b3vector(ibeginnv+i) + qn4(ibegin+i))
+                (b2vector(ibeginnv+i) + b3vector(ibeginnv+i) + qn4(ibegin+i)) &
+                +b1vector(ibeginnv+i)
 
            itemp(ibegin+i) = 0
         enddo
      enddo
      deallocate(itemp)
-
-     if(integrator.eq.1 .and. ntime.gt.1) then
-        call createvec(temp2, 1)
-        call matrixvectormult(o8matrix_sm,denold,temp2)
-        temp = temp + temp2
-        call deletevec(temp2)
-     endif
 
      ! insert boundary conditions
      do l=1,nbcn
@@ -706,6 +703,9 @@ subroutine onestep
      endif
 
      ! new field solution at time n+1 (or n* for second order advance)
+     if(integrator.eq.1 .and. ntime.gt.1) then
+        temp = (2.*temp - denold)/3.
+     endif
      denold = den
      den = temp
      call deletevec(temp)
@@ -719,11 +719,20 @@ subroutine onestep
 
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
-     ! b2vector = r9matrix_lu * vel(n+1)
+     ! b2vector = r9matrix_sm * vel(n+1)
      call matrixvectormult(r9matrix_sm,vel,b2vector)
 
      ! b3vector = q9matrix_sm * vel(n)
      call matrixvectormult(q9matrix_sm,veln,b3vector)
+
+     ! b1vector = r9matrix_sm * vel(n-1)
+     if(integrator.eq.1 .and. ntime.gt.1) then
+        b2vector = 1.5*b2vector
+        call matrixvectormult(r9matrix_sm,veloldn,b1vector)
+        b1vector = 0.5*b1vector
+     else
+        b1vector = 0.
+     endif
 
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
@@ -744,18 +753,12 @@ subroutine onestep
         call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
         do i=0,iendplusone-ibegin-1
            temp(ibegin+i) = temp(ibegin+i) + itemp(ibegin+i) * &
-                (b2vector(ibeginnv+i) + b3vector(ibeginnv+i) + qp4(ibegin+i))
+                (b2vector(ibeginnv+i) + b3vector(ibeginnv+i) + qp4(ibegin+i)) &
+                +b1vector(ibeginnv+i)
            itemp(ibegin+i) = 0
         enddo
      enddo
      deallocate(itemp)
-
-     if(integrator.eq.1 .and. ntime.gt.1) then
-        call createvec(temp2, 1)
-        call matrixvectormult(o9matrix_sm,presold,temp2)
-        temp = temp + temp2
-        call deletevec(temp2)
-     endif
 
      ! apply boundary conditions
      do l=1,nbcpres
@@ -779,6 +782,9 @@ subroutine onestep
      endif
 
      ! new field solution at time n+1 (or n* for second order advance)
+     if(integrator.eq.1 .and. ntime.gt.1) then
+        temp = (2.*temp - presold)/3.
+     endif
      presold = pres
      pres = temp
      call deletevec(temp)
@@ -793,11 +799,20 @@ subroutine onestep
   
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
-  ! b2vector = r2matrix_lu * vel(n+1)
+  ! b2vector = r2matrix_sm * vel(n+1)
   call matrixvectormult(r2matrix_sm,vel,b2vector)
 
-  ! b3vector = q2matrix_lu * vel(n)
+  ! b3vector = q2matrix_sm * vel(n)
   call matrixvectormult(q2matrix_sm,veln,b3vector)
+
+  ! b1vector = r2matrix_sm * vel(n-1)
+  if(integrator.eq.1 .and. ntime.gt.1) then
+     b2vector = 1.5*b2vector
+     call matrixvectormult(r2matrix_sm,veloldn,b1vector)
+     b1vector = 0.5*b1vector
+  else
+     b1vector = 0.
+  endif
 
   ! vtemp = d2matrix_sm * phi(n)
   vtemp = 0.
@@ -808,13 +823,7 @@ subroutine onestep
      t_mvm = t_mvm + tend - tstart
   endif
 
-  vtemp = vtemp + b2vector + b3vector + q4
-
-  if(integrator.eq.1 .and. ntime.gt.1) then
-     call matrixvectormult(o2matrix_sm, phiold, b1vector)
-     vtemp = vtemp + b1vector
-  endif
-
+  vtemp = vtemp + b2vector + b3vector + q4  + b1vector
  
   ! Insert boundary conditions
 !!$  do l=1,nbcp
@@ -839,6 +848,9 @@ subroutine onestep
   endif
 
   ! new field solution at time n+1 (or n* for second order advance)
+  if(integrator.eq.1 .and. ntime.gt.1) then
+     vtemp = (2.*vtemp - phiold)/3.
+  endif
   phiold = phi
   phi = vtemp
 
@@ -857,10 +869,12 @@ subroutine onestep
   call newvar_eta
   !   toroidal current
   call newvar_d2(phi+phi0,jphi,1,NV_DCBOUND,NV_GS)
-  !   vorticity
-  call newvar_d2(vel+vel0,vor,1,NV_DCBOUND,NV_GS)
-  !   compression
-  if(numvar.ge.3) call newvar_d2(vel+vel0,com,3,NV_NOBOUND,NV_LP)
+  if(hyperc.ne.0) then
+     !   vorticity
+     call newvar_d2(vel+vel0,vor,1,NV_DCBOUND,NV_GS)
+     !   compression
+     if(numvar.ge.3) call newvar_d2(vel+vel0,com,3,NV_NOBOUND,NV_LP)
+  endif
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      t_aux = t_aux + tend - tstart

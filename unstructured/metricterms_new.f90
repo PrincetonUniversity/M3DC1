@@ -2309,7 +2309,7 @@ real function quumu(e,f,g,h,i,j)
   real, intent(in) :: h, i, j
   real :: temp
 
-  temp = -h*int4(ri2_79,e(:,OP_1),vot79(:,OP_1),vot79(:,OP_1),weight_79,79)
+  temp = -h*int4(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),weight_79,79)
 
   if(j.ne.0) then
      temp = temp - h*j* &

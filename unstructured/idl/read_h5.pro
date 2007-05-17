@@ -657,7 +657,8 @@ end
 
 
 pro plot_scalar, scalarname, filename=filename, names=names, $
-                 _EXTRA=extra, overplot=overplot, ylog=ylog, left=left
+                 _EXTRA=extra, overplot=overplot, $
+                 ylog=ylog, xlog=xlog, left=left
 
   if(n_elements(filename) eq 0) then filename='C1.h5'
 
@@ -668,13 +669,13 @@ pro plot_scalar, scalarname, filename=filename, names=names, $
       colors = colors(nfiles)
 
       plot_scalar, scalarname, filename=filename[0], $
-        color=colors[0], _EXTRA=extra, ylog=ylog
+        color=colors[0], _EXTRA=extra, ylog=ylog, xlog=xlog
       for i=1, nfiles-1 do begin
           plot_scalar, scalarname, filename=filename[i], $
-            /overplot, color=colors[i], _EXTRA=extra, ylog=ylog
+            /overplot, color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog
       end
       if(n_elements(names) gt 0) then begin
-          plot_legend, names, color=colors, ylog=ylog, left=left
+          plot_legend, names, color=colors, ylog=ylog, xlog=xlog, left=left
       endif    
 
       return
@@ -734,6 +735,6 @@ pro plot_scalar, scalarname, filename=filename, names=names, $
       oplot, s.time._data, data, _EXTRA=extra
   endif else begin
       plot, s.time._data, data, $
-        title=title, ytitle=ytitle, _EXTRA=extra, ylog=ylog
+        title=title, ytitle=ytitle, _EXTRA=extra, ylog=ylog, xlog=xlog
   endelse
 end

@@ -152,6 +152,7 @@ c     first put in information to check on run information
          endif
          call safestop(2)
       endif
+
       do j1=1,mmnn18
          read(56) vel(j1)
       enddo
