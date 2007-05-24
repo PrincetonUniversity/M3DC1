@@ -135,6 +135,9 @@
       eta0 = 0.
       kappa = .001
 !
+!.....ratio of specific heats
+      gam = 5./3.
+!
 !.....loop voltage
       vloop = 0.
 !

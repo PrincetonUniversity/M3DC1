@@ -708,9 +708,19 @@ subroutine define_fields_79(itri, fields)
   ! ~~
   if(iand(fields, FIELD_B2I).eq.FIELD_B2I) then
      if(numvar.eq.1) then
-        b2i79(:,OP_1) = 1./(pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2)
+        b2i79(:,OP_1 ) = 1./(pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2)
+        b2i79(:,OP_DR) = -2.*b2i79(:,OP_1)**2 &
+             *(pst79(:,OP_DR)*pst79(:,OP_DRR) + pst79(:,OP_DZ)*pst79(:,OP_DRZ))
+        b2i79(:,OP_DZ) = -2.*b2i79(:,OP_1)**2 &
+             *(pst79(:,OP_DR)*pst79(:,OP_DRZ) + pst79(:,OP_DZ)*pst79(:,OP_DZZ))
      else
         b2i79(:,OP_1) = 1./(pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2 + bzt79(:,OP_1)**2)
+        b2i79(:,OP_DR) = -2.*b2i79(:,OP_1)**2 &
+             *(pst79(:,OP_DR)*pst79(:,OP_DRR) + pst79(:,OP_DZ)*pst79(:,OP_DRZ) &
+              +bzt79(:,OP_1 )*bzt79(:,OP_DR ))
+        b2i79(:,OP_DZ) = -2.*b2i79(:,OP_1)**2 &
+             *(pst79(:,OP_DR)*pst79(:,OP_DRZ) + pst79(:,OP_DZ)*pst79(:,OP_DZZ) &
+              +bzt79(:,OP_1 )*bzt79(:,OP_DZ ))
      endif
   endif
 

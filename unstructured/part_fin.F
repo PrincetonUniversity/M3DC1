@@ -43,19 +43,11 @@
       use nintegrate_mod
 
       implicit none
-      integer numnodes, nbound, numelms, i, izone, izonedim 
+      integer numnodes, numelms, i, izone, izonedim 
 
       call numnod(numnodes)
       call numfac(numelms)
       ntri   = 2*numelms !should this be ntri = numelms???
-
-      nbound = 0 ! number of boundary vertices
-      do i=1,numnodes
-         call zonenod(i, izone, izonedim)
-c$$$         if(izonedim .ne. 2) nbound = nbound + 1
-         if(izonedim.le.1) nbound = nbound + 6
-      enddo
-c$$$      nbound = 12*nbound*numvar
 !
 !.....arrays defined at all vertices
 c     created with ordering specified by numvar
@@ -104,14 +96,6 @@ c     created with ordering specified by numvar
       call createvec(resistivity, 1)
       call createvec(tempvar,1)
 !
-!.....boundary arrays
-
-      allocate(iboundv(numvar*nbound),iboundv2(numvar*nbound),          &
-     &     iboundp(numvar*nbound),iboundn(nbound))
-
-      if(ipres.eq.1) allocate(iboundpres(nbound))
-
-!
 !.....arrays associated with the triangles
       allocate(ist(ntri,3),isvaln(ntri,18),isval1(ntri,18),             &
      &         isval2(ntri,18))
@@ -143,10 +127,9 @@ c     created with ordering specified by numvar
      &     aterm(18,18), bterm(18,18),fintl(-6:maxi,-6:maxi),
      &     dterm(18,18)
       real, allocatable:: temp(:)
-      integer,  save, allocatable :: iboundsm(:), iboundsm2(:)
       real hyp, thimpsm
       integer numvarsm, itri, i, j,izone,izonedim,
-     1     l, jone, ier, jtwo, itwo, nbcsm, nbound
+     1     l, jone, ier, jtwo, itwo
 !
       if(myrank.eq.0 .and. iprint.eq.1) print *, " smoother3"
 
@@ -159,15 +142,6 @@ c     created with ordering specified by numvar
 ! 
       if(ifirsts7_lu.ne.0) go to 500
       ifirsts7_lu = 1
-
-      nbound = 0
-      do i=1,numnodes
-         call zonenod(i,izone,izonedim)
-c$$$         if(izonedim .ne. 2) nbound = nbound + 1
-         if(izonedim.le.1) nbound = nbound + 6
-      enddo
-c$$$      nbound = 12*numvar*nbound
-      allocate(iboundsm(numvarsm*nbound),iboundsm2(numvarsm*nbound))
 !
 !
 !.....compute LU decomposition only once
@@ -197,15 +171,8 @@ c$$$      nbound = 12*numvar*nbound
         enddo
       enddo
 !
-!......define indices for boundary arrays
-      call boundarysm(iboundsm,iboundsm2,nbcsm,iplace)
-      ! bc stuff...
-      do i=1,nbcsm
-         call setdiribc(s7matrix_sm, iboundsm(i))
-c$$$         if(iboundsm2(i) .ne. 0) then
-c$$$            call insertval(s7matrix_sm,1.,iboundsm(i),iboundsm2(i),0)
-c$$$         endif
-      enddo
+!.....Insert boundary conditions
+      call boundary_com(s7matrix_sm, temp)
       call finalizearray4solve(s7matrix_sm)
 !
  500  continue
@@ -227,14 +194,8 @@ c$$$         endif
             enddo
          enddo
       enddo
-      
-      do l=1,nbcsm
-      if(iboundsm(l).le.0 .or. iboundsm(l).gt.ndofs_sm) then
-         write(*,*) "error in smoother"
-         call safestop(98)
-      endif
-      temp(iboundsm(l)) = 0.
-      enddo
+
+      call boundary_com(0, temp)
       call sumshareddofs(temp)
 !
 !.....perform LU backsubstitution to get outarray solution
@@ -342,7 +303,6 @@ c      enddo
       sech = 1./cosh(x)
       return
       end
-!==================================
 !============================================================
       subroutine rhsdef
 !
@@ -354,11 +314,9 @@ c      enddo
       integer itri, i, j, iii, ii, i1, i2, i3, k, l, numelms,
      &     ibegin, iendplusone, ibegin2, iendplusone2, ibeginn,
      &     iendplusonen
-c$$$      real term, sum, fac1, fac2, fac3, fact, alx, alz
+
       real :: f
 !
-c$$$      call getboundingboxsize(alx, alz)
-c$$$      b1vecini = 0.
       call numfac(numelms)
 
       do itri=1,numelms
@@ -370,19 +328,7 @@ c$$$      b1vecini = 0.
      &              fint(i,j) = f(i,j,atri(itri),btri(itri),ctri(itri))
             enddo
          enddo
-c$$$!.....x,z dependent part follows
-c$$$!
-c$$$!     expand x and z in terms of si and eta for this element
-c$$$         call local(xi,zi,btri(itri),ttri(itri),itri)
-c$$$!      write(*,400) itri,xi(1),xi(2),xi(3),zi(1),zi(2),zi(3)
-c$$$! 400  format('=',i3,6(f6.2))
-c$$$!
-c$$$!
-c$$$!     calculate the RHS function and its first 2 derivatives
-c$$$         call fun(xi(1),zi(1),df,alx,alz)  
-c$$$!
-c$$$!.....start loops to compute the RHS vector for this triangular element,
-c$$$!
+
          do iii=1,3
             call entdofs(1, ist(itri,iii)+1, 0, ibegin, iendplusone)
             call entdofs(2, ist(itri,iii)+1, 0, ibegin2, iendplusone2)
@@ -392,55 +338,14 @@ c$$$!
                isval1(itri,i) = ibegin+ii-1 ! 6*ist(itri,iii)+ii
                isval2(itri,i) = ibegin2+ii-1 ! 12*ist(itri,iii)+ii
                isvaln(itri,i) = ibeginn+ii-1 ! numvar*6*ist(itri,iii)+ii
-c$$$           i1 = isvaln(itri,i)
-c$$$           i2 = i1 + 6
-c$$$           i3 = i2 + 6
-c$$$!
-c$$$            term = 0
-c$$$            do k=1,20
-c$$$!
-c$$$             sum = 0
-c$$$             do j=0,4
-c$$$             do l=0,j
-c$$$               fac1 = df(j,l)
-c$$$               do p=0,l
-c$$$               fac2 = fac1*xi(2)**(l-p)  *xi(3)**p/(fact(p)*fact(l-p))
-c$$$               do q=0,j-l
-c$$$               fac3 = fac2*zi(2)**(j-l-q)*zi(3)**q/(fact(q)*fact(j-l-q))
-c$$$!
-c$$$               sum = sum + fac3*fint(mi(k)+j-p-q,ni(k)+p+q)
-c$$$!
-c$$$               enddo
-c$$$               enddo
-c$$$             enddo
-c$$$             enddo
-c$$$!
-c$$$             term =  term + gtri(k,i,itri)*sum
-c$$$            enddo
-!
-!............velocity perturbations
-c$$$             b1vecini(i1) = b1vecini(i1) - term                         &
-c$$$     &                    *((pi/alx)**2+(pi/alz)**2)
-c$$$             if(numvar.ge.2) b1vecini(i2) = b1vecini(i2)
-c$$$!    &              - term*((pi/alx)**2+(pi/alz)**2)
-c$$$             if(numvar.ge.3) b1vecini(i3) = 0.
-c$$$!
-c$$$!............fluxes
-c$$$             b2vecini(i1) = 0.
-c$$$             if(numvar.ge.2) b2vecini(i2) = 0.
-c$$$             if(numvar.ge.3) b2vecini(i3) = 0.
+
 !
             enddo
          enddo
 !.....end of do loops on i
 !
-      enddo                     ! end of loop over numelms
-! since a proc is contributing values to parts of the vector
-! it does not own, we call sumshareddofs so that these values
-! get summed up for all values shared by multiple procs
-! and then update these values
-c$$$      call sumshareddofs(b1vecini)
-c      call safestop(1111)
+      enddo
+
       return
       end
 
@@ -468,12 +373,6 @@ c      call safestop(1111)
 !.....define all input parameters (choose by test problem)
       call input
       ntimemin = min(2,ntimemax-1)
-      iboundmax = 0
-      do i=1,numnodes
-         call zonenod(i,izone,izonedim)
-         if(izonedim .ne. 2) iboundmax = iboundmax + 1
-      enddo
-      iboundmax = 12*numvar*iboundmax
 !
       tt = 2.*thimp
       gam = 5./3.
@@ -510,160 +409,3 @@ c$$$      b2vecini = 0.
 !.....end of section defining geometrical parameters for triangles
       return
       end
-!============================================================
-c$$$      subroutine fun(x,z,df,alx,alz)
-c$$$      implicit none
-c$$$      integer i, j
-c$$$      real x, z, df, alx, alz, pi, anorm, akx, akz, snx, cox, snz, coz
-c$$$      dimension df(0:4, 0:4)
-c$$$!
-c$$$!.....source term and derivatives for initial perturbation
-c$$$!     first dimension of df is number of derivatives, second is
-c$$$!     number of x derivatives
-c$$$!
-c$$$      pi = acos(-1.)
-c$$$      anorm = ((pi/alx)**2+(pi/alz)**2)
-c$$$!
-c$$$      akx = pi/alx
-c$$$      akz = pi/alz
-c$$$!
-c$$$      snx = sin(akx*x)
-c$$$      cox = cos(akx*x)
-c$$$      snz = sin(akz*z)
-c$$$      coz = cos(akz*z)
-c$$$!
-c$$$      do i=0,4
-c$$$        do j=0,4
-c$$$          df(i,j) = 0.
-c$$$        enddo
-c$$$      enddo
-c$$$!.....first index is total derivatives, second is x derivative
-c$$$      df(0,0) = anorm       *snx*snz
-c$$$!
-c$$$      df(1,0) = anorm       *akz   *snx*coz
-c$$$      df(1,1) = anorm*akx          *cox*snz
-c$$$!
-c$$$      df(2,0) =-anorm       *akz**2*snx*snz
-c$$$      df(2,1) = anorm*akx*   akz   *cox*coz
-c$$$      df(2,2) =-anorm*akx**2       *snx*snz      
-c$$$!
-c$$$      df(3,0) =-anorm*       akz**3*snx*coz   
-c$$$      df(3,1) =-anorm*akx*   akz**2*cox*snz
-c$$$      df(3,2) =-anorm*akx**2*akz   *snx*coz
-c$$$      df(3,3) =-anorm*akx**3       *cox*snz
-c$$$!
-c$$$      df(4,0) = anorm*       akz**4*snx*snz
-c$$$      df(4,1) =-anorm*akx*   akz**3*cox*coz
-c$$$      df(4,2) = anorm*akx**2*akz**2*snx*snz
-c$$$      df(4,3) =-anorm*akx**3*akz   *cox*coz
-c$$$      df(4,4) = anorm*akx**4       *snx*snz
-c$$$!
-c$$$      return
-c$$$      end
-
-!============================================================
-
-c$$$      subroutine definerhs(inarray,outarray,numnodes)
-c$$$!
-c$$$!      This routine defines a new vector to be equal to the vector
-c$$$!      on the RHS
-c$$$!
-c$$$!
-c$$$      use p_data
-c$$$      use t_data
-c$$$      use basic
-c$$$      use arrays
-c$$$      use sparse
-c$$$      implicit none
-c$$$      integer numnodes, numnodes1, l, i, numvards, 
-c$$$     &     nrankds, itri, j, jone, ione, nbcds, 
-c$$$     &     ier, jer, nbound, numelms, izone, izonedim, ibegin,
-c$$$     &     iendplusone, ibeginnv, iendplusonenv, ndofs
-c$$$      real ssterm, ddterm
-c$$$      dimension ssterm(3,3),ddterm(3,3)
-c$$$      real, allocatable::phin(:),temp(:)
-c$$$      integer, save, allocatable::iboundds(:)
-c$$$      real inarray(:),outarray(:)
-c$$$      real aterm(18,18), dterm(18,18), fintl(-6:maxi,-6:maxi)
-c$$$!
-c$$$      call numfac(numelms)
-c$$$      call numnod(numnodes1)
-c$$$      call numdofs(1, ndofs)
-c$$$      call createvec(phin, 1)
-c$$$      call createvec(temp, 1)
-c$$$!.....put psi into a numvar=1 storage array
-c$$$      do l=1,numnodes1
-c$$$         call entdofs(1, l, 0, ibegin, iendplusone)
-c$$$         call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
-c$$$         do i=0,iendplusone-ibegin-1
-c$$$            phin(ibegin+i) = inarray(ibeginnv+i)
-c$$$         enddo
-c$$$      enddo
-c$$$!
-c$$$      if(ifirsts4_lu.ne.0) go to 500
-c$$$      ifirsts4_lu = 1
-c$$$      nbound = 0
-c$$$      do i=1,numnodes1
-c$$$         call zonenod(i,izone,izonedim)
-c$$$         if(izonedim .ne. 2) nbound = nbound + 1
-c$$$      enddo
-c$$$      nbound = 12*numvar*nbound
-c$$$      allocate(iboundds(nbound))
-c$$$!
-c$$$      numvards = 1
-c$$$      nrankds = ndofs*6
-c$$$!
-c$$$!.....compute LU decomposition only once
-c$$$!
-c$$$!.....form matrices
-c$$$      call zeroarray4solve(s4matrix_sm,numvar1_numbering)
-c$$$      call zeroarray4multiply(d4matrix_sm,numvar1_numbering)
-c$$$      do itri=1,numelms
-c$$$         call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
-c$$$         call calcaterm(itri, aterm, fintl)
-c$$$         call calcdterm(itri, dterm, fintl)
-c$$$        do j=1,18
-c$$$        do i=1,18
-c$$$            jone = isval1(itri,j)
-c$$$            ione = isval1(itri,i)
-c$$$            ssterm(1,1) = dterm(i,j)
-c$$$            ddterm(1,1) = aterm(i,j)
-c$$$            call insertval(s4matrix_sm, ssterm(1,1),ione,jone,1)
-c$$$            call insertval(d4matrix_sm, ddterm(1,1),ione,jone,1)
-c$$$!
-c$$$        enddo
-c$$$        enddo
-c$$$      enddo
-c$$$!
-c$$$!......define indices for boundary arrays
-c$$$      call boundaryds(iboundds,nbcds,1)
-c$$$!
-c$$$      ! bc stuff...
-c$$$      do i=1,nbcds
-c$$$         call setdiribc(s4matrix_sm, iboundds(i))
-c$$$      enddo
-c$$$      call finalizearray4solve(s4matrix_sm)
-c$$$      call finalizearray4multiply(d4matrix_sm)
-c$$$!
-c$$$!.....perform LU decomposition of sparse matrix "s4matrix"
-c$$$!     store result in opaque object "s4handle"
-c$$$      jer = 0
-c$$$ 500  continue
-c$$$      temp = 0
-c$$$!
-c$$$!.....multiply operator matrix d4matrix_sm times phin to get RHS temp
-c$$$      call matrixvectormult(d4matrix_sm,phin,temp)
-c$$$      do l=1,nbcds
-c$$$      temp(iboundds(l)) = 0.
-c$$$      enddo
-c$$$!
-c$$$!.....perform LU backsubstitution to get outarray solution
-c$$$
-c$$$      call solve(s4matrix_sm,temp,ier)
-c$$$      outarray = temp
-c$$$!
-c$$$      call deletevec(phin)
-c$$$      call deletevec(temp)
-c$$$      return
-c$$$!
-c$$$      end

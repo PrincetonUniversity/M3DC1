@@ -399,6 +399,7 @@ subroutine hdf5_write_scalars(error)
 
   call output_scalar(scalar_group_id, "toroidal_flux"    , tflux, ntime, error)
   call output_scalar(scalar_group_id, "toroidal_current" , totcur , ntime, error)
+  call output_scalar(scalar_group_id, "electron_number"  , totden , ntime, error)
 
   
   call output_scalar(scalar_group_id, "time" , time  , ntime, error)
@@ -408,7 +409,8 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "E_KPD", ekinpd, ntime, error)
   call output_scalar(scalar_group_id, "E_MPH", emagph, ntime, error)
   call output_scalar(scalar_group_id, "E_KPH", ekinph, ntime, error)
-  
+  call output_scalar(scalar_group_id, "E_eta", eeta, ntime, error)  
+
   if(numvar.ge.2) then
      call output_scalar(scalar_group_id, "E_MT" , emagt , ntime, error)
      call output_scalar(scalar_group_id, "E_KT" , ekint , ntime, error)
@@ -425,6 +427,8 @@ subroutine hdf5_write_scalars(error)
      call output_scalar(scalar_group_id, "E_K3D", ekin3d, ntime, error)
      call output_scalar(scalar_group_id, "E_PH", emag3h, ntime, error)
      call output_scalar(scalar_group_id, "E_K3H", ekin3h, ntime, error)
+     call output_scalar(scalar_group_id, "E_kappat", ekappat, ntime, error)
+     call output_scalar(scalar_group_id, "E_kappar", ekappar, ntime, error)
   endif
 
   if(itaylor.eq.3) then

@@ -34,37 +34,6 @@ subroutine gradshafranov_init()
      call entdofs(numvar, l, 0, ibegin, iendplusone)
 
      call static_equ(ibegin)
-     
-     if(idens.eq.1) then
-        call entdofs(1, l, 0, ibegin1, iendplusone1)
-        if(numvar.ge.3) then
-           if(ipres.eq.1) then
-              den0(ibegin1  ) = pres0(ibegin1)**expn
-              den0(ibegin1+1) = pres0(ibegin1)**(expn-1.)*pres0(ibegin1+1)*expn
-              den0(ibegin1+2) = pres0(ibegin1)**(expn-1.)*pres0(ibegin1+2)*expn
-              den0(ibegin1+3) = pres0(ibegin1)**(expn-1.)*pres0(ibegin1+3)*expn &
-                   + pres0(ibegin1)**(expn-2.)*pres0(ibegin1+1)**2.*expn*(expn-1.)
-              den0(ibegin1+4) = pres0(ibegin1)**(expn-1.)*pres0(ibegin1+4)*expn & 
-                   + pres0(ibegin1)**(expn-2.)*pres0(ibegin1+1)*pres0(ibegin1+2)&
-                   * expn*(expn-1.)
-              den0(ibegin1+5) = pres0(ibegin1)**(expn-1.)*pres0(ibegin1+5)*expn &
-                   + pres0(ibegin1)**(expn-2.)*pres0(ibegin1+2)**2.*expn*(expn-1.)
-           else
-              den0(ibegin1  ) = phi0(ibegin+12)**expn
-              den0(ibegin1+1) = phi0(ibegin+12)**(expn-1.)*phi0(ibegin+13)*expn
-              den0(ibegin1+2) = phi0(ibegin+12)**(expn-1.)*phi0(ibegin+14)*expn
-              den0(ibegin1+3) = phi0(ibegin+12)**(expn-1.)*phi0(ibegin+15)*expn &
-                   + phi0(ibegin+12)**(expn-2.)*phi0(ibegin+13)**2.*expn*(expn-1.)
-              den0(ibegin1+4) = phi0(ibegin+12)**(expn-1.)*phi0(ibegin+16)*expn & 
-                   + phi0(ibegin+12)**(expn-2.)*phi0(ibegin+13)*phi0(ibegin+14)&
-                   * expn*(expn-1.)
-              den0(ibegin1+5) = phi0(ibegin+12)**(expn-1.)*phi0(ibegin+17)*expn &
-                   + phi0(ibegin+12)**(expn-2.)*phi0(ibegin+14)**2.*expn*(expn-1.)
-           endif
-        else
-           call constant_field(den0(ibegin1:ibegin1+5), 1.)
-        endif
-     endif
   enddo
   
 end subroutine gradshafranov_init
@@ -91,6 +60,7 @@ subroutine gradshafranov_solve
   integer :: itri,i,i1,j,j1,jone, k
   integer :: numelms, numnodes
   integer :: ibegin, iendplusone, ibeginn, iendplusonen
+  integer :: ibegin1, iendplusone1
   integer :: ineg, ier
   real :: dterm(18,18), sterm(18,18)
   real :: fac, aminor, bv, fintl(-6:maxi,-6:maxi)
@@ -98,9 +68,7 @@ subroutine gradshafranov_solve
   real :: gv, gvx, gvz, gvxx, gvxz, gvzz
   real :: x,z, xmin, zmin, xrel, zrel, xguess, zguess, error
   real :: sum, rhs, ajlim, curr, q0, qstar, norm, rnorm
-  real :: g1, g1x, g1z, g1xx, g1xz, g1zz
-  real :: g2, g2x, g2z, g2xx, g2xz, g2zz
-  real :: g3, g3x, g3z, g3xx, g3xz, g3zz
+  real, dimension(6) :: pp
   real, dimension(5) :: temp1, temp2
   real :: alx, alz
 
@@ -448,228 +416,53 @@ subroutine gradshafranov_solve
      !.....defines the source functions for the GS equation:
      call entdofs(numvargs, i, 0, ibegin, iendplusone)
      call entdofs(numvar, i, 0, ibeginn, iendplusonen)
+     call entdofs(1, i, 0, ibegin1, iendplusone1)
 
      phi0(ibeginn:ibeginn+5) = psi(ibegin:ibegin+5)
 
+
+     dpsii = 1./(psilim - psimin)
+     temp(ibegin) = (psi(ibegin) - psimin)*dpsii
+     temp(ibegin+1:ibegin+5) = psi(ibegin+1:ibegin+5)*dpsii
+
+     call calc_pressure(temp(ibegin:ibegin+5),pp)
+
 !    I = sqrt(g0**2 + gamma_i*G_i)
      if(numvar.ge.2) then
-        call xyznod(i,coords)
-        x = coords(1) - xmin + xzero
+!!$        call xyznod(i,coords)
+!!$        x = coords(1) - xmin + xzero
 
-        dpsii = 1./(psilim - psimin)
-        temp(ibegin) = (psi(ibegin) - psimin)*dpsii
-        temp(ibegin+1:ibegin+5) = psi(ibegin+1:ibegin+5)*dpsii
-        if(temp(ibegin) .lt. 0. .or. temp(ibegin) .gt. 1.) then
-           call constant_field(phi0(ibeginn+6 :ibeginn+11), g0)
-        else
-           g1  = temp(ibegin) - 10.*temp(ibegin)**3 + 20.*temp(ibegin)**4 &
-                - 15.*temp(ibegin)**5 + 4.*temp(ibegin)**6
-           g1x = temp(ibegin+1)*(1. - 30.*temp(ibegin)**2 + 80.*temp(ibegin)**3 &
-                - 75.*temp(ibegin)**4 + 24.*temp(ibegin)**5)
-           g1z = temp(ibegin+2)*(1. - 30.*temp(ibegin)**2 + 80.*temp(ibegin)**3 &
-                - 75.*temp(ibegin)**4 + 24.*temp(ibegin)**5)
-           g1xx= temp(ibegin+3)  *(1. - 30.*temp(ibegin)**2 + 80.*temp(ibegin)**3 &
-                - 75.*temp(ibegin)**4 + 24.*temp(ibegin)**5) + &
-                temp(ibegin+1)**2*(-60.*temp(ibegin)+240.*temp(ibegin)**2 &
-                -300.*temp(ibegin)**3 +120.*temp(ibegin)**4)
-           g1xz= temp(ibegin+4)  *(1. - 30.*temp(ibegin)**2 + 80.*temp(ibegin)**3 &
-                - 75.*temp(ibegin)**4 + 24.*temp(ibegin)**5) + &
-                temp(ibegin+1)*temp(ibegin+2)* &
-                (-60.*temp(ibegin)   +240.*temp(ibegin)**2 &
-                -300.*temp(ibegin)**3 +120.*temp(ibegin)**4)
-           g1zz= temp(ibegin+5)  *(1. - 30.*temp(ibegin)**2 + 80.*temp(ibegin)**3 &
-                - 75.*temp(ibegin)**4 + 24.*temp(ibegin)**5) + &
-                temp(ibegin+2)**2*(-60.*temp(ibegin)+240.*temp(ibegin)**2 &
-                -300.*temp(ibegin)**3 +120.*temp(ibegin)**4)
-
-           g2  = temp(ibegin)**2 - 4.*temp(ibegin)**3 + 6.*temp(ibegin)**4 &
-                - 4.*temp(ibegin)**5 + temp(ibegin)**6
-           g2x = temp(ibegin+1)*(2.*temp(ibegin) - 12.*temp(ibegin)**2 &
-                + 24.*temp(ibegin)**3 - 20.*temp(ibegin)**4 +  6.*temp(ibegin)**5)
-           g2z = temp(ibegin+2)*(2.*temp(ibegin) - 12.*temp(ibegin)**2 &
-                + 24.*temp(ibegin)**3 - 20.*temp(ibegin)**4 +  6.*temp(ibegin)**5)
-           g2xx= temp(ibegin+3)*(2.*temp(ibegin) - 12.*temp(ibegin)**2 &
-                + 24.*temp(ibegin)**3 - 20.*temp(ibegin)**4 +  6.*temp(ibegin)**5) + &
-                temp(ibegin+1)**2*(2. - 24.*temp(ibegin) &
-                + 72.*temp(ibegin)**2 - 80.*temp(ibegin)**3 + 30.*temp(ibegin)**4)
-           g2xz= temp(ibegin+4)*(2.*temp(ibegin) - 12.*temp(ibegin)**2 &
-                + 24.*temp(ibegin)**3 - 20.*temp(ibegin)**4 +  6.*temp(ibegin)**5) + &
-                temp(ibegin+1)*temp(ibegin+2)*(2. - 24.*temp(ibegin) &
-                + 72.*temp(ibegin)**2 - 80.*temp(ibegin)**3 + 30.*temp(ibegin)**4)
-           g2zz= temp(ibegin+5)*(2.*temp(ibegin) - 12.*temp(ibegin)**2 &
-                + 24.*temp(ibegin)**3 - 20.*temp(ibegin)**4 +  6.*temp(ibegin)**5) + &
-                temp(ibegin+2)**2*(2. - 24.*temp(ibegin) &
-                + 72.*temp(ibegin)**2 - 80.*temp(ibegin)**3 + 30.*temp(ibegin)**4)
-
-
-           g3 = 1. - 20.*temp(ibegin)**3 + 45.*temp(ibegin)**4 &
-                - 36.*temp(ibegin)**5 + 10.*temp(ibegin)**6
-           g3x = temp(ibegin+1)*(-60.*temp(ibegin)**2 +180.*temp(ibegin)**3 &
-                -180.*temp(ibegin)**4 + 60.*temp(ibegin)**5)
-           g3z = temp(ibegin+2)*(-60.*temp(ibegin)**2 +180.*temp(ibegin)**3 &
-                -180.*temp(ibegin)**4 + 60.*temp(ibegin)**5)
-           g3xx= temp(ibegin+3)*(-60.*temp(ibegin)**2 +180.*temp(ibegin)**3 &
-                -180.*temp(ibegin)**4 + 60.*temp(ibegin)**5) + &
-                 temp(ibegin+1)**2*(-120.*temp(ibegin) +540.*temp(ibegin)**2 &
-                -720.*temp(ibegin)**3 +300.*temp(ibegin)**4)
-           g3xz= temp(ibegin+4)*(-60.*temp(ibegin)**2 +180.*temp(ibegin)**3 &
-                -180.*temp(ibegin)**4 + 60.*temp(ibegin)**5) + &
-                 temp(ibegin+1)*temp(ibegin+2)*(-120.*temp(ibegin) +540.*temp(ibegin)**2 &
-                -720.*temp(ibegin)**3 +300.*temp(ibegin)**4)
-           g3zz= temp(ibegin+5)*(-60.*temp(ibegin)**2 +180.*temp(ibegin)**3 &
-                -180.*temp(ibegin)**4 + 60.*temp(ibegin)**5) + &
-                 temp(ibegin+2)**2*(-120.*temp(ibegin) +540.*temp(ibegin)**2 &
-                -720.*temp(ibegin)**3 +300.*temp(ibegin)**4)
-
-
-           phi0(ibeginn+6) = sqrt(g0**2 + gamma2*g1 + gamma3*g2 + gamma4*g3)
-           phi0(ibeginn+7) = 0.5*(gamma2*g1x + gamma3*g2x + gamma4*g3x) &
-                / phi0(ibeginn+6)
-           phi0(ibeginn+8) = 0.5*(gamma2*g1z + gamma3*g2z + gamma4*g3z) &
-                / phi0(ibeginn+6)
-           phi0(ibeginn+9) = 0.5*(gamma2*g1xx + gamma3*g2xx + gamma4*g3xx) &
-                / phi0(ibeginn+6) - &
-                (0.5*(gamma2*g1x + gamma3*g2x + gamma4*g3x))**2 &
-                / phi0(ibeginn+6)**3
-           phi0(ibeginn+10) = 0.5*(gamma2*g1xz + gamma3*g2xz + gamma4*g3xz) &
-                / phi0(ibeginn+6) - &
-                0.5*(gamma2*g1x + gamma3*g2x + gamma4*g3x)* &
-                0.5*(gamma2*g1z + gamma3*g2z + gamma4*g3z)  &
-                / phi0(ibeginn+6)**3
-           phi0(ibeginn+11) = 0.5*(gamma2*g1zz + gamma3*g2zz + gamma4*g3zz) &
-                / phi0(ibeginn+6) - &
-                (0.5*(gamma2*g1z + gamma3*g2z + gamma4*g3z))**2 &
-                / phi0(ibeginn+6)**3
-        endif
-     end if
-
+        call calc_toroidal_field(temp(ibegin:ibegin+5), &
+             phi0(ibeginn+6:ibeginn+11))
+     endif
+    
      if(numvar.ge.3) then
-        sum = p0 - pi0*ipres
-
-        if(temp(ibegin) .lt. 0 .or. temp(ibegin) .gt. 1) then
-           call constant_field(phi0(ibeginn+12:ibeginn+17), pedge * sum/p0)
+        
+        if(p0.eq.0.) then 
+           sum = 0.
         else
-           phi0(ibeginn+12) = pedge * sum/p0 + sum* &
-                (1.+p1*temp(ibegin)+p2*temp(ibegin)**2 &
-                -(20. + 10.*p1 + 4.*p2)*temp(ibegin)**3 &
-                +(45. + 20.*p1 + 6.*p2)*temp(ibegin)**4 &
-                -(36. + 15.*p1 + 4.*p2)*temp(ibegin)**5 &
-                +(10. +  4.*p1 +    p2)*temp(ibegin)**6)
-           phi0(ibeginn+13) = sum*temp(ibegin+1)* &
-                (p1+2.*p2*temp(ibegin) &
-                -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
-                +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
-                -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
-                +6.*(10. +  4.*p1 +    p2)*temp(ibegin)**5)
-           phi0(ibeginn+14) = sum*temp(ibegin+2)* &
-                (p1+2.*p2*temp(ibegin) &
-                -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
-                +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
-                -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
-                +6.*(10. +  4.*p1 +    p2)*temp(ibegin)**5)
-           phi0(ibeginn+15) = sum*temp(ibegin+3)* &
-                (p1+2.*p2*temp(ibegin) &
-                -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
-                +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
-                -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
-                +6.*(10. +  4.*p1 +    p2)*temp(ibegin)**5) + &
-                sum*temp(ibegin+1)**2* &
-                (2.*p2 &
-                - 6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
-                +12.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
-                -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
-                +30.*(10. +  4.*p1 +    p2)*temp(ibegin)**4)
-           phi0(ibeginn+16) = sum*temp(ibegin+4)* &
-                (p1+2.*p2*temp(ibegin) &
-                -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
-                +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
-                -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
-                +6.*(10. +  4.*p1 +    p2)*temp(ibegin)**5) + &
-                sum*temp(ibegin+1)*temp(ibegin+2)* &
-                (2.*p2 &
-                - 6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
-                +12.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
-                -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
-                +30.*(10. +  4.*p1 +    p2)*temp(ibegin)**4)
-           phi0(ibeginn+17) = sum*temp(ibegin+5)* &
-                (p1+2.*p2*temp(ibegin) &
-                -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
-                +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
-                -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
-                +6.*(10. +  4.*p1 +    p2)*temp(ibegin)**5) + &
-                sum*temp(ibegin+2)**2* &
-                (2.*p2 &
-                - 6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
-                +12.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
-                -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
-                +30.*(10. +  4.*p1 +    p2)*temp(ibegin)**4)
+           sum = 1. - ipres*pi0/p0
         endif
-
+        phi0(ibeginn+12:ibeginn+17) = sum*pp
+        
         if(ipres.eq.1) then
-           call entdofs(1, i, 0, ibeginn, iendplusonen)
-
-           sum = p0
-
-           if(temp(ibegin) .lt. 0 .or. temp(ibegin) .gt. 1) then
-              call constant_field(pres0(ibeginn:ibeginn+5), pedge)
-           else
-              pres0(ibeginn) = pedge + sum* &
-                   (1.+p1*temp(ibegin)+p2*temp(ibegin)**2 &
-                   -(20. + 10.*p1 + 4.*p2)*temp(ibegin)**3 &
-                   +(45. + 20.*p1 + 6.*p2)*temp(ibegin)**4 &
-                   -(36. + 15.*p1 + 4.*p2)*temp(ibegin)**5 &
-                   +(10. + 4.*p1 + p2)*temp(ibegin)**6)
-              pres0(ibeginn+1) = sum*temp(ibegin+1)* &
-                   (p1+2.*p2*temp(ibegin) &
-                   -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
-                   +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
-                   -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
-                   +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5)
-              pres0(ibeginn+2) = sum*temp(ibegin+2)* &
-                   (p1+2.*p2*temp(ibegin) &
-                   -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
-                   +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
-                   -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
-                   +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5)
-              pres0(ibeginn+3) = sum*temp(ibegin+3)* &
-                   (p1+2.*p2*temp(ibegin) &
-                   -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
-                   +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
-                   -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
-                   +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5) + &
-                   sum*temp(ibegin+1)**2* &
-                   (2.*p2 &
-                   - 6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
-                   +12.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
-                   -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
-                   +30.*(10. + 4.*p1 + p2)*temp(ibegin)**4)
-              pres0(ibeginn+4) = sum*temp(ibegin+4)* &
-                   (p1+2.*p2*temp(ibegin) &
-                   -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
-                   +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
-                   -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
-                   +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5) + &
-                   sum*temp(ibegin+1)*temp(ibegin+2)* &
-                   (2.*p2 &
-                   - 6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
-                   +12.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
-                   -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
-                   +30.*(10. + 4.*p1 + p2)*temp(ibegin)**4)
-              pres0(ibeginn+5) = sum*temp(ibegin+5)* &
-                   (p1+2.*p2*temp(ibegin) &
-                   -3.*(20. + 10.*p1 + 4.*p2)*temp(ibegin)**2 &
-                   +4.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**3 &
-                   -5.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**4 &
-                   +6.*(10. + 4.*p1 + p2)*temp(ibegin)**5) + &
-                   sum*temp(ibegin+2)**2* &
-                   (2.*p2 &
-                   - 6.*(20. + 10.*p1 + 4.*p2)*temp(ibegin) &
-                   +12.*(45. + 20.*p1 + 6.*p2)*temp(ibegin)**2 &
-                   -20.*(36. + 15.*p1 + 4.*p2)*temp(ibegin)**3 &
-                   +30.*(10. + 4.*p1 + p2)*temp(ibegin)**4)
-           end if
+           pres0(ibegin1:ibegin1+5) = pp
         endif
      end if
+
+     if(idens.eq.1) then
+        den0(ibegin1  ) = pp(1)**expn
+        den0(ibegin1+1) = pp(1)**(expn-1.)*pp(2)*expn
+        den0(ibegin1+2) = pp(1)**(expn-1.)*pp(3)*expn
+        den0(ibegin1+3) = pp(1)**(expn-1.)*pp(4)*expn &
+             + pp(1)**(expn-2.)*pp(2)**2.*expn*(expn-1.)
+        den0(ibegin1+4) = pp(1)**(expn-1.)*pp(1+4)*expn & 
+             + pp(1)**(expn-2.)*pp(2)*pp(3)&
+             * expn*(expn-1.)
+        den0(ibegin1+5) = pp(1)**(expn-1.)*pp(1+5)*expn &
+             + pp(1)**(expn-2.)*pp(3)**2.*expn*(expn-1.)
+     endif
+
 
   end do
 
@@ -1331,5 +1124,176 @@ subroutine fundef
   return
 end subroutine fundef
 
+
+!======================================================================
+! calc_toroidal_field
+! ~~~~~~~~~~~~~~~~~~~
+!
+! calculates the toroidal field (I) as a function of the 
+! normalized flux
+!======================================================================
+subroutine calc_toroidal_field(psii,tf)
+  use basic
+
+  real, intent(in), dimension(6)  :: psii     ! normalized flux
+  real, intent(out), dimension(6) :: tf       ! toroidal field (I)
+
+  real :: g1, g1x, g1z, g1xx, g1xz, g1zz
+  real :: g2, g2x, g2z, g2xx, g2xz, g2zz
+  real :: g3, g3x, g3z, g3xx, g3xz, g3zz
+  
+  if(psii(1) .lt. 0. .or. psii(1) .gt. 1.) then
+     call constant_field(tf, bzero*xzero)
+  else
+     g1  = psii(1) - 10.*psii(1)**3 + 20.*psii(1)**4 &
+          - 15.*psii(1)**5 + 4.*psii(1)**6
+     g1x = psii(2)*(1. - 30.*psii(1)**2 + 80.*psii(1)**3 &
+          - 75.*psii(1)**4 + 24.*psii(1)**5)
+     g1z = psii(3)*(1. - 30.*psii(1)**2 + 80.*psii(1)**3 &
+          - 75.*psii(1)**4 + 24.*psii(1)**5)
+     g1xx= psii(4)  *(1. - 30.*psii(1)**2 + 80.*psii(1)**3 &
+          - 75.*psii(1)**4 + 24.*psii(1)**5) + &
+          psii(1+1)**2*(-60.*psii(1)+240.*psii(1)**2 &
+          -300.*psii(1)**3 +120.*psii(1)**4)
+     g1xz= psii(5)  *(1. - 30.*psii(1)**2 + 80.*psii(1)**3 &
+          - 75.*psii(1)**4 + 24.*psii(1)**5) + &
+          psii(2)*psii(3)* &
+          (-60.*psii(1)   +240.*psii(1)**2 &
+          -300.*psii(1)**3 +120.*psii(1)**4)
+     g1zz= psii(6)  *(1. - 30.*psii(1)**2 + 80.*psii(1)**3 &
+          - 75.*psii(1)**4 + 24.*psii(1)**5) + &
+          psii(3)**2*(-60.*psii(1)+240.*psii(1)**2 &
+          -300.*psii(1)**3 +120.*psii(1)**4)
+     
+     g2  = psii(1)**2 - 4.*psii(1)**3 + 6.*psii(1)**4 &
+          - 4.*psii(1)**5 + psii(1)**6
+     g2x = psii(2)*(2.*psii(1) - 12.*psii(1)**2 &
+          + 24.*psii(1)**3 - 20.*psii(1)**4 +  6.*psii(1)**5)
+     g2z = psii(3)*(2.*psii(1) - 12.*psii(1)**2 &
+          + 24.*psii(1)**3 - 20.*psii(1)**4 +  6.*psii(1)**5)
+     g2xx= psii(4)*(2.*psii(1) - 12.*psii(1)**2 &
+          + 24.*psii(1)**3 - 20.*psii(1)**4 +  6.*psii(1)**5) + &
+          psii(2)**2*(2. - 24.*psii(1) &
+          + 72.*psii(1)**2 - 80.*psii(1)**3 + 30.*psii(1)**4)
+     g2xz= psii(5)*(2.*psii(1) - 12.*psii(1)**2 &
+          + 24.*psii(1)**3 - 20.*psii(1)**4 +  6.*psii(1)**5) + &
+          psii(2)*psii(3)*(2. - 24.*psii(1) &
+          + 72.*psii(1)**2 - 80.*psii(1)**3 + 30.*psii(1)**4)
+     g2zz= psii(6)*(2.*psii(1) - 12.*psii(1)**2 &
+          + 24.*psii(1)**3 - 20.*psii(1)**4 +  6.*psii(1)**5) + &
+          psii(3)**2*(2. - 24.*psii(1) &
+          + 72.*psii(1)**2 - 80.*psii(1)**3 + 30.*psii(1)**4)
+     
+     g3 = 1. - 20.*psii(1)**3 + 45.*psii(1)**4 &
+                - 36.*psii(1)**5 + 10.*psii(1)**6
+     g3x = psii(2)*(-60.*psii(1)**2 +180.*psii(1)**3 &
+          -180.*psii(1)**4 + 60.*psii(1)**5)
+     g3z = psii(3)*(-60.*psii(1)**2 +180.*psii(1)**3 &
+          -180.*psii(1)**4 + 60.*psii(1)**5)
+     g3xx= psii(4)*(-60.*psii(1)**2 +180.*psii(1)**3 &
+          -180.*psii(1)**4 + 60.*psii(1)**5) + &
+          psii(2)**2*(-120.*psii(1) +540.*psii(1)**2 &
+          -720.*psii(1)**3 +300.*psii(1)**4)
+     g3xz= psii(5)*(-60.*psii(1)**2 +180.*psii(1)**3 &
+          -180.*psii(1)**4 + 60.*psii(1)**5) + &
+          psii(2)*psii(3)*(-120.*psii(1) +540.*psii(1)**2 &
+          -720.*psii(1)**3 +300.*psii(1)**4)
+     g3zz= psii(6)*(-60.*psii(1)**2 +180.*psii(1)**3 &
+          -180.*psii(1)**4 + 60.*psii(1)**5) + &
+          psii(3)**2*(-120.*psii(1) +540.*psii(1)**2 &
+          -720.*psii(1)**3 +300.*psii(1)**4)
+
+     
+     tf(1) = sqrt((bzero*xzero)**2 + gamma2*g1 + gamma3*g2 + gamma4*g3)
+     tf(2) = 0.5*(gamma2*g1x + gamma3*g2x + gamma4*g3x) / tf(1)
+     tf(3) = 0.5*(gamma2*g1z + gamma3*g2z + gamma4*g3z) / tf(1)
+     tf(4) = 0.5*(gamma2*g1xx + gamma3*g2xx + gamma4*g3xx) / tf(1) &
+          - (0.5*(gamma2*g1x + gamma3*g2x + gamma4*g3x))**2 / tf(1)**3
+     tf(5) = 0.5*(gamma2*g1xz + gamma3*g2xz + gamma4*g3xz) / tf(1) &
+          -  0.5*(gamma2*g1x + gamma3*g2x + gamma4*g3x) &
+          *  0.5*(gamma2*g1z + gamma3*g2z + gamma4*g3z) / tf(1)**3
+     tf(6) = 0.5*(gamma2*g1zz + gamma3*g2zz + gamma4*g3zz) / tf(1) &
+          - (0.5*(gamma2*g1z + gamma3*g2z + gamma4*g3z))**2 / tf(1)**3
+  endif
+end subroutine calc_toroidal_field
+
+
+
+
+!======================================================================
+! calc_pressure
+! ~~~~~~~~~~~~~
+!
+! calculates the pressure as a function of the normalized flux
+!======================================================================
+subroutine calc_pressure(psii,pres)
+  
+  use basic
+
+  real, intent(in), dimension(6)  :: psii     ! normalized flux
+  real, intent(out), dimension(6) :: pres     ! pressure
+
+  if(psii(1) .lt. 0 .or. psii(1) .gt. 1) then
+     pres = 0.
+  else
+     pres(1) = 1.+p1*psii(1)+p2*psii(1)**2 &
+          -(20. + 10.*p1 + 4.*p2)*psii(1)**3 &
+          +(45. + 20.*p1 + 6.*p2)*psii(1)**4 &
+          -(36. + 15.*p1 + 4.*p2)*psii(1)**5 &
+          +(10. +  4.*p1 +    p2)*psii(1)**6
+     pres(2) = psii(2)* &
+          (p1+2.*p2*psii(1) &
+          -3.*(20. + 10.*p1 + 4.*p2)*psii(1)**2 &
+          +4.*(45. + 20.*p1 + 6.*p2)*psii(1)**3 &
+          -5.*(36. + 15.*p1 + 4.*p2)*psii(1)**4 &
+          +6.*(10. +  4.*p1 +    p2)*psii(1)**5)
+     pres(3) = psii(3)* &
+          (p1+2.*p2*psii(1) &
+          -3.*(20. + 10.*p1 + 4.*p2)*psii(1)**2 &
+          +4.*(45. + 20.*p1 + 6.*p2)*psii(1)**3 &
+          -5.*(36. + 15.*p1 + 4.*p2)*psii(1)**4 &
+          +6.*(10. +  4.*p1 +    p2)*psii(1)**5)
+     pres(4) = psii(4)* &
+          (p1+2.*p2*psii(1) &
+          -3.*(20. + 10.*p1 + 4.*p2)*psii(1)**2 &
+          +4.*(45. + 20.*p1 + 6.*p2)*psii(1)**3 &
+          -5.*(36. + 15.*p1 + 4.*p2)*psii(1)**4 &
+          +6.*(10. +  4.*p1 +    p2)*psii(1)**5) + &
+          psii(2)**2* &
+          (2.*p2 &
+          - 6.*(20. + 10.*p1 + 4.*p2)*psii(1) &
+          +12.*(45. + 20.*p1 + 6.*p2)*psii(1)**2 &
+          -20.*(36. + 15.*p1 + 4.*p2)*psii(1)**3 &
+          +30.*(10. +  4.*p1 +    p2)*psii(1)**4)
+     pres(5) = psii(5)* &
+          (p1+2.*p2*psii(1) &
+          -3.*(20. + 10.*p1 + 4.*p2)*psii(1)**2 &
+          +4.*(45. + 20.*p1 + 6.*p2)*psii(1)**3 &
+          -5.*(36. + 15.*p1 + 4.*p2)*psii(1)**4 &
+          +6.*(10. +  4.*p1 +    p2)*psii(1)**5) + &
+          psii(2)*psii(3)* &
+          (2.*p2 &
+          - 6.*(20. + 10.*p1 + 4.*p2)*psii(1) &
+          +12.*(45. + 20.*p1 + 6.*p2)*psii(1)**2 &
+          -20.*(36. + 15.*p1 + 4.*p2)*psii(1)**3 &
+          +30.*(10. +  4.*p1 +    p2)*psii(1)**4)
+     pres(6) = psii(6)* &
+          (p1+2.*p2*psii(1) &
+          -3.*(20. + 10.*p1 + 4.*p2)*psii(1)**2 &
+          +4.*(45. + 20.*p1 + 6.*p2)*psii(1)**3 &
+          -5.*(36. + 15.*p1 + 4.*p2)*psii(1)**4 &
+          +6.*(10. +  4.*p1 +    p2)*psii(1)**5) + &
+          psii(3)**2* &
+          (2.*p2 &
+          - 6.*(20. + 10.*p1 + 4.*p2)*psii(1) &
+          +12.*(45. + 20.*p1 + 6.*p2)*psii(1)**2 &
+          -20.*(36. + 15.*p1 + 4.*p2)*psii(1)**3 &
+          +30.*(10. +  4.*p1 +    p2)*psii(1)**4)
+  endif
+
+  pres = p0*pres
+  pres(1) = pres(1) + pedge
+
+end subroutine calc_pressure
 
 end module gradshafranov
