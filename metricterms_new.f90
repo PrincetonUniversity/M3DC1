@@ -2248,7 +2248,7 @@ real function qpsipsieta(e,f,g,h,i,j)
   real, intent(in) :: i
   real :: temp
 
-!!$  temp = h*int4(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),weight_79,79)
+!!$  temp = int5(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),h(:,OP_1),weight_79,79)
   temp = int5(ri2_79,e(:,OP_1),j(:,OP_1),j(:,OP_1),h(:,OP_1),weight_79,79)
 
   ! hyper-resistive terms

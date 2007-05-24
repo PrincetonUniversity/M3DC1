@@ -1,3 +1,12 @@
+!======================================================================
+! ludefall
+! --------
+!
+! Clears, populates, and finalizes all matrices for the implicit 
+! time advance.  Does not insert boundary conditions, or finalize the
+! s* matrices.
+!
+!======================================================================
 subroutine ludefall
 
   use p_data
@@ -136,72 +145,21 @@ subroutine ludefall
   call sumshareddofs(q4)
   if(idens.eq.1) call sumshareddofs(qn4)
 
-  ! Impose boundary conditions
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
-  
-  ! Velocity boundary conditions
-!!$  velbounds = 0.
-!!$  call boundaryv(iboundv,iboundv2,nbcv)
-!!$  if(nbcv .gt. iboundmax) then
-!!$     write(*,4881) nbcv, iboundmax
-!!$4881 format(" ERROR: nbcv > iboundmax", 2i5)
-!!$     call safestop(3)
-!!$  endif
-!!$  do i=1,nbcv
-!!$     call setdiribc(s1matrix_sm, iboundv(i))
-!!$  enddo
-!!$  call finalizearray4solve(s1matrix_sm)
+  ! Finalize matrices for multiplication
   call finalizearray4multiply(d1matrix_sm)
   call finalizearray4multiply(r1matrix_sm)
 
-  ! Field boundary conditions
-!!$  call boundaryp(iboundp,nbcp)
-!!$  if(nbcp .gt. iboundmax) then
-!!$     write(*,4882) nbcp, iboundmax
-!!$4882 format(" ERROR: nbcp > iboundmax", 2i5)
-!!$     call safestop(9) 
-!!$  endif
-!!$  do i=1,nbcp
-!!$     call setdiribc(s2matrix_sm,iboundp(i))
-!!$  enddo
-!!$  call finalizearray4solve(s2matrix_sm)
   call finalizearray4multiply(d2matrix_sm)
   call finalizearray4multiply(r2matrix_sm)
   call finalizearray4multiply(q2matrix_sm)
 
-  ! Density boundary conditions
   if(idens.eq.1) then
-     call boundaryds(iboundn,nbcn,1)
-     if(nbcn .gt. iboundmax) then
-        write(*,4883) nbcn, iboundmax
-4883    format(" ERROR: nbcn > iboundmax", 2i5)
-        call safestop(9) 
-     endif
-     
-     do i=1,nbcn
-        call setdiribc(s8matrix_sm, iboundn(i))
-     enddo
-
-     call finalizearray4solve(s8matrix_sm)
      call finalizearray4multiply(d8matrix_sm)
      call finalizearray4multiply(q8matrix_sm)
      call finalizearray4multiply(r8matrix_sm)
   endif ! on idens.eq.1
 
-  ! Pressure boundary conditions
   if(ipres.eq.1) then
-     call boundarypres(iboundpres,nbcpres,1)
-     if(nbcpres .gt. iboundmax) then
-        write(*,4883) nbcpres, iboundmax
-4884    format(" ERROR: nbcpres > iboundmax", 2i5)
-        call safestop(9) 
-     endif
-     
-     do i=1,nbcpres
-        call setdiribc(s9matrix_sm, iboundpres(i))
-     enddo
-
-     call finalizearray4solve(s9matrix_sm)
      call finalizearray4multiply(d9matrix_sm)
      call finalizearray4multiply(q9matrix_sm)
      call finalizearray4multiply(r9matrix_sm)
@@ -209,6 +167,17 @@ subroutine ludefall
 
 end subroutine ludefall
 
+
+
+!======================================================================
+! ludefvel_n
+! ----------
+!
+! populates the matrices for implicit velocity advance
+!
+! itri: index of finite element
+! bdf:  ion skin depth factor
+!======================================================================
 subroutine ludefvel_n(itri,dbf)
 
   use basic
@@ -795,6 +764,15 @@ subroutine ludefvel_n(itri,dbf)
 end subroutine ludefvel_n
 
 
+!======================================================================
+! ludefphi_n
+! ----------
+!
+! populates the matrices for implicit field advance
+!
+! itri: index of finite element
+! bdf:  ion skin depth factor
+!======================================================================
 subroutine ludefphi_n(itri,dbf)
   use basic
   use nintegrate_mod
@@ -1162,6 +1140,15 @@ subroutine ludefphi_n(itri,dbf)
 end subroutine ludefphi_n
 
 
+!======================================================================
+! ludefden_n
+! ----------
+!
+! populates the matrices for implicit density advance
+!
+! itri: index of finite element
+! bdf:  ion skin depth factor
+!======================================================================
 subroutine ludefden_n(itri,dbf)
 
   use basic
@@ -1282,6 +1269,16 @@ subroutine ludefden_n(itri,dbf)
 end subroutine ludefden_n
 
 
+
+!======================================================================
+! ludefpres_n
+! -----------
+!
+! populates the matrices for implicit pressure advance
+!
+! itri: index of finite element
+! bdf:  ion skin depth factor
+!======================================================================
 subroutine ludefpres_n(itri,dbf)
 
   use basic

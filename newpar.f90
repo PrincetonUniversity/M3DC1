@@ -334,14 +334,16 @@ Program Reducedquintic
      !advance time
      time = time + dt
 
-     if(myrank.eq.1 .and. iprint.ge.1) print *, "Before onestep"
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "ntime = ", ntime
+
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Before onestep"
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call onestep
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_onestep = t_onestep + tend - tstart
      endif
-     if(myrank.eq.1 .and. iprint.ge.1) print *, "After onestep"
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "After onestep"
 !     call exportfield2(1,numvar,phi, ntime)
 
 
@@ -355,18 +357,18 @@ Program Reducedquintic
      
      ! Write ictrans output
      if(maxrank .eq. 1) then
-        if(myrank.eq.1 .and. iprint.ge.1) print *, "Before output"
+        if(myrank.eq.0 .and. iprint.ge.1) print *, "Before output"
         if(itimer.eq.1) call second(tstart)
         call output
         if(itimer.eq.1) then
            call second(tend)
            t_output_cgm = t_output_cgm + tend - tstart
         endif
-        if(myrank.eq.1 .and. iprint.ge.1) print *, "After onestep"
+        if(myrank.eq.0 .and. iprint.ge.1) print *, "After onestep"
      endif
 
      ! Write HDF5 output
-     if(myrank.eq.1 .and. iprint.ge.1) print *, "Before hdf5 output"
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Before hdf5 output"
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call hdf5_write_scalars(ier)
      if(mod(ntime,ntimepr).eq.0) then
@@ -389,7 +391,7 @@ Program Reducedquintic
         call second(tend)
         t_output_hdf5 = t_output_hdf5 + tend - tstart
      end if
-     if(myrank.eq.1 .and. iprint.ge.1) print *, "After hdf5 output"
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "After hdf5 output"
 
   enddo ! ntime
 
@@ -518,6 +520,8 @@ subroutine onestep
   integer, allocatable:: itemp(:)
   integer :: ndofs, numnodes
 
+  integer :: calc_matrices
+
   real :: tstart, tend
   real, allocatable :: temp(:), temp2(:)
   
@@ -527,10 +531,20 @@ subroutine onestep
   ! ~~~~~~~~~~~~~~~~~~
   fbound = fbound + dt*vloop/(2.*pi)
 
+
+  ! Determine whether matrices should be re-calculated
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(ntime.le.ntimer+1 &
+       .or. (linear.eq.0 .and. mod(ntime,nskip).eq.0) &
+       .or. (integrator.eq.1 .and. ntime.eq.1)) then
+     calc_matrices = 1
+  else
+     calc_matrices = 0
+  endif
+
   ! calculate matrices for time advance
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(ntime.le.ntimer+1.or. (linear.eq.0 .and. mod(ntime,nskip).eq.0) &
-       .or. (integrator.eq.1 .and. ntime.eq.1)) then
+  if(calc_matrices.eq.1) then 
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call ludefall
      if(myrank.eq.0 .and. itimer.eq.1) then
@@ -539,6 +553,8 @@ subroutine onestep
      endif
   endif
 
+
+  ! Store current-time velocity matrices for use in field advance
   veln = vel
   veloldn = velold
   
@@ -576,11 +592,12 @@ subroutine onestep
   vtemp = vtemp + b1vector + r4
 
   ! apply boundary conditions
-!!$  do l=1,nbcv
-!!$     vtemp(iboundv(l)) = velbounds(l)
-!!$  enddo
-  call boundary_vel(s1matrix_sm, vtemp)
-  call finalizearray4solve(s1matrix_sm)
+  if(calc_matrices.eq.1) then
+     call boundary_vel(s1matrix_sm, vtemp)
+     call finalizearray4solve(s1matrix_sm)
+  else
+     call boundary_vel(0, vtemp)
+  endif
 
   ! solve linear system with rhs in vtemp (note LU-decomp done first time)
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -631,9 +648,9 @@ subroutine onestep
   velold = vel
   vel = vtemp
 
-!
-! Advance Density
-! ===============
+  !
+  ! Advance Density
+  ! ===============
   if(idens.eq.1) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Density"
 
@@ -681,13 +698,13 @@ subroutine onestep
      enddo
      deallocate(itemp)
 
-     ! insert boundary conditions
-     do l=1,nbcn
-        temp(iboundn(l)) = 0.
-        if(linear.eq.0 .and. eqsubtract.eq.0) then
-           temp(iboundn(l)) = temp(iboundn(l)) + dens(iboundn(l))
-        endif
-     enddo
+     ! Insert boundary conditions
+     if(calc_matrices.eq.1) then
+        call boundary_den(s8matrix_sm, temp)
+        call finalizearray4solve(s8matrix_sm)
+     else
+        call boundary_den(0, temp)
+     endif
 
      ! solve linear system...LU decomposition done first time
 ! -- okay to here      call printarray(temp, 150, 0, 'vtemp on')
@@ -711,9 +728,9 @@ subroutine onestep
      call deletevec(temp)
   endif
 
-!
-! Advance Pressure
-! ================
+  !
+  ! Advance Pressure
+  ! ================
   if(ipres.eq.1) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Pressure"
 
@@ -760,13 +777,13 @@ subroutine onestep
      enddo
      deallocate(itemp)
 
-     ! apply boundary conditions
-     do l=1,nbcpres
-        temp(iboundpres(l)) = 0.
-        if(linear.eq.0 .and. eqsubtract.eq.0) then
-           temp(iboundpres(l)) = temp(iboundpres(l)) + press(iboundpres(l))
-        endif
-     enddo
+     ! Insert boundary conditions
+     if(calc_matrices.eq.1) then
+        call boundary_pres(s9matrix_sm, temp)
+        call finalizearray4solve(s9matrix_sm)
+     else
+        call boundary_pres(0, temp)
+     endif
 
      ! solve linear system...LU decomposition done first time
 ! -- okay to here      call printarray(temp, 150, 0, 'vtemp on')
@@ -791,9 +808,9 @@ subroutine onestep
   endif
 
 
-!
-! Advance Fields
-! ==============
+  !
+  ! Advance Fields
+  ! ==============
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Fields"
   
@@ -826,14 +843,12 @@ subroutine onestep
   vtemp = vtemp + b2vector + b3vector + q4  + b1vector
  
   ! Insert boundary conditions
-!!$  do l=1,nbcp
-!!$     vtemp(iboundp(l)) = psibounds(l)
-!!$     if(linear.eq.0 .and. eqsubtract.eq.0) then
-!!$        vtemp(iboundp(l)) = vtemp(iboundp(l)) + phis(iboundp(l))
-!!$     endif
-!!$  enddo
-  call boundary_mag(s2matrix_sm, vtemp)
-  call finalizearray4solve(s2matrix_sm)
+  if(calc_matrices.eq.1) then
+     call boundary_mag(s2matrix_sm, vtemp)
+     call finalizearray4solve(s2matrix_sm)
+  else 
+     call boundary_mag(0, vtemp)
+  endif
 
   ! solve linear system...LU decomposition done first time
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -854,8 +869,11 @@ subroutine onestep
   phiold = phi
   phi = vtemp
 
+
+
   ! define auxiliary variables
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Defining auxiliary variables"
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   !   inverse density
   if(idens.eq.1) then
@@ -883,6 +901,7 @@ subroutine onestep
 
   ! calculate other quantities of interest
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Calculating scalars"
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   call total_flux
   if(iconstflux.eq.1 .and. numvar.ge.2) then
@@ -897,6 +916,7 @@ subroutine onestep
 
   ! define source terms
   ! ~~~~~~~~~~~~~~~~~~~
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Defining sources and energy"
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   call define_sources
   if(myrank.eq.0 .and. itimer.eq.1) then

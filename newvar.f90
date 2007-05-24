@@ -2,9 +2,6 @@ module newvar_mod
 
   implicit none
 
-  integer, allocatable :: ibound_newvar(:)
-  integer :: nbc_newvar
-
   integer, parameter :: NV_NOBOUND = 0
   integer, parameter :: NV_DCBOUND = 1
 
@@ -29,23 +26,11 @@ subroutine create_newvar_matrix(matrix, ibound)
 
   integer, intent(in) :: matrix, ibound
 
-  integer :: numelms, numnodes, nbound, itri, i, j, ione, jone, izone, izonedim
+  integer :: numelms, itri, i, j, ione, jone, izone, izonedim
   real :: temp
+  real, allocatable :: rhs(:)
 
-  call numnod(numnodes)
   call numfac(numelms)
-
-  ! calculate number of boundary nodes and allocate array
-  if(ibound.eq.NV_DCBOUND) then
-     nbound = 0
-     do i=1,numnodes
-        call zonenod(i,izone,izonedim)
-        if(izonedim .ne. 2) nbound = nbound + 1
-     enddo
-     nbound = 12*nbound    
-
-     allocate(ibound_newvar(nbound))
-  endif
 
   ! populate matrix
   call zeroarray4solve(matrix, numvar1_numbering)
@@ -77,10 +62,9 @@ subroutine create_newvar_matrix(matrix, ibound)
 
   ! apply boundary conditions
   if(ibound.eq.NV_DCBOUND) then
-     call boundaryds(ibound_newvar,nbc_newvar,0)
-     do i=1,nbc_newvar
-        call setdiribc(matrix, ibound_newvar(i))
-     enddo
+     call createvec(rhs, 1)
+     call boundary_dc(matrix, rhs)
+     call deletevec(rhs)
   end if
 
   call finalizearray4solve(matrix)
@@ -111,7 +95,7 @@ subroutine define_sources()
   real :: x, z, xmin, zmin, hypf, hypi, hypv, hypc, hypp, dbf, factor
 
   double precision, dimension(3)  :: cogcoords
-  double precision, dimension(18) :: temp, temp2
+  double precision, dimension(21) :: temp, temp2
 
 !!$  integer :: izone, izonedim
 
@@ -170,6 +154,9 @@ subroutine define_sources()
   emag3 = 0.
   emag3d = 0.
   emag3h = 0.
+  ekappar = 0.
+  ekappat = 0.
+  eeta = 0.
 
 
   hypf = hyper *deex**2
@@ -181,13 +168,15 @@ subroutine define_sources()
   ! Specify which fields need to be calculated
   def_fields = FIELD_PSI + FIELD_PHI + FIELD_J + FIELD_ETA
   if(numvar.ge.2) def_fields = def_fields + FIELD_I + FIELD_V
-  if(numvar.ge.3) def_fields = def_fields + FIELD_CHI + &
+  if(numvar.ge.3) then
+     def_fields = def_fields + FIELD_CHI + &
           FIELD_PE + FIELD_P
+     if(kappar.ne.0) def_fields = def_fields + FIELD_B2I
+  endif
   if(idens.eq.1) def_fields = def_fields + FIELD_N
 
   if(isources.eq.1) then
      if(idens.eq.1) def_fields = def_fields + FIELD_NI
-     if(kappar.ne.0) def_fields = def_fields + FIELD_B2I
   endif
 
   if(hypc.ne.0.) then 
@@ -410,6 +399,46 @@ subroutine define_sources()
 #endif
                    
         emag3 = emag3 + int1(pt79,weight_79,79) / (gam - 1.)
+
+        if(numvar.ge.2) then
+           eeta = eeta - &
+                (int4(ri2_79,eta79(:,OP_1 ),bzt79(:,OP_1 ),bzt79(:,OP_GS),weight_79,79) &
+                +int4(ri2_79,eta79(:,OP_1 ),bzt79(:,OP_DZ),bzt79(:,OP_DZ),weight_79,79) &
+                +int4(ri2_79,eta79(:,OP_1 ),bzt79(:,OP_DR),bzt79(:,OP_DR),weight_79,79) &
+                +int4(ri2_79,eta79(:,OP_DZ),bzt79(:,OP_DZ),bzt79(:,OP_1 ),weight_79,79) &
+                +int4(ri2_79,eta79(:,OP_DR),bzt79(:,OP_DR),bzt79(:,OP_1 ),weight_79,79))
+        endif
+
+        if(idens.eq.0) then
+           ekappat = ekappat + kappat*int1(pt79(:,OP_LP),weight_79,79)
+
+           temp79a = kappar*ri2_79* &
+                (b2i79(:,OP_DZ)*pst79(:,OP_DR) - b2i79(:,OP_DR)*pst79(:,OP_DZ))
+           temp79b = kappar*ri2_79*b2i79(:,OP_1)
+           temp79c = pt79(:,OP_DZ)*pst79(:,OP_DR) - pt79(:,OP_DR)*pst79(:,OP_DZ)
+           
+           ekappar = ekappar &
+                +int2(temp79a,temp79c,weight_79,79) &
+                +int4(temp79b,pt79(:,OP_DZZ),pst79(:,OP_DR ),pst79(:,OP_DR),weight_79,79) &
+                -int4(temp79b,pt79(:,OP_DRZ),pst79(:,OP_DZ ),pst79(:,OP_DR),weight_79,79) &
+                +int4(temp79b,pt79(:,OP_DZ ),pst79(:,OP_DRZ),pst79(:,OP_DR),weight_79,79) &
+                -int4(temp79b,pt79(:,OP_DR ),pst79(:,OP_DZZ),pst79(:,OP_DR),weight_79,79) &
+                -int4(temp79b,pt79(:,OP_DRZ),pst79(:,OP_DR ),pst79(:,OP_DZ),weight_79,79) &
+                +int4(temp79b,pt79(:,OP_DRR),pst79(:,OP_DZ ),pst79(:,OP_DZ),weight_79,79) &
+                -int4(temp79b,pt79(:,OP_DZ ),pst79(:,OP_DRR),pst79(:,OP_DZ),weight_79,79) &
+                +int4(temp79b,pt79(:,OP_DR ),pst79(:,OP_DRZ),pst79(:,OP_DZ),weight_79,79)
+           if(itor.eq.1) then
+              ekappar = ekappar + int4(temp79b,ri_79,pst79(:,OP_DZ),temp79c,weight_79,79)
+           endif
+        else
+           ekappat = ekappat + kappat* &
+                (   int2(pt79(:,OP_LP),ni79(:,OP_1 ),weight_79,79) &
+                +2.*int2(pt79(:,OP_DZ),ni79(:,OP_DZ),weight_79,79) &
+                +2.*int2(pt79(:,OP_DR),ni79(:,OP_DR),weight_79,79) &
+                +   int2(pt79(:,OP_1 ),ni79(:,OP_LP),weight_79,79))
+
+           ekappar = 0.
+        endif
      endif
   end do
 
@@ -444,9 +473,12 @@ subroutine define_sources()
      temp(16) = emag3
      temp(17) = emag3d
      temp(18) = emag3h
+     temp(19) = ekappar
+     temp(20) = ekappat
+     temp(21) = eeta
          
      !checked that this should be MPI_DOUBLE_PRECISION
-     call mpi_allreduce(temp, temp2, 18, MPI_DOUBLE_PRECISION,  &
+     call mpi_allreduce(temp, temp2, 21, MPI_DOUBLE_PRECISION,  &
           MPI_SUM, MPI_COMM_WORLD, i) 
          
      ekinp = temp2(1)
@@ -467,6 +499,9 @@ subroutine define_sources()
      emag3 = temp2(16)
      emag3d = temp2(17)
      emag3h = temp2(18)
+     ekappar = temp2(19)
+     ekappat = temp2(20)
+     eeta = temp2(21)
   endif !if maxrank .gt. 1
 
   ekin = ekinp + ekint + ekin3
@@ -474,15 +509,15 @@ subroutine define_sources()
   ekind = ekinpd + ekintd + ekin3d
   emagd = emagpd + emagtd + emag3d
 
-  if(myrank.eq.0 .and. iprint.ge.1) then
-     print *, "Energy at ntime = ", ntime
-     print *, "ekinp, ekint, ekin3 = ", ekinp, ekint, ekin3
-     print *, "ekinpd, ekintd, ekin3d = ", ekinpd, ekintd, ekin3d
-     print *, "ekinph, ekinth, ekin3h = ", ekinph, ekinth, ekin3h
-     print *, "emagp, emagt, emag3 = ", emagp, emagt, emag3
-     print *, "emagpd, emagd, emag3d = ", emagpd, emagtd, emag3d
-     print *, "emagph, emagth, emag3h = ", emagph, emagth, emag3h
-  endif
+!!$  if(myrank.eq.0 .and. iprint.ge.1) then
+!!$     print *, "Energy at ntime = ", ntime
+!!$     print *, "ekinp, ekint, ekin3 = ", ekinp, ekint, ekin3
+!!$     print *, "ekinpd, ekintd, ekin3d = ", ekinpd, ekintd, ekin3d
+!!$     print *, "ekinph, ekinth, ekin3h = ", ekinph, ekinth, ekin3h
+!!$     print *, "emagp, emagt, emag3 = ", emagp, emagt, emag3
+!!$     print *, "emagpd, emagd, emag3d = ", emagpd, emagtd, emag3d
+!!$     print *, "emagph, emagth, emag3h = ", emagph, emagth, emag3h
+!!$  endif
 
 end subroutine define_sources
 
@@ -569,7 +604,9 @@ subroutine newvar_eta()
   implicit none
 
   real :: minpe, ajlim, xguess, zguess
-  integer :: i, ione, itri, numelms, def_fields
+  integer :: i, itri
+  integer :: ione, numelms, def_fields
+!!$  integer :: numnodes, ibegin, iendplusone, ibegin1, iendplusone1
 
   resistivity = 0.
   def_fields = 0.
@@ -598,18 +635,6 @@ subroutine newvar_eta()
   call numfac(numelms)
   do itri=1,numelms
 
-!!$     ! calculate the local sampling points and weights for numerical integration
-!!$     call area_to_local(79,                                            &
-!!$          alpha_79,beta_79,gamma_79,area_weight_79,                    &
-!!$          atri(itri), btri(itri), ctri(itri),                          &
-!!$          si_79, eta_79, weight_79)
-!!$     
-!!$     call calcr(itri, si_79, eta_79, 79, r_79)
-!!$     ri_79 = 1./r_79
-!!$     
-!!$     do i=1,18
-!!$        call eval_ops(gtri(:,i,itri), si_79, eta_79, ttri(itri), ri_79, 79, g79(:,:,i))
-!!$     end do
      call define_fields_79(itri, def_fields)
 
      if(eta0.ne.0) then
@@ -636,21 +661,28 @@ subroutine newvar_eta()
            end do
         endif
 
-        if(numvar.ge.3 .or. itor.eq.1) then
-           
+
+        if(itor.eq.1) then
            if(idens.eq.0) then
               temp79a = sqrt((1./(pefac*pet79(:,OP_1)))**3)
            else
               temp79a = sqrt((nt79(:,OP_1)/(pefac*pet79(:,OP_1)))**3)
            endif
         else
-           if(idens.eq.0) then
-              temp79a = sqrt((1./(p0-pi0))**3)
+           if(numvar.ge.3) then         
+              if(idens.eq.0) then
+                 temp79a = sqrt((1./(pefac*pet79(:,OP_1)))**3)
+              else
+                 temp79a = sqrt((nt79(:,OP_1)/(pefac*pet79(:,OP_1)))**3)
+              endif
            else
-              temp79a = sqrt((nt79(:,OP_1)/(p0-pi0))**3)
+              if(idens.eq.0) then
+                 temp79a = sqrt((1./(p0-pi0))**3)
+              else
+                 temp79a = sqrt((nt79(:,OP_1)/(p0-pi0))**3)
+              endif
            endif
         endif
-
      else
         temp79a = 0.
      endif
@@ -666,6 +698,46 @@ subroutine newvar_eta()
 
   ! solve linear equation
   call solve_newvar(resistivity, NV_NOBOUND)
+
+!!$  if(idens.eq.0) dens=0.
+!!$
+!!$  ! Calculate RHS
+!!$  call numnod(numnodes)
+!!$  do i=1,numnodes
+!!$
+!!$     if(eta0.ne.0) then
+!!$        call entdofs(1, i, 0, ibegin1, iendplusone1)
+!!$        call entdofs(numvar, i, 0, ibegin, iendplusone)
+!!$
+!!$        if(idens.eq.0) den(ibegin1) = 1.
+!!$
+!!$        resistivity(ibegin1  ) = eta0*sqrt((den(ibegin1)/(pefac*phi(ibegin+12)))**3)
+!!$        resistivity(ibegin1+1) = 1.5*resistivity(ibegin1)* &
+!!$             (den(ibegin1+1)/den(ibegin1) - phi(ibegin+13)/phi(ibegin+12))
+!!$        resistivity(ibegin1+2) = 1.5*resistivity(ibegin1)* &
+!!$             (den(ibegin1+2)/den(ibegin1) - phi(ibegin+14)/phi(ibegin+12))
+!!$        resistivity(ibegin1+3) = 1.5* &
+!!$             ( resistivity(ibegin1+1)* &
+!!$             (den(ibegin1+1)/den(ibegin1) - phi(ibegin+13)/phi(ibegin+12)) &
+!!$             + resistivity(ibegin1)* &
+!!$             (den(ibegin1+3)/den(ibegin1  ) - (den(ibegin1+1)/den(ibegin1  ))**2 & 
+!!$             -phi(ibegin+15)/phi(ibegin+12) + (phi(ibegin+13)/phi(ibegin+12))**2))
+!!$        resistivity(ibegin1+4) = &
+!!$             resistivity(ibegin1+1)*resistivity(ibegin1+2)/resistivity(ibegin1) &
+!!$             + 1.5*resistivity(ibegin1)* &
+!!$             (den(ibegin1+4)/den(ibegin1  ) &
+!!$             -den(ibegin1+1)*den(ibegin1+2)/(den(ibegin1  )**2) & 
+!!$             -phi(ibegin+16)/phi(ibegin+12) &
+!!$             +phi(ibegin+13)*phi(ibegin+14)/(phi(ibegin+12)**2))
+!!$        resistivity(ibegin1+5) = 1.5* &
+!!$             ( resistivity(ibegin1+2)* &
+!!$             (den(ibegin1+2)/den(ibegin1) - phi(ibegin+14)/phi(ibegin+12)) &
+!!$             + resistivity(ibegin1)* &
+!!$             (den(ibegin1+5)/den(ibegin1  ) - (den(ibegin1+2)/den(ibegin1  ))**2 & 
+!!$             -phi(ibegin+17)/phi(ibegin+12) + (phi(ibegin+14)/phi(ibegin+12))**2))
+!!$     endif
+!!$
+!!$  enddo
 
 end subroutine newvar_eta
 
@@ -686,9 +758,7 @@ subroutine solve_newvar(rhs, ibound)
   call sumshareddofs(rhs)
 
   if(ibound.eq.NV_DCBOUND) then
-     do i=1,nbc_newvar
-        rhs(ibound_newvar(i)) = 0.
-     enddo
+     call boundary_dc(0,rhs)
      call solve(s6matrix_sm,rhs,ier)
   else
      call solve(s3matrix_sm,rhs,ier)

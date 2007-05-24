@@ -9,9 +9,8 @@ subroutine boundary_vel(imatrix, rhs)
   
   integer :: ibottom, iright, itop, ileft, i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes, irow
-  real :: normal, x
+  real :: normal
   real, dimension(6) :: temp
-  double precision :: coords(3)
 
   if(iper.eq.1 .and. jper.eq.1) return
 
@@ -30,23 +29,21 @@ subroutine boundary_vel(imatrix, rhs)
      ! skip if on a periodic boundary
      ! and convert corner to an edge when one edge is periodic
      if(iper.eq.1) then 
-        if(izone.eq.ileft .or. izone.eq.iright) cycle
         if(izonedim.eq.0) then 
            izonedim = 1
            izone = ibottom
         endif
+        if(izone.eq.ileft .or. izone.eq.iright) cycle
      endif
      if(jper.eq.1) then 
-        if(izone.eq.ibottom .or. izone.eq.itop) cycle
         if(izonedim.eq.0) then 
            izonedim = 1
            izone = ileft
         endif
+        if(izone.eq.ibottom .or. izone.eq.itop) cycle
      endif
 
      call entdofs(numvar, i, 0, ibegin, iendplusone)
-     call xyznod(i,coords)
-     x = coords(i) + xzero
 
      ! fix stream function gauge
      call setdiribc(imatrix, ibegin)
@@ -70,19 +67,13 @@ subroutine boundary_vel(imatrix, rhs)
            call boundary_normal_deriv(imatrix, ibegin+12, normal, irow)
            rhs(irow) = 0.
         endif
-   
-        ! no normal stress
-!!$        call boundary_laplacian(imatrix, ibegin, normal, -x, irow)
-!!$        rhs(irow) = 0.
-!!$        if(numvar.ge.2) then
-!!$           call boundary_normal_deriv(imatrix, ibegin+6, normal, irow)
-!!$           rhs(irow) = 0.
-!!$        endif
-!!$        if(numvar.ge.3) then
-!!$           call boundary_laplacian(imatrix, ibegin+12, normal, x, irow)
-!!$           rhs(irow) = 0.
-!!$        endif
 
+        ! no slip
+        if(numvar.ge.2) then
+           call boundary_clamp(imatrix, ibegin+6, normal, rhs, temp)
+        endif
+        
+   
      ! corners
      else if(izonedim.eq.0) then
 
@@ -95,24 +86,12 @@ subroutine boundary_vel(imatrix, rhs)
            call boundary_normal_deriv(imatrix, ibegin+12, pi/2., irow)
            rhs(irow) = 0.
         endif
+     endif
 
-        ! no normal stress
-!!$        call boundary_laplacian(imatrix, ibegin, 0., -x, irow)
-!!$        rhs(irow) = 0.
-!!$        call boundary_laplacian(imatrix, ibegin, pi/2., -x, irow)
-!!$        rhs(irow) = 0.
-!!$        if(numvar.ge.2) then
-!!$           call boundary_normal_deriv(imatrix, ibegin+6, 0., irow)
-!!$           rhs(irow) = 0.
-!!$           call boundary_normal_deriv(imatrix, ibegin+6, pi/2., irow)
-!!$           rhs(irow) = 0.
-!!$        endif
-!!$        if(numvar.ge.3) then
-!!$           call boundary_laplacian(imatrix, ibegin+12, 0., x, irow)
-!!$           rhs(irow) = 0.
-!!$           call boundary_laplacian(imatrix, ibegin+12, pi/2., x, irow)
-!!$           rhs(irow) = 0.
-!!$        endif
+     ! no slip
+     if(numvar.ge.2) then
+        call boundary_clamp_all(imatrix, ibegin+6)
+        rhs(ibegin+6:ibegin+11) = temp
      endif
         
   end do
@@ -131,7 +110,7 @@ subroutine boundary_mag(imatrix, rhs)
   
   integer :: ibottom, iright, itop, ileft, i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes, irow
-  real :: normal, x
+  real :: normal
   real, dimension(6) :: temp
   double precision :: coords(3)
 
@@ -151,23 +130,21 @@ subroutine boundary_mag(imatrix, rhs)
      ! skip if on a periodic boundary
      ! and convert corner to an edge when one edge is periodic
      if(iper.eq.1) then 
-        if(izone.eq.ileft .or. izone.eq.iright) cycle
         if(izonedim.eq.0) then 
            izonedim = 1
            izone = ibottom
         endif
+        if(izone.eq.ileft .or. izone.eq.iright) cycle
      endif
      if(jper.eq.1) then 
-        if(izone.eq.ibottom .or. izone.eq.itop) cycle
         if(izonedim.eq.0) then 
            izonedim = 1
            izone = ileft
         endif
+        if(izone.eq.ibottom .or. izone.eq.itop) cycle
      endif
 
      call entdofs(numvar, i, 0, ibegin, iendplusone)
-     call xyznod(i,coords)
-     x = coords(i) + xzero
 
      if(izonedim.eq.1) then
         if(izone.eq.ileft) then
@@ -193,6 +170,12 @@ subroutine boundary_mag(imatrix, rhs)
            endif
            call boundary_clamp(imatrix, ibegin+6, normal, rhs, temp)
         endif
+!!$        if(numvar.ge.2) then
+!!$           call boundary_normal_deriv(imatrix, ibegin+6, normal, irow)
+!!$           rhs(irow) = 0.
+!!$        endif
+
+        ! clamp pressure
         if(numvar.ge.3) then
            temp = phis(ibegin+12:ibegin+17)
            if(integrator.eq.1 .and. ntime.gt.1) then
@@ -201,19 +184,6 @@ subroutine boundary_mag(imatrix, rhs)
            call boundary_clamp(imatrix, ibegin+12, normal, rhs, temp)
         endif
 
-        ! no surface currents
-!!$        call boundary_laplacian(imatrix, ibegin, normal, -x, irow)
-!!$        rhs(irow) = 0.
-!!$        if(numvar.ge.2) then
-!!$           call boundary_normal_deriv(imatrix, ibegin+6, normal, irow)
-!!$           rhs(irow) = 0.
-!!$        endif
-
-        ! no pressure gradient
-!!$        if(numvar.ge.3) then
-!!$           call boundary_normal_deriv(imatrix, ibegin+12, normal, irow)
-!!$           rhs(irow) = 0.
-!!$        endif
 
         ! add loop voltage
         if(integrator.eq.1 .and. ntime.gt.1) then
@@ -239,6 +209,16 @@ subroutine boundary_mag(imatrix, rhs)
                    0.5*phiold(ibegin+6:ibegin+11)
            endif
         endif
+
+!!$        if(numvar.ge.2) then
+!!$           call boundary_normal_deriv(imatrix, ibegin+6, 0., irow)
+!!$           rhs(irow) = 0.
+!!$           call boundary_normal_deriv(imatrix, ibegin+6, pi/2., irow)
+!!$           rhs(irow) = 0.
+!!$        endif
+
+
+        ! clamp pressure
         if(numvar.ge.3) then
            call boundary_clamp_all(imatrix, ibegin+12)
            rhs(ibegin+12:ibegin+17) = phis(ibegin+12:ibegin+17)
@@ -247,27 +227,6 @@ subroutine boundary_mag(imatrix, rhs)
                    0.5*phiold(ibegin+12:ibegin+17)
            endif
         endif
-
-        ! no surface currents
-!!$        call boundary_laplacian(imatrix, ibegin, 0., -x, irow)
-!!$        rhs(irow) = 0.
-!!$        call boundary_laplacian(imatrix, ibegin, pi/2., -x, irow)
-!!$        rhs(irow) = 0.
-!!$        if(numvar.ge.2) then
-!!$           call boundary_normal_deriv(imatrix, ibegin+6, 0., irow)
-!!$           rhs(irow) = 0.
-!!$           call boundary_normal_deriv(imatrix, ibegin+6, pi/2., irow)
-!!$           rhs(irow) = 0.
-!!$        endif
-
-        ! no pressure gradient
-!!$        if(numvar.ge.3) then
-!!$           call boundary_normal_deriv(imatrix, ibegin+12, 0., irow)
-!!$           rhs(irow) = 0.
-!!$           call boundary_normal_deriv(imatrix, ibegin+12, pi/2., irow)
-!!$           rhs(irow) = 0.
-!!$        endif
-
 
         ! add loop voltage
         if(integrator.eq.1 .and. ntime.gt.1) then
@@ -283,6 +242,247 @@ subroutine boundary_mag(imatrix, rhs)
 end subroutine boundary_mag
 
 
+
+subroutine boundary_den(imatrix, rhs)
+  use basic
+  use arrays
+
+  implicit none
+  
+  integer, intent(in) :: imatrix
+  real, intent(inout), dimension(*) :: rhs
+  
+  integer :: ibottom, iright, itop, ileft, i, izone, izonedim
+  integer :: ibegin, iendplusone, numnodes, irow
+  real :: normal
+  real, dimension(6) :: temp
+
+  if(iper.eq.1 .and. jper.eq.1) return
+
+  call getmodeltags(ibottom, iright, itop, ileft)
+
+  temp = 0.
+
+  call numnod(numnodes)
+  do i=1, numnodes
+     call zonenod(i,izone,izonedim)
+
+     ! skip interior points
+     if(izonedim.ge.2) cycle
+
+     ! for periodic bc's
+     ! skip if on a periodic boundary
+     ! and convert corner to an edge when one edge is periodic
+     if(iper.eq.1) then 
+        if(izonedim.eq.0) then 
+           izonedim = 1
+           izone = ibottom
+        endif
+        if(izone.eq.ileft .or. izone.eq.iright) cycle
+     endif
+     if(jper.eq.1) then 
+        if(izonedim.eq.0) then 
+           izonedim = 1
+           izone = ileft
+        endif
+        if(izone.eq.ibottom .or. izone.eq.itop) cycle
+     endif
+
+     call entdofs(1, i, 0, ibegin, iendplusone)
+
+     ! edges
+     if(izonedim.eq.1) then
+        if(izone.eq.ileft) then
+           normal = 0.
+        else if(izone.eq.iright) then
+           normal = pi
+        else if(izone.eq.itop) then
+           normal = pi/2.
+        else if(izone.eq.ibottom) then
+           normal = -pi/2.
+        endif
+
+        ! clamp density
+        temp = dens(ibegin:ibegin+5)
+        if(integrator.eq.1 .and. ntime.gt.1) then
+           temp = 1.5*temp + 0.5*denold(ibegin:ibegin+5)
+        endif
+        call boundary_clamp(imatrix, ibegin, normal, rhs, temp)
+
+!!$        call boundary_normal_deriv(imatrix, ibegin, normal, irow)
+!!$        rhs(irow) = 0.
+        
+     ! corners
+     else if(izonedim.eq.0) then
+        ! clamp density
+        call boundary_clamp_all(imatrix, ibegin)
+        rhs(ibegin:ibegin+5) = dens(ibegin:ibegin+5)
+
+!!$        call boundary_normal_deriv(imatrix, ibegin, 0., irow)
+!!$        rhs(irow) = 0.
+!!$        call boundary_normal_deriv(imatrix, ibegin, pi/2., irow)
+!!$        rhs(irow) = 0.
+
+     endif
+        
+  end do
+
+end subroutine boundary_den
+
+
+
+subroutine boundary_pres(imatrix, rhs)
+  use basic
+  use arrays
+
+  implicit none
+  
+  integer, intent(in) :: imatrix
+  real, intent(inout), dimension(*) :: rhs
+  
+  integer :: ibottom, iright, itop, ileft, i, izone, izonedim
+  integer :: ibegin, iendplusone, numnodes, irow
+  real :: normal
+  real, dimension(6) :: temp
+
+  if(iper.eq.1 .and. jper.eq.1) return
+
+  call getmodeltags(ibottom, iright, itop, ileft)
+
+  temp = 0.
+
+  call numnod(numnodes)
+  do i=1, numnodes
+     call zonenod(i,izone,izonedim)
+
+     ! skip interior points
+     if(izonedim.ge.2) cycle
+
+     ! for periodic bc's
+     ! skip if on a periodic boundary
+     ! and convert corner to an edge when one edge is periodic
+     if(iper.eq.1) then 
+        if(izonedim.eq.0) then 
+           izonedim = 1
+           izone = ibottom
+        endif
+        if(izone.eq.ileft .or. izone.eq.iright) cycle
+     endif
+     if(jper.eq.1) then 
+        if(izonedim.eq.0) then 
+           izonedim = 1
+           izone = ileft
+        endif
+        if(izone.eq.ibottom .or. izone.eq.itop) cycle
+     endif
+
+     call entdofs(1, i, 0, ibegin, iendplusone)
+
+     ! edges
+     if(izonedim.eq.1) then
+        if(izone.eq.ileft) then
+           normal = 0.
+        else if(izone.eq.iright) then
+           normal = pi
+        else if(izone.eq.itop) then
+           normal = pi/2.
+        else if(izone.eq.ibottom) then
+           normal = -pi/2.
+        endif
+
+        ! clamp density
+        temp = press(ibegin:ibegin+5)
+        if(integrator.eq.1 .and. ntime.gt.1) then
+           temp = 1.5*temp + 0.5*presold(ibegin:ibegin+5)
+        endif
+        call boundary_clamp(imatrix, ibegin, normal, rhs, temp)
+
+     ! corners
+     else if(izonedim.eq.0) then
+        ! clamp density
+        call boundary_clamp_all(imatrix, ibegin)
+        rhs(ibegin:ibegin+5) = press(ibegin:ibegin+5)
+     endif
+        
+  end do
+
+end subroutine boundary_pres
+
+
+subroutine boundary_dc(imatrix, rhs)
+  use basic
+  use arrays
+
+  implicit none
+  
+  integer, intent(in) :: imatrix
+  real, intent(inout), dimension(*) :: rhs
+  
+  integer :: ibottom, iright, itop, ileft, i, izone, izonedim
+  integer :: ibegin, iendplusone, numnodes, irow
+  real :: normal
+  real, dimension(6) :: temp
+
+  if(iper.eq.1 .and. jper.eq.1) return
+
+  call getmodeltags(ibottom, iright, itop, ileft)
+
+  temp = 0.
+
+  call numnod(numnodes)
+  do i=1, numnodes
+     call zonenod(i,izone,izonedim)
+
+     ! skip interior points
+     if(izonedim.ge.2) cycle
+
+     ! for periodic bc's
+     ! skip if on a periodic boundary
+     ! and convert corner to an edge when one edge is periodic
+     if(iper.eq.1) then 
+        if(izonedim.eq.0) then 
+           izonedim = 1
+           izone = ibottom
+        endif
+        if(izone.eq.ileft .or. izone.eq.iright) cycle
+     endif
+     if(jper.eq.1) then 
+        if(izonedim.eq.0) then 
+           izonedim = 1
+           izone = ileft
+        endif
+        if(izone.eq.ibottom .or. izone.eq.itop) cycle
+     endif
+
+     call entdofs(1, i, 0, ibegin, iendplusone)
+
+     ! edges
+     if(izonedim.eq.1) then
+        if(izone.eq.ileft) then
+           normal = 0.
+        else if(izone.eq.iright) then
+           normal = pi
+        else if(izone.eq.itop) then
+           normal = pi/2.
+        else if(izone.eq.ibottom) then
+           normal = -pi/2.
+        endif
+
+        ! clamp density
+        call boundary_clamp(imatrix, ibegin, normal, rhs, temp)
+
+     ! corners
+     else if(izonedim.eq.0) then
+        ! clamp density
+        call boundary_clamp_all(imatrix, ibegin)
+        rhs(ibegin:ibegin+5) = temp
+     endif
+        
+  end do
+
+end subroutine boundary_dc
+
+
 subroutine boundary_gs(imatrix, rhs)
   use basic
   use arrays
@@ -295,9 +495,8 @@ subroutine boundary_gs(imatrix, rhs)
   
   integer :: ibottom, iright, itop, ileft, i, izone, izonedim
   integer :: ibegin, iendplusone, ibeginn, iendplusonen, numnodes, irow
-  real :: normal, x
+  real :: normal
   real, dimension(6) :: temp
-  double precision :: coords(3)
 
   if(iper.eq.1 .and. jper.eq.1) return
 
@@ -315,30 +514,22 @@ subroutine boundary_gs(imatrix, rhs)
      ! skip if on a periodic boundary
      ! and convert corner to an edge when one edge is periodic
      if(iper.eq.1) then 
-        if(izone.eq.ileft .or. izone.eq.iright) cycle
         if(izonedim.eq.0) then 
            izonedim = 1
            izone = ibottom
         endif
+        if(izone.eq.ileft .or. izone.eq.iright) cycle
      endif
      if(jper.eq.1) then 
-        if(izone.eq.ibottom .or. izone.eq.itop) cycle
         if(izonedim.eq.0) then 
            izonedim = 1
            izone = ileft
         endif
+        if(izone.eq.ibottom .or. izone.eq.itop) cycle
      endif
 
      call entdofs(numvargs, i, 0, ibegin, iendplusone)
      call entdofs(numvar, i, 0, ibeginn, iendplusonen)
-     call xyznod(i,coords)
-     x = coords(i) + xzero
-
-!!$     if(imatrix.ne.0) call setdiribc(imatrix, ibegin)
-!!$     rhs(ibegin) = phis(ibeginn)
-
-!!$     call boundary_clamp_all(imatrix, ibegin)
-!!$     rhs(ibegin:ibegin+5) = phis(ibeginn:ibeginn+5)
 
      if(izonedim.eq.1) then
         if(izone.eq.ileft) then
@@ -355,27 +546,18 @@ subroutine boundary_gs(imatrix, rhs)
         temp = phis(ibeginn:ibeginn+5)
         call boundary_clamp(imatrix, ibegin, normal, rhs, temp)
 
-        ! no surface currents
-!!$        call boundary_laplacian(imatrix, ibegin, normal+pi/2., -x, irow)
-!!$        rhs(irow) = 0.
      else if(izonedim.eq.0) then
 
         ! clamp magnetic field
         call boundary_clamp_all(imatrix, ibegin)
         rhs(ibegin:ibegin+5) = phis(ibeginn:ibeginn+5)
-
-!!$        ! no surface currents
-!!$        call boundary_laplacian(imatrix, ibegin, 0., -x, irow)
-!!$        rhs(irow) = 0.
-!!$        call boundary_laplacian(imatrix, ibegin, pi/2., -x, irow)
-!!$        rhs(irow) = 0.
      endif        
   end do
 
 end subroutine boundary_gs
 
 
-subroutine boundary_sm(imatrix, rhs)
+subroutine boundary_vor(imatrix, rhs)
   use basic
   use arrays
 
@@ -384,17 +566,19 @@ subroutine boundary_sm(imatrix, rhs)
   integer, intent(in) :: imatrix
   real, intent(inout), dimension(*) :: rhs
   
+  integer, parameter :: numvarsm = 2
   integer :: ibottom, iright, itop, ileft, i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes, irow
-  real :: normal, x
-  double precision :: coords(3)
+  real :: normal
+  real, dimension(6) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
 
   call getmodeltags(ibottom, iright, itop, ileft)
 
-  call numnod(numnodes)
+  temp = 0.
 
+  call numnod(numnodes)
   do i=1, numnodes
      call zonenod(i,izone,izonedim)
 
@@ -405,30 +589,137 @@ subroutine boundary_sm(imatrix, rhs)
      ! skip if on a periodic boundary
      ! and convert corner to an edge when one edge is periodic
      if(iper.eq.1) then 
-        if(izone.eq.ileft .or. izone.eq.iright) cycle
         if(izonedim.eq.0) then 
            izonedim = 1
            izone = ibottom
         endif
+        if(izone.eq.ileft .or. izone.eq.iright) cycle
      endif
      if(jper.eq.1) then 
-        if(izone.eq.ibottom .or. izone.eq.itop) cycle
         if(izonedim.eq.0) then 
            izonedim = 1
            izone = ileft
         endif
+        if(izone.eq.ibottom .or. izone.eq.itop) cycle
      endif
 
-     call entdofs(numvar, i, 0, ibegin, iendplusone)
-     call xyznod(i,coords)
-     x = coords(i) + xzero
+     call entdofs(numvarsm, i, 0, ibegin, iendplusone)
 
-     ! no normal stress
-     call setdiribc(imatrix, ibegin)
-     rhs(ibegin) = 0.       
+     ! edges
+     if(izonedim.eq.1) then
+        if(izone.eq.ileft) then
+           normal = 0.
+        else if(izone.eq.iright) then
+           normal = pi
+        else if(izone.eq.itop) then
+           normal = pi/2.
+        else if(izone.eq.ibottom) then
+           normal = -pi/2.
+        endif
+
+        ! clamp vorticity
+        call boundary_clamp(imatrix, ibegin, normal, rhs, temp)
+        ! clamp stream function
+        call boundary_clamp(imatrix, ibegin+6, normal, rhs, temp)
+
+     ! corners
+     else if(izonedim.eq.0) then
+        ! clamp vorticity
+        call boundary_clamp_all(imatrix, ibegin)
+        rhs(ibegin:ibegin+5) = temp
+
+        ! clamp stream function
+        call boundary_clamp_all(imatrix, ibegin+6)
+        rhs(ibegin+6:ibegin+11) = temp
+     endif
+     
   end do
 
-end subroutine boundary_sm
+end subroutine boundary_vor
+
+
+subroutine boundary_com(imatrix, rhs)
+  use basic
+  use arrays
+
+  implicit none
+  
+  integer, intent(in) :: imatrix
+  real, intent(inout), dimension(*) :: rhs
+  
+  integer, parameter :: numvarsm = 2
+  integer :: ibottom, iright, itop, ileft, i, izone, izonedim
+  integer :: ibegin, iendplusone, numnodes, irow
+  real :: normal
+  real, dimension(6) :: temp
+
+  if(iper.eq.1 .and. jper.eq.1) return
+
+  call getmodeltags(ibottom, iright, itop, ileft)
+
+  temp = 0.
+
+  call numnod(numnodes)
+  do i=1, numnodes
+     call zonenod(i,izone,izonedim)
+
+     ! skip interior points
+     if(izonedim.ge.2) cycle
+
+     ! for periodic bc's
+     ! skip if on a periodic boundary
+     ! and convert corner to an edge when one edge is periodic
+     if(iper.eq.1) then 
+        if(izonedim.eq.0) then 
+           izonedim = 1
+           izone = ibottom
+        endif
+        if(izone.eq.ileft .or. izone.eq.iright) cycle
+     endif
+     if(jper.eq.1) then 
+        if(izonedim.eq.0) then 
+           izonedim = 1
+           izone = ileft
+        endif
+        if(izone.eq.ibottom .or. izone.eq.itop) cycle
+     endif
+
+     call entdofs(numvarsm, i, 0, ibegin, iendplusone)
+
+     ! edges
+     if(izonedim.eq.1) then
+        if(izone.eq.ileft) then
+           normal = 0.
+        else if(izone.eq.iright) then
+           normal = pi
+        else if(izone.eq.itop) then
+           normal = pi/2.
+        else if(izone.eq.ibottom) then
+           normal = -pi/2.
+        endif
+
+        ! clamp vorticity
+        call boundary_clamp(imatrix, ibegin, normal, rhs, temp)
+
+        ! no normal flow
+        call boundary_normal_deriv(imatrix, ibegin+6, normal, irow)
+        rhs(irow) = 0.
+
+     ! corners
+     else if(izonedim.eq.0) then
+        ! clamp vorticity
+        call boundary_clamp_all(imatrix, ibegin)
+        rhs(ibegin:ibegin+5) = temp
+
+        ! clamp stream function
+        call boundary_normal_deriv(imatrix, ibegin+6, 0., irow)
+        rhs(irow) = 0.
+        call boundary_normal_deriv(imatrix, ibegin+6, pi/2., irow)
+        rhs(irow) = 0.
+     endif
+  end do
+
+end subroutine boundary_com
 
 
 ! Clamps boudary values to specified values
@@ -616,74 +907,139 @@ end subroutine
 
 
 
-! Dirichlet Boundary Conditions
-! =============================
-subroutine boundaryds(ibound,nbc,jsymtype)
-  use basic
-  implicit none
+!!$! Dirichlet Boundary Conditions
+!!$! =============================
+!!$subroutine boundaryds(ibound,nbc,jsymtype)
+!!$  use basic
+!!$  implicit none
+!!$
+!!$  ! jsymtype = 1 for even up-down symmetry
+!!$  !          = 2 for odd   "        "
+!!$
+!!$  integer, dimension(*), intent(out) :: ibound
+!!$  integer, intent(in) :: jsymtype
+!!$  integer, intent(out) :: nbc
+!!$
+!!$  integer :: numnodes, i, izone, izonedim
+!!$  integer :: ibottom, iright, itop, ileft, ibegin, iendplusone
+!!$
+!!$  call getmodeltags(ibottom, iright, itop, ileft)
+!!$  call numnod(numnodes)
+!!$  nbc = 0
+!!$
+!!$  if(iper.eq.1 .and. jper.eq.1) return
+!!$
+!!$  do i=1,numnodes
+!!$     call entdofs(1, i, 0, ibegin, iendplusone)
+!!$     call zonenod(i,izone,izonedim)
+!!$     if(izonedim .eq. 1) then
+!!$
+!!$        ! left/right boundaries
+!!$        ! ~~~~~~~~~~~~~~~~~~~~~
+!!$        if(iper.eq.0 .and. (izone.eq.ileft .or. izone.eq.iright)) then
+!!$           ibound(nbc+1) = ibegin
+!!$           ibound(nbc+2) = ibegin+2
+!!$           ibound(nbc+3) = ibegin+5
+!!$           nbc =  nbc+3
+!!$
+!!$           ibound(nbc+1) = ibegin+1
+!!$           ibound(nbc+2) = ibegin+3
+!!$           ibound(nbc+3) = ibegin+4
+!!$           nbc = nbc+3
+!!$           
+!!$        ! top/bottom boundaries
+!!$        ! ~~~~~~~~~~~~~~~~~~~~~
+!!$        else if(jper.eq.0 .and. (izone.eq.itop .or. izone.eq.ibottom)) then
+!!$           ibound(nbc+1) = ibegin
+!!$           ibound(nbc+2) = ibegin+1
+!!$           ibound(nbc+3) = ibegin+3
+!!$           nbc =  nbc+3
+!!$
+!!$           ibound(nbc+1) = ibegin+2
+!!$           ibound(nbc+2) = ibegin+4
+!!$           ibound(nbc+3) = ibegin+5
+!!$           nbc = nbc+3
+!!$
+!!$        endif
+!!$
+!!$        ! corner points
+!!$        ! ~~~~~~~~~~~~~
+!!$     else if(izonedim .eq. 0) then
+!!$        ibound(nbc+1) = ibegin
+!!$        nbc =  nbc+1
+!!$
+!!$        ibound(nbc+1) = ibegin+1
+!!$        ibound(nbc+2) = ibegin+2
+!!$        ibound(nbc+3) = ibegin+3
+!!$        ibound(nbc+4) = ibegin+4
+!!$        ibound(nbc+5) = ibegin+5
+!!$        nbc = nbc+5
+!!$
+!!$!        if(iper.eq.0) then
+!!$!           ibound(nbc+1) = ibegin+2
+!!$!           ibound(nbc+2) = ibegin+5
+!!$!           nbc =  nbc+2
+!!$!        endif
+!!$!        if(jper.eq.0) then
+!!$!           ibound(nbc+1) = ibegin+1
+!!$!           ibound(nbc+2) = ibegin+3
+!!$!           nbc =  nbc+2
+!!$!        endif
+!!$!        if(iper.eq.0 .and. jper.eq.0) then
+!!$!           ibound(nbc+1) = ibegin+4
+!!$!           nbc =  nbc+1
+!!$!        endif
+!!$     endif
+!!$  enddo
+!!$  return
+!!$end subroutine boundaryds
 
-  ! jsymtype = 1 for even up-down symmetry
-  !          = 2 for odd   "        "
 
-  integer, dimension(*), intent(out) :: ibound
-  integer, intent(in) :: jsymtype
-  integer, intent(out) :: nbc
 
-  integer :: numnodes, i, izone, izonedim
-  integer :: ibottom, iright, itop, ileft, ibegin, iendplusone
-
-  call getmodeltags(ibottom, iright, itop, ileft)
-  call numnod(numnodes)
-  nbc = 0
-
-  if(iper.eq.1 .and. jper.eq.1) return
-
-  do i=1,numnodes
-     call entdofs(1, i, 0, ibegin, iendplusone)
-     call zonenod(i,izone,izonedim)
-     if(izonedim .eq. 1) then
-
-        ! left/right boundaries
-        ! ~~~~~~~~~~~~~~~~~~~~~
-        if(iper.eq.0 .and. (izone.eq.ileft .or. izone.eq.iright)) then
-           ibound(nbc+1) = ibegin
-           ibound(nbc+2) = ibegin+2
-           ibound(nbc+3) = ibegin+5
-           nbc =  nbc+3
-
-           ibound(nbc+1) = ibegin+1
-           ibound(nbc+2) = ibegin+3
-           ibound(nbc+3) = ibegin+4
-           nbc = nbc+3
-           
-        ! top/bottom boundaries
-        ! ~~~~~~~~~~~~~~~~~~~~~
-        else if(jper.eq.0 .and. (izone.eq.itop .or. izone.eq.ibottom)) then
-           ibound(nbc+1) = ibegin
-           ibound(nbc+2) = ibegin+1
-           ibound(nbc+3) = ibegin+3
-           nbc =  nbc+3
-
-           ibound(nbc+1) = ibegin+2
-           ibound(nbc+2) = ibegin+4
-           ibound(nbc+3) = ibegin+5
-           nbc = nbc+3
-
-        endif
-
-        ! corner points
-        ! ~~~~~~~~~~~~~
-     else if(izonedim .eq. 0) then
-        ibound(nbc+1) = ibegin
-        nbc =  nbc+1
-
-        ibound(nbc+1) = ibegin+1
-        ibound(nbc+2) = ibegin+2
-        ibound(nbc+3) = ibegin+3
-        ibound(nbc+4) = ibegin+4
-        ibound(nbc+5) = ibegin+5
-        nbc = nbc+5
-
+!!$! Pressure Boundary Conditions
+!!$! ============================
+!!$subroutine boundarypres(ibound,nbc)
+!!$  use basic
+!!$  use arrays
+!!$  implicit none
+!!$  
+!!$  integer :: numnodes, i, izone, ibound(*), nbc, izonedim
+!!$  integer :: ibottom, iright, itop, ileft, ibegin, iendplusone
+!!$
+!!$  call getmodeltags(ibottom, iright, itop, ileft)
+!!$  call numnod(numnodes)
+!!$
+!!$  nbc = 0
+!!$
+!!$  if(iper.eq.1 .and. jper.eq.1) return
+!!$
+!!$  do i=1,numnodes
+!!$     call entdofs(1, i, 0, ibegin, iendplusone)
+!!$     call zonenod(i,izone,izonedim)
+!!$     if(izonedim .eq. 1) then
+!!$
+!!$        ! left/right boundaries
+!!$        ! ~~~~~~~~~~~~~~~~~~~~~
+!!$        if(iper.eq.0 .and. (izone.eq.ileft .or. izone.eq.iright)) then
+!!$           ibound(nbc+1) = ibegin
+!!$           ibound(nbc+2) = ibegin+2
+!!$           ibound(nbc+3) = ibegin+5
+!!$           nbc =  nbc+3
+!!$           
+!!$        ! top/bottom boundaries
+!!$        ! ~~~~~~~~~~~~~~~~~~~~~
+!!$        else if(jper.eq.0 .and. (izone.eq.itop .or. izone .eq. ibottom)) then
+!!$           ibound(nbc+1) = ibegin
+!!$           ibound(nbc+2) = ibegin+1
+!!$           ibound(nbc+3) = ibegin+3
+!!$           nbc =  nbc+3
+!!$        end if
+!!$
+!!$        ! corner points
+!!$        ! ~~~~~~~~~~~~~
+!!$     else if(izonedim .eq. 0) then
+!!$        ibound(nbc+1) = ibegin
+!!$        nbc =  nbc+1
 !!$        if(iper.eq.0) then
 !!$           ibound(nbc+1) = ibegin+2
 !!$           ibound(nbc+2) = ibegin+5
@@ -694,76 +1050,11 @@ subroutine boundaryds(ibound,nbc,jsymtype)
 !!$           ibound(nbc+2) = ibegin+3
 !!$           nbc =  nbc+2
 !!$        endif
-!!$        if(iper.eq.0 .and. jper.eq.0) then
-!!$           ibound(nbc+1) = ibegin+4
-!!$           nbc =  nbc+1
-!!$        endif
-     endif
-  enddo
-  return
-end subroutine boundaryds
-
-
-
-! Pressure Boundary Conditions
-! ============================
-subroutine boundarypres(ibound,nbc)
-  use basic
-  use arrays
-  implicit none
-  
-  integer :: numnodes, i, izone, ibound(*), nbc, izonedim
-  integer :: ibottom, iright, itop, ileft, ibegin, iendplusone
-
-  call getmodeltags(ibottom, iright, itop, ileft)
-  call numnod(numnodes)
-
-  nbc = 0
-
-  if(iper.eq.1 .and. jper.eq.1) return
-
-  do i=1,numnodes
-     call entdofs(1, i, 0, ibegin, iendplusone)
-     call zonenod(i,izone,izonedim)
-     if(izonedim .eq. 1) then
-
-        ! left/right boundaries
-        ! ~~~~~~~~~~~~~~~~~~~~~
-        if(iper.eq.0 .and. (izone.eq.ileft .or. izone.eq.iright)) then
-           ibound(nbc+1) = ibegin
-           ibound(nbc+2) = ibegin+2
-           ibound(nbc+3) = ibegin+5
-           nbc =  nbc+3
-           
-        ! top/bottom boundaries
-        ! ~~~~~~~~~~~~~~~~~~~~~
-        else if(jper.eq.0 .and. (izone.eq.itop .or. izone .eq. ibottom)) then
-           ibound(nbc+1) = ibegin
-           ibound(nbc+2) = ibegin+1
-           ibound(nbc+3) = ibegin+3
-           nbc =  nbc+3
-        end if
-
-        ! corner points
-        ! ~~~~~~~~~~~~~
-     else if(izonedim .eq. 0) then
-        ibound(nbc+1) = ibegin
-        nbc =  nbc+1
-        if(iper.eq.0) then
-           ibound(nbc+1) = ibegin+2
-           ibound(nbc+2) = ibegin+5
-           nbc =  nbc+2
-        endif
-        if(jper.eq.0) then
-           ibound(nbc+1) = ibegin+1
-           ibound(nbc+2) = ibegin+3
-           nbc =  nbc+2
-        endif
-     endif
-  enddo
-
-  return
-end subroutine boundarypres
+!!$     endif
+!!$  enddo
+!!$
+!!$  return
+!!$end subroutine boundarypres
 
 
 ! Smoother boundary conditions

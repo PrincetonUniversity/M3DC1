@@ -21,7 +21,7 @@
 
 
       integer :: itri, ndof_2,
-     &     i, j, numvarsm, jtwo, itwo, nbcsm, l, 
+     &     i, j, numvarsm, jtwo, itwo, l, 
      &     ier, jone, nbound, numelms, izone,izonedim,
      &     ibegind, iendplusoned, ibeginsm, iendplusonesm
       real :: hyp, thimpsm
@@ -30,8 +30,6 @@
 
       real, dimension(2,2) :: ssterm
       real, allocatable :: temp(:)
-
-      integer, save, allocatable :: iboundsm(:), iboundsm2(:)
 !
       if(myrank.eq.0 .and. iprint.eq.1) print *, " smoother1"
 
@@ -44,14 +42,6 @@
 ! 
       if(ifirsts5_lu.ne.0) go to 500
       ifirsts5_lu = 1
-
-      nbound = 0
-      do i=1,numnodes
-         call zonenod(i,izone,izonedim)
-         if(izonedim .ne. 2) nbound = nbound + 1
-      enddo
-      nbound = 24 * nbound
-      allocate(iboundsm(nbound),iboundsm2(nbound))
 !
 !
 !.....compute LU decomposition only once
@@ -81,13 +71,8 @@
          enddo
       enddo
 !
-!......define indices for boundary arrays
-      call boundarysm(iboundsm,iboundsm2,nbcsm,iplace)
-
-      ! bc stuff...
-      do i=1,nbcsm
-         call setdiribc(s5matrix_sm, iboundsm(i))
-      enddo
+!.....Insert boundary condtions
+      call boundary_vor(s5matrix_sm, temp)
       call finalizearray4solve(s5matrix_sm)
  500  continue
 !
@@ -109,13 +94,10 @@
             enddo
          enddo
       enddo
-      do l=1,nbcsm
-         if(iboundsm(l).le.0 .or. iboundsm(l).gt.ndof_2) then
-            write(*,*) "error in smoother"
-            call safestop(98)
-         endif
-         temp(iboundsm(l)) = 0.
-      enddo
+
+      ! Insert boundary conditions
+      call boundary_vor(0, temp)
+
 ! since a proc is contributing values to parts of the vector
 ! it does not own, we call sumshareddofs so that these values
 ! get summed up for all values shared by multiple procs

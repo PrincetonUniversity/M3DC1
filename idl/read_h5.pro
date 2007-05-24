@@ -15,6 +15,7 @@ function translate, name
    if(strcmp(name, 'vor') eq 1) then return, "!17z!9.GX!17v"
    if(strcmp(name, 'com') eq 1) then return, "!9G.!17v"
    if(strcmp(name, 'eta') eq 1) then return, "!7g!3"
+   if(strcmp(name, 'den') eq 1) then return, "!8n!3"
    
    return, "!8" + name
 end
@@ -150,8 +151,8 @@ function eval, field, localpos, elm, operation=op
 end
 
 
-function eval_field, field, mesh, x=xi, y=yi, points=p, operation=op, $
-                     filename=filename
+function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
+                     filename=filename, xrange=xrange, yrange=yrange
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
@@ -166,8 +167,13 @@ function eval_field, field, mesh, x=xi, y=yi, points=p, operation=op, $
    localpos = fltarr(2)
    index = intarr(2)
 
-   xrange = [0.,mesh.width._data]
-   yrange = [0.,mesh.height._data]
+   xzero = read_parameter("xzero", filename=filename)
+   zzero = read_parameter("zzero", filename=filename)
+
+   if(n_elements(xrange) lt 2) then $
+     xrange = [0.,mesh.width._data] + xzero
+   if(n_elements(yrange) lt 2) then $
+     yrange = [0.,mesh.height._data] + zzero
 
    dx = (xrange[1] - xrange[0]) / (p - 1.)
    dy = (yrange[1] - yrange[0]) / (p - 1.)
@@ -193,33 +199,41 @@ function eval_field, field, mesh, x=xi, y=yi, points=p, operation=op, $
        minpos = [min([p1[0], p2[0], p3[0]]), min([p1[1], p2[1], p3[1]])]
        maxpos = [max([p1[0], p2[0], p3[0]]), max([p1[1], p2[1], p3[1]])]
              
-       index[1] = minpos[1]/dy
-       pos[1] = index[1]*dy
+       if(maxpos[0] lt xrange[0]-xzero) then continue
+       if(maxpos[1] lt yrange[0]-zzero) then continue
+
+       index[1] = (minpos[1]-yrange[0]+zzero)/dy
+       pos[1] = index[1]*dy+yrange[0]-zzero
 
        while(pos[1] le maxpos[1] + small*dy) do begin
-           index[0] = minpos[0]/dx
-           pos[0] = index[0]*dx
+           index[0] = (minpos[0]-xrange[0]+xzero)/dx
+           pos[0] = index[0]*dx+xrange[0]-xzero
 
-           while(pos[0] le maxpos[0] + small*dx) do begin
-               localpos = [(pos[0]-x)*co + (pos[1]-y)*sn - b, $
-                           -(pos[0]-x)*sn + (pos[1]-y)*co]
-               
-               if(is_in_tri(localpos,a,b,c) eq 1) then begin
-                   result[index[0], index[1]] = eval(field, localpos, i, op=op)
-               endif
-               
-               pos[0] = pos[0] + dx
-               index[0] = index[0] + 1
-           end
+           if (index[1] ge 0) and (index[1] lt p) then begin
+
+               while(pos[0] le maxpos[0] + small*dx) do begin
+                   localpos = [(pos[0]-x)*co + (pos[1]-y)*sn - b, $
+                              -(pos[0]-x)*sn + (pos[1]-y)*co]
+
+                   if (index[0] ge 0) and (index[0] lt p) then begin
+                       if(is_in_tri(localpos,a,b,c) eq 1) then begin
+                           result[index[0], index[1]] = $
+                             eval(field, localpos, i, op=op)
+                       endif
+                   endif
+                                  
+                   pos[0] = pos[0] + dx
+                   index[0] = index[0] + 1
+               end
+           endif
+           
            pos[1] = pos[1] + dy
            index[1] = index[1] + 1
        end
    end
 
-   xi = findgen(p)*(xrange[1]-xrange[0])/(p-1.) + xrange[0] $
-     + read_parameter("xzero", filename=filename)
-   yi = findgen(p)*(yrange[1]-yrange[0])/(p-1.) + yrange[0] $
-     + read_parameter("zzero", filename=filename)
+   xi = findgen(p)*(xrange[1]-xrange[0])/(p-1.) + xrange[0]
+   yi = findgen(p)*(yrange[1]-yrange[0])/(p-1.) + yrange[0]
 
    return, result
 end
@@ -257,7 +271,7 @@ end
 
 
 function read_field, name, slices=time, mesh=mesh, filename=filename, time=t, $
-                     x=x, y=y, points=pts
+                     r=x, z=y, points=pts, xrange=xrange, yrange=yrange
    if(n_elements(filename) eq 0) then filename='C1.h5'
    if(n_elements(pts) eq 0) then pts = 50
 
@@ -313,7 +327,8 @@ function read_field, name, slices=time, mesh=mesh, filename=filename, time=t, $
        print, '  evaluating...'
 
        data[i-time[0],*,*]=eval_field(field._data, mesh, points=pts, $
-                                      x=x, y=y, op=op, filename=filename)
+                                      r=x, z=y, op=op, filename=filename, $
+                                      xrange=xrange, yrange=yrange)
    end
 
    h5f_close, file_id
@@ -326,10 +341,11 @@ end
 
 pro plot_field, name, time, points=p, filename=filename, mesh=plotmesh, $
                 mcolor=mc, lcfs=lcfs, title=title, $
-                maskrange=maskrange, maskfield=maskfield,_EXTRA = ex
+                maskrange=maskrange, maskfield=maskfield, $
+                xrange=xrange, yrange=yrange, _EXTRA = ex
 
    field = read_field(name, slices=time, mesh=mesh, filename=filename, $,
-                      time=t, x=x, y=y, points=p)
+                      time=t, r=x, z=y, points=p, xrange=xrange, yrange=yrange)
    if(n_elements(field) le 1) then return
 
    if(n_elements(maskrange) eq 2) then begin
@@ -337,7 +353,8 @@ pro plot_field, name, time, points=p, filename=filename, mesh=plotmesh, $
            psi = field
        endif else begin
            psi = read_field(maskfield, slices=time, mesh=mesh, $
-                            filename=filename, points=p)
+                            filename=filename, points=p, $
+                            xrange=xrange, yrange=yrange)
        endelse
        mask = (psi ge maskrange[0]) and (psi le maskrange[1])
        field = mask*field
@@ -437,25 +454,25 @@ function energy, filename=filename, error=error
       if(n_elements(filename) eq 0) then filename='C1.h5'
 
    nv = read_parameter("numvar", filename=filename)
-   scalars = read_scalars(filename=filename)
+   s = read_scalars(filename=filename)
 
-   N = n_elements(scalars.time._data)
+   N = n_elements(s.time._data)
 
-   E_K = scalars.E_KP._data
-   E_M = scalars.E_MP._data
-   E_D = scalars.E_KPD._data + scalars.E_MPD._data
-   E_H = scalars.E_KPH._data + scalars.E_MPH._data
+   E_K = s.E_KP._data
+   E_M = s.E_MP._data
+   E_D = s.E_KPD._data + s.E_MPD._data
+   E_H = s.E_KPH._data + s.E_MPH._data
    if(nv ge 2) then begin
-       E_K = E_K + scalars.E_KT._data 
-       E_M = E_M + scalars.E_MT._data
-       E_D = E_D + scalars.E_KTD._data + scalars.E_MTD._data
-       E_H = E_H + scalars.E_KTH._data + scalars.E_MTH._data
+       E_K = E_K + s.E_KT._data 
+       E_M = E_M + s.E_MT._data
+       E_D = E_D + s.E_KTD._data + s.E_MTD._data
+       E_H = E_H + s.E_KTH._data + s.E_MTH._data
    endif
    if(nv ge 3) then begin
-       E_K = E_K + scalars.E_K3._data
-       E_M = E_M + scalars.E_P._data
-       E_D = E_D + scalars.E_K3D._data + scalars.E_PD._data
-       E_H = E_H + scalars.E_K3H._data + scalars.E_PH._data
+       E_K = E_K + s.E_K3._data
+       E_M = E_M + s.E_P._data
+       E_D = E_D + s.E_K3D._data + s.E_PD._data
+       E_H = E_H + s.E_K3H._data + s.E_PH._data
    endif
 
    E = E_K + E_M
@@ -464,18 +481,18 @@ function energy, filename=filename, error=error
    if(nv le 2) then begin
        dissipated = E_D + E_H
    endif else begin
-       dissipated = scalars.E_KPH._data + scalars.E_KTH._data
+       dissipated = E_H*0.
    endelse
 
    vloop = read_parameter('vloop', filename=filename)
-   eloop = vloop * scalars.toroidal_current._data / (2.*3.14159625)
+   eloop = vloop * s.toroidal_current._data / (2.*3.14159625)
    dissipated = dissipated - eloop
 
    Error = E - E[0]
    total_lost = fltarr(n_elements(Error))
    total_lost[0] = 0.
    for i=1, n_elements(Error)-1 do begin
-       dt = scalars.time._data[i]-scalars.time._data[i-1]
+       dt = s.time._data[i]-s.time._data[i-1]
        total_lost[i] = total_lost[i-1] + $
          dt*(dissipated[i-1] + dissipated[i])/2.
    endfor
@@ -491,30 +508,27 @@ pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog
 
    nv = read_parameter("numvar", filename=filename)
 
-   scalars = read_scalars(filename=filename)
+   s = read_scalars(filename=filename)
 
    !x.title = '!8t!3'
 
-   loadct, 12
-   dc = !d.table_size / 7
+   N = n_elements(s.time._data)
 
-   N = n_elements(scalars.time._data)
-
-   E_K = scalars.E_KP._data
-   E_M = scalars.E_MP._data
-   E_D = scalars.E_KPD._data + scalars.E_MPD._data
-   E_H = scalars.E_KPH._data + scalars.E_MPH._data
+   E_K = s.E_KP._data
+   E_M = s.E_MP._data
+   E_D = s.E_KPD._data + s.E_MPD._data
+   E_H = s.E_KPH._data + s.E_MPH._data
    if(nv ge 2) then begin
-       E_K = E_K + scalars.E_KT._data 
-       E_M = E_M + scalars.E_MT._data
-       E_D = E_D + scalars.E_KTD._data + scalars.E_MTD._data
-       E_H = E_H + scalars.E_KTH._data + scalars.E_MTH._data
+       E_K = E_K + s.E_KT._data 
+       E_M = E_M + s.E_MT._data
+       E_D = E_D + s.E_KTD._data + s.E_MTD._data
+       E_H = E_H + s.E_KTH._data + s.E_MTH._data
    endif
    if(nv ge 3) then begin
-       E_K = E_K + scalars.E_K3._data
-       E_M = E_M + scalars.E_P._data
-       E_D = E_D + scalars.E_K3D._data + scalars.E_PD._data
-       E_H = E_H + scalars.E_K3H._data + scalars.E_PH._data
+       E_K = E_K + s.E_K3._data
+       E_M = E_M + s.E_P._data
+       E_D = E_D + s.E_K3D._data + s.E_PD._data
+       E_H = E_H + s.E_K3H._data + s.E_PH._data
    endif
 
    E = E_K + E_M
@@ -523,18 +537,20 @@ pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog
    if(nv le 2) then begin
        dissipated = E_D + E_H
    endif else begin
-       dissipated = scalars.E_KPH._data + scalars.E_KTH._data
+       dissipated = s.E_kappat._data + s.E_kappar._data
    endelse
+   dissipated = dissipated + s.E_eta._data
 
+   ; account for loop voltage
    vloop = read_parameter('vloop', filename=filename)
-   eloop = vloop * scalars.toroidal_current._data / (2.*3.14159625)
+   eloop = vloop * s.toroidal_current._data / (2.*3.14159625)
    dissipated = dissipated - eloop
 
    Error = E - E[0]
    total_lost = fltarr(n_elements(Error))
    total_lost[0] = 0.
    for i=1, n_elements(Error)-1 do begin
-       dt = scalars.time._data[i]-scalars.time._data[i-1]
+       dt = s.time._data[i]-s.time._data[i-1]
        total_lost[i] = total_lost[i-1] + $
          dt*(dissipated[i-1] + dissipated[i])/2.
    endfor
@@ -549,34 +565,65 @@ pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog
        E_M = E_M - E_M[0]
        E_D = E_D - E_D[0]
        E_H = E_H - E_H[0]
+       s.E_KP._data = s.E_KP._data - s.E_KP._data[0]
+       s.E_KT._data = s.E_KT._data - s.E_KT._data[0]
+       s.E_K3._data = s.E_K3._data - s.E_K3._data[0]
+       s.E_MP._data = s.E_MP._data - s.E_MP._data[0]
+       s.E_MT._data = s.E_MT._data - s.E_MT._data[0]
+       s.E_P._data  = s.E_P._data  - s.E_P._data[0]
    endif 
 
    if(keyword_set(diff)) then begin
-       E = deriv(scalars.time._data,E)
-       E_K = deriv(scalars.time._data, E_K)
-       E_M = deriv(scalars.time._data, E_M)
+       E = deriv(s.time._data,E)
+       E_K = deriv(s.time._data, E_K)
+       E_M = deriv(s.time._data, E_M)
        !y.title = '!6d!8E!6/d!8t!3'
    endif else begin
        !y.title = '!6 Energy!3'
    endelse
 
-   !y.range=[min([E,E_K,E_M,-E_D,-E_H,Error]), $
-             max([E,E_K,E_M,-E_D,-E_H,Error])]
+   if(nv le 2) then begin
+       !y.range=[min([E,E_K,E_M,-E_D,-E_H,Error]), $
+                 max([E,E_K,E_M,-E_D,-E_H,Error])]
+   endif else begin
+       !y.range=[min([E,s.E_KP._data,s.E_KT._data,s.E_K3._data, $
+                      s.E_MP._data,s.E_MT._data,s.E_P._data,Error]), $
+                 max([E,s.E_KP._data,s.E_KT._data,s.E_K3._data, $
+                      s.E_MP._data,s.E_MT._data,s.E_P._data,Error])]       
+   endelse
    if(keyword_set(ylog) and (!y.range[0] lt 0)) then $
      !y.range[0] = !y.range[1]*1e-8
    if(keyword_set(ylog)) then !y.range[1] = !y.range[1]*10.
 
-   plot, scalars.time._data, E, ylog=ylog
-   oplot, scalars.time._data, E_K, color=dc, linestyle = 2
-   oplot, scalars.time._data, E_M, color=2*dc, linestyle = 2
-   oplot, scalars.time._data, -E_D, color=3*dc, linestyle = 1
-   oplot, scalars.time._data, -E_H, color=4*dc, linestyle = 1
-   oplot, scalars.time._data, Error, color=5*dc, linestyle = 3
+   if(nv le 2) then begin
+       plot, s.time._data, E, ylog=ylog, color=color(0,6)
+       oplot, s.time._data, E_K, color=color(1,6), linestyle = 2
+       oplot, s.time._data, E_M, color=color(2,6), linestyle = 2
+       oplot, s.time._data, -E_D, color=color(3,6), linestyle = 1
+       oplot, s.time._data, -E_H, color=color(4,6), linestyle = 1
+       oplot, s.time._data, Error, color=color(5,6), linestyle = 3
 
-   plot_legend, ['Total', 'Kinetic', 'Magnetic', $
-                 'Diffusive', 'Hyper-Diffusive', '|Error|'] , $
-     color=[-1,1,2,3,4,5,6,7,8,9]*dc, ylog=ylog, $
-     linestyle = [0,2,2,1,1,3]
+       plot_legend, ['Total', 'Kinetic', 'Magnetic', $
+                     'Diffusive', 'Hyper-Diffusive', '|Error|'] , $
+         color=colors(6), ylog=ylog, $
+         linestyle = [0,2,2,1,1,3]
+   endif else begin
+       plot, s.time._data, E, ylog=ylog, color=color(0,8)
+       oplot, s.time._data, s.E_KP._data, color=color(1,8), linestyle = 2
+       oplot, s.time._data, s.E_KT._data, color=color(2,8), linestyle = 2
+       oplot, s.time._data, s.E_K3._data, color=color(3,8), linestyle = 2
+       oplot, s.time._data, s.E_MP._data, color=color(4,8), linestyle = 1
+       oplot, s.time._data, s.E_MT._data, color=color(5,8), linestyle = 1
+       oplot, s.time._data, s.E_P._data,  color=color(6,8), linestyle = 1
+       oplot, s.time._data, Error, color=color(7,8), linestyle = 3
+
+       plot_legend, ['Total', $
+                     'KE: Solenoidal', 'KE: Toroidal', 'KE: Compressional', $
+                     'ME: Poloidal', 'ME: Toroidal', 'Pressure', $
+                     '|Error|'] , $
+         color=colors(8), ylog=ylog, $
+         linestyle = [0,2,2,2,1,1,1,3]
+   endelse
 end
 
 
@@ -587,7 +634,7 @@ pro plot_field_mpeg, fieldname, mpegame=mpegname, range=range, points=pts, $
 
     nt = get_parameters("ntime")
 
-    data = read_field(fieldname, mesh=mesh, x=x, y=y, points=pts)
+    data = read_field(fieldname, mesh=mesh, r=x, z=y, points=pts)
 
     contour_and_legend_mpeg, mpegname, data, x, y, _EXTRA=ex
 end
@@ -597,7 +644,7 @@ pro plot_lcfs, time, color=color, val=psival, psi=psi, x=x, y=y
     pts = 201
 
     if(n_elements(psi) eq 0) then begin
-        psi = read_field('psi', slice=time, points=pts, x=x, y=y)
+        psi = read_field('psi', slice=time, points=pts, r=x, z=y)
     endif
 
     ; if psival not passed, choose limiter value
@@ -699,30 +746,31 @@ pro plot_scalar, scalarname, filename=filename, names=names, $
       title = '!6Reconnected Flux!3'
   endif else $
     if (strcmp("beta", scalarname, /fold_case) eq 1) then begin
+      nv = read_parameter("numvar", filename=filename)
       if(nv lt 3) then begin
           print, "Must be numvar = 3 for beta calculation"
           return
       endif
-      gamma = read_parameter('gam', filename=filename[i])
+      gamma = read_parameter('gam', filename=filename)
       data = 2.*(gamma-1.)*s.E_P._data/(s.E_MP._data + s.E_MT._data)
       title = '!7b!3'
       ytitle = '!7b!3'
   endif else if $
     (strcmp("poloidal beta", scalarname, /fold_case) eq 1) or $
     (strcmp("bp", scalarname, /fold_case) eq 1) then begin
-      nv = read_parameter("numvar", filename=filename[0])
+      nv = read_parameter("numvar", filename=filename)
       if(nv lt 3) then begin
           print, "Must be numvar = 3 for beta calculation"
           return
       endif
-      gamma = read_parameter('gam', filename=filename[i])
+      gamma = read_parameter('gam', filename=filename)
       data = 2.*(gamma-1.)*s.E_P._data/s.toroidal_current._data^2
       title = '!7b!D!8p!N!3'
       ytitle = '!7b!D!8p!N!3'
   endif else if $
     (strcmp("kinetic energy", scalarname, /fold_case) eq 1) or $
     (strcmp("ke", scalarname, /fold_case) eq 1)then begin
-      nv = read_parameter("numvar", filename=filename[0])
+      nv = read_parameter("numvar", filename=filename)
        data = s.E_KP._data 
        if(nv ge 2) then data = data + s.E_KT._data 
        if(nv ge 3) then data = data + s.E_K3._data

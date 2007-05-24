@@ -104,14 +104,15 @@ module basic
   real :: tt,pi,                                                       &
        time,timer,ajmax,errori,enormi,ratioi,                          &
        gbound,fbound
-  integer ::  ni(20),mi(20),nbcp,nbcv,nbcn,nbcpres,iboundmax,          &
+  integer ::  ni(20),mi(20),                                           &
        ntime,ntimer,nrank,ntimemin,ntensor,idebug, islutype
   real :: ekin, emag, ekind, emagd, ekino, emago, ekindo, emagdo,      &
        ekint,emagt,ekintd,emagtd,ekinto,emagto,ekintdo,emagtdo,        &
        ekinp,emagp,ekinpd,emagpd,ekinpo,emagpo,ekinpdo,emagpdo,        &
        ekinph,ekinth,emagph,emagth,ekinpho,ekintho,emagpho,emagtho,    &
        ekin3,ekin3d,ekin3h,emag3,ekin3o,ekin3do,ekin3ho,emag3o,        &
-       emag3h,emag3d,emag3ho,emag3do,chierror,tflux0,totcur0
+       emag3h,emag3d,emag3ho,emag3do,chierror,tflux0,totcur0,          &
+       ekappar,ekappat,eeta
   character*8 :: filename(50)
   character*10 :: datec, timec
   
@@ -141,8 +142,6 @@ module arrays
   ! indices
   integer :: p,q,r,s
   integer :: maxdofs1, maxdofs2, maxdofs3
-  integer, allocatable :: iboundv(:), iboundv2(:), iboundp(:)
-  integer, allocatable :: iboundn(:), iboundpres(:)
   integer, allocatable :: isvaln(:,:),isval1(:,:),isval2(:,:)
   real :: fint(-6:maxi,-6:maxi), xi(3),zi(3),df(0:4,0:4)
   real :: xsep(5), zsep(5), graphit(0:ntimep,maxplots)
