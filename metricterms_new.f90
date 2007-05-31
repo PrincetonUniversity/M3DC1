@@ -2231,33 +2231,384 @@ end function p1kappar
 
 
 
+
+!======================================================================
+! Gyroviscous terms
+!======================================================================
+
+! g1u
+! ===
+real function g1u(e,f)
+
+  use basic
+  use nintegrate_mod
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f
+
+  temp79b = e(:,OP_DZZ) - e(:,OP_DRR)
+  if(itor.eq.1) temp79b = temp79b - 3.0*ri_79*e(:,OP_DR)
+  temp79c = f(:,OP_DRZ)
+  if(itor.eq.1) temp79c = temp79c - 0.5*ri_79*f(:,OP_DZ)
+  temp79d = f(:,OP_DZZ) - f(:,OP_DRR)
+  if(itor.eq.1) temp79d = temp79d +     ri_79*f(:,OP_DR)
+  temp79e = e(:,OP_DRZ)
+  if(itor.eq.1) temp79e = temp79e + 1.5*ri_79*e(:,OP_DZ)
+
+  temp79a = &
+       ri_79*b2i79(:,OP_1)*bzt79(:,OP_1) * &
+       (1.+1.5*ri2_79*b2i79(:,OP_1)*(pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2)) * &
+       (temp79b*temp79c - temp79d*temp79e)
+
+  if(itor.eq.1) then 
+     temp79a = temp79a &
+          +2.25*ri4_79*b2i79(:,OP_1)**2*bzt79(:,OP_1) * &
+           ((pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2) * &
+            (e(:,OP_DZ)*temp79d - f(:,OP_DZ)*temp79b) &
+           +4.*pst79(:,OP_DR)*pst79(:,OP_DZ) * &
+            (e(:,OP_DZ)*temp79c - f(:,OP_DZ)*temp79e))
+  endif
+
+  g1u = int2(pit79(:,OP_1),temp79a,weight_79,79)
+  return
+end function g1u
+
+! g1v
+! ===
+real function g1v(e,f)
+
+  use basic
+  use nintegrate_mod
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f
+
+  temp79b = f(:,OP_DR)
+  if(itor.eq.1) temp79b = temp79b - 2.0*ri_79*f(:,OP_1)
+  temp79c = e(:,OP_DRR) - e(:,OP_DZZ)
+  if(itor.eq.1) temp79c = temp79c + 3.0*ri_79*e(:,OP_DR)
+  temp79d = e(:,OP_DRZ)
+  if(itor.eq.1) temp79d = temp79d + 3.0*ri_79*e(:,OP_DZ)
+
+  temp79a = &
+       0.25*ri_79*b2i79(:,OP_1)*(1.-3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) * &
+        ((pst79(:,OP_DR)*f(:,OP_DZ) + pst79(:,OP_DZ)*temp79b)*temp79c &
+         +2.*f(:,OP_DZ )*pst79(:,OP_DZ)*temp79d &
+         -2.*e(:,OP_DRZ)*pst79(:,OP_DR)*temp79b)
+
+  temp79b = pst79(:,OP_DZ)*f(:,OP_DR) - pst79(:,OP_DR)*f(:,OP_DZ)
+  if(itor.eq.1) temp79b = temp79b - 2.*ri_79*f(:,OP_1)*pst79(:,OP_DZ)
+  temp79c = e(:,OP_DZZ)
+  if(itor.eq.1) temp79c = temp79c - 2.0*ri_79*e(:,OP_DR)
+  temp79d = e(:,OP_DRZ)
+  if(itor.eq.1) temp79d = temp79d + 1.5*ri_79*e(:,OP_DZ)
+  temp79e = e(:,OP_DRR)
+  if(itor.eq.1) temp79e = temp79e +     ri_79*e(:,OP_DR)
+
+  temp79a = temp79a &
+       -0.75*ri3_79*b2i79(:,OP_1)**2*temp79b * &
+         (e(:,OP_GS)*(pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2) - &
+         2.*(   temp79c*pst79(:,OP_DR)**2 &
+            -2.*temp79d*pst79(:,OP_DR)*pst79(:,OP_DZ) &
+            +   temp79e*pst79(:,OP_DZ)**2))
+
+  if(itor.eq.1) then
+     temp79a = temp79a &
+          + 4.5*ri4_79*b2i79(:,OP_1)**2*bzt79(:,OP_1)**2*e(:,OP_DZ) * &
+          (pst79(:,OP_DZ)*f(:,OP_DZ) + pst79(:,OP_DR)*f(:,OP_DR) &
+          -2.*ri_79*f(:,OP_1)*pst79(:,OP_DR))
+  endif
+       
+  g1v = int2(pit79(:,OP_1),temp79a,weight_79,79)
+  return
+end function g1v
+
+! g1chi
+! =====
+real function g1chi(e,f)
+
+  use basic
+  use nintegrate_mod
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f
+
+  temp79b = e(:,OP_DRZ)
+  if(itor.eq.1) temp79b = temp79b + 3.0*ri_79*e(:,OP_DZ)
+  temp79c = e(:,OP_DRR) - e(:,OP_DZZ)
+  if(itor.eq.1) temp79c = temp79c + 3.0*ri_79*e(:,OP_DR)
+  temp79d = f(:,OP_DZZ)
+  if(itor.eq.1) temp79d = temp79d -     ri_79*f(:,OP_DR)
+  temp79e = f(:,OP_DRR)
+  if(itor.eq.1) temp79e = temp79e -     ri_79*f(:,OP_DR)
+
+  temp79a = &
+       0.5*b2i79(:,OP_1)*bzt79(:,OP_1) * &
+        (temp79c*(f(:,OP_DRR) - f(:,OP_DZZ)) &
+        +2.*(e(:,OP_DRZ) + temp79b)*f(:,OP_DRZ)) &
+       +1.5*ri2_79*b2i79(:,OP_1)**2*bzt79(:,OP_1) * &
+        (temp79c*(f(:,OP_GS)*(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2) &
+        -f(:,OP_DZZ)*pst79(:,OP_DZ)**2 &
+        +f(:,OP_DRR)*pst79(:,OP_DR)**2) &
+        +2.*(f(:,OP_DRZ)*(pst79(:,OP_DZ)**2*e(:,OP_DRZ) &
+                         +pst79(:,OP_DR)**2*temp79b) &
+            -pst79(:,OP_DR)*pst79(:,OP_DZ)* &
+             (e(:,OP_DRZ)*temp79d + temp79b*temp79e)))
+       
+  g1chi = int2(pit79(:,OP_1),temp79a,weight_79,79)
+  return
+end function g1chi
+
+
+! g2u
+! ===
+real function g2u(e,f)
+
+  use basic
+  use nintegrate_mod
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f
+
+  temp79b = f(:,OP_DZZ) - f(:,OP_DRR)
+  if(itor.eq.1) temp79b = temp79b +     ri_79*f(:,OP_DR)
+  temp79c = f(:,OP_DRZ)
+  if(itor.eq.1) temp79c = temp79c +     ri_79*f(:,OP_DZ)
+  temp79d = f(:,OP_DRZ)
+  if(itor.eq.1) temp79d = temp79d - 2.0*ri_79*f(:,OP_DZ)
+  temp79e = f(:,OP_DRZ)
+  if(itor.eq.1) temp79e = temp79e - 0.5*ri_79*f(:,OP_DZ)
+
+  temp79a = 0.25*ri_79*b2i79(:,OP_1)* &
+       (1.-3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)* &
+        ((e(:,OP_DR)*pst79(:,OP_DZ) + e(:,OP_DZ)*pst79(:,OP_DR))*temp79b &
+        -2.*e(:,OP_DZ)*pst79(:,OP_DZ)*temp79c &
+        +2.*e(:,OP_DR)*pst79(:,OP_DR)*temp79d) &
+       + 0.75*ri3_79*b2i79(:,OP_1)**2 * &
+        (pst79(:,OP_DZ)*e(:,OP_DR) - pst79(:,OP_DR)*e(:,OP_DZ)) * &
+        (   temp79b*(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2) &
+        +4.*temp79e* pst79(:,OP_DR)    * pst79(:,OP_DZ)   )
+
+  if(itor.eq.1) then
+     temp79a = temp79a &
+          -4.5*ri4_79*b2i79(:,OP_1)**2*bzt79(:,OP_1)**2 * &
+           f(:,OP_DZ)*(e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR))
+  endif
+
+  g2u = int2(pit79(:,OP_1),temp79a,weight_79,79)
+  return
+end function g2u
+
+
+! g2v
+! ===
+real function g2v(e,f)
+
+  use basic
+  use nintegrate_mod
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f
+
+  temp79b = e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ)
+  if(itor.eq.1) temp79b = temp79b - 2.*ri_79*e(:,OP_DZ)*f(:,OP_1)
+
+  temp79a = 0.25*ri_79*b2i79(:,OP_1)*bzt79(:,OP_1)*temp79b* &
+       (1.-3.*ri2_79*b2i79(:,OP_1)* &
+        (pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2 - bzt79(:,OP_1)**2))
+
+  g2v = int2(pit79(:,OP_1),temp79a,weight_79,79)
+  return
+end function g2v
+
+
+! g2chi
+! =====
+real function g2chi(e,f)
+
+  use basic
+  use nintegrate_mod
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f
+
+  temp79b = f(:,OP_DZZ)
+  if(itor.eq.1) temp79b = temp79b - ri_79*f(:,OP_DR)
+  temp79c = f(:,OP_DRR)
+  if(itor.eq.1) temp79c = temp79c - ri_79*f(:,OP_DR)
+
+  temp79a = &
+       -0.5*b2i79(:,OP_1)* &
+        (e(:,OP_DZ)*temp79b*pst79(:,OP_DZ) &
+        +e(:,OP_DR)*temp79c*pst79(:,OP_DR) &
+        +f(:,OP_DRZ)*(e(:,OP_DR)*pst79(:,OP_DZ) + e(:,OP_DZ)*pst79(:,OP_DR))) &
+       +1.5*ri2_79*b2i79(:,OP_1)**2 * &
+        (pst79(:,OP_DZ)*e(:,OP_DR) - pst79(:,OP_DR)*e(:,OP_DZ)) * &
+        (pst79(:,OP_DZ)*pst79(:,OP_DR)*(f(:,OP_DZZ) - f(:,OP_DRR)) &
+        -(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*f(:,OP_DRZ)) &
+       -1.5*ri2_79*b2i79(:,OP_1)**2*bzt79(:,OP_1)**2 * &
+        (e(:,OP_DZ)*temp79c*pst79(:,OP_DZ) &
+        +e(:,OP_DR)*temp79b*pst79(:,OP_DR) &
+        -f(:,OP_DRZ)*(e(:,OP_DR)*pst79(:,OP_DZ) + e(:,OP_DZ)*pst79(:,OP_DR)))
+
+  g2chi = int2(pit79(:,OP_1),temp79a,weight_79,79)
+  return
+end function g2chi
+
+
+! g3u
+! ===
+real function g3u(e,f)
+
+  use basic
+  use nintegrate_mod
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f
+
+  if(itor.eq.1) then
+     temp79b = ri_79*e(:,OP_DR)
+     temp79c = ri_79*e(:,OP_DZ)
+     temp79d = ri_79*f(:,OP_DR)
+     temp79e = ri_79*f(:,OP_DZ)
+  else
+     temp79b = 0.
+     temp79c = 0.
+     temp79d = 0.
+     temp79e = 0.
+  endif
+
+  temp79a = &
+       0.5*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1) * &
+        ((e(:,OP_DZZ) - e(:,OP_DRR))* &
+         (f(:,OP_DZZ) - f(:,OP_DRR) + temp79d) &
+        +4.*e(:,OP_DRZ)*(f(:,OP_DRZ) - 0.5*temp79e)) &
+       +1.5*ri4_79*b2i79(:,OP_1)**2*bzt79(:,OP_1) * &
+        ((f(:,OP_DZZ) - f(:,OP_DRR) + temp79d) * &
+         (pst79(:,OP_DR)**2*(e(:,OP_DZZ) - temp79b) &
+         -pst79(:,OP_DZ)**2*(e(:,OP_DRR) - temp79b)) &
+        +2.*(e(:,OP_DRZ)*pst79(:,OP_DR)**2*(f(:,OP_DRZ) +    temp79e) &
+            +e(:,OP_DRZ)*pst79(:,OP_DZ)**2*(f(:,OP_DRZ) - 2.*temp79e) &
+            -pst79(:,OP_DR)*pst79(:,OP_DZ)* &
+             ( f(:,OP_DRZ)           *(e(:,OP_DRR) - temp79b    ) &
+             +(f(:,OP_DRZ) - temp79e)*(e(:,OP_DZZ) - temp79b    ) &
+             + temp79e               *(e(:,OP_DRR) - e(:,OP_DZZ)))))
+
+  g3u = int2(pit79(:,OP_1),temp79a,weight_79,79)
+  return
+end function g3u
+
+
+! g3v
+! ===
+real function g3v(e,f)
+
+  use basic
+  use nintegrate_mod
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f
+
+  if(itor.eq.1) then
+     temp79b = ri_79*e(:,OP_DR)
+     temp79c = ri_79*f(:,OP_1)
+  else
+     temp79b = 0.
+     temp79c = 0.
+  endif
+
+  temp79a = &
+       -0.5*ri2_79*b2i79(:,OP_1) * &
+        (pst79(:,OP_DZ)*(e(:,OP_DZZ) - temp79b)* f(:,OP_DZ) &
+        +pst79(:,OP_DR)*(e(:,OP_DRR) - temp79b)*(f(:,OP_DR) - 2.*temp79c) &
+        +e(:,OP_DRZ)*(pst79(:,OP_DZ)*(f(:,OP_DR) - 2.*temp79c) &
+                     +pst79(:,OP_DR)* f(:,OP_DZ))) &
+       -1.5*ri4_79*b2i79(:,OP_1)**2 * &
+        (f(:,OP_DZ)*pst79(:,OP_DR) - f(:,OP_DR)*pst79(:,OP_DZ) &
+        +2.*temp79c*pst79(:,OP_DZ)) * &
+        (pst79(:,OP_DZ)*pst79(:,OP_DR)*(e(:,OP_DZZ) - e(:,OP_DRR)) &
+        -e(:,OP_DRZ)*(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)) &
+       +1.5*ri4_79*b2i79(:,OP_1)**2*bzt79(:,OP_1)**2 * &
+        (e(:,OP_DRZ)*(pst79(:,OP_DZ)*(f(:,OP_DR)-2.*temp79c) &
+                     +pst79(:,OP_DR)* f(:,OP_DZ)) &
+        -(e(:,OP_DZZ) - temp79b)*(f(:,OP_DR)-2.*temp79c)*pst79(:,OP_DR) &
+        -(e(:,OP_DRR) - temp79b)* f(:,OP_DZ)            *pst79(:,OP_DZ))
+       
+  g3v = int2(pit79(:,OP_1),temp79a,weight_79,79)
+  return
+end function g3v
+
+
+! g3chi
+! =====
+real function g3chi(e,f)
+
+  use basic
+  use nintegrate_mod
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f
+
+  if(itor.eq.1) then
+     temp79b = ri_79*e(:,OP_DR)
+     temp79c = ri_79*f(:,OP_DR)
+  else
+     temp79b = 0.
+     temp79c = 0.
+  endif
+
+  temp79a = &
+       -ri_79*b2i79(:,OP_1)*bzt79(:,OP_1)* &
+        ((e(:,OP_DZZ) - e(:,OP_DRR))*f(:,OP_DRZ) &
+        -(f(:,OP_DZZ) - f(:,OP_DRR))*e(:,OP_DRZ)) &
+       -3.*ri3_79*b2i79(:,OP_1)**2*bzt79(:,OP_1) * &
+        (pst79(:,OP_DR)**2 * &
+         ((e(:,OP_DZZ) - temp79b)*f(:,OP_DRZ) &
+         -(f(:,OP_DZZ) - temp79c)*e(:,OP_DRZ)) &
+        +pst79(:,OP_DZ)**2 * &
+         ((f(:,OP_DRR) - temp79c)*e(:,OP_DRZ) &
+         -(e(:,OP_DRR) - temp79b)*f(:,OP_DRZ)) &
+        +pst79(:,OP_DZ)*pst79(:,OP_DR) * &
+         ((e(:,OP_DRR) - temp79b)*(f(:,OP_DZZ) - temp79c) &
+         -(e(:,OP_DZZ) - temp79b)*(f(:,OP_DRR) - temp79c)))
+       
+  g3chi = int2(pit79(:,OP_1),temp79a,weight_79,79)
+  return
+end function g3chi
+
+
+
+
+
 ! ==============================================================
 ! Ohmic heating terms
 ! ==============================================================
 
 ! qpsipsieta
 ! ==========
-real function qpsipsieta(e,f,g,h,i,j)
+real function qpsipsieta(e,hypf)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h,j
-  real, intent(in) :: i
+  real, intent(in), dimension(79,OP_NUM) :: e
+  real, intent(in) :: hypf
   real :: temp
 
-!!$  temp = int5(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),h(:,OP_1),weight_79,79)
-  temp = int5(ri2_79,e(:,OP_1),j(:,OP_1),j(:,OP_1),h(:,OP_1),weight_79,79)
+  if(hypf.eq.0.) then
+     temp = 0.
+  else
+     temp79a = ri2_79* &
+          (jt79(:,OP_DZ)**2 + jt79(:,OP_DR)**2)
+     if(itor.eq.1) then
+        temp79a = temp79a - 2.*jt79(:,OP_1)* &
+             (ri3_79*jt79(:,OP_DR) - ri4_79*jt79(:,OP_1))
+     endif
 
-  ! hyper-resistive terms
-  if(i.ne.0) then
-     temp = temp + i* &
-          (int5(ri2_79,e(:,OP_1),j(:,OP_DZ),j(:,OP_DZ),h(:,OP_1 ),weight_79,79) &
-          +int5(ri2_79,e(:,OP_1),j(:,OP_DR),j(:,OP_DR),h(:,OP_1 ),weight_79,79) &
-          +int5(ri2_79,e(:,OP_1),j(:,OP_DZ),j(:,OP_1 ),h(:,OP_DZ),weight_79,79) &
-          +int5(ri2_79,e(:,OP_1),j(:,OP_DR),j(:,OP_1 ),h(:,OP_DR),weight_79,79))
+     temp = hypf*int3(e(:,OP_1),eta79(:,OP_1),temp79a,weight_79,79)
+
+     if(idens.eq.1) then
+        temp79a = jt79(:,OP_DZ)*ni79(:,OP_DZ) + jt79(:,OP_DR)*ni79(:,OP_DR)
+        if(itor.eq.1) then
+           temp79a = temp79a - ri_79*jt79(:,OP_1)*ni79(:,OP_DR)
+        endif
+        temp79a = temp79a * ri2_79*nt79(:,OP_1)*jt79(:,OP_1)
+
+        temp = temp + hypf*int3(e(:,OP_1),eta79(:,OP_1),temp79a,weight_79,79)
+     endif
   endif
 
   qpsipsieta = temp
@@ -2266,25 +2617,47 @@ end function qpsipsieta
 
 ! qbbeta
 ! ======
-real function qbbeta(e,f,g,h,i)
+real function qbbeta(e,hypi)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-  real, intent(in) :: i
+  real, intent(in), dimension(79,OP_NUM) :: e
+  real, intent(in) :: hypi
   real :: temp
 
-  temp = int5(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
-       + int5(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),h(:,OP_1),weight_79,79)
+  if(hypi.eq.0.) then
+     temp = 0.
+  else
+     temp79a = ri2_79*(bzt79(:,OP_GS)*bzt79(:,OP_GS) &
+          + 2.*(bzt79(:,OP_DRZ)**2 - bzt79(:,OP_DRR)*bzt79(:,OP_DZZ)))
 
-  if(i.ne.0) then
-     temp = temp + i* &
-          (int5(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),h(:,OP_1 ),weight_79,79) &
-          +int5(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_DZ),h(:,OP_DZ),weight_79,79) &
-          +int5(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_DR),h(:,OP_DR),weight_79,79))
+     if(itor.eq.1) then 
+        temp79a = temp79a + 2.* &
+             (ri3_79*bzt79(:,OP_DZZ)*bzt79(:,OP_DR) &
+             -ri3_79*bzt79(:,OP_DRZ)*bzt79(:,OP_DZ) &
+             +ri4_79*bzt79(:,OP_DZ )*bzt79(:,OP_DZ))
+     endif
+
+     temp = hypi*int3(e(:,OP_1),eta79(:,OP_1),temp79a,weight_79,79)
+
+     if(idens.eq.1) then
+        temp79a = &
+               bzt79(:,OP_DZ)*bzt79(:,OP_DZZ)*ni79(:,OP_DZ) &
+             + bzt79(:,OP_DR)*bzt79(:,OP_DRZ)*ni79(:,OP_DZ) &
+             + bzt79(:,OP_DZ)*bzt79(:,OP_DRZ)*ni79(:,OP_DR) &
+             + bzt79(:,OP_DR)*bzt79(:,OP_DRR)*ni79(:,OP_DR)
+        if(itor.eq.1) then
+           temp79a = temp79a - ri_79*ni79(:,OP_DR)* &
+                (bzt79(:,OP_DZ)**2 + bzt79(:,OP_DR)**2)
+        endif
+        temp79a = temp79a * ri2_79*nt79(:,OP_1)
+
+        temp = temp + hypi*int3(e(:,OP_1),eta79(:,OP_1),temp79a,weight_79,79)
+     endif
+
   endif
 
   qbbeta = temp
@@ -2391,859 +2764,343 @@ real function qchichimu(e,f,g,h,i,j)
   return
 end function qchichimu
 
+
 !======================================================================
-! Gyroviscous terms
+! FLUXES
 !======================================================================
 
-! g1ub
-! ====
-real function g1ub(e, u, b, p, b2i)
+! Diffusive flux
+! --------------
+real function flux_diffusive
 
   use basic
   use nintegrate_mod
 
-  implicit none
+  if(idens.eq.0 .or. denm.eq.0.) then
+     flux_diffusive = 0.
+     return
+  endif
 
-  real, intent(in), dimension(79,OP_NUM) :: e, u, b, p, b2i
-  real :: temp
-!!$
-!!$  temp79a = 0.5*ri_79*p(:,OP_1)*b(:,OP_1)*b2i(:,OP_1)
-!!$  
-!!$  temp = 2.* &
-!!$       (int3(temp79a,e(:,OP_DRZ),u(:,OP_DRR),weight_79,79) &
-!!$       -int3(temp79a,e(:,OP_DRR),u(:,OP_DRZ),weight_79,79) &
-!!$       +int3(temp79a,e(:,OP_DZZ),u(:,OP_DRZ),weight_79,79) &
-!!$       -int3(temp79a,e(:,OP_DRZ),u(:,OP_DZZ),weight_79,79))
-!!$  
-!!$  if(itor.eq.1) then
-!!$     temp = temp &
-!!$          +2.*int4(temp79a,ri_79 ,e(:,OP_DR ),u(:,OP_DRZ),weight_79,79) &
-!!$          +2.*int4(temp79a,ri_79 ,e(:,OP_DRZ),u(:,OP_DR ),weight_79,79) &
-!!$          +   int4(temp79a,ri_79 ,e(:,OP_DZ ),u(:,OP_DZZ),weight_79,79) &
-!!$          +   int4(temp79a,ri_79 ,e(:,OP_DZZ),u(:,OP_DZ ),weight_79,79) &
-!!$          -   int4(temp79a,ri_79 ,e(:,OP_DZ ),u(:,OP_DRR),weight_79,79) &
-!!$          -   int4(temp79a,ri_79 ,e(:,OP_DRR),u(:,OP_DZ ),weight_79,79) &
-!!$          -   int4(temp79a,ri2_79,e(:,OP_DZ ),u(:,OP_DR ),weight_79,79) &
-!!$          +   int4(temp79a,ri2_79,e(:,OP_DR ),u(:,OP_DZ ),weight_79,79)
-!!$  endif
+  temp79a = ri2_79*(pht79(:,OP_DZ)**2 + pht79(:,OP_DR)**2)
+  if(numvar.ge.2) then
+     temp79a = temp79a + ri2_79*vzt79(:,OP_1)**2
+  endif
+  if(numvar.ge.3) then
+      temp79a = temp79a &
+           + cht79(:,OP_DZ)**2 + cht79(:,OP_DR)**2 &
+           + 2.*ri_79* &
+           ( cht79(:,OP_DZ)*pht79(:,OP_DR) - cht79(:,OP_DR)*pht79(:,OP_DZ))
+  endif
 
-  temp = 0.
-
-  g1ub = temp
+  flux_diffusive = 0.5*denm*int2(nt79(:,OP_LP),temp79a,weight_79,79)
   return
-end function g1ub
+end function flux_diffusive
 
 
-
-! g1upsipsib
-! ==========
-real function g1upsipsib(e, u, psi, b, p, b2i)
+! Pressure convection
+! -------------------
+real function flux_pressure(dbf)
 
   use basic
   use nintegrate_mod
 
-  implicit none
+  real, intent(in) :: dbf
 
-  real, intent(in), dimension(79,OP_NUM) :: e, u, psi, b, p, b2i
-  real :: temp
-!!$
-!!$  temp79a = 1.5*ri3_79*b(:,OP_1)*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)
-!!$  temp79b = psi(:,OP_DZ)*psi(:,OP_DZ) + psi(:,OP_DR)*psi(:,OP_DR)
-!!$
-!!$  temp = int4(temp79a,temp79b,e(:,OP_DZZ),u(:,OP_DRZ),weight_79,79) &
-!!$       - int4(temp79a,temp79b,e(:,OP_DRZ),u(:,OP_DZZ),weight_79,79) &
-!!$       + int4(temp79a,temp79b,e(:,OP_DRZ),u(:,OP_DRR),weight_79,79) &
-!!$       - int4(temp79a,temp79b,e(:,OP_DRR),u(:,OP_DRZ),weight_79,79)
-!!$
-!!$  if(itor.eq.1) then
-!!$     temp79c = 3.*ri_79*e(:,OP_DZ )*psi(:,OP_DZ)*psi(:,OP_DZ)*u(:,OP_DZZ) &
-!!$          +       ri_79*e(:,OP_DZZ)*psi(:,OP_DR)*psi(:,OP_DR)*u(:,OP_DZ ) &
-!!$          +    6.*ri_79*e(:,OP_DZ )*psi(:,OP_DR)*psi(:,OP_DZ)*u(:,OP_DRZ) &
-!!$          -    2.*ri_79*e(:,OP_DRZ)*psi(:,OP_DR)*psi(:,OP_DZ)*u(:,OP_DZ ) &
-!!$          -    3.*ri_79*e(:,OP_DZ )*psi(:,OP_DZ)*psi(:,OP_DZ)*u(:,OP_DRR) &
-!!$          -       ri_79*e(:,OP_DRR)*psi(:,OP_DR)*psi(:,OP_DR)*u(:,OP_DZ ) &
-!!$          -   2.*ri2_79*e(:,OP_DZ )*psi(:,OP_DZ)*psi(:,OP_DZ)*u(:,OP_DR ) &
-!!$          +   4.*ri2_79*e(:,OP_DZ )*psi(:,OP_DR)*psi(:,OP_DZ)*u(:,OP_DZ ) &
-!!$          +      ri2_79*e(:,OP_DZ )*psi(:,OP_DR)*psi(:,OP_DR)*u(:,OP_DR ) &
-!!$          +      ri2_79*e(:,OP_DR )*psi(:,OP_DR)*psi(:,OP_DR)*u(:,OP_DZ )
-!!$     temp = temp + int2(temp79a,temp79c,weight_79,79)
-!!$  endif
+  if(numvar.lt.3 .or. gam.eq.1.) then
+     flux_pressure = 0.
+     return
+  endif
 
-  temp  =0.
+  temp79a = pt79(:,OP_1)*cht79(:,OP_LP) &
+       + pt79(:,OP_DZ)*cht79(:,OP_DZ) + pt79(:,OP_DR)*cht79(:,OP_DR) &
+       + ri_79* &
+       ( pt79(:,OP_DZ)*pht79(:,OP_DR) - pt79(:,OP_DR)*pht79(:,OP_DZ) &
+       - pefac*dbf* &
+         ( ni79(:,OP_1)*(pet79(:,OP_DZ)*bzt79(:,OP_DR) - pet79(:,OP_DR)*bzt79(:,OP_DZ)) &
+         +pet79(:,OP_1)*( ni79(:,OP_DZ)*bzt79(:,OP_DR) -  ni79(:,OP_DR)*bzt79(:,OP_DZ))))
 
-  g1upsipsib = temp
+  flux_pressure = -gam/(gam-1.)*int1(temp79a,weight_79,79)
   return
-end function g1upsipsib
+end function flux_pressure
 
 
-! g1vpsi
-! ======
-real function g1vpsi(e, v, psi, p, b2i)
-
-  use basic
-  use nintegrate_mod
-
-  implicit none
-
-  real, intent(in), dimension(79,OP_NUM) :: e, v, psi, p, b2i
-  real :: temp
-!!$
-!!$  temp79a = 0.25*ri2_79*p(:,OP_1)*b2i(:,OP_1)
-!!$
-!!$  temp = int4(temp79a,e(:,OP_DRR),v(:,OP_DZ),psi(:,OP_DR),weight_79,79) &
-!!$       - int4(temp79a,e(:,OP_DZZ),v(:,OP_DZ),psi(:,OP_DR),weight_79,79) &
-!!$       + int4(temp79a,e(:,OP_DRR),v(:,OP_DR),psi(:,OP_DZ),weight_79,79) &
-!!$       - int4(temp79a,e(:,OP_DZZ),v(:,OP_DR),psi(:,OP_DZ),weight_79,79) &
-!!$       + 2.*int4(temp79a,e(:,OP_DRZ),v(:,OP_DZ),psi(:,OP_DZ),weight_79,79) &
-!!$       - 2.*int4(temp79a,e(:,OP_DRZ),v(:,OP_DR),psi(:,OP_DR),weight_79,79)
-!!$
-!!$  if(itor.eq.1) then
-!!$     temp = temp &
-!!$          + 2.*int5(ri_79 ,temp79a,e(:,OP_DZ ),v(:,OP_DZ),psi(:,OP_DZ),weight_79,79) &
-!!$          + 2.*int5(ri_79 ,temp79a,e(:,OP_DRZ),v(:,OP_1 ),psi(:,OP_DR),weight_79,79) &
-!!$          -    int5(ri_79 ,temp79a,e(:,OP_DR ),v(:,OP_DZ),psi(:,OP_DR),weight_79,79) &
-!!$          + 4.*int5(ri_79 ,temp79a,e(:,OP_DZ ),v(:,OP_DR),psi(:,OP_DR),weight_79,79) &
-!!$          +    int5(ri_79 ,temp79a,e(:,OP_DZZ),v(:,OP_1 ),psi(:,OP_DZ),weight_79,79) &
-!!$          -    int5(ri_79 ,temp79a,e(:,OP_DRR),v(:,OP_1 ),psi(:,OP_DZ),weight_79,79) &
-!!$          -    int5(ri_79 ,temp79a,e(:,OP_DR ),v(:,OP_DR),psi(:,OP_DZ),weight_79,79) &
-!!$          +    int5(ri2_79,temp79a,e(:,OP_DR ),v(:,OP_1 ),psi(:,OP_DZ),weight_79,79) &
-!!$          - 4.*int5(ri2_79,temp79a,e(:,OP_DZ ),v(:,OP_1 ),psi(:,OP_DR),weight_79,79)
-!!$  endif
-
-  temp = 0.
-
-  g1vpsi = temp
-  return
-end function g1vpsi
-
-
-
-! g1vpsipsipsi
-! ============
-real function g1vpsipsipsi(e, v, psi, p, b2i)
+! Kinetic Energy Convection
+! -------------------------
+real function flux_ke
 
   use basic
   use nintegrate_mod
 
-  implicit none
-
-  real, intent(in), dimension(79,OP_NUM) :: e, v, psi, p, b2i
-  real :: temp
-!!$
-!!$  temp79a = -.75*ri4_79*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)
-!!$  temp79b = psi(:,OP_DZ)*v(:,OP_DR) - psi(:,OP_DR)*v(:,OP_DZ)
-!!$  if(itor.eq.1) temp79b = temp79b - ri_79*psi(:,OP_DZ)*v(:,OP_1)
-!!$  
-!!$  temp79c = temp79a*temp79b
-!!$
-!!$  temp = int4(temp79c,e(:,OP_GS),psi(:,OP_DZ),psi(:,OP_DZ),weight_79,79) &
-!!$       + int4(temp79c,e(:,OP_GS),psi(:,OP_DR),psi(:,OP_DR),weight_79,79) &
-!!$       - 2.* &
-!!$       (   int4(temp79c,e(:,OP_DZZ),psi(:,OP_DR),psi(:,OP_DR),weight_79,79) &
-!!$       -2.*int4(temp79c,e(:,OP_DRZ),psi(:,OP_DR),psi(:,OP_DZ),weight_79,79) &
-!!$       +   int4(temp79c,e(:,OP_DRR),psi(:,OP_DZ),psi(:,OP_DZ),weight_79,79))
-!!$
-!!$  if(itor.eq.1) then
-!!$     temp = temp + 2.* &
-!!$          (int5(temp79c,ri_79,e(:,OP_DR),psi(:,OP_DZ),psi(:,OP_DZ),weight_79,79) &
-!!$          -int5(temp79c,ri_79,e(:,OP_DZ),psi(:,OP_DR),psi(:,OP_DZ),weight_79,79))
-!!$  endif
-
-  temp = 0.
-
-  g1vpsipsipsi = temp
-  return
-end function g1vpsipsipsi
-
-
-
-! g1vpsibb
-! ========
-real function g1vpsibb(e, v, psi, b, p, b2i)
-
-  use basic
-  use nintegrate_mod
-
-  implicit none
-
-  real, intent(in), dimension(79,OP_NUM) :: e, v, psi, b, p, b2i
-  real :: temp
-!!$
-!!$  temp79a = .75*ri4_79*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)*b(:,OP_1)*b(:,OP_1)
-!!$
-!!$  temp79b = v(:,OP_DZ)*e(:,OP_DZZ)*psi(:,OP_DR) &
-!!$       - 2.*v(:,OP_DZ)*e(:,OP_DRZ)*psi(:,OP_DZ) &
-!!$       + 2.*v(:,OP_DR)*e(:,OP_DRZ)*psi(:,OP_DR) &
-!!$       -    v(:,OP_DZ)*e(:,OP_DRR)*psi(:,OP_DR) &
-!!$       +    v(:,OP_DR)*(e(:,OP_DZZ)-e(:,OP_DRR))*psi(:,OP_DZ)
-!!$
-!!$  if(itor.eq.1) then
-!!$     temp79b = temp79b + ri_79* &
-!!$          (   v(:,OP_DZ)*e(:,OP_DR)*psi(:,OP_DR) &
-!!$          +4.*v(:,OP_DZ)*e(:,OP_DZ)*psi(:,OP_DZ) &
-!!$          -2.*v(:,OP_DZ)*e(:,OP_DZ)*psi(:,OP_DZ) &
-!!$          -   v(:,OP_1 )*(e(:,OP_DZZ)-e(:,OP_DRR))*psi(:,OP_DZ) &
-!!$          +2.*v(:,OP_DR)*e(:,OP_DZ)*psi(:,OP_DR) &
-!!$          +   v(:,OP_DR)*e(:,OP_DR)*psi(:,OP_DZ)) &
-!!$          - ri2_79*v(:,OP_1)* &
-!!$          (2.*e(:,OP_DZ)*psi(:,OP_DR) &
-!!$          +   e(:,OP_DR)*psi(:,OP_DZ))
-!!$  endif
-!!$
-!!$  temp = int2(temp79a,temp79b,weight_79,79)
-
-  temp = 0
-
-  g1vpsibb = temp
-  return
-end function g1vpsibb
-
-
-! g1chib
-! ======
-real function g1chib(e, chi, b, p, b2i)
-
-  use basic
-  use nintegrate_mod
-
-  implicit none
-
-  real, intent(in), dimension(79,OP_NUM) :: e, chi, b, p, b2i
   real :: temp
 
-!!$  temp79a = 0.5*ri2_79*b2i(:,OP_1)*p(:,OP_1)*b(:,OP_1)
-!!$
-!!$  temp79b = e(:,OP_DZZ)*chi(:,OP_DZZ) &
-!!$       -    e(:,OP_DRR)*chi(:,OP_DZZ) &
-!!$       -    e(:,OP_DZZ)*chi(:,OP_DRR) &
-!!$       +    e(:,OP_DRR)*chi(:,OP_DRR) &
-!!$       + 4.*e(:,OP_DRZ)*chi(:,OP_DRZ)
-!!$
-!!$  if(itor.eq.1) then
-!!$     temp79b = temp79b + ri_79* &
-!!$          (e(:,OP_DR)*chi(:,OP_DZZ) &
-!!$          -e(:,OP_DR)*chi(:,OP_DRR) &
-!!$          -2.*e(:,OP_DZ)*chi(:,OP_DRZ))
-!!$  endif
-!!$
-!!$  temp = int2(temp79a,temp79b,weight_79,79)
 
-  temp  =0.
-
-  g1chib = temp
-  return
-end function g1chib
-
-
-! g1chipsipsib
-! ============
-real function g1chipsipsib(e, chi, psi, b, p, b2i)
-
-  use basic
-  use nintegrate_mod
-
-  implicit none
-
-  real, intent(in), dimension(79,OP_NUM) :: e, chi, psi, b, p, b2i
-  real :: temp
-
-!!$  temp79a = 1.5*ri4_79*b2i(:,OP_1)*b2i(:,OP_1)*p(:,OP_1)*b(:,OP_1)
-!!$
-!!$
-!!$  temp79b = e(:,OP_DZZ)*chi(:,OP_DZZ)*psi(:,OP_DR)*psi(:,OP_DR) &
-!!$       - 2.*e(:,OP_DRZ)*chi(:,OP_DZZ)*psi(:,OP_DR)*psi(:,OP_DZ) &
-!!$       + 2.*e(:,OP_DRZ)*chi(:,OP_DRZ)*psi(:,OP_DZ)*psi(:,OP_DZ) &
-!!$       + 2.*e(:,OP_DRZ)*chi(:,OP_DRZ)*psi(:,OP_DR)*psi(:,OP_DR) &
-!!$       -    e(:,OP_DRR)*chi(:,OP_DZZ)*psi(:,OP_DR)*psi(:,OP_DR) &
-!!$       -    e(:,OP_DZZ)*chi(:,OP_DRR)*psi(:,OP_DZ)*psi(:,OP_DZ) &
-!!$       - 2.*e(:,OP_DRZ)*chi(:,OP_DRR)*psi(:,OP_DR)*psi(:,OP_DZ) &
-!!$       +    e(:,OP_DRR)*chi(:,OP_DRR)*psi(:,OP_DZ)*psi(:,OP_DZ)
-!!$
-!!$  if(itor.eq.1) then
-!!$     temp79b = temp79b + ri_79* &
-!!$          (   e(:,OP_DZZ)*chi(:,OP_DR )*psi(:,OP_DZ)*psi(:,OP_DZ) &
-!!$          -   e(:,OP_DZZ)*chi(:,OP_DR )*psi(:,OP_DR)*psi(:,OP_DR) &
-!!$          +   e(:,OP_DR )*chi(:,OP_DZZ)*psi(:,OP_DR)*psi(:,OP_DR) &
-!!$          +4.*e(:,OP_DRZ)*chi(:,OP_DR )*psi(:,OP_DR)*psi(:,OP_DZ) &
-!!$          -   e(:,OP_DRR)*chi(:,OP_DR )*psi(:,OP_DZ)*psi(:,OP_DZ) &
-!!$          +   e(:,OP_DRR)*chi(:,OP_DR )*psi(:,OP_DR)*psi(:,OP_DR) &
-!!$          -   e(:,OP_DR )*chi(:,OP_DRR)*psi(:,OP_DZ)*psi(:,OP_DZ) &
-!!$          +4.*e(:,OP_DZ )*chi(:,OP_DZZ)*psi(:,OP_DR)*psi(:,OP_DZ) &
-!!$          -4.*e(:,OP_DZ )*chi(:,OP_DRZ)*psi(:,OP_DZ)*psi(:,OP_DZ) &
-!!$          +2.*e(:,OP_DZ )*chi(:,OP_DRZ)*psi(:,OP_DR)*psi(:,OP_DR) &
-!!$          -2.*e(:,OP_DZ )*chi(:,OP_DRR)*psi(:,OP_DR)*psi(:,OP_DZ)) &
-!!$          + ri2_79*chi(:,OP_DR)* &
-!!$          (   e(:,OP_DR)*psi(:,OP_DZ)*psi(:,OP_DZ) &
-!!$          -   e(:,OP_DR)*psi(:,OP_DR)*psi(:,OP_DR) &
-!!$          -2.*e(:,OP_DZ)*psi(:,OP_DR)*psi(:,OP_DZ))
-!!$  endif
-!!$
-!!$  temp = int2(temp79a,temp79b,weight_79,79)
-
-  temp = 0.
-
-  g1chipsipsib = temp
-  return
-end function g1chipsipsib
-
-
-! g2upsi
-! ======
-real function g2upsi(e, u, psi, p, b2i)
-
-  use basic
-  use nintegrate_mod
-
-  implicit none
-
-  real, intent(in), dimension(79,OP_NUM) :: e, u, psi, p, b2i
-  real :: temp
-!!$
-!!$  temp79a = 0.25*p(:,OP_1)*b2i(:,OP_1)
-!!$
-!!$  temp79b = e(:,OP_DR)*psi(:,OP_DZ) + e(:,OP_DZ)*psi(:,OP_DR)
-!!$  if(itor.eq.1) temp79b = temp79b + ri_79*e(:,OP_1)*psi(:,OP_DZ)
-!!$
-!!$  temp79c = u(:,OP_DZZ) - u(:,OP_DRR)
-!!$  if(itor.eq.1) temp79c = temp79c - ri_79*u(:,OP_DR)
-!!$
-!!$  temp79d = temp79b*temp79c + 2.*u(:,OP_DRZ)* &
-!!$       (e(:,OP_DR)*psi(:,OP_DR) &
-!!$       -e(:,OP_DZ)*psi(:,OP_DZ))
-!!$
-!!$  if(itor.eq.1) then
-!!$     temp79d = temp79d + 2.*ri_79* &
-!!$          (e(:,OP_1 )*psi(:,OP_DR)*u(:,OP_DRZ) &
-!!$          -e(:,OP_DZ)*psi(:,OP_DZ)*u(:,OP_DZ ))
-!!$  endif
-!!$
-!!$  temp = int2(temp79a,temp79d,weight_79,79)
-
-  temp = 0.
-       
-  g2upsi = temp
-  return
-end function g2upsi
-
-
-! g2upsipsipsi
-! ============
-real function g2upsipsipsi(e, u, psi, p, b2i)
-
-  use basic
-  use nintegrate_mod
-
-  implicit none
-
-  real, intent(in), dimension(79,OP_NUM) :: e, u, psi, p, b2i
-  real :: temp
-
-!!$  temp79a = -0.75*ri2_79*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)
-!!$
-!!$  temp79b = e(:,OP_DZ)*psi(:,OP_DR) - e(:,OP_DR)*psi(:,OP_DZ)
-!!$  if(itor.eq.1) temp79b = temp79b - ri_79*e(:,OP_1)*psi(:,OP_DZ)
-!!$
-!!$  temp79c = u(:,OP_DZZ) - u(:,OP_DRR)
-!!$  if(itor.eq.1) temp79c = temp79c - ri_79*u(:,OP_DR)
-!!$
-!!$  temp79d = temp79c*(psi(:,OP_DZ)*psi(:,OP_DZ) - psi(:,OP_DR)*psi(:,OP_DR)) &
-!!$       + 4.*u(:,OP_DRZ)*psi(:,OP_DZ)*psi(:,OP_DR)
-!!$
-!!$  if(itor.eq.1) then
-!!$     temp79d = temp79d + 2.*ri_79*u(:,OP_DZ)*psi(:,OP_DR)*psi(:,OP_DZ)
-!!$  endif
-!!$
-!!$  temp = int3(temp79a,temp79b,temp79d,weight_79,79)
-
-  temp = 0.
-
-  g2upsipsipsi = temp
-  return
-end function g2upsipsipsi
-
-
-! g2upsibb
-! ========
-real function g2upsibb(e, u, psi, b, p, b2i)
-
-  use basic
-  use nintegrate_mod
-
-  implicit none
-
-  real, intent(in), dimension(79,OP_NUM) :: e, u, psi, b, p, b2i
-  real :: temp
-!!$
-!!$  temp79a = -0.75*ri2_79*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)*b(:,OP_1)*b(:,OP_1)
-!!$
-!!$  temp79b = u(:,OP_DZZ) - u(:,OP_DRR)
-!!$  if(itor.eq.1) temp79b = temp79b - ri_79*u(:,OP_DR)
-!!$
-!!$  if(itor.eq.0) then
-!!$     temp79c = & 
-!!$          e(:,OP_DR)* &
-!!$          (psi(:,OP_DZ)*temp79b + 2.*psi(:,OP_DR)*u(:,OP_DRZ)) + &
-!!$          e(:,OP_DZ)* &
-!!$          (psi(:,OP_DR)*temp79b - 2.*psi(:,OP_DZ)*u(:,OP_DRZ))  
-!!$  else
-!!$     temp79c = & 
-!!$          (e(:,OP_DR) + ri_79*e(:,OP_1))* &
-!!$          (psi(:,OP_DZ)*temp79b + 2.*psi(:,OP_DR)*(u(:,OP_DRZ)+ri_79*u(:,OP_DZ))) + &
-!!$           e(:,OP_DZ)* &
-!!$          (psi(:,OP_DR)*temp79b - 2.*psi(:,OP_DZ)* u(:,OP_DRZ))
-!!$  endif
-!!$
-!!$  temp = int2(temp79a,temp79c,weight_79,79)
-!!$
-
-  temp = 0.
-
-  g2upsibb = temp
-  return
-end function g2upsibb
-
-
-! g2vb
-! ====
-real function g2vb(e, v, psi, b, p, b2i)
-
-  use basic
-  use nintegrate_mod
-
-  implicit none
-
-  real, intent(in), dimension(79,OP_NUM) :: e, v, psi, b, p, b2i
-  real :: temp
-
-  temp79a = 0.25*ri_79*p(:,OP_1)*b2i(:,OP_1)*b(:,OP_1)
-  
-  temp79b = -3.*ri2_79*temp79a*b2i(:,OP_1)* &
-       (psi(:,OP_DZ)*psi(:,OP_DZ) + psi(:,OP_DR)*psi(:,OP_DR))
-
-  temp79c = 3.*ri2_79*temp79a*b2i(:,OP_1)*b(:,OP_1)*b(:,OP_1)
-
-  temp79d = temp79a + temp79b + temp79c
-
-  temp = int3(temp79d,e(:,OP_DZ),v(:,OP_DR),weight_79,79) &
-       - int3(temp79d,e(:,OP_DR),v(:,OP_DZ),weight_79,79)
-
+  ! numvar = 1
+  temp79a = ri2_79*(pht79(:,OP_DZ)**2 + pht79(:,OP_DR)**2)
+  if(idens.eq.1) then
+     temp79b = ri_79*(nt79(:,OP_DZ)*pht79(:,OP_DR) - nt79(:,OP_DR)*pht79(:,OP_DZ))
+  else
+     temp79b = 0.
+  endif
+  temp79c = 0.5*ri3_79* &
+       (pht79(:,OP_DR) * &
+        (pht79(:,OP_DZZ)*pht79(:,OP_DZ ) + pht79(:,OP_DRZ)*pht79(:,OP_DR ) &
+        +pht79(:,OP_DZ )*pht79(:,OP_DZZ) + pht79(:,OP_DR )*pht79(:,OP_DRZ)) &
+       -pht79(:,OP_DZ) * &
+        (pht79(:,OP_DRZ)*pht79(:,OP_DZ ) + pht79(:,OP_DRR)*pht79(:,OP_DR ) &
+        +pht79(:,OP_DZ )*pht79(:,OP_DRZ) + pht79(:,OP_DR )*pht79(:,OP_DRR)))
   if(itor.eq.1) then
-     temp = temp &
-          - int4(ri_79,temp79d,e(:,OP_DZ),v(:,OP_1 ),weight_79,79) &
-          - int4(ri_79,temp79d,e(:,OP_1 ),v(:,OP_DZ),weight_79,79)
-  end if
+     temp79c = temp79c + ri4_79*pht79(:,OP_DZ)* &
+       (pht79(:,OP_DZ)**2 + pht79(:,OP_DR)**2)
+  endif
 
-  temp = 0.
-       
-  g2vb = temp
+  ! numvar = 2
+  if(numvar.ge.2) then
+     temp79a = temp79a + ri2_79*vzt79(:,OP_1)**2
+     temp79c = temp79c + &
+          ri3_79*vzt79(:,OP_1) * &
+          (vzt79(:,OP_DZ)*pht79(:,OP_DR) - vzt79(:,OP_DR)*pht79(:,OP_DZ))
+     if(itor.eq.1) then
+        temp79c = temp79c + ri4_79*vzt79(:,OP_1)**2*pht79(:,OP_DZ)
+     endif
+  endif
+
+  ! numvar = 3
+  if(numvar.ge.3) then
+      temp79a = temp79a &
+           + cht79(:,OP_DZ)*cht79(:,OP_DZ) + cht79(:,OP_DR)*cht79(:,OP_DR) &
+           + 2.*ri_79* &
+           ( cht79(:,OP_DZ)*pht79(:,OP_DR) - cht79(:,OP_DR)*pht79(:,OP_DZ))
+      temp79b = temp79b + nt79(:,OP_1)*cht79(:,OP_LP) &
+            + nt79(:,OP_DZ)*cht79(:,OP_DZ) + nt79(:,OP_DR)*cht79(:,OP_DR)
+      temp79c = temp79c + 0.5*ri_79* &
+           (pht79(:,OP_DR) * &
+            (cht79(:,OP_DZZ)*cht79(:,OP_DZ ) + cht79(:,OP_DRZ)*cht79(:,OP_DR ) &
+            +cht79(:,OP_DZ )*cht79(:,OP_DZZ) + cht79(:,OP_DR )*cht79(:,OP_DRZ)) &
+           -pht79(:,OP_DZ) * &
+            (cht79(:,OP_DRZ)*cht79(:,OP_DZ ) + cht79(:,OP_DRR)*cht79(:,OP_DR ) &
+            +cht79(:,OP_DZ )*cht79(:,OP_DRZ) + cht79(:,OP_DR )*cht79(:,OP_DRR))) &
+           + ri_79* &
+           (cht79(:,OP_DZ) * &
+            (cht79(:,OP_DZZ)*pht79(:,OP_DR ) - cht79(:,OP_DRZ)*pht79(:,OP_DZ ) &
+            +cht79(:,OP_DZ )*pht79(:,OP_DRZ) - cht79(:,OP_DR )*pht79(:,OP_DZZ)) &
+           +cht79(:,OP_DR) * &
+            (cht79(:,OP_DRZ)*pht79(:,OP_DR ) - cht79(:,OP_DRR)*pht79(:,OP_DZ ) &
+            +cht79(:,OP_DZ )*pht79(:,OP_DRR) - cht79(:,OP_DR )*pht79(:,OP_DRZ))) &
+           + ri2_79* &
+           (pht79(:,OP_DR) * &
+            (cht79(:,OP_DZZ)*pht79(:,OP_DR ) - cht79(:,OP_DRZ)*pht79(:,OP_DZ ) &
+            +cht79(:,OP_DZ )*pht79(:,OP_DRZ) - cht79(:,OP_DR )*pht79(:,OP_DZZ)) &
+           -pht79(:,OP_DZ) * &
+            (cht79(:,OP_DRZ)*pht79(:,OP_DR ) - cht79(:,OP_DRR)*pht79(:,OP_DZ ) &
+            +cht79(:,OP_DZ )*pht79(:,OP_DRR) - cht79(:,OP_DR )*pht79(:,OP_DRZ))) &
+           + 0.5*ri2_79* &
+           (cht79(:,OP_DZ) * &
+            (pht79(:,OP_DZZ)*pht79(:,OP_DZ ) + pht79(:,OP_DRZ)*pht79(:,OP_DR ) &
+            +pht79(:,OP_DZ )*pht79(:,OP_DZZ) + pht79(:,OP_DR )*pht79(:,OP_DRZ)) &
+           +cht79(:,OP_DR) * &
+            (pht79(:,OP_DRZ)*pht79(:,OP_DZ ) + pht79(:,OP_DRR)*pht79(:,OP_DR ) &
+            +pht79(:,OP_DZ )*pht79(:,OP_DRZ) + pht79(:,OP_DR )*pht79(:,OP_DRR))) &
+           + ri2_79*vzt79(:,OP_1)* &
+            (vzt79(:,OP_DZ )*cht79(:,OP_DZ ) + vzt79(:,OP_DR )*cht79(:,OP_DR )) &
+           + 0.5* &
+           (cht79(:,OP_DZ) * &
+            (cht79(:,OP_DZZ)*cht79(:,OP_DZ ) + cht79(:,OP_DRZ)*cht79(:,OP_DR ) &
+            +cht79(:,OP_DZ )*cht79(:,OP_DZZ) + cht79(:,OP_DR )*cht79(:,OP_DRZ)) &
+           +cht79(:,OP_DR) * &
+            (cht79(:,OP_DRZ)*cht79(:,OP_DZ ) + cht79(:,OP_DRR)*cht79(:,OP_DR ) &
+            +cht79(:,OP_DZ )*cht79(:,OP_DRZ) + cht79(:,OP_DR )*cht79(:,OP_DRR)))
+      
+      if(itor.eq.1) then
+         temp79c = temp79c &
+              + ri2_79*cht79(:,OP_DR)* &
+              (pht79(:,OP_DZ)*cht79(:,OP_DR) - pht79(:,OP_DR)*cht79(:,OP_DZ)) &
+              - ri3_79*pht79(:,OP_DZ)* &
+              (pht79(:,OP_DZ)*cht79(:,OP_DR) - pht79(:,OP_DR)*cht79(:,OP_DZ)) &
+              - ri3_79*cht79(:,OP_DR)* &
+              (pht79(:,OP_DZ)*pht79(:,OP_DZ) + pht79(:,OP_DR)*pht79(:,OP_DR)) &
+              - ri3_79*vzt79(:,OP_1)**2*cht79(:,OP_DR)
+      endif
+  endif
+
+  temp = 0.5*int2(temp79a,temp79b,weight_79,79)
+
+  if(idens.eq.1) then
+     temp = temp + int2(nt79(:,OP_1),temp79c,weight_79,79)
+  else
+     temp = temp + int1(temp79c,weight_79,79)
+  endif
+
+  flux_ke = -temp
   return
-end function g2vb
+end function flux_ke
 
 
-! g2chipsi
-! ========
-real function g2chipsi(e, chi, psi, p, b2i)
+! Poynting flux
+! -------------
+real function flux_poynting(dbf)
 
   use basic
   use nintegrate_mod
 
-  implicit none
-
-  real, intent(in), dimension(79,OP_NUM) :: e, chi, psi, p, b2i
-  real :: temp
-!!$
-!!$  temp79a = -0.5*ri_79*p(:,OP_1)*b2i(:,OP_1)
-!!$
-!!$  if(itor.eq.0) then
-!!$     temp79b = &
-!!$          e(:,OP_DR) * &
-!!$          (chi(:,OP_DRR)*psi(:,OP_DR) + chi(:,OP_DRZ)*psi(:,OP_DZ)) + &
-!!$          e(:,OP_DZ) * &
-!!$          (chi(:,OP_DRZ)*psi(:,OP_DR) + chi(:,OP_DZZ)*psi(:,OP_DZ))
-!!$  else
-!!$     temp79b = &
-!!$          (e(:,OP_DR) + ri_79*e(:,OP_1)) * &
-!!$          (chi(:,OP_DRR)*psi(:,OP_DR) + chi(:,OP_DRZ)*psi(:,OP_DZ) &
-!!$          -ri_79*chi(:,OP_DR)*psi(:,OP_DR)) + &
-!!$          e(:,OP_DZ) * &
-!!$          (chi(:,OP_DRZ)*psi(:,OP_DR) + chi(:,OP_DZZ)*psi(:,OP_DZ) &
-!!$          -ri_79*chi(:,OP_DR)*psi(:,OP_DZ))
-!!$  endif
-!!$
-!!$  temp = int2(temp79a,temp79b,weight_79,79)
-
-  temp = 0.
-
-  g2chipsi = temp
-  return
-end function g2chipsi
-
-
-! g2chipsipsipsi
-! ==============
-real function g2chipsipsipsi(e, chi, psi, p, b2i)
-
-  use basic
-  use nintegrate_mod
-
-  implicit none
-
-  real, intent(in), dimension(79,OP_NUM) :: e, chi, psi, p, b2i
-  real :: temp
-
-!!$  temp79a = -1.5*ri3_79*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)
-!!$  temp79b = e(:,OP_DZ)*psi(:,OP_DR) - e(:,OP_DR)*psi(:,OP_DZ)
-!!$  if(itor.eq.1) temp79b = temp79b - ri_79*e(:,OP_1)*psi(:,OP_DZ)
-!!$
-!!$  temp79c = (chi(:,OP_DZZ)-chi(:,OP_DRR))*psi(:,OP_DZ)*psi(:,OP_DR) &
-!!$       + chi(:,OP_DRZ)*psi(:,OP_DR)*psi(:,OP_DR) &
-!!$       - chi(:,OP_DRZ)*psi(:,OP_DZ)*psi(:,OP_DZ)
-!!$
-!!$  temp = int3(temp79a,temp79b,temp79c,weight_79,79)
-
-  temp = 0.
-
-  g2chipsipsipsi = temp
-  return
-end function g2chipsipsipsi
-
-
-! g2chipsibb
-! ==========
-real function g2chipsibb(e, chi, psi, b, p, b2i)
-
-  use basic
-  use nintegrate_mod
-
-  implicit none
-
-  real, intent(in), dimension(79,OP_NUM) :: e, chi, psi, b, p, b2i
-  real :: temp
-!!$
-!!$  temp79a = 1.5*ri3_79*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)*b(:,OP_1)*b(:,OP_1)
-!!$
-!!$  if(itor.eq.0) then
-!!$     temp79b = &
-!!$          e(:,OP_DR) * &
-!!$          (-chi(:,OP_DZZ)*psi(:,OP_DR) + chi(:,OP_DRZ)*psi(:,OP_DZ)) + &
-!!$          e(:,OP_DZ) * &
-!!$          ( chi(:,OP_DRZ)*psi(:,OP_DR) - chi(:,OP_DRR)*psi(:,OP_DZ))
-!!$  else
-!!$     temp79b = &
-!!$          (e(:,OP_DR) + ri_79*e(:,OP_1)) * &
-!!$          (-chi(:,OP_DZZ)*psi(:,OP_DR) + chi(:,OP_DRZ)*psi(:,OP_DZ) &
-!!$          +ri_79*chi(:,OP_DR)*psi(:,OP_DR)) + &
-!!$          e(:,OP_DZ) * &
-!!$          ( chi(:,OP_DRZ)*psi(:,OP_DR) - chi(:,OP_DRR)*psi(:,OP_DZ) &
-!!$          +ri_79*chi(:,OP_DR)*psi(:,OP_DZ))
-!!$  endif
-!!$
-!!$  temp = int2(temp79a,temp79b,weight_79,79)
-
-  temp = 0.
-
-  g2chipsibb = temp
-  return
-end function g2chipsibb
-
-
-! g3ub
-! ====
-real function g3ub(e, u, b, p, b2i)
-
-  use basic
-  use nintegrate_mod
-
-  implicit none
-
-  real, intent(in), dimension(79,OP_NUM) :: e, u, b, p, b2i
-  real :: temp
-!!$
-!!$  temp79a = -p(:,OP_1)*b2i(:,OP_1)*b(:,OP_1)
-!!$
-!!$  if(itor.eq.0) then
-!!$     temp79b = &
-!!$          0.5*(e(:,OP_DRR) - e(:,OP_DZZ)) &
-!!$          *   (u(:,OP_DZZ) - u(:,OP_DRR)) - &
-!!$          2.*u(:,OP_DRZ)*e(:,OP_DRZ)
-!!$  else
-!!$     temp79b = &
-!!$          (0.5*(e(:,OP_DRR) - e(:,OP_DZZ)) + ri_79*e(:,OP_DR) - ri2_79*e(:,OP_1)) &
-!!$          *(u(:,OP_DZZ) - u(:,OP_DRR) - ri_79*u(:,OP_DR)) - &
-!!$          (2.*u(:,OP_DRZ) + ri_79*u(:,OP_DZ))*(e(:,OP_DRZ) + ri_79*e(:,OP_DZ))
-!!$  endif
-!!$
-!!$  temp = int2(temp79a,temp79b,weight_79,79)
-
-  temp = 0.
-
-  g3ub = temp
-  return
-end function g3ub
-
-
-! g3upsipsib
-! ==========
-real function g3upsipsib(e, u, psi, b, p, b2i)
-
-  use basic
-  use nintegrate_mod
-
-  implicit none
-
-  real, intent(in), dimension(79,OP_NUM) :: e, u, psi, b, p, b2i
-  real :: temp
-!!$
-!!$  temp79a = -1.5*ri3_79*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)*b(:,OP_1)
-!!$
-!!$  temp79b = u(:,OP_DZZ) - u(:,OP_DRR)
-!!$  if(itor.eq.1) temp79b = temp79b - ri_79*u(:,OP_DR)
-!!$
-!!$  if(itor.eq.0) then
-!!$     temp79c = &
-!!$          psi(:,OP_DZ)*e(:,OP_DRR) * &
-!!$          (2.*psi(:,OP_DR)*u(:,OP_DRZ) + psi(:,OP_DZ)*temp79b) &
-!!$         -2.*e(:,OP_DRZ)*u(:,OP_DRZ) * &
-!!$          (psi(:,OP_DR)*psi(:,OP_DR) + psi(:,OP_DZ)*psi(:,OP_DZ)) &
-!!$         -e(:,OP_DZZ)*psi(:,OP_DR)*psi(:,OP_DR)*(u(:,OP_DZZ) - u(:,OP_DRR)) &
-!!$         +2.*e(:,OP_DZZ)*psi(:,OP_DR)*psi(:,OP_DZ)*u(:,OP_DRZ)
-!!$  else
-!!$     temp79c = &
-!!$          psi(:,OP_DZ)*(e(:,OP_DRR) + 2.*ri_79*e(:,OP_DR) - 2.*ri2_79*e(:,OP_1)) * &
-!!$          (2.*psi(:,OP_DR)*(u(:,OP_DRZ) + ri_79*u(:,OP_DZ)) + psi(:,OP_DZ)*temp79b) &
-!!$         -2.*(e(:,OP_DRZ) + ri_79*e(:,OP_DZ))*u(:,OP_DRZ) * &
-!!$          (psi(:,OP_DR)*psi(:,OP_DR) + psi(:,OP_DZ)*psi(:,OP_DZ)) &
-!!$         -e(:,OP_DZZ)*psi(:,OP_DR)*psi(:,OP_DR)*(u(:,OP_DZZ) - u(:,OP_DRR) - ri_79*u(:,OP_DR)) &
-!!$         +2.*e(:,OP_DZZ)*psi(:,OP_DR)*psi(:,OP_DZ)*u(:,OP_DRZ) &
-!!$         -ri_79*(e(:,OP_DR) + 2.*ri_79*e(:,OP_1)) &
-!!$          *((psi(:,OP_DZ)*psi(:,OP_DZ) - psi(:,OP_DR)*psi(:,OP_DR))*temp79b &
-!!$           +2.*psi(:,OP_DZ)*psi(:,OP_DR)*(2.*u(:,OP_DRZ) + ri_79*u(:,OP_DZ))) &
-!!$         +ri_79*(e(:,OP_DRZ)*u(:,OP_DZ)*psi(:,OP_DR)*psi(:,OP_DR)) &
-!!$         -ri_79*u(:,OP_DZ)*psi(:,OP_DR)*psi(:,OP_DR)*(e(:,OP_DRZ) + 2.*ri_79*e(:,OP_DZ))
-!!$  endif
-!!$
-!!$  temp = int2(temp79a,temp79c,weight_79,79)
-
-  temp = 0.
-
-  g3upsipsib = temp
-  return
-end function g3upsipsib
-
-
-! g3vpsi
-! ======
-real function g3vpsi(e, v, psi, p, b2i)
-
-  use basic
-  use nintegrate_mod
-
-  implicit none
-
-  real, intent(in), dimension(79,OP_NUM) :: e, v, psi, p, b2i
-  real :: temp
-!!$
-!!$  temp79a = -0.5*ri_79*p(:,OP_1)*b2i(:,OP_1)
-!!$
-!!$  if(itor.eq.0) then
-!!$     temp79b = &
-!!$          v(:,OP_DZ)* &
-!!$          (psi(:,OP_DZ)*e(:,OP_DZZ) &
-!!$          +psi(:,OP_DR)*e(:,OP_DRZ)) &
-!!$         +v(:,OP_DR) * &
-!!$          (psi(:,OP_DZ)*e(:,OP_DRZ) &
-!!$          +psi(:,OP_DR)*e(:,OP_DRR))
-!!$  else
-!!$     temp79b = &
-!!$          v(:,OP_DZ)* &
-!!$          (psi(:,OP_DZ)*(e(:,OP_DZZ) - ri_79*e(:,OP_DR) - 2.*ri2_79*e(:,OP_1)) &
-!!$          +psi(:,OP_DR)*(e(:,OP_DRZ) + ri_79*e(:,OP_DZ))) &
-!!$         +(v(:,OP_DR) - ri_79*v(:,OP_1)) * &
-!!$          (psi(:,OP_DZ)*(e(:,OP_DRZ) + ri_79*e(:,OP_DZ)) &
-!!$          +psi(:,OP_DR)*(e(:,OP_DRR) + ri_79*e(:,OP_DR) - 4.*ri2_79*e(:,OP_1)))
-!!$  endif
-!!$
-!!$  temp = int2(temp79a,temp79b,weight_79,79)
-
-  temp = 0.
-
-  g3vpsi = temp
-  return
-end function g3vpsi
-
-
-! g3vpsipsipsi
-! ============
-real function g3vpsipsipsi(e, v, psi, p, b2i)
-
-  use basic
-  use nintegrate_mod
-
-  implicit none
-
-  real, intent(in), dimension(79,OP_NUM) :: e, v, psi, p, b2i
-  real :: temp
-!!$
-!!$  temp79a = 0.75*ri3_79*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)
-!!$
-!!$  if(itor.eq.0) then
-!!$     temp79b = 2.*e(:,OP_DRR) * &
-!!$          (v(:,OP_DZ)*psi(:,OP_DR) - psi(:,OP_DZ)*v(:,OP_DR)) * &
-!!$          psi(:,OP_DZ)*psi(:,OP_DR) &
-!!$         +2.*e(:,OP_DZZ)*psi(:,OP_DZ)*psi(:,OP_DZ)*psi(:,OP_DR) * &
-!!$          v(:,OP_DR) &
-!!$         -e(:,OP_DRZ)*(psi(:,OP_DZ)*psi(:,OP_DZ) - psi(:,OP_DR)*psi(:,OP_DR)) * &
-!!$          (psi(:,OP_DZ)*v(:,OP_DR) - psi(:,OP_DR)*v(:,OP_DZ)) &
-!!$         -2.*e(:,OP_DZZ)*v(:,OP_DZ)*psi(:,OP_DZ)*psi(:,OP_DR)*psi(:,OP_DR) &
-!!$         +e(:,OP_DRZ) * &
-!!$          (v(:,OP_DZ)*psi(:,OP_DR) - v(:,OP_DR)*psi(:,OP_DZ)) * &
-!!$          (psi(:,OP_DZ)*psi(:,OP_DZ) - psi(:,OP_DR)*psi(:,OP_DR))
-!!$  else
-!!$     temp79b = 2.*(e(:,OP_DRR) + 2.*ri_79*e(:,OP_DR) - 2.*ri2_79*e(:,OP_1)) * &
-!!$          (v(:,OP_DZ)*psi(:,OP_DR) - psi(:,OP_DZ)*v(:,OP_DR) + ri_79*v(:,OP_1)*psi(:,OP_DZ)) * &
-!!$          psi(:,OP_DZ)*psi(:,OP_DR) &
-!!$         +2.*e(:,OP_DZZ)*psi(:,OP_DZ)*psi(:,OP_DZ)*psi(:,OP_DR) * &
-!!$          (v(:,OP_DR) - ri_79*v(:,OP_1)) &
-!!$         -e(:,OP_DRZ)*(psi(:,OP_DZ)*psi(:,OP_DZ) - psi(:,OP_DR)*psi(:,OP_DR)) * &
-!!$          (psi(:,OP_DZ)*v(:,OP_DR) - psi(:,OP_DR)*v(:,OP_DZ)) &
-!!$         -2.*e(:,OP_DZZ)*v(:,OP_DZ)*psi(:,OP_DZ)*psi(:,OP_DR)*psi(:,OP_DR) &
-!!$         +(e(:,OP_DRZ) + 2.*ri_79*e(:,OP_DZ)) * &
-!!$          (v(:,OP_DZ)*psi(:,OP_DR) - v(:,OP_DR)*psi(:,OP_DZ)) * &
-!!$          (psi(:,OP_DZ)*psi(:,OP_DZ) - psi(:,OP_DR)*psi(:,OP_DR)) &
-!!$         +2.*ri_79*v(:,OP_1)*psi(:,OP_DZ)*(e(:,OP_DRZ) + ri_79*e(:,OP_DZ)) * &
-!!$          (psi(:,OP_DZ)*psi(:,OP_DZ) - psi(:,OP_DR)*psi(:,OP_DR))
-!!$  endif
-!!$
-!!$  temp = int2(temp79a,temp79b,weight_79,79)
-
-  temp = 0.
-
-  g3vpsipsipsi = temp
-  return
-end function g3vpsipsipsi
-
-
-! g3vpsibb
-! ========
-real function g3vpsibb(e, v, psi, b, p, b2i)
-
-  use basic
-  use nintegrate_mod
-
-  implicit none
-
-  real, intent(in), dimension(79,OP_NUM) :: e, v, psi, b, p, b2i
-  real :: temp
-!!$
-!!$  temp79a = 1.5*ri3_79*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)*b(:,OP_1)*b(:,OP_1)
-!!$
-!!$  if(itor.eq.0) then
-!!$     temp79b = &
-!!$          v(:,OP_DR) * &
-!!$          (e(:,OP_DRZ)*psi(:,OP_DZ) &
-!!$          -e(:,OP_DZZ)*psi(:,OP_DR)) &
-!!$         +v(:,OP_DZ) * &
-!!$          (e(:,OP_DRZ)*psi(:,OP_DR) &
-!!$          -e(:,OP_DRR)*psi(:,OP_DZ))
-!!$  else
-!!$     temp79b = &
-!!$          (v(:,OP_DR) - ri_79*v(:,OP_1)) * &
-!!$          ((e(:,OP_DRZ) + ri_79*e(:,OP_DZ))*psi(:,OP_DZ) &
-!!$          -(e(:,OP_DZZ) - ri_79*e(:,OP_DR) - 2.*ri2_79*e(:,OP_1))*psi(:,OP_DR)) &
-!!$         +v(:,OP_DZ)*((e(:,OP_DRZ) + ri_79*e(:,OP_DZ))*psi(:,OP_DR) &
-!!$          -(e(:,OP_DRR) + ri_79*e(:,OP_DR) - 4.*ri2_79*e(:,OP_1))*psi(:,OP_DZ))
-!!$  endif
-!!$
-!!$  temp = int2(temp79a,temp79b,weight_79,79)
-
-  temp = 0.
-
-  g3vpsibb = temp
-  return
-end function g3vpsibb
-
-
-
-! g3chib
-! ======
-real function g3chib(e, chi, b, p, b2i)
-
-  use basic
-  use nintegrate_mod
-
-  implicit none
-
-  real, intent(in), dimension(79,OP_NUM) :: e, chi, b, p, b2i
-  real :: temp
-!!$
-!!$  temp79a = ri_79*p(:,OP_1)*b2i(:,OP_1)*b(:,OP_1)
-!!$
-!!$  if(itor.eq.0) then
-!!$     temp79b = &
-!!$          (e(:,OP_DRR) - e(:,OP_DZZ)) *chi(:,OP_DRZ) &
-!!$         +e(:,OP_DRZ)*(chi(:,OP_DZZ) - chi(:,OP_DRR))
-!!$  else
-!!$     temp79b = &
-!!$          (e(:,OP_DRR) - e(:,OP_DZZ) + 2.*ri_79*e(:,OP_DR) - 2.*ri2_79*e(:,OP_1))*chi(:,OP_DRZ) &
-!!$         +(e(:,OP_DRZ) - ri_79*e(:,OP_DZ))*(chi(:,OP_DZZ) - chi(:,OP_DRR))
-!!$  endif
-!!$
-!!$  temp = int2(temp79a,temp79b,weight_79,79)
-
-  temp = 0.
-
-  g3chib = temp
-  return
-end function g3chib
-
-
-! g3chipsipsib
-! ============
-real function g3chipsipsib(e, chi, psi, b, p, b2i)
-
-  use basic
-  use nintegrate_mod
-
-  implicit none
-
-  real, intent(in), dimension(79,OP_NUM) :: e, chi, psi, b, p, b2i
-  real :: temp
-!!$
-!!$  temp79a = -3.*ri3_79*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)*b(:,OP_1)
-!!$
-!!$  if(itor.eq.0) then
-!!$     temp79b = &
-!!$          (e(:,OP_DRR))*psi(:,OP_DZ) * &
-!!$          (chi(:,OP_DZZ)*psi(:,OP_DR) - chi(:,OP_DRZ)*psi(:,OP_DZ)) &
-!!$         +e(:,OP_DZZ)*psi(:,OP_DR) * &
-!!$          (chi(:,OP_DRZ)*psi(:,OP_DR) - chi(:,OP_DRR)*psi(:,OP_DZ)) &
-!!$         +(e(:,OP_DRZ)) * &
-!!$          (psi(:,OP_DZ)*chi(:,OP_DRR)*psi(:,OP_DZ) - psi(:,OP_DR)*chi(:,OP_DZZ)*psi(:,OP_DR))
-!!$  else
-!!$     temp79b = &
-!!$          (e(:,OP_DRR) + 2.*ri_79*e(:,OP_DR) - 2.*ri2_79*e(:,OP_1))*psi(:,OP_DZ) * &
-!!$          (chi(:,OP_DZZ)*psi(:,OP_DR) - chi(:,OP_DRZ)*psi(:,OP_DZ) &
-!!$          -ri_79*chi(:,OP_DR)*psi(:,OP_DR)) &
-!!$         +e(:,OP_DZZ)*psi(:,OP_DR) * &
-!!$          (chi(:,OP_DRZ)*psi(:,OP_DR) - chi(:,OP_DRR)*psi(:,OP_DZ) &
-!!$          +ri_79*chi(:,OP_DZ)*psi(:,OP_DZ)) &
-!!$         +(e(:,OP_DRZ) + ri_79*e(:,OP_DZ)) * &
-!!$          (psi(:,OP_DZ)*chi(:,OP_DRR)*psi(:,OP_DZ) - psi(:,OP_DR)*chi(:,OP_DZZ)*psi(:,OP_DR) &
-!!$          +ri_79*chi(:,OP_DR)*(psi(:,OP_DR)*psi(:,OP_DR) - psi(:,OP_DZ)*psi(:,OP_DZ))) &
-!!$         +ri_79*(e(:,OP_DR) + 2.*ri_79)*e(:,OP_1) * &
-!!$          (chi(:,OP_DRZ)*(psi(:,OP_DZ)*psi(:,OP_DZ) - psi(:,OP_DR)*psi(:,OP_DR)) &
-!!$          + psi(:,OP_DZ)*psi(:,OP_DR)*(chi(:,OP_DRR) - chi(:,OP_DZZ)))
-!!$  endif
-!!$
-!!$  temp = int2(temp79a,temp79b,weight_79,79)
-
-  temp = 0.
-
-  g3chipsipsib = temp
+  real, intent(in) :: dbf
+
+  if(idens.eq.0) then
+     ni79 = 0.
+     ni79(:,OP_1) = 1.
+  endif
+
+  temp79a = ri3_79*(pst79(:,OP_GS)* &
+        (pst79(:,OP_DZ )*pht79(:,OP_DR ) - pst79(:,OP_DR )*pht79(:,OP_DZ )) &
+       +pst79(:,OP_DZ)* &
+        (pst79(:,OP_DZZ)*pht79(:,OP_DR ) - pst79(:,OP_DRZ)*pht79(:,OP_DZ ) &
+        +pst79(:,OP_DZ )*pht79(:,OP_DRZ) - pst79(:,OP_DR )*pht79(:,OP_DZZ)) &
+       +pst79(:,OP_DR)* &
+        (pst79(:,OP_DRZ)*pht79(:,OP_DR ) - pst79(:,OP_DRR)*pht79(:,OP_DZ) &
+        +pst79(:,OP_DZ )*pht79(:,OP_DRR) - pst79(:,OP_DR )*pht79(:,OP_DRZ))) &
+       - ri2_79* &
+       +(eta79(:,OP_1 )*  jt79(:,OP_1 )* jt79(:,OP_1 ) &
+        +eta79(:,OP_1 )*(pst79(:,OP_DZ)* jt79(:,OP_DZ) + pst79(:,OP_DR)* jt79(:,OP_DR)) &
+        + jt79(:,OP_1 )*(pst79(:,OP_DZ)*eta79(:,OP_DZ) + pst79(:,OP_DR)*eta79(:,OP_DR)))
   
-  return
-end function g3chipsipsib
+  if(itor.eq.1) then
+     temp79a = temp79a - ri4_79*pst79(:,OP_DR)* &
+          (pst79(:,OP_DZ)*pht79(:,OP_DR) - pst79(:,OP_DR)*pht79(:,OP_DZ))
+  endif
 
+
+  if(numvar.ge.2) then
+     temp79a = temp79a &
+          - ri2_79* &
+          (eta79(:,OP_1)* bzt79(:,OP_1)*bzt79(:,OP_GS) &
+          +eta79(:,OP_1)*(bzt79(:,OP_DZ)*bzt79(:,OP_DZ) + bzt79(:,OP_DR)*bzt79(:,OP_DR)) &
+          +bzt79(:,OP_1)*(bzt79(:,OP_DZ)*eta79(:,OP_DZ) + bzt79(:,OP_DR)*eta79(:,OP_DR))) &
+          - ri3_79* &
+          (vzt79(:,OP_1)*(bzt79(:,OP_DZ)*pst79(:,OP_DR) - bzt79(:,OP_DR)*pst79(:,OP_DZ)) &
+          +bzt79(:,OP_1)*(vzt79(:,OP_DZ)*pst79(:,OP_DR) - vzt79(:,OP_DR)*pst79(:,OP_DZ))) &
+          - ri3_79*dbf* &
+           (bzt79(:,OP_1)* &
+           ( jt79(:,OP_1 )*(ni79(:,OP_DZ)*pst79(:,OP_DR) - ni79(:,OP_DR)*pst79(:,OP_DZ)) &
+           + ni79(:,OP_1 )*(jt79(:,OP_DZ)*pst79(:,OP_DR) - jt79(:,OP_DR)*pst79(:,OP_DZ))) &
+           +( ni79(:,OP_DZ)*pst79(:,OP_DZ) +  ni79(:,OP_DR)*pst79(:,OP_DR))* &
+            (pst79(:,OP_DZ)*bzt79(:,OP_DR) - pst79(:,OP_DR)*bzt79(:,OP_DZ)) &
+           +ni79(:,OP_1)* &
+           (pst79(:,OP_DZ)* &
+            (pst79(:,OP_DZZ)*bzt79(:,OP_DR ) - pst79(:,OP_DRZ)*bzt79(:,OP_DZ ) &
+            +pst79(:,OP_DZ )*bzt79(:,OP_DRZ) - pst79(:,OP_DR )*bzt79(:,OP_DZZ)) &
+           +pst79(:,OP_DR)* &
+            (pst79(:,OP_DRZ)*bzt79(:,OP_DR ) - pst79(:,OP_DRR)*bzt79(:,OP_DZ ) &
+            +pst79(:,OP_DZ )*bzt79(:,OP_DRR) - pst79(:,OP_DR )*bzt79(:,OP_DRZ))) &
+           +bzt79(:,OP_1)**2*(ni79(:,OP_DZ)*bzt79(:,OP_DR) - ni79(:,OP_DR)*bzt79(:,OP_DZ))) &
+          +2.*ri3_79*bzt79(:,OP_1)* &
+           (bzt79(:,OP_DZ)*pht79(:,OP_DR) - bzt79(:,OP_DR)*pht79(:,OP_DZ))
+
+     if(itor.eq.1) then
+        temp79a = temp79a &
+             - 2.*ri4_79*pst79(:,OP_DZ)*vzt79(:,OP_1)*bzt79(:,OP_1) &
+             +dbf*ri4_79*ni79(:,OP_1)* &
+              (pst79(:,OP_DR)*(pst79(:,OP_DZ)*bzt79(:,OP_DR) - pst79(:,OP_DR)*bzt79(:,OP_DZ)) &
+              -2.*pst79(:,OP_DZ)*pst79(:,OP_GS)*bzt79(:,OP_1) &
+              -2.*bzt79(:,OP_1)**2*bzt79(:,OP_DZ)) &
+             +2.*ri4_79*bzt79(:,OP_1)**2*pht79(:,OP_DZ)
+     endif
+  endif
+
+  if(numvar.ge.3) then
+     temp79a = temp79a &
+          - ri_79*pefac*dbf* &
+            (bzt79(:,OP_1)*( ni79(:,OP_DZ)*pet79(:,OP_DR) -  ni79(:,OP_DR)*pet79(:,OP_DZ)) &
+            + ni79(:,OP_1)*(bzt79(:,OP_DZ)*pet79(:,OP_DR) - bzt79(:,OP_DR)*pet79(:,OP_DZ))) &
+          + ri2_79*bzt79(:,OP_1)* &
+            (bzt79(:,OP_1)*cht79(:,OP_GS) + &
+            2.*(bzt79(:,OP_DZ)*cht79(:,OP_DZ) + bzt79(:,OP_DR)*cht79(:,OP_DR))) &
+          + ri2_79* &
+            (pst79(:,OP_GS)*(pst79(:,OP_DZ )*cht79(:,OP_DZ ) + pst79(:,OP_DR )*cht79(:,OP_DR )) &
+            +pst79(:,OP_DZ)*(pst79(:,OP_DZZ)*cht79(:,OP_DZ ) + pst79(:,OP_DRZ)*cht79(:,OP_DR ) &
+                            +pst79(:,OP_DZ )*cht79(:,OP_DZZ) + pst79(:,OP_DR )*cht79(:,OP_DRZ)) &
+            +pst79(:,OP_DR)*(pst79(:,OP_DRZ)*cht79(:,OP_DZ ) + pst79(:,OP_DRR)*cht79(:,OP_DR ) &
+                            +pst79(:,OP_DZ )*cht79(:,OP_DRZ) + pst79(:,OP_DR )*cht79(:,OP_DRR)))
+          
+  endif
+
+!!$ MISSING HYPER-RESISTIVE TERMS
+
+  flux_poynting = -int1(temp79a,weight_79,79)
+  return
+end function flux_poynting
+
+
+! Heat flux
+! ---------
+real function flux_heat
+
+  use basic
+  use nintegrate_mod
+
+  real :: temp
+
+  if(numvar.lt.3) then
+     flux_heat = 0.
+     return
+  endif
+
+  ! Isotropic heat flux
+  if(idens.eq.0) then
+     temp79a = kappat*pt79(:,OP_LP)
+  else
+     temp79a = kappat*(ni79(:,OP_1)*pt79(:,OP_LP) + ni79(:,OP_LP)*pt79(:,OP_1) &
+          + 2.*(ni79(:,OP_DZ)*pt79(:,OP_DZ) + ni79(:,OP_DR)*pt79(:,OP_DR)))
+  endif
+
+  temp = int1(temp79a,weight_79,79)
+
+
+  ! Parallel heat flux
+  if(kappar.ne.0.) then
+
+     temp79c = kappar*(b2i79(:,OP_DZ)*pst79(:,OP_DR) - b2i79(:,OP_DR)*pst79(:,OP_DZ))
+     if(itor.eq.1) temp79c = temp79c + ri_79*kappar*b2i79(:,OP_1)*pst79(:,OP_DZ)
+
+     if(idens.eq.0) then
+        temp79b = pt79(:,OP_DZ)*pst79(:,OP_DR) - pt79(:,OP_DR)*pst79(:,OP_DZ)
+
+        temp79d =-pst79(:,OP_DZ)* &
+              (pt79(:,OP_DRZ)*pst79(:,OP_DR ) - pt79(:,OP_DRR)*pst79(:,OP_DZ ) &
+              +pt79(:,OP_DZ )*pst79(:,OP_DRR) - pt79(:,OP_DR )*pst79(:,OP_DRZ)) &
+                 +pst79(:,OP_DR)* &
+              (pt79(:,OP_DZZ)*pst79(:,OP_DR ) - pt79(:,OP_DRZ)*pst79(:,OP_DZ ) &
+              +pt79(:,OP_DZ )*pst79(:,OP_DRZ) - pt79(:,OP_DR )*pst79(:,OP_DZZ))
+     else
+        temp79b = ni79(:,OP_1)*(pt79(:,OP_DZ)*pst79(:,OP_DR) - pt79(:,OP_DR)*pst79(:,OP_DZ)) &
+             +    pt79(:,OP_1)*(ni79(:,OP_DZ)*pst79(:,OP_DR) - ni79(:,OP_DR)*pst79(:,OP_DZ))
+     
+        temp79d = -ni79(:,OP_1)* &
+             (pst79(:,OP_DZ)* &
+              (pt79(:,OP_DRZ)*pst79(:,OP_DR ) - pt79(:,OP_DRR)*pst79(:,OP_DZ ) &
+              +pt79(:,OP_DZ )*pst79(:,OP_DRR) - pt79(:,OP_DR )*pst79(:,OP_DRZ)) &
+             -pst79(:,OP_DR)* &
+              (pt79(:,OP_DZZ)*pst79(:,OP_DR ) - pt79(:,OP_DRZ)*pst79(:,OP_DZ ) &
+              +pt79(:,OP_DZ )*pst79(:,OP_DRZ) - pt79(:,OP_DR )*pst79(:,OP_DZZ))) &
+             - pt79(:,OP_1)* &
+             (pst79(:,OP_DZ)* &
+              (ni79(:,OP_DRZ)*pst79(:,OP_DR ) - ni79(:,OP_DRR)*pst79(:,OP_DZ ) &
+              +ni79(:,OP_DZ )*pst79(:,OP_DRR) - ni79(:,OP_DR )*pst79(:,OP_DRZ)) &
+             -pst79(:,OP_DR)* &
+              (ni79(:,OP_DZZ)*pst79(:,OP_DR ) - ni79(:,OP_DRZ)*pst79(:,OP_DZ ) &
+              +ni79(:,OP_DZ )*pst79(:,OP_DRZ) - ni79(:,OP_DR )*pst79(:,OP_DZZ))) &
+             + 2.*(pt79(:,OP_DZ)*pst79(:,OP_DR) - pt79(:,OP_DR)*pst79(:,OP_DZ))* &
+                  (ni79(:,OP_DZ)*pst79(:,OP_DR) - ni79(:,OP_DR)*pst79(:,OP_DZ))
+     endif
+
+     temp = temp &
+          + int3(ri2_79,temp79b,temp79c,weight_79,79) &
+          + kappar*int3(ri2_79,b2i79(:,OP_1),temp79d,weight_79,79)
+  endif
+
+!!$ MISSING HYPER-DIFFUSIVE TERMS
+
+  flux_heat = temp
+  return
+end function flux_heat
 
 end module metricterms_new
 

@@ -95,7 +95,7 @@ subroutine define_sources()
   real :: x, z, xmin, zmin, hypf, hypi, hypv, hypc, hypp, dbf, factor
 
   double precision, dimension(3)  :: cogcoords
-  double precision, dimension(21) :: temp, temp2
+  double precision, dimension(23) :: temp, temp2
 
 !!$  integer :: izone, izonedim
 
@@ -154,10 +154,11 @@ subroutine define_sources()
   emag3 = 0.
   emag3d = 0.
   emag3h = 0.
-  ekappar = 0.
-  ekappat = 0.
-  eeta = 0.
-
+  efluxd = 0.
+  efluxp = 0.
+  efluxk = 0.
+  efluxs = 0.
+  efluxt = 0.
 
   hypf = hyper *deex**2
   hypi = hyperi*deex**2
@@ -184,6 +185,8 @@ subroutine define_sources()
      if(numvar.ge.3) def_fields = def_fields + FIELD_COM
   end if
 
+  tm79 = 0.
+  tm79(:,OP_1) = 1.
 
   call getmincoord(xmin,zmin)
   
@@ -237,15 +240,15 @@ subroutine define_sources()
 
            ! ohmic heating         
            sp1(ione) = sp1(ione) + (gam-1.)* &
-                (qpsipsieta(g79(:,:,i),pst79,pst79,eta79,hypf,jt79) &
-                +qbbeta    (g79(:,:,i),bzt79,bzt79,eta79,hypi))
+                (qpsipsieta(g79(:,:,i),hypf) &
+                +qbbeta    (g79(:,:,i),hypi))
 
            ! viscous heating
            sp1(ione) = sp1(ione) - (gam-1.)* &
                 (quumu    (g79(:,:,i),pht79,pht79,amu,amuc,hypc) &
                 +qvvmu    (g79(:,:,i),vzt79,vzt79,amu,     hypv) &
                 +quchimu  (g79(:,:,i),pht79,cht79,amu,amuc,hypc) &
-                +0.*qchichimu(g79(:,:,i),cht79,cht79,amu,amuc,hypc))
+                +qchichimu(g79(:,:,i),cht79,cht79,amu,amuc,hypc))
         endif ! on numvar.ge.3
      end do
 
@@ -295,11 +298,7 @@ subroutine define_sources()
      emagpd = emagpd - &
           int4(ri2_79,pst79(:,OP_GS),pst79(:,OP_GS),eta79(:,OP_1),weight_79,79)
 
-     emagph = emagph - hypf* &
-          (int4(ri2_79,jt79(:,OP_DZ),jt79(:,OP_DZ),eta79(:,OP_1 ),weight_79,79) &
-          +int4(ri2_79,jt79(:,OP_DR),jt79(:,OP_DR),eta79(:,OP_1 ),weight_79,79) &
-          +int4(ri2_79,jt79(:,OP_1 ),jt79(:,OP_DZ),eta79(:,OP_DZ),weight_79,79) &
-          +int4(ri2_79,jt79(:,OP_1 ),jt79(:,OP_DR),eta79(:,OP_DR),weight_79,79))
+     emagph = emagph - qpsipsieta(tm79,hypf)
 
      if(numvar.ge.2) then
 
@@ -336,11 +335,8 @@ subroutine define_sources()
         emagtd = emagtd - &
              (int4(ri2_79,bzt79(:,OP_DZ),bzt79(:,OP_DZ),eta79(:,OP_1),weight_79,79) &
              +int4(ri2_79,bzt79(:,OP_DR),bzt79(:,OP_DR),eta79(:,OP_1),weight_79,79))
-           
-        emagth = emagth - hypi* &
-             (int4(ri2_79,bzt79(:,OP_GS),bzt79(:,OP_GS),eta79(:,OP_1 ),weight_79,79) &
-             +int4(ri2_79,bzt79(:,OP_DZ),bzt79(:,OP_GS),eta79(:,OP_DZ),weight_79,79) &
-             +int4(ri2_79,bzt79(:,OP_DR),bzt79(:,OP_GS),eta79(:,OP_DR),weight_79,79))
+
+        emagth = emagth - qbbeta(tm79,hypi)
      endif
 
      if(numvar.ge.3) then
@@ -400,46 +396,14 @@ subroutine define_sources()
                    
         emag3 = emag3 + int1(pt79,weight_79,79) / (gam - 1.)
 
-        if(numvar.ge.2) then
-           eeta = eeta - &
-                (int4(ri2_79,eta79(:,OP_1 ),bzt79(:,OP_1 ),bzt79(:,OP_GS),weight_79,79) &
-                +int4(ri2_79,eta79(:,OP_1 ),bzt79(:,OP_DZ),bzt79(:,OP_DZ),weight_79,79) &
-                +int4(ri2_79,eta79(:,OP_1 ),bzt79(:,OP_DR),bzt79(:,OP_DR),weight_79,79) &
-                +int4(ri2_79,eta79(:,OP_DZ),bzt79(:,OP_DZ),bzt79(:,OP_1 ),weight_79,79) &
-                +int4(ri2_79,eta79(:,OP_DR),bzt79(:,OP_DR),bzt79(:,OP_1 ),weight_79,79))
-        endif
-
-        if(idens.eq.0) then
-           ekappat = ekappat + kappat*int1(pt79(:,OP_LP),weight_79,79)
-
-           temp79a = kappar*ri2_79* &
-                (b2i79(:,OP_DZ)*pst79(:,OP_DR) - b2i79(:,OP_DR)*pst79(:,OP_DZ))
-           temp79b = kappar*ri2_79*b2i79(:,OP_1)
-           temp79c = pt79(:,OP_DZ)*pst79(:,OP_DR) - pt79(:,OP_DR)*pst79(:,OP_DZ)
-           
-           ekappar = ekappar &
-                +int2(temp79a,temp79c,weight_79,79) &
-                +int4(temp79b,pt79(:,OP_DZZ),pst79(:,OP_DR ),pst79(:,OP_DR),weight_79,79) &
-                -int4(temp79b,pt79(:,OP_DRZ),pst79(:,OP_DZ ),pst79(:,OP_DR),weight_79,79) &
-                +int4(temp79b,pt79(:,OP_DZ ),pst79(:,OP_DRZ),pst79(:,OP_DR),weight_79,79) &
-                -int4(temp79b,pt79(:,OP_DR ),pst79(:,OP_DZZ),pst79(:,OP_DR),weight_79,79) &
-                -int4(temp79b,pt79(:,OP_DRZ),pst79(:,OP_DR ),pst79(:,OP_DZ),weight_79,79) &
-                +int4(temp79b,pt79(:,OP_DRR),pst79(:,OP_DZ ),pst79(:,OP_DZ),weight_79,79) &
-                -int4(temp79b,pt79(:,OP_DZ ),pst79(:,OP_DRR),pst79(:,OP_DZ),weight_79,79) &
-                +int4(temp79b,pt79(:,OP_DR ),pst79(:,OP_DRZ),pst79(:,OP_DZ),weight_79,79)
-           if(itor.eq.1) then
-              ekappar = ekappar + int4(temp79b,ri_79,pst79(:,OP_DZ),temp79c,weight_79,79)
-           endif
-        else
-           ekappat = ekappat + kappat* &
-                (   int2(pt79(:,OP_LP),ni79(:,OP_1 ),weight_79,79) &
-                +2.*int2(pt79(:,OP_DZ),ni79(:,OP_DZ),weight_79,79) &
-                +2.*int2(pt79(:,OP_DR),ni79(:,OP_DR),weight_79,79) &
-                +   int2(pt79(:,OP_1 ),ni79(:,OP_LP),weight_79,79))
-
-           ekappar = 0.
-        endif
      endif
+
+     ! Calculate fluxes through boundary of domain
+     efluxd = efluxd + flux_diffusive()
+     efluxk = efluxk +flux_ke()
+     efluxp = efluxp +flux_pressure(dbf)
+     efluxs = efluxs +flux_poynting(dbf)
+     efluxt = efluxt +flux_heat()
   end do
 
   ! Solve source term equations
@@ -473,12 +437,14 @@ subroutine define_sources()
      temp(16) = emag3
      temp(17) = emag3d
      temp(18) = emag3h
-     temp(19) = ekappar
-     temp(20) = ekappat
-     temp(21) = eeta
+     temp(19) = efluxd
+     temp(20) = efluxp
+     temp(21) = efluxk
+     temp(22) = efluxs
+     temp(23) = efluxt
          
      !checked that this should be MPI_DOUBLE_PRECISION
-     call mpi_allreduce(temp, temp2, 21, MPI_DOUBLE_PRECISION,  &
+     call mpi_allreduce(temp, temp2, 23, MPI_DOUBLE_PRECISION,  &
           MPI_SUM, MPI_COMM_WORLD, i) 
          
      ekinp = temp2(1)
@@ -499,9 +465,11 @@ subroutine define_sources()
      emag3 = temp2(16)
      emag3d = temp2(17)
      emag3h = temp2(18)
-     ekappar = temp2(19)
-     ekappat = temp2(20)
-     eeta = temp2(21)
+     efluxd = temp2(19)
+     efluxp = temp2(20)
+     efluxk = temp2(21)
+     efluxs = temp2(22)
+     efluxt = temp2(23)
   endif !if maxrank .gt. 1
 
   ekin = ekinp + ekint + ekin3

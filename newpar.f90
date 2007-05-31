@@ -756,7 +756,7 @@ subroutine onestep
         t_mvm = t_mvm + tend - tstart
      endif
 
-     ! temp = d8matrix_sm * phi(n)
+     ! temp = d8matrix_sm * pres(n)
      call createvec(temp, 1)
      temp = 0.
      call matrixvectormult(d9matrix_sm,pres,temp)
@@ -923,6 +923,11 @@ subroutine onestep
      call second(tend)
      t_sources = t_sources + tend - tstart
   endif 
+
+  ! feedback control on toroidal current
+  if(itor.eq.1) then
+     call control_pid
+  endif
 
 end subroutine onestep
 
