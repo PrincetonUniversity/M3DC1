@@ -484,8 +484,7 @@ function energy, filename=filename, error=error
        dissipated = E_H*0.
    endelse
 
-   vloop = read_parameter('vloop', filename=filename)
-   eloop = vloop * s.toroidal_current._data / (2.*3.14159625)
+   eloop = s.loop_voltage._data * s.toroidal_current._data / (2.*3.14159625)
    dissipated = dissipated - eloop
 
    Error = E - E[0]
@@ -501,6 +500,32 @@ function energy, filename=filename, error=error
 
    return, E
 end
+
+
+pro plot_fluxes, filename=filename, ylog=ylog
+
+   s = read_scalars(filename=filename)
+
+   !y.range=[max([s.Flux_diffusive._data,s.Flux_pressure._data, $
+                  s.Flux_kinetic._data,  s.Flux_poynting._data, $
+                  s.Flux_thermal._data]), $
+             min([s.Flux_diffusive._data,s.Flux_pressure._data, $
+                  s.Flux_kinetic._data,  s.Flux_poynting._data, $
+                  s.Flux_thermal._data])]
+
+   !x.title = '!8t !6(!7s!D!8A!N!6)!3'
+   !y.title = '!6Energy Flux (!8B!D0!U2!N/4!7p s!D!8A!N L!U2!N)!3'
+
+   plot,  s.time._data, s.Flux_diffusive._data, color=color(0,5), ylog=ylog
+   oplot, s.time._data, s.Flux_kinetic._data, color=color(1,5)
+   oplot, s.time._data, s.Flux_pressure._data, color=color(2,5)
+   oplot, s.time._data, s.Flux_poynting._data, color=color(3,5)
+   oplot, s.time._data, s.Flux_thermal._data, color=color(4,5)
+
+   plot_legend, ['Diffusive', 'KE Conv', 'Pressure Conv.', $
+                 'Poynting', 'Thermal'], color=colors(5), ylog=ylog
+end
+
 
 pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog
 
@@ -537,13 +562,19 @@ pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog
    if(nv le 2) then begin
        dissipated = E_D + E_H
    endif else begin
-       dissipated = s.E_kappat._data + s.E_kappar._data
+       dissipated = 0.
    endelse
-   dissipated = dissipated + s.E_eta._data
+
+   ; Account for fluxes across boundary
+   dissipated = dissipated    $
+     + s.Flux_diffusive._data $
+     + s.Flux_pressure._data  $
+     + s.Flux_kinetic._data   $
+     + s.Flux_poynting._data  $
+     + s.Flux_thermal._data
 
    ; account for loop voltage
-   vloop = read_parameter('vloop', filename=filename)
-   eloop = vloop * s.toroidal_current._data / (2.*3.14159625)
+   eloop = s.loop_voltage._data * s.toroidal_current._data / (2.*3.14159625)
    dissipated = dissipated - eloop
 
    Error = E - E[0]
@@ -558,6 +589,7 @@ pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog
    Error = Error - total_lost
 
    print, Error / E
+   print, deriv(s.time._data, Error)
 
    if(keyword_set(norm)) then begin
        E = E - E[0]
@@ -744,6 +776,12 @@ pro plot_scalar, scalarname, filename=filename, names=names, $
     if (strcmp("reconnected flux", scalarname, /fold_case) eq 1) then begin
       data = s.reconnected_flux._data
       title = '!6Reconnected Flux!3'
+  endif else $
+    if (strcmp("loop voltage", scalarname, /fold_case) eq 1) or $
+    (strcmp("vl", scalarname, /fold_case) eq 1) then begin
+      data = s.loop_voltage._data
+      title = '!6Loop Voltage!3'
+      ytitle = '!8V!DL!N!3'
   endif else $
     if (strcmp("beta", scalarname, /fold_case) eq 1) then begin
       nv = read_parameter("numvar", filename=filename)

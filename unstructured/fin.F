@@ -181,6 +181,11 @@
       xlim = 10.5
       zlim = 0.
 !
+!..... toroidal current controller parameters
+      control_p = 0.
+      control_i = 0.
+      control_d = 0.
+!
 !.....pressure = p0*(1 + p1*psi + p2*psi**2 + ...)
 !                where psi is the normalized poloidal flux
       p0 = 0.01      

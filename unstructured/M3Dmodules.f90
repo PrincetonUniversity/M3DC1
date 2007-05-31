@@ -74,6 +74,11 @@ module basic
   real :: facw, facd
   real :: regular        ! regularization constant in chi equation
 
+  ! current controller parameters
+  real :: control_p      ! proportionality constant
+  real :: control_i      ! integral control inverse time-scale
+  real :: control_d      ! derivative control time-scale
+
   ! output parameters
   integer :: iprint   ! print extra debugging info
   integer :: itimer   ! print timing info
@@ -98,7 +103,8 @@ module basic
        kappa,iper,jper,iprint,itimer,xzero,zzero,beta,pi0,     &
        eqsubtract,denm,grav,kappat,kappar,ln,amuc,iconstflux,  &
        regular,deex,gyro,vloop,eta0,isources,pedge,integrator, &
-       expn,divertors,xdiv,zdiv,divcur
+       expn,divertors,xdiv,zdiv,divcur, &
+       control_p,control_i,control_d
 
   !     derived quantities
   real :: tt,pi,                                                       &
@@ -112,7 +118,7 @@ module basic
        ekinph,ekinth,emagph,emagth,ekinpho,ekintho,emagpho,emagtho,    &
        ekin3,ekin3d,ekin3h,emag3,ekin3o,ekin3do,ekin3ho,emag3o,        &
        emag3h,emag3d,emag3ho,emag3do,chierror,tflux0,totcur0,          &
-       ekappar,ekappat,eeta
+       efluxd,efluxp,efluxk,efluxs,efluxt
   character*8 :: filename(50)
   character*10 :: datec, timec
   
