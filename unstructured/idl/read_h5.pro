@@ -361,8 +361,8 @@ pro plot_field, name, time, points=p, filename=filename, mesh=plotmesh, $
    endif
 
    print, "Plotting..."
-   !x.title = '!8x/L!3'
-   !y.title = '!8y/L!3'
+   !x.title = '!8r!3'
+   !y.title = '!8z!3'
    if(n_elements(title) eq 0) then begin
        if(t gt 0) then begin
            title = "!8" + translate(name) + $
@@ -451,7 +451,7 @@ function energy_kin, filename=filename
 end
 
 function energy, filename=filename, error=error
-      if(n_elements(filename) eq 0) then filename='C1.h5'
+   if(n_elements(filename) eq 0) then filename='C1.h5'
 
    nv = read_parameter("numvar", filename=filename)
    s = read_scalars(filename=filename)
@@ -481,8 +481,16 @@ function energy, filename=filename, error=error
    if(nv le 2) then begin
        dissipated = E_D + E_H
    endif else begin
-       dissipated = E_H*0.
+       dissipated = 0.
    endelse
+
+   ; Account for fluxes across boundary
+   dissipated = dissipated    $
+     + s.Flux_diffusive._data $
+     + s.Flux_pressure._data  $
+     + s.Flux_kinetic._data   $
+     + s.Flux_poynting._data  $
+     + s.Flux_thermal._data
 
    eloop = s.loop_voltage._data * s.toroidal_current._data / (2.*3.14159625)
    dissipated = dissipated - eloop
@@ -493,7 +501,7 @@ function energy, filename=filename, error=error
    for i=1, n_elements(Error)-1 do begin
        dt = s.time._data[i]-s.time._data[i-1]
        total_lost[i] = total_lost[i-1] + $
-         dt*(dissipated[i-1] + dissipated[i])/2.
+         dt*(2.*dissipated[i-1] + 0.*dissipated[i])/2.
    endfor
 
    Error = Error - total_lost
@@ -506,12 +514,12 @@ pro plot_fluxes, filename=filename, ylog=ylog
 
    s = read_scalars(filename=filename)
 
-   !y.range=[max([s.Flux_diffusive._data,s.Flux_pressure._data, $
+   !y.range=[min([s.Flux_diffusive._data,s.Flux_pressure._data, $
                   s.Flux_kinetic._data,  s.Flux_poynting._data, $
                   s.Flux_thermal._data]), $
-             min([s.Flux_diffusive._data,s.Flux_pressure._data, $
+             max([s.Flux_diffusive._data,s.Flux_pressure._data, $
                   s.Flux_kinetic._data,  s.Flux_poynting._data, $
-                  s.Flux_thermal._data])]
+                  s.Flux_thermal._data])]*1.2
 
    !x.title = '!8t !6(!7s!D!8A!N!6)!3'
    !y.title = '!6Energy Flux (!8B!D0!U2!N/4!7p s!D!8A!N L!U2!N)!3'
@@ -583,7 +591,7 @@ pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog
    for i=1, n_elements(Error)-1 do begin
        dt = s.time._data[i]-s.time._data[i-1]
        total_lost[i] = total_lost[i-1] + $
-         dt*(dissipated[i-1] + dissipated[i])/2.
+         dt*(0.*dissipated[i-1] + 2.*dissipated[i])/2.
    endfor
 
    Error = Error - total_lost
@@ -735,6 +743,68 @@ pro plot_timings, filename=filename
 end
 
 
+function beta, filename=filename
+   nv = read_parameter("numvar", filename=filename)
+   if(nv lt 3) then begin
+       print, "Must be numvar = 3 for beta calculation"
+       return, 0
+   endif
+
+   gamma = read_parameter('gam', filename=filename)
+   s = read_scalars(filename=filename)
+
+   return, (gamma - 1.)*s.E_P._data / (s.E_MP._data + s.E_MT._data)
+end
+
+function beta_poloidal, filename=filename
+   nv = read_parameter("numvar", filename=filename)
+   if(nv lt 3) then begin
+       print, "Must be numvar = 3 for beta calculation"
+       return, 0
+   endif
+
+   gamma = read_parameter('gam', filename=filename)
+   s = read_scalars(filename=filename)
+
+   return, 2.*(gamma-1.)*s.E_P._data/s.toroidal_current._data^2
+end
+
+function beta_normal, filename=filename
+   nv = read_parameter("numvar", filename=filename)
+   if(nv lt 3) then begin
+       print, "Must be numvar = 3 for beta calculation"
+       return, 0
+   endif 
+
+   gamma = read_parameter('gam', filename=filename)
+   bzero = read_parameter('bzero', filename=filename)
+   xmag = read_parameter('xmag', filename=filename)
+   xlim = read_parameter('xlim', filename=filename)
+   psi = read_field('psi',slice=0, mesh=mesh)
+   s = read_scalars(filename=filename)
+
+   area = mesh.width._data*mesh.height._data
+
+   if(xmag eq 0.) then begin
+       B_T = sqrt(2.*s.E_MT._data/area)
+       B_T = B_T[0]
+       a = 1.
+   endif else begin
+       B_T = bzero/xmag
+       a = abs(xmag - xlim)
+   endelse
+
+   beta_t = (gamma-1.)*s.E_P._data/(s.E_MT._data)
+   
+   print, 'B_T =', B_T
+   print, 'a = ', a
+   print, 'beta_T = ', beta_t
+   print, 'area = ', area
+
+   return, beta_t / (s.toroidal_current._data/(a*B_T))
+end
+
+
 pro plot_scalar, scalarname, filename=filename, names=names, $
                  _EXTRA=extra, overplot=overplot, $
                  ylog=ylog, xlog=xlog, left=left
@@ -784,27 +854,21 @@ pro plot_scalar, scalarname, filename=filename, names=names, $
       ytitle = '!8V!DL!N!3'
   endif else $
     if (strcmp("beta", scalarname, /fold_case) eq 1) then begin
-      nv = read_parameter("numvar", filename=filename)
-      if(nv lt 3) then begin
-          print, "Must be numvar = 3 for beta calculation"
-          return
-      endif
-      gamma = read_parameter('gam', filename=filename)
-      data = 2.*(gamma-1.)*s.E_P._data/(s.E_MP._data + s.E_MT._data)
+      data = beta(filename=filename)
       title = '!7b!3'
       ytitle = '!7b!3'
   endif else if $
     (strcmp("poloidal beta", scalarname, /fold_case) eq 1) or $
     (strcmp("bp", scalarname, /fold_case) eq 1) then begin
-      nv = read_parameter("numvar", filename=filename)
-      if(nv lt 3) then begin
-          print, "Must be numvar = 3 for beta calculation"
-          return
-      endif
-      gamma = read_parameter('gam', filename=filename)
-      data = 2.*(gamma-1.)*s.E_P._data/s.toroidal_current._data^2
+      data = beta_poloidal(filename=filename)
       title = '!7b!D!8p!N!3'
       ytitle = '!7b!D!8p!N!3'
+  endif else $
+    if (strcmp("normal beta", scalarname, /fold_case) eq 1) or $
+    (strcmp("bn", scalarname, /fold_case) eq 1) then begin
+      data = beta_normal(filename=filename)
+      title = '!7b!D!8N!N!3'
+      ytitle = '!7b!D!8N!N!3'
   endif else if $
     (strcmp("kinetic energy", scalarname, /fold_case) eq 1) or $
     (strcmp("ke", scalarname, /fold_case) eq 1)then begin
@@ -814,7 +878,15 @@ pro plot_scalar, scalarname, filename=filename, names=names, $
        if(nv ge 3) then data = data + s.E_K3._data
        title = '!6Kinetic Energy!3'
        ytitle = '!6KE (!8B!D0!N!U!62!N/4!7p!6)!3'
+   endif else $
+    if (strcmp("particles", scalarname, /fold_case) eq 1) or $
+    (strcmp("n", scalarname, /fold_case) eq 1) then begin
+      data = s.electron_number._data
+      title = '!6Particle number!3'
+      ytitle = '!8N !6(!8n!D0!N / L!U3!N!6)!3'
   endif else begin
+      print, 'Scalar ', scalarname, ' not recognized.'
+      return
   endelse
   
   if(keyword_set(overplot)) then begin
@@ -823,4 +895,75 @@ pro plot_scalar, scalarname, filename=filename, names=names, $
       plot, s.time._data, data, $
         title=title, ytitle=ytitle, _EXTRA=extra, ylog=ylog, xlog=xlog
   endelse
+end
+
+
+pro plot_pol_velocity, time, filename=filename, points=pts, maxval=maxval
+
+  nv = read_parameter('numvar')
+
+  phi = read_field('phi', filename=filename, $
+                   slice=time, r=x, z=z, t=t, points=pts)
+  r = radius_matrix(x,z,t)
+
+  vx = -dz(phi,z)/r
+  vz =  dx(phi,x)/r
+
+  if(nv ge 3) then begin
+      chi = read_field('chi', filename=filename, slice=time, $
+                       r=x, z=z, t=t, points=pts)
+      vx = vx + dx(chi,x)
+      vz = vz + dz(chi,z)
+  endif
+
+  bigvel = max(vx^2 + vz^2)
+  print, "maximum velocity: ", bigvel
+  if(n_elements(maxvel) ne 0) then begin
+      length = bigvel/maxval
+  endif else length=1
+
+  velovect, reform(vx), reform(vz), x, z, length=length
+end
+
+
+pro plot_tor_velocity, time, filename=filename, points=pts, _EXTRA=extra
+
+  nv = read_parameter('numvar')
+
+  if(nv lt 2) then begin
+      print, "numvar < 2"
+      return
+  endif
+
+  v = read_field('V', filename=filename, $
+                 slice=time, r=x, z=z, t=t, points=pts)
+  r = radius_matrix(x,z,t)
+
+  vz = v/r
+
+  contour_and_legend, vz, x, z, _EXTRA=extra
+end
+
+  
+pro plot_mach, time, filename=filename, points=pts
+
+  nv    = read_parameter('numvar')
+  idens = read_parameter('idens')
+
+  phi = read_field('phi', filename=filename, $
+                   slice=time, r=x, z=z, t=t, points=pts)
+  r = radius_matrix(x,z,t)
+
+  vx = -dz(phi,z)/r
+  vz =  dx(phi,x)/r
+
+  if(nv ge 3) then begin
+      chi = read_field('chi', filename=filename, slice=time, $
+                       r=x, z=z, t=t, points=pts)
+      vx = vx + dx(chi,x)
+      vz = vz + dz(chi,z)
+  endif
+
+;  vel, reform(vx), reform(vz)
+  velovect, reform(vx), reform(vz), x, z, length=2
 end

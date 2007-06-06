@@ -156,16 +156,24 @@ Program Reducedquintic
         timer = 0.
      endif
   else
+     ptot = 0.
      ntimer = 0
      timer = 0.
      call initial_conditions()
 
      if(idens.eq.1 .and. maxrank.eq.1) call oneplot(den0,1,1,"den0",1)
 
-     vels = vel0
-     phis = phi0
-     if(idens.eq.1) dens = den0
-     if(ipres.eq.1) press = pres0
+     if(linear.eq.1 .or. eqsubtract.eq.1) then
+        vels = vel
+        phis = phi
+        if(idens.eq.1) dens = den
+        if(ipres.eq.1) press = pres
+     else
+        vels = vel0
+        phis = phi0
+        if(idens.eq.1) dens = den0
+        if(ipres.eq.1) press = pres0
+     endif
 
      ! correct for left-handed coordinates
      call numdofs(numvar, ndofs)
@@ -393,6 +401,8 @@ Program Reducedquintic
      end if
      if(myrank.eq.0 .and. iprint.ge.1) print *, "After hdf5 output"
 
+     ! feedback control on toroidal current
+     if(itor.eq.1 .and. itaylor.eq.1) call control_pid
   enddo ! ntime
 
  100  continue
@@ -923,11 +933,6 @@ subroutine onestep
      call second(tend)
      t_sources = t_sources + tend - tstart
   endif 
-
-  ! feedback control on toroidal current
-  if(itor.eq.1) then
-     call control_pid
-  endif
 
 end subroutine onestep
 
