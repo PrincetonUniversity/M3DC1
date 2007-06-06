@@ -246,6 +246,15 @@ module arrays
          return
       endif
       
+      call checksamevec(veloldn, vec, i)
+      if(i .eq. 1) then
+         if(allocated(veloldn)) deallocate(veloldn, STAT=i)
+         allocate(veloldn(ivecsize))
+         veloldn = 0.
+         call updateids(vec, veloldn)
+         return
+      endif
+      
       call checksamevec(velold, vec, i)
       if(i .eq. 1) then
          if(allocated(velold)) deallocate(velold, STAT=i)
