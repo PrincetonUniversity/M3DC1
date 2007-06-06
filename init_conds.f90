@@ -740,7 +740,7 @@ subroutine solovev_equ(x, z, inode)
 
   call static_equ(ibegin)
 
-  aspect_ratio = xmag / (xmag - xlim)
+  aspect_ratio = xmag / abs(xmag - xlim)
   yb = 2.*aspect_ratio / (1. + aspect_ratio**2)
   d = 0.1
   e = 1.5
@@ -826,6 +826,141 @@ end subroutine solovev_per
 end module solovev
 
 
+!==============================================================================
+! Magnetorotational Equilibrium (itor = 1, itaylor = 2)
+!==============================================================================
+module mri
+
+contains
+
+subroutine mri_init()
+  use basic
+
+  implicit none
+
+  integer :: l, numnodes
+  real :: x, z, alx, alz, xmin, zmin
+  double precision :: coords(3)
+
+  call getmincoord(xmin, zmin)
+  call getboundingboxsize(alx, alz)
+
+  call numnod(numnodes)
+  do l=1, numnodes
+     call xyznod(l, coords)
+
+     x = coords(1) + xzero - xmin
+     z = coords(2) + zzero - zmin - alz*.5
+
+     call mri_equ(x, z, l)
+     call mri_per(x, z, l)
+  enddo
+
+end subroutine mri_init
+
+subroutine mri_equ(x, z, inode)
+  use basic
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x, z
+  integer, intent(in) :: inode
+
+  integer :: ibegin, iendplusone
+  real :: nu, fac1, fac2
+
+  call entdofs(numvar, inode, 0, ibegin, iendplusone)
+
+  nu = 0.5*gyro*pi0/bzero
+  fac1 = sqrt(gravr)
+  fac2 = (9./128.)*nu**2/fac1
+
+  call constant_field(vel0(ibegin:ibegin+6),0.)
+
+  phi0(ibegin)   = bzero * x**2 / 2.
+  phi0(ibegin+1) = bzero * x
+  phi0(ibegin+2) = 0.
+  phi0(ibegin+3) = bzero
+  phi0(ibegin+4) = 0.
+  phi0(ibegin+5) = 0.
+
+  if(numvar.ge.2) then
+     call constant_field(phi0(ibegin+6:ibegin+11),0.)
+     vel0(ibegin+6)  = fac1*sqrt(x) + (3./8.)*nu - fac2/sqrt(x)
+     vel0(ibegin+7)  = 0.5*fac1/sqrt(x) + 0.5*fac2/(sqrt(x)**3)
+     vel0(ibegin+8)  = 0.
+     vel0(ibegin+9)  = -0.25*fac1/(sqrt(x)**3) - 0.75*fac2/(sqrt(x)**5)
+     vel0(ibegin+10) = 0.
+     vel0(ibegin+11) = 0.
+  end if
+
+  if(numvar.ge.3) then
+     call constant_field(phi0(ibegin+12:ibegin+17),p0 - pi0*ipres)
+     call constant_field(vel0(ibegin+12:ibegin+17),0.)
+  end if
+
+  if(idens.eq.1) then
+     call entdofs(1, inode, 0, ibegin, iendplusone)
+     call constant_field(den0(ibegin:ibegin+5),1.)
+  endif
+
+  if(ipres.eq.1) then
+     call entdofs(1, inode, 0, ibegin, iendplusone)
+     call constant_field(pres0(ibegin:ibegin+5),p0)
+  endif
+
+end subroutine mri_equ
+
+
+subroutine mri_per(x, z, inode)
+  use basic
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x, z
+  integer, intent(in) :: inode
+
+  integer :: ibegin, iendplusone
+  real :: kx, kz, alx, alz, fac1
+
+  call entdofs(numvar, inode, 0, ibegin, iendplusone)
+
+  call constant_field(vel(ibegin:ibegin+5), 0.)
+  if(numvar.ge.2)  then
+     call getboundingboxsize(alx, alz)
+     kx = pi/alx
+     kz = 2.*pi/alz
+     fac1 = eps*sqrt(gravr*x)
+     vel(ibegin+6) =  fac1*sin(kx*(x-xzero))*sin(kz*(z-zzero))
+     vel(ibegin+7) =  fac1*cos(kx*(x-xzero))*sin(kz*(z-zzero))*kx
+     vel(ibegin+8) =  fac1*sin(kx*(x-xzero))*cos(kz*(z-zzero))*kz
+     vel(ibegin+9) = -fac1*sin(kx*(x-xzero))*cos(kz*(z-zzero))*kx**2
+     vel(ibegin+10)=  fac1*cos(kx*(x-xzero))*cos(kz*(z-zzero))*kx*kz
+     vel(ibegin+11)= -fac1*sin(kx*(x-xzero))*sin(kz*(z-zzero))*kz**2
+  endif
+  if(numvar.ge.3)  call constant_field(vel(ibegin+12:ibegin+17), 0.)
+  
+  call constant_field(phi(ibegin:ibegin+5), 0.)
+  if(numvar.ge.2)  call constant_field(phi(ibegin+6 :ibegin+11), 0.)
+  if(numvar.ge.3)  call constant_field(phi(ibegin+12:ibegin+17), 0.)
+
+  if(idens.eq.1) then
+     call entdofs(1, inode, 0, ibegin, iendplusone)
+     call constant_field(den(ibegin:ibegin+5), 0.)
+  endif
+
+  if(ipres.eq.1) then
+     call entdofs(1, inode, 0, ibegin, iendplusone)
+     call constant_field(pres(ibegin:ibegin+5),0.)
+  endif
+
+end subroutine mri_per
+
+end module mri
+
+
 
 
 !=====================================
@@ -839,6 +974,7 @@ subroutine initial_conditions()
   use wave_propagation
   use solovev
   use gradshafranov
+  use mri
 
   implicit none
 
@@ -863,6 +999,8 @@ subroutine initial_conditions()
         call solovev_init()
      case(1)
         call gradshafranov_init()
+     case(2)
+        call mri_init()
      end select
   endif
 

@@ -17,8 +17,6 @@ subroutine boundary_vel(imatrix, rhs)
 
   call getmodeltags(ibottom, iright, itop, ileft)
 
-  temp = 0.
-
   call numnod(numnodes)
   do i=1, numnodes
      call zonenod(i,izone,izonedim)
@@ -61,6 +59,7 @@ subroutine boundary_vel(imatrix, rhs)
         endif
   
         ! no normal flow
+        temp = 0.
         call boundary_clamp(imatrix, ibegin, normal, rhs, temp)
         if(numvar.ge.3) then
            call boundary_normal_deriv(imatrix, ibegin+12, normal, irow)
@@ -71,12 +70,17 @@ subroutine boundary_vel(imatrix, rhs)
            endif
         endif
 
-        ! no toroidal velocity
+        ! clamp toroidal velocity
         if(numvar.ge.2) then
+           temp = vels(ibegin+6:ibegin+11)
+           if(integrator.eq.1 .and. ntime.gt.1) then
+              temp = 1.5*temp + 0.5*velold(ibegin+6:ibegin+11)
+           endif
            call boundary_clamp(imatrix, ibegin+6, normal, rhs, temp)
         endif
 
         ! no vorticity
+        temp = 0.
         call boundary_laplacian(imatrix, ibegin, normal, -x, irow)
         rhs(irow) = 0.
         ! no compression
@@ -89,6 +93,7 @@ subroutine boundary_vel(imatrix, rhs)
      else if(izonedim.eq.0) then
 
         ! no normal flow
+        temp = 0.
         call boundary_clamp_all(imatrix, ibegin, rhs, temp)
         if(numvar.ge.3) then
            call boundary_normal_deriv(imatrix, ibegin+12, 0., irow)
@@ -99,8 +104,12 @@ subroutine boundary_vel(imatrix, rhs)
            rhs(ibegin+16) = 0.
         endif
 
-        ! no toroidal velocity
+        ! clamp toroidal velocity
         if(numvar.ge.2) then
+           temp = vels(ibegin+6:ibegin+11)
+           if(integrator.eq.1 .and. ntime.gt.1) then
+              temp = 1.5*temp + 0.5*velold(ibegin+6:ibegin+11)
+           endif
            call boundary_clamp_all(imatrix, ibegin+6, rhs, temp)
         endif
      endif

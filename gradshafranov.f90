@@ -52,10 +52,11 @@ subroutine gradshafranov_solve
 
   include 'mpif.h'
   
-  integer, parameter :: iterations = 80
-
-  real   gsint1,gsint4,gsint2,gsint3,lhs,cfac(18)
+  real :: gsint1,gsint4,gsint2,gsint3,lhs,cfac(18)
   real, allocatable :: temp(:), b1vecini(:)
+
+  integer, parameter :: maxcoils = 4
+  integer :: numcoils
 
   integer :: itri,i,i1,j,j1,jone, k
   integer :: numelms, numnodes
@@ -64,10 +65,10 @@ subroutine gradshafranov_solve
   integer :: ineg, ier
   real :: dterm(18,18), sterm(18,18)
   real :: fac, aminor, bv, fintl(-6:maxi,-6:maxi)
-  real :: g, gx, gz, gxx, gxz, gzz, g0
-  real :: gv, gvx, gvz, gvxx, gvxz, gvzz
-  real :: x,z, xmin, zmin, xrel, zrel, xguess, zguess, error
-  real :: sum, rhs, ajlim, curr, q0, qstar, norm, rnorm
+  real, dimension(6,maxcoils) :: g, gv
+  real, dimension(maxcoils) :: xp, zp, xc, zc
+  real :: x, z, xmin, zmin, xrel, zrel, xguess, zguess, error
+  real :: sum, rhs, ajlim, curr, q0, qstar, norm, rnorm, g0
   real, dimension(6) :: pp
   real, dimension(5) :: temp1, temp2
   real :: alx, alz
@@ -160,38 +161,52 @@ subroutine gradshafranov_solve
   do i=1,numnodes
 
      call xyznod(i,coords)
-     x = coords(1) - xmin + xzero
-     z = coords(2) - zmin + zzero
+     xp = coords(1) - xmin + xzero
+     zp = coords(2) - zmin + zzero
 
      call entdofs(numvargs, i, 0, ibegin, iendplusone)
 
-     call gvect1(x,z,xmag,zmag,g,gx,gz,gxx,gxz,gzz,0,ineg)
-     call gvect1(x,z,102.,rnorm,gv,gvx,gvz,gvxx,gvxz,gvzz,1,ineg)
+     ! Field due to plasma current
+     xc(1) = xmag
+     zc(1) = zmag
+     call gvect(xp,zp,xc,zc,1,g,0,ineg)
+     psi(ibegin:ibegin+5) =   g(:,1)*fac
 
-     psi(ibegin  ) = (g  +  gv*bv)*fac
-     psi(ibegin+1) = (gx + gvx*bv)*fac
-     psi(ibegin+2) = (gz + gvz*bv)*fac
-     psi(ibegin+3) = (gxx+gvxx*bv)*fac
-     psi(ibegin+4) = (gxz+gvxz*bv)*fac
-     psi(ibegin+5) = (gzz+gvzz*bv)*fac
+     ! Field due to external coils
+     select case(idevice)
+     case(0) ! Generic
+        numcoils = 1
+        xc(1) = 102.
+        zc(1) = rnorm
+        call gvect(xp,zp,xc,zc,numcoils,g,1,ineg)     
+        g = g*bv*fac
+     case(1) ! CDX-U
+        numcoils = 4
+        xc(1) = 0.846
+        zc(1) = 0.360
+        xc(2) = 0.846
+        zc(2) =-0.360
+        xc(3) = 0.381
+        zc(3) = 0.802
+        xc(4) = 0.381
+        zc(4) =-0.802
+        call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)     
+        g = -g*.2*fac
+     end select
+     
+     do k=1,numcoils 
+        psi(ibegin:ibegin+5) = psi(ibegin:ibegin+5) + g(:,k)
+     end do
 
+     ! Add fields from divertor coils
      if(divertors.ge.1) then
-        call gvect1(x,z,xdiv,zdiv,g,gx,gz,gxx,gxz,gzz,0,ineg)
-        psi(ibegin  ) = psi(ibegin  ) + fac*g  *divcur
-        psi(ibegin+1) = psi(ibegin+1) + fac*gx *divcur
-        psi(ibegin+2) = psi(ibegin+2) + fac*gz *divcur
-        psi(ibegin+3) = psi(ibegin+3) + fac*gxx*divcur
-        psi(ibegin+4) = psi(ibegin+4) + fac*gxz*divcur
-        psi(ibegin+5) = psi(ibegin+5) + fac*gzz*divcur
-        if(divertors.eq.2) then
-           call gvect1(x,z,xdiv,-zdiv,g,gx,gz,gxx,gxz,gzz,0,ineg)
-           psi(ibegin  ) = psi(ibegin  ) + fac*g  *divcur
-           psi(ibegin+1) = psi(ibegin+1) + fac*gx *divcur
-           psi(ibegin+2) = psi(ibegin+2) + fac*gz *divcur
-           psi(ibegin+3) = psi(ibegin+3) + fac*gxx*divcur
-           psi(ibegin+4) = psi(ibegin+4) + fac*gxz*divcur
-           psi(ibegin+5) = psi(ibegin+5) + fac*gzz*divcur
-        endif
+        xc = xdiv
+        zc(1) = zdiv
+        if(divertors.eq.2) zc(2) = -zdiv
+        call gvect(xp,zp,xc,zc,divertors,g,0,ineg)
+        do k=1,divertors
+           psi(ibegin:ibegin+5) = psi(ibegin:ibegin+5) + fac*divcur*g(:,k)
+        end do
      endif
 
      ! store boundary conditions on psi
@@ -209,7 +224,7 @@ subroutine gradshafranov_solve
  
   !-------------------------------------------------------------------
   ! start of iteration loop on plasma current
-  do itnum=1, iterations
+  do itnum=1, igs
 
      if(myrank.eq.0 .and. iprint.eq.1) print *, "GS: iteration = ", itnum
      
@@ -641,34 +656,7 @@ subroutine magaxis(xguess,zguess,phin,numvari)
 end subroutine magaxis
 
 !============================================================
-subroutine gvect1(r,z,xi,zi,g,gr,gz,grr,grz,gzz,nmult,ineg)
-  integer, intent(in) :: nmult
-  integer, intent(out) :: ineg
-  real, intent(in) :: r, z, xi, zi
-  real, intent(out) :: g,gr,gz,grr,grz,gzz
-
-  real, dimension(1) :: rv, zv, xiv, ziv
-  real, dimension(1) :: gv,grv,gzv,grrv,grzv,gzzv
-
-  rv(1) = r
-  zv(1) = z
-  xiv(1) = xi
-  ziv(1) = zi
-
-  call gvect(rv,zv,xiv,ziv,1,gv,grv,gzv,grrv,grzv,gzzv,nmult,ineg)
-
-  g = gv(1)
-  gr = grv(1)
-  gz = gzv(1)
-  grr = grrv(1)
-  grz = grzv(1)
-  gzz = gzzv(1)
-
-end subroutine gvect1
-
-
-!============================================================
-subroutine gvect(r,z,xi,zi,n,g,gr,gz,grr,grz,gzz,nmult,ineg)
+subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
   ! calculates derivatives wrt first argument
 
   implicit none
@@ -676,10 +664,7 @@ subroutine gvect(r,z,xi,zi,n,g,gr,gz,grr,grz,gzz,nmult,ineg)
   integer, intent(in) :: n, nmult
   integer, intent(out) :: ineg
   real, dimension(n), intent(in) :: r, z, xi, zi
-  real, dimension(n), intent(out) :: g,gr,gz,grr,grz,gzz
-
-!!$  real, intent(in)  :: r, z, xi, zi
-!!$  real, intent(out) :: g,gr,gz,grr,grz,gzz
+  real, dimension(6,n), intent(out) :: g
   
   real :: a0,a1,a2,a3,a4
   real :: b0,b1,b2,b3,b4
@@ -719,17 +704,17 @@ subroutine gvect(r,z,xi,zi,n,g,gr,gz,grr,grz,gzz,nmult,ineg)
      term1=2.*ck-2.*ce-ce*rksq/x
      term2=2.*xi(i)-rksq*rpxi
      
-     g(i) =- sqrxi*(2.*ck-2.*ce-ck*rksq)/rk
-     gr(i)=-rk*0.25/sqrxi*(rpxi*term1                                  &
+     g(1,i) =- sqrxi*(2.*ck-2.*ce-ck*rksq)/rk
+     g(2,i)=-rk*0.25/sqrxi*(rpxi*term1                                  &
           +2.*xi(i)*(ce/x-ck))
-     gz(i)=-rk*0.25*zmzi/sqrxi*term1
-     grz(i)=0.0625*zmzi*(rk/sqrxi)**3*(rpxi*term1                      &
+     g(3,i)=-rk*0.25*zmzi/sqrxi*term1
+     g(5,i)=0.0625*zmzi*(rk/sqrxi)**3*(rpxi*term1                      &
           +(ce-ck+2.*ce*rksq/x)*                                            &
           (term2)/x)
-     gzz(i)=-rk*0.25/sqrxi*(term1*                                     &
+     g(6,i)=-rk*0.25/sqrxi*(term1*                                     &
           (1.-rksq*zmzi**2/(4.*rxi))+zmzi**2*rksq**2/(4.*rxi*x)             &
           *(ce-ck+2.*ce*rksq/x))
-     grr(i)=-rk*0.25/sqrxi*(-rksq*rpxi/(4.*rxi)*                       &
+     g(4,i)=-rk*0.25/sqrxi*(-rksq*rpxi/(4.*rxi)*                       &
           (rpxi*term1+2.*xi(i)*(ce/x-ck))+term1-                            &
           rksq*rpxi/(4.*rxi*x)*(ce-ck+2.*ce*rksq/x)*                        &
           (term2)+rksq/(2.*r(i)*x)*(2.*ce/x-ck)*term2)
@@ -750,103 +735,103 @@ subroutine gvect(r,z,xi,zi,n,g,gr,gz,grr,grz,gzz,nmult,ineg)
 10   continue
         
      ! even nullapole
-     g(i) = tpi*rz**2
-     gr(i) = 0.
-     gz(i) = 0.
-     grz(i) = 0.
-     gzz(i) = 0.
-     grr(i) = 0.
+     g(1,i) = tpi*rz**2
+     g(2,i) = 0.
+     g(3,i) = 0.
+     g(4,i) = 0.
+     g(5,i) = 0.
+     g(6,i) = 0.
      go to 200
 11   continue
 
      ! odd nullapole
-     g(i) = 0.
-     gr(i) = 0.
-     gz(i) = 0.
-     grz(i) = 0.
-     gzz(i) = 0.
-     grr(i) = 0.
+     g(1,i) = 0.
+     g(2,i) = 0.
+     g(3,i) = 0.
+     g(4,i) = 0.
+     g(5,i) = 0.
+     g(6,i) = 0.
      go to 200
 12   continue
 
      ! even dipole
-     g(i) = tpi*(r(i)**2 - rz**2)/2.
-     gr(i) = tpi*r(i)
-     gz(i) = 0.
-     grz(i) = 0.
-     gzz(i) = 0.
-     grr(i) = tpi
+     g(1,i) = tpi*(r(i)**2 - rz**2)/2.
+     g(2,i) = tpi*r(i)
+     g(3,i) = 0.
+     g(5,i) = 0.
+     g(6,i) = 0.
+     g(4,i) = tpi
      go to 200
 13   continue
      
      ! odd dipole
      co=tpi/rz
-     g(i) = co*(r(i)**2*z(i))
-     gr(i) = co*(2.*r(i)*z(i))
-     gz(i) = co*(r(i)**2)
-     grz(i) = co*2.*r(i)
-     gzz(i) = 0.
-     grr(i) = co*2*z(i)
+     g(1,i) = co*(r(i)**2*z(i))
+     g(2,i) = co*(2.*r(i)*z(i))
+     g(3,i) = co*(r(i)**2)
+     g(5,i) = co*2.*r(i)
+     g(6,i) = 0.
+     g(4,i) = co*2*z(i)
      go to 200
 14   continue
         
      ! even quadrapole
      co=pi/(4.*rz**2)
-     g(i) = co*(r(i)**4-4.*r(i)**2*z(i)**2 - 2.*r(i)**2*rz**2+rz**4)
-     gr(i) = co*(4.*r(i)**3-8.*r(i)*z(i)**2-4.*r(i)*rz**2)
-     gz(i) = co*(-8.*r(i)**2*z(i))
-     grz(i) = co*(-16.*r(i)*z(i))
-     gzz(i) = co*(-8.*r(i)**2)
-     grr(i) = co*(12.*r(i)**2 - 8.*z(i)**2 - 4.*rz**2)
+     g(1,i) = co*(r(i)**4-4.*r(i)**2*z(i)**2 - 2.*r(i)**2*rz**2+rz**4)
+     g(2,i) = co*(4.*r(i)**3-8.*r(i)*z(i)**2-4.*r(i)*rz**2)
+     g(3,i) = co*(-8.*r(i)**2*z(i))
+     g(5,i) = co*(-16.*r(i)*z(i))
+     g(6,i) = co*(-8.*r(i)**2)
+     g(4,i) = co*(12.*r(i)**2 - 8.*z(i)**2 - 4.*rz**2)
      go to 200
 15   continue
 
      ! odd quadrapole
      co=pi/(3.*rz**3)
-     g(i) = co*r(i)**2*z(i)*(3.*r(i)**2-4.*z(i)**2-3.*rz**2)
-     gr(i) = co*(12.*r(i)**3*z(i)-8.*r(i)*z(i)**3-6.*r(i)*z(i)*rz**2)
-     gz(i) = co*(3.*r(i)**4 - 12.*r(i)**2*z(i)**2 - 3.*r(i)**2*rz**2)
-     grz(i) = co*(12.*r(i)**3-24.*r(i)*z(i)**2 - 6.*r(i)*rz**2)
-     gzz(i) = co*(-24.*r(i)**2*z(i))
-     grr(i) = co*(36.*r(i)**2*z(i)-8.*z(i)**3-6.*z(i)*rz**2)
+     g(1,i) = co*r(i)**2*z(i)*(3.*r(i)**2-4.*z(i)**2-3.*rz**2)
+     g(2,i) = co*(12.*r(i)**3*z(i)-8.*r(i)*z(i)**3-6.*r(i)*z(i)*rz**2)
+     g(3,i) = co*(3.*r(i)**4 - 12.*r(i)**2*z(i)**2 - 3.*r(i)**2*rz**2)
+     g(5,i) = co*(12.*r(i)**3-24.*r(i)*z(i)**2 - 6.*r(i)*rz**2)
+     g(6,i) = co*(-24.*r(i)**2*z(i))
+     g(4,i) = co*(36.*r(i)**2*z(i)-8.*z(i)**3-6.*z(i)*rz**2)
      go to 200
 16   continue
 
      ! even hexapole
      co=pi/(12.*rz**4)
-     g(i) = co*(r(i)**6 - 12.*r(i)**4*z(i)**2 - 3.*r(i)**4*rz**2       &
+     g(1,i) = co*(r(i)**6 - 12.*r(i)**4*z(i)**2 - 3.*r(i)**4*rz**2       &
           + 8.*r(i)**2*z(i)**4 + 12.*r(i)**2*z(i)**2*rz**2           &
           + 3.*r(i)**2*rz**4 - rz**6 )
-     gr(i)= co*(6.*r(i)**5 - 48.*r(i)**3*z(i)**2                       &
+     g(2,i)= co*(6.*r(i)**5 - 48.*r(i)**3*z(i)**2                       &
           - 12.*r(i)**3*rz**2 + 16.*r(i)*z(i)**4                     &
           + 24.*r(i)*z(i)**2*rz**2 + 6.*r(i)*rz**4 )
-     gz(i)= co*(-24.*r(i)**4*z(i) + 32.*r(i)**2*z(i)**3                &
+     g(3,i)= co*(-24.*r(i)**4*z(i) + 32.*r(i)**2*z(i)**3                &
           + 24.*r(i)**2*z(i)*rz**2)
-     grz(i)=co*(-96.*r(i)**3*z(i)+64.*r(i)*z(i)**3                     &
+     g(5,i)=co*(-96.*r(i)**3*z(i)+64.*r(i)*z(i)**3                     &
           + 48.*r(i)*z(i)*rz**2 )
-     grr(i)=co*(30.*r(i)**4-144.*r(i)**2*z(i)**2-36.*r(i)**2*rz**2     &
+     g(4,i)=co*(30.*r(i)**4-144.*r(i)**2*z(i)**2-36.*r(i)**2*rz**2     &
           + 16.*z(i)**4 + 24.*z(i)**2*rz**2 + 6.*rz**4)
-     gzz(i)=co*(-24.*r(i)**4 + 96.*r(i)**2*z(i)**2 + 24.*r(i)**2*rz**2)
+     g(6,i)=co*(-24.*r(i)**4 + 96.*r(i)**2*z(i)**2 + 24.*r(i)**2*rz**2)
      go to 200
 17   continue
         
      ! odd hexapole
      co=pi/(30.*rz**5)
-     g(i) = co*(15.*r(i)**6*z(i) - 60.*r(i)**4*z(i)**3                 &
+     g(1,i) = co*(15.*r(i)**6*z(i) - 60.*r(i)**4*z(i)**3                 &
           - 30.*r(i)**4*z(i)*rz**2 + 24.*r(i)**2*z(i)**5             &
           + 40.*r(i)**2*z(i)**3*rz**2 + 15.*r(i)**2*z(i)*rz**4)
-     gr(i)= co*(90.*r(i)**5*z(i) - 240.*r(i)**3*z(i)**3                &
+     g(2,i)= co*(90.*r(i)**5*z(i) - 240.*r(i)**3*z(i)**3                &
           - 120.*r(i)**3*z(i)*rz**2 + 48.*r(i)*z(i)**5               &
           + 80.*r(i)*z(i)**3*rz**2 + 30.*r(i)*z(i)*rz**4)
-     gz(i)= co*(15.*r(i)**6 - 180.*r(i)**4*z(i)**2                     &
+     g(3,i)= co*(15.*r(i)**6 - 180.*r(i)**4*z(i)**2                     &
           - 30.*r(i)**4*rz**2 + 120.*r(i)**2*z(i)**4                 &
           +120.*r(i)**2*z(i)**2*rz**2 + 15.*r(i)**2*rz**4)
-     grz(i)=co*(90.*r(i)**5 - 720.*r(i)**3*z(i)**2                     &
+     g(5,i)=co*(90.*r(i)**5 - 720.*r(i)**3*z(i)**2                     &
           - 120.*r(i)**3*rz**2 + 240.*r(i)*z(i)**4                   &
           + 240.*r(i)*z(i)**2*rz**2 + 30.*r(i)*rz**4)
-     gzz(i)=co*(-360.*r(i)**4*z(i) + 480.*r(i)**2*z(i)**3              &
+     g(6,i)=co*(-360.*r(i)**4*z(i) + 480.*r(i)**2*z(i)**3              &
           + 240.*r(i)**2*z(i)*rz**2)
-     grr(i)=co*(450.*r(i)**4*z(i) - 720.*r(i)**2*z(i)**3               &
+     g(4,i)=co*(450.*r(i)**4*z(i) - 720.*r(i)**2*z(i)**3               &
           - 360.*r(i)**2*z(i)*rz**2 + 48.*z(i)**5                    &
           + 80.*z(i)**3*rz**2 + 30.*z(i)*rz**4)
      go to 200
@@ -854,26 +839,26 @@ subroutine gvect(r,z,xi,zi,n,g,gr,gz,grr,grz,gzz,nmult,ineg)
         
      ! even octapole
      co=pi/(160.*rz**6)
-     g(i) = co*(5.*r(i)**8 - 120.*r(i)**6*z(i)**2 - 20.*r(i)**6*rz**2  &
+     g(1,i) = co*(5.*r(i)**8 - 120.*r(i)**6*z(i)**2 - 20.*r(i)**6*rz**2  &
           + 240.*r(i)**4*z(i)**4 + 240.*r(i)**4*z(i)**2*rz**2        &
           + 30.*r(i)**4*rz**4 - 64.*r(i)**2*z(i)**6                  &
           - 160.*r(i)**2*z(i)**4*rz**2 - 120.*r(i)**2*z(i)**2*rz**4  &
           - 20.*r(i)**2*rz**6 + 5.*rz**8)
-     gr(i)= co*(40.*r(i)**7 - 720.*r(i)**5*z(i)**2 - 120.*r(i)**5*rz**2 &
+     g(2,i)= co*(40.*r(i)**7 - 720.*r(i)**5*z(i)**2 - 120.*r(i)**5*rz**2 &
           + 960.*r(i)**3*z(i)**4 + 960.*r(i)**3*z(i)**2*rz**2        &
           + 120.*r(i)**3*rz**4 - 128.*r(i)*z(i)**6                   &
           - 320.*r(i)*z(i)**4*rz**2 - 240.*r(i)*z(i)**2*rz**4        &
           - 40.*r(i)*rz**6)
-     gz(i)= co*(-240.*r(i)**6*z(i) + 960.*r(i)**4*z(i)**3              &
+     g(3,i)= co*(-240.*r(i)**6*z(i) + 960.*r(i)**4*z(i)**3              &
           + 480.*r(i)**4*z(i)*rz**2 - 384.*r(i)**2*z(i)**5           &
           - 640.*r(i)**2*z(i)**3*rz**2 - 240.*r(i)**2*z(i)*rz**4)
-     grz(i)=co*(-1440.*r(i)**5*z(i) + 3840.*r(i)**3*z(i)**3            &
+     g(5,i)=co*(-1440.*r(i)**5*z(i) + 3840.*r(i)**3*z(i)**3            &
           + 1920.*r(i)**3*z(i)*rz**2 - 768.*r(i)*z(i)**5             &
           - 1280.*r(i)*z(i)**3*rz**2 - 480.*r(i)*z(i)*rz**4)
-     gzz(i)=co*(-240.*r(i)**6 + 2880.*r(i)**4*z(i)**2                  &
+     g(6,i)=co*(-240.*r(i)**6 + 2880.*r(i)**4*z(i)**2                  &
           + 480.*r(i)**4*rz**2 - 1920.*r(i)**2*z(i)**4               &
           - 1920.*r(i)**2*z(i)**2*rz**2 - 240.*r(i)**2*rz**4)
-     grr(i)=co*(280.*r(i)**6 - 3600.*r(i)**4*z(i)**2                   &
+     g(4,i)=co*(280.*r(i)**6 - 3600.*r(i)**4*z(i)**2                   &
           - 600.*r(i)**4*rz**2 + 2880.*r(i)**2*z(i)**4               &
           + 2880.*r(i)**2*z(i)**2*rz**2                              &
           + 360.*r(i)**2*rz**4 - 128.*z(i)**6                        &
@@ -883,30 +868,30 @@ subroutine gvect(r,z,xi,zi,n,g,gr,gz,grr,grz,gzz,nmult,ineg)
 
      ! odd octapole
      co=pi/(140.*rz**7)
-     g(i) = co*r(i)**2*z(i)*(35.*r(i)**6 - 280.*r(i)**4*z(i)**2        &
+     g(1,i) = co*r(i)**2*z(i)*(35.*r(i)**6 - 280.*r(i)**4*z(i)**2        &
           - 105.*r(i)**4*rz**2 + 336.*r(i)**2*z(i)**4                &
           + 420.*r(i)**2*z(i)**2*rz**2 + 105.*r(i)**2*rz**4          &
           - 64.*z(i)**6 - 168.*z(i)**4*rz**2                         &
           - 140.*z(i)**2*rz**4 - 35.*rz**6)
-     gr(i)= co*(280.*r(i)**7*z(i) - 1680.*r(i)**5*z(i)**3              &
+     g(2,i)= co*(280.*r(i)**7*z(i) - 1680.*r(i)**5*z(i)**3              &
           - 630.*r(i)**5*z(i)*rz**2 + 1344.*r(i)**3*z(i)**5          &
           + 1680.*r(i)**3*z(i)**3*rz**2 + 420.*r(i)**3*z(i)*rz**4    &
           - 128.*r(i)*z(i)**7 - 336.*r(i)*z(i)**5*rz**2              &
           - 280.*r(i)*z(i)**3*rz**4 - 70.*r(i)*z(i)*rz**6)
-     gz(i)= co*(35.*r(i)**8-840.*r(i)**6*z(i)**2-105.*r(i)**6*rz**2    &
+     g(3,i)= co*(35.*r(i)**8-840.*r(i)**6*z(i)**2-105.*r(i)**6*rz**2    &
           + 1680.*r(i)**4*z(i)**4 + 1260.*r(i)**4*z(i)**2*rz**2      &
           + 105.*r(i)**4*rz**4 - 448.*r(i)**2*z(i)**6                &
           - 840.*r(i)**2*z(i)**4*rz**2 - 420.*r(i)**2*z(i)**2*rz**4  &
           - 35.*r(i)**2*rz**6)
-     grz(i)=co*(280.*r(i)**7 - 5040.*r(i)**5*z(i)**2                   &
+     g(5,i)=co*(280.*r(i)**7 - 5040.*r(i)**5*z(i)**2                   &
           - 630.*r(i)**5*rz**2 + 6720.*r(i)**3*z(i)**4               &
           + 5040.*r(i)**3*z(i)**2*rz**2 + 420.*r(i)**3*rz**4         &
           - 896.*r(i)*z(i)**6 - 1680.*r(i)*z(i)**4*rz**2             &
           - 840.*r(i)*z(i)**2*rz**4 - 70.*r(i)*rz**6)
-     gzz(i)=co*(-1680.*r(i)**6*z(i) + 6720.*r(i)**4*z(i)**3            &
+     g(6,i)=co*(-1680.*r(i)**6*z(i) + 6720.*r(i)**4*z(i)**3            &
           + 2520.*r(i)**4*z(i)*rz**2 - 2688.*r(i)**2*z(i)**5         &
           - 3360.*r(i)**2*z(i)**3*rz**2 - 840.*r(i)**2*z(i)*rz**4)
-     grr(i)=co*(1960.*r(i)**6*z(i) - 8400.*r(i)**4*z(i)**3             &
+     g(4,i)=co*(1960.*r(i)**6*z(i) - 8400.*r(i)**4*z(i)**3             &
           - 3150.*r(i)**4*z(i)*rz**2 + 4032.*r(i)**2*z(i)**5         &
           + 5040.*r(i)**2*z(i)**3*rz**2 + 1260.*r(i)**2*z(i)*rz**4   &
           - 128.*z(i)**7 - 336.*z(i)**5*rz**2                        &
@@ -916,7 +901,7 @@ subroutine gvect(r,z,xi,zi,n,g,gr,gz,grr,grz,gzz,nmult,ineg)
         
      ! even decapole
      co=pi/(560.*rz**8)
-     g(i) = co*(7.*r(i)**10 - 280.*r(i)**8*z(i)**2 - 35.*r(i)**8*rz**2 &
+     g(1,i) = co*(7.*r(i)**10 - 280.*r(i)**8*z(i)**2 - 35.*r(i)**8*rz**2 &
           + 1120.*r(i)**6*z(i)**4 + 840.*r(i)**6*z(i)**2*rz**2       &
           + 70.*r(i)**6*rz**4 - 896.*r(i)**4*z(i)**6                 &
           - 1680.*r(i)**4*z(i)**4*rz**2 - 840.*r(i)**4*z(i)**2*rz**4 &
@@ -924,7 +909,7 @@ subroutine gvect(r,z,xi,zi,n,g,gr,gz,grr,grz,gzz,nmult,ineg)
           + 448.*r(i)**2*z(i)**6*rz**2 + 560.*r(i)**2*z(i)**4*rz**4  &
           + 280.*r(i)**2*z(i)**2*rz**6 + 35.*r(i)**2*rz**8           &
           - 7.*rz**10)
-     gr(i)= co*(70.*r(i)**9 - 2240.*r(i)**7*z(i)**2                    &
+     g(2,i)= co*(70.*r(i)**9 - 2240.*r(i)**7*z(i)**2                    &
           - 280.*r(i)**7*rz**2 + 6720.*r(i)**5*z(i)**4               &
           + 5040.*r(i)**5*z(i)**2*rz**2 + 420.*r(i)**5*rz**4         &
           - 3584.*r(i)**3*z(i)**6 - 6720.*r(i)**3*z(i)**4*rz**2      &
@@ -932,22 +917,22 @@ subroutine gvect(r,z,xi,zi,n,g,gr,gz,grr,grz,gzz,nmult,ineg)
           + 256.*r(i)*z(i)**8 + 896.*r(i)*z(i)**6*rz**2              &
           + 1120.*r(i)*z(i)**4*rz**4 + 560.*r(i)*z(i)**2*rz**6       &
           + 70.*r(i)*rz**8)
-     gz(i)= co*(-560.*r(i)**8*z(i) + 4480.*r(i)**6*z(i)**3             &
+     g(3,i)= co*(-560.*r(i)**8*z(i) + 4480.*r(i)**6*z(i)**3             &
           + 1680.*r(i)**6*z(i)*rz**2 - 5376.*r(i)**4*z(i)**5         &
           - 6720.*r(i)**4*z(i)**3*rz**2 - 1680.*r(i)**4*z(i)*rz**4   &
           + 1024.*r(i)**2*z(i)**7 + 2688.*r(i)**2*z(i)**5*rz**2      &
           + 2240.*r(i)**2*z(i)**3*rz**4 + 560.*r(i)**2*z(i)*rz**6)
-     grz(i)=co*(-4480.*r(i)**7*z(i) + 26880.*r(i)**5*z(i)**3           &
+     g(5,i)=co*(-4480.*r(i)**7*z(i) + 26880.*r(i)**5*z(i)**3           &
           + 10080.*r(i)**5*z(i)*rz**2 - 21504.*r(i)**3*z(i)**5       &
           - 26880.*r(i)**3*z(i)**3*rz**2 - 6720.*r(i)**3*z(i)*rz**4  &
           + 2048.*r(i)*z(i)**7 + 5376.*r(i)*z(i)**5*rz**2            &
           + 4480.*r(i)*z(i)**3*rz**4 + 1120.*r(i)*z(i)*rz**6)
-     gzz(i)=co*(-560.*r(i)**8 + 13440.*r(i)**6*z(i)**2                 &
+     g(6,i)=co*(-560.*r(i)**8 + 13440.*r(i)**6*z(i)**2                 &
           + 1680.*r(i)**6*rz**2 - 26880.*r(i)**4*z(i)**4             &
           - 20160.*r(i)**4*z(i)**2*rz**2 - 1680.*r(i)**4*rz**4       &
           + 7168.*r(i)**2*z(i)**6 + 13440.*r(i)**2*z(i)**4*rz**2     &
           + 6720.*r(i)**2*z(i)**2*rz**4 + 560.*r(i)**2*rz**6)
-     grr(i)=co*(630.*r(i)**8 - 15680.*r(i)**6*z(i)**2                  &
+     g(4,i)=co*(630.*r(i)**8 - 15680.*r(i)**6*z(i)**2                  &
           - 1960.*r(i)**6*rz**2 + 33600*r(i)**4*z(i)**4              &
           + 25200.*r(i)**4*z(i)**2*rz**2 + 2100.*r(i)**4*rz**4       &
           - 10752.*r(i)**2*z(i)**6 - 20160.*r(i)**2*z(i)**4*rz**2    &

@@ -366,9 +366,15 @@ subroutine hdf5_write_parameters(error)
   call write_real_attr(root_id, "zzero"      , zzero,      error)
   call write_real_attr(root_id, "xlim"       , xlim,       error)
   call write_real_attr(root_id, "zlim"       , zlim,       error)
+  call write_real_attr(root_id, "xmag"       , xmag,       error)
+  call write_real_attr(root_id, "zmag"       , zmag,       error)
   call write_real_attr(root_id, "vloop"      , vloop,      error)
   call write_real_attr(root_id, "gam"        , gam,        error)
   call write_real_attr(root_id, "thimp"      , thimp,      error)
+  call write_real_attr(root_id, "bzero"      , bzero,      error)
+  call write_real_attr(root_id, "gravr"      , gravr,      error)
+  call write_real_attr(root_id, "gravz"      , gravz,      error)
+
 
   call h5gclose_f(root_id, error)
 
@@ -401,7 +407,6 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "toroidal_current" , totcur, ntime, error)
   call output_scalar(scalar_group_id, "electron_number"  , totden, ntime, error)
   call output_scalar(scalar_group_id, "loop_voltage"     , vloop , ntime, error)
-
   
   call output_scalar(scalar_group_id, "time" , time  , ntime, error)
   call output_scalar(scalar_group_id, "E_MP" , emagp , ntime, error)
@@ -434,6 +439,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "Flux_kinetic  ", efluxk, ntime, error)
   call output_scalar(scalar_group_id, "Flux_poynting ", efluxs, ntime, error)
   call output_scalar(scalar_group_id, "Flux_thermal  ", efluxt, ntime, error)
+  call output_scalar(scalar_group_id, "E_grav        ", epotg,  ntime, error)
 
   if(itaylor.eq.3) then
      temp = reconnected_flux()

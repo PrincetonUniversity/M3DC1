@@ -120,6 +120,9 @@
 !.....time integrator: 0 = Crank-Nicholson, 1 = BDF2
       integrator = 0
 !
+!.....number of grad-shafranov iterations
+      igs = 80.
+!
 !.....CN implicitness parameter (thimp > 0.5 for stability)
       thimp = 0.5
 !
@@ -173,6 +176,7 @@
 !
 !.....itor=0 for cylinder, 1 for torus
       itor=0
+      idevice = 0
 !
 !.....parameters needed for toroidal plasma
       tcuro = 1.
@@ -210,7 +214,8 @@
       eps = .01
 !
 !.....gravitational acceleration
-      grav = 0.
+      gravr = 0.
+      gravz = 0.
 !
 !.....1 = conserve toroidal flux
       iconstflux = 0

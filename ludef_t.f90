@@ -94,14 +94,18 @@ subroutine ludefall
   def_fields = FIELD_PSI + FIELD_PHI + FIELD_ETA
   if(numvar.ge.2) def_fields = def_fields + FIELD_V + FIELD_I
   if(numvar.ge.3) def_fields = def_fields + &
-       FIELD_CHI + FIELD_PE + FIELD_B2I + FIELD_J
+       FIELD_CHI + FIELD_PE + FIELD_B2I + FIELD_J + FIELD_P
   if(idens.eq.1) def_fields = def_fields + FIELD_N + FIELD_NI
-  if(ipres.eq.1) def_fields = def_fields + FIELD_P
 
   if(isources.eq.1) then
      def_fields = def_fields + FIELD_SB1
      if(numvar.ge.2) def_fields = def_fields + FIELD_SB2
      if(numvar.ge.3) def_fields = def_fields + FIELD_SP1
+  endif
+
+  if(gyro.eq.1) then
+     if(numvar.lt.2) def_fields = def_fields + FIELD_I
+     if(numvar.lt.3) def_fields = def_fields + FIELD_P + FIELD_PE + FIELD_B2I
   endif
 
   ! Loop over local elements
@@ -234,9 +238,9 @@ subroutine ludefvel_n(itri,dbf)
         temp = v1umu(g79(:,:,i),g79(:,:,j))*amu  &
              + thimp*dt* &
              (v1upsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79))
-        if(grav.ne.0) then          
-           temp = temp + thimp*dt*&
-                v1ungrav(g79(:,:,i),g79(:,:,j),nt79)*grav
+        if(gravr.ne.0 .or. gravz.ne.0) then          
+           temp = temp + thimp*dt* &
+                v1ungrav(g79(:,:,i),g79(:,:,j),nt79)
         endif
         ssterm(1,1) = ssterm(1,1) -     thimp     *dt*temp
         ddterm(1,1) = ddterm(1,1) + (1.-thimp*bdf)*dt*temp
@@ -249,6 +253,12 @@ subroutine ludefvel_n(itri,dbf)
         rrterm(1,1) = rrterm(1,1)  + dt* &
              (v1psipsi(g79(:,:,i),g79(:,:,j),pss79)  &
              +v1psipsi(g79(:,:,i),pss79,g79(:,:,j)))
+
+        if(gyro.eq.1) then
+           temp = g1u(g79(:,:,i),g79(:,:,j))
+           ssterm(1,1) = ssterm(1,1) +     thimp     *dt*temp
+           ddterm(1,1) = ddterm(1,1) - (1.-thimp*bdf)*dt*temp
+        endif
 
         if(isources.eq.1) then
            rrterm(1,1) = rrterm(1,1) + thimp*dt*dt* &
@@ -322,6 +332,20 @@ subroutine ludefvel_n(itri,dbf)
            rrterm(2,2) = rrterm(2,2) + dt* &
                 (v2psib(g79(:,:,i),pss79,g79(:,:,j)))
 
+           if(gyro.eq.1) then
+              temp = g1v(g79(:,:,i),g79(:,:,j))
+              ssterm(1,2) = ssterm(1,2) +     thimp     *dt*temp
+              ddterm(1,2) = ddterm(1,2) - (1.-thimp*bdf)*dt*temp
+
+              temp = g2u(g79(:,:,i),g79(:,:,j))
+              ssterm(2,1) = ssterm(2,1) +     thimp     *dt*temp
+              ddterm(2,1) = ddterm(2,1) - (1.-thimp*bdf)*dt*temp
+
+              temp = g2v(g79(:,:,i),g79(:,:,j))
+              ssterm(2,2) = ssterm(2,2) +     thimp     *dt*temp
+              ddterm(2,2) = ddterm(2,2) - (1.-thimp*bdf)*dt*temp
+           endif
+
            if(isources.eq.1) then 
               rrterm(1,2) = rrterm(2,1) + thimp*dt*dt* &
                 (v1bsb2   (g79(:,:,i),g79(:,:,j),sb279))
@@ -390,9 +414,9 @@ subroutine ludefvel_n(itri,dbf)
            
            temp = v1chipsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79)  &
                 + v1chibb    (g79(:,:,i),g79(:,:,j),bzt79,bzt79)
-           if(grav.ne.0) then          
+           if(gravr.ne.0 .or. gravz.ne.0) then          
               temp = temp &
-                   + v1chingrav(g79(:,:,i),g79(:,:,j),nt79)*grav
+                   + v1chingrav(g79(:,:,i),g79(:,:,j),nt79)
            endif
            ssterm(1,3) = ssterm(1,3) - thimp*    thimp     *dt*dt*temp
            ddterm(1,3) = ddterm(1,3) + thimp*(1.-thimp*bdf)*dt*dt*temp
@@ -424,9 +448,9 @@ subroutine ludefvel_n(itri,dbf)
                 (v3up     (g79(:,:,i),g79(:,:,j),pt79) &
                 +v3upsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79) &
                 +v3ubb    (g79(:,:,i),g79(:,:,j),bzt79,bzt79)) 
-           if(grav.ne.0) then
+           if(gravr.ne.0 .or. gravz.ne.0) then
               temp = temp + thimp*dt* &
-                   v3ungrav(g79(:,:,i),g79(:,:,j),nt79)*grav
+                   v3ungrav(g79(:,:,i),g79(:,:,j),nt79)
            endif
            ssterm(3,1) = ssterm(3,1) -     thimp     *dt*temp
            ddterm(3,1) = ddterm(3,1) + (1.-thimp*bdf)*dt*temp
@@ -457,9 +481,9 @@ subroutine ludefvel_n(itri,dbf)
            temp = v3chip     (g79(:,:,i),g79(:,:,j),pt79)        &
                 + v3chipsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79) &
                 + v3chibb    (g79(:,:,i),g79(:,:,j),bzt79,bzt79)
-           if(grav.ne.0) then
+           if(gravr.ne.0 .or. gravz.ne.0) then
               temp = temp + &
-                   v3chingrav(g79(:,:,i),g79(:,:,j),nt79)*grav
+                   v3chingrav(g79(:,:,i),g79(:,:,j),nt79)
            endif
            ssterm(3,3) = ssterm(3,3) - thimp*    thimp     *dt*dt*temp
            ddterm(3,3) = ddterm(3,3) + thimp*(1.-thimp*bdf)*dt*dt*temp
@@ -489,25 +513,9 @@ subroutine ludefvel_n(itri,dbf)
 
 
            if(gyro.eq.1) then
-              temp = g1u(g79(:,:,i),g79(:,:,j))
-              ssterm(1,1) = ssterm(1,1) +     thimp     *dt*temp
-              ddterm(1,1) = ddterm(1,1) - (1.-thimp*bdf)*dt*temp
-
-              temp = g1v(g79(:,:,i),g79(:,:,j))
-              ssterm(1,2) = ssterm(1,2) +     thimp     *dt*temp
-              ddterm(1,2) = ddterm(1,2) - (1.-thimp*bdf)*dt*temp
-
               temp = g1chi(g79(:,:,i),g79(:,:,j))
               ssterm(1,3) = ssterm(1,3) +     thimp     *dt*temp
               ddterm(1,3) = ddterm(1,3) - (1.-thimp*bdf)*dt*temp
-
-              temp = g2u(g79(:,:,i),g79(:,:,j))              !!!!!!!!!!!!!!!!
-              ssterm(2,1) = ssterm(2,1) +     thimp     *dt*temp
-              ddterm(2,1) = ddterm(2,1) - (1.-thimp*bdf)*dt*temp
-
-              temp = g2v(g79(:,:,i),g79(:,:,j))
-              ssterm(2,2) = ssterm(2,2) +     thimp     *dt*temp
-              ddterm(2,2) = ddterm(2,2) - (1.-thimp*bdf)*dt*temp
 
               temp = g2chi(g79(:,:,i),g79(:,:,j))
               ssterm(2,3) = ssterm(2,3) +     thimp     *dt*temp
@@ -633,13 +641,13 @@ subroutine ludefvel_n(itri,dbf)
         r4(i3) = r4(i3) + thimp*dt*dt*v3p(g79(:,:,i),sp179)
      endif
 
-     if(grav.ne.0) then          
+     if(gravr.ne.0 .or. gravz.ne.0) then          
         r4(i1) = r4(i1) + dt* &
-             v1ngrav(g79(:,:,i),nt79)*grav
+             v1ngrav(g79(:,:,i),nt79)
         
         if(numvar.ge.3) then
            r4(i3) = r4(i3) + dt* &
-                v3ngrav(g79(:,:,i),nt79)*grav
+                v3ngrav(g79(:,:,i),nt79)
         endif
      endif
      
@@ -670,12 +678,11 @@ subroutine ludefvel_n(itri,dbf)
                 +v2vhypv(g79(:,:,i),vz079,amu,hypv))
            
            ! DENSITY TERMS
-           if(grav.ne.0) then          
-              r4(i1) = r4(i1) + thimp*dt*dt*grav* &
+           if(gravr.ne.0 .or. gravz.ne.0) then          
+              r4(i1) = r4(i1) + thimp*dt*dt* &
                    (v1ungrav   (g79(:,:,i),ph079,nt79) &
                    +v1chingrav (g79(:,:,i),ch079,nt79) &
-                   )
-!!$                      +v1ndenmgrav(g79(:,:,i),nt79))
+                   +v1ndenmgrav(g79(:,:,i),nt79,dt*denm))
               
            endif
            r4(i1) = r4(i1) + dt* &
@@ -715,6 +722,12 @@ subroutine ludefvel_n(itri,dbf)
                 
            
            ! DENSITY TERMS
+           if(gravr.ne.0 .or. gravz.ne.0) then          
+              r4(i3) = r4(i3) + thimp*dt*dt* &
+                   (v3ungrav   (g79(:,:,i),ph079,nt79) &
+                   +v3chingrav (g79(:,:,i),ch079,nt79) &
+                   +v3ndenmgrav(g79(:,:,i),nt79,dt*denm))
+           endif
            r4(i1) = r4(i1) + dt* &
                 (v1uchin  (g79(:,:,i),ph079,ch079,nt79) &
                 +v1chichin(g79(:,:,i),ch079,ch079,nt79))

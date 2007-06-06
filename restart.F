@@ -82,7 +82,7 @@ c     first put in information to check on run information
       endif
 !
       write(56) ntimein,timein
-      write(56) totcur0,tflux0,gbound,facd,fbound
+      write(56) totcur0,tflux0,gbound,facd,fbound,ptot
       close(56)
 
       if(maxrank.eq.1) then
@@ -208,7 +208,7 @@ c     first put in information to check on run information
       endif
 !
       read(56) ntimer,timer
-      read(56) totcur0,tflux0,gbound,facd,fbound
+      read(56) totcur0,tflux0,gbound,facd,fbound,ptot
       close(56)
       write(*,1201) ntimer,timer
       if(maxrank.eq.1) then

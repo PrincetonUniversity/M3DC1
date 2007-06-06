@@ -80,6 +80,7 @@ subroutine define_sources()
   use t_data
   use arrays
   use nintegrate_mod
+  use diagnostics
 
 #ifdef NEW_VELOCITY
   use metricterms_new
@@ -93,11 +94,14 @@ subroutine define_sources()
   
   integer :: itri, numelms, i, ione, ndof, def_fields
   real :: x, z, xmin, zmin, hypf, hypi, hypv, hypc, hypp, dbf, factor
+  real, save :: ptoto
 
   double precision, dimension(3)  :: cogcoords
-  double precision, dimension(23) :: temp, temp2
+  double precision, dimension(24) :: temp, temp2
 
 !!$  integer :: izone, izonedim
+
+  ptoto = ptot
 
   sb1 = 0.
   if(numvar.ge.2) sb2 = 0.
@@ -159,6 +163,7 @@ subroutine define_sources()
   efluxk = 0.
   efluxs = 0.
   efluxt = 0.
+  epotg = 0.
 
   hypf = hyper *deex**2
   hypi = hyperi*deex**2
@@ -400,10 +405,12 @@ subroutine define_sources()
 
      ! Calculate fluxes through boundary of domain
      efluxd = efluxd + flux_diffusive()
-     efluxk = efluxk +flux_ke()
-     efluxp = efluxp +flux_pressure(dbf)
-     efluxs = efluxs +flux_poynting(dbf)
-     efluxt = efluxt +flux_heat()
+     efluxk = efluxk + flux_ke()
+     efluxp = efluxp + flux_pressure(dbf)
+     efluxs = efluxs + flux_poynting(dbf)
+     efluxt = efluxt + flux_heat()
+
+     epotg = epotg + grav_pot()
   end do
 
   ! Solve source term equations
@@ -442,9 +449,10 @@ subroutine define_sources()
      temp(21) = efluxk
      temp(22) = efluxs
      temp(23) = efluxt
+     temp(24) = epotg
          
      !checked that this should be MPI_DOUBLE_PRECISION
-     call mpi_allreduce(temp, temp2, 23, MPI_DOUBLE_PRECISION,  &
+     call mpi_allreduce(temp, temp2, 24, MPI_DOUBLE_PRECISION,  &
           MPI_SUM, MPI_COMM_WORLD, i) 
          
      ekinp = temp2(1)
@@ -470,6 +478,7 @@ subroutine define_sources()
      efluxk = temp2(21)
      efluxs = temp2(22)
      efluxt = temp2(23)
+     epotg = temp2(24)
   endif !if maxrank .gt. 1
 
   ekin = ekinp + ekint + ekin3
@@ -477,15 +486,16 @@ subroutine define_sources()
   ekind = ekinpd + ekintd + ekin3d
   emagd = emagpd + emagtd + emag3d
 
-!!$  if(myrank.eq.0 .and. iprint.ge.1) then
-!!$     print *, "Energy at ntime = ", ntime
-!!$     print *, "ekinp, ekint, ekin3 = ", ekinp, ekint, ekin3
-!!$     print *, "ekinpd, ekintd, ekin3d = ", ekinpd, ekintd, ekin3d
-!!$     print *, "ekinph, ekinth, ekin3h = ", ekinph, ekinth, ekin3h
-!!$     print *, "emagp, emagt, emag3 = ", emagp, emagt, emag3
-!!$     print *, "emagpd, emagd, emag3d = ", emagpd, emagtd, emag3d
-!!$     print *, "emagph, emagth, emag3h = ", emagph, emagth, emag3h
-!!$  endif
+  ptot = ptot + (efluxd + efluxk + efluxp + efluxs + efluxt + epotg &
+       - vloop*totcur/(2.*pi))*dt
+  if(numvar.lt.3) ptot = ptot + (ekind + emagd)*dt
+
+  ! total energy, including energy lost through boundary flux and
+  ! internal dissipation
+  etot = ekin + emag - ptoto
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Total energy = ", etot
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Total energy lost = ", ptot
 
 end subroutine define_sources
 
@@ -581,10 +591,7 @@ subroutine newvar_eta()
   if(idens.eq.1)  def_fields = def_fields + FIELD_N
   if(numvar.ge.3) def_fields = def_fields + FIELD_PE
 
-  if(itor.eq.1 .and. numvar.lt.3) &
-       def_fields = def_fields + FIELD_PSI
-
-  if(itor.eq.1 .and. numvar.lt.3) then
+  if(itor.eq.1 .and. itaylor.eq.1 .and. numvar.lt.3 .and. eta0.ne.0) then  
      itri = 0.
      call evaluate(xlim-xzero,zlim-zzero,psilim,ajlim,phi,1,numvar,itri)
 
@@ -597,6 +604,8 @@ subroutine newvar_eta()
      endif
      xmag = xguess + xzero
      zmag = zguess + zzero
+
+     def_fields = def_fields + FIELD_PSI
   endif
 
   ! Calculate RHS
@@ -609,7 +618,7 @@ subroutine newvar_eta()
 
         ! for the grad-shafranov simulation with numvar < 3,
         ! calculate the pressure assuming that p(psi) = p0(psi)
-        if(numvar.lt.3 .and. itor.eq.1) then
+        if(numvar.lt.3 .and. itor.eq.1 .and. itaylor.eq.1) then
            temp79c = (pst79(:,OP_1) - psimin)/(psilim - psimin)
            
            do i=1,79

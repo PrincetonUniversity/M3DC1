@@ -33,12 +33,16 @@ module basic
   integer :: itor     ! 1 = cylindrical coordinates; 0 = cartesian coordinates
   real :: db          ! ion skin depth
   real :: gam         ! ratio of specific heats
-  real :: grav        ! gravitational acceleration
+  real :: gravr,gravz ! gravitational acceleration
   real :: vloop       ! loop voltage
 
   ! general equilibrium parameters
   integer :: irestart ! 1 = reads restart file as initial condition
   integer :: itaylor  ! equilibrium
+  integer :: idevice  ! for itor=1, itaylor=1, selects tokamak configuration
+                      !  0 = generic
+                      !  1 = CDX-U
+                      !  2 = NSTX
   real :: bzero       ! guide field
   real :: p0, pi0     ! total, ion pressures
   real :: ln          ! length of equilibrium gradient
@@ -69,6 +73,7 @@ module basic
   integer :: iconstflux  ! 1 = conserve toroidal flux
   integer :: isources    ! 1 = include source terms in velocity advance
   integer :: integrator  ! 0 = Crank-Nicholson, 1 = BDF2
+  integer :: igs         ! number of grad-shafranov iterations
   real :: dt             ! timestep
   real :: thimp          ! implicitness parameter (for Crank-Nicholson)
   real :: facw, facd
@@ -101,10 +106,10 @@ module basic
        tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,cb,       &
        bzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,        &
        kappa,iper,jper,iprint,itimer,xzero,zzero,beta,pi0,     &
-       eqsubtract,denm,grav,kappat,kappar,ln,amuc,iconstflux,  &
-       regular,deex,gyro,vloop,eta0,isources,pedge,integrator, &
-       expn,divertors,xdiv,zdiv,divcur, &
-       control_p,control_i,control_d
+       eqsubtract,denm,gravr,gravz,kappat,kappar,ln,amuc,      &
+       iconstflux,regular,deex,gyro,vloop,eta0,isources,pedge, &
+       integrator,expn,divertors,xdiv,zdiv,divcur, &
+       control_p,control_i,control_d,idevice,igs
 
   !     derived quantities
   real :: tt,pi,                                                       &
@@ -118,7 +123,7 @@ module basic
        ekinph,ekinth,emagph,emagth,ekinpho,ekintho,emagpho,emagtho,    &
        ekin3,ekin3d,ekin3h,emag3,ekin3o,ekin3do,ekin3ho,emag3o,        &
        emag3h,emag3d,emag3ho,emag3do,chierror,tflux0,totcur0,          &
-       efluxd,efluxp,efluxk,efluxs,efluxt
+       efluxd,efluxp,efluxk,efluxs,efluxt,epotg,etot,ptot,eerr
   character*8 :: filename(50)
   character*10 :: datec, timec
   
