@@ -343,6 +343,11 @@
       gamma2 =-2.*xmag*(xmag*p0*p1 + (2.*g0/(xmag**2*q0*dpsii)))
       gamma3 = -(xmag*djdpsi/dpsii + 2*xmag**2*p0*p2)
       gamma4 = -(tcuro + gamma2*int2 + gamma3*int3 + int1)/int4
+      if(numvar.eq.1) then
+        gamma2 = 0.
+        gamma3 = 0.
+        gamma4 = 0.
+      endif
 !
 !     start loop over elements to define RHS vector
       b1vecini = 0.

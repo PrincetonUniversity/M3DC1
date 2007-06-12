@@ -220,7 +220,7 @@
      &       vel(:), vels(:), veln(:), vel0(:),                         &
      &       phi(:), phis(:), phiold(:), phi0(:), phi1(:), phip(:),     &
      &       jphi(:),jphi0(:),sphi1(:),sphi10(:),sphi2(:),sphi20(:),    &
-     &       vor(:),vor0(:),com(:),com0(:),                             &
+     &       vor(:),vor0(:),com(:),com0(:),d2v(:),d2v0(:),              &
      &       den(:),den0(:),dent(:),deni(:),denold(:),                  &
      &       pres(:),pres0(:),r4(:),q4(:),r4temp(:),bsi(:),r40(:),      &
      &       b1vector(:), b2vector(:), b3vector(:),q34(:),q34temp(:),   &
@@ -612,6 +612,9 @@
          phis = phi
          vels = vel
       endif                     !  end of the branch on restart/no restart
+      if(numvar.ge.2) then
+        call newvarc(1,vel0,d2v0,m*n,numvar,2,1)
+      endif
 !     
 !     define ficticious field array for semi-implicit method
          if(isemii.gt.0) then
@@ -817,7 +820,7 @@
       call safestop(2)
       write(*,*) myrank
 !
- 5002 format(" ttotal =", 1pe11.4,   "  n,m,numvar =", 0p3i4,           &
+ 5002 format(" ttotal =", 1pe11.4,   "  n,m,numvar =",   3i4,           &
      &  "   amu,etar =", 1p2e10.2,  /,"  dt,thimp =",1p2e10.2,          &
      &  "  cb,db=",1p2e12.2,/,                                          &
      &  "  hyper,hyperi,hyperv,hyperc,actual hyper = ",  1p5e12.4,  /,  &
@@ -1010,8 +1013,8 @@
          call safestop(35)
       endif
 
-!....>>>>>debug remove r40
-!     r40 = 0.
+!....remove r40
+      r40 = 0.
       vtemp = vtemp +   b1vector + r4 + r40
 
       do l=1,nbcv
@@ -1084,6 +1087,11 @@
          call smoother1(vor,vtemp,m*n,numvar,1)
          call newvarc(1,vtemp,vor,m*n,numvar,1,2)
 !
+      endif
+!
+!      calculate delsquared of the toroidal velocity for hyperviscous heating calculation
+      if(numvar.ge.2) then
+         call newvarc(1,vtemp,d2v,m*n,numvar,2,1)
       endif
 !     
 !.....new velocity solution at time n+1 (or n* for second order advance)
@@ -4735,6 +4743,7 @@ c$$$      endif
       allocate(jphi(mmnn6),jphi0(mmnn6),                                &
      &    sphi1(mmnn6), sphi2(mmnn6), sphi10(mmnn6), sphi20(mmnn6),     &
      &     vor(mmnn6), vor0(mmnn6),  com(mmnn6), com0(mmnn6),           &
+     &    d2v(mmnn6),d2v0(mmnn6),                                       &
      &    den(mmnn6),den0(mmnn6),dent(mmnn6),deni(mmnn6),denold(mmnn6), &
      &    sphip(mmnn6),sphik(mmnn6),pres(mmnn6),pres0(mmnn6),bsi(mmnn6),&
      &    ephi(mmnn6),eph2(mmnn6),eph3(mmnn6),eph4(mmnn6),eph5(mmnn6),  &
@@ -6111,12 +6120,12 @@ c$$$      endif
 !
                if(numvar.ge.2) then
                  q34(i2) = q34(i2) +  k0term(iodd,i,j,k)                &
-     &                               *phi0(k01)*vel0(j2)
+     &                               *phi0(k01)*vel0(j2)*(1-linear)
            
                  if(idens.eq.0) then
                    q34(i2) = q34(i2) +  dbf                             &
      &                   *(g0term(iodd,i,j,k)+g0term(iodd,i,k,j))/2.    &
-     &                    *phi0(j01)*phi0(k01)
+     &                    *phi0(j01)*phi0(k01)*(1-linear)
                  endif   ! on idens=0
                endif                ! on numvar.ge.2
 !
@@ -6129,7 +6138,7 @@ c$$$      endif
      &                          *phi0(k3)*phi0(j2)*(1-linear)
                  else ! on idens.eq.0
                    q34(i2) = q34(i2)+ pefac*dbf*k0term(iodd,i,j,k)      &
-     &                     *deni(jone)*phi0(k3)
+     &                     *deni(jone)*phi0(k3)*(1-linear)
                  endif  ! on idens
                endif ! on numvar.ge.3              
                do l=1,18
@@ -6137,12 +6146,12 @@ c$$$      endif
                   l1 = isvaln(itri,l)
                   l2 = l1+6
                   q34(i1) = q34(i1) + dbf*u3terml(k,l)*deni(lone)       &
-     &                               *phi0(j01)*phi0(k2)
+     &                               *phi0(j01)*phi0(k2)*(1-linear)
                   if(numvar.ge.2) then
                     q34(i2) = q34(i2) + dbf*u1terml(k,l)*deni(lone)     &
-     &                                  *phi0(j01)*phi0(k01)        
+     &                                  *phi0(j01)*phi0(k01)*(1-linear)
                     q34(i2) = q34(i2) + dbf*u3terml(k,l)*deni(jone)     &
-     &                                  *phi0(k2 )*phi0(l2)
+     &                                  *phi0(k2 )*phi0(l2)*(1-linear)
                   endif ! on numvar.ge.2
  
                   if(numvar.ge.3) then
@@ -6208,12 +6217,17 @@ c$$$      endif
       integer   iodd, itri, ll, irect, jrect, icount
       integer ier, jfirst, jlast
       real  terma, termb, termd,  termbf
-      real x, z,  factor, hypf, hypi
+      real x, z,  factor, hypf, hypi, hypv, hypc
       real  tafterread
       real tafterelements
       real  chif
 
-      ! this factor multiplies pe terms
+      hypf = hyper *deex**2
+      hypv = hyperv*deex**2
+!
+!>>>>special debug
+      hypv = 0.
+      hypc = hyperc*deex**2
 !
 !
 !.....form field matrices
@@ -6317,7 +6331,9 @@ c$$$      endif
             if(numvar.ge.3) then
               viscous(i3) = viscous(i3) + (gam-1.)*amu*                 &
      &         (  g14erm(iodd,i,j,k)*vel(j1)*vel(k1)                    &
-     &        -g2term(iodd,k,j,i)*(vel(k2)+vel0(k2))*(vel(j2)+vel0(j2)))
+     &           -g2term(iodd,k,j,i)*                                   &
+     &               ((vel(k2)  +vel0  (k2))*(vel(j2)  +vel0  (j2))     &
+     &         + hypv*(d2v(kone)+d2v0(kone))*(d2v(jone)+d2v0(jone))))
               viscous(i3) = viscous(i3) + (gam-1.)*amu*                 &
      &            g16erm(iodd,i,j,k)*vel(j1)*vel(k3)
               viscous(i3) =viscous(i3) + (gam-1.)*amuc*                 &
