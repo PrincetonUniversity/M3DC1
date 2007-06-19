@@ -360,7 +360,6 @@ subroutine hdf5_write_parameters(error)
   call write_int_attr (root_id, "iper"       , iper,       error)
   call write_int_attr (root_id, "jper"       , jper,       error)
   call write_int_attr (root_id, "imask"      , imask,      error)
-  call write_int_attr (root_id, "isources"   , isources,   error)
   call write_int_attr (root_id, "integrator" , integrator, error)
   call write_real_attr(root_id, "xzero"      , xzero,      error)
   call write_real_attr(root_id, "zzero"      , zzero,      error)
@@ -403,12 +402,14 @@ subroutine hdf5_write_scalars(error)
      call h5gopen_f(root_id, "scalars", scalar_group_id, error)
   endif
 
+  call output_scalar(scalar_group_id, "time" , time  , ntime, error)
+
   call output_scalar(scalar_group_id, "toroidal_flux"    , tflux , ntime, error)
   call output_scalar(scalar_group_id, "toroidal_current" , totcur, ntime, error)
   call output_scalar(scalar_group_id, "electron_number"  , totden, ntime, error)
   call output_scalar(scalar_group_id, "loop_voltage"     , vloop , ntime, error)
+  call output_scalar(scalar_group_id, "angular_momentum" , tmom  , ntime, error)
   
-  call output_scalar(scalar_group_id, "time" , time  , ntime, error)
   call output_scalar(scalar_group_id, "E_MP" , emagp , ntime, error)
   call output_scalar(scalar_group_id, "E_KP" , ekinp , ntime, error)
   call output_scalar(scalar_group_id, "E_MPD", emagpd, ntime, error)
@@ -661,15 +662,6 @@ subroutine output_fields(time_group_id, error)
 !!$  call output_field(group_id, "vor", dum, 20, nelms, error)
 !!$  nfields = nfields + 1
 
-  ! sb1
-  if(isources.eq.1) then
-     do i=1, nelms
-        call calcavector(i, sb1, 1, 1, dum(:,i))
-     end do
-     call output_field(group_id, "sb1", dum, 20, nelms, error)
-     nfields = nfields + 1
-  endif
-
   ! eta
   do i=1, nelms
      call calcavector(i, resistivity, 1, 1, dum(:,i))
@@ -691,16 +683,6 @@ subroutine output_fields(time_group_id, error)
      end do
      call output_field(group_id, "V", dum, 20, nelms, error)
      nfields = nfields + 1
-
-     if(isources.eq.1) then
-        ! sb2
-        do i=1, nelms
-           call calcavector(i, sb2, 1, 1, dum(:,i))
-        end do
-        call output_field(group_id, "sb2", dum, 20, nelms, error)
-        nfields = nfields + 1
-     endif
-
   endif
 
   if(numvar.ge.3) then
@@ -740,14 +722,12 @@ subroutine output_fields(time_group_id, error)
 !!$     call output_field(group_id, "com", dum, 20, nelms, error)
 !!$     nfields = nfields + 1
 
-     ! sb3
-     if(isources.eq.1) then
-        do i=1, nelms
-           call calcavector(i, sp1, 1, 1, dum(:,i))
-        end do
-        call output_field(group_id, "sp1", dum, 20, nelms, error)
-        nfields = nfields + 1
-     endif
+     ! kappa
+     do i=1, nelms
+        call calcavector(i, kappa, 1, 1, dum(:,i))
+     end do
+     call output_field(group_id, "kappa", dum, 20, nelms, error)
+     nfields = nfields + 1
   endif
 
 
@@ -758,13 +738,6 @@ subroutine output_fields(time_group_id, error)
      end do
      call output_field(group_id, "den", dum, 20, nelms, error)
      nfields = nfields + 1
-
-     ! deni
-     do i=1, nelms
-        call calcavector(i, deni, 1, 1, dum(:,i))
-     end do
-     call output_field(group_id, "deni", dum, 20, nelms, error)
-     nfields = nfields + 1  
   endif
 
   call write_int_attr(group_id, "nfields", nfields, error)

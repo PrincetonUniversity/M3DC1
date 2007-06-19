@@ -127,16 +127,18 @@
       thimp = 0.5
 !
 !.....hyper-resistivity coefficients
-      hyper = 0.5000
-      hyperi= 0.5000
-      hyperv= 0.50
-      hyperp= 0.50
+      hyper = 0.0
+      hyperi= 0.0
+      hyperv= 0.0
+      hyperp= 0.0
 !
 !.....viscosity, resistivity, and heat conduction
-      amu = .00010
-      etar = .00010
-      eta0 = 0.
-      kappa = .001
+      amu = 0.0
+      etar = 0.0
+      eta0 = 0.0
+      kappat = 0.0
+      kappar = 0.0
+      kappa0 = 0.0
 !
 !.....ratio of specific heats
       gam = 5./3.
@@ -153,14 +155,10 @@
 !     NOTE:  if facw=1., facd is zeroed after the first cycle
 !
 !......2-fluid coefficients
-      cb = 0.000
-      db = 0.00
+      db = 0.0
 !
 !     masking switch (0 no mask,  1 mask hyper terms at boundary
       imask = 0
-!
-!     source terms in velcity advance (1 = include, 0 = exclude)
-      isources = 1
 !
 !......maximum in taylor expansion loop (5 is maximum)
       maxs = 5
@@ -235,13 +233,12 @@
       facd = 1.
       etar = .0010
       amu = .001
-      kappa = .001
+      kappat = .001
       hyper = 0.01
       hyperi= 0.01
       hyperv = 0.01
       hyperc = 0.01
       hyperp= 0.50
-      cb = 1.
       db = .0001
       ntimemax = 100
       ntimepr = 1
@@ -259,13 +256,12 @@
       facd = 0.
       etar = .0001
       amu  = .00010
-      kappa = .0001
+      kappat = .0001
       hyper = 1.00
       hyperi = 1.00
       hyperv = 1.0
       hyperc = 1.0
       hyperp= 0.50
-      cb = 1.
       db = 0.0
       ntimemax = 80
       ntimepr   = 10
@@ -283,12 +279,11 @@
       facd = 1.
       etar = .0001
       amu = .0001
-      kappa = .0001
+      kappat = .0001
       hyper = 0.
       hyperi = 0.
       hyperv = 0.0
       hyperc = 0.0
-      cb = 1.0
       db = 0.
       ntimemax = 80
       ntimepr = 5
@@ -304,13 +299,12 @@
       facd = 0.
       etar = .000010
       amu  = .0000100
-      kappa = .00001
+      kappat = .00001
       hyper = 0.
       hyperi = 0.
       hyperv = 0.0
       hyperc = 0.0
       hyperp= 0.50
-      cb = 0.
       db = 0.
       ntimemax = 40
       ntimepr   = 5
@@ -326,13 +320,12 @@
       facd = 1.
       etar = .001
       amu = .001
-      kappa = .001
+      kappat = .001
       hyper = 1.00
       hyperi = 1.00
       hyperv = 4.0
       hyperc = 4.0
       hyperp= 1.0
-      cb = 1.0
       db = 0.2
       ntimemax = 81
       ntimepr = 1
@@ -351,13 +344,12 @@
       facd = 0.
       etar = 0.00010
       amu  = 0.0000100
-      kappa= 0.00001
+      kappat= 0.00001
       hyper = .0010
       hyperi = .0010
       hyperv = .0010
       hyperc = .0010
       hyperp= 0.50
-      cb = 1.0
       db = 0.
       ntimemax = 20
       ntimepr   = 10
@@ -373,13 +365,12 @@
       facd = 1.
       etar = .0010
       amu = .0010
-      kappa = .001
+      kappat = .001
       hyper =  1.
       hyperi = 1.
       hyperv = 1.
       hyperc = 1.
       hyperp= 0.50
-      cb = 1.0
       db = .4
       ntimemax = 5
       ntimepr = 5
@@ -397,13 +388,12 @@
       facd = 1.
       etar = .0001
       amu = .0001
-      kappa = .0001
+      kappat = .0001
       hyper = .00
       hyperi = 0.0
       hyperv = 0.0
       hyperc = 0.0
       hyperp= 0.50
-      cb = 0.3
       db = 0.
       ntimemax = 10
       ntimepr = 2
@@ -420,13 +410,12 @@
       facd = 0.
       etar = .0010
       amu = .0010
-      kappa = .001
+      kappat = .001
       hyper = 1.0  !hyper-resistivity coefficient
       hyperi = 1.0 !hyper-resistivity coefficient for I
       hyperv = 2.0 !hyper-viscosity coefficient for V
       hyperc = 0.0 !hyper-viscosity coefficient for chi
       hyperp= 0.50
-      cb = 1.0
       db = 0.0001
       ntimemax = 150
       ntimepr = 50
@@ -446,13 +435,12 @@
       facd = 0.
       etar = .0010
       amu = .0010
-      kappa = .001
+      kappat = .001
       hyper = 2.00  !hyper-resistivity coefficient
       hyperi = 2.00 !hyper-resistivity coefficient for I
       hyperv = 4.0 !hyper-viscosity coefficient for V
       hyperc = 4.0 !hyper-viscosity coefficient for chi
       hyperp= 1.00
-      cb = 1.0
       db = 1.0
       ntimemax = 50  !Number of time steps
       ntimepr = 10

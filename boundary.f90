@@ -62,8 +62,7 @@ subroutine boundary_vel(imatrix, rhs)
         temp = 0.
         call boundary_clamp(imatrix, ibegin, normal, rhs, temp)
         if(numvar.ge.3) then
-           call boundary_normal_deriv(imatrix, ibegin+12, normal, irow)
-           rhs(irow) = 0.
+           call boundary_normal_deriv(imatrix, ibegin+12, normal, rhs, temp)
            if(itor.eq.0) then
               if(imatrix.ne.0) call setdiribc(imatrix, ibegin+16)
               rhs(ibegin+16) = 0.
@@ -96,10 +95,8 @@ subroutine boundary_vel(imatrix, rhs)
         temp = 0.
         call boundary_clamp_all(imatrix, ibegin, rhs, temp)
         if(numvar.ge.3) then
-           call boundary_normal_deriv(imatrix, ibegin+12, 0., irow)
-           rhs(irow) = 0.
-           call boundary_normal_deriv(imatrix, ibegin+12, pi/2., irow)
-           rhs(irow) = 0.
+           call boundary_normal_deriv(imatrix, ibegin+12, 0., rhs, temp)
+           call boundary_normal_deriv(imatrix, ibegin+12, pi/2., rhs, temp)
            if(imatrix.ne.0) call setdiribc(imatrix, ibegin+16)
            rhs(ibegin+16) = 0.
         endif
@@ -186,13 +183,25 @@ subroutine boundary_mag(imatrix, rhs)
         endif
         call boundary_clamp(imatrix, ibegin, normal, rhs, temp)
 
+        ! clamp toroidal field
         if(numvar.ge.2) then
-              ! clamp toroidal field
-              temp = phis(ibegin+6:ibegin+11)
-              if(integrator.eq.1 .and. ntime.gt.1) then
-                 temp = 1.5*temp + 0.5*phiold(ibegin+6:ibegin+11)
-              endif
-              call boundary_clamp(imatrix, ibegin+6, normal, rhs, temp)
+           temp = phis(ibegin+6:ibegin+11)
+           if(integrator.eq.1 .and. ntime.gt.1) then
+              temp = 1.5*temp + 0.5*phiold(ibegin+6:ibegin+11)
+           endif
+           call boundary_clamp(imatrix, ibegin+6, normal, rhs, temp)
+        endif  
+
+        ! no toroidal current
+        call boundary_laplacian(imatrix, ibegin, normal, -x, irow)
+        rhs(irow) = 0.
+
+        ! no tangential current
+        if(numvar.ge.2) then
+           temp = 0.
+           call boundary_normal_deriv(imatrix, ibegin+6, normal, rhs, temp)
+           if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
+           rhs(ibegin+10) = 0.
         endif
 
         ! clamp pressure
@@ -204,6 +213,13 @@ subroutine boundary_mag(imatrix, rhs)
            call boundary_clamp(imatrix, ibegin+12, normal, rhs, temp)
         endif
 
+!!$        ! no normal pressure gradient
+!!$        if(numvar.ge.3) then 
+!!$           temp = 0.
+!!$           call boundary_normal_deriv(imatrix, ibegin+12, normal, rhs, temp)
+!!$           if(imatrix.ne.0) call setdiribc(imatrix, ibegin+16)
+!!$           rhs(ibegin+16) = 0.
+!!$        endif
 
         ! add loop voltage
         if(integrator.eq.1 .and. ntime.gt.1) then
@@ -228,6 +244,9 @@ subroutine boundary_mag(imatrix, rhs)
            if(integrator.eq.1 .and. ntime.gt.1) then
               temp = 1.5*temp + 0.5*phiold(ibegin+6:ibegin+11)
            endif
+           ! no tangential current
+           temp(ibegin+7) = 0.
+           temp(ibegin+8) = 0.
            call boundary_clamp_all(imatrix, ibegin+6, rhs, temp)
         endif
 
@@ -239,6 +258,15 @@ subroutine boundary_mag(imatrix, rhs)
            endif
            call boundary_clamp_all(imatrix, ibegin+12, rhs, temp)
         endif
+
+!!$        ! no normal pressure gradient
+!!$        if(numvar.ge.3) then 
+!!$           temp = 0.
+!!$           call boundary_normal_deriv(imatrix, ibegin+12, 0., rhs, temp)
+!!$           call boundary_normal_deriv(imatrix, ibegin+12, pi/2., rhs, temp)
+!!$           if(imatrix.ne.0) call setdiribc(imatrix, ibegin+16)
+!!$           rhs(ibegin+16) = 0.
+!!$        endif
 
         ! add loop voltage
         if(integrator.eq.1 .and. ntime.gt.1) then
@@ -467,7 +495,7 @@ subroutine boundary_dc(imatrix, rhs)
            normal = -pi/2.
         endif
 
-        ! clamp density
+        ! homogeneous dirichlet boundary conditions
         call boundary_clamp(imatrix, ibegin, normal, rhs, temp)
 
      ! corners
@@ -715,10 +743,9 @@ subroutine boundary_com(imatrix, rhs)
         call boundary_clamp(imatrix, ibegin, normal, rhs, temp)
 
         ! no normal flow
-        call boundary_normal_deriv(imatrix, ibegin+6, normal, irow)
-        rhs(irow) = 0.
-        if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
-        rhs(ibegin+10) = 0.
+        call boundary_normal_deriv(imatrix, ibegin+6, normal, rhs, temp)
+!!$        if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
+!!$        rhs(ibegin+10) = 0.
 
         ! no compression
         if(numvar.ge.3) then
@@ -732,12 +759,10 @@ subroutine boundary_com(imatrix, rhs)
         call boundary_clamp_all(imatrix, ibegin, rhs, temp)
 
         ! no normal flow
-        call boundary_normal_deriv(imatrix, ibegin+6, 0., irow)
-        rhs(irow) = 0.
-        call boundary_normal_deriv(imatrix, ibegin+6, pi/2., irow)
-        rhs(irow) = 0.
-        if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
-        rhs(ibegin+10) = 0.
+        call boundary_normal_deriv(imatrix, ibegin+6, 0., rhs, temp,)
+        call boundary_normal_deriv(imatrix, ibegin+6, pi/2., rhs, temp)
+!!$        if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
+!!$        rhs(ibegin+10) = 0.
      endif
   end do
 
@@ -851,7 +876,7 @@ end subroutine boundary_tangential_deriv
 
 
 ! Sets normal derivative boundary condition
-subroutine boundary_normal_deriv(imatrix, ibegin, normal, irow)
+subroutine boundary_normal_deriv(imatrix, ibegin, normal, rhs, bv)
 
   use basic
 
@@ -860,9 +885,10 @@ subroutine boundary_normal_deriv(imatrix, ibegin, normal, irow)
   integer, intent(in) :: imatrix     ! matrix handle
   integer, intent(in) :: ibegin      ! first dof of field
   real, intent(in) :: normal         ! angle of normal vector from horizontal
-  integer, intent(out) :: irow       ! matrix row replaced by bc
-
-  integer :: numvals
+  real, intent(inout), dimension(*) :: rhs   ! right-hand-side of matrix equation
+  real, intent(in), dimension(6) :: bv       ! matrix row replaced by bc
+  
+  integer :: numvals, irow
   integer, dimension(2) :: cols
   real, dimension(2) :: vals
 
@@ -879,7 +905,11 @@ subroutine boundary_normal_deriv(imatrix, ibegin, normal, irow)
   endif
 
   if(imatrix.ne.0) call setgeneralbc(imatrix, irow, numvals, cols, vals)
-  
+  rhs(irow) = cos(normal)*bv(2) + sin(normal)*bv(3)
+
+!!$  if(imatrix.ne.0) call setdiribc(imatrix, ibegin+4)
+!!$  rhs(ibegin+4) = bv(5)
+
 end subroutine boundary_normal_deriv
 
 
