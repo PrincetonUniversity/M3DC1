@@ -82,9 +82,6 @@ c     created with ordering specified by numvar
  
       call createvec(jphi, 1)
       jphi = 0.
-      call createvec(sb1, 1)
-      call createvec(sb2, 1)
-      call createvec(sp1, 1)
       call createvec(vor, 1)
       call createvec(com, 1)
       call createvec(den, 1)
@@ -94,6 +91,7 @@ c     created with ordering specified by numvar
       call createvec(denold, 1)
       call createvec(qn4, 1)
       call createvec(resistivity, 1)
+      call createvec(kappa, 1)
       call createvec(tempvar,1)
 !
 !.....arrays associated with the triangles
@@ -226,6 +224,8 @@ c     created with ordering specified by numvar
       use t_data
       use basic
       use arrays
+      use diagnostics
+
       implicit none
       real alpha, alphas
       integer i

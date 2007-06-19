@@ -85,7 +85,7 @@ subroutine output
 
   implicit none
   integer :: i, j, i1, i3, ivertex, indexmid, numnodes
-  real :: x, z, ans, ans2, etoto, etot, ediff, denom, gamma
+  real :: x, z, ans, ans2, toto, tot, ediff, denom, gamma
   real :: etotd, etoth, error, enorm, vmaxsq, vnew, vmax, val1
   real :: dum1, val2, dum2, alx, alz
 
@@ -108,10 +108,10 @@ subroutine output
   !      call axis(phi,xsep,zsep,1)
   xsep = 0.
   zsep = 0.
-  etoto= ekino+emago
-  etot = ekin + emag
-  ediff = (etot-etoto)/dt
-  write(*,*) etot, ekin, emag, ntime
+  toto= ekino+emago
+  tot = ekin + emag
+  ediff = (tot-toto)/dt
+  write(*,*) tot, ekin, emag, ntime
   denom = dt*(ekin + ekino)
   if(denom.ne.0) gamma = (ekin - ekino)/denom
   etotd = .5*(ekind+emagd+ekindo+emagdo)
@@ -223,14 +223,6 @@ subroutine output
   endif
   
   ! plot linearized solution
-  
-  if(isources.eq.1) then
-     if(maxrank .eq. 1) call oneplot(sb1,1,1,"sb1 ",0)
-     if(numvar.ge.2 .and. maxrank .eq. 1) call oneplot(sb2,1,1,"sb2 ",0)
-     if(numvar.ge.3 .and. maxrank .eq. 1) then
-        call oneplot(sp1,1,1,"sp1 ",0)
-     endif
-  endif
   if(idens.eq.1 .and. maxrank .eq. 1) call oneplot(deni,1,1,"deni",0)
 
   call wrrestart(time, ntime)

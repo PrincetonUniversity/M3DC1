@@ -1475,25 +1475,15 @@ real function v3chichin(e,f,g,h)
   real :: temp
 
   if(idens.eq.0) then
-     temp = 0.5* &
-          (int3(e(:,OP_DZ),f(:,OP_DZZ),g(:,OP_DZ ),weight_79,79) &
-          +int3(e(:,OP_DZ),f(:,OP_DZ ),g(:,OP_DZZ),weight_79,79) &
-          +int3(e(:,OP_DZ),f(:,OP_DRZ),g(:,OP_DR ),weight_79,79) &
-          +int3(e(:,OP_DZ),f(:,OP_DR ),g(:,OP_DRZ),weight_79,79) &
-          +int3(e(:,OP_DR),f(:,OP_DRZ),g(:,OP_DZ ),weight_79,79) &
-          +int3(e(:,OP_DR),f(:,OP_DZ ),g(:,OP_DRZ),weight_79,79) &
-          +int3(e(:,OP_DR),f(:,OP_DRR),g(:,OP_DR ),weight_79,79) &
-          +int3(e(:,OP_DR),f(:,OP_DR ),g(:,OP_DRR),weight_79,79))
+     temp = int3(e(:,OP_DZ),f(:,OP_DZZ),g(:,OP_DZ ),weight_79,79) &
+          + int3(e(:,OP_DZ),f(:,OP_DRZ),g(:,OP_DR ),weight_79,79) &
+          + int3(e(:,OP_DR),f(:,OP_DRZ),g(:,OP_DZ ),weight_79,79) &
+          + int3(e(:,OP_DR),f(:,OP_DRR),g(:,OP_DR ),weight_79,79)
   else
-     temp = 0.5* &
-          (int4(e(:,OP_DZ),f(:,OP_DZZ),g(:,OP_DZ ),h(:,OP_1),weight_79,79) &
-          +int4(e(:,OP_DZ),f(:,OP_DZ ),g(:,OP_DZZ),h(:,OP_1),weight_79,79) &
-          +int4(e(:,OP_DZ),f(:,OP_DRZ),g(:,OP_DR ),h(:,OP_1),weight_79,79) &
-          +int4(e(:,OP_DZ),f(:,OP_DR ),g(:,OP_DRZ),h(:,OP_1),weight_79,79) &
-          +int4(e(:,OP_DR),f(:,OP_DRZ),g(:,OP_DZ ),h(:,OP_1),weight_79,79) &
-          +int4(e(:,OP_DR),f(:,OP_DZ ),g(:,OP_DRZ),h(:,OP_1),weight_79,79) &
-          +int4(e(:,OP_DR),f(:,OP_DRR),g(:,OP_DR ),h(:,OP_1),weight_79,79) &
-          +int4(e(:,OP_DR),f(:,OP_DR ),g(:,OP_DRR),h(:,OP_1),weight_79,79))
+     temp = int4(e(:,OP_DZ),f(:,OP_DZZ),g(:,OP_DZ ),h(:,OP_1),weight_79,79) &
+          + int4(e(:,OP_DZ),f(:,OP_DRZ),g(:,OP_DR ),h(:,OP_1),weight_79,79) &
+          + int4(e(:,OP_DR),f(:,OP_DRZ),g(:,OP_DZ ),h(:,OP_1),weight_79,79) &
+          + int4(e(:,OP_DR),f(:,OP_DRR),g(:,OP_DR ),h(:,OP_1),weight_79,79)
   endif
 
   v3chichin = temp
@@ -2045,27 +2035,30 @@ real function b3pedkappa(e,f,g,h,i)
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real, intent(in) :: h, i
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  real, intent(in) :: i
   real :: temp
 
   if(idens.eq.0) then
-     temp = -h* &
-          (int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
-          +int2(e(:,OP_DR),f(:,OP_DR),weight_79,79))
+     temp = &
+          - int3(e(:,OP_DZ),f(:,OP_DZ),h(:,OP_1),weight_79,79) &
+          - int3(e(:,OP_DR),f(:,OP_DR),h(:,OP_1),weight_79,79)
   else 
-     temp = -h* &
-          (int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1 ),weight_79,79) &
-          +int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_1 ),weight_79,79) &
-          +int3(e(:,OP_DZ),f(:,OP_1 ),g(:,OP_DZ),weight_79,79) &
-          +int3(e(:,OP_DR),f(:,OP_1 ),g(:,OP_DR),weight_79,79))
+     temp = &
+          - int4(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1 ),h(:,OP_1),weight_79,79) &
+          - int4(e(:,OP_DR),f(:,OP_DR),g(:,OP_1 ),h(:,OP_1),weight_79,79) &
+          - int4(e(:,OP_DZ),f(:,OP_1 ),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+          - int4(e(:,OP_DR),f(:,OP_1 ),g(:,OP_DR),h(:,OP_1),weight_79,79)
   endif
 
   if(i.ne.0) then
      ! Laplacian[f g]
      temp79a = f(:,OP_LP)*g(:,OP_1) + f(:,OP_1)*g(:,OP_LP) &
           + 2.*(f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR))
-     temp = temp - h*i*int2(temp79a,e(:,OP_LP),weight_79,79)
+     temp = temp - i* &
+          (int3(temp79a,e(:,OP_LP),h(:,OP_1),weight_79,79) &
+          +int3(temp79a,e(:,OP_DZ),h(:,OP_DZ),weight_79,79) &
+          +int3(temp79a,e(:,OP_DR),h(:,OP_DR),weight_79,79))
   endif
 
   b3pedkappa = temp  
@@ -2781,6 +2774,304 @@ end function qchichimu
 
 
 !======================================================================
+! ENERGY
+!======================================================================
+
+
+! Poloidal magnetic
+! -----------------
+real function energy_mp()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  temp = .5* &
+       (int3(ri2_79,pst79(:,OP_DZ),pst79(:,OP_DZ),weight_79,79) &
+       +int3(ri2_79,pst79(:,OP_DR),pst79(:,OP_DR),weight_79,79))
+
+  energy_mp = temp
+  return
+end function energy_mp
+
+
+! Toroidal magnetic
+! -----------------
+real function energy_mt()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  temp = .5*int3(ri2_79,bzt79(:,OP_1),bzt79(:,OP_1),weight_79,79)
+
+  energy_mt = temp
+  return
+end function energy_mt
+
+
+! Pressure
+! --------
+real function energy_p()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  if(gam.eq.1) then 
+     temp = 0.
+  else
+     temp = int1(pt79,weight_79,79) / (gam - 1.)
+  endif
+
+  energy_p = temp
+  return
+end function energy_p
+
+
+
+! Poloidal kinetic
+! ----------------
+real function energy_kp()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  if(idens.eq.0) then
+     temp = .5* &
+          (int3(ri2_79,pht79(:,OP_DZ),pht79(:,OP_DZ),weight_79,79) &
+          +int3(ri2_79,pht79(:,OP_DR),pht79(:,OP_DR),weight_79,79))
+  else
+     temp = .5* &
+          (int4(ri2_79,pht79(:,OP_DZ),pht79(:,OP_DZ),nt79(:,OP_1),weight_79,79) &
+          +int4(ri2_79,pht79(:,OP_DR),pht79(:,OP_DR),nt79(:,OP_1),weight_79,79))
+  endif
+
+  energy_kp = temp
+  return
+end function energy_kp
+
+
+! Toroidal kinetic
+! ----------------
+real function energy_kt()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  if(idens.eq.0) then
+     temp = .5*int3(ri2_79,vzt79(:,OP_1),vzt79(:,OP_1),weight_79,79)
+  else
+     temp = .5*int4(ri2_79,vzt79(:,OP_1),vzt79(:,OP_1),nt79(:,OP_1),weight_79,79)
+  endif
+
+  energy_kt = temp
+  return
+end function energy_kt
+
+
+! Compressional kinetic
+! ---------------------
+real function energy_k3()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  if(idens.eq.0) then
+     temp = .5* &
+          (int2(cht79(:,OP_DZ),cht79(:,OP_DZ),weight_79,79) &
+          +int2(cht79(:,OP_DR),cht79(:,OP_DR),weight_79,79)) &
+          +int3(ri_79,cht79(:,OP_DZ),pht79(:,OP_DR),weight_79,79) &
+          -int3(ri_79,cht79(:,OP_DR),pht79(:,OP_DZ),weight_79,79)
+  else
+     temp = .5* &
+          (int3(cht79(:,OP_DZ),cht79(:,OP_DZ),nt79(:,OP_1),weight_79,79) &
+          +int3(cht79(:,OP_DR),cht79(:,OP_DR),nt79(:,OP_1),weight_79,79)) &
+          +int4(ri_79,cht79(:,OP_DZ),pht79(:,OP_DR),nt79(:,OP_1),weight_79,79) &
+          -int4(ri_79,cht79(:,OP_DR),pht79(:,OP_DZ),nt79(:,OP_1),weight_79,79)
+  endif
+
+  energy_k3 = temp
+  return
+end function energy_k3
+
+
+! Poloidal resistive
+! ------------------
+real function energy_mpd()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  temp = -int4(ri2_79,pst79(:,OP_GS),pst79(:,OP_GS),eta79(:,OP_1),weight_79,79)
+
+  energy_mpd = temp
+  return
+end function energy_mpd
+
+
+! Toroidal resistive
+! ------------------
+real function energy_mtd()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  temp = - &
+       (int4(ri2_79,bzt79(:,OP_DZ),bzt79(:,OP_DZ),eta79(:,OP_1),weight_79,79) &
+       +int4(ri2_79,bzt79(:,OP_DR),bzt79(:,OP_DR),eta79(:,OP_1),weight_79,79))
+
+  energy_mtd = temp
+  return
+end function energy_mtd
+
+
+! Poloidal viscous
+! ----------------
+real function energy_kpd()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  temp = - amu*int3(ri2_79,pht79(:,OP_GS),pht79(:,OP_GS),weight_79,79)
+
+  energy_kpd = temp
+  return
+end function energy_kpd
+
+
+! Toroidal viscous
+! ----------------
+real function energy_ktd()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  temp = - amu* &
+       (int3(ri2_79,vzt79(:,OP_DZ),vzt79(:,OP_DZ),weight_79,79) &
+       +int3(ri2_79,vzt79(:,OP_DR),vzt79(:,OP_DR),weight_79,79))
+
+  energy_ktd = temp
+  return
+end function energy_ktd
+
+! Compressional viscous
+! ---------------------
+real function energy_k3d()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  temp = - 2.*amuc*int2(pht79(:,OP_LP),pht79(:,OP_LP),weight_79,79)
+
+  energy_k3d = temp
+  return
+end function energy_k3d
+
+
+! Poloidal hyper-viscous
+! ----------------------
+real function energy_kph(hypc)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in) :: hypc
+  real :: temp
+
+  temp = - hypc*amu* &
+       (int3(ri2_79,vot79(:,OP_DZ),vot79(:,OP_DZ),weight_79,79) &
+       +int3(ri2_79,vot79(:,OP_DR),vot79(:,OP_DR),weight_79,79))
+
+  energy_kph = temp
+  return
+end function energy_kph
+
+
+! Toroidal hyper-viscous
+! ----------------------
+real function energy_kth(hypv)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in) :: hypv
+  real :: temp
+
+  temp = - amu*hypv*int3(ri2_79,vzt79(:,OP_GS),vzt79(:,OP_GS),weight_79,79)
+
+  energy_kth = temp
+  return
+end function energy_kth
+
+! Compressional hyper-viscous
+! ---------------------------
+real function energy_k3h(hypc)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in) :: hypc
+  real :: temp
+
+  temp = -2.*hypc*amuc* &
+       (int2(cot79(:,OP_DZ),cot79(:,OP_DZ),weight_79,79) &
+       +int2(cot79(:,OP_DR),cot79(:,OP_DR),weight_79,79))
+
+  energy_k3h = temp
+  return
+end function energy_k3h
+
+
+
+!======================================================================
 ! FLUXES
 !======================================================================
 
@@ -2790,6 +3081,8 @@ real function flux_diffusive
 
   use basic
   use nintegrate_mod
+
+  implicit none
 
   if(idens.eq.0 .or. denm.eq.0.) then
      flux_diffusive = 0.
@@ -2819,6 +3112,8 @@ real function flux_pressure(dbf)
   use basic
   use nintegrate_mod
 
+  implicit none
+
   real, intent(in) :: dbf
 
   if(numvar.lt.3 .or. gam.eq.1.) then
@@ -2845,6 +3140,8 @@ real function flux_ke
 
   use basic
   use nintegrate_mod
+
+  implicit none
 
   real :: temp
 
@@ -2957,6 +3254,8 @@ real function flux_poynting(dbf)
   use basic
   use nintegrate_mod
 
+  implicit none
+
   real, intent(in) :: dbf
 
   if(idens.eq.0) then
@@ -2971,60 +3270,59 @@ real function flux_poynting(dbf)
         +pst79(:,OP_DZ )*pht79(:,OP_DRZ) - pst79(:,OP_DR )*pht79(:,OP_DZZ)) &
        +pst79(:,OP_DR)* &
         (pst79(:,OP_DRZ)*pht79(:,OP_DR ) - pst79(:,OP_DRR)*pht79(:,OP_DZ) &
-        +pst79(:,OP_DZ )*pht79(:,OP_DRR) - pst79(:,OP_DR )*pht79(:,OP_DRZ))) &
-       - ri2_79* &
-       +(eta79(:,OP_1 )*  jt79(:,OP_1 )* jt79(:,OP_1 ) &
-        +eta79(:,OP_1 )*(pst79(:,OP_DZ)* jt79(:,OP_DZ) + pst79(:,OP_DR)* jt79(:,OP_DR)) &
-        + jt79(:,OP_1 )*(pst79(:,OP_DZ)*eta79(:,OP_DZ) + pst79(:,OP_DR)*eta79(:,OP_DR)))
+        +pst79(:,OP_DZ )*pht79(:,OP_DRR) - pst79(:,OP_DR )*pht79(:,OP_DRZ))) ! &
+!!$       - ri2_79* &
+!!$       +(eta79(:,OP_1 )*  jt79(:,OP_1 )* jt79(:,OP_1 ) &
+!!$        +eta79(:,OP_1 )*(pst79(:,OP_DZ)* jt79(:,OP_DZ) + pst79(:,OP_DR)* jt79(:,OP_DR)) &
+!!$        + jt79(:,OP_1 )*(pst79(:,OP_DZ)*eta79(:,OP_DZ) + pst79(:,OP_DR)*eta79(:,OP_DR)))
   
   if(itor.eq.1) then
      temp79a = temp79a - ri4_79*pst79(:,OP_DR)* &
           (pst79(:,OP_DZ)*pht79(:,OP_DR) - pst79(:,OP_DR)*pht79(:,OP_DZ))
   endif
-
-
+ 
   if(numvar.ge.2) then
      temp79a = temp79a &
-          - ri2_79* &
-          (eta79(:,OP_1)* bzt79(:,OP_1)*bzt79(:,OP_GS) &
-          +eta79(:,OP_1)*(bzt79(:,OP_DZ)*bzt79(:,OP_DZ) + bzt79(:,OP_DR)*bzt79(:,OP_DR)) &
-          +bzt79(:,OP_1)*(bzt79(:,OP_DZ)*eta79(:,OP_DZ) + bzt79(:,OP_DR)*eta79(:,OP_DR))) &
+!!$          - ri2_79* &
+!!$          (eta79(:,OP_1)* bzt79(:,OP_1)*bzt79(:,OP_GS) &
+!!$          +eta79(:,OP_1)*(bzt79(:,OP_DZ)*bzt79(:,OP_DZ) + bzt79(:,OP_DR)*bzt79(:,OP_DR)) &
+!!$          +bzt79(:,OP_1)*(bzt79(:,OP_DZ)*eta79(:,OP_DZ) + bzt79(:,OP_DR)*eta79(:,OP_DR))) &
           - ri3_79* &
           (vzt79(:,OP_1)*(bzt79(:,OP_DZ)*pst79(:,OP_DR) - bzt79(:,OP_DR)*pst79(:,OP_DZ)) &
           +bzt79(:,OP_1)*(vzt79(:,OP_DZ)*pst79(:,OP_DR) - vzt79(:,OP_DR)*pst79(:,OP_DZ))) &
-          - ri3_79*dbf* &
-           (bzt79(:,OP_1)* &
-           ( jt79(:,OP_1 )*(ni79(:,OP_DZ)*pst79(:,OP_DR) - ni79(:,OP_DR)*pst79(:,OP_DZ)) &
-           + ni79(:,OP_1 )*(jt79(:,OP_DZ)*pst79(:,OP_DR) - jt79(:,OP_DR)*pst79(:,OP_DZ))) &
-           +( ni79(:,OP_DZ)*pst79(:,OP_DZ) +  ni79(:,OP_DR)*pst79(:,OP_DR))* &
-            (pst79(:,OP_DZ)*bzt79(:,OP_DR) - pst79(:,OP_DR)*bzt79(:,OP_DZ)) &
-           +ni79(:,OP_1)* &
-           (pst79(:,OP_DZ)* &
-            (pst79(:,OP_DZZ)*bzt79(:,OP_DR ) - pst79(:,OP_DRZ)*bzt79(:,OP_DZ ) &
-            +pst79(:,OP_DZ )*bzt79(:,OP_DRZ) - pst79(:,OP_DR )*bzt79(:,OP_DZZ)) &
-           +pst79(:,OP_DR)* &
-            (pst79(:,OP_DRZ)*bzt79(:,OP_DR ) - pst79(:,OP_DRR)*bzt79(:,OP_DZ ) &
-            +pst79(:,OP_DZ )*bzt79(:,OP_DRR) - pst79(:,OP_DR )*bzt79(:,OP_DRZ))) &
-           +bzt79(:,OP_1)**2*(ni79(:,OP_DZ)*bzt79(:,OP_DR) - ni79(:,OP_DR)*bzt79(:,OP_DZ))) &
+!!$          - ri3_79*dbf* &
+!!$           (bzt79(:,OP_1)* &
+!!$           ( jt79(:,OP_1 )*(ni79(:,OP_DZ)*pst79(:,OP_DR) - ni79(:,OP_DR)*pst79(:,OP_DZ)) &
+!!$           + ni79(:,OP_1 )*(jt79(:,OP_DZ)*pst79(:,OP_DR) - jt79(:,OP_DR)*pst79(:,OP_DZ))) &
+!!$           +( ni79(:,OP_DZ)*pst79(:,OP_DZ) +  ni79(:,OP_DR)*pst79(:,OP_DR))* &
+!!$            (pst79(:,OP_DZ)*bzt79(:,OP_DR) - pst79(:,OP_DR)*bzt79(:,OP_DZ)) &
+!!$           +ni79(:,OP_1)* &
+!!$           (pst79(:,OP_DZ)* &
+!!$            (pst79(:,OP_DZZ)*bzt79(:,OP_DR ) - pst79(:,OP_DRZ)*bzt79(:,OP_DZ ) &
+!!$            +pst79(:,OP_DZ )*bzt79(:,OP_DRZ) - pst79(:,OP_DR )*bzt79(:,OP_DZZ)) &
+!!$           +pst79(:,OP_DR)* &
+!!$            (pst79(:,OP_DRZ)*bzt79(:,OP_DR ) - pst79(:,OP_DRR)*bzt79(:,OP_DZ ) &
+!!$            +pst79(:,OP_DZ )*bzt79(:,OP_DRR) - pst79(:,OP_DR )*bzt79(:,OP_DRZ))) &
+!!$           +bzt79(:,OP_1)**2*(ni79(:,OP_DZ)*bzt79(:,OP_DR) - ni79(:,OP_DR)*bzt79(:,OP_DZ))) &
           +2.*ri3_79*bzt79(:,OP_1)* &
            (bzt79(:,OP_DZ)*pht79(:,OP_DR) - bzt79(:,OP_DR)*pht79(:,OP_DZ))
 
      if(itor.eq.1) then
         temp79a = temp79a &
              - 2.*ri4_79*pst79(:,OP_DZ)*vzt79(:,OP_1)*bzt79(:,OP_1) &
-             +dbf*ri4_79*ni79(:,OP_1)* &
-              (pst79(:,OP_DR)*(pst79(:,OP_DZ)*bzt79(:,OP_DR) - pst79(:,OP_DR)*bzt79(:,OP_DZ)) &
-              -2.*pst79(:,OP_DZ)*pst79(:,OP_GS)*bzt79(:,OP_1) &
-              -2.*bzt79(:,OP_1)**2*bzt79(:,OP_DZ)) &
+!!$             +dbf*ri4_79*ni79(:,OP_1)* &
+!!$              (pst79(:,OP_DR)*(pst79(:,OP_DZ)*bzt79(:,OP_DR) - pst79(:,OP_DR)*bzt79(:,OP_DZ)) &
+!!$              -2.*pst79(:,OP_DZ)*pst79(:,OP_GS)*bzt79(:,OP_1) &
+!!$              -2.*bzt79(:,OP_1)**2*bzt79(:,OP_DZ))  &
              +2.*ri4_79*bzt79(:,OP_1)**2*pht79(:,OP_DZ)
      endif
   endif
 
   if(numvar.ge.3) then
      temp79a = temp79a &
-          - ri_79*pefac*dbf* &
-            (bzt79(:,OP_1)*( ni79(:,OP_DZ)*pet79(:,OP_DR) -  ni79(:,OP_DR)*pet79(:,OP_DZ)) &
-            + ni79(:,OP_1)*(bzt79(:,OP_DZ)*pet79(:,OP_DR) - bzt79(:,OP_DR)*pet79(:,OP_DZ))) &
+!!$          - ri_79*pefac*dbf* &
+!!$            (bzt79(:,OP_1)*( ni79(:,OP_DZ)*pet79(:,OP_DR) -  ni79(:,OP_DR)*pet79(:,OP_DZ)) &
+!!$            + ni79(:,OP_1)*(bzt79(:,OP_DZ)*pet79(:,OP_DR) - bzt79(:,OP_DR)*pet79(:,OP_DZ))) &
           + ri2_79*bzt79(:,OP_1)* &
             (bzt79(:,OP_1)*cht79(:,OP_GS) + &
             2.*(bzt79(:,OP_DZ)*cht79(:,OP_DZ) + bzt79(:,OP_DR)*cht79(:,OP_DR))) &
@@ -3037,11 +3335,91 @@ real function flux_poynting(dbf)
           
   endif
 
-!!$ MISSING HYPER-RESISTIVE TERMS
+! MISSING HYPER-RESISTIVE TERMS
 
   flux_poynting = -int1(temp79a,weight_79,79)
   return
 end function flux_poynting
+
+
+!!$! Poynting flux
+!!$! -------------
+!!$real function flux_poynting(dbf)
+!!$
+!!$  use basic
+!!$  use nintegrate_mod
+!!$
+!!$  real, intent(in) :: dbf
+!!$
+!!$  if(idens.eq.0) then
+!!$     ni79 = 0.
+!!$     ni79(:,OP_1) = 1.
+!!$  endif
+!!$
+!!$  temp79a = 0.
+!!$
+!!$  temp79a = ri3_79* &
+!!$       (pst79(:,OP_DZ)* &
+!!$        (pst79(:,OP_DRZ)*pht79(:,OP_DZ ) + pst79(:,OP_DRR)*pht79(:,OP_DR ) &
+!!$        +pst79(:,OP_DZ )*pht79(:,OP_DRZ) + pst79(:,OP_DR )*pht79(:,OP_DRR)) &
+!!$       -pst79(:,OP_DR)* &
+!!$        (pst79(:,OP_DZZ)*pht79(:,OP_DZ ) + pst79(:,OP_DRZ)*pht79(:,OP_DR ) &
+!!$        +pst79(:,OP_DZ )*pht79(:,OP_DZZ) + pst79(:,OP_DR )*pht79(:,OP_DRZ)))
+!!$  
+!!$  if(itor.eq.1) then
+!!$     temp79a = temp79a - 2.*ri4_79*pst79(:,OP_DZ)* &
+!!$          (pst79(:,OP_DZ)*pht79(:,OP_DZ) + pst79(:,OP_DR)*pht79(:,OP_DR))
+!!$  endif
+!!$ 
+!!$  if(numvar.ge.2) then
+!!$
+!!$     temp79a = temp79a &
+!!$          + ri3_79* &
+!!$           (vzt79(:,OP_1)*(pst79(:,OP_DZ)*bzt79(:,OP_DR) - pst79(:,OP_DR)*bzt79(:,OP_DZ)) &
+!!$           +bzt79(:,OP_1)*(pst79(:,OP_DZ)*vzt79(:,OP_DR) - pst79(:,OP_DR)*vzt79(:,OP_DZ))) &
+!!$          +dbf*ri3_79* &
+!!$           (( jt79(:,OP_1 )*bzt79(:,OP_1 ) - &
+!!$             pst79(:,OP_DZ)*bzt79(:,OP_DZ) + pst79(:,OP_DR)*bzt79(:,OP_DR)) * &
+!!$            (pst79(:,OP_DZ)* ni79(:,OP_DR) - pst79(:,OP_DR)* ni79(:,OP_DZ)) &
+!!$           -ni79(:,OP_1)* &
+!!$            (pst79(:,OP_DZ)* &
+!!$             (pst79(:,OP_DRZ)*bzt79(:,OP_DZ ) + pst79(:,OP_DRR)*bzt79(:,OP_DR ) &
+!!$             +pst79(:,OP_DZ )*bzt79(:,OP_DRZ) + pst79(:,OP_DR )*bzt79(:,OP_DRR)) &
+!!$            -pst79(:,OP_DR)* &
+!!$             (pst79(:,OP_DZZ)*bzt79(:,OP_DZ ) + pst79(:,OP_DRZ)*bzt79(:,OP_DR ) &
+!!$             +pst79(:,OP_DZ )*bzt79(:,OP_DZZ) + pst79(:,OP_DR )*bzt79(:,OP_DRZ)) &
+!!$            + jt79(:,OP_1)*(pst79(:,OP_DZ)*bzt79(:,OP_DR) - pst79(:,OP_DR)*bzt79(:,OP_DZ)) &
+!!$            +bzt79(:,OP_1)*(pst79(:,OP_DZ)* jt79(:,OP_DR) - pst79(:,OP_DR)* jt79(:,OP_DZ))))
+!!$
+!!$     if(itor.eq.1) then
+!!$        temp79a = temp79a  &
+!!$             -2.*ri4_79*vzt79(:,OP_1)*bzt79(:,OP_1)*pst79(:,OP_DZ) &
+!!$             +2.*dbf*ri4_79*pst79(:,OP_DZ)*ni79(:,OP_1) * &
+!!$              (pst79(:,OP_DZ)*bzt79(:,OP_DZ) + pst79(:,OP_DR)*bzt79(:,OP_DR) &
+!!$              - jt79(:,OP_1 )*bzt79(:,OP_1 ))
+!!$     endif
+!!$  endif
+!!$
+!!$  if(numvar.ge.3) then
+!!$     temp79a = temp79a &
+!!$          +ri2_79* &
+!!$           (pst79(:,OP_DZ)*(pst79(:,OP_DRZ)*cht79(:,OP_DR ) - pst79(:,OP_DRR)*cht79(:,OP_DZ )  &
+!!$                           +pst79(:,OP_DZ )*cht79(:,OP_DRR) - pst79(:,OP_DR )*cht79(:,OP_DRZ)) &
+!!$           -pst79(:,OP_DR)*(pst79(:,OP_DZZ)*cht79(:,OP_DR ) - pst79(:,OP_DRZ)*cht79(:,OP_DZ )  &
+!!$                           +pst79(:,OP_DZ )*cht79(:,OP_DRZ) - pst79(:,OP_DR )*cht79(:,OP_DZZ)))
+!!$          
+!!$     if(itor.eq.1) then
+!!$        temp79a = temp79a &
+!!$             + pst79(:,OP_DZ)*(pst79(:,OP_DZ)*cht79(:,OP_DR)-pst79(:,OP_DR)*cht79(:,OP_DZ))
+!!$     endif
+!!$  endif
+!!$
+!!$! MISSING HYPER-RESISTIVE TERMS
+!!$
+!!$  flux_poynting = -int1(temp79a,weight_79,79)
+!!$  return
+!!$end function flux_poynting
+
 
 
 ! Heat flux
@@ -3050,6 +3428,8 @@ real function flux_heat
 
   use basic
   use nintegrate_mod
+
+  implicit none
 
   real :: temp
 
@@ -3060,10 +3440,13 @@ real function flux_heat
 
   ! Isotropic heat flux
   if(idens.eq.0) then
-     temp79a = kappat*pt79(:,OP_LP)
+     temp79a = kap79(:,OP_1)*pt79(:,OP_LP) &
+          + kap79(:,OP_DZ)*pt79(:,OP_DZ) + kap79(:,OP_DR)*pt79(:,OP_DR)
   else
-     temp79a = kappat*(ni79(:,OP_1)*pt79(:,OP_LP) + ni79(:,OP_LP)*pt79(:,OP_1) &
-          + 2.*(ni79(:,OP_DZ)*pt79(:,OP_DZ) + ni79(:,OP_DR)*pt79(:,OP_DR)))
+     temp79a = kap79(:,OP_1)*(ni79(:,OP_1)*pt79(:,OP_LP) + ni79(:,OP_LP)*pt79(:,OP_1) &
+          + 2.*(ni79(:,OP_DZ)*pt79(:,OP_DZ) + ni79(:,OP_DR)*pt79(:,OP_DR))) &
+          + ni79(:,OP_1)*(kap79(:,OP_DZ)*pt79(:,OP_DZ) + kap79(:,OP_DR)*pt79(:,OP_DR)) &
+          + pt79(:,OP_1)*(kap79(:,OP_DZ)*ni79(:,OP_DZ) + kap79(:,OP_DR)*ni79(:,OP_DR))
   endif
 
   temp = int1(temp79a,weight_79,79)
@@ -3124,6 +3507,8 @@ real function grav_pot
 
   use basic
   use nintegrate_mod
+
+  implicit none
 
   real :: temp
 

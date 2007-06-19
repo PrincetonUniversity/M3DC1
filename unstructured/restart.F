@@ -3,6 +3,7 @@
       use t_data
       use basic
       use arrays
+      use diagnostics
 
       implicit none
       integer mmnn18, j1, mmnn6, ifirstrs, numnodes, numelms, ntimein
@@ -99,6 +100,7 @@ c     first put in information to check on run information
       use t_data
       use basic
       use arrays
+      use diagnostics
       implicit none
       integer mmnn18, j1, mmnn6, itime, igr, numnodes, inumnodes, 
      1     inumelms, immnn18, inumvar, iiper, ijper, imyrank,
@@ -269,6 +271,7 @@ c     first put in information to check on run information
       use t_data
       use basic
       use arrays
+      use diagnostics
       implicit none
       include 'mpif.h'
       integer ifirstrs2, numdofsglobal, mpitag, status, 
@@ -404,6 +407,7 @@ c     below specifies that this is the last line
       use t_data
       use basic
       use arrays
+      use diagnostics
       implicit none
       include 'mpif.h'
       integer numdofsglobal, numentsglobal(4), i, numnodes, j, globalid,

@@ -22,8 +22,8 @@ module basic
   real :: amu         ! incompressible viscosity
   real :: amuc        ! compressible viscosity
   real :: etar, eta0  ! resistivity = etar + eta0/T^(3/2)
-  real :: kappa       ! pressure diffusion
   real :: kappat      ! isotropic temperature conductivity
+  real :: kappa0      ! kappa = kappat + kappa0*n/T^(1/2)
   real :: kappar      ! anisotropic (field-aligned) temperature conductivity
   real :: denm        ! artificial density diffusion
   real :: deex        ! scale length of hyperviscosity term
@@ -71,7 +71,6 @@ module basic
   integer :: ntimemax    ! number of timesteps
   integer :: nskip       ! number of timesteps per matrix recalculation
   integer :: iconstflux  ! 1 = conserve toroidal flux
-  integer :: isources    ! 1 = include source terms in velocity advance
   integer :: integrator  ! 0 = Crank-Nicholson, 1 = BDF2
   integer :: igs         ! number of grad-shafranov iterations
   real :: dt             ! timestep
@@ -103,13 +102,13 @@ module basic
        linear,maxs,ntimemax,ntimepr,itor,                      &
        irestart,itaylor,itest,isecondorder,imask,nskip,        &
        numvar,istart,idens,ipres,thimp,amu,etar,dt,p1,p2,p0,   &
-       tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,cb,       &
+       tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,          &
        bzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,        &
-       kappa,iper,jper,iprint,itimer,xzero,zzero,beta,pi0,     &
+       iper,jper,iprint,itimer,xzero,zzero,beta,pi0,           &
        eqsubtract,denm,gravr,gravz,kappat,kappar,ln,amuc,      &
-       iconstflux,regular,deex,gyro,vloop,eta0,isources,pedge, &
-       integrator,expn,divertors,xdiv,zdiv,divcur, &
-       control_p,control_i,control_d,idevice,igs
+       iconstflux,regular,deex,gyro,vloop,eta0,pedge,          &
+       integrator,expn,divertors,xdiv,zdiv,divcur,             &
+       control_p,control_i,control_d,idevice,igs,kappa0
 
   !     derived quantities
   real :: tt,pi,                                                       &
@@ -117,13 +116,7 @@ module basic
        gbound,fbound
   integer ::  ni(20),mi(20),                                           &
        ntime,ntimer,nrank,ntimemin,ntensor,idebug, islutype
-  real :: ekin, emag, ekind, emagd, ekino, emago, ekindo, emagdo,      &
-       ekint,emagt,ekintd,emagtd,ekinto,emagto,ekintdo,emagtdo,        &
-       ekinp,emagp,ekinpd,emagpd,ekinpo,emagpo,ekinpdo,emagpdo,        &
-       ekinph,ekinth,emagph,emagth,ekinpho,ekintho,emagpho,emagtho,    &
-       ekin3,ekin3d,ekin3h,emag3,ekin3o,ekin3do,ekin3ho,emag3o,        &
-       emag3h,emag3d,emag3ho,emag3do,chierror,tflux0,totcur0,          &
-       efluxd,efluxp,efluxk,efluxs,efluxt,epotg,etot,ptot,eerr
+
   character*8 :: filename(50)
   character*10 :: datec, timec
   
@@ -165,13 +158,13 @@ module arrays
        velold(:), vel0(:), vel1(:),                               &
        phi(:), phis(:), phip(:),                                  &
        phiold(:), phi0(:), phi1(:),                               &
-       jphi(:),sb1(:),sb2(:),sp1(:),                              &
-       vor(:),com(:),                                             &
+       jphi(:),vor(:),com(:),                                     &
        den(:),den0(:),denold(:),deni(:),dens(:),                  &
        pres(:),pres0(:),presold(:),press(:),                      &
        r4(:),q4(:),qn4(:),qp4(:),                                 &
        b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
-       b5vector(:), vtemp(:), resistivity(:), tempvar(:)
+       b5vector(:), vtemp(:), resistivity(:), tempvar(:),         &
+       kappa(:)
 
   contains
 !================================
@@ -342,33 +335,6 @@ module arrays
          allocate(jphi(ivecsize))
          jphi = 0.
          call updateids(vec, jphi)
-         return
-      endif
-
-      call checksamevec(sb1, vec, i)
-      if(i .eq. 1) then
-         if(allocated(sb1)) deallocate(sb1, STAT=i)
-         allocate(sb1(ivecsize))
-         sb1 = 0.
-         call updateids(vec, sb1)
-         return
-      endif
-
-      call checksamevec(sb2, vec, i)
-      if(i .eq. 1) then
-         if(allocated(sb2)) deallocate(sb2, STAT=i)
-         allocate(sb2(ivecsize))
-         sb2 = 0.
-         call updateids(vec, sb2)
-         return
-      endif
-
-      call checksamevec(sp1, vec, i)
-      if(i .eq. 1) then
-         if(allocated(sp1)) deallocate(sp1, STAT=i)
-         allocate(sp1(ivecsize))
-         sp1 = 0.
-         call updateids(vec, sp1)
          return
       endif
 

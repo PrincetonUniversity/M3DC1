@@ -3339,9 +3339,300 @@ real function g3chipsipsib(e, chi, psi, b, p, b2i)
 end function g3chipsipsib
 
 
+!======================================================================
+! ENERGY
+!======================================================================
+
+
+! Poloidal magnetic
+! -----------------
+real function energy_mp()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  temp = .5* &
+       (int3(ri2_79,pst79(:,OP_DZ),pst79(:,OP_DZ),weight_79,79) &
+       +int3(ri2_79,pst79(:,OP_DR),pst79(:,OP_DR),weight_79,79))
+
+  energy_mp = temp
+  return
+end function energy_mp
+
+
+! Toroidal magnetic
+! -----------------
+real function energy_mt()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  temp = .5*int3(ri2_79,bzt79(:,OP_1),bzt79(:,OP_1),weight_79,79)
+
+  energy_mt = temp
+  return
+end function energy_mt
+
+
+! Pressure
+! --------
+real function energy_p()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  if(gam.eq.1) then 
+     temp = 0.
+  else
+     temp = int1(pt79,weight_79,79) / (gam - 1.)
+  endif
+
+  energy_p = temp
+  return
+end function energy_p
+
+
+
+! Poloidal kinetic
+! ----------------
+real function energy_kp()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  if(idens.eq.0) then
+     temp = .5* &
+          (int3(r2_79,pht79(:,OP_DZ),pht79(:,OP_DZ),weight_79,79) &
+          +int3(r2_79,pht79(:,OP_DR),pht79(:,OP_DR),weight_79,79))
+  else
+     temp = .5* &
+          (int4(r2_79,pht79(:,OP_DZ),pht79(:,OP_DZ),nt79(:,OP_1),weight_79,79) &
+          +int4(r2_79,pht79(:,OP_DR),pht79(:,OP_DR),nt79(:,OP_1),weight_79,79))
+  endif
+
+  energy_kp = temp
+  return
+end function energy_kp
+
+
+! Toroidal kinetic
+! ----------------
+real function energy_kt()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  if(idens.eq.0) then
+     temp = .5*int2(vzt79(:,OP_1),vzt79(:,OP_1),weight_79,79)
+  else
+     temp = .5*int3(vzt79(:,OP_1),vzt79(:,OP_1),nt79(:,OP_1),weight_79,79)
+  endif
+
+  energy_kt = temp
+  return
+end function energy_kt
+
+
+! Compressional kinetic
+! ---------------------
+real function energy_k3()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  if(idens.eq.0) then
+     temp = .5* &
+          (int2(cht79(:,OP_DZ),cht79(:,OP_DZ),weight_79,79) &
+          +int2(cht79(:,OP_DR),cht79(:,OP_DR),weight_79,79)) &
+          +int3(r_79,cht79(:,OP_DZ),pht79(:,OP_DR),weight_79,79) &
+          -int3(r_79,cht79(:,OP_DR),pht79(:,OP_DZ),weight_79,79)
+  else
+     temp = .5* &
+          (int3(cht79(:,OP_DZ),cht79(:,OP_DZ),nt79(:,OP_1),weight_79,79) &
+          +int3(cht79(:,OP_DR),cht79(:,OP_DR),nt79(:,OP_1),weight_79,79)) &
+          +int4(r_79,cht79(:,OP_DZ),pht79(:,OP_DR),nt79(:,OP_1),weight_79,79) &
+          -int4(r_79,cht79(:,OP_DR),pht79(:,OP_DZ),nt79(:,OP_1),weight_79,79)
+  endif
+
+  energy_k3 = temp
+  return
+end function energy_k3
+
+! Poloidal resistive
+! ------------------
+real function energy_mpd()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  temp = -int4(ri2_79,pst79(:,OP_GS),pst79(:,OP_GS),eta79(:,OP_1),weight_79,79)
+
+  energy_mpd = temp
+  return
+end function energy_mpd
+
+
+! Toroidal resistive
+! ------------------
+real function energy_mtd()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  temp = - &
+       (int4(ri2_79,bzt79(:,OP_DZ),bzt79(:,OP_DZ),eta79(:,OP_1),weight_79,79) &
+       +int4(ri2_79,bzt79(:,OP_DR),bzt79(:,OP_DR),eta79(:,OP_1),weight_79,79))
+
+  energy_mtd = temp
+  return
+end function energy_mtd
+
+
+! Poloidal viscous
+! ----------------
+real function energy_kpd()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  temp = -amu*int3(r2_79,pht79(:,OP_LP ),pht79(:,OP_LP ),weight_79,79)
+
+  energy_kpd = temp
+  return
+end function energy_kpd
+
+
+! Toroidal viscous
+! ----------------
+real function energy_ktd()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  temp = -amu* &
+       (int2(vzt79(:,OP_DZ),vzt79(:,OP_DZ),weight_79,79) &
+       +int2(vzt79(:,OP_DR),vzt79(:,OP_DR),weight_79,79))
+
+  energy_ktd = temp
+  return
+end function energy_ktd
+
+! Compressional viscous
+! ---------------------
+real function energy_k3d()
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real :: temp
+
+  temp = -amuc*int2(pht79(:,OP_LP),pht79(:,OP_LP),weight_79,79)
+
+  energy_k3d = temp
+  return
+end function energy_k3d
+
+
+! Poloidal hyper-viscous
+! ----------------------
+real function energy_kph(hypc)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in) :: hypc
+  
+  real :: temp
+
+  temp = -hypc*amu* &
+       (int3(r2_79,vot79(:,OP_DZ),vot79(:,OP_DZ),weight_79,79) &
+       +int3(r2_79,vot79(:,OP_DR),vot79(:,OP_DR),weight_79,79))
+
+  energy_kph = temp
+  return
+end function energy_kph
+
+
+! Toroidal hyper-viscous
+! ----------------------
+real function energy_kth(hypv)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in) :: hypv
+  real :: temp
+
+  temp = -amu*hypv*int2(vzt79(:,OP_GS),vzt79(:,OP_GS),weight_79,79)
+
+  energy_kth = temp
+  return
+end function energy_kth
+
+! Compressional hyper-viscous
+! ---------------------------
+real function energy_k3h(hypc)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in) :: hypc
+  real :: temp
+
+  temp = -hypc*amuc* &
+       (int2(cot79(:,OP_DZ),cot79(:,OP_DZ),weight_79,79) &
+       +int2(cot79(:,OP_DR),cot79(:,OP_DR),weight_79,79))
+
+  energy_k3h = temp
+  return
+end function energy_k3h
+
 end module metricterms_n
-
-
-
-
-
