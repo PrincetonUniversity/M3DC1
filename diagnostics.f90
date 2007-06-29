@@ -423,7 +423,7 @@ subroutine calculate_scalars()
      ! ~~~~~~~~~~~~~~~~~
      !  (extra factor of 1/r comes from delta function in toroidal coordinate)
      area = area + int1(ri_79,weight_79,79)
-     totcur = totcur - int2(ri2_79,jt79(:,OP_1),weight_79,79)
+     totcur = totcur - int2(ri2_79,pst79(:,OP_GS),weight_79,79)
      if(numvar.ge.2) tflux = tflux + int2(ri2_79,bzt79(:,OP_1),weight_79,79)
      if(idens.eq.1) totden = totden + int2(ri_79,nt79(:,OP_1),weight_79,79)
      if(numvar.ge.2) then

@@ -13,7 +13,7 @@ subroutine control_pid
   error_i = error_i + error_p*dt
   error_d = (error_p - error_old)/dt
 
-  vloop = vloop*(1.- control_p*(error_p + control_i*error_i + control_d*error_d))
+  vloop = vloop*(1.- control_p*error_p - control_i*error_i/dt - control_d*error_d*dt)
 
   error_old = error_p
 

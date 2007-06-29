@@ -676,27 +676,44 @@ subroutine define_fields_79(itri, fields)
         pit79 = pt79 * pi0/p0
      endif
   endif
+
   
   ! N
   ! ~
   if(iand(fields, FIELD_N).eq.FIELD_N) then
-     call calcavector(itri, den, 1, 1, avec)
-     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, n179)
+
+     if(idens.eq.1) then
+        call calcavector(itri, den, 1, 1, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, n179)
      
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
-        call calcavector(itri, den0, 1, 1, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, n079)
-        nt79 = n079 + n179
+        if(linear.eq.1 .or. eqsubtract.eq.1) then
+           call calcavector(itri, den0, 1, 1, avec)
+           call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, n079)
+           nt79 = n079 + n179
+        else
+           nt79 = n179
+        endif
      else
-        nt79 = n179
+        n079 = 0.
+        n179 = 0.
+        nt79 = 0.
+        n079(:,OP_1) = 1.
+        n179(:,OP_1) = 1.
+        nt79(:,OP_1) = 1.
      endif
+
   endif
 
   ! NI
   ! ~~
   if(iand(fields, FIELD_NI).eq.FIELD_NI) then
-     call calcavector(itri, deni, 1, 1, avec)
-     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ni79)
+     if(idens.eq.1) then
+        call calcavector(itri, deni, 1, 1, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ni79)
+     else
+        ni79 = 0.
+        ni79(:,OP_1) = 1.
+     endif
   endif
 
   

@@ -149,6 +149,10 @@
 !......toroidal magnetic field
       bzero = 1.
 !
+!
+!.....initial toroidal velocity
+      vzero = 0.
+!
       facw = 1.
 !.....multiplies the diffusion [test] terms 
       facd = 1.

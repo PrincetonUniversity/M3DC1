@@ -102,6 +102,10 @@ subroutine ludefall
      if(numvar.lt.3) def_fields = def_fields + FIELD_P + FIELD_PE + FIELD_B2I
   endif
 
+  if(hyperc.ne.0 .and. numvar.ge.3) then
+     def_fields = def_fields + FIELD_VOR + FIELD_COM
+  endif
+
   ! Loop over local elements
   do itri=1,numelms
 

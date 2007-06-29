@@ -19,7 +19,7 @@ subroutine static_equ(ibegin)
   integer, intent(in) :: ibegin
 
   call constant_field(vel0(ibegin   :ibegin+5 ), 0.)
-  if(numvar.ge.2)  call constant_field(vel0(ibegin+6 :ibegin+11), 0.)
+  if(numvar.ge.2)  call constant_field(vel0(ibegin+6 :ibegin+11), vzero)
   if(numvar.ge.3)  call constant_field(vel0(ibegin+12:ibegin+17), 0.)
 end subroutine static_equ
 !==============================

@@ -491,7 +491,7 @@ function energy, filename=filename, error=error
      + s.Flux_diffusive._data $
      + s.Flux_pressure._data  $
      + s.Flux_kinetic._data   $
-     + 0.*s.Flux_poynting._data  $
+     + s.Flux_poynting._data / (2.*3.14159)  $
      + s.Flux_thermal._data
 
    eloop = s.loop_voltage._data * s.toroidal_current._data / (2.*3.14159265)
@@ -515,32 +515,41 @@ end
 pro plot_fluxes, filename=filename, ylog=ylog, overplot=overplot, _EXTRA=extra
 
    s = read_scalars(filename=filename)
+   eloop = -s.loop_voltage._data * s.toroidal_current._data / (2.*3.14159265)
 
    yrange=[min([s.Flux_diffusive._data,s.Flux_pressure._data, $
                 s.Flux_kinetic._data,  s.Flux_poynting._data, $
-                s.Flux_thermal._data]), $
+                s.Flux_thermal._data, eloop]), $
            max([s.Flux_diffusive._data,s.Flux_pressure._data, $
                 s.Flux_kinetic._data,  s.Flux_poynting._data, $
-                s.Flux_thermal._data])]*1.2
+                s.Flux_thermal._data, eloop])]*1.2
 
+   tot = eloop + s.Flux_diffusive._data + $
+     s.Flux_kinetic._data + s.Flux_pressure._data + $
+     0.*s.Flux_poynting._data + s.Flux_thermal._data
+
+   title  = '!6Power Density Fluxes!3'
    xtitle = '!8t !6(!7s!D!8A!N!6)!3'
-   ytitle = '!6Energy Flux (!8B!D0!U2!N/4!7p s!D!8A!N L!U2!N)!3'
+   ytitle = '!6Power Density Flux (!8B!D0!U2!N/4!7p s!D!8A!N L!U2!N)!3'
 
    if(keyword_set(overplot)) then begin
-       oplot,  s.time._data, s.Flux_diffusive._data, color=color(0,5), $
+       oplot,  s.time._data, eloop, color=color(0,7), $
          _EXTRA=extra
    endif else begin
-       plot,  s.time._data, s.Flux_diffusive._data, color=color(0,5), $
+       plot,  s.time._data, eloop, color=color(0,7), $
          ylog=ylog, xlog=xlog, yrange=yrange, xtitle=xtitle, ytitle=ytitle, $
-         _EXTRA=extra
+         _EXTRA=extra, title=title
    endelse
-   oplot, s.time._data, s.Flux_kinetic._data, color=color(1,5)
-   oplot, s.time._data, s.Flux_pressure._data, color=color(2,5)
-   oplot, s.time._data, s.Flux_poynting._data, color=color(3,5)
-   oplot, s.time._data, s.Flux_thermal._data, color=color(4,5)
+   oplot, s.time._data, s.Flux_diffusive._data, color=color(1,7)
+   oplot, s.time._data, s.Flux_kinetic._data, color=color(2,7)
+   oplot, s.time._data, s.Flux_pressure._data, color=color(3,7)
+   oplot, s.time._data, s.Flux_poynting._data, color=color(4,7)
+   oplot, s.time._data, s.Flux_thermal._data, color=color(5,7)
+   oplot, s.time._data, tot, color=color(6,7)
 
-   plot_legend, ['Diffusive', 'KE Conv', 'Pressure Conv.', $
-                 'Poynting', 'Thermal'], color=colors(5), ylog=ylog, xlog=xlog
+   plot_legend, ['Inductive drive', 'Diffusive', 'KE Conv', $
+                 'Pressure Conv.', 'Poynting', 'Thermal', 'Total'], $
+     color=colors(7), ylog=ylog, xlog=xlog
 end
 
 
@@ -586,9 +595,9 @@ pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog, $
    ; Account for fluxes across boundary
    dissipated = dissipated    $
      + s.Flux_diffusive._data $
-     + s.Flux_pressure._data  $
-     + s.Flux_kinetic._data   $
-     - 0.*s.Flux_poynting._data  $
+     + s.Flux_pressure._data $
+     + 0.*s.Flux_kinetic._data  $
+     + 0.*s.Flux_poynting._data  $
      + s.Flux_thermal._data
 
    ; account for loop voltage
@@ -694,6 +703,186 @@ pro plot_field_mpeg, fieldname, mpegame=mpegname, range=range, points=pts, $
 end
 
 
+; ==============================================================
+; nulls
+; -----
+;
+;  Finds field nulls.
+;  xpoint = fltarr(2,xpoints): indices of x-point locations
+;  axis   = fltarr(2,axes)   : indices of axis locations
+; ==============================================================
+pro nulls, time, axis=axis, xpoints=xpoint, $
+              _EXTRA=extra, psi=psi, r=x, z=z
+
+   if(n_elements(time) eq 0) then time = 0
+
+   if(n_elements(psi) eq 0 or n_elements(x) eq 0 or n_elements(z) eq 0) $
+     then begin
+       psi = read_field('psi', r=x, z=z, slice=time, _EXTRA=extra)
+   endif
+   
+   field = s_bracket(psi,psi,x,z)
+   d2 = dz(dz(psi,z),z)*dx(dx(psi,x),x)
+   
+   nulls = field lt mean(field)/1e2
+
+   sz = size(field)
+
+   xpoints = 0
+   xpoint = 0.
+   axes = 0
+   axis = 0.
+   
+   for i=0, sz[2]-1 do begin
+       for j=0, sz[3]-1 do begin
+           if(nulls[0,i,j] eq 0) then continue
+
+           currentmin = field[0,i,j]
+           currentpos = [i,j]
+
+           ; find local minimum
+           for m=i, sz[2]-1 do begin
+               for n=j, sz[3]-1 do begin
+                   if(nulls[0,m,n] eq 0) then break
+
+                   if(field[0,m,n] lt currentmin) then begin
+                       currentmin = field[0,m,n]
+                       currentpos = [m,n]
+                   endif
+                   nulls[0,m,n] = 0
+               endfor
+               for n=j-1, 0, -1 do begin
+                   if(nulls[0,m,n] eq 0) then break
+
+                   if(field[0,m,n] lt currentmin) then begin
+                       currentmin = field[0,m,n]
+                       currentpos = [m,n]
+                   endif
+                   nulls[0,m,n] = 0
+               endfor
+           endfor
+
+           ; throw out local minima on boundaries
+           if (currentpos[0] eq 0) or (currentpos[0] eq sz[2]-1) then continue
+           if (currentpos[1] eq 0) or (currentpos[1] eq sz[3]-1) then continue
+
+           ; determine if point is an x-point or an axis and
+           ; append the location index to the appropriate array
+           if(d2[0,currentpos[0],currentpos[1]] lt 0) then begin
+               print, "X-point found at", x[currentpos[0]], z[currentpos[1]]
+               xpoints = xpoints + 1
+               if(xpoints eq 1) then begin
+                   xpoint = currentpos
+               endif else begin
+                   oldxpoint = xpoint
+                   xpoint = intarr(2, xpoints)
+                   xpoint[*,0:xpoints-2] = oldxpoint
+                   xpoint[*,xpoints-1] = currentpos
+               endelse
+           endif else begin
+               print, "Axis found at", x[currentpos[0]], z[currentpos[1]]
+               axes = axes + 1
+               if(axes eq 1) then begin
+                   axis = currentpos
+               endif else begin
+                   oldaxis = axis
+                   axis = intarr(2, axes)
+                   axis[*,0:axes-2] = oldaxis
+                   axis[*,axes-1] = currentpos
+               endelse
+           endelse
+       endfor
+   endfor 
+
+end
+
+
+; ========================================================
+; lcfs
+; ~~~~
+;
+; returns the flux value of the last closed flux surface
+; ========================================================
+function lcfs, time, psi=psi, r=x, z=z, _EXTRA=extra
+   if(n_elements(time) eq 0) then time = 0
+
+   if(n_elements(psi) eq 0 or n_elements(x) eq 0 or n_elements(z) eq 0) $
+     then begin
+       psi = read_field('psi', r=x, z=z, slice=time, _EXTRA=extra)
+   endif
+
+   nulls, time, psi=psi, xpoint=xpoint, axis=axis, r=x, z=z, _EXTRA=extra
+
+   ; flux at magnetic axis
+   if(n_elements(axis) lt 2) then begin
+       print, "Error: no magnetic axis"
+       psi0 = max(psi[0,*,*])
+   endif else begin
+       psi0 = psi[0,axis[0,0],axis[1,0]]
+   endelse
+   if(n_elements(axis) gt 2) then begin
+       print, "Warning: there is more than one magnetic axis"
+   endif
+   print, "Flux on axis:", psi0
+
+   ; limiting value
+   ; Find limiting flux by calculating outward normal derivative of
+   ; the normalized flux.  If this derivative is negative, there is a
+   ; limiter.
+   sz = size(psi)
+
+   psiz = dz(psi,z)
+   psix = dx(psi,x)
+
+   normal_mask = psi*0.
+   normal_mask[0,      *,      0] = 1.
+   normal_mask[0,      *,sz[3]-1] = 1.
+   normal_mask[0,      0,      *] = 1.
+   normal_mask[0,sz[2]-1,      *] = 1.
+
+   normal_deriv = psi*0.
+   normal_deriv[0,      *,      0] = -3.14159625/2.     ; bottom
+   normal_deriv[0,      *,sz[3]-1] =  3.14159625/2.     ; top
+   normal_deriv[0,      0,      *] =  3.14159625        ; left
+   normal_deriv[0,sz[2]-1,      *] =  0.                ; right
+   normal_deriv = $
+     (psix*cos(normal_deriv) + psiz*sin(normal_deriv))*normal_mask
+
+   normal_deriv = normal_deriv lt 0
+
+   psi_bound = psi*normal_deriv + (1-normal_deriv)*1e10
+
+   psilim = min(psi_bound-psi0, i, /absolute)
+   psilim = psi_bound[i]
+   print, "Flux at limiter", psilim
+
+   ; flux at separatrix
+   sz = size(xpoint)
+   if(sz[0] gt 0) then begin
+       xfluxes = fltarr(sz[0])
+       for i=0, sz[0]-1 do xfluxes[i] = psi[0,xpoint[0,i],xpoint[1,i]]
+       psix = min(xfluxes-psi0, i, /absolute)
+       psix = xfluxes[i]
+       print, "Flux at separatrix:", psix
+
+       if(abs(psix-psi0) gt abs(psilim-psi0)) then begin
+           print, "Plasma is limited."
+       endif else begin
+           print, "Plasma is diverted."
+           psilim = psix
+       endelse
+   endif
+   
+   return, psilim
+end
+
+
+; ========================================================
+; plot_lcfs
+; ~~~~~~~~~
+;
+; plots the last closed flux surface
+; ========================================================
 pro plot_lcfs, time, color=color, val=psival, psi=psi, x=x, y=y, points=pts, $
                filename=filename
 
@@ -704,17 +893,7 @@ pro plot_lcfs, time, color=color, val=psival, psi=psi, x=x, y=y, points=pts, $
 
     ; if psival not passed, choose limiter value
     if(n_elements(psival) eq 0) then begin
-        xlim = lcfs(time, psi=psi, r=x, z=y, points=pts)
-
-;        xlim = read_parameter("xlim")
-        print, "xlim = ", xlim
-
-        ; find index corresponding to limiter
-        d = min(x-xlim, ilim, /absolute)
-    
-        ; find value of flux at the limiter
-        psival = max(psi[0,ilim,*])
-        print, "psi(xlim) = ", psival
+        psival = lcfs(time, psi=psi, r=x, z=y, points=pts)
     endif
 
     ; plot contour
@@ -960,8 +1139,14 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
 end
 
 
+; ==================================================
+; plot_pol_velocity
+; ~~~~~~~~~~~~~~~~~
+;
+; makes a vector plot of the poloidal velocity
+; ==================================================
 pro plot_pol_velocity, time, filename=filename, points=pts, maxval=maxval, $
-                       _EXTRA=extra
+                       lcfs=lcfs, _EXTRA=extra
 
   nv = read_parameter('numvar', filename=filename)
 
@@ -987,14 +1172,36 @@ pro plot_pol_velocity, time, filename=filename, points=pts, maxval=maxval, $
       length = bigvel/maxval
   endif else length=1
 
+  if(n_elements(title) eq 0) then begin
+       if(t gt 0) then begin
+           title = "!6Poloidal Flow " + $
+             string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!3")', t)
+       endif else begin
+           title = "!6Poloidal Flow " + $
+             string(FORMAT='("!6(!8t!6 = ",G0,")!3")', t)
+       endelse
+   endif
+
   maxstr=string(format='("!6max(!8v!Dpol!N!6) = ",G0)',bigvel)
 
   velovect, reform(vx), reform(vz), x, z, length=length, _EXTRA=extra, $
-    xtitle='!8r !6(!8L!6)!3', ytitle='!8z !6(!8L!6)!3', subtitle=maxstr
+    xtitle='!8r !6(!8L!6)!3', ytitle='!8z !6(!8L!6)!3', $
+    title=title, subtitle=maxstr
+
+   if(keyword_set(lcfs)) then begin
+       plot_lcfs, time, color=130, points=pts, filename=filename
+   endif
 end
 
 
-pro plot_tor_velocity, time, filename=filename, points=pts, _EXTRA=extra
+; ==================================================
+; plot_tor_velocity
+; ~~~~~~~~~~~~~~~~~
+;
+; makes a contour plot of the toroidal velocity
+; ==================================================
+pro plot_tor_velocity, time, filename=filename, points=pts, $
+                       lcfs=lcfs, _EXTRA=extra
 
   nv = read_parameter('numvar', filename=filename)
 
@@ -1009,12 +1216,27 @@ pro plot_tor_velocity, time, filename=filename, points=pts, _EXTRA=extra
 
   vz = v/r
 
-  contour_and_legend, vz, x, z, _EXTRA=extra
+  if(n_elements(title) eq 0) then begin
+       if(t gt 0) then begin
+           title = "!6Toroidal Flow " + $
+             string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!3")', t)
+       endif else begin
+           title = "!6Toroidal Flow " + $
+             string(FORMAT='("!6(!8t!6 = ",G0,")!3")', t)
+       endelse
+   endif
+
+  contour_and_legend, vz, x, z, _EXTRA=extra, title=title
+
+   if(keyword_set(lcfs)) then begin
+       plot_lcfs, time, color=130, points=pts, filename=filename
+   endif
 end
 
   
-pro plot_beta, time, filename=filename, points=pts, _EXTRA=extra
+pro plot_beta, time, filename=filename, points=pts, lcfs=lcfs, _EXTRA=extra
 
+  if(n_elements(time) eq 0) then time=0
   nv    = read_parameter('numvar', filename=filename)
   idens = read_parameter('idens', filename=filename)
 
@@ -1039,250 +1261,73 @@ pro plot_beta, time, filename=filename, points=pts, _EXTRA=extra
       P = 1
   endelse
 
-  beta = 2.*P/(s_bracket(psi,psi,x,z) + i^2)
+  b2 = (s_bracket(psi,psi,x,z) + i^2)/r^2
+
+  beta = 2.*P/b2
 
   contour_and_legend, beta[0,*,*], x, z, title='!6Local !7b!3', $
     xtitle='!8r!3', ytitle='!8z!3', _EXTRA=extra
+
+  if(keyword_set(lcfs)) then begin
+      plot_lcfs, time, color=130, points=pts, filename=filename
+  endif
 
   print, "Mean = ", mean(beta)
 
 end
 
 
-pro plot_q, time, filename=filename, points=pts, _EXTRA=extra
-  nv    = read_parameter('numvar', filename=filename)
-  idens = read_parameter('idens', filename=filename)
+function flux_average, field, time, bins=bins, flux=flux, area=area, $
+                       _EXTRA=extra, range=range
 
-  psi = read_field('psi', filename=filename, $
-                   slice=time, r=x, z=z, t=t, points=pts)
+   if(n_elements(time) eq 0) then time=0
 
-  if(n_elements(psi) le 1) then return
+   sz = size(field)
+   points = sz[2]
 
-  r = radius_matrix(x,z,t)
+   psi = read_field('psi', slice=time, r=x, z=z, $
+                    _EXTRA=extra, points=points)
+   if(n_elements(psi) le 1) then return, 0
 
-  if(nv ge 2) then begin
-      I = read_field('I', filename=filename, slice=time, $
-                     r=x, z=z, t=t, points=pts)
-  endif else begin
-      I = read_parameter('bzero')
-  endelse     
+   if(n_elements(bins) eq 0) then bins = points/2.
 
-  q = sqrt(I^2/s_bracket(psi,psi,x,z)) < 10
+   result = fltarr(sz[1], bins)
+   flux = fltarr(sz[1], bins)
+   area = fltarr(sz[1], bins)
 
-  contour_and_legend, q[0,*,*], x, z, title='!6Local !8q!3', $
-    xtitle='!8r!3', ytitle='!8z!3', _EXTRA=extra
-
-end
-
-
-function flux_average, psi, field, points=pts, flux=flux
-
-   sz = size(psi)
-
-   if(n_elements(pts) eq 0) then pts = min(sz[2:3])
-
-   result = fltarr(sz[1], pts)
-   flux = fltarr(sz[1], pts)
+   if(n_elements(range) eq 0) then begin
+       range = fltarr(sz[1],2)
+       for k=0, sz[1]-1 do range[k,*] = [min(psi[k,*,*]), max(psi[k,*,*])]
+   endif else if(n_elements(range) eq 2) then begin
+       oldrange = range
+       range = fltarr(sz[1],2)
+       for k=0, sz[1]-1 do range[k,*] = oldrange
+   endif
 
    for k=0, sz[1]-1 do begin
-       psimin = min(psi[k,*,*])
-       psimax = max(psi[k,*,*])
-       dpsi = (psimax - psimin)/(pts - 1.)
+       dpsi = (range[k,1] - range[k,0])/(bins-1.)
 
-       for p=0, pts-1 do begin
-           fval = dpsi*p  + psimin
+       for p=0, bins-1 do begin
+           fval = dpsi*p + range[k,0]
 
-           mask = ((psi ge fval) and (psi lt fval+dpsi))
-           sfield = mask*field
+           mask = float((psi[k,*,*] ge fval) and (psi[k,*,*] le fval+dpsi))
+
+           sfield = field[k,*,*]*mask[0,*,*]
            
            flux[k,p] = fval
            result[k, p] = total(sfield)/total(mask)
+           area[k,p] = total(mask)*mean(deriv(x))*mean(deriv(z))
        endfor
    endfor
 
    return, result
 end
 
-
-; ==============================================================
-; nulls
-; -----
-;
-;  Finds field nulls.
-;  xpoint = fltarr(2,xpoints): indices of x-point locations
-;  axis   = fltarr(2,axes)   : indices of axis locations
-; ==============================================================
-pro nulls, time, axis=axis, xpoints=xpoint, $
-              _EXTRA=extra, psi=psi, r=x, z=z
-
-   if(n_elements(time) eq 0) then time = 0
-
-   if(n_elements(psi) eq 0 or n_elements(x) eq 0 or n_elements(z) eq 0) $
-     then begin
-       psi = read_field('psi', r=x, z=z, slice=time, _EXTRA=extra)
-   endif
+pro plot_flux_average, name, time, filename=filename, points=pts, _EXTRA=extra
    
-   field = s_bracket(psi,psi,x,z)
-   d2 = dz(dz(psi,z),z)*dx(dx(psi,x),x)
-   
-   nulls = field lt mean(field)/1e4
+   field = read_field(name, slice=time, filename=filename, p=pts, time=t)
 
-   sz = size(field)
-
-   xpoints = 0
-   xpoint = 0.
-   axes = 0
-   axis = 0.
-   
-   for i=0, sz[2]-1 do begin
-       for j=0, sz[3]-1 do begin
-           if(nulls[0,i,j] eq 0) then continue
-
-           currentmin = field[0,i,j]
-           currentpos = [i,j]
-
-           ; find local minimum
-           for m=i, sz[2]-1 do begin
-               for n=j, sz[3]-1 do begin
-                   if(nulls[0,m,n] eq 0) then break
-
-                   if(field[0,m,n] lt currentmin) then begin
-                       currentmin = field[0,m,n]
-                       currentpos = [m,n]
-                   endif
-                   nulls[0,m,n] = 0
-               endfor
-               for n=j-1, 0, -1 do begin
-                   if(nulls[0,m,n] eq 0) then break
-
-                   if(field[0,m,n] lt currentmin) then begin
-                       currentmin = field[0,m,n]
-                       currentpos = [m,n]
-                   endif
-                   nulls[0,m,n] = 0
-               endfor
-           endfor
-
-           ; throw out local minima on boundaries
-           if (currentpos[0] eq 0) or (currentpos[0] eq sz[2]-1) then continue
-           if (currentpos[1] eq 0) or (currentpos[1] eq sz[3]-1) then continue
-
-           ; determine if point is an x-point or an axis and
-           ; append the location index to the appropriate array
-           if(d2[0,currentpos[0],currentpos[1]] lt 0) then begin
-               print, "X-point found at", x[currentpos[0]], z[currentpos[1]]
-               xpoints = xpoints + 1
-               if(xpoints eq 1) then begin
-                   xpoint = currentpos
-               endif else begin
-                   oldxpoint = xpoint
-                   xpoint = intarr(2, xpoints)
-                   xpoint[*,0:xpoints-2] = oldxpoint
-                   xpoint[*,xpoints-1] = currentpos
-               endelse
-           endif else begin
-               print, "Axis found at", x[currentpos[0]], z[currentpos[1]]
-               axes = axes + 1
-               if(axes eq 1) then begin
-                   axis = currentpos
-               endif else begin
-                   oldaxis = axis
-                   axis = intarr(2, axes)
-                   axis[*,0:axes-2] = oldaxis
-                   axis[*,axes-1] = currentpos
-               endelse
-           endelse
-       endfor
-   endfor 
-
-end
-
-; ========================================================
-; lcfs
-; ~~~~
-;
-; returns the flux value of the last closed flux surface
-; ========================================================
-function lcfs, time, psi=psi, r=x, z=z, _EXTRA=extra
-   if(n_elements(time) eq 0) then time = 0
-
-   if(n_elements(psi) eq 0 or n_elements(x) eq 0 or n_elements(z) eq 0) $
-     then begin
-       psi = read_field('psi', r=x, z=z, slice=time, _EXTRA=extra)
-   endif
-
-   nulls, time, psi=psi, xpoint=xpoint, axis=axis, r=x, z=z, _EXTRA=extra
-
-   ; flux at magnetic axis
-   if(n_elements(axis) ne 2) then begin
-       print, "Error: there is not exactly one magnetic axis"
-       return, 0
-   endif
-   psi0 = psi[0,axis[0,0],axis[1,0]]
-   print, "Flux on axis:", psi0
-
-   ; limiting value
-   ; Find limiting flux by calculating outward normal derivative of
-   ; the normalized flux.  If this derivative is negative, there is a
-   ; limiter.
-   sz = size(psi)
-
-   psiz = dz(psi,z)
-   psix = dx(psi,x)
-
-   normal_mask = psi*0.
-   normal_mask[0,      *,      0] = 1.
-   normal_mask[0,      *,sz[3]-1] = 1.
-   normal_mask[0,      0,      *] = 1.
-   normal_mask[0,sz[2]-1,      *] = 1.
-
-   normal_deriv = psi*0.
-   normal_deriv[0,      *,      0] = -3.14159625/2.     ; bottom
-   normal_deriv[0,      *,sz[3]-1] =  3.14159625/2.     ; top
-   normal_deriv[0,      0,      *] =  3.14159625        ; left
-   normal_deriv[0,sz[2]-1,      *] =  0.                ; right
-   normal_deriv = $
-     (psix*cos(normal_deriv) + psiz*sin(normal_deriv))*normal_mask
-
-   normal_deriv = normal_deriv gt 0
-
-   psi_bound = psi*normal_mask + (1-normal_mask)*1e10
-
-   psilim = min(psi_bound-psi0, i, /absolute)
-   psilim = psi_bound[i]
-   print, "Flux at limiter", psilim
-
-   ; flux at separatrix
-   sz = size(xpoint)
-   if(sz[0] gt 0) then begin
-       xfluxes = fltarr(sz[0])
-       for i=0, sz[0]-1 do xfluxes[i] = psi[0,xpoint[0,i],xpoint[1,i]]
-       psix = min(xfluxes-psi0, i, /absolute)
-       psix = xfluxes[i]
-       print, "Flux at separatrix:", psix
-
-       if(abs(psix-psi0) gt (psilim-psi0)) then begin
-           print, "Plasma is limited."
-       endif else begin
-           print, "Plasma is diverted."
-           psilim = psix
-       endelse
-   endif
-   
-   return, psilim
-end
-
-
-pro plot_flux_average, name, time, filename=filename
-   
-   if(n_elements(filename) eq 0) then filename='C1.h5'
-
-   psi = read_field('psi', slice=time, filename=filename, p=101)
-   if(n_elements(psi) le 1) then return
-
-   field = read_field(name, slice=time, filename=filename, p=101, time=t)
-
-   fa = flux_average(psi, field, flux=flux)
+   fa = flux_average(field, time, flux=flux, p=pts, filename=filename)
 
    if(n_elements(title) eq 0) then begin
        if(t gt 0) then begin
@@ -1294,6 +1339,27 @@ pro plot_flux_average, name, time, filename=filename
        endelse
    endif
 
+   if(n_elements(ytitle) eq 0) then begin
+       ytitle = "!12<!8" + translate(name) + "!12>!3"
+   endif
+
    plot, flux[0,*], fa[0,*], xtitle='!7w!3', $
-     ytitle="!12<!8" + translate(name) + "!12>!3", title=title
+     ytitle=ytitle, title=title, _EXTRA=extra
+end
+
+pro plot_q, time, _EXTRA=extra
+   field = read_field('I', slice=time, filename=filename, _EXTRA=extra, time=t)
+
+   fa = flux_average(field, time, flux=flux, $
+                     area=area, _EXTRA=extra)
+
+   if(n_elements(fa) le 1) then return
+
+   q = abs(fa*area/mean(deriv(flux)))/(2.*3.14159265)
+
+   print, total(area)
+
+   title = "!6Safety Factor "+ $
+     string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!3")', t)
+   plot, flux, q, title=title, xtitle='!7w!3', ytitle='!8q!3'
 end

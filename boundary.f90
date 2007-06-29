@@ -78,6 +78,14 @@ subroutine boundary_vel(imatrix, rhs)
            call boundary_clamp(imatrix, ibegin+6, normal, rhs, temp)
         endif
 
+!!$        ! no normal stress
+!!$        if(numvar.ge.2) then
+!!$           temp = 0.
+!!$              call boundary_normal_deriv(imatrix, ibegin+6, normal, rhs, temp)
+!!$              if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
+!!$              rhs(ibegin+10) = 0.
+!!$        endif
+
         ! no vorticity
         temp = 0.
         call boundary_laplacian(imatrix, ibegin, normal, -x, irow)
@@ -109,6 +117,14 @@ subroutine boundary_vel(imatrix, rhs)
            endif
            call boundary_clamp_all(imatrix, ibegin+6, rhs, temp)
         endif
+
+!!$        ! no normal stress
+!!$        if(numvar.ge.2) then
+!!$           call boundary_normal_deriv(imatrix, ibegin+6, 0., rhs, temp)
+!!$           call boundary_normal_deriv(imatrix, ibegin+6, pi/2., rhs, temp)
+!!$           if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
+!!$           rhs(ibegin+16) = 0.           
+!!$        endif
      endif
         
   end do
