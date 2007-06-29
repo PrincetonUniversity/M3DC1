@@ -631,7 +631,11 @@ subroutine gradshafranov_solve
 end subroutine gradshafranov_solve
 
 
-!==================================
+!=====================================================
+! magaxis
+!
+! locates the magnetic axis and the value of psi there
+!=====================================================
 subroutine magaxis(xguess,zguess,phin,numvari)
   use basic
   use t_data
@@ -647,7 +651,7 @@ subroutine magaxis(xguess,zguess,phin,numvari)
 
   integer, parameter :: iterations = 5
 
-  integer :: itri, itrit, itrinew, inews
+  integer :: itri, inews
   integer :: i, ier
   real :: x1, z1, x, z, theta, b, co, sn, si, eta
   real :: sum, sum1, sum2, sum3, sum4, sum5
@@ -659,23 +663,17 @@ subroutine magaxis(xguess,zguess,phin,numvari)
   real, dimension(3) :: temp1, temp2
 
 
-  !     locates the magnetic axis and the value of psi there
-
   if(myrank.eq.0 .and. iprint.gt.0) &
-       print *,  "magaxis: guess=", xguess, zguess
+       print *, " magaxis: guess=", xguess, zguess
 
   call getboundingboxsize(alx, alz)
 
-  itrit = 0
-  inews = 0
-
-  call whattri(xguess,zguess,itrit,x1,z1)
-
-  itri = itrit
   x = xguess
   z = zguess
   
   do inews=1, iterations
+
+     call whattri(x,z,itri,x1,z1)
 
      ! calculate position of minimum
      if(itri.gt.0) then
@@ -732,18 +730,21 @@ subroutine magaxis(xguess,zguess,phin,numvari)
      else
         xnew = 0.
         znew = 0.
+        pt   = 0.
      endif  ! on itri.gt.0
      
      ! communicate new minimum to all processors
      if(maxrank.gt.1) then
         temp1(1) = xnew
         temp1(2) = znew
-        call mpi_allreduce(temp1, temp2, 2, &
+        temp1(3) = pt
+        call mpi_allreduce(temp1, temp2, 3, &
              MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
         xnew = temp2(1)
         znew = temp2(2)
+        pt   = temp2(3)
      endif
-     
+
      ! check to see whether the new minimum is outside the simulation domain
      if(xnew .lt. 0 .or. xnew.gt.alx .or. &
           znew .lt. 0 .or. znew.gt.alz .or. &
@@ -757,33 +758,13 @@ subroutine magaxis(xguess,zguess,phin,numvari)
         x = xnew
         z = znew
      endif
-
-     call whattri(xnew,znew,itrinew,x1,z1) 
-     
-     if(itrinew.le.0) then
-        x = 0
-        z = 0
-        pt = 0
-     endif
-     itri = itrinew
   end do
 
   xguess = x
   zguess = z
   psimin = pt
 
-  if(maxrank.gt.1) then
-     temp1(1) = xguess
-     temp1(2) = zguess
-     temp1(3) = psimin
-     call mpi_allreduce(temp1, temp2, 3, &
-          MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
-     xguess = temp2(1)
-     zguess = temp2(2)
-     psimin = temp2(3)
-  endif
-
-  if(myrank.eq.0 .and. iprint.gt.0) print *, "magaxis: minimum at ", xguess, zguess
+  if(myrank.eq.0 .and. iprint.gt.0) print *, " magaxis: minimum at ", xguess, zguess
   
 end subroutine magaxis
 
