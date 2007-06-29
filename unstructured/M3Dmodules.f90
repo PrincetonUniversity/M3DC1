@@ -44,6 +44,7 @@ module basic
                       !  1 = CDX-U
                       !  2 = NSTX
   real :: bzero       ! guide field
+  real :: vzero       ! initial toroidal velocity
   real :: p0, pi0     ! total, ion pressures
   real :: ln          ! length of equilibrium gradient
   real :: eps         ! size of initial perturbation
@@ -103,7 +104,7 @@ module basic
        irestart,itaylor,itest,isecondorder,imask,nskip,        &
        numvar,istart,idens,ipres,thimp,amu,etar,dt,p1,p2,p0,   &
        tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,          &
-       bzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,        &
+       bzero,vzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,  &
        iper,jper,iprint,itimer,xzero,zzero,beta,pi0,           &
        eqsubtract,denm,gravr,gravz,kappat,kappar,ln,amuc,      &
        iconstflux,regular,deex,gyro,vloop,eta0,pedge,          &

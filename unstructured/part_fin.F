@@ -321,8 +321,8 @@ c      enddo
 
       do itri=1,numelms
 !        calculate matrix elements of the integration matrix fint
-         do i=-4,maxi
-            do j=-4,maxi
+         do i=-6,maxi
+            do j=-6,maxi
                fint(i,j) = 0
                if(i.ge.0 .and.j.ge.0)                                          &
      &              fint(i,j) = f(i,j,atri(itri),btri(itri),ctri(itri))
