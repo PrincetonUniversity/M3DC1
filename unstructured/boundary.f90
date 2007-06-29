@@ -590,12 +590,7 @@ subroutine boundary_gs(imatrix, rhs)
         call boundary_clamp(imatrix, ibegin, normal, rhs, temp)
 
      else if(izonedim.eq.0) then
-
-!!$        if(imatrix.ne.0) call setdiribc(imatrix,ibegin)
-!!$        rhs(ibegin) = 20.
-
-        print *, temp(1)
-
+        
         ! clamp magnetic field
         call boundary_clamp_all(imatrix, ibegin, rhs, temp)
         
@@ -760,8 +755,8 @@ subroutine boundary_com(imatrix, rhs)
 
         ! no normal flow
         call boundary_normal_deriv(imatrix, ibegin+6, normal, rhs, temp)
-!!$        if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
-!!$        rhs(ibegin+10) = 0.
+        if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
+        rhs(ibegin+10) = 0.
 
         ! no compression
         if(numvar.ge.3) then
@@ -777,8 +772,8 @@ subroutine boundary_com(imatrix, rhs)
         ! no normal flow
         call boundary_normal_deriv(imatrix, ibegin+6, 0., rhs, temp,)
         call boundary_normal_deriv(imatrix, ibegin+6, pi/2., rhs, temp)
-!!$        if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
-!!$        rhs(ibegin+10) = 0.
+        if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
+        rhs(ibegin+10) = 0.
      endif
   end do
 
