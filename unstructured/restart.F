@@ -326,7 +326,7 @@ c     first put in information to check on run information
          write(56) iper
          write(56) jper   
          write(56) ntimein,timein
-         write(56) totcur0,tflux0,gbound,facd
+         write(56) totcur0,tflux0,gbound,facd,fbound,ptot,vloop
       endif
 
       call numnod(numnodes)
@@ -435,7 +435,7 @@ c     first put in information to check on run information
       read(56) iper
       read(56) jper   
       read(56) ntimer,timer
-      read(56) totcur0,tflux0,gbound,facd
+      read(56) totcur0,tflux0,gbound,facd,fbound,ptot,vloop
       write(*,*) 'in restartglobal times are ', ntimer, timer
       call numnod(numnodes)
       read(56) globalid
