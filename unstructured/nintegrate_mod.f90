@@ -583,15 +583,22 @@ subroutine define_fields_79(itri, fields)
         bzt79 = 0.
         bzs79 = 0.
 
-        bzt79(:,OP_1) = bzero
-        bzs79(:,OP_1) = bzero/2.
+        ! negative signs adjust for left-handed coordinates.
+        bzt79(:,OP_1) = -bzero
+        bzs79(:,OP_1) = -bzero/2.
         
         if(linear.eq.1 .or. eqsubtract.eq.1) then
-           bz079(:,OP_1) = bzero
+           bz079(:,OP_1) = -bzero
         else
-           bz179(:,OP_1) = bzero
+           bz179(:,OP_1) = -bzero
         endif
 
+        if(itor.eq.1) then
+           bzt79(:,OP_1) = bzt79(:,OP_1)*xzero
+           bzs79(:,OP_1) = bzs79(:,OP_1)*xzero
+           bz079(:,OP_1) = bz079(:,OP_1)*xzero
+           bz179(:,OP_1) = bz179(:,OP_1)*xzero
+        endif
      endif
   endif
 
@@ -739,23 +746,22 @@ subroutine define_fields_79(itri, fields)
   endif
 
 
-  ! BI
-  ! ~~
+  ! B2I
+  ! ~~~
   if(iand(fields, FIELD_B2I).eq.FIELD_B2I) then
-     if(numvar.eq.1) then
-        b2i79(:,OP_1 ) = 1./(pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2 + bzero**2)
-        b2i79(:,OP_DR) = -2.*b2i79(:,OP_1)**2 &
-             *(pst79(:,OP_DR)*pst79(:,OP_DRR) + pst79(:,OP_DZ)*pst79(:,OP_DRZ))
-        b2i79(:,OP_DZ) = -2.*b2i79(:,OP_1)**2 &
-             *(pst79(:,OP_DR)*pst79(:,OP_DRZ) + pst79(:,OP_DZ)*pst79(:,OP_DZZ))
-     else
-        b2i79(:,OP_1) = 1./(pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2 + bzt79(:,OP_1)**2)
-        b2i79(:,OP_DR) = -2.*b2i79(:,OP_1)**2 &
-             *(pst79(:,OP_DR)*pst79(:,OP_DRR) + pst79(:,OP_DZ)*pst79(:,OP_DRZ) &
-              +bzt79(:,OP_1 )*bzt79(:,OP_DR ))
-        b2i79(:,OP_DZ) = -2.*b2i79(:,OP_1)**2 &
-             *(pst79(:,OP_DR)*pst79(:,OP_DRZ) + pst79(:,OP_DZ)*pst79(:,OP_DZZ) &
-              +bzt79(:,OP_1 )*bzt79(:,OP_DZ ))
+     temp79a = ri2_79* &
+          (pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2 + bzt79(:,OP_1)**2)
+
+     b2i79(:,OP_1 ) = 1./temp79a
+     b2i79(:,OP_DR) = -2.*b2i79(:,OP_1)**2 * ri2_79 * &
+          (pst79(:,OP_DR)*pst79(:,OP_DRR) + pst79(:,OP_DZ)*pst79(:,OP_DRZ) &
+          +bzt79(:,OP_1 )*bzt79(:,OP_DR ))
+     b2i79(:,OP_DZ) = -2.*b2i79(:,OP_1)**2 * ri2_79 * &
+          (pst79(:,OP_DR)*pst79(:,OP_DRZ) + pst79(:,OP_DZ)*pst79(:,OP_DZZ) &
+          +bzt79(:,OP_1 )*bzt79(:,OP_DZ ))
+
+     if(itor.eq.1) then 
+        b2i79(:,OP_DR) = b2i79(:,OP_DR) + 4.*b2i79(:,OP_1)*ri_79
      endif
   endif
 

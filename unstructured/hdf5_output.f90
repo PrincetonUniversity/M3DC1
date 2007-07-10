@@ -404,11 +404,12 @@ subroutine hdf5_write_scalars(error)
 
   call output_scalar(scalar_group_id, "time" , time  , ntime, error)
 
-  call output_scalar(scalar_group_id, "toroidal_flux"    , tflux , ntime, error)
-  call output_scalar(scalar_group_id, "toroidal_current" , totcur, ntime, error)
-  call output_scalar(scalar_group_id, "electron_number"  , totden, ntime, error)
-  call output_scalar(scalar_group_id, "loop_voltage"     , vloop , ntime, error)
-  call output_scalar(scalar_group_id, "angular_momentum" , tmom  , ntime, error)
+  call output_scalar(scalar_group_id, "toroidal_flux"   , tflux , ntime, error)
+  call output_scalar(scalar_group_id, "toroidal_current", totcur, ntime, error)
+  call output_scalar(scalar_group_id, "electron_number" , totden, ntime, error)
+  call output_scalar(scalar_group_id, "loop_voltage"    , vloop , ntime, error)
+  call output_scalar(scalar_group_id, "angular_momentum", tmom  , ntime, error)
+  call output_scalar(scalar_group_id, "vorticity"       , tvor  , ntime, error)
   
   call output_scalar(scalar_group_id, "E_MP" , emagp , ntime, error)
   call output_scalar(scalar_group_id, "E_KP" , ekinp , ntime, error)

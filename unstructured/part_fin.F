@@ -374,9 +374,6 @@ c      enddo
       call input
       ntimemin = min(2,ntimemax-1)
 !
-      tt = 2.*thimp
-      gam = 5./3.
-!
 !      allocate big arrays
       call space
 !

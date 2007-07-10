@@ -4,9 +4,9 @@ implicit none
 
 contains
 
-!===============================================================================
+!=============================================================================
 ! V1 TERMS
-!===============================================================================
+!=============================================================================
 
 
 ! V1umu
@@ -3247,86 +3247,88 @@ real function flux_poynting(dbf)
 
   real, intent(in) :: dbf
 
-  if(idens.eq.0) then
-     ni79 = 0.
-     ni79(:,OP_1) = 1.
-  endif
-
-  temp79a = ri3_79*(pst79(:,OP_GS)* &
-        (pst79(:,OP_DZ )*pht79(:,OP_DR ) - pst79(:,OP_DR )*pht79(:,OP_DZ )) &
-       +pst79(:,OP_DZ)* &
-        (pst79(:,OP_DZZ)*pht79(:,OP_DR ) - pst79(:,OP_DRZ)*pht79(:,OP_DZ ) &
-        +pst79(:,OP_DZ )*pht79(:,OP_DRZ) - pst79(:,OP_DR )*pht79(:,OP_DZZ)) &
-       +pst79(:,OP_DR)* &
-        (pst79(:,OP_DRZ)*pht79(:,OP_DR ) - pst79(:,OP_DRR)*pht79(:,OP_DZ) &
-        +pst79(:,OP_DZ )*pht79(:,OP_DRR) - pst79(:,OP_DR )*pht79(:,OP_DRZ))) &
-       - ri2_79* &
-       +(eta79(:,OP_1 )* pst79(:,OP_GS)* jt79(:,OP_1 ) &
-        +eta79(:,OP_1 )*(pst79(:,OP_DZ)* jt79(:,OP_DZ) + pst79(:,OP_DR)* jt79(:,OP_DR)) &
-        + jt79(:,OP_1 )*(pst79(:,OP_DZ)*eta79(:,OP_DZ) + pst79(:,OP_DR)*eta79(:,OP_DR)))
-  
-  if(itor.eq.1) then
-     temp79a = temp79a - ri4_79*pst79(:,OP_DR)* &
-          (pst79(:,OP_DZ)*pht79(:,OP_DR) - pst79(:,OP_DR)*pht79(:,OP_DZ))
-  endif
- 
-  if(numvar.ge.2) then
-     temp79a = temp79a &
-          - ri2_79* &
-          (eta79(:,OP_1)* bzt79(:,OP_1) *bzt79(:,OP_GS) &
-          +eta79(:,OP_1)*(bzt79(:,OP_DZ)*bzt79(:,OP_DZ) + bzt79(:,OP_DR)*bzt79(:,OP_DR)) &
-          +bzt79(:,OP_1)*(bzt79(:,OP_DZ)*eta79(:,OP_DZ) + bzt79(:,OP_DR)*eta79(:,OP_DR))) &
-          - ri3_79* &
-          (vzt79(:,OP_1)*(bzt79(:,OP_DZ)*pst79(:,OP_DR) - bzt79(:,OP_DR)*pst79(:,OP_DZ)) &
-          +bzt79(:,OP_1)*(vzt79(:,OP_DZ)*pst79(:,OP_DR) - vzt79(:,OP_DR)*pst79(:,OP_DZ))) &
-          - ri3_79*dbf* &
-           (bzt79(:,OP_1)* &
-           ( jt79(:,OP_1 )*(ni79(:,OP_DZ)*pst79(:,OP_DR) - ni79(:,OP_DR)*pst79(:,OP_DZ)) &
-           + ni79(:,OP_1 )*(jt79(:,OP_DZ)*pst79(:,OP_DR) - jt79(:,OP_DR)*pst79(:,OP_DZ))) &
-           +( ni79(:,OP_DZ)*pst79(:,OP_DZ) +  ni79(:,OP_DR)*pst79(:,OP_DR))* &
-            (pst79(:,OP_DZ)*bzt79(:,OP_DR) - pst79(:,OP_DR)*bzt79(:,OP_DZ)) &
-           +ni79(:,OP_1)* &
-           (pst79(:,OP_DZ)* &
-            (pst79(:,OP_DZZ)*bzt79(:,OP_DR ) - pst79(:,OP_DRZ)*bzt79(:,OP_DZ ) &
-            +pst79(:,OP_DZ )*bzt79(:,OP_DRZ) - pst79(:,OP_DR )*bzt79(:,OP_DZZ)) &
-           +pst79(:,OP_DR)* &
-            (pst79(:,OP_DRZ)*bzt79(:,OP_DR ) - pst79(:,OP_DRR)*bzt79(:,OP_DZ ) &
-            +pst79(:,OP_DZ )*bzt79(:,OP_DRR) - pst79(:,OP_DR )*bzt79(:,OP_DRZ))) &
-           +bzt79(:,OP_1)**2*(ni79(:,OP_DZ)*bzt79(:,OP_DR) - ni79(:,OP_DR)*bzt79(:,OP_DZ))) &
-          +2.*ri3_79*bzt79(:,OP_1)* &
-           (bzt79(:,OP_DZ)*pht79(:,OP_DR) - bzt79(:,OP_DR)*pht79(:,OP_DZ))
-
-     if(itor.eq.1) then
-        temp79a = temp79a &
-             - 2.*ri4_79*pst79(:,OP_DZ)*vzt79(:,OP_1)*bzt79(:,OP_1) &
-             +dbf*ri4_79*ni79(:,OP_1)* &
-              (pst79(:,OP_DR)*(pst79(:,OP_DZ)*bzt79(:,OP_DR) - pst79(:,OP_DR)*bzt79(:,OP_DZ)) &
-              -2.*pst79(:,OP_DZ)*pst79(:,OP_GS)*bzt79(:,OP_1) &
-              -2.*bzt79(:,OP_1)**2*bzt79(:,OP_DZ))  &
-             +2.*ri4_79*bzt79(:,OP_1)**2*pht79(:,OP_DZ)
-     endif
-  endif
-
-  if(numvar.ge.3) then
-     temp79a = temp79a &
-          - ri_79*pefac*dbf* &
-            (bzt79(:,OP_1)*( ni79(:,OP_DZ)*pet79(:,OP_DR) -  ni79(:,OP_DR)*pet79(:,OP_DZ)) &
-            + ni79(:,OP_1)*(bzt79(:,OP_DZ)*pet79(:,OP_DR) - bzt79(:,OP_DR)*pet79(:,OP_DZ))) &
-          + ri2_79*bzt79(:,OP_1)* &
-            (bzt79(:,OP_1)*cht79(:,OP_GS) + &
-            2.*(bzt79(:,OP_DZ)*cht79(:,OP_DZ) + bzt79(:,OP_DR)*cht79(:,OP_DR))) &
-          + ri2_79* &
-            (pst79(:,OP_GS)*(pst79(:,OP_DZ )*cht79(:,OP_DZ ) + pst79(:,OP_DR )*cht79(:,OP_DR )) &
-            +pst79(:,OP_DZ)*(pst79(:,OP_DZZ)*cht79(:,OP_DZ ) + pst79(:,OP_DRZ)*cht79(:,OP_DR ) &
-                            +pst79(:,OP_DZ )*cht79(:,OP_DZZ) + pst79(:,OP_DR )*cht79(:,OP_DRZ)) &
-            +pst79(:,OP_DR)*(pst79(:,OP_DRZ)*cht79(:,OP_DZ ) + pst79(:,OP_DRR)*cht79(:,OP_DR ) &
-                            +pst79(:,OP_DZ )*cht79(:,OP_DRZ) + pst79(:,OP_DR )*cht79(:,OP_DRR)))
-          
-  endif
+!!$  if(idens.eq.0) then
+!!$     ni79 = 0.
+!!$     ni79(:,OP_1) = 1.
+!!$  endif
+!!$
+!!$  temp79a = ri3_79*(pst79(:,OP_GS)* &
+!!$        (pst79(:,OP_DZ )*pht79(:,OP_DR ) - pst79(:,OP_DR )*pht79(:,OP_DZ )) &
+!!$       +pst79(:,OP_DZ)* &
+!!$        (pst79(:,OP_DZZ)*pht79(:,OP_DR ) - pst79(:,OP_DRZ)*pht79(:,OP_DZ ) &
+!!$        +pst79(:,OP_DZ )*pht79(:,OP_DRZ) - pst79(:,OP_DR )*pht79(:,OP_DZZ)) &
+!!$       +pst79(:,OP_DR)* &
+!!$        (pst79(:,OP_DRZ)*pht79(:,OP_DR ) - pst79(:,OP_DRR)*pht79(:,OP_DZ) &
+!!$        +pst79(:,OP_DZ )*pht79(:,OP_DRR) - pst79(:,OP_DR )*pht79(:,OP_DRZ))) &
+!!$       - ri2_79* &
+!!$       +(eta79(:,OP_1 )* pst79(:,OP_GS)* jt79(:,OP_1 ) &
+!!$        +eta79(:,OP_1 )*(pst79(:,OP_DZ)* jt79(:,OP_DZ) + pst79(:,OP_DR)* jt79(:,OP_DR)) &
+!!$        + jt79(:,OP_1 )*(pst79(:,OP_DZ)*eta79(:,OP_DZ) + pst79(:,OP_DR)*eta79(:,OP_DR)))
+!!$  
+!!$  if(itor.eq.1) then
+!!$     temp79a = temp79a - ri4_79*pst79(:,OP_DR)* &
+!!$          (pst79(:,OP_DZ)*pht79(:,OP_DR) - pst79(:,OP_DR)*pht79(:,OP_DZ))
+!!$  endif
+!!$ 
+!!$  if(numvar.ge.2) then
+!!$     temp79a = temp79a &
+!!$          - ri2_79* &
+!!$          (eta79(:,OP_1)* bzt79(:,OP_1) *bzt79(:,OP_GS) &
+!!$          +eta79(:,OP_1)*(bzt79(:,OP_DZ)*bzt79(:,OP_DZ) + bzt79(:,OP_DR)*bzt79(:,OP_DR)) &
+!!$          +bzt79(:,OP_1)*(bzt79(:,OP_DZ)*eta79(:,OP_DZ) + bzt79(:,OP_DR)*eta79(:,OP_DR))) &
+!!$          - ri3_79* &
+!!$          (vzt79(:,OP_1)*(bzt79(:,OP_DZ)*pst79(:,OP_DR) - bzt79(:,OP_DR)*pst79(:,OP_DZ)) &
+!!$          +bzt79(:,OP_1)*(vzt79(:,OP_DZ)*pst79(:,OP_DR) - vzt79(:,OP_DR)*pst79(:,OP_DZ))) &
+!!$          - ri3_79*dbf* &
+!!$           (bzt79(:,OP_1)* &
+!!$           ( jt79(:,OP_1 )*(ni79(:,OP_DZ)*pst79(:,OP_DR) - ni79(:,OP_DR)*pst79(:,OP_DZ)) &
+!!$           + ni79(:,OP_1 )*(jt79(:,OP_DZ)*pst79(:,OP_DR) - jt79(:,OP_DR)*pst79(:,OP_DZ))) &
+!!$           +( ni79(:,OP_DZ)*pst79(:,OP_DZ) +  ni79(:,OP_DR)*pst79(:,OP_DR))* &
+!!$            (pst79(:,OP_DZ)*bzt79(:,OP_DR) - pst79(:,OP_DR)*bzt79(:,OP_DZ)) &
+!!$           +ni79(:,OP_1)* &
+!!$           (pst79(:,OP_DZ)* &
+!!$            (pst79(:,OP_DZZ)*bzt79(:,OP_DR ) - pst79(:,OP_DRZ)*bzt79(:,OP_DZ ) &
+!!$            +pst79(:,OP_DZ )*bzt79(:,OP_DRZ) - pst79(:,OP_DR )*bzt79(:,OP_DZZ)) &
+!!$           +pst79(:,OP_DR)* &
+!!$            (pst79(:,OP_DRZ)*bzt79(:,OP_DR ) - pst79(:,OP_DRR)*bzt79(:,OP_DZ ) &
+!!$            +pst79(:,OP_DZ )*bzt79(:,OP_DRR) - pst79(:,OP_DR )*bzt79(:,OP_DRZ))) &
+!!$           +bzt79(:,OP_1)**2*(ni79(:,OP_DZ)*bzt79(:,OP_DR) - ni79(:,OP_DR)*bzt79(:,OP_DZ))) &
+!!$          +2.*ri3_79*bzt79(:,OP_1)* &
+!!$           (bzt79(:,OP_DZ)*pht79(:,OP_DR) - bzt79(:,OP_DR)*pht79(:,OP_DZ))
+!!$
+!!$     if(itor.eq.1) then
+!!$        temp79a = temp79a &
+!!$             - 2.*ri4_79*pst79(:,OP_DZ)*vzt79(:,OP_1)*bzt79(:,OP_1) &
+!!$             +dbf*ri4_79*ni79(:,OP_1)* &
+!!$              (pst79(:,OP_DR)*(pst79(:,OP_DZ)*bzt79(:,OP_DR) - pst79(:,OP_DR)*bzt79(:,OP_DZ)) &
+!!$              -2.*pst79(:,OP_DZ)*pst79(:,OP_GS)*bzt79(:,OP_1) &
+!!$              -2.*bzt79(:,OP_1)**2*bzt79(:,OP_DZ))  &
+!!$             +2.*ri4_79*bzt79(:,OP_1)**2*pht79(:,OP_DZ)
+!!$     endif
+!!$  endif
+!!$
+!!$  if(numvar.ge.3) then
+!!$     temp79a = temp79a &
+!!$          - ri_79*pefac*dbf* &
+!!$            (bzt79(:,OP_1)*( ni79(:,OP_DZ)*pet79(:,OP_DR) -  ni79(:,OP_DR)*pet79(:,OP_DZ)) &
+!!$            + ni79(:,OP_1)*(bzt79(:,OP_DZ)*pet79(:,OP_DR) - bzt79(:,OP_DR)*pet79(:,OP_DZ))) &
+!!$          + ri2_79*bzt79(:,OP_1)* &
+!!$            (bzt79(:,OP_1)*cht79(:,OP_GS) + &
+!!$            2.*(bzt79(:,OP_DZ)*cht79(:,OP_DZ) + bzt79(:,OP_DR)*cht79(:,OP_DR))) &
+!!$          + ri2_79* &
+!!$            (pst79(:,OP_GS)*(pst79(:,OP_DZ )*cht79(:,OP_DZ ) + pst79(:,OP_DR )*cht79(:,OP_DR )) &
+!!$            +pst79(:,OP_DZ)*(pst79(:,OP_DZZ)*cht79(:,OP_DZ ) + pst79(:,OP_DRZ)*cht79(:,OP_DR ) &
+!!$                            +pst79(:,OP_DZ )*cht79(:,OP_DZZ) + pst79(:,OP_DR )*cht79(:,OP_DRZ)) &
+!!$            +pst79(:,OP_DR)*(pst79(:,OP_DRZ)*cht79(:,OP_DZ ) + pst79(:,OP_DRR)*cht79(:,OP_DR ) &
+!!$                            +pst79(:,OP_DZ )*cht79(:,OP_DRZ) + pst79(:,OP_DR )*cht79(:,OP_DRR)))
+!!$          
+!!$  endif
 
 ! MISSING HYPER-RESISTIVE TERMS
 
-  flux_poynting = -int1(temp79a,weight_79,79)
+  temp79a = ri2_79*pst79(:,OP_GS)*vloop/(2.*pi)
+
+  flux_poynting = int1(temp79a,weight_79,79)
   return
 end function flux_poynting
 

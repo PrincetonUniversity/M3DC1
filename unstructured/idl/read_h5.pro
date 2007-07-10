@@ -338,14 +338,139 @@ function read_field, name, slices=time, mesh=mesh, filename=filename, time=t, $
    return, data
 end
 
+;==========================================
+; local_beta = 2*P/B^2
+;==========================================
+function local_beta, filename=filename, r=x, z=z, t=t, _EXTRA=extra
+
+  if(n_elements(time) eq 0) then time=0
+  nv    = read_parameter('numvar', filename=filename)
+
+  psi = read_field('psi', filename=filename, _EXTRA=extra, $
+                   r=x, z=z, t=t)
+
+  if(n_elements(psi) le 1) then return, 0
+
+  r = radius_matrix(x,z,t)
+
+  if(nv ge 2) then begin
+      I = read_field('I', filename=filename, _EXTRA=extra)
+  endif else begin
+      I = read_parameter('bzero',filename=filename) $
+        * read_parameter('xmin', filename=filename)
+  endelse
+      
+  if(nv ge 3) then begin
+      P = read_field('P', filename=filename, _EXTRA=extra)
+  endif else begin
+      P = read_parameter('p0',filename=filename)
+  endelse
+
+  b2 = (s_bracket(psi,psi,x,z) + i^2)/r^2
+
+  beta = 2.*P/b2
+
+  return, beta
+end
+
+
+;===========================================
+; toroidal velocity
+;===========================================
+function toroidal_velocity, filename=filename, r=x, z=z, t=t, _EXTRA=extra
+   nv = read_parameter('numvar', filename=filename)
+
+   if(nv lt 2) then begin
+       print, "numvar < 2"
+       return, 0
+   endif
+
+   v = read_field('V', filename=filename, r=x, z=z, t=t, _EXTRA=extra)
+   r = radius_matrix(x,z,t)
+   
+   return, v/r
+end
+
+
+;===========================================
+; thermal velocity
+;===========================================
+function thermal_velocity, filename=filename, r=x, z=z, t=t, _EXTRA=extra
+   nv = read_parameter('numvar', filename=filename)
+   idens = read_parameter('idens', filename=filename)
+
+   if(nv ge 3) then begin
+       P = read_field('P', filename=filename, r=x, z=z, t=t, _EXTRA=extra)
+   endif else begin
+       P = read_parameter('p0', filename=filename)
+   endelse
+
+   if(idens eq 1) then begin
+       n = read_field('den', filename=filename, r=x, z=z, t=t, _EXTRA=extra)
+   endif else begin
+       n = 1
+   endelse
+  
+   return, sqrt(P/n)
+end
+
+
+;===========================================
+; temperature
+;===========================================
+function temperature, filename=filename, r=x, z=z, t=t, _EXTRA=extra
+   nv = read_parameter('numvar', filename=filename)
+   idens = read_parameter('idens', filename=filename)
+
+   if(nv ge 3) then begin
+       P = read_field('P', filename=filename, r=x, z=z, t=t, _EXTRA=extra)
+   endif else begin
+       P = read_parameter('p0', filename=filename)
+   endelse
+
+   if(idens eq 1) then begin
+       n = read_field('den', filename=filename, r=x, z=z, t=t, _EXTRA=extra)
+   endif else begin
+       n = 1
+   endelse
+  
+   return, p/n
+end
+
 
 pro plot_field, name, time, points=p, filename=filename, mesh=plotmesh, $
                 mcolor=mc, lcfs=lcfs, title=title, $
                 maskrange=maskrange, maskfield=maskfield, $
                 xrange=xrange, yrange=yrange, _EXTRA = ex
 
-   field = read_field(name, slices=time, mesh=mesh, filename=filename, $,
-                      time=t, r=x, z=y, points=p, xrange=xrange, yrange=yrange)
+   nv = read_parameter('numvar', filename=filename)
+
+   if(strcmp(name, 'beta', /fold_case)) then begin
+       field = local_beta(slice=time,filename=filename,r=x,z=y,t=t, $
+                          xrange=xrange,yrange=yrange)
+       title='!6 Local !7b!3'
+   endif else if strcmp(name, 'toroidal velocity', /fold_case) $
+     or strcmp(name, 'vz', /fold_case) then begin
+       field = toroidal_velocity(slice=time,filename=filename,r=x,z=y,t=t, $
+                                 xrange=xrange,yrange=yrange)
+       title='!8v!D!9P!N!3'
+   endif else if strcmp(name, 'thermal velocity', /fold_case) $
+     or strcmp(name, 'vt', /fold_case) then begin
+       field = thermal_velocity(slice=time,filename=filename,r=x,z=y,t=t, $
+                                 xrange=xrange,yrange=yrange)
+       title='!8v!Dt!N!3'
+   endif else if strcmp(name, 'temperature', /fold_case) $
+     or strcmp(name, 't', /fold_case) then begin
+       field = temperature(slice=time,filename=filename,r=x,z=y,t=t, $
+                           xrange=xrange,yrange=yrange)
+       title='!8T!3'
+   endif else begin
+       field = read_field(name, slices=time, mesh=mesh, filename=filename, $,
+                          time=t, r=x, z=y, points=p, $,
+                          xrange=xrange, yrange=yrange)
+       title = translate(name)
+   endelse
+
    if(n_elements(field) le 1) then return
 
    if(n_elements(maskrange) eq 2) then begin
@@ -357,23 +482,19 @@ pro plot_field, name, time, points=p, filename=filename, mesh=plotmesh, $
                             xrange=xrange, yrange=yrange)
        endelse
        mask = (psi ge maskrange[0]) and (psi le maskrange[1])
-       field = mask*field
+       field = mask*field + (1-mask)*(min(field-mask*field))
    endif
 
-   print, "Plotting..."
-   !x.title = '!8r!3'
-   !y.title = '!8z!3'
-   if(n_elements(title) eq 0) then begin
-       if(t gt 0) then begin
-           title = "!8" + translate(name) + $
-             string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!3")', t)
-       endif else begin
-           title = "!8" + translate(name) + $
-             string(FORMAT='("!6(!8t!6 = ",G0,")!3")', t)
-       endelse
-   endif
+   if(t gt 0) then begin
+       title = title + $
+         string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!3")', t)
+   endif else begin
+       title = title + $
+         string(FORMAT='("!6(!8t!6 = ",G0,")!3")', t)
+   endelse
 
-   contour_and_legend, field, x, y, title=title, _EXTRA=ex
+   contour_and_legend, field, x, y, title=title, $
+     xtitle='!8r!3', ytitle='!8z!3', _EXTRA=ex
 
    if(keyword_set(lcfs) or n_elements(maskrange) ne 0) then begin
        if(n_elements(psi) eq 0) then begin
@@ -389,8 +510,6 @@ pro plot_field, name, time, points=p, filename=filename, mesh=plotmesh, $
    if(keyword_set(plotmesh)) then begin
        plot_mesh, mesh, color=220, /oplot, filename=filename
    endif
-
-   print, "Done."
 end
 
 pro compare, file1, file2, time, names=names
@@ -596,7 +715,7 @@ pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog, $
    dissipated = dissipated    $
      + s.Flux_diffusive._data $
      + s.Flux_pressure._data $
-     + 0.*s.Flux_kinetic._data  $
+     + s.Flux_kinetic._data  $
      + 0.*s.Flux_poynting._data  $
      + s.Flux_thermal._data
 
@@ -939,6 +1058,33 @@ pro plot_timings, filename=filename
 end
 
 
+function minor_radius, r=x, z=z, _extra=extra
+   psi = read_field('psi',r=x,z=z,t=t,_extra=extra)
+   sz = size(psi)
+
+   rr = radius_matrix(x,z,t)
+   zz = rr
+   a = rr
+
+   for k=0,sz[1]-1 do begin
+       for j=0,sz[2]-1 do zz[k,j,*] = z
+       psimax = max(psi[k,*,*], i)
+       xi = i/sz[3]
+       zi = i mod sz[3]
+       a[k,*,*] = sqrt((rr[k,*,*]-x[xi])^2 + zz[k,*,*]^2)
+   endfor
+
+   return, a
+end
+
+; =====================================================
+; Scalar functions
+; =====================================================
+
+
+; ==============
+; beta = 2*p/B^2
+; ==============
 function beta, filename=filename
    nv = read_parameter("numvar", filename=filename)
    if(nv lt 3) then begin
@@ -952,6 +1098,10 @@ function beta, filename=filename
    return, (gamma - 1.)*s.E_P._data / (s.E_MP._data + s.E_MT._data)
 end
 
+
+; ==========================
+; beta_poloidal = 2*P/(Ip^2)
+; ==========================
 function beta_poloidal, filename=filename
    nv = read_parameter("numvar", filename=filename)
    if(nv lt 3) then begin
@@ -965,6 +1115,10 @@ function beta_poloidal, filename=filename
    return, 2.*(gamma-1.)*s.E_P._data/s.toroidal_current._data^2
 end
 
+
+; ====================================
+; beta_normal = beta_t * (B_T*a / I_p)
+; ====================================
 function beta_normal, filename=filename
    nv = read_parameter("numvar", filename=filename)
    if(nv lt 3) then begin
@@ -1006,6 +1160,8 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
                  ylog=ylog, xlog=xlog, left=left
 
   if(n_elements(filename) eq 0) then filename='C1.h5'
+
+  if(n_elements(names) eq 0) then names=filename
 
   !x.title = '!8t!6 (!7s!D!8A!N!6)!3'
 
@@ -1107,7 +1263,12 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
     (strcmp("angular momentum", scalarname, /fold_case) eq 1) then begin
       data = s.angular_momentum._data
       title = '!6Angular Momentum!3'
-      ytitle = '!8N !6(!8n!D0!N / L!U3!N!6)!3'
+      ytitle = '!8L!D!9P!N !6(!8B!6!D0!U2!N!8L!U!63!N/4!7ps!D!8A!N!6)!3'
+  endif else if $
+    (strcmp("vorticity", scalarname, /fold_case) eq 1) then begin
+      data = s.vorticity._data
+      title = '!6Vorticity!3'
+      ytitle = '!9I!S!7x!R!A!6_!D!9P!N !8dA !6(!8v!D!8A!NL!6)!3'
   endif else begin
       print, 'Scalar ', scalarname, ' not recognized.'
       return
@@ -1232,68 +1393,46 @@ pro plot_tor_velocity, time, filename=filename, points=pts, $
        plot_lcfs, time, color=130, points=pts, filename=filename
    endif
 end
-
   
-pro plot_beta, time, filename=filename, points=pts, lcfs=lcfs, _EXTRA=extra
 
-  if(n_elements(time) eq 0) then time=0
-  nv    = read_parameter('numvar', filename=filename)
-  idens = read_parameter('idens', filename=filename)
+;====================================================
+; Flux average quantities
+;====================================================
 
-  psi = read_field('psi', filename=filename, $
-                   slice=time, r=x, z=z, t=t, points=pts)
-
-  if(n_elements(psi) le 1) then return
-
-  r = radius_matrix(x,z,t)
-
-  if(nv ge 2) then begin
-      I = read_field('I', filename=filename, slice=time, $
-                     r=x, z=z, t=t, points=pts)
-  endif else begin
-      I = read_parameter('bzero')
-  endelse
-      
-  if(nv ge 3) then begin
-      P = read_field('P', filename=filename, slice=time, $
-                     r=x, z=z, t=t, points=pts)
-  endif else begin
-      P = 1
-  endelse
-
-  b2 = (s_bracket(psi,psi,x,z) + i^2)/r^2
-
-  beta = 2.*P/b2
-
-  contour_and_legend, beta[0,*,*], x, z, title='!6Local !7b!3', $
-    xtitle='!8r!3', ytitle='!8z!3', _EXTRA=extra
-
-  if(keyword_set(lcfs)) then begin
-      plot_lcfs, time, color=130, points=pts, filename=filename
-  endif
-
-  print, "Mean = ", mean(beta)
-
-end
-
-
+;==================================================================
+; flux_average
+; ~~~~~~~~~~~~
+;
+; Computes the flux averages of a field
+; at a given time.
+;
+; bins:  number of bins into which to subdivide the flux
+; flux:  flux value of each bin
+; area:  cross-sectional area of each flux bin
+; range: range of flux values
+;==================================================================
 function flux_average, field, time, bins=bins, flux=flux, area=area, $
-                       _EXTRA=extra, range=range
+                       t=t, _EXTRA=extra, range=range, points=points
 
    if(n_elements(time) eq 0) then time=0
 
    sz = size(field)
-   points = sz[2]
+   if(n_elements(points) eq 0) then begin
+       points = sz[2]
+       if(sz[2] le 1) then points=50
+   endif
 
-   psi = read_field('psi', slice=time, r=x, z=z, $
+   psi = read_field('psi', slice=time, r=x, z=z, t=t, $
                     _EXTRA=extra, points=points)
+   sz = size(psi)
    if(n_elements(psi) le 1) then return, 0
 
-   if(n_elements(bins) eq 0) then bins = points/2.
+   if(n_elements(bins) eq 0) then bins = points/4.
 
    result = fltarr(sz[1], bins)
    flux = fltarr(sz[1], bins)
    area = fltarr(sz[1], bins)
+   sfield = 0
 
    if(n_elements(range) eq 0) then begin
        range = fltarr(sz[1],2)
@@ -1305,14 +1444,15 @@ function flux_average, field, time, bins=bins, flux=flux, area=area, $
    endif
 
    for k=0, sz[1]-1 do begin
-       dpsi = (range[k,1] - range[k,0])/(bins-1.)
+       dpsi = (range[k,1] - range[k,0])/bins
 
        for p=0, bins-1 do begin
            fval = dpsi*p + range[k,0]
 
-           mask = float((psi[k,*,*] ge fval) and (psi[k,*,*] le fval+dpsi))
+           mask = float((psi[k,*,*] gt fval) and (psi[k,*,*] le fval+dpsi))
 
-           sfield = field[k,*,*]*mask[0,*,*]
+           if(n_elements(field) gt 1) then $
+             sfield = field[k,*,*]*mask[0,*,*]
            
            flux[k,p] = fval
            result[k, p] = total(sfield)/total(mask)
@@ -1323,43 +1463,155 @@ function flux_average, field, time, bins=bins, flux=flux, area=area, $
    return, result
 end
 
-pro plot_flux_average, name, time, filename=filename, points=pts, _EXTRA=extra
+; ==========================================
+; safety_factor = dpsi_t/dpsi
+; ==========================================
+function safety_factor, time, filename=filename, flux=flux, area=dAdpsi, $
+                        points=p, t=t, _EXTRA=extra
+   I = read_field('I', r=x, z=z, slice=time, $
+                   filename=filename, points=p, time=t)
+   r = radius_matrix(x,z,t)
+
+   fa = flux_average(I/r, time, flux=fl, filename=filename, $
+                     area=area, points=p, _EXTRA=extra)
+
+   if(n_elements(fa) le 1) then return, 0
+
+   dAdpsi = area
+   flux = fl
+
+   q = abs(fa*dAdpsi/mean(deriv(flux)))
    
-   field = read_field(name, slice=time, filename=filename, p=pts, time=t)
-
-   fa = flux_average(field, time, flux=flux, p=pts, filename=filename)
-
-   if(n_elements(title) eq 0) then begin
-       if(t gt 0) then begin
-           title = "!12<!8" + translate(name) + $
-             string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!12>!3")', t)
-       endif else begin
-           title = "!12<!8" + translate(name) + $
-             string(FORMAT='("!6(!8t!6 = ",G0,")!3!12>")', t)
-       endelse
-   endif
-
-   if(n_elements(ytitle) eq 0) then begin
-       ytitle = "!12<!8" + translate(name) + "!12>!3"
-   endif
-
-   plot, flux[0,*], fa[0,*], xtitle='!7w!3', $
-     ytitle=ytitle, title=title, _EXTRA=extra
+   return, q
 end
 
-pro plot_q, time, _EXTRA=extra
-   field = read_field('I', slice=time, filename=filename, _EXTRA=extra, time=t)
 
-   fa = flux_average(field, time, flux=flux, $
-                     area=area, _EXTRA=extra)
+; ==========================================
+; toroidal_flux 
+; ==========================================
+function toroidal_flux, time, filename=filename, flux=flux, area=dAdpsi, $
+                        points=p, t=t, _EXTRA=extra
 
-   if(n_elements(fa) le 1) then return
+   bz = read_field('I',slice=time,r=x,z=z,t=t,p=pts,filename=filename)
+   r = radius_matrix(x,z,t)
+   fa_bz = flux_average(bz/r, time, flux=flux, area=area, p=pts, t=t, $
+                        filename=filename)
+   fa = replicate(0.,n_elements(fa_bz))
+   fa[n_elements(fa)-1] = $
+     fa_bz[n_elements(fa)-1]*area[n_elements(fa)-1]
+   for i=n_elements(fa)-2,0,-1 do fa[i] = fa[i+1] + fa_bz[i]*area[i]
 
-   q = abs(fa*area/mean(deriv(flux)))/(2.*3.14159265)
+   return, fa
+end
 
-   print, total(area)
 
-   title = "!6Safety Factor "+ $
-     string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!3")', t)
-   plot, flux, q, title=title, xtitle='!7w!3', ytitle='!8q!3'
+
+;======================================================
+; plot_flux_average
+; ~~~~~~~~~~~~~~~~~
+;
+; plots the flux average quantity "name" at a give time
+;======================================================
+pro plot_flux_average, name, time, filename=filename, points=pts, $
+                       _EXTRA=extra, color=c, names=names, $
+                       xlog=xlog, ylog=ylog, left=left, overplot=overplot, $
+                       lcfs=lcfs, normalized_flux=nflux
+
+
+   if(n_elements(filename) eq 0) then filename='C1.h5'
+
+   nfiles = n_elements(filename)
+   if(nfiles gt 1) then begin
+       if(n_elements(c) eq 0) then begin
+           colors = colors(nfiles)
+       endif else begin
+           colors = fltarr(n_elements(name))
+           colors[*] = c
+       endelse
+
+       for i=0, nfiles-1 do begin
+           plot_flux_average, name, time, filename=filename[i], $
+             overplot=((i gt 0) or keyword_set(overplot)), points=pts, $
+             color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
+             normalized_flux=nflux
+       end
+       if(n_elements(names) gt 0) then begin
+           plot_legend, names, color=colors, ylog=ylog, xlog=xlog, left=left
+       endif    
+       
+       return
+   endif 
+
+   xtitle='!7w!3'
+
+   if(strcmp("safety factor", name, /fold_case) eq 1) or $
+     (strcmp("q", name, /fold_case) eq 1) then begin
+       fa = safety_factor(time, filename=filename, flux=flux, area=dAdpsi, $
+         t=t,points=pts)
+       
+       title = "!8q!3"
+       ytitle='!8q!3'
+   endif else if(strcmp("darea", name, /fold_case) eq 1) or $
+     (strcmp("da", name, /fold_case) eq 1) then begin
+       fa = flux_average(0, time, flux=flux, area=area, p=pts, t=t, $
+                         filename=filename)
+       fa = area
+       title = "!6(d!8A/!6d!7w!6)!3"
+       ytitle = "!6d!8A/!6d!7w !6(!8L!6!U2!N)!3"
+   endif else if(strcmp("area", name, /fold_case) eq 1) then begin
+       fa = flux_average(0, time, flux=flux, area=area, p=pts, t=t, $
+                         filename=filename)
+       fa = replicate(0.,n_elements(area))
+       fa[n_elements(flux)-1] = area[n_elements(flux)-1]
+       for i=n_elements(flux)-2,0,-1 do fa[i] = fa[i+1] + area[i]
+           
+       title = "!6Area!3"
+       ytitle = "!6Area (!8L!6!U2!N)!3"
+   endif else if(strcmp("toroidal flux", name, /fold_case) eq 1) or $
+     (strcmp("tflux", name, /fold_case) eq 1) then begin
+       fa = toroidal_flux(time, filename=filename, flux=flux, area=dAdpsi, $
+         t=t,points=pts)
+       title = "!7W!8!DT!N!3"
+       ytitle = "!6Toroidal Flux!3"
+   endif else begin
+
+       field = read_field(name, slice=time, filename=filename, p=pts, time=t)
+       fa = flux_average(field, time, flux=flux, p=pts, filename=filename)
+
+       if(n_elements(title) eq 0) then begin
+           title = translate(name)
+       endif
+       if(n_elements(ytitle) eq 0) then begin
+           ytitle = "!12<!8" + translate(name) + "!12>!3"
+       endif
+   endelse 
+
+   if(t gt 0) then begin
+       title = "!12<" + title + $
+         string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!12>!7!Dw!N!3")', t)
+   endif else begin
+       title = "!12<!8" + title + $
+         string(FORMAT='("!6(!8t!6 = ",G0,")!3!12>!7!Dw!N!3")', t)
+   endelse
+
+   if(keyword_set(nflux) or keyword_set(lcfs)) then begin
+       lcfs_psi = lcfs(time, filename=filename, psi=psi)
+   endif
+
+   if(keyword_set(nflux)) then begin
+       flux = (flux - max(psi)) / (lcfs_psi-max(psi))
+       xtitle = '!7W!3'
+       lcfs_psi = 1.
+   endif
+
+   if(keyword_set(overplot)) then begin
+       oplot, flux, fa, color=c
+   endif else begin
+       plot, flux, fa, xtitle=xtitle, $
+         ytitle=ytitle, title=title, xlog=xlog, ylog=ylog, _EXTRA=extra
+   endelse
+
+   if(keyword_set(lcfs)) then begin
+       oplot, [lcfs_psi,lcfs_psi], !y.crange, linestyle=1, color=c
+   endif
 end
