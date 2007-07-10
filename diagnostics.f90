@@ -4,7 +4,7 @@ module diagnostics
 
   ! scalar diagnostics
   real :: tflux0, totcur0
-  real :: tflux, area, totcur, totden, tmom
+  real :: tflux, area, totcur, totden, tmom, tvor
 
   real :: chierror
 
@@ -136,6 +136,7 @@ contains
     tflux = 0.
     totden = 0.
     tmom = 0.
+    tvor = 0.
   end subroutine reset_scalars
 
 
@@ -151,7 +152,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 29
+    integer, parameter :: num_scalars = 30
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -186,27 +187,28 @@ contains
        temp(27) = totden
        temp(28) = tflux
        temp(29) = tmom
+       temp(30) = tvor
          
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
             MPI_SUM, MPI_COMM_WORLD, ier) 
          
-       ekinp = temp2(1)
-       emagp = temp2(2)
-       ekinpd = temp2(3)
-       emagpd = temp2(4)      
-       ekint = temp2(5)
-       emagt = temp2(6)
-       ekintd = temp2(7)
-       emagtd = temp2(8)
-       ekinph = temp2(9)
+       ekinp =  temp2( 1)
+       emagp =  temp2( 2)
+       ekinpd = temp2( 3)
+       emagpd = temp2( 4)      
+       ekint =  temp2( 5)
+       emagt =  temp2( 6)
+       ekintd = temp2( 7)
+       emagtd = temp2( 8)
+       ekinph = temp2( 9)
        ekinth = temp2(10)
        emagph = temp2(11)
        emagth = temp2(12)
-       ekin3 = temp2(13)
+       ekin3 =  temp2(13)
        ekin3d = temp2(14)
        ekin3h = temp2(15)
-       emag3 = temp2(16)
+       emag3 =  temp2(16)
        emag3d = temp2(17)
        emag3h = temp2(18)
        efluxd = temp2(19)
@@ -214,12 +216,13 @@ contains
        efluxk = temp2(21)
        efluxs = temp2(22)
        efluxt = temp2(23)
-       epotg = temp2(24)
-       area = temp2(25)
+       epotg =  temp2(24)
+       area =   temp2(25)
        totcur = temp2(26)
        totden = temp2(27)
-       tflux = temp2(28)
-       tmom = temp2(29)
+       tflux =  temp2(28)
+       tmom =   temp2(29)
+       tvor =   temp2(30)
     endif !if maxrank .gt. 1
 
   end subroutine distribute_scalars
@@ -422,13 +425,14 @@ subroutine calculate_scalars()
      ! Calculate Scalars
      ! ~~~~~~~~~~~~~~~~~
      !  (extra factor of 1/r comes from delta function in toroidal coordinate)
-     area = area + int1(ri_79,weight_79,79)
+     area   = area   + int1( ri_79,               weight_79,79)
      totcur = totcur - int2(ri2_79,pst79(:,OP_GS),weight_79,79)
-     if(numvar.ge.2) tflux = tflux + int2(ri2_79,bzt79(:,OP_1),weight_79,79)
-     if(idens.eq.1) totden = totden + int2(ri_79,nt79(:,OP_1),weight_79,79)
+     tvor   = tvor   - int2(ri2_79,pht79(:,OP_GS),weight_79,79)
+     if(numvar.ge.2) tflux = tflux  + int2(ri2_79,bzt79(:,OP_1),weight_79,79)
+     if(idens.eq.1) totden = totden + int2( ri_79, nt79(:,OP_1),weight_79,79)
      if(numvar.ge.2) then
         if(idens.eq.0) then
-           tmom = tmom + int2(ri_79,vzt79(:,OP_1),weight_79,79)
+           tmom = tmom + int2(ri_79,vzt79(:,OP_1),             weight_79,79)
         else
            tmom = tmom + int3(ri_79,vzt79(:,OP_1),nt79(:,OP_1),weight_79,79)
         endif

@@ -125,6 +125,7 @@
 !
 !.....CN implicitness parameter (thimp > 0.5 for stability)
       thimp = 0.5
+      thimp_ohm = -1.
 !
 !.....hyper-resistivity coefficients
       hyper = 0.0
@@ -149,9 +150,13 @@
 !......toroidal magnetic field
       bzero = 1.
 !
-!
 !.....initial toroidal velocity
       vzero = 0.
+!
+!.....boundary condition on toroidal velocity
+!     0 = no-slip, 1 = no normal stress
+      v_bc = 0
+!
 !
       facw = 1.
 !.....multiplies the diffusion [test] terms 
@@ -226,6 +231,7 @@
         open(5,file='C1input',form='formatted',status='old')
         read(5,nml=inputnl)
         if(amuc.eq.0) amuc = amu
+        if(thimp_ohm.lt.0) thimp_ohm = thimp
         go to 100
       endif
       go to (1,2,3,4,5,6,7,8,9,10), itest

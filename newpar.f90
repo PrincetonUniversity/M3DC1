@@ -1,3 +1,9 @@
+! Physical differences from structured version:
+! * hyper-ohmic heating
+! * Compressional-viscous and hyper-viscous heating
+! * "No compression" boundary condition
+
+
 #ifdef IS_LIBRARY
 subroutine reducedquintic(isfirst, inmyrank, inmaxrank)
 #else
@@ -135,6 +141,7 @@ Program Reducedquintic
      ! and subsequent timesteps are BDF2.
      if(myrank.eq.0) print *, "Time integration: BDF2."
      thimp = 1.
+     thimp_ohm = 1.
   case default
      if(myrank.eq.0) print *, "Time integration: Crank-Nicholson."
   end select
@@ -880,8 +887,7 @@ subroutine onestep
   phi = vtemp
 
 
-
-  ! define auxiliary variables
+  ! Define auxiliary variables
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Defining auxiliary variables"
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -893,13 +899,14 @@ subroutine onestep
         call inverse(den,deni)
      endif
   endif
+  ! transport coefficients (eta, kappa)
   call define_transport_coefficients
-  !   toroidal current
+  ! toroidal current
   call newvar_d2(phi+phi0,jphi,1,NV_DCBOUND,NV_GS)
   if(hyperc.ne.0) then
-     !   vorticity
+     ! vorticity
      call newvar_d2(vel+vel0,vor,1,NV_DCBOUND,NV_GS)
-     !   compression
+     ! compression
      if(numvar.ge.3) call newvar_d2(vel+vel0,com,3,NV_NOBOUND,NV_LP)
   endif
   if(myrank.eq.0 .and. itimer.eq.1) then
@@ -907,8 +914,9 @@ subroutine onestep
      t_aux = t_aux + tend - tstart
   endif
 
-  ! define source terms
-  ! ~~~~~~~~~~~~~~~~~~~
+
+  ! Calculate scalars (energy, toroidal current, etc..)
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Calculating scalars"
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   call calculate_scalars
@@ -918,21 +926,12 @@ subroutine onestep
   endif 
 
 
-!!$  ! calculate other quantities of interest
-!!$  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!!$  if(myrank.eq.0 .and. iprint.ge.1) print *, "Calculating scalars"
-!!$  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-!!$  call total_flux
+  ! Conserve flux
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(iconstflux.eq.1 .and. numvar.ge.2) then
      call conserve_flux
      tflux = tflux + gbound*area
-!!$     call total_flux
   endif
-!!$  if(myrank.eq.0 .and. itimer.eq.1) then
-!!$     call second(tend)
-!!$     write(*,*) " onestep: Time spent other quantities:", tend - tstart
-!!$  endif
-
 
 end subroutine onestep
 

@@ -36,6 +36,8 @@ module basic
   real :: gravr,gravz ! gravitational acceleration
   real :: vloop       ! loop voltage
 
+  integer :: v_bc     ! bc on angular momentum.  0 = no-slip, 1 = no normal stress
+
   ! general equilibrium parameters
   integer :: irestart ! 1 = reads restart file as initial condition
   integer :: itaylor  ! equilibrium
@@ -76,6 +78,7 @@ module basic
   integer :: igs         ! number of grad-shafranov iterations
   real :: dt             ! timestep
   real :: thimp          ! implicitness parameter (for Crank-Nicholson)
+  real :: thimp_ohm      ! implicitness parameter for ohmic heating
   real :: facw, facd
   real :: regular        ! regularization constant in chi equation
 
@@ -109,10 +112,11 @@ module basic
        eqsubtract,denm,gravr,gravz,kappat,kappar,ln,amuc,      &
        iconstflux,regular,deex,gyro,vloop,eta0,pedge,          &
        integrator,expn,divertors,xdiv,zdiv,divcur,             &
-       control_p,control_i,control_d,idevice,igs,kappa0
+       control_p,control_i,control_d,idevice,igs,kappa0,       &
+       v_bc,thimp_ohm
 
   !     derived quantities
-  real :: tt,pi,                                                       &
+  real :: pi,                                                          &
        time,timer,ajmax,errori,enormi,ratioi,                          &
        gbound,fbound
   integer ::  ni(20),mi(20),                                           &

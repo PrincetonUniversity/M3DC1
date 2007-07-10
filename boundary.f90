@@ -71,30 +71,30 @@ subroutine boundary_vel(imatrix, rhs)
 
         ! clamp toroidal velocity
         if(numvar.ge.2) then
-           temp = vels(ibegin+6:ibegin+11)
-           if(integrator.eq.1 .and. ntime.gt.1) then
-              temp = 1.5*temp + 0.5*velold(ibegin+6:ibegin+11)
-           endif
-           call boundary_clamp(imatrix, ibegin+6, normal, rhs, temp)
+           select case(v_bc)
+           case(1)               ! no normal stress
+              temp = 0.
+              call boundary_normal_deriv(imatrix, ibegin+6, normal, rhs, temp)
+              if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
+              rhs(ibegin+10) = 0.
+
+           case default          ! no slip
+              temp = vels(ibegin+6:ibegin+11)
+              if(integrator.eq.1 .and. ntime.gt.1) then
+                 temp = 1.5*temp + 0.5*velold(ibegin+6:ibegin+11)
+              endif
+              call boundary_clamp(imatrix, ibegin+6, normal, rhs, temp)
+           end select
         endif
 
-!!$        ! no normal stress
-!!$        if(numvar.ge.2) then
-!!$           temp = 0.
-!!$              call boundary_normal_deriv(imatrix, ibegin+6, normal, rhs, temp)
-!!$              if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
-!!$              rhs(ibegin+10) = 0.
-!!$        endif
-
         ! no vorticity
-        temp = 0.
         call boundary_laplacian(imatrix, ibegin, normal, -x, irow)
         rhs(irow) = 0.
-        ! no compression
+        ! no compression (not in structured version)
         if(numvar.ge.3) then
            call boundary_laplacian(imatrix, ibegin+12, normal, x, irow)
            rhs(irow) = 0.
-        endif        
+        endif
    
      ! corners
      else if(izonedim.eq.0) then
@@ -109,22 +109,22 @@ subroutine boundary_vel(imatrix, rhs)
            rhs(ibegin+16) = 0.
         endif
 
-        ! clamp toroidal velocity
         if(numvar.ge.2) then
-           temp = vels(ibegin+6:ibegin+11)
-           if(integrator.eq.1 .and. ntime.gt.1) then
-              temp = 1.5*temp + 0.5*velold(ibegin+6:ibegin+11)
-           endif
-           call boundary_clamp_all(imatrix, ibegin+6, rhs, temp)
-        endif
+           select case (v_bc)
+           case(1)               ! no normal stress
+              call boundary_normal_deriv(imatrix, ibegin+6, 0., rhs, temp)
+              call boundary_normal_deriv(imatrix, ibegin+6, pi/2., rhs, temp)
+              if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
+              rhs(ibegin+16) = 0.           
 
-!!$        ! no normal stress
-!!$        if(numvar.ge.2) then
-!!$           call boundary_normal_deriv(imatrix, ibegin+6, 0., rhs, temp)
-!!$           call boundary_normal_deriv(imatrix, ibegin+6, pi/2., rhs, temp)
-!!$           if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
-!!$           rhs(ibegin+16) = 0.           
-!!$        endif
+           case default          ! no-slip         
+              temp = vels(ibegin+6:ibegin+11)
+              if(integrator.eq.1 .and. ntime.gt.1) then
+                 temp = 1.5*temp + 0.5*velold(ibegin+6:ibegin+11)
+              endif
+              call boundary_clamp_all(imatrix, ibegin+6, rhs, temp)
+           end select
+        end if
      endif
         
   end do
@@ -263,6 +263,9 @@ subroutine boundary_mag(imatrix, rhs)
            ! no tangential current
            temp(ibegin+7) = 0.
            temp(ibegin+8) = 0.
+           if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
+           rhs(ibegin+10) = 0.
+           ! clamp field
            call boundary_clamp_all(imatrix, ibegin+6, rhs, temp)
         endif
 
@@ -537,8 +540,9 @@ subroutine boundary_gs(imatrix, rhs)
   
   integer :: ibottom, iright, itop, ileft, i, izone, izonedim
   integer :: ibegin, iendplusone, ibeginn, iendplusonen, numnodes, irow
-  real :: normal
+  real :: normal, x
   real, dimension(6) :: temp
+  double precision :: coords(3)
 
   if(iper.eq.1 .and. jper.eq.1) return
 
@@ -572,6 +576,8 @@ subroutine boundary_gs(imatrix, rhs)
 
      call entdofs(numvargs, i, 0, ibegin, iendplusone)
      call entdofs(numvar, i, 0, ibeginn, iendplusonen)
+     call xyznod(i,coords)
+     x = coords(1) + xzero
 
      temp = phis(ibeginn:ibeginn+5)
 
@@ -588,6 +594,10 @@ subroutine boundary_gs(imatrix, rhs)
 
         ! clamp magnetic field at boundary
         call boundary_clamp(imatrix, ibegin, normal, rhs, temp)
+
+        ! no toroidal current
+        call boundary_laplacian(imatrix, ibegin, normal, -x, irow)
+        rhs(irow) = 0.
 
      else if(izonedim.eq.0) then
         
@@ -758,7 +768,7 @@ subroutine boundary_com(imatrix, rhs)
         if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
         rhs(ibegin+10) = 0.
 
-        ! no compression
+        ! no compression (not in structured version)
         if(numvar.ge.3) then
            call boundary_laplacian(imatrix, ibegin+6, normal, x, irow)
            rhs(irow) = 0.
