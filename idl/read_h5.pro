@@ -1,3 +1,139 @@
+;=====================================================================
+; Functions for finding derivatives of fields
+;=====================================================================
+function laplacian, a, x, z, toroidal=toroidal
+    axx = a
+    azz = a
+
+    for k=0, n_elements(a[*,0,0])-1 do begin
+        for i=0, n_elements(a[k,0,*])-1 do begin
+            axx[k,*,i] = deriv(x, deriv(x, a[k,*,i]))
+        endfor
+
+        for i=0, n_elements(a[k,*,0])-1 do begin
+            azz[k,i,*] = deriv(z, deriv(z, a[k,i,*]))
+        endfor
+
+        if(keyword_set(toroidal)) then begin
+            for i=0, n_elements(a[k, 0,*])-1 do begin
+                axx[k,*,i] = axx[k,*,i] + deriv(x, a[k,*,i])/x
+            endfor
+        endif
+    end
+
+    return, axx+azz
+end
+
+function grad_shafranov, a, x, z
+    axx = a
+    azz = a
+
+    for k=0, n_elements(a[*,0,0])-1 do begin
+        for i=0, n_elements(a[k,0,*])-1 do begin
+            axx[k,*,i] = deriv(x, deriv(x, a[k,*,i])) $
+              - deriv(x, a[k,*,i])/x
+        endfor
+
+        for i=0, n_elements(a[k,*,0])-1 do begin
+            azz[k,i,*] = deriv(z, deriv(z, a[k,i,*]))
+        endfor
+    end
+
+    return, axx+azz
+end
+
+function dx, a, x
+    ax = a
+
+    for k=0, n_elements(a[*,0,0])-1 do begin
+        for i=0, n_elements(a[k,0,*])-1 do begin
+            ax[k,*,i] = deriv(x, a[k,*,i])
+        endfor
+    end
+
+    return, ax
+end
+
+function dz, a, z
+    az = a
+
+    for k=0, n_elements(a[*,0,0])-1 do begin
+        for i=0, n_elements(a[k,*,0])-1 do begin
+            az[k,i,*] = deriv(z, a[k,i,*])
+        endfor
+    end
+
+    return, az
+end
+
+function a_bracket, a, b, x, z
+    return, -dx(a,x)*dz(b,z) + dz(a,z)*dx(b,x)
+end
+
+function s_bracket, a, b, x, z
+    return, dx(a,x)*dx(b,x) + dz(a,z)*dz(b,z)
+end
+
+
+function aa_bracket, a, b, c, x, z
+    ax = dx(a,x)
+    az = dz(a,z)
+    bxx = dx(dx(b,x),x)
+    bxz = dx(dz(b,z),x)
+    bzz = dz(dz(b,z),z)
+    cx = dx(c,x)
+    cz = dz(x,z)
+
+    return, ax*bxz*cz - ax*bzz*cx - az*bxx*cz + az*bxz*cx
+end
+
+
+function as_bracket, a, b, c, x, z
+    ax = dx(a,x)
+    az = dz(a,z)
+    bxx = dx(dx(b,x),x)
+    bxz = dx(dz(b,z),x)
+    bzz = dz(dz(b,z),z)
+    cx = dx(c,x)
+    cz = dz(x,z)
+
+    return, ax*bxz*cx + ax*bzz*cz - az*bxx*cx - az*bxz*cz
+end
+
+function la_bracket, a, b, x, z
+    return, 0.5*(laplacian(a_bracket(b,a,x,z),x,z) $
+                 -a_bracket(a, laplacian(b,x,z),x,z) $
+                 -a_bracket(b, laplacian(a,x,z),x,z))
+end
+
+function ls_bracket, a, b, x, z
+    return, 0.5*(laplacian(s_bracket(b,a,x,z),x,z) $
+                 -s_bracket(a, laplacian(b,x,z),x,z) $
+                 -s_bracket(b, laplacian(a,x,z),x,z)) $
+      -laplacian(a,x,z)*laplacian(b,x,z)
+end
+
+function radius_matrix, x, z, t
+    nx = n_elements(x)
+    nz = n_elements(z)
+    r = fltarr(n_elements(t), nx, nz)
+    for k=0, n_elements(t)-1 do begin
+        for j=0, nz-1 do r[k,*,j] = x
+    end
+    return, r
+end
+
+;==================================================================
+; Functions for reading the C1 hdf5 output
+;==================================================================
+
+;==============================================
+; hdf5_file_test
+; ~~~~~~~~~~~~~~
+; 
+; returns 1 if "filename" is a valid hdf5 file;
+; otherwise returns 0
+; =============================================
 function hdf5_file_test, filename
    if(file_test(filename) eq 0) then begin
        print, "Error: ", filename, " is not a valid file."
@@ -8,18 +144,13 @@ function hdf5_file_test, filename
    endif else return, 1
 end
 
-function translate, name
-   if(strcmp(name, 'psi') eq 1) then return, "!7w"
-   if(strcmp(name, 'phi') eq 1) then return, "!8U"
-   if(strcmp(name, 'chi') eq 1) then return, "!7v"
-   if(strcmp(name, 'vor') eq 1) then return, "!17z!9.GX!17v"
-   if(strcmp(name, 'com') eq 1) then return, "!9G.!17v"
-   if(strcmp(name, 'eta') eq 1) then return, "!7g!3"
-   if(strcmp(name, 'den') eq 1) then return, "!8n!3"
-   
-   return, "!8" + name
-end
-
+;================================================
+; read_attribute
+; ~~~~~~~~~~~~~~
+;
+; returns the value associated with the attribute
+; "name" in "group_id"
+;================================================
 function read_attribute, group_id, name
    nmembers = h5a_get_num_attrs(group_id)
 
@@ -38,6 +169,13 @@ function read_attribute, group_id, name
    return, 0
 end
 
+;==================================================
+; read_parameter
+; ~~~~~~~~~~~~~~
+;
+; returns the value associated with the attribute
+; "name" in the root group of "filename"
+;==================================================
 function read_parameter, name, filename=filename, print=pr
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
@@ -54,6 +192,14 @@ function read_parameter, name, filename=filename, print=pr
    return, attr
 end
 
+
+;=====================================================
+; read_scalars
+; ~~~~~~~~~~~~
+;
+; returns a structure populated with the data from
+; the "scalars" group of "filename"
+;=====================================================
 function read_scalars, filename=filename
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
@@ -110,6 +256,14 @@ pro plot_mesh, mesh, color=col, linestyle=lin, oplot=oplot, $
    end
 end
 
+;======================================================
+; is_in_tri
+; ~~~~~~~~~
+;
+; returns 1 if the local coordinates "localp" descibes
+; is within the triangle described by a, b, c;
+; otherwise, returns 0
+;======================================================
 function is_in_tri, localp, a, b, c
 
    small = (a+b+c)*1e-6
@@ -124,7 +278,13 @@ function is_in_tri, localp, a, b, c
    return, 1
 end
 
-
+;==============================================================
+; eval
+; ~~~~
+;
+; given avec field data "field" for element "elm", the value
+; of the field at the local position "localpos"
+;==============================================================
 function eval, field, localpos, elm, operation=op
 
    mi = [0,1,0,2,1,0,3,2,1,0,4,3,2,1,0,5,3,2,1,0]
@@ -270,14 +430,85 @@ function read_raw_field, name, time, mesh=mesh, filename=filename, time=t
 end
 
 
+
+function translate, name, units=units
+   units = ''
+   va0 = '!8v!DA!60!N!X'
+   b0 = '!8B!D!60!N!X'
+   n0 = '!8n!D!60!N!X'
+   t0 = '!7s!DA!60!N!X'
+   l0 = '!8L!X'
+   pi4 = '!64!7p!X'
+   sq = '!U!62!N!X'
+   c = '!8c!X'
+
+   if(strcmp(name, 'psi', /fold_case) eq 1) then begin
+       units = b0+l0+sq
+       return, "!7w!X"
+   endif else if(strcmp(name, 'phi', /fold_case) eq 1) then begin
+       units = va0+l0+sq
+       return, "!8U!X"
+   endif else if(strcmp(name, 'chi', /fold_case) eq 1) then begin
+       units = va0+l0
+       return, "!7v!X"
+   endif else if(strcmp(name, 'jphi', /fold_case) eq 1) then begin
+       units = b0
+       return, "!7D!6!U*!N!7w!x"
+   endif else if(strcmp(name, 'vor', /fold_case) eq 1) then begin
+       units = va0
+       return, "!7D!6!U*!N!8U!x"
+   endif else if(strcmp(name, 'com', /fold_case) eq 1) then begin
+       return, "!9G.!17v!X"
+   endif else if(strcmp(name, 'eta', /fold_case) eq 1) then begin
+       units = pi4+l0+va0+'/'+c+sq
+       return, "!7g!X"
+   endif else if(strcmp(name, 'den', /fold_case) eq 1) then begin
+       units = n0
+       return, "!8n!X"
+   endif else if(strcmp(name, 'p', /fold_case) eq 1) then begin
+       units = b0+sq+'/'+pi4
+       return, "!8p!X"
+   endif else if(strcmp(name, 'pe', /fold_case) eq 1) then begin
+       units = b0+sq+'/'+pi4
+       return, "!8p!De!N!X"
+   endif else if(strcmp(name, 'beta', /fold_case) eq 1) then begin
+       return, "!7b!X"
+   endif else if(strcmp(name, 'thermal velocity', /fold_case) eq 1) or $
+     (strcmp(name, 'vt', /fold_case) eq 1) then begin
+       units = va0
+       return, "!8v!Dt!N!X"
+   endif else if(strcmp(name, 'toroidal velocity', /fold_case) eq 1) or $
+     (strcmp(name, 'vz', /fold_case) eq 1) then begin
+       units = va0
+       return, "!8v!D!9P!N!X"
+   endif else if(strcmp(name, 'temperature', /fold_case) eq 1) or $
+     (strcmp(name, 't', /fold_case) eq 1) then begin
+       units = b0+sq+'/'+pi4+n0
+       return, "!8T!X"
+   endif else if(strcmp(name, 'angular momentum', /fold_case) eq 1) or $
+     (strcmp(name, 'lz', /fold_case) eq 1) then begin
+       units = n0+va0
+       return, "!8L!D!9P!N!X"
+   endif else if(strcmp(name, 'jz', /fold_case) eq 1) or $
+     (strcmp(name, 'lz', /fold_case) eq 1) then begin
+       units = c+b0+'/'+pi4
+       return, "!8J!D!9P!N!X"
+   endif  
+
+   return, "!8" + name
+end
+
+
 function read_field, name, slices=time, mesh=mesh, filename=filename, time=t, $
                      r=x, z=y, points=pts, xrange=xrange, yrange=yrange
+
    if(n_elements(filename) eq 0) then filename='C1.h5'
    if(n_elements(pts) eq 0) then pts = 50
 
    if(hdf5_file_test(filename) eq 0) then return, 0
 
    nt = read_parameter("ntime", filename=filename)
+   nv = read_parameter("numvar", filename=filename)
 
    if(n_elements(time) eq 0) then begin
        time = [0,nt-1]
@@ -291,20 +522,171 @@ function read_field, name, slices=time, mesh=mesh, filename=filename, time=t, $
    endif
 
    data = fltarr(time[1]-time[0]+1, pts, pts)
+
+   ;==========================================
+   ; local_beta = 2*P/B^2
+   ;==========================================
+   if(strcmp('beta', name, /fold_case) eq 1) then begin
+       psi = read_field('psi', slices=time, mesh=mesh, filename=filename, $
+                        time=t, r=x, z=y, points=pts, $
+                        xrange=xrange, yrange=yrange)
+
+       if(n_elements(psi) le 1) then return, 0
+
+       r = radius_matrix(x,y,t)
+
+       if(nv ge 2) then begin
+           I = read_field('I', slices=time, mesh=mesh, filename=filename, $
+                        time=t, r=x, z=y, points=pts, $
+                        xrange=xrange, yrange=yrange)
+       endif else begin
+           I = read_parameter('bzero',filename=filename) $
+             * read_parameter('xmin', filename=filename)
+       endelse
+      
+       if(nv ge 3) then begin
+           P = read_field('P', slices=time, mesh=mesh, filename=filename, $
+                        time=t, r=x, z=y, points=pts, $
+                        xrange=xrange, yrange=yrange)
+       endif else begin
+           P = read_parameter('p0',filename=filename)
+       endelse
+
+       b2 = (s_bracket(psi,psi,x,y) + i^2)/r^2
+
+       beta = 2.*P/b2
+
+       return, beta
+
+   ;===========================================
+   ; toroidal field
+   ;===========================================
+   endif else if(strcmp('toroidal field', name, /fold_case) eq 1) or $
+     (strcmp('bz', name, /fold_case) eq 1) then begin
+       
+       if(nv lt 2) then begin
+           print, "numvar < 2"
+           return, 0
+       endif
+
+       I = read_field('I', slices=time, mesh=mesh, filename=filename, $
+                        time=t, r=x, z=y, points=pts, $
+                        xrange=xrange, yrange=yrange)
+       r = radius_matrix(x,y,t)
+   
+       return, I/r
+
+   ;===========================================
+   ; toroidal velocity
+   ;===========================================
+   endif else if(strcmp('toroidal velocity', name, /fold_case) eq 1) or $
+     (strcmp('vz', name, /fold_case) eq 1) then begin
+       
+       if(nv lt 2) then begin
+           print, "numvar < 2"
+           return, 0
+       endif
+
+       v = read_field('V', slices=time, mesh=mesh, filename=filename, $
+                        time=t, r=x, z=y, points=pts, $
+                        xrange=xrange, yrange=yrange)
+       r = radius_matrix(x,y,t)
+   
+       return, v/r
+
+   ;===========================================
+   ; thermal velocity
+   ;===========================================
+   endif else if(strcmp('thermal velocity', name, /fold_case) eq 1) or $
+     (strcmp('vt', name, /fold_case) eq 1) then begin
+
+       idens = read_parameter('idens', filename=filename)
+
+       if(nv ge 3) then begin
+           P = read_field('P', slices=time, mesh=mesh, filename=filename, $
+                        time=t, r=x, z=y, points=pts, $
+                        xrange=xrange, yrange=yrange)
+       endif else begin
+           P = read_parameter('p0', filename=filename)
+       endelse
+
+       if(idens eq 1) then begin
+           n = read_field('den', slices=time, mesh=mesh, filename=filename, $
+                        time=t, r=x, z=y, points=pts, $
+                        xrange=xrange, yrange=yrange)
+       endif else begin
+           n = 1.
+       endelse
+  
+       return, sqrt(P/n)
+
+   ;===========================================
+   ; temperature
+   ;===========================================
+   endif else if(strcmp('temperature', name, /fold_case) eq 1) or $
+     (strcmp('t', name, /fold_case) eq 1) then begin
+
+       idens = read_parameter('idens', filename=filename)
+
+       if(nv ge 3) then begin
+           P = read_field('P', slices=time, mesh=mesh, filename=filename, $
+                        time=t, r=x, z=y, points=pts, $
+                        xrange=xrange, yrange=yrange)
+       endif else begin
+           P = read_parameter('p0', filename=filename)
+       endelse
+
+       if(idens eq 1) then begin
+           n = read_field('den', slices=time, mesh=mesh, filename=filename, $
+                        time=t, r=x, z=y, points=pts, $
+                        xrange=xrange, yrange=yrange)
+       endif else begin
+           n = 1.
+       endelse
+  
+       return, p/n
+
+   ;===========================================
+   ; angular momentum
+   ;===========================================
+   endif else if(strcmp('angular momentum', name, /fold_case) eq 1) or $
+     (strcmp('lz', name, /fold_case) eq 1) then begin
+
+       idens = read_parameter('idens', filename=filename)
+
+       V = read_field('V', slices=time, mesh=mesh, filename=filename, $
+                      time=t, r=x, z=y, points=pts, $
+                      xrange=xrange, yrange=yrange)
+
+       if(idens eq 1) then begin
+           n = read_field('den', slices=time, mesh=mesh, filename=filename, $
+                        time=t, r=x, z=y, points=pts, $
+                        xrange=xrange, yrange=yrange)
+       endif else begin
+           n = 1.
+       endelse
+  
+       return, n*v
+
+   ;===========================================
+   ; toroidal current
+   ;===========================================
+   endif else if(strcmp('jz', name, /fold_case) eq 1) then begin
+
+       idens = read_parameter('idens', filename=filename)
+
+       jphi = read_field('jphi', slices=time, mesh=mesh, filename=filename, $
+                         time=t, r=x, z=y, points=pts, $
+                         xrange=xrange, yrange=yrange)
+
+       r = radius_matrix(x,y,t)
+
+       return, jphi/r
+   endif
+
+
    t = fltarr(time[1]-time[0]+1)
-
    file_id = h5f_open(filename)
-
-   if(1 eq strcmp('j', name)) then begin
-       newname = 'psi'
-       op = 7
-   endif else if (1 eq strcmp('vor', name)) then begin
-       newname = 'phi'
-       op = 7
-   endif else begin
-       newname = name
-       op = 1
-   endelse   
 
    for i=time[0], time[1] do begin
 
@@ -315,7 +697,24 @@ function read_field, name, slices=time, mesh=mesh, filename=filename, time=t, $
        mesh = h5_parse(time_group_id, 'mesh', /read_data)   
 
        field_group_id = h5g_open(time_group_id, 'fields')
-       field = h5_parse(field_group_id, newname, /read_data)
+
+       ; check to see if "name" exists
+       nmembers = h5g_get_nmembers(time_group_id, 'fields')
+       match = 0
+       for m=0, nmembers-1 do begin
+           thisname = h5g_get_member_name(time_group_id, 'fields', m)
+           if(strcmp(thisname, name, /fold_case) eq 1) then begin
+               name = thisname
+               match = 1
+               break
+           endif
+       end
+       if(match eq 0) then begin
+           print, "No field named ", name, "at time slice", i
+           continue
+       end
+       
+       field = h5_parse(field_group_id, name, /read_data)
 
        time_id = h5a_open_name(time_group_id, "time")
        t[i-time[0]] = h5a_read(time_id)
@@ -327,7 +726,7 @@ function read_field, name, slices=time, mesh=mesh, filename=filename, time=t, $
        print, '  evaluating...'
 
        data[i-time[0],*,*]=eval_field(field._data, mesh, points=pts, $
-                                      r=x, z=y, op=op, filename=filename, $
+                                      r=x, z=y, op=1, filename=filename, $
                                       xrange=xrange, yrange=yrange)
    end
 
@@ -338,104 +737,7 @@ function read_field, name, slices=time, mesh=mesh, filename=filename, time=t, $
    return, data
 end
 
-;==========================================
-; local_beta = 2*P/B^2
-;==========================================
-function local_beta, filename=filename, r=x, z=z, t=t, _EXTRA=extra
 
-  if(n_elements(time) eq 0) then time=0
-  nv    = read_parameter('numvar', filename=filename)
-
-  psi = read_field('psi', filename=filename, _EXTRA=extra, $
-                   r=x, z=z, t=t)
-
-  if(n_elements(psi) le 1) then return, 0
-
-  r = radius_matrix(x,z,t)
-
-  if(nv ge 2) then begin
-      I = read_field('I', filename=filename, _EXTRA=extra)
-  endif else begin
-      I = read_parameter('bzero',filename=filename) $
-        * read_parameter('xmin', filename=filename)
-  endelse
-      
-  if(nv ge 3) then begin
-      P = read_field('P', filename=filename, _EXTRA=extra)
-  endif else begin
-      P = read_parameter('p0',filename=filename)
-  endelse
-
-  b2 = (s_bracket(psi,psi,x,z) + i^2)/r^2
-
-  beta = 2.*P/b2
-
-  return, beta
-end
-
-
-;===========================================
-; toroidal velocity
-;===========================================
-function toroidal_velocity, filename=filename, r=x, z=z, t=t, _EXTRA=extra
-   nv = read_parameter('numvar', filename=filename)
-
-   if(nv lt 2) then begin
-       print, "numvar < 2"
-       return, 0
-   endif
-
-   v = read_field('V', filename=filename, r=x, z=z, t=t, _EXTRA=extra)
-   r = radius_matrix(x,z,t)
-   
-   return, v/r
-end
-
-
-;===========================================
-; thermal velocity
-;===========================================
-function thermal_velocity, filename=filename, r=x, z=z, t=t, _EXTRA=extra
-   nv = read_parameter('numvar', filename=filename)
-   idens = read_parameter('idens', filename=filename)
-
-   if(nv ge 3) then begin
-       P = read_field('P', filename=filename, r=x, z=z, t=t, _EXTRA=extra)
-   endif else begin
-       P = read_parameter('p0', filename=filename)
-   endelse
-
-   if(idens eq 1) then begin
-       n = read_field('den', filename=filename, r=x, z=z, t=t, _EXTRA=extra)
-   endif else begin
-       n = 1
-   endelse
-  
-   return, sqrt(P/n)
-end
-
-
-;===========================================
-; temperature
-;===========================================
-function temperature, filename=filename, r=x, z=z, t=t, _EXTRA=extra
-   nv = read_parameter('numvar', filename=filename)
-   idens = read_parameter('idens', filename=filename)
-
-   if(nv ge 3) then begin
-       P = read_field('P', filename=filename, r=x, z=z, t=t, _EXTRA=extra)
-   endif else begin
-       P = read_parameter('p0', filename=filename)
-   endelse
-
-   if(idens eq 1) then begin
-       n = read_field('den', filename=filename, r=x, z=z, t=t, _EXTRA=extra)
-   endif else begin
-       n = 1
-   endelse
-  
-   return, p/n
-end
 
 
 pro plot_field, name, time, points=p, filename=filename, mesh=plotmesh, $
@@ -443,33 +745,14 @@ pro plot_field, name, time, points=p, filename=filename, mesh=plotmesh, $
                 maskrange=maskrange, maskfield=maskfield, $
                 xrange=xrange, yrange=yrange, _EXTRA = ex
 
+   if(n_elements(time) eq 0) then time = 0
+
    nv = read_parameter('numvar', filename=filename)
 
-   if(strcmp(name, 'beta', /fold_case)) then begin
-       field = local_beta(slice=time,filename=filename,r=x,z=y,t=t, $
-                          xrange=xrange,yrange=yrange)
-       title='!6 Local !7b!3'
-   endif else if strcmp(name, 'toroidal velocity', /fold_case) $
-     or strcmp(name, 'vz', /fold_case) then begin
-       field = toroidal_velocity(slice=time,filename=filename,r=x,z=y,t=t, $
-                                 xrange=xrange,yrange=yrange)
-       title='!8v!D!9P!N!3'
-   endif else if strcmp(name, 'thermal velocity', /fold_case) $
-     or strcmp(name, 'vt', /fold_case) then begin
-       field = thermal_velocity(slice=time,filename=filename,r=x,z=y,t=t, $
-                                 xrange=xrange,yrange=yrange)
-       title='!8v!Dt!N!3'
-   endif else if strcmp(name, 'temperature', /fold_case) $
-     or strcmp(name, 't', /fold_case) then begin
-       field = temperature(slice=time,filename=filename,r=x,z=y,t=t, $
-                           xrange=xrange,yrange=yrange)
-       title='!8T!3'
-   endif else begin
-       field = read_field(name, slices=time, mesh=mesh, filename=filename, $,
-                          time=t, r=x, z=y, points=p, $,
-                          xrange=xrange, yrange=yrange)
-       title = translate(name)
-   endelse
+   field = read_field(name, slices=time, mesh=mesh, filename=filename, $,
+                      time=t, r=x, z=y, points=p, $,
+                      xrange=xrange, yrange=yrange)
+   fieldname = translate(name, units=units)
 
    if(n_elements(field) le 1) then return
 
@@ -482,19 +765,19 @@ pro plot_field, name, time, points=p, filename=filename, mesh=plotmesh, $
                             xrange=xrange, yrange=yrange)
        endelse
        mask = (psi ge maskrange[0]) and (psi le maskrange[1])
-       field = mask*field + (1-mask)*(min(field-mask*field))
+       field = mask*field + (1-mask)*(min(field-mask*field,/absolute))
    endif
 
    if(t gt 0) then begin
-       title = title + $
-         string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!3")', t)
+       title = fieldname + $
+         string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!X")', t)
    endif else begin
-       title = title + $
-         string(FORMAT='("!6(!8t!6 = ",G0,")!3")', t)
+       title = fieldname + $
+         string(FORMAT='("!6(!8t!6 = ",G0,")!X")', t)
    endelse
 
-   contour_and_legend, field, x, y, title=title, $
-     xtitle='!8r!3', ytitle='!8z!3', _EXTRA=ex
+   contour_and_legend, field, x, y, title=title, label=units, $
+     xtitle='!8r!X', ytitle='!8z!X', _EXTRA=ex
 
    if(keyword_set(lcfs) or n_elements(maskrange) ne 0) then begin
        if(n_elements(psi) eq 0) then begin
@@ -681,7 +964,7 @@ pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog, $
 
    s = read_scalars(filename=filename)
 
-   !x.title = '!8t !6(!7s!D!8A!N!6)!3'
+   xtitle = '!8t !6(!7s!D!8A!N!6)!3'
 
    N = n_elements(s.time._data)
 
@@ -755,30 +1038,31 @@ pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog, $
        E = deriv(s.time._data,E)
        E_K = deriv(s.time._data, E_K)
        E_M = deriv(s.time._data, E_M)
-       !y.title = '!6d!8E!6/d!8t!3'
+       ytitle = '!6d!8E!6/d!8t!3'
    endif else begin
-       !y.title = '!6 Energy!3'
+       ytitle = '!6 Energy!3'
    endelse
 
    if(nv le 2) then begin
-       !y.range=[min([E,E_K,E_M,-E_D,-E_H,Error]), $
+       yrange=[min([E,E_K,E_M,-E_D,-E_H,Error]), $
                  max([E,E_K,E_M,-E_D,-E_H,Error])]
    endif else begin
-       !y.range=[min([E,s.E_KP._data,s.E_KT._data,s.E_K3._data, $
+       yrange=[min([E,s.E_KP._data,s.E_KT._data,s.E_K3._data, $
                       s.E_MP._data,s.E_MT._data,s.E_P._data,Error]), $
                  max([E,s.E_KP._data,s.E_KT._data,s.E_K3._data, $
                       s.E_MP._data,s.E_MT._data,s.E_P._data,Error])]       
    endelse
-   if(keyword_set(ylog) and (!y.range[0] lt 0)) then $
-     !y.range[0] = !y.range[1]*1e-8
+   if(keyword_set(ylog) and (yrange[0] lt 0)) then $
+     yrange[0] = yrange[1]*1e-8
    if(keyword_set(ylog)) then begin
-       !y.range[1] = !y.range[1]*10.
+       yrange[1] = yrange[1]*10.
        Error = abs(Error)
    endif
    
 
    if(nv le 2) then begin
-       plot, s.time._data, E, ylog=ylog, color=color(0,6), _EXTRA=extra
+       plot, s.time._data, E, ylog=ylog, color=color(0,6), $
+         xtitle=xtitle, ytitle=ytitle, yrange=yrange, _EXTRA=extra
        oplot, s.time._data, E_K, color=color(1,6), linestyle = 2
        oplot, s.time._data, E_M, color=color(2,6), linestyle = 2
        oplot, s.time._data, -E_D, color=color(3,6), linestyle = 1
@@ -790,7 +1074,8 @@ pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog, $
          color=colors(6), ylog=ylog, $
          linestyle = [0,2,2,1,1,3]
    endif else begin
-       plot, s.time._data, E, ylog=ylog, color=color(0,8), _EXTRA=extra
+       plot, s.time._data, E, ylog=ylog, color=color(0,8), $
+         xtitle=xtitle, ytitle=ytitle, yrange=yrange, _EXTRA=extra
        oplot, s.time._data, s.E_KP._data, color=color(1,8), linestyle = 2
        oplot, s.time._data, s.E_KT._data, color=color(2,8), linestyle = 2
        oplot, s.time._data, s.E_K3._data, color=color(3,8), linestyle = 2
@@ -1157,13 +1442,12 @@ end
 
 pro plot_scalar, scalarname, x, filename=filename, names=names, $
                  _EXTRA=extra, overplot=overplot, $
-                 ylog=ylog, xlog=xlog, left=left
+                 ylog=ylog, xlog=xlog, left=left, $
+                 power_spectrum=power_spectrum
 
   if(n_elements(filename) eq 0) then filename='C1.h5'
 
   if(n_elements(names) eq 0) then names=filename
-
-  !x.title = '!8t!6 (!7s!D!8A!N!6)!3'
 
   nfiles = n_elements(filename)
   if(nfiles gt 1) then begin
@@ -1178,11 +1462,13 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
           if(n_elements(x) eq 0) then begin
               plot_scalar, scalarname, filename=filename[i], $
                 overplot=((i gt 0) or keyword_set(overplot)), $
-                color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog
+                color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, $
+                power_spectrum=power_spectrum
           endif else begin
               plot_scalar, scalarname, x[i], filename=filename[i], $
                 overplot=((i gt 0) or keyword_set(overplot)), $
-                color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog
+                color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, $
+                power_spectrum=power_spectrum
           endelse
       end
       if(n_elements(names) gt 0) then begin
@@ -1193,6 +1479,8 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
   endif 
 
   s = read_scalars(filename=filename)
+
+  if(n_tags(s) eq 0) then return
 
   if(strcmp("toroidal current", scalarname, /fold_case) eq 1) or $
     (strcmp("it", scalarname, /fold_case) eq 1) then begin
@@ -1264,21 +1552,30 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
       data = s.angular_momentum._data
       title = '!6Angular Momentum!3'
       ytitle = '!8L!D!9P!N !6(!8B!6!D0!U2!N!8L!U!63!N/4!7ps!D!8A!N!6)!3'
-  endif else if $
+  endif else if (strcmp("circulation", scalarname, /fold_case) eq 1) or $
     (strcmp("vorticity", scalarname, /fold_case) eq 1) then begin
-      data = s.vorticity._data
-      title = '!6Vorticity!3'
+      data = s.circulation._data
+;      data = s.vorticity._data
+      title = '!6Circulation!3'
       ytitle = '!9I!S!7x!R!A!6_!D!9P!N !8dA !6(!8v!D!8A!NL!6)!3'
   endif else begin
       print, 'Scalar ', scalarname, ' not recognized.'
       return
   endelse
+
+  if(keyword_set(power_spectrum)) then begin
+      xtitle = '!7x!6 (!7s!D!8A!N!6!U-1!N)!3'
+      data = power_spectrum(data, frequency=tdata, t=max(s.time._data)) 
+  endif else begin
+      xtitle = '!8t!6 (!7s!D!8A!N!6)!3'
+      tdata = s.time._data
+  endelse
   
   if(n_elements(x) eq 0) then begin
       if(keyword_set(overplot)) then begin
-          oplot, s.time._data, data, color=c, _EXTRA=extra
+          oplot, tdata, data, color=c, _EXTRA=extra
       endif else begin
-          plot, s.time._data, data, $
+          plot, tdata, data, $
             title=title, ytitle=ytitle, _EXTRA=extra, ylog=ylog, xlog=xlog, $
             color=c
       endelse
@@ -1293,8 +1590,8 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
           oplot, x, z, color=c, _EXTRA=extra
       endif else begin
           plot, x, z, $
-            title=title, ytitle=ytitle, _EXTRA=extra, ylog=ylog, xlog=xlog, $
-          color=c
+            title=title, xtitle=xtitle, ytitle=ytitle, $
+            _EXTRA=extra, ylog=ylog, xlog=xlog, color=c
       endelse
   endelse
 end
@@ -1470,6 +1767,7 @@ function safety_factor, time, filename=filename, flux=flux, area=dAdpsi, $
                         points=p, t=t, _EXTRA=extra
    I = read_field('I', r=x, z=z, slice=time, $
                    filename=filename, points=p, time=t)
+   if(n_elements(i) le 1) then return, 0
    r = radius_matrix(x,z,t)
 
    fa = flux_average(I/r, time, flux=fl, filename=filename, $
@@ -1519,6 +1817,10 @@ pro plot_flux_average, name, time, filename=filename, points=pts, $
 
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
+
+   if(n_elements(names) eq 0) then names=filename
+
+   if(n_elements(time) eq 0) then time=0
 
    nfiles = n_elements(filename)
    if(nfiles gt 1) then begin
@@ -1586,6 +1888,8 @@ pro plot_flux_average, name, time, filename=filename, points=pts, $
        endif
    endelse 
 
+   if(n_elements(fa) le 1) then return
+
    if(t gt 0) then begin
        title = "!12<" + title + $
          string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!12>!7!Dw!N!3")', t)
@@ -1614,4 +1918,23 @@ pro plot_flux_average, name, time, filename=filename, points=pts, $
    if(keyword_set(lcfs)) then begin
        oplot, [lcfs_psi,lcfs_psi], !y.crange, linestyle=1, color=c
    endif
+end
+
+
+;
+pro plot_poloidal_rotation, _EXTRA=extra
+   phi = read_field('phi', r=x, z=z, t=t, _EXTRA=extra)
+   den = read_field('den', r=x, z=z, t=t, _EXTRA=extra)
+
+   phi = den*phi
+
+   ihp = reverse(phi, 3)
+
+   anti = (phi - ihp) / 2.
+   sym  = (phi + ihp) / 2.
+
+;   contour_and_legend, [anti[0,*,*],sym[0,*,*]], x, z
+
+   plot, t, total(total(sym,2),2)
+   
 end

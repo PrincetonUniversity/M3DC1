@@ -105,7 +105,6 @@ subroutine output
   enddo
 
   ! search for the location of the magnetic axis and separatrices
-  !      call axis(phi,xsep,zsep,1)
   xsep = 0.
   zsep = 0.
   toto= ekino+emago

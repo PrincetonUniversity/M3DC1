@@ -613,6 +613,70 @@ real function v1ndenmgrav(e,f,g)
 end function v1ndenmgrav
 
 
+! V1us
+! ====
+real function v1us(e,f,g)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real :: temp
+
+  if(idens.eq.0) then
+     v1us = 0
+     return
+  endif
+
+  ! add in density diffusion explicitly
+  temp79a = g(:,OP_1) + denm*nt79(:,OP_GS)
+
+  temp = -int3(e(:,OP_DZ),f(:,OP_DZ),temp79a,weight_79,79) &
+         -int3(e(:,OP_DR),f(:,OP_DR),temp79a,weight_79,79)
+
+  if(itor.eq.1) then 
+     temp = temp - 2.*int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),weight_79,79)
+  endif
+
+  v1us = temp
+  return
+end function v1us
+
+
+! V1chis
+! ======
+real function v1chis(e,f,g)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real :: temp
+
+  if(idens.eq.0) then
+     v1chis = 0.
+     return
+  endif
+
+  ! add in density diffusion explicitly
+  temp79a = g(:,OP_1) + denm*nt79(:,OP_GS)
+
+  temp = int4(r_79,e(:,OP_DZ),f(:,OP_DR),temp79a,weight_79,79) &
+        -int4(r_79,e(:,OP_DR),f(:,OP_DZ),temp79a,weight_79,79)
+
+  if(itor.eq.1) then 
+     temp = temp - 2.*int3(e(:,OP_1),f(:,OP_DZ),temp79a,weight_79,79)
+  endif
+
+  v1chis = temp
+  return
+end function v1chis
+
+
 !===============================================================================
 ! V2 TERMS
 !===============================================================================
@@ -933,6 +997,31 @@ real function v2bsb1(e,f,g,h)
 end function v2bsb1
 
 
+! V2vs
+! ====
+real function v2vs(e,f,g)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real :: temp
+
+  if(idens.eq.0) then
+     v2vs = 0.
+     return
+  endif
+
+  ! add in density diffusion explicitly
+  temp79a = g(:,OP_1) + denm*nt79(:,OP_GS)
+
+  temp = -int3(e(:,OP_1),f(:,OP_1),temp79a,weight_79,79)
+
+  v2vs = temp
+  return
+end function v2vs
 
 
 !===============================================================================
@@ -1578,6 +1667,63 @@ real function v3ndenmgrav(e,f,g)
 end function v3ndenmgrav
 
 
+! V3us
+! ====
+real function v3us(e,f,g)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real :: temp
+
+  if(idens.eq.0) then
+     v3us = 0.
+     return
+  endif
+
+  ! add in density diffusion explicitly
+  temp79a = g(:,OP_1) + denm*nt79(:,OP_GS)
+
+  temp = int4(ri_79,e(:,OP_DZ),f(:,OP_DR),temp79a,weight_79,79) &
+        -int4(ri_79,e(:,OP_DR),f(:,OP_DZ),temp79a,weight_79,79)
+
+  v3us = temp
+  return
+end function v3us
+
+
+! V3chis
+! ======
+real function v3chis(e,f,g)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real :: temp
+
+  if(idens.eq.0) then
+     v3chis = 0.
+     return
+  endif
+
+  ! add in density diffusion explicitly
+  temp79a = g(:,OP_1) + denm*nt79(:,OP_GS)
+
+  temp = int3(e(:,OP_DZ),f(:,OP_DZ),temp79a,weight_79,79) &
+        +int3(e(:,OP_DR),f(:,OP_DR),temp79a,weight_79,79)
+
+  v3chis = temp
+  return
+end function v3chis
+
+
+
 !===============================================================================
 ! B1 TERMS
 !===============================================================================
@@ -2147,6 +2293,26 @@ real function n1nchi(e,f,g)
 end function n1nchi
 
 
+! N1s
+! ===
+real function n1s(e,f)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f
+  real :: temp
+
+  temp = int2(e(:,OP_1),f(:,OP_1),weight_79,79)
+
+  n1s = temp
+  return
+end function n1s
+
+
+
 !===============================================================================
 ! P1 TERMS
 !===============================================================================
@@ -2227,6 +2393,120 @@ real function p1kappar(e,f,g,h,i,j)
   return
 end function p1kappar
 
+
+! P1uus
+! =====
+real function p1uus(e,f,g,h)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  real :: temp
+
+  if(idens.eq.0) then
+     p1uus = 0.
+     return
+  endif
+
+  ! add in density diffusion explicitly
+  temp79a = h(:,OP_1) + denm*nt79(:,OP_GS)
+
+  temp = 0.5*(gam-1.)* &
+       (int5(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),temp79a,weight_79,79) &
+       +int5(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),temp79a,weight_79,79))
+
+  p1uus = temp
+  return
+end function p1uus
+
+
+! P1vvs
+! =====
+real function p1vvs(e,f,g,h)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  real :: temp
+
+  if(idens.eq.0) then
+     p1vvs = 0.
+     return
+  endif
+
+  ! add in density diffusion explicitly
+  temp79a = h(:,OP_1) + denm*nt79(:,OP_GS)
+
+  temp = 0.5*(gam-1.)* &
+       int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_1),temp79a,weight_79,79)
+
+  p1vvs = temp
+  return
+end function p1vvs
+
+
+! P1chichis
+! =========
+real function p1chichis(e,f,g,h)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  real :: temp
+
+  if(idens.eq.0) then
+     p1chichis = 0.
+     return
+  endif
+
+  ! add in density diffusion explicitly
+  temp79a = h(:,OP_1) + denm*nt79(:,OP_GS)
+
+  temp = 0.5*(gam-1.)* &
+       (int4(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),temp79a,weight_79,79) &
+       +int4(e(:,OP_1),f(:,OP_DR),g(:,OP_DR),temp79a,weight_79,79))
+
+  p1chichis = temp
+  return
+end function p1chichis
+
+
+! P1uchis
+! =======
+real function p1uchis(e,f,g,h)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  real :: temp
+
+  if(idens.eq.0) then
+     p1uchis = 0.
+     return
+  endif
+
+  ! add in density diffusion explicitly
+  temp79a = h(:,OP_1) + denm*nt79(:,OP_GS)
+
+  temp = -(gam-1.)* & 
+       (int5(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),temp79a,weight_79,79) &
+       -int5(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),temp79a,weight_79,79))
+
+  p1uchis = temp
+  return
+end function p1uchis
 
 
 

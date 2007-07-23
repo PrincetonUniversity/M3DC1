@@ -37,6 +37,8 @@ module basic
   real :: vloop       ! loop voltage
 
   integer :: v_bc     ! bc on angular momentum.  0 = no-slip, 1 = no normal stress
+  integer :: p_bc     ! bc on pressure.   0 = constant pressure, 1 = insulating
+  integer :: com_bc   ! 1 = forces laplacian(chi) = 0 on boundary
 
   ! general equilibrium parameters
   integer :: irestart ! 1 = reads restart file as initial condition
@@ -113,7 +115,7 @@ module basic
        iconstflux,regular,deex,gyro,vloop,eta0,pedge,          &
        integrator,expn,divertors,xdiv,zdiv,divcur,             &
        control_p,control_i,control_d,idevice,igs,kappa0,       &
-       v_bc,thimp_ohm
+       v_bc,p_bc,com_bc,thimp_ohm
 
   !     derived quantities
   real :: pi,                                                          &

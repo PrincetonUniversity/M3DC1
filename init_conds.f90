@@ -929,6 +929,7 @@ subroutine mri_per(x, z, inode)
 
   call constant_field(vel(ibegin:ibegin+5), 0.)
   if(numvar.ge.2)  then
+     call constant_field(vel(ibegin+6:ibegin+11), 0.)
      call getboundingboxsize(alx, alz)
      kx = pi/alx
      kz = 2.*pi/alz
@@ -943,8 +944,32 @@ subroutine mri_per(x, z, inode)
   if(numvar.ge.3)  call constant_field(vel(ibegin+12:ibegin+17), 0.)
   
   call constant_field(phi(ibegin:ibegin+5), 0.)
-  if(numvar.ge.2)  call constant_field(phi(ibegin+6 :ibegin+11), 0.)
-  if(numvar.ge.3)  call constant_field(phi(ibegin+12:ibegin+17), 0.)
+  if(numvar.ge.2)  then
+     call constant_field(phi(ibegin+6 :ibegin+11), 0.)
+!!$     call getboundingboxsize(alx, alz)
+!!$     kx = pi/alx
+!!$     kz = 2.*pi/alz
+!!$     fac1 = eps*bzero
+!!$     phi(ibegin+6) =  fac1*sin(kx*(x-xzero))*sin(kz*(z-zzero))
+!!$     phi(ibegin+7) =  fac1*cos(kx*(x-xzero))*sin(kz*(z-zzero))*kx
+!!$     phi(ibegin+8) =  fac1*sin(kx*(x-xzero))*cos(kz*(z-zzero))*kz
+!!$     phi(ibegin+9) = -fac1*sin(kx*(x-xzero))*cos(kz*(z-zzero))*kx**2
+!!$     phi(ibegin+10)=  fac1*cos(kx*(x-xzero))*cos(kz*(z-zzero))*kx*kz
+!!$     phi(ibegin+11)= -fac1*sin(kx*(x-xzero))*sin(kz*(z-zzero))*kz**2
+  endif
+  if(numvar.ge.3)  then
+     call constant_field(phi(ibegin+12:ibegin+17), 0.)
+!!$     call getboundingboxsize(alx, alz)
+!!$     kx = pi/alx
+!!$     kz = 2.*pi/alz
+!!$     fac1 = eps*(p0 - pi0*ipres)
+!!$     phi(ibegin+12) =  fac1*sin(kx*(x-xzero))*sin(kz*(z-zzero))
+!!$     phi(ibegin+13) =  fac1*cos(kx*(x-xzero))*sin(kz*(z-zzero))*kx
+!!$     phi(ibegin+14) =  fac1*sin(kx*(x-xzero))*cos(kz*(z-zzero))*kz
+!!$     phi(ibegin+15) = -fac1*sin(kx*(x-xzero))*cos(kz*(z-zzero))*kx**2
+!!$     phi(ibegin+16) =  fac1*cos(kx*(x-xzero))*cos(kz*(z-zzero))*kx*kz
+!!$     phi(ibegin+17) = -fac1*sin(kx*(x-xzero))*sin(kz*(z-zzero))*kz**2
+  endif
 
   if(idens.eq.1) then
      call entdofs(1, inode, 0, ibegin, iendplusone)
