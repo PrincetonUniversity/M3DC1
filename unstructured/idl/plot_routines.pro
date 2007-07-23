@@ -1,16 +1,18 @@
-function colors
-    if (1 EQ strcmp(!d.name, 'PS')) then begin
-        TEK_COLOR
-        col = [0, 2, 4, 6, 8, 10]
-    endif else begin
-        col = [-1, 1023, 1048575, 523776, 10737418] 
-    endelse
+function colors, maxcolors
 
-    return, col
+    c = findgen(maxcolors) * !d.table_size / maxcolors
+
+    if (1 EQ strcmp(!d.name, 'PS')) then begin
+        c[0] = 0
+    endif else begin
+        c[0] = !d.table_size-1
+    endelse
+    
+    return, c
 end
 
-function color, c
-    col = colors()
+function color, c, maxcolors
+    col = colors(maxcolors)
     return, col(c) 
 end
 
@@ -22,7 +24,7 @@ pro plot_legend, names, linestyles=ls, colors=cs, left=l, top=t, psyms=p, $
     if n_elements(ls) eq 0 then ls = intarr(N)
     if n_elements(cs) eq 0 then begin
         cs = intarr(N)
-        cs(*) = color(0)
+        cs[*] = color(0,N)
     endif
     if n_elements(l) eq 0 then l=0
     if n_elements(t) eq 0 then t=0
@@ -54,8 +56,109 @@ pro plot_legend, names, linestyles=ls, colors=cs, left=l, top=t, psyms=p, $
     endfor
 end
 
-pro contour_and_legend, z, x, y, nlevels=nlevels, label=label, $
-                        isotropic=iso, lines=lines, range=range
+
+
+; ======================================================================
+; contour_and_legend
+; ------------------
+; 
+; draws one or more contour plots with color scales
+;
+; z: Either a fltarr(nx,ny) of values to plot, or a fltarr(n,nx,ny) of n
+;    fields to plot.  The field plots are arranged in a grid.
+; x: fltarr(nx) containing the horizontal coordinate values
+; y: fltarr(ny) containing vertical coordinate values
+; label: a strarr(n) containing the color-bar labels for each field
+; title: a strarr(n) containing the plot titles for each field
+; range: a fltarr(2,n) containing the plot range for each field
+; jpeg:  the name of jpeg image to be output
+; _extra: passed to contour_and_legend_single
+; ======================================================================
+
+pro contour_and_legend, z, x, y, label=label, range=range, $
+                          title=title, _EXTRA=ex, jpeg=jpeg, lines=lines, $
+                        nlevels=nlevels
+
+    sz = size(z, /dim)
+    n = sz[0]
+
+    if(n_elements(label) eq 0) then begin
+        label = strarr(n)
+        label(*) = ''
+    end
+    if(n_elements(title) eq 0) then begin
+        title = strarr(n)
+        title(*) = ''
+    end
+    if(n_elements(range) eq 0) then begin
+        range = fltarr(2,n)
+        for i=0, n-1 do range[*,i] = [min(z[i,*,*]), max(z[i,*,*])]
+    endif
+    if(n_elements(lines) eq 0) then lines=0
+    if(n_elements(lines) lt n) then lines = intarr(n) + lines
+
+    rows = ceil(sqrt(n))
+    cols = rows
+
+    erase
+
+    k = 0
+    for i=0, rows-1 do begin
+        for j=0, cols-1 do begin
+            !p.region = [float(i)/rows, float(j)/cols, $
+                         float(i+1)/rows,float(j+1)/cols]
+
+            if(n_elements(nlevels) eq 0) then begin
+                contour_and_legend_single, z[k,*,*], x, y, $
+                  label=label[k], title=title[k], range=range[*,k], $
+                  lines=lines[k], _EXTRA=ex
+            endif else begin
+                contour_and_legend_single, z[k,*,*], x, y, $
+                  label=label[k], title=title[k], range=range[*,k], $
+                  lines=lines[k], nlevels=nlevels[k], _EXTRA=ex
+            endelse
+            !p.noerase = 1
+            k = k + 1
+            if(k ge n) then break
+        end
+        if(k ge n) then break
+    end
+    
+    if(n_elements(jpeg) ne 0) then begin
+        image = tvrd(true=1)
+        print, "writing jpeg", jpeg
+        write_jpeg, jpeg, image, true=1, quality=100
+    end
+
+    print, "done"
+
+    !p.noerase=0
+
+end
+
+
+; ======================================================================
+; contour_and_legend_single
+; -------------------------
+; 
+; Draws a single contour plots with color scale.
+;
+; z: fltarr(nx,ny) of values to plot.
+; x: fltarr(nx) containing the horizontal coordinate values
+; y: fltarr(ny) containing vertical coordinate values
+; label: color-bar labels
+; title: plot title
+; range: fltarr(2) containing the plot range
+; nlevels: number of contour levels
+; lines: if set, draw contour lines
+; color_table: which color table to use
+; isotropic: set aspect ratio so that x and y scales are equal
+; _extra: passed to contour-line drawing call of contour
+; ======================================================================
+
+pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
+                        isotropic=iso, lines=lines, range=range, $
+                        color_table=ct, _EXTRA = ex
 
     z = reform(z)
 
@@ -68,11 +171,36 @@ pro contour_and_legend, z, x, y, nlevels=nlevels, label=label, $
     if n_elements(x) eq 0 then x = findgen(n_elements(z[*,0]))
     if n_elements(y) eq 0 then y = findgen(n_elements(z[0,*]))
 
-    top = 1.0
-    width = 0.8
-    if n_elements(iso) then if iso eq 1 then begin
-        top = (max(y)-min(y))/(max(x)-min(x))
+    region = !p.region
+    if(region[2] eq 0.) then region[2]=1.
+    if(region[3] eq 0.) then region[3]=1.
+
+    width = 0.8*(region[2]-region[0])
+    top = region[3]-region[1]
+
+    if(1 eq strcmp('PS', !d.name)) then begin
+        device, xsize=10, ysize=8, /inches
+    endif
+
+    if keyword_set(iso) then begin
+        if strcmp(!d.name, 'PS') then begin
+            screen_size = [4.,3.]
+        endif else begin
+            device, get_screen_size=screen_size
+        endelse
+        aspect_ratio = (max(y)-min(y))/(max(x)-min(x)) $
+          *screen_size[0]/screen_size[1]
+        if(aspect_ratio le 1) then top = width*aspect_ratio $
+        else begin
+            width = top/aspect_ratio
+            region[2] = region[0]+width/0.8
+        endelse
     endif 
+    
+    if(width lt 0.3) then width1 = 0.3 else width1 = width
+
+    charsize = !p.charsize
+    !p.charsize = (region[2]-region[0]) + 0.2
     
     if n_elements(label) eq 0 then label = ''
 
@@ -83,91 +211,137 @@ pro contour_and_legend, z, x, y, nlevels=nlevels, label=label, $
         minval = range[0]
         maxval = range[1]
     endelse
-    levels = findgen(nlevels)/(float(nlevels)-1.)*(maxval-minval) + minval
+
+    print, "maxval, minval = ", maxval, minval
+    if(maxval le minval) then begin
+        print, "Error in contour_and_legend: maxval <= minval."
+        return
+    endif
+
+    levels = (maxval-minval)*findgen(nlevels+1)/(float(nlevels)) + minval
 
     !x.style = 1
     !y.style = 1
 
-    xtitle = !x.title
-    ytitle = !y.title
-    !x.title = ''
-    !y.title = ''
+    if(n_elements(ct) eq 0) then begin
+        if(minval*maxval lt 0.) then loadct, 39 $
+        else loadct, 3
+    endif else loadct, ct
 
-    !p.region = [width, 0.0, 1.0, top]
+    ; plot the color scale
 
-    if strcmp(!d.name, 'PS') then begin
-        !p.region = [width, 0.0, 1.0, 1.0]
-    endif
-
+    !p.region = [region[0]+width1, region[1], region[2], top+region[1]]
+    
     xx = indgen(2)
     yy = levels
-    zz = fltarr(2,nlevels)
+    zz = fltarr(2,nlevels+1)
     zz[0,*] = yy
     zz[1,*] = yy
     !x.range=[xx[0],xx[n_elements(xx)-1]]
     !y.range=[yy[0],yy[n_elements(yy)-1]]
 
-    contour, zz, xx, yy, nlevels=nlevels, /fill, xtitle='', ytitle=label, $
-      xticks=1, xtickname=[' ',' '], subtitle='', title=''
+    contour, zz, xx, yy, nlevels=nlevels, /fill, ytitle=label, xtitle='', $
+      xticks=1, xtickname=[' ',' '], levels=levels, title=''
+;    contour, zz, xx, yy, /overplot, nlevels=nlevels, levels=levels
+
+
+    ; Plot the countours
 
     !p.noerase = 1
 
     !x.range=[x[0],x[n_elements(x)-1]]
     !y.range=[y[0],y[n_elements(y)-1]]
 
-    !p.region = [0.0, 0.0, width, top] 
-    
-    if strcmp(!d.name, 'PS') then begin
-        device, xsize=10, ysize=10*top*width, /inches
-        !p.region = [0.0, 0.0, width, 1.0]
-    endif
+    !p.region = [region[0], region[1], width+region[0], top+region[1]]
 
-    !x.title = xtitle
-    !y.title = ytitle
-
-    contour, z, x, y, /fill, levels=levels
+    contour, z, x, y, /fill, levels=levels, nlevels=nlevels, _EXTRA=ex
 
     if(keyword_set(lines)) then begin
-        contour, z, x, y, /overplot, levels=levels
+        contour, z, x, y, /overplot, levels=levels, nlevels=nlevels, _EXTRA=ex
     endif
 
-    !p.region=0
-    !p.noerase=0
+    !p.noerase = 0
+    !p.charsize = charsize
+    !p.region = 0
+    !x.range = 0
+    !y.range = 0
 end
 
-pro contour_and_legend_mpeg, filename, z, x, y, nlevels=nlevels, label=label, $
-                             isotropic=iso, lines=lines, range=range
-    if(n_elements(range) le 2) then begin
-        range = [min(z), max(z)]
-    endif  
+
+
+; ======================================================================
+; contour_and_legend_mpeg
+; -----------------------
+; 
+; draws one or more contour plots with color scales
+;
+; filename: filename of mpeg to output
+; z: Either a fltarr(f,nx,ny) of values to plot, or a fltarr(f*n,nx,ny) of n
+;    fields to plot, each having f time frames.  The fields plots are
+;    arranged in a grid.  Mutliple fields may be plotted by passing 
+;    z = [field1, field2, ..] where field1 etc. are fltarr(f,nx,ny).
+; x: fltarr(nx) containing the horizontal coordinate values
+; y: fltarr(ny) containing vertical coordinate values
+; fields: number of fields (n).  IMPORTANT: if n>1, this must be set
+;    for idl to properly interpret the z array.
+; title: a strarr(n) containing the plot titles for each field
+; range: a fltarr(2,n) containing the plot range for each field
+; jpeg: if set, outputs jpegs of each frame, and writes mpeg-2 by
+;    combining them.
+; _extra: passed to contour_and_legend
+; ======================================================================
+pro contour_and_legend_mpeg, filename, z, x, y, range=range, jpeg=jpeg, $
+                             fields=fields, _EXTRA=ex
+    if(n_elements(fields) eq 0) then fields = 1
 
     sz = size(z)
-    set_plot, 'z'
-    
-    mpeg_id = mpeg_open([640,480], quality=100)
-  
-    print, "writing mpeg..."
+    frames = sz[1]/fields
 
-    for i=0, sz[1]-1 do begin
+    zout = fltarr(fields,sz[2],sz[3])   
 
-        contour_and_legend, z[i,*,*], x, y, nlevels=nlevels, label=label,$
-          isotropic=iso, lines=lines, range=range
+    if(n_elements(range) eq 0) then begin
+        range = fltarr(2,fields)
+        for f=0, fields-1 do begin
+            range[*,f] = [min(z[f*frames:(f+1)*frames-1,*,*]), $
+                          max(z[f*frames:(f+1)*frames-1,*,*])]
+        end
+    endif  
+ 
+    if(not keyword_set(jpeg)) then begin
+        mpeg_id = mpeg_open([640,480], bitrate=104857200)
+    endif
 
-        image = rotate(tvrd(),7)
+    for i=0, frames-1 do begin
 
-;        set_plot, 'x'
-;        tv, image
+        print, "plotting frame", i
 
-        mpeg_put, mpeg_id, frame=i, image=image
+        for f=0, fields-1 do zout[f,*,*] = z[f*frames+i,*,*]
+
+        if(keyword_set(jpeg)) then $
+          name =  filename+string(i,format='(I4.4)')+'.jpeg'
+        contour_and_legend, zout, x, y, range=range, jpeg=name, _EXTRA=ex
+        
+        image = tvrd(true=1)
+        
+        if(not keyword_set(jpeg)) then begin
+            image[0,*,*] = rotate(reform(image[0,*,*]), 7)
+            image[1,*,*] = rotate(reform(image[1,*,*]), 7)
+            image[2,*,*] = rotate(reform(image[2,*,*]), 7)
+
+            mpeg_put, mpeg_id, frame=i, image=image, /color
+        endif
 
     endfor
-
+    
     print, "saving mpeg as ", filename
+    if(keyword_set(jpeg)) then begin
+        make_mpg, prefix=filename, suffix='jpeg', n_start=0, n_end=sz[1]-1, $
+          digits=4, mpeg_file=filename, format=1, frame_rate=1
+    endif else begin
+        mpeg_save, mpeg_id, filename=filename
+        mpeg_close, mpeg_id
+    endelse
 
-    mpeg_save, mpeg_id, filename=filename
-    mpeg_close, mpeg_id
-
-    set_plot, 'x'
 end
 
 pro begin_capture, file, xsize=xsize, ysize=ysize

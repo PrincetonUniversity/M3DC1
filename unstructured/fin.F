@@ -157,6 +157,14 @@
 !     0 = no-slip, 1 = no normal stress
       v_bc = 0
 !
+!.....boundary condition on toroidal velocity
+!     1 = sets laplacian(chi) = 0 on boundary
+      com_bc = 1
+!
+!.....boundary condition on pressure
+!     0 = constant pressure, 1 = insulating
+      p_bc = 0
+!
 !
       facw = 1.
 !.....multiplies the diffusion [test] terms 

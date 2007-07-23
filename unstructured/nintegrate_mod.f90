@@ -43,7 +43,7 @@ real, dimension(79, OP_NUM) :: ps079, bz079, pe079, n079, p079, ph079, vz079, ch
 real, dimension(79, OP_NUM) :: ps179, bz179, pe179, n179, p179, ph179, vz179, ch179
 real, dimension(79, OP_NUM) :: pst79, bzt79, pet79, nt79, pt79, pht79, vzt79, cht79
 real, dimension(79, OP_NUM) :: pss79, bzs79, phs79, vzs79, chs79
-real, dimension(79, OP_NUM) :: jt79, cot79, vot79, pit79, eta79, kap79
+real, dimension(79, OP_NUM) :: jt79, cot79, vot79, pit79, eta79, kap79, sig79
 real, dimension(79) :: temp79a, temp79b, temp79c, temp79d, temp79e, temp79f
 
 real, dimension(25) :: si_25, eta_25, weight_25
@@ -507,6 +507,8 @@ subroutine define_fields_79(itri, fields)
 
   if(ijacobian.eq.1) weight_79 = weight_79 * r_79
 
+
+  sig79 = 0.
   
   ! PHI
   ! ~~~
@@ -761,7 +763,7 @@ subroutine define_fields_79(itri, fields)
           +bzt79(:,OP_1 )*bzt79(:,OP_DZ ))
 
      if(itor.eq.1) then 
-        b2i79(:,OP_DR) = b2i79(:,OP_DR) + 4.*b2i79(:,OP_1)*ri_79
+        b2i79(:,OP_DR) = b2i79(:,OP_DR) + 2.*b2i79(:,OP_1)*ri_79
      endif
   endif
 
@@ -779,7 +781,6 @@ subroutine define_fields_79(itri, fields)
      call calcavector(itri, kappa, 1, 1, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, kap79)
   end if
-
 
   do i=1,18
      call eval_ops(gtri(:,i,itri), si_79, eta_79, ttri(itri), ri_79, 79, g79(:,:,i))

@@ -233,7 +233,8 @@ subroutine ludefvel_n(itri,dbf)
         ssterm(1,1) = ssterm(1,1) + temp
         ddterm(1,1) = ddterm(1,1) + temp*bdf
 
-        temp = v1umu(g79(:,:,i),g79(:,:,j))*amu &
+        temp = v1umu(g79(:,:,i),g79(:,:,j))*amu   &
+!!$             + v1us (g79(:,:,i),g79(:,:,j),sig79)   &
              + thimp*dt* &
              (v1upsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79))
         if(gravr.ne.0 .or. gravz.ne.0) then          
@@ -253,7 +254,7 @@ subroutine ludefvel_n(itri,dbf)
              +v1psipsi(g79(:,:,i),pss79,g79(:,:,j)))
 
         if(gyro.eq.1) then
-           temp = g1u(g79(:,:,i),g79(:,:,j))
+           temp = g1u(g79(:,:,i),g79(:,:,j))*dbf
            ssterm(1,1) = ssterm(1,1) +     thimp     *dt*temp
            ddterm(1,1) = ddterm(1,1) - (1.-thimp*bdf)*dt*temp
         endif
@@ -267,6 +268,12 @@ subroutine ludefvel_n(itri,dbf)
            rrterm(1,1) = rrterm(1,1) + thimp*dt*dt* &
                 (v1upsipsi(g79(:,:,i),ph079,g79(:,:,j),pss79) &
                 +v1upsipsi(g79(:,:,i),ph079,pss79,g79(:,:,j)))
+
+!!$           if(gyro.eq.1) then
+!!$              temp = g1u(g79(:,:,i),ph079)*dbf
+!!$              ssterm(1,1) = ssterm(1,1) +     thimp     *dt*temp
+!!$              ddterm(1,1) = ddterm(1,1) - (1.-thimp*bdf)*dt*temp
+!!$           endif
         endif
         
 
@@ -299,7 +306,8 @@ subroutine ludefvel_n(itri,dbf)
            ssterm(2,2) = ssterm(2,2) + temp
            ddterm(2,2) = ddterm(2,2) + temp*bdf
 
-           temp = v2vmu  (g79(:,:,i),g79(:,:,j),amu) &
+           temp = v2vmu  (g79(:,:,i),g79(:,:,j),amu  )  &
+!!$                + v2vs   (g79(:,:,i),g79(:,:,j),sig79)  &
                 + thimp*dt* &
                 (v2vpsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79))
            ssterm(2,2) = ssterm(2,2) -     thimp     *dt*temp
@@ -326,15 +334,15 @@ subroutine ludefvel_n(itri,dbf)
                 (v2psib(g79(:,:,i),pss79,g79(:,:,j)))
 
            if(gyro.eq.1) then
-              temp = g1v(g79(:,:,i),g79(:,:,j))
+              temp = g1v(g79(:,:,i),g79(:,:,j))*dbf
               ssterm(1,2) = ssterm(1,2) +     thimp     *dt*temp
               ddterm(1,2) = ddterm(1,2) - (1.-thimp*bdf)*dt*temp
 
-              temp = g2u(g79(:,:,i),g79(:,:,j))
+              temp = g2u(g79(:,:,i),g79(:,:,j))*dbf
               ssterm(2,1) = ssterm(2,1) +     thimp     *dt*temp
               ddterm(2,1) = ddterm(2,1) - (1.-thimp*bdf)*dt*temp
 
-              temp = g2v(g79(:,:,i),g79(:,:,j))
+              temp = g2v(g79(:,:,i),g79(:,:,j))*dbf
               ssterm(2,2) = ssterm(2,2) +     thimp     *dt*temp
               ddterm(2,2) = ddterm(2,2) - (1.-thimp*bdf)*dt*temp
            endif
@@ -369,7 +377,20 @@ subroutine ludefvel_n(itri,dbf)
               
               rrterm(2,2) = rrterm(2,2) + thimp*dt*dt* &
                    (v2upsib  (g79(:,:,i),ph079,pss79,g79(:,:,j)))
-              
+
+!!$              if(gyro.eq.1) then
+!!$                 temp = g1v(g79(:,:,i),vz079)*dbf
+!!$                 ssterm(1,2) = ssterm(1,2) +     thimp     *dt*temp
+!!$                 ddterm(1,2) = ddterm(1,2) - (1.-thimp*bdf)*dt*temp
+!!$
+!!$                 temp = g2u(g79(:,:,i),ph079)*dbf
+!!$                 ssterm(2,1) = ssterm(2,1) +     thimp     *dt*temp
+!!$                 ddterm(2,1) = ddterm(2,1) - (1.-thimp*bdf)*dt*temp
+!!$
+!!$                 temp = g2v(g79(:,:,i),vz079)*dbf
+!!$                 ssterm(2,2) = ssterm(2,2) +     thimp     *dt*temp
+!!$                 ddterm(2,2) = ddterm(2,2) - (1.-thimp*bdf)*dt*temp
+!!$              endif              
            endif
         endif
         
@@ -389,6 +410,10 @@ subroutine ludefvel_n(itri,dbf)
            temp = v1chin(g79(:,:,i),g79(:,:,j),nt79)
            ssterm(1,3) = ssterm(1,3) + temp
            ddterm(1,3) = ddterm(1,3) + temp*bdf
+
+!!$           temp = v1chis(g79(:,:,i),g79(:,:,j),sig79)
+!!$           ssterm(1,3) = ssterm(1,3) -     thimp     *dt*temp
+!!$           ddterm(1,3) = ddterm(1,3) + (1.-thimp*bdf)*dt*temp
 
            temp = v1uchin  (g79(:,:,i),ph179,g79(:,:,j),nt79) &
                 + v1chichin(g79(:,:,i),g79(:,:,j),ch179,nt79) &
@@ -427,7 +452,8 @@ subroutine ludefvel_n(itri,dbf)
            ssterm(3,1) = ssterm(3,1) -     thimp     *dt*temp
            ddterm(3,1) = ddterm(3,1) + (.5-thimp*bdf)*dt*temp
            
-           temp = v3umu   (g79(:,:,i),g79(:,:,j),amu,amuc) &
+           temp = v3umu   (g79(:,:,i),g79(:,:,j),amu,amuc)  &
+!!$                + v3us    (g79(:,:,i),g79(:,:,j),sig79) &
                 +thimp*dt* &
                 (v3up     (g79(:,:,i),g79(:,:,j),pt79) &
                 +v3upsipsi(g79(:,:,i),g79(:,:,j),pst79,pst79) &
@@ -452,7 +478,8 @@ subroutine ludefvel_n(itri,dbf)
            ssterm(3,3) = ssterm(3,3) + temp
            ddterm(3,3) = ddterm(3,3) + temp*bdf
 
-           temp = v3chimu    (g79(:,:,i),g79(:,:,j))*2.*amuc   
+           temp = v3chimu(g79(:,:,i),g79(:,:,j))*2.*amuc  ! &
+!!$                + v3chis (g79(:,:,i),g79(:,:,j),sig79)
            ssterm(3,3) = ssterm(3,3) -     thimp     *dt*temp
            ddterm(3,3) = ddterm(3,3) + (1.-thimp*bdf)*dt*temp
 
@@ -485,23 +512,23 @@ subroutine ludefvel_n(itri,dbf)
                 v3p(g79(:,:,i),g79(:,:,j))
 
            if(gyro.eq.1) then
-              temp = g1chi(g79(:,:,i),g79(:,:,j))
+              temp = g1chi(g79(:,:,i),g79(:,:,j))*dbf
               ssterm(1,3) = ssterm(1,3) +     thimp     *dt*temp
               ddterm(1,3) = ddterm(1,3) - (1.-thimp*bdf)*dt*temp
 
-              temp = g2chi(g79(:,:,i),g79(:,:,j))
+              temp = g2chi(g79(:,:,i),g79(:,:,j))*dbf
               ssterm(2,3) = ssterm(2,3) +     thimp     *dt*temp
               ddterm(2,3) = ddterm(2,3) - (1.-thimp*bdf)*dt*temp
 
-              temp = g3u(g79(:,:,i),g79(:,:,j))
+              temp = g3u(g79(:,:,i),g79(:,:,j))*dbf
               ssterm(3,1) = ssterm(3,1) +     thimp     *dt*temp
               ddterm(3,1) = ddterm(3,1) - (1.-thimp*bdf)*dt*temp
 
-              temp = g3v(g79(:,:,i),g79(:,:,j))
+              temp = g3v(g79(:,:,i),g79(:,:,j))*dbf
               ssterm(3,2) = ssterm(3,2) +     thimp     *dt*temp
               ddterm(3,2) = ddterm(3,2) - (1.-thimp*bdf)*dt*temp
 
-              temp = g3chi(g79(:,:,i),g79(:,:,j))
+              temp = g3chi(g79(:,:,i),g79(:,:,j))*dbf
               ssterm(3,3) = ssterm(3,3) +     thimp     *dt*temp
               ddterm(3,3) = ddterm(3,3) - (1.-thimp*bdf)*dt*temp
            endif
@@ -539,7 +566,7 @@ subroutine ludefvel_n(itri,dbf)
                    + v3chichin(g79(:,:,i),ch079,g79(:,:,j),nt79)
               ssterm(3,3) = ssterm(3,3) -     thimp     *dt*temp
               ddterm(3,3) = ddterm(3,3) + (1.-thimp*bdf)*dt*temp
-              
+
               rrterm(1,1) = rrterm(1,1) + thimp*dt*dt* &
                    (v1chipsipsi(g79(:,:,i),ch079,g79(:,:,j),pss79) &
                    +v1chipsipsi(g79(:,:,i),ch079,pss79,g79(:,:,j)))
@@ -607,8 +634,13 @@ subroutine ludefvel_n(itri,dbf)
         endif
      enddo               ! on j
 
+
      ! Definition of R4
      ! ================
+
+
+     ! source terms
+     ! ~~~~~~~~~~~~
      if(gravr.ne.0 .or. gravz.ne.0) then          
         r4(i1) = r4(i1) + dt* &
              v1ngrav(g79(:,:,i),nt79)
@@ -618,22 +650,17 @@ subroutine ludefvel_n(itri,dbf)
                 v3ngrav(g79(:,:,i),nt79)
         endif
      endif
-     
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
-        r4(i1) = r4(i1) + dt* &
-             (v1umu    (g79(:,:,i),ph079))
-        
-        ! DENSITY TERMS
+
+
+     ! density terms
+     ! ~~~~~~~~~~~~~
+     if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
         r4(i1) = r4(i1) + dt* &
              (v1un     (g79(:,:,i),ph079,nt79)         &
-             +v1uun    (g79(:,:,i),ph079,ph079,nt79))
-                
+             +v1uun    (g79(:,:,i),ph079,ph079,nt79)   &
+             +v1us     (g79(:,:,i),ph079,sig79))
+        
         if(numvar.ge.2) then
-           r4(i2) = r4(i2) + dt* &
-                (v2vmu  (g79(:,:,i),vz079,amu) &
-                +v2vhypv(g79(:,:,i),vz079,amu,hypv))
-           
-           ! DENSITY TERMS
            if(gravr.ne.0 .or. gravz.ne.0) then          
               r4(i1) = r4(i1) + thimp*dt*dt* &
                    (v1ungrav   (g79(:,:,i),ph079,nt79) &
@@ -644,16 +671,11 @@ subroutine ludefvel_n(itri,dbf)
            r4(i1) = r4(i1) + dt* &
                 (v1vvn(g79(:,:,i),vz079,vz079,nt79))
            r4(i2) = r4(i2) + dt* &
-                (v2vun(g79(:,:,i),vz079,ph079,nt79))
+                (v2vun(g79(:,:,i),vz079,ph079,nt79) &
+                +v2vs (g79(:,:,i),vz079,sig79))
         endif
-        
+
         if(numvar.ge.3) then
-           
-           r4(i3) = r4(i3) + dt* &
-                (v3umu   (g79(:,:,i),ph079,amu,amuc) &
-                +v3chimu (g79(:,:,i),ch079)*amu)               
-           
-           ! DENSITY TERMS
            if(gravr.ne.0 .or. gravz.ne.0) then          
               r4(i3) = r4(i3) + thimp*dt*dt* &
                    (v3ungrav   (g79(:,:,i),ph079,nt79) &
@@ -662,58 +684,84 @@ subroutine ludefvel_n(itri,dbf)
            endif
            r4(i1) = r4(i1) + dt* &
                 (v1uchin  (g79(:,:,i),ph079,ch079,nt79) &
-                +v1chichin(g79(:,:,i),ch079,ch079,nt79))
+                +v1chichin(g79(:,:,i),ch079,ch079,nt79) &
+                +v1chis   (g79(:,:,i),ch079,sig79))
            r4(i3) = r4(i3) + dt* &
                 (v3uun    (g79(:,:,i),ph079,ph079,nt79) &
                 +v3uchin  (g79(:,:,i),ph079,ch079,nt79) &
                 +v3vvn    (g79(:,:,i),vz079,vz079,nt79) &
-                +v3chichin(g79(:,:,i),ch079,ch079,nt79))
-        endif ! on numvar.ge.3
-     endif    ! on linear.eq.1 .or. eqsubtract.eq.1
-
-
-     ! EQUILIBRIUM TERMS
-     if(linear.eq.0 .and. eqsubtract.eq.1) then
-        r4(i1) = r4(i1) + dt* &
-             (v1psipsi (g79(:,:,i),ps079,ps079)) &             ! passed: 1, 2
-             + thimp*dt*dt* &
-             (v1upsipsi(g79(:,:,i),ph079,ps079,ps079))         ! passed: 1, 2
-
-        if(numvar.ge.2) then
-           r4(i1) = r4(i1) + dt* &
-                (v1bb     (g79(:,:,i),bz079,bz079)) &
-                + thimp*dt*dt* &
-                (v1ubb    (g79(:,:,i),ph079,bz079,bz079) &
-                +v1vpsib  (g79(:,:,i),vz079,ps079,bz079))
-           r4(i2) = r4(i2) + dt* &
-                (v2psib   (g79(:,:,i),ps079,bz079)) &
-                + thimp*dt*dt* &
-                (v2upsib  (g79(:,:,i),ph079,ps079,bz079) &
-                +v2vpsipsi(g79(:,:,i),vz079,ps079,ps079))
-        endif
-        
-        if(numvar.ge.3) then
-           r4(i1) = r4(i1) + thimp*dt*dt* &
-                (v1chipsipsi(g79(:,:,i),ch079,ps079,ps079) &
-                +v1chibb    (g79(:,:,i),ch079,bz079,bz079))
-           r4(i2) = r4(i2) + &
-                thimp*dt*dt* &
-                (v2chipsib  (g79(:,:,i),ch079,ps079,bz079))
-           r4(i3) = r4(i3) + &
-                dt* &
-                (v3p        (g79(:,:,i),p079)              &
-                +v3psipsi   (g79(:,:,i),ps079,ps079)       &
-                +v3bb       (g79(:,:,i),bz079,bz079)) +    &
-                thimp*dt*dt* &
-                (v3up       (g79(:,:,i),ph079,p079)        &
-                +v3upsipsi  (g79(:,:,i),ph079,ps079,ps079) &
-                +v3ubb      (g79(:,:,i),ph079,bz079,bz079) &
-                +v3vpsib    (g79(:,:,i),vz079,ps079,bz079) &
-                +v3chip     (g79(:,:,i),ch079,p079)        &
-                +v3chipsipsi(g79(:,:,i),ch079,ps079,ps079) &
-                +v3chibb    (g79(:,:,i),ch079,bz079,bz079))
+                +v3chichin(g79(:,:,i),ch079,ch079,nt79) &
+                +v3us     (g79(:,:,i),ph079,sig79) &
+                +v3chis   (g79(:,:,i),ch079,sig79))
         endif
      endif
+
+
+!!$     ! equilibrium terms
+!!$     ! ~~~~~~~~~~~~~~~~~
+!!$     if(linear.eq.0 .and. eqsubtract.eq.1) then
+!!$
+!!$        ! dissipative terms
+!!$        ! ~~~~~~~~~~~~~~~~~
+!!$        r4(i1) = r4(i1) + dt* &
+!!$             (v1umu    (g79(:,:,i),ph079))
+!!$                
+!!$        if(numvar.ge.2) then
+!!$           r4(i2) = r4(i2) + dt* &
+!!$                (v2vmu  (g79(:,:,i),vz079,amu) &
+!!$                +v2vhypv(g79(:,:,i),vz079,amu,hypv))
+!!$        endif
+!!$        
+!!$        if(numvar.ge.3) then
+!!$           
+!!$           r4(i3) = r4(i3) + dt* &
+!!$                (v3umu   (g79(:,:,i),ph079,amu,amuc) &
+!!$                +v3chimu (g79(:,:,i),ch079)*amu)             
+!!$        endif
+!!$
+!!$
+!!$        ! non-dissipative terms
+!!$        ! ~~~~~~~~~~~~~~~~~~~~~
+!!$        r4(i1) = r4(i1) + dt* &
+!!$             (v1psipsi (g79(:,:,i),ps079,ps079)) &
+!!$             + thimp*dt*dt* &
+!!$             (v1upsipsi(g79(:,:,i),ph079,ps079,ps079))
+!!$
+!!$        if(numvar.ge.2) then
+!!$           r4(i1) = r4(i1) + dt* &
+!!$                (v1bb     (g79(:,:,i),bz079,bz079)) &
+!!$                + thimp*dt*dt* &
+!!$                (v1ubb    (g79(:,:,i),ph079,bz079,bz079) &
+!!$                +v1vpsib  (g79(:,:,i),vz079,ps079,bz079))
+!!$           r4(i2) = r4(i2) + dt* &
+!!$                (v2psib   (g79(:,:,i),ps079,bz079)) &
+!!$                + thimp*dt*dt* &
+!!$                (v2upsib  (g79(:,:,i),ph079,ps079,bz079) &
+!!$                +v2vpsipsi(g79(:,:,i),vz079,ps079,ps079))
+!!$        endif
+!!$        
+!!$        if(numvar.ge.3) then
+!!$           r4(i1) = r4(i1) + thimp*dt*dt* &
+!!$                (v1chipsipsi(g79(:,:,i),ch079,ps079,ps079) &
+!!$                +v1chibb    (g79(:,:,i),ch079,bz079,bz079))
+!!$           r4(i2) = r4(i2) + &
+!!$                thimp*dt*dt* &
+!!$                (v2chipsib  (g79(:,:,i),ch079,ps079,bz079))
+!!$           r4(i3) = r4(i3) + &
+!!$                dt* &
+!!$                (v3p        (g79(:,:,i),p079)              &
+!!$                +v3psipsi   (g79(:,:,i),ps079,ps079)       &
+!!$                +v3bb       (g79(:,:,i),bz079,bz079)) +    &
+!!$                thimp*dt*dt* &
+!!$                (v3up       (g79(:,:,i),ph079,p079)        &
+!!$                +v3upsipsi  (g79(:,:,i),ph079,ps079,ps079) &
+!!$                +v3ubb      (g79(:,:,i),ph079,bz079,bz079) &
+!!$                +v3vpsib    (g79(:,:,i),vz079,ps079,bz079) &
+!!$                +v3chip     (g79(:,:,i),ch079,p079)        &
+!!$                +v3chipsipsi(g79(:,:,i),ch079,ps079,ps079) &
+!!$                +v3chibb    (g79(:,:,i),ch079,bz079,bz079))
+!!$        endif
+!!$     endif    ! on linear.eq.0 .and. eqsubtract.eq.1
      
   enddo                  ! on i
 end subroutine ludefvel_n
@@ -823,7 +871,7 @@ subroutine ludefphi_n(itri,dbf)
            ssterm(2,2) = ssterm(2,2) + temp
            ddterm(2,2) = ddterm(2,2) + temp*bdf
 
-           temp = b2beta(g79(:,:,i),g79(:,:,j),eta79,hypi) &
+           temp = b2beta(g79(:,:,i),g79(:,:,j),eta79,hypi)  &
                 + b2bu  (g79(:,:,i),g79(:,:,j),pht79)
            ssterm(2,2) = ssterm(2,2) -     thimp     *dt*temp
            ddterm(2,2) = ddterm(2,2) + (1.-thimp*bdf)*dt*temp
@@ -927,6 +975,25 @@ subroutine ludefphi_n(itri,dbf)
            rrterm(3,3) = rrterm(3,3) + thimp*dt*temp
            qqterm(3,3) = qqterm(3,3) - thimp*dt*temp*bdf
 
+           if(ipres.eq.0) then
+              temp = p1uus  (g79(:,:,i),g79(:,:,j),ph179,sig79) &
+                   + p1uus  (g79(:,:,i),ph179,g79(:,:,j),sig79) &
+                   + p1uchis(g79(:,:,i),g79(:,:,j),ch179,sig79) 
+              rrterm(3,1) = rrterm(3,1) +     thimp     *dt*temp
+              qqterm(3,1) = qqterm(3,1) + (.5-thimp*bdf)*dt*temp
+
+              temp = p1vvs  (g79(:,:,i),g79(:,:,j),vz179,sig79) &
+                   + p1vvs  (g79(:,:,i),vz179,g79(:,:,j),sig79)
+              rrterm(3,2) = rrterm(3,2) +     thimp     *dt*temp
+              qqterm(3,2) = qqterm(3,2) + (.5-thimp*bdf)*dt*temp
+
+              temp = p1chichis(g79(:,:,i),g79(:,:,j),ph179,sig79) &
+                   + p1chichis(g79(:,:,i),ph179,g79(:,:,j),sig79) &
+                   + p1uchis  (g79(:,:,i),ph079,g79(:,:,j),sig79) 
+              rrterm(3,3) = rrterm(3,3) +     thimp     *dt*temp
+              qqterm(3,3) = qqterm(3,3) + (.5-thimp*bdf)*dt*temp
+           endif
+
            ! Anisotropic Heat Flux
            if(kappar.ne.0) then
               temp = kappar*(gam-1.)* &
@@ -971,6 +1038,25 @@ subroutine ludefphi_n(itri,dbf)
               temp = p1pchi(g79(:,:,i),pe079,g79(:,:,j))                
               rrterm(3,3) = rrterm(3,3) +     thimp     *dt*temp
               qqterm(3,3) = qqterm(3,3) + (1.-thimp*bdf)*dt*temp
+
+              if(ipres.eq.0) then
+                 temp = p1uus  (g79(:,:,i),g79(:,:,j),ph079,sig79) &
+                      + p1uus  (g79(:,:,i),ph079,g79(:,:,j),sig79) &
+                      + p1uchis(g79(:,:,i),g79(:,:,j),ch079,sig79) 
+                 rrterm(3,1) = rrterm(3,1) +     thimp     *dt*temp
+                 qqterm(3,1) = qqterm(3,1) + (1.-thimp*bdf)*dt*temp
+
+                 temp = p1vvs  (g79(:,:,i),g79(:,:,j),vz079,sig79) &
+                      + p1vvs  (g79(:,:,i),vz079,g79(:,:,j),sig79)
+                 rrterm(3,2) = rrterm(3,2) +     thimp     *dt*temp
+                 qqterm(3,2) = qqterm(3,2) + (1.-thimp*bdf)*dt*temp
+
+                 temp = p1chichis(g79(:,:,i),g79(:,:,j),ph079,sig79) &
+                      + p1chichis(g79(:,:,i),ph079,g79(:,:,j),sig79) &
+                      + p1uchis  (g79(:,:,i),ph079,g79(:,:,j),sig79) 
+                 rrterm(3,3) = rrterm(3,3) +     thimp     *dt*temp
+                 qqterm(3,3) = qqterm(3,3) + (1.-thimp*bdf)*dt*temp
+              endif
 
               ! Anisotropic Heat Flux
               if(kappar.ne.0) then
@@ -1024,6 +1110,9 @@ subroutine ludefphi_n(itri,dbf)
         endif
      enddo ! on j
 
+
+     ! source terms
+     ! ~~~~~~~~~~~~
      if(numvar.ge.3) then
         ! ohmic heating
         q4(i3) = q4(i3) + dt*(gam-1.)* &
@@ -1039,17 +1128,12 @@ subroutine ludefphi_n(itri,dbf)
                 +qchichimu(g79(:,:,i),cht79,cht79,amu,amuc,hypc))
         endif
      endif
-     
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
 
-        q4(i1) = q4(i1) + dt* &
-             (b1psieta(g79(:,:,i),ps079,eta79,hypf))
 
+     ! density terms
+     ! ~~~~~~~~~~~~~
+     if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
         if(numvar.ge.2) then
-           q4(i2) = q4(i2) + dt* &
-                (b2beta     (g79(:,:,i),bz079,eta79,hypi))
-              
-           ! DENSITY TERMS
            q4(i1) = q4(i1) + dt* &
                 (b1psibd  (g79(:,:,i),ps079,bz079,ni79)*dbf)
            q4(i2) = q4(i2) + dt* &
@@ -1058,42 +1142,63 @@ subroutine ludefphi_n(itri,dbf)
         endif
 
         if(numvar.ge.3) then
-           q4(i3) = q4(i3) + dt* &
-                (b3psipsieta(g79(:,:,i),ps079,ps079,eta79) &
-                +b3bbeta    (g79(:,:,i),bz079,bz079,eta79) &
-                +b3pedkappa (g79(:,:,i),pe079,ni79,kap79,hypp)*(gam-1.))
-
-           ! DENSITY TERMS
            q4(i2) = q4(i2) + dt* &
                 (b2ped (g79(:,:,i),pe079,ni79)*dbf*pefac)
            q4(i3) = q4(i3) + dt* &
                 (b3pebd(g79(:,:,i),pe079,bz079,ni79)*dbf*pefac &
                 +p1kappar(g79(:,:,i),ps079,ps079,pe079,ni79,b2i79) &
                  *kappar*(gam-1.))
+           if(ipres.eq.1) then
+              q4(i3) = q4(i3) + dt* &
+                (p1uus    (g79(:,:,i),ph079,ph079,sig79) &
+                +p1vvs    (g79(:,:,i),vz079,vz079,sig79) &
+                +p1chichis(g79(:,:,i),ch079,ch079,sig79) &
+                +p1uchis  (g79(:,:,i),ph079,ch079,sig79))
+           endif
         endif
-        
      endif
+    
 
-     ! EQUILIBRIUM TERMS
-     if(linear.eq.0 .and. eqsubtract.eq.1) then
-
-        q4(i1) = q4(i1) + dt* &
-             (b1psiu(g79(:,:,i),ps079,ph079))
-        if(numvar.ge.2) then
-           q4(i2) = q4(i2) + dt* &
-                (b2psiv(g79(:,:,i),ps079,vz079) &
-                +b2bu  (g79(:,:,i),bz079,ph079))
-        endif
-        if(numvar.ge.3) then
-           q4(i1) = q4(i1) + dt* &
-                (b1psichi(g79(:,:,i),ps079,ch079))
-           q4(i2) = q4(i2) + dt* &
-                (b2bchi(g79(:,:,i),bz079,ch079))
-           q4(i3) = q4(i3) + dt* &
-                (p1pu  (g79(:,:,i),pe079,ph079) &
-                +p1pchi(g79(:,:,i),pe079,ch079))
-        endif
-     endif     
+!!$     ! equilibrium terms
+!!$     ! ~~~~~~~~~~~~~~~~~
+!!$     if(linear.eq.0 .and. eqsubtract.eq.1) then
+!!$
+!!$        ! dissipative terms
+!!$        ! ~~~~~~~~~~~~~~~~~
+!!$        q4(i1) = q4(i1) + dt* &
+!!$             (b1psieta(g79(:,:,i),ps079,eta79,hypf))
+!!$
+!!$        if(numvar.ge.2) then
+!!$           q4(i2) = q4(i2) + dt* &
+!!$                (b2beta     (g79(:,:,i),bz079,eta79,hypi))
+!!$        endif
+!!$        
+!!$        if(numvar.ge.3) then
+!!$           q4(i3) = q4(i3) + dt* &
+!!$                (b3psipsieta(g79(:,:,i),ps079,ps079,eta79) &
+!!$                +b3bbeta    (g79(:,:,i),bz079,bz079,eta79) &
+!!$                +b3pedkappa (g79(:,:,i),pe079,ni79,kap79,hypp)*(gam-1.))
+!!$        endif
+!!$
+!!$        ! non-dissipative terms
+!!$        ! ~~~~~~~~~~~~~~~~~~~~~
+!!$        q4(i1) = q4(i1) + dt* &
+!!$             (b1psiu(g79(:,:,i),ps079,ph079))
+!!$        if(numvar.ge.2) then
+!!$           q4(i2) = q4(i2) + dt* &
+!!$                (b2psiv(g79(:,:,i),ps079,vz079) &
+!!$                +b2bu  (g79(:,:,i),bz079,ph079))
+!!$        endif
+!!$        if(numvar.ge.3) then
+!!$           q4(i1) = q4(i1) + dt* &
+!!$                (b1psichi(g79(:,:,i),ps079,ch079))
+!!$           q4(i2) = q4(i2) + dt* &
+!!$                (b2bchi(g79(:,:,i),bz079,ch079))
+!!$           q4(i3) = q4(i3) + dt* &
+!!$                (p1pu  (g79(:,:,i),pe079,ph079) &
+!!$                +p1pchi(g79(:,:,i),pe079,ch079))
+!!$        endif
+!!$     endif     
   enddo ! on i
 
 end subroutine ludefphi_n
@@ -1207,6 +1312,9 @@ subroutine ludefden_n(itri,dbf)
 
      enddo                     ! on j
 
+     qn4(ione) = qn4(ione) + dt* &
+          n1s(g79(:,:,i),sig79)
+
      if(linear.eq.1 .or. eqsubtract.eq.1) then
         qn4(ione) = qn4(ione) + dt* &
              (n1ndenm(g79(:,:,i),n079,denm,hypp))
@@ -1317,8 +1425,42 @@ subroutine ludefpres_n(itri,dbf)
            rrterm(3) = rrterm(3) + thimp*dt*temp
            qqterm(3) = qqterm(3) - thimp*dt*temp*bdf
 
+           temp = p1uus  (g79(:,:,i),g79(:,:,j),ph179,sig79) &
+                + p1uus  (g79(:,:,i),ph179,g79(:,:,j),sig79) &
+                + p1uchis(g79(:,:,i),g79(:,:,j),ch179,sig79) 
+           rrterm(1) = rrterm(1) +     thimp     *dt*temp
+           qqterm(1) = qqterm(1) + (.5-thimp*bdf)*dt*temp
+
+           temp = p1vvs  (g79(:,:,i),g79(:,:,j),vz179,sig79) &
+                + p1vvs  (g79(:,:,i),vz179,g79(:,:,j),sig79)
+           rrterm(2) = rrterm(2) +     thimp     *dt*temp
+           qqterm(2) = qqterm(2) + (.5-thimp*bdf)*dt*temp
+
+           temp = p1chichis(g79(:,:,i),g79(:,:,j),ph179,sig79) &
+                + p1chichis(g79(:,:,i),ph179,g79(:,:,j),sig79) &
+                + p1uchis  (g79(:,:,i),ph079,g79(:,:,j),sig79) 
+           rrterm(3) = rrterm(3) +     thimp     *dt*temp
+           qqterm(3) = qqterm(3) + (.5-thimp*bdf)*dt*temp
+
            if(linear.eq.1 .or. eqsubtract.eq.1) then
               temp = p1pchi(g79(:,:,i),p079,g79(:,:,j))
+              rrterm(3) = rrterm(3) +     thimp     *dt*temp
+              qqterm(3) = qqterm(3) + (1.-thimp*bdf)*dt*temp
+
+              temp = p1uus  (g79(:,:,i),g79(:,:,j),ph079,sig79) &
+                   + p1uus  (g79(:,:,i),ph079,g79(:,:,j),sig79) &
+                   + p1uchis(g79(:,:,i),g79(:,:,j),ch079,sig79) 
+              rrterm(1) = rrterm(1) +     thimp     *dt*temp
+              qqterm(1) = qqterm(1) + (1.-thimp*bdf)*dt*temp
+
+              temp = p1vvs  (g79(:,:,i),g79(:,:,j),vz079,sig79) &
+                   + p1vvs  (g79(:,:,i),vz079,g79(:,:,j),sig79)
+              rrterm(2) = rrterm(2) +     thimp     *dt*temp
+              qqterm(2) = qqterm(2) + (1.-thimp*bdf)*dt*temp
+
+              temp = p1chichis(g79(:,:,i),g79(:,:,j),ph079,sig79) &
+                   + p1chichis(g79(:,:,i),ph079,g79(:,:,j),sig79) &
+                   + p1uchis  (g79(:,:,i),ph079,g79(:,:,j),sig79) 
               rrterm(3) = rrterm(3) +     thimp     *dt*temp
               qqterm(3) = qqterm(3) + (1.-thimp*bdf)*dt*temp
            endif
@@ -1357,7 +1499,11 @@ subroutine ludefpres_n(itri,dbf)
         qp4(ione) = qp4(ione) + dt* &
              (b3pedkappa(g79(:,:,i),p079,ni79,kap79,hypp)*(gam-1.) &
              +p1kappar  (g79(:,:,i),ps079,ps079,p079,ni79,b2i79) &
-              *kappar*(gam-1.))
+              *kappar*(gam-1.)  &
+             +p1uus    (g79(:,:,i),ph079,ph079,sig79) &
+             +p1vvs    (g79(:,:,i),vz079,vz079,sig79) &
+             +p1chichis(g79(:,:,i),ch079,ch079,sig79) &
+             +p1uchis  (g79(:,:,i),ph079,ch079,sig79))
      endif
 
      ! EQUILIBRIUM TERMS

@@ -1,8 +1,6 @@
 ! Physical differences from structured version:
 ! * hyper-ohmic heating
 ! * Compressional-viscous and hyper-viscous heating
-! * "No compression" boundary condition
-
 
 #ifdef IS_LIBRARY
 subroutine reducedquintic(isfirst, inmyrank, inmaxrank)
@@ -249,9 +247,6 @@ Program Reducedquintic
   call create_newvar_matrix(s6matrix_sm, NV_DCBOUND)
   call create_newvar_matrix(s3matrix_sm, NV_NOBOUND)
 
-!  call axis(phi,xsep,zsep,0)
-
-! start the time dependent loop
   ifail=0
   ier = 0
 
@@ -293,20 +288,9 @@ Program Reducedquintic
      t_aux = t_aux + tend - tstart
   endif
 
-
-!!$  ! calculate other quantities of interest
-!!$  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!!$  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-!!$  call total_flux
-  if(irestart.eq.0) then
-     tflux0 = tflux
-     totcur0 = totcur
-  endif
-!!$  if(myrank.eq.0 .and. itimer.eq.1) then
-!!$     call second(tend)
-!!$     write(*,*) " onestep: Time spent other quantities:", tend - tstart
-!!$  endif
-
+  ! find lcfs
+  ! ~~~~~~~~~
+  call lcfs(phi+phi0,numvar) 
 
   ! calculate scalars
   ! ~~~~~~~~~~~~~~~~~
@@ -317,6 +301,10 @@ Program Reducedquintic
      t_sources = t_sources + tend - tstart
   endif
 
+  if(irestart.eq.0) then
+     tflux0 = tflux
+     totcur0 = totcur
+  endif
 
   ! output initial conditions
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -430,31 +418,17 @@ Program Reducedquintic
   enddo
 
 !  call errorcalc(numvar, phi, 1)
-!
-!!$  if(maxrank.gt.1 .and. myrank.eq.0) then
-!!$     write(*,5002) tsolve-tfirst,                                      &
-!!$          numvar,amu,etar,dt,thimp,db,hyper,hyperi,hyperv,hyperc,      &
-!!$          ratemin,ratemax,ajmax,graphit(ntimemax,25)
-!!$     write(*,5003) linear, itaylor, 0, imask, irestart,                &
-!!$          facd,bzero,eps
-!!$
-!!$     write(FILE__C1NEW,5002) tsolve-tfirst,                            &
-!!$          numvar,amu,etar,dt,thimp,db,hyper,hyperi,hyperv,hyperc,      &
-!!$          ratemin,ratemax,ajmax,graphit(ntimemax,25)
-!!$     write(FILE__C1NEW,5003) linear, itaylor, 0, imask, irestart,      &
-!!$          facd,bzero,eps
-!!$  endif
 
-  if(ntime.gt.1 .and. myrank.eq.0 .and. maxrank.eq.1) then
-     call plotenergy(graphit,ntimep,maxts,ntimemin,numvar)
-     open(99,file='C1graphit',form='formatted',status='unknown')
-     write(99,8001) maxts
-     do i=1,maxts
-        write(99,8002) (graphit(i,j),j=1,30)
-     enddo
-8001 format(i5)
-8002 format(1p10e12.4)
-  endif
+!!$  if(ntime.gt.1 .and. myrank.eq.0 .and. maxrank.eq.1) then
+!!$     call plotenergy(graphit,ntimep,maxts,ntimemin,numvar)
+!!$     open(99,file='C1graphit',form='formatted',status='unknown')
+!!$     write(99,8001) maxts
+!!$     do i=1,maxts
+!!$        write(99,8002) (graphit(i,j),j=1,30)
+!!$     enddo
+!!$8001 format(i5)
+!!$8002 format(1p10e12.4)
+!!$  endif
 999 continue
   if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'writing the restart file'
   call wrrestart(time, max(maxts, ntimer))
@@ -914,6 +888,9 @@ subroutine onestep
      t_aux = t_aux + tend - tstart
   endif
 
+  ! find lcfs
+  ! ~~~~~~~~~
+  call lcfs(phi+phi0,numvar) 
 
   ! Calculate scalars (energy, toroidal current, etc..)
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -925,9 +902,8 @@ subroutine onestep
      t_sources = t_sources + tend - tstart
   endif 
 
-
   ! Conserve flux
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(iconstflux.eq.1 .and. numvar.ge.2) then
      call conserve_flux
      tflux = tflux + gbound*area

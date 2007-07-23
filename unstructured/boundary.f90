@@ -87,13 +87,16 @@ subroutine boundary_vel(imatrix, rhs)
            end select
         endif
 
-        ! no vorticity
+        ! no vorticity        
         call boundary_laplacian(imatrix, ibegin, normal, -x, irow)
         rhs(irow) = 0.
-        ! no compression (not in structured version)
+
         if(numvar.ge.3) then
-           call boundary_laplacian(imatrix, ibegin+12, normal, x, irow)
-           rhs(irow) = 0.
+           ! no compression (not in structured version)
+           if(com_bc.eq.1) then
+              call boundary_laplacian(imatrix, ibegin+12, normal, x, irow)
+              rhs(irow) = 0.
+           endif
         endif
    
      ! corners
@@ -143,7 +146,7 @@ subroutine boundary_mag(imatrix, rhs)
   
   integer :: ibottom, iright, itop, ileft, i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes, irow
-  real :: normal, x
+  real :: normal, x, z
   real, dimension(6) :: temp
   double precision :: coords(3)
 
@@ -156,8 +159,26 @@ subroutine boundary_mag(imatrix, rhs)
   do i=1, numnodes
      call zonenod(i,izone,izonedim)
 
+     call entdofs(numvar, i, 0, ibegin, iendplusone)
+     call xyznod(i,coords)
+     x = coords(1) + xzero
+     z = coords(2) + zzero
+
      ! skip interior points
-     if(izonedim.ge.2) cycle
+     if(izonedim.ge.2) then
+        ! limiter
+        if(numvar.ge.3 .and. itor.eq.1 .and. &
+             ((xlim.lt.xmag .and. x.lt.xlim) .or. &
+             (xlim.gt.xmag .and. x.gt.xlim))) then
+           temp = phis(ibegin+12:ibegin+17)
+           if(integrator.eq.1 .and. ntime.gt.1) then
+              temp = 1.5*temp + 0.5*phiold(ibegin+12:ibegin+17)
+           endif
+           call boundary_clamp(imatrix, ibegin+12, normal, rhs, temp)
+        else
+           cycle
+        endif
+     endif
 
      ! for periodic bc's
      ! skip if on a periodic boundary
@@ -176,10 +197,6 @@ subroutine boundary_mag(imatrix, rhs)
         endif
         if(izone.eq.ibottom .or. izone.eq.itop) cycle
      endif
-
-     call entdofs(numvar, i, 0, ibegin, iendplusone)
-     call xyznod(i,coords)
-     x = coords(1) + xzero
 
      if(izonedim.eq.1) then
         if(izone.eq.ileft) then
@@ -220,22 +237,22 @@ subroutine boundary_mag(imatrix, rhs)
            rhs(ibegin+10) = 0.
         endif
 
-        ! clamp pressure
-        if(numvar.ge.3) then
-           temp = phis(ibegin+12:ibegin+17)
-           if(integrator.eq.1 .and. ntime.gt.1) then
-              temp = 1.5*temp + 0.5*phiold(ibegin+12:ibegin+17)
-           endif
-           call boundary_clamp(imatrix, ibegin+12, normal, rhs, temp)
-        endif
+        if(numvar.ge.3) then 
+           select case (p_bc)
+           case(1)       ! no normal pressure gradient (insulating)
+              temp = 0.
+              call boundary_normal_deriv(imatrix, ibegin+12, normal, rhs, temp)
+              if(imatrix.ne.0) call setdiribc(imatrix, ibegin+16)
+              rhs(ibegin+16) = 0.
 
-!!$        ! no normal pressure gradient
-!!$        if(numvar.ge.3) then 
-!!$           temp = 0.
-!!$           call boundary_normal_deriv(imatrix, ibegin+12, normal, rhs, temp)
-!!$           if(imatrix.ne.0) call setdiribc(imatrix, ibegin+16)
-!!$           rhs(ibegin+16) = 0.
-!!$        endif
+           case default  ! clamp pressure
+              temp = phis(ibegin+12:ibegin+17)
+              if(integrator.eq.1 .and. ntime.gt.1) then
+                 temp = 1.5*temp + 0.5*phiold(ibegin+12:ibegin+17)
+              endif
+              call boundary_clamp(imatrix, ibegin+12, normal, rhs, temp)            
+           end select
+        endif
 
         ! add loop voltage
         if(integrator.eq.1 .and. ntime.gt.1) then
@@ -269,23 +286,24 @@ subroutine boundary_mag(imatrix, rhs)
            call boundary_clamp_all(imatrix, ibegin+6, rhs, temp)
         endif
 
-        ! clamp pressure
-        if(numvar.ge.3) then
-           temp = phis(ibegin+12:ibegin+17)
-           if(integrator.eq.1 .and. ntime.gt.1) then
-              temp = 1.5*temp + 0.5*phiold(ibegin+12:ibegin+17)
-           endif
-           call boundary_clamp_all(imatrix, ibegin+12, rhs, temp)
-        endif
 
-!!$        ! no normal pressure gradient
-!!$        if(numvar.ge.3) then 
-!!$           temp = 0.
-!!$           call boundary_normal_deriv(imatrix, ibegin+12, 0., rhs, temp)
-!!$           call boundary_normal_deriv(imatrix, ibegin+12, pi/2., rhs, temp)
-!!$           if(imatrix.ne.0) call setdiribc(imatrix, ibegin+16)
-!!$           rhs(ibegin+16) = 0.
-!!$        endif
+        if(numvar.ge.3) then
+           select case (p_bc)
+           case(1)      ! no normal pressure gradient (insulating)
+              temp = 0.
+              call boundary_normal_deriv(imatrix, ibegin+12, 0., rhs, temp)
+              call boundary_normal_deriv(imatrix, ibegin+12, pi/2., rhs, temp)
+              if(imatrix.ne.0) call setdiribc(imatrix, ibegin+16)
+              rhs(ibegin+16) = 0.
+              
+           case default ! clamp pressure
+              temp = phis(ibegin+12:ibegin+17)
+              if(integrator.eq.1 .and. ntime.gt.1) then
+                 temp = 1.5*temp + 0.5*phiold(ibegin+12:ibegin+17)
+              endif
+              call boundary_clamp_all(imatrix, ibegin+12, rhs, temp)
+           end select
+        endif
 
         ! add loop voltage
         if(integrator.eq.1 .and. ntime.gt.1) then
