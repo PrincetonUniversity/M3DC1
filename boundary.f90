@@ -798,7 +798,7 @@ subroutine boundary_com(imatrix, rhs)
         call boundary_clamp_all(imatrix, ibegin, rhs, temp)
 
         ! no normal flow
-        call boundary_normal_deriv(imatrix, ibegin+6, 0., rhs, temp,)
+        call boundary_normal_deriv(imatrix, ibegin+6, 0., rhs, temp)
         call boundary_normal_deriv(imatrix, ibegin+6, pi/2., rhs, temp)
         if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
         rhs(ibegin+10) = 0.
