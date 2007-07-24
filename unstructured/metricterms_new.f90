@@ -3347,7 +3347,7 @@ end function energy_k3h
 
 ! Diffusive flux
 ! --------------
-real function flux_diffusive
+real function flux_diffusive()
 
   use basic
   use nintegrate_mod
@@ -3412,7 +3412,7 @@ end function flux_pressure
 
 ! Kinetic Energy Convection
 ! -------------------------
-real function flux_ke
+real function flux_ke()
 
   use basic
   use nintegrate_mod
@@ -3615,7 +3615,7 @@ end function flux_poynting
 
 ! Heat flux
 ! ---------
-real function flux_heat
+real function flux_heat()
 
   use basic
   use nintegrate_mod
@@ -3694,7 +3694,7 @@ end function flux_heat
 
 ! Grav_pot
 ! --------
-real function grav_pot
+real function grav_pot()
 
   use basic
   use nintegrate_mod

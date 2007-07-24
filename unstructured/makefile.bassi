@@ -14,7 +14,7 @@ F77    = mpxlf_r -c
 CC     = mpcc_r -c
 QEXTNAME = -qextname=numdofs,sludexit,sludinit,ap_init,loadmesh,numnod,numfac,getmincoord2,getmaxcoord2,usesearchstructure,nodfac,xyznod,createdofnumbering,zonenod,checkveccreated,deleteppplvec,createppplvec,entdofs,sumshareddofs,numprocdofs,cogfac,zeroarray4solve,insertval,getmodeltags,setdiribc,finalizearray4solve,solve,zeroarray4multiply,finalizearray4multiply,matrixvectormult,freesmo,deletesearchstructure,clearscorecdata,printfpointer,checksamevec,updateids,deletedofnumbering
 #,gpl,gqacwk,gclrwk,gqclip,gsclip,gtx
-PPOPTS = -Dmpi
+PPOPTS = -Dmpi -DNEW_VELOCITY
 F90OPTS = -qautodbl=dbl4 -qsave $(QEXTNAME) -qstrict -O3 $(INCLUDE)  
 F77OPTS = -qautodbl=dbl4 -qsave $(QEXTNAME) -O3 $(INCLUDE) -DIBM
 DBESJDBESJOPTS = -O3 -qstrict -qautodbl=dbl4 $(INCLUDE) $(QEXTNAME)
@@ -22,7 +22,7 @@ TV80OPTS=  -qsave -O3 -qstrict $(INCLUDE) $(QEXTNAME)
 
 
 NEWOBJS1 = M3Dmodules.o nintegrate_mod.o metricterms_n.o metricterms_new.o \
-	   diagnostics.o gradshafranov.o newvar.o \
+	   diagnostics.o gradshafranov.o newvar.o control.o \
            $(COMMONDIR)tv80lib.o $(COMMONDIR)subp.o \
            $(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
            $(COMMONDIR)fdump.o hdf5_output.o 
@@ -74,6 +74,9 @@ $(COMMONDIR)dbesj0.o : $(COMMONDIR)dbesj0.f
 
 $(COMMONDIR)dbesj1.o : $(COMMONDIR)dbesj1.f
 	$(F77) $(DBESJOPTS) $< -o $@
+
+#ludef_t.o: ludef_t.f90
+#	$(F90) $(F90OPTS) -qsuffix=f=f90 $< -o $@
 
 %.o : %.c
 	$(CC) $(CCOPTS) $< -o $@
