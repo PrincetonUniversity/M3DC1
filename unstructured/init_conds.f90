@@ -872,7 +872,7 @@ subroutine mri_equ(x, z, inode)
 
   call entdofs(numvar, inode, 0, ibegin, iendplusone)
 
-  nu = 0.5*gyro*pi0/bzero
+  nu = db*0.5*gyro*pi0/bzero
   fac1 = sqrt(gravr)
   fac2 = (9./128.)*nu**2/fac1
 
@@ -929,7 +929,7 @@ subroutine mri_per(x, z, inode)
 
   call constant_field(vel(ibegin:ibegin+5), 0.)
   if(numvar.ge.2)  then
-     call constant_field(vel(ibegin+6:ibegin+11), 0.)
+!!$     call constant_field(vel(ibegin+6:ibegin+11), 0.)
      call getboundingboxsize(alx, alz)
      kx = pi/alx
      kz = 2.*pi/alz

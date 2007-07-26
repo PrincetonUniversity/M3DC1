@@ -528,8 +528,12 @@ real function v1ngrav(e,f)
   real, intent(in), dimension(79,OP_NUM) :: e,f
   real :: temp
 
-  temp = gravz*int3( r_79,e(:,OP_1),f(:,OP_DR),weight_79,79) &
-       - gravr*int3(ri_79,e(:,OP_1),f(:,OP_DZ),weight_79,79)
+  if(idens.eq.0) then
+     temp = 0.
+  else
+     temp = gravz*int3( r_79,e(:,OP_1),f(:,OP_DR),weight_79,79) &
+          - gravr*int3(ri_79,e(:,OP_1),f(:,OP_DZ),weight_79,79)
+  endif
 
   v1ngrav = temp
   return
@@ -548,13 +552,17 @@ real function v1ungrav(e,f,g)
   real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
 
-  temp79a = f(:,OP_DR)*g(:,OP_DZ) - f(:,OP_DZ)*g(:,OP_DR)
+  if(idens.eq.0) then
+     temp = 0.
+  else 
+     temp79a = f(:,OP_DR)*g(:,OP_DZ) - f(:,OP_DZ)*g(:,OP_DR)
 
-  temp = gravz*int2(       e(:,OP_DR),temp79a,weight_79,79) &
-       - gravr*int3(ri2_79,e(:,OP_DZ),temp79a,weight_79,79)
+     temp = gravz*int2(       e(:,OP_DR),temp79a,weight_79,79) &
+          - gravr*int3(ri2_79,e(:,OP_DZ),temp79a,weight_79,79)
 
-  if(itor.eq.1) &
-       temp = temp + 2.*gravz*int3(ri_79,e(:,OP_1),temp79a,weight_79,79)
+     if(itor.eq.1) &
+          temp = temp + 2.*gravz*int3(ri_79,e(:,OP_1),temp79a,weight_79,79)
+  endif
 
   v1ungrav = temp
   return
@@ -573,14 +581,18 @@ real function v1chingrav(e,f,g)
   real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
 
-  temp79a = r_79*(f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR) &
-       + g(:,OP_1)*f(:,OP_LP))
+  if(idens.eq.0) then
+     temp = 0.
+  else
+     temp79a = r_79*(f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR) &
+          + g(:,OP_1)*f(:,OP_LP))
+     
+     temp = gravz*int2(       e(:,OP_DR),temp79a,weight_79,79) &
+          - gravr*int3(ri2_79,e(:,OP_DZ),temp79a,weight_79,79)
 
-  temp = gravz*int2(       e(:,OP_DR),temp79a,weight_79,79) &
-       - gravr*int3(ri2_79,e(:,OP_DZ),temp79a,weight_79,79)
-
-  if(itor.eq.1) &
-       temp = temp + 2.*gravz*int3(ri_79,e(:,OP_1),temp79a,weight_79,79)
+     if(itor.eq.1) &
+          temp = temp + 2.*gravz*int3(ri_79,e(:,OP_1),temp79a,weight_79,79)
+  endif
 
   v1chingrav = temp
   return
@@ -600,13 +612,17 @@ real function v1ndenmgrav(e,f,g)
   real, intent(in) :: g
   real :: temp
 
-  temp79a = -g*r_79*f(:,OP_LP)
+  if(idens.eq.0) then
+     temp = 0.
+  else 
+     temp79a = -g*r_79*f(:,OP_LP)
 
-  temp = gravz*int2(       e(:,OP_DR),temp79a,weight_79,79) &
-       - gravr*int3(ri2_79,e(:,OP_DZ),temp79a,weight_79,79)
+     temp = gravz*int2(       e(:,OP_DR),temp79a,weight_79,79) &
+          - gravr*int3(ri2_79,e(:,OP_DZ),temp79a,weight_79,79)
 
-  if(itor.eq.1) &
-       temp = temp + 2.*gravz*int3(ri_79,e(:,OP_1),temp79a,weight_79,79)
+     if(itor.eq.1) &
+          temp = temp + 2.*gravz*int3(ri_79,e(:,OP_1),temp79a,weight_79,79)
+  endif
 
   v1ndenmgrav = temp
   return
@@ -1592,8 +1608,13 @@ real function v3ngrav(e,f)
   real, intent(in), dimension(79,OP_NUM) :: e,f
   real :: temp
 
-  temp = gravz*int2(       e(:,OP_DZ),f(:,OP_1),weight_79,79) & 
-       + gravr*int3(ri2_79,e(:,OP_DR),f(:,OP_1),weight_79,79) 
+  if(idens.eq.0) then
+     temp = gravz*int1(       e(:,OP_DZ),weight_79,79) & 
+          + gravr*int2(ri2_79,e(:,OP_DR),weight_79,79) 
+  else
+     temp = gravz*int2(       e(:,OP_DZ),f(:,OP_1),weight_79,79) & 
+          + gravr*int3(ri2_79,e(:,OP_DR),f(:,OP_1),weight_79,79) 
+  endif
 
   v3ngrav = temp
   return
@@ -1612,10 +1633,14 @@ real function v3ungrav(e,f,g)
   real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
 
-  temp79a = f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ)
-
-  temp = gravz*int3( ri_79,e(:,OP_DZ),temp79a,weight_79,79) &
-       + gravr*int3(ri3_79,e(:,OP_DR),temp79a,weight_79,79)
+  if(idens.eq.0) then
+     temp = 0.
+  else
+     temp79a = f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ)
+     
+     temp = gravz*int3( ri_79,e(:,OP_DZ),temp79a,weight_79,79) &
+          + gravr*int3(ri3_79,e(:,OP_DR),temp79a,weight_79,79)
+  endif
 
   v3ungrav = temp
   return
@@ -1634,12 +1659,15 @@ real function v3chingrav(e,f,g)
   real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
 
+  if(idens.eq.0) then
+     temp = 0.
+  else
+     temp79a = -(f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR) &
+          + f(:,OP_LP)*g(:,OP_1))
 
-  temp79a = -(f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR) &
-       + f(:,OP_LP)*g(:,OP_1))
-
-  temp = gravz*int2(       e(:,OP_DZ),temp79a,weight_79,79) &
-       + gravr*int3(ri2_79,e(:,OP_DR),temp79a,weight_79,79)
+     temp = gravz*int2(       e(:,OP_DZ),temp79a,weight_79,79) &
+          + gravr*int3(ri2_79,e(:,OP_DR),temp79a,weight_79,79)
+  endif
 
   v3chingrav = temp
   return
@@ -1659,8 +1687,12 @@ real function v3ndenmgrav(e,f,g)
   real, intent(in) :: g
   real :: temp
 
-  temp = gravz*int2(       e(:,OP_DZ),f(:,OP_LP),weight_79,79) &
-       + gravr*int3(ri2_79,e(:,OP_DR),f(:,OP_LP),weight_79,79)
+  if(idens.eq.0) then
+     temp = 0.
+  else
+     temp = gravz*int2(       e(:,OP_DZ),f(:,OP_LP),weight_79,79) &
+          + gravr*int3(ri2_79,e(:,OP_DR),f(:,OP_LP),weight_79,79)
+  endif
 
   v3ndenmgrav = g*temp
   return

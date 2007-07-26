@@ -509,6 +509,7 @@ function read_field, name, slices=time, mesh=mesh, filename=filename, time=t, $
 
    nt = read_parameter("ntime", filename=filename)
    nv = read_parameter("numvar", filename=filename)
+   itor = read_parameter("itor", filename=filename)
 
    if(n_elements(time) eq 0) then begin
        time = [0,nt-1]
@@ -533,7 +534,7 @@ function read_field, name, slices=time, mesh=mesh, filename=filename, time=t, $
 
        if(n_elements(psi) le 1) then return, 0
 
-       r = radius_matrix(x,y,t)
+       if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
 
        if(nv ge 2) then begin
            I = read_field('I', slices=time, mesh=mesh, filename=filename, $
@@ -572,7 +573,7 @@ function read_field, name, slices=time, mesh=mesh, filename=filename, time=t, $
        I = read_field('I', slices=time, mesh=mesh, filename=filename, $
                         time=t, r=x, z=y, points=pts, $
                         xrange=xrange, yrange=yrange)
-       r = radius_matrix(x,y,t)
+       if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
    
        return, I/r
 
@@ -590,7 +591,7 @@ function read_field, name, slices=time, mesh=mesh, filename=filename, time=t, $
        v = read_field('V', slices=time, mesh=mesh, filename=filename, $
                         time=t, r=x, z=y, points=pts, $
                         xrange=xrange, yrange=yrange)
-       r = radius_matrix(x,y,t)
+       if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
    
        return, v/r
 
@@ -679,9 +680,9 @@ function read_field, name, slices=time, mesh=mesh, filename=filename, time=t, $
                          time=t, r=x, z=y, points=pts, $
                          xrange=xrange, yrange=yrange)
 
-       r = radius_matrix(x,y,t)
+       if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
 
-       return, jphi/r
+       return, -jphi/r
    endif
 
 
@@ -791,7 +792,8 @@ pro plot_field, name, time, points=p, filename=filename, mesh=plotmesh, $
    endif
 
    if(keyword_set(plotmesh)) then begin
-       plot_mesh, mesh, color=220, /oplot, filename=filename
+       loadct, 12
+       plot_mesh, mesh, color=color(3,5), /oplot, filename=filename
    endif
 end
 
@@ -1494,8 +1496,10 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
       ytitle = '!6Flux (!8L!U2!N B!D0!N)!3'
   endif else $
     if (strcmp("reconnected flux", scalarname, /fold_case) eq 1) then begin
-      data = s.reconnected_flux._data
+      data = abs(s.reconnected_flux._data)
       title = '!6Reconnected Flux!3'
+      ytitle = translate('psi', units=units)
+      ytitle = ytitle + '!6 (' + units + ')!3'
   endif else $
     if (strcmp("loop voltage", scalarname, /fold_case) eq 1) or $
     (strcmp("vl", scalarname, /fold_case) eq 1) then begin
@@ -1575,8 +1579,8 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
       if(keyword_set(overplot)) then begin
           oplot, tdata, data, color=c, _EXTRA=extra
       endif else begin
-          plot, tdata, data, $
-            title=title, ytitle=ytitle, _EXTRA=extra, ylog=ylog, xlog=xlog, $
+          plot, tdata, data, xtitle=xtitle, ytitle=ytitle, $
+            title=title, _EXTRA=extra, ylog=ylog, xlog=xlog, $
             color=c
       endelse
   endif else begin
@@ -1607,12 +1611,14 @@ pro plot_pol_velocity, time, filename=filename, points=pts, maxval=maxval, $
                        lcfs=lcfs, _EXTRA=extra
 
   nv = read_parameter('numvar', filename=filename)
+  itor = read_parameter('itor', filename=filename)
 
   phi = read_field('phi', filename=filename, $
                    slice=time, r=x, z=z, t=t, points=pts)
   if(n_elements(phi) le 1) then return
 
-  r = radius_matrix(x,z,t)
+  itor = read_parameter('itor', filename=filename)
+  if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
 
   vx = -dz(phi,z)/r
   vz =  dx(phi,x)/r
@@ -1662,6 +1668,7 @@ pro plot_tor_velocity, time, filename=filename, points=pts, $
                        lcfs=lcfs, _EXTRA=extra
 
   nv = read_parameter('numvar', filename=filename)
+  itor = read_parameter('itor', filename=filename)
 
   if(nv lt 2) then begin
       print, "numvar < 2"
@@ -1670,7 +1677,8 @@ pro plot_tor_velocity, time, filename=filename, points=pts, $
 
   v = read_field('V', filename=filename, $
                  slice=time, r=x, z=z, t=t, points=pts)
-  r = radius_matrix(x,z,t)
+
+  if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
 
   vz = v/r
 
