@@ -690,6 +690,158 @@ end subroutine wave_per
 end module wave_propagation
 
 
+
+!==============================================================================
+! Gravitational Instability Equilibrium (itor = 0, itaylor = 5)
+!==============================================================================
+module grav
+
+contains
+
+subroutine grav_init()
+  use basic
+
+  implicit none
+
+  integer :: l, numnodes
+  real :: x, z, alx, alz, xmin, zmin
+  double precision :: coords(3)
+
+  call getmincoord(xmin, zmin)
+  call getboundingboxsize(alx, alz)
+
+  call numnod(numnodes)
+  do l=1, numnodes
+     call xyznod(l, coords)
+
+     x = coords(1) + xzero - xmin - alx*.5
+     z = coords(2) + zzero - zmin - alz*.5
+
+     call grav_equ(x, z, l)
+     call grav_per(x, z, l)
+  enddo
+
+end subroutine grav_init
+
+subroutine grav_equ(x, z, inode)
+  use basic
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x, z
+  integer, intent(in) :: inode
+
+  integer :: ibegin, iendplusone
+  real :: fac1, n0, pn0, ppn0
+
+  call entdofs(numvar, inode, 0, ibegin, iendplusone)
+
+  fac1 = gravz*ln+gam*p0
+  n0 = exp(z/ln)
+  pn0 = exp(z/ln)/ln
+  ppn0 = exp(z/ln)/ln**2
+
+  call static_equ(ibegin)
+
+  call constant_field(phi0(ibegin:ibegin+5), 0.)
+
+  if(numvar.ge.2) then
+     phi0(ibegin+6 ) = sqrt(bzero**2 - 2.*fac1*(n0-1.))
+     phi0(ibegin+7 ) = 0.
+     phi0(ibegin+8 ) = -pn0*fac1/phi0(ibegin+6)
+     phi0(ibegin+9 ) = 0.
+     phi0(ibegin+10) = 0.
+     phi0(ibegin+11) = (fac1/phi0(ibegin+6))*(pn0*phi0(ibegin+8)/phi0(ibegin+6) - ppn0)
+  end if
+
+  if(numvar.ge.3) then
+     fac1 = p0 - pi0*ipres
+     phi0(ibegin+12) = fac1+gam*fac1*(n0-1.)
+     phi0(ibegin+13) = 0.
+     phi0(ibegin+14) = gam*fac1*pn0
+     phi0(ibegin+15) = 0.
+     phi0(ibegin+16) = 0.
+     phi0(ibegin+17) = gam*fac1*ppn0
+  end if
+
+  if(idens.eq.1) then
+     call entdofs(1, inode, 0, ibegin, iendplusone)
+     den0(ibegin  ) = n0
+     den0(ibegin+1) = 0.
+     den0(ibegin+2) = pn0
+     den0(ibegin+3) = 0.
+     den0(ibegin+4) = 0.
+     den0(ibegin+5) = ppn0
+  endif
+
+  if(ipres.eq.1) then
+     call entdofs(1, inode, 0, ibegin, iendplusone)
+     fac1 = p0
+     pres0(ibegin  ) = fac1+gam*fac1*(n0-1.)
+     pres0(ibegin+1) = 0.
+     pres0(ibegin+2) = gam*fac1*pn0
+     pres0(ibegin+3) = 0.
+     pres0(ibegin+4) = 0.
+     pres0(ibegin+5) = gam*fac1*ppn0
+  endif
+
+end subroutine grav_equ
+
+
+subroutine grav_per(x, z, inode)
+  use basic
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x, z
+  integer, intent(in) :: inode
+
+  integer :: ibegin, iendplusone
+  real :: kx, kz, alx, alz
+
+  call entdofs(numvar, inode, 0, ibegin, iendplusone)
+
+  call constant_field(phi(ibegin:ibegin+5), 0.)
+
+  call getboundingboxsize(alx, alz)
+  kx = pi/alx
+  kz = 2.*pi/alz
+  vel(ibegin+6) =  eps*sin(kx*(x-xzero))*sin(kz*(z-zzero))
+  vel(ibegin+7) =  eps*cos(kx*(x-xzero))*sin(kz*(z-zzero))*kx
+  vel(ibegin+8) =  eps*sin(kx*(x-xzero))*cos(kz*(z-zzero))*kz
+  vel(ibegin+9) = -eps*sin(kx*(x-xzero))*cos(kz*(z-zzero))*kx**2
+  vel(ibegin+10)=  eps*cos(kx*(x-xzero))*cos(kz*(z-zzero))*kx*kz
+  vel(ibegin+11)= -eps*sin(kx*(x-xzero))*sin(kz*(z-zzero))*kz**2
+
+  
+  if(numvar.ge.2)  then
+     call constant_field(phi(ibegin+6 :ibegin+11), 0.)
+     call constant_field(vel(ibegin+6 :ibegin+11), 0.)
+  endif
+  if(numvar.ge.3)  then
+     call constant_field(phi(ibegin+12:ibegin+17), 0.)
+     call constant_field(vel(ibegin+12:ibegin+17), 0.)
+  endif
+
+  if(idens.eq.1) then
+     call entdofs(1, inode, 0, ibegin, iendplusone)
+     call constant_field(den(ibegin:ibegin+5), 0.)
+  endif
+
+  if(ipres.eq.1) then
+     call entdofs(1, inode, 0, ibegin, iendplusone)
+     call constant_field(pres(ibegin:ibegin+5),0.)
+  endif
+
+end subroutine grav_per
+
+end module grav
+
+
+
+
 !==============================================================================
 ! Solov'ev Equilibrium (itor = 1, itaylor = 0)
 !==============================================================================
@@ -946,29 +1098,9 @@ subroutine mri_per(x, z, inode)
   call constant_field(phi(ibegin:ibegin+5), 0.)
   if(numvar.ge.2)  then
      call constant_field(phi(ibegin+6 :ibegin+11), 0.)
-!!$     call getboundingboxsize(alx, alz)
-!!$     kx = pi/alx
-!!$     kz = 2.*pi/alz
-!!$     fac1 = eps*bzero
-!!$     phi(ibegin+6) =  fac1*sin(kx*(x-xzero))*sin(kz*(z-zzero))
-!!$     phi(ibegin+7) =  fac1*cos(kx*(x-xzero))*sin(kz*(z-zzero))*kx
-!!$     phi(ibegin+8) =  fac1*sin(kx*(x-xzero))*cos(kz*(z-zzero))*kz
-!!$     phi(ibegin+9) = -fac1*sin(kx*(x-xzero))*cos(kz*(z-zzero))*kx**2
-!!$     phi(ibegin+10)=  fac1*cos(kx*(x-xzero))*cos(kz*(z-zzero))*kx*kz
-!!$     phi(ibegin+11)= -fac1*sin(kx*(x-xzero))*sin(kz*(z-zzero))*kz**2
   endif
   if(numvar.ge.3)  then
      call constant_field(phi(ibegin+12:ibegin+17), 0.)
-!!$     call getboundingboxsize(alx, alz)
-!!$     kx = pi/alx
-!!$     kz = 2.*pi/alz
-!!$     fac1 = eps*(p0 - pi0*ipres)
-!!$     phi(ibegin+12) =  fac1*sin(kx*(x-xzero))*sin(kz*(z-zzero))
-!!$     phi(ibegin+13) =  fac1*cos(kx*(x-xzero))*sin(kz*(z-zzero))*kx
-!!$     phi(ibegin+14) =  fac1*sin(kx*(x-xzero))*cos(kz*(z-zzero))*kz
-!!$     phi(ibegin+15) = -fac1*sin(kx*(x-xzero))*cos(kz*(z-zzero))*kx**2
-!!$     phi(ibegin+16) =  fac1*cos(kx*(x-xzero))*cos(kz*(z-zzero))*kx*kz
-!!$     phi(ibegin+17) = -fac1*sin(kx*(x-xzero))*sin(kz*(z-zzero))*kz**2
   endif
 
   if(idens.eq.1) then
@@ -1000,6 +1132,7 @@ subroutine initial_conditions()
   use solovev
   use gradshafranov
   use mri
+  use grav
 
   implicit none
 
@@ -1016,6 +1149,8 @@ subroutine initial_conditions()
         call gem_reconnection_init()
      case(4)
         call wave_init()
+     case(5)
+        call grav_init()
      end select
   else
      ! toroidal equilibria

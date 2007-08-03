@@ -28,14 +28,18 @@ integer, parameter :: FIELD_NI  =  2048
 integer, parameter :: FIELD_B2I =  4096
 integer, parameter :: FIELD_ETA =  8192
 integer, parameter :: FIELD_KAP = 16384
+integer, parameter :: FIELD_SIG = 32768
 
 
+real, dimension(25) :: x_25, z_25
 real, dimension(25) :: r_25, r2_25, ri_25, ri2_25, ri3_25, ri4_25
 real, dimension(25, OP_NUM, 18) :: g25
 real, dimension(25, OP_NUM) :: ps025, bz025, pe025, n025, p025, ph025, vz025, ch025
 real, dimension(25, OP_NUM) :: ps125, bz125, pe125, n125, p125, ph125, vz125, ch125
 real, dimension(25, OP_NUM) :: pst25, bzt25, pet25, nt25, pt25, pht25, vzt25, cht25
 
+
+real, dimension(79) :: x_79, z_79
 real, dimension(79) :: r_79, r2_79, ri_79, ri2_79, ri3_79, ri4_79, ri5_79, ri6_79, ri7_79
 real, dimension(79, OP_NUM, 18) :: g79
 real, dimension(79, OP_NUM) :: tm79, ni79, b2i79
@@ -203,13 +207,14 @@ subroutine area_to_local(ngauss, alpha, beta, gamma, area_weight, &
 end subroutine area_to_local
 
 
-!============================================
-! calcr
-! -----
+
+!=====================================================
+! calcpos
+! -------
 !
-! Calculates r at each sampling point
-!============================================
-subroutine calcr(itri,si,eta,ngauss,r)
+! Calculates global coordinates at each sampling point
+!=====================================================
+subroutine calcpos(itri,si,eta,ngauss,x,z)
 
   use basic
   use t_data
@@ -218,33 +223,31 @@ subroutine calcr(itri,si,eta,ngauss,r)
 
   integer, intent(in) :: itri, ngauss
   real, dimension(ngauss), intent(in) :: si, eta
-  real, dimension(ngauss), intent(out) :: r
+  real, dimension(ngauss), intent(out) :: x, z
 
   integer, dimension(4) :: nodeids(4)
   integer :: i
-  real :: xoff, b, co, sn, xmin, zmin
+  real :: xoff, zoff, b, co, sn, xmin, zmin
   double precision :: coords(3)
 
-  if(itor.eq.1) then
+  call getmincoord(xmin,zmin)
+  call nodfac(itri,nodeids)
+  call xyznod(nodeids(1), coords)
 
-     call getmincoord(xmin,zmin)
-     call nodfac(itri,nodeids)
-     call xyznod(nodeids(1), coords)
+  xoff = coords(1) - xmin + xzero
+  zoff = coords(2) - zmin + zzero
 
-     xoff = coords(1) - xmin + xzero
+  b = btri(itri)
+  co = cos(ttri(itri))
+  sn = sin(ttri(itri))
 
-     b = btri(itri)
-     co = cos(ttri(itri))
-     sn = sin(ttri(itri))
+  do i=1, ngauss
+     x(i) = (si(i) + b)*co - eta(i)*sn + xoff
+     z(i) = (si(i) + b)*sn + eta(i)*co + zoff
+  end do
 
-     do i=1, ngauss
-        r(i) = (si(i) + b)*co - eta(i)*sn + xoff
-     end do
-  else
-     r = 1.
-  endif
+end subroutine calcpos
 
-end subroutine calcr
 
 
 !===============================================
@@ -365,7 +368,12 @@ subroutine define_fields_25(itri)
        atri(itri), btri(itri), ctri(itri),                          &
        si_25, eta_25, weight_25)
 
-  call calcr(itri, si_25, eta_25, 25, r_25)
+  call calcpos(itri, si_25, eta_25, 25, x_25, z_25)
+  if(itor.eq.1) then 
+     r_25 = x_25 
+  else 
+     r_25 = 1.
+  endif
   ri_25 = 1./r_25
   ri2_25 = ri_25*ri_25
   ri3_25 = ri2_25*ri_25
@@ -495,7 +503,12 @@ subroutine define_fields_79(itri, fields)
        atri(itri), btri(itri), ctri(itri),                          &
        si_79, eta_79, weight_79)
 
-  call calcr(itri, si_79, eta_79, 79, r_79)
+  call calcpos(itri, si_79, eta_79, 79, x_79, z_79)
+  if(itor.eq.1) then 
+     r_79 = x_79 
+  else 
+     r_79 = 1.
+  endif
   ri_79 = 1./r_79
   ri2_79 = ri_79*ri_79
   ri3_79 = ri2_79*ri_79
@@ -507,12 +520,12 @@ subroutine define_fields_79(itri, fields)
 
   if(ijacobian.eq.1) weight_79 = weight_79 * r_79
 
-
-  sig79 = 0.
-  
+ 
   ! PHI
   ! ~~~
   if(iand(fields, FIELD_PHI).eq.FIELD_PHI) then
+     if(itri.eq.1 .and. myrank.eq.0) print *, "   phi..."
+     
      call calcavector(itri, vel, 1, numvar, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ph179)
 
@@ -531,6 +544,8 @@ subroutine define_fields_79(itri, fields)
   ! PSI
   ! ~~~
   if(iand(fields, FIELD_PSI).eq.FIELD_PSI) then
+     if(itri.eq.1 .and. myrank.eq.0) print *, "   psi..."
+
      call calcavector(itri, phi, 1, numvar, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ps179)
 
@@ -548,6 +563,8 @@ subroutine define_fields_79(itri, fields)
   ! V
   ! ~
   if(iand(fields, FIELD_V).eq.FIELD_V) then
+     if(itri.eq.1 .and. myrank.eq.0) print *, "   V..."
+
      call calcavector(itri, vel, 2, numvar, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, vz179)
     
@@ -564,6 +581,8 @@ subroutine define_fields_79(itri, fields)
   ! ~
   if(iand(fields, FIELD_I).eq.FIELD_I) then
      
+     if(itri.eq.1 .and. myrank.eq.0) print *, "   I..."
+
      if(numvar.ge.2) then
         
         call calcavector(itri, phi, 2, numvar, avec)
@@ -607,6 +626,8 @@ subroutine define_fields_79(itri, fields)
   ! CHI
   ! ~~~
   if(iand(fields, FIELD_CHI).eq.FIELD_CHI) then
+     if(itri.eq.1 .and. myrank.eq.0) print *, "   chi..."
+
      call calcavector(itri, vel, 3, numvar, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ch179)
 
@@ -626,6 +647,7 @@ subroutine define_fields_79(itri, fields)
   ! ~~~~~~
   if((iand(fields, FIELD_PE).eq.FIELD_PE) .or. &
        (iand(fields, FIELD_P).eq.FIELD_P)) then
+     if(itri.eq.1 .and. myrank.eq.0) print *, "   P..."
 
      if(numvar.ge.3) then
         if(ipres.eq.1) then
@@ -690,6 +712,7 @@ subroutine define_fields_79(itri, fields)
   ! N
   ! ~
   if(iand(fields, FIELD_N).eq.FIELD_N) then
+     if(itri.eq.1 .and. myrank.eq.0) print *, "   n..."
 
      if(idens.eq.1) then
         call calcavector(itri, den, 1, 1, avec)
@@ -729,6 +752,8 @@ subroutine define_fields_79(itri, fields)
   ! J
   ! ~
   if(iand(fields, FIELD_J).eq.FIELD_J) then
+     if(itri.eq.1 .and. myrank.eq.0) print *, "   j..."
+
      call calcavector(itri, jphi, 1, 1, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, jt79)
   endif
@@ -736,6 +761,8 @@ subroutine define_fields_79(itri, fields)
   ! VOR
   ! ~~~
   if(iand(fields, FIELD_VOR).eq.FIELD_VOR) then
+     if(itri.eq.1 .and. myrank.eq.0) print *, "   vor..."
+
      call calcavector(itri, vor, 1, 1, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, vot79)
   endif
@@ -743,6 +770,8 @@ subroutine define_fields_79(itri, fields)
   ! COM
   ! ~~~
   if(iand(fields, FIELD_COM).eq.FIELD_COM) then
+     if(itri.eq.1 .and. myrank.eq.0) print *, "   com..."
+
      call calcavector(itri, com, 1, 1, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, cot79)
   endif
@@ -751,6 +780,8 @@ subroutine define_fields_79(itri, fields)
   ! B2I
   ! ~~~
   if(iand(fields, FIELD_B2I).eq.FIELD_B2I) then
+     if(itri.eq.1 .and. myrank.eq.0) print *, "   B^-2..."
+
      temp79a = ri2_79* &
           (pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2 + bzt79(:,OP_1)**2)
 
@@ -765,12 +796,23 @@ subroutine define_fields_79(itri, fields)
      if(itor.eq.1) then 
         b2i79(:,OP_DR) = b2i79(:,OP_DR) + 2.*b2i79(:,OP_1)*ri_79
      endif
+
+!!$     b2i79(:,OP_1) = 1./(pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2 + bzt79(:,OP_1)**2)
+!!$     b2i79(:,OP_DR) = -2.*b2i79(:,OP_1)**2 &
+!!$          *(pst79(:,OP_DR)*pst79(:,OP_DRR) + pst79(:,OP_DZ)*pst79(:,OP_DRZ) &
+!!$           +bzt79(:,OP_1 )*bzt79(:,OP_DR ))
+!!$     b2i79(:,OP_DZ) = -2.*b2i79(:,OP_1)**2 &
+!!$          *(pst79(:,OP_DR)*pst79(:,OP_DRZ) + pst79(:,OP_DZ)*pst79(:,OP_DZZ) &
+!!$           +bzt79(:,OP_1 )*bzt79(:,OP_DZ ))
+
   endif
 
 
   ! ETA
   ! ~~~
   if(iand(fields, FIELD_ETA).eq.FIELD_ETA) then
+     if(itri.eq.1 .and. myrank.eq.0) print *, "   eta..."
+
      call calcavector(itri, resistivity, 1, 1, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, eta79)
   end if
@@ -778,8 +820,21 @@ subroutine define_fields_79(itri, fields)
   ! KAP
   ! ~~~
   if(iand(fields, FIELD_KAP).eq.FIELD_KAP) then
+     if(itri.eq.1 .and. myrank.eq.0) print *, "   kappa..."
+
      call calcavector(itri, kappa, 1, 1, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, kap79)
+  end if
+
+  ! SIG
+  ! ~~~
+  if(iand(fields, FIELD_SIG).eq.FIELD_SIG) then
+     if(itri.eq.1 .and. myrank.eq.0) print *, "   sigma..."
+
+     call calcavector(itri, sigma, 1, 1, avec)
+     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, sig79)
+  else
+     sig79 = 0.
   end if
 
   do i=1,18

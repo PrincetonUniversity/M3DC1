@@ -3305,7 +3305,7 @@ real function energy_k3d()
 
   real :: temp
 
-  temp = - 2.*amuc*int2(pht79(:,OP_LP),pht79(:,OP_LP),weight_79,79)
+  temp = - 2.*amuc*int2(cht79(:,OP_LP),cht79(:,OP_LP),weight_79,79)
 
   energy_k3d = temp
   return
@@ -3559,11 +3559,13 @@ real function flux_poynting(dbf)
 
   real, intent(in) :: dbf
 
+  temp79a = -ri2_79*pst79(:,OP_GS)*vloop/(2.*pi)
+
 !!$  if(idens.eq.0) then
 !!$     ni79 = 0.
 !!$     ni79(:,OP_1) = 1.
 !!$  endif
-!!$
+
 !!$  temp79a = ri3_79*(pst79(:,OP_GS)* &
 !!$        (pst79(:,OP_DZ )*pht79(:,OP_DR ) - pst79(:,OP_DR )*pht79(:,OP_DZ )) &
 !!$       +pst79(:,OP_DZ)* &
@@ -3581,7 +3583,7 @@ real function flux_poynting(dbf)
 !!$     temp79a = temp79a - ri4_79*pst79(:,OP_DR)* &
 !!$          (pst79(:,OP_DZ)*pht79(:,OP_DR) - pst79(:,OP_DR)*pht79(:,OP_DZ))
 !!$  endif
-!!$ 
+ 
 !!$  if(numvar.ge.2) then
 !!$     temp79a = temp79a &
 !!$          - ri2_79* &
@@ -3618,7 +3620,7 @@ real function flux_poynting(dbf)
 !!$             +2.*ri4_79*bzt79(:,OP_1)**2*pht79(:,OP_DZ)
 !!$     endif
 !!$  endif
-!!$
+
 !!$  if(numvar.ge.3) then
 !!$     temp79a = temp79a &
 !!$          - ri_79*pefac*dbf* &
@@ -3638,9 +3640,7 @@ real function flux_poynting(dbf)
 
 ! MISSING HYPER-RESISTIVE TERMS
 
-  temp79a = ri2_79*pst79(:,OP_GS)*vloop/(2.*pi)
-
-  flux_poynting = int1(temp79a,weight_79,79)
+  flux_poynting = -int1(temp79a,weight_79,79)
   return
 end function flux_poynting
 

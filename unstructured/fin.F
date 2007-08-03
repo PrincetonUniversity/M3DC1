@@ -154,16 +154,19 @@
       vzero = 0.
 !
 !.....boundary condition on toroidal velocity
-!     0 = no-slip, 1 = no normal stress
+!     v_bc: 0 = no-slip, 1 = no normal stress
+!     com_bc: 1 = sets laplacian(chi) = 0 on boundary
+!     p_bc : 0 = constant pressure, 1 = insulating
       v_bc = 0
-!
-!.....boundary condition on toroidal velocity
-!     1 = sets laplacian(chi) = 0 on boundary
       com_bc = 1
-!
-!.....boundary condition on pressure
-!     0 = constant pressure, 1 = insulating
       p_bc = 0
+!
+!.....density source
+      ipellet = 0
+      pellet_x = xmag
+      pellet_z = zmag
+      pellet_rate = denm 
+      pellet_var = 1.
 !
 !
       facw = 1.
@@ -201,6 +204,7 @@
       zlim = 0.
 !
 !..... toroidal current controller parameters
+      tcur = tcuro
       control_p = 0.
       control_i = 0.
       control_d = 0.

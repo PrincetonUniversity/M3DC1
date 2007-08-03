@@ -490,7 +490,7 @@ subroutine calculate_scalars()
 
      emagp  = emagp  + energy_mp ()
      emagpd = emagpd + energy_mpd()
-     emagpd = emagpd - qpsipsieta(tm79,hypf)
+     emagph = emagph - qpsipsieta(tm79,hypf)
 
      if(numvar.ge.2) then       
         ekint  = ekint  + energy_kt ()
@@ -531,9 +531,7 @@ subroutine calculate_scalars()
   emagd = emagpd + emagtd + emag3d
 
   ! sum all fluxes to get total energy lost through boundary
-  ! (remove poynting flux due to conducting boundary)
-  ptot = ptot + (efluxd + efluxk + efluxp + 0.*efluxs + efluxt + epotg &
-       - vloop*totcur/(2.*pi))*dt
+  ptot = ptot + (efluxd + efluxk + efluxp + efluxs + efluxt + epotg)*dt
   if(numvar.lt.3) ptot = ptot + (ekind + emagd)*dt
 
   ! total energy, including energy lost through boundary flux and

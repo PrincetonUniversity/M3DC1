@@ -95,7 +95,10 @@ subroutine ludefall
   if(numvar.ge.2) def_fields = def_fields + FIELD_V + FIELD_I
   if(numvar.ge.3) def_fields = def_fields + &
        FIELD_CHI + FIELD_PE + FIELD_B2I + FIELD_J + FIELD_P + FIELD_KAP
-  if(idens.eq.1) def_fields = def_fields + FIELD_N + FIELD_NI
+  if(idens.eq.1) then
+     if(ipellet.eq.1) def_fields = def_fields + FIELD_SIG
+     def_fields = def_fields + FIELD_N + FIELD_NI
+  endif
 
   if(gyro.eq.1) then
      if(numvar.lt.2) def_fields = def_fields + FIELD_I
@@ -871,7 +874,7 @@ subroutine ludefphi_n(itri,dbf)
            ssterm(2,2) = ssterm(2,2) + temp
            ddterm(2,2) = ddterm(2,2) + temp*bdf
 
-           temp = b2beta(g79(:,:,i),g79(:,:,j),eta79,hypi)  &
+           temp = b2beta(g79(:,:,i),g79(:,:,j),eta79,hypi) &
                 + b2bu  (g79(:,:,i),g79(:,:,j),pht79)
            ssterm(2,2) = ssterm(2,2) -     thimp     *dt*temp
            ddterm(2,2) = ddterm(2,2) + (1.-thimp*bdf)*dt*temp
@@ -1068,6 +1071,8 @@ subroutine ludefphi_n(itri,dbf)
            endif
         endif
 
+       
+
         call insertval(s2matrix_sm,ssterm(1,1),i1,j1,1)
         call insertval(d2matrix_sm,ddterm(1,1),i1,j1,1)
         call insertval(r2matrix_sm,rrterm(1,1),i1,j1,1)
@@ -1086,7 +1091,7 @@ subroutine ludefphi_n(itri,dbf)
            call insertval(q2matrix_sm,qqterm(2,1),i1+6,j1  ,1)
            call insertval(q2matrix_sm,qqterm(2,2),i1+6,j1+6,1)
         endif
-        if(numvar .eq. 3) then
+        if(numvar .eq. 3) then        
            call insertval(s2matrix_sm,ssterm(1,3),i1,   j1+12,1)
            call insertval(s2matrix_sm,ssterm(2,3),i1+6, j1+12,1)
            call insertval(s2matrix_sm,ssterm(3,3),i1+12,j1+12,1)

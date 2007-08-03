@@ -16,6 +16,7 @@ contains
 ! ====================
 subroutine create_newvar_matrix(matrix, ibound)
 
+  use basic
   use p_data
   use t_data
   use arrays
@@ -41,7 +42,12 @@ subroutine create_newvar_matrix(matrix, ibound)
           atri(itri), btri(itri), ctri(itri),                          &
           si_79, eta_79, weight_79)
 
-     call calcr(itri, si_79, eta_79, 79, r_79)
+     call calcpos(itri, si_79, eta_79, 79, x_79, z_79)
+     if(itor.eq.1) then
+        r_79 = x_79
+     else
+        r_79 = 1.
+     endif
      ri_79 = 1./r_79
 
      do i=1,18
@@ -107,7 +113,12 @@ subroutine newvar_d2(inarray,outarray,itype,ibound,gs)
           atri(itri), btri(itri), ctri(itri),                          &
           si_79, eta_79, weight_79)
 
-     call calcr(itri, si_79, eta_79, 79, r_79)
+     call calcpos(itri, si_79, eta_79, 79, x_79, z_79)
+     if(itor.eq.1) then
+        r_79 = x_79
+     else
+        r_79 = 1.
+     endif
      ri_79 = 1./r_79
 
      if(ijacobian.eq.1) weight_79 = weight_79*r_79
@@ -151,9 +162,11 @@ subroutine define_transport_coefficients()
 
   integer :: i, itri
   integer :: ione, numelms, def_fields
+  double precision :: coords(3)
 
   resistivity = 0.
   kappa = 0.
+  sigma = 0.
 
   def_fields = 0.
 
@@ -164,7 +177,7 @@ subroutine define_transport_coefficients()
   call numfac(numelms)
   do itri=1,numelms
 
-     call define_fields_79(itri, def_fields)
+     call define_fields_79(itri, def_fields)   
         
      ! resistivity
      if(eta0.eq.0.) then
@@ -197,7 +210,15 @@ subroutine define_transport_coefficients()
            temp79b = sqrt(nt79(:,OP_1)**3/pt79(:,OP_1))
         endif        
      endif
-        
+ 
+     ! density source
+     if(idens.eq.1 .and. ipellet.eq.1) then
+        temp79c = pellet_rate/(2.*pi*pellet_var**2) & 
+             *exp(-((x_79 - pellet_x)**2 + (z_79 - pellet_z)**2)/(2.*pellet_var**2))
+     else
+        temp79c = 0.
+     endif
+
      do i=1,18
         ione = isval1(itri,i)       
         
@@ -207,124 +228,16 @@ subroutine define_transport_coefficients()
         kappa(ione) = kappa(ione) &
              + kappat*int1(g79(:,OP_1,i),weight_79,79) &
              + kappa0*int2(g79(:,OP_1,i),temp79b, weight_79,79)
+        sigma(ione) = sigma(ione) &
+             + int2(g79(:,OP_1,i),temp79c, weight_79,79)
      end do
   end do
 
   call solve_newvar(resistivity, NV_NOBOUND)
   call solve_newvar(kappa, NV_NOBOUND)
+  call solve_newvar(sigma, NV_NOBOUND)
 
 end subroutine define_transport_coefficients
-
-
-
-!!$! newvar_eta
-!!$! ==========
-!!$subroutine newvar_eta()
-!!$
-!!$  use basic
-!!$  use t_data
-!!$  use arrays
-!!$  use nintegrate_mod
-!!$
-!!$  use gradshafranov
-!!$
-!!$  implicit none
-!!$
-!!$  real :: minpe, ajlim, xguess, zguess
-!!$  integer :: i, itri
-!!$  integer :: ione, numelms, def_fields
-!!$!  integer :: numnodes, ibegin, iendplusone, ibegin1, iendplusone1
-!!$
-!!$  resistivity = 0.
-!!$
-!!$  def_fields = 0.
-!!$  if(idens.eq.1)  def_fields = def_fields + FIELD_N
-!!$  if(numvar.ge.3) def_fields = def_fields + FIELD_PE
-!!$
-!!$  if(itor.eq.1 .and. itaylor.eq.1 .and. numvar.lt.3 .and. eta0.ne.0) then  
-!!$     itri = 0.
-!!$     call evaluate(xlim-xzero,zlim-zzero,psilim,ajlim,phi,1,numvar,itri)
-!!$
-!!$     xguess = xmag - xzero
-!!$     zguess = zmag - zzero
-!!$     if(linear.eq.1 .or. eqsubtract.eq.1) then
-!!$        call magaxis(xguess,zguess,phi+phi0,numvar)
-!!$     else
-!!$        call magaxis(xguess,zguess,phi,numvar)
-!!$     endif
-!!$     xmag = xguess + xzero
-!!$     zmag = zguess + zzero
-!!$
-!!$     def_fields = def_fields + FIELD_PSI
-!!$  endif
-!!$
-!!$  ! Calculate RHS
-!!$  call numfac(numelms)
-!!$  do itri=1,numelms
-!!$
-!!$     if(eta0.eq.0) then
-!!$        temp79a = 0.
-!!$     else 
-!!$
-!!$        call define_fields_79(itri, def_fields)
-!!$
-!!$        ! for the grad-shafranov simulation with numvar < 3,
-!!$        ! calculate the pressure assuming that p(psi) = p0(psi)
-!!$        if(numvar.lt.3 .and. itor.eq.1 .and. itaylor.eq.1) then
-!!$           temp79c = (pst79(:,OP_1) - psimin)/(psilim - psimin)
-!!$           
-!!$           do i=1,79
-!!$              if(temp79c(i).lt.0) then
-!!$                 pet79(i,OP_1) = p0-pi0*ipres
-!!$              else if(temp79c(i).gt.1) then
-!!$                 pet79(i,OP_1) = pedge*(p0-pi0*ipres)/p0
-!!$              else
-!!$                 pet79(i,OP_1) = pedge*(p0-pi0*ipres)/p0 + &
-!!$                      (p0-pi0*ipres)* &
-!!$                      (1.+p1*temp79c(i)+p2*temp79c(i)**2 &
-!!$                      -(20. + 10.*p1 + 4.*p2)*temp79c(i)**3 &
-!!$                      +(45. + 20.*p1 + 6.*p2)*temp79c(i)**4 &
-!!$                      -(36. + 15.*p1 + 4.*p2)*temp79c(i)**5 &
-!!$                      +(10. + 4.*p1 + p2)*temp79c(i)**6)
-!!$              endif
-!!$           end do
-!!$        endif
-!!$        
-!!$        if(itor.eq.1) then
-!!$           if(idens.eq.0) then
-!!$              temp79a = sqrt((1./(pefac*pet79(:,OP_1)))**3)
-!!$           else
-!!$              temp79a = sqrt((nt79(:,OP_1)/(pefac*pet79(:,OP_1)))**3)
-!!$           endif
-!!$        else
-!!$           if(numvar.ge.3) then         
-!!$              if(idens.eq.0) then
-!!$                 temp79a = sqrt((1./(pefac*pet79(:,OP_1)))**3)
-!!$              else
-!!$                 temp79a = sqrt((nt79(:,OP_1)/(pefac*pet79(:,OP_1)))**3)
-!!$              endif
-!!$           else
-!!$              if(idens.eq.0) then
-!!$                 temp79a = sqrt((1./(p0-pi0))**3)
-!!$              else
-!!$                 temp79a = sqrt((nt79(:,OP_1)/(p0-pi0))**3)
-!!$              endif
-!!$           endif
-!!$        endif
-!!$     endif
-!!$        
-!!$     do i=1,18
-!!$        ione = isval1(itri,i)       
-!!$        
-!!$        resistivity(ione) = resistivity(ione) &
-!!$             + etar*int1(g79(:,OP_1,i),weight_79,79) &
-!!$             + eta0*int2(g79(:,OP_1,i),temp79a, weight_79,79)
-!!$     end do
-!!$  enddo
-!!$
-!!$  ! solve linear equation
-!!$  call solve_newvar(resistivity, NV_NOBOUND)
-!!$end subroutine newvar_eta
 
 
 ! solve_newvar
