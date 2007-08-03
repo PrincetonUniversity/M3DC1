@@ -196,7 +196,8 @@ subroutine gradshafranov_solve
   real, dimension(6) :: pp
   real, dimension(5) :: temp1, temp2
   real :: alx, alz
-
+  integer :: izone, izonedim, itop, ileft, ibottom, iright
+  
   double precision :: coords(3)
    
   real :: tstart, tend
@@ -236,7 +237,7 @@ subroutine gradshafranov_solve
           atri(itri), btri(itri), ctri(itri),                          &
           si_79, eta_79, weight_79)
 
-     call calcr(itri, si_79, eta_79, 79, r_79)
+     call calcpos(itri, si_79, eta_79, 79, r_79, z_79)
      ri_79 = 1./r_79
 
      do i=1,18
@@ -514,12 +515,13 @@ subroutine gradshafranov_solve
      gamma2 = -2.*xmag*(xmag*p0*p1 + (2.*g0/(xmag**2*q0*dpsii)))
      gamma3 = -(xmag*djdpsi/dpsii + 2.*xmag**2*p0*p2)
 
-!!$     gamma2 = gamma2 / 2.
-!!$     gamma3 = gamma3 / 2.
-!!$     
+     gamma2 = gamma2 / 2.
+     gamma3 = gamma3 / 2.
+
+
 !!$     ! Nate:
-!!$        gamma2 =  - xmag*(xmag*p0*p1 + 2.*g0*(psilim-psimin)/(xmag**2*q0))
-!!$        gamma3 =  - (djdpsi*(psilim-psimin)/2. + p0*p2)
+!!$     gamma2 =  - xmag*(xmag*p0*p1 + 2.*g0*(psilim-psimin)/(xmag**2*q0))
+!!$     gamma3 =  - (djdpsi*(psilim-psimin)/2. + p0*p2)
      
         gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
      endif
@@ -556,7 +558,7 @@ subroutine gradshafranov_solve
 
   end do ! on itnum
 
-
+  call getmodeltags(ibottom, iright, itop, ileft)
 
   ! populate phi0 array
   ! ~~~~~~~~~~~~~~~~~~~
@@ -573,12 +575,50 @@ subroutine gradshafranov_solve
      temp(ibegin) = (psi(ibegin) - psimin)*dpsii
      temp(ibegin+1:ibegin+5) = psi(ibegin+1:ibegin+5)*dpsii
 
+     call zonenod(i,izone,izonedim)
+
      call calc_pressure(temp(ibegin:ibegin+5),pp)
+
+     ! enforce boundary conditions
+     if(izonedim.eq.1) then
+        if((izone.eq.itop) .or. (izone.eq.ibottom)) then
+           pp(1) = pedge
+           pp(2) = 0.
+           pp(4) = 0.
+        else if((izone.eq.ileft) .or. (izone.eq.iright)) then
+           pp(1) = pedge
+           pp(3) = 0.
+           pp(6) = 0.
+        endif
+     else if(izonedim.eq.0) then
+        pp(1) = pedge
+        pp(2:6) = 0.
+     endif
 
 !    I = sqrt(g0**2 + gamma_i*G_i)
      if(numvar.ge.2) then
         call calc_toroidal_field(temp(ibegin:ibegin+5), &
              phi0(ibeginn+6:ibeginn+11))
+
+        ! enforce boundary conditions
+        if(izonedim.eq.1) then
+           if((izone.eq.itop) .or. (izone.eq.ibottom)) then
+              phi0(ibeginn+6) = g0
+              phi0(ibeginn+7) = 0.
+              phi0(ibeginn+8) = 0.
+              phi0(ibeginn+9) = 0.
+              phi0(ibeginn+10) = 0.
+           else if((izone.eq.ileft) .or. (izone.eq.iright)) then
+              phi0(ibeginn+6) = g0
+              phi0(ibeginn+7) = 0.
+              phi0(ibeginn+8) = 0.
+              phi0(ibeginn+10) = 0.
+              phi0(ibeginn+11) = 0.
+           endif
+        else if(izonedim.eq.0) then
+           phi0(ibeginn+6) = g0
+           phi0(ibeginn+7:ibeginn+11) = 0.
+        endif
      endif
     
      if(numvar.ge.3) then
@@ -603,10 +643,10 @@ subroutine gradshafranov_solve
         den0(ibegin1+2) = pp(1)**(expn-1.)*pp(3)*expn
         den0(ibegin1+3) = pp(1)**(expn-1.)*pp(4)*expn &
              + pp(1)**(expn-2.)*pp(2)**2.*expn*(expn-1.)
-        den0(ibegin1+4) = pp(1)**(expn-1.)*pp(1+4)*expn & 
+        den0(ibegin1+4) = pp(1)**(expn-1.)*pp(5)*expn & 
              + pp(1)**(expn-2.)*pp(2)*pp(3)&
              * expn*(expn-1.)
-        den0(ibegin1+5) = pp(1)**(expn-1.)*pp(1+5)*expn &
+        den0(ibegin1+5) = pp(1)**(expn-1.)*pp(6)*expn &
              + pp(1)**(expn-2.)*pp(3)**2.*expn*(expn-1.)
      endif
 

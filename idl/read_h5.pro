@@ -797,6 +797,18 @@ pro plot_field, name, time, points=p, filename=filename, mesh=plotmesh, $
    endif
 end
 
+pro plot_field_mpeg, fieldname, mpegame=mpegname, range=range, points=pts, $
+                     _EXTRA=ex
+    if(n_elements(mpegname) eq 0) then mpegname = fieldname + '.mpeg'
+    if(n_elements(pts) eq 0) then pts = 50
+
+    nt = get_parameters("ntime")
+
+    data = read_field(fieldname, mesh=mesh, r=x, z=y, points=pts)
+
+    contour_and_legend_mpeg, mpegname, data, x, y, _EXTRA=ex
+end
+
 pro compare, file1, file2, time, names=names
 
    if(n_elements(names) eq 0) then begin
@@ -856,257 +868,224 @@ function energy_kin, filename=filename
    return, E_K
 end
 
-function energy, filename=filename, error=error
-   if(n_elements(filename) eq 0) then filename='C1.h5'
 
-   nv = read_parameter("numvar", filename=filename)
-   s = read_scalars(filename=filename)
-
-   N = n_elements(s.time._data)
-
-   E_K = s.E_KP._data
-   E_M = s.E_MP._data
-   E_D = s.E_KPD._data + s.E_MPD._data
-   E_H = s.E_KPH._data + s.E_MPH._data
-   if(nv ge 2) then begin
-       E_K = E_K + s.E_KT._data 
-       E_M = E_M + s.E_MT._data
-       E_D = E_D + s.E_KTD._data + s.E_MTD._data
-       E_H = E_H + s.E_KTH._data + s.E_MTH._data
-   endif
-   if(nv ge 3) then begin
-       E_K = E_K + s.E_K3._data
-       E_M = E_M + s.E_P._data
-       E_D = E_D + s.E_K3D._data + s.E_PD._data
-       E_H = E_H + s.E_K3H._data + s.E_PH._data
-   endif
-
-   E = E_K + E_M
-
-;  Account for energy terms not included in the physical model
-   if(nv le 2) then begin
-       dissipated = E_D + E_H
-   endif else begin
-       dissipated = 0.
-   endelse
-
-   ; Account for fluxes across boundary
-   dissipated = dissipated    $
-     + s.Flux_diffusive._data $
-     + s.Flux_pressure._data  $
-     + s.Flux_kinetic._data   $
-     + s.Flux_poynting._data / (2.*3.14159)  $
-     + s.Flux_thermal._data
-
-   eloop = s.loop_voltage._data * s.toroidal_current._data / (2.*3.14159265)
-   dissipated = dissipated - eloop
-
-   Error = E - E[0]
-   total_lost = fltarr(n_elements(Error))
-   total_lost[0] = 0.
-   for i=1, n_elements(Error)-1 do begin
-       dt = s.time._data[i]-s.time._data[i-1]
-       total_lost[i] = total_lost[i-1] + $
-         dt*(dissipated[i-1] + dissipated[i])/2.
-   endfor
-
-   Error = Error - total_lost
-
-   return, E
-end
-
-
-pro plot_fluxes, filename=filename, ylog=ylog, overplot=overplot, _EXTRA=extra
-
-   s = read_scalars(filename=filename)
-   eloop = -s.loop_voltage._data * s.toroidal_current._data / (2.*3.14159265)
-
-   yrange=[min([s.Flux_diffusive._data,s.Flux_pressure._data, $
-                s.Flux_kinetic._data,  s.Flux_poynting._data, $
-                s.Flux_thermal._data, eloop]), $
-           max([s.Flux_diffusive._data,s.Flux_pressure._data, $
-                s.Flux_kinetic._data,  s.Flux_poynting._data, $
-                s.Flux_thermal._data, eloop])]*1.2
-
-   tot = eloop + s.Flux_diffusive._data + $
-     s.Flux_kinetic._data + s.Flux_pressure._data + $
-     0.*s.Flux_poynting._data + s.Flux_thermal._data
-
-   title  = '!6Power Density Fluxes!3'
-   xtitle = '!8t !6(!7s!D!8A!N!6)!3'
-   ytitle = '!6Power Density Flux (!8B!D0!U2!N/4!7p s!D!8A!N L!U2!N)!3'
-
-   if(keyword_set(overplot)) then begin
-       oplot,  s.time._data, eloop, color=color(0,7), $
-         _EXTRA=extra
-   endif else begin
-       plot,  s.time._data, eloop, color=color(0,7), $
-         ylog=ylog, xlog=xlog, yrange=yrange, xtitle=xtitle, ytitle=ytitle, $
-         _EXTRA=extra, title=title
-   endelse
-   oplot, s.time._data, s.Flux_diffusive._data, color=color(1,7)
-   oplot, s.time._data, s.Flux_kinetic._data, color=color(2,7)
-   oplot, s.time._data, s.Flux_pressure._data, color=color(3,7)
-   oplot, s.time._data, s.Flux_poynting._data, color=color(4,7)
-   oplot, s.time._data, s.Flux_thermal._data, color=color(5,7)
-   oplot, s.time._data, tot, color=color(6,7)
-
-   plot_legend, ['Inductive drive', 'Diffusive', 'KE Conv', $
-                 'Pressure Conv.', 'Poynting', 'Thermal', 'Total'], $
-     color=colors(7), ylog=ylog, xlog=xlog
-end
-
-
-pro plot_energy, filename=filename, diff=diff, norm=norm, ylog=ylog, $
-                 _EXTRA=extra
+;==============================================================
+; energy_dissipated
+; ~~~~~~~~~~~~~~~~~
+;
+; Returns a time series of the rate of energy dissipation in a
+; non-conservative system
+; 
+; Optional outputs:
+;  t: the time array
+;  names: the name of each energy component
+;  components: an array of time series of each energy component
+;==============================================================
+function energy_dissipated, filename=filename, components=comp, names=names, $
+                            t=t
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
    nv = read_parameter("numvar", filename=filename)
-
    s = read_scalars(filename=filename)
+   if(n_tags(s) eq 0) then return, 0
 
-   xtitle = '!8t !6(!7s!D!8A!N!6)!3'
+   t = s.time._data
+   comp = fltarr(nv*2,n_elements(t))
 
-   N = n_elements(s.time._data)
+   names = ['Solenoidal Viscous', 'Solenoidal Ohmic']
 
-   E_K = s.E_KP._data
-   E_M = s.E_MP._data
-   E_D = s.E_KPD._data + s.E_MPD._data
-   E_H = s.E_KPH._data + s.E_MPH._data
+   comp[0,*] = s.E_KPD._data + s.E_KPH._data
+   comp[1,*] = s.E_MPD._data + s.E_MPH._data
    if(nv ge 2) then begin
-       E_K = E_K + s.E_KT._data 
-       E_M = E_M + s.E_MT._data
-       E_D = E_D + s.E_KTD._data + s.E_MTD._data
-       E_H = E_H + s.E_KTH._data + s.E_MTH._data
+       names = [names, ['Toroidal Viscous', 'Toroidal Ohmic']]
+       comp[2,*] = s.E_KTD._data + s.E_KTH._data
+       comp[3,*] = s.E_MTD._data + s.E_MTH._data
    endif
    if(nv ge 3) then begin
-       E_K = E_K + s.E_K3._data
-       E_M = E_M + s.E_P._data
-       E_D = E_D + s.E_K3D._data + s.E_PD._data
-       E_H = E_H + s.E_K3H._data + s.E_PH._data
+       names = [names, ['Compressional Viscous', 'Thermal Dissipation']]
+       comp[4,*] = s.E_K3D._data + s.E_K3H._data
+       comp[5,*] = s.E_PD._data + s.E_PH._data
    endif
 
-   E = E_K + E_M
+   comp = -comp
 
-;  Account for energy terms not included in the physical model
-   if(nv le 2) then begin
-       dissipated = E_D + E_H
+   if(nv ge 3) then begin
+       return, replicate(0., n_elements(t))
    endif else begin
-       dissipated = 0.
+       return, total(comp,1)
+   endelse
+end
+
+
+;==============================================================
+; energy_flux
+; ~~~~~~~~~~~
+;
+; Returns a time series of the total rate of energy lost 
+; through the simulation domain boundary.
+; 
+; Optional outputs:
+;  t: the time array
+;  names: the name of each flux component
+;  components: an array of time series of each flux component
+;==============================================================
+function energy_flux, filename=filename, components=comp, names=names, t=t
+   s = read_scalars(filename=filename)
+   if(n_tags(s) eq 0) then return, 0
+
+   t = s.time._data
+
+   names = ['Diffusive', 'Pressure', 'Kinetic', 'Poynting', 'Thermal']
+  
+   comp = fltarr(n_elements(names), n_elements(t))
+   comp[0,*] = s.Flux_diffusive._data
+   comp[1,*] = s.Flux_pressure._data
+   comp[2,*] = s.Flux_kinetic._data
+;   comp[3,*] = s.Flux_poynting._data
+   comp[3,*] = -s.toroidal_current._data*s.loop_voltage._data/(2.*3.14159)
+   comp[4,*] = s.Flux_thermal._data
+
+   return, total(comp, 1)
+end
+
+
+;==============================================================
+; energy
+; ~~~~~~~~~~~
+;
+; Returns a time series of the total energy within the
+; simulation domain
+; 
+; Optional outputs:
+;  t: the time array
+;  names: the name of each energy component
+;  components: an array of time series of each energy component
+;==============================================================
+function energy, filename=filename, components=comp, names=names, t=t
+
+   if(n_elements(filename) eq 0) then filename='C1.h5'
+
+   nv = read_parameter("numvar", filename=filename)
+   s = read_scalars(filename=filename)
+   if(n_tags(s) eq 0) then return, 0
+
+   t = s.time._data
+   comp = fltarr(nv*2,n_elements(t))
+
+   names = ['Solenoidal KE', 'Solenoidal ME']
+
+   comp[0,*] = s.E_KP._data
+   comp[1,*] = s.E_MP._data
+   if(nv ge 2) then begin
+       names = [names, ['Toroidal KE', 'Toroidal ME']]
+       comp[2,*] = s.E_KT._data 
+       comp[3,*] = s.E_MT._data
+   endif
+   if(nv ge 3) then begin
+       names = [names, ['Compressional KE', 'Thermal Pressure']]
+       comp[4,*] = s.E_K3._data
+       comp[5,*] = s.E_P._data
+   endif
+
+   return, total(comp, 1)
+end
+
+
+;==============================================================
+; energy_error
+; ~~~~~~~~~~~~
+;
+; Returns a time series of the total rate of energy lost 
+; through the simulation domain boundary.
+; 
+; Optional outputs:
+;  t: the time array
+;  names: the name of each flux component
+;  components: an array of time series of each flux component
+;==============================================================
+function energy_error, filename=filename, components=comp, names=names, t=t
+   s = read_scalars(filename=filename)
+
+   if(n_tags(s) eq 0) then return, 0
+
+   t = s.time._data
+
+   names = ['dE/dt', 'Div(S)', 'Dissipated']
+   
+   if(n_elements(t) le 2) then begin
+       print, "Not enough data points."
+       return, 0
+   endif
+
+   comp = fltarr(n_elements(names), n_elements(t))
+   comp[0,*] = deriv(t, energy(filename=filename))
+   comp[1,*] = -energy_flux(filename=filename)
+   comp[2,*] = energy_dissipated(filename=filename)
+
+   return, total(comp, 1)
+end
+
+
+;============================================
+; plot_energy
+;============================================
+pro plot_energy, name, filename=filename, yrange=yrange, norm=norm, $
+                 overplot=overplot, _EXTRA=extra
+
+   if(n_elements(name) eq 0) then name = 'energy'
+
+   if(strcmp(name, 'error', /fold_case) eq 1) then begin
+       tot = energy_error(filename=filename, comp=comp, names=names, t=t)
+       title  = '!6Error!3'
+       xtitle = '!8t !6(!7s!D!8A!N!6)!3'
+       ytitle = '!6Power (!8B!D!60!U2!N!8L!U!63!N/4!7ps!D!8A!N!6)!3'
+   endif else if(strcmp(name, 'flux', /fold_case) eq 1) then begin
+       tot = energy_flux(filename=filename, comp=comp, names=names, t=t)
+       title  = '!6Energy Flux!3'
+       xtitle = '!8t !6(!7s!D!8A!N!6)!3'
+       ytitle = '!6Power (!8B!D!60!U2!N!8L!U!63!N/4!7ps!D!8A!N!6)!3'
+   endif else if(strcmp(name, 'dissipated', /fold_case) eq 1) then begin
+       tot = energy_dissipated(filename=filename, comp=comp, names=names, t=t)
+       title  = '!6Dissipated Power!3'
+       xtitle = '!8t !6(!7s!D!8A!N!6)!3'
+       ytitle = '!6Power (!8B!D!60!U2!N!8L!U!63!N/4!7ps!D!8A!N!6)!3'
+   endif else begin
+       tot = energy(filename=filename, comp=comp, names=names, t=t)   
+       title  = '!6Internal Energy!3'
+       xtitle = '!8t !6(!7s!D!8A!N!6)!3'
+       ytitle = '!6Energy (!8B!D!60!U2!N!8L!U!63!N/4!7p!6)!3'
    endelse
 
-   ; Account for fluxes across boundary
-   dissipated = dissipated    $
-     + s.Flux_diffusive._data $
-     + s.Flux_pressure._data $
-     + s.Flux_kinetic._data  $
-     + 0.*s.Flux_poynting._data  $
-     + s.Flux_thermal._data
+   if(n_elements(tot) le 2) then return
 
-   ; account for loop voltage
-   eloop = s.loop_voltage._data * s.toroidal_current._data / (2.*3.14159265)
-   dissipated = dissipated - eloop
-
-   Error = E - E[0]
-   total_lost = fltarr(n_elements(Error))
-   total_lost[0] = 0.
-   for i=1, n_elements(Error)-1 do begin
-       dt = s.time._data[i]-s.time._data[i-1]
-       total_lost[i] = total_lost[i-1]  $
-         + dt*(dissipated[i-1] + dissipated[i])/2.
-   endfor
-
-   Error = Error - total_lost
-
-   print, Error / E
-   print, deriv(s.time._data, Error)
+   n = n_elements(names)
 
    if(keyword_set(norm)) then begin
-       E = E - E[0]
-       E_K = E_K - E_K[0]
-       E_M = E_M - E_M[0]
-       E_D = E_D - E_D[0]
-       E_H = E_H - E_H[0]
-       s.E_KP._data = s.E_KP._data - s.E_KP._data[0]
-       s.E_KT._data = s.E_KT._data - s.E_KT._data[0]
-       s.E_K3._data = s.E_K3._data - s.E_K3._data[0]
-       s.E_MP._data = s.E_MP._data - s.E_MP._data[0]
-       s.E_MT._data = s.E_MT._data - s.E_MT._data[0]
-       s.E_P._data  = s.E_P._data  - s.E_P._data[0]
-   endif 
-
-   if(keyword_set(diff)) then begin
-       E = deriv(s.time._data,E)
-       E_K = deriv(s.time._data, E_K)
-       E_M = deriv(s.time._data, E_M)
-       ytitle = '!6d!8E!6/d!8t!3'
-   endif else begin
-       ytitle = '!6 Energy!3'
-   endelse
-
-   if(nv le 2) then begin
-       yrange=[min([E,E_K,E_M,-E_D,-E_H,Error]), $
-                 max([E,E_K,E_M,-E_D,-E_H,Error])]
-   endif else begin
-       yrange=[min([E,s.E_KP._data,s.E_KT._data,s.E_K3._data, $
-                      s.E_MP._data,s.E_MT._data,s.E_P._data,Error]), $
-                 max([E,s.E_KP._data,s.E_KT._data,s.E_K3._data, $
-                      s.E_MP._data,s.E_MT._data,s.E_P._data,Error])]       
-   endelse
-   if(keyword_set(ylog) and (yrange[0] lt 0)) then $
-     yrange[0] = yrange[1]*1e-8
-   if(keyword_set(ylog)) then begin
-       yrange[1] = yrange[1]*10.
-       Error = abs(Error)
+       tot = tot - tot[0]
+       for i=0, n-1 do begin
+           comp[i,*] = comp[i,*] - comp[i,0]
+       endfor
    endif
-   
 
-   if(nv le 2) then begin
-       plot, s.time._data, E, ylog=ylog, color=color(0,6), $
-         xtitle=xtitle, ytitle=ytitle, yrange=yrange, _EXTRA=extra
-       oplot, s.time._data, E_K, color=color(1,6), linestyle = 2
-       oplot, s.time._data, E_M, color=color(2,6), linestyle = 2
-       oplot, s.time._data, -E_D, color=color(3,6), linestyle = 1
-       oplot, s.time._data, -E_H, color=color(4,6), linestyle = 1
-       oplot, s.time._data, Error, color=color(5,6), linestyle = 3
+   if(n_elements(yrange) eq 0) then begin
+       yrange = [min([tot, min(comp)]), max([tot, max(comp)])]*1.2
+   endif
 
-       plot_legend, ['Total', 'Kinetic', 'Magnetic', $
-                     'Diffusive', 'Hyper-Diffusive', '|Error|'] , $
-         color=colors(6), ylog=ylog, $
-         linestyle = [0,2,2,1,1,3]
+   if(keyword_set(overplot)) then begin
+       oplot, t, tot, color=color(0,n+1), _EXTRA=extra
    endif else begin
-       plot, s.time._data, E, ylog=ylog, color=color(0,8), $
-         xtitle=xtitle, ytitle=ytitle, yrange=yrange, _EXTRA=extra
-       oplot, s.time._data, s.E_KP._data, color=color(1,8), linestyle = 2
-       oplot, s.time._data, s.E_KT._data, color=color(2,8), linestyle = 2
-       oplot, s.time._data, s.E_K3._data, color=color(3,8), linestyle = 2
-       oplot, s.time._data, s.E_MP._data, color=color(4,8), linestyle = 1
-       oplot, s.time._data, s.E_MT._data, color=color(5,8), linestyle = 1
-       oplot, s.time._data, s.E_P._data,  color=color(6,8), linestyle = 1
-       oplot, s.time._data, Error, color=color(7,8), linestyle = 3
-
-       plot_legend, ['Total', $
-                     'KE: Solenoidal', 'KE: Toroidal', 'KE: Compressional', $
-                     'ME: Poloidal', 'ME: Toroidal', 'Pressure', $
-                     '|Error|'] , $
-         color=colors(8), ylog=ylog, $
-         linestyle = [0,2,2,2,1,1,1,3]
+       plot, t, tot, color=color(0,n+1), xtitle=xtitle, ytitle=ytitle, $
+         title=title, yrange=yrange, _EXTRA=extra
    endelse
+
+   for i=0, n-1 do begin
+       oplot, t, comp[i,*], color=color(i+1,n+1), _EXTRA=extra
+   end
+
+   plot_legend, ['Total', names], color=colors(n+1), _EXTRA=extra
 end
 
-
-pro plot_field_mpeg, fieldname, mpegame=mpegname, range=range, points=pts, $
-                     _EXTRA=ex
-    if(n_elements(mpegname) eq 0) then mpegname = fieldname + '.mpeg'
-    if(n_elements(pts) eq 0) then pts = 50
-
-    nt = get_parameters("ntime")
-
-    data = read_field(fieldname, mesh=mesh, r=x, z=y, points=pts)
-
-    contour_and_legend_mpeg, mpegname, data, x, y, _EXTRA=ex
-end
 
 
 ; ==============================================================
@@ -1550,7 +1529,7 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
     (strcmp("n", scalarname, /fold_case) eq 1) then begin
       data = s.electron_number._data
       title = '!6Particle number!3'
-      ytitle = '!8N !6(!8n!D0!N / L!U3!N!6)!3'
+      ytitle = '!6N !6(!8n!D!60!N!8L!U!62!N!6)!3'
   endif else if $
     (strcmp("angular momentum", scalarname, /fold_case) eq 1) then begin
       data = s.angular_momentum._data
@@ -1562,6 +1541,11 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
 ;      data = s.vorticity._data
       title = '!6Circulation!3'
       ytitle = '!9I!S!7x!R!A!6_!D!9P!N !8dA !6(!8v!D!8A!NL!6)!3'
+  endif else if (strcmp("number", scalarname, /fold_case) eq 1) or $
+    (strcmp("n", scalarname, /fold_case) eq 1) then begin
+      data = s.electron_number._data
+      title = '!6Number!3'
+      ytitle = '!6N !6(!8n!D!60!N!8L!U!62!N!6)!3'
   endif else begin
       print, 'Scalar ', scalarname, ' not recognized.'
       return

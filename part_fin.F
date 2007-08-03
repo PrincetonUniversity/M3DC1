@@ -92,6 +92,7 @@ c     created with ordering specified by numvar
       call createvec(qn4, 1)
       call createvec(resistivity, 1)
       call createvec(kappa, 1)
+      call createvec(sigma, 1)
       call createvec(tempvar,1)
 !
 !.....arrays associated with the triangles

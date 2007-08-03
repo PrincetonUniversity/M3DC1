@@ -750,6 +750,14 @@ subroutine output_fields(time_group_id, error)
      end do
      call output_field(group_id, "den", dum, 20, nelms, error)
      nfields = nfields + 1
+
+     if(ipellet.eq.1) then
+        do i=1, nelms
+           call calcavector(i, sigma, 1, 1, dum(:,i))
+        end do
+        call output_field(group_id, "sigma", dum, 20, nelms, error)
+        nfields = nfields + 1
+     endif
   endif
 
   call write_int_attr(group_id, "nfields", nfields, error)

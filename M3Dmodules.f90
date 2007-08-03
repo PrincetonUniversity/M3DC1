@@ -36,9 +36,17 @@ module basic
   real :: gravr,gravz ! gravitational acceleration
   real :: vloop       ! loop voltage
 
+  ! boundary conditions
   integer :: v_bc     ! bc on angular momentum.  0 = no-slip, 1 = no normal stress
   integer :: p_bc     ! bc on pressure.   0 = constant pressure, 1 = insulating
-  integer :: com_bc   ! 1 = forces laplacian(chi) = 0 on boundary
+  integer :: com_bc   ! 1 = forces div(V) = 0 on boundary
+
+  ! density sources
+  integer :: ipellet  ! 1 = include pellet injection density source
+  real :: pellet_x    ! x coordinate of pellet injection
+  real :: pellet_z    ! z coordinate of pellet injection
+  real :: pellet_rate ! amplitude of pellet density source
+  real :: pellet_var  ! spatial dispersion of density source 
 
   ! general equilibrium parameters
   integer :: irestart ! 1 = reads restart file as initial condition
@@ -58,7 +66,8 @@ module basic
   real :: xmag, zmag  ! position of magnetic axis
   real :: xlim, zlim  ! position of limiter
   real :: xdiv, zdiv  ! position of divertor
-  real :: tcuro       ! toroidal current
+  real :: tcur        ! target toroidal current
+  real :: tcuro       ! initial toroidal current
   real :: divcur      ! current in divertor (as fraction of tcuro)
   real :: djdpsi
   real :: p1, p2, pedge
@@ -115,7 +124,8 @@ module basic
        iconstflux,regular,deex,gyro,vloop,eta0,pedge,          &
        integrator,expn,divertors,xdiv,zdiv,divcur,             &
        control_p,control_i,control_d,idevice,igs,kappa0,       &
-       v_bc,p_bc,com_bc,thimp_ohm
+       v_bc,p_bc,com_bc,thimp_ohm,tcur,                        &
+       ipellet, pellet_x, pellet_z, pellet_rate, pellet_var
 
   !     derived quantities
   real :: pi,                                                          &
@@ -171,7 +181,7 @@ module arrays
        r4(:),q4(:),qn4(:),qp4(:),                                 &
        b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
        b5vector(:), vtemp(:), resistivity(:), tempvar(:),         &
-       kappa(:)
+       kappa(:),sigma(:)
 
   contains
 !================================

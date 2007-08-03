@@ -1,3 +1,9 @@
+!=======================================================
+! boundary_vel
+! ~~~~~~~~~~~~
+!
+! sets boundary conditions for velocity fields
+!=======================================================
 subroutine boundary_vel(imatrix, rhs)
   use basic
   use arrays
@@ -92,7 +98,7 @@ subroutine boundary_vel(imatrix, rhs)
         rhs(irow) = 0.
 
         if(numvar.ge.3) then
-           ! no compression (not in structured version)
+           ! no compression
            if(com_bc.eq.1) then
               call boundary_laplacian(imatrix, ibegin+12, normal, x, irow)
               rhs(irow) = 0.
@@ -135,6 +141,13 @@ subroutine boundary_vel(imatrix, rhs)
 end subroutine boundary_vel
 
 
+!=======================================================
+! boundary_mag
+! ~~~~~~~~~~~~
+!
+! sets boundary conditions for magnetic fields
+! and electron pressure 
+!=======================================================
 subroutine boundary_mag(imatrix, rhs)
   use basic
   use arrays
@@ -165,20 +178,21 @@ subroutine boundary_mag(imatrix, rhs)
      z = coords(2) + zzero
 
      ! skip interior points
-     if(izonedim.ge.2) then
-        ! limiter
-        if(numvar.ge.3 .and. itor.eq.1 .and. &
-             ((xlim.lt.xmag .and. x.lt.xlim) .or. &
-             (xlim.gt.xmag .and. x.gt.xlim))) then
-           temp = phis(ibegin+12:ibegin+17)
-           if(integrator.eq.1 .and. ntime.gt.1) then
-              temp = 1.5*temp + 0.5*phiold(ibegin+12:ibegin+17)
-           endif
-           call boundary_clamp(imatrix, ibegin+12, normal, rhs, temp)
-        else
-           cycle
-        endif
-     endif
+     if(izonedim.ge.2) cycle
+!!$     if(izonedim.ge.2) then
+!!$        ! limiter
+!!$        if(numvar.ge.3 .and. itor.eq.1 .and. &
+!!$             ((xlim.lt.xmag .and. x.lt.xlim) .or. &
+!!$             (xlim.gt.xmag .and. x.gt.xlim))) then
+!!$           temp = phis(ibegin+12:ibegin+17)
+!!$           if(integrator.eq.1 .and. ntime.gt.1) then
+!!$              temp = 1.5*temp + 0.5*phiold(ibegin+12:ibegin+17)
+!!$           endif
+!!$           call boundary_clamp(imatrix, ibegin+12, normal, rhs, temp)
+!!$        else
+!!$           cycle
+!!$        endif
+!!$     endif
 
      ! for periodic bc's
      ! skip if on a periodic boundary
@@ -319,7 +333,12 @@ subroutine boundary_mag(imatrix, rhs)
 end subroutine boundary_mag
 
 
-
+!=======================================================
+! boundary_den
+! ~~~~~~~~~~~~
+!
+! sets boundary conditions for density
+!=======================================================
 subroutine boundary_den(imatrix, rhs)
   use basic
   use arrays
@@ -396,7 +415,12 @@ subroutine boundary_den(imatrix, rhs)
 end subroutine boundary_den
 
 
-
+!=======================================================
+! boundary_pres
+! ~~~~~~~~~~~~~
+!
+! sets boundary conditions for total pressure
+!=======================================================
 subroutine boundary_pres(imatrix, rhs)
   use basic
   use arrays
@@ -473,6 +497,12 @@ subroutine boundary_pres(imatrix, rhs)
 end subroutine boundary_pres
 
 
+!=======================================================
+! boundary_dc
+! ~~~~~~~~~~~
+!
+! sets homogeneous dirichlet boundary condition
+!=======================================================
 subroutine boundary_dc(imatrix, rhs)
   use basic
   use arrays
@@ -545,7 +575,12 @@ subroutine boundary_dc(imatrix, rhs)
 
 end subroutine boundary_dc
 
-
+!=======================================================
+! boundary_gs
+! ~~~~~~~~~~~
+!
+! sets boundary conditions on psi in the GS solver
+!=======================================================
 subroutine boundary_gs(imatrix, rhs)
   use basic
   use arrays
@@ -628,6 +663,13 @@ subroutine boundary_gs(imatrix, rhs)
 end subroutine boundary_gs
 
 
+!=======================================================
+! boundary_vor
+! ~~~~~~~~~~~~
+!
+! sets boundary conditions on Delta*(phi) 
+! in the smoother
+!=======================================================
 subroutine boundary_vor(imatrix, rhs)
   use basic
   use arrays
@@ -714,7 +756,12 @@ subroutine boundary_vor(imatrix, rhs)
 
 end subroutine boundary_vor
 
-
+!=======================================================
+! boundary_com
+! ~~~~~~~~~~~~
+!
+! sets boundary conditions on Del^2(chi) in the smoother
+!=======================================================
 subroutine boundary_com(imatrix, rhs)
   use basic
   use arrays
@@ -786,10 +833,12 @@ subroutine boundary_com(imatrix, rhs)
         if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
         rhs(ibegin+10) = 0.
 
-        ! no compression (not in structured version)
+        ! no compression
         if(numvar.ge.3) then
-           call boundary_laplacian(imatrix, ibegin+6, normal, x, irow)
-           rhs(irow) = 0.
+           if(com_bc.eq.1) then
+              call boundary_laplacian(imatrix, ibegin+6, normal, x, irow)
+              rhs(irow) = 0.
+           endif
         endif
 
      ! corners
