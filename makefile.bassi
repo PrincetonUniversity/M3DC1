@@ -12,7 +12,7 @@ PP     = xlc_r -E
 F90    = mpxlf90_r -c
 F77    = mpxlf_r -c
 CC     = mpcc_r -c
-QEXTNAME = -qextname=numdofs,sludexit,sludinit,ap_init,loadmesh,numnod,numfac,getmincoord2,getmaxcoord2,usesearchstructure,nodfac,xyznod,createdofnumbering,zonenod,checkveccreated,deleteppplvec,createppplvec,entdofs,sumshareddofs,numprocdofs,cogfac,zeroarray4solve,insertval,getmodeltags,setdiribc,finalizearray4solve,solve,zeroarray4multiply,finalizearray4multiply,matrixvectormult,freesmo,deletesearchstructure,clearscorecdata,printfpointer,checksamevec,updateids,deletedofnumbering
+QEXTNAME = -qextname=numdofs,sludexit,sludinit,ap_init,loadmesh,numnod,numfac,getmincoord2,getmaxcoord2,usesearchstructure,nodfac,xyznod,createdofnumbering,zonenod,checkveccreated,deleteppplvec,createppplvec,entdofs,sumshareddofs,numprocdofs,cogfac,zeroarray4solve,insertval,getmodeltags,setdiribc,finalizearray4solve,solve,zeroarray4multiply,finalizearray4multiply,matrixvectormult,freesmo,deletesearchstructure,clearscorecdata,printfpointer,checksamevec,updateids,deletedofnumbering,setgeneralbc
 #,gpl,gqacwk,gclrwk,gqclip,gsclip,gtx
 PPOPTS = -Dmpi -DNEW_VELOCITY
 F90OPTS = -qautodbl=dbl4 -qsave $(QEXTNAME) -qstrict -O3 $(INCLUDE)  
@@ -29,7 +29,7 @@ NEWOBJS1 = M3Dmodules.o nintegrate_mod.o metricterms_n.o metricterms_new.o \
 
 NEWOBJS2 = fin.o part_fin.o ludef_t.o \
            part_fin3.o boundary.o unknown.o restart.o \
-           acbauer.o metricterms.o errorcalc.o compare.o \
+           acbauer.o metricterms.o compare.o \
            init_conds.o  output.o  
 
 SCORECDIR = /project/projectdirs/mp288/acbauer/develop/
