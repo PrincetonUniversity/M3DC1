@@ -408,7 +408,7 @@ Program Reducedquintic
 ! below is for mesh adaptation
 !  tolerance = .00005 
 !  if(maxrank .eq. 1) then
-!     call integratedadapt(vel, 2, tolerance)
+!     call integratedadapt(vel, 2, tolerance, ntime)
 !  endif
   ratemin = 0.
   ratemax = 0.

@@ -181,7 +181,7 @@ module arrays
        r4(:),q4(:),qn4(:),qp4(:),                                 &
        b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
        b5vector(:), vtemp(:), resistivity(:), tempvar(:),         &
-       kappa(:),sigma(:)
+       kappa(:), tempcompare(:), sigma(:)
 
   contains
 !================================
@@ -562,6 +562,32 @@ module arrays
          return
       endif
 
+      call checksamevec(kappa, vec, i)
+      if(i .eq. 1) then
+         if(allocated(kappa)) deallocate(kappa, STAT=i)
+         allocate(kappa(ivecsize))
+         tempvar = 0.
+         call updateids(vec, kappa)
+         return
+      endif
+
+      call checksamevec(tempcompare, vec, i)
+      if(i .eq. 1) then
+         if(allocated(tempcompare)) deallocate(tempcompare, STAT=i)
+         allocate(tempcompare(ivecsize))
+         tempvar = 0.
+         call updateids(vec, tempcompare)
+         return
+      endif
+
+      call checksamevec(sigma, vec, i)
+      if(i .eq. 1) then
+         if(allocated(sigma)) deallocate(sigma, STAT=i)
+         allocate(sigma(ivecsize))
+         tempvar = 0.
+         call updateids(vec, sigma)
+         return
+      endif
     end subroutine arrayresizevec
 end module arrays
 
