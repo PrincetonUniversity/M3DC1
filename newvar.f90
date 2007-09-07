@@ -34,7 +34,7 @@ subroutine create_newvar_matrix(matrix, ibound)
   call numfac(numelms)
 
   ! populate matrix
-  call zeroarray4solve(matrix, numvar1_numbering)
+  call zerosuperluarray(matrix, numvar1_numbering)
   do itri=1,numelms
 
      call area_to_local(79,                                            &
@@ -73,7 +73,7 @@ subroutine create_newvar_matrix(matrix, ibound)
      call deletevec(rhs)
   end if
 
-  call finalizearray4solve(matrix)
+  call finalizearray(matrix)
 
 end subroutine create_newvar_matrix
 

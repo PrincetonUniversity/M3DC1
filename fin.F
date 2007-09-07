@@ -47,6 +47,7 @@
       print *, "done."
 
       call sludexit
+      call PetscFinalize(ier)
       call MPI_Finalize(ier)
       if (ier /= 0) print *,'Error terminating MPI:',ier
 

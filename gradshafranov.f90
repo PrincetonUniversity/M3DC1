@@ -226,7 +226,7 @@ subroutine gradshafranov_solve
 
   ! form the grad-sharfranov matrix
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  call zeroarray4solve(gsmatrix_sm,numvar1_numbering)
+  call zerosuperluarray(gsmatrix_sm,numvar1_numbering)
 
   ! populate the matrix
   do itri=1,numelms
@@ -262,7 +262,7 @@ subroutine gradshafranov_solve
 
   ! insert boundary conditions
   call boundary_gs(gsmatrix_sm, b1vecini)
-  call finalizearray4solve(gsmatrix_sm)
+  call finalizearray(gsmatrix_sm)
 
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)

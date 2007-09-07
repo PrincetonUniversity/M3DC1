@@ -47,7 +47,7 @@
 !.....compute LU decomposition only once
 !
 !.....form matrix
-      call zeroarray4solve(s5matrix_sm,numvar2_numbering)
+      call zerosuperluarray(s5matrix_sm,numvar2_numbering)
       do itri=1,numelms
          call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
          call calcaterm(itri, aterm, fintl)
@@ -73,7 +73,7 @@
 !
 !.....Insert boundary condtions
       call boundary_vor(s5matrix_sm, temp)
-      call finalizearray4solve(s5matrix_sm)
+      call finalizearray(s5matrix_sm)
  500  continue
 !
 !.....define RHS vector
