@@ -146,7 +146,7 @@ c     created with ordering specified by numvar
 !.....compute LU decomposition only once
 !
 !.....form matrix
-      call zeroarray4solve(s7matrix_sm,numvar2_numbering)
+      call zerosuperluarray(s7matrix_sm,numvar2_numbering)
       do itri=1,numelms
 !         call getdeex(itri,deex)
          call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
@@ -172,7 +172,7 @@ c     created with ordering specified by numvar
 !
 !.....Insert boundary conditions
       call boundary_com(s7matrix_sm, temp)
-      call finalizearray4solve(s7matrix_sm)
+      call finalizearray(s7matrix_sm)
 !
  500  continue
 !

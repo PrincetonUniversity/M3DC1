@@ -3,7 +3,7 @@ SHELL=/bin/bash
 COMMONDIR = ../common/
 
 INCLUDE = -I$(COMMONDIR) -I$(NTCCHOME)/mod -I$(LIBDIR) \
-	  -I$(SUPERLU_DIST_HOME) -I$(HDF5_HOME)/include
+	  -I$(SUPERLU_DIST_HOME) -I$(HDF5_HOME)/include -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH)
 
 LOADER = ifort
 F90    = ifort -c
@@ -29,7 +29,7 @@ NEWOBJS2 = fin.o part_fin.o ludef_t.o \
 	  init_conds.o  output.o 
 
 SCORECDIR = /l/mhd/acbauer/develop/
-SCORECVERS =-stable5
+SCORECVERS =-stable6
 SCORECOPT = -O
 
 LDRNEW = \
@@ -53,12 +53,16 @@ LDRNEW = \
 	-Wl,-rpath,$(SCORECDIR)meshAdapt$(SCORECVERS)/meshTools/lib/ia64_linux \
 	-L$(SCORECDIR)meshAdapt$(SCORECVERS)/templateRefine/lib/ia64_linux \
 	-Wl,-rpath,$(SCORECDIR)meshAdapt$(SCORECVERS)/templateRefine/lib/ia64_linux \
-	-lFMDB-mpich2$(SCORECOPT) -lSCORECModel-mpich2$(SCORECOPT) -lSCORECUtil-mpich2$(SCORECOPT) -lField-mpich2$(SCORECOPT) -lCore-mpich2$(SCORECOPT) \
-	-lmeshAdapt-mpich2$(SCORECOPT) -ltemplateRefine-mpich2$(SCORECOPT) -lmeshTools-mpich2$(SCORECOPT) -lSolver-mpich2$(SCORECOPT) -lPPPL-mpich2$(SCORECOPT) \
+	-lFMDB-mpich2$(SCORECOPT) -lSCORECModel-mpich2$(SCORECOPT) \
+	-lSCORECUtil-mpich2$(SCORECOPT) -lField-mpich2$(SCORECOPT) -lCore-mpich2$(SCORECOPT) \
+	-lmeshAdapt-mpich2$(SCORECOPT) -ltemplateRefine-mpich2$(SCORECOPT) \
+	-lmeshTools-mpich2$(SCORECOPT) -lSolver-mpich2$(SCORECOPT) -lPPPL-mpich2$(SCORECOPT) \
 	-L$(AUTOPACK_HOME)/lib/ia64-sgi -Wl,-rpath,$(AUTOPACK_HOME)/lib/ia64-sgi -lautopack-O \
 	-L$(PARMETIS_HOME)/lib -Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis \
         -L$(NTCCHOME)/lib -lezcdf \
         -L$(NETCDFHOME)/lib -lnetcdf \
+	-L$(PETSC_DIR)/lib/$(PETSC_ARCH) -lpetscksp -lpetscmat -lpetscvec -lpetsc \
+        -L$(SUPERLU_HOME) -lsuperlu_3.0 \
         -L$(SUPERLU_DIST_HOME)/lib -lsuperlu \
         -L$(NCARG_ROOT)/lib -lncarg -lncarg_gks -lncarg_c \
         -L$(F90HOME)/lib -lifport -lifcore -lifcoremt -lunwind \

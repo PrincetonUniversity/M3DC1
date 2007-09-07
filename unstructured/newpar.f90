@@ -23,8 +23,9 @@ Program Reducedquintic
 
   implicit none
 #ifdef mpi
-  include 'mpif.h'
+!  include 'mpif.h'
 #endif
+#include "finclude/petsc.h"
 
 #ifdef IS_LIBRARY
   integer, intent(in) :: isfirst, inmyrank, inmaxrank
@@ -37,6 +38,8 @@ Program Reducedquintic
   real :: tolerance
 
   integer, allocatable ::  itemp(:)
+  PetscTruth :: flg
+  PetscInt :: mpetscint,npetscint
 
 #ifdef mpi
 #ifndef IS_LIBRARY
@@ -46,6 +49,9 @@ Program Reducedquintic
      print *,'Error initializing MPI:',ier
      call safestop(1)
   endif
+  call PetscInitialize(PETSC_NULL_CHARACTER, ier)
+  call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-m',mpetscint,flg,ier)
+  call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-n',npetscint,flg,ier)
   call MPI_Comm_rank(MPI_COMM_WORLD, myrank, ier)
   if (ier /= 0) then
      print *,'Error in MPI_Comm_rank:',ier
@@ -585,7 +591,7 @@ subroutine onestep
   ! apply boundary conditions
   if(calc_matrices.eq.1) then
      call boundary_vel(s1matrix_sm, vtemp)
-     call finalizearray4solve(s1matrix_sm)
+     call finalizearray(s1matrix_sm)
   else
      call boundary_vel(0, vtemp)
   endif
@@ -692,7 +698,7 @@ subroutine onestep
      ! Insert boundary conditions
      if(calc_matrices.eq.1) then
         call boundary_den(s8matrix_sm, temp)
-        call finalizearray4solve(s8matrix_sm)
+        call finalizearray(s8matrix_sm)
      else
         call boundary_den(0, temp)
      endif
@@ -771,7 +777,7 @@ subroutine onestep
      ! Insert boundary conditions
      if(calc_matrices.eq.1) then
         call boundary_pres(s9matrix_sm, temp)
-        call finalizearray4solve(s9matrix_sm)
+        call finalizearray(s9matrix_sm)
      else
         call boundary_pres(0, temp)
      endif
@@ -836,7 +842,7 @@ subroutine onestep
   ! Insert boundary conditions
   if(calc_matrices.eq.1) then
      call boundary_mag(s2matrix_sm, vtemp)
-     call finalizearray4solve(s2matrix_sm)
+     call finalizearray(s2matrix_sm)
   else 
      call boundary_mag(0, vtemp)
   endif
