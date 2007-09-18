@@ -9,23 +9,48 @@ contains
 !=============================================================================
 
 
-! V1umu
+! V1umu (checked 8/6/07)
 ! =====
-real function v1umu(e,f)
+real function v1umu(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
 
-  temp = -int2(e(:,OP_GS),f(:,OP_GS),weight_79,79)
+!!$  temp79a = e(:,OP_GS)*g(:,OP_1) + e(:,OP_1)*g(:,OP_GS) &
+!!$       + 2.*(e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR))
+!!$  if(itor.eq.1) then
+!!$     temp79a = temp79a + 4.*ri_79* &
+!!$          (e(:,OP_1)*g(:,OP_DR) + e(:,OP_DR)*g(:,OP_1))
+!!$  endif
+!!$
+!!$  temp = -int2(temp79a,f(:,OP_GS),weight_79,79)
+
+  temp79a = e(:,OP_GS)*g(:,OP_1) &
+       + e(:,OP_DR)*g(:,OP_DR) + e(:,OP_DZ)*g(:,OP_DZ)
+  if(itor.eq.1) then 
+     temp79a = temp79a  &
+          + 4.*ri_79*e(:,OP_DR)*g(:,OP_1 ) &
+          + 2.*ri_79*e(:,OP_1) *g(:,OP_DR)
+  endif
+
+  temp79b = e(:,OP_DR)*f(:,OP_DR) + e(:,OP_DZ)*f(:,OP_DZ)
+  temp79c = g(:,OP_DR)*f(:,OP_DR) + g(:,OP_DZ)*f(:,OP_DZ)
+
+  temp = &
+       - int2(temp79a,f(:,OP_GS),weight_79,79) &
+       - int2(temp79b,g(:,OP_GS),weight_79,79) &
+       - int2(temp79c,e(:,OP_GS),weight_79,79)
 
   if(itor.eq.1) then
      temp = temp &
-          - 4.*int3(ri_79,e(:,OP_DR),f(:,OP_GS),weight_79,79)
+          - 2.*int3(ri_79,temp79b,g(:,OP_DR),weight_79,79) &
+          - 4.*int3(ri_79,temp79c,e(:,OP_DR),weight_79,79) &
+          - 2.*int4(ri_79,e(:,OP_1),g(:,OP_LP),f(:,OP_DR),weight_79,79)
   endif
 
   v1umu = temp
@@ -33,7 +58,44 @@ real function v1umu(e,f)
 end function v1umu
 
 
-! V1un
+
+! V1chimu (checked 8/6/07)
+! =======
+real function v1chimu(e,f,g)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real :: temp
+
+  temp79a = g(:,OP_DZ)*f(:,OP_DR) - g(:,OP_DR)*f(:,OP_DZ)
+  temp79b = r_79*(e(:,OP_DZ)*g(:,OP_DR) - e(:,OP_DR)*g(:,OP_DZ))
+  if(itor.eq.1) temp79b = temp79b - 2.*e(:,OP_1)*g(:,OP_DZ)
+
+  temp = int3(r_79,e(:,OP_LP),temp79a,weight_79,79) &
+       + int4(r_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_GS),weight_79,79) &
+       - int4(r_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_GS),weight_79,79) &
+       + int2(temp79b,f(:,OP_GS),weight_79,79)
+
+  if(itor.eq.1) then
+     temp = temp &
+          + 4.*int2(      e(:,OP_DR),temp79a,weight_79,79) &
+          + 4.*int3(ri_79,e(:,OP_1 ),temp79a,weight_79,79) &
+          + 4.*int3(ri_79,f(:,OP_DR),temp79b,weight_79,79) &
+          - 2.*int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_GS),weight_79,79)
+  endif
+
+  v1chimu = temp
+  return
+end function v1chimu
+
+
+
+
+! V1un (checked 8/6/07)
 ! ====
 real function v1un(e,f,g)
 
@@ -64,7 +126,7 @@ real function v1un(e,f,g)
 end function v1un
 
 
-! V1chin
+! V1chin (checked 8/6/07)
 ! ======
 real function v1chin(e,f,g)
 
@@ -89,7 +151,7 @@ real function v1chin(e,f,g)
 end function v1chin
 
 
-! V1psipsi
+! V1psipsi (checked 8/6/07)
 ! ========
 real function v1psipsi(e,f,g)
 
@@ -113,7 +175,7 @@ real function v1psipsi(e,f,g)
 end function v1psipsi
 
 
-! V1bb 
+! V1bb (checked 8/6/07)
 ! ====
 real function v1bb(e,f,g)
 
@@ -136,7 +198,7 @@ real function v1bb(e,f,g)
 end function v1bb
 
 
-! V1uun
+! V1uun 
 ! =====
 real function v1uun(e,f,g,h)
 
@@ -647,7 +709,7 @@ real function v1us(e,f,g)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = g(:,OP_1) + denm*nt79(:,OP_GS)
+  temp79a = g(:,OP_1) + denm*nt79(:,OP_LP)
 
   temp = -int3(e(:,OP_DZ),f(:,OP_DZ),temp79a,weight_79,79) &
          -int3(e(:,OP_DR),f(:,OP_DR),temp79a,weight_79,79)
@@ -679,7 +741,7 @@ real function v1chis(e,f,g)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = g(:,OP_1) + denm*nt79(:,OP_GS)
+  temp79a = g(:,OP_1) + denm*nt79(:,OP_LP)
 
   temp = int4(r_79,e(:,OP_DZ),f(:,OP_DR),temp79a,weight_79,79) &
         -int4(r_79,e(:,OP_DR),f(:,OP_DZ),temp79a,weight_79,79)
@@ -730,17 +792,22 @@ real function v2vmu(e,f,g)
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
-  real, intent(in) :: g
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
 
-  temp = -g* &
-       (int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
-       +int2(e(:,OP_DR),f(:,OP_DR),weight_79,79))
+  temp79a = e(:,OP_GS)*g(:,OP_1) + &
+       e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR)
+  if(itor.eq.1) temp79a = temp79a + 4.*ri_79*e(:,OP_DR)*g(:,OP_1)
 
-  if(itor.eq.1) then
-     temp = temp - 2.*g*int3(ri_79,e(:,OP_1 ),f(:,OP_DR),weight_79,79)
-  endif
+  temp = int2(temp79a,f(:,OP_1),weight_79,79)
+
+!!$  temp = - &
+!!$       (int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1),weight_79,79) &
+!!$       +int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_1),weight_79,79))
+!!$
+!!$  if(itor.eq.1) then
+!!$     temp = temp - 2.*int4(ri_79,e(:,OP_1 ),f(:,OP_DR),g(:,OP_1),weight_79,79)
+!!$  endif
 
   v2vmu = temp
   return
@@ -756,16 +823,24 @@ real function v2vhypv(e,f,g,h)
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
-  real, intent(in) :: g,h
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  real, intent(in) :: h
   real :: temp
 
-  temp = -g*h*int2(e(:,OP_GS),f(:,OP_GS),weight_79,79)
 
-  if(itor.eq.1) then
-     temp = temp - 4.*g*h* &
-          int3(ri_79,e(:,OP_DR),f(:,OP_GS),weight_79,79)
-  endif
+  temp79a = e(:,OP_GS)*g(:,OP_1) + &
+       e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR)
+  if(itor.eq.1) temp79a = temp79a + 4.*ri_79*e(:,OP_DR)*g(:,OP_1)
+
+  temp = -h*int2(temp79a,f(:,OP_GS),weight_79,79)  
+
+!!$
+!!$  temp = -h*int3(e(:,OP_GS),f(:,OP_GS),g(:,OP_1),weight_79,79)
+!!$
+!!$  if(itor.eq.1) then
+!!$     temp = temp - 4.*h* &
+!!$          int4(ri_79,e(:,OP_DR),f(:,OP_GS),g(:,OP_1),weight_79,79)
+!!$  endif
 
   v2vhypv = temp
   return
@@ -976,14 +1051,14 @@ end function v2chibsb1
 
 ! v2psisb2
 ! ========
-real function v2psisb2(e,f,g,h)
+real function v2psisb2(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
 
   temp = int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
@@ -995,14 +1070,14 @@ end function v2psisb2
 
 ! v2bsb1
 ! ======
-real function v2bsb1(e,f,g,h)
+real function v2bsb1(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g
   real :: temp
 
   temp = int4(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79) &
@@ -1031,7 +1106,7 @@ real function v2vs(e,f,g)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = g(:,OP_1) + denm*nt79(:,OP_GS)
+  temp79a = g(:,OP_1) + denm*nt79(:,OP_LP)
 
   temp = -int3(e(:,OP_1),f(:,OP_1),temp79a,weight_79,79)
 
@@ -1073,17 +1148,23 @@ end function v3chin
 
 ! V3chimu
 ! =======
-real function v3chimu(e,f)
+real function v3chimu(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   real :: temp
 
-  temp = int2(e(:,OP_LP),f(:,OP_LP),weight_79,79)
+  temp = 2.*int3(e(:,OP_LP),f(:,OP_LP),h(:,OP_1 ),weight_79,79) &
+       +    int3(e(:,OP_LP),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
+       +    int3(e(:,OP_LP),f(:,OP_DR),g(:,OP_DR),weight_79,79) &
+       +    int3(e(:,OP_DZ),f(:,OP_LP),g(:,OP_DZ),weight_79,79) &
+       +    int3(e(:,OP_DR),f(:,OP_LP),g(:,OP_DR),weight_79,79) &
+       +    int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_LP),weight_79,79) &
+       +    int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_LP),weight_79,79)
 
   v3chimu = temp
   return
@@ -1099,11 +1180,17 @@ real function v3umu(e,f,g,h)
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
-  real, intent(in) :: g,h
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   real :: temp
 
-  v3umu = 0.
+  temp = int4(ri_79,e(:,OP_LP),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
+       - int4(ri_79,e(:,OP_LP),f(:,OP_DZ),g(:,OP_DR),weight_79,79) &
+       + int4(ri_79,e(:,OP_DZ),f(:,OP_GS),g(:,OP_DR),weight_79,79) &
+       - int4(ri_79,e(:,OP_DR),f(:,OP_GS),g(:,OP_DZ),weight_79,79) &
+       + int4(ri_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_LP),weight_79,79) &
+       - int4(ri_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_LP),weight_79,79)
+
+  v3umu = temp
   return
 end function v3umu
 
@@ -1254,7 +1341,9 @@ real function v3psisb1(e,f,g)
   real :: temp
 
   temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_GS),g(:,OP_DZ),weight_79,79) &
-       + int4(ri2_79,e(:,OP_DR),f(:,OP_GS),g(:,OP_DR),weight_79,79)
+       + int4(ri2_79,e(:,OP_DR),f(:,OP_GS),g(:,OP_DR),weight_79,79) &
+       + int4(ri2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_GS),weight_79,79) &
+       + int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_GS),weight_79,79)
 
   v3psisb1 = temp
 
@@ -1266,7 +1355,6 @@ end function v3psisb1
 real function v3bsb2(e,f,g)
 
   use basic
-  use arrays
   use nintegrate_mod
 
   implicit none
@@ -1275,8 +1363,10 @@ real function v3bsb2(e,f,g)
 
   real :: temp
 
-  temp = int3(ri2_79,e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
-       + int3(ri2_79,e(:,OP_DR),f(:,OP_DR),weight_79,79)
+  temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1 ),weight_79,79) &
+       + int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1 ),weight_79,79) &
+       + int4(ri2_79,e(:,OP_DZ),f(:,OP_1 ),g(:,OP_DZ),weight_79,79) &
+       + int4(ri2_79,e(:,OP_DR),f(:,OP_1 ),g(:,OP_DR),weight_79,79)
 
   v3bsb2 = temp
   return
@@ -1717,7 +1807,7 @@ real function v3us(e,f,g)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = g(:,OP_1) + denm*nt79(:,OP_GS)
+  temp79a = g(:,OP_1) + denm*nt79(:,OP_LP)
 
   temp = int4(ri_79,e(:,OP_DZ),f(:,OP_DR),temp79a,weight_79,79) &
         -int4(ri_79,e(:,OP_DR),f(:,OP_DZ),temp79a,weight_79,79)
@@ -1745,7 +1835,7 @@ real function v3chis(e,f,g)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = g(:,OP_1) + denm*nt79(:,OP_GS)
+  temp79a = g(:,OP_1) + denm*nt79(:,OP_LP)
 
   temp = int3(e(:,OP_DZ),f(:,OP_DZ),temp79a,weight_79,79) &
         +int3(e(:,OP_DR),f(:,OP_DR),temp79a,weight_79,79)
@@ -1780,7 +1870,7 @@ real function b1psi(e,f)
 end function b1psi
 
 
-! B1psiu
+! B1psiu (checked 8/7/07)
 ! ======
 real function b1psiu(e,f,g)
 
@@ -1987,7 +2077,7 @@ real function b2bchi(e,f,g)
 end function b2bchi
 
 
-! B2psiv
+! B2psiv (checked 8/7/07)
 ! ======
 real function b2psiv(e,f,g)
 
@@ -2221,8 +2311,13 @@ real function b3pedkappa(e,f,g,h,i)
 
   if(i.ne.0) then
      ! Laplacian[f g]
-     temp79a = f(:,OP_LP)*g(:,OP_1) + f(:,OP_1)*g(:,OP_LP) &
+     if(idens.eq.0) then
+        temp79a = f(:,OP_LP)*g(:,OP_1)
+     else
+        temp79a = f(:,OP_LP)*g(:,OP_1) + f(:,OP_1)*g(:,OP_LP) &
           + 2.*(f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR))
+     endif
+
      temp = temp - i* &
           (int3(temp79a,e(:,OP_LP),h(:,OP_1),weight_79,79) &
           +int3(temp79a,e(:,OP_DZ),h(:,OP_DZ),weight_79,79) &
@@ -2444,7 +2539,7 @@ real function p1uus(e,f,g,h)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = h(:,OP_1) + denm*nt79(:,OP_GS)
+  temp79a = h(:,OP_1) + denm*nt79(:,OP_LP)
 
   temp = 0.5*(gam-1.)* &
        (int5(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),temp79a,weight_79,79) &
@@ -2473,7 +2568,7 @@ real function p1vvs(e,f,g,h)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = h(:,OP_1) + denm*nt79(:,OP_GS)
+  temp79a = h(:,OP_1) + denm*nt79(:,OP_LP)
 
   temp = 0.5*(gam-1.)* &
        int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_1),temp79a,weight_79,79)
@@ -2501,7 +2596,7 @@ real function p1chichis(e,f,g,h)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = h(:,OP_1) + denm*nt79(:,OP_GS)
+  temp79a = h(:,OP_1) + denm*nt79(:,OP_LP)
 
   temp = 0.5*(gam-1.)* &
        (int4(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),temp79a,weight_79,79) &
@@ -2530,7 +2625,7 @@ real function p1uchis(e,f,g,h)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = h(:,OP_1) + denm*nt79(:,OP_GS)
+  temp79a = h(:,OP_1) + denm*nt79(:,OP_LP)
 
   temp = -(gam-1.)* & 
        (int5(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),temp79a,weight_79,79) &
@@ -2981,23 +3076,32 @@ end function qbbeta
 
 ! quumu
 ! =====
-real function quumu(e,f,g,h,i,j)
+real function quumu(e,f,g,h,i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real, intent(in) :: h, i, j
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  real, intent(in) :: i
   real :: temp
 
-  temp = -h*int4(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),weight_79,79)
+  temp = -int5(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),h(:,OP_1),weight_79,79) &
+       + 4.* int5(ri2_79,e(:,OP_1),f(:,OP_DRR),g(:,OP_DZZ),h(:,OP_1),weight_79,79) &
+       - 4.* int5(ri2_79,e(:,OP_1),f(:,OP_DRZ),g(:,OP_DRZ),h(:,OP_1),weight_79,79)
 
-  if(j.ne.0) then
-     temp = temp - h*j* &
-          (int4(ri2_79,e(:,OP_1),vot79(:,OP_DZ),vot79(:,OP_DZ),weight_79,79) &
-          +int4(ri2_79,e(:,OP_1),vot79(:,OP_DR),vot79(:,OP_DR),weight_79,79))
+  if(itor.eq.1) then
+     temp = temp &
+          + 4.*int5(ri3_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+          - 4.*int5(ri3_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+          + 4.*int5(ri4_79,e(:,OP_1 ),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),weight_79,79)
+  endif
+
+  if(i.ne.0) then
+     temp = temp - i* &
+          (int5(ri2_79,e(:,OP_1),vot79(:,OP_DZ),vot79(:,OP_DZ),h(:,OP_1),weight_79,79) &
+          +int5(ri2_79,e(:,OP_1),vot79(:,OP_DR),vot79(:,OP_DR),h(:,OP_1),weight_79,79))
   endif
 
   quumu = temp
@@ -3014,8 +3118,8 @@ real function quchimu(e,f,g,h,i,j)
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real, intent(in) :: h, i, j
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h,i
+  real, intent(in) :: j
   real :: temp
 
   quchimu = 0.
@@ -3032,16 +3136,22 @@ real function qvvmu(e,f,g,h,i)
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real, intent(in) :: h, i
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  real, intent(in) :: i
   real :: temp
 
-  temp = -h* &
-       (int4(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
-       +int4(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),weight_79,79))
+  temp = - &
+       (int5(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+       +int5(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),h(:,OP_1),weight_79,79))
+
+  if(itor.eq.1) then
+     temp = temp &
+          + 4.*int5(ri3_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),h(:,OP_1),weight_79,79) &
+          - 4.*int5(ri3_79,e(:,OP_1),f(:,OP_1 ),g(:,OP_1),h(:,OP_1),weight_79,79)
+  endif
   
-  if(i.ne.1) then
-     temp = temp - h*i*int4(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),weight_79,79)
+  if(i.ne.0) then
+     temp = temp - i*int5(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),h(:,OP_1),weight_79,79)
   endif
 
   qvvmu = temp
@@ -3051,23 +3161,34 @@ end function qvvmu
 
 ! qchichimu
 ! =========
-real function qchichimu(e,f,g,h,i,j)
+real function qchichimu(e,f,g,h,i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real, intent(in) :: h, i, j
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  real, intent(in) :: i
   real :: temp
 
-  temp = -2.*i*int4(ri2_79,e(:,OP_1),cot79(:,OP_1),cot79(:,OP_1),weight_79,79)
+!!$  temp = -2.*int4(e(:,OP_1),cot79(:,OP_1),cot79(:,OP_1),h(:,OP_1),weight_79,79)
+
+  temp = 4.*int5(ri_79,e(:,OP_1),h(:,OP_1),f(:,OP_DZZ),g(:,OP_DRZ),weight_79,79) &
+       - 4.*int5(ri_79,e(:,OP_1),h(:,OP_1),f(:,OP_DRZ),g(:,OP_DZZ),weight_79,79) &
+       + 4.*int5(ri_79,e(:,OP_1),h(:,OP_1),f(:,OP_DRZ),g(:,OP_DRR),weight_79,79) &
+       - 4.*int5(ri_79,e(:,OP_1),h(:,OP_1),f(:,OP_DRR),g(:,OP_DRZ),weight_79,79)
+
+  if(itor.eq.1) then
+     temp = temp &
+          + 4.*int5(ri2_79,e(:,OP_DR),h(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79) &
+          - 4.*int5(ri2_79,e(:,OP_DZ),h(:,OP_1),f(:,OP_DR),g(:,OP_DR),weight_79,79)
+  endif
   
-  if(j.ne.1) then
-     temp = temp - 2.*i*j* &
-          (int4(ri2_79,e(:,OP_1),cot79(:,OP_DZ),cot79(:,OP_DZ),weight_79,79) &
-          +int4(ri2_79,e(:,OP_1),cot79(:,OP_DR),cot79(:,OP_DR),weight_79,79))
+  if(i.ne.0) then
+     temp = temp - 2.*i* &
+          (int4(e(:,OP_1),cot79(:,OP_DZ),cot79(:,OP_DZ),h(:,OP_1),weight_79,79) &
+          +int4(e(:,OP_1),cot79(:,OP_DR),cot79(:,OP_DR),h(:,OP_1),weight_79,79))
   endif
 
   qchichimu = temp
@@ -3376,35 +3497,6 @@ end function energy_k3h
 !======================================================================
 ! FLUXES
 !======================================================================
-
-! Diffusive flux
-! --------------
-real function flux_diffusive()
-
-  use basic
-  use nintegrate_mod
-
-  implicit none
-
-  if(idens.eq.0 .or. denm.eq.0.) then
-     flux_diffusive = 0.
-     return
-  endif
-
-  temp79a = ri2_79*(pht79(:,OP_DZ)**2 + pht79(:,OP_DR)**2)
-  if(numvar.ge.2) then
-     temp79a = temp79a + ri2_79*vzt79(:,OP_1)**2
-  endif
-  if(numvar.ge.3) then
-      temp79a = temp79a &
-           + cht79(:,OP_DZ)**2 + cht79(:,OP_DR)**2 &
-           + 2.*ri_79* &
-           ( cht79(:,OP_DZ)*pht79(:,OP_DR) - cht79(:,OP_DR)*pht79(:,OP_DZ))
-  endif
-
-  flux_diffusive = 0.5*denm*int2(nt79(:,OP_LP),temp79a,weight_79,79)
-  return
-end function flux_diffusive
 
 
 ! Pressure convection

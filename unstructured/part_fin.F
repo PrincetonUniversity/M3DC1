@@ -1,35 +1,62 @@
       subroutine mask(x,z,factor)
       use basic
       implicit none
-      real factor, r1, r2, alpha, rmid, rnorm, r, x, z, alx, alz,
-     &     xmin, zmin
+c$$$      real factor, r1, r2, alpha, rmid, rnorm, r, x, z, alx, alz,
+c$$$     &     xmin, zmin
+      real, intent(in) :: x, z
+      real, intent(out) :: factor
+
+      real :: alphax, alphaz, alx, alz, xmin, zmin
+      real :: x_left, x_right, z_bottom, z_top
       factor = 1.
 ! acbauer -- changed to use xmin and zmin since it apears that 
 !            this routine may want to center the domain around (0,0)
 
       call getboundingboxsize(alx, alz)
       call getmincoord(xmin, zmin)
-!
-!     radius where the factor becomes 0
-      r1 = 2.0
-!
-!     radius where the factor becomes 1
-      r2 = 1.5
-      alpha = 6./(r1 - r2)
-      rmid = (r1+r2)/2.
-!
+c$$$!
+c$$$!     radius where the factor becomes 0
+c$$$      r1 = 2.0
+c$$$!
+c$$$!     radius where the factor becomes 1
+c$$$      r2 = 1.5
+c$$$      alpha = 6./(r1 - r2)
+c$$$      rmid = (r1+r2)/2.
+c$$$!
+c$$$      if(iper.eq.0) then
+c$$$         rnorm = sqrt(alx*alz)/4.
+c$$$         r = sqrt( (x-xmin-alx*.5)**2 + (z-zmin-alz*.5)**2)/rnorm
+c$$$      else
+c$$$         rnorm = alz/4.
+c$$$         r = abs(z-zmin-alz/2.)/rnorm
+c$$$      endif
+c$$$!
+c$$$      factor = (1 + tanh(-alpha*(r-rmid)))*.5
+c$$$!
+c$$$!     write(66,1001) x,z,r,factor
+c$$$ 1001 format(1p4e12.4)
+c$$$      return
+
+      x_left = alx / 20.
+      x_right = alx - alx / 20.
+      z_bottom = alz / 20.
+      z_top = alz - alz / 20.
+      
+      alphax = 40. / alx
+      alphaz = 40. / alz
+
+      factor = 1.
+
       if(iper.eq.0) then
-         rnorm = sqrt(alx*alz)/4.
-         r = sqrt( (x-xmin-alx*.5)**2 + (z-zmin-alz*.5)**2)/rnorm
-      else
-         rnorm = alz/4.
-         r = abs(z-zmin-alz/2.)/rnorm
+         factor = factor * 0.5*
+     &        (tanh(alphax*(x - x_left)) - tanh(alphax*(x - x_right)))
       endif
-!
-      factor = (1 + tanh(-alpha*(r-rmid)))*.5
-!
-!     write(66,1001) x,z,r,factor
- 1001 format(1p4e12.4)
+
+      if(jper.eq.0) then
+         factor = factor * 0.5*
+     &        (tanh(alphaz*(z - z_bottom)) - tanh(alphaz*(z-z_top)))
+      endif
+
       return
       end
 !============================================================
@@ -92,8 +119,15 @@ c     created with ordering specified by numvar
       call createvec(qn4, 1)
       call createvec(resistivity, 1)
       call createvec(kappa, 1)
+      call createvec(visc, 1)
+      call createvec(visc_c, 1)
       call createvec(sigma, 1)
       call createvec(tempvar,1)
+      if(isources.eq.1) then
+         call createvec(sb1, 1)
+         call createvec(sb2, 1)
+         call createvec(sp1, 1)
+      endif
 !
 !.....arrays associated with the triangles
       allocate(ist(ntri,3),isvaln(ntri,18),isval1(ntri,18),             &

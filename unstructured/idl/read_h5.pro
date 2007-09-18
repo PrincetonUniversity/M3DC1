@@ -493,6 +493,9 @@ function translate, name, units=units
      (strcmp(name, 'lz', /fold_case) eq 1) then begin
        units = c+b0+'/'+pi4
        return, "!8J!D!9P!N!X"
+   endif else if(strcmp(name, 'sigma', /fold_case) eq 1) then begin
+       units = n0+'/'+t0
+       return, "!7r!X"
    endif  
 
    return, "!8" + name
@@ -711,7 +714,7 @@ function read_field, name, slices=time, mesh=mesh, filename=filename, time=t, $
            endif
        end
        if(match eq 0) then begin
-           print, "No field named ", name, "at time slice", i
+           print, "No field named ", name, " at time slice", i
            continue
        end
        
@@ -870,6 +873,48 @@ end
 
 
 ;==============================================================
+; particle_flux
+; ~~~~~~~~~~~~~
+;
+; Returns a time series of the total rate of particles lost 
+; through the simulation domain boundary.
+; 
+; Optional outputs:
+;  t: the time array
+;  names: the name of each flux component
+;  components: an array of time series of each flux component
+;==============================================================
+function particle_flux, filename=filename, components=comp, names=names, t=t
+   s = read_scalars(filename=filename)
+   if(n_tags(s) eq 0) then return, 0
+
+   t = s.time._data
+
+   ipellet = read_parameter('ipellet', filename=filename) 
+
+   names = ['- dN/dt', 'Diffusive', 'Convective', 'Sources']
+
+;    if(ipellet eq 1) then names=[names, 'Pellet']
+
+  
+   comp = fltarr(n_elements(names), n_elements(t))
+   comp[0,*] = -deriv(t,s.particle_number._data)
+   comp[1,*] = s.Particle_Flux_diffusive._data
+   comp[2,*] = s.Particle_Flux_convective._data
+   comp[3,*] = s.Particle_source._data
+
+;    n = 3
+
+;    if(ipellet eq 1) then begin
+;        comp[n,*] = read_parameter('pellet_rate', filename=filename) 
+;        n = n+1
+;    endif
+
+   return, total(comp, 1)
+end
+
+
+;==============================================================
 ; energy_dissipated
 ; ~~~~~~~~~~~~~~~~~
 ;
@@ -936,15 +981,14 @@ function energy_flux, filename=filename, components=comp, names=names, t=t
 
    t = s.time._data
 
-   names = ['Diffusive', 'Pressure', 'Kinetic', 'Poynting', 'Thermal']
+   names = ['Pressure', 'Kinetic', 'Poynting', 'Thermal']
   
    comp = fltarr(n_elements(names), n_elements(t))
-   comp[0,*] = s.Flux_diffusive._data
-   comp[1,*] = s.Flux_pressure._data
-   comp[2,*] = s.Flux_kinetic._data
-;   comp[3,*] = s.Flux_poynting._data
-   comp[3,*] = -s.toroidal_current._data*s.loop_voltage._data/(2.*3.14159)
-   comp[4,*] = s.Flux_thermal._data
+   comp[0,*] = s.Flux_pressure._data
+   comp[1,*] = s.Flux_kinetic._data
+   comp[2,*] = s.Flux_poynting._data
+;   comp[2,*] = -s.toroidal_current._data*s.loop_voltage._data/(2.*3.14159)
+   comp[3,*] = s.Flux_thermal._data
 
    return, total(comp, 1)
 end
@@ -1031,7 +1075,7 @@ end
 ; plot_energy
 ;============================================
 pro plot_energy, name, filename=filename, yrange=yrange, norm=norm, $
-                 overplot=overplot, _EXTRA=extra
+                 overplot=overplot, per_length=per_length, _EXTRA=extra
 
    if(n_elements(name) eq 0) then name = 'energy'
 
@@ -1050,6 +1094,11 @@ pro plot_energy, name, filename=filename, yrange=yrange, norm=norm, $
        title  = '!6Dissipated Power!3'
        xtitle = '!8t !6(!7s!D!8A!N!6)!3'
        ytitle = '!6Power (!8B!D!60!U2!N!8L!U!63!N/4!7ps!D!8A!N!6)!3'
+   endif else if(strcmp(name, 'particle flux', /fold_case) eq 1) then begin
+       tot = particle_flux(filename=filename, comp=comp, names=names, t=t)   
+       title  = '!6Particle Flux!3'
+       xtitle = '!8t !6(!7s!D!8A!N!6)!3'
+       ytitle = '!6Particle Flux (!8n!D!60!N/!7s!D!8A!N!6)!3'
    endif else begin
        tot = energy(filename=filename, comp=comp, names=names, t=t)   
        title  = '!6Internal Energy!3'
@@ -1060,6 +1109,15 @@ pro plot_energy, name, filename=filename, yrange=yrange, norm=norm, $
    if(n_elements(tot) le 2) then return
 
    n = n_elements(names)
+
+   if(keyword_set(per_length)) then begin
+       itor = read_parameter('itor', filename=filename)
+       if(itor eq 1) then begin
+           xzero = read_parameter('xzero', filename=filename)
+           tot = tot / xzero
+           comp = comp / xzero
+       endif
+   endif
 
    if(keyword_set(norm)) then begin
        tot = tot - tot[0]
@@ -1288,7 +1346,7 @@ pro plot_lcfs, time, color=color, val=psival, psi=psi, x=x, y=y, points=pts, $
 end
 
 
-pro plot_timings, filename=filename
+pro plot_timings, filename=filename, _EXTRA=extra
 
    if(n_elements(filename) eq 0) then filename = 'C1.h5'
 
@@ -1308,7 +1366,7 @@ pro plot_timings, filename=filename
    loadct, 12
 
    plot, timings.t_onestep._data, title='!6Timings!3', $
-     xtitle='!6Time Step!3', ytitle='!8t!6 (s)!3'
+     xtitle='!6Time Step!3', ytitle='!8t!6 (s)!3', _EXTRA=extra
    oplot, timings.t_ludefall._data, linestyle=2, color=30
    oplot, timings.t_sources._data, linestyle=1, color=60
    oplot, timings.t_aux._data, linestyle=1, color=80
@@ -1424,7 +1482,7 @@ end
 pro plot_scalar, scalarname, x, filename=filename, names=names, $
                  _EXTRA=extra, overplot=overplot, $
                  ylog=ylog, xlog=xlog, left=left, $
-                 power_spectrum=power_spectrum
+                 power_spectrum=power_spectrum, per_length=per_length
 
   if(n_elements(filename) eq 0) then filename='C1.h5'
 
@@ -1444,12 +1502,12 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
               plot_scalar, scalarname, filename=filename[i], $
                 overplot=((i gt 0) or keyword_set(overplot)), $
                 color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, $
-                power_spectrum=power_spectrum
+                power_spectrum=power_spectrum, per_length=per_length
           endif else begin
               plot_scalar, scalarname, x[i], filename=filename[i], $
                 overplot=((i gt 0) or keyword_set(overplot)), $
                 color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, $
-                power_spectrum=power_spectrum
+                power_spectrum=power_spectrum, per_length=per_length
           endelse
       end
       if(n_elements(names) gt 0) then begin
@@ -1506,28 +1564,35 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
     (strcmp("kinetic energy", scalarname, /fold_case) eq 1) or $
     (strcmp("ke", scalarname, /fold_case) eq 1)then begin
       nv = read_parameter("numvar", filename=filename)
-       data = s.E_KP._data 
-       if(nv ge 2) then data = data + s.E_KT._data 
-       if(nv ge 3) then data = data + s.E_K3._data
-       title = '!6Kinetic Energy!3'
-       ytitle = '!6KE (!8B!D0!N!U!62!N/4!7p!6)!3'
+      data = s.E_KP._data 
+      if(nv ge 2) then data = data + s.E_KT._data 
+      if(nv ge 3) then data = data + s.E_K3._data
+      title = '!6Kinetic Energy!3'
+      ytitle = '!8E !6(!8B!D0!N!U!62!N!8L!U!63!N/4!7p!6)!3'
+  endif else if $
+    (strcmp("magnetic energy", scalarname, /fold_case) eq 1) or $
+    (strcmp("me", scalarname, /fold_case) eq 1)then begin
+      nv = read_parameter("numvar", filename=filename)
+      data = s.E_MP._data 
+      if(nv ge 2) then data = data + s.E_MT._data 
+      title = '!6Magnetic Energy!3'
+      ytitle = '!8E !6(!8B!D0!N!U!62!N!8L!U!63!N/4!7p!6)!3'
   endif else if $
     (strcmp("energy", scalarname, /fold_case) eq 1) then begin
       nv = read_parameter("numvar", filename=filename)
-       data = energy(filename=filename)
-       title = '!6Energy!3'
-       ytitle = '!6E (!8B!D0!N!U!62!N/4!7p!6)!3'
+      data = energy(filename=filename)
+      title = '!6Energy!3'
+      ytitle = '!8E !6(!8B!D0!N!U!62!N!8L!U!63!N/4!7p!6)!3'
   endif else if $
     (strcmp("error", scalarname, /fold_case) eq 1) then begin
       nv = read_parameter("numvar", filename=filename)
-      dummy = energy(filename=filename, error=data)
-      data = abs(data)
+      data = energy_error(filename=filename)
       title = '!6Error!3'
-      ytitle = '!7D!6E (!8B!D0!N!U!62!N/4!7p!6)!3'
+      ytitle = '!7D!6E !6(!8B!D0!N!U!62!N!8L!U!63!N/4!7p s!D!8!A!N!6)!3'
   endif else if $
     (strcmp("particles", scalarname, /fold_case) eq 1) or $
     (strcmp("n", scalarname, /fold_case) eq 1) then begin
-      data = s.electron_number._data
+      data = s.particle_number._data
       title = '!6Particle number!3'
       ytitle = '!6N !6(!8n!D!60!N!8L!U!62!N!6)!3'
   endif else if $
@@ -1543,13 +1608,15 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
       ytitle = '!9I!S!7x!R!A!6_!D!9P!N !8dA !6(!8v!D!8A!NL!6)!3'
   endif else if (strcmp("number", scalarname, /fold_case) eq 1) or $
     (strcmp("n", scalarname, /fold_case) eq 1) then begin
-      data = s.electron_number._data
+      data = s.particle_number._data
       title = '!6Number!3'
       ytitle = '!6N !6(!8n!D!60!N!8L!U!62!N!6)!3'
   endif else begin
       print, 'Scalar ', scalarname, ' not recognized.'
       return
   endelse
+
+  if(n_elements(data) le 1) then return
 
   if(keyword_set(power_spectrum)) then begin
       xtitle = '!7x!6 (!7s!D!8A!N!6!U-1!N)!3'
@@ -1558,6 +1625,14 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
       xtitle = '!8t!6 (!7s!D!8A!N!6)!3'
       tdata = s.time._data
   endelse
+
+  if(keyword_set(per_length)) then begin
+      itor = read_parameter('itor', filename=filename)
+      if(itor eq 1) then begin
+          xzero = read_parameter('xzero', filename=filename)
+          data = data / xzero
+      endif
+  endif
   
   if(n_elements(x) eq 0) then begin
       if(keyword_set(overplot)) then begin
@@ -1594,6 +1669,8 @@ end
 pro plot_pol_velocity, time, filename=filename, points=pts, maxval=maxval, $
                        lcfs=lcfs, _EXTRA=extra
 
+  if(n_elements(pts) eq 0) then pts=25
+
   nv = read_parameter('numvar', filename=filename)
   itor = read_parameter('itor', filename=filename)
 
@@ -1602,7 +1679,7 @@ pro plot_pol_velocity, time, filename=filename, points=pts, maxval=maxval, $
   if(n_elements(phi) le 1) then return
 
   itor = read_parameter('itor', filename=filename)
-  if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
+  if(itor eq 1) then r = radius_matrix(x,z,t) else r = 1.
 
   vx = -dz(phi,z)/r
   vz =  dx(phi,x)/r
@@ -1637,7 +1714,7 @@ pro plot_pol_velocity, time, filename=filename, points=pts, maxval=maxval, $
     title=title, subtitle=maxstr
 
    if(keyword_set(lcfs)) then begin
-       plot_lcfs, time, color=130, points=pts, filename=filename
+       plot_lcfs, time, color=130, points=pts>100, filename=filename
    endif
 end
 
@@ -1662,7 +1739,7 @@ pro plot_tor_velocity, time, filename=filename, points=pts, $
   v = read_field('V', filename=filename, $
                  slice=time, r=x, z=z, t=t, points=pts)
 
-  if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
+  if(itor eq 1) then r = radius_matrix(x,z,t) else r = 1.
 
   vz = v/r
 
@@ -1700,10 +1777,9 @@ end
 ; area:  cross-sectional area of each flux bin
 ; range: range of flux values
 ;==================================================================
-function flux_average, field, time, bins=bins, flux=flux, area=area, $
-                       t=t, _EXTRA=extra, range=range, points=points
-
-   if(n_elements(time) eq 0) then time=0
+function flux_average, field, bins=bins, flux=flux, area=area, $
+                       t=t, range=range, points=points, psi=psi, $
+                       x=x, z=z, filename=filename, _EXTRA=extra
 
    sz = size(field)
    if(n_elements(points) eq 0) then begin
@@ -1711,10 +1787,14 @@ function flux_average, field, time, bins=bins, flux=flux, area=area, $
        if(sz[2] le 1) then points=50
    endif
 
-   psi = read_field('psi', slice=time, r=x, z=z, t=t, $
-                    _EXTRA=extra, points=points)
-   sz = size(psi)
-   if(n_elements(psi) le 1) then return, 0
+   if((n_elements(psi) le 1) $
+      or (n_elements(x) eq 0) or (n_elements(z) eq 0) $
+      or (n_elements(t) eq 0)) then begin
+       psi = read_field('psi', r=x, z=z, t=t, filename=filename, $
+                        _EXTRA=extra, points=points)
+       sz = size(psi)
+       if(n_elements(psi) le 1) then return, 0
+   endif
 
    if(n_elements(bins) eq 0) then bins = points/4.
 
@@ -1732,6 +1812,9 @@ function flux_average, field, time, bins=bins, flux=flux, area=area, $
        for k=0, sz[1]-1 do range[k,*] = oldrange
    endif
 
+   itor = read_parameter('itor', filename=filename)
+   if(itor eq 1) then r = radius_matrix(x,z,t)
+
    for k=0, sz[1]-1 do begin
        dpsi = (range[k,1] - range[k,0])/bins
 
@@ -1739,6 +1822,8 @@ function flux_average, field, time, bins=bins, flux=flux, area=area, $
            fval = dpsi*p + range[k,0]
 
            mask = float((psi[k,*,*] gt fval) and (psi[k,*,*] le fval+dpsi))
+
+           if(itor eq 1) then mask = mask*r[k,*,*]
 
            if(n_elements(field) gt 1) then $
              sfield = field[k,*,*]*mask[0,*,*]
@@ -1771,7 +1856,7 @@ function safety_factor, time, filename=filename, flux=flux, area=dAdpsi, $
    flux = fl
 
    q = abs(fa*dAdpsi/mean(deriv(flux)))
-   
+
    return, q
 end
 
@@ -1789,6 +1874,7 @@ function toroidal_flux, time, filename=filename, flux=flux, area=dAdpsi, $
    fa = replicate(0.,n_elements(fa_bz))
    fa[n_elements(fa)-1] = $
      fa_bz[n_elements(fa)-1]*area[n_elements(fa)-1]
+
    for i=n_elements(fa)-2,0,-1 do fa[i] = fa[i+1] + fa_bz[i]*area[i]
 
    return, fa
@@ -1869,8 +1955,8 @@ pro plot_flux_average, name, time, filename=filename, points=pts, $
        ytitle = "!6Toroidal Flux!3"
    endif else begin
 
-       field = read_field(name, slice=time, filename=filename, p=pts, time=t)
-       fa = flux_average(field, time, flux=flux, p=pts, filename=filename)
+       field = read_field(name,slice=time, filename=filename, p=pts, time=t)
+       fa = flux_average(field,slice=time,flux=flux,points=pts,file=filename)
 
        if(n_elements(title) eq 0) then begin
            title = translate(name)

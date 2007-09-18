@@ -77,7 +77,7 @@ end
 
 pro contour_and_legend, z, x, y, label=label, range=range, $
                           title=title, _EXTRA=ex, jpeg=jpeg, lines=lines, $
-                        nlevels=nlevels
+                        nlevels=nlevels, zlog=zlog
 
     sz = size(z, /dim)
     n = sz[0]
@@ -90,6 +90,11 @@ pro contour_and_legend, z, x, y, label=label, range=range, $
         title = strarr(n)
         title(*) = ''
     end
+    if(n_elements(zlog) eq 1) then begin
+        zlog = replicate(zlog, n)
+    endif else if(n_elements(zlog) eq 0) then begin
+        zlog = replicate(0, n)
+    endif
     if(n_elements(range) eq 0) then begin
         range = fltarr(2,n)
         for i=0, n-1 do range[*,i] = [min(z[i,*,*]), max(z[i,*,*])]
@@ -111,11 +116,11 @@ pro contour_and_legend, z, x, y, label=label, range=range, $
             if(n_elements(nlevels) eq 0) then begin
                 contour_and_legend_single, z[k,*,*], x, y, $
                   label=label[k], title=title[k], range=range[*,k], $
-                  lines=lines[k], _EXTRA=ex
+                  lines=lines[k], zlog=zlog[k], _EXTRA=ex
             endif else begin
                 contour_and_legend_single, z[k,*,*], x, y, $
                   label=label[k], title=title[k], range=range[*,k], $
-                  lines=lines[k], nlevels=nlevels[k], _EXTRA=ex
+                  lines=lines[k], nlevels=nlevels[k], zlog=zlog[k], _EXTRA=ex
             endelse
             !p.noerase = 1
             k = k + 1
@@ -158,9 +163,13 @@ end
 
 pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
                         isotropic=iso, lines=lines, range=range, $
-                        color_table=ct, _EXTRA = ex
+                        color_table=ct, zlog=zlog, _EXTRA = ex
 
-    z = reform(z)
+    zed = reform(z)
+    
+    if(keyword_set(zlog)) then begin
+        zed = zed > abs(min(zed,/abs))
+    endif
 
     if n_elements(lines) eq 0 then lines = 0
 
@@ -168,8 +177,8 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
         if lines eq 0 then nlevels=100 else nlevels=10
     endif
 
-    if n_elements(x) eq 0 then x = findgen(n_elements(z[*,0]))
-    if n_elements(y) eq 0 then y = findgen(n_elements(z[0,*]))
+    if n_elements(x) eq 0 then x = findgen(n_elements(zed[*,0]))
+    if n_elements(y) eq 0 then y = findgen(n_elements(zed[0,*]))
 
     region = !p.region
     if(region[2] eq 0.) then region[2]=1.
@@ -205,12 +214,16 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     if n_elements(label) eq 0 then label = ''
 
     if(n_elements(range) lt 2) then begin
-        minval = min(z)
-        maxval = max(z)
+        minval = min(zed)
+        maxval = max(zed)
     endif else begin
         minval = range[0]
         maxval = range[1]
     endelse
+
+    if(keyword_set(zlog) and minval le 0) then begin
+        minval = abs(min(zed, /absolute))
+    endif
 
     print, "maxval, minval = ", maxval, minval
     if(maxval le minval) then begin
@@ -218,10 +231,12 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
         return
     endif
 
-    levels = (maxval-minval)*findgen(nlevels+1)/(float(nlevels)) + minval
-
-    !x.style = 1
-    !y.style = 1
+    if(keyword_set(zlog)) then begin
+        levels = 10^(alog10(maxval/minval)*findgen(nlevels+1)/(float(nlevels))$
+                     + alog10(minval))
+    endif else begin
+        levels = (maxval-minval)*findgen(nlevels+1)/(float(nlevels)) + minval
+    endelse
 
     if(n_elements(ct) eq 0) then begin
         if(minval*maxval lt 0.) then loadct, 39 $
@@ -237,34 +252,35 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     zz = fltarr(2,nlevels+1)
     zz[0,*] = yy
     zz[1,*] = yy
-    !x.range=[xx[0],xx[n_elements(xx)-1]]
-    !y.range=[yy[0],yy[n_elements(yy)-1]]
+    xrange=[xx[0],xx[n_elements(xx)-1]]
+    yrange=[yy[0],yy[n_elements(yy)-1]]
 
-    contour, zz, xx, yy, nlevels=nlevels, /fill, ytitle=label, xtitle='', $
-      xticks=1, xtickname=[' ',' '], levels=levels, title=''
+    contour, zz, xx, yy, nlevels=nlevels, /fill, $
+      ytitle=label, xtitle='', $
+      xticks=1, xtickname=[' ',' '], levels=levels, title='', $
+      xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, ylog=zlog
 ;    contour, zz, xx, yy, /overplot, nlevels=nlevels, levels=levels
-
 
     ; Plot the countours
 
     !p.noerase = 1
 
-    !x.range=[x[0],x[n_elements(x)-1]]
-    !y.range=[y[0],y[n_elements(y)-1]]
+    xrange=[x[0],x[n_elements(x)-1]]
+    yrange=[y[0],y[n_elements(y)-1]]
 
     !p.region = [region[0], region[1], width+region[0], top+region[1]]
 
-    contour, z, x, y, /fill, levels=levels, nlevels=nlevels, _EXTRA=ex
+    contour, zed, x, y, /fill, levels=levels, nlevels=nlevels, $
+      xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, _EXTRA=ex
 
     if(keyword_set(lines)) then begin
-        contour, z, x, y, /overplot, levels=levels, nlevels=nlevels, _EXTRA=ex
+        contour, zed, x, y, /overplot, levels=levels, nlevels=nlevels, $
+          xrange=xrange, yrange=yrange, xstyle=1, ystyle=1,_EXTRA=ex
     endif
 
     !p.noerase = 0
     !p.charsize = charsize
     !p.region = 0
-    !x.range = 0
-    !y.range = 0
 end
 
 

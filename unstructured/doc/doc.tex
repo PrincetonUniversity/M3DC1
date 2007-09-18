@@ -1,0 +1,1097 @@
+\documentclass[draft]{book}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage[usenames]{color}
+\graphicspath{{figures/}}
+
+\newcommand{\dt}{\ensuremath{\delta t}}
+\newcommand{\ddt}[1]{\frac{\partial #1}{\partial t}}
+\newcommand{\thimp}{\ensuremath{\theta}}
+
+\newcommand{\order}[1]{\ensuremath{\mathcal{O}(#1)}}
+
+\renewcommand{\vec}[1]{\ensuremath{\mathbf{#1}}}
+\newcommand{\tensor}[1]{\mathsf{#1}}
+\newcommand{\tor}{\varphi}              % toroidal coordinate
+\newcommand{\B}{\vec{B}}
+\newcommand{\E}{\vec{E}}
+\newcommand{\R}{\vec{R}}
+\newcommand{\x}{\vec{x}}
+\renewcommand{\v}{\vec{v}}
+\renewcommand{\u}{\vec{u}}
+\newcommand{\F}{\vec{F}}
+\renewcommand{\j}{\vec{J}}
+\newcommand{\q}{\vec{q}}
+\newcommand{\g}{\vec{g}}
+\newcommand{\jn}{\frac{\j}{n}}
+\renewcommand{\P}{\tensor{\Pi}}
+\renewcommand{\b}{\vec{b}}
+\newcommand{\W}{\tensor{W}}
+\newcommand{\codename}{M3D-$C^1$}
+
+\newcommand{\grad}[1]{\nabla #1}
+\renewcommand{\div}[1]{\nabla \cdot #1}
+\newcommand{\curl}[1]{\nabla \times #1}
+
+\newcommand{\gs}[1]{\Delta^* #1}
+\newcommand{\lp}[1]{\nabla^2 #1}
+\newcommand{\pb}[2]{\left[#1,#2\right]}
+\newcommand{\ip}[2]{\left\langle  #1,#2\right\rangle}
+
+\newcommand{\cola}[1]{\textcolor{Red}{#1}}
+\newcommand{\colb}[1]{\textcolor{Blue}{#1}}
+
+\newcommand{\uvec}[1]{\ensuremath{\vec{\hat{#1}}}}
+\newcommand{\n}{\ensuremath{\uvec{n}}}
+
+
+\title{Documentation for \codename}
+\author{Nathaniel M. Ferraro}
+
+\begin{document}
+
+\maketitle
+
+\setcounter{tocdepth}{3}
+\tableofcontents
+
+\chapter{Model}
+
+\section{Extended-MHD}
+
+The extended-MHD model consists of the following equations:
+\begin{subequations} \label{eq:xmhd}
+\begin{eqnarray}
+  \label{eq:continuity}
+  \ddt{n} + \div n \u & = & D,
+  \\
+  \label{eq:momentum}
+  n \left( \ddt{\u} + \u \cdot \nabla \u \right) 
+  & = & \j \times \B - (\nabla p + \div \P) + \R + \F - \u D,
+  \\
+  \frac{1}{\Gamma-1} \left( \ddt{p} + \div{p\u} \right)
+  & = & -p \div\u +
+  \frac{d_i}{\Gamma-1}\jn\cdot\left(\nabla p_e -
+  \Gamma \frac{p_e}{n}\nabla n \right)
+  \\ & & \mbox{}
+  - \div{\q} + Q - \P:\nabla \u + d_i \P_e:\nabla \jn + \frac{1}{2} u^2 D,
+  \nonumber \\
+  \frac{1}{\Gamma-1} \left( \ddt{p_e} + \div{p_e\u} \right)
+  & = & -p_e \div\u +
+  \frac{d_i}{\Gamma-1}\jn\cdot\left(\nabla p_e -
+  \Gamma \frac{p_e}{n}\nabla n \right)
+  \\ & & \mbox{} 
+  - \div{\q_e} + Q_e - \P_e:\nabla \u + d_i \P_e:\nabla \jn,
+  \nonumber 
+  \\
+  \label{eq:Faraday}
+  \ddt{\B} & = & -\curl \E,
+  \\
+  \j & = &\curl \B,
+  \\
+  \label{eq:ohm}
+  \E + \u \times \B & = &  
+  \frac{d_i}{n} \left(\j\times\B - \nabla p_e 
+  - \div{\P_e} + \R + \F \right)
+\end{eqnarray}
+\end{subequations}
+
+
+\section{Scalar Form}
+
+
+The magnetic and velocity fields are written flux/potential form:
+\[
+\B = \grad{\psi} \times \grad{\tor} + I \grad{\tor},
+\quad
+\u = \grad{U} \times \grad{\tor} + V \grad{\tor} + \grad{\chi}.
+\]
+To get time-evolution equations for the scalar components of the
+velocity and magnetic field, one may act upon the momentum equation
+and Faraday's Law (equations (\ref{eq:momentum}) and
+(\ref{eq:Faraday})) with the operators
+\begin{eqnarray*}
+  -r^2 \grad{\tor} \cdot \curl{\mbox{}},\quad 
+  r^2 \grad{\tor} \cdot \mbox{},\quad \mbox{and }
+  \div{\mbox{}}.
+\end{eqnarray*}
+This yields
+\begin{subequations}
+\begin{eqnarray}
+  \label{eq:scalar_n}
+  \cola{\dot{n}} & \cola{=} & \cola{-\pb{n}{U}} - \ip{n}{\chi} 
+  - n \lp{\chi} + \cola{D_n \lp{n}}
+  \\
+  \label{eq:scalar_p}
+  \dot{p} & = & - \pb{p}{U} - \ip{p}{\chi} - \Gamma p \lp{\chi} 
+  - \frac{1}{n}\pb{I}{p_e} - \Gamma p_e \pb{I}{\frac{1}{n}} 
+  \\ & & \mbox{} + (\Gamma-1) (Q - \div\q )
+  \nonumber \\
+  \label{eq:scalar_pe}
+  \dot{p_e} & = & - \pb{p_e}{U} - \ip{p_e}{\chi} - \Gamma p_e \lp{\chi} 
+  - \frac{1}{n}\pb{I}{p_e} - \Gamma p_e \pb{I}{\frac{1}{n}} 
+    \\ & & \mbox{}
+  + (\Gamma-1) (Q_e - \div\q_e)
+  \nonumber \\
+  \label{eq:scalar_psi}
+  \cola{\dot{\psi}} & \cola{=} & \cola{-\pb{\psi}{U}} - \ip{\psi}{\chi} 
+  + \colb{\frac{1}{n}\pb{\psi}{I}}
+  + \cola{\eta \gs{\left(\psi - \lambda_B \gs{\psi} \right)}}
+  \\
+  \label{eq:scalar_I}
+  \colb{\dot{I}} & \colb{=} & \colb{- r^2 \pb{\frac{I}{r^2}}{U} 
+    - r^2 \pb{\psi}{\frac{V}{r^2}}} - I \gs{\chi} - \ip{I}{\chi}
+   \\ && \mbox{}
+  + \colb{r^2\pb{\frac{\gs{\psi}}{r^2 n}}{\psi}
+    + \frac{r^2}{2} \pb{\frac{1}{r^2 n}}{I^2}}
+  + r^2 \pb{\frac{1}{n}}{p_e}  \nonumber \\ && \mbox{}
+  + \colb{\eta \gs{\left(I - \lambda_B \gs{I} \right)}
+    + \ip{\eta}{I - \lambda_B \gs{I}}} 
+  \nonumber \\
+  \label{eq:scalar_U}
+  \lefteqn{\cola{n \gs{\dot{U}} + \ip{n}{\dot{U}}} - r^2
+  \pb{n}{\dot{\chi}}}\\
+  & = &
+  \cola{r^2 \pb{\frac{\gs{\psi}}{r^2}}{\psi}} 
+  + \colb{\frac{\left(I^2 \right)_z}{r^2}}
+  - \cola{r^2 \pb{n \frac{\gs{U}}{r^2}}{U}
+    - \frac{r^2}{2} \pb{\frac{\ip{U}{U}}{r^2}}{n}} \nonumber \\ && \mbox{}
+  - \colb{\frac{\left(n V^2 \right)_z}{r^2}}
+  - \ip{n \gs{U}}{\chi} - n \gs{U}\gs{\chi}
+  - r^2 \pb{n}{\pb{U}{\chi}} \nonumber \\ && \mbox{}
+  - \frac{1}{2} \pb{\ip{\chi}{\chi}}{n} 
+  - \cola{D \gs{U} -\ip{D}{U}} + r^2 \pb{D}{\chi}
+  \nonumber \\ &&
+  \cola{\mbox{}- r^2 \grad{\tor} \times (\F - \div \P)} \nonumber
+  \\
+  \label{eq:scalar_vz}
+  \colb{n \dot{V}} & \colb{=} & \colb{\pb{I}{\psi} - n \pb{V}{U}} 
+  - n\pb{V}{\chi}
+  - \colb{D V + r^2 \grad{\tor} \cdot (\F - \div\P)}
+  \\
+  \label{eq:scalar_chi}
+  \lefteqn{n \gs{\dot{\chi}} + \ip{n}{\dot{\chi}} + \pb{n}{\dot{U}}}\\ 
+  & = & - \lp{p} - \frac{1}{r^2} \left[(\gs{\psi})^2 +
+  \ip{\gs{\psi}}{\psi} \right]
+  - \frac{1}{2 r^2}\gs{\left(I^2\right)} \nonumber  \\ && \mbox{}
+  + \frac{1}{r^2} \left[ n (\gs{U})^2 + \ip{n \gs{U}}{U} \right]
+   \nonumber \\ && \mbox{} 
+  - \frac{1}{2} \left[n\lp{\left(\frac{\ip{U}{U}}{r^2}\right)}
+    + \ip{n}{\frac{\ip{U}{U}}{r^2}} \right] \nonumber \\ && \mbox{}
+  + \frac{1}{r}\left(\frac{n V^2}{r^2}\right)_r 
+  - n \lp{\pb{\chi}{U}}
+  - \pb{n \gs{U}}{\chi} + \ip{n}{\pb{U}{\chi}}
+   \nonumber \\ && \mbox{}
+  - \frac{1}{2} \left(n \ip{\chi}{\chi} + \ip{n}{\ip{\chi}{\chi}}
+  \right)
+  -\pb{D}{U} - D \lp{\chi} - \ip{D}{\chi} \nonumber \\
+  && \mbox{} + \div(\F - \div\P) \nonumber
+  \nonumber
+\end{eqnarray}
+\end{subequations}
+In the above, it has been assumed that the electron pressure tensor
+$\P_e$ is of the form specified in
+equation~(\ref{eq:electron_pressure_tensor}).  For compactness, the
+terms involving the ion pressure tensor $\P$, the heat flux density
+$\q$, the heat flux $Q$, and the external force $\F$ have not been
+expanded in the above equations.  The expanded, scalar forms of these
+terms are given in sections~\ref{sec:transport_coefficients} and
+\ref{sec:phenom_models}.
+
+The ``Poisson bracket'' and ``inner product'' operators
+are defined as
+\[ 
+\pb{a}{b} = \nabla \tor \cdot \grad{a} \times \grad{b}, 
+\quad
+\ip{a}{b} = \grad{a} \cdot \grad{b}
+\]
+and the Grad-Shafranov operator is
+\[
+\gs{a} = r^2 \div{\left(\frac{\grad{a}}{r^2}\right)}.
+\]
+
+
+\section{Transport Coefficients \label{sec:transport_coefficients}}
+
+
+\subsection{Density Source $D$}
+
+The density source term is assumed to have the form of a density
+diffusion, with some arbitrary density source
+\begin{eqnarray}
+  D = D_n \nabla^2 n + \sigma.
+\end{eqnarray}
+
+
+\subsection{Collisional Force $\R$}
+
+The collisional force is assumed to be of the form
+\begin{equation}
+  \label{eq:collisional_force}
+  \R = n \eta \j.
+\end{equation}
+
+
+\subsection{Pressure tensor $\P$ \label{sec:pressure_tensor}}
+A total pressure tensor of the form
+\begin{equation}
+  \P = \P^{v} + \P^{gv} + \P^d
+\end{equation}
+is assumed, where $\P^v$ and $\P^{gv}$ are respectively Braginskii's
+form of the parallel viscosity and gyroviscosity.  $\P^d$ is a general
+dissipative viscosity, which does not arise in Braginskii's model.
+\begin{eqnarray}
+  \P^{v} & = & \eta_0 \frac{p_i}{2 \nu_i} 
+    \left( \tensor{I} - 3 \b \b \right)
+    \left( \b \cdot \W \cdot \b \right)
+  \\
+  \label{eq:gyroviscosity}
+  \P^{gv} & = & \frac{p_i}{4 \omega_{c i}} \left\{
+    \b \times \W \cdot (\tensor{I} + 3 \b\b) +
+    \left[\b \times \W \cdot (\tensor{I} + 3 \b\b)\right]^\top
+    \right\}
+  \\
+  \label{eq:general_viscosity}
+  \P^{d} & = & -\mu \left(\grad{\u} + \grad{\u}^\top\right)
+   -2 \left(\mu_c - \mu \right)\ \tensor{I}\ \div{\u}.
+\end{eqnarray}
+The rate-of-strain tensor is
+\begin{displaymath}
+  \W = \nabla \u + (\nabla \u)^\top 
+  - \frac{2}{3}\ \tensor{I}\ \div{\u}.
+\end{displaymath}
+The choice of values for the general dissipative viscosity
+coefficients $\mu$ and $\mu_c$ is constrained by the positivity
+conditions $\mu > 0$ and $\mu_c > (2/3)\mu$.
+
+\begin{eqnarray}
+  -r^2 \grad{\tor} \cdot \curl{\div \P^d} & = & 
+   \gs{(\mu \gs{U})} + \gs{\ip{\mu}{U}} \\ 
+   && \mbox{} - \ip{\lp{\mu}}{U} -
+   \ip{\mu}{\gs{U}} - (\gs{\mu} + \lp{\mu})\gs{U} \nonumber \\
+   && - \mbox{} r^2 \left(\lp{\pb{\mu}{\chi}} - \pb{\gs{\mu}}{\chi}
+   - \pb{\mu}{\gs{\chi}} + 2 \pb{\mu}{\lp{\chi}} \right) \nonumber
+   \\
+   r^2 \grad \tor \cdot \div \P^d & = & \mu \gs{V} + r^2
+   \ip{\mu}{\frac{V}{r^2}}
+   \\
+   \div \div \Pi^d & = & 2 \lp{(\mu_c \lp{\chi})} + \lp\ip{\mu}{\chi}
+   \\  && \mbox{} - \ip{\lp\mu}{\chi} - \ip{\mu}{\lp\chi}
+   - 2 \lp\mu\lp\chi \nonumber
+   \\ && \mbox{}  + \lp\pb{\mu}{U} - \pb{\lp\mu}{U} + \pb{\mu}{\gs{U}}
+   \nonumber
+\end{eqnarray}
+
+
+\subsection{Electron Pressure Tensor $\P_e$ 
+  \label{sec:electron_pressure_tensor}}
+
+The electron pressure tensor is assumed to take the form
+\begin{equation}
+  \label{eq:electron_pressure_tensor}
+  \P_e = \lambda \eta n \grad{\j}.
+\end{equation}
+This term is effectively a hyper-resistivity, as its inclusion in the
+generalized Ohm's law (equation~(\ref{eq:ohm})) results in a
+biharmonic operator acting on the magnetic field in Faraday's law.  In
+the electron pressure equation, $\P_e$ gives rise to viscous heating
+of electrons:
+\begin{equation}
+  d_i \P_e : \grad{\frac{\j}{n}} = d_i \lambda\frac{1}{r^2}
+  \left\{ \ip{\frac{\gs\psi}{r}}{\frac{\gs\psi}{r}} +
+  \frac{(\gs\psi)^2}{r^4} +
+  
+\end{equation}
+
+
+
+\subsection{Heat Flux $\q$, $\q_e$}
+
+The heat flux density allows for general isotropic and field-aligned
+thermal diffusion.
+\begin{eqnarray}
+  \label{eq:heat_flux}
+  \q & = & -\kappa \grad{T} - \kappa_\parallel \b \b \cdot \grad{T}\\
+  \q_e & = & -\kappa \grad{T_e} - \kappa_\parallel \b \b \cdot \grad{T_e}.
+\end{eqnarray}
+The divergence of the heat flux density, in scalar form, is
+\begin{eqnarray}
+  -\div \q & = & \kappa \lp{T} + \ip{\kappa}{T} 
+  + \pb{\psi}{\kappa_\parallel \frac{\pb{\psi}{T}}{B^2}}
+\end{eqnarray}
+
+\subsection{Collisional Heating $Q$, $Q_e$}
+
+Collisional heating is assumed to be due to collisional friction and
+viscosity:
+\begin{eqnarray*}
+  Q_e & = & - \eta J^2 + \frac{1}{n} \P_e : \j - Q_\Delta,\\
+  Q   & = & - \eta J^2 + \frac{1}{n} \P_e : \j - \P : \u.
+\end{eqnarray*}
+The equipartition term, $Q_\Delta = 3 (m_e/m_i) \nu_e (p_e - p_i)$, is
+due to the flow of heat from the hotter to the cooler specie, and does
+not contribute to $Q$.  The term $\P_e : \j / n$ represents electron
+viscous heating, and $\P : \u$ represents ion viscous heating.  Note
+that $\P^{gv} : \u = 0$, so gyroviscosity does not result in viscous
+heating.
+
+
+\section{Phenomenological Models \label{sec:phenom_models}}
+
+\subsection{Gravity}
+
+Gravity is implemented separately from other momentum sources in order
+that the density factors in the gravity terms may be analytically
+expanded in the velocity advance.  This increases the value of the
+maximum stable timestep when simulating gravitational instabilities
+such as the Rayleigh-Taylor instability.
+\begin{equation}
+  \F_g = n \g = -\frac{n g_r}{r^2}\uvec{r} - n g_z \uvec{z}
+\end{equation}
+\begin{eqnarray*}
+  -r^2 \grad \tor \cdot \curl \F_g & = & \frac{g_r \partial_z n}{r} 
+  - r g_z \partial_r n,
+  \\
+  r^2 \tor \cdot \F_g & = & 0,
+  \\
+  \div{\F_g} & = & - \frac{g_r}{r} \frac{\partial}{\partial_r} \left(
+  \frac{n_x}{r} \right) - g_z \partial_z n.
+\end{eqnarray*}
+
+\subsection{Ohmic Heating/Current Drive}
+
+Ohmic heating and current drive is modelled by the application of a
+loop voltage $V_L$ at the boundary of the simulation domain.  This is
+implemented by ramping up the value of $\psi$ on the boundary at a
+constant rate, $\partial_t \psi = V_L/(2 \pi)$.
+
+\subsection{Pellet Injection \label{sec:pellet_injection}}
+
+Pellet injection in \codename is simplistically modelled by the
+inclusion of a density source centered at a specified location, $(r_p,
+z_p)$.  The density source is axisymmetric, with a Gaussian poloidal
+cross-section, having constant, arbitrary rate ($\alpha_p$) and
+variance ($l_p$).  Specfically,
+\begin{equation}
+  \sigma_p = \frac{\alpha_{p}}{2 \pi l_{p}^2}
+  \exp \left[ -\frac{(r-r_p)^2 + (z-z_p)^2}{2 l_p^2}\right].
+\end{equation}
+It is assumed that the injected plasma is cold and stationary, and
+therefore there is no associated energy or momentum source.
+
+
+\subsection{Ionization of neutrals \label{sec:ionization}}
+
+A model simulating the ionization of an ambient neutral gas is
+included in \codename as follows.  It is assumed that the density
+source due to this ionization takes the form
+\begin{equation}
+  \sigma_i = \alpha_i \frac{n_n}{n_{n 0}} e^{-E_i / T},
+\end{equation}
+where $n_n$ is the neutral density, $E_i$ is the ionization energy,
+and $\alpha_i$ is a free ionization rate coefficient.  Since the
+neutral density is not physically evolved in \codename, it is assumed
+that the neutral density is constant in regions where $T < T_0$, and
+decreases exponentially with temperature in hotter regions:
+\begin{equation}
+  n_n =
+  \begin{cases}
+    n_{n 0} & \text{if $T \le E_i$}\\
+    n_{n 0} e^{-(T - E_i) / l_i} & \text{if $T > E_i$}
+  \end{cases},
+\end{equation}
+where $l_i$ is the temperature scale-length of the neutral burn-out.
+It is assumed that the newly ionized plasma is cold and stationary,
+and therefore there is no associated energy or momentum source.
+
+
+
+\subsection{Toroidal Current Controller \label{sec:current_controller}}
+
+In order to reach a steady state, current lost through resistive
+dissipation must be offset by some form of current drive.  A feedback
+loop which adjusts the rate of current drive in response to changes in
+toroidal current allows the toroidal current to be maintained at a
+steady level.  A PID (proportional, integral, derivative) controller
+is implemented in \codename which accomplishes this by adjusting the
+loop voltage $V_L$ at each time step in the following way:
+\begin{equation}
+  V_L^{(n+1)} = V_L^{(n)} - \dt\, V_L \left\{ c_p (I_p - I_0) + c_i
+  \int_0^t dt'\,[I_p(t') - I_0] + c_d \ddt{I_p} \right\},
+\end{equation}
+where $I_p$ is the total toroidal current and $I_0$ is the target
+toroidal current.  The parameters $c_p$, $c_i$, and $c_d$ determine
+the response of the feedback loop.
+
+
+\section{Energy Conservation}
+
+Equations~(\ref{eq:xmhd}) obey the energy density equation
+\begin{eqnarray}
+ \lefteqn{\ddt{}\left(\frac{1}{2}B^2 + \frac{1}{2}n u^2 + \frac{1}{\Gamma-1}p
+  \right)} \nonumber \\ & & \mbox{}+ \div{\left[
+      \frac{\Gamma}{\Gamma-1} \left(p \u - d_i p_e \jn\right)
+      + \E \times \B + \P \cdot \u - d_i \P_e \cdot \jn
+      + \frac{1}{2} n u^2 \u + \q \right]} \nonumber
+ \\ & & = \F \cdot \u \label{eq:energy}
+\end{eqnarray}
+
+The terms acted upon by the divergence operator represent power
+density fluxes.  Integrating equation~(\ref{eq:energy}) over the
+volume enclosed by the simulation domain shows that, in the absence of
+external work done on the system ($\F \cdot \u$), energy is conserved,
+less the power carried out of the volume by these fluxes.  Each of
+these power density fluxes is described in the following sections, as
+well as their contribution to the overall power flux out of the
+boundary under various boundary conditions.
+
+\subsection{Advective Thermal Flux}
+
+The first of the terms within the divergence operator in
+equation~(\ref{eq:energy}) represents the advective flux of thermal
+energy per unit time.
+\begin{equation}
+  \frac{\Gamma}{\Gamma - 1} \div \left[ p \u - p_e \frac{\j}{n}
+  \right] = \frac{\Gamma}{\Gamma - 1} \left( 
+  p \lp\chi + \ip{p}{\chi} + \pb{p}{U} - d_i \pb{T_e}{I} \right)
+\end{equation}
+The total power flux due to the advective thermal flux is
+\begin{eqnarray*}
+  \frac{\Gamma}{\Gamma - 1} \int dV\ \div 
+  \left( p \u - p_e \frac{\j}{n} \right) 
+  & = & \frac{\Gamma}{\Gamma - 1} \int dS\ \uvec{n} \cdot
+  \left( p \u - p_e \frac{\j}{n} \right) \\ 
+  & = & \frac{\Gamma}{\Gamma - 1} \int dS\ 
+  \left( p \uvec{n} \cdot \u - \frac{1}{r} T_e \uvec{t}\cdot \grad I \right).
+\end{eqnarray*}
+This flux vanishes when both no-normal-flow ($\uvec{n} \cdot \u =
+0$) and no-normal-current ($\uvec{n} \cdot \j = \uvec{t} \cdot \grad I
+= 0$) boundary conditions are enfoced.
+
+\subsection{Poynting Flux}
+
+The second term represents the flux of electromagnetic energy per unit
+time.  In the case where $\E$ is determined by the generalized Ohm's
+law, equation~(\ref{eq:ohm}), on the boundary,
+\begin{eqnarray}
+  \div (\E\times\B) & = & -\frac{1}{r^2} 
+  \left[\eta (\gs{\psi})^2 + \ip{\eta \gs\psi}{\psi}
+    + \eta I \gs{I} + \ip{\eta I}{I} \right]
+  \\ && \mbox{}
+  + \frac{1}{r^2}\left(\gs\psi\pb{\psi}{U} 
+  + \ip{\pb{\psi}{U}}{\psi} \right)
+  + \pb{\frac{I^2}{r^2}}{U}
+  \nonumber \\ && \mbox{}
+  + \pb{\psi}{\frac{1}{r^2} I V}
+  \nonumber \\ && \mbox{}
+  + \frac{1}{r^2}\left(\gs\psi\ip{\psi}{\chi}
+  + \ip{\ip{\psi}{\chi}}{\psi} \right)
+  + \frac{1}{r^2}\left(I^2\gs\chi + \ip{I^2}{\chi}\right)
+  \nonumber \\ && \mbox{}
+  + I \pb{\psi}{\frac{\gs{\psi}}{r^2 n}}
+  + \frac{1}{r^2} \ip{\frac{\pb{I}{\psi}}{n}}{\psi}
+  + I^2 \pb{I}{\frac{1}{r^2 n}} 
+  + \pb{p_e}{\frac{I}{n}} \nonumber
+\end{eqnarray}
+where terms due to $\Pi_e$ have been omitted.  However, if the
+boundary conditions are such that $\E = -\frac{V_L}{2 \pi} \grad\tor$
+(as is the case with perfectly-conducting boundaries with ohmic
+heating), then, on the boundary
+\begin{equation}
+  \uvec{n} \cdot (\E\times\B) = 
+  -\frac{V_L}{2 \pi r^2} \uvec{n} \cdot \grad\psi.
+\end{equation}
+The total power flux out of boundaries is then
+\begin{eqnarray*}
+  \int dV\ \div (\E\times\B) 
+  & = & \oint dS\ \uvec{n} \cdot (\E\times\B) \\
+  & = & -\oint dS\ \uvec{n} \cdot \frac{V_L}{2 \pi r^2} \grad\psi \\
+  & = & -\int dV\ \frac{V_L}{2 \pi r^2} \gs\psi\\
+  & = & I_p V_L,
+\end{eqnarray*}
+where $I_p$ is the total toroidal current within the boundaries
+
+
+\subsection{Advective Kinetic Flux}
+
+The fifth term represents the advective flux of kinetic energy per
+unit time.
+\begin{eqnarray*}
+  \lefteqn{\div \left(\frac{1}{2} n u^2 \u \right)}  \\
+  & = & 
+  \frac{1}{2} \left(\frac{\ip{U}{U}}{r^2} + \frac{V^2}{r^2} +
+  \ip{\chi}{\chi} + 2\pb{\chi}{U}\right) \left(n \lp \chi +
+  \ip{n}{\chi} + \pb{n}{u} \right) 
+   \\ & & \mbox{} 
+  + \frac{1}{2} n \pb{\frac{\ip{U}{U}}{r^2}}{U}
+  + \frac{1}{2} n \ip{\frac{\ip{U}{U}}{r^2}}{\chi}
+  + n \pb{U}{\pb{U}{\chi}}
+   \\ & & \mbox{} 
+  + \frac{1}{2} n \pb{\frac{V^2}{r^2}}{U}
+  + \frac{1}{2} n \ip{\frac{V^2}{r^2}}{\chi}
+   \\ & & \mbox{} 
+  + \frac{1}{2} n \ip{\ip{\chi}{\chi}}{\chi}
+  + \frac{1}{2} n \pb{\ip{\chi}{\chi}}{U}
+  + n \ip{\pb{\chi}{U}}{\chi}.
+\end{eqnarray*}
+Of course, in the case of no-slip or no-normal-flow boundary
+conditions, 
+\begin{equation}
+  \frac{1}{2} \int dV\ \div \left(n u^2 \u\right) = 
+  \frac{1}{2} \oint dS\ n u^2 \uvec{n} \cdot \u
+  = 0.
+\end{equation}
+
+
+\subsection{Heat flux}
+
+The final term represents the heat flux:
+\begin{eqnarray*}
+  \div \q & = & -\kappa \lp{T} - \ip{\kappa}{T} 
+  - \pb{\psi}{\kappa_\parallel \frac{\pb{\psi}{T}}{B^2}}
+\end{eqnarray*}
+The total energy flux due to the divergence of the heat flux density
+is
+\begin{eqnarray*}
+  \int dV\ \div \q & = & 
+  \oint dS\ \uvec{n} \cdot \left(-\kappa \grad T 
+   - \kappa_\parallel \frac{\B \B}{B^2} \cdot \grad T\right)
+   \\
+   & = & \oint dS\ \left(-\kappa \uvec{n} \cdot \grad T 
+   - \frac{1}{r} \kappa_\parallel \uvec{t}\cdot \grad \psi 
+   \frac{\B}{B^2} \cdot \grad T\right),
+\end{eqnarray*}
+the isotropic diffusion part of which vanishes in the case of
+no-normal-tem\-per\-a\-ture-grad\-i\-ent boundary conditions.
+
+\chapter{Discretization}
+
+\section{Finite Elements}
+
+Each field is represented as a linear combination of $N$ basis
+functions $\nu_i$ on the computational domain
+\[ U = \sum_{i=1}^N \nu_i U_i. \]
+The finite element used in \codename is the reduced quintic element
+\cite{Jardin04}, in which the basis functions are fifth order
+polynomials.  At each time step, the projection of the equations onto
+the basis functions are computed and solved.  For example, the
+equation
+\[ \ddt{U} = F(U) \]
+becomes the system of projection equations
+\[ \int dA\ \nu_i \ddt{U} = \int dA\ \nu_i F(U) \]
+These projections equations are known collectively as the \emph{weak
+form} of the equation.  Solving the equation in this manner is known
+as the \emph{Galerkin method}.
+
+\subsection{Mesh}
+
+
+\subsection{Spatial Integration}
+
+The integrals required to calculate the weak-form equations of the
+Galerkin method are computed numerically using a 79-point Gaussian
+quadrature.  That is, the value of each field is calculated at 79
+points for each triangular element, and a weighted sum of these values
+is computed to approximate the integral.
+\[
+  \int dA\ f(x) \simeq \sum_{i=1}^{79} w_i f(x_i),
+\]
+where the integrand $f(x)$ is restricted to a single element.  The
+sampling points and weights appropriate for a equilateral triangle are
+taken from ref.~\cite{Dunavant85}.
+
+The coordinates of the sampling points are given in the ``natural
+coordinates'' $(\alpha, \beta, \gamma)$ in ref.~\cite{Dunavant85}.
+These coordinates may be converted to cartesian coordinates $(r, z)$
+for an equilateral triangle $e$ having vertices
+\[
+\left\{\left(-\frac{\sqrt{3}}{2},-\frac{1}{2}\right),
+\left(\frac{\sqrt{3}}{2},-\frac{1}{2}\right), (0,1)\right\} 
+\]
+using the linear transformation
+\[ 
+\phi_{n \to e}(\alpha, \beta, \gamma) = 
+\left(\frac{\sqrt{3}}{2}(\beta-\gamma), \frac{1}{2}(3 \alpha - 1)
+\right).
+\]
+The weights must be multiplied by the Jacobian of this transformation,
+\[
+\mathcal{J}_{\phi_{n \to e}} = \frac{3 \sqrt{3}}{4}.
+\]
+To find the coordinates of the sampling points for a general triangle
+$g$ having vertices $\{(-b,0), (a,0), (0,c)\}$, as in
+ref.~\cite{Jardin04}, one may use the linear transformation
+\begin{eqnarray*}
+  \phi_{e \to g}(r,z) & = & 
+    \left(\frac{a+b}{\sqrt{3}} x + \frac{a-b}{3} (1-y), 
+    \frac{c}{3}(2y+1) \right) \\
+  \mathcal{J}_{\phi_{e \to g}} & = &  \frac{2 c}{3 \sqrt{3}} (a+b).
+\end{eqnarray*}
+The transformation from natural coordinates to cartesian coordinates
+for a triangle having vertices $\{(-b,0), (a,0), (0,c)\}$ is therefore
+\begin{eqnarray*}
+  \phi_{n \to g}(r,z) & = & 
+  \left(\frac{1}{2} (a+b) (\beta-\gamma) +
+  \frac{1}{2} (a-b)(1-\alpha), c \alpha \right) \\
+  \mathcal{J}_{\phi_{n \to g}} & = & \frac{1}{2} (a+b) c.
+\end{eqnarray*}
+
+The 79-point quadrature gives the exact results for integrands which
+are polynomials of degree 20 (or less).  In the case of quintic finite
+elements, this means the integration is exact for terms involving
+products of three fields or fewer, not including the degree-five
+trial function $\nu_i$.  In cylindrical geometry, the presence factors
+of $1/r$ will cause the quadrature not to be exact, as $1/r$ is not in
+the form of a polynomial.  The weights $w_i$ must also be multiplied
+by $r_i$ in cylindrical coordinates to account for the Jacobian of the
+transformation from cartesian to cylindrical coordinates.
+
+
+
+\section{Time step}
+
+Time is advanced using a split time-step method in which the velocity
+field is advanced first, then the density and total pressure fields
+are advanced separately, and finally the magnetic field and electron
+pressure are advanced together.  Though the velocity and magnetic
+field are advanced separately, the Alfv\'en and magnetosonic waves are
+treated implicitly by using
+equations~(\ref{eq:scalar_p}--\ref{eq:scalar_I}) to calculate
+analytically the advanced-time values of the pressure and magnetic
+field for use in the velocity time step.
+
+\begin{eqnarray}
+  \label{eq:velocity_advance}
+  \lefteqn{
+  \begin{pmatrix}
+    \cola{S^v_{1 1}} & \colb{S^v_{1 2}} & S^v_{1 3}\\
+    \colb{S^v_{2 1}} & \colb{S^v_{2 2}} & S^v_{2 3}\\
+          S^v_{3 1}  &       S^v_{3 2}  & S^v_{3 3}\\
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \cola{U}\\ \colb{V}\\ \chi
+  \end{pmatrix}^{(n+1)}}\\
+  & = & 
+  \begin{pmatrix}
+    \cola{D^v_{1 1}} & \colb{D^v_{1 2}} & D^v_{1 3}\\
+    \colb{D^v_{2 1}} & \colb{D^v_{2 2}} & D^v_{2 3}\\
+          D^v_{3 1}  &       D^v_{3 2}  & D^v_{3 3}\\
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \cola{U}\\ \colb{V}\\ \chi
+  \end{pmatrix}^{(n)}
+  + 
+  \begin{pmatrix}
+    \cola{R^v_{1 1}} & \colb{R^v_{1 2}} & R^v_{1 3}\\
+    \colb{R^v_{2 1}} & \colb{R^v_{2 2}} & R^v_{2 3}\\
+          R^v_{3 1}  &       R^v_{3 2}  & R^v_{3 3}\\
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \cola{\psi}\\ \colb{I}\\ p
+  \end{pmatrix}^{(n)} \nonumber
+  \\ & & \mbox{} + 
+  \begin{pmatrix}
+    \cola{O^v_{1}}\\
+    \colb{O^v_{2}}\\
+          O^v_{3} \\
+  \end{pmatrix} \nonumber
+\end{eqnarray}
+
+\begin{eqnarray}
+  \label{eq:density_advance}
+  S^N n^{(n+1)} & = & D^N n^{(n)} + 
+  \begin{pmatrix} R^N_1 & R^N_2 & R^N_3\end{pmatrix}
+  \begin{pmatrix}\cola{U}\\ \colb{V}\\ \chi\end{pmatrix}^{(n+1)}
+  \\ & & \mbox{} + 
+  \begin{pmatrix}Q^N_1    &   Q^N_2   & Q^N_3\end{pmatrix}
+  \begin{pmatrix}\cola{U}\\ \colb{V}\\ \chi\end{pmatrix}^{(n)} \nonumber
+\end{eqnarray}
+
+
+\begin{eqnarray}
+  \label{eq:pressure_advance}
+  S^P p^{(n+1)} & = & D^P p^{(n)} + 
+  \begin{pmatrix}R^P_1 & R^P_2 & R^P_3\end{pmatrix}
+  \begin{pmatrix}\cola{U}\\ \colb{V}\\ \chi \end{pmatrix}^{(n+1)}
+  \\ & & \mbox{} + 
+  \begin{pmatrix}Q^P_1 & Q^P_2 & Q^P_3\end{pmatrix}
+  \begin{pmatrix}\cola{U}\\ \colb{V}\\ \chi \end{pmatrix}^{(n)} \nonumber
+\end{eqnarray}
+
+
+\begin{eqnarray}
+  \label{eq:field_advance}
+  \lefteqn{
+  \begin{pmatrix}
+    \cola{S^B_{1 1}} & \colb{S^B_{1 2}} & S^B_{1 3}\\
+    \colb{S^B_{2 1}} & \colb{S^B_{2 2}} & S^B_{2 3}\\
+          S^B_{3 1}  &       S^B_{3 2}  & S^B_{3 3}\\
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \cola{\psi}\\ \colb{I}\\ p_e
+  \end{pmatrix}^{(n+1)}}\\
+  & = & 
+  \begin{pmatrix}
+    \cola{D^B_{1 1}} & \colb{D^B_{1 2}} & D^B_{1 3}\\
+    \colb{D^B_{2 1}} & \colb{D^B_{2 2}} & D^B_{2 3}\\
+          D^B_{3 1}  &       D^B_{3 2}  & D^B_{3 3}\\
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \cola{\psi}\\ \colb{I}\\ p_e
+  \end{pmatrix}^{(n)} +
+  \begin{pmatrix}
+    \cola{R^B_{1 1}} & \colb{R^B_{1 2}} & R^B_{1 3}\\
+    \colb{R^B_{2 1}} & \colb{R^B_{2 2}} & R^B_{2 3}\\
+          R^B_{3 1}  &       R^B_{3 2}  & R^B_{3 3}\\
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \cola{U}\\ \colb{V}\\ \chi
+  \end{pmatrix}^{(n+1)} \nonumber
+  \\ & & \mbox{} +
+  \begin{pmatrix}
+    \cola{Q^B_{1 1}} & \colb{Q^B_{1 2}} & Q^B_{1 3}\\
+    \colb{Q^B_{2 1}} & \colb{Q^B_{2 2}} & Q^B_{2 3}\\
+          Q^B_{3 1}  &       Q^B_{3 2}  & Q^B_{3 3}\\
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \cola{U}\\ \colb{V}\\ \chi
+  \end{pmatrix}^{(n)} +
+  \begin{pmatrix}
+    \cola{O^B_{1}}\\
+    \colb{O^B_{2}}\\
+          O^B_{3} \\
+  \end{pmatrix} \nonumber
+\end{eqnarray}
+
+\subsubsection{Linear Calculations}
+
+Linear calculations may be performed by calculating each matrix once,
+and recalculating the matrix-vector products each time step with the
+updated vectors.  This method is very efficient because the $S$
+matrices need only be inverted once, and in all subsequent time steps
+the only matrix operations carried out are addition and matrix-vector
+multiplication.  Non-linear simulations require all the matrices to be
+recalculated each time step, and the $S$ matrices must be inverted
+each time step.
+
+\subsubsection{Implementation of Electron Pressure Equation}
+
+Because it is the electron pressure which appears in the generalized
+Ohm's law, equation~(\ref{eq:ohm}), if the electron pressure equation
+is retained, it is solved with the magnetic field as the third row in
+equation~(\ref{eq:field_advance}) so as to keep the fast magnetosonic
+wave implicit.  In this case, the full pressure is evolved
+independently in equation~(\ref{eq:pressure_advance}).  If the
+electron pressure equation is not included, the third row in
+equation~(\ref{eq:field_advance}) is the total pressure equation, and
+the electron pressure is assumed to remain always at a specific
+fraction of the total pressure, which is determined by the initial
+conditions.
+
+
+\subsection{Crank-Nicholson}
+
+The Crank-Nicholson time step is defined by the following discretization:
+\begin{eqnarray*}
+  \frac{\partial U}{\partial t} & \to & 
+  \frac{U^{(n+1)} - U^{(n)}}{\dt}\\
+  U & \to & \thimp U^{(n+1)} + (1-\thimp) U^{(n)}.
+\end{eqnarray*}
+By Taylor expanding about $U$,
+\begin{eqnarray*}
+  U^{(n+1)} & = & U + \thimp\,\dt\,\dot{U} + \frac{1}{2} \thimp^2 \dt^2
+  \ddot{U} + \frac{1}{6} \thimp^3 \dt^3 \dddot{U}+ \cdots
+  \\
+  U^{(n)} & = & U + (\thimp-1) \dt\, \dot{U} + \frac{1}{2} (\thimp-1)^2 \dt^2
+  \ddot{U} + \frac{1}{6} (\thimp-1)^3 \dt^3 \dddot{U} + \cdots
+\end{eqnarray*}
+the trunctation error of the time-derivative operator can be
+calculated directly:
+\begin{eqnarray*}
+  \Delta_{CN}(\dt, \thimp) & = & \frac{U^{(n+1)} - U^{(n)}}{\dt} -
+ \dot{U}
+ \\ 
+ & = & 
+  \left( \thimp-\frac{1}{2} \right) \dt\,\ddot{U}
+  + \frac{1}{2} \left(\thimp^2 - \thimp + \frac{1}{3} \right) \dt^2 \dddot{U}
+  + \cdots.
+\end{eqnarray*}
+When $\thimp=1/2$, the time differencing is ``time-centered'' because
+the two points involved in the time differencing are equidistant in
+the logical time coordinate from the point at which the field itself
+is evaluated.  In this case, the leading-order truncation error is
+$\order{\dt^2}$:
+\begin{equation}
+  \Delta_{CN}(\dt, \thimp=1/2) = \frac{1}{24} \dt^2 \dddot{U} + \cdots.
+\end{equation}
+
+\subsection{BDF2}
+
+The BDF2 time step is defined by the following discretization:
+\begin{eqnarray*}
+  \frac{\partial U}{\partial t} & \to & 
+  \frac{3 U^{(n+1)} - 4 U^{(n)} + U^{(n-1)}}{2\,\dt}\\
+  U & \to & U^{(n+1)}.
+\end{eqnarray*}
+Taylor expanding about $U$:
+\begin{eqnarray*}
+  U^{(n+1)} & = & U
+  \\
+  U^{(n)} & = & U - \dt\, \dot{U} + \frac{1}{2} \dt^2 \ddot{U} 
+  - \frac{1}{6} \dt^3 \dddot{U} + \cdots
+  \\
+  U^{(n-1)} & = & U - 2\,\dt\, \dot{U} + 2\,\dt^2 \ddot{U} 
+  - \frac{4}{3} \dt^3 \dddot{U} + \cdots
+\end{eqnarray*}
+and the truncation error is
+\begin{equation}
+  \Delta_{BDF2}(\dt) = 
+  \frac{3 U^{(n+1)} - 4 U^{(n)} + U^{(n-1)}}{2\,\dt} - \dot{U} = 
+  - \frac{1}{3} \dt^2 \dddot{U}
+  + \cdots.
+\end{equation}
+
+\section{Reduced Models}
+
+The full extended-MHD equations contain as subsets simpler, fully
+consistent, energy-conserving (up to dissipative terms) fluid models.
+Because of the flux/po\-ten\-tial repreresentation of the fields, these
+models may be obtained simply by dropping some of the scalar equations
+from the full system.  Specifically, by dropping the density,
+pressure, electron pressure and compression equations, the four-field
+model of Fitzpatrick and Porcelli~\cite{Fitzpatrick04} is recovered.
+This model is represented by the terms in blue and red.  By further
+dropping the axial field and axial velocity equations, a two-field
+model appropriate in the low-$\beta$, high axial field limit is
+recovered (indicated by red terms).
+
+
+\section{Boundary Conditions}
+
+Boundary conditions are imposed on each of the scalar fields
+separately.  The following boundary conditions have been implemented:
+
+\begin{description}
+\item[No normal flow]
+  \[ \uvec{t} \cdot \grad U = 0  \mbox{ \emph{and} }
+     \uvec{n} \cdot \grad\chi = 0. \]
+\item[No toroidal slip \emph{or} No normal stress]
+  \[ \partial_t V = 0 \mbox{ \emph{or} } \uvec{n} \cdot \grad V = 0 \]
+\item[No vorticity]
+  \[ \gs{U} = 0 \]
+\item[No compression]
+  \[ \lp{\chi} = 0 \]
+\item[Conducting boundaries]
+  \[ \partial_t \psi = V_L / (2 \pi) \mbox{ \emph{and} } \partial_t I = 0 \]
+\item[No toroidal current]
+  \[ \gs{\psi} = 0 \]
+\item[No tangential current]
+  \[ \uvec{n} \cdot \grad I = 0 \]
+\item[Constant pressure \emph{or} No diffusive pressure flux]
+  \[ \partial_t p = 0 \mbox{ \emph{or} } \uvec{n} \cdot \grad p = 0 \]
+\item[Constant density \emph{or} No diffusive density flux]
+  \[ \partial_t n = 0 \mbox{ \emph{or} } \uvec{n} \cdot \grad n = 0 \]
+\end{description}
+In the above definitions, $\uvec{n}$ is the unit vector normal to the
+boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
+
+
+
+
+\chapter{Running \codename}
+
+\section{Input Parameters}
+
+\subsection{Model Options}
+
+\begin{tabular}{llll}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{numvar} & 3   & MHD model. 1: 2-field;  2: 4-Field;  3: 6-Field.\\
+  \texttt{idens}  & 1   & 1: include density equation\\
+  \texttt{ipres}  & 0   & 1: include electron pressure equation\\
+  \texttt{gyro}   & 0   & 1: include gyroviscous term\\
+  \texttt{itor}   & 0   & 0: cartesian; 1: cylindrical\\
+  \texttt{linear} & 0   & \parbox[t]{3in}{1: linear (perturbation terms only,
+    no matrix  recalculation)}\\
+  \texttt{eqsubtract}& 0& 1: perturbation terms only\\
+  \texttt{isource}   & 0& 1: include ``source'' terms in velocity
+    advance\\
+\end{tabular}
+
+
+\subsection{Initial Conditions Options}
+
+\begin{tabular}{llll}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{irestart} & 0 & 1: Read initial conditions from restart file(s)\\
+  \texttt{itaylor}  & 0 & \parbox[t]{2in}{Determines initial
+  conditions.\\
+  0: Tilting cylinder\\
+  1: Taylor Reconnection\\
+  2: Force-Free equilibrium\\
+  3: GEM Reconnection\\
+  4: Wave Propagation\\
+  5: Gravitational Instability\\}
+\end{tabular}
+
+
+
+\subsection{Physical Parameters}
+
+\begin{tabular}{llll}
+  \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{db}     & $d_i$   & 0   & Ion skin depth\\
+  \texttt{gravr}, \texttt{gravz} & \vec{g} & 0 & \parbox[t]{1.8in}{Gravity.\\
+                       $\vec{g} = -(\mathtt{gravr}/r^2) \uvec{r} 
+                                  - \mathtt{gravz}\ \uvec{z}$.}
+\end{tabular}
+
+
+\subsection{Transport Coefficients}
+
+\begin{tabular}{llll}
+  \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{gam}    & $\Gamma$& 5/3 & Adiabatic constant\\
+  \texttt{denm}   & $D_n$   & 0   & Density diffusion coefficient\\
+  \texttt{amu}    & $\mu$   & 0   & Shear viscosity coefficient\\
+  \texttt{amuc}   & $\mu_c$ & 0   & Shear viscosity coefficient\\
+  \texttt{etar}, \texttt{eta0}
+                  & $\eta$  & 0   & Resistivity.  
+                  $\eta = \mathtt{etar} + \mathtt{eta0}/T^{3/2}$\\
+  \texttt{kappat}, \texttt{kappa0}
+                  & $\kappa$& 0   &  \parbox[t]{1.9in}
+	          {Isotropic thermal conductivity.\\
+                  $\kappa = \mathtt{kappat} + \mathtt{kappa0}\ p/T^{3/2}$}\\
+  \texttt{deex}   & & 0 & \parbox[t]{1.9in}{Hyper-diffusive scale length\\
+    (All \texttt{hyper}* quantities are multiplied by \texttt{deex}$^2$).}\\
+  \texttt{hyper}  & $\lambda$ & 0 & Poloidal hyper-resistive coefficient\\
+  \texttt{hyperi} & $\lambda$ & 0 & Toroidal hyper-resistive coefficient\\
+  \texttt{hyperc} & & 0 & Poloidal hyper-viscous coefficient\\
+  \texttt{hyperv} & & 0 & Toroidal hyper-viscous coefficient\\
+  \texttt{hyperp} & & 0 & Thermal hyper-diffusive coefficient\\
+\end{tabular}
+
+
+
+\subsection{Boundary and Domain Options}
+
+\begin{tabular}{lll}
+  \textbf{Option} & \textbf{Default} & \textbf{Description}\\
+  \hline
+  \texttt{xzero}  & 0 & $r$-coordinate of bottom left corner of domain\\
+  \texttt{zzero}  & 0 & $z$-coordinate of bottom left corder of domain\\
+  \texttt{iper}   & 0 & 1: Left/right boundaries periodic\\
+  \texttt{jper}   & 0 & 2: Top/bottom boundaries periodic\\
+  \texttt{vloop}  & 0 & Loop voltage.  $\partial_t \psi = \mathtt{vloop}$\\
+  \texttt{v\_bc}  & 0 & 0: $\partial_t V = 0$; 1: $\n \cdot \grad{V} = 0$\\
+  \texttt{com\_bc}& 1 & 1: $\nabla^2 \chi = 0$\\
+  \texttt{p\_pc}  & 0 & 0: $\partial_t p = 0$; 1: $\n \cdot \grad{p} =
+    0$\\
+  \texttt{imask}  & 0 & 1: Smoothly bring $d_i$ to zero near
+    boundaries\\
+  \texttt{amu\_edge}&0& \parbox[t]{2.5in}{Factor by which to
+    increase viscosity near boundaries}\\
+\end{tabular}
+
+
+\subsection{Integration Options}
+\begin{tabular}{llll}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{dt}         & 0.1 & Time step\\
+  \texttt{ntimemax}   & 20  & Total number of time steps\\
+  \texttt{integrator} & 0   & 0: Crank-Nicholson (CN); 1: BDF2\\
+  \texttt{thimp}      & 0.5 & CN impliciness\\
+  \texttt{thimp\_ohm} & \texttt{thimp} & CN impliciness of ohmic heating terms
+\end{tabular}
+
+
+\subsection{Grad-Shafranov Solver Options}
+\begin{tabular}{llll}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{igs}   & 80     & Number of Picard iterations\\
+  \texttt{xmag}  & \texttt{xzero}+1 & $r$-coordinate of magnetic axis\\
+  \texttt{zmag}  & 0      & $z$-coordinate of magnetic axis\\
+  \texttt{xlim}  & \texttt{xzero}   & $r$-coordinate of limiter\\
+  \texttt{zlim}  & 0      & $z$-coordinate of limiter\\
+  \texttt{tcuro} & 1      & Plasma current in GS equilibrium\\
+  \texttt{q0}    & 1      & Safety factor at magnetic axis\\
+  \texttt{djdpsi}& 0      & $J_\tor'(\Psi)$ at magnetic axis\\
+  \texttt{bzero} & 1      & $B_\tor$ at \texttt{xzero}\\
+  \texttt{p0}    & 0.01   & Pressure at magnetic axis\\
+  \texttt{p1}    & -1     & $p'(\Psi)$ at magnetic axis\\
+  \texttt{p2}    & -2     & $p''(\Psi)$ at magnetic axis\\
+  \texttt{pedge} & 0.     & Pressure in vacuum region\\
+  \texttt{divertors} & 0  & Number of divertors (0--2)\\
+  \texttt{divcur}& 0.1    & Divertor current(s), as fraction of tcuro\\
+  \texttt{xdiv}  & \texttt{xmag} & $r$-coordinate of divertor current(s)\\
+  \texttt{zdiv}  & \texttt{zmag} & \parbox[t]{3in}{$z$-coordinate of 
+    divertor 
+    current.  If $\mathtt{divertors} = 2$, the second divertor has 
+    $z = -\mathtt{zdiv}$.}\\
+  \texttt{expn}  & 0 & \parbox[t]{3in}{Fraction of pressure gradient due to
+    density gradient: $n = p^\mathtt{expn}$.}\\
+  \texttt{th\_gs} & 0.5 & Relaxation paramter for iteration
+\end{tabular}
+
+
+\subsection{Current Controller Options}
+
+\begin{tabular}{llll}
+  \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{tcur}       & $I_0$ & \texttt{tcuro} & Target toroidal current\\
+  \texttt{control\_p} & $c_p$ & 0              & Proportional coefficient\\
+  \texttt{control\_i} & $c_i$ & 0              & Integral coefficient\\
+  \texttt{control\_d} & $c_d$ & 0              & Derivative coefficient\\
+\end{tabular}
+
+
+\subsection{External Source Options}
+
+\begin{tabular}{llll}
+  \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{ipellet}      & & 0    & \parbox[t]{2in}{1: include pellet density
+    source (\textit{c.f.} section~\ref{sec:pellet_injection})}\\
+  \texttt{pellet\_rate} & $\alpha_p$ & \texttt{denm} 
+                                     & Particle number injection rate\\
+  \texttt{pellet\_var}  & $l_p$      & 1    & Variance of  
+                                              injection profile\\
+  \texttt{pellet\_x}    & $r_p$      & \texttt{xmag} 
+                                     & $r$-coordinate of injection profile\\
+  \texttt{pellet\_z}    & $z_p$      & \texttt{zmag} 
+                                     & $z$-coordinate of injection profile\\
+  \texttt{ionization}   & & 0  & \parbox[t]{2in}{1: include neutral ionization
+    source (\textit{c.f.} section~\ref{sec:ionization})}\\
+  \texttt{ionization\_rate} & $\alpha_i$ & \texttt{denm} 
+                                     & Ionization rate coefficient\\
+  \texttt{ionization\_temp} & $E_i$   & 0.01 & Ionization energy\\
+  \texttt{ionization\_depth}& $l_i$   & 0.01 & \parbox[t]{2in}{Temperature 
+    scale-length of neutral burn-out}
+\end{tabular}
+
+
+
+\subsection{Output Options}
+
+\begin{tabular}{llll}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{ntimepr}   & 5 & Number of timesteps per full field output\\
+  \texttt{iprint}    & 0              & 1: output detailed 
+\end{tabular}
+
+
+\bibliographystyle{plain}
+\bibliography{doc.bib}
+
+
+\end{document}

@@ -12,6 +12,9 @@ module diagnostics
 
   real :: chierror
 
+  ! density diagnostics
+  real :: nfluxd, nfluxv, nsource
+
   ! energy diagnostics
   real :: ekin, emag, ekind, emagd, ekino, emago, ekindo, emagdo,      &
        ekint,emagt,ekintd,emagtd,ekinto,emagto,ekintdo,emagtdo,        &
@@ -19,7 +22,9 @@ module diagnostics
        ekinph,ekinth,emagph,emagth,ekinpho,ekintho,emagpho,emagtho,    &
        ekin3,ekin3d,ekin3h,emag3,ekin3o,ekin3do,ekin3ho,emag3o,        &
        emag3h,emag3d,emag3ho,emag3do
-  real :: efluxd,efluxp,efluxk,efluxs,efluxt,epotg,etot,ptot,eerr,ptoto
+  real :: efluxp,efluxk,efluxs,efluxt,epotg,etot,ptot,eerr,ptoto
+
+
 
   ! timing diagnostics
   real :: t_ludefall, t_sources, t_smoother, t_aux, t_onestep
@@ -128,7 +133,6 @@ contains
     emag3 = 0.
     emag3d = 0.
     emag3h = 0.
-    efluxd = 0.
     efluxp = 0.
     efluxk = 0.
     efluxs = 0.
@@ -148,6 +152,10 @@ contains
     pmom = 0.
     pvor = 0.
 
+    nfluxd = 0.
+    nfluxv = 0.
+    nsource = 0.
+
   end subroutine reset_scalars
 
 
@@ -163,7 +171,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 36
+    integer, parameter :: num_scalars = 38
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -187,24 +195,26 @@ contains
        temp(16) = emag3
        temp(17) = emag3d
        temp(18) = emag3h
-       temp(19) = efluxd
-       temp(20) = efluxp
-       temp(21) = efluxk
-       temp(22) = efluxs
-       temp(23) = efluxt
-       temp(24) = epotg
-       temp(25) = area
-       temp(26) = totcur
-       temp(27) = totden
-       temp(28) = tflux
-       temp(29) = tmom
-       temp(30) = tvor
-       temp(31) = parea
-       temp(32) = pcur
-       temp(33) = pflux
-       temp(34) = pden
-       temp(35) = pmom
-       temp(36) = pvor
+       temp(19) = efluxp
+       temp(20) = efluxk
+       temp(21) = efluxs
+       temp(22) = efluxt
+       temp(23) = epotg
+       temp(24) = area
+       temp(25) = totcur
+       temp(26) = totden
+       temp(27) = tflux
+       temp(28) = tmom
+       temp(29) = tvor
+       temp(30) = parea
+       temp(31) = pcur
+       temp(32) = pflux
+       temp(33) = pden
+       temp(34) = pmom
+       temp(35) = pvor
+       temp(36) = nfluxd
+       temp(37) = nfluxv
+       temp(38) = nsource
          
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -228,24 +238,26 @@ contains
        emag3 =  temp2(16)
        emag3d = temp2(17)
        emag3h = temp2(18)
-       efluxd = temp2(19)
-       efluxp = temp2(20)
-       efluxk = temp2(21)
-       efluxs = temp2(22)
-       efluxt = temp2(23)
-       epotg =  temp2(24)
-       area =   temp2(25)
-       totcur = temp2(26)
-       totden = temp2(27)
-       tflux =  temp2(28)
-       tmom =   temp2(29)
-       tvor =   temp2(30)
-       parea =  temp2(31)
-       pcur  =  temp2(32)
-       pflux =  temp2(33)
-       pden =   temp2(34)
-       pmom =   temp2(35)
-       pvor =   temp2(36)
+       efluxp = temp2(19)
+       efluxk = temp2(20)
+       efluxs = temp2(21)
+       efluxt = temp2(22)
+       epotg =  temp2(23)
+       area =   temp2(24)
+       totcur = temp2(25)
+       totden = temp2(26)
+       tflux =  temp2(27)
+       tmom =   temp2(28)
+       tvor =   temp2(29)
+       parea =  temp2(30)
+       pcur  =  temp2(31)
+       pflux =  temp2(32)
+       pden =   temp2(33)
+       pmom =   temp2(34)
+       pvor =   temp2(35)
+       nfluxd = temp2(36)
+       nfluxv = temp2(37)
+       nsource= temp2(38)
 
     endif !if maxrank .gt. 1
 
@@ -356,6 +368,8 @@ subroutine calculate_scalars()
   use arrays
   use nintegrate_mod
 
+  use newvar_mod ! for source terms
+
 #ifdef NEW_VELOCITY
   use metricterms_new
 #else
@@ -407,14 +421,17 @@ subroutine calculate_scalars()
   hypp = hyperp*deex**2
 
   ! Specify which fields need to be calculated
-  def_fields = FIELD_PSI + FIELD_PHI + FIELD_J + FIELD_ETA
+  def_fields = FIELD_PSI + FIELD_PHI + FIELD_J + FIELD_ETA + FIELD_MU
   if(numvar.ge.2) def_fields = def_fields + FIELD_I + FIELD_V
   if(numvar.ge.3) then
      def_fields = def_fields + FIELD_CHI + &
           FIELD_PE + FIELD_P + FIELD_KAP
      if(kappar.ne.0) def_fields = def_fields + FIELD_B2I
   endif
-  if(idens.eq.1) def_fields = def_fields + FIELD_N + FIELD_NI
+  if(idens.eq.1) then
+     def_fields = def_fields + FIELD_N + FIELD_NI + FIELD_SIG
+  endif
+     
 
   if(hypc.ne.0.) then 
      def_fields = def_fields + FIELD_VOR
@@ -423,6 +440,12 @@ subroutine calculate_scalars()
 
   tm79 = 0.
   tm79(:,OP_1) = 1.
+
+  if(isources.eq.1) then
+     sb1 = 0.
+     sb2 = 0.
+     sp1 = 0.
+  end if
 
   call getmincoord(xmin,zmin)
   
@@ -441,6 +464,61 @@ subroutine calculate_scalars()
      dbf = db*factor
 
      call define_fields_79(itri, def_fields)
+
+!!$     do i=1,79
+!!$        call mask(x_79(i)-xzero,z_79(i)-zzero,factor)
+!!$        temp79a(i) = 1.-factor
+!!$     end do
+
+     ! Define Source terms
+     ! ~~~~~~~~~~~~~~~~~~~
+     if(isources.eq.1) then
+
+        do i=1,18
+           ione = isval1(itri,i)
+
+!!$           sb1(ione) = sb1(ione) &
+!!$                + int2(g79(:,:,i),temp79a,weight_79,79)*vloop/(2.*3.14159)
+           
+           ! Definition of Source Terms
+           ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
+           sb1(ione) = sb1(ione) + b1psieta(g79(:,:,i),pst79,eta79,hypf)
+           
+           if(numvar.ge.2) then
+              sb1(ione) = sb1(ione) + b1psibd(g79(:,:,i),pst79,bzt79,ni79)*dbf
+              
+              sb2(ione) = sb2(ione)  &
+                   + b2psipsid(g79(:,:,i),pst79,pst79,ni79)*dbf &
+                   + b2bbd    (g79(:,:,i),bzt79,bzt79,ni79)*dbf &
+                   + b2beta   (g79(:,:,i),bzt79,eta79,hypi)
+           endif
+        
+           if(numvar.ge.3) then
+              sb2(ione) = sb2(ione) + b2ped(g79(:,:,i),pet79,ni79)*dbf*pefac
+              
+              sp1(ione) = sp1(ione) &
+                   + b3psipsieta(g79(:,:,i),pst79,pst79,eta79)   &
+                   + b3bbeta    (g79(:,:,i),bzt79,bzt79,eta79)   &
+!                + b3pedkappa (g79(:,:,i),pt79,ni79,kappat,hypp)*(gam-1.) &
+                   + p1kappar   (g79(:,:,i),pst79,pst79,pet79,ni79,b2i79)*kappar*(gam-1.) &
+                   + b3pebd(g79(:,:,i),pet79,bzt79,ni79)*dbf*pefac
+              
+              ! ohmic heating
+              sp1(ione) = sp1(ione) + (gam-1.)* &
+                   (qpsipsieta(g79(:,:,i),hypf) &
+                   +qbbeta    (g79(:,:,i),hypi))
+           
+              ! viscous heating
+              sp1(ione) = sp1(ione) - (gam-1.)* &
+                   (quumu    (g79(:,:,i),pht79,pht79,vis79,hypc) &
+                   +qvvmu    (g79(:,:,i),vzt79,vzt79,vis79,hypv) &
+                   +quchimu  (g79(:,:,i),pht79,cht79,vis79,vic79,hypc) &
+                   +qchichimu(g79(:,:,i),cht79,cht79,vic79,hypc))
+           endif ! on numvar.ge.3
+        end do
+
+     endif ! on isources
+
 
      do i=1,79 
         if(pst79(i,OP_1).ge.psilim) then
@@ -464,8 +542,8 @@ subroutine calculate_scalars()
         pflux = pflux+ int3(ri2_79,bzt79(:,OP_1 ),temp79a,weight_79,79)
      endif
      if(idens.eq.1) then
-        totden = totden + int2( ri_79, nt79(:,OP_1),        weight_79,79)
-        pden   = pden   + int3( ri_79, nt79(:,OP_1),temp79a,weight_79,79)
+        totden = totden + int1(nt79(:,OP_1),        weight_79,79)
+        pden   = pden   + int2(nt79(:,OP_1),temp79a,weight_79,79)
      endif
      if(numvar.ge.2) then
         if(idens.eq.0) then
@@ -512,14 +590,38 @@ subroutine calculate_scalars()
 
      ! Calculate fluxes
      ! ~~~~~~~~~~~~~~~~
-     efluxd = efluxd + flux_diffusive()
      efluxk = efluxk + flux_ke()
      efluxp = efluxp + flux_pressure(dbf)
      efluxs = efluxs + flux_poynting(dbf)
      efluxt = efluxt + flux_heat()
 
      epotg = epotg + grav_pot()
+
+     if(idens.eq.1) then
+        nfluxd = nfluxd + denm*int1(nt79(:,OP_LP),weight_79,79)
+
+        nfluxv = nfluxv &
+             + int3(ri_79,pht79(:,OP_DZ),nt79(:,OP_DR),weight_79,79) &
+             - int3(ri_79,pht79(:,OP_DR),nt79(:,OP_DZ),weight_79,79)
+        if(numvar.ge.3) then
+           nfluxv = nfluxv &
+             - int2(cht79(:,OP_DZ),nt79(:,OP_DZ),weight_79,79) &
+             - int2(cht79(:,OP_DR),nt79(:,OP_DR),weight_79,79) &
+             - int2(cht79(:,OP_LP),nt79(:,OP_1 ),weight_79,79)
+        endif
+        
+        nsource = nsource + int1(sig79,weight_79,79)
+     endif
+
   end do
+
+  if(isources.eq.1) then
+     call solve_newvar(sb1, NV_DCBOUND)
+!!$     call solve_newvar(sb1, NV_NOBOUND)
+     if(numvar.ge.2) call solve_newvar(sb2, NV_DCBOUND)
+     if(numvar.ge.3) call solve_newvar(sp1, NV_DCBOUND)
+  endif
+
 
   if(idens.eq.0) totden = area
 
@@ -531,7 +633,7 @@ subroutine calculate_scalars()
   emagd = emagpd + emagtd + emag3d
 
   ! sum all fluxes to get total energy lost through boundary
-  ptot = ptot + (efluxd + efluxk + efluxp + efluxs + efluxt + epotg)*dt
+  ptot = ptot + (efluxk + efluxp + efluxs + efluxt + epotg)*dt
   if(numvar.lt.3) ptot = ptot + (ekind + emagd)*dt
 
   ! total energy, including energy lost through boundary flux and
@@ -545,7 +647,7 @@ subroutine calculate_scalars()
      print *, "Scalars:"
      print *, "  Area = ", area
      print *, "  Toroidal current = ", totcur
-     print *, "  Total electrons = ", totden
+     print *, "  Total particles = ", totden
   endif
 
 end subroutine calculate_scalars

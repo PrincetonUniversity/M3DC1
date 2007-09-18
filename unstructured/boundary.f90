@@ -69,11 +69,16 @@ subroutine boundary_vel(imatrix, rhs)
         call boundary_clamp(imatrix, ibegin, normal, rhs, temp)
         if(numvar.ge.3) then
            call boundary_normal_deriv(imatrix, ibegin+12, normal, rhs, temp)
-           if(itor.eq.0) then
-              if(imatrix.ne.0) call setdiribc(imatrix, ibegin+16)
-              rhs(ibegin+16) = 0.
-           endif
+!!$           if(itor.eq.0) then
+!!$              if(imatrix.ne.0) call setdiribc(imatrix, ibegin+16)
+!!$              rhs(ibegin+16) = 0.
+!!$           endif
         endif
+
+!!$        ! no velocity 
+!!$        call boundary_normal_deriv(imatrix, ibegin, normal, rhs, temp)
+!!$        if(imatrix.ne.0) call setdiribc(imatrix, ibegin+4)
+!!$        rhs(ibegin+4) = 0.
 
         ! clamp toroidal velocity
         if(numvar.ge.2) then
@@ -92,8 +97,8 @@ subroutine boundary_vel(imatrix, rhs)
               call boundary_clamp(imatrix, ibegin+6, normal, rhs, temp)
            end select
         endif
-
-        ! no vorticity        
+       
+        ! no vorticity
         call boundary_laplacian(imatrix, ibegin, normal, -x, irow)
         rhs(irow) = 0.
 
@@ -264,7 +269,7 @@ subroutine boundary_mag(imatrix, rhs)
               if(integrator.eq.1 .and. ntime.gt.1) then
                  temp = 1.5*temp + 0.5*phiold(ibegin+12:ibegin+17)
               endif
-              call boundary_clamp(imatrix, ibegin+12, normal, rhs, temp)            
+              call boundary_clamp(imatrix, ibegin+12, normal, rhs, temp)
            end select
         endif
 
@@ -403,11 +408,22 @@ subroutine boundary_den(imatrix, rhs)
 
         ! clamp density
         call boundary_clamp(imatrix, ibegin, normal, rhs, temp)
+!!$        temp = 0.
+!!$        call boundary_normal_deriv(imatrix, ibegin, normal, rhs, temp)
+!!$        if(imatrix.ne.0) call setdiribc(imatrix, ibegin+4)
+!!$        rhs(ibegin+4) = 0.
+
         
      ! corners
      else if(izonedim.eq.0) then
         ! clamp density
         call boundary_clamp_all(imatrix, ibegin, rhs, temp)
+
+!!$        temp = 0.
+!!$        call boundary_normal_deriv(imatrix, ibegin, 0., rhs, temp)
+!!$        call boundary_normal_deriv(imatrix, ibegin, pi/2., rhs, temp)
+!!$        if(imatrix.ne.0) call setdiribc(imatrix, ibegin+4)
+!!$        rhs(ibegin+4) = 0.
      endif
         
   end do
@@ -825,7 +841,7 @@ subroutine boundary_com(imatrix, rhs)
            normal = -pi/2.
         endif
 
-        ! clamp vorticity
+        ! clamp compression
         call boundary_clamp(imatrix, ibegin, normal, rhs, temp)
 
         ! no normal flow
@@ -834,16 +850,14 @@ subroutine boundary_com(imatrix, rhs)
         rhs(ibegin+10) = 0.
 
         ! no compression
-        if(numvar.ge.3) then
-           if(com_bc.eq.1) then
-              call boundary_laplacian(imatrix, ibegin+6, normal, x, irow)
-              rhs(irow) = 0.
-           endif
+        if(com_bc.eq.1) then
+           call boundary_laplacian(imatrix, ibegin+6, normal, x, irow)
+           rhs(irow) = 0.
         endif
 
      ! corners
      else if(izonedim.eq.0) then
-        ! clamp vorticity
+        ! clamp compression
         call boundary_clamp_all(imatrix, ibegin, rhs, temp)
 
         ! no normal flow

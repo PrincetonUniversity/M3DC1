@@ -102,6 +102,9 @@
 !.....density advance parameter: 0 no advance,  1-advance density
       idens = 1
 !
+!.....electron pressure advance parameter: 0 no advance, 1-advance pe
+      ipres = 0
+!
 !.....restart parameter 0-no restart, 1 restart
       irestart = 0
 !
@@ -169,17 +172,27 @@
       pellet_rate = denm 
       pellet_var = 1.
 !
+      ionization = 0
+      ionization_rate = denm
+      ionization_temp = 0.01
+      ionization_depth = 0.01
+!
 !
       facw = 1.
 !.....multiplies the diffusion [test] terms 
       facd = 1.
 !     NOTE:  if facw=1., facd is zeroed after the first cycle
 !
-!......2-fluid coefficients
+!.....ion skin depth
       db = 0.0
 !
 !     masking switch (0 no mask,  1 mask hyper terms at boundary
       imask = 0
+!
+      amu_edge = 0.
+!
+!
+      isources = 0
 !
 !......maximum in taylor expansion loop (5 is maximum)
       maxs = 5
@@ -199,9 +212,9 @@
 !
 !.....parameters needed for toroidal plasma
       tcuro = 1.
-      xmag = 12.1
+      xmag = xzero + 1.
       zmag = 0.
-      xlim = 10.5
+      xlim = xzero
       zlim = 0.
 !
 !..... toroidal current controller parameters
@@ -217,9 +230,11 @@
       p2 = -2.
       pedge = 0.
       expn = 0.
+      q0 = 1.
+      th_gs = 0.5
 !
 !.....divertor information
-      divertors = 0.
+      divertors = 0
       xdiv = xmag
       zdiv = zzero-1.
       divcur = 0.1
@@ -257,11 +272,11 @@
       etar = .0010
       amu = .001
       kappat = .001
-      hyper = 0.01
-      hyperi= 0.01
-      hyperv = 0.01
-      hyperc = 0.01
-      hyperp= 0.50
+      hyper = 0.0
+      hyperi= 0.0
+      hyperv = 0.0
+      hyperc = 0.0
+      hyperp= 0.0
       db = .0001
       ntimemax = 100
       ntimepr = 1

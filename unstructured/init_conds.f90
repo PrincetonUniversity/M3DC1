@@ -41,6 +41,87 @@ subroutine plane_wave(x, z, outarr, kx, kz, amp, phase)
   outarr(6) = -amp*cos(arg)*kz*kz
 end subroutine plane_wave
 
+subroutine cartesian_to_cylindrical()
+  use basic
+  use arrays
+
+  implicit none
+
+  integer :: inode, numnodes, ibegin, iendplusone
+  real :: x
+  real, dimension(6) :: temp
+  double precision :: coords(3)
+
+  call numnod(numnodes)
+
+  do inode=1, numnodes
+     call xyznod(inode, coords)
+     x = coords(1) + xzero
+     call entdofs(numvar, inode, 0, ibegin, iendplusone)
+
+     temp = phi(ibegin:ibegin+5)
+     phi(ibegin  ) = temp(1) * x
+     phi(ibegin+1) = temp(2) * x +    temp(1)
+     phi(ibegin+2) = temp(3) * x
+     phi(ibegin+3) = temp(4) * x + 2.*temp(2)
+     phi(ibegin+4) = temp(5) * x +    temp(3)
+     phi(ibegin+5) = temp(6) * x
+     temp = phi0(ibegin:ibegin+5)
+     phi0(ibegin  ) = temp(1) * x
+     phi0(ibegin+1) = temp(2) * x +    temp(1)
+     phi0(ibegin+2) = temp(3) * x
+     phi0(ibegin+3) = temp(4) * x + 2.*temp(2)
+     phi0(ibegin+4) = temp(5) * x +    temp(3)
+     phi0(ibegin+5) = temp(6) * x
+     temp = vel(ibegin:ibegin+5)
+     vel(ibegin  ) = temp(1) * x
+     vel(ibegin+1) = temp(2) * x +    temp(1)
+     vel(ibegin+2) = temp(3) * x
+     vel(ibegin+3) = temp(4) * x + 2.*temp(2)
+     vel(ibegin+4) = temp(5) * x +    temp(3)
+     vel(ibegin+5) = temp(6) * x
+     temp = vel0(ibegin:ibegin+5)
+     vel0(ibegin  ) = temp(1) * x
+     vel0(ibegin+1) = temp(2) * x +    temp(ibegin  )
+     vel0(ibegin+2) = temp(3) * x
+     vel0(ibegin+3) = temp(4) * x + 2.*temp(ibegin+1)
+     vel0(ibegin+4) = temp(5) * x +    temp(ibegin+2)
+     vel0(ibegin+5) = temp(6) * x
+     
+     if(numvar.ge.2) then
+        temp = phi(ibegin+6:ibegin+11)
+        phi(ibegin+6 ) = temp(1) * x
+        phi(ibegin+7 ) = temp(2) * x +    temp(1)
+        phi(ibegin+8 ) = temp(3) * x
+        phi(ibegin+9 ) = temp(4) * x + 2.*temp(2)
+        phi(ibegin+10) = temp(5) * x +    temp(3)
+        phi(ibegin+11) = temp(6) * x
+        temp = phi0(ibegin+6:ibegin+11)
+        phi0(ibegin+6 ) = temp(1) * x
+        phi0(ibegin+7 ) = temp(2) * x +    temp(1)
+        phi0(ibegin+8 ) = temp(3) * x
+        phi0(ibegin+9 ) = temp(4) * x + 2.*temp(2)
+        phi0(ibegin+10) = temp(5) * x +    temp(3)
+        phi0(ibegin+11) = temp(6) * x
+        temp = vel(ibegin+6:ibegin+11)
+        vel(ibegin+6 ) = temp(1) * x
+        vel(ibegin+7 ) = temp(2) * x +    temp(1)
+        vel(ibegin+8 ) = temp(3) * x
+        vel(ibegin+9 ) = temp(4) * x + 2.*temp(2)
+        vel(ibegin+10) = temp(5) * x +    temp(3)
+        vel(ibegin+11) = temp(6) * x
+        temp = vel0(ibegin+6:ibegin+11)
+        vel0(ibegin+6 ) = temp(1) * x
+        vel0(ibegin+7 ) = temp(2) * x +    temp(1)
+        vel0(ibegin+8 ) = temp(3) * x
+        vel0(ibegin+9 ) = temp(4) * x + 2.*temp(2)
+        vel0(ibegin+10) = temp(5) * x +    temp(3)
+        vel0(ibegin+11) = temp(6) * x
+     endif
+     
+  end do
+end subroutine cartesian_to_cylindrical
+
 
 !==============================================================================
 ! Tilting Cylinder (itaylor = 0)
@@ -714,8 +795,8 @@ subroutine grav_init()
   do l=1, numnodes
      call xyznod(l, coords)
 
-     x = coords(1) + xzero - xmin - alx*.5
-     z = coords(2) + zzero - zmin - alz*.5
+     x = coords(1) + xzero - xmin
+     z = coords(2) + zzero - zmin
 
      call grav_equ(x, z, l)
      call grav_per(x, z, l)
@@ -737,16 +818,16 @@ subroutine grav_equ(x, z, inode)
 
   call entdofs(numvar, inode, 0, ibegin, iendplusone)
 
-  fac1 = gravz*ln+gam*p0
   n0 = exp(z/ln)
-  pn0 = exp(z/ln)/ln
-  ppn0 = exp(z/ln)/ln**2
+  pn0 = n0/ln
+  ppn0 = pn0/ln
 
   call static_equ(ibegin)
 
   call constant_field(phi0(ibegin:ibegin+5), 0.)
 
   if(numvar.ge.2) then
+     fac1 = gravz*ln+gam*p0
      phi0(ibegin+6 ) = sqrt(bzero**2 - 2.*fac1*(n0-1.))
      phi0(ibegin+7 ) = 0.
      phi0(ibegin+8 ) = -pn0*fac1/phi0(ibegin+6)
@@ -801,20 +882,14 @@ subroutine grav_per(x, z, inode)
   integer :: ibegin, iendplusone
   real :: kx, kz, alx, alz
 
+  call getboundingboxsize(alx, alz)
+  kx = 2.*pi/alx
+  kz = pi/alz
+
   call entdofs(numvar, inode, 0, ibegin, iendplusone)
 
   call constant_field(phi(ibegin:ibegin+5), 0.)
-
-  call getboundingboxsize(alx, alz)
-  kx = pi/alx
-  kz = 2.*pi/alz
-  vel(ibegin+6) =  eps*sin(kx*(x-xzero))*sin(kz*(z-zzero))
-  vel(ibegin+7) =  eps*cos(kx*(x-xzero))*sin(kz*(z-zzero))*kx
-  vel(ibegin+8) =  eps*sin(kx*(x-xzero))*cos(kz*(z-zzero))*kz
-  vel(ibegin+9) = -eps*sin(kx*(x-xzero))*cos(kz*(z-zzero))*kx**2
-  vel(ibegin+10)=  eps*cos(kx*(x-xzero))*cos(kz*(z-zzero))*kx*kz
-  vel(ibegin+11)= -eps*sin(kx*(x-xzero))*sin(kz*(z-zzero))*kz**2
-
+  call constant_field(vel(ibegin:ibegin+5), 0.)
   
   if(numvar.ge.2)  then
      call constant_field(phi(ibegin+6 :ibegin+11), 0.)
@@ -827,7 +902,12 @@ subroutine grav_per(x, z, inode)
 
   if(idens.eq.1) then
      call entdofs(1, inode, 0, ibegin, iendplusone)
-     call constant_field(den(ibegin:ibegin+5), 0.)
+     den(ibegin  ) =  eps*sin(kx*(x-xzero))*sin(kz*(z-zzero))
+     den(ibegin+1) =  eps*cos(kx*(x-xzero))*sin(kz*(z-zzero))*kx
+     den(ibegin+2) =  eps*sin(kx*(x-xzero))*cos(kz*(z-zzero))*kz
+     den(ibegin+3) = -eps*sin(kx*(x-xzero))*cos(kz*(z-zzero))*kx**2
+     den(ibegin+4) =  eps*cos(kx*(x-xzero))*cos(kz*(z-zzero))*kx*kz
+     den(ibegin+5) = -eps*sin(kx*(x-xzero))*sin(kz*(z-zzero))*kz**2
   endif
 
   if(ipres.eq.1) then
@@ -1156,7 +1236,9 @@ subroutine initial_conditions()
      ! toroidal equilibria
      select case(itaylor)
      case(0)
-        call solovev_init()
+!        call solovev_init()
+        call tilting_cylinder_init()
+        call cartesian_to_cylindrical()
      case(1)
         call gradshafranov_init()
      case(2)
