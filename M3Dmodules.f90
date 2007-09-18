@@ -37,9 +37,12 @@ module basic
   real :: vloop       ! loop voltage
 
   ! boundary conditions
+  integer :: iper, jper ! periodic boundary conditions
+  integer :: imask      ! 1 = ignore 2-fluid terms near boundaries
   integer :: v_bc     ! bc on angular momentum.  0 = no-slip, 1 = no normal stress
   integer :: p_bc     ! bc on pressure.   0 = constant pressure, 1 = insulating
   integer :: com_bc   ! 1 = forces div(V) = 0 on boundary
+  real :: amu_edge    ! factor by which to increase viscosity at boundaries
 
   ! density sources
   integer :: ipellet  ! 1 = include pellet injection density source
@@ -47,6 +50,10 @@ module basic
   real :: pellet_z    ! z coordinate of pellet injection
   real :: pellet_rate ! amplitude of pellet density source
   real :: pellet_var  ! spatial dispersion of density source 
+  integer :: ionization     ! 1 = include edge reionization
+  real :: ionization_rate   ! rate of ionization
+  real :: ionization_temp   ! temperature above which ionization occurs
+  real :: ionization_depth  ! temperature scale of neutral burnout
 
   ! general equilibrium parameters
   integer :: irestart ! 1 = reads restart file as initial condition
@@ -61,17 +68,18 @@ module basic
   real :: ln          ! length of equilibrium gradient
   real :: eps         ! size of initial perturbation
 
-  ! toroidal equilibrium parameters
+  ! grad-shafranov options
   integer :: divertors! number of divertors
   real :: xmag, zmag  ! position of magnetic axis
   real :: xlim, zlim  ! position of limiter
   real :: xdiv, zdiv  ! position of divertor
-  real :: tcur        ! target toroidal current
   real :: tcuro       ! initial toroidal current
   real :: divcur      ! current in divertor (as fraction of tcuro)
   real :: djdpsi
   real :: p1, p2, pedge
   real :: expn        ! density = pressure**expn
+  real :: q0          ! safety factor at magnetic axis
+  real :: th_gs       ! relaxation factor
   
 
   ! numerical parameters
@@ -81,7 +89,7 @@ module basic
   integer :: idens       ! evolve density
   integer :: ipres       ! evolve total and electron pressures separately
   integer :: gyro        ! include gyroviscosity
-  integer :: imask       ! 1 = ignore 2-fluid terms near boundaries
+  integer :: isources    ! 1 = include "source" terms in velocity advance
   integer :: ntimemax    ! number of timesteps
   integer :: nskip       ! number of timesteps per matrix recalculation
   integer :: iconstflux  ! 1 = conserve toroidal flux
@@ -94,6 +102,7 @@ module basic
   real :: regular        ! regularization constant in chi equation
 
   ! current controller parameters
+  real :: tcur        ! target toroidal current
   real :: control_p      ! proportionality constant
   real :: control_i      ! integral control inverse time-scale
   real :: control_d      ! derivative control time-scale
@@ -104,7 +113,6 @@ module basic
   integer :: ntimepr  ! number of timesteps per output  
 
   ! domain parameters
-  integer :: iper, jper ! periodic boundary conditions
   real :: xzero, zzero  ! cooridinates of lower left corner of domain
   
   integer :: maxs,itest,isecondorder,istart
@@ -124,8 +132,10 @@ module basic
        iconstflux,regular,deex,gyro,vloop,eta0,pedge,          &
        integrator,expn,divertors,xdiv,zdiv,divcur,             &
        control_p,control_i,control_d,idevice,igs,kappa0,       &
-       v_bc,p_bc,com_bc,thimp_ohm,tcur,                        &
-       ipellet, pellet_x, pellet_z, pellet_rate, pellet_var
+       v_bc,p_bc,com_bc,thimp_ohm,tcur,q0,isources,th_gs,      &
+       ipellet, pellet_x, pellet_z, pellet_rate, pellet_var,   &
+       ionization, ionization_rate, ionization_temp, ionization_depth, &
+       amu_edge
 
   !     derived quantities
   real :: pi,                                                          &
@@ -181,7 +191,8 @@ module arrays
        r4(:),q4(:),qn4(:),qp4(:),                                 &
        b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
        b5vector(:), vtemp(:), resistivity(:), tempvar(:),         &
-       kappa(:), tempcompare(:), sigma(:)
+       kappa(:),sigma(:), sb1(:), sb2(:), sp1(:),                 &
+       visc(:), visc_c(:), tempcompare(:)
 
   contains
 !================================

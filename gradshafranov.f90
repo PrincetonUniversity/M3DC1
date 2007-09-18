@@ -192,7 +192,7 @@ subroutine gradshafranov_solve
   real, dimension(6,maxcoils) :: g
   real, dimension(maxcoils) :: xp, zp, xc, zc
   real :: x, z, xmin, zmin, xrel, zrel, xguess, zguess, error
-  real :: sum, rhs, ajlim, curr, q0, qstar, norm, rnorm, g0
+  real :: sum, rhs, ajlim, curr, norm, rnorm, g0
   real, dimension(6) :: pp
   real, dimension(5) :: temp1, temp2
   real :: alx, alz
@@ -378,7 +378,7 @@ subroutine gradshafranov_solve
      if(itnum.eq.1) then
         psi = b1vecini
      else
-        psi = 0.5*(b1vecini + psi)
+        psi = th_gs*b1vecini + (1.-th_gs)*psi
      endif
 
      if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(psi,1,numvargs,"psi ",0)
@@ -503,8 +503,8 @@ subroutine gradshafranov_solve
 
      ! choose gamma2 to fix q0/qstar.  Note that there is an additional
      ! degree of freedom in gamma3.  Could be used to fix qprime(0)
-     q0 = 1.
-     qstar = 4.
+!!$     q0 = 1.
+!!$     qstar = 4.
      g0 = bzero*xzero
 
      if(numvar.eq.1) then
@@ -512,11 +512,11 @@ subroutine gradshafranov_solve
         gamma3 = 0.
         gamma4 = 0.
      else
-     gamma2 = -2.*xmag*(xmag*p0*p1 + (2.*g0/(xmag**2*q0*dpsii)))
-     gamma3 = -(xmag*djdpsi/dpsii + 2.*xmag**2*p0*p2)
+        gamma2 = -2.*xmag*(xmag*p0*p1 + (2.*g0/(xmag**2*q0*dpsii)))
+        gamma3 = -(xmag*djdpsi/dpsii + 2.*xmag**2*p0*p2)
 
-     gamma2 = gamma2 / 2.
-     gamma3 = gamma3 / 2.
+!!$        gamma2 = gamma2 / 2.
+!!$        gamma3 = gamma3 / 2.
 
 
 !!$     ! Nate:
@@ -579,46 +579,46 @@ subroutine gradshafranov_solve
 
      call calc_pressure(temp(ibegin:ibegin+5),pp)
 
-     ! enforce boundary conditions
-     if(izonedim.eq.1) then
-        if((izone.eq.itop) .or. (izone.eq.ibottom)) then
-           pp(1) = pedge
-           pp(2) = 0.
-           pp(4) = 0.
-        else if((izone.eq.ileft) .or. (izone.eq.iright)) then
-           pp(1) = pedge
-           pp(3) = 0.
-           pp(6) = 0.
-        endif
-     else if(izonedim.eq.0) then
-        pp(1) = pedge
-        pp(2:6) = 0.
-     endif
+!!$     ! enforce boundary conditions
+!!$     if(izonedim.eq.1) then
+!!$        if((izone.eq.itop) .or. (izone.eq.ibottom)) then
+!!$           pp(1) = pedge
+!!$           pp(2) = 0.
+!!$           pp(4) = 0.
+!!$        else if((izone.eq.ileft) .or. (izone.eq.iright)) then
+!!$           pp(1) = pedge
+!!$           pp(3) = 0.
+!!$           pp(6) = 0.
+!!$        endif
+!!$     else if(izonedim.eq.0) then
+!!$        pp(1) = pedge
+!!$        pp(2:6) = 0.
+!!$     endif
 
 !    I = sqrt(g0**2 + gamma_i*G_i)
      if(numvar.ge.2) then
         call calc_toroidal_field(temp(ibegin:ibegin+5), &
              phi0(ibeginn+6:ibeginn+11))
 
-        ! enforce boundary conditions
-        if(izonedim.eq.1) then
-           if((izone.eq.itop) .or. (izone.eq.ibottom)) then
-              phi0(ibeginn+6) = g0
-              phi0(ibeginn+7) = 0.
-              phi0(ibeginn+8) = 0.
-              phi0(ibeginn+9) = 0.
-              phi0(ibeginn+10) = 0.
-           else if((izone.eq.ileft) .or. (izone.eq.iright)) then
-              phi0(ibeginn+6) = g0
-              phi0(ibeginn+7) = 0.
-              phi0(ibeginn+8) = 0.
-              phi0(ibeginn+10) = 0.
-              phi0(ibeginn+11) = 0.
-           endif
-        else if(izonedim.eq.0) then
-           phi0(ibeginn+6) = g0
-           phi0(ibeginn+7:ibeginn+11) = 0.
-        endif
+!!$        ! enforce boundary conditions
+!!$        if(izonedim.eq.1) then
+!!$           if((izone.eq.itop) .or. (izone.eq.ibottom)) then
+!!$              phi0(ibeginn+6) = g0
+!!$              phi0(ibeginn+7) = 0.
+!!$              phi0(ibeginn+8) = 0.
+!!$              phi0(ibeginn+9) = 0.
+!!$              phi0(ibeginn+10) = 0.
+!!$           else if((izone.eq.ileft) .or. (izone.eq.iright)) then
+!!$              phi0(ibeginn+6) = g0
+!!$              phi0(ibeginn+7) = 0.
+!!$              phi0(ibeginn+8) = 0.
+!!$              phi0(ibeginn+10) = 0.
+!!$              phi0(ibeginn+11) = 0.
+!!$           endif
+!!$        else if(izonedim.eq.0) then
+!!$           phi0(ibeginn+6) = g0
+!!$           phi0(ibeginn+7:ibeginn+11) = 0.
+!!$        endif
      endif
     
      if(numvar.ge.3) then
@@ -1055,7 +1055,7 @@ subroutine fundef
         psoyy= psi(ibegin+5)*dpsii
      
         fbig = p0*dpsii*(p1 + 2.*p2*pso - 3.*(20. + 10.*p1+4.*p2)*pso**2     &
-             + 4.*(45.+20.*p1+6.*p2)*pso**3 - 5*(36.+15.*p1+4.*p2)*pso**4    &
+             + 4.*(45.+20.*p1+6.*p2)*pso**3 - 5.*(36.+15.*p1+4.*p2)*pso**4   &
              + 6.*(10.+4.*p1+p2)*pso**5)
         fbigp = p0*dpsii*(2.*p2 - 6.*(20. + 10.*p1+4.*p2)*pso                &
              + 12.*(45.+20.*p1+6*p2)*pso**2 - 20.*(36.+15*p1+4*p2)*pso**3    &
@@ -1118,6 +1118,8 @@ subroutine fundef
         fun3(ibegin+5)=  (g3bigpp*psoy**2 + g3bigp*psoyy)/x
      endif
   enddo
+
+  if(numvar.lt.3) fun1 = 0.
 
   fun2 = fun2 / 2.
   fun3 = fun3 / 2.

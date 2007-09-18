@@ -283,8 +283,12 @@ Program Reducedquintic
      !   vorticity
      call newvar_d2(vel+vel0, vor,1,NV_DCBOUND,NV_GS)
      !   compression
-     if(numvar.ge.3) then 
-        call newvar_d2(vel+vel0,com,3,NV_NOBOUND,NV_LP)
+     if(numvar.ge.3) then
+        if(com_bc.eq.1) then
+           call newvar_d2(vtemp,com,3,NV_DCBOUND,NV_LP)
+        else
+           call newvar_d2(vtemp,com,3,NV_NOBOUND,NV_LP)
+        endif
      else
         com = 0.
      endif
@@ -623,7 +627,11 @@ subroutine onestep
 
      ! smooth compression
      if(numvar.ge.3) then
-        call newvar_d2(vtemp,com,3,NV_NOBOUND,NV_LP)
+        if(com_bc.eq.1) then
+           call newvar_d2(vtemp,com,3,NV_DCBOUND,NV_LP)
+        else
+           call newvar_d2(vtemp,com,3,NV_NOBOUND,NV_LP)
+        endif
 
 !!$        !
 !!$        !.....coding to calculate the error in the delsquared chi equation

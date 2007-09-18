@@ -18,7 +18,7 @@ F77OPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE) -DNEW_VELOCITY
 
 
 NEWOBJS1 = M3Dmodules.o nintegrate_mod.o metricterms_n.o metricterms_new.o \
-	diagnostics.o gradshafranov.o newvar.o control.o \
+	newvar.o diagnostics.o gradshafranov.o control.o \
 	$(COMMONDIR)tv80lib.o $(COMMONDIR)subp.o \
 	$(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
         $(COMMONDIR)fdump.o hdf5_output.o

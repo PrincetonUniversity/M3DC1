@@ -29,6 +29,8 @@ integer, parameter :: FIELD_B2I =  4096
 integer, parameter :: FIELD_ETA =  8192
 integer, parameter :: FIELD_KAP = 16384
 integer, parameter :: FIELD_SIG = 32768
+integer, parameter :: FIELD_SRC = 65536
+integer, parameter :: FIELD_MU  =131072
 
 
 real, dimension(25) :: x_25, z_25
@@ -38,22 +40,21 @@ real, dimension(25, OP_NUM) :: ps025, bz025, pe025, n025, p025, ph025, vz025, ch
 real, dimension(25, OP_NUM) :: ps125, bz125, pe125, n125, p125, ph125, vz125, ch125
 real, dimension(25, OP_NUM) :: pst25, bzt25, pet25, nt25, pt25, pht25, vzt25, cht25
 
+real, dimension(25) :: si_25, eta_25, weight_25
+real, dimension(25) ::  alpha_25, beta_25, gamma_25, area_weight_25
 
 real, dimension(79) :: x_79, z_79
 real, dimension(79) :: r_79, r2_79, ri_79, ri2_79, ri3_79, ri4_79, ri5_79, ri6_79, ri7_79
 real, dimension(79, OP_NUM, 18) :: g79
-real, dimension(79, OP_NUM) :: tm79, ni79, b2i79
+real, dimension(79, OP_NUM) :: tm79, ni79, b2i79, sb179, sb279, sp179
 real, dimension(79, OP_NUM) :: ps079, bz079, pe079, n079, p079, ph079, vz079, ch079
 real, dimension(79, OP_NUM) :: ps179, bz179, pe179, n179, p179, ph179, vz179, ch179
 real, dimension(79, OP_NUM) :: pst79, bzt79, pet79, nt79, pt79, pht79, vzt79, cht79
-real, dimension(79, OP_NUM) :: pss79, bzs79, phs79, vzs79, chs79
+real, dimension(79, OP_NUM) :: pss79, bzs79, phs79, vzs79, chs79, vis79, vic79
 real, dimension(79, OP_NUM) :: jt79, cot79, vot79, pit79, eta79, kap79, sig79
 real, dimension(79) :: temp79a, temp79b, temp79c, temp79d, temp79e, temp79f
 
-real, dimension(25) :: si_25, eta_25, weight_25
 real, dimension(79) :: si_79, eta_79, weight_79
-
-real, dimension(25) ::  alpha_25, beta_25, gamma_25, area_weight_25
 real, dimension(79) ::  alpha_79, beta_79, gamma_79, area_weight_79
 
 data alpha_25 &
@@ -200,7 +201,7 @@ subroutine area_to_local(ngauss, alpha, beta, gamma, area_weight, &
 
   do i=1, ngauss
      si(i) = (a+b)*(beta(i) - gamma(i))/2. + (a-b)*(1.-alpha(i))/2.
-     eta(i) = 2.*c*alpha(i)/2.
+     eta(i) = c*alpha(i)
      local_weight(i) = area_weight(i)*(a+b)*c/2.
   end do
 
@@ -777,6 +778,23 @@ subroutine define_fields_79(itri, fields)
   endif
 
 
+  ! SRC
+  ! ~~~
+  if(iand(fields, FIELD_SRC).eq.FIELD_SRC) then
+     if(itri.eq.1 .and. myrank.eq.0) print *, "   sources..."
+
+     call calcavector(itri, sb1, 1, 1, avec)
+     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, sb179)
+     if(numvar.ge.2) then
+        call calcavector(itri, sb2, 1, 1, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, sb279)
+     endif
+     if(numvar.ge.3) then
+        call calcavector(itri, sp1, 1, 1, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, sp179)
+     endif
+  endif
+
   ! B2I
   ! ~~~
   if(iand(fields, FIELD_B2I).eq.FIELD_B2I) then
@@ -835,6 +853,20 @@ subroutine define_fields_79(itri, fields)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, sig79)
   else
      sig79 = 0.
+  end if
+
+  ! MU
+  ! ~~
+  if(iand(fields, FIELD_MU).eq.FIELD_MU) then
+     if(itri.eq.1 .and. myrank.eq.0) print *, "   vis..."
+
+     call calcavector(itri, visc, 1, 1, avec)
+     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, vis79)
+
+     if(numvar.ge.3) then
+        call calcavector(itri, visc_c, 1, 1, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, vic79)
+     endif
   end if
 
   do i=1,18

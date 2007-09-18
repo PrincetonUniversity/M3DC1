@@ -164,9 +164,14 @@ subroutine define_transport_coefficients()
   integer :: ione, numelms, def_fields
   double precision :: coords(3)
 
+  real :: factor
+
   resistivity = 0.
   kappa = 0.
   sigma = 0.
+  visc = 0.
+
+  temp79c = 0.
 
   def_fields = 0.
 
@@ -180,6 +185,7 @@ subroutine define_transport_coefficients()
      call define_fields_79(itri, def_fields)   
         
      ! resistivity
+     ! ~~~~~~~~~~~
      if(eta0.eq.0.) then
         temp79a = 0.
      else       
@@ -200,6 +206,7 @@ subroutine define_transport_coefficients()
      endif
 
      ! thermal conductivity
+     ! ~~~~~~~~~~~~~~~~~~~~
      if(kappa0.eq.0. .or. numvar.lt.3) then
         temp79b = 0.
      else
@@ -212,12 +219,45 @@ subroutine define_transport_coefficients()
      endif
  
      ! density source
-     if(idens.eq.1 .and. ipellet.eq.1) then
-        temp79c = pellet_rate/(2.*pi*pellet_var**2) & 
-             *exp(-((x_79 - pellet_x)**2 + (z_79 - pellet_z)**2)/(2.*pellet_var**2))
-     else
+     ! ~~~~~~~~~~~~~~
+     if(idens.eq.1) then
         temp79c = 0.
+        if(ipellet.eq.1) then
+           temp79c = temp79c + ri_79*pellet_rate/(2.*pi*pellet_var**2) & 
+                *exp(-((x_79 - pellet_x)**2 + (z_79 - pellet_z)**2) &
+                      /(2.*pellet_var**2))
+        endif
+        if(ionization.eq.1) then
+           if(numvar.ge.3) then
+              temp79d = pt79(:,OP_1)
+           else
+              temp79d = p0
+           endif
+           if(idens.eq.1) then
+              temp79d = temp79d / nt79(:,OP_1)
+           endif
+
+           do i=1, 79
+              if(temp79d(i) .gt. ionization_temp) then
+                 temp79e(i) = exp(-(temp79d(i) - ionization_temp) &
+                                   / ionization_depth)
+              else
+                 temp79e(i) = 1.
+              endif
+           enddo
+
+           temp79c = temp79c + ionization_rate * temp79e * &
+                exp(-ionization_temp / temp79d)
+
+        endif
      endif
+
+     ! visc
+     ! ~~~~
+     do i=1,79
+        call mask(x_79(i)-xzero, z_79(i)-zzero, factor)
+        temp79d(i) = amu_edge*(1.-factor) + 1.
+     end do
 
      do i=1,18
         ione = isval1(itri,i)       
@@ -230,12 +270,18 @@ subroutine define_transport_coefficients()
              + kappa0*int2(g79(:,OP_1,i),temp79b, weight_79,79)
         sigma(ione) = sigma(ione) &
              + int2(g79(:,OP_1,i),temp79c, weight_79,79)
+        visc(ione) = visc(ione) &
+             + int2(g79(:,OP_1,i),temp79d, weight_79,79)
      end do
   end do
 
   call solve_newvar(resistivity, NV_NOBOUND)
   call solve_newvar(kappa, NV_NOBOUND)
   call solve_newvar(sigma, NV_NOBOUND)
+  call solve_newvar(visc, NV_NOBOUND)
+
+  visc_c = amuc*visc
+  visc = amu*visc
 
 end subroutine define_transport_coefficients
 

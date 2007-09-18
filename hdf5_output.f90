@@ -362,6 +362,8 @@ subroutine hdf5_write_parameters(error)
   call write_int_attr (root_id, "jper"       , jper,       error)
   call write_int_attr (root_id, "imask"      , imask,      error)
   call write_int_attr (root_id, "integrator" , integrator, error)
+  call write_int_attr (root_id, "ipellet"    , ipellet,    error)
+  call write_real_attr(root_id, "db"         , db,         error)
   call write_real_attr(root_id, "xzero"      , xzero,      error)
   call write_real_attr(root_id, "zzero"      , zzero,      error)
   call write_real_attr(root_id, "xlim"       , xlim,       error)
@@ -374,7 +376,18 @@ subroutine hdf5_write_parameters(error)
   call write_real_attr(root_id, "bzero"      , bzero,      error)
   call write_real_attr(root_id, "gravr"      , gravr,      error)
   call write_real_attr(root_id, "gravz"      , gravz,      error)
-
+  call write_real_attr(root_id, "amu"        , amu,        error)
+  call write_real_attr(root_id, "amuc"       , amuc,       error)
+  call write_real_attr(root_id, "etar"       , etar,       error)
+  call write_real_attr(root_id, "eta0"       , eta0,       error)
+  call write_real_attr(root_id, "kappar"     , kappar,     error)
+  call write_real_attr(root_id, "kappa0"     , kappa0,     error)
+  call write_real_attr(root_id, "kappat"     , kappat,     error)
+  call write_real_attr(root_id, "denm"       , denm,       error)
+  call write_real_attr(root_id, "pellet_rate", pellet_rate,error)
+  call write_real_attr(root_id, "pellet_var" , pellet_var, error)
+  call write_real_attr(root_id, "pellet_x"   , pellet_x,   error)
+  call write_real_attr(root_id, "pellet_z"   , pellet_z,   error)
 
   call h5gclose_f(root_id, error)
 
@@ -411,14 +424,14 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "area"            , area , ntime, error)
   call output_scalar(scalar_group_id, "toroidal_flux"   , tflux , ntime, error)
   call output_scalar(scalar_group_id, "toroidal_current", totcur, ntime, error)
-  call output_scalar(scalar_group_id, "electron_number" , totden, ntime, error)
+  call output_scalar(scalar_group_id, "particle_number" , totden, ntime, error)
   call output_scalar(scalar_group_id, "angular_momentum", tmom  , ntime, error)
   call output_scalar(scalar_group_id, "circulation"     , tvor  , ntime, error)
 
   call output_scalar(scalar_group_id, "area_p"            , parea, ntime, error)
   call output_scalar(scalar_group_id, "toroidal_flux_p"   , pflux, ntime, error)
   call output_scalar(scalar_group_id, "toroidal_current_p", pcur , ntime, error)
-  call output_scalar(scalar_group_id, "electron_number_p" , pden , ntime, error)
+  call output_scalar(scalar_group_id, "particle_number_p" , pden , ntime, error)
   call output_scalar(scalar_group_id, "angular_momentum_p", pmom , ntime, error)
   call output_scalar(scalar_group_id, "circulation_p"     , pvor , ntime, error)
   
@@ -447,12 +460,18 @@ subroutine hdf5_write_scalars(error)
      call output_scalar(scalar_group_id, "E_K3H", ekin3h, ntime, error)
   endif
 
-  call output_scalar(scalar_group_id, "Flux_diffusive", efluxd, ntime, error)
   call output_scalar(scalar_group_id, "Flux_pressure ", efluxp, ntime, error)
   call output_scalar(scalar_group_id, "Flux_kinetic  ", efluxk, ntime, error)
   call output_scalar(scalar_group_id, "Flux_poynting ", efluxs, ntime, error)
   call output_scalar(scalar_group_id, "Flux_thermal  ", efluxt, ntime, error)
   call output_scalar(scalar_group_id, "E_grav        ", epotg,  ntime, error)
+
+  call output_scalar(scalar_group_id, "Particle_Flux_diffusive", &
+       nfluxd, ntime, error)
+  call output_scalar(scalar_group_id, "Particle_Flux_convective", &
+       nfluxv, ntime, error)
+  call output_scalar(scalar_group_id, "Particle_source", &
+       nsource, ntime, error)
 
   if(itaylor.eq.3) then
      temp = reconnected_flux()
@@ -667,18 +686,25 @@ subroutine output_fields(time_group_id, error)
   call output_field(group_id, "jphi", dum, 20, nelms, error)
   nfields = nfields + 1
 
-!!$  ! vor
-!!$  do i=1, nelms
-!!$     call calcavector(i, vor, 1, 1, dum(:,i))
-!!$  end do
-!!$  call output_field(group_id, "vor", dum, 20, nelms, error)
-!!$  nfields = nfields + 1
+  ! vor
+  do i=1, nelms
+     call calcavector(i, vor, 1, 1, dum(:,i))
+  end do
+  call output_field(group_id, "vor", dum, 20, nelms, error)
+  nfields = nfields + 1
 
   ! eta
   do i=1, nelms
      call calcavector(i, resistivity, 1, 1, dum(:,i))
   end do
   call output_field(group_id, "eta", dum, 20, nelms, error)
+  nfields = nfields + 1
+
+  ! visc
+  do i=1, nelms
+     call calcavector(i, visc, 1, 1, dum(:,i))
+  end do
+  call output_field(group_id, "visc", dum, 20, nelms, error)
   nfields = nfields + 1
 
   if(numvar.ge.2) then
@@ -727,18 +753,25 @@ subroutine output_fields(time_group_id, error)
      call output_field(group_id, "chi", dum, 20, nelms, error)
      nfields = nfields + 1
 
-!!$     ! com
-!!$     do i=1, nelms
-!!$        call calcavector(i, com, 1, 1, dum(:,i))
-!!$     end do
-!!$     call output_field(group_id, "com", dum, 20, nelms, error)
-!!$     nfields = nfields + 1
+     ! com
+     do i=1, nelms
+        call calcavector(i, com, 1, 1, dum(:,i))
+     end do
+     call output_field(group_id, "com", dum, 20, nelms, error)
+     nfields = nfields + 1
 
      ! kappa
      do i=1, nelms
         call calcavector(i, kappa, 1, 1, dum(:,i))
      end do
      call output_field(group_id, "kappa", dum, 20, nelms, error)
+     nfields = nfields + 1
+
+     ! visc_c
+     do i=1, nelms
+        call calcavector(i, visc_c, 1, 1, dum(:,i))
+     end do
+     call output_field(group_id, "visc_c", dum, 20, nelms, error)
      nfields = nfields + 1
   endif
 
@@ -751,11 +784,33 @@ subroutine output_fields(time_group_id, error)
      call output_field(group_id, "den", dum, 20, nelms, error)
      nfields = nfields + 1
 
-     if(ipellet.eq.1) then
+     if(ipellet.eq.1 .or. ionization) then
         do i=1, nelms
            call calcavector(i, sigma, 1, 1, dum(:,i))
         end do
         call output_field(group_id, "sigma", dum, 20, nelms, error)
+        nfields = nfields + 1
+     endif
+  endif
+
+  if(isources.eq.1) then
+     do i=1, nelms
+        call calcavector(i, sb1, 1, 1, dum(:,i))
+     end do
+     call output_field(group_id, "sb1", dum, 20, nelms, error)
+     nfields = nfields + 1
+     if(numvar.ge.2) then
+        do i=1, nelms
+           call calcavector(i, sb2, 1, 1, dum(:,i))
+        end do
+        call output_field(group_id, "sb2", dum, 20, nelms, error)
+        nfields = nfields + 1
+     endif
+     if(numvar.ge.3) then
+        do i=1, nelms
+           call calcavector(i, sp1, 1, 1, dum(:,i))
+        end do
+        call output_field(group_id, "sp1", dum, 20, nelms, error)
         nfields = nfields + 1
      endif
   endif
