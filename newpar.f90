@@ -474,6 +474,10 @@ Program Reducedquintic
   call deletedofnumbering(1)
   call deletedofnumbering(2)
   call deletedofnumbering(3)
+  call deletedofnumbering(4)
+  call deletedofnumbering(5)
+  call deletedofnumbering(6)
+
 
   if (myrank.eq.0 .and. maxrank.eq.1) call plote
   

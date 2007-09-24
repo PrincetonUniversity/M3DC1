@@ -500,7 +500,16 @@
          call createdofnumbering(numvar3_numbering, iper, jper, 
      &        18, 0, 0, 0, maxdofs3)
       endif
-
+      if(numvar .eq. 4) then
+         call createdofnumbering(numvar4_numbering, iper, jper, 
+     &        24, 0, 0, 0, maxdofs4)
+      endif
+      if(numvar .eq. 6) then
+         call createdofnumbering(numvar6_numbering, iper, jper, 
+     &        36, 0, 0, 0, maxdofs6)
+      endif
+   
+      
       if(myrank.eq.0) write(*,nml=inputnl)
       return
       end
