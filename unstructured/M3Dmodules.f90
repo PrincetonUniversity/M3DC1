@@ -172,7 +172,7 @@ module arrays
   integer, parameter :: r8 = selected_real_kind(12,100)
   ! indices
   integer :: p,q,r,s
-  integer :: maxdofs1, maxdofs2, maxdofs3
+  integer :: maxdofs1, maxdofs2, maxdofs3, maxdofs4, maxdofs5, maxdofs6
   integer, allocatable :: isvaln(:,:),isval1(:,:),isval2(:,:)
   real :: fint(-6:maxi,-6:maxi), xi(3),zi(3),df(0:4,0:4)
   real :: xsep(5), zsep(5), graphit(0:ntimep,maxplots)
@@ -620,6 +620,9 @@ module sparse
   integer, parameter :: numvar1_numbering = 1
   integer, parameter :: numvar2_numbering = 2
   integer, parameter :: numvar3_numbering = 3
+  integer, parameter :: numvar4_numbering = 4
+  integer, parameter :: numvar5_numbering = 5
+  integer, parameter :: numvar6_numbering = 6
   integer, parameter :: s6matrix_sm = 1
   integer, parameter :: s8matrix_sm = 2
   integer, parameter :: s7matrix_sm = 3
