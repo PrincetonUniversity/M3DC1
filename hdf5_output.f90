@@ -667,14 +667,14 @@ subroutine output_fields(time_group_id, error)
   
   ! psi
   do i=1, nelms
-     call calcavector(i, phi, 1, numvar, dum(:,i))
+     call calcavector(i, psi1_v, psi_i, vecsize, dum(:,i))
   end do
   call output_field(group_id, "psi", dum, 20, nelms, error)
   nfields = nfields + 1
 
   ! phi
   do i=1, nelms
-     call calcavector(i, vel, 1, numvar, dum(:,i))
+     call calcavector(i, phi1_v, phi_i, vecsize, dum(:,i))
   end do
   call output_field(group_id, "phi", dum, 20, nelms, error)
   nfields = nfields + 1
@@ -710,14 +710,14 @@ subroutine output_fields(time_group_id, error)
   if(numvar.ge.2) then
      ! I
      do i=1, nelms
-        call calcavector(i, phi, 2, numvar, dum(:,i))
+        call calcavector(i, bz1_v, bz_i, vecsize, dum(:,i))
      end do
      call output_field(group_id, "I", dum, 20, nelms, error)
      nfields = nfields + 1
 
      ! V
      do i=1, nelms
-        call calcavector(i, vel, 2, numvar, dum(:,i))
+        call calcavector(i, vz1_v, vz_i, vecsize, dum(:,i))
      end do
      call output_field(group_id, "V", dum, 20, nelms, error)
      nfields = nfields + 1
@@ -727,18 +727,18 @@ subroutine output_fields(time_group_id, error)
      ! P and Pe
      if(ipres.eq.1) then
         do i=1, nelms
-           call calcavector(i, phi, 3, numvar, dum(:,i))
+           call calcavector(i, pe1_v, pe_i, vecsize, dum(:,i))
         end do
         call output_field(group_id, "Pe", dum, 20, nelms, error)
         nfields = nfields + 1
         do i=1, nelms
-           call calcavector(i, pres, 1, 1, dum(:,i))
+           call calcavector(i, p1_v, p_i, vecsize1, dum(:,i))
         end do
         call output_field(group_id, "P", dum, 20, nelms, error)
         nfields = nfields + 1
      else
         do i=1, nelms
-           call calcavector(i, phi, 3, numvar, dum(:,i))
+           call calcavector(i, pe1_v, pe_i, vecsize, dum(:,i))
         end do
         call output_field(group_id, "Pe", pefac*dum, 20, nelms, error)
         nfields = nfields + 1
@@ -748,7 +748,7 @@ subroutine output_fields(time_group_id, error)
      
      ! chi
      do i=1, nelms
-        call calcavector(i, vel, 3, numvar, dum(:,i))
+        call calcavector(i, chi1_v, chi_i, vecsize, dum(:,i))
      end do
      call output_field(group_id, "chi", dum, 20, nelms, error)
      nfields = nfields + 1
@@ -779,7 +779,7 @@ subroutine output_fields(time_group_id, error)
   if(idens.eq.1) then
      ! den
      do i=1, nelms
-        call calcavector(i, den, 1, 1, dum(:,i))
+        call calcavector(i, den1_v, den_i, vecsize1, dum(:,i))
      end do
      call output_field(group_id, "den", dum, 20, nelms, error)
      nfields = nfields + 1

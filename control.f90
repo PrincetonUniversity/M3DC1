@@ -9,6 +9,8 @@ subroutine control_pid
   real, save :: error_old = 0.
   real, save :: error_i = 0.
 
+  if(dt.eq.0.) return
+
   error_p = totcur - tcur
   error_i = error_i + error_p*dt
   error_d = (error_p - error_old)/dt

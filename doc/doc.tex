@@ -298,12 +298,11 @@ generalized Ohm's law (equation~(\ref{eq:ohm})) results in a
 biharmonic operator acting on the magnetic field in Faraday's law.  In
 the electron pressure equation, $\P_e$ gives rise to viscous heating
 of electrons:
-\begin{equation}
-  d_i \P_e : \grad{\frac{\j}{n}} = d_i \lambda\frac{1}{r^2}
-  \left\{ \ip{\frac{\gs\psi}{r}}{\frac{\gs\psi}{r}} +
-  \frac{(\gs\psi)^2}{r^4} +
-  
-\end{equation}
+%\begin{equation}
+%  d_i \P_e : \grad{\frac{\j}{n}} = d_i \lambda\frac{1}{r^2}
+%  \left\{ \ip{\frac{\gs\psi}{r}}{\frac{\gs\psi}{r}} +
+%  \frac{(\gs\psi)^2}{r^4}  
+%\end{equation}
 
 
 
@@ -652,6 +651,115 @@ transformation from cartesian to cylindrical coordinates.
 
 \section{Time step}
 
+\subsection{Fully Implicit Time Advance}
+
+\begin{eqnarray}
+  \begin{pmatrix}
+    \cola{S^v_{1 1}} & \cola{R^v_{1 1}} &
+    \colb{S^v_{1 2}} & \colb{R^v_{1 2}} & 
+          S^v_{1 3}  &        0         &
+          R^v_{1 4}  &       R^v_{1 3}
+    \\
+    \cola{R^B_{1 1}} & \cola{S^B_{1 1}} &
+    \colb{R^B_{1 2}} & \colb{S^B_{1 2}} & 
+          R^B_{1 3}  &       S^B_{1 3}  &
+              0      &        0
+    \\
+    \colb{S^v_{2 1}} & \colb{R^v_{2 1}} & 
+    \colb{S^v_{2 2}} & \colb{R^v_{2 2}} & 
+          S^v_{2 3}  &        0         &
+	  R^v_{2 4}  &       R^v_{2 3}
+    \\
+    \colb{R^B_{2 1}} & \cola{S^B_{2 1}} &
+    \colb{R^B_{2 2}} & \colb{S^B_{2 2}} & 
+          R^B_{2 3}  &       S^B_{2 3}  &
+              0      &        0
+    \\
+          S^v_{3 1}  &       R^v_{3 1}  &
+          S^v_{3 2}  &       R^v_{3 2}  &
+          S^v_{3 3}  &        0         &
+	  R^v_{3 4}  &       R^v_{3 3}  
+    \\
+          R^B_{3 1}  &       S^v_{3 1}  &
+          R^B_{3 2}  &       S^v_{3 2}  &
+          R^B_{3 3}  &       S^v_{3 3}  &
+              0      &        0
+    \\
+          R^n_{3 1}  &        0         &
+          R^n_{3 2}  &        0         &
+          R^n_{3 3}  &        0         &
+          S^n        &        0
+    \\
+          R^p_{3 1}  &        0         &
+          R^p_{3 2}  &        0         &
+          R^p_{3 3}  &        0         &
+              0      &       S^p        &
+  \end{pmatrix}
+  \begin{pmatrix}
+    \cola{U}\\ \cola{\psi}\\ 
+    \colb{V}\\ \colb{I}   \\
+    \chi \\ p_e \\ 
+    n \\ p
+  \end{pmatrix}^{(n+1)} = \nonumber \\
+  \begin{pmatrix}
+    \cola{D^v_{1 1}} & \cola{Q^v_{1 1}} &
+    \colb{D^v_{1 2}} & \colb{Q^v_{1 2}} & 
+          D^v_{1 3}  &        0         &
+          Q^v_{1 4}  &       Q^v_{1 3}
+    \\
+    \cola{Q^B_{1 1}} & \cola{D^B_{1 1}} &
+    \colb{Q^B_{1 2}} & \colb{D^B_{1 2}} & 
+          Q^B_{1 3}  &       D^B_{1 3}  &
+              0      &        0
+    \\
+    \colb{D^v_{2 1}} & \colb{Q^v_{2 1}} & 
+    \colb{D^v_{2 2}} & \colb{Q^v_{2 2}} & 
+          D^v_{2 3}  &        0         &
+	  Q^v_{2 4}  &       Q^v_{2 3}
+    \\
+    \colb{Q^B_{2 1}} & \cola{D^B_{2 1}} &
+    \colb{Q^B_{2 2}} & \colb{D^B_{2 2}} & 
+          Q^B_{2 3}  &       D^B_{2 3}  &
+              0      &        0
+    \\
+          D^v_{3 1}  &       Q^v_{3 1}  &
+          D^v_{3 2}  &       Q^v_{3 2}  &
+          D^v_{3 3}  &        0         &
+	  Q^v_{3 4}  &       Q^v_{3 3}  
+    \\
+          Q^B_{3 1}  &       D^v_{3 1}  &
+          Q^B_{3 2}  &       D^v_{3 2}  &
+          Q^B_{3 3}  &       D^v_{3 3}  &
+              0      &        0
+    \\
+          Q^n_{3 1}  &        0         &
+          Q^n_{3 2}  &        0         &
+          Q^n_{3 3}  &        0         &
+          D^n        &        0
+    \\
+          Q^p_{3 1}  &        0         &
+          Q^p_{3 2}  &        0         &
+          Q^p_{3 3}  &        0         &
+              0      &       D^p        &
+  \end{pmatrix}
+  \begin{pmatrix}
+    \cola{U}\\ \cola{\psi}\\ 
+    \colb{V}\\ \colb{I}   \\
+    \chi \\ p_e \\ 
+    n \\ p
+  \end{pmatrix}^{(n)} +   
+  \begin{pmatrix}
+    Q_1 \\ Q_2 \\ 
+    Q_3 \\ Q_3 \\
+    Q_4 \\ Q_5 \\ 
+    Q_6 \\ Q_7
+  \end{pmatrix}
+\end{eqnarray}
+
+\subsection{Split Time Step Method}
+
+In order to reduce the 
+
 Time is advanced using a split time-step method in which the velocity
 field is advanced first, then the density and total pressure fields
 are advanced separately, and finally the magnetic field and electron
@@ -684,9 +792,9 @@ field for use in the velocity time step.
   \end{pmatrix}^{(n)}
   + 
   \begin{pmatrix}
-    \cola{R^v_{1 1}} & \colb{R^v_{1 2}} & R^v_{1 3}\\
-    \colb{R^v_{2 1}} & \colb{R^v_{2 2}} & R^v_{2 3}\\
-          R^v_{3 1}  &       R^v_{3 2}  & R^v_{3 3}\\
+    \cola{Q^v_{1 1}} & \colb{Q^v_{1 2}} & Q^v_{1 3}\\
+    \colb{Q^v_{2 1}} & \colb{Q^v_{2 2}} & Q^v_{2 3}\\
+          Q^v_{3 1}  &       Q^v_{3 2}  & Q^v_{3 3}\\
   \end{pmatrix} 
   \begin{pmatrix}
     \cola{\psi}\\ \colb{I}\\ p
@@ -701,22 +809,22 @@ field for use in the velocity time step.
 
 \begin{eqnarray}
   \label{eq:density_advance}
-  S^N n^{(n+1)} & = & D^N n^{(n)} + 
-  \begin{pmatrix} R^N_1 & R^N_2 & R^N_3\end{pmatrix}
+  S^n n^{(n+1)} & = & D^n n^{(n)} + 
+  \begin{pmatrix} R^n_1 & R^n_2 & R^n_3\end{pmatrix}
   \begin{pmatrix}\cola{U}\\ \colb{V}\\ \chi\end{pmatrix}^{(n+1)}
   \\ & & \mbox{} + 
-  \begin{pmatrix}Q^N_1    &   Q^N_2   & Q^N_3\end{pmatrix}
+  \begin{pmatrix}Q^n_1    &   Q^n_2   & Q^n_3\end{pmatrix}
   \begin{pmatrix}\cola{U}\\ \colb{V}\\ \chi\end{pmatrix}^{(n)} \nonumber
 \end{eqnarray}
 
 
 \begin{eqnarray}
   \label{eq:pressure_advance}
-  S^P p^{(n+1)} & = & D^P p^{(n)} + 
-  \begin{pmatrix}R^P_1 & R^P_2 & R^P_3\end{pmatrix}
+  S^p p^{(n+1)} & = & D^p p^{(n)} + 
+  \begin{pmatrix}R^p_1 & R^p_2 & R^p_3\end{pmatrix}
   \begin{pmatrix}\cola{U}\\ \colb{V}\\ \chi \end{pmatrix}^{(n+1)}
   \\ & & \mbox{} + 
-  \begin{pmatrix}Q^P_1 & Q^P_2 & Q^P_3\end{pmatrix}
+  \begin{pmatrix}Q^p_1 & Q^p_2 & Q^p_3\end{pmatrix}
   \begin{pmatrix}\cola{U}\\ \colb{V}\\ \chi \end{pmatrix}^{(n)} \nonumber
 \end{eqnarray}
 
@@ -991,7 +1099,7 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
   \texttt{vloop}  & 0 & Loop voltage.  $\partial_t \psi = \mathtt{vloop}$\\
   \texttt{v\_bc}  & 0 & 0: $\partial_t V = 0$; 1: $\n \cdot \grad{V} = 0$\\
   \texttt{com\_bc}& 1 & 1: $\nabla^2 \chi = 0$\\
-  \texttt{p\_pc}  & 0 & 0: $\partial_t p = 0$; 1: $\n \cdot \grad{p} =
+  \texttt{p\_bc}  & 0 & 0: $\partial_t p = 0$; 1: $\n \cdot \grad{p} =
     0$\\
   \texttt{imask}  & 0 & 1: Smoothly bring $d_i$ to zero near
     boundaries\\
@@ -1008,7 +1116,12 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
   \texttt{ntimemax}   & 20  & Total number of time steps\\
   \texttt{integrator} & 0   & 0: Crank-Nicholson (CN); 1: BDF2\\
   \texttt{thimp}      & 0.5 & CN impliciness\\
-  \texttt{thimp\_ohm} & \texttt{thimp} & CN impliciness of ohmic heating terms
+  \texttt{thimp\_ohm} & \texttt{thimp} & 
+                              CN impliciness of ohmic heating terms\\
+  \texttt{isplitstep} & 1   & 0: Fully implicit time step; 
+                              1: split time step.\\
+  \texttt{iresolve}   & 0   & \parbox[t]{3in}{1: Re-solve velocity after 
+                              field advance of split time step.}
 \end{tabular}
 
 
@@ -1028,7 +1141,7 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
   \texttt{p0}    & 0.01   & Pressure at magnetic axis\\
   \texttt{p1}    & -1     & $p'(\Psi)$ at magnetic axis\\
   \texttt{p2}    & -2     & $p''(\Psi)$ at magnetic axis\\
-  \texttt{pedge} & 0.     & Pressure in vacuum region\\
+  \texttt{pedge} & 0      & Pressure in vacuum region\\
   \texttt{divertors} & 0  & Number of divertors (0--2)\\
   \texttt{divcur}& 0.1    & Divertor current(s), as fraction of tcuro\\
   \texttt{xdiv}  & \texttt{xmag} & $r$-coordinate of divertor current(s)\\
@@ -1038,7 +1151,7 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
     $z = -\mathtt{zdiv}$.}\\
   \texttt{expn}  & 0 & \parbox[t]{3in}{Fraction of pressure gradient due to
     density gradient: $n = p^\mathtt{expn}$.}\\
-  \texttt{th\_gs} & 0.5 & Relaxation paramter for iteration
+  \texttt{th\_gs} & 0.5 & Relaxation paramter for GS iteration
 \end{tabular}
 
 

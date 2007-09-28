@@ -14,7 +14,7 @@
       call createfilename(fname, oldfname)
       call numnod(numnodes)
       call numfac(numelms)
-      call numdofs(numvar, mmnn18)
+      call numdofs(vecsize, mmnn18)
 
       if(ifirstrs .ne. 1) call rename(fname, oldfname)
       ifirstrs = 0
@@ -28,59 +28,66 @@ c     first put in information to check on run information
       write(56) jper 
       write(56) myrank
       write(56) maxrank
-      do j1=1,mmnn18 
-         write(56) vel(j1)
-      enddo
-      do j1=1,mmnn18       
-         write(56) vel0(j1)
-      enddo
-      do j1=1,mmnn18 
-         write(56) vels(j1)
-      enddo
-      do j1=1,mmnn18 
-         write(56) velold(j1)
-      enddo
-      do j1=1,mmnn18 
-         write(56) phi(j1)
-      enddo
-      do j1=1,mmnn18 
-         write(56) phi0(j1)
-      enddo
-      do j1=1,mmnn18 
-         write(56) phis(j1)
-      enddo
-      do j1=1,mmnn18 
-         write(56) phiold(j1)
-      enddo
-!
-      call numdofs(1, mmnn6)
-      do j1=1,mmnn6       
-         write(56) den(j1)
-      enddo
-      do j1=1,mmnn6       
-         write(56) den0(j1)
-      enddo
-      do j1=1,mmnn6       
-         write(56) dens(j1)
-      enddo
-      do j1=1,mmnn6       
-         write(56) denold(j1)
-      enddo
 
-      if(ipres.eq.1) then 
-         do j1=1,mmnn6       
-            write(56) pres(j1)
+      if(isplitstep.eq.1) then
+         do j1=1,mmnn18
+            write(56) vel(j1)
          enddo
-         do j1=1,mmnn6       
-            write(56) pres0(j1)
+         do j1=1,mmnn18
+            write(56) vel0(j1)
          enddo
-         do j1=1,mmnn6       
-            write(56) press(j1)
+         do j1=1,mmnn18
+            write(56) vels(j1)
          enddo
-         do j1=1,mmnn6       
-            write(56) presold(j1)
+         do j1=1,mmnn18
+            write(56) velold(j1)
          enddo
       endif
+
+      do j1=1,mmnn18
+         write(56) phi(j1)
+      enddo
+      do j1=1,mmnn18
+         write(56) phi0(j1)
+      enddo
+      do j1=1,mmnn18
+         write(56) phis(j1)
+      enddo
+      do j1=1,mmnn18
+         write(56) phiold(j1)
+      enddo
+
+      if(isplitstep.eq.1) then
+         call numdofs(1, mmnn6)
+         do j1=1,mmnn6
+            write(56) den(j1)
+         enddo
+         do j1=1,mmnn6
+            write(56) den0(j1)
+         enddo
+         do j1=1,mmnn6
+            write(56) dens(j1)
+         enddo
+         do j1=1,mmnn6
+            write(56) denold(j1)
+         enddo
+
+         if(ipres.eq.1) then 
+            do j1=1,mmnn6       
+               write(56) pres(j1)
+            enddo
+            do j1=1,mmnn6       
+               write(56) pres0(j1)
+            enddo
+            do j1=1,mmnn6       
+               write(56) press(j1)
+            enddo
+            do j1=1,mmnn6       
+               write(56) presold(j1)
+            enddo
+         endif
+      endif
+
 !
       write(56) ntimein,timein
       write(56) totcur0,tflux0,gbound,facd,fbound,ptot,vloop
@@ -155,18 +162,20 @@ c     first put in information to check on run information
          call safestop(2)
       endif
 
-      do j1=1,mmnn18
-         read(56) vel(j1)
-      enddo
-      do j1=1,mmnn18
-         read(56) vel0(j1)
-      enddo
-      do j1=1,mmnn18
-         read(56) vels(j1)
-      enddo
-      do j1=1,mmnn18
-         read(56) velold(j1)
-      enddo
+      if(isplitstep.eq.1) then
+         do j1=1,mmnn18
+            read(56) vel(j1)
+         enddo
+         do j1=1,mmnn18
+            read(56) vel0(j1)
+         enddo
+         do j1=1,mmnn18
+            read(56) vels(j1)
+         enddo
+         do j1=1,mmnn18
+            read(56) velold(j1)
+         enddo
+      endif
       do j1=1,mmnn18
          read(56) phi(j1)
       enddo
@@ -180,33 +189,35 @@ c     first put in information to check on run information
          read(56) phiold(j1)
       enddo
 
-      call numdofs(1, mmnn6)
-      do j1=1,mmnn6
-         read(56) den(j1)
-      enddo
-      do j1=1,mmnn6
-         read(56) den0(j1)
-      enddo
-      do j1=1,mmnn6
-         read(56) dens(j1)
-      enddo
-      do j1=1,mmnn6
-         read(56) denold(j1)
-      enddo
+      if(isplitstep.eq.1) then
+         call numdofs(1, mmnn6)
+         do j1=1,mmnn6
+            read(56) den(j1)
+         enddo
+         do j1=1,mmnn6
+            read(56) den0(j1)
+         enddo
+         do j1=1,mmnn6
+            read(56) dens(j1)
+         enddo
+         do j1=1,mmnn6
+            read(56) denold(j1)
+         enddo
 
-      if(ipres.eq.1) then 
-         do j1=1,mmnn6       
-            read(56) pres(j1)
-         enddo
-         do j1=1,mmnn6       
-            read(56) pres0(j1)
-         enddo
-         do j1=1,mmnn6       
-            read(56) press(j1)
-         enddo
-         do j1=1,mmnn6       
-            read(56) presold(j1)
-         enddo
+         if(ipres.eq.1) then 
+            do j1=1,mmnn6       
+               read(56) pres(j1)
+            enddo
+            do j1=1,mmnn6       
+               read(56) pres0(j1)
+            enddo
+            do j1=1,mmnn6       
+               read(56) press(j1)
+            enddo
+            do j1=1,mmnn6       
+               read(56) presold(j1)
+            enddo
+         endif
       endif
 !
       read(56) ntimer,timer

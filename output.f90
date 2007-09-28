@@ -220,9 +220,6 @@ subroutine output
         if(idens.eq.1 .and. maxrank .eq. 1) call oneplot(den,1,1,"n-t",1)
      endif
   endif
-  
-  ! plot linearized solution
-  if(idens.eq.1 .and. maxrank .eq. 1) call oneplot(deni,1,1,"deni",0)
 
   call wrrestart(time, ntime)
   write(*,4110)

@@ -48,7 +48,7 @@ subroutine boundary_vel(imatrix, rhs)
         if(izone.eq.ibottom .or. izone.eq.itop) cycle
      endif
 
-     call entdofs(numvar, i, 0, ibegin, iendplusone)
+     call entdofs(vecsize, i, 0, ibegin, iendplusone)
      call xyznod(i,coords)
      x = coords(1) + xzero
 
@@ -66,46 +66,46 @@ subroutine boundary_vel(imatrix, rhs)
   
         ! no normal flow
         temp = 0.
-        call boundary_clamp(imatrix, ibegin, normal, rhs, temp)
+        call boundary_clamp(imatrix, ibegin+phi_off, normal, rhs, temp)
         if(numvar.ge.3) then
-           call boundary_normal_deriv(imatrix, ibegin+12, normal, rhs, temp)
+           call boundary_normal_deriv(imatrix, ibegin+chi_off, normal, rhs, temp)
 !!$           if(itor.eq.0) then
-!!$              if(imatrix.ne.0) call setdiribc(imatrix, ibegin+16)
-!!$              rhs(ibegin+16) = 0.
+!!$              if(imatrix.ne.0) call setdiribc(imatrix, ibegin+chi_off+4)
+!!$              rhs(ibegin+chi_off+4) = 0.
 !!$           endif
         endif
 
 !!$        ! no velocity 
-!!$        call boundary_normal_deriv(imatrix, ibegin, normal, rhs, temp)
-!!$        if(imatrix.ne.0) call setdiribc(imatrix, ibegin+4)
-!!$        rhs(ibegin+4) = 0.
+!!$        call boundary_normal_deriv(imatrix, ibegin+phi_off, normal, rhs, temp)
+!!$        if(imatrix.ne.0) call setdiribc(imatrix, ibegin+phi_off+4)
+!!$        rhs(ibegin+phi_off+4) = 0.
 
         ! clamp toroidal velocity
         if(numvar.ge.2) then
            select case(v_bc)
            case(1)               ! no normal stress
               temp = 0.
-              call boundary_normal_deriv(imatrix, ibegin+6, normal, rhs, temp)
-              if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
-              rhs(ibegin+10) = 0.
+              call boundary_normal_deriv(imatrix, ibegin+vz_off, normal, rhs, temp)
+              if(imatrix.ne.0) call setdiribc(imatrix, ibegin+vz_off+4)
+              rhs(ibegin+vz_off+4) = 0.
 
            case default          ! no slip
-              temp = vels(ibegin+6:ibegin+11)
+              temp = vzs_v(ibegin+vz_off:ibegin+vz_off+5)
               if(integrator.eq.1 .and. ntime.gt.1) then
-                 temp = 1.5*temp + 0.5*velold(ibegin+6:ibegin+11)
+                 temp = 1.5*temp + 0.5*vzo_v(ibegin+vz_off:ibegin+vz_off+5)
               endif
-              call boundary_clamp(imatrix, ibegin+6, normal, rhs, temp)
+              call boundary_clamp(imatrix, ibegin+vz_off, normal, rhs, temp)
            end select
         endif
        
         ! no vorticity
-        call boundary_laplacian(imatrix, ibegin, normal, -x, irow)
+        call boundary_laplacian(imatrix, ibegin+phi_off, normal, -x, irow)
         rhs(irow) = 0.
 
         if(numvar.ge.3) then
            ! no compression
            if(com_bc.eq.1) then
-              call boundary_laplacian(imatrix, ibegin+12, normal, x, irow)
+              call boundary_laplacian(imatrix, ibegin+chi_off, normal, x, irow)
               rhs(irow) = 0.
            endif
         endif
@@ -115,28 +115,28 @@ subroutine boundary_vel(imatrix, rhs)
 
         ! no normal flow
         temp = 0.
-        call boundary_clamp_all(imatrix, ibegin, rhs, temp)
+        call boundary_clamp_all(imatrix, ibegin+phi_off, rhs, temp)
         if(numvar.ge.3) then
-           call boundary_normal_deriv(imatrix, ibegin+12, 0., rhs, temp)
-           call boundary_normal_deriv(imatrix, ibegin+12, pi/2., rhs, temp)
-           if(imatrix.ne.0) call setdiribc(imatrix, ibegin+16)
-           rhs(ibegin+16) = 0.
+           call boundary_normal_deriv(imatrix, ibegin+chi_off, 0., rhs, temp)
+           call boundary_normal_deriv(imatrix, ibegin+chi_off, pi/2., rhs, temp)
+           if(imatrix.ne.0) call setdiribc(imatrix, ibegin+chi_off+4)
+           rhs(ibegin+chi_off+4) = 0.
         endif
 
         if(numvar.ge.2) then
            select case (v_bc)
            case(1)               ! no normal stress
-              call boundary_normal_deriv(imatrix, ibegin+6, 0., rhs, temp)
-              call boundary_normal_deriv(imatrix, ibegin+6, pi/2., rhs, temp)
-              if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
-              rhs(ibegin+16) = 0.           
+              call boundary_normal_deriv(imatrix, ibegin+vz_off, 0., rhs, temp)
+              call boundary_normal_deriv(imatrix, ibegin+vz_off, pi/2., rhs, temp)
+              if(imatrix.ne.0) call setdiribc(imatrix, ibegin+vz_off+4)
+              rhs(ibegin+vz_off+4) = 0.           
 
            case default          ! no-slip         
-              temp = vels(ibegin+6:ibegin+11)
+              temp = vzs_v(ibegin+vz_off:ibegin+vz_off+5)
               if(integrator.eq.1 .and. ntime.gt.1) then
-                 temp = 1.5*temp + 0.5*velold(ibegin+6:ibegin+11)
+                 temp = 1.5*temp + 0.5*vzo_v(ibegin+vz_off:ibegin+vz_off+5)
               endif
-              call boundary_clamp_all(imatrix, ibegin+6, rhs, temp)
+              call boundary_clamp_all(imatrix, ibegin+vz_off, rhs, temp)
            end select
         end if
      endif
@@ -177,7 +177,7 @@ subroutine boundary_mag(imatrix, rhs)
   do i=1, numnodes
      call zonenod(i,izone,izonedim)
 
-     call entdofs(numvar, i, 0, ibegin, iendplusone)
+     call entdofs(vecsize, i, 0, ibegin, iendplusone)
      call xyznod(i,coords)
      x = coords(1) + xzero
      z = coords(2) + zzero
@@ -229,80 +229,80 @@ subroutine boundary_mag(imatrix, rhs)
         endif
 
         ! clamp poloidal field
-        temp = phis(ibegin:ibegin+5)
+        temp = psis_v(ibegin+psi_off:ibegin+psi_off+5)
         if(integrator.eq.1 .and. ntime.gt.1) then
-           temp = 1.5*temp + 0.5*phiold(ibegin:ibegin+5)
+           temp = 1.5*temp + 0.5*psio_v(ibegin+psi_off:ibegin+psi_off+5)
         endif
-        call boundary_clamp(imatrix, ibegin, normal, rhs, temp)
+        call boundary_clamp(imatrix, ibegin+psi_off, normal, rhs, temp)
 
         ! clamp toroidal field
         if(numvar.ge.2) then
-           temp = phis(ibegin+6:ibegin+11)
+           temp = bzs_v(ibegin+bz_off:ibegin+bz_off+5)
            if(integrator.eq.1 .and. ntime.gt.1) then
-              temp = 1.5*temp + 0.5*phiold(ibegin+6:ibegin+11)
+              temp = 1.5*temp + 0.5*bzo_v(ibegin+bz_off:ibegin+bz_off+5)
            endif
-           call boundary_clamp(imatrix, ibegin+6, normal, rhs, temp)
+           call boundary_clamp(imatrix, ibegin+bz_off, normal, rhs, temp)
         endif  
 
         ! no toroidal current
-        call boundary_laplacian(imatrix, ibegin, normal, -x, irow)
+        call boundary_laplacian(imatrix, ibegin+psi_off, normal, -x, irow)
         rhs(irow) = 0.
 
         ! no tangential current
         if(numvar.ge.2) then
            temp = 0.
-           call boundary_normal_deriv(imatrix, ibegin+6, normal, rhs, temp)
-           if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
-           rhs(ibegin+10) = 0.
+           call boundary_normal_deriv(imatrix, ibegin+bz_off, normal, rhs, temp)
+           if(imatrix.ne.0) call setdiribc(imatrix, ibegin+bz_off+4)
+           rhs(ibegin+bz_off+4) = 0.
         endif
 
         if(numvar.ge.3) then 
            select case (p_bc)
            case(1)       ! no normal pressure gradient (insulating)
               temp = 0.
-              call boundary_normal_deriv(imatrix, ibegin+12, normal, rhs, temp)
-              if(imatrix.ne.0) call setdiribc(imatrix, ibegin+16)
-              rhs(ibegin+16) = 0.
+              call boundary_normal_deriv(imatrix, ibegin+pe_off, normal, rhs, temp)
+              if(imatrix.ne.0) call setdiribc(imatrix, ibegin+pe_off+4)
+              rhs(ibegin+pe_off+4) = 0.
 
            case default  ! clamp pressure
-              temp = phis(ibegin+12:ibegin+17)
+              temp = pes_v(ibegin+pe_off:ibegin+pe_off+5)
               if(integrator.eq.1 .and. ntime.gt.1) then
-                 temp = 1.5*temp + 0.5*phiold(ibegin+12:ibegin+17)
+                 temp = 1.5*temp + 0.5*peo_v(ibegin+pe_off:ibegin+pe_off+5)
               endif
-              call boundary_clamp(imatrix, ibegin+12, normal, rhs, temp)
+              call boundary_clamp(imatrix, ibegin+pe_off, normal, rhs, temp)
            end select
         endif
 
         ! add loop voltage
         if(integrator.eq.1 .and. ntime.gt.1) then
-           rhs(ibegin) = rhs(ibegin) + 1.5*fbound
+           rhs(ibegin+psi_off) = rhs(ibegin+psi_off) + 1.5*fbound
         else
-           rhs(ibegin) = rhs(ibegin) + fbound
+           rhs(ibegin+psi_off) = rhs(ibegin+psi_off) + fbound
         endif
          
 
      else if(izonedim.eq.0) then
 
         ! clamp poloidal field
-        temp = phis(ibegin:ibegin+5)
+        temp = psis_v(ibegin+psi_off:ibegin+psi_off+5)
         if(integrator.eq.1 .and. ntime.gt.1) then
-           temp = 1.5*temp + 0.5*phiold(ibegin:ibegin+5)
+           temp = 1.5*temp + 0.5*psio_v(ibegin+psi_off:ibegin+psi_off+5)
         endif
-        call boundary_clamp_all(imatrix, ibegin, rhs, temp)
+        call boundary_clamp_all(imatrix, ibegin+psi_off, rhs, temp)
 
         ! clamp toroidal field
         if(numvar.ge.2) then
-           temp = phis(ibegin+6:ibegin+11)
+           temp = bzs_v(ibegin+bz_off:ibegin+bz_off+5)
            if(integrator.eq.1 .and. ntime.gt.1) then
-              temp = 1.5*temp + 0.5*phiold(ibegin+6:ibegin+11)
+              temp = 1.5*temp + 0.5*bzo_v(ibegin+bz_off:ibegin+bz_off+5)
            endif
            ! no tangential current
-           temp(ibegin+7) = 0.
-           temp(ibegin+8) = 0.
-           if(imatrix.ne.0) call setdiribc(imatrix, ibegin+10)
-           rhs(ibegin+10) = 0.
+           temp(ibegin+bz_off+1) = 0.
+           temp(ibegin+bz_off+2) = 0.
+           if(imatrix.ne.0) call setdiribc(imatrix, ibegin+bz_off+4)
+           rhs(ibegin+bz_off+4) = 0.
            ! clamp field
-           call boundary_clamp_all(imatrix, ibegin+6, rhs, temp)
+           call boundary_clamp_all(imatrix, ibegin+bz_off, rhs, temp)
         endif
 
 
@@ -310,25 +310,25 @@ subroutine boundary_mag(imatrix, rhs)
            select case (p_bc)
            case(1)      ! no normal pressure gradient (insulating)
               temp = 0.
-              call boundary_normal_deriv(imatrix, ibegin+12, 0., rhs, temp)
-              call boundary_normal_deriv(imatrix, ibegin+12, pi/2., rhs, temp)
-              if(imatrix.ne.0) call setdiribc(imatrix, ibegin+16)
-              rhs(ibegin+16) = 0.
+              call boundary_normal_deriv(imatrix, ibegin+pe_off, 0., rhs, temp)
+              call boundary_normal_deriv(imatrix, ibegin+pe_off, pi/2., rhs, temp)
+              if(imatrix.ne.0) call setdiribc(imatrix, ibegin+pe_off+4)
+              rhs(ibegin+pe_off+4) = 0.
               
            case default ! clamp pressure
-              temp = phis(ibegin+12:ibegin+17)
+              temp = pes_v(ibegin+pe_off:ibegin+pe_off+5)
               if(integrator.eq.1 .and. ntime.gt.1) then
-                 temp = 1.5*temp + 0.5*phiold(ibegin+12:ibegin+17)
+                 temp = 1.5*temp + 0.5*phiold(ibegin+pe_off:ibegin+pe_off+5)
               endif
-              call boundary_clamp_all(imatrix, ibegin+12, rhs, temp)
+              call boundary_clamp_all(imatrix, ibegin+pe_off, rhs, temp)
            end select
         endif
 
         ! add loop voltage
         if(integrator.eq.1 .and. ntime.gt.1) then
-           rhs(ibegin) = rhs(ibegin) + 1.5*fbound
+           rhs(ibegin+psi_off) = rhs(ibegin+psi_off) + 1.5*fbound
         else
-           rhs(ibegin) = rhs(ibegin) + fbound
+           rhs(ibegin+psi_off) = rhs(ibegin+psi_off) + fbound
         endif
 
      endif
@@ -387,11 +387,11 @@ subroutine boundary_den(imatrix, rhs)
         if(izone.eq.ibottom .or. izone.eq.itop) cycle
      endif
 
-     call entdofs(1, i, 0, ibegin, iendplusone)
+     call entdofs(vecsize1, i, 0, ibegin, iendplusone)
 
-     temp = dens(ibegin:ibegin+5)
+     temp = dens_v(ibegin+den_off:ibegin+den_off+5)
      if(integrator.eq.1 .and. ntime.gt.1) then
-        temp = 1.5*temp + 0.5*denold(ibegin:ibegin+5)
+        temp = 1.5*temp + 0.5*deno_v(ibegin+den_off:ibegin+den_off+5)
      endif
 
      ! edges
@@ -407,7 +407,7 @@ subroutine boundary_den(imatrix, rhs)
         endif
 
         ! clamp density
-        call boundary_clamp(imatrix, ibegin, normal, rhs, temp)
+        call boundary_clamp(imatrix, ibegin+den_off, normal, rhs, temp)
 !!$        temp = 0.
 !!$        call boundary_normal_deriv(imatrix, ibegin, normal, rhs, temp)
 !!$        if(imatrix.ne.0) call setdiribc(imatrix, ibegin+4)
@@ -417,7 +417,7 @@ subroutine boundary_den(imatrix, rhs)
      ! corners
      else if(izonedim.eq.0) then
         ! clamp density
-        call boundary_clamp_all(imatrix, ibegin, rhs, temp)
+        call boundary_clamp_all(imatrix, ibegin+den_off, rhs, temp)
 
 !!$        temp = 0.
 !!$        call boundary_normal_deriv(imatrix, ibegin, 0., rhs, temp)
@@ -480,11 +480,11 @@ subroutine boundary_pres(imatrix, rhs)
         if(izone.eq.ibottom .or. izone.eq.itop) cycle
      endif
 
-     call entdofs(1, i, 0, ibegin, iendplusone)
+     call entdofs(vecsize1, i, 0, ibegin, iendplusone)
 
-     temp = press(ibegin:ibegin+5)
+     temp = ps_v(ibegin+p_off:ibegin+p_off+5)
      if(integrator.eq.1 .and. ntime.gt.1) then
-        temp = 1.5*temp + 0.5*presold(ibegin:ibegin+5)
+        temp = 1.5*temp + 0.5*po_v(ibegin+p_off:ibegin+p_off+5)
      endif
 
      ! edges
@@ -500,12 +500,12 @@ subroutine boundary_pres(imatrix, rhs)
         endif
 
         ! clamp pressure
-        call boundary_clamp(imatrix, ibegin, normal, rhs, temp)
+        call boundary_clamp(imatrix, ibegin+p_off, normal, rhs, temp)
 
      ! corners
      else if(izonedim.eq.0) then
         ! clamp pressure
-        call boundary_clamp_all(imatrix, ibegin, rhs, temp)
+        call boundary_clamp_all(imatrix, ibegin+p_off, rhs, temp)
      endif
         
   end do
@@ -644,11 +644,11 @@ subroutine boundary_gs(imatrix, rhs)
      endif
 
      call entdofs(numvargs, i, 0, ibegin, iendplusone)
-     call entdofs(numvar, i, 0, ibeginn, iendplusonen)
+     call entdofs(vecsize, i, 0, ibeginn, iendplusonen)
      call xyznod(i,coords)
      x = coords(1) + xzero
 
-     temp = phis(ibeginn:ibeginn+5)
+     temp = psis_v(ibeginn+psi_off:ibeginn+psi_off+5)
 
      if(izonedim.eq.1) then
         if(izone.eq.ileft) then
