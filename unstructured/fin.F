@@ -83,7 +83,7 @@
       subroutine input
       use basic
       use arrays
-      use sparse
+
       implicit none
 !
 !.....set itest .ne. 0 for a particular test problem
@@ -124,8 +124,14 @@
 !.....time integrator: 0 = Crank-Nicholson, 1 = BDF2
       integrator = 0
 !
+!.....do second velocity solve after field solve
+      iresolve = 0
+!
+!.....do timestep splitting
+      isplitstep = 1
+!
 !.....number of grad-shafranov iterations
-      igs = 80.
+      igs = 80
 !
 !.....CN implicitness parameter (thimp > 0.5 for stability)
       thimp = 0.5
@@ -492,24 +498,7 @@
       go to 100
  100  continue
 !
-      call createdofnumbering(numvar1_numbering, iper, jper, 
-     &     6, 0, 0, 0, maxdofs1)
-      call createdofnumbering(numvar2_numbering, iper, jper, 
-     &     12, 0, 0, 0, maxdofs2)
-      if(numvar .ge. 3) then
-         call createdofnumbering(numvar3_numbering, iper, jper, 
-     &        18, 0, 0, 0, maxdofs3)
-      endif
-      if(numvar .eq. 4) then
-         call createdofnumbering(numvar4_numbering, iper, jper, 
-     &        24, 0, 0, 0, maxdofs4)
-      endif
-      if(numvar .eq. 6) then
-         call createdofnumbering(numvar6_numbering, iper, jper, 
-     &        36, 0, 0, 0, maxdofs6)
-      endif
-   
-      
+!      
       if(myrank.eq.0) write(*,nml=inputnl)
       return
       end

@@ -70,6 +70,7 @@ module basic
 
   ! grad-shafranov options
   integer :: divertors! number of divertors
+  integer :: igs      ! number of grad-shafranov iterations
   real :: xmag, zmag  ! position of magnetic axis
   real :: xlim, zlim  ! position of limiter
   real :: xdiv, zdiv  ! position of divertor
@@ -80,6 +81,7 @@ module basic
   real :: expn        ! density = pressure**expn
   real :: q0          ! safety factor at magnetic axis
   real :: th_gs       ! relaxation factor
+
   
 
   ! numerical parameters
@@ -94,7 +96,8 @@ module basic
   integer :: nskip       ! number of timesteps per matrix recalculation
   integer :: iconstflux  ! 1 = conserve toroidal flux
   integer :: integrator  ! 0 = Crank-Nicholson, 1 = BDF2
-  integer :: igs         ! number of grad-shafranov iterations
+  integer :: iresolve    ! 1 = do second velocity solve after field solve
+  integer :: isplitstep  ! 1 = do timestep splitting
   real :: dt             ! timestep
   real :: thimp          ! implicitness parameter (for Crank-Nicholson)
   real :: thimp_ohm      ! implicitness parameter for ohmic heating
@@ -135,10 +138,10 @@ module basic
        v_bc,p_bc,com_bc,thimp_ohm,tcur,q0,isources,th_gs,      &
        ipellet, pellet_x, pellet_z, pellet_rate, pellet_var,   &
        ionization, ionization_rate, ionization_temp, ionization_depth, &
-       amu_edge
+       amu_edge,iresolve,isplitstep
 
   !     derived quantities
-  real :: pi,                                                          &
+  real :: pi,dbf,bdf,hypv,hypc,hypf,hypi,hypp,                         &
        time,timer,ajmax,errori,enormi,ratioi,                          &
        gbound,fbound
   integer ::  ni(20),mi(20),                                           &
@@ -172,7 +175,8 @@ module arrays
   integer, parameter :: r8 = selected_real_kind(12,100)
   ! indices
   integer :: p,q,r,s
-  integer :: maxdofs1, maxdofs2, maxdofs3, maxdofs4, maxdofs5, maxdofs6
+!!$  integer :: maxdofs1, maxdofs2, maxdofs3, maxdofs4, maxdofs5, maxdofs6
+  integer :: maxdofs1, maxdofs2, maxdofsn
   integer, allocatable :: isvaln(:,:),isval1(:,:),isval2(:,:)
   real :: fint(-6:maxi,-6:maxi), xi(3),zi(3),df(0:4,0:4)
   real :: xsep(5), zsep(5), graphit(0:ntimep,maxplots)
@@ -180,21 +184,237 @@ module arrays
   ! arrays defined at all vertices
   ! any change to this list of variables needs to be taken into
   ! account in the arrayresizevec subroutine
+  real, allocatable, target :: &
+       vel(:),  vel0(:),  vels(:),  velold(:),  &
+       phi(:),  phi0(:),  phis(:),  phiold(:),  &
+       den(:),  den0(:),  dens(:),  denold(:),  &
+       pres(:), pres0(:), press(:), presold(:), &
+       q4(:), r4(:), qn4(:), qp4(:)
+
   real, allocatable::                                             &
-       vel(:), vels(:), veln(:), veloldn(:),                      &
-       velold(:), vel0(:), vel1(:),                               &
-       phi(:), phis(:), phip(:),                                  &
-       phiold(:), phi0(:), phi1(:),                               &
+       veln(:), veloldn(:),                                       &
+       phip(:), phioldn(:),                                       &
        jphi(:),vor(:),com(:),                                     &
-       den(:),den0(:),denold(:),deni(:),dens(:),                  &
-       pres(:),pres0(:),presold(:),press(:),                      &
-       r4(:),q4(:),qn4(:),qp4(:),                                 &
+       presoldn(:),                                               &
        b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
        b5vector(:), vtemp(:), resistivity(:), tempvar(:),         &
        kappa(:),sigma(:), sb1(:), sb2(:), sp1(:),                 &
        visc(:), visc_c(:), tempcompare(:)
 
+  ! the following pointers point to the vector containing the named field.
+  ! set by assign_variables()
+  real, pointer :: phi0_v(:), phi1_v(:), phis_v(:), phio_v(:)
+  real, pointer ::  vz0_v(:),  vz1_v(:),  vzs_v(:),  vzo_v(:)
+  real, pointer :: chi0_v(:), chi1_v(:), chis_v(:), chio_v(:)
+  real, pointer :: psi0_v(:), psi1_v(:), psis_v(:), psio_v(:)
+  real, pointer ::  bz0_v(:),  bz1_v(:),  bzs_v(:),  bzo_v(:)
+  real, pointer ::  pe0_v(:),  pe1_v(:),  pes_v(:),  peo_v(:)
+  real, pointer :: den0_v(:), den1_v(:), dens_v(:), deno_v(:)
+  real, pointer ::   p0_v(:),   p1_v(:),   ps_v(:),   po_v(:)
+
+  ! the indicies of the named fields within their respective vectors
+  integer :: phi_i, vz_i, chi_i
+  integer :: psi_i, bz_i, pe_i
+  integer :: den_i, p_i
+
+  ! the offset (relative to the node offset) of the named field within
+  ! their respective vectors
+  integer :: phi_off, vz_off, chi_off
+  integer :: psi_off, bz_off, pe_off
+  integer :: den_off, p_off
+  integer :: vecsize, vecsize1
+  
+  ! the following pointers point to the locations of the named field within
+  ! the respective vector.  set by assign_vectors()
+  real, pointer :: phi0_l(:), phi1_l(:)
+  real, pointer ::  vz0_l(:),  vz1_l(:)
+  real, pointer :: chi0_l(:), chi1_l(:)
+  real, pointer :: psi0_l(:), psi1_l(:)
+  real, pointer ::  bz0_l(:),  bz1_l(:)
+  real, pointer ::  pe0_l(:),  pe1_l(:)
+  real, pointer :: den0_l(:), den1_l(:)
+  real, pointer ::   p0_l(:),   p1_l(:)
+
   contains
+!================================
+    subroutine assign_variables()
+
+      use basic
+
+      implicit none
+
+      if(isplitstep.eq.1) then
+
+         phi0_v => vel0
+         phi1_v => vel
+         phis_v => vels
+         phio_v => velold
+         
+         psi0_v => phi0
+         psi1_v => phi
+         psis_v => phis
+         psio_v => phiold
+
+         if(numvar.ge.2) then
+            vz0_v => vel0
+            vz1_v => vel
+            vzs_v => vels
+            vzo_v => velold
+
+            bz0_v => phi0
+            bz1_v => phi
+            bzs_v => phis
+            bzo_v => phiold
+         endif
+
+         if(numvar.ge.3) then
+            chi0_v => vel0
+            chi1_v => vel
+            chis_v => vels
+            chio_v => velold
+
+            pe0_v => phi0
+            pe1_v => phi
+            pes_v => phis
+            peo_v => phiold
+         endif
+
+         if(idens.eq.1) then
+            den0_v => den0
+            den1_v => den
+            dens_v => dens
+            deno_v => denold
+         endif
+
+         if(ipres.eq.1) then
+            p0_v => pres0
+            p1_v => pres
+            ps_v => press
+            po_v => presold
+         endif
+
+         phi_i = 1
+         psi_i = 1
+         vz_i = 2
+         bz_i = 2
+         chi_i = 3
+         pe_i = 3
+         den_i = 1
+         p_i = 1
+
+      else
+         phi0_v => phi0
+         phi1_v => phi
+         phis_v => phis
+         phio_v => phiold
+ 
+         psi0_v => phi0
+         psi1_v => phi
+         psis_v => phis
+         psio_v => phiold
+
+         if(numvar.ge.2) then
+            vz0_v => phi0
+            vz1_v => phi
+            vzs_v => phis
+            vzo_v => phiold
+
+            bz0_v => phi0
+            bz1_v => phi
+            bzs_v => phis
+            bzo_v => phiold
+
+         endif
+         if(numvar.ge.3) then
+            chi0_v => phi0
+            chi1_v => phi
+            chis_v => phis
+            chio_v => phiold
+
+            pe0_v => phi0
+            pe1_v => phi
+            pes_v => phis
+            peo_v => phiold
+         endif
+     
+         if(idens.eq.1) then
+            den0_v => phi0
+            den1_v => phi
+            dens_v => phis
+            deno_v => phiold
+         endif
+
+         if(ipres.eq.1) then
+            p0_v => phi0
+            p1_v => phi
+            ps_v => phis
+            po_v => phiold
+         endif
+         
+         phi_i = 1
+         psi_i = 2
+         vz_i = 3
+         bz_i = 4
+         chi_i = 5
+         pe_i = 6    
+         den_i = 2*numvar+1
+         p_i = 2*numvar+2
+      endif
+      
+      phi_off = (phi_i-1)*6
+      psi_off = (psi_i-1)*6
+      vz_off = (vz_i-1)*6
+      bz_off = (bz_i-1)*6
+      chi_off = (chi_i-1)*6
+      pe_off = (pe_i-1)*6
+      den_off = (den_i-1)*6
+      p_off = (p_i-1)*6
+
+    end subroutine assign_variables
+
+    subroutine assign_vectors(inode)
+
+      use basic
+
+      implicit none
+
+      integer, intent(in) :: inode
+      integer :: ibegin, iendplusone
+
+      call entdofs(vecsize, inode, 0, ibegin, iendplusone)
+      
+      phi0_l => phi0_v(ibegin+phi_off:ibegin+phi_off+5)
+      phi1_l => phi1_v(ibegin+phi_off:ibegin+phi_off+5)
+      psi0_l => psi0_v(ibegin+psi_off:ibegin+psi_off+5)
+      psi1_l => psi1_v(ibegin+psi_off:ibegin+psi_off+5)
+
+      if(numvar.ge.2) then
+         vz0_l => vz0_v(ibegin+vz_off:ibegin+vz_off+5)
+         vz1_l => vz1_v(ibegin+vz_off:ibegin+vz_off+5)
+         bz0_l => bz0_v(ibegin+bz_off:ibegin+bz_off+5)
+         bz1_l => bz1_v(ibegin+bz_off:ibegin+bz_off+5)
+      endif
+      
+      if(numvar.ge.3) then
+         chi0_l => chi0_v(ibegin+chi_off:ibegin+chi_off+5)
+         chi1_l => chi1_v(ibegin+chi_off:ibegin+chi_off+5)
+         pe0_l => pe0_v(ibegin+pe_off:ibegin+pe_off+5)
+         pe1_l => pe1_v(ibegin+pe_off:ibegin+pe_off+5)
+      endif
+
+      if(isplitstep.eq.1) call entdofs(1, inode, 0, ibegin, iendplusone)
+
+      if(idens.eq.1) then
+         den0_l => den0_v(ibegin+den_off:ibegin+den_off+5)
+         den1_l => den1_v(ibegin+den_off:ibegin+den_off+5)
+      endif
+      
+      if(ipres.eq.1) then
+         p0_l => p0_v(ibegin+p_off:ibegin+p_off+5)
+         p1_l => p1_v(ibegin+p_off:ibegin+p_off+5)
+      endif
+      
+    end subroutine assign_vectors
 !================================
     subroutine createvec(vec, numberingid)
       implicit none
@@ -293,16 +513,7 @@ module arrays
          call updateids(vec, vel0)
          return
       endif
-      
-      call checksamevec(vel1, vec, i)
-      if(i .eq. 1) then
-         if(allocated(vel1)) deallocate(vel1, STAT=i)
-         allocate(vel1(ivecsize))
-         vel1 = 0.
-         call updateids(vec, vel1)
-         return
-      endif
-      
+            
       call checksamevec(phi, vec, i)
       if(i .eq. 1) then
          if(allocated(phi)) deallocate(phi, STAT=i)
@@ -345,15 +556,6 @@ module arrays
          allocate(phi0(ivecsize))
          phi0 = 0.
          call updateids(vec, phi0)
-         return
-      endif
-
-      call checksamevec(phi1, vec, i)
-      if(i .eq. 1) then
-         if(allocated(phi1)) deallocate(phi1, STAT=i)
-         allocate(phi1(ivecsize))
-         phi1 = 0.
-         call updateids(vec, phi1)
          return
       endif
 
@@ -417,15 +619,6 @@ module arrays
          allocate(denold(ivecsize))
          denold = 0.
          call updateids(vec, denold)
-         return
-      endif
-
-      call checksamevec(deni, vec, i)
-      if(i .eq. 1) then
-         if(allocated(deni)) deallocate(deni, STAT=i)
-         allocate(deni(ivecsize))
-         deni = 0.
-         call updateids(vec, deni)
          return
       endif
 
@@ -623,6 +816,8 @@ module sparse
   integer, parameter :: numvar4_numbering = 4
   integer, parameter :: numvar5_numbering = 5
   integer, parameter :: numvar6_numbering = 6
+  integer, parameter :: numvar7_numbering = 7
+  integer, parameter :: numvar8_numbering = 8
   integer, parameter :: s6matrix_sm = 1
   integer, parameter :: s8matrix_sm = 2
   integer, parameter :: s7matrix_sm = 3
@@ -635,7 +830,7 @@ module sparse
   integer, parameter :: d2matrix_sm = 10
   integer, parameter :: d4matrix_sm = 11
   integer, parameter :: d8matrix_sm = 12
-  integer, parameter :: r1matrix_sm = 13
+  integer, parameter :: q1matrix_sm = 13
   integer, parameter :: r2matrix_sm = 14
   integer, parameter :: r8matrix_sm = 15
   integer, parameter :: q2matrix_sm = 16
@@ -645,6 +840,11 @@ module sparse
   integer, parameter :: d9matrix_sm = 20
   integer, parameter :: r9matrix_sm = 21
   integer, parameter :: q9matrix_sm = 22
+  integer, parameter :: r14matrix_sm = 23
+  integer, parameter :: s10matrix_sm = 24
+  integer, parameter :: d10matrix_sm = 25
+  integer, parameter :: q10matrix_sm = 26
+  integer, parameter :: r10matrix_sm = 27
   
 end module sparse
 

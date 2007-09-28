@@ -1346,7 +1346,7 @@ pro plot_lcfs, time, color=color, val=psival, psi=psi, x=x, y=y, points=pts, $
 end
 
 
-pro plot_timings, filename=filename, _EXTRA=extra
+pro plot_timings, filename=filename, overplot=overplot, _EXTRA=extra
 
    if(n_elements(filename) eq 0) then filename = 'C1.h5'
 
@@ -1365,8 +1365,12 @@ pro plot_timings, filename=filename, _EXTRA=extra
 
    loadct, 12
 
-   plot, timings.t_onestep._data, title='!6Timings!3', $
-     xtitle='!6Time Step!3', ytitle='!8t!6 (s)!3', _EXTRA=extra
+   if(keyword_set(overplot)) then begin
+       oplot, timings.t_onestep._data
+   endif else begin
+       plot, timings.t_onestep._data, title='!6Timings!3', $
+         xtitle='!6Time Step!3', ytitle='!8t!6 (s)!3', _EXTRA=extra
+   endelse
    oplot, timings.t_ludefall._data, linestyle=2, color=30
    oplot, timings.t_sources._data, linestyle=1, color=60
    oplot, timings.t_aux._data, linestyle=1, color=80

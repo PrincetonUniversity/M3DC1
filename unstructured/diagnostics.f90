@@ -379,7 +379,7 @@ subroutine calculate_scalars()
   implicit none
  
   integer :: itri, numelms, i, ione, ndof, def_fields
-  real :: x, z, xmin, zmin, hypf, hypi, hypv, hypc, hypp, dbf, factor
+  real :: x, z, xmin, zmin, factor
 
   double precision, dimension(3)  :: cogcoords
 
@@ -499,8 +499,8 @@ subroutine calculate_scalars()
               sp1(ione) = sp1(ione) &
                    + b3psipsieta(g79(:,:,i),pst79,pst79,eta79)   &
                    + b3bbeta    (g79(:,:,i),bzt79,bzt79,eta79)   &
-!                + b3pedkappa (g79(:,:,i),pt79,ni79,kappat,hypp)*(gam-1.) &
-                   + p1kappar   (g79(:,:,i),pst79,pst79,pet79,ni79,b2i79)*kappar*(gam-1.) &
+!                   + b3pedkappa (g79(:,:,i),pt79,ni79,kappat,hypp)*(gam-1.) &
+!                   + p1kappar   (g79(:,:,i),pst79,pst79,pet79,ni79,b2i79)*kappar*(gam-1.) &
                    + b3pebd(g79(:,:,i),pet79,bzt79,ni79)*dbf*pefac
               
               ! ohmic heating

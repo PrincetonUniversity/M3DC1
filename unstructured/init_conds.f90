@@ -18,9 +18,11 @@ subroutine static_equ(ibegin)
 
   integer, intent(in) :: ibegin
 
-  call constant_field(vel0(ibegin   :ibegin+5 ), 0.)
-  if(numvar.ge.2)  call constant_field(vel0(ibegin+6 :ibegin+11), vzero)
-  if(numvar.ge.3)  call constant_field(vel0(ibegin+12:ibegin+17), 0.)
+  call constant_field(phi0_v(ibegin+phi_off:ibegin+phi_off+5 ), 0.)
+  if(numvar.ge.2) &
+       call constant_field(vz0_v(ibegin+vz_off:ibegin+vz_off+5), vzero)
+  if(numvar.ge.3) &
+       call constant_field(chi0_v(ibegin+chi_off:ibegin+chi_off+5), 0.)
 end subroutine static_equ
 !==============================
 subroutine plane_wave(x, z, outarr, kx, kz, amp, phase)
@@ -41,15 +43,28 @@ subroutine plane_wave(x, z, outarr, kx, kz, amp, phase)
   outarr(6) = -amp*cos(arg)*kz*kz
 end subroutine plane_wave
 
-subroutine cartesian_to_cylindrical()
+subroutine cartesian_to_cylindrical(x,vec)
+  implicit none
+
+  real, dimension(6), intent(inout) :: vec
+  real, intent(in) :: x
+
+  vec(6) = vec(6) * x
+  vec(5) = vec(5) * x +    vec(3)
+  vec(4) = vec(4) * x + 2.*vec(2)
+  vec(3) = vec(3) * x
+  vec(2) = vec(2) * x +    vec(1)
+  vec(1) = vec(1) * x 
+end subroutine cartesian_to_cylindrical
+
+subroutine cartesian_to_cylindrical_all()
   use basic
   use arrays
 
   implicit none
 
-  integer :: inode, numnodes, ibegin, iendplusone
+  integer :: inode, numnodes
   real :: x
-  real, dimension(6) :: temp
   double precision :: coords(3)
 
   call numnod(numnodes)
@@ -57,70 +72,23 @@ subroutine cartesian_to_cylindrical()
   do inode=1, numnodes
      call xyznod(inode, coords)
      x = coords(1) + xzero
-     call entdofs(numvar, inode, 0, ibegin, iendplusone)
 
-     temp = phi(ibegin:ibegin+5)
-     phi(ibegin  ) = temp(1) * x
-     phi(ibegin+1) = temp(2) * x +    temp(1)
-     phi(ibegin+2) = temp(3) * x
-     phi(ibegin+3) = temp(4) * x + 2.*temp(2)
-     phi(ibegin+4) = temp(5) * x +    temp(3)
-     phi(ibegin+5) = temp(6) * x
-     temp = phi0(ibegin:ibegin+5)
-     phi0(ibegin  ) = temp(1) * x
-     phi0(ibegin+1) = temp(2) * x +    temp(1)
-     phi0(ibegin+2) = temp(3) * x
-     phi0(ibegin+3) = temp(4) * x + 2.*temp(2)
-     phi0(ibegin+4) = temp(5) * x +    temp(3)
-     phi0(ibegin+5) = temp(6) * x
-     temp = vel(ibegin:ibegin+5)
-     vel(ibegin  ) = temp(1) * x
-     vel(ibegin+1) = temp(2) * x +    temp(1)
-     vel(ibegin+2) = temp(3) * x
-     vel(ibegin+3) = temp(4) * x + 2.*temp(2)
-     vel(ibegin+4) = temp(5) * x +    temp(3)
-     vel(ibegin+5) = temp(6) * x
-     temp = vel0(ibegin:ibegin+5)
-     vel0(ibegin  ) = temp(1) * x
-     vel0(ibegin+1) = temp(2) * x +    temp(ibegin  )
-     vel0(ibegin+2) = temp(3) * x
-     vel0(ibegin+3) = temp(4) * x + 2.*temp(ibegin+1)
-     vel0(ibegin+4) = temp(5) * x +    temp(ibegin+2)
-     vel0(ibegin+5) = temp(6) * x
+     call assign_vectors(inode)
+
+     call cartesian_to_cylindrical(x,psi0_l(1:6))
+     call cartesian_to_cylindrical(x,psi1_l(1:6))
+     call cartesian_to_cylindrical(x,phi0_l(1:6))
+     call cartesian_to_cylindrical(x,phi1_l(1:6))
      
      if(numvar.ge.2) then
-        temp = phi(ibegin+6:ibegin+11)
-        phi(ibegin+6 ) = temp(1) * x
-        phi(ibegin+7 ) = temp(2) * x +    temp(1)
-        phi(ibegin+8 ) = temp(3) * x
-        phi(ibegin+9 ) = temp(4) * x + 2.*temp(2)
-        phi(ibegin+10) = temp(5) * x +    temp(3)
-        phi(ibegin+11) = temp(6) * x
-        temp = phi0(ibegin+6:ibegin+11)
-        phi0(ibegin+6 ) = temp(1) * x
-        phi0(ibegin+7 ) = temp(2) * x +    temp(1)
-        phi0(ibegin+8 ) = temp(3) * x
-        phi0(ibegin+9 ) = temp(4) * x + 2.*temp(2)
-        phi0(ibegin+10) = temp(5) * x +    temp(3)
-        phi0(ibegin+11) = temp(6) * x
-        temp = vel(ibegin+6:ibegin+11)
-        vel(ibegin+6 ) = temp(1) * x
-        vel(ibegin+7 ) = temp(2) * x +    temp(1)
-        vel(ibegin+8 ) = temp(3) * x
-        vel(ibegin+9 ) = temp(4) * x + 2.*temp(2)
-        vel(ibegin+10) = temp(5) * x +    temp(3)
-        vel(ibegin+11) = temp(6) * x
-        temp = vel0(ibegin+6:ibegin+11)
-        vel0(ibegin+6 ) = temp(1) * x
-        vel0(ibegin+7 ) = temp(2) * x +    temp(1)
-        vel0(ibegin+8 ) = temp(3) * x
-        vel0(ibegin+9 ) = temp(4) * x + 2.*temp(2)
-        vel0(ibegin+10) = temp(5) * x +    temp(3)
-        vel0(ibegin+11) = temp(6) * x
+        call cartesian_to_cylindrical(x,bz0_l(1:6))
+        call cartesian_to_cylindrical(x,bz1_l(1:6))
+        call cartesian_to_cylindrical(x,vz0_l(1:6))
+        call cartesian_to_cylindrical(x,vz1_l(1:6))
      endif
      
   end do
-end subroutine cartesian_to_cylindrical
+end subroutine cartesian_to_cylindrical_all
 
 
 !==============================================================================
@@ -135,6 +103,8 @@ module tilting_cylinder
 contains
 
 subroutine tilting_cylinder_init()
+  use arrays
+
   implicit none
 
   integer :: l, numnodes
@@ -151,32 +121,29 @@ subroutine tilting_cylinder_init()
      x = coords(1) - xmin - alx*.5
      z = coords(2) - zmin - alz*.5
 
-     call cylinder_equ(x, z, l)
-     call cylinder_per(x, z, l)
+     call assign_vectors(l)
+
+     call cylinder_equ(x, z)
+     call cylinder_per(x, z)
   enddo
 
 end subroutine tilting_cylinder_init
 
-subroutine cylinder_equ(x, z, inode)
+subroutine cylinder_equ(x, z)
   use basic
   use arrays
 
   implicit none
 
   real, intent(in) :: x, z
-  integer, intent(in) :: inode
 
-  integer :: ibegin, iendplusone, ibegin1, iendplusone1
   real :: rr, ri, arg, befo, ff, fp, fpp, j0, j1, kb
   real :: s17aef, s17aff
   integer :: ifail1, ifail2, ifail3
 
-  call entdofs(numvar, inode, 0, ibegin, iendplusone)
-  if(idens.eq.1 .or. ipres.eq.1) then
-     call entdofs(1, inode, 0, ibegin1, iendplusone1)
-  endif
-
-  call static_equ(ibegin)
+  call constant_field(phi1_l(1:6), 0.)
+  if(numvar.ge.2)  call constant_field( vz1_l(1:6), 0.)
+  if(numvar.ge.3)  call constant_field(chi1_l(1:6), 0.)
 
   !.....Use the equilibrium given in R. Richard, et al,
   !     Phys. Fluids B, 2 (3) 1990 p 489
@@ -204,110 +171,97 @@ subroutine cylinder_equ(x, z, inode)
      fpp = -6/rr**4
   endif
    
-  phi0(ibegin) = ff* z
-  phi0(ibegin+1) = fp*z*x *ri
-  phi0(ibegin+2) = fp*z**2*ri + ff
-  phi0(ibegin+3) = fpp*x**2*z*ri**2 + fp*(  z*ri - x**2*z*ri**3)
-  phi0(ibegin+4) = fpp*z**2*x*ri**2 + fp*(  x*ri - z**2*x*ri**3)
-  phi0(ibegin+5) = fpp*z**3  *ri**2 + fp*(3*z*ri - z**3  *ri**3)
+  psi0_l(1) = ff* z
+  psi0_l(2) = fp*z*x *ri
+  psi0_l(3) = fp*z**2*ri + ff
+  psi0_l(4) = fpp*x**2*z*ri**2 + fp*(  z*ri - x**2*z*ri**3)
+  psi0_l(5) = fpp*z**2*x*ri**2 + fp*(  x*ri - z**2*x*ri**3)
+  psi0_l(6) = fpp*z**3  *ri**2 + fp*(3*z*ri - z**3  *ri**3)
 
   if(rr.gt.1) then
-     if(numvar.ge.2) call constant_field(phi0 (ibegin+6 :ibegin+11), bzero   )
-     if(numvar.ge.3) call constant_field(phi0 (ibegin+12:ibegin+17), p0-pi0*ipres)
-     if(ipres.eq.1)  call constant_field(pres0(ibegin1  :ibegin1+5), p0)
+     if(numvar.ge.2) call constant_field(bz0_l(1:6), bzero   )
+     if(numvar.ge.3) call constant_field(pe0_l(1:6), p0-pi0*ipres)
+     if(ipres.eq.1)  call constant_field( p0_l(1:6), p0)
   else 
      if(numvar.ge.2) then
         kb = k**2*(1.-beta)
-        phi0(ibegin+6) = sqrt(kb*phi0(ibegin)**2+bzero**2)
-        phi0(ibegin+7) = kb/phi0(ibegin+6)*phi0(ibegin)*phi0(ibegin+1)
-        phi0(ibegin+8) = kb/phi0(ibegin+6)*phi0(ibegin)*phi0(ibegin+2)
-        phi0(ibegin+9) = kb/phi0(ibegin+6)                                &
-             *(-kb/phi0(ibegin+6)**2*(phi0(ibegin)*phi0(ibegin+1))**2     &
-             + phi0(ibegin+1)**2+phi0(ibegin)*phi0(ibegin+3))
-        phi0(ibegin+10) = kb/phi0(ibegin+6)*(-kb/phi0(ibegin+6)**2*       &
-             phi0(ibegin)**2*phi0(ibegin+1)*phi0(ibegin+2)                &
-             + phi0(ibegin+1)*phi0(ibegin+2)+phi0(ibegin)*phi0(ibegin+4))
-        phi0(ibegin+11) = kb/phi0(ibegin+6)                               &
-             *(-kb/phi0(ibegin+6)**2*(phi0(ibegin)*phi0(ibegin+2))**2     &
-             + phi0(ibegin+2)**2+phi0(ibegin)*phi0(ibegin+5))
+        bz0_l(1) = sqrt(kb*psi0_l(1)**2+bzero**2)
+        bz0_l(2) = kb/bz0_l(1)*psi0_l(1)*psi0_l(2)
+        bz0_l(3) = kb/bz0_l(1)*psi0_l(1)*psi0_l(3)
+        bz0_l(4) = kb/bz0_l(1)                                &
+             *(-kb/bz0_l(1)**2*(psi0_l(1)*psi0_l(2))**2     &
+             + psi0_l(2)**2+psi0_l(1)*psi0_l(4))
+        bz0_l(5) = kb/bz0_l(1)*(-kb/bz0_l(1)**2*       &
+             psi0_l(1)**2*psi0_l(2)*psi0_l(3)                &
+             + psi0_l(2)*psi0_l(3)+psi0_l(1)*psi0_l(5))
+        bz0_l(6) = kb/bz0_l(1)                               &
+             *(-kb/bz0_l(1)**2*(psi0_l(1)*psi0_l(3))**2     &
+             + psi0_l(3)**2+psi0_l(1)*psi0_l(6))
         
         if(numvar.ge.3) then
            kb = k**2*beta*(p0 - pi0*ipres)/p0
-           phi0(ibegin+12) = 0.5*kb*phi0(ibegin)**2 + p0 - pi0*ipres
-           phi0(ibegin+13) = kb*phi0(ibegin)*phi0(ibegin+1)
-           phi0(ibegin+14) = kb*phi0(ibegin)*phi0(ibegin+2)
-           phi0(ibegin+15) = kb*(phi0(ibegin+1)**2+                      &
-                phi0(ibegin)*phi0(ibegin+3))
-           phi0(ibegin+16) = kb*(phi0(ibegin+1)*phi0(ibegin+2)+          &
-                phi0(ibegin)*phi0(ibegin+4))
-           phi0(ibegin+17) = kb*(phi0(ibegin+2)**2+                      &
-                phi0(ibegin)*phi0(ibegin+5))
+           pe0_l(1) = 0.5*kb*psi0_l(1)**2 + p0 - pi0*ipres
+           pe0_l(2) = kb*psi0_l(1)*psi0_l(2)
+           pe0_l(3) = kb*psi0_l(1)*psi0_l(3)
+           pe0_l(4) = kb*(psi0_l(2)**2+psi0_l(1)*psi0_l(4))
+           pe0_l(5) = kb*(psi0_l(2)*psi0_l(3)+psi0_l(1)*psi0_l(5))
+           pe0_l(6) = kb*(psi0_l(3)**2+psi0_l(1)*psi0_l(6))
         endif
      endif
 
      if(ipres.eq.1) then
         kb = k**2*beta
-        pres0(ibegin1  ) = 0.5*kb*phi0(ibegin)**2 + p0
-        pres0(ibegin1+1) = kb*phi0(ibegin)*phi0(ibegin+1)
-        pres0(ibegin1+2) = kb*phi0(ibegin)*phi0(ibegin+2)
-        pres0(ibegin1+3) = kb*(phi0(ibegin+1)**2+                      &
-             phi0(ibegin)*phi0(ibegin+3))
-        pres0(ibegin1+4) = kb*(phi0(ibegin+1)*phi0(ibegin+2)+          &
-             phi0(ibegin)*phi0(ibegin+4))
-        pres0(ibegin1+5) = kb*(phi0(ibegin+2)**2+                      &
-             phi0(ibegin)*phi0(ibegin+5))
+        p0_l(1) = 0.5*kb*psi0_l(1)**2 + p0
+        p0_l(2) = kb*psi0_l(1)*psi0_l(2)
+        p0_l(3) = kb*psi0_l(1)*psi0_l(3)
+        p0_l(4) = kb*(psi0_l(2)**2+psi0_l(1)*psi0_l(4))
+        p0_l(5) = kb*(psi0_l(2)*psi0_l(3)+psi0_l(1)*psi0_l(5))
+        p0_l(6) = kb*(psi0_l(3)**2+psi0_l(1)*psi0_l(6))
      endif
   endif
 
   if(idens.eq.1) then
-     call constant_field(den0(ibegin1:ibegin1+5), 1.)
+     call constant_field(den0_l(1:6), 1.)
   endif
 
 end subroutine cylinder_equ
 
-subroutine cylinder_per(x, z, inode)
+subroutine cylinder_per(x, z)
   use basic
   use arrays
 
   implicit none
 
   real, intent(in) :: x, z
-  integer, intent(in) :: inode
 
-  integer :: ibegin, iendplusone, ibegin1, iendplusone1
   real :: befo, uzero, czero
   
-  call entdofs(numvar, inode, 0, ibegin, iendplusone)
-  if(idens.eq.1 .or. ipres.eq.1) then
-     call entdofs(1, inode, 0, ibegin1, iendplusone1)
-  endif
-
   befo = eps*exp(-(x**2+z**2))
   uzero = befo*cos(z)
   czero = befo*sin(z)
-  vel(ibegin  ) = uzero
-  vel(ibegin+1) = - 2.*x*uzero
-  vel(ibegin+2) = - 2.*z*uzero - czero
-  vel(ibegin+3) = (-2.+4.*x**2)*uzero
-  vel(ibegin+4) = 4.*x*z*uzero + 2.*x*czero
-  vel(ibegin+5) = (-3.+4.*z**2)*uzero + 4.*z*czero
+  phi1_l(1) = uzero
+  phi1_l(2) = - 2.*x*uzero
+  phi1_l(3) = - 2.*z*uzero - czero
+  phi1_l(4) = (-2.+4.*x**2)*uzero
+  phi1_l(5) = 4.*x*z*uzero + 2.*x*czero
+  phi1_l(6) = (-3.+4.*z**2)*uzero + 4.*z*czero
   
-  if(numvar.ge.2) call constant_field(vel(ibegin+6:ibegin+11), 0.)
+  if(numvar.ge.2) call constant_field(vz1_l(1:6), 0.)
 
   if(numvar.ge.3) then
-     vel(ibegin+12) = czero
-     vel(ibegin+13) = -2*x*czero
-     vel(ibegin+14) = -2*z*czero + uzero
-     vel(ibegin+15) = (-2.+4*x**2)*czero
-     vel(ibegin+16) = 4.*x*z*czero - 2.*x*uzero
-     vel(ibegin+17) = (-3.+4.*z**2)*czero - 4*z*uzero
+     chi1_l(1) = czero
+     chi1_l(2) = -2*x*czero
+     chi1_l(3) = -2*z*czero + uzero
+     chi1_l(4) = (-2.+4*x**2)*czero
+     chi1_l(5) = 4.*x*z*czero - 2.*x*uzero
+     chi1_l(6) = (-3.+4.*z**2)*czero - 4*z*uzero
   endif
 
-  call constant_field(phi(ibegin:ibegin+5), 0.)
-  if(numvar.ge.2)  call constant_field(phi (ibegin+6 :ibegin+11), 0.)
-  if(numvar.ge.3)  call constant_field(phi (ibegin+12:ibegin+17), 0.)
-  if(ipres.eq.1)   call constant_field(pres(ibegin1  :ibegin1+5), 0.)
-  if(idens.eq.1)   call constant_field(den (ibegin1  :ibegin1+5), 0.)
+  call constant_field(psi1_l(1:6), 0.)
+  if(numvar.ge.2)  call constant_field( bz1_l(1:6), 0.)
+  if(numvar.ge.3)  call constant_field( pe1_l(1:6), 0.)
+  if(ipres.eq.1)   call constant_field(  p1_l(1:6), 0.)
+  if(idens.eq.1)   call constant_field(den1_l(1:6), 0.)
 
 end subroutine cylinder_per
 
@@ -1238,7 +1192,7 @@ subroutine initial_conditions()
      case(0)
 !        call solovev_init()
         call tilting_cylinder_init()
-        call cartesian_to_cylindrical()
+        call cartesian_to_cylindrical_all()
      case(1)
         call gradshafranov_init()
      case(2)

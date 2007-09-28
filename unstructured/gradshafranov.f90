@@ -155,7 +155,7 @@ subroutine gradshafranov_init()
 
   call numnod(numnodes)
   do l=1, numnodes
-     call entdofs(numvar, l, 0, ibegin, iendplusone)
+     call entdofs(vecsize, l, 0, ibegin, iendplusone)
 
      call static_equ(ibegin)     
   enddo
@@ -231,7 +231,8 @@ subroutine gradshafranov_solve
   ! populate the matrix
   do itri=1,numelms
 
-     ! calculate the local sampling points and weights for numerical integration
+     ! calculate the local sampling points and weights 
+     ! for numerical integration
      call area_to_local(79,                                            &
           alpha_79,beta_79,gamma_79,area_weight_79,                    &
           atri(itri), btri(itri), ctri(itri),                          &
@@ -344,14 +345,17 @@ subroutine gradshafranov_solve
      endif
 
      ! store boundary conditions on psi
-     call entdofs(numvar, i, 0, ibeginn, iendplusonen)
-     phis(ibeginn:ibeginn+5) = psi(ibegin:ibegin+5)
+     call entdofs(vecsize, i, 0, ibeginn, iendplusonen)
+     psis_v(ibeginn+psi_off:ibeginn+psi_off+5) = psi(ibegin:ibegin+5)
   enddo
 
   ! define initial b1vecini associated with delta-function source
   !     corresponding to current tcuro at location (xmag,zmag)
   xrel = xmag-xzero
   zrel = zmag-zzero
+
+
+  if(myrank.eq.0 .and. iprint.gt.0) print *, "initializing current..."
 
   b1vecini = 0
   call deltafun(xrel,zrel,b1vecini,tcuro)
@@ -362,7 +366,8 @@ subroutine gradshafranov_solve
 
      if(myrank.eq.0 .and. iprint.eq.1) print *, "GS: iteration = ", itnum
      
-     if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(b1vecini,1,numvargs,"b1vecini",0)
+     if(myrank.eq.0 .and. maxrank .eq. 1) &
+          call oneplot(b1vecini,1,numvargs,"b1vecini",0)
 
      ! apply boundary conditions
      call boundary_gs(0, b1vecini)
@@ -381,7 +386,8 @@ subroutine gradshafranov_solve
         psi = th_gs*b1vecini + (1.-th_gs)*psi
      endif
 
-     if(myrank.eq.0 .and. maxrank .eq. 1) call oneplot(psi,1,numvargs,"psi ",0)
+     if(myrank.eq.0 .and. maxrank .eq. 1) &
+          call oneplot(psi,1,numvargs,"psi ",0)
     
      ! Find new magnetic axis (extremum of psi)
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -565,60 +571,21 @@ subroutine gradshafranov_solve
   do i=1,numnodes
      !.....defines the source functions for the GS equation:
      call entdofs(numvargs, i, 0, ibegin, iendplusone)
-     call entdofs(numvar, i, 0, ibeginn, iendplusonen)
-     call entdofs(1, i, 0, ibegin1, iendplusone1)
+     call assign_vectors(i)
 
-     phi0(ibeginn:ibeginn+5) = psi(ibegin:ibegin+5)
+     psi0_l = psi(ibegin:ibegin+5)
 
-
+     ! temp = Psi (normalized flux)
      dpsii = 1./(psilim - psimin)
      temp(ibegin) = (psi(ibegin) - psimin)*dpsii
      temp(ibegin+1:ibegin+5) = psi(ibegin+1:ibegin+5)*dpsii
 
-     call zonenod(i,izone,izonedim)
-
+     ! pp = p(Psi) in pp
      call calc_pressure(temp(ibegin:ibegin+5),pp)
 
-!!$     ! enforce boundary conditions
-!!$     if(izonedim.eq.1) then
-!!$        if((izone.eq.itop) .or. (izone.eq.ibottom)) then
-!!$           pp(1) = pedge
-!!$           pp(2) = 0.
-!!$           pp(4) = 0.
-!!$        else if((izone.eq.ileft) .or. (izone.eq.iright)) then
-!!$           pp(1) = pedge
-!!$           pp(3) = 0.
-!!$           pp(6) = 0.
-!!$        endif
-!!$     else if(izonedim.eq.0) then
-!!$        pp(1) = pedge
-!!$        pp(2:6) = 0.
-!!$     endif
-
-!    I = sqrt(g0**2 + gamma_i*G_i)
+     ! I = sqrt(g0**2 + gamma_i*G_i)
      if(numvar.ge.2) then
-        call calc_toroidal_field(temp(ibegin:ibegin+5), &
-             phi0(ibeginn+6:ibeginn+11))
-
-!!$        ! enforce boundary conditions
-!!$        if(izonedim.eq.1) then
-!!$           if((izone.eq.itop) .or. (izone.eq.ibottom)) then
-!!$              phi0(ibeginn+6) = g0
-!!$              phi0(ibeginn+7) = 0.
-!!$              phi0(ibeginn+8) = 0.
-!!$              phi0(ibeginn+9) = 0.
-!!$              phi0(ibeginn+10) = 0.
-!!$           else if((izone.eq.ileft) .or. (izone.eq.iright)) then
-!!$              phi0(ibeginn+6) = g0
-!!$              phi0(ibeginn+7) = 0.
-!!$              phi0(ibeginn+8) = 0.
-!!$              phi0(ibeginn+10) = 0.
-!!$              phi0(ibeginn+11) = 0.
-!!$           endif
-!!$        else if(izonedim.eq.0) then
-!!$           phi0(ibeginn+6) = g0
-!!$           phi0(ibeginn+7:ibeginn+11) = 0.
-!!$        endif
+        call calc_toroidal_field(temp(ibegin:ibegin+5), bz0_l)
      endif
     
      if(numvar.ge.3) then
@@ -628,28 +595,27 @@ subroutine gradshafranov_solve
         else
            sum = 1. - ipres*pi0/p0
         endif
-        phi0(ibeginn+12:ibeginn+17) = sum*pp
+        pe0_l = sum*pp
         
         if(ipres.eq.1) then
-           pres0(ibegin1:ibegin1+5) = pp
+           p0_l = pp
         endif
      end if
 
      if(idens.eq.1) then
         pp = pp/p0
 
-        den0(ibegin1  ) = pp(1)**expn
-        den0(ibegin1+1) = pp(1)**(expn-1.)*pp(2)*expn
-        den0(ibegin1+2) = pp(1)**(expn-1.)*pp(3)*expn
-        den0(ibegin1+3) = pp(1)**(expn-1.)*pp(4)*expn &
+        den0_l(1) = pp(1)**expn
+        den0_l(2) = pp(1)**(expn-1.)*pp(2)*expn
+        den0_l(3) = pp(1)**(expn-1.)*pp(3)*expn
+        den0_l(4) = pp(1)**(expn-1.)*pp(4)*expn &
              + pp(1)**(expn-2.)*pp(2)**2.*expn*(expn-1.)
-        den0(ibegin1+4) = pp(1)**(expn-1.)*pp(5)*expn & 
+        den0_l(5) = pp(1)**(expn-1.)*pp(5)*expn & 
              + pp(1)**(expn-2.)*pp(2)*pp(3)&
              * expn*(expn-1.)
-        den0(ibegin1+5) = pp(1)**(expn-1.)*pp(6)*expn &
+        den0_l(6) = pp(1)**(expn-1.)*pp(6)*expn &
              + pp(1)**(expn-2.)*pp(3)**2.*expn*(expn-1.)
      endif
-
 
   end do
 

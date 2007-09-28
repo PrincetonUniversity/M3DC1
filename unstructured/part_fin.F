@@ -67,10 +67,43 @@ c$$$      return
       use t_data
       use basic
       use arrays
+      use sparse
       use nintegrate_mod
 
       implicit none
       integer numnodes, numelms, i, izone, izonedim 
+
+      if(isplitstep.eq.1) then
+         vecsize = numvar
+         vecsize1 = 1
+      else
+         vecsize  = numvar*2 + idens + ipres
+         vecsize1 = vecsize
+      endif
+
+
+      ! create numberings
+      call createdofnumbering(numvar1_numbering, iper, jper, 
+     &     6, 0, 0, 0, maxdofs1)
+      call createdofnumbering(numvar2_numbering, iper, jper, 
+     &     12, 0, 0, 0, maxdofs2)
+      if(vecsize.gt.2) then
+         call createdofnumbering(vecsize, iper, jper,
+     &        vecsize*6, 0, 0, 0, maxdofsn)
+      endif
+c$$$      if(numvar .ge. 3) then
+c$$$         call createdofnumbering(numvar3_numbering, iper, jper, 
+c$$$     &        18, 0, 0, 0, maxdofs3)
+c$$$      endif
+c$$$      if(numvar .eq. 4) then
+c$$$         call createdofnumbering(numvar4_numbering, iper, jper, 
+c$$$     &        24, 0, 0, 0, maxdofs4)
+c$$$      endif
+c$$$      if(numvar .eq. 6) then
+c$$$         call createdofnumbering(numvar6_numbering, iper, jper, 
+c$$$     &        36, 0, 0, 0, maxdofs6)
+c$$$      endif
+
 
       call numnod(numnodes)
       call numfac(numelms)
@@ -78,56 +111,59 @@ c$$$      return
 !
 !.....arrays defined at all vertices
 c     created with ordering specified by numvar
-      call createvec(vel, numvar)
-      call createvec(vels, numvar)
-      call createvec(velold, numvar)
-      call createvec(veln, numvar)
-      call createvec(veloldn, numvar)
-      call createvec(vel0, numvar)
-      call createvec(vel1, numvar)
-      call createvec(phi, numvar)
-      call createvec(phis, numvar)
-      call createvec(phiold, numvar)
-      call createvec(phi0, numvar)
-      call createvec(phi1, numvar)
-      call createvec(b1vector, numvar)
-      call createvec(b2vector, numvar)
-      call createvec(b3vector, numvar)
-      call createvec(vtemp, numvar)
-      call createvec(r4, numvar)
-      call createvec(q4, numvar)
 
-      if(ipres.eq.1) then 
-         call createvec(phip, numvar)
-         call createvec(qp4, 1)
-         call createvec(pres, 1)
-         call createvec(press, 1)
-         call createvec(pres0, 1)
-         call createvec(presold, 1)
+      if(isplitstep.eq.1) then
+         call createvec(vel, vecsize)
+         call createvec(vel0, vecsize)
+         call createvec(vels, vecsize)
+         call createvec(velold, vecsize)
+         call createvec(veln, vecsize)
+         call createvec(veloldn, vecsize)
+         if(iresolve.eq.1) call createvec(phioldn, vecsize)
+         call createvec(r4, vecsize)
+         call createvec(phip, vecsize)
+         call createvec(b2vector, vecsize)
+         call createvec(b3vector, vecsize)
+
+         if(ipres.eq.1) then 
+            call createvec(qp4, 1)
+            call createvec(pres, 1)
+            call createvec(press, 1)
+            call createvec(pres0, 1)
+            call createvec(presold, 1)
+            if(iresolve.eq.1) call createvec(presoldn, 1)
+         endif
+         
+         call createvec(den, 1)
+         call createvec(den0, 1)
+         call createvec(dens, 1)
+         call createvec(denold, 1)
+         call createvec(qn4, 1)
+         if(isources.eq.1) then
+            call createvec(sb1, 1)
+            call createvec(sb2, 1)
+            call createvec(sp1, 1)
+         endif
       endif
 
- 
+      call createvec(phi,      vecsize)
+      call createvec(phi0,     vecsize)
+      call createvec(phis,     vecsize)
+      call createvec(phiold,   vecsize)
+
+      call createvec(b1vector, vecsize)
+      call createvec(vtemp,    vecsize)
+      call createvec(q4,       vecsize)
+
       call createvec(jphi, 1)
-      jphi = 0.
       call createvec(vor, 1)
       call createvec(com, 1)
-      call createvec(den, 1)
-      call createvec(den0, 1)
-      call createvec(dens, 1)
-      call createvec(deni, 1)
-      call createvec(denold, 1)
-      call createvec(qn4, 1)
       call createvec(resistivity, 1)
       call createvec(kappa, 1)
       call createvec(visc, 1)
       call createvec(visc_c, 1)
       call createvec(sigma, 1)
       call createvec(tempvar,1)
-      if(isources.eq.1) then
-         call createvec(sb1, 1)
-         call createvec(sb2, 1)
-         call createvec(sp1, 1)
-      endif
 !
 !.....arrays associated with the triangles
       allocate(ist(ntri,3),isvaln(ntri,18),isval1(ntri,18),             &
@@ -302,37 +338,37 @@ c      enddo
       end
 !===========================
 
-      subroutine inverse(inarray,outarray)
-!
-!     calculates the inverse of the numvar=1 arrary inarray, and puts
-!     it into the numvar=1 array outarray
-!
-      use p_data
-      use t_data
-      use basic
-      use arrays
-      implicit none
-      integer l, ndofs, ibegin
-!
-      real inarray(*),outarray(*)
-!
-      call numdofs(1, ndofs)
-      do l=1,ndofs/6
-         ibegin = (l-1)*6+1
-         outarray(ibegin) = 1./inarray(ibegin)
-         outarray(ibegin+1) = -inarray(ibegin+1)/inarray(ibegin)**2
-         outarray(ibegin+2) = -inarray(ibegin+2)/inarray(ibegin)**2
-         outarray(ibegin+3) = (2.*inarray(ibegin+1)**2-inarray(ibegin)            &
-     &                    *inarray(ibegin+3))/inarray(ibegin)**3
-         outarray(ibegin+4) = (2.*inarray(ibegin+1)*inarray(ibegin+2)               &
-     &         -inarray(ibegin)*inarray(ibegin+4))/inarray(ibegin)**3
-         outarray(ibegin+5) = (2.*inarray(ibegin+2)**2-inarray(ibegin)
-     &                    *inarray(ibegin+5))/inarray(ibegin)**3
-      enddo
-!
-      return
-      end
-!
+c$$$      subroutine inverse(inarray,outarray)
+c$$$!
+c$$$!     calculates the inverse of the numvar=1 arrary inarray, and puts
+c$$$!     it into the numvar=1 array outarray
+c$$$!
+c$$$      use p_data
+c$$$      use t_data
+c$$$      use basic
+c$$$      use arrays
+c$$$      implicit none
+c$$$      integer :: l, ndofs, iendplusone, ibegin
+c$$$!
+c$$$      real inarray(*),outarray(*)
+c$$$!
+c$$$      call numdofs(1, ndofs)
+c$$$      do l=1,ndofs/6
+c$$$         ibegin = (l-1)*6+1
+c$$$         outarray(ibegin) = 1./inarray(ibegin)
+c$$$         outarray(ibegin+1) = -inarray(ibegin+1)/inarray(ibegin)**2
+c$$$         outarray(ibegin+2) = -inarray(ibegin+2)/inarray(ibegin)**2
+c$$$         outarray(ibegin+3) = (2.*inarray(ibegin+1)**2-inarray(ibegin)         
+c$$$     &                    *inarray(ibegin+3))/inarray(ibegin)**3
+c$$$         outarray(ibegin+4) = (2.*inarray(ibegin+1)*inarray(ibegin+2)               &
+c$$$     &         -inarray(ibegin)*inarray(ibegin+4))/inarray(ibegin)**3
+c$$$         outarray(ibegin+5) = (2.*inarray(ibegin+2)**2-inarray(ibegin)
+c$$$     &                    *inarray(ibegin+5))/inarray(ibegin)**3
+c$$$      enddo
+c$$$!
+c$$$      return
+c$$$      end
+c$$$!
 !==================================
       function sech(x)
       sech = 1./cosh(x)
@@ -365,16 +401,15 @@ c      enddo
          enddo
 
          do iii=1,3
-            call entdofs(1, ist(itri,iii)+1, 0, ibegin, iendplusone)
+            call entdofs(1, ist(itri,iii)+1, 0, ibegin,  iendplusone )
             call entdofs(2, ist(itri,iii)+1, 0, ibegin2, iendplusone2)
-            call entdofs(numvar,ist(itri,iii)+1,0,ibeginn, iendplusonen)
+            call entdofs(vecsize,  ist(itri,iii)+1, 0,                  &
+     &           ibeginn, iendplusonen)
             do ii=1,6
                i = (iii-1)*6 + ii
-               isval1(itri,i) = ibegin+ii-1 ! 6*ist(itri,iii)+ii
+               isval1(itri,i) = ibegin +ii-1 ! 6*ist(itri,iii)+ii
                isval2(itri,i) = ibegin2+ii-1 ! 12*ist(itri,iii)+ii
                isvaln(itri,i) = ibeginn+ii-1 ! numvar*6*ist(itri,iii)+ii
-
-!
             enddo
          enddo
 !.....end of do loops on i
@@ -406,11 +441,14 @@ c      enddo
       gbound = 0.
 !
 !.....define all input parameters (choose by test problem)
+      print *, "input..."
       call input
       ntimemin = min(2,ntimemax-1)
 !
 !      allocate big arrays
+      print *, "Calling space..."
       call space
+      print *, "Done space."
 !
 !
 !.................................................................

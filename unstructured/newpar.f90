@@ -127,6 +127,8 @@ Program Reducedquintic
   ! initialize needed variables and define geometry and triangles
   call init
 
+  call assign_variables
+
   if(ipres.eq.1) then
      pefac = 1.
   else
@@ -175,35 +177,60 @@ Program Reducedquintic
      if(idens.eq.1 .and. maxrank.eq.1) call oneplot(den0,1,1,"den0",1)
 
      if(linear.eq.1 .or. eqsubtract.eq.1) then
-        vels = vel
         phis = phi
-        if(idens.eq.1) dens = den
-        if(ipres.eq.1) press = pres
+        if(isplitstep.eq.1) then
+           vels = vel
+           if(idens.eq.1) dens = den
+           if(ipres.eq.1) press = pres
+        endif
      else
-        vels = vel0
         phis = phi0
-        if(idens.eq.1) dens = den0
-        if(ipres.eq.1) press = pres0
+        if(isplitstep.eq.1) then
+           vels = vel0
+           if(idens.eq.1) dens = den0
+           if(ipres.eq.1) press = pres0
+        endif
      endif
 
      ! correct for left-handed coordinates
-     call numdofs(numvar, ndofs)
+     if(myrank.eq.0 .and. iprint.ge.1) &
+          print *, "adjusting fields for left-handed coordinates"
+     call numdofs(vecsize, ndofs)
      allocate(itemp(ndofs))
      itemp = 1
-     if(numvar.eq.1) then
-        j = 5
-     else
-        j = 11
-     endif
      do i=1,numnodes
-        call entdofs(numvar, i, 0, ibegin, iendplusone)
+        call entdofs(vecsize, i, 0, ibegin, iendplusone)
         if(itemp(ibegin) .eq. 1) then
-           phi(ibegin:ibegin+j) = -phi(ibegin:ibegin+j)
-           vel(ibegin:ibegin+j) = -vel(ibegin:ibegin+j)
-           phi0(ibegin:ibegin+j) = -phi0(ibegin:ibegin+j)
-           vel0(ibegin:ibegin+j) = -vel0(ibegin:ibegin+j)
-           phis(ibegin:ibegin+j) = -phis(ibegin:ibegin+j)
-           vels(ibegin:ibegin+j) = -vels(ibegin:ibegin+j)
+           psi0_v(ibegin+psi_off:ibegin+psi_off+5) = &
+                -psi0_v(ibegin+psi_off:ibegin+psi_off+5)
+           psi1_v(ibegin+psi_off:ibegin+psi_off+5) = &
+                -psi1_v(ibegin+psi_off:ibegin+psi_off+5)
+           psis_v(ibegin+psi_off:ibegin+psi_off+5) = &
+                -psis_v(ibegin+psi_off:ibegin+psi_off+5)
+
+           phi0_v(ibegin+phi_off:ibegin+phi_off+5) = &
+                -phi0_v(ibegin+phi_off:ibegin+phi_off+5)
+           phi1_v(ibegin+phi_off:ibegin+phi_off+5) = &
+                -phi1_v(ibegin+phi_off:ibegin+phi_off+5)
+           phis_v(ibegin+phi_off:ibegin+phi_off+5) = &
+                -phis_v(ibegin+phi_off:ibegin+phi_off+5)
+
+           if(numvar.ge.2) then
+              bz0_v(ibegin+bz_off:ibegin+bz_off+5) = &
+                   -bz0_v(ibegin+bz_off:ibegin+bz_off+5)
+              bz1_v(ibegin+bz_off:ibegin+bz_off+5) = &
+                   -bz1_v(ibegin+bz_off:ibegin+bz_off+5)
+              bzs_v(ibegin+bz_off:ibegin+bz_off+5) = &
+                   -bzs_v(ibegin+bz_off:ibegin+bz_off+5)
+
+              vz0_v(ibegin+vz_off:ibegin+vz_off+5) = &
+                   -vz0_v(ibegin+vz_off:ibegin+vz_off+5)
+              vz1_v(ibegin+vz_off:ibegin+vz_off+5) = &
+                   -vz1_v(ibegin+vz_off:ibegin+vz_off+5)
+              vzs_v(ibegin+vz_off:ibegin+vz_off+5) = &
+                   -vzs_v(ibegin+vz_off:ibegin+vz_off+5)
+           endif
+
            itemp(ibegin) = 0
         endif
      enddo
@@ -217,29 +244,35 @@ Program Reducedquintic
         phi = phi + phi0
         phi0 = 0.
         
-        vel = vel + vel0
-        vel0 = 0.
+        if(isplitstep.eq.1) then
+           vel = vel + vel0
+           vel0 = 0.
         
-        if(idens.eq.1) then
-           den = den + den0
-           den0 = 0.
-        endif
+           if(idens.eq.1) then
+              den = den + den0
+              den0 = 0.
+           endif
 
-        if(ipres.eq.1) then
-           pres = pres + pres0
-           pres0 = 0.
+           if(ipres.eq.1) then
+              pres = pres + pres0
+              pres0 = 0.
+           endif
         endif
      endif
 
      ! initialize t(n-1) values
      phiold = phi
-     velold = vel
-     if(idens.eq.1) denold = den
-     if(ipres.eq.1) presold = pres
+
+     if(isplitstep.eq.1) then
+        velold = vel
+        if(idens.eq.1) denold = den
+        if(ipres.eq.1) presold = pres
+     endif
      
   endif                     !  end of the branch on restart/no restart
 
   ! initialize hdf5
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Initializing HDF5."
   call hdf5_initialize(ntimer, ier)
   if(ier.lt.0) then 
      print *, "Error initializing HDF5"
@@ -265,29 +298,23 @@ Program Reducedquintic
 
   if(itimer.eq.1) call reset_timings
 
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Defining auxiliary variables."
+
   ! define auxiliary variables
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  !   inverse density
-  if(idens.eq.1) then
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
-        call inverse(den+den0,deni)
-     else
-        call inverse(den,deni)
-     endif
-  endif
   call define_transport_coefficients
   !   toroidal current
-  call newvar_d2(phi+phi0,jphi,1,NV_DCBOUND,NV_GS)
+  call newvar_d2(psi1_v,jphi,psi_i,NV_DCBOUND,NV_GS)
   if(hyperc.ne.0) then
      !   vorticity
-     call newvar_d2(vel+vel0, vor,1,NV_DCBOUND,NV_GS)
+     call newvar_d2(phi1_v,vor,phi_i,NV_DCBOUND,NV_GS)
      !   compression
      if(numvar.ge.3) then
         if(com_bc.eq.1) then
-           call newvar_d2(vtemp,com,3,NV_DCBOUND,NV_LP)
+           call newvar_d2(chi1_v,com,chi_i,NV_DCBOUND,NV_LP)
         else
-           call newvar_d2(vtemp,com,3,NV_NOBOUND,NV_LP)
+           call newvar_d2(chi1_v,com,chi_i,NV_NOBOUND,NV_LP)
         endif
      else
         com = 0.
@@ -300,7 +327,7 @@ Program Reducedquintic
 
   ! find lcfs
   ! ~~~~~~~~~
-  call lcfs(phi+phi0,numvar) 
+  call lcfs(psi1_v+psi0_v,vecsize) 
 
   ! calculate scalars
   ! ~~~~~~~~~~~~~~~~~
@@ -447,7 +474,6 @@ Program Reducedquintic
 !     free memory from sparse matrices
   call freesmo(gsmatrix_sm)
   call freesmo(s6matrix_sm)
-  call freesmo(s8matrix_sm)
   call freesmo(s7matrix_sm)
   call freesmo(s4matrix_sm)
   call freesmo(s3matrix_sm)
@@ -457,12 +483,22 @@ Program Reducedquintic
   call freesmo(d1matrix_sm)
   call freesmo(d2matrix_sm)
   call freesmo(d4matrix_sm)
-  call freesmo(d8matrix_sm)
-  call freesmo(r1matrix_sm)
+  call freesmo(q1matrix_sm)
   call freesmo(r2matrix_sm)
-  call freesmo(r8matrix_sm)
   call freesmo(q2matrix_sm)
-  call freesmo(q8matrix_sm) 
+  if(iresolve.eq.1) then
+     call freesmo(s10matrix_sm)
+     call freesmo(d10matrix_sm)
+     call freesmo(q10matrix_sm)
+     call freesmo(r10matrix_sm)
+  endif
+  if(idens.eq.1) then
+     call freesmo(s8matrix_sm)
+     call freesmo(d8matrix_sm)
+     call freesmo(q8matrix_sm) 
+     call freesmo(r8matrix_sm)
+     call freesmo(r14matrix_sm)
+  end if
   if(ipres.eq.1) then 
      call freesmo(s9matrix_sm)
      call freesmo(d9matrix_sm)
@@ -473,11 +509,7 @@ Program Reducedquintic
 !  free memory for numberings
   call deletedofnumbering(1)
   call deletedofnumbering(2)
-  call deletedofnumbering(3)
-  call deletedofnumbering(4)
-  call deletedofnumbering(5)
-  call deletedofnumbering(6)
-
+  if(vecsize.gt.2)  call deletedofnumbering(vecsize)
 
   if (myrank.eq.0 .and. maxrank.eq.1) call plote
   
@@ -556,86 +588,107 @@ subroutine onestep
         call second(tend)
         t_ludefall = t_ludefall + tend - tstart
      endif
+     if(myrank.eq.0 .and. iprint.eq.1) print *, "Done defining matrices."
   endif
 
-
-  ! Store current-time velocity matrices for use in field advance
-  veln = vel
-  veloldn = velold
-  
-
-  ! Advance Velocity
-  ! ================
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Velocity"
-
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-
-  ! b1vector = r1matrix_sm * phi(n)
-  if(ipres.eq.1 .and. numvar.ge.3) then
-     ! replace electron pressure with total pressure
-     do l=1,numnodes
-        call entdofs(1, l, 0, ibegin, iendplusone)
-        call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
-
-        phip(ibeginnv   :ibeginnv+11) = phi(ibeginnv:ibeginnv+11)
-        phip(ibeginnv+12:ibeginnv+17) = pres(ibegin:ibegin+5)
-     enddo
-     call matrixvectormult(r1matrix_sm, phip, b1vector)
-  else
-     call matrixvectormult(r1matrix_sm, phi , b1vector)
-  endif
-  
-  ! vtemp = d1matrix_sm * vel(n)
-  vtemp = 0.
-  call matrixvectormult(d1matrix_sm,vel,vtemp)
-
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_mvm = t_mvm + tend - tstart
-  endif
-
-  vtemp = vtemp + b1vector + r4
-
-  ! apply boundary conditions
-  if(calc_matrices.eq.1) then
-     call boundary_vel(s1matrix_sm, vtemp)
-     call finalizearray(s1matrix_sm)
-  else
-     call boundary_vel(0, vtemp)
-  endif
-
-  ! solve linear system with rhs in vtemp (note LU-decomp done first time)
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  call solve(s1matrix_sm, vtemp, jer)
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_solve_v = t_solve_v + tend - tstart
-  endif
-  if(jer.ne.0) then
-     write(*,*) 'Error in velocity solve', jer
-     call safestop(42)
-  endif
-
-  if(integrator.eq.1 .and. ntime.gt.1) then
-     vtemp = (2.*vtemp - velold)/3.
-  endif
-
-  ! apply smoothing operators
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(hyperc.gt.0) then
+  if(isplitstep.eq.1) then
+     ! Store current-time velocity matrices for use in field advance
+     veln = vel
+     veloldn = velold
+     if(iresolve.eq.1) then
+        phioldn = phiold
+        presoldn = presold
+     end if
+ 
+     ! Advance Velocity
+     ! ================
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Velocity"
+     
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     
+     ! b1vector = q1matrix_sm * phi(n)
+     if(ipres.eq.1 .and. numvar.ge.3) then
+        ! replace electron pressure with total pressure
+        do l=1,numnodes
+           call entdofs(1, l, 0, ibegin, iendplusone)
+           call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
+           
+           phip(ibeginnv   :ibeginnv+11) = phi(ibeginnv:ibeginnv+11)
+           phip(ibeginnv+12:ibeginnv+17) = pres(ibegin:ibegin+5)
+        enddo
+        call matrixvectormult(q1matrix_sm, phip, b1vector)
+     else
+        call matrixvectormult(q1matrix_sm, phi , b1vector)
+     endif
+  
+     ! vtemp = d1matrix_sm * vel(n)
+     vtemp = 0.
+     call matrixvectormult(d1matrix_sm,vel,vtemp)
+     
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_mvm = t_mvm + tend - tstart
+     endif
 
-     ! smooth vorticity
-     call newvar_d2(vtemp,vor,1,NV_DCBOUND,NV_GS)
-     call smoother1(vor,vtemp,numnodes,numvar,1)
+     vtemp = vtemp + b1vector + r4
+     
+     ! Include linear density terms
+     if(idens.eq.1) then
+        ! b2vector = r41 * den(n)
+        
+        ! make a larger vector that can be multiplied by a numvar=3 matrix
+        do l=1,numnodes
+           call entdofs(1, l, 0, ibegin, iendplusone)
+           call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
+           
+           phip(ibeginnv   :ibeginnv+5) = den(ibegin:ibegin+5)
+           phip(ibeginnv+6:ibeginnv+17) = 0.
+        enddo
+        call matrixvectormult(r14matrix_sm,phip,b2vector)
+        vtemp = vtemp + b2vector
+     endif
 
-     ! smooth compression
-     if(numvar.ge.3) then
-        if(com_bc.eq.1) then
-           call newvar_d2(vtemp,com,3,NV_DCBOUND,NV_LP)
-        else
-           call newvar_d2(vtemp,com,3,NV_NOBOUND,NV_LP)
-        endif
+     ! apply boundary conditions
+     if(calc_matrices.eq.1) then
+        call boundary_vel(s1matrix_sm, vtemp)
+        call finalizearray(s1matrix_sm)
+     else
+        call boundary_vel(0, vtemp)
+     endif
+     
+     ! solve linear system with rhs in vtemp (note LU-decomp done first time)
+     if(myrank.eq.0) print *, "solving velocity advance..."
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     call solve(s1matrix_sm, vtemp, jer)
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_solve_v = t_solve_v + tend - tstart
+     endif
+     if(jer.ne.0) then
+        write(*,*) 'Error in velocity solve', jer
+        call safestop(42)
+     endif
+     
+     if(integrator.eq.1 .and. ntime.gt.1) then
+        vtemp = (2.*vtemp - velold)/3.
+     endif
+
+     ! apply smoothing operators
+     ! ~~~~~~~~~~~~~~~~~~~~~~~~~
+     if(hyperc.gt.0) then
+        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+        
+        ! smooth vorticity
+        call newvar_d2(vtemp,vor,1,NV_DCBOUND,NV_GS)
+        call smoother1(vor,vtemp,numnodes,numvar,1)
+        
+        ! smooth compression
+        if(numvar.ge.3) then
+           if(com_bc.eq.1) then
+              call newvar_d2(vtemp,com,3,NV_DCBOUND,NV_LP)
+           else
+              call newvar_d2(vtemp,com,3,NV_NOBOUND,NV_LP)
+           endif
 
 !!$        !
 !!$        !.....coding to calculate the error in the delsquared chi equation
@@ -644,262 +697,455 @@ subroutine onestep
 !!$           print *, "Error in com = ", chierror 
 !!$        endif
 
-        call smoother3(com,vtemp,numnodes,numvar,3)     
+           call smoother3(com,vtemp,numnodes,numvar,3)     
+        endif
+
+        if(myrank.eq.0 .and. itimer.eq.1) then
+           call second(tend)
+           t_smoother = t_smoother + tend - tstart
+        endif
      endif
 
-     if(myrank.eq.0 .and. itimer.eq.1) then
-        call second(tend)
-        t_smoother = t_smoother + tend - tstart
+     !.....new velocity solution at time n+1 (or n* for second order advance)
+     velold = vel
+     vel = vtemp
+
+     !
+     ! Advance Density
+     ! ===============
+     if(idens.eq.1) then
+        if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Density"
+        
+        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+        
+        ! b2vector = r8matrix_sm * vel(n+1)
+        call matrixvectormult(r8matrix_sm,vel,b2vector)
+        
+        ! b3vector = q8matrix_sm * vel(n)
+        call matrixvectormult(q8matrix_sm,veln,b3vector)
+        
+        ! b1vector = r8matrix_sm * vel(n-1)
+        if(integrator.eq.1 .and. ntime.gt.1) then
+           b2vector = 1.5*b2vector
+           call matrixvectormult(r8matrix_sm,veloldn,b1vector)
+           b1vector = 0.5*b1vector
+        else
+           b1vector = 0.
+        endif
+
+        if(myrank.eq.0 .and. itimer.eq.1) then
+           call second(tend)
+           t_mvm = t_mvm + tend - tstart
+        endif
+
+        ! temp = d8matrix_sm * phi(n)
+        call createvec(temp, 1)
+        temp = 0.
+        call matrixvectormult(d8matrix_sm,den,temp)
+        
+        call numdofs(numvar,ndofs)
+        allocate(itemp(ndofs)) ! this is used to make sure that we don't double count the sum for periodic dofs
+        itemp = 1
+        
+        do l=1,numnodes
+           call entdofs(1, l, 0, ibegin, iendplusone)
+           call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
+           do i=0,iendplusone-ibegin-1
+              temp(ibegin+i) = temp(ibegin+i) + itemp(ibegin+i) * &
+                   (b2vector(ibeginnv+i) + b3vector(ibeginnv+i) + qn4(ibegin+i)) &
+                   +b1vector(ibeginnv+i)
+              
+              itemp(ibegin+i) = 0
+           enddo
+        enddo
+        deallocate(itemp)
+
+        ! Insert boundary conditions
+        if(calc_matrices.eq.1) then
+           call boundary_den(s8matrix_sm, temp)
+           call finalizearray(s8matrix_sm)
+        else
+           call boundary_den(0, temp)
+        endif
+        
+        ! solve linear system...LU decomposition done first time
+        ! -- okay to here      call printarray(temp, 150, 0, 'vtemp on')
+        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+        call solve(s8matrix_sm, temp, jer)
+        if(myrank.eq.0 .and. itimer.eq.1) then
+           call second(tend)
+           t_solve_n = t_solve_n + tend - tstart
+        endif
+        if(jer.ne.0) then
+           write(*,*) 'Error in density solve', jer
+           call safestop(29)
+        endif
+        
+        ! new field solution at time n+1 (or n* for second order advance)
+        if(integrator.eq.1 .and. ntime.gt.1) then
+           temp = (2.*temp - denold)/3.
+        endif
+        denold = den
+        den = temp
+        call deletevec(temp)
      endif
-  endif
+     
+     !
+     ! Advance Pressure
+     ! ================
+     if(ipres.eq.1) then
+        if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Pressure"
+        
+        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+        
+        ! b2vector = r9matrix_sm * vel(n+1)
+        call matrixvectormult(r9matrix_sm,vel,b2vector)
+        
+        ! b3vector = q9matrix_sm * vel(n)
+        call matrixvectormult(q9matrix_sm,veln,b3vector)
+        
+        ! b1vector = r9matrix_sm * vel(n-1)
+        if(integrator.eq.1 .and. ntime.gt.1) then
+           b2vector = 1.5*b2vector
+           call matrixvectormult(r9matrix_sm,veloldn,b1vector)
+           b1vector = 0.5*b1vector
+        else
+           b1vector = 0.
+        endif
+        
+        if(myrank.eq.0 .and. itimer.eq.1) then
+           call second(tend)
+           t_mvm = t_mvm + tend - tstart
+        endif
+        
+        ! temp = d8matrix_sm * pres(n)
+        call createvec(temp, 1)
+        temp = 0.
+        call matrixvectormult(d9matrix_sm,pres,temp)
+        
+        call numdofs(numvar,ndofs)
+        allocate(itemp(ndofs)) ! this is used to make sure that we don't double count the sum for periodic dofs
+        itemp = 1
+        
+        do l=1,numnodes
+           call entdofs(1, l, 0, ibegin, iendplusone)
+           call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
+           do i=0,iendplusone-ibegin-1
+              temp(ibegin+i) = temp(ibegin+i) + itemp(ibegin+i) * &
+                   (b2vector(ibeginnv+i) + b3vector(ibeginnv+i) + qp4(ibegin+i)) &
+                   +b1vector(ibeginnv+i)
+              itemp(ibegin+i) = 0
+           enddo
+        enddo
+        deallocate(itemp)
+        
+        ! Insert boundary conditions
+        if(calc_matrices.eq.1) then
+           call boundary_pres(s9matrix_sm, temp)
+           call finalizearray(s9matrix_sm)
+        else
+           call boundary_pres(0, temp)
+        endif
+        
+        ! solve linear system...LU decomposition done first time
+        ! -- okay to here      call printarray(temp, 150, 0, 'vtemp on')
+        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+        call solve(s9matrix_sm, temp, jer)
+        if(myrank.eq.0 .and. itimer.eq.1) then
+           call second(tend)
+           t_solve_p = t_solve_p + tend - tstart
+        endif
+        if(jer.ne.0) then
+           write(*,*) 'Error in pressure solve', jer
+           call safestop(29)
+        endif
+        
+        ! new field solution at time n+1 (or n* for second order advance)
+        if(integrator.eq.1 .and. ntime.gt.1) then
+           temp = (2.*temp - presold)/3.
+        endif
+        presold = pres
+        pres = temp
+        call deletevec(temp)
+     endif
 
-!.....new velocity solution at time n+1 (or n* for second order advance)
-  velold = vel
-  vel = vtemp
-
-  !
-  ! Advance Density
-  ! ===============
-  if(idens.eq.1) then
-     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Density"
-
+     
+     !
+     ! Advance Fields
+     ! ==============
+     
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Fields"
+     
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-
-     ! b2vector = r8matrix_sm * vel(n+1)
-     call matrixvectormult(r8matrix_sm,vel,b2vector)
-
-     ! b3vector = q8matrix_sm * vel(n)
-     call matrixvectormult(q8matrix_sm,veln,b3vector)
-
-     ! b1vector = r8matrix_sm * vel(n-1)
+     
+     ! b2vector = r2matrix_sm * vel(n+1)
+     call matrixvectormult(r2matrix_sm,vel,b2vector)
+     
+     ! b3vector = q2matrix_sm * vel(n)
+     call matrixvectormult(q2matrix_sm,veln,b3vector)
+     
+     ! b1vector = r2matrix_sm * vel(n-1)
      if(integrator.eq.1 .and. ntime.gt.1) then
         b2vector = 1.5*b2vector
-        call matrixvectormult(r8matrix_sm,veloldn,b1vector)
+        call matrixvectormult(r2matrix_sm,veloldn,b1vector)
         b1vector = 0.5*b1vector
      else
         b1vector = 0.
      endif
+     
+     ! vtemp = d2matrix_sm * phi(n)
+     vtemp = 0.
+     call matrixvectormult(d2matrix_sm,phi,vtemp)
+     
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_mvm = t_mvm + tend - tstart
+     endif
+     
+     vtemp = vtemp + b2vector + b3vector + q4  + b1vector
+     
+     ! Insert boundary conditions
+     if(calc_matrices.eq.1) then
+        call boundary_mag(s2matrix_sm, vtemp)
+        call finalizearray(s2matrix_sm)
+     else 
+        call boundary_mag(0, vtemp)
+     endif
+     
+     ! solve linear system...LU decomposition done first time
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     call solve(s2matrix_sm, vtemp, jer)
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_solve_b = t_solve_b + tend - tstart
+     endif
+     if(jer.ne.0) then
+        write(*,*) 'Error in field solve', jer
+        call safestop(29)
+     endif
+     
+     ! new field solution at time n+1 (or n* for second order advance)
+     if(integrator.eq.1 .and. ntime.gt.1) then
+        vtemp = (2.*vtemp - phiold)/3.
+     endif
+     phiold = phi
+     phi = vtemp
+     
+     
+     ! Secondary Velocity Advance
+     ! ==========================
+     if(iresolve.eq.1) then
+        
+        if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Velocity again"
+        
+        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+        
+        ! b1vector = r10matrix_sm * phi(n+1)
+        if(ipres.eq.1 .and. numvar.ge.3) then
+           ! replace electron pressure with total pressure
+           do l=1,numnodes
+              call entdofs(1, l, 0, ibegin, iendplusone)
+              call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
+              
+              phip(ibeginnv   :ibeginnv+11) = phi(ibeginnv:ibeginnv+11)
+              phip(ibeginnv+12:ibeginnv+17) = pres(ibegin:ibegin+5)
+           enddo
+           call matrixvectormult(r10matrix_sm, phip, b1vector)
+        else
+           call matrixvectormult(r10matrix_sm, phi, b1vector)
+        endif
+        
+        ! b2vector = q10matrix_sm * phi(n)
+        if(ipres.eq.1 .and. numvar.ge.3) then
+           ! replace electron pressure with total pressure
+           do l=1,numnodes
+              call entdofs(1, l, 0, ibegin, iendplusone)
+              call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
+              
+              phip(ibeginnv   :ibeginnv+11) = phiold(ibeginnv:ibeginnv+11)
+              phip(ibeginnv+12:ibeginnv+17) = presold(ibegin:ibegin+5)
+           enddo
+           call matrixvectormult(q10matrix_sm, phip, b2vector)
+        else
+           call matrixvectormult(q10matrix_sm, phiold, b2vector)
+        endif
+        
+        ! b3vector = r10matrix_sm * phi(n-1)
+        if(integrator.eq.1 .and. ntime.gt.1) then
+           b1vector = 1.5*b1vector
+           if(ipres.eq.1 .and. numvar.ge.3) then
+              ! replace electron pressure with total pressure
+              do l=1,numnodes
+                 call entdofs(1, l, 0, ibegin, iendplusone)
+                 call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
+                 
+                 phip(ibeginnv   :ibeginnv+11) = phioldn(ibeginnv:ibeginnv+11)
+                 phip(ibeginnv+12:ibeginnv+17) = presoldn(ibegin:ibegin+5)
+              enddo
+              call matrixvectormult(r10matrix_sm, phip, b3vector)
+           else
+              call matrixvectormult(r10matrix_sm, phioldn, b3vector)
+           endif
+           b3vector = 0.5*b3vector
+        else
+           b3vector = 0.
+        endif
+        
+        ! vtemp = d1matrix_sm * vel(n)
+        vtemp = 0.
+        call matrixvectormult(d10matrix_sm,veln,vtemp)
+        
+        if(myrank.eq.0 .and. itimer.eq.1) then
+           call second(tend)
+           t_mvm = t_mvm + tend - tstart
+        endif
+        
+        vtemp = vtemp + b1vector + b2vector + b3vector + r4
+        
+!!$     ! Include linear density terms
+!!$     if(idens.eq.1) then
+!!$        ! b2vector = r41 * den(n)
+!!$        
+!!$        ! make a larger vector that can be multiplied by a numvar=3 matrix
+!!$        do l=1,numnodes
+!!$           call entdofs(1, l, 0, ibegin, iendplusone)
+!!$           call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
+!!$           
+!!$           phip(ibeginnv   :ibeginnv+5) = den(ibegin:ibegin+5)
+!!$           phip(ibeginnv+6:ibeginnv+17) = 0.
+!!$        enddo
+!!$        call matrixvectormult(r14matrix_sm,phip,b2vector)
+!!$        vtemp = vtemp + b2vector
+!!$     endif
+
+        ! apply boundary conditions
+        if(calc_matrices.eq.1) then
+           call boundary_vel(s10matrix_sm, vtemp)
+           call finalizearray(s10matrix_sm)
+        else
+           call boundary_vel(0, vtemp)
+        endif
+
+        ! solve linear system with rhs in vtemp (note LU-decomp done first time)
+        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+        call solve(s10matrix_sm, vtemp, jer)
+        if(myrank.eq.0 .and. itimer.eq.1) then
+           call second(tend)
+           t_solve_v = t_solve_v + tend - tstart
+        endif
+        if(jer.ne.0) then
+           write(*,*) 'Error in velocity solve', jer
+           call safestop(42)
+        endif
+        
+        if(integrator.eq.1 .and. ntime.gt.1) then
+           vtemp = (2.*vtemp - veloldn)/3.
+        endif
+        
+        ! apply smoothing operators
+        ! ~~~~~~~~~~~~~~~~~~~~~~~~~
+        if(hyperc.gt.0) then
+           if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+           
+           ! smooth vorticity
+           call newvar_d2(vtemp,vor,1,NV_DCBOUND,NV_GS)
+           call smoother1(vor,vtemp,numnodes,numvar,1)
+           
+           ! smooth compression
+           if(numvar.ge.3) then
+              if(com_bc.eq.1) then
+                 call newvar_d2(vtemp,com,3,NV_DCBOUND,NV_LP)
+              else
+                 call newvar_d2(vtemp,com,3,NV_NOBOUND,NV_LP)
+              endif
+              
+!!$        !
+!!$        !.....coding to calculate the error in the delsquared chi equation
+!!$        call calc_chi_error(chierror)
+!!$        if(myrank.eq.0) then
+!!$           print *, "Error in com = ", chierror 
+!!$        endif
+              
+              call smoother3(com,vtemp,numnodes,numvar,3)     
+           endif
+           
+           if(myrank.eq.0 .and. itimer.eq.1) then
+              call second(tend)
+              t_smoother = t_smoother + tend - tstart
+           endif
+        endif
+        
+        !.....new velocity solution at time n+1 (or n* for second order advance)
+        vel = vtemp
+     end if
+     
+  else    
+     ! ====================
+     ! UNSPLIT TIME ADVANCE
+     ! ====================
+
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Solving matrix equation."
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+         
+     ! vtemp = d1matrix_sm * phi(n)
+     call matrixvectormult(d1matrix_sm,phi,vtemp)
+
+     vtemp = vtemp + q4
 
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_mvm = t_mvm + tend - tstart
      endif
-
-     ! temp = d8matrix_sm * phi(n)
-     call createvec(temp, 1)
-     temp = 0.
-     call matrixvectormult(d8matrix_sm,den,temp)
-    
-     call numdofs(numvar,ndofs)
-     allocate(itemp(ndofs)) ! this is used to make sure that we don't double count the sum for periodic dofs
-     itemp = 1
-
-     do l=1,numnodes
-        call entdofs(1, l, 0, ibegin, iendplusone)
-        call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
-        do i=0,iendplusone-ibegin-1
-           temp(ibegin+i) = temp(ibegin+i) + itemp(ibegin+i) * &
-                (b2vector(ibeginnv+i) + b3vector(ibeginnv+i) + qn4(ibegin+i)) &
-                +b1vector(ibeginnv+i)
-
-           itemp(ibegin+i) = 0
-        enddo
-     enddo
-     deallocate(itemp)
-
+     
      ! Insert boundary conditions
      if(calc_matrices.eq.1) then
-        call boundary_den(s8matrix_sm, temp)
-        call finalizearray(s8matrix_sm)
-     else
-        call boundary_den(0, temp)
+        call boundary_mag(s1matrix_sm, vtemp)
+        call boundary_vel(s1matrix_sm, vtemp)
+        if(idens.eq.1) call boundary_den(s1matrix_sm, vtemp)
+        if(ipres.eq.1) call boundary_pres(s1matrix_sm, vtemp)
+        call finalizearray(s1matrix_sm)
+     else 
+        call boundary_mag(0, vtemp)
+        call boundary_vel(0, vtemp)
+        if(idens.eq.1) call boundary_den(0, vtemp)
+        if(ipres.eq.1) call boundary_pres(0, vtemp)
      endif
-
+     
      ! solve linear system...LU decomposition done first time
-! -- okay to here      call printarray(temp, 150, 0, 'vtemp on')
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     call solve(s8matrix_sm, temp, jer)
+     call solve(s1matrix_sm, vtemp, jer)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
-        t_solve_n = t_solve_n + tend - tstart
+        t_solve_b = t_solve_b + tend - tstart
      endif
      if(jer.ne.0) then
-        write(*,*) 'Error in density solve', jer
+        write(*,*) 'Error in field solve', jer
         call safestop(29)
      endif
-
-     ! new field solution at time n+1 (or n* for second order advance)
+     
+     ! new field solution at time n+1
      if(integrator.eq.1 .and. ntime.gt.1) then
-        temp = (2.*temp - denold)/3.
+        vtemp = (2.*vtemp - phiold)/3.
      endif
-     denold = den
-     den = temp
-     call deletevec(temp)
-  endif
-
-  !
-  ! Advance Pressure
-  ! ================
-  if(ipres.eq.1) then
-     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Pressure"
-
-     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-
-     ! b2vector = r9matrix_sm * vel(n+1)
-     call matrixvectormult(r9matrix_sm,vel,b2vector)
-
-     ! b3vector = q9matrix_sm * vel(n)
-     call matrixvectormult(q9matrix_sm,veln,b3vector)
-
-     ! b1vector = r9matrix_sm * vel(n-1)
-     if(integrator.eq.1 .and. ntime.gt.1) then
-        b2vector = 1.5*b2vector
-        call matrixvectormult(r9matrix_sm,veloldn,b1vector)
-        b1vector = 0.5*b1vector
-     else
-        b1vector = 0.
-     endif
-
-     if(myrank.eq.0 .and. itimer.eq.1) then
-        call second(tend)
-        t_mvm = t_mvm + tend - tstart
-     endif
-
-     ! temp = d8matrix_sm * pres(n)
-     call createvec(temp, 1)
-     temp = 0.
-     call matrixvectormult(d9matrix_sm,pres,temp)
-
-     call numdofs(numvar,ndofs)
-     allocate(itemp(ndofs)) ! this is used to make sure that we don't double count the sum for periodic dofs
-     itemp = 1
-
-     do l=1,numnodes
-        call entdofs(1, l, 0, ibegin, iendplusone)
-        call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
-        do i=0,iendplusone-ibegin-1
-           temp(ibegin+i) = temp(ibegin+i) + itemp(ibegin+i) * &
-                (b2vector(ibeginnv+i) + b3vector(ibeginnv+i) + qp4(ibegin+i)) &
-                +b1vector(ibeginnv+i)
-           itemp(ibegin+i) = 0
-        enddo
-     enddo
-     deallocate(itemp)
-
-     ! Insert boundary conditions
-     if(calc_matrices.eq.1) then
-        call boundary_pres(s9matrix_sm, temp)
-        call finalizearray(s9matrix_sm)
-     else
-        call boundary_pres(0, temp)
-     endif
-
-     ! solve linear system...LU decomposition done first time
-! -- okay to here      call printarray(temp, 150, 0, 'vtemp on')
-     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     call solve(s9matrix_sm, temp, jer)
-     if(myrank.eq.0 .and. itimer.eq.1) then
-        call second(tend)
-        t_solve_p = t_solve_p + tend - tstart
-     endif
-     if(jer.ne.0) then
-        write(*,*) 'Error in pressure solve', jer
-        call safestop(29)
-     endif
-
-     ! new field solution at time n+1 (or n* for second order advance)
-     if(integrator.eq.1 .and. ntime.gt.1) then
-        temp = (2.*temp - presold)/3.
-     endif
-     presold = pres
-     pres = temp
-     call deletevec(temp)
-  endif
-
-
-  !
-  ! Advance Fields
-  ! ==============
-
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Fields"
-  
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-
-  ! b2vector = r2matrix_sm * vel(n+1)
-  call matrixvectormult(r2matrix_sm,vel,b2vector)
-
-  ! b3vector = q2matrix_sm * vel(n)
-  call matrixvectormult(q2matrix_sm,veln,b3vector)
-
-  ! b1vector = r2matrix_sm * vel(n-1)
-  if(integrator.eq.1 .and. ntime.gt.1) then
-     b2vector = 1.5*b2vector
-     call matrixvectormult(r2matrix_sm,veloldn,b1vector)
-     b1vector = 0.5*b1vector
-  else
-     b1vector = 0.
-  endif
-
-  ! vtemp = d2matrix_sm * phi(n)
-  vtemp = 0.
-  call matrixvectormult(d2matrix_sm,phi,vtemp)
-
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_mvm = t_mvm + tend - tstart
-  endif
-
-  vtemp = vtemp + b2vector + b3vector + q4  + b1vector
- 
-  ! Insert boundary conditions
-  if(calc_matrices.eq.1) then
-     call boundary_mag(s2matrix_sm, vtemp)
-     call finalizearray(s2matrix_sm)
-  else 
-     call boundary_mag(0, vtemp)
-  endif
-
-  ! solve linear system...LU decomposition done first time
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  call solve(s2matrix_sm, vtemp, jer)
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_solve_b = t_solve_b + tend - tstart
-  endif
-  if(jer.ne.0) then
-     write(*,*) 'Error in field solve', jer
-     call safestop(29)
-  endif
-
-  ! new field solution at time n+1 (or n* for second order advance)
-  if(integrator.eq.1 .and. ntime.gt.1) then
-     vtemp = (2.*vtemp - phiold)/3.
-  endif
-  phiold = phi
-  phi = vtemp
+     phiold = phi
+     phi = vtemp
+     
+  end if
 
 
   ! Define auxiliary variables
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Defining auxiliary variables"
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  !   inverse density
-  if(idens.eq.1) then
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
-        call inverse(den+den0,deni)
-     else
-        call inverse(den,deni)
-     endif
-  endif
   ! transport coefficients (eta, kappa)
   call define_transport_coefficients
   ! toroidal current
-  call newvar_d2(phi+phi0,jphi,1,NV_DCBOUND,NV_GS)
+  call newvar_d2(psi1_v,jphi,psi_i,NV_DCBOUND,NV_GS)
   if(hyperc.ne.0) then
      ! vorticity
-     call newvar_d2(vel+vel0,vor,1,NV_DCBOUND,NV_GS)
+     call newvar_d2(phi1_v,vor,phi_i,NV_DCBOUND,NV_GS)
      ! compression
-     if(numvar.ge.3) call newvar_d2(vel+vel0,com,3,NV_NOBOUND,NV_LP)
+     if(numvar.ge.3) call newvar_d2(chi1_v,com,chi_i,NV_NOBOUND,NV_LP)
   endif
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
@@ -908,7 +1154,7 @@ subroutine onestep
 
   ! find lcfs
   ! ~~~~~~~~~
-  call lcfs(phi+phi0,numvar) 
+  call lcfs(psi1_v+psi0_v,vecsize) 
 
   ! Calculate scalars (energy, toroidal current, etc..)
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -950,9 +1196,9 @@ subroutine conserve_flux
   ! adjust toroidal field and boundary condition to conserve toroidal flux
   if(numvar.ge.2 .and. iconstflux.eq.1) then
      gbound = (tflux0-tflux)/area
-     call numdofs(numvar, ndofs)
-     do j=7,ndofs,6*numvar
-        phi(j) = phi(j) + gbound
+     call numdofs(vecsize, ndofs)
+     do j=1,ndofs,6*vecsize
+        bz1_v(j+bz_off) = bz1_v(j+bz_off) + gbound
      enddo
      if(myrank.eq.0) then
         print *, "Correction to toroidal flux: ", gbound*area
@@ -961,4 +1207,5 @@ subroutine conserve_flux
 
   return
 end subroutine conserve_flux
+
 
