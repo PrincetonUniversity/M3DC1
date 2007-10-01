@@ -26,7 +26,7 @@ NEWOBJS1 = M3Dmodules.o nintegrate_mod.o metricterms_n.o metricterms_new.o \
 NEWOBJS2 = fin.o part_fin.o ludef_t.o \
 	  part_fin3.o boundary.o unknown.o restart.o \
 	  acbauer.o metricterms.o compare.o \
-	  init_conds.o  output.o 
+	  init_conds.o output.o PETScInterface.o
 
 SCORECDIR = /l/mhd/acbauer/develop/
 SCORECVERS =-stable6
@@ -86,7 +86,7 @@ $(COMMONDIR)tv80lib.o: $(COMMONDIR)tv80lib.f
 	$(F77) $< -o $@ 
 
 %.o : %.c
-	$(CC) $(CCOPTS) $< -o $@
+	$(CC) -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) $(CCOPTS) $< -o $@
 
 %.o: %.f
 	$(F77) $(F77OPTS) $< -o $@
