@@ -22,8 +22,8 @@ Program Reducedquintic
   use diagnostics
 
   implicit none
-#ifdef mpi
-!  include 'mpif.h'
+#ifdef _AIX
+  include 'mpif.h'
 #endif
 #include "finclude/petsc.h"
 
