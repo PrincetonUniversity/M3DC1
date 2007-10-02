@@ -34,7 +34,7 @@ NEWOBJS2 = fin.o part_fin.o ludef_t.o \
            init_conds.o  output.o PETScInterface.o 
 
 SCORECDIR = /project/projectdirs/mp288/acbauer/develop/
-#SCORECVERS =-stable5
+SCORECVERS =-stable6
 SCORECOPT =-O
 
 LDRNEW = \
