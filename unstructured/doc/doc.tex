@@ -758,7 +758,7 @@ transformation from cartesian to cylindrical coordinates.
 
 \subsection{Split Time Step Method}
 
-In order to reduce the 
+
 
 Time is advanced using a split time-step method in which the velocity
 field is advanced first, then the density and total pressure fields
@@ -769,6 +769,8 @@ treated implicitly by using
 equations~(\ref{eq:scalar_p}--\ref{eq:scalar_I}) to calculate
 analytically the advanced-time values of the pressure and magnetic
 field for use in the velocity time step.
+
+
 
 \begin{eqnarray}
   \label{eq:velocity_advance}
@@ -1121,7 +1123,9 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
   \texttt{isplitstep} & 1   & 0: Fully implicit time step; 
                               1: split time step.\\
   \texttt{iresolve}   & 0   & \parbox[t]{3in}{1: Re-solve velocity after 
-                              field advance of split time step.}
+                              field advance of split time step.}\\
+  \texttt{imp\_mod}   & 0   & \parbox[t]{3in}{Alternative implicitization
+    schemes. 0: Standard; 1: NIMROD.}
 \end{tabular}
 
 

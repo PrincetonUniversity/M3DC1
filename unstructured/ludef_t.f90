@@ -20,6 +20,13 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
                                     ! using analytic form of advanced field
 
   real :: temp
+  real :: ththm
+
+  if(imp_mod.eq.1) then
+     ththm = -bdf*thimp**2
+  else
+     ththm = (1.-thimp*bdf)*thimp
+  endif
 
   ssterm = 0.
   ddterm = 0.
@@ -42,6 +49,11 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
        + v1uun(trial,ph179,lin,nt79)
   ssterm(1) = ssterm(1) -     thimp     *dt*temp
   ddterm(1) = ddterm(1) + (.5-thimp*bdf)*dt*temp
+
+  if(gravr.ne.0 .or. gravz.ne.0) then          
+     qqterm(4) = qqterm(4) + dt* &
+          v1ngrav(trial,lin)
+  endif
   
   if(gyro.eq.1) then
      temp = g1u(trial,lin)*dbf
@@ -54,8 +66,8 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
      if(gravr.ne.0 .or. gravz.ne.0) then          
         temp = temp + v1ungrav(trial,lin,nt79)
      endif
-     ssterm(1) = ssterm(1) -     thimp     *thimp*dt*dt*temp
-     ddterm(1) = ddterm(1) + (1.-thimp*bdf)*thimp*dt*dt*temp
+     ssterm(1) = ssterm(1) - thimp*thimp*dt*dt*temp
+     ddterm(1) = ddterm(1) +       ththm*dt*dt*temp
 
      qqterm(1) = qqterm(1)  + dt* &
           (v1psipsi(trial,lin,pss79)  &
@@ -130,12 +142,12 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
 
      if(advfield.eq.1) then
         temp = v1ubb(trial,lin,bzt79,bzt79)
-        ssterm(1) = ssterm(1) - thimp*    thimp     *dt*dt*temp
-        ddterm(1) = ddterm(1) + thimp*(1.-thimp*bdf)*dt*dt*temp
+        ssterm(1) = ssterm(1) - thimp*thimp*dt*dt*temp
+        ddterm(1) = ddterm(1) +       ththm*dt*dt*temp
      
         temp = v1vpsib(trial,lin,pst79,bzt79)
-        ssterm(2) = ssterm(2) - thimp*    thimp     *dt*dt*temp
-        ddterm(2) = ddterm(2) + thimp*(1.-thimp*bdf)*dt*dt*temp
+        ssterm(2) = ssterm(2) - thimp*thimp*dt*dt*temp
+        ddterm(2) = ddterm(2) +       ththm*dt*dt*temp
 
         qqterm(2) = qqterm(2) + dt* &
              (v1bb     (trial,lin,bzs79)  &
@@ -198,7 +210,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
      ssterm(3) = ssterm(3) + temp
      ddterm(3) = ddterm(3) + temp*bdf
      
-     temp = v1chimu(trial,lin,vis79) &
+     temp = v1chimu(trial,lin,vis79)  &
           + v1chis (trial,lin,sig79)
      ssterm(3) = ssterm(3) -     thimp     *dt*temp
      ddterm(3) = ddterm(3) + (1.-thimp*bdf)*dt*temp
@@ -222,8 +234,8 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
            temp = temp &
                 + v1chingrav(trial,lin,nt79)
         endif
-        ssterm(3) = ssterm(3) - thimp*    thimp     *dt*dt*temp
-        ddterm(3) = ddterm(3) + thimp*(1.-thimp*bdf)*dt*dt*temp
+        ssterm(3) = ssterm(3) - thimp*thimp*dt*dt*temp
+        ddterm(3) = ddterm(3) +       ththm*dt*dt*temp
      endif
      
      if(linear.eq.1 .or. eqsubtract.eq.1) then
@@ -283,13 +295,6 @@ subroutine vorticity_nolin(trial, r4term)
 
   r4term = 0.
 
-  ! source terms
-  ! ~~~~~~~~~~~~
-  if(gravr.ne.0 .or. gravz.ne.0) then          
-     r4term = r4term + dt* &
-          v1ngrav(trial,n179)
-  endif
-
   ! density terms
   ! ~~~~~~~~~~~~~
   if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
@@ -322,8 +327,14 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
   integer, intent(in) :: advfield
 
   real :: temp
-
   real :: thimpv
+  real :: ththm
+
+  if(imp_mod.eq.1) then
+     ththm = -bdf*thimp**2
+  else
+     ththm = (1.-thimp*bdf)*thimp
+  endif
 
   thimpv = 1.
 
@@ -369,12 +380,12 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
           
   if(advfield.eq.1) then 
      temp = v2upsib(trial,lin,pst79,bzt79)
-     ssterm(1) = ssterm(1) - thimp*    thimp     *dt*dt*temp
-     ddterm(1) = ddterm(1) + thimp*(1.-thimp*bdf)*dt*dt*temp
+     ssterm(1) = ssterm(1) - thimp*thimp*dt*dt*temp
+     ddterm(1) = ddterm(1) +       ththm*dt*dt*temp
 
      temp = v2vpsipsi(trial,lin,pst79,pst79)
-     ssterm(2) = ssterm(2) -     thimp     *thimp*dt*dt*temp
-     ddterm(2) = ddterm(2) + (1.-thimp*bdf)*thimp*dt*dt*temp
+     ssterm(2) = ssterm(2) - thimp*thimp*dt*dt*temp
+     ddterm(2) = ddterm(2) +       ththm*dt*dt*temp
 
      qqterm(1) = qqterm(1) + dt* &
           (v2psib(trial,lin,bzs79))
@@ -452,8 +463,8 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
 
      if(advfield.eq.1) then
         temp = v2chipsib(trial,lin,pst79,bzt79) 
-        ssterm(3) = ssterm(3) - thimp*    thimp     *dt*dt*temp
-        ddterm(3) = ddterm(3) + thimp*(1.-thimp*bdf)*dt*dt*temp
+        ssterm(3) = ssterm(3) - thimp*thimp*dt*dt*temp
+        ddterm(3) = ddterm(3) +       ththm*dt*dt*temp
      end if
            
      if(linear.eq.1 .or. eqsubtract.eq.1) then              
@@ -524,7 +535,15 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
   real, dimension(3), intent(out) :: ssterm, ddterm
   real, dimension(4), intent(out) :: rrterm, qqterm
   integer, intent(in) :: advfield
+
   real :: temp
+  real :: ththm
+
+  if(imp_mod.eq.1) then
+     ththm = -bdf*thimp**2
+  else
+     ththm = (1.-thimp*bdf)*thimp
+  endif
 
   ssterm = 0.
   ddterm = 0.
@@ -548,7 +567,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
   ssterm(1) = ssterm(1) -     thimp     *dt*temp
   ddterm(1) = ddterm(1) + (.5-thimp*bdf)*dt*temp
            
-  temp = v3umu   (trial,lin,vis79,vic79)  &
+  temp = v3umu   (trial,lin,vis79,vic79) &
        + v3us    (trial,lin,sig79)
   ssterm(1) = ssterm(1) -     thimp     *dt*temp
   ddterm(1) = ddterm(1) + (1.-thimp*bdf)*dt*temp
@@ -572,6 +591,11 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
        + v3chichin(trial,ch179,lin,nt79)  
   ssterm(3) = ssterm(3) -     thimp     *dt*temp
   ddterm(3) = ddterm(3) + (.5-thimp*bdf)*dt*temp
+
+  if(gravr.ne.0 .or. gravz.ne.0) then          
+     qqterm(4) = qqterm(4) + dt* &
+          v3ngrav(trial,lin)
+  endif
     
   if(gyro.eq.1) then    
      temp = g3u(trial,lin)*dbf
@@ -595,12 +619,12 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
         temp = temp + thimp*dt* &
              v3ungrav(trial,lin,nt79)
      endif
-     ssterm(1) = ssterm(1) -     thimp     *thimp*dt*dt*temp
-     ddterm(1) = ddterm(1) + (1.-thimp*bdf)*thimp*dt*dt*temp
+     ssterm(1) = ssterm(1) - thimp*thimp*dt*dt*temp
+     ddterm(1) = ddterm(1) +       ththm*dt*dt*temp
 
      temp = v3vpsib(trial,lin,pst79,bzt79)   
-     ssterm(2) = ssterm(2) - thimp*    thimp     *dt*dt*temp
-     ddterm(2) = ddterm(2) + thimp*(1.-thimp*bdf)*dt*dt*temp
+     ssterm(2) = ssterm(2) - thimp*thimp*dt*dt*temp
+     ddterm(2) = ddterm(2) +       ththm*dt*dt*temp
 
      temp = v3chip     (trial,lin,pt79)        &
           + v3chipsipsi(trial,lin,pst79,pst79) &
@@ -609,8 +633,8 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
         temp = temp + &
              v3chingrav(trial,lin,nt79)
      endif
-     ssterm(3) = ssterm(3) - thimp*    thimp     *dt*dt*temp
-     ddterm(3) = ddterm(3) + thimp*(1.-thimp*bdf)*dt*dt*temp
+     ssterm(3) = ssterm(3) - thimp*thimp*dt*dt*temp
+     ddterm(3) = ddterm(3) +       ththm*dt*dt*temp
 
      qqterm(1) = qqterm(1) +            &
           dt*                           &
@@ -730,14 +754,6 @@ subroutine compression_nolin(trial, r4term)
 
   if(numvar.lt.3) return
 
-  ! source terms
-  ! ~~~~~~~~~~~~
-  if(gravr.ne.0 .or. gravz.ne.0) then          
-     r4term = r4term + dt* &
-          v3ngrav(trial,n179)
-  endif
-
-
   ! density terms
   ! ~~~~~~~~~~~~~
   if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
@@ -855,6 +871,11 @@ subroutine flux_nolin(trial, r4term)
   real :: temp
   
   r4term = 0.
+
+  if(imp_mod.eq.2) then
+     r4term = r4term - dt* &
+          vloop*int1(trial,weight_79,79)/(2.*pi)
+  endif
 
   ! density terms
   ! ~~~~~~~~~~~~~
@@ -1257,6 +1278,7 @@ subroutine ludefall
      call zeromultiplyarray(d2matrix_sm,vecsize)
      call zeromultiplyarray(r2matrix_sm,vecsize)
      call zeromultiplyarray(q2matrix_sm,vecsize)
+     call zeromultiplyarray(r14matrix_sm,vecsize)
      if(iresolve.eq.1) then
         call zerosuperluarray(s10matrix_sm,vecsize)
         call zeromultiplyarray(d10matrix_sm,vecsize)
@@ -1268,7 +1290,6 @@ subroutine ludefall
         call zeromultiplyarray(d8matrix_sm,vecsize1)
         call zeromultiplyarray(q8matrix_sm,vecsize)
         call zeromultiplyarray(r8matrix_sm,vecsize)
-        call zeromultiplyarray(r14matrix_sm,vecsize)
      endif
      if(ipres.eq.1) then
         call zerosuperluarray(s9matrix_sm,vecsize1)
@@ -1372,6 +1393,7 @@ subroutine ludefall
      call finalizearray(d2matrix_sm)
      call finalizearray(r2matrix_sm)
      call finalizearray(q2matrix_sm)
+     call finalizearray(r14matrix_sm)
      
      if(iresolve.eq.1) then
         call finalizearray(d10matrix_sm)
@@ -1383,8 +1405,8 @@ subroutine ludefall
         call finalizearray(d8matrix_sm)
         call finalizearray(q8matrix_sm)
         call finalizearray(r8matrix_sm)
-        call finalizearray(r14matrix_sm)
      endif ! on idens.eq.1
+     
      
      if(ipres.eq.1) then
         call finalizearray(d9matrix_sm)

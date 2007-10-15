@@ -130,6 +130,9 @@
 !.....do timestep splitting
       isplitstep = 1
 !
+!.....modifications to implicitization
+      imp_mod = 0
+!
 !.....number of grad-shafranov iterations
       igs = 80
 !

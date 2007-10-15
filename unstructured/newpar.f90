@@ -486,6 +486,7 @@ Program Reducedquintic
   call freesmo(q1matrix_sm)
   call freesmo(r2matrix_sm)
   call freesmo(q2matrix_sm)
+  call freesmo(r14matrix_sm)
   if(iresolve.eq.1) then
      call freesmo(s10matrix_sm)
      call freesmo(d10matrix_sm)
@@ -497,7 +498,6 @@ Program Reducedquintic
      call freesmo(d8matrix_sm)
      call freesmo(q8matrix_sm) 
      call freesmo(r8matrix_sm)
-     call freesmo(r14matrix_sm)
   end if
   if(ipres.eq.1) then 
      call freesmo(s9matrix_sm)
@@ -633,16 +633,20 @@ subroutine onestep
      vtemp = vtemp + b1vector + r4
      
      ! Include linear density terms
-     if(idens.eq.1) then
-        ! b2vector = r41 * den(n)
+     if(idens.eq.1 .or. (gravr.ne.0 .or. gravz.ne.0)) then
+        ! b2vector = r14 * den(n)
         
         ! make a larger vector that can be multiplied by a numvar=3 matrix
+        phip = 0.
         do l=1,numnodes
            call entdofs(1, l, 0, ibegin, iendplusone)
            call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
            
-           phip(ibeginnv   :ibeginnv+5) = den(ibegin:ibegin+5)
-           phip(ibeginnv+6:ibeginnv+17) = 0.
+           if(idens.eq.1) then
+              phip(ibeginnv  :ibeginnv+5) = den(ibegin:ibegin+5)
+           else
+              phip(ibeginnv) = 1.
+           end if
         enddo
         call matrixvectormult(r14matrix_sm,phip,b2vector)
         vtemp = vtemp + b2vector
@@ -744,7 +748,8 @@ subroutine onestep
         call matrixvectormult(d8matrix_sm,den,temp)
         
         call numdofs(numvar,ndofs)
-        allocate(itemp(ndofs)) ! this is used to make sure that we don't double count the sum for periodic dofs
+        allocate(itemp(ndofs)) ! this is used to make sure that we 
+                               ! don't double count the sum for periodic dofs
         itemp = 1
         
         do l=1,numnodes
@@ -824,7 +829,8 @@ subroutine onestep
         call matrixvectormult(d9matrix_sm,pres,temp)
         
         call numdofs(numvar,ndofs)
-        allocate(itemp(ndofs)) ! this is used to make sure that we don't double count the sum for periodic dofs
+        allocate(itemp(ndofs)) ! this is used to make sure that we 
+                               ! don't double count the sum for periodic dofs
         itemp = 1
         
         do l=1,numnodes

@@ -39,8 +39,10 @@ module basic
   ! boundary conditions
   integer :: iper, jper ! periodic boundary conditions
   integer :: imask      ! 1 = ignore 2-fluid terms near boundaries
-  integer :: v_bc     ! bc on angular momentum.  0 = no-slip, 1 = no normal stress
-  integer :: p_bc     ! bc on pressure.   0 = constant pressure, 1 = insulating
+  integer :: v_bc     ! bc on angular momentum.  
+                      ! 0 = no-slip, 1 = no normal stress
+  integer :: p_bc     ! bc on pressure.
+                      !   0 = constant pressure, 1 = insulating
   integer :: com_bc   ! 1 = forces div(V) = 0 on boundary
   real :: amu_edge    ! factor by which to increase viscosity at boundaries
 
@@ -98,6 +100,7 @@ module basic
   integer :: integrator  ! 0 = Crank-Nicholson, 1 = BDF2
   integer :: iresolve    ! 1 = do second velocity solve after field solve
   integer :: isplitstep  ! 1 = do timestep splitting
+  integer :: imp_mod
   real :: dt             ! timestep
   real :: thimp          ! implicitness parameter (for Crank-Nicholson)
   real :: thimp_ohm      ! implicitness parameter for ohmic heating
@@ -138,7 +141,7 @@ module basic
        v_bc,p_bc,com_bc,thimp_ohm,tcur,q0,isources,th_gs,      &
        ipellet, pellet_x, pellet_z, pellet_rate, pellet_var,   &
        ionization, ionization_rate, ionization_temp, ionization_depth, &
-       amu_edge,iresolve,isplitstep
+       amu_edge,iresolve,isplitstep,imp_mod
 
   !     derived quantities
   real :: pi,dbf,bdf,hypv,hypc,hypf,hypi,hypp,                         &
