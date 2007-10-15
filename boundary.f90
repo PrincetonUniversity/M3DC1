@@ -274,10 +274,12 @@ subroutine boundary_mag(imatrix, rhs)
         endif
 
         ! add loop voltage
-        if(integrator.eq.1 .and. ntime.gt.1) then
-           rhs(ibegin+psi_off) = rhs(ibegin+psi_off) + 1.5*fbound
-        else
-           rhs(ibegin+psi_off) = rhs(ibegin+psi_off) + fbound
+        if(imp_mod.ne.2) then
+           if(integrator.eq.1 .and. ntime.gt.1) then
+              rhs(ibegin+psi_off) = rhs(ibegin+psi_off) + 1.5*fbound
+           else
+              rhs(ibegin+psi_off) = rhs(ibegin+psi_off) + fbound
+           endif
         endif
          
 
@@ -325,10 +327,12 @@ subroutine boundary_mag(imatrix, rhs)
         endif
 
         ! add loop voltage
-        if(integrator.eq.1 .and. ntime.gt.1) then
-           rhs(ibegin+psi_off) = rhs(ibegin+psi_off) + 1.5*fbound
-        else
-           rhs(ibegin+psi_off) = rhs(ibegin+psi_off) + fbound
+        if(imp_mod.ne.2) then
+           if(integrator.eq.1 .and. ntime.gt.1) then
+              rhs(ibegin+psi_off) = rhs(ibegin+psi_off) + 1.5*fbound
+           else
+              rhs(ibegin+psi_off) = rhs(ibegin+psi_off) + fbound
+           endif
         endif
 
      endif

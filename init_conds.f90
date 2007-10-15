@@ -1017,10 +1017,13 @@ end module solovev
 !==============================================================================
 module mri
 
+  real, private :: kx, kz
+
 contains
 
 subroutine mri_init()
   use basic
+  use arrays
 
   implicit none
 
@@ -1031,6 +1034,9 @@ subroutine mri_init()
   call getmincoord(xmin, zmin)
   call getboundingboxsize(alx, alz)
 
+  kx = pi/alx
+  kz = 2.*pi/alz
+
   call numnod(numnodes)
   do l=1, numnodes
      call xyznod(l, coords)
@@ -1038,114 +1044,87 @@ subroutine mri_init()
      x = coords(1) + xzero - xmin
      z = coords(2) + zzero - zmin - alz*.5
 
-     call mri_equ(x, z, l)
-     call mri_per(x, z, l)
+     call assign_vectors(l)
+
+     call mri_equ(x, z)
+     call mri_per(x, z)
   enddo
 
 end subroutine mri_init
 
-subroutine mri_equ(x, z, inode)
+subroutine mri_equ(x, z)
   use basic
   use arrays
 
   implicit none
 
   real, intent(in) :: x, z
-  integer, intent(in) :: inode
 
-  integer :: ibegin, iendplusone
   real :: nu, fac1, fac2
-
-  call entdofs(numvar, inode, 0, ibegin, iendplusone)
 
   nu = db*0.5*gyro*pi0/bzero
   fac1 = sqrt(gravr)
   fac2 = (9./128.)*nu**2/fac1
 
-  call constant_field(vel0(ibegin:ibegin+6),0.)
+  call constant_field(phi0_l(1:6),0.)
 
-  phi0(ibegin)   = bzero * x**2 / 2.
-  phi0(ibegin+1) = bzero * x
-  phi0(ibegin+2) = 0.
-  phi0(ibegin+3) = bzero
-  phi0(ibegin+4) = 0.
-  phi0(ibegin+5) = 0.
+  psi0_l(1) = bzero * x**2 / 2.
+  psi0_l(2) = bzero * x
+  psi0_l(3) = 0.
+  psi0_l(4) = bzero
+  psi0_l(5) = 0.
+  psi0_l(6) = 0.
 
   if(numvar.ge.2) then
-     call constant_field(phi0(ibegin+6:ibegin+11),0.)
-     vel0(ibegin+6)  = fac1*sqrt(x) + (3./8.)*nu - fac2/sqrt(x)
-     vel0(ibegin+7)  = 0.5*fac1/sqrt(x) + 0.5*fac2/(sqrt(x)**3)
-     vel0(ibegin+8)  = 0.
-     vel0(ibegin+9)  = -0.25*fac1/(sqrt(x)**3) - 0.75*fac2/(sqrt(x)**5)
-     vel0(ibegin+10) = 0.
-     vel0(ibegin+11) = 0.
+     call constant_field(bz0_l(1:6),0.)
+     vz0_l(1)  = fac1*sqrt(x) + (3./8.)*nu - fac2/sqrt(x)
+     vz0_l(2)  = 0.5*fac1/sqrt(x) + 0.5*fac2/(sqrt(x)**3)
+     vz0_l(3)  = 0.
+     vz0_l(4)  = -0.25*fac1/(sqrt(x)**3) - 0.75*fac2/(sqrt(x)**5)
+     vz0_l(5) = 0.
+     vz0_l(6) = 0.
   end if
 
   if(numvar.ge.3) then
-     call constant_field(phi0(ibegin+12:ibegin+17),p0 - pi0*ipres)
-     call constant_field(vel0(ibegin+12:ibegin+17),0.)
+     call constant_field( pe0_l(1:6),p0 - pi0*ipres)
+     call constant_field(chi0_l(1:6),0.)
   end if
 
-  if(idens.eq.1) then
-     call entdofs(1, inode, 0, ibegin, iendplusone)
-     call constant_field(den0(ibegin:ibegin+5),1.)
-  endif
+  if(idens.eq.1) call constant_field(den0_l(1:6),1.)
 
-  if(ipres.eq.1) then
-     call entdofs(1, inode, 0, ibegin, iendplusone)
-     call constant_field(pres0(ibegin:ibegin+5),p0)
-  endif
+  if(ipres.eq.1) call constant_field(p0_l(1:6),p0)
 
 end subroutine mri_equ
 
 
-subroutine mri_per(x, z, inode)
+subroutine mri_per(x, z)
   use basic
   use arrays
 
   implicit none
 
   real, intent(in) :: x, z
-  integer, intent(in) :: inode
 
-  integer :: ibegin, iendplusone
-  real :: kx, kz, alx, alz, fac1
+  real :: fac1
 
-  call entdofs(numvar, inode, 0, ibegin, iendplusone)
-
-  call constant_field(vel(ibegin:ibegin+5), 0.)
+  call constant_field(phi1_l(1:6), 0.)
   if(numvar.ge.2)  then
-!!$     call constant_field(vel(ibegin+6:ibegin+11), 0.)
-     call getboundingboxsize(alx, alz)
-     kx = pi/alx
-     kz = 2.*pi/alz
      fac1 = eps*sqrt(gravr*x)
-     vel(ibegin+6) =  fac1*sin(kx*(x-xzero))*sin(kz*(z-zzero))
-     vel(ibegin+7) =  fac1*cos(kx*(x-xzero))*sin(kz*(z-zzero))*kx
-     vel(ibegin+8) =  fac1*sin(kx*(x-xzero))*cos(kz*(z-zzero))*kz
-     vel(ibegin+9) = -fac1*sin(kx*(x-xzero))*cos(kz*(z-zzero))*kx**2
-     vel(ibegin+10)=  fac1*cos(kx*(x-xzero))*cos(kz*(z-zzero))*kx*kz
-     vel(ibegin+11)= -fac1*sin(kx*(x-xzero))*sin(kz*(z-zzero))*kz**2
+     vz1_l(1) =  fac1*sin(kx*(x-xzero))*sin(kz*(z-zzero))
+     vz1_l(2) =  fac1*cos(kx*(x-xzero))*sin(kz*(z-zzero))*kx
+     vz1_l(3) =  fac1*sin(kx*(x-xzero))*cos(kz*(z-zzero))*kz
+     vz1_l(4) = -fac1*sin(kx*(x-xzero))*cos(kz*(z-zzero))*kx**2
+     vz1_l(5) =  fac1*cos(kx*(x-xzero))*cos(kz*(z-zzero))*kx*kz
+     vz1_l(6) = -fac1*sin(kx*(x-xzero))*sin(kz*(z-zzero))*kz**2
   endif
-  if(numvar.ge.3)  call constant_field(vel(ibegin+12:ibegin+17), 0.)
+  if(numvar.ge.3)  call constant_field(chi1_l(1:6), 0.)
   
-  call constant_field(phi(ibegin:ibegin+5), 0.)
-  if(numvar.ge.2)  then
-     call constant_field(phi(ibegin+6 :ibegin+11), 0.)
-  endif
-  if(numvar.ge.3)  then
-     call constant_field(phi(ibegin+12:ibegin+17), 0.)
-  endif
+  call constant_field(psi1_l(1:6), 0.)
+  if(numvar.ge.2) call constant_field(bz1_l(1:6), 0.)
+  if(numvar.ge.3) call constant_field(pe1_l(1:6), 0.)
 
-  if(idens.eq.1) then
-     call entdofs(1, inode, 0, ibegin, iendplusone)
-     call constant_field(den(ibegin:ibegin+5), 0.)
-  endif
-
-  if(ipres.eq.1) then
-     call entdofs(1, inode, 0, ibegin, iendplusone)
-     call constant_field(pres(ibegin:ibegin+5),0.)
-  endif
+  if(idens.eq.1) call constant_field(den1_l(1:6), 0.)
+  if(ipres.eq.1) call constant_field(p1_l(1:6),0.)
 
 end subroutine mri_per
 
