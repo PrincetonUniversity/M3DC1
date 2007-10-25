@@ -2,11 +2,7 @@
 ! * hyper-ohmic heating
 ! * Compressional-viscous and hyper-viscous heating
 
-#ifdef IS_LIBRARY
-subroutine reducedquintic(isfirst, inmyrank, inmaxrank)
-#else
 Program Reducedquintic
-#endif
 
 !   Ref:  [1] Strang and Fix, An Analysis of the Finite Element Method, page 83
 !         [2] G.R. Cowper, et al, AIAA Journal, Vol 7, no. 10 page 19
@@ -27,9 +23,6 @@ Program Reducedquintic
 #endif
 #include "finclude/petsc.h"
 
-#ifdef IS_LIBRARY
-  integer, intent(in) :: isfirst, inmyrank, inmaxrank
-#endif
   integer :: j, i, ier, ifail, maxts, numelms, numnodes
   integer :: ndofs, ibegin, iendplusone
 
@@ -41,8 +34,6 @@ Program Reducedquintic
   PetscTruth :: flg
   PetscInt :: mpetscint,npetscint
 
-#ifdef mpi
-#ifndef IS_LIBRARY
   ! Start up message passing, SuperLU process grid
   call MPI_Init(ier)
   if (ier /= 0) then
@@ -66,32 +57,14 @@ Program Reducedquintic
   endif
   ! initialize autopack
   call AP_INIT()
-#endif
-#ifdef IS_LIBRARY
-  write(*,*) 'input is myrank, maxrank, isfirst', inmyrank, &
-       inmaxrank, isfirst
-      
-  if(isfirst .eq. 1) then
-     call SLUD_init
-  endif
-  myrank = inmyrank
-  maxrank = inmaxrank
-#endif
-#else
-  myrank = 0
-#endif
 
-#ifndef IS_LIBRARY
-  print *, 'starting library'
+  print *, 'starting M3D-C1'
   if(myrank.eq.0 .and. itimer.ge.1) call second(tstart)
   call loadmesh("struct.dmg", "struct-dmg.sms")
   if(myrank.eq.0 .and. itimer.ge.1) then
      call second(tend)
      print *, 'Time spent in loadmesh: ', tend-tstart
   endif
-#else
-  print *, 'starting program'
-#endif
   if(myrank.eq.0) then
      call date_and_time( datec, timec)
      write(*,1001) datec(1:4),datec(5:6),datec(7:8),                        &
@@ -521,15 +494,9 @@ Program Reducedquintic
 7011 format(1p6e20.12)
 7012 format(6e20.12)
 
-#ifdef IS_LIBRARY
-  return
-end subroutine reducedquintic
-
-#else
   call safestop(2)
 
 end Program Reducedquintic
-#endif
 
 
 

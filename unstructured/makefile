@@ -17,16 +17,15 @@ F77OPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE) -DNEW_VELOCITY
 
 
 
-NEWOBJS1 = M3Dmodules.o nintegrate_mod.o metricterms_n.o metricterms_new.o \
+NEWOBJS = M3Dmodules.o nintegrate_mod.o metricterms_n.o metricterms_new.o \
 	newvar.o diagnostics.o gradshafranov.o control.o \
 	$(COMMONDIR)tv80lib.o $(COMMONDIR)subp.o \
 	$(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
-        $(COMMONDIR)fdump.o hdf5_output.o
-
-NEWOBJS2 = fin.o part_fin.o ludef_t.o \
-	  part_fin3.o boundary.o unknown.o restart.o \
-	  acbauer.o metricterms.o compare.o \
-	  init_conds.o output.o PETScInterface.o
+        $(COMMONDIR)fdump.o hdf5_output.o newpar.o \
+	fin.o part_fin.o ludef_t.o \
+	part_fin3.o boundary.o unknown.o restart.o \
+	acbauer.o metricterms.o compare.o \
+	init_conds.o output.o PETScInterface.o
 
 SCORECDIR = /l/mhd/acbauer/develop/
 SCORECVERS =-stable6
@@ -58,6 +57,7 @@ LDRNEW = \
 	-lmeshAdapt-mpich2$(SCORECOPT) -ltemplateRefine-mpich2$(SCORECOPT) \
 	-lmeshTools-mpich2$(SCORECOPT) -lSolver-mpich2$(SCORECOPT) -lPPPL-mpich2$(SCORECOPT) \
 	-L$(AUTOPACK_HOME)/lib/ia64-sgi -Wl,-rpath,$(AUTOPACK_HOME)/lib/ia64-sgi -lautopack-O \
+	-L$(Zoltan_HOME)/lib -lzoltan \
 	-L$(PARMETIS_HOME)/lib -Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis \
         -L$(NTCCHOME)/lib -lezcdf \
         -L$(NETCDFHOME)/lib -lnetcdf \
@@ -75,12 +75,8 @@ LDRNEW = \
         -L/usr/X11R6/lib -lX11 -lmpi -lcprts -lcxa
 
 
-gonewp: $(NEWOBJS1) newpar.o newpar-lib.o $(NEWOBJS2)
-	ifort -shared -o libnewpar.so $(NEWOBJS1) newpar-lib.o $(NEWOBJS2) 
-	$(LOADER) $(NEWOBJS1) newpar.o  $(NEWOBJS2) $(LDRNEW) -o $@
-
-newpar-lib.o: newpar.f90
-	$(F90) $(F90OPTS) -DIS_LIBRARY $< -o $@
+gonewp: $(NEWOBJS)
+	$(LOADER) $(NEWOBJS) $(LDRNEW) -o $@
 
 $(COMMONDIR)tv80lib.o: $(COMMONDIR)tv80lib.f
 	$(F77) $< -o $@ 
@@ -114,10 +110,4 @@ fullclean:
 	rm -f out.* fort* new.* restartout PI* core*
 	rm -f setup* 
 	rm -f *~
-
-
-
-
-
-
 
