@@ -465,6 +465,13 @@ subroutine calculate_scalars()
 
      call define_fields_79(itri, def_fields)
 
+     hypf = hyper *deex**2
+     hypi = hyperi*deex**2
+     hypv = hyperv*deex**2
+     hypc = hyperc*deex**2
+     hypp = hyperp*deex**2
+     call interpolate_size_field(itri)
+
 !!$     do i=1,79
 !!$        call mask(x_79(i)-xzero,z_79(i)-zzero,factor)
 !!$        temp79a(i) = 1.-factor
@@ -482,7 +489,7 @@ subroutine calculate_scalars()
            
            ! Definition of Source Terms
            ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
-           sb1(ione) = sb1(ione) + b1psieta(g79(:,:,i),pst79,eta79,hypf)
+           sb1(ione) = sb1(ione) + b1psieta(g79(:,:,i),pst79,eta79,hypf*sz79)
            
            if(numvar.ge.2) then
               sb1(ione) = sb1(ione) + b1psibd(g79(:,:,i),pst79,bzt79,ni79)*dbf
@@ -490,7 +497,7 @@ subroutine calculate_scalars()
               sb2(ione) = sb2(ione)  &
                    + b2psipsid(g79(:,:,i),pst79,pst79,ni79)*dbf &
                    + b2bbd    (g79(:,:,i),bzt79,bzt79,ni79)*dbf &
-                   + b2beta   (g79(:,:,i),bzt79,eta79,hypi)
+                   + b2beta   (g79(:,:,i),bzt79,eta79,hypi*sz79)
            endif
         
            if(numvar.ge.3) then
@@ -499,21 +506,21 @@ subroutine calculate_scalars()
               sp1(ione) = sp1(ione) &
                    + b3psipsieta(g79(:,:,i),pst79,pst79,eta79)   &
                    + b3bbeta    (g79(:,:,i),bzt79,bzt79,eta79)   &
-!                   + b3pedkappa (g79(:,:,i),pt79,ni79,kappat,hypp)*(gam-1.) &
+!                   + b3pedkappa (g79(:,:,i),pt79,ni79,kappat,hypp*sz79)*(gam-1.) &
 !                   + p1kappar   (g79(:,:,i),pst79,pst79,pet79,ni79,b2i79)*kappar*(gam-1.) &
                    + b3pebd(g79(:,:,i),pet79,bzt79,ni79)*dbf*pefac
               
               ! ohmic heating
               sp1(ione) = sp1(ione) + (gam-1.)* &
-                   (qpsipsieta(g79(:,:,i),hypf) &
-                   +qbbeta    (g79(:,:,i),hypi))
+                   (qpsipsieta(g79(:,:,i)) &
+                   +qbbeta    (g79(:,:,i)))
            
               ! viscous heating
               sp1(ione) = sp1(ione) - (gam-1.)* &
-                   (quumu    (g79(:,:,i),pht79,pht79,vis79,hypc) &
-                   +qvvmu    (g79(:,:,i),vzt79,vzt79,vis79,hypv) &
-                   +quchimu  (g79(:,:,i),pht79,cht79,vis79,vic79,hypc) &
-                   +qchichimu(g79(:,:,i),cht79,cht79,vic79,hypc))
+                   (quumu    (g79(:,:,i),pht79,pht79,vis79,      hypc*sz79) &
+                   +qvvmu    (g79(:,:,i),vzt79,vzt79,vis79,      hypv*sz79) &
+                   +quchimu  (g79(:,:,i),pht79,cht79,vis79,vic79,hypc*sz79) &
+                   +qchichimu(g79(:,:,i),cht79,cht79,      vic79,hypc*sz79))
            endif ! on numvar.ge.3
         end do
 
@@ -564,26 +571,26 @@ subroutine calculate_scalars()
      ! ~~~~~~~~~~~~~~~~
      ekinp  = ekinp  + energy_kp ()
      ekinpd = ekinpd + energy_kpd()
-     ekinph = ekinph + energy_kph(hypc)
+     ekinph = ekinph + energy_kph()
 
      emagp  = emagp  + energy_mp ()
      emagpd = emagpd + energy_mpd()
-     emagph = emagph - qpsipsieta(tm79,hypf)
+     emagph = emagph - qpsipsieta(tm79)
 
      if(numvar.ge.2) then       
         ekint  = ekint  + energy_kt ()
         ekintd = ekintd + energy_ktd()
-        ekinth = ekinth + energy_kth(hypv)
+        ekinth = ekinth + energy_kth()
 
         emagt  = emagt  + energy_mt ()
         emagtd = emagtd + energy_mtd()
-        emagth = emagth - qbbeta(tm79,hypi)
+        emagth = emagth - qbbeta(tm79)
      endif
 
      if(numvar.ge.3) then
         ekin3  = ekin3  + energy_k3 ()
         ekin3d = ekin3d + energy_k3d()
-        ekin3h = ekin3h + energy_k3h(hypc)
+        ekin3h = ekin3h + energy_k3h()
                    
         emag3 = emag3 + energy_p()
      endif

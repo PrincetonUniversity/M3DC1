@@ -131,7 +131,7 @@
       isplitstep = 1
 !
 !.....modifications to implicitization
-      imp_mod = 0
+      imp_mod = 1
 !
 !.....number of grad-shafranov iterations
       igs = 80
@@ -153,6 +153,7 @@
       kappat = 0.0
       kappar = 0.0
       kappa0 = 0.0
+      kappah = 0.0
 !
 !.....ratio of specific heats
       gam = 5./3.
@@ -186,6 +187,7 @@
       ionization_temp = 0.01
       ionization_depth = 0.01
 !
+      nosig = 0
 !
       facw = 1.
 !.....multiplies the diffusion [test] terms 

@@ -24,6 +24,7 @@ module basic
   real :: etar, eta0  ! resistivity = etar + eta0/T^(3/2)
   real :: kappat      ! isotropic temperature conductivity
   real :: kappa0      ! kappa = kappat + kappa0*n/T^(1/2)
+  real :: kappah      ! phenomenological model for H-mode
   real :: kappar      ! anisotropic (field-aligned) temperature conductivity
   real :: denm        ! artificial density diffusion
   real :: deex        ! scale length of hyperviscosity term
@@ -56,6 +57,7 @@ module basic
   real :: ionization_rate   ! rate of ionization
   real :: ionization_temp   ! temperature above which ionization occurs
   real :: ionization_depth  ! temperature scale of neutral burnout
+  integer :: nosig          ! 1 = drop sigma terms from momentum eqn
 
   ! general equilibrium parameters
   integer :: irestart ! 1 = reads restart file as initial condition
@@ -141,7 +143,7 @@ module basic
        v_bc,p_bc,com_bc,thimp_ohm,tcur,q0,isources,th_gs,      &
        ipellet, pellet_x, pellet_z, pellet_rate, pellet_var,   &
        ionization, ionization_rate, ionization_temp, ionization_depth, &
-       amu_edge,iresolve,isplitstep,imp_mod
+       amu_edge,iresolve,isplitstep,imp_mod,kappah,nosig
 
   !     derived quantities
   real :: pi,dbf,bdf,hypv,hypc,hypf,hypi,hypp,                         &

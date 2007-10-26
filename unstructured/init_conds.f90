@@ -478,9 +478,14 @@ end module force_free_state
 !==============================================================================
 module gem_reconnection
 
+  real, private :: akx, akz
+
 contains
 
 subroutine gem_reconnection_init()
+  use basic
+  use arrays
+
   implicit none
 
   integer :: l, numnodes
@@ -490,128 +495,114 @@ subroutine gem_reconnection_init()
   call getmincoord(xmin, zmin)
   call getboundingboxsize(alx, alz)
 
+  akx = 2.*pi/alx
+  akz = pi/alz
+
   call numnod(numnodes)
   do l=1, numnodes
      call xyznod(l, coords)
 
+     call assign_vectors(l)
+
      x = coords(1) - xmin - alx*.5
      z = coords(2) - zmin - alz*.5
 
-     call gem_reconnection_equ(x, z, l)
-     call gem_reconnection_per(x, z, l)
+     call gem_reconnection_equ(x, z)
+     call gem_reconnection_per(x, z)
   enddo
 
 end subroutine gem_reconnection_init
 
-subroutine gem_reconnection_equ(x, z, inode)
+subroutine gem_reconnection_equ(x, z)
   use basic
   use arrays
 
   implicit none
 
   real, intent(in) :: x, z
-  integer, intent(in) :: inode
 
-  integer :: ibegin, iendplusone, ibegin1, iendplusone1
   real :: sech, pezero
 
-  call entdofs(numvar, inode, 0, ibegin, iendplusone)
-  if(idens.eq.1 .or. ipres.eq.1) then
-     call entdofs(1, inode, 0, ibegin1, iendplusone1)
-  endif
+  call constant_field(phi0_l(1:6), 0.)
+  if(numvar.ge.2) call constant_field( vz0_l(1:6), 0.)
+  if(numvar.ge.3) call constant_field(chi0_l(1:6), 0.)
 
-  call static_equ(ibegin)
-
-  phi0(ibegin)   = 0.5*alog(cosh(2.*z))
-  phi0(ibegin+1) = 0.0
-  phi0(ibegin+2) = tanh(2.*z)  
-  phi0(ibegin+3) = 0.0
-  phi0(ibegin+4) = 0.0
-  phi0(ibegin+5) = 2.*sech(2.*z)**2
+  psi0_l(1) = 0.5*alog(cosh(2.*z))
+  psi0_l(2) = 0.0
+  psi0_l(3) = tanh(2.*z)  
+  psi0_l(4) = 0.0
+  psi0_l(5) = 0.0
+  psi0_l(6) = 2.*sech(2.*z)**2
 
   ! if numvar = 2, then use Bz to satisfy force balance
   if(numvar.eq.2) then
-     phi0(ibegin+6) =  sqrt(bzero**2 + sech(2.*z)**2)
-     phi0(ibegin+7) =  0.
-     phi0(ibegin+8) =  -2.*tanh(2.*z)*sech(2.*z)**2/phi0(ibegin+6)
-     phi0(ibegin+9) = 0.
-     phi0(ibegin+10) = 0.
-     phi0(ibegin+11) = (2.*sech(2.*z)**2/phi0(ibegin+6))                      &
-          *(phi0(ibegin+8)*tanh(2.*z)/phi0(ibegin+6)                          &
+     bz0_l(1) = sqrt(bzero**2 + sech(2.*z)**2)
+     bz0_l(2) = 0.
+     bz0_l(3) = -2.*tanh(2.*z)*sech(2.*z)**2/bz0_l(1)
+     bz0_l(4) = 0.
+     bz0_l(5) = 0.
+     bz0_l(6) = (2.*sech(2.*z)**2/bz0_l(1))                      &
+          *(bz0_l(3)*tanh(2.*z)/bz0_l(1)                          &
           - 2.*sech(2.*z)**2 + 4.*tanh(2.*z)**2)
   endif
 
   ! if numvar >= 3, then use pressure to satisfy force balance
   if(numvar.ge.3) then
-     call constant_field(phi0(ibegin+6 :ibegin+11), bzero)
+     call constant_field(bz0_l(1:6), bzero)
 
      pezero = p0 - pi0*ipres
     
-     phi0(ibegin+12) = pezero*(sech(2.*z)**2 + 0.2)
-     phi0(ibegin+13) = 0.
-     phi0(ibegin+14) = pezero*(-4.*sech(2.*z)**2*tanh(2.*z))
-     phi0(ibegin+15) = 0.
-     phi0(ibegin+16) = 0.
-     phi0(ibegin+17) = pezero*(-8.*sech(2.*z)**2*(sech(2.*z)**2-2.*tanh(2.*z)**2))
+     pe0_l(1) = pezero*(sech(2.*z)**2 + 0.2)
+     pe0_l(2) = 0.
+     pe0_l(3) = pezero*(-4.*sech(2.*z)**2*tanh(2.*z))
+     pe0_l(4) = 0.
+     pe0_l(5) = 0.
+     pe0_l(6) = pezero*(-8.*sech(2.*z)**2*(sech(2.*z)**2-2.*tanh(2.*z)**2))
   endif
 
   if(ipres.eq.1) then
-     pres0(ibegin1  ) = p0*(sech(2.*z)**2 + 0.2)
-     pres0(ibegin1+1) = 0.
-     pres0(ibegin1+2) = p0*(-4.*sech(2.*z)**2*tanh(2.*z))
-     pres0(ibegin1+3) = 0.
-     pres0(ibegin1+4) = 0.
-     pres0(ibegin1+5) = p0*(-8.*sech(2.*z)**2*(sech(2.*z)**2-2.*tanh(2.*z)**2)) 
+     p0_l(1) = p0*(sech(2.*z)**2 + 0.2)
+     p0_l(2) = 0.
+     p0_l(3) = p0*(-4.*sech(2.*z)**2*tanh(2.*z))
+     p0_l(4) = 0.
+     p0_l(5) = 0.
+     p0_l(6) = p0*(-8.*sech(2.*z)**2*(sech(2.*z)**2-2.*tanh(2.*z)**2)) 
   endif
 
   if(idens.eq.1) then
-     den0(ibegin1  ) = sech(2*z)**2 + 0.2
-     den0(ibegin1+1) = 0.
-     den0(ibegin1+2) = -4.*sech(2*z)**2*tanh(2*z)
-     den0(ibegin1+3) = 0.
-     den0(ibegin1+4) = 0.
-     den0(ibegin1+5) = -8.*sech(2*z)**2*(sech(2*z)**2-2.*tanh(2*z)**2)
+     den0_l(1) = sech(2*z)**2 + 0.2
+     den0_l(2) = 0.
+     den0_l(3) = -4.*sech(2*z)**2*tanh(2*z)
+     den0_l(4) = 0.
+     den0_l(5) = 0.
+     den0_l(6) = -8.*sech(2*z)**2*(sech(2*z)**2-2.*tanh(2*z)**2)
   endif
 
 end subroutine gem_reconnection_equ
 
-subroutine gem_reconnection_per(x, z, inode)
+subroutine gem_reconnection_per(x, z)
   use basic
   use arrays
 
   implicit none
 
   real, intent(in) :: x, z
-  integer, intent(in) :: inode
 
-  integer :: ibegin, iendplusone, ibegin1, iendplusone1
-  real :: akx, akz, alx, alz
-
-  call entdofs(numvar, inode, 0, ibegin, iendplusone)
-  if(idens.eq.1 .or. ipres.eq.1) then
-     call entdofs(1, inode, 0, ibegin1, iendplusone1)
-  endif
-
-  call getboundingboxsize(alx, alz)
-
-  akx = 2.*pi/alx
-  akz = pi/alz
-
-  call constant_field(vel(ibegin:ibegin+5), 0.)
-  if(numvar.ge.2)  call constant_field(vel(ibegin+6 :ibegin+11), 0.)
-  if(numvar.ge.3)  call constant_field(vel(ibegin+12:ibegin+17), 0.)
+  call constant_field(phi1_l(1:6), 0.)
+  if(numvar.ge.2)  call constant_field( vz1_l(1:6), 0.)
+  if(numvar.ge.3)  call constant_field(chi1_l(1:6), 0.)
   
-  phi(ibegin)   =  eps*cos(akx*x)*cos(akz*z)
-  phi(ibegin+1) = -eps*sin(akx*x)*cos(akz*z)*akx
-  phi(ibegin+2) = -eps*cos(akx*x)*sin(akz*z)*akz
-  phi(ibegin+3) = -eps*cos(akx*x)*cos(akz*z)*akx**2
-  phi(ibegin+4) =  eps*sin(akx*x)*sin(akz*z)*akx*akz
-  phi(ibegin+5) = -eps*cos(akx*x)*cos(akz*z)*akz**2
+  psi1_l(1) =  eps*cos(akx*x)*cos(akz*z)
+  psi1_l(2) = -eps*sin(akx*x)*cos(akz*z)*akx
+  psi1_l(3) = -eps*cos(akx*x)*sin(akz*z)*akz
+  psi1_l(4) = -eps*cos(akx*x)*cos(akz*z)*akx**2
+  psi1_l(5) =  eps*sin(akx*x)*sin(akz*z)*akx*akz
+  psi1_l(6) = -eps*cos(akx*x)*cos(akz*z)*akz**2
 
-  if(numvar.ge.2)  call constant_field(phi (ibegin+6 :ibegin+11), 0.)
-  if(numvar.ge.3)  call constant_field(phi (ibegin+12:ibegin+17), 0.)  
-  if(ipres.eq.1)   call constant_field(pres(ibegin1  :ibegin1+5), 0.)
-  if(idens.eq.1)   call constant_field(den (ibegin1  :ibegin1+5), 0.)
+  if(numvar.ge.2)  call constant_field( bz1_l(1:6), 0.)
+  if(numvar.ge.3)  call constant_field( pe1_l(1:6), 0.)  
+  if(ipres.eq.1)   call constant_field(  p1_l(1:6), 0.)
+  if(idens.eq.1)   call constant_field(den1_l(1:6), 0.)
 
 end subroutine gem_reconnection_per
 

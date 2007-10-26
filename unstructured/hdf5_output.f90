@@ -707,6 +707,13 @@ subroutine output_fields(time_group_id, error)
   call output_field(group_id, "visc", dum, 20, nelms, error)
   nfields = nfields + 1
 
+  ! tempvar
+  do i=1, nelms
+     call calcavector(i, tempvar, 1, 1, dum(:,i))
+  end do
+  call output_field(group_id, "tempvar", dum, 20, nelms, error)
+  nfields = nfields + 1
+
   if(numvar.ge.2) then
      ! I
      do i=1, nelms
