@@ -32,7 +32,6 @@ integer, parameter :: FIELD_SIG = 32768
 integer, parameter :: FIELD_SRC = 65536
 integer, parameter :: FIELD_MU  =131072
 
-
 real, dimension(25) :: x_25, z_25
 real, dimension(25) :: r_25, r2_25, ri_25, ri2_25, ri3_25, ri4_25
 real, dimension(25, OP_NUM, 18) :: g25
@@ -51,7 +50,7 @@ real, dimension(79, OP_NUM) :: ps079, bz079, pe079, n079, p079, ph079, vz079, ch
 real, dimension(79, OP_NUM) :: ps179, bz179, pe179, n179, p179, ph179, vz179, ch179
 real, dimension(79, OP_NUM) :: pst79, bzt79, pet79, nt79, pt79, pht79, vzt79, cht79
 real, dimension(79, OP_NUM) :: pss79, bzs79, phs79, vzs79, chs79, vis79, vic79
-real, dimension(79, OP_NUM) :: jt79, cot79, vot79, pit79, eta79, kap79, sig79
+real, dimension(79, OP_NUM) :: jt79, cot79, vot79, pit79, eta79, kap79, sig79, sz79
 real, dimension(79) :: temp79a, temp79b, temp79c, temp79d, temp79e, temp79f
 
 real, dimension(79) :: si_79, eta_79, weight_79
@@ -1178,3 +1177,33 @@ subroutine evaluate(x,z,ans,ans2,dum,itype,numvare,itri)
 
 end subroutine evaluate
 !============================================================
+
+subroutine interpolate_size_field(itri)
+
+  use nintegrate_mod
+
+  integer, intent(in) :: itri
+
+  real*8, dimension(3) :: node_sz
+  real :: a,b,c,theta,k,l,m,d
+
+  call getelmparams(itri, a, b, c, theta)
+  call getelmsizes(itri, node_sz)
+
+  ! use size**2 field
+  node_sz = node_sz**2
+
+  d = b / (a + b)
+
+  m = (node_sz(3) - node_sz(1) - d*(node_sz(2) - node_sz(1))) / c
+  l = (node_sz(2) - node_sz(1)) / (a + b)
+  k = node_sz(1) + l*b
+
+  sz79(:,OP_1  ) = k + l*si_79 + m*eta_79
+  sz79(:,OP_DR ) = k + l*cos(theta) + m*sin(theta)
+  sz79(:,OP_DZ ) = k - l*sin(theta) + m*cos(theta)
+  sz79(:,OP_DRR) = 0.
+  sz79(:,OP_DRZ) = 0.
+  sz79(:,OP_DZZ) = 0.
+  
+end subroutine interpolate_size_field

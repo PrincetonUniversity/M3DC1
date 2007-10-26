@@ -170,6 +170,7 @@ subroutine define_transport_coefficients()
   kappa = 0.
   sigma = 0.
   visc = 0.
+  tempvar = 0.
 
   temp79c = 0.
 
@@ -207,14 +208,26 @@ subroutine define_transport_coefficients()
 
      ! thermal conductivity
      ! ~~~~~~~~~~~~~~~~~~~~
-     if(kappa0.eq.0. .or. numvar.lt.3) then
+     if((kappa0.eq.0. .and. kappah.eq.0) .or. numvar.lt.3) then
         temp79b = 0.
      else
         ! kappa = p/T**(3/2) = sqrt(n**3/p)
         if(idens.eq.0) then
-           temp79b = sqrt(1./pt79(:,OP_1))
+           temp79c = (eta0*temp79a/2.)**2 * &
+                (9.*(pet79(:,OP_DZ)**2+pet79(:,OP_DR)**2)/pet79(:,OP_1)**2)
+
+           temp79b = kappa0/sqrt(pt79(:,OP_1)) &
+                + kappah/(1.+sqrt(temp79c))
         else
-           temp79b = sqrt(nt79(:,OP_1)**3/pt79(:,OP_1))
+           temp79c = (eta0*temp79a/2.)**2 * &
+                    ((nt79(:,OP_DZ)**2 + nt79(:,OP_DR)**2)/ nt79(:,OP_1)**2 &
+                +9.*(pet79(:,OP_DZ)**2 +pet79(:,OP_DR)**2)/pet79(:,OP_1)**2 &
+                - 6.*(nt79(:,OP_DZ)*pet79(:,OP_DZ) &
+                     +nt79(:,OP_DR)*pet79(:,OP_DR)) &
+                    /(nt79(:,OP_1 )*pet79(:,OP_1 )))
+
+           temp79b = kappa0*sqrt(nt79(:,OP_1)**3/pt79(:,OP_1)) &
+                + kappah/(1.+sqrt(temp79c))
         endif        
      endif
  
@@ -259,6 +272,11 @@ subroutine define_transport_coefficients()
         temp79d(i) = amu_edge*(1.-factor) + 1.
      end do
 
+     ! tempvar
+     ! ~~~~~~~
+     call interpolate_size_field(itri)
+     temp79e = sz79(:,OP_1)
+
      do i=1,18
         ione = isval1(itri,i)       
         
@@ -267,11 +285,13 @@ subroutine define_transport_coefficients()
              + eta0*int2(g79(:,OP_1,i),temp79a, weight_79,79)
         kappa(ione) = kappa(ione) &
              + kappat*int1(g79(:,OP_1,i),weight_79,79) &
-             + kappa0*int2(g79(:,OP_1,i),temp79b, weight_79,79)
+             +        int2(g79(:,OP_1,i),temp79b, weight_79,79)
         sigma(ione) = sigma(ione) &
              + int2(g79(:,OP_1,i),temp79c, weight_79,79)
         visc(ione) = visc(ione) &
              + int2(g79(:,OP_1,i),temp79d, weight_79,79)
+        tempvar(ione) = tempvar(ione) &
+             + int2(g79(:,OP_1,i),temp79e, weight_79,79)
      end do
   end do
 
@@ -279,6 +299,7 @@ subroutine define_transport_coefficients()
   call solve_newvar(kappa, NV_NOBOUND)
   call solve_newvar(sigma, NV_NOBOUND)
   call solve_newvar(visc, NV_NOBOUND)
+  call solve_newvar(tempvar, NV_NOBOUND)
 
   visc_c = amuc*visc
   visc = amu*visc
