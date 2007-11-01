@@ -12,7 +12,7 @@ PP     = xlc_r -E
 F90    = mpxlf90_r -c
 F77    = mpxlf_r -c
 CC     = mpcc_r -c
-QEXTNAME = -qextname=numdofs,sludexit,sludinit,ap_init,loadmesh,numnod,numfac,getmincoord2,getmaxcoord2,usesearchstructure,nodfac,xyznod,createdofnumbering,zonenod,checkveccreated,deleteppplvec,createppplvec,entdofs,sumshareddofs,numprocdofs,cogfac,zerosuperluarray,zeropetscarray,insertval,getmodeltags,setdiribc,solve,zeromultiplyarray,finalizearray,matrixvectormult,freesmo,deletesearchstructure,clearscorecdata,printfpointer,checksamevec,updateids,deletedofnumbering,setgeneralbc
+QEXTNAME = -qextname=numdofs,sludexit,sludinit,ap_init,loadmesh,numnod,numfac,getmincoord2,getmaxcoord2,usesearchstructure,nodfac,xyznod,createdofnumbering,zonenod,checkveccreated,deleteppplvec,createppplvec,entdofs,sumshareddofs,numprocdofs,cogfac,zerosuperluarray,zeropetscarray,insertval,getmodeltags,setdiribc,solve,zeromultiplyarray,finalizearray,matrixvectormult,freesmo,deletesearchstructure,clearscorecdata,printfpointer,checksamevec,updateids,deletedofnumbering,setgeneralbc,getelmsizes
 #,gpl,gqacwk,gclrwk,gqclip,gsclip,gtx
 PPOPTS = -DPETSC_AVOID_MPIF_H -Dmpi -DNEW_VELOCITY -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/rs6000_64_O 
 F90OPTS = -qautodbl=dbl4 -qsave $(QEXTNAME) -qstrict -O3 $(INCLUDE)  
@@ -22,13 +22,12 @@ DBESJDBESJOPTS = -O3 -qstrict -qautodbl=dbl4 $(INCLUDE) $(QEXTNAME)
 TV80OPTS=  -qsave -O3 -qstrict $(INCLUDE) $(QEXTNAME)
 
 
-NEWOBJS1 = M3Dmodules.o nintegrate_mod.o metricterms_n.o metricterms_new.o \
+NEWOBJS = M3Dmodules.o nintegrate_mod.o metricterms_n.o metricterms_new.o \
 	   newvar.o diagnostics.o gradshafranov.o control.o \
            $(COMMONDIR)tv80lib.o $(COMMONDIR)subp.o \
            $(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
-           $(COMMONDIR)fdump.o hdf5_output.o 
-
-NEWOBJS2 = fin.o part_fin.o ludef_t.o \
+           $(COMMONDIR)fdump.o hdf5_output.o newpar.o \
+	    fin.o part_fin.o ludef_t.o \
            part_fin3.o boundary.o unknown.o restart.o \
            acbauer.o metricterms.o compare.o \
            init_conds.o  output.o PETScInterface.o 
@@ -50,7 +49,7 @@ LDRNEW = \
         -L$(SCORECDIR)meshAdapt$(SCORECVERS)/templateRefine/lib/ibm_5 \
         -lFMDB-mpich2$(SCORECOPT) -lSCORECModel-mpich2$(SCORECOPT) -lSCORECUtil-mpich2$(SCORECOPT) -lField-mpich2$(SCORECOPT) -lCore-mpich2$(SCORECOPT) \
         -lmeshAdapt-mpich2$(SCORECOPT) -ltemplateRefine-mpich2$(SCORECOPT) -lmeshTools-mpich2$(SCORECOPT) -lSolver-mpich2$(SCORECOPT) -lPPPL-mpich2$(SCORECOPT) \
-        -L$(AUTOPACK_HOME)/lib/IBM -lautopack-O \
+        -L$(AUTOPACK_HOME)/lib/IBM -lautopack-O $(ZOLTAN) \
         $(METIS) -lparmetis -lmetis \
         -L$(NETCDF_LIB) -lnetcdf \
 	-L$(PETSC_DIR)/lib/$(PETSC_ARCH)   -lpetscksp -lpetscmat -lpetscvec -lpetsc \
@@ -60,13 +59,8 @@ LDRNEW = \
         -lessl -lblas  -lxlfpmt4 -L/usr/vacpp/lib -lC -lpthreads -lm -lc -lxlopt -lxlf -lxlomp_ser -lxlf90
 
 
-gonewp: $(NEWOBJS1) newpar.o newpar-lib.o $(NEWOBJS2)
-	$(F90) -bshared -o libnewpar.so $(NEWOBJS1) newpar-lib.o $(NEWOBJS2) 
-	$(LOADER) $(NEWOBJS1) newpar.o  $(NEWOBJS2) $(LDRNEW) -o $@
-
-newpar-lib.o: newpar.f90
-	$(PP) $(PPOPTS) $< > $<.i
-	$(F90) $(F90OPTS) -DIS_LIBRARY -qsuffix=f=i $<.i -o $@
+gonewp: $(NEWOBJS)
+	$(LOADER) $(NEWOBJS) $(LDRNEW) -o $@
 
 $(COMMONDIR)tv80lib.o: $(COMMONDIR)tv80lib.f
 	$(F77) $(TV80OPTS) $< -o $@ 
