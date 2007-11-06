@@ -49,7 +49,7 @@ LDRNEW = \
         -L$(SCORECDIR)meshAdapt$(SCORECVERS)/templateRefine/lib/ibm_5 \
         -lFMDB-mpich2$(SCORECOPT) -lSCORECModel-mpich2$(SCORECOPT) -lSCORECUtil-mpich2$(SCORECOPT) -lField-mpich2$(SCORECOPT) -lCore-mpich2$(SCORECOPT) \
         -lmeshAdapt-mpich2$(SCORECOPT) -ltemplateRefine-mpich2$(SCORECOPT) -lmeshTools-mpich2$(SCORECOPT) -lSolver-mpich2$(SCORECOPT) -lPPPL-mpich2$(SCORECOPT) \
-        -L$(AUTOPACK_HOME)/lib/IBM -lautopack-O $(ZOLTAN) \
+        -L$(AUTOPACK_HOME)/lib/IBM -lautopack-O -L/project/projectdirs/mp288/acbauer/develop/Zoltan/Obj_ibm -lzoltan -lzoltan_comm -lzoltan_dd -lzoltan_mem -lzoltan_timer \
         $(METIS) -lparmetis -lmetis \
         -L$(NETCDF_LIB) -lnetcdf \
 	-L$(PETSC_DIR)/lib/$(PETSC_ARCH)   -lpetscksp -lpetscmat -lpetscvec -lpetsc \
