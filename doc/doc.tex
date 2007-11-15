@@ -1,10 +1,12 @@
-\documentclass[draft]{book}
+\documentclass[letterpaper]{book}
 
+\usepackage[dvips]{graphicx}
+\usepackage{epsfig} % for epsfig
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{graphicx}
 \usepackage[usenames]{color}
-\graphicspath{{figures/}}
+%\graphicspath{{figures/}}
 
 \newcommand{\dt}{\ensuremath{\delta t}}
 \newcommand{\ddt}[1]{\frac{\partial #1}{\partial t}}
@@ -1209,6 +1211,6 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
 
 \bibliographystyle{plain}
 \bibliography{doc.bib}
-
+\include{SCORECdoc}
 
 \end{document}
