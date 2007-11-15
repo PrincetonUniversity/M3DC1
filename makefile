@@ -59,8 +59,6 @@ LDRNEW = \
 	-L$(AUTOPACK_HOME)/lib/ia64-sgi -Wl,-rpath,$(AUTOPACK_HOME)/lib/ia64-sgi -lautopack-O \
 	-L$(Zoltan_HOME)/lib -lzoltan \
 	-L$(PARMETIS_HOME)/lib -Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis \
-        -L$(NTCCHOME)/lib -lezcdf \
-        -L$(NETCDFHOME)/lib -lnetcdf \
 	-L$(PETSC_DIR)/lib/$(PETSC_ARCH) -lpetscksp -lpetscmat -lpetscvec -lpetsc \
         -L$(SUPERLU_HOME) -lsuperlu_3.0 \
         -L$(SUPERLU_DIST_HOME)/lib -lsuperlu \
