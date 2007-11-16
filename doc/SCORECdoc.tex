@@ -1,6 +1,35 @@
 \appendix
 \chapter{SCOREC Software Interface}
+This appendix chapter should document all SCOREC/ITAPS functions called from M3D-C$^1$. 
+  In Fortran, the standard convention
+is that a function does not modify any passed in variables and returns a value. 
+In this appendix a function follows C/C++ conventions in both syntax and functionality. 
+Functions listed below should be thought of as fortran subroutines as they are allowed
+to modify the passed in parameters and do not return any value. 
+The datatypes listed below in the C/C++ functions are:
+\begin{description}
+\item[int *] A 4 byte integer in Fortran.
+\item[int[X]] A 4 byte integer array that should be allocated of at least length \textit{X}.
+\item[char *] A character string in Fortran.
+\item[double *] An 8 byte double precision/real*8 variable in Fortran.
+\item[double[X]]  An 8 byte double precision/real*8 variable array in Fortran of at least length \textit{X}..
+\item[crayptr] A Cray pointer in Fortran (e.g. pointer(a,b) where a is the Cray pointer and b is the Cray 
+pointee).  The size of the Cray pointer is a 4 byte integer on 32 bit code and 8 byte integer (integer*8)
+on 64 bit code.  
+\end{description}
+To make clear what is discussed below, a mesh vertex, edge, and face are the topological
+entities of a mesh.  Many people associate nodes of a mesh with mesh vertices and elements with
+the mesh faces for 2D meshes.  
 
+The \textit{clearscorecdata} function cleans up everything associated with the SCOREC libraries.
+Beyond this, there are 5 main sets of functions: model, mesh, ordering, vector and matrix.  The model
+interface can be thought of as an independent object and is used to represent the geometric domain independent
+of any mesh discretizing it.  The mesh only depends on the model that it discretizes.  The ordering
+depends on the mesh and the model only and gives numberings of the degrees-of-freedom (DOFs) associated
+with mesh entities (for the reduced quintic DOFs are only associated with mesh vertices).  The vector
+and matrix interface depends mainly on the ordering but indirectly on the model and mesh as well.
+ The two main functions
+are to load a mesh and model which is used with the \textit{loadmesh} function below.  
 \begin{center}
 \begin{figure}
 \centerline{\psfig{figure=./partitioned_mesh.eps,height=2.5in,angle=0}} %for epsfig
@@ -48,11 +77,11 @@ returned by the function.
  some nodes  exist on partition boundaries (i.e. shared by multiple processors) summing \textit{NumNodes} over all
 processors will result in more nodes than exist in the total mesh. The IDs of the nodes on a processor are numbered between
 one and \textit{NumNodes}.
-\item void xyznod( int *iNode , double *X ) ; For input node ID \textit{iNode}, this function returns the coordinate location in 
+\item void xyznod( int *iNode , double X[3] ) ; For input node ID \textit{iNode}, this function returns the coordinate location in 
 the \textit{X} array.  The \textit{X} array should be of at least length 3.
 \item void numfac( int *NumFaces ) ; Returns the number of faces, \textit{NumFaces}, in the processor's partition of the mesh. 
 For a 2D mesh, the faces will all be elements. Since
- any face for a 2D mesh  exists only on  onepartition,  summing \textit{NumFaces} over all
+ any face for a 2D mesh  exists only on  one partition,  summing \textit{NumFaces} over all
 processors will result in the total number of faces that exist in the mesh. The IDs of the faces on a processor are numbered between
 one and \textit{NumFaces}.
 \item void nodfac( int *iFace, int Nodes[4] ) ; For an input face ID, \textit{iFace}, this function returns the adjacent nodal IDs
@@ -71,10 +100,10 @@ the global number of nodes, edges, faces, and regions in the mesh in \textit{num
 \item void deletesearchstructure(); This function deletes the search structure on each mesh partition.
 \item void usesearchstructure(double* x, double* y, int* iFace); This function returns the face ID \textit{iFace}
 of a mesh face that contains the given point \textit{(x,y)}.  The point \textit{(x,y)} is given in the
-global coordinate system of the mesh.  The function returns -1 for \textit{iFace} if the points is not contained
+global coordinate system of the mesh.  The function returns -1 for \textit{iFace} if the point is not contained
 in the domain of any mesh faces on the local processes partition.  Note  that multiple faces may contain
 a given point (e.g. a mesh vertex coordinate).
-\item void getelmsizes(int * iFace, double * sizes); For mesh face \textit{iFace}, this function returns an array
+\item void getelmsizes(int * iFace, double sizes[4]); For mesh face \textit{iFace}, this function returns an array
 of doubles for the mesh size at each of the mesh vertices of the face.  
 \end{itemize}
 
@@ -83,13 +112,20 @@ of doubles for the mesh size at each of the mesh vertices of the face.
 
 
 \section{Ordering Interface}
+It should be noted that when using complex numbers that the orderings will act the same regardless
+of the data type. As an example, for DOF number \textit{i}, the double precision array value will 
+be stored at \textit{d(i)} and the complex array value will be stored at \textit{c(i)}.  Since
+C and C++ have no intrinsic complex datatype, the complex arrays will be treated as double arrays
+and the real part will be accessed at \textit{d[(i-1)*2]} and the imaginary part will be
+accessed at \textit{d[(i-1)*2+1]}.
 
 \begin{itemize}
 \item   void createdofnumbering(int * numberingid, int * iper, int * jper,
                            int * dofspervertex, int * dofsperedge, 
                            int* dofsperface, int * dofsperregion, int * numdofs);
  This function creates a numbering with  ID \textit{numberingid}.  Currently, \textit{iper}
-and \textit{jper} are not used as the periodic information is read in from the C1input file(???).
+and \textit{jper} are not used as the periodic information is read in from the C1input file during the 
+call to \textit{loadmesh}.
 Eventually though if some orderings are periodic and others are not (e.g. a potential function)
 than these options can be used to specify the difference in orderings. The other parameters
 passed in (\textit{dofspervertex, dofsperedge, dofsperface,dofsperregion}) are to specify
@@ -105,72 +141,143 @@ This function deletes the numbering associated with \textit{numberingid}.  It is
 to query the SCOREC software with \textit{numberingid} unless another numbering is created
 with this id.
 
-\item  /* first case is for a single mesh entity assuming that all dofs
-     of a mesh entity are numbered in order such that only
-     a beginning number and an end number (or in our case, one
-     beyond the end number) needs to be specified */
+
 \item  void entdofs(int * numberingid, int * meshentid, int * meshentdim,
                int * begindofnumber, int * enddofnumberplusone);
      For \textit{numberingid}, of topological dimension \textit{meshentdim} with mesh entity
 ID \textit{meshentid} this function outputs \textit{begindofnumber} which is the beginning of
 the dof array location (stored contiguously) and \textit{enddofnumberplusone} is one
-beyond the last dof array location.  For a numvar=1 ordering an example would be \textit{begindofnumber}=1
+beyond the last dof array location.  Note that the returned array index values are in Fortran
+ordering convection such that the first entry of the array is at index 1.
+For a numvar=1 ordering an example would be \textit{begindofnumber}=1
 and \textit{enddofnumberplusone}=7. 
 
-  /* fpr general case we can give the dof numbers on the closure of
-     the passed in mesh entitiy but the dof numbers usually won't
-     be in direct order so we need to know how big the array should
-     be */
-\item  void entnumdofs(int * numberingid, int * meshentid, int * meshentdim,
-               int * closure, int * numdofs);
-  /* for a given numbering the number of total dofs needed by this proc*/
-\item  void numdofs(int * numberingid, int * numdofs);
-  /* knowing how big the array should be and having it allocated
-     properly already for a specified mesh entity, now we can
-     fill in the dof numbers */
-\item  void entdofsarray(int * numgeringid, int * meshentid, int * meshentdim,
-                     int * closure, int * dofnumbersarray);
-  /* for a given ordering figuring out which dofs belong to a processor
-     for matrix solving is useful */
-\item  void procdofs(int* numberingid, int * begindofnumber, int * enddofnumberplusone);
-  /* for a given numbering the number of dofs assigned to a processor */
-\item  void numprocdofs(int * numberingid, int * numprocdofs); 
+\item  void numdofs(int * numberingid, int * numdofs); This function returns the total number of 
+DOFs associated with all mesh entities existing on a specific mesh partition.  For the example
+in Figure \ref{meshpartition}, the blue partition would have \textit{numdofs} equal to 10 as both DOF 1
+and 2 are periodic DOFs and only get counted once even though the number of nodes for this 
+is 12.
+  
 \item  void numglobaldofs(int * numberingid, int * numglobaldofs);
+This function returns the global number of DOFs \textit{numglobaldofs} for numbering \textit{numberingid}. 
+ For the mesh in Figure \ref{meshpartition} \textit{numglobaldofs} would be 19.
+
 \end{itemize}
 \section{Vector Interface}
+Cray pointers are used to simplify the allocation/reallocation of memory for the arrays used
+for the vectors.  This appears to be the only way for C, C++, and Fortran to 
+allocate and free memory regardless of where it is used or freed.  The syntax for creating
+a Cray pointer in Fortan is:
+\begin{verbatim}
+  integer*8 ptr_x
+  real*8 x(*)
+  pointer(ptr_x, x)
+\end{verbatim}
+Here, \textit{ptr\_x} is the Cray pointer, which is an integer*8 in 64 bit code and an integer in 32 bit code,
+and \textit{x} is the pointee.  Use \textit{ptr\_x = malloc(size)}
+to allocate \textit{size} bytes and \textit{call free(ptr\_x)} to free the allocated memory.
+Also, to ``nullify'' the Cray pointer do \textit{ptr\_x=0} but only if no memory is allocated to
+the pointer to avoid memory leaks.  If the pointer has memory allocated for it, the memory is accessed through
+\textit{x}.  For all SCOREC functions for both the vector and matrix interfaces the Cray pointer
+should be passed in and not the pointee. On the C/C++ side the Cray pointer appears as
+a double**.
+
+
 \begin{itemize}
-\item   void createppplvec(double * id, int * orderingid);
-\item   void deleteppplvec(double * id);
-\item   void checkveccreated(double * id, int * iscreated);
-\item   void sumshareddofs(double * id);
-\item   void updateshareddofs(double * id);
-\item   void checksamevec(double * id1, double * id2, int * i);//checks if id1 and id2 are the same, and sets *i=1 if true, *i=0 if false
-\item   void updateids(double * oldid\_in, double * newid\_in);
+\item   void createppplvec(crayptr id, int * orderingid, int * type); This function creates a vector for Cray pointer
+\textit{id} for numbering \textit{orderingid}. If the vector is for a real-valued array \textit{type}
+should be set to 0 and if the vector is for  a complex-valued array \textit{type} should be set to 1. 
+ If the Cray pointer has not been allocated it
+must be set to 0 before calling this function.
+\item   void deleteppplvec(crayptr id); This function deletes the vector, frees the memory associated 
+with the Cray pointer and sets the Cray pointer to 0.
+\item   void sumsharedvals(crayptr id);  This function assumes that the values inserted into the
+array of the vector has only local contributions on each process and then this sums the parts
+of the vector that are distributed across multiple processes and updates each of those values
+to a single value.  An example of this would be to figure out how many mesh faces use each DOF.  To do this, 
+first zero the vector, then 
+iterate over all of the faces on each process, then iterate over each mesh vertex, get the DOFs
+associated with each vertex and add 1 to each array indexed with the DOF number, then call this function.
+For this operation, for DOF number 10 in Figure \ref{meshpartition} the number would be 7.
+\item   void updatesharedvals(crayptr id);  This function assumes that the single process that ``owns'' a DOF
+has the correct value and that other processes that need the DOF may or may not have the correct value.  With
+this assumption, this function can be called to update the correct values for a DOF on processes
+that need the dof but do not own it.  This is used primarily for distributing the DOF values after a matrix solve
+from the process it was solved for on to the other processes that use the DOF.  This function might not be useful
+for M3D-C$^1$ but is documented anyways.
+\item   void checkveccreated(crayptr id, int * iscreated); This function checks whether a vector \textit{id} 
+has already been created or not.  It returns 0 if it has not and 1 if it has been created but does no
+action otherwise.  
 \end{itemize}
 
 \section{Matrix Interface}
 \begin{itemize}
-\item   void insertval(int * matrixid, double * val, int * row,
-                   int * column, int * operation);
-
-\item   void insertmultvals(int * matrixid, double * vals, int * iarray,
-                       int * niarray, int * jarray, int * njarray,
-                       int * operation);
-
-\item   void setdiribc(int * matrixid, int * row);
-\item   void setgeneralbc(int * matrixid, int * row, int * numvals,
-                     int * columninfo, double * vals);
-\item   void zerosuperluarray(int * matrixid, int * numberingid);
-\item   void zeropetscarray(int * matrixid, int * numberingid);
-\item   void zeromultiplyarray(int * matrixid, int * numberingid);
-\item   void finalizearray(int * matrixid);
-\item   void solve(int * matrixid, double * rhs\_sol, int * ier);
-\item   void matrixvectormult(int * matrixid, double * inputvecid, double * outputvecid);
-\item   void freesmo(int * matrixid);
-\item   void matrixrank(int* matrixid, int * rank);
-\item   void sludinit();
-\item   void sludexit();
-\item   void writematrixtofile(int * matrixid, int * fileid);
+\item  void zerosuperlumatrix(int * matrixid, int * numberingid);  This function creates
+an ``empty'' matrix with id \textit{matrixid} that uses the numbering \textit{numberingid}
+for use with the SuperLU\_DIST solver.  If the matrix is real-valued then \textit{type}
+should be set to 0 and if the matrix is complex-valued then \textit{type} should be set to 1. 
+If the matrix has already been created then it just cleans out all components of the matrix.
+\item  void zeropetscmatrix(int * matrixid, int * numberingid); This function creates
+an ``empty'' matrix with id \textit{matrixid} that uses the numbering \textit{numberingid}
+for use with the SuperLU\_DIST solver.  If the matrix is real-valued then \textit{type}
+should be set to 0 and if the matrix is complex-valued then \textit{type} should be set to 1. 
+If the matrix has already been created then it just cleans out all components of the matrix.
+ \item void zeromultiplymatrix(int * matrixid, int * numberingid); This function creates
+an ``empty'' matrix with id \textit{matrixid} that uses the numbering \textit{numberingid}
+for use for multiplying with vectors.  If the matrix is real-valued then \textit{type}
+should be set to 0 and if the matrix is complex-valued then \textit{type} should be set to 1. 
+If the matrix has already been created then it just cleans out all components of the matrix.
+\item  void insertval(int * matrixid, double/complex * val, int * valtype, int * row, 
+		   int * column, int * operation);  This function inserts \textit{val} into
+matrix \textit{matrixid} at \textit{(row,column)} in the matrix where \textit{row}
+and \textit{column} come from the ordering.  The type of value to
+ be inserted can be real (\textit{valtype}=0)
+or complex (\textit{valtype}=1).  A real type can be inserted into a complex matrix but
+a complex type cannot be inserted into a real matrix.  If \textit{operation}
+is zero then the value overwrites any existing value, otherwise the value is to be added
+to existing values for that matrix component.
+\item  void setdiribc(int * matrixid, int * row);  For matrix \textit{matrixid}, this function
+zeroes out all off-diagonal values for \textit{row} and set the diagonal value to unity.  The operation is
+actually carried out during \textit{finalizematrix} so this function can be called before other values
+are inserted into that row while still applying the correct operation.  For complex-valued arrays, 
+only the real part of the diagonal is set to unity while the imaginary part is set to 0.  This function 
+should be called on all processes that use the DOF number associated with the matrix row.
+\item  void setgeneralbc(int * matrixid, int * row, int * numvals,
+		     int  columninfo[numvals], double/complex vals[numvals], int * valtype);
+This function sets multiple values for \textit{row} of \textit{matrixid}.  The number of values set is
+\textit{numvals} and \textit{columninfo} specifies which columns to set the values for and 
+\textit{vals} is the values to be set which must be in the same order as the \textit{columninfo} array.
+ The type of values to
+ be inserted can be real (\textit{valtype}=0)
+or complex (\textit{valtype}=1).
+This function 
+should be called on all processes that use the DOF number associated with the matrix row.
+\item  void finalizematrix(int * matrixid);  This function finalizes \textit{matrixid} such that no
+more values can be inserted into the matrix and no more boundary conditions can be applied to the matrix.
+\item  void solve(int * matrixid, crayptr rhs\_sol, int * ier);  For a matrix created with \textit{zeropetscmatrix}
+or \textit{zerosuperlumatrix}, \textit{matrixid} is solved with input right-hand-side \textit{rhs\_sol}. 
+The output  is also in \textit{rhs\_sol}.  If \textit{ier} is non-zero there were problems encountered during
+the solve process.  The only way to properly mix real and complex value types is if the matrix is real-valued
+and the vector is complex-valued.  Then the system is solved twice with a real and an imaginary right-hand-side.  
+\item  void matrixvectormult(int * matrixid, crayptr inputvecid, crayptr outputvecid);  For a matrix created with \textit{zeromultiplymatrix}, this function can be called to multiply \textit{matrixid} with \textit{inputvecid}.  The output is returned in \textit{outputvecid}.  If either \textit{matrixid} or \textit{inputvecid}
+is complex-valued, \textit{outputvecid} must also be complex-valued.
+\item  void deletematrix(int * matrixid);  This function deletes \textit{matrixid}.
+\item  void matrixrank(int* matrixid, int * rank);  This function returns the global rank of \textit{matrixid}
+in \textit{rank}.  This value is the same as the returned value for \textit{numglobaldofs} for the matrix's
+ordering.
+\item  void initsolvers();  This function sets up the data structures required by the solvers.
+\item  void finalizesolvers();  This function finalizes/destroys the data structures required by the solvers.
+\item  void writematrixtofile(int * matrixid, int * fileid);  This function writes out the non-zero components
+of \textit{matrixid} to a file that uses \textit{fileid} to indicate which file.
+\end{itemize}
+For the PETSc solver, the following two functions are defined in \textit{PETScInterface.c} and are designed
+to give M3D-C$^1$ the ability to modify the PETSc solver parameters for a given \textit{matrixid}.  
+The FortranMatrixID enumeration must match the parameters specified in the sparse module in \textit{M3Dmodules.f90}.
+\begin{itemize}
+\item  int setPETScMat(int matrixid, Mat * A);  This function can be used to set options for storing \textit{matrix}
+in PETSc data structures.
+\item int setPETScKSP(int matrixid, KSP * ksp, Mat * A); This function can be used to set the solver
+parameters for \textit{matrixid} in PETSc.
 \end{itemize}
 
 
