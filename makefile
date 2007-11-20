@@ -93,8 +93,7 @@ $(COMMONDIR)tv80lib.o: $(COMMONDIR)tv80lib.f
 
 clean:
 	rm -f gonewp*
-	rm -f $(NEWOBJS1)
-	rm -f $(NEWOBJS2)
+	rm -f $(NEWOBJS)
 	rm -f *.o 
 	rm -f *.mod 
 	rm -f *~
