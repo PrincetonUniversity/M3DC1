@@ -2,7 +2,7 @@ TEX = doc
 BIB = doc
 PDF = doc
 
-DEPS_COMMON = ${TEX}.tex SCORECdoc.tex
+DEPS_COMMON = ${TEX}.tex SCORECdoc.tex idl_postprocessor.tex
 ifdef BIB
 	DEPS = ${DEPS_COMMON} ${TEX}.bbl
 else

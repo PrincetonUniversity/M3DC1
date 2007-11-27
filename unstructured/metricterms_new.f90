@@ -828,7 +828,6 @@ end function v2vmu
 !!$  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
 !!$  real :: temp
 !!$
-!!$
 !!$  temp79a = e(:,OP_GS)*g(:,OP_1) + &
 !!$       e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR)
 !!$  if(itor.eq.1) temp79a = temp79a + 4.*ri_79*e(:,OP_DR)*g(:,OP_1)
@@ -1933,8 +1932,8 @@ real function b1psieta(e,f,g,h)
   temp79a = e(:,OP_1)*g(:,OP_LP) + e(:,OP_LP)*g(:,OP_1) &
        + 2.*(e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR))
 
-!!$     if(itor.eq.1) temp79a = temp79a + 2.*ri_79* &
-!!$          (e(:,OP_DR)*g(:,OP_1) + e(:,OP_1)*g(:,OP_DR))
+!!$!     if(itor.eq.1) temp79a = temp79a + 2.*ri_79* &
+!!$!          (e(:,OP_DR)*g(:,OP_1) + e(:,OP_1)*g(:,OP_DR))
 
   temp = temp - int3(temp79a,f(:,OP_GS),h(:,OP_1),weight_79,79)
   if(itor.eq.1) temp = temp + 2.*int4(ri_79,temp79a,f(:,OP_DR),h(:,OP_1),weight_79,79)
@@ -2318,7 +2317,7 @@ real function b3pedkappa(e,f,g,h,i)
           +int4(temp79a,e(:,OP_DR),h(:,OP_DR),i(:,OP_1),weight_79,79))
   endif
 
-  b3pedkappa = temp  
+  b3pedkappa = (gam-1.)*temp  
   return
 end function b3pedkappa
 
@@ -2488,17 +2487,18 @@ end function p1pchi
 
 ! P1kappar
 ! ========
-real function p1kappar(e,f,g,h,i,j)
+real function p1kappar(e,f,g,h,i,j,k)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h,i,j
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h,i,j,k
   real :: temp
 
-  temp79a = ri2_79*(e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))*j(:,OP_1)
+  temp79a = k(:,OP_1)*ri2_79* &
+       (e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))*j(:,OP_1)
 
   if(idens.eq.0) then
      temp = int3(temp79a,g(:,OP_DZ),h(:,OP_DR),weight_79,79) &
@@ -2510,9 +2510,40 @@ real function p1kappar(e,f,g,h,i,j)
           - int4(temp79a,g(:,OP_DR),h(:,OP_1 ),i(:,OP_DZ),weight_79,79)
   endif
 
-  p1kappar = temp
+  p1kappar = (gam - 1.) * temp
   return
 end function p1kappar
+
+
+! P1kappax
+! ========
+real function p1kappax(e,f,g,h,i)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h,i
+  real :: temp
+
+  temp79a = ri_79*i(:,OP_1)*(e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))
+
+  if(idens.eq.0) then
+     temp = temp + (gam-1.)* &
+          (int2(g(:,OP_1),temp79a,weight_79,79))
+  else
+     temp79b = ri_79*i(:,OP_1)*(e(:,OP_DZ)*h(:,OP_DR) - e(:,OP_DR)*h(:,OP_DZ))
+
+     temp = temp + (gam-1.)* &
+          (int3(g(:,OP_1),h(:,OP_1),temp79a,weight_79,79)  &
+          +int3(f(:,OP_1),g(:,OP_1),temp79b,weight_79,79))
+  endif
+
+  p1kappax = (gam - 1.) * temp
+  return
+end function p1kappax
+
 
 
 ! P1uus
@@ -2629,6 +2660,167 @@ real function p1uchis(e,f,g,h)
   return
 end function p1uchis
 
+
+!======================================================================
+! Parallel Viscous Terms
+!======================================================================
+
+! PVS1
+! ====
+subroutine PVS1(i,o)
+
+  use basic
+  use nintegrate_mod
+
+  real, intent(in), dimension(79,OP_NUM) :: i
+  real, intent(out), dimension(79) :: o
+  
+  o = ri_79* &
+       (i(:,OP_DRZ) * (pst79(:,OP_DR)**2 - pst79(:,OP_DZ)**2) &
+       +pst79(:,OP_DR)*pst79(:,OP_DZ)*(i(:,OP_DZZ) - i(:,OP_DRR)))
+
+  if(itor.eq.1) then
+     o = o + ri2_79*pst79(:,OP_DZ) * &
+          (i(:,OP_DZ)*pst79(:,OP_DZ) + i(:,OP_DR)*pst79(:,OP_DR))
+     if(numvar.ge.2) o = o &
+          - ri2_79*i(:,OP_DZ)*bzt79(:,OP_1)**2
+  end if
+
+  o = o * ri2_79*b2i79(:,OP_1)
+
+end subroutine PVS1
+
+! PVS2
+! ====
+subroutine PVS2(i,o)
+
+  use basic
+  use nintegrate_mod
+
+  real, intent(in), dimension(79,OP_NUM) :: i
+  real, intent(out), dimension(79) :: o
+
+  o = ri_79*bzt79(:,OP_1)* &
+       (i(:,OP_DZ)*pst79(:,OP_DR) - i(:,OP_DR)*pst79(:,OP_DZ))
+
+  if(itor.eq.1) then
+     o = o + 2.*ri2_79*bzt79(:,OP_1)*pst79(:,OP_DZ)*i(:,OP_1)
+  endif
+
+  o = o * ri2_79*b2i79(:,OP_1)
+
+end subroutine PVS2
+
+! PVS3
+! ====
+subroutine PVS3(i,o)
+
+  use basic
+  use nintegrate_mod
+
+  real, intent(in), dimension(79,OP_NUM) :: i
+  real, intent(out), dimension(79) :: o
+
+  o = i(:,OP_DZZ)*pst79(:,OP_DR)**2 + i(:,OP_DRR)*pst79(:,OP_DZ)**2 &
+    - 2.*i(:,OP_DRZ)*pst79(:,OP_DR)*pst79(:,OP_DZ)
+
+  if(itor.eq.1) then
+     o = o + ri_79*i(:,OP_DR)*bzt79(:,OP_1)**2
+  endif
+
+  o = o * ri2_79*b2i79(:,OP_1)
+ 
+end subroutine PVS3
+
+
+! PVV1
+! ====
+real function PVV1(e)
+  use basic
+  use nintegrate_mod
+
+  real, intent(in), dimension(79,OP_NUM) :: e
+  
+  temp79a = (e(:,OP_DZZ) - e(:,OP_DRR))*pst79(:,OP_DR)*pst79(:,OP_DZ) &
+       + e(:,OP_DRZ)*(pst79(:,OP_DR)**2 - pst79(:,OP_DZ)**2)
+
+  if(itor.eq.1) then
+     temp79a = temp79a + ri_79* &
+          (e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR))
+  endif
+
+  PVV1 = 3.*int3(ri_79,b2i79(:,OP_1),temp79a,weight_79,79)
+
+end function PVV1
+
+! PVV2
+! ====
+real function PVV2(e)
+  use basic
+  use nintegrate_mod
+
+  real, intent(in), dimension(79,OP_NUM) :: e
+
+  if(itor.eq.1) then
+     PVV2 = -int4(ri2_79,bzt79(:,OP_1),bzt79(:,OP_1),e(:,OP_DZ),weight_79,79)
+  else 
+     PVV2 = 0.
+  endif
+
+end function PVV2
+
+
+! PVV3
+! ====
+real function PVV3(e)
+  use basic
+  use nintegrate_mod
+
+  real, intent(in), dimension(79,OP_NUM) :: e
+  
+  if(itor.eq.0) then
+     PVV3 = 0.
+     return
+  endif
+
+  temp79a = e(:,OP_DZ)*(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2) &
+       +2.*e(:,OP_DR)*pst79(:,OP_DR)*pst79(:,OP_DZ)
+
+  PVV3 = -2.*int2(ri2_79,temp79a,weight_79,79)
+
+end function PVV3
+
+
+! P1vip
+! =====
+real function P1vip(e)
+
+  use basic
+  use nintegrate_mod
+
+  real, intent(in), dimension(79,OP_NUM) :: e
+
+  if(amupar.eq.0) then
+     P1vip = 0.
+     return
+  endif
+
+  call PVS1(pht79,temp79a)
+
+  if(numvar.ge.2) then
+     call PVS2(vzt79,temp79b)
+     temp79a = temp79a + temp79b
+  endif
+
+  if(numvar.ge.3) then
+     call PVS3(cht79,temp79c)
+     temp79a = temp79a + temp79c
+  endif
+
+  temp79d = 3.*temp79a - cht79(:,OP_LP)
+
+  P1vip = int4(e(:,OP_1),vip79(:,OP_1),temp79a,temp79d,weight_79,79)
+end function P1vip
 
 
 !======================================================================
@@ -3742,16 +3934,25 @@ real function flux_heat()
      return
   endif
 
-  ! Isotropic heat flux
   if(idens.eq.0) then
-     temp79a = kap79(:,OP_1)*pt79(:,OP_LP) &
-          + kap79(:,OP_DZ)*pt79(:,OP_DZ) + kap79(:,OP_DR)*pt79(:,OP_DR)
+     tm79 = pt79
   else
-     temp79a = kap79(:,OP_1)*(ni79(:,OP_1)*pt79(:,OP_LP) + ni79(:,OP_LP)*pt79(:,OP_1) &
-          + 2.*(ni79(:,OP_DZ)*pt79(:,OP_DZ) + ni79(:,OP_DR)*pt79(:,OP_DR))) &
-          + ni79(:,OP_1)*(kap79(:,OP_DZ)*pt79(:,OP_DZ) + kap79(:,OP_DR)*pt79(:,OP_DR)) &
-          + pt79(:,OP_1)*(kap79(:,OP_DZ)*ni79(:,OP_DZ) + kap79(:,OP_DR)*ni79(:,OP_DR))
+     tm79(:,OP_1  ) = pt79(:,OP_1)/nt79(:,OP_1)
+     tm79(:,OP_DR ) = (pt79(:,OP_DR ) - nt79(:,OP_DR )*tm79(:,OP_1))/nt79(:,OP_1)
+     tm79(:,OP_DZ ) = (pt79(:,OP_DZ ) - nt79(:,OP_DZ )*tm79(:,OP_1))/nt79(:,OP_1)
+     tm79(:,OP_DRR) = (pt79(:,OP_DRR) - nt79(:,OP_DRR)*tm79(:,OP_1) &
+                      -2.*nt79(:,OP_DR)*tm79(:,OP_DR))/nt79(:,OP_1)
+     tm79(:,OP_DRZ) = (pt79(:,OP_DRZ) - nt79(:,OP_DRZ)*tm79(:,OP_1) &
+                      -nt79(:,OP_DZ)*tm79(:,OP_DR)-nt79(:,OP_DR)*tm79(:,OP_DZ)) &
+                      /nt79(:,OP_1)
+     tm79(:,OP_DZZ) = (pt79(:,OP_DZZ) - nt79(:,OP_DZZ)*tm79(:,OP_1) &
+                      -2.*nt79(:,OP_DZ)*tm79(:,OP_DZ))/nt79(:,OP_1)
+     tm79(:,OP_LP ) = tm79(:,OP_DRR) + ri_79*tm79(:,OP_DR) + tm79(:,OP_DZZ)
   endif
+
+  ! Isotropic heat flux
+  temp79a = kap79(:,OP_1)*tm79(:,OP_LP) &
+       + kap79(:,OP_DZ)*tm79(:,OP_DZ) + kap79(:,OP_DR)*tm79(:,OP_DR)
 
   temp = int1(temp79a,weight_79,79)
 
@@ -3759,44 +3960,34 @@ real function flux_heat()
   ! Parallel heat flux
   if(kappar.ne.0.) then
 
-     temp79c = kappar*(b2i79(:,OP_DZ)*pst79(:,OP_DR) - b2i79(:,OP_DR)*pst79(:,OP_DZ))
-     if(itor.eq.1) temp79c = temp79c + ri_79*kappar*b2i79(:,OP_1)*pst79(:,OP_DZ)
+     temp79b = tm79(:,OP_DZ)*pst79(:,OP_DR) - tm79(:,OP_DR)*pst79(:,OP_DZ)
 
-     if(idens.eq.0) then
-        temp79b = pt79(:,OP_DZ)*pst79(:,OP_DR) - pt79(:,OP_DR)*pst79(:,OP_DZ)
+     temp79c = &
+          kar79(:,OP_1)*(b2i79(:,OP_DZ)*pst79(:,OP_DR)-b2i79(:,OP_DR)*pst79(:,OP_DZ)) &
+         +b2i79(:,OP_1)*(kar79(:,OP_DZ)*pst79(:,OP_DR)-kar79(:,OP_DR)*pst79(:,OP_DZ))
+     if(itor.eq.1) temp79c = temp79c + ri_79*kar79(:,OP_1)*b2i79(:,OP_1)*pst79(:,OP_DZ)
 
-        temp79d =-pst79(:,OP_DZ)* &
-              (pt79(:,OP_DRZ)*pst79(:,OP_DR ) - pt79(:,OP_DRR)*pst79(:,OP_DZ ) &
-              +pt79(:,OP_DZ )*pst79(:,OP_DRR) - pt79(:,OP_DR )*pst79(:,OP_DRZ)) &
-                 +pst79(:,OP_DR)* &
-              (pt79(:,OP_DZZ)*pst79(:,OP_DR ) - pt79(:,OP_DRZ)*pst79(:,OP_DZ ) &
-              +pt79(:,OP_DZ )*pst79(:,OP_DRZ) - pt79(:,OP_DR )*pst79(:,OP_DZZ))
-     else
-        temp79b = ni79(:,OP_1)*(pt79(:,OP_DZ)*pst79(:,OP_DR) - pt79(:,OP_DR)*pst79(:,OP_DZ)) &
-             +    pt79(:,OP_1)*(ni79(:,OP_DZ)*pst79(:,OP_DR) - ni79(:,OP_DR)*pst79(:,OP_DZ))
-     
-        temp79d = -ni79(:,OP_1)* &
-             (pst79(:,OP_DZ)* &
-              (pt79(:,OP_DRZ)*pst79(:,OP_DR ) - pt79(:,OP_DRR)*pst79(:,OP_DZ ) &
-              +pt79(:,OP_DZ )*pst79(:,OP_DRR) - pt79(:,OP_DR )*pst79(:,OP_DRZ)) &
-             -pst79(:,OP_DR)* &
-              (pt79(:,OP_DZZ)*pst79(:,OP_DR ) - pt79(:,OP_DRZ)*pst79(:,OP_DZ ) &
-              +pt79(:,OP_DZ )*pst79(:,OP_DRZ) - pt79(:,OP_DR )*pst79(:,OP_DZZ))) &
-             - pt79(:,OP_1)* &
-             (pst79(:,OP_DZ)* &
-              (ni79(:,OP_DRZ)*pst79(:,OP_DR ) - ni79(:,OP_DRR)*pst79(:,OP_DZ ) &
-              +ni79(:,OP_DZ )*pst79(:,OP_DRR) - ni79(:,OP_DR )*pst79(:,OP_DRZ)) &
-             -pst79(:,OP_DR)* &
-              (ni79(:,OP_DZZ)*pst79(:,OP_DR ) - ni79(:,OP_DRZ)*pst79(:,OP_DZ ) &
-              +ni79(:,OP_DZ )*pst79(:,OP_DRZ) - ni79(:,OP_DR )*pst79(:,OP_DZZ))) &
-             + 2.*(pt79(:,OP_DZ)*pst79(:,OP_DR) - pt79(:,OP_DR)*pst79(:,OP_DZ))* &
-                  (ni79(:,OP_DZ)*pst79(:,OP_DR) - ni79(:,OP_DR)*pst79(:,OP_DZ))
-     endif
+     temp79d =-pst79(:,OP_DZ)* &
+          (tm79(:,OP_DRZ)*pst79(:,OP_DR ) - tm79(:,OP_DRR)*pst79(:,OP_DZ ) &
+          +tm79(:,OP_DZ )*pst79(:,OP_DRR) - tm79(:,OP_DR )*pst79(:,OP_DRZ)) &
+          +pst79(:,OP_DR)* &
+          (tm79(:,OP_DZZ)*pst79(:,OP_DR ) - tm79(:,OP_DRZ)*pst79(:,OP_DZ ) &
+          +tm79(:,OP_DZ )*pst79(:,OP_DRZ) - tm79(:,OP_DR )*pst79(:,OP_DZZ))
 
      temp = temp &
           + int3(ri2_79,temp79b,temp79c,weight_79,79) &
-          + kappar*int3(ri2_79,b2i79(:,OP_1),temp79d,weight_79,79)
+          + int4(kar79(:,OP_1),ri2_79,b2i79(:,OP_1),temp79d,weight_79,79)
   endif
+
+  ! Cross heat flux
+  if(kappax.ne.0.) then
+     temp79a = bzt79(:,OP_1) * &
+          (kax79(:,OP_DZ)*tm79(:,OP_DR) - kax79(:,OP_DR)*tm79(:,OP_DZ)) &
+          +    kax79(:,OP_1) * &
+          (bzt79(:,OP_DZ)*tm79(:,OP_DR) - bzt79(:,OP_DR)*tm79(:,OP_DZ))
+
+     temp = temp + int2(ri_79,temp79a,weight_79,79)
+  end if
 
 !!$ MISSING HYPER-DIFFUSIVE TERMS
 

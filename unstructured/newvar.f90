@@ -51,7 +51,8 @@ subroutine create_newvar_matrix(matrix, ibound)
      ri_79 = 1./r_79
 
      do i=1,18
-        call eval_ops(gtri(:,i,itri), si_79, eta_79, ttri(itri), ri_79, 79, g79(:,:,i))
+        call eval_ops(gtri(:,i,itri), si_79, eta_79, ttri(itri), &
+             ri_79, 79, g79(:,:,i))
      end do
 
      if(ijacobian.eq.1) weight_79 = weight_79 * r_79
@@ -213,11 +214,14 @@ subroutine define_transport_coefficients()
      else
         ! kappa = p/T**(3/2) = sqrt(n**3/p)
         if(idens.eq.0) then
-           temp79c = (eta0*temp79a/2.)**2 * &
-                (9.*(pet79(:,OP_DZ)**2+pet79(:,OP_DR)**2)/pet79(:,OP_1)**2)
+!!$           temp79c = (eta0*temp79a/2.)**2 * &
+!!$                (9.*(pet79(:,OP_DZ)**2+pet79(:,OP_DR)**2)/pet79(:,OP_1)**2)
+
+!!$           temp79b = kappa0/sqrt(pt79(:,OP_1)) &
+!!$                + kappah/(1.+sqrt(temp79c))
 
            temp79b = kappa0/sqrt(pt79(:,OP_1)) &
-                + kappah/(1.+sqrt(temp79c))
+                + kappah/(1.+pt79(:,OP_LP)**2)
         else
            temp79c = (eta0*temp79a/2.)**2 * &
                     ((nt79(:,OP_DZ)**2 + nt79(:,OP_DR)**2)/ nt79(:,OP_1)**2 &

@@ -21,11 +21,13 @@ module basic
   ! transport coefficients
   real :: amu         ! incompressible viscosity
   real :: amuc        ! compressible viscosity
+  real :: amupar      ! parallel viscosity coefficient
   real :: etar, eta0  ! resistivity = etar + eta0/T^(3/2)
   real :: kappat      ! isotropic temperature conductivity
   real :: kappa0      ! kappa = kappat + kappa0*n/T^(1/2)
   real :: kappah      ! phenomenological model for H-mode
-  real :: kappar      ! anisotropic (field-aligned) temperature conductivity
+  real :: kappar      ! coefficient of field-aligned temperature diffusion
+  real :: kappax      ! coefficient of B x Grad[T] temperature diffusion
   real :: denm        ! artificial density diffusion
   real :: deex        ! scale length of hyperviscosity term
   real :: hyper,hyperi,hyperv,hyperc,hyperp
@@ -123,27 +125,35 @@ module basic
   ! domain parameters
   real :: xzero, zzero  ! cooridinates of lower left corner of domain
   
-  integer :: maxs,itest,isecondorder,istart
+  integer :: itest,istart
   real :: beta
   real :: pefac
 !
 !.....input quantities---defined in subroutine input or in namelist
 !
   namelist / inputnl/                                          &
-       linear,maxs,ntimemax,ntimepr,itor,                      &
-       irestart,itaylor,itest,isecondorder,imask,nskip,        &
-       numvar,istart,idens,ipres,thimp,amu,etar,dt,p1,p2,p0,   &
-       tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,          &
-       bzero,vzero,hyper,hyperi,hyperv,hyperc,hyperp,gam,eps,  &
-       iper,jper,iprint,itimer,xzero,zzero,beta,pi0,           &
-       eqsubtract,denm,gravr,gravz,kappat,kappar,ln,amuc,      &
-       iconstflux,regular,deex,gyro,vloop,eta0,pedge,          &
-       integrator,expn,divertors,xdiv,zdiv,divcur,             &
-       control_p,control_i,control_d,idevice,igs,kappa0,       &
-       v_bc,p_bc,com_bc,thimp_ohm,tcur,q0,isources,th_gs,      &
+       itaylor,                                                &
+       xzero,zzero,beta,                                       &
+       numvar,idens,ipres,gyro,isources,nosig,itor,            &
+       gam,db,gravr,gravz,                                     &
+       p0,pi0,bzero,vzero,                                     &
+       etar,eta0,amu,amuc,amupar,denm,                         &
+       kappat,kappa0,kappar,kappax,kappah,                     &
+       hyper,hyperi,hyperv,hyperc,hyperp,deex,                 &
+       iper,jper,imask,amu_edge,v_bc,p_db,com_bc,pedge,        &
+       eps,ln,                                                 &
+       vloop,control_p,control_i,control_d,tcur,               &
        ipellet, pellet_x, pellet_z, pellet_rate, pellet_var,   &
        ionization, ionization_rate, ionization_temp, ionization_depth, &
-       amu_edge,iresolve,isplitstep,imp_mod,kappah,nosig
+       ntimemax,dt,integrator,thimp,thimp_ohm,imp_mod,         &
+       isplitstep,iresolve,                                    &
+       linear,nskip,eqsubtract,                                &
+       itimer,iprint,ntimepr,                                  &
+       irestart,istart,                                        &
+       tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,             &
+       expn,q0,divertors,xdiv,zdiv,divcur,th_gs,p1,p2,p_edge,  &
+       idevice,igs,th_gs,                                      &
+       iconstflux,regular
 
   !     derived quantities
   real :: pi,dbf,bdf,hypv,hypc,hypf,hypi,hypp,                         &
@@ -180,7 +190,6 @@ module arrays
   integer, parameter :: r8 = selected_real_kind(12,100)
   ! indices
   integer :: p,q,r,s
-!!$  integer :: maxdofs1, maxdofs2, maxdofs3, maxdofs4, maxdofs5, maxdofs6
   integer :: maxdofs1, maxdofs2, maxdofsn
   integer, allocatable :: isvaln(:,:),isval1(:,:),isval2(:,:)
   real :: fint(-6:maxi,-6:maxi), xi(3),zi(3),df(0:4,0:4)

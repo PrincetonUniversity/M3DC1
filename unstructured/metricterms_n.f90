@@ -2153,7 +2153,7 @@ real function b3pedkappa(e,f,g,h,i)
      temp = temp - h*i*int2(temp79a,e(:,OP_LP),weight_79,79)
   endif
 
-  b3pedkappa = temp  
+  b3pedkappa = (gam-1.)*temp  
   return
 end function b3pedkappa
 
@@ -2309,17 +2309,17 @@ end function p1pchi
 
 ! P1kappar
 ! ========
-real function p1kappar(e,f,g,h,i,j)
+real function p1kappar(e,f,g,h,i,j,k)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h,i,j
+  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h,i,j,k
   real :: temp
 
-  temp79a = ri2_79*(e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))*j(:,OP_1)
+  temp79a = k(:,OP_1)*ri2_79*(e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))*j(:,OP_1)
 
   if(idens.eq.0) then
      temp = int3(temp79a,g(:,OP_DZ),h(:,OP_DR),weight_79,79) &
@@ -2331,7 +2331,7 @@ real function p1kappar(e,f,g,h,i,j)
           - int4(temp79a,g(:,OP_DR),h(:,OP_1 ),i(:,OP_DZ),weight_79,79)
   endif
 
-  p1kappar = temp
+  p1kappar = (gam-1.)*temp
   return
 end function p1kappar
 

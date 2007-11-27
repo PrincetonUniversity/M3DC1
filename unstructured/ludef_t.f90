@@ -18,7 +18,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
   real, dimension(4), intent(out) :: rrterm, qqterm
   integer, intent(in) :: advfield   ! if advfield = 1, eliminate rrterm by
                                     ! using analytic form of advanced field
-
+  real :: parvisc
   real :: temp
   real :: ththm
 
@@ -275,6 +275,28 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
      endif
   endif
 
+  ! Parallel Viscosity
+  if(amupar.ne.0) then
+     call PVS1(lin,temp79b)
+     parvisc = int2(vic79(:,OP_1),temp79b,weight_79,79)
+
+     temp = PVV1(trial)*parvisc
+     ssterm(1) = ssterm(1) +     thimp     *dt*temp
+     ddterm(1) = ddterm(1) - (1.-thimp*bdf)*dt*temp
+
+     if(numvar.ge.2) then
+        temp = PVV2(trial)*parvisc
+        ssterm(2) = ssterm(2) +     thimp     *dt*temp
+        ddterm(2) = ddterm(2) - (1.-thimp*bdf)*dt*temp
+     endif
+
+     if(numvar.ge.3) then
+        temp = PVV3(trial)*parvisc
+        ssterm(3) = ssterm(3) +     thimp     *dt*temp
+        ddterm(3) = ddterm(3) - (1.-thimp*bdf)*dt*temp
+     endif
+  endif
+
 end subroutine vorticity_lin 
 
 subroutine vorticity_nolin(trial, r4term)
@@ -326,7 +348,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
   real, dimension(4), intent(out) :: rrterm, qqterm
   integer, intent(in) :: advfield
 
-  real :: temp
+  real :: temp, parvisc
   real :: ththm
 
   if(imp_mod.eq.1) then
@@ -355,11 +377,9 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
   ssterm(2) = ssterm(2) -     thimp     *dt*temp
   ddterm(2) = ddterm(2) + (1.-thimp*bdf)*dt*temp
 
-!!$  if(hypv.gt.0) then
-!!$     temp = v2vhypv(trial,lin,vis79,hypv*sz79)
-!!$     ssterm(2) = ssterm(2) -     thimp     *dt*temp
-!!$     ddterm(2) = ddterm(2) + (1.-thimp*bdf)*dt*temp
-!!$  endif
+!!$  temp = v2vhypv(trial,lin,vis79,hypv*sz79)
+!!$  ssterm(2) = ssterm(2) -     thimpv     *dt*temp
+!!$  ddterm(2) = ddterm(2) + (1.-thimpv*bdf)*dt*temp
 
   temp = v2vun(trial,lin,ph179,nt79)
   ssterm(2) = ssterm(2) -      thimp     *dt*temp
@@ -488,6 +508,28 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
      endif
   endif
 
+  ! Parallel Viscosity
+  if(amupar.ne.0) then
+     call PVS2(lin,temp79b)
+     parvisc = int2(vic79(:,OP_1),temp79b,weight_79,79)
+
+     temp = PVV1(trial)*parvisc
+     ssterm(1) = ssterm(1) +     thimp     *dt*temp
+     ddterm(1) = ddterm(1) - (1.-thimp*bdf)*dt*temp
+
+     if(numvar.ge.2) then
+        temp = PVV2(trial)*parvisc
+        ssterm(2) = ssterm(2) +     thimp     *dt*temp
+        ddterm(2) = ddterm(2) - (1.-thimp*bdf)*dt*temp
+     endif
+
+     if(numvar.ge.3) then
+        temp = PVV3(trial)*parvisc
+        ssterm(3) = ssterm(3) +     thimp     *dt*temp
+        ddterm(3) = ddterm(3) - (1.-thimp*bdf)*dt*temp
+     endif
+  endif
+
 end subroutine axial_vel_lin
 
 subroutine axial_vel_nolin(trial, r4term)
@@ -533,7 +575,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
   real, dimension(4), intent(out) :: rrterm, qqterm
   integer, intent(in) :: advfield
 
-  real :: temp
+  real :: temp, parvisc
   real :: ththm
 
   if(imp_mod.eq.1) then
@@ -731,6 +773,28 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
                 +v3chichin(trial,ch079,ch079,lin))
         end if
      end if
+  endif
+
+  ! Parallel Viscosity
+  if(amupar.ne.0) then
+     call PVS3(lin,temp79b)
+     parvisc = int2(vic79(:,OP_1),temp79b,weight_79,79)
+
+     temp = PVV1(trial)*parvisc
+     ssterm(1) = ssterm(1) +     thimp     *dt*temp
+     ddterm(1) = ddterm(1) - (1.-thimp*bdf)*dt*temp
+
+     if(numvar.ge.2) then
+        temp = PVV2(trial)*parvisc
+        ssterm(2) = ssterm(2) +     thimp     *dt*temp
+        ddterm(2) = ddterm(2) - (1.-thimp*bdf)*dt*temp
+     endif
+
+     if(numvar.ge.3) then
+        temp = PVV3(trial)*parvisc
+        ssterm(3) = ssterm(3) +     thimp     *dt*temp
+        ddterm(3) = ddterm(3) - (1.-thimp*bdf)*dt*temp
+     endif
   endif
 
 end subroutine compression_lin
@@ -1090,7 +1154,7 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   temp = b3pebd(trial,lin,bzt79,ni79)*dbf*pefac &
        + p1pu  (trial,lin,pht79)                & 
        + p1pchi(trial,lin,cht79)                & 
-       + b3pedkappa(trial,lin,ni79,kap79,hypp*sz79)*(gam-1.)
+       + b3pedkappa(trial,lin,ni79,kap79,hypp*sz79)
   ssterm(3) = ssterm(3) -     thimpb     *dt*temp
   ddterm(3) = ddterm(3) + (1.-thimpb*bdf)*dt*temp
 
@@ -1122,17 +1186,38 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   endif
 
   ! Anisotropic Heat Flux
-  if(kappar.ne.0) then
-     temp = kappar*(gam-1.)* &
-          (p1kappar(trial,lin,pst79,pet79,ni79,b2i79) &
-          +p1kappar(trial,pst79,lin,pet79,ni79,b2i79))
+  if(kappar.ne.0.) then
+     temp = (p1kappar(trial,lin,pst79,pet79,ni79,b2i79,kar79) &
+          +  p1kappar(trial,pst79,lin,pet79,ni79,b2i79,kar79))
      ssterm(1) = ssterm(1) - thimpb*dt*temp
      ddterm(1) = ddterm(1) - thimpb*dt*temp*bdf
      
-     temp = kappar*(gam-1.)* &
-          p1kappar(trial,pst79,pst79,lin,ni79,b2i79)
+     temp = p1kappar(trial,pst79,pst79,lin,ni79,b2i79,kar79)
      ssterm(3) = ssterm(3) -     thimpb     *dt*temp
      ddterm(3) = ddterm(3) + (1.-thimpb*bdf)*dt*temp
+
+     if(linear.eq.1 .or. eqsubtract.eq.1) then
+        temp = (p1kappar(trial,lin,pss79,pe079,ni79,b2i79,kar79) &
+             +  p1kappar(trial,pss79,lin,pe079,ni79,b2i79,kar79))
+        ddterm(1) = ddterm(1) + dt*temp
+     endif
+  endif
+
+  ! Cross-field Heat Flux
+  if(kappax.ne.0.) then
+     temp = p1kappax(trial,pe179,lin,ni79,kax79)
+     ssterm(2) = ssterm(2) - thimpb*dt*temp
+     ddterm(2) = ddterm(2) - thimpb*dt*temp*bdf
+
+     temp = p1kappax(trial,lin,bzt79,ni79,kax79)
+     ssterm(3) = ssterm(3) -     thimpb     *dt*temp
+     ddterm(3) = ddterm(3) + (1.-thimpb*bdf)*dt*temp
+
+     if(linear.eq.1 .or. eqsubtract.eq.1) then
+        temp = p1kappax(trial,pe079,lin,ni79,kax79)
+        ssterm(2) = ssterm(2) -     thimpb     *dt*temp
+        ddterm(2) = ddterm(2) + (1.-thimpb*bdf)*dt*temp
+     endif
   endif
               
   if(linear.eq.1 .or. eqsubtract.eq.1) then
@@ -1176,14 +1261,7 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
         rrterm(3) = rrterm(3) +     thimpb     *dt*temp
         qqterm(3) = qqterm(3) + (1.-thimpb*bdf)*dt*temp
      endif
-     
-     ! Anisotropic Heat Flux
-     if(kappar.ne.0) then
-        temp = kappar*(gam-1.)* &
-             (p1kappar(trial,lin,pss79,pe079,ni79,b2i79) &
-             +p1kappar(trial,pss79,lin,pe079,ni79,b2i79))
-        ddterm(1) = ddterm(1) + dt*temp
-     endif
+
   endif
 
 end subroutine electron_pressure_lin
@@ -1221,7 +1299,8 @@ subroutine electron_pressure_nolin(trial, r4term)
           (quumu    (trial,pht79,pht79,vis79,      hypc*sz79) &
           +qvvmu    (trial,vzt79,vzt79,vis79,      hypv*sz79) &
           +quchimu  (trial,pht79,cht79,vis79,vic79,hypc*sz79) &
-          +qchichimu(trial,cht79,cht79,      vic79,hypc*sz79))
+          +qchichimu(trial,cht79,cht79,      vic79,hypc*sz79) &
+          +p1vip    (trial))
   endif
 
   ! density terms
@@ -1229,8 +1308,7 @@ subroutine electron_pressure_nolin(trial, r4term)
   if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
      r4term = r4term + dt* &
           (b3pebd(trial,pe079,bz079,ni79)*dbf*pefac &
-          +p1kappar(trial,ps079,ps079,pe079,ni79,b2i79) &
-          *kappar*(gam-1.))
+          +p1kappar(trial,ps079,ps079,pe079,ni79,b2i79,kar79))
      if(ipres.eq.1) then
         r4term = r4term + dt* &
              (p1uus    (trial,ph079,ph079,sig79) &
@@ -1274,12 +1352,13 @@ subroutine ludefall
   integer :: def_fields
   real :: x, z, xmin, zmin, factor
 
-  real :: tstart, tend, tfield, telm
+  real :: tstart, tend, tfield, telm, tsizefield, tfinalize
 
   double precision cogcoords(3)
 
   tfield = 0.
   telm = 0.
+  tsizefield = 0.
 
   call numfac(numelms)
   call getmincoord(xmin,zmin)
@@ -1350,47 +1429,42 @@ subroutine ludefall
      bdf = 1.
   endif
 
-
   ! Loop over elements
   do itri=1,numelms
 
-     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-
-     ! calculate the field values and derivatives at the sampling points
-     call define_fields_79(itri, def_fields)
-
-     if(myrank.eq.0 .and. itimer.eq.1) then
-        call second(tend)
-        tfield = tfield + tend - tstart
-     endif
-     
      call cogfac(itri,cogcoords)
      x = cogcoords(1)-xmin
      z = cogcoords(2)-zmin
-     call mask(x,z,factor)
-     
+   
      if(imask.eq.1) then
+        call mask(x,z,factor)
         dbf = db*factor
      else
         dbf = db
      endif
 
-     hypf = hyper *deex**2
-     hypi = hyperi*deex**2
-     hypv = hyperv*deex**2
-     hypc = hyperc*deex**2
-     hypp = hyperp*deex**2
-     call interpolate_size_field(itri)
-
+     ! calculate the field values and derivatives at the sampling points
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-
+     call define_fields_79(itri, def_fields)
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        tfield = tfield + tend - tstart
+     endif
+     
      ! add element's contribution to matrices
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call ludefvel_n(itri)
      call ludefphi_n(itri)
      if(idens.eq.1) call ludefden_n(itri)
      if(ipres.eq.1) call ludefpres_n(itri)
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        telm = telm + tend - tstart
+     endif
 
   end do
+
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
   ! since a proc is contributing values to parts of the vector
   ! it does not own, we call sumshareddofs so that these values
@@ -1431,7 +1505,19 @@ subroutine ludefall
      endif ! on ipres.eq.1
   endif
 
+  if(myrank.eq.0 .and. itimer.eq.1) then
+     call second(tend)
+     tfinalize = tfinalize + tend - tstart
+  endif
+
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done defining matrices."
+
+  if(myrank.eq.0 .and. itimer.eq.1) then
+     print *, '  Time spent defining fields: ', tfield
+     print *, '  Time spent interpolating size field: ', tsizefield
+     print *, '  Time spent calculating elements: ', telm
+     print *, '  Time spent finalizing arrays: ', tfinalize
+  endif
 
 end subroutine ludefall
 
@@ -1957,8 +2043,9 @@ subroutine ludefpres_n(itri)
         ! ~~~~~~~~~~
         if(numvar.ge.3) then
            temp = p1pchi    (g79(:,:,i),g79(:,:,j),cht79) &
-                + b3pedkappa(g79(:,:,i),g79(:,:,j),ni79,kap79,hypp*sz79)*(gam-1.) &
-                + p1kappar  (g79(:,:,i),ps079,ps079,g79(:,:,j),ni79,b2i79)*kappar*(gam-1.)
+                + b3pedkappa(g79(:,:,i),g79(:,:,j),ni79,kap79,hypp*sz79) &
+                + p1kappar  (g79(:,:,i),pst79,pst79,g79(:,:,j),ni79,b2i79,kar79) &
+                + p1kappax  (g79(:,:,i),g79(:,:,j),bzt79,ni79,kax79)
            ssterm = ssterm -     thimp     *dt*temp
            ddterm = ddterm + (1.-thimp*bdf)*dt*temp
            
@@ -2040,9 +2127,9 @@ subroutine ludefpres_n(itri)
      if(linear.eq.1 .or. eqsubtract.eq.1) then
                 
         qp4(ione) = qp4(ione) + dt* &
-             (b3pedkappa(g79(:,:,i),p079,ni79,kap79,hypp*sz79)*(gam-1.) &
-             +p1kappar  (g79(:,:,i),ps079,ps079,p079,ni79,b2i79) &
-              *kappar*(gam-1.)  &
+             (b3pedkappa(g79(:,:,i),p079,ni79,kap79,hypp*sz79) &
+             +p1kappar  (g79(:,:,i),ps079,ps079,p079,ni79,b2i79,kar79) &
+             +p1kappax  (g79(:,:,i),pe079,bz079,ni79,kax79) &
              +p1uus    (g79(:,:,i),ph079,ph079,sig79) &
              +p1vvs    (g79(:,:,i),vz079,vz079,sig79) &
              +p1chichis(g79(:,:,i),ch079,ch079,sig79) &

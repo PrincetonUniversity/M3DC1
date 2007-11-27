@@ -414,12 +414,6 @@ subroutine calculate_scalars()
 !  
   call reset_scalars()
 
-  hypf = hyper *deex**2
-  hypi = hyperi*deex**2
-  hypv = hyperv*deex**2
-  hypc = hyperc*deex**2
-  hypp = hyperp*deex**2
-
   ! Specify which fields need to be calculated
   def_fields = FIELD_PSI + FIELD_PHI + FIELD_J + FIELD_ETA + FIELD_MU
   if(numvar.ge.2) def_fields = def_fields + FIELD_I + FIELD_V
@@ -465,12 +459,6 @@ subroutine calculate_scalars()
 
      call define_fields_79(itri, def_fields)
 
-     hypf = hyper *deex**2
-     hypi = hyperi*deex**2
-     hypv = hyperv*deex**2
-     hypc = hyperc*deex**2
-     hypp = hyperp*deex**2
-     call interpolate_size_field(itri)
 
 !!$     do i=1,79
 !!$        call mask(x_79(i)-xzero,z_79(i)-zzero,factor)
@@ -506,8 +494,9 @@ subroutine calculate_scalars()
               sp1(ione) = sp1(ione) &
                    + b3psipsieta(g79(:,:,i),pst79,pst79,eta79)   &
                    + b3bbeta    (g79(:,:,i),bzt79,bzt79,eta79)   &
-!                   + b3pedkappa (g79(:,:,i),pt79,ni79,kappat,hypp*sz79)*(gam-1.) &
-!                   + p1kappar   (g79(:,:,i),pst79,pst79,pet79,ni79,b2i79)*kappar*(gam-1.) &
+!                   + b3pedkappa (g79(:,:,i),pt79,ni79,kappat,hypp*sz79) &
+!                   + p1kappar   (g79(:,:,i),pst79,pst79,pet79,ni79,b2i79,kar79) &
+!                   + p1kappax   (g79(:,:,i),pet79,bzt79,ni79,b2i79,kar79) &
                    + b3pebd(g79(:,:,i),pet79,bzt79,ni79)*dbf*pefac
               
               ! ohmic heating
