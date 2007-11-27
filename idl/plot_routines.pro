@@ -207,10 +207,7 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     endif 
     
     if(width lt 0.3) then width1 = 0.3 else width1 = width
-
-    charsize = !p.charsize
-    !p.charsize = (region[2]-region[0]) + 0.2
-    
+   
     if n_elements(label) eq 0 then label = ''
 
     if(n_elements(range) lt 2) then begin
@@ -243,8 +240,10 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
         else loadct, 3
     endif else loadct, ct
 
-    ; plot the color scale
+    charsize = !p.charsize
+    !p.charsize = (region[2]-region[0]) + 0.2
 
+    ; plot the color scale
     !p.region = [region[0]+width1, region[1], region[2], top+region[1]]
     
     xx = indgen(2)

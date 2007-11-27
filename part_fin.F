@@ -81,7 +81,6 @@ c$$$      return
          vecsize1 = vecsize
       endif
 
-
       ! create numberings
       call createdofnumbering(numvar1_numbering, iper, jper, 
      &     6, 0, 0, 0, maxdofs1)
@@ -91,19 +90,6 @@ c$$$      return
          call createdofnumbering(vecsize, iper, jper,
      &        vecsize*6, 0, 0, 0, maxdofsn)
       endif
-c$$$      if(numvar .ge. 3) then
-c$$$         call createdofnumbering(numvar3_numbering, iper, jper, 
-c$$$     &        18, 0, 0, 0, maxdofs3)
-c$$$      endif
-c$$$      if(numvar .eq. 4) then
-c$$$         call createdofnumbering(numvar4_numbering, iper, jper, 
-c$$$     &        24, 0, 0, 0, maxdofs4)
-c$$$      endif
-c$$$      if(numvar .eq. 6) then
-c$$$         call createdofnumbering(numvar6_numbering, iper, jper, 
-c$$$     &        36, 0, 0, 0, maxdofs6)
-c$$$      endif
-
 
       call numnod(numnodes)
       call numfac(numelms)

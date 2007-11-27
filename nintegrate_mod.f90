@@ -32,15 +32,15 @@ integer, parameter :: FIELD_SIG = 32768
 integer, parameter :: FIELD_SRC = 65536
 integer, parameter :: FIELD_MU  =131072
 
-real, dimension(25) :: x_25, z_25
-real, dimension(25) :: r_25, r2_25, ri_25, ri2_25, ri3_25, ri4_25
-real, dimension(25, OP_NUM, 18) :: g25
-real, dimension(25, OP_NUM) :: ps025, bz025, pe025, n025, p025, ph025, vz025, ch025
-real, dimension(25, OP_NUM) :: ps125, bz125, pe125, n125, p125, ph125, vz125, ch125
-real, dimension(25, OP_NUM) :: pst25, bzt25, pet25, nt25, pt25, pht25, vzt25, cht25
+!!$real, dimension(25) :: x_25, z_25
+!!$real, dimension(25) :: r_25, r2_25, ri_25, ri2_25, ri3_25, ri4_25
+!!$real, dimension(25, OP_NUM, 18) :: g25
+!!$real, dimension(25, OP_NUM) :: ps025, bz025, pe025, n025, p025, ph025, vz025, ch025
+!!$real, dimension(25, OP_NUM) :: ps125, bz125, pe125, n125, p125, ph125, vz125, ch125
+!!$real, dimension(25, OP_NUM) :: pst25, bzt25, pet25, nt25, pt25, pht25, vzt25, cht25
 
-real, dimension(25) :: si_25, eta_25, weight_25
-real, dimension(25) ::  alpha_25, beta_25, gamma_25, area_weight_25
+!!$real, dimension(25) :: si_25, eta_25, weight_25
+!!$real, dimension(25) ::  alpha_25, beta_25, gamma_25, area_weight_25
 
 real, dimension(79) :: x_79, z_79
 real, dimension(79) :: r_79, r2_79, ri_79, ri2_79, ri3_79, ri4_79, ri5_79, ri6_79, ri7_79
@@ -49,48 +49,50 @@ real, dimension(79, OP_NUM) :: tm79, ni79, b2i79, sb179, sb279, sp179
 real, dimension(79, OP_NUM) :: ps079, bz079, pe079, n079, p079, ph079, vz079, ch079
 real, dimension(79, OP_NUM) :: ps179, bz179, pe179, n179, p179, ph179, vz179, ch179
 real, dimension(79, OP_NUM) :: pst79, bzt79, pet79, nt79, pt79, pht79, vzt79, cht79
-real, dimension(79, OP_NUM) :: pss79, bzs79, phs79, vzs79, chs79, vis79, vic79
-real, dimension(79, OP_NUM) :: jt79, cot79, vot79, pit79, eta79, kap79, sig79, sz79
+real, dimension(79, OP_NUM) :: pss79, bzs79, phs79, vzs79, chs79
+real, dimension(79, OP_NUM) :: vis79, vic79, vip79
+real, dimension(79, OP_NUM) :: jt79, cot79, vot79, pit79, eta79, sig79, sz79
+real, dimension(79, OP_NUM) :: kap79, kar79, kax79
 real, dimension(79) :: temp79a, temp79b, temp79c, temp79d, temp79e, temp79f
 
 real, dimension(79) :: si_79, eta_79, weight_79
 real, dimension(79) ::  alpha_79, beta_79, gamma_79, area_weight_79
 
-data alpha_25 &
-     / 0.333333333333333, 0.028844733232685, 0.485577633383657, 0.485577633383657, &
-       0.781036849029926, 0.109481575485037, 0.109481575485037, 0.141707219414880, &
-       0.307939838764121, 0.550352941820999, 0.307939838764121, 0.141707219414880, &
-       0.550352941820999, 0.025003534762686, 0.246672560639903, 0.728323904597411, &
-       0.246672560639903, 0.025003534762686, 0.728323904597411, 0.009540815400299, &
-       0.066803251012200, 0.923655933587500, 0.066803251012200, 0.009540815400299, &
-       0.923655933587500 /
-
-data beta_25 &
-     / 0.333333333333333, 0.485577633383657, 0.485577633383657, 0.028844733232685, &
-       0.109481575485037, 0.109481575485037, 0.781036849029926, 0.307939838764121, &
-       0.550352941820999, 0.141707219414880, 0.141707219414880, 0.550352941820999, &
-       0.307939838764121, 0.246672560639903, 0.728323904597411, 0.025003534762686, &
-       0.025003534762686, 0.728323904597411, 0.246672560639903, 0.066803251012200, &
-       0.923655933587500, 0.009540815400299, 0.009540815400299, 0.923655933587500, &
-       0.066803251012200 /
-
-data gamma_25 &
-     / 0.333333333333333, 0.485577633383657, 0.028844733232685, 0.485577633383657, &
-       0.109481575485037, 0.781036849029926, 0.109481575485037, 0.550352941820999, &
-       0.141707219414880, 0.307939838764121, 0.550352941820999, 0.307939838764121, &
-       0.141707219414880, 0.728323904597411, 0.025003534762686, 0.246672560639903, &
-       0.728323904597411, 0.246672560639903, 0.025003534762686, 0.923655933587500, &
-       0.009540815400299, 0.066803251012200, 0.923655933587500, 0.066803251012200, &
-       0.009540815400299 /
-
-data area_weight_25 &
-     / 0.090817990382754, 0.036725957756467, 0.036725957756467, 0.036725957756467, &
-       0.045321059435528, 0.045321059435528, 0.045321059435528, 0.072757916845420, &
-       0.072757916845420, 0.072757916845420, 0.072757916845420, 0.072757916845420, &
-       0.072757916845420, 0.028327242531057, 0.028327242531057, 0.028327242531057, &
-       0.028327242531057, 0.028327242531057, 0.028327242531057, 0.009421666963733, &
-       0.009421666963733, 0.009421666963733, 0.009421666963733, 0.009421666963733, &
-       0.009421666963733 /
+!!$data alpha_25 &
+!!$     / 0.333333333333333, 0.028844733232685, 0.485577633383657, 0.485577633383657, &
+!!$       0.781036849029926, 0.109481575485037, 0.109481575485037, 0.141707219414880, &
+!!$       0.307939838764121, 0.550352941820999, 0.307939838764121, 0.141707219414880, &
+!!$       0.550352941820999, 0.025003534762686, 0.246672560639903, 0.728323904597411, &
+!!$       0.246672560639903, 0.025003534762686, 0.728323904597411, 0.009540815400299, &
+!!$       0.066803251012200, 0.923655933587500, 0.066803251012200, 0.009540815400299, &
+!!$       0.923655933587500 /
+!!$
+!!$data beta_25 &
+!!$     / 0.333333333333333, 0.485577633383657, 0.485577633383657, 0.028844733232685, &
+!!$       0.109481575485037, 0.109481575485037, 0.781036849029926, 0.307939838764121, &
+!!$       0.550352941820999, 0.141707219414880, 0.141707219414880, 0.550352941820999, &
+!!$       0.307939838764121, 0.246672560639903, 0.728323904597411, 0.025003534762686, &
+!!$       0.025003534762686, 0.728323904597411, 0.246672560639903, 0.066803251012200, &
+!!$       0.923655933587500, 0.009540815400299, 0.009540815400299, 0.923655933587500, &
+!!$       0.066803251012200 /
+!!$
+!!$data gamma_25 &
+!!$     / 0.333333333333333, 0.485577633383657, 0.028844733232685, 0.485577633383657, &
+!!$       0.109481575485037, 0.781036849029926, 0.109481575485037, 0.550352941820999, &
+!!$       0.141707219414880, 0.307939838764121, 0.550352941820999, 0.307939838764121, &
+!!$       0.141707219414880, 0.728323904597411, 0.025003534762686, 0.246672560639903, &
+!!$       0.728323904597411, 0.246672560639903, 0.025003534762686, 0.923655933587500, &
+!!$       0.009540815400299, 0.066803251012200, 0.923655933587500, 0.066803251012200, &
+!!$       0.009540815400299 /
+!!$
+!!$data area_weight_25 &
+!!$     / 0.090817990382754, 0.036725957756467, 0.036725957756467, 0.036725957756467, &
+!!$       0.045321059435528, 0.045321059435528, 0.045321059435528, 0.072757916845420, &
+!!$       0.072757916845420, 0.072757916845420, 0.072757916845420, 0.072757916845420, &
+!!$       0.072757916845420, 0.028327242531057, 0.028327242531057, 0.028327242531057, &
+!!$       0.028327242531057, 0.028327242531057, 0.028327242531057, 0.009421666963733, &
+!!$       0.009421666963733, 0.009421666963733, 0.009421666963733, 0.009421666963733, &
+!!$       0.009421666963733 /
 
 data alpha_79 &
      / 0.333333333333333,-0.001900928704400, 0.500950464352200, 0.500950464352200, &
@@ -347,40 +349,40 @@ subroutine eval_ops(avector,si,eta,theta,rinv,ngauss,outarr)
 
 end subroutine eval_ops
 
-!=====================================================
-! define_fields_25
-!=====================================================
-subroutine define_fields_25(itri)
-
-  use basic
-  use t_data
-  use arrays
-
-  implicit none
- 
-  integer, intent(in) :: itri
-  integer :: i
-  real, dimension(20) :: avec
-
-  ! calculate the local sampling points and weights for numerical integration
-  call area_to_local(25,                                            &
-       alpha_25,beta_25,gamma_25,area_weight_25,                    &
-       atri(itri), btri(itri), ctri(itri),                          &
-       si_25, eta_25, weight_25)
-
-  call calcpos(itri, si_25, eta_25, 25, x_25, z_25)
-  if(itor.eq.1) then 
-     r_25 = x_25 
-  else 
-     r_25 = 1.
-  endif
-  ri_25 = 1./r_25
-  ri2_25 = ri_25*ri_25
-  ri3_25 = ri2_25*ri_25
-  ri4_25 = ri2_25*ri2_25
-  r2_25 = r_25*r_25
-
-  weight_25 = weight_25*r_25
+!!$!=====================================================
+!!$! define_fields_25
+!!$!=====================================================
+!!$subroutine define_fields_25(itri)
+!!$
+!!$  use basic
+!!$  use t_data
+!!$  use arrays
+!!$
+!!$  implicit none
+!!$ 
+!!$  integer, intent(in) :: itri
+!!$  integer :: i
+!!$  real, dimension(20) :: avec
+!!$
+!!$  ! calculate the local sampling points and weights for numerical integration
+!!$  call area_to_local(25,                                            &
+!!$       alpha_25,beta_25,gamma_25,area_weight_25,                    &
+!!$       atri(itri), btri(itri), ctri(itri),                          &
+!!$       si_25, eta_25, weight_25)
+!!$
+!!$  call calcpos(itri, si_25, eta_25, 25, x_25, z_25)
+!!$  if(itor.eq.1) then 
+!!$     r_25 = x_25 
+!!$  else 
+!!$     r_25 = 1.
+!!$  endif
+!!$  ri_25 = 1./r_25
+!!$  ri2_25 = ri_25*ri_25
+!!$  ri3_25 = ri2_25*ri_25
+!!$  ri4_25 = ri2_25*ri2_25
+!!$  r2_25 = r_25*r_25
+!!$
+!!$  weight_25 = weight_25*r_25
 
 !!$  call calcavector(itri, vel, 1, numvar, avec)
 !!$  call eval_ops(avec, si_25, eta_25, ttri(itri), ri_25,25, ph125)
@@ -473,12 +475,12 @@ subroutine define_fields_25(itri)
 !!$        nt25 = n125
 !!$     endif
 !!$  endif
-
-  do i=1,18
-     call eval_ops(gtri(:,i,itri), si_25, eta_25, ttri(itri), ri_25, 25, g25(:,:,i))
-  end do
-
-end subroutine define_fields_25
+!!$
+!!$  do i=1,18
+!!$     call eval_ops(gtri(:,i,itri), si_25, eta_25, ttri(itri), ri_25, 25, g25(:,:,i))
+!!$  end do
+!!$
+!!$end subroutine define_fields_25
 
 
 !=====================================================
@@ -503,6 +505,16 @@ subroutine define_fields_79(itri, fields)
        atri(itri), btri(itri), ctri(itri),                          &
        si_79, eta_79, weight_79)
 
+  ! calculate the hyperviscosity coefficients and
+  ! the size field for this element.
+  hypf = hyper *deex**2
+  hypi = hyperi*deex**2
+  hypv = hyperv*deex**2
+  hypc = hyperc*deex**2
+  hypp = hyperp*deex**2
+  call interpolate_size_field(itri)
+
+  ! calculate the major radius, and useful powers
   call calcpos(itri, si_79, eta_79, 79, x_79, z_79)
   if(itor.eq.1) then 
      r_79 = x_79 
@@ -642,7 +654,6 @@ subroutine define_fields_79(itri, fields)
      endif
   endif
 
-  
   ! P & PE
   ! ~~~~~~
   if((iand(fields, FIELD_PE).eq.FIELD_PE) .or. &
@@ -754,7 +765,6 @@ subroutine define_fields_79(itri, fields)
         ni79(:,OP_1) = 1.
      endif
   endif
-
   
   ! J
   ! ~
@@ -821,14 +831,6 @@ subroutine define_fields_79(itri, fields)
         b2i79(:,OP_DR) = b2i79(:,OP_DR) + 2.*b2i79(:,OP_1)*ri_79
      endif
 
-!!$     b2i79(:,OP_1) = 1./(pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2 + bzt79(:,OP_1)**2)
-!!$     b2i79(:,OP_DR) = -2.*b2i79(:,OP_1)**2 &
-!!$          *(pst79(:,OP_DR)*pst79(:,OP_DRR) + pst79(:,OP_DZ)*pst79(:,OP_DRZ) &
-!!$           +bzt79(:,OP_1 )*bzt79(:,OP_DR ))
-!!$     b2i79(:,OP_DZ) = -2.*b2i79(:,OP_1)**2 &
-!!$          *(pst79(:,OP_DR)*pst79(:,OP_DRZ) + pst79(:,OP_DZ)*pst79(:,OP_DZZ) &
-!!$           +bzt79(:,OP_1 )*bzt79(:,OP_DZ ))
-
   endif
 
 
@@ -848,6 +850,11 @@ subroutine define_fields_79(itri, fields)
 
      call calcavector(itri, kappa, 1, 1, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, kap79)
+     
+     kar79 = 0.
+     kar79(:,OP_1) = kappar
+     kax79 = 0.
+     kax79(:,OP_1) = kappax
   end if
 
   ! SIG
@@ -873,6 +880,8 @@ subroutine define_fields_79(itri, fields)
         call calcavector(itri, visc_c, 1, 1, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, vic79)
      endif
+
+     if(amupar.ne.0) vip79 = amupar*pit79/2.
   end if
 
   do i=1,18
@@ -1170,7 +1179,8 @@ subroutine evaluate(x,z,ans,ans2,dum,itype,numvare,itri)
   if(maxrank.gt.1) then
      temp1(1) = ans
      temp1(2) = ans2
-     call mpi_allreduce(temp1, temp2, 2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
+     call mpi_allreduce(temp1, temp2, 2, MPI_DOUBLE_PRECISION, MPI_SUM, &
+          MPI_COMM_WORLD, ier)
      ans = temp2(1)
      ans2 = temp2(2)
   endif

@@ -93,9 +93,6 @@
 !     itest = 4 for Taylor problem  (Fitzpatrick base case)
 !     itest = 5 for tilting columns - two fluid (linear)
 !
-!.....switch for second order time advance:
-      isecondorder = 0
-!
 !.....linear parameter  0-nonlinear,  1-linear
       linear = 0
 !
@@ -148,12 +145,14 @@
 !
 !.....viscosity, resistivity, and heat conduction
       amu = 0.0
+      amupar = 0.0
       etar = 0.0
       eta0 = 0.0
       kappat = 0.0
       kappar = 0.0
       kappa0 = 0.0
       kappah = 0.0
+      kappax = 0.0
 !
 !.....ratio of specific heats
       gam = 5./3.
@@ -202,11 +201,8 @@
 !
       amu_edge = 0.
 !
-!
       isources = 0
 !
-!......maximum in taylor expansion loop (5 is maximum)
-      maxs = 5
 !.....how many cycles to skip before inverting matrix
       nskip = 1
 !
@@ -266,243 +262,10 @@
 !.....1 = conserve toroidal flux
       iconstflux = 0
 !
-      if(itest.eq.0) then
-        open(5,file='C1input',form='formatted',status='old')
-        read(5,nml=inputnl)
-        if(amuc.eq.0) amuc = amu
-        if(thimp_ohm.lt.0) thimp_ohm = thimp
-        go to 100
-      endif
-      go to (1,2,3,4,5,6,7,8,9,10), itest
-!
- 1    continue
-!.....itest=1 tilting columns (nonlinear)
-      itaylor = 0
-      dt = 0.05
-      facd = 1.
-      etar = .0010
-      amu = .001
-      kappat = .001
-      hyper = 0.0
-      hyperi= 0.0
-      hyperv = 0.0
-      hyperc = 0.0
-      hyperp= 0.0
-      db = .0001
-      ntimemax = 100
-      ntimepr = 1
-      thimp = 0.55
-!      isetup = 0
-      imask = 1
-      numvar = 2
-      bzero = 1.
-      go to 100
-!
- 2    continue
-!.....itest=2 Taylor problem, high resistivity
-      itaylor = 1
-      dt = 0.5
-      facd = 0.
-      etar = .0001
-      amu  = .00010
-      kappat = .0001
-      hyper = 1.00
-      hyperi = 1.00
-      hyperv = 1.0
-      hyperc = 1.0
-      hyperp= 0.50
-      db = 0.0
-      ntimemax = 80
-      ntimepr   = 10
-      thimp = 0.6
-!      isetup = 1
-      numvar = 2
-      imask = 0
-      bzero = 0.
-      go to 100
- 3    continue
-!.....itest=3  tilting columns--linear
-      linear = 1
-      itaylor = 0
-      dt = 0.10
-      facd = 1.
-      etar = .0001
-      amu = .0001
-      kappat = .0001
-      hyper = 0.
-      hyperi = 0.
-      hyperv = 0.0
-      hyperc = 0.0
-      db = 0.
-      ntimemax = 80
-      ntimepr = 5
-      thimp = 0.80
-!      isetup = 0
-      imask = 0
-!
-      go to 100
- 4    continue
-!.....itest=4 Taylor problem..Fitzpatrick base case with eta=mu=1.e-5
-      itaylor = 1
-      dt = 2.0
-      facd = 0.
-      etar = .000010
-      amu  = .0000100
-      kappat = .00001
-      hyper = 0.
-      hyperi = 0.
-      hyperv = 0.0
-      hyperc = 0.0
-      hyperp= 0.50
-      db = 0.
-      ntimemax = 40
-      ntimepr   = 5
-      thimp = 0.60
-!      isetup = 1
-      go to 100
- 5    continue
-!.....itest=5 tilting columns--linear-two fluid
-      linear = 1
-      numvar = 2
-      itaylor = 0
-      dt = 0.05
-      facd = 1.
-      etar = .001
-      amu = .001
-      kappat = .001
-      hyper = 1.00
-      hyperi = 1.00
-      hyperv = 4.0
-      hyperc = 4.0
-      hyperp= 1.0
-      db = 0.2
-      ntimemax = 81
-      ntimepr = 1
-      thimp = 0.51
-!      isetup = 0
-      irestart = 0  !0=start from scratch;  1=restart
-      imask = 0
-      bzero = 1.
-      beta = 0.0
-!
-      go to 100
- 6    continue
-!.....itest=6 Taylor problem..eta=mu=1.e-5, with two-fluid terms
-      itaylor = 1
-      dt = 2.0
-      facd = 0.
-      etar = 0.00010
-      amu  = 0.0000100
-      kappat= 0.00001
-      hyper = .0010
-      hyperi = .0010
-      hyperv = .0010
-      hyperc = .0010
-      hyperp= 0.50
-      db = 0.
-      ntimemax = 20
-      ntimepr   = 10
-      thimp = 0.6
-!      isetup = 0
-      imask = 1
-      go to 100
-!
- 7    continue
-!.....itest=7 tilting columns--non-linear-two fluid
-      itaylor = 0
-      dt = 0.025
-      facd = 1.
-      etar = .0010
-      amu = .0010
-      kappat = .001
-      hyper =  1.
-      hyperi = 1.
-      hyperv = 1.
-      hyperc = 1.
-      hyperp= 0.50
-      db = .4
-      ntimemax = 5
-      ntimepr = 5
-      thimp = 0.55
-!      isetup = 0
-      imask = 0
-      numvar = 2
-      bzero = 0.001
-      go to 100
-!
-    8 continue
-!.....itest=8 Taylor state
-      itaylor = 2
-      dt = 0.18
-      facd = 1.
-      etar = .0001
-      amu = .0001
-      kappat = .0001
-      hyper = .00
-      hyperi = 0.0
-      hyperv = 0.0
-      hyperc = 0.0
-      hyperp= 0.50
-      db = 0.
-      ntimemax = 10
-      ntimepr = 2
-      thimp = 0.6
-!      isetup = 0
-      imask = 0
-      go to 100
-!
-    9 continue
-!.....itest=9 GEM reconnection
-      linear = 0
-      itaylor = 3
-      dt = .25
-      facd = 0.
-      etar = .0010
-      amu = .0010
-      kappat = .001
-      hyper = 1.0  !hyper-resistivity coefficient
-      hyperi = 1.0 !hyper-resistivity coefficient for I
-      hyperv = 2.0 !hyper-viscosity coefficient for V
-      hyperc = 0.0 !hyper-viscosity coefficient for chi
-      hyperp= 0.50
-      db = 0.0001
-      ntimemax = 150
-      ntimepr = 50
-      thimp = .60
-!      isetup = 1
-      imask = 1
-      bzero = 0.
-      numvar = 2
-      eps = 0.1
-      go to 100
-!
-   10 continue
-!.....itest=10 GEM reconnection...(two fluid)
-      linear = 0
-      itaylor = 3
-      dt = 0.25    !time step size
-      facd = 0.
-      etar = .0010
-      amu = .0010
-      kappat = .001
-      hyper = 2.00  !hyper-resistivity coefficient
-      hyperi = 2.00 !hyper-resistivity coefficient for I
-      hyperv = 4.0 !hyper-viscosity coefficient for V
-      hyperc = 4.0 !hyper-viscosity coefficient for chi
-      hyperp= 1.00
-      db = 1.0
-      ntimemax = 50  !Number of time steps
-      ntimepr = 10
-      thimp = 0.6
-!      isetup = 0  !0=already exists; 1=recalc
-      irestart = 1  !0=start from scratch;  1=restart
-      imask = 1
-      bzero = 0.0
-      numvar = 3
-      eps = 0.1
-      go to 100
- 100  continue
-!
+      open(5,file='C1input',form='formatted',status='old')
+      read(5,nml=inputnl)
+      if(amuc.eq.0) amuc = amu
+      if(thimp_ohm.lt.0) thimp_ohm = thimp
 !      
       if(myrank.eq.0) write(*,nml=inputnl)
       return

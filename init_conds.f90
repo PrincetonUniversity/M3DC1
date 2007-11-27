@@ -548,7 +548,17 @@ subroutine gem_reconnection_equ(x, z)
 
   ! if numvar >= 3, then use pressure to satisfy force balance
   if(numvar.ge.3) then
-     call constant_field(bz0_l(1:6), bzero)
+
+     bz0_l(1) = sqrt(bzero**2 + (1.-2.*p0)*sech(2.*z)**2)
+     bz0_l(2) = 0.
+     bz0_l(3) = -(1.-2.*p0)*2.*tanh(2.*z)*sech(2.*z)**2/bz0_l(1)
+     bz0_l(4) = 0.
+     bz0_l(5) = 0.
+     bz0_l(6) = (1.-2.*p0)*(2.*sech(2.*z)**2/bz0_l(1))            &
+          *(bz0_l(3)*tanh(2.*z)/bz0_l(1)                          &
+          - 2.*sech(2.*z)**2 + 4.*tanh(2.*z)**2)
+
+!     call constant_field(bz0_l(1:6), bzero)
 
      pezero = p0 - pi0*ipres
     

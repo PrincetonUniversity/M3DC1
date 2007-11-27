@@ -485,7 +485,7 @@ Program Reducedquintic
   if(vecsize.gt.2)  call deletedofnumbering(vecsize)
 
   if (myrank.eq.0 .and. maxrank.eq.1) call plote
-  
+
 5003 format(" linear, itaylor, isetup, imask, irestart: ",             &
           5i4, / ," facd, bzero, eps ", 1p3e12.4)
 2323 format(1p5e12.4)
