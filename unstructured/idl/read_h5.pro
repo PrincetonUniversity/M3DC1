@@ -753,6 +753,17 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
        data = sqrt((xx-x0)^2 + (zz-z0)^2)
 
    ;===========================================
+   ; toroidal current density
+   ;===========================================
+    endif else if(strcmp('jphi', name, /fold_case) eq 1) then begin
+
+        psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange)
+
+        data = -grad_shafranov(psi,x,y,tor=itor)
+
+   ;===========================================
    ; vorticity
    ;===========================================
 ;    endif else if(strcmp('vor', name, /fold_case) eq 1) then begin
@@ -1211,8 +1222,9 @@ end
 ;============================================
 ; plot_energy
 ;============================================
-pro plot_energy, name, filename=filename, yrange=yrange, norm=norm, $
-                 overplot=overplot, per_length=per_length, _EXTRA=extra
+pro plot_energy, name, filename=filename, norm=norm, diff=diff, $
+                 overplot=overplot, per_length=per_length, $
+                 yrange=yrange, _EXTRA=extra
 
    if(n_elements(name) eq 0) then begin
        print, "Usage: plot_energy, name"
@@ -1225,31 +1237,48 @@ pro plot_energy, name, filename=filename, yrange=yrange, norm=norm, $
        return
    endif
 
+   xtitle = '!8t !6(!7s!D!8A!N!6)!3'
+
+   power_units = " !6(!8B!D!60!U2!N!8L!U!63!N/4!7ps!D!8A!N!6)!X"
+   energy_units = " !6(!8B!D!60!U2!N!8L!U!63!N/4!7p!6)!X"
+   number_units = " !6(!8n!D!60!N/!7s!D!8A!N!6)!X"
+   rate_units = " !6(!7s!D!8A!6!U-1!N)!X"
+
    if(strcmp(name, 'error', /fold_case) eq 1) then begin
        tot = energy_error(filename=filename, comp=comp, names=names, t=t)
-       title  = '!6Error!3'
-       xtitle = '!8t !6(!7s!D!8A!N!6)!3'
-       ytitle = '!6Power (!8B!D!60!U2!N!8L!U!63!N/4!7ps!D!8A!N!6)!3'
+       norm_tot = energy(filename=filename)
+       title  = '!6Error!X'
+       ytitle = '!6Power!X'
+       units = power_units
+       norm_units = rate_units
    endif else if(strcmp(name, 'flux', /fold_case) eq 1) then begin
        tot = energy_flux(filename=filename, comp=comp, names=names, t=t)
-       title  = '!6Energy Flux!3'
-       xtitle = '!8t !6(!7s!D!8A!N!6)!3'
-       ytitle = '!6Power (!8B!D!60!U2!N!8L!U!63!N/4!7ps!D!8A!N!6)!3'
+       norm_tot = energy(filename=filename)
+       title  = '!6Energy Flux!X'
+       ytitle = '!6Power!X'
+       units = power_units
+       norm_units = rate_units
    endif else if(strcmp(name, 'dissipated', /fold_case) eq 1) then begin
        tot = energy_dissipated(filename=filename, comp=comp, names=names, t=t)
-       title  = '!6Dissipated Power!3'
-       xtitle = '!8t !6(!7s!D!8A!N!6)!3'
-       ytitle = '!6Power (!8B!D!60!U2!N!8L!U!63!N/4!7ps!D!8A!N!6)!3'
+       norm_tot = energy(filename=filename)
+       title  = '!6Dissipated Power!X'
+       ytitle = '!6Power!X'
+       units = power_units
+       norm_units = rate_units
    endif else if(strcmp(name, 'particle flux', /fold_case) eq 1) then begin
        tot = particle_flux(filename=filename, comp=comp, names=names, t=t)   
-       title  = '!6Particle Flux!3'
-       xtitle = '!8t !6(!7s!D!8A!N!6)!3'
-       ytitle = '!6Particle Flux (!8n!D!60!N/!7s!D!8A!N!6)!3'
+       norm_tot = tot
+       title  = '!6Particle Flux!X'
+       ytitle = '!6Particle Flux!X'
+       units = number_units
+       norm_units = ""
    endif else begin
        tot = energy(filename=filename, comp=comp, names=names, t=t)   
-       title  = '!6Internal Energy!3'
-       xtitle = '!8t !6(!7s!D!8A!N!6)!3'
-       ytitle = '!6Energy (!8B!D!60!U2!N!8L!U!63!N/4!7p!6)!3'
+       norm_tot = tot
+       title  = '!6Internal Energy!X'
+       ytitle = '!6Energy!X'
+       units = energy_units
+       norm_units = ""
    endelse
 
    if(n_elements(tot) le 2) then return
@@ -1265,12 +1294,24 @@ pro plot_energy, name, filename=filename, yrange=yrange, norm=norm, $
        endif
    endif
 
-   if(keyword_set(norm)) then begin
+   if(keyword_set(diff)) then begin
+       title = title + "!6 (Difference from Initial)!X"
        tot = tot - tot[0]
        for i=0, n-1 do begin
            comp[i,*] = comp[i,*] - comp[i,0]
        endfor
    endif
+
+   if(keyword_set(norm)) then begin
+       ytitle = "!6Fractional !X" + ytitle
+       tot = tot / norm_tot
+       for i=0, n-1 do begin
+           comp[i,*] = comp[i,*] / norm_tot[*]
+       endfor
+       ytitle = ytitle + norm_units
+   endif else begin
+       ytitle = ytitle + units
+   endelse
 
    if(n_elements(yrange) eq 0) then begin
        yrange = [min([tot, min(comp)]), max([tot, max(comp)])]*1.2

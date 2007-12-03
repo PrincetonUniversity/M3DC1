@@ -42,21 +42,23 @@ integer, parameter :: FIELD_MU  =131072
 !!$real, dimension(25) :: si_25, eta_25, weight_25
 !!$real, dimension(25) ::  alpha_25, beta_25, gamma_25, area_weight_25
 
+vectype, dimension(79, OP_NUM, 18) :: g79
 real, dimension(79) :: x_79, z_79
-real, dimension(79) :: r_79, r2_79, ri_79, ri2_79, ri3_79, ri4_79, ri5_79, ri6_79, ri7_79
-real, dimension(79, OP_NUM, 18) :: g79
-real, dimension(79, OP_NUM) :: tm79, ni79, b2i79, sb179, sb279, sp179
-real, dimension(79, OP_NUM) :: ps079, bz079, pe079, n079, p079, ph079, vz079, ch079
-real, dimension(79, OP_NUM) :: ps179, bz179, pe179, n179, p179, ph179, vz179, ch179
-real, dimension(79, OP_NUM) :: pst79, bzt79, pet79, nt79, pt79, pht79, vzt79, cht79
-real, dimension(79, OP_NUM) :: pss79, bzs79, phs79, vzs79, chs79
-real, dimension(79, OP_NUM) :: vis79, vic79, vip79
-real, dimension(79, OP_NUM) :: jt79, cot79, vot79, pit79, eta79, sig79, sz79
-real, dimension(79, OP_NUM) :: kap79, kar79, kax79
-real, dimension(79) :: temp79a, temp79b, temp79c, temp79d, temp79e, temp79f
+vectype, dimension(79) :: r_79, r2_79, &
+     ri_79, ri2_79, ri3_79, ri4_79, ri5_79, ri6_79, ri7_79
+vectype, dimension(79) :: temp79a, temp79b, temp79c, temp79d, temp79e, temp79f
+vectype, dimension(79, OP_NUM) :: sz79
+vectype, dimension(79, OP_NUM) :: tm79, ni79, b2i79, sb179, sb279, sp179
+vectype, dimension(79, OP_NUM) :: ps179, bz179, pe179, n179, p179, ph179, vz179, ch179
+vectype, dimension(79, OP_NUM) :: pst79, bzt79, pet79, nt79, pt79, pht79, vzt79, cht79
+vectype, dimension(79, OP_NUM) :: vis79, vic79, vip79
+vectype, dimension(79, OP_NUM) :: jt79, cot79, vot79, pit79, eta79, sig79
+vectype, dimension(79, OP_NUM) :: kap79, kar79, kax79
+vectype, dimension(79, OP_NUM) :: ps079, bz079, pe079, n079, p079, ph079, vz079, ch079
+vectype, dimension(79, OP_NUM) :: pss79, bzs79, phs79, vzs79, chs79
 
 real, dimension(79) :: si_79, eta_79, weight_79
-real, dimension(79) ::  alpha_79, beta_79, gamma_79, area_weight_79
+real, dimension(79) :: alpha_79, beta_79, gamma_79, area_weight_79
 
 !!$data alpha_25 &
 !!$     / 0.333333333333333, 0.028844733232685, 0.485577633383657, 0.485577633383657, &
@@ -265,9 +267,10 @@ subroutine eval_ops(avector,si,eta,theta,rinv,ngauss,outarr)
   implicit none
       
   integer, intent(in) :: ngauss
-  real, dimension(20), intent(in) :: avector
-  real, dimension(ngauss), intent(in) :: si, eta, rinv
-  real, dimension(ngauss, OP_NUM), intent(out) :: outarr
+  vectype, dimension(20), intent(in) :: avector
+  real, dimension(ngauss), intent(in) :: si, eta
+  vectype, dimension(ngauss), intent(in) :: rinv
+  vectype, dimension(ngauss, OP_NUM), intent(out) :: outarr
   real, intent(in) :: theta
 
   integer :: k,p,op
@@ -497,7 +500,7 @@ subroutine define_fields_79(itri, fields)
   integer, intent(in) :: itri, fields
   
   integer :: i
-  real, dimension(20) :: avec
+  vectype, dimension(20) :: avec
 
   ! calculate the local sampling points and weights for numerical integration
   call area_to_local(79,                                            &
@@ -885,20 +888,20 @@ subroutine define_fields_79(itri, fields)
   end if
 
   do i=1,18
-     call eval_ops(gtri(:,i,itri), si_79, eta_79, ttri(itri), ri_79, 79, g79(:,:,i))
+     call eval_ops(cmplx_cast(gtri(:,i,itri)), si_79, eta_79, &
+          ttri(itri), ri_79, 79, g79(:,:,i))
   end do
-
 end subroutine define_fields_79
 
 
 !==============================================
-real function int0(weight,ngauss)
+vectype function int0(weight,ngauss)
 
   integer, intent(in) :: ngauss
   real, dimension(ngauss), intent(in) :: weight
 
   integer :: k
-  real :: ksum
+  vectype :: ksum
 
   ksum = 0.
   do k=1, ngauss
@@ -909,13 +912,14 @@ real function int0(weight,ngauss)
 
 end function int0
 !==============================================
-real function int1(vari,weight,ngauss)
+vectype function int1(vari,weight,ngauss)
 
   integer, intent(in) :: ngauss
-  real, dimension(ngauss), intent(in) :: vari, weight
+  real, dimension(ngauss), intent(in) :: weight
+  vectype, dimension(ngauss), intent(in) :: vari
 
   integer :: k
-  real :: ksum
+  vectype :: ksum
 
   ksum = 0.
   do k=1, ngauss
@@ -926,15 +930,16 @@ real function int1(vari,weight,ngauss)
 
 end function int1
 !==============================================
-real function int2(vari,varj,weight,ngauss)
+vectype function int2(vari,varj,weight,ngauss)
 
   implicit none
 
   integer, intent(in) :: ngauss
-  real, dimension(ngauss), intent(in) :: vari, varj, weight
+  real, dimension(ngauss), intent(in) :: weight
+  vectype, dimension(ngauss), intent(in) :: vari, varj
 
   integer :: k
-  real :: ksum
+  vectype :: ksum
 
   ksum = 0.
   do k=1, ngauss
@@ -945,15 +950,16 @@ real function int2(vari,varj,weight,ngauss)
 
 end function int2
 !==============================================
-real function int3(vari,varj,vark, weight,ngauss)
+vectype function int3(vari,varj,vark, weight,ngauss)
 
   implicit none
 
   integer, intent(in) :: ngauss
-  real, dimension(ngauss), intent(in) :: vari, varj, vark, weight
+  real, dimension(ngauss), intent(in) :: weight
+  vectype, dimension(ngauss), intent(in) :: vari, varj, vark
 
   integer :: k
-  real :: ksum
+  vectype :: ksum
 
   ksum = 0.
   do k=1, ngauss
@@ -964,17 +970,18 @@ real function int3(vari,varj,vark, weight,ngauss)
 
 end function int3
 !==============================================
-real function int4(vari,varj,vark,varl,weight,ngauss)
+vectype function int4(vari,varj,vark,varl,weight,ngauss)
 
   use t_data
 
   implicit none
 
   integer, intent(in) :: ngauss
-  real, dimension(ngauss), intent(in) :: vari, varj, vark, varl,weight
+  real, dimension(ngauss), intent(in) :: weight
+  vectype, dimension(ngauss), intent(in) :: vari, varj, vark, varl
 
   integer :: k
-  real :: ksum
+  vectype :: ksum
 
   ksum = 0.
   do k=1, ngauss
@@ -985,17 +992,18 @@ real function int4(vari,varj,vark,varl,weight,ngauss)
 
 end function int4
 !==============================================
-real function int5(vari,varj,vark,varl,varm,weight,ngauss)
+vectype function int5(vari,varj,vark,varl,varm,weight,ngauss)
 
   use t_data
 
   implicit none
 
   integer, intent(in) :: ngauss
-  real, dimension(ngauss), intent(in) :: vari, varj, vark, varl, varm, weight
+  real, dimension(ngauss), intent(in) :: weight
+  vectype, dimension(ngauss), intent(in) :: vari, varj, vark, varl, varm
 
   integer :: k
-  real :: ksum
+  vectype :: ksum
 
   ksum = 0.
   do k=1, ngauss
@@ -1016,13 +1024,13 @@ subroutine calcavector(itri, inarr, itype, numvare, avector)
   implicit none
 
   integer, intent(in) :: itri, itype, numvare
-  real, dimension(*), intent(in) :: inarr
-  real, dimension(20), intent(out) :: avector
+  vectype, dimension(*), intent(in) :: inarr
+  vectype, dimension(20), intent(out) :: avector
 
   integer :: ibegin, iendplusone
     
   integer :: i, ii, iii, k
-  real, dimension(18) :: wlocal
+  vectype, dimension(18) :: wlocal
 
   ! construct the 18 vector corresponding to this triangle
   ! calculate the index and local coordinates for this triangle

@@ -29,7 +29,7 @@
       real, dimension(-6:maxi,-6:maxi) :: fintl(-6:maxi,-6:maxi)
 
       real, dimension(2,2) :: ssterm
-      real, allocatable :: temp(:)
+      vectype, allocatable :: temp(:)
 !
       if(myrank.eq.0 .and. iprint.eq.1) print *, " smoother1"
 

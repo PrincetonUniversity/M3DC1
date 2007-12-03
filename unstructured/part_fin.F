@@ -100,11 +100,12 @@ c     created with ordering specified by numvar
 
       if(isplitstep.eq.1) then
          call createvec(vel, vecsize)
-         call createvec(vel0, vecsize)
-         call createvec(vels, vecsize)
+         call createrealvec(vel0, vecsize)
+         call createrealvec(vels, vecsize)
          call createvec(velold, vecsize)
          call createvec(veln, vecsize)
          call createvec(veloldn, vecsize)
+
          if(iresolve.eq.1) call createvec(phioldn, vecsize)
          call createvec(r4, vecsize)
          call createvec(phip, vecsize)
@@ -114,15 +115,15 @@ c     created with ordering specified by numvar
          if(ipres.eq.1) then 
             call createvec(qp4, 1)
             call createvec(pres, 1)
-            call createvec(press, 1)
-            call createvec(pres0, 1)
+            call createrealvec(press, 1)
+            call createrealvec(pres0, 1)
             call createvec(presold, 1)
             if(iresolve.eq.1) call createvec(presoldn, 1)
          endif
          
          call createvec(den, 1)
-         call createvec(den0, 1)
-         call createvec(dens, 1)
+         call createrealvec(den0, 1)
+         call createrealvec(dens, 1)
          call createvec(denold, 1)
          call createvec(qn4, 1)
          if(isources.eq.1) then
@@ -133,8 +134,8 @@ c     created with ordering specified by numvar
       endif
 
       call createvec(phi,      vecsize)
-      call createvec(phi0,     vecsize)
-      call createvec(phis,     vecsize)
+      call createrealvec(phi0, vecsize)
+      call createrealvec(phis, vecsize)
       call createvec(phiold,   vecsize)
 
       call createvec(b1vector, vecsize)
@@ -181,7 +182,7 @@ c     created with ordering specified by numvar
       real  outarray(numnodes*6*numvard),inarray(numnodes*6),
      &     aterm(18,18), bterm(18,18),fintl(-6:maxi,-6:maxi),
      &     dterm(18,18)
-      real, allocatable:: temp(:)
+      vectype, allocatable:: temp(:)
       real hyp, thimpsm
       integer numvarsm, itri, i, j,izone,izonedim,
      1     l, jone, ier, jtwo, itwo

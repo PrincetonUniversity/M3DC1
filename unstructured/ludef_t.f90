@@ -13,9 +13,9 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
 
   implicit none
 
-  real, dimension(79, OP_NUM), intent(in) :: trial, lin 
-  real, dimension(3), intent(out) :: ssterm, ddterm
-  real, dimension(4), intent(out) :: rrterm, qqterm
+  vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
+  vectype, dimension(3), intent(out) :: ssterm, ddterm
+  vectype, dimension(4), intent(out) :: rrterm, qqterm
   integer, intent(in) :: advfield   ! if advfield = 1, eliminate rrterm by
                                     ! using analytic form of advanced field
   real :: parvisc
@@ -311,9 +311,9 @@ subroutine vorticity_nolin(trial, r4term)
 
   implicit none
 
-  real, intent(in), dimension(79, OP_NUM)  :: trial
-  real, intent(out) :: r4term
-  real :: temp
+  vectype, intent(in), dimension(79, OP_NUM)  :: trial
+  vectype, intent(out) :: r4term
+  vectype :: temp
 
   r4term = 0.
 
@@ -343,9 +343,9 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
 
   implicit none
 
-  real, dimension(79, OP_NUM), intent(in) :: trial, lin 
-  real, dimension(3), intent(out) :: ssterm, ddterm
-  real, dimension(4), intent(out) :: rrterm, qqterm
+  vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
+  vectype, dimension(3), intent(out) :: ssterm, ddterm
+  vectype, dimension(4), intent(out) :: rrterm, qqterm
   integer, intent(in) :: advfield
 
   real :: temp, parvisc
@@ -540,9 +540,9 @@ subroutine axial_vel_nolin(trial, r4term)
 
   implicit none
 
-  real, intent(in), dimension(79, OP_NUM)  :: trial
-  real, intent(out) :: r4term
-  real :: temp
+  vectype, intent(in), dimension(79, OP_NUM)  :: trial
+  vectype, intent(out) :: r4term
+  vectype :: temp
   
   r4term = 0.
 
@@ -570,9 +570,9 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
 
   implicit none
 
-  real, dimension(79, OP_NUM), intent(in) :: trial, lin 
-  real, dimension(3), intent(out) :: ssterm, ddterm
-  real, dimension(4), intent(out) :: rrterm, qqterm
+  vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
+  vectype, dimension(3), intent(out) :: ssterm, ddterm
+  vectype, dimension(4), intent(out) :: rrterm, qqterm
   integer, intent(in) :: advfield
 
   real :: temp, parvisc
@@ -807,9 +807,9 @@ subroutine compression_nolin(trial, r4term)
 
   implicit none
 
-  real, intent(in), dimension(79, OP_NUM)  :: trial
-  real, intent(out) :: r4term
-  real :: temp
+  vectype, intent(in), dimension(79, OP_NUM)  :: trial
+  vectype, intent(out) :: r4term
+  vectype :: temp
   
   r4term = 0.
 
@@ -847,8 +847,8 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
 
   implicit none
 
-  real, dimension(79, OP_NUM), intent(in) :: trial, lin 
-  real, dimension(3), intent(out) :: ssterm, ddterm, rrterm, qqterm
+  vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
+  vectype, dimension(3), intent(out) :: ssterm, ddterm, rrterm, qqterm
   real :: temp, thimpb
 
   if(imp_mod.eq.1) then
@@ -870,7 +870,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
        + b1psiu  (trial,lin,pht79)
   ssterm(1) = ssterm(1) -     thimpb     *dt*temp
   ddterm(1) = ddterm(1) + (1.-thimpb*bdf)*dt*temp
-  
+
   temp = b1psiu(trial,ps179,lin)
   rrterm(1) = rrterm(1) + thimpb*dt*temp
   qqterm(1) = qqterm(1) - thimpb*dt*temp*bdf
@@ -933,13 +933,13 @@ subroutine flux_nolin(trial, r4term)
 
   implicit none
 
-  real, intent(in), dimension(79, OP_NUM)  :: trial
-  real, intent(out) :: r4term
-  real :: temp
+  vectype, intent(in), dimension(79, OP_NUM)  :: trial
+  vectype, intent(out) :: r4term
+  vectype :: temp
   
   r4term = 0.
 
-  if(imp_mod.eq.2) then
+  if(igauge.eq.1) then
      r4term = r4term - dt* &
           vloop*int1(trial,weight_79,79)/(2.*pi)
   endif
@@ -971,9 +971,10 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
 
   implicit none
 
-  real, dimension(79, OP_NUM), intent(in) :: trial, lin 
-  real, dimension(3), intent(out) :: ssterm, ddterm, rrterm, qqterm
-  real :: temp, thimpb
+  vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
+  vectype, dimension(3), intent(out) :: ssterm, ddterm, rrterm, qqterm
+  vectype :: temp
+  real :: thimpb
 
   if(imp_mod.eq.1) then
      thimpb = 1.
@@ -1077,9 +1078,9 @@ subroutine axial_field_nolin(trial, r4term)
 
   implicit none
 
-  real, intent(in), dimension(79, OP_NUM)  :: trial
-  real, intent(out) :: r4term
-  real :: temp
+  vectype, intent(in), dimension(79, OP_NUM)  :: trial
+  vectype, intent(out) :: r4term
+  vectype :: temp
   
   r4term = 0.
 
@@ -1116,9 +1117,10 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
 
   implicit none
 
-  real, dimension(79, OP_NUM), intent(in) :: trial, lin 
-  real, dimension(3), intent(out) :: ssterm, ddterm, rrterm, qqterm
-  real :: temp, thimpb
+  vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
+  vectype, dimension(3), intent(out) :: ssterm, ddterm, rrterm, qqterm
+  vectype :: temp
+  real :: thimpb
 
   if(imp_mod.eq.1) then
      thimpb = 1.
@@ -1278,8 +1280,8 @@ subroutine electron_pressure_nolin(trial, r4term)
 
   implicit none
 
-  real, intent(in), dimension(79, OP_NUM)  :: trial
-  real, intent(out) :: r4term
+  vectype, intent(in), dimension(79, OP_NUM)  :: trial
+  vectype, intent(out) :: r4term
   real :: temp
   
   r4term = 0.
@@ -1543,12 +1545,12 @@ subroutine ludefvel_n(itri)
   integer, intent(in) :: itri
 
   integer :: i, i1, j, j1
-  real, dimension(3,3) :: ssterm, ddterm
-  real, dimension(3,4) :: rrterm, qqterm
-  real :: temp
+  vectype, dimension(3,3) :: ssterm, ddterm
+  vectype, dimension(3,4) :: rrterm, qqterm
+  vectype :: temp
 
   integer :: vv1, vv0, vb1, vb0, vn1, vn0
-  real, pointer :: vsource(:)
+  vectype, pointer :: vsource(:)
 
   if(isplitstep.eq.1) then
      vv1 = s1matrix_sm
@@ -1727,11 +1729,11 @@ subroutine ludefphi_n(itri)
   integer, intent(in) :: itri
 
   integer :: i, i1, j, j1
-  real, dimension(3,3) :: ssterm, ddterm, rrterm, qqterm
-  real :: temp
+  vectype, dimension(3,3) :: ssterm, ddterm, rrterm, qqterm
+  vectype :: temp
 
   integer :: bb1, bb0, bv1, bv0
-  real, pointer :: bsource(:)
+  vectype, pointer :: bsource(:)
 
   if(isplitstep.eq.1) then
      bb1 = s2matrix_sm
@@ -1855,12 +1857,12 @@ subroutine ludefden_n(itri)
   integer, intent(in) :: itri
 
   integer :: i, i1, ione, j, j1, jone
-  real :: ssterm, ddterm
-  real, dimension(3) :: rrterm, qqterm
-  real :: temp
+  vectype :: ssterm, ddterm
+  vectype, dimension(3) :: rrterm, qqterm
+  vectype :: temp
 
   integer :: nn1, nn0, nv1, nv0
-  real, pointer :: nsource(:)
+  vectype, pointer :: nsource(:)
 
   if(isplitstep.eq.1) then
      nn1 = s8matrix_sm
@@ -1993,9 +1995,9 @@ subroutine ludefpres_n(itri)
   integer, intent(in) :: itri
 
   integer :: i, i1, ione, j, j1, jone
-  real :: ssterm, ddterm
-  real, dimension(3) :: rrterm, qqterm
-  real :: temp
+  vectype :: ssterm, ddterm
+  vectype, dimension(3) :: rrterm, qqterm
+  vectype :: temp
 
   do i=1,18
      if(isplitstep.eq.1) then
