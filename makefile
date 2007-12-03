@@ -10,14 +10,22 @@ F90    = ifort -c
 F77    = ifort -c
 CC     = icc -c
 
-F90OPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE) -DNEW_VELOCITY
-F77OPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE) -DNEW_VELOCITY
+# For compiling complex version:
+#VECTYPE = -Dvectype=complex -Dcmplx_cast=cmplx
+
+# For compling real version:
+VECTYPE = -Dvectype=real -Dcmplx_cast=""
+
+
+FOPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE) -DNEW_VELOCITY ${VECTYPE}
+F90OPTS = ${FOPTS}
+F77OPTS = ${FOPTS}
 #F90OPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE)
 #F77OPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE)
 
 
 
-NEWOBJS = M3Dmodules.o nintegrate_mod.o metricterms_n.o metricterms_new.o \
+NEWOBJS = M3Dmodules.o nintegrate_mod.o metricterms_new.o \
 	newvar.o diagnostics.o gradshafranov.o control.o \
 	$(COMMONDIR)tv80lib.o $(COMMONDIR)subp.o \
 	$(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \

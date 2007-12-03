@@ -97,6 +97,7 @@ module basic
   integer :: idens       ! evolve density
   integer :: ipres       ! evolve total and electron pressures separately
   integer :: gyro        ! include gyroviscosity
+  integer :: jadv        ! 1 = use current density equation, not flux equation
   integer :: isources    ! 1 = include "source" terms in velocity advance
   integer :: ntimemax    ! number of timesteps
   integer :: nskip       ! number of timesteps per matrix recalculation
@@ -105,6 +106,7 @@ module basic
   integer :: iresolve    ! 1 = do second velocity solve after field solve
   integer :: isplitstep  ! 1 = do timestep splitting
   integer :: imp_mod
+  integer :: igauge
   real :: dt             ! timestep
   real :: thimp          ! implicitness parameter (for Crank-Nicholson)
   real :: thimp_ohm      ! implicitness parameter for ohmic heating
@@ -134,7 +136,7 @@ module basic
   namelist / inputnl/                                          &
        itaylor,                                                &
        xzero,zzero,beta,                                       &
-       numvar,idens,ipres,gyro,isources,nosig,itor,            &
+       numvar,idens,ipres,gyro,isources,nosig,itor,jadv,       &
        gam,db,gravr,gravz,                                     &
        p0,pi0,bzero,vzero,                                     &
        etar,eta0,amu,amuc,amupar,denm,                         &
@@ -145,7 +147,7 @@ module basic
        vloop,control_p,control_i,control_d,tcur,               &
        ipellet, pellet_x, pellet_z, pellet_rate, pellet_var,   &
        ionization, ionization_rate, ionization_temp, ionization_depth, &
-       ntimemax,dt,integrator,thimp,thimp_ohm,imp_mod,         &
+       ntimemax,dt,integrator,thimp,thimp_ohm,imp_mod,igauge,  &
        isplitstep,iresolve,                                    &
        linear,nskip,eqsubtract,                                &
        itimer,iprint,ntimepr,                                  &
@@ -198,33 +200,48 @@ module arrays
   ! arrays defined at all vertices
   ! any change to this list of variables needs to be taken into
   ! account in the arrayresizevec subroutine
-  real, allocatable, target :: &
-       vel(:),  vel0(:),  vels(:),  velold(:),  &
-       phi(:),  phi0(:),  phis(:),  phiold(:),  &
-       den(:),  den0(:),  dens(:),  denold(:),  &
-       pres(:), pres0(:), press(:), presold(:), &
+  vectype, allocatable, target :: &
+       vel(:), velold(:),  &
+       phi(:), phiold(:),  &
+       den(:), denold(:),  &
+       pres(:), presold(:), &
        q4(:), r4(:), qn4(:), qp4(:)
+  real, allocatable, target :: &
+       vel0(:),  vels(:),  &
+       phi0(:),  phis(:),  &
+       den0(:),  dens(:),  &
+       pres0(:), press(:)
 
-  real, allocatable::                                             &
+  vectype, allocatable :: &
        veln(:), veloldn(:),                                       &
        phip(:), phioldn(:),                                       &
+       b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
        jphi(:),vor(:),com(:),                                     &
        presoldn(:),                                               &
-       b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
        b5vector(:), vtemp(:), resistivity(:), tempvar(:),         &
        kappa(:),sigma(:), sb1(:), sb2(:), sp1(:),                 &
        visc(:), visc_c(:), tempcompare(:)
 
+
   ! the following pointers point to the vector containing the named field.
   ! set by assign_variables()
-  real, pointer :: phi0_v(:), phi1_v(:), phis_v(:), phio_v(:)
-  real, pointer ::  vz0_v(:),  vz1_v(:),  vzs_v(:),  vzo_v(:)
-  real, pointer :: chi0_v(:), chi1_v(:), chis_v(:), chio_v(:)
-  real, pointer :: psi0_v(:), psi1_v(:), psis_v(:), psio_v(:)
-  real, pointer ::  bz0_v(:),  bz1_v(:),  bzs_v(:),  bzo_v(:)
-  real, pointer ::  pe0_v(:),  pe1_v(:),  pes_v(:),  peo_v(:)
-  real, pointer :: den0_v(:), den1_v(:), dens_v(:), deno_v(:)
-  real, pointer ::   p0_v(:),   p1_v(:),   ps_v(:),   po_v(:)
+  vectype, pointer :: phi1_v(:), phio_v(:)
+  vectype, pointer ::  vz1_v(:),  vzo_v(:)
+  vectype, pointer :: chi1_v(:), chio_v(:)
+  vectype, pointer :: psi1_v(:), psio_v(:)
+  vectype, pointer ::  bz1_v(:),  bzo_v(:)
+  vectype, pointer ::  pe1_v(:),  peo_v(:)
+  vectype, pointer :: den1_v(:), deno_v(:)
+  vectype, pointer ::   p1_v(:),   po_v(:)
+  real, pointer :: phi0_v(:), phis_v(:)
+  real, pointer ::  vz0_v(:),  vzs_v(:)
+  real, pointer :: chi0_v(:), chis_v(:)
+  real, pointer :: psi0_v(:), psis_v(:)
+  real, pointer ::  bz0_v(:),  bzs_v(:)
+  real, pointer ::  pe0_v(:),  pes_v(:)
+  real, pointer :: den0_v(:), dens_v(:)
+  real, pointer ::   p0_v(:),   ps_v(:)
+
 
   ! the indicies of the named fields within their respective vectors
   integer :: phi_i, vz_i, chi_i
@@ -240,14 +257,22 @@ module arrays
   
   ! the following pointers point to the locations of the named field within
   ! the respective vector.  set by assign_vectors()
-  real, pointer :: phi0_l(:), phi1_l(:)
-  real, pointer ::  vz0_l(:),  vz1_l(:)
-  real, pointer :: chi0_l(:), chi1_l(:)
-  real, pointer :: psi0_l(:), psi1_l(:)
-  real, pointer ::  bz0_l(:),  bz1_l(:)
-  real, pointer ::  pe0_l(:),  pe1_l(:)
-  real, pointer :: den0_l(:), den1_l(:)
-  real, pointer ::   p0_l(:),   p1_l(:)
+  vectype, pointer :: phi1_l(:)
+  vectype, pointer ::  vz1_l(:)
+  vectype, pointer :: chi1_l(:)
+  vectype, pointer :: psi1_l(:)
+  vectype, pointer ::  bz1_l(:)
+  vectype, pointer ::  pe1_l(:)
+  vectype, pointer :: den1_l(:)
+  vectype, pointer ::   p1_l(:)
+  real, pointer :: phi0_l(:)
+  real, pointer ::  vz0_l(:)
+  real, pointer :: chi0_l(:)
+  real, pointer :: psi0_l(:)
+  real, pointer ::  bz0_l(:)
+  real, pointer ::  pe0_l(:)
+  real, pointer :: den0_l(:)
+  real, pointer ::   p0_l(:)
 
   contains
 !================================
@@ -433,7 +458,7 @@ module arrays
     subroutine createvec(vec, numberingid)
       implicit none
       integer numberingid, i, ndof
-      real, allocatable ::  vec(:)
+      vectype, allocatable ::  vec(:)
       
 !      write(*,*) 'numbering id is ',numberingid
       ! if vec has not been created vec == 0
@@ -447,8 +472,40 @@ module arrays
          write(*,*) 'vector is already created'
       endif
     end subroutine createvec
+!===============================
+    subroutine createrealvec(vec, numberingid)
+      implicit none
+      integer numberingid, i, ndof
+      real, allocatable ::  vec(:)
+      
+!      write(*,*) 'numbering id is ',numberingid
+      ! if vec has not been created vec == 0
+      call checkveccreated(vec, i)
+      if(i .eq. 0) then
+         call numdofs(numberingid, ndof)
+         allocate(vec(ndof))
+         call createppplvec(vec, numberingid)
+         vec = 0.
+      else
+         write(*,*) 'vector is already created'
+      endif
+    end subroutine createrealvec
 !================================
     subroutine deletevec(vec)
+      implicit none
+      integer :: i
+      vectype, allocatable :: vec(:) 
+      
+      call checkveccreated(vec, i)
+      if(i .ne. 0) then
+         call deleteppplvec(vec)
+         deallocate(vec)
+      else
+         write(*,*) 'vector does not exist'
+      endif
+    end subroutine deletevec
+!================================
+    subroutine deleterealvec(vec)
       implicit none
       integer :: i
       real, allocatable :: vec(:) 
@@ -460,7 +517,7 @@ module arrays
       else
          write(*,*) 'vector does not exist'
       endif
-    end subroutine deletevec
+    end subroutine deleterealvec
 !================================
     subroutine arrayresizevec(vec, ivecsize)
       implicit none

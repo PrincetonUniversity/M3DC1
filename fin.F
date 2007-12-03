@@ -102,6 +102,9 @@
 !.....electron pressure advance parameter: 0 no advance, 1-advance pe
       ipres = 0
 !
+!.....use current density equation instead of poloidal flux equation
+      jadv = 0
+!
 !.....restart parameter 0-no restart, 1 restart
       irestart = 0
 !
@@ -129,6 +132,7 @@
 !
 !.....modifications to implicitization
       imp_mod = 1
+      igauge = 0
 !
 !.....number of grad-shafranov iterations
       igs = 80

@@ -164,6 +164,7 @@ subroutine boundary_mag(imatrix, rhs)
   
   integer :: ibottom, iright, itop, ileft, i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes, irow
+integer :: ibegin1, iendplusone1
   real :: normal, x, z
   real, dimension(6) :: temp
   double precision :: coords(3)
@@ -178,26 +179,13 @@ subroutine boundary_mag(imatrix, rhs)
      call zonenod(i,izone,izonedim)
 
      call entdofs(vecsize, i, 0, ibegin, iendplusone)
+     call entdofs(1, i, 0, ibegin1, iendplusone1)
      call xyznod(i,coords)
      x = coords(1) + xzero
      z = coords(2) + zzero
 
      ! skip interior points
      if(izonedim.ge.2) cycle
-!!$     if(izonedim.ge.2) then
-!!$        ! limiter
-!!$        if(numvar.ge.3 .and. itor.eq.1 .and. &
-!!$             ((xlim.lt.xmag .and. x.lt.xlim) .or. &
-!!$             (xlim.gt.xmag .and. x.gt.xlim))) then
-!!$           temp = phis(ibegin+12:ibegin+17)
-!!$           if(integrator.eq.1 .and. ntime.gt.1) then
-!!$              temp = 1.5*temp + 0.5*phiold(ibegin+12:ibegin+17)
-!!$           endif
-!!$           call boundary_clamp(imatrix, ibegin+12, normal, rhs, temp)
-!!$        else
-!!$           cycle
-!!$        endif
-!!$     endif
 
      ! for periodic bc's
      ! skip if on a periodic boundary
@@ -247,6 +235,9 @@ subroutine boundary_mag(imatrix, rhs)
         ! no toroidal current
         call boundary_laplacian(imatrix, ibegin+psi_off, normal, -x, irow)
         rhs(irow) = 0.
+        if(jadv.eq.1 .and. igauge.eq.0) then
+           rhs(irow) = vloop/(2.*pi*resistivity(ibegin1))
+        endif
 
         ! no tangential current
         if(numvar.ge.2) then
@@ -274,7 +265,7 @@ subroutine boundary_mag(imatrix, rhs)
         endif
 
         ! add loop voltage
-        if(imp_mod.ne.2) then
+        if(jadv.eq.0 .and. igauge.eq.0) then
            if(integrator.eq.1 .and. ntime.gt.1) then
               rhs(ibegin+psi_off) = rhs(ibegin+psi_off) + 1.5*fbound
            else
@@ -286,11 +277,27 @@ subroutine boundary_mag(imatrix, rhs)
      else if(izonedim.eq.0) then
 
         ! clamp poloidal field
-        temp = psis_v(ibegin+psi_off:ibegin+psi_off+5)
-        if(integrator.eq.1 .and. ntime.gt.1) then
-           temp = 1.5*temp + 0.5*psio_v(ibegin+psi_off:ibegin+psi_off+5)
+        if(jadv.eq.1 .and. igauge.eq.0) then
+!!$           call setdiribc(imatrix, ibegin+psi_off)
+!!$           rhs(ibegin+psi_off) =  psis_v(ibegin)
+           call setdiribc(imatrix, ibegin+psi_off+4)
+           rhs(ibegin+psi_off+4) =  0.
+           call boundary_laplacian(imatrix, ibegin+psi_off, 0., -x, irow)
+           rhs(irow) = vloop/(2.*pi*resistivity(ibegin1))
+!!$           call boundary_laplacian(imatrix, ibegin+psi_off, pi/2., -x, irow)
+!!$           rhs(irow) = vloop/(2.*pi*resistivity(ibegin1))
+!!$           temp = psis_v(ibegin+psi_off:ibegin+psi_off+5)
+!!$           if(integrator.eq.1 .and. ntime.gt.1) then
+!!$              temp = 1.5*temp + 0.5*psio_v(ibegin+psi_off:ibegin+psi_off+5)
+!!$           endif
+!!$           call boundary_clamp_all(imatrix, ibegin+psi_off, rhs, temp)
+        else
+           temp = psis_v(ibegin+psi_off:ibegin+psi_off+5)
+           if(integrator.eq.1 .and. ntime.gt.1) then
+              temp = 1.5*temp + 0.5*psio_v(ibegin+psi_off:ibegin+psi_off+5)
+           endif
+           call boundary_clamp_all(imatrix, ibegin+psi_off, rhs, temp)
         endif
-        call boundary_clamp_all(imatrix, ibegin+psi_off, rhs, temp)
 
         ! clamp toroidal field
         if(numvar.ge.2) then

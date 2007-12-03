@@ -192,7 +192,8 @@ contains
 
     call h5screate_f(H5S_SCALAR_F, dspace_id, error)
     
-    call h5acreate_f(parent_id, name, H5T_NATIVE_DOUBLE, dspace_id, attr_id, error)
+    call h5acreate_f(parent_id, name, H5T_NATIVE_DOUBLE, dspace_id, attr_id, &
+         error)
     call h5awrite_f(attr_id, H5T_NATIVE_DOUBLE, value, dims, error)
     call h5aclose_f(attr_id, error)
     call h5sclose_f(dspace_id, error)
@@ -679,19 +680,19 @@ subroutine output_fields(time_group_id, error)
   call output_field(group_id, "phi", dum, 20, nelms, error)
   nfields = nfields + 1
 
-  ! jphi
-  do i=1, nelms
-     call calcavector(i, jphi, 1, 1, dum(:,i))
-  end do
-  call output_field(group_id, "jphi", dum, 20, nelms, error)
-  nfields = nfields + 1
-
-  ! vor
-  do i=1, nelms
-     call calcavector(i, vor, 1, 1, dum(:,i))
-  end do
-  call output_field(group_id, "vor", dum, 20, nelms, error)
-  nfields = nfields + 1
+!!$  ! jphi
+!!$  do i=1, nelms
+!!$     call calcavector(i, jphi, 1, 1, dum(:,i))
+!!$  end do
+!!$  call output_field(group_id, "jphi", dum, 20, nelms, error)
+!!$  nfields = nfields + 1
+!!$
+!!$  ! vor
+!!$  do i=1, nelms
+!!$     call calcavector(i, vor, 1, 1, dum(:,i))
+!!$  end do
+!!$  call output_field(group_id, "vor", dum, 20, nelms, error)
+!!$  nfields = nfields + 1
 
   ! eta
   do i=1, nelms
@@ -760,12 +761,12 @@ subroutine output_fields(time_group_id, error)
      call output_field(group_id, "chi", dum, 20, nelms, error)
      nfields = nfields + 1
 
-     ! com
-     do i=1, nelms
-        call calcavector(i, com, 1, 1, dum(:,i))
-     end do
-     call output_field(group_id, "com", dum, 20, nelms, error)
-     nfields = nfields + 1
+!!$     ! com
+!!$     do i=1, nelms
+!!$        call calcavector(i, com, 1, 1, dum(:,i))
+!!$     end do
+!!$     call output_field(group_id, "com", dum, 20, nelms, error)
+!!$     nfields = nfields + 1
 
      ! kappa
      do i=1, nelms

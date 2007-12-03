@@ -216,13 +216,13 @@ subroutine gradshafranov_solve
   call numfac(numelms)
 
   ! allocate memory for arrays
-  call createvec(temp, numvargs)
-  call createvec(b1vecini, numvargs)
-  call createvec(psi, numvargs)
-  call createvec(fun1, numvargs)
-  call createvec(fun4, numvargs)
-  call createvec(fun2, numvargs)
-  call createvec(fun3, numvargs)  
+  call createrealvec(temp, numvargs)
+  call createrealvec(b1vecini, numvargs)
+  call createrealvec(psi, numvargs)
+  call createrealvec(fun1, numvargs)
+  call createrealvec(fun4, numvargs)
+  call createrealvec(fun2, numvargs)
+  call createrealvec(fun3, numvargs)  
 
   ! form the grad-sharfranov matrix
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -238,11 +238,12 @@ subroutine gradshafranov_solve
           atri(itri), btri(itri), ctri(itri),                          &
           si_79, eta_79, weight_79)
 
-     call calcpos(itri, si_79, eta_79, 79, r_79, z_79)
+     call calcpos(itri, si_79, eta_79, 79, x_79, z_79)
+     r_79 = x_79
      ri_79 = 1./r_79
 
      do i=1,18
-        call eval_ops(gtri(:,i,itri), si_79, eta_79, &
+        call eval_ops(cmplx_cast(gtri(:,i,itri)), si_79, eta_79, &
              ttri(itri), ri_79, 79, g79(:,:,i))
      end do
     
@@ -624,13 +625,13 @@ subroutine gradshafranov_solve
   psilim = -psilim
 
   ! free memory
-  call deletevec(temp)
-  call deletevec(b1vecini)
-  call deletevec(psi)
-  call deletevec(fun1)
-  call deletevec(fun4)
-  call deletevec(fun2)
-  call deletevec(fun3)
+  call deleterealvec(temp)
+  call deleterealvec(b1vecini)
+  call deleterealvec(psi)
+  call deleterealvec(fun1)
+  call deleterealvec(fun4)
+  call deleterealvec(fun2)
+  call deleterealvec(fun3)
 
   return
 

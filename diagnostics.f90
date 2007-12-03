@@ -517,7 +517,7 @@ subroutine calculate_scalars()
 
 
      do i=1,79 
-        if(pst79(i,OP_1).ge.psilim) then
+        if(real(pst79(i,OP_1)).ge.psilim) then
            temp79a(i) = 1.
         else
            temp79a(i) = 0.
@@ -803,7 +803,7 @@ subroutine lcfs(phin, numvari)
 
   include 'mpif.h'
 
-  real, intent(in), dimension(*) :: phin
+  vectype, intent(in), dimension(*) :: phin
   integer, intent(in) :: numvari
 
   integer :: itri

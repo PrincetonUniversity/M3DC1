@@ -51,7 +51,7 @@ subroutine create_newvar_matrix(matrix, ibound)
      ri_79 = 1./r_79
 
      do i=1,18
-        call eval_ops(gtri(:,i,itri), si_79, eta_79, ttri(itri), &
+        call eval_ops(cmplx_cast(gtri(:,i,itri)), si_79, eta_79, ttri(itri), &
              ri_79, 79, g79(:,:,i))
      end do
 
@@ -69,9 +69,9 @@ subroutine create_newvar_matrix(matrix, ibound)
 
   ! apply boundary conditions
   if(ibound.eq.NV_DCBOUND) then
-     call createvec(rhs, 1)
+     call createrealvec(rhs, 1)
      call boundary_dc(matrix, rhs)
-     call deletevec(rhs)
+     call deleterealvec(rhs)
   end if
 
   call finalizearray(matrix)
@@ -91,8 +91,8 @@ subroutine newvar_d2(inarray,outarray,itype,ibound,gs)
   implicit none
 
   integer, intent(in) :: itype, ibound
-  real, intent(in) :: inarray(*) ! length using numvard ordering
-  real, intent(out) :: outarray(*) ! length using numvar=1 ordering
+  vectype, intent(in) :: inarray(*) ! length using numvard ordering
+  vectype, intent(out) :: outarray(*) ! length using numvar=1 ordering
   integer, intent(in) :: gs ! NV_GS for grad-shafranov operator, NV_LP for laplacian
 
   integer :: ndof, numelms, itri, i, j, ione, j1
@@ -125,7 +125,8 @@ subroutine newvar_d2(inarray,outarray,itype,ibound,gs)
      if(ijacobian.eq.1) weight_79 = weight_79*r_79
 
      do i=1,18
-        call eval_ops(gtri(:,i,itri), si_79, eta_79, ttri(itri), ri_79, 79, g79(:,:,i))
+        call eval_ops(cmplx_cast(gtri(:,i,itri)), si_79, eta_79, ttri(itri), &
+             ri_79, 79, g79(:,:,i))
      end do
 
      do i=1,18
@@ -255,7 +256,7 @@ subroutine define_transport_coefficients()
            endif
 
            do i=1, 79
-              if(temp79d(i) .gt. ionization_temp) then
+              if(real(temp79d(i)) .gt. ionization_temp) then
                  temp79e(i) = exp(-(temp79d(i) - ionization_temp) &
                                    / ionization_depth)
               else
@@ -320,7 +321,7 @@ subroutine solve_newvar(rhs, ibound)
   implicit none
 
   integer, intent(in) :: ibound
-  real, dimension(*), intent(inout) :: rhs
+  vectype, dimension(*), intent(inout) :: rhs
 
   integer :: i, ier
 

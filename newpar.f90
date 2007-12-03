@@ -385,6 +385,7 @@ Program Reducedquintic
      call hdf5_write_scalars(ier)
      if(mod(ntime,ntimepr).eq.0) then
         call hdf5_write_time_slice(ier)
+        call wrrestart(time, max(maxts, ntimer))
      endif
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
@@ -414,7 +415,7 @@ Program Reducedquintic
   maxts = ntime-1
 
 101 continue
-  if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'about to export field'
+
 ! below is for mesh adaptation
 !  tolerance = .00005 
 !  if(maxrank .eq. 1) then
@@ -429,20 +430,7 @@ Program Reducedquintic
 
 !  call errorcalc(numvar, phi, 1)
 
-!!$  if(ntime.gt.1 .and. myrank.eq.0 .and. maxrank.eq.1) then
-!!$     call plotenergy(graphit,ntimep,maxts,ntimemin,numvar)
-!!$     open(99,file='C1graphit',form='formatted',status='unknown')
-!!$     write(99,8001) maxts
-!!$     do i=1,maxts
-!!$        write(99,8002) (graphit(i,j),j=1,30)
-!!$     enddo
-!!$8001 format(i5)
-!!$8002 format(1p10e12.4)
-!!$  endif
-999 continue
-  if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'writing the restart file'
   call wrrestart(time, max(maxts, ntimer))
-  if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'done writing the restart file'
 
 !     free memory from sparse matrices
   call freesmo(gsmatrix_sm)
@@ -526,7 +514,7 @@ subroutine onestep
   integer :: calc_matrices
 
   real :: tstart, tend
-  real, allocatable :: temp(:), temp2(:)
+  vectype, allocatable :: temp(:), temp2(:)
   
   call numnod(numnodes)
 
