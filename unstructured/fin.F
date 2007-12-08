@@ -86,13 +86,6 @@
 
       implicit none
 !
-!.....set itest .ne. 0 for a particular test problem
-!     itest = 1 for tilting columns (nonlinear, n=m=21)
-!     itest = 2 for Taylor problem  (n=m=31, dt=2  )
-!     itest = 3 for tilting columns (linear)
-!     itest = 4 for Taylor problem  (Fitzpatrick base case)
-!     itest = 5 for tilting columns - two fluid (linear)
-!
 !.....linear parameter  0-nonlinear,  1-linear
       linear = 0
 !
@@ -111,8 +104,6 @@
 !.....associated restart parameter: 0-normal, 1-start time from zero
       istart = 0
 !
-!.....setup parameter 0-read from disk, 1 compute
-!      isetup = 1
 !
 !.....boundary parameter  0-nonperiodic, 1-periodic
 !      iper = 0
@@ -265,6 +256,10 @@
 !
 !.....1 = conserve toroidal flux
       iconstflux = 0
+!
+!.....Toroidal mode number
+      ntor = 0
+!
 !
       open(5,file='C1input',form='formatted',status='old')
       read(5,nml=inputnl)

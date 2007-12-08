@@ -2155,7 +2155,9 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, $
            field = read_field(field, x, z, t, slice=time, points=points,$
                               _EXTRA=extra)
        endelse
-   endif
+   endif else begin
+       name = ''
+   endelse
 
    symbol = name
 

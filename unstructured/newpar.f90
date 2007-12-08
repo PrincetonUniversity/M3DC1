@@ -94,9 +94,6 @@ Program Reducedquintic
   ! special switch installed 12/03/04 to write slu matrices
   idebug = 0
 
-  ! Choose which test problem to run (0 indicates reading input file C1input)
-  itest=0
-
   ! initialize needed variables and define geometry and triangles
   call init
 

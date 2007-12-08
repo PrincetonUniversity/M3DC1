@@ -473,9 +473,9 @@ end subroutine force_free_per
 
 end module force_free_state
 
-!==============================================================================
+!===========================================================================
 ! GEM Reconnection (itaylor = 3)
-!==============================================================================
+!===========================================================================
 module gem_reconnection
 
   real, private :: akx, akz
@@ -549,14 +549,24 @@ subroutine gem_reconnection_equ(x, z)
   ! if numvar >= 3, then use pressure to satisfy force balance
   if(numvar.ge.3) then
 
-     bz0_l(1) = sqrt(bzero**2 + (1.-2.*p0)*sech(2.*z)**2)
-     bz0_l(2) = 0.
-     bz0_l(3) = -(1.-2.*p0)*2.*tanh(2.*z)*sech(2.*z)**2/bz0_l(1)
-     bz0_l(4) = 0.
-     bz0_l(5) = 0.
-     bz0_l(6) = (1.-2.*p0)*(2.*sech(2.*z)**2/bz0_l(1))            &
-          *(bz0_l(3)*tanh(2.*z)/bz0_l(1)                          &
-          - 2.*sech(2.*z)**2 + 4.*tanh(2.*z)**2)
+     if(bzero.eq.0) then
+        bz0_l(1) = sqrt(1.-2.*p0)*sech(2.*z)
+        bz0_l(2) = 0.
+        bz0_l(3) = -2.*bz0_l(1)*tanh(2.*z)
+        bz0_l(4) = 0.
+        bz0_l(5) = 0.
+        bz0_l(6) = -2.*bz0_l(3)*tanh(2.*z) &
+             -4.*bz0_l(1)*(1.-tanh(2.*z)**2)
+     else
+        bz0_l(1) = sqrt(bzero**2 + (1.-2.*p0)*sech(2.*z)**2)
+        bz0_l(2) = 0.
+        bz0_l(3) = -(1.-2.*p0)*2.*tanh(2.*z)*sech(2.*z)**2/bz0_l(1)
+        bz0_l(4) = 0.
+        bz0_l(5) = 0.
+        bz0_l(6) = (1.-2.*p0)*(2.*sech(2.*z)**2/bz0_l(1))            &
+             *(bz0_l(3)*tanh(2.*z)/bz0_l(1)                          &
+             - 2.*sech(2.*z)**2 + 4.*tanh(2.*z)**2)
+     endif
 
 !     call constant_field(bz0_l(1:6), bzero)
 

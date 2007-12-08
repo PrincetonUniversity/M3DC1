@@ -62,7 +62,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
   endif
 
   if(advfield.eq.1) then
-     temp = v1upsipsi(trial,lin,pst79,pst79)
+     temp = v1upsipsi(trial,lin,pst79,pst79) 
      if(gravr.ne.0 .or. gravz.ne.0) then          
         temp = temp + v1ungrav(trial,lin,nt79)
      endif
@@ -92,7 +92,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
     
   if(linear.eq.1 .or. eqsubtract.eq.1) then
      temp = v1uun(trial,lin,ph079,nt79) &    
-          + v1uun(trial,ph079,lin,nt79)      
+          + v1uun(trial,ph079,lin,nt79)
      ssterm(1) = ssterm(1) -     thimp     *dt*temp
      ddterm(1) = ddterm(1) + (1.-thimp*bdf)*dt*temp
      
@@ -127,7 +127,23 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
   
   ! NUMVAR = 2
   ! ~~~~~~~~~~
-  if(numvar.ge.2) then
+  if(numvar.eq.1) then
+     ! These terms exist since F0=bzero when numvar=1
+     if(advfield.eq.1) then
+        temp = v1upsib(trial,lin,pst79,bzt79) &
+             + v1ubb  (trial,lin,bzt79,bzt79)
+        ssterm(1) = ssterm(1) - thimp*thimp*dt*dt*temp
+        ddterm(1) = ddterm(1) +       ththm*dt*dt*temp
+        
+        qqterm(1) = qqterm(1) + dt* &
+             (v1psib  (trial,lin,bzt79))
+     else
+        temp = v1psib(trial,lin,bzt79)
+        rrterm(1) = rrterm(1) +     thimp     *dt*temp
+        qqterm(1) = qqterm(1) + (1.-thimp*bdf)*dt*temp
+     endif
+
+  else
           
      temp = v1vvn(trial,lin,vz179,nt79) &
           + v1vvn(trial,vz179,lin,nt79)
@@ -141,10 +157,10 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
      endif
 
      if(advfield.eq.1) then
-        temp = v1ubb(trial,lin,bzt79,bzt79)
+        temp = v1ubb  (trial,lin,bzt79,bzt79)
         ssterm(1) = ssterm(1) - thimp*thimp*dt*dt*temp
         ddterm(1) = ddterm(1) +       ththm*dt*dt*temp
-     
+
         temp = v1vpsib(trial,lin,pst79,bzt79)
         ssterm(2) = ssterm(2) - thimp*thimp*dt*dt*temp
         ddterm(2) = ddterm(2) +       ththm*dt*dt*temp
@@ -376,10 +392,6 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
        + v2vs   (trial,lin,sig79)
   ssterm(2) = ssterm(2) -     thimp     *dt*temp
   ddterm(2) = ddterm(2) + (1.-thimp*bdf)*dt*temp
-
-!!$  temp = v2vhypv(trial,lin,vis79,hypv*sz79)
-!!$  ssterm(2) = ssterm(2) -     thimpv     *dt*temp
-!!$  ddterm(2) = ddterm(2) + (1.-thimpv*bdf)*dt*temp
 
   temp = v2vun(trial,lin,ph179,nt79)
   ssterm(2) = ssterm(2) -      thimp     *dt*temp
@@ -871,11 +883,21 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   ssterm(1) = ssterm(1) -     thimpb     *dt*temp
   ddterm(1) = ddterm(1) + (1.-thimpb*bdf)*dt*temp
 
+  temp = (b1psipsid(trial,lin,ps179,ni79) &
+         +b1psipsid(trial,ps179,lin,ni79))*dbf
+  ssterm(1) = ssterm(1) -     thimpb     *dt*temp
+  ddterm(1) = ddterm(1) + (.5-thimpb*bdf)*dt*temp
+
   temp = b1psiu(trial,ps179,lin)
   rrterm(1) = rrterm(1) + thimpb*dt*temp
   qqterm(1) = qqterm(1) - thimpb*dt*temp*bdf
 
   if(linear.eq.1 .or. eqsubtract.eq.1) then
+     temp = (b1psipsid(trial,lin,ps079,ni79) &
+            +b1psipsid(trial,ps079,lin,ni79))*dbf
+     ssterm(1) = ssterm(1) -     thimpb     *dt*temp
+     ddterm(1) = ddterm(1) + (1.-thimpb*bdf)*dt*temp
+
      temp = b1psiu(trial,ps079,lin)
      rrterm(1) = rrterm(1) +     thimpb     *dt*temp
      qqterm(1) = qqterm(1) + (1.-thimpb*bdf)*dt*temp
@@ -883,9 +905,17 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
 
   ! NUMVAR = 2
   ! ~~~~~~~~~~
-  if(numvar.ge.2) then
-           
-     temp = b1psibd(trial,lin,bz179,ni79)*dbf              
+  if(numvar.eq.1) then
+     ! Term due to F0 = bzero when numvar=1
+     temp = b1psibd(trial,lin,bzt79,ni79)*dbf
+     ssterm(1) = ssterm(1) -     thimpb     *dt*temp
+     ddterm(1) = ddterm(1) + (1.-thimpb*bdf)*dt*temp
+
+     temp = b1bu(trial,bzt79,lin) 
+     rrterm(1) = rrterm(1) + thimpb*dt*temp
+     qqterm(1) = qqterm(1) - thimpb*dt*temp*bdf           
+  else           
+     temp = b1psibd(trial,lin,bz179,ni79)*dbf
      ssterm(1) = ssterm(1) -     thimpb     *dt*temp
      ddterm(1) = ddterm(1) + (.5-thimpb*bdf)*dt*temp
            
@@ -947,7 +977,14 @@ subroutine flux_nolin(trial, r4term)
   ! density terms
   ! ~~~~~~~~~~~~~
   if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
-     if(numvar.ge.2) then
+     r4term = r4term + dt* &
+          (b1psipsid(trial,ps079,ps079,ni79)*dbf)
+
+     if(numvar.eq.1) then
+        ! Term due to F0 = bzero when numvar=1
+        r4term = r4term + dt* &
+             (b1psibd  (trial,ps079,bzt79,ni79)*dbf)
+     else
         r4term = r4term + dt* &
              (b1psibd  (trial,ps079,bz079,ni79)*dbf)
      endif
@@ -1404,8 +1441,8 @@ subroutine ludefall
   q4 = 0.
     
   ! Determine which fields need to be calculated
-  def_fields = FIELD_PSI + FIELD_PHI + FIELD_ETA + FIELD_MU
-  if(numvar.ge.2) def_fields = def_fields + FIELD_V + FIELD_I
+  def_fields = FIELD_PSI + FIELD_I + FIELD_PHI + FIELD_ETA + FIELD_MU
+  if(numvar.ge.2) def_fields = def_fields + FIELD_V
   if(numvar.ge.3) def_fields = def_fields + &
        FIELD_CHI + FIELD_PE + FIELD_B2I + FIELD_J + FIELD_P + FIELD_KAP
   if(idens.eq.1) then
@@ -1414,7 +1451,6 @@ subroutine ludefall
   endif
 
   if(gyro.eq.1) then
-     if(numvar.lt.2) def_fields = def_fields + FIELD_I
      if(numvar.lt.3) def_fields = def_fields + FIELD_P + FIELD_PE + FIELD_B2I
   endif
 

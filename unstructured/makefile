@@ -11,13 +11,13 @@ F77    = ifort -c
 CC     = icc -c
 
 # For compiling complex version:
-#VECTYPE = -Dvectype=complex -Dcmplx_cast=cmplx
+COMPLEX = -Dvectype=complex -Dcmplx_cast=cmplx -DUSECOMPLEX
 
 # For compling real version:
-VECTYPE = -Dvectype=real -Dcmplx_cast=""
+COMPLEX = -Dvectype=real -Dcmplx_cast=""
 
 
-FOPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE) -DNEW_VELOCITY ${VECTYPE}
+FOPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE) -DNEW_VELOCITY ${COMPLEX}
 F90OPTS = ${FOPTS}
 F77OPTS = ${FOPTS}
 #F90OPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE)
