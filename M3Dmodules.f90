@@ -127,9 +127,13 @@ module basic
   ! domain parameters
   real :: xzero, zzero  ! cooridinates of lower left corner of domain
   
-  integer :: itest,istart
+  integer :: istart
   real :: beta
   real :: pefac
+
+  ! complex options
+  integer :: ntor     ! toroidal mode number
+
 !
 !.....input quantities---defined in subroutine input or in namelist
 !
@@ -155,7 +159,8 @@ module basic
        tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,             &
        expn,q0,divertors,xdiv,zdiv,divcur,th_gs,p1,p2,p_edge,  &
        idevice,igs,th_gs,                                      &
-       iconstflux,regular
+       iconstflux,regular,                                     &
+       ntor
 
   !     derived quantities
   real :: pi,dbf,bdf,hypv,hypc,hypf,hypi,hypp,                         &

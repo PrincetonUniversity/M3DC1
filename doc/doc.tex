@@ -284,7 +284,8 @@ $\P_\circ$ is a general isotropic viscosity, which is not present in
 Braginskii's model for a magnetized plasma.
 \begin{eqnarray}
   \label{eq:parallel_viscosity}
-  \P_\parallel & = & \mu_\parallel \left( \tensor{I} - 3 \b \b \right)
+  \P_\parallel & = & \mu_\parallel   \left( \b \cdot \W \cdot \b \right)
+  \left( \tensor{I} - 3 \b \b \right)
   \\
   \label{eq:gyroviscosity}
   \P_\times & = & \frac{p_i}{4 \omega_{c i}} \left\{
@@ -304,7 +305,6 @@ The rate-of-strain tensor is
 and where, in the Braginskii model,
 \begin{eqnarray*}
   \mu_\parallel = \eta_0 \frac{p_i \tau_i}{2} 
-  \left( \b \cdot \W \cdot \b \right)
   \\
   \eta_0 \approx 0.96.  
 \end{eqnarray*}
@@ -327,7 +327,7 @@ and
    -r^2 \grad \tor \cdot \div \P^d & = & \mu \gs{V} 
    + r^2 \ip{\mu}{\frac{V}{r^2}}
    \\
-   -\div \div \Pi^d & = & 2 \left\{ \lp{(\mu_c \lp{\chi})} 
+   -\div \div \P^d & = & 2 \left\{ \lp{(\mu_c \lp{\chi})} 
    + \funcss{\mu}{\chi} - \lp{\mu}\lp{\chi}
    \right. \\ && \left. \nonumber \mbox{}
    + \funcsa{\mu}{U} + \pb{\mu}{\gs{U}} - \pb{\frac{\mu_r}{r}}{U} 
@@ -339,7 +339,7 @@ and
 The viscous heating associated with the above form of the ion pressure
 tensor is
 \begin{eqnarray}
-  - \Pi_\circ \dotdot \grad{\u} & = & 2 \mu \left\{
+  - \P_\circ \dotdot \grad{\u} & = & 2 \mu \left\{
     \frac{1}{2 r^2} (\gs{U})^2 
     - \funcaa{U}{U} + \frac{2}{r} \pb{U}{\pb{r}{U}}
     \right. \\ \nonumber & & \left. \mbox{} 
@@ -350,7 +350,7 @@ tensor is
   + 2 (\mu_c - \mu) (\lp{\chi})^2
 \end{eqnarray}
 \begin{eqnarray}
-  \lefteqn{-\Pi_\parallel \dotdot \grad{\u} = - \mu_\parallel
+  \lefteqn{-\P_\parallel \dotdot \grad{\u} = - \mu_\parallel
     \left( 1-3 \frac{\ip{\psi}{\psi}}{r^2 B^2} \right) \lp{\chi}}
   \\ && \mbox{}
     - \frac{3 \mu_\parallel}{r^2 B^2} \left( \begin{array}{l}
@@ -364,7 +364,7 @@ tensor is
     \end{array}    \right)\nonumber
 \end{eqnarray}
 \begin{equation}
-  - \Pi_\times \dotdot \grad{\u} = 0.
+  - \P_\times \dotdot \grad{\u} = 0.
 \end{equation}
 
 
@@ -399,7 +399,7 @@ The viscous heating of electrons is
 \end{eqnarray}
 
 
-\subsection{Heat Density Flux $\q$, $\q_e$}
+\subsection{Heat Flux Density $\q$, $\q_e$}
 \label{sec:heat_flux}
 
 The heat flux density allows for general isotropic, parallel, and
@@ -591,7 +591,7 @@ law, equation~(\ref{eq:ohm}), on the boundary,
   + I^2 \pb{I}{\frac{1}{r^2 n}} 
   + \pb{p_e}{\frac{I}{n}} \nonumber
 \end{eqnarray}
-where terms due to $\Pi_e$ have been omitted.  However, if the
+where terms due to $\P_e$ have been omitted.  However, if the
 boundary conditions are such that $\E = -\frac{V_L}{2 \pi} \grad\tor$
 (as is the case with perfectly-conducting boundaries with ohmic
 heating), then, on the boundary
