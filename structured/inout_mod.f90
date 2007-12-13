@@ -1067,18 +1067,18 @@ subroutine output
   endif
 !
 !....plot source terms
-  if(numvar.ge.2) call oneplot(0,2,sphi2,1,1,"sph2 ")
-  if(numvar.ge.3) then
-     call oneplot(0,3,sphip,1,1,"sphp ")
-     call oneplot(0,4,sphik,1,1,"sphk ")
-  endif
-  call oneplot(0,1,sphi1,1,1,"sph1 ")
+! if(numvar.ge.2) call oneplot(0,2,sphi2,1,1,"sph2 ")
+! if(numvar.ge.3) then
+!    call oneplot(0,3,sphip,1,1,"sphp ")
+!    call oneplot(0,4,sphik,1,1,"sphk ")
+! endif
+! call oneplot(0,1,sphi1,1,1,"sph1 ")
 !
 ! debug plotting of ohmic and viscous source terms
-  if(numvar.ge.2) call oneplot(0,3,ohmic  ,2,numvar,"ohm2 ")
-  if(numvar.ge.3) call oneplot(0,4,ohmic  ,3,numvar,"ohm3 ")
-  if(numvar.ge.3) call oneplot(0,2,viscous,3,numvar,"visc ")
-                  call oneplot(0,1,ohmic  ,1,numvar,"ohm1 ")
+! if(numvar.ge.2) call oneplot(0,3,ohmic  ,2,numvar,"ohm2 ")
+! if(numvar.ge.3) call oneplot(0,4,ohmic  ,3,numvar,"ohm3 ")
+! if(numvar.ge.3) call oneplot(0,2,viscous,3,numvar,"visc ")
+!                 call oneplot(0,1,ohmic  ,1,numvar,"ohm1 ")
 !
 !....special diagnostic plot of toroidal electric field added 06/04/06...SCJ
       if(linear.eq.0 .and. itaylor.eq.3) then
@@ -1484,8 +1484,19 @@ subroutine input
   isym = 0
   jsym = 0
   
-  ! implicitness parameter (thimp > 0.5 for stability)
+  ! implicitness parameter for velocity advance (thimp > 0.5 for stability)
   thimp = 0.5
+  ! implicitness parameter for field advance
+  th2mp = 1.0
+
+!  switch for implicit velocity equation
+!             iadv=0  =>  thimp**2
+!             iadv=1  =>  thimp*(thimp-1)  (old way)
+  iadv = 0
+!
+!  switch for poloidal field advance
+!             iadv=0  ==> advance psi
+!             iadv=1  ==> advance J
   
   ! hyper-resistivity coefficients
   hyper = 0.5000
@@ -1516,7 +1527,7 @@ subroutine input
   ! NOTE:  if facw=1., facd is zeroed after the first cycle
 
   ! 2-fluid coefficients
-  cb = 0.000
+  cb = 1.00
   db = 0.00
   ! regularization coefficient
   regular = 1.e-7

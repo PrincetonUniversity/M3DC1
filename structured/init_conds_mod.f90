@@ -43,7 +43,7 @@ subroutine velequ(dum)
      do lz=1,m+jper
         z = (lz-1)*deez - alz/2.*(1-jsym)
         l = lx + (lz-1)*n
-        i0 = (l-1)*numvar*6
+        i0 = (l-1)*numvar*6 
 !
         if(itaylor.eq.6) go to 375
         do i=i0+1,i0+6*numvar
@@ -78,7 +78,7 @@ subroutine phiequ(dum)
 #endif
 
   integer :: lx, lz, i0, l, i, ifail1, ifail2, ifail3
-  real :: x, z, ff, fp, fpp, r, alam
+  real :: x, z, ff, fp, fpp, r, alam, epsilon
   real :: k, j0, j1, kb, rt, ri, arg, befo, akz
   real :: n0, pn0, ppn0, pezero
   real :: s17aef, s17aff
@@ -86,6 +86,7 @@ subroutine phiequ(dum)
   real :: loc, locp, r0
 
   k = 3.8317059702
+  epsilon = 1.e-6
 
   ! start a loop over the number of vertices to define initial conditions
 
@@ -231,14 +232,23 @@ subroutine phiequ(dum)
                    - 2.*sech(2.*z)**2 + 4.*tanh(2.*z)**2)
            endif
 
-           ! if numvar >= 3, then use pressure to satisfy force balance
+           ! if numvar >= 3, then use both pressure and Bz to satisfy force balance
+!..........modified to enforce force balance when p0 .ne. 1/2      11/06/07   (SCJ)
+!
            if(numvar.ge.3) then
-              
-              dum(i0+7) = bzero
-              do i=i0+8,i0+12
-                 dum(i) = 0.
-              enddo
-
+              arg = bzero**2 + (1.-2.*p0)*sech(2.*z)**2
+              if(bzero**2 + (1.-2.*p0) .le. epsilon) then
+                arg = arg - (bzero**2 + (1.-2.*p0)) + 2.*epsilon
+              endif
+              dum(i0+7) =  sqrt(arg)
+              dum(i0+8) =  0.
+              dum(i0+9) =  -(1.-2.*p0)*2.*tanh(2.*z)*sech(2.*z)**2/dum(i0+7)
+              dum(i0+10) = 0.
+              dum(i0+11) = 0.
+              dum(i0+12) = (1.-2.*p0)*(2.*sech(2.*z)**2/dum(i0+7))           &
+                   *(dum(i0+9)*tanh(2.*z)/dum(i0+7)                          &
+                   - 2.*sech(2.*z)**2 + 4.*tanh(2.*z)**2)
+!
               if(ipres.eq.1) then
                  pezero = p0-pi0
               else

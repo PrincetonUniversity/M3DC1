@@ -107,11 +107,11 @@
      &     tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,cb,            &
      &     bzero,hyper,hyperi,hyperv,hyperc,gam,beta,eps,tau,           &
      &     kappa,kappat,hyperp,del,denm,bzerosi,grav,ln,amuc,chipar,    &
-     &     regular, facden, velion
+     &     regular, facden, velion, th2mp
       integer n,m,linear,maxs,ntimemax,ntimepr,itor,ioddmx,isetup,      &
      &   irestart,iper,jper,itaylor,itest,isecondorder,imask,nskip,     &
      &        numvar,istart,idens,ipres,itaylorw,isym,jsym,eqsubtract,  &
-     &        isemii,elvis, gyro
+     &        isemii,elvis, gyro, iadv, jadv
       character*40 netcdffilename
 !
 !.....input quantities---defined in subroutine input or in namelist
@@ -125,7 +125,7 @@
      &        tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,db,cb,         &
      &        bzero,hyper,hyperi,hyperv,hyperc,gam,beta,eps,tau,        &
      &        kappa,kappat,hyperp,del,denm,bzerosi,grav,ln,chipar,      &
-     &        regular,facden,velion
+     &        regular,facden,velion, th2mp, iadv, jadv
 !
 !     derived quantities
       real    deex,deez,tt,gamma4,gamma2,gamma3,dpsii,psimin,psilim,pi, &
@@ -319,20 +319,15 @@
       use newvar_mod
       use init_conds_mod
       use inout_mod
-#ifdef mpi
       use supralu_dist_mod
       implicit none
       include 'mpif.h'
-#else
-      implicit none
-#endif
 
       integer ier, lx, lz, l, ione, i, j, index1, index2, ifail
       integer maxts
       real dtmin, ratemin, ratemax, actualhyper
       integer  nran1, msize1, m_lo1, nnz_lo1, ifs_ro1
 
-#ifdef mpi
 !....Start up message passing, SuperLU process grid
       call MPI_Init(ier)
       if (ier /= 0) then
@@ -351,9 +346,6 @@
          print *,'Error in MPI_Comm_size:',ier
          call safestop(1)
       endif
-#else
-      myrank = 0
-#endif
 !
       if(myrank.eq.0) then
          call date_and_time( datec, timec)
@@ -408,7 +400,6 @@
 
       if(myrank.eq.0) write(*,*) "allocating..."
 
-#ifdef mpi
       if(idens.eq.1 .or. ipres.eq.1) then
          nran1 = n*m*6 
          msize1 = 9*n*m*6**2
@@ -463,7 +454,6 @@
       else if(ipres.eq.1) then
          origcolind1 = s9matrix_lu%colind
       endif
-#endif
 
       if(myrank.eq.0) write(*,*) "done allocating."
 
@@ -702,70 +692,7 @@
       if(myrank.eq.0 .and. iprint.eq.1) then
          print *, 'Deallocating matrices...'
       endif
-#ifdef mpi
-!     deallocate(jbiglist)
-!     deallocate(origcolind)
-
-!     if(idens.eq.1 .or. ipres.eq.1) deallocate(origcolind1)
-!
-!     call sparseR8d_del(s1matrix_lu,ier)
-!     call sparseR8d_free(s1matrix_lu,ier)
-!     call sparseR8d_del(s2matrix_lu,ier)
-!     call sparseR8d_free(s2matrix_lu,ier)
-!     if(ifirsts3_lu.ne.0) then
-!        call sparseR8d_del(s3matrix_lu,ier)
-!        call sparseR8d_free(s3matrix_lu,ier)
-!     endif
-!     if(ifirsts5_lu.ne.0) then
-!        call sparseR8d_del(s5matrix_lu,ier)
-!        call sparseR8d_free(s5matrix_lu,ier)
-!     endif
-!     if(ifirsts6_lu.ne.0) then
-!        call sparseR8d_del(s6matrix_lu,ier)
-!        call sparseR8d_free(s6matrix_lu,ier)
-!     endif
-!     if(ifirsts7_lu.ne.0) then
-!        call sparseR8d_del(s7matrix_lu,ier)
-!        call sparseR8d_free(s7matrix_lu,ier)
-!     endif
-!     if(ifirstsa_lu.ne.0) then
-!        call sparseR8d_del(samatrix_lu,ier)
-!        call sparseR8d_free(samatrix_lu,ier)
-!     endif
-!     call sparseR8d_free(d1matrix_lu,ier)
-!     call sparseR8d_free(d2matrix_lu,ier)
-!     call sparseR8d_free(d3matrix_lu,ier)
-!     call sparseR8d_free(r1matrix_lu,ier)
-!     call sparseR8d_free(r2matrix_lu,ier)
-!     call sparseR8d_free(q2matrix_lu,ier)
-!     if(idens.gt.0) then
-!        call sparseR8d_del(s8matrix_lu,ier)
-!        call sparseR8d_free(s8matrix_lu,ier)
-!        call sparseR8d_free(d8matrix_lu,ier)
-!        call sparseR8d_free(r8matrix_lu,ier)
-!        call sparseR8d_free(q8matrix_lu,ier)
-!     endif
-!     if(ipres.eq.1) then
-!        call sparseR8d_del(s9matrix_lu,ier)
-!        call sparseR8d_free(s9matrix_lu,ier)
-!        call sparseR8d_free(d9matrix_lu,ier)
-!        call sparseR8d_free(r9matrix_lu,ier)
-!        call sparseR8d_free(q9matrix_lu,ier)
-!     endif
-#else 
-      call dsupralu_del(s1handle, jer)
-      call sparseR8_free(s1matrix_lu,ier)
-      call dsupralu_del(s2handle, jer)
-      call sparseR8_free(s2matrix_lu,ier)
-      call dsupralu_del(s3handle, jer)
-      call sparseR8_free(s3matrix_lu,ier)
-      call sparseR8_free(d1matrix_lu,ier)
-      call sparseR8_free(d2matrix_lu,ier)
-      call sparseR8_free(d3matrix_lu,ier)
-      call sparseR8_free(r1matrix_lu,ier)
-      call sparseR8_free(r2matrix_lu,ier)
-      call sparseR8_free(q2matrix_lu,ier)
-#endif
+!    
       if(myrank.eq.0 .and. iprint.eq.1) then
          print *, 'Done deallocating matrices'
       endif
@@ -832,7 +759,7 @@
  5001 format("ifail .ne. 0 after call to f04aaf")
  7011 format(1p6e20.12)
  7012 format(6e20.12)
-!
+
 !
       end program Reducedquintic
 !============================================================
@@ -852,14 +779,23 @@
       integer itri, iodd, irect, jrect, i, j, jone, ivertex
       integer i0, ione, l, ier, jer, lx, lz, j2
       real eerror, ediff, etotd, sum
-!     real correction, index
+      real correction, fc
+      integer index
 
       if(myrank.eq.0 .and. itimer.gt.0) call second(tstartonestep)
 !
 !.....advance solution to time ntime+1
 !
-      ththmdts = thimp*(thimp-1)*dt**2
       thsqudts = thimp**2*dt**2
+!
+!.....note:  ththmdts changed 10/04/2007 to improve convergence (SCJ)
+!            iadv option added 10/19/2007  (SCJ)
+      if(iadv.gt.0) then
+        ththmdts = thimp*(thimp-1)*dt**2      ! old way for iadv=1
+      else
+        ththmdts = thsqudts                   ! new way for iadv=0
+      endif
+!
       thdts = thimp*dt**2
 !
       if(iprint.eq.1 .and. myrank.eq.0) write(*,*) "starting onestep"
@@ -874,13 +810,13 @@
       call newvarc(1,phi,jphi,m*n,numvar,1,1)
 !
         lineval = 1       ! linear piece
-        call newvarc(1,phi ,sphi1 ,m*n,numvar,1,4)
+!       call newvarc(1,phi ,sphi1 ,m*n,numvar,1,4)
         lineval = 0       ! equilibrium piece
         call newvarc(1,phi0,sphi10,m*n,numvar,1,4)
 !
       if(numvar.ge.2) then
         lineval = 1       !  linear piece
-        call newvarc(1,phi ,sphi2 ,m*n,numvar,1,5)
+!       call newvarc(1,phi ,sphi2 ,m*n,numvar,1,5)
         lineval = 0       !  equilibrium piece
         call newvarc(1,phi0,sphi20,m*n,numvar,1,5)
       endif
@@ -935,18 +871,21 @@
       enddo                     ! loop over iodd
      
 !.....adjust toroidal field and boundary condition to conserve toroidal flux
-!     if(numvar.ge.2) then
-!        correction = tflux/area
-!        gbound = gbound - correction
-!        ivertex = 0
-!        do jrect=1,m
-!           do irect=1,n
-!              ivertex = ivertex + 1
-!              index = 6*numvar*(ivertex-1) + 7
-!              phi(index) = phi(index) - correction
+         if(numvar.ge.2) then
+!
+!.....define relaxation time to correct toroidal flux over
+            correction = tflux/area
+      fc = 10.
+            gbound = gbound - fc*correction*dt*(bzero+1.)/alz
+!           ivertex = 0
+!           do jrect=1,m
+!              do irect=1,n
+!                 ivertex = ivertex + 1
+!                 index = 6*numvar*(ivertex-1) + 7
+!                 phi(index) = phi(index) - correction
+!              enddo
 !           enddo
-!        enddo
-!     endif
+         endif
 !
 !
 !........define ohmic and viscous here
@@ -990,11 +929,7 @@
 !     
 !.....multiply r1matrix_lu x time n fields, put result in b1vector
       if(iprint.ge.1) write(*,*) "before sparseR8_A_dot_X"
-#ifdef mpi
       call sparseR8d_A_dot_X(r1matrix_lu,phip,b1vector,ier)
-#else
-      call sparseR8_A_dot_X(r1matrix_lu,phip,b1vector,ier)
-#endif
       if(ier.ne.0) then
          write(*,*) "ier after A_dot,   ",ier
          call safestop(34)
@@ -1003,19 +938,13 @@
 !.....multiply d1matrix_lu x time n velocity, add RHS vector to obtain vtemp
       vtemp = 0.
       if(iprint.eq.1)write(*,*) "before second sparseR8_A_dot_X"
-#ifdef mpi
       call sparseR8d_A_dot_X(d1matrix_lu,vel,vtemp,ier)
-#else
-      call sparseR8_A_dot_X(d1matrix_lu,vel,vtemp,ier)
-#endif
       if(ier.ne.0) then
          write(*,*) "ier after A_dot,   ",ier
          call safestop(35)
       endif
 
-!....remove r40
-      r40 = 0.
-      vtemp = vtemp +   b1vector + r4 + r40
+      vtemp = vtemp +   b1vector + r4
 
       do l=1,nbcv
         if(iboundv2(l).gt.0) then
@@ -1028,20 +957,12 @@
 !     
 !.....solve linear system with rhs in vtemp (note LU-decomp done first time)
       if(iprint.eq.1) write(*,*) "before dsupralu_solve_s1handle" 
-#ifdef mpi
       call sparseR8d_solve(s1matrix_lu, vtemp, jer)
 
       if(jer.ne.0) then
          write(*,*) 'after sparseR8d_solve', jer
          call safestop(42)
       endif
-#else
-      call dsupralu_solve(s1handle, vtemp, jer)
-      if(jer.ne.0) then
-         write(*,*) 'after dsupralu_solve', jer
-         call safestop(43)
-      endif
-#endif
       if(myrank.eq.0) call second(taftersolve)
       tsolve = tsolve + taftersolve - tafteradotb
 !
@@ -1115,7 +1036,6 @@
          endif
          if(iprint.ge.1) write(*,*) "s8handle"
          if(myrank.eq.0) call second(tbeforeadotb)
-#ifdef mpi
 !     
 !.....multiply r8matrix_lu x time n+1 velocity, put result in b2vector
          call sparseR8d_A_dot_X(r8matrix_lu,vel,b2vector,ier)
@@ -1127,20 +1047,6 @@
          vtemp = 0.
 !
          call sparseR8d_A_dot_X(d8matrix_lu,den,vtemp,ier)
-#else
-!     
-!.....multiply r8matrix_lu x time n+1 velocity, put result in b2vector
-         call sparseR8_A_dot_X(r8matrix_lu,vel,b2vector,ier)
-!     
-!.....multiply q8matrix_lu x time n velocity, put result in b3vector
-         call sparseR8_A_dot_X(q8matrix_lu,veln,b3vector,ier)
-!
-!.....multiply d8matrix_lu x time n fields, add RHS vector to obtain vtemp
-         vtemp = 0.
-!
-         call sparseR8_A_dot_X(d8matrix_lu,den,vtemp,ier)
-!
-#endif
          do lx=1,n
             do lz=1,m
                l = lx + (lz-1)*n
@@ -1161,7 +1067,6 @@
          if(myrank.eq.0) call second(tafteradotb)
          tadotb = tadotb + tafteradotb-tbeforeadotb
 !
-#ifdef mpi
 !     
 !.....solve linear system...LU decomposition done first time
          call sparseR8d_solve(s8matrix_lu, vtemp, jer)
@@ -1170,17 +1075,7 @@
             write(*,*) 'after 2nd sparseR8d_solve', jer
             call safestop(29)
          endif
-#else
-!
-!.....solve linear system using LU decomp encoded in s8handle, rhs in vtemp
-        if(iprint.eq.1) write(*,*) "before dsupralu_solve ... s8handle",&
-     &        s8handle
-         call dsupralu_solve(s8handle, vtemp, jer)
-         if(jer.ne.0) then
-            write(*,*) 'after 2nd dsupralu_solve', jer
-            call safestop(29)
-         endif
-#endif
+
          if(myrank.eq.0) call second(taftersolve)
          tsolve = tsolve + taftersolve-tafteradotb
 !
@@ -1196,7 +1091,6 @@
             call ludefpres   
          endif
          if(iprint.ge.1) write(*,*) "s9handle"
-#ifdef mpi
 !
 !........multiply r9matrix_lu x time n+1 velocity, put result in b2vector
          call sparseR8d_A_dot_X(r9matrix_lu,vel,b2vector,ier)
@@ -1208,19 +1102,7 @@
          vtemp = 0.
 
          call sparseR8d_A_dot_X(d9matrix_lu,pres,vtemp,ier)
-#else
-!
-!........multiply r9matrix_lu x time n+1 velocity, put result in b2vector
-         call sparseR8_A_dot_X(r9matrix_lu,vel,b2vector,ier)
-!
-!........multiply q9matrix_lu x time n velocity, put result in b3vector
-         call sparseR8_A_dot_X(q9matrix_lu,veln,b3vector,ier)
-!
-!........multiply d9matrix_lu x time n fields, add RHS vector to obtain vtemp
-         vtemp = 0.
-!
-         call sparseR8_A_dot_X(d9matrix_lu,pres,vtemp,ier)
-#endif
+
          do lx=1,n
             do lz=1,m
                l = lx + (lz-1)*n
@@ -1237,8 +1119,7 @@
          do l=1, nbcn
             vtemp(iboundn(l)) = 0.
          enddo
-!
-#ifdef mpi         
+!         
 !
 !........solve linear system...LU decomposition done first time
          call sparseR8d_solve(s9matrix_lu, vtemp, jer)
@@ -1246,17 +1127,7 @@
             write(*,*) 'after 2nd sparseR8d_solve', jer
             call safestop(29)
          endif
-#else
-!
-!........solve linear system using LU decomp encoded in s9handle, rhs in vtemp
-         if(iprint.eq.1) write(*,*)                                     &
-     &        "before dsupralu_solve ... s9handle", s9handle
-         call dsupralu_solve(s9handle, vtemp, jer)
-         if(jer.ne.0) then
-            write(*,*) 'after 2nd dsupralu_solve', jer
-            call safestop(29)
-         endif
-#endif
+
 !
 !........new field solution at time n+1 (or n* for second order advance)
          pres = vtemp
@@ -1293,7 +1164,6 @@
       endif
       if(iprint.ge.1) write(*,*) "s2handle" 
       if(myrank.eq.0) call second(tbeforeadotb)
-#ifdef mpi
 !
 !.....multiply r2matrix_lu x time n+1 velocity, put result in b2vector
       call sparseR8d_A_dot_X(r2matrix_lu,vel,b2vector,ier)
@@ -1305,21 +1175,7 @@
       vtemp = 0.
 !
       call sparseR8d_A_dot_X(d2matrix_lu,phi,vtemp,ier)
-#else
-!
-!.....multiply r2matrix_lu x time n+1 velocity, put result in b2vector
-      call sparseR8_A_dot_X(r2matrix_lu,vel,b2vector,ier)
-!
-!.....multiply q2matrix_lu x time n velocity, put result in b3vector
-      call sparseR8_A_dot_X(q2matrix_lu,veln,b3vector,ier)
-!
-!.....multiply d2matrix_lu x time n fields, add RHS vector to obtain vtemp
-      vtemp = 0.
-!
-      call sparseR8_A_dot_X(d2matrix_lu,phi,vtemp,ier)
-!
 
-#endif
       if(myrank.eq.0) call second(tafteradotb)
       tadotb = tadotb + tafteradotb-tbeforeadotb
       vtemp = vtemp +  b2vector + b3vector                              &
@@ -1332,7 +1188,6 @@
          endif
       enddo
 
-#ifdef mpi
 !
 !.....solve linear system...LU decomposition done first time
       call sparseR8d_solve(s2matrix_lu, vtemp, jer)
@@ -1340,16 +1195,6 @@
          write(*,*) 'after 2nd sparseR8d_solve', jer
          call safestop(29)
       endif
-#else
-!.....solve linear system using LU decomp encoded in s2handle, rhs in vtemp
-      if(iprint.eq.1) write(*,*) "before dsupralu_solve ... s2handle",  &
-     &                s2handle
-      call dsupralu_solve(s2handle, vtemp, jer)
-      if(jer.ne.0) then
-         write(*,*) 'after 2nd dsupralu_solve', jer
-         call safestop(29)
-      endif
-#endif
 
       if(myrank.eq.0) call second(taftersolve)
       tsolve = tsolve + taftersolve-tafteradotb
@@ -1463,14 +1308,10 @@
       use arrays
       use superlu
       use mesh_mod
-#ifdef mpi
       use supralu_dist_mod
       use superlu_mod
       implicit none
       include 'mpif.h'
-#else
-      implicit none
-#endif
       integer icount, irect, jrect, iodd, itri, ll, itype
       integer i, i1, i2, i3
       integer j, j01, j1, j2, j3, jone
@@ -1502,7 +1343,6 @@ c$$$      endif
       r1matrix_lu%colind = origcolind
 !     
 !.....form velocity matrices
-      r40 = 0.
       itri = 0
 
 !.......position files with metric terms
@@ -1692,7 +1532,6 @@ c$$$      endif
      &                 + thimpv *dt*amu*hypvf*termb
               ddterm(2,2) = termd*(1-idens) + (1.-thimp)*dt*amu*terma   &
      &             - (1.-thimpv)*dt*amu*hypvf*termb
-              r40(i2) = r40(i2) + dt*amu*(terma - hypvf*termb)*vel0(j2)
            endif
            if(numvar.ge.3) then
               ssterm(3,3) = terma*(1-idens) -   thimp *dt*2.*amuc*termb
@@ -1700,7 +1539,6 @@ c$$$      endif
               ddterm(3,3) = terma*(1-idens)+(1.-thimp)*dt*2.*amuc*termb
      &               - regular*termd
               rrterm(3,3) = - dt*terma
-              r40(i3) = r40(i3) - thdts*terma*(sphip(jone)+sphik(jone))
 !
 !
 !   need to add in heat conduction contribution;  different for ipres=0 and ipres=1
@@ -1747,7 +1585,6 @@ c$$$      endif
               rrterm(1,1)=rrterm(1,1) + dt*gmix*(.5*phi(k1) + phi0(k01))&
      &             + thdts*gmix*sphi10(kone)
 !     
-              r40(i1) = r40(i1) + thdts*gmix*sphi1(kone)*phi0(j01)
 !
               if(numvar.ge.2) then
 !
@@ -1757,7 +1594,7 @@ c$$$      endif
               ddterm(2,1) = ddterm(2,1)+dt*k0term(iodd,i,j,k)*(1-idens) &
      &         *(-thimp*(vel(k2)+vel0(k2))+(0.5*vel(k2)+vel0(k2)))
 !
-              rrterm(2,1) = rrterm(2,1) - dt*k0term(iodd,i,j,k)         &
+              rrterm(2,1) = rrterm(2,1) - cb*dt*k0term(iodd,i,j,k)      &
      &          *(.5*phi(k2)+phi0(k2))                                  &
      &               - thdts*k0term(iodd,i,j,k)*sphi20(kone)  
 !
@@ -1772,13 +1609,10 @@ c$$$      endif
                 ddterm(2,2) = ddterm(2,2)+dent(kone)*k1term(iodd,i,j,k)
               endif
 !
-              rrterm(2,2) = rrterm(2,2) + dt*k0term(iodd,i,j,k)         &
+              rrterm(2,2) = rrterm(2,2) + cb*dt*k0term(iodd,i,j,k)      &
      &             *(.5*phi(k1)+phi0(k01))                              &
      &             - thdts*k0term(iodd,i,k,j)*sphi10(kone)              
 !
-              r40(i2) = r40(i2)                                         &
-     &             - thdts*(k0term(iodd,i,j,k)*sphi2(kone)*phi0(j01)    &
-     &             + k0term(iodd,i,k,j)*sphi1(kone)*phi0(j2))
               endif
 !
 !
@@ -1840,9 +1674,6 @@ c$$$      endif
      &           +g5term(iodd,i,k,j))*(0.5*phi(k2)+phi0(k2))            &
      &           -thdts*h5term(iodd,i,j,k)*sphi20(kone)
 !
-              r40(i3) = r40(i3) - thdts*                                &
-     &                 (h3term(iodd,i,j,k)*sphi1(kone)*phi0(j01)        &
-     &                 +h5term(iodd,i,j,k)*sphi2(kone)*phi0(j2))
 !
               ssterm(3,3) = ssterm(3,3) - thsqudts                      &
      &            *(g6aerm(iodd,i,j,k)+gam*g6berm(iodd,i,j,k))*pressure &
@@ -1923,7 +1754,7 @@ c$$$      endif
                 qmix = c5terml(k,l)*                                    &
      &               (phi(k1)+phi0(k01))*(phi(l2)+phi0(l2))
 ! 
-                qmix2 =   c9terml(k,l)                                  &
+                qmix2 = cb**2*c9terml(k,l)                              &
      &               *(phi(k1)+phi0(k01))*(phi(l1)+phi0(l01))
 !
                 ssterm(2,1) = ssterm(2,1) - thsqudts*qmix 
@@ -1952,8 +1783,6 @@ c$$$      endif
      &               *vel0(k2)
 !
 !...............added 2/17/07
-                r40(i2) = r40(i2) + thdts*c9terml(k,l)                  &
-     &                  *phi0(l01)*phi0(k01)*vel0(j2)
 !
                 
 !
@@ -2083,8 +1912,6 @@ c$$$      endif
      &        +c17erml(k,l)*(phi0(l2)+phi(l2))*(phi0(k2)+phi(k2)))
 !
 !.....added 02/17/07
-               r40(i3) = r40(i3) - thdts                                &
-     &        *c15erml(k,l)*vel0(j2)*phi0(k01)*phi0(l2)
 !
 !......semi-implicit terms added 03/12/06
                if(isemii.gt.0) then
@@ -2174,16 +2001,7 @@ c$$$      endif
       enddo                     ! on i
       enddo                     ! on iodd
 
-#ifdef mpi 
       icount = 6*numvar*m*n
-      vtemp = r40
-      call MPI_ALLREDUCE(vtemp,r40,icount,MPI_DOUBLE_PRECISION,         &
-     &     MPI_SUM, MPI_COMM_WORLD,ier)
-      if(ier /= 0) then
-         print *,'Error with MPI_allreduce-r40',ier
-         call safestop(1)
-      endif
-#endif
       if(myrank.eq.0) call second(tbeforeinit)
       tmpi = tmpi + tbeforeinit-tafterelements
 !
@@ -2198,10 +2016,6 @@ c$$$      endif
       endif
 !
 !.....allow for possibility of zeroing a linear combination of two elements
-!......special option to output matrix
-       if(idebug.eq.1 .and. islutype.eq.1) then
-       call sparseR8d_output(s1matrix_lu)
-       endif
 
       do l=1,nbcv
 
@@ -2227,6 +2041,10 @@ c$$$      endif
             endif
          endif
        enddo
+!......special option to output matrix
+       if(idebug.eq.1 .and. islutype.eq.1) then
+       call sparseR8d_output(s1matrix_lu)
+       endif
     
       jer = 0
       if(iprint.ge.1) write(*,*) "before save s1matrix" 
@@ -2249,14 +2067,10 @@ c$$$      endif
       use basic
       use arrays
       use superlu
-#ifdef mpi
       use supralu_dist_mod
       use superlu_mod
       implicit none
       include 'mpif.h'
-#else
-      implicit none
-#endif
       integer i, i1, i2, i3
       integer j, jone, j01, j1, j2, j3
       integer k, kone, k01, k1, k2, k3
@@ -2316,18 +2130,18 @@ c$$$      endif
      &       read(103) ir1,ir2,ir3,((u1terml(k,l),l=1,18),k=1,18)
         if(iread(04).eq.1)                                              &
      &       read(104) ir1,ir2,ir3,((u2terml(k,l),l=1,18),k=1,18)
-        if(iread(09).eq.1)                                              &
-     &       read(109) ir1,ir2,ir3,((u5terml(k,l),l=1,18),k=1,18)
-        if(iread(10).eq.1)                                              &
-     &       read(110) ir1,ir2,ir3,((u6terml(k,l),l=1,18),k=1,18)
         if(iread(05).eq.1)                                              &
      &     read(105) ir1,ir2,ir3,((v7terml(k,l),l=1,18),k=1,18)
         if(iread(06).eq.1)                                              &
      &       read(106) ir1,ir2,ir3,((v8terml(k,l),l=1,18),k=1,18)
-!       if(iread(47).eq.1)                                              &
-!    &       read(147) ir1,ir2,ir3,((u7terml(k,l),l=1,18),k=1,18)
-!       if(iread(48).eq.1)                                              &
-!    &       read(148) ir1,ir2,ir3,((u8terml(k,l),l=1,18),k=1,18)
+        if(iread(09).eq.1)                                              &
+     &       read(109) ir1,ir2,ir3,((u5terml(k,l),l=1,18),k=1,18)
+        if(iread(10).eq.1)                                              &
+     &       read(110) ir1,ir2,ir3,((u6terml(k,l),l=1,18),k=1,18)
+        if(iread(27).eq.1)                                              &
+     &       read(127) ir1,ir2,ir3,((c15erml(k,l),l=1,18),k=1,18)
+        if(iread(28).eq.1)                                              &
+     &       read(128) ir1,ir2,ir3,((c16erml(k,l),l=1,18),k=1,18)
         if(iread(73).eq.1)                                              &
      &       read(173) ir1,ir2,ir3,((t1terml(k,l),l=1,18),k=1,18)
         if(iread(74).eq.1)                                              &
@@ -2391,20 +2205,25 @@ c$$$      endif
 !...NOTE: s2matrix_lu (formed from ss) multiplies the solution at time NTIME+1
 !
 ! LINEAR TERMS
-            ssterm(1,1) =  termd -     thimp  *dt*etar*(terma-termbf)  
-            ddterm(1,1) =  termd + (1.-thimp) *dt*etar*(terma-termbf)   
+            if(jadv.eq.0) then
+              ssterm(1,1) =  termd -     th2mp  *dt*etar*(terma-termbf)
+              ddterm(1,1) =  termd + (1.-th2mp) *dt*etar*(terma-termbf)
+            else
+              ssterm(1,1) =  terma -     th2mp  *dt*etar*termb
+              ddterm(1,1) =  terma + (1.-th2mp) *dt*etar*termb
+            endif  ! on jadv.eq.0
 !
 !
             if(numvar.ge.2) then
 !
-              ssterm(2,2) =  termd   - thimp *dt*etar*(terma-hypi*termb) 
-              ddterm(2,2) =  termd+(1.-thimp)*dt*etar*(terma-hypi*termb) 
+              ssterm(2,2) =  termd   - th2mp *dt*etar*(terma-hypi*termb)
+              ddterm(2,2) =  termd+(1.-th2mp)*dt*etar*(terma-hypi*termb)
 !
               if(numvar.ge.3) then
 !     
-                 ssterm(3,3) =  termd -     thimp *dt*kappa             &
+                 ssterm(3,3) =  termd -     th2mp *dt*kappa             &
      &                                            *(terma-hypp*termb)
-                 ddterm(3,3) =  termd + (1.-thimp)*dt*kappa             &
+                 ddterm(3,3) =  termd + (1.-th2mp)*dt*kappa             &
      &                                            *(terma-hypp*termb)
 !
 !
@@ -2424,104 +2243,147 @@ c$$$      endif
 
               gmix = g0term(iodd,i,j,k)+g0term(iodd,i,k,j)
 !
-              ssterm(1,1)=ssterm(1,1) - dt*thimp                        &
-     &           *(k0term(iodd,i,k,j)*(veln(k1)+vel0(k1)))
+              if(jadv.eq.0) then
+                ssterm(1,1)=ssterm(1,1) - dt*th2mp                        &
+     &             *(k0term(iodd,i,k,j)*(veln(k1)+vel0(k1)))
 !
-              ddterm(1,1)=ddterm(1,1) + dt*k0term(iodd,i,k,j)*          &
-     &          (-thimp*(veln(k1)+vel0(k1))+0.5*veln(k1)+vel0(k1))
+                ddterm(1,1)=ddterm(1,1) + dt*k0term(iodd,i,k,j)*          &
+     &            (-th2mp*(veln(k1)+vel0(k1))+0.5*veln(k1)+vel0(k1))
 !
-              rrterm(1,1)=rrterm(1,1) + thimp*dt*k0term(iodd,i,j,k)*    &
+                rrterm(1,1)=rrterm(1,1) + th2mp*dt*k0term(iodd,i,j,k)*    &
      &                      (phi(k1)+phi0(k01))
 !
-              qqterm(1,1)=qqterm(1,1) +       dt*k0term(iodd,i,j,k)*    &
-     &          (-thimp*(phi(k1)+phi0(k01))+0.5*phi(k1)+phi0(k01))
+                qqterm(1,1)=qqterm(1,1) +       dt*k0term(iodd,i,j,k)*    &
+     &            (-th2mp*(phi(k1)+phi0(k01))+0.5*phi(k1)+phi0(k01))
+              else
+                ssterm(1,1)=ssterm(1,1) + dt*th2mp                        &
+     &             *(g7term(iodd,i,k,j)*(veln(k1)+vel0(k1)))
+!
+                ddterm(1,1)=ddterm(1,1) - dt*g7term(iodd,i,k,j)*          &
+     &            (-th2mp*(veln(k1)+vel0(k1))+0.5*veln(k1)+vel0(k1))
+!
+                rrterm(1,1)=rrterm(1,1) - th2mp*dt*g7term(iodd,i,j,k)*    &
+     &                      (phi(k1)+phi0(k01))
+!
+                qqterm(1,1)=qqterm(1,1) -       dt*g7term(iodd,i,j,k)*    &
+     &            (-th2mp*(phi(k1)+phi0(k01))+0.5*phi(k1)+phi0(k01))
+              endif  ! on jadv
 !
               if(numvar.ge.2) then
                  if(idens.eq.0) then
 !
+                 if(jadv.eq.0) then
                  ssterm(1,1)=ssterm(1,1) - dbf*dt*k0term(iodd,i,j,k)    &
-     &                *thimp*(phi(k2)+phi0(k2))
+     &                *th2mp*(phi(k2)+phi0(k2))
 !     
                  ddterm(1,1)=ddterm(1,1) - dbf*dt*k0term(iodd,i,j,k)    &
-     &               *(thimp*(phi(k2)+phi0(k2))-(0.5*phi(k2)+phi0(k2)))
+     &               *(th2mp*(phi(k2)+phi0(k2))-(0.5*phi(k2)+phi0(k2)))
 !
                  ssterm(1,2) = ssterm(1,2) - dt*dbf*k0term(iodd,i,k,j)  &
-     &                *thimp*(phi(k1)+phi0(k01))
+     &                *th2mp*(phi(k1)+phi0(k01))
                  ddterm(1,2) = ddterm(1,2) -   dt*dbf*k0term(iodd,i,k,j)&
-     &              *(thimp*(phi(k1)+phi0(k01))-(0.5*phi(k1)+phi0(k01)))
+     &              *(th2mp*(phi(k1)+phi0(k01))-(0.5*phi(k1)+phi0(k01)))
+                 else
+                 ssterm(1,1)=ssterm(1,1) + dbf*dt*g7term(iodd,i,j,k)    &
+     &                *th2mp*(phi(k2)+phi0(k2))
+!     
+                 ddterm(1,1)=ddterm(1,1) + dbf*dt*g7term(iodd,i,j,k)    &
+     &               *(th2mp*(phi(k2)+phi0(k2))-(0.5*phi(k2)+phi0(k2)))
 !
-                 ssterm(2,1) = ssterm(2,1) -dt*thimp*                   &
+                 ssterm(1,2) = ssterm(1,2) + dt*dbf*g7term(iodd,i,k,j)  &
+     &                *th2mp*(phi(k1)+phi0(k01))
+                 ddterm(1,2) = ddterm(1,2) +   dt*dbf*g7term(iodd,i,k,j)&
+     &              *(th2mp*(phi(k1)+phi0(k01))-(0.5*phi(k1)+phi0(k01)))
+                 endif ! on jadv.eq.0
+!
+                 ssterm(2,1) = ssterm(2,1) -dt*th2mp*                   &
      &                dbf*gmix*(phi(k1)+phi0(k01))
                  ddterm(2,1) = ddterm(2,1) - dt*                        &
-     &                               dbf*gmix*(thimp*(phi(k1)+phi0(k01))&  
+     &                               dbf*gmix*(th2mp*(phi(k1)+phi0(k01))&
      &                                          -(.5*phi(k1)+phi0(k01)))
                  endif ! on idens.eq.0
 !
 !
                  ssterm(2,1) = ssterm(2,1)                              &
-     &                -dt*k0term(iodd,i,k,j)*thimp*(veln(k2)+vel0(k2)) 
+     &             -cb*dt*k0term(iodd,i,k,j)*th2mp*(veln(k2)+vel0(k2))
 !
                  ddterm(2,1) = ddterm(2,1)                              &
-     &                -dt*k0term(iodd,i,k,j)*(thimp*(veln(k2)+vel0(k2)) &
+     &             -cb*dt*k0term(iodd,i,k,j)*(th2mp*(veln(k2)+vel0(k2)) &
      &                                    -(0.5*veln(k2)+vel0(k2)) )
 !
-                 rrterm(2,1)=rrterm(2,1) + thimp*dt*k0term(iodd,i,j,k)* &
+                 rrterm(2,1)=rrterm(2,1) + th2mp*dt*k0term(iodd,i,j,k)* &
      &                (phi(k2)+phi0(k2))
 !
                  qqterm(2,1)=qqterm(2,1) + dt*k0term(iodd,i,j,k)*       &
-     &                (-thimp*(phi(k2)+phi0(k2))+0.5*phi(k2)+phi0(k2))
+     &                (-th2mp*(phi(k2)+phi0(k2))+0.5*phi(k2)+phi0(k2))
 !
 !
                  ssterm(2,2)=ssterm(2,2) - dt*k0term(iodd,i,k,j)*       &
-     &                thimp*(veln(k1)+vel0(k1))
+     &                th2mp*(veln(k1)+vel0(k1))
 !
                  ddterm(2,2)=ddterm(2,2) + dt*k0term(iodd,i,k,j)*       &
-     &                (-thimp*(veln(k1)+vel0(k1))+0.5*veln(k1)+vel0(k1))
+     &                (-th2mp*(veln(k1)+vel0(k1))+0.5*veln(k1)+vel0(k1))
 !
-                 rrterm(2,2) = rrterm(2,2) + dt*thimp*                  &
+                 rrterm(2,2) = rrterm(2,2) + dt*cb*th2mp*               &
      &                k0term(iodd,i,j,k)*(phi(k1)+phi0(k01))
 !
-                 qqterm(2,2) = qqterm(2,2) + dt*k0term(iodd,i,j,k)*     &
-     &                (-thimp*(phi(k1)+phi0(k01))+0.5*phi(k1)+phi0(k01))
+                 qqterm(2,2) = qqterm(2,2) + dt*cb*k0term(iodd,i,j,k)*  &
+     &                (-th2mp*(phi(k1)+phi0(k01))+0.5*phi(k1)+phi0(k01))
 !
                  if(numvar.ge.3) then
 !
-                    ssterm(1,1)=ssterm(1,1) - dt*thimp*                 &
+                    if(jadv.eq.0) then
+                    ssterm(1,1)=ssterm(1,1) - dt*th2mp*                 &
      &                   g2term(iodd,j,k,i)*(veln(k3)+vel0(k3))
 !
                     ddterm(1,1)=ddterm(1,1)                             &
-     &                 -dt*g2term(iodd,j,k,i)*(thimp*(veln(k3)+vel0(k3))&
+     &                 -dt*g2term(iodd,j,k,i)*(th2mp*(veln(k3)+vel0(k3))&
      &                               -(0.5*veln(k3)+vel0(k3)))
 !
 !
-                 rrterm(1,3)=rrterm(1,3) + thimp*dt*g2term(iodd,k,j,i)* &
+                 rrterm(1,3)=rrterm(1,3) + th2mp*dt*g2term(iodd,k,j,i)* &
      &                      (phi(k1)+phi0(k01))
 !     
                     qqterm(1,3)=qqterm(1,3) - dt*g2term(iodd,k,j,i)*    &
-     &               (thimp*(phi(k1)+phi0(k01))-(0.5*phi(k1)+phi0(k01)))
+     &               (th2mp*(phi(k1)+phi0(k01))-(0.5*phi(k1)+phi0(k01)))
+                    else
+                    ssterm(1,1)=ssterm(1,1) + dt*th2mp*                 &
+     &                   g6aerm(iodd,i,k,j)*(veln(k3)+vel0(k3))
+!
+                    ddterm(1,1)=ddterm(1,1)                             &
+     &                +dt*g6aerm(iodd,i,k,j)*(th2mp*(veln(k3)+vel0(k3)) &
+     &                               -(0.5*veln(k3)+vel0(k3)))
 !
 !
-                    ssterm(2,2)=ssterm(2,2) + dt*thimp*                 &
+                rrterm(1,3)=rrterm(1,3) - th2mp*dt*g6aerm(iodd,i,j,k)*  &
+     &                      (phi(k1)+phi0(k01))
+!     
+                   qqterm(1,3)=qqterm(1,3) - dt*g6aerm(iodd,i,j,k)*     &
+     &               (th2mp*(phi(k1)+phi0(k01))-(0.5*phi(k1)+phi0(k01)))
+                    endif ! on jadv.eq.0
+!
+!
+                    ssterm(2,2)=ssterm(2,2) + dt*th2mp*                 &
      &                   g2term(iodd,i,k,j)*(veln(k3)+vel0(k3))
 !
                     ddterm(2,2)=ddterm(2,2) +                           &
-     &                  dt*g2term(iodd,i,k,j)*(thimp*(veln(k3)+vel0(k3))&
+     &                  dt*g2term(iodd,i,k,j)*(th2mp*(veln(k3)+vel0(k3))&
      &                  -(0.5*veln(k3)+vel0(k3)))
 !
 !
-                    rrterm(2,3)=rrterm(2,3)- thimp*dt*g2term(iodd,i,j,k)&
+                    rrterm(2,3)=rrterm(2,3)- th2mp*dt*g2term(iodd,i,j,k)&
      &                   *(phi(k2)+phi0(k2))
 !
                     qqterm(2,3)=qqterm(2,3) + dt*g2term(iodd,i,j,k)     &
-     &               *(thimp*(phi(k2)+phi0(k2))-(0.5*phi(k2)+phi0(k2)))
+     &               *(th2mp*(phi(k2)+phi0(k2))-(0.5*phi(k2)+phi0(k2)))
 !
-                   rrterm(3,1)=rrterm(3,1) - dt*thimp*k0term(iodd,i,k,j)&
+                   rrterm(3,1)=rrterm(3,1) - dt*th2mp*k0term(iodd,i,k,j)&
      &           *(phi(k3)+phi0(k3))
 !
                     qqterm(3,1)=qqterm(3,1) + dt*k0term(iodd,i,k,j)*    &
-     &                 (thimp*(phi(k3)+phi0(k3))-(0.5*phi(k3)+phi0(k3)))
+     &                 (th2mp*(phi(k3)+phi0(k3))-(0.5*phi(k3)+phi0(k3)))
 !
-                    ssterm(3,3) = ssterm(3,3) + thimp*dt*               &
+                    ssterm(3,3) = ssterm(3,3) + th2mp*dt*               &
      &                   (k0term(iodd,i,j,k)*(veln(k1)+vel0(k1))        &
      &                  +(g2term(iodd,i,k,j)-(gam-1)*k2term(iodd,i,k,j))&
      &                   *(veln(k3)+vel0(k3))                           &
@@ -2529,48 +2391,48 @@ c$$$      endif
      &                           - hypp*g13erm(iodd,i,k,j))*deni(kone))
 !
                     ddterm(3,3) = ddterm(3,3) +       dt*               &
-     &                  (k0term(iodd,i,j,k)*(thimp*(  veln(k1)+vel0(k1))&
+     &                  (k0term(iodd,i,j,k)*(th2mp*(  veln(k1)+vel0(k1))&
      &                   -(0.5*veln(k1)+vel0(k1)))                      &
      &                  +(g2term(iodd,i,k,j)-(gam-1)*k2term(iodd,i,k,j))&
-     &              *(thimp*(veln(k3)+vel0(k3))-(0.5*veln(k3)+vel0(k3)))&
+     &              *(th2mp*(veln(k3)+vel0(k3))-(0.5*veln(k3)+vel0(k3)))&
      &          + (gam-1.)*kappat*(g2term(iodd,i,k,j)+g2term(iodd,i,j,k)&
-     &                - hypp*g13erm(iodd,i,k,j))*(1.-thimp)*deni(kone))
+     &                - hypp*g13erm(iodd,i,k,j))*(1.-th2mp)*deni(kone))
 
               if(idens.eq.0) then
 !
               ssterm(3,2)=ssterm(3,2) - dt*dbf*k0term(iodd,i,k,j)       &
-     &           *thimp*(phi(k3)+phi0(k3))*pefac
+     &           *th2mp*(phi(k3)+phi0(k3))*pefac
 !
               ddterm(3,2)=ddterm(3,2) - dt*dbf*k0term(iodd,i,k,j)*      &
-     &           (thimp*(phi(k3)+phi0(k3))-(0.5*phi(k3)+phi0(k3)))      &
+     &           (th2mp*(phi(k3)+phi0(k3))-(0.5*phi(k3)+phi0(k3)))      &
      &           *pefac
 !
               ssterm(3,3) = ssterm(3,3)                                 &
-     &            -dt*dbf*k0term(iodd,i,j,k)*thimp*(phi(k2)+phi0(k2))   &
+     &            -dt*dbf*k0term(iodd,i,j,k)*th2mp*(phi(k2)+phi0(k2))   &
      &             *pefac
 !
               ddterm(3,3) = ddterm(3,3)                                 &
-     &            -dt*dbf*k0term(iodd,i,j,k)*(thimp*(phi(k2)+phi0(k2))  &
+     &            -dt*dbf*k0term(iodd,i,j,k)*(th2mp*(phi(k2)+phi0(k2))  &
      &                                 -(0.5*phi(k2)+phi0(k2)))         &
      &                                  *pefac
 !
               else ! on idens.eq.0
                  ssterm(2,3)=ssterm(2,3) - dt*dbf*k0term(iodd,i,k,j)    &
-     &                *thimp *deni(kone)*pefac
+     &                *th2mp *deni(kone)*pefac
 !
                  ddterm(2,3)=ddterm(2,3) + dt*dbf*k0term(iodd,i,k,j)    &
-     &                *(1-thimp)*deni(kone)*pefac
+     &                *(1-th2mp)*deni(kone)*pefac
 !
 !
               endif ! on idens
 !
-              rrterm(3,3) = rrterm(3,3) -dt*thimp*                      &
+              rrterm(3,3) = rrterm(3,3) -dt*th2mp*                      &
      &                  (g2term(iodd,i,j,k)-(gam-1)*k2term(iodd,i,j,k)) &
      &                  *(phi(k3)+phi0(k3))
 !
               qqterm(3,3) = qqterm(3,3) +dt*                            &
      &                  (g2term(iodd,i,j,k)-(gam-1)*k2term(iodd,i,j,k)) &
-     &          *(thimp*(phi(k3)+phi0(k3))-(0.5*phi(k3)+phi0(k3)))
+     &          *(th2mp*(phi(k3)+phi0(k3))-(0.5*phi(k3)+phi0(k3)))
 !
            endif                ! on numvar.ge.3
 !
@@ -2587,43 +2449,55 @@ c$$$      endif
               if(idens.gt.0) then
               if(numvar.ge.2) then
                 denf = deni(lone)*dbf
+                if(jadv.eq.0) then
                 ssterm(1,1) = ssterm(1,1) - dt*u3terml(k,l)*denf        &
-     &                *thimp*(phi(k2)+phi0(k2))
+     &                *th2mp*(phi(k2)+phi0(k2))
                 ddterm(1,1) = ddterm(1,1) - dt*u3terml(k,l)*denf        &
-     &               *(thimp*(phi(k2)+phi0(k2))-(0.5*phi(k2)+phi0(k2)))
+     &               *(th2mp*(phi(k2)+phi0(k2))-(0.5*phi(k2)+phi0(k2)))
 !
                 ssterm(1,2) = ssterm(1,2) - dt*u4terml(k,l)*denf        &
-     &                *thimp*(phi(k1)+phi0(k01))
+     &                *th2mp*(phi(k1)+phi0(k01))
                 ddterm(1,2) = ddterm(1,2) - dt*u4terml(k,l)*denf        &
-     &              *(thimp*(phi(k1)+phi0(k01))-(0.5*phi(k1)+phi0(k01)))
+     &              *(th2mp*(phi(k1)+phi0(k01))-(0.5*phi(k1)+phi0(k01)))
+                else
+                ssterm(1,1) = ssterm(1,1) - dt*c15erml(k,l)*denf        &
+     &                *th2mp*(phi(k2)+phi0(k2))
+                ddterm(1,1) = ddterm(1,1) - dt*c15erml(k,l)*denf        &
+     &               *(th2mp*(phi(k2)+phi0(k2))-(0.5*phi(k2)+phi0(k2)))
+!
+                ssterm(1,2) = ssterm(1,2) - dt*c16erml(k,l)*denf        &
+     &                *th2mp*(phi(k1)+phi0(k01))
+                ddterm(1,2) = ddterm(1,2) - dt*c16erml(k,l)*denf        &
+     &              *(th2mp*(phi(k1)+phi0(k01))-(0.5*phi(k1)+phi0(k01)))
+                endif ! on jadv.eq.0
 !
                 u12terml = u1terml(k,l)+u2terml(k,l)
                 u56terml = u5terml(k,l)+u6terml(k,l)
                 ssterm(2,1) = ssterm(2,1) - dt*u12terml*denf            &
-     &                *thimp*(phi(k1)+phi0(k01))
+     &                *th2mp*(phi(k1)+phi0(k01))
                 ddterm(2,1) = ddterm(2,1) - dt*u12terml*denf            &
-     &              *(thimp*(phi(k1)+phi0(k01))-(0.5*phi(k1)+phi0(k01)))
+     &              *(th2mp*(phi(k1)+phi0(k01))-(0.5*phi(k1)+phi0(k01)))
 !
                 ssterm(2,2) = ssterm(2,2) - dt*u56terml*denf            &
-     &                *thimp*(phi(k2)+phi0(k2))
+     &                *th2mp*(phi(k2)+phi0(k2))
                 ddterm(2,2) = ddterm(2,2) - dt*u56terml*denf            &
-     &               *(thimp*(phi(k2)+phi0(k2))-(0.5*phi(k2)+phi0(k2)))
+     &               *(th2mp*(phi(k2)+phi0(k2))-(0.5*phi(k2)+phi0(k2)))
 !
               if(numvar.ge.3) then
 !
               ssterm(3,2)=ssterm(3,2) - dt*denf*pefac                   &
-     &         *(v8terml(k,l)+gam*u6terml(k,l))*thimp*(phi(k3)+phi0(k3))
+     &         *(v8terml(k,l)+gam*u6terml(k,l))*th2mp*(phi(k3)+phi0(k3))
 !
               ddterm(3,2)=ddterm(3,2) - dt*denf*pefac                   &
      &               *(v8terml(k,l)+gam*u6terml(k,l))                   &
-     &               *(thimp*(phi(k3)+phi0(k3))-(0.5*phi(k3)+phi0(k3)))
+     &               *(th2mp*(phi(k3)+phi0(k3))-(0.5*phi(k3)+phi0(k3)))
 !
               ssterm(3,3) = ssterm(3,3)-dt*denf*pefac                   &
-     &         *(v7terml(k,l)+gam*u5terml(k,l))*thimp*(phi(k2)+phi0(k2))
+     &         *(v7terml(k,l)+gam*u5terml(k,l))*th2mp*(phi(k2)+phi0(k2))
 !
               ddterm(3,3) = ddterm(3,3)-dt*denf*pefac                   &
      &               *(v7terml(k,l)+gam*u5terml(k,l))                   &
-     &               *(thimp*(phi(k2)+phi0(k2))-(0.5*phi(k2)+phi0(k2)))
+     &               *(th2mp*(phi(k2)+phi0(k2))-(0.5*phi(k2)+phi0(k2)))
 !
 !
 
@@ -2640,8 +2514,8 @@ c$$$      endif
                  temp = chif*                                           &
      &                (t35terml*tw5(lone)-t24terml*tw4(lone))*          &
      &                (phi(k1)+phi0(k01))
-                 ssterm(3,1) = ssterm(3,1) + thimp*dt*temp              &
-                 ddterm(3,1) = ddterm(3,1) + thimp*dt*temp -            &
+                 ssterm(3,1) = ssterm(3,1) + th2mp*dt*temp              &
+                 ddterm(3,1) = ddterm(3,1) + th2mp*dt*temp -            &
      &                chif*dt*                                          &
      &                (t35terml*tw50(lone)-t24terml*tw40(lone))*        &
      &                (phi(k1)/2.+phi0(k01))
@@ -2651,8 +2525,8 @@ c$$$      endif
      &                +t2terml(k,l)*tw2(lone)                           &
      &                -t3terml(k,l)*tw3(lone))*                         &
      &                (phi(k1)+phi0(k01))
-                 ssterm(3,3) = ssterm(3,3) +  thimp    *dt*temp
-                 ddterm(3,3) = ddterm(3,3) + (thimp-1.)*dt*temp         &
+                 ssterm(3,3) = ssterm(3,3) +  th2mp    *dt*temp
+                 ddterm(3,3) = ddterm(3,3) + (th2mp-1.)*dt*temp         &
               endif
 
               enddo ! on l
@@ -2730,14 +2604,10 @@ c$$$      endif
       use basic
       use arrays
       use superlu
-#ifdef mpi
       use supralu_dist_mod
       use superlu_mod
       implicit none
       include 'mpif.h'
-#else
-      implicit none
-#endif
       real  ssterm(1,1),ddterm(1,1),rrterm(3,3),qqterm(3,3)
       integer itri, irect, jrect, ll, iodd
       integer i, ione, i1
@@ -2808,10 +2678,10 @@ c$$$      endif
 !
 !....note "artificial diffusion" proportional to dt and denm in density
             coef =dt*denm
-            ssterm(1,1) =  termd - thimp*dt*coef*terma                  &
-     &                           + thimp*dt*coef*hypp*termb
-            ddterm(1,1) = termd + (1.-thimp)*dt*coef*terma              &
-     &                           - (1.-thimp)*dt*coef*hypp*termb
+            ssterm(1,1) =  termd - th2mp*dt*coef*terma                  &
+     &                           + th2mp*dt*coef*hypp*termb
+            ddterm(1,1) = termd + (1.-th2mp)*dt*coef*terma              &
+     &                           - (1.-th2mp)*dt*coef*hypp*termb
 !
          do k=1,18
             k1= isvaln(itri,k)
@@ -2820,35 +2690,35 @@ c$$$      endif
 !
 ! NONLINEAR TERMS
 !
-            ssterm(1,1)=ssterm(1,1) - dt*thimp                          &
+            ssterm(1,1)=ssterm(1,1) - dt*th2mp                          &
      &           *(k0term(iodd,i,k,j)*(veln(k1)+vel0(k1)))
 !     
             ddterm(1,1)=ddterm(1,1) + dt*k0term(iodd,i,k,j)*            &
-     &           (-thimp*(veln(k1)+vel0(k1))+0.5*veln(k1)+vel0(k1))
+     &           (-th2mp*(veln(k1)+vel0(k1))+0.5*veln(k1)+vel0(k1))
 !     
-            rrterm(1,1)=rrterm(1,1) + thimp*dt*k0term(iodd,i,j,k)*      &
+            rrterm(1,1)=rrterm(1,1) + th2mp*dt*k0term(iodd,i,j,k)*      &
      &           (den(kone)+den0(kone))
 !     
             qqterm(1,1)=qqterm(1,1) + dt*k0term(iodd,i,j,k)*            &
-     &          (-thimp*(den(kone)+den0(kone))+0.5*den(kone)+den0(kone))
+     &          (-th2mp*(den(kone)+den0(kone))+0.5*den(kone)+den0(kone))
 !     
 !     
             if(numvar.ge.3) then
 !     
-               ssterm(1,1)=ssterm(1,1) + dt*thimp*                      &
+               ssterm(1,1)=ssterm(1,1) + dt*th2mp*                      &
      &              g2term(iodd,i,k,j)*(veln(k3)+vel0(k3))
 !     
                ddterm(1,1)=ddterm(1,1)                                  &
-     &              +dt*g2term(iodd,i,k,j)*(thimp*(veln(k3)+vel0(k3))   &
+     &              +dt*g2term(iodd,i,k,j)*(th2mp*(veln(k3)+vel0(k3))   &
      &              -(0.5*veln(k3)+vel0(k3)))
 !
 !     
-               rrterm(1,3)=rrterm(1,3) - thimp*dt*g2term(iodd,i,j,k)*   &
+               rrterm(1,3)=rrterm(1,3) - th2mp*dt*g2term(iodd,i,j,k)*   &
      &              (den(kone)+den0(kone))
 !---> NOTE:  Plus sign in preceeding equation changed to minus on 1/09/06   SCJ
 !     
                qqterm(1,3)=qqterm(1,3) + dt*g2term(iodd,i,j,k)*         &
-     &         (thimp*(den(kone)+den0(kone))-(0.5*den(kone)+den0(kone)))
+     &         (th2mp*(den(kone)+den0(kone))-(0.5*den(kone)+den0(kone)))
 !
 !
             endif
@@ -2911,14 +2781,10 @@ c$$$      endif
       use basic
       use arrays
       use superlu
-#ifdef mpi
       use supralu_dist_mod
       use superlu_mod
       implicit none
       include 'mpif.h'
-#else
-      implicit none
-#endif
       integer itri, iodd, irect, jrect, ll, ier
       integer i, ione, i1
       integer j, jone, j01, j1
@@ -3006,8 +2872,8 @@ c$$$      endif
 !     
 ! LINEAR TERMS
 
-         ssterm(1,1) =  termd -     thimp *dt*kappa*(terma-hypp*termb)
-         ddterm(1,1) =  termd + (1.-thimp)*dt*kappa*(terma-hypp*termb)
+         ssterm(1,1) =  termd -     th2mp *dt*kappa*(terma-hypp*termb)
+         ddterm(1,1) =  termd + (1.-th2mp)*dt*kappa*(terma-hypp*termb)
 !     
          q4(i1) = q4(i1) + dt*termd*sphip(jone)
 !     
@@ -3019,21 +2885,21 @@ c$$$      endif
 !     
 ! NONLINEAR TERMS
 !     
-            ssterm(1,1)=ssterm(1,1) - dt*thimp                          &
+            ssterm(1,1)=ssterm(1,1) - dt*th2mp                          &
      &           *(k0term(iodd,i,k,j)*(veln(k1)+vel0(k1))               &
      &           +(gam-1.)*kappat*(g2term(iodd,i,k,j)+g2term(iodd,i,j,k)&
      &                           - hypp*g13erm(iodd,i,k,j))*deni(kone))
 !     
             ddterm(1,1)=ddterm(1,1) + dt*(k0term(iodd,i,k,j)*           &
-     &           (-thimp*(veln(k1)+vel0(k1))+0.5*veln(k1)+vel0(k1))     &
+     &           (-th2mp*(veln(k1)+vel0(k1))+0.5*veln(k1)+vel0(k1))     &
      &          +(gam-1.)*kappat*(g2term(iodd,i,k,j)+g2term(iodd,i,j,k) &
-     &                - hypp*g13erm(iodd,i,k,j))*(1.-thimp)*deni(kone))
+     &                - hypp*g13erm(iodd,i,k,j))*(1.-th2mp)*deni(kone))
 !     
-            rrterm(1,1)=rrterm(1,1) + thimp*dt*k0term(iodd,i,j,k)*      &
+            rrterm(1,1)=rrterm(1,1) + th2mp*dt*k0term(iodd,i,j,k)*      &
      &           (pres(kone)+pres0(kone))
 !     
             qqterm(1,1)=qqterm(1,1) + dt*k0term(iodd,i,j,k)*            &
-     &           (-thimp*(pres(kone)+pres0(kone))                       &
+     &           (-th2mp*(pres(kone)+pres0(kone))                       &
      &           +0.5*pres(kone)+pres0(kone))
 !     
                q4(i1) = q4(i1)
@@ -3041,21 +2907,21 @@ c$$$      endif
      &          - hypp*g13erm(iodd,i,k,j))*deni(kone)*pres0(jone)
             if(numvar.ge.3) then
 !     
-               ssterm(1,1)=ssterm(1,1) + dt*thimp*                      &
+               ssterm(1,1)=ssterm(1,1) + dt*th2mp*                      &
      &              (g2term(iodd,i,k,j)-(gam-1.)*k2term(iodd,i,k,j))    &
      &              *(veln(k3)+vel0(k3))
 !     
                ddterm(1,1)=ddterm(1,1)                                  &
      &              +dt*(g2term(iodd,i,k,j)-(gam-1.)*k2term(iodd,i,k,j))&
-     &              *(thimp*(veln(k3)+vel0(k3))-(0.5*veln(k3)+vel0(k3)))
+     &              *(th2mp*(veln(k3)+vel0(k3))-(0.5*veln(k3)+vel0(k3)))
 !     
-               rrterm(1,3)=rrterm(1,3) - thimp*dt
+               rrterm(1,3)=rrterm(1,3) - th2mp*dt
      &              *(g2term(iodd,i,j,k)-(gam-1.)*k2term(iodd,i,j,k))*  &
      &              (pres(kone)+pres0(kone))
 !     
                qqterm(1,3)=qqterm(1,3)                                  &
      &              +dt*(g2term(iodd,i,j,k)-(gam-1.)*k2term(iodd,i,j,k))&
-     &              *(thimp*(pres(kone)+pres0(kone))                    &
+     &              *(th2mp*(pres(kone)+pres0(kone))                    &
      &              -(0.5*pres(kone)+pres0(kone)))
             endif
 
@@ -3076,7 +2942,6 @@ c$$$      endif
       enddo                     ! on i
       enddo                     ! on iodd
 
-#ifdef mpi
       icount = m*n*numvar*6
       vtemp = q4
       call MPI_ALLREDUCE(vtemp,q4,icount,MPI_DOUBLE_PRECISION,          &
@@ -3085,7 +2950,6 @@ c$$$      endif
          print *,'Error with MPI_allreduce-q4',ier
          call safestop(1)
       endif
-#endif
       if(myrank.eq.0) write(*,*) "inserting bcs"
 !     
 !.....modify the s-matrix, inserting the boundary conditions
@@ -3731,7 +3595,6 @@ c$$$      endif
       ntimemin = min(2,ntimemax-1)
       iboundmax = 12*numvar*(n+m-2)
 !
-      tt = 2.*thimp
 !
 !.....parameter that specifies grid type
       ioddmx = 2
@@ -4289,23 +4152,13 @@ c$$$      endif
       subroutine define(slumatrix,aa,mmnn,numvard)
       use p_data
       use t_data
-      use basic
-#ifdef mpi      
+      use basic    
       use supralu_dist_mod
-#else
-      use supralu_mod
-#endif
       implicit none
 
       real, intent(in), dimension(9,mmnn,6*numvard,6*numvard) :: aa
       integer, intent(in) :: mmnn, numvard
 
-#ifndef mpi
-!      type(sparseR8_obj) :: slumatrix
-
-!      call olddefine(slumatrix,aa,mmnn,numvard)
-      return
-#else
       type(sparseR8d_obj) :: slumatrix
 
 #ifndef BIT64
@@ -4363,7 +4216,6 @@ c$$$      endif
       endif
 !
       return
-#endif
       end
 !======================================================
       subroutine increment(aa,mmnn,i1,j1,term,numvari,id)
@@ -4867,14 +4719,12 @@ c$$$      endif
       end
 !==============================================================
       subroutine safestop(iarg)
-#ifdef mpi
       use supralu_dist_mod
       include 'mpif.h'
       integer ier
       call SLUD_exit
       call MPI_Finalize(ier)
       if (ier /= 0) print *,'Error terminating MPI:',ier
-#endif
       close(UNIT=9, STATUS='KEEP')
       write(*,*) "stopped at", iarg
       stop
@@ -4963,48 +4813,21 @@ c$$$      endif
       enddo
       if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "before init"
 !  
-#ifdef mpi
       call sparseR8d_init(s5matrix_lu,nrasm,nnz_lsm,m_lsm,ifs_rsm,ier)
       if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "before 2nd init"
-#else
-      call sparseR8_init(s5matrix_lu,nrasm,msizesm,base,ier)
-      if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "between inits"
-      s5matrix_lu %permc_spec = 0
-#endif
       if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "after init"
       call define(s5matrix_lu,ss,m*n,numvarsm)
 !
 !.....perform LU decomposition of sparse matrix "s5matrix"
 !     store result in opaque object "s5handle"
       jer = 0
-#ifdef mpi
        call sparseR8d_new(s5matrix_lu, jer)
        if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "after new"
        if(jer.ne.0) then
          write(*,*) 'after 3rd sparseR8d_new', jer
          call safestop(46)
        endif
-#else
-       call dsupralu_new(s5handle, s5matrix_lu%values(1),               &
-     &      s5matrix_lu%irow(1), s5matrix_lu%jcol_ptr(1),               &
-     &      s5matrix_lu%nnz, nrasm , jer)
-       if(jer.ne.0) then
-         write(*,*) 'after dsupralu_new', jer
-         call safestop(47)
-       endif
-       if(myrank.eq.0 .and.iprint.ge.1) write(*,*) "before _colperm-s3"
-       call dsupralu_colperm(s5handle, s5matrix_lu% permc_spec, jer)
-       if(myrank.eq.0 .and.iprint.ge.1) write(*,*) "after  _colperm-s3"
-       if(jer.ne.0) then
-         write(*,*) 'after dsupralu_new', jer
-         call safestop(48)
-       endif
-       call dsupralu_lu(s5handle, jer)
-       if(jer.ne.0) then
-         write(*,*) 'after dsupralu_lu', jer
-         call safestop(49)
-       endif
-#endif
+
 !
  500   continue
 !
@@ -5036,11 +4859,7 @@ c$$$      endif
 !.....perform LU backsubstitution to get outarray solution
       if(myrank.eq.0) call second(tbeforesolve)
 
-#ifdef mpi
       call sparseR8d_solve(s5matrix_lu,temp,ier)
-#else
-      call dsupralu_solve(s5handle,temp,ier)
-#endif
       if(myrank.eq.0) call second(taftersolve)
       tsolve = tsolve + taftersolve-tbeforesolve
       if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "solve 3"
@@ -5169,14 +4988,9 @@ c$$$      endif
       if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "before init"
       if(myrank.eq.0) call second(tbeforeinit)
 !  
-#ifdef mpi
       call sparseR8d_init(s7matrix_lu,nrasm,nnz_lsm,m_lsm,ifs_rsm,ier)
       if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "before 2nd init"
-#else
-      call sparseR8_init(s7matrix_lu,nrasm,msizesm,base,ier)
-      if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "between inits"
-      s7matrix_lu %permc_spec = 0
-#endif
+
       if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "after init"
       call define(s7matrix_lu,ss,m*n,numvarsm)
       if(myrank.eq.0) call second(tafterinit)
@@ -5185,34 +4999,13 @@ c$$$      endif
 !.....perform LU decomposition of sparse matrix "s7matrix"
 !     store result in opaque object "s7handle"
       jer = 0
-#ifdef mpi
        call sparseR8d_new(s7matrix_lu, jer)
        if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "after new"
        if(jer.ne.0) then
          write(*,*) 'after 3rd sparseR8d_new', jer
          call safestop(46)
        endif
-#else
-       call dsupralu_new(s7handle, s7matrix_lu%values(1),               &
-     &      s7matrix_lu%irow(1), s7matrix_lu%jcol_ptr(1),               &
-     &      s7matrix_lu%nnz, nrasm , jer)
-       if(jer.ne.0) then
-         write(*,*) 'after dsupralu_new', jer
-         call safestop(47)
-       endif
-       if(myrank.eq.0 .and.iprint.ge.1) write(*,*) "before _colperm-s3"
-       call dsupralu_colperm(s7handle, s7matrix_lu% permc_spec, jer)
-       if(myrank.eq.0 .and.iprint.ge.1) write(*,*) "after  _colperm-s3"
-       if(jer.ne.0) then
-         write(*,*) 'after dsupralu_new', jer
-         call safestop(48)
-       endif
-       call dsupralu_lu(s7handle, jer)
-       if(jer.ne.0) then
-         write(*,*) 'after dsupralu_lu', jer
-         call safestop(49)
-       endif
-#endif
+
 !
  500   continue
 !
@@ -5248,11 +5041,7 @@ c$$$      endif
 !.....perform LU backsubstitution to get outarray solution
 
       if(myrank.eq.0) call second(tbeforesolve)
-#ifdef mpi
       call sparseR8d_solve(s7matrix_lu,temp,ier)
-#else
-      call dsupralu_solve(s7handle,temp,ier)
-#endif
       if(myrank.eq.0) call second(taftersolve)
       tsolve = tsolve + taftersolve-tbeforesolve
       if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "after solve 4"
@@ -5926,13 +5715,9 @@ c$$$      endif
       use basic
       use arrays
       use superlu
-#ifdef mpi
       use supralu_dist_mod
       implicit none
       include 'mpif.h'
-#else
-      implicit none
-#endif
       integer icount, irect, jrect, iodd, itri, ll, jfirst,jlast
       integer i, i1, i3
       integer j, jone
@@ -5941,16 +5726,11 @@ c$$$      endif
       r4 = 0.
 
       itri = 0
-#ifdef mpi
       call MPE_DECOMP1D(maxrank,m-1+jper,myrank,jfirst,jlast)
       if(jfirst.le.0 .or. jlast.gt.m-1+jper) then
          write(*,*) myrank,maxrank,jfirst,jlast
          call safestop(1)
       endif
-#else
-      jfirst = 1
-      jlast = m-1+jper
-#endif
 !
 !
       do iodd=1,ioddmx
@@ -5989,7 +5769,6 @@ c$$$      endif
          write(*,*) "before r4 allreduce"
       endif
 
-#ifdef mpi
       icount = m*n*numvar*6
       r4temp = r4
       call MPI_ALLREDUCE(r4temp,r4,icount,MPI_DOUBLE_PRECISION,         &
@@ -5998,7 +5777,6 @@ c$$$      endif
          print *,'Error with MPI_allreduce-r4',ier
          call safestop(1)
       endif
-#endif
       return
       end
 
@@ -6014,13 +5792,9 @@ c$$$      endif
       use basic
       use arrays
       use superlu
-#ifdef mpi
       use supralu_dist_mod
       implicit none
       include 'mpif.h'
-#else
-      implicit none
-#endif
       integer icount, irect, jrect, iodd, itri, ll, jfirst,jlast
       integer i, i1, i2, i3
       integer j, j1, j2, j3, jone, j01
@@ -6032,16 +5806,12 @@ c$$$      endif
       q34 = 0.
 
       itri = 0
-#ifdef mpi
       call MPE_DECOMP1D(maxrank,m-1+jper,myrank,jfirst,jlast)
       if(jfirst.le.0 .or. jlast.gt.m-1+jper) then
          write(*,*) myrank,maxrank,jfirst,jlast
          call safestop(1)
       endif
-#else
-      jfirst = 1
-      jlast = m-1+jper
-#endif
+
 !
       ! prepare files for anisotropic heat flux
       if (chipar.ne.0) then
@@ -6051,10 +5821,11 @@ c$$$      endif
          rewind(177)
       endif
       if(idens.gt.0) then
-        rewind(101)
-        rewind(103)
-         rewind(109)
+         rewind(101)
+         rewind(103)
          rewind(105)
+         rewind(109)
+         rewind(127)
       endif
 !
       do iodd=1,ioddmx
@@ -6080,6 +5851,8 @@ c$$$      endif
      &     read(105) ir1,ir2,ir3,((v7terml(k,l),l=1,18),k=1,18)
         if(iread(09).eq.1)                                              &
      &     read(109) ir1,ir2,ir3,((u5terml(k,l),l=1,18),k=1,18)
+        if(iread(27).eq.1)                                              &
+     &       read(127) ir1,ir2,ir3,((c15erml(k,l),l=1,18),k=1,18)
       endif
 !
       do jrect=jfirst,jlast
@@ -6145,13 +5918,21 @@ c$$$      endif
                   lone = isval1(itri,l)
                   l1 = isvaln(itri,l)
                   l2 = l1+6
-                  q34(i1) = q34(i1) + dbf*u3terml(k,l)*deni(lone)       &
-     &                               *phi0(j01)*phi0(k2)*(1-linear)
                   if(numvar.ge.2) then
+                  if(idens.gt.0) then
+                    if(jadv.eq.0) then
+                       q34(i1) = q34(i1) + dbf*u3terml(k,l)*deni(lone)  &
+     &                               *phi0(j01)*phi0(k2)*(1-linear)
+                    else
+                       q34(i1) = q34(i1) + dbf*c15erml(k,l)*deni(lone)  &
+     &                               *phi0(j01)*phi0(k2)*(1-linear)
+                    endif ! on jadv.eq.0
+
                     q34(i2) = q34(i2) + dbf*u1terml(k,l)*deni(lone)     &
      &                                  *phi0(j01)*phi0(k01)*(1-linear)
                     q34(i2) = q34(i2) + dbf*u3terml(k,l)*deni(jone)     &
      &                                  *phi0(k2 )*phi0(l2)*(1-linear)
+                  endif ! on idens.gt.0
                   endif ! on numvar.ge.2
  
                   if(numvar.ge.3) then
@@ -6185,7 +5966,6 @@ c$$$      endif
          write(*,*) "before q34 allreduce"
       endif
 
-#ifdef mpi
       icount = m*n*numvar*6
       q34temp = q34
       call MPI_ALLREDUCE(q34temp,q34,icount,MPI_DOUBLE_PRECISION,       &
@@ -6194,7 +5974,6 @@ c$$$      endif
          print *,'Error with MPI_allreduce-q34',ier
          call safestop(1)
       endif
-#endif
       return
       end
       subroutine ohmicdef
@@ -6203,14 +5982,11 @@ c$$$      endif
       use basic
       use arrays
       use superlu
-#ifdef mpi
       use supralu_dist_mod
       use superlu_mod
       implicit none
       include 'mpif.h'
-#else
-      implicit none
-#endif
+
       integer i, i1, i2, i3
       integer j, jone, j01, j1, j2, j3
       integer k, kone, k01, k1, k2, k3
@@ -6224,26 +6000,21 @@ c$$$      endif
 
       hypf = hyper *deex**2
       hypv = hyperv*deex**2
-!
-!>>>>special debug
-      hypv = 0.
       hypc = hyperc*deex**2
+!
+!....presently zero out hyper-viscous heating
 !
 !
 !.....form field matrices
       ohmic = 0
       viscous = 0.
       itri = 0
-#ifdef mpi
       call MPE_DECOMP1D(maxrank,m-1+jper,myrank,jfirst,jlast)
       if(jfirst.le.0 .or. jlast.gt.m-1+jper) then
          write(*,*) myrank,maxrank,jfirst,jlast
          call safestop(1)
       endif
-#else
-      jfirst = 1
-      jlast = m-1+jper
-#endif
+
 
 !
       do iodd=1,ioddmx
@@ -6284,7 +6055,11 @@ c$$$      endif
            chif = (gam-1.)*chipar*factor
 !
             if(linear.eq.0) then
-               ohmic(i1) = ohmic(i1) + etar*(terma-termbf)*phi0(j01)
+              if(jadv.eq.0) then
+                ohmic(i1) = ohmic(i1) + etar*(terma-termbf)*phi0(j01)
+              else
+                ohmic(i1) = ohmic(i1) + etar*termb*phi0(j01)
+              endif ! on jadv
                if(numvar.ge.2) then
                  ohmic(i2) = ohmic(i2)+etar*(terma-hypi*termb)*phi0(j2)
                endif ! numvar.ge.2
@@ -6354,7 +6129,6 @@ c$$$      endif
       enddo                     ! on j
       enddo                     ! on i
       enddo                     ! on iodd
-#ifdef mpi
       icount = 6*numvar*m*n
       vtemp = ohmic
       call MPI_ALLREDUCE(vtemp,ohmic,icount,MPI_DOUBLE_PRECISION,       &
@@ -6370,7 +6144,6 @@ c$$$      endif
          print *,'Error with MPI_allreduce-viscous',ier
          call safestop(1)
       endif
-#endif
 !     
 
       return

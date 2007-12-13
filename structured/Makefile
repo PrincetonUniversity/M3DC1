@@ -4,13 +4,13 @@ include make.sgi
 
 COMMONDIR = ../common/
 
-OBJS =  $(COMMONDIR)tv80lib.o $(COMMONDIR)subp.o $(COMMONDIR)dbesj0.o \
+OBJS = newpar.o  $(COMMONDIR)tv80lib.o $(COMMONDIR)subp.o $(COMMONDIR)dbesj0.o \
 	$(COMMONDIR)dbesj1.o $(COMMONDIR)fdump.o \
 	$(COMMONDIR)superlu_c2f_wrap.o superlupara.o superlu_mod.o \
 	$(COMMONDIR)dcreate_dist_matrix.o  $(COMMONDIR)writeHDF5.o \
 	supralu_dist_mod.o \
 	inout_mod.o opdef_mod.o newvar_mod.o init_conds_mod.o \
-        mesh_mod.o  gradshafranov.o newpar.o
+        mesh_mod.o  gradshafranov.o
 	
 
 
@@ -50,9 +50,4 @@ $(COMMONDIR)tv80lib.o : $(COMMONDIR)tv80lib.f
 
 %.o: %.c
 	$(CC) $< -o $@
-
-
-
-
-
 

@@ -455,6 +455,7 @@ subroutine sparseR8d_solve(this, rhs, ier)
 
   !Check info
   if (info == 0) then !Solve was successful
+ write(*,*) "berr =", berr
 
      !Tell options the matrix is factored, so only back-substitution needs
      ! to be done next time. (3=Factored)
