@@ -10,11 +10,8 @@ The datatypes listed below in the C/C++ functions are:
 \item[int *] A 4 byte integer in Fortran.
 \item[int[X]] A 4 byte integer array that should be allocated of at least length \textit{X}.
 \item[char *] A character string in Fortran.
-\item[double *] An 8 byte double precision/real*8 variable in Fortran.
-\item[double[X]]  An 8 byte double precision/real*8 variable array in Fortran of at least length \textit{X}..
-\item[crayptr] A Cray pointer in Fortran (e.g. pointer(a,b) where a is the Cray pointer and b is the Cray 
-pointee).  The size of the Cray pointer is a 4 byte integer on 32 bit code and 8 byte integer (integer*8)
-on 64 bit code.  
+\item[double *] An 8 byte double precision/real*8 variable in Fortran. When using complex variables this may also be a 16 byte double precision complex number.  
+\item[double[X]]  An 8 byte double precision/real*8 variable array in Fortran of at least length \textit{X}.  When using complex variables this may also be a 16 byte double precision complex array of \textit{X}*16 bytes length.
 \end{description}
 To make clear what is discussed below, a mesh vertex, edge, and face are the topological
 entities of a mesh.  Many people associate nodes of a mesh with mesh vertices and elements with
@@ -32,7 +29,7 @@ are to load a mesh and model which is used with the \textit{loadmesh} function b
 \begin{center}
 \begin{figure}
 \centerline{\psfig{figure=./partitioned_mesh.eps,height=2.5in,angle=0}} %for epsfig
-\caption{A partitioned mesh with the dofs numbered for the blue partition with one dof per node and iper=1 and jper=0.}\label{meshpartition} \end{figure}
+\caption{A partitioned mesh with the dofs locally numbered for the blue partition with one dof per node and iper=1 and jper=0.}\label{meshpartition} \end{figure}
 \end{center}
 
 
@@ -163,34 +160,26 @@ This function returns the global number of DOFs \textit{numglobaldofs} for numbe
 
 \end{itemize}
 \section{Vector Interface}
-Cray pointers are used to simplify the allocation/reallocation of memory for the arrays used
-for the vectors.  This appears to be the only way for C, C++, and Fortran to 
-allocate and free memory regardless of where it is used or freed.  The syntax for creating
-a Cray pointer in Fortan is:
-\begin{verbatim}
-  integer*8 ptr_x
-  real*8 x(*)
-  pointer(ptr_x, x)
-\end{verbatim}
-Here, \textit{ptr\_x} is the Cray pointer, which is an integer*8 in 64 bit code and an integer in 32 bit code,
-and \textit{x} is the pointee.  Use \textit{ptr\_x = malloc(size)}
-to allocate \textit{size} bytes and \textit{call free(ptr\_x)} to free the allocated memory.
-Also, to ``nullify'' the Cray pointer do \textit{ptr\_x=0} but only if no memory is allocated to
-the pointer to avoid memory leaks.  If the pointer has memory allocated for it, the memory is accessed through
-\textit{x}.  For all SCOREC functions for both the vector and matrix interfaces the Cray pointer
-should be passed in and not the pointee. On the C/C++ side the Cray pointer appears as
-a double**.
+It is the responsibility of M3D-C$^1$ to allocate and deallocate memory for vectors.  The \textit{space}
+subroutine in M3D-C$^1$ is used for allocating and deallocating all vectors of dofs of fields
+that are to be transferred during mesh adaptation.  This is used as a ``callback'' function to 
+manage the memory of these arrays.  The proper amount of memory to be allocated for each vector
+is obtained by using the \textit{numdofs} function for the same numbering id that is used
+for the vector.
 
+On the SCOREC side of the software, all arrays are considered to be arrays of double precision numbers.
+Determining if they are actual double precision numbers (8 bytes) or complex double precision numbers
+(16 bytes) is done through the \textit{type} parameter for both vector and matrix interfaces 
+(\textit{itype}=0 indicates real-valued and \textit{itype}=1 indicates complex).  
 
 \begin{itemize}
-\item   void createppplvec(crayptr id, int * orderingid, int * type); This function creates a vector for Cray pointer
-\textit{id} for numbering \textit{orderingid}. If the vector is for a real-valued array \textit{type}
+\item   void createppplvec(double * vectorid, int * orderingid, int * type); This function creates a vector 
+for \textit{vectorid}
+ for numbering \textit{orderingid}. If the vector is for a real-valued array \textit{type}
 should be set to 0 and if the vector is for  a complex-valued array \textit{type} should be set to 1. 
- If the Cray pointer has not been allocated it
-must be set to 0 before calling this function.
-\item   void deleteppplvec(crayptr id); This function deletes the vector, frees the memory associated 
-with the Cray pointer and sets the Cray pointer to 0.
-\item   void sumsharedvals(crayptr id);  This function assumes that the values inserted into the
+\item   void deleteppplvec(double * vectorid); This function deletes the vector but it is M3D-C$^1$'s 
+responsibility to deallocate the memory used for the array.
+\item   void sumsharedppplvecvals(double * vectorid);  This function assumes that the values inserted into the
 array of the vector has only local contributions on each process and then this sums the parts
 of the vector that are distributed across multiple processes and updates each of those values
 to a single value.  An example of this would be to figure out how many mesh faces use each DOF.  To do this, 
@@ -198,30 +187,36 @@ first zero the vector, then
 iterate over all of the faces on each process, then iterate over each mesh vertex, get the DOFs
 associated with each vertex and add 1 to each array indexed with the DOF number, then call this function.
 For this operation, for DOF number 10 in Figure \ref{meshpartition} the number would be 7.
-\item   void updatesharedvals(crayptr id);  This function assumes that the single process that ``owns'' a DOF
+\item   void updatesharedppplvecvals(double * vectorid);  This function assumes that the single process that ``owns'' a DOF
 has the correct value and that other processes that need the DOF may or may not have the correct value.  With
 this assumption, this function can be called to update the correct values for a DOF on processes
 that need the dof but do not own it.  This is used primarily for distributing the DOF values after a matrix solve
 from the process it was solved for on to the other processes that use the DOF.  This function might not be useful
 for M3D-C$^1$ but is documented anyways.
-\item   void checkveccreated(crayptr id, int * iscreated); This function checks whether a vector \textit{id} 
+\item   void checkppplveccreated(double * vectorid, int * iscreated); This function checks whether a vector \textit{vectorid} 
 has already been created or not.  It returns 0 if it has not and 1 if it has been created but does no
 action otherwise.  
+\item void checksameppplvec(double * id1, double * id2, int * i); This function checks if vectors 
+\textit{id1} and \textit{id2} are the same, and sets *i=1 if true, *i=0 if false
 \end{itemize}
 
 \section{Matrix Interface}
+Note that some of these functions may have a ``2'' at the end of their names to make sure
+that modifications done to get to using complex variables was done with less errors. As was done with
+vectors, \textit{type} is used to indicate real-valued matrices (\textit{type}=0) and complex-valued
+matrices (\textit{type}=1).
 \begin{itemize}
-\item  void zerosuperlumatrix(int * matrixid, int * numberingid);  This function creates
+\item  void zerosuperlumatrix(int * matrixid, it * type, int * numberingid);  This function creates
 an ``empty'' matrix with id \textit{matrixid} that uses the numbering \textit{numberingid}
 for use with the SuperLU\_DIST solver.  If the matrix is real-valued then \textit{type}
 should be set to 0 and if the matrix is complex-valued then \textit{type} should be set to 1. 
 If the matrix has already been created then it just cleans out all components of the matrix.
-\item  void zeropetscmatrix(int * matrixid, int * numberingid); This function creates
+\item  void zeropetscmatrix(int * matrixid, int * type, int * numberingid); This function creates
 an ``empty'' matrix with id \textit{matrixid} that uses the numbering \textit{numberingid}
 for use with the SuperLU\_DIST solver.  If the matrix is real-valued then \textit{type}
 should be set to 0 and if the matrix is complex-valued then \textit{type} should be set to 1. 
 If the matrix has already been created then it just cleans out all components of the matrix.
- \item void zeromultiplymatrix(int * matrixid, int * numberingid); This function creates
+ \item void zeromultiplymatrix(int * matrixid, int * type, int * numberingid); This function creates
 an ``empty'' matrix with id \textit{matrixid} that uses the numbering \textit{numberingid}
 for use for multiplying with vectors.  If the matrix is real-valued then \textit{type}
 should be set to 0 and if the matrix is complex-valued then \textit{type} should be set to 1. 
@@ -242,23 +237,24 @@ are inserted into that row while still applying the correct operation.  For comp
 only the real part of the diagonal is set to unity while the imaginary part is set to 0.  This function 
 should be called on all processes that use the DOF number associated with the matrix row.
 \item  void setgeneralbc(int * matrixid, int * row, int * numvals,
-		     int  columninfo[numvals], double/complex vals[numvals], int * valtype);
+		     int  columninfo[numvals], double/complex vals[numvals], int * type);
 This function sets multiple values for \textit{row} of \textit{matrixid}.  The number of values set is
 \textit{numvals} and \textit{columninfo} specifies which columns to set the values for and 
 \textit{vals} is the values to be set which must be in the same order as the \textit{columninfo} array.
  The type of values to
- be inserted can be real (\textit{valtype}=0)
-or complex (\textit{valtype}=1).
+ be inserted can be real (\textit{type}=0)
+or complex (\textit{type}=1). If only real values are inserted into a complex matrix then the corresponding
+imaginary parts are set to zero.
 This function 
 should be called on all processes that use the DOF number associated with the matrix row.
 \item  void finalizematrix(int * matrixid);  This function finalizes \textit{matrixid} such that no
 more values can be inserted into the matrix and no more boundary conditions can be applied to the matrix.
-\item  void solve(int * matrixid, crayptr rhs\_sol, int * ier);  For a matrix created with \textit{zeropetscmatrix}
+\item  void solve(int * matrixid, double* rhs\_sol, int * ier);  For a matrix created with \textit{zeropetscmatrix}
 or \textit{zerosuperlumatrix}, \textit{matrixid} is solved with input right-hand-side \textit{rhs\_sol}. 
 The output  is also in \textit{rhs\_sol}.  If \textit{ier} is non-zero there were problems encountered during
 the solve process.  The only way to properly mix real and complex value types is if the matrix is real-valued
 and the vector is complex-valued.  Then the system is solved twice with a real and an imaginary right-hand-side.  
-\item  void matrixvectormult(int * matrixid, crayptr inputvecid, crayptr outputvecid);  For a matrix created with \textit{zeromultiplymatrix}, this function can be called to multiply \textit{matrixid} with \textit{inputvecid}.  The output is returned in \textit{outputvecid}.  If either \textit{matrixid} or \textit{inputvecid}
+\item  void matrixvectormult(int * matrixid, double* inputvecid, double* outputvecid);  For a matrix created with \textit{zeromultiplymatrix}, this function can be called to multiply \textit{matrixid} with \textit{inputvecid}.  The output is returned in \textit{outputvecid}.  If either \textit{matrixid} or \textit{inputvecid}
 is complex-valued, \textit{outputvecid} must also be complex-valued.
 \item  void deletematrix(int * matrixid);  This function deletes \textit{matrixid}.
 \item  void matrixrank(int* matrixid, int * rank);  This function returns the global rank of \textit{matrixid}
@@ -278,6 +274,65 @@ in PETSc data structures.
 \item int setPETScKSP(int matrixid, KSP * ksp, Mat * A); This function can be used to set the solver
 parameters for \textit{matrixid} in PETSc.
 \end{itemize}
+
+\chapter{Creating Meshes for M3D-C$^1$}
+There are a couple of ways to create meshes for M3D-C$^1$ simulations.  
+
+The first procedure for generating an initial mesh is using the 
+structMesh.cc code in 
+M3D-C$^1$ in the Util subdirectory (i.e. M3D/Util/structMesh.cc).  This code
+ creates a 2D structured mesh that can be used with FMDB.  Compilation is done with
+ \textit{$<$C++ compiler$>$ -o structMehs.x structMesh.cc} and the input for the code is
+\textit{./structMesh.x $<$number of nodes in the x-direction$>$ $<$number of nodes in the z-direction$>$ 
+$<$x-length or rectangular domain$>$ $<$z-length of rectangular domain$>$}
+Note that the domain is 0 $<$= x $<$= x-length or rectangular domain , 0 $<$= z $<$= z-length of rectangular domain.
+After running structMesh.x, the output will be a file called struct.sms.  To be
+able to use this with M3D-C$^1$, this file must be processed by running the program
+in \textit{$<$SCOREC SOFTWARE PATH$>$/mctk/Examples/PPPL/PPPL/test/DISCRETE/main} with the argument struct.sms 
+(e.g. $<$SCOREC SOFTWARE PATH$>$/mctk/Examples/PPPL/PPPL/test/DISCRETE/main struct.sms)
+which will output a struct-dmg.sms and struct.dmg file which can be used to
+run M3D-C1.
+
+The second procedure for generating an initial mesh is to use the Simmetrix (www.simmetrix.com)
+mesh generation tools.  Some code already exists at SCOREC for creating meshes for PPPL 
+using the Simmetrix
+software and MCTK but this code is not available on PPPL machines or bassi.nersc.gov as the
+Simmetrix software API is copyrighted and not available for general public distribution.  The two main
+desired functionalities that the Simmetrix software provides is generating unstructured meshes
+for an inputed analytic sizefield and the ability to create ``matching meshes'' for
+periodic boundary conditions (e.g. meshes
+that match vertex locations on periodic model boundaries).  The Simmetrix mesh generation tools
+specific to PPPL are located in /users/acbauer/develop/mctk/generate\_mesh/generate\_mesh/test
+subdirectories but have not been added to the MCTK repository since this is specific to PPPL work.
+The build system is the usual SCOREC build system available in 
+/users/acbauer/develop/mctk/generate\_mesh/generate\_mesh/
+along with the executables in the test subdirectory.  Running these executables typically
+is done by \textit{./main $<$ACIS/Parasolid model file$>$ $<$size parameter$>$ $<$curvature parameter$>$}
+and the output is a mesh in both Simmetrix file format (*\_SimModS.sms) and
+FMDB file format (*\_FMDB.sms).  The FMDB file format must then be processed as the struct.sms file
+for the structured mesh generation tool above to create the struct.dmg and struct-dmg.sms files.
+
+The third procedure for creating an adapted mesh from an M3D-C$^1$ run is to use the 
+\textit{hessianadapt} function in the SCOREC software.  The function parameters in C/C++ are:\\
+\textit{void hessianadapt(double* ppplvector, int * which, int * type, int * ntime, double * factor, double * hmin, double * hmax);}\\
+Here, \textit{ppplvector} is a pointer to an array of double precisions or complex double precisions
+used to store the dofs of the desired fields, \textit{which} is used to indicate the specific field
+since ppplvector may store dofs for more than a single field and is a number between 1 and the total
+number of fields that store their dofs in the ppplvector, 
+\textit{type} indicates whether to use the real part or imaginary part if the dofs are complex valued, 
+\textit{ntime} is the time step to adapt the field with respect to (the field may have been created
+and stored in SCOREC software already from a previous time step and this is used to make sure that
+the adaptation is done with respect to the most current time step),
+\textit{factor} is the refinement factor, \textit{hmin} is the desired minimum edge length in the adapted mesh, 
+and \textit{hmax} is the desired maximum edge length in the adapted mesh.  Note that the actual
+minimum and maximum desired edges lengths may be smaller and larger, respectively, than the
+desired values.  The \textit{factor, hmin,} and \textit{hmax} parameters are the same as the ones
+used in Ken Jansen's phAdapt software.  This adaptation procedure only works with single process
+runs of M3D-C$^1$ and the adapted mesh is classified on the same model (struct.dmg) 
+as the pre-adapted mesh.  During mesh adaptation, all fields that exist as PPPLVectors are transferred
+using interpolation during local mesh modifications.  These values are then passed back to M3D-C$^1$ by
+resizing the arrays of dofs that M3D-C$^1$ uses and then setting the dof values for these arrays.  
+The resizing of the dof arrays will be done in the space subroutine in M3D-C$^1$.
 
 
 % appendix on modules that are used on different machines that M3D-C1 is installed on
