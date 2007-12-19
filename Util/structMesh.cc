@@ -10,10 +10,25 @@ using std::istream;
 using std::endl;
 using std::string;
 
+/* 
+ creates a "structured mesh" that can be used with SCOREC software
+ it is structured in the fact that it has the same topological and
+ geometric structure as a true structured mesh but does not take
+ advantage of any of this structure
+ 
+ note that the bounding box has minimum x and z coordinate 0 
+
+ to be able to use this with M3D-C1, this file must be processed by
+ <SCOREC SOFTWARE PATH>/mctk/Examples/PPPL/PPPL/test/DISCRETE/main struct.sms
+ which will output a struct-dmg.sms and struct.dmg file which can be used to
+ run M3D-C1.
+*/
+
 int main(int argc, char * argv[]) {
   string fileName("struct.sms");
   if(argc != 5) {
-    cout << "Need to add the number of vertices in x and y directions and the bounding box size\n";
+    cout << "Need to add the number of vertices in x and z directions and the bounding box size\n";
+    cout << "./<executable name> <number of vertices in x direction> <number of vertices in z direction> <maximum x> <maximum z>\n";
     return 1;
   }
   int m = atoi(argv[1]); //note m here is x-direction
