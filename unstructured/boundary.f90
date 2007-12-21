@@ -11,12 +11,12 @@ subroutine boundary_vel(imatrix, rhs)
   implicit none
   
   integer, intent(in) :: imatrix
-  real, intent(inout), dimension(*) :: rhs
+  vectype, intent(inout), dimension(*) :: rhs
   
   integer :: ibottom, iright, itop, ileft, i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes, irow
   real :: normal, x
-  real, dimension(6) :: temp
+  vectype, dimension(6) :: temp
   double precision :: coords(3)
 
   if(iper.eq.1 .and. jper.eq.1) return
@@ -160,13 +160,13 @@ subroutine boundary_mag(imatrix, rhs)
   implicit none
   
   integer, intent(in) :: imatrix
-  real, intent(inout), dimension(*) :: rhs
+  vectype, intent(inout), dimension(*) :: rhs
   
   integer :: ibottom, iright, itop, ileft, i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes, irow
-integer :: ibegin1, iendplusone1
+  integer :: ibegin1, iendplusone1
   real :: normal, x, z
-  real, dimension(6) :: temp
+  vectype, dimension(6) :: temp
   double precision :: coords(3)
 
   if(iper.eq.1 .and. jper.eq.1) return
@@ -278,19 +278,19 @@ integer :: ibegin1, iendplusone1
 
         ! clamp poloidal field
         if(jadv.eq.1 .and. igauge.eq.0) then
-!!$           call setdiribc(imatrix, ibegin+psi_off)
+!!$           if(imatrix.ne.0) call setdiribc(imatrix, ibegin+psi_off)
 !!$           rhs(ibegin+psi_off) =  psis_v(ibegin)
-           call setdiribc(imatrix, ibegin+psi_off+4)
-           rhs(ibegin+psi_off+4) =  0.
-           call boundary_laplacian(imatrix, ibegin+psi_off, 0., -x, irow)
-           rhs(irow) = vloop/(2.*pi*resistivity(ibegin1))
+!!$           if(imatrix.ne.0) call setdiribc(imatrix, ibegin+psi_off+4)
+!!$           rhs(ibegin+psi_off+4) =  0.
+!!$           call boundary_laplacian(imatrix, ibegin+psi_off, 0., -x, irow)
+!!$           rhs(irow) = vloop/(2.*pi*resistivity(ibegin1))
 !!$           call boundary_laplacian(imatrix, ibegin+psi_off, pi/2., -x, irow)
 !!$           rhs(irow) = vloop/(2.*pi*resistivity(ibegin1))
-!!$           temp = psis_v(ibegin+psi_off:ibegin+psi_off+5)
-!!$           if(integrator.eq.1 .and. ntime.gt.1) then
-!!$              temp = 1.5*temp + 0.5*psio_v(ibegin+psi_off:ibegin+psi_off+5)
-!!$           endif
-!!$           call boundary_clamp_all(imatrix, ibegin+psi_off, rhs, temp)
+           temp = psis_v(ibegin+psi_off:ibegin+psi_off+5)
+           if(integrator.eq.1 .and. ntime.gt.1) then
+              temp = 1.5*temp + 0.5*psio_v(ibegin+psi_off:ibegin+psi_off+5)
+           endif
+           call boundary_clamp_all(imatrix, ibegin+psi_off, rhs, temp)
         else
            temp = psis_v(ibegin+psi_off:ibegin+psi_off+5)
            if(integrator.eq.1 .and. ntime.gt.1) then
@@ -362,12 +362,12 @@ subroutine boundary_den(imatrix, rhs)
   implicit none
   
   integer, intent(in) :: imatrix
-  real, intent(inout), dimension(*) :: rhs
+  vectype, intent(inout), dimension(*) :: rhs
   
   integer :: ibottom, iright, itop, ileft, i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes, irow
   real :: normal
-  real, dimension(6) :: temp
+  vectype, dimension(6) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
 
@@ -455,12 +455,12 @@ subroutine boundary_pres(imatrix, rhs)
   implicit none
   
   integer, intent(in) :: imatrix
-  real, intent(inout), dimension(*) :: rhs
+  vectype, intent(inout), dimension(*) :: rhs
   
   integer :: ibottom, iright, itop, ileft, i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes, irow
   real :: normal
-  real, dimension(6) :: temp
+  vectype, dimension(6) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
 
@@ -537,12 +537,12 @@ subroutine boundary_dc(imatrix, rhs)
   implicit none
   
   integer, intent(in) :: imatrix
-  real, intent(inout), dimension(*) :: rhs
+  vectype, intent(inout), dimension(*) :: rhs
   
   integer :: ibottom, iright, itop, ileft, i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes, irow
   real :: normal
-  real, dimension(6) :: temp
+  vectype, dimension(6) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
 
@@ -616,12 +616,12 @@ subroutine boundary_gs(imatrix, rhs)
   implicit none
   
   integer, intent(in) :: imatrix
-  real, intent(inout), dimension(*) :: rhs
+  vectype, intent(inout), dimension(*) :: rhs
   
   integer :: ibottom, iright, itop, ileft, i, izone, izonedim
   integer :: ibegin, iendplusone, ibeginn, iendplusonen, numnodes, irow
   real :: normal, x
-  real, dimension(6) :: temp
+  vectype, dimension(6) :: temp
   double precision :: coords(3)
 
   if(iper.eq.1 .and. jper.eq.1) return
@@ -704,13 +704,13 @@ subroutine boundary_vor(imatrix, rhs)
   implicit none
   
   integer, intent(in) :: imatrix
-  real, intent(inout), dimension(*) :: rhs
+  vectype, intent(inout), dimension(*) :: rhs
   
   integer, parameter :: numvarsm = 2
   integer :: ibottom, iright, itop, ileft, i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes, irow
   real :: normal, x
-  real, dimension(6) :: temp
+  vectype, dimension(6) :: temp
   double precision :: coords(3)
 
   if(iper.eq.1 .and. jper.eq.1) return
@@ -796,13 +796,13 @@ subroutine boundary_com(imatrix, rhs)
   implicit none
   
   integer, intent(in) :: imatrix
-  real, intent(inout), dimension(*) :: rhs
+  vectype, intent(inout), dimension(*) :: rhs
   
   integer, parameter :: numvarsm = 2
   integer :: ibottom, iright, itop, ileft, i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes, irow
   real :: normal, x
-  real, dimension(6) :: temp
+  vectype, dimension(6) :: temp
   double precision :: coords(3)
 
   if(iper.eq.1 .and. jper.eq.1) return
@@ -891,8 +891,8 @@ subroutine boundary_clamp_all(imatrix, ibegin, rhs, bv)
 
   integer, intent(in) :: imatrix     ! matrix handle
   integer, intent(in) :: ibegin      ! first dof of field
-  real, intent(inout), dimension(*) :: rhs
-  real, intent(in), dimension(6) :: bv
+  vectype, intent(inout), dimension(*) :: rhs
+  vectype, intent(in), dimension(6) :: bv
 
   integer :: irow
 
@@ -923,8 +923,8 @@ subroutine boundary_clamp(imatrix, ibegin, normal, rhs, bv)
   integer, intent(in) :: imatrix     ! matrix handle
   integer, intent(in) :: ibegin      ! first dof of field
   real, intent(in) :: normal         ! angle of normal vector from horizontal
-  real, intent(in), dimension(6) :: bv        ! boundary values
-  real, intent(inout), dimension(*) :: rhs    ! rhs vector
+  vectype, intent(in), dimension(6) :: bv        ! boundary values
+  vectype, intent(inout), dimension(*) :: rhs    ! rhs vector
 
   ! clamp value
   if(imatrix.ne.0) call setdiribc(imatrix, ibegin)
@@ -945,13 +945,13 @@ subroutine boundary_tangential_deriv(imatrix, ibegin, normal, rhs, bv)
   integer, intent(in) :: imatrix             ! matrix handle
   integer, intent(in) :: ibegin              ! first dof of field
   real, intent(in) :: normal                 ! angle of normal vector from horizontal
-  real, intent(inout), dimension(*) :: rhs   ! right-hand-side of matrix equation
-  real, intent(in), dimension(6) :: bv       ! boundary values
+  vectype, intent(inout), dimension(*) :: rhs   ! right-hand-side of matrix equation
+  vectype, intent(in), dimension(6) :: bv       ! boundary values
 
   integer :: irow
   integer :: numvals
   integer, dimension(2) :: cols
-  real, dimension(2) :: vals
+  vectype, dimension(2) :: vals
 
   ! clamp tangential 1st-derivative
   numvals = 2
@@ -966,7 +966,7 @@ subroutine boundary_tangential_deriv(imatrix, ibegin, normal, rhs, bv)
      irow = ibegin + 1
   endif
 
-  if(imatrix.ne.0) call setgeneralbc(imatrix, irow, numvals, cols, vals)
+  if(imatrix.ne.0) call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
   rhs(irow) = cos(normal)*bv(3) - sin(normal)*bv(2)
 
   ! clamp tangential 2nd-derivative
@@ -982,7 +982,7 @@ subroutine boundary_tangential_deriv(imatrix, ibegin, normal, rhs, bv)
      irow = ibegin + 3
   endif
 
-  if(imatrix.ne.0) call setgeneralbc(imatrix, irow, numvals, cols, vals)
+  if(imatrix.ne.0) call setgeneralbc(imatrix, irow, numvals, cols, vals,icomplex)
   rhs(irow) = cos(normal)*bv(6) - sin(normal)*bv(4)
 
 end subroutine boundary_tangential_deriv
@@ -998,12 +998,12 @@ subroutine boundary_normal_deriv(imatrix, ibegin, normal, rhs, bv)
   integer, intent(in) :: imatrix     ! matrix handle
   integer, intent(in) :: ibegin      ! first dof of field
   real, intent(in) :: normal         ! angle of normal vector from horizontal
-  real, intent(inout), dimension(*) :: rhs   ! right-hand-side of matrix equation
-  real, intent(in), dimension(6) :: bv       ! matrix row replaced by bc
+  vectype, intent(inout), dimension(*) :: rhs   ! right-hand-side of matrix equation
+  vectype, intent(in), dimension(6) :: bv       ! matrix row replaced by bc
   
   integer :: numvals, irow
   integer, dimension(2) :: cols
-  real, dimension(2) :: vals
+  vectype, dimension(2) :: vals
 
   numvals = 2
   cols(1) = ibegin + 1
@@ -1017,7 +1017,7 @@ subroutine boundary_normal_deriv(imatrix, ibegin, normal, rhs, bv)
      irow = ibegin + 2
   endif
 
-  if(imatrix.ne.0) call setgeneralbc(imatrix, irow, numvals, cols, vals)
+  if(imatrix.ne.0) call setgeneralbc(imatrix, irow, numvals, cols, vals,icomplex)
   rhs(irow) = cos(normal)*bv(2) + sin(normal)*bv(3)
 
 !!$  if(imatrix.ne.0) call setdiribc(imatrix, ibegin+4)
@@ -1042,7 +1042,7 @@ subroutine boundary_laplacian(imatrix, ibegin, normal, radius, irow)
   
   integer :: numvals
   integer, dimension(3) :: cols
-  real, dimension(3) :: vals
+  vectype, dimension(3) :: vals
 
   if(itor.eq.1) then
      numvals = 3
@@ -1066,6 +1066,6 @@ subroutine boundary_laplacian(imatrix, ibegin, normal, radius, irow)
      irow = ibegin + 5
   endif
 
-  if(imatrix.ne.0) call setgeneralbc(imatrix, irow, numvals, cols, vals)
+  if(imatrix.ne.0) call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
   
 end subroutine

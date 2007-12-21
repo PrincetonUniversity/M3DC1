@@ -14,8 +14,18 @@ F77    = mpxlf_r -c
 CC     = mpcc_r -c
 QEXTNAME = -qextname=numdofs,sludexit,sludinit,ap_init,loadmesh,numnod,numfac,getmincoord2,getmaxcoord2,usesearchstructure,nodfac,xyznod,createdofnumbering,zonenod,checkveccreated,deleteppplvec,createppplvec,entdofs,sumshareddofs,numprocdofs,cogfac,zerosuperluarray,zeropetscarray,insertval,getmodeltags,setdiribc,solve,zeromultiplyarray,finalizearray,matrixvectormult,freesmo,deletesearchstructure,clearscorecdata,printfpointer,checksamevec,updateids,deletedofnumbering,setgeneralbc,getelmsizes
 #,gpl,gqacwk,gclrwk,gqclip,gsclip,gtx
-PPOPTS = -DPETSC_AVOID_MPIF_H -Dmpi -DNEW_VELOCITY -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/rs6000_64_O 
-F90OPTS = -qautodbl=dbl4 -qsave $(QEXTNAME) -qstrict -O3 $(INCLUDE)  
+
+# For compiling complex version:
+COMPLEX = -Dvectype=complex -DUSECOMPLEX
+BIN_POSTFIX = _complex
+
+# For compling real version:
+#COMPLEX = -Dvectype=real
+#BIN_POSTFIX = 
+
+PPOPTS = -DPETSC_AVOID_MPIF_H -Dmpi -DNEW_VELOCITY -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/rs6000_64_O \
+	 ${COMPLEX}
+F90OPTS = -qautodbl=dbl4 -qsave $(QEXTNAME) -qstrict -O3 $(INCLUDE)
 F77OPTS = -qautodbl=dbl4 -qsave $(QEXTNAME) -O3 $(INCLUDE) -DIBM
 CCOPTS = -O3 -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/rs6000_64_O 
 DBESJDBESJOPTS = -O3 -qstrict -qautodbl=dbl4 $(INCLUDE) $(QEXTNAME)
@@ -28,7 +38,7 @@ NEWOBJS = M3Dmodules.o nintegrate_mod.o metricterms_n.o metricterms_new.o \
            $(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
            $(COMMONDIR)fdump.o hdf5_output.o newpar.o \
 	    fin.o part_fin.o ludef_t.o \
-           part_fin3.o boundary.o unknown.o restart.o \
+           boundary.o unknown.o restart.o \
            acbauer.o metricterms.o compare.o \
            init_conds.o  output.o PETScInterface.o 
 

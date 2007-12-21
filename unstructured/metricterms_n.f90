@@ -11,15 +11,15 @@ contains
 
 ! V1umu
 ! =====
-real function v1umu(e,f)
+vectype function v1umu(e,f)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f
+  vectype :: temp
 
   temp = -int2(e(:,OP_GS),f(:,OP_LP),weight_79,79)
 
@@ -30,15 +30,15 @@ end function v1umu
 
 ! V1un
 ! ====
-real function v1un(e,f,g)
+vectype function v1un(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
 
   if(idens.eq.0) then
      temp = int2(e(:,OP_DR),f(:,OP_DR),weight_79,79) &
@@ -55,16 +55,16 @@ end function v1un
 
 ! V1chin
 ! ======
-real function v1chin(e,f,g)
+vectype function v1chin(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
 
-  real :: temp
+  vectype :: temp
 
   if(idens.eq.0) then
      temp = 0.
@@ -80,15 +80,15 @@ end function v1chin
 
 ! V1uun
 ! =====
-real function v1uun(e,f,g,h)
+vectype function v1uun(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
            
 
   if(idens.eq.0) then
@@ -111,15 +111,15 @@ end function v1uun
 
 ! v1vvn
 ! =====
-real function v1vvn(e,f,g,h)
+vectype function v1vvn(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-  real :: temp  
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp  
 
   if(itor.eq.0) then
      temp = 0.
@@ -139,16 +139,16 @@ end function v1vvn
 
 ! v1uchin
 ! =======
-real function v1uchin(e,f,g,h)
+vectype function v1uchin(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
 
-  real :: temp
+  vectype :: temp
 
   if(idens.eq.0) then
      temp = -int3(e(:,OP_DZ),f(:,OP_LP),g(:,OP_DZ),weight_79,79) &
@@ -168,16 +168,16 @@ end function v1uchin
 
 ! v1chichin
 ! =========
-real function v1chichin(e,f,g,h)
+vectype function v1chichin(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
 
-  real :: temp
+  vectype :: temp
 
   if(idens.eq.0) then
      temp = 0.
@@ -198,15 +198,15 @@ end function v1chichin
 
 ! V1psisb1
 ! ========
-real function v1psisb1(e,f,g)
+vectype function v1psisb1(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
 
   temp = int4(ri3_79,e(:,OP_DZ),f(:,OP_GS),g(:,OP_DR),weight_79,79) &
        - int4(ri3_79,e(:,OP_DR),f(:,OP_GS),g(:,OP_DZ),weight_79,79) &
@@ -220,15 +220,15 @@ end function v1psisb1
 
 ! V1psipsi
 ! ========
-real function v1psipsi(e,f,g)
+vectype function v1psipsi(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
           
   temp = int4(ri3_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_GS),weight_79,79) &
        - int4(ri3_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_GS),weight_79,79)
@@ -240,15 +240,15 @@ end function v1psipsi
 
 ! V1upsipsi
 ! =========
-real function v1upsipsi(e,f,g,h)
+vectype function v1upsipsi(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
 
   ! |psi(1), u|,r
   temp79b = f(:,OP_DRR)*g(:,OP_DZ ) - f(:,OP_DRZ)*g(:,OP_DR ) &
@@ -290,15 +290,15 @@ end function v1upsipsi
 
 ! V1vpsib
 ! =======
-real function v1vpsib(e,f,g,h)
+vectype function v1vpsib(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
 
   if(itor.eq.0) then
      temp = 0.
@@ -315,15 +315,15 @@ end function v1vpsib
 
 ! V1bb 
 ! ====
-real function v1bb(e,f,g)
+vectype function v1bb(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
 
   if(itor.eq.0) then
      temp = 0.
@@ -338,15 +338,15 @@ end function v1bb
 
 ! V1ubb 
 ! =====
-real function v1ubb(e,f,g,h)
+vectype function v1ubb(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
 
   if(itor.eq.0) then
      temp = 0.
@@ -363,7 +363,7 @@ end function v1ubb
 
 ! V1chipsipsi
 ! ===========
-real function v1chipsipsi(e,f,g,h)
+vectype function v1chipsipsi(e,f,g,h)
 
   use basic
   use arrays
@@ -371,9 +371,9 @@ real function v1chipsipsi(e,f,g,h)
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, f, g, h
+  vectype, intent(in), dimension(79,OP_NUM) :: e, f, g, h
 
-  real :: temp
+  vectype :: temp
 
   temp79a = f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR)
   temp79b = f(:,OP_DRZ)*g(:,OP_DZ ) + f(:,OP_DRR)*g(:,OP_DR ) &
@@ -406,7 +406,7 @@ end function v1chipsipsi
 
 ! V1chibb
 ! =======
-real function v1chibb(e,f,g,h)
+vectype function v1chibb(e,f,g,h)
 
   use basic
   use arrays
@@ -414,9 +414,9 @@ real function v1chibb(e,f,g,h)
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, f, g, h
+  vectype, intent(in), dimension(79,OP_NUM) :: e, f, g, h
 
-  real :: temp
+  vectype :: temp
 
   if(itor.eq.0) then
      v1chibb = 0
@@ -436,15 +436,15 @@ end function v1chibb
 
 ! V1bsb2
 ! ======
-real function v1bsb2(e,f,g)
+vectype function v1bsb2(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
 
   if(itor.eq.0) then 
      temp = 0.
@@ -459,15 +459,15 @@ end function v1bsb2
 
 ! V1ngrav
 ! =======
-real function v1ngrav(e,f)
+vectype function v1ngrav(e,f)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f
+  vectype :: temp
 
   temp = int3(ri_79,e(:,OP_1),f(:,OP_DR),weight_79,79)
 
@@ -478,15 +478,15 @@ end function v1ngrav
 
 ! V1ungrav
 ! ========
-real function v1ungrav(e,f,g)
+vectype function v1ungrav(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
 
   temp = int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
        - int3(e(:,OP_DR),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
@@ -502,15 +502,15 @@ end function v1ungrav
 
 ! V1chingrav
 ! ==========
-real function v1chingrav(e,f,g)
+vectype function v1chingrav(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
 
   temp = int4(ri_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
        + int4(ri_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_DR),weight_79,79) &
@@ -523,15 +523,15 @@ end function v1chingrav
 
 ! V1ndenmgrav
 ! ===========
-real function v1ndenmgrav(e,f)
+vectype function v1ndenmgrav(e,f)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f
+  vectype :: temp
 
   temp = -int3(ri_79,e(:,OP_DR),f(:,OP_LP),weight_79,79)
 
@@ -547,15 +547,15 @@ end function v1ndenmgrav
 
 ! V2vn
 ! ====
-real function v2vn(e,f,g)
+vectype function v2vn(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
 
   if(idens.eq.0) then
      temp = int2(e(:,OP_1),f(:,OP_1),weight_79,79)
@@ -570,16 +570,16 @@ end function v2vn
 
 ! V2vmu
 ! =====
-real function v2vmu(e,f,g)
+vectype function v2vmu(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
-  real, intent(in) :: g
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f
+  vectype, intent(in) :: g
+  vectype :: temp
 
   temp = -g * &
        (int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
@@ -596,16 +596,16 @@ end function v2vmu
 
 ! V2vhypv
 ! =======
-real function v2vhypv(e,f,g,h)
+vectype function v2vhypv(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
-  real, intent(in) :: g,h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f
+  vectype, intent(in) :: g,h
+  vectype :: temp
 
   temp = - g*h*int2(e(:,OP_LP),f(:,OP_LP),weight_79,79)
 
@@ -623,15 +623,15 @@ end function v2vhypv
 
 ! V2vun
 ! =====
-real function v2vun(e,f,g,h)
+vectype function v2vun(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
 
   if(idens.eq.0) then
      temp = int4(r_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
@@ -654,15 +654,15 @@ end function v2vun
 
 ! V2psib
 ! ======
-real function v2psib(e,f,g)
+vectype function v2psib(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
 
   temp = int4(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
        - int4(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
@@ -674,15 +674,15 @@ end function v2psib
 
 ! V2vpsipsi
 ! =========
-real function v2vpsipsi(e,f,g,h)
+vectype function v2vpsipsi(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
 
 
   ! [nu,psi(2)] + nu*psi(2)_z/r
@@ -702,15 +702,15 @@ end function v2vpsipsi
 
 ! V2upsib
 ! =========
-real function v2upsib(e,f,g,h)
+vectype function v2upsib(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
 
 
   ! [nu,bz] + nu*bz_z/r
@@ -733,15 +733,15 @@ end function v2upsib
 
 ! v2upsisb2
 ! =========
-real function v2upsisb2(e,f,g,h)
+vectype function v2upsisb2(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
 
   temp = int5(ri_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_DR),h(:,OP_DZ),weight_79,79) &
        - int5(ri_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_DZ),h(:,OP_DZ),weight_79,79) &
@@ -760,15 +760,15 @@ end function v2upsisb2
 
 ! v2ubsb1
 ! =======
-real function v2ubsb1(e,f,g,h)
+vectype function v2ubsb1(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
 
   if(itor.eq.0) then
      v2ubsb1 = 0.
@@ -788,15 +788,15 @@ end function v2ubsb1
 
 ! v2chipsib
 ! =========
-real function v2chipsib(e,f,g,h)
+vectype function v2chipsib(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
 
 
   temp79a = h(:,OP_1 )*f(:,OP_GS) &
@@ -822,15 +822,15 @@ end function v2chipsib
 
 ! v2vchin
 ! =======
-real function v2vchin(e,f,g,h)
+vectype function v2vchin(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
 
   if(idens.eq.0) then
      temp =-int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
@@ -854,15 +854,15 @@ end function v2vchin
 
 ! v2chibsb1
 ! =========
-real function v2chibsb1(e,f,g,h)
+vectype function v2chibsb1(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
 
   if(itor.eq.0) then
      v2chibsb1 = 0.
@@ -883,15 +883,15 @@ end function v2chibsb1
 
 ! v2vpsisb1
 ! =========
-real function v2vpsisb1(e,f,g,h)
+vectype function v2vpsisb1(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
 
   if(itor.eq.0) then
      v2vpsisb1 = 0.
@@ -919,16 +919,16 @@ end function v2vpsisb1
 
 ! V3chin
 ! ======
-real function v3chin(e,f,g)
+vectype function v3chin(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
   
-  real :: temp
+  vectype :: temp
 
   if(idens.eq.0) then
      temp = - int2(e(:,OP_DR),f(:,OP_DR),weight_79,79) &
@@ -946,15 +946,15 @@ end function v3chin
 
 ! V3chimu
 ! =======
-real function v3chimu(e,f)
+vectype function v3chimu(e,f)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f
+  vectype :: temp
 
   temp = int2(e(:,OP_LP),f(:,OP_LP),weight_79,79)
   if(itor.eq.1) then
@@ -968,16 +968,16 @@ end function v3chimu
 
 ! V3umu
 ! =====
-real function v3umu(e,f,g,h)
+vectype function v3umu(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
-  real, intent(in) :: g,h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f
+  vectype, intent(in) :: g,h
+  vectype :: temp
 
   if(itor.eq.0) then
      temp = 0.
@@ -995,15 +995,15 @@ end function v3umu
 
 ! V3un
 ! ====
-real function v3un(e,f,g)
+vectype function v3un(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
 
   if(idens.eq.0) then
      temp = 0.
@@ -1019,15 +1019,15 @@ end function v3un
 
 ! V3p
 ! ===
-real function v3p(e,f)
+vectype function v3p(e,f)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f
+  vectype :: temp
 
   temp = int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
        + int2(e(:,OP_DR),f(:,OP_DR),weight_79,79)
@@ -1044,16 +1044,16 @@ end function v3p
 
 ! V3up
 ! ====
-real function v3up(e,f,g)
+vectype function v3up(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
 
-  real :: temp
+  vectype :: temp
 
   temp = int4(r_79,e(:,OP_LP),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
        - int4(r_79,e(:,OP_LP),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
@@ -1075,15 +1075,15 @@ end function v3up
 
 ! V3chip
 ! ======
-real function v3chip(e,f,g)
+vectype function v3chip(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
 
   temp = int3(e(:,OP_LP),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
        + int3(e(:,OP_LP),f(:,OP_DR),g(:,OP_DR),weight_79,79) &
@@ -1104,16 +1104,16 @@ end function v3chip
 
 ! V3psipsi
 ! ========
-real function v3psipsi(e,f,g)
+vectype function v3psipsi(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
 
-  real :: temp
+  vectype :: temp
 
   temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_GS),weight_79,79) &
        + int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_GS),weight_79,79)
@@ -1130,16 +1130,16 @@ end function v3psipsi
 
 ! V3bb
 ! ====
-real function v3bb(e,f,g)
+vectype function v3bb(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
 
-  real :: temp
+  vectype :: temp
 
   temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DZ),weight_79,79) &
        + int4(ri2_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DR),weight_79,79)
@@ -1156,15 +1156,15 @@ end function v3bb
 
 ! V3psisb1
 ! ========
-real function v3psisb1(e,f,g)
+vectype function v3psisb1(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
 
   temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_GS),g(:,OP_DZ),weight_79,79) &
        + int4(ri2_79,e(:,OP_DR),f(:,OP_GS),g(:,OP_DR),weight_79,79)
@@ -1181,7 +1181,7 @@ end function v3psisb1
 
 ! V3bsb2
 ! ======
-real function v3bsb2(e,f,g)
+vectype function v3bsb2(e,f,g)
 
   use basic
   use arrays
@@ -1189,9 +1189,9 @@ real function v3bsb2(e,f,g)
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
 
-  real :: temp
+  vectype :: temp
 
   temp = -int4(ri2_79,e(:,OP_LP),f(:,OP_1),g(:,OP_1),weight_79,79)
 
@@ -1206,16 +1206,16 @@ end function v3bsb2
 
 ! V3upsipsi
 ! =========
-real function v3upsipsi(e,f,g,h)
+vectype function v3upsipsi(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, f, g, h
+  vectype, intent(in), dimension(79,OP_NUM) :: e, f, g, h
 
-  real :: temp
+  vectype :: temp
 
   ! [f,g],r
   temp79b = f(:,OP_DRZ)*g(:,OP_DR ) - f(:,OP_DRR)*g(:,OP_DZ) &
@@ -1265,7 +1265,7 @@ end function v3upsipsi
 
 ! V3ubb
 ! =====
-real function v3ubb(e,f,g,h)
+vectype function v3ubb(e,f,g,h)
 
   use basic
   use arrays
@@ -1273,9 +1273,9 @@ real function v3ubb(e,f,g,h)
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
 
-  real :: temp
+  vectype :: temp
 
   temp = int5(ri3_79,e(:,OP_LP),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
        - int5(ri3_79,e(:,OP_LP),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),weight_79,79)
@@ -1293,15 +1293,15 @@ end function v3ubb
 
 ! v3vpsib
 ! =======
-real function v3vpsib(e,f,g,h)
+vectype function v3vpsib(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
 
   temp = int5(ri4_79,e(:,OP_LP),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
        - int5(ri4_79,e(:,OP_LP),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),weight_79,79)
@@ -1321,7 +1321,7 @@ end function v3vpsib
 
 ! V3chipsipsi
 ! ===========
-real function v3chipsipsi(e,f,g,h)
+vectype function v3chipsipsi(e,f,g,h)
 
   use basic
   use arrays
@@ -1329,8 +1329,8 @@ real function v3chipsipsi(e,f,g,h)
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, f, g, h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, f, g, h
+  vectype :: temp
 
   ! <f,g>,r
   temp79b = f(:,OP_DRR)*g(:,OP_DR ) + f(:,OP_DRZ)*g(:,OP_DZ ) &
@@ -1367,7 +1367,7 @@ end function v3chipsipsi
 
 ! V3chibb
 ! =======
-real function v3chibb(e,f,g,h)
+vectype function v3chibb(e,f,g,h)
 
   use basic
   use arrays
@@ -1375,9 +1375,9 @@ real function v3chibb(e,f,g,h)
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, f, g, h
+  vectype, intent(in), dimension(79,OP_NUM) :: e, f, g, h
 
-  real :: temp
+  vectype :: temp
 
   temp = int5(ri4_79,e(:,OP_LP),f(:,OP_GS),g(:,OP_1 ),h(:,OP_1),weight_79,79) &
        + int5(ri4_79,e(:,OP_LP),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
@@ -1397,7 +1397,7 @@ end function v3chibb
 
 ! V3uun
 ! =====
-real function v3uun(e,f,g,h)
+vectype function v3uun(e,f,g,h)
 
   use basic
   use arrays
@@ -1405,9 +1405,9 @@ real function v3uun(e,f,g,h)
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, f, g, h
+  vectype, intent(in), dimension(79,OP_NUM) :: e, f, g, h
 
-  real :: temp
+  vectype :: temp
 
   if(idens.eq.0) then
      temp =-int4(r2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_LP),weight_79,79) &
@@ -1462,15 +1462,15 @@ end function v3uun
 
 ! V3vvn
 ! =====
-real function v3vvn(e,f,g,h)
+vectype function v3vvn(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, f, g, h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, f, g, h
+  vectype :: temp
 
   if(itor.eq.0) then
      temp = 0.
@@ -1494,16 +1494,16 @@ end function v3vvn
 
 ! V3uchin
 ! =======
-real function v3uchin(e,f,g,h)
+vectype function v3uchin(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, f, g, h
+  vectype, intent(in), dimension(79,OP_NUM) :: e, f, g, h
 
-  real :: temp
+  vectype :: temp
 
   if(idens.eq.0) then
      temp = int4(r_79,e(:,OP_DZ),f(:,OP_LP ),g(:,OP_DR ),weight_79,79) &
@@ -1561,7 +1561,7 @@ end function v3uchin
 
 ! V3chichin
 ! =========
-real function v3chichin(e,f,g,h)
+vectype function v3chichin(e,f,g,h)
 
   use basic
   use arrays
@@ -1569,9 +1569,9 @@ real function v3chichin(e,f,g,h)
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, f, g, h
+  vectype, intent(in), dimension(79,OP_NUM) :: e, f, g, h
 
-  real :: temp
+  vectype :: temp
 
   if(idens.eq.0) then
      temp = 0.5* &
@@ -1616,15 +1616,15 @@ end function v3chichin
 
 ! V3ngrav
 ! =======
-real function v3ngrav(e,f)
+vectype function v3ngrav(e,f)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f
+  vectype :: temp
 
   temp = -int2(e(:,OP_1),f(:,OP_DZ),weight_79,79)
 
@@ -1635,15 +1635,15 @@ end function v3ngrav
 
 ! V3ungrav
 ! ========
-real function v3ungrav(e,f,g)
+vectype function v3ungrav(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
 
   temp = int4(r_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DR),weight_79,79) &
        - int4(r_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_DZ),weight_79,79)
@@ -1659,15 +1659,15 @@ end function v3ungrav
 
 ! V3chingrav
 ! ==========
-real function v3chingrav(e,f,g)
+vectype function v3chingrav(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
 
   temp =-int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
        - int3(e(:,OP_DZ),f(:,OP_DR),g(:,OP_DR),weight_79,79) &
@@ -1680,15 +1680,15 @@ end function v3chingrav
 
 ! V3ndenmgrav
 ! ===========
-real function v3ndenmgrav(e,f)
+vectype function v3ndenmgrav(e,f)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f
+  vectype :: temp
 
   temp = int2(e(:,OP_DZ),f(:,OP_LP),weight_79,79)
 
@@ -1704,15 +1704,15 @@ end function v3ndenmgrav
 
 ! B1psi
 ! =====
-real function b1psi(e,f)
+vectype function b1psi(e,f)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f
+  vectype :: temp
 
   temp = int2(e(:,OP_1),f(:,OP_1),weight_79,79)
 
@@ -1723,15 +1723,15 @@ end function b1psi
 
 ! B1psiu
 ! ======
-real function b1psiu(e,f,g)
+vectype function b1psiu(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
 
   temp = int4(r_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
        - int4(r_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
@@ -1743,14 +1743,14 @@ end function b1psiu
 
 ! B1psichi
 ! =======
-real function b1psichi(e,f,g)
+vectype function b1psichi(e,f,g)
 
   use basic
   use nintegrate_mod
   
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
 
-  real :: temp
+  vectype :: temp
 
   temp = -int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
        -  int3(e(:,OP_1),f(:,OP_DR),g(:,OP_DR),weight_79,79)
@@ -1762,16 +1762,16 @@ end function
 
 ! B1psieta
 ! ========
-real function b1psieta(e,f,g,h)
+vectype function b1psieta(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real, intent(in) :: h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype, intent(in) :: h
+  vectype :: temp
 
   temp = -(int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_1 ),weight_79,79) &
           +int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1 ),weight_79,79) &
@@ -1796,15 +1796,15 @@ end function b1psieta
 
 ! B1psibd
 ! =======
-real function b1psibd(e,f,g,h)
+vectype function b1psibd(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
 
   ! Linearize in psi
   ! ~~~~~~~~~~~~~~~~
@@ -1827,15 +1827,15 @@ end function b1psibd
 
 ! B2b
 ! ===
-real function b2b(e,f)
+vectype function b2b(e,f)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f
+  vectype :: temp
 
   temp = int3(ri2_79,e(:,OP_1),f(:,OP_1),weight_79,79)
 
@@ -1846,16 +1846,16 @@ end function b2b
 
 ! B2beta
 ! ======
-real function b2beta(e,f,g,h)
+vectype function b2beta(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real, intent(in) :: h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype, intent(in) :: h
+  vectype :: temp
 
   temp = -(int4(ri2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1),weight_79,79) &
           +int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1),weight_79,79))
@@ -1875,15 +1875,15 @@ end function b2beta
 
 ! B2bu
 ! ====
-real function b2bu(e,f,g)
+vectype function b2bu(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
 
   temp = int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
        - int4(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
@@ -1895,14 +1895,14 @@ end function b2bu
 
 ! B2bchi
 ! ======
-real function b2bchi(e,f,g)
+vectype function b2bchi(e,f,g)
 
   use basic
   use nintegrate_mod
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
 
-  real :: temp
+  vectype :: temp
 
   temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DZ),weight_79,79) &
        + int4(ri2_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DR),weight_79,79)
@@ -1914,15 +1914,15 @@ end function b2bchi
 
 ! B2psiv
 ! ======
-real function b2psiv(e,f,g)
+vectype function b2psiv(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
 
   temp = int4(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
        - int4(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
@@ -1937,15 +1937,15 @@ end function b2psiv
 
 ! B2psipsid
 ! =========
-real function b2psipsid(e,f,g,h)
+vectype function b2psipsid(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
 
   if(idens.eq.0) then
      temp = int4(ri3_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_GS),weight_79,79) &
@@ -1962,15 +1962,15 @@ end function b2psipsid
 
 ! B2bbd
 ! =====
-real function b2bbd(e,f,g,h)
+vectype function b2bbd(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
 
   if(idens.eq.0) then
      temp = 0.
@@ -1995,13 +1995,13 @@ end function b2bbd
 
 ! B2ped
 ! =====
-real function b2ped(e,f,g)
+vectype function b2ped(e,f,g)
 
   use basic
   use nintegrate_mod
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
   
   if(idens.eq.0) then
      temp = 0.
@@ -2020,15 +2020,15 @@ end function b2ped
 
 ! B3pe
 ! ====
-real function b3pe(e,f)
+vectype function b3pe(e,f)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f
+  vectype :: temp
 
   temp = int2(e(:,OP_1),f(:,OP_1),weight_79,79)
 
@@ -2039,16 +2039,16 @@ end function b3pe
 
 ! B3psipsieta
 ! ===========
-real function b3psipsieta(e,f,g,h)
+vectype function b3psipsieta(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   
-  real :: temp
+  vectype :: temp
 
   if(itor.eq.0) then
      b3psipsieta = 0.
@@ -2065,16 +2065,16 @@ end function b3psipsieta
 
 ! B3bbeta
 ! =======
-real function b3bbeta(e,f,g,h)
+vectype function b3bbeta(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   
-  real :: temp
+  vectype :: temp
 
   if(itor.eq.0) then
      b3bbeta = 0.
@@ -2093,16 +2093,16 @@ end function b3bbeta
 
 ! B3pebd
 ! ======
-real function b3pebd(e,f,g,h)
+vectype function b3pebd(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   
-  real :: temp
+  vectype :: temp
 
   if(idens.eq.0) then
      temp = int4(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79) &
@@ -2123,16 +2123,16 @@ end function b3pebd
 
 ! B3pedkappa
 ! ==========
-real function b3pedkappa(e,f,g,h,i)
+vectype function b3pedkappa(e,f,g,h,i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real, intent(in) :: h, i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype, intent(in) :: h, i
+  vectype :: temp
 
   if(idens.eq.0) then
      temp = -h* &
@@ -2165,15 +2165,15 @@ end function b3pedkappa
 
 ! N1n
 ! ===
-real function n1n(e,f)
+vectype function n1n(e,f)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f
+  vectype :: temp
 
   temp = int2(e(:,OP_1),f(:,OP_1),weight_79,79)
 
@@ -2184,16 +2184,16 @@ end function n1n
 
 ! N1ndenm
 ! =======
-real function n1ndenm(e,f,g,h)
+vectype function n1ndenm(e,f,g,h)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f
-  real, intent(in) :: g, h
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f
+  vectype, intent(in) :: g, h
+  vectype :: temp
 
   temp = -g* &
        (int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
@@ -2211,15 +2211,15 @@ end function n1ndenm
 
 ! N1nu
 ! ====
-real function n1nu(e,f,g)
+vectype function n1nu(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
 
   temp = int4(r_79, e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
        - int4(r_79, e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
@@ -2234,15 +2234,15 @@ end function n1nu
 
 ! N1nchi
 ! ======
-real function n1nchi(e,f,g)
+vectype function n1nchi(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
 
   temp = int3(e(:,OP_DZ),f(:,OP_1),g(:,OP_DZ),weight_79,79) &
        + int3(e(:,OP_DR),f(:,OP_1),g(:,OP_DR),weight_79,79)
@@ -2258,16 +2258,16 @@ end function n1nchi
 
 ! P1pu
 ! ====
-real function p1pu(e,f,g)
+vectype function p1pu(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
 
-  real :: temp
+  vectype :: temp
 
   temp = int4(r_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
        - int4(r_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
@@ -2283,16 +2283,16 @@ end function p1pu
 
 ! P1pchi
 ! ======
-real function p1pchi(e,f,g)
+vectype function p1pchi(e,f,g)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
 
-  real :: temp
+  vectype :: temp
 
   temp = gam* &
        (int3(e(:,OP_DZ),f(:,OP_1),g(:,OP_DZ),weight_79,79)  &
@@ -2309,15 +2309,15 @@ end function p1pchi
 
 ! P1kappar
 ! ========
-real function p1kappar(e,f,g,h,i,j,k)
+vectype function p1kappar(e,f,g,h,i,j,k)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h,i,j,k
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h,i,j,k
+  vectype :: temp
 
   temp79a = k(:,OP_1)*ri2_79*(e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))*j(:,OP_1)
 
@@ -2343,16 +2343,16 @@ end function p1kappar
 
 ! qpsipsieta
 ! ==========
-real function qpsipsieta(e,f,g,h,i,j)
+vectype function qpsipsieta(e,f,g,h,i,j)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h,j
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h,j
   real, intent(in) :: i
-  real :: temp
+  vectype :: temp
 
 !!$  temp = h*int4(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),weight_79,79)
   temp = int5(ri2_79,e(:,OP_1),j(:,OP_1),j(:,OP_1),h(:,OP_1),weight_79,79)
@@ -2375,16 +2375,16 @@ end function qpsipsieta
 
 ! qbbeta
 ! ======
-real function qbbeta(e,f,g,h,i)
+vectype function qbbeta(e,f,g,h,i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   real, intent(in) :: i
-  real :: temp
+  vectype :: temp
 
   temp = int5(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
        + int5(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),h(:,OP_1),weight_79,79)
@@ -2414,16 +2414,16 @@ end function qbbeta
 
 ! quumu
 ! =====
-real function quumu(e,f,g,h,i,j)
+vectype function quumu(e,f,g,h,i,j)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
   real, intent(in) :: h, i, j
-  real :: temp
+  vectype :: temp
 
   temp = -h* &
        (   int4(r2_79,e(:,OP_1),f(:,OP_LP ),g(:,OP_LP ),weight_79,79) &
@@ -2445,16 +2445,16 @@ end function quumu
 
 ! quchimu
 ! =======
-real function quchimu(e,f,g,h,i,j)
+vectype function quchimu(e,f,g,h,i,j)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
   real, intent(in) :: h, i, j
-  real :: temp
+  vectype :: temp
 
   temp = 4.*h* &
        (int4(r_79,e(:,OP_1),f(:,OP_DZZ),g(:,OP_DRZ),weight_79,79) &
@@ -2476,16 +2476,16 @@ end function quchimu
 
 ! qvvmu
 ! =====
-real function qvvmu(e,f,g,h,i)
+vectype function qvvmu(e,f,g,h,i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
   real, intent(in) :: h, i
-  real :: temp
+  vectype :: temp
 
   temp = -h* &
        (int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
@@ -2504,16 +2504,16 @@ end function qvvmu
 
 ! qchichimu
 ! =========
-real function qchichimu(e,f,g,h,i,j)
+vectype function qchichimu(e,f,g,h,i,j)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
   real, intent(in) :: h, i, j
-  real :: temp
+  vectype :: temp
 
   temp = -2.*h* &
        (   int3(e(:,OP_1),f(:,OP_DZZ),g(:,OP_DZZ),weight_79,79) &
@@ -2535,15 +2535,15 @@ end function qchichimu
 
 ! g1ub
 ! ====
-real function g1ub(e, u, b, p, b2i)
+vectype function g1ub(e, u, b, p, b2i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, u, b, p, b2i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, u, b, p, b2i
+  vectype :: temp
 
   temp79a = 0.5*ri_79*p(:,OP_1)*b(:,OP_1)*b2i(:,OP_1)
   
@@ -2573,15 +2573,15 @@ end function g1ub
 
 ! g1upsipsib
 ! ==========
-real function g1upsipsib(e, u, psi, b, p, b2i)
+vectype function g1upsipsib(e, u, psi, b, p, b2i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, u, psi, b, p, b2i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, u, psi, b, p, b2i
+  vectype :: temp
 
   temp79a = 1.5*ri3_79*b(:,OP_1)*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)
   temp79b = psi(:,OP_DZ)*psi(:,OP_DZ) + psi(:,OP_DR)*psi(:,OP_DR)
@@ -2612,15 +2612,15 @@ end function g1upsipsib
 
 ! g1vpsi
 ! ======
-real function g1vpsi(e, v, psi, p, b2i)
+vectype function g1vpsi(e, v, psi, p, b2i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, v, psi, p, b2i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, v, psi, p, b2i
+  vectype :: temp
 
   temp79a = 0.25*ri2_79*p(:,OP_1)*b2i(:,OP_1)
 
@@ -2652,15 +2652,15 @@ end function g1vpsi
 
 ! g1vpsipsipsi
 ! ============
-real function g1vpsipsipsi(e, v, psi, p, b2i)
+vectype function g1vpsipsipsi(e, v, psi, p, b2i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, v, psi, p, b2i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, v, psi, p, b2i
+  vectype :: temp
 
   temp79a = -.75*ri4_79*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)
   temp79b = psi(:,OP_DZ)*v(:,OP_DR) - psi(:,OP_DR)*v(:,OP_DZ)
@@ -2689,15 +2689,15 @@ end function g1vpsipsipsi
 
 ! g1vpsibb
 ! ========
-real function g1vpsibb(e, v, psi, b, p, b2i)
+vectype function g1vpsibb(e, v, psi, b, p, b2i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, v, psi, b, p, b2i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, v, psi, b, p, b2i
+  vectype :: temp
 
   temp79a = .75*ri4_79*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)*b(:,OP_1)*b(:,OP_1)
 
@@ -2729,15 +2729,15 @@ end function g1vpsibb
 
 ! g1chib
 ! ======
-real function g1chib(e, chi, b, p, b2i)
+vectype function g1chib(e, chi, b, p, b2i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, chi, b, p, b2i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, chi, b, p, b2i
+  vectype :: temp
 
   temp79a = 0.5*ri2_79*b2i(:,OP_1)*p(:,OP_1)*b(:,OP_1)
 
@@ -2763,15 +2763,15 @@ end function g1chib
 
 ! g1chipsipsib
 ! ============
-real function g1chipsipsib(e, chi, psi, b, p, b2i)
+vectype function g1chipsipsib(e, chi, psi, b, p, b2i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, chi, psi, b, p, b2i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, chi, psi, b, p, b2i
+  vectype :: temp
 
   temp79a = 1.5*ri4_79*b2i(:,OP_1)*b2i(:,OP_1)*p(:,OP_1)*b(:,OP_1)
 
@@ -2813,15 +2813,15 @@ end function g1chipsipsib
 
 ! g2upsi
 ! ======
-real function g2upsi(e, u, psi, p, b2i)
+vectype function g2upsi(e, u, psi, p, b2i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, u, psi, p, b2i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, u, psi, p, b2i
+  vectype :: temp
 
   temp79a = 0.25*p(:,OP_1)*b2i(:,OP_1)
 
@@ -2850,15 +2850,15 @@ end function g2upsi
 
 ! g2upsipsipsi
 ! ============
-real function g2upsipsipsi(e, u, psi, p, b2i)
+vectype function g2upsipsipsi(e, u, psi, p, b2i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, u, psi, p, b2i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, u, psi, p, b2i
+  vectype :: temp
 
   temp79a = -0.75*ri2_79*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)
 
@@ -2884,15 +2884,15 @@ end function g2upsipsipsi
 
 ! g2upsibb
 ! ========
-real function g2upsibb(e, u, psi, b, p, b2i)
+vectype function g2upsibb(e, u, psi, b, p, b2i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, u, psi, b, p, b2i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, u, psi, b, p, b2i
+  vectype :: temp
 
   temp79a = -0.75*ri2_79*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)*b(:,OP_1)*b(:,OP_1)
 
@@ -2922,15 +2922,15 @@ end function g2upsibb
 
 ! g2vb
 ! ====
-real function g2vb(e, v, psi, b, p, b2i)
+vectype function g2vb(e, v, psi, b, p, b2i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, v, psi, b, p, b2i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, v, psi, b, p, b2i
+  vectype :: temp
 
   temp79a = 0.25*ri_79*p(:,OP_1)*b2i(:,OP_1)*b(:,OP_1)
   
@@ -2957,15 +2957,15 @@ end function g2vb
 
 ! g2chipsi
 ! ========
-real function g2chipsi(e, chi, psi, p, b2i)
+vectype function g2chipsi(e, chi, psi, p, b2i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, chi, psi, p, b2i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, chi, psi, p, b2i
+  vectype :: temp
 
   temp79a = -0.5*ri_79*p(:,OP_1)*b2i(:,OP_1)
 
@@ -2994,15 +2994,15 @@ end function g2chipsi
 
 ! g2chipsipsipsi
 ! ==============
-real function g2chipsipsipsi(e, chi, psi, p, b2i)
+vectype function g2chipsipsipsi(e, chi, psi, p, b2i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, chi, psi, p, b2i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, chi, psi, p, b2i
+  vectype :: temp
 
   temp79a = -1.5*ri3_79*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)
   temp79b = e(:,OP_DZ)*psi(:,OP_DR) - e(:,OP_DR)*psi(:,OP_DZ)
@@ -3021,15 +3021,15 @@ end function g2chipsipsipsi
 
 ! g2chipsibb
 ! ==========
-real function g2chipsibb(e, chi, psi, b, p, b2i)
+vectype function g2chipsibb(e, chi, psi, b, p, b2i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, chi, psi, b, p, b2i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, chi, psi, b, p, b2i
+  vectype :: temp
 
   temp79a = 1.5*ri3_79*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)*b(:,OP_1)*b(:,OP_1)
 
@@ -3058,15 +3058,15 @@ end function g2chipsibb
 
 ! g3ub
 ! ====
-real function g3ub(e, u, b, p, b2i)
+vectype function g3ub(e, u, b, p, b2i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, u, b, p, b2i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, u, b, p, b2i
+  vectype :: temp
 
   temp79a = -p(:,OP_1)*b2i(:,OP_1)*b(:,OP_1)
 
@@ -3091,15 +3091,15 @@ end function g3ub
 
 ! g3upsipsib
 ! ==========
-real function g3upsipsib(e, u, psi, b, p, b2i)
+vectype function g3upsipsib(e, u, psi, b, p, b2i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, u, psi, b, p, b2i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, u, psi, b, p, b2i
+  vectype :: temp
 
   temp79a = -1.5*ri3_79*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)*b(:,OP_1)
 
@@ -3138,15 +3138,15 @@ end function g3upsipsib
 
 ! g3vpsi
 ! ======
-real function g3vpsi(e, v, psi, p, b2i)
+vectype function g3vpsi(e, v, psi, p, b2i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, v, psi, p, b2i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, v, psi, p, b2i
+  vectype :: temp
 
   temp79a = -0.5*ri_79*p(:,OP_1)*b2i(:,OP_1)
 
@@ -3177,15 +3177,15 @@ end function g3vpsi
 
 ! g3vpsipsipsi
 ! ============
-real function g3vpsipsipsi(e, v, psi, p, b2i)
+vectype function g3vpsipsipsi(e, v, psi, p, b2i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, v, psi, p, b2i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, v, psi, p, b2i
+  vectype :: temp
 
   temp79a = 0.75*ri3_79*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)
 
@@ -3226,15 +3226,15 @@ end function g3vpsipsipsi
 
 ! g3vpsibb
 ! ========
-real function g3vpsibb(e, v, psi, b, p, b2i)
+vectype function g3vpsibb(e, v, psi, b, p, b2i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, v, psi, b, p, b2i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, v, psi, b, p, b2i
+  vectype :: temp
 
   temp79a = 1.5*ri3_79*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)*b(:,OP_1)*b(:,OP_1)
 
@@ -3265,15 +3265,15 @@ end function g3vpsibb
 
 ! g3chib
 ! ======
-real function g3chib(e, chi, b, p, b2i)
+vectype function g3chib(e, chi, b, p, b2i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, chi, b, p, b2i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, chi, b, p, b2i
+  vectype :: temp
 
   temp79a = ri_79*p(:,OP_1)*b2i(:,OP_1)*b(:,OP_1)
 
@@ -3296,15 +3296,15 @@ end function g3chib
 
 ! g3chipsipsib
 ! ============
-real function g3chipsipsib(e, chi, psi, b, p, b2i)
+vectype function g3chipsipsib(e, chi, psi, b, p, b2i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in), dimension(79,OP_NUM) :: e, chi, psi, b, p, b2i
-  real :: temp
+  vectype, intent(in), dimension(79,OP_NUM) :: e, chi, psi, b, p, b2i
+  vectype :: temp
 
   temp79a = -3.*ri3_79*p(:,OP_1)*b2i(:,OP_1)*b2i(:,OP_1)*b(:,OP_1)
 
@@ -3577,15 +3577,13 @@ end function energy_k3d
 
 ! Poloidal hyper-viscous
 ! ----------------------
-real function energy_kph(hypc)
+real function energy_kph()
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in) :: hypc
-  
   real :: temp
 
   temp = -hypc*amu* &
@@ -3599,14 +3597,13 @@ end function energy_kph
 
 ! Toroidal hyper-viscous
 ! ----------------------
-real function energy_kth(hypv)
+real function energy_kth()
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in) :: hypv
   real :: temp
 
   temp = -amu*hypv*int2(vzt79(:,OP_GS),vzt79(:,OP_GS),weight_79,79)
@@ -3617,14 +3614,13 @@ end function energy_kth
 
 ! Compressional hyper-viscous
 ! ---------------------------
-real function energy_k3h(hypc)
+real function energy_k3h()
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  real, intent(in) :: hypc
   real :: temp
 
   temp = -hypc*amuc* &

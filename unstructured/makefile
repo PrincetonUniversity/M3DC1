@@ -11,32 +11,32 @@ F77    = ifort -c
 CC     = icc -c
 
 # For compiling complex version:
-COMPLEX = -Dvectype=complex -Dcmplx_cast=cmplx -DUSECOMPLEX
+COMPLEX = -Dvectype=complex -DUSECOMPLEX
+BIN_POSTFIX = _complex
 
 # For compling real version:
-COMPLEX = -Dvectype=real -Dcmplx_cast=""
+#COMPLEX = -Dvectype=real
+#BIN_POSTFIX = 
 
+
+BIN = gonewp${BIN_POSTFIX}
 
 FOPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE) -DNEW_VELOCITY ${COMPLEX}
 F90OPTS = ${FOPTS}
 F77OPTS = ${FOPTS}
-#F90OPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE)
-#F77OPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE)
-
-
 
 NEWOBJS = M3Dmodules.o nintegrate_mod.o metricterms_new.o \
 	newvar.o diagnostics.o gradshafranov.o control.o \
-	$(COMMONDIR)tv80lib.o $(COMMONDIR)subp.o \
+	$(COMMONDIR)subp.o \
 	$(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
         $(COMMONDIR)fdump.o hdf5_output.o newpar.o \
 	fin.o part_fin.o ludef_t.o \
-	part_fin3.o boundary.o unknown.o restart.o \
-	acbauer.o metricterms.o compare.o \
-	init_conds.o output.o PETScInterface.o
+	boundary.o unknown.o restart.o \
+	acbauer.o metricterms.o \
+	init_conds.o PETScInterface.o
 
 SCORECDIR = /l/mhd/acbauer/develop/
-SCORECVERS =-stable6
+SCORECVERS =-complex2
 SCORECOPT = -O
 
 LDRNEW = \
@@ -81,7 +81,7 @@ LDRNEW = \
         -L/usr/X11R6/lib -lX11 -lmpi -lcprts -lcxa
 
 
-gonewp: $(NEWOBJS)
+${BIN}: $(NEWOBJS)
 	$(LOADER) $(NEWOBJS) $(LDRNEW) -o $@
 
 $(COMMONDIR)tv80lib.o: $(COMMONDIR)tv80lib.f
@@ -100,7 +100,7 @@ $(COMMONDIR)tv80lib.o: $(COMMONDIR)tv80lib.f
 	$(F90) $(F90OPTS) -fpic $< -o $@
 
 clean:
-	rm -f gonewp*
+	rm -f ${BIN}
 	rm -f $(NEWOBJS)
 	rm -f *.o 
 	rm -f *.mod 
@@ -108,7 +108,7 @@ clean:
 	rm -f *.so
 
 fullclean:
-	rm -f gonewp* 
+	rm -f ${BIN}
 	rm -r lib*so
 	rm -f *.o 
 	rm -f *.mod 

@@ -587,8 +587,8 @@ subroutine calculate_scalars()
      ! Calculate fluxes
      ! ~~~~~~~~~~~~~~~~
      efluxk = efluxk + flux_ke()
-     efluxp = efluxp + flux_pressure(dbf)
-     efluxs = efluxs + flux_poynting(dbf)
+     efluxp = efluxp + flux_pressure()
+     efluxs = efluxs + flux_poynting()
      efluxt = efluxt + flux_heat()
 
      epotg = epotg + grav_pot()
@@ -664,7 +664,7 @@ subroutine magaxis(xguess,zguess,phin,numvari,psimin)
   include 'mpif.h'
 
   real, intent(inout) :: xguess, zguess
-  real, intent(in), dimension(*) :: phin
+  vectype, intent(in), dimension(*) :: phin
   integer, intent(in) :: numvari
   real, intent(out) :: psimin
 
@@ -678,7 +678,7 @@ subroutine magaxis(xguess,zguess,phin,numvari,psimin)
   real :: pt, pt1, pt2, p11, p22, p12
   real :: xnew, znew, denom, sinew, etanew
   real :: alx, alz
-  real, dimension(20) :: avector
+  vectype, dimension(20) :: avector
   real, dimension(3) :: temp1, temp2
 
 

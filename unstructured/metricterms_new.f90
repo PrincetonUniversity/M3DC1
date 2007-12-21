@@ -2021,7 +2021,7 @@ vectype function b1bu(e,f,g)
      temp = 0.
   else
      temp = int4(ri4_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DZ),weight_79,79) &
-          +  int4(ri4_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DR),weight_79,79) 
+          + int4(ri4_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DR),weight_79,79) 
   endif
 
   b1bu = -(0,1)*ntor*temp
@@ -2122,7 +2122,7 @@ vectype function b1psipsid(e,f,g,h)
      temp = 0.
   else
      temp = int5(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
-          +  int5(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),h(:,OP_1),weight_79,79)
+          + int5(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),h(:,OP_1),weight_79,79)
   endif
 
   b1psipsid = (0,1)*ntor*temp
@@ -3473,7 +3473,7 @@ end function qbbeta
 
 ! quumu
 ! =====
-real function quumu(e,f,g,h,i)
+vectype function quumu(e,f,g,h,i)
 
   use basic
   use nintegrate_mod
@@ -3596,6 +3596,11 @@ end function qchichimu
 ! ENERGY
 !======================================================================
 
+#ifdef USECOMPLEX
+#define CONJUGATE(x) conjg(x)
+#else
+#define CONJUGATE(x) x
+#endif
 
 ! Poloidal magnetic
 ! -----------------
@@ -3609,10 +3614,10 @@ real function energy_mp()
   vectype :: temp
 
   temp = .5* &
-       (int3(ri2_79,pst79(:,OP_DZ),pst79(:,OP_DZ),weight_79,79) &
-       +int3(ri2_79,pst79(:,OP_DR),pst79(:,OP_DR),weight_79,79))
+       (int3(ri2_79,pst79(:,OP_DZ),CONJUGATE(pst79(:,OP_DZ)),weight_79,79) &
+       +int3(ri2_79,pst79(:,OP_DR),CONJUGATE(pst79(:,OP_DR)),weight_79,79))
 
-  energy_mp = real(temp)
+  energy_mp = temp
   return
 end function energy_mp
 
@@ -3628,9 +3633,9 @@ real function energy_mt()
 
   vectype :: temp
 
-  temp = .5*int3(ri2_79,bzt79(:,OP_1),bzt79(:,OP_1),weight_79,79)
+  temp = .5*int3(ri2_79,bzt79(:,OP_1),CONJUGATE(bzt79(:,OP_1)),weight_79,79)
 
-  energy_mt = real(temp)
+  energy_mt = temp
   return
 end function energy_mt
 
@@ -3652,7 +3657,7 @@ real function energy_p()
      temp = int1(pt79,weight_79,79) / (gam - 1.)
   endif
 
-  energy_p = real(temp)
+  energy_p = temp
   return
 end function energy_p
 
@@ -3671,15 +3676,15 @@ real function energy_kp()
 
   if(idens.eq.0) then
      temp = .5* &
-          (int3(ri2_79,pht79(:,OP_DZ),pht79(:,OP_DZ),weight_79,79) &
-          +int3(ri2_79,pht79(:,OP_DR),pht79(:,OP_DR),weight_79,79))
+          (int3(ri2_79,pht79(:,OP_DZ),CONJUGATE(pht79(:,OP_DZ)),weight_79,79) &
+          +int3(ri2_79,pht79(:,OP_DR),CONJUGATE(pht79(:,OP_DR)),weight_79,79))
   else
      temp = .5* &
-          (int4(ri2_79,pht79(:,OP_DZ),pht79(:,OP_DZ),nt79(:,OP_1),weight_79,79) &
-          +int4(ri2_79,pht79(:,OP_DR),pht79(:,OP_DR),nt79(:,OP_1),weight_79,79))
+          (int4(ri2_79,pht79(:,OP_DZ),CONJUGATE(pht79(:,OP_DZ)),nt79(:,OP_1),weight_79,79) &
+          +int4(ri2_79,pht79(:,OP_DR),CONJUGATE(pht79(:,OP_DR)),nt79(:,OP_1),weight_79,79))
   endif
 
-  energy_kp = real(temp)
+  energy_kp = temp
   return
 end function energy_kp
 
@@ -3696,12 +3701,12 @@ real function energy_kt()
   vectype :: temp
 
   if(idens.eq.0) then
-     temp = .5*int3(ri2_79,vzt79(:,OP_1),vzt79(:,OP_1),weight_79,79)
+     temp = .5*int3(ri2_79,vzt79(:,OP_1),CONJUGATE(vzt79(:,OP_1)),weight_79,79)
   else
-     temp = .5*int4(ri2_79,vzt79(:,OP_1),vzt79(:,OP_1),nt79(:,OP_1),weight_79,79)
+     temp = .5*int4(ri2_79,vzt79(:,OP_1),CONJUGATE(vzt79(:,OP_1)),nt79(:,OP_1),weight_79,79)
   endif
 
-  energy_kt = real(temp)
+  energy_kt = temp
   return
 end function energy_kt
 
@@ -3719,19 +3724,23 @@ real function energy_k3()
 
   if(idens.eq.0) then
      temp = .5* &
-          (int2(cht79(:,OP_DZ),cht79(:,OP_DZ),weight_79,79) &
-          +int2(cht79(:,OP_DR),cht79(:,OP_DR),weight_79,79)) &
-          +int3(ri_79,cht79(:,OP_DZ),pht79(:,OP_DR),weight_79,79) &
-          -int3(ri_79,cht79(:,OP_DR),pht79(:,OP_DZ),weight_79,79)
+          (int2(cht79(:,OP_DZ),CONJUGATE(cht79(:,OP_DZ)),weight_79,79) &
+          +int2(cht79(:,OP_DR),CONJUGATE(cht79(:,OP_DR)),weight_79,79) &
+          +int3(ri_79,cht79(:,OP_DZ),CONJUGATE(pht79(:,OP_DR)),weight_79,79) &
+          -int3(ri_79,cht79(:,OP_DR),CONJUGATE(pht79(:,OP_DZ)),weight_79,79) &
+          +int3(ri_79,CONJUGATE(cht79(:,OP_DZ)),pht79(:,OP_DR),weight_79,79) &
+          -int3(ri_79,CONJUGATE(cht79(:,OP_DR)),pht79(:,OP_DZ),weight_79,79))
   else
      temp = .5* &
-          (int3(cht79(:,OP_DZ),cht79(:,OP_DZ),nt79(:,OP_1),weight_79,79) &
-          +int3(cht79(:,OP_DR),cht79(:,OP_DR),nt79(:,OP_1),weight_79,79)) &
-          +int4(ri_79,cht79(:,OP_DZ),pht79(:,OP_DR),nt79(:,OP_1),weight_79,79) &
-          -int4(ri_79,cht79(:,OP_DR),pht79(:,OP_DZ),nt79(:,OP_1),weight_79,79)
+          (int3(cht79(:,OP_DZ),CONJUGATE(cht79(:,OP_DZ)),nt79(:,OP_1),weight_79,79) &
+          +int3(cht79(:,OP_DR),CONJUGATE(cht79(:,OP_DR)),nt79(:,OP_1),weight_79,79) &
+          +int4(ri_79,cht79(:,OP_DZ),CONJUGATE(pht79(:,OP_DR)),nt79(:,OP_1),weight_79,79) &
+          -int4(ri_79,cht79(:,OP_DR),CONJUGATE(pht79(:,OP_DZ)),nt79(:,OP_1),weight_79,79) &
+          +int4(ri_79,CONJUGATE(cht79(:,OP_DZ)),pht79(:,OP_DR),nt79(:,OP_1),weight_79,79) &
+          -int4(ri_79,CONJUGATE(cht79(:,OP_DR)),pht79(:,OP_DZ),nt79(:,OP_1),weight_79,79))
   endif
 
-  energy_k3 = real(temp)
+  energy_k3 = temp
   return
 end function energy_k3
 
@@ -3747,9 +3756,9 @@ real function energy_mpd()
 
   vectype :: temp
 
-  temp = -int4(ri2_79,pst79(:,OP_GS),pst79(:,OP_GS),eta79(:,OP_1),weight_79,79)
+  temp = -int4(ri2_79,pst79(:,OP_GS),CONJUGATE(pst79(:,OP_GS)),eta79(:,OP_1),weight_79,79)
 
-  energy_mpd = real(temp)
+  energy_mpd = temp
   return
 end function energy_mpd
 
@@ -3766,10 +3775,10 @@ real function energy_mtd()
   vectype :: temp
 
   temp = - &
-       (int4(ri2_79,bzt79(:,OP_DZ),bzt79(:,OP_DZ),eta79(:,OP_1),weight_79,79) &
-       +int4(ri2_79,bzt79(:,OP_DR),bzt79(:,OP_DR),eta79(:,OP_1),weight_79,79))
+       (int4(ri2_79,bzt79(:,OP_DZ),CONJUGATE(bzt79(:,OP_DZ)),eta79(:,OP_1),weight_79,79) &
+       +int4(ri2_79,bzt79(:,OP_DR),CONJUGATE(bzt79(:,OP_DR)),eta79(:,OP_1),weight_79,79))
 
-  energy_mtd = real(temp)
+  energy_mtd = temp
   return
 end function energy_mtd
 
@@ -3785,9 +3794,9 @@ real function energy_kpd()
 
   vectype :: temp
 
-  temp = - amu*int3(ri2_79,pht79(:,OP_GS),pht79(:,OP_GS),weight_79,79)
+  temp = - amu*int3(ri2_79,pht79(:,OP_GS),CONJUGATE(pht79(:,OP_GS)),weight_79,79)
 
-  energy_kpd = real(temp)
+  energy_kpd = temp
   return
 end function energy_kpd
 
@@ -3804,10 +3813,10 @@ real function energy_ktd()
   vectype :: temp
 
   temp = - amu* &
-       (int3(ri2_79,vzt79(:,OP_DZ),vzt79(:,OP_DZ),weight_79,79) &
-       +int3(ri2_79,vzt79(:,OP_DR),vzt79(:,OP_DR),weight_79,79))
+       (int3(ri2_79,vzt79(:,OP_DZ),CONJUGATE(vzt79(:,OP_DZ)),weight_79,79) &
+       +int3(ri2_79,vzt79(:,OP_DR),CONJUGATE(vzt79(:,OP_DR)),weight_79,79))
 
-  energy_ktd = real(temp)
+  energy_ktd = temp
   return
 end function energy_ktd
 
@@ -3822,9 +3831,9 @@ real function energy_k3d()
 
   vectype :: temp
 
-  temp = - 2.*amuc*int2(cht79(:,OP_LP),cht79(:,OP_LP),weight_79,79)
+  temp = - 2.*amuc*int2(cht79(:,OP_LP),CONJUGATE(cht79(:,OP_LP)),weight_79,79)
 
-  energy_k3d = real(temp)
+  energy_k3d = temp
   return
 end function energy_k3d
 
@@ -3841,10 +3850,10 @@ real function energy_kph()
   vectype :: temp
 
   temp = - hypc*amu* &
-       (int4(ri2_79,vot79(:,OP_DZ),vot79(:,OP_DZ),sz79(:,OP_1),weight_79,79) &
-       +int4(ri2_79,vot79(:,OP_DR),vot79(:,OP_DR),sz79(:,OP_1),weight_79,79))
+       (int4(ri2_79,vot79(:,OP_DZ),CONJUGATE(vot79(:,OP_DZ)),sz79(:,OP_1),weight_79,79) &
+       +int4(ri2_79,vot79(:,OP_DR),CONJUGATE(vot79(:,OP_DR)),sz79(:,OP_1),weight_79,79))
 
-  energy_kph = real(temp)
+  energy_kph = temp
   return
 end function energy_kph
 
@@ -3860,9 +3869,9 @@ real function energy_kth()
 
   vectype :: temp
 
-  temp = - amu*hypv*int4(ri2_79,vzt79(:,OP_GS),vzt79(:,OP_GS),sz79(:,OP_1),weight_79,79)
+  temp = - amu*hypv*int4(ri2_79,vzt79(:,OP_GS),CONJUGATE(vzt79(:,OP_GS)),sz79(:,OP_1),weight_79,79)
 
-  energy_kth = real(temp)
+  energy_kth = temp
   return
 end function energy_kth
 
@@ -3878,10 +3887,10 @@ real function energy_k3h()
   vectype :: temp
 
   temp = -2.*hypc*amuc* &
-       (int3(cot79(:,OP_DZ),cot79(:,OP_DZ),sz79(:,OP_1),weight_79,79) &
-       +int3(cot79(:,OP_DR),cot79(:,OP_DR),sz79(:,OP_1),weight_79,79))
+       (int3(cot79(:,OP_DZ),CONJUGATE(cot79(:,OP_DZ)),sz79(:,OP_1),weight_79,79) &
+       +int3(cot79(:,OP_DR),CONJUGATE(cot79(:,OP_DR)),sz79(:,OP_1),weight_79,79))
 
-  energy_k3h = real(temp)
+  energy_k3h = temp
   return
 end function energy_k3h
 
@@ -3894,14 +3903,12 @@ end function energy_k3h
 
 ! Pressure convection
 ! -------------------
-real function flux_pressure(dbf)
+real function flux_pressure()
 
   use basic
   use nintegrate_mod
 
   implicit none
-
-  real, intent(in) :: dbf
 
   if(numvar.lt.3 .or. gam.eq.1.) then
      flux_pressure = 0.
@@ -4035,14 +4042,12 @@ end function flux_ke
 
 ! Poynting flux
 ! -------------
-real function flux_poynting(dbf)
+real function flux_poynting()
 
   use basic
   use nintegrate_mod
 
   implicit none
-
-  real, intent(in) :: dbf
 
   temp79a = -ri2_79*pst79(:,OP_GS)*vloop/(2.*pi)
 

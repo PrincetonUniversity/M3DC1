@@ -221,7 +221,11 @@ function read_scalars, filename=filename
 end
 
 function time_name, t
-   label = string(FORMAT='("time_",I3.3)', t)
+   if(t lt 0) then begin
+       label = "equilibrium"
+   endif else begin
+       label = string(FORMAT='("time_",I3.3)', t)
+   endelse
    return, label
 end
 
@@ -755,24 +759,24 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
    ;===========================================
    ; toroidal current density
    ;===========================================
-    endif else if(strcmp('jphi', name, /fold_case) eq 1) then begin
+;      endif else if(strcmp('jphi', name, /fold_case) eq 1) then begin
 
-        psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
-                         filename=filename, points=pts, $
-                         rrange=xrange, zrange=yrange)
+;          psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+;                           filename=filename, points=pts, $
+;                           rrange=xrange, zrange=yrange)
 
-        data = -grad_shafranov(psi,x,y,tor=itor)
+;          data = -grad_shafranov(psi,x,y,tor=itor)
 
    ;===========================================
    ; vorticity
    ;===========================================
-;    endif else if(strcmp('vor', name, /fold_case) eq 1) then begin
+;     endif else if(strcmp('vor', name, /fold_case) eq 1) then begin
 
-;        phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
-;                         filename=filename, points=pts, $
-;                         rrange=xrange, zrange=yrange)
+;         phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+;                          filename=filename, points=pts, $
+;                          rrange=xrange, zrange=yrange)
 
-;        data = grad_shafranov(phi,x,y,tor=itor)
+;         data = grad_shafranov(phi,x,y,tor=itor)
 
    ;===========================================
    ; divergence
@@ -2001,7 +2005,7 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
 
    points = sqrt(sz[2]*sz[3])
 
-   if(n_elements(bins) eq 0) then bins = fix(points/8)
+   if(n_elements(bins) eq 0) then bins = fix(points/4)
 
    result = fltarr(sz[1], bins)
    flux = fltarr(sz[1], bins)
@@ -2118,9 +2122,19 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, $
          (strcmp(field, 'q', /fold_case) eq 1) then begin
            minor_r = read_field('r', x, z, t, points=points, $
                                 slice=time, _EXTRA=extra)
-           I = read_field('I', x, z, t, points=points, $
-                          slice=time, _EXTRA=extra)
+
            r = radius_matrix(x,z,t)
+
+           numvar = read_parameter('numvar', _EXTRA=extra)
+           if(numvar ge 2) then begin
+               I = read_field('I', x, z, t, points=points, $
+                              slice=time, _EXTRA=extra)
+           endif else begin
+               bzero = read_parameter('bzero', _EXTRA=extra)
+               xzero = read_parameter('xzero', _EXTRA=extra)
+               I = fltarr(n_elements(t),n_elements(x),n_elements(z))
+               I[*] = bzero*xzero
+           endelse
 
            bt = sqrt(I^2/r^2)
            bp = sqrt(s_bracket(psi,psi,x,z)/r^2)
@@ -2128,9 +2142,9 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, $
            field = minor_r * bt / (r * bp)
            units = ''
            name = '!8q!X'
+           symbol = '!8q!X'
 
-       endif else if (strcmp(field, 'gam', /fold_case) eq 1) or $
-         (strcmp(field, 'q', /fold_case) eq 1) then begin
+       endif else if (strcmp(field, 'gam', /fold_case) eq 1) then begin
            minor_r = read_field('r', x, z, t, points=points, $
                                 slice=time, _EXTRA=extra)
            I = read_field('I', x, z, t, points=points, $
