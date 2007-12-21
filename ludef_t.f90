@@ -18,8 +18,8 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
   vectype, dimension(4), intent(out) :: rrterm, qqterm
   integer, intent(in) :: advfield   ! if advfield = 1, eliminate rrterm by
                                     ! using analytic form of advanced field
-  real :: parvisc
-  real :: temp
+  vectype :: parvisc
+  vectype :: temp
   real :: ththm
 
   if(imp_mod.eq.1) then
@@ -861,7 +861,8 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
 
   vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
   vectype, dimension(3), intent(out) :: ssterm, ddterm, rrterm, qqterm
-  real :: temp, thimpb
+  vectype :: temp
+  real :: thimpb
 
   if(imp_mod.eq.1) then
      thimpb = 1.
@@ -911,7 +912,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
      ssterm(1) = ssterm(1) -     thimpb     *dt*temp
      ddterm(1) = ddterm(1) + (1.-thimpb*bdf)*dt*temp
 
-     temp = b1bu(trial,bzt79,lin) 
+     temp = b1bu(trial,bzt79,lin)
      rrterm(1) = rrterm(1) + thimpb*dt*temp
      qqterm(1) = qqterm(1) - thimpb*dt*temp*bdf           
   else           
@@ -1402,52 +1403,53 @@ subroutine ludefall
   call numfac(numelms)
   call getmincoord(xmin,zmin)
 
+  ! initialize matrices
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, " initializing matrices..."
+
   if(isplitstep.eq.1) then
-     ! form field matrices
-     call zerosuperluarray(s1matrix_sm,vecsize)
-     call zeromultiplyarray(d1matrix_sm,vecsize)
-     call zeromultiplyarray(q1matrix_sm,vecsize)
-     call zerosuperluarray(s2matrix_sm,vecsize)
-     call zeromultiplyarray(d2matrix_sm,vecsize)
-     call zeromultiplyarray(r2matrix_sm,vecsize)
-     call zeromultiplyarray(q2matrix_sm,vecsize)
-     call zeromultiplyarray(r14matrix_sm,vecsize)
-     if(iresolve.eq.1) then
-        call zerosuperluarray(s10matrix_sm,vecsize)
-        call zeromultiplyarray(d10matrix_sm,vecsize)
-        call zeromultiplyarray(r10matrix_sm,vecsize)
-        call zeromultiplyarray(q10matrix_sm,vecsize)
-     endif
+     call zerosuperlumatrix(s1matrix_sm,icomplex,vecsize)
+     call zeromultiplymatrix(d1matrix_sm,icomplex,vecsize)
+     call zeromultiplymatrix(q1matrix_sm,icomplex,vecsize)
+     call zerosuperlumatrix(s2matrix_sm,icomplex,vecsize)
+     call zeromultiplymatrix(d2matrix_sm,icomplex,vecsize)
+     call zeromultiplymatrix(r2matrix_sm,icomplex,vecsize)
+     call zeromultiplymatrix(q2matrix_sm,icomplex,vecsize)
+     call zeromultiplymatrix(r14matrix_sm,icomplex,vecsize)
      if(idens.eq.1) then
-        call zerosuperluarray(s8matrix_sm,vecsize1)
-        call zeromultiplyarray(d8matrix_sm,vecsize1)
-        call zeromultiplyarray(q8matrix_sm,vecsize)
-        call zeromultiplyarray(r8matrix_sm,vecsize)
+        call zerosuperlumatrix(s8matrix_sm,icomplex,vecsize1)
+        call zeromultiplymatrix(d8matrix_sm,icomplex,vecsize1)
+        call zeromultiplymatrix(q8matrix_sm,icomplex,vecsize)
+        call zeromultiplymatrix(r8matrix_sm,icomplex,vecsize)
      endif
      if(ipres.eq.1) then
-        call zerosuperluarray(s9matrix_sm,vecsize1)
-        call zeromultiplyarray(d9matrix_sm,vecsize1)
-        call zeromultiplyarray(q9matrix_sm,vecsize)
-        call zeromultiplyarray(r9matrix_sm,vecsize)
+        call zerosuperlumatrix(s9matrix_sm,icomplex,vecsize1)
+        call zeromultiplymatrix(d9matrix_sm,icomplex,vecsize1)
+        call zeromultiplymatrix(q9matrix_sm,icomplex,vecsize)
+        call zeromultiplymatrix(r9matrix_sm,icomplex,vecsize)
      endif
      r4 = 0.
      if(idens.eq.1) qn4 = 0.
      if(ipres.eq.1) qp4 = 0.
   else
-     call zerosuperluarray(s1matrix_sm,vecsize)
-     call zeromultiplyarray(d1matrix_sm,vecsize)
+     call zerosuperlumatrix(s1matrix_sm,icomplex,vecsize)
+     call zeromultiplymatrix(d1matrix_sm,icomplex,vecsize)
   endif
 
   q4 = 0.
+
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, " populating matrices..."
     
-  ! Determine which fields need to be calculated
+  ! Specify which fields will be used in matrix population
   def_fields = FIELD_PSI + FIELD_I + FIELD_PHI + FIELD_ETA + FIELD_MU
   if(numvar.ge.2) def_fields = def_fields + FIELD_V
   if(numvar.ge.3) def_fields = def_fields + &
        FIELD_CHI + FIELD_PE + FIELD_B2I + FIELD_J + FIELD_P + FIELD_KAP
   if(idens.eq.1) then
-     if(ipellet.eq.1 .or. ionization.eq.1) def_fields = def_fields + FIELD_SIG
      def_fields = def_fields + FIELD_N + FIELD_NI
+     if(isources.eq.1) def_fields = def_fields + FIELD_SRC
+     if(ipellet.eq.1 .or. ionization.eq.1) def_fields = def_fields + FIELD_SIG
   endif
 
   if(gyro.eq.1) then
@@ -1457,8 +1459,6 @@ subroutine ludefall
   if(hyperc.ne.0 .and. numvar.ge.3) then
      def_fields = def_fields + FIELD_VOR + FIELD_COM
   endif
-
-  if(isources.eq.1) def_fields = def_fields + FIELD_SRC
 
 
   if(integrator.eq.1 .and. ntime.gt.1) then
@@ -1499,47 +1499,43 @@ subroutine ludefall
         call second(tend)
         telm = telm + tend - tstart
      endif
-
   end do
+
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, " finalizing matrices..."
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
   ! since a proc is contributing values to parts of the vector
-  ! it does not own, we call sumshareddofs so that these values
+  ! it does not own, we call sumsharedppplvecvals so that these values
   ! get summed up for all values shared by multiple procs
   ! and then update these values
-  call sumshareddofs(q4)
-  call finalizearray(d1matrix_sm)
+  call sumsharedppplvecvals(q4)
+  call finalizematrix(d1matrix_sm)
 
   if(isplitstep.eq.1) then
-     call sumshareddofs(r4)
-     if(idens.eq.1) call sumshareddofs(qn4)
+     call sumsharedppplvecvals(r4)
+     if(idens.eq.1) call sumsharedppplvecvals(qn4)
 
      ! Finalize matrices for multiplication
-     call finalizearray(q1matrix_sm)
+     call finalizematrix(q1matrix_sm)
      
-     call finalizearray(d2matrix_sm)
-     call finalizearray(r2matrix_sm)
-     call finalizearray(q2matrix_sm)
-     call finalizearray(r14matrix_sm)
+     call finalizematrix(d2matrix_sm)
+     call finalizematrix(r2matrix_sm)
+     call finalizematrix(q2matrix_sm)
+     call finalizematrix(r14matrix_sm)
      
-     if(iresolve.eq.1) then
-        call finalizearray(d10matrix_sm)
-        call finalizearray(q10matrix_sm)
-        call finalizearray(r10matrix_sm)
-     endif
-
      if(idens.eq.1) then
-        call finalizearray(d8matrix_sm)
-        call finalizearray(q8matrix_sm)
-        call finalizearray(r8matrix_sm)
+        call finalizematrix(d8matrix_sm)
+        call finalizematrix(q8matrix_sm)
+        call finalizematrix(r8matrix_sm)
      endif ! on idens.eq.1
      
      
      if(ipres.eq.1) then
-        call finalizearray(d9matrix_sm)
-        call finalizearray(q9matrix_sm)
-        call finalizearray(r9matrix_sm)
+        call finalizematrix(d9matrix_sm)
+        call finalizematrix(q9matrix_sm)
+        call finalizematrix(r9matrix_sm)
      endif ! on ipres.eq.1
   endif
 
@@ -1547,8 +1543,6 @@ subroutine ludefall
      call second(tend)
      tfinalize = tfinalize + tend - tstart
   endif
-
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "Done defining matrices."
 
   if(myrank.eq.0 .and. itimer.eq.1) then
      print *, '  Time spent defining fields: ', tfield
@@ -1623,109 +1617,64 @@ subroutine ludefvel_n(itri)
         endif
 
         if(isplitstep.eq.0) rrterm = -rrterm
-           
-        call insertval(vv1,ssterm(1,1),i1+phi_off,j1+phi_off,1)
-        call insertval(vv0,ddterm(1,1),i1+phi_off,j1+phi_off,1)
-        call insertval(vb0,qqterm(1,1),i1+phi_off,j1+psi_off,1)
-        if(idens.eq.1) call insertval(vn0,qqterm(1,4),i1+phi_off,j1+den_off,1)
+
+        call insertval(vv1,ssterm(1,1),icomplex,i1+phi_off,j1+phi_off,1)
+        call insertval(vv0,ddterm(1,1),icomplex,i1+phi_off,j1+phi_off,1)
+        call insertval(vb0,qqterm(1,1),icomplex,i1+phi_off,j1+psi_off,1)
+        if(idens.eq.1) &
+             call insertval(vn0,qqterm(1,4),icomplex,i1+phi_off,j1+den_off,1)
         if(isplitstep.eq.0) then
-           call insertval(vb1,rrterm(1,1),i1+phi_off,j1+psi_off,1)
-           if(idens.eq.1) call insertval(vn1,rrterm(1,4),i1+phi_off,j1+den_off,1)
+           call insertval(vb1,rrterm(1,1),icomplex,i1+phi_off,j1+psi_off,1)
+           if(idens.eq.1) &
+                call insertval(vn1,rrterm(1,4),icomplex,i1+phi_off,j1+den_off,1)
         endif
         if(numvar.ge.2) then
-           call insertval(vv1,ssterm(1,2),i1+phi_off,j1+ vz_off,1)
-           call insertval(vv1,ssterm(2,1),i1+ vz_off,j1+phi_off,1)
-           call insertval(vv1,ssterm(2,2),i1+ vz_off,j1+ vz_off,1)
-           call insertval(vv0,ddterm(1,2),i1+phi_off,j1+ vz_off,1)
-           call insertval(vv0,ddterm(2,1),i1+ vz_off,j1+phi_off,1)
-           call insertval(vv0,ddterm(2,2),i1+ vz_off,j1+ vz_off,1)
-           call insertval(vb0,qqterm(1,2),i1+phi_off,j1+ bz_off,1)
-           call insertval(vb0,qqterm(2,1),i1+ vz_off,j1+psi_off,1)
-           call insertval(vb0,qqterm(2,2),i1+ vz_off,j1+ bz_off,1)
-           if(idens.eq.1) call insertval(vn0,qqterm(2,4),i1+vz_off,j1+den_off,1)
+           call insertval(vv1,ssterm(1,2),icomplex,i1+phi_off,j1+ vz_off,1)
+           call insertval(vv1,ssterm(2,1),icomplex,i1+ vz_off,j1+phi_off,1)
+           call insertval(vv1,ssterm(2,2),icomplex,i1+ vz_off,j1+ vz_off,1)
+           call insertval(vv0,ddterm(1,2),icomplex,i1+phi_off,j1+ vz_off,1)
+           call insertval(vv0,ddterm(2,1),icomplex,i1+ vz_off,j1+phi_off,1)
+           call insertval(vv0,ddterm(2,2),icomplex,i1+ vz_off,j1+ vz_off,1)
+           call insertval(vb0,qqterm(1,2),icomplex,i1+phi_off,j1+ bz_off,1)
+           call insertval(vb0,qqterm(2,1),icomplex,i1+ vz_off,j1+psi_off,1)
+           call insertval(vb0,qqterm(2,2),icomplex,i1+ vz_off,j1+ bz_off,1)
+           if(idens.eq.1) &
+                call insertval(vn0,qqterm(2,4),icomplex,i1+vz_off,j1+den_off,1)
            if(isplitstep.eq.0) then
-              call insertval(vb1,rrterm(1,2),i1+phi_off,j1+ bz_off,1)
-              call insertval(vb1,rrterm(2,1),i1+ vz_off,j1+psi_off,1)
-              call insertval(vb1,rrterm(2,2),i1+ vz_off,j1+ bz_off,1)
-              if(idens.eq.1) call insertval(vn1,rrterm(2,4),i1+vz_off,j1+den_off,1)
+              call insertval(vb1,rrterm(1,2),icomplex,i1+phi_off,j1+ bz_off,1)
+              call insertval(vb1,rrterm(2,1),icomplex,i1+ vz_off,j1+psi_off,1)
+              call insertval(vb1,rrterm(2,2),icomplex,i1+ vz_off,j1+ bz_off,1)
+              if(idens.eq.1) &
+                   call insertval(vn1,rrterm(2,4),icomplex,i1+vz_off,j1+den_off,1)
            end if
         endif
         if(numvar.ge.3) then
-           call insertval(vv1,ssterm(1,3),i1+phi_off,j1+chi_off,1)
-           call insertval(vv1,ssterm(2,3),i1+ vz_off,j1+chi_off,1)
-           call insertval(vv1,ssterm(3,1),i1+chi_off,j1+phi_off,1)
-           call insertval(vv1,ssterm(3,2),i1+chi_off,j1+ vz_off,1)
-           call insertval(vv1,ssterm(3,3),i1+chi_off,j1+chi_off,1)
-           call insertval(vv0,ddterm(1,3),i1+phi_off,j1+chi_off,1)
-           call insertval(vv0,ddterm(2,3),i1+ vz_off,j1+chi_off,1)
-           call insertval(vv0,ddterm(3,1),i1+chi_off,j1+phi_off,1)
-           call insertval(vv0,ddterm(3,2),i1+chi_off,j1+ vz_off,1)
-           call insertval(vv0,ddterm(3,3),i1+chi_off,j1+chi_off,1)
-           call insertval(vb0,qqterm(1,3),i1+phi_off,j1+ pe_off,1)
-           call insertval(vb0,qqterm(2,3),i1+ vz_off,j1+ pe_off,1)
-           call insertval(vb0,qqterm(3,1),i1+chi_off,j1+psi_off,1)
-           call insertval(vb0,qqterm(3,2),i1+chi_off,j1+ bz_off,1)
-           call insertval(vb0,qqterm(3,3),i1+chi_off,j1+ pe_off,1)
-           if(idens.eq.1) call insertval(vn0,qqterm(3,4),i1+chi_off,j1+den_off,1)
+           call insertval(vv1,ssterm(1,3),icomplex,i1+phi_off,j1+chi_off,1)
+           call insertval(vv1,ssterm(2,3),icomplex,i1+ vz_off,j1+chi_off,1)
+           call insertval(vv1,ssterm(3,1),icomplex,i1+chi_off,j1+phi_off,1)
+           call insertval(vv1,ssterm(3,2),icomplex,i1+chi_off,j1+ vz_off,1)
+           call insertval(vv1,ssterm(3,3),icomplex,i1+chi_off,j1+chi_off,1)
+           call insertval(vv0,ddterm(1,3),icomplex,i1+phi_off,j1+chi_off,1)
+           call insertval(vv0,ddterm(2,3),icomplex,i1+ vz_off,j1+chi_off,1)
+           call insertval(vv0,ddterm(3,1),icomplex,i1+chi_off,j1+phi_off,1)
+           call insertval(vv0,ddterm(3,2),icomplex,i1+chi_off,j1+ vz_off,1)
+           call insertval(vv0,ddterm(3,3),icomplex,i1+chi_off,j1+chi_off,1)
+           call insertval(vb0,qqterm(1,3),icomplex,i1+phi_off,j1+ pe_off,1)
+           call insertval(vb0,qqterm(2,3),icomplex,i1+ vz_off,j1+ pe_off,1)
+           call insertval(vb0,qqterm(3,1),icomplex,i1+chi_off,j1+psi_off,1)
+           call insertval(vb0,qqterm(3,2),icomplex,i1+chi_off,j1+ bz_off,1)
+           call insertval(vb0,qqterm(3,3),icomplex,i1+chi_off,j1+ pe_off,1)
+           if(idens.eq.1) &
+                call insertval(vn0,qqterm(3,4),icomplex,i1+chi_off,j1+den_off,1)
            if(isplitstep.eq.0) then
-              call insertval(vb1,rrterm(1,3),i1+phi_off,j1+ pe_off,1)
-              call insertval(vb1,rrterm(2,3),i1+ vz_off,j1+ pe_off,1)
-              call insertval(vb1,rrterm(3,1),i1+chi_off,j1+psi_off,1)
-              call insertval(vb1,rrterm(3,2),i1+chi_off,j1+ bz_off,1)
-              call insertval(vb1,rrterm(3,3),i1+chi_off,j1+ pe_off,1)
-              if(idens.eq.1) call insertval(vn1,rrterm(3,4),i1+chi_off,j1+den_off,1)
+              call insertval(vb1,rrterm(1,3),icomplex,i1+phi_off,j1+ pe_off,1)
+              call insertval(vb1,rrterm(2,3),icomplex,i1+ vz_off,j1+ pe_off,1)
+              call insertval(vb1,rrterm(3,1),icomplex,i1+chi_off,j1+psi_off,1)
+              call insertval(vb1,rrterm(3,2),icomplex,i1+chi_off,j1+ bz_off,1)
+              call insertval(vb1,rrterm(3,3),icomplex,i1+chi_off,j1+ pe_off,1)
+              if(idens.eq.1) &
+                   call insertval(vn1,rrterm(3,4),icomplex,i1+chi_off,j1+den_off,1)
            endif
-        endif
-        
-        if(iresolve.eq.1) then
-           call vorticity_lin(g79(:,:,i),g79(:,:,j), &
-                ssterm(1,:),ddterm(1,:),rrterm(1,:),qqterm(1,:),0)
-           call axial_vel_lin(g79(:,:,i),g79(:,:,j), &
-                ssterm(2,:),ddterm(2,:),rrterm(2,:),qqterm(2,:),0)
-           call compression_lin(g79(:,:,i),g79(:,:,j), &
-                ssterm(3,:),ddterm(3,:),rrterm(3,:),qqterm(3,:),0)
-           
-           call insertval(s10matrix_sm,ssterm(1,1),i1,j1,1)
-           call insertval(d10matrix_sm,ddterm(1,1),i1,j1,1)
-           call insertval(r10matrix_sm,rrterm(1,1),i1,j1,1)
-           call insertval(q10matrix_sm,qqterm(1,1),i1,j1,1)
-           if(numvar.ge.2) then
-              call insertval(s10matrix_sm,ssterm(1,2),i1  ,j1+6,1)
-              call insertval(s10matrix_sm,ssterm(2,1),i1+6,j1  ,1)
-              call insertval(s10matrix_sm,ssterm(2,2),i1+6,j1+6,1)
-              call insertval(d10matrix_sm,ddterm(1,2),i1  ,j1+6,1)
-              call insertval(d10matrix_sm,ddterm(2,1),i1+6,j1  ,1)
-              call insertval(d10matrix_sm,ddterm(2,2),i1+6,j1+6,1)
-              call insertval(r10matrix_sm,rrterm(1,2),i1  ,j1+6,1)
-              call insertval(r10matrix_sm,rrterm(2,1),i1+6,j1  ,1)
-              call insertval(r10matrix_sm,rrterm(2,2),i1+6,j1+6,1)
-              call insertval(q10matrix_sm,qqterm(1,2),i1  ,j1+6,1)
-              call insertval(q10matrix_sm,qqterm(2,1),i1+6,j1  ,1)
-              call insertval(q10matrix_sm,qqterm(2,2),i1+6,j1+6,1)
-           endif
-           if(numvar.ge.3) then
-              call insertval(s10matrix_sm,ssterm(1,3),i1,   j1+12,1)
-              call insertval(s10matrix_sm,ssterm(2,3),i1+6, j1+12,1)
-              call insertval(s10matrix_sm,ssterm(3,1),i1+12,j1,   1)
-              call insertval(s10matrix_sm,ssterm(3,2),i1+12,j1+6, 1)
-              call insertval(s10matrix_sm,ssterm(3,3),i1+12,j1+12,1)
-              call insertval(d10matrix_sm,ddterm(1,3),i1,   j1+12,1)
-              call insertval(d10matrix_sm,ddterm(2,3),i1+6, j1+12,1)
-              call insertval(d10matrix_sm,ddterm(3,1),i1+12,j1,   1)
-              call insertval(d10matrix_sm,ddterm(3,2),i1+12,j1+6, 1)
-              call insertval(d10matrix_sm,ddterm(3,3),i1+12,j1+12,1)
-              call insertval(r10matrix_sm,rrterm(1,3),i1,   j1+12,1)
-              call insertval(r10matrix_sm,rrterm(2,3),i1+6, j1+12,1)
-              call insertval(r10matrix_sm,rrterm(3,1),i1+12,j1,   1)
-              call insertval(r10matrix_sm,rrterm(3,2),i1+12,j1+6, 1)
-              call insertval(r10matrix_sm,rrterm(3,3),i1+12,j1+12,1)
-              call insertval(q10matrix_sm,qqterm(1,3),i1,   j1+12,1)
-              call insertval(q10matrix_sm,qqterm(2,3),i1+6, j1+12,1)
-              call insertval(q10matrix_sm,qqterm(3,1),i1+12,j1,   1)
-              call insertval(q10matrix_sm,qqterm(3,2),i1+12,j1+6, 1)
-              call insertval(q10matrix_sm,qqterm(3,3),i1+12,j1+12,1)
-           endif
-           
         endif
      enddo               ! on j
 
@@ -1805,46 +1754,50 @@ subroutine ludefphi_n(itri)
         endif
 
         if(isplitstep.eq.0) rrterm = -rrterm
+
+!!$        if(j.eq.1 .and. i.eq.1. .and. myrank.eq.0) then
+!!$           print *, real(rrterm(1,1)), real(qqterm(1,1))
+!!$        endif
         
-        call insertval(bb1,ssterm(1,1),i1+psi_off,j1+psi_off,1)
-        call insertval(bb0,ddterm(1,1),i1+psi_off,j1+psi_off,1)
-        call insertval(bv1,rrterm(1,1),i1+psi_off,j1+phi_off,1)
-        call insertval(bv0,qqterm(1,1),i1+psi_off,j1+phi_off,1)
+        call insertval(bb1,ssterm(1,1),icomplex,i1+psi_off,j1+psi_off,1)
+        call insertval(bb0,ddterm(1,1),icomplex,i1+psi_off,j1+psi_off,1)
+        call insertval(bv1,rrterm(1,1),icomplex,i1+psi_off,j1+phi_off,1)
+        call insertval(bv0,qqterm(1,1),icomplex,i1+psi_off,j1+phi_off,1)
         if(numvar.ge.2) then
-           call insertval(bb1,ssterm(1,2),i1+psi_off,j1+ bz_off,1)
-           call insertval(bb1,ssterm(2,1),i1+ bz_off,j1+psi_off,1)
-           call insertval(bb1,ssterm(2,2),i1+ bz_off,j1+ bz_off,1)
-           call insertval(bb0,ddterm(1,2),i1+psi_off,j1+ bz_off,1)
-           call insertval(bb0,ddterm(2,1),i1+ bz_off,j1+psi_off,1)
-           call insertval(bb0,ddterm(2,2),i1+ bz_off,j1+ bz_off,1)
-           call insertval(bv1,rrterm(1,2),i1+psi_off,j1+ vz_off,1)
-           call insertval(bv1,rrterm(2,1),i1+ bz_off,j1+phi_off,1)
-           call insertval(bv1,rrterm(2,2),i1+ bz_off,j1+ vz_off,1)
-           call insertval(bv0,qqterm(1,2),i1+psi_off,j1+ vz_off,1)
-           call insertval(bv0,qqterm(2,1),i1+ bz_off,j1+phi_off,1)
-           call insertval(bv0,qqterm(2,2),i1+ bz_off,j1+ vz_off,1)
+           call insertval(bb1,ssterm(1,2),icomplex,i1+psi_off,j1+ bz_off,1)
+           call insertval(bb1,ssterm(2,1),icomplex,i1+ bz_off,j1+psi_off,1)
+           call insertval(bb1,ssterm(2,2),icomplex,i1+ bz_off,j1+ bz_off,1)
+           call insertval(bb0,ddterm(1,2),icomplex,i1+psi_off,j1+ bz_off,1)
+           call insertval(bb0,ddterm(2,1),icomplex,i1+ bz_off,j1+psi_off,1)
+           call insertval(bb0,ddterm(2,2),icomplex,i1+ bz_off,j1+ bz_off,1)
+           call insertval(bv1,rrterm(1,2),icomplex,i1+psi_off,j1+ vz_off,1)
+           call insertval(bv1,rrterm(2,1),icomplex,i1+ bz_off,j1+phi_off,1)
+           call insertval(bv1,rrterm(2,2),icomplex,i1+ bz_off,j1+ vz_off,1)
+           call insertval(bv0,qqterm(1,2),icomplex,i1+psi_off,j1+ vz_off,1)
+           call insertval(bv0,qqterm(2,1),icomplex,i1+ bz_off,j1+phi_off,1)
+           call insertval(bv0,qqterm(2,2),icomplex,i1+ bz_off,j1+ vz_off,1)
         endif
         if(numvar .eq. 3) then        
-           call insertval(bb1,ssterm(1,3),i1+psi_off,j1+ pe_off,1)
-           call insertval(bb1,ssterm(2,3),i1+ bz_off,j1+ pe_off,1)
-           call insertval(bb1,ssterm(3,3),i1+ pe_off,j1+ pe_off,1)
-           call insertval(bb1,ssterm(3,1),i1+ pe_off,j1+psi_off,1)
-           call insertval(bb1,ssterm(3,2),i1+ pe_off,j1+ bz_off,1)
-           call insertval(bb0,ddterm(1,3),i1+psi_off,j1+ pe_off,1)
-           call insertval(bb0,ddterm(2,3),i1+ bz_off,j1+ pe_off,1)
-           call insertval(bb0,ddterm(3,3),i1+ pe_off,j1+ pe_off,1)
-           call insertval(bb0,ddterm(3,1),i1+ pe_off,j1+psi_off,1)
-           call insertval(bb0,ddterm(3,2),i1+ pe_off,j1+ bz_off,1)
-           call insertval(bv1,rrterm(1,3),i1+psi_off,j1+chi_off,1)
-           call insertval(bv1,rrterm(2,3),i1+ bz_off,j1+chi_off,1)
-           call insertval(bv1,rrterm(3,3),i1+ pe_off,j1+chi_off,1)
-           call insertval(bv1,rrterm(3,1),i1+ pe_off,j1+phi_off,1)
-           call insertval(bv1,rrterm(3,2),i1+ pe_off,j1+ vz_off,1)
-           call insertval(bv0,qqterm(1,3),i1+psi_off,j1+chi_off,1)
-           call insertval(bv0,qqterm(2,3),i1+ bz_off,j1+chi_off,1)
-           call insertval(bv0,qqterm(3,3),i1+ pe_off,j1+chi_off,1)
-           call insertval(bv0,qqterm(3,1),i1+ pe_off,j1+phi_off,1)
-           call insertval(bv0,qqterm(3,2),i1+ pe_off,j1+ vz_off,1)
+           call insertval(bb1,ssterm(1,3),icomplex,i1+psi_off,j1+ pe_off,1)
+           call insertval(bb1,ssterm(2,3),icomplex,i1+ bz_off,j1+ pe_off,1)
+           call insertval(bb1,ssterm(3,3),icomplex,i1+ pe_off,j1+ pe_off,1)
+           call insertval(bb1,ssterm(3,1),icomplex,i1+ pe_off,j1+psi_off,1)
+           call insertval(bb1,ssterm(3,2),icomplex,i1+ pe_off,j1+ bz_off,1)
+           call insertval(bb0,ddterm(1,3),icomplex,i1+psi_off,j1+ pe_off,1)
+           call insertval(bb0,ddterm(2,3),icomplex,i1+ bz_off,j1+ pe_off,1)
+           call insertval(bb0,ddterm(3,3),icomplex,i1+ pe_off,j1+ pe_off,1)
+           call insertval(bb0,ddterm(3,1),icomplex,i1+ pe_off,j1+psi_off,1)
+           call insertval(bb0,ddterm(3,2),icomplex,i1+ pe_off,j1+ bz_off,1)
+           call insertval(bv1,rrterm(1,3),icomplex,i1+psi_off,j1+chi_off,1)
+           call insertval(bv1,rrterm(2,3),icomplex,i1+ bz_off,j1+chi_off,1)
+           call insertval(bv1,rrterm(3,3),icomplex,i1+ pe_off,j1+chi_off,1)
+           call insertval(bv1,rrterm(3,1),icomplex,i1+ pe_off,j1+phi_off,1)
+           call insertval(bv1,rrterm(3,2),icomplex,i1+ pe_off,j1+ vz_off,1)
+           call insertval(bv0,qqterm(1,3),icomplex,i1+psi_off,j1+chi_off,1)
+           call insertval(bv0,qqterm(2,3),icomplex,i1+ bz_off,j1+chi_off,1)
+           call insertval(bv0,qqterm(3,3),icomplex,i1+ pe_off,j1+chi_off,1)
+           call insertval(bv0,qqterm(3,1),icomplex,i1+ pe_off,j1+phi_off,1)
+           call insertval(bv0,qqterm(3,2),icomplex,i1+ pe_off,j1+ vz_off,1)
         endif
        
      enddo ! on j
@@ -1887,7 +1840,6 @@ subroutine ludefden_n(itri)
   use metricterms_n
 #endif
 
-
   implicit none
 
   integer, intent(in) :: itri
@@ -1895,6 +1847,7 @@ subroutine ludefden_n(itri)
   integer :: i, i1, ione, j, j1, jone
   vectype :: ssterm, ddterm
   vectype, dimension(3) :: rrterm, qqterm
+
   vectype :: temp
 
   integer :: nn1, nn0, nv1, nv0
@@ -1976,17 +1929,17 @@ subroutine ludefden_n(itri)
 
         if(isplitstep.eq.0) rrterm = -rrterm
 
-        call insertval(nn1, ssterm, ione+den_off, jone+den_off, 1)
-        call insertval(nn0, ddterm, ione+den_off, jone+den_off, 1)
-        call insertval(nv1, rrterm(1), i1+den_off,j1+phi_off, 1)
-        call insertval(nv0, qqterm(1), i1+den_off,j1+phi_off, 1)
+        call insertval(nn1, ssterm, icomplex, ione+den_off, jone+den_off, 1)
+        call insertval(nn0, ddterm, icomplex, ione+den_off, jone+den_off, 1)
+        call insertval(nv1, rrterm(1), icomplex, i1+den_off,j1+phi_off, 1)
+        call insertval(nv0, qqterm(1), icomplex, i1+den_off,j1+phi_off, 1)
         if(numvar.ge.2) then
-           call insertval(nv1,rrterm(2), i1+den_off,j1+vz_off,1)
-           call insertval(nv0,qqterm(2), i1+den_off,j1+vz_off,1)
+           call insertval(nv1,rrterm(2), icomplex, i1+den_off,j1+vz_off,1)
+           call insertval(nv0,qqterm(2), icomplex, i1+den_off,j1+vz_off,1)
         endif
         if(numvar.ge.3) then
-           call insertval(nv1,rrterm(3), i1+den_off,j1+chi_off,1)
-           call insertval(nv0,qqterm(3), i1+den_off,j1+chi_off,1)
+           call insertval(nv1,rrterm(3), icomplex, i1+den_off,j1+chi_off,1)
+           call insertval(nv0,qqterm(3), icomplex, i1+den_off,j1+chi_off,1)
         endif
      enddo                     ! on j
 
@@ -2033,6 +1986,7 @@ subroutine ludefpres_n(itri)
   integer :: i, i1, ione, j, j1, jone
   vectype :: ssterm, ddterm
   vectype, dimension(3) :: rrterm, qqterm
+
   vectype :: temp
 
   do i=1,18
@@ -2133,18 +2087,18 @@ subroutine ludefpres_n(itri)
         endif
 
         if(isplitstep.eq.0) rrterm = -rrterm
-        
-        call insertval(s9matrix_sm, ssterm, ione, jone, 1)
-        call insertval(d9matrix_sm, ddterm, ione, jone, 1)
-        call insertval(r9matrix_sm, rrterm(1), i1, j1, 1)
-        call insertval(q9matrix_sm, qqterm(1), i1, j1, 1)
+
+        call insertval(s9matrix_sm, ssterm, icomplex, ione, jone, 1)
+        call insertval(d9matrix_sm, ddterm, icomplex, ione, jone, 1)
+        call insertval(r9matrix_sm, rrterm(1), icomplex, i1, j1, 1)
+        call insertval(q9matrix_sm, qqterm(1), icomplex, i1, j1, 1)
         if(numvar.ge.2) then
-           call insertval(r9matrix_sm,rrterm(2), i1,j1+6,1)
-           call insertval(q9matrix_sm,qqterm(2), i1,j1+6,1)
+           call insertval(r9matrix_sm,rrterm(2), icomplex, i1,j1+6,1)
+           call insertval(q9matrix_sm,qqterm(2), icomplex, i1,j1+6,1)
         endif
         if(numvar.ge.3) then
-           call insertval(r9matrix_sm,rrterm(3), i1,j1+12,1)
-           call insertval(q9matrix_sm,qqterm(3), i1,j1+12,1)
+           call insertval(r9matrix_sm,rrterm(3), icomplex, i1,j1+12,1)
+           call insertval(q9matrix_sm,qqterm(3), icomplex, i1,j1+12,1)
         endif
 
      enddo                     ! on j

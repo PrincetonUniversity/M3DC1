@@ -10,6 +10,13 @@
       real timein
       data ifirstrs/1/
       character (len=30) :: fname, oldfname
+      integer :: comp
+
+#ifdef USECOMPLEX
+      comp = 1
+#else
+      comp = 0
+#endif
 
       call createfilename(fname, oldfname)
       call numnod(numnodes)
@@ -28,6 +35,9 @@ c     first put in information to check on run information
       write(56) jper 
       write(56) myrank
       write(56) maxrank
+      write(56) eqsubtract
+      write(56) linear
+      write(56) comp
 
       if(isplitstep.eq.1) then
          do j1=1,mmnn18
@@ -111,9 +121,15 @@ c     first put in information to check on run information
       implicit none
       integer mmnn18, j1, mmnn6, itime, igr, numnodes, inumnodes, 
      1     inumelms, immnn18, inumvar, iiper, ijper, imyrank,
-     2     imaxrank, numelms
+     2     imaxrank, numelms, ieqsubtract, ilinear
       character (len=30) :: fname, oldfname
-      real mytemp(10000)
+      real, allocatable :: temp(:)
+      integer :: comp, icomp
+#ifdef USECOMPLEX
+      comp = 1
+#else
+      comp = 0
+#endif
 
       call createfilename(fname, oldfname)
       call numdofs(numvar, mmnn18)
@@ -129,6 +145,10 @@ c     first put in information to check on run information
       read(56) ijper 
       read(56) imyrank
       read(56) imaxrank
+      read(56) ieqsubtract
+      read(56) ilinear
+      read(56) icomp
+
       if(inumnodes .ne. numnodes .or. inumelms .ne. numelms .or.
      1     immnn18 .ne. mmnn18 .or. inumvar .ne. numvar .or.
      2     iiper .ne. iper .or. ijper .ne. jper .or.
@@ -162,64 +182,158 @@ c     first put in information to check on run information
          call safestop(2)
       endif
 
-      if(isplitstep.eq.1) then
-         do j1=1,mmnn18
-            read(56) vel(j1)
-         enddo
-         do j1=1,mmnn18
-            read(56) vel0(j1)
-         enddo
-         do j1=1,mmnn18
-            read(56) vels(j1)
-         enddo
-         do j1=1,mmnn18
-            read(56) velold(j1)
-         enddo
-      endif
-      do j1=1,mmnn18
-         read(56) phi(j1)
-      enddo
-      do j1=1,mmnn18
-         read(56) phi0(j1)
-      enddo
-      do j1=1,mmnn18
-         read(56) phis(j1)
-      enddo
-      do j1=1,mmnn18
-         read(56) phiold(j1)
-      enddo
+      ! If we are using complex vectors but the restart file was 
+      ! written using real vectors, we must create a real buffer to 
+      ! read input.
+      if(icomp.eq.0 .and. comp.eq.1) then
+         allocate(temp(mmnn18))
 
-      if(isplitstep.eq.1) then
-         call numdofs(1, mmnn6)
-         do j1=1,mmnn6
-            read(56) den(j1)
+         if(isplitstep.eq.1) then
+            do j1=1,mmnn18 
+               read(56) temp(j1)
+            enddo
+            vel = temp
+            do j1=1,mmnn18
+               read(56) vel0(j1)
+            enddo
+            do j1=1,mmnn18
+               read(56) vels(j1)
+            enddo
+            do j1=1,mmnn18
+               read(56) temp(j1)
+            enddo
+            velold = temp
+         endif
+         do j1=1,mmnn18
+            read(56) temp(j1)
          enddo
-         do j1=1,mmnn6
-            read(56) den0(j1)
+         phi = temp
+         do j1=1,mmnn18
+            read(56) phi0(j1)
          enddo
-         do j1=1,mmnn6
-            read(56) dens(j1)
+         do j1=1,mmnn18
+            read(56) phis(j1)
          enddo
-         do j1=1,mmnn6
-            read(56) denold(j1)
+         do j1=1,mmnn18
+            read(56) temp(j1)
          enddo
+         phiold = temp
+         
+         if(isplitstep.eq.1) then
+            call numdofs(1, mmnn6)
+            do j1=1,mmnn6
+               read(56) temp(j1)
+            enddo
+            den = temp
+            do j1=1,mmnn6
+               read(56) den0(j1)
+            enddo
+            do j1=1,mmnn6
+               read(56) dens(j1)
+            enddo
+            do j1=1,mmnn6
+               read(56) temp(j1)
+            enddo
+            denold = temp
+            
+            if(ipres.eq.1) then 
+               do j1=1,mmnn6       
+                  read(56) temp(j1)
+               enddo
+               pres = temp
+               do j1=1,mmnn6       
+                  read(56) pres0(j1)
+               enddo
+               do j1=1,mmnn6       
+                  read(56) press(j1)
+               enddo
+               do j1=1,mmnn6       
+                  read(56) temp(j1)
+               enddo
+               presold = temp
+            endif
+         endif
 
-         if(ipres.eq.1) then 
-            do j1=1,mmnn6       
-               read(56) pres(j1)
+         deallocate(temp)
+
+      ! Otherwise, just read in what was written.
+      else 
+         if(isplitstep.eq.1) then
+            do j1=1,mmnn18 
+               read(56) vel(j1)
             enddo
-            do j1=1,mmnn6       
-               read(56) pres0(j1)
+            do j1=1,mmnn18
+               read(56) vel0(j1)
             enddo
-            do j1=1,mmnn6       
-               read(56) press(j1)
+            do j1=1,mmnn18
+               read(56) vels(j1)
             enddo
-            do j1=1,mmnn6       
-               read(56) presold(j1)
+            do j1=1,mmnn18
+               read(56) velold(j1)
             enddo
          endif
+         do j1=1,mmnn18
+            read(56) phi(j1)
+         enddo
+         do j1=1,mmnn18
+            read(56) phi0(j1)
+         enddo
+         do j1=1,mmnn18
+            read(56) phis(j1)
+         enddo
+         do j1=1,mmnn18
+            read(56) phiold(j1)
+         enddo
+         
+         if(isplitstep.eq.1) then
+            call numdofs(1, mmnn6)
+            do j1=1,mmnn6
+               read(56) den(j1)
+            enddo
+            do j1=1,mmnn6
+               read(56) den0(j1)
+            enddo
+            do j1=1,mmnn6
+               read(56) dens(j1)
+            enddo
+            do j1=1,mmnn6
+               read(56) denold(j1)
+            enddo
+            
+            if(ipres.eq.1) then 
+               do j1=1,mmnn6       
+                  read(56) pres(j1)
+               enddo
+               do j1=1,mmnn6       
+                  read(56) pres0(j1)
+               enddo
+               do j1=1,mmnn6       
+                  read(56) press(j1)
+               enddo
+               do j1=1,mmnn6       
+                  read(56) presold(j1)
+               enddo
+            endif
+         endif
       endif
-!
+                         
+      ! If we are running a linear simulation, but the restart file was
+      ! a nonlinear simulation, make the restart data be the equilibrium
+      if(linear.eq.1 .and. ilinear.eq.0) then
+         if(isplitstep.eq.1) then
+            vel0 = vel0 + vel
+            vel = 0.
+            den0 = den0 + den
+            den = 0.
+            if(ipres.eq.1) then
+               pres0 = pres0 + pres
+               pres = 0.
+            endif
+         endif
+         phi0 = phi0 + phi
+         phi = 0.
+      endif
+
       read(56) ntimer,timer
       read(56) totcur0,tflux0,gbound,facd,fbound,ptot,vloop
       close(56)

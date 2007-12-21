@@ -46,7 +46,7 @@
       call clearscorecdata()
       print *, "done."
 
-      call sludexit
+      call finalizesolvers
       call PetscFinalize(ier)
       call MPI_Finalize(ier)
       if (ier /= 0) print *,'Error terminating MPI:',ier
@@ -114,9 +114,6 @@
 !
 !.....time integrator: 0 = Crank-Nicholson, 1 = BDF2
       integrator = 0
-!
-!.....do second velocity solve after field solve
-      iresolve = 0
 !
 !.....do timestep splitting
       isplitstep = 1

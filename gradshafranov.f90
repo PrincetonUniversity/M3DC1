@@ -2,7 +2,8 @@ module gradshafranov
 
   implicit none
   
-  real, allocatable :: psi(:), fun1(:), fun2(:), fun3(:), fun4(:)
+  vectype, allocatable :: psi(:)
+  real, allocatable :: fun1(:), fun2(:), fun3(:), fun4(:)
   real :: psimin, dpsii
   real :: gamma2, gamma3, gamma4  
   integer :: itnum
@@ -144,7 +145,11 @@ subroutine gradshafranov_init()
   implicit none
 
   integer :: l, numnodes, ibegin, iendplusone, ibegin1, iendplusone1
-  real :: tstart, tend
+  real :: tstart, tend, alx, alz, xmin, zmin, x, z
+  double precision :: coords(3)
+
+  call getmincoord(xmin, zmin)
+  call getboundingboxsize(alx, alz)
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   call gradshafranov_solve()
@@ -156,11 +161,47 @@ subroutine gradshafranov_init()
   call numnod(numnodes)
   do l=1, numnodes
      call entdofs(vecsize, l, 0, ibegin, iendplusone)
+     call xyznod(l, coords)
 
-     call static_equ(ibegin)     
+     x = coords(1) - xmin - alx*.5
+     z = coords(2) - zmin - alz*.5
+
+     call assign_vectors(l)
+     call static_equ(ibegin)
+     call gradshafranov_per(x,z)
   enddo
   
 end subroutine gradshafranov_init
+
+subroutine gradshafranov_per(x, z)
+  use basic
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x, z
+  real :: alx, alz, akx, akz
+
+  call getboundingboxsize(alx, alz)
+  akx = pi/alx
+  akz = pi/alz
+
+!!$  psi1_l(1) =  eps*cos(akx*x)*cos(akz*z)
+!!$  psi1_l(2) = -eps*sin(akx*x)*cos(akz*z)*akx
+!!$  psi1_l(3) = -eps*cos(akx*x)*sin(akz*z)*akz
+!!$  psi1_l(4) = -eps*cos(akx*x)*cos(akz*z)*akx**2
+!!$  psi1_l(5) =  eps*sin(akx*x)*sin(akz*z)*akx*akz
+!!$  psi1_l(6) = -eps*cos(akx*x)*cos(akz*z)*akz**2
+
+  akz = 2.*pi/alz
+  psi1_l(1) = -eps*cos(akx*x)*sin(akz*z)
+  psi1_l(2) =  eps*sin(akx*x)*sin(akz*z)*akx
+  psi1_l(3) = -eps*cos(akx*x)*cos(akz*z)*akz
+  psi1_l(4) =  eps*cos(akx*x)*sin(akz*z)*akx**2
+  psi1_l(5) =  eps*sin(akx*x)*cos(akz*z)*akx*akz
+  psi1_l(6) =  eps*cos(akx*x)*sin(akz*z)*akz**2
+
+end subroutine gradshafranov_per
 
 !============================================================
 subroutine gradshafranov_solve
@@ -177,7 +218,8 @@ subroutine gradshafranov_solve
   include 'mpif.h'
   
   real :: gsint1,gsint4,gsint2,gsint3,lhs,cfac(18)
-  real, allocatable :: temp(:), b1vecini(:)
+  real, allocatable :: temp(:)
+  vectype, allocatable :: b1vecini(:)
 
   integer, parameter :: maxcoils = NSTX_coils
   integer :: numcoils
@@ -196,14 +238,14 @@ subroutine gradshafranov_solve
   real, dimension(6) :: pp
   real, dimension(5) :: temp1, temp2
   real :: alx, alz
-  integer :: izone, izonedim, itop, ileft, ibottom, iright
   
   double precision :: coords(3)
    
   real :: tstart, tend
 
 
-  if(myrank.eq.0 .and. iprint.gt.0) write(*,*) "gradshafranov called"
+  if(myrank.eq.0 .and. iprint.gt.0) &
+       print *, "Calculating Grad-Shafranov Equilibrium"
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart) ! t_gs_init
 
@@ -217,8 +259,8 @@ subroutine gradshafranov_solve
 
   ! allocate memory for arrays
   call createrealvec(temp, numvargs)
-  call createrealvec(b1vecini, numvargs)
-  call createrealvec(psi, numvargs)
+  call createvec(b1vecini, numvargs)
+  call createvec(psi, numvargs)
   call createrealvec(fun1, numvargs)
   call createrealvec(fun4, numvargs)
   call createrealvec(fun2, numvargs)
@@ -226,7 +268,10 @@ subroutine gradshafranov_solve
 
   ! form the grad-sharfranov matrix
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  call zerosuperluarray(gsmatrix_sm,numvar1_numbering)
+  if(myrank.eq.0 .and. iprint.gt.0) &
+       print *, " forming the GS matrix..."
+
+  call zerosuperlumatrix(gsmatrix_sm, icomplex, numvar1_numbering)
 
   ! populate the matrix
   do itri=1,numelms
@@ -243,7 +288,7 @@ subroutine gradshafranov_solve
      ri_79 = 1./r_79
 
      do i=1,18
-        call eval_ops(cmplx_cast(gtri(:,i,itri)), si_79, eta_79, &
+        call eval_ops(gtri(:,i,itri), si_79, eta_79, &
              ttri(itri), ri_79, 79, g79(:,:,i))
      end do
     
@@ -257,14 +302,14 @@ subroutine gradshafranov_solve
                 +g79(:,OP_DZ,i)*g79(:,OP_DZ,j))
            sum = int1(temp79a,weight_79,79)
 
-           call insertval(gsmatrix_sm, sum, i1,j1,1)
+           call insertval(gsmatrix_sm, sum, 0, i1,j1,1)
         enddo
      enddo
   enddo
 
   ! insert boundary conditions
   call boundary_gs(gsmatrix_sm, b1vecini)
-  call finalizearray(gsmatrix_sm)
+  call finalizematrix(gsmatrix_sm)
 
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
@@ -274,6 +319,10 @@ subroutine gradshafranov_solve
 
   ! Define initial values of psi
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  if(myrank.eq.0 .and. iprint.gt.0) &
+       print *, " calculating boundary conditions..."
+
   ! based on filiment with current tcuro
   ! and vertical field of strength bv given by shafranov formula
   ! NOTE:  This formula assumes (li/2 + beta_P) = 1.2
@@ -356,7 +405,7 @@ subroutine gradshafranov_solve
   zrel = zmag-zzero
 
 
-  if(myrank.eq.0 .and. iprint.gt.0) print *, "initializing current..."
+  if(myrank.eq.0 .and. iprint.gt.0) print *, " initializing current..."
 
   b1vecini = 0
   call deltafun(xrel,zrel,b1vecini,tcuro)
@@ -367,9 +416,6 @@ subroutine gradshafranov_solve
 
      if(myrank.eq.0 .and. iprint.eq.1) print *, "GS: iteration = ", itnum
      
-     if(myrank.eq.0 .and. maxrank .eq. 1) &
-          call oneplot(b1vecini,1,numvargs,"b1vecini",0)
-
      ! apply boundary conditions
      call boundary_gs(0, b1vecini)
 
@@ -387,8 +433,6 @@ subroutine gradshafranov_solve
         psi = th_gs*b1vecini + (1.-th_gs)*psi
      endif
 
-     if(myrank.eq.0 .and. maxrank .eq. 1) &
-          call oneplot(psi,1,numvargs,"psi ",0)
     
      ! Find new magnetic axis (extremum of psi)
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -432,7 +476,7 @@ subroutine gradshafranov_solve
         
         call entdofs(numvargs, i, 0, ibegin, iendplusone)
 
-        if(psi(ibegin).le.psilim) then
+        if(real(psi(ibegin)).le.psilim) then
            lhs = (psi(ibegin+3)-psi(ibegin+1)/x+psi(ibegin+5))/x
            rhs =  -(fun1(ibegin)+gamma2*fun2(ibegin)+                        &
                 gamma3*fun3(ibegin)+gamma4*fun4(ibegin))
@@ -510,8 +554,6 @@ subroutine gradshafranov_solve
 
      ! choose gamma2 to fix q0/qstar.  Note that there is an additional
      ! degree of freedom in gamma3.  Could be used to fix qprime(0)
-!!$     q0 = 1.
-!!$     qstar = 4.
      g0 = bzero*xzero
 
      if(numvar.eq.1) then
@@ -521,23 +563,9 @@ subroutine gradshafranov_solve
      else
         gamma2 = -2.*xmag*(xmag*p0*p1 + (2.*g0/(xmag**2*q0*dpsii)))
         gamma3 = -(xmag*djdpsi/dpsii + 2.*xmag**2*p0*p2)
-
-!!$        gamma2 = gamma2 / 2.
-!!$        gamma3 = gamma3 / 2.
-
-
-!!$     ! Nate:
-!!$     gamma2 =  - xmag*(xmag*p0*p1 + 2.*g0*(psilim-psimin)/(xmag**2*q0))
-!!$     gamma3 =  - (djdpsi*(psilim-psimin)/2. + p0*p2)
-     
         gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
      endif
-     
-!!$     if(myrank.eq.0 .and. iprint.gt.0) then
-!!$        write(*,*) "gsint1, gsint2, gsint3, gsint4", gsint1, gsint2, gsint3, gsint4
-!!$        write(*,*) "gamma2, gamma3, gamma4", gamma2, gamma3, gamma4
-!!$     endif
-     
+         
      ! start loop over elements to define RHS vector
      b1vecini = 0.
 
@@ -561,11 +589,10 @@ subroutine gradshafranov_solve
            b1vecini(i1) =  b1vecini(i1) + sum
         enddo
      enddo
-     call sumshareddofs(b1vecini)
+     call sumsharedppplvecvals(b1vecini)
 
   end do ! on itnum
 
-  call getmodeltags(ibottom, iright, itop, ileft)
 
   ! populate phi0 array
   ! ~~~~~~~~~~~~~~~~~~~
@@ -597,10 +624,8 @@ subroutine gradshafranov_solve
            sum = 1. - ipres*pi0/p0
         endif
         pe0_l = sum*pp
-        
-        if(ipres.eq.1) then
-           p0_l = pp
-        endif
+
+        if(ipres.eq.1) p0_l = pp
      end if
 
      if(idens.eq.1) then
@@ -626,8 +651,8 @@ subroutine gradshafranov_solve
 
   ! free memory
   call deleterealvec(temp)
-  call deleterealvec(b1vecini)
-  call deleterealvec(psi)
+  call deletevec(b1vecini)
+  call deletevec(psi)
   call deleterealvec(fun1)
   call deleterealvec(fun4)
   call deleterealvec(fun2)
@@ -944,7 +969,7 @@ subroutine deltafun(x,z,dum,val)
   implicit none
 
   real, intent(in) :: x, z, val
-  real, intent(out) :: dum(*)
+  vectype, intent(out) :: dum(*)
 
   integer :: itri, i, k, index
   real :: x1, z1, b, theta, si, eta, sum
@@ -971,7 +996,7 @@ subroutine deltafun(x,z,dum,val)
      enddo
   end if
 
-  call sumshareddofs(dum)
+  call sumsharedppplvecvals(dum)
 
 end subroutine deltafun
 !============================================================
@@ -1086,8 +1111,6 @@ subroutine fundef
      endif
   enddo
 
-  if(numvar.lt.3) fun1 = 0.
-
   fun2 = fun2 / 2.
   fun3 = fun3 / 2.
   fun4 = fun4 / 2.
@@ -1107,7 +1130,7 @@ subroutine calc_toroidal_field(psii,tf)
   use basic
 
   real, intent(in), dimension(6)  :: psii     ! normalized flux
-  real, intent(out), dimension(6) :: tf       ! toroidal field (I)
+  vectype, intent(out), dimension(6) :: tf    ! toroidal field (I)
 
   real :: g1, g1x, g1z, g1xx, g1xz, g1zz
   real :: g2, g2x, g2z, g2xx, g2xz, g2zz

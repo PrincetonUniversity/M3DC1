@@ -2,8 +2,8 @@
 subroutine constant_field(outarr, val)
   implicit none
 
-  real, dimension(6), intent(out) :: outarr
-  real, intent(in) :: val
+  vectype, dimension(6), intent(out) :: outarr
+  vectype, intent(in) :: val
 
   outarr(1) = val
   outarr(2:6) = 0.
@@ -46,7 +46,7 @@ end subroutine plane_wave
 subroutine cartesian_to_cylindrical(x,vec)
   implicit none
 
-  real, dimension(6), intent(inout) :: vec
+  vectype, dimension(6), intent(inout) :: vec
   real, intent(in) :: x
 
   vec(6) = vec(6) * x
@@ -141,9 +141,9 @@ subroutine cylinder_equ(x, z)
   real :: s17aef, s17aff
   integer :: ifail1, ifail2, ifail3
 
-  call constant_field(phi1_l(1:6), 0.)
-  if(numvar.ge.2)  call constant_field( vz1_l(1:6), 0.)
-  if(numvar.ge.3)  call constant_field(chi1_l(1:6), 0.)
+  phi0_l(1:6) = 0.
+  if(numvar.ge.2) vz0_l(1:6) = 0.
+  if(numvar.ge.3) chi0_l(1:6) = 0.
 
   !.....Use the equilibrium given in R. Richard, et al,
   !     Phys. Fluids B, 2 (3) 1990 p 489
@@ -246,7 +246,9 @@ subroutine cylinder_per(x, z)
   phi1_l(5) = 4.*x*z*uzero + 2.*x*czero
   phi1_l(6) = (-3.+4.*z**2)*uzero + 4.*z*czero
   
-  if(numvar.ge.2) call constant_field(vz1_l(1:6), 0.)
+!!$  if(numvar.ge.2) call constant_field(vz1_l(1:6), 0.)
+  if(numvar.ge.2) vz1_l(1:6) =  0.
+
 
   if(numvar.ge.3) then
      chi1_l(1) = czero
@@ -257,11 +259,17 @@ subroutine cylinder_per(x, z)
      chi1_l(6) = (-3.+4.*z**2)*czero - 4*z*uzero
   endif
 
-  call constant_field(psi1_l(1:6), 0.)
-  if(numvar.ge.2)  call constant_field( bz1_l(1:6), 0.)
-  if(numvar.ge.3)  call constant_field( pe1_l(1:6), 0.)
-  if(ipres.eq.1)   call constant_field(  p1_l(1:6), 0.)
-  if(idens.eq.1)   call constant_field(den1_l(1:6), 0.)
+!!$  call constant_field(psi1_l(1:6), 0.)
+!!$  if(numvar.ge.2)  call constant_field( bz1_l(1:6), 0.)
+!!$  if(numvar.ge.3)  call constant_field( pe1_l(1:6), 0.)
+!!$  if(ipres.eq.1)   call constant_field(  p1_l(1:6), 0.)
+!!$  if(idens.eq.1)   call constant_field(den1_l(1:6), 0.)
+  psi1_l(1:6) =  0.
+  if(numvar.ge.2)   bz1_l(1:6) = 0.
+  if(numvar.ge.3)   pe1_l(1:6) = 0.
+  if(ipres.eq.1)     p1_l(1:6) = 0.
+  if(idens.eq.1)   den1_l(1:6) = 0.
+
 
 end subroutine cylinder_per
 

@@ -60,7 +60,9 @@ c$$$      return
       return
       end
 !============================================================
-      subroutine space
+!     ifirstcall = 1 if this is the first call and 0 otherwise
+!                  this is usefull for avoiding memory leaks
+      subroutine space(ifirstcall)
 !
 !     allocates space for big arrays
       use p_data
@@ -71,7 +73,7 @@ c$$$      return
       use nintegrate_mod
 
       implicit none
-      integer numnodes, numelms, i, izone, izonedim 
+      integer numnodes, numelms, i, ifirstcall
 
       if(isplitstep.eq.1) then
          vecsize = numvar
@@ -81,32 +83,33 @@ c$$$      return
          vecsize1 = vecsize
       endif
 
-      ! create numberings
-      call createdofnumbering(numvar1_numbering, iper, jper, 
-     &     6, 0, 0, 0, maxdofs1)
-      call createdofnumbering(numvar2_numbering, iper, jper, 
-     &     12, 0, 0, 0, maxdofs2)
-      if(vecsize.gt.2) then
-         call createdofnumbering(vecsize, iper, jper,
-     &        vecsize*6, 0, 0, 0, maxdofsn)
+!
+!.....create numberings
+      if(ifirstcall .eq. 1) then
+         call createdofnumbering(numvar1_numbering, iper, jper, 
+     &        6, 0, 0, 0, maxdofs1)
+         call createdofnumbering(numvar2_numbering, iper, jper, 
+     &        12, 0, 0, 0, maxdofs2)
+         if(vecsize.gt.2) then
+            call createdofnumbering(vecsize, iper, jper,
+     &           vecsize*6, 0, 0, 0, maxdofsn)
+         endif
       endif
 
       call numnod(numnodes)
       call numfac(numelms)
-      ntri   = 2*numelms !should this be ntri = numelms???
+      ntri   = numelms !should this be ntri = numelms??? -- YES, acbauer
 !
 !.....arrays defined at all vertices
-c     created with ordering specified by numvar
+!     createvec will delete the arrays if they have already been allocated
 
       if(isplitstep.eq.1) then
          call createvec(vel, vecsize)
-         call createrealvec(vel0, vecsize)
-         call createrealvec(vels, vecsize)
+         call createvec(vel0, vecsize)
+         call createvec(vels, vecsize)
          call createvec(velold, vecsize)
          call createvec(veln, vecsize)
          call createvec(veloldn, vecsize)
-
-         if(iresolve.eq.1) call createvec(phioldn, vecsize)
          call createvec(r4, vecsize)
          call createvec(phip, vecsize)
          call createvec(b2vector, vecsize)
@@ -115,17 +118,17 @@ c     created with ordering specified by numvar
          if(ipres.eq.1) then 
             call createvec(qp4, 1)
             call createvec(pres, 1)
-            call createrealvec(press, 1)
-            call createrealvec(pres0, 1)
+            call createvec(pres0, 1)
+            call createvec(press, 1)
             call createvec(presold, 1)
-            if(iresolve.eq.1) call createvec(presoldn, 1)
          endif
-         
+        
          call createvec(den, 1)
-         call createrealvec(den0, 1)
-         call createrealvec(dens, 1)
+         call createvec(den0, 1)
+         call createvec(dens, 1)
          call createvec(denold, 1)
          call createvec(qn4, 1)
+
          if(isources.eq.1) then
             call createvec(sb1, 1)
             call createvec(sb2, 1)
@@ -134,8 +137,8 @@ c     created with ordering specified by numvar
       endif
 
       call createvec(phi,      vecsize)
-      call createrealvec(phi0, vecsize)
-      call createrealvec(phis, vecsize)
+      call createvec(phi0, vecsize)
+      call createvec(phis, vecsize)
       call createvec(phiold,   vecsize)
 
       call createvec(b1vector, vecsize)
@@ -153,15 +156,154 @@ c     created with ordering specified by numvar
       call createvec(tempvar,1)
 !
 !.....arrays associated with the triangles
+      if(ifirstcall.eq.0) then
+         deallocate(ist)
+         deallocate(isvaln)
+         deallocate(isval1)
+         deallocate(isval2)
+      endif
       allocate(ist(ntri,3),isvaln(ntri,18),isval1(ntri,18),             &
      &         isval2(ntri,18))
 !
 !.....metric terms involved in toroidal geometry
+      if(ifirstcall.eq.0) deallocate(rinv)
       allocate(rinv(numnodes*6))
 !
+!.....assign pointers to proper vectors
+      call assign_variables
+
       return
       end
-!=============================
+!============================================================
+      subroutine smoother1(inarray,outarray,numnodes,numvard,iplace)
+!
+!     This routine takes as input the Laplacian of the scalar field in
+!     the array inarray, smooths it, and returns the smoothed scalar array
+!     in location iplace in the stand-alone array outarray(ordering =numvard).  
+!     The LU decomposition takes place the first-time only.
+!
+!
+      use p_data
+      use t_data
+      use basic
+      use arrays
+      use sparse
+
+      implicit none
+
+      integer, intent(in) :: numnodes, numvard, iplace
+      vectype, intent(out) :: outarray(numnodes*6*numvard)
+      vectype, intent(in)  ::  inarray(numnodes*6)
+
+      integer :: itri, ndof_2,
+     &     i, j, numvarsm, jtwo, itwo, l, 
+     &     ier, jone, nbound, numelms, izone,izonedim,
+     &     ibegind, iendplusoned, ibeginsm, iendplusonesm
+      real :: hyp, thimpsm
+      real, dimension(18,18) :: aterm, bterm, dterm
+      real, dimension(-6:maxi,-6:maxi) :: fintl(-6:maxi,-6:maxi)
+
+      real, dimension(2,2) :: ssterm
+      vectype, allocatable :: temp(:)
+!
+      if(myrank.eq.0 .and. iprint.eq.1) print *, " smoother1"
+
+      numvarsm = 2
+      call numfac(numelms)
+      call numdofs(numvarsm, ndof_2)
+      call createvec(temp, numvarsm)
+      temp = 0
+      thimpsm = 1.
+! 
+      if(ifirsts5_lu.ne.0) go to 500
+      ifirsts5_lu = 1
+!
+!
+!.....compute LU decomposition only once
+!
+!.....form matrix
+      call zerosuperlumatrix(s5matrix_sm,icomplex,numvar2_numbering)
+      do itri=1,numelms
+         call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
+         call calcaterm(itri, aterm, fintl)
+         call calcbterm(itri, bterm, fintl)
+         call calcdterm(itri, dterm, fintl)
+!         call getdeex(itri,deex)
+         hyp = hyperc*deex**2*amu
+         do i=1,18
+            do j=1,18
+               jtwo = isval2(itri,j)
+               itwo = isval2(itri,i)
+               ssterm(1,1) = dterm(i,j)
+               ssterm(1,2) =-aterm(i,j)
+               ssterm(2,1) =  +dt*hyp*thimpsm*bterm(i,j)
+               ssterm(2,2) = aterm(i,j)
+              call insertval(s5matrix_sm,ssterm(1,1),0,itwo,  jtwo,  1)
+              call insertval(s5matrix_sm,ssterm(1,2),0,itwo,  jtwo+6,1)
+              call insertval(s5matrix_sm,ssterm(2,1),0,itwo+6,jtwo,  1)
+              call insertval(s5matrix_sm,ssterm(2,2),0,itwo+6,jtwo+6,1)             
+            enddo
+         enddo
+      enddo
+!
+!.....Insert boundary condtions
+      call boundary_vor(s5matrix_sm, temp)
+      call finalizematrix(s5matrix_sm)
+ 500  continue
+!
+!.....define RHS vector
+      do itri=1,numelms
+         call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
+         call calcbterm(itri, bterm, fintl)
+         call calcdterm(itri, dterm, fintl)
+        
+!         call getdeex(itri,deex)
+         hyp = hyperc*deex**2*amu
+         do i=1,18
+            itwo = isval2(itri,i)
+            do j=1,18
+               jone = isval1(itri,j)
+!
+               temp(itwo+6) = temp(itwo+6)+(dterm(i,j)                             &
+     &              - dt*hyp*(1.-thimpsm)*bterm(i,j))*inarray(jone)
+!
+            enddo
+         enddo
+      enddo
+
+      ! Insert boundary conditions
+      call boundary_vor(0, temp)
+
+! since a proc is contributing values to parts of the vector
+! it does not own, we call sumsharedppplvecvals so that these values
+! get summed up for all values shared by multiple procs
+! and then update these values
+      call sumsharedppplvecvals(temp)
+!
+!.....perform LU backsubstitution to get outarray solution
+
+      call solve(s5matrix_sm,temp,ier)
+      if(ier.ne.0) then
+         print *, "Error in smoother1 solve"
+         call safestop(101)
+      end if
+!
+!.....store solution
+      do l=1,numnodes
+         call entdofs(numvard, l, 0, ibegind, iendplusoned)
+         call entdofs(numvarsm, l, 0, ibeginsm, iendplusonesm)
+         do i=0,5
+            outarray(ibegind+6*(iplace-1)+i) =
+     &           temp(ibeginsm+6+i)
+         enddo
+      enddo
+       
+!
+      call deletevec(temp)
+      return
+!
+      end
+!============================================================
       subroutine smoother3(inarray,outarray,numnodes,numvard,iplace)
 !
 !     This routine takes as input the Laplacian of the scalar field in
@@ -175,17 +317,23 @@ c     created with ordering specified by numvar
       use basic
       use arrays
       use sparse
+
       implicit none
-      integer numnodes, numvard,iplace, ndofs_sm, numelms,
+
+      integer, intent(in) :: numnodes, numvard, iplace
+      vectype, intent(out) :: outarray(numnodes*6*numvard)
+      vectype, intent(in) :: inarray(numnodes*6)
+
+      integer :: ndofs_sm, numelms,
      &     ibegind, iendplusoned, ibeginsm, iendplusonesm
-      real ssterm(3,3)
-      real  outarray(numnodes*6*numvard),inarray(numnodes*6),
-     &     aterm(18,18), bterm(18,18),fintl(-6:maxi,-6:maxi),
-     &     dterm(18,18)
+      integer :: numvarsm, itri, i, j,izone,izonedim,
+     &     l, jone, ier, jtwo, itwo
+      real :: hyp, thimpsm
+      real, dimension(18,18) ::  aterm, bterm, dterm
+      real :: fintl(-6:maxi,-6:maxi)
+
+      real, dimension(2,2) :: ssterm
       vectype, allocatable:: temp(:)
-      real hyp, thimpsm
-      integer numvarsm, itri, i, j,izone,izonedim,
-     1     l, jone, ier, jtwo, itwo
 !
       if(myrank.eq.0 .and. iprint.eq.1) print *, " smoother3"
 
@@ -203,7 +351,7 @@ c     created with ordering specified by numvar
 !.....compute LU decomposition only once
 !
 !.....form matrix
-      call zerosuperluarray(s7matrix_sm,numvar2_numbering)
+      call zerosuperlumatrix(s7matrix_sm,icomplex,numvar2_numbering)
       do itri=1,numelms
 !         call getdeex(itri,deex)
          call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
@@ -219,40 +367,41 @@ c     created with ordering specified by numvar
               ssterm(1,2) =-aterm(i,j)
               ssterm(2,1) =  +dt*hyp*thimpsm*bterm(i,j)
               ssterm(2,2) = aterm(i,j) - regular*dterm(i,j)
-              call insertval(s7matrix_sm,ssterm(1,1),itwo  ,jtwo  ,1)
-              call insertval(s7matrix_sm,ssterm(1,2),itwo  ,jtwo+6,1)
-              call insertval(s7matrix_sm,ssterm(2,1),itwo+6,jtwo  ,1)
-              call insertval(s7matrix_sm,ssterm(2,2),itwo+6,jtwo+6,1)
+
+              call insertval(s7matrix_sm,ssterm(1,1),0,itwo  ,jtwo  ,1)
+              call insertval(s7matrix_sm,ssterm(1,2),0,itwo  ,jtwo+6,1)
+              call insertval(s7matrix_sm,ssterm(2,1),0,itwo+6,jtwo  ,1)
+              call insertval(s7matrix_sm,ssterm(2,2),0,itwo+6,jtwo+6,1)
            enddo
         enddo
       enddo
 !
 !.....Insert boundary conditions
       call boundary_com(s7matrix_sm, temp)
-      call finalizearray(s7matrix_sm)
+      call finalizematrix(s7matrix_sm)
 !
  500  continue
 !
 !.....define RHS vector
       do itri=1,numelms
          call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
+         call calcbterm(itri, bterm, fintl)
          call calcdterm(itri, dterm, fintl)
 !         call getdeex(itri,deex)
-         hyp = hyperc*deex**2*amu
+         hyp = hyperc*deex**2*amuc
          do i=1,18
+            itwo = isval2(itri,i)
             do j=1,18
                jone = isval1(itri,j)
-               itwo = isval2(itri,i)
 
                temp(itwo+6) = temp(itwo+6)+(dterm(i,j)               
      &              - dt*hyp*(1.-thimpsm)*bterm(i,j))*inarray(jone)
-
             enddo
          enddo
       enddo
 
       call boundary_com(0, temp)
-      call sumshareddofs(temp)
+      call sumsharedppplvecvals(temp)
 !
 !.....perform LU backsubstitution to get outarray solution
       call solve(s7matrix_sm,temp,ier)
@@ -412,6 +561,7 @@ c$$$!
       use t_data
       use basic
       use arrays
+      use sparse
       implicit none
       integer numnodes,izone,izonedim,i
       real eterm, alx, alz
@@ -431,10 +581,11 @@ c$$$!
       print *, "input..."
       call input
       ntimemin = min(2,ntimemax-1)
+
 !
 !      allocate big arrays
       print *, "Calling space..."
-      call space
+      call space(1)
       print *, "Done space."
 !
 !
@@ -460,7 +611,7 @@ c$$$      b2vecini = 0.
       if(itor.eq.1) call rinvdef(rinv)
 !
 !     open all needed output files
-      if(maxrank.eq.1 .and. myrank.eq.0) call openf
+c$$$      if(maxrank.eq.1 .and. myrank.eq.0) call openf
 
 !
 !.....end of section defining geometrical parameters for triangles

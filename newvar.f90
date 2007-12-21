@@ -28,13 +28,13 @@ subroutine create_newvar_matrix(matrix, ibound)
   integer, intent(in) :: matrix, ibound
 
   integer :: numelms, itri, i, j, ione, jone, izone, izonedim
-  real :: temp
-  real, allocatable :: rhs(:)
+  vectype :: temp
+  vectype, allocatable :: rhs2(:)
 
   call numfac(numelms)
 
   ! populate matrix
-  call zerosuperluarray(matrix, numvar1_numbering)
+  call zerosuperlumatrix(matrix, icomplex, numvar1_numbering)
   do itri=1,numelms
 
      call area_to_local(79,                                            &
@@ -51,7 +51,7 @@ subroutine create_newvar_matrix(matrix, ibound)
      ri_79 = 1./r_79
 
      do i=1,18
-        call eval_ops(cmplx_cast(gtri(:,i,itri)), si_79, eta_79, ttri(itri), &
+        call eval_ops(gtri(:,i,itri), si_79, eta_79, ttri(itri), &
              ri_79, 79, g79(:,:,i))
      end do
 
@@ -62,19 +62,19 @@ subroutine create_newvar_matrix(matrix, ibound)
         do i=1,18
            ione = isval1(itri,i)
            temp = int2(g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
-           call insertval(matrix, temp, ione, jone, 1)
+           call insertval(matrix, temp, icomplex, ione, jone, 1)
         enddo
      enddo
   enddo
 
   ! apply boundary conditions
   if(ibound.eq.NV_DCBOUND) then
-     call createrealvec(rhs, 1)
-     call boundary_dc(matrix, rhs)
-     call deleterealvec(rhs)
+     call createvec(rhs2, numvar1_numbering)
+     call boundary_dc(matrix, rhs2)
+     call deletevec(rhs2)
   end if
 
-  call finalizearray(matrix)
+  call finalizematrix(matrix)
 
 end subroutine create_newvar_matrix
 
@@ -104,6 +104,8 @@ subroutine newvar_d2(inarray,outarray,itype,ibound,gs)
      outarray(i) = 0.
   end do
 
+  if(myrank.eq.0 .and. iprint.ge.1) print *, " defining.."
+
   ! Calculate RHS
   call numfac(numelms)
   do itri=1,numelms
@@ -125,7 +127,7 @@ subroutine newvar_d2(inarray,outarray,itype,ibound,gs)
      if(ijacobian.eq.1) weight_79 = weight_79*r_79
 
      do i=1,18
-        call eval_ops(cmplx_cast(gtri(:,i,itri)), si_79, eta_79, ttri(itri), &
+        call eval_ops(gtri(:,i,itri), si_79, eta_79, ttri(itri), &
              ri_79, 79, g79(:,:,i))
      end do
 
@@ -146,6 +148,8 @@ subroutine newvar_d2(inarray,outarray,itype,ibound,gs)
         outarray(ione) = outarray(ione) + sum
      end do
   enddo
+
+    if(myrank.eq.0 .and. iprint.ge.1) print *, " solving.."
 
   ! solve linear equation
   call solve_newvar(outarray, ibound)
@@ -180,6 +184,8 @@ subroutine define_transport_coefficients()
 
   if(idens.eq.1)  def_fields = def_fields + FIELD_N
   if(numvar.ge.3) def_fields = def_fields + FIELD_PE + FIELD_P
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' defining...'
 
   ! Calculate RHS
   call numfac(numelms)
@@ -300,6 +306,7 @@ subroutine define_transport_coefficients()
      end do
   end do
 
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' solving...'
   call solve_newvar(resistivity, NV_NOBOUND)
   call solve_newvar(kappa, NV_NOBOUND)
   call solve_newvar(sigma, NV_NOBOUND)
@@ -325,7 +332,7 @@ subroutine solve_newvar(rhs, ibound)
 
   integer :: i, ier
 
-  call sumshareddofs(rhs)
+  call sumsharedppplvecvals(rhs)
 
   if(ibound.eq.NV_DCBOUND) then
      call boundary_dc(0,rhs)

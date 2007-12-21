@@ -888,7 +888,7 @@ subroutine define_fields_79(itri, fields)
   end if
 
   do i=1,18
-     call eval_ops(cmplx_cast(gtri(:,i,itri)), si_79, eta_79, &
+     call eval_ops(gtri(:,i,itri), si_79, eta_79, &
           ttri(itri), ri_79, 79, g79(:,:,i))
   end do
 end subroutine define_fields_79
@@ -1102,12 +1102,13 @@ subroutine evaluate(x,z,ans,ans2,dum,itype,numvare,itri)
   include 'mpif.h'
 
   integer, intent(inout) :: itype, numvare, itri
-  real, intent(in) :: x, z, dum(*)
+  real, intent(in) :: x, z
+  vectype, intent(in) :: dum(*)
   real, intent(out) :: ans, ans2
 
   integer :: p, nodeids(4), ier
   real :: x1, z1, xmin, zmin
-  real, dimension(20) :: avector
+  vectype, dimension(20) :: avector
   real :: ri, si, eta, co, sn
   real :: term1, term2
   real, dimension(2) :: temp1, temp2

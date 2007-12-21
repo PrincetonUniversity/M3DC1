@@ -1,7 +1,3 @@
-! Physical differences from structured version:
-! * hyper-ohmic heating
-! * Compressional-viscous and hyper-viscous heating
-
 Program Reducedquintic
 
 !   Ref:  [1] Strang and Fix, An Analysis of the Finite Element Method, page 83
@@ -29,6 +25,7 @@ Program Reducedquintic
   real :: dtmin, ratemin, ratemax
   real :: tstart, tend
   real :: tolerance
+  real :: factor, hmin, hmax  
 
   integer, allocatable ::  itemp(:)
   PetscTruth :: flg
@@ -49,7 +46,7 @@ Program Reducedquintic
      call safestop(1)
   endif
   ! initialize the SUPERLU process grid
-  call sludinit
+  call initsolvers
   call MPI_Comm_size(MPI_COMM_WORLD,maxrank,ier)
   if (ier /= 0) then
      print *,'Error in MPI_Comm_size:',ier
@@ -90,14 +87,12 @@ Program Reducedquintic
   allocate(atri(numelms),btri(numelms),ctri(numelms),ttri(numelms),      &
        gtri(20,18,numelms)) 
   
-  if(maxrank .eq. 1) call precalc_whattri()
+!!$  if(maxrank .eq. 1) call precalc_whattri()
   ! special switch installed 12/03/04 to write slu matrices
   idebug = 0
 
   ! initialize needed variables and define geometry and triangles
   call init
-
-  call assign_variables
 
   if(ipres.eq.1) then
      pefac = 1.
@@ -134,6 +129,8 @@ Program Reducedquintic
   ! initialize the solution to an equilibrium and save
   if(irestart.eq.1) then
      call rdrestart
+     time = timer
+     ntime = ntimer
      if(istart.ne.0) then
         ntimer = 0
         timer = 0.
@@ -143,8 +140,6 @@ Program Reducedquintic
      ntimer = 0
      timer = 0.
      call initial_conditions()
-
-     if(idens.eq.1 .and. maxrank.eq.1) call oneplot(den0,1,1,"den0",1)
 
      if(linear.eq.1 .or. eqsubtract.eq.1) then
         phis = phi
@@ -206,8 +201,6 @@ Program Reducedquintic
      enddo
      deallocate(itemp)
      
-     if(maxrank.eq.1) call plotit(vel,phi,0)
-
      ! combine the equilibrium and perturbed fields of linear=0
      ! unless eqsubtract = 1
      if(linear.eq.0 .and. eqsubtract.eq.0) then
@@ -243,70 +236,44 @@ Program Reducedquintic
 
   ! initialize hdf5
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Initializing HDF5."
-  call hdf5_initialize(ntimer, ier)
+  call hdf5_initialize(ier)
   if(ier.lt.0) then 
      print *, "Error initializing HDF5"
      call safestop(5)
   end if
   
   ! output simulation parameters
-  if(irestart.eq.0) call hdf5_write_parameters(ier)
+  if(irestart.eq.0) then
+     if(myrank.eq.0 .and. iprint.ge.1) &
+          print *, "Writing simulation parameters."
+     call hdf5_write_parameters(ier)
+
+     ! Output the equilibrium
+     if(linear.eq.1 .or. eqsubtract.eq.1) then
+        call hdf5_write_time_slice(1,ier)
+     endif
+  end if
   
   ! create the newvar matrices
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Generating newvar matrices..."
   call create_newvar_matrix(s6matrix_sm, NV_DCBOUND)
   call create_newvar_matrix(s3matrix_sm, NV_NOBOUND)
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Done generating newvar matrices."
+
 
   ifail=0
   ier = 0
 
-  time = timer
   errori = 0.
   enormi = 0.
   ratioi = 0.
   dtmin = 0.001*dt
-  ntime = ntimer
 
   if(itimer.eq.1) call reset_timings
 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "Defining auxiliary variables."
-
-  ! define auxiliary variables
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  call define_transport_coefficients
-  !   toroidal current
-  call newvar_d2(psi1_v,jphi,psi_i,NV_DCBOUND,NV_GS)
-  if(hyperc.ne.0) then
-     !   vorticity
-     call newvar_d2(phi1_v,vor,phi_i,NV_DCBOUND,NV_GS)
-     !   compression
-     if(numvar.ge.3) then
-        if(com_bc.eq.1) then
-           call newvar_d2(chi1_v,com,chi_i,NV_DCBOUND,NV_LP)
-        else
-           call newvar_d2(chi1_v,com,chi_i,NV_NOBOUND,NV_LP)
-        endif
-     else
-        com = 0.
-     endif
-  endif
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_aux = t_aux + tend - tstart
-  endif
-
-  ! find lcfs
-  ! ~~~~~~~~~
-  call lcfs(psi1_v+psi0_v,vecsize) 
-
-  ! calculate scalars
-  ! ~~~~~~~~~~~~~~~~~
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  call calculate_scalars
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_sources = t_sources + tend - tstart
-  endif
+  ! Calculate all quantities derived from basic fields
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  call derived_quantities
 
   if(irestart.eq.0) then
      tflux0 = tflux
@@ -316,9 +283,9 @@ Program Reducedquintic
   ! output initial conditions
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
   if(irestart.eq.0) then
-     if (maxrank .eq. 1) call output
+!!$     if (maxrank .eq. 1) call output
      call hdf5_write_scalars(ier)
-     call hdf5_write_time_slice(ier)
+     call hdf5_write_time_slice(0,ier)
      if(itimer.eq.1) then 
         call hdf5_write_timings(ier)
         call reset_timings
@@ -364,24 +331,27 @@ Program Reducedquintic
 !!$     endif
 
      
-     ! Write ictrans output
-     if(maxrank .eq. 1) then
-        if(myrank.eq.0 .and. iprint.ge.1) print *, "Before output"
-        if(itimer.eq.1) call second(tstart)
-        call output
-        if(itimer.eq.1) then
-           call second(tend)
-           t_output_cgm = t_output_cgm + tend - tstart
-        endif
-        if(myrank.eq.0 .and. iprint.ge.1) print *, "After onestep"
-     endif
+!!$     ! Write ictrans output
+!!$     if(maxrank .eq. 1) then
+!!$        if(myrank.eq.0 .and. iprint.ge.1) print *, "Before output"
+!!$        if(itimer.eq.1) call second(tstart)
+!!$        call output
+!!$        if(itimer.eq.1) then
+!!$           call second(tend)
+!!$           t_output_cgm = t_output_cgm + tend - tstart
+!!$        endif
+!!$        if(myrank.eq.0 .and. iprint.ge.1) print *, "After onestep"
+!!$     endif
 
-     ! Write HDF5 output
-     if(myrank.eq.0 .and. iprint.ge.1) print *, "Before hdf5 output"
+     ! Write output
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Writing output"
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "-Scalars (HDF5)."
      call hdf5_write_scalars(ier)
      if(mod(ntime,ntimepr).eq.0) then
-        call hdf5_write_time_slice(ier)
+        if(myrank.eq.0 .and. iprint.ge.1) print *, "-Time slice (HDF5)."
+        call hdf5_write_time_slice(0,ier)
+        if(myrank.eq.0 .and. iprint.ge.1) print *, "-Restart file(s)."
         call wrrestart(time, max(maxts, ntimer))
      endif
      if(myrank.eq.0 .and. itimer.eq.1) then
@@ -391,17 +361,19 @@ Program Reducedquintic
 
      if(itimer.eq.1) then
         if(myrank.eq.0) call second(tstart)
+        if(myrank.eq.0 .and. iprint.ge.1) print *, "-Timings (HDF5)."
         call hdf5_write_timings(ier)
         call reset_timings
      end if
 
      ! flush hdf5 data to disk
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Flushing data to HDF5 file."
      call hdf5_flush(ier)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_output_hdf5 = t_output_hdf5 + tend - tstart
      end if
-     if(myrank.eq.0 .and. iprint.ge.1) print *, "After hdf5 output"
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Done output."
 
      ! feedback control on toroidal current
      if(itor.eq.1 .and. itaylor.eq.1) call control_pid
@@ -414,54 +386,50 @@ Program Reducedquintic
 101 continue
 
 ! below is for mesh adaptation
-!  tolerance = .00005 
-!  if(maxrank .eq. 1) then
-!     call integratedadapt(vel, 2, tolerance, ntime)
-!  endif
+  tolerance = .00005 
+  call outputfield(phi, numvar, 0, ntime, 123) 
+  if(maxrank .eq. 1) then
+!     call outputfield(phi, numvar, 0, ntime, 123) 
+!     call writefieldatnodes(resistivity, 1, 1) 
+     factor = .3
+     hmin = .1
+     hmax = .4
+!     call hessianadapt(resistivity, 1, factor, hmin, hmax, ntime) 
+  endif
   ratemin = 0.
   ratemax = 0.
-  do ntime=ntimemin,maxts
-     ratemin = min(ratemin,graphit(ntime,26))
-     ratemax = max(ratemax,graphit(ntime,26))
-  enddo
 
 !  call errorcalc(numvar, phi, 1)
 
   call wrrestart(time, max(maxts, ntimer))
 
 !     free memory from sparse matrices
-  call freesmo(gsmatrix_sm)
-  call freesmo(s6matrix_sm)
-  call freesmo(s7matrix_sm)
-  call freesmo(s4matrix_sm)
-  call freesmo(s3matrix_sm)
-  call freesmo(s5matrix_sm)
-  call freesmo(s1matrix_sm)
-  call freesmo(s2matrix_sm)
-  call freesmo(d1matrix_sm)
-  call freesmo(d2matrix_sm)
-  call freesmo(d4matrix_sm)
-  call freesmo(q1matrix_sm)
-  call freesmo(r2matrix_sm)
-  call freesmo(q2matrix_sm)
-  call freesmo(r14matrix_sm)
-  if(iresolve.eq.1) then
-     call freesmo(s10matrix_sm)
-     call freesmo(d10matrix_sm)
-     call freesmo(q10matrix_sm)
-     call freesmo(r10matrix_sm)
-  endif
+  call deletematrix(gsmatrix_sm)
+  call deletematrix(s6matrix_sm)
+  call deletematrix(s7matrix_sm)
+  call deletematrix(s4matrix_sm)
+  call deletematrix(s3matrix_sm)
+  call deletematrix(s5matrix_sm)
+  call deletematrix(s1matrix_sm)
+  call deletematrix(s2matrix_sm)
+  call deletematrix(d1matrix_sm)
+  call deletematrix(d2matrix_sm)
+  call deletematrix(d4matrix_sm)
+  call deletematrix(q1matrix_sm)
+  call deletematrix(r2matrix_sm)
+  call deletematrix(q2matrix_sm)
+  call deletematrix(r14matrix_sm)
   if(idens.eq.1) then
-     call freesmo(s8matrix_sm)
-     call freesmo(d8matrix_sm)
-     call freesmo(q8matrix_sm) 
-     call freesmo(r8matrix_sm)
+     call deletematrix(s8matrix_sm)
+     call deletematrix(d8matrix_sm)
+     call deletematrix(q8matrix_sm) 
+     call deletematrix(r8matrix_sm)
   end if
   if(ipres.eq.1) then 
-     call freesmo(s9matrix_sm)
-     call freesmo(d9matrix_sm)
-     call freesmo(r9matrix_sm)
-     call freesmo(q9matrix_sm)
+     call deletematrix(s9matrix_sm)
+     call deletematrix(d9matrix_sm)
+     call deletematrix(r9matrix_sm)
+     call deletematrix(q9matrix_sm)
   endif
   call deletesearchstructure()
 !  free memory for numberings
@@ -469,7 +437,7 @@ Program Reducedquintic
   call deletedofnumbering(2)
   if(vecsize.gt.2)  call deletedofnumbering(vecsize)
 
-  if (myrank.eq.0 .and. maxrank.eq.1) call plote
+!!$  if (myrank.eq.0 .and. maxrank.eq.1) call plote
 
 5003 format(" linear, itaylor, isetup, imask, irestart: ",             &
           5i4, / ," facd, bzero, eps ", 1p3e12.4)
@@ -497,7 +465,6 @@ subroutine onestep
   use basic
   use arrays
   use sparse
-  use newvar_mod
   use diagnostics
   use gradshafranov
 
@@ -547,17 +514,13 @@ subroutine onestep
      ! Store current-time velocity matrices for use in field advance
      veln = vel
      veloldn = velold
-     if(iresolve.eq.1) then
-        phioldn = phiold
-        presoldn = presold
-     end if
  
      ! Advance Velocity
      ! ================
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Velocity"
      
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     
+
      ! b1vector = q1matrix_sm * phi(n)
      if(ipres.eq.1 .and. numvar.ge.3) then
         ! replace electron pressure with total pressure
@@ -607,7 +570,7 @@ subroutine onestep
      ! apply boundary conditions
      if(calc_matrices.eq.1) then
         call boundary_vel(s1matrix_sm, vtemp)
-        call finalizearray(s1matrix_sm)
+        call finalizematrix(s1matrix_sm)
      else
         call boundary_vel(0, vtemp)
      endif
@@ -629,42 +592,16 @@ subroutine onestep
         vtemp = (2.*vtemp - velold)/3.
      endif
 
-     ! apply smoothing operators
-     ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-     if(hyperc.gt.0) then
-        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-        
-        ! smooth vorticity
-        call newvar_d2(vtemp,vor,1,NV_DCBOUND,NV_GS)
-        call smoother1(vor,vtemp,numnodes,numvar,1)
-        
-        ! smooth compression
-        if(numvar.ge.3) then
-           if(com_bc.eq.1) then
-              call newvar_d2(vtemp,com,3,NV_DCBOUND,NV_LP)
-           else
-              call newvar_d2(vtemp,com,3,NV_NOBOUND,NV_LP)
-           endif
-
-!!$        !
-!!$        !.....coding to calculate the error in the delsquared chi equation
-!!$        call calc_chi_error(chierror)
-!!$        if(myrank.eq.0) then
-!!$           print *, "Error in com = ", chierror 
-!!$        endif
-
-           call smoother3(com,vtemp,numnodes,numvar,3)     
-        endif
-
-        if(myrank.eq.0 .and. itimer.eq.1) then
-           call second(tend)
-           t_smoother = t_smoother + tend - tstart
-        endif
-     endif
-
      !.....new velocity solution at time n+1 (or n* for second order advance)
      velold = vel
      vel = vtemp
+
+
+     ! apply smoothing operators
+     ! ~~~~~~~~~~~~~~~~~~~~~~~~~
+     call smooth
+
+
 
      !
      ! Advance Density
@@ -673,7 +610,7 @@ subroutine onestep
         if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Density"
         
         if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-        
+
         ! b2vector = r8matrix_sm * vel(n+1)
         call matrixvectormult(r8matrix_sm,vel,b2vector)
         
@@ -695,15 +632,16 @@ subroutine onestep
         endif
 
         ! temp = d8matrix_sm * phi(n)
-        call createvec(temp, 1)
+        call createvec(temp, numvar1_numbering)
         temp = 0.
+
         call matrixvectormult(d8matrix_sm,den,temp)
         
         call numdofs(numvar,ndofs)
         allocate(itemp(ndofs)) ! this is used to make sure that we 
                                ! don't double count the sum for periodic dofs
         itemp = 1
-        
+
         do l=1,numnodes
            call entdofs(1, l, 0, ibegin, iendplusone)
            call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
@@ -720,11 +658,14 @@ subroutine onestep
         ! Insert boundary conditions
         if(calc_matrices.eq.1) then
            call boundary_den(s8matrix_sm, temp)
-           call finalizearray(s8matrix_sm)
+           call finalizematrix(s8matrix_sm)
         else
            call boundary_den(0, temp)
         endif
         
+        if(myrank.eq.0 .and. iprint.ge.1) print *, " solving..."
+
+
         ! solve linear system...LU decomposition done first time
         ! -- okay to here      call printarray(temp, 150, 0, 'vtemp on')
         if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -776,7 +717,7 @@ subroutine onestep
         endif
         
         ! temp = d8matrix_sm * pres(n)
-        call createvec(temp, 1)
+        call createvec(temp, numvar1_numbering)
         temp = 0.
         call matrixvectormult(d9matrix_sm,pres,temp)
         
@@ -800,7 +741,7 @@ subroutine onestep
         ! Insert boundary conditions
         if(calc_matrices.eq.1) then
            call boundary_pres(s9matrix_sm, temp)
-           call finalizearray(s9matrix_sm)
+           call finalizematrix(s9matrix_sm)
         else
            call boundary_pres(0, temp)
         endif
@@ -859,20 +800,22 @@ subroutine onestep
         call second(tend)
         t_mvm = t_mvm + tend - tstart
      endif
-     
-     vtemp = vtemp + b2vector + b3vector + q4  + b1vector
-     
+    
+     vtemp = vtemp + b2vector + b3vector + q4  + b1vector   
+
      ! Insert boundary conditions
      if(calc_matrices.eq.1) then
         call boundary_mag(s2matrix_sm, vtemp)
-        call finalizearray(s2matrix_sm)
+        call finalizematrix(s2matrix_sm)
      else 
         call boundary_mag(0, vtemp)
      endif
      
      ! solve linear system...LU decomposition done first time
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+
      call solve(s2matrix_sm, vtemp, jer)
+
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_solve_b = t_solve_b + tend - tstart
@@ -888,154 +831,6 @@ subroutine onestep
      endif
      phiold = phi
      phi = vtemp
-     
-     
-     ! Secondary Velocity Advance
-     ! ==========================
-     if(iresolve.eq.1) then
-        
-        if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Velocity again"
-        
-        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-        
-        ! b1vector = r10matrix_sm * phi(n+1)
-        if(ipres.eq.1 .and. numvar.ge.3) then
-           ! replace electron pressure with total pressure
-           do l=1,numnodes
-              call entdofs(1, l, 0, ibegin, iendplusone)
-              call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
-              
-              phip(ibeginnv   :ibeginnv+11) = phi(ibeginnv:ibeginnv+11)
-              phip(ibeginnv+12:ibeginnv+17) = pres(ibegin:ibegin+5)
-           enddo
-           call matrixvectormult(r10matrix_sm, phip, b1vector)
-        else
-           call matrixvectormult(r10matrix_sm, phi, b1vector)
-        endif
-        
-        ! b2vector = q10matrix_sm * phi(n)
-        if(ipres.eq.1 .and. numvar.ge.3) then
-           ! replace electron pressure with total pressure
-           do l=1,numnodes
-              call entdofs(1, l, 0, ibegin, iendplusone)
-              call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
-              
-              phip(ibeginnv   :ibeginnv+11) = phiold(ibeginnv:ibeginnv+11)
-              phip(ibeginnv+12:ibeginnv+17) = presold(ibegin:ibegin+5)
-           enddo
-           call matrixvectormult(q10matrix_sm, phip, b2vector)
-        else
-           call matrixvectormult(q10matrix_sm, phiold, b2vector)
-        endif
-        
-        ! b3vector = r10matrix_sm * phi(n-1)
-        if(integrator.eq.1 .and. ntime.gt.1) then
-           b1vector = 1.5*b1vector
-           if(ipres.eq.1 .and. numvar.ge.3) then
-              ! replace electron pressure with total pressure
-              do l=1,numnodes
-                 call entdofs(1, l, 0, ibegin, iendplusone)
-                 call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
-                 
-                 phip(ibeginnv   :ibeginnv+11) = phioldn(ibeginnv:ibeginnv+11)
-                 phip(ibeginnv+12:ibeginnv+17) = presoldn(ibegin:ibegin+5)
-              enddo
-              call matrixvectormult(r10matrix_sm, phip, b3vector)
-           else
-              call matrixvectormult(r10matrix_sm, phioldn, b3vector)
-           endif
-           b3vector = 0.5*b3vector
-        else
-           b3vector = 0.
-        endif
-        
-        ! vtemp = d1matrix_sm * vel(n)
-        vtemp = 0.
-        call matrixvectormult(d10matrix_sm,veln,vtemp)
-        
-        if(myrank.eq.0 .and. itimer.eq.1) then
-           call second(tend)
-           t_mvm = t_mvm + tend - tstart
-        endif
-        
-        vtemp = vtemp + b1vector + b2vector + b3vector + r4
-        
-!!$     ! Include linear density terms
-!!$     if(idens.eq.1) then
-!!$        ! b2vector = r41 * den(n)
-!!$        
-!!$        ! make a larger vector that can be multiplied by a numvar=3 matrix
-!!$        do l=1,numnodes
-!!$           call entdofs(1, l, 0, ibegin, iendplusone)
-!!$           call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
-!!$           
-!!$           phip(ibeginnv   :ibeginnv+5) = den(ibegin:ibegin+5)
-!!$           phip(ibeginnv+6:ibeginnv+17) = 0.
-!!$        enddo
-!!$        call matrixvectormult(r14matrix_sm,phip,b2vector)
-!!$        vtemp = vtemp + b2vector
-!!$     endif
-
-        ! apply boundary conditions
-        if(calc_matrices.eq.1) then
-           call boundary_vel(s10matrix_sm, vtemp)
-           call finalizearray(s10matrix_sm)
-        else
-           call boundary_vel(0, vtemp)
-        endif
-
-        ! solve linear system with rhs in vtemp (note LU-decomp done first time)
-        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-        call solve(s10matrix_sm, vtemp, jer)
-        if(myrank.eq.0 .and. itimer.eq.1) then
-           call second(tend)
-           t_solve_v = t_solve_v + tend - tstart
-        endif
-        if(jer.ne.0) then
-           write(*,*) 'Error in velocity solve', jer
-           call safestop(42)
-        endif
-        
-        if(integrator.eq.1 .and. ntime.gt.1) then
-           vtemp = (2.*vtemp - veloldn)/3.
-        endif
-        
-        ! apply smoothing operators
-        ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-        if(hyperc.gt.0) then
-           if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-           
-           ! smooth vorticity
-           call newvar_d2(vtemp,vor,1,NV_DCBOUND,NV_GS)
-           call smoother1(vor,vtemp,numnodes,numvar,1)
-           
-           ! smooth compression
-           if(numvar.ge.3) then
-              if(com_bc.eq.1) then
-                 call newvar_d2(vtemp,com,3,NV_DCBOUND,NV_LP)
-              else
-                 call newvar_d2(vtemp,com,3,NV_NOBOUND,NV_LP)
-              endif
-              
-!!$        !
-!!$        !.....coding to calculate the error in the delsquared chi equation
-!!$        call calc_chi_error(chierror)
-!!$        if(myrank.eq.0) then
-!!$           print *, "Error in com = ", chierror 
-!!$        endif
-              
-              call smoother3(com,vtemp,numnodes,numvar,3)     
-           endif
-           
-           if(myrank.eq.0 .and. itimer.eq.1) then
-              call second(tend)
-              t_smoother = t_smoother + tend - tstart
-           endif
-        endif
-        
-        !.....new velocity solution at time n+1 (or n* for second order advance)
-        vel = vtemp
-     end if
      
   else    
      ! ====================
@@ -1061,7 +856,7 @@ subroutine onestep
         call boundary_vel(s1matrix_sm, vtemp)
         if(idens.eq.1) call boundary_den(s1matrix_sm, vtemp)
         if(ipres.eq.1) call boundary_pres(s1matrix_sm, vtemp)
-        call finalizearray(s1matrix_sm)
+        call finalizematrix(s1matrix_sm)
      else 
         call boundary_mag(0, vtemp)
         call boundary_vel(0, vtemp)
@@ -1091,41 +886,13 @@ subroutine onestep
   end if
 
 
-  ! Define auxiliary variables
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "Defining auxiliary variables"
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  ! transport coefficients (eta, kappa)
-  call define_transport_coefficients
-  ! toroidal current
-  call newvar_d2(psi1_v,jphi,psi_i,NV_DCBOUND,NV_GS)
-  if(hyperc.ne.0) then
-     ! vorticity
-     call newvar_d2(phi1_v,vor,phi_i,NV_DCBOUND,NV_GS)
-     ! compression
-     if(numvar.ge.3) call newvar_d2(chi1_v,com,chi_i,NV_NOBOUND,NV_LP)
-  endif
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_aux = t_aux + tend - tstart
-  endif
+  ! Calculate all quantities derived from basic fields
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  call derived_quantities
 
-  ! find lcfs
-  ! ~~~~~~~~~
-  call lcfs(psi1_v+psi0_v,vecsize) 
 
-  ! Calculate scalars (energy, toroidal current, etc..)
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "Calculating scalars"
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  call calculate_scalars
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_sources = t_sources + tend - tstart
-  endif 
-
-  ! Conserve flux
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ! Conserve toroidal flux
+  ! ~~~~~~~~~~~~~~~~~~~~~~
   if(iconstflux.eq.1 .and. numvar.ge.2) then
      call conserve_flux
      tflux = tflux + gbound*area
@@ -1135,10 +902,136 @@ end subroutine onestep
 
 
 ! ======================================================================
+! smooth
+! ------
+!
+! applies smoothing operators
+!
+! ======================================================================
+subroutine smooth
+  use basic
+  use arrays
+  use newvar_mod
+  use diagnostics
+
+  implicit none
+
+  real :: tstart, tend
+  integer :: numnodes
+
+  if(hyperc.eq.0) return
+
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+
+  call numnod(numnodes)
+     
+  ! smooth vorticity
+  call newvar_d2(vel,vor,1,NV_DCBOUND,NV_GS)
+  call smoother1(vor,vel,numnodes,numvar,1)
+     
+  ! smooth compression
+  if(numvar.ge.3) then
+     if(com_bc.eq.1) then
+        call newvar_d2(vel,com,3,NV_DCBOUND,NV_LP)
+     else
+        call newvar_d2(vel,com,3,NV_NOBOUND,NV_LP)
+     endif
+     
+!!$        !
+!!$        !.....coding to calculate the error in the delsquared chi equation
+!!$        call calc_chi_error(chierror)
+!!$        if(myrank.eq.0) then
+!!$           print *, "Error in com = ", chierror 
+!!$        endif
+        
+     call smoother3(com,vel,numnodes,numvar,3)     
+  endif
+
+  if(myrank.eq.0 .and. itimer.eq.1) then
+     call second(tend)
+     t_smoother = t_smoother + tend - tstart
+  endif
+
+end subroutine smooth
+
+
+! ======================================================================
+! derived_quantities
+! ------------------
+!
+! calculates all derived quantities, including auxiliary fields
+! and scalars
+!
+! ======================================================================
+subroutine derived_quantities
+  use basic
+  use arrays
+  use newvar_mod
+  use diagnostics
+
+  implicit none
+
+  real :: tstart, tend
+
+  ! Define auxiliary fields
+  ! ~~~~~~~~~~~~~~~~~~~~~~~
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Defining auxiliary fields."
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "-Transport coefficients"
+  call define_transport_coefficients
+
+  !   toroidal current
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "-Toroidal current"
+  call newvar_d2(psi1_v,jphi,psi_i,NV_DCBOUND,NV_GS)
+
+  if(hyperc.ne.0) then
+
+     !   vorticity
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "-Vorticity"
+     call newvar_d2(phi1_v,vor,phi_i,NV_DCBOUND,NV_GS)
+
+     !   compression
+     if(numvar.ge.3) then
+        if(myrank.eq.0 .and. iprint.ge.1) print *, "-Compression"
+        if(com_bc.eq.1) then
+           call newvar_d2(chi1_v,com,chi_i,NV_DCBOUND,NV_LP)
+        else
+           call newvar_d2(chi1_v,com,chi_i,NV_NOBOUND,NV_LP)
+        endif
+     else
+        com = 0.
+     endif
+  endif
+
+  if(myrank.eq.0 .and. itimer.eq.1) then
+     call second(tend)
+     t_aux = t_aux + tend - tstart
+  endif
+  
+
+  ! find lcfs
+  ! ~~~~~~~~~
+  call lcfs(psi1_v+psi0_v,vecsize) 
+
+
+  ! calculate scalars
+  ! ~~~~~~~~~~~~~~~~~
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Calculating scalars"
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+  call calculate_scalars
+  if(myrank.eq.0 .and. itimer.eq.1) then
+     call second(tend)
+     t_sources = t_sources + tend - tstart
+  endif
+
+end subroutine derived_quantities
+
+! ======================================================================
 ! conserve_flux
 ! --------------
 !
-! adjusts the boundary conditions to conserve flux
+! adjusts the boundary conditions to conserve toroidal flux
 !
 ! ======================================================================
 subroutine conserve_flux

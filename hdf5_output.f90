@@ -27,14 +27,14 @@ contains
 
   ! hdf5_initialize
   ! ===============
-  subroutine hdf5_initialize(ntime, error)
+  subroutine hdf5_initialize(error)
+    use basic
     use hdf5
 
     implicit none
 
     include 'mpif.h'
    
-    integer, intent(in) :: ntime
     integer, intent(out) :: error
 
     integer(HID_T) :: root_id, plist_id
@@ -51,8 +51,8 @@ contains
     info = MPI_INFO_NULL
     call h5pset_fapl_mpio_f(plist_id, MPI_COMM_WORLD, info, error)
 
-    ! if ntime.eq.0 then create hdf5 file
-    if(ntime.eq.0) then
+    ! if irestart.eq.0 then create hdf5 file
+    if(irestart.eq.0) then
        call h5fcreate_f(hdf5_filename, H5F_ACC_TRUNC_F, file_id, error, &
             access_prp = plist_id)
        if(error.lt.0) then
@@ -411,7 +411,7 @@ subroutine hdf5_write_scalars(error)
 
   call h5gopen_f(file_id, "/", root_id, error)
 
-  if(ntime.eq.0) then
+  if(ntime.eq.0 .and. irestart.eq.0) then
      call h5gcreate_f(root_id, "scalars", scalar_group_id, error)
   else
      call h5gopen_f(root_id, "scalars", scalar_group_id, error)
@@ -502,7 +502,7 @@ subroutine hdf5_write_timings(error)
 
   call h5gopen_f(file_id, "/", root_id, error)
 
-  if(ntime.eq.0) then
+  if(ntime.eq.0 .and. irestart.eq.0) then
      call h5gcreate_f(root_id, "timings", timing_group_id, error)
 
      ! for grad-shafranov equilibrium, output gs times
@@ -539,7 +539,7 @@ end subroutine hdf5_write_timings
 
 ! hdf5_write_time_slice
 ! =====================
-subroutine hdf5_write_time_slice(error)
+subroutine hdf5_write_time_slice(equilibrium, error)
   use hdf5
   use hdf5_output
   use basic
@@ -549,10 +549,12 @@ subroutine hdf5_write_time_slice(error)
   include 'mpif.h'
 
   integer, intent(out) :: error
+  integer, intent(in) :: equilibrium
 
   character(LEN=19) :: time_group_name
   integer(HID_T) :: time_group_id, root_id
   integer :: nelms
+
 !  integer :: global_nodes, global_edges, global_regions
     
   call numfac(nelms)
@@ -562,11 +564,16 @@ subroutine hdf5_write_time_slice(error)
   offset = offset - nelms
 !  print *, "Offset of ", myrank, " = ", offset
 !  call numglobalents(global_nodes, gobal_edges, global_elms, global_regions)
-  call mpi_allreduce(nelms, global_elms, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, error)
-!  print *, "Global elms = ", global_elms
+  call mpi_allreduce(nelms, global_elms, 1, MPI_INTEGER, &
+       MPI_SUM, MPI_COMM_WORLD, error)
+
 
   ! Create the time group
-  write(time_group_name, '("time_",I3.3)') times_output
+  if(equilibrium.eq.1) then
+     time_group_name = "equilibrium"
+  else
+     write(time_group_name, '("time_",I3.3)') times_output
+  endif
   call h5gcreate_f(file_id, time_group_name, time_group_id, error)
 
   ! Write attributes
@@ -576,13 +583,13 @@ subroutine hdf5_write_time_slice(error)
   ! Output the mesh data
   call output_mesh(time_group_id, nelms, error)
 
-  ! Output the field data  
-  call output_fields(time_group_id, error)
+  ! Output the field data 
+  call output_fields(time_group_id, equilibrium, error)
     
   ! Close the time group
   call h5gclose_f(time_group_id, error)  
 
-  times_output = times_output + 1
+  if(equilibrium.eq.0) times_output = times_output + 1
   call h5gopen_f(file_id, "/", root_id, error)
   call update_int_attr(root_id, "ntime", times_output, error)
   call h5gclose_f(root_id, error)
@@ -640,7 +647,7 @@ end subroutine output_mesh
 
 ! output_fields
 ! =============
-subroutine output_fields(time_group_id, error)
+subroutine output_fields(time_group_id, equilibrium, error)
   use hdf5
   use hdf5_output
   use basic
@@ -650,11 +657,35 @@ subroutine output_fields(time_group_id, error)
 
   integer(HID_T), intent(in) :: time_group_id
   integer, intent(out) :: error
+  integer, intent(in) :: equilibrium
   
   integer(HID_T) :: group_id
   integer :: i, nelms, nfields
-  real, allocatable :: dum(:,:)
-  
+  vectype, allocatable :: dum(:,:)
+  vectype, pointer :: psi_p(:), bz_p(:), pe_p(:), p_p(:)
+  vectype, pointer :: phi_p(:), vz_p(:), chi_p(:), den_p(:)
+
+  if(equilibrium.eq.1) then
+     psi_p => psi0_v
+     bz_p  =>  bz0_v
+     pe_p  =>  pe0_v
+     p_p   =>   p0_v
+     phi_p => phi0_v
+     vz_p  =>  vz0_v
+     chi_p => chi0_v
+     den_p => den0_v
+  else
+     psi_p => psi1_v
+     bz_p  =>  bz1_v
+     pe_p  =>  pe1_v
+     p_p   =>   p1_v
+     phi_p => phi1_v
+     vz_p  =>  vz1_v
+     chi_p => chi1_v
+     den_p => den1_v
+  endif
+
+
   nfields = 0
   call numfac(nelms)
   
@@ -668,66 +699,66 @@ subroutine output_fields(time_group_id, error)
   
   ! psi
   do i=1, nelms
-     call calcavector(i, psi1_v, psi_i, vecsize, dum(:,i))
+     call calcavector(i, psi_p, psi_i, vecsize, dum(:,i))
   end do
-  call output_field(group_id, "psi", dum, 20, nelms, error)
+  call output_field(group_id, "psi", real(dum), 20, nelms, error)
   nfields = nfields + 1
 
   ! phi
   do i=1, nelms
-     call calcavector(i, phi1_v, phi_i, vecsize, dum(:,i))
+     call calcavector(i, phi_p, phi_i, vecsize, dum(:,i))
   end do
-  call output_field(group_id, "phi", dum, 20, nelms, error)
+  call output_field(group_id, "phi", real(dum), 20, nelms, error)
   nfields = nfields + 1
 
-!!$  ! jphi
-!!$  do i=1, nelms
-!!$     call calcavector(i, jphi, 1, 1, dum(:,i))
-!!$  end do
-!!$  call output_field(group_id, "jphi", dum, 20, nelms, error)
-!!$  nfields = nfields + 1
-!!$
-!!$  ! vor
-!!$  do i=1, nelms
-!!$     call calcavector(i, vor, 1, 1, dum(:,i))
-!!$  end do
-!!$  call output_field(group_id, "vor", dum, 20, nelms, error)
-!!$  nfields = nfields + 1
+  ! jphi
+  do i=1, nelms
+     call calcavector(i, jphi, 1, 1, dum(:,i))
+  end do
+  call output_field(group_id, "jphi", real(dum), 20, nelms, error)
+  nfields = nfields + 1
+
+  ! vor
+  do i=1, nelms
+     call calcavector(i, vor, 1, 1, dum(:,i))
+  end do
+  call output_field(group_id, "vor", real(dum), 20, nelms, error)
+  nfields = nfields + 1
 
   ! eta
   do i=1, nelms
      call calcavector(i, resistivity, 1, 1, dum(:,i))
   end do
-  call output_field(group_id, "eta", dum, 20, nelms, error)
+  call output_field(group_id, "eta", real(dum), 20, nelms, error)
   nfields = nfields + 1
 
   ! visc
   do i=1, nelms
      call calcavector(i, visc, 1, 1, dum(:,i))
   end do
-  call output_field(group_id, "visc", dum, 20, nelms, error)
+  call output_field(group_id, "visc", real(dum), 20, nelms, error)
   nfields = nfields + 1
 
   ! tempvar
   do i=1, nelms
      call calcavector(i, tempvar, 1, 1, dum(:,i))
   end do
-  call output_field(group_id, "tempvar", dum, 20, nelms, error)
+  call output_field(group_id, "tempvar", real(dum), 20, nelms, error)
   nfields = nfields + 1
 
   if(numvar.ge.2) then
      ! I
      do i=1, nelms
-        call calcavector(i, bz1_v, bz_i, vecsize, dum(:,i))
+        call calcavector(i, bz_p, bz_i, vecsize, dum(:,i))
      end do
-     call output_field(group_id, "I", dum, 20, nelms, error)
+     call output_field(group_id, "I", real(dum), 20, nelms, error)
      nfields = nfields + 1
 
      ! V
      do i=1, nelms
-        call calcavector(i, vz1_v, vz_i, vecsize, dum(:,i))
+        call calcavector(i, vz_p, vz_i, vecsize, dum(:,i))
      end do
-     call output_field(group_id, "V", dum, 20, nelms, error)
+     call output_field(group_id, "V", real(dum), 20, nelms, error)
      nfields = nfields + 1
   endif
 
@@ -735,51 +766,51 @@ subroutine output_fields(time_group_id, error)
      ! P and Pe
      if(ipres.eq.1) then
         do i=1, nelms
-           call calcavector(i, pe1_v, pe_i, vecsize, dum(:,i))
+           call calcavector(i, pe_p, pe_i, vecsize, dum(:,i))
         end do
-        call output_field(group_id, "Pe", dum, 20, nelms, error)
+        call output_field(group_id, "Pe", real(dum), 20, nelms, error)
         nfields = nfields + 1
         do i=1, nelms
-           call calcavector(i, p1_v, p_i, vecsize1, dum(:,i))
+           call calcavector(i, p_p, p_i, vecsize1, dum(:,i))
         end do
-        call output_field(group_id, "P", dum, 20, nelms, error)
+        call output_field(group_id, "P", real(dum), 20, nelms, error)
         nfields = nfields + 1
      else
         do i=1, nelms
-           call calcavector(i, pe1_v, pe_i, vecsize, dum(:,i))
+           call calcavector(i, pe_p, pe_i, vecsize, dum(:,i))
         end do
-        call output_field(group_id, "Pe", pefac*dum, 20, nelms, error)
+        call output_field(group_id, "Pe", pefac*real(dum), 20, nelms, error)
         nfields = nfields + 1
-        call output_field(group_id, "P", dum, 20, nelms, error)
+        call output_field(group_id, "P", real(dum), 20, nelms, error)
         nfields = nfields + 1
      endif
      
      ! chi
      do i=1, nelms
-        call calcavector(i, chi1_v, chi_i, vecsize, dum(:,i))
+        call calcavector(i, chi_p, chi_i, vecsize, dum(:,i))
      end do
-     call output_field(group_id, "chi", dum, 20, nelms, error)
+     call output_field(group_id, "chi", real(dum), 20, nelms, error)
      nfields = nfields + 1
 
 !!$     ! com
 !!$     do i=1, nelms
 !!$        call calcavector(i, com, 1, 1, dum(:,i))
 !!$     end do
-!!$     call output_field(group_id, "com", dum, 20, nelms, error)
+!!$     call output_field(group_id, "com", real(dum), 20, nelms, error)
 !!$     nfields = nfields + 1
 
      ! kappa
      do i=1, nelms
         call calcavector(i, kappa, 1, 1, dum(:,i))
      end do
-     call output_field(group_id, "kappa", dum, 20, nelms, error)
+     call output_field(group_id, "kappa", real(dum), 20, nelms, error)
      nfields = nfields + 1
 
      ! visc_c
      do i=1, nelms
         call calcavector(i, visc_c, 1, 1, dum(:,i))
      end do
-     call output_field(group_id, "visc_c", dum, 20, nelms, error)
+     call output_field(group_id, "visc_c", real(dum), 20, nelms, error)
      nfields = nfields + 1
   endif
 
@@ -787,16 +818,16 @@ subroutine output_fields(time_group_id, error)
   if(idens.eq.1) then
      ! den
      do i=1, nelms
-        call calcavector(i, den1_v, den_i, vecsize1, dum(:,i))
+        call calcavector(i, den_p, den_i, vecsize1, dum(:,i))
      end do
-     call output_field(group_id, "den", dum, 20, nelms, error)
+     call output_field(group_id, "den", real(dum), 20, nelms, error)
      nfields = nfields + 1
 
      if(ipellet.eq.1 .or. ionization.eq.1) then
         do i=1, nelms
            call calcavector(i, sigma, 1, 1, dum(:,i))
         end do
-        call output_field(group_id, "sigma", dum, 20, nelms, error)
+        call output_field(group_id, "sigma", real(dum), 20, nelms, error)
         nfields = nfields + 1
      endif
   endif
@@ -805,20 +836,20 @@ subroutine output_fields(time_group_id, error)
      do i=1, nelms
         call calcavector(i, sb1, 1, 1, dum(:,i))
      end do
-     call output_field(group_id, "sb1", dum, 20, nelms, error)
+     call output_field(group_id, "sb1", real(dum), 20, nelms, error)
      nfields = nfields + 1
      if(numvar.ge.2) then
         do i=1, nelms
            call calcavector(i, sb2, 1, 1, dum(:,i))
         end do
-        call output_field(group_id, "sb2", dum, 20, nelms, error)
+        call output_field(group_id, "sb2", real(dum), 20, nelms, error)
         nfields = nfields + 1
      endif
      if(numvar.ge.3) then
         do i=1, nelms
            call calcavector(i, sp1, 1, 1, dum(:,i))
         end do
-        call output_field(group_id, "sp1", dum, 20, nelms, error)
+        call output_field(group_id, "sp1", real(dum), 20, nelms, error)
         nfields = nfields + 1
      endif
   endif
