@@ -1,9 +1,11 @@
 \chapter{SCOREC Software Interface}
 This appendix chapter should document all SCOREC/ITAPS functions called from M3D-C$^1$. 
-  In Fortran, the standard convention
+In this document the term process is used instead of processor since multiple processes
+may be run on a single processor.  Currently it is assumed that there is
+one partition per process.  In Fortran, the standard convention
 is that a function does not modify any passed in variables and returns a value. 
 In this appendix a function follows C/C++ conventions in both syntax and functionality. 
-Functions listed below should be thought of as fortran subroutines as they are allowed
+Functions listed below should be thought of as Fortran subroutines as they are allowed
 to modify the passed in parameters and do not return any value. 
 The datatypes listed below in the C/C++ functions are:
 \begin{description}
@@ -29,7 +31,7 @@ are to load a mesh and model which is used with the \textit{loadmesh} function b
 \begin{center}
 \begin{figure}
 \centerline{\psfig{figure=./partitioned_mesh.eps,height=2.5in,angle=0}} %for epsfig
-\caption{A partitioned mesh with the dofs locally numbered for the blue partition with one dof per node and iper=1 and jper=0.}\label{meshpartition} \end{figure}
+\caption{A partitioned mesh with the DOFs locally numbered for the blue partition with one DOF per node and iper=1 and jper=0.}\label{meshpartition} \end{figure}
 \end{center}
 
 
@@ -69,21 +71,21 @@ returned by the function.
 
 \section{Mesh Interface}
 \begin{itemize}
-\item void numnod( int *NumNodes ) ; Returns the number of nodes, \textit{NumNodes}, in the processor's partition of the mesh.  Since
- some nodes  exist on partition boundaries (i.e. shared by multiple processors) summing \textit{NumNodes} over all
-processors will result in more nodes than exist in the total mesh. The IDs of the nodes on a processor are numbered between
+\item void numnod( int *NumNodes ) ; Returns the number of nodes, \textit{NumNodes}, in the process's partition of the mesh.  Since
+ some nodes  exist on partition boundaries (i.e. shared by multiple processes) summing \textit{NumNodes} over all
+processes will result in more nodes than exist in the total mesh. The IDs of the nodes on a process are numbered between
 one and \textit{NumNodes}.
 \item void xyznod( int *iNode , double X[3] ) ; For input node ID \textit{iNode}, this function returns the coordinate location in 
 the \textit{X} array.  The \textit{X} array should be of at least length 3.
-\item void numfac( int *NumFaces ) ; Returns the number of faces, \textit{NumFaces}, in the processor's partition of the mesh. 
+\item void numfac( int *NumFaces ) ; Returns the number of faces, \textit{NumFaces}, in the process's partition of the mesh. 
 For a 2D mesh, the faces will all be elements. Since
  any face for a 2D mesh  exists only on  one partition,  summing \textit{NumFaces} over all
-processors will result in the total number of faces that exist in the mesh. The IDs of the faces on a processor are numbered between
+processes will result in the total number of faces that exist in the mesh. The IDs of the faces on a process are numbered between
 one and \textit{NumFaces}.
 \item void nodfac( int *iFace, int Nodes[4] ) ; For an input face ID, \textit{iFace}, this function returns the adjacent nodal IDs
 in the \textit{Nodes} array.  
 For mixed topology meshes the faces could be triangles or quadrilaterals so it is safest to have the \textit{Nodes} array to be of
-length four.  The nodes IDs are returned in counter-clockwise order and it the face is a triangle then only the first three
+length four.  The nodes' IDs are returned in counter-clockwise order and if the face is a triangle then only the first three
 values in the \textit{Nodes} array contain usable data.
 \item void numglobalents(int * numnodes, int * numedges, int * numfaces, int * numregions); This function returns
 the global number of nodes, edges, faces, and regions in the mesh in \textit{numnodes, numedges, numfaces}, and \textit{numregions}.
@@ -97,7 +99,7 @@ the global number of nodes, edges, faces, and regions in the mesh in \textit{num
 \item void usesearchstructure(double* x, double* y, int* iFace); This function returns the face ID \textit{iFace}
 of a mesh face that contains the given point \textit{(x,y)}.  The point \textit{(x,y)} is given in the
 global coordinate system of the mesh.  The function returns -1 for \textit{iFace} if the point is not contained
-in the domain of any mesh faces on the local processes partition.  Note  that multiple faces may contain
+in the domain of any mesh faces on the local process's partition.  Note  that multiple faces may contain
 a given point (e.g. a mesh vertex coordinate).
 \item void getelmsizes(int * iFace, double sizes[4]); For mesh face \textit{iFace}, this function returns an array
 of doubles for the mesh size at each of the mesh vertices of the face.  
@@ -125,16 +127,17 @@ call to \textit{loadmesh}.
 Eventually though if some orderings are periodic and others are not (e.g. a potential function)
 than these options can be used to specify the difference in orderings. The other parameters
 passed in (\textit{dofspervertex, dofsperedge, dofsperface,dofsperregion}) are to specify
-how many dofs per mesh entity type (e.g. \textit{dofspervertex} would be 18 for a numvar=3 
-vector and 0 for the other types.  The only returned value is \textit{numdofs} 
-which is the total number of dofs associated with mesh entities that exist on the process that
+how many DOFs per mesh entity type (e.g. \textit{dofspervertex} would be 18 for a numvar=3 
+vector and 0 for the other mesh entity types).  The only returned value is \textit{numdofs} 
+which is the total number of DOFs associated with mesh entities that exist on the process that
 the function is called on. This is also the allocated size of a vector on this process.  Note
 though that a global sum of \textit{numdofs} on all processes will be greater than the total number
-of global dofs unless it is a single process run. 
+of global DOFs unless it is a single process run. 
 
 \item void deletedofnumbering(int * numberingid);
 This function deletes the numbering associated with \textit{numberingid}.  It is an error
-to query the SCOREC software with \textit{numberingid} unless another numbering is created
+to query the SCOREC software with \textit{numberingid} after it has been deleted
+unless another numbering is created
 with this id.
 
 
@@ -142,8 +145,8 @@ with this id.
                int * begindofnumber, int * enddofnumberplusone);
      For \textit{numberingid}, of topological dimension \textit{meshentdim} with mesh entity
 ID \textit{meshentid} this function outputs \textit{begindofnumber} which is the beginning of
-the dof array location (stored contiguously) and \textit{enddofnumberplusone} is one
-beyond the last dof array location.  Note that the returned array index values are in Fortran
+the DOF array location (stored contiguously) and \textit{enddofnumberplusone} is one
+beyond the last DOF array location.  Note that the returned array index values are in Fortran
 ordering convection such that the first entry of the array is at index 1.
 For a numvar=1 ordering an example would be \textit{begindofnumber}=1
 and \textit{enddofnumberplusone}=7. 
@@ -152,16 +155,16 @@ and \textit{enddofnumberplusone}=7.
 DOFs associated with all mesh entities existing on a specific mesh partition.  For the example
 in Figure \ref{meshpartition}, the blue partition would have \textit{numdofs} equal to 10 as both DOF 1
 and 2 are periodic DOFs and only get counted once even though the number of nodes for this 
-is 12.
+partition is 12.
   
 \item  void numglobaldofs(int * numberingid, int * numglobaldofs);
 This function returns the global number of DOFs \textit{numglobaldofs} for numbering \textit{numberingid}. 
- For the mesh in Figure \ref{meshpartition} \textit{numglobaldofs} would be 19.
+ For the mesh in Figure \ref{meshpartition} with given periodicity \textit{numglobaldofs} would be 19.
 
 \end{itemize}
 \section{Vector Interface}
 It is the responsibility of M3D-C$^1$ to allocate and deallocate memory for vectors.  The \textit{space}
-subroutine in M3D-C$^1$ is used for allocating and deallocating all vectors of dofs of fields
+subroutine in M3D-C$^1$ is used for allocating and deallocating all vectors of DOFs of fields
 that are to be transferred during mesh adaptation.  This is used as a ``callback'' function to 
 manage the memory of these arrays.  The proper amount of memory to be allocated for each vector
 is obtained by using the \textit{numdofs} function for the same numbering id that is used
@@ -170,16 +173,16 @@ for the vector.
 On the SCOREC side of the software, all arrays are considered to be arrays of double precision numbers.
 Determining if they are actual double precision numbers (8 bytes) or complex double precision numbers
 (16 bytes) is done through the \textit{type} parameter for both vector and matrix interfaces 
-(\textit{itype}=0 indicates real-valued and \textit{itype}=1 indicates complex).  
+(\textit{itype}=0 indicates real-valued and \textit{itype}=1 indicates complex-valued).  
 
 \begin{itemize}
-\item   void createppplvec(double * vectorid, int * orderingid, int * type); This function creates a vector 
+\item   void createppplvec(double */complex * vectorid, int * orderingid, int * type); This function creates a vector 
 for \textit{vectorid}
  for numbering \textit{orderingid}. If the vector is for a real-valued array \textit{type}
 should be set to 0 and if the vector is for  a complex-valued array \textit{type} should be set to 1. 
-\item   void deleteppplvec(double * vectorid); This function deletes the vector but it is M3D-C$^1$'s 
+\item   void deleteppplvec(double */complex * vectorid); This function deletes the vector but it is M3D-C$^1$'s 
 responsibility to deallocate the memory used for the array.
-\item   void sumsharedppplvecvals(double * vectorid);  This function assumes that the values inserted into the
+\item   void sumsharedppplvecvals(double */complex * vectorid);  This function assumes that the values inserted into the
 array of the vector has only local contributions on each process and then this sums the parts
 of the vector that are distributed across multiple processes and updates each of those values
 to a single value.  An example of this would be to figure out how many mesh faces use each DOF.  To do this, 
@@ -187,16 +190,16 @@ first zero the vector, then
 iterate over all of the faces on each process, then iterate over each mesh vertex, get the DOFs
 associated with each vertex and add 1 to each array indexed with the DOF number, then call this function.
 For this operation, for DOF number 10 in Figure \ref{meshpartition} the number would be 7.
-\item   void updatesharedppplvecvals(double * vectorid);  This function assumes that the single process that ``owns'' a DOF
+\item   void updatesharedppplvecvals(double */complex * vectorid);  This function assumes that the single process that ``owns'' a DOF
 has the correct value and that other processes that need the DOF may or may not have the correct value.  With
 this assumption, this function can be called to update the correct values for a DOF on processes
-that need the dof but do not own it.  This is used primarily for distributing the DOF values after a matrix solve
+that need the DOF but do not own it.  This is used primarily for distributing the DOF values after a matrix solve
 from the process it was solved for on to the other processes that use the DOF.  This function might not be useful
 for M3D-C$^1$ but is documented anyways.
-\item   void checkppplveccreated(double * vectorid, int * iscreated); This function checks whether a vector \textit{vectorid} 
+\item   void checkppplveccreated(double */complex * vectorid, int * iscreated); This function checks whether a vector \textit{vectorid} 
 has already been created or not.  It returns 0 if it has not and 1 if it has been created but does no
 action otherwise.  
-\item void checksameppplvec(double * id1, double * id2, int * i); This function checks if vectors 
+\item void checksameppplvec(double */complex * id1, double */complex * id2, int * i); This function checks if vectors 
 \textit{id1} and \textit{id2} are the same, and sets *i=1 if true, *i=0 if false
 \end{itemize}
 
@@ -221,7 +224,7 @@ an ``empty'' matrix with id \textit{matrixid} that uses the numbering \textit{nu
 for use for multiplying with vectors.  If the matrix is real-valued then \textit{type}
 should be set to 0 and if the matrix is complex-valued then \textit{type} should be set to 1. 
 If the matrix has already been created then it just cleans out all components of the matrix.
-\item  void insertval(int * matrixid, double/complex * val, int * valtype, int * row, 
+\item  void insertval(int * matrixid, double */complex * val, int * valtype, int * row, 
 		   int * column, int * operation);  This function inserts \textit{val} into
 matrix \textit{matrixid} at \textit{(row,column)} in the matrix where \textit{row}
 and \textit{column} come from the ordering.  The type of value to
@@ -231,7 +234,7 @@ a complex type cannot be inserted into a real matrix.  If \textit{operation}
 is zero then the value overwrites any existing value, otherwise the value is to be added
 to existing values for that matrix component.
 \item  void setdiribc(int * matrixid, int * row);  For matrix \textit{matrixid}, this function
-zeroes out all off-diagonal values for \textit{row} and set the diagonal value to unity.  The operation is
+zeroes out all off-diagonal values for \textit{row} and sets the diagonal value to unity.  The operation is
 actually carried out during \textit{finalizematrix} so this function can be called before other values
 are inserted into that row while still applying the correct operation.  For complex-valued arrays, 
 only the real part of the diagonal is set to unity while the imaginary part is set to 0.  This function 
@@ -249,14 +252,14 @@ This function
 should be called on all processes that use the DOF number associated with the matrix row.
 \item  void finalizematrix(int * matrixid);  This function finalizes \textit{matrixid} such that no
 more values can be inserted into the matrix and no more boundary conditions can be applied to the matrix.
-\item  void solve(int * matrixid, double* rhs\_sol, int * ier);  For a matrix created with \textit{zeropetscmatrix}
+\item  void solve(int * matrixid, double */complex * rhs\_sol, int * ier);  For a matrix created with \textit{zeropetscmatrix}
 or \textit{zerosuperlumatrix}, \textit{matrixid} is solved with input right-hand-side \textit{rhs\_sol}. 
 The output  is also in \textit{rhs\_sol}.  If \textit{ier} is non-zero there were problems encountered during
 the solve process.  The only way to properly mix real and complex value types is if the matrix is real-valued
 and the vector is complex-valued.  Then the system is solved twice with a real and an imaginary right-hand-side.  
-\item  void matrixvectormult(int * matrixid, double* inputvecid, double* outputvecid);  For a matrix created with \textit{zeromultiplymatrix}, this function can be called to multiply \textit{matrixid} with \textit{inputvecid}.  The output is returned in \textit{outputvecid}.  If either \textit{matrixid} or \textit{inputvecid}
+\item  void matrixvectormult(int * matrixid, double */complex * inputvecid, double */complex * outputvecid);  For a matrix created with \textit{zeromultiplymatrix}, this function can be called to multiply \textit{matrixid} with \textit{inputvecid}.  The output is returned in \textit{outputvecid}.  If either \textit{matrixid} or \textit{inputvecid}
 is complex-valued, \textit{outputvecid} must also be complex-valued.
-\item  void deletematrix(int * matrixid);  This function deletes \textit{matrixid}.
+\item  void deletematrix(int * matrixid);  This function deletes the matrix with ID \textit{matrixid}.
 \item  void matrixrank(int* matrixid, int * rank);  This function returns the global rank of \textit{matrixid}
 in \textit{rank}.  This value is the same as the returned value for \textit{numglobaldofs} for the matrix's
 ordering.
@@ -282,7 +285,7 @@ The first procedure for generating an initial mesh is using the
 structMesh.cc code in 
 M3D-C$^1$ in the Util subdirectory (i.e. M3D/Util/structMesh.cc).  This code
  creates a 2D structured mesh that can be used with FMDB.  Compilation is done with
- \textit{$<$C++ compiler$>$ -o structMehs.x structMesh.cc} and the input for the code is
+ \textit{$<$C++ compiler$>$ -o structMesh.x structMesh.cc} and the input for the code is
 \textit{./structMesh.x $<$number of nodes in the x-direction$>$ $<$number of nodes in the z-direction$>$ 
 $<$x-length or rectangular domain$>$ $<$z-length of rectangular domain$>$}
 Note that the domain is 0 $<$= x $<$= x-length or rectangular domain , 0 $<$= z $<$= z-length of rectangular domain.
@@ -298,7 +301,7 @@ mesh generation tools.  Some code already exists at SCOREC for creating meshes f
 using the Simmetrix
 software and MCTK but this code is not available on PPPL machines or bassi.nersc.gov as the
 Simmetrix software API is copyrighted and not available for general public distribution.  The two main
-desired functionalities that the Simmetrix software provides is generating unstructured meshes
+desired functionalities that the Simmetrix software provides are generating unstructured meshes
 for an inputed analytic sizefield and the ability to create ``matching meshes'' for
 periodic boundary conditions (e.g. meshes
 that match vertex locations on periodic model boundaries).  The Simmetrix mesh generation tools
@@ -314,12 +317,12 @@ for the structured mesh generation tool above to create the struct.dmg and struc
 
 The third procedure for creating an adapted mesh from an M3D-C$^1$ run is to use the 
 \textit{hessianadapt} function in the SCOREC software.  The function parameters in C/C++ are:\\
-\textit{void hessianadapt(double* ppplvector, int * which, int * type, int * ntime, double * factor, double * hmin, double * hmax);}\\
+\textit{void hessianadapt(double */complex * ppplvector, int * which, int * type, int * ntime, double * factor, double * hmin, double * hmax);}\\
 Here, \textit{ppplvector} is a pointer to an array of double precisions or complex double precisions
-used to store the dofs of the desired fields, \textit{which} is used to indicate the specific field
-since ppplvector may store dofs for more than a single field and is a number between 1 and the total
-number of fields that store their dofs in the ppplvector, 
-\textit{type} indicates whether to use the real part or imaginary part if the dofs are complex valued, 
+used to store the DOFs of the desired fields, \textit{which} is used to indicate the specific field
+since ppplvector may store DOFs for more than a single field and is a number between 1 and the total
+number of fields that store their DOFs in the ppplvector, 
+\textit{type} indicates whether to use the real part or imaginary part if the DOFs are complex valued, 
 \textit{ntime} is the time step to adapt the field with respect to (the field may have been created
 and stored in SCOREC software already from a previous time step and this is used to make sure that
 the adaptation is done with respect to the most current time step),
@@ -331,8 +334,8 @@ used in Ken Jansen's phAdapt software.  This adaptation procedure only works wit
 runs of M3D-C$^1$ and the adapted mesh is classified on the same model (struct.dmg) 
 as the pre-adapted mesh.  During mesh adaptation, all fields that exist as PPPLVectors are transferred
 using interpolation during local mesh modifications.  These values are then passed back to M3D-C$^1$ by
-resizing the arrays of dofs that M3D-C$^1$ uses and then setting the dof values for these arrays.  
-The resizing of the dof arrays will be done in the space subroutine in M3D-C$^1$.
+resizing the arrays of DOFs that M3D-C$^1$ uses and then setting the DOF values for these arrays.  
+The resizing of the DOF arrays will be done in the /textit{space} subroutine in M3D-C$^1$.
 
 
 % appendix on modules that are used on different machines that M3D-C1 is installed on
