@@ -886,8 +886,8 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
 
   temp = (b1psipsid(trial,lin,ps179,ni79) &
          +b1psipsid(trial,ps179,lin,ni79))*dbf
-  ssterm(1) = ssterm(1) -     thimpb     *dt*temp
-  ddterm(1) = ddterm(1) + (.5-thimpb*bdf)*dt*temp
+  ssterm(1) = ssterm(1) -     thimp     *dt*temp
+  ddterm(1) = ddterm(1) + (.5-thimp*bdf)*dt*temp
 
   temp = b1psiu(trial,ps179,lin)
   rrterm(1) = rrterm(1) + thimpb*dt*temp
@@ -896,8 +896,8 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   if(linear.eq.1 .or. eqsubtract.eq.1) then
      temp = (b1psipsid(trial,lin,ps079,ni79) &
             +b1psipsid(trial,ps079,lin,ni79))*dbf
-     ssterm(1) = ssterm(1) -     thimpb     *dt*temp
-     ddterm(1) = ddterm(1) + (1.-thimpb*bdf)*dt*temp
+     ssterm(1) = ssterm(1) -     thimp     *dt*temp
+     ddterm(1) = ddterm(1) + (1.-thimp*bdf)*dt*temp
 
      temp = b1psiu(trial,ps079,lin)
      rrterm(1) = rrterm(1) +     thimpb     *dt*temp
@@ -909,29 +909,29 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   if(numvar.eq.1) then
      ! Term due to F0 = bzero when numvar=1
      temp = b1psibd(trial,lin,bzt79,ni79)*dbf
-     ssterm(1) = ssterm(1) -     thimpb     *dt*temp
-     ddterm(1) = ddterm(1) + (1.-thimpb*bdf)*dt*temp
+     ssterm(1) = ssterm(1) -     thimp     *dt*temp
+     ddterm(1) = ddterm(1) + (1.-thimp*bdf)*dt*temp
 
      temp = b1bu(trial,bzt79,lin)
-     rrterm(1) = rrterm(1) + thimpb*dt*temp
-     qqterm(1) = qqterm(1) - thimpb*dt*temp*bdf           
+     rrterm(1) = rrterm(1) +     thimpb     *dt*temp
+     qqterm(1) = qqterm(1) + (1.-thimpb*bdf)*dt*temp
   else           
      temp = b1psibd(trial,lin,bz179,ni79)*dbf
-     ssterm(1) = ssterm(1) -     thimpb     *dt*temp
-     ddterm(1) = ddterm(1) + (.5-thimpb*bdf)*dt*temp
+     ssterm(1) = ssterm(1) -     thimp     *dt*temp
+     ddterm(1) = ddterm(1) + (.5-thimp*bdf)*dt*temp
            
      temp = b1psibd(trial,ps179,lin,ni79)*dbf              
-     ssterm(2) = ssterm(2) -     thimpb     *dt*temp
-     ddterm(2) = ddterm(2) + (.5-thimpb*bdf)*dt*temp
+     ssterm(2) = ssterm(2) -     thimp     *dt*temp
+     ddterm(2) = ddterm(2) + (.5-thimp*bdf)*dt*temp
            
      if(linear.eq.1 .or. eqsubtract.eq.1) then
         temp = b1psibd(trial,lin,bz079,ni79)*dbf
-        ssterm(1) = ssterm(1) -     thimpb     *dt*temp
-        ddterm(1) = ddterm(1) + (1.-thimpb*bdf)*dt*temp
+        ssterm(1) = ssterm(1) -     thimp     *dt*temp
+        ddterm(1) = ddterm(1) + (1.-thimp*bdf)*dt*temp
               
         temp = b1psibd(trial,ps079,lin,ni79)*dbf
-        ssterm(2) = ssterm(2) -     thimpb     *dt*temp
-        ddterm(2) = ddterm(2) + (1.-thimpb*bdf)*dt*temp
+        ssterm(2) = ssterm(2) -     thimp     *dt*temp
+        ddterm(2) = ddterm(2) + (1.-thimp*bdf)*dt*temp
      end if
   end if
 
@@ -1033,8 +1033,8 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
 
   temp = b2psipsid(trial,lin,ps179,ni79)*dbf &
        + b2psipsid(trial,ps179,lin,ni79)*dbf
-  ssterm(1) = ssterm(1) -     thimpb     *dt*temp
-  ddterm(1) = ddterm(1) + (.5-thimpb*bdf)*dt*temp
+  ssterm(1) = ssterm(1) -     thimp     *dt*temp
+  ddterm(1) = ddterm(1) + (.5-thimp*bdf)*dt*temp
 
   temp = b2b(trial,lin)
   ssterm(2) = ssterm(2) + temp
@@ -1047,8 +1047,8 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
 
   temp = b2bbd(trial,lin,bz179,ni79)*dbf &
        + b2bbd(trial,bz179,lin,ni79)*dbf
-  ssterm(2) = ssterm(2) -     thimpb     *dt*temp
-  ddterm(2) = ddterm(2) + (.5-thimpb*bdf)*dt*temp
+  ssterm(2) = ssterm(2) -     thimp     *dt*temp
+  ddterm(2) = ddterm(2) + (.5-thimp*bdf)*dt*temp
 
   temp = b2bu  (trial,bz179,lin)
   rrterm(1) = rrterm(1) + thimpb*dt*temp
@@ -1061,13 +1061,13 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   if(linear.eq.1 .or. eqsubtract.eq.1) then
      temp = b2psipsid(trial,lin,ps079,ni79)*dbf &
           + b2psipsid(trial,ps079,lin,ni79)*dbf
-     ssterm(1) = ssterm(1) -     thimpb     *dt*temp
-     ddterm(1) = ddterm(1) + (1.-thimpb*bdf)*dt*temp
+     ssterm(1) = ssterm(1) -     thimp     *dt*temp
+     ddterm(1) = ddterm(1) + (1.-thimp*bdf)*dt*temp
 
      temp = b2bbd (trial,lin,bz079,ni79)*dbf &
           + b2bbd (trial,bz079,lin,ni79)*dbf
-     ssterm(2) = ssterm(2) -     thimpb     *dt*temp
-     ddterm(2) = ddterm(2) + (1.-thimpb*bdf)*dt*temp
+     ssterm(2) = ssterm(2) -     thimp     *dt*temp
+     ddterm(2) = ddterm(2) + (1.-thimp*bdf)*dt*temp
 
      temp = b2bu  (trial,bz079,lin)
      rrterm(1) = rrterm(1) +     thimpb     *dt*temp
@@ -1087,8 +1087,8 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
      ddterm(2) = ddterm(2) + (1.-thimpb*bdf)*dt*temp
 
      temp = b2ped(trial,lin,ni79)*dbf*pefac
-     ssterm(3) = ssterm(3) -     thimpb     *dt*temp
-     ddterm(3) = ddterm(3) + (1.-thimpb*bdf)*dt*temp
+     ssterm(3) = ssterm(3) -     thimp     *dt*temp
+     ddterm(3) = ddterm(3) + (1.-thimp*bdf)*dt*temp
 
      temp = b2bchi(trial,bz179,lin)                  
      rrterm(3) = rrterm(3) + thimpb*dt*temp
@@ -1179,8 +1179,8 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   ddterm(1) = ddterm(1) + (.5-thimp_ohm*bdf)*dt*temp
 
   temp = b3pebd(trial,pe179,lin,ni79)*dbf*pefac
-  ssterm(2) = ssterm(2) - thimpb*dt*temp
-  ddterm(2) = ddterm(2) - thimpb*dt*temp*bdf
+  ssterm(2) = ssterm(2) - thimp*dt*temp
+  ddterm(2) = ddterm(2) - thimp*dt*temp*bdf
 
   temp = b3bbeta(trial,lin,bz179,eta79) &
        + b3bbeta(trial,bz179,lin,eta79)
@@ -1192,9 +1192,12 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   ddterm(3) = ddterm(3) + temp*bdf
 
   temp = b3pebd(trial,lin,bzt79,ni79)*dbf*pefac &
-       + p1pu  (trial,lin,pht79)                & 
-       + p1pchi(trial,lin,cht79)                & 
        + b3pedkappa(trial,lin,ni79,kap79,hypp*sz79)
+  ssterm(3) = ssterm(3) -     thimp     *dt*temp
+  ddterm(3) = ddterm(3) + (1.-thimp*bdf)*dt*temp
+
+  temp = p1pu  (trial,lin,pht79)                & 
+       + p1pchi(trial,lin,cht79)
   ssterm(3) = ssterm(3) -     thimpb     *dt*temp
   ddterm(3) = ddterm(3) + (1.-thimpb*bdf)*dt*temp
 
@@ -1229,35 +1232,23 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   if(kappar.ne.0.) then
      temp = (p1kappar(trial,lin,pst79,pet79,ni79,b2i79,kar79) &
           +  p1kappar(trial,pst79,lin,pet79,ni79,b2i79,kar79))
-     ssterm(1) = ssterm(1) - thimpb*dt*temp
-     ddterm(1) = ddterm(1) - thimpb*dt*temp*bdf
+     ssterm(1) = ssterm(1) - thimp*dt*temp
+     ddterm(1) = ddterm(1) - thimp*dt*temp*bdf
      
      temp = p1kappar(trial,pst79,pst79,lin,ni79,b2i79,kar79)
-     ssterm(3) = ssterm(3) -     thimpb     *dt*temp
-     ddterm(3) = ddterm(3) + (1.-thimpb*bdf)*dt*temp
-
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
-        temp = (p1kappar(trial,lin,pss79,pe079,ni79,b2i79,kar79) &
-             +  p1kappar(trial,pss79,lin,pe079,ni79,b2i79,kar79))
-        ddterm(1) = ddterm(1) + dt*temp
-     endif
+     ssterm(3) = ssterm(3) -     thimp     *dt*temp
+     ddterm(3) = ddterm(3) + (1.-thimp*bdf)*dt*temp
   endif
 
   ! Cross-field Heat Flux
   if(kappax.ne.0.) then
      temp = p1kappax(trial,pe179,lin,ni79,kax79)
-     ssterm(2) = ssterm(2) - thimpb*dt*temp
-     ddterm(2) = ddterm(2) - thimpb*dt*temp*bdf
+     ssterm(2) = ssterm(2) - thimp*dt*temp
+     ddterm(2) = ddterm(2) - thimp*dt*temp*bdf
 
      temp = p1kappax(trial,lin,bzt79,ni79,kax79)
-     ssterm(3) = ssterm(3) -     thimpb     *dt*temp
-     ddterm(3) = ddterm(3) + (1.-thimpb*bdf)*dt*temp
-
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
-        temp = p1kappax(trial,pe079,lin,ni79,kax79)
-        ssterm(2) = ssterm(2) -     thimpb     *dt*temp
-        ddterm(2) = ddterm(2) + (1.-thimpb*bdf)*dt*temp
-     endif
+     ssterm(3) = ssterm(3) -     thimp     *dt*temp
+     ddterm(3) = ddterm(3) + (1.-thimp*bdf)*dt*temp
   endif
               
   if(linear.eq.1 .or. eqsubtract.eq.1) then
@@ -1272,8 +1263,8 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
      ddterm(2) = ddterm(2) + (1.-thimp_ohm*bdf)*dt*temp
      
      temp = b3pebd(trial,pe079,lin,ni79)*dbf*pefac
-     ssterm(2) = ssterm(2) -     thimpb     *dt*temp
-     ddterm(2) = ddterm(2) + (1.-thimpb*bdf)*dt*temp
+     ssterm(2) = ssterm(2) -     thimp     *dt*temp
+     ddterm(2) = ddterm(2) + (1.-thimp*bdf)*dt*temp
      
      temp = p1pu(trial,pe079,lin)
      rrterm(1) = rrterm(1) +     thimpb     *dt*temp
@@ -1754,11 +1745,7 @@ subroutine ludefphi_n(itri)
         endif
 
         if(isplitstep.eq.0) rrterm = -rrterm
-
-!!$        if(j.eq.1 .and. i.eq.1. .and. myrank.eq.0) then
-!!$           print *, real(rrterm(1,1)), real(qqterm(1,1))
-!!$        endif
-        
+      
         call insertval(bb1,ssterm(1,1),icomplex,i1+psi_off,j1+psi_off,1)
         call insertval(bb0,ddterm(1,1),icomplex,i1+psi_off,j1+psi_off,1)
         call insertval(bv1,rrterm(1,1),icomplex,i1+psi_off,j1+phi_off,1)

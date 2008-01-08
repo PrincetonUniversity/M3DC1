@@ -893,6 +893,121 @@ end subroutine grav_per
 end module grav
 
 
+!==============================================================================
+! Strauss Equilibrium (itor = 0, itaylor = 6)
+!
+! H.R. Strauss, Phys. Fluids 19(1):134 (1976)
+!==============================================================================
+module strauss
+
+  implicit none
+
+  real :: alx,alz
+
+contains
+
+subroutine strauss_init()
+  use basic
+  use arrays
+
+  implicit none
+
+  integer :: l, numnodes
+  real :: x, z, xmin, zmin
+  double precision :: coords(3)
+
+  call getmincoord(xmin, zmin)
+  call getboundingboxsize(alx, alz)
+
+  call numnod(numnodes)
+  do l=1, numnodes
+     call xyznod(l, coords)
+
+     x = coords(1) - xmin - alx/2.
+     z = coords(2) - zmin - alz/2.
+
+     call assign_vectors(l)
+
+     call strauss_equ(x, z, l)
+     call strauss_per(x, z, l)
+  enddo
+
+end subroutine strauss_init
+
+subroutine strauss_equ(x, z, inode)
+  use basic
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x, z
+  integer, intent(in) :: inode
+
+  real :: kx, kz, a0
+
+  phi0_l(1:6) = 0.
+  if(numvar.ge.2) vz0_l(1:6) = 0.
+  if(numvar.ge.3) chi0_l(1:6) = 0.
+
+  kx = pi/alx
+  kz = pi/alz
+
+  a0 = 2.*alz*alx*bzero/(pi*ln*q0)
+
+  psi0_l(1) = -a0*cos(kx*x)*cos(kz*z)
+  psi0_l(2) =  a0*sin(kx*x)*cos(kz*z)*kx
+  psi0_l(3) =  a0*cos(kx*x)*sin(kz*z)*kz
+  psi0_l(4) =  a0*cos(kx*x)*cos(kz*z)*kx**2
+  psi0_l(5) = -a0*sin(kx*x)*sin(kz*z)*kx*kz
+  psi0_l(6) =  a0*cos(kx*x)*cos(kz*z)*kz**2
+
+  if(numvar.ge.2) call constant_field(bz0_l, bzero)
+  if(numvar.ge.3) call constant_field(pe0_l, p0 - ipres*pi0)
+  if(ipres.eq.1) call constant_field(den0_l, 1.)
+  if(idens.eq.1) call constant_field(p0_l, p0)
+
+end subroutine strauss_equ
+
+
+subroutine strauss_per(x, z, inode)
+  use basic
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x, z
+  integer, intent(in) :: inode
+
+  real :: akx, akz
+
+  akx = pi/alx
+  akz = 2.*pi/alz
+
+  psi1_l(1) = -eps*cos(akx*x)*sin(akz*z)
+  psi1_l(2) =  eps*sin(akx*x)*sin(akz*z)*akx
+  psi1_l(3) = -eps*cos(akx*x)*cos(akz*z)*akz
+  psi1_l(4) =  eps*cos(akx*x)*sin(akz*z)*akx**2
+  psi1_l(5) =  eps*sin(akx*x)*cos(akz*z)*akx*akz
+  psi1_l(6) =  eps*cos(akx*x)*sin(akz*z)*akz**2
+  call constant_field(phi1_l, 0.)
+  
+  if(numvar.ge.2)  then
+     call constant_field(bz1_l, 0.)
+     call constant_field(vz1_l, 0.)
+  endif
+  if(numvar.ge.3)  then
+     call constant_field(pe1_l, 0.)
+     call constant_field(chi1_l, 0.)
+  endif
+
+  if(idens.eq.1) call constant_field(den1_l, 0.)
+  if(ipres.eq.1) call constant_field(p1_l, 0.)
+
+end subroutine strauss_per
+
+end module strauss
+
+
 
 
 !==============================================================================
@@ -1165,6 +1280,7 @@ subroutine initial_conditions()
   use gradshafranov
   use mri
   use grav
+  use strauss
 
   implicit none
 
@@ -1183,6 +1299,8 @@ subroutine initial_conditions()
         call wave_init()
      case(5)
         call grav_init()
+     case(6)
+        call strauss_init()
      end select
   else
      ! toroidal equilibria

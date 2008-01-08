@@ -229,6 +229,15 @@ function time_name, t
    return, label
 end
 
+function time_string, t
+   if(t gt 0) then begin
+       str = string(FORMAT='("!8t!6 = ",G0," !7s!D!8A!N!X")', t)
+   endif else begin
+       str = string(FORMAT='("!8t!6 = ",G0,"!X")', t)
+   endelse
+   return, str
+end
+
 
 pro plot_mesh, mesh, color=col, linestyle=lin, oplot=oplot, $
                filename=filename, _EXTRA=ex
@@ -447,7 +456,7 @@ function translate, name, units=units
    b0 = '!8B!D!60!N!X'
    n0 = '!8n!D!60!N!X'
    t0 = '!7s!DA!60!N!X'
-   l0 = '!8L!X'
+   l0 = '!8L!D!60!N!X'
    pi4 = '!64!7p!X'
    sq = '!U!62!N!X'
    cu = '!U!63!N!X'
@@ -482,6 +491,9 @@ function translate, name, units=units
    endif else if(strcmp(name, 'pe', /fold_case) eq 1) then begin
        units = b0+sq+'/'+pi4
        return, "!8p!De!N!X"
+   endif else if(strcmp(name, 'bz', /fold_case) eq 1) then begin
+       units = b0
+       return, "!8B!D!9P!N!X"
    endif else if(strcmp(name, 'beta', /fold_case) eq 1) then begin
        return, "!7b!X"
    endif else if(strcmp(name, 'thermal velocity', /fold_case) eq 1) or $
@@ -602,11 +614,6 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
    endif else if(strcmp('toroidal field', name, /fold_case) eq 1) or $
      (strcmp('bz', name, /fold_case) eq 1) then begin
        
-       if(nv lt 2) then begin
-           print, "numvar < 2"
-           return, 0
-       endif
-
        I = read_field('I',x,y,t,slices=time, mesh=mesh, filename=filename, $
                       points=pts, rrange=xrange, zrange=yrange)
        if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
@@ -755,6 +762,22 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
        end
 
        data = sqrt((xx-x0)^2 + (zz-z0)^2)
+
+   ;===========================================
+   ; toroidal field
+   ;===========================================
+   endif else if( (strcmp('I', name, /fold_case) eq 1) and (nv eq 1)) $
+     then begin
+       bzero = read_parameter('bzero', filename=filename)
+       xzero = read_parameter('xzero', filename=filename)
+
+       if(itor eq 1) then bzero = bzero*xzero
+
+       data = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+       
+       data[*] = bzero
 
    ;===========================================
    ; toroidal current density
@@ -1802,7 +1825,8 @@ end
 pro plot_scalar, scalarname, x, filename=filename, names=names, $
                  _EXTRA=extra, overplot=overplot, $
                  ylog=ylog, xlog=xlog, left=left, $
-                 power_spectrum=power_spectrum, per_length=per_length
+                 power_spectrum=power_spectrum, per_length=per_length, $
+                 growth_rate=growth_rate
 
   if(n_elements(filename) eq 0) then filename='C1.h5'
 
@@ -1822,12 +1846,14 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
               plot_scalar, scalarname, filename=filename[i], $
                 overplot=((i gt 0) or keyword_set(overplot)), $
                 color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, $
-                power_spectrum=power_spectrum, per_length=per_length
+                power_spectrum=power_spectrum, per_length=per_length, $
+                growth_rate=growth_rate
           endif else begin
               plot_scalar, scalarname, x[i], filename=filename[i], $
                 overplot=((i gt 0) or keyword_set(overplot)), $
                 color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, $
-                power_spectrum=power_spectrum, per_length=per_length
+                power_spectrum=power_spectrum, per_length=per_length, $
+                growth_rate=growth_rate
           endelse
       end
       if(n_elements(names) gt 0) then begin
@@ -1863,6 +1889,11 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
       endif
   endif
   
+  if(keyword_set(growth_rate)) then begin
+      data = deriv(tdata, alog(data))
+      ytitle = '!7c !6(!7s!D!8A!N!6!U-1!N)!X'
+  endif
+
   if(n_elements(x) eq 0) then begin
       if(keyword_set(overplot)) then begin
           oplot, tdata, data, color=c, _EXTRA=extra
@@ -2123,25 +2154,23 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, $
            minor_r = read_field('r', x, z, t, points=points, $
                                 slice=time, _EXTRA=extra)
 
-           r = radius_matrix(x,z,t)
+           itor = read_parameter('itor', _EXTRA=extra)
+           if(itor eq 1) then begin
+               r = radius_matrix(x,z,t)
+           endif else begin
+               r = read_parameter('ln', _EXTRA=extra)/(2.*!pi)
+           endelse
 
            numvar = read_parameter('numvar', _EXTRA=extra)
-           if(numvar ge 2) then begin
-               I = read_field('I', x, z, t, points=points, $
-                              slice=time, _EXTRA=extra)
-           endif else begin
-               bzero = read_parameter('bzero', _EXTRA=extra)
-               xzero = read_parameter('xzero', _EXTRA=extra)
-               I = fltarr(n_elements(t),n_elements(x),n_elements(z))
-               I[*] = bzero*xzero
-           endelse
+           I = read_field('I', x, z, t, points=points, $
+                          slice=time, _EXTRA=extra)
 
            bt = sqrt(I^2/r^2)
            bp = sqrt(s_bracket(psi,psi,x,z)/r^2)
 
            field = minor_r * bt / (r * bp)
            units = ''
-           name = '!8q!X'
+           name = '!6Safety Factor!X'
            symbol = '!8q!X'
 
        endif else if (strcmp(field, 'gam', /fold_case) eq 1) then begin
@@ -2161,19 +2190,20 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, $
            q = minor_r * bt / (r * bp)
            
            field = 2*gam*p/(den*r^2)*(1.+2./q^2)
-           name = '!4x!D!6GAM!N!X'
+           name = '!6GAM Frequency!X'
+           symbol = '!4x!D!6GAM!N!X'
 
 
        endif else begin
            name = translate(field, units=units)
            field = read_field(field, x, z, t, slice=time, points=points,$
                               _EXTRA=extra)
+           symbol = name
        endelse
    endif else begin
        name = ''
+       symbol = ''
    endelse
-
-   symbol = name
 
    return, flux_average_field(field, psi, x, z, t, $
      flux=flux, area=area, bins=bins, _EXTRA=extra)
@@ -2255,7 +2285,7 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
 ;       title = "!12<!8" + title + $
 ;         string(FORMAT='("!6(!8t!6 = ",G0,")!3!12>!7!Dw!N!X")', t)
 ;   endelse
-   title = "!12<" + title + "!12>!7!Dw!N!X"
+;   title = "!12<" + title + "!12>!7!Dw!N!X"
 
    if(keyword_set(nflux) or keyword_set(lcfs)) then begin
        lcfs_psi = lcfs(time, filename=filename, psi=psi)
