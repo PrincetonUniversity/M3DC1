@@ -9,7 +9,7 @@ contains
 !=============================================================================
 
 
-! V1umu (checked 8/6/07)
+! V1umu
 ! =====
 vectype function v1umu(e,f,g)
 
@@ -69,7 +69,7 @@ end function v1umu
 
 
 
-! V1chimu (checked 8/6/07)
+! V1chimu
 ! =======
 vectype function v1chimu(e,f,g)
 
@@ -105,7 +105,7 @@ end function v1chimu
 
 
 
-! V1un (checked 8/6/07)
+! V1un
 ! ====
 vectype function v1un(e,f,g)
 
@@ -186,7 +186,7 @@ end function v1psipsi
 
 
 ! V1psib
-! ========
+! ======
 vectype function v1psib(e,f,g)
 
   use basic
@@ -197,12 +197,12 @@ vectype function v1psib(e,f,g)
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
   vectype :: temp
 #ifdef USECOMPLEX
-  temp = -(int4(ri2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1),weight_79,79) &
-          +int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1),weight_79,79))
+  temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1),weight_79,79) &
+       + int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1),weight_79,79)
 
   if(itor.eq.1) then
      temp = temp &
-          - 2.*int4(ri3_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),weight_79,79)
+          + 2.*int4(ri3_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),weight_79,79)
   endif
 
   temp = (0,1)*ntor*temp
@@ -447,30 +447,46 @@ vectype function v1upsib(e,f,g,h)
   vectype :: temp
 #ifdef USECOMPLEX
 
-  temp79a = f(:,OP_DZ)*(e(:,OP_DZZ)*g(:,OP_DR )-e(:,OP_DRZ)*g(:,OP_DZ )  &
-                       +e(:,OP_DZ )*g(:,OP_DRZ)-e(:,OP_DR )*g(:,OP_DZZ)) &
-          + f(:,OP_DR)*(e(:,OP_DRZ)*g(:,OP_DR )-e(:,OP_DRR)*g(:,OP_DZ )  &
-                       +e(:,OP_DZ )*g(:,OP_DRR)-e(:,OP_DR )*g(:,OP_DRZ)) &
-          - e(:,OP_DZ)*(f(:,OP_DZZ)*g(:,OP_DR )-f(:,OP_DRZ)*g(:,OP_DZ )  &
-                       +f(:,OP_DZ )*g(:,OP_DRZ)-f(:,OP_DR )*g(:,OP_DZZ)) &
-          - e(:,OP_DR)*(f(:,OP_DRZ)*g(:,OP_DR )-f(:,OP_DRR)*g(:,OP_DZ )  &
-                       +f(:,OP_DZ )*g(:,OP_DRR)-f(:,OP_DR )*g(:,OP_DRZ)) &
-          - g(:,OP_GS)*(e(:,OP_DZ )*f(:,OP_DR )-e(:,OP_DR )*g(:,OP_DZ ))
+!!$  temp79a = f(:,OP_DZ)*(e(:,OP_DZZ)*g(:,OP_DR )-e(:,OP_DRZ)*g(:,OP_DZ )  &
+!!$                       +e(:,OP_DZ )*g(:,OP_DRZ)-e(:,OP_DR )*g(:,OP_DZZ)) &
+!!$          + f(:,OP_DR)*(e(:,OP_DRZ)*g(:,OP_DR )-e(:,OP_DRR)*g(:,OP_DZ )  &
+!!$                       +e(:,OP_DZ )*g(:,OP_DRR)-e(:,OP_DR )*g(:,OP_DRZ)) &
+!!$          - e(:,OP_DZ)*(f(:,OP_DZZ)*g(:,OP_DR )-f(:,OP_DRZ)*g(:,OP_DZ )  &
+!!$                       +f(:,OP_DZ )*g(:,OP_DRZ)-f(:,OP_DR )*g(:,OP_DZZ)) &
+!!$          - e(:,OP_DR)*(f(:,OP_DRZ)*g(:,OP_DR )-f(:,OP_DRR)*g(:,OP_DZ )  &
+!!$                       +f(:,OP_DZ )*g(:,OP_DRR)-f(:,OP_DR )*g(:,OP_DRZ)) &
+!!$          - g(:,OP_GS)*(e(:,OP_DZ )*f(:,OP_DR )-e(:,OP_DR )*g(:,OP_DZ ))
+!!$
+!!$  temp = int3(ri3_79,temp79a,h(:,OP_1),weight_79,79)
+!!$
+!!$  if(itor.eq.1) then
+!!$     temp79b =  f(:,OP_DR)*(e(:,OP_DZ )*g(:,OP_DR )-e(:,OP_DR )*g(:,OP_DZ))    &
+!!$             + (e(:,OP_DR) + 2.*ri_79*e(:,OP_1))                               &
+!!$                          *(f(:,OP_DZ )*g(:,OP_DR )-f(:,OP_DR )*g(:,OP_DZ))    &
+!!$             + 2.*g(:,OP_DZ)*(e(:,OP_DZ)*f(:,OP_DZ )+e(:,OP_DR)*f(:,OP_DR ))   &
+!!$             + 2.*e(:,OP_1 )*(f(:,OP_DZ)*g(:,OP_DZZ)+f(:,OP_DR)*g(:,OP_DRZ))   &
+!!$             - 2.*e(:,OP_1 )*(f(:,OP_DRZ)*g(:,OP_DR )-f(:,OP_DRR)*g(:,OP_DZ )  &
+!!$                             +f(:,OP_DZ )*g(:,OP_DRR)-f(:,OP_DR )*g(:,OP_DRZ))
+!!$     temp = temp + int3(ri4_79,temp79b,h(:,OP_1),weight_79,79)
+!!$  endif
+
+  temp79a = g(:,OP_DR)*(e(:,OP_DZZ)*f(:,OP_DZ)-e(:,OP_DZ)*f(:,OP_DZZ) &
+                       +e(:,OP_DRZ)*f(:,OP_DR)-e(:,OP_DR)*f(:,OP_DRZ)) &
+           -g(:,OP_DZ)*(e(:,OP_DRR)*f(:,OP_DR)-e(:,OP_DR)*f(:,OP_DRR) &
+                       +e(:,OP_DRZ)*f(:,OP_DZ)-e(:,OP_DZ)*f(:,OP_DRZ))
 
   temp = int3(ri3_79,temp79a,h(:,OP_1),weight_79,79)
 
   if(itor.eq.1) then
-     temp79b =  f(:,OP_DR)*(e(:,OP_DZ )*g(:,OP_DR )-e(:,OP_DR )*g(:,OP_DZ))    &
-             + (e(:,OP_DR) + 2.*ri_79*e(:,OP_1))                               &
-                          *(f(:,OP_DZ )*g(:,OP_DR )-f(:,OP_DR )*g(:,OP_DZ))    &
-             + 2.*g(:,OP_DZ)*(e(:,OP_DZ)*f(:,OP_DZ )+e(:,OP_DR)*f(:,OP_DR ))   &
-             + 2.*e(:,OP_1 )*(f(:,OP_DZ)*g(:,OP_DZZ)+f(:,OP_DR)*g(:,OP_DRZ))   &
-             - 2.*e(:,OP_1 )*(f(:,OP_DRZ)*g(:,OP_DR )-f(:,OP_DRR)*g(:,OP_DZ )  &
-                             +f(:,OP_DZ )*g(:,OP_DRR)-f(:,OP_DR )*g(:,OP_DRZ))
-     temp = temp + int3(ri4_79,temp79b,h(:,OP_1),weight_79,79)
+     temp79a = g(:,OP_DZ)*(e(:,OP_1)*f(:,OP_DRR) - e(:,OP_DZ)*f(:,OP_DZ) &
+                                              - 2.*e(:,OP_DR)*f(:,OP_DR)) &
+              +g(:,OP_DR)*(e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_1)*f(:,OP_DRZ))
+     temp = temp &
+          + 2.*int3(ri4_79,temp79a,h(:,OP_1),weight_79,79) &
+          - 2.*int5(ri5_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),weight_79,79)
   endif
 
-  v1upsib = (0,1)*ntor*temp
+  v1upsib = -(0,1)*ntor*temp
 #else
   v1upsib = 0
 #endif
@@ -505,8 +521,7 @@ vectype function v1ubb(e,f,g,h)
        +int5(ri4_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1),h(:,OP_1),weight_79,79))
   if(itor.eq.1) then
      temp = temp - ntor**2 * &
-          (int5(ri5_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),h(:,OP_1),weight_79,79) &
-          +int5(ri5_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),h(:,OP_1),weight_79,79))
+          2.*int5(ri5_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),h(:,OP_1),weight_79,79)
   endif
 #endif
   

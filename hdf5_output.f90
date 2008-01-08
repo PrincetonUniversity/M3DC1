@@ -389,6 +389,7 @@ subroutine hdf5_write_parameters(error)
   call write_real_attr(root_id, "pellet_var" , pellet_var, error)
   call write_real_attr(root_id, "pellet_x"   , pellet_x,   error)
   call write_real_attr(root_id, "pellet_z"   , pellet_z,   error)
+  call write_real_attr(root_id, "ln"         , ln,         error)
 
   call h5gclose_f(root_id, error)
 
