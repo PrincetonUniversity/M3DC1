@@ -30,6 +30,8 @@ subroutine boundary_vel(imatrix, rhs)
      ! skip interior points
      if(izonedim.ge.2) cycle
 
+     call assign_local_pointers(i)
+
      ! for periodic bc's
      ! skip if on a periodic boundary
      ! and convert corner to an edge when one edge is periodic
@@ -66,7 +68,7 @@ subroutine boundary_vel(imatrix, rhs)
   
         ! no normal flow
         temp = 0.
-        call boundary_clamp(imatrix, ibegin+phi_off, normal, rhs, temp)
+        call boundary_clamp(imatrix, ibegin+u_off, normal, rhs, temp)
         if(numvar.ge.3) then
            call boundary_normal_deriv(imatrix, ibegin+chi_off, normal, rhs, temp)
 !!$           if(itor.eq.0) then
@@ -76,9 +78,9 @@ subroutine boundary_vel(imatrix, rhs)
         endif
 
 !!$        ! no velocity 
-!!$        call boundary_normal_deriv(imatrix, ibegin+phi_off, normal, rhs, temp)
-!!$        if(imatrix.ne.0) call setdiribc(imatrix, ibegin+phi_off+4)
-!!$        rhs(ibegin+phi_off+4) = 0.
+!!$        call boundary_normal_deriv(imatrix, ibegin+u_off, normal, rhs, temp)
+!!$        if(imatrix.ne.0) call setdiribc(imatrix, ibegin+u_off+4)
+!!$        rhs(ibegin+u_off+4) = 0.
 
         ! clamp toroidal velocity
         if(numvar.ge.2) then
@@ -90,7 +92,7 @@ subroutine boundary_vel(imatrix, rhs)
               rhs(ibegin+vz_off+4) = 0.
 
            case default          ! no slip
-              temp = vzs_v(ibegin+vz_off:ibegin+vz_off+5)
+              temp = vzs_l
               if(integrator.eq.1 .and. ntime.gt.1) then
                  temp = 1.5*temp + 0.5*vzo_v(ibegin+vz_off:ibegin+vz_off+5)
               endif
@@ -99,7 +101,7 @@ subroutine boundary_vel(imatrix, rhs)
         endif
        
         ! no vorticity
-        call boundary_laplacian(imatrix, ibegin+phi_off, normal, -x, irow)
+        call boundary_laplacian(imatrix, ibegin+u_off, normal, -x, irow)
         rhs(irow) = 0.
 
         if(numvar.ge.3) then
@@ -115,7 +117,7 @@ subroutine boundary_vel(imatrix, rhs)
 
         ! no normal flow
         temp = 0.
-        call boundary_clamp_all(imatrix, ibegin+phi_off, rhs, temp)
+        call boundary_clamp_all(imatrix, ibegin+u_off, rhs, temp)
         if(numvar.ge.3) then
            call boundary_normal_deriv(imatrix, ibegin+chi_off, 0., rhs, temp)
            call boundary_normal_deriv(imatrix, ibegin+chi_off, pi/2., rhs, temp)
@@ -132,7 +134,7 @@ subroutine boundary_vel(imatrix, rhs)
               rhs(ibegin+vz_off+4) = 0.           
 
            case default          ! no-slip         
-              temp = vzs_v(ibegin+vz_off:ibegin+vz_off+5)
+              temp = vzs_l
               if(integrator.eq.1 .and. ntime.gt.1) then
                  temp = 1.5*temp + 0.5*vzo_v(ibegin+vz_off:ibegin+vz_off+5)
               endif
@@ -187,6 +189,8 @@ subroutine boundary_mag(imatrix, rhs)
      ! skip interior points
      if(izonedim.ge.2) cycle
 
+     call assign_local_pointers(i)
+
      ! for periodic bc's
      ! skip if on a periodic boundary
      ! and convert corner to an edge when one edge is periodic
@@ -217,7 +221,7 @@ subroutine boundary_mag(imatrix, rhs)
         endif
 
         ! clamp poloidal field
-        temp = psis_v(ibegin+psi_off:ibegin+psi_off+5)
+        temp = psis_l
         if(integrator.eq.1 .and. ntime.gt.1) then
            temp = 1.5*temp + 0.5*psio_v(ibegin+psi_off:ibegin+psi_off+5)
         endif
@@ -225,7 +229,7 @@ subroutine boundary_mag(imatrix, rhs)
 
         ! clamp toroidal field
         if(numvar.ge.2) then
-           temp = bzs_v(ibegin+bz_off:ibegin+bz_off+5)
+           temp = bzs_l
            if(integrator.eq.1 .and. ntime.gt.1) then
               temp = 1.5*temp + 0.5*bzo_v(ibegin+bz_off:ibegin+bz_off+5)
            endif
@@ -256,7 +260,7 @@ subroutine boundary_mag(imatrix, rhs)
               rhs(ibegin+pe_off+4) = 0.
 
            case default  ! clamp pressure
-              temp = pes_v(ibegin+pe_off:ibegin+pe_off+5)
+              temp = pes_l
               if(integrator.eq.1 .and. ntime.gt.1) then
                  temp = 1.5*temp + 0.5*peo_v(ibegin+pe_off:ibegin+pe_off+5)
               endif
@@ -286,13 +290,13 @@ subroutine boundary_mag(imatrix, rhs)
 !!$           rhs(irow) = vloop/(2.*pi*resistivity(ibegin1))
 !!$           call boundary_laplacian(imatrix, ibegin+psi_off, pi/2., -x, irow)
 !!$           rhs(irow) = vloop/(2.*pi*resistivity(ibegin1))
-           temp = psis_v(ibegin+psi_off:ibegin+psi_off+5)
+           temp = psis_l
            if(integrator.eq.1 .and. ntime.gt.1) then
               temp = 1.5*temp + 0.5*psio_v(ibegin+psi_off:ibegin+psi_off+5)
            endif
            call boundary_clamp_all(imatrix, ibegin+psi_off, rhs, temp)
         else
-           temp = psis_v(ibegin+psi_off:ibegin+psi_off+5)
+           temp = psis_l
            if(integrator.eq.1 .and. ntime.gt.1) then
               temp = 1.5*temp + 0.5*psio_v(ibegin+psi_off:ibegin+psi_off+5)
            endif
@@ -301,7 +305,7 @@ subroutine boundary_mag(imatrix, rhs)
 
         ! clamp toroidal field
         if(numvar.ge.2) then
-           temp = bzs_v(ibegin+bz_off:ibegin+bz_off+5)
+           temp = bzs_l
            if(integrator.eq.1 .and. ntime.gt.1) then
               temp = 1.5*temp + 0.5*bzo_v(ibegin+bz_off:ibegin+bz_off+5)
            endif
@@ -325,7 +329,7 @@ subroutine boundary_mag(imatrix, rhs)
               rhs(ibegin+pe_off+4) = 0.
               
            case default ! clamp pressure
-              temp = pes_v(ibegin+pe_off:ibegin+pe_off+5)
+              temp = pes_l
               if(integrator.eq.1 .and. ntime.gt.1) then
                  temp = 1.5*temp + 0.5*phiold(ibegin+pe_off:ibegin+pe_off+5)
               endif
@@ -380,6 +384,8 @@ subroutine boundary_den(imatrix, rhs)
      ! skip interior points
      if(izonedim.ge.2) cycle
 
+     call assign_local_pointers(i)
+
      ! for periodic bc's
      ! skip if on a periodic boundary
      ! and convert corner to an edge when one edge is periodic
@@ -400,7 +406,7 @@ subroutine boundary_den(imatrix, rhs)
 
      call entdofs(vecsize1, i, 0, ibegin, iendplusone)
 
-     temp = dens_v(ibegin+den_off:ibegin+den_off+5)
+     temp = dens_l
      if(integrator.eq.1 .and. ntime.gt.1) then
         temp = 1.5*temp + 0.5*deno_v(ibegin+den_off:ibegin+den_off+5)
      endif
@@ -473,6 +479,8 @@ subroutine boundary_pres(imatrix, rhs)
      ! skip interior points
      if(izonedim.ge.2) cycle
 
+     call assign_local_pointers(i)
+
      ! for periodic bc's
      ! skip if on a periodic boundary
      ! and convert corner to an edge when one edge is periodic
@@ -493,7 +501,7 @@ subroutine boundary_pres(imatrix, rhs)
 
      call entdofs(vecsize1, i, 0, ibegin, iendplusone)
 
-     temp = ps_v(ibegin+p_off:ibegin+p_off+5)
+     temp = ps_l
      if(integrator.eq.1 .and. ntime.gt.1) then
         temp = 1.5*temp + 0.5*po_v(ibegin+p_off:ibegin+p_off+5)
      endif
@@ -619,7 +627,7 @@ subroutine boundary_gs(imatrix, rhs)
   vectype, intent(inout), dimension(*) :: rhs
   
   integer :: ibottom, iright, itop, ileft, i, izone, izonedim
-  integer :: ibegin, iendplusone, ibeginn, iendplusonen, numnodes, irow
+  integer :: ibegin, iendplusone, numnodes, irow
   real :: normal, x
   vectype, dimension(6) :: temp
   double precision :: coords(3)
@@ -635,6 +643,8 @@ subroutine boundary_gs(imatrix, rhs)
 
      ! skip interior points
      if(izonedim.ge.2) cycle
+
+     call assign_local_pointers(i)
 
      ! for periodic bc's
      ! skip if on a periodic boundary
@@ -655,11 +665,10 @@ subroutine boundary_gs(imatrix, rhs)
      endif
 
      call entdofs(numvargs, i, 0, ibegin, iendplusone)
-     call entdofs(vecsize, i, 0, ibeginn, iendplusonen)
      call xyznod(i,coords)
      x = coords(1) + xzero
 
-     temp = psis_v(ibeginn+psi_off:ibeginn+psi_off+5)
+     temp = psis_l
 
      if(izonedim.eq.1) then
         if(izone.eq.ileft) then

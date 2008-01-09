@@ -3628,9 +3628,17 @@ real function energy_mp()
 
   vectype :: temp
 
-  temp = .5* &
-       (int3(ri2_79,pst79(:,OP_DZ),CONJUGATE(pst79(:,OP_DZ)),weight_79,79) &
-       +int3(ri2_79,pst79(:,OP_DR),CONJUGATE(pst79(:,OP_DR)),weight_79,79))
+  if(linear.eq.1 .or. eqsubtract.eq.1) then
+     temp = .5* &
+          (int3(ri2_79,pss79(:,OP_DZ),CONJUGATE(ps179(:,OP_DZ)),weight_79,79) &
+          +int3(ri2_79,pss79(:,OP_DR),CONJUGATE(ps179(:,OP_DR)),weight_79,79) &
+          +int3(ri2_79,ps179(:,OP_DZ),CONJUGATE(pss79(:,OP_DZ)),weight_79,79) &
+          +int3(ri2_79,ps179(:,OP_DR),CONJUGATE(pss79(:,OP_DR)),weight_79,79))
+  else
+     temp = .5* &
+          (int3(ri2_79,pst79(:,OP_DZ),CONJUGATE(pst79(:,OP_DZ)),weight_79,79) &
+          +int3(ri2_79,pst79(:,OP_DR),CONJUGATE(pst79(:,OP_DR)),weight_79,79))
+  endif
 
   energy_mp = temp
   return
@@ -3648,7 +3656,13 @@ real function energy_mt()
 
   vectype :: temp
 
-  temp = .5*int3(ri2_79,bzt79(:,OP_1),CONJUGATE(bzt79(:,OP_1)),weight_79,79)
+  if(linear.eq.1 .or. eqsubtract.eq.1) then
+     temp = .5* &
+          (int3(ri2_79,bzs79(:,OP_1),CONJUGATE(bz179(:,OP_1)),weight_79,79) &
+          +int3(ri2_79,bz179(:,OP_1),CONJUGATE(bzs79(:,OP_1)),weight_79,79))
+  else
+     temp = .5*int3(ri2_79,bzt79(:,OP_1),CONJUGATE(bzt79(:,OP_1)),weight_79,79)
+  endif
 
   energy_mt = temp
   return
@@ -3669,7 +3683,11 @@ real function energy_p()
   if(gam.eq.1.) then 
      temp = 0.
   else
-     temp = int1(pt79,weight_79,79) / (gam - 1.)
+     if(linear.eq.1 .or. eqsubtract.eq.1) then
+        temp = int1(p179,weight_79,79) / (gam - 1.)
+     else
+        temp = int1(pt79,weight_79,79) / (gam - 1.)
+     endif
   endif
 
   energy_p = temp
@@ -3689,10 +3707,12 @@ real function energy_kp()
 
   vectype :: temp
 
-  if(idens.eq.0) then
+  if(linear.eq.1 .or. eqsubtract.eq.1) then
      temp = .5* &
-          (int3(ri2_79,pht79(:,OP_DZ),CONJUGATE(pht79(:,OP_DZ)),weight_79,79) &
-          +int3(ri2_79,pht79(:,OP_DR),CONJUGATE(pht79(:,OP_DR)),weight_79,79))
+          (int4(ri2_79,phs79(:,OP_DZ),CONJUGATE(ph179(:,OP_DZ)),nt79(:,OP_1),weight_79,79) &
+          +int4(ri2_79,phs79(:,OP_DR),CONJUGATE(ph179(:,OP_DR)),nt79(:,OP_1),weight_79,79) &
+          +int4(ri2_79,ph179(:,OP_DZ),CONJUGATE(phs79(:,OP_DZ)),nt79(:,OP_1),weight_79,79) &
+          +int4(ri2_79,ph179(:,OP_DR),CONJUGATE(phs79(:,OP_DR)),nt79(:,OP_1),weight_79,79))   
   else
      temp = .5* &
           (int4(ri2_79,pht79(:,OP_DZ),CONJUGATE(pht79(:,OP_DZ)),nt79(:,OP_1),weight_79,79) &
@@ -3715,8 +3735,10 @@ real function energy_kt()
 
   vectype :: temp
 
-  if(idens.eq.0) then
-     temp = .5*int3(ri2_79,vzt79(:,OP_1),CONJUGATE(vzt79(:,OP_1)),weight_79,79)
+  if(linear.eq.1 .or. eqsubtract.eq.1) then
+     temp = .5* &
+          (int4(ri2_79,vzs79(:,OP_1),CONJUGATE(vz179(:,OP_1)),nt79(:,OP_1),weight_79,79) &
+          +int4(ri2_79,vz179(:,OP_1),CONJUGATE(vzs79(:,OP_1)),nt79(:,OP_1),weight_79,79))
   else
      temp = .5*int4(ri2_79,vzt79(:,OP_1),CONJUGATE(vzt79(:,OP_1)),nt79(:,OP_1),weight_79,79)
   endif
@@ -3737,14 +3759,20 @@ real function energy_k3()
 
   vectype :: temp
 
-  if(idens.eq.0) then
+  if(linear.eq.1 .or. eqsubtract.eq.1) then
      temp = .5* &
-          (int2(cht79(:,OP_DZ),CONJUGATE(cht79(:,OP_DZ)),weight_79,79) &
-          +int2(cht79(:,OP_DR),CONJUGATE(cht79(:,OP_DR)),weight_79,79) &
-          +int3(ri_79,cht79(:,OP_DZ),CONJUGATE(pht79(:,OP_DR)),weight_79,79) &
-          -int3(ri_79,cht79(:,OP_DR),CONJUGATE(pht79(:,OP_DZ)),weight_79,79) &
-          +int3(ri_79,CONJUGATE(cht79(:,OP_DZ)),pht79(:,OP_DR),weight_79,79) &
-          -int3(ri_79,CONJUGATE(cht79(:,OP_DR)),pht79(:,OP_DZ),weight_79,79))
+          (int3(chs79(:,OP_DZ),CONJUGATE(ch179(:,OP_DZ)),nt79(:,OP_1),weight_79,79) &
+          +int3(chs79(:,OP_DR),CONJUGATE(ch179(:,OP_DR)),nt79(:,OP_1),weight_79,79) &
+          +int3(ch179(:,OP_DZ),CONJUGATE(chs79(:,OP_DZ)),nt79(:,OP_1),weight_79,79) &
+          +int3(ch179(:,OP_DR),CONJUGATE(chs79(:,OP_DR)),nt79(:,OP_1),weight_79,79) &
+          +int4(ri_79,chs79(:,OP_DZ),CONJUGATE(ph179(:,OP_DR)),nt79(:,OP_1),weight_79,79) &
+          -int4(ri_79,chs79(:,OP_DR),CONJUGATE(ph179(:,OP_DZ)),nt79(:,OP_1),weight_79,79) &
+          +int4(ri_79,ch179(:,OP_DZ),CONJUGATE(phs79(:,OP_DR)),nt79(:,OP_1),weight_79,79) &
+          -int4(ri_79,ch179(:,OP_DR),CONJUGATE(phs79(:,OP_DZ)),nt79(:,OP_1),weight_79,79) &
+          +int4(ri_79,CONJUGATE(chs79(:,OP_DZ)),ph179(:,OP_DR),nt79(:,OP_1),weight_79,79) &
+          -int4(ri_79,CONJUGATE(chs79(:,OP_DR)),ph179(:,OP_DZ),nt79(:,OP_1),weight_79,79) &
+          +int4(ri_79,CONJUGATE(ch179(:,OP_DZ)),phs79(:,OP_DR),nt79(:,OP_1),weight_79,79) &
+          -int4(ri_79,CONJUGATE(ch179(:,OP_DR)),phs79(:,OP_DZ),nt79(:,OP_1),weight_79,79))
   else
      temp = .5* &
           (int3(cht79(:,OP_DZ),CONJUGATE(cht79(:,OP_DZ)),nt79(:,OP_1),weight_79,79) &
@@ -3771,7 +3799,20 @@ real function energy_mpd()
 
   vectype :: temp
 
-  temp = -int4(ri2_79,pst79(:,OP_GS),CONJUGATE(pst79(:,OP_GS)),eta79(:,OP_1),weight_79,79)
+  if(linear.eq.1 .or. eqsubtract.eq.1) then
+     temp = &
+          -int4(ri2_79,pss79(:,OP_GS),CONJUGATE(ps179(:,OP_GS)),eta79(:,OP_1),weight_79,79) &
+          -int4(ri2_79,ps179(:,OP_GS),CONJUGATE(pss79(:,OP_GS)),eta79(:,OP_1),weight_79,79)
+#ifdef USECOMPLEX
+     temp = temp - ntor**2 * &
+          (int4(ri4_79,pss79(:,OP_DZ),CONJUGATE(ps179(:,OP_DZ)),eta79(:,OP_1),weight_79,79) &
+          +int4(ri4_79,pss79(:,OP_DR),CONJUGATE(ps179(:,OP_DR)),eta79(:,OP_1),weight_79,79) &
+          +int4(ri4_79,ps179(:,OP_DZ),CONJUGATE(pss79(:,OP_DZ)),eta79(:,OP_1),weight_79,79) &
+          +int4(ri4_79,ps179(:,OP_DR),CONJUGATE(pss79(:,OP_DR)),eta79(:,OP_1),weight_79,79))
+#endif
+  else
+     temp = -int4(ri2_79,pst79(:,OP_GS),CONJUGATE(pst79(:,OP_GS)),eta79(:,OP_1),weight_79,79)
+  endif
 
   energy_mpd = temp
   return
@@ -3789,9 +3830,17 @@ real function energy_mtd()
 
   vectype :: temp
 
-  temp = - &
-       (int4(ri2_79,bzt79(:,OP_DZ),CONJUGATE(bzt79(:,OP_DZ)),eta79(:,OP_1),weight_79,79) &
-       +int4(ri2_79,bzt79(:,OP_DR),CONJUGATE(bzt79(:,OP_DR)),eta79(:,OP_1),weight_79,79))
+  if(linear.eq.1 .or. eqsubtract.eq.1) then
+     temp = - &
+          (int4(ri2_79,bzs79(:,OP_DZ),CONJUGATE(bz179(:,OP_DZ)),eta79(:,OP_1),weight_79,79) &
+          +int4(ri2_79,bzs79(:,OP_DR),CONJUGATE(bz179(:,OP_DR)),eta79(:,OP_1),weight_79,79) &
+          +int4(ri2_79,bz179(:,OP_DZ),CONJUGATE(bzs79(:,OP_DZ)),eta79(:,OP_1),weight_79,79) &
+          +int4(ri2_79,bz179(:,OP_DR),CONJUGATE(bzs79(:,OP_DR)),eta79(:,OP_1),weight_79,79))
+  else
+     temp = - &
+          (int4(ri2_79,bzt79(:,OP_DZ),CONJUGATE(bzt79(:,OP_DZ)),eta79(:,OP_1),weight_79,79) &
+          +int4(ri2_79,bzt79(:,OP_DR),CONJUGATE(bzt79(:,OP_DR)),eta79(:,OP_1),weight_79,79))
+  end if
 
   energy_mtd = temp
   return
@@ -3809,7 +3858,20 @@ real function energy_kpd()
 
   vectype :: temp
 
-  temp = - amu*int3(ri2_79,pht79(:,OP_GS),CONJUGATE(pht79(:,OP_GS)),weight_79,79)
+  if(linear.eq.1 .or. eqsubtract.eq.1) then
+     temp = - &
+          (int4(ri2_79,phs79(:,OP_GS),CONJUGATE(ph179(:,OP_GS)),vis79(:,OP_1),weight_79,79) &
+          +int4(ri2_79,ph179(:,OP_GS),CONJUGATE(phs79(:,OP_GS)),vis79(:,OP_1),weight_79,79))
+#ifdef USECOMPLEX
+     temp = temp - ntor**2 * &
+          (int4(ri4_79,phs79(:,OP_DZ),CONJUGATE(ph179(:,OP_DZ)),vis79(:,OP_1),weight_79,79) &
+          +int4(ri4_79,phs79(:,OP_DR),CONJUGATE(ph179(:,OP_DR)),vis79(:,OP_1),weight_79,79) &
+          +int4(ri4_79,ph179(:,OP_DZ),CONJUGATE(phs79(:,OP_DZ)),vis79(:,OP_1),weight_79,79) &
+          +int4(ri4_79,ph179(:,OP_DR),CONJUGATE(phs79(:,OP_DR)),vis79(:,OP_1),weight_79,79))
+#endif
+  else
+     temp = -int4(ri2_79,pht79(:,OP_GS),CONJUGATE(pht79(:,OP_GS)),vis79(:,OP_1),weight_79,79)
+  endif
 
   energy_kpd = temp
   return
@@ -3827,9 +3889,17 @@ real function energy_ktd()
 
   vectype :: temp
 
-  temp = - amu* &
-       (int3(ri2_79,vzt79(:,OP_DZ),CONJUGATE(vzt79(:,OP_DZ)),weight_79,79) &
-       +int3(ri2_79,vzt79(:,OP_DR),CONJUGATE(vzt79(:,OP_DR)),weight_79,79))
+  if(linear.eq.1 .or. eqsubtract.eq.1) then
+     temp = - &
+          (int4(ri2_79,vzs79(:,OP_DZ),CONJUGATE(vz179(:,OP_DZ)),vis79(:,OP_1),weight_79,79) &
+          +int4(ri2_79,vzs79(:,OP_DR),CONJUGATE(vz179(:,OP_DR)),vis79(:,OP_1),weight_79,79) &
+          +int4(ri2_79,vz179(:,OP_DZ),CONJUGATE(vzs79(:,OP_DZ)),vis79(:,OP_1),weight_79,79) &
+          +int4(ri2_79,vz179(:,OP_DR),CONJUGATE(vzs79(:,OP_DR)),vis79(:,OP_1),weight_79,79))
+  else
+     temp = - &
+          (int4(ri2_79,vzt79(:,OP_DZ),CONJUGATE(vzt79(:,OP_DZ)),vis79(:,OP_1),weight_79,79) &
+          +int4(ri2_79,vzt79(:,OP_DR),CONJUGATE(vzt79(:,OP_DR)),vis79(:,OP_1),weight_79,79))
+  endif
 
   energy_ktd = temp
   return
@@ -3846,7 +3916,13 @@ real function energy_k3d()
 
   vectype :: temp
 
-  temp = - 2.*amuc*int2(cht79(:,OP_LP),CONJUGATE(cht79(:,OP_LP)),weight_79,79)
+  if(linear.eq.1 .or. eqsubtract.eq.1) then
+     temp = - 2.* &
+          (int3(chs79(:,OP_LP),CONJUGATE(ch179(:,OP_LP)),vic79(:,OP_1),weight_79,79) &
+          +int3(ch179(:,OP_LP),CONJUGATE(chs79(:,OP_LP)),vic79(:,OP_1),weight_79,79))
+  else
+     temp = - 2.*int3(cht79(:,OP_LP),CONJUGATE(cht79(:,OP_LP)),vic79(:,OP_1),weight_79,79)
+  endif
 
   energy_k3d = temp
   return
@@ -3864,9 +3940,9 @@ real function energy_kph()
 
   vectype :: temp
 
-  temp = - hypc*amu* &
-       (int4(ri2_79,vot79(:,OP_DZ),CONJUGATE(vot79(:,OP_DZ)),sz79(:,OP_1),weight_79,79) &
-       +int4(ri2_79,vot79(:,OP_DR),CONJUGATE(vot79(:,OP_DR)),sz79(:,OP_1),weight_79,79))
+  temp = - hypc* &
+       (int5(ri2_79,vot79(:,OP_DZ),CONJUGATE(vot79(:,OP_DZ)),vis79(:,OP_1),sz79(:,OP_1),weight_79,79) &
+       +int5(ri2_79,vot79(:,OP_DR),CONJUGATE(vot79(:,OP_DR)),vis79(:,OP_1),sz79(:,OP_1),weight_79,79))
 
   energy_kph = temp
   return
@@ -3884,7 +3960,7 @@ real function energy_kth()
 
   vectype :: temp
 
-  temp = - amu*hypv*int4(ri2_79,vzt79(:,OP_GS),CONJUGATE(vzt79(:,OP_GS)),sz79(:,OP_1),weight_79,79)
+  temp = -hypv*int5(ri2_79,vzt79(:,OP_GS),CONJUGATE(vzt79(:,OP_GS)),vis79(:,OP_1),sz79(:,OP_1),weight_79,79)
 
   energy_kth = temp
   return
@@ -3901,9 +3977,9 @@ real function energy_k3h()
 
   vectype :: temp
 
-  temp = -2.*hypc*amuc* &
-       (int3(cot79(:,OP_DZ),CONJUGATE(cot79(:,OP_DZ)),sz79(:,OP_1),weight_79,79) &
-       +int3(cot79(:,OP_DR),CONJUGATE(cot79(:,OP_DR)),sz79(:,OP_1),weight_79,79))
+  temp = -2.*hypc* &
+       (int4(cot79(:,OP_DZ),CONJUGATE(cot79(:,OP_DZ)),vic79(:,OP_1),sz79(:,OP_1),weight_79,79) &
+       +int4(cot79(:,OP_DR),CONJUGATE(cot79(:,OP_DR)),vic79(:,OP_1),sz79(:,OP_1),weight_79,79))
 
   energy_k3h = temp
   return

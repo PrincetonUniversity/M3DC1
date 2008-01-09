@@ -280,7 +280,7 @@ contains
   end subroutine output_field
 
   ! output_scalar
-  ! =================
+  ! =============
   subroutine output_scalar(parent_id, name, value, time, error)
     use hdf5
 
@@ -663,29 +663,13 @@ subroutine output_fields(time_group_id, equilibrium, error)
   integer(HID_T) :: group_id
   integer :: i, nelms, nfields
   vectype, allocatable :: dum(:,:)
-  vectype, pointer :: psi_p(:), bz_p(:), pe_p(:), p_p(:)
-  vectype, pointer :: phi_p(:), vz_p(:), chi_p(:), den_p(:)
+  vectype, pointer :: f_ptr(:)
 
   if(equilibrium.eq.1) then
-     psi_p => psi0_v
-     bz_p  =>  bz0_v
-     pe_p  =>  pe0_v
-     p_p   =>   p0_v
-     phi_p => phi0_v
-     vz_p  =>  vz0_v
-     chi_p => chi0_v
-     den_p => den0_v
+     f_ptr => field0
   else
-     psi_p => psi1_v
-     bz_p  =>  bz1_v
-     pe_p  =>  pe1_v
-     p_p   =>   p1_v
-     phi_p => phi1_v
-     vz_p  =>  vz1_v
-     chi_p => chi1_v
-     den_p => den1_v
+     f_ptr => field
   endif
-
 
   nfields = 0
   call numfac(nelms)
@@ -700,14 +684,14 @@ subroutine output_fields(time_group_id, equilibrium, error)
   
   ! psi
   do i=1, nelms
-     call calcavector(i, psi_p, psi_i, vecsize, dum(:,i))
+     call calcavector(i, f_ptr, psi_g, num_fields, dum(:,i))
   end do
   call output_field(group_id, "psi", real(dum), 20, nelms, error)
   nfields = nfields + 1
 
-  ! phi
+  ! u
   do i=1, nelms
-     call calcavector(i, phi_p, phi_i, vecsize, dum(:,i))
+     call calcavector(i, f_ptr, u_g, num_fields, dum(:,i))
   end do
   call output_field(group_id, "phi", real(dum), 20, nelms, error)
   nfields = nfields + 1
@@ -747,51 +731,48 @@ subroutine output_fields(time_group_id, equilibrium, error)
   call output_field(group_id, "tempvar", real(dum), 20, nelms, error)
   nfields = nfields + 1
 
-  if(numvar.ge.2) then
-     ! I
-     do i=1, nelms
-        call calcavector(i, bz_p, bz_i, vecsize, dum(:,i))
-     end do
-     call output_field(group_id, "I", real(dum), 20, nelms, error)
-     nfields = nfields + 1
+  ! I
+  do i=1, nelms
+     call calcavector(i, f_ptr, bz_g, num_fields, dum(:,i))
+  end do
+  call output_field(group_id, "I", real(dum), 20, nelms, error)
+  nfields = nfields + 1
+  
+  ! V
+  do i=1, nelms
+     call calcavector(i, f_ptr, vz_g, num_fields, dum(:,i))
+  end do
+  call output_field(group_id, "V", real(dum), 20, nelms, error)
+  nfields = nfields + 1
 
-     ! V
+  ! P and Pe
+  if(ipres.eq.1) then
      do i=1, nelms
-        call calcavector(i, vz_p, vz_i, vecsize, dum(:,i))
+        call calcavector(i, f_ptr, pe_g, num_fields, dum(:,i))
      end do
-     call output_field(group_id, "V", real(dum), 20, nelms, error)
+     call output_field(group_id, "Pe", real(dum), 20, nelms, error)
+     nfields = nfields + 1
+     do i=1, nelms
+        call calcavector(i, f_ptr, p_g, num_fields, dum(:,i))
+     end do
+     call output_field(group_id, "P", real(dum), 20, nelms, error)
+     nfields = nfields + 1
+  else
+     do i=1, nelms
+        call calcavector(i, f_ptr, pe_g, num_fields, dum(:,i))
+     end do
+     call output_field(group_id, "Pe", pefac*real(dum), 20, nelms, error)
+     nfields = nfields + 1
+     call output_field(group_id, "P", real(dum), 20, nelms, error)
      nfields = nfields + 1
   endif
-
-  if(numvar.ge.3) then
-     ! P and Pe
-     if(ipres.eq.1) then
-        do i=1, nelms
-           call calcavector(i, pe_p, pe_i, vecsize, dum(:,i))
-        end do
-        call output_field(group_id, "Pe", real(dum), 20, nelms, error)
-        nfields = nfields + 1
-        do i=1, nelms
-           call calcavector(i, p_p, p_i, vecsize1, dum(:,i))
-        end do
-        call output_field(group_id, "P", real(dum), 20, nelms, error)
-        nfields = nfields + 1
-     else
-        do i=1, nelms
-           call calcavector(i, pe_p, pe_i, vecsize, dum(:,i))
-        end do
-        call output_field(group_id, "Pe", pefac*real(dum), 20, nelms, error)
-        nfields = nfields + 1
-        call output_field(group_id, "P", real(dum), 20, nelms, error)
-        nfields = nfields + 1
-     endif
      
-     ! chi
-     do i=1, nelms
-        call calcavector(i, chi_p, chi_i, vecsize, dum(:,i))
-     end do
-     call output_field(group_id, "chi", real(dum), 20, nelms, error)
-     nfields = nfields + 1
+  ! chi
+  do i=1, nelms
+     call calcavector(i, f_ptr, chi_g, num_fields, dum(:,i))
+  end do
+  call output_field(group_id, "chi", real(dum), 20, nelms, error)
+  nfields = nfields + 1
 
 !!$     ! com
 !!$     do i=1, nelms
@@ -800,37 +781,33 @@ subroutine output_fields(time_group_id, equilibrium, error)
 !!$     call output_field(group_id, "com", real(dum), 20, nelms, error)
 !!$     nfields = nfields + 1
 
-     ! kappa
+  ! kappa
+  do i=1, nelms
+     call calcavector(i, kappa, 1, 1, dum(:,i))
+  end do
+  call output_field(group_id, "kappa", real(dum), 20, nelms, error)
+  nfields = nfields + 1
+
+  ! visc_c
+  do i=1, nelms
+     call calcavector(i, visc_c, 1, 1, dum(:,i))
+  end do
+  call output_field(group_id, "visc_c", real(dum), 20, nelms, error)
+  nfields = nfields + 1
+
+  ! den
+  do i=1, nelms
+     call calcavector(i, f_ptr, den_g, num_fields, dum(:,i))
+  end do
+  call output_field(group_id, "den", real(dum), 20, nelms, error)
+  nfields = nfields + 1
+  
+  if(ipellet.eq.1 .or. ionization.eq.1) then
      do i=1, nelms
-        call calcavector(i, kappa, 1, 1, dum(:,i))
+        call calcavector(i, sigma, 1, 1, dum(:,i))
      end do
-     call output_field(group_id, "kappa", real(dum), 20, nelms, error)
+     call output_field(group_id, "sigma", real(dum), 20, nelms, error)
      nfields = nfields + 1
-
-     ! visc_c
-     do i=1, nelms
-        call calcavector(i, visc_c, 1, 1, dum(:,i))
-     end do
-     call output_field(group_id, "visc_c", real(dum), 20, nelms, error)
-     nfields = nfields + 1
-  endif
-
-
-  if(idens.eq.1) then
-     ! den
-     do i=1, nelms
-        call calcavector(i, den_p, den_i, vecsize1, dum(:,i))
-     end do
-     call output_field(group_id, "den", real(dum), 20, nelms, error)
-     nfields = nfields + 1
-
-     if(ipellet.eq.1 .or. ionization.eq.1) then
-        do i=1, nelms
-           call calcavector(i, sigma, 1, 1, dum(:,i))
-        end do
-        call output_field(group_id, "sigma", real(dum), 20, nelms, error)
-        nfields = nfields + 1
-     endif
   endif
 
   if(isources.eq.1) then

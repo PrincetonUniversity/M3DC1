@@ -90,6 +90,8 @@ c$$$      return
      &        6, 0, 0, 0, maxdofs1)
          call createdofnumbering(numvar2_numbering, iper, jper, 
      &        12, 0, 0, 0, maxdofs2)
+         call createdofnumbering(num_fields, iper, jper, 
+     &        num_fields*6, 0, 0, 0, maxdofsn)
          if(vecsize.gt.2) then
             call createdofnumbering(vecsize, iper, jper,
      &           vecsize*6, 0, 0, 0, maxdofsn)
@@ -103,48 +105,12 @@ c$$$      return
 !.....arrays defined at all vertices
 !     createvec will delete the arrays if they have already been allocated
 
-      if(isplitstep.eq.1) then
-         call createvec(vel, vecsize)
-         call createvec(vel0, vecsize)
-         call createvec(vels, vecsize)
-         call createvec(velold, vecsize)
-         call createvec(veln, vecsize)
-         call createvec(veloldn, vecsize)
-         call createvec(r4, vecsize)
-         call createvec(phip, vecsize)
-         call createvec(b2vector, vecsize)
-         call createvec(b3vector, vecsize)
+      ! Physical Variables
+      call createvec(field , num_fields)
+      call createvec(field0, num_fields)
+      call createvec(fieldi, num_fields)
 
-         if(ipres.eq.1) then 
-            call createvec(qp4, 1)
-            call createvec(pres, 1)
-            call createvec(pres0, 1)
-            call createvec(press, 1)
-            call createvec(presold, 1)
-         endif
-        
-         call createvec(den, 1)
-         call createvec(den0, 1)
-         call createvec(dens, 1)
-         call createvec(denold, 1)
-         call createvec(qn4, 1)
-
-         if(isources.eq.1) then
-            call createvec(sb1, 1)
-            call createvec(sb2, 1)
-            call createvec(sp1, 1)
-         endif
-      endif
-
-      call createvec(phi,      vecsize)
-      call createvec(phi0, vecsize)
-      call createvec(phis, vecsize)
-      call createvec(phiold,   vecsize)
-
-      call createvec(b1vector, vecsize)
-      call createvec(vtemp,    vecsize)
-      call createvec(q4,       vecsize)
-
+      ! Auxiliary Variables
       call createvec(jphi, 1)
       call createvec(vor, 1)
       call createvec(com, 1)
@@ -154,6 +120,42 @@ c$$$      return
       call createvec(visc_c, 1)
       call createvec(sigma, 1)
       call createvec(tempvar,1)
+      
+
+      ! Arrays for implicit time advance
+      call createvec(phi,  vecsize)
+      call createvec(phiold,   vecsize)
+
+      call createvec(b1vector, vecsize)
+      call createvec(vtemp,    vecsize)
+      call createvec(q4,       vecsize)
+
+      if(isplitstep.eq.1) then
+         call createvec(vel, vecsize)
+         call createvec(velold, vecsize)
+         call createvec(veln, vecsize)
+         call createvec(veloldn, vecsize)
+         call createvec(r4, vecsize)
+         call createvec(phip, vecsize)
+         call createvec(b2vector, vecsize)
+         call createvec(b3vector, vecsize)
+
+         if(ipres.eq.1) then
+            call createvec(pres, 1)
+            call createvec(presold, 1)
+            call createvec(qp4, 1)
+         endif
+
+         call createvec(den, 1)        
+         call createvec(denold, 1)
+         call createvec(qn4, 1)
+
+         if(isources.eq.1) then
+            call createvec(sb1, 1)
+            call createvec(sb2, 1)
+            call createvec(sp1, 1)
+         endif
+      endif
 !
 !.....arrays associated with the triangles
       if(ifirstcall.eq.0) then

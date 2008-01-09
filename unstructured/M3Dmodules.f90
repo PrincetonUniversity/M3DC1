@@ -210,74 +210,94 @@ module arrays
   ! arrays defined at all vertices
   ! any change to this list of variables needs to be taken into
   ! account in the arrayresizevec subroutine
-!!$  vectype, allocatable, target :: &
-!!$       psi(:), psi0(:), psis(:), psiold(:),       &
-!!$       bz(:), bz0(:), bzs(:), bzold(:),           &
-!!$       u(:), u0(:), us(:), uold(:),               &
-!!$       vz(:), vz0(:), vzs(:), vzold(:),           &
-!!$       chi(:), chi0(:), chis(:), chiold(:),       &
-!!$       den(:), den0(:), dens(:), denold(:),       &
-!!$       pres(:), pres0(:), press(:), presold(:),   &
-!!$       epres(:), epre0(:), epress(:), epresold(:)
-!!$
-!!$  vectype, allocatable :: &
-!!$       vel(:), velold(:), field(:), fieldold(:),  &
-!!$       denold(:), presold(:)
 
+  ! Arrays containing physical fields
   vectype, allocatable, target :: &
-       vel(:), velold(:), vel0(:),  vels(:),    &
-       phi(:), phiold(:), phi0(:),  phis(:),    &
-       den(:), denold(:), den0(:),  dens(:),    &
-       pres(:), presold(:), pres0(:), press(:), &
-       q4(:), r4(:), qn4(:), qp4(:)    
+       field(:), field0(:), fieldi(:) 
+
+  ! Arrays containing auxiliary variables
+  vectype, allocatable :: &
+       jphi(:), vor(:), com(:),                     &
+       vtemp(:), resistivity(:), tempvar(:),        &
+       kappa(:),sigma(:), sb1(:), sb2(:), sp1(:),   &
+       visc(:), visc_c(:)
+
+
+  ! Arrays for advance
+  vectype, allocatable, target :: &
+       phi(:), phiold(:),  &
+       vel(:), velold(:),  &
+       den(:), denold(:),  &
+       pres(:), presold(:),  &
+       q4(:), r4(:), qn4(:), qp4(:)  
 
   vectype, allocatable :: &
-       veln(:), veloldn(:),                                       &
-       phip(:),                                                   &
+       veln(:), veloldn(:), phip(:),                              &
        b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
-       jphi(:),vor(:),com(:),                                     &
-       b5vector(:), vtemp(:), resistivity(:), tempvar(:),         &
-       kappa(:),sigma(:), sb1(:), sb2(:), sp1(:),                 &
-       visc(:), visc_c(:), tempcompare(:)
+       b5vector(:), tempcompare(:)
+
+!!$  vectype, allocatable, target :: &
+!!$       vel(:), velold(:), vel0(:),  vels(:),    &
+!!$       phi(:), phiold(:), phi0(:),  phis(:),    &
+!!$       den(:), denold(:), den0(:),  dens(:),    &
+!!$       pres(:), presold(:), pres0(:), press(:), &
+!!$       q4(:), r4(:), qn4(:), qp4(:)    
+
 
 
   ! the following pointers point to the vector containing the named field.
   ! set by assign_variables()
-  vectype, pointer :: phi1_v(:), phio_v(:), phi0_v(:), phis_v(:)
-  vectype, pointer ::  vz1_v(:),  vzo_v(:), vz0_v(:),  vzs_v(:)
-  vectype, pointer :: chi1_v(:), chio_v(:), chi0_v(:), chis_v(:)
-  vectype, pointer :: psi1_v(:), psio_v(:), psi0_v(:), psis_v(:) 
-  vectype, pointer ::  bz1_v(:),  bzo_v(:), bz0_v(:),  bzs_v(:)
-  vectype, pointer ::  pe1_v(:),  peo_v(:), pe0_v(:),  pes_v(:)
-  vectype, pointer :: den1_v(:), deno_v(:), den0_v(:), dens_v(:)
-  vectype, pointer ::   p1_v(:),   po_v(:), p0_v(:),   ps_v(:)
+  vectype, pointer ::   u_v(:),   uo_v(:)
+  vectype, pointer ::  vz_v(:),  vzo_v(:)
+  vectype, pointer :: chi_v(:), chio_v(:)
+  vectype, pointer :: psi_v(:), psio_v(:)
+  vectype, pointer ::  bz_v(:),  bzo_v(:)
+  vectype, pointer ::  pe_v(:),  peo_v(:)
+  vectype, pointer :: den_v(:), deno_v(:)
+  vectype, pointer ::   p_v(:),   po_v(:)
 
+  ! the indicies of the named fields within the field vector
+  integer, parameter :: u_g = 1
+  integer, parameter :: psi_g = 2
+  integer, parameter :: vz_g = 3
+  integer, parameter :: bz_g = 4
+  integer, parameter :: chi_g = 5
+  integer, parameter :: pe_g = 6
+  integer, parameter :: den_g = 7
+  integer, parameter :: p_g = 8
+  integer, parameter :: num_fields = 8
 
   ! the indicies of the named fields within their respective vectors
-  integer :: phi_i, vz_i, chi_i
+  integer :: u_i, vz_i, chi_i
   integer :: psi_i, bz_i, pe_i
   integer :: den_i, p_i
 
   ! the offset (relative to the node offset) of the named field within
   ! their respective vectors
-  integer :: phi_off, vz_off, chi_off
+  integer :: u_off, vz_off, chi_off
   integer :: psi_off, bz_off, pe_off
   integer :: den_off, p_off
   integer :: vecsize, vecsize1
   
   ! the following pointers point to the locations of the named field within
-  ! the respective vector.  set by assign_vectors()
-  vectype, pointer :: phi1_l(:), phi0_l(:)
-  vectype, pointer ::  vz1_l(:),  vz0_l(:)
-  vectype, pointer :: chi1_l(:), chi0_l(:) 
-  vectype, pointer :: psi1_l(:), psi0_l(:)
-  vectype, pointer ::  bz1_l(:),  bz0_l(:) 
-  vectype, pointer ::  pe1_l(:),  pe0_l(:)
-  vectype, pointer :: den1_l(:), den0_l(:) 
-  vectype, pointer ::   p1_l(:),  p0_l(:)
+  ! the respective vector.  set by assign_local_pointers()
+  vectype, pointer ::   u1_l(:),   u0_l(:),   us_l(:)
+  vectype, pointer ::  vz1_l(:),  vz0_l(:),  vzs_l(:)
+  vectype, pointer :: chi1_l(:), chi0_l(:), chis_l(:) 
+  vectype, pointer :: psi1_l(:), psi0_l(:), psis_l(:)
+  vectype, pointer ::  bz1_l(:),  bz0_l(:),  bzs_l(:) 
+  vectype, pointer ::  pe1_l(:),  pe0_l(:),  pes_l(:)
+  vectype, pointer :: den1_l(:), den0_l(:), dens_l(:) 
+  vectype, pointer ::   p1_l(:),   p0_l(:),   ps_l(:)
 
   contains
-!================================
+
+
+!==========================================================
+! assign_variables
+! ~~~~~~~~~~~~~~~
+! Assigns variables to appropriate vectors for time advance
+!==========================================================
     subroutine assign_variables()
 
       use basic
@@ -286,55 +306,35 @@ module arrays
 
       if(isplitstep.eq.1) then
 
-         phi0_v => vel0
-         phi1_v => vel
-         phis_v => vels
-         phio_v => velold
-         
-         psi0_v => phi0
-         psi1_v => phi
-         psis_v => phis
+         u_v => vel
+         uo_v => velold    
+         psi_v => phi
          psio_v => phiold
 
          if(numvar.ge.2) then
-            vz0_v => vel0
-            vz1_v => vel
-            vzs_v => vels
+            vz_v => vel
             vzo_v => velold
-
-            bz0_v => phi0
-            bz1_v => phi
-            bzs_v => phis
+            bz_v => phi
             bzo_v => phiold
          endif
 
          if(numvar.ge.3) then
-            chi0_v => vel0
-            chi1_v => vel
-            chis_v => vels
+            chi_v => vel
             chio_v => velold
-
-            pe0_v => phi0
-            pe1_v => phi
-            pes_v => phis
+            pe_v => phi
             peo_v => phiold
+            if(ipres.eq.1) then
+               p_v => pres
+               po_v => presold
+            end if
          endif
 
          if(idens.eq.1) then
-            den0_v => den0
-            den1_v => den
-            dens_v => dens
+            den_v => den
             deno_v => denold
-         endif
+         end if
 
-         if(ipres.eq.1) then
-            p0_v => pres0
-            p1_v => pres
-            ps_v => press
-            po_v => presold
-         endif
-
-         phi_i = 1
+         u_i = 1
          psi_i = 1
          vz_i = 2
          bz_i = 2
@@ -344,55 +344,35 @@ module arrays
          p_i = 1
 
       else
-         phi0_v => phi0
-         phi1_v => phi
-         phis_v => phis
-         phio_v => phiold
- 
-         psi0_v => phi0
-         psi1_v => phi
-         psis_v => phis
+         u_v => phi
+         uo_v => phiold
+         psi_v => phi
          psio_v => phiold
 
          if(numvar.ge.2) then
-            vz0_v => phi0
-            vz1_v => phi
-            vzs_v => phis
+            vz_v => phi
             vzo_v => phiold
-
-            bz0_v => phi0
-            bz1_v => phi
-            bzs_v => phis
+            bz_v => phi
             bzo_v => phiold
-
          endif
-         if(numvar.ge.3) then
-            chi0_v => phi0
-            chi1_v => phi
-            chis_v => phis
-            chio_v => phiold
 
-            pe0_v => phi0
-            pe1_v => phi
-            pes_v => phis
+         if(numvar.ge.3) then
+            chi_v => phi
+            chio_v => phiold
+            pe_v => phi
             peo_v => phiold
+            if(ipres.eq.1) then
+               p_v => phi
+               po_v => phiold
+            endif
          endif
      
          if(idens.eq.1) then
-            den0_v => phi0
-            den1_v => phi
-            dens_v => phis
+            den_v => phi
             deno_v => phiold
-         endif
-
-         if(ipres.eq.1) then
-            p0_v => phi0
-            p1_v => phi
-            ps_v => phis
-            po_v => phiold
-         endif
+         end if
          
-         phi_i = 1
+         u_i = 1
          psi_i = 2
          vz_i = 3
          bz_i = 4
@@ -402,7 +382,7 @@ module arrays
          p_i = 2*numvar+2
       endif
       
-      phi_off = (phi_i-1)*6
+      u_off = (u_i-1)*6
       psi_off = (psi_i-1)*6
       vz_off = (vz_i-1)*6
       bz_off = (bz_i-1)*6
@@ -413,49 +393,52 @@ module arrays
 
     end subroutine assign_variables
 
-    subroutine assign_vectors(inode)
+!======================================================
+! assign_local_pointers
+! ~~~~~~~~~~~~~~~~~~~~~
+! Assigns local field pointers to appropriate locations
+! in global field vectors.
+!
+!======================================================
+    subroutine assign_local_pointers(inode)
 
       use basic
 
       implicit none
 
       integer, intent(in) :: inode
-      integer :: ibegin, iendplusone
+      integer :: ibegin, iendplusone, iend
 
-      call entdofs(vecsize, inode, 0, ibegin, iendplusone)
-      
-      phi0_l => phi0_v(ibegin+phi_off:ibegin+phi_off+5)
-      phi1_l => phi1_v(ibegin+phi_off:ibegin+phi_off+5)
-      psi0_l => psi0_v(ibegin+psi_off:ibegin+psi_off+5)
-      psi1_l => psi1_v(ibegin+psi_off:ibegin+psi_off+5)
+      call entdofs(num_fields, inode, 0, ibegin, iendplusone)
+      iend = ibegin+5
 
-      if(numvar.ge.2) then
-         vz0_l => vz0_v(ibegin+vz_off:ibegin+vz_off+5)
-         vz1_l => vz1_v(ibegin+vz_off:ibegin+vz_off+5)
-         bz0_l => bz0_v(ibegin+bz_off:ibegin+bz_off+5)
-         bz1_l => bz1_v(ibegin+bz_off:ibegin+bz_off+5)
-      endif
-      
-      if(numvar.ge.3) then
-         chi0_l => chi0_v(ibegin+chi_off:ibegin+chi_off+5)
-         chi1_l => chi1_v(ibegin+chi_off:ibegin+chi_off+5)
-         pe0_l => pe0_v(ibegin+pe_off:ibegin+pe_off+5)
-         pe1_l => pe1_v(ibegin+pe_off:ibegin+pe_off+5)
-      endif
+      psi1_l => field (ibegin+(psi_g-1)*6:iend+(psi_g-1)*6)
+      psi0_l => field0(ibegin+(psi_g-1)*6:iend+(psi_g-1)*6)
+      psis_l => fieldi(ibegin+(psi_g-1)*6:iend+(psi_g-1)*6)
+        u1_l => field (ibegin+(  u_g-1)*6:iend+(  u_g-1)*6)
+        u0_l => field0(ibegin+(  u_g-1)*6:iend+(  u_g-1)*6)
+        us_l => fieldi(ibegin+(  u_g-1)*6:iend+(  u_g-1)*6)
+       vz1_l => field (ibegin+( vz_g-1)*6:iend+( vz_g-1)*6)
+       vz0_l => field0(ibegin+( vz_g-1)*6:iend+( vz_g-1)*6)
+       vzs_l => fieldi(ibegin+( vz_g-1)*6:iend+( vz_g-1)*6)
+       bz1_l => field (ibegin+( bz_g-1)*6:iend+( bz_g-1)*6)
+       bz0_l => field0(ibegin+( bz_g-1)*6:iend+( bz_g-1)*6)
+       bzs_l => fieldi(ibegin+( bz_g-1)*6:iend+( bz_g-1)*6)
+      chi1_l => field (ibegin+(chi_g-1)*6:iend+(chi_g-1)*6)
+      chi0_l => field0(ibegin+(chi_g-1)*6:iend+(chi_g-1)*6)
+      chis_l => fieldi(ibegin+(chi_g-1)*6:iend+(chi_g-1)*6)
+       pe1_l => field (ibegin+( pe_g-1)*6:iend+( pe_g-1)*6)
+       pe0_l => field0(ibegin+( pe_g-1)*6:iend+( pe_g-1)*6)
+       pes_l => fieldi(ibegin+( pe_g-1)*6:iend+( pe_g-1)*6)
+        p1_l => field (ibegin+(  p_g-1)*6:iend+(  p_g-1)*6)
+        p0_l => field0(ibegin+(  p_g-1)*6:iend+(  p_g-1)*6)
+        ps_l => fieldi(ibegin+(  p_g-1)*6:iend+(  p_g-1)*6)
+      den1_l => field (ibegin+(den_g-1)*6:iend+(den_g-1)*6)
+      den0_l => field0(ibegin+(den_g-1)*6:iend+(den_g-1)*6)
+      dens_l => fieldi(ibegin+(den_g-1)*6:iend+(den_g-1)*6)
 
-      if(isplitstep.eq.1) call entdofs(1, inode, 0, ibegin, iendplusone)
-
-      if(idens.eq.1) then
-         den0_l => den0_v(ibegin+den_off:ibegin+den_off+5)
-         den1_l => den1_v(ibegin+den_off:ibegin+den_off+5)
-      endif
       
-      if(ipres.eq.1) then
-         p0_l => p0_v(ibegin+p_off:ibegin+p_off+5)
-         p1_l => p1_v(ibegin+p_off:ibegin+p_off+5)
-      endif
-      
-    end subroutine assign_vectors
+    end subroutine assign_local_pointers
 !================================
     subroutine createvec(vec, numberingid)
       implicit none
