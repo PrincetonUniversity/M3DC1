@@ -166,8 +166,12 @@ subroutine gradshafranov_init()
      x = coords(1) - xmin - alx*.5
      z = coords(2) - zmin - alz*.5
 
-     call assign_vectors(l)
-     call static_equ(ibegin)
+     call assign_local_pointers(l)
+
+     u0_l = 0.
+     vz0_l = 0.
+     chi0_l = 0.
+
      call gradshafranov_per(x,z)
   enddo
   
@@ -185,13 +189,6 @@ subroutine gradshafranov_per(x, z)
   call getboundingboxsize(alx, alz)
   akx = pi/alx
   akz = pi/alz
-
-!!$  psi1_l(1) =  eps*cos(akx*x)*cos(akz*z)
-!!$  psi1_l(2) = -eps*sin(akx*x)*cos(akz*z)*akx
-!!$  psi1_l(3) = -eps*cos(akx*x)*sin(akz*z)*akz
-!!$  psi1_l(4) = -eps*cos(akx*x)*cos(akz*z)*akx**2
-!!$  psi1_l(5) =  eps*sin(akx*x)*sin(akz*z)*akx*akz
-!!$  psi1_l(6) = -eps*cos(akx*x)*cos(akz*z)*akz**2
 
   akz = 2.*pi/alz
   psi1_l(1) = -eps*cos(akx*x)*sin(akz*z)
@@ -226,7 +223,7 @@ subroutine gradshafranov_solve
 
   integer :: itri,i,i1,j,j1,jone, k
   integer :: numelms, numnodes
-  integer :: ibegin, iendplusone, ibeginn, iendplusonen
+  integer :: ibegin, iendplusone
   integer :: ibegin1, iendplusone1
   integer :: ineg, ier
   real :: dterm(18,18), sterm(18,18)
@@ -235,7 +232,6 @@ subroutine gradshafranov_solve
   real, dimension(maxcoils) :: xp, zp, xc, zc
   real :: x, z, xmin, zmin, xrel, zrel, xguess, zguess, error
   real :: sum, rhs, ajlim, curr, norm, rnorm, g0
-  real, dimension(6) :: pp
   real, dimension(5) :: temp1, temp2
   real :: alx, alz
   
@@ -341,6 +337,7 @@ subroutine gradshafranov_solve
      zp = coords(2) - zmin + zzero
 
      call entdofs(numvargs, i, 0, ibegin, iendplusone)
+     call assign_local_pointers(i)
 
      ! Field due to plasma current
      xc(1) = xmag
@@ -395,8 +392,7 @@ subroutine gradshafranov_solve
      endif
 
      ! store boundary conditions on psi
-     call entdofs(vecsize, i, 0, ibeginn, iendplusonen)
-     psis_v(ibeginn+psi_off:ibeginn+psi_off+5) = psi(ibegin:ibegin+5)
+     psis_l = psi(ibegin:ibegin+5)
   enddo
 
   ! define initial b1vecini associated with delta-function source
@@ -599,7 +595,7 @@ subroutine gradshafranov_solve
   do i=1,numnodes
      !.....defines the source functions for the GS equation:
      call entdofs(numvargs, i, 0, ibegin, iendplusone)
-     call assign_vectors(i)
+     call assign_local_pointers(i)
 
      psi0_l = psi(ibegin:ibegin+5)
 
@@ -609,40 +605,22 @@ subroutine gradshafranov_solve
      temp(ibegin+1:ibegin+5) = psi(ibegin+1:ibegin+5)*dpsii
 
      ! pp = p(Psi) in pp
-     call calc_pressure(temp(ibegin:ibegin+5),pp)
+     call calc_pressure(temp(ibegin:ibegin+5),p0_l)
+     call calc_toroidal_field(temp(ibegin:ibegin+5), bz0_l)
 
-     ! I = sqrt(g0**2 + gamma_i*G_i)
-     if(numvar.ge.2) then
-        call calc_toroidal_field(temp(ibegin:ibegin+5), bz0_l)
-     endif
-    
-     if(numvar.ge.3) then
-        
-        if(p0.eq.0.) then 
-           sum = 0.
-        else
-           sum = 1. - ipres*pi0/p0
-        endif
-        pe0_l = sum*pp
+     pe0_l = (1. - ipres*pi0/p0)*p0_l
 
-        if(ipres.eq.1) p0_l = pp
-     end if
-
-     if(idens.eq.1) then
-        pp = pp/p0
-
-        den0_l(1) = pp(1)**expn
-        den0_l(2) = pp(1)**(expn-1.)*pp(2)*expn
-        den0_l(3) = pp(1)**(expn-1.)*pp(3)*expn
-        den0_l(4) = pp(1)**(expn-1.)*pp(4)*expn &
-             + pp(1)**(expn-2.)*pp(2)**2.*expn*(expn-1.)
-        den0_l(5) = pp(1)**(expn-1.)*pp(5)*expn & 
-             + pp(1)**(expn-2.)*pp(2)*pp(3)&
-             * expn*(expn-1.)
-        den0_l(6) = pp(1)**(expn-1.)*pp(6)*expn &
-             + pp(1)**(expn-2.)*pp(3)**2.*expn*(expn-1.)
-     endif
-
+     den0_l(1) = p0_l(1)**expn
+     den0_l(2) = p0_l(1)**(expn-1.)*p0_l(2)*expn
+     den0_l(3) = p0_l(1)**(expn-1.)*p0_l(3)*expn
+     den0_l(4) = p0_l(1)**(expn-1.)*p0_l(4)*expn &
+          + p0_l(1)**(expn-2.)*p0_l(2)**2.*expn*(expn-1.)
+     den0_l(5) = p0_l(1)**(expn-1.)*p0_l(5)*expn & 
+          + p0_l(1)**(expn-2.)*p0_l(2)*p0_l(3) &
+          * expn*(expn-1.)
+     den0_l(6) = p0_l(1)**(expn-1.)*p0_l(6)*expn &
+          + p0_l(1)**(expn-2.)*p0_l(3)**2.*expn*(expn-1.)
+     den0_l = den0_l/p0**expn
   end do
 
   ! correct for left-handedness
@@ -1226,7 +1204,7 @@ subroutine calc_pressure(psii,pres)
   use basic
 
   real, intent(in), dimension(6)  :: psii     ! normalized flux
-  real, intent(out), dimension(6) :: pres     ! pressure
+  vectype, intent(out), dimension(6) :: pres     ! pressure
 
 !  if(psii(1) .lt. 0 .or. psii(1) .gt. 1) then
   if(psii(1) .gt. 1) then

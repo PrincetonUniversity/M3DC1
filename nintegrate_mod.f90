@@ -539,13 +539,13 @@ subroutine define_fields_79(itri, fields)
   ! PHI
   ! ~~~
   if(iand(fields, FIELD_PHI).eq.FIELD_PHI) then
-     if(itri.eq.1 .and. myrank.eq.0) print *, "   phi..."
+     if(itri.eq.1 .and. myrank.eq.0) print *, "   u..."
      
-     call calcavector(itri, phi1_v, phi_i, vecsize, avec)
+     call calcavector(itri, field, u_g, num_fields, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ph179)
 
      if(linear.eq.1 .or. eqsubtract.eq.1) then
-        call calcavector(itri, phi0_v, phi_i, vecsize, avec)
+        call calcavector(itri, field0, u_g, num_fields, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ph079)
         pht79 = ph079 + ph179
         phs79 = ph079 + ph179/2.
@@ -561,11 +561,11 @@ subroutine define_fields_79(itri, fields)
   if(iand(fields, FIELD_PSI).eq.FIELD_PSI) then
      if(itri.eq.1 .and. myrank.eq.0) print *, "   psi..."
 
-     call calcavector(itri, psi1_v, psi_i, vecsize, avec)
+     call calcavector(itri, field, psi_g, num_fields, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ps179)
 
      if(linear.eq.1 .or. eqsubtract.eq.1) then
-        call calcavector(itri, psi0_v, psi_i, vecsize, avec)
+        call calcavector(itri, field0, psi_g, num_fields, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ps079)
         pst79 = ps079 + ps179
         pss79 = ps079 + ps179/2.
@@ -580,11 +580,11 @@ subroutine define_fields_79(itri, fields)
   if(iand(fields, FIELD_V).eq.FIELD_V) then
      if(itri.eq.1 .and. myrank.eq.0) print *, "   V..."
 
-     call calcavector(itri, vz1_v, vz_i, vecsize, avec)
+     call calcavector(itri, field, vz_g, num_fields, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, vz179)
     
      if(linear.eq.1 .or. eqsubtract.eq.1) then
-        call calcavector(itri, vz0_v, vz_i, vecsize, avec)
+        call calcavector(itri, field0, vz_g, num_fields, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, vz079)
         vzt79 = vz079 + vz179
      else
@@ -600,11 +600,11 @@ subroutine define_fields_79(itri, fields)
 
      if(numvar.ge.2) then
         
-        call calcavector(itri, bz1_v, bz_i, vecsize, avec)
+        call calcavector(itri, field, bz_g, num_fields, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, bz179)
         
         if(linear.eq.1 .or. eqsubtract.eq.1) then
-           call calcavector(itri, bz0_v, bz_i, vecsize, avec)
+           call calcavector(itri, field0, bz_g, num_fields, avec)
            call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, bz079)
            bzt79 = bz079 + bz179
            bzs79 = bz079 + bz179/2.
@@ -643,11 +643,11 @@ subroutine define_fields_79(itri, fields)
   if(iand(fields, FIELD_CHI).eq.FIELD_CHI) then
      if(itri.eq.1 .and. myrank.eq.0) print *, "   chi..."
 
-     call calcavector(itri, chi1_v, chi_i, vecsize, avec)
+     call calcavector(itri, field, chi_g, num_fields, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ch179)
 
      if(linear.eq.1 .or. eqsubtract.eq.1) then
-        call calcavector(itri, chi0_v, chi_i, vecsize, avec)
+        call calcavector(itri, field0, chi_g, num_fields, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ch079)
         cht79 = ch079 + ch179
         chs79 = ch079 + ch179/2.
@@ -665,27 +665,25 @@ subroutine define_fields_79(itri, fields)
 
      if(numvar.ge.3) then
         if(ipres.eq.1) then
-           call calcavector(itri, p1_v, p_i, vecsize1, avec)
+           call calcavector(itri, field, p_g, num_fields, avec)
            call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, p179)
-           call calcavector(itri, pe1_v, pe_i, vecsize, avec)
+           call calcavector(itri, field, pe_g, num_fields, avec)
            call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, pe179)
         else
-           call calcavector(itri, pe1_v, pe_i, vecsize, avec)
+           call calcavector(itri, field, pe_g, num_fields, avec)
            call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, p179)
-           !           pe179 = ((p0-pi0)/p0)*p179
            pe179 = p179
         endif
         
         if(linear.eq.1 .or. eqsubtract.eq.1) then
            if(ipres.eq.1) then
-              call calcavector(itri, p0_v, p_i, vecsize1, avec)
+              call calcavector(itri, field0, p_g, num_fields, avec)
               call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, p079)
-              call calcavector(itri, pe0_v, pe_i, vecsize, avec)
+              call calcavector(itri, field0, pe_g, num_fields, avec)
               call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, pe079)
            else
-              call calcavector(itri, pe0_v, pe_i, vecsize, avec)
+              call calcavector(itri, field0, pe_g, num_fields, avec)
               call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, p079)
-              !              pe079 = ((p0-pi0)/p0)*p079
               pe079 = p079
            endif
            pet79 = pe079 + pe179
@@ -729,11 +727,11 @@ subroutine define_fields_79(itri, fields)
      if(itri.eq.1 .and. myrank.eq.0) print *, "   n..."
 
      if(idens.eq.1) then
-        call calcavector(itri, den1_v, den_i, vecsize1, avec)
+        call calcavector(itri, field, den_g, num_fields, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, n179)
      
         if(linear.eq.1 .or. eqsubtract.eq.1) then
-           call calcavector(itri, den0_v, den_i, vecsize1, avec)
+           call calcavector(itri, field0, den_g, num_fields, avec)
            call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, n079)
            nt79 = n079 + n179
         else
@@ -862,7 +860,7 @@ subroutine define_fields_79(itri, fields)
 
   ! SIG
   ! ~~~
-  if(iand(fields, FIELD_SIG).eq.FIELD_SIG) then
+  if((iand(fields, FIELD_SIG).eq.FIELD_SIG) .and. idens.eq.1) then
      if(itri.eq.1 .and. myrank.eq.0) print *, "   sigma..."
 
      call calcavector(itri, sigma, 1, 1, avec)

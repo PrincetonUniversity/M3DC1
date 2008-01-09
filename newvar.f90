@@ -81,7 +81,7 @@ end subroutine create_newvar_matrix
 
 ! newvar_d2
 ! =========
-subroutine newvar_d2(inarray,outarray,itype,ibound,gs)
+subroutine newvar_d2(inarray,outarray,itype,numvari,ibound,gs)
 
   use basic
   use t_data
@@ -90,12 +90,13 @@ subroutine newvar_d2(inarray,outarray,itype,ibound,gs)
 
   implicit none
 
-  integer, intent(in) :: itype, ibound
-  vectype, intent(in) :: inarray(*) ! length using numvard ordering
+  integer, intent(in) :: itype, ibound, numvari
+  vectype, intent(in) :: inarray(*) ! length using numvari ordering
   vectype, intent(out) :: outarray(*) ! length using numvar=1 ordering
   integer, intent(in) :: gs ! NV_GS for grad-shafranov operator, NV_LP for laplacian
 
-  integer :: ndof, numelms, itri, i, j, ione, j1
+  integer :: ndof, numelms, itri, i, j, ione, j1, ii, iii
+  integer :: ibegin, iendplusone
 
   real :: sum
 
@@ -134,16 +135,21 @@ subroutine newvar_d2(inarray,outarray,itype,ibound,gs)
      do i=1,18
         ione = isval1(itri,i)
         sum = 0.
-        do j=1,18
-           j1 = isvaln(itri,j)
 
-           sum = sum - inarray(j1 + 6*(itype-1)) * &
-                (int2(g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79) &
-                +int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j),weight_79,79))
-           if(itor.eq.1 .and. gs.eq.NV_GS) then
-              sum = sum - inarray(j1 + 6*(itype-1)) * &
-                   2.*int3(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j),weight_79,79)
-           endif
+        do iii=1,3
+           call entdofs(numvari, ist(itri,iii)+1, 0, ibegin,  iendplusone )
+           do ii=1,6
+              j = (iii-1)*6 + ii
+              j1 = ibegin + ii-1 + 6*(itype-1)
+
+              sum = sum - inarray(j1) * &
+                   (int2(g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79) &
+                   +int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j),weight_79,79))
+              if(itor.eq.1 .and. gs.eq.NV_GS) then
+                 sum = sum - inarray(j1) * &
+                      2.*int3(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j),weight_79,79)
+              endif
+           end do
         end do
         outarray(ione) = outarray(ione) + sum
      end do
@@ -182,8 +188,7 @@ subroutine define_transport_coefficients()
 
   def_fields = 0.
 
-  if(idens.eq.1)  def_fields = def_fields + FIELD_N
-  if(numvar.ge.3) def_fields = def_fields + FIELD_PE + FIELD_P
+  def_fields = def_fields + FIELD_N + FIELD_PE + FIELD_P
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' defining...'
 
@@ -199,19 +204,7 @@ subroutine define_transport_coefficients()
         temp79a = 0.
      else       
         ! resistivity = 1/T**(3/2) = sqrt((n/p)**3)
-        if(numvar.ge.3) then         
-           if(idens.eq.0) then
-              temp79a = sqrt((1./(pefac*pet79(:,OP_1)))**3)
-           else
-              temp79a = sqrt((nt79(:,OP_1)/(pefac*pet79(:,OP_1)))**3)
-           endif
-        else
-           if(idens.eq.0) then
-              temp79a = sqrt((1./(p0-pi0))**3)
-           else
-              temp79a = sqrt((nt79(:,OP_1)/(p0-pi0))**3)
-           endif
-        endif
+        temp79a = sqrt((nt79(:,OP_1)/(pefac*pet79(:,OP_1)))**3)
      endif
 
      ! thermal conductivity
@@ -220,26 +213,15 @@ subroutine define_transport_coefficients()
         temp79b = 0.
      else
         ! kappa = p/T**(3/2) = sqrt(n**3/p)
-        if(idens.eq.0) then
-!!$           temp79c = (eta0*temp79a/2.)**2 * &
-!!$                (9.*(pet79(:,OP_DZ)**2+pet79(:,OP_DR)**2)/pet79(:,OP_1)**2)
+        temp79c = (eta0*temp79a/2.)**2 * &
+                 ((nt79(:,OP_DZ)**2 + nt79(:,OP_DR)**2)/ nt79(:,OP_1)**2 &
+             +9.*(pet79(:,OP_DZ)**2 +pet79(:,OP_DR)**2)/pet79(:,OP_1)**2 &
+             - 6.*(nt79(:,OP_DZ)*pet79(:,OP_DZ) &
+                  +nt79(:,OP_DR)*pet79(:,OP_DR)) &
+                 /(nt79(:,OP_1 )*pet79(:,OP_1 )))
 
-!!$           temp79b = kappa0/sqrt(pt79(:,OP_1)) &
-!!$                + kappah/(1.+sqrt(temp79c))
-
-           temp79b = kappa0/sqrt(pt79(:,OP_1)) &
-                + kappah/(1.+pt79(:,OP_LP)**2)
-        else
-           temp79c = (eta0*temp79a/2.)**2 * &
-                    ((nt79(:,OP_DZ)**2 + nt79(:,OP_DR)**2)/ nt79(:,OP_1)**2 &
-                +9.*(pet79(:,OP_DZ)**2 +pet79(:,OP_DR)**2)/pet79(:,OP_1)**2 &
-                - 6.*(nt79(:,OP_DZ)*pet79(:,OP_DZ) &
-                     +nt79(:,OP_DR)*pet79(:,OP_DR)) &
-                    /(nt79(:,OP_1 )*pet79(:,OP_1 )))
-
-           temp79b = kappa0*sqrt(nt79(:,OP_1)**3/pt79(:,OP_1)) &
-                + kappah/(1.+sqrt(temp79c))
-        endif        
+        temp79b = kappa0*sqrt(nt79(:,OP_1)**3/pt79(:,OP_1)) &
+             + kappah/(1.+sqrt(temp79c))
      endif
  
      ! density source

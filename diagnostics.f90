@@ -422,11 +422,8 @@ subroutine calculate_scalars()
           FIELD_PE + FIELD_P + FIELD_KAP
      if(kappar.ne.0) def_fields = def_fields + FIELD_B2I
   endif
-  if(idens.eq.1) then
-     def_fields = def_fields + FIELD_N + FIELD_NI + FIELD_SIG
-  endif
-     
-
+  def_fields = def_fields + FIELD_N + FIELD_NI + FIELD_SIG
+   
   if(hypc.ne.0.) then 
      def_fields = def_fields + FIELD_VOR
      if(numvar.ge.3) def_fields = def_fields + FIELD_COM

@@ -1609,30 +1609,30 @@ subroutine ludefvel_n(itri)
 
         if(isplitstep.eq.0) rrterm = -rrterm
 
-        call insertval(vv1,ssterm(1,1),icomplex,i1+phi_off,j1+phi_off,1)
-        call insertval(vv0,ddterm(1,1),icomplex,i1+phi_off,j1+phi_off,1)
-        call insertval(vb0,qqterm(1,1),icomplex,i1+phi_off,j1+psi_off,1)
+        call insertval(vv1,ssterm(1,1),icomplex,i1+  u_off,j1+  u_off,1)
+        call insertval(vv0,ddterm(1,1),icomplex,i1+  u_off,j1+  u_off,1)
+        call insertval(vb0,qqterm(1,1),icomplex,i1+  u_off,j1+psi_off,1)
         if(idens.eq.1) &
-             call insertval(vn0,qqterm(1,4),icomplex,i1+phi_off,j1+den_off,1)
+             call insertval(vn0,qqterm(1,4),icomplex,i1+  u_off,j1+den_off,1)
         if(isplitstep.eq.0) then
-           call insertval(vb1,rrterm(1,1),icomplex,i1+phi_off,j1+psi_off,1)
+           call insertval(vb1,rrterm(1,1),icomplex,i1+  u_off,j1+psi_off,1)
            if(idens.eq.1) &
-                call insertval(vn1,rrterm(1,4),icomplex,i1+phi_off,j1+den_off,1)
+                call insertval(vn1,rrterm(1,4),icomplex,i1+  u_off,j1+den_off,1)
         endif
         if(numvar.ge.2) then
-           call insertval(vv1,ssterm(1,2),icomplex,i1+phi_off,j1+ vz_off,1)
-           call insertval(vv1,ssterm(2,1),icomplex,i1+ vz_off,j1+phi_off,1)
+           call insertval(vv1,ssterm(1,2),icomplex,i1+  u_off,j1+ vz_off,1)
+           call insertval(vv1,ssterm(2,1),icomplex,i1+ vz_off,j1+  u_off,1)
            call insertval(vv1,ssterm(2,2),icomplex,i1+ vz_off,j1+ vz_off,1)
-           call insertval(vv0,ddterm(1,2),icomplex,i1+phi_off,j1+ vz_off,1)
-           call insertval(vv0,ddterm(2,1),icomplex,i1+ vz_off,j1+phi_off,1)
+           call insertval(vv0,ddterm(1,2),icomplex,i1+  u_off,j1+ vz_off,1)
+           call insertval(vv0,ddterm(2,1),icomplex,i1+ vz_off,j1+  u_off,1)
            call insertval(vv0,ddterm(2,2),icomplex,i1+ vz_off,j1+ vz_off,1)
-           call insertval(vb0,qqterm(1,2),icomplex,i1+phi_off,j1+ bz_off,1)
+           call insertval(vb0,qqterm(1,2),icomplex,i1+  u_off,j1+ bz_off,1)
            call insertval(vb0,qqterm(2,1),icomplex,i1+ vz_off,j1+psi_off,1)
            call insertval(vb0,qqterm(2,2),icomplex,i1+ vz_off,j1+ bz_off,1)
            if(idens.eq.1) &
                 call insertval(vn0,qqterm(2,4),icomplex,i1+vz_off,j1+den_off,1)
            if(isplitstep.eq.0) then
-              call insertval(vb1,rrterm(1,2),icomplex,i1+phi_off,j1+ bz_off,1)
+              call insertval(vb1,rrterm(1,2),icomplex,i1+  u_off,j1+ bz_off,1)
               call insertval(vb1,rrterm(2,1),icomplex,i1+ vz_off,j1+psi_off,1)
               call insertval(vb1,rrterm(2,2),icomplex,i1+ vz_off,j1+ bz_off,1)
               if(idens.eq.1) &
@@ -1640,17 +1640,17 @@ subroutine ludefvel_n(itri)
            end if
         endif
         if(numvar.ge.3) then
-           call insertval(vv1,ssterm(1,3),icomplex,i1+phi_off,j1+chi_off,1)
+           call insertval(vv1,ssterm(1,3),icomplex,i1+  u_off,j1+chi_off,1)
            call insertval(vv1,ssterm(2,3),icomplex,i1+ vz_off,j1+chi_off,1)
-           call insertval(vv1,ssterm(3,1),icomplex,i1+chi_off,j1+phi_off,1)
+           call insertval(vv1,ssterm(3,1),icomplex,i1+chi_off,j1+  u_off,1)
            call insertval(vv1,ssterm(3,2),icomplex,i1+chi_off,j1+ vz_off,1)
            call insertval(vv1,ssterm(3,3),icomplex,i1+chi_off,j1+chi_off,1)
-           call insertval(vv0,ddterm(1,3),icomplex,i1+phi_off,j1+chi_off,1)
+           call insertval(vv0,ddterm(1,3),icomplex,i1+  u_off,j1+chi_off,1)
            call insertval(vv0,ddterm(2,3),icomplex,i1+ vz_off,j1+chi_off,1)
-           call insertval(vv0,ddterm(3,1),icomplex,i1+chi_off,j1+phi_off,1)
+           call insertval(vv0,ddterm(3,1),icomplex,i1+chi_off,j1+  u_off,1)
            call insertval(vv0,ddterm(3,2),icomplex,i1+chi_off,j1+ vz_off,1)
            call insertval(vv0,ddterm(3,3),icomplex,i1+chi_off,j1+chi_off,1)
-           call insertval(vb0,qqterm(1,3),icomplex,i1+phi_off,j1+ pe_off,1)
+           call insertval(vb0,qqterm(1,3),icomplex,i1+  u_off,j1+ pe_off,1)
            call insertval(vb0,qqterm(2,3),icomplex,i1+ vz_off,j1+ pe_off,1)
            call insertval(vb0,qqterm(3,1),icomplex,i1+chi_off,j1+psi_off,1)
            call insertval(vb0,qqterm(3,2),icomplex,i1+chi_off,j1+ bz_off,1)
@@ -1658,7 +1658,7 @@ subroutine ludefvel_n(itri)
            if(idens.eq.1) &
                 call insertval(vn0,qqterm(3,4),icomplex,i1+chi_off,j1+den_off,1)
            if(isplitstep.eq.0) then
-              call insertval(vb1,rrterm(1,3),icomplex,i1+phi_off,j1+ pe_off,1)
+              call insertval(vb1,rrterm(1,3),icomplex,i1+  u_off,j1+ pe_off,1)
               call insertval(vb1,rrterm(2,3),icomplex,i1+ vz_off,j1+ pe_off,1)
               call insertval(vb1,rrterm(3,1),icomplex,i1+chi_off,j1+psi_off,1)
               call insertval(vb1,rrterm(3,2),icomplex,i1+chi_off,j1+ bz_off,1)
@@ -1672,7 +1672,7 @@ subroutine ludefvel_n(itri)
      ! Definition of R4
      ! ================
      call vorticity_nolin(g79(:,:,i),temp)
-     vsource(i1+phi_off) = vsource(i1+phi_off) + temp
+     vsource(i1+  u_off) = vsource(i1+  u_off) + temp
      if(numvar.ge.2) then
         call axial_vel_nolin(g79(:,:,i),temp)
         vsource(i1+ vz_off) = vsource(i1+ vz_off) + temp
@@ -1748,8 +1748,8 @@ subroutine ludefphi_n(itri)
       
         call insertval(bb1,ssterm(1,1),icomplex,i1+psi_off,j1+psi_off,1)
         call insertval(bb0,ddterm(1,1),icomplex,i1+psi_off,j1+psi_off,1)
-        call insertval(bv1,rrterm(1,1),icomplex,i1+psi_off,j1+phi_off,1)
-        call insertval(bv0,qqterm(1,1),icomplex,i1+psi_off,j1+phi_off,1)
+        call insertval(bv1,rrterm(1,1),icomplex,i1+psi_off,j1+  u_off,1)
+        call insertval(bv0,qqterm(1,1),icomplex,i1+psi_off,j1+  u_off,1)
         if(numvar.ge.2) then
            call insertval(bb1,ssterm(1,2),icomplex,i1+psi_off,j1+ bz_off,1)
            call insertval(bb1,ssterm(2,1),icomplex,i1+ bz_off,j1+psi_off,1)
@@ -1758,10 +1758,10 @@ subroutine ludefphi_n(itri)
            call insertval(bb0,ddterm(2,1),icomplex,i1+ bz_off,j1+psi_off,1)
            call insertval(bb0,ddterm(2,2),icomplex,i1+ bz_off,j1+ bz_off,1)
            call insertval(bv1,rrterm(1,2),icomplex,i1+psi_off,j1+ vz_off,1)
-           call insertval(bv1,rrterm(2,1),icomplex,i1+ bz_off,j1+phi_off,1)
+           call insertval(bv1,rrterm(2,1),icomplex,i1+ bz_off,j1+  u_off,1)
            call insertval(bv1,rrterm(2,2),icomplex,i1+ bz_off,j1+ vz_off,1)
            call insertval(bv0,qqterm(1,2),icomplex,i1+psi_off,j1+ vz_off,1)
-           call insertval(bv0,qqterm(2,1),icomplex,i1+ bz_off,j1+phi_off,1)
+           call insertval(bv0,qqterm(2,1),icomplex,i1+ bz_off,j1+  u_off,1)
            call insertval(bv0,qqterm(2,2),icomplex,i1+ bz_off,j1+ vz_off,1)
         endif
         if(numvar .eq. 3) then        
@@ -1778,12 +1778,12 @@ subroutine ludefphi_n(itri)
            call insertval(bv1,rrterm(1,3),icomplex,i1+psi_off,j1+chi_off,1)
            call insertval(bv1,rrterm(2,3),icomplex,i1+ bz_off,j1+chi_off,1)
            call insertval(bv1,rrterm(3,3),icomplex,i1+ pe_off,j1+chi_off,1)
-           call insertval(bv1,rrterm(3,1),icomplex,i1+ pe_off,j1+phi_off,1)
+           call insertval(bv1,rrterm(3,1),icomplex,i1+ pe_off,j1+  u_off,1)
            call insertval(bv1,rrterm(3,2),icomplex,i1+ pe_off,j1+ vz_off,1)
            call insertval(bv0,qqterm(1,3),icomplex,i1+psi_off,j1+chi_off,1)
            call insertval(bv0,qqterm(2,3),icomplex,i1+ bz_off,j1+chi_off,1)
            call insertval(bv0,qqterm(3,3),icomplex,i1+ pe_off,j1+chi_off,1)
-           call insertval(bv0,qqterm(3,1),icomplex,i1+ pe_off,j1+phi_off,1)
+           call insertval(bv0,qqterm(3,1),icomplex,i1+ pe_off,j1+  u_off,1)
            call insertval(bv0,qqterm(3,2),icomplex,i1+ pe_off,j1+ vz_off,1)
         endif
        
@@ -1918,8 +1918,8 @@ subroutine ludefden_n(itri)
 
         call insertval(nn1, ssterm, icomplex, ione+den_off, jone+den_off, 1)
         call insertval(nn0, ddterm, icomplex, ione+den_off, jone+den_off, 1)
-        call insertval(nv1, rrterm(1), icomplex, i1+den_off,j1+phi_off, 1)
-        call insertval(nv0, qqterm(1), icomplex, i1+den_off,j1+phi_off, 1)
+        call insertval(nv1, rrterm(1), icomplex, i1+den_off,j1+  u_off, 1)
+        call insertval(nv0, qqterm(1), icomplex, i1+den_off,j1+  u_off, 1)
         if(numvar.ge.2) then
            call insertval(nv1,rrterm(2), icomplex, i1+den_off,j1+vz_off,1)
            call insertval(nv0,qqterm(2), icomplex, i1+den_off,j1+vz_off,1)

@@ -11,12 +11,12 @@ F77    = ifort -c
 CC     = icc -c
 
 # For compiling complex version:
-COMPLEX = -Dvectype=complex -DUSECOMPLEX
-BIN_POSTFIX = _complex
+#COMPLEX = -Dvectype=complex -DUSECOMPLEX
+#BIN_POSTFIX = _complex
 
 # For compling real version:
-#COMPLEX = -Dvectype=real
-#BIN_POSTFIX = 
+COMPLEX = -Dvectype=real
+BIN_POSTFIX = 
 
 
 BIN = gonewp${BIN_POSTFIX}
@@ -29,7 +29,7 @@ NEWOBJS = M3Dmodules.o nintegrate_mod.o metricterms_new.o \
 	newvar.o diagnostics.o gradshafranov.o control.o \
 	$(COMMONDIR)subp.o \
 	$(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
-        $(COMMONDIR)fdump.o hdf5_output.o newpar.o \
+        $(COMMONDIR)fdump.o hdf5_output.o time_step.o newpar.o \
 	fin.o part_fin.o ludef_t.o \
 	boundary.o unknown.o restart.o \
 	acbauer.o metricterms.o \
