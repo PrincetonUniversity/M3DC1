@@ -73,7 +73,10 @@ c$$$      return
       use nintegrate_mod
 
       implicit none
-      integer numnodes, numelms, i, ifirstcall
+
+      integer, intent(in) :: ifirstcall
+
+      integer :: numnodes, numelms, i
 
       if(isplitstep.eq.1) then
          vecsize = numvar
@@ -120,7 +123,7 @@ c$$$      return
       call createvec(visc_c, 1)
       call createvec(sigma, 1)
       call createvec(tempvar,1)
-      
+      if(i3d.eq.1) call createvec(bf,1)      
 
       ! Arrays for implicit time advance
       call createvec(phi,  vecsize)
@@ -429,50 +432,28 @@ c$$$      return
 !============================================================
       subroutine scaleback
 !
-      use p_data
-      use t_data
       use basic
       use arrays
       use diagnostics
 
       implicit none
-      real alpha, alphas
-      integer i
+
+      real, parameter :: scalefac = 1e-10
+
 !.....scale solution back if a linear calculation
-      alpha = 1.
-      if(ekin .gt. .001) alpha = sqrt(.001/ekin)
-      vel = alpha*vel
-c      do i=301,360
-c         write(*,*) 'acbauer is not sure why this is in scaleback'
-c         call safestop(334)
-c         vel(i) = 1.
-c      enddo
-      phi = alpha*phi
-!
-      alphas = alpha*alpha
-      ekin = ekin*alphas
-      emag = emag*alphas
-      write(*,*) 'emag===',emag, alphas
-      ekind = ekind*alphas
-      emagd = emagd*alphas
-!
-      ekinp = ekinp*alphas
-      emagp = emagp*alphas
-      ekinpd = ekinpd*alphas
-      emagpd = emagpd*alphas
-!
-!
-      ekint = ekint*alphas
-      emagt = emagt*alphas
-      ekintd = ekintd*alphas
-      emagtd = emagtd*alphas
-!
-      ekinph = ekinph*alphas
-      ekinth = ekinth*alphas
-      emagph = emagph*alphas
-      emagth = emagth*alphas
-!
-      return
+
+      if(ekin .lt. max_ke) return
+
+      field = scalefac*field
+
+      phiold = 1e-10*phiold
+      if(isplitstep) then
+         velold = scalefac*velold
+         veloldn = scalefac*veloldn
+         denold = scalefac*denold
+         if(ipres.eq.1) presold = scalefac*presold
+      endif
+      
       end
 !===========================
 

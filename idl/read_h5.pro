@@ -955,7 +955,7 @@ pro plot_field, name, time, x, y, points=p, filename=filename, mesh=plotmesh, $
        plot, x, field[0,*,i]
    endif else begin
        contour_and_legend, field, x, y, title=title, label=units, $
-         xtitle='!8r!X', ytitle='!8z!X', _EXTRA=ex
+         xtitle='!8R!X', ytitle='!8z!X', _EXTRA=ex
 
        if(keyword_set(lcfs) or n_elements(maskrange) ne 0) then begin
            if(n_elements(psi) eq 0) then begin

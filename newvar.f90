@@ -5,16 +5,28 @@ module newvar_mod
   integer, parameter :: NV_NOBOUND = 0
   integer, parameter :: NV_DCBOUND = 1
 
-  integer, parameter :: NV_LP = 0
-  integer, parameter :: NV_GS = 1
+  integer, parameter :: NV_MASS_MATRIX = 0
+  integer, parameter :: NV_POISSON_MATRIX = 1
 
+  integer, parameter :: NV_1  = 0
+  integer, parameter :: NV_LP = 1
+  integer, parameter :: NV_GS = 2
+  integer, parameter :: NV_BF = 3
 
 contains
 
-
-! create_newvar_matrix
-! ====================
-subroutine create_newvar_matrix(matrix, ibound)
+!============================================
+! create_matrix
+! ~~~~~~~~~~~~~
+! creates a matrix.
+! ibound:
+!   NV_NOBOUND: no boundary conditions
+!   NV_DCBOUND: dirichlet boundary conditions
+! itype:
+!   NV_MASS_MATRIX:    delta_{i j}
+!   NV_POISSON_MATRIX: delta_{i j} d_i d_j
+!============================================
+subroutine create_matrix(matrix, ibound, itype)
 
   use basic
   use p_data
@@ -25,7 +37,7 @@ subroutine create_newvar_matrix(matrix, ibound)
 
   implicit none
 
-  integer, intent(in) :: matrix, ibound
+  integer, intent(in) :: matrix, ibound, itype
 
   integer :: numelms, itri, i, j, ione, jone, izone, izonedim
   vectype :: temp
@@ -61,7 +73,14 @@ subroutine create_newvar_matrix(matrix, ibound)
         jone = isval1(itri,j)
         do i=1,18
            ione = isval1(itri,i)
-           temp = int2(g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
+           selectcase(itype)
+           case(NV_MASS_MATRIX)
+              temp = int2(g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
+           case(NV_POISSON_MATRIX)
+              temp = &
+                   -int2(g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79) &
+                   -int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j),weight_79,79)
+           end select
            call insertval(matrix, temp, icomplex, ione, jone, 1)
         enddo
      enddo
@@ -76,12 +95,30 @@ subroutine create_newvar_matrix(matrix, ibound)
 
   call finalizematrix(matrix)
 
-end subroutine create_newvar_matrix
+end subroutine create_matrix
 
 
-! newvar_d2
-! =========
-subroutine newvar_d2(inarray,outarray,itype,numvari,ibound,gs)
+!=====================================================================
+! newvar
+! ~~~~~~
+! creates rhs and solves matrix equation:
+!  A x = F(b)
+!
+! imatrix: lhs matrix (A)
+! outarray: array to contain the result (x)
+! inarray: array containing field (b)
+! iplace: index of field in inarray
+! numvari: number of fields in inarray
+! ibound: boundary conditions to apply
+!   NV_NOBOUND: no boundary conditions
+!   NV_DCBOUND: dirichlet boundary conditions
+! itype: operator (F) to apply to (b) to get rhs
+!   NV_1 : 1 
+!   NV_GS: del*
+!   NV_LP: del*2
+!   NV_BF: 1/R^2
+!======================================================================
+subroutine newvar(imatrix,outarray,inarray,iplace,numvari,itype,ibound)
 
   use basic
   use t_data
@@ -90,10 +127,13 @@ subroutine newvar_d2(inarray,outarray,itype,numvari,ibound,gs)
 
   implicit none
 
-  integer, intent(in) :: itype, ibound, numvari
-  vectype, intent(in) :: inarray(*) ! length using numvari ordering
-  vectype, intent(out) :: outarray(*) ! length using numvar=1 ordering
-  integer, intent(in) :: gs ! NV_GS for grad-shafranov operator, NV_LP for laplacian
+  integer, intent(in) :: iplace, ibound, numvari, imatrix
+  vectype, intent(in) :: inarray(*)   ! size=numvari
+  vectype, intent(out) :: outarray(*) ! assumes size=1
+  integer, intent(in) :: itype        ! NV_1 : 1 
+                                      ! NV_GS: del*
+                                      ! NV_LP: del*2
+                                      ! NV_BF: 1/R^2
 
   integer :: ndof, numelms, itri, i, j, ione, j1, ii, iii
   integer :: ibegin, iendplusone
@@ -132,6 +172,7 @@ subroutine newvar_d2(inarray,outarray,itype,numvari,ibound,gs)
              ri_79, 79, g79(:,:,i))
      end do
 
+     ! Populate RHS
      do i=1,18
         ione = isval1(itri,i)
         sum = 0.
@@ -140,15 +181,28 @@ subroutine newvar_d2(inarray,outarray,itype,numvari,ibound,gs)
            call entdofs(numvari, ist(itri,iii)+1, 0, ibegin,  iendplusone )
            do ii=1,6
               j = (iii-1)*6 + ii
-              j1 = ibegin + ii-1 + 6*(itype-1)
+              j1 = ibegin + ii-1 + 6*(iplace-1)
 
-              sum = sum - inarray(j1) * &
-                   (int2(g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79) &
-                   +int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j),weight_79,79))
-              if(itor.eq.1 .and. gs.eq.NV_GS) then
+              selectcase(itype)
+              case(NV_1)
+                 sum = sum + inarray(j1)* &
+                      int2(g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
+              case(NV_LP)
                  sum = sum - inarray(j1) * &
-                      2.*int3(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j),weight_79,79)
-              endif
+                      (int2(g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79) &
+                      +int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j),weight_79,79))
+              case(NV_GS)
+                 sum = sum - inarray(j1) * &
+                      (int2(g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79) &
+                      +int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j),weight_79,79))
+                 if(itor.eq.1) then
+                    sum = sum - inarray(j1) * &
+                         2.*int3(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j),weight_79,79)
+                 endif
+              case(NV_BF)
+                 sum = sum + inarray(j1)* &
+                      int3(ri2_79,g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79)
+              end select
            end do
         end do
         outarray(ione) = outarray(ione) + sum
@@ -158,9 +212,38 @@ subroutine newvar_d2(inarray,outarray,itype,numvari,ibound,gs)
     if(myrank.eq.0 .and. iprint.ge.1) print *, " solving.."
 
   ! solve linear equation
-  call solve_newvar(outarray, ibound)
+  call solve_newvar(outarray, ibound, imatrix)
 
-end subroutine newvar_d2
+end subroutine newvar
+
+
+!=====================================================
+! solve_newvar
+! ~~~~~~~~~~~~
+! Solves equation imatrix*x = rhs
+! with ibound boundary conditions applied to rhs.
+! rhs is overwritten with result (x) on return.
+! Be sure imatrix was also generated using ibound.
+!=====================================================
+subroutine solve_newvar(rhs, ibound, imatrix)
+
+  use sparse
+
+  implicit none
+
+  integer, intent(in) :: ibound, imatrix
+  vectype, dimension(*), intent(inout) :: rhs
+
+  integer :: ier
+
+  call sumsharedppplvecvals(rhs)
+
+  if(ibound.eq.NV_DCBOUND) call boundary_dc(0,rhs)
+  call solve(imatrix,rhs,ier)
+
+end subroutine solve_newvar
+
+end module newvar_mod
 
 
 ! define_transport_coefficients
@@ -171,12 +254,27 @@ subroutine define_transport_coefficients()
   use t_data
   use arrays
   use nintegrate_mod
+  use newvar_mod
+  use sparse
 
-  integer :: i, itri
+  implicit none
+
+  integer :: i, itri, ibegin, iendplusone, numnodes
   integer :: ione, numelms, def_fields
   double precision :: coords(3)
 
   real :: factor
+
+  logical, save :: first_time = .true.
+  logical :: solve_sigma, solve_kappa, solve_visc, solve_resistivity
+
+  if((linear.eq.1).and.(.not.first_time)) return
+  first_time = .false.
+
+  solve_resistivity = eta0.ne.0
+  solve_visc = amu_edge.ne.0
+  solve_kappa = numvar.ge.3 .and. (kappa0.ne.0 .or. kappah.ne.0)
+  solve_sigma = idens.eq.1 .and. (ipellet.eq.1 .or. ionization.eq.1)
 
   resistivity = 0.
   kappa = 0.
@@ -200,18 +298,14 @@ subroutine define_transport_coefficients()
         
      ! resistivity
      ! ~~~~~~~~~~~
-     if(eta0.eq.0.) then
-        temp79a = 0.
-     else       
+     if(solve_resistivity) then
         ! resistivity = 1/T**(3/2) = sqrt((n/p)**3)
         temp79a = sqrt((nt79(:,OP_1)/(pefac*pet79(:,OP_1)))**3)
      endif
 
      ! thermal conductivity
      ! ~~~~~~~~~~~~~~~~~~~~
-     if((kappa0.eq.0. .and. kappah.eq.0) .or. numvar.lt.3) then
-        temp79b = 0.
-     else
+     if(solve_kappa) then
         ! kappa = p/T**(3/2) = sqrt(n**3/p)
         temp79c = (eta0*temp79a/2.)**2 * &
                  ((nt79(:,OP_DZ)**2 + nt79(:,OP_DR)**2)/ nt79(:,OP_1)**2 &
@@ -226,7 +320,7 @@ subroutine define_transport_coefficients()
  
      ! density source
      ! ~~~~~~~~~~~~~~
-     if(idens.eq.1) then
+     if(solve_sigma) then
         temp79c = 0.
         if(ipellet.eq.1) then
            temp79c = temp79c + ri_79*pellet_rate/(2.*pi*pellet_var**2) & 
@@ -260,10 +354,12 @@ subroutine define_transport_coefficients()
 
      ! visc
      ! ~~~~
-     do i=1,79
-        call mask(x_79(i)-xzero, z_79(i)-zzero, factor)
-        temp79d(i) = amu_edge*(1.-factor) + 1.
-     end do
+     if(solve_visc) then
+        do i=1,79
+           call mask(x_79(i)-xzero, z_79(i)-zzero, factor)
+           temp79d(i) = amu_edge*(1.-factor)
+        end do
+     endif
 
      ! tempvar
      ! ~~~~~~~
@@ -271,58 +367,68 @@ subroutine define_transport_coefficients()
      temp79e = sz79(:,OP_1)
 
      do i=1,18
-        ione = isval1(itri,i)       
-        
-        resistivity(ione) = resistivity(ione) &
-             + etar*int1(g79(:,OP_1,i),weight_79,79) &
-             + eta0*int2(g79(:,OP_1,i),temp79a, weight_79,79)
-        kappa(ione) = kappa(ione) &
-             + kappat*int1(g79(:,OP_1,i),weight_79,79) &
-             +        int2(g79(:,OP_1,i),temp79b, weight_79,79)
-        sigma(ione) = sigma(ione) &
-             + int2(g79(:,OP_1,i),temp79c, weight_79,79)
-        visc(ione) = visc(ione) &
-             + int2(g79(:,OP_1,i),temp79d, weight_79,79)
+        ione = isval1(itri,i)
+
+        if(solve_resistivity) then
+           resistivity(ione) = resistivity(ione) &
+                + eta0*int2(g79(:,OP_1,i),temp79a, weight_79,79)
+        endif
+
+        if(solve_kappa) then
+           kappa(ione) = kappa(ione) &
+                + int2(g79(:,OP_1,i),temp79b, weight_79,79)           
+        endif
+
+        if(solve_sigma) then
+           sigma(ione) = sigma(ione) &
+                + int2(g79(:,OP_1,i),temp79c, weight_79,79)
+        endif
+
+        if(solve_visc) then
+           visc(ione) = visc(ione) &
+                + int2(g79(:,OP_1,i),temp79d, weight_79,79)
+        end if
+
         tempvar(ione) = tempvar(ione) &
              + int2(g79(:,OP_1,i),temp79e, weight_79,79)
      end do
   end do
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' solving...'
-  call solve_newvar(resistivity, NV_NOBOUND)
-  call solve_newvar(kappa, NV_NOBOUND)
-  call solve_newvar(sigma, NV_NOBOUND)
-  call solve_newvar(visc, NV_NOBOUND)
-  call solve_newvar(tempvar, NV_NOBOUND)
+
+  if(solve_resistivity) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  resistivity'
+     call solve_newvar(resistivity, NV_NOBOUND, mass_matrix)
+  end if
+
+  if(solve_kappa) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  kappa'
+     call solve_newvar(kappa, NV_NOBOUND, mass_matrix)
+  endif
+
+  if(solve_sigma) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  sigma'
+     call solve_newvar(sigma, NV_NOBOUND, mass_matrix)
+  endif
+
+  if(solve_visc) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  viscosity'
+     call solve_newvar(visc, NV_NOBOUND, mass_matrix)
+  endif
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, '  size field'
+  call solve_newvar(tempvar, NV_NOBOUND, mass_matrix)
+
+  ! add in constant components
+  call numnod(numnodes)
+  do i=1,numnodes
+     call entdofs(1,i,0,ibegin,iendplusone)
+     resistivity(ibegin) = resistivity(ibegin) + etar
+     visc(ibegin) = visc(ibegin) + 1.
+     kappa(ibegin) = kappa(ibegin) + kappat
+  enddo
 
   visc_c = amuc*visc
   visc = amu*visc
 
 end subroutine define_transport_coefficients
-
-
-! solve_newvar
-! ============
-subroutine solve_newvar(rhs, ibound)
-
-  use sparse
-
-  implicit none
-
-  integer, intent(in) :: ibound
-  vectype, dimension(*), intent(inout) :: rhs
-
-  integer :: i, ier
-
-  call sumsharedppplvecvals(rhs)
-
-  if(ibound.eq.NV_DCBOUND) then
-     call boundary_dc(0,rhs)
-     call solve(s6matrix_sm,rhs,ier)
-  else
-     call solve(s3matrix_sm,rhs,ier)
-  endif
-
-end subroutine solve_newvar
-
-end module newvar_mod
