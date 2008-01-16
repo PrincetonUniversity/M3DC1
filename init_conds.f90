@@ -75,9 +75,9 @@ subroutine random_per(x,z,seed)
   temp = 0
 
 #ifdef _AIX
-  #define RAND_ARG
+#define RAND_ARG
 #else
-  #define RAND_ARG = 0
+#define RAND_ARG 0
 #endif
 
   do i=1,maxn
