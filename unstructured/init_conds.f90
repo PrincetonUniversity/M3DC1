@@ -68,19 +68,25 @@ subroutine random_per(x,z,seed)
 
   call getboundingboxsize(alx, alz)
 
-  a = rand(seed)
+  call srand(seed)
 
   psi1_l = 0
   u1_l = 0
   temp = 0
 
+#ifdef _AIX
+  #define RAND_ARG
+#else
+  #define RAND_ARG = 0
+#endif
+
   do i=1,maxn
      kx = pi*i/alx
      do j=1, maxn
         kz = pi*j/alz
-        call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(0)-.5),0.,0.)
+        call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
         psi1_l = psi1_l + temp
-        call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(0)-.5),0.,0.)
+        call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
         u1_l = u1_l + temp
      end do
   end do

@@ -8,7 +8,7 @@ COMMONDIR = ../common/
 INCLUDE = -I$(COMMONDIR) $(HDF5_INCLUDE) 
 
 LOADER = mpCC_r -blpdata
-PP     = xlc_r -E
+PP     = xlc_r -E -C
 F90    = mpxlf90_r -c
 F77    = mpxlf_r -c
 CC     = mpcc_r -c
@@ -16,12 +16,12 @@ QEXTNAME = -qextname=numdofs,sludexit,sludinit,ap_init,loadmesh,numnod,numfac,ge
 #,gpl,gqacwk,gclrwk,gqclip,gsclip,gtx
 
 # For compiling complex version:
-COMPLEX = -Dvectype=complex -DUSECOMPLEX
-BIN_POSTFIX = _complex
+#COMPLEX = -Dvectype=complex -DUSECOMPLEX
+#BIN_POSTFIX = _complex
 
 # For compling real version:
-#COMPLEX = -Dvectype=real
-#BIN_POSTFIX = 
+COMPLEX = -Dvectype=real
+BIN_POSTFIX = 
 
 PPOPTS = -DPETSC_AVOID_MPIF_H -Dmpi -DNEW_VELOCITY -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/rs6000_64_O \
 	 ${COMPLEX}
@@ -40,10 +40,10 @@ NEWOBJS = M3Dmodules.o nintegrate_mod.o metricterms_n.o metricterms_new.o \
 	    fin.o part_fin.o ludef_t.o \
            boundary.o unknown.o restart.o \
            acbauer.o metricterms.o compare.o \
-           init_conds.o  output.o PETScInterface.o 
+           init_conds.o PETScInterface.o 
 
 SCORECDIR = /project/projectdirs/mp288/acbauer/develop/
-SCORECVERS =-stable6
+SCORECVERS =-complex2
 SCORECOPT =-O
 
 LDRNEW = \
@@ -59,7 +59,8 @@ LDRNEW = \
         -L$(SCORECDIR)meshAdapt$(SCORECVERS)/templateRefine/lib/ibm_5 \
         -lFMDB-mpich2$(SCORECOPT) -lSCORECModel-mpich2$(SCORECOPT) -lSCORECUtil-mpich2$(SCORECOPT) -lField-mpich2$(SCORECOPT) -lCore-mpich2$(SCORECOPT) \
         -lmeshAdapt-mpich2$(SCORECOPT) -ltemplateRefine-mpich2$(SCORECOPT) -lmeshTools-mpich2$(SCORECOPT) -lSolver-mpich2$(SCORECOPT) -lPPPL-mpich2$(SCORECOPT) \
-        -L$(AUTOPACK_HOME)/lib/IBM -lautopack-O -L/project/projectdirs/mp288/acbauer/develop/Zoltan/Obj_ibm -lzoltan -lzoltan_comm -lzoltan_dd -lzoltan_mem -lzoltan_timer \
+        -L$(AUTOPACK_HOME)/lib/IBM -lautopack-O \
+	$(ZOLTAN) \
         $(METIS) -lparmetis -lmetis \
         -L$(NETCDF_LIB) -lnetcdf \
 	-L$(PETSC_DIR)/lib/$(PETSC_ARCH)   -lpetscksp -lpetscmat -lpetscvec -lpetsc \
@@ -68,6 +69,7 @@ LDRNEW = \
         ${HDF5}  \
         -lessl -lblas  -lxlfpmt4 -L/usr/vacpp/lib -lC -lpthreads -lm -lc -lxlopt -lxlf -lxlomp_ser -lxlf90
 
+#-L/project/projectdirs/mp288/acbauer/develop/Zoltan/Obj_ibm -lzoltan -lzoltan_comm -lzoltan_dd -lzoltan_mem -lzoltan_timer
 
 gonewp: $(NEWOBJS)
 	$(LOADER) $(NEWOBJS) $(LDRNEW) -o $@
