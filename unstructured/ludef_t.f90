@@ -15,7 +15,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
 
   vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
   vectype, dimension(3), intent(out) :: ssterm, ddterm
-  vectype, dimension(4), intent(out) :: rrterm, qqterm
+  vectype, dimension(4+i3d), intent(out) :: rrterm, qqterm
   integer, intent(in) :: advfield   ! if advfield = 1, eliminate rrterm by
                                     ! using analytic form of advanced field
   vectype :: parvisc
@@ -107,8 +107,8 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
                 +v1uun    (trial,ph079,ph079,lin))
            if(gravr.ne.0 .or. gravz.ne.0) then 
               qqterm(4) = qqterm(4) + thimp*dt*dt*  &
-                   (v1ungrav   (trial,ph079,lin)    &
-                   +v1ndenmgrav(trial,lin, denm))
+                   (v1ungrav   (trial,ph079,lin)) !    &
+!!$                   +v1ndenmgrav(trial,lin, denm))
            endif
         endif
      else
@@ -161,7 +161,8 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
         ssterm(1) = ssterm(1) - thimp*thimp*dt*dt*temp
         ddterm(1) = ddterm(1) +       ththm*dt*dt*temp
 
-        temp = v1vpsib(trial,lin,pst79,bzt79)
+        temp = v1vpsipsi(trial,lin,pst79,pst79) &
+             + v1vpsib  (trial,lin,pst79,bzt79)
         ssterm(2) = ssterm(2) - thimp*thimp*dt*dt*temp
         ddterm(2) = ddterm(2) +       ththm*dt*dt*temp
 
@@ -189,7 +190,9 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
 
         if(advfield.eq.1) then
            qqterm(1) = qqterm(1) + thimp*dt*dt* &
-                (v1vpsib  (trial,vz079,lin,bzs79))
+                (v1vpsipsi(trial,vz079,lin,pss79) &
+                +v1vpsipsi(trial,vz079,pss79,lin) &
+                +v1vpsib  (trial,vz079,lin,bzs79))
         
            qqterm(2) = qqterm(2) + thimp*dt*dt* &
                 (v1ubb    (trial,ph079,lin,bzs79) &
@@ -361,7 +364,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
 
   vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
   vectype, dimension(3), intent(out) :: ssterm, ddterm
-  vectype, dimension(4), intent(out) :: rrterm, qqterm
+  vectype, dimension(4+i3d), intent(out) :: rrterm, qqterm
   integer, intent(in) :: advfield
 
   real :: temp, parvisc
@@ -388,7 +391,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
   ssterm(2) = ssterm(2) + temp
   ddterm(2) = ddterm(2) + temp*bdf
      
-  temp = v2vmu  (trial,lin,vis79,hypv*sz79) &
+  temp = v2vmu  (trial,lin,vis79,vic79,hypv*sz79) &
        + v2vs   (trial,lin,sig79)
   ssterm(2) = ssterm(2) -     thimp     *dt*temp
   ddterm(2) = ddterm(2) + (1.-thimp*bdf)*dt*temp
@@ -408,16 +411,21 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
   endif
           
   if(advfield.eq.1) then 
-     temp = v2upsib(trial,lin,pst79,bzt79)
+     temp = v2upsipsi(trial,lin,pst79,pst79) &
+          + v2upsib  (trial,lin,pst79,bzt79) &
+          + v2ubb    (trial,lin,bzt79,bzt79)
      ssterm(1) = ssterm(1) - thimp*thimp*dt*dt*temp
      ddterm(1) = ddterm(1) +       ththm*dt*dt*temp
 
-     temp = v2vpsipsi(trial,lin,pst79,pst79)
+     temp = v2vpsipsi(trial,lin,pst79,pst79) &
+          + v2vpsib  (trial,lin,pst79,bzt79)
      ssterm(2) = ssterm(2) - thimp*thimp*dt*dt*temp
      ddterm(2) = ddterm(2) +       ththm*dt*dt*temp
 
      qqterm(1) = qqterm(1) + dt* &
-          (v2psib(trial,lin,bzs79))
+          (v2psipsi(trial,lin,pss79) &
+          +v2psipsi(trial,pss79,lin) &
+          +v2psib  (trial,lin,bzs79))
      
      qqterm(2) = qqterm(2) + dt* &
           (v2psib(trial,pss79,lin))
@@ -584,7 +592,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
 
   vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
   vectype, dimension(3), intent(out) :: ssterm, ddterm
-  vectype, dimension(4), intent(out) :: rrterm, qqterm
+  vectype, dimension(4+i3d), intent(out) :: rrterm, qqterm
   integer, intent(in) :: advfield
 
   real :: temp, parvisc
@@ -833,8 +841,8 @@ subroutine compression_nolin(trial, r4term)
      if(gravr.ne.0 .or. gravz.ne.0) then          
         r4term = r4term + thimp*dt*dt* &
              (v3ungrav   (trial,ph079,n179) &
-             +v3chingrav (trial,ch079,n179) &
-             +v3ndenmgrav(trial,n179, denm))
+             +v3chingrav (trial,ch079,n179)) ! &
+!!$             +v3ndenmgrav(trial,n179, denm))
      endif
      r4term = r4term + dt* &
           (v3uun    (trial,ph079,ph079,n179) &
@@ -879,8 +887,11 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   ssterm(1) = ssterm(1) + temp
   ddterm(1) = ddterm(1) + temp*bdf
 
-  temp = b1psieta(trial,lin,eta79,hypf*sz79) &
-       + b1psiu  (trial,lin,pht79)
+  temp = b1psieta(trial,lin,eta79,hypf*sz79)
+  ssterm(1) = ssterm(1) -     thimp     *dt*temp
+  ddterm(1) = ddterm(1) + (1.-thimp*bdf)*dt*temp
+
+  temp = b1psiu  (trial,lin,pht79)
   ssterm(1) = ssterm(1) -     thimpb     *dt*temp
   ddterm(1) = ddterm(1) + (1.-thimpb*bdf)*dt*temp
 
@@ -915,23 +926,52 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
      temp = b1bu(trial,bzt79,lin)
      rrterm(1) = rrterm(1) +     thimpb     *dt*temp
      qqterm(1) = qqterm(1) + (1.-thimpb*bdf)*dt*temp
-  else           
+  else
      temp = b1psibd(trial,lin,bz179,ni79)*dbf
      ssterm(1) = ssterm(1) -     thimp     *dt*temp
      ddterm(1) = ddterm(1) + (.5-thimp*bdf)*dt*temp
+
+     temp = b1beta(trial,lin,eta79)
+     ssterm(2) = ssterm(2) -     thimp     *dt*temp
+     ddterm(2) = ddterm(2) + (1.-thimp*bdf)*dt*temp
+
+     temp = b1bu(trial,lin,pht79) &
+          + b1bv(trial,lin,vzt79)
+     ssterm(2) = ssterm(2) -     thimpb     *dt*temp
+     ddterm(2) = ddterm(2) + (1.-thimpb*bdf)*dt*temp
            
-     temp = b1psibd(trial,ps179,lin,ni79)*dbf              
+     temp = b1psibd(trial,ps179,lin,ni79)*dbf &
+          + b1bbd  (trial,bz179,lin,ni79)*dbf &
+          + b1bbd  (trial,lin,bz179,ni79)*dbf
      ssterm(2) = ssterm(2) -     thimp     *dt*temp
      ddterm(2) = ddterm(2) + (.5-thimp*bdf)*dt*temp
+
+     temp = b1bu(trial,bz179,lin)
+     rrterm(1) = rrterm(1) + thimpb*dt*temp
+     qqterm(1) = qqterm(1) - thimpb*dt*temp*bdf
+
+     temp = b1bv(trial,bz179,lin)
+     rrterm(2) = rrterm(2) + thimpb*dt*temp
+     qqterm(2) = qqterm(2) - thimpb*dt*temp*bdf
            
      if(linear.eq.1 .or. eqsubtract.eq.1) then
         temp = b1psibd(trial,lin,bz079,ni79)*dbf
         ssterm(1) = ssterm(1) -     thimp     *dt*temp
         ddterm(1) = ddterm(1) + (1.-thimp*bdf)*dt*temp
               
-        temp = b1psibd(trial,ps079,lin,ni79)*dbf
+        temp = b1psibd(trial,ps079,lin,ni79)*dbf &
+             + b1bbd  (trial,bz079,lin,ni79)*dbf &
+             + b1bbd  (trial,lin,bz079,ni79)*dbf
         ssterm(2) = ssterm(2) -     thimp     *dt*temp
         ddterm(2) = ddterm(2) + (1.-thimp*bdf)*dt*temp
+
+        temp = b1bu(trial,bz079,lin)
+        rrterm(1) = rrterm(1) +     thimpb     *dt*temp
+        qqterm(1) = qqterm(1) + (1.-thimpb*bdf)*dt*temp
+
+        temp = b1bv(trial,bz079,lin)
+        rrterm(2) = rrterm(2) +     thimpb     *dt*temp
+        qqterm(2) = qqterm(2) + (1.-thimpb*bdf)*dt*temp
      end if
   end if
 
@@ -984,10 +1024,11 @@ subroutine flux_nolin(trial, r4term)
      if(numvar.eq.1) then
         ! Term due to F0 = bzero when numvar=1
         r4term = r4term + dt* &
-             (b1psibd  (trial,ps079,bzt79,ni79)*dbf)
+             (b1psibd(trial,ps079,bzt79,ni79)*dbf)
      else
         r4term = r4term + dt* &
-             (b1psibd  (trial,ps079,bz079,ni79)*dbf)
+             (b1psibd(trial,ps079,bz079,ni79)*dbf &
+             +b1bbd  (trial,bz079,bz079,ni79)*dbf)
      endif
   endif
   
@@ -1026,13 +1067,18 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   qqterm = 0.
 
   if(numvar.lt.2) return          
-          
-  temp = b2psiv   (trial,lin,vzt79)
+
+  temp = b2psieta(trial,lin,eta79,hypi*sz79)
+  ssterm(1) = ssterm(1) -     thimp     *dt*temp
+  ddterm(1) = ddterm(1) + (1.-thimp*bdf)*dt*temp
+         
+  temp = b2psiv(trial,lin,vzt79)
   ssterm(1) = ssterm(1) -     thimpb     *dt*temp
   ddterm(1) = ddterm(1) + (1.-thimpb*bdf)*dt*temp
 
   temp = b2psipsid(trial,lin,ps179,ni79)*dbf &
-       + b2psipsid(trial,ps179,lin,ni79)*dbf
+       + b2psipsid(trial,ps179,lin,ni79)*dbf &
+       + b2psibd  (trial,lin,bz179,ni79)*dbf 
   ssterm(1) = ssterm(1) -     thimp     *dt*temp
   ddterm(1) = ddterm(1) + (.5-thimp*bdf)*dt*temp
 
@@ -1040,13 +1086,17 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   ssterm(2) = ssterm(2) + temp
   ddterm(2) = ddterm(2) + temp*bdf
 
-  temp = b2beta(trial,lin,eta79,hypi*sz79) &
-       + b2bu  (trial,lin,pht79)
+  temp = b2beta(trial,lin,eta79,hypi*sz79)
+  ssterm(2) = ssterm(2) -     thimp     *dt*temp
+  ddterm(2) = ddterm(2) + (1.-thimp*bdf)*dt*temp
+
+  temp = b2bu(trial,lin,pht79)
   ssterm(2) = ssterm(2) -     thimpb     *dt*temp
   ddterm(2) = ddterm(2) + (1.-thimpb*bdf)*dt*temp
 
-  temp = b2bbd(trial,lin,bz179,ni79)*dbf &
-       + b2bbd(trial,bz179,lin,ni79)*dbf
+  temp = b2psibd(trial,ps179,lin,ni79)*dbf &
+       + b2bbd  (trial,lin,bz179,ni79)*dbf &
+       + b2bbd  (trial,bz179,lin,ni79)*dbf 
   ssterm(2) = ssterm(2) -     thimp     *dt*temp
   ddterm(2) = ddterm(2) + (.5-thimp*bdf)*dt*temp
 
@@ -1060,12 +1110,14 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
 
   if(linear.eq.1 .or. eqsubtract.eq.1) then
      temp = b2psipsid(trial,lin,ps079,ni79)*dbf &
-          + b2psipsid(trial,ps079,lin,ni79)*dbf
+          + b2psipsid(trial,ps079,lin,ni79)*dbf &
+          + b2psibd  (trial,lin,bz079,ni79)*dbf
      ssterm(1) = ssterm(1) -     thimp     *dt*temp
      ddterm(1) = ddterm(1) + (1.-thimp*bdf)*dt*temp
 
-     temp = b2bbd (trial,lin,bz079,ni79)*dbf &
-          + b2bbd (trial,bz079,lin,ni79)*dbf
+     temp = b2psibd(trial,ps079,lin,ni79)*dbf &
+          + b2bbd  (trial,lin,bz079,ni79)*dbf &
+          + b2bbd  (trial,bz079,lin,ni79)*dbf
      ssterm(2) = ssterm(2) -     thimp     *dt*temp
      ddterm(2) = ddterm(2) + (1.-thimp*bdf)*dt*temp
 
@@ -1129,6 +1181,7 @@ subroutine axial_field_nolin(trial, r4term)
   if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
      r4term = r4term + dt* &
           (b2psipsid(trial,ps079,ps079,ni79)*dbf &
+          +b2psibd  (trial,ps079,bz079,ni79)*dbf &
           +b2bbd    (trial,bz079,bz079,ni79)*dbf)
 
      if(numvar.ge.3) then
@@ -1895,6 +1948,26 @@ subroutine ludefden_n(itri)
            rrterm(1) = rrterm(1) +     thimp     *dt*temp
            qqterm(1) = qqterm(1) + (1.-thimp*bdf)*dt*temp
         endif
+
+#ifdef USECOMPLEX
+        ! NUMVAR = 2
+        ! ~~~~~~~~~~
+        if(numvar.ge.2) then
+           temp = n1nv(g79(:,:,i),g79(:,:,j),vzt79)
+           ssterm = ssterm -     thimp     *dt*temp
+           ddterm = ddterm + (1.-thimp*bdf)*dt*temp
+           
+           temp = n1nv(g79(:,:,i),n179,g79(:,:,j))
+           rrterm(2) = rrterm(2) + thimp*dt*temp
+           qqterm(2) = qqterm(2) - thimp*dt*temp*bdf
+
+           if(linear.eq.1 .or. eqsubtract.eq.1) then
+              temp = n1nv(g79(:,:,i),n079,g79(:,:,j))
+              rrterm(2) = rrterm(2) +     thimp     *dt*temp
+              qqterm(2) = qqterm(2) + (1.-thimp*bdf)*dt*temp
+           endif
+        endif
+#endif
 
         ! NUMVAR = 3
         ! ~~~~~~~~~~

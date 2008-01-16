@@ -138,7 +138,7 @@ pro contour_and_legend, z, x, y, label=label, range=range, $
     print, "done"
 
     !p.noerase=0
-
+    !p.region=0
 end
 
 

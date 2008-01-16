@@ -104,6 +104,8 @@
 !.....associated restart parameter: 0-normal, 1-start time from zero
       istart = 0
 !
+!.....maximum KE before solution is re-scaled in linear case
+      max_ke = 1.
 !
 !.....boundary parameter  0-nonperiodic, 1-periodic
 !      iper = 0
@@ -256,6 +258,13 @@
 !
 !.....Toroidal mode number
       ntor = 0
+!
+!.....1 = output/input global restart files
+      iglobalout = 0
+      iglobalin = 0
+!
+!.....1 = adapt mesh upon initialization
+      iadapt = 0
 !
 !
       open(5,file='C1input',form='formatted',status='old')

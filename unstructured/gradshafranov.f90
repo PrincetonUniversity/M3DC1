@@ -160,11 +160,12 @@ subroutine gradshafranov_init()
 
   call numnod(numnodes)
   do l=1, numnodes
+
      call entdofs(vecsize, l, 0, ibegin, iendplusone)
      call xyznod(l, coords)
 
-     x = coords(1) - xmin - alx*.5
-     z = coords(2) - zmin - alz*.5
+     x = coords(1) - xmin
+     z = coords(2) - zmin
 
      call assign_local_pointers(l)
 
@@ -172,33 +173,10 @@ subroutine gradshafranov_init()
      vz0_l = 0.
      chi0_l = 0.
 
-     call gradshafranov_per(x,z)
+     call random_per(x,z,23)
   enddo
   
 end subroutine gradshafranov_init
-
-subroutine gradshafranov_per(x, z)
-  use basic
-  use arrays
-
-  implicit none
-
-  real, intent(in) :: x, z
-  real :: alx, alz, akx, akz
-
-  call getboundingboxsize(alx, alz)
-  akx = pi/alx
-  akz = pi/alz
-
-  akz = 2.*pi/alz
-  psi1_l(1) = -eps*cos(akx*x)*sin(akz*z)
-  psi1_l(2) =  eps*sin(akx*x)*sin(akz*z)*akx
-  psi1_l(3) = -eps*cos(akx*x)*cos(akz*z)*akz
-  psi1_l(4) =  eps*cos(akx*x)*sin(akz*z)*akx**2
-  psi1_l(5) =  eps*sin(akx*x)*cos(akz*z)*akx*akz
-  psi1_l(6) =  eps*cos(akx*x)*sin(akz*z)*akz**2
-
-end subroutine gradshafranov_per
 
 !============================================================
 subroutine gradshafranov_solve

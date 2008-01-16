@@ -20,8 +20,10 @@ module basic
 
 #ifdef USECOMPLEX
   integer, parameter :: icomplex = 1
+  integer, parameter :: i3d = 1
 #else
   integer, parameter :: icomplex = 0
+  integer, parameter :: i3d = 0
 #endif
 
   ! transport coefficients
@@ -44,6 +46,9 @@ module basic
   real :: gam         ! ratio of specific heats
   real :: gravr,gravz ! gravitational acceleration
   real :: vloop       ! loop voltage
+
+  ! domain parameters
+  real :: xzero, zzero  ! cooridinates of lower left corner of domain
 
   ! boundary conditions
   integer :: iper, jper ! periodic boundary conditions
@@ -94,8 +99,6 @@ module basic
   real :: q0          ! safety factor at magnetic axis
   real :: th_gs       ! relaxation factor
 
-  
-
   ! numerical parameters
   integer :: linear      ! 1 = linear simulation; 0 = nonlinear simulation
   integer :: eqsubtract  ! 1 = subtract equilibrium in noninear simulations
@@ -117,20 +120,24 @@ module basic
   real :: thimp_ohm      ! implicitness parameter for ohmic heating
   real :: facw, facd
   real :: regular        ! regularization constant in chi equation
+  real :: max_ke         ! max KE before fields are re-scaled when linear==1
 
   ! current controller parameters
-  real :: tcur        ! target toroidal current
+  real :: tcur           ! target toroidal current
   real :: control_p      ! proportionality constant
   real :: control_i      ! integral control inverse time-scale
   real :: control_d      ! derivative control time-scale
 
   ! output parameters
-  integer :: iprint   ! print extra debugging info
-  integer :: itimer   ! print timing info
-  integer :: ntimepr  ! number of timesteps per output  
+  integer :: iprint     ! print extra debugging info
+  integer :: itimer     ! print timing info
+  integer :: ntimepr    ! number of timesteps per output  
+  integer :: iglobalout ! 1 = write global restart files
+  integer :: iglobalin  ! 1 = read global restart files
 
-  ! domain parameters
-  real :: xzero, zzero  ! cooridinates of lower left corner of domain
+  ! general behavior
+  integer :: iadapt     ! 1 = adapts mesh after initialization
+
   
   integer :: istart
   real :: beta
@@ -159,20 +166,20 @@ module basic
        ntimemax,dt,integrator,thimp,thimp_ohm,imp_mod,igauge,  &
        isplitstep,                                             &
        linear,nskip,eqsubtract,                                &
-       itimer,iprint,ntimepr,                                  &
+       itimer,iprint,ntimepr,iglobalout,iglobalin,             &
        irestart,istart,                                        &
        tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,             &
        expn,q0,divertors,xdiv,zdiv,divcur,th_gs,p1,p2,p_edge,  &
        idevice,igs,th_gs,                                      &
-       iconstflux,regular,                                     &
-       ntor
+       iconstflux,regular,max_ke,                              &
+       ntor,iadapt
 
   !     derived quantities
-  real :: pi,dbf,bdf,hypv,hypc,hypf,hypi,hypp,                         &
-       time,timer,ajmax,errori,enormi,ratioi,                          &
+  real :: pi,dbf,bdf,hypv,hypc,hypf,hypi,hypp,   &
+       time,                                     &
        gbound,fbound
   integer ::  ni(20),mi(20),                                           &
-       ntime,ntimer,nrank,ntimemin,ntensor,idebug, islutype
+       ntime,nrank,ntimemin,ntensor,idebug, islutype
 
   character*8 :: filename(50)
   character*10 :: datec, timec
@@ -220,7 +227,7 @@ module arrays
        jphi(:), vor(:), com(:),                     &
        vtemp(:), resistivity(:), tempvar(:),        &
        kappa(:),sigma(:), sb1(:), sb2(:), sp1(:),   &
-       visc(:), visc_c(:)
+       visc(:), visc_c(:), bf(:)
 
 
   ! Arrays for advance
@@ -511,29 +518,31 @@ module sparse
   integer, parameter :: numvar6_numbering = 6
   integer, parameter :: numvar7_numbering = 7
   integer, parameter :: numvar8_numbering = 8
-  integer, parameter :: s6matrix_sm = 1
-  integer, parameter :: s8matrix_sm = 2
-  integer, parameter :: s7matrix_sm = 3
-  integer, parameter :: s4matrix_sm = 4
-  integer, parameter :: s3matrix_sm = 5
-  integer, parameter :: s5matrix_sm = 6
-  integer, parameter :: s1matrix_sm = 7
-  integer, parameter :: s2matrix_sm = 8
-  integer, parameter :: d1matrix_sm = 9
-  integer, parameter :: d2matrix_sm = 10
-  integer, parameter :: d4matrix_sm = 11
-  integer, parameter :: d8matrix_sm = 12
-  integer, parameter :: q1matrix_sm = 13
-  integer, parameter :: r2matrix_sm = 14
-  integer, parameter :: r8matrix_sm = 15
-  integer, parameter :: q2matrix_sm = 16
-  integer, parameter :: q8matrix_sm = 17
-  integer, parameter :: gsmatrix_sm = 18
-  integer, parameter :: s9matrix_sm = 19
-  integer, parameter :: d9matrix_sm = 20
-  integer, parameter :: r9matrix_sm = 21
-  integer, parameter :: q9matrix_sm = 22
-  integer, parameter :: r14matrix_sm = 23
+
+  integer, parameter :: s8matrix_sm = 1
+  integer, parameter :: s7matrix_sm = 2
+  integer, parameter :: s4matrix_sm = 3
+  integer, parameter :: s5matrix_sm = 4
+  integer, parameter :: s1matrix_sm = 5
+  integer, parameter :: s2matrix_sm = 6
+  integer, parameter :: d1matrix_sm = 7
+  integer, parameter :: d2matrix_sm = 8
+  integer, parameter :: d4matrix_sm = 9
+  integer, parameter :: d8matrix_sm = 10
+  integer, parameter :: q1matrix_sm = 11
+  integer, parameter :: r2matrix_sm = 12
+  integer, parameter :: r8matrix_sm = 13
+  integer, parameter :: q2matrix_sm = 14
+  integer, parameter :: q8matrix_sm = 15
+  integer, parameter :: gsmatrix_sm = 16
+  integer, parameter :: s9matrix_sm = 17
+  integer, parameter :: d9matrix_sm = 18
+  integer, parameter :: r9matrix_sm = 19
+  integer, parameter :: q9matrix_sm = 20
+  integer, parameter :: r14matrix_sm = 21
+  integer, parameter :: mass_matrix = 22
+  integer, parameter :: mass_matrix_dc = 23
+  integer, parameter :: poisson_matrix = 24
   
 end module sparse
 

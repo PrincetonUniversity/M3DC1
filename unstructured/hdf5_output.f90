@@ -71,12 +71,16 @@ contains
        call h5fopen_f(hdf5_filename, H5F_ACC_RDWR_F, file_id, error, &
             access_prp = plist_id)
        if(error.lt.0) then
-          print *, "Error: could not open ", hdf5_filename, " for HDF5 output: ", error
+          print *, "Error: could not open ", &
+               hdf5_filename, " for HDF5 output: ", error
        endif
 
        call h5gopen_f(file_id, "/", root_id, error)
        call read_int_attr(root_id, "ntime", times_output, error)
        call h5gclose_f(root_id, error)
+
+       ! overwrite the last time slice
+       times_output = times_output - 1
     endif
 
     call h5pclose_f(plist_id, error)
@@ -309,7 +313,8 @@ contains
        call h5screate_simple_f(1, dims, filespace, error, maxdims)
        call h5pcreate_f(H5P_DATASET_CREATE_F, p_id, error)
        call h5pset_chunk_f(p_id, 1, chunk_size, error)
-       call h5dcreate_f(parent_id, name, H5T_NATIVE_REAL, filespace, dset_id, error, p_id)
+       call h5dcreate_f(parent_id, name, H5T_NATIVE_REAL, &
+            filespace, dset_id, error, p_id)
        call h5pclose_f(p_id, error)
        call h5sclose_f(filespace, error)
     else
@@ -320,9 +325,11 @@ contains
     call h5screate_simple_f(1, local_dims, memspace, error)
     call h5dget_space_f(dset_id, filespace, error)
 #ifdef _AIX
-    call h5sselect_elements_f(filespace, H5S_SELECT_SET_F, 1, 1, coord, error)
+    call h5sselect_elements_f(filespace, H5S_SELECT_SET_F, 1, &
+         1, coord, error)
 #else
-    call h5sselect_elements_f(filespace, H5S_SELECT_SET_F, 1, local_dims(1), coord, error)
+    call h5sselect_elements_f(filespace, H5S_SELECT_SET_F, 1, &
+         local_dims(1), coord, error)
 #endif
     call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, local_dims, error, &
          file_space_id = filespace, mem_space_id = memspace)
@@ -410,6 +417,8 @@ subroutine hdf5_write_scalars(error)
 
   real :: temp
 
+  if(myrank.eq.1) print *, 'writing scalars for ntime = ', ntime
+
   call h5gopen_f(file_id, "/", root_id, error)
 
   if(ntime.eq.0 .and. irestart.eq.0) then
@@ -423,7 +432,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "loop_voltage"    , vloop , ntime, error)
   call output_scalar(scalar_group_id, "psi_lcfs"        , psilim, ntime, error)
 
-  call output_scalar(scalar_group_id, "area"            , area , ntime, error)
+  call output_scalar(scalar_group_id, "area"            , area  , ntime, error)
   call output_scalar(scalar_group_id, "toroidal_flux"   , tflux , ntime, error)
   call output_scalar(scalar_group_id, "toroidal_current", totcur, ntime, error)
   call output_scalar(scalar_group_id, "particle_number" , totden, ntime, error)
@@ -557,7 +566,7 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   integer :: nelms
 
 !  integer :: global_nodes, global_edges, global_regions
-    
+   
   call numfac(nelms)
 
   ! Calculate offset of current process
@@ -570,14 +579,26 @@ subroutine hdf5_write_time_slice(equilibrium, error)
 
 
   ! Create the time group
+  ! ~~~~~~~~~~~~~~~~~~~~~
+  
+  ! create the name of the group
   if(equilibrium.eq.1) then
      time_group_name = "equilibrium"
   else
      write(time_group_name, '("time_",I3.3)') times_output
+     ! remove the time group if it already exists
+     ! (from before a restart, for example)
+     call h5gunlink_f(file_id, time_group_name, error)
   endif
+
+  if(myrank.eq.1 .and. iprint.eq.1) &
+       print *, 'Writing time slice ', time_group_name
+  
+  ! create the group
   call h5gcreate_f(file_id, time_group_name, time_group_id, error)
 
   ! Write attributes
+  ! ~~~~~~~~~~~~~~~~
   call write_real_attr(time_group_id, "time", time, error)
   call write_int_attr(time_group_id, "nspace", 2, error)
 
@@ -586,8 +607,10 @@ subroutine hdf5_write_time_slice(equilibrium, error)
 
   ! Output the field data 
   call output_fields(time_group_id, equilibrium, error)
-    
+
+
   ! Close the time group
+  ! ~~~~~~~~~~~~~~~~~~~~
   call h5gclose_f(time_group_id, error)  
 
   if(equilibrium.eq.0) times_output = times_output + 1
@@ -738,6 +761,15 @@ subroutine output_fields(time_group_id, equilibrium, error)
   call output_field(group_id, "I", real(dum), 20, nelms, error)
   nfields = nfields + 1
   
+  ! BF
+  if(i3d.eq.1) then
+     do i=1, nelms
+        call calcavector(i, bf, 1, 1, dum(:,i))
+     end do
+     call output_field(group_id, "f", real(dum), 20, nelms, error)
+     nfields = nfields + 1
+  endif
+
   ! V
   do i=1, nelms
      call calcavector(i, f_ptr, vz_g, num_fields, dum(:,i))

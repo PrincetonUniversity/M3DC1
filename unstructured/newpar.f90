@@ -19,12 +19,10 @@ Program Reducedquintic
 #endif
 #include "finclude/petsc.h"
 
-  integer :: j, i, ier, ifail, maxts, numelms, numnodes
+  integer :: j, i, ier, numelms, numnodes
   integer :: ndofs, ibegin, iendplusone
 
-  real :: dtmin, ratemin, ratemax
   real :: tstart, tend
-  real :: tolerance
   real :: factor, hmin, hmax  
 
   integer, allocatable ::  itemp(:)
@@ -126,19 +124,23 @@ Program Reducedquintic
   ! note that the matrix indices now refer to vertices, not triangles.
   ! ...............................................................
 
-  ! initialize the solution to an equilibrium and save
+
   if(irestart.eq.1) then
-     call rdrestart
-     time = timer
-     ntime = ntimer
-     if(istart.ne.0) then
-        ntimer = 0
-        timer = 0.
+     ! Read restart file(s)
+
+     if(myrank.eq.1 .and. iprint.ge.1) print *, 'Reading restart file(s)...'
+     if(iglobalin.eq.1) then
+        call rdrestartglobal
+     else
+        call rdrestart
      endif
+
   else
+     ! Initialize with initial conditions
+
      ptot = 0.
-     ntimer = 0
-     timer = 0.
+     ntime = 0
+     time = 0.
      if(myrank.eq.0 .and. iprint.ge.1) print *, 'defining initial conditions...'
      call initial_conditions
      if(myrank.eq.0 .and. iprint.ge.1) print *, 'done initial conditions'
@@ -203,33 +205,17 @@ Program Reducedquintic
      print *, "Error initializing HDF5"
      call safestop(5)
   end if
-  
-  ! output simulation parameters
-  if(irestart.eq.0) then
-     if(myrank.eq.0 .and. iprint.ge.1) &
-          print *, "Writing simulation parameters."
-     call hdf5_write_parameters(ier)
-
-     ! Output the equilibrium
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
-        call hdf5_write_time_slice(1,ier)
-     endif
-  end if
-  
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Done initializing HDF5."
+   
   ! create the newvar matrices
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Generating newvar matrices..."
-  call create_newvar_matrix(s6matrix_sm, NV_DCBOUND)
-  call create_newvar_matrix(s3matrix_sm, NV_NOBOUND)
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "Done generating newvar matrices."
+  call create_matrix(mass_matrix_dc, NV_DCBOUND, NV_MASS_MATRIX)
+  call create_matrix(mass_matrix   , NV_NOBOUND, NV_MASS_MATRIX)
+  if(i3d.eq.1) &
+       call create_matrix(poisson_matrix, NV_DCBOUND, NV_POISSON_MATRIX)
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, "Done generating newvar matrices."
 
-
-  ifail=0
-  ier = 0
-
-  errori = 0.
-  enormi = 0.
-  ratioi = 0.
-  dtmin = 0.001*dt
 
   if(itimer.eq.1) call reset_timings
 
@@ -242,31 +228,56 @@ Program Reducedquintic
      totcur0 = totcur
   endif
 
-  ! output initial conditions
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~
+  ! output simulation parameters
   if(irestart.eq.0) then
-     call hdf5_write_scalars(ier)
-     call hdf5_write_time_slice(0,ier)
-     if(itimer.eq.1) then 
-        call hdf5_write_timings(ier)
-        call reset_timings
-     endif
-     call hdf5_flush(ier)
+     if(myrank.eq.0 .and. iprint.ge.1) &
+          print *, "Writing simulation parameters."
+     call hdf5_write_parameters(ier)
 
+     ! Output the equilibrium
+     if(linear.eq.1 .or. eqsubtract.eq.1) then
+        call hdf5_write_time_slice(1,ier)
+     endif
+  end if
+
+
+  ! Adapt the mesh
+  ! ~~~~~~~~~~~~~~
+  if(iadapt.eq.1) then
+!     call outputfield(phi, numvar, 0, ntime, 123) 
+     if(maxrank .eq. 1) then
+!        call outputfield(phi, numvar, 0, ntime, 123) 
+!        call writefieldatnodes(resistivity, 1, 1) 
+        factor = .3
+        hmin = .1
+        hmax = .4
+        print *, 'adapting mesh...'
+        call hessianadapt(resistivity, 1, 0, ntime, factor, hmin, hmax) 
+     endif
   endif
 
+
+
+  ! output initial conditions
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~
+  call output
+
+
   ! if there are no timesteps to calculate, then skip time loop
-  if(ntimemax.le.ntimer) go to 101
+  if(ntimemax.le.ntime) go to 101
 
   ! main time loop
   ! ~~~~~~~~~~~~~~
-  do ntime=ntimer+1,ntimemax
+  do ntime=ntime+1,ntimemax
 
      ! check for error
      if(ekin.ne.ekin .or. emag.ne.emag) then
         print *, "Error: energy is NaN"
         call safestop(3)
      endif
+
+     ! re-scale solution if energy is too large
+     if(linear.eq.1) call scaleback
 
      !advance time
      time = time + dt
@@ -281,95 +292,41 @@ Program Reducedquintic
         t_onestep = t_onestep + tend - tstart
      endif
      if(myrank.eq.0 .and. iprint.ge.1) print *, "After onestep"
-!     call exportfield2(1,numvar,phi, ntime)
 
-
-!     if(linear.eq.1) call scaleback
-
-!!$     if(ekin .gt. 100.) then
-!!$        write(*,*) 'ekin is greater than 100'
-!!$        go to 100
-!!$     endif
-
-     
-!!$     ! Write ictrans output
-!!$     if(maxrank .eq. 1) then
-!!$        if(myrank.eq.0 .and. iprint.ge.1) print *, "Before output"
-!!$        if(itimer.eq.1) call second(tstart)
-!!$        call output
-!!$        if(itimer.eq.1) then
-!!$           call second(tend)
-!!$           t_output_cgm = t_output_cgm + tend - tstart
-!!$        endif
-!!$        if(myrank.eq.0 .and. iprint.ge.1) print *, "After onestep"
-!!$     endif
-
-     ! Write output
-     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     if(myrank.eq.0 .and. iprint.ge.1) print *, "Writing output"
-     if(myrank.eq.0 .and. iprint.ge.1) print *, "-Scalars (HDF5)."
-     call hdf5_write_scalars(ier)
-     if(mod(ntime,ntimepr).eq.0) then
-        if(myrank.eq.0 .and. iprint.ge.1) print *, "-Time slice (HDF5)."
-        call hdf5_write_time_slice(0,ier)
-        if(myrank.eq.0 .and. iprint.ge.1) print *, "-Restart file(s)."
-        call wrrestart(time, max(maxts, ntimer))
-     endif
-     if(myrank.eq.0 .and. itimer.eq.1) then
-        call second(tend)
-        t_output_hdf5 = t_output_hdf5 + tend - tstart
-     end if
-
-     if(itimer.eq.1) then
-        if(myrank.eq.0) call second(tstart)
-        if(myrank.eq.0 .and. iprint.ge.1) print *, "-Timings (HDF5)."
-        call hdf5_write_timings(ier)
-        call reset_timings
-     end if
-
-     ! flush hdf5 data to disk
-     if(myrank.eq.0 .and. iprint.ge.1) print *, "Flushing data to HDF5 file."
-     call hdf5_flush(ier)
-     if(myrank.eq.0 .and. itimer.eq.1) then
-        call second(tend)
-        t_output_hdf5 = t_output_hdf5 + tend - tstart
-     end if
-     if(myrank.eq.0 .and. iprint.ge.1) print *, "Done output."
 
      ! feedback control on toroidal current
      if(itor.eq.1 .and. itaylor.eq.1) call control_pid
+
+
+     ! Write output
+     call output
   enddo ! ntime
 
- 100  continue
-  
-  maxts = ntime-1
 
 101 continue
 
-! below is for mesh adaptation
-  tolerance = .00005 
-  call outputfield(phi, numvar, 0, ntime, 123) 
-  if(maxrank .eq. 1) then
-!     call outputfield(phi, numvar, 0, ntime, 123) 
-!     call writefieldatnodes(resistivity, 1, 1) 
-     factor = .3
-     hmin = .1
-     hmax = .4
-!     call hessianadapt(resistivity, 1, factor, hmin, hmax, ntime) 
-  endif
-  ratemin = 0.
-  ratemax = 0.
+!!$! below is for mesh adaptation
+!!$  call outputfield(phi, numvar, 0, ntime, 123) 
+!!$  if(maxrank .eq. 1) then
+!!$     !     call outputfield(phi, numvar, 0, ntime, 123) 
+!!$     !     call writefieldatnodes(resistivity, 1, 1) 
+!!$     factor = .3
+!!$     hmin = .1
+!!$     hmax = .4
+!!$     !     call hessianadapt(resistivity, 1, factor, hmin, hmax, ntime) 
+!!$     call hessianadapt(resistivity, 1, 0, ntime, factor, hmin, hmax) 
+!!$  endif
 
 !  call errorcalc(numvar, phi, 1)
 
-  call wrrestart(time, max(maxts, ntimer))
+!  call wrrestart
 
 !     free memory from sparse matrices
+  call deletematrix(mass_matrix)
+  call deletematrix(mass_matrix_dc)
   call deletematrix(gsmatrix_sm)
-  call deletematrix(s6matrix_sm)
   call deletematrix(s7matrix_sm)
   call deletematrix(s4matrix_sm)
-  call deletematrix(s3matrix_sm)
   call deletematrix(s5matrix_sm)
   call deletematrix(s1matrix_sm)
   call deletematrix(s2matrix_sm)
@@ -392,30 +349,76 @@ Program Reducedquintic
      call deletematrix(r9matrix_sm)
      call deletematrix(q9matrix_sm)
   endif
+  if(i3d.eq.1) call deletematrix(poisson_matrix)
   call deletesearchstructure()
 !  free memory for numberings
   call deletedofnumbering(1)
   call deletedofnumbering(2)
+  call deletedofnumbering(num_fields)
   if(vecsize.gt.2)  call deletedofnumbering(vecsize)
-
-!!$  if (myrank.eq.0 .and. maxrank.eq.1) call plote
-
-5003 format(" linear, itaylor, isetup, imask, irestart: ",             &
-          5i4, / ," facd, bzero, eps ", 1p3e12.4)
-2323 format(1p5e12.4)
-2121 format(" start of time dependent loop")
-5001 format("ifail .ne. 0 after call to f04aaf")
-7011 format(1p6e20.12)
-7012 format(6e20.12)
+  
 
   call safestop(2)
 
 end Program Reducedquintic
 
+! ======================================================================
+! output
+! ~~~~~~
+!
+! writes output and restart files
+! ======================================================================
+subroutine output
+  use basic
+  use hdf5_output
+  use diagnostics
+
+  implicit none
+
+  integer :: ier
+  real :: tstart, tend
+
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Writing output"
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "-Scalars (HDF5)."
+  call hdf5_write_scalars(ier)
+  if(mod(ntime,ntimepr).eq.0) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "-Time slice (HDF5)."
+     call hdf5_write_time_slice(0,ier)
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "-Restart file(s)."
+     if(iglobalout.eq.1) then
+        call wrrestartglobal
+     else
+        call wrrestart
+     endif
+  endif
+  if(myrank.eq.0 .and. itimer.eq.1) then
+     call second(tend)
+     t_output_hdf5 = t_output_hdf5 + tend - tstart
+  end if
+  
+  if(itimer.eq.1) then
+     if(myrank.eq.0) call second(tstart)
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "-Timings (HDF5)."
+     call hdf5_write_timings(ier)
+     call reset_timings
+  end if
+  
+  ! flush hdf5 data to disk
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Flushing data to HDF5 file."
+  call hdf5_flush(ier)
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Done output."
+  if(myrank.eq.0 .and. itimer.eq.1) then
+     call second(tend)
+     t_output_hdf5 = t_output_hdf5 + tend - tstart
+  end if
+
+end subroutine output
+
 
 ! ======================================================================
 ! smooth
-! ------
+! ~~~~~~
 !
 ! applies smoothing operators
 !
@@ -425,6 +428,7 @@ subroutine smooth
   use arrays
   use newvar_mod
   use diagnostics
+  use sparse
 
   implicit none
 
@@ -438,15 +442,15 @@ subroutine smooth
   call numnod(numnodes)
      
   ! smooth vorticity
-  call newvar_d2(vel,vor,1,vecsize,NV_DCBOUND,NV_GS)
+  call newvar(mass_matrix_dc,vor,vel,1,vecsize,NV_GS,NV_DCBOUND)
   call smoother1(vor,vel,numnodes,numvar,1)
      
   ! smooth compression
   if(numvar.ge.3) then
      if(com_bc.eq.1) then
-        call newvar_d2(vel,com,3,vecsize,NV_DCBOUND,NV_LP)
+        call newvar(mass_matrix_dc,com,vel,3,vecsize,NV_LP,NV_DCBOUND)
      else
-        call newvar_d2(vel,com,3,vecsize,NV_NOBOUND,NV_LP)
+        call newvar(mass_matrix,com,vel,3,vecsize,NV_LP,NV_NOBOUND)
      endif
      
 !!$        !
@@ -505,6 +509,7 @@ subroutine derived_quantities
   use arrays
   use newvar_mod
   use diagnostics
+  use sparse
 
   implicit none
 
@@ -520,25 +525,29 @@ subroutine derived_quantities
 
   !   toroidal current
   if(myrank.eq.0 .and. iprint.ge.1) print *, "-Toroidal current"
-  call newvar_d2(field,jphi,psi_g,num_fields,NV_DCBOUND,NV_GS)
+  call newvar(mass_matrix_dc,jphi,field,psi_g,num_fields,NV_GS,NV_DCBOUND)
 
   if(hyperc.ne.0) then
-
      !   vorticity
      if(myrank.eq.0 .and. iprint.ge.1) print *, "-Vorticity"
-     call newvar_d2(field,vor,u_g,num_fields,NV_DCBOUND,NV_GS)
+     call newvar(mass_matrix_dc,vor,field,u_g,num_fields,NV_GS,NV_DCBOUND)
 
      !   compression
      if(numvar.ge.3) then
         if(myrank.eq.0 .and. iprint.ge.1) print *, "-Compression"
         if(com_bc.eq.1) then
-           call newvar_d2(field,com,chi_g,num_fields,NV_DCBOUND,NV_LP)
+           call newvar(mass_matrix_dc,com,field,chi_g,num_fields,NV_LP,NV_DCBOUND)
         else
-           call newvar_d2(field,com,chi_g,num_fields,NV_NOBOUND,NV_LP)
+           call newvar(mass_matrix,com,field,chi_g,num_fields,NV_LP,NV_NOBOUND)
         endif
      else
         com = 0.
      endif
+  endif
+
+  ! vector potential stream function
+  if(i3d.eq.1) then
+     call newvar(poisson_matrix,bf,field,bz_g,num_fields,NV_BF,NV_DCBOUND)
   endif
 
   if(myrank.eq.0 .and. itimer.eq.1) then

@@ -54,12 +54,12 @@ vectype function v1umu(e,f,g)
   endif
 
 #ifdef USECOMPLEX
-  temp = temp - ntor**2 * &
-       (int4(ri2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1),weight_79,79) &
-       +int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1),weight_79,79))
+  temp = temp + &
+       (int4(ri2_79,e(:,OP_DZ),f(:,OP_DZPP),g(:,OP_1),weight_79,79) &
+       +int4(ri2_79,e(:,OP_DR),f(:,OP_DRPP),g(:,OP_1),weight_79,79))
   if(itor.eq.1) then
-     temp = temp - ntor**2 * &
-          2.*int4(ri3_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),weight_79,79)
+     temp = temp + &
+          2.*int4(ri3_79,e(:,OP_1),f(:,OP_DRPP),g(:,OP_1),weight_79,79)
   endif
 #endif
 
@@ -197,15 +197,13 @@ vectype function v1psib(e,f,g)
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
   vectype :: temp
 #ifdef USECOMPLEX
-  temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1),weight_79,79) &
-       + int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1),weight_79,79)
+  temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_DZP),g(:,OP_1),weight_79,79) &
+       + int4(ri2_79,e(:,OP_DR),f(:,OP_DRP),g(:,OP_1),weight_79,79)
 
   if(itor.eq.1) then
      temp = temp &
-          + 2.*int4(ri3_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),weight_79,79)
+          + 2.*int4(ri3_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_1),weight_79,79)
   endif
-
-  temp = (0,1)*ntor*temp
 
   v1psib = temp
 #else
@@ -447,46 +445,23 @@ vectype function v1upsib(e,f,g,h)
   vectype :: temp
 #ifdef USECOMPLEX
 
-!!$  temp79a = f(:,OP_DZ)*(e(:,OP_DZZ)*g(:,OP_DR )-e(:,OP_DRZ)*g(:,OP_DZ )  &
-!!$                       +e(:,OP_DZ )*g(:,OP_DRZ)-e(:,OP_DR )*g(:,OP_DZZ)) &
-!!$          + f(:,OP_DR)*(e(:,OP_DRZ)*g(:,OP_DR )-e(:,OP_DRR)*g(:,OP_DZ )  &
-!!$                       +e(:,OP_DZ )*g(:,OP_DRR)-e(:,OP_DR )*g(:,OP_DRZ)) &
-!!$          - e(:,OP_DZ)*(f(:,OP_DZZ)*g(:,OP_DR )-f(:,OP_DRZ)*g(:,OP_DZ )  &
-!!$                       +f(:,OP_DZ )*g(:,OP_DRZ)-f(:,OP_DR )*g(:,OP_DZZ)) &
-!!$          - e(:,OP_DR)*(f(:,OP_DRZ)*g(:,OP_DR )-f(:,OP_DRR)*g(:,OP_DZ )  &
-!!$                       +f(:,OP_DZ )*g(:,OP_DRR)-f(:,OP_DR )*g(:,OP_DRZ)) &
-!!$          - g(:,OP_GS)*(e(:,OP_DZ )*f(:,OP_DR )-e(:,OP_DR )*g(:,OP_DZ ))
-!!$
-!!$  temp = int3(ri3_79,temp79a,h(:,OP_1),weight_79,79)
-!!$
-!!$  if(itor.eq.1) then
-!!$     temp79b =  f(:,OP_DR)*(e(:,OP_DZ )*g(:,OP_DR )-e(:,OP_DR )*g(:,OP_DZ))    &
-!!$             + (e(:,OP_DR) + 2.*ri_79*e(:,OP_1))                               &
-!!$                          *(f(:,OP_DZ )*g(:,OP_DR )-f(:,OP_DR )*g(:,OP_DZ))    &
-!!$             + 2.*g(:,OP_DZ)*(e(:,OP_DZ)*f(:,OP_DZ )+e(:,OP_DR)*f(:,OP_DR ))   &
-!!$             + 2.*e(:,OP_1 )*(f(:,OP_DZ)*g(:,OP_DZZ)+f(:,OP_DR)*g(:,OP_DRZ))   &
-!!$             - 2.*e(:,OP_1 )*(f(:,OP_DRZ)*g(:,OP_DR )-f(:,OP_DRR)*g(:,OP_DZ )  &
-!!$                             +f(:,OP_DZ )*g(:,OP_DRR)-f(:,OP_DR )*g(:,OP_DRZ))
-!!$     temp = temp + int3(ri4_79,temp79b,h(:,OP_1),weight_79,79)
-!!$  endif
+  temp79a = g(:,OP_DR)*(e(:,OP_DZZ)*f(:,OP_DZP)-e(:,OP_DZ)*f(:,OP_DZZP) &
+                       +e(:,OP_DRZ)*f(:,OP_DRP)-e(:,OP_DR)*f(:,OP_DRZP)) &
+           -g(:,OP_DZ)*(e(:,OP_DRR)*f(:,OP_DRP)-e(:,OP_DR)*f(:,OP_DRRP) &
+                       +e(:,OP_DRZ)*f(:,OP_DZP)-e(:,OP_DZ)*f(:,OP_DRZP))
 
-  temp79a = g(:,OP_DR)*(e(:,OP_DZZ)*f(:,OP_DZ)-e(:,OP_DZ)*f(:,OP_DZZ) &
-                       +e(:,OP_DRZ)*f(:,OP_DR)-e(:,OP_DR)*f(:,OP_DRZ)) &
-           -g(:,OP_DZ)*(e(:,OP_DRR)*f(:,OP_DR)-e(:,OP_DR)*f(:,OP_DRR) &
-                       +e(:,OP_DRZ)*f(:,OP_DZ)-e(:,OP_DZ)*f(:,OP_DRZ))
-
-  temp = int3(ri3_79,temp79a,h(:,OP_1),weight_79,79)
+  temp = -int3(ri3_79,temp79a,h(:,OP_1),weight_79,79)
 
   if(itor.eq.1) then
-     temp79a = g(:,OP_DZ)*(e(:,OP_1)*f(:,OP_DRR) - e(:,OP_DZ)*f(:,OP_DZ) &
-                                              - 2.*e(:,OP_DR)*f(:,OP_DR)) &
-              +g(:,OP_DR)*(e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_1)*f(:,OP_DRZ))
+     temp79a = g(:,OP_DZ)*(e(:,OP_1)*f(:,OP_DRRP) - e(:,OP_DZ)*f(:,OP_DZP) &
+                                               - 2.*e(:,OP_DR)*f(:,OP_DRP)) &
+              +g(:,OP_DR)*(e(:,OP_DZ)*f(:,OP_DRP) - e(:,OP_1 )*f(:,OP_DRZP))
      temp = temp &
-          + 2.*int3(ri4_79,temp79a,h(:,OP_1),weight_79,79) &
-          - 2.*int5(ri5_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),weight_79,79)
+          - 2.*int3(ri4_79,temp79a,h(:,OP_1),weight_79,79) &
+          + 2.*int5(ri5_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DZ),h(:,OP_1),weight_79,79)
   endif
 
-  v1upsib = -(0,1)*ntor*temp
+  v1upsib = temp
 #else
   v1upsib = 0
 #endif
@@ -516,18 +491,55 @@ vectype function v1ubb(e,f,g,h)
   endif
 
 #ifdef USECOMPLEX
-  temp = temp - ntor**2 * &
-       (int5(ri4_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1),h(:,OP_1),weight_79,79) &
-       +int5(ri4_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1),h(:,OP_1),weight_79,79))
+  temp = temp + &
+       (int5(ri4_79,e(:,OP_DZ),f(:,OP_DZPP),g(:,OP_1),h(:,OP_1),weight_79,79) &
+       +int5(ri4_79,e(:,OP_DR),f(:,OP_DRPP),g(:,OP_1),h(:,OP_1),weight_79,79))
   if(itor.eq.1) then
-     temp = temp - ntor**2 * &
-          2.*int5(ri5_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),h(:,OP_1),weight_79,79)
+     temp = + &
+          2.*int5(ri5_79,e(:,OP_1),f(:,OP_DRPP),g(:,OP_1),h(:,OP_1),weight_79,79)
   endif
+
 #endif
   
   v1ubb = temp
   return
 end function v1ubb
+
+
+! V1vpsipsi
+! =========
+vectype function v1vpsipsi(e,f,g,h)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
+
+#ifdef USECOMPLEX
+  temp79a = g(:,OP_DZ)*( h(:,OP_DZ)*e(:,OP_DRZ) + h(:,OP_DR)*e(:,OP_DRR)  &
+                       - e(:,OP_DZ)*h(:,OP_DRZ) - e(:,OP_DR)*h(:,OP_DRR)) &
+          + g(:,OP_DR)*( e(:,OP_DR)*h(:,OP_DRZ) + e(:,OP_DZ)*h(:,OP_DZZ)  &
+                       - h(:,OP_DR)*e(:,OP_DRZ) - h(:,OP_DZ)*e(:,OP_DZZ))
+  temp = -int3(ri3_79,f(:,OP_DP),temp79a,weight_79,79)
+
+  if(itor.eq.1) then
+     temp79a = e(:,OP_DZ)*(g(:,OP_DZ)*h(:,OP_DZ ) + g(:,OP_DR)*h(:,OP_DR)) &
+          + 2.*e(:,OP_DR)*(g(:,OP_DZ)*h(:,OP_DR ))                         &
+          +    e(:,OP_1) *(g(:,OP_DR)*h(:,OP_DZZ) - g(:,OP_DZ)*h(:,OP_DRR))
+     temp = -2.*int3(ri4_79,f(:,OP_DP),temp79a,weight_79,79) &
+            -2.*int5(ri5_79,e(:,OP_1),f(:,OP_DP),g(:,OP_DZ),h(:,OP_DR),weight_79,79)
+  endif
+
+  v1vpsipsi = temp
+#else
+  v1vpsipsi = 0.
+#endif
+  return
+end function v1vpsipsi
+
 
 
 ! V1vpsib
@@ -549,6 +561,16 @@ vectype function v1vpsib(e,f,g,h)
                -   int5(ri3_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
                +2.*int5(ri4_79,e(:,OP_DZ),f(:,OP_1 ),g(:,OP_DZ),h(:,OP_1),weight_79,79))
   endif
+
+#ifdef USECOMPLEX
+  temp = temp - &
+       (int5(ri4_79,e(:,OP_DZ),f(:,OP_DPP),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+       +int5(ri4_79,e(:,OP_DR),f(:,OP_DPP),g(:,OP_DR),h(:,OP_1),weight_79,79))
+  if(itor.eq.1) then
+  temp = temp - &
+       2.*int5(ri5_79,e(:,OP_1),f(:,OP_DPP),g(:,OP_DR),h(:,OP_1),weight_79,79)
+  endif
+#endif
 
   v1vpsib = temp
   return
@@ -818,7 +840,7 @@ vectype function v1us(e,f,g)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = g(:,OP_1) + denm*nt79(:,OP_LP)
+  temp79a = g(:,OP_1) ! + denm*nt79(:,OP_LP)
 
   temp = -int3(e(:,OP_DZ),f(:,OP_DZ),temp79a,weight_79,79) &
          -int3(e(:,OP_DR),f(:,OP_DR),temp79a,weight_79,79)
@@ -850,7 +872,7 @@ vectype function v1chis(e,f,g)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = g(:,OP_1) + denm*nt79(:,OP_LP)
+  temp79a = g(:,OP_1) ! + denm*nt79(:,OP_LP)
 
   temp = int4(r_79,e(:,OP_DZ),f(:,OP_DR),temp79a,weight_79,79) &
         -int4(r_79,e(:,OP_DR),f(:,OP_DZ),temp79a,weight_79,79)
@@ -862,6 +884,7 @@ vectype function v1chis(e,f,g)
   v1chis = temp
   return
 end function v1chis
+
 
 
 !===============================================================================
@@ -894,14 +917,14 @@ end function v2vn
 
 ! V2vmu
 ! =====
-vectype function v2vmu(e,f,g,h)
+vectype function v2vmu(e,f,g,h,i)
 
   use basic
   use nintegrate_mod
 
   implicit none
 
-  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h,i
   vectype :: temp
 
   temp79a = e(:,OP_GS)*g(:,OP_1) + &
@@ -910,15 +933,12 @@ vectype function v2vmu(e,f,g,h)
 
   temp = int2(temp79a,f(:,OP_1),weight_79,79)
 
-!!$  temp = - &
-!!$       (int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1),weight_79,79) &
-!!$       +int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_1),weight_79,79))
-!!$
-!!$  if(itor.eq.1) then
-!!$     temp = temp - 2.*int4(ri_79,e(:,OP_1 ),f(:,OP_DR),g(:,OP_1),weight_79,79)
-!!$  endif
+#ifdef USECOMPLEX
+  temp = temp + 2.*int4(ri2_79,e(:,OP_1),f(:,OP_DPP),h(:,OP_1),weight_79,79)
+#endif
 
-  temp = temp - int3(temp79a,f(:,OP_GS),h(:,OP_1),weight_79,79)  
+  ! hyperviscous
+  temp = temp - int3(temp79a,f(:,OP_GS),i(:,OP_1),weight_79,79)  
 
   v2vmu = temp
   return
@@ -981,6 +1001,29 @@ vectype function v2vun(e,f,g,h)
 end function v2vun
 
 
+! V2psipsi
+! ========
+vectype function v2psipsi(e,f,g)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
+
+#ifdef USECOMPLEX
+  temp = int4(ri2_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DZ),weight_79,79) &
+       + int4(ri2_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DR),weight_79,79)
+  v2psipsi = -temp
+#else
+  v2psipsi = 0.
+#endif
+  return
+end function v2psipsi
+
+
 ! V2psib
 ! ======
 vectype function v2psib(e,f,g)
@@ -1023,9 +1066,71 @@ vectype function v2vpsipsi(e,f,g,h)
      temp = temp - 2.*int4(ri3_79,f(:,OP_1),g(:,OP_DZ),temp79a,weight_79,79)
   endif
 
+#ifdef USECOMPLEX
+  temp = temp + &
+       (int5(ri4_79,e(:,OP_1),f(:,OP_DPP),g(:,OP_DZ),h(:,OP_DZ),weight_79,79) &
+       +int5(ri4_79,e(:,OP_1),f(:,OP_DPP),g(:,OP_DR),h(:,OP_DR),weight_79,79))
+#endif
+
   v2vpsipsi = temp
   return
 end function v2vpsipsi
+
+
+! V2vpsib
+! =======
+vectype function v2vpsib(e,f,g,h)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
+
+#ifdef USECOMPLEX
+  temp = int5(ri3_79,e(:,OP_1),f(:,OP_DP),g(:,OP_DR),h(:,OP_DZ),weight_79,79) &
+       - int5(ri3_79,e(:,OP_1),f(:,OP_DP),g(:,OP_DZ),h(:,OP_DR),weight_79,79)
+  v2vpsib = -temp
+#else
+  v2vpsib = 0.
+#endif
+  return
+end function v2vpsib
+
+
+
+! V2upsipsi
+! =========
+vectype function v2upsipsi(e,f,g,h)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
+#ifdef USECOMPLEX
+  temp79a = h(:,OP_DZ)*(f(:,OP_DZZP)*g(:,OP_DR )-f(:,OP_DRZP)*g(:,OP_DZ )  &
+                       +f(:,OP_DZP )*g(:,OP_DRZ)-f(:,OP_DRP )*g(:,OP_DZZ)) &
+          + h(:,OP_DR)*(f(:,OP_DRZP)*g(:,OP_DR )-f(:,OP_DRRP)*g(:,OP_DZ )  &
+                       +f(:,OP_DZP )*g(:,OP_DRR)-f(:,OP_DRP )*g(:,OP_DRZ))
+  temp = -int3(ri3_79,e(:,OP_1),temp79a,weight_79,79)
+
+  if(itor.eq.1) then
+     temp79a = (f(:,OP_DZP)*g(:,OP_DR)-f(:,OP_DRP)*g(:,OP_DZ))*h(:,OP_DR)
+     temp = temp + int3(ri4_79,e(:,OP_1),temp79a,weight_79,79)
+  endif
+
+  v2upsipsi = temp
+#else
+  v2upsipsi = 0.
+#endif
+  return
+end function v2upsipsi
+
 
 
 ! V2upsib
@@ -1050,9 +1155,41 @@ vectype function v2upsib(e,f,g,h)
           -int5(ri3_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),weight_79,79))
   endif
 
+#ifdef USECOMPLEX
+  temp = temp - &
+       (int5(ri4_79,e(:,OP_1),f(:,OP_DZPP),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+       +int5(ri4_79,e(:,OP_1),f(:,OP_DRPP),g(:,OP_DR),h(:,OP_1),weight_79,79))
+#endif
+
   v2upsib = temp
   return
 end function v2upsib
+
+
+! V2ubb
+! =====
+vectype function v2ubb(e,f,g,h)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
+
+#ifdef USECOMPLEX
+  temp = temp + &
+       (int5(ri3_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DR),h(:,OP_1),weight_79,79) &
+       -int5(ri3_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DZ),h(:,OP_1),weight_79,79))
+
+  v2ubb = temp
+#else
+  v2ubb = 0.
+#endif
+  return
+end function v2ubb
+
 
 
 ! v2upsisb2
@@ -1215,7 +1352,7 @@ vectype function v2vs(e,f,g)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = g(:,OP_1) + denm*nt79(:,OP_LP)
+  temp79a = g(:,OP_1) ! + denm*nt79(:,OP_LP)
 
   temp = -int3(e(:,OP_1),f(:,OP_1),temp79a,weight_79,79)
 
@@ -1916,7 +2053,7 @@ vectype function v3us(e,f,g)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = g(:,OP_1) + denm*nt79(:,OP_LP)
+  temp79a = g(:,OP_1) ! + denm*nt79(:,OP_LP)
 
   temp = int4(ri_79,e(:,OP_DZ),f(:,OP_DR),temp79a,weight_79,79) &
         -int4(ri_79,e(:,OP_DR),f(:,OP_DZ),temp79a,weight_79,79)
@@ -1944,7 +2081,7 @@ vectype function v3chis(e,f,g)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = g(:,OP_1) + denm*nt79(:,OP_LP)
+  temp79a = g(:,OP_1) ! + denm*nt79(:,OP_LP)
 
   temp = int3(e(:,OP_DZ),f(:,OP_DZ),temp79a,weight_79,79) &
         +int3(e(:,OP_DR),f(:,OP_DR),temp79a,weight_79,79)
@@ -2019,6 +2156,7 @@ vectype function b1psiu(e,f,g)
   return
 end function b1psiu
 
+
 ! B1bu
 ! ====
 vectype function b1bu(e,f,g)
@@ -2035,16 +2173,42 @@ vectype function b1bu(e,f,g)
   if(jadv.eq.0) then
      temp = 0.
   else
-     temp = int4(ri4_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DZ),weight_79,79) &
-          + int4(ri4_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DR),weight_79,79) 
+     temp = int4(ri4_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DZP),weight_79,79) &
+          + int4(ri4_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DRP),weight_79,79) 
   endif
 
-  b1bu = -(0,1)*ntor*temp
+  b1bu = -temp
 #else
   b1bu = 0
 #endif
 end function b1bu
 
+
+! B1bv
+! ====
+vectype function b1bv(e,f,g)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
+
+#ifdef USECOMPLEX
+  if(jadv.eq.0) then
+     temp = 0.
+  else
+     temp = int4(ri4_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DP),weight_79,79) &
+          + int4(ri4_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_DP),weight_79,79)  
+  endif
+
+  b1bv = temp
+#else
+  b1bv = 0
+#endif
+end function b1bv
 
 
 ! B1psichi
@@ -2110,15 +2274,41 @@ vectype function b1psieta(e,f,g,h)
   else
      temp = int4(ri2_79,g(:,OP_1),e(:,OP_GS),f(:,OP_GS),weight_79,79)
 #ifdef USECOMPLEX
-     temp = temp + ntor**2 * &
-          (int4(ri4_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1),weight_79,79) &
-          +int4(ri4_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1),weight_79,79))
+     temp = temp - &
+          (int4(ri4_79,e(:,OP_DZ),f(:,OP_DZPP),g(:,OP_1),weight_79,79) &
+          +int4(ri4_79,e(:,OP_DR),f(:,OP_DRPP),g(:,OP_1),weight_79,79))
 #endif
   endif
 
   b1psieta = temp
   return
 end function b1psieta
+
+
+! B1beta
+! ======
+vectype function b1beta(e,f,g)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
+
+#ifdef USECOMPLEX
+  temp = int4(ri3_79,e(:,OP_DZ),f(:,OP_DRP),g(:,OP_1),weight_79,79) &
+       - int4(ri3_79,e(:,OP_DR),f(:,OP_DZP),g(:,OP_1),weight_79,79)
+  b1beta = -temp
+#else
+  b1beta = 0.
+#endif
+
+  return
+end function b1beta
+
+
 
 ! B1psipsid
 ! =========
@@ -2134,13 +2324,14 @@ vectype function b1psipsid(e,f,g,h)
 
 #ifdef USECOMPLEX
   if(idens.eq.0) then
-     temp = 0.
+     temp = int4(ri2_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DZ),weight_79,79) &
+          + int4(ri2_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DR),weight_79,79)
   else
-     temp = int5(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
-          + int5(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),h(:,OP_1),weight_79,79)
+     temp = int5(ri2_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+          + int5(ri2_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DR),h(:,OP_1),weight_79,79)
   endif
 
-  b1psipsid = (0,1)*ntor*temp
+  b1psipsid = temp
 #else
   b1psipsid = 0
   return
@@ -2197,6 +2388,40 @@ vectype function b1psibd(e,f,g,h)
 end function b1psibd
 
 
+! B1bbd
+! =====
+vectype function b1bbd(e,f,g,h)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
+
+#ifdef USECOMPLEX
+  if(idens.eq.0) then
+     temp = int4(ri4_79,e(:,OP_DZ),f(:,OP_DZ ),g(:,OP_DP),weight_79,79) &
+          + int4(ri4_79,e(:,OP_DR),f(:,OP_DR ),g(:,OP_DP),weight_79,79) &
+          + int4(ri4_79,e(:,OP_DZ),f(:,OP_DZP),g(:,OP_1 ),weight_79,79) &
+          + int4(ri4_79,e(:,OP_DR),f(:,OP_DRP),g(:,OP_1 ),weight_79,79)
+  else
+     temp = int5(ri4_79,e(:,OP_DZ),f(:,OP_DZ ),g(:,OP_DP),h(:,OP_1),weight_79,79) &
+          + int5(ri4_79,e(:,OP_DR),f(:,OP_DR ),g(:,OP_DP),h(:,OP_1),weight_79,79) &
+          + int5(ri4_79,e(:,OP_DZ),f(:,OP_DZP),g(:,OP_1 ),h(:,OP_1),weight_79,79) &
+          + int5(ri4_79,e(:,OP_DR),f(:,OP_DRP),g(:,OP_1 ),h(:,OP_1),weight_79,79)
+  endif
+
+  b1bbd = temp
+#else
+  b1bbd = 0.
+#endif
+  return
+end function b1bbd
+
+
+
 !===============================================================================
 ! B2 TERMS
 !===============================================================================
@@ -2218,6 +2443,42 @@ vectype function b2b(e,f)
   b2b = temp
   return
 end function b2b
+
+
+! B2psieta
+! ========
+vectype function b2psieta(e,f,g,h)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
+
+#ifdef USECOMPLEX
+  temp = int4(ri_79,e(:,OP_DZ),f(:,OP_DRP),g(:,OP_1),weight_79,79) &
+       - int4(ri_79,e(:,OP_DR),f(:,OP_DZP),g(:,OP_1),weight_79,79)
+
+  ! del*(f')
+  temp79a = f(:,OP_DZZP) + f(:,OP_DRRP)
+  if(itor.eq.1) temp79a = temp79a - ri_79*f(:,OP_DRP)
+
+  ! hyper-resistive
+  temp = temp  &
+       + int5(ri_79,e(:,OP_DZ),temp79a,g(:,OP_1 ),h(:,OP_DR),weight_79,79) &
+       - int5(ri_79,e(:,OP_DR),temp79a,g(:,OP_1 ),h(:,OP_DZ),weight_79,79) &
+       + int5(ri_79,e(:,OP_DZ),temp79a,g(:,OP_DR),h(:,OP_1 ),weight_79,79) &
+       - int5(ri_79,e(:,OP_DR),temp79a,g(:,OP_DZ),h(:,OP_1 ),weight_79,79)
+
+  b2psieta = temp
+#else
+  b2psieta = 0.
+#endif
+  return
+end function b2psieta
+
 
 
 ! B2beta
@@ -2245,6 +2506,16 @@ vectype function b2beta(e,f,g,h)
        (e(:,OP_DR)*g(:,OP_1) + e(:,OP_1)*g(:,OP_DR))
   
   temp = temp - int3(temp79a,f(:,OP_GS),h(:,OP_1),weight_79,79)
+
+#ifdef USECOMPLEX
+  temp = temp + &
+       (int5(ri2_79,e(:,OP_DZ),f(:,OP_DZPP),g(:,OP_1),h(:,OP_1),weight_79,79) &
+       +int5(ri2_79,e(:,OP_DR),f(:,OP_DRPP),g(:,OP_1),h(:,OP_1),weight_79,79))
+  if(itor.eq.1) then
+     temp = temp - &
+          2.*int5(ri3_79,e(:,OP_DR),f(:,OP_DPP),g(:,OP_1),h(:,OP_1),weight_79,79)
+  endif
+#endif
 
   b2beta = temp
   return
@@ -2352,6 +2623,41 @@ vectype function b2psipsid(e,f,g,h)
   b2psipsid = temp
   return 
 end function b2psipsid
+
+
+! B2psibd
+! =======
+vectype function b2psibd(e,f,g,h)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
+  vectype :: temp
+
+#ifdef USECOMPLEX
+  if(idens.eq.0) then
+     temp = &
+          -(int4(ri2_79,e(:,OP_DZ),f(:,OP_DZP),g(:,OP_1),weight_79,79) &
+           +int4(ri2_79,e(:,OP_DR),f(:,OP_DRP),g(:,OP_1),weight_79,79))
+     if(itor.eq.1) &
+          temp = temp - 2.*int4(ri3_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_1),weight_79,79)
+  else
+     temp = &
+          -(int5(ri2_79,e(:,OP_DZ),f(:,OP_DZP),g(:,OP_1),h(:,OP_1),weight_79,79) &
+           +int5(ri2_79,e(:,OP_DR),f(:,OP_DRP),g(:,OP_1),h(:,OP_1),weight_79,79))
+     if(itor.eq.1) temp = temp &
+          - 2.*int5(ri3_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_1),h(:,OP_1),weight_79,79)
+  endif
+
+  b2psibd = -temp
+#else
+  b2psibd = 0.
+#endif
+  return 
+end function b2psibd
 
 
 ! B2bbd
@@ -2590,6 +2896,10 @@ vectype function n1ndenm(e,f,g,h)
        (int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
        +int2(e(:,OP_DR),f(:,OP_DR),weight_79,79))
 
+#ifdef USECOMPLEX
+  temp = temp + g*int3(ri2_79,e(:,OP_1),f(:,OP_DPP),weight_79,79)
+#endif
+
   if(hypp .ne. 0) then
      temp = temp - g*int3(e(:,OP_LP),f(:,OP_LP),h(:,OP_1),weight_79,79)
   endif
@@ -2619,6 +2929,29 @@ vectype function n1nu(e,f,g)
   return
 end function n1nu
 
+
+! N1nv
+! ====
+vectype function n1nv(e,f,g)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
+
+#ifdef USECOMPLEX
+  temp = -int4(ri2_79,e(:,OP_1),f(:,OP_1 ),g(:,OP_DP),weight_79,79) &
+       -  int4(ri2_79,e(:,OP_1),f(:,OP_DP),g(:,OP_1 ),weight_79,79)
+
+  n1nv = temp
+#else
+  n1nv = 0.
+#endif
+  return
+end function n1nv
 
 ! N1nchi
 ! ======
@@ -2820,7 +3153,7 @@ vectype function p1vvs(e,f,g,h)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = h(:,OP_1) + denm*nt79(:,OP_LP)
+  temp79a = h(:,OP_1) ! + denm*nt79(:,OP_LP)
 
   temp = 0.5*(gam-1.)* &
        int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_1),temp79a,weight_79,79)
@@ -3712,7 +4045,7 @@ real function energy_kp()
           (int4(ri2_79,phs79(:,OP_DZ),CONJUGATE(ph179(:,OP_DZ)),nt79(:,OP_1),weight_79,79) &
           +int4(ri2_79,phs79(:,OP_DR),CONJUGATE(ph179(:,OP_DR)),nt79(:,OP_1),weight_79,79) &
           +int4(ri2_79,ph179(:,OP_DZ),CONJUGATE(phs79(:,OP_DZ)),nt79(:,OP_1),weight_79,79) &
-          +int4(ri2_79,ph179(:,OP_DR),CONJUGATE(phs79(:,OP_DR)),nt79(:,OP_1),weight_79,79))   
+          +int4(ri2_79,ph179(:,OP_DR),CONJUGATE(phs79(:,OP_DR)),nt79(:,OP_1),weight_79,79))
   else
      temp = .5* &
           (int4(ri2_79,pht79(:,OP_DZ),CONJUGATE(pht79(:,OP_DZ)),nt79(:,OP_1),weight_79,79) &
@@ -3804,11 +4137,11 @@ real function energy_mpd()
           -int4(ri2_79,pss79(:,OP_GS),CONJUGATE(ps179(:,OP_GS)),eta79(:,OP_1),weight_79,79) &
           -int4(ri2_79,ps179(:,OP_GS),CONJUGATE(pss79(:,OP_GS)),eta79(:,OP_1),weight_79,79)
 #ifdef USECOMPLEX
-     temp = temp - ntor**2 * &
-          (int4(ri4_79,pss79(:,OP_DZ),CONJUGATE(ps179(:,OP_DZ)),eta79(:,OP_1),weight_79,79) &
-          +int4(ri4_79,pss79(:,OP_DR),CONJUGATE(ps179(:,OP_DR)),eta79(:,OP_1),weight_79,79) &
-          +int4(ri4_79,ps179(:,OP_DZ),CONJUGATE(pss79(:,OP_DZ)),eta79(:,OP_1),weight_79,79) &
-          +int4(ri4_79,ps179(:,OP_DR),CONJUGATE(pss79(:,OP_DR)),eta79(:,OP_1),weight_79,79))
+     temp = temp - &
+          (int4(ri4_79,pss79(:,OP_DZP),CONJUGATE(ps179(:,OP_DZP)),eta79(:,OP_1),weight_79,79) &
+          +int4(ri4_79,pss79(:,OP_DRP),CONJUGATE(ps179(:,OP_DRP)),eta79(:,OP_1),weight_79,79) &
+          +int4(ri4_79,ps179(:,OP_DZP),CONJUGATE(pss79(:,OP_DZP)),eta79(:,OP_1),weight_79,79) &
+          +int4(ri4_79,ps179(:,OP_DRP),CONJUGATE(pss79(:,OP_DRP)),eta79(:,OP_1),weight_79,79))
 #endif
   else
      temp = -int4(ri2_79,pst79(:,OP_GS),CONJUGATE(pst79(:,OP_GS)),eta79(:,OP_1),weight_79,79)
@@ -3863,11 +4196,11 @@ real function energy_kpd()
           (int4(ri2_79,phs79(:,OP_GS),CONJUGATE(ph179(:,OP_GS)),vis79(:,OP_1),weight_79,79) &
           +int4(ri2_79,ph179(:,OP_GS),CONJUGATE(phs79(:,OP_GS)),vis79(:,OP_1),weight_79,79))
 #ifdef USECOMPLEX
-     temp = temp - ntor**2 * &
-          (int4(ri4_79,phs79(:,OP_DZ),CONJUGATE(ph179(:,OP_DZ)),vis79(:,OP_1),weight_79,79) &
-          +int4(ri4_79,phs79(:,OP_DR),CONJUGATE(ph179(:,OP_DR)),vis79(:,OP_1),weight_79,79) &
-          +int4(ri4_79,ph179(:,OP_DZ),CONJUGATE(phs79(:,OP_DZ)),vis79(:,OP_1),weight_79,79) &
-          +int4(ri4_79,ph179(:,OP_DR),CONJUGATE(phs79(:,OP_DR)),vis79(:,OP_1),weight_79,79))
+     temp = temp - &
+          (int4(ri4_79,phs79(:,OP_DZP),CONJUGATE(ph179(:,OP_DZP)),vis79(:,OP_1),weight_79,79) &
+          +int4(ri4_79,phs79(:,OP_DRP),CONJUGATE(ph179(:,OP_DRP)),vis79(:,OP_1),weight_79,79) &
+          +int4(ri4_79,ph179(:,OP_DZP),CONJUGATE(phs79(:,OP_DZP)),vis79(:,OP_1),weight_79,79) &
+          +int4(ri4_79,ph179(:,OP_DRP),CONJUGATE(phs79(:,OP_DRP)),vis79(:,OP_1),weight_79,79))
 #endif
   else
      temp = -int4(ri2_79,pht79(:,OP_GS),CONJUGATE(pht79(:,OP_GS)),vis79(:,OP_1),weight_79,79)
@@ -4343,8 +4676,4 @@ real function grav_pot()
 end function grav_pot
 
 end module metricterms_new
-
-
-
-
 

@@ -10,11 +10,11 @@ subroutine constant_field(outarr, val)
 
 end subroutine constant_field
 !==============================
-subroutine plane_wave(x, z, outarr, kx, kz, amp, phase)
+subroutine plane_wave(outarr, x, z, kx, kz, amp, phase)
   implicit none
 
   real, intent(in) :: x, z
-  real, dimension(6), intent(out) :: outarr
+  vectype, dimension(6), intent(out) :: outarr
   real, intent(in)  :: kx, kz, amp, phase
 
   real :: arg
@@ -27,7 +27,66 @@ subroutine plane_wave(x, z, outarr, kx, kz, amp, phase)
   outarr(5) = -amp*cos(arg)*kx*kz
   outarr(6) = -amp*cos(arg)*kz*kz
 end subroutine plane_wave
+!==============================
+subroutine plane_wave2(outarr,x,z,kx,kz,amp,phasex,phasez)
+  implicit none
 
+  vectype, dimension(6), intent(out) :: outarr
+  real, intent(in)  :: x, z, kx, kz, amp, phasex, phasez
+
+  real :: argx,argz,cox,coz,six,siz
+  argx = kx*x + phasex
+  argz = kz*z + phasez
+
+  six = sin(argx)
+  cox = cos(argx)
+  siz = sin(argz)
+  coz = cos(argz)
+
+  outarr(1) =  amp*six*siz
+  outarr(2) =  amp*cox*siz*kx
+  outarr(3) =  amp*six*coz*kz
+  outarr(4) = -amp*six*siz*kx*kx
+  outarr(5) =  amp*cox*coz*kx*kz
+  outarr(6) = -amp*six*siz*kz*kz
+end subroutine plane_wave2
+!==============================
+subroutine random_per(x,z,seed)
+  use basic
+  use arrays
+
+  implicit none
+
+  real :: rand
+
+  real, intent(in) :: x, z
+  integer, intent(in) :: seed
+  integer :: i, j
+  integer, parameter :: maxn = 10
+  real :: alx, alz, a, kx, kz
+  vectype, dimension(6) :: temp
+
+  call getboundingboxsize(alx, alz)
+
+  a = rand(seed)
+
+  psi1_l = 0
+  u1_l = 0
+  temp = 0
+
+  do i=1,maxn
+     kx = pi*i/alx
+     do j=1, maxn
+        kz = pi*j/alz
+        call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(0)-.5),0.,0.)
+        psi1_l = psi1_l + temp
+        call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(0)-.5),0.,0.)
+        u1_l = u1_l + temp
+     end do
+  end do
+
+end subroutine random_per
+!===========================
 subroutine cartesian_to_cylindrical(x,vec)
   implicit none
 
@@ -41,7 +100,7 @@ subroutine cartesian_to_cylindrical(x,vec)
   vec(2) = vec(2) * x +    vec(1)
   vec(1) = vec(1) * x 
 end subroutine cartesian_to_cylindrical
-
+!===========================
 subroutine cartesian_to_cylindrical_all()
   use basic
   use arrays
@@ -659,12 +718,12 @@ subroutine wave_per(x, z)
 
   real :: omega
 
-  call plane_wave(x, z,  u1_l, akx, 0, eps*akx/omega, pi/2.)
-  call plane_wave(x, z, vz1_l, akx, 0, eps*(akx2/omega**2-1), pi/2.)
+  call plane_wave(u1_l, x, z,  akx, 0, eps*akx/omega, pi/2.)
+  call plane_wave(vz1_l, x, z, akx, 0, eps*(akx2/omega**2-1), pi/2.)
   chi1_l = 0.
   
-  call plane_wave(x, z, psi1_l, akx, 0, eps, pi/2.)
-  call plane_wave(x, z,  bz1_l, akx, 0, eps*(akx/omega-omega/akx), pi/2.)
+  call plane_wave(psi1_l, x, z, akx, 0, eps, pi/2.)
+  call plane_wave( bz1_l, x, z, akx, 0, eps*(akx/omega-omega/akx), pi/2.)
   pe1_l = 0.
   p1_l = 0.
 
