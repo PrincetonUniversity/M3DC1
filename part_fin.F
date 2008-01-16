@@ -447,7 +447,7 @@ c$$$      return
       field = scalefac*field
 
       phiold = 1e-10*phiold
-      if(isplitstep) then
+      if(isplitstep.eq.1) then
          velold = scalefac*velold
          veloldn = scalefac*veloldn
          denold = scalefac*denold
