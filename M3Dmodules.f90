@@ -3,13 +3,12 @@ module p_data
   implicit none
   
   integer :: maxi     ! highest degree polynomial kept in nonlinear calculations
-  integer :: ntimep   ! maximum number of timesteps
   integer :: ires     ! linear resolution of the plot files
-  integer :: ntri     ! maximum number of HDF5 files
+  integer :: ntri
   integer :: maxplots ! maximum dimension of the graph array
   integer :: ijacobian
 
-  parameter(maxplots=50, maxi=20, ntimep=10000, ires=201, ijacobian=1)
+  parameter(maxplots=50, maxi=20, ires=201, ijacobian=1)
   
   integer, dimension(ires, ires) :: whichtri
 
@@ -178,15 +177,11 @@ module basic
   real :: pi,dbf,bdf,hypv,hypc,hypf,hypi,hypp,   &
        time,                                     &
        gbound,fbound
-  integer ::  ni(20),mi(20),                                           &
-       ntime,nrank,ntimemin,ntensor,idebug, islutype
+  integer :: ni(20),mi(20)
+  integer :: ntime
 
-  character*8 :: filename(50)
   character*10 :: datec, timec
   
-! initialization quantities
-  integer :: ifirsts4_lu, ifirsts5_lu, ifirsts7_lu
-
   data mi /0,1,0,2,1,0,3,2,1,0,4,3,2,1,0,5,3,2,1,0/
   data ni /0,0,1,0,1,2,0,1,2,3,0,1,2,3,4,0,2,3,4,5/
 
@@ -242,14 +237,6 @@ module arrays
        veln(:), veloldn(:), phip(:),                              &
        b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
        b5vector(:), tempcompare(:)
-
-!!$  vectype, allocatable, target :: &
-!!$       vel(:), velold(:), vel0(:),  vels(:),    &
-!!$       phi(:), phiold(:), phi0(:),  phis(:),    &
-!!$       den(:), denold(:), den0(:),  dens(:),    &
-!!$       pres(:), presold(:), pres0(:), press(:), &
-!!$       q4(:), r4(:), qn4(:), qp4(:)    
-
 
 
   ! the following pointers point to the vector containing the named field.
@@ -460,7 +447,7 @@ module arrays
 #ifdef USECOMPLEX
       call createppplvec(vec, numberingid, 1)
 #else
-      call createppplvec(vec, numberingid, 0)
+      call createppplvec(vec, numberingid)
 #endif
       vec = 0.
     end subroutine createvec
@@ -474,7 +461,11 @@ module arrays
 
       call numdofs(numberingid, ndof)
       allocate(vec(ndof))
+#ifdef USECOMPLEX
       call createppplvec(vec, numberingid, 0)
+#else
+      call createppplvec(vec, numberingid)
+#endif
       vec = 0.
     end subroutine createrealvec
 !================================
@@ -546,3 +537,481 @@ module sparse
   
 end module sparse
 
+
+#ifndef USECOMPLEX
+subroutine zeromultiplymatrix(imat, icomp, isize)
+  implicit none
+  integer, intent(in) :: imat, icomp, isize
+  call zeromultiplyarray(imat,isize)  
+end subroutine zeromultiplymatrix
+
+subroutine zerosuperlumatrix(imat, icomp, isize)
+  implicit none
+  integer, intent(in) :: imat, icomp, isize
+  call zerosuperluarray(imat,isize)  
+end subroutine zerosuperlumatrix
+
+subroutine finalizematrix(imat)
+  implicit none
+  integer, intent(in) :: imat
+  call finalizearray(imat)
+end subroutine finalizematrix
+
+subroutine deletematrix(imat)
+  implicit none
+  integer, intent(in) :: imat
+  call freesmo(imat)
+end subroutine deletematrix
+
+subroutine insertval2(imat,val,icomp,i,j,iop)
+  implicit none
+  integer, intent(in) :: imat, icomp, i, j, iop
+  real, intent(in) :: val
+  call insertval(imat,val,i,j,iop)
+end subroutine insertval2
+
+subroutine setgeneralbc2(imatrix, irow, numvals, cols, vals, icomp)
+  implicit none
+  integer, intent(in) :: imatrix, irow, numvals, icomp
+  real, intent(in), dimension(*) :: cols, vals
+
+  call setgeneralbc(imatrix, irow, numvals, cols, vals)
+end subroutine setgeneralbc2
+
+
+subroutine sumsharedppplvecvals(vec)
+  implicit none
+  real :: vec(*)
+  call sumshareddofs(vec)
+end subroutine sumsharedppplvecvals
+  
+subroutine checkppplveccreated(vec, i)
+  implicit none
+  integer, intent(out) :: i
+  real :: vec(*)
+  call checkveccreated(vec,i)
+end subroutine checkppplveccreated
+
+subroutine initsolvers
+  call sludinit
+end subroutine initsolvers
+
+subroutine finalizesolvers
+  call sludexit
+end subroutine finalizesolvers
+
+subroutine resizevec(vec, ivecsize)
+  use arrays
+  implicit none
+  integer ivecsize
+  double precision :: vec
+
+  call arrayresizevec(vec, ivecsize)
+
+  return
+end subroutine resizevec
+
+subroutine arrayresizevec(vec, ivecsize)
+  use arrays
+
+  implicit none
+  integer numberingid, ivecsize, i
+  double precision :: vec
+
+  print *, "In arrayresizevec!", ivecsize
+
+  call checkveccreated(vec, i)
+  if(i .eq. 0) then
+     call printfpointer(vec)
+     write(*,*) 'trying to resize a vector that has not been created'
+     call safestop(8844)
+  endif
+
+
+  call checksamevec(field, vec, i)
+  if(i .eq. 1) then
+     print *, "field"
+     if(allocated(field)) deallocate(field, STAT=i)
+     allocate(field(ivecsize))
+     field = 0.
+     call updateids(vec, field)
+     print *, 'done'
+     return
+  endif
+
+  call checksamevec(field0, vec, i)
+  if(i .eq. 1) then
+     print *, "field0"
+     if(allocated(field0)) deallocate(field0, STAT=i)
+     allocate(field0(ivecsize))
+     field0 = 0.
+     call updateids(vec, field0)
+     return
+  endif
+
+  call checksamevec(fieldi, vec, i)
+  if(i .eq. 1) then
+     print *, "fieldi"
+     if(allocated(fieldi)) deallocate(fieldi, STAT=i)
+     allocate(fieldi(ivecsize))
+     fieldi = 0.
+     call updateids(vec, fieldi)
+     return
+  endif
+
+  call checksamevec(jphi, vec, i)
+  if(i .eq. 1) then
+     print *, "jphi"
+     if(allocated(jphi)) deallocate(jphi, STAT=i)
+     allocate(jphi(ivecsize))
+     jphi = 0.
+     call updateids(vec, jphi)
+     return
+  endif
+  
+  call checksamevec(vor, vec, i)
+  if(i .eq. 1) then
+     print *, "vor"
+     if(allocated(vor)) deallocate(vor, STAT=i)
+     allocate(vor(ivecsize))
+     vor = 0.
+     call updateids(vec, vor)
+     return
+  endif
+  
+  call checksamevec(com, vec, i)
+  if(i .eq. 1) then
+     print *, "com"
+     if(allocated(com)) deallocate(com, STAT=i)
+     allocate(com(ivecsize))
+     com = 0.
+     call updateids(vec, com)
+     return
+  endif
+
+  call checksamevec(vtemp, vec, i)
+  if(i .eq. 1) then
+     print *, "vtemp"
+     if(allocated(vtemp)) deallocate(vtemp, STAT=i)
+     allocate(vtemp(ivecsize))
+     vtemp = 0.
+     call updateids(vec, vtemp)
+     return
+  endif
+  
+  call checksamevec(resistivity, vec, i)
+  if(i .eq. 1) then
+     print *, "resistivity"
+     if(allocated(resistivity)) deallocate(resistivity, STAT=i)
+     allocate(resistivity(ivecsize))
+     resistivity = 0.
+     call updateids(vec, resistivity)
+     return
+  endif
+  
+  call checksamevec(tempvar, vec, i)
+  if(i .eq. 1) then
+     print *, "tempvar"
+     if(allocated(tempvar)) deallocate(tempvar, STAT=i)
+     allocate(tempvar(ivecsize))
+     tempvar = 0.
+     call updateids(vec, tempvar)
+     return
+  endif
+  
+  call checksamevec(kappa, vec, i)
+  if(i .eq. 1) then
+     print *, "kappa"
+     if(allocated(kappa)) deallocate(kappa, STAT=i)
+     allocate(kappa(ivecsize))
+     kappa = 0.
+     call updateids(vec, kappa)
+     return
+  endif
+
+  call checksamevec(sigma, vec, i)
+  if(i .eq. 1) then
+     print *, "sigma"
+     if(allocated(sigma)) deallocate(sigma, STAT=i)
+     allocate(sigma(ivecsize))
+     sigma = 0.
+     call updateids(vec, sigma)
+     return
+  endif
+      
+  call checksamevec(sb1, vec, i)
+  if(i .eq. 1) then
+     print *, "sb1"
+     if(allocated(sb1)) deallocate(sb1, STAT=i)
+     allocate(sb1(ivecsize))
+     sb1 = 0.
+     call updateids(vec, sb1)
+     return
+  endif
+  
+  call checksamevec(sb2, vec, i)
+  if(i .eq. 1) then
+     print *, "sb2"
+     if(allocated(sb2)) deallocate(sb2, STAT=i)
+     allocate(sb2(ivecsize))
+     sb2 = 0.
+     call updateids(vec, sb2)
+     return
+  endif
+  
+  call checksamevec(sp1, vec, i)
+  if(i .eq. 1) then
+     print *, "sp1"
+     if(allocated(sp1)) deallocate(sp1, STAT=i)
+     allocate(sp1(ivecsize))
+     sp1 = 0.
+     call updateids(vec, sp1)
+     return
+  endif
+  
+  call checksamevec(visc, vec, i)
+  if(i .eq. 1) then
+     print *, "visc"
+     if(allocated(visc)) deallocate(visc, STAT=i)
+     allocate(visc(ivecsize))
+     visc = 0.
+     call updateids(vec, visc)
+     return
+  endif
+  
+  call checksamevec(visc_c, vec, i)
+  if(i .eq. 1) then
+     print *, "visc_c"
+     if(allocated(visc_c)) deallocate(visc_c, STAT=i)
+     allocate(visc_c(ivecsize))
+     visc_c = 0.
+     call updateids(vec, visc_c)
+     return
+  endif
+
+  call checksamevec(bf, vec, i)
+  if(i .eq. 1) then
+     print *, "bf"
+     if(allocated(bf)) deallocate(visc_c, STAT=i)
+     allocate(bf(ivecsize))
+     bf = 0.
+     call updateids(vec, bf)
+     return
+  endif
+
+  call checksamevec(phi, vec, i)
+  if(i .eq. 1) then
+     print *, "phi"
+     if(allocated(phi)) deallocate(phi, STAT=i)
+     allocate(phi(ivecsize))
+     phi = 0.
+     call updateids(vec, phi)
+     return
+  endif
+     
+  call checksamevec(phiold, vec, i)
+  if(i .eq. 1) then
+     print *, "phiold"
+     if(allocated(phiold)) deallocate(phiold, STAT=i)
+     allocate(phiold(ivecsize))
+     phiold = 0.
+     call updateids(vec, phiold)
+     return
+  endif
+
+  call checksamevec(vel, vec, i)
+  if(i .eq. 1) then
+     print *, "vel"
+     if(allocated(vel)) deallocate(vel, STAT=i)
+     allocate(vel(ivecsize))
+     vel = 0.
+     call updateids(vec, vel)
+     return
+  endif
+      
+  call checksamevec(velold, vec, i)
+  if(i .eq. 1) then
+     print *, "velold"
+     if(allocated(velold)) deallocate(velold, STAT=i)
+     allocate(velold(ivecsize))
+     velold = 0.
+     call updateids(vec, velold)
+     return
+  endif
+   
+     
+  call checksamevec(den, vec, i)
+  if(i .eq. 1) then
+     print *, "den"
+     if(allocated(den)) deallocate(den, STAT=i)
+     allocate(den(ivecsize))
+     den = 0.
+     call updateids(vec, den)
+     return
+  endif
+  
+  call checksamevec(denold, vec, i)
+  if(i .eq. 1) then
+     print *, "denold"
+     if(allocated(denold)) deallocate(denold, STAT=i)
+     allocate(denold(ivecsize))
+     denold = 0.
+     call updateids(vec, denold)
+     return
+  endif
+  
+  call checksamevec(pres, vec, i)
+  if(i .eq. 1) then
+     print *, "pres"
+     if(allocated(pres)) deallocate(pres, STAT=i)
+     allocate(pres(ivecsize))
+     pres = 0.
+     call updateids(vec, pres)
+     return
+  endif
+  
+  call checksamevec(presold, vec, i)
+  if(i .eq. 1) then
+     print *, "presold"
+     if(allocated(presold)) deallocate(presold, STAT=i)
+     allocate(presold(ivecsize))
+     presold = 0.
+     call updateids(vec, presold)
+     return
+  endif
+     
+  call checksamevec(q4, vec, i)
+  if(i .eq. 1) then
+     print *, "q4"
+     if(allocated(q4)) deallocate(q4, STAT=i)
+     allocate(q4(ivecsize))
+     q4 = 0.
+     call updateids(vec, q4)
+     return
+  endif
+
+  call checksamevec(r4, vec, i)
+  if(i .eq. 1) then
+     print *, "r4"
+     if(allocated(r4)) deallocate(r4, STAT=i)
+     allocate(r4(ivecsize))
+     r4 = 0.
+     call updateids(vec, r4)
+     return
+  endif
+
+  call checksamevec(qn4, vec, i)
+  if(i .eq. 1) then
+     print *, "qn4"
+     if(allocated(qn4)) deallocate(qn4, STAT=i)
+     allocate(qn4(ivecsize))
+     qn4 = 0.
+     call updateids(vec, qn4)
+     return
+  endif
+  
+  call checksamevec(qp4, vec, i)
+  if(i .eq. 1) then
+     print *, "qp4"
+     if(allocated(qp4)) deallocate(qp4, STAT=i)
+     allocate(qp4(ivecsize))
+     qp4 = 0.
+     call updateids(vec, qp4)
+     return
+  endif
+
+  call checksamevec(veln, vec, i)
+  if(i .eq. 1) then
+     print *, "veln"
+     if(allocated(veln)) deallocate(veln, STAT=i)
+     allocate(veln(ivecsize))
+     veln = 0.
+     call updateids(vec, veln)
+     return
+  endif
+      
+  call checksamevec(veloldn, vec, i)
+  if(i .eq. 1) then
+     print *, "veloldn"
+     if(allocated(veloldn)) deallocate(veloldn, STAT=i)
+     allocate(veloldn(ivecsize))
+     veloldn = 0.
+     call updateids(vec, veloldn)
+     return
+  endif
+
+  call checksamevec(phip, vec, i)
+  if(i .eq. 1) then
+     print *, "phip"
+     if(allocated(phip)) deallocate(phip, STAT=i)
+     allocate(phip(ivecsize))
+     phip = 0.
+     call updateids(vec, phip)
+     return
+  endif
+  
+  call checksamevec(b1vector, vec, i)
+  if(i .eq. 1) then
+     print *, "b1vector"
+     if(allocated(b1vector)) deallocate(b1vector, STAT=i)
+     allocate(b1vector(ivecsize))
+     b1vector = 0.
+     call updateids(vec, b1vector)
+     return
+  endif
+  
+  call checksamevec(b2vector, vec, i)
+  if(i .eq. 1) then
+     print *, "b2vector"
+     if(allocated(b2vector)) deallocate(b2vector, STAT=i)
+     allocate(b2vector(ivecsize))
+     b2vector = 0.
+     call updateids(vec, b2vector)
+     return
+  endif
+  
+  call checksamevec(b3vector, vec, i)
+  if(i .eq. 1) then
+     print *, "b3vector"
+     if(allocated(b3vector)) deallocate(b3vector, STAT=i)
+     allocate(b3vector(ivecsize))
+     b3vector = 0.
+     call updateids(vec, b3vector)
+     return
+  endif
+  
+  call checksamevec(b4vector, vec, i)
+  if(i .eq. 1) then
+     print *, "b4vector"
+     if(allocated(b4vector)) deallocate(b4vector, STAT=i)
+     allocate(b4vector(ivecsize))
+     b4vector = 0.
+     call updateids(vec, b4vector)
+     return
+  endif
+  
+  call checksamevec(b5vector, vec, i)
+  if(i .eq. 1) then
+     print *, "b5vector"
+     if(allocated(b5vector)) deallocate(b5vector, STAT=i)
+     allocate(b5vector(ivecsize))
+     b5vector = 0.
+     call updateids(vec, b5vector)
+     return
+  endif  
+  
+  call checksamevec(tempcompare, vec, i)
+  if(i .eq. 1) then
+     print *, "tempcompare"
+     if(allocated(tempcompare)) deallocate(tempcompare, STAT=i)
+     allocate(tempcompare(ivecsize))
+     tempcompare = 0.
+     call updateids(vec, tempcompare)
+     return
+  endif  
+
+  print *, "Error: unknown vector"
+
+end subroutine arrayresizevec
+
+#endif

@@ -108,6 +108,7 @@ c$$$      return
 !.....arrays defined at all vertices
 !     createvec will delete the arrays if they have already been allocated
 
+      if(ifirstcall.eq.1) then
       ! Physical Variables
       call createvec(field , num_fields)
       call createvec(field0, num_fields)
@@ -159,6 +160,8 @@ c$$$      return
             call createvec(sp1, 1)
          endif
       endif
+
+      endif
 !
 !.....arrays associated with the triangles
       if(ifirstcall.eq.0) then
@@ -166,9 +169,16 @@ c$$$      return
          deallocate(isvaln)
          deallocate(isval1)
          deallocate(isval2)
+         deallocate(atri)
+         deallocate(btri)
+         deallocate(ctri)
+         deallocate(ttri)
+         deallocate(gtri)
       endif
       allocate(ist(ntri,3),isvaln(ntri,18),isval1(ntri,18),             &
-     &         isval2(ntri,18))
+     &     isval2(ntri,18))
+      allocate(atri(numelms),btri(numelms),ctri(numelms),ttri(numelms),
+     &     gtri(20,18,numelms)) 
 !
 !.....metric terms involved in toroidal geometry
       if(ifirstcall.eq.0) deallocate(rinv)
@@ -208,6 +218,8 @@ c$$$      return
       real, dimension(18,18) :: aterm, bterm, dterm
       real, dimension(-6:maxi,-6:maxi) :: fintl(-6:maxi,-6:maxi)
 
+      logical, save :: first_time = .true.
+
       real, dimension(2,2) :: ssterm
       vectype, allocatable :: temp(:)
 !
@@ -220,8 +232,8 @@ c$$$      return
       temp = 0
       thimpsm = 1.
 ! 
-      if(ifirsts5_lu.ne.0) go to 500
-      ifirsts5_lu = 1
+      if(.not.first_time) go to 500
+      first_time = .false.
 !
 !
 !.....compute LU decomposition only once
@@ -243,10 +255,10 @@ c$$$      return
                ssterm(1,2) =-aterm(i,j)
                ssterm(2,1) =  +dt*hyp*thimpsm*bterm(i,j)
                ssterm(2,2) = aterm(i,j)
-              call insertval(s5matrix_sm,ssterm(1,1),0,itwo,  jtwo,  1)
-              call insertval(s5matrix_sm,ssterm(1,2),0,itwo,  jtwo+6,1)
-              call insertval(s5matrix_sm,ssterm(2,1),0,itwo+6,jtwo,  1)
-              call insertval(s5matrix_sm,ssterm(2,2),0,itwo+6,jtwo+6,1)             
+              call insertval2(s5matrix_sm,ssterm(1,1),0,itwo,  jtwo,  1)
+              call insertval2(s5matrix_sm,ssterm(1,2),0,itwo,  jtwo+6,1)
+              call insertval2(s5matrix_sm,ssterm(2,1),0,itwo+6,jtwo,  1)
+              call insertval2(s5matrix_sm,ssterm(2,2),0,itwo+6,jtwo+6,1)             
             enddo
          enddo
       enddo
@@ -337,6 +349,8 @@ c$$$      return
       real, dimension(18,18) ::  aterm, bterm, dterm
       real :: fintl(-6:maxi,-6:maxi)
 
+      logical, save :: first_time = .true.
+
       real, dimension(2,2) :: ssterm
       vectype, allocatable:: temp(:)
 !
@@ -349,8 +363,8 @@ c$$$      return
       temp = 0
       thimpsm = 1.
 ! 
-      if(ifirsts7_lu.ne.0) go to 500
-      ifirsts7_lu = 1
+      if(.not.first_time) go to 500
+      first_time = .false.
 !
 !
 !.....compute LU decomposition only once
@@ -373,10 +387,10 @@ c$$$      return
               ssterm(2,1) =  +dt*hyp*thimpsm*bterm(i,j)
               ssterm(2,2) = aterm(i,j) - regular*dterm(i,j)
 
-              call insertval(s7matrix_sm,ssterm(1,1),0,itwo  ,jtwo  ,1)
-              call insertval(s7matrix_sm,ssterm(1,2),0,itwo  ,jtwo+6,1)
-              call insertval(s7matrix_sm,ssterm(2,1),0,itwo+6,jtwo  ,1)
-              call insertval(s7matrix_sm,ssterm(2,2),0,itwo+6,jtwo+6,1)
+              call insertval2(s7matrix_sm,ssterm(1,1),0,itwo  ,jtwo  ,1)
+              call insertval2(s7matrix_sm,ssterm(1,2),0,itwo  ,jtwo+6,1)
+              call insertval2(s7matrix_sm,ssterm(2,1),0,itwo+6,jtwo  ,1)
+              call insertval2(s7matrix_sm,ssterm(2,2),0,itwo+6,jtwo+6,1)
            enddo
         enddo
       enddo
@@ -546,16 +560,6 @@ c$$$!
       use arrays
       use sparse
       implicit none
-      integer numnodes,izone,izonedim,i
-      real eterm, alx, alz
-
-      call getboundingboxsize(alx, alz)
-!
-      call numnod(numnodes)
-
-      ifirsts4_lu = 0
-      ifirsts5_lu = 0
-      ifirsts7_lu = 0
 
       fbound = 0.
       gbound = 0.
@@ -563,8 +567,6 @@ c$$$!
 !.....define all input parameters (choose by test problem)
       print *, "input..."
       call input
-      ntimemin = min(2,ntimemax-1)
-
 !
 !      allocate big arrays
       print *, "Calling space..."
@@ -572,31 +574,13 @@ c$$$!
       print *, "Done space."
 !
 !
-!.................................................................
-!     PART 1:
-!.....initialize needed variables and define geometry and triangles
-      if(ntimemax .gt. ntimep) then
-            write(*,6665) ntimemax,ntimep
- 6665 format(" ntimemax .gt. ntimep", 2i5)
-            call safestop(18) 
-      endif
-!
-!
 !.....zero out big arrays
-c$$$      b1vecini = 0.
-c$$$      b2vecini = 0.
-      eterm = 0
       rinv = 0.
 !
 !.....define properties of triangles
       call tridef
 !.....define 1/R for toroidal problem
       if(itor.eq.1) call rinvdef(rinv)
-!
-!     open all needed output files
-c$$$      if(maxrank.eq.1 .and. myrank.eq.0) call openf
 
-!
-!.....end of section defining geometrical parameters for triangles
       return
       end

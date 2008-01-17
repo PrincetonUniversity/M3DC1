@@ -593,7 +593,7 @@ subroutine hdf5_write_time_slice(equilibrium, error)
 
   if(myrank.eq.1 .and. iprint.eq.1) &
        print *, 'Writing time slice ', time_group_name
-  
+
   ! create the group
   call h5gcreate_f(file_id, time_group_name, time_group_id, error)
 

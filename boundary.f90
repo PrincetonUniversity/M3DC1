@@ -975,7 +975,7 @@ subroutine boundary_tangential_deriv(imatrix, ibegin, normal, rhs, bv)
      irow = ibegin + 1
   endif
 
-  if(imatrix.ne.0) call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
+  if(imatrix.ne.0) call setgeneralbc2(imatrix, irow, numvals, cols, vals, icomplex)
   rhs(irow) = cos(normal)*bv(3) - sin(normal)*bv(2)
 
   ! clamp tangential 2nd-derivative
@@ -991,7 +991,7 @@ subroutine boundary_tangential_deriv(imatrix, ibegin, normal, rhs, bv)
      irow = ibegin + 3
   endif
 
-  if(imatrix.ne.0) call setgeneralbc(imatrix, irow, numvals, cols, vals,icomplex)
+  if(imatrix.ne.0) call setgeneralbc2(imatrix, irow, numvals, cols, vals,icomplex)
   rhs(irow) = cos(normal)*bv(6) - sin(normal)*bv(4)
 
 end subroutine boundary_tangential_deriv
@@ -1026,7 +1026,7 @@ subroutine boundary_normal_deriv(imatrix, ibegin, normal, rhs, bv)
      irow = ibegin + 2
   endif
 
-  if(imatrix.ne.0) call setgeneralbc(imatrix, irow, numvals, cols, vals,icomplex)
+  if(imatrix.ne.0) call setgeneralbc2(imatrix, irow, numvals, cols, vals,icomplex)
   rhs(irow) = cos(normal)*bv(2) + sin(normal)*bv(3)
 
 !!$  if(imatrix.ne.0) call setdiribc(imatrix, ibegin+4)
@@ -1075,6 +1075,6 @@ subroutine boundary_laplacian(imatrix, ibegin, normal, radius, irow)
      irow = ibegin + 5
   endif
 
-  if(imatrix.ne.0) call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
+  if(imatrix.ne.0) call setgeneralbc2(imatrix, irow, numvals, cols, vals, icomplex)
   
 end subroutine

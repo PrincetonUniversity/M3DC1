@@ -3,20 +3,33 @@ SHELL=/bin/bash
 COMMONDIR = ../common/
 
 INCLUDE = -I$(COMMONDIR) -I$(NTCCHOME)/mod -I$(LIBDIR) \
-	  -I$(SUPERLU_DIST_HOME) -I$(HDF5_HOME)/include -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH)
+	-I$(SUPERLU_DIST_HOME) -I$(HDF5_HOME)/include \
+	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH)
 
 LOADER = ifort
 F90    = ifort -c
 F77    = ifort -c
 CC     = icc -c
 
+SCORECDIR = /l/mhd/acbauer/develop/
+SCORECOPT = -O
+
+
+
 # For compiling complex version:
-#COMPLEX = -Dvectype=complex -DUSECOMPLEX
-#BIN_POSTFIX = _complex
+COMPLEX = -Dvectype=complex -DUSECOMPLEX \
+	-Dinsertval2=insertval -Dsetgeneralbc2=setgeneralbc
+BIN_POSTFIX = _complex
+SCORECVERS = -complex2
+NATEDIR = $(SCORECDIR)
+
 
 # For compling real version:
-COMPLEX = -Dvectype=real
-BIN_POSTFIX = 
+#COMPLEX = -Dvectype=real -check -check noarg_temp_created
+#COMPLEX = -Dvectype=real
+#BIN_POSTFIX = 
+#SCORECVERS = 
+#NATEDIR = /p/tsc/nferraro/src/SCOREC/
 
 
 BIN = gonewp${BIN_POSTFIX}
@@ -35,10 +48,6 @@ NEWOBJS = M3Dmodules.o nintegrate_mod.o metricterms_new.o \
 	acbauer.o metricterms.o \
 	init_conds.o PETScInterface.o
 
-SCORECDIR = /l/mhd/acbauer/develop/
-SCORECVERS =-complex2
-SCORECOPT = -O
-
 LDRNEW = \
         -L$(SCORECDIR)FMDB$(SCORECVERS)/FMDB/lib/ia64_linux \
 	-Wl,-rpath,$(SCORECDIR)FMDB$(SCORECVERS)/FMDB/lib/ia64_linux \
@@ -46,14 +55,14 @@ LDRNEW = \
 	-Wl,-rpath,$(SCORECDIR)FMDB$(SCORECVERS)/SCORECModel/lib/ia64_linux \
 	-L$(SCORECDIR)FMDB$(SCORECVERS)/SCORECUtil/lib/ia64_linux \
 	-Wl,-rpath,$(SCORECDIR)FMDB$(SCORECVERS)/SCORECUtil/lib/ia64_linux \
-	-L$(SCORECDIR)mctk$(SCORECVERS)/Examples/PPPL/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)mctk$(SCORECVERS)/Examples/PPPL/lib/ia64_linux \
-	-L$(SCORECDIR)mctk$(SCORECVERS)/Field/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)mctk$(SCORECVERS)/Field/lib/ia64_linux \
-	-L$(SCORECDIR)mctk$(SCORECVERS)/Core/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)mctk$(SCORECVERS)/Core/lib/ia64_linux \
-	-L$(SCORECDIR)mctk$(SCORECVERS)/Solver/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)mctk$(SCORECVERS)/Solver/lib/ia64_linux \
+	-L$(NATEDIR)mctk$(SCORECVERS)/Examples/PPPL/lib/ia64_linux \
+	-Wl,-rpath,$(NATEDIR)mctk$(SCORECVERS)/Examples/PPPL/lib/ia64_linux \
+	-L$(NATEDIR)mctk$(SCORECVERS)/Field/lib/ia64_linux \
+	-Wl,-rpath,$(NATEDIR)mctk$(SCORECVERS)/Field/lib/ia64_linux \
+	-L$(NATEDIR)mctk$(SCORECVERS)/Core/lib/ia64_linux \
+	-Wl,-rpath,$(NATEDIR)mctk$(SCORECVERS)/Core/lib/ia64_linux \
+	-L$(NATEDIR)mctk$(SCORECVERS)/Solver/lib/ia64_linux \
+	-Wl,-rpath,$(NATEDIR)mctk$(SCORECVERS)/Solver/lib/ia64_linux \
 	-L$(SCORECDIR)meshAdapt$(SCORECVERS)/meshAdapt/lib/ia64_linux \
 	-Wl,-rpath,$(SCORECDIR)meshAdapt$(SCORECVERS)/meshAdapt/lib/ia64_linux \
 	-L$(SCORECDIR)meshAdapt$(SCORECVERS)/meshTools/lib/ia64_linux \
