@@ -280,6 +280,7 @@ c     first put in information to check on run information
          write(56) jper   
          write(56) ntime,time
          write(56) totcur0,tflux0,gbound,facd,fbound,ptot,vloop
+         write(56) icomplex
       endif
 
       call numnod(numnodes)
@@ -329,8 +330,10 @@ c     below specifies that this is the last line
       implicit none
       include 'mpif.h'
       integer numdofsglobal, numentsglobal(4), i, numnodes, j, globalid,
-     &     begindofnumber, enddofnumberplusone, in1, in2, in3, nodeid
+     &     begindofnumber, enddofnumberplusone, in1, in2, in3, nodeid,
+     &     icomp
       vectype :: tempvariable
+      real :: realtemp
 
       open(56,file='C1restart',form='unformatted',status='old')
       
@@ -344,7 +347,8 @@ c     first put in information to check on run information
       write(*,*) 'in',in1, in2, in3
       if(in1 .ne. numentsglobal(1) .or. in2 .ne. numentsglobal(2) .or.
      &     in3 .ne. numentsglobal(3)) then
-         write(*,*) 'Mesh does not match for rdrestartglobal', in1, in2, in3,
+         write(*,*) 'Mesh does not match for rdrestartglobal', 
+     &        in1, in2, in3,
      &        numentsglobal(1), numentsglobal(2), numentsglobal(3)
          call safestop(567)
       endif
@@ -354,27 +358,52 @@ c     first put in information to check on run information
       read(56) jper   
       read(56) ntime,time
       read(56) totcur0,tflux0,gbound,facd,fbound,ptot,vloop
+      read(56) icomp
       write(*,*) 'in restartglobal times are ', ntime, time
       call numnod(numnodes)
       read(56) globalid
       do while(globalid .ne. -1)
          call globalidnod(globalid, nodeid)
          if(nodeid .ne. -1) then ! this node exists on this proc
-            call entdofs(num_fields, nodeid, 0, begindofnumber, 
-     &           enddofnumberplusone)
-            do i=begindofnumber,enddofnumberplusone-1
-               read(56) field(i)
-            enddo
-            do i=begindofnumber,enddofnumberplusone-1
-               read(56) field0(i)
-            enddo
-            do i=begindofnumber,enddofnumberplusone-1
-               read(56) fieldi(i)
-            enddo
+
+            if(icomp.eq.0 .and. icomplex.eq.1) then
+               call entdofs(num_fields, nodeid, 0, begindofnumber, 
+     &              enddofnumberplusone)
+               do i=begindofnumber,enddofnumberplusone-1
+                  read(56) realtemp
+                  field(i) = realtemp
+               enddo
+               do i=begindofnumber,enddofnumberplusone-1
+                  read(56) realtemp
+                  field0(i) = realtemp
+               enddo
+               do i=begindofnumber,enddofnumberplusone-1
+                  read(56) realtemp
+                  fieldi(i) = realtemp
+               enddo
+            else
+               call entdofs(num_fields, nodeid, 0, begindofnumber, 
+     &              enddofnumberplusone)
+               do i=begindofnumber,enddofnumberplusone-1
+                  read(56) field(i)
+               enddo
+               do i=begindofnumber,enddofnumberplusone-1
+                  read(56) field0(i)
+               enddo
+               do i=begindofnumber,enddofnumberplusone-1
+                  read(56) fieldi(i)
+               enddo
+            endif
          else ! node is not on this proc
-            do i=1,num_fields*6*3 ! the number of dof values at this node
-               read(56) tempvariable
-            enddo
+            if(icomp.eq.0 .and. icomplex.eq.1) then
+               do i=1,num_fields*6*3 ! the number of dof values at this node
+                  read(56) realtemp
+               enddo
+            else
+               do i=1,num_fields*6*3 ! the number of dof values at this node
+                  read(56) tempvariable
+               enddo
+            endif
          endif
          read(56) globalid
       enddo 

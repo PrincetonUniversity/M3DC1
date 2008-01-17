@@ -47,6 +47,7 @@ subroutine create_matrix(matrix, ibound, itype)
 
   ! populate matrix
   call zerosuperlumatrix(matrix, icomplex, numvar1_numbering)
+
   do itri=1,numelms
 
      call area_to_local(79,                                            &
@@ -81,7 +82,7 @@ subroutine create_matrix(matrix, ibound, itype)
                    -int2(g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79) &
                    -int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j),weight_79,79)
            end select
-           call insertval(matrix, temp, icomplex, ione, jone, 1)
+           call insertval2(matrix, temp, icomplex, ione, jone, 1)
         enddo
      enddo
   enddo
@@ -94,6 +95,7 @@ subroutine create_matrix(matrix, ibound, itype)
   end if
 
   call finalizematrix(matrix)
+
 
 end subroutine create_matrix
 

@@ -562,40 +562,35 @@
       call numfac(numelms)
 !      
 !     start the loop over triangles within a rectangular region
-      do 510 itri=1,numelms
+      do itri=1,numelms
 !
 !
 !     define a,b,c and theta
 ! acbauer -- might want to take this out later 
-      call getelmparams(itri,atri(itri),btri(itri),
-     &        ctri(itri),ttri(itri))
-!      
+         call getelmparams(itri,atri(itri),btri(itri),
+     &        ctri(itri),ttri(itri))  
 !
 !   define the Inverse Transformation Matrix that enforces the 
 !   condition that the normal slope between triangles has only cubic variation
 !
-      call tmatrix(ti,20,atri(itri),btri(itri),ctri(itri))
-!
+         call tmatrix(ti,20,atri(itri),btri(itri),ctri(itri))
 !
 !     calculate the rotation matrix rot
-      call rotation(rot,18,ttri(itri))
+         call rotation(rot,18,ttri(itri))
 !
 !     form the matrix g by multiplying ti and rot
-      do k=1,20
-         do j=1,18
-            sum = 0
-            do q = 1,18
-               sum = sum + ti(k,q)*rot(q,j)
+         do k=1,20
+            do j=1,18
+               sum = 0
+               do q = 1,18
+                  sum = sum + ti(k,q)*rot(q,j)
+               enddo
+               gtri(k,j,itri) = sum
             enddo
-            gtri(k,j,itri) = sum
          enddo
-      enddo
 !
-      call offset(itri)
-
-510      continue
-!.....end of loop over itri
-!
+         call offset(itri)
+      end do
 !
       return
       end

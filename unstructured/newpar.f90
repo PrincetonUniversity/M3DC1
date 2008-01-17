@@ -80,14 +80,8 @@ Program Reducedquintic
   call numnod(numnodes)
   call numfac(numelms)
   write(*,*) 'numnodes and numfaces',numnodes,numelms
-
-  ! arrays for triangle parameters
-  allocate(atri(numelms),btri(numelms),ctri(numelms),ttri(numelms),      &
-       gtri(20,18,numelms)) 
   
 !!$  if(maxrank .eq. 1) call precalc_whattri()
-  ! special switch installed 12/03/04 to write slu matrices
-  idebug = 0
 
   ! initialize needed variables and define geometry and triangles
   call init
@@ -223,6 +217,32 @@ Program Reducedquintic
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   call derived_quantities
 
+
+  ! Adapt the mesh
+  ! ~~~~~~~~~~~~~~
+  if(iadapt.eq.1) then
+!     call outputfield(phi, numvar, 0, ntime, 123) 
+     if(maxrank .eq. 1) then
+!        call outputfield(phi, numvar, 0, ntime, 123) 
+!        call writefieldatnodes(resistivity, 1, 1) 
+        factor = 0.8
+        hmin = .005
+        hmax = .3
+
+        print *, 'adapting mesh...'
+#ifdef USECOMPLEX
+        call hessianadapt(vor, 1, 0, ntime, factor, hmin, hmax) 
+#else
+        call hessianadapt(vor, 1, ntime, factor, hmin, hmax)
+#endif
+        call space(0)
+        call tridef
+
+        print *, 'done adapting'
+     endif
+  endif
+
+
   if(irestart.eq.0) then
      tflux0 = tflux
      totcur0 = totcur
@@ -239,23 +259,6 @@ Program Reducedquintic
         call hdf5_write_time_slice(1,ier)
      endif
   end if
-
-
-  ! Adapt the mesh
-  ! ~~~~~~~~~~~~~~
-  if(iadapt.eq.1) then
-!     call outputfield(phi, numvar, 0, ntime, 123) 
-     if(maxrank .eq. 1) then
-!        call outputfield(phi, numvar, 0, ntime, 123) 
-!        call writefieldatnodes(resistivity, 1, 1) 
-        factor = .3
-        hmin = .1
-        hmax = .4
-        print *, 'adapting mesh...'
-        call hessianadapt(resistivity, 1, 0, ntime, factor, hmin, hmax) 
-     endif
-  endif
-
 
 
   ! output initial conditions

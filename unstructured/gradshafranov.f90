@@ -276,7 +276,7 @@ subroutine gradshafranov_solve
                 +g79(:,OP_DZ,i)*g79(:,OP_DZ,j))
            sum = int1(temp79a,weight_79,79)
 
-           call insertval(gsmatrix_sm, sum, 0, i1,j1,1)
+           call insertval2(gsmatrix_sm, sum, 0, i1,j1,1)
         enddo
      enddo
   enddo
