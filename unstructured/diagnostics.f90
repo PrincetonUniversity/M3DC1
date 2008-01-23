@@ -415,14 +415,15 @@ subroutine calculate_scalars()
   call reset_scalars()
 
   ! Specify which fields need to be calculated
-  def_fields = FIELD_PSI + FIELD_PHI + FIELD_J + FIELD_ETA + FIELD_MU
+  def_fields = FIELD_PSI + FIELD_PHI + FIELD_J + FIELD_ETA + FIELD_MU &
+       + FIELD_N + FIELD_NI + FIELD_SIG
   if(numvar.ge.2) def_fields = def_fields + FIELD_I + FIELD_V
   if(numvar.ge.3) then
      def_fields = def_fields + FIELD_CHI + &
           FIELD_PE + FIELD_P + FIELD_KAP
      if(kappar.ne.0) def_fields = def_fields + FIELD_B2I
   endif
-  def_fields = def_fields + FIELD_N + FIELD_NI + FIELD_SIG
+
    
   if(hypc.ne.0.) then 
      def_fields = def_fields + FIELD_VOR
@@ -457,21 +458,13 @@ subroutine calculate_scalars()
      call define_fields_79(itri, def_fields)
 
 
-!!$     do i=1,79
-!!$        call mask(x_79(i)-xzero,z_79(i)-zzero,factor)
-!!$        temp79a(i) = 1.-factor
-!!$     end do
-
      ! Define Source terms
      ! ~~~~~~~~~~~~~~~~~~~
      if(isources.eq.1) then
 
         do i=1,18
            ione = isval1(itri,i)
-
-!!$           sb1(ione) = sb1(ione) &
-!!$                + int2(g79(:,:,i),temp79a,weight_79,79)*vloop/(2.*3.14159)
-           
+          
            ! Definition of Source Terms
            ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
            sb1(ione) = sb1(ione) + b1psieta(g79(:,:,i),pst79,eta79,hypf*sz79)
@@ -534,22 +527,13 @@ subroutine calculate_scalars()
         tflux = tflux+ int2(ri2_79,bzt79(:,OP_1 ),        weight_79,79)
         pflux = pflux+ int3(ri2_79,bzt79(:,OP_1 ),temp79a,weight_79,79)
      endif
-     if(idens.eq.1) then
-        totden = totden + int1(nt79(:,OP_1),        weight_79,79)
-        pden   = pden   + int2(nt79(:,OP_1),temp79a,weight_79,79)
-     endif
+     totden = totden + int1(nt79(:,OP_1),        weight_79,79)
+     pden   = pden   + int2(nt79(:,OP_1),temp79a,weight_79,79)
      if(numvar.ge.2) then
-        if(idens.eq.0) then
-           tmom = tmom &
-                + int2(ri_79,vzt79(:,OP_1),                     weight_79,79)
-           pmom = pmom &
-                + int3(ri_79,vzt79(:,OP_1),temp79a,             weight_79,79)
-        else
-           tmom = tmom &
-                + int3(ri_79,vzt79(:,OP_1),nt79(:,OP_1),        weight_79,79)
-           pmom = pmom &
-                + int4(ri_79,vzt79(:,OP_1),nt79(:,OP_1),temp79a,weight_79,79)
-        endif
+        tmom = tmom &
+             + int3(ri_79,vzt79(:,OP_1),nt79(:,OP_1),        weight_79,79)
+        pmom = pmom &
+             + int4(ri_79,vzt79(:,OP_1),nt79(:,OP_1),temp79a,weight_79,79)
      endif
 
 
@@ -613,9 +597,6 @@ subroutine calculate_scalars()
      if(numvar.ge.2) call solve_newvar(sb2, NV_DCBOUND, mass_matrix_dc)
      if(numvar.ge.3) call solve_newvar(sp1, NV_DCBOUND, mass_matrix_dc)
   endif
-
-
-  if(idens.eq.0) totden = area
 
   call distribute_scalars
 

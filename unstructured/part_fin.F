@@ -78,6 +78,8 @@ c$$$      return
 
       integer :: numnodes, numelms, i
 
+      if(myrank.eq.1 .and. iprint.ge.1) print *, " Entering space..."
+
       if(isplitstep.eq.1) then
          vecsize = numvar
          vecsize1 = 1
@@ -186,6 +188,8 @@ c$$$      return
 !
 !.....assign pointers to proper vectors
       call assign_variables
+
+      if(myrank.eq.1 .and. iprint.ge.1) print *, " Exiting space."
 
       return
       end
@@ -469,89 +473,11 @@ c$$$      return
       endif
       
       end
-!===========================
-
-c$$$      subroutine inverse(inarray,outarray)
-c$$$!
-c$$$!     calculates the inverse of the numvar=1 arrary inarray, and puts
-c$$$!     it into the numvar=1 array outarray
-c$$$!
-c$$$      use p_data
-c$$$      use t_data
-c$$$      use basic
-c$$$      use arrays
-c$$$      implicit none
-c$$$      integer :: l, ndofs, iendplusone, ibegin
-c$$$!
-c$$$      real inarray(*),outarray(*)
-c$$$!
-c$$$      call numdofs(1, ndofs)
-c$$$      do l=1,ndofs/6
-c$$$         ibegin = (l-1)*6+1
-c$$$         outarray(ibegin) = 1./inarray(ibegin)
-c$$$         outarray(ibegin+1) = -inarray(ibegin+1)/inarray(ibegin)**2
-c$$$         outarray(ibegin+2) = -inarray(ibegin+2)/inarray(ibegin)**2
-c$$$         outarray(ibegin+3) = (2.*inarray(ibegin+1)**2-inarray(ibegin)         
-c$$$     &                    *inarray(ibegin+3))/inarray(ibegin)**3
-c$$$         outarray(ibegin+4) = (2.*inarray(ibegin+1)*inarray(ibegin+2)               &
-c$$$     &         -inarray(ibegin)*inarray(ibegin+4))/inarray(ibegin)**3
-c$$$         outarray(ibegin+5) = (2.*inarray(ibegin+2)**2-inarray(ibegin)
-c$$$     &                    *inarray(ibegin+5))/inarray(ibegin)**3
-c$$$      enddo
-c$$$!
-c$$$      return
-c$$$      end
-c$$$!
 !==================================
       function sech(x)
       sech = 1./cosh(x)
       return
       end
-!============================================================
-      subroutine rhsdef
-!
-      use p_data
-      use t_data
-      use basic
-      use arrays
-      implicit none 
-      integer itri, i, j, iii, ii, i1, i2, i3, k, l, numelms,
-     &     ibegin, iendplusone, ibegin2, iendplusone2, ibeginn,
-     &     iendplusonen
-
-      real :: f
-!
-      call numfac(numelms)
-
-      do itri=1,numelms
-!        calculate matrix elements of the integration matrix fint
-         do i=-6,maxi
-            do j=-6,maxi
-               fint(i,j) = 0
-               if(i.ge.0 .and.j.ge.0)                                          &
-     &              fint(i,j) = f(i,j,atri(itri),btri(itri),ctri(itri))
-            enddo
-         enddo
-
-         do iii=1,3
-            call entdofs(1, ist(itri,iii)+1, 0, ibegin,  iendplusone )
-            call entdofs(2, ist(itri,iii)+1, 0, ibegin2, iendplusone2)
-            call entdofs(vecsize,  ist(itri,iii)+1, 0,                  &
-     &           ibeginn, iendplusonen)
-            do ii=1,6
-               i = (iii-1)*6 + ii
-               isval1(itri,i) = ibegin +ii-1 ! 6*ist(itri,iii)+ii
-               isval2(itri,i) = ibegin2+ii-1 ! 12*ist(itri,iii)+ii
-               isvaln(itri,i) = ibeginn+ii-1 ! numvar*6*ist(itri,iii)+ii
-            enddo
-         enddo
-!.....end of do loops on i
-!
-      enddo
-
-      return
-      end
-
 !============================================================
       subroutine init
       use p_data
@@ -561,17 +487,16 @@ c$$$!
       use sparse
       implicit none
 
+      if(myrank.eq.1 .and. iprint.ge.1) print *, " Entering init..."
+
       fbound = 0.
       gbound = 0.
 !
 !.....define all input parameters (choose by test problem)
-      print *, "input..."
       call input
 !
 !      allocate big arrays
-      print *, "Calling space..."
       call space(1)
-      print *, "Done space."
 !
 !
 !.....zero out big arrays
@@ -581,6 +506,8 @@ c$$$!
       call tridef
 !.....define 1/R for toroidal problem
       if(itor.eq.1) call rinvdef(rinv)
+
+      if(myrank.eq.1 .and. iprint.ge.1) print *, " Exiting init."
 
       return
       end

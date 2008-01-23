@@ -17,19 +17,18 @@ SCORECOPT = -O
 
 
 # For compiling complex version:
-COMPLEX = -Dvectype=complex -DUSECOMPLEX \
-	-Dinsertval2=insertval -Dsetgeneralbc2=setgeneralbc
-BIN_POSTFIX = _complex
-SCORECVERS = -complex2
-NATEDIR = $(SCORECDIR)
+#COMPLEX = -Dvectype=complex -DUSECOMPLEX \
+#	-Dinsertval2=insertval -Dsetgeneralbc2=setgeneralbc
+#BIN_POSTFIX = _complex
+#SCORECVERS = -complex2
+#NATEDIR = $(SCORECDIR)
 
 
 # For compling real version:
-#COMPLEX = -Dvectype=real -check -check noarg_temp_created
-#COMPLEX = -Dvectype=real
-#BIN_POSTFIX = 
-#SCORECVERS = 
-#NATEDIR = /p/tsc/nferraro/src/SCOREC/
+COMPLEX = -Dvectype=real
+BIN_POSTFIX = 
+SCORECVERS = 
+NATEDIR = /p/tsc/nferraro/src/SCOREC/
 
 
 BIN = gonewp${BIN_POSTFIX}

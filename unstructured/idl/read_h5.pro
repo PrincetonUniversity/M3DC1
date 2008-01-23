@@ -285,7 +285,7 @@ end
 ;======================================================
 function is_in_tri, localp, a, b, c
 
-   small = (a+b+c)*1e-6
+   small = (a+b+c)*1e-3
 
    if(localp[1] lt 0. - small) then return, 0
    if(localp[1] gt c + small) then return, 0
@@ -1498,15 +1498,23 @@ function lcfs, time, psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, _EXTRA=extra
    normal_mask[0,      0,      *] = 1.
    normal_mask[0,sz[2]-1,      *] = 1.
 
-   normal_deriv = psi*0.
-   normal_deriv[0,      *,      0] = -3.14159625/2.     ; bottom
-   normal_deriv[0,      *,sz[3]-1] =  3.14159625/2.     ; top
-   normal_deriv[0,      0,      *] =  3.14159625        ; left
-   normal_deriv[0,sz[2]-1,      *] =  0.                ; right
-   normal_deriv = $
-     (psix*cos(normal_deriv) + psiz*sin(normal_deriv))*normal_mask
+;    normal_deriv = psi*0.
+;    normal_deriv[0,      *,      0] = -!pi/2.     ; bottom
+;    normal_deriv[0,      *,sz[3]-1] =  !pi/2.     ; top
+;    normal_deriv[0,      0,      *] =  !pi        ; left
+;    normal_deriv[0,sz[2]-1,      *] =  0.         ; right
+;    normal_deriv = $
+;      (psix*cos(normal_deriv) + psiz*sin(normal_deriv))*normal_mask
+
+   xx = fltarr(1,sz[2],sz[3])
+   zz = fltarr(1,sz[2],sz[3])
+   for i=0,sz[3]-1 do xx[0,*,i] = x - x[axis[0,0]]
+   for i=0,sz[2]-1 do zz[0,i,*] = z - z[axis[1,0]]
+   normal_deriv = (psix*xx + psiz*zz)*normal_mask
 
    normal_deriv = normal_deriv lt 0
+
+;    contour_and_legend, normal_deriv, x, z, /iso
 
    psi_bound = psi*normal_deriv + (1-normal_deriv)*1e10
 

@@ -25,7 +25,6 @@ Program Reducedquintic
   real :: tstart, tend
   real :: factor, hmin, hmax  
 
-  integer, allocatable ::  itemp(:)
   PetscTruth :: flg
   PetscInt :: mpetscint,npetscint
 
@@ -53,7 +52,6 @@ Program Reducedquintic
   ! initialize autopack
   call AP_INIT()
 
-  print *, 'starting M3D-C1'
   if(myrank.eq.0 .and. itimer.ge.1) call second(tstart)
   call loadmesh("struct.dmg", "struct-dmg.sms")
   if(myrank.eq.0 .and. itimer.ge.1) then
@@ -68,24 +66,35 @@ Program Reducedquintic
           "TIME: ",a2,":",a2,":",a4,/)
   endif
 
-  if(myrank.eq.0) print*, &
+  if(myrank.eq.0) then 
 #ifdef NEW_VELOCITY
-       "V = grad(U)xgrad(phi) + V grad(phi) + grad(chi)"
+     print*, "V = grad(U)xgrad(phi) + V grad(phi) + grad(chi)"
 #else
-       "V = r^2 grad(U)xgrad(phi) + r V grad(phi) + grad(chi)"
+     print*, "V = r^2 grad(U)xgrad(phi) + r V grad(phi) + grad(chi)"
 #endif
+  endif
+
+
+  ! Output information about local dofs, nodes, etc.
+  if(iprint.ge.1) then
+     call numfac(numelms)
+     call numnod(numnodes)
+     call numprocdofs(1, j)
+     call numdofs(1, ndofs)
+     print *, 'proc, owned dofs, needed dofs',myrank, j, ndofs
+     print *, 'proc, numnodes, numfaces', myrank, numnodes,numelms
+  endif
 
   pi = acos(-1.)
-
-  call numnod(numnodes)
-  call numfac(numelms)
-  write(*,*) 'numnodes and numfaces',numnodes,numelms
   
 !!$  if(maxrank .eq. 1) call precalc_whattri()
+
 
   ! initialize needed variables and define geometry and triangles
   call init
 
+
+  ! calculate pfac (pe*pfac = electron pressure)
   if(ipres.eq.1) then
      pefac = 1.
   else
@@ -96,6 +105,7 @@ Program Reducedquintic
      endif
      if(myrank.eq.0 .and. iprint.ge.1) print *, "pefac = ", pefac
   endif
+
 
   ! check time-integration options
   select case(integrator)
@@ -108,15 +118,6 @@ Program Reducedquintic
   case default
      if(myrank.eq.0) print *, "Time integration: Crank-Nicholson."
   end select
-
-  ! calculate the RHS (forcing function)
-  call rhsdef
-  if(myrank.eq.0 .and. iprint.gt.0) write(*,*) 'finished rhsdef'
-  call numprocdofs(1, j)
-  call numdofs(1, ndofs)
-  write(*,*) 'proc, owned dofs, needed dofs',myrank, j, ndofs
-  ! note that the matrix indices now refer to vertices, not triangles.
-  ! ...............................................................
 
 
   if(irestart.eq.1) then
@@ -148,31 +149,7 @@ Program Reducedquintic
      ! correct for left-handed coordinates
      if(myrank.eq.0 .and. iprint.ge.1) &
           print *, "adjusting fields for left-handed coordinates"
-     call numdofs(num_fields, ndofs)
-     allocate(itemp(ndofs))
-     itemp = 1
-     do i=1,numnodes
-        call entdofs(num_fields, i, 0, ibegin, iendplusone)
-        if(itemp(ibegin) .eq. 1) then
-           call assign_local_pointers(i)
-
-           psi0_l = -psi0_l
-           psi1_l = -psi1_l
-           psis_l = -psis_l
-             u0_l = -  u0_l
-             u1_l = -  u1_l
-             us_l = -  us_l
-            bz0_l = - bz0_l
-            bz1_l = - bz1_l
-            bzs_l = - bzs_l
-            vz0_l = - vz0_l
-            vz1_l = - vz1_l
-            vzs_l = - vzs_l
-
-           itemp(ibegin) = 0
-        endif
-     enddo
-     deallocate(itemp)
+     call flip_handedness
 
      ! combine the equilibrium and perturbed fields of linear=0
      ! unless eqsubtract = 1
@@ -235,10 +212,9 @@ Program Reducedquintic
 #else
         call hessianadapt(vor, 1, ntime, factor, hmin, hmax)
 #endif
+        print *, 'done adapting.'
         call space(0)
         call tridef
-
-        print *, 'done adapting'
      endif
   endif
 
@@ -308,21 +284,6 @@ Program Reducedquintic
 
 101 continue
 
-!!$! below is for mesh adaptation
-!!$  call outputfield(phi, numvar, 0, ntime, 123) 
-!!$  if(maxrank .eq. 1) then
-!!$     !     call outputfield(phi, numvar, 0, ntime, 123) 
-!!$     !     call writefieldatnodes(resistivity, 1, 1) 
-!!$     factor = .3
-!!$     hmin = .1
-!!$     hmax = .4
-!!$     !     call hessianadapt(resistivity, 1, factor, hmin, hmax, ntime) 
-!!$     call hessianadapt(resistivity, 1, 0, ntime, factor, hmin, hmax) 
-!!$  endif
-
-!  call errorcalc(numvar, phi, 1)
-
-!  call wrrestart
 
 !     free memory from sparse matrices
   call deletematrix(mass_matrix)
@@ -353,6 +314,10 @@ Program Reducedquintic
      call deletematrix(q9matrix_sm)
   endif
   if(i3d.eq.1) call deletematrix(poisson_matrix)
+#ifdef USECOMPLEX
+  call deletematrix(o1matrix_sm)
+  call deletematrix(o2matrix_sm)
+#endif
   call deletesearchstructure()
 !  free memory for numberings
   call deletedofnumbering(1)
@@ -541,7 +506,7 @@ subroutine derived_quantities
         if(com_bc.eq.1) then
            call newvar(mass_matrix_dc,com,field,chi_g,num_fields,NV_LP,NV_DCBOUND)
         else
-           call newvar(mass_matrix,com,field,chi_g,num_fields,NV_LP,NV_NOBOUND)
+           call newvar(mass_matrix,   com,field,chi_g,num_fields,NV_LP,NV_NOBOUND)
         endif
      else
         com = 0.
@@ -606,5 +571,44 @@ subroutine conserve_flux
 
   return
 end subroutine conserve_flux
+
+
+subroutine flip_handedness
+
+  use basic
+  use arrays
+
+  implicit none
+
+  integer :: i, ndofs, numnodes, ibegin, iendplusone
+  integer, allocatable ::  itemp(:)
+
+  call numnod(numnodes)
+  call numdofs(num_fields, ndofs)
+  allocate(itemp(ndofs))
+  itemp = 1
+  do i=1,numnodes
+     call entdofs(num_fields, i, 0, ibegin, iendplusone)
+     if(itemp(ibegin) .eq. 1) then
+        call assign_local_pointers(i)
+        
+        psi0_l = -psi0_l
+        psi1_l = -psi1_l
+        psis_l = -psis_l
+          u0_l = -  u0_l
+          u1_l = -  u1_l
+          us_l = -  us_l
+         bz0_l = - bz0_l
+         bz1_l = - bz1_l
+         bzs_l = - bzs_l
+         vz0_l = - vz0_l
+         vz1_l = - vz1_l
+         vzs_l = - vzs_l
+        
+        itemp(ibegin) = 0
+     endif
+  enddo
+  deallocate(itemp)
+end subroutine flip_handedness
 
 

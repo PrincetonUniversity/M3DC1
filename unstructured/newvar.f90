@@ -203,7 +203,7 @@ subroutine newvar(imatrix,outarray,inarray,iplace,numvari,itype,ibound)
                  endif
               case(NV_BF)
                  sum = sum + inarray(j1)* &
-                      int3(ri2_79,g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79)
+                      int3(ri2_79,g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
               end select
            end do
         end do

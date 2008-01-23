@@ -125,16 +125,16 @@ subroutine cartesian_to_cylindrical_all()
 
      call assign_local_pointers(inode)
 
-     call cartesian_to_cylindrical(x,psi0_l(1:6))
-     call cartesian_to_cylindrical(x,psi1_l(1:6))
-     call cartesian_to_cylindrical(x,  u0_l(1:6))
-     call cartesian_to_cylindrical(x,  u1_l(1:6))
+     call cartesian_to_cylindrical(x,psi0_l)
+     call cartesian_to_cylindrical(x,psi1_l)
+     call cartesian_to_cylindrical(x,  u0_l)
+     call cartesian_to_cylindrical(x,  u1_l)
      
      if(numvar.ge.2) then
-        call cartesian_to_cylindrical(x,bz0_l(1:6))
-        call cartesian_to_cylindrical(x,bz1_l(1:6))
-        call cartesian_to_cylindrical(x,vz0_l(1:6))
-        call cartesian_to_cylindrical(x,vz1_l(1:6))
+        call cartesian_to_cylindrical(x,bz0_l)
+        call cartesian_to_cylindrical(x,bz1_l)
+        call cartesian_to_cylindrical(x,vz0_l)
+        call cartesian_to_cylindrical(x,vz1_l)
      endif
      
   end do
@@ -538,9 +538,9 @@ subroutine gem_reconnection_equ(x, z)
 
   real :: sech, pezero
 
-  call constant_field(  u0_l(1:6), 0.)
-  if(numvar.ge.2) call constant_field( vz0_l(1:6), 0.)
-  if(numvar.ge.3) call constant_field(chi0_l(1:6), 0.)
+  call constant_field(  u0_l, 0.)
+  if(numvar.ge.2) call constant_field( vz0_l, 0.)
+  if(numvar.ge.3) call constant_field(chi0_l, 0.)
 
   psi0_l(1) = 0.5*alog(cosh(2.*z))
   psi0_l(2) = 0.0
@@ -583,7 +583,7 @@ subroutine gem_reconnection_equ(x, z)
              - 2.*sech(2.*z)**2 + 4.*tanh(2.*z)**2)
      endif
 
-!     call constant_field(bz0_l(1:6), bzero)
+!     call constant_field(bz0_l, bzero)
 
      pezero = p0 - pi0*ipres
     
@@ -602,6 +602,8 @@ subroutine gem_reconnection_equ(x, z)
      p0_l(4) = 0.
      p0_l(5) = 0.
      p0_l(6) = p0*(-8.*sech(2.*z)**2*(sech(2.*z)**2-2.*tanh(2.*z)**2)) 
+  else 
+     call constant_field(p0_l, 1.)
   endif
 
   if(idens.eq.1) then
@@ -611,6 +613,8 @@ subroutine gem_reconnection_equ(x, z)
      den0_l(4) = 0.
      den0_l(5) = 0.
      den0_l(6) = -8.*sech(2*z)**2*(sech(2*z)**2-2.*tanh(2*z)**2)
+  else
+     call constant_field(den0_l, 1.)
   endif
 
 end subroutine gem_reconnection_equ
@@ -623,9 +627,9 @@ subroutine gem_reconnection_per(x, z)
 
   real, intent(in) :: x, z
 
-  call constant_field( u1_l(1:6), 0.)
-  if(numvar.ge.2)  call constant_field( vz1_l(1:6), 0.)
-  if(numvar.ge.3)  call constant_field(chi1_l(1:6), 0.)
+  u1_l = 0.
+  vz1_l = 0.
+  chi1_l = 0.
   
   psi1_l(1) =  eps*cos(akx*x)*cos(akz*z)
   psi1_l(2) = -eps*sin(akx*x)*cos(akz*z)*akx
@@ -634,10 +638,10 @@ subroutine gem_reconnection_per(x, z)
   psi1_l(5) =  eps*sin(akx*x)*sin(akz*z)*akx*akz
   psi1_l(6) = -eps*cos(akx*x)*cos(akz*z)*akz**2
 
-  if(numvar.ge.2)  call constant_field( bz1_l(1:6), 0.)
-  if(numvar.ge.3)  call constant_field( pe1_l(1:6), 0.)  
-  if(ipres.eq.1)   call constant_field(  p1_l(1:6), 0.)
-  if(idens.eq.1)   call constant_field(den1_l(1:6), 0.)
+  bz1_l = 0.
+  pe1_l = 0. 
+  p1_l = 0.
+  den1_l = 0.
 
 end subroutine gem_reconnection_per
 
@@ -913,9 +917,9 @@ subroutine strauss_equ(x, z)
 
   real :: kx, kz, a0
 
-    u0_l(1:6) = 0.
-  if(numvar.ge.2) vz0_l(1:6) = 0.
-  if(numvar.ge.3) chi0_l(1:6) = 0.
+    u0_l = 0.
+  if(numvar.ge.2) vz0_l = 0.
+  if(numvar.ge.3) chi0_l = 0.
 
   kx = pi/alx
   kz = pi/alz
@@ -929,10 +933,10 @@ subroutine strauss_equ(x, z)
   psi0_l(5) = -a0*sin(kx*x)*sin(kz*z)*kx*kz
   psi0_l(6) =  a0*cos(kx*x)*cos(kz*z)*kz**2
 
-  if(numvar.ge.2) call constant_field(bz0_l, bzero)
-  if(numvar.ge.3) call constant_field(pe0_l, p0 - ipres*pi0)
-  if(ipres.eq.1) call constant_field(den0_l, 1.)
-  if(idens.eq.1) call constant_field(p0_l, p0)
+  call constant_field(bz0_l, bzero)
+  call constant_field(pe0_l, p0 - ipres*pi0)
+  call constant_field(den0_l, 1.)
+  call constant_field(p0_l, p0)
 
 end subroutine strauss_equ
 
@@ -956,19 +960,14 @@ subroutine strauss_per(x, z)
   psi1_l(4) =  eps*cos(akx*x)*sin(akz*z)*akx**2
   psi1_l(5) =  eps*sin(akx*x)*cos(akz*z)*akx*akz
   psi1_l(6) =  eps*cos(akx*x)*sin(akz*z)*akz**2
-  call constant_field( u1_l, 0.)
+  u1_l = 0.
   
-  if(numvar.ge.2)  then
-     call constant_field(bz1_l, 0.)
-     call constant_field(vz1_l, 0.)
-  endif
-  if(numvar.ge.3)  then
-     call constant_field(pe1_l, 0.)
-     call constant_field(chi1_l, 0.)
-  endif
-
-  if(idens.eq.1) call constant_field(den1_l, 0.)
-  if(ipres.eq.1) call constant_field(p1_l, 0.)
+  bz1_l = 0.
+  vz1_l = 0.
+  pe1_l = 0.
+  chi1_l = 0.
+  den1_l = 0.
+  p1_l = 0.
 
 end subroutine strauss_per
 
@@ -1030,7 +1029,7 @@ subroutine mri_equ(x, z)
   fac1 = sqrt(gravr)
   fac2 = (9./128.)*nu**2/fac1
 
-  call constant_field(  u0_l(1:6),0.)
+  call constant_field(  u0_l,0.)
 
   psi0_l(1) = bzero * x**2 / 2.
   psi0_l(2) = bzero * x
@@ -1040,7 +1039,8 @@ subroutine mri_equ(x, z)
   psi0_l(6) = 0.
 
   if(numvar.ge.2) then
-     call constant_field(bz0_l(1:6),0.)
+     bz0_l = 0.
+
      vz0_l(1)  = fac1*sqrt(x) + (3./8.)*nu - fac2/sqrt(x)
      vz0_l(2)  = 0.5*fac1/sqrt(x) + 0.5*fac2/(sqrt(x)**3)
      vz0_l(3)  = 0.
@@ -1050,13 +1050,12 @@ subroutine mri_equ(x, z)
   end if
 
   if(numvar.ge.3) then
-     call constant_field( pe0_l(1:6),p0 - pi0*ipres)
-     call constant_field(chi0_l(1:6),0.)
+     call constant_field( pe0_l,p0 - pi0*ipres)
+     call constant_field(chi0_l,0.)
   end if
 
-  if(idens.eq.1) call constant_field(den0_l(1:6),1.)
-
-  if(ipres.eq.1) call constant_field(p0_l(1:6),p0)
+  call constant_field(den0_l, 1.)
+  call constant_field(p0_l,p0)
 
 end subroutine mri_equ
 
@@ -1071,7 +1070,7 @@ subroutine mri_per(x, z)
 
   real :: fac1
 
-  call constant_field( u1_l(1:6), 0.)
+  u1_l = 0.
   if(numvar.ge.2)  then
      fac1 = eps*sqrt(gravr*x)
      vz1_l(1) =  fac1*sin(kx*(x-xzero))*sin(kz*(z-zzero))
@@ -1081,14 +1080,13 @@ subroutine mri_per(x, z)
      vz1_l(5) =  fac1*cos(kx*(x-xzero))*cos(kz*(z-zzero))*kx*kz
      vz1_l(6) = -fac1*sin(kx*(x-xzero))*sin(kz*(z-zzero))*kz**2
   endif
-  if(numvar.ge.3)  call constant_field(chi1_l(1:6), 0.)
-  
-  call constant_field(psi1_l(1:6), 0.)
-  if(numvar.ge.2) call constant_field(bz1_l(1:6), 0.)
-  if(numvar.ge.3) call constant_field(pe1_l(1:6), 0.)
+  chi1_l = 0.
+  psi1_l = 0.
+  bz1_l = 0.
+  pe1_l = 0.
 
-  if(idens.eq.1) call constant_field(den1_l(1:6), 0.)
-  if(ipres.eq.1) call constant_field(p1_l(1:6),0.)
+  den1_l = 0.
+  p1_l = 0.
 
 end subroutine mri_per
 
