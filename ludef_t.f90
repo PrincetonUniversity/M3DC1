@@ -214,6 +214,22 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
                    v1vvn(trial,vz079,vz079,lin)
            endif
         endif
+     endif     
+
+     if(i3d.eq.1) then
+        temp = v1psif(trial,lin,bf79)
+        rrterm(1) = rrterm(1) -     thimp     *dt*temp
+        qqterm(1) = qqterm(1) + (1.-thimp*bdf)*dt*temp
+
+        temp = v1bf  (trial,lin,bf79)
+        rrterm(2) = rrterm(2) -     thimp     *dt*temp
+        qqterm(2) = qqterm(2) + (1.-thimp*bdf)*dt*temp
+
+        if(linear.eq.1 .or. eqsubtract.eq.1) then
+           qqterm(5) = qqterm(5) + dt* &
+                (v1psif(trial,ps079,lin) &
+                +v1bf  (trial,bz079,lin))
+        endif
      endif
   endif
   
@@ -478,6 +494,22 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
                 v2vun(trial,vz079,ph079,lin)
         endif
      end if
+  endif
+
+  if(i3d.eq.1) then
+     temp = v2psif(trial,lin,bf79)
+     rrterm(1) = rrterm(1) -     thimp     *dt*temp
+     qqterm(1) = qqterm(1) + (1.-thimp*bdf)*dt*temp
+
+     temp = v2bf  (trial,lin,bf79)
+     rrterm(2) = rrterm(2) -     thimp     *dt*temp
+     qqterm(2) = qqterm(2) + (1.-thimp*bdf)*dt*temp
+
+     if(linear.eq.1 .or. eqsubtract.eq.1) then
+        qqterm(5) = qqterm(5) + dt* &
+             (v2psif(trial,ps079,lin) &
+             +v2bf  (trial,bz079,lin))
+     endif
   endif
         
   ! NUMVAR = 3
@@ -868,7 +900,8 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   implicit none
 
   vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
-  vectype, dimension(3), intent(out) :: ssterm, ddterm, rrterm, qqterm
+  vectype, dimension(3), intent(out) :: ssterm, ddterm
+  vectype, dimension(3+i3d), intent(out) :: rrterm, qqterm
   vectype :: temp
   real :: thimpb
 
@@ -1051,7 +1084,8 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   implicit none
 
   vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
-  vectype, dimension(3), intent(out) :: ssterm, ddterm, rrterm, qqterm
+  vectype, dimension(3), intent(out) :: ssterm, ddterm
+  vectype, dimension(3+i3d), intent(out) :: rrterm, qqterm
   vectype :: temp
   real :: thimpb
 
@@ -1129,6 +1163,23 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
      rrterm(2) = rrterm(2) +     thimpb     *dt*temp
      qqterm(2) = qqterm(2) + (1.-thimpb*bdf)*dt*temp
   endif
+
+  if(i3d.eq.1) then
+     temp = b2psif(trial,lin,bf79)*dbf
+     ssterm(1) = ssterm(1) -     thimp     *dt*temp
+     ddterm(1) = ddterm(1) + (1.-thimp*bdf)*dt*temp
+
+     temp = b2bf  (trial,lin,bf79)*dbf
+     ssterm(2) = ssterm(2) -     thimp     *dt*temp
+     ddterm(2) = ddterm(2) + (1.-thimp*bdf)*dt*temp
+
+     if(linear.eq.1 .or. eqsubtract.eq.1) then
+        qqterm(4) = qqterm(4) + dt* &
+             (b2psif(trial,ps079,lin)*dbf &
+             +b2bf  (trial,bz079,lin)*dbf)
+     endif
+  endif
+
 
   ! NUMVAR = 3
   ! ~~~~~~~~~~
@@ -1209,7 +1260,8 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   implicit none
 
   vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
-  vectype, dimension(3), intent(out) :: ssterm, ddterm, rrterm, qqterm
+  vectype, dimension(3), intent(out) :: ssterm, ddterm
+  vectype, dimension(3+i3d), intent(out) :: rrterm, qqterm
   vectype :: temp
   real :: thimpb
 
@@ -1451,9 +1503,14 @@ subroutine ludefall
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, " initializing matrices..."
 
+  call zerosuperlumatrix(s1matrix_sm,icomplex,vecsize)
+  call zeromultiplymatrix(d1matrix_sm,icomplex,vecsize)
+
+#ifdef USECOMPLEX
+     call zeromultiplymatrix(o1matrix_sm,icomplex,vecsize)
+#endif
+
   if(isplitstep.eq.1) then
-     call zerosuperlumatrix(s1matrix_sm,icomplex,vecsize)
-     call zeromultiplymatrix(d1matrix_sm,icomplex,vecsize)
      call zeromultiplymatrix(q1matrix_sm,icomplex,vecsize)
      call zerosuperlumatrix(s2matrix_sm,icomplex,vecsize)
      call zeromultiplymatrix(d2matrix_sm,icomplex,vecsize)
@@ -1475,10 +1532,11 @@ subroutine ludefall
      r4 = 0.
      if(idens.eq.1) qn4 = 0.
      if(ipres.eq.1) qp4 = 0.
-  else
-     call zerosuperlumatrix(s1matrix_sm,icomplex,vecsize)
-     call zeromultiplymatrix(d1matrix_sm,icomplex,vecsize)
+#ifdef USECOMPLEX
+     call zeromultiplymatrix(o2matrix_sm,icomplex,vecsize)
+#endif
   endif
+
 
   q4 = 0.
 
@@ -1486,13 +1544,13 @@ subroutine ludefall
        print *, " populating matrices..."
     
   ! Specify which fields will be used in matrix population
-  def_fields = FIELD_PSI + FIELD_I + FIELD_PHI + FIELD_ETA + FIELD_MU
+  def_fields = FIELD_PSI + FIELD_I + FIELD_PHI + FIELD_ETA + FIELD_MU &
+             + FIELD_N + FIELD_NI
   if(numvar.ge.2) def_fields = def_fields + FIELD_V
   if(numvar.ge.3) def_fields = def_fields + &
        FIELD_CHI + FIELD_PE + FIELD_B2I + FIELD_J + FIELD_P + FIELD_KAP
+  if(isources.eq.1) def_fields = def_fields + FIELD_SRC
   if(idens.eq.1) then
-     def_fields = def_fields + FIELD_N + FIELD_NI
-     if(isources.eq.1) def_fields = def_fields + FIELD_SRC
      if(ipellet.eq.1 .or. ionization.eq.1) def_fields = def_fields + FIELD_SIG
   endif
 
@@ -1620,10 +1678,10 @@ subroutine ludefvel_n(itri)
 
   integer :: i, i1, j, j1
   vectype, dimension(3,3) :: ssterm, ddterm
-  vectype, dimension(3,4) :: rrterm, qqterm
+  vectype, dimension(3,4+i3d) :: rrterm, qqterm
   vectype :: temp
 
-  integer :: vv1, vv0, vb1, vb0, vn1, vn0
+  integer :: vv1, vv0, vb1, vb0, vn1, vn0, vf0
   vectype, pointer :: vsource(:)
 
   if(isplitstep.eq.1) then
@@ -1631,6 +1689,7 @@ subroutine ludefvel_n(itri)
      vv0 = d1matrix_sm
      vb0 = q1matrix_sm
      vn0 = r14matrix_sm
+     vf0 = o1matrix_sm
      vsource => r4
   else
      vv1 = s1matrix_sm
@@ -1639,6 +1698,7 @@ subroutine ludefvel_n(itri)
      vb0 = d1matrix_sm
      vn1 = s1matrix_sm
      vn0 = d1matrix_sm
+     vf0 = o1matrix_sm
      vsource => q4
   endif
 
@@ -1672,6 +1732,9 @@ subroutine ludefvel_n(itri)
            if(idens.eq.1) &
                 call insertval2(vn1,rrterm(1,4),icomplex,i1+  u_off,j1+den_off,1)
         endif
+        if(i3d.eq.1) then
+           call insertval2(vf0,rrterm(1,5),icomplex,i1+u_off,j1+bf_off,1)
+        endif
         if(numvar.ge.2) then
            call insertval2(vv1,ssterm(1,2),icomplex,i1+  u_off,j1+ vz_off,1)
            call insertval2(vv1,ssterm(2,1),icomplex,i1+ vz_off,j1+  u_off,1)
@@ -1691,6 +1754,9 @@ subroutine ludefvel_n(itri)
               if(idens.eq.1) &
                    call insertval2(vn1,rrterm(2,4),icomplex,i1+vz_off,j1+den_off,1)
            end if
+           if(i3d.eq.1) then
+              call insertval2(vf0,rrterm(2,5),icomplex,i1+vz_off,j1+bf_off,1)
+           endif
         endif
         if(numvar.ge.3) then
            call insertval2(vv1,ssterm(1,3),icomplex,i1+  u_off,j1+chi_off,1)
@@ -1718,6 +1784,9 @@ subroutine ludefvel_n(itri)
               call insertval2(vb1,rrterm(3,3),icomplex,i1+chi_off,j1+ pe_off,1)
               if(idens.eq.1) &
                    call insertval2(vn1,rrterm(3,4),icomplex,i1+chi_off,j1+den_off,1)
+           endif
+           if(i3d.eq.1) then
+              call insertval2(vf0,rrterm(2,5),icomplex,i1+chi_off,j1+bf_off,1)
            endif
         endif
      enddo               ! on j
@@ -1758,10 +1827,11 @@ subroutine ludefphi_n(itri)
   integer, intent(in) :: itri
 
   integer :: i, i1, j, j1
-  vectype, dimension(3,3) :: ssterm, ddterm, rrterm, qqterm
+  vectype, dimension(3,3) :: ssterm, ddterm
+  vectype, dimension(3,3+i3d) :: rrterm, qqterm
   vectype :: temp
 
-  integer :: bb1, bb0, bv1, bv0
+  integer :: bb1, bb0, bv1, bv0, bf0, vf0
   vectype, pointer :: bsource(:)
 
   if(isplitstep.eq.1) then
@@ -1769,12 +1839,14 @@ subroutine ludefphi_n(itri)
      bb0 = d2matrix_sm
      bv1 = r2matrix_sm
      bv0 = q2matrix_sm
+     bf0 = o2matrix_sm
      bsource => q4
   else
      bb1 = s1matrix_sm
      bb0 = d1matrix_sm
      bv1 = s1matrix_sm
      bv0 = d1matrix_sm
+     bf0 = o1matrix_sm
      bsource => q4
   endif
 
@@ -1803,6 +1875,9 @@ subroutine ludefphi_n(itri)
         call insertval2(bb0,ddterm(1,1),icomplex,i1+psi_off,j1+psi_off,1)
         call insertval2(bv1,rrterm(1,1),icomplex,i1+psi_off,j1+  u_off,1)
         call insertval2(bv0,qqterm(1,1),icomplex,i1+psi_off,j1+  u_off,1)
+        if(i3d.eq.1) then
+           call insertval2(vf0,rrterm(1,4),icomplex,i1+psi_off,j1+bf_off,1)
+        endif
         if(numvar.ge.2) then
            call insertval2(bb1,ssterm(1,2),icomplex,i1+psi_off,j1+ bz_off,1)
            call insertval2(bb1,ssterm(2,1),icomplex,i1+ bz_off,j1+psi_off,1)
@@ -1816,6 +1891,9 @@ subroutine ludefphi_n(itri)
            call insertval2(bv0,qqterm(1,2),icomplex,i1+psi_off,j1+ vz_off,1)
            call insertval2(bv0,qqterm(2,1),icomplex,i1+ bz_off,j1+  u_off,1)
            call insertval2(bv0,qqterm(2,2),icomplex,i1+ bz_off,j1+ vz_off,1)
+           if(i3d.eq.1) then
+              call insertval2(vf0,rrterm(2,4),icomplex,i1+bz_off,j1+bf_off,1)
+           endif
         endif
         if(numvar .eq. 3) then        
            call insertval2(bb1,ssterm(1,3),icomplex,i1+psi_off,j1+ pe_off,1)
@@ -1838,6 +1916,9 @@ subroutine ludefphi_n(itri)
            call insertval2(bv0,qqterm(3,3),icomplex,i1+ pe_off,j1+chi_off,1)
            call insertval2(bv0,qqterm(3,1),icomplex,i1+ pe_off,j1+  u_off,1)
            call insertval2(bv0,qqterm(3,2),icomplex,i1+ pe_off,j1+ vz_off,1)
+           if(i3d.eq.1) then
+              call insertval2(vf0,rrterm(3,4),icomplex,i1+pe_off,j1+bf_off,1)
+           endif
         endif
        
      enddo ! on j

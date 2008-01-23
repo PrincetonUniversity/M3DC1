@@ -117,7 +117,6 @@ module basic
   real :: dt             ! timestep
   real :: thimp          ! implicitness parameter (for Crank-Nicholson)
   real :: thimp_ohm      ! implicitness parameter for ohmic heating
-  real :: facw, facd
   real :: regular        ! regularization constant in chi equation
   real :: max_ke         ! max KE before fields are re-scaled when linear==1
 
@@ -167,7 +166,7 @@ module basic
        linear,nskip,eqsubtract,                                &
        itimer,iprint,ntimepr,iglobalout,iglobalin,             &
        irestart,istart,                                        &
-       tcuro,djdpsi,xmag,zmag,xlim,zlim,facw,facd,             &
+       tcuro,djdpsi,xmag,zmag,xlim,zlim,                       &
        expn,q0,divertors,xdiv,zdiv,divcur,th_gs,p1,p2,p_edge,  &
        idevice,igs,th_gs,                                      &
        iconstflux,regular,max_ke,                              &
@@ -177,11 +176,11 @@ module basic
   real :: pi,dbf,bdf,hypv,hypc,hypf,hypi,hypp,   &
        time,                                     &
        gbound,fbound
-  integer :: ni(20),mi(20)
-  integer :: ntime
 
+  integer :: ntime
   character*10 :: datec, timec
-  
+
+  integer :: ni(20),mi(20)  
   data mi /0,1,0,2,1,0,3,2,1,0,4,3,2,1,0,5,3,2,1,0/
   data ni /0,0,1,0,1,2,0,1,2,3,0,1,2,3,4,0,2,3,4,5/
 
@@ -265,12 +264,14 @@ module arrays
   integer :: u_i, vz_i, chi_i
   integer :: psi_i, bz_i, pe_i
   integer :: den_i, p_i
+  integer :: bf_i
 
   ! the offset (relative to the node offset) of the named field within
   ! their respective vectors
   integer :: u_off, vz_off, chi_off
   integer :: psi_off, bz_off, pe_off
   integer :: den_off, p_off
+  integer :: bf_off
   integer :: vecsize, vecsize1
   
   ! the following pointers point to the locations of the named field within
@@ -336,6 +337,7 @@ module arrays
          pe_i = 3
          den_i = 1
          p_i = 1
+         bf_i = 1
 
       else
          u_v => phi
@@ -374,6 +376,7 @@ module arrays
          pe_i = 6    
          den_i = 2*numvar+1
          p_i = 2*numvar+2
+         bf_i = 1
       endif
       
       u_off = (u_i-1)*6
@@ -384,6 +387,7 @@ module arrays
       pe_off = (pe_i-1)*6
       den_off = (den_i-1)*6
       p_off = (p_i-1)*6
+      bf_off = (bf_i-1)*6
 
     end subroutine assign_variables
 
@@ -534,6 +538,8 @@ module sparse
   integer, parameter :: mass_matrix = 22
   integer, parameter :: mass_matrix_dc = 23
   integer, parameter :: poisson_matrix = 24
+  integer, parameter :: o1matrix_sm = 25
+  integer, parameter :: o2matrix_sm = 26
   
 end module sparse
 

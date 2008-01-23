@@ -45,7 +45,7 @@ c     first put in information to check on run information
       enddo
 !
       write(56) ntime,time
-      write(56) totcur0,tflux0,gbound,facd,fbound,ptot,vloop
+      write(56) totcur0,tflux0,gbound,fbound,ptot,vloop
       close(56)
 
       if(maxrank.eq.1) then
@@ -165,7 +165,7 @@ c     first put in information to check on run information
       endif
 
       read(56) ntime,time
-      read(56) totcur0,tflux0,gbound,facd,fbound,ptot,vloop
+      read(56) totcur0,tflux0,gbound,fbound,ptot,vloop
       close(56)
       if(maxrank.eq.1) then
          write(9,1201) ntime,time
@@ -279,7 +279,7 @@ c     first put in information to check on run information
          write(56) iper
          write(56) jper   
          write(56) ntime,time
-         write(56) totcur0,tflux0,gbound,facd,fbound,ptot,vloop
+         write(56) totcur0,tflux0,gbound,fbound,ptot,vloop
          write(56) icomplex
       endif
 
@@ -357,7 +357,7 @@ c     first put in information to check on run information
       read(56) iper
       read(56) jper   
       read(56) ntime,time
-      read(56) totcur0,tflux0,gbound,facd,fbound,ptot,vloop
+      read(56) totcur0,tflux0,gbound,fbound,ptot,vloop
       read(56) icomp
       write(*,*) 'in restartglobal times are ', ntime, time
       call numnod(numnodes)

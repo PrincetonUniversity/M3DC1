@@ -67,7 +67,7 @@ vectype, dimension(79, OP_NUM) :: tm79, ni79, b2i79, sb179, sb279, sp179
 vectype, dimension(79, OP_NUM) :: ps179, bz179, pe179, n179, p179, ph179, vz179, ch179
 vectype, dimension(79, OP_NUM) :: pst79, bzt79, pet79, nt79, pt79, pht79, vzt79, cht79
 vectype, dimension(79, OP_NUM) :: vis79, vic79, vip79
-vectype, dimension(79, OP_NUM) :: jt79, cot79, vot79, pit79, eta79, sig79
+vectype, dimension(79, OP_NUM) :: jt79, cot79, vot79, pit79, eta79, sig79, bf79
 vectype, dimension(79, OP_NUM) :: kap79, kar79, kax79
 vectype, dimension(79, OP_NUM) :: ps079, bz079, pe079, n079, p079, ph079, vz079, ch079
 vectype, dimension(79, OP_NUM) :: pss79, bzs79, phs79, vzs79, chs79
@@ -630,8 +630,13 @@ subroutine define_fields_79(itri, fields)
         call calcavector(itri, field, bz_g, num_fields, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, bz179)
 #ifdef USECOMPLEX
-     bz179(:,OP_DP :OP_DZZP ) = (0,1)*ntor*bz179(:,OP_1:OP_DZZ)
-     bz179(:,OP_DPP:OP_DZZPP) = -ntor**2*bz179(:,OP_1:OP_DZZ)
+        bz179(:,OP_DP :OP_DZZP ) = (0,1)*ntor   *bz179(:,OP_1:OP_DZZ)
+        bz179(:,OP_DPP:OP_DZZPP) =      -ntor**2*bz179(:,OP_1:OP_DZZ)
+
+        call calcavector(itri, bf, 1, 1, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, bf79)
+        bf79(:,OP_DP :OP_DZZP ) = (0,1)*ntor   *bf79(:,OP_1:OP_DZZ)
+        bf79(:,OP_DPP:OP_DZZPP) =      -ntor**2*bf79(:,OP_1:OP_DZZ)
 #endif
        
         if(linear.eq.1 .or. eqsubtract.eq.1) then
@@ -746,27 +751,18 @@ subroutine define_fields_79(itri, fields)
   if(iand(fields, FIELD_N).eq.FIELD_N) then
      if(itri.eq.1 .and. myrank.eq.0) print *, "   n..."
 
-     if(idens.eq.1) then
-        call calcavector(itri, field, den_g, num_fields, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, n179)
+     call calcavector(itri, field, den_g, num_fields, avec)
+     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, n179)
 #ifdef USECOMPLEX
-        n179(:,OP_DP :OP_DZZP ) = (0,1)*ntor*n179(:,OP_1:OP_DZZ)
-        n179(:,OP_DPP:OP_DZZPP) = -ntor**2*n179(:,OP_1:OP_DZZ)
+     n179(:,OP_DP :OP_DZZP ) = (0,1)*ntor*n179(:,OP_1:OP_DZZ)
+     n179(:,OP_DPP:OP_DZZPP) = -ntor**2*n179(:,OP_1:OP_DZZ)
 #endif    
-        if(linear.eq.1 .or. eqsubtract.eq.1) then
-           call calcavector(itri, field0, den_g, num_fields, avec)
-           call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, n079)
-           nt79 = n079 + n179
-        else
-           nt79 = n179
-        endif
+     if(linear.eq.1 .or. eqsubtract.eq.1) then
+        call calcavector(itri, field0, den_g, num_fields, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, n079)
+        nt79 = n079 + n179
      else
-        n079 = 0.
-        n179 = 0.
-        nt79 = 0.
-        n079(:,OP_1) = 1.
-        n179(:,OP_1) = 1.
-        nt79(:,OP_1) = 1.
+        nt79 = n179
      endif
 
   endif
@@ -774,20 +770,15 @@ subroutine define_fields_79(itri, fields)
   ! NI
   ! ~~
   if(iand(fields, FIELD_NI).eq.FIELD_NI) then
-     if(idens.eq.1) then
-        ni79(:,OP_1  ) = 1./nt79(:,OP_1)
-        ni79(:,OP_DR ) = -ni79(:,OP_1)**2 * nt79(:,OP_DR)
-        ni79(:,OP_DZ ) = -ni79(:,OP_1)**2 * nt79(:,OP_DZ)
-        ni79(:,OP_DRR) = 2.*ni79(:,OP_1)**3 * nt79(:,OP_DR )**2             &
-                         -  ni79(:,OP_1)**2 * nt79(:,OP_DRR)
-        ni79(:,OP_DRZ) = 2.*ni79(:,OP_1)**3 * nt79(:,OP_DR )*nt79(:,OP_DZ ) &
-                         -  ni79(:,OP_1)**2 * nt79(:,OP_DRZ)
-        ni79(:,OP_DZZ) = 2.*ni79(:,OP_1)**3 * nt79(:,OP_DZ )**2             &
-                         -  ni79(:,OP_1)**2 * nt79(:,OP_DZZ)
-     else
-        ni79 = 0.
-        ni79(:,OP_1) = 1.
-     endif
+     ni79(:,OP_1  ) = 1./nt79(:,OP_1)
+     ni79(:,OP_DR ) = -ni79(:,OP_1)**2 * nt79(:,OP_DR)
+     ni79(:,OP_DZ ) = -ni79(:,OP_1)**2 * nt79(:,OP_DZ)
+     ni79(:,OP_DRR) = 2.*ni79(:,OP_1)**3 * nt79(:,OP_DR )**2             &
+                      -  ni79(:,OP_1)**2 * nt79(:,OP_DRR)
+     ni79(:,OP_DRZ) = 2.*ni79(:,OP_1)**3 * nt79(:,OP_DR )*nt79(:,OP_DZ ) &
+                      -  ni79(:,OP_1)**2 * nt79(:,OP_DRZ)
+     ni79(:,OP_DZZ) = 2.*ni79(:,OP_1)**3 * nt79(:,OP_DZ )**2             &
+                      -  ni79(:,OP_1)**2 * nt79(:,OP_DZZ)
   endif
   
   ! J

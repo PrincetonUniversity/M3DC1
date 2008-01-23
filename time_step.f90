@@ -176,7 +176,7 @@ subroutine split_step(calc_matrices)
      ! replace electron pressure with total pressure
      do l=1,numnodes
         call entdofs(1, l, 0, ibegin, iendplusone)
-        call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
+        call entdofs(vecsize, l, 0, ibeginnv, iendplusonenv)
         
         phip(ibeginnv   :ibeginnv+11) = phi(ibeginnv:ibeginnv+11)
         phip(ibeginnv+12:ibeginnv+17) = pres(ibegin:ibegin+5)
@@ -198,24 +198,37 @@ subroutine split_step(calc_matrices)
   vtemp = vtemp + b1vector + r4
   
   ! Include linear density terms
-  if(idens.eq.1 .or. (gravr.ne.0 .or. gravz.ne.0)) then
+  if(idens.eq.1 .and. (gravr.ne.0 .or. gravz.ne.0)) then
      ! b2vector = r14 * den(n)
      
      ! make a larger vector that can be multiplied by a numvar=3 matrix
      phip = 0.
      do l=1,numnodes
-        call entdofs(1, l, 0, ibegin, iendplusone)
-        call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
-        
-        if(idens.eq.1) then
-           phip(ibeginnv  :ibeginnv+5) = den(ibegin:ibegin+5)
-        else
-           phip(ibeginnv) = 1.
-        end if
+        call assign_local_pointers(l)
+        call entdofs(vecsize, l, 0, ibeginnv, iendplusonenv)       
+        phip(ibeginnv:ibeginnv+5) = den1_l
      enddo
+
      call matrixvectormult(r14matrix_sm,phip,b2vector)
      vtemp = vtemp + b2vector
   endif
+
+  ! Include linear f terms
+  if(numvar.ge.2 .and. i3d.eq.1) then
+     ! b2vector = r15 * bf(n)
+     
+     ! make a larger vector that can be multiplied by a numvar=3 matrix
+     phip = 0.
+     do l=1,numnodes
+        call entdofs(1, l, 0, ibegin, iendplusone)
+        call entdofs(vecsize, l, 0, ibeginnv, iendplusonenv)
+        
+        phip(ibeginnv  :ibeginnv+5) = bf(ibegin:ibegin+5)
+     enddo
+     call matrixvectormult(o1matrix_sm,phip,b2vector)
+     vtemp = vtemp + b2vector
+  endif
+
   
   ! apply boundary conditions
   if(calc_matrices.eq.1) then
@@ -291,7 +304,7 @@ subroutine split_step(calc_matrices)
      
      do l=1,numnodes
         call entdofs(1, l, 0, ibegin, iendplusone)
-        call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
+        call entdofs(vecsize, l, 0, ibeginnv, iendplusonenv)
         do i=0,iendplusone-ibegin-1
            temp(ibegin+i) = temp(ibegin+i) + itemp(ibegin+i) * &
                 (b2vector(ibeginnv+i) + b3vector(ibeginnv+i) + qn4(ibegin+i)) &
@@ -368,14 +381,14 @@ subroutine split_step(calc_matrices)
      temp = 0.
      call matrixvectormult(d9matrix_sm,pres,temp)
      
-     call numdofs(numvar,ndofs)
+     call numdofs(vecsize,ndofs)
      allocate(itemp(ndofs)) ! this is used to make sure that we 
      ! don't double count the sum for periodic dofs
      itemp = 1
      
      do l=1,numnodes
         call entdofs(1, l, 0, ibegin, iendplusone)
-        call entdofs(numvar, l, 0, ibeginnv, iendplusonenv)
+        call entdofs(vecsize, l, 0, ibeginnv, iendplusonenv)
         do i=0,iendplusone-ibegin-1
            temp(ibegin+i) = temp(ibegin+i) + itemp(ibegin+i) * &
                 (b2vector(ibeginnv+i) + b3vector(ibeginnv+i) + qp4(ibegin+i)) &
@@ -449,6 +462,22 @@ subroutine split_step(calc_matrices)
   endif
   
   vtemp = vtemp + b2vector + b3vector + q4  + b1vector   
+
+  ! Include linear f terms
+  if(numvar.ge.2 .and. i3d.eq.1) then
+     ! b2vector = r15 * bf(n)
+     
+     ! make a larger vector that can be multiplied by a numvar=3 matrix
+     phip = 0.
+     do l=1,numnodes
+        call entdofs(1, l, 0, ibegin, iendplusone)
+        call entdofs(vecsize, l, 0, ibeginnv, iendplusonenv)
+        
+        phip(ibeginnv  :ibeginnv+5) = bf(ibegin:ibegin+5)
+     enddo
+     call matrixvectormult(o2matrix_sm,phip,b2vector)
+     vtemp = vtemp + b2vector
+  endif
   
   ! Insert boundary conditions
   if(calc_matrices.eq.1) then
@@ -499,7 +528,8 @@ subroutine unsplit_step(calc_matrices)
   implicit none
 
   integer, intent(in) :: calc_matrices
-  integer :: jer
+  integer :: l, numnodes, jer
+  integer :: ibegin, iendplusone, ibeginnv, iendplusonenv
   
   real :: tstart, tend
 
@@ -510,6 +540,22 @@ subroutine unsplit_step(calc_matrices)
   call matrixvectormult(d1matrix_sm,phi,vtemp)
   
   vtemp = vtemp + q4
+
+  ! Include linear f terms
+  if(numvar.ge.2 .and. i3d.eq.1) then
+     ! b2vector = r15 * bf(n)
+     
+     ! make a larger vector that can be multiplied by a vecsize matrix
+     phip = 0.
+     do l=1,numnodes
+        call entdofs(1, l, 0, ibegin, iendplusone)
+        call entdofs(vecsize, l, 0, ibeginnv, iendplusonenv)
+        
+        phip(ibeginnv  :ibeginnv+5) = bf(ibegin:ibegin+5)
+     enddo
+     call matrixvectormult(o1matrix_sm,phip,b2vector)
+     vtemp = vtemp + b2vector
+  endif
   
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)

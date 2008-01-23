@@ -7,11 +7,15 @@ module gradshafranov
   real :: psimin, dpsii
   real :: gamma2, gamma3, gamma4  
   integer :: itnum
-
+  real :: separatrix_top, separatrix_bottom
+  
   integer, parameter :: numvargs = 1
 
   integer, parameter :: NSTX_coils = 158
   real, dimension(NSTX_coils) :: NSTX_r, NSTX_z, NSTX_I
+
+  integer, parameter :: ITER_coils = 18
+  real, dimension(ITER_coils) :: ITER_r, ITER_z, ITER_I
 
   data NSTX_r &
        / 0.1750, 0.1750, 0.1750, 0.1750, 0.1750, & ! PF1aU
@@ -133,6 +137,25 @@ module gradshafranov
         -0.0082,-0.0082,-0.0082,-0.0082,-0.0082,-0.0082,-0.0082,-0.0082, &
         -0.0082,-0.0082,-0.0082,-0.0082,-0.0082,-0.0082,-0.0082,-0.0082 /
 
+data ITER_r &
+     / 3.954, 8.309, 11.935, 11.905, 8.395, 4.287, &
+       1.688, 1.688,  1.688,  1.688, 1.688, 1.688, &
+       1.688, 1.688,  1.688,  1.688, 1.688, 1.688 /
+
+data ITER_z &
+     /  7.557,  6.530,  3.244, -2.263, -6.730, -7.557, &
+       -4.500, -5.500, -2.500, -3.500, -0.500, -1.500, &
+        0.500,  1.500,  2.500,  3.500,  4.500,  5.500 /
+
+!!$data ITER_I &
+!!$     /  1.165e4,   -0.245, -5.326e3, -2.119e3, -1.058e4,  1.853e4, &
+!!$        1.249e4,  1.249e4, -5.607e3, -5.607e3, -3.071e3, -3.071e3, &
+!!$       -3.071e3, -3.071e3,  3.395e3,  3.395e3, -4.071e3,  4.071e3 /
+
+data ITER_I &
+     /  0.971,  -2e-5, -0.444, -0.177, -0.882,  1.544, &
+        1.041,  1.041, -0.467, -0.467, -0.256, -0.256, &
+       -0.256, -0.256,  0.283,  0.283, -0.339, -0.339 /
 
 contains
 
@@ -323,6 +346,9 @@ subroutine gradshafranov_solve
      call gvect(xp,zp,xc,zc,1,g,0,ineg)
      psi(ibegin:ibegin+5) =   g(:,1)*fac
 
+     separatrix_top = 1e10
+     separatrix_bottom = -1e10
+
      ! Field due to external coils
      select case(idevice)
      case(1) ! CDX-U
@@ -345,6 +371,16 @@ subroutine gradshafranov_solve
         do k=1,NSTX_coils 
            g(:,k) = g(:,k)*fac*NSTX_I(k)
         enddo
+     case(3) ! ITER
+        numcoils = ITER_coils
+        xc(1:ITER_coils) = ITER_r
+        zc(1:ITER_coils) = ITER_z
+        call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)     
+        do k=1,ITER_coils 
+           g(:,k) = g(:,k)*fac*ITER_I(k)
+        enddo
+        separatrix_top = 4.5
+        separatrix_bottom = -3.5
      case default ! Generic
         numcoils = 1
         xc(1) = 102.
@@ -535,7 +571,7 @@ subroutine gradshafranov_solve
         gamma3 = 0.
         gamma4 = 0.
      else
-        gamma2 = -2.*xmag*(xmag*p0*p1 + (2.*g0/(xmag**2*q0*dpsii)))
+        gamma2 = -2.*xmag*(xmag*p0*p1 + g0/(xmag**2*q0*dpsii))
         gamma3 = -(xmag*djdpsi/dpsii + 2.*xmag**2*p0*p2)
         gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
      endif
@@ -582,9 +618,15 @@ subroutine gradshafranov_solve
      temp(ibegin) = (psi(ibegin) - psimin)*dpsii
      temp(ibegin+1:ibegin+5) = psi(ibegin+1:ibegin+5)*dpsii
 
-     ! pp = p(Psi) in pp
-     call calc_pressure(temp(ibegin:ibegin+5),p0_l)
      call calc_toroidal_field(temp(ibegin:ibegin+5), bz0_l)
+     call calc_pressure(temp(ibegin:ibegin+5),p0_l)
+
+     call xyznod(i, coords)
+     z = coords(2) - zmin + zzero
+     if((z.gt.separatrix_top) .or. (z .lt.separatrix_bottom)) then
+        p0_l(1) = pedge
+        p0_l(2:6) = 0.
+     endif
 
      pe0_l = (1. - ipres*pi0/p0)*p0_l
 
@@ -1067,9 +1109,9 @@ subroutine fundef
      endif
   enddo
 
-  fun2 = fun2 / 2.
-  fun3 = fun3 / 2.
-  fun4 = fun4 / 2.
+!!$  fun2 = fun2 / 2.
+!!$  fun3 = fun3 / 2.
+!!$  fun4 = fun4 / 2.
   
   return
 end subroutine fundef

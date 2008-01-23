@@ -182,11 +182,6 @@
 !
       nosig = 0
 !
-      facw = 1.
-!.....multiplies the diffusion [test] terms 
-      facd = 1.
-!     NOTE:  if facw=1., facd is zeroed after the first cycle
-!
 !.....ion skin depth
       db = 0.0
 !
@@ -520,21 +515,6 @@
       return
       end
 !============================================================
-      subroutine offset(itri)
-      use basic
-      use t_data
-      implicit none
-      integer itri, nodeids(4)
-      call nodfac(itri, nodeids)
-      ist(itri,1) = nodeids(1)-1
-      ist(itri,2) = nodeids(2)-1
-      ist(itri,3) = nodeids(3)-1    
-      
-  !    write(*,*) 'itri ',itri, ist(itri,1), ist(itri,2), ist(itri,3) 
-      return
-!
-      end
-!============================================================
       function fact(n)
 ! acbauer - my implict none changes here caused problems, probably from real double precision integer things
 !
@@ -552,46 +532,79 @@
       use p_data
       use t_data
       use basic
-      use nintegrate_mod
+      use arrays
 
       implicit none
 
-      integer itri, j, k, q, numelms
-      real ti(20,20),rot(18,18), sum
+      integer :: itri, i, j, k, ii, iii, numelms
+      integer :: ibegin, iendplusone
+      integer :: ibegin2, iendplusone2
+      integer :: ibeginn, iendplusonen
+      integer, dimension(4) :: nodeids
+      real :: ti(20,20),rot(18,18), sum
+      real :: f
+
+      if(myrank.eq.1 .and. iprint.ge.1) print *, " Entering tridef..."
 
       call numfac(numelms)
 !      
 !     start the loop over triangles within a rectangular region
       do itri=1,numelms
+
+         call nodfac(itri, nodeids)
+         ist(itri,1) = nodeids(1)-1
+         ist(itri,2) = nodeids(2)-1
+         ist(itri,3) = nodeids(3)-1    
 !
-!
-!     define a,b,c and theta
-! acbauer -- might want to take this out later 
+!        define a,b,c and theta
          call getelmparams(itri,atri(itri),btri(itri),
      &        ctri(itri),ttri(itri))  
-!
-!   define the Inverse Transformation Matrix that enforces the 
-!   condition that the normal slope between triangles has only cubic variation
-!
+
+!        define the Inverse Transformation Matrix that enforces the 
+!        condition that the normal slope between triangles has only cubic variation
          call tmatrix(ti,20,atri(itri),btri(itri),ctri(itri))
-!
-!     calculate the rotation matrix rot
+
+!        calculate the rotation matrix rot
          call rotation(rot,18,ttri(itri))
 !
-!     form the matrix g by multiplying ti and rot
+!        form the matrix g by multiplying ti and rot
          do k=1,20
             do j=1,18
                sum = 0
-               do q = 1,18
-                  sum = sum + ti(k,q)*rot(q,j)
+               do ii = 1,18
+                  sum = sum + ti(k,ii)*rot(ii,j)
                enddo
                gtri(k,j,itri) = sum
             enddo
          enddo
-!
-         call offset(itri)
+
+!        calculate fint (used for analytic integrations)
+         do i=-6,maxi
+            do j=-6,maxi
+               fint(i,j) = 0
+               if(i.ge.0 .and.j.ge.0)                                          &
+     &              fint(i,j) = f(i,j,atri(itri),btri(itri),ctri(itri))
+            enddo
+         enddo
+
+!        populate isval* arrays
+         do iii=1,3
+            call entdofs(1, ist(itri,iii)+1, 0, ibegin,  iendplusone )
+            call entdofs(2, ist(itri,iii)+1, 0, ibegin2, iendplusone2)
+            call entdofs(vecsize,  ist(itri,iii)+1, 0,                  &
+     &           ibeginn, iendplusonen)
+            do ii=1,6
+               i = (iii-1)*6 + ii
+               isval1(itri,i) = ibegin +ii-1 ! 6*ist(itri,iii)+ii
+               isval2(itri,i) = ibegin2+ii-1 ! 12*ist(itri,iii)+ii
+               isvaln(itri,i) = ibeginn+ii-1 ! numvar*6*ist(itri,iii)+ii
+            enddo
+         enddo
+
       end do
 !
+      if(myrank.eq.1 .and. iprint.ge.1) print *, " Exiting tridef."
+
       return
       end
 

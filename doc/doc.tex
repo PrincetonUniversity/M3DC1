@@ -1728,12 +1728,16 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
   \texttt{itor}   & 0   & 0: cartesian; 1: cylindrical\\
   \texttt{linear} & 0   & 1: linear (perturbation terms only, no matrix
                               recalculation)\\
-  \texttt{eqsubtract}& 0& 1: perturbation terms only\\
+  \texttt{eqsubtract}& 0& 1: remove equilibrium terms from equations\\
   \texttt{isource}   & 0& 1: include ``source'' terms in velocity
     advance\\
   \texttt{jadv}   & 0   & 1: Use toroidal current density equation
                           instead of poloidal flux equation.\\
-  \texttt{igauge} & 0   & 1: Loop voltage appears explicitly in Ohm's law.
+  \texttt{igauge} & 0   & 1: Loop voltage appears explicitly in Ohm's law.\\
+  \texttt{ntor}   & 0   & The toroidal modenumber of linear perturbations in
+                          complex simulations.\\
+  \texttt{max_ke} & 1   & Maximum value of KE before solution is
+                          rescaled in linear simulations.
 \end{tabular}
 
 
@@ -1882,11 +1886,11 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
 
 \subsection{External Source Options}
 
-\begin{tabular}{llcl}
+\begin{tabular}{llcp{2in}}
   \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
   \hline
-  \texttt{ipellet}      & & 0    & \parbox[t]{2in}{1: include pellet density
-    source (\textit{c.f.} section~\ref{sec:pellet_injection})}\\
+  \texttt{ipellet}      & & 0    & 1: include pellet density
+    source (\textit{c.f.} section~\ref{sec:pellet_injection})\\
   \texttt{pellet\_rate} & $\alpha_p$ & \texttt{denm} 
                                      & Particle number injection rate\\
   \texttt{pellet\_var}  & $l_p$      & 1    & Variance of  
@@ -1895,24 +1899,26 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
                                      & $r$-coordinate of injection profile\\
   \texttt{pellet\_z}    & $z_p$      & \texttt{zmag} 
                                      & $z$-coordinate of injection profile\\
-  \texttt{ionization}   & & 0  & \parbox[t]{2in}{1: include neutral ionization
-    source (\textit{c.f.} section~\ref{sec:ionization})}\\
+  \texttt{ionization}   & & 0  & 1: include neutral ionization
+    source (\textit{c.f.} section~\ref{sec:ionization})\\
   \texttt{ionization\_rate} & $\alpha_i$ & \texttt{denm} 
                                      & Ionization rate coefficient\\
   \texttt{ionization\_temp} & $E_i$   & 0.01 & Ionization energy\\
-  \texttt{ionization\_depth}& $l_i$   & 0.01 & \parbox[t]{2in}{Temperature 
-    scale-length of neutral burn-out}
+  \texttt{ionization\_depth}& $l_i$   & 0.01 & Temperature 
+    scale-length of neutral burn-out
 \end{tabular}
 
 
 
-\subsection{Output Options}
+\subsection{Input/Output Options}
 
-\begin{tabular}{lcl}
+\begin{tabular}{lcp{2.7in}}
   \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
   \texttt{ntimepr}   & 5 & Number of timesteps per full field output\\
-  \texttt{iprint}    & 0              & 1: output detailed 
+  \texttt{iprint}    & 0 & 1: Print detailed info to stdout\\
+  \texttt{iglobalout}& 0 & 1: Write process-independent output file\\
+  \texttt{iglobalin} & 0 & 1: Read process-independent output file on restart
 \end{tabular}
 
 
