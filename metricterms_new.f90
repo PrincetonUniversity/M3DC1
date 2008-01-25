@@ -835,11 +835,11 @@ vectype function v1psif(e,f,g)
   vectype :: temp
 #ifdef USECOMPLEX
   temp = &
-       - int4(e(:,OP_DZ),f(:,OP_GS),g(:,OP_DZP),weight_79,79) &
-       - int4(e(:,OP_DR),f(:,OP_GS),g(:,OP_DRP),weight_79,79)
+       - int3(e(:,OP_DZ),f(:,OP_GS),g(:,OP_DZP),weight_79,79) &
+       - int3(e(:,OP_DR),f(:,OP_GS),g(:,OP_DRP),weight_79,79)
   if(itor.eq.1) then
      temp = temp - 2.* & 
-          int5(ri_79,e(:,OP_1),f(:,OP_GS),g(:,OP_DRP),weight_79,79)
+          int4(ri_79,e(:,OP_1),f(:,OP_GS),g(:,OP_DRP),weight_79,79)
   endif
   
   v1psif = temp
@@ -868,7 +868,7 @@ vectype function v1bf(e,f,g)
        - int4(ri_79,e(:,OP_DR),f(:,OP_GS),g(:,OP_DZPP),weight_79,79)
   if(itor.eq.1) then
      temp = temp - 2.* & 
-          int5(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_DZPP),weight_79,79)
+          int4(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_DZPP),weight_79,79)
   endif
 
   v1bf = temp
@@ -2697,7 +2697,7 @@ vectype function b2bf(e,f,g)
 #ifdef USECOMPLEX
   temp = - &
        (int4(ri3_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DRPP),weight_79,79) &
-       -int4(ri3_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DZPP),weight_79,79)
+       -int4(ri3_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DZPP),weight_79,79))
 
   if(itor.eq.1) then
      temp = temp + 2.* &
