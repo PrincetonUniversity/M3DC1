@@ -1831,7 +1831,7 @@ subroutine ludefphi_n(itri)
   vectype, dimension(3,3+i3d) :: rrterm, qqterm
   vectype :: temp
 
-  integer :: bb1, bb0, bv1, bv0, bf0, vf0
+  integer :: bb1, bb0, bv1, bv0, bf0
   vectype, pointer :: bsource(:)
 
   if(isplitstep.eq.1) then
@@ -1876,7 +1876,7 @@ subroutine ludefphi_n(itri)
         call insertval2(bv1,rrterm(1,1),icomplex,i1+psi_off,j1+  u_off,1)
         call insertval2(bv0,qqterm(1,1),icomplex,i1+psi_off,j1+  u_off,1)
         if(i3d.eq.1) then
-           call insertval2(vf0,rrterm(1,4),icomplex,i1+psi_off,j1+bf_off,1)
+           call insertval2(bf0,rrterm(1,4),icomplex,i1+psi_off,j1+bf_off,1)
         endif
         if(numvar.ge.2) then
            call insertval2(bb1,ssterm(1,2),icomplex,i1+psi_off,j1+ bz_off,1)
@@ -1892,7 +1892,7 @@ subroutine ludefphi_n(itri)
            call insertval2(bv0,qqterm(2,1),icomplex,i1+ bz_off,j1+  u_off,1)
            call insertval2(bv0,qqterm(2,2),icomplex,i1+ bz_off,j1+ vz_off,1)
            if(i3d.eq.1) then
-              call insertval2(vf0,rrterm(2,4),icomplex,i1+bz_off,j1+bf_off,1)
+              call insertval2(bf0,rrterm(2,4),icomplex,i1+bz_off,j1+bf_off,1)
            endif
         endif
         if(numvar .eq. 3) then        
@@ -1917,7 +1917,7 @@ subroutine ludefphi_n(itri)
            call insertval2(bv0,qqterm(3,1),icomplex,i1+ pe_off,j1+  u_off,1)
            call insertval2(bv0,qqterm(3,2),icomplex,i1+ pe_off,j1+ vz_off,1)
            if(i3d.eq.1) then
-              call insertval2(vf0,rrterm(3,4),icomplex,i1+pe_off,j1+bf_off,1)
+              call insertval2(bf0,rrterm(3,4),icomplex,i1+pe_off,j1+bf_off,1)
            endif
         endif
        

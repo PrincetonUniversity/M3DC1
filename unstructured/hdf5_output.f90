@@ -588,7 +588,9 @@ subroutine hdf5_write_time_slice(equilibrium, error)
      write(time_group_name, '("time_",I3.3)') times_output
      ! remove the time group if it already exists
      ! (from before a restart, for example)
-     call h5gunlink_f(file_id, time_group_name, error)
+     if(irestart.eq.1) then
+        call h5gunlink_f(file_id, time_group_name, error)
+     endif
   endif
 
   if(myrank.eq.1 .and. iprint.eq.1) &
