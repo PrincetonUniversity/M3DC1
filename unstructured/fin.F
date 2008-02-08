@@ -248,6 +248,9 @@
       gravr = 0.
       gravz = 0.
 !
+!.....1 = don't advance velocity
+      istatic = 0
+!
 !.....1 = conserve toroidal flux
       iconstflux = 0
 !

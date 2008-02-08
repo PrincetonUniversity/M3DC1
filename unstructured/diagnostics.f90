@@ -25,6 +25,9 @@ module diagnostics
   real :: efluxp,efluxk,efluxs,efluxt,epotg,etot,ptot,eerr,ptoto
 
 
+  ! momentum diagnostics
+  real :: tau_em, tau_sol, tau_com, tau_visc, tau_gyro
+
 
   ! timing diagnostics
   real :: t_ludefall, t_sources, t_smoother, t_aux, t_onestep
@@ -152,6 +155,12 @@ contains
     pmom = 0.
     pvor = 0.
 
+    tau_em = 0.
+    tau_sol = 0.
+    tau_com = 0.
+    tau_visc = 0.
+    tau_gyro = 0.
+
     nfluxd = 0.
     nfluxv = 0.
     nsource = 0.
@@ -171,7 +180,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 38
+    integer, parameter :: num_scalars = 43
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -215,6 +224,11 @@ contains
        temp(36) = nfluxd
        temp(37) = nfluxv
        temp(38) = nsource
+       temp(39) = tau_em
+       temp(40) = tau_sol
+       temp(41) = tau_com
+       temp(42) = tau_visc
+       temp(43) = tau_gyro
          
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -258,6 +272,11 @@ contains
        nfluxd = temp2(36)
        nfluxv = temp2(37)
        nsource= temp2(38)
+       tau_em  =temp2(39)
+       tau_sol =temp2(40)
+       tau_com =temp2(41)
+       tau_visc=temp2(42)
+       tau_gyro=temp2(43)
 
     endif !if maxrank .gt. 1
 
@@ -529,14 +548,7 @@ subroutine calculate_scalars()
      endif
      totden = totden + int1(nt79(:,OP_1),        weight_79,79)
      pden   = pden   + int2(nt79(:,OP_1),temp79a,weight_79,79)
-     if(numvar.ge.2) then
-        tmom = tmom &
-             + int3(ri_79,vzt79(:,OP_1),nt79(:,OP_1),        weight_79,79)
-        pmom = pmom &
-             + int4(ri_79,vzt79(:,OP_1),nt79(:,OP_1),temp79a,weight_79,79)
-     endif
-
-
+     
      ! Calculate energy
      ! ~~~~~~~~~~~~~~~~
      ekinp  = ekinp  + energy_kp ()
@@ -590,6 +602,28 @@ subroutine calculate_scalars()
         nsource = nsource + int1(sig79,weight_79,79)
      endif
 
+
+     ! Calculate toroidal (angular) momentum
+     ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     if(numvar.ge.2) then
+!!$        tmom = tmom &
+!!$             + int3(ri_79,vzt79(:,OP_1),nt79(:,OP_1),        weight_79,79)
+!!$        pmom = pmom &
+!!$             + int4(ri_79,vzt79(:,OP_1),nt79(:,OP_1),temp79a,weight_79,79)
+
+        tmom = tmom &
+             + int2(vzt79(:,OP_1),nt79(:,OP_1),        weight_79,79)
+        pmom = pmom &
+             + int3(vzt79(:,OP_1),nt79(:,OP_1),temp79a,weight_79,79)
+
+        ! fluxes
+        tau_em   = torque_em()
+        tau_sol  = torque_sol()
+        tau_com  = torque_com()
+        tau_visc = torque_visc()
+        tau_gyro = torque_gyro()
+     endif
+     
   end do
 
   if(isources.eq.1) then

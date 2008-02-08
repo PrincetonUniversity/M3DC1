@@ -108,7 +108,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
            if(gravr.ne.0 .or. gravz.ne.0) then 
               qqterm(4) = qqterm(4) + thimp*dt*dt*  &
                    (v1ungrav   (trial,ph079,lin)) !    &
-!!$                   +v1ndenmgrav(trial,lin, denm))
+!                   +v1ndenmgrav(trial,lin, denm))
            endif
         endif
      else
@@ -453,7 +453,9 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
              (v2bsb1(trial,lin,sb179))
      endif
   else
-     temp = v2psib(trial,lin,bz179)
+     temp = v2psipsi(trial,lin,ps179) &
+          + v2psipsi(trial,ps179,lin) &
+          + v2psib  (trial,lin,bz179)
      rrterm(1) = rrterm(1) +     thimp     *dt*temp
      qqterm(1) = qqterm(1) + (.5-thimp*bdf)*dt*temp
 
@@ -481,7 +483,9 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
         qqterm(2) = qqterm(2) + thimp*dt*dt* &
              (v2upsib  (trial,ph079,pss79,lin))        
      else
-        temp = v2psib(trial,lin,bz079)
+        temp = v2psipsi(trial,lin,ps079) &
+             + v2psipsi(trial,ps079,lin) &
+             + v2psib  (trial,lin,bz079)
         rrterm(1) = rrterm(1) +     thimp     *dt*temp
         qqterm(1) = qqterm(1) + (1.-thimp*bdf)*dt*temp
 

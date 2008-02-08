@@ -411,7 +411,7 @@ subroutine smooth
      
   ! smooth vorticity
   call newvar(mass_matrix_dc,vor,vel,1,vecsize,NV_GS,NV_DCBOUND)
-  call smoother1(vor,vel,numnodes,numvar,1)
+  call smoother1(vor,vel,numnodes,vecsize,1)
      
   ! smooth compression
   if(numvar.ge.3) then
@@ -428,7 +428,7 @@ subroutine smooth
 !!$           print *, "Error in com = ", chierror 
 !!$        endif
         
-     call smoother3(com,vel,numnodes,numvar,3)     
+     call smoother3(com,vel,numnodes,vecsize,3)
   endif
 
   if(myrank.eq.0 .and. itimer.eq.1) then

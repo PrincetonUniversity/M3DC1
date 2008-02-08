@@ -484,6 +484,12 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "Particle_source", &
        nsource, ntime, error)
 
+  call output_scalar(scalar_group_id, "Torque_em",   tau_em,   ntime, error)
+  call output_scalar(scalar_group_id, "Torque_sol",  tau_sol,  ntime, error)
+  call output_scalar(scalar_group_id, "Torque_com",  tau_com,  ntime, error)
+  call output_scalar(scalar_group_id, "Torque_visc", tau_visc, ntime, error)
+  call output_scalar(scalar_group_id, "Torque_gyro", tau_gyro, ntime, error)
+
   if(itaylor.eq.3) then
      temp = reconnected_flux()
      call output_scalar(scalar_group_id, "Reconnected_Flux", temp, ntime, error)
