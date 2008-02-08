@@ -164,104 +164,109 @@ subroutine split_step(calc_matrices)
   ! Store current-time velocity matrices for use in field advance
   veln = vel
   veloldn = velold
+
+
+  if(istatic.eq.0) then
+     ! Advance Velocity
+     ! ================
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Velocity"
   
-  ! Advance Velocity
-  ! ================
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Velocity"
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     ! b1vector = q1matrix_sm * phi(n)
+     if(ipres.eq.1 .and. numvar.ge.3) then
+        ! replace electron pressure with total pressure
+        do l=1,numnodes
+           call entdofs(1, l, 0, ibegin, iendplusone)
+           call entdofs(vecsize, l, 0, ibeginnv, iendplusonenv)
+           
+           phip(ibeginnv   :ibeginnv+11) = phi(ibeginnv:ibeginnv+11)
+           phip(ibeginnv+12:ibeginnv+17) = pres(ibegin:ibegin+5)
+        enddo
+        call matrixvectormult(q1matrix_sm, phip, b1vector)
+     else
+        call matrixvectormult(q1matrix_sm, phi , b1vector)
+     endif
   
-  ! b1vector = q1matrix_sm * phi(n)
-  if(ipres.eq.1 .and. numvar.ge.3) then
-     ! replace electron pressure with total pressure
-     do l=1,numnodes
-        call entdofs(1, l, 0, ibegin, iendplusone)
-        call entdofs(vecsize, l, 0, ibeginnv, iendplusonenv)
-        
-        phip(ibeginnv   :ibeginnv+11) = phi(ibeginnv:ibeginnv+11)
-        phip(ibeginnv+12:ibeginnv+17) = pres(ibegin:ibegin+5)
-     enddo
-     call matrixvectormult(q1matrix_sm, phip, b1vector)
-  else
-     call matrixvectormult(q1matrix_sm, phi , b1vector)
-  endif
+     ! vtemp = d1matrix_sm * vel(n)
+     vtemp = 0.
+     call matrixvectormult(d1matrix_sm,vel,vtemp)
   
-  ! vtemp = d1matrix_sm * vel(n)
-  vtemp = 0.
-  call matrixvectormult(d1matrix_sm,vel,vtemp)
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_mvm = t_mvm + tend - tstart
+     endif
   
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_mvm = t_mvm + tend - tstart
-  endif
+     vtemp = vtemp + b1vector + r4
   
-  vtemp = vtemp + b1vector + r4
-  
-  ! Include linear density terms
-  if(idens.eq.1 .and. (gravr.ne.0 .or. gravz.ne.0)) then
-     ! b2vector = r14 * den(n)
+     ! Include linear density terms
+     if(idens.eq.1 .and. (gravr.ne.0 .or. gravz.ne.0)) then
+        ! b2vector = r14 * den(n)
      
-     ! make a larger vector that can be multiplied by a numvar=3 matrix
-     phip = 0.
-     do l=1,numnodes
-        call assign_local_pointers(l)
-        call entdofs(vecsize, l, 0, ibeginnv, iendplusonenv)       
-        phip(ibeginnv:ibeginnv+5) = den1_l
-     enddo
+        ! make a larger vector that can be multiplied by a numvar=3 matrix
+        phip = 0.
+        do l=1,numnodes
+           call assign_local_pointers(l)
+           call entdofs(vecsize, l, 0, ibeginnv, iendplusonenv)       
+           phip(ibeginnv:ibeginnv+5) = den1_l
+        enddo
 
-     call matrixvectormult(r14matrix_sm,phip,b2vector)
-     vtemp = vtemp + b2vector
-  endif
+        call matrixvectormult(r14matrix_sm,phip,b2vector)
+        vtemp = vtemp + b2vector
+     endif
 
-  ! Include linear f terms
-  if(numvar.ge.2 .and. i3d.eq.1) then
-     ! b2vector = r15 * bf(n)
+     ! Include linear f terms
+     if(numvar.ge.2 .and. i3d.eq.1) then
+        ! b2vector = r15 * bf(n)
      
-     ! make a larger vector that can be multiplied by a numvar=3 matrix
-     phip = 0.
-     do l=1,numnodes
-        call entdofs(1, l, 0, ibegin, iendplusone)
-        call entdofs(vecsize, l, 0, ibeginnv, iendplusonenv)
-        
-        phip(ibeginnv  :ibeginnv+5) = bf(ibegin:ibegin+5)
-     enddo
-     call matrixvectormult(o1matrix_sm,phip,b2vector)
-     vtemp = vtemp + b2vector
-  endif
+        ! make a larger vector that can be multiplied by a numvar=3 matrix
+        phip = 0.
+        do l=1,numnodes
+           call entdofs(1, l, 0, ibegin, iendplusone)
+           call entdofs(vecsize, l, 0, ibeginnv, iendplusonenv)
+           
+           phip(ibeginnv  :ibeginnv+5) = bf(ibegin:ibegin+5)
+        enddo
+        call matrixvectormult(o1matrix_sm,phip,b2vector)
+        vtemp = vtemp + b2vector
+     endif
 
   
-  ! apply boundary conditions
-  if(calc_matrices.eq.1) then
-     call boundary_vel(s1matrix_sm, vtemp)
-     call finalizematrix(s1matrix_sm)
-  else
-     call boundary_vel(0, vtemp)
-  endif
+     ! apply boundary conditions
+     if(calc_matrices.eq.1) then
+        call boundary_vel(s1matrix_sm, vtemp)
+        call finalizematrix(s1matrix_sm)
+     else
+        call boundary_vel(0, vtemp)
+     endif
   
-  ! solve linear system with rhs in vtemp (note LU-decomp done first time)
-  if(myrank.eq.0) print *, "solving velocity advance..."
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  call solve(s1matrix_sm, vtemp, jer)
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_solve_v = t_solve_v + tend - tstart
-  endif
-  if(jer.ne.0) then
-     write(*,*) 'Error in velocity solve', jer
-     call safestop(42)
-  endif
+     ! solve linear system with rhs in vtemp (note LU-decomp done first time)
+     if(myrank.eq.0) print *, "solving velocity advance..."
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     call solve(s1matrix_sm, vtemp, jer)
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_solve_v = t_solve_v + tend - tstart
+     endif
+     if(jer.ne.0) then
+        write(*,*) 'Error in velocity solve', jer
+        call safestop(42)
+     endif
   
-  if(integrator.eq.1 .and. ntime.gt.1) then
-     vtemp = (2.*vtemp - velold)/3.
-  endif
+     if(integrator.eq.1 .and. ntime.gt.1) then
+        vtemp = (2.*vtemp - velold)/3.
+     endif
   
-  !.....new velocity solution at time n+1 (or n* for second order advance)
-  velold = vel
-  vel = vtemp
+     !.....new velocity solution at time n+1 (or n* for second order advance)
+     velold = vel
+     vel = vtemp
     
-  ! apply smoothing operators
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-  call smooth
+     ! apply smoothing operators
+     ! ~~~~~~~~~~~~~~~~~~~~~~~~~
+     call smooth
+  else
+     velold = vel
+  end if
 
   
   ! Advance Density

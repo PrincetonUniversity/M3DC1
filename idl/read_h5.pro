@@ -1090,6 +1090,44 @@ end
 
 
 ;==============================================================
+; momentum flux
+; ~~~~~~~~~~~~~
+;
+; Returns a time series of the total rate of toroidal (angular)
+; momenumt lost through the simulation domain boundary.
+; 
+; Optional outputs:
+;  t: the time array
+;  names: the name of each flux component
+;  components: an array of time series of each flux component
+;==============================================================
+function momentum_flux, filename=filename, components=comp, names=names, t=t, $
+                        norm=norm
+   s = read_scalars(filename=filename)
+   if(n_tags(s) eq 0) then return, 0
+
+   t = s.time._data
+
+   names = ['- dL/dt', 'Magnetic', 'Solenoidal', $
+            'Compressional', 'Viscous', 'Gyroviscous']
+  
+   comp = fltarr(n_elements(names), n_elements(t))
+   comp[0,*] = -deriv(t, s.angular_momentum._data)
+   comp[1,*] = s.Torque_em._data
+   comp[2,*] = s.Torque_sol._data
+   comp[3,*] = s.Torque_com._data
+   comp[4,*] = s.Torque_visc._data
+   comp[5,*] = s.Torque_gyro._data
+
+   if(keyword_set(norm)) then comp = comp/max(abs(s.angular_momentum._data))
+
+   return, total(comp, 1)
+end
+
+
+
+
+;==============================================================
 ; energy_dissipated
 ; ~~~~~~~~~~~~~~~~~
 ;
@@ -1246,6 +1284,7 @@ function energy_error, filename=filename, components=comp, names=names, t=t
 end
 
 
+
 ;============================================
 ; plot_energy
 ;============================================
@@ -1298,6 +1337,14 @@ pro plot_energy, name, filename=filename, norm=norm, diff=diff, $
        title  = '!6Particle Flux!X'
        ytitle = '!6Particle Flux!X'
        units = number_units
+       norm_units = ""
+   endif else if(strcmp(name, 'momentum', /fold_case) eq 1) then begin
+       tot = momentum_flux(filename=filename, comp=comp, names=names, t=t, $
+                           norm=norm)
+       norm_tot = 1.
+       title  = '!6Momentum Flux!X'
+       ytitle = '!6Momentum Flux!X'
+       units = ''
        norm_units = ""
    endif else begin
        tot = energy(filename=filename, comp=comp, names=names, t=t)   

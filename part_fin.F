@@ -243,7 +243,7 @@ c$$$      return
 !.....compute LU decomposition only once
 !
 !.....form matrix
-      call zerosuperlumatrix(s5matrix_sm,icomplex,numvar2_numbering)
+      call zerosuperlumatrix(s5matrix_sm,icomplex,numvarsm)
       do itri=1,numelms
          call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
          call calcaterm(itri, aterm, fintl)
@@ -294,11 +294,6 @@ c$$$      return
 
       ! Insert boundary conditions
       call boundary_vor(0, temp)
-
-! since a proc is contributing values to parts of the vector
-! it does not own, we call sumsharedppplvecvals so that these values
-! get summed up for all values shared by multiple procs
-! and then update these values
       call sumsharedppplvecvals(temp)
 !
 !.....perform LU backsubstitution to get outarray solution
@@ -369,12 +364,15 @@ c$$$      return
 ! 
       if(.not.first_time) go to 500
       first_time = .false.
+
+      if(myrank.eq.0 .and. iprint.eq.1)
+     &     print *, "  defining smoother3 matrix"
 !
 !
 !.....compute LU decomposition only once
 !
 !.....form matrix
-      call zerosuperlumatrix(s7matrix_sm,icomplex,numvar2_numbering)
+      call zerosuperlumatrix(s7matrix_sm,icomplex,numvarsm)
       do itri=1,numelms
 !         call getdeex(itri,deex)
          call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))

@@ -974,6 +974,119 @@ end subroutine strauss_per
 end module strauss
 
 
+!==============================================================================
+! Circular magnetic field equilibrium (for parallel conduction tests)
+!==============================================================================
+module circular_field
+
+  real :: alx, alz, xmin, zmin
+
+contains
+
+subroutine circular_field_init()
+  use basic
+  use arrays
+
+  implicit none
+
+  integer :: l, numnodes
+  real :: x, z
+  double precision :: coords(3)
+
+  call getmincoord(xmin, zmin)
+  call getboundingboxsize(alx, alz)
+
+  call numnod(numnodes)
+  do l=1, numnodes
+     call xyznod(l, coords)
+
+     x = coords(1) - xmin - alx/2.
+     z = coords(2) - zmin - alz/2.
+
+     call assign_local_pointers(l)
+
+     call circular_field_equ(x, z)
+     call circular_field_per(x, z)
+  enddo
+
+end subroutine circular_field_init
+
+subroutine circular_field_equ(x, z)
+  use basic
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x, z
+  real :: ss
+
+  ss = min(alx,alz)/10.
+
+  u0_l = 0.
+  vz0_l = 0.
+  chi0_l = 0.
+
+  psi0_l(1) = x**2 + z**2
+  psi0_l(2) = 2.*x
+  psi0_l(3) = 2.*z
+  psi0_l(4) = 2.
+  psi0_l(5) = 0.
+  psi0_l(6) = 2.
+!!$  psi0_l(1) = exp(-(x**2+z**2)/(2.*ss**2))
+!!$  psi0_l(2) = -x*psi0_l(1)/ss**2
+!!$  psi0_l(3) = -z*psi0_l(1)/ss**2
+!!$  psi0_l(4) = ((x/ss)**2 - 1.)*psi0_l(1)/ss**2
+!!$  psi0_l(5) =  x*z*psi0_l(1)/ss**4
+!!$  psi0_l(6) = ((z/ss)**2 - 1.)*psi0_l(1)/ss**2
+
+
+  call constant_field(bz0_l , bzero)
+  call constant_field(p0_l  , p0)
+  call constant_field(pe0_l , p0-pi0*idens)
+  call constant_field(den0_l, 1.)
+
+end subroutine circular_field_equ
+
+
+subroutine circular_field_per(x, z)
+  use basic
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x, z
+
+  real :: x0,z0
+
+  x0 = 1.
+  z0 = 0.
+
+  u1_l = 0.
+  vz1_l = 0.
+  chi1_l = 0.
+
+  psi1_l = 0.
+  bz1_l = 0.
+
+  p1_l(1) = eps*exp(-((x-x0)**2+z**2)/(2.*ln**2))
+  p1_l(2) = -(x-x0)*p1_l(1)/ln**2
+  p1_l(3) = -(z-z0)*p1_l(1)/ln**2
+  p1_l(4) = (((x-x0)/ln)**2 - 1.)*p1_l(1)/ln**2
+  p1_l(5) =  (x-x0)*(z-z0)*p1_l(1)/ln**4
+  p1_l(6) = (((z-z0)/ln)**2 - 1.)*p1_l(1)/ln**2
+
+  if(ipres.eq.1) then
+     pe1_l = pefac*p1_l
+  else
+     pe1_l = p1_l
+  endif
+
+  den1_l = 0.
+
+end subroutine circular_field_per
+
+end module circular_field
+
 
 !==============================================================================
 ! Magnetorotational Equilibrium (itor = 1, itaylor = 2)
@@ -1108,6 +1221,7 @@ subroutine initial_conditions()
   use mri
   use grav
   use strauss
+  use circular_field
 
   implicit none
 
@@ -1128,6 +1242,8 @@ subroutine initial_conditions()
         call grav_init()
      case(6)
         call strauss_init()
+     case(7)
+        call circular_field_init()
      end select
   else
      ! toroidal equilibria

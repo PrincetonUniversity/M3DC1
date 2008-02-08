@@ -2199,15 +2199,14 @@ vectype function b1psieta(e,f,g,h)
         temp = temp - 2.*int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),weight_79,79)
      endif
 
-     temp79a = e(:,OP_1)*g(:,OP_LP) + e(:,OP_LP)*g(:,OP_1) &
-          + 2.*(e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR))
+     if(hyper.ne.0) then
+        temp79a = e(:,OP_1)*g(:,OP_LP) + e(:,OP_LP)*g(:,OP_1) &
+             + 2.*(e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR))
 
-!!$!     if(itor.eq.1) temp79a = temp79a + 2.*ri_79* &
-!!$!          (e(:,OP_DR)*g(:,OP_1) + e(:,OP_1)*g(:,OP_DR))
-
-     temp = temp - int3(temp79a,f(:,OP_GS),h(:,OP_1),weight_79,79)
-     if(itor.eq.1) temp = temp + &
-          2.*int4(ri_79,temp79a,f(:,OP_DR),h(:,OP_1),weight_79,79)
+        temp = temp - int3(temp79a,f(:,OP_GS),h(:,OP_1),weight_79,79)
+        if(itor.eq.1) temp = temp + &
+             2.*int4(ri_79,temp79a,f(:,OP_DR),h(:,OP_1),weight_79,79)
+     endif
   else
      temp = int4(ri2_79,g(:,OP_1),e(:,OP_GS),f(:,OP_GS),weight_79,79)
 #ifdef USECOMPLEX
@@ -4619,6 +4618,103 @@ real function grav_pot()
   grav_pot = real(temp)
   return
 end function grav_pot
+
+
+!======================================================================
+! Toroidal (angular) momentum
+!======================================================================
+
+! torque_em
+! ~~~~~~~~~
+vectype function torque_em()
+  use nintegrate_mod
+
+  implicit none
+
+  vectype :: temp
+
+  temp = int3(ri_79,bzt79(:,OP_DZ),pst79(:,OP_DR),weight_79,79) &
+       - int3(ri_79,bzt79(:,OP_DR),pst79(:,OP_DZ),weight_79,79)
+  
+  torque_em = temp
+end function torque_em
+
+! torque_sol
+! ~~~~~~~~~~
+vectype function torque_sol()
+  use nintegrate_mod
+
+  implicit none
+
+  vectype :: temp
+
+  temp = int4(ri_79,pht79(:,OP_DZ),vzt79(:,OP_DR),nt79(:,OP_1 ),weight_79,79) &
+       - int4(ri_79,pht79(:,OP_DR),vzt79(:,OP_DZ),nt79(:,OP_1 ),weight_79,79) &
+       + int4(ri_79,pht79(:,OP_DZ),vzt79(:,OP_1 ),nt79(:,OP_DR),weight_79,79) &
+       - int4(ri_79,pht79(:,OP_DR),vzt79(:,OP_1 ),nt79(:,OP_DZ),weight_79,79)
+  
+  torque_sol = temp
+end function torque_sol
+
+! torque_com
+! ~~~~~~~~~~
+vectype function torque_com()
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype :: temp
+
+  if(numvar.lt.3) then
+     torque_com = 0.
+     return
+  end if
+
+  temp = int3(cht79(:,OP_DZ),vzt79(:,OP_DZ),nt79(:,OP_1 ),weight_79,79) &
+       + int3(cht79(:,OP_DR),vzt79(:,OP_DR),nt79(:,OP_1 ),weight_79,79) &
+       + int3(cht79(:,OP_DZ),vzt79(:,OP_1 ),nt79(:,OP_DZ),weight_79,79) &
+       + int3(cht79(:,OP_DR),vzt79(:,OP_1 ),nt79(:,OP_DR),weight_79,79) &
+       + int3(cht79(:,OP_LP),vzt79(:,OP_1 ),nt79(:,OP_1 ),weight_79,79)
+  
+  torque_com = -temp
+end function torque_com
+
+
+! torque_visc
+! ~~~~~~~~~~~
+vectype function torque_visc()
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype :: temp
+
+  temp = int2(vzt79(:,OP_DZ),vis79(:,OP_DZ),weight_79,79) &
+       + int2(vzt79(:,OP_DR),vis79(:,OP_DR),weight_79,79) &
+       + int2(vzt79(:,OP_LP),vis79(:,OP_1 ),weight_79,79)
+
+  if(itor.eq.1) then
+     temp = temp - 2.*int3(ri_79,vzt79(:,OP_1),vis79(:,OP_DR),weight_79,79)
+  endif
+
+  torque_visc = temp
+end function torque_visc
+
+
+! torque_gyro
+! ~~~~~~~~~~~
+vectype function torque_gyro()
+  use nintegrate_mod
+
+  implicit none
+
+  vectype :: temp
+
+  torque_gyro = 0.
+end function torque_gyro
+
 
 end module metricterms_new
 
