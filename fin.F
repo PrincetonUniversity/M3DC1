@@ -250,6 +250,7 @@
 !
 !.....1 = don't advance velocity
       istatic = 0
+      iestatic = 0
 !
 !.....1 = conserve toroidal flux
       iconstflux = 0

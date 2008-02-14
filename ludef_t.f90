@@ -18,7 +18,6 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
   vectype, dimension(4+i3d), intent(out) :: rrterm, qqterm
   integer, intent(in) :: advfield   ! if advfield = 1, eliminate rrterm by
                                     ! using analytic form of advanced field
-  vectype :: parvisc
   vectype :: temp
   real :: ththm
 
@@ -312,21 +311,23 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
 
   ! Parallel Viscosity
   if(amupar.ne.0) then
-     call PVS1(lin,temp79b)
-     parvisc = int2(vic79(:,OP_1),temp79b,weight_79,79)
+     call PVV1(trial,temp79b)
 
-     temp = PVV1(trial)*parvisc
+     call PVS1(lin,temp79c)
+     temp = int3(vip79(:,OP_1),temp79b,temp79c,weight_79,79)
      ssterm(1) = ssterm(1) +     thimp     *dt*temp
      ddterm(1) = ddterm(1) - (1.-thimp*bdf)*dt*temp
 
      if(numvar.ge.2) then
-        temp = PVV2(trial)*parvisc
+        call PVS2(lin,temp79c)
+        temp = int3(vip79(:,OP_1),temp79b,temp79c,weight_79,79)
         ssterm(2) = ssterm(2) +     thimp     *dt*temp
         ddterm(2) = ddterm(2) - (1.-thimp*bdf)*dt*temp
      endif
 
      if(numvar.ge.3) then
-        temp = PVV3(trial)*parvisc
+        call PVS3(lin,temp79c)
+        temp = int3(vip79(:,OP_1),temp79b,temp79c,weight_79,79)
         ssterm(3) = ssterm(3) +     thimp     *dt*temp
         ddterm(3) = ddterm(3) - (1.-thimp*bdf)*dt*temp
      endif
@@ -383,7 +384,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
   vectype, dimension(4+i3d), intent(out) :: rrterm, qqterm
   integer, intent(in) :: advfield
 
-  real :: temp, parvisc
+  real :: temp
   real :: ththm
 
   if(imp_mod.eq.1) then
@@ -566,21 +567,23 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
 
   ! Parallel Viscosity
   if(amupar.ne.0) then
-     call PVS2(lin,temp79b)
-     parvisc = int2(vic79(:,OP_1),temp79b,weight_79,79)
+     call PVV2(trial,temp79b)
 
-     temp = PVV1(trial)*parvisc
+     call PVS1(lin,temp79c)
+     temp = int3(vip79(:,OP_1),temp79b,temp79c,weight_79,79)
      ssterm(1) = ssterm(1) +     thimp     *dt*temp
      ddterm(1) = ddterm(1) - (1.-thimp*bdf)*dt*temp
 
      if(numvar.ge.2) then
-        temp = PVV2(trial)*parvisc
+        call PVS2(lin,temp79c)
+        temp = int3(vip79(:,OP_1),temp79b,temp79c,weight_79,79)
         ssterm(2) = ssterm(2) +     thimp     *dt*temp
         ddterm(2) = ddterm(2) - (1.-thimp*bdf)*dt*temp
      endif
 
      if(numvar.ge.3) then
-        temp = PVV3(trial)*parvisc
+        call PVS3(lin,temp79c)
+        temp = int3(vip79(:,OP_1),temp79b,temp79c,weight_79,79)
         ssterm(3) = ssterm(3) +     thimp     *dt*temp
         ddterm(3) = ddterm(3) - (1.-thimp*bdf)*dt*temp
      endif
@@ -631,7 +634,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
   vectype, dimension(4+i3d), intent(out) :: rrterm, qqterm
   integer, intent(in) :: advfield
 
-  real :: temp, parvisc
+  real :: temp
   real :: ththm
 
   if(imp_mod.eq.1) then
@@ -833,21 +836,23 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
 
   ! Parallel Viscosity
   if(amupar.ne.0) then
-     call PVS3(lin,temp79b)
-     parvisc = int2(vic79(:,OP_1),temp79b,weight_79,79)
+     call PVV3(trial,temp79b)
 
-     temp = PVV1(trial)*parvisc
+     call PVS1(lin,temp79c)
+     temp = int3(vip79(:,OP_1),temp79b,temp79c,weight_79,79)
      ssterm(1) = ssterm(1) +     thimp     *dt*temp
      ddterm(1) = ddterm(1) - (1.-thimp*bdf)*dt*temp
 
      if(numvar.ge.2) then
-        temp = PVV2(trial)*parvisc
+        call PVS2(lin,temp79c)
+        temp = int3(vip79(:,OP_1),temp79b,temp79c,weight_79,79)
         ssterm(2) = ssterm(2) +     thimp     *dt*temp
         ddterm(2) = ddterm(2) - (1.-thimp*bdf)*dt*temp
      endif
 
      if(numvar.ge.3) then
-        temp = PVV3(trial)*parvisc
+        call PVS3(lin,temp79c)
+        temp = int3(vip79(:,OP_1),temp79b,temp79c,weight_79,79)
         ssterm(3) = ssterm(3) +     thimp     *dt*temp
         ddterm(3) = ddterm(3) - (1.-thimp*bdf)*dt*temp
      endif
@@ -878,7 +883,7 @@ subroutine compression_nolin(trial, r4term)
         r4term = r4term + thimp*dt*dt* &
              (v3ungrav   (trial,ph079,n179) &
              +v3chingrav (trial,ch079,n179)) ! &
-!!$             +v3ndenmgrav(trial,n179, denm))
+!             +v3ndenmgrav(trial,n179, denm))
      endif
      r4term = r4term + dt* &
           (v3uun    (trial,ph079,ph079,n179) &
@@ -1428,7 +1433,7 @@ subroutine electron_pressure_nolin(trial, r4term)
 
   ! source terms
   ! ~~~~~~~~~~~~
-  ! ohmic heating
+  ! hyper-ohmic heating
   r4term = r4term + dt*(gam-1.)* &
        (qpsipsieta(trial) &
        +qbbeta    (trial))
@@ -1597,8 +1602,8 @@ subroutine ludefall
      
      ! add element's contribution to matrices
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     call ludefvel_n(itri)
-     call ludefphi_n(itri)
+     if(istatic.eq.0) call ludefvel_n(itri)
+     if(iestatic.eq.0) call ludefphi_n(itri)
      if(idens.eq.1) call ludefden_n(itri)
      if(ipres.eq.1) call ludefpres_n(itri)
      if(myrank.eq.0 .and. itimer.eq.1) then
@@ -1686,6 +1691,7 @@ subroutine ludefvel_n(itri)
   vectype :: temp
 
   integer :: vv1, vv0, vb1, vb0, vn1, vn0, vf0
+  integer :: advfield
   vectype, pointer :: vsource(:)
 
   if(isplitstep.eq.1) then
@@ -1706,6 +1712,12 @@ subroutine ludefvel_n(itri)
      vsource => q4
   endif
 
+  if(isplitstep.eq.1 .and. iestatic.eq.0) then
+     advfield = 1 
+  else 
+     advfield = 0
+  endif
+
   do i=1,18
 
      i1 = isvaln(itri,i)
@@ -1714,17 +1726,22 @@ subroutine ludefvel_n(itri)
         j1 = isvaln(itri,j)
 
         call vorticity_lin(g79(:,:,i),g79(:,:,j), &
-             ssterm(1,:),ddterm(1,:),rrterm(1,:),qqterm(1,:),isplitstep)
+             ssterm(1,:),ddterm(1,:),rrterm(1,:),qqterm(1,:),advfield)
         if(numvar.ge.2) then
            call axial_vel_lin(g79(:,:,i),g79(:,:,j), &
-                ssterm(2,:),ddterm(2,:),rrterm(2,:),qqterm(2,:),isplitstep)
+                ssterm(2,:),ddterm(2,:),rrterm(2,:),qqterm(2,:),advfield)
         endif
         if(numvar.ge.3) then
            call compression_lin(g79(:,:,i),g79(:,:,j), &
-                ssterm(3,:),ddterm(3,:),rrterm(3,:),qqterm(3,:),isplitstep)
+                ssterm(3,:),ddterm(3,:),rrterm(3,:),qqterm(3,:),advfield)
         endif
 
-        if(isplitstep.eq.0) rrterm = -rrterm
+        if(iestatic.eq.1) then 
+           rrterm = 0.
+           qqterm = 0.
+        else if(isplitstep.eq.0) then
+           rrterm = -rrterm
+        end if
 
         call insertval2(vv1,ssterm(1,1),icomplex,i1+  u_off,j1+  u_off,1)
         call insertval2(vv0,ddterm(1,1),icomplex,i1+  u_off,j1+  u_off,1)

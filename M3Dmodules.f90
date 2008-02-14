@@ -115,6 +115,7 @@ module basic
   integer :: imp_mod
   integer :: igauge
   integer :: istatic     ! 1 = do not advance velocity
+  integer :: iestatic    ! 1 = do not advance fields
   real :: dt             ! timestep
   real :: thimp          ! implicitness parameter (for Crank-Nicholson)
   real :: thimp_ohm      ! implicitness parameter for ohmic heating
@@ -171,7 +172,7 @@ module basic
        expn,q0,divertors,xdiv,zdiv,divcur,th_gs,p1,p2,p_edge,  &
        idevice,igs,th_gs,                                      &
        iconstflux,regular,max_ke,                              &
-       ntor,iadapt,istatic
+       ntor,iadapt,istatic,iestatic
 
   !     derived quantities
   real :: pi,dbf,bdf,hypv,hypc,hypf,hypi,hypp,   &

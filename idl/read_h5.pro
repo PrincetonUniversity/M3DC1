@@ -536,6 +536,9 @@ function translate, name, units=units
    endif else if(strcmp(name, 'energy', /fold_case) eq 1) then begin
        units = b0+sq+l0+cu+'/'+pi4
        return, "!8E!X"
+   endif else if(strcmp(name, 'omega', /fold_case) eq 1) then begin
+       units = t0 + '!U!6-1!N!X' 
+       return, "!7x!X"
    endif  
 
    return, "!8" + name
@@ -564,7 +567,9 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
        trange = [0,nt-1]
    endif else if(n_elements(time) eq 1) then begin
        trange = [time, time]
-   endif
+   endif else begin
+       trange = time
+   endelse
 
    if((trange[0] ge nt) or (trange[1] ge nt)) then begin
        print, "Error: there are only ", nt-1, " time slices."
@@ -793,13 +798,13 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
    ;===========================================
    ; vorticity
    ;===========================================
-;     endif else if(strcmp('vor', name, /fold_case) eq 1) then begin
+     endif else if(strcmp('vor', name, /fold_case) eq 1) then begin
 
-;         phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
-;                          filename=filename, points=pts, $
-;                          rrange=xrange, zrange=yrange)
+         phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                          filename=filename, points=pts, $
+                          rrange=xrange, zrange=yrange)
 
-;         data = grad_shafranov(phi,x,y,tor=itor)
+         data = grad_shafranov(phi,x,y,tor=itor)
 
    ;===========================================
    ; divergence
@@ -832,6 +837,18 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
        bp = sqrt(s_bracket(psi,psi,x,y)/r^2)
 
        data = 2.*3.14159*(r * bp) / minor_r * bt
+
+   ;===========================================
+   ; angular velocity
+   ;===========================================
+   endif else if(strcmp('omega', name, /fold_case) eq 1) then begin
+
+         v = read_field('v', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+
+         r = radius_matrix(x,y,t)
+         data = grad_shafranov(v/r^2,x,y,tor=itor)
 
    endif else begin
 

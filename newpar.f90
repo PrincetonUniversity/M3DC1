@@ -208,6 +208,8 @@ Program Reducedquintic
 
         print *, 'adapting mesh...'
 #ifdef USECOMPLEX
+        call checkppplveccreated(vor, i)
+        print *, 'vec created?', i
         call hessianadapt(vor, 1, 0, ntime, factor, hmin, hmax) 
 #else
         call hessianadapt(vor, 1, ntime, factor, hmin, hmax)

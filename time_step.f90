@@ -437,81 +437,86 @@ subroutine split_step(calc_matrices)
   !
   ! Advance Fields
   ! ==============
-  
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Fields"
-  
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  
-  ! b2vector = r2matrix_sm * vel(n+1)
-  call matrixvectormult(r2matrix_sm,vel,b2vector)
-  
-  ! b3vector = q2matrix_sm * vel(n)
-  call matrixvectormult(q2matrix_sm,veln,b3vector)
-  
-  ! b1vector = r2matrix_sm * vel(n-1)
-  if(integrator.eq.1 .and. ntime.gt.1) then
-     b2vector = 1.5*b2vector
-     call matrixvectormult(r2matrix_sm,veloldn,b1vector)
-     b1vector = 0.5*b1vector
-  else
-     b1vector = 0.
-  endif
-  
-  ! vtemp = d2matrix_sm * phi(n)
-  vtemp = 0.
-  call matrixvectormult(d2matrix_sm,phi,vtemp)
-  
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_mvm = t_mvm + tend - tstart
-  endif
-  
-  vtemp = vtemp + b2vector + b3vector + q4  + b1vector   
 
-  ! Include linear f terms
-  if(numvar.ge.2 .and. i3d.eq.1) then
-     ! b2vector = r15 * bf(n)
+  if(iestatic.eq.0) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Fields"
+  
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+  
+     ! b2vector = r2matrix_sm * vel(n+1)
+     call matrixvectormult(r2matrix_sm,vel,b2vector)
+  
+     ! b3vector = q2matrix_sm * vel(n)
+     call matrixvectormult(q2matrix_sm,veln,b3vector)
+  
+     ! b1vector = r2matrix_sm * vel(n-1)
+     if(integrator.eq.1 .and. ntime.gt.1) then
+        b2vector = 1.5*b2vector
+        call matrixvectormult(r2matrix_sm,veloldn,b1vector)
+        b1vector = 0.5*b1vector
+     else
+        b1vector = 0.
+     endif
+  
+     ! vtemp = d2matrix_sm * phi(n)
+     vtemp = 0.
+     call matrixvectormult(d2matrix_sm,phi,vtemp)
      
-     ! make a larger vector that can be multiplied by a numvar=3 matrix
-     phip = 0.
-     do l=1,numnodes
-        call entdofs(1, l, 0, ibegin, iendplusone)
-        call entdofs(vecsize, l, 0, ibeginnv, iendplusonenv)
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_mvm = t_mvm + tend - tstart
+     endif
+  
+     vtemp = vtemp + b2vector + b3vector + q4  + b1vector   
+
+     ! Include linear f terms
+     if(numvar.ge.2 .and. i3d.eq.1) then
+        ! b2vector = r15 * bf(n)
         
-        phip(ibeginnv  :ibeginnv+5) = bf(ibegin:ibegin+5)
-     enddo
-     call matrixvectormult(o2matrix_sm,phip,b2vector)
-     vtemp = vtemp + b2vector
-  endif
+        ! make a larger vector that can be multiplied by a numvar=3 matrix
+        phip = 0.
+        do l=1,numnodes
+           call entdofs(1, l, 0, ibegin, iendplusone)
+           call entdofs(vecsize, l, 0, ibeginnv, iendplusonenv)
+           
+           phip(ibeginnv  :ibeginnv+5) = bf(ibegin:ibegin+5)
+        enddo
+        call matrixvectormult(o2matrix_sm,phip,b2vector)
+        vtemp = vtemp + b2vector
+     endif
   
-  ! Insert boundary conditions
-  if(calc_matrices.eq.1) then
-     call boundary_mag(s2matrix_sm, vtemp)
-     call finalizematrix(s2matrix_sm)
-  else 
-     call boundary_mag(0, vtemp)
-  endif
+     ! Insert boundary conditions
+     if(calc_matrices.eq.1) then
+        call boundary_mag(s2matrix_sm, vtemp)
+        call finalizematrix(s2matrix_sm)
+     else 
+        call boundary_mag(0, vtemp)
+     endif
   
-  ! solve linear system...LU decomposition done first time
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     ! solve linear system...LU decomposition done first time
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   
-  call solve(s2matrix_sm, vtemp, jer)
+     call solve(s2matrix_sm, vtemp, jer)
+     
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_solve_b = t_solve_b + tend - tstart
+     endif
+     if(jer.ne.0) then
+        write(*,*) 'Error in field solve', jer
+        call safestop(29)
+     endif
   
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_solve_b = t_solve_b + tend - tstart
+     ! new field solution at time n+1 (or n* for second order advance)
+     if(integrator.eq.1 .and. ntime.gt.1) then
+        vtemp = (2.*vtemp - phiold)/3.
+     endif
+     phiold = phi
+     phi = vtemp
+  else
+     phiold = phi
   endif
-  if(jer.ne.0) then
-     write(*,*) 'Error in field solve', jer
-     call safestop(29)
-  endif
-  
-  ! new field solution at time n+1 (or n* for second order advance)
-  if(integrator.eq.1 .and. ntime.gt.1) then
-     vtemp = (2.*vtemp - phiold)/3.
-  endif
-  phiold = phi
-  phi = vtemp
+
   
 end subroutine split_step
 
