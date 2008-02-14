@@ -3212,10 +3212,9 @@ subroutine PVS1(i,o)
        +pst79(:,OP_DR)*pst79(:,OP_DZ)*(i(:,OP_DZZ) - i(:,OP_DRR)))
 
   if(itor.eq.1) then
-     o = o + ri2_79*pst79(:,OP_DZ) * &
-          (i(:,OP_DZ)*pst79(:,OP_DZ) + i(:,OP_DR)*pst79(:,OP_DR))
-     if(numvar.ge.2) o = o &
-          - ri2_79*i(:,OP_DZ)*bzt79(:,OP_1)**2
+     o = o + ri2_79*(pst79(:,OP_DZ) * &
+          (i(:,OP_DZ)*pst79(:,OP_DZ) + i(:,OP_DR)*pst79(:,OP_DR)) &
+          - i(:,OP_DZ)*bzt79(:,OP_1)**2)
   end if
 
   o = o * ri2_79*b2i79(:,OP_1)
@@ -3267,60 +3266,70 @@ end subroutine PVS3
 
 ! PVV1
 ! ====
-vectype function PVV1(e)
+subroutine PVV1(e,o)
   use basic
   use nintegrate_mod
 
   vectype, intent(in), dimension(79,OP_NUM) :: e
+  vectype, intent(out), dimension(79) :: o
   
-  temp79a = (e(:,OP_DZZ) - e(:,OP_DRR))*pst79(:,OP_DR)*pst79(:,OP_DZ) &
+  o =   (e(:,OP_DZZ) - e(:,OP_DRR))*pst79(:,OP_DR)*pst79(:,OP_DZ) &
        + e(:,OP_DRZ)*(pst79(:,OP_DR)**2 - pst79(:,OP_DZ)**2)
 
   if(itor.eq.1) then
-     temp79a = temp79a + ri_79* &
-          (e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR))
+     o = o + ri_79* &
+          (e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR) &
+          -2.*(e(:,OP_DZ)*(pst79(:,OP_DZ)**2 - e(:,OP_DR)*pst79(:,OP_DR)**2) &
+               +2.*e(:,OP_DR)*pst79(:,OP_DR)*pst79(:,OP_DZ)) &
+          +e(:,OP_DZ)*bzt79(:,OP_1)**2)
   endif
 
-  PVV1 = 3.*int3(ri_79,b2i79(:,OP_1),temp79a,weight_79,79)
-
-end function PVV1
+  o = 3.*ri_79*b2i79(:,OP_1)*o
+end subroutine  PVV1
 
 ! PVV2
 ! ====
-vectype function PVV2(e)
+subroutine PVV2(e,o)
   use basic
   use nintegrate_mod
 
   vectype, intent(in), dimension(79,OP_NUM) :: e
+  vectype, intent(out), dimension(79) :: o
 
-  if(itor.eq.1) then
-     PVV2 = -int4(ri2_79,bzt79(:,OP_1),bzt79(:,OP_1),e(:,OP_DZ),weight_79,79)
-  else 
-     PVV2 = 0.
-  endif
-
-end function PVV2
+  o = 3.*ri_79*b2i79(:,OP_1)*bzt79(:,OP_1)* &
+       (e(:,OP_DZ)*pst79(:,OP_DR) - e(:,OP_DR)*pst79(:,OP_DZ))
+end subroutine  PVV2
 
 
 ! PVV3
 ! ====
-vectype function PVV3(e)
+subroutine PVV3(e,o)
   use basic
   use nintegrate_mod
 
   vectype, intent(in), dimension(79,OP_NUM) :: e
-  
-  if(itor.eq.0) then
-     PVV3 = 0.
-     return
+  vectype, intent(out), dimension(79) :: o
+
+  o = (1. - 3.*ri2_79*b2i79(:,OP_1)* &
+       (pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2)) * e(:,OP_LP) &
+      - 3.*ri2_79*b2i79(:,OP_1)* &
+      (e(:,OP_DZ)* &
+       (pst79(:,OP_DZ)*pst79(:,OP_DZZ) + pst79(:,OP_DR)*pst79(:,OP_DRZ)) &
+      +e(:,OP_DR)* &
+       (pst79(:,OP_DZ)*pst79(:,OP_DRZ) + pst79(:,OP_DR)*pst79(:,OP_DRR)) &
+      -pst79(:,OP_DZ)* &
+       (pst79(:,OP_DZZ)*e(:,OP_DZ ) + pst79(:,OP_DRZ)*e(:,OP_DR ) &
+       +pst79(:,OP_DZ )*e(:,OP_DZZ) + pst79(:,OP_DR )*e(:,OP_DRZ)) &
+      -pst79(:,OP_DR)* &
+       (pst79(:,OP_DRZ)*e(:,OP_DZ ) + pst79(:,OP_DRR)*e(:,OP_DR ) &
+       +pst79(:,OP_DZ )*e(:,OP_DRZ) + pst79(:,OP_DR )*e(:,OP_DRR)))
+
+  if(itor.eq.1) then
+     o = o + 3*ri3_79*b2i79(:,OP_1)*e(:,OP_DR)* &
+          (pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2 - bzt79(:,OP_1)**2)
   endif
 
-  temp79a = e(:,OP_DZ)*(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2) &
-       +2.*e(:,OP_DR)*pst79(:,OP_DR)*pst79(:,OP_DZ)
-
-  PVV3 = -2.*int2(ri2_79,temp79a,weight_79,79)
-
-end function PVV3
+end subroutine  PVV3
 
 
 ! P1vip

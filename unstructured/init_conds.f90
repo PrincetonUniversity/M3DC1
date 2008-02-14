@@ -1075,6 +1075,10 @@ subroutine circular_field_per(x, z)
   p1_l(5) =  (x-x0)*(z-z0)*p1_l(1)/ln**4
   p1_l(6) = (((z-z0)/ln)**2 - 1.)*p1_l(1)/ln**2
 
+  ! for viscosity test..
+  vz1_l = p1_l
+  p1_l = 0.
+
   if(ipres.eq.1) then
      pe1_l = pefac*p1_l
   else
