@@ -606,22 +606,25 @@ subroutine calculate_scalars()
      ! Calculate toroidal (angular) momentum
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      if(numvar.ge.2) then
-!!$        tmom = tmom &
-!!$             + int3(ri_79,vzt79(:,OP_1),nt79(:,OP_1),        weight_79,79)
-!!$        pmom = pmom &
-!!$             + int4(ri_79,vzt79(:,OP_1),nt79(:,OP_1),temp79a,weight_79,79)
-
-        tmom = tmom &
-             + int2(vzt79(:,OP_1),nt79(:,OP_1),        weight_79,79)
-        pmom = pmom &
-             + int3(vzt79(:,OP_1),nt79(:,OP_1),temp79a,weight_79,79)
+        select case(ivform)
+        case(0)
+           tmom = tmom &
+                + int2(vzt79(:,OP_1),nt79(:,OP_1),        weight_79,79)
+           pmom = pmom &
+                + int3(vzt79(:,OP_1),nt79(:,OP_1),temp79a,weight_79,79)
+        case(1)
+           tmom = tmom &
+                + int3(r2_79,vzt79(:,OP_1),nt79(:,OP_1),        weight_79,79)
+           pmom = pmom &
+                + int4(r2_79,vzt79(:,OP_1),nt79(:,OP_1),temp79a,weight_79,79)
+        end select
 
         ! fluxes
-        tau_em   = torque_em()
-        tau_sol  = torque_sol()
-        tau_com  = torque_com()
-        tau_visc = torque_visc()
-        tau_gyro = torque_gyro()
+        tau_em   = tau_em   + torque_em()
+        tau_sol  = tau_sol  + torque_sol()
+        tau_com  = tau_com  + torque_com()
+        tau_visc = tau_visc + torque_visc()
+        tau_gyro = tau_gyro + torque_gyro()
      endif
      
   end do

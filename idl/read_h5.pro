@@ -898,6 +898,16 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
 
    end
 
+   if(strcmp(thisname, "V", /fold_case) eq 1) then begin
+       ivform = read_parameter('ivform',filename=filename)
+       if(ivform eq 1) then begin
+           print, "ivform = 1"
+           r = radius_matrix(x,y,t)
+           data = data*r^2
+       end
+   end
+
+
    if(n_elements(h_symmetry) eq 1) then begin
        data = (data + h_symmetry*reverse(data, 2)) / 2.
    endif
@@ -1655,7 +1665,7 @@ pro plot_timings, filename=filename, overplot=overplot, _EXTRA=extra
    if(keyword_set(overplot)) then begin
        oplot, timings.t_onestep._data
    endif else begin
-       plot, timings.t_onestep._data, title='!6Timings!3', $
+       plot, timings.t_onestep._data>0, title='!6Timings!3', $
          xtitle='!6Time Step!3', ytitle='!8t!6 (s)!3', _EXTRA=extra
    endelse
    oplot, timings.t_ludefall._data, linestyle=2, color=30

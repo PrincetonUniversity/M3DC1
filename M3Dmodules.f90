@@ -98,7 +98,7 @@ module basic
   real :: q0          ! safety factor at magnetic axis
   real :: th_gs       ! relaxation factor
 
-  ! numerical parameters
+  ! model options
   integer :: linear      ! 1 = linear simulation; 0 = nonlinear simulation
   integer :: eqsubtract  ! 1 = subtract equilibrium in noninear simulations
   integer :: numvar      ! 1 = 2-field; 2 = reduced MHD; 3 = compressible MHD
@@ -107,15 +107,19 @@ module basic
   integer :: gyro        ! include gyroviscosity
   integer :: jadv        ! 1 = use current density equation, not flux equation
   integer :: isources    ! 1 = include "source" terms in velocity advance
+  integer :: istatic     ! 1 = do not advance velocity
+  integer :: iestatic    ! 1 = do not advance fields
+  integer :: igauge
+  integer :: ivform      ! 0: V = v grad(phi).  1: V = R^2 v grad(phi)
+
+
+  ! numerical parameters
   integer :: ntimemax    ! number of timesteps
   integer :: nskip       ! number of timesteps per matrix recalculation
   integer :: iconstflux  ! 1 = conserve toroidal flux
   integer :: integrator  ! 0 = Crank-Nicholson, 1 = BDF2
   integer :: isplitstep  ! 1 = do timestep splitting
   integer :: imp_mod
-  integer :: igauge
-  integer :: istatic     ! 1 = do not advance velocity
-  integer :: iestatic    ! 1 = do not advance fields
   real :: dt             ! timestep
   real :: thimp          ! implicitness parameter (for Crank-Nicholson)
   real :: thimp_ohm      ! implicitness parameter for ohmic heating
@@ -172,7 +176,7 @@ module basic
        expn,q0,divertors,xdiv,zdiv,divcur,th_gs,p1,p2,p_edge,  &
        idevice,igs,th_gs,                                      &
        iconstflux,regular,max_ke,                              &
-       ntor,iadapt,istatic,iestatic
+       ntor,iadapt,istatic,iestatic, ivform
 
   !     derived quantities
   real :: pi,dbf,bdf,hypv,hypc,hypf,hypi,hypp,   &
