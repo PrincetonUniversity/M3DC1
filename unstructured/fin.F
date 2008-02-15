@@ -124,6 +124,9 @@
       imp_mod = 1
       igauge = 0
 !
+!.....form of toroidal velocity
+      ivform = 0
+!
 !.....number of grad-shafranov iterations
       igs = 80
 !
