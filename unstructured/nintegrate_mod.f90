@@ -865,9 +865,13 @@ subroutine define_fields_79(itri, fields)
 
      call calcavector(itri, kappa, 1, 1, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, kap79)
-     
-     kar79 = 0.
-     kar79(:,OP_1) = kappar
+
+     if(ikapscale.eq.1) then
+        kar79 = kappar*kap79
+     else
+        kar79 = 0.
+        kar79(:,OP_1) = kappar
+     endif
      kax79 = 0.
      kax79(:,OP_1) = kappax
   end if

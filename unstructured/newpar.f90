@@ -180,10 +180,19 @@ Program Reducedquintic
    
   ! create the newvar matrices
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Generating newvar matrices..."
-  call create_matrix(mass_matrix_dc, NV_DCBOUND, NV_MASS_MATRIX)
-  call create_matrix(mass_matrix   , NV_NOBOUND, NV_MASS_MATRIX)
-  if(i3d.eq.1) &
-       call create_matrix(poisson_matrix, NV_DCBOUND, NV_POISSON_MATRIX)
+  call create_matrix(mass_matrix_lhs_dc,    NV_DCBOUND, NV_I_MATRIX,  NV_LHS)
+  call create_matrix(mass_matrix_lhs,       NV_NOBOUND, NV_I_MATRIX,  NV_LHS)
+  call create_matrix(gs_matrix_rhs_dc,      NV_DCBOUND, NV_GS_MATRIX, NV_RHS)
+  if(numvar.ge.3 .and. hyperc.ne.0 .and. com_bc.eq.0) then
+     call create_matrix(lp_matrix_rhs,      NV_NOBOUND, NV_LP_MATRIX, NV_RHS)
+  endif
+  if(numvar.ge.3 .and. hyperc.ne.0 .and. com_bc.eq.1) then
+     call create_matrix(lp_matrix_rhs_dc,   NV_DCBOUND, NV_LP_MATRIX, NV_RHS)
+  end if
+  if(i3d.eq.1) then
+     call create_matrix(poisson_matrix_lhs, NV_DCBOUND, NV_LP_MATRIX, NV_LHS)
+     call create_matrix(bf_matrix_rhs_dc,   NV_DCBOUND, NV_BF_MATRIX, NV_RHS)
+  endif
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, "Done generating newvar matrices."
 
@@ -288,8 +297,11 @@ Program Reducedquintic
 
 
 !     free memory from sparse matrices
-  call deletematrix(mass_matrix)
-  call deletematrix(mass_matrix_dc)
+  call deletematrix(mass_matrix_lhs)
+  call deletematrix(mass_matrix_lhs_dc)
+  call deletematrix(gs_matrix_rhs_dc)
+  call deletematrix(lp_matrix_rhs)
+  call deletematrix(lp_matrix_rhs_dc)
   call deletematrix(gsmatrix_sm)
   call deletematrix(s7matrix_sm)
   call deletematrix(s4matrix_sm)
@@ -315,7 +327,10 @@ Program Reducedquintic
      call deletematrix(r9matrix_sm)
      call deletematrix(q9matrix_sm)
   endif
-  if(i3d.eq.1) call deletematrix(poisson_matrix)
+  if(i3d.eq.1) then
+     call deletematrix(poisson_matrix_lhs)
+     call deletematrix(bf_matrix_rhs_dc)
+  end if
 #ifdef USECOMPLEX
   call deletematrix(o1matrix_sm)
   call deletematrix(o2matrix_sm)
@@ -412,15 +427,18 @@ subroutine smooth
   call numnod(numnodes)
      
   ! smooth vorticity
-  call newvar(mass_matrix_dc,vor,vel,1,vecsize,NV_GS,NV_DCBOUND)
+  call newvar(mass_matrix_lhs_dc,vor,vel,1,vecsize, &
+       gs_matrix_rhs_dc,NV_DCBOUND)
   call smoother1(vor,vel,numnodes,vecsize,1)
      
   ! smooth compression
   if(numvar.ge.3) then
      if(com_bc.eq.1) then
-        call newvar(mass_matrix_dc,com,vel,3,vecsize,NV_LP,NV_DCBOUND)
+        call newvar(mass_matrix_lhs_dc,com,vel,3,vecsize, &
+             lp_matrix_rhs_dc,NV_DCBOUND)
      else
-        call newvar(mass_matrix,com,vel,3,vecsize,NV_LP,NV_NOBOUND)
+        call newvar(mass_matrix_lhs   ,com,vel,3,vecsize, &
+             lp_matrix_rhs,   NV_NOBOUND)
      endif
      
 !!$        !
@@ -495,20 +513,24 @@ subroutine derived_quantities
 
   !   toroidal current
   if(myrank.eq.0 .and. iprint.ge.1) print *, "-Toroidal current"
-  call newvar(mass_matrix_dc,jphi,field,psi_g,num_fields,NV_GS,NV_DCBOUND)
+  call newvar(mass_matrix_lhs_dc,jphi,field,psi_g,num_fields, &
+       gs_matrix_rhs_dc,NV_DCBOUND)
 
   if(hyperc.ne.0) then
      !   vorticity
      if(myrank.eq.0 .and. iprint.ge.1) print *, "-Vorticity"
-     call newvar(mass_matrix_dc,vor,field,u_g,num_fields,NV_GS,NV_DCBOUND)
+     call newvar(mass_matrix_lhs_dc,vor,field,u_g,num_fields, &
+          gs_matrix_rhs_dc,NV_DCBOUND)
 
      !   compression
      if(numvar.ge.3) then
         if(myrank.eq.0 .and. iprint.ge.1) print *, "-Compression"
         if(com_bc.eq.1) then
-           call newvar(mass_matrix_dc,com,field,chi_g,num_fields,NV_LP,NV_DCBOUND)
+           call newvar(mass_matrix_lhs_dc,com,field,chi_g,num_fields, &
+                lp_matrix_rhs_dc,NV_DCBOUND)
         else
-           call newvar(mass_matrix,   com,field,chi_g,num_fields,NV_LP,NV_NOBOUND)
+           call newvar(mass_matrix_lhs,   com,field,chi_g,num_fields, &
+                lp_matrix_rhs,   NV_NOBOUND)
         endif
      else
         com = 0.
@@ -517,7 +539,8 @@ subroutine derived_quantities
 
   ! vector potential stream function
   if(i3d.eq.1) then
-     call newvar(poisson_matrix,bf,field,bz_g,num_fields,NV_BF,NV_DCBOUND)
+     call newvar(poisson_matrix_lhs,bf,field,bz_g,num_fields, &
+          bf_matrix_rhs_dc,NV_DCBOUND)
   endif
 
   if(myrank.eq.0 .and. itimer.eq.1) then

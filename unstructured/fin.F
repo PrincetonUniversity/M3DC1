@@ -140,6 +140,12 @@
       hyperv= 0.0
       hyperp= 0.0
 !
+!.....scale hyper-resistivity with eta
+      ihypeta = 1
+!
+!.....scale kappar with kappa
+      ikapscale = 0
+!
 !.....viscosity, resistivity, and heat conduction
       amu = 0.0
       amupar = 0.0

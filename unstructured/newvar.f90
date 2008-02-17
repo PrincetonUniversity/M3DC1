@@ -5,13 +5,13 @@ module newvar_mod
   integer, parameter :: NV_NOBOUND = 0
   integer, parameter :: NV_DCBOUND = 1
 
-  integer, parameter :: NV_MASS_MATRIX = 0
-  integer, parameter :: NV_POISSON_MATRIX = 1
+  integer, parameter :: NV_I_MATRIX = 0
+  integer, parameter :: NV_LP_MATRIX = 1
+  integer, parameter :: NV_GS_MATRIX = 2
+  integer, parameter :: NV_BF_MATRIX = 3
 
-  integer, parameter :: NV_1  = 0
-  integer, parameter :: NV_LP = 1
-  integer, parameter :: NV_GS = 2
-  integer, parameter :: NV_BF = 3
+  integer, parameter :: NV_RHS = 0
+  integer, parameter :: NV_LHS = 1
 
 contains
 
@@ -22,11 +22,9 @@ contains
 ! ibound:
 !   NV_NOBOUND: no boundary conditions
 !   NV_DCBOUND: dirichlet boundary conditions
-! itype:
-!   NV_MASS_MATRIX:    delta_{i j}
-!   NV_POISSON_MATRIX: delta_{i j} d_i d_j
+! itype: operator (NV_I_MATRIX, etc..)
 !============================================
-subroutine create_matrix(matrix, ibound, itype)
+subroutine create_matrix(matrix, ibound, itype, isolve)
 
   use basic
   use p_data
@@ -37,7 +35,7 @@ subroutine create_matrix(matrix, ibound, itype)
 
   implicit none
 
-  integer, intent(in) :: matrix, ibound, itype
+  integer, intent(in) :: matrix, ibound, itype, isolve
 
   integer :: numelms, itri, i, j, ione, jone, izone, izonedim
   vectype :: temp
@@ -46,7 +44,11 @@ subroutine create_matrix(matrix, ibound, itype)
   call numfac(numelms)
 
   ! populate matrix
-  call zerosuperlumatrix(matrix, icomplex, numvar1_numbering)
+  if(isolve.eq.NV_LHS) then
+     call zerosuperlumatrix(matrix, icomplex, numvar1_numbering)
+  else
+     call zeromultiplymatrix(matrix, icomplex, numvar1_numbering)
+  end if
 
   do itri=1,numelms
 
@@ -75,12 +77,26 @@ subroutine create_matrix(matrix, ibound, itype)
         do i=1,18
            ione = isval1(itri,i)
            selectcase(itype)
-           case(NV_MASS_MATRIX)
+
+           case(NV_I_MATRIX)
               temp = int2(g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
-           case(NV_POISSON_MATRIX)
-              temp = &
-                   -int2(g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79) &
-                   -int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j),weight_79,79)
+
+           case(NV_LP_MATRIX)
+              temp = - &
+                   (int2(g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79) &
+                   +int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j),weight_79,79))
+
+           case(NV_GS_MATRIX)
+              temp = - &
+                   (int2(g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79) &
+                   +int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j),weight_79,79))
+              if(itor.eq.1) then
+                 temp = temp - &
+                      2.*int3(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j),weight_79,79)
+              endif
+
+           case(NV_BF_MATRIX)
+              temp = int3(ri2_79,g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
            end select
            call insertval2(matrix, temp, icomplex, ione, jone, 1)
         enddo
@@ -88,10 +104,12 @@ subroutine create_matrix(matrix, ibound, itype)
   enddo
 
   ! apply boundary conditions
-  if(ibound.eq.NV_DCBOUND) then
-     call createvec(rhs2, numvar1_numbering)
-     call boundary_dc(matrix, rhs2)
-     call deletevec(rhs2)
+  if(isolve.eq.NV_LHS) then
+     if(ibound.eq.NV_DCBOUND) then
+        call createvec(rhs2, numvar1_numbering)
+        call boundary_dc(matrix, rhs2)
+        call deletevec(rhs2)
+     end if
   end if
 
   call finalizematrix(matrix)
@@ -104,23 +122,19 @@ end subroutine create_matrix
 ! newvar
 ! ~~~~~~
 ! creates rhs and solves matrix equation:
-!  A x = F(b)
+!  A x = B y
 !
-! imatrix: lhs matrix (A)
+! ilhs: lhs matrix (A)
 ! outarray: array to contain the result (x)
-! inarray: array containing field (b)
-! iplace: index of field in inarray
+! inarray: array containing rhs vector (y)
+! iplace: index of rhs vector field in inarray
 ! numvari: number of fields in inarray
+! irhs: rhs matrix(B)
 ! ibound: boundary conditions to apply
 !   NV_NOBOUND: no boundary conditions
 !   NV_DCBOUND: dirichlet boundary conditions
-! itype: operator (F) to apply to (b) to get rhs
-!   NV_1 : 1 
-!   NV_GS: del*
-!   NV_LP: del*2
-!   NV_BF: 1/R^2
 !======================================================================
-subroutine newvar(imatrix,outarray,inarray,iplace,numvari,itype,ibound)
+subroutine newvar(ilhsmat,outarray,inarray,iplace,numvari,irhsmat,ibound)
 
   use basic
   use t_data
@@ -129,92 +143,39 @@ subroutine newvar(imatrix,outarray,inarray,iplace,numvari,itype,ibound)
 
   implicit none
 
-  integer, intent(in) :: iplace, ibound, numvari, imatrix
+  integer, intent(in) :: iplace, ibound, numvari, ilhsmat, irhsmat
   vectype, intent(in) :: inarray(*)   ! size=numvari
-  vectype, intent(out) :: outarray(*) ! assumes size=1
-  integer, intent(in) :: itype        ! NV_1 : 1 
-                                      ! NV_GS: del*
-                                      ! NV_LP: del*2
-                                      ! NV_BF: 1/R^2
+  vectype, intent(out) :: outarray(*) ! size=1
 
-  integer :: ndof, numelms, itri, i, j, ione, j1, ii, iii
-  integer :: ibegin, iendplusone
+  integer :: numnodes, ier, i
+  integer :: ibegin, iendplusone, ibegin1, iendplusone1
 
-  real :: sum
+  vectype, allocatable :: temp(:)
 
-  call numdofs(1, ndof)
-  do i=1, ndof
-     outarray(i) = 0.
-  end do
+  ! if inarray is bigger than vecsize=1, then 
+  ! create vecsize=1 for matrix multiplication
+  if(numvari.gt.1) then
+     call createvec(temp,1)
 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, " defining.."
+     call numnod(numnodes)     
+     do i=1,numnodes
+        call entdofs(1, i, 0, ibegin1, iendplusone1)
+        call entdofs(numvari, i, 0, ibegin, iendplusone)
+        ibegin = ibegin + (iplace-1)*6
+        temp(ibegin1:ibegin1+5) = inarray(ibegin:ibegin+5)
+     enddo
+  end if
 
-  ! Calculate RHS
-  call numfac(numelms)
-  do itri=1,numelms
+  call matrixvectormult(irhsmat, temp, outarray)
 
-     ! calculate the local sampling points and weights for numerical integration
-     call area_to_local(79,                                            &
-          alpha_79,beta_79,gamma_79,area_weight_79,                    &
-          atri(itri), btri(itri), ctri(itri),                          &
-          si_79, eta_79, weight_79)
+  if(ibound.eq.NV_DCBOUND) then
+     call boundary_dc(0, outarray)
+  end if
 
-     call calcpos(itri, si_79, eta_79, 79, x_79, z_79)
-     if(itor.eq.1) then
-        r_79 = x_79
-     else
-        r_79 = 1.
-     endif
-     ri_79 = 1./r_79
+  call solve(ilhsmat,outarray,ier)
 
-     if(ijacobian.eq.1) weight_79 = weight_79*r_79
+  if(numvari.gt.1) call deletevec(temp)
 
-     do i=1,18
-        call eval_ops(gtri(:,i,itri), si_79, eta_79, ttri(itri), &
-             ri_79, 79, g79(:,:,i))
-     end do
-
-     ! Populate RHS
-     do i=1,18
-        ione = isval1(itri,i)
-        sum = 0.
-
-        do iii=1,3
-           call entdofs(numvari, ist(itri,iii)+1, 0, ibegin,  iendplusone )
-           do ii=1,6
-              j = (iii-1)*6 + ii
-              j1 = ibegin + ii-1 + 6*(iplace-1)
-
-              selectcase(itype)
-              case(NV_1)
-                 sum = sum + inarray(j1)* &
-                      int2(g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
-              case(NV_LP)
-                 sum = sum - inarray(j1) * &
-                      (int2(g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79) &
-                      +int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j),weight_79,79))
-              case(NV_GS)
-                 sum = sum - inarray(j1) * &
-                      (int2(g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79) &
-                      +int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j),weight_79,79))
-                 if(itor.eq.1) then
-                    sum = sum - inarray(j1) * &
-                         2.*int3(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j),weight_79,79)
-                 endif
-              case(NV_BF)
-                 sum = sum + inarray(j1)* &
-                      int3(ri2_79,g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
-              end select
-           end do
-        end do
-        outarray(ione) = outarray(ione) + sum
-     end do
-  enddo
-
-    if(myrank.eq.0 .and. iprint.ge.1) print *, " solving.."
-
-  ! solve linear equation
-  call solve_newvar(outarray, ibound, imatrix)
 
 end subroutine newvar
 
@@ -400,26 +361,26 @@ subroutine define_transport_coefficients()
 
   if(solve_resistivity) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  resistivity'
-     call solve_newvar(resistivity, NV_NOBOUND, mass_matrix)
+     call solve_newvar(resistivity, NV_NOBOUND, mass_matrix_lhs)
   end if
 
   if(solve_kappa) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  kappa'
-     call solve_newvar(kappa, NV_NOBOUND, mass_matrix)
+     call solve_newvar(kappa, NV_NOBOUND, mass_matrix_lhs)
   endif
 
   if(solve_sigma) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  sigma'
-     call solve_newvar(sigma, NV_NOBOUND, mass_matrix)
+     call solve_newvar(sigma, NV_NOBOUND, mass_matrix_lhs)
   endif
 
   if(solve_visc) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  viscosity'
-     call solve_newvar(visc, NV_NOBOUND, mass_matrix)
+     call solve_newvar(visc, NV_NOBOUND, mass_matrix_lhs)
   endif
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, '  size field'
-  call solve_newvar(tempvar, NV_NOBOUND, mass_matrix)
+  call solve_newvar(tempvar, NV_NOBOUND, mass_matrix_lhs)
 
   ! add in constant components
   call numnod(numnodes)

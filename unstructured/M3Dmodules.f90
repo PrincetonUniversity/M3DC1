@@ -111,7 +111,8 @@ module basic
   integer :: iestatic    ! 1 = do not advance fields
   integer :: igauge
   integer :: ivform      ! 0: V = v grad(phi).  1: V = R^2 v grad(phi)
-
+  integer :: ihypeta     ! 1 = scale hyper-resistivity with eta
+  integer :: ikapscale   ! 1 = scale kappar with kappa
 
   ! numerical parameters
   integer :: ntimemax    ! number of timesteps
@@ -176,7 +177,7 @@ module basic
        expn,q0,divertors,xdiv,zdiv,divcur,th_gs,p1,p2,p_edge,  &
        idevice,igs,th_gs,                                      &
        iconstflux,regular,max_ke,                              &
-       ntor,iadapt,istatic,iestatic, ivform
+       ntor,iadapt,istatic,iestatic,ivform,ihypeta,ikapscale
 
   !     derived quantities
   real :: pi,dbf,bdf,hypv,hypc,hypf,hypi,hypp,   &
@@ -541,11 +542,17 @@ module sparse
   integer, parameter :: r9matrix_sm = 19
   integer, parameter :: q9matrix_sm = 20
   integer, parameter :: r14matrix_sm = 21
-  integer, parameter :: mass_matrix = 22
-  integer, parameter :: mass_matrix_dc = 23
-  integer, parameter :: poisson_matrix = 24
+  integer, parameter :: mass_matrix_lhs = 22
+  integer, parameter :: mass_matrix_lhs_dc = 23
+  integer, parameter :: poisson_matrix_lhs = 24
   integer, parameter :: o1matrix_sm = 25
   integer, parameter :: o2matrix_sm = 26
+  integer, parameter :: gs_matrix_rhs_dc = 27
+  integer, parameter :: lp_matrix_rhs = 28
+  integer, parameter :: lp_matrix_rhs_dc = 29
+  integer, parameter :: bf_matrix_rhs_dc = 30
+
+
   
 end module sparse
 

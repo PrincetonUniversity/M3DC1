@@ -798,27 +798,27 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
    ;===========================================
    ; vorticity
    ;===========================================
-     endif else if(strcmp('vor', name, /fold_case) eq 1) then begin
+;      endif else if(strcmp('vor', name, /fold_case) eq 1) then begin
 
-         phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
-                          filename=filename, points=pts, $
-                          rrange=xrange, zrange=yrange)
+;          phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+;                           filename=filename, points=pts, $
+;                           rrange=xrange, zrange=yrange)
 
-         data = grad_shafranov(phi,x,y,tor=itor)
-
-   ;===========================================
-   ; divergence
-   ;===========================================
-   endif else if(strcmp('com', name, /fold_case) eq 1) then begin
-
-       chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
-                        filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-
-       data = laplacian(chi,x,y,tor=itor)
+;          data = grad_shafranov(phi,x,y,tor=itor)
 
    ;===========================================
    ; divergence
+   ;===========================================
+;    endif else if(strcmp('com', name, /fold_case) eq 1) then begin
+
+;        chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+;                         filename=filename, points=pts, $
+;                         rrange=xrange, zrange=yrange)
+
+;        data = laplacian(chi,x,y,tor=itor)
+
+   ;===========================================
+   ; rotational transform
    ;===========================================
    endif else if(strcmp('iota', name, /fold_case) eq 1) then begin
 
@@ -849,6 +849,60 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
 
          r = radius_matrix(x,y,t)
          data = grad_shafranov(v/r^2,x,y,tor=itor)
+
+   ;===========================================
+   ; parallel flow
+   ;===========================================
+   endif else if(strcmp('vpar', name, /fold_case) eq 1) then begin
+
+         phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         v = read_field('v', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         I = read_field('I', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         
+         if(itor eq 1) then begin
+             r = radius_matrix(x,y,t)
+         endif else r = 1.
+         b2 = (s_bracket(psi,psi,x,y) + I^2)/r^2
+         data = ((s_bracket(phi,psi,x,y) + s_bracket(v,I,x,y))/r^2 $
+           + a_bracket(chi,phi,x,y)/r)/sqrt(b2)
+         
+   ;===========================================
+   ; radial flow
+   ;===========================================
+   endif else if(strcmp('vr', name, /fold_case) eq 1) then begin
+
+         phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         i = read_field('i', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         
+         if(itor eq 1) then begin
+             r = radius_matrix(x,y,t)
+         endif else r = 1.
+         b2 = (s_bracket(psi,psi,x,y) + I^2)/r^2
+         data = (a_bracket(psi,phi,x,y)/r^2 $
+                 +s_bracket(psi,chi,x,y)/r)/sqrt(b2)
+
 
    endif else begin
 
@@ -898,7 +952,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
 
    end
 
-   if(strcmp(thisname, "V", /fold_case) eq 1) then begin
+   if(strcmp(name, "V", /fold_case) eq 1) then begin
        ivform = read_parameter('ivform',filename=filename)
        if(ivform eq 1) then begin
            print, "ivform = 1"
