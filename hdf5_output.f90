@@ -815,12 +815,12 @@ subroutine output_fields(time_group_id, equilibrium, error)
   call output_field(group_id, "chi", real(dum), 20, nelms, error)
   nfields = nfields + 1
 
-!!$     ! com
-!!$     do i=1, nelms
-!!$        call calcavector(i, com, 1, 1, dum(:,i))
-!!$     end do
-!!$     call output_field(group_id, "com", real(dum), 20, nelms, error)
-!!$     nfields = nfields + 1
+  ! com
+  do i=1, nelms
+     call calcavector(i, com, 1, 1, dum(:,i))
+  end do
+  call output_field(group_id, "com", real(dum), 20, nelms, error)
+  nfields = nfields + 1
 
   ! kappa
   do i=1, nelms

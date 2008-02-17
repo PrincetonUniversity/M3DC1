@@ -1504,6 +1504,7 @@ subroutine ludefall
   tfield = 0.
   telm = 0.
   tsizefield = 0.
+  tfinalize = 0.
 
   call numfac(numelms)
   call getmincoord(xmin,zmin)

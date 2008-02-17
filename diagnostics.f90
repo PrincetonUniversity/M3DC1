@@ -630,9 +630,9 @@ subroutine calculate_scalars()
   end do
 
   if(isources.eq.1) then
-     call solve_newvar(sb1, NV_DCBOUND, mass_matrix_dc)
-     if(numvar.ge.2) call solve_newvar(sb2, NV_DCBOUND, mass_matrix_dc)
-     if(numvar.ge.3) call solve_newvar(sp1, NV_DCBOUND, mass_matrix_dc)
+     call solve_newvar(sb1, NV_DCBOUND, mass_matrix_lhs_dc)
+     if(numvar.ge.2) call solve_newvar(sb2, NV_DCBOUND, mass_matrix_lhs_dc)
+     if(numvar.ge.3) call solve_newvar(sp1, NV_DCBOUND, mass_matrix_lhs_dc)
   endif
 
   call distribute_scalars

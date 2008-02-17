@@ -486,8 +486,9 @@ vectype function v1vpsipsi(e,f,g,h)
      temp79a = e(:,OP_DZ)*(g(:,OP_DZ)*h(:,OP_DZ ) + g(:,OP_DR)*h(:,OP_DR)) &
           + 2.*e(:,OP_DR)*(g(:,OP_DZ)*h(:,OP_DR ))                         &
           +    e(:,OP_1) *(g(:,OP_DR)*h(:,OP_DZZ) - g(:,OP_DZ)*h(:,OP_DRR))
-     temp = -2.*int3(ri4_79,f(:,OP_DP),temp79a,weight_79,79) &
-            -2.*int5(ri5_79,e(:,OP_1),f(:,OP_DP),g(:,OP_DZ),h(:,OP_DR),weight_79,79)
+     temp = temp &
+          -2.*int3(ri4_79,f(:,OP_DP),temp79a,weight_79,79) &
+          -2.*int5(ri5_79,e(:,OP_1),f(:,OP_DP),g(:,OP_DZ),h(:,OP_DR),weight_79,79)
   endif
 
   v1vpsipsi = temp
@@ -1177,7 +1178,7 @@ vectype function v2ubb(e,f,g,h)
   vectype :: temp
 
 #ifdef USECOMPLEX
-  temp = temp + &
+  temp = &
        (int5(ri3_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
        -int5(ri3_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DR),h(:,OP_1),weight_79,79))
 
@@ -2270,13 +2271,18 @@ vectype function b1psieta(e,f,g,h)
      endif
 
      if(hyper.ne.0) then
-        temp79a = e(:,OP_1)*g(:,OP_LP) + e(:,OP_LP)*g(:,OP_1) &
-             + 2.*(e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR))
+        if(ihypeta.eq.1) then
+           temp79a = e(:,OP_1)*g(:,OP_LP) + e(:,OP_LP)*g(:,OP_1) &
+                + 2.*(e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR))       
+        else
+           temp79a = e(:,OP_LP)
+        end if
 
         temp = temp - int3(temp79a,f(:,OP_GS),h(:,OP_1),weight_79,79)
         if(itor.eq.1) temp = temp + &
              2.*int4(ri_79,temp79a,f(:,OP_DR),h(:,OP_1),weight_79,79)
      endif
+
   else
      temp = int4(ri2_79,g(:,OP_1),e(:,OP_GS),f(:,OP_GS),weight_79,79)
 #ifdef USECOMPLEX
@@ -2536,10 +2542,14 @@ vectype function b2beta(e,f,g,h)
   endif
 
   if(hypi.ne.0) then
-     temp79a = (e(:,OP_LP)*g(:,OP_1) + &
-          e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR))
-     if(itor.eq.1) temp79a = temp79a + 2.*ri_79* &
-          (e(:,OP_DR)*g(:,OP_1) + e(:,OP_1)*g(:,OP_DR))
+     if(ihypeta.eq.1) then
+        temp79a = (e(:,OP_LP)*g(:,OP_1) + &
+             e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR))
+        if(itor.eq.1) temp79a = temp79a + 2.*ri_79* &
+             (e(:,OP_DR)*g(:,OP_1) + e(:,OP_1)*g(:,OP_DR))
+     else
+        temp79a = e(:,OP_LP)
+     end if
   
      temp = temp - int3(temp79a,f(:,OP_GS),h(:,OP_1),weight_79,79)
 
@@ -3144,7 +3154,7 @@ vectype function p1kappax(e,f,g,h,i)
 
   temp79b = ri_79*i(:,OP_1)*(e(:,OP_DZ)*h(:,OP_DR) - e(:,OP_DR)*h(:,OP_DZ))
 
-  temp = temp + (gam-1.)* &
+  temp = (gam-1.)* &
        (int3(g(:,OP_1),h(:,OP_1),temp79a,weight_79,79)  &
        +int3(f(:,OP_1),g(:,OP_1),temp79b,weight_79,79))
 
@@ -3897,7 +3907,11 @@ vectype function qpsipsieta(e)
           (ri3_79*jt79(:,OP_DR) - ri4_79*jt79(:,OP_1))
   endif
 
-  temp = hypf*int4(e(:,OP_1),eta79(:,OP_1),temp79a,sz79(:,OP_1),weight_79,79)
+  if(ihypeta.eq.1) then
+     temp = hypf*int4(e(:,OP_1),eta79(:,OP_1),temp79a,sz79(:,OP_1),weight_79,79)
+  else
+     temp = hypf*int3(e(:,OP_1),temp79a,sz79(:,OP_1),weight_79,79)
+  endif
 
 
   temp79a = jt79(:,OP_DZ)*ni79(:,OP_DZ) + jt79(:,OP_DR)*ni79(:,OP_DR)
@@ -3906,7 +3920,11 @@ vectype function qpsipsieta(e)
   endif
   temp79a = temp79a * ri2_79*nt79(:,OP_1)*jt79(:,OP_1)
      
-  temp = temp + hypf*int4(e(:,OP_1),eta79(:,OP_1),temp79a,sz79(:,OP_1),weight_79,79)
+  if(ihypeta.eq.1) then
+     temp = temp + hypf*int4(e(:,OP_1),eta79(:,OP_1),temp79a,sz79(:,OP_1),weight_79,79)
+  else
+     temp = temp + hypf*int3(e(:,OP_1),temp79a,sz79(:,OP_1),weight_79,79)
+  endif
 
   qpsipsieta = temp
   return
@@ -3939,7 +3957,11 @@ vectype function qbbeta(e)
           +ri4_79*bzt79(:,OP_DZ )*bzt79(:,OP_DZ))
   endif
 
-  temp = hypi*int4(e(:,OP_1),eta79(:,OP_1),temp79a,sz79(:,OP_1),weight_79,79)
+  if(ihypeta.eq.1) then
+     temp = hypi*int4(e(:,OP_1),eta79(:,OP_1),temp79a,sz79(:,OP_1),weight_79,79)
+  else
+     temp = hypi*int3(e(:,OP_1),temp79a,sz79(:,OP_1),weight_79,79)
+  endif
 
   temp79a = &
        bzt79(:,OP_DZ)*bzt79(:,OP_DZZ)*ni79(:,OP_DZ) &
@@ -3952,7 +3974,11 @@ vectype function qbbeta(e)
   endif
   temp79a = temp79a * ri2_79*nt79(:,OP_1)
      
-  temp = temp + hypi*int4(e(:,OP_1),eta79(:,OP_1),temp79a,sz79(:,OP_1),weight_79,79)
+  if(ihypeta.eq.1) then
+     temp = temp + hypi*int4(e(:,OP_1),eta79(:,OP_1),temp79a,sz79(:,OP_1),weight_79,79)
+  else
+     temp = temp + hypi*int3(e(:,OP_1),temp79a,sz79(:,OP_1),weight_79,79)
+  endif
 
   qbbeta = temp
   return
