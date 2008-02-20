@@ -211,17 +211,15 @@ Program Reducedquintic
      if(maxrank .eq. 1) then
 !        call outputfield(phi, numvar, 0, ntime, 123) 
 !        call writefieldatnodes(resistivity, 1, 1) 
-        factor = 0.8
-        hmin = .005
+        factor = 0.1
+        hmin = .001
         hmax = .3
 
         print *, 'adapting mesh...'
 #ifdef USECOMPLEX
-        call checkppplveccreated(vor, i)
-        print *, 'vec created?', i
-        call hessianadapt(vor, 1, 0, ntime, factor, hmin, hmax) 
+        call hessianadapt(resistivity, 1, 0, ntime, factor, hmin, hmax) 
 #else
-        call hessianadapt(vor, 1, ntime, factor, hmin, hmax)
+        call hessianadapt(resistivity, 1, ntime, factor, hmin, hmax)
 #endif
         print *, 'done adapting.'
         call space(0)
