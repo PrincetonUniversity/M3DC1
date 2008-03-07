@@ -85,6 +85,8 @@
       use arrays
 
       implicit none
+
+      if(myrank.eq.0 .and. iprint.eq.1) print *, " entering input.."
 !
 !.....linear parameter  0-nonlinear,  1-linear
       linear = 0
@@ -120,6 +122,12 @@
 !.....do timestep splitting
       isplitstep = 1
 !
+!.....iterate field solve
+      iteratephi = 0
+!
+!.....iterate field solve
+      irecalc_eta = 0
+!
 !.....modifications to implicitization
       imp_mod = 1
       igauge = 0
@@ -140,8 +148,17 @@
       hyperv= 0.0
       hyperp= 0.0
 !
+!.....scale hyper-resistivity with dx**ihypdx
+      ihypdx = 2
+!
 !.....scale hyper-resistivity with eta
       ihypeta = 1
+!
+!.....evolve resistivity implicitly with field advance
+      implicit_eta = 0
+!
+!.....don't evolve resistivity
+      iconst_eta = 0
 !
 !.....scale kappar with kappa
       ikapscale = 0
@@ -169,13 +186,15 @@
 !.....initial toroidal velocity
       vzero = 0.
 !
-!.....boundary condition on toroidal velocity
-!     v_bc: 0 = no-slip, 1 = no normal stress
+!.....boundary conditions
 !     com_bc: 1 = sets laplacian(chi) = 0 on boundary
 !     p_bc : 0 = constant pressure, 1 = insulating
-      v_bc = 0
       com_bc = 1
       p_bc = 0
+      inonormalflow = 1
+      inoslip_pol = 0
+      inoslip_tor = 1
+      inostress_tor = 0
 !
 !.....density source
       ipellet = 0
@@ -281,6 +300,9 @@
       if(thimp_ohm.lt.0) thimp_ohm = thimp
 !      
       if(myrank.eq.0) write(*,nml=inputnl)
+
+      if(myrank.eq.0 .and. iprint.eq.1) print *, " exiting input.."
+
       return
       end
 !============================================================
@@ -604,7 +626,7 @@
          do iii=1,3
             call entdofs(1, ist(itri,iii)+1, 0, ibegin,  iendplusone )
             call entdofs(2, ist(itri,iii)+1, 0, ibegin2, iendplusone2)
-            call entdofs(vecsize,  ist(itri,iii)+1, 0,                  &
+            call entdofs(vecsize_vel,  ist(itri,iii)+1, 0,                  &
      &           ibeginn, iendplusonen)
             do ii=1,6
                i = (iii-1)*6 + ii

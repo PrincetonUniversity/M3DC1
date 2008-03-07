@@ -346,31 +346,42 @@ subroutine boundary_vel(imatrix, rhs)
      call boundary_node(i,is_boundary,izone,izonedim,normal,x,z)
      if(.not.is_boundary) cycle
 
-     call entdofs(vecsize, i, 0, ibegin, iendplusone)
+     call entdofs(vecsize_vel, i, 0, ibegin, iendplusone)
      call assign_local_pointers(i)
 
      ! no normal flow
-     temp = 0.
-     call set_dirichlet_bc(imatrix,ibegin+u_off,rhs,temp,normal,izonedim)
-     if(numvar.ge.3) then
-        call set_normal_bc(imatrix,ibegin+chi_off,rhs,temp,normal,izonedim)
-     endif
+     if(inonormalflow.eq.1) then
+        temp = 0.
+        call set_dirichlet_bc(imatrix,ibegin+u_off,rhs,temp,normal,izonedim)
+        if(numvar.ge.3) then
+           call set_normal_bc(imatrix,ibegin+chi_off,rhs,temp,normal,izonedim)
+        endif
+     end if
+     
+     ! no poloidal slip
+     if(inoslip_pol.eq.1) then
+        call set_normal_bc(imatrix,ibegin+u_off,rhs,temp,normal,izonedim)
+        if(numvar.ge.3) then
+           temp = 0.
+           call set_dirichlet_bc(imatrix,ibegin+chi_off,rhs,temp,normal,izonedim)
+        endif
+     end if
 
      ! toroidal velocity
      if(numvar.ge.2) then
-        select case(v_bc)
-        case(1) 
-           ! no normal stress
-           call set_normal_bc(imatrix,ibegin+vz_off,rhs,temp,normal,izonedim)
-
-        case default          
-           ! no slip
+        ! no slip
+        if(inoslip_tor.eq. 1) then
            temp = vzs_l
            if(integrator.eq.1 .and. ntime.gt.1) then
               temp = 1.5*temp + 0.5*vzo_v(ibegin+vz_off:ibegin+vz_off+5)
            endif
            call set_dirichlet_bc(imatrix,ibegin+vz_off,rhs,temp,normal,izonedim)
-        end select
+        end if
+        
+        ! no toroidal stress
+        if(inostress_tor.eq.1) then
+           call set_normal_bc(imatrix,ibegin+vz_off,rhs,temp,normal,izonedim)
+        end if
      endif
        
      ! no vorticity
@@ -420,8 +431,8 @@ subroutine boundary_mag(imatrix, rhs)
      call boundary_node(i,is_boundary,izone,izonedim,normal,x,z)
      if(.not.is_boundary) cycle
 
-     call entdofs(vecsize, i, 0, ibegin, iendplusone)
-     call entdofs(vecsize1, i, 0, ibegin1, iendplusone1)
+     call entdofs(vecsize_phi, i, 0, ibegin, iendplusone)
+     call entdofs(1, i, 0, ibegin1, iendplusone1)
      call assign_local_pointers(i)
 
      ! clamp poloidal field
@@ -477,6 +488,11 @@ subroutine boundary_mag(imatrix, rhs)
            call set_dirichlet_bc(imatrix,ibegin+pe_off,rhs,temp,normal,izonedim)
         end select
      endif
+
+!!$     if(implicit_eta.eq.1) then
+!!$        temp = 0.
+!!$        call set_dirichlet_bc(imatrix,ibegin+eta_off,rhs,temp,normal,izonedim)
+!!$     endif
   end do
 
 end subroutine boundary_mag
@@ -510,7 +526,7 @@ subroutine boundary_den(imatrix, rhs)
      call boundary_node(i,is_boundary,izone,izonedim,normal,x,z)
      if(.not.is_boundary) cycle
 
-     call entdofs(vecsize1, i, 0, ibegin, iendplusone)
+     call entdofs(vecsize_n, i, 0, ibegin, iendplusone)
      call assign_local_pointers(i)
 
      temp = dens_l
@@ -551,7 +567,7 @@ subroutine boundary_pres(imatrix, rhs)
      call boundary_node(i,is_boundary,izone,izonedim,normal,x,z)
      if(.not.is_boundary) cycle
 
-     call entdofs(vecsize1, i, 0, ibegin, iendplusone)
+     call entdofs(vecsize_p, i, 0, ibegin, iendplusone)
      call assign_local_pointers(i)
 
      temp = ps_l
@@ -594,7 +610,7 @@ subroutine boundary_dc(imatrix, rhs)
      call boundary_node(i,is_boundary,izone,izonedim,normal,x,z)
      if(.not.is_boundary) cycle
 
-     call entdofs(vecsize1, i, 0, ibegin, iendplusone)
+     call entdofs(1, i, 0, ibegin, iendplusone)
 
      call set_dirichlet_bc(imatrix,ibegin,rhs,temp,normal,izonedim)
   end do

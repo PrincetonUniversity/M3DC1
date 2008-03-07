@@ -26,7 +26,7 @@ module diagnostics
 
 
   ! momentum diagnostics
-  real :: tau_em, tau_sol, tau_com, tau_visc, tau_gyro
+  real :: tau_em, tau_sol, tau_com, tau_visc, tau_gyro, tau_denm
 
 
   ! timing diagnostics
@@ -160,6 +160,7 @@ contains
     tau_com = 0.
     tau_visc = 0.
     tau_gyro = 0.
+    tau_denm = 0.
 
     nfluxd = 0.
     nfluxv = 0.
@@ -180,7 +181,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 43
+    integer, parameter :: num_scalars = 44
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -229,6 +230,7 @@ contains
        temp(41) = tau_com
        temp(42) = tau_visc
        temp(43) = tau_gyro
+       temp(44) = tau_denm
          
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -277,6 +279,7 @@ contains
        tau_com =temp2(41)
        tau_visc=temp2(42)
        tau_gyro=temp2(43)
+       tau_denm=temp2(44)
 
     endif !if maxrank .gt. 1
 
@@ -304,9 +307,9 @@ contains
     call getboundingboxsize(alx,alz)
 
     itri = 0
-    call evaluate(alx   ,alz/2.,temp(1),temp2(1),phi,1,numvar,itri)
+    call evaluate(alx   ,alz/2.,temp(1),temp2(1),field,psi_g,vecsize_phi,itri)
     itri = 0
-    call evaluate(alx/2.,alz/2.,temp(2),temp2(2),phi,1,numvar,itri)
+    call evaluate(alx/2.,alz/2.,temp(2),temp2(2),field,psi_g,vecsize_phi,itri)
 
     reconnected_flux = 0.5*(temp(2)-temp(1))
 
@@ -399,6 +402,7 @@ subroutine calculate_scalars()
  
   integer :: itri, numelms, i, ione, ndof, def_fields
   real :: x, z, xmin, zmin, factor
+  integer :: ibegin, iendplusone, ibegin1, iendplusone1, numnodes
 
   double precision, dimension(3)  :: cogcoords
 
@@ -459,6 +463,26 @@ subroutine calculate_scalars()
   end if
 
   call getmincoord(xmin,zmin)
+
+  if(gyro.eq.1 .and. numvar.ge.2) then
+     if(isplitstep.eq.1) then
+        call matrixvectormult(gyro_torque_sm,vel,b1_vel)
+     else
+        call matrixvectormult(gyro_torque_sm,phi,b1_vel)
+     end if
+
+     call numnod(numnodes)
+     gyro_tau = 0.
+     do i=1,numnodes
+        call entdofs(1, i, 0, ibegin1, iendplusone1)
+        call entdofs(vecsize_vel, i, 0, ibegin, iendplusone)
+           
+        gyro_tau(ibegin1:ibegin1+5) = b1_vel(ibegin+vz_off:ibegin+vz_off+5)
+     enddo
+
+     call solve(mass_matrix_lhs,gyro_tau,i)
+  endif
+
   
   ! Define RHS of equation
   call numfac(numelms)
@@ -624,7 +648,8 @@ subroutine calculate_scalars()
         tau_sol  = tau_sol  + torque_sol()
         tau_com  = tau_com  + torque_com()
         tau_visc = tau_visc + torque_visc()
-        tau_gyro = tau_gyro + torque_gyro()
+        tau_gyro = tau_gyro + torque_gyro(itri)
+        tau_denm = tau_denm + torque_denm()
      endif
      
   end do

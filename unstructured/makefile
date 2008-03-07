@@ -15,7 +15,6 @@ SCORECDIR = /l/mhd/acbauer/develop/
 SCORECOPT = -O
 
 
-
 # For compiling complex version:
 #COMPLEX = -Dvectype=complex -DUSECOMPLEX \
 #	-Dinsertval2=insertval -Dsetgeneralbc2=setgeneralbc

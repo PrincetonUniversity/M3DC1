@@ -371,16 +371,18 @@ end subroutine vorticity_nolin
 !======================================================================
 ! Axial Velocity Equation
 !======================================================================
-subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
+subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, &
+     advfield, gyro_torque)
   
   use basic
   use nintegrate_mod
   use metricterms_new
+  use diagnostics
 
   implicit none
 
   vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
-  vectype, dimension(3), intent(out) :: ssterm, ddterm
+  vectype, dimension(3), intent(out) :: ssterm, ddterm, gyro_torque
   vectype, dimension(4+i3d), intent(out) :: rrterm, qqterm
   integer, intent(in) :: advfield
 
@@ -397,6 +399,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
   ddterm = 0.
   rrterm = 0.
   qqterm = 0.
+  gyro_torque = 0
 
   if(numvar.lt.2) return
          
@@ -421,10 +424,12 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
      temp = g2u(trial,lin)*dbf
      ssterm(1) = ssterm(1) +     thimp     *dt*temp
      ddterm(1) = ddterm(1) - (1.-thimp*bdf)*dt*temp
+     gyro_torque(1) = gyro_torque(1) + temp
      
      temp = g2v(trial,lin)*dbf
      ssterm(2) = ssterm(2) +     thimp     *dt*temp
      ddterm(2) = ddterm(2) - (1.-thimp*bdf)*dt*temp
+     gyro_torque(2) = gyro_torque(2) + temp
   endif
           
   if(advfield.eq.1) then 
@@ -533,6 +538,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
         temp = g2chi(trial,lin)*dbf
         ssterm(3) = ssterm(3) +     thimp     *dt*temp
         ddterm(3) = ddterm(3) - (1.-thimp*bdf)*dt*temp
+        gyro_torque(3) = gyro_torque(3) + temp
      endif
 
      if(advfield.eq.1) then
@@ -909,7 +915,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   implicit none
 
   vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
-  vectype, dimension(3), intent(out) :: ssterm, ddterm
+  vectype, dimension(3+implicit_eta), intent(out) :: ssterm, ddterm
   vectype, dimension(3+i3d), intent(out) :: rrterm, qqterm
   vectype :: temp
   real :: thimpb
@@ -929,9 +935,19 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   ssterm(1) = ssterm(1) + temp
   ddterm(1) = ddterm(1) + temp*bdf
 
-  temp = b1psieta(trial,lin,eta79,hypf*sz79)
-  ssterm(1) = ssterm(1) -     thimp     *dt*temp
-  ddterm(1) = ddterm(1) + (1.-thimp*bdf)*dt*temp
+  if(implicit_eta.eq.1) then
+     temp = b1psieta(trial,lin,eta79,hypf*sz79)
+     ssterm(1) = ssterm(1) -     thimp     *dt*temp
+     ddterm(1) = ddterm(1) + (.5-thimp*bdf)*dt*temp
+
+     temp = b1psieta(trial,ps179,lin,hypf*sz79)
+     ssterm(4) = ssterm(4) -     thimp     *dt*temp
+     ddterm(4) = ddterm(4) + (.5-thimp*bdf)*dt*temp
+  else
+     temp = b1psieta(trial,lin,eta79,hypf*sz79)
+     ssterm(1) = ssterm(1) -     thimp     *dt*temp
+     ddterm(1) = ddterm(1) + (1.-thimp*bdf)*dt*temp
+  end if
 
   temp = b1psiu  (trial,lin,pht79)
   ssterm(1) = ssterm(1) -     thimpb     *dt*temp
@@ -973,9 +989,19 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
      ssterm(1) = ssterm(1) -     thimp     *dt*temp
      ddterm(1) = ddterm(1) + (.5-thimp*bdf)*dt*temp
 
-     temp = b1beta(trial,lin,eta79)
-     ssterm(2) = ssterm(2) -     thimp     *dt*temp
-     ddterm(2) = ddterm(2) + (1.-thimp*bdf)*dt*temp
+     if(implicit_eta.eq.1) then
+        temp = b1beta(trial,lin,eta79)
+        ssterm(2) = ssterm(2) -     thimp     *dt*temp
+        ddterm(2) = ddterm(2) + (.5-thimp*bdf)*dt*temp
+
+        temp = b1beta(trial,bz179,lin)
+        ssterm(4) = ssterm(4) -     thimp     *dt*temp
+        ddterm(4) = ddterm(4) + (.5-thimp*bdf)*dt*temp
+     else
+        temp = b1beta(trial,lin,eta79)
+        ssterm(2) = ssterm(2) -     thimp     *dt*temp
+        ddterm(2) = ddterm(2) + (1.-thimp*bdf)*dt*temp
+     end if
 
      temp = b1bu(trial,lin,pht79) &
           + b1bv(trial,lin,vzt79)
@@ -1093,7 +1119,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   implicit none
 
   vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
-  vectype, dimension(3), intent(out) :: ssterm, ddterm
+  vectype, dimension(3+implicit_eta), intent(out) :: ssterm, ddterm
   vectype, dimension(3+i3d), intent(out) :: rrterm, qqterm
   vectype :: temp
   real :: thimpb
@@ -1111,9 +1137,19 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
 
   if(numvar.lt.2) return          
 
-  temp = b2psieta(trial,lin,eta79,hypi*sz79)
-  ssterm(1) = ssterm(1) -     thimp     *dt*temp
-  ddterm(1) = ddterm(1) + (1.-thimp*bdf)*dt*temp
+  if(implicit_eta.eq.1) then
+     temp = b2psieta(trial,lin,eta79,hypi*sz79)
+     ssterm(1) = ssterm(1) -     thimp     *dt*temp
+     ddterm(1) = ddterm(1) + (.5-thimp*bdf)*dt*temp
+
+     temp = b2psieta(trial,ps179,lin,hypi*sz79)
+     ssterm(4) = ssterm(4) -     thimp     *dt*temp
+     ddterm(4) = ddterm(4) + (.5-thimp*bdf)*dt*temp
+  else
+     temp = b2psieta(trial,lin,eta79,hypi*sz79)
+     ssterm(1) = ssterm(1) -     thimp     *dt*temp
+     ddterm(1) = ddterm(1) + (1.-thimp*bdf)*dt*temp
+  end if
          
   temp = b2psiv(trial,lin,vzt79)
   ssterm(1) = ssterm(1) -     thimpb     *dt*temp
@@ -1129,9 +1165,19 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   ssterm(2) = ssterm(2) + temp
   ddterm(2) = ddterm(2) + temp*bdf
 
-  temp = b2beta(trial,lin,eta79,hypi*sz79)
-  ssterm(2) = ssterm(2) -     thimp     *dt*temp
-  ddterm(2) = ddterm(2) + (1.-thimp*bdf)*dt*temp
+  if(implicit_eta.eq.1) then
+     temp = b2beta(trial,lin,eta79,hypi*sz79)
+     ssterm(2) = ssterm(2) -     thimp     *dt*temp
+     ddterm(2) = ddterm(2) + (.5-thimp*bdf)*dt*temp
+
+     temp = b2beta(trial,bz179,lin,hypi*sz79)
+     ssterm(4) = ssterm(4) -     thimp     *dt*temp
+     ddterm(4) = ddterm(4) + (.5-thimp*bdf)*dt*temp
+  else
+     temp = b2beta(trial,lin,eta79,hypi*sz79)
+     ssterm(2) = ssterm(2) -     thimp     *dt*temp
+     ddterm(2) = ddterm(2) + (1.-thimp*bdf)*dt*temp
+  endif
 
   temp = b2bu(trial,lin,pht79)
   ssterm(2) = ssterm(2) -     thimpb     *dt*temp
@@ -1269,7 +1315,7 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   implicit none
 
   vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
-  vectype, dimension(3), intent(out) :: ssterm, ddterm
+  vectype, dimension(3+implicit_eta), intent(out) :: ssterm, ddterm
   vectype, dimension(3+i3d), intent(out) :: rrterm, qqterm
   vectype :: temp
   real :: thimpb
@@ -1287,19 +1333,41 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
 
   if(numvar.lt.3) return   
 
-  temp = b3psipsieta(trial,lin,ps179,eta79) &
-       + b3psipsieta(trial,ps179,lin,eta79)
-  ssterm(1) = ssterm(1) -     thimp_ohm     *dt*temp
-  ddterm(1) = ddterm(1) + (.5-thimp_ohm*bdf)*dt*temp
+  if(implicit_eta.eq.1) then
+     temp = b3psipsieta(trial,lin,ps179,eta79) &
+          + b3psipsieta(trial,ps179,lin,eta79)
+     ssterm(1) = ssterm(1) -        thimp_ohm     *dt*temp
+     ddterm(1) = ddterm(1) + (1./3.-thimp_ohm*bdf)*dt*temp
 
+     temp = b3psipsieta(trial,ps179,ps179,lin)
+     ssterm(4) = ssterm(4) -        thimp_ohm     *dt*temp
+     ddterm(4) = ddterm(4) + (1./3.-thimp_ohm*bdf)*dt*temp
+  else
+     temp = b3psipsieta(trial,lin,ps179,eta79) &
+          + b3psipsieta(trial,ps179,lin,eta79)
+     ssterm(1) = ssterm(1) -     thimp_ohm     *dt*temp
+     ddterm(1) = ddterm(1) + (.5-thimp_ohm*bdf)*dt*temp
+  end if
+  
   temp = b3pebd(trial,pe179,lin,ni79)*dbf*pefac
   ssterm(2) = ssterm(2) - thimp*dt*temp
   ddterm(2) = ddterm(2) - thimp*dt*temp*bdf
 
-  temp = b3bbeta(trial,lin,bz179,eta79) &
-       + b3bbeta(trial,bz179,lin,eta79)
-  ssterm(2) = ssterm(2) -     thimp_ohm     *dt*temp
-  ddterm(2) = ddterm(2) + (.5-thimp_ohm*bdf)*dt*temp
+  if(implicit_eta.eq.1) then
+     temp = b3bbeta(trial,lin,bz179,eta79) &
+          + b3bbeta(trial,bz179,lin,eta79)
+     ssterm(2) = ssterm(2) -        thimp_ohm     *dt*temp
+     ddterm(2) = ddterm(2) + (1./3.-thimp_ohm*bdf)*dt*temp
+
+     temp = b3bbeta(trial,bz179,bz179,lin)
+     ssterm(4) = ssterm(4) -        thimp_ohm     *dt*temp
+     ddterm(4) = ddterm(4) + (1./3.-thimp_ohm*bdf)*dt*temp
+  else
+     temp = b3bbeta(trial,lin,bz179,eta79) &
+          + b3bbeta(trial,bz179,lin,eta79)
+     ssterm(2) = ssterm(2) -     thimp_ohm     *dt*temp
+     ddterm(2) = ddterm(2) + (.5-thimp_ohm*bdf)*dt*temp
+  end if
 
   temp = b3pe(trial,lin)
   ssterm(3) = ssterm(3) + temp
@@ -1375,7 +1443,7 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
           + b3bbeta(trial,bz079,lin,eta79)
      ssterm(2) = ssterm(2) -     thimp_ohm     *dt*temp
      ddterm(2) = ddterm(2) + (1.-thimp_ohm*bdf)*dt*temp
-     
+
      temp = b3pebd(trial,pe079,lin,ni79)*dbf*pefac
      ssterm(2) = ssterm(2) -     thimp     *dt*temp
      ddterm(2) = ddterm(2) + (1.-thimp*bdf)*dt*temp
@@ -1466,9 +1534,6 @@ subroutine electron_pressure_nolin(trial, r4term)
 end subroutine electron_pressure_nolin
 
 
-
-
-
 !======================================================================
 ! ludefall
 ! --------
@@ -1513,42 +1578,58 @@ subroutine ludefall
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, " initializing matrices..."
 
-  call zerosuperlumatrix(s1matrix_sm,icomplex,vecsize)
-  call zeromultiplymatrix(d1matrix_sm,icomplex,vecsize)
-
+  select case(isplitstep)
+  case(0)
+     call zerosuperlumatrix(s1matrix_sm,icomplex, vecsize_vel)
+     call zeromultiplymatrix(d1matrix_sm,icomplex,vecsize_vel)
 #ifdef USECOMPLEX
-     call zeromultiplymatrix(o1matrix_sm,icomplex,vecsize)
+     call zeromultiplymatrix(o1matrix_sm,icomplex,vecsize_vel)
 #endif
+     q4 = 0.
 
-  if(isplitstep.eq.1) then
-     call zeromultiplymatrix(q1matrix_sm,icomplex,vecsize)
-     call zerosuperlumatrix(s2matrix_sm,icomplex,vecsize)
-     call zeromultiplymatrix(d2matrix_sm,icomplex,vecsize)
-     call zeromultiplymatrix(r2matrix_sm,icomplex,vecsize)
-     call zeromultiplymatrix(q2matrix_sm,icomplex,vecsize)
-     call zeromultiplymatrix(r14matrix_sm,icomplex,vecsize)
+  case(1)
+
+     if(istatic.eq.0) then
+        call zerosuperlumatrix(s1matrix_sm,icomplex,vecsize_vel)
+        call zeromultiplymatrix(d1matrix_sm,icomplex,vecsize_vel)
+        call zeromultiplymatrix(q1matrix_sm,icomplex,vecsize_phi)
+        call zeromultiplymatrix(r14matrix_sm,icomplex,vecsize_phi)
+#ifdef USECOMPLEX
+        call zeromultiplymatrix(o1matrix_sm,icomplex,vecsize_phi)
+#endif   
+        r4 = 0.
+     end if
+
+     if(iestatic.eq.0) then
+        call zerosuperlumatrix(s2matrix_sm,icomplex,vecsize_phi)
+        call zeromultiplymatrix(d2matrix_sm,icomplex,vecsize_phi)
+        call zeromultiplymatrix(r2matrix_sm,icomplex,vecsize_vel)
+        call zeromultiplymatrix(q2matrix_sm,icomplex,vecsize_vel)
+#ifdef USECOMPLEX
+        call zeromultiplymatrix(o2matrix_sm,icomplex,vecsize_phi)
+#endif
+        q4 = 0.
+     end if
+
      if(idens.eq.1) then
-        call zerosuperlumatrix(s8matrix_sm,icomplex,vecsize1)
-        call zeromultiplymatrix(d8matrix_sm,icomplex,vecsize1)
-        call zeromultiplymatrix(q8matrix_sm,icomplex,vecsize)
-        call zeromultiplymatrix(r8matrix_sm,icomplex,vecsize)
+        call zerosuperlumatrix(s8matrix_sm,icomplex,vecsize_n)
+        call zeromultiplymatrix(d8matrix_sm,icomplex,vecsize_n)
+        call zeromultiplymatrix(q8matrix_sm,icomplex,vecsize_vel)
+        call zeromultiplymatrix(r8matrix_sm,icomplex,vecsize_vel)
+        qn4 = 0.
      endif
      if(ipres.eq.1) then
-        call zerosuperlumatrix(s9matrix_sm,icomplex,vecsize1)
-        call zeromultiplymatrix(d9matrix_sm,icomplex,vecsize1)
-        call zeromultiplymatrix(q9matrix_sm,icomplex,vecsize)
-        call zeromultiplymatrix(r9matrix_sm,icomplex,vecsize)
+        call zerosuperlumatrix(s9matrix_sm,icomplex,vecsize_p)
+        call zeromultiplymatrix(d9matrix_sm,icomplex,vecsize_p)
+        call zeromultiplymatrix(q9matrix_sm,icomplex,vecsize_vel)
+        call zeromultiplymatrix(r9matrix_sm,icomplex,vecsize_vel)
+        qp4 = 0.
      endif
-     r4 = 0.
-     if(idens.eq.1) qn4 = 0.
-     if(ipres.eq.1) qp4 = 0.
-#ifdef USECOMPLEX
-     call zeromultiplymatrix(o2matrix_sm,icomplex,vecsize)
-#endif
+  end select
+
+  if(gyro.eq.1 .and. numvar.ge.2) then
+     call zeromultiplymatrix(gyro_torque_sm,icomplex,vecsize_vel)
   endif
-
-
-  q4 = 0.
 
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, " populating matrices..."
@@ -1622,20 +1703,29 @@ subroutine ludefall
   ! it does not own, we call sumsharedppplvecvals so that these values
   ! get summed up for all values shared by multiple procs
   ! and then update these values
-  call sumsharedppplvecvals(q4)
-  call finalizematrix(d1matrix_sm)
 
-  if(isplitstep.eq.1) then
+  ! Finalize matrices for multiplication
+  select case(isplitstep)
+  case(0)
+     call sumsharedppplvecvals(q4)
+     call finalizematrix(d1matrix_sm)
+
+  case(1)
+     call sumsharedppplvecvals(q4)
      call sumsharedppplvecvals(r4)
      if(idens.eq.1) call sumsharedppplvecvals(qn4)
 
-     ! Finalize matrices for multiplication
-     call finalizematrix(q1matrix_sm)
+     if(istatic.eq.0) then
+        call finalizematrix(d1matrix_sm)
+        call finalizematrix(q1matrix_sm)
+        call finalizematrix(r14matrix_sm)
+     end if
      
-     call finalizematrix(d2matrix_sm)
-     call finalizematrix(r2matrix_sm)
-     call finalizematrix(q2matrix_sm)
-     call finalizematrix(r14matrix_sm)
+     if(iestatic.eq.0) then
+        call finalizematrix(d2matrix_sm)
+        call finalizematrix(r2matrix_sm)
+        call finalizematrix(q2matrix_sm)
+     end if
      
      if(idens.eq.1) then
         call finalizematrix(d8matrix_sm)
@@ -1649,6 +1739,10 @@ subroutine ludefall
         call finalizematrix(q9matrix_sm)
         call finalizematrix(r9matrix_sm)
      endif ! on ipres.eq.1
+  end select
+
+  if(gyro.eq.1 .and. numvar.ge.2) then
+     call finalizematrix(gyro_torque_sm)
   endif
 
   if(myrank.eq.0 .and. itimer.eq.1) then
@@ -1678,6 +1772,7 @@ end subroutine ludefall
 subroutine ludefvel_n(itri)
 
   use basic
+  use t_data
   use nintegrate_mod
   use arrays
   use sparse
@@ -1686,9 +1781,12 @@ subroutine ludefvel_n(itri)
 
   integer, intent(in) :: itri
 
-  integer :: i, i1, j, j1
+  integer :: i, ii, iii, j, jj, jjj, ip, iv, jp, jv
+  integer :: ib_vel, ib_phi, jb_vel, jb_phi, iendplusone
+
   vectype, dimension(3,3) :: ssterm, ddterm
   vectype, dimension(3,4+i3d) :: rrterm, qqterm
+  vectype, dimension(3) :: gyro_torque
   vectype :: temp
 
   integer :: vv1, vv0, vb1, vb0, vn1, vn0, vf0
@@ -1719,18 +1817,29 @@ subroutine ludefvel_n(itri)
      advfield = 0
   endif
 
-  do i=1,18
+  do iii=1,3
+  call entdofs(vecsize_phi,  ist(itri,iii)+1, 0, ib_phi, iendplusone)
+  call entdofs(vecsize_vel,  ist(itri,iii)+1, 0, ib_vel, iendplusone)
 
-     i1 = isvaln(itri,i)
+  do ii=1,6
+     i = (iii-1)*6 + ii
+     iv = ib_vel + ii - 1
+     ip = ib_phi + ii - 1
 
-     do j=1,18
-        j1 = isvaln(itri,j)
+     do jjj=1,3
+     call entdofs(vecsize_phi,  ist(itri,jjj)+1, 0, jb_phi, iendplusone)
+     call entdofs(vecsize_vel,  ist(itri,jjj)+1, 0, jb_vel, iendplusone)
+     do jj=1,6
+        j = (jjj-1)*6 + jj
+        jv = jb_vel + jj - 1
+        jp = jb_phi + jj - 1
 
         call vorticity_lin(g79(:,:,i),g79(:,:,j), &
              ssterm(1,:),ddterm(1,:),rrterm(1,:),qqterm(1,:),advfield)
         if(numvar.ge.2) then
            call axial_vel_lin(g79(:,:,i),g79(:,:,j), &
-                ssterm(2,:),ddterm(2,:),rrterm(2,:),qqterm(2,:),advfield)
+                ssterm(2,:),ddterm(2,:),rrterm(2,:),qqterm(2,:),advfield, &
+                gyro_torque)
         endif
         if(numvar.ge.3) then
            call compression_lin(g79(:,:,i),g79(:,:,j), &
@@ -1744,88 +1853,101 @@ subroutine ludefvel_n(itri)
            rrterm = -rrterm
         end if
 
-        call insertval2(vv1,ssterm(1,1),icomplex,i1+  u_off,j1+  u_off,1)
-        call insertval2(vv0,ddterm(1,1),icomplex,i1+  u_off,j1+  u_off,1)
-        call insertval2(vb0,qqterm(1,1),icomplex,i1+  u_off,j1+psi_off,1)
+        call insertval2(vv1,ssterm(1,1),icomplex,iv+  u_off,jv+  u_off,1)
+        call insertval2(vv0,ddterm(1,1),icomplex,iv+  u_off,jv+  u_off,1)
+        call insertval2(vb0,qqterm(1,1),icomplex,ip+  u_off,jp+psi_off,1)
         if(idens.eq.1) &
-             call insertval2(vn0,qqterm(1,4),icomplex,i1+  u_off,j1+den_off,1)
+             call insertval2(vn0,qqterm(1,4),icomplex,iv+  u_off,jv+den_off,1)
         if(isplitstep.eq.0) then
-           call insertval2(vb1,rrterm(1,1),icomplex,i1+  u_off,j1+psi_off,1)
+           call insertval2(vb1,rrterm(1,1),icomplex,ip+  u_off,jp+psi_off,1)
            if(idens.eq.1) &
-                call insertval2(vn1,rrterm(1,4),icomplex,i1+  u_off,j1+den_off,1)
+                call insertval2(vn1,rrterm(1,4),icomplex,iv+  u_off,jv+den_off,1)
         endif
         if(i3d.eq.1) then
-           call insertval2(vf0,rrterm(1,5),icomplex,i1+u_off,j1+bf_off,1)
+           call insertval2(vf0,rrterm(1,5),icomplex,iv+u_off,jv+bf_off,1)
         endif
         if(numvar.ge.2) then
-           call insertval2(vv1,ssterm(1,2),icomplex,i1+  u_off,j1+ vz_off,1)
-           call insertval2(vv1,ssterm(2,1),icomplex,i1+ vz_off,j1+  u_off,1)
-           call insertval2(vv1,ssterm(2,2),icomplex,i1+ vz_off,j1+ vz_off,1)
-           call insertval2(vv0,ddterm(1,2),icomplex,i1+  u_off,j1+ vz_off,1)
-           call insertval2(vv0,ddterm(2,1),icomplex,i1+ vz_off,j1+  u_off,1)
-           call insertval2(vv0,ddterm(2,2),icomplex,i1+ vz_off,j1+ vz_off,1)
-           call insertval2(vb0,qqterm(1,2),icomplex,i1+  u_off,j1+ bz_off,1)
-           call insertval2(vb0,qqterm(2,1),icomplex,i1+ vz_off,j1+psi_off,1)
-           call insertval2(vb0,qqterm(2,2),icomplex,i1+ vz_off,j1+ bz_off,1)
+           call insertval2(vv1,ssterm(1,2),icomplex,iv+  u_off,jv+ vz_off,1)
+           call insertval2(vv1,ssterm(2,1),icomplex,iv+ vz_off,jv+  u_off,1)
+           call insertval2(vv1,ssterm(2,2),icomplex,iv+ vz_off,jv+ vz_off,1)
+           call insertval2(vv0,ddterm(1,2),icomplex,iv+  u_off,jv+ vz_off,1)
+           call insertval2(vv0,ddterm(2,1),icomplex,iv+ vz_off,jv+  u_off,1)
+           call insertval2(vv0,ddterm(2,2),icomplex,iv+ vz_off,jv+ vz_off,1)
+           call insertval2(vb0,qqterm(1,2),icomplex,ip+  u_off,jp+ bz_off,1)
+           call insertval2(vb0,qqterm(2,1),icomplex,ip+ vz_off,jp+psi_off,1)
+           call insertval2(vb0,qqterm(2,2),icomplex,ip+ vz_off,jp+ bz_off,1)
            if(idens.eq.1) &
-                call insertval2(vn0,qqterm(2,4),icomplex,i1+vz_off,j1+den_off,1)
+                call insertval2(vn0,qqterm(2,4),icomplex,iv+vz_off,jv+den_off,1)
            if(isplitstep.eq.0) then
-              call insertval2(vb1,rrterm(1,2),icomplex,i1+  u_off,j1+ bz_off,1)
-              call insertval2(vb1,rrterm(2,1),icomplex,i1+ vz_off,j1+psi_off,1)
-              call insertval2(vb1,rrterm(2,2),icomplex,i1+ vz_off,j1+ bz_off,1)
+              call insertval2(vb1,rrterm(1,2),icomplex,ip+  u_off,jp+ bz_off,1)
+              call insertval2(vb1,rrterm(2,1),icomplex,ip+ vz_off,jp+psi_off,1)
+              call insertval2(vb1,rrterm(2,2),icomplex,ip+ vz_off,jp+ bz_off,1)
               if(idens.eq.1) &
-                   call insertval2(vn1,rrterm(2,4),icomplex,i1+vz_off,j1+den_off,1)
+                   call insertval2(vn1,rrterm(2,4),icomplex,iv+vz_off,jv+den_off,1)
            end if
            if(i3d.eq.1) then
-              call insertval2(vf0,rrterm(2,5),icomplex,i1+vz_off,j1+bf_off,1)
+              call insertval2(vf0,rrterm(2,5),icomplex,iv+vz_off,jv+bf_off,1)
            endif
         endif
         if(numvar.ge.3) then
-           call insertval2(vv1,ssterm(1,3),icomplex,i1+  u_off,j1+chi_off,1)
-           call insertval2(vv1,ssterm(2,3),icomplex,i1+ vz_off,j1+chi_off,1)
-           call insertval2(vv1,ssterm(3,1),icomplex,i1+chi_off,j1+  u_off,1)
-           call insertval2(vv1,ssterm(3,2),icomplex,i1+chi_off,j1+ vz_off,1)
-           call insertval2(vv1,ssterm(3,3),icomplex,i1+chi_off,j1+chi_off,1)
-           call insertval2(vv0,ddterm(1,3),icomplex,i1+  u_off,j1+chi_off,1)
-           call insertval2(vv0,ddterm(2,3),icomplex,i1+ vz_off,j1+chi_off,1)
-           call insertval2(vv0,ddterm(3,1),icomplex,i1+chi_off,j1+  u_off,1)
-           call insertval2(vv0,ddterm(3,2),icomplex,i1+chi_off,j1+ vz_off,1)
-           call insertval2(vv0,ddterm(3,3),icomplex,i1+chi_off,j1+chi_off,1)
-           call insertval2(vb0,qqterm(1,3),icomplex,i1+  u_off,j1+ pe_off,1)
-           call insertval2(vb0,qqterm(2,3),icomplex,i1+ vz_off,j1+ pe_off,1)
-           call insertval2(vb0,qqterm(3,1),icomplex,i1+chi_off,j1+psi_off,1)
-           call insertval2(vb0,qqterm(3,2),icomplex,i1+chi_off,j1+ bz_off,1)
-           call insertval2(vb0,qqterm(3,3),icomplex,i1+chi_off,j1+ pe_off,1)
+           call insertval2(vv1,ssterm(1,3),icomplex,iv+  u_off,jv+chi_off,1)
+           call insertval2(vv1,ssterm(2,3),icomplex,iv+ vz_off,jv+chi_off,1)
+           call insertval2(vv1,ssterm(3,1),icomplex,iv+chi_off,jv+  u_off,1)
+           call insertval2(vv1,ssterm(3,2),icomplex,iv+chi_off,jv+ vz_off,1)
+           call insertval2(vv1,ssterm(3,3),icomplex,iv+chi_off,jv+chi_off,1)
+           call insertval2(vv0,ddterm(1,3),icomplex,iv+  u_off,jv+chi_off,1)
+           call insertval2(vv0,ddterm(2,3),icomplex,iv+ vz_off,jv+chi_off,1)
+           call insertval2(vv0,ddterm(3,1),icomplex,iv+chi_off,jv+  u_off,1)
+           call insertval2(vv0,ddterm(3,2),icomplex,iv+chi_off,jv+ vz_off,1)
+           call insertval2(vv0,ddterm(3,3),icomplex,iv+chi_off,jv+chi_off,1)
+           call insertval2(vb0,qqterm(1,3),icomplex,ip+  u_off,jp+ pe_off,1)
+           call insertval2(vb0,qqterm(2,3),icomplex,ip+ vz_off,jp+ pe_off,1)
+           call insertval2(vb0,qqterm(3,1),icomplex,ip+chi_off,jp+psi_off,1)
+           call insertval2(vb0,qqterm(3,2),icomplex,ip+chi_off,jp+ bz_off,1)
+           call insertval2(vb0,qqterm(3,3),icomplex,ip+chi_off,jp+ pe_off,1)
            if(idens.eq.1) &
-                call insertval2(vn0,qqterm(3,4),icomplex,i1+chi_off,j1+den_off,1)
+                call insertval2(vn0,qqterm(3,4),icomplex,iv+chi_off,jv+den_off,1)
            if(isplitstep.eq.0) then
-              call insertval2(vb1,rrterm(1,3),icomplex,i1+  u_off,j1+ pe_off,1)
-              call insertval2(vb1,rrterm(2,3),icomplex,i1+ vz_off,j1+ pe_off,1)
-              call insertval2(vb1,rrterm(3,1),icomplex,i1+chi_off,j1+psi_off,1)
-              call insertval2(vb1,rrterm(3,2),icomplex,i1+chi_off,j1+ bz_off,1)
-              call insertval2(vb1,rrterm(3,3),icomplex,i1+chi_off,j1+ pe_off,1)
+              call insertval2(vb1,rrterm(1,3),icomplex,ip+  u_off,jp+ pe_off,1)
+              call insertval2(vb1,rrterm(2,3),icomplex,ip+ vz_off,jp+ pe_off,1)
+              call insertval2(vb1,rrterm(3,1),icomplex,ip+chi_off,jp+psi_off,1)
+              call insertval2(vb1,rrterm(3,2),icomplex,ip+chi_off,jp+ bz_off,1)
+              call insertval2(vb1,rrterm(3,3),icomplex,ip+chi_off,jp+ pe_off,1)
               if(idens.eq.1) &
-                   call insertval2(vn1,rrterm(3,4),icomplex,i1+chi_off,j1+den_off,1)
+                   call insertval2(vn1,rrterm(3,4),icomplex,iv+chi_off,jv+den_off,1)
            endif
            if(i3d.eq.1) then
-              call insertval2(vf0,rrterm(2,5),icomplex,i1+chi_off,j1+bf_off,1)
+              call insertval2(vf0,rrterm(2,5),icomplex,iv+chi_off,jv+bf_off,1)
            endif
         endif
+
+        if(gyro.eq.1 .and. numvar.ge.2) then
+           call insertval2(gyro_torque_sm,gyro_torque(1),icomplex, &
+                iv+vz_off,jv+  u_off,1)
+           call insertval2(gyro_torque_sm,gyro_torque(2),icomplex, &
+                iv+vz_off,jv+ vz_off,1)
+           if(numvar.ge.3) then
+              call insertval2(gyro_torque_sm,gyro_torque(3),icomplex, &
+                   iv+vz_off,jv+chi_off,1)
+           end if
+        end if
      enddo               ! on j
+     enddo
 
      ! Definition of R4
      ! ================
      call vorticity_nolin(g79(:,:,i),temp)
-     vsource(i1+  u_off) = vsource(i1+  u_off) + temp
+     vsource(iv+  u_off) = vsource(iv+  u_off) + temp
      if(numvar.ge.2) then
         call axial_vel_nolin(g79(:,:,i),temp)
-        vsource(i1+ vz_off) = vsource(i1+ vz_off) + temp
+        vsource(iv+ vz_off) = vsource(iv+ vz_off) + temp
      endif
      if(numvar.ge.3) then
         call compression_nolin(g79(:,:,i),temp)
-        vsource(i1+chi_off) = vsource(i1+chi_off) + temp
+        vsource(iv+chi_off) = vsource(iv+chi_off) + temp
      endif
   enddo                  ! on i
+  enddo
 
 end subroutine ludefvel_n
 
@@ -1840,6 +1962,7 @@ end subroutine ludefvel_n
 !======================================================================
 subroutine ludefphi_n(itri)
   use basic
+  use t_data
   use nintegrate_mod
   use arrays
   use sparse
@@ -1848,8 +1971,10 @@ subroutine ludefphi_n(itri)
 
   integer, intent(in) :: itri
 
-  integer :: i, i1, j, j1
-  vectype, dimension(3,3) :: ssterm, ddterm
+  integer :: i, ii, iii, j, jj, jjj, ip, iv, jp, jv
+  integer :: ib_vel, ib_phi, jb_vel, jb_phi, iendplusone
+  
+  vectype, dimension(3,3+implicit_eta) :: ssterm, ddterm
   vectype, dimension(3,3+i3d) :: rrterm, qqterm
   vectype :: temp
 
@@ -1872,13 +1997,22 @@ subroutine ludefphi_n(itri)
      bsource => q4
   endif
 
-  do i=1,18
+  do iii=1,3
+  call entdofs(vecsize_phi,  ist(itri,iii)+1, 0, ib_phi, iendplusone)
+  call entdofs(vecsize_vel,  ist(itri,iii)+1, 0, ib_vel, iendplusone)
 
-     i1 = isvaln(itri,i)
+  do ii=1,6
+     i = (iii-1)*6 + ii
+     iv = ib_vel + ii - 1
+     ip = ib_phi + ii - 1
 
-     do j=1,18
-
-        j1 = isvaln(itri,j)
+     do jjj=1,3
+     call entdofs(vecsize_phi,  ist(itri,jjj)+1, 0, jb_phi, iendplusone)
+     call entdofs(vecsize_vel,  ist(itri,jjj)+1, 0, jb_vel, iendplusone)
+     do jj=1,6
+        j = (jjj-1)*6 + jj
+        jv = jb_vel + jj - 1
+        jp = jb_phi + jj - 1
 
         call flux_lin(g79(:,:,i),g79(:,:,j), &
              ssterm(1,:),ddterm(1,:),rrterm(1,:),qqterm(1,:))
@@ -1893,71 +2027,93 @@ subroutine ludefphi_n(itri)
 
         if(isplitstep.eq.0) rrterm = -rrterm
       
-        call insertval2(bb1,ssterm(1,1),icomplex,i1+psi_off,j1+psi_off,1)
-        call insertval2(bb0,ddterm(1,1),icomplex,i1+psi_off,j1+psi_off,1)
-        call insertval2(bv1,rrterm(1,1),icomplex,i1+psi_off,j1+  u_off,1)
-        call insertval2(bv0,qqterm(1,1),icomplex,i1+psi_off,j1+  u_off,1)
+        call insertval2(bb1,ssterm(1,1),icomplex,ip+psi_off,jp+psi_off,1)
+        call insertval2(bb0,ddterm(1,1),icomplex,ip+psi_off,jp+psi_off,1)
+        call insertval2(bv1,rrterm(1,1),icomplex,iv+psi_off,jv+  u_off,1)
+        call insertval2(bv0,qqterm(1,1),icomplex,iv+psi_off,jv+  u_off,1)
         if(i3d.eq.1) then
-           call insertval2(bf0,rrterm(1,4),icomplex,i1+psi_off,j1+bf_off,1)
+           call insertval2(bf0,rrterm(1,4),icomplex,ip+psi_off,jp+bf_off,1)
         endif
         if(numvar.ge.2) then
-           call insertval2(bb1,ssterm(1,2),icomplex,i1+psi_off,j1+ bz_off,1)
-           call insertval2(bb1,ssterm(2,1),icomplex,i1+ bz_off,j1+psi_off,1)
-           call insertval2(bb1,ssterm(2,2),icomplex,i1+ bz_off,j1+ bz_off,1)
-           call insertval2(bb0,ddterm(1,2),icomplex,i1+psi_off,j1+ bz_off,1)
-           call insertval2(bb0,ddterm(2,1),icomplex,i1+ bz_off,j1+psi_off,1)
-           call insertval2(bb0,ddterm(2,2),icomplex,i1+ bz_off,j1+ bz_off,1)
-           call insertval2(bv1,rrterm(1,2),icomplex,i1+psi_off,j1+ vz_off,1)
-           call insertval2(bv1,rrterm(2,1),icomplex,i1+ bz_off,j1+  u_off,1)
-           call insertval2(bv1,rrterm(2,2),icomplex,i1+ bz_off,j1+ vz_off,1)
-           call insertval2(bv0,qqterm(1,2),icomplex,i1+psi_off,j1+ vz_off,1)
-           call insertval2(bv0,qqterm(2,1),icomplex,i1+ bz_off,j1+  u_off,1)
-           call insertval2(bv0,qqterm(2,2),icomplex,i1+ bz_off,j1+ vz_off,1)
+           call insertval2(bb1,ssterm(1,2),icomplex,ip+psi_off,jp+ bz_off,1)
+           call insertval2(bb1,ssterm(2,1),icomplex,ip+ bz_off,jp+psi_off,1)
+           call insertval2(bb1,ssterm(2,2),icomplex,ip+ bz_off,jp+ bz_off,1)
+           call insertval2(bb0,ddterm(1,2),icomplex,ip+psi_off,jp+ bz_off,1)
+           call insertval2(bb0,ddterm(2,1),icomplex,ip+ bz_off,jp+psi_off,1)
+           call insertval2(bb0,ddterm(2,2),icomplex,ip+ bz_off,jp+ bz_off,1)
+           call insertval2(bv1,rrterm(1,2),icomplex,iv+psi_off,jv+ vz_off,1)
+           call insertval2(bv1,rrterm(2,1),icomplex,iv+ bz_off,jv+  u_off,1)
+           call insertval2(bv1,rrterm(2,2),icomplex,iv+ bz_off,jv+ vz_off,1)
+           call insertval2(bv0,qqterm(1,2),icomplex,iv+psi_off,jv+ vz_off,1)
+           call insertval2(bv0,qqterm(2,1),icomplex,iv+ bz_off,jv+  u_off,1)
+           call insertval2(bv0,qqterm(2,2),icomplex,iv+ bz_off,jv+ vz_off,1)
            if(i3d.eq.1) then
-              call insertval2(bf0,rrterm(2,4),icomplex,i1+bz_off,j1+bf_off,1)
+              call insertval2(bf0,rrterm(2,4),icomplex,ip+bz_off,jp+bf_off,1)
            endif
         endif
         if(numvar .eq. 3) then        
-           call insertval2(bb1,ssterm(1,3),icomplex,i1+psi_off,j1+ pe_off,1)
-           call insertval2(bb1,ssterm(2,3),icomplex,i1+ bz_off,j1+ pe_off,1)
-           call insertval2(bb1,ssterm(3,3),icomplex,i1+ pe_off,j1+ pe_off,1)
-           call insertval2(bb1,ssterm(3,1),icomplex,i1+ pe_off,j1+psi_off,1)
-           call insertval2(bb1,ssterm(3,2),icomplex,i1+ pe_off,j1+ bz_off,1)
-           call insertval2(bb0,ddterm(1,3),icomplex,i1+psi_off,j1+ pe_off,1)
-           call insertval2(bb0,ddterm(2,3),icomplex,i1+ bz_off,j1+ pe_off,1)
-           call insertval2(bb0,ddterm(3,3),icomplex,i1+ pe_off,j1+ pe_off,1)
-           call insertval2(bb0,ddterm(3,1),icomplex,i1+ pe_off,j1+psi_off,1)
-           call insertval2(bb0,ddterm(3,2),icomplex,i1+ pe_off,j1+ bz_off,1)
-           call insertval2(bv1,rrterm(1,3),icomplex,i1+psi_off,j1+chi_off,1)
-           call insertval2(bv1,rrterm(2,3),icomplex,i1+ bz_off,j1+chi_off,1)
-           call insertval2(bv1,rrterm(3,3),icomplex,i1+ pe_off,j1+chi_off,1)
-           call insertval2(bv1,rrterm(3,1),icomplex,i1+ pe_off,j1+  u_off,1)
-           call insertval2(bv1,rrterm(3,2),icomplex,i1+ pe_off,j1+ vz_off,1)
-           call insertval2(bv0,qqterm(1,3),icomplex,i1+psi_off,j1+chi_off,1)
-           call insertval2(bv0,qqterm(2,3),icomplex,i1+ bz_off,j1+chi_off,1)
-           call insertval2(bv0,qqterm(3,3),icomplex,i1+ pe_off,j1+chi_off,1)
-           call insertval2(bv0,qqterm(3,1),icomplex,i1+ pe_off,j1+  u_off,1)
-           call insertval2(bv0,qqterm(3,2),icomplex,i1+ pe_off,j1+ vz_off,1)
+           call insertval2(bb1,ssterm(1,3),icomplex,ip+psi_off,jp+ pe_off,1)
+           call insertval2(bb1,ssterm(2,3),icomplex,ip+ bz_off,jp+ pe_off,1)
+           call insertval2(bb1,ssterm(3,3),icomplex,ip+ pe_off,jp+ pe_off,1)
+           call insertval2(bb1,ssterm(3,1),icomplex,ip+ pe_off,jp+psi_off,1)
+           call insertval2(bb1,ssterm(3,2),icomplex,ip+ pe_off,jp+ bz_off,1)
+           call insertval2(bb0,ddterm(1,3),icomplex,ip+psi_off,jp+ pe_off,1)
+           call insertval2(bb0,ddterm(2,3),icomplex,ip+ bz_off,jp+ pe_off,1)
+           call insertval2(bb0,ddterm(3,3),icomplex,ip+ pe_off,jp+ pe_off,1)
+           call insertval2(bb0,ddterm(3,1),icomplex,ip+ pe_off,jp+psi_off,1)
+           call insertval2(bb0,ddterm(3,2),icomplex,ip+ pe_off,jp+ bz_off,1)
+           call insertval2(bv1,rrterm(1,3),icomplex,iv+psi_off,jv+chi_off,1)
+           call insertval2(bv1,rrterm(2,3),icomplex,iv+ bz_off,jv+chi_off,1)
+           call insertval2(bv1,rrterm(3,3),icomplex,iv+ pe_off,jv+chi_off,1)
+           call insertval2(bv1,rrterm(3,1),icomplex,iv+ pe_off,jv+  u_off,1)
+           call insertval2(bv1,rrterm(3,2),icomplex,iv+ pe_off,jv+ vz_off,1)
+           call insertval2(bv0,qqterm(1,3),icomplex,iv+psi_off,jv+chi_off,1)
+           call insertval2(bv0,qqterm(2,3),icomplex,iv+ bz_off,jv+chi_off,1)
+           call insertval2(bv0,qqterm(3,3),icomplex,iv+ pe_off,jv+chi_off,1)
+           call insertval2(bv0,qqterm(3,1),icomplex,iv+ pe_off,jv+  u_off,1)
+           call insertval2(bv0,qqterm(3,2),icomplex,iv+ pe_off,jv+ vz_off,1)
            if(i3d.eq.1) then
-              call insertval2(bf0,rrterm(3,4),icomplex,i1+pe_off,j1+bf_off,1)
+              call insertval2(bf0,rrterm(3,4),icomplex,ip+pe_off,jp+bf_off,1)
            endif
+           if(implicit_eta.eq.1) then
+              call insertval2(bb1,ssterm(1,4),icomplex,ip+psi_off,jp+eta_off,1)
+              call insertval2(bb1,ssterm(2,4),icomplex,ip+ bz_off,jp+eta_off,1)
+              call insertval2(bb1,ssterm(3,4),icomplex,ip+ pe_off,jp+eta_off,1)
+              call insertval2(bb0,ddterm(1,4),icomplex,ip+psi_off,jp+eta_off,1)
+              call insertval2(bb0,ddterm(2,4),icomplex,ip+ bz_off,jp+eta_off,1)
+              call insertval2(bb0,ddterm(3,4),icomplex,ip+ pe_off,jp+eta_off,1)
+
+              temp79a = pet79(:,OP_1)**(5./2.)
+              temp = int3(g79(:,OP_1,i),g79(:,OP_1,j),temp79a,weight_79,79)
+              call insertval2(bb1,temp,icomplex,ip+eta_off,ip+eta_off,1)
+
+              temp79a = eta0*nt79(:,OP_1)**(3./2.)
+              temp = -int3(g79(:,OP_1,i),g79(:,OP_1,j),temp79a,weight_79,79)
+              call insertval2(bb1,temp,icomplex,ip+eta_off,ip+pe_off,1)
+           end if
         endif
        
      enddo ! on j
-
+     enddo
 
      call flux_nolin(g79(:,:,i),temp)
-     bsource(i1+psi_off) = bsource(i1+psi_off) + temp
+     bsource(ip+psi_off) = bsource(ip+psi_off) + temp
      if(numvar.ge.2) then
         call axial_field_nolin(g79(:,:,i),temp)
-        bsource(i1+ bz_off) = bsource(i1+ bz_off) + temp
+        bsource(ip+ bz_off) = bsource(ip+ bz_off) + temp
      endif
      if(numvar.ge.3) then
         call electron_pressure_nolin(g79(:,:,i),temp)
-        bsource(i1+ pe_off) = bsource(i1+ pe_off) + temp
+        bsource(ip+ pe_off) = bsource(ip+ pe_off) + temp
      endif
+     if(implicit_eta.eq.1) then
+        temp = etar*int1(g79(:,OP_1,i),weight_79,79)
+        bsource(ip+eta_off) = bsource(ip+eta_off) + temp
+     end if
 
   enddo ! on i
+  enddo
+     
 
 end subroutine ludefphi_n
 

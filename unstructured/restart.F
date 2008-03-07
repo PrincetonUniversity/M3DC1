@@ -14,7 +14,7 @@
       call createfilename(fname, oldfname)
       call numnod(numnodes)
       call numfac(numelms)
-      call numdofs(vecsize, mmnn18)
+      call numdofs(vecsize_phi, mmnn18)
       call numdofs(num_fields, ndofs)
 
       if(ifirstrs .ne. 1) call rename(fname, oldfname)
@@ -72,7 +72,7 @@ c     first put in information to check on run information
       integer :: ndofs
 
       call createfilename(fname, oldfname)
-      call numdofs(numvar, mmnn18)
+      call numdofs(vecsize_phi, mmnn18)
       call numdofs(num_fields, ndofs)
       call numnod(numnodes)
       call numfac(numelms)

@@ -81,11 +81,15 @@ c$$$      return
       if(myrank.eq.1 .and. iprint.ge.1) print *, " Entering space..."
 
       if(isplitstep.eq.1) then
-         vecsize = numvar
-         vecsize1 = 1
+         vecsize_phi = numvar + implicit_eta
+         vecsize_vel = numvar
+         vecsize_n = 1
+         vecsize_p = 1
       else
-         vecsize  = numvar*2 + idens + ipres
-         vecsize1 = vecsize
+         vecsize_phi  = numvar*2 + idens + ipres + implicit_eta
+         vecsize_vel  = vecsize_phi
+         vecsize_n    = vecsize_phi
+         vecsize_p    = vecsize_phi
       endif
 
 !
@@ -97,9 +101,13 @@ c$$$      return
      &        12, 0, 0, 0, maxdofs2)
          call createdofnumbering(num_fields, iper, jper, 
      &        num_fields*6, 0, 0, 0, maxdofsn)
-         if(vecsize.gt.2) then
-            call createdofnumbering(vecsize, iper, jper,
-     &           vecsize*6, 0, 0, 0, maxdofsn)
+         if(vecsize_phi.gt.2) then
+            call createdofnumbering(vecsize_phi, iper, jper,
+     &           vecsize_phi*6, 0, 0, 0, maxdofsn)
+         endif
+         if(vecsize_vel.gt.2 .and. vecsize_vel.ne.vecsize_phi) then
+            call createdofnumbering(vecsize_vel, iper, jper,
+     &           vecsize_vel*6, 0, 0, 0, maxdofsn)
          endif
       endif
 
@@ -111,62 +119,67 @@ c$$$      return
 !     createvec will delete the arrays if they have already been allocated
 
       if(ifirstcall.eq.1) then
-      ! Physical Variables
-      call createvec(field , num_fields)
-      call createvec(field0, num_fields)
-      call createvec(fieldi, num_fields)
+         if(myrank.eq.0 .and. iprint.eq.1) print *, 'Allocting...'
 
-      ! Auxiliary Variables
-      call createvec(jphi, 1)
-      call createvec(vor, 1)
-      call createvec(com, 1)
-      call createvec(resistivity, 1)
-      call createvec(kappa, 1)
-      call createvec(visc, 1)
-      call createvec(visc_c, 1)
-      call createvec(sigma, 1)
-      call createvec(tempvar,1)
-      if(i3d.eq.1) call createvec(bf,1)      
+         ! Physical Variables
+         call createvec(field , num_fields)
+         call createvec(field0, num_fields)
+         call createvec(fieldi, num_fields)
 
-      ! Arrays for implicit time advance
-      call createvec(phi,  vecsize)
-      call createvec(phiold,   vecsize)
+         ! Auxiliary Variables
+         call createvec(jphi, 1)
+         call createvec(vor, 1)
+         call createvec(com, 1)
+         call createvec(resistivity, 1)
+         call createvec(kappa, 1)
+         call createvec(visc, 1)
+         call createvec(visc_c, 1)
+         call createvec(sigma, 1)
+         call createvec(tempvar,1)
+         if(gyro.eq.1) call createvec(gyro_tau,1)
+         if(i3d.eq.1) call createvec(bf,1)      
 
-      call createvec(b1vector, vecsize)
-      call createvec(vtemp,    vecsize)
-      call createvec(q4,       vecsize)
+         ! Arrays for implicit time advance
+         call createvec(phi,      vecsize_phi)
+         call createvec(phiold,   vecsize_phi)
+         call createvec(q4,       vecsize_phi)
 
-      if(isplitstep.eq.1) then
-         call createvec(vel, vecsize)
-         call createvec(velold, vecsize)
-         call createvec(veln, vecsize)
-         call createvec(veloldn, vecsize)
-         call createvec(r4, vecsize)
-         call createvec(phip, vecsize)
-         call createvec(b2vector, vecsize)
-         call createvec(b3vector, vecsize)
+         call createvec(b1_phi,   vecsize_phi)
+         call createvec(b2_phi,   vecsize_phi)
 
-         if(ipres.eq.1) then
-            call createvec(pres, 1)
-            call createvec(presold, 1)
-            call createvec(qp4, 1)
+         if(isplitstep.eq.1) then
+            call createvec(vel,      vecsize_vel)
+            call createvec(velold,   vecsize_vel)
+            call createvec(veln,     vecsize_vel)
+            call createvec(veloldn,  vecsize_vel)
+            call createvec(r4,       vecsize_vel)
+            call createvec(phip,     vecsize_phi)
+
+            if(ipres.eq.1) then
+               call createvec(pres,    vecsize_p)
+               call createvec(presold, vecsize_p)
+               call createvec(qp4,     vecsize_p)
+            endif
+            
+            call createvec(den,    vecsize_n)        
+            call createvec(denold, vecsize_n)
+            call createvec(qn4,    vecsize_n)
+
+            call createvec(b1_vel,   vecsize_vel)
+            call createvec(b2_vel,   vecsize_vel)
+
+            if(isources.eq.1) then
+               call createvec(sb1, 1)
+               call createvec(sb2, 1)
+               call createvec(sp1, 1)
+            endif
          endif
-
-         call createvec(den, 1)        
-         call createvec(denold, 1)
-         call createvec(qn4, 1)
-
-         if(isources.eq.1) then
-            call createvec(sb1, 1)
-            call createvec(sb2, 1)
-            call createvec(sp1, 1)
-         endif
-      endif
-
+         
       endif
 !
 !.....arrays associated with the triangles
       if(ifirstcall.eq.0) then
+         if(myrank.eq.0 .and. iprint.eq.1) print *, ' deallocating...'
          deallocate(ist)
          deallocate(isvaln)
          deallocate(isval1)
@@ -177,6 +190,8 @@ c$$$      return
          deallocate(ttri)
          deallocate(gtri)
       endif
+
+      if(myrank.eq.0 .and. iprint.eq.1) print *, ' Allocting tri...'
       allocate(ist(ntri,3),isvaln(ntri,18),isval1(ntri,18),             &
      &     isval2(ntri,18))
       allocate(atri(numelms),btri(numelms),ctri(numelms),ttri(numelms),

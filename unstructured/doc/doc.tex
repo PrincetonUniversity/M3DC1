@@ -1736,8 +1736,12 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
   \texttt{igauge} & 0   & 1: Loop voltage appears explicitly in Ohm's law.\\
   \texttt{ntor}   & 0   & The toroidal modenumber of linear perturbations in
                           complex simulations.\\
-  \texttt{max_ke} & 1   & Maximum value of KE before solution is
-                          rescaled in linear simulations.
+  \texttt{max\_ke}& 1   & Maximum value of KE before solution is
+                          rescaled in linear simulations.\\
+  \texttt{ivform} & 0   & 1: Use angular frequency as toroidal velocity
+                             variable\\
+  \texttt{istatic}& 0   & 1: Do not advance velocity\\
+  \texttt{iestatic}&0   & 1: Do not advance magnetic fields\\
 \end{tabular}
 
 
@@ -1791,6 +1795,7 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
                   & Parallel thermal conductivity coefficient\\ 
   \texttt{kappax} & $\kappa_\times$ & 0 
                   & Crosswise thermal conductivity coefficient\\ 
+  \texttt{ikapscale}& & 0 & 1: Multiply \texttt{kappar} by $\kappa$\\
   \texttt{deex}   & & 0 & Hyper-diffusive scale length
     (All \texttt{hyper}* quantities are multiplied by \texttt{deex}$^2$).\\
   \texttt{hyper}  & $\lambda$ & 0 & Poloidal hyper-resistive coefficient\\
@@ -1798,28 +1803,33 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
   \texttt{hyperc} & & 0 & Poloidal hyper-viscous coefficient\\
   \texttt{hyperv} & & 0 & Toroidal hyper-viscous coefficient\\
   \texttt{hyperp} & & 0 & Thermal hyper-diffusive coefficient\\
+  \texttt{ihypeta}& & 0 & 1: Multiply hyper-resistivities by $\eta$
 \end{tabular}
 
 
 
 \subsection{Boundary and Domain Options}
 
-\begin{tabular}{lcl}
+\begin{tabular}{lcp{2.5in}}
   \textbf{Option} & \textbf{Default} & \textbf{Description}\\
   \hline
   \texttt{xzero}  & 0 & $r$-coordinate of bottom left corner of domain\\
   \texttt{zzero}  & 0 & $z$-coordinate of bottom left corder of domain\\
   \texttt{iper}   & 0 & 1: Left/right boundaries periodic\\
   \texttt{jper}   & 0 & 2: Top/bottom boundaries periodic\\
-  \texttt{vloop}  & 0 & Loop voltage.  $\partial_t \psi = \mathtt{vloop}$\\
-  \texttt{v\_bc}  & 0 & 0: $\partial_t V = 0$; 1: $\n \cdot \grad{V} = 0$\\
+  \texttt{inonormalflow}& 1 & 1: No-normal-flow boundary\\
+  \texttt{inoslip\_pol} & 0 & 1: No-slip boundaries for poloidal velocity\\
+  \texttt{inoslip\_tor} & 1 & 1: No-slip boundaries for toroidal velocity\\
+  \texttt{inostress\_tor}&0 & 1: No-normal-stress boundary for toroidal 
+                                 velocity\\
   \texttt{com\_bc}& 1 & 1: $\nabla^2 \chi = 0$\\
   \texttt{p\_bc}  & 0 & 0: $\partial_t p = 0$; 1: $\n \cdot \grad{p} =
     0$\\
+  \texttt{vloop}  & 0 & Loop voltage.  $\partial_t \psi = \mathtt{vloop}$\\
   \texttt{imask}  & 0 & 1: Smoothly bring $d_i$ to zero near
     boundaries\\
-  \texttt{amu\_edge}&0& \parbox[t]{2.5in}{Factor by which to
-    increase viscosity near boundaries}\\
+  \texttt{amu\_edge} & 0 &    Factor by which to increase viscosity near 
+                              boundaries}
 \end{tabular}
 
 

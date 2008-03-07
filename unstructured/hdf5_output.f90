@@ -490,6 +490,8 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "Torque_com",  tau_com,  ntime, error)
   call output_scalar(scalar_group_id, "Torque_visc", tau_visc, ntime, error)
   call output_scalar(scalar_group_id, "Torque_gyro", tau_gyro, ntime, error)
+  call output_scalar(scalar_group_id, "Torque_denm", tau_denm, ntime, error)
+
 
   if(itaylor.eq.3) then
      temp = reconnected_flux()
@@ -872,6 +874,16 @@ subroutine output_fields(time_group_id, equilibrium, error)
         nfields = nfields + 1
      endif
   endif
+
+  if(gyro.eq.1) then
+     ! gyro_tau
+     do i=1, nelms
+        call calcavector(i, gyro_tau, 1, 1, dum(:,i))
+     end do
+     call output_field(group_id, "gyro_tau", real(dum), 20, nelms, error)
+     nfields = nfields + 1
+  end if
+
 
   call write_int_attr(group_id, "nfields", nfields, error)
 
