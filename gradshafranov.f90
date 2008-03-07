@@ -167,7 +167,7 @@ subroutine gradshafranov_init()
 
   implicit none
 
-  integer :: l, numnodes, ibegin, iendplusone, ibegin1, iendplusone1
+  integer :: l, numnodes
   real :: tstart, tend, alx, alz, xmin, zmin, x, z
   double precision :: coords(3)
 
@@ -184,7 +184,6 @@ subroutine gradshafranov_init()
   call numnod(numnodes)
   do l=1, numnodes
 
-     call entdofs(vecsize, l, 0, ibegin, iendplusone)
      call xyznod(l, coords)
 
      x = coords(1) - xmin

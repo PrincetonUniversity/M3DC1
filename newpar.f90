@@ -94,6 +94,7 @@ Program Reducedquintic
   call init
 
 
+
   ! calculate pfac (pe*pfac = electron pressure)
   if(ipres.eq.1) then
      pefac = 1.
@@ -193,6 +194,10 @@ Program Reducedquintic
      call create_matrix(poisson_matrix_lhs, NV_DCBOUND, NV_LP_MATRIX, NV_LHS)
      call create_matrix(bf_matrix_rhs_dc,   NV_DCBOUND, NV_BF_MATRIX, NV_RHS)
   endif
+  if(gyro.eq.1 .and. numvar.ge.2) then
+     call zeromultiplymatrix(gyro_torque_sm,icomplex,vecsize_vel)
+     call finalizematrix(gyro_torque_sm)
+  endif
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, "Done generating newvar matrices."
 
@@ -203,7 +208,6 @@ Program Reducedquintic
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   call derived_quantities
 
-
   ! Adapt the mesh
   ! ~~~~~~~~~~~~~~
   if(iadapt.eq.1) then
@@ -211,15 +215,15 @@ Program Reducedquintic
      if(maxrank .eq. 1) then
 !        call outputfield(phi, numvar, 0, ntime, 123) 
 !        call writefieldatnodes(resistivity, 1, 1) 
-        factor = 0.1
-        hmin = .001
-        hmax = .3
+        factor = 0.5
+        hmin = .004
+        hmax = 0.1
 
         print *, 'adapting mesh...'
 #ifdef USECOMPLEX
-        call hessianadapt(resistivity, 1, 0, ntime, factor, hmin, hmax) 
+        call hessianadapt(field,u_g, 0, ntime, factor, hmin, hmax) 
 #else
-        call hessianadapt(resistivity, 1, ntime, factor, hmin, hmax)
+        call hessianadapt(field,u_g, ntime, factor, hmin, hmax)
 #endif
         print *, 'done adapting.'
         call space(0)
@@ -249,7 +253,6 @@ Program Reducedquintic
   ! output initial conditions
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
   call output
-
 
   ! if there are no timesteps to calculate, then skip time loop
   if(ntimemax.le.ntime) go to 101
@@ -329,6 +332,9 @@ Program Reducedquintic
      call deletematrix(poisson_matrix_lhs)
      call deletematrix(bf_matrix_rhs_dc)
   end if
+  if(gyro.eq.1) then
+     call deletematrix(gyro_torque_sm)
+  end if
 #ifdef USECOMPLEX
   call deletematrix(o1matrix_sm)
   call deletematrix(o2matrix_sm)
@@ -338,7 +344,8 @@ Program Reducedquintic
   call deletedofnumbering(1)
   call deletedofnumbering(2)
   call deletedofnumbering(num_fields)
-  if(vecsize.gt.2)  call deletedofnumbering(vecsize)
+  call deletedofnumbering(vecsize_phi)
+  call deletedofnumbering(vecsize_vel)
   
 
   call safestop(2)
@@ -425,17 +432,17 @@ subroutine smooth
   call numnod(numnodes)
      
   ! smooth vorticity
-  call newvar(mass_matrix_lhs_dc,vor,vel,1,vecsize, &
+  call newvar(mass_matrix_lhs_dc,vor,vel,1,vecsize_vel, &
        gs_matrix_rhs_dc,NV_DCBOUND)
-  call smoother1(vor,vel,numnodes,vecsize,1)
+  call smoother1(vor,vel,numnodes,vecsize_vel,1)
      
   ! smooth compression
   if(numvar.ge.3) then
      if(com_bc.eq.1) then
-        call newvar(mass_matrix_lhs_dc,com,vel,3,vecsize, &
+        call newvar(mass_matrix_lhs_dc,com,vel,3,vecsize_vel, &
              lp_matrix_rhs_dc,NV_DCBOUND)
      else
-        call newvar(mass_matrix_lhs   ,com,vel,3,vecsize, &
+        call newvar(mass_matrix_lhs   ,com,vel,3,vecsize_vel, &
              lp_matrix_rhs,   NV_NOBOUND)
      endif
      
@@ -446,7 +453,7 @@ subroutine smooth
 !!$           print *, "Error in com = ", chierror 
 !!$        endif
         
-     call smoother3(com,vel,numnodes,vecsize,3)
+     call smoother3(com,vel,numnodes,vecsize_vel,3)
   endif
 
   if(myrank.eq.0 .and. itimer.eq.1) then

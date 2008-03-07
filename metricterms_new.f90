@@ -963,13 +963,16 @@ vectype function v2vmu(e,f,g,h,i)
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h,i
   vectype :: temp
 
-  temp79a = e(:,OP_GS)*g(:,OP_1) + &
-       e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR)
-  if(itor.eq.1) temp79a = temp79a + 4.*ri_79*e(:,OP_DR)*g(:,OP_1)
-
   select case(ivform)
   case(0)
-     temp = int2(temp79a,f(:,OP_1),weight_79,79)
+!!$     temp = int2(temp79a,f(:,OP_1),weight_79,79)
+     temp = int3(e(:,OP_1),f(:,OP_GS),g(:,OP_1),weight_79,79) &
+          + int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
+          + int3(e(:,OP_1),f(:,OP_DR),g(:,OP_DR),weight_79,79)
+     
+     if(itor.eq.1) then
+        temp = temp - 2.*int4(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DR),weight_79,79)
+     endif
 
 #ifdef USECOMPLEX
      temp = temp + 2.*int4(ri2_79,e(:,OP_1),f(:,OP_DPP),h(:,OP_1),weight_79,79)
@@ -977,15 +980,28 @@ vectype function v2vmu(e,f,g,h,i)
 
      ! hyperviscous
      if(hyperv.ne.0) then
+        temp79a = e(:,OP_GS)*g(:,OP_1) + &
+             e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR)
+        if(itor.eq.1) temp79a = temp79a + 4.*ri_79*e(:,OP_DR)*g(:,OP_1)
         temp = temp - int3(temp79a,f(:,OP_GS),i(:,OP_1),weight_79,79)  
      endif
 
   case(1)
 
-     temp = int3(r2_79,temp79a,f(:,OP_1),weight_79,79)
+!!$     temp = int3(r2_79,temp79a,f(:,OP_1),weight_79,79)
+     temp = int4(r2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_1),weight_79,79) &
+          + int4(r2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
+          + int4(r2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),weight_79,79)
+     
+     if(itor.eq.1) then
+        temp = temp + 4.*int4(r_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),weight_79,79)
+     endif
      
      ! hyperviscous
      if(hyperv.ne.0) then
+        temp79a = e(:,OP_GS)*g(:,OP_1) + &
+             e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR)
+        if(itor.eq.1) temp79a = temp79a + 4.*ri_79*e(:,OP_DR)*g(:,OP_1)
         temp = temp - int3(temp79a,f(:,OP_GS),i(:,OP_1),weight_79,79)
         if(itor.eq.1) then
            temp = temp - 4.*int4(ri_79,temp79a,f(:,OP_DR),i(:,OP_1),weight_79,79)
@@ -2607,6 +2623,7 @@ vectype function b2beta(e,f,g,h)
              (e(:,OP_DR)*g(:,OP_1) + e(:,OP_1)*g(:,OP_DR))
      else
         temp79a = e(:,OP_LP)
+        if(itor.eq.1) temp79a = temp79a + 2.*ri_79*e(:,OP_DR)
      end if
   
      temp = temp - int3(temp79a,f(:,OP_GS),h(:,OP_1),weight_79,79)
@@ -5078,15 +5095,52 @@ end function torque_visc
 
 ! torque_gyro
 ! ~~~~~~~~~~~
-vectype function torque_gyro()
+vectype function torque_gyro(itri)
+  use basic
+  use arrays
+  use t_data
   use nintegrate_mod
 
   implicit none
 
+  integer, intent(in) :: itri
+  vectype, dimension(20) :: avec
   vectype :: temp
 
-  torque_gyro = 0.
+  if(gyro.eq.0 .or. numvar.lt.2) then
+     torque_gyro = 0
+     return
+  endif
+
+  call calcavector(itri, gyro_tau, 1, 1, avec)
+  call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, temp79a)
+
+  torque_gyro = int1(temp79a,weight_79,79)
+
 end function torque_gyro
+
+
+! torque_denm
+! ~~~~~~~~~~~
+vectype function torque_denm()
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  if(denm.eq.0 .or. idens.eq.0) then
+     torque_denm = 0
+     return
+  endif
+
+  select case(ivform)
+  case(0)
+     torque_denm = denm*int2(nt79(:,OP_LP),vzt79(:,OP_1),weight_79,79)
+  case(1)
+     torque_denm = denm*int3(r2_79,nt79(:,OP_LP),vzt79(:,OP_1),weight_79,79)
+  end select
+
+end function torque_denm
 
 
 end module metricterms_new

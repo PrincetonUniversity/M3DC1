@@ -650,23 +650,11 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
 
        idens = read_parameter('idens', filename=filename)
 
-       if(nv ge 3) then begin
-           P = read_field('P',x,y,t,slices=time, mesh=mesh, $
-                          filename=filename, points=pts, $
-                          rrange=xrange, zrange=yrange)
-       endif else begin
-           P = read_parameter('p0', filename=filename)
-       endelse
-
-       if(idens eq 1) then begin
-           n = read_field('den', x,y,t, slices=time, mesh=mesh, $
-                          filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-       endif else begin
-           n = 1.
-       endelse
-  
-       data = sqrt(P/n)
+       T = read_field('T',x,y,t,slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+         
+       data = sqrt(T)
 
    ;===========================================
    ; sound speed
@@ -689,21 +677,13 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
 
        idens = read_parameter('idens', filename=filename)
 
-       if(nv ge 3) then begin
-           P = read_field('P', x, y, t, slices=time, mesh=mesh, $
-                          filename=filename, points=pts, $
-                          rrange=xrange, zrange=yrange)
-       endif else begin
-           P = read_parameter('p0', filename=filename)
-       endelse
+       P = read_field('P', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
 
-       if(idens eq 1) then begin
-           n = read_field('den', x, y, t, slices=time, mesh=mesh, $
-                          filename=filename, points=pts, $
-                          rrange=xrange, zrange=yrange)
-       endif else begin
-           n = 1.
-       endelse
+       n = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
   
        data = p/n
 
@@ -769,21 +749,41 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
        data = sqrt((xx-x0)^2 + (zz-z0)^2)
 
    ;===========================================
-   ; toroidal field
+   ; Field strength
    ;===========================================
-   endif else if( (strcmp('I', name, /fold_case) eq 1) and (nv eq 1)) $
+   endif else if( (strcmp('field strength', name, /fold_case) eq 1) $
+                  or (strcmp('b', name, /fold_case) eq 1)) $
      then begin
-       bzero = read_parameter('bzero', filename=filename)
-       xzero = read_parameter('xzero', filename=filename)
 
-       if(itor eq 1) then bzero = bzero*xzero
-
-       data = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange)
-       
-       data[*] = bzero
 
+       I = read_field('I', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+
+       data = s_bracket(psi,psi,x,y) + I^2
+
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+           data = data / r^2
+       end
+            
+   ;===========================================
+   ; Alfven velocity
+   ;===========================================
+   endif else if( (strcmp('va', name, /fold_case) eq 1)) $
+     then begin
+
+       b = read_field('b', x, y, t, slices=time, mesh=mesh, $
+                       filename=filename, points=pts, $
+                       rrange=xrange, zrange=yrange)
+       den = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                       filename=filename, points=pts, $
+                       rrange=xrange, zrange=yrange)
+       data = b/sqrt(den)
+       
    ;===========================================
    ; toroidal current density
    ;===========================================
@@ -848,7 +848,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
                         rrange=xrange, zrange=yrange)
 
          r = radius_matrix(x,y,t)
-         data = grad_shafranov(v/r^2,x,y,tor=itor)
+         data = v/r^2
 
    ;===========================================
    ; parallel flow
@@ -986,12 +986,13 @@ end
 
 pro plot_field, name, time, x, y, points=p, filename=filename, mesh=plotmesh, $
                 mcolor=mc, lcfs=lcfs, title=title, units=units, $
-                maskrange=maskrange, maskfield=maskfield, $
+                maskrange=maskrange, maskfield=maskfield, range=range, $
                 rrange=rrange, zrange=zrange, $
                 xrange=xrange, yrange=yrange, $
-                cutx=cutx, cutz=cutz, _EXTRA = ex
+                cutx=cutx, cutz=cutz, mpeg=mpeg, _EXTRA = ex
 
    if(n_elements(time) eq 0) then time = 0
+   if(n_elements(title) eq 0) then notitle = 1 else notitle = 0
 
    if(size(name, /type) eq 7) then begin
        field = read_field(name, x, y, t, slices=time, mesh=mesh, $
@@ -1002,15 +1003,6 @@ pro plot_field, name, time, x, y, points=p, filename=filename, mesh=plotmesh, $
        fieldname = translate(name, units=u)
 
        if(n_elements(units) eq 0) then units=u
-       if(n_elements(title) eq 0) then begin
-           if(t gt 0) then begin
-               title = fieldname + $
-                 string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!X")', t)
-           endif else begin
-               title = fieldname + $
-                 string(FORMAT='("!6(!8t!6 = ",G0,")!X")', t)
-           endelse
-       endif
    endif else begin
        field = name
        if(n_elements(field) le 1) then return
@@ -1028,6 +1020,17 @@ pro plot_field, name, time, x, y, points=p, filename=filename, mesh=plotmesh, $
        field = mask*field + (1-mask)*(min(field-mask*field,/absolute))
    endif
 
+   sz = size(field, /dimension)
+   nt = sz[0]
+
+   ; open mpeg object
+   if(n_elements(mpeg) ne 0) then begin
+       mpegid = mpeg_open([640,480],bitrate=104857200, iframe_gap=4)
+   end
+
+   if(n_elements(range) eq 0) then range = [min(field),max(field)]
+
+
    if(n_elements(cutx) gt 0) then begin
        dum = min(x-cutx,i,/absolute)
        plot, y, field[0,i,*]
@@ -1035,38 +1038,56 @@ pro plot_field, name, time, x, y, points=p, filename=filename, mesh=plotmesh, $
        dum = min(y-cutz,i,/absolute)
        plot, x, field[0,*,i]
    endif else begin
-       contour_and_legend, field, x, y, title=title, label=units, $
-         xtitle='!8R!X', ytitle='!8z!X', _EXTRA=ex
+       for k=0, nt-1 do begin
+           if(notitle eq 1) then begin
+               if(t[k] gt 0) then begin
+                   title = fieldname + $
+                     string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!X")', $
+                            t[k])
+               endif else begin
+                   title = fieldname + $
+                     string(FORMAT='("!6(!8t!6 = ",G0,")!X")', t[k])
+               endelse
+           end
 
-       if(keyword_set(lcfs) or n_elements(maskrange) ne 0) then begin
-           if(n_elements(psi) eq 0) then begin
-               plot_lcfs, time, color=130, points=p, filename=filename
-           endif else begin
-               plot_lcfs, time, color=130, val=maskrange[0], psi=psi, $
-                 x=x, y=y, points=p
-               plot_lcfs, time, color=130, val=maskrange[1], psi=psi, $
-                 x=x, y=y, points=p
-           endelse
-       endif
-       
-       if(keyword_set(plotmesh)) then begin
-           loadct, 12
-           plot_mesh, mesh, color=color(3,5), /oplot, filename=filename
-       endif
+           contour_and_legend, field[k,*,*], x, y, title=title, label=units, $
+             xtitle='!8R!X', ytitle='!8Z!X', range=range, _EXTRA=ex
+
+           if(keyword_set(lcfs) or n_elements(maskrange) ne 0) then begin
+               if(n_elements(psi) eq 0) then begin
+                   plot_lcfs, time[0]+k, color=130, points=p, filename=filename
+               endif else begin
+                   plot_lcfs, time[0]+k, color=130, val=maskrange[0], psi=psi,$
+                     x=x, y=y, points=p
+                   plot_lcfs, time[0]+k, color=130, val=maskrange[1], psi=psi,$
+                     x=x, y=y, points=p
+               endelse
+           endif
+           
+           if(keyword_set(plotmesh)) then begin
+               loadct, 12
+               plot_mesh, mesh, color=color(3,5), /oplot, filename=filename
+           endif
+
+           if(n_elements(mpeg) ne 0) then begin
+               image = tvrd(true=1)
+               
+               image[0,*,*] = rotate(reform(image[0,*,*]), 7)
+               image[1,*,*] = rotate(reform(image[1,*,*]), 7)
+               image[2,*,*] = rotate(reform(image[2,*,*]), 7)
+               
+               mpeg_put, mpegid, image=image, frame=5*k
+           end
+       end
    endelse
+
+   if(n_elements(mpeg) ne 0) then begin
+       print, 'Writing mpeg...'
+       mpeg_save, mpegid, filename=mpeg
+       mpeg_close, mpegid
+   end
 end
 
-pro plot_field_mpeg, fieldname, mpegame=mpegname, range=range, points=pts, $
-                     _EXTRA=ex
-    if(n_elements(mpegname) eq 0) then mpegname = fieldname + '.mpeg'
-    if(n_elements(pts) eq 0) then pts = 50
-
-    nt = get_parameters("ntime")
-
-    data = read_field(fieldname, x, y, mesh=mesh, points=pts)
-
-    contour_and_legend_mpeg, mpegname, data, x, y, _EXTRA=ex
-end
 
 pro compare, file1, file2, time, names=names
 
@@ -1189,16 +1210,17 @@ function momentum_flux, filename=filename, components=comp, names=names, t=t, $
 
    t = s.time._data
 
-   names = ['- dL/dt', 'Magnetic', 'Solenoidal', $
-            'Compressional', 'Viscous', 'Gyroviscous']
+   names = ['dL/dt', 'Magnetic', 'Solenoidal', $
+            'Compressional', 'Viscous', 'Gyroviscous', 'denm']
   
    comp = fltarr(n_elements(names), n_elements(t))
-   comp[0,*] = -deriv(t, s.angular_momentum._data)
-   comp[1,*] = s.Torque_em._data
-   comp[2,*] = s.Torque_sol._data
-   comp[3,*] = s.Torque_com._data
-   comp[4,*] = s.Torque_visc._data
-   comp[5,*] = s.Torque_gyro._data
+   comp[0,*] = deriv(t, s.angular_momentum._data)
+   comp[1,*] = -s.Torque_em._data
+   comp[2,*] = -s.Torque_sol._data
+   comp[3,*] = -s.Torque_com._data
+   comp[4,*] = -s.Torque_visc._data
+   comp[5,*] = -s.Torque_gyro._data
+   comp[6,*] = -s.Torque_denm._data
 
    if(keyword_set(norm)) then comp = comp/max(abs(s.angular_momentum._data))
 

@@ -52,8 +52,10 @@ module basic
   ! boundary conditions
   integer :: iper, jper ! periodic boundary conditions
   integer :: imask      ! 1 = ignore 2-fluid terms near boundaries
-  integer :: v_bc     ! bc on angular momentum.  
-                      ! 0 = no-slip, 1 = no normal stress
+  integer :: inonormalflow ! 1 = no normal flow
+  integer :: inoslip_pol   ! 1 = no slip (poloidal flow)
+  integer :: inoslip_tor   ! 1 = no slip (toroidal flow)
+  integer :: inostress_tor ! 1 = no stress (toroidal flow)
   integer :: p_bc     ! bc on pressure.
                       !   0 = constant pressure, 1 = insulating
   integer :: com_bc   ! 1 = forces div(V) = 0 on boundary
@@ -112,6 +114,7 @@ module basic
   integer :: igauge
   integer :: ivform      ! 0: V = v grad(phi).  1: V = R^2 v grad(phi)
   integer :: ihypeta     ! 1 = scale hyper-resistivity with eta
+  integer :: ihypdx      ! scale hyper-resistivity with dx**ihypdx
   integer :: ikapscale   ! 1 = scale kappar with kappa
 
   ! numerical parameters
@@ -121,6 +124,10 @@ module basic
   integer :: integrator  ! 0 = Crank-Nicholson, 1 = BDF2
   integer :: isplitstep  ! 1 = do timestep splitting
   integer :: imp_mod
+  integer :: iteratephi  ! 1 = iterate field solve
+  integer :: irecalc_eta ! 1 = recalculate transport coeffs after den solve
+  integer :: implicit_eta! 1 = solve resistivity implicitly
+  integer :: iconst_eta  ! 1 = don't evolve resistivity
   real :: dt             ! timestep
   real :: thimp          ! implicitness parameter (for Crank-Nicholson)
   real :: thimp_ohm      ! implicitness parameter for ohmic heating
@@ -142,7 +149,6 @@ module basic
 
   ! general behavior
   integer :: iadapt     ! 1 = adapts mesh after initialization
-
   
   integer :: istart
   real :: beta
@@ -163,7 +169,7 @@ module basic
        etar,eta0,amu,amuc,amupar,denm,                         &
        kappat,kappa0,kappar,kappax,kappah,                     &
        hyper,hyperi,hyperv,hyperc,hyperp,deex,                 &
-       iper,jper,imask,amu_edge,v_bc,p_db,com_bc,pedge,        &
+       iper,jper,imask,amu_edge,p_db,com_bc,pedge,             &
        eps,ln,                                                 &
        vloop,control_p,control_i,control_d,tcur,               &
        ipellet, pellet_x, pellet_z, pellet_rate, pellet_var,   &
@@ -177,7 +183,10 @@ module basic
        expn,q0,divertors,xdiv,zdiv,divcur,th_gs,p1,p2,p_edge,  &
        idevice,igs,th_gs,                                      &
        iconstflux,regular,max_ke,                              &
-       ntor,iadapt,istatic,iestatic,ivform,ihypeta,ikapscale
+       ntor,iadapt,istatic,iestatic,ivform,ihypeta,ikapscale,  &
+       iteratephi,                                             &
+       inonormalflow, inoslip_pol, inoslip_tor, inostress_tor, &
+       irecalc_eta,ihypdx,implicit_eta, iconst_eta
 
   !     derived quantities
   real :: pi,dbf,bdf,hypv,hypc,hypf,hypi,hypp,   &
@@ -226,9 +235,10 @@ module arrays
   ! Arrays containing auxiliary variables
   vectype, allocatable :: &
        jphi(:), vor(:), com(:),                     &
-       vtemp(:), resistivity(:), tempvar(:),        &
+       resistivity(:), tempvar(:),                  &
        kappa(:),sigma(:), sb1(:), sb2(:), sp1(:),   &
-       visc(:), visc_c(:), bf(:)
+       visc(:), visc_c(:), bf(:), gyro_tau(:)
+       
 
 
   ! Arrays for advance
@@ -240,9 +250,9 @@ module arrays
        q4(:), r4(:), qn4(:), qp4(:)  
 
   vectype, allocatable :: &
-       veln(:), veloldn(:), phip(:),                              &
-       b1vector(:), b2vector(:), b3vector(:), b4vector(:),        &
-       b5vector(:), tempcompare(:)
+       veln(:), veloldn(:), phip(:),                          &
+       b1_vel(:), b2_vel(:), b1_phi(:), b2_phi(:),            &
+       tempcompare(:)
 
 
   ! the following pointers point to the vector containing the named field.
@@ -255,6 +265,8 @@ module arrays
   vectype, pointer ::  pe_v(:),  peo_v(:)
   vectype, pointer :: den_v(:), deno_v(:)
   vectype, pointer ::   p_v(:),   po_v(:)
+  vectype, pointer :: eta_v(:), etao_v(:)
+
 
   ! the indicies of the named fields within the field vector
   integer, parameter :: u_g = 1
@@ -271,15 +283,15 @@ module arrays
   integer :: u_i, vz_i, chi_i
   integer :: psi_i, bz_i, pe_i
   integer :: den_i, p_i
-  integer :: bf_i
+  integer :: bf_i, eta_i
 
   ! the offset (relative to the node offset) of the named field within
   ! their respective vectors
   integer :: u_off, vz_off, chi_off
   integer :: psi_off, bz_off, pe_off
   integer :: den_off, p_off
-  integer :: bf_off
-  integer :: vecsize, vecsize1
+  integer :: eta_off, bf_off
+  integer :: vecsize_vel, vecsize_phi, vecsize_n, vecsize_p
   
   ! the following pointers point to the locations of the named field within
   ! the respective vector.  set by assign_local_pointers()
@@ -336,6 +348,11 @@ module arrays
             deno_v => denold
          end if
 
+         if(implicit_eta.eq.1) then
+            eta_v => phi
+            etao_v => phiold
+         end if
+
          u_i = 1
          psi_i = 1
          vz_i = 2
@@ -345,6 +362,7 @@ module arrays
          den_i = 1
          p_i = 1
          bf_i = 1
+         eta_i = numvar+1
 
       else
          u_v => phi
@@ -374,6 +392,11 @@ module arrays
             den_v => phi
             deno_v => phiold
          end if
+
+         if(implicit_eta.eq.1) then
+            eta_v => phi
+            etao_v => phiold
+         end if
          
          u_i = 1
          psi_i = 2
@@ -382,8 +405,10 @@ module arrays
          chi_i = 5
          pe_i = 6    
          den_i = 2*numvar+1
-         p_i = 2*numvar+2
+         p_i = 2*numvar+idens+1
+         eta_i = 2*numvar+idens+ipres+1
          bf_i = 1
+         
       endif
       
       u_off = (u_i-1)*6
@@ -395,6 +420,7 @@ module arrays
       den_off = (den_i-1)*6
       p_off = (p_i-1)*6
       bf_off = (bf_i-1)*6
+      eta_off = (eta_i-1)*6
 
     end subroutine assign_variables
 
@@ -441,15 +467,14 @@ module arrays
       den1_l => field (ibegin+(den_g-1)*6:iend+(den_g-1)*6)
       den0_l => field0(ibegin+(den_g-1)*6:iend+(den_g-1)*6)
       dens_l => fieldi(ibegin+(den_g-1)*6:iend+(den_g-1)*6)
-
-      
+    
     end subroutine assign_local_pointers
 !================================
     subroutine createvec(vec, numberingid)
       implicit none
       integer :: numberingid, i, ndof
       vectype, allocatable :: vec(:)
-      
+
       if(allocated(vec)) call deletevec(vec)
 
       call numdofs(numberingid, ndof)
@@ -458,6 +483,7 @@ module arrays
 #ifdef USECOMPLEX
       call createppplvec(vec, numberingid, 1)
 #else
+!      call createppplvec(vec, numberingid, 0)
       call createppplvec(vec, numberingid)
 #endif
       vec = 0.
@@ -551,6 +577,7 @@ module sparse
   integer, parameter :: lp_matrix_rhs = 28
   integer, parameter :: lp_matrix_rhs_dc = 29
   integer, parameter :: bf_matrix_rhs_dc = 30
+  integer, parameter :: gyro_torque_sm = 31
 
 
   
@@ -707,16 +734,6 @@ subroutine arrayresizevec(vec, ivecsize)
      call updateids(vec, com)
      return
   endif
-
-  call checksamevec(vtemp, vec, i)
-  if(i .eq. 1) then
-     print *, "vtemp"
-     if(allocated(vtemp)) deallocate(vtemp, STAT=i)
-     allocate(vtemp(ivecsize))
-     vtemp = 0.
-     call updateids(vec, vtemp)
-     return
-  endif
   
   call checksamevec(resistivity, vec, i)
   if(i .eq. 1) then
@@ -811,10 +828,20 @@ subroutine arrayresizevec(vec, ivecsize)
   call checksamevec(bf, vec, i)
   if(i .eq. 1) then
      print *, "bf"
-     if(allocated(bf)) deallocate(visc_c, STAT=i)
+     if(allocated(bf)) deallocate(bf, STAT=i)
      allocate(bf(ivecsize))
      bf = 0.
      call updateids(vec, bf)
+     return
+  endif
+
+  call checksamevec(gyro_tau, vec, i)
+  if(i .eq. 1) then
+     print *, "gyro_tau"
+     if(allocated(gyro_tau)) deallocate(gyro_tau, STAT=i)
+     allocate(gyro_tau(ivecsize))
+     gyro_tau = 0.
+     call updateids(vec, gyro_tau)
      return
   endif
 
@@ -969,56 +996,46 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
   
-  call checksamevec(b1vector, vec, i)
+  call checksamevec(b1_phi, vec, i)
   if(i .eq. 1) then
-     print *, "b1vector"
-     if(allocated(b1vector)) deallocate(b1vector, STAT=i)
-     allocate(b1vector(ivecsize))
-     b1vector = 0.
-     call updateids(vec, b1vector)
+     print *, "b1_phi"
+     if(allocated(b1_phi)) deallocate(b1_phi, STAT=i)
+     allocate(b1_phi(ivecsize))
+     b1_phi = 0.
+     call updateids(vec, b1_phi)
      return
   endif
   
-  call checksamevec(b2vector, vec, i)
+  call checksamevec(b2_phi, vec, i)
   if(i .eq. 1) then
-     print *, "b2vector"
-     if(allocated(b2vector)) deallocate(b2vector, STAT=i)
-     allocate(b2vector(ivecsize))
-     b2vector = 0.
-     call updateids(vec, b2vector)
+     print *, "b2_phi"
+     if(allocated(b2_phi)) deallocate(b2_phi, STAT=i)
+     allocate(b2_phi(ivecsize))
+     b2_phi = 0.
+     call updateids(vec, b2_phi)
      return
   endif
   
-  call checksamevec(b3vector, vec, i)
+  call checksamevec(b1_vel, vec, i)
   if(i .eq. 1) then
-     print *, "b3vector"
-     if(allocated(b3vector)) deallocate(b3vector, STAT=i)
-     allocate(b3vector(ivecsize))
-     b3vector = 0.
-     call updateids(vec, b3vector)
+     print *, "b1_vel"
+     if(allocated(b1_vel)) deallocate(b1_vel, STAT=i)
+     allocate(b1_vel(ivecsize))
+     b1_vel = 0.
+     call updateids(vec, b1_vel)
      return
   endif
   
-  call checksamevec(b4vector, vec, i)
+  call checksamevec(b2_vel, vec, i)
   if(i .eq. 1) then
-     print *, "b4vector"
-     if(allocated(b4vector)) deallocate(b4vector, STAT=i)
-     allocate(b4vector(ivecsize))
-     b4vector = 0.
-     call updateids(vec, b4vector)
+     print *, "b2_vel"
+     if(allocated(b2_vel)) deallocate(b2_vel, STAT=i)
+     allocate(b2_vel(ivecsize))
+     b2_vel = 0.
+     call updateids(vec, b2_vel)
      return
   endif
-  
-  call checksamevec(b5vector, vec, i)
-  if(i .eq. 1) then
-     print *, "b5vector"
-     if(allocated(b5vector)) deallocate(b5vector, STAT=i)
-     allocate(b5vector(ivecsize))
-     b5vector = 0.
-     call updateids(vec, b5vector)
-     return
-  endif  
-  
+    
   call checksamevec(tempcompare, vec, i)
   if(i .eq. 1) then
      print *, "tempcompare"

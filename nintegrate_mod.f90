@@ -1219,18 +1219,30 @@ end subroutine evaluate
 
 subroutine interpolate_size_field(itri)
 
+  use basic
   use nintegrate_mod
+
+  implicit none
 
   integer, intent(in) :: itri
 
   real*8, dimension(3) :: node_sz
   real :: a,b,c,theta,k,l,m,d
 
+  if(ihypdx.eq.0) then
+     sz79(:,OP_1  ) = 1.
+     sz79(:,OP_DR ) = 0.
+     sz79(:,OP_DZ ) = 0.
+     sz79(:,OP_DRR) = 0.
+     sz79(:,OP_DRZ) = 0.
+     sz79(:,OP_DZZ) = 0.
+  end if
+
   call getelmparams(itri, a, b, c, theta)
   call getelmsizes(itri, node_sz)
 
   ! use size**2 field
-  node_sz = node_sz**2
+  node_sz = node_sz**ihypdx
 
   d = b / (a + b)
 
@@ -1243,6 +1255,6 @@ subroutine interpolate_size_field(itri)
   sz79(:,OP_DZ ) = k - l*sin(theta) + m*cos(theta)
   sz79(:,OP_DRR) = 0.
   sz79(:,OP_DRZ) = 0.
-  sz79(:,OP_DZZ) = 0.
-  
+  sz79(:,OP_DZZ) = 0. 
+
 end subroutine interpolate_size_field
