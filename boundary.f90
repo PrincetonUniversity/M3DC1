@@ -475,24 +475,18 @@ subroutine boundary_mag(imatrix, rhs)
      endif
 
      if(numvar.ge.3) then 
-        select case (p_bc)
-        case(1)       ! no normal pressure gradient (insulating)
+        if(inograd_t.eq.1) then
            temp = 0.
            call set_normal_bc(imatrix,ibegin+pe_off,rhs,temp,normal,izonedim)
-           
-        case default  ! clamp pressure
+        end if
+        if(iconst_t.eq.1) then
            temp = pes_l
            if(integrator.eq.1 .and. ntime.gt.1) then
               temp = 1.5*temp + 0.5*peo_v(ibegin+pe_off:ibegin+pe_off+5)
            endif
            call set_dirichlet_bc(imatrix,ibegin+pe_off,rhs,temp,normal,izonedim)
-        end select
+        end if
      endif
-
-!!$     if(implicit_eta.eq.1) then
-!!$        temp = 0.
-!!$        call set_dirichlet_bc(imatrix,ibegin+eta_off,rhs,temp,normal,izonedim)
-!!$     endif
   end do
 
 end subroutine boundary_mag
@@ -529,11 +523,17 @@ subroutine boundary_den(imatrix, rhs)
      call entdofs(vecsize_n, i, 0, ibegin, iendplusone)
      call assign_local_pointers(i)
 
-     temp = dens_l
-     if(integrator.eq.1 .and. ntime.gt.1) then
-        temp = 1.5*temp + 0.5*deno_v(ibegin+den_off:ibegin+den_off+5)
-     endif
-     call set_dirichlet_bc(imatrix,ibegin+den_off,rhs,temp,normal,izonedim)
+     if(inograd_t.eq.1) then
+        temp = 0.
+        call set_normal_bc(imatrix,ibegin+den_off,rhs,temp,normal,izonedim)
+     end if
+     if(iconst_t.eq.1) then
+        temp = dens_l
+        if(integrator.eq.1 .and. ntime.gt.1) then
+           temp = 1.5*temp + 0.5*deno_v(ibegin+den_off:ibegin+den_off+5)
+        endif
+        call set_dirichlet_bc(imatrix,ibegin+den_off,rhs,temp,normal,izonedim)
+     end if
   end do
 
 end subroutine boundary_den
@@ -570,11 +570,17 @@ subroutine boundary_pres(imatrix, rhs)
      call entdofs(vecsize_p, i, 0, ibegin, iendplusone)
      call assign_local_pointers(i)
 
-     temp = ps_l
-     if(integrator.eq.1 .and. ntime.gt.1) then
-        temp = 1.5*temp + 0.5*po_v(ibegin+p_off:ibegin+p_off+5)
-     endif
-     call set_dirichlet_bc(imatrix,ibegin+p_off,rhs,temp,normal,izonedim)
+     if(inograd_t.eq.1) then
+        temp = 0.
+        call set_normal_bc(imatrix,ibegin+p_off,rhs,temp,normal,izonedim)
+     end if
+     if(iconst_t.eq.1) then
+        temp = ps_l
+        if(integrator.eq.1 .and. ntime.gt.1) then
+           temp = 1.5*temp + 0.5*po_v(ibegin+p_off:ibegin+p_off+5)
+        endif
+        call set_dirichlet_bc(imatrix,ibegin+p_off,rhs,temp,normal,izonedim)
+     end if
   end do
 
 end subroutine boundary_pres

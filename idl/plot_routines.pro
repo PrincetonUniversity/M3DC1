@@ -11,6 +11,18 @@ function colors, maxcolors
     return, c
 end
 
+pro setplot, p
+   if(1 eq strcmp(p, 'ps', /fold_case)) then begin
+       !p.charthick=3
+       !p.thick=3
+   endif else if (1 eq strcmp(p, 'x', /fold_case)) then begin
+       !p.charthick=1
+       !p.thick=1
+   endif
+
+   set_plot, p
+end
+
 function color, c, maxcolors
     col = colors(maxcolors)
     return, col(c) 
@@ -99,6 +111,11 @@ pro contour_and_legend, z, x, y, label=label, range=range, $
         range = fltarr(2,n)
         for i=0, n-1 do range[*,i] = [min(z[i,*,*]), max(z[i,*,*])]
     endif
+    if(n_elements(range) eq 2) then begin
+        oldrange = range
+        range = fltarr(2,n)
+        for i=0, n-1 do range[*,i] = oldrange
+    endif
     if(n_elements(lines) eq 0) then lines=0
     if(n_elements(lines) lt n) then lines = intarr(n) + lines
 
@@ -163,10 +180,10 @@ end
 
 pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
                         isotropic=iso, lines=lines, range=range, $
-                        color_table=ct, zlog=zlog, _EXTRA = ex
+                        color_table=ct, zlog=zlog, csym=csym, _EXTRA = ex
 
     zed = reform(z)
-    
+   
     if(keyword_set(zlog)) then begin
         zed = zed > abs(min(zed,/abs))
     endif
@@ -222,16 +239,28 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
         minval = abs(min(zed, /absolute))
     endif
 
-    print, "maxval, minval = ", maxval, minval
+    fracdiff = abs(maxval-minval)/abs(max([maxval,minval],/absolute))
+    print, "maxval, minval, fracdiff = ", maxval, minval, fracdiff
     if(maxval le minval) then begin
         print, "Error in contour_and_legend: maxval <= minval."
         return
     endif
+    if(fracdiff le 1e-5) then begin
+        print, "Error in contour_and_legend: maxval ~ minval."
+        return
+    endif
+
 
     if(keyword_set(zlog)) then begin
         levels = 10^(alog10(maxval/minval)*findgen(nlevels+1)/(float(nlevels))$
                      + alog10(minval))
     endif else begin
+        if(keyword_set(csym)) then begin
+            absmax = abs(max([maxval, minval], /absolute))
+            print, absmax
+            maxval = absmax
+            minval = -absmax
+        end
         levels = (maxval-minval)*findgen(nlevels+1)/(float(nlevels)) + minval
     endelse
 

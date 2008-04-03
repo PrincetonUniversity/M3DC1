@@ -163,6 +163,9 @@
 !.....scale kappar with kappa
       ikapscale = 0
 !
+!.....add upwinding-like diffusion to pressure and density advance
+      iupwind = 0
+!
 !.....viscosity, resistivity, and heat conduction
       amu = 0.0
       amupar = 0.0
@@ -190,7 +193,8 @@
 !     com_bc: 1 = sets laplacian(chi) = 0 on boundary
 !     p_bc : 0 = constant pressure, 1 = insulating
       com_bc = 1
-      p_bc = 0
+      iconst_t = 1
+      inograd_t = 0
       inonormalflow = 1
       inoslip_pol = 0
       inoslip_tor = 1

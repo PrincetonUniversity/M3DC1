@@ -353,6 +353,8 @@ subroutine vorticity_nolin(trial, r4term)
 
   r4term = 0.
 
+  if(linear.eq.1) return
+
   ! density terms
   ! ~~~~~~~~~~~~~
   if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
@@ -417,8 +419,8 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, &
   ddterm(2) = ddterm(2) + (1.-thimp*bdf)*dt*temp
 
   temp = v2vun(trial,lin,ph179,nt79)
-  ssterm(2) = ssterm(2) -      thimp     *dt*temp
-  ddterm(2) = ddterm(2) + (0.5-thimp*bdf)*dt*temp
+  ssterm(2) = ssterm(2) -     thimp     *dt*temp
+  ddterm(2) = ddterm(2) + (.5-thimp*bdf)*dt*temp
 
   if(gyro.eq.1) then
      temp = g2u(trial,lin)*dbf
@@ -611,7 +613,7 @@ subroutine axial_vel_nolin(trial, r4term)
   
   r4term = 0.
 
-  if(numvar.lt.2) return
+  if(numvar.lt.2 .or. linear.eq.1) return
 
   ! density terms
   ! ~~~~~~~~~~~~~
@@ -801,6 +803,14 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
      ssterm(3) = ssterm(3) -     thimp     *dt*temp
      ddterm(3) = ddterm(3) + (1.-thimp*bdf)*dt*temp
 
+     if(idens.eq.1) then
+        qqterm(4) = qqterm(4) + dt* &
+             (v3uun    (trial,ph079,ph079,lin) &
+             +v3uchin  (trial,ph079,ch079,lin) &
+             +v3vvn    (trial,vz079,vz079,lin) &
+             +v3chichin(trial,ch079,ch079,lin))
+     endif
+
      if(advfield.eq.1) then
         qqterm(1) = qqterm(1) + thimp*dt*dt* &
              (v3upsipsi  (trial,ph079,lin,pss79) &
@@ -819,6 +829,14 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
         qqterm(3) = qqterm(3) + thimp*dt*dt* &
              (v3up  (trial,ph079,lin) &
              +v3chip(trial,ch079,lin))
+        
+        if(idens.eq.1 .and. (gravr.ne.0 .or. gravz.ne.0)) then
+           qqterm(4) = qqterm(4) + thimp*dt*dt* &
+                (v3ungrav   (trial,ph079,lin) &
+                +v3chingrav (trial,ch079,lin)) ! &
+!                +v3ndenmgrav(trial,n179, denm))
+        endif
+
      else
         temp = v3psipsi(trial,lin,ps079) &
              + v3psipsi(trial,ps079,lin)
@@ -880,24 +898,22 @@ subroutine compression_nolin(trial, r4term)
   
   r4term = 0.
 
-  if(numvar.lt.3) return
+  if(numvar.lt.3 .or. linear.eq.1) return
 
   ! density terms
   ! ~~~~~~~~~~~~~
   if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
-     if(gravr.ne.0 .or. gravz.ne.0) then          
-        r4term = r4term + thimp*dt*dt* &
-             (v3ungrav   (trial,ph079,n179) &
-             +v3chingrav (trial,ch079,n179)) ! &
-!             +v3ndenmgrav(trial,n179, denm))
-     endif
+!     r4term = r4term + dt* &
+!          (v3uun    (trial,ph079,ph079,n179) &
+!          +v3uchin  (trial,ph079,ch079,n179) &
+!          +v3vvn    (trial,vz079,vz079,n179) &
+!          +v3chichin(trial,ch079,ch079,n179) &
+!          +v3us     (trial,ph079,sig79) &
+!          +v3chis   (trial,ch079,sig79))
      r4term = r4term + dt* &
-          (v3uun    (trial,ph079,ph079,n179) &
-          +v3uchin  (trial,ph079,ch079,n179) &
-          +v3vvn    (trial,vz079,vz079,n179) &
-          +v3chichin(trial,ch079,ch079,n179) &
-          +v3us     (trial,ph079,sig79) &
+          (v3us     (trial,ph079,sig79) &
           +v3chis   (trial,ch079,sig79))
+
   endif
 
 end subroutine compression_nolin
@@ -916,7 +932,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
 
   vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
   vectype, dimension(3+implicit_eta), intent(out) :: ssterm, ddterm
-  vectype, dimension(3+i3d), intent(out) :: rrterm, qqterm
+  vectype, dimension(4+i3d), intent(out) :: rrterm, qqterm
   vectype :: temp
   real :: thimpb
 
@@ -1061,6 +1077,24 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
         qqterm(3) = qqterm(3) + (1.-thimpb*bdf)*dt*temp
      endif
   end if
+
+  ! density terms
+  ! ~~~~~~~~~~~~~
+  if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
+     qqterm(4) = qqterm(4) + dt* &
+          (b1psipsid(trial,ps079,ps079,lin)*dbf)
+
+     if(numvar.eq.1) then
+        ! Term due to F0 = bzero when numvar=1
+        qqterm(4) = qqterm(4) + dt* &
+             (b1psibd(trial,ps079,bzt79,lin)*dbf)
+     else
+        qqterm(4) = qqterm(4) + dt* &
+             (b1psibd(trial,ps079,bz079,lin)*dbf &
+             +b1bbd  (trial,bz079,bz079,lin)*dbf)
+     endif
+  endif
+
         
 end subroutine flux_lin
 
@@ -1078,28 +1112,11 @@ subroutine flux_nolin(trial, r4term)
   
   r4term = 0.
 
-  if(igauge.eq.1) then
+  if(igauge.eq.1 .or. linear.eq.1) then
      r4term = r4term - dt* &
           vloop*int1(trial,weight_79,79)/(2.*pi)
   endif
-
-  ! density terms
-  ! ~~~~~~~~~~~~~
-  if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
-     r4term = r4term + dt* &
-          (b1psipsid(trial,ps079,ps079,ni79)*dbf)
-
-     if(numvar.eq.1) then
-        ! Term due to F0 = bzero when numvar=1
-        r4term = r4term + dt* &
-             (b1psibd(trial,ps079,bzt79,ni79)*dbf)
-     else
-        r4term = r4term + dt* &
-             (b1psibd(trial,ps079,bz079,ni79)*dbf &
-             +b1bbd  (trial,bz079,bz079,ni79)*dbf)
-     endif
-  endif
-  
+ 
 end subroutine flux_nolin
 
 
@@ -1120,7 +1137,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
 
   vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
   vectype, dimension(3+implicit_eta), intent(out) :: ssterm, ddterm
-  vectype, dimension(3+i3d), intent(out) :: rrterm, qqterm
+  vectype, dimension(4+i3d), intent(out) :: rrterm, qqterm
   vectype :: temp
   real :: thimpb
 
@@ -1229,7 +1246,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
      ddterm(2) = ddterm(2) + (1.-thimp*bdf)*dt*temp
 
      if(linear.eq.1 .or. eqsubtract.eq.1) then
-        qqterm(4) = qqterm(4) + dt* &
+        qqterm(5) = qqterm(5) + dt* &
              (b2psif(trial,ps079,lin)*dbf &
              +b2bf  (trial,bz079,lin)*dbf)
      endif
@@ -1259,6 +1276,22 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
      endif
   end if
 
+
+  ! density terms
+  ! ~~~~~~~~~~~~~
+  if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
+     qqterm(4) = qqterm(4) + dt* &
+          (b2psipsid(trial,ps079,ps079,lin)*dbf &
+          +b2psibd  (trial,ps079,bz079,lin)*dbf &
+          +b2bbd    (trial,bz079,bz079,lin)*dbf)
+
+     if(numvar.ge.3) then
+        qqterm(4) = qqterm(4) + dt* &
+             (b2ped (trial,pe079,lin)*dbf*pefac)
+     endif
+  endif
+
+
 end subroutine axial_field_lin
 
 
@@ -1280,21 +1313,7 @@ subroutine axial_field_nolin(trial, r4term)
   
   r4term = 0.
 
-  if(numvar .lt. 2) return
-
-  ! density terms
-  ! ~~~~~~~~~~~~~
-  if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
-     r4term = r4term + dt* &
-          (b2psipsid(trial,ps079,ps079,ni79)*dbf &
-          +b2psibd  (trial,ps079,bz079,ni79)*dbf &
-          +b2bbd    (trial,bz079,bz079,ni79)*dbf)
-
-     if(numvar.ge.3) then
-        r4term = r4term + dt* &
-             (b2ped (trial,pe079,ni79)*dbf*pefac)
-     endif
-  endif
+  if(numvar.lt.2 .or. linear.eq.1) return
 
 end subroutine axial_field_nolin
 
@@ -1316,7 +1335,7 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
 
   vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
   vectype, dimension(3+implicit_eta), intent(out) :: ssterm, ddterm
-  vectype, dimension(3+i3d), intent(out) :: rrterm, qqterm
+  vectype, dimension(4+i3d), intent(out) :: rrterm, qqterm
   vectype :: temp
   real :: thimpb
 
@@ -1477,6 +1496,16 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
 
   endif
 
+
+  ! density terms
+  ! ~~~~~~~~~~~~~
+  if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
+     qqterm(4) = qqterm(4) + dt* &
+          (b3pebd(trial,pe079,bz079,lin)*dbf*pefac &
+          +p1kappar(trial,ps079,ps079,pe079,lin,b2i79,kar79))
+  endif
+
+
 end subroutine electron_pressure_lin
 
 subroutine electron_pressure_nolin(trial, r4term)
@@ -1497,31 +1526,30 @@ subroutine electron_pressure_nolin(trial, r4term)
   
   r4term = 0.
 
-  if(numvar .lt. 3) return
+  if(numvar.lt.3 .or. linear.eq.1) return
 
   ! source terms
   ! ~~~~~~~~~~~~
-  ! hyper-ohmic heating
-  r4term = r4term + dt*(gam-1.)* &
-       (qpsipsieta(trial) &
-       +qbbeta    (trial))
+  if(gam.ne.1.) then
+     ! hyper-ohmic heating
+     r4term = r4term + dt*(gam-1.)* &
+          (qpsipsieta(trial) &
+          +qbbeta    (trial))
 
-  ! viscous heating
-  if(ipres.eq.0) then
-     r4term = r4term - dt*(gam-1.)* &
-          (quumu    (trial,pht79,pht79,vis79,      hypc*sz79) &
-          +qvvmu    (trial,vzt79,vzt79,vis79,      hypv*sz79) &
-          +quchimu  (trial,pht79,cht79,vis79,vic79,hypc*sz79) &
-          +qchichimu(trial,cht79,cht79,      vic79,hypc*sz79) &
-          +p1vip    (trial))
-  endif
+     ! viscous heating
+     if(ipres.eq.0) then
+        r4term = r4term - dt*(gam-1.)* &
+             (quumu    (trial,pht79,pht79,vis79,      hypc*sz79) &
+             +qvvmu    (trial,vzt79,vzt79,vis79,      hypv*sz79) &
+             +quchimu  (trial,pht79,cht79,vis79,vic79,hypc*sz79) &
+             +qchichimu(trial,cht79,cht79,      vic79,hypc*sz79) &
+             +p1vip    (trial))
+     endif
+  end if
 
-  ! density terms
-  ! ~~~~~~~~~~~~~
+  ! density source terms
+  ! ~~~~~~~~~~~~~~~~~~~~
   if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
-     r4term = r4term + dt* &
-          (b3pebd(trial,pe079,bz079,ni79)*dbf*pefac &
-          +p1kappar(trial,ps079,ps079,pe079,ni79,b2i79,kar79))
      if(ipres.eq.1) then
         r4term = r4term + dt* &
              (p1uus    (trial,ph079,ph079,sig79) &
@@ -1543,7 +1571,7 @@ end subroutine electron_pressure_nolin
 ! s* matrices.
 !
 !======================================================================
-subroutine ludefall
+subroutine ludefall()
 
   use p_data
   use t_data
@@ -1556,7 +1584,6 @@ subroutine ludefall
   implicit none
 
   include 'mpif.h'
-
 
   integer :: itri, numelms, i
   integer :: def_fields
@@ -1578,10 +1605,13 @@ subroutine ludefall
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, " initializing matrices..."
 
+  ! Clear matrices
   select case(isplitstep)
   case(0)
      call zerosuperlumatrix(s1matrix_sm,icomplex, vecsize_vel)
      call zeromultiplymatrix(d1matrix_sm,icomplex,vecsize_vel)
+     if(idens.eq.1 .and. linear.eq.1) &
+          call zeromultiplymatrix(q42matrix_sm,icomplex,vecsize_vel)
 #ifdef USECOMPLEX
      call zeromultiplymatrix(o1matrix_sm,icomplex,vecsize_vel)
 #endif
@@ -1605,6 +1635,8 @@ subroutine ludefall
         call zeromultiplymatrix(d2matrix_sm,icomplex,vecsize_phi)
         call zeromultiplymatrix(r2matrix_sm,icomplex,vecsize_vel)
         call zeromultiplymatrix(q2matrix_sm,icomplex,vecsize_vel)
+        if(idens.eq.1 .and. linear.eq.1) &
+             call zeromultiplymatrix(q42matrix_sm,icomplex,vecsize_vel)
 #ifdef USECOMPLEX
         call zeromultiplymatrix(o2matrix_sm,icomplex,vecsize_phi)
 #endif
@@ -1630,6 +1662,7 @@ subroutine ludefall
   if(gyro.eq.1 .and. numvar.ge.2) then
      call zeromultiplymatrix(gyro_torque_sm,icomplex,vecsize_vel)
   endif
+
 
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, " populating matrices..."
@@ -1707,30 +1740,34 @@ subroutine ludefall
   ! Finalize matrices for multiplication
   select case(isplitstep)
   case(0)
-     call sumsharedppplvecvals(q4)
      call finalizematrix(d1matrix_sm)
+     if(idens.eq.1 .and. linear.eq.1) &
+          call finalizematrix(q42matrix_sm)
+
+     call sumsharedppplvecvals(q4)
 
   case(1)
-     call sumsharedppplvecvals(q4)
-     call sumsharedppplvecvals(r4)
-     if(idens.eq.1) call sumsharedppplvecvals(qn4)
-
      if(istatic.eq.0) then
         call finalizematrix(d1matrix_sm)
         call finalizematrix(q1matrix_sm)
         call finalizematrix(r14matrix_sm)
+        call sumsharedppplvecvals(r4)
      end if
      
      if(iestatic.eq.0) then
         call finalizematrix(d2matrix_sm)
         call finalizematrix(r2matrix_sm)
         call finalizematrix(q2matrix_sm)
+        call sumsharedppplvecvals(q4)
+        if(idens.eq.1 .and. linear.eq.1) &
+             call finalizematrix(q42matrix_sm)
      end if
      
      if(idens.eq.1) then
         call finalizematrix(d8matrix_sm)
         call finalizematrix(q8matrix_sm)
         call finalizematrix(r8matrix_sm)
+        call sumsharedppplvecvals(qn4)
      endif ! on idens.eq.1
      
      
@@ -1738,6 +1775,7 @@ subroutine ludefall
         call finalizematrix(d9matrix_sm)
         call finalizematrix(q9matrix_sm)
         call finalizematrix(r9matrix_sm)
+        call sumsharedppplvecvals(qp4)
      endif ! on ipres.eq.1
   end select
 
@@ -1975,10 +2013,10 @@ subroutine ludefphi_n(itri)
   integer :: ib_vel, ib_phi, jb_vel, jb_phi, iendplusone
   
   vectype, dimension(3,3+implicit_eta) :: ssterm, ddterm
-  vectype, dimension(3,3+i3d) :: rrterm, qqterm
+  vectype, dimension(3,4+i3d) :: rrterm, qqterm
   vectype :: temp
 
-  integer :: bb1, bb0, bv1, bv0, bf0
+  integer :: bb1, bb0, bv1, bv0, bf0, bni
   vectype, pointer :: bsource(:)
 
   if(isplitstep.eq.1) then
@@ -1987,6 +2025,7 @@ subroutine ludefphi_n(itri)
      bv1 = r2matrix_sm
      bv0 = q2matrix_sm
      bf0 = o2matrix_sm
+     bni = q42matrix_sm
      bsource => q4
   else
      bb1 = s1matrix_sm
@@ -1994,6 +2033,7 @@ subroutine ludefphi_n(itri)
      bv1 = s1matrix_sm
      bv0 = d1matrix_sm
      bf0 = o1matrix_sm
+     bni = q42matrix_sm
      bsource => q4
   endif
 
@@ -2032,7 +2072,7 @@ subroutine ludefphi_n(itri)
         call insertval2(bv1,rrterm(1,1),icomplex,iv+psi_off,jv+  u_off,1)
         call insertval2(bv0,qqterm(1,1),icomplex,iv+psi_off,jv+  u_off,1)
         if(i3d.eq.1) then
-           call insertval2(bf0,rrterm(1,4),icomplex,ip+psi_off,jp+bf_off,1)
+           call insertval2(bf0,qqterm(1,5),icomplex,ip+psi_off,jp+bf_off,1)
         endif
         if(numvar.ge.2) then
            call insertval2(bb1,ssterm(1,2),icomplex,ip+psi_off,jp+ bz_off,1)
@@ -2048,7 +2088,7 @@ subroutine ludefphi_n(itri)
            call insertval2(bv0,qqterm(2,1),icomplex,iv+ bz_off,jv+  u_off,1)
            call insertval2(bv0,qqterm(2,2),icomplex,iv+ bz_off,jv+ vz_off,1)
            if(i3d.eq.1) then
-              call insertval2(bf0,rrterm(2,4),icomplex,ip+bz_off,jp+bf_off,1)
+              call insertval2(bf0,qqterm(2,5),icomplex,ip+bz_off,jp+bf_off,1)
            endif
         endif
         if(numvar .eq. 3) then        
@@ -2073,7 +2113,7 @@ subroutine ludefphi_n(itri)
            call insertval2(bv0,qqterm(3,1),icomplex,iv+ pe_off,jv+  u_off,1)
            call insertval2(bv0,qqterm(3,2),icomplex,iv+ pe_off,jv+ vz_off,1)
            if(i3d.eq.1) then
-              call insertval2(bf0,rrterm(3,4),icomplex,ip+pe_off,jp+bf_off,1)
+              call insertval2(bf0,qqterm(3,5),icomplex,ip+pe_off,jp+bf_off,1)
            endif
            if(implicit_eta.eq.1) then
               call insertval2(bb1,ssterm(1,4),icomplex,ip+psi_off,jp+eta_off,1)
@@ -2083,14 +2123,22 @@ subroutine ludefphi_n(itri)
               call insertval2(bb0,ddterm(2,4),icomplex,ip+ bz_off,jp+eta_off,1)
               call insertval2(bb0,ddterm(3,4),icomplex,ip+ pe_off,jp+eta_off,1)
 
-              temp79a = pet79(:,OP_1)**(5./2.)
-              temp = int3(g79(:,OP_1,i),g79(:,OP_1,j),temp79a,weight_79,79)
+              temp = int2(g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
               call insertval2(bb1,temp,icomplex,ip+eta_off,ip+eta_off,1)
+              call insertval2(bb0,1.5*temp,icomplex,ip+eta_off,ip+eta_off,1)
 
-              temp79a = eta0*nt79(:,OP_1)**(3./2.)
-              temp = -int3(g79(:,OP_1,i),g79(:,OP_1,j),temp79a,weight_79,79)
+              temp79a = 1.5*eta0*(nt79(:,OP_1)**(3./2.))/(pet79(:,OP_1)**(5./2.))
+              temp = int3(g79(:,OP_1,i),g79(:,OP_1,j),temp79a,weight_79,79)
               call insertval2(bb1,temp,icomplex,ip+eta_off,ip+pe_off,1)
+              
            end if
+           if(idens.eq.1 .and. linear.eq.1) then
+              call insertval2(bni,qqterm(1,4),icomplex,ip+psi_off,jp,1)
+              if(numvar.ge.2) &
+                   call insertval2(bni,qqterm(2,4),icomplex,ip+bz_off,jp,1)
+              if(numvar.ge.3) &
+                   call insertval2(bni,qqterm(3,4),icomplex,ip+pe_off,jp,1)
+           endif
         endif
        
      enddo ! on j
@@ -2173,7 +2221,7 @@ subroutine ludefden_n(itri)
         ione = isvaln(itri,i)
      endif
      i1 = isvaln(itri,i)
-     
+
      do j=1,18         
         ssterm = 0.
         ddterm = 0.

@@ -99,7 +99,7 @@ Program Reducedquintic
   if(ipres.eq.1) then
      pefac = 1.
   else
-     if(p0.gt.0) then
+     if(p0.gt.0.) then
         pefac = (p0-pi0)/p0
      else
         pefac = 0.
@@ -334,6 +334,9 @@ Program Reducedquintic
   end if
   if(gyro.eq.1) then
      call deletematrix(gyro_torque_sm)
+  end if
+  if(idens.eq.1 .and. linear.eq.1) then
+     call deletematrix(q42matrix_sm)
   end if
 #ifdef USECOMPLEX
   call deletematrix(o1matrix_sm)

@@ -267,11 +267,11 @@ pro plot_mesh, mesh, color=col, linestyle=lin, oplot=oplot, $
                   b * sin(t) + c * cos(t)]
        
        oplot, [p1[0],p2[0]]+xzero, [p1[1],p2[1]]+zzero, $
-         color=col, linestyle=lin, thick=.2
+         color=col, linestyle=lin
        oplot, [p2[0],p3[0]]+xzero, [p2[1],p3[1]]+zzero, $
-         color=col, linestyle=lin, thick=.2
+         color=col, linestyle=lin
        oplot, [p3[0],p1[0]]+xzero, [p3[1],p1[1]]+zzero, $
-         color=col, linestyle=lin, thick=.2
+         color=col, linestyle=lin
    end
 end
 
@@ -314,20 +314,83 @@ function eval, field, localpos, elm, operation=op
 
    for p=0, 19 do begin
        case op of
-           1: sum = sum + field[p,elm]*(localpos[0]^mi[p]*localpos[1]^ni[p])
-           7: begin
-               if(mi[p] ge 2) then $
-                 sum = sum + field[p,elm]* $
-                 mi[p]*(mi[p]-1)*localpos[0]^(mi[p]-2)*localpos[1]^ni[p]
-               if(ni[p] ge 2) then $
-                 sum = sum + field[p,elm]* $
-                 ni[p]*(ni[p]-1)*localpos[1]^(ni[p]-2)*localpos[0]^mi[p]
-           end
+       1: sum = sum + field[p,elm]*(localpos[0]^mi[p]*localpos[1]^ni[p])
+       2: if(mi[p] ge 1) then $
+         sum = sum + field[p,elm]*mi[p]*localpos[0]^(mi[p]-1)*localpos[1]^ni[p]
+       3: if(ni[p] ge 1) then $
+         sum = sum + field[p,elm]*ni[p]*localpos[0]^mi[p]*localpos[1]^(ni[p]-1)
+       4:
+       5:
+       7: begin
+           if(mi[p] ge 2) then $
+             sum = sum + field[p,elm]* $
+             mi[p]*(mi[p]-1)*localpos[0]^(mi[p]-2)*localpos[1]^ni[p]
+           if(ni[p] ge 2) then $
+             sum = sum + field[p,elm]* $
+             ni[p]*(ni[p]-1)*localpos[1]^(ni[p]-2)*localpos[0]^mi[p]
+          end
        end
    end
 
    return, sum
 end
+
+
+function eval_global, field, mesh, pos, elm=i, operation=op
+
+   nelms = mesh.nelms._data
+
+   if(n_elements(i) ne 0) then begin
+       if(i ge 0) then begin
+           a = mesh.elements._data[0,i]
+           b = mesh.elements._data[1,i]
+           c = mesh.elements._data[2,i]
+           t = mesh.elements._data[3,i]
+           x = mesh.elements._data[4,i]
+           y = mesh.elements._data[5,i]
+           co = cos(t)
+           sn = sin(t)
+           
+           p1 = [x, y]
+           p2 = p1 + [(b+a)*co, (b+a)*sn]
+           p3 = p1 + [b*co - c*sn, b*sn + c*co]
+           
+           localpos = [(pos[0]-x)*co + (pos[1]-y)*sn - b, $
+                       -(pos[0]-x)*sn + (pos[1]-y)*co]
+           
+           if(is_in_tri(localpos,a,b,c) eq 1) then begin
+               return, eval(field, localpos, i, operation=op)
+           end
+       endif
+   endif
+
+   for i=0,nelms-1 do begin
+       a = mesh.elements._data[0,i]
+       b = mesh.elements._data[1,i]
+       c = mesh.elements._data[2,i]
+       t = mesh.elements._data[3,i]
+       x = mesh.elements._data[4,i]
+       y = mesh.elements._data[5,i]
+       co = cos(t)
+       sn = sin(t)
+
+       p1 = [x, y]
+       p2 = p1 + [(b+a)*co, (b+a)*sn]
+       p3 = p1 + [b*co - c*sn, b*sn + c*co]
+
+       localpos = [(pos[0]-x)*co + (pos[1]-y)*sn - b, $
+                  -(pos[0]-x)*sn + (pos[1]-y)*co]
+
+       if(is_in_tri(localpos,a,b,c) eq 1) then begin
+           return, eval(field, localpos, i)
+       end
+   end
+
+   print, 'Error: global position ', pos, ' not found'
+   i = -1
+   return, 0
+end
+
 
 
 function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
@@ -449,6 +512,57 @@ function read_raw_field, name, time, mesh=mesh, filename=filename, time=t
 end
 
 
+function get_units, type
+   units = ''
+   v0 = '!8v!DA!60!N!X'
+   b0 = '!8B!D!60!N!X'
+   n0 = '!8n!D!60!N!X'
+   t0 = '!7s!DA!60!N!X'
+   l0 = '!8L!D!60!N!X'
+   pi4 = '!64!7p!X'
+   sq = '!U!62!N!X'
+   cu = '!U!63!N!X'
+   c = '!8c!X'
+   sq = '!U!62!N!X'
+   cu = '!U!63!N!X'
+   inv= '!U!6-1!N!X'
+   over = '!6/!X'
+
+   if(strcmp(type, 'l', /fold_case) eq 1) then begin
+       units = l0
+   endif else if(strcmp(type, 'v', /fold_case) eq 1) then begin
+       units = v0
+   endif else if(strcmp(type, 't') eq 1) then begin
+       units = t0
+   endif else if(strcmp(type, 'b', /fold_case) eq 1) then begin
+       units = b0
+   endif else if(strcmp(type, 'n', /fold_case) eq 1) then begin
+       units = n0
+   endif else if(strcmp(type, 'p', /fold_case) eq 1) then begin
+       units = b0+sq+over+pi4
+   endif else if(strcmp(type, 'j', /fold_case) eq 1) then begin
+       units = c+b0+over+pi4+l0
+   endif else if(strcmp(type, 'T') eq 1) then begin
+       units = b0+sq+over+pi4+n0
+   endif else if(strcmp(type, 'E', /fold_case) eq 1) then begin
+       units = v0+b0+over+c
+   endif else if(strcmp(type, 'energy', /fold_case) eq 1) then begin
+       units = b0+sq+l0+cu+over+pi4
+   endif else if(strcmp(type, 'momentum', /fold_case) eq 1) then begin
+       units = n0+v0
+   endif else if(strcmp(type, 'angular momentum', /fold_case) eq 1) then begin
+       units = n0+l0+v0
+   endif else if(strcmp(type, 'omega', /fold_case) eq 1) then begin
+       units = t0+inv
+   endif else begin
+       units = 'Unknown units'
+   end
+
+   return, units
+end
+
+
+
 
 function translate, name, units=units
    units = ''
@@ -471,6 +585,12 @@ function translate, name, units=units
    endif else if(strcmp(name, 'chi', /fold_case) eq 1) then begin
        units = va0+l0
        return, "!7v!X"
+   endif else if(strcmp(name, 'vpar', /fold_case) eq 1) then begin
+       units = va0
+       return, "!8v!D!9!Z(23)!N!X"
+   endif else if(strcmp(name, 'vr', /fold_case) eq 1) then begin
+       units = va0
+       return, "!8v!Dr!N!X"
    endif else if(strcmp(name, 'jphi', /fold_case) eq 1) then begin
        units = b0
        return, "!7D!6!U*!N!7w!x"
@@ -547,7 +667,8 @@ end
 
 function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
                      points=pts, rrange=xrange, zrange=yrange, $
-                     h_symmetry=h_symmetry, v_symmetry=v_symmetry, diff=diff
+                     h_symmetry=h_symmetry, v_symmetry=v_symmetry, diff=diff, $
+                     at_points=at_points,operation=op, linear=linear
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
    if(keyword_set(diff)) then begin
@@ -562,6 +683,9 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
    nt = read_parameter("ntime", filename=filename)
    nv = read_parameter("numvar", filename=filename)
    itor = read_parameter("itor", filename=filename)
+   xzero = read_parameter("xzero", filename=filename)
+   zzero = read_parameter("zzero", filename=filename)
+   ilin = read_parameter('linear', filename=filename)
 
    if(n_elements(time) eq 0) then begin
        trange = [0,nt-1]
@@ -576,8 +700,17 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
        return, 0
    endif
 
-   data = fltarr(trange[1]-trange[0]+1, pts, pts)
+   if(n_elements(at_points) eq 0) then begin
+       data = fltarr(trange[1]-trange[0]+1, pts, pts)
+       if(ilin eq 1) then base = fltarr(pts,pts)
+   endif else begin
+       sz = size(at_points, /dimension)
+       data = fltarr(trange[1]-trange[0]+1,sz[1])
+       print, 'allocating at points', sz[1]
+       if(ilin eq 1) then base = fltarr(sz[1])
+   endelse
 
+   
    ;==========================================
    ; local_beta = 2*P/B^2
    ;==========================================
@@ -668,6 +801,36 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
        gam = read_parameter('gam', filename=filename)
   
        data = sqrt(gam)*vt
+
+
+   ;===========================================
+   ; Mach number
+   ;===========================================
+   endif else if(strcmp('mach', name, /fold_case) eq 1) or $
+     (strcmp('m', name, /fold_case) eq 1) then begin
+
+       cs = read_field('cs',x,y,t,slices=time, mesh=mesh, $
+                       filename=filename, points=pts, $
+                       rrange=xrange, zrange=yrange)
+
+       phi = read_field('phi',x,y,t,slices=time, mesh=mesh, $
+                       filename=filename, points=pts, $
+                       rrange=xrange, zrange=yrange)
+       V = read_field('V',x,y,t,slices=time, mesh=mesh, $
+                       filename=filename, points=pts, $
+                       rrange=xrange, zrange=yrange)
+       chi = read_field('chi',x,y,t,slices=time, mesh=mesh, $
+                       filename=filename, points=pts, $
+                       rrange=xrange, zrange=yrange)
+
+       if(itor eq 1) then r=radius_matrix(x,y,t) else r=1
+       
+       v2 = s_bracket(phi,phi,x,y)/r^2 $
+         + v^2/r^2 + s_bracket(chi,chi,x,y) $
+         + 2.*a_bracket(chi,phi,x,y)/r
+  
+       data = sqrt(v2)/cs
+
 
    ;===========================================
    ; temperature
@@ -875,8 +1038,8 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
              r = radius_matrix(x,y,t)
          endif else r = 1.
          b2 = (s_bracket(psi,psi,x,y) + I^2)/r^2
-         data = ((s_bracket(phi,psi,x,y) + s_bracket(v,I,x,y))/r^2 $
-           + a_bracket(chi,phi,x,y)/r)/sqrt(b2)
+         data = ((s_bracket(phi,psi,x,y) + v*I)/r^2 $
+           + a_bracket(chi,psi,x,y)/r)/sqrt(b2)
          
    ;===========================================
    ; radial flow
@@ -892,22 +1055,90 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
          psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange)
-         i = read_field('i', x, y, t, slices=time, mesh=mesh, $
-                        filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
          
          if(itor eq 1) then begin
              r = radius_matrix(x,y,t)
          endif else r = 1.
-         b2 = (s_bracket(psi,psi,x,y) + I^2)/r^2
-         data = (a_bracket(psi,phi,x,y)/r^2 $
-                 +s_bracket(psi,chi,x,y)/r)/sqrt(b2)
+         data = (a_bracket(psi,phi,x,y)/r + s_bracket(psi,chi,x,y)) / $
+           sqrt(s_bracket(psi,psi,x,y))
 
+   ;===========================================
+   ; surface flow
+   ;===========================================
+   endif else if(strcmp('vs', name, /fold_case) eq 1) then begin
+
+         phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         i   = read_field('i',   x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         V   = read_field('V',   x, y, t, slices=time, mesh=mesh, $
+                          filename=filename, points=pts, $
+                          rrange=xrange, zrange=yrange)
+
+         
+         if(itor eq 1) then begin
+             r = radius_matrix(x,y,t)
+         endif else r = 1.
+         psipsi = s_bracket(psi,psi,x,y)
+         b2 = psipsi + i^2
+         data = (i*s_bracket(phi,psi,x,y) - v*psipsi $
+                +i*a_bracket(chi,psi,x,y)*r) / (r^2 * sqrt(psipsi*b2))
 
    endif else begin
 
        t = fltarr(trange[1]-trange[0]+1)
        file_id = h5f_open(filename)
+
+       if(ilin eq 1 and (not keyword_set(linear))) then begin
+           time_group_id = h5g_open(file_id, time_name(-1))
+           mesh = h5_parse(time_group_id, 'mesh', /read_data)   
+
+           field_group_id = h5g_open(time_group_id, 'fields')
+
+                                ; check to see if "name" exists
+           nmembers = h5g_get_nmembers(time_group_id, 'fields')
+           match = 0
+           for m=0, nmembers-1 do begin
+               thisname = h5g_get_member_name(time_group_id, 'fields', m)
+               if(strcmp(thisname, name, /fold_case) eq 1) then begin
+                   name = thisname
+                   match = 1
+                   break
+               endif
+           end
+           if(match eq 0) then begin
+               print, "No field named ", name, " at time slice", i
+           endif else begin
+       
+               field = h5_parse(field_group_id, name, /read_data)
+           
+               h5g_close, field_group_id
+               h5g_close, time_group_id
+
+               if(n_elements(at_points) eq 0) then begin
+                   base[*,*] = $
+                     eval_field(field._data, mesh, points=pts, $
+                                r=x, z=y, op=op, filename=filename, $
+                                xrange=xrange, yrange=yrange)
+               endif else begin
+                   print, sz
+                   for k=0, sz[1]-1 do begin
+                       pos = [at_points[0,k]-xzero, $
+                              at_points[1,k]-zzero]
+                       base[k] = $
+                         eval_global(field._data,mesh,pos,elm=elm,op=op)
+                   end
+               endelse
+           endelse
+       endif else base = 0.
 
        for i=trange[0], trange[1] do begin
            
@@ -943,9 +1174,21 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
            h5g_close, field_group_id
            h5g_close, time_group_id
 
-           data[i-trange[0],*,*]=eval_field(field._data, mesh, points=pts, $
-                                          r=x, z=y, op=1, filename=filename, $
-                                          xrange=xrange, yrange=yrange)
+
+           if(n_elements(at_points) eq 0) then begin
+               data[i-trange[0],*,*] = $
+                 eval_field(field._data, mesh, points=pts, $
+                            r=x, z=y, op=op, filename=filename, $
+                            xrange=xrange, yrange=yrange) + base
+           endif else begin
+               print, sz
+               for k=0, sz[1]-1 do begin
+                   pos = [at_points[0,k]-xzero, $
+                          at_points[1,k]-zzero]
+                   data[i-trange[0],k] = $
+                     eval_global(field._data,mesh,pos,elm=elm,op=op) + base
+               end
+           endelse
        end
 
        h5f_close, file_id
@@ -1611,7 +1854,8 @@ end
 ;
 ; returns the flux value of the last closed flux surface
 ; ========================================================
-function lcfs, time, psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, _EXTRA=extra
+function lcfs, time, psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, flux0=flux0, $
+               _EXTRA=extra
    if(n_elements(time) eq 0) then time = 0
 
    if(n_elements(psi) eq 0 or n_elements(x) eq 0 or n_elements(z) eq 0) $
@@ -1624,14 +1868,14 @@ function lcfs, time, psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, _EXTRA=extra
    ; flux at magnetic axis
    if(n_elements(axis) lt 2) then begin
        print, "Error: no magnetic axis"
-       psi0 = max(psi[0,*,*])
+       flux0 = max(psi[0,*,*])
    endif else begin
-       psi0 = psi[0,axis[0,0],axis[1,0]]
+       flux0 = psi[0,axis[0,0],axis[1,0]]
    endelse
    if(n_elements(axis) gt 2) then begin
        print, "Warning: there is more than one magnetic axis"
    endif
-   print, "Flux on axis:", psi0
+   print, "Flux on axis:", flux0
 
    ; limiting value
    ; Find limiting flux by calculating outward normal derivative of
@@ -1648,14 +1892,6 @@ function lcfs, time, psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, _EXTRA=extra
    normal_mask[0,      0,      *] = 1.
    normal_mask[0,sz[2]-1,      *] = 1.
 
-;    normal_deriv = psi*0.
-;    normal_deriv[0,      *,      0] = -!pi/2.     ; bottom
-;    normal_deriv[0,      *,sz[3]-1] =  !pi/2.     ; top
-;    normal_deriv[0,      0,      *] =  !pi        ; left
-;    normal_deriv[0,sz[2]-1,      *] =  0.         ; right
-;    normal_deriv = $
-;      (psix*cos(normal_deriv) + psiz*sin(normal_deriv))*normal_mask
-
    xx = fltarr(1,sz[2],sz[3])
    zz = fltarr(1,sz[2],sz[3])
    for i=0,sz[3]-1 do xx[0,*,i] = x - x[axis[0,0]]
@@ -1664,11 +1900,9 @@ function lcfs, time, psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, _EXTRA=extra
 
    normal_deriv = normal_deriv lt 0
 
-;    contour_and_legend, normal_deriv, x, z, /iso
-
    psi_bound = psi*normal_deriv + (1-normal_deriv)*1e10
 
-   psilim = min(psi_bound-psi0, i, /absolute)
+   psilim = min(psi_bound-flux0, i, /absolute)
    psilim = psi_bound[i]
    print, "Flux at limiter", psilim
 
@@ -1677,11 +1911,11 @@ function lcfs, time, psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, _EXTRA=extra
    if(sz[0] gt 0) then begin
        xfluxes = fltarr(sz[0])
        for i=0, sz[0]-1 do xfluxes[i] = psi[0,xpoint[0,i],xpoint[1,i]]
-       psix = min(xfluxes-psi0, i, /absolute)
+       psix = min(xfluxes-flux0, i, /absolute)
        psix = xfluxes[i]
        print, "Flux at separatrix:", psix
 
-       if(abs(psix-psi0) gt abs(psilim-psi0)) then begin
+       if(abs(psix-flux0) gt abs(psilim-flux0)) then begin
            print, "Plasma is limited."
        endif else begin
            print, "Plasma is diverted."
@@ -1715,7 +1949,7 @@ pro plot_lcfs, time, color=color, val=psival, psi=psi, x=x, y=y, points=pts, $
     ; plot contour
     if(n_elements(color) ne 0) then loadct, 12
     contour, psi, x, y, /overplot, nlevels=1, levels=psival, $
-      color=color, thick=2
+      color=color, thick=!p.charthick*1.5
 end
 
 
@@ -2128,7 +2362,7 @@ pro plot_pol_velocity, time, filename=filename, points=pts, maxval=maxval, $
   maxstr=string(format='("!6max(!8v!Dpol!N!6) = ",G0)',bigvel)
 
   velovect, reform(vx), reform(vz), x, z, length=length, _EXTRA=extra, $
-    xtitle='!8r !6(!8L!6)!3', ytitle='!8z !6(!8L!6)!3', $
+    xtitle='!8R !6(!8L!6)!3', ytitle='!8Z !6(!8L!6)!3', $
     title=title, subtitle=maxstr
 
    if(keyword_set(lcfs)) then begin
@@ -2188,7 +2422,7 @@ end
 ; call flux_average
 ;==================================================================
 function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
-                             area=area, range=range, _EXTRA=extra
+                             area=area, psirange=range, _EXTRA=extra
 
    sz = size(field)
 
@@ -2196,13 +2430,16 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
 
    if(n_elements(bins) eq 0) then bins = fix(points/4)
 
+   print, 'flux averaging with ', bins, ' bins'
+
    result = fltarr(sz[1], bins)
    flux = fltarr(sz[1], bins)
    area = fltarr(sz[1], bins)
    sfield = 0
 
+   print, 'before lcfs'
    psival = lcfs(psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, _EXTRA=extra)
-
+   
    if(n_elements(range) eq 0) then begin
        ; if range not provided, use all flux within lcfs
        range = fltarr(sz[1],2)
@@ -2225,33 +2462,42 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
        div_mask = 1.
    endelse
 
-   itor = read_parameter('itor', _EXTRA=extra)
-   if(itor eq 1) then r = radius_matrix(x,z,t)
+   r = radius_matrix(x,z,t)
+
+   bp = sqrt(1./r^2)
+;   bp = sqrt(s_bracket(psi,psi,x,z)/r^2)
+   bpprime = s_bracket(bp,psi,x,z)/s_bracket(psi,psi,x,z)
+
+   fprime = s_bracket(field,psi,x,z)/s_bracket(psi,psi,x,z)
 
    for k=0, sz[1]-1 do begin
        dpsi = float(range[k,1] - range[k,0])/float(bins)
 
        for p=0, bins-1 do begin
-           fval = dpsi*p + range[k,0]
+           fval = range[k,1] - dpsi*(p+1)
+           flux[k,p] = fval + dpsi/2.
 
            mask = float((psi[k,*,*] gt fval) and (psi[k,*,*] le fval+dpsi))
            mask = mask*div_mask
 
-           if(itor eq 1) then mask = mask*r[k,*,*]
+           mask = mask/bp[k,*,*]
+;           mask = mask/(bp[k,*,*]+bpprime[k,*,*]*(flux[k,p]-psi[k,*,*]))
 
-           if(n_elements(field) gt 1) then $
-             sfield = field[k,*,*]*mask[0,*,*]
+           if(n_elements(field) gt 1) then begin
+               sfield = field[k,*,*]*mask[0,*,*]
+;               sfield = (field[k,*,*]+fprime[k,*,*]*(flux[k,p]-psi[k,*,*])) $
+;                 *mask[0,*,*]
+           endif
 
            tot = total(mask)
 
-           flux[k,p] = fval + dpsi/2.
            if(tot eq 0.) then begin
                print, 'error: no data points in bin', p, fval, fval+dpsi
                result[k, p] = 0
            endif else begin
-               result[k, p] = total(sfield)/total(mask)
+               result[k, p] = total(sfield)/tot
            endelse
-           area[k,p] = total(mask)*mean(deriv(x))*mean(deriv(z))
+           area[k,p] = tot*mean(deriv(x))*mean(deriv(z))
        endfor
    endfor
 
@@ -2361,6 +2607,7 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, $
    endif else begin
        name = ''
        symbol = ''
+       units = ''
    endelse
 
    return, flux_average_field(field, psi, x, z, t, $
@@ -2379,7 +2626,7 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
                        _EXTRA=extra, color=c, names=names, $
                        xlog=xlog, ylog=ylog, left=left, overplot=overplot, $
                        lcfs=lcfs, normalized_flux=nflux, $
-                       minor_radius=minor_radius, smooth=sm, t=t
+                       minor_radius=minor_radius, smooth=sm, t=t, rms=rms
 
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
@@ -2396,7 +2643,8 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
            plot_flux_average, newfield, time, filename=filename[i], $
              overplot=((i gt 0) or keyword_set(overplot)), points=pts, $
              color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
-             normalized_flux=nflux, minor_radius=minor_radius, smooth=sm
+             normalized_flux=nflux, minor_radius=minor_radius, smooth=sm, $
+             rms=rms
        end
        if(n_elements(names) gt 0) then begin
            plot_legend, names, color=colors, ylog=ylog, xlog=xlog, left=left
@@ -2413,7 +2661,8 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
            plot_flux_average, newfield, time[i], filename=filename, $
              overplot=((i gt 0) or keyword_set(overplot)), points=pts, $
              color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
-             normalized_flux=nflux, minor_radius=minor_radius, smooth=sm, t=t
+             normalized_flux=nflux, minor_radius=minor_radius, smooth=sm, t=t,$
+             rms=rms
            names[i] = string(format='(%"!8t!6 = %d !7s!D!8A!N!X")', t)
        end
 
@@ -2428,13 +2677,24 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
    title = ''
 
    fa = flux_average(field,time,flux=flux,points=pts,filename=filename,t=t, $
-                    name=title, symbol=symbol, units=units)
+                    name=title, symbol=symbol, units=units,_EXTRA=extra)
+
    ytitle = symbol
    if(strlen(units) gt 0) then ytitle = ytitle + '!6 ('+units+ '!6)!X'
    if(n_elements(fa) le 1) then begin
        print, 'Error in flux_average. returning.'
        return
    endif
+
+   if(keyword_set(rms)) then begin
+       fa2 = flux_average(field^2,time,flux=flux,points=pts, $
+                          filename=filename, t=t, _EXTRA=extra)
+       fa = sqrt(1. - fa^2/fa2)
+
+       ytitle = '!9S!6(1 - !12<' + symbol + '!12>!U2!n/!12<' + $
+         symbol + '!6!U2!N!12>!6)!X'
+   end
+
 
 ;   if(t gt 0) then begin
 ;       title = "!12<" + title + $
@@ -2457,7 +2717,7 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
 
    if(keyword_set(minor_radius)) then begin
        flux = flux_average('r',time,points=pts,file=filename,t=t, $
-                    name=xtitle, units=units)
+                    name=xtitle, units=units,_EXTRA=extra)
        xtitle = '!12<' + xtitle + '!12> !6 ('+units+')!X'
    endif
 

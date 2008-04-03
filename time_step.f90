@@ -543,6 +543,44 @@ subroutine split_step(calc_matrices)
         call second(tend)
         t_mvm = t_mvm + tend - tstart
      endif
+
+     ! Include linear n^-1 terms
+     if(idens.eq.1 .and. linear.eq.1) then
+        ! b2vector = r15 * bf(n)
+        
+        ! make a larger vector that can be multiplied by a numvar=3 matrix
+        phip = 0.
+        do l=1,numnodes
+           call entdofs(num_fields, l, 0, ibegin, iendplusone)
+           call entdofs(vecsize_phi, l, 0, ibeginnv, iendplusonenv)
+           
+           i = ibegin+6*(den_g-1)
+
+           phip(ibeginnv) = -field(i)/field0(i)**2
+           phip(ibeginnv+1) = &
+                -(field(i+1)*field0(i) - 2.*field(i)*field0(i+1))/field0(i)**3
+           phip(ibeginnv+2) = &
+                -(field(i+2)*field0(i) - 2.*field(i)*field0(i+2))/field0(i)**3
+           phip(ibeginnv+3) = &
+                -field(i+3)/field0(i)**2 &
+                +2.*(2.*field(i+1)*field0(i+1) &
+                    +   field(i)*field0(i+3))/field0(i)**3 &
+                -6.*field(i)*field0(i+1)**2/field0(i)**4
+           phip(ibeginnv+4) = &
+                -field(i+4)/field0(i)**2 &
+                +2.*(field(i+1)*field0(i+2) + field(i+2)*field0(i+1) &
+                    +field(i)*field0(i+4))/field0(i)**3 &
+                -6.*field(i)*field0(i+1)*field0(i+2)/field0(i)**4
+           phip(ibeginnv+5) = &
+                -field(i+5)/field0(i)**2 &
+                +2.*(2.*field(i+2)*field0(i+2) &
+                    +   field(i)*field0(i+5))/field0(i)**3 &
+                -6.*field(i)*field0(i+2)**2/field0(i)**4
+        enddo
+        call matrixvectormult(q42matrix_sm,phip,b2_phi)
+        b1_phi = b1_phi + b2_phi
+     endif
+
   
      ! Include linear f terms
      if(numvar.ge.2 .and. i3d.eq.1) then
@@ -557,7 +595,7 @@ subroutine split_step(calc_matrices)
            phip(ibeginnv  :ibeginnv+5) = bf(ibegin:ibegin+5)
         enddo
         call matrixvectormult(o2matrix_sm,phip,b2_phi)
-        b1_phi = b1_phi + b1_phi
+        b1_phi = b1_phi + b2_phi
      endif
 
      ! Construct right-hand side

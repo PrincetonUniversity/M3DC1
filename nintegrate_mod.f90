@@ -738,11 +738,7 @@ subroutine define_fields_79(itri, fields)
         pt79  =  p179
      endif
 
-     if(ipres.eq.1) then
-        pit79 = pt79 - pefac*pet79
-     else
-        pit79 = pt79 * pi0/p0
-     endif
+     pit79 = pt79 - pefac*pet79
   endif
 
   

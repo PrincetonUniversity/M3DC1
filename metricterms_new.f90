@@ -2872,9 +2872,9 @@ vectype function b2bf(e,f,g)
 end function b2bf
 
 
-!===============================================================================
+!=============================================================================
 ! B3 TERMS
-!===============================================================================
+!=============================================================================
 
 ! B3pe
 ! ====
@@ -2908,7 +2908,13 @@ vectype function b3psipsieta(e,f,g,h)
   
   vectype :: temp
 
-  temp = (gam-1.)*int5(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),h(:,OP_1),weight_79,79)
+  if(gam.eq.1.) then
+     temp = 0.
+  else
+     temp = (gam-1.)* &
+          int5(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),h(:,OP_1),weight_79,79)
+  end if
+
 
   b3psipsieta = temp
   
@@ -2929,9 +2935,13 @@ vectype function b3bbeta(e,f,g,h)
   
   vectype :: temp
 
-  temp = (gam-1.)* &
-       (int5(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
-       +int5(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),h(:,OP_1),weight_79,79))
+  if(gam.eq.1) then
+     temp = 0.
+  else 
+     temp = (gam-1.)* &
+          (int5(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+          +int5(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),h(:,OP_1),weight_79,79))
+  end if
 
   b3bbeta = temp
   
@@ -2953,7 +2963,7 @@ vectype function b3pebd(e,f,g,h)
   vectype :: temp
 
   temp = int5(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),weight_79,79) &
-       - int5(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+        -int5(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
        + gam* &
        (int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DR),h(:,OP_DZ),weight_79,79) &
        -int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZ),h(:,OP_DR),weight_79,79))
@@ -2976,6 +2986,11 @@ vectype function b3pedkappa(e,f,g,h,i)
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h,i
   vectype :: temp
 
+  if(gam.eq.1.) then
+     b3pedkappa = 0
+     return
+  end if
+
   temp = &
        - int4(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1 ),h(:,OP_1),weight_79,79) &
        - int4(e(:,OP_DR),f(:,OP_DR),g(:,OP_1 ),h(:,OP_1),weight_79,79) &
@@ -2992,6 +3007,19 @@ vectype function b3pedkappa(e,f,g,h,i)
           +int4(temp79a,e(:,OP_DZ),h(:,OP_DZ),i(:,OP_1),weight_79,79) &
           +int4(temp79a,e(:,OP_DR),h(:,OP_DR),i(:,OP_1),weight_79,79))
   endif
+
+  if(iupwind.eq.1) then
+     temp79a = 0.5*ri2_79*(pht79(:,OP_DZ)**2 + pht79(:,OP_DR)**2) &
+          +    0.5*       (cht79(:,OP_DZ)**2 + cht79(:,OP_DR)**2) &
+          + ri_79*(cht79(:,OP_DZ)*pht79(:,OP_DR) &
+          -cht79(:,OP_DR)*pht79(:,OP_DZ))
+     temp79a = sqrt(sz79(:,OP_1)*temp79a)
+     temp = temp + 0.5*int3(temp79a,f(:,OP_LP),g(:,OP_1 ),weight_79,79) &
+          +        0.5*int3(temp79a,f(:,OP_1 ),g(:,OP_LP),weight_79,79) &
+          +            int3(temp79a,f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
+          +            int3(temp79a,f(:,OP_DR),g(:,OP_DR),weight_79,79)
+
+  endif 
 
   b3pedkappa = (gam-1.)*temp  
   return
@@ -3046,6 +3074,15 @@ vectype function n1ndenm(e,f,g,h)
   if(hypp .ne. 0) then
      temp = temp - g*int3(e(:,OP_LP),f(:,OP_LP),h(:,OP_1),weight_79,79)
   endif
+
+  if(iupwind.eq.1) then
+     temp79a = 0.5*ri2_79*(pht79(:,OP_DZ)**2 + pht79(:,OP_DR)**2) &
+          +    0.5*       (cht79(:,OP_DZ)**2 + cht79(:,OP_DR)**2) &
+          + ri_79*(cht79(:,OP_DZ)*pht79(:,OP_DR) &
+          -cht79(:,OP_DR)*pht79(:,OP_DZ))
+     temp79a = sqrt(sz79(:,OP_1)*temp79a)
+     temp = temp + 0.5*int2(temp79a,f(:,OP_LP),weight_79,79)
+  endif 
 
   n1ndenm = temp
   return
@@ -3206,6 +3243,11 @@ vectype function p1kappar(e,f,g,h,i,j,k)
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h,i,j,k
   vectype :: temp
 
+  if(gam.eq.1.) then
+     p1kappar = 0.
+     return
+  end if
+
   temp79a = k(:,OP_1)*ri2_79* &
        (e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))*j(:,OP_1)
 
@@ -3230,6 +3272,11 @@ vectype function p1kappax(e,f,g,h,i)
 
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h,i
   vectype :: temp
+
+  if(gam.eq.1.) then
+     p1kappax = 0.
+     return
+  end if
 
   temp79a = ri_79*i(:,OP_1)*(e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))
 
@@ -3257,7 +3304,7 @@ vectype function p1uus(e,f,g,h)
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-  if(idens.eq.0) then
+  if(idens.eq.0 .or. gam.eq.1.) then
      p1uus = 0.
      return
   endif
@@ -3286,13 +3333,13 @@ vectype function p1vvs(e,f,g,h)
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-  if(idens.eq.0) then
+  if(idens.eq.0 .or. gam.eq.1.) then
      p1vvs = 0.
      return
   endif
 
   ! add in density diffusion explicitly
-  temp79a = h(:,OP_1) ! + denm*nt79(:,OP_LP)
+  temp79a = h(:,OP_1) + denm*nt79(:,OP_LP)
 
   select case(ivform)
   case(0)
@@ -3320,7 +3367,7 @@ vectype function p1chichis(e,f,g,h)
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-  if(idens.eq.0) then
+  if(idens.eq.0 .or. gam.eq.1.) then
      p1chichis = 0.
      return
   endif
@@ -3349,7 +3396,7 @@ vectype function p1uchis(e,f,g,h)
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-  if(idens.eq.0) then
+  if(idens.eq.0 .or. gam.eq.1.) then
      p1uchis = 0.
      return
   endif
@@ -3377,6 +3424,8 @@ subroutine PVS1(i,o)
   use basic
   use nintegrate_mod
 
+  implicit none
+
   vectype, intent(in), dimension(79,OP_NUM) :: i
   vectype, intent(out), dimension(79) :: o
   
@@ -3400,6 +3449,8 @@ subroutine PVS2(i,o)
 
   use basic
   use nintegrate_mod
+
+  implicit none
 
   vectype, intent(in), dimension(79,OP_NUM) :: i
   vectype, intent(out), dimension(79) :: o
@@ -3429,6 +3480,8 @@ subroutine PVS3(i,o)
   use basic
   use nintegrate_mod
 
+  implicit none
+
   vectype, intent(in), dimension(79,OP_NUM) :: i
   vectype, intent(out), dimension(79) :: o
 
@@ -3439,7 +3492,7 @@ subroutine PVS3(i,o)
      o = o + ri_79*i(:,OP_DR)*bzt79(:,OP_1)**2
   endif
 
-  o = o * ri2_79*b2i79(:,OP_1)
+  o = o * ri2_79*b2i79(:,OP_1) - (1./3.)*i(:,OP_LP)
  
 end subroutine PVS3
 
@@ -3450,6 +3503,8 @@ subroutine PVV1(e,o)
   use basic
   use nintegrate_mod
 
+  implicit none
+
   vectype, intent(in), dimension(79,OP_NUM) :: e
   vectype, intent(out), dimension(79) :: o
   
@@ -3458,8 +3513,9 @@ subroutine PVV1(e,o)
 
   if(itor.eq.1) then
      o = o + ri_79* &
-          (e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR) &
-          -2.*(e(:,OP_DZ)*(pst79(:,OP_DZ)**2 - e(:,OP_DR)*pst79(:,OP_DR)**2) &
+          (pst79(:,OP_DZ)* &
+          (e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR)) &
+          -2.*(e(:,OP_DZ)*(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2) &
                +2.*e(:,OP_DR)*pst79(:,OP_DR)*pst79(:,OP_DZ)) &
           +e(:,OP_DZ)*bzt79(:,OP_1)**2)
   endif
@@ -3472,6 +3528,8 @@ end subroutine  PVV1
 subroutine PVV2(e,o)
   use basic
   use nintegrate_mod
+
+  implicit none
 
   vectype, intent(in), dimension(79,OP_NUM) :: e
   vectype, intent(out), dimension(79) :: o
@@ -3487,6 +3545,8 @@ end subroutine  PVV2
 subroutine PVV3(e,o)
   use basic
   use nintegrate_mod
+
+  implicit none
 
   vectype, intent(in), dimension(79,OP_NUM) :: e
   vectype, intent(out), dimension(79) :: o
@@ -3506,7 +3566,7 @@ subroutine PVV3(e,o)
        +pst79(:,OP_DZ )*e(:,OP_DRZ) + pst79(:,OP_DR )*e(:,OP_DRR)))
 
   if(itor.eq.1) then
-     o = o + 3*ri3_79*b2i79(:,OP_1)*e(:,OP_DR)* &
+     o = o + 3.*ri3_79*b2i79(:,OP_1)*e(:,OP_DR)* &
           (pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2 - bzt79(:,OP_1)**2)
   endif
 
@@ -3519,6 +3579,8 @@ vectype function P1vip(e)
 
   use basic
   use nintegrate_mod
+
+  implicit none
 
   vectype, intent(in), dimension(79,OP_NUM) :: e
 
@@ -3556,6 +3618,8 @@ vectype function g1u(e,f)
   use basic
   use nintegrate_mod
 
+  implicit none
+
   vectype, intent(in), dimension(79,OP_NUM) :: e,f
 
   temp79b = e(:,OP_DZZ) - e(:,OP_DRR)
@@ -3591,6 +3655,8 @@ vectype function g1v(e,f)
 
   use basic
   use nintegrate_mod
+
+  implicit none
 
   vectype, intent(in), dimension(79,OP_NUM) :: e,f
 
@@ -3680,6 +3746,8 @@ vectype function g1chi(e,f)
   use basic
   use nintegrate_mod
 
+  implicit none
+
   vectype, intent(in), dimension(79,OP_NUM) :: e,f
 
   temp79b = e(:,OP_DRZ)
@@ -3715,6 +3783,8 @@ vectype function g2u(e,f)
 
   use basic
   use nintegrate_mod
+
+  implicit none
 
   vectype, intent(in), dimension(79,OP_NUM) :: e,f
 
@@ -3754,6 +3824,8 @@ vectype function g2v(e,f)
 
   use basic
   use nintegrate_mod
+
+  implicit none
 
   vectype, intent(in), dimension(79,OP_NUM) :: e,f
 
@@ -3820,6 +3892,8 @@ vectype function g3u(e,f)
   use basic
   use nintegrate_mod
 
+  implicit none
+
   vectype, intent(in), dimension(79,OP_NUM) :: e,f
 
   if(itor.eq.1) then
@@ -3861,6 +3935,8 @@ vectype function g3v(e,f)
 
   use basic
   use nintegrate_mod
+
+  implicit none
 
   vectype, intent(in), dimension(79,OP_NUM) :: e,f
 
@@ -3926,6 +4002,8 @@ vectype function g3chi(e,f)
 
   use basic
   use nintegrate_mod
+
+  implicit none
 
   vectype, intent(in), dimension(79,OP_NUM) :: e,f
 
