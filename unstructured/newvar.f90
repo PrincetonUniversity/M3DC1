@@ -276,15 +276,17 @@ subroutine define_transport_coefficients()
      ! ~~~~~~~~~~~~~~~~~~~~
      if(solve_kappa) then
         ! kappa = p/T**(3/2) = sqrt(n**3/p)
-        temp79c = (eta0*temp79a/2.)**2 * &
-                 ((nt79(:,OP_DZ)**2 + nt79(:,OP_DR)**2)/ nt79(:,OP_1)**2 &
-             +9.*(pet79(:,OP_DZ)**2 +pet79(:,OP_DR)**2)/pet79(:,OP_1)**2 &
-             - 6.*(nt79(:,OP_DZ)*pet79(:,OP_DZ) &
-                  +nt79(:,OP_DR)*pet79(:,OP_DR)) &
-                 /(nt79(:,OP_1 )*pet79(:,OP_1 )))
+        temp79b = kappa0*sqrt(nt79(:,OP_1)**3/pt79(:,OP_1))
 
-        temp79b = kappa0*sqrt(nt79(:,OP_1)**3/pt79(:,OP_1)) &
-             + kappah/(1.+sqrt(temp79c))
+        if(kappah.ne.0) then
+           temp79c = (eta0*temp79a/2.)**2 * &
+                ((nt79(:,OP_DZ)**2 + nt79(:,OP_DR)**2)/ nt79(:,OP_1)**2 &
+                +9.*(pet79(:,OP_DZ)**2 +pet79(:,OP_DR)**2)/pet79(:,OP_1)**2 &
+                - 6.*(nt79(:,OP_DZ)*pet79(:,OP_DZ) &
+                     +nt79(:,OP_DR)*pet79(:,OP_DR)) &
+                /(nt79(:,OP_1 )*pet79(:,OP_1 )))
+           temp79b = temp79b + kappah/(1.+sqrt(temp79c))
+        end if
      endif
  
      ! density source

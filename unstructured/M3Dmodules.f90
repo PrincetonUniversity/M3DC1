@@ -56,8 +56,8 @@ module basic
   integer :: inoslip_pol   ! 1 = no slip (poloidal flow)
   integer :: inoslip_tor   ! 1 = no slip (toroidal flow)
   integer :: inostress_tor ! 1 = no stress (toroidal flow)
-  integer :: p_bc     ! bc on pressure.
-                      !   0 = constant pressure, 1 = insulating
+  integer :: iconst_t      ! 1 = temperature held constant
+  integer :: inograd_t     ! 1 = no normal temperature gradient
   integer :: com_bc   ! 1 = forces div(V) = 0 on boundary
   real :: amu_edge    ! factor by which to increase viscosity at boundaries
 
@@ -116,6 +116,7 @@ module basic
   integer :: ihypeta     ! 1 = scale hyper-resistivity with eta
   integer :: ihypdx      ! scale hyper-resistivity with dx**ihypdx
   integer :: ikapscale   ! 1 = scale kappar with kappa
+  integer :: iupwind     ! 1 = include upwinding term in pressure eqn
 
   ! numerical parameters
   integer :: ntimemax    ! number of timesteps
@@ -169,7 +170,7 @@ module basic
        etar,eta0,amu,amuc,amupar,denm,                         &
        kappat,kappa0,kappar,kappax,kappah,                     &
        hyper,hyperi,hyperv,hyperc,hyperp,deex,                 &
-       iper,jper,imask,amu_edge,p_db,com_bc,pedge,             &
+       iper,jper,imask,amu_edge,p_bc,com_bc,pedge,             &
        eps,ln,                                                 &
        vloop,control_p,control_i,control_d,tcur,               &
        ipellet, pellet_x, pellet_z, pellet_rate, pellet_var,   &
@@ -186,7 +187,9 @@ module basic
        ntor,iadapt,istatic,iestatic,ivform,ihypeta,ikapscale,  &
        iteratephi,                                             &
        inonormalflow, inoslip_pol, inoslip_tor, inostress_tor, &
-       irecalc_eta,ihypdx,implicit_eta, iconst_eta
+       iconst_t, inograd_t,                                    &
+       irecalc_eta,ihypdx,implicit_eta, iconst_eta,            &
+       iupwind
 
   !     derived quantities
   real :: pi,dbf,bdf,hypv,hypc,hypf,hypi,hypp,   &
@@ -578,6 +581,7 @@ module sparse
   integer, parameter :: lp_matrix_rhs_dc = 29
   integer, parameter :: bf_matrix_rhs_dc = 30
   integer, parameter :: gyro_torque_sm = 31
+  integer, parameter :: q42matrix_sm = 32
 
 
   

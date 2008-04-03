@@ -570,7 +570,7 @@ subroutine gradshafranov_solve
         gamma3 = 0.
         gamma4 = 0.
      else
-        gamma2 = -2.*xmag*(xmag*p0*p1 + g0/(xmag**2*q0*dpsii))
+        gamma2 = -2.*xmag*(xmag*p0*p1 + abs(g0)/(xmag**2*q0*dpsii))
         gamma3 = -(xmag*djdpsi/dpsii + 2.*xmag**2*p0*p2)
         gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
      endif
@@ -1206,6 +1206,8 @@ subroutine calc_toroidal_field(psii,tf)
           *  0.5*(gamma2*g1z + gamma3*g2z + gamma4*g3z) / tf(1)**3
      tf(6) = 0.5*(gamma2*g1zz + gamma3*g2zz + gamma4*g3zz) / tf(1) &
           - (0.5*(gamma2*g1z + gamma3*g2z + gamma4*g3z))**2 / tf(1)**3
+
+     if(bzero.lt.0) tf = -tf
   endif
 end subroutine calc_toroidal_field
 
