@@ -452,7 +452,7 @@ vectype function v1ubb(e,f,g,h)
        (int5(ri4_79,e(:,OP_DZ),f(:,OP_DZPP),g(:,OP_1),h(:,OP_1),weight_79,79) &
        +int5(ri4_79,e(:,OP_DR),f(:,OP_DRPP),g(:,OP_1),h(:,OP_1),weight_79,79))
   if(itor.eq.1) then
-     temp = + &
+     temp = temp + &
           2.*int5(ri5_79,e(:,OP_1),f(:,OP_DRPP),g(:,OP_1),h(:,OP_1),weight_79,79)
   endif
 

@@ -148,7 +148,7 @@ subroutine set_tangent_bc(imatrix,ibegin,rhs,bv,normal,izonedim)
      endif
      
      if(imatrix.ne.0) &
-          call setgeneralbc2(imatrix, irow, numvals, cols, vals, icomplex)
+          call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
      rhs(irow) = vals(1)*bv(2) + vals(2)*bv(3)
 
      ! clamp tangential 2nd-derivative
@@ -162,7 +162,7 @@ subroutine set_tangent_bc(imatrix,ibegin,rhs,bv,normal,izonedim)
      endif
 
      if(imatrix.ne.0) &
-          call setgeneralbc2(imatrix, irow, numvals, cols, vals, icomplex)
+          call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
      rhs(irow) = vals(1)*bv(4) + vals(2)*bv(6)
 
   else if(izonedim.eq.0) then
@@ -174,12 +174,12 @@ subroutine set_tangent_bc(imatrix,ibegin,rhs,bv,normal,izonedim)
 
      irow = ibegin + 1    
      if(imatrix.ne.0) &
-          call setgeneralbc2(imatrix, irow, numvals, cols, vals, icomplex)
+          call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
      rhs(irow) = vals(1)*bv(2) + vals(2)*bv(3)
 
      irow = ibegin + 2
      if(imatrix.ne.0) &
-          call setgeneralbc2(imatrix, irow, numvals, cols, vals, icomplex)
+          call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
      rhs(irow) = vals(1)*bv(2) + vals(2)*bv(3)
 
      ! clamp tangential 2nd-derivative
@@ -188,12 +188,12 @@ subroutine set_tangent_bc(imatrix,ibegin,rhs,bv,normal,izonedim)
 
      irow = ibegin + 3
      if(imatrix.ne.0) &
-          call setgeneralbc2(imatrix, irow, numvals, cols, vals, icomplex)
+          call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
      rhs(irow) = vals(1)*bv(4) + vals(2)*bv(6)
 
      irow = ibegin + 5
      if(imatrix.ne.0) &
-          call setgeneralbc2(imatrix, irow, numvals, cols, vals, icomplex)
+          call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
      rhs(irow) = vals(1)*bv(4) + vals(2)*bv(6)
   endif
 
@@ -236,7 +236,7 @@ subroutine set_normal_bc(imatrix,ibegin,rhs,bv,normal,izonedim)
      endif
 
      if(imatrix.ne.0) &
-          call setgeneralbc2(imatrix, irow, numvals, cols, vals, icomplex)
+          call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
      rhs(irow) = vals(1)*bv(2) + vals(2)*bv(3)
 
      if(imatrix.ne.0) then
@@ -308,7 +308,7 @@ subroutine set_laplacian_bc(imatrix,ibegin,rhs,bv,normal,izonedim,radius)
      endif
 
      if(imatrix.ne.0) &
-          call setgeneralbc2(imatrix, irow, numvals, cols, vals, icomplex)
+          call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
      rhs(irow) = bv(1)
   end if
   

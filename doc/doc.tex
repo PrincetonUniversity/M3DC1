@@ -57,6 +57,9 @@
 \newcommand{\n}{\ensuremath{\uvec{n}}}
 
 
+\newcommand{\repositoryloc}{/p/tsc/C1/svn}
+\newcommand{\svnurl}{http://subversion.tigris.org/}
+
 \title{Documentation for \codename}
 \author{Nathaniel M. Ferraro \and Andrew C. Bauer}
 
@@ -65,6 +68,9 @@
 \maketitle
 
 \tableofcontents
+
+
+
 
 \chapter{Model}
 
@@ -1712,9 +1718,166 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
 
 
 
-\chapter{Running \codename}
+\chapter{Building and Running \codename}
+
+\section{Source code Repository}
+
+\subsection{Obtaining the code}
+
+The source code for \codename\ is in an SVN repository located at
+\repositoryloc.  To place a local copy of the current version of
+\codename\ in the current working directory, run the command:
+\begin{quote}
+\texttt{svn co file:///p/tsc/C1/svn/trunk}
+\end{quote}
+The code may then be compiled and run as described in the following
+sections.
+
+Changes made to the local copy of the source code may be transmitted to
+the repository by
+\begin{quote}
+\texttt{svn commit}
+\end{quote}
+This will open the default text editor, where a description of the
+changes should be entered.  When the editor is closed, the repository
+will be updated with the new source code.  (Note: if the evironment
+variable \texttt{EDITOR} is not defined, the commit will fail.  It can
+be defined by running \texttt{setenv EDITOR xemacs}, for example).
+
+Changes made to the local copy of the source code since the last
+commit may be undone by
+\begin{quote}
+\texttt{svn revert}
+\end{quote}
+
+More information on using the SVN repository may be found at
+\begin{quote}
+  \texttt{\svnurl}
+\end{quote}
+
+
+
+
+\section{Building}
+
+The the local copy of the source code is divided into four
+directories: \texttt{structured}, \texttt{unstructured},
+\texttt{common}, and \texttt{Util}.  To build the code, first
+\texttt{cd unstructured}.  The ``real'' version of the code may be
+built by
+\begin{quote}
+  \texttt{make OPT=1 RL=1}
+\end{quote}
+and the ``complex'' version may be built by
+\begin{quote}
+  \texttt{make OPT=1 COM=1}
+\end{quote}
+Any object files present in the directory should be removed before
+compiling a different version of the code.  This can be done by
+\begin{quote}
+  \texttt{make clean}
+\end{quote}
+
+
+\section{Running}
+
+\codename\ requires three files to be present in the working directory
+to run: \texttt{C1input}, \texttt{struct.dmg}, and
+\texttt{struct-dmg.sms}.
+
+The files \texttt{struct.dmg} and \texttt{struct-dmg.sms} define the
+simulation domain boundary shape and the mesh.  Files defining a
+rectangular simulation domain with a uniform disribution of nodes may
+be created using
+\begin{enumerate}
+\item Change directories to \texttt{Util}.
+\item Build the \texttt{structMesh.x} program by 
+  \begin{quote}
+    \texttt{g++ structMesh.cc -o structMesh.x}
+  \end{quote}
+\item Generate \texttt{struct.sms} by
+  \begin{quote}
+    \texttt{structMesh.x <nx> <nz> <lx> <lz>}
+  \end{quote}
+  where \texttt{<nx>} and \texttt{<nz>} are the number of nodes in the
+  $R$ and $Z$ directions, and \texttt{<lx>} and \texttt{<lz>} are the
+  dimensions of the simulation domain.
+\item Run 
+  \begin{quote}
+    \texttt{/p/SCOREC/develop/mctk/Examples/PPPL/PPPL/test/main
+  struct.sms}
+  \end{quote} 
+  This will create the \texttt{struct.dmg} and \texttt{struct-dmg.sms}
+  files.
+\item Copy these files to the directory where the \codename\ will be
+  run.
+\end{enumerate}
+
+\texttt{C1input} contains the input parameters which define all other
+options for the physical model and numerical methods used by
+\codename\ at run time.  Sample \texttt{C1input} file may be found in
+\texttt{unstructured/DATA}.  The options which may be set in
+\texttt{C1input} are listed in section~\ref{sec:input_parameters}.
+
+
+\section{Restart Options}
+
+Each time the field output is written, restart files are also written.
+If \texttt{iglobalout=1}, then a single output file,
+\texttt{C1restart}, is written.  Otherwise, each process writes its
+own restart file, \texttt{C1restart\#\#\#\#\#}, where
+\texttt{\#\#\#\#\#} is the index of the process.  Each time the
+restart files are written, the restart files from the previous output
+are moved to \texttt{C1restart(\#\#\#\#\#)o}.  \codename\ may be
+initialized with these restart files by setting \texttt{irestart=1}.
+If the restart file was written with \texttt{iglobalout=1}, then
+\texttt{iglobalin=1} must also be set, and the number of processes
+used need not be the same as that used when the restart file was
+written.  Otherwise, \texttt{iglobalin=0} must be set, and
+\codename\ must be run using the same number of processes as when the
+restart files were written.
+
+
+\section{Adapted Meshes}
+
+Currently mesh adaptation is possible only for serial (single process)
+runs.  
+
+\paragraph{To adapt the mesh to the initial conditions}:
+\begin{enumerate}
+\item Set \texttt{ntimemax=0}, \texttt{ntimepr=1}, and
+  \texttt{iadapt=1} in \texttt{C1input}.
+\item Run \codename\ using a single process.  
+\item Rename \texttt{adapted.sms0.sms} to \texttt{struct-dmg.sms}.
+\item Set \texttt{iadapt=0}, and change the other options to whatever
+  is desired.  
+\item The simulation may now be run as normal.
+\end{enumerate}
+
+\paragraph{To adapt the mesh to the fields resulting from a simulation:}
+\begin{enumerate}
+\item Run the simulation with \texttt{iglobalout=1} and
+  \texttt{iadapt=0}.
+\item When the simulation is complete, set \texttt{iglobalin=1},
+  \texttt{irestart=1}, and \texttt{iadapt=1}.
+\item Restart the simulation on one process without increasing the
+  value of \texttt{ntimemax} or \texttt{ntimepr}.
+\item Rename \texttt{adapted.sms0.sms} to \texttt{struct-dmg.sms}.
+\item Set \texttt{iadapt=0}, and change the other
+  options to whatever is desired.
+\item The simulation may now be run as normal.  The simulation may be
+  restarted from the stopping point with the new mesh using many
+  processes as desired with the new mesh by leaving
+  \texttt{irestart=1} and \texttt{iglobalin=1}.
+\end{enumerate}
+
+
+
+
+
 
 \section{Input Parameters}
+\label{sec:input_parameters}
 
 \subsection{Model Options}
 
@@ -1823,18 +1986,18 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
   \texttt{inostress\_tor}&0 & 1: No-normal-stress boundary for toroidal 
                                  velocity\\
   \texttt{com\_bc}& 1 & 1: $\nabla^2 \chi = 0$\\
-  \texttt{p\_bc}  & 0 & 0: $\partial_t p = 0$; 1: $\n \cdot \grad{p} =
-    0$\\
+  \texttt{iconst\_t}  & 0 & 0: $\partial_t T = 0$\\
+  \texttt{inograd\_t} & 0 & 0: No normal temperature gradient\\
   \texttt{vloop}  & 0 & Loop voltage.  $\partial_t \psi = \mathtt{vloop}$\\
   \texttt{imask}  & 0 & 1: Smoothly bring $d_i$ to zero near
     boundaries\\
   \texttt{amu\_edge} & 0 &    Factor by which to increase viscosity near 
-                              boundaries}
+                              boundaries
 \end{tabular}
 
 
 \subsection{Integration Options}
-\begin{tabular}{lcl}
+\begin{tabular}{lcp{3in}}
   \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
   \texttt{dt}         & 0.1 & Time step\\
@@ -1845,10 +2008,12 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
                               CN impliciness of ohmic heating terms\\
   \texttt{isplitstep} & 1   & 0: Fully implicit time step; 
                               1: split time step.\\
-  \texttt{iresolve}   & 0   & \parbox[t]{3in}{1: Re-solve velocity after 
-                              field advance of split time step.}\\
-  \texttt{imp\_mod}   & 0   & \parbox[t]{3in}{Alternative implicitization
-    schemes. 0: Standard; 1: NIMROD.}
+  \texttt{iresolve}   & 0   & 1: Re-solve velocity after 
+                              field advance of split time step.\\
+  \texttt{imp\_mod}   & 0   & Alternative implicitization
+    schemes. 0: Standard; 1: Caramana.\\
+  \texttt{iterate\_phi} & 0 & Calculate transport coefficients after
+    field advance, then recalculate field advance.
 \end{tabular}
 
 
