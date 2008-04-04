@@ -274,10 +274,10 @@ c$$$      return
                ssterm(1,2) =-aterm(i,j)
                ssterm(2,1) =  +dt*hyp*thimpsm*bterm(i,j)
                ssterm(2,2) = aterm(i,j)
-              call insertval2(s5matrix_sm,ssterm(1,1),0,itwo,  jtwo,  1)
-              call insertval2(s5matrix_sm,ssterm(1,2),0,itwo,  jtwo+6,1)
-              call insertval2(s5matrix_sm,ssterm(2,1),0,itwo+6,jtwo,  1)
-              call insertval2(s5matrix_sm,ssterm(2,2),0,itwo+6,jtwo+6,1)             
+              call insertval(s5matrix_sm,ssterm(1,1),0,itwo,  jtwo,  1)
+              call insertval(s5matrix_sm,ssterm(1,2),0,itwo,  jtwo+6,1)
+              call insertval(s5matrix_sm,ssterm(2,1),0,itwo+6,jtwo,  1)
+              call insertval(s5matrix_sm,ssterm(2,2),0,itwo+6,jtwo+6,1)             
             enddo
          enddo
       enddo
@@ -404,10 +404,10 @@ c$$$      return
               ssterm(2,1) =  +dt*hyp*thimpsm*bterm(i,j)
               ssterm(2,2) = aterm(i,j) - regular*dterm(i,j)
 
-              call insertval2(s7matrix_sm,ssterm(1,1),0,itwo  ,jtwo  ,1)
-              call insertval2(s7matrix_sm,ssterm(1,2),0,itwo  ,jtwo+6,1)
-              call insertval2(s7matrix_sm,ssterm(2,1),0,itwo+6,jtwo  ,1)
-              call insertval2(s7matrix_sm,ssterm(2,2),0,itwo+6,jtwo+6,1)
+              call insertval(s7matrix_sm,ssterm(1,1),0,itwo  ,jtwo  ,1)
+              call insertval(s7matrix_sm,ssterm(1,2),0,itwo  ,jtwo+6,1)
+              call insertval(s7matrix_sm,ssterm(2,1),0,itwo+6,jtwo  ,1)
+              call insertval(s7matrix_sm,ssterm(2,2),0,itwo+6,jtwo+6,1)
            enddo
         enddo
       enddo

@@ -170,7 +170,7 @@ module basic
        etar,eta0,amu,amuc,amupar,denm,                         &
        kappat,kappa0,kappar,kappax,kappah,                     &
        hyper,hyperi,hyperv,hyperc,hyperp,deex,                 &
-       iper,jper,imask,amu_edge,p_bc,com_bc,pedge,             &
+       iper,jper,imask,amu_edge,com_bc,pedge,                  &
        eps,ln,                                                 &
        vloop,control_p,control_i,control_d,tcur,               &
        ipellet, pellet_x, pellet_z, pellet_rate, pellet_var,   &
@@ -486,8 +486,7 @@ module arrays
 #ifdef USECOMPLEX
       call createppplvec(vec, numberingid, 1)
 #else
-!      call createppplvec(vec, numberingid, 0)
-      call createppplvec(vec, numberingid)
+      call createppplvec(vec, numberingid, 0)
 #endif
       vec = 0.
     end subroutine createvec
@@ -501,11 +500,9 @@ module arrays
 
       call numdofs(numberingid, ndof)
       allocate(vec(ndof))
-#ifdef USECOMPLEX
+
       call createppplvec(vec, numberingid, 0)
-#else
-      call createppplvec(vec, numberingid)
-#endif
+
       vec = 0.
     end subroutine createrealvec
 !================================
@@ -588,67 +585,6 @@ module sparse
 end module sparse
 
 
-#ifndef USECOMPLEX
-subroutine zeromultiplymatrix(imat, icomp, isize)
-  implicit none
-  integer, intent(in) :: imat, icomp, isize
-  call zeromultiplyarray(imat,isize)  
-end subroutine zeromultiplymatrix
-
-subroutine zerosuperlumatrix(imat, icomp, isize)
-  implicit none
-  integer, intent(in) :: imat, icomp, isize
-  call zerosuperluarray(imat,isize)  
-end subroutine zerosuperlumatrix
-
-subroutine finalizematrix(imat)
-  implicit none
-  integer, intent(in) :: imat
-  call finalizearray(imat)
-end subroutine finalizematrix
-
-subroutine deletematrix(imat)
-  implicit none
-  integer, intent(in) :: imat
-  call freesmo(imat)
-end subroutine deletematrix
-
-subroutine insertval2(imat,val,icomp,i,j,iop)
-  implicit none
-  integer, intent(in) :: imat, icomp, i, j, iop
-  real, intent(in) :: val
-  call insertval(imat,val,i,j,iop)
-end subroutine insertval2
-
-subroutine setgeneralbc2(imatrix, irow, numvals, cols, vals, icomp)
-  implicit none
-  integer, intent(in) :: imatrix, irow, numvals, icomp
-  real, intent(in), dimension(*) :: cols, vals
-
-  call setgeneralbc(imatrix, irow, numvals, cols, vals)
-end subroutine setgeneralbc2
-
-
-subroutine sumsharedppplvecvals(vec)
-  implicit none
-  real :: vec(*)
-  call sumshareddofs(vec)
-end subroutine sumsharedppplvecvals
-  
-subroutine checkppplveccreated(vec, i)
-  implicit none
-  integer, intent(out) :: i
-  real :: vec(*)
-  call checkveccreated(vec,i)
-end subroutine checkppplveccreated
-
-subroutine initsolvers
-  call sludinit
-end subroutine initsolvers
-
-subroutine finalizesolvers
-  call sludexit
-end subroutine finalizesolvers
 
 subroutine resizevec(vec, ivecsize)
   use arrays
@@ -670,7 +606,7 @@ subroutine arrayresizevec(vec, ivecsize)
 
   print *, "In arrayresizevec!", ivecsize
 
-  call checkveccreated(vec, i)
+  call checkppplveccreated(vec, i)
   if(i .eq. 0) then
      call printfpointer(vec)
      write(*,*) 'trying to resize a vector that has not been created'
@@ -678,7 +614,7 @@ subroutine arrayresizevec(vec, ivecsize)
   endif
 
 
-  call checksamevec(field, vec, i)
+  call checksameppplvec(field, vec, i)
   if(i .eq. 1) then
      print *, "field"
      if(allocated(field)) deallocate(field, STAT=i)
@@ -689,7 +625,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
 
-  call checksamevec(field0, vec, i)
+  call checksameppplvec(field0, vec, i)
   if(i .eq. 1) then
      print *, "field0"
      if(allocated(field0)) deallocate(field0, STAT=i)
@@ -699,7 +635,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
 
-  call checksamevec(fieldi, vec, i)
+  call checksameppplvec(fieldi, vec, i)
   if(i .eq. 1) then
      print *, "fieldi"
      if(allocated(fieldi)) deallocate(fieldi, STAT=i)
@@ -709,7 +645,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
 
-  call checksamevec(jphi, vec, i)
+  call checksameppplvec(jphi, vec, i)
   if(i .eq. 1) then
      print *, "jphi"
      if(allocated(jphi)) deallocate(jphi, STAT=i)
@@ -719,7 +655,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
   
-  call checksamevec(vor, vec, i)
+  call checksameppplvec(vor, vec, i)
   if(i .eq. 1) then
      print *, "vor"
      if(allocated(vor)) deallocate(vor, STAT=i)
@@ -729,7 +665,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
   
-  call checksamevec(com, vec, i)
+  call checksameppplvec(com, vec, i)
   if(i .eq. 1) then
      print *, "com"
      if(allocated(com)) deallocate(com, STAT=i)
@@ -739,7 +675,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
   
-  call checksamevec(resistivity, vec, i)
+  call checksameppplvec(resistivity, vec, i)
   if(i .eq. 1) then
      print *, "resistivity"
      if(allocated(resistivity)) deallocate(resistivity, STAT=i)
@@ -749,7 +685,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
   
-  call checksamevec(tempvar, vec, i)
+  call checksameppplvec(tempvar, vec, i)
   if(i .eq. 1) then
      print *, "tempvar"
      if(allocated(tempvar)) deallocate(tempvar, STAT=i)
@@ -759,7 +695,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
   
-  call checksamevec(kappa, vec, i)
+  call checksameppplvec(kappa, vec, i)
   if(i .eq. 1) then
      print *, "kappa"
      if(allocated(kappa)) deallocate(kappa, STAT=i)
@@ -769,7 +705,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
 
-  call checksamevec(sigma, vec, i)
+  call checksameppplvec(sigma, vec, i)
   if(i .eq. 1) then
      print *, "sigma"
      if(allocated(sigma)) deallocate(sigma, STAT=i)
@@ -779,7 +715,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
       
-  call checksamevec(sb1, vec, i)
+  call checksameppplvec(sb1, vec, i)
   if(i .eq. 1) then
      print *, "sb1"
      if(allocated(sb1)) deallocate(sb1, STAT=i)
@@ -789,7 +725,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
   
-  call checksamevec(sb2, vec, i)
+  call checksameppplvec(sb2, vec, i)
   if(i .eq. 1) then
      print *, "sb2"
      if(allocated(sb2)) deallocate(sb2, STAT=i)
@@ -799,7 +735,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
   
-  call checksamevec(sp1, vec, i)
+  call checksameppplvec(sp1, vec, i)
   if(i .eq. 1) then
      print *, "sp1"
      if(allocated(sp1)) deallocate(sp1, STAT=i)
@@ -809,7 +745,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
   
-  call checksamevec(visc, vec, i)
+  call checksameppplvec(visc, vec, i)
   if(i .eq. 1) then
      print *, "visc"
      if(allocated(visc)) deallocate(visc, STAT=i)
@@ -819,7 +755,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
   
-  call checksamevec(visc_c, vec, i)
+  call checksameppplvec(visc_c, vec, i)
   if(i .eq. 1) then
      print *, "visc_c"
      if(allocated(visc_c)) deallocate(visc_c, STAT=i)
@@ -829,7 +765,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
 
-  call checksamevec(bf, vec, i)
+  call checksameppplvec(bf, vec, i)
   if(i .eq. 1) then
      print *, "bf"
      if(allocated(bf)) deallocate(bf, STAT=i)
@@ -839,7 +775,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
 
-  call checksamevec(gyro_tau, vec, i)
+  call checksameppplvec(gyro_tau, vec, i)
   if(i .eq. 1) then
      print *, "gyro_tau"
      if(allocated(gyro_tau)) deallocate(gyro_tau, STAT=i)
@@ -849,7 +785,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
 
-  call checksamevec(phi, vec, i)
+  call checksameppplvec(phi, vec, i)
   if(i .eq. 1) then
      print *, "phi"
      if(allocated(phi)) deallocate(phi, STAT=i)
@@ -859,7 +795,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
      
-  call checksamevec(phiold, vec, i)
+  call checksameppplvec(phiold, vec, i)
   if(i .eq. 1) then
      print *, "phiold"
      if(allocated(phiold)) deallocate(phiold, STAT=i)
@@ -869,7 +805,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
 
-  call checksamevec(vel, vec, i)
+  call checksameppplvec(vel, vec, i)
   if(i .eq. 1) then
      print *, "vel"
      if(allocated(vel)) deallocate(vel, STAT=i)
@@ -879,7 +815,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
       
-  call checksamevec(velold, vec, i)
+  call checksameppplvec(velold, vec, i)
   if(i .eq. 1) then
      print *, "velold"
      if(allocated(velold)) deallocate(velold, STAT=i)
@@ -890,7 +826,7 @@ subroutine arrayresizevec(vec, ivecsize)
   endif
    
      
-  call checksamevec(den, vec, i)
+  call checksameppplvec(den, vec, i)
   if(i .eq. 1) then
      print *, "den"
      if(allocated(den)) deallocate(den, STAT=i)
@@ -900,7 +836,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
   
-  call checksamevec(denold, vec, i)
+  call checksameppplvec(denold, vec, i)
   if(i .eq. 1) then
      print *, "denold"
      if(allocated(denold)) deallocate(denold, STAT=i)
@@ -910,7 +846,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
   
-  call checksamevec(pres, vec, i)
+  call checksameppplvec(pres, vec, i)
   if(i .eq. 1) then
      print *, "pres"
      if(allocated(pres)) deallocate(pres, STAT=i)
@@ -920,7 +856,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
   
-  call checksamevec(presold, vec, i)
+  call checksameppplvec(presold, vec, i)
   if(i .eq. 1) then
      print *, "presold"
      if(allocated(presold)) deallocate(presold, STAT=i)
@@ -930,7 +866,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
      
-  call checksamevec(q4, vec, i)
+  call checksameppplvec(q4, vec, i)
   if(i .eq. 1) then
      print *, "q4"
      if(allocated(q4)) deallocate(q4, STAT=i)
@@ -940,7 +876,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
 
-  call checksamevec(r4, vec, i)
+  call checksameppplvec(r4, vec, i)
   if(i .eq. 1) then
      print *, "r4"
      if(allocated(r4)) deallocate(r4, STAT=i)
@@ -950,7 +886,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
 
-  call checksamevec(qn4, vec, i)
+  call checksameppplvec(qn4, vec, i)
   if(i .eq. 1) then
      print *, "qn4"
      if(allocated(qn4)) deallocate(qn4, STAT=i)
@@ -960,7 +896,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
   
-  call checksamevec(qp4, vec, i)
+  call checksameppplvec(qp4, vec, i)
   if(i .eq. 1) then
      print *, "qp4"
      if(allocated(qp4)) deallocate(qp4, STAT=i)
@@ -970,7 +906,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
 
-  call checksamevec(veln, vec, i)
+  call checksameppplvec(veln, vec, i)
   if(i .eq. 1) then
      print *, "veln"
      if(allocated(veln)) deallocate(veln, STAT=i)
@@ -980,7 +916,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
       
-  call checksamevec(veloldn, vec, i)
+  call checksameppplvec(veloldn, vec, i)
   if(i .eq. 1) then
      print *, "veloldn"
      if(allocated(veloldn)) deallocate(veloldn, STAT=i)
@@ -990,7 +926,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
 
-  call checksamevec(phip, vec, i)
+  call checksameppplvec(phip, vec, i)
   if(i .eq. 1) then
      print *, "phip"
      if(allocated(phip)) deallocate(phip, STAT=i)
@@ -1000,7 +936,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
   
-  call checksamevec(b1_phi, vec, i)
+  call checksameppplvec(b1_phi, vec, i)
   if(i .eq. 1) then
      print *, "b1_phi"
      if(allocated(b1_phi)) deallocate(b1_phi, STAT=i)
@@ -1010,7 +946,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
   
-  call checksamevec(b2_phi, vec, i)
+  call checksameppplvec(b2_phi, vec, i)
   if(i .eq. 1) then
      print *, "b2_phi"
      if(allocated(b2_phi)) deallocate(b2_phi, STAT=i)
@@ -1020,7 +956,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
   
-  call checksamevec(b1_vel, vec, i)
+  call checksameppplvec(b1_vel, vec, i)
   if(i .eq. 1) then
      print *, "b1_vel"
      if(allocated(b1_vel)) deallocate(b1_vel, STAT=i)
@@ -1030,7 +966,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
   
-  call checksamevec(b2_vel, vec, i)
+  call checksameppplvec(b2_vel, vec, i)
   if(i .eq. 1) then
      print *, "b2_vel"
      if(allocated(b2_vel)) deallocate(b2_vel, STAT=i)
@@ -1040,7 +976,7 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
     
-  call checksamevec(tempcompare, vec, i)
+  call checksameppplvec(tempcompare, vec, i)
   if(i .eq. 1) then
      print *, "tempcompare"
      if(allocated(tempcompare)) deallocate(tempcompare, STAT=i)
@@ -1053,5 +989,3 @@ subroutine arrayresizevec(vec, ivecsize)
   print *, "Error: unknown vector"
 
 end subroutine arrayresizevec
-
-#endif

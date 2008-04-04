@@ -98,7 +98,7 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
            case(NV_BF_MATRIX)
               temp = int3(ri2_79,g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
            end select
-           call insertval2(matrix, temp, icomplex, ione, jone, 1)
+           call insertval(matrix, temp, icomplex, ione, jone, 1)
         enddo
      enddo
   enddo

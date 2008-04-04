@@ -11,24 +11,50 @@ F90    = ifort -c
 F77    = ifort -c
 CC     = icc -c
 
-SCORECDIR = /l/mhd/acbauer/develop/
-SCORECOPT = -O
+# define where you want to locate the mesh adapt libraries
+# defult is /u/xluo/develop
+ifndef SCORECDIR
+SCORECDIR = /u/xluo/develop/
+endif
 
+# define the version of mesh adapt : real or complex version
+# ---- Note, this is a temporary solution. Eventually, there should
+# ---- be only one version
+ifndef SCORECVERS
+SCORECVERS =
+endif
 
-# For compiling complex version:
-#COMPLEX = -Dvectype=complex -DUSECOMPLEX \
-#	-Dinsertval2=insertval -Dsetgeneralbc2=setgeneralbc
-#BIN_POSTFIX = _complex
-#SCORECVERS = -complex2
-#NATEDIR = $(SCORECDIR)
+# specify whether debug or optimization 
+ifeq ($(OPT), 1)
+ COMPLEX = -O
+ SCORECOPT = -O
+else
+ COMPLEX = -g
+ SCORECOPT =
+endif
 
+# define the complex version
+ifeq ($(COM), 1)
+COMPLEX := $(COMPLEX) -Dvectype=complex -DUSECOMPLEX
+ifeq ($(OPT), 1)
+BIN_POSTFIX = -complex-opt
+else
+BIN_POSTFIX = -complex
+endif
 
-# For compling real version:
-COMPLEX = -Dvectype=real
-BIN_POSTFIX = 
-SCORECVERS = 
-NATEDIR = /p/tsc/nferraro/src/SCOREC/
+endif
 
+# define the real version
+ifeq ($(RL), 1)
+COMPLEX := $(COMPLEX) -Dvectype=real
+
+ifeq ($(OPT), 1)
+BIN_POSTFIX = -real-opt
+else
+BIN_POSTFIX = -real
+endif
+
+endif
 
 BIN = gonewp${BIN_POSTFIX}
 
@@ -53,24 +79,30 @@ LDRNEW = \
 	-Wl,-rpath,$(SCORECDIR)FMDB$(SCORECVERS)/SCORECModel/lib/ia64_linux \
 	-L$(SCORECDIR)FMDB$(SCORECVERS)/SCORECUtil/lib/ia64_linux \
 	-Wl,-rpath,$(SCORECDIR)FMDB$(SCORECVERS)/SCORECUtil/lib/ia64_linux \
-	-L$(NATEDIR)mctk$(SCORECVERS)/Examples/PPPL/lib/ia64_linux \
-	-Wl,-rpath,$(NATEDIR)mctk$(SCORECVERS)/Examples/PPPL/lib/ia64_linux \
-	-L$(NATEDIR)mctk$(SCORECVERS)/Field/lib/ia64_linux \
-	-Wl,-rpath,$(NATEDIR)mctk$(SCORECVERS)/Field/lib/ia64_linux \
-	-L$(NATEDIR)mctk$(SCORECVERS)/Core/lib/ia64_linux \
-	-Wl,-rpath,$(NATEDIR)mctk$(SCORECVERS)/Core/lib/ia64_linux \
-	-L$(NATEDIR)mctk$(SCORECVERS)/Solver/lib/ia64_linux \
-	-Wl,-rpath,$(NATEDIR)mctk$(SCORECVERS)/Solver/lib/ia64_linux \
+	-L$(SCORECDIR)mctk$(SCORECVERS)/Examples/PPPL/lib/ia64_linux \
+	-Wl,-rpath,$(SCORECDIR)mctk$(SCORECVERS)/Examples/PPPL/lib/ia64_linux \
+	-L$(SCORECDIR)mctk$(SCORECVERS)/Field/lib/ia64_linux \
+	-Wl,-rpath,$(SCORECDIR)mctk$(SCORECVERS)/Field/lib/ia64_linux \
+	-L$(SCORECDIR)mctk$(SCORECVERS)/Core/lib/ia64_linux \
+	-Wl,-rpath,$(SCORECDIR)mctk$(SCORECVERS)/Core/lib/ia64_linux \
+	-L$(SCORECDIR)mctk$(SCORECVERS)/Solver/lib/ia64_linux \
+	-Wl,-rpath,$(SCORECDIR)mctk$(SCORECVERS)/Solver/lib/ia64_linux \
 	-L$(SCORECDIR)meshAdapt$(SCORECVERS)/meshAdapt/lib/ia64_linux \
 	-Wl,-rpath,$(SCORECDIR)meshAdapt$(SCORECVERS)/meshAdapt/lib/ia64_linux \
 	-L$(SCORECDIR)meshAdapt$(SCORECVERS)/meshTools/lib/ia64_linux \
 	-Wl,-rpath,$(SCORECDIR)meshAdapt$(SCORECVERS)/meshTools/lib/ia64_linux \
 	-L$(SCORECDIR)meshAdapt$(SCORECVERS)/templateRefine/lib/ia64_linux \
 	-Wl,-rpath,$(SCORECDIR)meshAdapt$(SCORECVERS)/templateRefine/lib/ia64_linux \
-	-lFMDB-mpich2$(SCORECOPT) -lSCORECModel-mpich2$(SCORECOPT) \
-	-lSCORECUtil-mpich2$(SCORECOPT) -lField-mpich2$(SCORECOPT) -lCore-mpich2$(SCORECOPT) \
-	-lmeshAdapt-mpich2$(SCORECOPT) -ltemplateRefine-mpich2$(SCORECOPT) \
-	-lmeshTools-mpich2$(SCORECOPT) -lSolver-mpich2$(SCORECOPT) -lPPPL-mpich2$(SCORECOPT) \
+	-lFMDB-mpich2$(SCORECOPT) \
+	-lSCORECModel-mpich2$(SCORECOPT) \
+	-lSCORECUtil-mpich2$(SCORECOPT) \
+	-lField-mpich2$(SCORECOPT) \
+	-lCore-mpich2$(SCORECOPT) \
+	-lmeshAdapt-mpich2$(SCORECOPT) \
+	-ltemplateRefine-mpich2$(SCORECOPT) \
+	-lmeshTools-mpich2$(SCORECOPT) \
+	-lSolver-mpich2$(SCORECOPT) \
+	-lPPPL-mpich2$(SCORECOPT) \
 	-L$(AUTOPACK_HOME)/lib/ia64-sgi -Wl,-rpath,$(AUTOPACK_HOME)/lib/ia64-sgi -lautopack-O \
 	-L$(Zoltan_HOME)/lib -lzoltan \
 	-L$(PARMETIS_HOME)/lib -Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis \

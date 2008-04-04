@@ -191,7 +191,6 @@
 !
 !.....boundary conditions
 !     com_bc: 1 = sets laplacian(chi) = 0 on boundary
-!     p_bc : 0 = constant pressure, 1 = insulating
       com_bc = 1
       iconst_t = 1
       inograd_t = 0
