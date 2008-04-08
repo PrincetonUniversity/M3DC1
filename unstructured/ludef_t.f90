@@ -49,7 +49,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
   ssterm(1) = ssterm(1) -     thimp     *dt*temp
   ddterm(1) = ddterm(1) + (.5-thimp*bdf)*dt*temp
 
-  if(gravr.ne.0 .or. gravz.ne.0) then          
+  if(idens.eq.1 .and. (gravr.ne.0 .or. gravz.ne.0)) then
      qqterm(4) = qqterm(4) + dt* &
           v1ngrav(trial,lin)
   endif
@@ -89,7 +89,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
      endif
   endif
     
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
+  if(eqsubtract.eq.1) then
      temp = v1uun(trial,lin,ph079,nt79) &    
           + v1uun(trial,ph079,lin,nt79)
      ssterm(1) = ssterm(1) -     thimp     *dt*temp
@@ -104,7 +104,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
            qqterm(4) = qqterm(4) + dt*              &
                 (v1un     (trial,ph079,lin)         &
                 +v1uun    (trial,ph079,ph079,lin))
-           if(gravr.ne.0 .or. gravz.ne.0) then 
+           if(idens.eq.1 .and. (gravr.ne.0 .or. gravz.ne.0)) then
               qqterm(4) = qqterm(4) + thimp*dt*dt*  &
                    (v1ungrav   (trial,ph079,lin)) !    &
 !                   +v1ndenmgrav(trial,lin, denm))
@@ -180,7 +180,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
         qqterm(2) = qqterm(2) + (.5-thimp*bdf)*dt*temp
      endif
           
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
+     if(eqsubtract.eq.1) then
         
         temp = v1vvn(trial,lin,vz079,nt79) &
              + v1vvn(trial,vz079,lin,nt79)
@@ -224,7 +224,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
         rrterm(2) = rrterm(2) -     thimp     *dt*temp
         qqterm(2) = qqterm(2) + (1.-thimp*bdf)*dt*temp
 
-        if(linear.eq.1 .or. eqsubtract.eq.1) then
+        if(eqsubtract.eq.1) then
            qqterm(5) = qqterm(5) + dt* &
                 (v1psif(trial,ps079,lin) &
                 +v1bf  (trial,bz079,lin))
@@ -264,7 +264,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
      if(advfield.eq.1) then
         temp = v1chipsipsi(trial,lin,pst79,pst79)  &
              + v1chibb    (trial,lin,bzt79,bzt79)
-        if(gravr.ne.0 .or. gravz.ne.0) then          
+        if(idens.eq.1 .and. (gravr.ne.0 .or. gravz.ne.0)) then
            temp = temp &
                 + v1chingrav(trial,lin,nt79)
         endif
@@ -272,7 +272,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
         ddterm(3) = ddterm(3) +       ththm*dt*dt*temp
      endif
      
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
+     if(eqsubtract.eq.1) then
         temp = v1uchin(trial,lin,ch079,nt79)
         ssterm(1) = ssterm(1) -     thimp     *dt*temp
         ddterm(1) = ddterm(1) + (1.-thimp*bdf)*dt*temp
@@ -294,7 +294,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
               qqterm(4) = qqterm(4) + dt* &
                    (v1uchin  (trial,ph079,ch079,lin) &
                    +v1chichin(trial,ch079,ch079,lin))
-              if(gravr.ne.0 .or. gravz.ne.0) then          
+              if(gravr.ne.0 .or. gravz.ne.0) then
                  qqterm(4) = qqterm(4) + thimp*dt*dt* &
                       v1chingrav (trial,ch079,lin)
               endif
@@ -357,7 +357,7 @@ subroutine vorticity_nolin(trial, r4term)
 
   ! density terms
   ! ~~~~~~~~~~~~~
-  if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
+  if(idens.eq.1 .and. eqsubtract.eq.1) then
      r4term = r4term + dt* &
           v1us     (trial,ph079,sig79)
              
@@ -472,7 +472,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, &
      qqterm(2) = qqterm(2) + (.5-thimp*bdf)*dt*temp
   endif
 
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
+  if(eqsubtract.eq.1) then
      
      temp = v2vun(trial,vz079,lin,nt79)
      ssterm(1) = ssterm(1) -     thimp     *dt*temp
@@ -517,7 +517,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, &
      rrterm(2) = rrterm(2) -     thimp     *dt*temp
      qqterm(2) = qqterm(2) + (1.-thimp*bdf)*dt*temp
 
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
+     if(eqsubtract.eq.1) then
         qqterm(5) = qqterm(5) + dt* &
              (v2psif(trial,ps079,lin) &
              +v2bf  (trial,bz079,lin))
@@ -549,7 +549,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, &
         ddterm(3) = ddterm(3) +       ththm*dt*dt*temp
      end if
            
-     if(linear.eq.1 .or. eqsubtract.eq.1) then              
+     if(eqsubtract.eq.1) then              
         temp = v2vchin(trial,lin,ch079,nt79)
         ssterm(2) = ssterm(2) -     thimp     *dt*temp
         ddterm(2) = ddterm(2) + (1.-thimp*bdf)*dt*temp
@@ -617,7 +617,7 @@ subroutine axial_vel_nolin(trial, r4term)
 
   ! density terms
   ! ~~~~~~~~~~~~~
-  if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
+  if(idens.eq.1 .and. eqsubtract.eq.1) then
      r4term = r4term + dt* &
           (v2vun(trial,vz079,ph079,n179) &
           +v2vs (trial,vz079,sig79))
@@ -698,7 +698,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
   ssterm(3) = ssterm(3) -     thimp     *dt*temp
   ddterm(3) = ddterm(3) + (.5-thimp*bdf)*dt*temp
 
-  if(gravr.ne.0 .or. gravz.ne.0) then          
+  if(idens.eq.1 .and. (gravr.ne.0 .or. gravz.ne.0)) then
      qqterm(4) = qqterm(4) + dt* &
           v3ngrav(trial,lin)
   endif
@@ -721,7 +721,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
      temp = v3up     (trial,lin,pt79)        &
           + v3upsipsi(trial,lin,pst79,pst79) &
           + v3ubb    (trial,lin,bzt79,bzt79) 
-     if(gravr.ne.0 .or. gravz.ne.0) then
+     if(idens.eq.1 .and. (gravr.ne.0 .or. gravz.ne.0)) then
         temp = temp + thimp*dt* &
              v3ungrav(trial,lin,nt79)
      endif
@@ -735,7 +735,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
      temp = v3chip     (trial,lin,pt79)        &
           + v3chipsipsi(trial,lin,pst79,pst79) &
           + v3chibb    (trial,lin,bzt79,bzt79)
-     if(gravr.ne.0 .or. gravz.ne.0) then
+     if(idens.eq.1 .and. (gravr.ne.0 .or. gravz.ne.0)) then
         temp = temp + &
              v3chingrav(trial,lin,nt79)
      endif
@@ -778,14 +778,14 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
      rrterm(3) = rrterm(3) +     thimp     *dt*temp
      qqterm(3) = qqterm(3) + (1.-thimp*bdf)*dt*temp
 
-     if(idens.eq.1) then
+     if(idens.eq.1 .and. (gravr.ne.0 .or. gravz.ne.0)) then
         temp = v3ngrav(trial,lin)
         rrterm(4) = rrterm(4) +     thimp     *dt*temp
         qqterm(4) = qqterm(4) + (1.-thimp*bdf)*dt*temp
      endif
   endif
   
-  if(linear.eq.1 .or. eqsubtract.eq.1) then             
+  if(eqsubtract.eq.1) then             
      temp = v3uun  (trial,lin,ph079,nt79) &
           + v3uun  (trial,ph079,lin,nt79) &
           + v3uchin(trial,lin,ch079,nt79)
@@ -902,14 +902,7 @@ subroutine compression_nolin(trial, r4term)
 
   ! density terms
   ! ~~~~~~~~~~~~~
-  if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
-!     r4term = r4term + dt* &
-!          (v3uun    (trial,ph079,ph079,n179) &
-!          +v3uchin  (trial,ph079,ch079,n179) &
-!          +v3vvn    (trial,vz079,vz079,n179) &
-!          +v3chichin(trial,ch079,ch079,n179) &
-!          +v3us     (trial,ph079,sig79) &
-!          +v3chis   (trial,ch079,sig79))
+  if(idens.eq.1 .and. eqsubtract.eq.1) then
      r4term = r4term + dt* &
           (v3us     (trial,ph079,sig79) &
           +v3chis   (trial,ch079,sig79))
@@ -978,7 +971,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   rrterm(1) = rrterm(1) + thimpb*dt*temp
   qqterm(1) = qqterm(1) - thimpb*dt*temp*bdf
 
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
+  if(eqsubtract.eq.1) then
      temp = (b1psipsid(trial,lin,ps079,ni79) &
             +b1psipsid(trial,ps079,lin,ni79))*dbf
      ssterm(1) = ssterm(1) -     thimp     *dt*temp
@@ -1038,7 +1031,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
      rrterm(2) = rrterm(2) + thimpb*dt*temp
      qqterm(2) = qqterm(2) - thimpb*dt*temp*bdf
            
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
+     if(eqsubtract.eq.1) then
         temp = b1psibd(trial,lin,bz079,ni79)*dbf
         ssterm(1) = ssterm(1) -     thimp     *dt*temp
         ddterm(1) = ddterm(1) + (1.-thimp*bdf)*dt*temp
@@ -1071,7 +1064,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
      rrterm(3) = rrterm(3) + thimpb*dt*temp
      qqterm(3) = qqterm(3) - thimpb*dt*temp*bdf
      
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
+     if(eqsubtract.eq.1) then
         temp = b1psichi(trial,ps079,lin)
         rrterm(3) = rrterm(3) +     thimpb     *dt*temp
         qqterm(3) = qqterm(3) + (1.-thimpb*bdf)*dt*temp
@@ -1080,7 +1073,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
 
   ! density terms
   ! ~~~~~~~~~~~~~
-  if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
+  if(idens.eq.1 .and. eqsubtract.eq.1) then
      qqterm(4) = qqterm(4) + dt* &
           (b1psipsid(trial,ps079,ps079,lin)*dbf)
 
@@ -1214,7 +1207,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
   rrterm(2) = rrterm(2) + thimpb*dt*temp
   qqterm(2) = qqterm(2) - thimpb*dt*temp*bdf
 
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
+  if(eqsubtract.eq.1) then
      temp = b2psipsid(trial,lin,ps079,ni79)*dbf &
           + b2psipsid(trial,ps079,lin,ni79)*dbf &
           + b2psibd  (trial,lin,bz079,ni79)*dbf
@@ -1245,7 +1238,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
      ssterm(2) = ssterm(2) -     thimp     *dt*temp
      ddterm(2) = ddterm(2) + (1.-thimp*bdf)*dt*temp
 
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
+     if(eqsubtract.eq.1) then
         qqterm(5) = qqterm(5) + dt* &
              (b2psif(trial,ps079,lin)*dbf &
              +b2bf  (trial,bz079,lin)*dbf)
@@ -1269,7 +1262,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
      rrterm(3) = rrterm(3) + thimpb*dt*temp
      qqterm(3) = qqterm(3) - thimpb*dt*temp*bdf
              
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
+     if(eqsubtract.eq.1) then
         temp = b2bchi(trial,bz079,lin)
         rrterm(3) = rrterm(3) +     thimpb     *dt*temp
         qqterm(3) = qqterm(3) + (1.-thimpb*bdf)*dt*temp
@@ -1279,7 +1272,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
 
   ! density terms
   ! ~~~~~~~~~~~~~
-  if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
+  if(idens.eq.1 .and. eqsubtract.eq.1) then
      qqterm(4) = qqterm(4) + dt* &
           (b2psipsid(trial,ps079,ps079,lin)*dbf &
           +b2psibd  (trial,ps079,bz079,lin)*dbf &
@@ -1312,8 +1305,6 @@ subroutine axial_field_nolin(trial, r4term)
   vectype :: temp
   
   r4term = 0.
-
-  if(numvar.lt.2 .or. linear.eq.1) return
 
 end subroutine axial_field_nolin
 
@@ -1452,7 +1443,7 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
      ddterm(3) = ddterm(3) + (1.-thimp*bdf)*dt*temp
   endif
               
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
+  if(eqsubtract.eq.1) then
      temp = b3psipsieta(trial,lin,ps079,eta79) &
           + b3psipsieta(trial,ps079,lin,eta79)
      ssterm(1) = ssterm(1) -     thimp_ohm     *dt*temp
@@ -1499,7 +1490,7 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, rrterm, qqterm)
 
   ! density terms
   ! ~~~~~~~~~~~~~
-  if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
+  if(idens.eq.1 .and. eqsubtract.eq.1) then
      qqterm(4) = qqterm(4) + dt* &
           (b3pebd(trial,pe079,bz079,lin)*dbf*pefac &
           +p1kappar(trial,ps079,ps079,pe079,lin,b2i79,kar79))
@@ -1532,7 +1523,7 @@ subroutine electron_pressure_nolin(trial, r4term)
   ! ~~~~~~~~~~~~
   if(gam.ne.1.) then
      ! hyper-ohmic heating
-     r4term = r4term + dt*(gam-1.)* &
+     r4term = r4term + dbf*dt*(gam-1.)* &
           (qpsipsieta(trial) &
           +qbbeta    (trial))
 
@@ -1549,7 +1540,7 @@ subroutine electron_pressure_nolin(trial, r4term)
 
   ! density source terms
   ! ~~~~~~~~~~~~~~~~~~~~
-  if(idens.eq.1 .and. (linear.eq.1 .or. eqsubtract.eq.1)) then
+  if(idens.eq.1 .and. eqsubtract.eq.1) then
      if(ipres.eq.1) then
         r4term = r4term + dt* &
              (p1uus    (trial,ph079,ph079,sig79) &
@@ -1610,7 +1601,7 @@ subroutine ludefall()
   case(0)
      call zerosuperlumatrix(s1matrix_sm,icomplex, vecsize_vel)
      call zeromultiplymatrix(d1matrix_sm,icomplex,vecsize_vel)
-     if(idens.eq.1 .and. linear.eq.1) &
+     if(idens.eq.1 .and. eqsubtract.eq.1) &
           call zeromultiplymatrix(q42matrix_sm,icomplex,vecsize_vel)
 #ifdef USECOMPLEX
      call zeromultiplymatrix(o1matrix_sm,icomplex,vecsize_vel)
@@ -1635,7 +1626,7 @@ subroutine ludefall()
         call zeromultiplymatrix(d2matrix_sm,icomplex,vecsize_phi)
         call zeromultiplymatrix(r2matrix_sm,icomplex,vecsize_vel)
         call zeromultiplymatrix(q2matrix_sm,icomplex,vecsize_vel)
-        if(idens.eq.1 .and. linear.eq.1) &
+        if(idens.eq.1 .and. eqsubtract.eq.1) &
              call zeromultiplymatrix(q42matrix_sm,icomplex,vecsize_vel)
 #ifdef USECOMPLEX
         call zeromultiplymatrix(o2matrix_sm,icomplex,vecsize_phi)
@@ -1741,7 +1732,7 @@ subroutine ludefall()
   select case(isplitstep)
   case(0)
      call finalizematrix(d1matrix_sm)
-     if(idens.eq.1 .and. linear.eq.1) &
+     if(idens.eq.1 .and. eqsubtract.eq.1) &
           call finalizematrix(q42matrix_sm)
 #ifdef USECOMPLEX
      call finalizematrix(o1matrix_sm)
@@ -1766,7 +1757,7 @@ subroutine ludefall()
 #ifdef USECOMPLEX
         call finalizematrix(o2matrix_sm)
 #endif   
-        if(idens.eq.1 .and. linear.eq.1) &
+        if(idens.eq.1 .and. eqsubtract.eq.1) &
              call finalizematrix(q42matrix_sm)
         call sumsharedppplvecvals(q4)
      end if
@@ -2140,7 +2131,7 @@ subroutine ludefphi_n(itri)
               call insertval(bb1,temp,icomplex,ip+eta_off,ip+pe_off,1)
               
            end if
-           if(idens.eq.1 .and. linear.eq.1) then
+           if(idens.eq.1 .and. eqsubtract.eq.1) then
               call insertval(bni,qqterm(1,4),icomplex,ip+psi_off,jp,1)
               if(numvar.ge.2) &
                    call insertval(bni,qqterm(2,4),icomplex,ip+bz_off,jp,1)
@@ -2258,7 +2249,7 @@ subroutine ludefden_n(itri)
         rrterm(1) = rrterm(1) + thimp*dt*temp
         qqterm(1) = qqterm(1) - thimp*dt*temp*bdf
 
-        if(linear.eq.1 .or. eqsubtract.eq.1) then
+        if(eqsubtract.eq.1) then
            temp = n1nu  (g79(:,:,i),n079,g79(:,:,j))
            rrterm(1) = rrterm(1) +     thimp     *dt*temp
            qqterm(1) = qqterm(1) + (1.-thimp*bdf)*dt*temp
@@ -2276,7 +2267,7 @@ subroutine ludefden_n(itri)
            rrterm(2) = rrterm(2) + thimp*dt*temp
            qqterm(2) = qqterm(2) - thimp*dt*temp*bdf
 
-           if(linear.eq.1 .or. eqsubtract.eq.1) then
+           if(eqsubtract.eq.1) then
               temp = n1nv(g79(:,:,i),n079,g79(:,:,j))
               rrterm(2) = rrterm(2) +     thimp     *dt*temp
               qqterm(2) = qqterm(2) + (1.-thimp*bdf)*dt*temp
@@ -2295,7 +2286,7 @@ subroutine ludefden_n(itri)
            rrterm(3) = rrterm(3) + thimp*dt*temp
            qqterm(3) = qqterm(3) - thimp*dt*temp*bdf
 
-           if(linear.eq.1 .or. eqsubtract.eq.1) then
+           if(eqsubtract.eq.1) then
               temp = n1nchi(g79(:,:,i),n079,g79(:,:,j))
               rrterm(3) = rrterm(3) +     thimp     *dt*temp
               qqterm(3) = qqterm(3) + (1.-thimp*bdf)*dt*temp
@@ -2321,7 +2312,7 @@ subroutine ludefden_n(itri)
      nsource(ione+den_off) = nsource(ione+den_off) + dt* &
              n1s(g79(:,:,i),sig79)
 
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
+     if(eqsubtract.eq.1) then
         nsource(ione+den_off) = nsource(ione+den_off) + dt* &
              (n1ndenm(g79(:,:,i),n079,denm,hypp*sz79))
      endif
@@ -2400,7 +2391,7 @@ subroutine ludefpres_n(itri)
         rrterm(1) = rrterm(1) + thimp*dt*temp
         qqterm(1) = qqterm(1) - thimp*dt*temp*bdf
 
-        if(linear.eq.1 .or. eqsubtract.eq.1) then
+        if(eqsubtract.eq.1) then
            temp = p1pu  (g79(:,:,i),p079,g79(:,:,j))
            rrterm(1) = rrterm(1) +     thimp     *dt*temp
            qqterm(1) = qqterm(1) + (1.-thimp*bdf)*dt*temp
@@ -2437,7 +2428,7 @@ subroutine ludefpres_n(itri)
            rrterm(3) = rrterm(3) +     thimp     *dt*temp
            qqterm(3) = qqterm(3) + (.5-thimp*bdf)*dt*temp
 
-           if(linear.eq.1 .or. eqsubtract.eq.1) then
+           if(eqsubtract.eq.1) then
               temp = p1pchi(g79(:,:,i),p079,g79(:,:,j))
               rrterm(3) = rrterm(3) +     thimp     *dt*temp
               qqterm(3) = qqterm(3) + (1.-thimp*bdf)*dt*temp
@@ -2491,7 +2482,7 @@ subroutine ludefpres_n(itri)
              (b3pebd(g79(:,:,i),pet79,bzt79,ni79))
      endif
 
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
+     if(eqsubtract.eq.1) then
                 
         qp4(ione) = qp4(ione) + dt* &
              (b3pedkappa(g79(:,:,i),p079,ni79,kap79,hypp*sz79) &

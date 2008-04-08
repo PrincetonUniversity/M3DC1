@@ -307,9 +307,9 @@ contains
     call getboundingboxsize(alx,alz)
 
     itri = 0
-    call evaluate(alx   ,alz/2.,temp(1),temp2(1),field,psi_g,vecsize_phi,itri)
+    call evaluate(alx   ,alz/2.,temp(1),temp2(1),field,psi_g,num_fields,itri)
     itri = 0
-    call evaluate(alx/2.,alz/2.,temp(2),temp2(2),field,psi_g,vecsize_phi,itri)
+    call evaluate(alx/2.,alz/2.,temp(2),temp2(2),field,psi_g,num_fields,itri)
 
     reconnected_flux = 0.5*(temp(2)-temp(1))
 
@@ -402,7 +402,6 @@ subroutine calculate_scalars()
  
   integer :: itri, numelms, i, ione, ndof, def_fields
   real :: x, z, xmin, zmin, factor
-  integer :: ibegin, iendplusone, ibegin1, iendplusone1, numnodes
 
   double precision, dimension(3)  :: cogcoords
 
@@ -464,27 +463,21 @@ subroutine calculate_scalars()
 
   call getmincoord(xmin,zmin)
 
+  ! calcuate torque due to gyroviscosity
   if(gyro.eq.1 .and. numvar.ge.2) then
+     gyro_tau = 0.
      if(isplitstep.eq.1) then
         call matrixvectormult(gyro_torque_sm,vel,b1_vel)
+        call copyvec(b1_vel,vz_g,vecsize_vel,gyro_tau,1,1)
      else
-        call matrixvectormult(gyro_torque_sm,phi,b1_vel)
+        call matrixvectormult(gyro_torque_sm,phi,b1_phi)
+        call copyvec(b1_phi,vz_g,vecsize_phi,gyro_tau,1,1)
      end if
-
-     call numnod(numnodes)
-     gyro_tau = 0.
-     do i=1,numnodes
-        call entdofs(1, i, 0, ibegin1, iendplusone1)
-        call entdofs(vecsize_vel, i, 0, ibegin, iendplusone)
-           
-        gyro_tau(ibegin1:ibegin1+5) = b1_vel(ibegin+vz_off:ibegin+vz_off+5)
-     enddo
 
      call solve(mass_matrix_lhs,gyro_tau,i)
   endif
 
-  
-  ! Define RHS of equation
+
   call numfac(numelms)
   do itri=1,numelms
 
