@@ -14,14 +14,15 @@ CC     = icc -c
 # define where you want to locate the mesh adapt libraries
 # defult is /u/xluo/develop
 ifndef SCORECDIR
-SCORECDIR = /u/xluo/develop/
+#SCORECDIR = /u/xluo/develop/
+SCORECDIR = /u/xluo/develop.suplu.2.1/
 endif
 
 # define the version of mesh adapt : real or complex version
 # ---- Note, this is a temporary solution. Eventually, there should
 # ---- be only one version
 ifndef SCORECVERS
-SCORECVERS =
+SCORECVERS = 
 endif
 
 # specify whether debug or optimization 
@@ -61,6 +62,7 @@ BIN = gonewp${BIN_POSTFIX}
 FOPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE) -DNEW_VELOCITY ${COMPLEX}
 F90OPTS = ${FOPTS}
 F77OPTS = ${FOPTS}
+CCOPTS = -c $(INCLUDE)
 
 NEWOBJS = M3Dmodules.o nintegrate_mod.o metricterms_new.o \
 	newvar.o diagnostics.o gradshafranov.o control.o \
@@ -107,27 +109,21 @@ LDRNEW = \
 	-L$(Zoltan_HOME)/lib -lzoltan \
 	-L$(PARMETIS_HOME)/lib -Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis \
 	-L$(PETSC_DIR)/lib/$(PETSC_ARCH) -lpetscksp -lpetscmat -lpetscvec -lpetsc \
-        -L$(SUPERLU_HOME) -lsuperlu_3.0 \
-        -L$(SUPERLU_DIST_HOME)/lib -lsuperlu \
-        -L$(NCARG_ROOT)/lib -lncarg -lncarg_gks -lncarg_c \
-        -L$(F90HOME)/lib -lifport -lifcore -lifcoremt -lunwind \
-	-Wl,-rpath,$(F90HOME)/lib \
-        -L$(MKLHOME)/lib/64 -lguide -lmkl_lapack -lmkl_ipf -lpthread \
-        -L${LIBDIR} -lhdf5 -lhdf5_fortran \
-	-Wl,--rpath -Wl,${LIBDIR} \
-	-L$(CCHOME)/lib -lipr \
-	-Wl,-rpath,$(CCHOME)/lib \
-        -L/usr/X11R6/lib -lX11 -lmpi -lcprts -lcxa
+	-L$(SUPERLU_HOME) -lsuperlu_3.0 \
+	-L$(SUPERLU_DIST_HOME)/lib -lsuperlu \
+	-L$(NCARG_ROOT)/lib -lncarg -lncarg_gks -lncarg_c \
+	-L$(MKLHOME)/lib/64 -lguide -lmkl_lapack -lmkl_ipf \
+	-L${LIBDIR} -lhdf5 -lhdf5_fortran \
+	-Wl,-rpath -Wl,${LIBDIR} \
+        -L. -L/usr/X11R6/lib -lX11 -lcprts 
+
 
 
 ${BIN}: $(NEWOBJS)
 	$(LOADER) $(NEWOBJS) $(LDRNEW) -o $@
 
-$(COMMONDIR)tv80lib.o: $(COMMONDIR)tv80lib.f
-	$(F77) $< -o $@ 
-
 %.o : %.c
-	$(CC) -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) $(CCOPTS) $< -o $@
+	$(CC)  $(CCOPTS) $< -o $@
 
 %.o: %.f
 	$(F77) $(F77OPTS) $< -o $@
@@ -144,7 +140,6 @@ clean:
 	rm -f *.o 
 	rm -f *.mod 
 	rm -f *~
-	rm -f *.so
 
 fullclean:
 	rm -f ${BIN}

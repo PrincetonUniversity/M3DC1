@@ -1117,7 +1117,8 @@ subroutine evaluate(x,z,ans,ans2,dum,itype,numvare,itri)
 
   include 'mpif.h'
 
-  integer, intent(inout) :: itype, numvare, itri
+  integer, intent(in) :: itype, numvare
+  integer, intent(inout) :: itri
   real, intent(in) :: x, z
   vectype, intent(in) :: dum(*)
   real, intent(out) :: ans, ans2
@@ -1128,10 +1129,9 @@ subroutine evaluate(x,z,ans,ans2,dum,itype,numvare,itri)
   real :: ri, si, eta, co, sn
   real :: term1, term2
   real, dimension(2) :: temp1, temp2
+  integer :: hasval, tothasval
 
   double precision :: coords(3)
-
-  ! itype=1 for first velocity (flux) variable
 
   ! evaluate the solution to get the value [ans] at one point (x,z)
 
@@ -1151,6 +1151,9 @@ subroutine evaluate(x,z,ans,ans2,dum,itype,numvare,itri)
   ans = 0.
   ans2 = 0.
 
+
+  ! If this process contains the point, evaluate the field at that point.
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(itri.gt.0) then
 
      ! calculate local coordinates
@@ -1198,16 +1201,28 @@ subroutine evaluate(x,z,ans,ans2,dum,itype,numvare,itri)
      
         ans = ans + avector(p)*term1
         ans2 = ans2 + avector(p)*term2
+        hasval = 1
      enddo
+  else
+     hasval = 0
   endif
      
+
+  ! Distribute the result if necessary
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(maxrank.gt.1) then
+     ! Determine number of processes whose domains contain this point
+     call mpi_allreduce(hasval, tothasval, 1, MPI_INTEGER, MPI_SUM, &
+          MPI_COMM_WORLD, ier)
+
+     ! Find the average value at this point over all processes containing
+     ! the point.  (Each value should be identical.)
      temp1(1) = ans
      temp1(2) = ans2
      call mpi_allreduce(temp1, temp2, 2, MPI_DOUBLE_PRECISION, MPI_SUM, &
           MPI_COMM_WORLD, ier)
-     ans = temp2(1)
-     ans2 = temp2(2)
+     ans = temp2(1)/tothasval
+     ans2 = temp2(2)/tothasval
   endif
 
 end subroutine evaluate

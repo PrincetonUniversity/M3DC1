@@ -469,10 +469,10 @@ subroutine boundary_mag(imatrix, rhs)
      call set_laplacian_bc(imatrix,ibegin+psi_off,rhs,temp,normal,izonedim,-x)
 
      ! no tangential current
-     if(numvar.ge.2) then
+     if(inocurrent_pol.eq.1 .and. numvar.ge.2) then
         temp = 0.
         call set_normal_bc(imatrix,ibegin+bz_off,rhs,temp,normal,izonedim)
-     endif
+     end if
 
      if(numvar.ge.3) then 
         if(inograd_t.eq.1) then

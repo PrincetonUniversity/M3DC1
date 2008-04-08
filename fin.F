@@ -198,6 +198,7 @@
       inoslip_pol = 0
       inoslip_tor = 1
       inostress_tor = 0
+      inocurrent_pol = 1
 !
 !.....density source
       ipellet = 0

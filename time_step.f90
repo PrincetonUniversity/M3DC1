@@ -5,20 +5,10 @@
 !============================================================
 subroutine onestep
 
-  use p_data
-  use t_data
   use basic
-  use arrays
-  use sparse
   use diagnostics
-  use gradshafranov
 
   implicit none
-
-  integer :: l, jer, i
-  integer :: ibegin, iendplusone, ibeginnv, iendplusonenv
-  integer, allocatable:: itemp(:)
-  integer :: ndofs, numnodes
 
   integer :: calc_matrices
   logical :: first_time = .true.
@@ -26,15 +16,12 @@ subroutine onestep
   real :: tstart, tend
   vectype, allocatable :: temp(:), temp2(:)
   
-  call numnod(numnodes)
 
   ! apply loop voltage
-  ! ~~~~~~~~~~~~~~~~~~
   fbound = fbound + dt*vloop/(2.*pi)
 
 
   ! Determine whether matrices should be re-calculated
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(first_time &
        .or. (linear.eq.0 .and. mod(ntime,nskip).eq.0) &
        .or. (integrator.eq.1 .and. ntime.eq.1)) then
@@ -43,8 +30,8 @@ subroutine onestep
      calc_matrices = 0
   endif
 
+
   ! calculate matrices for time advance
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(calc_matrices.eq.1) then 
      if(myrank.eq.0 .and. iprint.eq.1) print *, "Defining matrices"
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -57,26 +44,28 @@ subroutine onestep
   endif
 
 
+  ! copy field data to time-advance vectors
   call import_time_advance_vectors
 
+
   ! advance time
-  ! ~~~~~~~~~~~~
   if(isplitstep.eq.1) then
      call split_step(calc_matrices)
   else
      call unsplit_step(calc_matrices)
   end if
+  time = time + dt
 
+
+  ! copy time advance vectors to field data
   call export_time_advance_vectors
 
 
   ! Calculate all quantities derived from basic fields
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   call derived_quantities
 
 
   ! Conserve toroidal flux
-  ! ~~~~~~~~~~~~~~~~~~~~~~
   if(iconstflux.eq.1 .and. numvar.ge.2) then
      call conserve_flux
      tflux = tflux + gbound*area

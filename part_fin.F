@@ -1,41 +1,16 @@
       subroutine mask(x,z,factor)
       use basic
       implicit none
-c$$$      real factor, r1, r2, alpha, rmid, rnorm, r, x, z, alx, alz,
-c$$$     &     xmin, zmin
+
       real, intent(in) :: x, z
       real, intent(out) :: factor
 
       real :: alphax, alphaz, alx, alz, xmin, zmin
       real :: x_left, x_right, z_bottom, z_top
       factor = 1.
-! acbauer -- changed to use xmin and zmin since it apears that 
-!            this routine may want to center the domain around (0,0)
 
       call getboundingboxsize(alx, alz)
       call getmincoord(xmin, zmin)
-c$$$!
-c$$$!     radius where the factor becomes 0
-c$$$      r1 = 2.0
-c$$$!
-c$$$!     radius where the factor becomes 1
-c$$$      r2 = 1.5
-c$$$      alpha = 6./(r1 - r2)
-c$$$      rmid = (r1+r2)/2.
-c$$$!
-c$$$      if(iper.eq.0) then
-c$$$         rnorm = sqrt(alx*alz)/4.
-c$$$         r = sqrt( (x-xmin-alx*.5)**2 + (z-zmin-alz*.5)**2)/rnorm
-c$$$      else
-c$$$         rnorm = alz/4.
-c$$$         r = abs(z-zmin-alz/2.)/rnorm
-c$$$      endif
-c$$$!
-c$$$      factor = (1 + tanh(-alpha*(r-rmid)))*.5
-c$$$!
-c$$$!     write(66,1001) x,z,r,factor
-c$$$ 1001 format(1p4e12.4)
-c$$$      return
 
       x_left = alx / 20.
       x_right = alx - alx / 20.
@@ -54,14 +29,14 @@ c$$$      return
 
       if(jper.eq.0) then
          factor = factor * 0.5*
-     &        (tanh(alphaz*(z - z_bottom)) - tanh(alphaz*(z-z_top)))
+     &        (tanh(alphaz*(z - z_bottom)) - tanh(alphaz*(z - z_top)))
       endif
 
       return
       end
 !============================================================
 !     ifirstcall = 1 if this is the first call and 0 otherwise
-!                  this is usefull for avoiding memory leaks
+!                  this is useful for avoiding memory leaks
       subroutine space(ifirstcall)
 !
 !     allocates space for big arrays
@@ -274,10 +249,10 @@ c$$$      return
                ssterm(1,2) =-aterm(i,j)
                ssterm(2,1) =  +dt*hyp*thimpsm*bterm(i,j)
                ssterm(2,2) = aterm(i,j)
-              call insertval(s5matrix_sm,ssterm(1,1),0,itwo,  jtwo,  1)
-              call insertval(s5matrix_sm,ssterm(1,2),0,itwo,  jtwo+6,1)
-              call insertval(s5matrix_sm,ssterm(2,1),0,itwo+6,jtwo,  1)
-              call insertval(s5matrix_sm,ssterm(2,2),0,itwo+6,jtwo+6,1)             
+               call insertval(s5matrix_sm,ssterm(1,1),0,itwo,  jtwo,  1)
+               call insertval(s5matrix_sm,ssterm(1,2),0,itwo,  jtwo+6,1)
+               call insertval(s5matrix_sm,ssterm(2,1),0,itwo+6,jtwo,  1)
+               call insertval(s5matrix_sm,ssterm(2,2),0,itwo+6,jtwo+6,1)
             enddo
          enddo
       enddo
@@ -300,9 +275,8 @@ c$$$      return
             do j=1,18
                jone = isval1(itri,j)
 !
-               temp(itwo+6) = temp(itwo+6)+(dterm(i,j)                             &
+               temp(itwo+6) = temp(itwo+6)+(dterm(i,j)                  &
      &              - dt*hyp*(1.-thimpsm)*bterm(i,j))*inarray(jone)
-!
             enddo
          enddo
       enddo

@@ -86,14 +86,11 @@ Program Reducedquintic
   endif
 
   pi = acos(-1.)
-  
-!!$  if(maxrank .eq. 1) call precalc_whattri()
-
 
   ! initialize needed variables and define geometry and triangles
   call init
 
-
+  if(linear.eq.1) eqsubtract = 1
 
   ! calculate pfac (pe*pfac = electron pressure)
   if(ipres.eq.1) then
@@ -141,7 +138,7 @@ Program Reducedquintic
      call initial_conditions
      if(myrank.eq.0 .and. iprint.ge.1) print *, 'done initial conditions'
 
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
+     if(eqsubtract.eq.1) then
         fieldi = field
      else
         fieldi = field0
@@ -154,7 +151,7 @@ Program Reducedquintic
 
      ! combine the equilibrium and perturbed fields of linear=0
      ! unless eqsubtract = 1
-     if(linear.eq.0 .and. eqsubtract.eq.0) then
+     if(eqsubtract.eq.0) then
         field = field + field0
         field0 = 0.
      endif
@@ -215,16 +212,16 @@ Program Reducedquintic
      if(maxrank .eq. 1) then
 !        call outputfield(phi, numvar, 0, ntime, 123) 
 !        call writefieldatnodes(resistivity, 1, 1) 
-        factor = 0.5
-        hmin = .004
-        hmax = 0.1
+        factor = 0.2
+        hmin = .005
+        hmax = 0.05
 
         print *, 'adapting mesh...'
-#ifdef USECOMPLEX
-        call hessianadapt(field,u_g, 0, ntime, factor, hmin, hmax) 
-#else
-        call hessianadapt(field,u_g, ntime, factor, hmin, hmax)
-#endif
+!!$#ifdef USECOMPLEX
+        call hessianadapt(resistivity,1, 0, ntime, factor, hmin, hmax) 
+!!$#else
+!!$        call hessianadapt(resistivity,1, ntime, factor, hmin, hmax)
+!!$#endif
         print *, 'done adapting.'
         call space(0)
         call tridef
@@ -244,18 +241,15 @@ Program Reducedquintic
      call hdf5_write_parameters(ier)
 
      ! Output the equilibrium
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
-        call hdf5_write_time_slice(1,ier)
-     endif
+     if(eqsubtract.eq.1) call hdf5_write_time_slice(1,ier)
   end if
 
-
   ! output initial conditions
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~
   call output
 
   ! if there are no timesteps to calculate, then skip time loop
   if(ntimemax.le.ntime) go to 101
+
 
   ! main time loop
   ! ~~~~~~~~~~~~~~
@@ -269,9 +263,6 @@ Program Reducedquintic
 
      ! re-scale solution if energy is too large
      if(linear.eq.1) call scaleback
-
-     !advance time
-     time = time + dt
 
      if(myrank.eq.0 .and. iprint.ge.1) print *, "ntime = ", ntime
 
@@ -448,14 +439,7 @@ subroutine smooth
         call newvar(mass_matrix_lhs   ,com,vel,3,vecsize_vel, &
              lp_matrix_rhs,   NV_NOBOUND)
      endif
-     
-!!$        !
-!!$        !.....coding to calculate the error in the delsquared chi equation
-!!$        call calc_chi_error(chierror)
-!!$        if(myrank.eq.0) then
-!!$           print *, "Error in com = ", chierror 
-!!$        endif
-        
+             
      call smoother3(com,vel,numnodes,vecsize_vel,3)
   endif
 
@@ -467,6 +451,11 @@ subroutine smooth
 end subroutine smooth
 
 
+!======================================================================
+! copyvec
+! ~~~~~~~
+! copies a field from inarr to outarr
+!======================================================================
 subroutine copyvec(inarr, inpos, insize, outarr, outpos, outsize)
 
   real, intent(in) :: inarr(*)
@@ -494,11 +483,9 @@ end subroutine copyvec
 
 ! ======================================================================
 ! derived_quantities
-! ------------------
-!
+! ~~~~~~~~~~~~~~~~~~
 ! calculates all derived quantities, including auxiliary fields
 ! and scalars
-!
 ! ======================================================================
 subroutine derived_quantities
   use basic
@@ -573,13 +560,11 @@ subroutine derived_quantities
 
 end subroutine derived_quantities
 
-! ======================================================================
+!======================================================================
 ! conserve_flux
-! --------------
-!
+! ~~~~~~~~~~~~~
 ! adjusts the boundary conditions to conserve toroidal flux
-!
-! ======================================================================
+!======================================================================
 subroutine conserve_flux
 
   use basic
@@ -606,6 +591,12 @@ subroutine conserve_flux
 end subroutine conserve_flux
 
 
+!======================================================================
+! flip_handedness
+! ~~~~~~~~~~~~~~~
+! Flips coordinate system handedness by flipping sign of
+! psi, u, vz, and bz
+!======================================================================
 subroutine flip_handedness
 
   use basic
