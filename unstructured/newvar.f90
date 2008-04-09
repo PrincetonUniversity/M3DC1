@@ -161,8 +161,7 @@ subroutine newvar(ilhsmat,outarray,inarray,iplace,numvari,irhsmat,ibound)
   vectype, intent(in) :: inarray(*)   ! size=numvari
   vectype, intent(out) :: outarray(*) ! size=1
 
-  integer :: numnodes, ier, i
-  integer :: ibegin, iendplusone, ibegin1, iendplusone1
+  integer :: ier
 
   vectype, allocatable :: temp(:)
 
@@ -170,26 +169,16 @@ subroutine newvar(ilhsmat,outarray,inarray,iplace,numvari,irhsmat,ibound)
   ! create vecsize=1 for matrix multiplication
   if(numvari.gt.1) then
      call createvec(temp,1)
-
-     call numnod(numnodes)     
-     do i=1,numnodes
-        call entdofs(1, i, 0, ibegin1, iendplusone1)
-        call entdofs(numvari, i, 0, ibegin, iendplusone)
-        ibegin = ibegin + (iplace-1)*6
-        temp(ibegin1:ibegin1+5) = inarray(ibegin:ibegin+5)
-     enddo
+     call copyvec(inarray,1,numvari,temp,1,1)
+     call matrixvectormult(irhsmat, temp, outarray)
+     call deletevec(temp)
+  else
+     call matrixvectormult(irhsmat, inarray, outarray)
   end if
 
-  call matrixvectormult(irhsmat, temp, outarray)
-
-  if(ibound.eq.NV_DCBOUND) then
-     call boundary_dc(0, outarray)
-  end if
+  if(ibound.eq.NV_DCBOUND) call boundary_dc(0, outarray)
 
   call solve(ilhsmat,outarray,ier)
-
-  if(numvari.gt.1) call deletevec(temp)
-
 
 end subroutine newvar
 
