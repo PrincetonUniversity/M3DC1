@@ -115,7 +115,7 @@ LDRNEW = \
 	-L$(MKLHOME)/lib/64 -lguide -lmkl_lapack -lmkl_ipf \
 	-L${LIBDIR} -lhdf5 -lhdf5_fortran \
 	-Wl,-rpath -Wl,${LIBDIR} \
-        -L. -L/usr/X11R6/lib -lX11 -lcprts 
+        -L/usr/X11R6/lib -lX11 -lcprts 
 
 
 
