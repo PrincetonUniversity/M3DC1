@@ -201,13 +201,13 @@
       implicit none
 
       integer, intent(in) :: numnodes, numvard, iplace
-      vectype, intent(out) :: outarray(numnodes*6*numvard)
-      vectype, intent(in)  ::  inarray(numnodes*6)
+      vectype, intent(out) :: outarray(*)
+      vectype, intent(in)  ::  inarray(*)
 
-      integer :: itri, ndof_2,
-     &     i, j, numvarsm, jtwo, itwo, l, 
-     &     ier, jone, nbound, numelms, izone,izonedim,
-     &     ibegind, iendplusoned, ibeginsm, iendplusonesm
+      integer :: itri, 
+     &     i, j, numvarsm, jtwo, itwo,
+     &     ier, jone, nbound, numelms, izone,izonedim
+
       real :: hyp, thimpsm
       real, dimension(18,18) :: aterm, bterm, dterm
       real, dimension(-6:maxi,-6:maxi) :: fintl(-6:maxi,-6:maxi)
@@ -221,7 +221,6 @@
 
       numvarsm = 2
       call numfac(numelms)
-      call numdofs(numvarsm, ndof_2)
       call createvec(temp, numvarsm)
       temp = 0
       thimpsm = 1.
@@ -294,16 +293,8 @@
       end if
 !
 !.....store solution
-      do l=1,numnodes
-         call entdofs(numvard, l, 0, ibegind, iendplusoned)
-         call entdofs(numvarsm, l, 0, ibeginsm, iendplusonesm)
-         do i=0,5
-            outarray(ibegind+6*(iplace-1)+i) =
-     &           temp(ibeginsm+6+i)
-         enddo
-      enddo
-       
-!
+      call copyvec(temp,2,numvarsm,outarray,iplace,numvard)
+      
       call deletevec(temp)
       return
 !
@@ -329,10 +320,9 @@
       vectype, intent(out) :: outarray(numnodes*6*numvard)
       vectype, intent(in) :: inarray(numnodes*6)
 
-      integer :: ndofs_sm, numelms,
-     &     ibegind, iendplusoned, ibeginsm, iendplusonesm
+      integer ::  numelms
       integer :: numvarsm, itri, i, j,izone,izonedim,
-     &     l, jone, ier, jtwo, itwo
+     &     jone, ier, jtwo, itwo
       real :: hyp, thimpsm
       real, dimension(18,18) ::  aterm, bterm, dterm
       real :: fintl(-6:maxi,-6:maxi)
@@ -346,7 +336,6 @@
 
       numvarsm = 2
       call numfac(numelms)
-      call numdofs(numvarsm, ndofs_sm)
       call createvec(temp, numvarsm)
       temp = 0
       thimpsm = 1.
@@ -421,15 +410,8 @@
       endif
 !
 !.....store solution
-      do l=1,numnodes
-         call entdofs(numvard, l, 0, ibegind, iendplusoned)
-         call entdofs(numvarsm, l, 0, ibeginsm, iendplusonesm)
-         do i=0,5
-            outarray(ibegind+6*(iplace-1)+i) = 
-     &           temp(ibeginsm+6+i)
-         enddo
-      enddo
-!
+      call copyvec(temp,2,numvarsm,outarray,iplace,numvard)
+
       call deletevec(temp)
       return
 !
