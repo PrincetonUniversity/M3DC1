@@ -135,7 +135,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
         ddterm(1) = ddterm(1) +       ththm*dt*dt*temp
         
         qqterm(1) = qqterm(1) + dt* &
-             (v1psib  (trial,lin,bzt79))
+             (v1psib(trial,lin,bzt79))
      else
         temp = v1psib(trial,lin,bzt79)
         rrterm(1) = rrterm(1) +     thimp     *dt*temp
@@ -156,7 +156,8 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
      endif
 
      if(advfield.eq.1) then
-        temp = v1ubb  (trial,lin,bzt79,bzt79)
+        temp = v1upsib(trial,lin,pst79,bzt79) &
+             + v1ubb  (trial,lin,bzt79,bzt79)
         ssterm(1) = ssterm(1) - thimp*thimp*dt*dt*temp
         ddterm(1) = ddterm(1) +       ththm*dt*dt*temp
 
@@ -165,17 +166,26 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
         ssterm(2) = ssterm(2) - thimp*thimp*dt*dt*temp
         ddterm(2) = ddterm(2) +       ththm*dt*dt*temp
 
+        qqterm(1) = qqterm(1) + dt* &
+             (v1psib(trial,lin,bzs79))
+
         qqterm(2) = qqterm(2) + dt* &
-             (v1bb     (trial,lin,bzs79)  &
-             +v1bb     (trial,bzs79,lin))
+             (v1psib(trial,pss79,lin) &
+             +v1bb  (trial,lin,bzs79) &
+             +v1bb  (trial,bzs79,lin))       
      
         if(isources.eq.1) then
            qqterm(2) = qqterm(2) + thimp*dt*dt* &
-                (v1bsb2   (trial,lin,sb279))
+                (v1bsb2(trial,lin,sb279))
         endif
      else
-        temp = v1bb(trial,lin,bz179) &
-             + v1bb(trial,bz179,lin)
+        temp = v1psib(trial,ps179,lin)
+        rrterm(1) = rrterm(1) +     thimp     *dt*temp
+        qqterm(1) = qqterm(1) + (.5-thimp*bdf)*dt*temp
+
+        temp = v1psib(trial,lin,bz179) &
+             + v1bb  (trial,lin,bz179) &
+             + v1bb  (trial,bz179,lin)
         rrterm(2) = rrterm(2) +     thimp     *dt*temp
         qqterm(2) = qqterm(2) + (.5-thimp*bdf)*dt*temp
      endif
@@ -189,22 +199,29 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, rrterm, qqterm, advfield)
 
         if(advfield.eq.1) then
            qqterm(1) = qqterm(1) + thimp*dt*dt* &
-                (v1vpsipsi(trial,vz079,lin,pss79) &
+                (v1upsib  (trial,ps079,lin,bzs79) &
+                +v1vpsipsi(trial,vz079,lin,pss79) &
                 +v1vpsipsi(trial,vz079,pss79,lin) &
                 +v1vpsib  (trial,vz079,lin,bzs79))
         
            qqterm(2) = qqterm(2) + thimp*dt*dt* &
-                (v1ubb    (trial,ph079,lin,bzs79) &
-                +v1ubb    (trial,ph079,bzs79,lin) &
-                +v1vpsib  (trial,vz079,pss79,lin))
+                (v1upsib(trial,ph079,pss79,lin) &
+                +v1ubb  (trial,ph079,lin,bzs79) &
+                +v1ubb  (trial,ph079,bzs79,lin) &
+                +v1vpsib(trial,vz079,pss79,lin))
 
            if(idens.eq.1) then
               qqterm(4) = qqterm(4) + dt*       &
                    v1vvn(trial,vz079,vz079,lin)
            endif
         else
-           temp = v1bb(trial,lin,bz079) &
-                + v1bb(trial,bz079,lin)
+           temp = v1psib(trial,lin,bz079)
+           rrterm(1) = rrterm(1) +     thimp     *dt*temp
+           qqterm(1) = qqterm(1) + (1.-thimp*bdf)*dt*temp
+
+           temp = v1psib(trial,ps079,lin) &
+                + v1bb  (trial,lin,bz079) &
+                + v1bb  (trial,bz079,lin)
            rrterm(2) = rrterm(2) +     thimp     *dt*temp
            qqterm(2) = qqterm(2) + (1.-thimp*bdf)*dt*temp
 
