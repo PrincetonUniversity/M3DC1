@@ -458,9 +458,11 @@ end subroutine smooth
 !======================================================================
 subroutine copyvec(inarr, inpos, insize, outarr, outpos, outsize)
 
-  real, intent(in) :: inarr(*)
+  implicit none
+
+  vectype, intent(in) :: inarr(*)
   integer, intent(in) :: insize, inpos
-  real, intent(out) :: outarr(*)
+  vectype, intent(out) :: outarr(*)
   integer, intent(in) :: outsize, outpos
 
   integer :: ibegini, iendplusonei
@@ -468,7 +470,7 @@ subroutine copyvec(inarr, inpos, insize, outarr, outpos, outsize)
   integer :: l, numnodes, in_i, out_i
 
   in_i = (inpos-1)*6
-  out_i = (output-1)*6
+  out_i = (outpos-1)*6
 
   call numnod(numnodes)
 
