@@ -1591,7 +1591,8 @@ subroutine ludefall()
 
   implicit none
 
-  include 'mpif.h'
+! include 'mpif.h'
+#include "finclude/petsc.h"
 
   integer :: itri, numelms, i
   integer :: def_fields
@@ -1600,6 +1601,10 @@ subroutine ludefall()
   real :: tstart, tend, tfield, telm, tsizefield, tfinalize
 
   double precision cogcoords(3)
+
+  PetscTruth :: flg
+  integer :: ipetsc, isuperlu
+  integer :: ier
 
   tfield = 0.
   telm = 0.
@@ -1613,10 +1618,19 @@ subroutine ludefall()
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, " initializing matrices..."
 
+  ! default linear solver superlu cj-april-09-2008 
+  ipetsc=0
+  isuperlu=1
+  call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-ipetsc',ipetsc,flg,ier)
+  if(ipetsc) isuperlu=0
+
   ! Clear matrices
   select case(isplitstep)
   case(0)
-     call zerosuperlumatrix(s1matrix_sm,icomplex, vecsize_vel)
+     if(isuperlu) call zerosuperlumatrix(s1matrix_sm,icomplex, vecsize_vel)
+     if(ipetsc) call zeropetscmatrix(s1matrix_sm,icomplex, vecsize_vel)
+        if(isuperlu) print *, "	ludef_t_ludefall zerosuperlumatrix", s1matrix_sm
+        if(ipetsc) print *, "	ludef_t_ludefall zeropetscmatrix", s1matrix_sm 
      call zeromultiplymatrix(d1matrix_sm,icomplex,vecsize_vel)
      if(idens.eq.1 .and. eqsubtract.eq.1) &
           call zeromultiplymatrix(q42matrix_sm,icomplex,vecsize_vel)
@@ -1628,7 +1642,10 @@ subroutine ludefall()
   case(1)
 
      if(istatic.eq.0) then
-        call zerosuperlumatrix(s1matrix_sm,icomplex,vecsize_vel)
+        if(isuperlu) call zerosuperlumatrix(s1matrix_sm,icomplex,vecsize_vel)
+        if(ipetsc) call zeropetscmatrix(s1matrix_sm,icomplex,vecsize_vel)
+           if(isuperlu) print *, "	ludef_t_ludefall zerosuperlumatrix", s1matrix_sm
+           if(ipetsc) print *, "	ludef_t_ludefall zeropetscmatrix", s1matrix_sm 
         call zeromultiplymatrix(d1matrix_sm,icomplex,vecsize_vel)
         call zeromultiplymatrix(q1matrix_sm,icomplex,vecsize_phi)
         call zeromultiplymatrix(r14matrix_sm,icomplex,vecsize_phi)
@@ -1639,7 +1656,10 @@ subroutine ludefall()
      end if
 
      if(iestatic.eq.0) then
-        call zerosuperlumatrix(s2matrix_sm,icomplex,vecsize_phi)
+        if(isuperlu) call zerosuperlumatrix(s2matrix_sm,icomplex,vecsize_phi)
+        if(ipetsc) call zeropetscmatrix(s2matrix_sm,icomplex,vecsize_phi)
+           if(isuperlu) print *, "	ludef_t_ludefall zerosuperlumatrix", s2matrix_sm
+           if(ipetsc) print *, "	ludef_t_ludefall zeropetscmatrix", s2matrix_sm 
         call zeromultiplymatrix(d2matrix_sm,icomplex,vecsize_phi)
         call zeromultiplymatrix(r2matrix_sm,icomplex,vecsize_vel)
         call zeromultiplymatrix(q2matrix_sm,icomplex,vecsize_vel)
@@ -1652,14 +1672,20 @@ subroutine ludefall()
      end if
 
      if(idens.eq.1) then
-        call zerosuperlumatrix(s8matrix_sm,icomplex,vecsize_n)
+        if(isuperlu) call zerosuperlumatrix(s8matrix_sm,icomplex,vecsize_n)
+        if(ipetsc) call zeropetscmatrix(s8matrix_sm,icomplex,vecsize_n)
+           if(isuperlu) print *, "	ludef_t_ludefall zerosuperlumatrix", s8matrix_sm
+           if(ipetsc) print *, "	ludef_t_ludefall zeropetscmatrix", s8matrix_sm 
         call zeromultiplymatrix(d8matrix_sm,icomplex,vecsize_n)
         call zeromultiplymatrix(q8matrix_sm,icomplex,vecsize_vel)
         call zeromultiplymatrix(r8matrix_sm,icomplex,vecsize_vel)
         qn4 = 0.
      endif
      if(ipres.eq.1) then
-        call zerosuperlumatrix(s9matrix_sm,icomplex,vecsize_p)
+        if(isuperlu) call zerosuperlumatrix(s9matrix_sm,icomplex,vecsize_p)
+        if(ipetsc) call zeropetscmatrix(s9matrix_sm,icomplex,vecsize_p)
+           if(isuperlu) print *, "	ludef_t_ludefall zerosuperlumatrix", s9matrix_sm
+           if(ipetsc) print *, "	ludef_t_ludefall zeropetscmatrix", s9matrix_sm 
         call zeromultiplymatrix(d9matrix_sm,icomplex,vecsize_p)
         call zeromultiplymatrix(q9matrix_sm,icomplex,vecsize_vel)
         call zeromultiplymatrix(r9matrix_sm,icomplex,vecsize_vel)

@@ -212,7 +212,8 @@ subroutine gradshafranov_solve
 
   implicit none
 
-  include 'mpif.h'
+! include 'mpif.h'
+#include "finclude/petsc.h"
   
   real :: gsint1,gsint4,gsint2,gsint3,lhs,cfac(18)
   real, allocatable :: temp(:)
@@ -239,6 +240,8 @@ subroutine gradshafranov_solve
    
   real :: tstart, tend
 
+  PetscTruth :: flg
+  integer :: ipetsc, isuperlu 
 
   if(myrank.eq.0 .and. iprint.gt.0) &
        print *, "Calculating Grad-Shafranov Equilibrium"
@@ -267,7 +270,15 @@ subroutine gradshafranov_solve
   if(myrank.eq.0 .and. iprint.gt.0) &
        print *, " forming the GS matrix..."
 
-  call zerosuperlumatrix(gsmatrix_sm, icomplex, numvar1_numbering)
+  ! default linear solver superlu cj-april-09-2008
+  ipetsc=0
+  isuperlu=1
+  call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-ipetsc',ipetsc,flg,ier)
+  if(ipetsc) isuperlu=0
+  if(ipetsc) call zeropetscmatrix(gsmatrix_sm, icomplex, numvar1_numbering)
+  if(isuperlu) call zerosuperlumatrix(gsmatrix_sm, icomplex, numvar1_numbering)
+     if(ipetsc) print *, "	gradshafranov_solve zeropetscmatrix", gsmatrix_sm
+     if(isuperlu) print *, "	gradshafranov_solve zerosuperlumatrix", gsmatrix_sm
 
   ! populate the matrix
   do itri=1,numelms

@@ -43,12 +43,19 @@ enum FortranMatrixID {
 */
 int setPETScMat(int matrixid, Mat * A) {
   PetscErrorCode ierr;
+  PetscInt ipetscmpiaij =1;
+  PetscInt ipetscsuperlu=0;
 
-  if(1) {  /* create default distributed matrix type  */
+  PetscOptionsGetInt(PETSC_NULL,"-ipetscsuperlu",&ipetscsuperlu,PETSC_NULL);
+  if(ipetscsuperlu) ipetscmpiaij=0;
+
+  if(ipetscmpiaij) {  /* create default distributed matrix type  */
     ierr = MatSetType(*A, MATMPIAIJ);CHKERRQ(ierr);
+    PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScMat %d to MATMPIAIJ\n", matrixid); 
   }
   else {  /* create specialized matrix for SuperLU/SuperLU_DIST */
     ierr = MatSetType(*A, MATSUPERLU_DIST);CHKERRQ(ierr);
+    PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScMat %d to MATSUPERLU_DIST\n", matrixid); 
   }
   return 0;
 }

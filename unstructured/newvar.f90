@@ -35,17 +35,31 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
 
   implicit none
 
+#include "finclude/petsc.h"
+
   integer, intent(in) :: matrix, ibound, itype, isolve
 
   integer :: numelms, itri, i, j, ione, jone, izone, izonedim
   vectype :: temp
   vectype, allocatable :: rhs2(:)
 
+  PetscTruth :: flg
+  integer :: ipetsc, isuperlu
+  integer :: ier
+
   call numfac(numelms)
 
-  ! populate matrix
+  ! populate matrix default linear solver superlu cj-april-09-2008
+  ipetsc=0
+  isuperlu=1
+  call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-ipetsc',ipetsc,flg,ier)
+  if(ipetsc) isuperlu=0
+
   if(isolve.eq.NV_LHS) then
-     call zerosuperlumatrix(matrix, icomplex, numvar1_numbering)
+     if(isuperlu)  call zerosuperlumatrix(matrix, icomplex, numvar1_numbering)
+     if(ipetsc)  call zeropetscmatrix(matrix, icomplex, numvar1_numbering)
+        if(isuperlu) print *, "	newvar_create_matrix zerosuperlumatrix", matrix
+        if(ipetsc) print *, "	newvar_create_matrix zeropetscmatrix", matrix
   else
      call zeromultiplymatrix(matrix, icomplex, numvar1_numbering)
   end if
