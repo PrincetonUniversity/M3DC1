@@ -326,7 +326,7 @@ subroutine split_step(calc_matrices)
      !.....new velocity solution at time n+1 (or n* for second order advance)
      velold = vel
      vel = b1_vel
-    
+   
      ! apply smoothing operators
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~
      call smooth
@@ -344,7 +344,7 @@ subroutine split_step(calc_matrices)
 
      ! r8matrix_sm * vel(n+1)
      call matrixvectormult(r8matrix_sm,vel,b1_vel)
-         
+
      ! r8matrix_sm * vel(n-1)
      if(integrator.eq.1 .and. ntime.gt.1) then
         call matrixvectormult(r8matrix_sm,veloldn,b2_vel)

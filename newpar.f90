@@ -429,7 +429,7 @@ subroutine smooth
   call newvar(mass_matrix_lhs_dc,vor,vel,1,vecsize_vel, &
        gs_matrix_rhs_dc,NV_DCBOUND)
   call smoother1(vor,vel,numnodes,vecsize_vel,1)
-     
+
   ! smooth compression
   if(numvar.ge.3) then
      if(com_bc.eq.1) then
