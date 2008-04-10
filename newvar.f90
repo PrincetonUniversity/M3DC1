@@ -169,7 +169,7 @@ subroutine newvar(ilhsmat,outarray,inarray,iplace,numvari,irhsmat,ibound)
   ! create vecsize=1 for matrix multiplication
   if(numvari.gt.1) then
      call createvec(temp,1)
-     call copyvec(inarray,1,numvari,temp,1,1)
+     call copyvec(inarray,iplace,numvari,temp,1,1)
      call matrixvectormult(irhsmat, temp, outarray)
      call deletevec(temp)
   else
