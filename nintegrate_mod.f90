@@ -1237,7 +1237,7 @@ subroutine interpolate_size_field(itri)
 
   integer, intent(in) :: itri
 
-  real*8, dimension(3) :: node_sz
+  double precision, dimension(3) :: node_sz
   real :: a,b,c,theta,k,l,m,d
 
   if(ihypdx.eq.0) then

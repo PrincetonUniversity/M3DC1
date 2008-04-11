@@ -143,6 +143,7 @@
       thimp_ohm = -1.
 !
 !.....hyper-resistivity coefficients
+      deex = 1.
       hyper = 0.0
       hyperi= 0.0
       hyperv= 0.0
@@ -199,6 +200,7 @@
       inoslip_tor = 1
       inostress_tor = 0
       inocurrent_pol = 1
+      inocurrent_tor = 1
 !
 !.....density source
       ipellet = 0

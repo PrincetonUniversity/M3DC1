@@ -443,7 +443,10 @@
       
       end
 !==================================
-      function sech(x)
+      real function sech(x)
+      implicit none
+      real, intent(in) :: x
+      
       sech = 1./cosh(x)
       return
       end
