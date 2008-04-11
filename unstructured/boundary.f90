@@ -462,11 +462,13 @@ subroutine boundary_mag(imatrix, rhs)
      endif
 
      ! no toroidal current
-     temp = 0.
-     if(jadv.eq.1 .and. igauge.eq.0) then
-        temp(1) = vloop/(2.*pi*resistivity(ibegin1))
-     endif
-     call set_laplacian_bc(imatrix,ibegin+psi_off,rhs,temp,normal,izonedim,-x)
+     if(inocurrent_tor.eq.1) then
+        temp = 0.
+        if(jadv.eq.1 .and. igauge.eq.0) then
+           temp(1) = vloop/(2.*pi*resistivity(ibegin1))
+        endif
+        call set_laplacian_bc(imatrix,ibegin+psi_off,rhs,temp,normal,izonedim,-x)
+     end if
 
      ! no tangential current
      if(inocurrent_pol.eq.1 .and. numvar.ge.2) then

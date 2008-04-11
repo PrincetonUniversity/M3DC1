@@ -57,6 +57,7 @@ module basic
   integer :: inoslip_tor   ! 1 = no slip (toroidal flow)
   integer :: inostress_tor ! 1 = no stress (toroidal flow)
   integer :: inocurrent_pol! 1 = no tangential current
+  integer :: inocurrent_tor! 1 = no toroidal current
   integer :: iconst_t      ! 1 = temperature held constant
   integer :: inograd_t     ! 1 = no normal temperature gradient
   integer :: com_bc   ! 1 = forces div(V) = 0 on boundary
@@ -188,7 +189,7 @@ module basic
        ntor,iadapt,istatic,iestatic,ivform,ihypeta,ikapscale,  &
        iteratephi,                                             &
        inonormalflow, inoslip_pol, inoslip_tor, inostress_tor, &
-       iconst_t, inograd_t, inocurrent_pol,                    &
+       iconst_t, inograd_t, inocurrent_pol, inocurrent_tor,    &
        irecalc_eta,ihypdx,implicit_eta, iconst_eta,            &
        iupwind
 

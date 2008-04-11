@@ -337,10 +337,14 @@ Program Reducedquintic
 !  free memory for numberings
   call deletedofnumbering(1)
   call deletedofnumbering(2)
-  call deletedofnumbering(num_fields)
-  call deletedofnumbering(vecsize_phi)
-  call deletedofnumbering(vecsize_vel)
-  
+  if(num_fields.gt.2) call deletedofnumbering(num_fields)
+  if(vecsize_phi.gt.2 .and. vecsize_phi.ne.num_fields) then
+     call deletedofnumbering(vecsize_phi)
+  end if
+  if(vecsize_vel.gt.2 .and. vecsize_vel.ne.num_fields &
+       .and. vecsize_vel.ne.vecsize_phi) then
+     call deletedofnumbering(vecsize_vel)
+  end if
 
   call safestop(2)
 

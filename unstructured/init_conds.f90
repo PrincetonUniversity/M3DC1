@@ -583,8 +583,6 @@ subroutine gem_reconnection_equ(x, z)
              - 2.*sech(2.*z)**2 + 4.*tanh(2.*z)**2)
      endif
 
-!     call constant_field(bz0_l, bzero)
-
      pezero = p0 - pi0*ipres
     
      pe0_l(1) = pezero*(sech(2.*z)**2 + 0.2)
