@@ -104,11 +104,6 @@ subroutine import_time_advance_vectors
      if(numvar.ge.3) then
         pe_v(ibeginnv+ pe_off:ibeginnv+ pe_off+5) =  pe1_l
      endif
-     if(implicit_eta.eq.1) then
-        call entdofs(1, l, 0, ibegin, iendplusone)
-        eta_v(ibeginnv+eta_off:ibeginnv+eta_off+5) = &
-             resistivity(ibegin:ibegin+5)
-     endif
 
      call entdofs(vecsize_vel, l, 0, ibeginnv, iendplusonenv)   
      u_v(ibeginnv+  u_off:ibeginnv+  u_off+5) =   u1_l
@@ -157,11 +152,6 @@ subroutine export_time_advance_vectors
      endif
      if(numvar.ge.3) then
          pe1_l =  pe_v(ibeginnv+ pe_off:ibeginnv+ pe_off+5)
-     endif
-     if(implicit_eta.eq.1) then
-        call entdofs(1, l, 0, ibegin, iendplusone)
-        resistivity(ibegin:ibegin+5) = &
-             eta_v(ibeginnv+eta_off:ibeginnv+eta_off+5)
      endif
 
      call entdofs(vecsize_vel, l, 0, ibeginnv, iendplusonenv)
@@ -238,9 +228,6 @@ subroutine split_step(calc_matrices)
            
            phip(ibeginnv   :ibeginnv+11) = phi(ibeginnv:ibeginnv+11)
            phip(ibeginnv+12:ibeginnv+17) = pres(ibegin:ibegin+5)
-           if(implicit_eta.eq.1) then
-              phip(ibeginnv+18:ibeginnv+23) = phi(ibeginnv+18:ibeginnv+23)
-           end if
         enddo
         call matrixvectormult(q1matrix_sm, phip, b1_phi)
      else
@@ -521,7 +508,7 @@ subroutine split_step(calc_matrices)
 
      ! q2matrix_sm * vel(n)
      call matrixvectormult(q2matrix_sm,veln,b2_vel)
-     b1_vel = b1_vel + b2_vel
+     b1_vel = -b1_vel + b2_vel
 
 
      ! d2matrix_sm * phi(n)
@@ -677,7 +664,7 @@ subroutine split_step(calc_matrices)
 
         ! q2matrix_sm * vel(n)
         call matrixvectormult(q2matrix_sm,veln,b2_vel)
-        b1_vel = b1_vel + b2_vel
+        b1_vel = -b1_vel + b2_vel
 
         ! d2matrix_sm * phi(n)
         call matrixvectormult(d2matrix_sm,phi,b1_phi)

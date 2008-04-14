@@ -155,9 +155,6 @@
 !.....scale hyper-resistivity with eta
       ihypeta = 1
 !
-!.....evolve resistivity implicitly with field advance
-      implicit_eta = 0
-!
 !.....don't evolve resistivity
       iconst_eta = 0
 !
