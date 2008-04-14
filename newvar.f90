@@ -112,7 +112,7 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
            case(NV_BF_MATRIX)
               temp = int3(ri2_79,g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
            end select
-           call insertval(matrix, temp, icomplex, ione, jone, 1)
+           call insval(matrix, temp, icomplex, ione, jone, 1)
         enddo
      enddo
   enddo
@@ -242,11 +242,7 @@ subroutine define_transport_coefficients()
   solve_kappa = numvar.ge.3 .and. (kappa0.ne.0 .or. kappah.ne.0)
   solve_sigma = idens.eq.1 .and. (ipellet.eq.1 .or. ionization.eq.1)
 
-  if(implicit_eta.eq.0 .or. ntime.eq.0 .or. iconst_eta.eq.0) then
-     resistivity = 0.
-  else
-     solve_resistivity = .false.
-  end if
+  resistivity = 0.
   kappa = 0.
   sigma = 0.
   visc = 0.
@@ -397,9 +393,7 @@ subroutine define_transport_coefficients()
   call numnod(numnodes)
   do i=1,numnodes
      call entdofs(1,i,0,ibegin,iendplusone)
-     if(implicit_eta.eq.0 .or. ntime.eq.0 .or. iconst_eta.eq.0) then
-        resistivity(ibegin) = resistivity(ibegin) + etar
-     end if
+     resistivity(ibegin) = resistivity(ibegin) + etar
      visc(ibegin) = visc(ibegin) + 1.
      kappa(ibegin) = kappa(ibegin) + kappat
   enddo

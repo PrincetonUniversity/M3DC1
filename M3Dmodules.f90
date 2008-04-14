@@ -129,7 +129,6 @@ module basic
   integer :: imp_mod
   integer :: iteratephi  ! 1 = iterate field solve
   integer :: irecalc_eta ! 1 = recalculate transport coeffs after den solve
-  integer :: implicit_eta! 1 = solve resistivity implicitly
   integer :: iconst_eta  ! 1 = don't evolve resistivity
   real :: dt             ! timestep
   real :: thimp          ! implicitness parameter (for Crank-Nicholson)
@@ -190,7 +189,7 @@ module basic
        iteratephi,                                             &
        inonormalflow, inoslip_pol, inoslip_tor, inostress_tor, &
        iconst_t, inograd_t, inocurrent_pol, inocurrent_tor,    &
-       irecalc_eta,ihypdx,implicit_eta, iconst_eta,            &
+       irecalc_eta,ihypdx, iconst_eta,                         &
        iupwind
 
   !     derived quantities
@@ -270,7 +269,6 @@ module arrays
   vectype, pointer ::  pe_v(:),  peo_v(:)
   vectype, pointer :: den_v(:), deno_v(:)
   vectype, pointer ::   p_v(:),   po_v(:)
-  vectype, pointer :: eta_v(:), etao_v(:)
 
 
   ! the indicies of the named fields within the field vector
@@ -288,14 +286,14 @@ module arrays
   integer :: u_i, vz_i, chi_i
   integer :: psi_i, bz_i, pe_i
   integer :: den_i, p_i
-  integer :: bf_i, eta_i
+  integer :: bf_i
 
   ! the offset (relative to the node offset) of the named field within
   ! their respective vectors
   integer :: u_off, vz_off, chi_off
   integer :: psi_off, bz_off, pe_off
   integer :: den_off, p_off
-  integer :: eta_off, bf_off
+  integer :: bf_off
   integer :: vecsize_vel, vecsize_phi, vecsize_n, vecsize_p
   
   ! the following pointers point to the locations of the named field within
@@ -353,11 +351,6 @@ module arrays
             deno_v => denold
          end if
 
-         if(implicit_eta.eq.1) then
-            eta_v => phi
-            etao_v => phiold
-         end if
-
          u_i = 1
          psi_i = 1
          vz_i = 2
@@ -365,9 +358,13 @@ module arrays
          chi_i = 3
          pe_i = 3
          den_i = 1
-         p_i = 1
          bf_i = 1
-         eta_i = numvar+1
+
+         if(ipres.eq.1) then
+            p_i = 1
+         else
+            p_i = 3
+         end if
 
       else
          u_v => phi
@@ -397,11 +394,6 @@ module arrays
             den_v => phi
             deno_v => phiold
          end if
-
-         if(implicit_eta.eq.1) then
-            eta_v => phi
-            etao_v => phiold
-         end if
          
          u_i = 1
          psi_i = 2
@@ -411,7 +403,6 @@ module arrays
          pe_i = 6    
          den_i = 2*numvar+1
          p_i = 2*numvar+idens+1
-         eta_i = 2*numvar+idens+ipres+1
          bf_i = 1
          
       endif
@@ -425,7 +416,6 @@ module arrays
       den_off = (den_i-1)*6
       p_off = (p_i-1)*6
       bf_off = (bf_i-1)*6
-      eta_off = (eta_i-1)*6
 
     end subroutine assign_variables
 
@@ -585,6 +575,20 @@ module sparse
 
   
 end module sparse
+
+
+subroutine insval(imatrix, val, icomplex, i, j, iop)
+
+  implicit none
+  
+  integer, intent(in) :: imatrix, i, j, iop, icomplex
+  vectype, intent(in) :: val
+
+  if(val.eq.0.) return
+
+  call insertval(imatrix, val, icomplex, i, j, iop)
+
+end subroutine insval
 
 
 

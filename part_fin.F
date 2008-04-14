@@ -56,12 +56,12 @@
       if(myrank.eq.1 .and. iprint.ge.1) print *, " Entering space..."
 
       if(isplitstep.eq.1) then
-         vecsize_phi = numvar + implicit_eta
+         vecsize_phi = numvar
          vecsize_vel = numvar
          vecsize_n = 1
          vecsize_p = 1
       else
-         vecsize_phi  = numvar*2 + idens + ipres + implicit_eta
+         vecsize_phi  = numvar*2 + idens + ipres
          vecsize_vel  = vecsize_phi
          vecsize_n    = vecsize_phi
          vecsize_p    = vecsize_phi
@@ -248,10 +248,10 @@
                ssterm(1,2) =-aterm(i,j)
                ssterm(2,1) =  +dt*hyp*thimpsm*bterm(i,j)
                ssterm(2,2) = aterm(i,j)
-               call insertval(s5matrix_sm,ssterm(1,1),0,itwo,  jtwo,  1)
-               call insertval(s5matrix_sm,ssterm(1,2),0,itwo,  jtwo+6,1)
-               call insertval(s5matrix_sm,ssterm(2,1),0,itwo+6,jtwo,  1)
-               call insertval(s5matrix_sm,ssterm(2,2),0,itwo+6,jtwo+6,1)
+               call insval(s5matrix_sm,ssterm(1,1),0,itwo,  jtwo,  1)
+               call insval(s5matrix_sm,ssterm(1,2),0,itwo,  jtwo+6,1)
+               call insval(s5matrix_sm,ssterm(2,1),0,itwo+6,jtwo,  1)
+               call insval(s5matrix_sm,ssterm(2,2),0,itwo+6,jtwo+6,1)
             enddo
          enddo
       enddo
@@ -367,10 +367,10 @@
               ssterm(2,1) =  +dt*hyp*thimpsm*bterm(i,j)
               ssterm(2,2) = aterm(i,j) - regular*dterm(i,j)
 
-              call insertval(s7matrix_sm,ssterm(1,1),0,itwo  ,jtwo  ,1)
-              call insertval(s7matrix_sm,ssterm(1,2),0,itwo  ,jtwo+6,1)
-              call insertval(s7matrix_sm,ssterm(2,1),0,itwo+6,jtwo  ,1)
-              call insertval(s7matrix_sm,ssterm(2,2),0,itwo+6,jtwo+6,1)
+              call insval(s7matrix_sm,ssterm(1,1),0,itwo  ,jtwo  ,1)
+              call insval(s7matrix_sm,ssterm(1,2),0,itwo  ,jtwo+6,1)
+              call insval(s7matrix_sm,ssterm(2,1),0,itwo+6,jtwo  ,1)
+              call insval(s7matrix_sm,ssterm(2,2),0,itwo+6,jtwo+6,1)
            enddo
         enddo
       enddo
