@@ -278,7 +278,8 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      endif
 
      if(advfield.eq.1) then
-        temp = v1chipsipsi(trial,lin,pst79,pst79)  &
+        temp = v1chipsipsi(trial,lin,pst79,pst79) &
+             + v1chipsib  (trial,lin,pst79,bzt79) &
              + v1chibb    (trial,lin,bzt79,bzt79)
         if(idens.eq.1 .and. (gravr.ne.0 .or. gravz.ne.0)) then
            temp = temp &
@@ -300,11 +301,13 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
         if(advfield.eq.1) then
            ddterm(psi_g) = ddterm(psi_g) + thimp*dt*dt* &
                 (v1chipsipsi(trial,ch079,lin,pss79) &
-                +v1chipsipsi(trial,ch079,pss79,lin))
+                +v1chipsipsi(trial,ch079,pss79,lin) &
+                +v1chipsib  (trial,ch079,lin,bzs79))
         
            ddterm(bz_g) = ddterm(bz_g) + thimp*dt*dt* &
-                (v1chibb(trial,ch079,lin,bzs79) &
-                +v1chibb(trial,ch079,bzs79,lin))
+                (v1chipsib(trial,ch079,pss79,lin) &
+                +v1chibb  (trial,ch079,lin,bzs79) &
+                +v1chibb  (trial,ch079,bzs79,lin))
 
            if(idens.eq.1) then
               ddterm(den_g) = ddterm(den_g) + dt* &
@@ -560,9 +563,30 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
      endif
 
      if(advfield.eq.1) then
-        temp = v2chipsib(trial,lin,pst79,bzt79) 
+        temp = v2up(trial,lin,pt79)
+        ssterm(u_g) = ssterm(u_g) - thimp*thimp*dt*dt*temp
+        ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
+
+        temp = v2vp(trial,lin,pt79)
+        ssterm(vz_g) = ssterm(vz_g) - thimp*thimp*dt*dt*temp
+        ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
+
+        temp = v2chip(trial,lin,pt79)
         ssterm(chi_g) = ssterm(chi_g) - thimp*thimp*dt*dt*temp
         ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
+
+        temp = v2chipsipsi(trial,lin,pst79,pst79) &
+             + v2chipsib  (trial,lin,pst79,bzt79) &
+             + v2chibb    (trial,lin,bzt79,bzt79)
+        ssterm(chi_g) = ssterm(chi_g) - thimp*thimp*dt*dt*temp
+        ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
+
+        ddterm(p_g) = ddterm(p_g) + dt*    &
+             v2p(trial,lin)
+     else
+        temp = v2p(trial,lin) 
+        ssterm(p_g) = ssterm(p_g) -     thimp     *dt*temp
+        ddterm(p_g) = ddterm(p_g) + (1.-thimp*bdf)*dt*temp
      end if
            
      if(eqsubtract.eq.1) then              
@@ -576,10 +600,20 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
 
         if(advfield.eq.1) then
            ddterm(psi_g) = ddterm(psi_g) + thimp*dt*dt* &
-                (v2chipsib(trial,ch079,lin,bzs79))
+                (v2chipsipsi(trial,ch079,lin,pss79) &
+                +v2chipsipsi(trial,ch079,pss79,lin) &
+                +v2chipsib  (trial,ch079,lin,bzs79))
               
            ddterm(bz_g) = ddterm(bz_g) + thimp*dt*dt* &
-                (v2chipsib(trial,ch079,pss79,lin))
+                (v2chipsib(trial,ch079,pss79,lin) &
+                +v2chibb  (trial,ch079,lin,bzs79) &
+                +v2chibb  (trial,ch079,bzs79,lin))
+
+           ddterm(p_g) = ddterm(p_g) + thimp*dt*dt* &
+                (v2up  (trial,ph079,lin) &
+                +v2vp  (trial,vz079,lin) &
+                +v2chip(trial,ch079,lin))
+
         else
            if(idens.eq.1) then
               ddterm(den_g) = ddterm(den_g) + dt* &
@@ -736,6 +770,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   if(advfield.eq.1) then
      temp = v3up     (trial,lin,pt79)        &
           + v3upsipsi(trial,lin,pst79,pst79) &
+          + v3upsib  (trial,lin,pst79,bzt79) &
           + v3ubb    (trial,lin,bzt79,bzt79) 
      if(idens.eq.1 .and. (gravr.ne.0 .or. gravz.ne.0)) then
         temp = temp + thimp*dt* &
@@ -744,12 +779,15 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      ssterm(u_g) = ssterm(u_g) - thimp*thimp*dt*dt*temp
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
-     temp = v3vpsib(trial,lin,pst79,bzt79)   
+     temp = v3vp     (trial,lin,pt79) &
+          + v3vpsipsi(trial,lin,pst79,pst79) &
+          + v3vpsib  (trial,lin,pst79,bzt79)
      ssterm(vz_g) = ssterm(vz_g) - thimp*thimp*dt*dt*temp
      ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
 
      temp = v3chip     (trial,lin,pt79)        &
           + v3chipsipsi(trial,lin,pst79,pst79) &
+          + v3chipsib  (trial,lin,pst79,bzt79) &
           + v3chibb    (trial,lin,bzt79,bzt79)
      if(idens.eq.1 .and. (gravr.ne.0 .or. gravz.ne.0)) then
         temp = temp + &
@@ -758,24 +796,24 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      ssterm(chi_g) = ssterm(chi_g) - thimp*thimp*dt*dt*temp
      ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
 
-     ddterm(psi_g) = ddterm(psi_g) +            &
+     ddterm(psi_g) = ddterm(psi_g) +    &
           dt*                           &
           (v3psipsi(trial,lin,pss79)    & 
           +v3psipsi(trial,pss79,lin))
      
-     ddterm(bz_g) = ddterm(bz_g) + dt*        &
+     ddterm(bz_g) = ddterm(bz_g) + dt*  &
           (v3bb(trial,lin,bzs79)        &     
           +v3bb(trial,bzs79,lin)) 
   
-     ddterm(p_g) = ddterm(p_g) + dt*        &
+     ddterm(p_g) = ddterm(p_g) + dt*    &
           v3p(trial,lin)
 
      if(isources.eq.1) then
-        ddterm(psi_g) = ddterm(psi_g) +            &
+        ddterm(psi_g) = ddterm(psi_g) +    &
              thimp*dt*dt*                  &
              (v3psisb1(trial,lin,sb179))
         
-        ddterm(bz_g) = ddterm(bz_g) +            &
+        ddterm(bz_g) = ddterm(bz_g) +      &
              thimp*dt*dt*                  &
              (v3bsb2(trial,lin,sb279))
      end if
@@ -831,19 +869,26 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
         ddterm(psi_g) = ddterm(psi_g) + thimp*dt*dt* &
              (v3upsipsi  (trial,ph079,lin,pss79) &
              +v3upsipsi  (trial,ph079,pss79,lin) &
+             +v3upsib    (trial,ph079,lin,bzs79) &
+             +v3vpsipsi  (trial,vz079,lin,pss79) &
+             +v3vpsipsi  (trial,vz079,pss79,lin) &
              +v3vpsib    (trial,vz079,lin,bzs79) &
              +v3chipsipsi(trial,ch079,lin,pss79) &
-             +v3chipsipsi(trial,ch079,pss79,lin))
+             +v3chipsipsi(trial,ch079,pss79,lin) &
+             +v3chipsib  (trial,ch079,lin,bzs79))
      
         ddterm(bz_g) = ddterm(bz_g) + thimp*dt*dt* &
-             (v3ubb  (trial,ph079,lin,bzs79) &
-             +v3ubb  (trial,ph079,bzs79,lin) &
-             +v3vpsib(trial,vz079,pss79,lin) &
-             +v3chibb(trial,ch079,lin,bzs79) &
-             +v3chibb(trial,ch079,bzs79,lin))
+             (v3upsib  (trial,ph079,pss79,lin) &
+             +v3ubb    (trial,ph079,lin,bzs79) &
+             +v3ubb    (trial,ph079,bzs79,lin) &
+             +v3vpsib  (trial,vz079,pss79,lin) &
+             +v3chipsib(trial,ch079,pss79,lin) &
+             +v3chibb  (trial,ch079,lin,bzs79) &
+             +v3chibb  (trial,ch079,bzs79,lin))
      
         ddterm(p_g) = ddterm(p_g) + thimp*dt*dt* &
              (v3up  (trial,ph079,lin) &
+             +v3vp  (trial,vz079,lin) &
              +v3chip(trial,ch079,lin))
         
         if(idens.eq.1 .and. (gravr.ne.0 .or. gravz.ne.0)) then
