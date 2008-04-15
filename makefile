@@ -26,10 +26,10 @@ endif
 
 # specify whether debug or optimization 
 ifeq ($(OPT), 1)
- COMPLEX = -O
+ COMPLEX = -O 
  SCORECOPT = -O
 else
- COMPLEX = -g
+ COMPLEX = -g 
  SCORECOPT =
 endif
 
