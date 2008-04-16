@@ -420,7 +420,7 @@ vectype function v1upsib(e,f,g,h)
 
   v1upsib = temp
 #else
-  v1upsib = 0
+  v1upsib = 0.
 #endif
 
 end function v1upsib
@@ -863,7 +863,7 @@ vectype function v1us(e,f,g)
   vectype :: temp
 
   if(idens.eq.0 .or. nosig.eq.1) then
-     v1us = 0
+     v1us = 0.
      return
   endif
 
@@ -936,7 +936,7 @@ vectype function v1psif(e,f,g)
   
   v1psif = temp
 #else
-  v1psif = 0
+  v1psif = 0.
 #endif
 
   return
@@ -965,7 +965,7 @@ vectype function v1bf(e,f,g)
 
   v1bf = temp
 #else
-  v1bf = 0
+  v1bf = 0.
 #endif
 
   return
@@ -1030,7 +1030,7 @@ vectype function v2vmu(e,f,g,h,i)
 #endif
 
      ! hyperviscous
-     if(hyperv.ne.0) then
+     if(hypv.ne.0.) then
         temp79a = e(:,OP_GS)*g(:,OP_1) + &
              e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR)
         if(itor.eq.1) temp79a = temp79a + 4.*ri_79*e(:,OP_DR)*g(:,OP_1)
@@ -1049,7 +1049,7 @@ vectype function v2vmu(e,f,g,h,i)
      endif
      
      ! hyperviscous
-     if(hyperv.ne.0) then
+     if(hypv.ne.0.) then
         temp79a = e(:,OP_GS)*g(:,OP_1) + &
              e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR)
         if(itor.eq.1) temp79a = temp79a + 4.*ri_79*e(:,OP_DR)*g(:,OP_1)
@@ -1664,7 +1664,7 @@ vectype function v2psif(e,f,g)
   
   v2psif = temp
 #else
-  v2psif = 0
+  v2psif = 0.
 #endif
 
   return
@@ -1689,7 +1689,7 @@ vectype function v2bf(e,f,g)
 
   v2bf = temp
 #else
-  v2bf = 0
+  v2bf = 0.
 #endif
 
   return
@@ -2647,7 +2647,7 @@ vectype function b1bu(e,f,g)
 
   b1bu = -temp
 #else
-  b1bu = 0
+  b1bu = 0.
 #endif
 end function b1bu
 
@@ -2680,7 +2680,7 @@ vectype function b1bv(e,f,g)
 
   b1bv = temp
 #else
-  b1bv = 0
+  b1bv = 0.
 #endif
 end function b1bv
 
@@ -2736,7 +2736,7 @@ vectype function b1psieta(e,f,g,h)
         temp = temp - 2.*int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),weight_79,79)
      endif
 
-     if(hyper.ne.0) then
+     if(hypf.ne.0.) then
         if(ihypeta.eq.1) then
            temp79a = e(:,OP_1)*g(:,OP_LP) + e(:,OP_LP)*g(:,OP_1) &
                 + 2.*(e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR))       
@@ -2819,7 +2819,7 @@ vectype function b1psipsid(e,f,g,h)
   endif
   b1psipsid = temp
 #else
-  b1psipsid = 0
+  b1psipsid = 0.
   return
 #endif
   
@@ -2852,12 +2852,12 @@ vectype function b1psibd(e,f,g,h)
           -  int4(ri3_79,temp79a,e(:,OP_DZ),h(:,OP_DZ),weight_79,79) &
           -  int4(ri3_79,temp79a,e(:,OP_DR),h(:,OP_DR),weight_79,79)
      if(itor.eq.1) then
-        temp = int4(ri4_79,e(:,OP_DR),temp79a,h(:,OP_1 ),weight_79,79)
+        temp = temp + int4(ri4_79,e(:,OP_DR),temp79a,h(:,OP_1 ),weight_79,79)
      endif
 #ifdef USECOMPLEX
      temp = temp - &
-          (int4(ri5_79,e(:,OP_DZ),f(:,OP_DRP),g(:,OP_1),weight_79,79) &
-          -int4(ri5_79,e(:,OP_DR),f(:,OP_DZP),g(:,OP_1),weight_79,79))
+          (int4(ri5_79,e(:,OP_DZ),f(:,OP_DRPP),g(:,OP_1),h(:,OP_1),weight_79,79) &
+          -int4(ri5_79,e(:,OP_DR),f(:,OP_DZPP),g(:,OP_1),h(:,OP_1),weight_79,79))
 #endif
   endif
 
@@ -2961,7 +2961,7 @@ vectype function b2psieta(e,f,g,h)
   endif
 
   ! hyper-resistive
-  if(hypi.ne.0) then
+  if(hypi.ne.0.) then
      ! del*(f')
      temp79a = f(:,OP_DZZP) + f(:,OP_DRRP)
      if(itor.eq.1) temp79a = temp79a - ri_79*f(:,OP_DRP)
@@ -3007,7 +3007,7 @@ vectype function b2beta(e,f,g,h)
      temp = temp - 2.*int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),weight_79,79)
   endif
 
-  if(hypi.ne.0) then
+  if(hypi.ne.0.) then
      if(ihypeta.eq.1) then
         temp79a = (e(:,OP_LP)*g(:,OP_1) + &
              e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR))
@@ -3379,7 +3379,7 @@ vectype function b3pedkappa(e,f,g,h,i)
   vectype :: temp
 
   if(gam.eq.1.) then
-     b3pedkappa = 0
+     b3pedkappa = 0.
      return
   end if
 
@@ -3389,7 +3389,7 @@ vectype function b3pedkappa(e,f,g,h,i)
        - int4(e(:,OP_DZ),f(:,OP_1 ),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
        - int4(e(:,OP_DR),f(:,OP_1 ),g(:,OP_DR),h(:,OP_1),weight_79,79)
   
-  if(hypp.ne.0) then
+  if(hypp.ne.0.) then
      ! Laplacian[f g]
      temp79a = f(:,OP_LP)*g(:,OP_1) + f(:,OP_1)*g(:,OP_LP) &
           + 2.*(f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR))
@@ -3463,7 +3463,7 @@ vectype function n1ndenm(e,f,g,h)
   temp = temp + g*int3(ri2_79,e(:,OP_1),f(:,OP_DPP),weight_79,79)
 #endif
 
-  if(hypp .ne. 0) then
+  if(hypp.ne.0.) then
      temp = temp - g*int3(e(:,OP_LP),f(:,OP_LP),h(:,OP_1),weight_79,79)
   endif
 
@@ -4446,8 +4446,8 @@ vectype function qpsipsieta(e)
   vectype, intent(in), dimension(79,OP_NUM) :: e
   vectype :: temp
 
-  if(hypf.eq.0 .or. jadv.eq.1) then
-     qpsipsieta = 0
+  if(hypf.eq.0. .or. jadv.eq.1) then
+     qpsipsieta = 0.
      return
   end if
 
@@ -4493,8 +4493,8 @@ vectype function qbbeta(e)
   vectype, intent(in), dimension(79,OP_NUM) :: e
   vectype :: temp
 
-  if(hypi.eq.0) then
-     qbbeta = 0
+  if(hypi.eq.0.) then
+     qbbeta = 0.
      return
   end if
 
@@ -4563,7 +4563,7 @@ vectype function quumu(e,f,g,h,i)
           + 4.*int5(ri4_79,e(:,OP_1 ),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),weight_79,79)
   endif
 
-  if(hypc.gt.0) then
+  if(hypc.ne.0.) then
      temp79a = h(:,OP_1)*i(:,OP_1)
      temp = temp - &
           (int5(ri2_79,e(:,OP_1),vot79(:,OP_DZ),vot79(:,OP_DZ),temp79a,weight_79,79) &
@@ -4616,7 +4616,7 @@ vectype function qvvmu(e,f,g,h,i)
              - 4.*int5(ri3_79,e(:,OP_1),f(:,OP_1 ),g(:,OP_1),h(:,OP_1),weight_79,79)
      endif
   
-     if(hypv.ne.0) then
+     if(hypv.ne.0.) then
         temp79a = h(:,OP_1)*i(:,OP_1)
         temp = temp - int5(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),temp79a,weight_79,79)
      endif
@@ -4625,7 +4625,7 @@ vectype function qvvmu(e,f,g,h,i)
           (int5(r2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
           +int5(r2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),h(:,OP_1),weight_79,79))
  
-     if(hypv.ne.0) then
+     if(hypv.ne.0.) then
         temp79a = h(:,OP_1)*i(:,OP_1)
         temp = temp - int5(r2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),temp79a,weight_79,79)
      endif
@@ -4662,7 +4662,7 @@ vectype function qchichimu(e,f,g,h,i)
           - 4.*int5(ri2_79,e(:,OP_DZ),h(:,OP_1),f(:,OP_DR),g(:,OP_DR),weight_79,79)
   endif
   
-  if(hypc.ne.0) then
+  if(hypc.ne.0.) then
      temp79a = h(:,OP_1)*i(:,OP_1)
      temp = temp - 2.* &
           (int4(e(:,OP_1),cot79(:,OP_DZ),cot79(:,OP_DZ),temp79a,weight_79,79) &
@@ -5578,7 +5578,7 @@ vectype function torque_gyro(itri)
   vectype :: temp
 
   if(gyro.eq.0 .or. numvar.lt.2) then
-     torque_gyro = 0
+     torque_gyro = 0.
      return
   endif
 
@@ -5599,7 +5599,7 @@ vectype function torque_denm()
   implicit none
 
   if(denm.eq.0 .or. idens.eq.0) then
-     torque_denm = 0
+     torque_denm = 0.
      return
   endif
 

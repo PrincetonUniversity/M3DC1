@@ -237,9 +237,9 @@ subroutine define_transport_coefficients()
   if((linear.eq.1).and.(.not.first_time)) return
   first_time = .false.
 
-  solve_resistivity = eta0.ne.0
-  solve_visc = amu_edge.ne.0
-  solve_kappa = numvar.ge.3 .and. (kappa0.ne.0 .or. kappah.ne.0)
+  solve_resistivity = eta0.ne.0.
+  solve_visc = amu_edge.ne.0.
+  solve_kappa = numvar.ge.3 .and. (kappa0.ne.0. .or. kappah.ne.0.)
   solve_sigma = idens.eq.1 .and. (ipellet.eq.1 .or. ionization.eq.1)
 
   resistivity = 0.
@@ -277,7 +277,7 @@ subroutine define_transport_coefficients()
         ! kappa = p/T**(3/2) = sqrt(n**3/p)
         temp79b = kappa0*sqrt(nt79(:,OP_1)**3/pt79(:,OP_1))
 
-        if(kappah.ne.0) then
+        if(kappah.ne.0.) then
            temp79c = (eta0*temp79a/2.)**2 * &
                 ((nt79(:,OP_DZ)**2 + nt79(:,OP_DR)**2)/ nt79(:,OP_1)**2 &
                 +9.*(pet79(:,OP_DZ)**2 +pet79(:,OP_DR)**2)/pet79(:,OP_1)**2 &

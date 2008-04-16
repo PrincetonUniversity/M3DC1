@@ -299,7 +299,7 @@
 !
       open(5,file='C1input',form='formatted',status='old')
       read(5,nml=inputnl)
-      if(amuc.eq.0) amuc = amu
+      if(amuc.eq.0.) amuc = amu
       if(thimp_ohm.lt.0) thimp_ohm = thimp
 !      
       if(myrank.eq.0) write(*,nml=inputnl)
