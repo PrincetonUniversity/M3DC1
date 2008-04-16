@@ -309,7 +309,7 @@ contains
     values(1) = value
     coord(1,1) = time + 1
     
-    if(time.eq.0) then
+    if(time.eq.0.) then
        call h5screate_simple_f(1, dims, filespace, error, maxdims)
        call h5pcreate_f(H5P_DATASET_CREATE_F, p_id, error)
        call h5pset_chunk_f(p_id, 1, chunk_size, error)

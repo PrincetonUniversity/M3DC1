@@ -181,10 +181,10 @@ Program Reducedquintic
   call create_matrix(mass_matrix_lhs_dc,    NV_DCBOUND, NV_I_MATRIX,  NV_LHS)
   call create_matrix(mass_matrix_lhs,       NV_NOBOUND, NV_I_MATRIX,  NV_LHS)
   call create_matrix(gs_matrix_rhs_dc,      NV_DCBOUND, NV_GS_MATRIX, NV_RHS)
-  if(numvar.ge.3 .and. hyperc.ne.0 .and. com_bc.eq.0) then
+  if(numvar.ge.3 .and. hyperc.ne.0. .and. com_bc.eq.0) then
      call create_matrix(lp_matrix_rhs,      NV_NOBOUND, NV_LP_MATRIX, NV_RHS)
   endif
-  if(numvar.ge.3 .and. hyperc.ne.0 .and. com_bc.eq.1) then
+  if(numvar.ge.3 .and. hyperc.ne.0. .and. com_bc.eq.1) then
      call create_matrix(lp_matrix_rhs_dc,   NV_DCBOUND, NV_LP_MATRIX, NV_RHS)
   end if
   if(i3d.eq.1) then
@@ -423,7 +423,7 @@ subroutine smooth
   real :: tstart, tend
   integer :: numnodes
 
-  if(hyperc.eq.0) return
+  if(hyperc.eq.0.) return
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
@@ -517,7 +517,7 @@ subroutine derived_quantities
   call newvar(mass_matrix_lhs_dc,jphi,field,psi_g,num_fields, &
        gs_matrix_rhs_dc,NV_DCBOUND)
 
-  if(hyperc.ne.0) then
+  if(hyperc.ne.0.) then
      !   vorticity
      if(myrank.eq.0 .and. iprint.ge.1) print *, "-Vorticity"
      call newvar(mass_matrix_lhs_dc,vor,field,u_g,num_fields, &

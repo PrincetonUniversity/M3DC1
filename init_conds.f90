@@ -233,35 +233,44 @@ subroutine cylinder_equ(x, z)
      call constant_field(pe0_l, p0-pi0*ipres)
      call constant_field( p0_l, p0)
   else 
-     kb = k**2*(1.-beta)
-     bz0_l(1) = sqrt(kb*psi0_l(1)**2+bzero**2)
-     bz0_l(2) = kb/bz0_l(1)*psi0_l(1)*psi0_l(2)
-     bz0_l(3) = kb/bz0_l(1)*psi0_l(1)*psi0_l(3)
-     bz0_l(4) = kb/bz0_l(1)                                &
-          *(-kb/bz0_l(1)**2*(psi0_l(1)*psi0_l(2))**2     &
-          + psi0_l(2)**2+psi0_l(1)*psi0_l(4))
-     bz0_l(5) = kb/bz0_l(1)*(-kb/bz0_l(1)**2*       &
-          psi0_l(1)**2*psi0_l(2)*psi0_l(3)                &
-          + psi0_l(2)*psi0_l(3)+psi0_l(1)*psi0_l(5))
-     bz0_l(6) = kb/bz0_l(1)                               &
-          *(-kb/bz0_l(1)**2*(psi0_l(1)*psi0_l(3))**2     &
-          + psi0_l(3)**2+psi0_l(1)*psi0_l(6))
-        
-     kb = k**2*beta*(p0 - pi0*ipres)/p0
-     pe0_l(1) = 0.5*kb*psi0_l(1)**2 + p0 - pi0*ipres
-     pe0_l(2) = kb*psi0_l(1)*psi0_l(2)
-     pe0_l(3) = kb*psi0_l(1)*psi0_l(3)
-     pe0_l(4) = kb*(psi0_l(2)**2+psi0_l(1)*psi0_l(4))
-     pe0_l(5) = kb*(psi0_l(2)*psi0_l(3)+psi0_l(1)*psi0_l(5))
-     pe0_l(6) = kb*(psi0_l(3)**2+psi0_l(1)*psi0_l(6))
+     if(numvar.ge.2) then
+        kb = k**2*(1.-beta)
+        bz0_l(1) = sqrt(kb*psi0_l(1)**2+bzero**2)
+        bz0_l(2) = kb/bz0_l(1)*psi0_l(1)*psi0_l(2)
+        bz0_l(3) = kb/bz0_l(1)*psi0_l(1)*psi0_l(3)
+        bz0_l(4) = kb/bz0_l(1)                              &
+             *(-kb/bz0_l(1)**2*(psi0_l(1)*psi0_l(2))**2     &
+             + psi0_l(2)**2+psi0_l(1)*psi0_l(4))
+        bz0_l(5) = kb/bz0_l(1)*(-kb/bz0_l(1)**2*            &
+             psi0_l(1)**2*psi0_l(2)*psi0_l(3)               &
+             + psi0_l(2)*psi0_l(3)+psi0_l(1)*psi0_l(5))
+        bz0_l(6) = kb/bz0_l(1)                              &
+             *(-kb/bz0_l(1)**2*(psi0_l(1)*psi0_l(3))**2     &
+             + psi0_l(3)**2+psi0_l(1)*psi0_l(6))
+     else 
+       call constant_field(bz0_l, bzero)
+     end if
 
-     kb = k**2*beta
-     p0_l(1) = 0.5*kb*psi0_l(1)**2 + p0
-     p0_l(2) = kb*psi0_l(1)*psi0_l(2)
-     p0_l(3) = kb*psi0_l(1)*psi0_l(3)
-     p0_l(4) = kb*(psi0_l(2)**2+psi0_l(1)*psi0_l(4))
-     p0_l(5) = kb*(psi0_l(2)*psi0_l(3)+psi0_l(1)*psi0_l(5))
-     p0_l(6) = kb*(psi0_l(3)**2+psi0_l(1)*psi0_l(6))
+     if(numvar.ge.3) then
+        kb = k**2*beta*(p0 - pi0*ipres)/p0
+        pe0_l(1) = 0.5*kb*psi0_l(1)**2 + p0 - pi0*ipres
+        pe0_l(2) = kb*psi0_l(1)*psi0_l(2)
+        pe0_l(3) = kb*psi0_l(1)*psi0_l(3)
+        pe0_l(4) = kb*(psi0_l(2)**2+psi0_l(1)*psi0_l(4))
+        pe0_l(5) = kb*(psi0_l(2)*psi0_l(3)+psi0_l(1)*psi0_l(5))
+        pe0_l(6) = kb*(psi0_l(3)**2+psi0_l(1)*psi0_l(6))
+        
+        kb = k**2*beta
+        p0_l(1) = 0.5*kb*psi0_l(1)**2 + p0
+        p0_l(2) = kb*psi0_l(1)*psi0_l(2)
+        p0_l(3) = kb*psi0_l(1)*psi0_l(3)
+        p0_l(4) = kb*(psi0_l(2)**2+psi0_l(1)*psi0_l(4))
+        p0_l(5) = kb*(psi0_l(2)*psi0_l(3)+psi0_l(1)*psi0_l(5))
+        p0_l(6) = kb*(psi0_l(3)**2+psi0_l(1)*psi0_l(6))
+     else
+        call constant_field(pe0_l, p0-pi0*ipres)
+        call constant_field( p0_l, p0)
+     end if
   endif
 
   call constant_field(den0_l, 1.)
