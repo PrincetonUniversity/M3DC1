@@ -200,6 +200,8 @@
 
       implicit none
 
+#include "finclude/petsc.h"
+
       integer, intent(in) :: numnodes, numvard, iplace
       vectype, intent(out) :: outarray(*)
       vectype, intent(in)  ::  inarray(*)
@@ -216,6 +218,10 @@
 
       real, dimension(2,2) :: ssterm
       vectype, allocatable :: temp(:)
+
+      PetscTruth :: flg
+      integer :: ipetsc, isuperlu
+
 !
       if(myrank.eq.0 .and. iprint.eq.1) print *, " smoother1"
 
@@ -231,8 +237,18 @@
 !
 !.....compute LU decomposition only once
 !
-!.....form matrix
-      call zerosuperlumatrix(s5matrix_sm,icomplex,numvarsm)
+!.....form matrix default linear solver superlu cj-april-09-2008
+      ipetsc=0
+      isuperlu=1
+      call PetscOptionsGetInt
+     &(PETSC_NULL_CHARACTER,'-ipetsc',ipetsc,flg,ier)
+      if(ipetsc) isuperlu=0
+      if(isuperlu) call zerosuperlumatrix(s5matrix_sm,icomplex,numvarsm)
+      if(ipetsc) call zeropetscmatrix(s5matrix_sm,icomplex,numvarsm)
+         if(isuperlu) 
+     &   print *, " smoother1 zerosuperlumatrix", s5matrix_sm
+         if(ipetsc) 
+     &   print *, "   smoother1 zeropetscmatrix", s5matrix_sm 
       do itri=1,numelms
          call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
          call calcaterm(itri, aterm, fintl)
@@ -316,6 +332,8 @@
 
       implicit none
 
+#include "finclude/petsc.h"
+
       integer, intent(in) :: numnodes, numvard, iplace
       vectype, intent(out) :: outarray(numnodes*6*numvard)
       vectype, intent(in) :: inarray(numnodes*6)
@@ -331,6 +349,9 @@
 
       real, dimension(2,2) :: ssterm
       vectype, allocatable:: temp(:)
+
+      PetscTruth :: flg
+      integer :: ipetsc, isuperlu
 !
       if(myrank.eq.0 .and. iprint.eq.1) print *, " smoother3"
 
@@ -349,8 +370,18 @@
 !
 !.....compute LU decomposition only once
 !
-!.....form matrix
-      call zerosuperlumatrix(s7matrix_sm,icomplex,numvarsm)
+!.....form matrix default linear solver superlu cj-april-09-2008
+      ipetsc=0
+      isuperlu=1
+      call PetscOptionsGetInt
+     &(PETSC_NULL_CHARACTER,'-ipetsc',ipetsc,flg,ier)
+      if(ipetsc) isuperlu=0
+      if(isuperlu) call zerosuperlumatrix(s7matrix_sm,icomplex,numvarsm)
+      if(ipetsc) call zeropetscmatrix(s7matrix_sm,icomplex,numvarsm)
+         if(isuperlu) 
+     &   print *, " smoother3 zerosuperlumatrix", s7matrix_sm
+         if(ipetsc) 
+     &   print *, "   smoother3 zeropetscmatrix", s7matrix_sm 
       do itri=1,numelms
 !         call getdeex(itri,deex)
          call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
