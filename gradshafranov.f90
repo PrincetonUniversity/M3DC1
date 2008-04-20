@@ -580,8 +580,8 @@ subroutine gradshafranov_solve
         gamma3 = 0.
         gamma4 = 0.
      else
-        gamma2 = -2.*xmag*(xmag*p0*p1 + abs(g0)/(xmag**2*q0*dpsii))
-        gamma3 = -(xmag*djdpsi/dpsii + 2.*xmag**2*p0*p2)
+        gamma2 = -2.*xmag*(0.5*xmag*p0*p1 + abs(g0)/(xmag**2*q0*dpsii))
+        gamma3 = -0.5*(xmag*djdpsi/dpsii + 2.*xmag**2*p0*p2)
         gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
      endif
          
@@ -1237,8 +1237,7 @@ subroutine calc_pressure(psii,pres)
   real, intent(in), dimension(6)  :: psii     ! normalized flux
   vectype, intent(out), dimension(6) :: pres     ! pressure
 
-!  if(psii(1) .lt. 0 .or. psii(1) .gt. 1) then
-  if(psii(1) .gt. 1) then
+  if(psii(1) .gt. 1.) then
      pres = 0.
   else
      pres(1) = 1.+p1*psii(1)+p2*psii(1)**2 &

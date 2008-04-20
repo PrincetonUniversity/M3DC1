@@ -1080,7 +1080,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
        t = fltarr(trange[1]-trange[0]+1)
        file_id = h5f_open(filename)
 
-       if(ilin eq 1 and (not keyword_set(linear))) then begin
+       if((ilin eq 1) and (not keyword_set(linear))) then begin
            time_group_id = h5g_open(file_id, time_name(-1))
            mesh = h5_parse(time_group_id, 'mesh', /read_data)   
 
@@ -1157,19 +1157,20 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
            h5g_close, field_group_id
            h5g_close, time_group_id
 
-
            if(n_elements(at_points) eq 0) then begin
                data[i-trange[0],*,*] = $
                  eval_field(field._data, mesh, points=pts, $
                             r=x, z=y, op=op, filename=filename, $
-                            xrange=xrange, yrange=yrange) + base
+                            xrange=xrange, yrange=yrange) $
+                 + base*(i ne -1)
            endif else begin
                print, sz
                for k=0, sz[1]-1 do begin
                    pos = [at_points[0,k]-xzero, $
                           at_points[1,k]-zzero]
                    data[i-trange[0],k] = $
-                     eval_global(field._data,mesh,pos,elm=elm,op=op) + base
+                     eval_global(field._data,mesh,pos,elm=elm,op=op) $
+                     + base*(i ne -1)
                end
            endelse
        end
