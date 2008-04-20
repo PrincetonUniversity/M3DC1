@@ -334,7 +334,6 @@ subroutine boundary_vel(imatrix, rhs)
   integer :: ibegin, iendplusone, numnodes
   real :: normal, x, z
   vectype, dimension(6) :: temp
-  double precision :: coords(3)
 
   logical :: is_boundary
 
@@ -418,7 +417,7 @@ subroutine boundary_mag(imatrix, rhs)
   integer :: ibegin1, iendplusone1
   real :: normal, x, z
   vectype, dimension(6) :: temp
-  double precision :: coords(3)
+
   logical :: is_boundary
 
 
@@ -647,7 +646,6 @@ subroutine boundary_gs(imatrix, rhs)
   real :: normal, x, z
   logical :: is_boundary
   vectype, dimension(6) :: temp
-  double precision :: coords(3)
 
   if(iper.eq.1 .and. jper.eq.1) return
 
@@ -694,7 +692,6 @@ subroutine boundary_vor(imatrix, rhs)
   real :: normal, x, z
   logical :: is_boundary
   vectype, dimension(6) :: temp
-  double precision :: coords(3)
 
   if(iper.eq.1 .and. jper.eq.1) return
 
@@ -739,7 +736,6 @@ subroutine boundary_com(imatrix, rhs)
   real :: normal, x, z
   logical :: is_boundary
   vectype, dimension(6) :: temp
-  double precision :: coords(3)
 
   if(iper.eq.1 .and. jper.eq.1) return
 

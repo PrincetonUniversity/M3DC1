@@ -723,28 +723,16 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
 
        if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
 
-       if(nv ge 2) then begin
-           I = read_field('I',x,y,t,slices=time, mesh=mesh, $
-                          filename=filename, points=pts, $
-                          rrange=xrange, zrange=yrange)
-       endif else begin
-           I = read_parameter('bzero',filename=filename) $
-             * read_parameter('xmin', filename=filename)
-       endelse
-      
-       if(nv ge 3) then begin
-           P = read_field('P',x,y,t,slices=time, mesh=mesh, $
-                          filename=filename, points=pts, $
-                          rrange=xrange, zrange=yrange)
-       endif else begin
-           P = read_parameter('p0',filename=filename)
-       endelse
+       I = read_field('I',x,y,t,slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)     
+       P = read_field('P',x,y,t,slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
 
        b2 = (s_bracket(psi,psi,x,y) + i^2)/r^2
 
-       beta = 2.*P/b2
-
-       data = beta
+       data = 2.*P/b2
 
    ;===========================================
    ; toroidal field
@@ -764,11 +752,6 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
    endif else if(strcmp('toroidal velocity', name, /fold_case) eq 1) or $
      (strcmp('vz', name, /fold_case) eq 1) then begin
        
-       if(nv lt 2) then begin
-           print, "numvar < 2"
-           return, 0
-       endif
-
        v = read_field('V',x,y,t,slices=time, mesh=mesh, filename=filename, $
                         points=pts,rrange=xrange,zrange=yrange)
        if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.

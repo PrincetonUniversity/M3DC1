@@ -1,7 +1,7 @@
       subroutine local(xi,zi,b,theta,itri)
       use basic
       implicit none
-      integer itri, iz, ix, nodeids(4)
+      integer itri, nodeids(4)
       real xi, zi, theta, b, small, co, sn, xmin, zmin
       dimension xi(*),zi(*)
       double precision coords(3)

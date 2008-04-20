@@ -225,7 +225,6 @@ subroutine gradshafranov_solve
   integer :: itri,i,i1,j,j1,jone, k
   integer :: numelms, numnodes
   integer :: ibegin, iendplusone
-  integer :: ibegin1, iendplusone1
   integer :: ineg, ier
   real :: dterm(18,18), sterm(18,18)
   real :: fac, aminor, bv, fintl(-6:maxi,-6:maxi)
@@ -427,7 +426,7 @@ subroutine gradshafranov_solve
 
   if(myrank.eq.0 .and. iprint.gt.0) print *, " initializing current..."
 
-  b1vecini = 0
+  b1vecini = 0.
   call deltafun(xrel,zrel,b1vecini,tcuro)
  
   !-------------------------------------------------------------------

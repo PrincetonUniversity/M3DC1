@@ -565,7 +565,7 @@ c=========================
       
       do i=-6,maxi
          do j=-6,maxi
-            fint(i,j) = 0
+            fint(i,j) = 0.
             if(i.ge.0 .and.j.ge.0)  then
                fint(i,j) = f(i,j,atri,btri,ctri)
             endif

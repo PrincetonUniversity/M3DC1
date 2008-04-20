@@ -86,6 +86,10 @@
 
       implicit none
 
+      include 'mpif.h'
+
+      integer :: ier
+
       if(myrank.eq.0 .and. iprint.eq.1) print *, " entering input.."
 !
 !.....linear parameter  0-nonlinear,  1-linear
@@ -296,12 +300,19 @@
 !.....1 = adapt mesh upon initialization
       iadapt = 0
 !
+!     factors multiplying time derivative terms
+      dndt_fac = 1.
+      dvdt_fac = 1.
+      dbdt_fac = 1.
 !
       open(5,file='C1input',form='formatted',status='old')
       read(5,nml=inputnl)
       if(amuc.eq.0.) amuc = amu
       if(thimp_ohm.lt.0) thimp_ohm = thimp
-!      
+!
+      ! Make sure all processes have read input before proceeding
+      call MPI_BARRIER(MPI_COMM_WORLD, ier)
+      
       if(myrank.eq.0) write(*,nml=inputnl)
 
       if(myrank.eq.0 .and. iprint.eq.1) print *, " exiting input.."
@@ -338,7 +349,7 @@
       sn = sin(theta)
       do i=1,6
         do j=1,6
-          r1(i,j) = 0
+          r1(i,j) = 0.
         enddo
       enddo
 !
@@ -364,7 +375,7 @@
 ! 
       do i=1,18
         do j=1,18
-          rot(i,j) = 0
+          rot(i,j) = 0.
         enddo
       enddo
 !
@@ -553,7 +564,14 @@
       return
       end
 !============================================================
-      function fact(n)
+      real function fact(n)
+
+      implicit none
+
+      integer, intent(in) :: n
+      integer :: i
+      real :: ans
+
 ! acbauer - my implict none changes here caused problems, probably from real double precision integer things
 !
 !.....fact calculates the factorial of n...an integer
@@ -582,9 +600,10 @@
       real :: ti(20,20),rot(18,18), sum
       real :: f
 
-      if(myrank.eq.1 .and. iprint.ge.1) print *, " Entering tridef..."
+      if(myrank.eq.0 .and. iprint.ge.1) print *, " Entering tridef..."
 
       call numfac(numelms)
+
 !      
 !     start the loop over triangles within a rectangular region
       do itri=1,numelms
@@ -608,7 +627,7 @@
 !        form the matrix g by multiplying ti and rot
          do k=1,20
             do j=1,18
-               sum = 0
+               sum = 0.
                do ii = 1,18
                   sum = sum + ti(k,ii)*rot(ii,j)
                enddo
@@ -619,7 +638,7 @@
 !        calculate fint (used for analytic integrations)
          do i=-6,maxi
             do j=-6,maxi
-               fint(i,j) = 0
+               fint(i,j) = 0.
                if(i.ge.0 .and.j.ge.0)                                          &
      &              fint(i,j) = f(i,j,atri(itri),btri(itri),ctri(itri))
             enddo
@@ -641,7 +660,7 @@
 
       end do
 !
-      if(myrank.eq.1 .and. iprint.ge.1) print *, " Exiting tridef."
+      if(myrank.eq.0 .and. iprint.ge.1) print *, " Exiting tridef."
 
       return
       end

@@ -2856,8 +2856,8 @@ vectype function b1psibd(e,f,g,h)
      endif
 #ifdef USECOMPLEX
      temp = temp - &
-          (int4(ri5_79,e(:,OP_DZ),f(:,OP_DRPP),g(:,OP_1),h(:,OP_1),weight_79,79) &
-          -int4(ri5_79,e(:,OP_DR),f(:,OP_DZPP),g(:,OP_1),h(:,OP_1),weight_79,79))
+          (int5(ri5_79,e(:,OP_DZ),f(:,OP_DRPP),g(:,OP_1),h(:,OP_1),weight_79,79) &
+          -int5(ri5_79,e(:,OP_DR),f(:,OP_DZPP),g(:,OP_1),h(:,OP_1),weight_79,79))
 #endif
   endif
 
