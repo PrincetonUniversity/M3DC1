@@ -15,6 +15,7 @@ CC     = icc -c
 # defult is /u/xluo/develop
 ifndef SCORECDIR
 SCORECDIR = /u/xluo/develop/
+#SCORECDIR = /u/nferraro/C1/src/SCOREC/
 endif
 
 # define the version of mesh adapt : real or complex version
@@ -26,7 +27,7 @@ endif
 
 # specify whether debug or optimization 
 ifeq ($(OPT), 1)
- COMPLEX = -O 
+ COMPLEX = -O
  SCORECOPT = -O
 else
  COMPLEX = -g 
@@ -58,7 +59,9 @@ endif
 
 BIN = gonewp${BIN_POSTFIX}
 
-FOPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE) -DNEW_VELOCITY ${COMPLEX}
+FOPTS = -r8 -implicitnone -fpp $(INCLUDE) -warn all \
+	-DNEW_VELOCITY \
+	${COMPLEX}
 F90OPTS = ${FOPTS}
 F77OPTS = ${FOPTS}
 CCOPTS = -c $(INCLUDE)

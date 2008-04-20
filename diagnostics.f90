@@ -400,7 +400,7 @@ subroutine calculate_scalars()
 
   implicit none
  
-  integer :: itri, numelms, i, ione, ndof, def_fields
+  integer :: itri, numelms, i, ione, def_fields
   real :: x, z, xmin, zmin, factor
 
   double precision, dimension(3)  :: cogcoords

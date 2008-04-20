@@ -63,16 +63,16 @@ subroutine random_per(x,z,seed)
   integer, intent(in) :: seed
   integer :: i, j
   integer, parameter :: maxn = 10
-  real :: alx, alz, a, kx, kz
+  real :: alx, alz, kx, kz
   vectype, dimension(6) :: temp
 
   call getboundingboxsize(alx, alz)
 
   call srand(seed)
 
-  psi1_l = 0
-  u1_l = 0
-  temp = 0
+  psi1_l = 0.
+  u1_l = 0.
+  temp = 0.
 
 #ifdef _AIX
 #define RAND_ARG
@@ -208,7 +208,7 @@ subroutine cylinder_equ(x, z)
      j0 = s17aef(arg,ifail2)
      j1 = s17aff(arg,ifail3)
      ff = .5*befo
-     fp = 0
+     fp = 0.
      fpp = -.125*k**2*befo
      if(arg.ne.0)  then
         ff   = befo*j1/arg
@@ -1307,10 +1307,8 @@ subroutine rotate_per(x, z)
 
   real, intent(in) :: x, z
 
-  real :: fac1
-
   u1_l = 0.
-  vz1_l = 0
+  vz1_l = 0.
   chi1_l = 0.
   psi1_l = 0.
   bz1_l = 0.

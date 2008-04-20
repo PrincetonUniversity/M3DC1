@@ -14,8 +14,6 @@ subroutine onestep
   logical :: first_time = .true.
 
   real :: tstart, tend
-  vectype, allocatable :: temp(:), temp2(:)
-  
 
   ! apply loop voltage
   fbound = fbound + dt*vloop/(2.*pi)
@@ -257,12 +255,7 @@ subroutine split_step(calc_matrices)
      if(numvar.ge.2 .and. i3d.eq.1) then
         ! make a larger vector that can be multiplied by a numvar=3 matrix
         phip = 0.
-        do l=1,numnodes
-           call entdofs(1, l, 0, ibegin, iendplusone)
-           call entdofs(vecsize_phi, l, 0, ibeginnv, iendplusonenv)
-           
-           phip(ibeginnv  :ibeginnv+5) = bf(ibegin:ibegin+5)
-        enddo
+        call copyvec(bf,1,1,phip,1,vecsize_phi)
         call matrixvectormult(o1matrix_sm,phip,b2_phi)
         b1_phi = b1_phi + b2_phi
      endif
@@ -561,15 +554,10 @@ subroutine split_step(calc_matrices)
      ! Include linear f terms
      if(numvar.ge.2 .and. i3d.eq.1) then
         ! b2vector = r15 * bf(n)
-        
+
         ! make a larger vector that can be multiplied by a numvar=3 matrix
-        phip = 0.
-        do l=1,numnodes
-           call entdofs(1, l, 0, ibegin, iendplusone)
-           call entdofs(vecsize_phi, l, 0, ibeginnv, iendplusonenv)
-           
-           phip(ibeginnv  :ibeginnv+5) = bf(ibegin:ibegin+5)
-        enddo
+        phip = 0.        
+        call copyvec(bf,1,1,phip,1,vecsize_phi)
         call matrixvectormult(o2matrix_sm,phip,b2_phi)
         b1_phi = b1_phi + b2_phi
      endif
@@ -599,7 +587,8 @@ subroutine split_step(calc_matrices)
      else 
         call boundary_mag(0, b1_phi)
      endif
-  
+!     call writematrixtofile(s2matrix_sm, 2)
+
      ! solve linear system...LU decomposition done first time
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   
@@ -679,13 +668,8 @@ subroutine split_step(calc_matrices)
            ! b2vector = r15 * bf(n)
            
            ! make a larger vector that can be multiplied by a numvar=3 matrix
-           phip = 0.
-           do l=1,numnodes
-              call entdofs(1, l, 0, ibegin, iendplusone)
-              call entdofs(vecsize_phi, l, 0, ibeginnv, iendplusonenv)
-              
-              phip(ibeginnv  :ibeginnv+5) = bf(ibegin:ibegin+5)
-           enddo
+           phip = 0.        
+           call copyvec(bf,1,1,phip,1,vecsize_phi)
            call matrixvectormult(o2matrix_sm,phip,b2_phi)
            b1_phi = b1_phi + b1_phi
         endif

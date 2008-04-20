@@ -151,6 +151,11 @@ module basic
 
   ! general behavior
   integer :: iadapt     ! 1 = adapts mesh after initialization
+
+  real :: dndt_fac      ! factor to multiply dn/dt term
+  real :: dvdt_fac      ! factor to multiply dv/dt terms
+  real :: dbdt_fac      ! factor to multiply db/dt terms
+
   
   integer :: istart
   real :: beta
@@ -182,7 +187,7 @@ module basic
        itimer,iprint,ntimepr,iglobalout,iglobalin,             &
        irestart,istart,                                        &
        tcuro,djdpsi,xmag,zmag,xlim,zlim,                       &
-       expn,q0,divertors,xdiv,zdiv,divcur,th_gs,p1,p2,p_edge,  &
+       expn,q0,divertors,xdiv,zdiv,divcur,th_gs,p1,p2,         &
        idevice,igs,th_gs,                                      &
        iconstflux,regular,max_ke,                              &
        ntor,iadapt,istatic,iestatic,ivform,ihypeta,ikapscale,  &
@@ -190,7 +195,7 @@ module basic
        inonormalflow, inoslip_pol, inoslip_tor, inostress_tor, &
        iconst_t, inograd_t, inocurrent_pol, inocurrent_tor,    &
        irecalc_eta,ihypdx, iconst_eta,                         &
-       iupwind
+       iupwind, dndt_fac, dvdt_fac, dbdt_fac
 
   !     derived quantities
   real :: pi,dbf,bdf,hypv,hypc,hypf,hypi,hypp,   &
@@ -467,7 +472,7 @@ module arrays
 !================================
     subroutine createvec(vec, numberingid)
       implicit none
-      integer :: numberingid, i, ndof
+      integer :: numberingid, ndof
       vectype, allocatable :: vec(:)
 
       if(allocated(vec)) call deletevec(vec)
@@ -485,7 +490,7 @@ module arrays
 !===============================
     subroutine createrealvec(vec, numberingid)
       implicit none
-      integer :: numberingid, i, ndof
+      integer :: numberingid, ndof
       real, allocatable ::  vec(:)
       
       if(allocated(vec)) call deleterealvec(vec)
@@ -607,7 +612,7 @@ subroutine arrayresizevec(vec, ivecsize)
   use arrays
 
   implicit none
-  integer numberingid, ivecsize, i
+  integer :: ivecsize, i
   double precision :: vec
 
   print *, "In arrayresizevec!", ivecsize

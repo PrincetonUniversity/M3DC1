@@ -51,7 +51,7 @@
 
       integer, intent(in) :: ifirstcall
 
-      integer :: numnodes, numelms, i
+      integer :: numnodes, numelms
 
       if(myrank.eq.1 .and. iprint.ge.1) print *, " Entering space..."
 
@@ -94,7 +94,7 @@
 !     createvec will delete the arrays if they have already been allocated
 
       if(ifirstcall.eq.1) then
-         if(myrank.eq.0 .and. iprint.eq.1) print *, 'Allocting...'
+         if(myrank.eq.0 .and. iprint.eq.1) print *, 'Allocating...'
 
          ! Physical Variables
          call createvec(field , num_fields)
@@ -184,7 +184,7 @@
       return
       end
 !============================================================
-      subroutine smoother1(inarray,outarray,numnodes,numvard,iplace)
+      subroutine smoother1(inarray,outarray,numvard,iplace)
 !
 !     This routine takes as input the Laplacian of the scalar field in
 !     the array inarray, smooths it, and returns the smoothed scalar array
@@ -202,13 +202,14 @@
 
 #include "finclude/petsc.h"
 
-      integer, intent(in) :: numnodes, numvard, iplace
+      integer, intent(in) :: numvard, iplace
+
       vectype, intent(out) :: outarray(*)
       vectype, intent(in)  ::  inarray(*)
 
       integer :: itri, 
      &     i, j, numvarsm, jtwo, itwo,
-     &     ier, jone, nbound, numelms, izone,izonedim
+     &     ier, jone, numelms
 
       real :: hyp, thimpsm
       real, dimension(18,18) :: aterm, bterm, dterm
@@ -228,7 +229,7 @@
       numvarsm = 2
       call numfac(numelms)
       call createvec(temp, numvarsm)
-      temp = 0
+      temp = 0.
       thimpsm = 1.
 ! 
       if(.not.first_time) go to 500
@@ -316,7 +317,7 @@
 !
       end
 !============================================================
-      subroutine smoother3(inarray,outarray,numnodes,numvard,iplace)
+      subroutine smoother3(inarray,outarray,numvard,iplace)
 !
 !     This routine takes as input the Laplacian of the scalar field in
 !     the array inarray, smooths it, and returns the smoothed scalar array
@@ -334,12 +335,13 @@
 
 #include "finclude/petsc.h"
 
-      integer, intent(in) :: numnodes, numvard, iplace
-      vectype, intent(out) :: outarray(numnodes*6*numvard)
-      vectype, intent(in) :: inarray(numnodes*6)
+      integer, intent(in) :: numvard, iplace
+      vectype, intent(out) :: outarray(*)
+      vectype, intent(in) :: inarray(*)
+
 
       integer ::  numelms
-      integer :: numvarsm, itri, i, j,izone,izonedim,
+      integer :: numvarsm, itri, i, j,
      &     jone, ier, jtwo, itwo
       real :: hyp, thimpsm
       real, dimension(18,18) ::  aterm, bterm, dterm
@@ -358,7 +360,7 @@
       numvarsm = 2
       call numfac(numelms)
       call createvec(temp, numvarsm)
-      temp = 0
+      temp = 0.
       thimpsm = 1.
 ! 
       if(.not.first_time) go to 500

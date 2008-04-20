@@ -187,7 +187,7 @@
       implicit none
       include 'mpif.h'
       double precision aa(*), coords(3), sum, sum2, x, z, tol
-      integer n, i, m, j, numnodes, ibegin, iendplusone
+      integer i, j, numnodes, ibegin, iendplusone
       integer numberingid, myrank, ndofs
       character*8 string
       
@@ -251,7 +251,7 @@
       implicit none
       include 'mpif.h'
       integer i, j, orderingid, myrank, maxrank, icounter,
-     &     mpitag, ierr, iprocdof, iarray(2), ndofs
+     &     mpitag, ierr, iprocdof, iarray(2)
       real vec(*)
       double precision dvals(2), pos
       character*8 string
@@ -415,7 +415,7 @@ c     numvare is the numvar for dum
       use t_data
       use basic
       implicit none
-      integer itype
+
       real dum(*)
 
       call createfieldrq(1, dum)
@@ -429,7 +429,7 @@ c     numvare is the numvar for dum
       use basic
       implicit none
       integer i, j, nv, mnew, nnew
-      real dofs(*), val, temp, dum, x, z, deexnew, deeznew
+      real dofs(*), val, temp, x, z, deexnew, deeznew
       
       open(10,file='orig.plt',form='formatted')
       

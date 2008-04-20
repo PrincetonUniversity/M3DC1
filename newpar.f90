@@ -19,8 +19,8 @@ Program Reducedquintic
 #endif
 #include "finclude/petsc.h"
 
-  integer :: j, i, ier, numelms, numnodes
-  integer :: ndofs, ibegin, iendplusone
+  integer :: j, ier, numelms, numnodes
+  integer :: ndofs
 
   real :: tstart, tend
   real :: factor, hmin, hmax  
@@ -74,9 +74,18 @@ Program Reducedquintic
 #endif
   endif
 
+  pi = acos(-1.)
+
+  ! initialize needed variables and define geometry and triangles
+  call init
 
   ! Output information about local dofs, nodes, etc.
   if(iprint.ge.1) then
+     if(myrank.eq.0) then
+        call numglobaldofs(1, ndofs)
+        print *, 'global dofs = ', ndofs
+     end if
+
      call numfac(numelms)
      call numnod(numnodes)
      call numprocdofs(1, j)
@@ -85,10 +94,6 @@ Program Reducedquintic
      print *, 'proc, numnodes, numfaces', myrank, numnodes,numelms
   endif
 
-  pi = acos(-1.)
-
-  ! initialize needed variables and define geometry and triangles
-  call init
 
   if(linear.eq.1) eqsubtract = 1
 
@@ -334,17 +339,6 @@ Program Reducedquintic
   call deletematrix(o2matrix_sm)
 #endif
   call deletesearchstructure()
-!  free memory for numberings
-  call deletedofnumbering(1)
-  call deletedofnumbering(2)
-  if(num_fields.gt.2) call deletedofnumbering(num_fields)
-  if(vecsize_phi.gt.2 .and. vecsize_phi.ne.num_fields) then
-     call deletedofnumbering(vecsize_phi)
-  end if
-  if(vecsize_vel.gt.2 .and. vecsize_vel.ne.num_fields &
-       .and. vecsize_vel.ne.vecsize_phi) then
-     call deletedofnumbering(vecsize_vel)
-  end if
 
   call safestop(2)
 
@@ -421,18 +415,15 @@ subroutine smooth
   implicit none
 
   real :: tstart, tend
-  integer :: numnodes
 
   if(hyperc.eq.0.) return
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-
-  call numnod(numnodes)
      
   ! smooth vorticity
   call newvar(mass_matrix_lhs_dc,vor,vel,1,vecsize_vel, &
        gs_matrix_rhs_dc,NV_DCBOUND)
-  call smoother1(vor,vel,numnodes,vecsize_vel,1)
+  call smoother1(vor,vel,vecsize_vel,1)
 
   ! smooth compression
   if(numvar.ge.3) then
@@ -444,7 +435,7 @@ subroutine smooth
              lp_matrix_rhs,   NV_NOBOUND)
      endif
              
-     call smoother3(com,vel,numnodes,vecsize_vel,3)
+     call smoother3(com,vel,vecsize_vel,3)
   endif
 
   if(myrank.eq.0 .and. itimer.eq.1) then

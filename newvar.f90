@@ -39,7 +39,7 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
 
   integer, intent(in) :: matrix, ibound, itype, isolve
 
-  integer :: numelms, itri, i, j, ione, jone, izone, izonedim
+  integer :: numelms, itri, i, j, ione, jone
   vectype :: temp
   vectype, allocatable :: rhs2(:)
 
@@ -227,7 +227,6 @@ subroutine define_transport_coefficients()
 
   integer :: i, itri, ibegin, iendplusone, numnodes
   integer :: ione, numelms, def_fields
-  double precision :: coords(3)
 
   real :: factor
 

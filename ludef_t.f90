@@ -35,8 +35,8 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   ! NUMVAR = 1
   ! ~~~~~~~~~~
   temp = v1un(trial,lin,nt79)
-  ssterm(u_g) = ssterm(u_g) + temp
-  ddterm(u_g) = ddterm(u_g) + temp*bdf
+  ssterm(u_g) = ssterm(u_g) + dvdt_fac*temp
+  ddterm(u_g) = ddterm(u_g) + dvdt_fac*temp*bdf
   
   temp = v1umu(trial,lin,vis79) &
        + v1us (trial,lin,sig79)
@@ -257,8 +257,8 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      ddterm(u_g) = ddterm(u_g) + (.5-thimp*bdf)*dt*temp
      
      temp = v1chin(trial,lin,nt79)
-     ssterm(chi_g) = ssterm(chi_g) + temp
-     ddterm(chi_g) = ddterm(chi_g) + temp*bdf
+     ssterm(chi_g) = ssterm(chi_g) + dvdt_fac*temp
+     ddterm(chi_g) = ddterm(chi_g) + dvdt_fac*temp*bdf
      
      temp = v1chimu(trial,lin,vis79) &
           + v1chis (trial,lin,sig79)
@@ -368,7 +368,6 @@ subroutine vorticity_nolin(trial, r4term)
 
   vectype, intent(in), dimension(79, OP_NUM)  :: trial
   vectype, intent(out) :: r4term
-  vectype :: temp
 
   r4term = 0.
 
@@ -407,9 +406,11 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
   vectype, intent(out) :: q_bf
   vectype, dimension(3), intent(out) :: gyro_torque
   integer, intent(in) :: advfield
-
   real :: temp
   real :: ththm
+
+  vectype, dimension(79, OP_NUM) :: hv
+  hv = hypv*sz79
 
   if(imp_mod.eq.1) then
      ththm = -bdf*thimp**2
@@ -429,10 +430,10 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
   ddterm(u_g) = ddterm(u_g) + (.5-thimp*bdf)*dt*temp
           
   temp = v2vn(trial,lin,nt79)
-  ssterm(vz_g) = ssterm(vz_g) + temp
-  ddterm(vz_g) = ddterm(vz_g) + temp*bdf
+  ssterm(vz_g) = ssterm(vz_g) + dvdt_fac*temp
+  ddterm(vz_g) = ddterm(vz_g) + dvdt_fac*temp*bdf
      
-  temp = v2vmu  (trial,lin,vis79,vic79,hypv*sz79) &
+  temp = v2vmu  (trial,lin,vis79,vic79,hv) &
        + v2vs   (trial,lin,sig79)
   ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
   ddterm(vz_g) = ddterm(vz_g) + (1.-thimp*bdf)*dt*temp
@@ -659,7 +660,6 @@ subroutine axial_vel_nolin(trial, r4term)
 
   vectype, intent(in), dimension(79, OP_NUM)  :: trial
   vectype, intent(out) :: r4term
-  vectype :: temp
   
   r4term = 0.
 
@@ -714,8 +714,8 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   ddterm(chi_g) = ddterm(chi_g) + temp*bdf
          
   temp = v3un(trial,lin,nt79)
-  ssterm(u_g) = ssterm(u_g) + temp
-  ddterm(u_g) = ddterm(u_g) + temp*bdf
+  ssterm(u_g) = ssterm(u_g) + dvdt_fac*temp
+  ddterm(u_g) = ddterm(u_g) + dvdt_fac*temp*bdf
 
   temp = v3uun  (trial,lin,ph179,nt79) &
        + v3uun  (trial,ph179,lin,nt79) &
@@ -734,8 +734,8 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   ddterm(vz_g) = ddterm(vz_g) + (.5-thimp*bdf)*dt*temp
   
   temp = v3chin(trial,lin,nt79)
-  ssterm(chi_g) = ssterm(chi_g) + temp
-  ddterm(chi_g) = ddterm(chi_g) + temp*bdf
+  ssterm(chi_g) = ssterm(chi_g) + dvdt_fac*temp
+  ddterm(chi_g) = ddterm(chi_g) + dvdt_fac*temp*bdf
 
   temp = v3chimu(trial,lin,vis79,vic79) &
        + v3chis (trial,lin,sig79)
@@ -955,7 +955,6 @@ subroutine compression_nolin(trial, r4term)
 
   vectype, intent(in), dimension(79, OP_NUM)  :: trial
   vectype, intent(out) :: r4term
-  vectype :: temp
   
   r4term = 0.
 
@@ -991,6 +990,10 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   vectype :: temp
   real :: thimpb
 
+  vectype, dimension(79, OP_NUM) :: hf
+  hf = hypf*sz79
+
+
   if(imp_mod.eq.1) then
      thimpb = 1.
   else
@@ -1003,10 +1006,10 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   q_bf = 0.
 
   temp = b1psi(trial,lin)
-  ssterm(psi_g) = ssterm(psi_g) + temp
-  ddterm(psi_g) = ddterm(psi_g) + temp*bdf
+  ssterm(psi_g) = ssterm(psi_g) + dbdt_fac*temp
+  ddterm(psi_g) = ddterm(psi_g) + dbdt_fac*temp*bdf
 
-  temp = b1psieta(trial,lin,eta79,hypf*sz79)
+  temp = b1psieta(trial,lin,eta79,hf)
   ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
   ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
 
@@ -1143,7 +1146,6 @@ subroutine flux_nolin(trial, r4term)
 
   vectype, intent(in), dimension(79, OP_NUM)  :: trial
   vectype, intent(out) :: r4term
-  vectype :: temp
   
   r4term = 0.
 
@@ -1177,6 +1179,9 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   vectype :: temp
   real :: thimpb
 
+  vectype, dimension(79, OP_NUM) :: hi
+  hi = hypi*sz79
+
   if(imp_mod.eq.1) then
      thimpb = 1.
   else
@@ -1190,7 +1195,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
 
   if(numvar.lt.2) return          
 
-  temp = b2psieta(trial,lin,eta79,hypi*sz79)
+  temp = b2psieta(trial,lin,eta79,hi)
   ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
   ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
          
@@ -1205,10 +1210,10 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   ddterm(psi_g) = ddterm(psi_g) + (.5-thimp*bdf)*dt*temp
 
   temp = b2b(trial,lin)
-  ssterm(bz_g) = ssterm(bz_g) + temp
-  ddterm(bz_g) = ddterm(bz_g) + temp*bdf
+  ssterm(bz_g) = ssterm(bz_g) + dbdt_fac*temp
+  ddterm(bz_g) = ddterm(bz_g) + dbdt_fac*temp*bdf
 
-  temp = b2beta(trial,lin,eta79,hypi*sz79)
+  temp = b2beta(trial,lin,eta79,hi)
   ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
   ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
 
@@ -1325,7 +1330,6 @@ subroutine axial_field_nolin(trial, r4term)
 
   vectype, intent(in), dimension(79, OP_NUM)  :: trial
   vectype, intent(out) :: r4term
-  vectype :: temp
   
   r4term = 0.
 
@@ -1353,6 +1357,10 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   vectype, intent(out) :: q_ni, q_bf
   vectype :: temp
   real :: thimpb
+
+  vectype, dimension(79, OP_NUM) :: hp
+  hp = hypp*sz79
+
 
   if(imp_mod.eq.1) then
      thimpb = 1.
@@ -1386,7 +1394,7 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   ddterm(pe_g) = ddterm(pe_g) + temp*bdf
 
   temp = b3pebd(trial,lin,bzt79,ni79)*dbf*pefac &
-       + b3pedkappa(trial,lin,ni79,kap79,hypp*sz79)
+       + b3pedkappa(trial,lin,ni79,kap79,hp)
   ssterm(pe_g) = ssterm(pe_g) -     thimp     *dt*temp
   ddterm(pe_g) = ddterm(pe_g) + (1.-thimp*bdf)*dt*temp
 
@@ -1515,7 +1523,10 @@ subroutine electron_pressure_nolin(trial, r4term)
 
   vectype, intent(in), dimension(79, OP_NUM)  :: trial
   vectype, intent(out) :: r4term
-  real :: temp
+
+  vectype, dimension(79, OP_NUM) :: hv, hc
+  hv = hypv*sz79
+  hc = hypc*sz79
   
   r4term = 0.
 
@@ -1532,10 +1543,10 @@ subroutine electron_pressure_nolin(trial, r4term)
      ! viscous heating
      if(ipres.eq.0) then
         r4term = r4term - dt*(gam-1.)* &
-             (quumu    (trial,pht79,pht79,vis79,      hypc*sz79) &
-             +qvvmu    (trial,vzt79,vzt79,vis79,      hypv*sz79) &
-             +quchimu  (trial,pht79,cht79,vis79,vic79,hypc*sz79) &
-             +qchichimu(trial,cht79,cht79,      vic79,hypc*sz79) &
+             (quumu    (trial,pht79,pht79,vis79,      hc) &
+             +qvvmu    (trial,vzt79,vzt79,vis79,      hv) &
+             +quchimu  (trial,pht79,cht79,vis79,vic79,hc) &
+             +qchichimu(trial,cht79,cht79,      vic79,hc) &
              +p1vip    (trial))
      endif
   end if
@@ -1579,7 +1590,7 @@ subroutine ludefall()
 ! include 'mpif.h'
 #include "finclude/petsc.h"
 
-  integer :: itri, numelms, i
+  integer :: itri, numelms
   integer :: def_fields
   real :: x, z, xmin, zmin, factor
 
@@ -2203,6 +2214,9 @@ subroutine ludefden_n(itri)
   integer :: nn1, nn0, nv1, nv0
   vectype, pointer :: nsource(:)
 
+  vectype, dimension(79,OP_NUM) :: hp
+  hp = hypp*sz79
+
   if(isplitstep.eq.1) then
      nn1 = s8matrix_sm
      nn0 = d8matrix_sm
@@ -2241,10 +2255,10 @@ subroutine ludefden_n(itri)
         ! NUMVAR = 1
         ! ~~~~~~~~~~
         temp = n1n(g79(:,:,i),g79(:,:,j))
-        ssterm = ssterm + temp
-        ddterm = ddterm + temp*bdf
+        ssterm = ssterm + temp    *dndt_fac
+        ddterm = ddterm + temp*bdf*dndt_fac
         
-        temp = n1ndenm(g79(:,:,i),g79(:,:,j),denm,hypp*sz79) &
+        temp = n1ndenm(g79(:,:,i),g79(:,:,j),denm,hp) &
              + n1nu   (g79(:,:,i),g79(:,:,j),pht79)
         ssterm = ssterm -     thimp     *dt*temp
         ddterm = ddterm + (1.-thimp*bdf)*dt*temp
@@ -2318,7 +2332,7 @@ subroutine ludefden_n(itri)
 
      if(eqsubtract.eq.1) then
         nsource(ione+den_off) = nsource(ione+den_off) + dt* &
-             (n1ndenm(g79(:,:,i),n079,denm,hypp*sz79))
+             (n1ndenm(g79(:,:,i),n079,denm,hp))
      endif
      
   enddo                     ! on i
@@ -2358,6 +2372,9 @@ subroutine ludefpres_n(itri)
   vectype, dimension(3) :: rrterm, qqterm
 
   vectype :: temp
+
+  vectype, dimension(79,OP_NUM) :: hp
+  hp = hypp*sz79
 
   do i=1,18
      if(isplitstep.eq.1) then
@@ -2405,7 +2422,7 @@ subroutine ludefpres_n(itri)
         ! ~~~~~~~~~~
         if(numvar.ge.3) then
            temp = p1pchi    (g79(:,:,i),g79(:,:,j),cht79) &
-                + b3pedkappa(g79(:,:,i),g79(:,:,j),ni79,kap79,hypp*sz79) &
+                + b3pedkappa(g79(:,:,i),g79(:,:,j),ni79,kap79,hp) &
                 + p1kappar  (g79(:,:,i),pst79,pst79,g79(:,:,j),ni79,b2i79,kar79) &
                 + p1kappax  (g79(:,:,i),g79(:,:,j),bzt79,ni79,kax79)
            ssterm = ssterm -     thimp     *dt*temp
@@ -2489,7 +2506,7 @@ subroutine ludefpres_n(itri)
      if(eqsubtract.eq.1) then
                 
         qp4(ione) = qp4(ione) + dt* &
-             (b3pedkappa(g79(:,:,i),p079,ni79,kap79,hypp*sz79) &
+             (b3pedkappa(g79(:,:,i),p079,ni79,kap79,hp) &
              +p1kappar  (g79(:,:,i),ps079,ps079,p079,ni79,b2i79,kar79) &
              +p1kappax  (g79(:,:,i),pe079,bz079,ni79,kax79) &
              +p1uus    (g79(:,:,i),ph079,ph079,sig79) &

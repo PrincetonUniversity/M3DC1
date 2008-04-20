@@ -6,9 +6,10 @@
       use diagnostics
 
       implicit none
-      integer mmnn18, j1, mmnn6, ifirstrs, numnodes, numelms
+
+      integer mmnn18, j1, numnodes, numelms
       integer :: ndofs
-      data ifirstrs/1/
+      integer, save :: ifirstrs = 1
       character (len=30) :: fname, oldfname
 
       call createfilename(fname, oldfname)
@@ -64,7 +65,7 @@ c     first put in information to check on run information
       use arrays
       use diagnostics
       implicit none
-      integer mmnn18, j1, mmnn6, itime, igr, numnodes, inumnodes, 
+      integer mmnn18, j1, numnodes, inumnodes, 
      1     inumelms, immnn18, inumvar, iiper, ijper, imyrank,
      2     imaxrank, numelms, ieqsubtract, ilinear, icomp
       character (len=30) :: fname, oldfname
@@ -161,7 +162,7 @@ c     first put in information to check on run information
       ! a nonlinear simulation, make the restart data be the equilibrium
       if(linear.eq.1 .and. ilinear.eq.0) then
          field0 = field0 + field
-         field = 0
+         field = 0.
       endif
 
       read(56) ntime,time
@@ -329,7 +330,7 @@ c     below specifies that this is the last line
       use diagnostics
       implicit none
       include 'mpif.h'
-      integer numdofsglobal, numentsglobal(4), i, numnodes, j, globalid,
+      integer numdofsglobal, numentsglobal(4), i, numnodes, globalid,
      &     begindofnumber, enddofnumberplusone, in1, in2, in3, nodeid,
      &     icomp
       vectype :: tempvariable
@@ -396,11 +397,13 @@ c     first put in information to check on run information
             endif
          else ! node is not on this proc
             if(icomp.eq.0 .and. icomplex.eq.1) then
-               do i=1,num_fields*6*3 ! the number of dof values at this node
+               ! the number of dof values at this node
+               do i=1,num_fields*6*3 
                   read(56) realtemp
                enddo
             else
-               do i=1,num_fields*6*3 ! the number of dof values at this node
+               ! the number of dof values at this node
+               do i=1,num_fields*6*3 
                   read(56) tempvariable
                enddo
             endif
