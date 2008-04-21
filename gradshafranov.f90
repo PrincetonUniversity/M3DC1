@@ -230,8 +230,8 @@ subroutine gradshafranov_solve
   real :: fac, aminor, bv, fintl(-6:maxi,-6:maxi)
   real, dimension(6,maxcoils) :: g
   real, dimension(maxcoils) :: xp, zp, xc, zc
-  real :: x, z, xmin, zmin, xrel, zrel, xguess, zguess, error
-  real :: sum, rhs, ajlim, curr, norm, rnorm, g0
+  real :: x, z, xmin, zmin, xrel, zrel, xguess, zguess, error, error2
+  real :: sum, rhs, ajlim, curr, norm, rnorm, g0, sum2, norm2
   real, dimension(5) :: temp1, temp2
   real :: alx, alz
   
@@ -431,7 +431,7 @@ subroutine gradshafranov_solve
  
   !-------------------------------------------------------------------
   ! start of iteration loop on plasma current
-  do itnum=1, igs
+  mainloop: do itnum=1, igs
 
      if(myrank.eq.0 .and. iprint.eq.1) print *, "GS: iteration = ", itnum
      
@@ -487,6 +487,8 @@ subroutine gradshafranov_solve
      ! (nodes shared between processes are currenly overcounted)
      sum = 0.
      norm = 0.
+     sum2 = 0.
+     norm2 = 0.
      do i=1,numnodes
         
         call xyznod(i,coords)
@@ -501,20 +503,27 @@ subroutine gradshafranov_solve
                 gamma3*fun3(ibegin)+gamma4*fun4(ibegin))
            sum = sum + (lhs-rhs)**2
            norm = norm + lhs**2
+           sum2 = sum2 + abs(psi(ibegin)-b1vecini(ibegin))
+           norm2 = norm2 + abs(psi(ibegin))
         endif
      enddo
 
      if(maxrank.gt.1) then
         temp1(1) = sum
         temp1(2) = norm
-        call mpi_allreduce(temp1, temp2, 2, MPI_DOUBLE_PRECISION, &
+        temp1(3) = sum2
+        temp1(4) = norm2
+        call mpi_allreduce(temp1, temp2, 4, MPI_DOUBLE_PRECISION, &
              MPI_SUM, MPI_COMM_WORLD, ier)
         error = sqrt(temp2(1)/temp2(2))
+        error2= temp2(3)/temp2(4)
      else
         error = sqrt(sum/norm)
+        error2= sum2/norm2
      endif
      
-     if(myrank.eq.0 .and. iprint.gt.0) print *, "GS: error = ", error
+     if(myrank.eq.0 .and. iprint.gt.0) print *, "GS: error = ", error,error2
+  if(itnum .gt. 1 .and. error2 .lt. tol_gs) exit mainloop
      
      ! start of loop over triangles to compute integrals needed to keep
      !     total current and q_0 constant using gamma4, gamma2, gamma3
@@ -575,7 +584,7 @@ subroutine gradshafranov_solve
      ! degree of freedom in gamma3.  Could be used to fix qprime(0)
      g0 = bzero*xzero
 
-     if(numvar.eq.1) then
+     if(numvar.eq.1 .or. nv1equ.eq.1) then
         gamma2 = 0.
         gamma3 = 0.
         gamma4 = 0.
@@ -610,8 +619,9 @@ subroutine gradshafranov_solve
      enddo
      call sumsharedppplvecvals(b1vecini)
 
-  end do ! on itnum
+  end do mainloop
 
+     if(myrank.eq.0 ) print *, "Converged: GS: error = ", error,error2
 
   ! populate phi0 array
   ! ~~~~~~~~~~~~~~~~~~~

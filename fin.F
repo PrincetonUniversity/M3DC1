@@ -142,6 +142,9 @@
 !.....number of grad-shafranov iterations
       igs = 80
 !
+!.....switch to use numvar equilibrium when numvar > 1
+      nv1equ = 0
+!
 !.....CN implicitness parameter (thimp > 0.5 for stability)
       thimp = 0.5
       thimp_ohm = -1.
@@ -263,6 +266,7 @@
       expn = 0.
       q0 = 1.
       th_gs = 0.5
+      tol_gs = 1.e-8
 !
 !.....divertor information
       divertors = 0

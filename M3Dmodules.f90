@@ -91,6 +91,7 @@ module basic
   ! grad-shafranov options
   integer :: divertors! number of divertors
   integer :: igs      ! number of grad-shafranov iterations
+integer :: nv1equ  ! if set to 1, use numvar equilibrium for numvar > 1
   real :: xmag, zmag  ! position of magnetic axis
   real :: xlim, zlim  ! position of limiter
   real :: xdiv, zdiv  ! position of divertor
@@ -101,6 +102,7 @@ module basic
   real :: expn        ! density = pressure**expn
   real :: q0          ! safety factor at magnetic axis
   real :: th_gs       ! relaxation factor
+  real :: tol_gs  ! error tolorance for GS solver
 
   ! model options
   integer :: linear      ! 1 = linear simulation; 0 = nonlinear simulation
@@ -188,7 +190,7 @@ module basic
        irestart,istart,                                        &
        tcuro,djdpsi,xmag,zmag,xlim,zlim,                       &
        expn,q0,divertors,xdiv,zdiv,divcur,th_gs,p1,p2,         &
-       idevice,igs,th_gs,                                      &
+       idevice,igs,nv1equ,tol_gs,                                     &
        iconstflux,regular,max_ke,                              &
        ntor,iadapt,istatic,iestatic,ivform,ihypeta,ikapscale,  &
        iteratephi,                                             &
