@@ -2623,6 +2623,38 @@ vectype function b1psiu(e,f,g)
   b1psiu = temp
   return
 end function b1psiu
+! B1psiv
+! ======
+vectype function b1psiv(e,f,g)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
+
+#ifdef USECOMPLEX
+  if(jadv.eq.0) then
+    temp = 0.
+  else	
+    select case(ivform)
+    case(0)
+       temp = int4(ri4_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_DP),weight_79,79) &
+            + int4(ri4_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DP),weight_79,79)
+    case(1)
+       temp = int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_DP),weight_79,79) &
+            + int4(ri2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DP),weight_79,79)
+    end select
+  endif
+#else
+  temp = 0
+#endif
+
+  b1psiv = temp
+  return
+end function b1psiv
 
 
 ! B1bu
@@ -2712,7 +2744,33 @@ vectype function b1psichi(e,f,g)
 
   b1psichi = temp
   return
-end function
+end function b1psichi
+! B1bchi
+! =======
+vectype function b1bchi(e,f,g)
+
+  use basic
+  use nintegrate_mod
+  
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+
+  vectype :: temp
+
+#ifdef USECOMPLEX
+  if(jadv.eq.0) then
+     temp = 0
+  else
+     temp =  &
+       int4(ri3_79,e(:,OP_DZ),f(:,OP_DZP),g(:,OP_1),weight_79,79)  &
+     + int4(ri3_79,e(:,OP_DR),f(:,OP_DRP),g(:,OP_1),weight_79,79)
+  endif
+
+#else
+  temp = 0.
+#endif
+  b1bchi = temp
+  return
+end function b1bchi
 
 
 ! B1psieta
@@ -2801,8 +2859,8 @@ vectype function b1psipsid(e,f,g,h)
   vectype :: temp
 
 #ifdef USECOMPLEX
-  temp = 0.
   if(jadv.eq.0) then
+    temp = 0.
   else
      temp79a = e(:,OP_DZ)*(f(:,OP_DZZP)*g(:,OP_DZ ) + f(:,OP_DRZP)*g(:,OP_DR )  &
           +f(:,OP_DZP )*g(:,OP_DZZ) + f(:,OP_DRP )*g(:,OP_DRZ)) &
@@ -2817,11 +2875,11 @@ vectype function b1psipsid(e,f,g,h)
           + int5(ri4_79,e(:,OP_DZ),f(:,OP_DZP),g(:,OP_GS),h(:,OP_1),weight_79,79) &
           + int5(ri4_79,e(:,OP_DR),f(:,OP_DRP),g(:,OP_GS),h(:,OP_1),weight_79,79)
   endif
-  b1psipsid = temp
 #else
-  b1psipsid = 0.
-  return
+  temp = 0
 #endif
+  b1psipsid = temp
+  return
   
 end function b1psipsid
 
@@ -2854,12 +2912,16 @@ vectype function b1psibd(e,f,g,h)
      if(itor.eq.1) then
         temp = temp + int4(ri4_79,e(:,OP_DR),temp79a,h(:,OP_1 ),weight_79,79)
      endif
+  endif
 #ifdef USECOMPLEX
+  if(jadv.eq.0) then
+!
+  else
      temp = temp - &
           (int5(ri5_79,e(:,OP_DZ),f(:,OP_DRPP),g(:,OP_1),h(:,OP_1),weight_79,79) &
           -int5(ri5_79,e(:,OP_DR),f(:,OP_DZPP),g(:,OP_1),h(:,OP_1),weight_79,79))
-#endif
   endif
+#endif
 
   b1psibd = temp
   return
@@ -2891,6 +2953,31 @@ vectype function b1bbd(e,f,g,h)
 #endif
   return
 end function b1bbd
+! B1ped
+! ====
+vectype function b1ped(e,f,g)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+  vectype :: temp
+
+#ifdef USECOMPLEX
+  if(jadv.eq.0) then
+    temp =  int3(e(:,OP_1),f(:,OP_DP),g(:,OP_1),weight_79,79)
+  else
+    temp = int4(ri2_79,e(:,OP_DR),f(:,OP_DP),g(:,OP_DR),weight_79,79) &
+         + int4(ri2_79,e(:,OP_DZ),f(:,OP_DP),g(:,OP_DZ),weight_79,79)
+  endif
+#else
+  temp = 0.
+#endif
+
+  b1ped = temp
+  return
+end function b1ped
 
 
 ! B1feta
@@ -3595,6 +3682,29 @@ vectype function p1pu(e,f,g)
 
   return
 end function p1pu
+! P1pv
+! ====
+vectype function p1pv(e,f,g)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
+
+  vectype :: temp
+
+#ifdef USECOMPLEX
+  temp = -gam*int3(e(:,OP_1),f(:,OP_1),g(:,OP_DP),weight_79,79)
+#else
+  temp = 0.
+#endif
+
+  p1pv = temp
+
+  return
+end function p1pv
 
 
 ! P1pchi
@@ -5614,4 +5724,5 @@ end function torque_denm
 
 
 end module metricterms_new
+
 

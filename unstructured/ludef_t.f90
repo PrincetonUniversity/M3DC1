@@ -1057,6 +1057,10 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
      ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
 
+     temp = b1psiv  (trial,lin,vzt79)
+     ssterm(psi_g) = ssterm(psi_g) -     thimpb     *dt*temp
+     ddterm(psi_g) = ddterm(psi_g) + (1.-thimpb*bdf)*dt*temp
+
      temp = b1bu(trial,lin,pht79) &
           + b1bv(trial,lin,vzt79)
      ssterm(bz_g) = ssterm(bz_g) -     thimpb     *dt*temp
@@ -1067,6 +1071,10 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
           + b1bbd  (trial,lin,bz179,ni79)*dbf
      ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (.5-thimp*bdf)*dt*temp
+
+     temp = b1psiv(trial,ps179,lin)
+     ssterm(vz_g) = ssterm(vz_g) - thimpb*dt*temp
+     ddterm(vz_g) = ddterm(vz_g) - thimpb*dt*temp*bdf
 
      temp = b1bu(trial,bz179,lin)
      ssterm(u_g) = ssterm(u_g) - thimpb*dt*temp
@@ -1100,6 +1108,9 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   ! NUMVAR = 3
   ! ~~~~~~~~~~
   if(numvar.ge.3) then
+     temp = b1ped(trial,lin,ni79)*dbf*pefac
+     ssterm(pe_g) = ssterm(pe_g) -     thimp     *dt*temp
+     ddterm(pe_g) = ddterm(pe_g) + (1.-thimp*bdf)*dt*temp
 
      temp = b1psichi(trial,lin,cht79)                
      ssterm(psi_g) = ssterm(psi_g) -     thimpb     *dt*temp
@@ -1108,9 +1119,17 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
      temp = b1psichi(trial,ps179,lin)                
      ssterm(chi_g) = ssterm(chi_g) - thimpb*dt*temp
      ddterm(chi_g) = ddterm(chi_g) - thimpb*dt*temp*bdf
+
+     temp = b1bchi(trial,bz179,lin)
+     ssterm(chi_g) = ssterm(chi_g) - thimpb*dt*temp
+     ddterm(chi_g) = ddterm(chi_g) - thimpb*dt*temp*bdf
      
      if(eqsubtract.eq.1) then
         temp = b1psichi(trial,ps079,lin)
+        ssterm(chi_g) = ssterm(chi_g) -     thimpb     *dt*temp
+        ddterm(chi_g) = ddterm(chi_g) + (1.-thimpb*bdf)*dt*temp
+
+        temp = b1bchi(trial,bz079,lin)
         ssterm(chi_g) = ssterm(chi_g) -     thimpb     *dt*temp
         ddterm(chi_g) = ddterm(chi_g) + (1.-thimpb*bdf)*dt*temp
      endif
@@ -1406,6 +1425,10 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   temp = p1pu(trial,pe179,lin)
   ssterm(u_g) = ssterm(u_g) - thimpb*dt*temp
   ddterm(u_g) = ddterm(u_g) - thimpb*dt*temp*bdf
+
+  temp = p1pv(trial,pe179,lin)
+  ssterm(vz_g) = ssterm(vz_g) - thimpb*dt*temp
+  ddterm(vz_g) = ddterm(vz_g) - thimpb*dt*temp*bdf
 
   temp = p1pchi(trial,pe179,lin)
   ssterm(chi_g) = ssterm(chi_g) - thimpb*dt*temp
