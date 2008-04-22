@@ -198,7 +198,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
 
         if(advfield.eq.1) then
            ddterm(psi_g) = ddterm(psi_g) + thimp*dt*dt* &
-                (v1upsib  (trial,ps079,lin,bzs79) &
+                (v1upsib  (trial,ph079,lin,bzs79) &
                 +v1vpsipsi(trial,vz079,lin,pss79) &
                 +v1vpsipsi(trial,vz079,pss79,lin) &
                 +v1vpsib  (trial,vz079,lin,bzs79))
@@ -1024,7 +1024,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
 
   temp = b1psiu(trial,ps179,lin)
   ssterm(u_g) = ssterm(u_g) - thimpb*dt*temp
-  ddterm(u_g) = ddterm(u_g) - thimpb*dt*temp*bdf
+  ddterm(u_g) = ddterm(u_g) + (1.-thimpb*bdf)*dt*temp
 
   if(eqsubtract.eq.1) then
      temp = (b1psipsid(trial,lin,ps079,ni79) &
@@ -1074,15 +1074,15 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
 
      temp = b1psiv(trial,ps179,lin)
      ssterm(vz_g) = ssterm(vz_g) - thimpb*dt*temp
-     ddterm(vz_g) = ddterm(vz_g) - thimpb*dt*temp*bdf
+     ddterm(vz_g) = ddterm(vz_g) + (1.-thimpb*bdf)*dt*temp
 
      temp = b1bu(trial,bz179,lin)
      ssterm(u_g) = ssterm(u_g) - thimpb*dt*temp
-     ddterm(u_g) = ddterm(u_g) - thimpb*dt*temp*bdf
+     ddterm(u_g) = ddterm(u_g) + (1.-thimpb*bdf)*dt*temp
 
      temp = b1bv(trial,bz179,lin)
      ssterm(vz_g) = ssterm(vz_g) - thimpb*dt*temp
-     ddterm(vz_g) = ddterm(vz_g) - thimpb*dt*temp*bdf
+     ddterm(vz_g) = ddterm(vz_g) + (1.-thimpb*bdf)*dt*temp
            
      if(eqsubtract.eq.1) then
         temp = b1psibd(trial,lin,bz079,ni79)*dbf
@@ -1118,11 +1118,11 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
 
      temp = b1psichi(trial,ps179,lin)                
      ssterm(chi_g) = ssterm(chi_g) - thimpb*dt*temp
-     ddterm(chi_g) = ddterm(chi_g) - thimpb*dt*temp*bdf
+     ddterm(chi_g) = ddterm(chi_g) + (1.-thimpb*bdf)*dt*temp
 
      temp = b1bchi(trial,bz179,lin)
      ssterm(chi_g) = ssterm(chi_g) - thimpb*dt*temp
-     ddterm(chi_g) = ddterm(chi_g) - thimpb*dt*temp*bdf
+     ddterm(chi_g) = ddterm(chi_g) + (1.-thimpb*bdf)*dt*temp
      
      if(eqsubtract.eq.1) then
         temp = b1psichi(trial,ps079,lin)
@@ -1248,11 +1248,11 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
 
   temp = b2bu  (trial,bz179,lin)
   ssterm(u_g) = ssterm(u_g) - thimpb*dt*temp
-  ddterm(u_g) = ddterm(u_g) - thimpb*dt*temp*bdf
+  ddterm(u_g) = ddterm(u_g) + (1.-thimpb*bdf)*dt*temp
 
   temp = b2psiv(trial,ps179,lin)
   ssterm(vz_g) = ssterm(vz_g) - thimpb*dt*temp
-  ddterm(vz_g) = ddterm(vz_g) - thimpb*dt*temp*bdf
+  ddterm(vz_g) = ddterm(vz_g) + (1.-thimpb*bdf)*dt*temp
 
   if(eqsubtract.eq.1) then
      temp = b2psipsid(trial,lin,ps079,ni79)*dbf &
@@ -1307,7 +1307,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
 
      temp = b2bchi(trial,bz179,lin)                  
      ssterm(chi_g) = ssterm(chi_g) - thimpb*dt*temp
-     ddterm(chi_g) = ddterm(chi_g) - thimpb*dt*temp*bdf
+     ddterm(chi_g) = ddterm(chi_g) + (1.-thimpb*bdf)*dt*temp
              
      if(eqsubtract.eq.1) then
         temp = b2bchi(trial,bz079,lin)
@@ -1424,15 +1424,15 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
 
   temp = p1pu(trial,pe179,lin)
   ssterm(u_g) = ssterm(u_g) - thimpb*dt*temp
-  ddterm(u_g) = ddterm(u_g) - thimpb*dt*temp*bdf
+  ddterm(u_g) = ddterm(u_g) + (1.-thimpb*bdf)*dt*temp
 
   temp = p1pv(trial,pe179,lin)
   ssterm(vz_g) = ssterm(vz_g) - thimpb*dt*temp
-  ddterm(vz_g) = ddterm(vz_g) - thimpb*dt*temp*bdf
+  ddterm(vz_g) = ddterm(vz_g) + (1.-thimpb*bdf)*dt*temp
 
   temp = p1pchi(trial,pe179,lin)
   ssterm(chi_g) = ssterm(chi_g) - thimpb*dt*temp
-  ddterm(chi_g) = ddterm(chi_g) - thimpb*dt*temp*bdf
+  ddterm(chi_g) = ddterm(chi_g) + (1.-thimpb*bdf)*dt*temp
 
   if(ipres.eq.0) then
      temp = p1uus  (trial,lin,ph179,sig79) &
