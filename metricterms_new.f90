@@ -1804,8 +1804,9 @@ vectype function v3p(e,f)
   vectype, intent(in), dimension(79,OP_NUM) :: e,f
   vectype :: temp
 
-  temp = int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
-       + int2(e(:,OP_DR),f(:,OP_DR),weight_79,79)
+!!$  temp = int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
+!!$       + int2(e(:,OP_DR),f(:,OP_DR),weight_79,79)
+  temp = -int2(e(:,OP_1),f(:,OP_LP),weight_79,79)
 
   v3p = temp
   return
@@ -1925,8 +1926,13 @@ vectype function v3bb(e,f,g)
 
   vectype :: temp
 
-  temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DZ),weight_79,79) &
-       + int4(ri2_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DR),weight_79,79)
+!!$  temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DZ),weight_79,79) &
+!!$       + int4(ri2_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DR),weight_79,79)
+
+  temp = - &
+       (int4(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
+       +int4(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),weight_79,79) &
+       +int4(ri2_79,e(:,OP_1),f(:,OP_1 ),g(:,OP_GS),weight_79,79))
 
   v3bb = temp
   return
@@ -2786,13 +2792,14 @@ vectype function b1psieta(e,f,g,h)
   vectype :: temp
 
   if(jadv.eq.0) then
-     temp = -(int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_1 ),weight_79,79) &
-             +int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1 ),weight_79,79) &
-             +int3(e(:,OP_1 ),f(:,OP_DR),g(:,OP_DR),weight_79,79) &
-             +int3(e(:,OP_1 ),f(:,OP_DZ),g(:,OP_DZ),weight_79,79))
-     if(itor.eq.1) then
-        temp = temp - 2.*int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),weight_79,79)
-     endif
+!!$     temp = -(int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_1 ),weight_79,79) &
+!!$             +int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1 ),weight_79,79) &
+!!$             +int3(e(:,OP_1 ),f(:,OP_DR),g(:,OP_DR),weight_79,79) &
+!!$             +int3(e(:,OP_1 ),f(:,OP_DZ),g(:,OP_DZ),weight_79,79))
+!!$     if(itor.eq.1) then
+!!$        temp = temp - 2.*int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),weight_79,79)
+!!$     endif
+     temp = int3(e(:,OP_1),f(:,OP_GS),g(:,OP_1),weight_79,79)
 
      if(hypf.ne.0.) then
         if(ihypeta.eq.1) then
@@ -3087,12 +3094,16 @@ vectype function b2beta(e,f,g,h)
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-  temp = -(int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1),weight_79,79) &
-          +int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_1),weight_79,79))
+!!$  temp = -(int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1),weight_79,79) &
+!!$          +int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_1),weight_79,79))
+!!$
+!!$  if(itor.eq.1) then
+!!$     temp = temp - 2.*int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),weight_79,79)
+!!$  endif
 
-  if(itor.eq.1) then
-     temp = temp - 2.*int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),weight_79,79)
-  endif
+  temp = int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),weight_79,79) &
+       + int3(e(:,OP_1),f(:,OP_DR),g(:,OP_DR),weight_79,79) &
+       + int3(e(:,OP_1),f(:,OP_GS),g(:,OP_1 ),weight_79,79)
 
   if(hypi.ne.0.) then
      if(ihypeta.eq.1) then
@@ -3542,9 +3553,10 @@ vectype function n1ndenm(e,f,g,h)
   real, intent(in) :: g
   vectype :: temp
 
-  temp = -g* &
-       (int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
-       +int2(e(:,OP_DR),f(:,OP_DR),weight_79,79))
+!!$  temp = -g* &
+!!$       (int2(e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
+!!$       +int2(e(:,OP_DR),f(:,OP_DR),weight_79,79))
+  temp = g*int2(e(:,OP_1),f(:,OP_LP),weight_79,79)
 
 #ifdef USECOMPLEX
   temp = temp + g*int3(ri2_79,e(:,OP_1),f(:,OP_DPP),weight_79,79)
