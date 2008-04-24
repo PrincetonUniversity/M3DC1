@@ -421,9 +421,11 @@ subroutine smooth
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      
   ! smooth vorticity
-  call newvar(mass_matrix_lhs_dc,vor,vel,1,vecsize_vel, &
-       gs_matrix_rhs_dc,NV_DCBOUND)
-  call smoother1(vor,vel,vecsize_vel,1)
+  if(itor.eq.0) then
+     call newvar(mass_matrix_lhs_dc,vor,vel,1,vecsize_vel, &
+          gs_matrix_rhs_dc,NV_DCBOUND)
+     call smoother1(vor,vel,vecsize_vel,1)
+  end if
 
   ! smooth compression
   if(numvar.ge.3) then
