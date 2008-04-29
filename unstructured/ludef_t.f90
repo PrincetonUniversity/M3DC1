@@ -141,7 +141,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
         ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
      endif
 
-  else
+  else       ! on numvar.eq.1
           
      temp = v1vvn(trial,lin,vz179,nt79) &
           + v1vvn(trial,vz179,lin,nt79)
@@ -171,7 +171,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
         ddterm(bz_g) = ddterm(bz_g) + dt* &
              (v1psib(trial,pss79,lin) &
              +v1bb  (trial,lin,bzs79) &
-             +v1bb  (trial,bzs79,lin))       
+             +v1bb  (trial,bzs79,lin))
      
         if(isources.eq.1) then
            ddterm(bz_g) = ddterm(bz_g) + thimp*dt*dt* &
@@ -229,7 +229,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
                    v1vvn(trial,vz079,vz079,lin)
            endif
         endif
-     endif     
+     endif   !  on numvar .ne. 1
 
      if(i3d.eq.1) then
         temp = v1psif(trial,lin,bf79)
@@ -1224,7 +1224,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
 
   temp = b2psipsid(trial,lin,ps179,ni79)*dbf &
        + b2psipsid(trial,ps179,lin,ni79)*dbf &
-       + b2psibd  (trial,lin,bz179,ni79)*dbf 
+       + b2psibd  (trial,lin,bz179,ni79)*dbf
   ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
   ddterm(psi_g) = ddterm(psi_g) + (.5-thimp*bdf)*dt*temp
 
@@ -1242,7 +1242,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
 
   temp = b2psibd(trial,ps179,lin,ni79)*dbf &
        + b2bbd  (trial,lin,bz179,ni79)*dbf &
-       + b2bbd  (trial,bz179,lin,ni79)*dbf 
+       + b2bbd  (trial,bz179,lin,ni79)*dbf
   ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
   ddterm(bz_g) = ddterm(bz_g) + (.5-thimp*bdf)*dt*temp
 
