@@ -538,6 +538,7 @@ subroutine define_fields_79(itri, fields)
      r_79 = x_79 
   else 
      r_79 = 1.
+        rzero = 1.
   endif
   ri_79 = 1./r_79
   ri2_79 = ri_79*ri_79

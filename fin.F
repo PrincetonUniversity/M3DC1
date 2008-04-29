@@ -250,6 +250,7 @@
       zmag = 0.
       xlim = xzero
       zlim = 0.
+      rzero = xmag
 !
 !..... toroidal current controller parameters
       tcur = tcuro

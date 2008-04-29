@@ -76,6 +76,7 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
         r_79 = x_79
      else
         r_79 = 1.
+        rzero = 1.
      endif
      ri_79 = 1./r_79
 

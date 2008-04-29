@@ -622,6 +622,9 @@ subroutine gradshafranov_solve
   end do mainloop
 
      if(myrank.eq.0 ) print *, "Converged: GS: error = ", error,error2
+     if(myrank.eq.0 ) then
+        print *, "GS: curr = ", curr
+     endif
 
   ! populate phi0 array
   ! ~~~~~~~~~~~~~~~~~~~

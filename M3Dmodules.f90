@@ -48,6 +48,7 @@ module basic
 
   ! domain parameters
   real :: xzero, zzero  ! cooridinates of lower left corner of domain
+  real :: rzero    ! nominal major radius of the device
 
   ! boundary conditions
   integer :: iper, jper ! periodic boundary conditions
@@ -171,7 +172,7 @@ integer :: nv1equ  ! if set to 1, use numvar equilibrium for numvar > 1
 !
   namelist / inputnl/                                          &
        itaylor,                                                &
-       xzero,zzero,beta,                                       &
+       xzero,zzero,beta,rzero,                                 &
        numvar,idens,ipres,gyro,isources,nosig,itor,jadv,       &
        gam,db,gravr,gravz,                                     &
        p0,pi0,bzero,vzero,                                     &

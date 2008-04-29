@@ -2,14 +2,14 @@ module metricterms_new
 
 implicit none
 
-contains
+contains      
 
 !=============================================================================
 ! V1 TERMS
 !=============================================================================
+  
 
-
-! V1umu
+! V1umu 
 ! =====
 vectype function v1umu(e,f,g)
 
@@ -108,12 +108,17 @@ vectype function v1un(e,f,g)
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
   vectype :: temp
 
-  temp = int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_1),weight_79,79) &
-       + int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1),weight_79,79)
-  if(itor.eq.1) then
-     temp = temp + 2.*int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),weight_79,79)
-  endif
-
+  select case(ivform)
+  case(0)
+    temp = int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_1),weight_79,79) &
+         + int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1),weight_79,79)
+    if(itor.eq.1) then
+       temp = temp + 2.*int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),weight_79,79)
+    endif
+  case(1)
+    temp = (int4(r2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1),weight_79,79) &
+         +  int4(r2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1),weight_79,79))/rzero**2
+  end select
   v1un = temp
   return
 end function v1un
@@ -152,14 +157,18 @@ vectype function v1psipsi(e,f,g)
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
   vectype :: temp
           
-  temp = int4(ri_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_GS),weight_79,79) &
-       - int4(ri_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_GS),weight_79,79)
-
-  if(itor.eq.1) then
-     temp = temp - 2.*int4(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_GS),weight_79,79)
-  endif
-
-  v1psipsi = temp
+ 
+    temp = int4(ri_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_GS),weight_79,79) &
+         - int4(ri_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_GS),weight_79,79)
+   select case(ivform)
+   case(0)
+    if(itor.eq.1) then
+       temp = temp - 2.*int4(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_GS),weight_79,79)
+    endif
+  case(1)
+!
+  end select
+    v1psipsi = temp
   return
 end function v1psipsi
 
@@ -179,10 +188,15 @@ vectype function v1psib(e,f,g)
   temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_DZP),g(:,OP_1),weight_79,79) &
        + int4(ri2_79,e(:,OP_DR),f(:,OP_DRP),g(:,OP_1),weight_79,79)
 
+  select case(ivform)
+  case(0)
   if(itor.eq.1) then
      temp = temp &
           + 2.*int4(ri3_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_1),weight_79,79)
   endif
+  case(1)
+!
+  end select
 
   v1psib = temp
 #else
@@ -202,12 +216,16 @@ vectype function v1bb(e,f,g)
 
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
   vectype :: temp
-
+  select case(ivform)
+  case(0)
   if(itor.eq.0) then
      temp = 0.
   else
      temp = -2.*int4(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZ),weight_79,79) 
   endif
+  case(1)
+     temp=0.
+  end select
 
   v1bb = temp
   return
@@ -358,20 +376,23 @@ vectype function v1upsipsi(e,f,g,h)
   ! |nu, psi(2)|,z
   temp79f = e(:,OP_DZZ)*h(:,OP_DR ) - e(:,OP_DRZ)*h(:,OP_DZ ) &
        +    e(:,OP_DZ )*h(:,OP_DRZ) - e(:,OP_DR )*h(:,OP_DZZ)
+
+  select case(ivform)
+  case(0)  
+
+    temp =-int3(ri2_79,temp79b,temp79e,weight_79,79) &
+         - int3(ri2_79,temp79c,temp79f,weight_79,79) &
+         + int4(ri2_79,e(:,OP_DZ),temp79b,h(:,OP_GS),weight_79,79) &
+         - int4(ri2_79,e(:,OP_DR),temp79c,h(:,OP_GS),weight_79,79)
+
+    if(itor.eq.1) then
+       ! |u, psi(1)|
+       temp79a = f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ)
   
-  temp =-int3(ri2_79,temp79b,temp79e,weight_79,79) &
-       - int3(ri2_79,temp79c,temp79f,weight_79,79) &
-       + int4(ri2_79,e(:,OP_DZ),temp79b,h(:,OP_GS),weight_79,79) &
-       - int4(ri2_79,e(:,OP_DR),temp79c,h(:,OP_GS),weight_79,79)
+       ! |nu,psi(2)|
+       temp79d = e(:,OP_DZ)*h(:,OP_DR) - e(:,OP_DR)*h(:,OP_DZ)
 
-  if(itor.eq.1) then
-     ! |u, psi(1)|
-     temp79a = f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ)
-
-     ! |nu,psi(2)|
-     temp79d = e(:,OP_DZ)*h(:,OP_DR) - e(:,OP_DR)*h(:,OP_DZ)
-
-     temp = temp &
+       temp = temp &
           -    int4(ri3_79,e(:,OP_DZ),temp79a,h(:,OP_GS),weight_79,79) &
           - 2.*int4(ri3_79,e(:,OP_1 ),temp79c,h(:,OP_GS),weight_79,79) &
           +    int3(ri3_79,temp79e,temp79a,weight_79,79) &
@@ -383,7 +404,28 @@ vectype function v1upsipsi(e,f,g,h)
           +    int3(ri4_79,temp79a,temp79d,weight_79,79) &
           - 2.*int4(ri4_79,e(:,OP_DR),temp79a,h(:,OP_DZ ),weight_79,79) &
           - 2.*int4(ri4_79,e(:,OP_1 ),temp79a,h(:,OP_DRZ),weight_79,79)
-  endif
+    endif
+  case(1)
+   temp = -int2(temp79b,temp79e,weight_79,79)/rzero**2 &
+         - int2(temp79c,temp79f,weight_79,79)/rzero**2 &
+         + int3(e(:,OP_DZ),temp79b,h(:,OP_GS),weight_79,79)/rzero**2 &
+         - int3(e(:,OP_DR),temp79c,h(:,OP_GS),weight_79,79)/rzero**2
+
+    if(itor.eq.1) then
+       ! |u, psi(1)|
+       temp79a = f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ)
+  
+       ! |nu,psi(2)|
+       temp79d = e(:,OP_DZ)*h(:,OP_DR) - e(:,OP_DR)*h(:,OP_DZ)
+   temp = temp             &
+        + int3(ri_79,temp79d,temp79b,weight_79,79)/rzero**2  &
+        - int3(ri_79,temp79a,temp79e,weight_79,79)/rzero**2  &
+        + int3(ri2_79,temp79a,temp79d,weight_79,79)/rzero**2  &
+        + int4(ri_79,h(:,OP_GS),temp79a,e(:,OP_DZ),weight_79,79)/rzero**2 
+      endif
+
+  end select
+
 
   v1upsipsi = temp
   return
@@ -406,17 +448,30 @@ vectype function v1upsib(e,f,g,h)
                        +e(:,OP_DRZ)*f(:,OP_DRP)-e(:,OP_DR)*f(:,OP_DRZP)) &
            -g(:,OP_DZ)*(e(:,OP_DRR)*f(:,OP_DRP)-e(:,OP_DR)*f(:,OP_DRRP) &
                        +e(:,OP_DRZ)*f(:,OP_DZP)-e(:,OP_DZ)*f(:,OP_DRZP))
+  select case(ivform)
+  case(0)
 
-  temp = -int3(ri3_79,temp79a,h(:,OP_1),weight_79,79)
+    temp = -int3(ri3_79,temp79a,h(:,OP_1),weight_79,79)
 
-  if(itor.eq.1) then
-     temp79a = g(:,OP_DZ)*(e(:,OP_1)*f(:,OP_DRRP) - e(:,OP_DZ)*f(:,OP_DZP) &
+    if(itor.eq.1) then
+       temp79a = g(:,OP_DZ)*(e(:,OP_1)*f(:,OP_DRRP) - e(:,OP_DZ)*f(:,OP_DZP) &
                                                - 2.*e(:,OP_DR)*f(:,OP_DRP)) &
               +g(:,OP_DR)*(e(:,OP_DZ)*f(:,OP_DRP) - e(:,OP_1 )*f(:,OP_DRZP))
-     temp = temp &
+       temp = temp &
           - 2.*int3(ri4_79,temp79a,h(:,OP_1),weight_79,79) &
           + 2.*int5(ri5_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DZ),h(:,OP_1),weight_79,79)
-  endif
+    endif
+
+  case(1)
+    temp = -int3(ri_79,temp79a,h(:,OP_1),weight_79,79)/rzero**2
+    if(itor.eq.1) then
+       temp79a = f(:,OP_DZP)*g(:,OP_DR)-f(:,OP_DRP)*g(:,OP_DZ)
+       temp = temp + (int5(ri2_79,e(:,OP_DR),f(:,OP_DZP),g(:,OP_DR),h(:,OP_1),weight_79,79) &
+                     -int5(ri2_79,e(:,OP_DR),f(:,OP_DRP),g(:,OP_DZ),h(:,OP_1),weight_79,79))/rzero**2
+
+    endif
+
+  end select
 
   v1upsib = temp
 #else
@@ -439,7 +494,8 @@ vectype function v1ubb(e,f,g,h)
   vectype :: temp
 
   temp = 0.
-
+  select case(ivform)
+  case(0)
   if(itor.eq.1) then
      temp = 2.* &
           (   int5(ri3_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),weight_79,79) &
@@ -457,7 +513,22 @@ vectype function v1ubb(e,f,g,h)
   endif
 
 #endif
-  
+  case(1)
+
+  if(itor.eq.1) then
+     temp = 2.* &
+          (   int5(ri_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),weight_79,79) &
+          -   int5(ri_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),weight_79,79))/rzero**2
+  endif
+
+#ifdef USECOMPLEX
+  temp = temp + &
+       (int5(ri2_79,e(:,OP_DZ),f(:,OP_DZPP),g(:,OP_1),h(:,OP_1),weight_79,79) &
+       +int5(ri2_79,e(:,OP_DR),f(:,OP_DRPP),g(:,OP_1),h(:,OP_1),weight_79,79))/rzero**2
+
+#endif
+
+  end select
   v1ubb = temp
   return
 end function v1ubb
@@ -495,20 +566,13 @@ vectype function v1vpsipsi(e,f,g,h)
      endif
 
   case(1)
-     temp79a = g(:,OP_DZ)*( h(:,OP_DZ)*e(:,OP_DRZ) + h(:,OP_DR)*e(:,OP_DRR)  &
-                          - e(:,OP_DZ)*h(:,OP_DRZ) - e(:,OP_DR)*h(:,OP_DRR)) &
-             + g(:,OP_DR)*( e(:,OP_DR)*h(:,OP_DRZ) + e(:,OP_DZ)*h(:,OP_DZZ)  &
-                          - h(:,OP_DR)*e(:,OP_DRZ) - h(:,OP_DZ)*e(:,OP_DZZ))
-     temp = -int3(ri_79,f(:,OP_DP),temp79a,weight_79,79)
+     temp79a = g(:,OP_DZ)*(-h(:,OP_DZ)*e(:,OP_DRZ) - h(:,OP_DR)*e(:,OP_DRR)  &
+                          + e(:,OP_DZ)*h(:,OP_DRZ) + e(:,OP_DR)*h(:,OP_DRR)) &
+             + g(:,OP_DR)*(-e(:,OP_DR)*h(:,OP_DRZ) - e(:,OP_DZ)*h(:,OP_DZZ)  &
+                          + h(:,OP_DR)*e(:,OP_DRZ) + h(:,OP_DZ)*e(:,OP_DZZ))
+     temp = int3(ri_79,f(:,OP_DP),temp79a,weight_79,79)
 
-     if(itor.eq.1) then
-        temp79a = e(:,OP_DZ)*(g(:,OP_DZ)*h(:,OP_DZ ) + g(:,OP_DR)*h(:,OP_DR)) &
-             + 2.*e(:,OP_DR)*(g(:,OP_DZ)*h(:,OP_DR ))                         &
-             +    e(:,OP_1) *(g(:,OP_DR)*h(:,OP_DZZ) - g(:,OP_DZ)*h(:,OP_DRR))
-        temp = temp &
-             -2.*int3(ri2_79,f(:,OP_DP),temp79a,weight_79,79) &
-             -2.*int5(ri3_79,e(:,OP_1),f(:,OP_DP),g(:,OP_DZ),h(:,OP_DR),weight_79,79)
-     endif
+    
   end select
 
   v1vpsipsi = temp
@@ -551,16 +615,14 @@ vectype function v1vpsib(e,f,g,h)
 #endif
 
      case(1)
+        if(itor.eq.1) then
         temp = 2.*(int5(ri_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),weight_79,79) &
                   -int5(ri_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),weight_79,79))
+        endif
 #ifdef USECOMPLEX
         temp = temp - &
              (int5(ri2_79,e(:,OP_DZ),f(:,OP_DPP),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
              +int5(ri2_79,e(:,OP_DR),f(:,OP_DPP),g(:,OP_DR),h(:,OP_1),weight_79,79))
-        if(itor.eq.1) then
-           temp = temp - &
-                2.*int5(ri3_79,e(:,OP_1),f(:,OP_DPP),g(:,OP_DR),h(:,OP_1),weight_79,79)
-        endif
 #endif
      end select
   endif
@@ -970,6 +1032,33 @@ vectype function v1bf(e,f,g)
 
   return
 end function v1bf
+! V1p
+! ===
+vectype function v1p(e,f)
+  use basic
+  use arrays
+  use nintegrate_mod
+
+  implicit none
+
+  vectype, intent(in), dimension(79,OP_NUM) :: e, f
+
+  vectype :: temp
+  temp = 0.
+
+  select case(ivform)
+  case(0)
+    temp = 0
+  case(1)
+    temp = &
+       + int3(r_79,e(:,OP_DZ),f(:,OP_DR),weight_79,79) &
+       - int3(r_79,e(:,OP_DR),f(:,OP_DZ),weight_79,79)
+
+  end select
+
+  v1p = temp
+  return
+end function v1p
 
 
 
@@ -1114,8 +1203,14 @@ vectype function v2up(e,f,g)
   temp = 0.
 
 #ifdef USECOMPLEX
-  temp = -int4(ri_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DR),weight_79,79) &
-       +  int4(ri_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DZ),weight_79,79)
+  select case(ivform)
+    case(0)
+      temp = -int4(ri_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DR),weight_79,79) &
+           +  int4(ri_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DZ),weight_79,79)
+    case(1)
+      temp = ( -int4(r_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DR),weight_79,79) &
+           +    int4(r_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DZ),weight_79,79))/rzero**2
+    end select
 #endif
 
   v2up = temp
@@ -1329,22 +1424,39 @@ vectype function v2upsipsi(e,f,g,h)
 
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   vectype :: temp
-#ifdef USECOMPLEX
-  temp79a = h(:,OP_DZ)*(f(:,OP_DZZP)*g(:,OP_DR )-f(:,OP_DRZP)*g(:,OP_DZ )  &
-                       +f(:,OP_DZP )*g(:,OP_DRZ)-f(:,OP_DRP )*g(:,OP_DZZ)) &
-          + h(:,OP_DR)*(f(:,OP_DRZP)*g(:,OP_DR )-f(:,OP_DRRP)*g(:,OP_DZ )  &
-                       +f(:,OP_DZP )*g(:,OP_DRR)-f(:,OP_DRP )*g(:,OP_DRZ))
-  temp = -int3(ri3_79,e(:,OP_1),temp79a,weight_79,79)
 
-  if(itor.eq.1) then
-     temp79a = (f(:,OP_DZP)*g(:,OP_DR)-f(:,OP_DRP)*g(:,OP_DZ))*h(:,OP_DR)
-     temp = temp + int3(ri4_79,e(:,OP_1),temp79a,weight_79,79)
-  endif
+#ifdef USECOMPLEX  
+  select case(ivform)
+  case(0)
+     temp79a = h(:,OP_DZ)*(f(:,OP_DZZP)*g(:,OP_DR )-f(:,OP_DRZP)*g(:,OP_DZ )  &
+                       +f(:,OP_DZP )*g(:,OP_DRZ)-f(:,OP_DRP )*g(:,OP_DZZ)) &
+            + h(:,OP_DR)*(f(:,OP_DRZP)*g(:,OP_DR )-f(:,OP_DRRP)*g(:,OP_DZ )  &
+                       +f(:,OP_DZP )*g(:,OP_DRR)-f(:,OP_DRP )*g(:,OP_DRZ))
+    temp = -int3(ri3_79,e(:,OP_1),temp79a,weight_79,79)
+
+    if(itor.eq.1) then
+       temp79a = (f(:,OP_DZP)*g(:,OP_DR)-f(:,OP_DRP)*g(:,OP_DZ))*h(:,OP_DR)
+       temp = temp + int3(ri4_79,e(:,OP_1),temp79a,weight_79,79)
+    endif
+ 
+  case(1)
+   temp79a = h(:,OP_DZ)*(f(:,OP_DZZP)*g(:,OP_DR )-f(:,OP_DRZP)*g(:,OP_DZ )  &
+                       +f(:,OP_DZP )*g(:,OP_DRZ)-f(:,OP_DRP )*g(:,OP_DZZ)) &
+            + h(:,OP_DR)*(f(:,OP_DRZP)*g(:,OP_DR )-f(:,OP_DRRP)*g(:,OP_DZ )  &
+                       +f(:,OP_DZP )*g(:,OP_DRR)-f(:,OP_DRP )*g(:,OP_DRZ))
+    temp = -int3(ri_79,e(:,OP_1),temp79a,weight_79,79)/rzero**2
+
+    if(itor.eq.1) then
+       temp79a = (f(:,OP_DZP)*g(:,OP_DR)-f(:,OP_DRP)*g(:,OP_DZ))*h(:,OP_DR)
+       temp = temp - int3(ri2_79,e(:,OP_1),temp79a,weight_79,79)/rzero**2
+    endif
+
+  end select
+#else
+  temp = 0.
+#endif
 
   v2upsipsi = temp
-#else
-  v2upsipsi = 0.
-#endif
   return
 end function v2upsipsi
 
@@ -1363,20 +1475,34 @@ vectype function v2upsib(e,f,g,h)
   vectype :: temp
 
   temp79a = e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ)
+  select case(ivform)
+  case(0)
 
-  temp = int4(ri2_79,temp79a,g(:,OP_DR),h(:,OP_DZ),weight_79,79) &
-       - int4(ri2_79,temp79a,g(:,OP_DZ),h(:,OP_DR),weight_79,79)
-  if(itor.eq.1) then
-     temp = temp + 2.* &
-          (int5(ri3_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),weight_79,79) &
-          -int5(ri3_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),weight_79,79))
-  endif
+    temp = int4(ri2_79,temp79a,g(:,OP_DR),h(:,OP_DZ),weight_79,79) &
+         - int4(ri2_79,temp79a,g(:,OP_DZ),h(:,OP_DR),weight_79,79)
+    if(itor.eq.1) then
+       temp = temp + 2.* &
+            (int5(ri3_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),weight_79,79) &
+            -int5(ri3_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),weight_79,79))
+    endif
+
+#ifdef USECOMPLEX
+    temp = temp - &
+         (int5(ri4_79,e(:,OP_1),f(:,OP_DZPP),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+         +int5(ri4_79,e(:,OP_1),f(:,OP_DRPP),g(:,OP_DR),h(:,OP_1),weight_79,79))
+#endif
+  case(1)
+    temp = (int3(temp79a,g(:,OP_DR),h(:,OP_DZ),weight_79,79) &
+         -  int3(temp79a,g(:,OP_DZ),h(:,OP_DR),weight_79,79))/rzero**2
 
 #ifdef USECOMPLEX
   temp = temp - &
-       (int5(ri4_79,e(:,OP_1),f(:,OP_DZPP),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
-       +int5(ri4_79,e(:,OP_1),f(:,OP_DRPP),g(:,OP_DR),h(:,OP_1),weight_79,79))
+       (int5(ri2_79,e(:,OP_1),f(:,OP_DZPP),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+       +int5(ri2_79,e(:,OP_1),f(:,OP_DRPP),g(:,OP_DR),h(:,OP_1),weight_79,79))/rzero**2
 #endif
+
+
+  end select
 
   v2upsib = temp
   return
@@ -1396,14 +1522,21 @@ vectype function v2ubb(e,f,g,h)
   vectype :: temp
 
 #ifdef USECOMPLEX
-  temp = &
-       (int5(ri3_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
-       -int5(ri3_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DR),h(:,OP_1),weight_79,79))
+  select case(ivform)
+  case(0)
+    temp = &
+         (int5(ri3_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+         -int5(ri3_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DR),h(:,OP_1),weight_79,79))
+  case(1)
+   temp = &
+         (int5(ri_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
+         -int5(ri_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DR),h(:,OP_1),weight_79,79))/rzero**2
+  end select
 
-  v2ubb = temp
 #else
-  v2ubb = 0.
+  temp = 0.
 #endif
+  v2ubb = temp
   return
 end function v2ubb
 
@@ -2148,7 +2281,7 @@ vectype function v3vpsipsi(e,f,g,h)
       +int5(ri2_79,f(:,OP_DP),e(:,OP_DZZ),g(:,OP_DZ ),h(:,OP_DZ),weight_79,79) &
       -int5(ri2_79,f(:,OP_DP),e(:,OP_DR ),g(:,OP_GS ),h(:,OP_DR),weight_79,79)  &
       -int5(ri2_79,f(:,OP_DP),e(:,OP_DZ ),g(:,OP_GS ),h(:,OP_DZ),weight_79,79)
-  endselect
+  end select
 #endif
 
   v3vpsipsi = temp
@@ -2596,6 +2729,7 @@ end function b1psi
 
 
 ! B1psiu
+
 ! ======
 vectype function b1psiu(e,f,g)
 
@@ -2606,7 +2740,8 @@ vectype function b1psiu(e,f,g)
 
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
   vectype :: temp
-
+  select case(ivform)
+  case(0)
   if(jadv.eq.0) then
      temp = int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
           - int4(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
@@ -2625,6 +2760,26 @@ vectype function b1psiu(e,f,g)
               + int4(ri4_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_DZ),weight_79,79) 
       endif
   endif
+  case(1)
+ if(jadv.eq.0) then
+     temp = int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
+          - int4(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
+  else
+      temp = (int4(ri_79,e(:,OP_DR),f(:,OP_DRZ),g(:,OP_DR ),weight_79,79) &
+           + int4(ri_79,e(:,OP_DR),f(:,OP_DZ ),g(:,OP_DRR),weight_79,79) &
+           - int4(ri_79,e(:,OP_DR),f(:,OP_DRR),g(:,OP_DZ ),weight_79,79) &
+           - int4(ri_79,e(:,OP_DR),f(:,OP_DR ),g(:,OP_DRZ),weight_79,79) &
+           + int4(ri_79,e(:,OP_DZ),f(:,OP_DZZ),g(:,OP_DR ),weight_79,79) &
+           + int4(ri_79,e(:,OP_DZ),f(:,OP_DZ ),g(:,OP_DRZ),weight_79,79) &
+           - int4(ri_79,e(:,OP_DZ),f(:,OP_DRZ),g(:,OP_DZ ),weight_79,79) &
+           - int4(ri_79,e(:,OP_DZ),f(:,OP_DR ),g(:,OP_DZZ),weight_79,79))/rzero**2 
+      if(itor.eq.1) then
+         temp = temp &
+              + (int4(ri2_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_DR),weight_79,79) &
+               - int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_DZ),weight_79,79))/rzero**2 
+      endif
+  endif
+  end select
   
   b1psiu = temp
   return
@@ -2679,14 +2834,20 @@ vectype function b1bu(e,f,g)
   if(jadv.eq.0) then
      temp = 0.
   else
-     temp = int4(ri4_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DZP),weight_79,79) &
-          + int4(ri4_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DRP),weight_79,79) 
+     select case(ivform)
+     case(0)    
+     temp = -(int4(ri4_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DZP),weight_79,79) &
+            + int4(ri4_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DRP),weight_79,79)) 
+     case(1)
+     temp = -(int4(ri2_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DZP),weight_79,79) &
+            + int4(ri2_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DRP),weight_79,79))/rzero**2
+     end select
   endif
 
-  b1bu = -temp
 #else
-  b1bu = 0.
+  temp  = 0.
 #endif
+  b1bu = temp
 end function b1bu
 
 
@@ -3148,6 +3309,8 @@ vectype function b2bu(e,f,g)
 
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
   vectype :: temp
+  select case(ivform)
+  case(0)
 
   temp = int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
        - int4(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
@@ -3155,7 +3318,11 @@ vectype function b2bu(e,f,g)
   if(itor.eq.1) then
      temp = temp - 2.*int4(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZ),weight_79,79)
   endif
-
+  case(1)
+  temp = (int4(r_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
+        - int4(r_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79))/rzero**2
+  end select
+ 
   b2bu = temp
   return
 end function b2bu
