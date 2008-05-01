@@ -92,7 +92,7 @@ module basic
   ! grad-shafranov options
   integer :: divertors! number of divertors
   integer :: igs      ! number of grad-shafranov iterations
-integer :: nv1equ  ! if set to 1, use numvar equilibrium for numvar > 1
+  integer :: nv1equ   ! if set to 1, use numvar equilibrium for numvar > 1
   real :: xmag, zmag  ! position of magnetic axis
   real :: xlim, zlim  ! position of limiter
   real :: xdiv, zdiv  ! position of divertor
@@ -118,6 +118,7 @@ integer :: nv1equ  ! if set to 1, use numvar equilibrium for numvar > 1
   integer :: iestatic    ! 1 = do not advance fields
   integer :: igauge
   integer :: ivform      ! 0: V = v grad(phi).  1: V = R^2 v grad(phi)
+  integer :: ibform      ! 0: multiply bz equation by r^2
   integer :: ihypeta     ! 1 = scale hyper-resistivity with eta
   integer :: ihypdx      ! scale hyper-resistivity with dx**ihypdx
   integer :: ikapscale   ! 1 = scale kappar with kappa
@@ -138,6 +139,7 @@ integer :: nv1equ  ! if set to 1, use numvar equilibrium for numvar > 1
   real :: thimp_ohm      ! implicitness parameter for ohmic heating
   real :: regular        ! regularization constant in chi equation
   real :: max_ke         ! max KE before fields are re-scaled when linear==1
+  real :: eta_djdt       ! eta = (1+eta_djdt*dj/dt)*eta
 
   ! current controller parameters
   real :: tcur           ! target toroidal current
@@ -191,19 +193,23 @@ integer :: nv1equ  ! if set to 1, use numvar equilibrium for numvar > 1
        irestart,istart,                                        &
        tcuro,djdpsi,xmag,zmag,xlim,zlim,                       &
        expn,q0,divertors,xdiv,zdiv,divcur,th_gs,p1,p2,         &
-       idevice,igs,nv1equ,tol_gs,                                     &
+       idevice,igs,nv1equ,tol_gs,                              &
        iconstflux,regular,max_ke,                              &
-       ntor,iadapt,istatic,iestatic,ivform,ihypeta,ikapscale,  &
+       ntor,iadapt,istatic,iestatic,ivform, ibform,            &
+       ihypeta,ikapscale,                                      &
        iteratephi,                                             &
        inonormalflow, inoslip_pol, inoslip_tor, inostress_tor, &
        iconst_t, inograd_t, inocurrent_pol, inocurrent_tor,    &
        irecalc_eta,ihypdx, iconst_eta,                         &
-       iupwind, dndt_fac, dvdt_fac, dbdt_fac
+       iupwind, dndt_fac, dvdt_fac, dbdt_fac,                  &
+       eta_djdt
 
   !     derived quantities
   real :: pi,dbf,bdf,hypv,hypc,hypf,hypi,hypp,   &
        time,                                     &
        gbound,fbound
+
+  real :: eta_fac
 
   integer :: ntime
   character*10 :: datec, timec

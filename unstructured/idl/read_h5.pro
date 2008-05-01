@@ -548,6 +548,8 @@ function get_units, type
        units = v0+b0+over+c
    endif else if(strcmp(type, 'energy', /fold_case) eq 1) then begin
        units = b0+sq+l0+cu+over+pi4
+   endif else if(strcmp(type, 'power', /fold_case) eq 1) then begin
+       units = b0+sq+l0+cu+over+pi4+t0
    endif else if(strcmp(type, 'momentum', /fold_case) eq 1) then begin
        units = n0+v0
    endif else if(strcmp(type, 'angular momentum', /fold_case) eq 1) then begin
@@ -2202,7 +2204,7 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
                  _EXTRA=extra, overplot=overplot, $
                  ylog=ylog, xlog=xlog, left=left, $
                  power_spectrum=power_spectrum, per_length=per_length, $
-                 growth_rate=growth_rate
+                 growth_rate=growth_rate, bw=bw
 
   if(n_elements(filename) eq 0) then filename='C1.h5'
 
@@ -2210,20 +2212,21 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
 
   nfiles = n_elements(filename)
   if(nfiles gt 1) then begin
-      if(n_elements(c) eq 0) then begin
-          colors = colors(nfiles)
+      if(keyword_set(bw)) then begin
+          ls = indgen(nfiles)
+          co = replicate(color(0,1),nfiles)
       endif else begin
-          colors = fltarr(n_elements(scalarname))
-          colors[*] = c
+          ls = replicate(0, nfiles)
+          co = colors(nfiles)
       endelse
 
       for i=0, nfiles-1 do begin
           if(n_elements(x) eq 0) then begin
               plot_scalar, scalarname, filename=filename[i], $
                 overplot=((i gt 0) or keyword_set(overplot)), $
-                color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, $
+                color=co[i], _EXTRA=extra, ylog=ylog, xlog=xlog, $
                 power_spectrum=power_spectrum, per_length=per_length, $
-                growth_rate=growth_rate
+                growth_rate=growth_rate, linestyle=ls[i]
           endif else begin
               plot_scalar, scalarname, x[i], filename=filename[i], $
                 overplot=((i gt 0) or keyword_set(overplot)), $
@@ -2233,7 +2236,8 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
           endelse
       end
       if(n_elements(names) gt 0) then begin
-          plot_legend, names, color=colors, ylog=ylog, xlog=xlog, left=left
+          plot_legend, names, ylog=ylog, xlog=xlog, left=left, $
+            color=co, linestyle=ls
       endif    
 
       return
@@ -2406,7 +2410,8 @@ end
 ; call flux_average
 ;==================================================================
 function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
-                             area=area, psirange=range, _EXTRA=extra
+                             area=area, dV=dV, psirange=range, $
+                             integrate=integrate, _EXTRA=extra
 
    sz = size(field)
 
@@ -2418,6 +2423,7 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
 
    result = fltarr(sz[1], bins)
    flux = fltarr(sz[1], bins)
+   dV = fltarr(sz[1], bins)
    area = fltarr(sz[1], bins)
    sfield = 0
 
@@ -2475,14 +2481,22 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
 
            tot = total(mask)
 
+           dV[k,p] = tot*mean(deriv(x))*mean(deriv(z))
            if(tot eq 0.) then begin
                print, 'error: no data points in bin', p, fval, fval+dpsi
-               result[k, p] = 0
+               result[k, p] = 0.
            endif else begin
                result[k, p] = total(sfield)/tot
+               if(keyword_set(integrate)) then begin
+                   result[k,p] = result[k,p]*dV[k,p]
+                   if(p gt 0) then begin
+                       result[k,p] = result[k,p] + result[k,p-1]
+                   end
+               end
            endelse
-           area[k,p] = tot*mean(deriv(x))*mean(deriv(z))
        endfor
+
+       area[k,*] = - dv[k,*] / dpsi
    endfor
 
    return, result
@@ -2507,13 +2521,14 @@ end
 ;
 ; output: 
 ;   flux:  flux value of each bin
-;   area:  cross-sectional area of each flux bin
+;     dV:  differential volume of each flux surface
+;   area:  surface area of each flux surface
 ;   name:  the formatted name of the field
 ; symbol:  the formatted symbol of the field
 ;  units:  the formatted units of the field
 ;==================================================================
 function flux_average, field, time, psi=psi, x=x, z=z, t=t, $
-                       flux=flux, area=area, bins=bins, points=points, $
+                       flux=flux, area=area, dV=dV, bins=bins, points=points, $
                        name=name, symbol=symbol, units=units, _EXTRA=extra
   
    type = size(field, /type)
@@ -2595,7 +2610,7 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, $
    endelse
 
    return, flux_average_field(field, psi, x, z, t, $
-     flux=flux, area=area, bins=bins, _EXTRA=extra)
+     flux=flux, area=area, dV=dV, bins=bins, _EXTRA=extra)
 end
 
 
@@ -2610,7 +2625,8 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
                        _EXTRA=extra, color=c, names=names, $
                        xlog=xlog, ylog=ylog, left=left, overplot=overplot, $
                        lcfs=lcfs, normalized_flux=nflux, $
-                       minor_radius=minor_radius, smooth=sm, t=t, rms=rms
+                       minor_radius=minor_radius, smooth=sm, t=t, rms=rms, $
+                       bw=bw
 
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
@@ -2620,7 +2636,13 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
    nfiles = n_elements(filename)
    if(nfiles gt 1) then begin
        if(n_elements(names) eq 0) then names=filename
-       if(n_elements(c) eq 0) then colors = colors(nfiles)
+       if(keyword_set(bw)) then begin
+           ls = indgen(nfiles)
+           colors = replicate(color(0,1), nfiles)
+       endif else begin
+           if(n_elements(c) eq 0) then colors = colors(nfiles)
+           ls = replicate(0,nfiles)
+       endelse
 
        for i=0, nfiles-1 do begin
            newfield = field
@@ -2628,30 +2650,39 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
              overplot=((i gt 0) or keyword_set(overplot)), points=pts, $
              color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
              normalized_flux=nflux, minor_radius=minor_radius, smooth=sm, $
-             rms=rms
+             rms=rms, linestyle=ls[i]
        end
        if(n_elements(names) gt 0) then begin
-           plot_legend, names, color=colors, ylog=ylog, xlog=xlog, left=left
+           plot_legend, names, color=colors, ylog=ylog, xlog=xlog, $
+             left=left, linestyle=ls
        endif    
        
        return
    endif
-   if(n_elements(time) gt 1) then begin
-       if(n_elements(names) eq 0) then names=strarr(n_elements(time))
-       if(n_elements(c) eq 0) then colors=colors(n_elements(time))
+   nt = n_elements(time)
+   if(nt gt 1) then begin
+       if(n_elements(names) eq 0) then names=strarr(nt)
+       if(keyword_set(bw)) then begin
+           ls = indgen(nt)
+           colors = replicate(color(0,1), nt)
+       endif else begin
+           if(n_elements(c) eq 0) then colors = colors(nt)
+           ls = replicate(0,nt)
+       endelse
        
        for i=0, n_elements(time)-1 do begin
            newfield = field
            plot_flux_average, newfield, time[i], filename=filename, $
              overplot=((i gt 0) or keyword_set(overplot)), points=pts, $
              color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
-             normalized_flux=nflux, minor_radius=minor_radius, smooth=sm, t=t,$
-             rms=rms
+             normalized_flux=nflux, minor_radius=minor_radius, smooth=sm, $
+             t=t, rms=rms, linestyle=ls[i]
            names[i] = string(format='(%"!8t!6 = %d !7s!D!8A!N!X")', t)
        end
 
        if(n_elements(names) gt 0) then begin
-           plot_legend, names, color=colors, ylog=ylog, xlog=xlog, left=left
+           plot_legend, names, color=colors, ylog=ylog, xlog=xlog, $
+             left=left, linestyle=ls
        endif
 
        return
@@ -2710,10 +2741,11 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
    end
 
    if(keyword_set(overplot)) then begin
-       oplot, flux, fa, color=c
+       oplot, flux, fa, color=c, _EXTRA=extra
    endif else begin
        plot, flux, fa, xtitle=xtitle, $
-         ytitle=ytitle, title=title, xlog=xlog, ylog=ylog, _EXTRA=extra
+         ytitle=ytitle, title=title, xlog=xlog, ylog=ylog, $
+         _EXTRA=extra
    endelse
 
    if(keyword_set(lcfs)) then begin

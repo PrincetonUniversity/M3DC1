@@ -6,11 +6,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   use basic
   use arrays
   use nintegrate_mod
-#ifdef NEW_VELOCITY
   use metricterms_new
-#else
-  use metricterms_n
-#endif
 
   implicit none
 
@@ -38,7 +34,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   ssterm(u_g) = ssterm(u_g) + dvdt_fac*temp
   ddterm(u_g) = ddterm(u_g) + dvdt_fac*temp*bdf
   
-  temp = v1umu(trial,lin,vis79) &
+  temp = v1umu(trial,lin,vis79,vic79) &
        + v1us (trial,lin,sig79)
   ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
   ddterm(u_g) = ddterm(u_g) + (1.-thimp*bdf)*dt*temp
@@ -60,7 +56,8 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   endif
 
   if(advfield.eq.1) then
-     temp = v1upsipsi(trial,lin,pst79,pst79) 
+     temp = v1upsipsi(trial,lin,pst79,pst79) &
+          + v1up     (trial,lin,pt79)
      if(gravr.ne.0. .or. gravz.ne.0.) then          
         temp = temp + v1ungrav(trial,lin,nt79)
      endif
@@ -260,7 +257,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      ssterm(chi_g) = ssterm(chi_g) + dvdt_fac*temp
      ddterm(chi_g) = ddterm(chi_g) + dvdt_fac*temp*bdf
      
-     temp = v1chimu(trial,lin,vis79) &
+     temp = v1chimu(trial,lin,vis79,vic79) &
           + v1chis (trial,lin,sig79)
      ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
      ddterm(chi_g) = ddterm(chi_g) + (1.-thimp*bdf)*dt*temp
@@ -280,7 +277,8 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      if(advfield.eq.1) then
         temp = v1chipsipsi(trial,lin,pst79,pst79) &
              + v1chipsib  (trial,lin,pst79,bzt79) &
-             + v1chibb    (trial,lin,bzt79,bzt79)
+             + v1chibb    (trial,lin,bzt79,bzt79) &
+             + v1chip     (trial,lin,pt79)
         if(idens.eq.1 .and. (gravr.ne.0. .or. gravz.ne.0.)) then
            temp = temp &
                 + v1chingrav(trial,lin,nt79)
@@ -308,6 +306,10 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
                 (v1chipsib(trial,ch079,pss79,lin) &
                 +v1chibb  (trial,ch079,lin,bzs79) &
                 +v1chibb  (trial,ch079,bzs79,lin))
+
+           ddterm(p_g) = ddterm(p_g) +  thimp*dt*dt* &
+                (v1up  (trial,ph079,lin) &
+                +v1chip(trial,ch079,lin))
 
            if(idens.eq.1) then
               ddterm(den_g) = ddterm(den_g) + dt* &
@@ -358,11 +360,7 @@ subroutine vorticity_nolin(trial, r4term)
 
   use basic
   use nintegrate_mod
-#ifdef NEW_VELOCITY
   use metricterms_new
-#else
-  use metricterms_n
-#endif
 
   implicit none
 
@@ -397,7 +395,6 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
   use arrays
   use nintegrate_mod
   use metricterms_new
-  use diagnostics
 
   implicit none
 
@@ -709,9 +706,9 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   if(numvar.lt.3) return
 
   ! regularize the chi equation
-  temp = -regular*int2(trial(:,OP_1),lin(:,OP_1),weight_79,79)
-  ssterm(chi_g) = ssterm(chi_g) + temp
-  ddterm(chi_g) = ddterm(chi_g) + temp*bdf
+!!$  temp = -regular*int2(trial(:,OP_1),lin(:,OP_1),weight_79,79)
+!!$  ssterm(chi_g) = ssterm(chi_g) + temp
+!!$  ddterm(chi_g) = ddterm(chi_g) + temp*bdf
          
   temp = v3un(trial,lin,nt79)
   ssterm(u_g) = ssterm(u_g) + dvdt_fac*temp
@@ -1009,7 +1006,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   ssterm(psi_g) = ssterm(psi_g) + dbdt_fac*temp
   ddterm(psi_g) = ddterm(psi_g) + dbdt_fac*temp*bdf
 
-  temp = b1psieta(trial,lin,eta79,hf)
+  temp = b1psieta(trial,lin,eta79,hf)*eta_fac
   ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
   ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
 
@@ -1053,7 +1050,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
      ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
      ddterm(psi_g) = ddterm(psi_g) + (.5-thimp*bdf)*dt*temp
 
-     temp = b1beta(trial,lin,eta79)
+     temp = b1beta(trial,lin,eta79)*eta_fac
      ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
 
@@ -1184,11 +1181,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   use basic
   use arrays
   use nintegrate_mod
-#ifdef NEW_VELOCITY
   use metricterms_new
-#else
-  use metricterms_n
-#endif
 
   implicit none
 
@@ -1214,7 +1207,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
 
   if(numvar.lt.2) return          
 
-  temp = b2psieta(trial,lin,eta79,hi)
+  temp = b2psieta(trial,lin,eta79,hi)*eta_fac
   ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
   ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
          
@@ -1232,7 +1225,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   ssterm(bz_g) = ssterm(bz_g) + dbdt_fac*temp
   ddterm(bz_g) = ddterm(bz_g) + dbdt_fac*temp*bdf
 
-  temp = b2beta(trial,lin,eta79,hi)
+  temp = b2beta(trial,lin,eta79,hi)*eta_fac
   ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
   ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
 
@@ -1339,11 +1332,7 @@ subroutine axial_field_nolin(trial, r4term)
 
   use basic
   use nintegrate_mod
-#ifdef NEW_VELOCITY
   use metricterms_new
-#else
-  use metricterms_n
-#endif
 
   implicit none
 
@@ -1363,11 +1352,7 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   use basic
   use arrays
   use nintegrate_mod
-#ifdef NEW_VELOCITY
   use metricterms_new
-#else
-  use metricterms_n
-#endif
 
   implicit none
 
@@ -1536,11 +1521,7 @@ subroutine electron_pressure_nolin(trial, r4term)
 
   use basic
   use nintegrate_mod
-#ifdef NEW_VELOCITY
   use metricterms_new
-#else
-  use metricterms_n
-#endif
 
   implicit none
 
@@ -1624,6 +1605,7 @@ subroutine ludefall()
   PetscTruth :: flg
   integer :: ipetsc, isuperlu
   integer :: ier
+  real :: eta_fac_old
 
   tfield = 0.
   telm = 0.
@@ -1744,6 +1726,20 @@ subroutine ludefall()
      bdf = 2.
   else
      bdf = 1.
+  endif
+
+
+  ! define current penetration enhancement factor
+  if(eta_djdt.ne.0) then
+     eta_fac_old = eta_fac
+     eta_fac = (5.*eta_fac_old + 1. + abs(djdt/j_onaxis)*eta_djdt)/6.
+     eta_fac = min(eta_fac,5.)
+     if(myrank.eq.0) then
+        print *, 'abs(djdt/j_onaxis) = ', abs(djdt/j_onaxis)
+        print *, 'eta_fac = ', eta_fac
+     end if
+  else
+     eta_fac = 1.
   endif
 
   ! Loop over elements
@@ -2217,12 +2213,7 @@ subroutine ludefden_n(itri)
   use nintegrate_mod
   use arrays
   use sparse
-
-#ifdef NEW_VELOCITY
   use metricterms_new
-#else
-  use metricterms_n
-#endif
 
   implicit none
 
@@ -2378,13 +2369,7 @@ subroutine ludefpres_n(itri)
   use nintegrate_mod
   use arrays
   use sparse
-
-#ifdef NEW_VELOCITY
   use metricterms_new
-#else
-  use metricterms_n
-#endif
-
 
   implicit none
 

@@ -333,7 +333,6 @@ subroutine define_transport_coefficients()
 
      ! tempvar
      ! ~~~~~~~
-!!$     call interpolate_size_field(itri)
      temp79e = sz79(:,OP_1)
 
      do i=1,18
@@ -400,5 +399,5 @@ subroutine define_transport_coefficients()
 
   visc_c = amuc*visc
   visc = amu*visc
-
+  
 end subroutine define_transport_coefficients

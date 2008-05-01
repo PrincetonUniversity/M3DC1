@@ -59,8 +59,8 @@ integer, parameter :: FIELD_MU  =131072
 
 vectype, dimension(79, OP_NUM, 18) :: g79
 real, dimension(79) :: x_79, z_79
-vectype, dimension(79) :: r_79, r2_79, &
-     ri_79, ri2_79, ri3_79, ri4_79, ri5_79, ri6_79, ri7_79
+vectype, dimension(79) :: r_79, r2_79, r3_79, &
+     ri_79, ri2_79, ri3_79, ri4_79, ri5_79, ri6_79, ri7_79, ri8_79
 vectype, dimension(79) :: temp79a, temp79b, temp79c, temp79d, temp79e, temp79f
 vectype, dimension(79, OP_NUM) :: sz79
 vectype, dimension(79, OP_NUM) :: tm79, ni79, b2i79, sb179, sb279, sp179
@@ -547,7 +547,9 @@ subroutine define_fields_79(itri, fields)
   ri5_79 = ri3_79*ri2_79
   ri6_79 = ri3_79*ri3_79
   ri7_79 = ri4_79*ri3_79
+  ri8_79 = ri4_79*ri4_79
   r2_79 = r_79*r_79
+  r3_79 = r2_79*r_79
 
   if(ijacobian.eq.1) weight_79 = weight_79 * r_79
 
