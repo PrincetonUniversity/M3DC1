@@ -139,6 +139,9 @@
 !.....form of toroidal velocity
       ivform = 0
 !
+!.....form of toroidal field equation
+      ibform = 0
+!
 !.....number of grad-shafranov iterations
       igs = 80
 !
@@ -181,6 +184,9 @@
       kappa0 = 0.0
       kappah = 0.0
       kappax = 0.0
+!
+!
+      eta_djdt = 0.
 !
 !.....ratio of specific heats
       gam = 5./3.
@@ -250,7 +256,7 @@
       zmag = 0.
       xlim = xzero
       zlim = 0.
-      rzero = xmag
+      rzero = 1.
 !
 !..... toroidal current controller parameters
       tcur = tcuro

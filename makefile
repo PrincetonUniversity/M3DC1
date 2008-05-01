@@ -14,8 +14,8 @@ CC     = icc -c
 # define where you want to locate the mesh adapt libraries
 # defult is /u/xluo/develop
 ifndef SCORECDIR
-SCORECDIR = /u/xluo/develop/
-#SCORECDIR = /u/nferraro/C1/src/SCOREC/
+#SCORECDIR = /u/xluo/develop/
+SCORECDIR = /u/nferraro/C1/src/SCOREC/
 endif
 
 # define the version of mesh adapt : real or complex version
@@ -59,9 +59,7 @@ endif
 
 BIN = gonewp${BIN_POSTFIX}
 
-FOPTS = -r8 -implicitnone -fpp $(INCLUDE) -warn all \
-	-DNEW_VELOCITY \
-	${COMPLEX}
+FOPTS = -r8 -implicitnone -fpp $(INCLUDE) ${COMPLEX}
 F90OPTS = ${FOPTS}
 F77OPTS = ${FOPTS}
 CCOPTS = -c $(INCLUDE)

@@ -28,6 +28,8 @@ module diagnostics
   ! momentum diagnostics
   real :: tau_em, tau_sol, tau_com, tau_visc, tau_gyro, tau_denm
 
+  real :: j_onaxis, djdt
+  logical :: ifirsttime = .true.
 
   ! timing diagnostics
   real :: t_ludefall, t_sources, t_smoother, t_aux, t_onestep
@@ -391,17 +393,13 @@ subroutine calculate_scalars()
   use nintegrate_mod
   use newvar_mod
   use sparse
-
-#ifdef NEW_VELOCITY
   use metricterms_new
-#else
-  use metricterms_n
-#endif
 
   implicit none
  
   integer :: itri, numelms, i, ione, def_fields
   real :: x, z, xmin, zmin, factor
+  real :: val, valpp
 
   double precision, dimension(3)  :: cogcoords
 
@@ -606,15 +604,28 @@ subroutine calculate_scalars()
      if(idens.eq.1) then
         nfluxd = nfluxd + denm*int1(nt79(:,OP_LP),weight_79,79)
 
-        nfluxv = nfluxv &
-             + int3(ri_79,pht79(:,OP_DZ),nt79(:,OP_DR),weight_79,79) &
-             - int3(ri_79,pht79(:,OP_DR),nt79(:,OP_DZ),weight_79,79)
-        if(numvar.ge.3) then
+        select case(ivform)
+        case(0)
            nfluxv = nfluxv &
-             - int2(cht79(:,OP_DZ),nt79(:,OP_DZ),weight_79,79) &
-             - int2(cht79(:,OP_DR),nt79(:,OP_DR),weight_79,79) &
-             - int2(cht79(:,OP_LP),nt79(:,OP_1 ),weight_79,79)
-        endif
+                + int3(ri_79,pht79(:,OP_DZ),nt79(:,OP_DR),weight_79,79) &
+                - int3(ri_79,pht79(:,OP_DR),nt79(:,OP_DZ),weight_79,79)
+           if(numvar.ge.3) then
+              nfluxv = nfluxv &
+                   - int2(cht79(:,OP_DZ),nt79(:,OP_DZ),weight_79,79) &
+                   - int2(cht79(:,OP_DR),nt79(:,OP_DR),weight_79,79) &
+                   - int2(cht79(:,OP_LP),nt79(:,OP_1 ),weight_79,79)
+           endif
+        case(1)
+           nfluxv = nfluxv &
+                + int3(r_79,pht79(:,OP_DZ),nt79(:,OP_DR),weight_79,79) &
+                - int3(r_79,pht79(:,OP_DR),nt79(:,OP_DZ),weight_79,79)
+           if(numvar.ge.3) then
+              nfluxv = nfluxv &
+                   - int3(ri2_79,cht79(:,OP_DZ),nt79(:,OP_DZ),weight_79,79) &
+                   - int3(ri2_79,cht79(:,OP_DR),nt79(:,OP_DR),weight_79,79) &
+                   - int3(ri2_79,cht79(:,OP_LP),nt79(:,OP_1 ),weight_79,79)
+           endif
+        end select
         
         nsource = nsource + int1(sig79,weight_79,79)
      endif
@@ -646,6 +657,23 @@ subroutine calculate_scalars()
      endif
      
   end do
+
+  itri = 0
+  x = xmag-xzero
+  z = zmag-zzero
+  call evaluate(x,z,val,valpp,jphi,1,1,itri)
+  if(ifirsttime) then
+     djdt = 0.
+     ifirsttime = .false.
+  else
+     djdt = (val-j_onaxis)/dt
+  end if
+  j_onaxis = val
+  if(myrank.eq.0) then
+     print *, 'j_onaxis = ', j_onaxis
+     print *, 'dj/dt = ', djdt
+  end if
+  
 
   if(isources.eq.1) then
      call solve_newvar(sb1, NV_DCBOUND, mass_matrix_lhs_dc)

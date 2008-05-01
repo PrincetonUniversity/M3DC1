@@ -52,12 +52,8 @@ Program Reducedquintic
   ! initialize autopack
   call AP_INIT()
 
-  if(myrank.eq.0 .and. itimer.ge.1) call second(tstart)
   call loadmesh("struct.dmg", "struct-dmg.sms")
-  if(myrank.eq.0 .and. itimer.ge.1) then
-     call second(tend)
-     print *, 'Time spent in loadmesh: ', tend-tstart
-  endif
+
   if(myrank.eq.0) then
      call date_and_time( datec, timec)
      write(*,1001) datec(1:4),datec(5:6),datec(7:8),                        &
@@ -66,18 +62,20 @@ Program Reducedquintic
           "TIME: ",a2,":",a2,":",a4,/)
   endif
 
-  if(myrank.eq.0) then 
-#ifdef NEW_VELOCITY
-     print*, "V = grad(U)xgrad(phi) + V grad(phi) + grad(chi)"
-#else
-     print*, "V = r^2 grad(U)xgrad(phi) + r V grad(phi) + grad(chi)"
-#endif
-  endif
-
   pi = acos(-1.)
 
   ! initialize needed variables and define geometry and triangles
   call init
+  eta_fac = 1.
+
+  if(myrank.eq.0) then 
+     select case(ivform)
+     case(0)
+        print*, "V = grad(U)xgrad(phi) + V grad(phi) + grad(chi)"
+     case(1)
+        print*, "V = R^2 grad(U)xgrad(phi) + R^2 V grad(phi) + grad(chi)/R^2"
+     end select
+  endif
 
   ! Output information about local dofs, nodes, etc.
   if(iprint.ge.1) then
