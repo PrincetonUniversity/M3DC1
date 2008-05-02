@@ -555,8 +555,18 @@ subroutine calculate_scalars()
      parea  = parea  + int2( ri_79,               temp79a,weight_79,79)
      totcur = totcur - int2(ri2_79,pst79(:,OP_GS),        weight_79,79)
      pcur   = pcur   - int3(ri2_79,pst79(:,OP_GS),temp79a,weight_79,79)
-     tvor   = tvor   - int2(ri2_79,pht79(:,OP_GS),        weight_79,79)
-     pvor   = pvor   - int3(ri2_79,pht79(:,OP_GS),temp79a,weight_79,79)
+     select case(ivform)
+     case(0)
+        tvor   = tvor   - int2(ri2_79,pht79(:,OP_GS),        weight_79,79)
+        pvor   = pvor   - int3(ri2_79,pht79(:,OP_GS),temp79a,weight_79,79)
+     case(1)
+        tvor   = tvor   - int1(pht79(:,OP_LP),        weight_79,79)
+        pvor   = pvor   - int2(pht79(:,OP_LP),temp79a,weight_79,79)
+        if(numvar.ge.3) then
+           tvor   = tvor   - 2.*int2(ri4_79,cht79(:,OP_DZ),        weight_79,79)
+           pvor   = pvor   - 2.*int3(ri4_79,cht79(:,OP_DZ),temp79a,weight_79,79)
+        end if
+     end select
      if(numvar.ge.2) then
         tflux = tflux+ int2(ri2_79,bzt79(:,OP_1 ),        weight_79,79)
         pflux = pflux+ int3(ri2_79,bzt79(:,OP_1 ),temp79a,weight_79,79)
@@ -619,11 +629,15 @@ subroutine calculate_scalars()
            nfluxv = nfluxv &
                 + int3(r_79,pht79(:,OP_DZ),nt79(:,OP_DR),weight_79,79) &
                 - int3(r_79,pht79(:,OP_DR),nt79(:,OP_DZ),weight_79,79)
+           if(itor.eq.1) then
+              nfluxv = nfluxv + &
+                   2.*int2(pht79(:,OP_DZ),nt79(:,OP_1),weight_79,79)
+           endif
            if(numvar.ge.3) then
               nfluxv = nfluxv &
                    - int3(ri2_79,cht79(:,OP_DZ),nt79(:,OP_DZ),weight_79,79) &
                    - int3(ri2_79,cht79(:,OP_DR),nt79(:,OP_DR),weight_79,79) &
-                   - int3(ri2_79,cht79(:,OP_LP),nt79(:,OP_1 ),weight_79,79)
+                   - int3(ri2_79,cht79(:,OP_GS),nt79(:,OP_1 ),weight_79,79)
            endif
         end select
         
