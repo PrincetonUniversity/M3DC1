@@ -38,11 +38,11 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
        + v1us (trial,lin,sig79)
   ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
   ddterm(u_g) = ddterm(u_g) + (1.-thimp*bdf)*dt*temp
-  
-  temp = v1uun(trial,lin,ph179,nt79) &
-       + v1uun(trial,ph179,lin,nt79)
-  ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
-  ddterm(u_g) = ddterm(u_g) + (.5-thimp*bdf)*dt*temp
+
+!!$  temp = v1uun(trial,lin,ph179,nt79) &
+!!$       + v1uun(trial,ph179,lin,nt79)
+!!$  ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
+!!$  ddterm(u_g) = ddterm(u_g) + (.5-thimp*bdf)*dt*temp
 
   if(idens.eq.1 .and. (gravr.ne.0. .or. gravz.ne.0.)) then
      ddterm(den_g) = ddterm(den_g) + dt* &
@@ -56,8 +56,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   endif
 
   if(advfield.eq.1) then
-     temp = v1upsipsi(trial,lin,pst79,pst79) &
-          + v1up     (trial,lin,pt79)
+     temp = v1upsipsi(trial,lin,pst79,pst79)
      if(gravr.ne.0. .or. gravz.ne.0.) then          
         temp = temp + v1ungrav(trial,lin,nt79)
      endif
@@ -140,10 +139,10 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
 
   else       ! on numvar.eq.1
           
-     temp = v1vvn(trial,lin,vz179,nt79) &
-          + v1vvn(trial,vz179,lin,nt79)
-     ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
-     ddterm(vz_g) = ddterm(vz_g) + (.5-thimp*bdf)*dt*temp
+!!$     temp = v1vvn(trial,lin,vz179,nt79) &
+!!$          + v1vvn(trial,vz179,lin,nt79)
+!!$     ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
+!!$     ddterm(vz_g) = ddterm(vz_g) + (.5-thimp*bdf)*dt*temp
      
      if(gyro.eq.1) then
         temp = g1v(trial,lin)*dbf
@@ -249,9 +248,9 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   ! ~~~~~~~~~~
   if(numvar.ge.3) then
      
-     temp = v1uchin(trial,lin,ch179,nt79)       
-     ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
-     ddterm(u_g) = ddterm(u_g) + (.5-thimp*bdf)*dt*temp
+!!$     temp = v1uchin(trial,lin,ch179,nt79)       
+!!$     ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
+!!$     ddterm(u_g) = ddterm(u_g) + (.5-thimp*bdf)*dt*temp
      
      temp = v1chin(trial,lin,nt79)
      ssterm(chi_g) = ssterm(chi_g) + dvdt_fac*temp
@@ -262,11 +261,11 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
      ddterm(chi_g) = ddterm(chi_g) + (1.-thimp*bdf)*dt*temp
      
-     temp = v1uchin  (trial,ph179,lin,nt79) &
-          + v1chichin(trial,lin,ch179,nt79) &
-          + v1chichin(trial,ch179,lin,nt79)
-     ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
-     ddterm(chi_g) = ddterm(chi_g) + (.5-thimp*bdf)*dt*temp
+!!$     temp = v1uchin  (trial,ph179,lin,nt79) &
+!!$          + v1chichin(trial,lin,ch179,nt79) &
+!!$          + v1chichin(trial,ch179,lin,nt79)
+!!$     ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
+!!$     ddterm(chi_g) = ddterm(chi_g) + (.5-thimp*bdf)*dt*temp
           
      if(gyro.eq.1) then
         temp = g1chi(trial,lin)*dbf
@@ -275,6 +274,10 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      endif
 
      if(advfield.eq.1) then
+        temp = v1up(trial,lin,pt79)
+        ssterm(u_g) = ssterm(u_g) - thimp*thimp*dt*dt*temp
+        ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
+
         temp = v1chipsipsi(trial,lin,pst79,pst79) &
              + v1chipsib  (trial,lin,pst79,bzt79) &
              + v1chibb    (trial,lin,bzt79,bzt79) &
@@ -285,6 +288,13 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
         endif
         ssterm(chi_g) = ssterm(chi_g) - thimp*thimp*dt*dt*temp
         ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
+
+        ddterm(p_g) = ddterm(p_g) + dt*    &
+             v1p(trial,lin)
+     else
+        temp = v1p(trial,lin) 
+        ssterm(p_g) = ssterm(p_g) -     thimp     *dt*temp
+        ddterm(p_g) = ddterm(p_g) + (1.-thimp*bdf)*dt*temp
      endif
      
      if(eqsubtract.eq.1) then
@@ -422,9 +432,9 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
 
   if(numvar.lt.2) return
          
-  temp = v2vun(trial,vz179,lin,nt79)
-  ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
-  ddterm(u_g) = ddterm(u_g) + (.5-thimp*bdf)*dt*temp
+!!$  temp = v2vun(trial,vz179,lin,nt79)
+!!$  ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
+!!$  ddterm(u_g) = ddterm(u_g) + (.5-thimp*bdf)*dt*temp
           
   temp = v2vn(trial,lin,nt79)
   ssterm(vz_g) = ssterm(vz_g) + dvdt_fac*temp
@@ -435,9 +445,9 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
   ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
   ddterm(vz_g) = ddterm(vz_g) + (1.-thimp*bdf)*dt*temp
 
-  temp = v2vun(trial,lin,ph179,nt79)
-  ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
-  ddterm(vz_g) = ddterm(vz_g) + (.5-thimp*bdf)*dt*temp
+!!$  temp = v2vun(trial,lin,ph179,nt79)
+!!$  ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
+!!$  ddterm(vz_g) = ddterm(vz_g) + (.5-thimp*bdf)*dt*temp
 
   if(gyro.eq.1) then
      temp = g2u(trial,lin)*dbf
@@ -545,13 +555,13 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
   ! ~~~~~~~~~~
   if(numvar.ge.3) then
 
-     temp = v2vchin(trial,lin,ch179,nt79)
-     ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
-     ddterm(vz_g) = ddterm(vz_g) + (.5-thimp*bdf)*dt*temp
-           
-     temp = v2vchin(trial,vz179,lin,nt79)
-     ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
-     ddterm(chi_g) = ddterm(chi_g) + (.5-thimp*bdf)*dt*temp
+!!$     temp = v2vchin(trial,lin,ch179,nt79)
+!!$     ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
+!!$     ddterm(vz_g) = ddterm(vz_g) + (.5-thimp*bdf)*dt*temp
+!!$           
+!!$     temp = v2vchin(trial,vz179,lin,nt79)
+!!$     ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
+!!$     ddterm(chi_g) = ddterm(chi_g) + (.5-thimp*bdf)*dt*temp
 
      if(gyro.eq.1) then
         temp = g2chi(trial,lin)*dbf
@@ -714,36 +724,36 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   ssterm(u_g) = ssterm(u_g) + dvdt_fac*temp
   ddterm(u_g) = ddterm(u_g) + dvdt_fac*temp*bdf
 
-  temp = v3uun  (trial,lin,ph179,nt79) &
-       + v3uun  (trial,ph179,lin,nt79) &
-       + v3uchin(trial,lin,ch179,nt79)
-  ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
-  ddterm(u_g) = ddterm(u_g) + (.5-thimp*bdf)*dt*temp
+!!$  temp = v3uun  (trial,lin,ph179,nt79) &
+!!$       + v3uun  (trial,ph179,lin,nt79) &
+!!$       + v3uchin(trial,lin,ch179,nt79)
+!!$  ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
+!!$  ddterm(u_g) = ddterm(u_g) + (.5-thimp*bdf)*dt*temp
            
   temp = v3umu   (trial,lin,vis79,vic79) &
        + v3us    (trial,lin,sig79)
   ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
   ddterm(u_g) = ddterm(u_g) + (1.-thimp*bdf)*dt*temp
                      
-  temp = v3vvn(trial,lin,vz179,nt79) &
-       + v3vvn(trial,vz179,lin,nt79)
-  ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
-  ddterm(vz_g) = ddterm(vz_g) + (.5-thimp*bdf)*dt*temp
-  
-  temp = v3chin(trial,lin,nt79)
-  ssterm(chi_g) = ssterm(chi_g) + dvdt_fac*temp
-  ddterm(chi_g) = ddterm(chi_g) + dvdt_fac*temp*bdf
+!!$  temp = v3vvn(trial,lin,vz179,nt79) &
+!!$       + v3vvn(trial,vz179,lin,nt79)
+!!$  ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
+!!$  ddterm(vz_g) = ddterm(vz_g) + (.5-thimp*bdf)*dt*temp
+!!$  
+!!$  temp = v3chin(trial,lin,nt79)
+!!$  ssterm(chi_g) = ssterm(chi_g) + dvdt_fac*temp
+!!$  ddterm(chi_g) = ddterm(chi_g) + dvdt_fac*temp*bdf
 
   temp = v3chimu(trial,lin,vis79,vic79) &
        + v3chis (trial,lin,sig79)
   ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
   ddterm(chi_g) = ddterm(chi_g) + (1.-thimp*bdf)*dt*temp
   
-  temp = v3uchin  (trial,ph179,lin,nt79) &
-       + v3chichin(trial,lin,ch179,nt79) &
-       + v3chichin(trial,ch179,lin,nt79)  
-  ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
-  ddterm(chi_g) = ddterm(chi_g) + (.5-thimp*bdf)*dt*temp
+!!$  temp = v3uchin  (trial,ph179,lin,nt79) &
+!!$       + v3chichin(trial,lin,ch179,nt79) &
+!!$       + v3chichin(trial,ch179,lin,nt79)  
+!!$  ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
+!!$  ddterm(chi_g) = ddterm(chi_g) + (.5-thimp*bdf)*dt*temp
 
   if(idens.eq.1 .and. (gravr.ne.0. .or. gravz.ne.0.)) then
      ddterm(den_g) = ddterm(den_g) + dt* &
@@ -776,7 +786,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      ssterm(u_g) = ssterm(u_g) - thimp*thimp*dt*dt*temp
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
-     temp = v3vp     (trial,lin,pt79) &
+     temp = v3vp     (trial,lin,pt79)        &
           + v3vpsipsi(trial,lin,pst79,pst79) &
           + v3vpsib  (trial,lin,pst79,bzt79)
      ssterm(vz_g) = ssterm(vz_g) - thimp*thimp*dt*dt*temp
