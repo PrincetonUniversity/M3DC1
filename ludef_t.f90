@@ -268,9 +268,9 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      ddterm(chi_g) = ddterm(chi_g) + (.5-thimp*bdf)*dt*temp
           
      if(gyro.eq.1) then
-!!$        temp = g1chi(trial,lin)*dbf
-!!$        ssterm(chi_g) = ssterm(chi_g) +     thimp     *dt*temp
-!!$        ddterm(chi_g) = ddterm(chi_g) - (1.-thimp*bdf)*dt*temp
+        temp = g1chi(trial,lin)*dbf
+        ssterm(chi_g) = ssterm(chi_g) +     thimp     *dt*temp
+        ddterm(chi_g) = ddterm(chi_g) - (1.-thimp*bdf)*dt*temp
      endif
 
      if(advfield.eq.1) then
@@ -716,9 +716,11 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   if(numvar.lt.3) return
 
   ! regularize the chi equation
-!!$  temp = -regular*int2(trial(:,OP_1),lin(:,OP_1),weight_79,79)
-!!$  ssterm(chi_g) = ssterm(chi_g) + temp
-!!$  ddterm(chi_g) = ddterm(chi_g) + temp*bdf
+  if(inoslip_pol.eq.0) then
+     temp = -regular*int2(trial(:,OP_1),lin(:,OP_1),weight_79,79)
+     ssterm(chi_g) = ssterm(chi_g) + temp
+     ddterm(chi_g) = ddterm(chi_g) + temp*bdf
+  end if
          
   temp = v3un(trial,lin,nt79)
   ssterm(u_g) = ssterm(u_g) + dvdt_fac*temp
