@@ -268,9 +268,9 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      ddterm(chi_g) = ddterm(chi_g) + (.5-thimp*bdf)*dt*temp
           
      if(gyro.eq.1) then
-        temp = g1chi(trial,lin)*dbf
-        ssterm(chi_g) = ssterm(chi_g) +     thimp     *dt*temp
-        ddterm(chi_g) = ddterm(chi_g) - (1.-thimp*bdf)*dt*temp
+!!$        temp = g1chi(trial,lin)*dbf
+!!$        ssterm(chi_g) = ssterm(chi_g) +     thimp     *dt*temp
+!!$        ddterm(chi_g) = ddterm(chi_g) - (1.-thimp*bdf)*dt*temp
      endif
 
      if(advfield.eq.1) then

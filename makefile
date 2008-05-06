@@ -14,8 +14,8 @@ CC     = icc -c
 # define where you want to locate the mesh adapt libraries
 # defult is /u/xluo/develop
 ifndef SCORECDIR
-SCORECDIR = /u/xluo/develop/
-#SCORECDIR = /u/nferraro/C1/src/SCOREC/
+#SCORECDIR = /u/xluo/develop/
+SCORECDIR = /u/nferraro/C1/src/SCOREC/
 endif
 
 # define the version of mesh adapt : real or complex version
