@@ -778,6 +778,12 @@ subroutine define_fields_79(itri, fields)
                       -  ni79(:,OP_1)**2 * nt79(:,OP_DRZ)
      ni79(:,OP_DZZ) = 2.*ni79(:,OP_1)**3 * nt79(:,OP_DZ )**2             &
                       -  ni79(:,OP_1)**2 * nt79(:,OP_DZZ)
+     ni79(:,OP_LP)  = ni79(:,OP_DRR) + ni79(:,OP_DZZ)
+     ni79(:,OP_GS)  = ni79(:,OP_LP)
+     if(itor.eq.1) then
+        ni79(:,OP_LP) = ni79(:,OP_LP) + ri_79*ni79(:,OP_DR)
+        ni79(:,OP_GS) = ni79(:,OP_GS) - ri_79*ni79(:,OP_DR)
+     endif
   endif
   
   ! J

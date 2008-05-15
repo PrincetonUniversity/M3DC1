@@ -16,6 +16,7 @@ end module p_data
 
 module basic
   use p_data
+  use pid_controller
 
 #ifdef USECOMPLEX
   integer, parameter :: icomplex = 1
@@ -146,6 +147,12 @@ module basic
   real :: control_p      ! proportionality constant
   real :: control_i      ! integral control inverse time-scale
   real :: control_d      ! derivative control time-scale
+  ! density controller parameters
+  real :: n_target       ! target toroidal current
+  real :: n_control_p    ! proportionality constant
+  real :: n_control_i    ! integral control inverse time-scale
+  real :: n_control_d    ! derivative control time-scale
+
 
   ! output parameters
   integer :: iprint     ! print extra debugging info
@@ -202,16 +209,21 @@ module basic
        iconst_t, inograd_t, inocurrent_pol, inocurrent_tor,    &
        irecalc_eta,ihypdx, iconst_eta,                         &
        iupwind, dndt_fac, dvdt_fac, dbdt_fac,                  &
-       eta_djdt
+       eta_djdt,                                               &
+       n_target, n_control_p, n_control_i, n_control_d
+
 
   !     derived quantities
   real :: pi,dbf,bdf,hypv,hypc,hypf,hypi,hypp,   &
        time,                                     &
        gbound,fbound
 
+  ! PID controllers
+  type(pid_control) :: i_control, n_control
+
   real :: eta_fac
 
-  integer :: ntime
+  integer :: ntime, ntime0
   character*10 :: datec, timec
 
   integer :: ni(20),mi(20)  

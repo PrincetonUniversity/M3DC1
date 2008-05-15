@@ -263,6 +263,12 @@
       control_p = 0.
       control_i = 0.
       control_d = 0.
+!..... density controller parameters
+      n_target = 1.
+      n_control_p = 0.
+      n_control_i = 0.
+      n_control_d = 0.
+
 !
 !.....pressure = p0*(1 + p1*psi + p2*psi**2 + ...)
 !                where psi is the normalized poloidal flux

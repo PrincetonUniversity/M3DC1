@@ -64,8 +64,8 @@ F90OPTS = ${FOPTS}
 F77OPTS = ${FOPTS}
 CCOPTS = -c $(INCLUDE)
 
-NEWOBJS = M3Dmodules.o nintegrate_mod.o metricterms_new.o \
-	newvar.o diagnostics.o gradshafranov.o control.o \
+NEWOBJS = control.o M3Dmodules.o nintegrate_mod.o metricterms_new.o \
+	newvar.o diagnostics.o gradshafranov.o \
 	$(COMMONDIR)subp.o \
 	$(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
         $(COMMONDIR)fdump.o hdf5_output.o time_step.o newpar.o \
