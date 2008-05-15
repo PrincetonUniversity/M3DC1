@@ -823,8 +823,6 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
    endif else if(strcmp('temperature', name, /fold_case) eq 1) or $
      (strcmp('t', name, /fold_case) eq 1) then begin
 
-       idens = read_parameter('idens', filename=filename)
-
        P = read_field('P', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange)
@@ -834,6 +832,23 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
                       rrange=xrange, zrange=yrange)
   
        data = p/n
+
+   ;===========================================
+   ; electron temperature
+   ;===========================================
+   endif else if(strcmp('electron temperature', name, /fold_case) eq 1) or $
+     (strcmp('te', name, /fold_case) eq 1) then begin
+
+       Pe = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+
+       n = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+  
+       data = pe/n
+
 
    ;===========================================
    ; angular momentum
@@ -946,24 +961,24 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
    ;===========================================
    ; vorticity
    ;===========================================
-;      endif else if(strcmp('vor', name, /fold_case) eq 1) then begin
+      endif else if(strcmp('vor', name, /fold_case) eq 1) then begin
 
-;          phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
-;                           filename=filename, points=pts, $
-;                           rrange=xrange, zrange=yrange)
+          phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                           filename=filename, points=pts, $
+                           rrange=xrange, zrange=yrange)
 
-;          data = grad_shafranov(phi,x,y,tor=itor)
+          data = grad_shafranov(phi,x,y,tor=itor)
 
    ;===========================================
    ; divergence
    ;===========================================
-;    endif else if(strcmp('com', name, /fold_case) eq 1) then begin
+    endif else if(strcmp('com', name, /fold_case) eq 1) then begin
 
-;        chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
-;                         filename=filename, points=pts, $
-;                         rrange=xrange, zrange=yrange)
+        chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange)
 
-;        data = laplacian(chi,x,y,tor=itor)
+        data = laplacian(chi,x,y,tor=itor)
 
    ;===========================================
    ; rotational transform
@@ -2151,7 +2166,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
        if(nv ge 3) then data = data + s.E_K3._data
        title = 'Kinetic Energy'
        symbol = '!8E!X'
-       units = b0 + '!U2!N' + l0 + '!U3!N' + '/' + pi4
+       units = get_units('energy')
    endif else if $
      (strcmp("magnetic energy", scalarname, /fold_case) eq 1) or $
      (strcmp("me", scalarname, /fold_case) eq 1)then begin
@@ -2160,7 +2175,15 @@ function read_scalar, scalarname, filename=filename, title=title, $
        if(nv ge 2) then data = data + s.E_MT._data 
        title = 'Magnetic Energy'
        symbol = '!8E!X'
-       units = b0 + '!U2!N' + l0 + '!U3!N' + '/' + pi4
+       units = get_units('energy')
+   endif else if $
+     (strcmp("thermal energy", scalarname, /fold_case) eq 1) or $
+     (strcmp("te", scalarname, /fold_case) eq 1)then begin
+       nv = read_parameter("numvar", filename=filename)
+       data = s.E_P._data 
+       title = 'Thermal Energy'
+       symbol = '!8E!X'
+       units = get_units('energy')
    endif else if $
      (strcmp("energy", scalarname, /fold_case) eq 1) then begin
        nv = read_parameter("numvar", filename=filename)
@@ -2350,7 +2373,7 @@ pro plot_pol_velocity, time, filename=filename, points=pts, maxval=maxval, $
   maxstr=string(format='("!6max(!8v!Dpol!N!6) = ",G0)',bigvel)
 
   velovect, reform(vx), reform(vz), x, z, length=length, _EXTRA=extra, $
-    xtitle='!8R !6(!8L!6)!3', ytitle='!8Z !6(!8L!6)!3', $
+    xtitle='!8R!3', ytitle='!8Z!3', $
     title=title, subtitle=maxstr
 
    if(keyword_set(lcfs)) then begin

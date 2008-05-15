@@ -1,24 +1,35 @@
-subroutine control_pid
+module pid_controller
 
-  use basic
-  use diagnostics
+  type :: pid_control
+     real :: p, i, d
+     real :: err_p_old = 0.
+     real :: err_i = 0.
+     real :: target_val
+  end type pid_control
+  
+contains
 
-  implicit none
+  subroutine control(val, control_param, pid, dt)
+    implicit none
 
-  real :: error_p, error_d
-  real, save :: error_old = 0.
-  real, save :: error_i = 0.
+    real, intent(in) :: val
+    real, intent(inout) :: control_param
+    type(pid_control), intent(inout) :: pid
+    real, intent(in) :: dt
 
-  if(dt.eq.0.) return
+    real :: err_p, err_d
 
-  error_p = totcur - tcur
-  error_i = error_i + error_p*dt
-  error_d = (error_p - error_old)/dt
+    if(dt.eq.0.) return
 
-  vloop = vloop - &
-       vloop*dt* &
-       (control_p*error_p + control_i*error_i + control_d*error_d)
+    err_p = val - pid%target_val
+    pid%err_i = pid%err_i + err_p*dt
+    err_d = (err_p - pid%err_p_old)/dt
 
-  error_old = error_p
+    control_param = control_param - control_param*dt* &
+         (err_p*pid%p + pid%err_i*pid%i + err_d*pid%d)
+    
+    pid%err_p_old = err_p
 
-end subroutine control_pid
+  end subroutine control
+
+end module pid_controller

@@ -91,6 +91,11 @@ pro contour_and_legend, z, x, y, label=label, range=range, $
                           title=title, _EXTRA=ex, jpeg=jpeg, lines=lines, $
                         nlevels=nlevels, zlog=zlog
 
+    if(n_elements(z) eq 0) then begin
+        print, "contour_and_legend error:  nothing to plot"
+        return
+    end
+
     sz = size(z, /dim)
     n = sz[0]
 

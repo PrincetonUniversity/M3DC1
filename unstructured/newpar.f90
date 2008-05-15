@@ -170,6 +170,8 @@ Program Reducedquintic
      
   endif                     !  end of the branch on restart/no restart
 
+  ntime0 = ntime
+
   ! initialize hdf5
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Initializing HDF5."
   call hdf5_initialize(ier)
@@ -200,6 +202,20 @@ Program Reducedquintic
   endif
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, "Done generating newvar matrices."
+
+
+  ! Set up PID controllers
+  ! ~~~~~~~~~~~~~~~~~~~~~~
+  i_control%p = control_p
+  i_control%i = control_i
+  i_control%d = control_d
+  i_control%target_val = tcur
+
+  n_control%p = n_control_p
+  n_control%i = n_control_i
+  n_control%d = n_control_d
+  n_control%target_val = n_target
+
 
 
   if(itimer.eq.1) call reset_timings
@@ -280,8 +296,10 @@ Program Reducedquintic
 
 
      ! feedback control on toroidal current
-     if(itor.eq.1 .and. itaylor.eq.1) call control_pid
+!!$     if(itor.eq.1 .and. itaylor.eq.1) call control_pid
 
+     call control(totcur, vloop,       i_control, dt)
+     call control(totden, pellet_rate, n_control, dt)
 
      ! Write output
      call output
@@ -362,7 +380,7 @@ subroutine output
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Writing output"
   if(myrank.eq.0 .and. iprint.ge.1) print *, "-Scalars (HDF5)."
   call hdf5_write_scalars(ier)
-  if(mod(ntime,ntimepr).eq.0) then
+  if(mod(ntime-ntime0,ntimepr).eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, "-Time slice (HDF5)."
      call hdf5_write_time_slice(0,ier)
      if(myrank.eq.0 .and. iprint.ge.1) print *, "-Restart file(s)."

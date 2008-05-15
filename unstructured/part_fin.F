@@ -398,7 +398,10 @@
               ssterm(1,1) = dterm(i,j)
               ssterm(1,2) =-aterm(i,j)
               ssterm(2,1) =  +dt*hyp*thimpsm*bterm(i,j)
-              ssterm(2,2) = aterm(i,j) - regular*dterm(i,j)
+              ssterm(2,2) = aterm(i,j) 
+              if(inoslip_pol.eq.0) then
+                 ssterm(2,2) = ssterm(2,2) - regular*dterm(i,j)
+              endif
 
               call insval(s7matrix_sm,ssterm(1,1),0,itwo  ,jtwo  ,1)
               call insval(s7matrix_sm,ssterm(1,2),0,itwo  ,jtwo+6,1)
