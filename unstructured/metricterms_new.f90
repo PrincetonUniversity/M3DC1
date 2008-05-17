@@ -2489,7 +2489,7 @@ vectype function v3upsipsi(e,f,g,h)
         temp79d = e(:,OP_DZ)*h(:,OP_DZ) + e(:,OP_DR)*h(:,OP_DR)
         
         temp = temp &
-             -2.*int3(ri4_79,temp79b,temp79d,weight_79,79) &
+             +2.*int3(ri4_79,temp79b,temp79d,weight_79,79) &
              -   int4(ri4_79,e(:,OP_DRZ),temp79a,h(:,OP_DZ ),weight_79,79) &
              -   int4(ri4_79,e(:,OP_DZ ),temp79a,h(:,OP_DRZ),weight_79,79) &
              -   int4(ri4_79,e(:,OP_DRR),temp79a,h(:,OP_DR ),weight_79,79) &
