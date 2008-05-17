@@ -197,6 +197,7 @@
       use basic
       use arrays
       use sparse
+      use nintegrate_mod
 
       implicit none
 
@@ -209,16 +210,14 @@
 
       integer :: itri, 
      &     i, j, numvarsm, jtwo, itwo,
-     &     ier, jone, numelms
+     &     ier, numelms
 
       real :: hyp, thimpsm
-      real, dimension(18,18) :: aterm, bterm, dterm
-      real, dimension(-6:maxi,-6:maxi) :: fintl(-6:maxi,-6:maxi)
-
       logical, save :: first_time = .true.
 
       real, dimension(2,2) :: ssterm
       vectype, allocatable :: temp(:)
+      vectype, dimension(20) :: avec
 
       PetscTruth :: flg
       integer :: ipetsc, isuperlu
@@ -251,24 +250,38 @@
          if(ipetsc) 
      &   print *, "   smoother1 zeropetscmatrix", s5matrix_sm 
       do itri=1,numelms
-         call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
-         call calcaterm(itri, aterm, fintl)
-         call calcbterm(itri, bterm, fintl)
-         call calcdterm(itri, dterm, fintl)
-!         call getdeex(itri,deex)
-         hyp = hyperc*deex**2*amu
+
+         call define_fields_79(itri,0)
+
+         hyp = hypc*amu
+
          do i=1,18
             do j=1,18
-               jtwo = isval2(itri,j)
-               itwo = isval2(itri,i)
-               ssterm(1,1) = dterm(i,j)
-               ssterm(1,2) =-aterm(i,j)
-               ssterm(2,1) =  +dt*hyp*thimpsm*bterm(i,j)
-               ssterm(2,2) = aterm(i,j)
-               call insval(s5matrix_sm,ssterm(1,1),0,itwo,  jtwo,  1)
-               call insval(s5matrix_sm,ssterm(1,2),0,itwo,  jtwo+6,1)
-               call insval(s5matrix_sm,ssterm(2,1),0,itwo+6,jtwo,  1)
-               call insval(s5matrix_sm,ssterm(2,2),0,itwo+6,jtwo+6,1)
+              jtwo = isval2(itri,j)
+              itwo = isval2(itri,i)
+
+              ssterm(1,1) = 
+     &             int2(g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
+              ssterm(1,2) = 
+     &              int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j),weight_79,79)
+     &             +int2(g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79)
+              if(itor.eq.1) then
+                 ssterm(1,2) = ssterm(1,2) + 2.*
+     &                int3(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j),
+     &                     weight_79,79)
+              endif
+              ssterm(2,1) = dt*hyp*thimpsm* 
+     &              int2(g79(:,OP_GS,i),g79(:,OP_GS,j),weight_79,79)
+              ssterm(2,2) = -ssterm(1,2)
+              if(inoslip_pol.eq.0) then
+                 ssterm(2,2) = ssterm(2,2) - regular*ssterm(1,1)
+              end if
+
+              call insval(s5matrix_sm,ssterm(1,1),0,itwo  ,jtwo  ,1)
+              call insval(s5matrix_sm,ssterm(1,2),0,itwo  ,jtwo+6,1)
+              call insval(s5matrix_sm,ssterm(2,1),0,itwo+6,jtwo  ,1)
+              call insval(s5matrix_sm,ssterm(2,2),0,itwo+6,jtwo+6,1)
+
             enddo
          enddo
       enddo
@@ -280,20 +293,21 @@
 !
 !.....define RHS vector
       do itri=1,numelms
-         call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
-         call calcbterm(itri, bterm, fintl)
-         call calcdterm(itri, dterm, fintl)
-        
-!         call getdeex(itri,deex)
-         hyp = hyperc*deex**2*amu
+
+         call define_fields_79(itri,0)
+
+         call calcavector(itri, inarray, 1, 1, avec)
+         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, tm79)
+
+         hyp = hypc*amu
+
          do i=1,18
             itwo = isval2(itri,i)
-            do j=1,18
-               jone = isval1(itri,j)
-!
-               temp(itwo+6) = temp(itwo+6)+(dterm(i,j)                  &
-     &              - dt*hyp*(1.-thimpsm)*bterm(i,j))*inarray(jone)
-            enddo
+
+            temp(itwo+6) = temp(itwo+6) + 
+     &           (int2(g79(:,OP_1,i),tm79(:,OP_1),weight_79,79)
+     &           -dt*hyp*(1.-thimpsm)*
+     &            int2(g79(:,OP_GS,i),tm79(:,OP_GS),weight_79,79))
          enddo
       enddo
 
@@ -331,6 +345,8 @@
       use arrays
       use sparse
 
+      use nintegrate_mod
+
       implicit none
 
 #include "finclude/petsc.h"
@@ -341,16 +357,15 @@
 
 
       integer ::  numelms
-      integer :: numvarsm, itri, i, j,
-     &     jone, ier, jtwo, itwo
+      integer :: numvarsm, itri, i, j, ier, jtwo, itwo
       real :: hyp, thimpsm
-      real, dimension(18,18) ::  aterm, bterm, dterm
-      real :: fintl(-6:maxi,-6:maxi)
 
       logical, save :: first_time = .true.
 
       real, dimension(2,2) :: ssterm
       vectype, allocatable:: temp(:)
+      vectype, dimension(20) :: avec
+
 
       PetscTruth :: flg
       integer :: ipetsc, isuperlu
@@ -385,23 +400,27 @@
          if(ipetsc) 
      &   print *, "   smoother3 zeropetscmatrix", s7matrix_sm 
       do itri=1,numelms
-!         call getdeex(itri,deex)
-         call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
-         call calcaterm(itri, aterm, fintl)
-         call calcbterm(itri, bterm, fintl)
-         call calcdterm(itri, dterm, fintl)
-         hyp = hyperc*deex**2*amuc
+
+         call define_fields_79(itri,0)
+
+         hyp = hypc*amuc
+
          do i=1,18
             do j=1,18
               jtwo = isval2(itri,j)
               itwo = isval2(itri,i)
-              ssterm(1,1) = dterm(i,j)
-              ssterm(1,2) =-aterm(i,j)
-              ssterm(2,1) =  +dt*hyp*thimpsm*bterm(i,j)
-              ssterm(2,2) = aterm(i,j) 
+
+              ssterm(1,1) = 
+     &             int2(g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
+              ssterm(1,2) = 
+     &              int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j),weight_79,79)
+     &             +int2(g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79)
+              ssterm(2,1) = dt*hyp*thimpsm* 
+     &              int2(g79(:,OP_LP,i),g79(:,OP_LP,j),weight_79,79)
+              ssterm(2,2) = -ssterm(1,2)
               if(inoslip_pol.eq.0) then
-                 ssterm(2,2) = ssterm(2,2) - regular*dterm(i,j)
-              endif
+                 ssterm(2,2) = ssterm(2,2) - regular*ssterm(1,1)
+              end if
 
               call insval(s7matrix_sm,ssterm(1,1),0,itwo  ,jtwo  ,1)
               call insval(s7matrix_sm,ssterm(1,2),0,itwo  ,jtwo+6,1)
@@ -410,28 +429,32 @@
            enddo
         enddo
       enddo
+
 !
 !.....Insert boundary conditions
       call boundary_com(s7matrix_sm, temp)
       call finalizematrix(s7matrix_sm)
 !
  500  continue
+
 !
 !.....define RHS vector
       do itri=1,numelms
-         call calcfint(fintl, maxi, atri(itri), btri(itri), ctri(itri))
-         call calcbterm(itri, bterm, fintl)
-         call calcdterm(itri, dterm, fintl)
-!         call getdeex(itri,deex)
-         hyp = hyperc*deex**2*amuc
+
+         call define_fields_79(itri,0)
+
+         call calcavector(itri, inarray, 1, 1, avec)
+         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, tm79)
+
+         hyp = hypc*amuc
+
          do i=1,18
             itwo = isval2(itri,i)
-            do j=1,18
-               jone = isval1(itri,j)
 
-               temp(itwo+6) = temp(itwo+6)+(dterm(i,j)               
-     &              - dt*hyp*(1.-thimpsm)*bterm(i,j))*inarray(jone)
-            enddo
+            temp(itwo+6) = temp(itwo+6) + 
+     &           (int2(g79(:,OP_1,i),tm79(:,OP_1),weight_79,79)
+     &           -dt*hyp*(1.-thimpsm)*
+     &            int2(g79(:,OP_LP,i),tm79(:,OP_LP),weight_79,79))
          enddo
       enddo
 
@@ -449,6 +472,7 @@
       call copyvec(temp,2,numvarsm,outarray,iplace,numvard)
 
       call deletevec(temp)
+
       return
 !
       end

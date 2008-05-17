@@ -107,6 +107,8 @@ Program Reducedquintic
      if(myrank.eq.0 .and. iprint.ge.1) print *, "pefac = ", pefac
   endif
 
+!!$  call test_orthogonality
+!!$  call safestop(1)
 
   ! check time-integration options
   select case(integrator)
@@ -437,11 +439,9 @@ subroutine smooth
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      
   ! smooth vorticity
-  if(itor.eq.0) then
-     call newvar(mass_matrix_lhs_dc,vor,vel,1,vecsize_vel, &
-          gs_matrix_rhs_dc,NV_DCBOUND)
-     call smoother1(vor,vel,vecsize_vel,1)
-  end if
+  call newvar(mass_matrix_lhs_dc,vor,vel,1,vecsize_vel, &
+       gs_matrix_rhs_dc,NV_DCBOUND)
+  call smoother1(vor,vel,vecsize_vel,1)
 
   ! smooth compression
   if(numvar.ge.3) then
@@ -649,5 +649,35 @@ subroutine flip_handedness
   enddo
   deallocate(itemp)
 end subroutine flip_handedness
+
+
+subroutine test_orthogonality
+
+  use t_data
+  use nintegrate_mod
+
+  implicit none
+
+  integer ::  i, j, p, q, itri
+  real :: sum
+
+  itri = ntri/2
+  print *, 'itri = ', itri
+
+  call area_to_local(79,                                            &
+       alpha_79,beta_79,gamma_79,area_weight_79,                    &
+       atri(itri), btri(itri), ctri(itri),                          &
+       si_79, eta_79, weight_79)
+
+  do i=1,18
+     call eval_ops(gtri(:,i,itri), si_79, eta_79, &
+          ttri(itri), ri_79, 79, g79(:,:,i))
+  end do
+
+
+  print *, int2(g79(:,OP_1,1), g79(:,OP_DR,2),weight_79,79)
+ 
+
+end subroutine test_orthogonality
 
 

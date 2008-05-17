@@ -359,9 +359,9 @@ subroutine boundary_vel(imatrix, rhs)
      
      ! no poloidal slip
      if(inoslip_pol.eq.1) then
+        temp = 0.
         call set_normal_bc(imatrix,ibegin+u_off,rhs,temp,normal,izonedim)
         if(numvar.ge.3) then
-           temp = 0.
            call set_dirichlet_bc(imatrix,ibegin+chi_off,rhs,temp,normal,izonedim)
         endif
      end if
@@ -705,8 +705,13 @@ subroutine boundary_vor(imatrix, rhs)
      call assign_local_pointers(i)
      call entdofs(numvarsm, i, 0, ibegin, iendplusone)
 
-     ! clamp stream function
-     call set_dirichlet_bc(imatrix,ibegin+6,rhs,temp,normal,izonedim)
+     if(inonormalflow.eq.1) then
+        call set_dirichlet_bc(imatrix,ibegin+6,rhs,temp,normal,izonedim)
+     end if
+     
+     if(inoslip_pol.eq.1) then
+        call set_normal_bc(imatrix,ibegin+6,rhs,temp,normal,izonedim)
+     end if
 
      ! no vorticity
      call set_dirichlet_bc(imatrix,ibegin,rhs,temp,normal,izonedim)
@@ -752,8 +757,13 @@ subroutine boundary_com(imatrix, rhs)
      ! clamp compression
      call set_dirichlet_bc(imatrix,ibegin,rhs,temp,normal,izonedim)
 
-     ! no normal flow
-     call set_normal_bc(imatrix,ibegin+6,rhs,temp,normal,izonedim)
+     if(inonormalflow.eq.1) then
+        call set_normal_bc(imatrix,ibegin+6,rhs,temp,normal,izonedim)
+     end if
+
+     if(inoslip_pol.eq.1) then
+        call set_dirichlet_bc(imatrix,ibegin+6,rhs,temp,normal,izonedim)
+     end if
 
      ! no compression
      if(com_bc.eq.1) then
