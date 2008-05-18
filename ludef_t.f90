@@ -278,6 +278,10 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
         ssterm(u_g) = ssterm(u_g) - thimp*thimp*dt*dt*temp
         ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
+        temp = v1vp(trial,lin,pt79)
+        ssterm(vz_g) = ssterm(vz_g) - thimp*thimp*dt*dt*temp
+        ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
+
         temp = v1chipsipsi(trial,lin,pst79,pst79) &
              + v1chipsib  (trial,lin,pst79,bzt79) &
              + v1chibb    (trial,lin,bzt79,bzt79) &
@@ -319,6 +323,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
 
            ddterm(p_g) = ddterm(p_g) +  thimp*dt*dt* &
                 (v1up  (trial,ph079,lin) &
+                +v1vp  (trial,vz079,lin) &
                 +v1chip(trial,ch079,lin))
 
            if(idens.eq.1) then
@@ -808,7 +813,8 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      ddterm(psi_g) = ddterm(psi_g) +    &
           dt*                           &
           (v3psipsi(trial,lin,pss79)    & 
-          +v3psipsi(trial,pss79,lin))
+          +v3psipsi(trial,pss79,lin)    &
+          +v3psib(trial,lin,bzs79))
      
      ddterm(bz_g) = ddterm(bz_g) + dt*  &
           (v3bb(trial,lin,bzs79)        &     
@@ -828,7 +834,8 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      end if
   else
      temp = v3psipsi(trial,lin,ps179) &
-          + v3psipsi(trial,ps179,lin)
+          + v3psipsi(trial,ps179,lin) &
+          + v3psib(trial,lin,bz179)
      ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
      ddterm(psi_g) = ddterm(psi_g) + (.5-thimp*bdf)*dt*temp
 
@@ -909,7 +916,8 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
 
      else
         temp = v3psipsi(trial,lin,ps079) &
-             + v3psipsi(trial,ps079,lin)
+             + v3psipsi(trial,ps079,lin) &
+             + v3psib(trial,lin,bz079)
         ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
 

@@ -113,9 +113,9 @@ LDRNEW = \
 	-L$(SUPERLU_DIST_HOME)/lib -lsuperlu \
 	-L$(NCARG_ROOT)/lib -lncarg -lncarg_gks -lncarg_c \
 	-L$(MKLHOME)/lib/64 -lguide -lmkl_lapack -lmkl_ipf \
-	-L${LIBDIR} -lhdf5 -lhdf5_fortran \
+	-L${LIBDIR} -lhdf5_fortran -lhdf5 \
 	-Wl,-rpath -Wl,${LIBDIR} \
-        -L/usr/X11R6/lib -lX11 -lcprts 
+        -L/usr/X11R6/lib -lX11 -lmpi
 
 
 
