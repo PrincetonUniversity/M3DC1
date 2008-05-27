@@ -1867,8 +1867,8 @@ end
 ;
 ; returns the flux value of the last closed flux surface
 ; ========================================================
-function lcfs, time, psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, flux0=flux0, $
-               _EXTRA=extra
+function lcfs, time, psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, $
+               flux0=flux0, limiter_pos=limiter, _EXTRA=extra
    if(n_elements(time) eq 0) then time = 0
 
    if(n_elements(psi) eq 0 or n_elements(x) eq 0 or n_elements(z) eq 0) $
@@ -1894,30 +1894,39 @@ function lcfs, time, psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, flux0=flux0, $
    ; Find limiting flux by calculating outward normal derivative of
    ; the normalized flux.  If this derivative is negative, there is a
    ; limiter.
-   sz = size(psi)
+   if(n_elements(limiter) eq 2) then begin
+       xerr = min(x-limiter[0],xi,/absolute)
+       zerr = min(z-limiter[1],zi,/absolute)
+       psilim = psi[0,xi,zi]
+   endif else begin
+       print, ' No limiter provided, using wall.'
+       sz = size(psi)
 
-   psiz = dz(psi,z)
-   psix = dx(psi,x)
+       psiz = dz(psi,z)
+       psix = dx(psi,x)
 
-   normal_mask = psi*0.
-   normal_mask[0,      *,      0] = 1.
-   normal_mask[0,      *,sz[3]-1] = 1.
-   normal_mask[0,      0,      *] = 1.
-   normal_mask[0,sz[2]-1,      *] = 1.
+       normal_mask = psi*0.
+       normal_mask[0,      *,      0] = 1.
+       normal_mask[0,      *,sz[3]-1] = 1.
+       normal_mask[0,      0,      *] = 1.
+       normal_mask[0,sz[2]-1,      *] = 1.
 
-   xx = fltarr(1,sz[2],sz[3])
-   zz = fltarr(1,sz[2],sz[3])
-   for i=0,sz[3]-1 do xx[0,*,i] = x - x[axis[0,0]]
-   for i=0,sz[2]-1 do zz[0,i,*] = z - z[axis[1,0]]
-   normal_deriv = (psix*xx + psiz*zz)*normal_mask
+       xx = fltarr(1,sz[2],sz[3])
+       zz = fltarr(1,sz[2],sz[3])
+       for i=0,sz[3]-1 do xx[0,*,i] = x - x[axis[0,0]]
+       for i=0,sz[2]-1 do zz[0,i,*] = z - z[axis[1,0]]
+       normal_deriv = (psix*xx + psiz*zz)*normal_mask
 
-   normal_deriv = normal_deriv lt 0
+       normal_deriv = normal_deriv lt 0
+       
+       psi_bound = psi*normal_deriv + (1-normal_deriv)*1e10
 
-   psi_bound = psi*normal_deriv + (1-normal_deriv)*1e10
+       psilim = min(psi_bound-flux0, i, /absolute)
+       psilim = psi_bound[i]
+   endelse
 
-   psilim = min(psi_bound-flux0, i, /absolute)
-   psilim = psi_bound[i]
    print, "Flux at limiter", psilim
+
 
    ; flux at separatrix
    sz = size(xpoint)
@@ -2848,16 +2857,31 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, _EXTRA=e
   tcur = abs(total(jphi*dx*dz/r))
   print, 'current = ', tcur
 
+  ; If the simulation is linear, use limiter value 
+  ; given in C1input file
+  linear = read_parameter('linear', _EXTRA=extra)
+  if(linear eq 1) then begin
+      limiter = fltarr(2)
+      limiter[0] = read_parameter('xlim', _EXTRA=extra)
+      limiter[1] = read_parameter('zlim', _EXTRA=extra)
+      print, "limiter at: ", limiter
+  endif
 
    ; calculate lcfs
   psilim = lcfs(time, psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, $
-                flux0=flux0, _EXTRA=extra)
+                flux0=flux0, limiter=limiter, _EXTRA=extra)
 
   contour, psi, x, z, levels=psilim, /path_data_coords, path_xy=lcfs_xy
 
   ; count only points on separatrix above the xpoint
   ; (assumes lower null divertor)
-  lcfs_mask = lcfs_xy[1,*] ge z[xpoint[1]+1]
+  if(n_elements(xpoint) gt 1) then begin
+      lcfs_mask = lcfs_xy[1,*] ge z[xpoint[1]+1]
+  endif else begin
+      lcfs_mask = fltarr(1, n_elements(lcfs_xy[1,*]))
+      lcfs_mask[*] = 1
+  endelse
+
   nlim = fix(total(lcfs_mask))
   rlim = fltarr(nlim)
   zlim = fltarr(nlim)
@@ -2898,11 +2922,11 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, _EXTRA=e
 
   ; calculate flux averages
   p = flux_average(p0,slice,psi=psi,x=x,z=z,t=t,flux=flux,bins=pts,$
-                   _EXTRA=extra)
+                   limiter=limiter,_EXTRA=extra)
   I = flux_average(I0,slice,psi=psi,x=x,z=z,t=t,flux=flux,bins=pts,$
-                   _EXTRA=extra)
+                   limiter=limiter,_EXTRA=extra)
   q = flux_average('q',slice,psi=psi,x=x,z=z,t=t,flux=flux, $
-                   points=pts,bins=pts,_EXTRA=extra)
+                   limiter=limiter,points=pts,bins=pts,_EXTRA=extra)
   q = smooth(q,5,/edge)
 
   ; to cgs............. to si
