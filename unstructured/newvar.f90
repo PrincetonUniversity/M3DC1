@@ -264,11 +264,7 @@ subroutine define_transport_coefficients()
      ! ~~~~~~~~~~~
      if(solve_resistivity) then
         ! resistivity = 1/T**(3/2) = sqrt((n/p)**3)
-#ifdef USECOMPLEX
         temp79a = sqrt((nt79(:,OP_1)/(pefac*pet79(:,OP_1)))**3)
-#else
-        temp79a = sqrt(max((nt79(:,OP_1)/(pefac*pet79(:,OP_1)))**3,0.))
-#endif
      endif
 
      ! thermal conductivity

@@ -452,7 +452,7 @@ subroutine boundary_mag(imatrix, rhs)
 
 
      ! clamp toroidal field
-     if(numvar.ge.2) then
+     if(iconst_bz.eq.1 .and. numvar.ge.2) then
         temp = bzs_l
         if(integrator.eq.1 .and. ntime.gt.1) then
            temp = 1.5*temp + 0.5*bzo_v(ibegin+bz_off:ibegin+bz_off+5)

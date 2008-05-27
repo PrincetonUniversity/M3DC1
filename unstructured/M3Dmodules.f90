@@ -61,6 +61,7 @@ module basic
   integer :: inocurrent_pol! 1 = no tangential current
   integer :: inocurrent_tor! 1 = no toroidal current
   integer :: iconst_t      ! 1 = temperature held constant
+  integer :: iconst_bz     ! 1 = toroidal field held constant
   integer :: inograd_t     ! 1 = no normal temperature gradient
   integer :: com_bc   ! 1 = forces div(V) = 0 on boundary
   real :: amu_edge    ! factor by which to increase viscosity at boundaries
@@ -207,6 +208,7 @@ module basic
        iteratephi,                                             &
        inonormalflow, inoslip_pol, inoslip_tor, inostress_tor, &
        iconst_t, inograd_t, inocurrent_pol, inocurrent_tor,    &
+       iconst_bz,                                              &
        irecalc_eta,ihypdx, iconst_eta,                         &
        iupwind, dndt_fac, dvdt_fac, dbdt_fac,                  &
        eta_djdt,                                               &

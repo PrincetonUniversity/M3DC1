@@ -204,6 +204,7 @@
 !     com_bc: 1 = sets laplacian(chi) = 0 on boundary
       com_bc = 1
       iconst_t = 1
+      iconst_bz = 1
       inograd_t = 0
       inonormalflow = 1
       inoslip_pol = 0
@@ -327,10 +328,34 @@
       if(amuc.eq.0.) amuc = amu
       if(thimp_ohm.lt.0) thimp_ohm = thimp
 !
-      ! Make sure all processes have read input before proceeding
-      call MPI_BARRIER(MPI_COMM_WORLD, ier)
-      
       if(myrank.eq.0) write(*,nml=inputnl)
+
+      if(linear.eq.1) eqsubtract = 1
+
+      ! calculate pfac (pe*pfac = electron pressure)
+      if(ipres.eq.1) then
+         pefac = 1.
+      else
+         if(p0.gt.0.) then
+            pefac = (p0-pi0)/p0
+         else
+            pefac = 0.
+         endif
+         if(myrank.eq.0 .and. iprint.ge.1) print *, "pefac = ", pefac
+      endif
+
+      ! Validate input
+      ! ~~~~~~~~~~~~~~
+      if(pefac.eq.0. .and. eta0.ne.0) then
+         if(myrank.eq.0) print *, 'ERROR: Te = 0, but eta0 != 0.'
+         call safestop(1)
+      endif
+      if(amuc.lt.(2./3.)*amu) then
+         if(myrank.eq.0) 
+     &        print *, 'ERROR: Constraint amuc >= (2/3)*amu violated.'
+         call safestop(1)
+      endif
+
 
       if(myrank.eq.0 .and. iprint.eq.1) print *, " exiting input.."
 

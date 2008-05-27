@@ -407,7 +407,7 @@ end subroutine eval_ops
 !!$  call calcavector(itri, phi, 1, numvar, avec)
 !!$  call eval_ops(avec, si_25, eta_25, ttri(itri), ri_25,25, ps125)
 !!$
-!!$  if(linear.eq.1 .or. eqsubtract.eq.1) then
+!!$  if(eqsubtract.eq.1) then
 !!$     call calcavector(itri, vel0, 1, numvar, avec)
 !!$     call eval_ops(avec, si_25, eta_25, ttri(itri), ri_25,25, ph025)
 !!$     call calcavector(itri, phi0, 1, numvar, avec)
@@ -425,7 +425,7 @@ end subroutine eval_ops
 !!$     call calcavector(itri, phi, 2, numvar, avec)
 !!$     call eval_ops(avec, si_25, eta_25, ttri(itri), ri_25,25, bz125)
 !!$     
-!!$     if(linear.eq.1 .or. eqsubtract.eq.1) then
+!!$     if(eqsubtract.eq.1) then
 !!$        call calcavector(itri, vel0, 2, numvar, avec)
 !!$        call eval_ops(avec, si_25, eta_25, ttri(itri), ri_25,25, vz025)
 !!$        call calcavector(itri, phi0, 2, numvar, avec)
@@ -453,7 +453,7 @@ end subroutine eval_ops
 !!$           pe125 = p125
 !!$        endif
 !!$           
-!!$        if(linear.eq.1 .or. eqsubtract.eq.1) then
+!!$        if(eqsubtract.eq.1) then
 !!$           call calcavector(itri, vel0, 3, numvar, avec)
 !!$           call eval_ops(avec, si_25, eta_25, ttri(itri), ri_25,25, ch025)
 !!$
@@ -485,7 +485,7 @@ end subroutine eval_ops
 !!$     call calcavector(itri, den, 1, 1, avec)
 !!$     call eval_ops(avec, si_25, eta_25, ttri(itri), ri_25,25, n125)
 !!$     
-!!$     if(linear.eq.1 .or. eqsubtract.eq.1) then
+!!$     if(eqsubtract.eq.1) then
 !!$        call calcavector(itri, den0, 1, 1, avec)
 !!$        call eval_ops(avec, si_25, eta_25, ttri(itri), ri_25,25, n025)
 !!$        nt25 = n025 + n125
@@ -566,7 +566,7 @@ subroutine define_fields_79(itri, fields)
      ph179(:,OP_DPP:OP_DZZPP) =   -ntor**2*ph179(:,OP_1:OP_DZZ)
 #endif
 
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
+     if(eqsubtract.eq.1) then
         call calcavector(itri, field0, u_g, num_fields, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ph079)
         pht79 = ph079 + ph179
@@ -590,7 +590,7 @@ subroutine define_fields_79(itri, fields)
 !!$     ps179(:,OP_DPP:OP_DZZPP) =   -ntor**2*ps179(:,OP_1:OP_DZZ)
 #endif
 
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
+     if(eqsubtract.eq.1) then
         call calcavector(itri, field0, psi_g, num_fields, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ps079)
         pst79 = ps079 + ps179
@@ -613,7 +613,7 @@ subroutine define_fields_79(itri, fields)
      vz179(:,OP_DPP:OP_DZZPP) = -ntor**2*vz179(:,OP_1:OP_DZZ)
 #endif
     
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
+     if(eqsubtract.eq.1) then
         call calcavector(itri, field0, vz_g, num_fields, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, vz079)
         vzt79 = vz079 + vz179
@@ -642,7 +642,7 @@ subroutine define_fields_79(itri, fields)
         bf79(:,OP_DPP:OP_DZZPP) =      -ntor**2*bf79(:,OP_1:OP_DZZ)
 #endif
        
-        if(linear.eq.1 .or. eqsubtract.eq.1) then
+        if(eqsubtract.eq.1) then
            call calcavector(itri, field0, bz_g, num_fields, avec)
            call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, bz079)
            bzt79 = bz079 + bz179
@@ -662,7 +662,7 @@ subroutine define_fields_79(itri, fields)
         bzt79(:,OP_1) = -bzero
         bzs79(:,OP_1) = -bzero/2.
         
-        if(linear.eq.1 .or. eqsubtract.eq.1) then
+        if(eqsubtract.eq.1) then
            bz079(:,OP_1) = -bzero
         else
            bz179(:,OP_1) = -bzero
@@ -689,7 +689,7 @@ subroutine define_fields_79(itri, fields)
      ch179(:,OP_DPP:OP_DZZPP) = -ntor**2*ch179(:,OP_1:OP_DZZ)
 #endif
 
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
+     if(eqsubtract.eq.1) then
         call calcavector(itri, field0, chi_g, num_fields, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ch079)
         cht79 = ch079 + ch179
@@ -723,7 +723,7 @@ subroutine define_fields_79(itri, fields)
      pe179(:,OP_DPP:OP_DZZPP) = -ntor**2*pe179(:,OP_1:OP_DZZ)
 #endif
         
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
+     if(eqsubtract.eq.1) then
         if(ipres.eq.1) then
            call calcavector(itri, field0, p_g, num_fields, avec)
            call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, p079)
@@ -756,7 +756,7 @@ subroutine define_fields_79(itri, fields)
      n179(:,OP_DP :OP_DZZP ) = (0,1)*ntor*n179(:,OP_1:OP_DZZ)
      n179(:,OP_DPP:OP_DZZPP) = -ntor**2*n179(:,OP_1:OP_DZZ)
 #endif    
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
+     if(eqsubtract.eq.1) then
         call calcavector(itri, field0, den_g, num_fields, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, n079)
         nt79 = n079 + n179

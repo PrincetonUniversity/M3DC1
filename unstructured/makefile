@@ -14,7 +14,7 @@ CC     = icc -c
 # define where you want to locate the mesh adapt libraries
 # defult is /u/xluo/develop
 ifndef SCORECDIR
-SCORECDIR = /u/xluo/develop/
+SCORECDIR = /u/xluo/develop.newCompiler/
 #SCORECDIR = /u/nferraro/C1/src/SCOREC/
 endif
 
@@ -112,8 +112,9 @@ LDRNEW = \
 	-L$(SUPERLU_HOME) -lsuperlu_3.0 \
 	-L$(SUPERLU_DIST_HOME)/lib -lsuperlu \
 	-L$(NCARG_ROOT)/lib -lncarg -lncarg_gks -lncarg_c \
+	-L$(CCHOME)/lib -lipr -lstdc++ \
 	-L$(MKLHOME)/lib/64 -lguide -lmkl_lapack -lmkl_ipf \
-	-L${LIBDIR} -lhdf5_fortran -lhdf5 \
+	-L${LIBDIR} -lhdf5_fortran -lhdf5 -lz \
 	-Wl,-rpath -Wl,${LIBDIR} \
         -L/usr/X11R6/lib -lX11 -lmpi
 

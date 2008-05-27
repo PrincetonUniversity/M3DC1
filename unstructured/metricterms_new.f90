@@ -319,7 +319,7 @@ vectype function v1uun(e,f,g,h)
      temp = int5(ri_79,e(:,OP_DR),f(:,OP_GS),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
           - int5(ri_79,e(:,OP_DZ),f(:,OP_GS),g(:,OP_DR),h(:,OP_1),weight_79,79) &
           + 0.5*(int4(ri_79,temp79a,e(:,OP_DR),h(:,OP_DZ),weight_79,79) &
-          -int4(ri_79,temp79a,e(:,OP_DZ),h(:,OP_DR),weight_79,79))
+                -int4(ri_79,temp79a,e(:,OP_DZ),h(:,OP_DR),weight_79,79))
 
      if(itor.eq.1) then
         temp = temp + &
@@ -3111,24 +3111,15 @@ vectype function v3uun(e,f,g,h)
 
   select case(ivform)
   case(0)
-     temp = &
-          - int5(ri2_79,e(:,OP_DZ),f(:,OP_GS),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
-          - int5(ri2_79,e(:,OP_DR),f(:,OP_GS),g(:,OP_DR),h(:,OP_1),weight_79,79) &
-          + 0.5* &
-          (int5(ri2_79,e(:,OP_DZ),f(:,OP_DZZ),g(:,OP_DZ ),h(:,OP_1),weight_79,79) &
-          +int5(ri2_79,e(:,OP_DZ),f(:,OP_DZ ),g(:,OP_DZZ),h(:,OP_1),weight_79,79) &
-          +int5(ri2_79,e(:,OP_DZ),f(:,OP_DRZ),g(:,OP_DR ),h(:,OP_1),weight_79,79) &
-          +int5(ri2_79,e(:,OP_DZ),f(:,OP_DR ),g(:,OP_DRZ),h(:,OP_1),weight_79,79) &
-          +int5(ri2_79,e(:,OP_DR),f(:,OP_DRZ),g(:,OP_DZ ),h(:,OP_1),weight_79,79) &
-          +int5(ri2_79,e(:,OP_DR),f(:,OP_DZ ),g(:,OP_DRZ),h(:,OP_1),weight_79,79) &
-          +int5(ri2_79,e(:,OP_DR),f(:,OP_DRR),g(:,OP_DR ),h(:,OP_1),weight_79,79) &
-          +int5(ri2_79,e(:,OP_DR),f(:,OP_DR ),g(:,OP_DRR),h(:,OP_1),weight_79,79))
 
-     if(itor.eq.1) then
-        temp = temp - &
-             (int5(ri3_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
-             +int5(ri3_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_DR),h(:,OP_1),weight_79,79))
-     endif
+     ! Revised 5/23/08 NMF
+     temp79a = e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR)
+     temp79b = e(:,OP_DZ)*h(:,OP_DZ) + e(:,OP_DR)*h(:,OP_DR) &
+          + e(:,OP_LP)*h(:,OP_1)
+     temp79c = f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR)
+
+     temp = - int4(ri2_79,f(:,OP_GS),temp79a,h(:,OP_1),weight_79,79) &
+          -.5*int3(ri2_79,temp79b,temp79c,weight_79,79)
 
   case(1)
      temp79a = e(:,OP_DZ)*(f(:,OP_DR)*g(:,OP_DRZ) - f(:,OP_DZ)*g(:,OP_DRR)) &
@@ -3235,10 +3226,11 @@ vectype function v3chichin(e,f,g,h)
 
   select case(ivform)
   case(0)
-     temp = int4(e(:,OP_DZ),f(:,OP_DZZ),g(:,OP_DZ ),h(:,OP_1),weight_79,79) &
-          + int4(e(:,OP_DZ),f(:,OP_DRZ),g(:,OP_DR ),h(:,OP_1),weight_79,79) &
-          + int4(e(:,OP_DR),f(:,OP_DRZ),g(:,OP_DZ ),h(:,OP_1),weight_79,79) &
-          + int4(e(:,OP_DR),f(:,OP_DRR),g(:,OP_DR ),h(:,OP_1),weight_79,79)
+     ! Revised 5/23/08 nmf
+     temp79a = e(:,OP_DZ)*h(:,OP_DZ) + e(:,OP_DR)*h(:,OP_DR) &
+          + e(:,OP_LP)*h(:,OP_1)
+     temp79b = f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR)
+     temp = -0.5*int2(temp79a,temp79b,weight_79,79)
 
   case(1)
      temp79a = e(:,OP_DZ)*(f(:,OP_DZ)*g(:,OP_DZZ) + f(:,OP_DR)*g(:,OP_DRZ)) &
