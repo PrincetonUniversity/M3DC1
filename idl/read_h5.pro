@@ -141,13 +141,16 @@ end
 ; otherwise returns 0
 ; =============================================
 function hdf5_file_test, filename
-   if(file_test(filename) eq 0) then begin
-       print, "Error: ", filename, " is not a valid file."
-       return, 0
+   if(n_elements(filename) ne 1) then begin
+
+   endif else if(file_test(filename) eq 0) then begin
+
    endif else if(h5f_is_hdf5(filename) eq 0) then begin
-       print, "Error: ", filename, " is not a valid HDF5 file."
-       return, 0
+
    endif else return, 1
+
+   print, "Error: ", filename, " is not a valid file."
+   return, 0
 end
 
 ;================================================
@@ -184,6 +187,14 @@ end
 ;==================================================
 function read_parameter, name, filename=filename, print=pr
    if(n_elements(filename) eq 0) then filename='C1.h5'
+
+   if(n_elements(filename) gt 1) then begin
+       attr = fltarr(n_elements(filename))
+       for i=0, n_elements(filename)-1 do begin
+           attr[i] = read_parameter(name,filename=filename[i],print=pr)
+       end
+       return, attr
+   endif
 
    if(hdf5_file_test(filename) eq 0) then return, 0
 
@@ -932,6 +943,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
            r = radius_matrix(x,y,t)
            data = data / r^2
        end
+       data = sqrt(data)
             
    ;===========================================
    ; Alfven velocity
@@ -2092,7 +2104,7 @@ end
 
 
 function read_scalar, scalarname, filename=filename, title=title, $
-                      symbol=symbol, units=units, time=time
+                      symbol=symbol, units=units, time=time, final=final
 
    if(n_elements(scalarname) eq 0) then begin
        print, "Error: no scalar name provided"
@@ -2100,6 +2112,16 @@ function read_scalar, scalarname, filename=filename, title=title, $
    end
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
+
+   if(n_elements(filename) gt 1) then begin
+       data = fltarr(n_elements(filename))
+       for i=0, n_elements(filename)-1 do begin
+           data[i] = read_scalar(scalarname, filename=filename[i], $
+                                 title=title, symbol=symbol, units=units, $
+                                 time=time, /final)
+       end
+       return, data
+   endif
 
    s = read_scalars(filename=filename)
    if(n_tags(s) eq 0) then return, 0
@@ -2218,6 +2240,10 @@ function read_scalar, scalarname, filename=filename, title=title, $
    
    itor = read_parameter('itor', filename=filename)
    if(itor eq 0) then units = units + ' / ' + l0
+
+   if(keyword_set(final)) then begin
+       data = data[n_elements(data)-1]
+   endif
 
    return, data
 end
@@ -2792,4 +2818,183 @@ pro plot_poloidal_rotation, _EXTRA=extra
 
    plot, t, total(total(sym,2),2)
    
+end
+
+
+pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, _EXTRA=extra
+  
+  if(n_elements(slice) eq 0) then begin
+      slice = read_parameter('ntime', _EXTRA=extra) - 1
+  end
+  if(n_elements(b0) eq 0) then b0 = 1.
+  if(n_elements(l0) eq 0) then l0 = 100.
+  if(n_elements(eqfile) eq 0) then eqfile = 'geqdsk.out'
+  if(n_elements(pts) eq 0) then pts=128
+
+  bzero = read_parameter('bzero', _EXTRA=extra)
+  xzero = read_parameter('xzero', _EXTRA=extra)
+
+  ; calculate flux averages
+  psi = read_field('psi',x,z,t,slice=slice,points=pts,_EXTRA=extra)
+  jphi= read_field('jphi',x,z,t,slice=slice,points=pts,_EXTRA=extra)
+  p0 = read_field('p',x,z,t,slice=slice,points=pts,_EXTRA=extra)
+  I0 = read_field('I',x,z,t,slice=slice,points=pts,_EXTRA=extra)
+  r = radius_matrix(x,z,t)
+  beta = r^2*2.*p0/(s_bracket(psi,psi,x,z) + I0^2)
+  beta0 = mean(2.*p0*r^2/(bzero*xzero)^2)
+  b2 = (s_bracket(psi,psi,x,z) + I0^2)/r^2
+  dx = mean(deriv(x))
+  dz = mean(deriv(z))
+  tcur = abs(total(jphi*dx*dz/r))
+  print, 'current = ', tcur
+
+
+   ; calculate lcfs
+  psilim = lcfs(time, psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, $
+                flux0=flux0, _EXTRA=extra)
+
+  contour, psi, x, z, levels=psilim, /path_data_coords, path_xy=lcfs_xy
+
+  ; count only points on separatrix above the xpoint
+  ; (assumes lower null divertor)
+  lcfs_mask = lcfs_xy[1,*] ge z[xpoint[1]+1]
+  nlim = fix(total(lcfs_mask))
+  rlim = fltarr(nlim)
+  zlim = fltarr(nlim)
+  j = 0 
+  for i=0, n_elements(lcfs_mask)-1 do begin
+      if(not lcfs_mask[0, i]) then continue
+      rlim[j] = lcfs_xy[0,i]
+      zlim[j] = lcfs_xy[1,i]
+      j = j+1
+  end
+  print, 'lim points = ', nlim
+
+
+  ; wall points
+  xx = x[1:n_elements(x)-2]
+  zz = z[1:n_elements(x)-2]
+  nwall = 2*n_elements(xx) + 2*n_elements(zz)
+  rwall = fltarr(nwall)
+  zwall = fltarr(nwall)
+  o = 0
+  i = n_elements(xx)
+  rwall[o:i-1] = xx
+  zwall[o:i-1] = min(zz)
+  o = i
+  i = i + n_elements(zz)
+  rwall[o:i-1] = max(xx)
+  zwall[o:i-1] = zz
+  o = i
+  i = i + n_elements(xx)
+  rwall[o:i-1] = reverse(xx)
+  zwall[o:i-1] = max(zz)
+  o = i
+  i = i + n_elements(zz)
+  rwall[o:i-1] = min(xx)
+  zwall[o:i-1] = reverse(zz)
+  print, i, nwall
+  
+
+  ; calculate flux averages
+  p = flux_average(p0,slice,psi=psi,x=x,z=z,t=t,flux=flux,bins=pts,$
+                   _EXTRA=extra)
+  I = flux_average(I0,slice,psi=psi,x=x,z=z,t=t,flux=flux,bins=pts,$
+                   _EXTRA=extra)
+  q = flux_average('q',slice,psi=psi,x=x,z=z,t=t,flux=flux, $
+                   points=pts,bins=pts,_EXTRA=extra)
+  q = smooth(q,5,/edge)
+
+  ; to cgs............. to si
+  c = 3e10
+  p = p*b0^2/(4.*!pi)           / 10.
+  p0 = p0*b0^2/(4.*!pi)         / 10.
+  psi = psi*b0*l0^2             / 1e8
+  flux = flux*b0*l0^2           / 1e8
+  flux0 = flux0*b0*l0^2         / 1e8
+  psilim=psilim*b0*l0^2         / 1e8
+  I = I*b0*l0                   / (1e4*100.)
+  bzero = bzero*b0              / 1e4
+  b2 = b2*b0^2                  / (1e4)^2
+  tcur = tcur*b0*c*l0/(4.*!pi)  / 3e9
+  r = r*l0                      / 100.
+  x = x*l0                      / 100.
+  z = z*l0                      / 100.
+  xzero = xzero*l0              / 100.
+
+  nr = n_elements(flux)
+  print, 'nr = ', nr
+
+  psi = -psi
+  I = -I
+  psilim = -psilim
+  psimin = -flux0
+  flux = -flux
+
+  pprime = deriv(flux,p)
+  ffprim = I*deriv(flux,I)
+
+  name = ['name0001', 'name0002', 'name0003', $
+          'name0004', 'name0005', 'name0006']
+  idum = 13
+  nr = n_elements(flux)
+  nz = n_elements(z)
+  rdim = max(x) - min(x)
+  zdim = max(z) - min(z)
+  xplas = 1.
+  ccon = min(x)
+  zmid = (max(z) + min(z))/2.
+  rmag = x[axis[0,0]]
+  zmag = z[axis[1,0]]
+  zip = tcur
+  bcentr = bzero*xzero/rmag
+  beta0 = beta0
+  betacent = beta[0, axis[0,0], axis[1,0]]
+  beta_n = 100.*(bzero*xzero/rmag)*beta0/(zip/1e6)
+  xdum = 0.
+
+  print, 'rdim, zdim', rdim, zdim
+  print, 'rmag, zmag', rmag, zmag
+  print, 'bcentr = ', bcentr
+  print, 'beta0 = ', beta0
+  print, 'betacent = ', betacent
+  print, 'beta_n = ', beta_n
+  print, 'zip = ', zip
+  print, 'psimin, psilim = ', psimin, psilim
+  print, 'min, max (flux) = ', min(flux), max(flux)
+
+
+  ; set up formatting codes
+  f2000 = '(6A8,3I4)'
+  f2020 = '(5E16.9)'
+  f2022 = '(2i5)' 
+
+  ; output to file
+  file = 1
+  
+  openw, file, eqfile
+
+  printf, file, format=f2000, name, idum, nr, nz
+  printf, file, format=f2020, rdim, zdim, xplas, ccon, zmid
+  printf, file, format=f2020, rmag, zmag, psimin, psilim, bcentr
+  printf, file, format=f2020, zip, psimin, beta0, rmag, betacent
+  printf, file, format=f2020, zmag, beta_n, psilim, xdum, xdum
+
+  printf, file, format=f2020, I
+  printf, file, format=f2020, p
+  printf, file, format=f2020, ffprim
+  printf, file, format=f2020, pprime
+  printf, file, format=f2020, psi[0,*,*]
+  printf, file, format=f2020, q
+  printf, file, format=f2022, nlim, nwall
+  printf, file, format=f2020, transpose([[rlim],[zlim]])
+  printf, file, format=f2020, transpose([[rwall],[zwall]])
+
+  close, file
+
+  contour_and_legend, psi,x,z, /iso
+  loadct,12
+  oplot, rlim, zlim, color=color(1,3), thick=3.0
+  oplot, rwall, zwall, color=color(2,3), thick=3.0
+  
 end

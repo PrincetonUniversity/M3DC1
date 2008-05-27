@@ -92,21 +92,6 @@ Program Reducedquintic
      print *, 'proc, numnodes, numfaces', myrank, numnodes,numelms
   endif
 
-
-  if(linear.eq.1) eqsubtract = 1
-
-  ! calculate pfac (pe*pfac = electron pressure)
-  if(ipres.eq.1) then
-     pefac = 1.
-  else
-     if(p0.gt.0.) then
-        pefac = (p0-pi0)/p0
-     else
-        pefac = 0.
-     endif
-     if(myrank.eq.0 .and. iprint.ge.1) print *, "pefac = ", pefac
-  endif
-
 !!$  call test_orthogonality
 !!$  call safestop(1)
 
@@ -490,10 +475,11 @@ subroutine copyvec(inarr, inpos, insize, outarr, outpos, outsize)
   do l=1,numnodes
      call entdofs(insize, l, 0, ibegini, iendplusonei)
      call entdofs(outsize, l, 0, ibegino, iendplusoneo)
-    
+
      outarr(ibegino+out_i:ibegino+out_i+5) = &
           inarr(ibegini+in_i:ibegini+in_i+5)
   enddo
+
 end subroutine copyvec
 
 ! ======================================================================
@@ -588,19 +574,29 @@ subroutine conserve_flux
 
   implicit none
   
-  integer :: ndofs, j
+  integer :: numnodes, j, ibegin, iendplusone, ndofs
+  integer, allocatable :: itemp(:)
+
+  call numdofs(num_fields,ndofs)
+  allocate(itemp(ndofs))
+  itemp = 1
 
   ! adjust toroidal field and boundary condition to conserve toroidal flux
   if(numvar.ge.2 .and. iconstflux.eq.1) then
      gbound = (tflux0-tflux)/area
-     call numdofs(1, ndofs)
-     do j=1+(bz_g-1)*6,ndofs,6*num_fields
-        field(j) = field(j) + gbound
+     call numnod(numnodes)
+     do j=1,numnodes
+        call entdofs(num_fields, j, 0, ibegin, iendplusone)
+        if(itemp(ibegin+(bz_g-1)*6) .eq. 0) cycle
+        field(ibegin+(bz_g-1)*6) = field(ibegin+(bz_g-1)*6) + gbound
+        itemp(ibegin+(bz_g-1)*6) = 0
      enddo
      if(myrank.eq.0) then
         print *, "Correction to toroidal flux: ", gbound*area
      end if
   endif
+
+  deallocate(itemp)
 
   return
 end subroutine conserve_flux
