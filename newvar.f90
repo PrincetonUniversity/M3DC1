@@ -66,26 +66,7 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
 
   do itri=1,numelms
 
-     call area_to_local(79,                                            &
-          alpha_79,beta_79,gamma_79,area_weight_79,                    &
-          atri(itri), btri(itri), ctri(itri),                          &
-          si_79, eta_79, weight_79)
-
-     call calcpos(itri, si_79, eta_79, 79, x_79, z_79)
-     if(itor.eq.1) then
-        r_79 = x_79
-     else
-        r_79 = 1.
-        rzero = 1.
-     endif
-     ri_79 = 1./r_79
-
-     do i=1,18
-        call eval_ops(gtri(:,i,itri), si_79, eta_79, ttri(itri), &
-             ri_79, 79, g79(:,:,i))
-     end do
-
-     if(ijacobian.eq.1) weight_79 = weight_79 * r_79
+     call define_fields_79(itri,0)
 
      do j=1,18
         jone = isval1(itri,j)
@@ -180,7 +161,7 @@ subroutine newvar(ilhsmat,outarray,inarray,iplace,numvari,irhsmat,ibound)
   if(ibound.eq.NV_DCBOUND) call boundary_dc(0, outarray)
 
   call solve(ilhsmat,outarray,ier)
-
+  
 end subroutine newvar
 
 
