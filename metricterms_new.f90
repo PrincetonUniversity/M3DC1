@@ -1310,16 +1310,16 @@ vectype function v1bf(e,f,g)
   select case (ivform)
   case(0)
     temp = &
-       + int4(ri_79,e(:,OP_DZ),f(:,OP_GS),g(:,OP_DRPP),weight_79,79) &
-       - int4(ri_79,e(:,OP_DR),f(:,OP_GS),g(:,OP_DZPP),weight_79,79)
+       + int4(ri_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DRPP),weight_79,79) &
+       - int4(ri_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DZPP),weight_79,79)
     if(itor.eq.1) then
      temp = temp - 2.* & 
-          int4(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_DZPP),weight_79,79)
+          int4(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZPP),weight_79,79)
     endif
   case(1)
     temp = &
-       + int4(ri_79,e(:,OP_DZ),f(:,OP_GS),g(:,OP_DRPP),weight_79,79) &
-       - int4(ri_79,e(:,OP_DR),f(:,OP_GS),g(:,OP_DZPP),weight_79,79)
+       + int4(ri_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DRPP),weight_79,79) &
+       - int4(ri_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DZPP),weight_79,79)
   end select
 #else
   temp = 0.
@@ -1617,7 +1617,7 @@ vectype function v2psipsi(e,f,g)
   vectype :: temp
 
 #ifdef USECOMPLEX
-  temp = -0.5* &
+  temp = - &
        (int4(ri2_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DZ),weight_79,79) &
        +int4(ri2_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DR),weight_79,79))
 #else
@@ -2498,12 +2498,12 @@ vectype function v3psib(e,f,g)
   select case(ivform)
   case(0)
   temp = - &
-       (int4(ri2_79,e(:,OP_DZ),f(:,OP_DRP),g(:,OP_1),weight_79,79) &
-       -int4(ri2_79,e(:,OP_DR),f(:,OP_DZP),g(:,OP_1),weight_79,79))
+       (int4(ri3_79,e(:,OP_DZ),f(:,OP_DRP),g(:,OP_1),weight_79,79) &
+       -int4(ri3_79,e(:,OP_DR),f(:,OP_DZP),g(:,OP_1),weight_79,79))
   case(1)
   temp = - &
-       (int4(ri4_79,e(:,OP_DZ),f(:,OP_DRP),g(:,OP_1),weight_79,79) &
-       -int4(ri4_79,e(:,OP_DR),f(:,OP_DZP),g(:,OP_1),weight_79,79))
+       (int4(ri5_79,e(:,OP_DZ),f(:,OP_DRP),g(:,OP_1),weight_79,79) &
+       -int4(ri5_79,e(:,OP_DR),f(:,OP_DZP),g(:,OP_1),weight_79,79))
   end select
 #else
   temp = 0.
@@ -4424,7 +4424,6 @@ vectype function b3bbeta(e,f,g,h)
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   
   vectype :: temp
-
   if(gam.eq.1) then
      temp = 0.
   else 
