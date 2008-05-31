@@ -557,7 +557,7 @@ subroutine define_fields_79(itri, fields)
   ! PHI
   ! ~~~
   if(iand(fields, FIELD_PHI).eq.FIELD_PHI) then
-     if(itri.eq.1 .and. myrank.eq.0) print *, "   u..."
+     if(itri.eq.1 .and. myrank.eq.0) print *, "   U..."
      
      call calcavector(itri, field, u_g, num_fields, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ph179)

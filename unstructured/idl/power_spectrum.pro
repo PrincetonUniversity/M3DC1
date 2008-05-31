@@ -26,11 +26,11 @@ function power_spectrum, f, frequency=frequency, t=t
 
   for i=1, left do begin
       phi[left-i] = phi_old[n-i]
-      frequency[left-i] = -2.*3.14159*i/float(t)
+      frequency[left-i] = -2.*!pi*i/float(t)
   endfor
   for i=1, right do begin
       phi[mid+i] = phi_old[i]
-      frequency[mid+i] = 2.*3.14159*i/float(t)
+      frequency[mid+i] = 2.*!pi*i/float(t)
   endfor
 
   return, phi
