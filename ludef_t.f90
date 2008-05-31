@@ -960,6 +960,24 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      endif
   endif
 
+
+  ! 3D terms
+  if(i3d.eq.1) then
+     temp = v3psif(trial,lin,bf79)
+     ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
+     ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
+
+     temp = v3bf(trial,lin,bf79)
+     ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
+     ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
+
+     if(eqsubtract.eq.1) then
+        q_bf = q_bf + dt* &
+             (v3psif(trial,ps079,lin) &
+             +v3bf  (trial,bz079,lin))
+     endif
+  endif
+
 end subroutine compression_lin
 
 subroutine compression_nolin(trial, r4term)

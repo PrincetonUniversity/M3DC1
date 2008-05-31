@@ -923,6 +923,31 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
        data = sqrt((xx-x0)^2 + (zz-z0)^2)
 
    ;===========================================
+   ; polodal angle
+   ;===========================================
+   endif else if(strcmp('polodal angle', name, /fold_case) eq 1) or $
+     (strcmp('theta', name) eq 1) then begin
+
+
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+
+       nulls, time, psi=psi, xpoint=xpoint, axis=axis, r=x, z=y, $
+         filename=filename, _EXTRA=extra
+      
+       x0 = x[axis[0,0]]
+       z0 = y[axis[0,0]]
+       xx = fltarr(n_elements(t),n_elements(x),n_elements(y))
+       zz = fltarr(n_elements(t),n_elements(x),n_elements(y))
+       for k=0, n_elements(t)-1 do begin
+           for i=0, n_elements(y)-1 do xx[k,*,i] = x
+           for i=0, n_elements(x)-1 do zz[k,i,*] = y
+       end
+
+       data = atan(zz-z0,xx-x0)
+
+   ;===========================================
    ; Field strength
    ;===========================================
    endif else if( (strcmp('field strength', name, /fold_case) eq 1) $
@@ -2457,6 +2482,108 @@ pro plot_tor_velocity, time, filename=filename, points=pts, $
        plot_lcfs, time, color=130, points=pts, filename=filename
    endif
 end
+
+
+
+;==================================================================
+; flux_coord_field
+; ~~~~~~~~~~~~~~~~~~
+;==================================================================
+function flux_coord_field, field, psi, theta, x, z, t, fbins=fbins, $
+                           tbins=tbins, flux=flux, angle=angle, $
+                           psirange=frange, norm=nflux, _EXTRA=extra
+
+   sz = size(field)
+
+   points = sqrt(sz[2]*sz[3])
+
+   if(n_elements(fbins) eq 0) then fbins = 10
+   if(n_elements(tbins) eq 0) then tbins = 10
+
+   result = fltarr(sz[1], fbins, tbins)
+   flux = fltarr(sz[1], fbins)
+   angle = fltarr(sz[1], tbins)
+   sfield = 0
+
+   print, 'before lcfs'
+   psival = lcfs(psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, _EXTRA=extra)
+   
+   if(n_elements(range) eq 0) then begin
+       ; if range not provided, use all flux within lcfs
+       range = fltarr(sz[1],2)
+       for k=0, sz[1]-1 do range[k,*] = [psival, max(psi[k,*,*])]
+   endif else if(n_elements(range) eq 2) then begin
+       oldrange = range
+       range = fltarr(sz[1],2)
+       for k=0, sz[1]-1 do range[k,*] = oldrange
+   endif
+
+   ; remove divertor region from consideration
+   div_mask = fltarr(n_elements(x), n_elements(z))
+   if(n_elements(xpoint) ge 2) then begin
+       if(xpoint[1] lt axis[1]) then begin
+           div_mask[*,xpoint[1]:n_elements(z)-1] = 1.
+       endif else begin
+           div_mask[*,0:xpoint[1]] = 1.
+       endelse
+   endif else begin
+       div_mask = 1.
+   endelse
+
+   r = radius_matrix(x,z,t)
+
+   bp = sqrt(1./r^2)
+;   bp = sqrt(s_bracket(psi,psi,x,z)/r^2)
+   bpprime = s_bracket(bp,psi,x,z)/s_bracket(psi,psi,x,z)
+
+   fprime = s_bracket(field,psi,x,z)/s_bracket(psi,psi,x,z)
+
+   for k=0, sz[1]-1 do begin
+       dpsi = float(range[k,1] - range[k,0])/float(fbins)
+       dtheta = 2.*!pi/float(tbins)
+       
+       for p=0, fbins-1 do begin
+           fval = range[k,1] - dpsi*(p+1)
+           flux[k,p] = fval + dpsi/2.
+           
+           for q=0, tbins-1 do begin
+               tval = !pi - dtheta*(q+1)
+               angle[k,q] = tval + dtheta/2.
+
+               mask = float((psi[k,*,*] gt fval) $
+                            and (psi[k,*,*] le fval+dpsi) $
+                            and (theta[k,*,*] gt tval) $
+                            and (theta[k,*,*] le tval+dtheta))
+               mask = mask*div_mask
+
+               mask = mask/bp[k,*,*]
+;           mask = mask/(bp[k,*,*]+bpprime[k,*,*]*(flux[k,p]-psi[k,*,*]))
+
+               if(n_elements(field) gt 1) then begin
+                   sfield = field[k,*,*]*mask[0,*,*]
+;               sfield = (field[k,*,*]+fprime[k,*,*]*(flux[k,p]-psi[k,*,*])) $
+;                 *mask[0,*,*]
+               endif
+
+               tot = total(mask)
+
+               if(tot eq 0.) then begin
+                   print, 'error: no data points in bin', p, q
+                   result[k, p, q] = 0.
+               endif else begin
+                   result[k, p, q] = total(sfield)/tot
+               endelse
+           endfor
+       endfor
+   endfor
+
+   if(keyword_set(nflux)) then begin
+       flux = (flux - max(psi)) / (psival-max(psi))
+   endif
+       
+   return, result
+end
+
   
 
 ;==================================================================
