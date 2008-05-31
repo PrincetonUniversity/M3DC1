@@ -586,8 +586,8 @@ subroutine define_fields_79(itri, fields)
      call calcavector(itri, field, psi_g, num_fields, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, ps179)
 #ifdef USECOMPLEX
-!!$     ps179(:,OP_DP :OP_DZZP ) = (0,1)*ntor*ps179(:,OP_1:OP_DZZ)
-!!$     ps179(:,OP_DPP:OP_DZZPP) =   -ntor**2*ps179(:,OP_1:OP_DZZ)
+     ps179(:,OP_DP :OP_DZZP ) = (0,1)*ntor*ps179(:,OP_1:OP_DZZ)
+     ps179(:,OP_DPP:OP_DZZPP) =   -ntor**2*ps179(:,OP_1:OP_DZZ)
 #endif
 
      if(eqsubtract.eq.1) then
