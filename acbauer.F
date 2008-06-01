@@ -18,7 +18,6 @@
          p_xmin = dp_xmin 
          p_zmin = dp_zmin
          init1 = 1
-	 write(*,*) 'initialized min coordinate'
       endif
       xmin = p_xmin
       zmin = p_zmin
@@ -37,7 +36,6 @@
          p_xmax = dp_xmax 
          p_zmax = dp_zmax
          init2 = 1
-         write(*,*) 'initialized max coordinate'
       endif
 
       xmax = p_xmax
