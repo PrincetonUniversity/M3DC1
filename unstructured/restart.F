@@ -229,33 +229,31 @@ c     first put in information to check on run information
       use diagnostics
       implicit none
       include 'mpif.h'
-      integer ifirstrs2, numdofsglobal, mpitag, status, 
+      integer ifirstrs2, numdofsglobal, mpitag, 
      &     ierr, request, numentsglobal(4), i, numnodes, j, globalid,
      &     begindofnumber, enddofnumberplusone
-      integer recvinfo(8)
+      integer recvinfo(1)
+      integer status(MPI_STATUS_SIZE)
       data ifirstrs2/1/
 
       if(ifirstrs2 .ne. 1 .and. myrank .eq. 0) then
          call rename('C1restart', 'C1restarto')
       endif
+
       ifirstrs2 = 0
       mpitag = 9070
-      do i=1,8
-         recvinfo(i) = i
-      enddo
+      recvinfo(1) = 1
+      ierr = 0
+
       if(myrank .ne. 0) then
          ! unaligned access warnings on PPPL sgi machines is from communication here
-         call MPI_Recv(recvinfo(2), 4, MPI_INTEGER, myrank-1, 
+         call MPI_RECV(recvinfo, 1, MPI_INTEGER, myrank-1, 
      &        mpitag, MPI_COMM_WORLD, status, ierr)
          if(ierr .ne. MPI_SUCCESS) then
-            write(*,*) 'MPI recv problem in restart'
+            write(*,*) 'MPI recv problem in restart', ierr
             call safestop(828)
-         endif         
-         call MPI_Wait(request, status, ierr)
-         if(ierr .ne. MPI_SUCCESS) then
-            write(*,*) 'MPI wait problem in restart'
-            call safestop(829)
-         endif         
+         endif
+
 #ifdef _AIX
 	 print *, "must use wrrestart on ibm instead of wrrestartglobal"
  	 call safestop(9229)
@@ -306,7 +304,7 @@ c     below specifies that this is the last line
 
       close(56)
       if(myrank .ne. maxrank-1) then
-         call MPI_Send(recvinfo(2), 4, MPI_INTEGER, myrank+1,
+         call MPI_SEND(recvinfo, 1, MPI_INTEGER, myrank+1,
      &        mpitag, MPI_COMM_WORLD, ierr)
          if(ierr .ne. MPI_SUCCESS) then
             write(*,*) 'MPI send problem in restart'
@@ -314,7 +312,7 @@ c     below specifies that this is the last line
          endif
       endif
 !      write(9,1201) ntime,time !9 is FILE__C1NEW
-      call MPI_Barrier(MPI_COMM_WORLD, i)
+      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
       
  1201 format("* * * restart file written at cycle,time = ",i5,1pe12.4,    &
      &     "  * * *")
