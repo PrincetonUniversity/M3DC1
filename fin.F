@@ -269,6 +269,9 @@
       xlim = xzero
       zlim = 0.
       rzero = 1.
+      xlim2 = 0.
+      zlim2 = 0.
+      libetap = 1.2
 !
 !..... toroidal current controller parameters
       tcur = tcuro
