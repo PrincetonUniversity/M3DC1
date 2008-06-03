@@ -234,6 +234,7 @@ subroutine gradshafranov_solve
   real :: sum, rhs, ajlim, curr, norm, rnorm, g0, sum2, norm2
   real, dimension(5) :: temp1, temp2
   real :: alx, alz
+  real :: psilim2,gamma2a,gamma2b,gamma3a,gamma3b
   
   double precision :: coords(3)
    
@@ -276,8 +277,10 @@ subroutine gradshafranov_solve
   if(ipetsc) isuperlu=0
   if(ipetsc) call zeropetscmatrix(gsmatrix_sm, icomplex, numvar1_numbering)
   if(isuperlu) call zerosuperlumatrix(gsmatrix_sm, icomplex, numvar1_numbering)
-     if(ipetsc) print *, "	gradshafranov_solve zeropetscmatrix", gsmatrix_sm
-     if(isuperlu) print *, "	gradshafranov_solve zerosuperlumatrix", gsmatrix_sm
+     if(iprint.ge.1) then
+       if(ipetsc) print *, "	gradshafranov_solve zeropetscmatrix", gsmatrix_sm
+       if(isuperlu) print *, "	gradshafranov_solve zerosuperlumatrix", gsmatrix_sm
+     endif
 
   ! populate the matrix
   do itri=1,numelms
@@ -331,11 +334,11 @@ subroutine gradshafranov_solve
 
   ! based on filiment with current tcuro
   ! and vertical field of strength bv given by shafranov formula
-  ! NOTE:  This formula assumes (li/2 + beta_P) = 1.2
+  ! NOTE:  This formula assumes (li/2 + beta_P) = libetap
   fac = tcuro/(2.*pi)
   ! minor radius
   aminor = abs(xmag-xlim)
-  bv = (1./(4.*pi*xmag))*(alog(8.*xmag/aminor) - 1.5 + 1.2)
+  bv = (1./(4.*pi*xmag))*(alog(8.*xmag/aminor) - 1.5 + libetap)
   call getboundingboxsize(alx,alz)
   rnorm = xzero + alx/2.
   psi = 0.
@@ -428,6 +431,11 @@ subroutine gradshafranov_solve
 
   b1vecini = 0.
   call deltafun(xrel,zrel,b1vecini,tcuro)
+  if(myrank.eq.0) then
+  write(*,999) 
+999 format("    I    error        error2       xmag         psimin       psilim" &
+              ,"       psilim2")
+  endif
  
   !-------------------------------------------------------------------
   ! start of iteration loop on plasma current
@@ -472,6 +480,17 @@ subroutine gradshafranov_solve
      itri = 0.
 
      call evaluate(xrel,zrel,psilim,ajlim,psi,1,numvargs,itri)
+
+     ! calculate psi at a second limiter point as a diagnostic
+     if(xlim2.gt.0) then
+       xrel = xlim2 - xzero
+       zrel = zlim2 - zzero
+       itri = 0.
+
+       call evaluate(xrel,zrel,psilim2,ajlim,psi,1,numvargs,itri)
+     else
+       psilim2 = 0.
+     endif
 
      ! define the pressure and toroidal field functions
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -522,7 +541,10 @@ subroutine gradshafranov_solve
         error2= sum2/norm2
      endif
      
-     if(myrank.eq.0 .and. iprint.gt.0) print *, "GS: error = ", error,error2
+     if(myrank.eq.0) then
+        write(*,1002) itnum,error,error2,xmag,psimin,psilim,psilim2
+ 1002   format(i5,1p6e13.5)
+     endif
   if(itnum .gt. 1 .and. error2 .lt. tol_gs) exit mainloop
      
      ! start of loop over triangles to compute integrals needed to keep
@@ -576,7 +598,7 @@ subroutine gradshafranov_solve
      end if
 
      if(myrank.eq.0 .and. iprint.ge.1) then 
-        print *, "GS: curr = ", curr
+        print *, "GS: curr, xmag = ", curr, xmag
      endif
 
 
@@ -621,9 +643,21 @@ subroutine gradshafranov_solve
 
   end do mainloop
 
-     if(myrank.eq.0 ) print *, "Converged: GS: error = ", error,error2
      if(myrank.eq.0 ) then
-        print *, "GS: curr = ", curr
+        print *, "Converged GS: curr =", curr," error =",error2
+        gamma2a = -2.*xmag*(0.5*xmag*p0*p1) 
+        gamma2b = -2.*xmag*(abs(g0)/(xmag**2*q0*dpsii))
+        gamma3a = -0.5*(xmag*djdpsi/dpsii)
+        gamma3b = -0.5*(2.*xmag**2*p0*p2)
+
+        write(*,1001) gamma2,gamma3,gamma4,xmag,p0,p1,p2,g0,dpsii,   &
+                      djdpsi,tcuro,gsint1,gsint2,gsint3,gsint4,         &
+                      gamma2a,gamma2b,gamma3a,gamma3b
+ 1001 format(" gamma2,gamma3,gamma4       =",1p3e12.4,/,     &
+             " xmag, p0,p1,p2,g0          =",1p5e12.4,/,     &
+             " dpsii,djdpsi,tcurb         =",1p3e12.4,/,     &
+             "gsint1,gint2,gsint3,gsint4  =",1p4e12.4,/,     &
+             "gamm2a,gamm2b,gamm3a,gamm3b =",1p4e12.4)
      endif
 
   ! populate phi0 array

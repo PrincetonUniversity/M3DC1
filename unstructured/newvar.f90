@@ -58,8 +58,10 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
   if(isolve.eq.NV_LHS) then
      if(isuperlu)  call zerosuperlumatrix(matrix, icomplex, numvar1_numbering)
      if(ipetsc)  call zeropetscmatrix(matrix, icomplex, numvar1_numbering)
+      if(iprint.ge.1) then
         if(isuperlu) print *, "	newvar_create_matrix zerosuperlumatrix", matrix
         if(ipetsc) print *, "	newvar_create_matrix zeropetscmatrix", matrix
+      endif
   else
      call zeromultiplymatrix(matrix, icomplex, numvar1_numbering)
   end if

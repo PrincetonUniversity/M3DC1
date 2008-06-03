@@ -50,6 +50,9 @@ module basic
   ! domain parameters
   real :: xzero, zzero  ! cooridinates of lower left corner of domain
   real :: rzero    ! nominal major radius of the device
+  real :: libetap   !  li/2 + beta_poloidal estimate for equili/2brium calculation
+  real :: xlim2   !  x-position of second limiter point as a diagnostic
+  real :: zlim2   !  z-position of second limiter point as a diagnostic
 
   ! boundary conditions
   integer :: iper, jper ! periodic boundary conditions
@@ -189,7 +192,7 @@ module basic
 !
   namelist / inputnl/                                          &
        itaylor,                                                &
-       xzero,zzero,beta,rzero,                                 &
+       xzero,zzero,beta,rzero, libetap, xlim2, zlim2,     &
        numvar,idens,ipres,gyro,isources,nosig,itor,jadv,       &
        gam,db,gravr,gravz,                                     &
        p0,pi0,bzero,vzero,                                     &
