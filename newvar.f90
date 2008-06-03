@@ -221,7 +221,8 @@ subroutine define_transport_coefficients()
   solve_resistivity = eta0.ne.0.
   solve_visc = amu_edge.ne.0.
   solve_kappa = numvar.ge.3 .and. (kappa0.ne.0. .or. kappah.ne.0.)
-  solve_sigma = idens.eq.1 .and. (ipellet.eq.1 .or. ionization.eq.1)
+  solve_sigma = idens.eq.1 .and. &
+       (ipellet.eq.1 .or. ionization.eq.1 .or. isink.gt.0)
 
   resistivity = 0.
   kappa = 0.
@@ -297,6 +298,18 @@ subroutine define_transport_coefficients()
                 exp(-ionization_temp / temp79d)
 
         endif
+     endif
+     if(isink.ge.1) then
+        temp79c = temp79c &
+             - nt79(:,OP_1)*ri_79*sink1_rate/(2.*pi*sink1_var**2) & 
+             *exp(-((x_79 - sink1_x)**2 + (z_79 - sink1_z)**2) &
+             /(2.*sink1_var**2))
+     endif
+     if(isink.ge.2) then
+        temp79c = temp79c &
+             - nt79(:,OP_1)*ri_79*sink2_rate/(2.*pi*sink2_var**2) & 
+             *exp(-((x_79 - sink2_x)**2 + (z_79 - sink2_z)**2) &
+             /(2.*sink2_var**2))
      endif
 
      ! visc

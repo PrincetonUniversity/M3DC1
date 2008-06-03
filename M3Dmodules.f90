@@ -78,6 +78,13 @@ module basic
   real :: ionization_depth  ! temperature scale of neutral burnout
   integer :: nosig          ! 1 = drop sigma terms from momentum eqn
 
+  integer :: isink               ! number of density sinks
+  real :: sink1_x, sink2_x       ! x coordinates of sinks
+  real :: sink1_z, sink2_z       ! z coordinates of sinks
+  real :: sink1_rate, sink2_rate ! rate of sinks
+  real :: sink1_var, sink2_var   ! spatial dispersion of sinks
+
+
   ! general equilibrium parameters
   integer :: irestart ! 1 = reads restart file as initial condition
   integer :: itaylor  ! equilibrium
@@ -194,6 +201,8 @@ module basic
        vloop,control_p,control_i,control_d,tcur,               &
        ipellet, pellet_x, pellet_z, pellet_rate, pellet_var,   &
        ionization, ionization_rate, ionization_temp, ionization_depth, &
+       isink, sink1_x, sink2_x, sink1_z, sink2_z,              &
+       sink1_rate, sink2_rate, sink1_var, sink2_var,           &
        ntimemax,dt,integrator,thimp,thimp_ohm,imp_mod,igauge,  &
        isplitstep,                                             &
        linear,nskip,eqsubtract,                                &

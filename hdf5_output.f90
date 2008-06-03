@@ -845,7 +845,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   call output_field(group_id, "den", real(dum), 20, nelms, error)
   nfields = nfields + 1
   
-  if(ipellet.eq.1 .or. ionization.eq.1) then
+  if(ipellet.eq.1 .or. ionization.eq.1 .or. isink.gt.0) then
      do i=1, nelms
         call calcavector(i, sigma, 1, 1, dum(:,i))
      end do
