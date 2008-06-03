@@ -1748,7 +1748,8 @@ subroutine ludefall()
        FIELD_CHI + FIELD_PE + FIELD_B2I + FIELD_J + FIELD_P + FIELD_KAP
   if(isources.eq.1) def_fields = def_fields + FIELD_SRC
   if(idens.eq.1) then
-     if(ipellet.eq.1 .or. ionization.eq.1) def_fields = def_fields + FIELD_SIG
+     if(ipellet.eq.1 .or. ionization.eq.1 .or. isink.gt.0) &
+          def_fields = def_fields + FIELD_SIG
   endif
 
   if(gyro.eq.1) then

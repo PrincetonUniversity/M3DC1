@@ -379,6 +379,7 @@ subroutine boundary_vel(imatrix, rhs)
         
         ! no toroidal stress
         if(inostress_tor.eq.1) then
+           temp = 0.
            call set_normal_bc(imatrix,ibegin+vz_off,rhs,temp,normal,izonedim)
         end if
      endif
@@ -535,6 +536,7 @@ subroutine boundary_den(imatrix, rhs)
         endif
         call set_dirichlet_bc(imatrix,ibegin+den_off,rhs,temp,normal,izonedim)
      end if
+
   end do
 
 end subroutine boundary_den

@@ -218,9 +218,9 @@ Program Reducedquintic
      if(maxrank .eq. 1) then
 !        call outputfield(phi, numvar, 0, ntime, 123) 
 !        call writefieldatnodes(resistivity, 1, 1) 
-        factor = 0.2
-        hmin = .005
-        hmax = 0.05
+        factor = 0.6
+        hmin = .08
+        hmax = 0.2
 
         print *, 'adapting mesh...'
 !!$#ifdef USECOMPLEX

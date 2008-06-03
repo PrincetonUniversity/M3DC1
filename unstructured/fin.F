@@ -215,15 +215,26 @@
 !
 !.....density source
       ipellet = 0
-      pellet_x = xmag
-      pellet_z = zmag
-      pellet_rate = denm 
+      pellet_x = 0.
+      pellet_z = 0.
+      pellet_rate = 0. 
       pellet_var = 1.
 !
       ionization = 0
       ionization_rate = denm
       ionization_temp = 0.01
       ionization_depth = 0.01
+!
+      isink = 0
+      sink1_x = 0.
+      sink1_z = 0.
+      sink2_rate = 0. 
+      sink2_var = 1.
+      sink2_x = 0.
+      sink2_z = 0.
+      sink2_rate = 0. 
+      sink2_var = 1.
+
 !
       nosig = 0
 !

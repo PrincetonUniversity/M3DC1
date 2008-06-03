@@ -862,6 +862,27 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
 
 
    ;===========================================
+   ; ion temperature
+   ;===========================================
+   endif else if(strcmp('ion temperature', name, /fold_case) eq 1) or $
+     (strcmp('ti', name, /fold_case) eq 1) then begin
+
+       P = read_field('P', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+
+       Pe = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+
+       n = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+  
+       data = (p-pe)/n
+
+
+   ;===========================================
    ; angular momentum
    ;===========================================
    endif else if(strcmp('angular momentum', name, /fold_case) eq 1) or $
@@ -3050,7 +3071,13 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, _EXTRA=e
   ; calculate flux averages
   p = flux_average(p0,slice,psi=psi,x=x,z=z,t=t,flux=flux,bins=pts,$
                    limiter=limiter,_EXTRA=extra)
+  pp = s_bracket(p0,psi,x,z)/s_bracket(psi,psi,x,z)
+  pprime = flux_average(pp,slice,psi=psi,x=x,z=z,t=t,flux=flux,bins=pts,$
+                 limiter=limiter,_EXTRA=extra)
   I = flux_average(I0,slice,psi=psi,x=x,z=z,t=t,flux=flux,bins=pts,$
+                   limiter=limiter,_EXTRA=extra)
+  ffp = I0*s_bracket(I0,psi,x,z)/s_bracket(psi,psi,x,z)
+  ffprim = flux_average(ffp,slice,psi=psi,x=x,z=z,t=t,flux=flux,bins=pts,$
                    limiter=limiter,_EXTRA=extra)
   q = flux_average('q',slice,psi=psi,x=x,z=z,t=t,flux=flux, $
                    limiter=limiter,points=pts,bins=pts,_EXTRA=extra)
@@ -3064,7 +3091,11 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, _EXTRA=e
   flux = flux*b0*l0^2           / 1e8
   flux0 = flux0*b0*l0^2         / 1e8
   psilim=psilim*b0*l0^2         / 1e8
+  pprime = pprime*b0^2/(4.*!pi) / 10.
+  pprime = pprime/(b0*l0^2)     * 1e8
   I = I*b0*l0                   / (1e4*100.)
+  ffprim = ffprim*(b0*l0)^2     / (1e4*100.)^2
+  ffprim = ffprim/(b0*l0^2)     * 1e8
   bzero = bzero*b0              / 1e4
   b2 = b2*b0^2                  / (1e4)^2
   tcur = tcur*b0*c*l0/(4.*!pi)  / 3e9
@@ -3081,9 +3112,8 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, _EXTRA=e
   psilim = -psilim
   psimin = -flux0
   flux = -flux
-
-  pprime = deriv(flux,p)
-  ffprim = I*deriv(flux,I)
+  pprime = -pprime
+  ffprim = -ffprim
 
   name = ['name0001', 'name0002', 'name0003', $
           'name0004', 'name0005', 'name0006']
@@ -3143,9 +3173,22 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, _EXTRA=e
 
   close, file
 
-  contour_and_legend, psi,x,z, /iso
+;  contour_and_legend, psi,x,z, /iso
+;  loadct,12
+;  oplot, rlim, zlim, color=color(1,3), thick=3.0
+;  oplot, rwall, zwall, color=color(2,3), thick=3.0
+ 
+;  plot, flux, pprime
+
   loadct,12
-  oplot, rlim, zlim, color=color(1,3), thick=3.0
-  oplot, rwall, zwall, color=color(2,3), thick=3.0
-  
+  !p.multi = [0,2,2]
+  plot, flux, p, title='p'
+  plot, flux, pprime, title="p'"
+  oplot, flux, deriv(flux,p), color=color(1,2), linestyle=2
+  plot, flux, I, title='f'
+  plot, flux, ffprim, title="f f'"
+  oplot, flux, I*deriv(flux,I), color=color(1,2), linestyle=2
+ 
+  !p.multi=0
+
 end
