@@ -199,13 +199,16 @@
 !
 !.....initial toroidal velocity
       vzero = 0.
+      phizero = 0.
 !
 !.....boundary conditions
 !     com_bc: 1 = sets laplacian(chi) = 0 on boundary
       com_bc = 1
-      iconst_t = 1
+      iconst_p = 1
+      iconst_n = 1
       iconst_bz = 1
-      inograd_t = 0
+      inograd_p = 0
+      inograd_n = 0
       inonormalflow = 1
       inoslip_pol = 0
       inoslip_tor = 1

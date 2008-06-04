@@ -5106,7 +5106,7 @@ subroutine PVV1(e,o)
           (e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR)) &
           -2.*(e(:,OP_DZ)*(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2) &
                +2.*e(:,OP_DR)*pst79(:,OP_DR)*pst79(:,OP_DZ)) &
-          +e(:,OP_DZ)*bzt79(:,OP_1)**2)
+          -e(:,OP_DZ)*bzt79(:,OP_1)**2)
   endif
 
   o = 3.*ri_79*b2i79(:,OP_1)*o
@@ -5142,21 +5142,14 @@ subroutine PVV3(e,o)
 
   o = (1. - 3.*ri2_79*b2i79(:,OP_1)* &
        (pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2)) * e(:,OP_LP) &
-      - 3.*ri2_79*b2i79(:,OP_1)* &
-      (e(:,OP_DZ)* &
-       (pst79(:,OP_DZ)*pst79(:,OP_DZZ) + pst79(:,OP_DR)*pst79(:,OP_DRZ)) &
-      +e(:,OP_DR)* &
-       (pst79(:,OP_DZ)*pst79(:,OP_DRZ) + pst79(:,OP_DR)*pst79(:,OP_DRR)) &
-      -pst79(:,OP_DZ)* &
-       (pst79(:,OP_DZZ)*e(:,OP_DZ ) + pst79(:,OP_DRZ)*e(:,OP_DR ) &
-       +pst79(:,OP_DZ )*e(:,OP_DZZ) + pst79(:,OP_DR )*e(:,OP_DRZ)) &
-      -pst79(:,OP_DR)* &
-       (pst79(:,OP_DRZ)*e(:,OP_DZ ) + pst79(:,OP_DRR)*e(:,OP_DR ) &
-       +pst79(:,OP_DZ )*e(:,OP_DRZ) + pst79(:,OP_DR )*e(:,OP_DRR)))
+      + 3.*ri2_79*b2i79(:,OP_1)* &
+      (   e(:,OP_DZZ)*pst79(:,OP_DZ)**2 &
+      +   e(:,OP_DRR)*pst79(:,OP_DR)**2 &
+      +2.*e(:,OP_DRZ)*pst79(:,OP_DZ)*pst79(:,OP_DR))
 
   if(itor.eq.1) then
      o = o + 3.*ri3_79*b2i79(:,OP_1)*e(:,OP_DR)* &
-          (pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2 - bzt79(:,OP_1)**2)
+          (pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2 - bzt79(:,OP_1)**2)
   endif
 
 end subroutine  PVV3

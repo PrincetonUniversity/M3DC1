@@ -779,11 +779,11 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
 
        idens = read_parameter('idens', filename=filename)
 
-       T = read_field('T',x,y,t,slices=time, mesh=mesh, $
+       Temp = read_field('T',x,y,t,slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange)
          
-       data = sqrt(T)
+       data = sqrt(Temp)
 
    ;===========================================
    ; sound speed
@@ -1173,7 +1173,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
                endif
            end
            if(match eq 0) then begin
-               print, "No field named ", name, " at time slice", i
+               print, "No field named ", name, " at time slice", -1
            endif else begin
        
                field = h5_parse(field_group_id, name, /read_data)
@@ -2798,9 +2798,11 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, $
            bp = sqrt(s_bracket(psi,psi,x,z)/r^2)
            q = minor_r * bt / (r * bp)
            
-           field = 2*gam*p/(den*r^2)*(1.+2./q^2)
+           field = 2.*gam*p/(den*r^2)*(1.+2./q^2)
+           field = sqrt(field)
            name = '!6GAM Frequency!X'
            symbol = '!4x!D!6GAM!N!X'
+           units = get_units('omega')
 
 
        endif else begin

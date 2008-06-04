@@ -477,11 +477,11 @@ subroutine boundary_mag(imatrix, rhs)
      end if
 
      if(numvar.ge.3) then 
-        if(inograd_t.eq.1) then
+        if(inograd_p.eq.1) then
            temp = 0.
            call set_normal_bc(imatrix,ibegin+pe_off,rhs,temp,normal,izonedim)
         end if
-        if(iconst_t.eq.1) then
+        if(iconst_p.eq.1) then
            temp = pes_l
            if(integrator.eq.1 .and. ntime.gt.1) then
               temp = 1.5*temp + 0.5*peo_v(ibegin+pe_off:ibegin+pe_off+5)
@@ -525,11 +525,11 @@ subroutine boundary_den(imatrix, rhs)
      call entdofs(vecsize_n, i, 0, ibegin, iendplusone)
      call assign_local_pointers(i)
 
-     if(inograd_t.eq.1) then
+     if(inograd_n.eq.1) then
         temp = 0.
         call set_normal_bc(imatrix,ibegin+den_off,rhs,temp,normal,izonedim)
      end if
-     if(iconst_t.eq.1) then
+     if(iconst_n.eq.1) then
         temp = dens_l
         if(integrator.eq.1 .and. ntime.gt.1) then
            temp = 1.5*temp + 0.5*deno_v(ibegin+den_off:ibegin+den_off+5)
@@ -573,11 +573,11 @@ subroutine boundary_pres(imatrix, rhs)
      call entdofs(vecsize_p, i, 0, ibegin, iendplusone)
      call assign_local_pointers(i)
 
-     if(inograd_t.eq.1) then
+     if(inograd_p.eq.1) then
         temp = 0.
         call set_normal_bc(imatrix,ibegin+p_off,rhs,temp,normal,izonedim)
      end if
-     if(iconst_t.eq.1) then
+     if(iconst_p.eq.1) then
         temp = ps_l
         if(integrator.eq.1 .and. ntime.gt.1) then
            temp = 1.5*temp + 0.5*po_v(ibegin+p_off:ibegin+p_off+5)

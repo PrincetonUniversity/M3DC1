@@ -617,8 +617,10 @@ subroutine define_fields_79(itri, fields)
         call calcavector(itri, field0, vz_g, num_fields, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, vz079)
         vzt79 = vz079 + vz179
+        vzs79 = vz079 + vz179/2.
      else
         vzt79 = vz179
+        vzs79 = vz179/2.
      endif
   endif
 

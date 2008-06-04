@@ -170,6 +170,7 @@ subroutine gradshafranov_init()
   integer :: l, numnodes
   real :: tstart, tend, alx, alz, xmin, zmin, x, z
   double precision :: coords(3)
+  vectype, dimension(6) :: vmask
 
   call getmincoord(xmin, zmin)
   call getboundingboxsize(alx, alz)
@@ -195,7 +196,18 @@ subroutine gradshafranov_init()
      vz0_l = 0.
      chi0_l = 0.
 
-     call random_per(x,z,23)
+     call random_per(x,z,23)    
+
+     vmask = p0_l/p0
+     vmask(1) = vmask(1) - pedge/p0
+     
+     ! initial parallel rotation
+     u1_l = phizero*vmask
+
+     ! allow for initial toroidal rotation
+     vz1_l = 0.
+     call add_angular_velocity(vz1_l, x+xzero, vzero*vmask)
+
   enddo
   
 end subroutine gradshafranov_init
