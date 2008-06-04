@@ -63,9 +63,11 @@ module basic
   integer :: inostress_tor ! 1 = no stress (toroidal flow)
   integer :: inocurrent_pol! 1 = no tangential current
   integer :: inocurrent_tor! 1 = no toroidal current
-  integer :: iconst_t      ! 1 = temperature held constant
+  integer :: iconst_p      ! 1 = pressure held constant
+  integer :: iconst_n      ! 1 = density held constant
   integer :: iconst_bz     ! 1 = toroidal field held constant
-  integer :: inograd_t     ! 1 = no normal temperature gradient
+  integer :: inograd_p     ! 1 = no normal pressure gradient
+  integer :: inograd_n     ! 1 = no normal density gradient
   integer :: com_bc   ! 1 = forces div(V) = 0 on boundary
   real :: amu_edge    ! factor by which to increase viscosity at boundaries
 
@@ -97,6 +99,7 @@ module basic
                       !  2 = NSTX
   real :: bzero       ! guide field
   real :: vzero       ! initial toroidal velocity
+  real :: phizero     ! initial poloidal velocity
   real :: p0, pi0     ! total, ion pressures
   real :: ln          ! length of equilibrium gradient
   real :: eps         ! size of initial perturbation
@@ -195,7 +198,7 @@ module basic
        xzero,zzero,beta,rzero, libetap, xlim2, zlim2,     &
        numvar,idens,ipres,gyro,isources,nosig,itor,jadv,       &
        gam,db,gravr,gravz,                                     &
-       p0,pi0,bzero,vzero,                                     &
+       p0,pi0,bzero,vzero,phizero,                             &
        etar,eta0,amu,amuc,amupar,denm,                         &
        kappat,kappa0,kappar,kappax,kappah,                     &
        hyper,hyperi,hyperv,hyperc,hyperp,deex,                 &
@@ -219,8 +222,8 @@ module basic
        ihypeta,ikapscale,                                      &
        iteratephi,                                             &
        inonormalflow, inoslip_pol, inoslip_tor, inostress_tor, &
-       iconst_t, inograd_t, inocurrent_pol, inocurrent_tor,    &
-       iconst_bz,                                              &
+       iconst_p, inograd_p, iconst_n, inograd_n,               &
+       inocurrent_pol, inocurrent_tor, iconst_bz,              &
        irecalc_eta,ihypdx, iconst_eta,                         &
        iupwind, dndt_fac, dvdt_fac, dbdt_fac,                  &
        eta_djdt,                                               &

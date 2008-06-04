@@ -51,6 +51,28 @@ subroutine plane_wave2(outarr,x,z,kx,kz,amp,phasex,phasez)
   outarr(6) = -amp*six*siz*kz*kz
 end subroutine plane_wave2
 !==============================
+subroutine add_angular_velocity(outarr, x,omega)
+  use arrays
+
+  implicit none
+
+  vectype, dimension(6), intent(inout) :: outarr
+  vectype, dimension(6), intent(in) :: omega
+  real, intent(in) :: x
+
+  vectype, dimension(6) :: temp
+
+  temp(1) = x**2 * omega(1)
+  temp(2) = x**2 * omega(2) + 2.*x*omega(1)
+  temp(3) = x**2 * omega(3)
+  temp(4) = x**2 * omega(4) + 4.*x*omega(2) + 2.*omega(1)
+  temp(5) = x**2 * omega(5) + 2.*x*omega(3)
+  temp(6) = x**2 * omega(6)
+
+  outarr = outarr + temp
+
+end subroutine add_angular_velocity
+!=============================
 subroutine random_per(x,z,seed)
   use basic
   use arrays
@@ -1067,9 +1089,9 @@ subroutine circular_field_per(x, z)
   real, intent(in) :: x, z
 
   real :: x0,z0
+  real :: ss
 
-  x0 = 1.
-  z0 = 0.
+  ss = min(alx,alz)/4.
 
   u1_l = 0.
   vz1_l = 0.
@@ -1077,6 +1099,7 @@ subroutine circular_field_per(x, z)
 
   psi1_l = 0.
   bz1_l = 0.
+  p1_l = 0.
 
   p1_l(1) = eps*exp(-((x-x0)**2+z**2)/(2.*ln**2))
   p1_l(2) = -(x-x0)*p1_l(1)/ln**2
@@ -1086,7 +1109,23 @@ subroutine circular_field_per(x, z)
   p1_l(6) = (((z-z0)/ln)**2 - 1.)*p1_l(1)/ln**2
 
   ! for viscosity test..
-  vz1_l = p1_l
+!  vz1_l = p1_l
+!  p1_l = 0.
+
+  ! for parallel viscosity test...
+
+  u1_l(1) = eps*exp(-(x**2+z**2)/(2.*ss**2))
+  u1_l(2) = -x*u1_l(1)/ss**2
+  u1_l(3) = -z*u1_l(1)/ss**2
+  u1_l(4) = ((x/ss)**2 - 1.)*u1_l(1)/ss**2
+  u1_l(5) =  x*z*u1_l(1)/ss**4
+  u1_l(6) = ((z/ss)**2 - 1.)*u1_l(1)/ss**2
+  vz1_l(1) = vzero*exp(-(x**2+z**2)/(2.*ss**2))
+  vz1_l(2) = -x*vz1_l(1)/ss**2
+  vz1_l(3) = -z*vz1_l(1)/ss**2
+  vz1_l(4) = ((x/ss)**2 - 1.)*vz1_l(1)/ss**2
+  vz1_l(5) =  x*z*psi0_l(1)/ss**4
+  vz1_l(6) = ((z/ss)**2 - 1.)*vz1_l(1)/ss**2
   p1_l = 0.
 
   if(ipres.eq.1) then
@@ -1373,6 +1412,8 @@ subroutine initial_conditions()
         call mri_init()
      case(3)
         call rotate_init()
+     case(7)
+        call circular_field_init()
      end select
   endif
 

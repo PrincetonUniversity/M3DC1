@@ -1752,7 +1752,7 @@ subroutine ludefall()
           def_fields = def_fields + FIELD_SIG
   endif
 
-  if(gyro.eq.1) then
+  if(gyro.eq.1 .or. amupar.ne.0) then
      if(numvar.lt.3) def_fields = def_fields + FIELD_P + FIELD_PE + FIELD_B2I
   endif
 
