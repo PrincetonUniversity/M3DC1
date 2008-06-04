@@ -112,7 +112,7 @@
          call createvec(sigma, 1)
          call createvec(tempvar,1)
          if(gyro.eq.1) call createvec(gyro_tau,1)
-         if(i3d.eq.1 .and. numvar.ge.2) call createvec(bf,1)      
+         if(i3d.eq.1) call createvec(bf,1)
 
          ! Arrays for implicit time advance
          call createvec(phi,      vecsize_phi)

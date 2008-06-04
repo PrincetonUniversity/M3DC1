@@ -286,6 +286,7 @@ contains
   ! output_scalar
   ! =============
   subroutine output_scalar(parent_id, name, value, time, error)
+    use basic
     use hdf5
 
     implicit none
@@ -309,7 +310,7 @@ contains
     values(1) = value
     coord(1,1) = time + 1
     
-    if(time.eq.0.) then
+    if(time.eq.0 .and. irestart.eq.0) then
        call h5screate_simple_f(1, dims, filespace, error, maxdims)
        call h5pcreate_f(H5P_DATASET_CREATE_F, p_id, error)
        call h5pset_chunk_f(p_id, 1, chunk_size, error)
@@ -597,7 +598,7 @@ subroutine hdf5_write_time_slice(equilibrium, error)
      write(time_group_name, '("time_",I3.3)') times_output
      ! remove the time group if it already exists
      ! (from before a restart, for example)
-     if(irestart.eq.1) then
+     if(irestart.eq.1 .and. (ntime.eq.ntime0)) then
         call h5gunlink_f(file_id, time_group_name, error)
      endif
   endif
@@ -628,6 +629,7 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   call h5gopen_f(file_id, "/", root_id, error)
   call update_int_attr(root_id, "ntime", times_output, error)
   call h5gclose_f(root_id, error)
+
 
 end subroutine hdf5_write_time_slice
 
@@ -771,7 +773,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   end do
   call output_field(group_id, "I", real(dum), 20, nelms, error)
   nfields = nfields + 1
-  
+
   ! BF
   if(i3d.eq.1) then
      do i=1, nelms
@@ -884,11 +886,11 @@ subroutine output_fields(time_group_id, equilibrium, error)
      nfields = nfields + 1
   end if
 
-
   call write_int_attr(group_id, "nfields", nfields, error)
 
   ! Close the mesh group
   call h5gclose_f(group_id, error)
 
   deallocate(dum)
+
 end subroutine output_fields
