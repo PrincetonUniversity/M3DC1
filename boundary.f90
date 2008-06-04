@@ -487,7 +487,14 @@ subroutine boundary_mag(imatrix, rhs)
               temp = 1.5*temp + 0.5*peo_v(ibegin+pe_off:ibegin+pe_off+5)
            endif
            call set_dirichlet_bc(imatrix,ibegin+pe_off,rhs,temp,normal,izonedim)
+        else if(iconst_t.eq.1) then
+           temp = pes_l*den1_l(1)/dens_l(1)
+           if(integrator.eq.1 .and. ntime.gt.1) then
+              temp = 1.5*temp + 0.5*peo_v(ibegin+pe_off:ibegin+pe_off+5)
+           endif
+           call set_dirichlet_bc(imatrix,ibegin+pe_off,rhs,temp,normal,izonedim)
         end if
+
      endif
   end do
 

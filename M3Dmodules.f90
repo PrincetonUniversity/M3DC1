@@ -64,6 +64,7 @@ module basic
   integer :: inocurrent_pol! 1 = no tangential current
   integer :: inocurrent_tor! 1 = no toroidal current
   integer :: iconst_p      ! 1 = pressure held constant
+  integer :: iconst_t      ! 1 = pressure held constant
   integer :: iconst_n      ! 1 = density held constant
   integer :: iconst_bz     ! 1 = toroidal field held constant
   integer :: inograd_p     ! 1 = no normal pressure gradient
@@ -222,7 +223,7 @@ module basic
        ihypeta,ikapscale,                                      &
        iteratephi,                                             &
        inonormalflow, inoslip_pol, inoslip_tor, inostress_tor, &
-       iconst_p, inograd_p, iconst_n, inograd_n,               &
+       iconst_p, inograd_p, iconst_n, inograd_n, iconst_t,     &
        inocurrent_pol, inocurrent_tor, iconst_bz,              &
        irecalc_eta,ihypdx, iconst_eta,                         &
        iupwind, dndt_fac, dvdt_fac, dbdt_fac,                  &

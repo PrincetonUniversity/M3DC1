@@ -1030,13 +1030,13 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
    ;===========================================
    ; divergence
    ;===========================================
-;     endif else if(strcmp('com', name, /fold_case) eq 1) then begin
+     endif else if(strcmp('com', name, /fold_case) eq 1) then begin
 
-;         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
-;                          filename=filename, points=pts, $
-;                          rrange=xrange, zrange=yrange)
+         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                          filename=filename, points=pts, $
+                          rrange=xrange, zrange=yrange)
 
-;         data = laplacian(chi,x,y,tor=itor)
+         data = laplacian(chi,x,y,tor=itor)
 
    ;===========================================
    ; rotational transform

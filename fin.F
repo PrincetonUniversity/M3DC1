@@ -206,6 +206,7 @@
       com_bc = 1
       iconst_p = 1
       iconst_n = 1
+      iconst_t = 0
       iconst_bz = 1
       inograd_p = 0
       inograd_n = 0
