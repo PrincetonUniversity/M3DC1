@@ -92,8 +92,6 @@ subroutine random_per(x,z,seed)
 
   call srand(seed)
 
-  psi1_l = 0.
-  u1_l = 0.
   temp = 0.
 
 #ifdef _AIX
