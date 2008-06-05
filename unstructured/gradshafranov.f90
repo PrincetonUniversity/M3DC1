@@ -196,8 +196,6 @@ subroutine gradshafranov_init()
      vz0_l = 0.
      chi0_l = 0.
 
-     call random_per(x,z,23)    
-
      vmask = p0_l/p0
      vmask(1) = vmask(1) - pedge/p0
      
@@ -207,6 +205,9 @@ subroutine gradshafranov_init()
      ! allow for initial toroidal rotation
      vz1_l = 0.
      call add_angular_velocity(vz1_l, x+xzero, vzero*vmask)
+
+     ! add random perturbations
+     call random_per(x,z,23)    
 
   enddo
   
