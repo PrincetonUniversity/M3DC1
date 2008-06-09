@@ -306,7 +306,11 @@ subroutine gradshafranov_solve
           si_79, eta_79, weight_79)
 
      call calcpos(itri, si_79, eta_79, 79, x_79, z_79)
-     r_79 = x_79
+     if(itor.eq.1) then
+       r_79 = x_79
+     else
+       r_79 = 1.
+     endif
      ri_79 = 1./r_79
 
      do i=1,18
@@ -351,7 +355,11 @@ subroutine gradshafranov_solve
   fac = tcuro/(2.*pi)
   ! minor radius
   aminor = abs(xmag-xlim)
-  bv = (1./(4.*pi*xmag))*(alog(8.*xmag/aminor) - 1.5 + libetap)
+  if(itor.eq.1) then
+    bv = (1./(4.*pi*xmag))*(alog(8.*xmag/aminor) - 1.5 + libetap)
+  else
+    bv = 0.
+  endif
   call getboundingboxsize(alx,alz)
   rnorm = xzero + alx/2.
   psi = 0.
@@ -619,7 +627,9 @@ subroutine gradshafranov_solve
      ! degree of freedom in gamma3.  Could be used to fix qprime(0)
      g0 = bzero*xzero
 
-     if(numvar.eq.1 .or. nv1equ.eq.1) then
+!.....changed 06/04/08 to allow more flexibility
+!    if(numvar.eq.1 .or. nv1equ.eq.1) then
+     if(nv1equ.eq.1) then
         gamma2 = 0.
         gamma3 = 0.
         gamma4 = 0.

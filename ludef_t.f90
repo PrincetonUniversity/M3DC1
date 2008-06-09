@@ -730,6 +730,11 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   temp = v3un(trial,lin,nt79)
   ssterm(u_g) = ssterm(u_g) + dvdt_fac*temp
   ddterm(u_g) = ddterm(u_g) + dvdt_fac*temp*bdf
+  
+  temp = v3chin(trial,lin,nt79)
+  ssterm(chi_g) = ssterm(chi_g) + dvdt_fac*temp
+  ddterm(chi_g) = ddterm(chi_g) + dvdt_fac*temp*bdf
+!
 
   temp = v3uun  (trial,lin,ph179,nt79) &
        + v3uun  (trial,ph179,lin,nt79) &
@@ -746,10 +751,6 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
        + v3vvn(trial,vz179,lin,nt79)
   ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
   ddterm(vz_g) = ddterm(vz_g) + (.5-thimp*bdf)*dt*temp
-  
-  temp = v3chin(trial,lin,nt79)
-  ssterm(chi_g) = ssterm(chi_g) + dvdt_fac*temp
-  ddterm(chi_g) = ddterm(chi_g) + dvdt_fac*temp*bdf
 
   temp = v3chimu(trial,lin,vis79,vic79) &
        + v3chis (trial,lin,sig79)
@@ -1417,6 +1418,10 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
 
   if(numvar.lt.3) return   
 
+  temp = b3pe(trial,lin)
+  ssterm(pe_g) = ssterm(pe_g) + temp
+  ddterm(pe_g) = ddterm(pe_g) + temp*bdf
+
   temp = b3psipsieta(trial,lin,ps179,eta79) &
        + b3psipsieta(trial,ps179,lin,eta79)
   ssterm(psi_g) = ssterm(psi_g) -     thimp_ohm     *dt*temp
@@ -1431,16 +1436,13 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   ssterm(bz_g) = ssterm(bz_g) -     thimp_ohm     *dt*temp
   ddterm(bz_g) = ddterm(bz_g) + (.5-thimp_ohm*bdf)*dt*temp
 
-  temp = b3pe(trial,lin)
-  ssterm(pe_g) = ssterm(pe_g) + temp
-  ddterm(pe_g) = ddterm(pe_g) + temp*bdf
-
   temp = b3pebd(trial,lin,bzt79,ni79)*dbf*pefac &
        + b3pedkappa(trial,lin,ni79,kap79,hp)
   ssterm(pe_g) = ssterm(pe_g) -     thimp     *dt*temp
   ddterm(pe_g) = ddterm(pe_g) + (1.-thimp*bdf)*dt*temp
 
   temp = p1pu  (trial,lin,pht79)                & 
+       + p1pv  (trial,lin,vzt79)               &
        + p1pchi(trial,lin,cht79)
   ssterm(pe_g) = ssterm(pe_g) -     thimpb     *dt*temp
   ddterm(pe_g) = ddterm(pe_g) + (1.-thimpb*bdf)*dt*temp
@@ -1517,6 +1519,10 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
      temp = p1pu(trial,pe079,lin)
      ssterm(u_g) = ssterm(u_g) -     thimpb     *dt*temp
      ddterm(u_g) = ddterm(u_g) + (1.-thimpb*bdf)*dt*temp
+     
+     temp = p1pv(trial,pe079,lin)
+     ssterm(vz_g) = ssterm(vz_g) -     thimpb     *dt*temp
+     ddterm(vz_g) = ddterm(vz_g) + (1.-thimpb*bdf)*dt*temp
      
      temp = p1pchi(trial,pe079,lin)                
      ssterm(chi_g) = ssterm(chi_g) -     thimpb     *dt*temp
@@ -2463,6 +2469,24 @@ subroutine ludefpres_n(itri)
            temp = p1pu  (g79(:,:,i),p079,g79(:,:,j))
            rrterm(1) = rrterm(1) +     thimp     *dt*temp
            qqterm(1) = qqterm(1) + (1.-thimp*bdf)*dt*temp
+        endif
+
+        ! NUMVAR = 2
+        ! ~~~~~~~~~~
+        if(numvar.ge.2) then
+          temp = p1pv   (g79(:,:,i),g79(:,:,j),vzt79)
+          ssterm = ssterm -     thimp     *dt*temp
+          ddterm = ddterm + (1.-thimp*bdf)*dt*temp
+
+          temp = p1pv(g79(:,:,i),p179,g79(:,:,j))
+          rrterm(2) = rrterm(2) + thimp*dt*temp
+          qqterm(2) = qqterm(2) - thimp*dt*temp*bdf
+
+          if(eqsubtract.eq.1) then
+             temp = p1pv  (g79(:,:,i),p079,g79(:,:,j))
+             rrterm(2) = rrterm(2) +     thimp     *dt*temp
+             qqterm(2) = qqterm(2) + (1.-thimp*bdf)*dt*temp
+          endif
         endif
 
         ! NUMVAR = 3
