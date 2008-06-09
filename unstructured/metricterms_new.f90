@@ -2405,6 +2405,7 @@ vectype function v3vp(e,f,g)
 
   vectype :: temp
   temp = 0.
+!
 
 #ifdef USECOMPLEX
   select case(ivform)
