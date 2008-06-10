@@ -5184,9 +5184,7 @@ vectype function P1vip(e)
      temp79a = temp79a + temp79c
   endif
 
-  temp79d = 3.*temp79a - cht79(:,OP_LP)
-
-  P1vip = int4(e(:,OP_1),vip79(:,OP_1),temp79a,temp79d,weight_79,79)
+  P1vip = 3.*int4(e(:,OP_1),vip79(:,OP_1),temp79a,temp79a,weight_79,79)
 end function P1vip
 
 

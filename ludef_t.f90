@@ -346,7 +346,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   endif
 
   ! Parallel Viscosity
-  if(amupar.ne.0) then
+  if(amupar.ne.0.) then
      call PVV1(trial,temp79b)
 
      call PVS1(lin,temp79c)
@@ -637,7 +637,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
   endif
 
   ! Parallel Viscosity
-  if(amupar.ne.0) then
+  if(amupar.ne.0.) then
      call PVV2(trial,temp79b)
 
      call PVS1(lin,temp79c)
@@ -734,7 +734,6 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   temp = v3chin(trial,lin,nt79)
   ssterm(chi_g) = ssterm(chi_g) + dvdt_fac*temp
   ddterm(chi_g) = ddterm(chi_g) + dvdt_fac*temp*bdf
-!
 
   temp = v3uun  (trial,lin,ph179,nt79) &
        + v3uun  (trial,ph179,lin,nt79) &
@@ -938,7 +937,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   endif
 
   ! Parallel Viscosity
-  if(amupar.ne.0) then
+  if(amupar.ne.0.) then
      call PVV3(trial,temp79b)
 
      call PVS1(lin,temp79c)
