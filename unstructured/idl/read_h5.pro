@@ -1290,7 +1290,7 @@ pro plot_field, name, time, x, y, points=p, filename=filename, mesh=plotmesh, $
                 mcolor=mc, lcfs=lcfs, title=title, units=units, $
                 maskrange=maskrange, maskfield=maskfield, range=range, $
                 rrange=rrange, zrange=zrange, $
-                xrange=xrange, yrange=yrange, $
+                xrange=xrange, yrange=yrange, xlim=xlim, $
                 cutx=cutx, cutz=cutz, mpeg=mpeg, _EXTRA = ex
 
    if(n_elements(time) eq 0) then time = 0
@@ -1357,12 +1357,13 @@ pro plot_field, name, time, x, y, points=p, filename=filename, mesh=plotmesh, $
 
            if(keyword_set(lcfs) or n_elements(maskrange) ne 0) then begin
                if(n_elements(psi) eq 0) then begin
-                   plot_lcfs, time[0]+k, color=130, points=p, filename=filename
+                   plot_lcfs, time[0]+k, color=130, points=p, $
+                     filename=filename, xlim=xlim
                endif else begin
-                   plot_lcfs, time[0]+k, color=130, val=maskrange[0], psi=psi,$
-                     x=x, y=y, points=p
-                   plot_lcfs, time[0]+k, color=130, val=maskrange[1], psi=psi,$
-                     x=x, y=y, points=p
+                   plot_lcfs, time[0]+k, color=130, val=maskrange[0], $
+                     psi=psi, x=x, y=y, points=p, xlim=xlim
+                   plot_lcfs, time[0]+k, color=130, val=maskrange[1], $
+                     psi=psi, x=x, y=y, points=p, xlim=xlim
                endelse
            endif
            
@@ -1914,7 +1915,7 @@ end
 ; returns the flux value of the last closed flux surface
 ; ========================================================
 function lcfs, time, psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, $
-               flux0=flux0, limiter_pos=limiter, _EXTRA=extra
+               flux0=flux0, xlim=xlim, _EXTRA=extra
    if(n_elements(time) eq 0) then time = 0
 
    if(n_elements(psi) eq 0 or n_elements(x) eq 0 or n_elements(z) eq 0) $
@@ -1935,6 +1936,15 @@ function lcfs, time, psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, $
        print, "Warning: there is more than one magnetic axis"
    endif
    print, "Flux on axis:", flux0
+
+   ; If xlim is set, then use limiter values
+   ; given in C1input file
+   if(keyword_set(xlim)) then begin
+       limiter = fltarr(2)
+       limiter[0] = read_parameter('xlim', _EXTRA=extra)
+       limiter[1] = read_parameter('zlim', _EXTRA=extra)
+       print, "limiter at: ", limiter
+   endif
 
    ; limiting value
    ; Find limiting flux by calculating outward normal derivative of
@@ -2002,7 +2012,7 @@ end
 ; plots the last closed flux surface
 ; ========================================================
 pro plot_lcfs, time, color=color, val=psival, psi=psi, x=x, y=y, points=pts, $
-               filename=filename
+               filename=filename, xlim=xlim, _EXTRA=extra
 
     if(n_elements(psi) eq 0) then begin
         psi = read_field('psi', x, y, slice=time, points=pts, $
@@ -2011,7 +2021,8 @@ pro plot_lcfs, time, color=color, val=psival, psi=psi, x=x, y=y, points=pts, $
 
     ; if psival not passed, choose limiter value
     if(n_elements(psival) eq 0) then begin
-        psival = lcfs(time, psi=psi, r=x, z=y, points=pts)
+        psival = lcfs(time, psi=psi, r=x, z=y, points=pts, $
+                      filename=filename, xlim=xlim, _EXTRA=extra)
     endif
 
     ; plot contour
@@ -2458,49 +2469,8 @@ pro plot_pol_velocity, time, filename=filename, points=pts, maxval=maxval, $
     title=title, subtitle=maxstr
 
    if(keyword_set(lcfs)) then begin
-       plot_lcfs, time, color=130, points=pts>100, filename=filename
-   endif
-end
-
-
-; ==================================================
-; plot_tor_velocity
-; ~~~~~~~~~~~~~~~~~
-;
-; makes a contour plot of the toroidal velocity
-; ==================================================
-pro plot_tor_velocity, time, filename=filename, points=pts, $
-                       lcfs=lcfs, _EXTRA=extra
-
-  nv = read_parameter('numvar', filename=filename)
-  itor = read_parameter('itor', filename=filename)
-
-  if(nv lt 2) then begin
-      print, "numvar < 2"
-      return
-  endif
-
-  v = read_field('V', x, z, t, filename=filename, $
-                 slice=time, points=pts)
-
-  if(itor eq 1) then r = radius_matrix(x,z,t) else r = 1.
-
-  vz = v/r
-
-  if(n_elements(title) eq 0) then begin
-       if(t gt 0) then begin
-           title = "!6Toroidal Flow " + $
-             string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!3")', t)
-       endif else begin
-           title = "!6Toroidal Flow " + $
-             string(FORMAT='("!6(!8t!6 = ",G0,")!3")', t)
-       endelse
-   endif
-
-  contour_and_legend, vz, x, z, _EXTRA=extra, title=title
-
-   if(keyword_set(lcfs)) then begin
-       plot_lcfs, time, color=130, points=pts, filename=filename
+       plot_lcfs, time, color=130, points=pts>100, filename=filename, $
+         _EXTRA=extra
    endif
 end
 
@@ -2980,7 +2950,8 @@ pro plot_poloidal_rotation, _EXTRA=extra
 end
 
 
-pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, _EXTRA=extra
+pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
+                  _EXTRA=extra
   
   if(n_elements(slice) eq 0) then begin
       slice = read_parameter('ntime', _EXTRA=extra) - 1
@@ -3007,19 +2978,9 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, _EXTRA=e
   tcur = abs(total(jphi*dx*dz/r))
   print, 'current = ', tcur
 
-  ; If the simulation is linear, use limiter value 
-  ; given in C1input file
-  linear = read_parameter('linear', _EXTRA=extra)
-  if(linear eq 1) then begin
-      limiter = fltarr(2)
-      limiter[0] = read_parameter('xlim', _EXTRA=extra)
-      limiter[1] = read_parameter('zlim', _EXTRA=extra)
-      print, "limiter at: ", limiter
-  endif
-
    ; calculate lcfs
   psilim = lcfs(time, psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, $
-                flux0=flux0, limiter=limiter, _EXTRA=extra)
+                flux0=flux0, _EXTRA=extra)
 
   contour, psi, x, z, levels=psilim, /path_data_coords, path_xy=lcfs_xy
 
