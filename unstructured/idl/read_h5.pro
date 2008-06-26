@@ -688,7 +688,9 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
        if (n_elements(filename) eq 1) then filename = [filename, 'C1.h5']
        diff_filename = filename[1]
        filename = filename[0]
-   endif
+   endif else begin
+       if(n_elements(filename) gt 1) then filename=filename[0]
+   endelse
    if(n_elements(pts) eq 0) then pts = 50
 
    if(hdf5_file_test(filename) eq 0) then return, 0
@@ -1150,6 +1152,49 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
          data = (i*s_bracket(phi,psi,x,y) - v*psipsi $
                 +i*a_bracket(chi,psi,x,y)*r) / (r^2 * sqrt(psipsi*b2))
 
+
+   ;===========================================
+   ; b.W.b
+   ;===========================================
+   endif else if(strcmp('wpar', name, /fold_case) eq 1) then begin
+
+         u   = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         v   = read_field('v'  , x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         i   = read_field('i',   x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+
+         if(itor eq 1) then begin
+             r = radius_matrix(x,y,t)
+         endif else r = 1.
+         psipsi = s_bracket(psi,psi,x,y)
+         b2 = psipsi + i^2
+
+
+         data = $
+           (s_bracket(psi,a_bracket(u,psi,x,y)/r,x,y) $
+           -0.5*r*a_bracket(u,psipsi/r^2,x,y) $
+           -I*r*a_bracket(psi,v/r^2,x,y) $
+           +0.5*r^2*s_bracket(chi,psipsi/r^2,x,y) $
+           +laplacian(chi,x,y,tor=itor)*psipsi $
+           -s_bracket(psi,s_bracket(psi,chi,x,y),x,y))/b2 $
+           - laplacian(chi,x,y,tor=itor)/3.
+           
+         if(itor eq 1) then begin
+             data = data + I^2*(dx(chi,x)/r-dz(u,y)/r^2)/b2
+         endif
+
+
    endif else begin
 
        t = fltarr(trange[1]-trange[0]+1)
@@ -1353,7 +1398,9 @@ pro plot_field, name, time, x, y, points=p, filename=filename, mesh=plotmesh, $
            end
 
            contour_and_legend, field[k,*,*], x, y, title=title, label=units, $
-             xtitle='!8R!X', ytitle='!8Z!X', range=range, _EXTRA=ex
+             xtitle='!8R!6 (' + get_units('L') + '!6)!X', $
+             ytitle='!8Z!6 (' + get_units('L') + '!6)!X', $
+             range=range, _EXTRA=ex
 
            if(keyword_set(lcfs) or n_elements(maskrange) ne 0) then begin
                if(n_elements(psi) eq 0) then begin
@@ -2421,32 +2468,30 @@ end
 ;
 ; makes a vector plot of the poloidal velocity
 ; ==================================================
-pro plot_pol_velocity, time, filename=filename, points=pts, maxval=maxval, $
+pro plot_pol_velocity, time,  maxval=maxval, points=points, $
                        lcfs=lcfs, _EXTRA=extra
 
   if(n_elements(pts) eq 0) then pts=25
 
-  nv = read_parameter('numvar', filename=filename)
-  itor = read_parameter('itor', filename=filename)
+  nv = read_parameter('numvar', _EXTRA=extra)
+  itor = read_parameter('itor', _EXTRA=extra)
+  if(n_elements(itor) gt 1) then itor=itor[0]
 
-  phi = read_field('phi', x, z, t, filename=filename, $
-                   slice=time, points=pts)
+  phi = read_field('phi', x, z, t, points=points, _EXTRA=extra, slice=time)
   if(n_elements(phi) le 1) then return
 
-  itor = read_parameter('itor', filename=filename)
+  help, x,z,t
+
   if(itor eq 1) then r = radius_matrix(x,z,t) else r = 1.
 
   vx = -dz(phi,z)/r
   vz =  dx(phi,x)/r
 
-  if(nv ge 3) then begin
-      chi = read_field('chi', x, z, t, filename=filename, slice=time, $
-                       points=pts)
-      vx = vx + dx(chi,x)
-      vz = vz + dz(chi,z)
-  endif
+  chi = read_field('chi', x, z, t, points=points, _EXTRA=extra, slice=time)
+  vx = vx + dx(chi,x)
+  vz = vz + dz(chi,z)
 
-  bigvel = max(vx^2 + vz^2)
+  bigvel = max(sqrt(vx^2 + vz^2))
   print, "maximum velocity: ", bigvel
   if(n_elements(maxval) ne 0) then begin
       length = bigvel/maxval
@@ -2465,13 +2510,13 @@ pro plot_pol_velocity, time, filename=filename, points=pts, maxval=maxval, $
   maxstr=string(format='("!6max(!8v!Dpol!N!6) = ",G0)',bigvel)
 
   velovect, reform(vx), reform(vz), x, z, length=length, _EXTRA=extra, $
-    xtitle='!8R!3', ytitle='!8Z!3', $
+    xtitle='!8R!6 (' + get_units('L') + '!6)!X', $
+    ytitle='!8Z!6 (' + get_units('L') + '!6)!X', $
     title=title, subtitle=maxstr
 
-   if(keyword_set(lcfs)) then begin
-       plot_lcfs, time, color=130, points=pts>100, filename=filename, $
-         _EXTRA=extra
-   endif
+  if(keyword_set(lcfs)) then begin
+      plot_lcfs, time, color=130, _EXTRA=extra, points=200
+  endif
 end
 
 
@@ -2872,12 +2917,13 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
    fa = flux_average(field,time,flux=flux,points=pts,filename=filename,t=t, $
                     name=title, symbol=symbol, units=units,_EXTRA=extra)
 
-   ytitle = symbol
-   if(strlen(units) gt 0) then ytitle = ytitle + '!6 ('+units+ '!6)!X'
    if(n_elements(fa) le 1) then begin
        print, 'Error in flux_average. returning.'
        return
    endif
+
+   ytitle = symbol
+   if(strlen(units) gt 0) then ytitle = ytitle + '!6 ('+units+ '!6)!X'
 
    if(keyword_set(rms)) then begin
        fa2 = flux_average(field^2,time,flux=flux,points=pts, $

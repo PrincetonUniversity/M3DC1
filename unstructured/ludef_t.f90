@@ -1802,7 +1802,7 @@ subroutine ludefall()
 
      ! calculate the field values and derivatives at the sampling points
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     call define_fields_79(itri, def_fields)
+     call define_fields_79(itri, def_fields,1)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         tfield = tfield + tend - tstart

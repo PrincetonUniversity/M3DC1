@@ -156,6 +156,10 @@ module basic
   real :: regular        ! regularization constant in chi equation
   real :: max_ke         ! max KE before fields are re-scaled when linear==1
   real :: eta_djdt       ! eta = (1+eta_djdt*dj/dt)*eta
+  real :: dndt_fac      ! factor to multiply dn/dt term
+  real :: dvdt_fac      ! factor to multiply dv/dt terms
+  real :: dbdt_fac      ! factor to multiply db/dt terms
+
 
   ! current controller parameters
   real :: tcur           ! target toroidal current
@@ -170,19 +174,16 @@ module basic
 
 
   ! output parameters
-  integer :: iprint     ! print extra debugging info
-  integer :: itimer     ! print timing info
-  integer :: ntimepr    ! number of timesteps per output  
-  integer :: iglobalout ! 1 = write global restart files
-  integer :: iglobalin  ! 1 = read global restart files
+  integer :: iprint        ! print extra debugging info
+  integer :: itimer        ! print timing info
+  integer :: ntimepr       ! number of timesteps per output  
+  integer :: iglobalout    ! 1 = write global restart files
+  integer :: iglobalin     ! 1 = read global restart files
+  integer :: icalc_scalars ! 1 = calculate scalars
+  integer :: ike_only      ! 1 = only calculate kinetic energy
 
   ! general behavior
   integer :: iadapt     ! 1 = adapts mesh after initialization
-
-  real :: dndt_fac      ! factor to multiply dn/dt term
-  real :: dvdt_fac      ! factor to multiply dv/dt terms
-  real :: dbdt_fac      ! factor to multiply db/dt terms
-
   
   integer :: istart
   real :: beta
@@ -228,7 +229,8 @@ module basic
        irecalc_eta,ihypdx, iconst_eta,                         &
        iupwind, dndt_fac, dvdt_fac, dbdt_fac,                  &
        eta_djdt,                                               &
-       n_target, n_control_p, n_control_i, n_control_d
+       n_target, n_control_p, n_control_i, n_control_d,        &
+       icalc_scalars, ike_only
 
 
   !     derived quantities

@@ -504,7 +504,7 @@ end subroutine eval_ops
 !=====================================================
 ! define_fields_79
 !=====================================================
-subroutine define_fields_79(itri, fields)
+subroutine define_fields_79(itri, fields, gdef)
 
   use basic
   use t_data
@@ -512,7 +512,7 @@ subroutine define_fields_79(itri, fields)
 
   implicit none
   
-  integer, intent(in) :: itri, fields
+  integer, intent(in) :: itri, fields, gdef
   
   integer :: i
   vectype, dimension(20) :: avec
@@ -910,14 +910,16 @@ subroutine define_fields_79(itri, fields)
      if(amupar.ne.0) vip79 = amupar*pit79/2.
   end if
 
-  do i=1,18
-     call eval_ops(gtri(:,i,itri), si_79, eta_79, &
-          ttri(itri), ri_79, 79, g79(:,:,i))
+  if(gdef.eq.1) then
+     do i=1,18
+        call eval_ops(gtri(:,i,itri), si_79, eta_79, &
+             ttri(itri), ri_79, 79, g79(:,:,i))
 #ifdef USECOMPLEX
-     g79(:,OP_DP :OP_DZZP ,i) = (0,1)*ntor*g79(:,OP_1:OP_DZZ,i)
-     g79(:,OP_DPP:OP_DZZPP,i) =   -ntor**2*g79(:,OP_1:OP_DZZ,i)
+        g79(:,OP_DP :OP_DZZP ,i) = (0,1)*ntor*g79(:,OP_1:OP_DZZ,i)
+        g79(:,OP_DPP:OP_DZZPP,i) =   -ntor**2*g79(:,OP_1:OP_DZZ,i)
 #endif
-  end do
+     end do
+  endif
 end subroutine define_fields_79
 
 

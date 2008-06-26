@@ -175,15 +175,16 @@
       iupwind = 0
 !
 !.....viscosity, resistivity, and heat conduction
-      amu = 0.0
-      amupar = 0.0
-      etar = 0.0
-      eta0 = 0.0
-      kappat = 0.0
-      kappar = 0.0
-      kappa0 = 0.0
-      kappah = 0.0
-      kappax = 0.0
+      amu = 0.
+      amuc = 0.
+      amupar = 0.
+      etar = 0.
+      eta0   = 0.
+      kappat = 0.
+      kappar = 0.
+      kappa0 = 0.
+      kappax = 0.
+      kappah = 0.
 !
 !
       eta_djdt = 0.
@@ -333,6 +334,9 @@
       iglobalout = 0
       iglobalin = 0
 !
+      icalc_scalars = 1
+      ike_only = 0
+!
 !.....1 = adapt mesh upon initialization
       iadapt = 0
 !
@@ -346,8 +350,6 @@
       if(amuc.eq.0.) amuc = amu
       if(thimp_ohm.lt.0) thimp_ohm = thimp
 !
-      if(myrank.eq.0) write(*,nml=inputnl)
-
       if(linear.eq.1) eqsubtract = 1
 
       ! calculate pfac (pe*pfac = electron pressure)
@@ -362,6 +364,7 @@
          if(myrank.eq.0 .and. iprint.ge.1) print *, "pefac = ", pefac
       endif
 
+
       ! Validate input
       ! ~~~~~~~~~~~~~~
       if(pefac.eq.0. .and. eta0.ne.0) then
@@ -373,7 +376,15 @@
      &        print *, 'ERROR: Constraint amuc >= (2/3)*amu violated.'
          call safestop(1)
       endif
+      if(icalc_scalars.eq.0) then
+         if(isources.eq.1) then
+            if(myrank.eq.0) 
+     &           print *, 'ERROR: isources=1 requires icalcscalars=1'
+            call safestop(1)
+         endif
+      endif
 
+      if(myrank.eq.0) write(*,nml=inputnl)
 
       if(myrank.eq.0 .and. iprint.eq.1) print *, " exiting input.."
 

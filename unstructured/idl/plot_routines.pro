@@ -219,8 +219,7 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
         endif else begin
             device, get_screen_size=screen_size
         endelse
-        aspect_ratio = (max(y)-min(y))/(max(x)-min(x)) $
-          *screen_size[0]/screen_size[1]
+        aspect_ratio = (max(y)-min(y))/(max(x)-min(x))
         if(aspect_ratio le 1) then top = width*aspect_ratio $
         else begin
             width = top/aspect_ratio
@@ -274,11 +273,9 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
         else loadct, 3
     endif else loadct, ct
 
-    charsize = !p.charsize
-    !p.charsize = (region[2]-region[0]) + 0.2
-
     ; plot the color scale
-    !p.region = [region[0]+width1, region[1], region[2], top+region[1]]
+    ; ***
+    !p.region = [.9*(region[0]+width1), region[1], region[2], top+region[1]]
     
     xx = indgen(2)
     yy = levels
@@ -293,26 +290,28 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
       xticks=1, xtickname=[' ',' '], levels=levels, title='', $
       xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, ylog=zlog
 ;    contour, zz, xx, yy, /overplot, nlevels=nlevels, levels=levels
-
-    ; Plot the countours
+    ; ***
 
     !p.noerase = 1
 
+    ; Plot the countours
+    ;***
     xrange=[x[0],x[n_elements(x)-1]]
     yrange=[y[0],y[n_elements(y)-1]]
 
     !p.region = [region[0], region[1], width+region[0], top+region[1]]
 
     contour, zed, x, y, /fill, levels=levels, nlevels=nlevels, $
-      xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, _EXTRA=ex
+      xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, _EXTRA=ex, $
+      isotropic=iso
 
     if(keyword_set(lines)) then begin
         contour, zed, x, y, /overplot, levels=levels, nlevels=nlevels, $
           xrange=xrange, yrange=yrange, xstyle=1, ystyle=1,_EXTRA=ex
     endif
+    ;***
 
     !p.noerase = 0
-    !p.charsize = charsize
     !p.region = 0
 end
 
