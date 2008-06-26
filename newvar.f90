@@ -68,7 +68,7 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
 
   do itri=1,numelms
 
-     call define_fields_79(itri,0)
+     call define_fields_79(itri,0,1)
 
      do j=1,18
         jone = isval1(itri,j)
@@ -242,13 +242,16 @@ subroutine define_transport_coefficients()
   call numfac(numelms)
   do itri=1,numelms
 
-     call define_fields_79(itri, def_fields)   
+     call define_fields_79(itri, def_fields, 1)
         
      ! resistivity
      ! ~~~~~~~~~~~
      if(solve_resistivity) then
         ! resistivity = 1/T**(3/2) = sqrt((n/p)**3)
         temp79a = sqrt((nt79(:,OP_1)/(pefac*pet79(:,OP_1)))**3)
+!        temp79a = max((nt79(:,OP_1)/(pefac*pet79(:,OP_1)))**3, 0.)
+!        temp79a = sqrt(temp79a)
+
      endif
 
      ! thermal conductivity

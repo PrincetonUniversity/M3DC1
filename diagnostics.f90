@@ -435,20 +435,25 @@ subroutine calculate_scalars()
   call reset_scalars()
 
   ! Specify which fields need to be calculated
-  def_fields = FIELD_PSI + FIELD_PHI + FIELD_J + FIELD_ETA + FIELD_MU &
-       + FIELD_N + FIELD_NI + FIELD_SIG
-  if(numvar.ge.2) def_fields = def_fields + FIELD_I + FIELD_V
-  if(numvar.ge.3) then
-     def_fields = def_fields + FIELD_CHI + &
-          FIELD_PE + FIELD_P + FIELD_KAP
-     if(kappar.ne.0) def_fields = def_fields + FIELD_B2I
-  endif
-
+  if(ike_only.eq.1) then
+     def_fields = FIELD_PHI
+     if(numvar.ge.2) def_fields = def_fields + FIELD_V
+     if(numvar.ge.3) def_fields = def_fields + FIELD_CHI
+  else
+     def_fields = FIELD_PSI + FIELD_PHI + FIELD_J + FIELD_ETA + FIELD_MU &
+          + FIELD_N + FIELD_NI + FIELD_SIG
+     if(numvar.ge.2) def_fields = def_fields + FIELD_I + FIELD_V
+     if(numvar.ge.3) then
+        def_fields = def_fields + FIELD_CHI + &
+             FIELD_PE + FIELD_P + FIELD_KAP
+        if(kappar.ne.0) def_fields = def_fields + FIELD_B2I
+     endif
    
-  if(hypc.ne.0.) then 
-     def_fields = def_fields + FIELD_VOR
-     if(numvar.ge.3) def_fields = def_fields + FIELD_COM
-  end if
+     if(hypc.ne.0.) then 
+        def_fields = def_fields + FIELD_VOR
+        if(numvar.ge.3) def_fields = def_fields + FIELD_COM
+     end if
+  endif
 
   tm79 = 0.
   tm79(:,OP_1) = 1.
@@ -489,7 +494,7 @@ subroutine calculate_scalars()
      endif
      dbf = db*factor
 
-     call define_fields_79(itri, def_fields)
+     call define_fields_79(itri, def_fields, isources)
 
 
      ! Define Source terms
@@ -540,68 +545,77 @@ subroutine calculate_scalars()
      endif ! on isources
 
 
-     do i=1,79 
-        if(real(pst79(i,OP_1)).ge.psilim) then
-           temp79a(i) = 1.
-        else
-           temp79a(i) = 0.
-        endif
-     end do
+!     do i=1,79 
+!        if(real(pst79(i,OP_1)).ge.psilim) then
+!           temp79a(i) = 1.
+!        else
+!           temp79a(i) = 0.
+!        endif
+!     end do
 
-     ! Calculate Scalars
-     ! ~~~~~~~~~~~~~~~~~
-     !  (extra factor of 1/r comes from delta function in toroidal coordinate)
-     area   = area   + int1( ri_79,                       weight_79,79)
-     parea  = parea  + int2( ri_79,               temp79a,weight_79,79)
-     totcur = totcur - int2(ri2_79,pst79(:,OP_GS),        weight_79,79)
-     pcur   = pcur   - int3(ri2_79,pst79(:,OP_GS),temp79a,weight_79,79)
-     select case(ivform)
-     case(0)
-        tvor   = tvor   - int2(ri2_79,pht79(:,OP_GS),        weight_79,79)
-        pvor   = pvor   - int3(ri2_79,pht79(:,OP_GS),temp79a,weight_79,79)
-     case(1)
-        tvor   = tvor   - int1(pht79(:,OP_LP),        weight_79,79)
-        pvor   = pvor   - int2(pht79(:,OP_LP),temp79a,weight_79,79)
-        if(numvar.ge.3) then
-           tvor   = tvor   - 2.*int2(ri4_79,cht79(:,OP_DZ),        weight_79,79)
-           pvor   = pvor   - 2.*int3(ri4_79,cht79(:,OP_DZ),temp79a,weight_79,79)
-        end if
-     end select
-     if(numvar.ge.2) then
-        tflux = tflux+ int2(ri2_79,bzt79(:,OP_1 ),        weight_79,79)
-        pflux = pflux+ int3(ri2_79,bzt79(:,OP_1 ),temp79a,weight_79,79)
-     endif
-     totden = totden + int1(nt79(:,OP_1),        weight_79,79)
-     pden   = pden   + int2(nt79(:,OP_1),temp79a,weight_79,79)
-     
      ! Calculate energy
      ! ~~~~~~~~~~~~~~~~
      ekinp  = ekinp  + energy_kp ()
      ekinpd = ekinpd + energy_kpd()
      ekinph = ekinph + energy_kph()
 
-     emagp  = emagp  + energy_mp ()
-     emagpd = emagpd + energy_mpd()
-     emagph = emagph - qpsipsieta(tm79)
-
      if(numvar.ge.2) then       
         ekint  = ekint  + energy_kt ()
         ekintd = ekintd + energy_ktd()
         ekinth = ekinth + energy_kth()
-
-        emagt  = emagt  + energy_mt ()
-        emagtd = emagtd + energy_mtd()
-        emagth = emagth - qbbeta(tm79)
      endif
 
      if(numvar.ge.3) then
         ekin3  = ekin3  + energy_k3 ()
         ekin3d = ekin3d + energy_k3d()
         ekin3h = ekin3h + energy_k3h()
-                   
+     endif
+
+     if(ike_only.eq.1) cycle
+
+     emagp  = emagp  + energy_mp ()
+     emagpd = emagpd + energy_mpd()
+     emagph = emagph - qpsipsieta(tm79)
+
+     if(numvar.ge.2) then       
+        emagt  = emagt  + energy_mt ()
+        emagtd = emagtd + energy_mtd()
+        emagth = emagth - qbbeta(tm79)
+     endif
+
+     if(numvar.ge.3) then
         emag3 = emag3 + energy_p()
      endif
 
+
+     ! Calculate Scalars
+     ! ~~~~~~~~~~~~~~~~~
+     !  (extra factor of 1/r comes from delta function in toroidal coordinate)
+     area   = area   + int1( ri_79,                       weight_79,79)
+!     parea  = parea  + int2( ri_79,               temp79a,weight_79,79)
+     totcur = totcur - int2(ri2_79,pst79(:,OP_GS),        weight_79,79)
+!     pcur   = pcur   - int3(ri2_79,pst79(:,OP_GS),temp79a,weight_79,79)
+     select case(ivform)
+     case(0)
+        tvor   = tvor   - int2(ri2_79,pht79(:,OP_GS),        weight_79,79)
+!        pvor   = pvor   - int3(ri2_79,pht79(:,OP_GS),temp79a,weight_79,79)
+     case(1)
+        tvor   = tvor   - int1(pht79(:,OP_LP),        weight_79,79)
+!        pvor   = pvor   - int2(pht79(:,OP_LP),temp79a,weight_79,79)
+        if(numvar.ge.3) then
+           tvor   = &
+                tvor - 2.*int2(ri4_79,cht79(:,OP_DZ),        weight_79,79)
+!           pvor   = &
+!                pvor - 2.*int3(ri4_79,cht79(:,OP_DZ),temp79a,weight_79,79)
+        end if
+     end select
+     if(numvar.ge.2) then
+        tflux = tflux+ int2(ri2_79,bzt79(:,OP_1 ),        weight_79,79)
+!        pflux = pflux+ int3(ri2_79,bzt79(:,OP_1 ),temp79a,weight_79,79)
+     endif
+     totden = totden + int1(nt79(:,OP_1),        weight_79,79)
+!     pden   = pden   + int2(nt79(:,OP_1),temp79a,weight_79,79)
+     
      ! Calculate fluxes
      ! ~~~~~~~~~~~~~~~~
      efluxk = efluxk + flux_ke()
@@ -652,13 +666,13 @@ subroutine calculate_scalars()
         case(0)
            tmom = tmom &
                 + int2(vzt79(:,OP_1),nt79(:,OP_1),        weight_79,79)
-           pmom = pmom &
-                + int3(vzt79(:,OP_1),nt79(:,OP_1),temp79a,weight_79,79)
+!           pmom = pmom &
+!                + int3(vzt79(:,OP_1),nt79(:,OP_1),temp79a,weight_79,79)
         case(1)
            tmom = tmom &
                 + int3(r2_79,vzt79(:,OP_1),nt79(:,OP_1),        weight_79,79)
-           pmom = pmom &
-                + int4(r2_79,vzt79(:,OP_1),nt79(:,OP_1),temp79a,weight_79,79)
+!           pmom = pmom &
+!                + int4(r2_79,vzt79(:,OP_1),nt79(:,OP_1),temp79a,weight_79,79)
         end select
 
         ! fluxes
@@ -672,22 +686,23 @@ subroutine calculate_scalars()
      
   end do
 
-  itri = 0
-  x = xmag-xzero
-  z = zmag-zzero
-  call evaluate(x,z,val,valpp,jphi,1,1,itri)
-  if(ifirsttime) then
-     djdt = 0.
-     ifirsttime = .false.
-  else
-     djdt = (val-j_onaxis)/dt
+  if(eta_djdt.ne.0) then
+     itri = 0
+     x = xmag-xzero
+     z = zmag-zzero
+     call evaluate(x,z,val,valpp,jphi,1,1,itri)
+     if(ifirsttime) then
+        djdt = 0.
+        ifirsttime = .false.
+     else
+        djdt = (val-j_onaxis)/dt
+     end if
+     j_onaxis = val
+     if(myrank.eq.0) then
+        print *, 'j_onaxis = ', j_onaxis
+        print *, 'dj/dt = ', djdt
+     end if
   end if
-  j_onaxis = val
-  if(myrank.eq.0) then
-     print *, 'j_onaxis = ', j_onaxis
-     print *, 'dj/dt = ', djdt
-  end if
-  
 
   if(isources.eq.1) then
      call solve_newvar(sb1, NV_DCBOUND, mass_matrix_lhs_dc)

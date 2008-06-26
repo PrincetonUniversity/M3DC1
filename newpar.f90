@@ -552,13 +552,15 @@ subroutine derived_quantities
 
   ! calculate scalars
   ! ~~~~~~~~~~~~~~~~~
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "Calculating scalars"
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  call calculate_scalars
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_sources = t_sources + tend - tstart
-  endif
+  if(icalc_scalars.eq.1) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Calculating scalars"
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     call calculate_scalars
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_sources = t_sources + tend - tstart
+     endif
+  end if
 
 end subroutine derived_quantities
 
