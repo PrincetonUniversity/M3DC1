@@ -206,7 +206,11 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     if(region[2] eq 0.) then region[2]=1.
     if(region[3] eq 0.) then region[3]=1.
 
-    width = 0.8*(region[2]-region[0])
+    ; width of color bar region
+    width1 = 0.2*(region[2]-region[0])
+
+    ; dimensions of plotting region
+    width = region[2]-region[0] - width1
     top = region[3]-region[1]
 
     if(1 eq strcmp('PS', !d.name)) then begin
@@ -221,14 +225,9 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
         endelse
         aspect_ratio = (max(y)-min(y))/(max(x)-min(x))
         if(aspect_ratio le 1) then top = width*aspect_ratio $
-        else begin
-            width = top/aspect_ratio
-            region[2] = region[0]+width/0.8
-        endelse
+        else width = top/aspect_ratio
     endif 
-    
-    if(width lt 0.3) then width1 = 0.3 else width1 = width
-   
+      
     if n_elements(label) eq 0 then label = ''
 
     if(n_elements(range) lt 2) then begin
@@ -275,7 +274,8 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
 
     ; plot the color scale
     ; ***
-    !p.region = [.9*(region[0]+width1), region[1], region[2], top+region[1]]
+    !p.region = [region[0]+width, region[1], $
+                 region[0]+width+width1, top+region[1]]
     
     xx = indgen(2)
     yy = levels
