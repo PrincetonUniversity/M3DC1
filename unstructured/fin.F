@@ -333,6 +333,9 @@
 !.....1 = output/input global restart files
       iglobalout = 0
       iglobalin = 0
+!     
+!.....1 = output f field
+      ifout = i3d
 !
       icalc_scalars = 1
       ike_only = 0

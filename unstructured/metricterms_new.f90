@@ -5368,7 +5368,7 @@ vectype function g1chi(e,f)
      if(itor.eq.1) temp79c = temp79c + 3.0*ri_79*e(:,OP_DR)
      temp79d = f(:,OP_DZZ)
      if(itor.eq.1) temp79d = temp79d -     ri_79*f(:,OP_DR)
-     temp79e = f(:,OP_DRZ)
+     temp79e = f(:,OP_DRR)
      if(itor.eq.1) temp79e = temp79e -     ri_79*f(:,OP_DR)
 
      temp79a = &
@@ -5602,12 +5602,10 @@ vectype function g3u(e,f)
   case(0)
      if(itor.eq.1) then
         temp79b = ri_79*e(:,OP_DR)
-        temp79c = ri_79*e(:,OP_DZ)
         temp79d = ri_79*f(:,OP_DR)
         temp79e = ri_79*f(:,OP_DZ)
      else
         temp79b = 0.
-        temp79c = 0.
         temp79d = 0.
         temp79e = 0.
      endif

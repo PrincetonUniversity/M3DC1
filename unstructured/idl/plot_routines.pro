@@ -45,7 +45,7 @@ pro plot_legend, names, linestyles=ls, colors=cs, left=l, top=t, psyms=p, $
     dy = (!y.crange(1) - !y.crange(0)) / 15.
 
     x = !x.crange(0) + dx * (1. + l * 20.)
-    y = !y.crange(1) - dy * (1. + t * 20.)
+    y = !y.crange(1) - dy * (1. + t * 15.)
 
     for i=0, N-1 do begin
         d = [x, x+0.75*dx, x+1.5*dx, x+2.*dx]

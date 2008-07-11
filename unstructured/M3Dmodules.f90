@@ -181,6 +181,7 @@ module basic
   integer :: iglobalin     ! 1 = read global restart files
   integer :: icalc_scalars ! 1 = calculate scalars
   integer :: ike_only      ! 1 = only calculate kinetic energy
+  integer :: ifout         ! 1 = output f field
 
   ! general behavior
   integer :: iadapt     ! 1 = adapts mesh after initialization
@@ -230,7 +231,7 @@ module basic
        iupwind, dndt_fac, dvdt_fac, dbdt_fac,                  &
        eta_djdt,                                               &
        n_target, n_control_p, n_control_i, n_control_d,        &
-       icalc_scalars, ike_only
+       icalc_scalars, ike_only, ifout
 
 
   !     derived quantities

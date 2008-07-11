@@ -179,7 +179,7 @@ Program Reducedquintic
   if(numvar.ge.3 .and. hyperc.ne.0. .and. com_bc.eq.1) then
      call create_matrix(lp_matrix_rhs_dc,   NV_DCBOUND, NV_LP_MATRIX, NV_RHS)
   end if
-  if(i3d.eq.1 .and. numvar.ge.2) then
+  if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
      call create_matrix(poisson_matrix_lhs, NV_DCBOUND, NV_GS_MATRIX, NV_LHS)
      call create_matrix(bf_matrix_rhs_dc,   NV_DCBOUND, NV_BF_MATRIX, NV_RHS)
   endif
@@ -327,7 +327,7 @@ Program Reducedquintic
      call deletematrix(r9matrix_sm)
      call deletematrix(q9matrix_sm)
   endif
-  if(i3d.eq.1) then
+  if(i3d.eq.1 .or. ifout.eq.1) then
      call deletematrix(poisson_matrix_lhs)
      call deletematrix(bf_matrix_rhs_dc)
   end if
@@ -534,7 +534,7 @@ subroutine derived_quantities
   endif
 
   ! vector potential stream function
-  if(i3d.eq.1 .and. numvar.ge.2) then
+  if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, "-f"
      call newvar(poisson_matrix_lhs,bf,field,bz_g,num_fields, &
           bf_matrix_rhs_dc,NV_DCBOUND)
