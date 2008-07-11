@@ -775,7 +775,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   nfields = nfields + 1
 
   ! BF
-  if(i3d.eq.1) then
+  if(ifout.eq.1) then
      do i=1, nelms
         call calcavector(i, bf, 1, 1, dum(:,i))
      end do

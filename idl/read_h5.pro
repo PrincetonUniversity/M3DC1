@@ -264,7 +264,7 @@ pro plot_mesh, mesh, color=col, linestyle=lin, oplot=oplot, $
    xzero = read_parameter("xzero", filename=filename)
    zzero = read_parameter("zzero", filename=filename)
 
-   for i=0, nelms-1 do begin
+   for i=long(0), nelms-1 do begin
        a = mesh.elements._data[0,i]
        b = mesh.elements._data[1,i]
        c = mesh.elements._data[2,i]
@@ -435,7 +435,7 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
 
    small = 1e-3
 
-   for i=0,nelms-1 do begin
+   for i=long(0),nelms-1 do begin
        a = mesh.elements._data[0,i]
        b = mesh.elements._data[1,i]
        c = mesh.elements._data[2,i]
@@ -567,6 +567,8 @@ function get_units, type
        units = n0+l0+v0
    endif else if(strcmp(type, 'omega', /fold_case) eq 1) then begin
        units = t0+inv
+   endif else if(strcmp(type, 'frequency', /fold_case) eq 1) then begin
+       units = t0+inv
    endif else begin
        units = 'Unknown units'
    end
@@ -669,19 +671,26 @@ function translate, name, units=units
    endif else if(strcmp(name, 'energy', /fold_case) eq 1) then begin
        units = b0+sq+l0+cu+'/'+pi4
        return, "!8E!X"
-   endif else if(strcmp(name, 'omega', /fold_case) eq 1) then begin
+   endif else if((strcmp(name, 'omega', /fold_case) eq 1) or $
+                 (strcmp(name, 'ideal omega', /fold_case) eq 1)) then begin
        units = t0 + '!U!6-1!N!X' 
        return, "!7x!X"
+   endif else if((strcmp(name, 'k', /fold_case) eq 1) or $
+                 (strcmp(name, 'ideal k', /fold_case) eq 1)) then begin
+       units = n0+va0 + '/' + b0
+       return, "!6K!X"
    endif  
 
-   return, "!8" + name
+   return, '!8' + name + '!X'
 end
 
 
-function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
-                     points=pts, rrange=xrange, zrange=yrange, $
-                     h_symmetry=h_symmetry, v_symmetry=v_symmetry, diff=diff, $
-                     at_points=at_points,operation=op, linear=linear
+function read_field, name, x, y, t, slices=time, mesh=mesh, $
+                     filename=filename, points=pts, $
+                     rrange=xrange, zrange=yrange, $
+                     h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
+                     diff=diff, at_points=at_points,operation=op, $
+                     linear=linear, last=last
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
    if(keyword_set(diff)) then begin
@@ -701,6 +710,8 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
    xzero = read_parameter("xzero", filename=filename)
    zzero = read_parameter("zzero", filename=filename)
    ilin = read_parameter('linear', filename=filename)
+
+   if(keyword_set(last)) then time = [nt-1,nt-1]
 
    if(n_elements(time) eq 0) then begin
        trange = [0,nt-1]
@@ -1123,6 +1134,29 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
            sqrt(s_bracket(psi,psi,x,y))
 
    ;===========================================
+   ; poloidal flow
+   ;===========================================
+   endif else if(strcmp('vp', name, /fold_case) eq 1) then begin
+
+         phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         
+         if(itor eq 1) then begin
+             r = radius_matrix(x,y,t)
+         endif else r = 1.
+
+         data = (s_bracket(phi,psi,x,y)/r + a_bracket(chi,psi,x,y)) / $ 
+           sqrt(s_bracket(psi,psi,x,y))
+
+
+   ;===========================================
    ; surface flow
    ;===========================================
    endif else if(strcmp('vs', name, /fold_case) eq 1) then begin
@@ -1151,6 +1185,64 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, filename=filename,$
          b2 = psipsi + i^2
          data = (i*s_bracket(phi,psi,x,y) - v*psipsi $
                 +i*a_bracket(chi,psi,x,y)*r) / (r^2 * sqrt(psipsi*b2))
+
+   ;===========================================
+   ; ideal_k
+   ;===========================================
+   endif else if(strcmp('k', name, /fold_case) eq 1) then begin
+
+         phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         n   = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         
+         if(itor eq 1) then begin
+             r = radius_matrix(x,y,t)
+         endif else r = 1.
+
+         psipsi = s_bracket(psi,psi,x,y)
+
+         data = n*(s_bracket(phi,psi,x,y) + r*a_bracket(chi,psi,x,y))/psipsi
+
+   ;===========================================
+   ; ideal omega
+   ;===========================================
+   endif else if(strcmp('ideal omega', name, /fold_case) eq 1) then begin
+
+         phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         v   = read_field('v',   x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         i   = read_field('i',   x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         
+         if(itor eq 1) then begin
+             r = radius_matrix(x,y,t)
+         endif else r = 1.
+
+         psipsi = s_bracket(psi,psi,x,y)
+
+         data = $
+           (v - $
+            i*(s_bracket(phi,psi,x,y) + r*a_bracket(chi,psi,x,y))/psipsi) $
+           /r^2
 
 
    ;===========================================
@@ -1386,7 +1478,7 @@ pro plot_field, name, time, x, y, points=p, filename=filename, mesh=plotmesh, $
        plot, x, field[0,*,i]
    endif else begin
        for k=0, nt-1 do begin
-           if(notitle eq 1) then begin
+           if((notitle eq 1) and (n_elements(t) ne 0)) then begin
                if(t[k] gt 0) then begin
                    title = fieldname + $
                      string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!X")', $
@@ -2364,9 +2456,9 @@ end
 
 pro plot_scalar, scalarname, x, filename=filename, names=names, $
                  _EXTRA=extra, overplot=overplot, $
-                 ylog=ylog, xlog=xlog, left=left, $
+                 ylog=ylog, xlog=xlog, $
                  power_spectrum=power_spectrum, per_length=per_length, $
-                 growth_rate=growth_rate, bw=bw
+                 growth_rate=growth_rate, bw=bw, nolegend=nolegend
 
   if(n_elements(filename) eq 0) then filename='C1.h5'
 
@@ -2388,18 +2480,19 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
                 overplot=((i gt 0) or keyword_set(overplot)), $
                 color=co[i], _EXTRA=extra, ylog=ylog, xlog=xlog, $
                 power_spectrum=power_spectrum, per_length=per_length, $
-                growth_rate=growth_rate, linestyle=ls[i]
+                growth_rate=growth_rate, linestyle=ls[i], nolegend=nolegend
           endif else begin
               plot_scalar, scalarname, x[i], filename=filename[i], $
                 overplot=((i gt 0) or keyword_set(overplot)), $
                 color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, $
                 power_spectrum=power_spectrum, per_length=per_length, $
-                growth_rate=growth_rate
+                growth_rate=growth_rate, nolegend=nolegend
           endelse
       end
-      if(n_elements(names) gt 0) then begin
-          plot_legend, names, ylog=ylog, xlog=xlog, left=left, $
-            color=co, linestyle=ls
+
+      if((n_elements(names) gt 0) and (not keyword_set(nolegend))) then begin
+          plot_legend, names, ylog=ylog, xlog=xlog, $
+            color=co, linestyle=ls, _EXTRA=extra
       endif    
 
       return
@@ -2416,10 +2509,11 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
   endif
 
   if(keyword_set(power_spectrum)) then begin
-      xtitle = '!7x!6 (!7s!D!8A!N!6!U-1!N)!X'
+;      xtitle = '!7x!6 (!7s!D!8A!N!6!U-1!N)!X'
+      xtitle = '!7x!6 (' + get_units('frequency') + ')!X'
       data = power_spectrum(data, frequency=tdata, t=max(time)) 
   endif else begin
-      xtitle = '!8t!6 (!7s!D!8A!N!6)!X'
+      xtitle = '!8t!6 (' + get_units('t') + ')!X'
       tdata = time
   endelse
 
@@ -2433,7 +2527,8 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
   
   if(keyword_set(growth_rate)) then begin
       data = deriv(tdata, alog(data))
-      ytitle = '!7c !6(!7s!D!8A!N!6!U-1!N)!X'
+;      ytitle = '!7c !6(!7s!D!8A!N!6!U-1!N)!X'
+      ytitle = '!7c!6 (' + get_units('frequency') + ')!X'
   endif
 
   if(n_elements(x) eq 0) then begin
@@ -2480,8 +2575,6 @@ pro plot_pol_velocity, time,  maxval=maxval, points=points, $
   phi = read_field('phi', x, z, t, points=points, _EXTRA=extra, slice=time)
   if(n_elements(phi) le 1) then return
 
-  help, x,z,t
-
   if(itor eq 1) then r = radius_matrix(x,z,t) else r = 1.
 
   vx = -dz(phi,z)/r
@@ -2499,15 +2592,15 @@ pro plot_pol_velocity, time,  maxval=maxval, points=points, $
 
   if(n_elements(title) eq 0) then begin
        if(t gt 0) then begin
-           title = "!6Poloidal Flow " + $
-             string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!3")', t)
+           title = "!6Poloidal Flow!X" + $
+             string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!X")', t)
        endif else begin
-           title = "!6Poloidal Flow " + $
-             string(FORMAT='("!6(!8t!6 = ",G0,")!3")', t)
+           title = "!6Poloidal Flow!X" + $
+             string(FORMAT='("!6(!8t!6 = ",G0,")!X")', t)
        endelse
    endif
 
-  maxstr=string(format='("!6max(!8v!Dpol!N!6) = ",G0)',bigvel)
+  maxstr=string(format='("!6max(!8v!Dpol!N!6) = ",G0,"!X")',bigvel)
 
   velovect, reform(vx), reform(vz), x, z, length=length, _EXTRA=extra, $
     xtitle='!8R!6 (' + get_units('L') + '!6)!X', $
@@ -2749,9 +2842,13 @@ end
 ;  units:  the formatted units of the field
 ;==================================================================
 function flux_average, field, time, psi=psi, x=x, z=z, t=t, $
-                       flux=flux, area=area, dV=dV, bins=bins, points=points, $
-                       name=name, symbol=symbol, units=units, _EXTRA=extra
-  
+                       flux=flux, area=area, dV=dV, bins=bins, $
+                       points=points, name=name, symbol=symbol, units=units, $
+                       last=last, _EXTRA=extra
+
+   if(keyword_set(last)) then time = read_parameter('ntime',_EXTRA=extra)-1
+
+
    type = size(field, /type)
 
    sz = size(field)
@@ -2846,7 +2943,7 @@ end
 ;======================================================
 pro plot_flux_average, field, time, filename=filename, points=pts, $
                        _EXTRA=extra, color=c, names=names, $
-                       xlog=xlog, ylog=ylog, left=left, overplot=overplot, $
+                       xlog=xlog, ylog=ylog, overplot=overplot, $
                        lcfs=lcfs, normalized_flux=nflux, $
                        minor_radius=minor_radius, smooth=sm, t=t, rms=rms, $
                        bw=bw
@@ -2877,7 +2974,7 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
        end
        if(n_elements(names) gt 0) then begin
            plot_legend, names, color=colors, ylog=ylog, xlog=xlog, $
-             left=left, linestyle=ls
+             linestyle=ls, _EXTRA=extra
        endif    
        
        return
@@ -2905,13 +3002,13 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
 
        if(n_elements(names) gt 0) then begin
            plot_legend, names, color=colors, ylog=ylog, xlog=xlog, $
-             left=left, linestyle=ls
+             linestyle=ls, _EXTRA=extra
        endif
 
        return
    endif
 
-   xtitle='!7w!3'
+   xtitle='!7w!X'
    title = ''
 
    fa = flux_average(field,time,flux=flux,points=pts,filename=filename,t=t, $
@@ -2932,6 +3029,7 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
 
        ytitle = '!9S!6(1 - !12<' + symbol + '!12>!U2!n/!12<' + $
          symbol + '!6!U2!N!12>!6)!X'
+       title = '!6Poloidal Deviation of ' + title + '!X'
    end
 
 
@@ -2950,7 +3048,7 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
 
    if(keyword_set(nflux)) then begin
        flux = (flux - max(psi)) / (lcfs_psi-max(psi))
-       xtitle = '!7W!3'
+       xtitle = '!7W!X'
        lcfs_psi = 1.
    endif
 
