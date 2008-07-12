@@ -609,13 +609,13 @@ module sparse
   integer, parameter :: r14matrix_sm = 21
   integer, parameter :: mass_matrix_lhs = 22
   integer, parameter :: mass_matrix_lhs_dc = 23
-  integer, parameter :: poisson_matrix_lhs = 24
+  integer, parameter :: bf_matrix_rhs_dc = 24
   integer, parameter :: o1matrix_sm = 25
   integer, parameter :: o2matrix_sm = 26
   integer, parameter :: gs_matrix_rhs_dc = 27
   integer, parameter :: lp_matrix_rhs = 28
   integer, parameter :: lp_matrix_rhs_dc = 29
-  integer, parameter :: bf_matrix_rhs_dc = 30
+  integer, parameter :: lp_matrix_lhs_dc = 30
   integer, parameter :: gyro_torque_sm = 31
   integer, parameter :: q42matrix_sm = 32
 
