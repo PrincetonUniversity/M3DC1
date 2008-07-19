@@ -298,34 +298,17 @@ subroutine gradshafranov_solve
   ! populate the matrix
   do itri=1,numelms
 
-     ! calculate the local sampling points and weights 
-     ! for numerical integration
-     call area_to_local(79,                                            &
-          alpha_79,beta_79,gamma_79,area_weight_79,                    &
-          atri(itri), btri(itri), ctri(itri),                          &
-          si_79, eta_79, weight_79)
-
-     call calcpos(itri, si_79, eta_79, 79, x_79, z_79)
-     if(itor.eq.1) then
-       r_79 = x_79
-     else
-       r_79 = 1.
-     endif
-     ri_79 = 1./r_79
-
-     do i=1,18
-        call eval_ops(gtri(:,i,itri), si_79, eta_79, &
-             ttri(itri), ri_79, 79, g79(:,:,i))
-     end do
+     call define_fields_79(itri,0,1)
     
      do j=1,18
         j1 = isval1(itri,j)
         do i=1,18
            i1 = isval1(itri,i)
 
-           temp79a = -ri_79* &
+           temp79a = -ri2_79* &
                 (g79(:,OP_DR,i)*g79(:,OP_DR,j) &
                 +g79(:,OP_DZ,i)*g79(:,OP_DZ,j))
+
            sum = int1(temp79a,weight_79,79)
 
            call insertval(gsmatrix_sm, sum, 0, i1,j1,1)
@@ -1188,9 +1171,9 @@ subroutine fundef
      endif
   enddo
 
-!!$  fun2 = fun2 / 2.
-!!$  fun3 = fun3 / 2.
-!!$  fun4 = fun4 / 2.
+  fun2 = fun2 / 2.
+  fun3 = fun3 / 2.
+  fun4 = fun4 / 2.
   
   return
 end subroutine fundef
