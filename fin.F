@@ -387,6 +387,8 @@
          endif
       endif
 
+      if(ntimepr.lt.1) ntimepr = 1
+
       if(myrank.eq.0) write(*,nml=inputnl)
 
       if(myrank.eq.0 .and. iprint.eq.1) print *, " exiting input.."

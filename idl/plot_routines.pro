@@ -185,13 +185,15 @@ end
 
 pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
                         isotropic=iso, lines=lines, range=range, $
-                        color_table=ct, zlog=zlog, csym=csym, _EXTRA = ex
+                        color_table=ct, zlog=zlog, csym=csym, $ 
+                        nofill=nofill, _EXTRA = ex
 
     zed = reform(z)
    
     if(keyword_set(zlog)) then begin
         zed = zed > abs(min(zed,/abs))
     endif
+    if(keyword_set(nofill)) then fill=0 else fill=1
 
     if n_elements(lines) eq 0 then lines = 0
 
@@ -285,7 +287,7 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     xrange=[xx[0],xx[n_elements(xx)-1]]
     yrange=[yy[0],yy[n_elements(yy)-1]]
 
-    contour, zz, xx, yy, nlevels=nlevels, /fill, $
+    contour, zz, xx, yy, nlevels=nlevels, fill=fill, $
       ytitle=label, xtitle='', $
       xticks=1, xtickname=[' ',' '], levels=levels, title='', $
       xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, ylog=zlog
@@ -301,7 +303,7 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
 
     !p.region = [region[0], region[1], width+region[0], top+region[1]]
 
-    contour, zed, x, y, /fill, levels=levels, nlevels=nlevels, $
+    contour, zed, x, y, fill=fill, levels=levels, nlevels=nlevels, $
       xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, _EXTRA=ex, $
       isotropic=iso
 
