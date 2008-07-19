@@ -92,9 +92,6 @@ Program Reducedquintic
      print *, 'proc, numnodes, numfaces', myrank, numnodes,numelms
   endif
 
-!!$  call test_orthogonality
-!!$  call safestop(1)
-
   ! check time-integration options
   select case(integrator)
   case(1)
@@ -108,6 +105,46 @@ Program Reducedquintic
   end select
 
 
+  ! create the newvar matrices
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Generating newvar matrices..."
+  call create_matrix(mass_matrix_lhs_dc,    NV_DCBOUND, NV_I_MATRIX,  NV_LHS)
+  call create_matrix(mass_matrix_lhs,       NV_NOBOUND, NV_I_MATRIX,  NV_LHS)
+  call create_matrix(gs_matrix_rhs_dc,      NV_DCBOUND, NV_GS_MATRIX, NV_RHS)
+  if(numvar.ge.3 .and. hyperc.ne.0. .and. com_bc.eq.0) then
+     call create_matrix(lp_matrix_rhs,      NV_NOBOUND, NV_LP_MATRIX, NV_RHS)
+  endif
+  if(numvar.ge.3 .and. hyperc.ne.0. .and. com_bc.eq.1) then
+     call create_matrix(lp_matrix_rhs_dc,   NV_DCBOUND, NV_LP_MATRIX, NV_RHS)
+  end if
+  if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
+     call create_matrix(bf_matrix_rhs_dc, NV_DCBOUND, NV_BF_MATRIX, NV_RHS)
+     call create_matrix(lp_matrix_lhs_dc, NV_DCBOUND, NV_LP_MATRIX, NV_LHS)
+  endif
+  if(gyro.eq.1 .and. numvar.ge.2) then
+     call zeromultiplymatrix(gyro_torque_sm,icomplex,vecsize_vel)
+     call finalizematrix(gyro_torque_sm)
+  endif
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, "Done generating newvar matrices."
+
+
+  ! Set up PID controllers
+  ! ~~~~~~~~~~~~~~~~~~~~~~
+  i_control%p = control_p
+  i_control%i = control_i
+  i_control%d = control_d
+  i_control%target_val = tcur
+
+  n_control%p = n_control_p
+  n_control%i = n_control_i
+  n_control%d = n_control_d
+  n_control%target_val = n_target
+
+
+  ! Set initial conditions either from restart file
+  ! or from initialization routine
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(irestart.eq.1) then
      ! Read restart file(s)
 
@@ -119,12 +156,13 @@ Program Reducedquintic
      endif
 
   else
-     ! Initialize with initial conditions
+     ! Initialize from routine
 
      ptot = 0.
      ntime = 0
      time = 0.
-     if(myrank.eq.0 .and. iprint.ge.1) print *, 'defining initial conditions...'
+     if(myrank.eq.0 .and. iprint.ge.1) &
+          print *, 'defining initial conditions...'
      call initial_conditions
      if(myrank.eq.0 .and. iprint.ge.1) print *, 'done initial conditions'
 
@@ -167,49 +205,28 @@ Program Reducedquintic
      call safestop(5)
   end if
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done initializing HDF5."
-   
-  ! create the newvar matrices
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "Generating newvar matrices..."
-  call create_matrix(mass_matrix_lhs_dc,    NV_DCBOUND, NV_I_MATRIX,  NV_LHS)
-  call create_matrix(mass_matrix_lhs,       NV_NOBOUND, NV_I_MATRIX,  NV_LHS)
-  call create_matrix(gs_matrix_rhs_dc,      NV_DCBOUND, NV_GS_MATRIX, NV_RHS)
-  if(numvar.ge.3 .and. hyperc.ne.0. .and. com_bc.eq.0) then
-     call create_matrix(lp_matrix_rhs,      NV_NOBOUND, NV_LP_MATRIX, NV_RHS)
-  endif
-  if(numvar.ge.3 .and. hyperc.ne.0. .and. com_bc.eq.1) then
-     call create_matrix(lp_matrix_rhs_dc,   NV_DCBOUND, NV_LP_MATRIX, NV_RHS)
-  end if
-  if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
-     call create_matrix(bf_matrix_rhs_dc, NV_DCBOUND, NV_BF_MATRIX, NV_RHS)
-     call create_matrix(lp_matrix_lhs_dc, NV_DCBOUND, NV_LP_MATRIX, NV_LHS)
-  endif
-  if(gyro.eq.1 .and. numvar.ge.2) then
-     call zeromultiplymatrix(gyro_torque_sm,icomplex,vecsize_vel)
-     call finalizematrix(gyro_torque_sm)
-  endif
-  if(myrank.eq.0 .and. iprint.ge.1) &
-       print *, "Done generating newvar matrices."
-
-
-  ! Set up PID controllers
-  ! ~~~~~~~~~~~~~~~~~~~~~~
-  i_control%p = control_p
-  i_control%i = control_i
-  i_control%d = control_d
-  i_control%target_val = tcur
-
-  n_control%p = n_control_p
-  n_control%i = n_control_i
-  n_control%d = n_control_d
-  n_control%target_val = n_target
-
-
 
   if(itimer.eq.1) call reset_timings
 
+
+  ! output simulation parameters and equilibrium
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(irestart.eq.0) then
+     if(myrank.eq.0 .and. iprint.ge.1) &
+          print *, "Writing simulation parameters."
+     call hdf5_write_parameters(ier)
+
+     if(eqsubtract.eq.1) call derived_quantities(field0)
+
+     ! Output the equilibrium
+     if(eqsubtract.eq.1) call hdf5_write_time_slice(1,ier)
+  end if
+
+
   ! Calculate all quantities derived from basic fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  call derived_quantities
+  call derived_quantities(field)
+
 
   ! Adapt the mesh
   ! ~~~~~~~~~~~~~~
@@ -239,16 +256,6 @@ Program Reducedquintic
      tflux0 = tflux
      totcur0 = totcur
   endif
-
-  ! output simulation parameters
-  if(irestart.eq.0) then
-     if(myrank.eq.0 .and. iprint.ge.1) &
-          print *, "Writing simulation parameters."
-     call hdf5_write_parameters(ier)
-
-     ! Output the equilibrium
-     if(eqsubtract.eq.1) call hdf5_write_time_slice(1,ier)
-  end if
 
   ! output initial conditions
   call output
@@ -488,7 +495,7 @@ end subroutine copyvec
 ! calculates all derived quantities, including auxiliary fields
 ! and scalars
 ! ======================================================================
-subroutine derived_quantities
+subroutine derived_quantities(vec)
   use basic
   use arrays
   use newvar_mod
@@ -498,6 +505,7 @@ subroutine derived_quantities
   implicit none
 
   real :: tstart, tend
+  vectype, dimension(*), intent(in) :: vec
 
   ! Define auxiliary fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~
@@ -509,23 +517,23 @@ subroutine derived_quantities
 
   !   toroidal current
   if(myrank.eq.0 .and. iprint.ge.1) print *, "-Toroidal current"
-  call newvar(mass_matrix_lhs_dc,jphi,field,psi_g,num_fields, &
+  call newvar(mass_matrix_lhs_dc,jphi,vec,psi_g,num_fields, &
        gs_matrix_rhs_dc,NV_DCBOUND)
 
   if(hyperc.ne.0.) then
      !   vorticity
      if(myrank.eq.0 .and. iprint.ge.1) print *, "-Vorticity"
-     call newvar(mass_matrix_lhs_dc,vor,field,u_g,num_fields, &
+     call newvar(mass_matrix_lhs_dc,vor,vec,u_g,num_fields, &
           gs_matrix_rhs_dc,NV_DCBOUND)
 
      !   compression
      if(numvar.ge.3) then
         if(myrank.eq.0 .and. iprint.ge.1) print *, "-Compression"
         if(com_bc.eq.1) then
-           call newvar(mass_matrix_lhs_dc,com,field,chi_g,num_fields, &
+           call newvar(mass_matrix_lhs_dc,com,vec,chi_g,num_fields, &
                 lp_matrix_rhs_dc,NV_DCBOUND)
         else
-           call newvar(mass_matrix_lhs,   com,field,chi_g,num_fields, &
+           call newvar(mass_matrix_lhs,   com,vec,chi_g,num_fields, &
                 lp_matrix_rhs,   NV_NOBOUND)
         endif
      else
@@ -536,7 +544,7 @@ subroutine derived_quantities
   ! vector potential stream function
   if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, "-f"
-     call newvar(lp_matrix_lhs_dc,bf,field,bz_g,num_fields, &
+     call newvar(lp_matrix_lhs_dc,bf,vec,bz_g,num_fields, &
           bf_matrix_rhs_dc,NV_DCBOUND)
   endif
 

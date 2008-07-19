@@ -1,3 +1,26 @@
+subroutine matvecmult(imatrix,vin,vout)
+
+  use basic
+  use diagnostics
+
+  implicit none
+
+  integer, intent(in) :: imatrix
+  vectype, dimension(*), intent(in) :: vin
+  vectype, dimension(*), intent(out) :: vout
+
+  real :: tstart, tend
+
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+  call matrixvectormult(imatrix,vin,vout)
+  if(myrank.eq.0 .and. itimer.eq.1) then 
+     call second(tend)
+     t_mvm = t_mvm + tend - tstart
+  end if
+     
+end subroutine matvecmult
+
+
 !============================================================
 ! ONESTEP
 ! ~~~~~~~
@@ -7,6 +30,7 @@ subroutine onestep
 
   use basic
   use diagnostics
+  use arrays
 
   implicit none
 
@@ -14,6 +38,7 @@ subroutine onestep
   logical :: first_time = .true.
 
   real :: tstart, tend
+
 
   ! apply loop voltage
   fbound = fbound + dt*vloop/(2.*pi)
@@ -47,11 +72,17 @@ subroutine onestep
 
 
   ! advance time
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   if(isplitstep.eq.1) then
      call split_step(calc_matrices)
   else
      call unsplit_step(calc_matrices)
   end if
+  if(myrank.eq.0 .and. itimer.eq.1) then 
+     call second(tend)
+     if(iprint.ge.1) print *, "Time spent in *_step: ", tend-tstart
+  end if
+
   time = time + dt
 
 
@@ -60,7 +91,7 @@ subroutine onestep
 
 
   ! Calculate all quantities derived from basic fields
-  call derived_quantities
+  call derived_quantities(field)
 
 
   ! Conserve toroidal flux
@@ -190,7 +221,7 @@ subroutine split_step(calc_matrices)
   implicit none
 
   integer, intent(in) :: calc_matrices
-  real :: tstart, tend
+  real :: tstart, tend, t_bound
   integer :: i, l, numnodes, ndofs
   integer :: ibegin, iendplusone, ibeginnv, iendplusonenv
   integer :: jer
@@ -198,6 +229,8 @@ subroutine split_step(calc_matrices)
   vectype, allocatable :: temp(:)
 
   integer :: istaticold, idensold, ipresold
+
+  t_bound = 0
 
   call numnod(numnodes)
 
@@ -212,10 +245,8 @@ subroutine split_step(calc_matrices)
      ! ================
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Velocity"
   
-     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-
      ! d1matrix_sm * vel(n)
-     call matrixvectormult(d1matrix_sm,vel,b1_vel)
+     call matvecmult(d1matrix_sm,vel,b1_vel)
   
      ! q1matrix_sm * phi(n)
      if(ipres.eq.1 .and. numvar.ge.3) then
@@ -227,16 +258,11 @@ subroutine split_step(calc_matrices)
            phip(ibeginnv   :ibeginnv+11) = phi(ibeginnv:ibeginnv+11)
            phip(ibeginnv+12:ibeginnv+17) = pres(ibegin:ibegin+5)
         enddo
-        call matrixvectormult(q1matrix_sm, phip, b1_phi)
+        call matvecmult(q1matrix_sm, phip, b1_phi)
      else
-        call matrixvectormult(q1matrix_sm, phi , b1_phi)
+        call matvecmult(q1matrix_sm, phi , b1_phi)
      endif
-   
-     if(myrank.eq.0 .and. itimer.eq.1) then
-        call second(tend)
-        t_mvm = t_mvm + tend - tstart
-     endif
-  
+     
      ! r14matrix_sm * den(n)
      if(idens.eq.1 .and. (gravr.ne.0 .or. gravz.ne.0)) then
         ! make a larger vector that can be multiplied by a numvar=3 matrix
@@ -247,7 +273,7 @@ subroutine split_step(calc_matrices)
            phip(ibeginnv:ibeginnv+5) = den1_l
         enddo
 
-        call matrixvectormult(r14matrix_sm,phip,b2_phi)
+        call matvecmult(r14matrix_sm,phip,b2_phi)
         b1_phi = b1_phi + b2_phi
      endif
 
@@ -256,7 +282,7 @@ subroutine split_step(calc_matrices)
         ! make a larger vector that can be multiplied by a numvar=3 matrix
         phip = 0.
         call copyvec(bf,1,1,phip,1,vecsize_phi)
-        call matrixvectormult(o1matrix_sm,phip,b2_phi)
+        call matvecmult(o1matrix_sm,phip,b2_phi)
         b1_phi = b1_phi + b2_phi
      endif
 
@@ -279,12 +305,18 @@ subroutine split_step(calc_matrices)
 
   
      ! apply boundary conditions
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      if(calc_matrices.eq.1) then
         call boundary_vel(s1matrix_sm, b1_vel)
         call finalizematrix(s1matrix_sm)
      else
         call boundary_vel(0, b1_vel)
      endif
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_bound = t_bound + tend - tstart
+     end if
+
   
      ! solve linear system with rhs in vtemp (note LU-decomp done first time)
      if(myrank.eq.0) print *, "solving velocity advance..."
@@ -320,31 +352,24 @@ subroutine split_step(calc_matrices)
   if(idens.eq.1) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Density"
      
-     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-
      ! r8matrix_sm * vel(n+1)
-     call matrixvectormult(r8matrix_sm,vel,b1_vel)
+     call matvecmult(r8matrix_sm,vel,b1_vel)
 
      ! r8matrix_sm * vel(n-1)
      if(integrator.eq.1 .and. ntime.gt.1) then
-        call matrixvectormult(r8matrix_sm,veloldn,b2_vel)
+        call matvecmult(r8matrix_sm,veloldn,b2_vel)
         b1_vel = 1.5*b1_vel + 0.5*b2_vel
      endif
 
      ! q8matrix_sm * vel(n)
-     call matrixvectormult(q8matrix_sm,veln,b2_vel)
+     call matvecmult(q8matrix_sm,veln,b2_vel)
      b1_vel = b1_vel + b2_vel
-     
-     if(myrank.eq.0 .and. itimer.eq.1) then
-        call second(tend)
-        t_mvm = t_mvm + tend - tstart
-     endif
-     
+          
      ! temp = d8matrix_sm * phi(n)
      call createvec(temp, numvar1_numbering)
      temp = 0.
      
-     call matrixvectormult(d8matrix_sm,den,temp)
+     call matvecmult(d8matrix_sm,den,temp)
      
      call numdofs(vecsize_vel,ndofs)
      allocate(itemp(ndofs)) ! this is used to make sure that we 
@@ -364,12 +389,18 @@ subroutine split_step(calc_matrices)
      deallocate(itemp)
      
      ! Insert boundary conditions
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      if(calc_matrices.eq.1) then
         call boundary_den(s8matrix_sm, temp)
         call finalizematrix(s8matrix_sm)
      else
         call boundary_den(0, temp)
      endif
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_bound = t_bound + tend - tstart
+     end if
+
      
      if(myrank.eq.0 .and. iprint.ge.1) print *, " solving..."
      
@@ -407,30 +438,23 @@ subroutine split_step(calc_matrices)
   if(ipres.eq.1) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Pressure"
      
-     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     
      ! r9matrix_sm * vel(n+1)
-     call matrixvectormult(r9matrix_sm,vel,b1_vel)
+     call matvecmult(r9matrix_sm,vel,b1_vel)
         
      ! r9matrix_sm * vel(n-1)
      if(integrator.eq.1 .and. ntime.gt.1) then
-        call matrixvectormult(r9matrix_sm,veloldn,b2_vel)
+        call matvecmult(r9matrix_sm,veloldn,b2_vel)
         b1_vel = 1.5*b1_vel + 0.5*b2_vel
      endif
      
      ! q9matrix_sm * vel(n)
-     call matrixvectormult(q9matrix_sm,veln,b2_vel)
+     call matvecmult(q9matrix_sm,veln,b2_vel)
      b1_vel = b1_vel + b2_vel
-
-     if(myrank.eq.0 .and. itimer.eq.1) then
-        call second(tend)
-        t_mvm = t_mvm + tend - tstart
-     endif
      
      ! temp = d8matrix_sm * pres(n)
      call createvec(temp, numvar1_numbering)
      temp = 0.
-     call matrixvectormult(d9matrix_sm,pres,temp)
+     call matvecmult(d9matrix_sm,pres,temp)
      
 
      ! Construct right-hand side
@@ -451,12 +475,18 @@ subroutine split_step(calc_matrices)
      deallocate(itemp)
      
      ! Insert boundary conditions
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      if(calc_matrices.eq.1) then
         call boundary_pres(s9matrix_sm, temp)
         call finalizematrix(s9matrix_sm)
      else
         call boundary_pres(0, temp)
      endif
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_bound = t_bound + tend - tstart
+     end if
+
      
      ! solve linear system...LU decomposition done first time
      ! -- okay to here      call printarray(temp, 150, 0, 'vtemp on')
@@ -487,31 +517,23 @@ subroutine split_step(calc_matrices)
 
   if(iestatic.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Fields"
-  
-     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  
+   
      ! r2matrix_sm * vel(n+1)
-     call matrixvectormult(r2matrix_sm,vel,b1_vel)
+     call matvecmult(r2matrix_sm,vel,b1_vel)
    
      ! r2matrix_sm * vel(n-1)
      if(integrator.eq.1 .and. ntime.gt.1) then
-        call matrixvectormult(r2matrix_sm,veloldn,b2_vel)
+        call matvecmult(r2matrix_sm,veloldn,b2_vel)
         b1_vel = 1.5*b1_vel + 0.5*b2_vel
      endif
 
      ! q2matrix_sm * vel(n)
-     call matrixvectormult(q2matrix_sm,veln,b2_vel)
+     call matvecmult(q2matrix_sm,veln,b2_vel)
      b1_vel = -b1_vel + b2_vel
 
 
      ! d2matrix_sm * phi(n)
-     call matrixvectormult(d2matrix_sm,phi,b1_phi)
-
-    
-     if(myrank.eq.0 .and. itimer.eq.1) then
-        call second(tend)
-        t_mvm = t_mvm + tend - tstart
-     endif
+     call matvecmult(d2matrix_sm,phi,b1_phi)
 
      ! Include linear n^-1 terms
      if(idens.eq.1 .and. linear.eq.1) then
@@ -546,7 +568,7 @@ subroutine split_step(calc_matrices)
                     +   field(i)*field0(i+5))/field0(i)**3 &
                 -6.*field(i)*field0(i+2)**2/field0(i)**4
         enddo
-        call matrixvectormult(q42matrix_sm,phip,b2_phi)
+        call matvecmult(q42matrix_sm,phip,b2_phi)
         b1_phi = b1_phi + b2_phi
      endif
 
@@ -558,7 +580,7 @@ subroutine split_step(calc_matrices)
         ! make a larger vector that can be multiplied by a numvar=3 matrix
         phip = 0.        
         call copyvec(bf,1,1,phip,1,vecsize_phi)
-        call matrixvectormult(o2matrix_sm,phip,b2_phi)
+        call matvecmult(o2matrix_sm,phip,b2_phi)
         b1_phi = b1_phi + b2_phi
      endif
 
@@ -581,12 +603,19 @@ subroutine split_step(calc_matrices)
 
   
      ! Insert boundary conditions
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      if(calc_matrices.eq.1) then
         call boundary_mag(s2matrix_sm, b1_phi)
         call finalizematrix(s2matrix_sm)
      else 
         call boundary_mag(0, b1_phi)
      endif
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_bound = t_bound + tend - tstart
+     end if
+
+
 !     call writematrixtofile(s2matrix_sm, 2)
 
      ! solve linear system...LU decomposition done first time
@@ -640,29 +669,22 @@ subroutine split_step(calc_matrices)
 
         if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Fields Again"
 
-        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  
         ! r2matrix_sm * vel(n+1)
-        call matrixvectormult(r2matrix_sm,vel,b1_vel)
+        call matvecmult(r2matrix_sm,vel,b1_vel)
    
         ! r2matrix_sm * vel(n-1)
         if(integrator.eq.1 .and. ntime.gt.1) then
-           call matrixvectormult(r2matrix_sm,veloldn,b2_vel)
+           call matvecmult(r2matrix_sm,veloldn,b2_vel)
            b1_vel = 1.5*b1_vel + 0.5*b2_vel
         endif
 
         ! q2matrix_sm * vel(n)
-        call matrixvectormult(q2matrix_sm,veln,b2_vel)
+        call matvecmult(q2matrix_sm,veln,b2_vel)
         b1_vel = -b1_vel + b2_vel
 
         ! d2matrix_sm * phi(n)
-        call matrixvectormult(d2matrix_sm,phi,b1_phi)
-    
-        if(myrank.eq.0 .and. itimer.eq.1) then
-           call second(tend)
-           t_mvm = t_mvm + tend - tstart
-        endif
-  
+        call matvecmult(d2matrix_sm,phi,b1_phi)
+      
         ! Include linear f terms
         if(numvar.ge.2 .and. i3d.eq.1) then
            ! b2vector = r15 * bf(n)
@@ -670,7 +692,7 @@ subroutine split_step(calc_matrices)
            ! make a larger vector that can be multiplied by a numvar=3 matrix
            phip = 0.        
            call copyvec(bf,1,1,phip,1,vecsize_phi)
-           call matrixvectormult(o2matrix_sm,phip,b2_phi)
+           call matvecmult(o2matrix_sm,phip,b2_phi)
            b1_phi = b1_phi + b1_phi
         endif
 
@@ -692,12 +714,18 @@ subroutine split_step(calc_matrices)
         deallocate(itemp)
         
         ! Insert boundary conditions
+        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
         if(calc_matrices.eq.1) then
            call boundary_mag(s2matrix_sm, b1_phi)
            call finalizematrix(s2matrix_sm)
         else 
            call boundary_mag(0, b1_phi)
         endif
+        if(myrank.eq.0 .and. itimer.eq.1) then
+           call second(tend)
+           t_bound = t_bound + tend - tstart
+        end if
+
   
         ! solve linear system...LU decomposition done first time
         if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -724,6 +752,13 @@ subroutine split_step(calc_matrices)
   
   end if
 
+
+  if(myrank.eq.0 .and. iprint.eq.1 .and. itimer.eq.1) then
+     print *, " split_step: Time solve: ", &
+          t_solve_v + t_solve_b + t_solve_n + t_solve_p
+     print *, " split_step: Time bcs: ", t_bound
+
+  end if
   
 end subroutine split_step
 
@@ -751,10 +786,9 @@ subroutine unsplit_step(calc_matrices)
   real :: tstart, tend
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Solving matrix equation."
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   
   ! vtemp = d1matrix_sm * phi(n)
-  call matrixvectormult(d1matrix_sm,phi,b1_phi)
+  call matvecmult(d1matrix_sm,phi,b1_phi)
   
   b1_phi = b1_phi + q4
 
@@ -770,15 +804,10 @@ subroutine unsplit_step(calc_matrices)
         
         phip(ibeginnv  :ibeginnv+5) = bf(ibegin:ibegin+5)
      enddo
-     call matrixvectormult(o1matrix_sm,phip,b2_phi)
+     call matvecmult(o1matrix_sm,phip,b2_phi)
      b1_phi = b1_phi + b2_phi
   endif
-  
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_mvm = t_mvm + tend - tstart
-  endif
-  
+    
   ! Insert boundary conditions
   if(calc_matrices.eq.1) then
      call boundary_mag(s1matrix_sm, b1_phi)

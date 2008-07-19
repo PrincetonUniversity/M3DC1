@@ -373,6 +373,7 @@ subroutine hdf5_write_parameters(error)
   call write_int_attr (root_id, "integrator" , integrator, error)
   call write_int_attr (root_id, "ipellet"    , ipellet,    error)
   call write_int_attr (root_id, "ivform"     , ivform,     error)
+  call write_int_attr (root_id, "ntor"       , ntor,       error)
   call write_real_attr(root_id, "db"         , db,         error)
   call write_real_attr(root_id, "xzero"      , xzero,      error)
   call write_real_attr(root_id, "zzero"      , zzero,      error)
@@ -724,6 +725,10 @@ subroutine output_fields(time_group_id, equilibrium, error)
   end do
   call output_field(group_id, "psi", real(dum), 20, nelms, error)
   nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id,"psi_i",aimag(dum),20,nelms,error)
+     nfields = nfields + 1
+#endif
 
   ! u
   do i=1, nelms
@@ -731,6 +736,10 @@ subroutine output_fields(time_group_id, equilibrium, error)
   end do
   call output_field(group_id, "phi", real(dum), 20, nelms, error)
   nfields = nfields + 1
+#ifdef USECOMPLEX
+  call output_field(group_id,"phi_i",aimag(dum),20,nelms,error)
+  nfields = nfields + 1
+#endif
 
   ! jphi
   do i=1, nelms
@@ -773,6 +782,11 @@ subroutine output_fields(time_group_id, equilibrium, error)
   end do
   call output_field(group_id, "I", real(dum), 20, nelms, error)
   nfields = nfields + 1
+#ifdef USECOMPLEX
+  call output_field(group_id,"I_i",aimag(dum),20,nelms,error)
+  nfields = nfields + 1
+#endif
+
 
   ! BF
   if(ifout.eq.1) then
@@ -781,6 +795,10 @@ subroutine output_fields(time_group_id, equilibrium, error)
      end do
      call output_field(group_id, "f", real(dum), 20, nelms, error)
      nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id,"f_i",aimag(dum),20,nelms,error)
+     nfields = nfields + 1
+#endif
   endif
 
   ! V
@@ -789,6 +807,11 @@ subroutine output_fields(time_group_id, equilibrium, error)
   end do
   call output_field(group_id, "V", real(dum), 20, nelms, error)
   nfields = nfields + 1
+#ifdef USECOMPLEX
+  call output_field(group_id,"V_i",aimag(dum),20,nelms,error)
+  nfields = nfields + 1
+#endif
+
 
   ! P and Pe
   if(ipres.eq.1) then
@@ -797,19 +820,38 @@ subroutine output_fields(time_group_id, equilibrium, error)
      end do
      call output_field(group_id, "Pe", real(dum), 20, nelms, error)
      nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id,"Pe_i",aimag(dum),20,nelms,error)
+     nfields = nfields + 1
+#endif
+
      do i=1, nelms
         call calcavector(i, f_ptr, p_g, num_fields, dum(:,i))
      end do
      call output_field(group_id, "P", real(dum), 20, nelms, error)
      nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id,"P_i",aimag(dum),20,nelms,error)
+     nfields = nfields + 1
+#endif
+
   else
      do i=1, nelms
         call calcavector(i, f_ptr, pe_g, num_fields, dum(:,i))
      end do
      call output_field(group_id, "Pe", pefac*real(dum), 20, nelms, error)
      nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id,"Pe_i",aimag(dum),20,nelms,error)
+     nfields = nfields + 1
+#endif
+
      call output_field(group_id, "P", real(dum), 20, nelms, error)
      nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id,"P_i",aimag(dum),20,nelms,error)
+     nfields = nfields + 1
+#endif
   endif
      
   ! chi
@@ -818,6 +860,12 @@ subroutine output_fields(time_group_id, equilibrium, error)
   end do
   call output_field(group_id, "chi", real(dum), 20, nelms, error)
   nfields = nfields + 1
+
+#ifdef USECOMPLEX
+  call output_field(group_id,"chi_i",aimag(dum),20,nelms,error)
+  nfields = nfields + 1
+#endif
+
 
   ! com
   do i=1, nelms
@@ -846,6 +894,11 @@ subroutine output_fields(time_group_id, equilibrium, error)
   end do
   call output_field(group_id, "den", real(dum), 20, nelms, error)
   nfields = nfields + 1
+#ifdef USECOMPLEX
+  call output_field(group_id,"den_i",aimag(dum),20,nelms,error)
+  nfields = nfields + 1
+#endif
+
   
   if(ipellet.eq.1 .or. ionization.eq.1 .or. isink.gt.0) then
      do i=1, nelms

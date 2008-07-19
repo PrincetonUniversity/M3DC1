@@ -1196,7 +1196,7 @@ vectype function v1us(e,f,g)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = g(:,OP_1) ! + denm*nt79(:,OP_LP)
+  temp79a = g(:,OP_1) + denm*nt79(:,OP_LP)
 
   select case(ivform)
   case(0)
@@ -1236,7 +1236,7 @@ vectype function v1chis(e,f,g)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = g(:,OP_1) ! + denm*nt79(:,OP_LP)
+  temp79a = g(:,OP_1) + denm*nt79(:,OP_LP)
 
 
   select case(ivform)
@@ -2122,7 +2122,7 @@ vectype function v2vs(e,f,g)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = g(:,OP_1) ! + denm*nt79(:,OP_LP)
+  temp79a = g(:,OP_1) + denm*nt79(:,OP_LP)
 
   select case(ivform)
   case(0)
@@ -3358,7 +3358,7 @@ vectype function v3us(e,f,g)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = g(:,OP_1) ! + denm*nt79(:,OP_LP)
+  temp79a = g(:,OP_1) + denm*nt79(:,OP_LP)
 
   temp = int4(ri_79,e(:,OP_DZ),f(:,OP_DR),temp79a,weight_79,79) &
         -int4(ri_79,e(:,OP_DR),f(:,OP_DZ),temp79a,weight_79,79)
@@ -3386,7 +3386,7 @@ vectype function v3chis(e,f,g)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = g(:,OP_1) ! + denm*nt79(:,OP_LP)
+  temp79a = g(:,OP_1) + denm*nt79(:,OP_LP)
 
   select case(ivform)
   case(0) 
@@ -5507,9 +5507,12 @@ vectype function g2v(e,f)
      temp79b = e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ)
      if(itor.eq.1) temp79b = temp79b - 2.*ri_79*e(:,OP_DZ)*f(:,OP_1)
      
-     temp79a = 0.25*ri_79*b2i79(:,OP_1)*bzt79(:,OP_1)*temp79b* &
-          (1.-3.*ri2_79*b2i79(:,OP_1)* &
-          (pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2 - bzt79(:,OP_1)**2))
+!!$     temp79a = 0.25*ri_79*b2i79(:,OP_1)*bzt79(:,OP_1)*temp79b* &
+!!$          (1.-3.*ri2_79*b2i79(:,OP_1)* &
+!!$          (pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2 - bzt79(:,OP_1)**2))
+
+     temp79a = ri_79*b2i79(:,OP_1)*bzt79(:,OP_1)*temp79b* &
+          (1. - 1.5*ri2_79*b2i79(:,OP_1)*(pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2))
 
   case(1)
      temp79b = e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ)

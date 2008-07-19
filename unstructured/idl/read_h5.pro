@@ -561,6 +561,8 @@ function get_units, type
        units = b0+sq+l0+cu+over+pi4
    endif else if(strcmp(type, 'power', /fold_case) eq 1) then begin
        units = b0+sq+l0+cu+over+pi4+t0
+   endif else if(strcmp(type, 'particle flux', /fold_case) eq 1) then begin
+       units = n0+l0+cu+over+t0
    endif else if(strcmp(type, 'momentum', /fold_case) eq 1) then begin
        units = n0+v0
    endif else if(strcmp(type, 'angular momentum', /fold_case) eq 1) then begin
@@ -629,6 +631,9 @@ function translate, name, units=units
    endif else if(strcmp(name, 'bz', /fold_case) eq 1) then begin
        units = b0
        return, "!8B!D!9P!N!X"
+   endif else if(strcmp(name, 'e_r', /fold_case) eq 1) then begin
+       units = get_units('E')
+       return, "!8E!Dr!N!X"
    endif else if(strcmp(name, 'beta', /fold_case) eq 1) then begin
        return, "!7b!X"
    endif else if(strcmp(name, 'thermal velocity', /fold_case) eq 1) or $
@@ -1286,6 +1291,54 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
              data = data + I^2*(dx(chi,x)/r-dz(u,y)/r^2)/b2
          endif
 
+   ;===========================================
+   ; radial electric field
+   ;===========================================
+   endif else if(strcmp('e_r', name, /fold_case) eq 1) then begin
+
+         u   = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         v   = read_field('v'  , x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         b   = read_field('i',   x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         pe  = read_field('pe',  x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         n   = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+         eta = read_field('eta', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+
+         jphi = grad_shafranov(psi,x,y,tor=itor)
+
+         db = read_parameter('db', filename=filename)
+
+         if(itor eq 1) then begin
+             r = radius_matrix(x,y,t)
+         endif else r = 1.       
+
+         data = b*s_bracket(u,psi,x,y)/r^2 $
+           + b*a_bracket(chi,psi,x,y)/r $
+           - v*s_bracket(psi,psi,x,y)/r^2 $
+           - (db/n)* $
+           (s_bracket(psi,pe,x,y) $
+            + (jphi*s_bracket(psi,psi,x,y) + b*s_bracket(psi,b,x,y))/r^2) $
+           + eta*a_bracket(psi,b,x,y)/r
+
+        ; Normalize field
+         data = -data/sqrt(s_bracket(psi,psi,x,y))
 
    endif else begin
 
@@ -2196,17 +2249,18 @@ pro plot_timings, filename=filename, overplot=overplot, _EXTRA=extra
        plot, timings.t_onestep._data>0, title='!6Timings!3', $
          xtitle='!6Time Step!3', ytitle='!8t!6 (s)!3', _EXTRA=extra
    endelse
-   oplot, timings.t_ludefall._data, linestyle=2, color=30
-   oplot, timings.t_sources._data, linestyle=1, color=60
-   oplot, timings.t_aux._data, linestyle=1, color=80
-   oplot, timings.t_smoother._data, linestyle=1, color=100
-   oplot, t_solve, linestyle=2, color=160
-   oplot, t_output, linestyle=2, color=200
+   oplot, timings.t_ludefall._data, linestyle=2, color=color(1,8)
+   oplot, timings.t_sources._data, linestyle=1, color=color(2,8)
+   oplot, timings.t_aux._data, linestyle=1, color=color(3,8)
+   oplot, timings.t_smoother._data, linestyle=1, color=color(4,8)
+   oplot, timings.t_mvm._data, linestyle=1, color=color(5,8)
+   oplot, t_solve, linestyle=2, color=color(6,8)
+   oplot, t_output, linestyle=2, color=color(7,8)
 
 
    plot_legend, ['Onestep', 'ludefall', 'sources', 'aux', $
-                 'smoother', 'solve', 'output'], $
-     linestyle=[0,2,1,1,1,2,2], color=[-1,30,60,80,100,160,200]
+                 'smoother', 'mat vec mult', 'solve', 'output'], $
+     linestyle=[0,2,1,1,1,1,2,2], color=colors(8)
 
 end
 
@@ -2946,7 +3000,7 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
                        xlog=xlog, ylog=ylog, overplot=overplot, $
                        lcfs=lcfs, normalized_flux=nflux, $
                        minor_radius=minor_radius, smooth=sm, t=t, rms=rms, $
-                       bw=bw
+                       bw=bw, srnorm=srnorm
 
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
@@ -2970,7 +3024,7 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
              overplot=((i gt 0) or keyword_set(overplot)), points=pts, $
              color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
              normalized_flux=nflux, minor_radius=minor_radius, smooth=sm, $
-             rms=rms, linestyle=ls[i]
+             rms=rms, linestyle=ls[i], srnorm=srnorm
        end
        if(n_elements(names) gt 0) then begin
            plot_legend, names, color=colors, ylog=ylog, xlog=xlog, $
@@ -2996,7 +3050,7 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
              overplot=((i gt 0) or keyword_set(overplot)), points=pts, $
              color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
              normalized_flux=nflux, minor_radius=minor_radius, smooth=sm, $
-             t=t, rms=rms, linestyle=ls[i]
+             t=t, rms=rms, linestyle=ls[i], srnorm=srnorm
            names[i] = string(format='(%"!8t!6 = %d !7s!D!8A!N!X")', t)
        end
 
@@ -3042,7 +3096,8 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
 ;   endelse
 ;   title = "!12<" + title + "!12>!7!Dw!N!X"
 
-   if(keyword_set(nflux) or keyword_set(lcfs)) then begin
+   if(keyword_set(nflux) or keyword_set(lcfs) or keyword_set(srnorm)) $
+     then begin
        lcfs_psi = lcfs(time, filename=filename, psi=psi)
    endif
 
@@ -3051,6 +3106,11 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
        xtitle = '!7W!X'
        lcfs_psi = 1.
    endif
+   if(keyword_set(srnorm)) then begin
+       flux = sqrt((flux - max(psi)) / (lcfs_psi-max(psi)))
+       xtitle = '!9r!7W!X'
+       lcfs_psi = 1.
+   end       
 
    if(keyword_set(minor_radius)) then begin
        flux = flux_average('r',time,points=pts,file=filename,t=t, $
