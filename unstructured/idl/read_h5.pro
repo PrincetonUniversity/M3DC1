@@ -695,7 +695,31 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
                      rrange=xrange, zrange=yrange, $
                      h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                      diff=diff, at_points=at_points,operation=op, $
-                     linear=linear, last=last
+                     linear=linear, last=last, average=average
+
+
+   if(keyword_set(average)) then begin
+       if(n_elements(filename) gt 1) then begin
+           n = n_elements(filename)
+           if(n_elements(time) eq 1) then time=replicate(time,n)
+       endif else if(n_elements(time) gt 1) then begin
+           n = n_elements(time)
+           if(n_elements(filename) eq 1) then filename=replicate(filename,n)
+       endif else n = 1
+
+       data = 0
+       for i=0, n-1 do begin
+           data = data + $
+             read_field(name, x, y, t, slices=time[i], mesh=mesh, $
+                        filename=filename[i], points=pts, $
+                        rrange=xrange, zrange=yrange, $
+                        h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
+                        diff=diff, at_points=at_points,operation=op, $
+                        linear=linear, last=last)
+       end
+       data = data/n
+       return, data
+   end
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
    if(keyword_set(diff)) then begin
@@ -877,6 +901,23 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
                       rrange=xrange, zrange=yrange)
   
        data = pe/n
+
+
+   ;===========================================
+   ; ion pressure
+   ;===========================================
+   endif else if(strcmp('ion pressure', name, /fold_case) eq 1) or $
+     (strcmp('pi', name, /fold_case) eq 1) then begin
+
+       P = read_field('P', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+
+       Pe = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+  
+       data = p-pe
 
 
    ;===========================================
