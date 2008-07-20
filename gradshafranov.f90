@@ -1064,9 +1064,9 @@ subroutine fundef
 
 !.....defines the source functions for the GS equation:
   ! fun1 = r*p'
-  ! fun4 = G1'/2r
-  ! fun2 = G2'/2r
-  ! fun3 = G3'/2r
+  ! fun4 = G1'/r
+  ! fun2 = G2'/r
+  ! fun3 = G3'/r
 
   use basic
   use diagnostics
@@ -1170,10 +1170,6 @@ subroutine fundef
         fun3(ibegin+5)=  (g3bigpp*psoy**2 + g3bigp*psoyy)/x
      endif
   enddo
-
-  fun2 = fun2 / 2.
-  fun3 = fun3 / 2.
-  fun4 = fun4 / 2.
   
   return
 end subroutine fundef
@@ -1192,83 +1188,85 @@ subroutine calc_toroidal_field(psii,tf)
   real, intent(in), dimension(6)  :: psii     ! normalized flux
   vectype, intent(out), dimension(6) :: tf    ! toroidal field (I)
 
-  real :: g1, g1x, g1z, g1xx, g1xz, g1zz
-  real :: g2, g2x, g2z, g2xx, g2xz, g2zz
-  real :: g3, g3x, g3z, g3xx, g3xz, g3zz
+  real, dimension(6) :: g2, g3, g4
   
 !  if(psii(1) .lt. 0. .or. psii(1) .gt. 1.) then
   if(psii(1) .gt. 1.) then
      call constant_field(tf, bzero*xzero)
   else
-     g1  = psii(1) - 10.*psii(1)**3 + 20.*psii(1)**4 &
+     g2(1) = psii(1) - 10.*psii(1)**3 + 20.*psii(1)**4 &
           - 15.*psii(1)**5 + 4.*psii(1)**6
-     g1x = psii(2)*(1. - 30.*psii(1)**2 + 80.*psii(1)**3 &
+     g2(2) = psii(2)*(1. - 30.*psii(1)**2 + 80.*psii(1)**3 &
           - 75.*psii(1)**4 + 24.*psii(1)**5)
-     g1z = psii(3)*(1. - 30.*psii(1)**2 + 80.*psii(1)**3 &
+     g2(3) = psii(3)*(1. - 30.*psii(1)**2 + 80.*psii(1)**3 &
           - 75.*psii(1)**4 + 24.*psii(1)**5)
-     g1xx= psii(4)  *(1. - 30.*psii(1)**2 + 80.*psii(1)**3 &
+     g2(4) = psii(4)  *(1. - 30.*psii(1)**2 + 80.*psii(1)**3 &
           - 75.*psii(1)**4 + 24.*psii(1)**5) + &
           psii(1+1)**2*(-60.*psii(1)+240.*psii(1)**2 &
           -300.*psii(1)**3 +120.*psii(1)**4)
-     g1xz= psii(5)  *(1. - 30.*psii(1)**2 + 80.*psii(1)**3 &
+     g2(5) = psii(5)  *(1. - 30.*psii(1)**2 + 80.*psii(1)**3 &
           - 75.*psii(1)**4 + 24.*psii(1)**5) + &
           psii(2)*psii(3)* &
           (-60.*psii(1)   +240.*psii(1)**2 &
           -300.*psii(1)**3 +120.*psii(1)**4)
-     g1zz= psii(6)  *(1. - 30.*psii(1)**2 + 80.*psii(1)**3 &
+     g2(6) = psii(6)  *(1. - 30.*psii(1)**2 + 80.*psii(1)**3 &
           - 75.*psii(1)**4 + 24.*psii(1)**5) + &
           psii(3)**2*(-60.*psii(1)+240.*psii(1)**2 &
           -300.*psii(1)**3 +120.*psii(1)**4)
      
-     g2  = psii(1)**2 - 4.*psii(1)**3 + 6.*psii(1)**4 &
+     g3(1) = psii(1)**2 - 4.*psii(1)**3 + 6.*psii(1)**4 &
           - 4.*psii(1)**5 + psii(1)**6
-     g2x = psii(2)*(2.*psii(1) - 12.*psii(1)**2 &
+     g3(2) = psii(2)*(2.*psii(1) - 12.*psii(1)**2 &
           + 24.*psii(1)**3 - 20.*psii(1)**4 +  6.*psii(1)**5)
-     g2z = psii(3)*(2.*psii(1) - 12.*psii(1)**2 &
+     g3(3) = psii(3)*(2.*psii(1) - 12.*psii(1)**2 &
           + 24.*psii(1)**3 - 20.*psii(1)**4 +  6.*psii(1)**5)
-     g2xx= psii(4)*(2.*psii(1) - 12.*psii(1)**2 &
+     g3(4) = psii(4)*(2.*psii(1) - 12.*psii(1)**2 &
           + 24.*psii(1)**3 - 20.*psii(1)**4 +  6.*psii(1)**5) + &
           psii(2)**2*(2. - 24.*psii(1) &
           + 72.*psii(1)**2 - 80.*psii(1)**3 + 30.*psii(1)**4)
-     g2xz= psii(5)*(2.*psii(1) - 12.*psii(1)**2 &
+     g3(5) = psii(5)*(2.*psii(1) - 12.*psii(1)**2 &
           + 24.*psii(1)**3 - 20.*psii(1)**4 +  6.*psii(1)**5) + &
           psii(2)*psii(3)*(2. - 24.*psii(1) &
           + 72.*psii(1)**2 - 80.*psii(1)**3 + 30.*psii(1)**4)
-     g2zz= psii(6)*(2.*psii(1) - 12.*psii(1)**2 &
+     g3(6) = psii(6)*(2.*psii(1) - 12.*psii(1)**2 &
           + 24.*psii(1)**3 - 20.*psii(1)**4 +  6.*psii(1)**5) + &
           psii(3)**2*(2. - 24.*psii(1) &
           + 72.*psii(1)**2 - 80.*psii(1)**3 + 30.*psii(1)**4)
      
-     g3 = 1. - 20.*psii(1)**3 + 45.*psii(1)**4 &
+     g4(1) = 1. - 20.*psii(1)**3 + 45.*psii(1)**4 &
                 - 36.*psii(1)**5 + 10.*psii(1)**6
-     g3x = psii(2)*(-60.*psii(1)**2 +180.*psii(1)**3 &
+     g4(2) = psii(2)*(-60.*psii(1)**2 +180.*psii(1)**3 &
           -180.*psii(1)**4 + 60.*psii(1)**5)
-     g3z = psii(3)*(-60.*psii(1)**2 +180.*psii(1)**3 &
+     g4(3) = psii(3)*(-60.*psii(1)**2 +180.*psii(1)**3 &
           -180.*psii(1)**4 + 60.*psii(1)**5)
-     g3xx= psii(4)*(-60.*psii(1)**2 +180.*psii(1)**3 &
+     g4(4) = psii(4)*(-60.*psii(1)**2 +180.*psii(1)**3 &
           -180.*psii(1)**4 + 60.*psii(1)**5) + &
           psii(2)**2*(-120.*psii(1) +540.*psii(1)**2 &
           -720.*psii(1)**3 +300.*psii(1)**4)
-     g3xz= psii(5)*(-60.*psii(1)**2 +180.*psii(1)**3 &
+     g4(5) = psii(5)*(-60.*psii(1)**2 +180.*psii(1)**3 &
           -180.*psii(1)**4 + 60.*psii(1)**5) + &
           psii(2)*psii(3)*(-120.*psii(1) +540.*psii(1)**2 &
           -720.*psii(1)**3 +300.*psii(1)**4)
-     g3zz= psii(6)*(-60.*psii(1)**2 +180.*psii(1)**3 &
+     g4(6) = psii(6)*(-60.*psii(1)**2 +180.*psii(1)**3 &
           -180.*psii(1)**4 + 60.*psii(1)**5) + &
           psii(3)**2*(-120.*psii(1) +540.*psii(1)**2 &
           -720.*psii(1)**3 +300.*psii(1)**4)
 
+     g2 = g2*2.
+     g3 = g3*2.
+     g4 = g4*2.
      
-     tf(1) = sqrt((bzero*xzero)**2 + gamma2*g1 + gamma3*g2 + gamma4*g3)
-     tf(2) = 0.5*(gamma2*g1x + gamma3*g2x + gamma4*g3x) / tf(1)
-     tf(3) = 0.5*(gamma2*g1z + gamma3*g2z + gamma4*g3z) / tf(1)
-     tf(4) = 0.5*(gamma2*g1xx + gamma3*g2xx + gamma4*g3xx) / tf(1) &
-          - (0.5*(gamma2*g1x + gamma3*g2x + gamma4*g3x))**2 / tf(1)**3
-     tf(5) = 0.5*(gamma2*g1xz + gamma3*g2xz + gamma4*g3xz) / tf(1) &
-          -  0.5*(gamma2*g1x + gamma3*g2x + gamma4*g3x) &
-          *  0.5*(gamma2*g1z + gamma3*g2z + gamma4*g3z) / tf(1)**3
-     tf(6) = 0.5*(gamma2*g1zz + gamma3*g2zz + gamma4*g3zz) / tf(1) &
-          - (0.5*(gamma2*g1z + gamma3*g2z + gamma4*g3z))**2 / tf(1)**3
+     tf(1) = sqrt((bzero*xzero)**2 + &
+          gamma2*g2(1) + gamma3*g3(1) + gamma4*g4(1))
+     tf(2) = 0.5*(gamma2*g2(2) + gamma3*g3(2) + gamma4*g4(2)) / tf(1)
+     tf(3) = 0.5*(gamma2*g2(3) + gamma3*g3(3) + gamma4*g4(3)) / tf(1)
+     tf(4) = 0.5*(gamma2*g2(4) + gamma3*g3(4) + gamma4*g4(4)) / tf(1) &
+          - (0.5*(gamma2*g2(2) + gamma3*g3(2) + gamma4*g4(2)))**2 / tf(1)**3
+     tf(5) = 0.5*(gamma2*g2(5) + gamma3*g3(5) + gamma4*g4(5)) / tf(1) &
+          -  0.5*(gamma2*g2(2) + gamma3*g3(2) + gamma4*g4(2)) &
+          *  0.5*(gamma2*g2(3) + gamma3*g3(3) + gamma4*g4(3)) / tf(1)**3
+     tf(6) = 0.5*(gamma2*g2(6) + gamma3*g3(6) + gamma4*g4(6)) / tf(1) &
+          - (0.5*(gamma2*g2(3) + gamma3*g3(3) + gamma4*g4(3)))**2 / tf(1)**3
 
      if(bzero.lt.0) tf = -tf
   endif
