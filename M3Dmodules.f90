@@ -387,11 +387,12 @@ module arrays
             chio_v => velold
             pe_v => phi
             peo_v => phiold
-            if(ipres.eq.1) then
-               p_v => pres
-               po_v => presold
-            end if
          endif
+
+         if(ipres.eq.1) then
+            p_v => pres
+            po_v => presold
+         end if
 
          if(idens.eq.1) then
             den_v => den

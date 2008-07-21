@@ -68,10 +68,12 @@ subroutine onestep
 
 
   ! copy field data to time-advance vectors
+  if(myrank.eq.0 .and. iprint.eq.1) print *, "Importing time advance vectors.."
   call import_time_advance_vectors
 
 
   ! advance time
+  if(myrank.eq.0 .and. iprint.eq.1) print *, "Advancing times..."
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   if(isplitstep.eq.1) then
      call split_step(calc_matrices)
@@ -87,6 +89,7 @@ subroutine onestep
 
 
   ! copy time advance vectors to field data
+  if(myrank.eq.0 .and. iprint.eq.1) print *, "Exporting time advance vectors.."
   call export_time_advance_vectors
 
 
@@ -145,7 +148,7 @@ subroutine import_time_advance_vectors
 
      if(ipres.eq.1) then
         call entdofs(vecsize_p, l, 0, ibegin, iendplusone)
-        p_v(ibegin  +  p_off:ibegin  +  p_off+5) =   p1_l
+        p_v(ibegin+p_off:ibegin+p_off+5) =   p1_l
      end if
      if(idens.eq.1) then
         call entdofs(vecsize_n, l, 0, ibegin, iendplusone)
