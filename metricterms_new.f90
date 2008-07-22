@@ -57,27 +57,16 @@ vectype function v1umu(e,f,g,h)
      endif
 #endif
 
-     
+!...changed to a simpler form on 7/21
   case(1)
-
-     temp79a = 4.*e(:,OP_DRZ)*f(:,OP_DRZ) &
-          +(e(:,OP_DZZ) - e(:,OP_DRR))*(f(:,OP_DZZ) - f(:,OP_DRR))
-
-     if(itor.eq.1) then
-        temp79a = temp79a - ri_79* &
-             (e(:,OP_DR)*(f(:,OP_DZZ) - f(:,OP_DRR)) &
-             +f(:,OP_DR)*(e(:,OP_DZZ) - e(:,OP_DRR)) &
-             -2.*(e(:,OP_DZ)*f(:,OP_DRZ) + &
-                  f(:,OP_DZ)*e(:,OP_DRZ))) &
-             + ri2_79*(e(:,OP_DR)*f(:,OP_DR) - 4.*e(:,OP_DZ)*f(:,OP_DZ))
-     endif
-
-     temp = -int3(r2_79,temp79a,g(:,OP_1),weight_79,79)
+     temp = -int4(r2_79,e(:,OP_LP),f(:,OP_LP),g(:,OP_1),weight_79,79)
+#ifdef USECOMPLEX
+     temp = temp + &
+          (int3(e(:,OP_DZ),f(:,OP_DZPP),g(:,OP_1),weight_79,79) &
+          +int3(e(:,OP_DR),f(:,OP_DRPP),g(:,OP_1),weight_79,79))
+#endif
      
-     if(itor.eq.1) then
-        temp = temp - &
-             8.*int3(e(:,OP_DZ),f(:,OP_DZ),h(:,OP_1),weight_79,79)
-     endif
+!....note need to add contribution from mu_c
 
   end select
 
@@ -4427,6 +4416,7 @@ vectype function b3bbeta(e,f,g,h)
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   
   vectype :: temp
+!
   if(gam.eq.1) then
      temp = 0.
   else 
@@ -4489,6 +4479,10 @@ vectype function b3pedkappa(e,f,g,h,i)
        - int4(e(:,OP_DZ),f(:,OP_1 ),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
        - int4(e(:,OP_DR),f(:,OP_1 ),g(:,OP_DR),h(:,OP_1),weight_79,79)
   
+#ifdef USECOMPLEX
+      temp = temp +                       &
+      int5(ri2_79,e(:,OP_1),f(:,OP_DPP),g(:,OP_1),h(:,OP_1),weight_79,79)
+#endif
   if(hypp.ne.0.) then
      ! Laplacian[f g]
      temp79a = f(:,OP_LP)*g(:,OP_1) + f(:,OP_1)*g(:,OP_LP) &
