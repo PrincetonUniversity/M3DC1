@@ -2574,6 +2574,8 @@ subroutine ludefpres_n(itri)
 
      enddo                     ! on j
 
+   if(linear.eq.0) then
+
      qp4(ione) = qp4(ione) + dt* &
           (b3psipsieta(g79(:,:,i),pst79,pst79,eta79))
 
@@ -2597,19 +2599,19 @@ subroutine ludefpres_n(itri)
              +p1vvs    (g79(:,:,i),vz079,vz079,sig79) &
              +p1chichis(g79(:,:,i),ch079,ch079,sig79) &
              +p1uchis  (g79(:,:,i),ph079,ch079,sig79))
-     endif
-
-     ! EQUILIBRIUM TERMS
-     if(linear.eq.0 .and. eqsubtract.eq.1) then 
 
         qp4(ione) = qp4(ione) + dt* &
              (p1pu   (g79(:,:,i),p079,ph079))
        
         if(numvar.ge.3) then
-           qp4(ione) = qp4(ione) + dt* &
+             qp4(ione) = qp4(ione) + dt* &
                 (p1pchi(g79(:,:,i),p079,ch079))
         endif
+
      endif
+
+  
+   endif  ! on linear.eq.0
 
   enddo                     ! on i
 end subroutine ludefpres_n

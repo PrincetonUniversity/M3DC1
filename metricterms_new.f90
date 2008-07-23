@@ -3412,8 +3412,11 @@ vectype function b1psi(e,f)
   if(jadv.eq.0) then
      temp = int2(e(:,OP_1),f(:,OP_1),weight_79,79)
   else
-     temp79a = e(:,OP_DZ)*f(:,OP_DZ) + e(:,OP_DR)*f(:,OP_DR)
-     temp = -int2(ri2_79,temp79a,weight_79,79)
+!     temp79a = e(:,OP_DZ)*f(:,OP_DZ) + e(:,OP_DR)*f(:,OP_DR)
+!     temp = -int2(ri2_79,temp79a,weight_79,79) 
+!...changed 7/22/08    scj
+     temp = -int3(ri2_79,e(:,OP_DZ),f(:,OP_DZ),weight_79,79) &
+            -int3(ri2_79,e(:,OP_DR),f(:,OP_DR),weight_79,79)
   endif
 
   b1psi = temp
@@ -3458,19 +3461,22 @@ vectype function b1psiu(e,f,g)
         temp = int4(r_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
              - int4(r_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
      else
-        temp = (int4(ri_79,e(:,OP_DR),f(:,OP_DRZ),g(:,OP_DR ),weight_79,79) &
-              + int4(ri_79,e(:,OP_DR),f(:,OP_DZ ),g(:,OP_DRR),weight_79,79) &
-              - int4(ri_79,e(:,OP_DR),f(:,OP_DRR),g(:,OP_DZ ),weight_79,79) &
-              - int4(ri_79,e(:,OP_DR),f(:,OP_DR ),g(:,OP_DRZ),weight_79,79) &
-              + int4(ri_79,e(:,OP_DZ),f(:,OP_DZZ),g(:,OP_DR ),weight_79,79) &
-              + int4(ri_79,e(:,OP_DZ),f(:,OP_DZ ),g(:,OP_DRZ),weight_79,79) &
-              - int4(ri_79,e(:,OP_DZ),f(:,OP_DRZ),g(:,OP_DZ ),weight_79,79) &
-              - int4(ri_79,e(:,OP_DZ),f(:,OP_DR ),g(:,OP_DZZ),weight_79,79))
-        if(itor.eq.1) then
-           temp = temp &
-                + (int4(ri2_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_DR),weight_79,79) &
-                - int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_DZ),weight_79,79))
-        endif
+!        temp = (int4(ri_79,e(:,OP_DR),f(:,OP_DRZ),g(:,OP_DR ),weight_79,79) &
+!              + int4(ri_79,e(:,OP_DR),f(:,OP_DZ ),g(:,OP_DRR),weight_79,79) &
+!              - int4(ri_79,e(:,OP_DR),f(:,OP_DRR),g(:,OP_DZ ),weight_79,79) &
+!              - int4(ri_79,e(:,OP_DR),f(:,OP_DR ),g(:,OP_DRZ),weight_79,79) &
+!              + int4(ri_79,e(:,OP_DZ),f(:,OP_DZZ),g(:,OP_DR ),weight_79,79) &
+!              + int4(ri_79,e(:,OP_DZ),f(:,OP_DZ ),g(:,OP_DRZ),weight_79,79) &
+!              - int4(ri_79,e(:,OP_DZ),f(:,OP_DRZ),g(:,OP_DZ ),weight_79,79) &
+!              - int4(ri_79,e(:,OP_DZ),f(:,OP_DR ),g(:,OP_DZZ),weight_79,79))
+!        if(itor.eq.1) then
+!           temp = temp &
+!                + (int4(ri2_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_DR),weight_79,79) &
+!                - int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_DZ),weight_79,79))
+!        endif
+!....recoded 7/22/08 making use of an identity  (scj)
+        temp =  int4(ri_79,e(:,OP_GS),f(:,OP_DR),g(:,OP_DZ),weight_79,79) &
+              - int4(ri_79,e(:,OP_GS),f(:,OP_DZ),g(:,OP_DR),weight_79,79)
      endif
   end select
   
