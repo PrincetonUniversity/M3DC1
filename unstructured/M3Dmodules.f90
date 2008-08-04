@@ -632,7 +632,9 @@ subroutine insval(imatrix, val, icomplex, i, j, iop)
   integer, intent(in) :: imatrix, i, j, iop, icomplex
   vectype, intent(in) :: val
 
-  if(val.eq.0.) return
+! June-13-2008 cj
+! take this line off for solve2: nonzero structure re-using
+! if(val.eq.0.) return
 
   call insertval(imatrix, val, icomplex, i, j, iop)
 
