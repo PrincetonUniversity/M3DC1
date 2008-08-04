@@ -248,7 +248,11 @@ subroutine define_transport_coefficients()
      ! ~~~~~~~~~~~
      if(solve_resistivity) then
         ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)
+      if(linear.eq.1) then
+        temp79a = sqrt((n079(:,OP_1)/(pefac*pe079(:,OP_1)))**3)
+      else
         temp79a = sqrt((nt79(:,OP_1)/(pefac*pet79(:,OP_1)))**3)
+      endif
 
      endif
 
