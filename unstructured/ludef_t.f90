@@ -724,6 +724,8 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   ddterm = 0.
   q_bf = 0.
 
+  
+                     
   if(numvar.lt.3) return
 
   ! regularize the chi equation
