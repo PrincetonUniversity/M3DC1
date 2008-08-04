@@ -222,16 +222,20 @@ subroutine split_step(calc_matrices)
   use diagnostics
 
   implicit none
+#include "finclude/petsc.h"
 
   integer, intent(in) :: calc_matrices
   real :: tstart, tend, t_bound
   integer :: i, l, numnodes, ndofs
   integer :: ibegin, iendplusone, ibeginnv, iendplusonenv
-  integer :: jer
+  integer :: jer, ier
   integer, allocatable:: itemp(:)
   vectype, allocatable :: temp(:)
 
   integer :: istaticold, idensold, ipresold
+  PetscTruth :: flg_petsc, flg_solve2
+     call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
+     call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ier)
 
   t_bound = 0
 
@@ -324,7 +328,11 @@ subroutine split_step(calc_matrices)
      ! solve linear system with rhs in vtemp (note LU-decomp done first time)
      if(myrank.eq.0) print *, "solving velocity advance..."
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     if(flg_petsc .and. flg_solve2) then
+     call solve2(s1matrix_sm, b1_vel, jer)
+     else
      call solve(s1matrix_sm, b1_vel, jer)
+     endif
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_solve_v = t_solve_v + tend - tstart
@@ -411,7 +419,11 @@ subroutine split_step(calc_matrices)
      ! solve linear system...LU decomposition done first time
      ! -- okay to here      call printarray(temp, 150, 0, 'vtemp on')
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     if(flg_petsc .and. flg_solve2) then
+     call solve2(s8matrix_sm, temp, jer)
+     else
      call solve(s8matrix_sm, temp, jer)
+     endif
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_solve_n = t_solve_n + tend - tstart
@@ -624,7 +636,11 @@ subroutine split_step(calc_matrices)
      ! solve linear system...LU decomposition done first time
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   
+     if(flg_petsc .and. flg_solve2) then
+     call solve2(s2matrix_sm, b1_phi, jer)
+     else
      call solve(s2matrix_sm, b1_phi, jer)
+     endif
      
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
@@ -733,7 +749,11 @@ subroutine split_step(calc_matrices)
         ! solve linear system...LU decomposition done first time
         if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
         
+        if(flg_petsc .and. flg_solve2) then
+        call solve2(s2matrix_sm, b1_phi, jer)
+        else
         call solve(s2matrix_sm, b1_phi, jer)
+        endif
         
         if(myrank.eq.0 .and. itimer.eq.1) then
            call second(tend)
@@ -781,12 +801,16 @@ subroutine unsplit_step(calc_matrices)
   use diagnostics
 
   implicit none
+#include "finclude/petsc.h" 
 
   integer, intent(in) :: calc_matrices
-  integer :: l, numnodes, jer
+  integer :: l, numnodes, jer, ier
   integer :: ibegin, iendplusone, ibeginnv, iendplusonenv
   
   real :: tstart, tend
+  PetscTruth :: flg_petsc, flg_solve2
+     call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
+     call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ier)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Solving matrix equation."
   
@@ -827,7 +851,11 @@ subroutine unsplit_step(calc_matrices)
   
   ! solve linear system...LU decomposition done first time
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+  if(flg_petsc .and. flg_solve2) then
+  call solve2(s1matrix_sm, b1_phi, jer)
+  else
   call solve(s1matrix_sm, b1_phi, jer)
+  endif
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      t_solve_b = t_solve_b + tend - tstart
