@@ -236,6 +236,10 @@ subroutine define_transport_coefficients()
 
   def_fields = FIELD_N + FIELD_PE + FIELD_P
 
+!!$
+!!$  def_fields = def_fields + FIELD_PSI + FIELD_I
+  
+
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' defining...'
 
   ! Calculate RHS
@@ -331,6 +335,8 @@ subroutine define_transport_coefficients()
      ! tempvar
      ! ~~~~~~~
      temp79e = sz79(:,OP_1)
+!!$     temp79e = ri_79* &
+!!$          (bzt79(:,OP_DZ)*pst79(:,OP_DR) - bzt79(:,OP_DR)*pst79(:,OP_DZ))
 
      do i=1,18
         ione = isval1(itri,i)

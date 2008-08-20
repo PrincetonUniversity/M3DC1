@@ -299,7 +299,11 @@ vectype function v1uun(e,f,g,h)
 
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   vectype :: temp
-           
+
+  if(inertia.eq.0) then
+     v1uun = 0.
+     return
+  end if
 
   select case(ivform)
   case(0)
@@ -346,6 +350,11 @@ vectype function v1vvn(e,f,g,h)
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   vectype :: temp
 
+  if(inertia.eq.0) then
+     v1vvn = 0.
+     return
+  end if
+
   if(itor.eq.0) then
      temp = 0.
   else
@@ -373,8 +382,13 @@ vectype function v1uchin(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-
   vectype :: temp
+
+  if(inertia.eq.0) then
+     v1uchin = 0.
+     return
+  end if
+
 
   select case(ivform)
   case(0)
@@ -420,8 +434,13 @@ vectype function v1chichin(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-
   vectype :: temp
+
+  if(inertia.eq.0) then
+     v1chichin = 0.
+     return
+  end if
+
 
   select case(ivform)
   case(0)
@@ -771,6 +790,8 @@ vectype function v1vpsib(e,f,g,h)
   v1vpsib = temp
   return
 end function v1vpsib
+
+
 ! V1vp
 ! ====
 vectype function v1vp(e,f,g)
@@ -1195,7 +1216,7 @@ vectype function v1us(e,f,g)
             -int3(e(:,OP_DR),f(:,OP_DR),temp79a,weight_79,79)
 
      if(itor.eq.1) then 
-        temp = temp - 2.*int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),weight_79,79)
+        temp = temp - 2.*int4(ri_79,e(:,OP_1),f(:,OP_DR),temp79a,weight_79,79)
      endif
 
   case(1)
@@ -1453,6 +1474,12 @@ vectype function v2vun(e,f,g,h)
 
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   vectype :: temp
+
+  if(inertia.eq.0) then
+     v2vun = 0.
+     return
+  end if
+
 
   select case(ivform)
   case(0)
@@ -2022,6 +2049,12 @@ vectype function v2vchin(e,f,g,h)
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   vectype :: temp
 
+  if(inertia.eq.0) then
+     v2vchin = 0.
+     return
+  end if
+
+
   select case(ivform)
   case(0)
      temp =-int4(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
@@ -2263,9 +2296,6 @@ vectype function v3umu(e,f,g,h)
 
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   vectype :: temp
-!>>>>>>debug
-      v3umu = 0.
-      return
 
   select case(ivform)
   case(0)
@@ -3048,6 +3078,7 @@ vectype function v3chibb(e,f,g,h)
   vectype, intent(in), dimension(79,OP_NUM) :: e, f, g, h
 
   vectype :: temp
+
   select case(ivform)
   case(0)
      temp = int5(ri2_79,e(:,OP_GS),f(:,OP_GS),g(:,OP_1 ),h(:,OP_1),weight_79,79) &
@@ -3103,6 +3134,11 @@ vectype function v3uun(e,f,g,h)
 
   vectype :: temp
 
+  if(inertia.eq.0) then
+     v3uun = 0.
+     return
+  end if
+
   select case(ivform)
   case(0)
 
@@ -3145,6 +3181,11 @@ vectype function v3vvn(e,f,g,h)
   vectype, intent(in), dimension(79,OP_NUM) :: e, f, g, h
   vectype :: temp
 
+  if(inertia.eq.0) then
+     v3vvn = 0.
+     return
+  end if
+
   if(itor.eq.0) then
      temp = 0.
   else
@@ -3171,8 +3212,13 @@ vectype function v3uchin(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(79,OP_NUM) :: e, f, g, h
-
   vectype :: temp
+
+  if(inertia.eq.0) then
+     v3uchin = 0.
+     return
+  end if
+
 
   temp79a = f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ)
 
@@ -3215,8 +3261,12 @@ vectype function v3chichin(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(79,OP_NUM) :: e, f, g, h
-
   vectype :: temp
+
+  if(inertia.eq.0) then
+     v3chichin = 0.
+     return
+  end if
 
   select case(ivform)
   case(0)
@@ -3739,6 +3789,11 @@ vectype function b1psipsid(e,f,g,h)
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   vectype :: temp
 
+  if(itwofluid.eq.0) then
+     b1psipsid = 0.
+     return
+  end if
+
 #ifdef USECOMPLEX
   if(jadv.eq.0) then
     temp = 0.
@@ -3776,6 +3831,11 @@ vectype function b1psibd(e,f,g,h)
 
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   vectype :: temp
+
+  if(itwofluid.eq.0) then
+     b1psibd = 0.
+     return
+  end if
 
   if(jadv.eq.0) then
      temp = int5(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),weight_79,79) &
@@ -3821,6 +3881,11 @@ vectype function b1bbd(e,f,g,h)
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   vectype :: temp
 
+  if(itwofluid.eq.0) then
+     b1bbd = 0.
+     return
+  end if
+
 #ifdef USECOMPLEX
   temp = 0.5* &
        (int5(ri4_79,e(:,OP_DZ),f(:,OP_DZ ),g(:,OP_DP),h(:,OP_1),weight_79,79) &
@@ -3844,6 +3909,11 @@ vectype function b1ped(e,f,g)
   implicit none
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
   vectype :: temp
+
+  if(itwofluid.eq.0) then
+     b1ped = 0.
+     return
+  end if
 
 #ifdef USECOMPLEX
   if(jadv.eq.0) then
@@ -4195,6 +4265,11 @@ vectype function b2psipsid(e,f,g,h)
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   vectype :: temp
 
+  if(itwofluid.eq.0) then
+     b2psipsid = 0.
+     return
+  end if
+
   select case(ibform)
   case(0)
      temp = int5(ri_79,e(:,OP_DR),f(:,OP_GS),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
@@ -4225,6 +4300,11 @@ vectype function b2psibd(e,f,g,h)
 
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   vectype :: temp
+
+  if(itwofluid.eq.0) then
+     b2psibd = 0.
+     return
+  end if
 
 #ifdef USECOMPLEX
   select case(ibform)
@@ -4261,6 +4341,11 @@ vectype function b2bbd(e,f,g,h)
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
   vectype :: temp
 
+  if(itwofluid.eq.0) then
+     b2bbd = 0.
+     return
+  end if
+
   select case(ibform)
   case(0)
      temp = int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DR),h(:,OP_DZ),weight_79,79) &
@@ -4291,6 +4376,11 @@ vectype function b2ped(e,f,g)
 
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g
   vectype :: temp
+
+  if(itwofluid.eq.0) then
+     b2ped = 0.
+     return
+  end if
 
   select case(ibform)
   case(0)
@@ -4449,8 +4539,12 @@ vectype function b3pebd(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(79,OP_NUM) :: e,f,g,h
-  
   vectype :: temp
+
+  if(itwofluid.eq.0) then
+     b3pebd = 0.
+     return
+  end if
 
   temp = int5(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),weight_79,79) &
         -int5(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),weight_79,79) &
@@ -4685,9 +4779,9 @@ end function n1s
 
 
 
-!===============================================================================
+!=============================================================================
 ! P1 TERMS
-!===============================================================================
+!=============================================================================
 
 ! P1pu
 ! ====

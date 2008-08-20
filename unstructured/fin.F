@@ -174,6 +174,9 @@
 !.....add upwinding-like diffusion to pressure and density advance
       iupwind = 0
 !
+      inertia = 1
+      itwofluid = 1
+!
 !.....viscosity, resistivity, and heat conduction
       amu = 0.
       amuc = 0.

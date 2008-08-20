@@ -494,6 +494,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "Torque_gyro", tau_gyro, ntime, error)
   call output_scalar(scalar_group_id, "Torque_denm", tau_denm, ntime, error)
 
+  call output_scalar(scalar_group_id, "Parallel_viscous_heating",bwb2,ntime,error)
 
   if(itaylor.eq.3) then
      temp = reconnected_flux()

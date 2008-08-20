@@ -329,9 +329,9 @@ subroutine split_step(calc_matrices)
      if(myrank.eq.0) print *, "solving velocity advance..."
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      if(flg_petsc .and. flg_solve2) then
-     call solve2(s1matrix_sm, b1_vel, jer)
+        call solve2(s1matrix_sm, b1_vel, jer)
      else
-     call solve(s1matrix_sm, b1_vel, jer)
+        call solve(s1matrix_sm, b1_vel, jer)
      endif
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
@@ -616,7 +616,7 @@ subroutine split_step(calc_matrices)
      enddo
      deallocate(itemp)
 
-  
+       
      ! Insert boundary conditions
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      if(calc_matrices.eq.1) then
@@ -635,11 +635,11 @@ subroutine split_step(calc_matrices)
 
      ! solve linear system...LU decomposition done first time
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  
+
      if(flg_petsc .and. flg_solve2) then
-     call solve2(s2matrix_sm, b1_phi, jer)
+        call solve2(s2matrix_sm, b1_phi, jer)
      else
-     call solve(s2matrix_sm, b1_phi, jer)
+        call solve(s2matrix_sm, b1_phi, jer)
      endif
      
      if(myrank.eq.0 .and. itimer.eq.1) then
@@ -812,11 +812,10 @@ subroutine unsplit_step(calc_matrices)
      call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
      call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ier)
 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "Solving matrix equation."
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Solving matrix equation..."
   
   ! vtemp = d1matrix_sm * phi(n)
-  call matvecmult(d1matrix_sm,phi,b1_phi)
-  
+  call matvecmult(d1matrix_sm,phi,b1_phi) 
   b1_phi = b1_phi + q4
 
   ! Include linear f terms
@@ -871,4 +870,6 @@ subroutine unsplit_step(calc_matrices)
   endif
   phiold = phi
   phi = b1_phi
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Done solving matrix equation."
 end subroutine unsplit_step

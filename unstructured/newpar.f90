@@ -656,35 +656,3 @@ subroutine flip_handedness
   enddo
   deallocate(itemp)
 end subroutine flip_handedness
-
-
-subroutine test_orthogonality
-
-  use t_data
-  use nintegrate_mod
-
-  implicit none
-
-  integer ::  i, j, p, q, itri
-  real :: sum
-
-  itri = ntri/2
-  print *, 'itri = ', itri
-
-  call area_to_local(79,                                            &
-       alpha_79,beta_79,gamma_79,area_weight_79,                    &
-       atri(itri), btri(itri), ctri(itri),                          &
-       si_79, eta_79, weight_79)
-
-  do i=1,18
-     call eval_ops(gtri(:,i,itri), si_79, eta_79, &
-          ttri(itri), ri_79, 79, g79(:,:,i))
-  end do
-
-
-  print *, int2(g79(:,OP_1,1), g79(:,OP_DR,2),weight_79,79)
- 
-
-end subroutine test_orthogonality
-
-

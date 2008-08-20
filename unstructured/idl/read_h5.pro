@@ -129,6 +129,16 @@ function radius_matrix, x, z, t
     return, r
 end
 
+function z_matrix, x, z, t
+    nx = n_elements(x)
+    nz = n_elements(z)
+    zz = fltarr(n_elements(t), nx, nz)
+    for k=0, n_elements(t)-1 do begin
+        for j=0, nx-1 do zz[k,j,*] = z
+    end
+    return, zz
+end
+
 ;==================================================================
 ; Functions for reading the C1 hdf5 output
 ;==================================================================
@@ -315,7 +325,7 @@ end
 ; given avec field data "field" for element "elm", the value
 ; of the field at the local position "localpos"
 ;==============================================================
-function eval, field, localpos, elm, operation=op
+function eval, field, localpos, theta, elm, operation=op
 
    mi = [0,1,0,2,1,0,3,2,1,0,4,3,2,1,0,5,3,2,1,0]
    ni = [0,0,1,0,1,2,0,1,2,3,0,1,2,3,4,0,2,3,4,5]
@@ -323,24 +333,29 @@ function eval, field, localpos, elm, operation=op
 
    if(n_elements(op) eq 0) then op = 1
 
+   co = cos(theta)
+   sn = sin(theta)
+
    for p=0, 19 do begin
-       case op of
-       1: sum = sum + field[p,elm]*(localpos[0]^mi[p]*localpos[1]^ni[p])
-       2: if(mi[p] ge 1) then $
-         sum = sum + field[p,elm]*mi[p]*localpos[0]^(mi[p]-1)*localpos[1]^ni[p]
-       3: if(ni[p] ge 1) then $
-         sum = sum + field[p,elm]*ni[p]*localpos[0]^mi[p]*localpos[1]^(ni[p]-1)
-       4:
-       5:
-       7: begin
-           if(mi[p] ge 2) then $
-             sum = sum + field[p,elm]* $
-             mi[p]*(mi[p]-1)*localpos[0]^(mi[p]-2)*localpos[1]^ni[p]
-           if(ni[p] ge 2) then $
-             sum = sum + field[p,elm]* $
-             ni[p]*(ni[p]-1)*localpos[1]^(ni[p]-2)*localpos[0]^mi[p]
-          end
-       end
+        case op of
+        1: sum = sum + field[p,elm]*localpos[0]^mi[p]*localpos[1]^ni[p]
+        2: sum = sum $
+          + co*field[p,elm]*mi[p]*localpos[0]^(mi[p]-1>0)*localpos[1]^ni[p] $
+          - sn*field[p,elm]*ni[p]*localpos[0]^mi[p]*localpos[1]^(ni[p]-1>0)
+        3: sum = sum $
+          + sn*field[p,elm]*mi[p]*localpos[0]^(mi[p]-1>0)*localpos[1]^ni[p] $
+          + co*field[p,elm]*ni[p]*localpos[0]^mi[p]*localpos[1]^(ni[p]-1>0)
+        4:
+        5:
+        7: begin
+            if(mi[p] ge 2) then $
+              sum = sum + field[p,elm]* $
+              mi[p]*(mi[p]-1)*localpos[0]^(mi[p]-2)*localpos[1]^ni[p]
+            if(ni[p] ge 2) then $
+              sum = sum + field[p,elm]* $
+              ni[p]*(ni[p]-1)*localpos[1]^(ni[p]-2)*localpos[0]^mi[p]
+           end
+        end
    end
 
    return, sum
@@ -370,7 +385,7 @@ function eval_global, field, mesh, pos, elm=i, operation=op
                        -(pos[0]-x)*sn + (pos[1]-y)*co]
            
            if(is_in_tri(localpos,a,b,c) eq 1) then begin
-               return, eval(field, localpos, i, operation=op)
+               return, eval(field, localpos, t, i, operation=op)
            end
        endif
    endif
@@ -393,7 +408,7 @@ function eval_global, field, mesh, pos, elm=i, operation=op
                   -(pos[0]-x)*sn + (pos[1]-y)*co]
 
        if(is_in_tri(localpos,a,b,c) eq 1) then begin
-           return, eval(field, localpos, i)
+           return, eval(field, localpos, t, i, operation=op)
        end
    end
 
@@ -471,7 +486,7 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
                    if (index[0] ge 0) and (index[0] lt p) then begin
                        if(is_in_tri(localpos,a,b,c) eq 1) then begin
                            result[index[0], index[1]] = $
-                             eval(field, localpos, i, op=op)
+                             eval(field, localpos, t, i, op=op)
                        endif
                    endif
                                   
@@ -523,167 +538,162 @@ function read_raw_field, name, time, mesh=mesh, filename=filename, time=t
 end
 
 
-function get_units, type
-   units = ''
-   v0 = '!8v!DA!60!N!X'
-   b0 = '!8B!D!60!N!X'
-   n0 = '!8n!D!60!N!X'
-   t0 = '!7s!DA!60!N!X'
-   l0 = '!8L!D!60!N!X'
-   pi4 = '!64!7p!X'
-   sq = '!U!62!N!X'
-   cu = '!U!63!N!X'
-   c = '!8c!X'
-   sq = '!U!62!N!X'
-   cu = '!U!63!N!X'
-   inv= '!U!6-1!N!X'
-   over = '!6/!X'
+;=====================================================================
+; dimensions
+; ~~~~~~~~~~
+;
+; returs a vector with specified dimensions
+;=====================================================================
+function dimensions, current=curr, energy=ener, eta=eta, j0=j, $
+                     p0=pres, temperature=temp, e0=elec, $
+                     l0=len, light=c, fourpi=fourpi, n0=den, $
+                     v0=vel, t0=time, b0=mag, mu0=visc
+  d = intarr(7)
 
-   if(strcmp(type, 'l', /fold_case) eq 1) then begin
-       units = l0
-   endif else if(strcmp(type, 'v', /fold_case) eq 1) then begin
-       units = v0
-   endif else if(strcmp(type, 't') eq 1) then begin
-       units = t0
-   endif else if(strcmp(type, 'b', /fold_case) eq 1) then begin
-       units = b0
-   endif else if(strcmp(type, 'n', /fold_case) eq 1) then begin
-       units = n0
-   endif else if(strcmp(type, 'p', /fold_case) eq 1) then begin
-       units = b0+sq+over+pi4
-   endif else if(strcmp(type, 'j', /fold_case) eq 1) then begin
-       units = c+b0+over+pi4+l0
-   endif else if(strcmp(type, 'T') eq 1) then begin
-       units = b0+sq+over+pi4+n0
-   endif else if(strcmp(type, 'E', /fold_case) eq 1) then begin
-       units = v0+b0+over+c
-   endif else if(strcmp(type, 'energy', /fold_case) eq 1) then begin
-       units = b0+sq+l0+cu+over+pi4
-   endif else if(strcmp(type, 'power', /fold_case) eq 1) then begin
-       units = b0+sq+l0+cu+over+pi4+t0
-   endif else if(strcmp(type, 'particle flux', /fold_case) eq 1) then begin
-       units = n0+l0+cu+over+t0
-   endif else if(strcmp(type, 'momentum', /fold_case) eq 1) then begin
-       units = n0+v0
-   endif else if(strcmp(type, 'angular momentum', /fold_case) eq 1) then begin
-       units = n0+l0+v0
-   endif else if(strcmp(type, 'omega', /fold_case) eq 1) then begin
-       units = t0+inv
-   endif else if(strcmp(type, 'frequency', /fold_case) eq 1) then begin
-       units = t0+inv
-   endif else begin
-       units = 'Unknown units'
-   end
+  fp = [1,0,0,0,0,0,0]
+  c0 = [0,1,0,0,0,0,0]
+  n0 = [0,0,1,0,0,0,0]
+  v0 = [0,0,0,1,0,0,0]
+  b0 = [0,0,0,0,1,0,0]
+  t0 = [0,0,0,0,0,1,0]  
+  l0 = [0,0,0,0,0,0,1]
+  p0 = b0*2-fp
+  j0 = c0+b0-fp-l0
+  
+  if(keyword_set(fourpi)) then d = d + fp*fourpi
+  if(keyword_set(light))  then d = d + c0*light
+  if(keyword_set(den))    then d = d + n0*den
+  if(keyword_set(vel))    then d = d + v0*vel
+  if(keyword_set(mag))    then d = d + b0*mag
+  if(keyword_set(time))   then d = d + t0*time
+  if(keyword_set(len))    then d = d + l0*len
 
-   return, units
+  if(keyword_set(curr)) then d = d + curr*(j0+l0*2)
+  if(keyword_set(elec)) then d = d + elec*(b0+v0-c0)
+  if(keyword_set(ener)) then d = d + ener*(p0+l0*3)
+  if(keyword_set(eta))  then d = d +  eta*(v0+l0+fp-c0*2)
+  if(keyword_set(j))    then d = d +    j*(j0)
+  if(keyword_set(pres)) then d = d + pres*(p0)
+  if(keyword_set(temp)) then d = d + temp*(p0-n0)
+  if(keyword_set(visc)) then d = d + visc*(p0+t0)
+
+  return, d
 end
 
 
-
-
-function translate, name, units=units
+;=====================================================================
+; parse_units
+; ~~~~~~~~~~~
+;
+; x is a vector containing the dimensions of
+; [4pi, c, n0, vA0, B0, tA0, L0]
+; 
+; output is a string containing units
+;=====================================================================
+function parse_units, x
+   u = ['!64!7p!X', '!8c!X', '!8n!D!60!N!X', '!8v!DA!60!N!X', $
+        '!8B!D!60!N!X', '!7s!DA!60!N!X', '!8L!D!60!N!X']
    units = ''
-   va0 = '!8v!DA!60!N!X'
-   b0 = '!8B!D!60!N!X'
-   n0 = '!8n!D!60!N!X'
-   t0 = '!7s!DA!60!N!X'
-   l0 = '!8L!D!60!N!X'
-   pi4 = '!64!7p!X'
-   sq = '!U!62!N!X'
-   cu = '!U!63!N!X'
-   c = '!8c!X'
+
+   nu = n_elements(x)
+
+   if(max(x) gt 0) then pos=1 else pos=0
+   if(min(x) lt 0) then neg=1 else neg=0
+
+   sscript = '("!U!6",G0,"!N!X")'
+   for i=0, nu-1 do begin
+       if(x[i] gt 0) then begin 
+           units = units + u[i]
+           if(x[i] ne 1) then $
+             units = units + string(format=sscript,x[i])
+       endif
+   end
+
+   if(pos eq 1) then begin
+       if(neg eq 1) then units = units + '!6/!X'
+       for i=0, nu-1 do begin
+           if(x[i] lt  0) then begin
+               units = units + u[i]
+               if(x[i] ne -1) then $
+                 units = units + string(format=sscript,-x[i])
+           endif
+       end
+   endif else begin
+       for i=0, nu-1 do begin
+           if(x[i] lt  0) then begin
+               units = units + u[i]
+               units = units + string(format=sscript, x[i])
+           endif
+       end
+   endelse
+
+   return, units   
+end
+
+;======================================================================
+; make_units
+; ~~~~~~~~~~
+;
+; creates a string given the specified unit dimensions
+;======================================================================
+function make_units, _EXTRA=extra
+   return, parse_units(dimensions(_EXTRA=extra))
+end
+
+
+;======================================================================
+; translate
+; ~~~~~~~~~
+;
+; provides the associated symbol and units for fields defined in C1.h5
+;======================================================================
+function translate, name, units=units, itor=itor
+   units = ''
 
    if(strcmp(name, 'psi', /fold_case) eq 1) then begin
-       units = b0+l0+sq
+       units = make_units(/b0, l0=1+itor)
        return, "!7w!X"
+   endif else if(strcmp(name, 'I', /fold_case) eq 1) then begin
+       units = make_units(/b0, l0=itor)
+       return, "!8I!X"
    endif else if(strcmp(name, 'phi', /fold_case) eq 1) then begin
-       units = va0+l0+sq
+       units = make_units(/v0, l0=1+itor)
        return, "!8U!X"
+   endif else if(strcmp(name, 'V', /fold_case) eq 1) then begin
+       units = make_units(/v0, l0=itor)
+       return, "!8V!X"
    endif else if(strcmp(name, 'chi', /fold_case) eq 1) then begin
-       units = va0+l0
+       units = make_units(/v0, l0=1)
        return, "!7v!X"
-   endif else if(strcmp(name, 'vpar', /fold_case) eq 1) then begin
-       units = va0
-       return, "!8v!D!9!Z(23)!N!X"
-   endif else if(strcmp(name, 'vr', /fold_case) eq 1) then begin
-       units = va0
-       return, "!8v!Dr!N!X"
-   endif else if(strcmp(name, 'jphi', /fold_case) eq 1) then begin
-       units = b0
-       return, "!7D!6!U*!N!7w!x"
-   endif else if(strcmp(name, 'vor', /fold_case) eq 1) then begin
-       units = va0
-       return, "!7D!6!U*!N!8U!x"
-   endif else if(strcmp(name, 'com', /fold_case) eq 1) then begin
-       return, "!9G.!17v!X"
    endif else if(strcmp(name, 'eta', /fold_case) eq 1) then begin
-       units = pi4+l0+va0+'/'+c+sq
+       units = make_units(/eta)
        return, "!7g!X"
    endif else if(strcmp(name, 'den', /fold_case) eq 1) then begin
-       units = n0
+       units = make_units(/n0)
        return, "!8n!X"
    endif else if(strcmp(name, 'p', /fold_case) eq 1) then begin
-       units = b0+sq+'/'+pi4
+       units = make_units(/p0)
        return, "!8p!X"
    endif else if(strcmp(name, 'pe', /fold_case) eq 1) then begin
-       units = b0+sq+'/'+pi4
+       units = make_units(/p0)
        return, "!8p!De!N!X"
-   endif else if(strcmp(name, 'bz', /fold_case) eq 1) then begin
-       units = b0
-       return, "!8B!D!9P!N!X"
-   endif else if(strcmp(name, 'e_r', /fold_case) eq 1) then begin
-       units = get_units('E')
-       return, "!8E!Dr!N!X"
-   endif else if(strcmp(name, 'beta', /fold_case) eq 1) then begin
-       return, "!7b!X"
-   endif else if(strcmp(name, 'thermal velocity', /fold_case) eq 1) or $
-     (strcmp(name, 'vt', /fold_case) eq 1) then begin
-       units = va0
-       return, "!8v!Dt!N!X"
-   endif else if(strcmp('sound speed', name, /fold_case) eq 1) or $
-     (strcmp('cs', name, /fold_case) eq 1) then begin
-       units = va0
-       return, "!8c!Ds!N!X"       
-   endif else if(strcmp(name, 'toroidal velocity', /fold_case) eq 1) or $
-     (strcmp(name, 'vz', /fold_case) eq 1) then begin
-       units = va0
-       return, "!8v!D!9P!N!X"
-   endif else if(strcmp(name, 'temperature', /fold_case) eq 1) or $
-     (strcmp(name, 't', /fold_case) eq 1) then begin
-       units = b0+sq+'/'+pi4+n0
-       return, "!8T!X"
-   endif else if(strcmp(name, 'angular momentum', /fold_case) eq 1) or $
-     (strcmp(name, 'lz', /fold_case) eq 1) then begin
-       units = n0+va0
-       return, "!8L!D!9P!N!X"
-   endif else if(strcmp(name, 'jz', /fold_case) eq 1) or $
-     (strcmp(name, 'lz', /fold_case) eq 1) then begin
-       units = c+b0+'/'+pi4
-       return, "!8J!D!9P!N!X"
    endif else if(strcmp(name, 'sigma', /fold_case) eq 1) then begin
-       units = n0+'/'+t0
+       units = make_units(/n0,t0=-1)
        return, "!7r!X"
-   endif else if(strcmp(name, 'minor radius', /fold_case) eq 1) or $
-     (strcmp(name, 'r', /fold_case) eq 1) then begin
-       units = l0
-       return, "!8r!X"
    endif else if(strcmp(name, 'kappa', /fold_case) eq 1) then begin
-       units = n0 + l0+'!U2!N!X'+'/'+t0
        return, "!7j!X"
-   endif else if(strcmp(name, 'energy density', /fold_case) eq 1) then begin
-       units = b0+sq+'/'+pi4
-       return, "!7e!X"
-   endif else if(strcmp(name, 'energy', /fold_case) eq 1) then begin
-       units = b0+sq+l0+cu+'/'+pi4
-       return, "!8E!X"
-   endif else if((strcmp(name, 'omega', /fold_case) eq 1) or $
-                 (strcmp(name, 'ideal omega', /fold_case) eq 1)) then begin
-       units = t0 + '!U!6-1!N!X' 
-       return, "!7x!X"
-   endif else if((strcmp(name, 'k', /fold_case) eq 1) or $
-                 (strcmp(name, 'ideal k', /fold_case) eq 1)) then begin
-       units = n0+va0 + '/' + b0
-       return, "!6K!X"
+   endif else if((strcmp(name, 'visc', /fold_case) eq 1) or $
+     (strcmp(name, 'visc_c', /fold_case) eq 1)) then begin
+       return, "!7l!X"
+   endif else if(strcmp(name, 'jphi', /fold_case) eq 1) then begin
+       units = make_units(/b0, l0=itor-1)
+       return, "!7D!6!U*!N!7w!x"
+   endif else if(strcmp(name, 'vor', /fold_case) eq 1) then begin
+       units = make_units(/v0, l0=itor-1)
+       return, "!7D!6!U*!N!8U!x"
+   endif else if(strcmp(name, 'com', /fold_case) eq 1) then begin
+       units = make_units(/v0, l0=-1)
+       return, "!9G.!17v!X"
    endif  
 
    return, '!8' + name + '!X'
@@ -695,7 +705,8 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
                      rrange=xrange, zrange=yrange, $
                      h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                      diff=diff, at_points=at_points,operation=op, $
-                     linear=linear, last=last, average=average
+                     linear=linear, last=last, average=average, $
+                     dpsi=dpsi, symbol=symbol, units=units
 
 
    if(keyword_set(average)) then begin
@@ -715,20 +726,37 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
                         rrange=xrange, zrange=yrange, $
                         h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                         diff=diff, at_points=at_points,operation=op, $
-                        linear=linear, last=last)
+                        linear=linear, last=last,symbol=symbol,units=units)
        end
        data = data/n
        return, data
    end
+   if(keyword_set(diff)) then begin
+       if(n_elements(filename) gt 1) then begin
+           n = n_elements(filename)
+           if(n_elements(time) eq 1) then time=replicate(time,n)
+       endif else if(n_elements(time) gt 1) then begin
+           n = n_elements(time)
+           if(n_elements(filename) eq 1) then filename=replicate(filename,n)
+       endif else n = 1
+
+       data = 0
+       for i=0, n-1 do begin
+           data = data + $
+             read_field(name, x, y, t, slices=time[i], mesh=mesh, $
+                        filename=filename[i], points=pts, $
+                        rrange=xrange, zrange=yrange, $
+                        h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
+                        at_points=at_points,operation=op, $
+                        linear=linear, last=last,symbol=symbol,units=units) $
+             *((-1)^i)
+       end
+
+       return, data
+   end
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
-   if(keyword_set(diff)) then begin
-       if (n_elements(filename) eq 1) then filename = [filename, 'C1.h5']
-       diff_filename = filename[1]
-       filename = filename[0]
-   endif else begin
-       if(n_elements(filename) gt 1) then filename=filename[0]
-   endelse
+   if(n_elements(filename) gt 1) then filename=filename[0]
    if(n_elements(pts) eq 0) then pts = 50
 
    if(hdf5_file_test(filename) eq 0) then return, 0
@@ -761,33 +789,41 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
    endif else begin
        sz = size(at_points, /dimension)
        data = fltarr(trange[1]-trange[0]+1,sz[1])
-       print, 'allocating at points', sz[1]
        if(ilin eq 1) then base = fltarr(sz[1])
    endelse
 
-   
+   units=''
+   symbol=name
+  
    ;==========================================
    ; local_beta = 2*P/B^2
    ;==========================================
    if(strcmp('beta', name, /fold_case) eq 1) then begin
        psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange, at_points=at_points)
 
        if(n_elements(psi) le 1) then return, 0
 
-       if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
-
        I = read_field('I',x,y,t,slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange)     
+                      rrange=xrange, zrange=yrange, at_points=at_points)     
        P = read_field('P',x,y,t,slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange)
+                      rrange=xrange, zrange=yrange, at_points=at_points)
+
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
 
        b2 = (s_bracket(psi,psi,x,y) + i^2)/r^2
 
        data = 2.*P/b2
+       symbol = '!7b!X'
 
    ;===========================================
    ; toroidal field
@@ -796,10 +832,20 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
      (strcmp('bz', name, /fold_case) eq 1) then begin
        
        I = read_field('I',x,y,t,slices=time, mesh=mesh, filename=filename, $
-                      points=pts, rrange=xrange, zrange=yrange)
-       if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
+                      points=pts, rrange=xrange, zrange=yrange, $
+                      at_points=at_points)
+
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
    
        data = I/r
+       symbol = '!8B!D!9P!N!X'
+       units = make_units(/b0)
 
    ;===========================================
    ; toroidal velocity
@@ -808,10 +854,20 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
      (strcmp('vz', name, /fold_case) eq 1) then begin
        
        v = read_field('V',x,y,t,slices=time, mesh=mesh, filename=filename, $
-                        points=pts,rrange=xrange,zrange=yrange)
-       if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
+                        points=pts,rrange=xrange,zrange=yrange, $
+                      at_points=at_points)
+
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
    
        data = v/r
+       symbol = '!8u!D!9P!N!X'
+       units = make_units(/v0)
 
    ;===========================================
    ; thermal velocity
@@ -823,9 +879,11 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 
        Temp = read_field('T',x,y,t,slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange)
+                      rrange=xrange, zrange=yrange, at_points=at_points)
          
        data = sqrt(Temp)
+       symbol = '!8v!Dt!N!X'
+       units = make_units(/v0)
 
    ;===========================================
    ; sound speed
@@ -835,11 +893,12 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 
        vt = read_field('vt',x,y,t,slices=time, mesh=mesh, $
                        filename=filename, points=pts, $
-                       rrange=xrange, zrange=yrange)
+                       rrange=xrange, zrange=yrange, at_points=at_points)
        gam = read_parameter('gam', filename=filename)
   
        data = sqrt(gam)*vt
-
+       symbol = '!8c!Ds!N!X'
+       units = make_units(/v0)
 
    ;===========================================
    ; Mach number
@@ -849,26 +908,32 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 
        cs = read_field('cs',x,y,t,slices=time, mesh=mesh, $
                        filename=filename, points=pts, $
-                       rrange=xrange, zrange=yrange)
+                       rrange=xrange, zrange=yrange, at_points=at_points)
 
        phi = read_field('phi',x,y,t,slices=time, mesh=mesh, $
                        filename=filename, points=pts, $
-                       rrange=xrange, zrange=yrange)
+                       rrange=xrange, zrange=yrange, at_points=at_points)
        V = read_field('V',x,y,t,slices=time, mesh=mesh, $
                        filename=filename, points=pts, $
-                       rrange=xrange, zrange=yrange)
+                       rrange=xrange, zrange=yrange, at_points=at_points)
        chi = read_field('chi',x,y,t,slices=time, mesh=mesh, $
                        filename=filename, points=pts, $
-                       rrange=xrange, zrange=yrange)
+                       rrange=xrange, zrange=yrange, at_points=at_points)
 
-       if(itor eq 1) then r=radius_matrix(x,y,t) else r=1
-       
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
+
        v2 = s_bracket(phi,phi,x,y)/r^2 $
          + v^2/r^2 + s_bracket(chi,chi,x,y) $
          + 2.*a_bracket(chi,phi,x,y)/r
   
        data = sqrt(v2)/cs
-
+       symbol = '!8M!X'
 
    ;===========================================
    ; temperature
@@ -878,13 +943,15 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 
        P = read_field('P', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange)
+                      rrange=xrange, zrange=yrange, at_points=at_points)
 
        n = read_field('den', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange)
+                      rrange=xrange, zrange=yrange, at_points=at_points)
   
        data = p/n
+       symbol = '!8T!X'
+       units = make_units(/temperature)
 
    ;===========================================
    ; electron temperature
@@ -894,31 +961,15 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 
        Pe = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange)
+                      rrange=xrange, zrange=yrange, at_points=at_points)
 
        n = read_field('den', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange)
+                      rrange=xrange, zrange=yrange, at_points=at_points)
   
        data = pe/n
-
-
-   ;===========================================
-   ; ion pressure
-   ;===========================================
-   endif else if(strcmp('ion pressure', name, /fold_case) eq 1) or $
-     (strcmp('pi', name, /fold_case) eq 1) then begin
-
-       P = read_field('P', x, y, t, slices=time, mesh=mesh, $
-                      filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange)
-
-       Pe = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
-                      filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange)
-  
-       data = p-pe
-
+       symbol = '!8T!De!N!X'
+       units = make_units(/temperature)
 
    ;===========================================
    ; ion temperature
@@ -928,18 +979,37 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 
        P = read_field('P', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange)
+                      rrange=xrange, zrange=yrange, at_points=at_points)
 
        Pe = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange)
+                      rrange=xrange, zrange=yrange, at_points=at_points)
 
        n = read_field('den', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange)
+                      rrange=xrange, zrange=yrange, at_points=at_points)
   
        data = (p-pe)/n
+       symbol = '!8T!Di!N!X'
+       units = make_units(/temperature)
 
+   ;===========================================
+   ; ion pressure
+   ;===========================================
+   endif else if(strcmp('ion pressure', name, /fold_case) eq 1) or $
+     (strcmp('pi', name, /fold_case) eq 1) then begin
+
+       P = read_field('P', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange, at_points=at_points)
+
+       Pe = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange, at_points=at_points)
+  
+       data = p-pe
+       symbol = '!8p!Di!N!X'
+       units = make_units(/p0)
 
    ;===========================================
    ; angular momentum
@@ -951,17 +1021,19 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 
        V = read_field('V', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange)
+                      rrange=xrange, zrange=yrange, at_points=at_points)
 
        if(idens eq 1) then begin
            n = read_field('den', x, y, t, slices=time, mesh=mesh, $
                           filename=filename, points=pts, $
-                          rrange=xrange, zrange=yrange)
+                          rrange=xrange, zrange=yrange, at_points=at_points)
        endif else begin
            n = 1.
        endelse
   
        data = n*v
+       symbol = '!8L!D!9P!N!X'
+       units = make_units(/n0, /v0, /l0)
 
    ;===========================================
    ; toroidal current
@@ -972,11 +1044,20 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 
        jphi = read_field('jphi', x, y, t, slices=time, mesh=mesh, $
                          filename=filename, points=pts, $
-                         rrange=xrange, zrange=yrange)
+                         rrange=xrange, zrange=yrange, at_points=at_points)
 
-       if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
 
        data = -jphi/r
+       symbol = '!8J!D!9P!N!X'
+       units = make_units(/j0)
+
 
    ;===========================================
    ; minor radius
@@ -993,14 +1074,20 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
       
        x0 = x[axis[0,0]]
        z0 = y[axis[0,0]]
-       xx = fltarr(n_elements(t),n_elements(x),n_elements(y))
-       zz = fltarr(n_elements(t),n_elements(x),n_elements(y))
-       for k=0, n_elements(t)-1 do begin
-           for i=0, n_elements(y)-1 do xx[k,*,i] = x
-           for i=0, n_elements(x)-1 do zz[k,i,*] = y
-       end
+       if(n_elements(at_points) eq 0) then begin
+           xx = fltarr(n_elements(t),n_elements(x),n_elements(y))
+           zz = fltarr(n_elements(t),n_elements(x),n_elements(y))
+           for k=0, n_elements(t)-1 do begin
+               for i=0, n_elements(y)-1 do xx[k,*,i] = x
+               for i=0, n_elements(x)-1 do zz[k,i,*] = y
+           end
+           data = sqrt((xx-x0)^2 + (zz-z0)^2)
+       endif else begin
+           data = sqrt((at_points[0,*]-x0)^2 + (at_points[1,*]-z0)^2)
+       endelse
 
-       data = sqrt((xx-x0)^2 + (zz-z0)^2)
+       symbol = '!8r!X'
+       units = make_units(/l0)
 
    ;===========================================
    ; polodal angle
@@ -1018,14 +1105,20 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
       
        x0 = x[axis[0,0]]
        z0 = y[axis[0,0]]
-       xx = fltarr(n_elements(t),n_elements(x),n_elements(y))
-       zz = fltarr(n_elements(t),n_elements(x),n_elements(y))
-       for k=0, n_elements(t)-1 do begin
-           for i=0, n_elements(y)-1 do xx[k,*,i] = x
-           for i=0, n_elements(x)-1 do zz[k,i,*] = y
-       end
 
-       data = atan(zz-z0,xx-x0)
+       if(n_elements(at_points) eq 0) then begin
+           xx = fltarr(n_elements(t),n_elements(x),n_elements(y))
+           zz = fltarr(n_elements(t),n_elements(x),n_elements(y))
+           for k=0, n_elements(t)-1 do begin
+               for i=0, n_elements(y)-1 do xx[k,*,i] = x
+               for i=0, n_elements(x)-1 do zz[k,i,*] = y
+           end
+           data = atan(zz-z0,xx-x0)
+       endif else begin
+           data = atan(at_points[0,*]-x0,at_points[1,*]-z0)
+       endelse
+
+       symbol = '!7h!X'
 
    ;===========================================
    ; Field strength
@@ -1036,20 +1129,103 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 
        psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange, at_points=at_points)
 
        I = read_field('I', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange)
-
-       data = s_bracket(psi,psi,x,y) + I^2
+                      rrange=xrange, zrange=yrange, at_points=at_points)
 
        if(itor eq 1) then begin
-           r = radius_matrix(x,y,t)
-           data = data / r^2
-       end
-       data = sqrt(data)
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
+
+       data = sqrt((s_bracket(psi,psi,x,y) + I^2)/r^2)
+       symbol = '!3|!5B!3|!X'
+       units = make_units(/b0)
             
+   ;===========================================
+   ; Poloidal Field strength
+   ;===========================================
+   endif else if( (strcmp('poloidal field strength', name, /fold_case) eq 1) $
+                  or (strcmp('bp', name, /fold_case) eq 1)) $
+     then begin
+
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
+
+       data = sqrt(s_bracket(psi,psi,x,y)/r^2)
+       symbol = '!3|!5B!D!8p!N!3|!X'
+       units = make_units(/b0)
+
+
+   ;===========================================
+   ; Toroidal Field strength
+   ;===========================================
+   endif else if( (strcmp('toroidal field strength', name, /fold_case) eq 1) $
+                  or (strcmp('bt', name, /fold_case) eq 1)) $
+     then begin
+
+       i = read_field('i', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
+
+       data = sqrt(I^2/r^2)
+       symbol = '!3|!8B!D!9P!N!3|!X'
+       units = make_units(/b0)
+
+
+   ;===========================================
+   ; Kinetic energy density
+   ;===========================================
+   endif else if( (strcmp('ke', name, /fold_case) eq 1)) then begin
+
+       n = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       u = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       v = read_field('v', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
+
+       data = 0.5*n*(0.*s_bracket(u,u,x,y)/r^2 + v^2/r^2 + $
+                     0.*s_bracket(chi,chi,x,y) + 0.*2.*a_bracket(chi,u,x,y)/r)
+       symbol ='!6Kinetic Energy Density!X'
+       units = make_units(/p0)
+
    ;===========================================
    ; Alfven velocity
    ;===========================================
@@ -1058,11 +1234,62 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 
        b = read_field('b', x, y, t, slices=time, mesh=mesh, $
                        filename=filename, points=pts, $
-                       rrange=xrange, zrange=yrange)
+                       rrange=xrange, zrange=yrange, at_points=at_points)
        den = read_field('den', x, y, t, slices=time, mesh=mesh, $
                        filename=filename, points=pts, $
-                       rrange=xrange, zrange=yrange)
+                       rrange=xrange, zrange=yrange, at_points=at_points)
        data = b/sqrt(den)
+       symbol = '!8v!DA!N'
+       units = make_units(/v0)
+
+   ;===========================================
+   ; (minor) radial current density
+   ;===========================================
+   endif else if(strcmp('jr', name, /fold_case) eq 1) then begin
+       
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       i = read_field('i', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange, at_points=at_points)
+
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
+       
+       data = a_bracket(i,psi,x,y)/(r*sqrt(s_bracket(psi,psi,x,y)))
+       symbol = '!8J!Dr!N!X'
+       units = make_units(/j0)
+
+   ;===========================================
+   ; poloidal current density
+   ;===========================================
+   endif else if(strcmp('jp', name, /fold_case) eq 1) then begin
+       
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       i = read_field('i', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange, at_points=at_points)
+
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
+       
+       data = s_bracket(i,psi,x,y)/(r*sqrt(s_bracket(psi,psi,x,y)))
+       symbol = '!8J!Dp!N!X'
+       units = make_units(/j0)
+
        
    ;===========================================
    ; toroidal current density
@@ -1074,6 +1301,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 ;                           rrange=xrange, zrange=yrange)
 
 ;          data = -grad_shafranov(psi,x,y,tor=itor)
+;          symbol = translate('jphi', units=units, itor=itor)
 
    ;===========================================
    ; vorticity
@@ -1082,9 +1310,10 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 
           phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
                            filename=filename, points=pts, $
-                           rrange=xrange, zrange=yrange)
+                           rrange=xrange, zrange=yrange, at_points=at_points)
 
           data = grad_shafranov(phi,x,y,tor=itor)
+          symbol = translate('vor', units=units, itor=itor)
 
    ;===========================================
    ; divergence
@@ -1093,9 +1322,10 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 
          chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
                           filename=filename, points=pts, $
-                          rrange=xrange, zrange=yrange)
+                          rrange=xrange, zrange=yrange, at_points=at_points)
 
          data = laplacian(chi,x,y,tor=itor)
+         symbol = translate('com', units=units, itor=itor)
 
    ;===========================================
    ; rotational transform
@@ -1104,102 +1334,140 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 
        minor_r = read_field('r', x, y, t, slices=time, mesh=mesh, $
                             filename=filename, points=pts, $
-                            rrange=xrange, zrange=yrange)
+                            rrange=xrange, zrange=yrange, at_points=at_points)
        psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange, at_points=at_points)
        I = read_field('I', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange)
-       r = radius_matrix(x,y,t)
-       
+                      rrange=xrange, zrange=yrange, at_points=at_points)
+
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
+
        bt = sqrt(I^2/r^2)
        bp = sqrt(s_bracket(psi,psi,x,y)/r^2)
 
-       data = 2.*3.14159*(r * bp) / minor_r * bt
+       data = 2.*!pi*(r * bp) / minor_r * bt
+       symbol = '!8i!X'
 
    ;===========================================
    ; angular velocity
    ;===========================================
    endif else if(strcmp('omega', name, /fold_case) eq 1) then begin
 
-         v = read_field('v', x, y, t, slices=time, mesh=mesh, $
-                        filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
+       v = read_field('v', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange, at_points=at_points)
 
-         r = radius_matrix(x,y,t)
-         data = v/r^2
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
+
+       data = v/r^2
+       symbol = '!7x!X'
+       units = make_units(t0=-1)
 
    ;===========================================
    ; parallel flow
    ;===========================================
    endif else if(strcmp('vpar', name, /fold_case) eq 1) then begin
 
-         phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+       phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         v = read_field('v', x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       v = read_field('v', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange, at_points=at_points)
+       chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
-                        filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         I = read_field('I', x, y, t, slices=time, mesh=mesh, $
-                        filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       I = read_field('I', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange, at_points=at_points)
          
-         if(itor eq 1) then begin
-             r = radius_matrix(x,y,t)
-         endif else r = 1.
-         b2 = (s_bracket(psi,psi,x,y) + I^2)/r^2
-         data = ((s_bracket(phi,psi,x,y) + v*I)/r^2 $
-           + a_bracket(chi,psi,x,y)/r)/sqrt(b2)
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
+
+
+       b2 = (s_bracket(psi,psi,x,y) + I^2)/r^2
+       data = ((s_bracket(phi,psi,x,y) + v*I)/r^2 $
+               + a_bracket(chi,psi,x,y)/r)/sqrt(b2)
+       symbol = '!8u!D!9#!N!X'
+       units = make_units(/v0)
          
    ;===========================================
    ; radial flow
    ;===========================================
    endif else if(strcmp('vr', name, /fold_case) eq 1) then begin
 
-         phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+       phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         
-         if(itor eq 1) then begin
-             r = radius_matrix(x,y,t)
-         endif else r = 1.
-         data = (a_bracket(psi,phi,x,y)/r + s_bracket(psi,chi,x,y)) / $
-           sqrt(s_bracket(psi,psi,x,y))
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
+
+       data = (a_bracket(psi,phi,x,y)/r + s_bracket(psi,chi,x,y)) / $
+         sqrt(s_bracket(psi,psi,x,y))
+       symbol = '!8u!Dr!N!X'
+       units = make_units(/v0)
 
    ;===========================================
    ; poloidal flow
    ;===========================================
    endif else if(strcmp('vp', name, /fold_case) eq 1) then begin
 
-         phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+       phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         
-         if(itor eq 1) then begin
-             r = radius_matrix(x,y,t)
-         endif else r = 1.
+                        rrange=xrange, zrange=yrange, at_points=at_points)
 
-         data = (s_bracket(phi,psi,x,y)/r + a_bracket(chi,psi,x,y)) / $ 
-           sqrt(s_bracket(psi,psi,x,y))
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
+        
+       data = (s_bracket(phi,psi,x,y)/r + a_bracket(chi,psi,x,y)) / $ 
+         sqrt(s_bracket(psi,psi,x,y))
+       symbol = '!8u!Dp!N!X'
+       units = make_units(/v0)
 
 
    ;===========================================
@@ -1207,88 +1475,103 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('vs', name, /fold_case) eq 1) then begin
 
-         phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+       phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         i   = read_field('i',   x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       i   = read_field('i',   x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         V   = read_field('V',   x, y, t, slices=time, mesh=mesh, $
-                          filename=filename, points=pts, $
-                          rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       V   = read_field('V',   x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
 
-         
-         if(itor eq 1) then begin
-             r = radius_matrix(x,y,t)
-         endif else r = 1.
-         psipsi = s_bracket(psi,psi,x,y)
-         b2 = psipsi + i^2
-         data = (i*s_bracket(phi,psi,x,y) - v*psipsi $
-                +i*a_bracket(chi,psi,x,y)*r) / (r^2 * sqrt(psipsi*b2))
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
+
+       psipsi = s_bracket(psi,psi,x,y)
+       b2 = psipsi + i^2
+       data = (i*s_bracket(phi,psi,x,y) - v*psipsi $
+               +i*a_bracket(chi,psi,x,y)*r) / (r^2 * sqrt(psipsi*b2))
+       symbol = '!8u!Ds!N!X'
+       units = make_units(/v0)
+
 
    ;===========================================
    ; ideal_k
    ;===========================================
    endif else if(strcmp('k', name, /fold_case) eq 1) then begin
 
-         phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+       phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         n   = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       n   = read_field('den', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
          
-         if(itor eq 1) then begin
-             r = radius_matrix(x,y,t)
-         endif else r = 1.
+       psipsi = s_bracket(psi,psi,x,y)
 
-         psipsi = s_bracket(psi,psi,x,y)
-
-         data = n*(s_bracket(phi,psi,x,y) + r*a_bracket(chi,psi,x,y))/psipsi
+       data = n*(s_bracket(phi,psi,x,y) + r*a_bracket(chi,psi,x,y))/psipsi
 
    ;===========================================
    ; ideal omega
    ;===========================================
    endif else if(strcmp('ideal omega', name, /fold_case) eq 1) then begin
 
-         phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+       phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         v   = read_field('v',   x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       v   = read_field('v',   x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         i   = read_field('i',   x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       i   = read_field('i',   x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         
-         if(itor eq 1) then begin
-             r = radius_matrix(x,y,t)
-         endif else r = 1.
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
 
-         psipsi = s_bracket(psi,psi,x,y)
-
-         data = $
-           (v - $
-            i*(s_bracket(phi,psi,x,y) + r*a_bracket(chi,psi,x,y))/psipsi) $
-           /r^2
+       psipsi = s_bracket(psi,psi,x,y)
+       
+       data = $
+         (v - $
+          i*(s_bracket(phi,psi,x,y) + r*a_bracket(chi,psi,x,y))/psipsi) $
+         /r^2
 
 
    ;===========================================
@@ -1296,92 +1579,106 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('wpar', name, /fold_case) eq 1) then begin
 
-         u   = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+       u   = read_field('phi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         v   = read_field('v'  , x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       v   = read_field('v'  , x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         i   = read_field('i',   x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       i   = read_field('i',   x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange, at_points=at_points)
 
-         if(itor eq 1) then begin
-             r = radius_matrix(x,y,t)
-         endif else r = 1.
-         psipsi = s_bracket(psi,psi,x,y)
-         b2 = psipsi + i^2
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
 
+       psipsi = s_bracket(psi,psi,x,y)
+       r2b2 = (psipsi + i^2)
+       com = laplacian(chi,x,y,tor=itor)
 
-         data = $
-           (s_bracket(psi,a_bracket(u,psi,x,y)/r,x,y) $
-           -0.5*r*a_bracket(u,psipsi/r^2,x,y) $
-           -I*r*a_bracket(psi,v/r^2,x,y) $
-           +0.5*r^2*s_bracket(chi,psipsi/r^2,x,y) $
-           +laplacian(chi,x,y,tor=itor)*psipsi $
-           -s_bracket(psi,s_bracket(psi,chi,x,y),x,y))/b2 $
-           - laplacian(chi,x,y,tor=itor)/3.
+       data = $
+         (s_bracket(psi,a_bracket(u,psi,x,y)/r,x,y) $
+          -0.5*r*a_bracket(u,psipsi/r^2,x,y) $
+          -I*r*a_bracket(psi,v/r^2,x,y) $
+          +0.5*r^2*s_bracket(chi,psipsi/r^2,x,y) $
+          +com*psipsi $
+          -s_bracket(psi,s_bracket(psi,chi,x,y),x,y))/r2b2 $
+         - com/3.
            
-         if(itor eq 1) then begin
-             data = data + I^2*(dx(chi,x)/r-dz(u,y)/r^2)/b2
-         endif
+       if(itor eq 1) then begin
+           data = data + I^2*(dx(chi,x)/r-dz(u,y)/r^2)/r2b2
+       endif
 
    ;===========================================
    ; radial electric field
    ;===========================================
    endif else if(strcmp('e_r', name, /fold_case) eq 1) then begin
 
-         u   = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+       u   = read_field('phi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         v   = read_field('v'  , x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       v   = read_field('v'  , x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         b   = read_field('i',   x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       b   = read_field('i',   x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         pe  = read_field('pe',  x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       pe  = read_field('pe',  x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         n   = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       n   = read_field('den', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-         eta = read_field('eta', x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       eta = read_field('eta', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange, at_points=at_points)
 
-         jphi = grad_shafranov(psi,x,y,tor=itor)
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
 
-         db = read_parameter('db', filename=filename)
+       jphi = grad_shafranov(psi,x,y,tor=itor)
+       db = read_parameter('db', filename=filename)
 
-         if(itor eq 1) then begin
-             r = radius_matrix(x,y,t)
-         endif else r = 1.       
+       data = b*s_bracket(u,psi,x,y)/r^2 $
+         + b*a_bracket(chi,psi,x,y)/r $
+         - v*s_bracket(psi,psi,x,y)/r^2 $
+         - (db/n)* $
+         (s_bracket(psi,pe,x,y) $
+          + (jphi*s_bracket(psi,psi,x,y) + b*s_bracket(psi,b,x,y))/r^2) $
+         + eta*a_bracket(psi,b,x,y)/r
 
-         data = b*s_bracket(u,psi,x,y)/r^2 $
-           + b*a_bracket(chi,psi,x,y)/r $
-           - v*s_bracket(psi,psi,x,y)/r^2 $
-           - (db/n)* $
-           (s_bracket(psi,pe,x,y) $
-            + (jphi*s_bracket(psi,psi,x,y) + b*s_bracket(psi,b,x,y))/r^2) $
-           + eta*a_bracket(psi,b,x,y)/r
+                                ; Normalize field
+       data = -data/sqrt(s_bracket(psi,psi,x,y))
+       symbol = '!8E!Dr!N!X'
+       units = make_units(/e0)
 
-        ; Normalize field
-         data = -data/sqrt(s_bracket(psi,psi,x,y))
-
+       
    endif else begin
+       ; Field is not a composite field defined above;
+       ; try to read it directly from C1.h5 file
+
 
        t = fltarr(trange[1]-trange[0]+1)
        file_id = h5f_open(filename)
@@ -1483,13 +1780,20 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 
        h5f_close, file_id
 
+       symbol = translate(name, units=units, itor=itor)
    end
 
    if(strcmp(name, "V", /fold_case) eq 1) then begin
        ivform = read_parameter('ivform',filename=filename)
        if(ivform eq 1) then begin
            print, "ivform = 1"
-           r = radius_matrix(x,y,t)
+           if(itor eq 1) then begin
+               if(n_elements(at_points) eq 0) then begin
+                   r = radius_matrix(x,y,t)
+               endif else begin
+                   r = at_points[0,*]
+               endelse
+           endif else r = 1.
            data = data*r^2
        end
    end
@@ -1501,14 +1805,6 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
    if(n_elements(v_symmetry) eq 1) then begin
        print, "v symmetry = ", v_symmetry
        data = (data + v_symmetry*reverse(data, 3)) / 2.
-   endif
-
-   if(keyword_set(diff))then begin
-       data = data - $
-         read_field(name, x, y, t, slices=time, mesh=mesh, $
-                    filename=diff_filename, points=pts, $
-                    rrange=xrange, zrange=yrange, $
-                    h_symmetry=h_symmetry, v_symmetry=v_symmetry)
    endif
 
    return, data
@@ -1530,10 +1826,9 @@ pro plot_field, name, time, x, y, points=p, filename=filename, mesh=plotmesh, $
    if(size(name, /type) eq 7) then begin
        field = read_field(name, x, y, t, slices=time, mesh=mesh, $
                           filename=filename, points=p, $
-                          rrange=rrange, zrange=zrange, _EXTRA=ex)
+                          rrange=rrange, zrange=zrange, $
+                          symbol=fieldname, units=u, _EXTRA=ex)
        if(n_elements(field) le 1) then return
-
-       fieldname = translate(name, units=u)
 
        if(n_elements(units) eq 0) then units=u
    endif else begin
@@ -1584,8 +1879,8 @@ pro plot_field, name, time, x, y, points=p, filename=filename, mesh=plotmesh, $
            end
 
            contour_and_legend, field[k,*,*], x, y, title=title, label=units, $
-             xtitle='!8R!6 (' + get_units('L') + '!6)!X', $
-             ytitle='!8Z!6 (' + get_units('L') + '!6)!X', $
+             xtitle='!8R!6 (' + make_units(/l0) + '!6)!X', $
+             ytitle='!8Z!6 (' + make_units(/l0) + '!6)!X', $
              range=range, _EXTRA=ex
 
            if(keyword_set(lcfs) or n_elements(maskrange) ne 0) then begin
@@ -1625,7 +1920,7 @@ pro plot_field, name, time, x, y, points=p, filename=filename, mesh=plotmesh, $
 end
 
 
-pro compare, file1, file2, time, names=names
+pro compare_fields, file1, file2, time, names=names
 
    if(n_elements(names) eq 0) then begin
        names = ['psi', 'phi']
@@ -1747,7 +2042,8 @@ function momentum_flux, filename=filename, components=comp, names=names, t=t, $
    t = s.time._data
 
    names = ['dL/dt', 'Magnetic', 'Solenoidal', $
-            'Compressional', 'Viscous', 'Gyroviscous', 'denm']
+            'Compressional', 'Viscous', 'Gyroviscous']
+;           , 'denm']
   
    comp = fltarr(n_elements(names), n_elements(t))
    comp[0,*] = deriv(t, s.angular_momentum._data)
@@ -1756,7 +2052,7 @@ function momentum_flux, filename=filename, components=comp, names=names, t=t, $
    comp[3,*] = -s.Torque_com._data
    comp[4,*] = -s.Torque_visc._data
    comp[5,*] = -s.Torque_gyro._data
-   comp[6,*] = -s.Torque_denm._data
+;   comp[6,*] = -s.Torque_denm._data
 
    if(keyword_set(norm)) then comp = comp/max(abs(s.angular_momentum._data))
 
@@ -2153,6 +2449,7 @@ function lcfs, time, psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, $
 
    if(n_elements(psi) eq 0 or n_elements(x) eq 0 or n_elements(z) eq 0) $
      then begin
+       print, 'LCFS: Reading psi...'
        psi = read_field('psi', x, z, slice=time, _EXTRA=extra)
    endif
 
@@ -2368,38 +2665,27 @@ end
 ; beta_normal = beta_t * (B_T*a / I_p)
 ; ====================================
 function beta_normal, filename=filename
-   nv = read_parameter("numvar", filename=filename)
-   if(nv lt 3) then begin
-       print, "Must be numvar = 3 for beta calculation"
-       return, 0
-   endif 
+
+   a = 1.
 
    gamma = read_parameter('gam', filename=filename)
-   bzero = read_parameter('bzero', filename=filename)
+   xzero = read_parameter('xzero', filename=filename)
    xmag = read_parameter('xmag', filename=filename)
-   xlim = read_parameter('xlim', filename=filename)
-   psi = read_field('psi',slice=0, mesh=mesh)
+   bzero = read_parameter('bzero', filename=filename)
+
+   bt0 = bzero*(xzero/xmag)
+   
    s = read_scalars(filename=filename)
-
-   area = mesh.width._data*mesh.height._data
-
-   if(xmag eq 0.) then begin
-       B_T = sqrt(2.*s.E_MT._data/area)
-       B_T = B_T[0]
-       a = 1.
-   endif else begin
-       B_T = bzero/xmag
-       a = abs(xmag - xlim)
-   endelse
+   i_n = s.toroidal_current._data / (a*bt0)
 
    beta_t = (gamma-1.)*s.E_P._data/(s.E_MT._data)
    
-   print, 'B_T =', B_T
+   print, 'bt0 =', bt0
+   print, 'i_n =', i_n
    print, 'a = ', a
    print, 'beta_T = ', beta_t
-   print, 'area = ', area
 
-   return, beta_t / (s.toroidal_current._data/(a*B_T))
+   return, 100.*beta_t/i_n
 end
 
 
@@ -2433,7 +2719,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
    b0 = '!8B!D!60!N!X'
    n0 = '!8n!D!60!N!X'
    t0 = '!7s!DA!60!N!X'
-   l0 = '!8L!X'
+   l0 = '!8L!D!60!N!X'
    pi4 = '!64!7p!X'
    sq = '!U!62!N!X'
    c = '!8c!X'
@@ -2479,6 +2765,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
        data = beta_normal(filename=filename)
        title = 'Average Normal Beta'
        symbol = '!7b!D!8N!N!3'
+       units = '!6%!X'
    endif else if $
      (strcmp("kinetic energy", scalarname, /fold_case) eq 1) or $
      (strcmp("ke", scalarname, /fold_case) eq 1)then begin
@@ -2487,8 +2774,8 @@ function read_scalar, scalarname, filename=filename, title=title, $
        if(nv ge 2) then data = data + s.E_KT._data 
        if(nv ge 3) then data = data + s.E_K3._data
        title = 'Kinetic Energy'
-       symbol = '!8E!X'
-       units = get_units('energy')
+       symbol = '!8KE!X'
+       units = make_units(/energy)
    endif else if $
      (strcmp("magnetic energy", scalarname, /fold_case) eq 1) or $
      (strcmp("me", scalarname, /fold_case) eq 1)then begin
@@ -2496,16 +2783,16 @@ function read_scalar, scalarname, filename=filename, title=title, $
        data = s.E_MP._data 
        if(nv ge 2) then data = data + s.E_MT._data 
        title = 'Magnetic Energy'
-       symbol = '!8E!X'
-       units = get_units('energy')
+       symbol = '!8ME!X'
+       units = make_units(/energy)
    endif else if $
      (strcmp("thermal energy", scalarname, /fold_case) eq 1) or $
      (strcmp("te", scalarname, /fold_case) eq 1)then begin
        nv = read_parameter("numvar", filename=filename)
        data = s.E_P._data 
        title = 'Thermal Energy'
-       symbol = '!8E!X'
-       units = get_units('energy')
+       symbol = '!8TE!X'
+       units = make_units(/energy)
    endif else if $
      (strcmp("energy", scalarname, /fold_case) eq 1) then begin
        nv = read_parameter("numvar", filename=filename)
@@ -2533,6 +2820,12 @@ function read_scalar, scalarname, filename=filename, title=title, $
        title = 'Circulation'
        symbol = '!9I!S!7x!R!A!6_!D!9P!N !8dA !x'
        units = va0 + l0
+   endif else if (strcmp("bwb2", scalarname, /fold_case) eq 1) then begin $
+       data = s.parallel_viscous_heating._data
+       title = 'Parallel Viscous Heating'
+;       symbol = '!6(!7l!D!9#!N!5b!9 . !3W!9 . !5b!6/2)!U2!N!X'
+       symbol = '-!9I!8dV !7P!D!9#!N!3:!9G!5u!X'
+       units =  b0+sq+l0+'!U3!N!X'+'/'+pi4+t0
    endif else begin
        print, 'Scalar ', scalarname, ' not recognized.'
        return, 0
@@ -2605,10 +2898,10 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
 
   if(keyword_set(power_spectrum)) then begin
 ;      xtitle = '!7x!6 (!7s!D!8A!N!6!U-1!N)!X'
-      xtitle = '!7x!6 (' + get_units('frequency') + ')!X'
+      xtitle = '!7x!6 (' + make_units(t0=-1) + ')!X'
       data = power_spectrum(data, frequency=tdata, t=max(time)) 
   endif else begin
-      xtitle = '!8t!6 (' + get_units('t') + ')!X'
+      xtitle = '!8t!6 (' + make_units(/t0) + ')!X'
       tdata = time
   endelse
 
@@ -2621,9 +2914,9 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
   endif
   
   if(keyword_set(growth_rate)) then begin
-      data = deriv(tdata, alog(data))
+      data = deriv(tdata, alog(abs(data)))
 ;      ytitle = '!7c !6(!7s!D!8A!N!6!U-1!N)!X'
-      ytitle = '!7c!6 (' + get_units('frequency') + ')!X'
+      ytitle = '!7c!6 (' + make_units(t0=-1) + ')!X'
   endif
 
   if(n_elements(x) eq 0) then begin
@@ -2687,19 +2980,20 @@ pro plot_pol_velocity, time,  maxval=maxval, points=points, $
 
   if(n_elements(title) eq 0) then begin
        if(t gt 0) then begin
-           title = "!6Poloidal Flow!X" + $
-             string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!X")', t)
+           title = "!6Poloidal Flow !X" + $
+             string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!60!N)!X")', t)
        endif else begin
-           title = "!6Poloidal Flow!X" + $
+           title = "!6Poloidal Flow !X" + $
              string(FORMAT='("!6(!8t!6 = ",G0,")!X")', t)
        endelse
    endif
 
-  maxstr=string(format='("!6max(!8v!Dpol!N!6) = ",G0,"!X")',bigvel)
+  maxstr=string(format='("!6max(!8u!Dpol!N!6) = ",G0.3,"!X")',bigvel) + $
+    '!6 ' + make_units(/v0) + '!X'
 
   velovect, reform(vx), reform(vz), x, z, length=length, _EXTRA=extra, $
-    xtitle='!8R!6 (' + get_units('L') + '!6)!X', $
-    ytitle='!8Z!6 (' + get_units('L') + '!6)!X', $
+    xtitle='!8R!6 (' + make_units(/l0) + '!6)!X', $
+    ytitle='!8Z!6 (' + make_units(/l0) + '!6)!X', $
     title=title, subtitle=maxstr
 
   if(keyword_set(lcfs)) then begin
@@ -2729,7 +3023,6 @@ function flux_coord_field, field, psi, theta, x, z, t, fbins=fbins, $
    angle = fltarr(sz[1], tbins)
    sfield = 0
 
-   print, 'before lcfs'
    psival = lcfs(psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, _EXTRA=extra)
    
    if(n_elements(range) eq 0) then begin
@@ -2808,7 +3101,69 @@ function flux_coord_field, field, psi, theta, x, z, t, fbins=fbins, $
    return, result
 end
 
-  
+; ==============================================
+; field_at_flux
+;
+; evaluates field at points where psi=flux
+; ==============================================
+function field_at_flux, field, psi, x, z, t, flux, theta=theta, angle=angle, $
+                      xp=xp, zp=zp, integrate=integrate, $
+                        _EXTRA=extra
+
+   if(n_elements(field) le 1) then return, 0
+
+   contour, psi[0,*,*], x, z, levels=flux, $
+     path_xy=xy, path_info=info, /path_data_coords, /overplot
+
+   if(n_elements(xy) eq 0) then begin
+       print, 'Error: no points at this flux value'
+       return, 0
+   end
+
+   i = n_elements(x)*(xy[0,*]-min(x)) / (max(x)-min(x))
+   j = n_elements(z)*(xy[1,*]-min(z)) / (max(z)-min(z))
+
+   ; refine the surface found by contour with a single newton iteration
+   f = interpolate(reform(psi[0,*,*]),i,j)
+   fx = interpolate(reform(dx(psi[0,*,*],x)),i,j)
+   fz = interpolate(reform(dz(psi[0,*,*],z)),i,j)
+   gf2 = fx^2 + fz^2
+   l = (flux-f)/gf2
+   xy[0,*] = xy[0,*] + l*fx
+   xy[1,*] = xy[1,*] + l*fz
+   i = n_elements(x)*(xy[0,*]-min(x)) / (max(x)-min(x))
+   j = n_elements(z)*(xy[1,*]-min(z)) / (max(z)-min(z))
+
+   test = interpolate(reform(field[0,*,*]),i,j)
+   if(n_elements(theta) ne 0) then begin
+       angle = interpolate(reform(theta[0,*,*]),i,j)
+   endif else begin
+       angle = findgen(n_elements(test))
+   endelse
+
+   ; re-order array
+   mint = min(angle,p)
+   p = p+1
+   test = shift(test, -p)
+   angle = shift(angle, -p)
+   xp = shift(xy[0,*],-p)
+   zp = shift(xy[1,*],-p)
+
+   if(angle[0] lt angle[1]) then angle[0] = !pi
+
+   if(keyword_set(integrate)) then begin
+       r = radius_matrix(x,z,t)
+       jac = interpolate(r/a_bracket(theta,psi,x,z),i,j)
+       jac = shift(jac, -p)
+       dtheta = deriv(angle)
+       test = total(test*dtheta*jac, /cumulative)
+       d = min(angle, i,/abs)
+       test = test - test[i]
+   endif
+
+   return, test
+end
+
 
 ;==================================================================
 ; flux_average_field
@@ -2820,7 +3175,8 @@ end
 ;==================================================================
 function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
                              area=area, dV=dV, psirange=range, $
-                             integrate=integrate, _EXTRA=extra
+                             integrate=integrate, $
+                             normalize_flux=normalize_flux, _EXTRA=extra
 
    sz = size(field)
 
@@ -2836,9 +3192,8 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
    area = fltarr(sz[1], bins)
    sfield = 0
 
-   print, 'before lcfs'
    psival = lcfs(psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, _EXTRA=extra)
-   
+
    if(n_elements(range) eq 0) then begin
        ; if range not provided, use all flux within lcfs
        range = fltarr(sz[1],2)
@@ -2861,13 +3216,7 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
        div_mask = 1.
    endelse
 
-   r = radius_matrix(x,z,t)
-
-   bp = sqrt(1./r^2)
-;   bp = sqrt(s_bracket(psi,psi,x,z)/r^2)
-   bpprime = s_bracket(bp,psi,x,z)/s_bracket(psi,psi,x,z)
-
-   fprime = s_bracket(field,psi,x,z)/s_bracket(psi,psi,x,z)
+   bp = sqrt(s_bracket(psi,psi,x,z))
 
    for k=0, sz[1]-1 do begin
        dpsi = float(range[k,1] - range[k,0])/float(bins)
@@ -2876,37 +3225,30 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
            fval = range[k,1] - dpsi*(p+1)
            flux[k,p] = fval + dpsi/2.
 
-           mask = float((psi[k,*,*] gt fval) and (psi[k,*,*] le fval+dpsi))
-           mask = mask*div_mask
+           faf = field_at_flux(field[k,*,*], psi[k,*,*], $
+                               x, z, t, xp=xp, zp=zp, flux[k,p])
+           bpf = field_at_flux(bp[k,*,*], psi[k,*,*], $
+                               x, z, t, xp=xp, zp=zp, flux[k,p])
 
-           mask = mask/bp[k,*,*]
-;           mask = mask/(bp[k,*,*]+bpprime[k,*,*]*(flux[k,p]-psi[k,*,*]))
+           dl = sqrt(deriv(xp)^2 + deriv(zp)^2)
 
-           if(n_elements(field) gt 1) then begin
-               sfield = field[k,*,*]*mask[0,*,*]
-;               sfield = (field[k,*,*]+fprime[k,*,*]*(flux[k,p]-psi[k,*,*])) $
-;                 *mask[0,*,*]
-           endif
-
-           tot = total(mask)
-
-           dV[k,p] = tot*mean(deriv(x))*mean(deriv(z))
-           if(tot eq 0.) then begin
-               print, 'error: no data points in bin', p, fval, fval+dpsi
-               result[k, p] = 0.
-           endif else begin
-               result[k, p] = total(sfield)/tot
-               if(keyword_set(integrate)) then begin
-                   result[k,p] = result[k,p]*dV[k,p]
-                   if(p gt 0) then begin
-                       result[k,p] = result[k,p] + result[k,p-1]
-                   end
-               end
+           dv[k,p] = total(dl*xp/bpf)
+           area[k,p] = total(dl*xp)
+           if(keyword_set(integrate)) then begin
+               result[k,p] = total(faf*xp*dl*(-dpsi)/bpf)
+           end else begin
+;               result[k,p] = total(faf*xp*dl) / total(xp*dl)
+               result[k,p] = total(faf*xp*dl/bpf) / total(xp*dl/bpf)
            endelse
        endfor
-
-       area[k,*] = - dv[k,*] / dpsi
+       if(keyword_set(integrate)) then begin
+           result[k,*] = total(result[k,*], /cumulative)
+       endif
    endfor
+
+    if(keyword_set(normalize_flux)) then begin
+        flux = (max(psi)-flux)/(max(psi)-psival)
+    endif
 
    return, result
 end
@@ -2943,7 +3285,6 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, $
 
    if(keyword_set(last)) then time = read_parameter('ntime',_EXTRA=extra)-1
 
-
    type = size(field, /type)
 
    sz = size(field)
@@ -2962,7 +3303,6 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, $
        sz = size(psi)
        if(n_elements(psi) le 1) then return, 0
    endif
-
 
    if(type eq 7) then begin ; named field
        if (strcmp(field, 'Safety Factor', /fold_case) eq 1) or $
@@ -3009,7 +3349,7 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, $
            field = sqrt(field)
            name = '!6GAM Frequency!X'
            symbol = '!4x!D!6GAM!N!X'
-           units = get_units('omega')
+           units = make_units(t0=-1)
 
 
        endif else begin

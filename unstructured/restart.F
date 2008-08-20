@@ -92,7 +92,6 @@ c     first put in information to check on run information
       read(56) icomp
 
       if(inumnodes .ne. numnodes .or. inumelms .ne. numelms .or.
-     1     immnn18 .ne. mmnn18 .or. inumvar .ne. numvar .or.
      2     iiper .ne. iper .or. ijper .ne. jper .or.
      3     imyrank .ne. myrank .or. imaxrank .ne. maxrank) then
          write(*,*) 'Restart file information does not match!'
@@ -102,12 +101,6 @@ c     first put in information to check on run information
          endif
          if(inumelms .ne. numelms) then
             write(*,*) 'numelms ',inumnodes, numnodes, myrank 
-         endif
-         if(immnn18 .ne. mmnn18) then
-            write(*,*) 'mmnn18',immnn18,mmnn18, myrank
-         endif
-         if(inumvar .ne. numvar) then
-            write(*,*) 'numvar',inumvar,numvar, myrank
          endif
          if(iiper .ne. iper) then
             write(*,*) 'iper',iiper, iper, myrank
