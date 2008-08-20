@@ -56,8 +56,8 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   endif
 
   if(advfield.eq.1) then
-     temp = v1upsipsi(trial,lin,pst79,pst79)
-     temp = temp + v1up(trial,lin,pt79)
+     temp = v1upsipsi(trial,lin,pst79,pst79) &
+          + v1up     (trial,lin,pt79)
 
      if(gravr.ne.0. .or. gravz.ne.0.) then          
         temp = temp + v1ungrav(trial,lin,nt79)
@@ -473,17 +473,15 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
   if(advfield.eq.1) then 
      temp = v2upsipsi(trial,lin,pst79,pst79) &
           + v2upsib  (trial,lin,pst79,bzt79) &
-          + v2ubb    (trial,lin,bzt79,bzt79)
-
-     temp = temp + v2up(trial,lin,pt79)
+          + v2ubb    (trial,lin,bzt79,bzt79) &
+          + v2up     (trial,lin,pt79)
 
      ssterm(u_g) = ssterm(u_g) - thimp*thimp*dt*dt*temp
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
      temp = v2vpsipsi(trial,lin,pst79,pst79) &
-          + v2vpsib  (trial,lin,pst79,bzt79)
-
-     temp = temp + v2vp(trial,lin,pt79)
+          + v2vpsib  (trial,lin,pst79,bzt79) &
+          + v2vp     (trial,lin,pt79)
 
      ssterm(vz_g) = ssterm(vz_g) - thimp*thimp*dt*dt*temp
      ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
@@ -1448,8 +1446,8 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   ssterm(pe_g) = ssterm(pe_g) -     thimp     *dt*temp
   ddterm(pe_g) = ddterm(pe_g) + (1.-thimp*bdf)*dt*temp
 
-  temp = p1pu  (trial,lin,pht79)                & 
-       + p1pv  (trial,lin,vzt79)               &
+  temp = p1pu  (trial,lin,pht79) & 
+       + p1pv  (trial,lin,vzt79) &
        + p1pchi(trial,lin,cht79)
   ssterm(pe_g) = ssterm(pe_g) -     thimpb     *dt*temp
   ddterm(pe_g) = ddterm(pe_g) + (1.-thimpb*bdf)*dt*temp
@@ -1609,7 +1607,7 @@ subroutine electron_pressure_nolin(trial, r4term)
   ! density source terms
   ! ~~~~~~~~~~~~~~~~~~~~
   if(idens.eq.1 .and. eqsubtract.eq.1) then
-     if(ipres.eq.1) then
+     if(ipres.eq.0) then
         r4term = r4term + dt* &
              (p1uus    (trial,ph079,ph079,sig79) &
              +p1vvs    (trial,vz079,vz079,sig79) &
@@ -1758,14 +1756,14 @@ subroutine ludefall()
              + FIELD_N + FIELD_NI
   if(numvar.ge.2) def_fields = def_fields + FIELD_V
 
-      if(numvar.ge.3) then
-         def_fields = def_fields + &
-         FIELD_CHI + FIELD_PE + FIELD_B2I + FIELD_J + FIELD_P + FIELD_KAP
-      else
-         if(ipres.gt.0) then
-           def_fields = def_fields + FIELD_P
-         endif
-      endif
+  if(numvar.ge.3) then
+     def_fields = def_fields + &
+          FIELD_CHI + FIELD_PE + FIELD_B2I + FIELD_J + FIELD_P + FIELD_KAP
+  else
+     if(ipres.gt.0) then
+        def_fields = def_fields + FIELD_P
+     endif
+  endif
 
   if(isources.eq.1) def_fields = def_fields + FIELD_SRC
   if(idens.eq.1) then
@@ -1826,8 +1824,8 @@ subroutine ludefall()
      
      ! add element's contribution to matrices
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     if(istatic.eq.0) call ludefvel_n(itri)
-     if(iestatic.eq.0) call ludefphi_n(itri)
+     if(istatic.eq.0 .or. isplitstep.eq.0) call ludefvel_n(itri)
+     if(iestatic.eq.0 .or. isplitstep.eq.0) call ludefphi_n(itri)
      if(idens.eq.1) call ludefden_n(itri)
      if(ipres.eq.1) call ludefpres_n(itri)
      if(myrank.eq.0 .and. itimer.eq.1) then
@@ -1990,16 +1988,24 @@ subroutine ludefvel_n(itri)
         jv = jb_vel + jj - 1
         jp = jb_phi + jj - 1
 
-        call vorticity_lin(g79(:,:,i),g79(:,:,j), &
-             ss(u_g,:),dd(u_g,:),q_bf(u_g),advfield)
-        if(numvar.ge.2) then
-           call axial_vel_lin(g79(:,:,i),g79(:,:,j), &
-                ss(vz_g,:),dd(vz_g,:),q_bf(vz_g),advfield, &
-                gyro_torque)
-        endif
-        if(numvar.ge.3) then
-           call compression_lin(g79(:,:,i),g79(:,:,j), &
-                ss(chi_g,:),dd(chi_g,:),q_bf(chi_g),advfield)
+        if(istatic.eq.1) then
+           ss = 0.
+           dd = 0.
+           temp = int2(g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
+           ss(u_g,u_g) = temp; ss(vz_g, vz_g) = temp; ss(chi_g,chi_g) = temp
+           dd(u_g,u_g) = temp; dd(vz_g, vz_g) = temp; dd(chi_g,chi_g) = temp
+        else 
+           call vorticity_lin(g79(:,:,i),g79(:,:,j), &
+                ss(u_g,:),dd(u_g,:),q_bf(u_g),advfield)
+           if(numvar.ge.2) then
+              call axial_vel_lin(g79(:,:,i),g79(:,:,j), &
+                   ss(vz_g,:),dd(vz_g,:),q_bf(vz_g),advfield, &
+                   gyro_torque)
+           endif
+           if(numvar.ge.3) then
+              call compression_lin(g79(:,:,i),g79(:,:,j), &
+                   ss(chi_g,:),dd(chi_g,:),q_bf(chi_g),advfield)
+           endif
         endif
 
         if(iestatic.eq.1 .and. isplitstep.eq.1) then 
@@ -2007,13 +2013,20 @@ subroutine ludefvel_n(itri)
            dd(:,psi_g) = 0; dd(:,bz_g) = 0; dd(:,p_g) = 0
         end if
 
+!!$        if(isplitstep.eq.0) then
+!!$           ss(:,psi_g) = -ss(:,psi_g)
+!!$           ss(:, bz_g) = -ss(:, bz_g)
+!!$           ss(:, pe_g) = -ss(:, pe_g)           
+!!$           ss(:,den_g) = -ss(:,den_g)
+!!$        endif
+
         call insval(vv1,ss(  u_g,  u_g),icomplex,iv+  u_off,jv+  u_off,1)
         call insval(vv0,dd(  u_g,  u_g),icomplex,iv+  u_off,jv+  u_off,1)
         call insval(vb0,dd(  u_g,psi_g),icomplex,ip+  u_off,jp+psi_off,1)
         if(idens.eq.1) &
              call insval(vn0,dd(  u_g,den_g),icomplex,iv+  u_off,jv+den_off,1)
         if(isplitstep.eq.0) then
-           call insval(vb1,ss(  u_g,  u_g),icomplex,ip+  u_off,jp+psi_off,1)
+           call insval(vb1,ss(  u_g, psi_g),icomplex,ip+  u_off,jp+psi_off,1)
            if(idens.eq.1) &
                 call insval(vn1,ss(  u_g,den_g),icomplex,iv+  u_off,jv+den_off,1)
         endif
@@ -2090,16 +2103,22 @@ subroutine ludefvel_n(itri)
 
      ! Definition of R4
      ! ================
-     call vorticity_nolin(g79(:,:,i),temp)
-     vsource(iv+  u_off) = vsource(iv+  u_off) + temp
-     if(numvar.ge.2) then
-        call axial_vel_nolin(g79(:,:,i),temp)
-        vsource(iv+ vz_off) = vsource(iv+ vz_off) + temp
-     endif
-     if(numvar.ge.3) then
-        call compression_nolin(g79(:,:,i),temp)
-        vsource(iv+chi_off) = vsource(iv+chi_off) + temp
-     endif
+     if(istatic.eq.1) then
+        vsource(iv+u_off) = 0.
+        if(numvar.ge.2) vsource(iv+vz_off) = 0.
+        if(numvar.ge.3) vsource(iv+chi_off) = 0.
+     else 
+        call vorticity_nolin(g79(:,:,i),temp)
+        vsource(iv+  u_off) = vsource(iv+  u_off) + temp
+        if(numvar.ge.2) then
+           call axial_vel_nolin(g79(:,:,i),temp)
+           vsource(iv+ vz_off) = vsource(iv+ vz_off) + temp
+        endif
+        if(numvar.ge.3) then
+           call compression_nolin(g79(:,:,i),temp)
+           vsource(iv+chi_off) = vsource(iv+chi_off) + temp
+        endif
+     end if
   enddo                  ! on i
   enddo
 
@@ -2180,6 +2199,12 @@ subroutine ludefphi_n(itri)
            call electron_pressure_lin(g79(:,:,i),g79(:,:,j), &
                 ss(pe_g,:),dd(pe_g,:),q_ni(pe_g),q_bf(pe_g))
         endif
+
+!!$        if(isplitstep.eq.0) then
+!!$           ss(:,  u_g) = -ss(:,  u_g)
+!!$           ss(:, vz_g) = -ss(:, vz_g)
+!!$           ss(:,chi_g) = -ss(:,chi_g)
+!!$        endif
 
         call insval(bb1,ss(psi_g,psi_g),icomplex,ip+psi_off,jp+psi_off,1)
         call insval(bb0,dd(psi_g,psi_g),icomplex,ip+psi_off,jp+psi_off,1)
@@ -2580,14 +2605,14 @@ subroutine ludefpres_n(itri)
 
      qp4(ione) = qp4(ione) + dt* &
           (b3psipsieta(g79(:,:,i),pst79,pst79,eta79))
-
+      
      if(numvar.ge.2) then
         qp4(ione) = qp4(ione) + dt* &
              (b3bbeta(g79(:,:,i),bzt79,bzt79,eta79))
      endif
-
+        
      if(numvar.ge.3) then
-        qp4(ione) = qp4(ione) + dt* &
+        qp4(ione) = qp4(ione) + dt*dbf* &
              (b3pebd(g79(:,:,i),pet79,bzt79,ni79))
      endif
 
@@ -2611,7 +2636,6 @@ subroutine ludefpres_n(itri)
         endif
 
      endif
-
   
    endif  ! on linear.eq.0
 

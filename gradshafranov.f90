@@ -477,7 +477,7 @@ subroutine gradshafranov_solve
      endif
      xmag = xguess + xzero
      zmag = zguess + zzero
-     
+    
      ! calculate psi at the limiter
      xrel = xlim - xzero
      zrel = zlim - zzero
@@ -602,7 +602,7 @@ subroutine gradshafranov_solve
      end if
 
      if(myrank.eq.0 .and. iprint.ge.1) then 
-        print *, "GS: curr, xmag = ", curr, xmag
+        print *, "GS: curr, x0, z0 = ", curr, xmag, zmag
      endif
 
 

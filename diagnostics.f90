@@ -5,7 +5,7 @@ module diagnostics
   real :: tflux0, totcur0
 
   ! scalars integrated over entire computational domain
-  real :: tflux, area, totcur, totden, tmom, tvor, psilim
+  real :: tflux, area, totcur, totden, tmom, tvor, psilim, bwb2
 
   ! scalars integrated within lcfs
   real :: pflux, parea, pcur, pden, pmom, pvor
@@ -168,6 +168,8 @@ contains
     nfluxv = 0.
     nsource = 0.
 
+    bwb2 = 0.
+
   end subroutine reset_scalars
 
 
@@ -183,7 +185,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 44
+    integer, parameter :: num_scalars = 45
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -233,6 +235,7 @@ contains
        temp(42) = tau_visc
        temp(43) = tau_gyro
        temp(44) = tau_denm
+       temp(45) = bwb2
          
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -282,6 +285,7 @@ contains
        tau_visc=temp2(42)
        tau_gyro=temp2(43)
        tau_denm=temp2(44)
+       bwb2    =temp2(45)
 
     endif !if maxrank .gt. 1
 
@@ -446,8 +450,9 @@ subroutine calculate_scalars()
      if(numvar.ge.3) then
         def_fields = def_fields + FIELD_CHI + &
              FIELD_PE + FIELD_P + FIELD_KAP
-        if(kappar.ne.0) def_fields = def_fields + FIELD_B2I
      endif
+     if((numvar.ge.3. .and. kappar.ne.0.) &
+          .or. amupar.ne.0.) def_fields = def_fields + FIELD_B2I
    
      if(hypc.ne.0.) then 
         def_fields = def_fields + FIELD_VOR
@@ -683,6 +688,24 @@ subroutine calculate_scalars()
         tau_gyro = tau_gyro + torque_gyro(itri)
         tau_denm = tau_denm + torque_denm()
      endif
+
+
+     if(amupar.ne.0) then
+        call PVS1(pht79,temp79a)
+
+        if(numvar.ge.2) then
+           call PVS2(vzt79,temp79b)
+           temp79a = temp79a + temp79b
+        endif
+
+        if(numvar.ge.3) then
+           call PVS3(cht79,temp79c)
+           temp79a = temp79a + temp79c
+        endif
+
+        bwb2 = bwb2 + &
+             3.*int3(vip79(:,OP_1),temp79a,temp79a,weight_79,79)
+     end if
      
   end do
 

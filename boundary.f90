@@ -235,14 +235,12 @@ subroutine set_normal_bc(imatrix,ibegin,rhs,bv,normal,izonedim)
         irow = ibegin + 2
      endif
 
-     if(imatrix.ne.0) &
-          call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
-     rhs(irow) = vals(1)*bv(2) + vals(2)*bv(3)
-
      if(imatrix.ne.0) then
+        call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
         call setdiribc(imatrix, ibegin+4)
-        rhs(ibegin+4) = bv(5)
-     end if
+     endif
+     rhs(irow) = vals(1)*bv(2) + vals(2)*bv(3)
+     rhs(ibegin+4) = bv(5)
 
   else if(izonedim.eq.0) then
      ! corner points
@@ -420,7 +418,6 @@ subroutine boundary_mag(imatrix, rhs)
   vectype, dimension(6) :: temp
 
   logical :: is_boundary
-
 
   if(iper.eq.1 .and. jper.eq.1) return
 

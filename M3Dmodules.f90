@@ -139,6 +139,8 @@ module basic
   integer :: ihypdx      ! scale hyper-resistivity with dx**ihypdx
   integer :: ikapscale   ! 1 = scale kappar with kappa
   integer :: iupwind     ! 1 = include upwinding term in pressure eqn
+  integer :: inertia     ! 1 = include ion inertial terms (v.grad(v))
+  integer :: itwofluid   ! 1 = include two-fluid terms in ohm's law
 
   ! numerical parameters
   integer :: ntimemax    ! number of timesteps
@@ -231,7 +233,7 @@ module basic
        iupwind, dndt_fac, dvdt_fac, dbdt_fac,                  &
        eta_djdt,                                               &
        n_target, n_control_p, n_control_i, n_control_d,        &
-       icalc_scalars, ike_only, ifout
+       icalc_scalars, ike_only, ifout, inertia, itwofluid
 
 
   !     derived quantities
@@ -450,7 +452,11 @@ module arrays
          chi_i = 5
          pe_i = 6    
          den_i = 2*numvar+1
-         p_i = 2*numvar+idens+1
+         if(ipres.eq.1) then 
+            p_i = 2*numvar+idens+1
+         else
+            p_i = 6
+         endif
          bf_i = 1
          
       endif
