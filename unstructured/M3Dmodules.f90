@@ -152,6 +152,9 @@ module basic
   integer :: iteratephi  ! 1 = iterate field solve
   integer :: irecalc_eta ! 1 = recalculate transport coeffs after den solve
   integer :: iconst_eta  ! 1 = don't evolve resistivity
+  integer :: int_pts_main! points in integration quadrature for time advance matrices
+  integer :: int_pts_aux ! points in integration quadrature for auxiliary variable definitions
+  integer :: int_pts_diag! points in integration quadrature for diagnostic calculations
   real :: dt             ! timestep
   real :: thimp          ! implicitness parameter (for Crank-Nicholson)
   real :: thimp_ohm      ! implicitness parameter for ohmic heating
@@ -233,7 +236,8 @@ module basic
        iupwind, dndt_fac, dvdt_fac, dbdt_fac,                  &
        eta_djdt,                                               &
        n_target, n_control_p, n_control_i, n_control_d,        &
-       icalc_scalars, ike_only, ifout, inertia, itwofluid
+       icalc_scalars, ike_only, ifout, inertia, itwofluid,     &
+       int_pts_main, int_pts_aux, int_pts_diag
 
 
   !     derived quantities
@@ -255,6 +259,9 @@ module basic
 
 ! MPI variable(s)
   integer myrank, maxrank
+
+  integer :: drop_zeroes ! whether to skip insertion of zeroes into matrix
+
 end module basic
 
 module t_data
@@ -631,18 +638,22 @@ module sparse
 end module sparse
 
 
-subroutine insval(imatrix, val, icomplex, i, j, iop)
+subroutine insval(imatrix, val, icom, i, j, iop)
+
+  use basic
 
   implicit none
   
-  integer, intent(in) :: imatrix, i, j, iop, icomplex
+  integer, intent(in) :: imatrix, i, j, iop, icom
   vectype, intent(in) :: val
 
 ! June-13-2008 cj
 ! take this line off for solve2: nonzero structure re-using
-! if(val.eq.0.) return
+  if(val.eq.0.) then
+     if(drop_zeroes.eq.1) return
+  endif
 
-  call insertval(imatrix, val, icomplex, i, j, iop)
+  call insertval(imatrix, val, icom, i, j, iop)
 
 end subroutine insval
 

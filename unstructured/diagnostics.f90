@@ -499,7 +499,7 @@ subroutine calculate_scalars()
      endif
      dbf = db*factor
 
-     call define_fields_79(itri, def_fields, isources)
+     call define_fields(itri, def_fields, int_pts_diag, isources)
 
 
      ! Define Source terms
@@ -550,14 +550,6 @@ subroutine calculate_scalars()
      endif ! on isources
 
 
-!     do i=1,79 
-!        if(real(pst79(i,OP_1)).ge.psilim) then
-!           temp79a(i) = 1.
-!        else
-!           temp79a(i) = 0.
-!        endif
-!     end do
-
      ! Calculate energy
      ! ~~~~~~~~~~~~~~~~
      ekinp  = ekinp  + energy_kp ()
@@ -596,30 +588,22 @@ subroutine calculate_scalars()
      ! Calculate Scalars
      ! ~~~~~~~~~~~~~~~~~
      !  (extra factor of 1/r comes from delta function in toroidal coordinate)
-     area   = area   + int1( ri_79,                       weight_79,79)
-!     parea  = parea  + int2( ri_79,               temp79a,weight_79,79)
-     totcur = totcur - int2(ri2_79,pst79(:,OP_GS),        weight_79,79)
-!     pcur   = pcur   - int3(ri2_79,pst79(:,OP_GS),temp79a,weight_79,79)
+     area   = area   + int1(ri_79)
+     totcur = totcur - int2(ri2_79,pst79(:,OP_GS))
      select case(ivform)
      case(0)
-        tvor   = tvor   - int2(ri2_79,pht79(:,OP_GS),        weight_79,79)
-!        pvor   = pvor   - int3(ri2_79,pht79(:,OP_GS),temp79a,weight_79,79)
+        tvor   = tvor   - int2(ri2_79,pht79(:,OP_GS))
      case(1)
-        tvor   = tvor   - int1(pht79(:,OP_LP),        weight_79,79)
-!        pvor   = pvor   - int2(pht79(:,OP_LP),temp79a,weight_79,79)
+        tvor   = tvor   - int1(pht79(:,OP_LP))
         if(numvar.ge.3) then
-           tvor   = &
-                tvor - 2.*int2(ri4_79,cht79(:,OP_DZ),        weight_79,79)
-!           pvor   = &
-!                pvor - 2.*int3(ri4_79,cht79(:,OP_DZ),temp79a,weight_79,79)
+           tvor   =  tvor - 2.*int2(ri4_79,cht79(:,OP_DZ))
         end if
      end select
      if(numvar.ge.2) then
-        tflux = tflux+ int2(ri2_79,bzt79(:,OP_1 ),        weight_79,79)
-!        pflux = pflux+ int3(ri2_79,bzt79(:,OP_1 ),temp79a,weight_79,79)
+        tflux = tflux+ int2(ri2_79,bzt79(:,OP_1 ))
      endif
-     totden = totden + int1(nt79(:,OP_1),        weight_79,79)
-!     pden   = pden   + int2(nt79(:,OP_1),temp79a,weight_79,79)
+     totden = totden + int1(nt79(:,OP_1))
+
      
      ! Calculate fluxes
      ! ~~~~~~~~~~~~~~~~
@@ -631,36 +615,36 @@ subroutine calculate_scalars()
      epotg = epotg + grav_pot()
 
      if(idens.eq.1) then
-        nfluxd = nfluxd + denm*int1(nt79(:,OP_LP),weight_79,79)
+        nfluxd = nfluxd + denm*int1(nt79(:,OP_LP))
 
         select case(ivform)
         case(0)
            nfluxv = nfluxv &
-                + int3(ri_79,pht79(:,OP_DZ),nt79(:,OP_DR),weight_79,79) &
-                - int3(ri_79,pht79(:,OP_DR),nt79(:,OP_DZ),weight_79,79)
+                + int3(ri_79,pht79(:,OP_DZ),nt79(:,OP_DR)) &
+                - int3(ri_79,pht79(:,OP_DR),nt79(:,OP_DZ))
            if(numvar.ge.3) then
               nfluxv = nfluxv &
-                   - int2(cht79(:,OP_DZ),nt79(:,OP_DZ),weight_79,79) &
-                   - int2(cht79(:,OP_DR),nt79(:,OP_DR),weight_79,79) &
-                   - int2(cht79(:,OP_LP),nt79(:,OP_1 ),weight_79,79)
+                   - int2(cht79(:,OP_DZ),nt79(:,OP_DZ)) &
+                   - int2(cht79(:,OP_DR),nt79(:,OP_DR)) &
+                   - int2(cht79(:,OP_LP),nt79(:,OP_1 ))
            endif
         case(1)
            nfluxv = nfluxv &
-                + int3(r_79,pht79(:,OP_DZ),nt79(:,OP_DR),weight_79,79) &
-                - int3(r_79,pht79(:,OP_DR),nt79(:,OP_DZ),weight_79,79)
+                + int3(r_79,pht79(:,OP_DZ),nt79(:,OP_DR)) &
+                - int3(r_79,pht79(:,OP_DR),nt79(:,OP_DZ))
            if(itor.eq.1) then
               nfluxv = nfluxv + &
-                   2.*int2(pht79(:,OP_DZ),nt79(:,OP_1),weight_79,79)
+                   2.*int2(pht79(:,OP_DZ),nt79(:,OP_1))
            endif
            if(numvar.ge.3) then
               nfluxv = nfluxv &
-                   - int3(ri2_79,cht79(:,OP_DZ),nt79(:,OP_DZ),weight_79,79) &
-                   - int3(ri2_79,cht79(:,OP_DR),nt79(:,OP_DR),weight_79,79) &
-                   - int3(ri2_79,cht79(:,OP_GS),nt79(:,OP_1 ),weight_79,79)
+                   - int3(ri2_79,cht79(:,OP_DZ),nt79(:,OP_DZ)) &
+                   - int3(ri2_79,cht79(:,OP_DR),nt79(:,OP_DR)) &
+                   - int3(ri2_79,cht79(:,OP_GS),nt79(:,OP_1 ))
            endif
         end select
         
-        nsource = nsource + int1(sig79,weight_79,79)
+        nsource = nsource + int1(sig79)
      endif
 
 
@@ -670,14 +654,14 @@ subroutine calculate_scalars()
         select case(ivform)
         case(0)
            tmom = tmom &
-                + int2(vzt79(:,OP_1),nt79(:,OP_1),        weight_79,79)
+                + int2(vzt79(:,OP_1),nt79(:,OP_1))
 !           pmom = pmom &
-!                + int3(vzt79(:,OP_1),nt79(:,OP_1),temp79a,weight_79,79)
+!                + int3(vzt79(:,OP_1),nt79(:,OP_1),temp79a)
         case(1)
            tmom = tmom &
-                + int3(r2_79,vzt79(:,OP_1),nt79(:,OP_1),        weight_79,79)
+                + int3(r2_79,vzt79(:,OP_1),nt79(:,OP_1))
 !           pmom = pmom &
-!                + int4(r2_79,vzt79(:,OP_1),nt79(:,OP_1),temp79a,weight_79,79)
+!                + int4(r2_79,vzt79(:,OP_1),nt79(:,OP_1),temp79a)
         end select
 
         ! fluxes
@@ -704,7 +688,7 @@ subroutine calculate_scalars()
         endif
 
         bwb2 = bwb2 + &
-             3.*int3(vip79(:,OP_1),temp79a,temp79a,weight_79,79)
+             3.*int3(vip79(:,OP_1),temp79a,temp79a)
      end if
      
   end do

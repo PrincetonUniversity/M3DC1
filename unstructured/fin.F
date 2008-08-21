@@ -85,9 +85,10 @@
       use arrays
 
       implicit none
+#include "finclude/petsc.h"
+!      include 'mpif.h'
 
-      include 'mpif.h'
-
+      PetscTruth :: flg_petsc, flg_solve2
       integer :: ier
 
       if(myrank.eq.0 .and. iprint.eq.1) print *, " entering input.."
@@ -343,6 +344,10 @@
       icalc_scalars = 1
       ike_only = 0
 !
+      int_pts_main = 79
+      int_pts_aux = 79
+      int_pts_diag = 79
+!
 !.....1 = adapt mesh upon initialization
       iadapt = 0
 !
@@ -389,12 +394,48 @@
             call safestop(1)
          endif
       endif
+      if(int_pts_main .gt. MAX_PTS) then
+         if(myrank.eq.0) 
+     &        print*, 'ERROR: int_pts_max > MAX_PTS = ', MAX_PTS
+         call safestop(1)
+      endif
+      if(int_pts_aux .gt. MAX_PTS) then
+         if(myrank.eq.0) 
+     &        print*, 'ERROR: int_pts_aux > MAX_PTS = ', MAX_PTS
+         call safestop(1)
+      endif
+      if(int_pts_diag .gt. MAX_PTS) then
+         if(myrank.eq.0) 
+     &        print*, 'ERROR: int_pts_diag > MAX_PTS = ', MAX_PTS
+         call safestop(1)
+      endif
+      if((.not.((int_pts_main.eq.79).or.(int_pts_main.eq.25))) .or.
+     &     (.not.((int_pts_aux.eq.79).or.(int_pts_aux.eq.25))) .or.
+     &     (.not.((int_pts_diag.eq.79).or.(int_pts_diag.eq.25))))
+     &     then 
+         if(myrank.eq.0) 
+     &        print*, 'ERROR: only 79 or 25 pt integration implemented.'
+         call safestop(1)
+      endif
 
       if(ntimepr.lt.1) ntimepr = 1
+
+      ! Read PETSc options
+      call PetscOptionsHasName(PETSC_NULL_CHARACTER,
+     &     '-ipetsc', flg_petsc,ier)
+      call PetscOptionsHasName(PETSC_NULL_CHARACTER,
+     &     '-solve2', flg_solve2,ier)
+      if(flg_petsc .and. flg_solve2) then 
+         drop_zeroes = 0 
+      else 
+         drop_zeroes = 1
+      endif
 
       if(myrank.eq.0) write(*,nml=inputnl)
 
       if(myrank.eq.0 .and. iprint.eq.1) print *, " exiting input.."
+
+      
 
       return
       end

@@ -2844,7 +2844,7 @@ end
 
 pro plot_scalar, scalarname, x, filename=filename, names=names, $
                  _EXTRA=extra, overplot=overplot, $
-                 ylog=ylog, xlog=xlog, $
+                 ylog=ylog, xlog=xlog, absolute_value=absolute, $
                  power_spectrum=power_spectrum, per_length=per_length, $
                  growth_rate=growth_rate, bw=bw, nolegend=nolegend
 
@@ -2868,13 +2868,15 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
                 overplot=((i gt 0) or keyword_set(overplot)), $
                 color=co[i], _EXTRA=extra, ylog=ylog, xlog=xlog, $
                 power_spectrum=power_spectrum, per_length=per_length, $
-                growth_rate=growth_rate, linestyle=ls[i], nolegend=nolegend
+                growth_rate=growth_rate, linestyle=ls[i], nolegend=nolegend, $
+                absolute_value=absolute
           endif else begin
               plot_scalar, scalarname, x[i], filename=filename[i], $
                 overplot=((i gt 0) or keyword_set(overplot)), $
                 color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, $
                 power_spectrum=power_spectrum, per_length=per_length, $
-                growth_rate=growth_rate, nolegend=nolegend
+                growth_rate=growth_rate, nolegend=nolegend, $
+                absolute_value=absolute
           endelse
       end
 
@@ -2918,6 +2920,8 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
 ;      ytitle = '!7c !6(!7s!D!8A!N!6!U-1!N)!X'
       ytitle = '!7c!6 (' + make_units(t0=-1) + ')!X'
   endif
+
+  if(keyword_set(absolute)) then data = abs(data)
 
   if(n_elements(x) eq 0) then begin
       if(keyword_set(overplot)) then begin

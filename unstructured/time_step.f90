@@ -233,11 +233,12 @@ subroutine split_step(calc_matrices)
   vectype, allocatable :: temp(:)
 
   integer :: istaticold, idensold, ipresold
-  PetscTruth :: flg_petsc, flg_solve2
-     call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
-     call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ier)
 
-  t_bound = 0
+  PetscTruth :: flg_petsc, flg_solve2
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ier)
+
+  t_bound = 0.
 
   call numnod(numnodes)
 

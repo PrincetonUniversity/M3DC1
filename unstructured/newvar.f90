@@ -68,7 +68,7 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
 
   do itri=1,numelms
 
-     call define_fields_79(itri,0,1)
+     call define_fields(itri,0,25,1)
 
      do j=1,18
         jone = isval1(itri,j)
@@ -77,24 +77,24 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
            selectcase(itype)
 
            case(NV_I_MATRIX)
-              temp = int2(g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
+              temp = int2(g79(:,OP_1,i),g79(:,OP_1,j))
 
            case(NV_LP_MATRIX)
               temp = - &
-                   (int2(g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79) &
-                   +int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j),weight_79,79))
+                   (int2(g79(:,OP_DR,i),g79(:,OP_DR,j)) &
+                   +int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j)))
 
            case(NV_GS_MATRIX)
               temp = - &
-                   (int2(g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79) &
-                   +int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j),weight_79,79))
+                   (int2(g79(:,OP_DR,i),g79(:,OP_DR,j)) &
+                   +int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j)))
               if(itor.eq.1) then
                  temp = temp - &
-                      2.*int3(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j),weight_79,79)
+                      2.*int3(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j))
               endif
 
            case(NV_BF_MATRIX)
-              temp = int3(ri2_79,g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
+              temp = int3(ri2_79,g79(:,OP_1,i),g79(:,OP_1,j))
            end select
            call insval(matrix, temp, icomplex, ione, jone, 1)
         enddo
@@ -246,7 +246,7 @@ subroutine define_transport_coefficients()
   call numfac(numelms)
   do itri=1,numelms
 
-     call define_fields_79(itri, def_fields, 1)
+     call define_fields(itri, def_fields, int_pts_aux, 1)
         
      ! resistivity
      ! ~~~~~~~~~~~
@@ -326,7 +326,7 @@ subroutine define_transport_coefficients()
      ! visc
      ! ~~~~
      if(solve_visc) then
-        do i=1,79
+        do i=1,npoints
            call mask(x_79(i)-xzero, z_79(i)-zzero, factor)
            temp79d(i) = amu_edge*(1.-factor)
         end do
@@ -343,26 +343,26 @@ subroutine define_transport_coefficients()
 
         if(solve_resistivity) then
            resistivity(ione) = resistivity(ione) &
-                + eta0*int2(g79(:,OP_1,i),temp79a, weight_79,79)
+                + eta0*int2(g79(:,OP_1,i),temp79a)
         endif
 
         if(solve_kappa) then
            kappa(ione) = kappa(ione) &
-                + int2(g79(:,OP_1,i),temp79b, weight_79,79)           
+                + int2(g79(:,OP_1,i),temp79b)           
         endif
 
         if(solve_sigma) then
            sigma(ione) = sigma(ione) &
-                + int2(g79(:,OP_1,i),temp79c, weight_79,79)
+                + int2(g79(:,OP_1,i),temp79c)
         endif
 
         if(solve_visc) then
            visc(ione) = visc(ione) &
-                + int2(g79(:,OP_1,i),temp79d, weight_79,79)
+                + int2(g79(:,OP_1,i),temp79d)
         end if
 
         tempvar(ione) = tempvar(ione) &
-             + int2(g79(:,OP_1,i),temp79e, weight_79,79)
+             + int2(g79(:,OP_1,i),temp79e)
      end do
   end do
 
