@@ -251,7 +251,7 @@
      &   print *, "   smoother1 zeropetscmatrix", s5matrix_sm 
       do itri=1,numelms
 
-         call define_fields_79(itri,0,1)
+         call define_fields(itri,0,79,1)
 
          hyp = hypc*amu
 
@@ -261,17 +261,16 @@
               itwo = isval2(itri,i)
 
               ssterm(1,1) = 
-     &             int2(g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
+     &             int2(g79(:,OP_1,i),g79(:,OP_1,j))
               ssterm(1,2) = 
-     &              int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j),weight_79,79)
-     &             +int2(g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79)
+     &              int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j))
+     &             +int2(g79(:,OP_DR,i),g79(:,OP_DR,j))
               if(itor.eq.1) then
                  ssterm(1,2) = ssterm(1,2) + 2.*
-     &                int3(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j),
-     &                     weight_79,79)
+     &                int3(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j))
               endif
               ssterm(2,1) = dt*hyp*thimpsm* 
-     &              int2(g79(:,OP_GS,i),g79(:,OP_GS,j),weight_79,79)
+     &              int2(g79(:,OP_GS,i),g79(:,OP_GS,j))
               ssterm(2,2) = -ssterm(1,2)
               if(inoslip_pol.eq.0) then
                  ssterm(2,2) = ssterm(2,2) - regular*ssterm(1,1)
@@ -294,7 +293,7 @@
 !.....define RHS vector
       do itri=1,numelms
 
-         call define_fields_79(itri,0,1)
+         call define_fields(itri,0,79,1)
 
          call calcavector(itri, inarray, 1, 1, avec)
          call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, tm79)
@@ -305,9 +304,9 @@
             itwo = isval2(itri,i)
 
             temp(itwo+6) = temp(itwo+6) + 
-     &           (int2(g79(:,OP_1,i),tm79(:,OP_1),weight_79,79)
+     &           (int2(g79(:,OP_1,i),tm79(:,OP_1))
      &           -dt*hyp*(1.-thimpsm)*
-     &            int2(g79(:,OP_GS,i),tm79(:,OP_GS),weight_79,79))
+     &            int2(g79(:,OP_GS,i),tm79(:,OP_GS)))
          enddo
       enddo
 
@@ -401,7 +400,7 @@
      &   print *, "   smoother3 zeropetscmatrix", s7matrix_sm 
       do itri=1,numelms
 
-         call define_fields_79(itri,0,1)
+         call define_fields(itri,0,79,1)
 
          hyp = hypc*amuc
 
@@ -411,12 +410,12 @@
               itwo = isval2(itri,i)
 
               ssterm(1,1) = 
-     &             int2(g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
+     &             int2(g79(:,OP_1,i),g79(:,OP_1,j))
               ssterm(1,2) = 
-     &              int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j),weight_79,79)
-     &             +int2(g79(:,OP_DR,i),g79(:,OP_DR,j),weight_79,79)
+     &              int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j))
+     &             +int2(g79(:,OP_DR,i),g79(:,OP_DR,j))
               ssterm(2,1) = dt*hyp*thimpsm* 
-     &              int2(g79(:,OP_LP,i),g79(:,OP_LP,j),weight_79,79)
+     &              int2(g79(:,OP_LP,i),g79(:,OP_LP,j))
               ssterm(2,2) = -ssterm(1,2)
               if(inoslip_pol.eq.0) then
                  ssterm(2,2) = ssterm(2,2) - regular*ssterm(1,1)
@@ -441,7 +440,7 @@
 !.....define RHS vector
       do itri=1,numelms
 
-         call define_fields_79(itri,0,1)
+         call define_fields(itri,0,79,1)
 
          call calcavector(itri, inarray, 1, 1, avec)
          call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, tm79)
@@ -452,9 +451,9 @@
             itwo = isval2(itri,i)
 
             temp(itwo+6) = temp(itwo+6) + 
-     &           (int2(g79(:,OP_1,i),tm79(:,OP_1),weight_79,79)
+     &           (int2(g79(:,OP_1,i),tm79(:,OP_1))
      &           -dt*hyp*(1.-thimpsm)*
-     &            int2(g79(:,OP_LP,i),tm79(:,OP_LP),weight_79,79))
+     &            int2(g79(:,OP_LP,i),tm79(:,OP_LP)))
          enddo
       enddo
 

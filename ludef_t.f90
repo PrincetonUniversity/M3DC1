@@ -10,7 +10,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
 
   implicit none
 
-  vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
+  vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: trial, lin 
   vectype, dimension(num_fields), intent(out) :: ssterm, ddterm
   vectype, intent(out) :: q_bf
   integer, intent(in) :: advfield   ! if advfield = 1, eliminate rrterm by
@@ -354,20 +354,20 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      call PVV1(trial,temp79b)
 
      call PVS1(lin,temp79c)
-     temp = int3(vip79(:,OP_1),temp79b,temp79c,weight_79,79)
+     temp = int3(vip79(:,OP_1),temp79b,temp79c)
      ssterm(u_g) = ssterm(u_g) +     thimp     *dt*temp
      ddterm(u_g) = ddterm(u_g) - (1.-thimp*bdf)*dt*temp
 
      if(numvar.ge.2) then
         call PVS2(lin,temp79c)
-        temp = int3(vip79(:,OP_1),temp79b,temp79c,weight_79,79)
+        temp = int3(vip79(:,OP_1),temp79b,temp79c)
         ssterm(vz_g) = ssterm(vz_g) +     thimp     *dt*temp
         ddterm(vz_g) = ddterm(vz_g) - (1.-thimp*bdf)*dt*temp
      endif
 
      if(numvar.ge.3) then
         call PVS3(lin,temp79c)
-        temp = int3(vip79(:,OP_1),temp79b,temp79c,weight_79,79)
+        temp = int3(vip79(:,OP_1),temp79b,temp79c)
         ssterm(chi_g) = ssterm(chi_g) +     thimp     *dt*temp
         ddterm(chi_g) = ddterm(chi_g) - (1.-thimp*bdf)*dt*temp
      endif
@@ -383,7 +383,7 @@ subroutine vorticity_nolin(trial, r4term)
 
   implicit none
 
-  vectype, intent(in), dimension(79, OP_NUM)  :: trial
+  vectype, intent(in), dimension(MAX_PTS, OP_NUM)  :: trial
   vectype, intent(out) :: r4term
 
   r4term = 0.
@@ -417,7 +417,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
 
   implicit none
 
-  vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
+  vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: trial, lin 
   vectype, dimension(num_fields), intent(out) :: ssterm, ddterm
   vectype, intent(out) :: q_bf
   vectype, dimension(3), intent(out) :: gyro_torque
@@ -425,7 +425,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
   real :: temp
   real :: ththm
 
-  vectype, dimension(79, OP_NUM) :: hv
+  vectype, dimension(MAX_PTS, OP_NUM) :: hv
   hv = hypv*sz79
 
   if(imp_mod.eq.1) then
@@ -645,20 +645,20 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
      call PVV2(trial,temp79b)
 
      call PVS1(lin,temp79c)
-     temp = int3(vip79(:,OP_1),temp79b,temp79c,weight_79,79)
+     temp = int3(vip79(:,OP_1),temp79b,temp79c)
      ssterm(u_g) = ssterm(u_g) +     thimp     *dt*temp
      ddterm(u_g) = ddterm(u_g) - (1.-thimp*bdf)*dt*temp
 
      if(numvar.ge.2) then
         call PVS2(lin,temp79c)
-        temp = int3(vip79(:,OP_1),temp79b,temp79c,weight_79,79)
+        temp = int3(vip79(:,OP_1),temp79b,temp79c)
         ssterm(vz_g) = ssterm(vz_g) +     thimp     *dt*temp
         ddterm(vz_g) = ddterm(vz_g) - (1.-thimp*bdf)*dt*temp
      endif
 
      if(numvar.ge.3) then
         call PVS3(lin,temp79c)
-        temp = int3(vip79(:,OP_1),temp79b,temp79c,weight_79,79)
+        temp = int3(vip79(:,OP_1),temp79b,temp79c)
         ssterm(chi_g) = ssterm(chi_g) +     thimp     *dt*temp
         ddterm(chi_g) = ddterm(chi_g) - (1.-thimp*bdf)*dt*temp
      endif
@@ -674,7 +674,7 @@ subroutine axial_vel_nolin(trial, r4term)
 
   implicit none
 
-  vectype, intent(in), dimension(79, OP_NUM)  :: trial
+  vectype, intent(in), dimension(MAX_PTS, OP_NUM)  :: trial
   vectype, intent(out) :: r4term
   
   r4term = 0.
@@ -704,7 +704,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
 
   implicit none
 
-  vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
+  vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: trial, lin 
   vectype, dimension(num_fields), intent(out) :: ssterm, ddterm
   vectype, intent(out) :: q_bf
   integer, intent(in) :: advfield
@@ -728,7 +728,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
 
   ! regularize the chi equation
   if(inoslip_pol.eq.0) then
-     temp = -regular*int2(trial(:,OP_1),lin(:,OP_1),weight_79,79)
+     temp = -regular*int2(trial(:,OP_1),lin(:,OP_1))
      ssterm(chi_g) = ssterm(chi_g) + temp
      ddterm(chi_g) = ddterm(chi_g) + temp*bdf
   end if
@@ -947,20 +947,20 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      call PVV3(trial,temp79b)
 
      call PVS1(lin,temp79c)
-     temp = int3(vip79(:,OP_1),temp79b,temp79c,weight_79,79)
+     temp = int3(vip79(:,OP_1),temp79b,temp79c)
      ssterm(u_g) = ssterm(u_g) +     thimp     *dt*temp
      ddterm(u_g) = ddterm(u_g) - (1.-thimp*bdf)*dt*temp
 
      if(numvar.ge.2) then
         call PVS2(lin,temp79c)
-        temp = int3(vip79(:,OP_1),temp79b,temp79c,weight_79,79)
+        temp = int3(vip79(:,OP_1),temp79b,temp79c)
         ssterm(vz_g) = ssterm(vz_g) +     thimp     *dt*temp
         ddterm(vz_g) = ddterm(vz_g) - (1.-thimp*bdf)*dt*temp
      endif
 
      if(numvar.ge.3) then
         call PVS3(lin,temp79c)
-        temp = int3(vip79(:,OP_1),temp79b,temp79c,weight_79,79)
+        temp = int3(vip79(:,OP_1),temp79b,temp79c)
         ssterm(chi_g) = ssterm(chi_g) +     thimp     *dt*temp
         ddterm(chi_g) = ddterm(chi_g) - (1.-thimp*bdf)*dt*temp
      endif
@@ -994,7 +994,7 @@ subroutine compression_nolin(trial, r4term)
 
   implicit none
 
-  vectype, intent(in), dimension(79, OP_NUM)  :: trial
+  vectype, intent(in), dimension(MAX_PTS, OP_NUM)  :: trial
   vectype, intent(out) :: r4term
   
   r4term = 0.
@@ -1025,13 +1025,13 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
 
   implicit none
 
-  vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
+  vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: trial, lin 
   vectype, dimension(num_fields), intent(out) :: ssterm, ddterm
   vectype, intent(out) :: q_ni, q_bf
   vectype :: temp
   real :: thimpb
 
-  vectype, dimension(79, OP_NUM) :: hf
+  vectype, dimension(MAX_PTS, OP_NUM) :: hf
   hf = hypf*sz79
 
 
@@ -1204,14 +1204,14 @@ subroutine flux_nolin(trial, r4term)
 
   implicit none
 
-  vectype, intent(in), dimension(79, OP_NUM)  :: trial
+  vectype, intent(in), dimension(MAX_PTS, OP_NUM)  :: trial
   vectype, intent(out) :: r4term
   
   r4term = 0.
 
   if(igauge.eq.1 .or. linear.eq.1) then
      r4term = r4term - dt* &
-          vloop*int1(trial,weight_79,79)/(2.*pi)
+          vloop*int1(trial)/(2.*pi)
   endif
  
 end subroutine flux_nolin
@@ -1229,13 +1229,13 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
 
   implicit none
 
-  vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
+  vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: trial, lin 
   vectype, dimension(num_fields), intent(out) :: ssterm, ddterm
   vectype, intent(out) :: q_ni, q_bf
   vectype :: temp
   real :: thimpb
 
-  vectype, dimension(79, OP_NUM) :: hi
+  vectype, dimension(MAX_PTS, OP_NUM) :: hi
   hi = hypi*sz79
 
   if(imp_mod.eq.1) then
@@ -1380,7 +1380,7 @@ subroutine axial_field_nolin(trial, r4term)
 
   implicit none
 
-  vectype, intent(in), dimension(79, OP_NUM)  :: trial
+  vectype, intent(in), dimension(MAX_PTS, OP_NUM)  :: trial
   vectype, intent(out) :: r4term
   
   r4term = 0.
@@ -1400,13 +1400,13 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
 
   implicit none
 
-  vectype, dimension(79, OP_NUM), intent(in) :: trial, lin 
+  vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: trial, lin 
   vectype, dimension(num_fields), intent(out) :: ssterm, ddterm
   vectype, intent(out) :: q_ni, q_bf
   vectype :: temp
   real :: thimpb
 
-  vectype, dimension(79, OP_NUM) :: hp
+  vectype, dimension(MAX_PTS, OP_NUM) :: hp
   hp = hypp*sz79
 
 
@@ -1574,10 +1574,10 @@ subroutine electron_pressure_nolin(trial, r4term)
 
   implicit none
 
-  vectype, intent(in), dimension(79, OP_NUM)  :: trial
+  vectype, intent(in), dimension(MAX_PTS, OP_NUM)  :: trial
   vectype, intent(out) :: r4term
 
-  vectype, dimension(79, OP_NUM) :: hv, hc
+  vectype, dimension(MAX_PTS, OP_NUM) :: hv, hc
   hv = hypv*sz79
   hc = hypc*sz79
   
@@ -1816,7 +1816,7 @@ subroutine ludefall()
 
      ! calculate the field values and derivatives at the sampling points
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     call define_fields_79(itri, def_fields,1)
+     call define_fields(itri, def_fields, int_pts_main, 1)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         tfield = tfield + tend - tstart
@@ -1991,7 +1991,7 @@ subroutine ludefvel_n(itri)
         if(istatic.eq.1) then
            ss = 0.
            dd = 0.
-           temp = int2(g79(:,OP_1,i),g79(:,OP_1,j),weight_79,79)
+           temp = int2(g79(:,OP_1,i),g79(:,OP_1,j))
            ss(u_g,u_g) = temp; ss(vz_g, vz_g) = temp; ss(chi_g,chi_g) = temp
            dd(u_g,u_g) = temp; dd(vz_g, vz_g) = temp; dd(chi_g,chi_g) = temp
         else 
@@ -2313,7 +2313,7 @@ subroutine ludefden_n(itri)
   integer :: nn1, nn0, nv1, nv0
   vectype, pointer :: nsource(:)
 
-  vectype, dimension(79,OP_NUM) :: hp
+  vectype, dimension(MAX_PTS,OP_NUM) :: hp
   hp = hypp*sz79
 
   if(isplitstep.eq.1) then
@@ -2466,7 +2466,7 @@ subroutine ludefpres_n(itri)
 
   vectype :: temp
 
-  vectype, dimension(79,OP_NUM) :: hp
+  vectype, dimension(MAX_PTS,OP_NUM) :: hp
   hp = hypp*sz79
 
   do i=1,18
@@ -2493,7 +2493,7 @@ subroutine ludefpres_n(itri)
 
         ! NUMVAR = 1
         ! ~~~~~~~~~~
-        temp = int2(g79(:,:,i),g79(:,:,j),weight_79,79)
+        temp = int2(g79(:,:,i),g79(:,:,j))
         ssterm = ssterm + temp
         ddterm = ddterm + temp*bdf
         

@@ -25,43 +25,45 @@ ifndef SCORECVERS
 SCORECVERS = 
 endif
 
-# specify whether debug or optimization 
-ifeq ($(OPT), 1)
- COMPLEX = -O
- SCORECOPT = -O
-else
- COMPLEX = -g 
- SCORECOPT =
-endif
+OPTS =
 
 # define the complex version
 ifeq ($(COM), 1)
-COMPLEX := $(COMPLEX) -Dvectype=complex -DUSECOMPLEX
-ifeq ($(OPT), 1)
-BIN_POSTFIX = -complex-opt
-else
-BIN_POSTFIX = -complex
+OPTS := $(OPTS) -Dvectype=complex -DUSECOMPLEX
+BIN_POSTFIX := $(BIN_POSTFIX)-complex
 endif
 
-endif
-
-# define the real version
 ifeq ($(RL), 1)
-COMPLEX := $(COMPLEX) -Dvectype=real
-
-ifeq ($(OPT), 1)
-BIN_POSTFIX = -real-opt
-else
-BIN_POSTFIX = -real
+OPTS := $(OPTS) -Dvectype=real
+BIN_POSTFIX := $(BIN_POSTFIX)-real
 endif
 
+# specify whether debug or optimization 
+ifeq ($(OPT), 1)
+ OPTS := $(OPTS) -O
+ SCORECOPT = -O
+ BIN_POSTFIX := $(BIN_POSTFIX)-opt
+else
+ OPTS := $(OPTS) -g 
+ SCORECOPT =
+endif
+
+
+# Define the size of sampling point arrays.
+# This sets the upper limit for number of points used
+# in numerical integrations
+ifdef MAX_PTS
+OPTS := $(OPTS) -DMAX_PTS=$(MAX_PTS)
+BIN_POSTFIX := $(BIN_POSTFIX)-$(MAX_PTS)
+else
+OPTS := $(OPTS) -DMAX_PTS=79
 endif
 
 BIN = gonewp${BIN_POSTFIX}
 
-#FOPTS = -r8 -implicitnone -fpp $(INCLUDE) ${COMPLEX}
-FOPTS = -r8 -implicitnone -save -fpp $(INCLUDE) ${COMPLEX}
-#FOPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE) ${COMPLEX}
+#FOPTS = -r8 -implicitnone -fpp $(INCLUDE) ${OPTS}
+FOPTS = -r8 -implicitnone -save -fpp $(INCLUDE) $(OPTS)
+#FOPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE) ${OPTS}
 F90OPTS = ${FOPTS}
 F77OPTS = ${FOPTS}
 CCOPTS = -c $(INCLUDE)

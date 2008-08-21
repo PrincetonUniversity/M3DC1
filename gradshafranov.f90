@@ -298,7 +298,7 @@ subroutine gradshafranov_solve
   ! populate the matrix
   do itri=1,numelms
 
-     call define_fields_79(itri,0,1)
+     call define_fields(itri,0,25,1)
     
      do j=1,18
         j1 = isval1(itri,j)
@@ -309,7 +309,7 @@ subroutine gradshafranov_solve
                 (g79(:,OP_DR,i)*g79(:,OP_DR,j) &
                 +g79(:,OP_DZ,i)*g79(:,OP_DZ,j))
 
-           sum = int1(temp79a,weight_79,79)
+           sum = int1(temp79a)
 
            call insertval(gsmatrix_sm, sum, 0, i1,j1,1)
         enddo
