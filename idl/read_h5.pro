@@ -1306,26 +1306,26 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
    ;===========================================
    ; vorticity
    ;===========================================
-      endif else if(strcmp('vor', name, /fold_case) eq 1) then begin
-
-          phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
-                           filename=filename, points=pts, $
-                           rrange=xrange, zrange=yrange, at_points=at_points)
-
-          data = grad_shafranov(phi,x,y,tor=itor)
-          symbol = translate('vor', units=units, itor=itor)
+;      endif else if(strcmp('vor', name, /fold_case) eq 1) then begin
+;
+;          phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+;                           filename=filename, points=pts, $
+;                           rrange=xrange, zrange=yrange, at_points=at_points)
+;
+;          data = grad_shafranov(phi,x,y,tor=itor)
+;          symbol = translate('vor', units=units, itor=itor)
 
    ;===========================================
    ; divergence
    ;===========================================
-     endif else if(strcmp('com', name, /fold_case) eq 1) then begin
+;     endif else if(strcmp('com', name, /fold_case) eq 1) then begin
 
-         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
-                          filename=filename, points=pts, $
-                          rrange=xrange, zrange=yrange, at_points=at_points)
+;         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+;                          filename=filename, points=pts, $
+;                          rrange=xrange, zrange=yrange, at_points=at_points)
 
-         data = laplacian(chi,x,y,tor=itor)
-         symbol = translate('com', units=units, itor=itor)
+;         data = laplacian(chi,x,y,tor=itor)
+;         symbol = translate('com', units=units, itor=itor)
 
    ;===========================================
    ; rotational transform

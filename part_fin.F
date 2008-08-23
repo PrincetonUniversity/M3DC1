@@ -251,7 +251,7 @@
      &   print *, "   smoother1 zeropetscmatrix", s5matrix_sm 
       do itri=1,numelms
 
-         call define_fields(itri,0,79,1)
+         call define_fields(itri,0,25,1)
 
          hyp = hypc*amu
 
@@ -293,10 +293,10 @@
 !.....define RHS vector
       do itri=1,numelms
 
-         call define_fields(itri,0,79,1)
+         call define_fields(itri,0,25,1)
 
          call calcavector(itri, inarray, 1, 1, avec)
-         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, tm79)
+         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, 25, tm79)
 
          hyp = hypc*amu
 
@@ -400,7 +400,7 @@
      &   print *, "   smoother3 zeropetscmatrix", s7matrix_sm 
       do itri=1,numelms
 
-         call define_fields(itri,0,79,1)
+         call define_fields(itri,0,25,1)
 
          hyp = hypc*amuc
 
@@ -440,10 +440,10 @@
 !.....define RHS vector
       do itri=1,numelms
 
-         call define_fields(itri,0,79,1)
+         call define_fields(itri,0,25,1)
 
          call calcavector(itri, inarray, 1, 1, avec)
-         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79,79, tm79)
+         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, 25, tm79)
 
          hyp = hypc*amuc
 

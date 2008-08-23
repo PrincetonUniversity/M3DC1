@@ -353,7 +353,7 @@ subroutine split_step(calc_matrices)
    
      ! apply smoothing operators
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-     call smooth
+     call smooth(vel)
   else
      velold = vel
   end if
@@ -871,6 +871,9 @@ subroutine unsplit_step(calc_matrices)
   endif
   phiold = phi
   phi = b1_phi
+
+  ! apply smoothing operators
+  call smooth(phi)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done solving matrix equation."
 end subroutine unsplit_step
