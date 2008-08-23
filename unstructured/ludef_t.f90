@@ -170,9 +170,8 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
         ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
         temp = v1vpsipsi(trial,lin,pst79,pst79) &
-             + v1vpsib  (trial,lin,pst79,bzt79)
-
-        temp = temp + v1vp(trial,lin,pt79)
+             + v1vpsib  (trial,lin,pst79,bzt79) &
+             + v1vp     (trial,lin,pt79)
         ssterm(vz_g) = ssterm(vz_g) - thimp*thimp*dt*dt*temp
         ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
 

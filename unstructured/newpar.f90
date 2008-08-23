@@ -415,7 +415,7 @@ end subroutine output
 ! applies smoothing operators
 !
 ! ======================================================================
-subroutine smooth
+subroutine smooth(vec)
   use basic
   use arrays
   use newvar_mod
@@ -424,6 +424,7 @@ subroutine smooth
 
   implicit none
 
+  vectype, dimension(*), intent(inout) :: vec
   real :: tstart, tend
 
   if(hyperc.eq.0.) return
@@ -431,21 +432,21 @@ subroutine smooth
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      
   ! smooth vorticity
-  call newvar(mass_matrix_lhs_dc,vor,vel,1,vecsize_vel, &
+  call newvar(mass_matrix_lhs_dc,vor,vec,u_i,vecsize_vel, &
        gs_matrix_rhs_dc,NV_DCBOUND)
-  call smoother1(vor,vel,vecsize_vel,1)
+  call smoother1(vor,vec,vecsize_vel,u_i)
 
   ! smooth compression
   if(numvar.ge.3) then
      if(com_bc.eq.1) then
-        call newvar(mass_matrix_lhs_dc,com,vel,3,vecsize_vel, &
+        call newvar(mass_matrix_lhs_dc,com,vec,chi_i,vecsize_vel, &
              lp_matrix_rhs_dc,NV_DCBOUND)
      else
-        call newvar(mass_matrix_lhs   ,com,vel,3,vecsize_vel, &
+        call newvar(mass_matrix_lhs   ,com,vec,chi_i,vecsize_vel, &
              lp_matrix_rhs,   NV_NOBOUND)
      endif
              
-     call smoother3(com,vel,vecsize_vel,3)
+     call smoother3(com,vec,vecsize_vel,chi_i)
   endif
 
   if(myrank.eq.0 .and. itimer.eq.1) then
