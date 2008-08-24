@@ -86,6 +86,7 @@ subroutine onestep
   end if
 
   time = time + dt
+  dt = dt + ddt
 
 
   ! copy time advance vectors to field data

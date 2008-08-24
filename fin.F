@@ -262,6 +262,7 @@
 !
 !.....timestep
       dt = 0.1
+      ddt = 0.
 !.....ntimemax is max time cycles, nimepr is cycles between print cycle
 !
       ntimemax = 20

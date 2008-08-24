@@ -5,7 +5,7 @@ module diagnostics
   real :: tflux0, totcur0
 
   ! scalars integrated over entire computational domain
-  real :: tflux, area, totcur, totden, tmom, tvor, psilim, bwb2
+  real :: tflux, area, totcur, totden, tmom, tvor, psilim, psimin, bwb2
 
   ! scalars integrated within lcfs
   real :: pflux, parea, pcur, pden, pmom, pvor
@@ -750,7 +750,7 @@ end subroutine calculate_scalars
 !
 ! locates the magnetic axis and the value of psi there
 !=====================================================
-subroutine magaxis(xguess,zguess,phin,numvari,psimin)
+subroutine magaxis(xguess,zguess,phin,numvari,psim)
   use basic
   use t_data
   use nintegrate_mod
@@ -762,7 +762,7 @@ subroutine magaxis(xguess,zguess,phin,numvari,psimin)
   real, intent(inout) :: xguess, zguess
   vectype, intent(in), dimension(*) :: phin
   integer, intent(in) :: numvari
-  real, intent(out) :: psimin
+  real, intent(out) :: psim
 
   integer, parameter :: iterations = 5
 
@@ -877,7 +877,7 @@ subroutine magaxis(xguess,zguess,phin,numvari,psimin)
 
   xguess = x
   zguess = z
-  psimin = pt
+  psim = pt
 
   if(myrank.eq.0 .and. iprint.gt.0) print *, " magaxis: minimum at ", xguess, zguess
   
