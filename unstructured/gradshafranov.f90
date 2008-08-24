@@ -4,7 +4,7 @@ module gradshafranov
   
   vectype, allocatable :: psi(:)
   real, allocatable :: fun1(:), fun2(:), fun3(:), fun4(:)
-  real :: psimin, dpsii
+  real :: dpsii
   real :: gamma2, gamma3, gamma4  
   integer :: itnum
   real :: separatrix_top, separatrix_bottom

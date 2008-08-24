@@ -156,6 +156,7 @@ module basic
   integer :: int_pts_aux ! points in integration quadrature for auxiliary variable definitions
   integer :: int_pts_diag! points in integration quadrature for diagnostic calculations
   real :: dt             ! timestep
+  real :: ddt            ! change in timestep per timestep
   real :: thimp          ! implicitness parameter (for Crank-Nicholson)
   real :: thimp_ohm      ! implicitness parameter for ohmic heating
   real :: regular        ! regularization constant in chi equation
@@ -217,7 +218,8 @@ module basic
        ionization, ionization_rate, ionization_temp, ionization_depth, &
        isink, sink1_x, sink2_x, sink1_z, sink2_z,              &
        sink1_rate, sink2_rate, sink1_var, sink2_var,           &
-       ntimemax,dt,integrator,thimp,thimp_ohm,imp_mod,igauge,  &
+       ntimemax,dt,ddt,integrator,thimp,thimp_ohm,imp_mod,     &
+       igauge,                                                 &
        isplitstep,                                             &
        linear,nskip,eqsubtract,                                &
        itimer,iprint,ntimepr,iglobalout,iglobalin,             &

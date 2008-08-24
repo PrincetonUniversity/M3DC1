@@ -47,6 +47,7 @@ c     first put in information to check on run information
 !
       write(56) ntime,time
       write(56) totcur0,tflux0,gbound,fbound,ptot,vloop
+      write(56) psimin, psilim
       close(56)
 
       if(maxrank.eq.1) then
@@ -160,7 +161,11 @@ c     first put in information to check on run information
 
       read(56) ntime,time
       read(56) totcur0,tflux0,gbound,fbound,ptot,vloop
-      close(56)
+      read(56,END=1199),psimin,psilim
+      goto 1200
+ 1199 if(myrank.eq.0) 
+     &     print *, 'Warning: reading from a previous restart version'
+ 1200 close(56)
       if(maxrank.eq.1) then
          write(9,1201) ntime,time
  1201    format("* * * restart file read at cycle,time = ",i5,1pe12.4,     &
@@ -295,7 +300,6 @@ c     first put in information to check on run information
 c     below specifies that this is the last line
       if(myrank .eq. maxrank-1) write(56) i
 
-      close(56)
       if(myrank .ne. maxrank-1) then
          call MPI_SEND(recvinfo, 1, MPI_INTEGER, myrank+1,
      &        mpitag, MPI_COMM_WORLD, ierr)
@@ -306,6 +310,11 @@ c     below specifies that this is the last line
       endif
 !      write(9,1201) ntime,time !9 is FILE__C1NEW
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+
+      if(myrank.eq.0) then
+         write(56),psimin,psilim
+      endif
+      close(56)
       
  1201 format("* * * restart file written at cycle,time = ",i5,1pe12.4,    &
      &     "  * * *")
@@ -401,8 +410,13 @@ c     first put in information to check on run information
          endif
          read(56) globalid
       enddo 
-      
-      close(56)
+
+      read(56,END=1199),psimin,psilim
+      goto 1200
+ 1199 if(myrank.eq.0) 
+     &     print *, 'Warning: reading from a previous restart version'
+ 1200 close(56)
+
       return
       end
 !============================================================
