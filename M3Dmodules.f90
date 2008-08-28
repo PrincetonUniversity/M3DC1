@@ -30,7 +30,10 @@ module basic
   real :: amu         ! incompressible viscosity
   real :: amuc        ! compressible viscosity
   real :: amupar      ! parallel viscosity coefficient
-  real :: etar, eta0  ! resistivity = etar + eta0/T^(3/2)
+  integer :: iresfunc ! if 1, use new resistivity function
+  real :: etar, eta0  ! iresfunc=0:  resistivity = etar + eta0/T^(3/2)
+  real :: etaoff, etadelt !iresfunc=1: = etar + .5 eta0 (1+tanh(psi-psilim(1+etaoff*DP)/etadelt*DP))
+  !                                                      DP = psilim - psimin
   real :: kappat      ! isotropic temperature conductivity
   real :: kappa0      ! kappa = kappat + kappa0*n/T^(1/2)
   real :: kappah      ! phenomenological model for H-mode
@@ -39,6 +42,7 @@ module basic
   real :: denm        ! artificial density diffusion
   real :: deex        ! scale length of hyperviscosity term
   real :: hyper,hyperi,hyperv,hyperc,hyperp
+
 
   ! physical parameters
   integer :: itor     ! 1 = cylindrical coordinates; 0 = cartesian coordinates
@@ -120,6 +124,7 @@ module basic
   real :: q0          ! safety factor at magnetic axis
   real :: th_gs       ! relaxation factor
   real :: tol_gs  ! error tolorance for GS solver
+   real :: psimin, psilim    !   flux value at magnetic axis and limiter
 
   ! model options
   integer :: linear      ! 1 = linear simulation; 0 = nonlinear simulation
@@ -204,11 +209,11 @@ module basic
 !
   namelist / inputnl/                                          &
        itaylor,                                                &
-       xzero,zzero,beta,rzero, libetap, xlim2, zlim2,     &
+       xzero,zzero,beta,rzero, libetap, xlim2, zlim2,          &
        numvar,idens,ipres,gyro,isources,nosig,itor,jadv,       &
        gam,db,gravr,gravz,                                     &
        p0,pi0,bzero,vzero,phizero,                             &
-       etar,eta0,amu,amuc,amupar,denm,                         &
+       etar,eta0,iresfunc,etaoff,etadelt,amu,amuc,amupar,denm, &
        kappat,kappa0,kappar,kappax,kappah,                     &
        hyper,hyperi,hyperv,hyperc,hyperp,deex,                 &
        iper,jper,imask,amu_edge,com_bc,pedge,                  &

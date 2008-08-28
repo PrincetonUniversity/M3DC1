@@ -234,7 +234,7 @@ subroutine define_transport_coefficients()
 
   temp79c = 0.
 
-  def_fields = FIELD_N + FIELD_PE + FIELD_P
+  def_fields = FIELD_N + FIELD_PE + FIELD_P + FIELD_PSI
 
 !!$
 !!$  def_fields = def_fields + FIELD_PSI + FIELD_I
@@ -251,12 +251,25 @@ subroutine define_transport_coefficients()
      ! resistivity
      ! ~~~~~~~~~~~
      if(solve_resistivity) then
+     select case (iresfunc)
+     case(0)
         ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)
-      if(linear.eq.1) then
-        temp79a = sqrt((n079(:,OP_1)/(pefac*pe079(:,OP_1)))**3)
-      else
-        temp79a = sqrt((nt79(:,OP_1)/(pefac*pet79(:,OP_1)))**3)
-      endif
+        if(linear.eq.1) then
+          temp79a = sqrt((n079(:,OP_1)/(pefac*pe079(:,OP_1)))**3)
+        else
+          temp79a = sqrt((nt79(:,OP_1)/(pefac*pet79(:,OP_1)))**3)
+        endif
+!
+!     added 08/05/08 for stability benchmarking
+      case(1)
+#ifdef USECOMPLEX
+          temp79a = .5*(1. + tanh((real(ps079(:,OP_1))-psilim*(1.+etaoff*(psilim-psimin)))      &
+                                 /(etadelt*(psilim-psimin))))
+#else
+          temp79a = .5*(1. + tanh((ps079(:,OP_1)-psilim*(1.+etaoff*(psilim-psimin)))      &
+                                 /(etadelt*(psilim-psimin))))
+#endif
+      end select
 
      endif
 

@@ -182,6 +182,9 @@
       amu = 0.
       amuc = 0.
       amupar = 0.
+      iresfunc = 0     ! use old definition of resistivity
+      etaoff = 0.
+      etadelt = 0.
       etar = 0.
       eta0   = 0.
       kappat = 0.
