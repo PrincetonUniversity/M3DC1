@@ -5,7 +5,7 @@ module diagnostics
   real :: tflux0, totcur0
 
   ! scalars integrated over entire computational domain
-  real :: tflux, area, totcur, totden, tmom, tvor, psilim, psimin, bwb2
+  real :: tflux, area, totcur, totden, tmom, tvor, psibound, bwb2
 
   ! scalars integrated within lcfs
   real :: pflux, parea, pcur, pden, pmom, pvor
@@ -906,7 +906,7 @@ subroutine lcfs(phin, numvari)
   real :: ajlim
 
   itri = 0.
-  call evaluate(xlim-xzero,zlim-zzero,psilim,ajlim,phin,1,numvari,itri)
+  call evaluate(xlim-xzero,zlim-zzero,psibound,ajlim,phin,1,numvari,itri)
 
 !!$  integer :: i, ifirst, ierr, numnodes, ibegin, iendplusone
 !!$  integer :: izone, izonedim, ibottom, itop, ileft, iright

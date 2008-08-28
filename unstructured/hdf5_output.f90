@@ -433,7 +433,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "time" , time  , ntime, error)
 
   call output_scalar(scalar_group_id, "loop_voltage"    , vloop , ntime, error)
-  call output_scalar(scalar_group_id, "psi_lcfs"        , psilim, ntime, error)
+  call output_scalar(scalar_group_id, "psi_lcfs"        , psibound, ntime, error)
 
   call output_scalar(scalar_group_id, "area"            , area  , ntime, error)
   call output_scalar(scalar_group_id, "toroidal_flux"   , tflux , ntime, error)
