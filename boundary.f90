@@ -632,6 +632,44 @@ end subroutine boundary_dc
 
 
 !=======================================================
+! boundary_nm
+! ~~~~~~~~~~~
+!
+! sets homogeneous Neumann boundary condition
+!=======================================================
+subroutine boundary_nm(imatrix, rhs)
+  use basic
+  use arrays
+
+  implicit none
+  
+  integer, intent(in) :: imatrix
+  vectype, intent(inout), dimension(*) :: rhs
+  
+  integer :: i, izone, izonedim
+  integer :: ibegin, iendplusone, numnodes
+  real :: normal, x, z
+  logical :: is_boundary
+  vectype, dimension(6) :: temp
+
+  if(iper.eq.1 .and. jper.eq.1) return
+
+  temp = 0.
+
+  call numnod(numnodes)
+  do i=1, numnodes
+     call boundary_node(i,is_boundary,izone,izonedim,normal,x,z)
+     if(.not.is_boundary) cycle
+
+     call entdofs(1, i, 0, ibegin, iendplusone)
+
+     call set_normal_bc(imatrix,ibegin,rhs,temp,normal,izonedim)
+  end do
+
+end subroutine boundary_nm
+
+
+!=======================================================
 ! boundary_gs
 ! ~~~~~~~~~~~
 !
