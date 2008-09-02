@@ -4,6 +4,7 @@ module newvar_mod
 
   integer, parameter :: NV_NOBOUND = 0
   integer, parameter :: NV_DCBOUND = 1
+  integer, parameter :: NV_NMBOUND = 2
 
   integer, parameter :: NV_I_MATRIX = 0
   integer, parameter :: NV_LP_MATRIX = 1
@@ -21,7 +22,8 @@ contains
 ! creates a matrix.
 ! ibound:
 !   NV_NOBOUND: no boundary conditions
-!   NV_DCBOUND: dirichlet boundary conditions
+!   NV_DCBOUND: Dirichlet boundary conditions
+!   NV_NMBOUND: Neumann boundary conditions
 ! itype: operator (NV_I_MATRIX, etc..)
 !============================================
 subroutine create_matrix(matrix, ibound, itype, isolve)
@@ -83,6 +85,9 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
               temp = - &
                    (int2(g79(:,OP_DR,i),g79(:,OP_DR,j)) &
                    +int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j)))
+              if(ibound.eq.NV_NMBOUND) then
+                temp = temp - regular*int2(g79(:,OP_1,i),g79(:,OP_1,j))
+              endif
 
            case(NV_GS_MATRIX)
               temp = - &
@@ -108,6 +113,11 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
         call boundary_dc(matrix, rhs2)
         call deletevec(rhs2)
      end if
+     if(ibound.eq.NV_NMBOUND) then
+        call createvec(rhs2, numvar1_numbering)
+        call boundary_nm(matrix, rhs2)
+        call deletevec(rhs2)
+     end if
   end if
 
   call finalizematrix(matrix)
@@ -130,7 +140,7 @@ end subroutine create_matrix
 ! irhs: rhs matrix(B)
 ! ibound: boundary conditions to apply
 !   NV_NOBOUND: no boundary conditions
-!   NV_DCBOUND: dirichlet boundary conditions
+!   NV_DCBOUND: Dirichlet boundary conditions
 !======================================================================
 subroutine newvar(ilhsmat,outarray,inarray,iplace,numvari,irhsmat,ibound)
 
@@ -161,6 +171,7 @@ subroutine newvar(ilhsmat,outarray,inarray,iplace,numvari,irhsmat,ibound)
   end if
 
   if(ibound.eq.NV_DCBOUND) call boundary_dc(0, outarray)
+  if(ibound.eq.NV_NMBOUND) call boundary_nm(0, outarray)
 
   call solve(ilhsmat,outarray,ier)
   
@@ -189,6 +200,7 @@ subroutine solve_newvar(rhs, ibound, imatrix)
   call sumsharedppplvecvals(rhs)
 
   if(ibound.eq.NV_DCBOUND) call boundary_dc(0,rhs)
+  if(ibound.eq.NV_NMBOUND) call boundary_nm(0,rhs)
   call solve(imatrix,rhs,ier)
 
 end subroutine solve_newvar

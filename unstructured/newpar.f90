@@ -118,8 +118,8 @@ Program Reducedquintic
      call create_matrix(lp_matrix_rhs_dc,   NV_DCBOUND, NV_LP_MATRIX, NV_RHS)
   end if
   if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
-     call create_matrix(bf_matrix_rhs_dc, NV_DCBOUND, NV_BF_MATRIX, NV_RHS)
-     call create_matrix(lp_matrix_lhs_dc, NV_DCBOUND, NV_LP_MATRIX, NV_LHS)
+     call create_matrix(bf_matrix_rhs_nm, NV_NOBOUND, NV_BF_MATRIX, NV_RHS)
+     call create_matrix(lp_matrix_lhs_nm, NV_NMBOUND, NV_LP_MATRIX, NV_LHS)
   endif
   if(gyro.eq.1 .and. numvar.ge.2) then
      call zeromultiplymatrix(gyro_torque_sm,icomplex,vecsize_vel)
@@ -335,8 +335,8 @@ Program Reducedquintic
      call deletematrix(q9matrix_sm)
   endif
   if(i3d.eq.1 .or. ifout.eq.1) then
-     call deletematrix(bf_matrix_rhs_dc)
-     call deletematrix(lp_matrix_lhs_dc)
+     call deletematrix(bf_matrix_rhs_nm)
+     call deletematrix(lp_matrix_lhs_nm)
   end if
   if(gyro.eq.1) then
      call deletematrix(gyro_torque_sm)
@@ -545,8 +545,11 @@ subroutine derived_quantities(vec)
   ! vector potential stream function
   if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, "-f"
-     call newvar(lp_matrix_lhs_dc,bf,vec,bz_g,num_fields, &
-          bf_matrix_rhs_dc,NV_DCBOUND)
+!    call newvar(lp_matrix_lhs_nm,bf,vec,bz_g,num_fields, &
+!         bf_matrix_rhs_nm,NV_DCBOUND)
+!....the preceeding two lines  (08/30/08) scj were replaced by the following two lines  (08/30/08) scj
+     call newvar(lp_matrix_lhs_nm,bf,vec,bz_g,num_fields, &
+          bf_matrix_rhs_nm,NV_NMBOUND)
   endif
 
   if(myrank.eq.0 .and. itimer.eq.1) then
