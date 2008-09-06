@@ -617,8 +617,8 @@ subroutine gradshafranov_solve
         gamma3 = 0.
         gamma4 = 0.
      else
-        gamma2 = -2.*xmag*(0.5*xmag*p0*p1 + abs(g0)/(xmag**2*q0*dpsii))
-        gamma3 = -0.5*(xmag*djdpsi/dpsii + 2.*xmag**2*p0*p2)
+        gamma2 =  -xmag**2*p0*p1 + -2.*abs(g0)/(xmag*q0*dpsii) 
+        gamma3 = -4.*(abs(g0)/xmag)*djdpsi/dpsii - xmag**2*p0*p2
         gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
      endif
          
@@ -651,10 +651,10 @@ subroutine gradshafranov_solve
 
      if(myrank.eq.0 ) then
         print *, "Converged GS: curr =", curr," error =",error2
-        gamma2a = -2.*xmag*(0.5*xmag*p0*p1) 
-        gamma2b = -2.*xmag*(abs(g0)/(xmag**2*q0*dpsii))
-        gamma3a = -0.5*(xmag*djdpsi/dpsii)
-        gamma3b = -0.5*(2.*xmag**2*p0*p2)
+        gamma2a = -xmag**2*p0*p1
+        gamma2b = -2.*(abs(g0)/(xmag*q0*dpsii))
+        gamma3a = -4.*(abs(g0)/xmag)*djdpsi/dpsii
+        gamma3b = -xmag**2*p0*p2
 
         write(*,1001) gamma2,gamma3,gamma4,xmag,p0,p1,p2,g0,dpsii,   &
                       djdpsi,tcuro,gsint1,gsint2,gsint3,gsint4,         &
