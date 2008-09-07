@@ -240,8 +240,9 @@ subroutine gradshafranov_solve
   integer :: ibegin, iendplusone
   integer :: ineg, ier
   real :: dterm(18,18), sterm(18,18)
-  real :: fac, aminor, bv, fintl(-6:maxi,-6:maxi)
+  real :: fac, aminor, bv, feedfac, gnorm, fintl(-6:maxi,-6:maxi)
   real, dimension(6,maxcoils) :: g
+  real, dimension(6) :: g1, g2
   real, dimension(maxcoils) :: xp, zp, xc, zc
   real :: x, z, xmin, zmin, xrel, zrel, xguess, zguess, error, error2
   real :: sum, rhs, ajlim, curr, norm, rnorm, g0, sum2, norm2
@@ -317,7 +318,8 @@ subroutine gradshafranov_solve
   enddo
 
   ! insert boundary conditions
-  call boundary_gs(gsmatrix_sm, b1vecini)
+  feedfac = 0.
+  call boundary_gs(gsmatrix_sm, b1vecini, feedfac)
   call finalizematrix(gsmatrix_sm)
 
   if(myrank.eq.0 .and. itimer.eq.1) then
@@ -345,6 +347,21 @@ subroutine gradshafranov_solve
   endif
   call getboundingboxsize(alx,alz)
   rnorm = xzero + alx/2.
+
+!......define feedback parameters
+  if(idevice .eq. 0) then
+    xc(1) = 102.
+    zc(1) = rnorm
+    xp = xlim
+    zp = zlim
+    call gvect(xp,zp,xc,zc,1,g1,1,ineg)
+    xp = xlim2
+    zp = zlim2
+    call gvect(xp,zp,xc,zc,1,g2,1,ineg)
+    gnorm = g1(1) - g2(1)
+  endif
+
+
   psi = 0.
 
   do i=1,numnodes
@@ -448,7 +465,13 @@ subroutine gradshafranov_solve
      if(myrank.eq.0 .and. iprint.eq.1) print *, "GS: iteration = ", itnum
      
      ! apply boundary conditions
-     call boundary_gs(0, b1vecini)
+
+     if(itnum.gt.1 .and. gnorm.ne.0) then
+       feedfac = -0.5*(psilim - psilim2)/gnorm
+       if(myrank.eq.0 .and. iprint.eq.1) print *,"feedfac, psilim, psilim2,gnorm", feedfac, psilim, psilim2, gnorm
+     endif
+
+     call boundary_gs(0, b1vecini, feedfac)
 
      ! perform LU backsubstitution to get psi solution
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
