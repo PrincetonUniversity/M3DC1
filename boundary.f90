@@ -675,7 +675,7 @@ end subroutine boundary_nm
 !
 ! sets boundary conditions on psi in the GS solver
 !=======================================================
-subroutine boundary_gs(imatrix, rhs)
+subroutine boundary_gs(imatrix, rhs, feedfac)
   use basic
   use arrays
   use gradshafranov
@@ -683,17 +683,23 @@ subroutine boundary_gs(imatrix, rhs)
   implicit none
   
   integer, intent(in) :: imatrix
+  real, intent(in) :: feedfac
   vectype, intent(inout), dimension(*) :: rhs
   
   integer :: i, izone, izonedim
-  integer :: ibegin, iendplusone, numnodes
-  real :: normal, x, z
+  integer :: ibegin, iendplusone, numnodes, ineg
+  real :: normal, x, z, xmin, zmin, alx, alz
+  real, dimension(6) :: g
+  real, dimension(1) :: xp, zp, xc, zc
+  double precision :: coords(3)
   logical :: is_boundary
   vectype, dimension(6) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
+  call getboundingboxsize(alx, alz)
 
   call numnod(numnodes)
+  call getmincoord(xmin,zmin)
 
   do i=1, numnodes
      call boundary_node(i,is_boundary,izone,izonedim,normal,x,z)
@@ -701,6 +707,17 @@ subroutine boundary_gs(imatrix, rhs)
 
      call assign_local_pointers(i)
      call entdofs(numvargs, i, 0, ibegin, iendplusone)
+
+!......add feedback field
+     if(idevice .eq. 0) then
+        call xyznod(i,coords)
+        xp = coords(1) - xmin + xzero
+        zp = coords(2) - zmin + zzero
+        xc(1) = 102.
+        zc(1) = xzero + alx/2.
+        call gvect(xp,zp,xc,zc,1,g,1,ineg)
+        psis_l = psis_l + g*feedfac
+     endif
 
      ! clamp magnetic field
      temp = psis_l

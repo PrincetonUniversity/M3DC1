@@ -394,7 +394,10 @@ subroutine define_transport_coefficients()
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' solving...'
 
   if(solve_resistivity) then
-     if(myrank.eq.0 .and. iprint.ge.1) print *, '  resistivity'
+     if(myrank.eq.0 .and. iprint.ge.1) then
+        print *, '  resistivity'
+        print *, "psilim,psimin,etaoff,etadelt,eta0,etar", psilim,psimin,etaoff,etadelt,eta0,etar
+     endif
      call solve_newvar(resistivity, NV_NOBOUND, mass_matrix_lhs)
   end if
 
