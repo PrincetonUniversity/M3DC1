@@ -752,6 +752,8 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
              *((-1)^i)
        end
 
+       symbol = '!7D!X' + symbol
+
        return, data
    end
 
@@ -824,6 +826,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 
        data = 2.*P/b2
        symbol = '!7b!X'
+
 
    ;===========================================
    ; toroidal field
@@ -1868,16 +1871,17 @@ pro plot_field, name, time, x, y, points=p, filename=filename, mesh=plotmesh, $
    endif else begin
        for k=0, nt-1 do begin
            if((notitle eq 1) and (n_elements(t) ne 0)) then begin
-               if(t[k] gt 0) then begin
-                   title = fieldname + $
-                     string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!X")', $
-                            t[k])
-               endif else begin
-                   title = fieldname + $
-                     string(FORMAT='("!6(!8t!6 = ",G0,")!X")', t[k])
-               endelse
+;              if(t[k] gt 0) then begin
+;                  title = fieldname + $
+;                    string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!X")', $
+;                           t[k])
+;              endif else begin
+;                  title = fieldname + $
+;                    string(FORMAT='("!6(!8t!6 = ",G0,")!X")', t[k])
+;              endelse
+               title = fieldname
            end
-
+           
            contour_and_legend, field[k,*,*], x, y, title=title, label=units, $
              xtitle='!8R!6 (' + make_units(/l0) + '!6)!X', $
              ytitle='!8Z!6 (' + make_units(/l0) + '!6)!X', $
@@ -2983,11 +2987,12 @@ pro plot_pol_velocity, time,  maxval=maxval, points=points, $
   endif else length=1
 
   if(n_elements(title) eq 0) then begin
+      title = '!6Poloidal Flow!X'
        if(t gt 0) then begin
-           title = "!6Poloidal Flow !X" + $
+           title = title +  $
              string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!60!N)!X")', t)
        endif else begin
-           title = "!6Poloidal Flow !X" + $
+           title = title + $
              string(FORMAT='("!6(!8t!6 = ",G0,")!X")', t)
        endelse
    endif
@@ -3333,6 +3338,33 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, $
            name = '!6Safety Factor!X'
            symbol = '!8q!X'
 
+       endif else $
+         if(strcmp(field, 'beta_pol', /fold_case) eq 1) then begin
+           I = read_field('I', x, z, t, points=points, $
+                          slice=time, _EXTRA=extra)
+           
+           bzero = read_parameter('bzero',_EXTRA=extra)
+           xzero = read_parameter('xzero',_EXTRA=extra)
+           izero = bzero*xzero
+           print, 'izero = ', izero
+       
+           r = radius_matrix(x,z,t)
+
+           bpol2 = s_bracket(psi,psi,x,z)/r^2
+
+           ii = flux_average_field(izero^2-i^2,psi,x,z,t,$
+             flux=flux, area=area, dV=dV, bins=bins, _EXTRA=extra)
+           rr = flux_average_field(r,psi,x,z,t,$
+             flux=flux, area=area, dV=dV, bins=bins, _EXTRA=extra)
+           bb = flux_average_field(bpol2,psi,x,z,t,$
+             flux=flux, area=area, dV=dV, bins=bins, _EXTRA=extra)
+         
+           symbol = '!7b!6!Dpol!N!X'
+           units = ''
+           name = '!6Poloidal Beta!X'
+
+           return, 1.+0.5*ii/(bb*rr^2)
+           
        endif else if (strcmp(field, 'gam', /fold_case) eq 1) then begin
            minor_r = read_field('r', x, z, t, points=points, $
                                 slice=time, _EXTRA=extra)
@@ -3357,10 +3389,9 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, $
 
 
        endif else begin
-           name = translate(field, units=units)
            field = read_field(field, x, z, t, slice=time, points=points,$
-                              _EXTRA=extra)
-           symbol = name
+                              _EXTRA=extra, symbol=symbol, units=units)
+           name = symbol
        endelse
    endif else begin
        name = ''

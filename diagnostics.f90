@@ -879,7 +879,8 @@ subroutine magaxis(xguess,zguess,phin,numvari,psim)
   zguess = z
   psim = pt
 
-  if(myrank.eq.0 .and. iprint.gt.0) print *, " magaxis: minimum at ", xguess, zguess
+  if(myrank.eq.0 .and. iprint.gt.0) &
+       print *, " magaxis: minimum at ", xguess, zguess
   
 end subroutine magaxis
 

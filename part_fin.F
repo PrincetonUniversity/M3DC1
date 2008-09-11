@@ -76,7 +76,7 @@
      &        12, 0, 0, 0, maxdofs2)
          call createdofnumbering(num_fields, iper, jper, 
      &        num_fields*6, 0, 0, 0, maxdofsn)
-         if(vecsize_phi.gt.2) then
+         if(vecsize_phi.gt.2 .and. vecsize_phi.ne.num_fields) then
             call createdofnumbering(vecsize_phi, iper, jper,
      &           vecsize_phi*6, 0, 0, 0, maxdofsn)
          endif
@@ -518,8 +518,8 @@
       use sparse
       implicit none
 
-      if(myrank.eq.1 .and. iprint.ge.1) print *, " Entering init..."
-
+      if(myrank.eq.0 .and. iprint.ge.1) print *, " Entering init..."
+      
       fbound = 0.
       gbound = 0.
 !
@@ -538,7 +538,7 @@
 !.....define 1/R for toroidal problem
       if(itor.eq.1) call rinvdef(rinv)
 
-      if(myrank.eq.1 .and. iprint.ge.1) print *, " Exiting init."
+      if(myrank.eq.0 .and. iprint.ge.1) print *, " Exiting init."
 
       return
       end

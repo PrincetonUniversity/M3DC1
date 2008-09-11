@@ -516,7 +516,7 @@ subroutine gradshafranov_solve
 
        call evaluate(xrel,zrel,psilim2,ajlim,psi,1,numvargs,itri)
      else
-       psilim2 = 0.
+        psilim2 = psilim
      endif
 
      ! define the pressure and toroidal field functions
@@ -640,7 +640,7 @@ subroutine gradshafranov_solve
         gamma3 = 0.
         gamma4 = 0.
      else
-        gamma2 =  -xmag**2*p0*p1 + -2.*abs(g0)/(xmag*q0*dpsii) 
+        gamma2 =  -xmag**2*p0*p1 + -2.*abs(g0)/(xmag*q0*abs(dpsii)) 
         gamma3 = -4.*(abs(g0)/xmag)*djdpsi/dpsii - xmag**2*p0*p2
         gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
      endif
@@ -726,6 +726,7 @@ subroutine gradshafranov_solve
      den0_l(6) = p0_l(1)**(expn-1.)*p0_l(6)*expn &
           + p0_l(1)**(expn-2.)*p0_l(3)**2.*expn*(expn-1.)
      den0_l = den0_l/p0**expn
+
   end do
 
   ! correct for left-handedness

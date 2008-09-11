@@ -851,6 +851,7 @@ subroutine unsplit_step(calc_matrices)
   endif
   
   ! solve linear system...LU decomposition done first time
+  if(myrank.eq.0 .and. iprint.eq.1) print *, "solving.."
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   if(flg_petsc .and. flg_solve2) then
   call solve2(s1matrix_sm, b1_phi, jer)
@@ -865,16 +866,99 @@ subroutine unsplit_step(calc_matrices)
      write(*,*) 'Error in field solve', jer
      call safestop(29)
   endif
+  if(myrank.eq.0 .and. iprint.eq.1) print *, "done solve."
   
   ! new field solution at time n+1
   if(integrator.eq.1 .and. ntime.gt.1) then
      b1_phi = (2.*b1_phi - phiold)/3.
   endif
-  phiold = phi
-  phi = b1_phi
 
   ! apply smoothing operators
   call smooth(phi)
+
+  if(iteratephi.eq.1) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "secondary advance..."
+
+     ! temporarily advance fields to new values
+     b2_phi = phi
+     phi = b1_phi
+     call export_time_advance_vectors
+     ! redefine transport coefficients with new den/pe values
+     call define_transport_coefficients
+     ! revert fields to old values
+     phi = b2_phi
+        
+     ! recalculate field advance matrix
+     ! (advanced velocity variables will be used in defining matrix)
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     call ludefall
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_ludefall = t_ludefall + tend - tstart
+     endif
+
+     ! vtemp = d1matrix_sm * phi(n)
+     call matvecmult(d1matrix_sm,phi,b1_phi) 
+     b1_phi = b1_phi + q4
+
+     ! Include linear f terms
+     if(numvar.ge.2 .and. i3d.eq.1) then
+        ! b2vector = r15 * bf(n)
+     
+        ! make a larger vector that can be multiplied by a vecsize matrix
+        phip = 0.
+        do l=1,numnodes
+           call entdofs(1, l, 0, ibegin, iendplusone)
+           call entdofs(vecsize_phi, l, 0, ibeginnv, iendplusonenv)
+           
+           phip(ibeginnv  :ibeginnv+5) = bf(ibegin:ibegin+5)
+        enddo
+        call matvecmult(o1matrix_sm,phip,b2_phi)
+        b1_phi = b1_phi + b2_phi
+     endif
+    
+     ! Insert boundary conditions
+     if(calc_matrices.eq.1) then
+        call boundary_mag(s1matrix_sm, b1_phi)
+        call boundary_vel(s1matrix_sm, b1_phi)
+        if(idens.eq.1) call boundary_den(s1matrix_sm, b1_phi)
+        if(ipres.eq.1) call boundary_pres(s1matrix_sm, b1_phi)
+        call finalizematrix(s1matrix_sm)
+     else 
+        call boundary_mag(0, b1_phi)
+        call boundary_vel(0, b1_phi)
+        if(idens.eq.1) call boundary_den(0, b1_phi)
+        if(ipres.eq.1) call boundary_pres(0, b1_phi)
+     endif
+     
+     ! solve linear system...LU decomposition done first time
+     if(myrank.eq.0 .and. iprint.eq.1) print *, "solving.."
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     if(flg_petsc .and. flg_solve2) then
+        call solve2(s1matrix_sm, b1_phi, jer)
+     else
+        call solve(s1matrix_sm, b1_phi, jer)
+     endif
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_solve_b = t_solve_b + tend - tstart
+     endif
+     if(jer.ne.0) then
+        write(*,*) 'Error in field solve', jer
+        call safestop(29)
+     endif
+     
+     ! new field solution at time n+1
+     if(integrator.eq.1 .and. ntime.gt.1) then
+        b1_phi = (2.*b1_phi - phiold)/3.
+     endif
+     
+     ! apply smoothing operators
+     call smooth(phi)
+  endif
+     
+  phiold = phi
+  phi = b1_phi
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done solving matrix equation."
 end subroutine unsplit_step

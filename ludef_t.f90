@@ -1054,8 +1054,8 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
 
   temp = b1psiu  (trial,lin,pht79)
-  ssterm(psi_g) = ssterm(psi_g) -     thimpb     *dt*temp
-  ddterm(psi_g) = ddterm(psi_g) + (1.-thimpb*bdf)*dt*temp
+  ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
+  ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
 
   temp = (b1psipsid(trial,lin,ps179,ni79) &
          +b1psipsid(trial,ps179,lin,ni79))*dbf
@@ -1098,8 +1098,8 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
 
      temp = b1psiv  (trial,lin,vzt79)
-     ssterm(psi_g) = ssterm(psi_g) -     thimpb     *dt*temp
-     ddterm(psi_g) = ddterm(psi_g) + (1.-thimpb*bdf)*dt*temp
+     ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
+     ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
 
      temp = b1bu(trial,lin,pht79) &
           + b1bv(trial,lin,vzt79)
@@ -1153,8 +1153,8 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
      ddterm(pe_g) = ddterm(pe_g) + (1.-thimp*bdf)*dt*temp
 
      temp = b1psichi(trial,lin,cht79)                
-     ssterm(psi_g) = ssterm(psi_g) -     thimpb     *dt*temp
-     ddterm(psi_g) = ddterm(psi_g) + (1.-thimpb*bdf)*dt*temp
+     ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
+     ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
 
      temp = b1psichi(trial,ps179,lin)                
      ssterm(chi_g) = ssterm(chi_g) - thimpb*dt*temp
@@ -1255,8 +1255,8 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
          
   temp = b2psiv(trial,lin,vzt79)
-  ssterm(psi_g) = ssterm(psi_g) -     thimpb     *dt*temp
-  ddterm(psi_g) = ddterm(psi_g) + (1.-thimpb*bdf)*dt*temp
+  ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
+  ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
 
   temp = b2psipsid(trial,lin,ps179,ni79)*dbf &
        + b2psipsid(trial,ps179,lin,ni79)*dbf &
@@ -1273,8 +1273,8 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
 
   temp = b2bu(trial,lin,pht79)
-  ssterm(bz_g) = ssterm(bz_g) -     thimpb     *dt*temp
-  ddterm(bz_g) = ddterm(bz_g) + (1.-thimpb*bdf)*dt*temp
+  ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
+  ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
 
   temp = b2psibd(trial,ps179,lin,ni79)*dbf &
        + b2bbd  (trial,lin,bz179,ni79)*dbf &
@@ -1334,8 +1334,8 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   if(numvar.ge.3) then
 
      temp = b2bchi(trial,lin,cht79)                  
-     ssterm(bz_g) = ssterm(bz_g) -     thimpb     *dt*temp
-     ddterm(bz_g) = ddterm(bz_g) + (1.-thimpb*bdf)*dt*temp
+     ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
+     ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
 
      temp = b2ped(trial,lin,ni79)*dbf*pefac
      ssterm(pe_g) = ssterm(pe_g) -     thimp     *dt*temp
@@ -1448,8 +1448,8 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   temp = p1pu  (trial,lin,pht79) & 
        + p1pv  (trial,lin,vzt79) &
        + p1pchi(trial,lin,cht79)
-  ssterm(pe_g) = ssterm(pe_g) -     thimpb     *dt*temp
-  ddterm(pe_g) = ddterm(pe_g) + (1.-thimpb*bdf)*dt*temp
+  ssterm(pe_g) = ssterm(pe_g) -     thimp     *dt*temp
+  ddterm(pe_g) = ddterm(pe_g) + (1.-thimp*bdf)*dt*temp
 
   temp = p1pu(trial,pe179,lin)
   ssterm(u_g) = ssterm(u_g) - thimpb*dt*temp
@@ -2311,9 +2311,16 @@ subroutine ludefden_n(itri)
 
   integer :: nn1, nn0, nv1, nv0
   vectype, pointer :: nsource(:)
+  real :: thimpb
 
   vectype, dimension(MAX_PTS,OP_NUM) :: hp
   hp = hypp*sz79
+
+  if(imp_mod.eq.1) then
+     thimpb = 1.
+  else
+     thimpb = thimp
+  endif
 
   if(isplitstep.eq.1) then
      nn1 = s8matrix_sm
@@ -2362,13 +2369,13 @@ subroutine ludefden_n(itri)
         ddterm = ddterm + (1.-thimp*bdf)*dt*temp
 
         temp = n1nu(g79(:,:,i),n179,g79(:,:,j))
-        rrterm(1) = rrterm(1) + thimp*dt*temp
-        qqterm(1) = qqterm(1) - thimp*dt*temp*bdf
+        rrterm(1) = rrterm(1) + thimpb*dt*temp
+        qqterm(1) = qqterm(1) - thimpb*dt*temp*bdf
 
         if(eqsubtract.eq.1) then
            temp = n1nu  (g79(:,:,i),n079,g79(:,:,j))
-           rrterm(1) = rrterm(1) +     thimp     *dt*temp
-           qqterm(1) = qqterm(1) + (1.-thimp*bdf)*dt*temp
+           rrterm(1) = rrterm(1) +     thimpb     *dt*temp
+           qqterm(1) = qqterm(1) + (1.-thimpb*bdf)*dt*temp
         endif
 
 #ifdef USECOMPLEX
@@ -2380,13 +2387,13 @@ subroutine ludefden_n(itri)
            ddterm = ddterm + (1.-thimp*bdf)*dt*temp
            
            temp = n1nv(g79(:,:,i),n179,g79(:,:,j))
-           rrterm(2) = rrterm(2) + thimp*dt*temp
-           qqterm(2) = qqterm(2) - thimp*dt*temp*bdf
+           rrterm(2) = rrterm(2) + thimpb*dt*temp
+           qqterm(2) = qqterm(2) - thimpb*dt*temp*bdf
 
            if(eqsubtract.eq.1) then
               temp = n1nv(g79(:,:,i),n079,g79(:,:,j))
-              rrterm(2) = rrterm(2) +     thimp     *dt*temp
-              qqterm(2) = qqterm(2) + (1.-thimp*bdf)*dt*temp
+              rrterm(2) = rrterm(2) +     thimpb     *dt*temp
+              qqterm(2) = qqterm(2) + (1.-thimpb*bdf)*dt*temp
            endif
         endif
 #endif
@@ -2399,13 +2406,13 @@ subroutine ludefden_n(itri)
            ddterm = ddterm + (1.-thimp*bdf)*dt*temp
            
            temp = n1nchi(g79(:,:,i),n179,g79(:,:,j))
-           rrterm(3) = rrterm(3) + thimp*dt*temp
-           qqterm(3) = qqterm(3) - thimp*dt*temp*bdf
+           rrterm(3) = rrterm(3) + thimpb*dt*temp
+           qqterm(3) = qqterm(3) - thimpb*dt*temp*bdf
 
            if(eqsubtract.eq.1) then
               temp = n1nchi(g79(:,:,i),n079,g79(:,:,j))
-              rrterm(3) = rrterm(3) +     thimp     *dt*temp
-              qqterm(3) = qqterm(3) + (1.-thimp*bdf)*dt*temp
+              rrterm(3) = rrterm(3) +     thimpb     *dt*temp
+              qqterm(3) = qqterm(3) + (1.-thimpb*bdf)*dt*temp
            endif
         endif
 
@@ -2463,10 +2470,34 @@ subroutine ludefpres_n(itri)
   vectype :: ssterm, ddterm
   vectype, dimension(3) :: rrterm, qqterm
 
+  integer :: pp1, pp0, pv1, pv0
+  vectype, pointer :: psource(:)
+
   vectype :: temp
+  real :: thimpb
 
   vectype, dimension(MAX_PTS,OP_NUM) :: hp
   hp = hypp*sz79
+
+  if(imp_mod.eq.1) then
+     thimpb = 1.
+  else
+     thimpb = thimp
+  endif
+
+  if(isplitstep.eq.1) then
+     pp1 = s9matrix_sm
+     pp0 = d9matrix_sm
+     pv1 = r9matrix_sm
+     pv0 = q9matrix_sm
+     psource => qp4
+  else
+     pp1 = s1matrix_sm
+     pp0 = d1matrix_sm
+     pv1 = s1matrix_sm
+     pv0 = d1matrix_sm
+     psource => q4
+  endif
 
   do i=1,18
      if(isplitstep.eq.1) then
@@ -2501,13 +2532,13 @@ subroutine ludefpres_n(itri)
         ddterm = ddterm + (1.-thimp*bdf)*dt*temp
 
         temp = p1pu(g79(:,:,i),p179,g79(:,:,j))
-        rrterm(1) = rrterm(1) + thimp*dt*temp
-        qqterm(1) = qqterm(1) - thimp*dt*temp*bdf
+        rrterm(1) = rrterm(1) + thimpb*dt*temp
+        qqterm(1) = qqterm(1) - thimpb*dt*temp*bdf
 
         if(eqsubtract.eq.1) then
            temp = p1pu  (g79(:,:,i),p079,g79(:,:,j))
-           rrterm(1) = rrterm(1) +     thimp     *dt*temp
-           qqterm(1) = qqterm(1) + (1.-thimp*bdf)*dt*temp
+           rrterm(1) = rrterm(1) +     thimpb     *dt*temp
+           qqterm(1) = qqterm(1) + (1.-thimpb*bdf)*dt*temp
         endif
 
         ! NUMVAR = 2
@@ -2518,13 +2549,13 @@ subroutine ludefpres_n(itri)
           ddterm = ddterm + (1.-thimp*bdf)*dt*temp
 
           temp = p1pv(g79(:,:,i),p179,g79(:,:,j))
-          rrterm(2) = rrterm(2) + thimp*dt*temp
-          qqterm(2) = qqterm(2) - thimp*dt*temp*bdf
+          rrterm(2) = rrterm(2) + thimpb*dt*temp
+          qqterm(2) = qqterm(2) - thimpb*dt*temp*bdf
 
           if(eqsubtract.eq.1) then
              temp = p1pv  (g79(:,:,i),p079,g79(:,:,j))
-             rrterm(2) = rrterm(2) +     thimp     *dt*temp
-             qqterm(2) = qqterm(2) + (1.-thimp*bdf)*dt*temp
+             rrterm(2) = rrterm(2) +     thimpb     *dt*temp
+             qqterm(2) = qqterm(2) + (1.-thimpb*bdf)*dt*temp
           endif
         endif
 
@@ -2539,104 +2570,102 @@ subroutine ludefpres_n(itri)
            ddterm = ddterm + (1.-thimp*bdf)*dt*temp
            
            temp = p1pchi(g79(:,:,i),p179,g79(:,:,j))
-           rrterm(3) = rrterm(3) + thimp*dt*temp
-           qqterm(3) = qqterm(3) - thimp*dt*temp*bdf
+           rrterm(3) = rrterm(3) + thimpb*dt*temp
+           qqterm(3) = qqterm(3) - thimpb*dt*temp*bdf
 
            temp = p1uus  (g79(:,:,i),g79(:,:,j),ph179,sig79) &
                 + p1uus  (g79(:,:,i),ph179,g79(:,:,j),sig79) &
                 + p1uchis(g79(:,:,i),g79(:,:,j),ch179,sig79) 
-           rrterm(1) = rrterm(1) +     thimp     *dt*temp
-           qqterm(1) = qqterm(1) + (.5-thimp*bdf)*dt*temp
+           rrterm(1) = rrterm(1) +     thimpb     *dt*temp
+           qqterm(1) = qqterm(1) + (.5-thimpb*bdf)*dt*temp
 
            temp = p1vvs  (g79(:,:,i),g79(:,:,j),vz179,sig79) &
                 + p1vvs  (g79(:,:,i),vz179,g79(:,:,j),sig79)
-           rrterm(2) = rrterm(2) +     thimp     *dt*temp
-           qqterm(2) = qqterm(2) + (.5-thimp*bdf)*dt*temp
+           rrterm(2) = rrterm(2) +     thimpb     *dt*temp
+           qqterm(2) = qqterm(2) + (.5-thimpb*bdf)*dt*temp
 
            temp = p1chichis(g79(:,:,i),g79(:,:,j),ph179,sig79) &
                 + p1chichis(g79(:,:,i),ph179,g79(:,:,j),sig79) &
                 + p1uchis  (g79(:,:,i),ph079,g79(:,:,j),sig79) 
-           rrterm(3) = rrterm(3) +     thimp     *dt*temp
-           qqterm(3) = qqterm(3) + (.5-thimp*bdf)*dt*temp
+           rrterm(3) = rrterm(3) +     thimpb     *dt*temp
+           qqterm(3) = qqterm(3) + (.5-thimpb*bdf)*dt*temp
 
            if(eqsubtract.eq.1) then
               temp = p1pchi(g79(:,:,i),p079,g79(:,:,j))
-              rrterm(3) = rrterm(3) +     thimp     *dt*temp
-              qqterm(3) = qqterm(3) + (1.-thimp*bdf)*dt*temp
+              rrterm(3) = rrterm(3) +     thimpb     *dt*temp
+              qqterm(3) = qqterm(3) + (1.-thimpb*bdf)*dt*temp
 
               temp = p1uus  (g79(:,:,i),g79(:,:,j),ph079,sig79) &
                    + p1uus  (g79(:,:,i),ph079,g79(:,:,j),sig79) &
                    + p1uchis(g79(:,:,i),g79(:,:,j),ch079,sig79) 
-              rrterm(1) = rrterm(1) +     thimp     *dt*temp
-              qqterm(1) = qqterm(1) + (1.-thimp*bdf)*dt*temp
+              rrterm(1) = rrterm(1) +     thimpb     *dt*temp
+              qqterm(1) = qqterm(1) + (1.-thimpb*bdf)*dt*temp
 
               temp = p1vvs  (g79(:,:,i),g79(:,:,j),vz079,sig79) &
                    + p1vvs  (g79(:,:,i),vz079,g79(:,:,j),sig79)
-              rrterm(2) = rrterm(2) +     thimp     *dt*temp
-              qqterm(2) = qqterm(2) + (1.-thimp*bdf)*dt*temp
+              rrterm(2) = rrterm(2) +     thimpb     *dt*temp
+              qqterm(2) = qqterm(2) + (1.-thimpb*bdf)*dt*temp
 
               temp = p1chichis(g79(:,:,i),g79(:,:,j),ph079,sig79) &
                    + p1chichis(g79(:,:,i),ph079,g79(:,:,j),sig79) &
                    + p1uchis  (g79(:,:,i),ph079,g79(:,:,j),sig79) 
-              rrterm(3) = rrterm(3) +     thimp     *dt*temp
-              qqterm(3) = qqterm(3) + (1.-thimp*bdf)*dt*temp
+              rrterm(3) = rrterm(3) +     thimpb     *dt*temp
+              qqterm(3) = qqterm(3) + (1.-thimpb*bdf)*dt*temp
            endif
         endif
 
         if(isplitstep.eq.0) rrterm = -rrterm
 
-        call insval(s9matrix_sm, ssterm, icomplex, ione, jone, 1)
-        call insval(d9matrix_sm, ddterm, icomplex, ione, jone, 1)
-        call insval(r9matrix_sm, rrterm(1), icomplex, i1, j1, 1)
-        call insval(q9matrix_sm, qqterm(1), icomplex, i1, j1, 1)
+        call insval(pp1, ssterm, icomplex, ione+p_off, jone+p_off, 1)
+        call insval(pp0, ddterm, icomplex, ione+p_off, jone+p_off, 1)
+        call insval(pv1, rrterm(1), icomplex, i1+p_off, j1+u_off, 1)
+        call insval(pv0, qqterm(1), icomplex, i1+p_off, j1+u_off, 1)
         if(numvar.ge.2) then
-           call insval(r9matrix_sm,rrterm(2), icomplex, i1,j1+6,1)
-           call insval(q9matrix_sm,qqterm(2), icomplex, i1,j1+6,1)
+           call insval(pv1,rrterm(2), icomplex, i1+p_off,j1+vz_off,1)
+           call insval(pv0,qqterm(2), icomplex, i1+p_off,j1+vz_off,1)
         endif
         if(numvar.ge.3) then
-           call insval(r9matrix_sm,rrterm(3), icomplex, i1,j1+12,1)
-           call insval(q9matrix_sm,qqterm(3), icomplex, i1,j1+12,1)
+           call insval(pv1,rrterm(3), icomplex, i1+p_off,j1+chi_off,1)
+           call insval(pv0,qqterm(3), icomplex, i1+p_off,j1+chi_off,1)
         endif
 
      enddo                     ! on j
 
-   if(linear.eq.0) then
-
-     qp4(ione) = qp4(ione) + dt* &
-          (b3psipsieta(g79(:,:,i),pst79,pst79,eta79))
+     if(linear.eq.0) then
+        psource(ione) = psource(ione) + dt* &
+             (b3psipsieta(g79(:,:,i),pst79,pst79,eta79))
       
-     if(numvar.ge.2) then
-        qp4(ione) = qp4(ione) + dt* &
-             (b3bbeta(g79(:,:,i),bzt79,bzt79,eta79))
-     endif
+        if(numvar.ge.2) then
+           psource(ione) = psource(ione) + dt* &
+                (b3bbeta(g79(:,:,i),bzt79,bzt79,eta79))
+        endif
         
-     if(numvar.ge.3) then
-        qp4(ione) = qp4(ione) + dt*dbf* &
-             (b3pebd(g79(:,:,i),pet79,bzt79,ni79))
-     endif
-
-     if(eqsubtract.eq.1) then
-                
-        qp4(ione) = qp4(ione) + dt* &
-             (b3pedkappa(g79(:,:,i),p079,ni79,kap79,hp) &
-             +p1kappar  (g79(:,:,i),ps079,ps079,p079,ni79,b2i79,kar79) &
-             +p1kappax  (g79(:,:,i),pe079,bz079,ni79,kax79) &
-             +p1uus    (g79(:,:,i),ph079,ph079,sig79) &
-             +p1vvs    (g79(:,:,i),vz079,vz079,sig79) &
-             +p1chichis(g79(:,:,i),ch079,ch079,sig79) &
-             +p1uchis  (g79(:,:,i),ph079,ch079,sig79))
-
-        qp4(ione) = qp4(ione) + dt* &
-             (p1pu   (g79(:,:,i),p079,ph079))
-       
         if(numvar.ge.3) then
-             qp4(ione) = qp4(ione) + dt* &
-                (p1pchi(g79(:,:,i),p079,ch079))
+           psource(ione) = psource(ione) + dt*dbf* &
+                (b3pebd(g79(:,:,i),pet79,bzt79,ni79))
         endif
 
-     endif
-  
-   endif  ! on linear.eq.0
+        if(eqsubtract.eq.1) then
+           psource(ione) = psource(ione) + dt* &
+                (b3pedkappa(g79(:,:,i),p079,ni79,kap79,hp) &
+                +p1kappar  (g79(:,:,i),ps079,ps079,p079,ni79,b2i79,kar79) &
+                +p1kappax  (g79(:,:,i),pe079,bz079,ni79,kax79) &
+                +p1uus    (g79(:,:,i),ph079,ph079,sig79) &
+                +p1vvs    (g79(:,:,i),vz079,vz079,sig79) &
+                +p1chichis(g79(:,:,i),ch079,ch079,sig79) &
+                +p1uchis  (g79(:,:,i),ph079,ch079,sig79))
+           
+           psource(ione) = psource(ione) + dt* &
+                (p1pu   (g79(:,:,i),p079,ph079))
+           
+           if(numvar.ge.3) then
+              psource(ione) = psource(ione) + dt* &
+                   (p1pchi(g79(:,:,i),p079,ch079))
+           endif
+           
+        endif
+        
+     endif  ! on linear.eq.0
 
   enddo                     ! on i
 end subroutine ludefpres_n

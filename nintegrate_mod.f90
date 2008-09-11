@@ -68,8 +68,30 @@ vectype, dimension(MAX_PTS, OP_NUM) :: pss79, bzs79, phs79, vzs79, chs79
 
 real, dimension(MAX_PTS) :: si_79, eta_79, weight_79
 
+real, dimension(12) :: alpha_12, beta_12, gamma_12, area_weight_12
 real, dimension(25) :: alpha_25, beta_25, gamma_25, area_weight_25
 real, dimension(79) :: alpha_79, beta_79, gamma_79, area_weight_79
+
+data alpha_12 &
+     / 0.501426509658179, 0.249286745170910, 0.249286745170910, 0.873821971016996, &
+       0.063089014491502, 0.063089014491502, 0.053145049844817, 0.310352351033784, &
+       0.636502499121399, 0.053145049844817, 0.310352351033784, 0.636502499121399 /
+
+data beta_12 &
+     / 0.249286745170910, 0.501426509658179, 0.249286745170910, 0.063089014491502, &
+       0.873821971016996, 0.063089014491502, 0.310352351033784, 0.636502499121399, &
+       0.053145049844817, 0.636502499121399, 0.053145049844817, 0.310352351033784 /
+
+data gamma_12 &
+     / 0.249286745170910, 0.249286745170910, 0.501426509658179, 0.063089014491502, &
+       0.063089014491502, 0.873821971016996, 0.636502499121399, 0.053145049844817, &
+       0.310352351033784, 0.310352351033784, 0.636502499121399, 0.053145049844817 /
+
+data area_weight_12 &
+     / 0.116786275726379, 0.116786275726379, 0.116786275726379, 0.050844906370207, &
+       0.050844906370207, 0.050844906370207, 0.082851075618374, 0.082851075618374, &
+       0.082851075618374, 0.082851075618374, 0.082851075618374, 0.082851075618374/
+
 
 data alpha_25 &
      / 0.333333333333333, 0.028844733232685, 0.485577633383657, 0.485577633383657, &
@@ -194,6 +216,14 @@ data area_weight_79 &
        0.003573909385950, 0.003573909385950, 0.003573909385950 /
 
 contains
+
+logical function quadrature_implemented(i)
+  implicit none
+  integer, intent(in) :: i
+  
+  quadrature_implemented = (i.eq.12).or.(i.eq.25).or.(i.eq.79)
+  return
+end function quadrature_implemented
 
 !==============================================
 ! area_to_local
@@ -384,6 +414,11 @@ subroutine define_fields(itri, fields, ngauss, gdef)
 
   ! calculate the local sampling points and weights for numerical integration
   select case(ngauss)
+  case(12)
+     call area_to_local(12,                          &
+          alpha_12,beta_12,gamma_12,area_weight_12,  &
+          atri(itri), btri(itri), ctri(itri),        &
+          si_79, eta_79, weight_79)
   case(25)
      call area_to_local(25,                          &
           alpha_25,beta_25,gamma_25,area_weight_25,  &
