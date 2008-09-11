@@ -25,8 +25,13 @@ contains
     pid%err_i = pid%err_i + err_p*dt
     err_d = (err_p - pid%err_p_old)/dt
 
-    control_param = control_param - control_param*dt* &
-         (err_p*pid%p + pid%err_i*pid%i + err_d*pid%d)
+    if(pid%target_val.gt.0) then 
+       control_param = control_param - control_param*dt* &
+            (err_p*pid%p + pid%err_i*pid%i + err_d*pid%d)
+    else
+       control_param = control_param + control_param*dt* &
+            (err_p*pid%p + pid%err_i*pid%i + err_d*pid%d)
+    endif
     
     pid%err_p_old = err_p
 

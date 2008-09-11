@@ -103,11 +103,13 @@ module basic
                       !  1 = CDX-U
                       !  2 = NSTX
   real :: bzero       ! guide field
+  real :: bx0         ! initial field in x-direction
   real :: vzero       ! initial toroidal velocity
   real :: phizero     ! initial poloidal velocity
   real :: p0, pi0     ! total, ion pressures
   real :: ln          ! length of equilibrium gradient
   real :: eps         ! size of initial perturbation
+  integer :: iwave    ! which wave to initialize in wave prop. equilibrium
 
   ! grad-shafranov options
   integer :: divertors! number of divertors
@@ -244,7 +246,8 @@ module basic
        eta_djdt,                                               &
        n_target, n_control_p, n_control_i, n_control_d,        &
        icalc_scalars, ike_only, ifout, inertia, itwofluid,     &
-       int_pts_main, int_pts_aux, int_pts_diag
+       int_pts_main, int_pts_aux, int_pts_diag,                &
+       iwave, bx0
 
 
   !     derived quantities
@@ -466,10 +469,10 @@ module arrays
          chi_i = 5
          pe_i = 6    
          den_i = 2*numvar+1
-         if(ipres.eq.1) then 
+         if(ipres.eq.1) then
             p_i = 2*numvar+idens+1
          else
-            p_i = 6
+            p_i = pe_i
          endif
          bf_i = 1
          

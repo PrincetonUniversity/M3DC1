@@ -83,6 +83,7 @@
       subroutine input
       use basic
       use arrays
+      use nintegrate_mod
 
       implicit none
 #include "finclude/petsc.h"
@@ -204,6 +205,7 @@
 !
 !......toroidal magnetic field
       bzero = 1.
+      bx0 = 0.
 !
 !.....initial toroidal velocity
       vzero = 0.
@@ -274,6 +276,7 @@
 !.....itor=0 for cylinder, 1 for torus
       itor=0
       idevice = 0
+      iwave = 0
 !
 !.....parameters needed for toroidal plasma
       tcuro = 1.
@@ -359,6 +362,7 @@
       dndt_fac = 1.
       dvdt_fac = 1.
       dbdt_fac = 1.
+
 !
       open(5,file='C1input',form='formatted',status='old')
       read(5,nml=inputnl)
@@ -378,6 +382,8 @@
          endif
          if(myrank.eq.0 .and. iprint.ge.1) print *, "pefac = ", pefac
       endif
+
+
 
 
       ! Validate input
@@ -413,12 +419,11 @@
      &        print*, 'ERROR: int_pts_diag > MAX_PTS = ', MAX_PTS
          call safestop(1)
       endif
-      if((.not.((int_pts_main.eq.79).or.(int_pts_main.eq.25))) .or.
-     &     (.not.((int_pts_aux.eq.79).or.(int_pts_aux.eq.25))) .or.
-     &     (.not.((int_pts_diag.eq.79).or.(int_pts_diag.eq.25))))
-     &     then 
+      if((.not.quadrature_implemented(int_pts_main)) .or.
+     &     (.not.quadrature_implemented(int_pts_aux)) .or.
+     &     (.not.quadrature_implemented(int_pts_diag))) then 
          if(myrank.eq.0) 
-     &        print*, 'ERROR: only 79 or 25 pt integration implemented.'
+     &        print*, 'ERROR: integration quadrature not implemented.'
          call safestop(1)
       endif
 
@@ -438,8 +443,6 @@
       if(myrank.eq.0) write(*,nml=inputnl)
 
       if(myrank.eq.0 .and. iprint.eq.1) print *, " exiting input.."
-
-      
 
       return
       end

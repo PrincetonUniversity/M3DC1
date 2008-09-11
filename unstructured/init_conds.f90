@@ -675,13 +675,14 @@ end subroutine gem_reconnection_per
 end module gem_reconnection
 
 
-!==============================================================================
+!=============================================================================
 ! Wave Propagation (itaylor = 4)
-!==============================================================================
+!=============================================================================
 module wave_propagation
 
   implicit none
   real, private :: alx, alz, akx, akx2, omega
+  real, private :: psiper, phiper, bzper, vzper, peper, chiper, nper, pper
 
 contains
 
@@ -693,15 +694,123 @@ subroutine wave_init()
 
   integer :: l, numnodes
   real :: x, z, xmin, zmin
+  real :: b2,a2
+  real :: kp,km,t1,t2,t3
+  real :: coef(4)
+  real :: root(3)
+  real :: error(3)
+  real :: bi
   double precision :: coords(3)
 
   call getmincoord(xmin, zmin)
   call getboundingboxsize(alx, alz)
 
-  akx = 2.*pi/alx
+  ! for itaylorw=3, set up a phi perturbation only
+  if(iwave.eq.3) then
+     phiper = eps
+     vzper = 0.
+     chiper = 0.
+     psiper = 0.
+     bzper = 0.
+     nper = 0.
+     pper = 0.
+     peper = 0.
+     goto 1
+  endif
+
+  akx = 2.*pi/alx      
   akx2 = akx**2
-  omega = sqrt(akx2 + .5*db**2*akx2**2                                 &
-       + db*akx2*sqrt(akx2 + .25*db**2*akx2**2))
+  b2 = bzero*bzero + bx0*bx0
+  a2 = bx0**2/b2
+  bi = 2.*pi0*gyro
+  
+  ! numvar=2 =================
+  if(numvar.eq.2) then
+     kp = akx * (b2 + bi*(3.*a2-1.)/4.)
+     km = akx * (b2 - bi*(3.*a2-1.)/4.)
+
+     if(iwave.eq.0) then ! fast wave
+        omega = (akx/2.)*sqrt(a2/b2)*(sqrt(4.*b2**2+km**2)+kp)
+        psiper = eps
+        phiper = -eps*2.*b2 / (sqrt(4.*b2**2+km**2)+km)
+        bzper = akx*psiper
+        vzper = akx*phiper
+        
+     else ! slow wave
+        omega = (akx/2.)*sqrt(a2/b2)*(sqrt(4.*b2**2+km**2)-kp)
+        psiper = eps
+        phiper = -eps*2.*b2 / (sqrt(4.*b2**2+km**2)-km)
+        bzper = -akx*psiper
+        vzper = -akx*phiper
+     endif
+     chiper = 0.
+     nper = 0.
+     peper = 0.
+     pper = 0.
+     
+  ! numvar=3 =================
+  elseif(numvar.ge.3) then
+     
+     coef(4) = 96.*b2**4
+     coef(3) = -6.*akx2*b2**3*(16.*b2**2*(1.+a2+akx2*a2)            &
+          + akx2*bi**2*(1.+6.*a2-3.*a2**2)                          &
+          + 16.*gam*p0*b2)
+     coef(2) = 6.*a2*akx2**2*b2**3                                  &
+          *(b2*((4.*b2-bi*akx2*(1.+a2))**2                          &
+          +4.*bi**2*akx2*(1.-a2)*(1.+akx2*a2))                      &
+          + gam*p0*(32.*b2**2+16.*akx2*b2**2                        &
+          +bi**2*akx2*(1.-3.*a2)**2))
+     coef(1) = -6.*gam*p0*a2**2*akx2**3*b2**4                       &
+          *(4.*b2+akx2*bi*(1.-3.*a2))**2
+
+     if(myrank.eq.0 .and. iprint.eq.1) then
+        write(*,*) "Coefs: ", coef(1), coef(2), coef(3), coef(4)
+     endif
+
+     call cubic_roots(coef, root, error)
+
+     if(myrank.eq.0 .and. iprint.eq.1) then
+        write(*,*) "Coefs: ", coef(1), coef(2), coef(3), coef(4)
+        write(*,*) "Roots: ", root(1), root(2), root(3)
+        write(*,*) "Error: ", error(1), error(2), error(3)
+     endif
+
+     select case(iwave)
+     case(1)
+        omega=sqrt(root(1))
+     case(2)
+        omega=sqrt(root(2))
+     case default 
+        omega=sqrt(root(3))
+     end select
+
+     t1 = akx2*bi/(4.*b2)
+     t2 = (akx2/omega**2)*                                          &
+          (bzero**2/(1.-gam*p0*akx2/(omega**2)))
+     t3 = bx0 * akx / omega
+
+     psiper = eps
+     phiper = psiper*(akx2*t3*(1.+(t3**2/(1.-t2-t3**2)))-(1.-t2)/t3)&
+          / (1. - t2 + t1*t2*(1.+3.*a2)                             &
+          + t1*t3**2*(2.*t2-(1.-3.*a2))/(1-t2-t3**2))
+     vzper = phiper*t1*t3*(2.*t2-(1.-3.*a2))/(1-t2-t3**2)           &
+          - psiper*akx2*t3**2/(1.-t2-t3**2)
+     bzper = (-phiper*t1*t2*(1.+3.*a2) - vzper*t3 + psiper*akx2*t3) &
+          / (1.-t2)
+     chiper = bzero / (1.-gam*p0*akx2/(omega**2)) / omega           &
+          * ((1.+3.*a2)*t1*phiper - bzper)
+     peper = -chiper*gam*(p0-pi0)*akx2 / omega
+     nper = -chiper*akx2/omega
+     pper = -chiper*gam*p0*akx2 / omega
+  endif
+
+  if(myrank.eq.0) then
+     print *, "Wave angular frequency: ", omega
+     print *, "Wave phase velocity: ", omega/akx
+     print *, "Wave transit time: ", 2.*pi/omega
+  end if
+
+1 continue
 
   call numnod(numnodes)
   do l=1, numnodes
@@ -730,9 +839,9 @@ subroutine wave_equ(x, z)
   vz0_l = 0.
   chi0_l = 0.
   
-  psi0_l(1) = z
+  psi0_l(1) = z*bx0
   psi0_l(2) = 0.0
-  psi0_l(3) = 1.0
+  psi0_l(3) = bx0
   psi0_l(4) = 0.0
   psi0_l(5) = 0.0
   psi0_l(6) = 0.0
@@ -753,18 +862,25 @@ subroutine wave_per(x, z)
 
   real, intent(in) :: x, z
 
-  real :: omega
-
-  call plane_wave(u1_l, x, z,  akx, 0, eps*akx/omega, pi/2.)
-  call plane_wave(vz1_l, x, z, akx, 0, eps*(akx2/omega**2-1), pi/2.)
-  chi1_l = 0.
+  call plane_wave(u1_l, x, z,  akx, 0, phiper, pi/2.)
+  call plane_wave(vz1_l, x, z, akx, 0, vzper, pi/2.)
+  call plane_wave(chi1_l, x, z, akx, 0, chiper, pi)
   
-  call plane_wave(psi1_l, x, z, akx, 0, eps, pi/2.)
-  call plane_wave( bz1_l, x, z, akx, 0, eps*(akx/omega-omega/akx), pi/2.)
-  pe1_l = 0.
-  p1_l = 0.
+  call plane_wave(psi1_l, x, z, akx, 0, psiper, pi/2.)
+  call plane_wave( bz1_l, x, z, akx, 0, bzper, pi/2.)
 
-  den1_l = 0.
+  if(ipres.eq.1) then 
+     call plane_wave(pe1_l, x, z, akx, 0, peper, pi/2.)
+     call plane_wave( p1_l, x, z, akx, 0,  pper, pi/2.)
+  else
+     call plane_wave(pe1_l, x, z, akx, 0, pper, pi/2.)
+     call plane_wave( p1_l, x, z, akx, 0, pper, pi/2.)    
+  endif
+
+  if(idens.eq.1) then
+     call plane_wave(den1_l, x, z, akx, 0, nper, pi/2.)    
+  endif
+
 end subroutine wave_per
 
 end module wave_propagation
@@ -1416,3 +1532,45 @@ subroutine initial_conditions()
   endif
 
 end subroutine initial_conditions
+
+! ===============================================================
+subroutine cubic_roots(coef, root, error)
+
+!     calculate the roots of a 3rd degree polynomial
+!     coef(4)*x**3 + coef(3)*x**2 + coef(2)*x + coef(1) = 0
+
+  use basic
+  implicit none
+  real, intent(out), dimension(3) :: root, error
+  real, intent(inout), dimension(4) :: coef
+  real qqs, rrs, ths, fun, dfun
+  integer r, ll
+
+  !     normalize the coefficients to the 3rd degree coefficient
+  coef(1) = coef(1)/coef(4)
+  coef(2) = coef(2)/coef(4)
+  coef(3) = coef(3)/coef(4)
+  coef(4) = 1.0
+       
+  !     solve using method in Numerical Recipes
+  qqs = ((coef(3)**2 - 3.*coef(2))/9.)
+  rrs = (2.*coef(3)**3 - 9.*coef(3)*coef(2) + 27.*coef(1))/54.
+  ths = acos(rrs/sqrt(qqs**3))
+
+  root(1) = -2.*sqrt(qqs)*cos(ths/3.) - coef(3)/3.
+  root(2) = -2.*sqrt(qqs)*cos((ths+6.283185307)/3.) - coef(3)/3.
+  root(3) = -2.*sqrt(qqs)*cos((ths-6.283185307)/3.) - coef(3)/3.
+  
+  !........refine with Newton's method
+  do r=1,3
+     do ll=1,3
+        fun  = root(r)**3 + coef(3)*root(r)**2 + coef(2)*root(r)    &
+             + coef(1)
+        dfun = 3.*root(r)**2 + 2.*coef(3)*root(r) + coef(2)
+        root(r) = root(r) - fun/dfun
+     enddo
+     error(r) =  root(r)**3 + coef(3)*root(r)**2 + coef(2)*root(r)  &
+          + coef(1)
+  enddo
+!      
+end subroutine cubic_roots
