@@ -18,10 +18,10 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   vectype :: temp
   real :: ththm
 
-  if(imp_mod.eq.1) then
-     ththm = -bdf*thimp**2
-  else
+  if(imp_mod.eq.0) then
      ththm = (1.-thimp*bdf)*thimp
+  else
+     ththm = -bdf*thimp**2
   endif
 
   ssterm = 0.
@@ -427,10 +427,10 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
   vectype, dimension(MAX_PTS, OP_NUM) :: hv
   hv = hypv*sz79
 
-  if(imp_mod.eq.1) then
-     ththm = -bdf*thimp**2
-  else
+  if(imp_mod.eq.0) then
      ththm = (1.-thimp*bdf)*thimp
+  else
+     ththm = -bdf*thimp**2
   endif
 
   ssterm = 0.
@@ -711,17 +711,16 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   real :: temp
   real :: ththm
 
-  if(imp_mod.eq.1) then
-     ththm = -bdf*thimp**2
-  else
+
+  if(imp_mod.eq.0) then
      ththm = (1.-thimp*bdf)*thimp
+  else
+     ththm = -bdf*thimp**2
   endif
 
   ssterm = 0.
   ddterm = 0.
-  q_bf = 0.
-
-  
+  q_bf = 0. 
                      
   if(numvar.lt.3) return
 
@@ -1034,10 +1033,10 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   hf = hypf*sz79
 
 
-  if(imp_mod.eq.1) then
-     thimpb = 1.
-  else
+  if(imp_mod.eq.0) then
      thimpb = thimp
+  else
+     thimpb = 1.
   endif
 
   ssterm = 0.
@@ -1237,10 +1236,10 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   vectype, dimension(MAX_PTS, OP_NUM) :: hi
   hi = hypi*sz79
 
-  if(imp_mod.eq.1) then
-     thimpb = 1.
-  else
+  if(imp_mod.eq.0) then
      thimpb = thimp
+  else
+     thimpb = 1.
   endif
 
   ssterm = 0.
@@ -1409,10 +1408,10 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   hp = hypp*sz79
 
 
-  if(imp_mod.eq.1) then
-     thimpb = 1.
-  else
+  if(imp_mod.eq.0) then
      thimpb = thimp
+  else
+     thimpb = 1.
   endif
 
   ssterm = 0.
@@ -1627,7 +1626,7 @@ end subroutine electron_pressure_nolin
 ! s* matrices.
 !
 !======================================================================
-subroutine ludefall()
+subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
 
   use p_data
   use t_data
@@ -1641,6 +1640,11 @@ subroutine ludefall()
 
 ! include 'mpif.h'
 #include "finclude/petsc.h"
+
+  integer, intent(in) :: ivel_def   ! populate velocity advance matrices
+  integer, intent(in) :: idens_def  ! populate density advance matrices
+  integer, intent(in) :: ipres_def  ! populate pressure advance matrices
+  integer, intent(in) :: ifield_def ! populate field advance matrices 
 
   integer :: itri, numelms
   integer :: def_fields
@@ -1681,7 +1685,7 @@ subroutine ludefall()
         if(isuperlu) print *, "	ludef_t_ludefall zerosuperlumatrix", s1matrix_sm
         if(ipetsc) print *, "	ludef_t_ludefall zeropetscmatrix", s1matrix_sm 
      call zeromultiplymatrix(d1matrix_sm,icomplex,vecsize_vel)
-     if(idens.eq.1 .and. eqsubtract.eq.1) &
+     if(idens_def.eq.1 .and. eqsubtract.eq.1) &
           call zeromultiplymatrix(q42matrix_sm,icomplex,vecsize_vel)
 #ifdef USECOMPLEX
      call zeromultiplymatrix(o1matrix_sm,icomplex,vecsize_vel)
@@ -1690,7 +1694,7 @@ subroutine ludefall()
 
   case(1)
 
-     if(istatic.eq.0) then
+     if(ivel_def.eq.1) then
         if(isuperlu) call zerosuperlumatrix(s1matrix_sm,icomplex,vecsize_vel)
         if(ipetsc) call zeropetscmatrix(s1matrix_sm,icomplex,vecsize_vel)
            if(isuperlu) print *, "	ludef_t_ludefall zerosuperlumatrix", s1matrix_sm
@@ -1704,7 +1708,7 @@ subroutine ludefall()
         r4 = 0.
      end if
 
-     if(iestatic.eq.0) then
+     if(ifield_def.eq.1) then
         if(isuperlu) call zerosuperlumatrix(s2matrix_sm,icomplex,vecsize_phi)
         if(ipetsc) call zeropetscmatrix(s2matrix_sm,icomplex,vecsize_phi)
            if(isuperlu) print *, "	ludef_t_ludefall zerosuperlumatrix", s2matrix_sm
@@ -1712,7 +1716,7 @@ subroutine ludefall()
         call zeromultiplymatrix(d2matrix_sm,icomplex,vecsize_phi)
         call zeromultiplymatrix(r2matrix_sm,icomplex,vecsize_vel)
         call zeromultiplymatrix(q2matrix_sm,icomplex,vecsize_vel)
-        if(idens.eq.1 .and. eqsubtract.eq.1) &
+        if(idens_def.eq.1 .and. eqsubtract.eq.1) &
              call zeromultiplymatrix(q42matrix_sm,icomplex,vecsize_vel)
 #ifdef USECOMPLEX
         call zeromultiplymatrix(o2matrix_sm,icomplex,vecsize_phi)
@@ -1720,7 +1724,7 @@ subroutine ludefall()
         q4 = 0.
      end if
 
-     if(idens.eq.1) then
+     if(idens_def.eq.1) then
         if(isuperlu) call zerosuperlumatrix(s8matrix_sm,icomplex,vecsize_n)
         if(ipetsc) call zeropetscmatrix(s8matrix_sm,icomplex,vecsize_n)
            if(isuperlu) print *, "	ludef_t_ludefall zerosuperlumatrix", s8matrix_sm
@@ -1730,7 +1734,7 @@ subroutine ludefall()
         call zeromultiplymatrix(r8matrix_sm,icomplex,vecsize_vel)
         qn4 = 0.
      endif
-     if(ipres.eq.1) then
+     if(ipres_def.eq.1) then
         if(isuperlu) call zerosuperlumatrix(s9matrix_sm,icomplex,vecsize_p)
         if(ipetsc) call zeropetscmatrix(s9matrix_sm,icomplex,vecsize_p)
            if(isuperlu) print *, "	ludef_t_ludefall zerosuperlumatrix", s9matrix_sm
@@ -1742,7 +1746,7 @@ subroutine ludefall()
      endif
   end select
 
-  if(gyro.eq.1 .and. numvar.ge.2) then
+  if(gyro.eq.1 .and. numvar.ge.2 .and. ivel_def.eq.1) then
      call zeromultiplymatrix(gyro_torque_sm,icomplex,vecsize_vel)
   endif
 
@@ -1765,7 +1769,7 @@ subroutine ludefall()
   endif
 
   if(isources.eq.1) def_fields = def_fields + FIELD_SRC
-  if(idens.eq.1) then
+  if(idens_def.eq.1) then
      if(ipellet.eq.1 .or. ionization.eq.1 .or. isink.gt.0) &
           def_fields = def_fields + FIELD_SIG
   endif
@@ -1823,10 +1827,10 @@ subroutine ludefall()
      
      ! add element's contribution to matrices
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     if(istatic.eq.0 .or. isplitstep.eq.0) call ludefvel_n(itri)
-     if(iestatic.eq.0 .or. isplitstep.eq.0) call ludefphi_n(itri)
-     if(idens.eq.1) call ludefden_n(itri)
-     if(ipres.eq.1) call ludefpres_n(itri)
+     if(ivel_def.eq.1) call ludefvel_n(itri)
+     if(ifield_def.eq.1) call ludefphi_n(itri)
+     if(idens_def.eq.1) call ludefden_n(itri)
+     if(ipres_def.eq.1) call ludefpres_n(itri)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         telm = telm + tend - tstart
@@ -1847,7 +1851,7 @@ subroutine ludefall()
   select case(isplitstep)
   case(0)
      call finalizematrix(d1matrix_sm)
-     if(idens.eq.1 .and. eqsubtract.eq.1) &
+     if(idens_def.eq.1 .and. eqsubtract.eq.1) &
           call finalizematrix(q42matrix_sm)
 #ifdef USECOMPLEX
      call finalizematrix(o1matrix_sm)
@@ -1855,7 +1859,7 @@ subroutine ludefall()
      call sumsharedppplvecvals(q4)
 
   case(1)
-     if(istatic.eq.0) then
+     if(ivel_def.eq.1) then
         call finalizematrix(d1matrix_sm)
         call finalizematrix(q1matrix_sm)
         call finalizematrix(r14matrix_sm)
@@ -1865,35 +1869,35 @@ subroutine ludefall()
         call sumsharedppplvecvals(r4)
      end if
      
-     if(iestatic.eq.0) then
+     if(ifield_def.eq.1) then
         call finalizematrix(d2matrix_sm)
         call finalizematrix(r2matrix_sm)
         call finalizematrix(q2matrix_sm)
 #ifdef USECOMPLEX
         call finalizematrix(o2matrix_sm)
 #endif   
-        if(idens.eq.1 .and. eqsubtract.eq.1) &
+        if(idens_def.eq.1 .and. eqsubtract.eq.1) &
              call finalizematrix(q42matrix_sm)
         call sumsharedppplvecvals(q4)
      end if
      
-     if(idens.eq.1) then
+     if(idens_def.eq.1) then
         call finalizematrix(d8matrix_sm)
         call finalizematrix(q8matrix_sm)
         call finalizematrix(r8matrix_sm)
         call sumsharedppplvecvals(qn4)
-     endif ! on idens.eq.1
+     endif ! on idens_def.eq.1
      
      
-     if(ipres.eq.1) then
+     if(ipres_def.eq.1) then
         call finalizematrix(d9matrix_sm)
         call finalizematrix(q9matrix_sm)
         call finalizematrix(r9matrix_sm)
         call sumsharedppplvecvals(qp4)
-     endif ! on ipres.eq.1
+     endif ! on ipres_def.eq.1
   end select
 
-  if(gyro.eq.1 .and. numvar.ge.2) then
+  if(gyro.eq.1 .and. numvar.ge.2 .and. ivel_def.eq.1) then
      call finalizematrix(gyro_torque_sm)
   endif
 
@@ -2316,10 +2320,10 @@ subroutine ludefden_n(itri)
   vectype, dimension(MAX_PTS,OP_NUM) :: hp
   hp = hypp*sz79
 
-  if(imp_mod.eq.1) then
-     thimpb = 1.
-  else
+  if(imp_mod.eq.0) then
      thimpb = thimp
+  else
+     thimpb = 1.
   endif
 
   if(isplitstep.eq.1) then
@@ -2479,10 +2483,10 @@ subroutine ludefpres_n(itri)
   vectype, dimension(MAX_PTS,OP_NUM) :: hp
   hp = hypp*sz79
 
-  if(imp_mod.eq.1) then
-     thimpb = 1.
-  else
+  if(imp_mod.eq.0) then
      thimpb = thimp
+  else
+     thimpb = 1.
   endif
 
   if(isplitstep.eq.1) then
