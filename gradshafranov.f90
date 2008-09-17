@@ -240,7 +240,7 @@ subroutine gradshafranov_solve
   integer :: ibegin, iendplusone
   integer :: ineg, ier
   real :: dterm(18,18), sterm(18,18)
-  real :: fac, aminor, bv, feedfac, gnorm, fintl(-6:maxi,-6:maxi)
+  real :: fac, fac2, aminor, bv, feedfac, libetapeff, gnorm, fintl(-6:maxi,-6:maxi)
   real, dimension(6,maxcoils) :: g
   real, dimension(6) :: g1, g2
   real, dimension(maxcoils) :: xp, zp, xc, zc
@@ -337,11 +337,13 @@ subroutine gradshafranov_solve
   ! based on filiment with current tcuro
   ! and vertical field of strength bv given by shafranov formula
   ! NOTE:  This formula assumes (li/2 + beta_P) = libetap
-  fac = tcuro/(2.*pi)
+  fac  = tcuro/(2.*pi)
+  fac2 = tcuro / (8.*pi**2*xmag)
   ! minor radius
   aminor = abs(xmag-xlim)
   if(itor.eq.1) then
-    bv = (1./(4.*pi*xmag))*(alog(8.*xmag/aminor) - 1.5 + libetap)
+    bv =  alog(8.*xmag/aminor) - 1.5 + libetap
+    libetapeff = libetap
   else
     bv = 0.
   endif
@@ -419,7 +421,7 @@ subroutine gradshafranov_solve
         xc(1) = 102.
         zc(1) = rnorm
         call gvect(xp,zp,xc,zc,numcoils,g,1,ineg)     
-        g = g*bv*fac
+        g = g*bv*fac2
      end select
 
      
@@ -466,9 +468,13 @@ subroutine gradshafranov_solve
      
      ! apply boundary conditions
 
-     if(itnum.gt.1 .and. gnorm.ne.0) then
-       feedfac = -0.5*(psilim - psilim2)/gnorm
-       if(myrank.eq.0 .and. iprint.eq.1) print *,"feedfac, psilim, psilim2,gnorm", feedfac, psilim, psilim2, gnorm
+     feedfac = 0.
+     if(itnum.gt.1 .and. gnorm.ne.0 .and. xlim2.ne.0) then
+       feedfac = -0.25*(psilim - psilim2)/gnorm
+!......as a diagnostic, calculate the effective value of libetap (including feedback term)
+       libetapeff =  libetapeff + feedfac/fac2
+       if(myrank.eq.0 .and. iprint.eq.1) print *,"feedfac, psilim, psilim2,gnorm", &
+          feedfac, psilim, psilim2, gnorm
      endif
 
      call boundary_gs(0, b1vecini, feedfac)
@@ -516,7 +522,7 @@ subroutine gradshafranov_solve
 
        call evaluate(xrel,zrel,psilim2,ajlim,psi,1,numvargs,itri)
      else
-        psilim2 = psilim
+       psilim2 = psilim
      endif
 
      ! define the pressure and toroidal field functions
@@ -674,6 +680,7 @@ subroutine gradshafranov_solve
 
      if(myrank.eq.0 ) then
         print *, "Converged GS: curr =", curr," error =",error2
+      print *, "initial and final(effective) libetap", libetap, libetapeff
         gamma2a = -xmag**2*p0*p1
         gamma2b = -2.*(abs(g0)/(xmag*q0*dpsii))
         gamma3a = -4.*(abs(g0)/xmag)*djdpsi/dpsii

@@ -130,6 +130,7 @@
 !
 !.....iterate field solve
       iteratephi = 0
+      icsym = 0
 !
 !.....iterate field solve
       irecalc_eta = 0

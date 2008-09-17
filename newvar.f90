@@ -275,10 +275,10 @@ subroutine define_transport_coefficients()
 !     added 08/05/08 for stability benchmarking
       case(1)
 #ifdef USECOMPLEX
-          temp79a = .5*(1. + tanh((real(ps079(:,OP_1))-psilim*(1.+etaoff*(psilim-psimin)))      &
+          temp79a = .5*(1. + tanh((real(ps079(:,OP_1))-(psilim + etaoff*(psilim-psimin)))      &
                                  /(etadelt*(psilim-psimin))))
 #else
-          temp79a = .5*(1. + tanh((ps079(:,OP_1)-psilim*(1.+etaoff*(psilim-psimin)))      &
+          temp79a = .5*(1. + tanh((ps079(:,OP_1)-(psilim + etaoff*(psilim-psimin)))      &
                                  /(etadelt*(psilim-psimin))))
 #endif
       end select
