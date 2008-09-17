@@ -102,13 +102,32 @@ subroutine random_per(x,z,seed)
 
   do i=1,maxn
      kx = pi*i/alx
+     select case (icsym)
+!
+     case (0)   !  original option...no symmetry imposed
      do j=1, maxn
-        kz = pi*j/alz
+        kz = j*pi/alz
         call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
         psi1_l = psi1_l + temp
         call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
         u1_l = u1_l + temp
      end do
+!
+     case (1)  !   make U odd symmetry about midplane:  perturb only U
+     do j=1, maxn/2
+        kz = 2.*j*pi/alz
+        call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
+        u1_l = u1_l + temp
+     end do
+!
+     case (2)  !   make U even  symmetry about midplane:  perturb only U
+     do j=1, maxn/2
+        kz = (2.*j-1)*pi/alz
+        call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
+        u1_l = u1_l + temp
+     end do
+!
+     end select
   end do
 
 end subroutine random_per

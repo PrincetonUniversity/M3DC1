@@ -157,6 +157,7 @@ module basic
   integer :: isplitstep  ! 1 = do timestep splitting
   integer :: imp_mod
   integer :: iteratephi  ! 1 = iterate field solve
+  integer :: icsym  ! symmetry of initial conditions (0) no; (1) even in U: (2) odd in U
   integer :: irecalc_eta ! 1 = recalculate transport coeffs after den solve
   integer :: iconst_eta  ! 1 = don't evolve resistivity
   integer :: int_pts_main! points in integration quadrature for time advance matrices
@@ -237,7 +238,7 @@ module basic
        iconstflux,regular,max_ke,                              &
        ntor,iadapt,istatic,iestatic,ivform, ibform,            &
        ihypeta,ikapscale,                                      &
-       iteratephi,                                             &
+       iteratephi, icsym,                                      &
        inonormalflow, inoslip_pol, inoslip_tor, inostress_tor, &
        iconst_p, inograd_p, iconst_n, inograd_n, iconst_t,     &
        inocurrent_pol, inocurrent_tor, iconst_bz,              &
