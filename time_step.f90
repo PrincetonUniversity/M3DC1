@@ -809,8 +809,7 @@ subroutine unsplit_step(calc_matrices)
 #include "finclude/petsc.h" 
 
   integer, intent(in) :: calc_matrices
-  integer :: l, numnodes, jer, ier
-  integer :: ibegin, iendplusone, ibeginnv, iendplusonenv
+  integer :: l, jer, ier
   
   real :: tstart, tend
   PetscTruth :: flg_petsc, flg_solve2
@@ -829,12 +828,7 @@ subroutine unsplit_step(calc_matrices)
      
      ! make a larger vector that can be multiplied by a vecsize matrix
      phip = 0.
-     do l=1,numnodes
-        call entdofs(1, l, 0, ibegin, iendplusone)
-        call entdofs(vecsize_phi, l, 0, ibeginnv, iendplusonenv)
-        
-        phip(ibeginnv  :ibeginnv+5) = bf(ibegin:ibegin+5)
-     enddo
+     call copyvec(bf,1,1,phip,1,vecsize_phi)
      call matvecmult(o1matrix_sm,phip,b2_phi)
      b1_phi = b1_phi + b2_phi
   endif
@@ -910,12 +904,7 @@ subroutine unsplit_step(calc_matrices)
      
         ! make a larger vector that can be multiplied by a vecsize matrix
         phip = 0.
-        do l=1,numnodes
-           call entdofs(1, l, 0, ibegin, iendplusone)
-           call entdofs(vecsize_phi, l, 0, ibeginnv, iendplusonenv)
-           
-           phip(ibeginnv  :ibeginnv+5) = bf(ibegin:ibegin+5)
-        enddo
+        call copyvec(bf,1,1,phip,1,vecsize_phi)
         call matvecmult(o1matrix_sm,phip,b2_phi)
         b1_phi = b1_phi + b2_phi
      endif
