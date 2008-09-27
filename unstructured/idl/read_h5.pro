@@ -1814,9 +1814,61 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 end
 
 
+pro animate, name, nslices=nslices, _EXTRA=extra
+   ntor = read_parameter('ntor',_EXTRA=extra)
+  
+   print, 'ntor = ', ntor
+
+   field = read_field(name,x,z,t,_EXTRA=extra, /last,$
+                      symbol=symbol,units=units)
+   field_i = read_field(name+'_i',x,z,t,_EXTRA=extra, /last)
+
+   if(n_elements(field) le 1) then return
+
+   if(n_elements(nslices) eq 0) then nslices = 12
+      
+   f = fltarr(nslices,n_elements(x),n_elements(z))
+
+   for i=0, nslices-1 do begin
+       f[i,*,*] = field[0,*,*]*cos(2.*!pi*i/nslices) + $
+         field_i[0,*,*]*sin(2.*!pi*i/nslices)
+   end
+
+   fstr = '("!9P!6 = ",g0.2,"!7p!X")'
+   
+   range=[min(f), max(f)]
+
+   for i=0, nslices-1 do begin
+       if(i eq 0) then begin
+           title = '!9P!6 = 0!X'
+       endif else if(2.*i/nslices eq 1) then begin
+           title = '!9P!6 = !7p!X'
+       endif else begin
+           title = string(format=fstr,2.*i/nslices)
+       endelse
+       title = symbol + ' !6(' + title + '!6)!X'
+       print, 'plotting...'
+       plot_field, f[i,*,*],-1,x,z, title=title, range=range, $
+        _EXTRA=extra
+       print, 'reading...'
+       image = tvrd(/true)
+       
+       print, 'setting...'
+       if(i eq 0) then begin
+           sz = size(image, /dim)
+           xinteranimate, set=[sz[1], sz[2],nslices], $
+             mpeg_bitrate=104857200
+; mpeg_quality=100, mpeg_format=1, mpeg_bitrate=429496729200
+       endif
+       xinteranimate, frame=i, image=image
+   endfor
+
+   xinteranimate, 10
+end
 
 
-pro plot_field, name, time, x, y, points=p, filename=filename, mesh=plotmesh, $
+
+pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                 mcolor=mc, lcfs=lcfs, title=title, units=units, $
                 maskrange=maskrange, maskfield=maskfield, range=range, $
                 rrange=rrange, zrange=zrange, $
@@ -1828,8 +1880,7 @@ pro plot_field, name, time, x, y, points=p, filename=filename, mesh=plotmesh, $
 
    if(size(name, /type) eq 7) then begin
        field = read_field(name, x, y, t, slices=time, mesh=mesh, $
-                          filename=filename, points=p, $
-                          rrange=rrange, zrange=zrange, $
+                          points=p, rrange=rrange, zrange=zrange, $
                           symbol=fieldname, units=u, _EXTRA=ex)
        if(n_elements(field) le 1) then return
 
@@ -1844,8 +1895,8 @@ pro plot_field, name, time, x, y, points=p, filename=filename, mesh=plotmesh, $
            psi = field
        endif else begin
            psi = read_field(maskfield, slices=time, mesh=mesh, $
-                            filename=filename, points=p, $
-                            rrange=rrange, zrange=zrange)
+                            points=p, rrange=rrange, zrange=zrange, $
+                           _EXTRA=ex)
        endelse
        mask = (psi ge maskrange[0]) and (psi le maskrange[1])
        field = mask*field + (1-mask)*(min(field-mask*field,/absolute))
@@ -1889,8 +1940,8 @@ pro plot_field, name, time, x, y, points=p, filename=filename, mesh=plotmesh, $
 
            if(keyword_set(lcfs) or n_elements(maskrange) ne 0) then begin
                if(n_elements(psi) eq 0) then begin
-                   plot_lcfs, time[0]+k, color=130, points=p, $
-                     filename=filename, xlim=xlim
+                   plot_lcfs, time[0]+k, color=130, points=p, xlim=xlim, $
+                     _EXTRA=ex
                endif else begin
                    plot_lcfs, time[0]+k, color=130, val=maskrange[0], $
                      psi=psi, x=x, y=y, points=p, xlim=xlim
@@ -1901,9 +1952,9 @@ pro plot_field, name, time, x, y, points=p, filename=filename, mesh=plotmesh, $
            
            if(keyword_set(plotmesh)) then begin
                loadct, 12
-               plot_mesh, mesh, color=color(3,5), /oplot, filename=filename
+               plot_mesh, mesh, color=color(3,5), /oplot, _EXTRA=ex
            endif
-
+           
            if(n_elements(mpeg) ne 0) then begin
                image = tvrd(true=1)
                
@@ -2550,7 +2601,7 @@ pro plot_lcfs, time, color=color, val=psival, psi=psi, x=x, y=y, points=pts, $
 
     if(n_elements(psi) eq 0) then begin
         psi = read_field('psi', x, y, slice=time, points=pts, $
-                         filename=filename)
+                         filename=filename, _EXTRA=extra)
     endif
 
     ; if psival not passed, choose limiter value
