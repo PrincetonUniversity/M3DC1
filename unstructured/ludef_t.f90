@@ -1425,19 +1425,21 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   ssterm(pe_g) = ssterm(pe_g) + temp
   ddterm(pe_g) = ddterm(pe_g) + temp*bdf
 
-  temp = b3psipsieta(trial,lin,ps179,eta79) &
-       + b3psipsieta(trial,ps179,lin,eta79)
-  ssterm(psi_g) = ssterm(psi_g) -     thimp_ohm     *dt*temp
-  ddterm(psi_g) = ddterm(psi_g) + (.5-thimp_ohm*bdf)*dt*temp
+  if(linear.eq.0) then
+    temp = b3psipsieta(trial,lin,ps179,eta79) &
+         + b3psipsieta(trial,ps179,lin,eta79)
+    ssterm(psi_g) = ssterm(psi_g) -     thimp_ohm     *dt*temp
+    ddterm(psi_g) = ddterm(psi_g) + (.5-thimp_ohm*bdf)*dt*temp
+
+    temp = b3bbeta(trial,lin,bz179,eta79) &
+         + b3bbeta(trial,bz179,lin,eta79)
+    ssterm(bz_g) = ssterm(bz_g) -     thimp_ohm     *dt*temp
+    ddterm(bz_g) = ddterm(bz_g) + (.5-thimp_ohm*bdf)*dt*temp
+  endif
   
   temp = b3pebd(trial,pe179,lin,ni79)*dbf*pefac
   ssterm(bz_g) = ssterm(bz_g) - thimp*dt*temp
   ddterm(bz_g) = ddterm(bz_g) - thimp*dt*temp*bdf
-
-  temp = b3bbeta(trial,lin,bz179,eta79) &
-       + b3bbeta(trial,bz179,lin,eta79)
-  ssterm(bz_g) = ssterm(bz_g) -     thimp_ohm     *dt*temp
-  ddterm(bz_g) = ddterm(bz_g) + (.5-thimp_ohm*bdf)*dt*temp
 
   temp = b3pebd(trial,lin,bzt79,ni79)*dbf*pefac &
        + b3pedkappa(trial,lin,ni79,kap79,hp)
