@@ -1309,26 +1309,26 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
    ;===========================================
    ; vorticity
    ;===========================================
-;      endif else if(strcmp('vor', name, /fold_case) eq 1) then begin
-;
-;          phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
-;                           filename=filename, points=pts, $
-;                           rrange=xrange, zrange=yrange, at_points=at_points)
-;
-;          data = grad_shafranov(phi,x,y,tor=itor)
-;          symbol = translate('vor', units=units, itor=itor)
+      endif else if(strcmp('vor', name, /fold_case) eq 1) then begin
+
+          phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                           filename=filename, points=pts, $
+                           rrange=xrange, zrange=yrange, at_points=at_points)
+
+          data = grad_shafranov(phi,x,y,tor=itor)
+          symbol = translate('vor', units=units, itor=itor)
 
    ;===========================================
    ; divergence
    ;===========================================
-;     endif else if(strcmp('com', name, /fold_case) eq 1) then begin
+     endif else if(strcmp('com', name, /fold_case) eq 1) then begin
 
-;         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
-;                          filename=filename, points=pts, $
-;                          rrange=xrange, zrange=yrange, at_points=at_points)
+         chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                          filename=filename, points=pts, $
+                          rrange=xrange, zrange=yrange, at_points=at_points)
 
-;         data = laplacian(chi,x,y,tor=itor)
-;         symbol = translate('com', units=units, itor=itor)
+         data = laplacian(chi,x,y,tor=itor)
+         symbol = translate('com', units=units, itor=itor)
 
    ;===========================================
    ; rotational transform
@@ -3627,7 +3627,7 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
   if(n_elements(slice) eq 0) then begin
       slice = read_parameter('ntime', _EXTRA=extra) - 1
   end
-  if(n_elements(b0) eq 0) then b0 = 1.
+  if(n_elements(b0) eq 0) then b0 = 10000.
   if(n_elements(l0) eq 0) then l0 = 100.
   if(n_elements(eqfile) eq 0) then eqfile = 'geqdsk.out'
   if(n_elements(pts) eq 0) then pts=128
@@ -3656,13 +3656,19 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
   contour, psi, x, z, levels=psilim, /path_data_coords, path_xy=lcfs_xy
 
   ; count only points on separatrix above the xpoint
-  ; (assumes lower null divertor)
   if(n_elements(xpoint) gt 1) then begin
-      lcfs_mask = lcfs_xy[1,*] ge z[xpoint[1]+1]
+      if(z[xpoint[1]] lt z[axis[1]]) then begin
+          lcfs_mask = lcfs_xy[1,*] ge z[xpoint[1]+1]
+      endif else begin
+          lcfs_mask = lcfs_xy[1,*] le z[xpoint[1]-1]
+      endelse
   endif else begin
       lcfs_mask = fltarr(1, n_elements(lcfs_xy[1,*]))
       lcfs_mask[*] = 1
   endelse
+
+  contour_and_legend, psi, x, z
+  oplot, lcfs_xy[0,*], lcfs_xy[1,*]
 
   nlim = fix(total(lcfs_mask))
   rlim = fltarr(nlim)
