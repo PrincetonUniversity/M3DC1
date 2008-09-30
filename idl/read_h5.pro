@@ -1871,7 +1871,7 @@ end
 pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                 mcolor=mc, lcfs=lcfs, title=title, units=units, $
                 maskrange=maskrange, maskfield=maskfield, range=range, $
-                rrange=rrange, zrange=zrange, $
+                rrange=rrange, zrange=zrange, linear=linear, $
                 xrange=xrange, yrange=yrange, xlim=xlim, $
                 cutx=cutx, cutz=cutz, mpeg=mpeg, _EXTRA = ex
 
@@ -1881,7 +1881,8 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
    if(size(name, /type) eq 7) then begin
        field = read_field(name, x, y, t, slices=time, mesh=mesh, $
                           points=p, rrange=rrange, zrange=zrange, $
-                          symbol=fieldname, units=u, _EXTRA=ex)
+                          symbol=fieldname, units=u, linear=linear, $
+                          _EXTRA=ex)
        if(n_elements(field) le 1) then return
 
        if(n_elements(units) eq 0) then units=u
@@ -1891,7 +1892,8 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
    endelse
 
    if(n_elements(maskrange) eq 2) then begin
-       if(strcmp(name, maskfield) eq 1) then begin
+       if((strcmp(name, maskfield) eq 1) and $
+         (not keyword_set(linear))) then begin
            psi = field
        endif else begin
            psi = read_field(maskfield, slices=time, mesh=mesh, $
@@ -1939,14 +1941,21 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
              range=range, _EXTRA=ex
 
            if(keyword_set(lcfs) or n_elements(maskrange) ne 0) then begin
-               if(n_elements(psi) eq 0) then begin
+               if(n_elements(psi) eq 0 or keyword_set(linear)) then begin
                    plot_lcfs, time[0]+k, color=130, points=p, xlim=xlim, $
                      _EXTRA=ex
                endif else begin
-                   plot_lcfs, time[0]+k, color=130, val=maskrange[0], $
-                     psi=psi, x=x, y=y, points=p, xlim=xlim
-                   plot_lcfs, time[0]+k, color=130, val=maskrange[1], $
-                     psi=psi, x=x, y=y, points=p, xlim=xlim
+                   if(n_elements(maskrange) eq 2) then begin
+                       plot_lcfs, time[0]+k, color=130, val=maskrange[0], $
+                         psi=psi, r=x, z=y, points=p, xlim=xlim
+                       plot_lcfs, time[0]+k, color=130, val=maskrange[1], $
+                         psi=psi, r=x, z=y, points=p, xlim=xlim
+                   endif else begin
+                       plot_lcfs, time[0]+k, color=130, $
+                         psi=psi, r=x, z=y, points=p, xlim=xlim
+                       plot_lcfs, time[0]+k, color=130, $
+                         psi=psi, r=x, z=y, points=p, xlim=xlim
+                   endelse
                endelse
            endif
            
@@ -2596,18 +2605,18 @@ end
 ;
 ; plots the last closed flux surface
 ; ========================================================
-pro plot_lcfs, time, color=color, val=psival, psi=psi, x=x, y=y, points=pts, $
+pro plot_lcfs, time, color=color, val=psival, psi=psi, r=x, z=y, points=pts, $
                filename=filename, xlim=xlim, _EXTRA=extra
 
     if(n_elements(psi) eq 0) then begin
         psi = read_field('psi', x, y, slice=time, points=pts, $
-                         filename=filename, _EXTRA=extra)
+                         filename=filename, _EXTRA=extra, linear=0)
     endif
 
     ; if psival not passed, choose limiter value
     if(n_elements(psival) eq 0) then begin
         psival = lcfs(time, psi=psi, r=x, z=y, points=pts, $
-                      filename=filename, xlim=xlim, _EXTRA=extra)
+                      filename=filename, xlim=xlim, _EXTRA=extra, linear=0)
     endif
 
     ; plot contour
