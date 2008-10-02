@@ -1950,6 +1950,7 @@ subroutine ludefvel_n(itri)
 
   integer :: vv1, vv0, vb1, vb0, vn1, vn0, vf0
   integer :: advfield
+  integer :: pp_off
   vectype, pointer :: vsource(:)
 
   if(isplitstep.eq.1) then
@@ -1959,6 +1960,7 @@ subroutine ludefvel_n(itri)
      vn0 = r14matrix_sm
      vf0 = o1matrix_sm
      vsource => r4
+     pp_off = pe_off
   else
      vv1 = s1matrix_sm
      vv0 = d1matrix_sm
@@ -1968,6 +1970,7 @@ subroutine ludefvel_n(itri)
      vn0 = d1matrix_sm
      vf0 = o1matrix_sm
      vsource => q4
+     pp_off = p_off
   endif
 
   if(isplitstep.eq.1 .and. iestatic.eq.0) then
@@ -2072,19 +2075,19 @@ subroutine ludefvel_n(itri)
            call insval(vv0,dd(chi_g,  u_g),icomplex,iv+chi_off,jv+  u_off,1)
            call insval(vv0,dd(chi_g, vz_g),icomplex,iv+chi_off,jv+ vz_off,1)
            call insval(vv0,dd(chi_g,chi_g),icomplex,iv+chi_off,jv+chi_off,1)
-           call insval(vb0,dd(  u_g,  p_g),icomplex,ip+  u_off,jp+  p_off,1)
-           call insval(vb0,dd( vz_g,  p_g),icomplex,ip+ vz_off,jp+  p_off,1)
+           call insval(vb0,dd(  u_g,  p_g),icomplex,ip+  u_off,jp+ pp_off,1)
+           call insval(vb0,dd( vz_g,  p_g),icomplex,ip+ vz_off,jp+ pp_off,1)
            call insval(vb0,dd(chi_g,psi_g),icomplex,ip+chi_off,jp+psi_off,1)
            call insval(vb0,dd(chi_g, bz_g),icomplex,ip+chi_off,jp+ bz_off,1)
-           call insval(vb0,dd(chi_g,  p_g),icomplex,ip+chi_off,jp+  p_off,1)
+           call insval(vb0,dd(chi_g,  p_g),icomplex,ip+chi_off,jp+ pp_off,1)
            if(idens.eq.1) &
                 call insval(vn0,dd(chi_g,den_g),icomplex,iv+chi_off,jv+den_off,1)
            if(isplitstep.eq.0) then
-              call insval(vb1,ss(  u_g,  p_g),icomplex,ip+  u_off,jp+  p_off,1)
-              call insval(vb1,ss( vz_g,  p_g),icomplex,ip+ vz_off,jp+  p_off,1)
+              call insval(vb1,ss(  u_g,  p_g),icomplex,ip+  u_off,jp+ pp_off,1)
+              call insval(vb1,ss( vz_g,  p_g),icomplex,ip+ vz_off,jp+ pp_off,1)
               call insval(vb1,ss(chi_g,psi_g),icomplex,ip+chi_off,jp+psi_off,1)
               call insval(vb1,ss(chi_g, bz_g),icomplex,ip+chi_off,jp+ bz_off,1)
-              call insval(vb1,ss(chi_g,  p_g),icomplex,ip+chi_off,jp+  p_off,1)
+              call insval(vb1,ss(chi_g,  p_g),icomplex,ip+chi_off,jp+ pp_off,1)
               if(idens.eq.1) &
                    call insval(vn1,ss(chi_g,den_g),icomplex,iv+chi_off,jv+den_off,1)
            endif
@@ -2112,7 +2115,7 @@ subroutine ludefvel_n(itri)
         vsource(iv+u_off) = 0.
         if(numvar.ge.2) vsource(iv+vz_off) = 0.
         if(numvar.ge.3) vsource(iv+chi_off) = 0.
-     else 
+     else if(linear.eq.0) then  
         call vorticity_nolin(g79(:,:,i),temp)
         vsource(iv+  u_off) = vsource(iv+  u_off) + temp
         if(numvar.ge.2) then
