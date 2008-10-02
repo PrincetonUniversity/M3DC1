@@ -843,7 +843,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
      call output_field(group_id, "Pe", pefac*real(dum), 20, nelms, error)
      nfields = nfields + 1
 #ifdef USECOMPLEX
-     call output_field(group_id,"Pe_i",aimag(dum),20,nelms,error)
+     call output_field(group_id,"Pe_i",pefac*aimag(dum),20,nelms,error)
      nfields = nfields + 1
 #endif
 
