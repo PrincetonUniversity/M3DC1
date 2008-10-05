@@ -1814,14 +1814,20 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 end
 
 
-pro animate, name, nslices=nslices, _EXTRA=extra
+pro animate, name, nslices=nslices, slice=slice, _EXTRA=extra
    ntor = read_parameter('ntor',_EXTRA=extra)
   
    print, 'ntor = ', ntor
 
-   field = read_field(name,x,z,t,_EXTRA=extra, /last,$
-                      symbol=symbol,units=units)
-   field_i = read_field(name+'_i',x,z,t,_EXTRA=extra, /last)
+   if(n_elements(slice) eq 0) then begin
+       field = read_field(name,x,z,t,_EXTRA=extra, /last,$
+                          symbol=symbol,units=units)
+       field_i = read_field(name+'_i',x,z,t,_EXTRA=extra, /last)
+   endif else begin
+       field = read_field(name,x,z,t,_EXTRA=extra, slice=slice,$
+                          symbol=symbol,units=units)
+       field_i = read_field(name+'_i',x,z,t,_EXTRA=extra, slice=slice)
+   endelse
 
    if(n_elements(field) le 1) then return
 
