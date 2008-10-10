@@ -270,7 +270,7 @@ pro plot_mesh, mesh, color=col, linestyle=lin, oplot=oplot, $
    endif  
 
    if(n_elements(col) ne 0) then loadct, 12
-  
+ 
    xzero = read_parameter("xzero", filename=filename)
    zzero = read_parameter("zzero", filename=filename)
 
@@ -439,9 +439,11 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
    zzero = read_parameter("zzero", filename=filename)
 
    if(n_elements(xrange) lt 2) then $
-     xrange = [0.,mesh.width._data] + xzero
+     xrange = [min(mesh.elements._data[4,*]), $
+               max(mesh.elements._data[4,*])] + xzero
    if(n_elements(yrange) lt 2) then $
-     yrange = [0.,mesh.height._data] + zzero
+     yrange = [min(mesh.elements._data[5,*]), $
+               max(mesh.elements._data[5,*])] + zzero
 
    dx = (xrange[1] - xrange[0]) / (p - 1.)
    dy = (yrange[1] - yrange[0]) / (p - 1.)
