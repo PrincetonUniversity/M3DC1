@@ -21,11 +21,8 @@ ${TEX}.aux : ${DEPS_COMMON}
 ${TEX}.dvi : ${DEPS}
 	latex $<
 
-${TEX}.ps : ${TEX}.dvi
-	dvips $< -o $@ -Ppdf
-
-${PDF}.pdf : ${TEX}.ps
-	ps2pdf $<
+${PDF}.pdf : ${TEX}.dvi
+	dvipdf $<
 
 clean :
-	rm ${PDF}.pdf ${TEX}.ps ${TEX}.dvi ${TEX}.aux ${TEX}.bbl
+	rm -f ${PDF}.pdf ${TEX}.dvi ${TEX}.aux ${TEX}.bbl

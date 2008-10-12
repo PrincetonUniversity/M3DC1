@@ -8,31 +8,128 @@
 
 \chapter{IDL Postprocessor}
 
+\section{Introduction}
+
+The IDL routines described here have been created for the purpose of
+reading, displaying, and manipulating data written by \codename\ to an
+HDF5 output file.  These routines are contained within files stored in
+the subdirectory \texttt{trunk/unstructured/idl/} in the \codename\ SVN
+repository.
+
+\subsubsection{Invoking IDL}
+
+First, IDL must be given access to the postprocessor routines.  This
+may be accomplished either by copying the \texttt{*.pro} files in the
+repository to the working directory where IDL will be run, or to set
+the environment variable \texttt{IDL\_PATH} to include the directory
+where these files are located.
+
+The IDL module must first be loaded to run IDL on
+\texttt{portal.pppl.gov}.  This is done by
+\begin{verbatim}
+module load idl
+\end{verbatim}
+IDL may then be invoked by
+\begin{verbatim}
+idl
+\end{verbatim}
+Once IDL is running, the postprocessor routines must be compiled.
+This is done by
+\begin{verbatim}
+.run plot_routines
+.run power_spectrum
+.run read_h5
+\end{verbatim}
+The functions and procedures described in the following section are
+now ready to use.
+
+\subsubsection{Help In IDL}
+
+IDL has an on-line help system which may be invoked from the IDL
+command prompt by
+\begin{verbatim}
+?
+\end{verbatim}
+Information about a specific intrinsic IDL routine,
+\texttt{<routine>}, may be obtained by
+\begin{verbatim}
+? <routine>
+\end{verbatim}
+
+
+\subsubsection{Note on function/procedure descriptions}
+
+Functions and procedures in IDL are differentiated by whether a value
+is returned (as with functions) or not (as with procedures).  Both
+functions and procedures may take ``arguments'' and ``keywords'' as
+command line parameters.  In the following descriptions, the arguments
+of the function or procedure are shown with the command, and keywords
+are listed separately.  Optional arguments are enclosed by square
+brackets.  Keywords are always optional.  (This notation differs from
+that in the on-line IDL help only in that keywords are not listed with
+the command.)  Keywords are specified on the command line by
+\begin{verbatim}
+<keywordname>=<value>
+\end{verbatim}
+Writing
+\begin{verbatim}
+/<keywordname> 
+\end{verbatim}
+has the same effect as
+\begin{verbatim}
+<keywordname>=1
+\end{verbatim}
+and is therefore useful for boolean options.  Some common examples are
+given below.
+
+
+\subsubsection{Common Examples}
+
+To display the field ``psi'' at time slice 1 of file ``C1.h5'',
+sampled on a regular $100\times100$ grid, with an overlay of the LCFS
+and the mesh,
+\begin{verbatim}
+plot_field, 'psi', 1, filename='C1.h5', /iso, /lcfs, /mesh, points=100
+\end{verbatim}
+
+To plot the time series of the kinetic energy of file ``C1.h5'' in
+domain $0 < t < 100$, 
+\begin{verbatim}
+plot_scalar, 'ke', filename='C1.h5', xrange=[0,100]
+\end{verbatim}
+
+To plot the flux-averaged temperature profiles of files ``1/C1.h5''
+and ``2/C1.h5'' at time slice 1, versus the normalized poloidal flux,
+\begin{verbatim}
+plot_flux_average, 'T', 1, filename=['1/C1.h5', '2/C1.h5'], /norm
+\end{verbatim}
+
 
 \section{Functions/Procedures in \IDLf{plot\_routines.pro}}
 
 \subsection{Procedure \IDLf{{contour\_and\_legend}}}
 
-\IDLf{{contour\_and\_legend}}, \IDLa{z}, \IDLa{x}, \IDLa{y}
+\IDLf{{contour\_and\_legend}}, \IDLa{z} [,\IDLa{x}, \IDLa{y}]
 
 \subsubsection{Description}
 
 This procedure draws a two-dimensional color contour plot of the data
-$z$.  \IDLa{nt} frames are drawn.
+\IDLa{z}, with horizontal and vertical coordinates \IDLa{x} and \IDLa{y}.
+\IDLa{nt} frames are drawn.
 
-\subsubsection{Mandatory Arguments}
+\subsubsection{Arguments}
 
 \begin{tabular}{lcll}
 Name & I/O & Type & Description\\
 \hline
 \IDLa{z} & I & \IDLflt[\IDLa{nt},\IDLa{nx},\IDLa{nz}] 
                                   & The values of the field to plot\\
-\IDLa{x} & O & \IDLflt[\IDLa{nx}] & The values of the $x$-coordinate\\ 
-\IDLa{y} & O & \IDLflt[\IDLa{nz}] & The values of the $y$-coordinate\\ 
+\IDLa{x} & I & \IDLflt[\IDLa{nx}] & The values of the $x$-coordinate\\ 
+\IDLa{y} & I & \IDLflt[\IDLa{nz}] & The values of the $y$-coordinate\\ 
 \end{tabular}
 
 
-\subsubsection{Optional Arguments}
+\subsubsection{Keywords}
 
 \begin{tabular}{lclp{2.5in}}
 Name            & I/O & Type     & Description\\
@@ -63,9 +160,12 @@ Name            & I/O & Type     & Description\\
 
 \section{Functions/Procedures in \IDLf{read\_h5.pro}}
 
+
+
+
 \subsection{Function \IDLf{read\_field}}
 
-\IDLf{read\_field}, \IDLa{name}, \IDLa{r}, \IDLa{z}, \IDLa{t}
+\IDLa{field} = \IDLf{read\_field}(\IDLa{name}, \IDLa{r}, \IDLa{z}, \IDLa{t})
 
 \subsubsection{Description}
 
@@ -73,13 +173,14 @@ This function reads the raw field data associated with \IDLa{name} in
 the specified output file.  The data is interpolated onto a uniform
 retangular grid, and returned in an array.
 
+
 \subsubsection{Return Value}
 
-\IDLflt[\IDLa{nt}, \IDLa{points}, \IDLa{points}] containing the value
-of the field at \IDLa{points} $\times$ \IDLa{points} spatial sampling
-points at \IDLa{nt} time slices.
+\IDLflt[\IDLa{nt}, \IDLa{points}, \IDLa{points}] \IDLa{field}
+containing the value of the field at \IDLa{points} $\times$
+\IDLa{points} spatial sampling points at \IDLa{nt} time slices.
 
-\subsubsection{Mandatory Arguments}
+\subsubsection{Arguments}
 \begin{tabular}{lcll}
 Name & I/O & Type & Description\\
 \hline
@@ -89,7 +190,7 @@ Name & I/O & Type & Description\\
 \IDLa{t}    & O & \IDLflt[\IDLa{nt}]     & The values of the $t$-coordinate\\
 \end{tabular}
 
-\subsubsection{Optional Arguments}
+\subsubsection{Keywords}
 \begin{tabular}{lclp{2.3in}}
 Name            & I/O & Type       & Description\\
 \hline
@@ -118,7 +219,7 @@ Name            & I/O & Type       & Description\\
 
 \subsection{Function \IDLf{flux\_average}}
 
-\IDLf{flux\_average}, \IDLa{field}, \IDLa{slice}
+\IDLa{result} = \IDLf{flux\_average}(\IDLa{field}, \IDLa{slice})
 
 \subsubsection{Description}
 
@@ -126,10 +227,10 @@ This function finds the flux-surface average of the field \IDLa{field}.
 
 \subsubsection{Return Value}
 
-\IDLflt[\IDLa{bins}] containing the value of the flux-averaged field
-for a range of values of flux.
+\IDLflt[\IDLa{bins}] \IDLa{result} contains the value of the
+flux-averaged field for a range of values of flux.
 
-\subsubsection{Mandatory Arguments}
+\subsubsection{Arguments}
 
 \begin{tabular}{lclp{2in}}
 Name & I/O & Type & Description\\
@@ -144,7 +245,7 @@ Name & I/O & Type & Description\\
                to read.  Otherwise, \IDLa{slice} is ignored.
 \end{tabular}
 
-\subsubsection{Optional Arguments}
+\subsubsection{Keywords}
 
 \IDLf{flux\_average} takes all of the optional arguments for
 \IDLf{read\_field}.  In addition, 
@@ -181,7 +282,7 @@ Name            & I/O & Type       & Description\\
 
 \subsection{Function \IDLf{read\_scalar}}
 
-\IDLf{read\_field}, \IDLa{name}
+\IDLa{result} = \IDLf{read\_field}(\IDLa{name})
 
 \subsubsection{Description}
 
@@ -190,10 +291,10 @@ the specified output file.  The data is returned as an array .
 
 \subsubsection{Return Value}
 
-\IDLflt[\IDLa{nt}] containing the value of the scalar at each time
-step.
+\IDLflt[\IDLa{nt}] \IDLa{result} contains the value of the scalar at
+each time step.
 
-\subsubsection{Mandatory Arguments}
+\subsubsection{Arguments}
 
 \begin{tabular}{lcll}
 Name & I/O & Type & Description\\
@@ -201,7 +302,7 @@ Name & I/O & Type & Description\\
 \IDLa{name} & I & \IDLstr                & The name of the scalar to read\\
 \end{tabular}
 
-\subsubsection{Optional Arguments}
+\subsubsection{Keywords}
 
 \begin{tabular}{lcll}
 Name            & I/O & Type       & Description\\
@@ -223,7 +324,7 @@ Name            & I/O & Type       & Description\\
 
 \IDLf{plot\_field}, \IDLa{name}, \IDLa{slice}, \IDLa{r}, \IDLa{z}, \IDLa{t}
 
-\subsubsection{Mandatory Arguments}
+\subsubsection{Arguments}
 
 \begin{tabular}{lcll}
 Name & I/O & Type & Description\\
@@ -236,7 +337,7 @@ Name & I/O & Type & Description\\
 \end{tabular}
 
 
-\subsubsection{Optional Arguments}
+\subsubsection{Keywords}
 
 \IDLf{plot\_field} takes all of the optional arguments for
 \IDLf{read\_field} and \IDLf{contour\_and\_legend}.  In addition, 
@@ -263,7 +364,7 @@ Plots the flux-surface average of a field as a function of poloidal
 flux.  Data from multiple files or multiple times may be plotted at
 once.
 
-\subsubsection{Mandatory Arguments}
+\subsubsection{Arguments}
 
 \begin{tabular}{lclp{2in}}
 Name & I/O & Type & Description\\
@@ -279,7 +380,7 @@ Name & I/O & Type & Description\\
 \end{tabular}
 
 
-\subsubsection{Optional Arguments}
+\subsubsection{Keywords}
 
 \begin{tabular}{lclp{2.5in}}
 Name            & I/O & Type       & Description\\
@@ -309,7 +410,7 @@ This function plots the relative time spent in various subroutines of
 \codename.  This data is only available if $\texttt{itimer} = 1$ was
 specified in the input file.
 
-\subsubsection{Optional Arguments}
+\subsubsection{Keywords}
 
 \IDLf{plot\_flux\_average} takes all of the optional arguments for
 \IDLf{flux\_average}.  In addition, 
@@ -326,13 +427,18 @@ Name            & I/O & Type       & Description\\
 \subsection{Procedure \IDLf{write\_geqdsk}}
 
 
-\IDLf{plot\_field}, \IDLa{name}, \IDLa{slice}, \IDLa{r}, \IDLa{z}, \IDLa{t}
+\IDLf{write\_geqdsk}
 
-\subsubsection{Mandatory Arguments}
+\subsubsection{Description}
 
-No mandatory arguments.
+This procedure writes equilibrium data do disk in the \texttt{geqdsk}
+format.
 
-\subsubsection{Optional Arguments}
+\subsubsection{Arguments}
+
+None.
+
+\subsubsection{Keywords}
 
 \IDLf{write\_geqdsk} takes all of the optional arguments for
 \IDLf{read\_field} and \IDLf{read\_parameter}.  In addition, 
