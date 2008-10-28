@@ -57,6 +57,7 @@ module basic
   real :: libetap   !  li/2 + beta_poloidal estimate for equili/2brium calculation
   real :: xlim2   !  x-position of second limiter point as a diagnostic
   real :: zlim2   !  z-position of second limiter point as a diagnostic
+  integer :: nonrect     ! 1 = cylindrical coordinates; 0 = cartesian coordinates
 
   ! boundary conditions
   integer :: iper, jper ! periodic boundary conditions
@@ -661,6 +662,8 @@ subroutine insval(imatrix, val, icom, i, j, iop)
 ! June-13-2008 cj
 ! take this line off for solve2: nonzero structure re-using
   if(val.eq.0.) then
+     if(myrank.eq.0 .and. iprint.gt.0 .and. drop_zeroes.eq.1) &
+        print *, "drop_zeroes = ", i, j, drop_zeroes
      if(drop_zeroes.eq.1) return
   endif
 

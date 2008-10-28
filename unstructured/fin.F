@@ -212,6 +212,9 @@
       vzero = 0.
       phizero = 0.
 !
+!.....rectangular mesh or curved mesh
+      nonrect = 0
+!
 !.....boundary conditions
 !     com_bc: 1 = sets laplacian(chi) = 0 on boundary
       com_bc = 1
@@ -444,8 +447,15 @@
       if(flg_petsc .and. flg_solve2) then 
          drop_zeroes = 0 
       else 
-         drop_zeroes = 1
+         select case(nonrect)
+         case(0)
+            drop_zeroes = 1
+         case(1)
+            drop_zeroes = 0 
+            if(myrank.eq.0) print *,"You are working with curved mesh."
+         end select
       endif
+!cjdebug 10/03/08 added for shaped boundary
 
       if(myrank.eq.0) write(*,nml=inputnl)
 

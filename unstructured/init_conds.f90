@@ -160,7 +160,13 @@ subroutine cartesian_to_cylindrical_all()
 
   do inode=1, numnodes
      call xyznod(inode, coords)
+         select case(nonrect)
+         case(0)
      x = coords(1) + xzero
+         case(1)
+     x = coords(1) !cjdebug  + xzero
+!    if(myrank.eq.0) print *,"You are working with curved mesh."
+         end select
 
      call assign_local_pointers(inode)
 
@@ -932,8 +938,15 @@ subroutine grav_init()
 
      call xyznod(l, coords)
 
+         select case(nonrect)
+         case(0)
      x = coords(1) + xzero - xmin
      z = coords(2) + zzero - zmin
+         case(1)
+     x = coords(1) !cjdebug + xzero - xmin
+     z = coords(2) !cjdebug + zzero - zmin
+!    if(myrank.eq.0) print *,"You are working with curved mesh."
+         end select
 
      call grav_equ(x, z)
      call grav_per(x, z)
@@ -1303,8 +1316,15 @@ subroutine mri_init()
   do l=1, numnodes
      call xyznod(l, coords)
 
+         select case(nonrect)
+         case(0)
      x = coords(1) + xzero - xmin
      z = coords(2) + zzero - zmin - alz*.5
+         case(1)
+     x = coords(1) !cjdebug + xzero - xmin
+     z = coords(2) !cjdebug + zzero - zmin - alz*.5
+!    if(myrank.eq.0) print *,"You are working with curved mesh."
+         end select
 
      call assign_local_pointers(l)
 
@@ -1424,8 +1444,15 @@ subroutine rotate_init()
   do l=1, numnodes
      call xyznod(l, coords)
 
+         select case(nonrect)
+         case(0)
      x = coords(1) + xzero - xmin
      z = coords(2) + zzero - zmin - alz*.5
+         case(1)
+     x = coords(1) !cjdebug + xzero - xmin
+     z = coords(2) !cjdebug + zzero - zmin - alz*.5
+!    if(myrank.eq.0) print *,"You are working with curved mesh."
+         end select
 
      call assign_local_pointers(l)
 

@@ -1,4 +1,5 @@
-#include "/u/xluo/develop.newCompiler/mctk/Examples/PPPL/PPPL/MatrixInterface.h"
+//#include "/u/xluo/develop.newCompiler.constraint/mctk/Examples/PPPL/PPPL/Matrix.h"
+#include "/u/xluo/develop.newCompiler.constraint/mctk/Examples/PPPL/PPPL/MatrixInterface.h"
 #include "petsc.h"
 #include "petscmat.h"
 #include "petscksp.h"
@@ -240,3 +241,37 @@ int solve2_(int *matrixId, double * rhs_sol, int * ier)
 
   return 0;
 }
+
+
+//cj added oct 6, 2008
+int dump_matrix_(int *matrixId)
+{
+//int fileid=33;
+//writeToFile(*matrixId, fileid);
+
+  int i, ldb;
+  int valType = 0;
+  int *d_nnz, *o_nnz;
+  int offset=6;
+
+     getMatrixLocalDofNum_(matrixId, &ldb); 
+     d_nnz = (int*)calloc(ldb, sizeof(int));
+     o_nnz = (int*)calloc(ldb, sizeof(int));
+     getMatrixPetscDnnzOnnz_(matrixId, &valType, d_nnz, o_nnz);
+  
+     for(i=0;i<ldb;i=i+offset) 
+     PetscPrintf(PETSC_COMM_WORLD, "\tvertex_%d:  %d  %d  %d  %d  %d  %d\n",
+     i/offset,
+     d_nnz[i+0]+o_nnz[i+0],
+     d_nnz[i+1]+o_nnz[i+1],
+     d_nnz[i+2]+o_nnz[i+2],
+     d_nnz[i+3]+o_nnz[i+3],
+     d_nnz[i+4]+o_nnz[i+4],
+     d_nnz[i+5]+o_nnz[i+5]); 
+
+     free(d_nnz);
+     free(o_nnz);
+
+  return 0;
+} 
+
