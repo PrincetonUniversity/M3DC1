@@ -11,13 +11,17 @@ subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,x,z)
 
   integer, intent(in) :: inode             ! node index
   integer, intent(out) :: izone,izonedim   ! zone type/dimension
-  real, intent(out) :: normal              ! outward normal of boundary
+!cj  real, intent(out) :: normal              ! outward normal of boundary
+  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
   real, intent(out) :: x,z                 ! coordinates of inode
   logical, intent(out) :: is_boundary      ! is inode on boundary
 
   integer :: ibottom, iright, ileft, itop
   double precision :: coords(3)
 
+!cj 0: rect mesh; 1: curve mesh
+          select case(nonrect)
+          case(0)
   call zonenod(inode,izone,izonedim)
 
   if(izonedim.ge.2) then
@@ -53,18 +57,42 @@ subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,x,z)
 
   is_boundary = .true.
   if(izone.eq.iright) then
-     normal = 0.
+!cj     normal = 0.
+     normal(1) = 1.  !cos
+     normal(2) = 0.  !sin
   else if(izone.eq.ileft) then
-     normal = pi
+!cj     normal = pi
+     normal(1) =-1.  !cos
+     normal(2) = 0.  !sin
   else if(izone.eq.itop) then
-     normal = pi/2.
+!cj     normal = pi/2.
+     normal(1) = 0.  !cos
+     normal(2) = 1.  !sin
   else if(izone.eq.ibottom) then
-     normal = -pi/2.
+!cj     normal = -pi/2.
+     normal(1) = 0.  !cos
+     normal(2) =-1.  !sin
   endif
 
+          case(1)
+  call nodNormalVec(inode, normal, is_boundary) 
+  if(.not.is_boundary) return
+  izonedim=1      !cj set izonedim always 1 for the shaped boundary
+  izone=1         !cj dummy for shaped boundary
+
+! if(myrank.eq.0) print *,"You are working with curved mesh."
+          end select 
+
   call xyznod(inode,coords)
+          select case(nonrect)
+          case(0)
   x = coords(1) + xzero
   z = coords(2) + zzero
+          case(1)
+  x = coords(1) !cjdebug + xzero
+  z = coords(2) !cjdebug + zzero
+! if(myrank.eq.0) print *,"You are working with curved mesh."
+          end select
 end subroutine boundary_node
 
 
@@ -72,15 +100,20 @@ end subroutine boundary_node
 ! set_dirichlet_bc
 !======================================================================
 subroutine set_dirichlet_bc(imatrix,ibegin,rhs,bv,normal,izonedim)
+  use basic
   implicit none
 
   integer, intent(in) :: imatrix              ! matrix handle
   integer, intent(in) :: ibegin               ! first dof of field
   vectype, intent(inout), dimension(*) :: rhs ! right-hand-side of equation
   vectype, intent(in), dimension(6) :: bv     ! boundary values
-  real, intent(in) :: normal                  ! angle of normal from horizontal
+!cj  real, intent(in) :: normal                  ! angle of normal from horizontal
+  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
   integer, intent(in) :: izonedim             ! dimension of boundary
   
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "set_dirichlet_bc called"
+
   if(izonedim.eq.1) then
      ! edge points
      ! ~~~~~~~~~~~
@@ -120,19 +153,26 @@ subroutine set_tangent_bc(imatrix,ibegin,rhs,bv,normal,izonedim)
   
   integer, intent(in) :: imatrix              ! matrix handle
   integer, intent(in) :: ibegin               ! first dof of field
-  real, intent(in) :: normal                  ! angle of normal from horizontal
+!cj  real, intent(in) :: normal                  ! angle of normal from horizontal
+  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
   vectype, intent(inout), dimension(*) :: rhs ! right-hand-side of equation
   vectype, intent(in), dimension(6) :: bv     ! boundary values
   integer, intent(in) :: izonedim             ! dimension of boundary
 
-  integer :: irow
+  integer :: irow, irow_n, irow_m
   integer :: numvals
   integer, dimension(2) :: cols
   vectype, dimension(2) :: vals
 
+
+!cjdebug  return
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "set_tangent_bc called"
+
   numvals = 2
-  vals(1) = -sin(normal)
-  vals(2) =  cos(normal)
+!cj  vals(1) = -sin(normal)
+!cj  vals(2) =  cos(normal)
+  vals(1) = -normal(2)
+  vals(2) =  normal(1)
 
   if(izonedim.eq.1) then
      ! edge points
@@ -141,29 +181,63 @@ subroutine set_tangent_bc(imatrix,ibegin,rhs,bv,normal,izonedim)
      cols(1) = ibegin + 1
      cols(2) = ibegin + 2
 
-     if(abs(cos(normal)) .gt. abs(sin(normal))) then
+!cj     if(abs(cos(normal)) .gt. abs(sin(normal))) then
+     if(abs(normal(1)) .gt. abs(normal(2))) then
         irow = ibegin + 2
      else
         irow = ibegin + 1
      endif
+        irow_n = ibegin + 1
+        irow_m = ibegin + 2
      
+          select case(nonrect)
+          case(0) 
      if(imatrix.ne.0) &
           call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
      rhs(irow) = vals(1)*bv(2) + vals(2)*bv(3)
+          case(1)
+     if(imatrix.ne.0) then
+          call applyLinCombinationForMatrix(imatrix, irow_n, irow_m, normal, icomplex) 
+          call setgeneralbc(imatrix, irow_m, numvals, cols, vals, icomplex)
+          rhs(irow_n) = normal(1)*rhs(irow_n) + normal(2)*bv(irow_m)   !cj normal
+     endif
+     rhs(irow_m) = -normal(2)*bv(2) + normal(1)*bv(3)    !cj tangent
+!    if(myrank.eq.0) print *,"You are working with curved mesh."
+          end select
+     if(myrank.eq.0 .and. iprint.ge.1) &
+           print *, "set_tangent_bc : ibegin irow_n irow_m", &
+                     ibegin, irow_n, irow_m
 
      ! clamp tangential 2nd-derivative
      cols(1) = ibegin + 3
      cols(2) = ibegin + 5
      
-     if(abs(cos(normal)) .gt. abs(sin(normal))) then
+!cj     if(abs(cos(normal)) .gt. abs(sin(normal))) then
+     if(abs(normal(1)) .gt. abs(normal(2))) then
         irow = ibegin + 5
      else
         irow = ibegin + 3
      endif
+        irow_n = ibegin + 3
+        irow_m = ibegin + 5
 
+          select case(nonrect)
+          case(0) 
      if(imatrix.ne.0) &
           call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
      rhs(irow) = vals(1)*bv(4) + vals(2)*bv(6)
+          case(1)
+     if(imatrix.ne.0) then
+          call applyLinCombinationForMatrix(imatrix, irow_n, irow_m, normal, icomplex) 
+          call setgeneralbc(imatrix, irow_m, numvals, cols, vals, icomplex)
+          rhs(irow_n) = normal(1)*rhs(irow_n) + normal(2)*bv(irow_m)   !cj normal
+     endif
+     rhs(irow_m) = -normal(2)*bv(4) + normal(1)*bv(6)    !cj tangent
+!    if(myrank.eq.0) print *,"You are working with curved mesh."
+          end select
+     if(myrank.eq.0 .and. iprint.ge.1) &
+           print *, "set_tangent_bc : ibegin irow_n irow_m", &
+                     ibegin, irow_n, irow_m
 
   else if(izonedim.eq.0) then
      ! corner points
@@ -210,15 +284,20 @@ subroutine set_normal_bc(imatrix,ibegin,rhs,bv,normal,izonedim)
   
   integer, intent(in) :: imatrix              ! matrix handle
   integer, intent(in) :: ibegin               ! first dof of field
-  real, intent(in) :: normal                  ! angle of normal from horizontal
+!cj  real, intent(in) :: normal                  ! angle of normal from horizontal
+  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
   vectype, intent(inout), dimension(*) :: rhs ! right-hand-side of equation
   vectype, intent(in), dimension(6) :: bv     ! boundary values
   integer, intent(in) :: izonedim             ! dimension of boundary
 
-  integer :: irow
+  integer :: irow, irow_n, irow_m
   integer :: numvals
   integer, dimension(2) :: cols
   vectype, dimension(2) :: vals
+
+
+!cjdebug  return
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "set_normal_bc called"
 
   if(izonedim.eq.1) then
      ! edge points
@@ -226,21 +305,44 @@ subroutine set_normal_bc(imatrix,ibegin,rhs,bv,normal,izonedim)
      numvals = 2
      cols(1) = ibegin + 1
      cols(2) = ibegin + 2
-     vals(1) = cos(normal)
-     vals(2) = sin(normal)
+!cj     vals(1) = cos(normal)
+!cj     vals(2) = sin(normal)
+     vals(1) = normal(1)
+     vals(2) = normal(2)
 
-     if(abs(cos(normal)) .gt. abs(sin(normal))) then
+!cj     if(abs(cos(normal)) .gt. abs(sin(normal))) then
+     if(abs(normal(1)) .gt. abs(normal(2))) then
         irow = ibegin + 1
      else
         irow = ibegin + 2
      endif
+        irow_n = ibegin + 1
+        irow_m = ibegin + 2
 
      if(imatrix.ne.0) then
+          select case(nonrect)
+          case(0)
         call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
         call setdiribc(imatrix, ibegin+4)
+          case(1)
+        call applyLinCombinationForMatrix(imatrix, irow_n, irow_m, vals, icomplex) 
+        call setgeneralbc(imatrix, irow_n, numvals, cols, vals, icomplex)
+        call setdiribc(imatrix, ibegin+4)
+        rhs(irow_m) = -vals(2)*rhs(irow_n) + vals(1)*rhs(irow_m)  !cj tangent
+!     if(myrank.eq.0) print *,"You are working with curved mesh."
+          end select
      endif
+          select case(nonrect)
+          case(0)
      rhs(irow) = vals(1)*bv(2) + vals(2)*bv(3)
+          case(1)
+     rhs(irow_n) = vals(1)*bv(2) + vals(2)*bv(3)   !cj normal
+!     if(myrank.eq.0) print *,"You are working with curved mesh."
+          end select
      rhs(ibegin+4) = bv(5)
+     if(myrank.eq.0 .and. iprint.ge.1) &
+           print *, "set_normal_bc : ibegin irow_n irow_m", &
+                     ibegin, irow_n, irow_m
 
   else if(izonedim.eq.0) then
      ! corner points
@@ -269,7 +371,8 @@ subroutine set_laplacian_bc(imatrix,ibegin,rhs,bv,normal,izonedim,radius)
 
   integer, intent(in) :: imatrix     ! matrix handle
   integer, intent(in) :: ibegin      ! first dof of field
-  real, intent(in) :: normal         ! angle of normal vector from horizontal
+!cj  real, intent(in) :: normal         ! angle of normal vector from horizontal
+  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
   vectype, intent(inout), dimension(*) :: rhs ! right-hand-side of equation
   vectype, intent(in), dimension(6) :: bv     ! boundary values
   integer, intent(in) :: izonedim    ! dimension of boundary
@@ -279,6 +382,11 @@ subroutine set_laplacian_bc(imatrix,ibegin,rhs,bv,normal,izonedim,radius)
   integer :: numvals, irow
   integer, dimension(3) :: cols
   vectype, dimension(3) :: vals
+
+!cj 9/17/08
+  if(nonrect .eq. 1) return
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "set_laplacian_bc called"
 
   if(itor.eq.1) then
      numvals = 3
@@ -299,7 +407,8 @@ subroutine set_laplacian_bc(imatrix,ibegin,rhs,bv,normal,izonedim,radius)
   if(izonedim.eq.1) then
      ! edge points
      ! ~~~~~~~~~~~
-     if(abs(cos(normal)) .gt. abs(sin(normal))) then
+!cj     if(abs(cos(normal)) .gt. abs(sin(normal))) then
+     if(abs(normal(1)) .gt. abs(normal(2))) then
         irow = ibegin + 3
      else
         irow = ibegin + 5
@@ -310,7 +419,7 @@ subroutine set_laplacian_bc(imatrix,ibegin,rhs,bv,normal,izonedim,radius)
      rhs(irow) = bv(1)
   end if
   
-end subroutine
+end subroutine set_laplacian_bc
 
 
 !=======================================================
@@ -330,12 +439,15 @@ subroutine boundary_vel(imatrix, rhs)
   
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes
-  real :: normal, x, z
+!cj  real :: normal, x, z
+  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real :: x, z
   vectype, dimension(6) :: temp
 
   logical :: is_boundary
 
-  if(iper.eq.1 .and. jper.eq.1) return
+  if(iper.eq.1 .and. jper.eq.1) return 
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "boundary_vel called"
 
   call numnod(numnodes)
   do i=1, numnodes
@@ -414,12 +526,15 @@ subroutine boundary_mag(imatrix, rhs)
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes
   integer :: ibegin1, iendplusone1
-  real :: normal, x, z
+!cj  real :: normal, x, z
+  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real :: x, z
   vectype, dimension(6) :: temp
 
   logical :: is_boundary
 
   if(iper.eq.1 .and. jper.eq.1) return
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "boundary_mag called"
 
   call numnod(numnodes)
 
@@ -515,11 +630,14 @@ subroutine boundary_den(imatrix, rhs)
   
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes
-  real :: normal,x,z
+!cj  real :: normal,x,z
+  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real :: x,z
   logical :: is_boundary
   vectype, dimension(6) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "boundary_den called"
 
   call numnod(numnodes)
   do i=1, numnodes
@@ -563,11 +681,14 @@ subroutine boundary_pres(imatrix, rhs)
   
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes
-  real :: normal, x, z
+!cj  real :: normal, x, z
+  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real :: x, z
   logical :: is_boundary
   vectype, dimension(6) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "boundary_pres called"
 
   call numnod(numnodes)
   do i=1, numnodes
@@ -610,11 +731,14 @@ subroutine boundary_dc(imatrix, rhs)
   
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes
-  real :: normal, x, z
+!cj  real :: normal, x, z
+  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real :: x, z
   logical :: is_boundary
   vectype, dimension(6) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "boundary_dc called"
 
   temp = 0.
 
@@ -648,11 +772,14 @@ subroutine boundary_nm(imatrix, rhs)
   
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes
-  real :: normal, x, z
+!cj  real :: normal, x, z
+  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real :: x, z
   logical :: is_boundary
   vectype, dimension(6) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "boundary_nm called"
 
   temp = 0.
 
@@ -688,7 +815,9 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
   
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes, ineg
-  real :: normal, x, z, xmin, zmin, alx, alz
+!cj  real :: normal, x, z, xmin, zmin, alx, alz
+  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real :: x, z, xmin, zmin, alx, alz
   real, dimension(6) :: g
   real, dimension(1) :: xp, zp, xc, zc
   double precision :: coords(3)
@@ -696,10 +825,16 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
   vectype, dimension(6) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "boundary_gs called"
+
   call getboundingboxsize(alx, alz)
 
   call numnod(numnodes)
   call getmincoord(xmin,zmin)
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "xmin  zmin = ", xmin,zmin
+
+!cj added 10/06/08
+!cjdebug  call dump_matrix(imatrix)
 
   do i=1, numnodes
      call boundary_node(i,is_boundary,izone,izonedim,normal,x,z)
@@ -711,10 +846,19 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
 !......add feedback field
      if(idevice .eq. 0) then
         call xyznod(i,coords)
+          select case(nonrect)
+          case(0)
         xp = coords(1) - xmin + xzero
         zp = coords(2) - zmin + zzero
         xc(1) = 102.
         zc(1) = xzero + alx/2.
+          case(1)
+        xp = coords(1) !cjdebug - xmin + xzero
+        zp = coords(2) !cjdebug - zmin + zzero
+        xc(1) = 102.
+        zc(1) = rzero + alx/2.
+!       if(myrank.eq.0) print *,"You are working with curved mesh."
+          end select
         call gvect(xp,zp,xc,zc,1,g,1,ineg)
         psis_l = psis_l + g*feedfac
      endif
@@ -750,11 +894,14 @@ subroutine boundary_vor(imatrix, rhs)
   integer, parameter :: numvarsm = 2
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes
-  real :: normal, x, z
+!cj  real :: normal, x, z
+  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real :: x, z
   logical :: is_boundary
   vectype, dimension(6) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "boundary_vor called"
 
   temp = 0.
 
@@ -799,11 +946,14 @@ subroutine boundary_com(imatrix, rhs)
   integer, parameter :: numvarsm = 2
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes
-  real :: normal, x, z
+!cj  real :: normal, x, z
+  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real :: x, z
   logical :: is_boundary
   vectype, dimension(6) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "boundary_com called"
 
   temp = 0.
 

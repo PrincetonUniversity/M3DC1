@@ -348,7 +348,10 @@ subroutine gradshafranov_solve
     bv = 0.
   endif
   call getboundingboxsize(alx,alz)
-  rnorm = xzero + alx/2.
+  rnorm = rzero + alx/2.
+  if(myrank.eq.0 .and. iprint.ge.1) &
+        print *, "gradshafranov_solve xmin zmin xmag zmag alx alz xzero zzero= ", &
+                 xmin, zmin, xmag, zmag, alx, alz, xzero, zzero
 
 !......define feedback parameters
   if(idevice .eq. 0) then
@@ -366,11 +369,23 @@ subroutine gradshafranov_solve
 
   psi = 0.
 
+  if(myrank.eq.0 .and. iprint.ge.1) &
+        print *, "gradshafranov_solve i xp zp = "
   do i=1,numnodes
 
      call xyznod(i,coords)
+         select case(nonrect)
+         case(0)
      xp = coords(1) - xmin + xzero
      zp = coords(2) - zmin + zzero
+         case(1)
+     xp = coords(1) !cjdebug - xmin + xzero
+     zp = coords(2) !cjdebug - zmin + zzero
+!    if(myrank.eq.0) print *,"You are working with curved mesh."
+         end select
+
+  if(myrank.eq.0 .and. iprint.ge.1) &
+        print *, i, xp(1), zp(1)
 
      call entdofs(numvargs, i, 0, ibegin, iendplusone)
      call assign_local_pointers(i)
@@ -446,14 +461,22 @@ subroutine gradshafranov_solve
 
   ! define initial b1vecini associated with delta-function source
   !     corresponding to current tcuro at location (xmag,zmag)
+         select case(nonrect)
+         case(0)
   xrel = xmag-xzero
   zrel = zmag-zzero
+         case(1)
+  xrel = xmag !cjdebug -xmin !cjdebug xzero
+  zrel = zmag !cjdebug -zmin !cjdebug zzero
+! if(myrank.eq.0) print *,"You are working with curved mesh."
+         end select
 
 
   if(myrank.eq.0 .and. iprint.gt.0) print *, " initializing current..."
 
   b1vecini = 0.
-  call deltafun(xrel,zrel,b1vecini,tcuro)
+  call deltafun(xrel,zrel,b1vecini,tcuro, ier)
+  if(ier .gt. 0) stop
   if(myrank.eq.0) then
   write(*,999) 
 999 format("    I    error        error2       xmag         psimin       psilim" &
@@ -496,28 +519,57 @@ subroutine gradshafranov_solve
     
      ! Find new magnetic axis (extremum of psi)
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+         select case(nonrect)
+         case(0)
      xguess = xmag - xzero
      zguess = zmag - zzero    
+         case(1)
+     xguess = xmag !cjdebug - xmin !cjdebug xzero
+     zguess = zmag !cjdebug - zmin !cjdebug zzero    
+!    if(myrank.eq.0) print *,"You are working with curved mesh."
+         end select
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     call magaxis(xguess,zguess,psi,numvargs,psimin)
+     call magaxis(xguess,zguess,psi,numvargs,psimin, ier)
+     if(ier .gt. 0) stop
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_gs_magaxis = t_gs_magaxis + tend - tstart
      endif
+         select case(nonrect)
+         case(0)
      xmag = xguess + xzero
      zmag = zguess + zzero
+         case(1)
+     xmag = xguess !cjdebug + xmin !cjdebug xzero
+     zmag = zguess !cjdebug + zmin !cjdebug zzero
+!    if(myrank.eq.0) print *,"You are working with curved mesh."
+         end select
     
      ! calculate psi at the limiter
+         select case(nonrect)
+         case(0)
      xrel = xlim - xzero
      zrel = zlim - zzero
+         case(1)
+     xrel = xlim !cjdebug - xmin !cjdebug xzero
+     zrel = zlim !cjdebug - zmin !cjdebug zzero
+!    if(myrank.eq.0) print *,"You are working with curved mesh."
+         end select
      itri = 0.
 
      call evaluate(xrel,zrel,psilim,ajlim,psi,1,numvargs,itri)
 
      ! calculate psi at a second limiter point as a diagnostic
      if(xlim2.gt.0) then
+         select case(nonrect)
+         case(0)
        xrel = xlim2 - xzero
        zrel = zlim2 - zzero
+         case(1)
+       xrel = xlim2 !cjdebug - xmin !cjdebug xzero
+       zrel = zlim2 !cjdebug - zmin !cjdebug zzero
+!      if(myrank.eq.0) print *,"You are working with curved mesh."
+         end select
        itri = 0.
 
        call evaluate(xrel,zrel,psilim2,ajlim,psi,1,numvargs,itri)
@@ -544,8 +596,15 @@ subroutine gradshafranov_solve
      do i=1,numnodes
         
         call xyznod(i,coords)
+         select case(nonrect)
+         case(0)
         x = coords(1) - xmin + xzero
         z = coords(2) - zmin + zzero
+         case(1)
+        x = coords(1) !cjdebug - xmin + xzero
+        z = coords(2) !cjdebug - zmin + zzero
+!       if(myrank.eq.0) print *,"You are working with curved mesh."
+         end select
         
         call entdofs(numvargs, i, 0, ibegin, iendplusone)
 
@@ -637,7 +696,13 @@ subroutine gradshafranov_solve
 
      ! choose gamma2 to fix q0/qstar.  Note that there is an additional
      ! degree of freedom in gamma3.  Could be used to fix qprime(0)
+         select case(nonrect)
+         case(0)
      g0 = bzero*xzero
+         case(1)
+     g0 = bzero*rzero  !cjdebug xzero
+!    if(myrank.eq.0) print *,"You are working with curved mesh."
+         end select
 
 !.....changed 06/04/08 to allow more flexibility
 !    if(numvar.eq.1 .or. nv1equ.eq.1) then
@@ -714,7 +779,13 @@ subroutine gradshafranov_solve
      call calc_pressure(temp(ibegin:ibegin+5),p0_l)
 
      call xyznod(i, coords)
+         select case(nonrect)
+         case(0)
      z = coords(2) - zmin + zzero
+         case(1)
+     z = coords(2) !cjdebug - zmin + zzero
+!    if(myrank.eq.0) print *,"You are working with curved mesh."
+         end select
      if((z.gt.separatrix_top) .or. (z .lt.separatrix_bottom)) then
         p0_l(1) = pedge
         p0_l(2:6) = 0.
@@ -1051,7 +1122,7 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
 end subroutine gvect
 
 ! ===========================================================
-subroutine deltafun(x,z,dum,val)
+subroutine deltafun(x,z,dum,val,ier)
 
   use t_data
   use basic
@@ -1062,7 +1133,7 @@ subroutine deltafun(x,z,dum,val)
   real, intent(in) :: x, z, val
   vectype, intent(out) :: dum(*)
 
-  integer :: itri, i, k, index
+  integer :: itri, i, k, index, ier
   real :: x1, z1, b, theta, si, eta, sum
   
   call whattri(x,z,itri,x1,z1)
@@ -1085,6 +1156,11 @@ subroutine deltafun(x,z,dum,val)
         enddo
         dum(index) = dum(index) + sum*val
      enddo
+     ier=0
+  else
+!    print *, "deltafun : cannot find triangle. itri = ", itri
+!    ier=1
+!    return
   end if
 
   call sumsharedppplvecvals(dum)
@@ -1116,8 +1192,15 @@ subroutine fundef
   do l=1,numnodes
 
      call xyznod(l,coords)
+         select case(nonrect)
+         case(0)
      x = coords(1) - xmin + xzero
      z = coords(2) - zmin + zzero
+         case(1)
+     x = coords(1) !cjdebug - xmin + xzero
+     z = coords(2) !cjdebug - zmin + zzero
+!    if(myrank.eq.0) print *,"You are working with curved mesh."
+         end select
 
      call entdofs(numvargs, l, 0, ibegin, iendplusone)
      pso =  (psi(ibegin)-psimin)*dpsii
@@ -1223,7 +1306,13 @@ subroutine calc_toroidal_field(psii,tf)
   
 !  if(psii(1) .lt. 0. .or. psii(1) .gt. 1.) then
   if(psii(1) .gt. 1.) then
+         select case(nonrect)
+         case(0)
      call constant_field(tf, bzero*xzero)
+         case(1)
+     call constant_field(tf, bzero*rzero)  !cjdebug xzero
+!    if(myrank.eq.0) print *,"You are working with curved mesh."
+         end select
   else
      g2(1) = psii(1) - 10.*psii(1)**3 + 20.*psii(1)**4 &
           - 15.*psii(1)**5 + 4.*psii(1)**6
@@ -1287,8 +1376,15 @@ subroutine calc_toroidal_field(psii,tf)
      g3 = g3*2.
      g4 = g4*2.
      
+         select case(nonrect)
+         case(0)
      tf(1) = sqrt((bzero*xzero)**2 + &
           gamma2*g2(1) + gamma3*g3(1) + gamma4*g4(1))
+         case(1)
+     tf(1) = sqrt((bzero*rzero)**2 + &    !cjdebug xzero
+          gamma2*g2(1) + gamma3*g3(1) + gamma4*g4(1))
+!    if(myrank.eq.0) print *,"You are working with curved mesh."
+         end select
      tf(2) = 0.5*(gamma2*g2(2) + gamma3*g3(2) + gamma4*g4(2)) / tf(1)
      tf(3) = 0.5*(gamma2*g2(3) + gamma3*g3(3) + gamma4*g4(3)) / tf(1)
      tf(4) = 0.5*(gamma2*g2(4) + gamma3*g3(4) + gamma4*g4(4)) / tf(1) &

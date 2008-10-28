@@ -48,6 +48,8 @@
       real xmin, xmax, zmin, zmax, alx, alz
       call getmincoord(xmin, zmin)
       call getmaxcoord(xmax, zmax)
+!      print *, "getboundingboxsize xmin zmin xmax zmax = ", 
+!     1         xmin, zmin, xmax, zmax
 
       alx = xmax - xmin
       alz = zmax - zmin

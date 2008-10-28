@@ -750,7 +750,7 @@ end subroutine calculate_scalars
 !
 ! locates the magnetic axis and the value of psi there
 !=====================================================
-subroutine magaxis(xguess,zguess,phin,numvari,psim)
+subroutine magaxis(xguess,zguess,phin,numvari,psim, ier)
   use basic
   use t_data
   use nintegrate_mod
@@ -842,10 +842,14 @@ subroutine magaxis(xguess,zguess,phin,numvari,psim)
 
         xnew = x1 + co*(b+sinew) - sn*etanew
         znew = z1 + sn*(b+sinew) + co*etanew
+
+        ier=0
      else
         xnew = 0.
         znew = 0.
         pt   = 0.
+
+        ier=1
      endif  ! on itri.gt.0
      
      ! communicate new minimum to all processors
@@ -861,9 +865,7 @@ subroutine magaxis(xguess,zguess,phin,numvari,psim)
      endif
 
      ! check to see whether the new minimum is outside the simulation domain
-     if(xnew .lt. 0 .or. xnew.gt.alx .or. &
-          znew .lt. 0 .or. znew.gt.alz .or. &
-          xnew.ne.xnew .or. znew.ne.znew) then
+     if(ier .gt. 0) then
         ! if not within the domain, safestop.
 
         write(*,3333) inews,x,z,xnew,znew

@@ -280,8 +280,15 @@ subroutine calcpos(itri,si,eta,ngauss,x,z)
   call nodfac(itri,nodeids)
   call xyznod(nodeids(1), coords)
 
+         select case(nonrect)
+         case(0)
   xoff = coords(1) - xmin + xzero
   zoff = coords(2) - zmin + zzero
+         case(1)
+  xoff = coords(1) !cjdebug  - xmin + xzero
+  zoff = coords(2) !cjdebug  - zmin + zzero
+!        if(myrank.eq.0) print *,"You are working with curved mesh." 
+         end select 
 
   b = btri(itri)
   co = cos(ttri(itri))
@@ -601,10 +608,19 @@ subroutine define_fields(itri, fields, ngauss, gdef)
         endif
 
         if(itor.eq.1) then
+         select case(nonrect)
+         case(0)
            bzt79(:,OP_1) = bzt79(:,OP_1)*xzero
            bzs79(:,OP_1) = bzs79(:,OP_1)*xzero
            bz079(:,OP_1) = bz079(:,OP_1)*xzero
            bz179(:,OP_1) = bz179(:,OP_1)*xzero
+         case(1) 
+           bzt79(:,OP_1) = bzt79(:,OP_1)*rzero !cjdebug xzero
+           bzs79(:,OP_1) = bzs79(:,OP_1)*rzero !cjdebug xzero
+           bz079(:,OP_1) = bz079(:,OP_1)*rzero !cjdebug xzero
+           bz179(:,OP_1) = bz179(:,OP_1)*rzero !cjdebug xzero
+!          if(myrank.eq.0) print *,"You are working with curved mesh."
+         end select
         endif
      endif
   endif
@@ -1109,7 +1125,13 @@ subroutine evaluate(x,z,ans,ans2,dum,itype,numvare,itri)
      ! calculate the inverse radius
      if(itor.eq.1) then
         call getmincoord(xmin, zmin)
+         select case(nonrect)
+         case(0)
         ri = 1./(x - xmin + xzero)
+         case(1)
+        ri = 1./(x) !cjdebug - xmin + xzero)
+!       if(myrank.eq.0) print *,"You are working with curved mesh." 
+         end select
      else
         ri = 1.
      endif
