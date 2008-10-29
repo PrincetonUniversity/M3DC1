@@ -492,6 +492,7 @@
 !.....scale solution back if a linear calculation
 
       if(ekin .lt. max_ke) return
+      if(myrank.eq.0) write(*,*) " =>solution scaled back at time", time
 
       call numnod(numnodes)
       call numdofs(num_fields, ndofs)

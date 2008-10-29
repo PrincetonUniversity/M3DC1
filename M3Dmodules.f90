@@ -159,6 +159,7 @@ module basic
   integer :: imp_mod
   integer :: iteratephi  ! 1 = iterate field solve
   integer :: icsym  ! symmetry of initial conditions (0) no; (1) even in U: (2) odd in U
+  integer :: inumgs  ! if 1, use numerical definition of p and g from profile-p and profile-g files
   integer :: irecalc_eta ! 1 = recalculate transport coeffs after den solve
   integer :: iconst_eta  ! 1 = don't evolve resistivity
   integer :: int_pts_main! points in integration quadrature for time advance matrices
@@ -174,6 +175,7 @@ module basic
   real :: dndt_fac      ! factor to multiply dn/dt term
   real :: dvdt_fac      ! factor to multiply dv/dt terms
   real :: dbdt_fac      ! factor to multiply db/dt terms
+      real :: chiiner      ! factor to multiply chi inertial terms
 
 
   ! current controller parameters
@@ -239,7 +241,7 @@ module basic
        iconstflux,regular,max_ke,                              &
        ntor,iadapt,istatic,iestatic,ivform, ibform,            &
        ihypeta,ikapscale,                                      &
-       iteratephi, icsym,                                      &
+       iteratephi, icsym, inumgs, nonrect,                     &
        inonormalflow, inoslip_pol, inoslip_tor, inostress_tor, &
        iconst_p, inograd_p, iconst_n, inograd_n, iconst_t,     &
        inocurrent_pol, inocurrent_tor, iconst_bz,              &
@@ -249,7 +251,7 @@ module basic
        n_target, n_control_p, n_control_i, n_control_d,        &
        icalc_scalars, ike_only, ifout, inertia, itwofluid,     &
        int_pts_main, int_pts_aux, int_pts_diag,                &
-       iwave, bx0
+       iwave, bx0 , chiiner
 
 
   !     derived quantities

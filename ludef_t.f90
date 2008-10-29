@@ -269,7 +269,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
      ddterm(u_g) = ddterm(u_g) + (.5-thimp*bdf)*dt*temp
      
-     temp = v1chin(trial,lin,nt79)
+     temp = v1chin(trial,lin,nt79)*chiiner
      ssterm(chi_g) = ssterm(chi_g) + dvdt_fac*temp
      ddterm(chi_g) = ddterm(chi_g) + dvdt_fac*temp*bdf
      
@@ -735,7 +735,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   ssterm(u_g) = ssterm(u_g) + dvdt_fac*temp
   ddterm(u_g) = ddterm(u_g) + dvdt_fac*temp*bdf
   
-  temp = v3chin(trial,lin,nt79)
+  temp = v3chin(trial,lin,nt79)*chiiner
   ssterm(chi_g) = ssterm(chi_g) + dvdt_fac*temp
   ddterm(chi_g) = ddterm(chi_g) + dvdt_fac*temp*bdf
 

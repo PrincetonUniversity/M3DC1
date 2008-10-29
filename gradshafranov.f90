@@ -8,6 +8,10 @@ module gradshafranov
   real :: gamma2, gamma3, gamma4  
   integer :: itnum
   real :: separatrix_top, separatrix_bottom
+
+  integer :: npsi
+  real, allocatable :: psinorm(:), g4big0t(:), g4bigt(:), g4bigpt(:), g4bigppt(:)
+  real, allocatable :: fbig0t(:), fbigt(:), fbigpt(:), fbigppt(:)
   
   integer, parameter :: numvargs = 1
 
@@ -459,6 +463,9 @@ subroutine gradshafranov_solve
      psis_l = psi(ibegin:ibegin+5)
   enddo
 
+!....read in numerical values for p and g functions for inumgs = 1
+      if(inumgs .eq. 1) call readpgfiles
+
   ! define initial b1vecini associated with delta-function source
   !     corresponding to current tcuro at location (xmag,zmag)
          select case(nonrect)
@@ -711,8 +718,14 @@ subroutine gradshafranov_solve
         gamma3 = 0.
         gamma4 = 0.
      else
-        gamma2 =  -xmag**2*p0*p1 + -2.*abs(g0)/(xmag*q0*abs(dpsii)) 
-        gamma3 = -4.*(abs(g0)/xmag)*djdpsi/dpsii - xmag**2*p0*p2
+!......see if p and g functions defined numerically.  If so, only enforce total current condition
+        if(inumgs .eq. 0) then
+          gamma2 =  -xmag**2*p0*p1 + -2.*abs(g0)/(xmag*q0*abs(dpsii))
+          gamma3 = -4.*(abs(g0)/xmag)*djdpsi/dpsii - xmag**2*p0*p2
+        else
+          gamma2 = 0.
+          gamma3 = 0.
+        endif
         gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
      endif
          
@@ -1171,7 +1184,7 @@ subroutine fundef
 
 !.....defines the source functions for the GS equation:
   ! fun1 = r*p'
-  ! fun4 = G1'/r
+  ! fun4 = G4'/r
   ! fun2 = G2'/r
   ! fun3 = G3'/r
 
@@ -1180,8 +1193,8 @@ subroutine fundef
   
   implicit none 
   integer :: l, numnodes, i, ibegin, iendplusone
-  real :: x, z, xmin, zmin, pso, psox, psoy, psoxx, psoxy, psoyy, fbig
-  real :: fbigp, fbigpp, g4big, g4bigp, g4bigpp, g2big, g2bigp
+  real :: x, z, xmin, zmin, pso, psox, psoy, psoxx, psoxy, psoyy, fbig, fbig0
+  real :: fbigp, fbigpp, g4big0, g4big, g4bigp, g4bigpp, g2big, g2bigp
   real :: g2bigpp, g3big, g3bigp, g3bigpp
   double precision :: coords(3)
 
@@ -1220,15 +1233,23 @@ subroutine fundef
         psoxy= psi(ibegin+4)*dpsii
         psoyy= psi(ibegin+5)*dpsii
      
-        fbig = p0*dpsii*(p1 + 2.*p2*pso - 3.*(20. + 10.*p1+4.*p2)*pso**2     &
-             + 4.*(45.+20.*p1+6.*p2)*pso**3 - 5.*(36.+15.*p1+4.*p2)*pso**4   &
-             + 6.*(10.+4.*p1+p2)*pso**5)
-        fbigp = p0*dpsii*(2.*p2 - 6.*(20. + 10.*p1+4.*p2)*pso                &
-             + 12.*(45.+20.*p1+6*p2)*pso**2 - 20.*(36.+15*p1+4*p2)*pso**3    &
-             + 30.*(10.+4.*p1+p2)*pso**4)
-        fbigpp= p0*dpsii*(- 6.*(20. + 10.*p1+4.*p2)                          &
-             + 24.*(45.+20.*p1+6*p2)*pso - 60.*(36.+15*p1+4*p2)*pso**2       &
-             + 120.*(10.+4.*p1+p2)*pso**3)
+        select case (inumgs)
+        case (0)
+          fbig = p0*dpsii*(p1 + 2.*p2*pso - 3.*(20. + 10.*p1+4.*p2)*pso**2     &
+               + 4.*(45.+20.*p1+6.*p2)*pso**3 - 5.*(36.+15.*p1+4.*p2)*pso**4   &
+               + 6.*(10.+4.*p1+p2)*pso**5)
+          fbigp = p0*dpsii*(2.*p2 - 6.*(20. + 10.*p1+4.*p2)*pso                &
+               + 12.*(45.+20.*p1+6*p2)*pso**2 - 20.*(36.+15*p1+4*p2)*pso**3    &
+               + 30.*(10.+4.*p1+p2)*pso**4)
+          fbigpp= p0*dpsii*(- 6.*(20. + 10.*p1+4.*p2)                          &
+               + 24.*(45.+20.*p1+6*p2)*pso - 60.*(36.+15*p1+4*p2)*pso**2       &
+               + 120.*(10.+4.*p1+p2)*pso**3)
+        case(1)
+!
+!.......read functions from a file for inumgs .eq. 1
+          call fget(pso, fbig0, fbig, fbigp, fbigpp)
+!
+        end select
 
         fun1(ibegin)   = x*fbig
         fun1(ibegin+1) = fbig + x*fbigp*psox
@@ -1237,12 +1258,17 @@ subroutine fundef
         fun1(ibegin+4) = fbigp*psoy + x*(fbigpp*psox*psoy +fbigp*psoxy)
         fun1(ibegin+5) = x*(fbigpp*psoy**2 + fbigp*psoyy)
 
-!!$     g4big =   dpsii*(-pso**2+3.*pso**3-3.*pso**4+pso**5)
-!!$     g4bigp =  dpsii*(-2*pso+9.*pso**2-12.*pso**3+5.*pso**4)
-!!$     g4bigpp = dpsii*(-2 + 18.*pso-36.*pso**2+20*pso**3)
-        g4big = dpsii*(-60*pso**2+180*pso**3-180*pso**4+60*pso**5)
-        g4bigp= dpsii*(-120*pso+540*pso**2-720*pso**3+300*pso**4)
-        g4bigpp=dpsii*(-120   +1080*pso  -2160*pso**2+1200*pso**3)
+        select case (inumgs)
+        case (0)
+          g4big = dpsii*(-60*pso**2+180*pso**3-180*pso**4+60*pso**5)
+          g4bigp= dpsii*(-120*pso+540*pso**2-720*pso**3+300*pso**4)
+          g4bigpp=dpsii*(-120   +1080*pso  -2160*pso**2+1200*pso**3)
+        case(1)
+!
+!.......read functions from a file for inumgs .eq. 1
+          call g4get(pso, g4big0, g4big, g4bigp, g4bigpp)
+!
+        end select
 
         fun4(ibegin)  = g4big/x
         fun4(ibegin+1)= g4bigp*psox/x - g4big/x**2
@@ -1303,6 +1329,7 @@ subroutine calc_toroidal_field(psii,tf)
   vectype, intent(out), dimension(6) :: tf    ! toroidal field (I)
 
   real, dimension(6) :: g2, g3, g4
+  real :: g4big0, g4big, g4bigp, g4bigpp
   
 !  if(psii(1) .lt. 0. .or. psii(1) .gt. 1.) then
   if(psii(1) .gt. 1.) then
@@ -1352,25 +1379,46 @@ subroutine calc_toroidal_field(psii,tf)
           + 24.*psii(1)**3 - 20.*psii(1)**4 +  6.*psii(1)**5) + &
           psii(3)**2*(2. - 24.*psii(1) &
           + 72.*psii(1)**2 - 80.*psii(1)**3 + 30.*psii(1)**4)
-     
-     g4(1) = 1. - 20.*psii(1)**3 + 45.*psii(1)**4 &
+
+
+        select case (inumgs)
+        case (0)
+          g4big0 = 1. - 20.*psii(1)**3 + 45.*psii(1)**4 &
                 - 36.*psii(1)**5 + 10.*psii(1)**6
-     g4(2) = psii(2)*(-60.*psii(1)**2 +180.*psii(1)**3 &
-          -180.*psii(1)**4 + 60.*psii(1)**5)
-     g4(3) = psii(3)*(-60.*psii(1)**2 +180.*psii(1)**3 &
-          -180.*psii(1)**4 + 60.*psii(1)**5)
-     g4(4) = psii(4)*(-60.*psii(1)**2 +180.*psii(1)**3 &
-          -180.*psii(1)**4 + 60.*psii(1)**5) + &
-          psii(2)**2*(-120.*psii(1) +540.*psii(1)**2 &
-          -720.*psii(1)**3 +300.*psii(1)**4)
-     g4(5) = psii(5)*(-60.*psii(1)**2 +180.*psii(1)**3 &
-          -180.*psii(1)**4 + 60.*psii(1)**5) + &
-          psii(2)*psii(3)*(-120.*psii(1) +540.*psii(1)**2 &
-          -720.*psii(1)**3 +300.*psii(1)**4)
-     g4(6) = psii(6)*(-60.*psii(1)**2 +180.*psii(1)**3 &
-          -180.*psii(1)**4 + 60.*psii(1)**5) + &
-          psii(3)**2*(-120.*psii(1) +540.*psii(1)**2 &
-          -720.*psii(1)**3 +300.*psii(1)**4)
+          g4big = dpsii*(-60*psii(1)**2+180*psii(1)**3-180*psii(1)**4+60*psii(1)**5)
+          g4bigp= dpsii*(-120*psii(1)+540*psii(1)**2-720*psii(1)**3+300*psii(1)**4)
+          g4bigpp=dpsii*(-120   +1080*psii(1)  -2160*psii(1)**2+1200*psii(1)**3)
+        case(1)
+!
+!.......read functions from a file for inumgs .eq. 1
+          call g4get(psii(1), g4big0, g4big, g4bigp, g4bigpp)
+!
+        end select
+     
+!    g4(1) = 1. - 20.*psii(1)**3 + 45.*psii(1)**4 &
+!               - 36.*psii(1)**5 + 10.*psii(1)**6
+!    g4(2) = psii(2)*(-60.*psii(1)**2 +180.*psii(1)**3 &
+!         -180.*psii(1)**4 + 60.*psii(1)**5)
+!    g4(3) = psii(3)*(-60.*psii(1)**2 +180.*psii(1)**3 &
+!         -180.*psii(1)**4 + 60.*psii(1)**5)
+!    g4(4) = psii(4)*(-60.*psii(1)**2 +180.*psii(1)**3 &
+!         -180.*psii(1)**4 + 60.*psii(1)**5) + &
+!         psii(2)**2*(-120.*psii(1) +540.*psii(1)**2 &
+!         -720.*psii(1)**3 +300.*psii(1)**4)
+!    g4(5) = psii(5)*(-60.*psii(1)**2 +180.*psii(1)**3 &
+!         -180.*psii(1)**4 + 60.*psii(1)**5) + &
+!         psii(2)*psii(3)*(-120.*psii(1) +540.*psii(1)**2 &
+!         -720.*psii(1)**3 +300.*psii(1)**4)
+!    g4(6) = psii(6)*(-60.*psii(1)**2 +180.*psii(1)**3 &
+!         -180.*psii(1)**4 + 60.*psii(1)**5) + &
+!         psii(3)**2*(-120.*psii(1) +540.*psii(1)**2 &
+!         -720.*psii(1)**3 +300.*psii(1)**4)
+     g4(1) = g4big0
+     g4(2) = (psii(2)/dpsii)*g4big
+     g4(3) = (psii(3)/dpsii)*g4big
+     g4(4) = (psii(4)*g4big + psii(2)**2*g4bigp)/dpsii
+     g4(5) = (psii(5)*g4big + psii(2)*psii(3)*g4bigp)/dpsii
+     g4(6) = (psii(6)*g4big + psii(3)**2*g4bigp)/dpsii
 
      g2 = g2*2.
      g3 = g3*2.
@@ -1413,69 +1461,153 @@ subroutine calc_pressure(psii,pres)
   use basic
 
   real, intent(in), dimension(6)  :: psii     ! normalized flux
+  real :: fbig0, fbig, fbigp, fbigpp
   vectype, intent(out), dimension(6) :: pres     ! pressure
 
   if(psii(1) .gt. 1.) then
      pres = 0.
   else
-     pres(1) = 1.+p1*psii(1)+p2*psii(1)**2 &
-          -(20. + 10.*p1 + 4.*p2)*psii(1)**3 &
-          +(45. + 20.*p1 + 6.*p2)*psii(1)**4 &
-          -(36. + 15.*p1 + 4.*p2)*psii(1)**5 &
-          +(10. +  4.*p1 +    p2)*psii(1)**6
-     pres(2) = psii(2)* &
-          (p1+2.*p2*psii(1) &
-          -3.*(20. + 10.*p1 + 4.*p2)*psii(1)**2 &
-          +4.*(45. + 20.*p1 + 6.*p2)*psii(1)**3 &
-          -5.*(36. + 15.*p1 + 4.*p2)*psii(1)**4 &
-          +6.*(10. +  4.*p1 +    p2)*psii(1)**5)
-     pres(3) = psii(3)* &
-          (p1+2.*p2*psii(1) &
-          -3.*(20. + 10.*p1 + 4.*p2)*psii(1)**2 &
-          +4.*(45. + 20.*p1 + 6.*p2)*psii(1)**3 &
-          -5.*(36. + 15.*p1 + 4.*p2)*psii(1)**4 &
-          +6.*(10. +  4.*p1 +    p2)*psii(1)**5)
-     pres(4) = psii(4)* &
-          (p1+2.*p2*psii(1) &
-          -3.*(20. + 10.*p1 + 4.*p2)*psii(1)**2 &
-          +4.*(45. + 20.*p1 + 6.*p2)*psii(1)**3 &
-          -5.*(36. + 15.*p1 + 4.*p2)*psii(1)**4 &
-          +6.*(10. +  4.*p1 +    p2)*psii(1)**5) + &
-          psii(2)**2* &
-          (2.*p2 &
-          - 6.*(20. + 10.*p1 + 4.*p2)*psii(1) &
-          +12.*(45. + 20.*p1 + 6.*p2)*psii(1)**2 &
-          -20.*(36. + 15.*p1 + 4.*p2)*psii(1)**3 &
-          +30.*(10. +  4.*p1 +    p2)*psii(1)**4)
-     pres(5) = psii(5)* &
-          (p1+2.*p2*psii(1) &
-          -3.*(20. + 10.*p1 + 4.*p2)*psii(1)**2 &
-          +4.*(45. + 20.*p1 + 6.*p2)*psii(1)**3 &
-          -5.*(36. + 15.*p1 + 4.*p2)*psii(1)**4 &
-          +6.*(10. +  4.*p1 +    p2)*psii(1)**5) + &
-          psii(2)*psii(3)* &
-          (2.*p2 &
-          - 6.*(20. + 10.*p1 + 4.*p2)*psii(1) &
-          +12.*(45. + 20.*p1 + 6.*p2)*psii(1)**2 &
-          -20.*(36. + 15.*p1 + 4.*p2)*psii(1)**3 &
-          +30.*(10. +  4.*p1 +    p2)*psii(1)**4)
-     pres(6) = psii(6)* &
-          (p1+2.*p2*psii(1) &
-          -3.*(20. + 10.*p1 + 4.*p2)*psii(1)**2 &
-          +4.*(45. + 20.*p1 + 6.*p2)*psii(1)**3 &
-          -5.*(36. + 15.*p1 + 4.*p2)*psii(1)**4 &
-          +6.*(10. +  4.*p1 +    p2)*psii(1)**5) + &
-          psii(3)**2* &
-          (2.*p2 &
-          - 6.*(20. + 10.*p1 + 4.*p2)*psii(1) &
-          +12.*(45. + 20.*p1 + 6.*p2)*psii(1)**2 &
-          -20.*(36. + 15.*p1 + 4.*p2)*psii(1)**3 &
-          +30.*(10. +  4.*p1 +    p2)*psii(1)**4)
+        select case (inumgs)
+        case (0)
+          fbig0 = 1.+p1*psii(1)+p2*psii(1)**2 &
+               -(20. + 10.*p1 + 4.*p2)*psii(1)**3 &
+               +(45. + 20.*p1 + 6.*p2)*psii(1)**4 &
+               -(36. + 15.*p1 + 4.*p2)*psii(1)**5 &
+               +(10. +  4.*p1 +    p2)*psii(1)**6
+          fbig = p0*dpsii*(p1 + 2.*p2*psii(1) - 3.*(20. + 10.*p1+4.*p2)*psii(1)**2     &
+               + 4.*(45.+20.*p1+6.*p2)*psii(1)**3 - 5.*(36.+15.*p1+4.*p2)*psii(1)**4   &
+               + 6.*(10.+4.*p1+p2)*psii(1)**5)
+          fbigp = p0*dpsii*(2.*p2 - 6.*(20. + 10.*p1+4.*p2)*psii(1)                &
+               + 12.*(45.+20.*p1+6*p2)*psii(1)**2 - 20.*(36.+15*p1+4*p2)*psii(1)**3    &
+               + 30.*(10.+4.*p1+p2)*psii(1)**4)
+          fbigpp= p0*dpsii*(- 6.*(20. + 10.*p1+4.*p2)                          &
+               + 24.*(45.+20.*p1+6*p2)*psii(1) - 60.*(36.+15*p1+4*p2)*psii(1)**2       &
+               + 120.*(10.+4.*p1+p2)*psii(1)**3)
+        case(1)
+!
+!.......read functions from a file for inumgs .eq. 1
+          call fget(psii(1), fbig0, fbig, fbigp, fbigpp)
+!
+        end select
+
+!    pres(1) = fbig0
+
+!    pres(2) = psii(2)* &
+!         (p1+2.*p2*psii(1) &
+!         -3.*(20. + 10.*p1 + 4.*p2)*psii(1)**2 &
+!         +4.*(45. + 20.*p1 + 6.*p2)*psii(1)**3 &
+!         -5.*(36. + 15.*p1 + 4.*p2)*psii(1)**4 &
+!         +6.*(10. +  4.*p1 +    p2)*psii(1)**5)
+!    pres(3) = psii(3)* &
+!         (p1+2.*p2*psii(1) &
+!         -3.*(20. + 10.*p1 + 4.*p2)*psii(1)**2 &
+!         +4.*(45. + 20.*p1 + 6.*p2)*psii(1)**3 &
+!         -5.*(36. + 15.*p1 + 4.*p2)*psii(1)**4 &
+!         +6.*(10. +  4.*p1 +    p2)*psii(1)**5)
+!    pres(4) = psii(4)* &
+!         (p1+2.*p2*psii(1) &
+!         -3.*(20. + 10.*p1 + 4.*p2)*psii(1)**2 &
+!         +4.*(45. + 20.*p1 + 6.*p2)*psii(1)**3 &
+!         -5.*(36. + 15.*p1 + 4.*p2)*psii(1)**4 &
+!         +6.*(10. +  4.*p1 +    p2)*psii(1)**5) + &
+!         psii(2)**2* &
+!         (2.*p2 &
+!         - 6.*(20. + 10.*p1 + 4.*p2)*psii(1) &
+!         +12.*(45. + 20.*p1 + 6.*p2)*psii(1)**2 &
+!         -20.*(36. + 15.*p1 + 4.*p2)*psii(1)**3 &
+!         +30.*(10. +  4.*p1 +    p2)*psii(1)**4)
+!    pres(5) = psii(5)* &
+!         (p1+2.*p2*psii(1) &
+!         -3.*(20. + 10.*p1 + 4.*p2)*psii(1)**2 &
+!         +4.*(45. + 20.*p1 + 6.*p2)*psii(1)**3 &
+!         -5.*(36. + 15.*p1 + 4.*p2)*psii(1)**4 &
+!         +6.*(10. +  4.*p1 +    p2)*psii(1)**5) + &
+!         psii(2)*psii(3)* &
+!         (2.*p2 &
+!         - 6.*(20. + 10.*p1 + 4.*p2)*psii(1) &
+!         +12.*(45. + 20.*p1 + 6.*p2)*psii(1)**2 &
+!         -20.*(36. + 15.*p1 + 4.*p2)*psii(1)**3 &
+!         +30.*(10. +  4.*p1 +    p2)*psii(1)**4)
+!    pres(6) = psii(6)* &
+!         (p1+2.*p2*psii(1) &
+!         -3.*(20. + 10.*p1 + 4.*p2)*psii(1)**2 &
+!         +4.*(45. + 20.*p1 + 6.*p2)*psii(1)**3 &
+!         -5.*(36. + 15.*p1 + 4.*p2)*psii(1)**4 &
+!         +6.*(10. +  4.*p1 +    p2)*psii(1)**5) + &
+!         psii(3)**2* &
+!         (2.*p2 &
+!         - 6.*(20. + 10.*p1 + 4.*p2)*psii(1) &
+!         +12.*(45. + 20.*p1 + 6.*p2)*psii(1)**2 &
+!         -20.*(36. + 15.*p1 + 4.*p2)*psii(1)**3 &
+!         +30.*(10. +  4.*p1 +    p2)*psii(1)**4)
+
+     pres(1) = fbig0
+     pres(2) = psii(2)*fbig/(p0*dpsii)
+     pres(3) = psii(3)*fbig/(p0*dpsii)
+     pres(4) = (psii(4)*fbig + psii(2)**2*fbigp)/(p0*dpsii)
+     pres(5) = (psii(5)*fbig + psii(2)*psii(3)*fbigp)/(p0*dpsii)
+     pres(6) = (psii(6)*fbig + psii(3)**2*fbigp)/(p0*dpsii)
   endif
 
   pres = p0*pres
   pres(1) = pres(1) + pedge
-
+  return
 end subroutine calc_pressure
+
+subroutine readpgfiles
+  integer j
+  open(unit=76,file="profiles-p",status="old")
+  read(76,803) npsi
+  allocate(psinorm(npsi))
+  allocate(fbig0t(npsi),fbigt(npsi),fbigpt(npsi),fbigppt(npsi))
+  do j=1,npsi
+    read(76,802) psinorm(j),fbig0t(j),fbigt(j),fbigpt(j),fbigppt(j)
+  enddo
+  close(76)
+!
+  open(unit=77,file="profiles-g",status="old")
+  read(77,804) npsi
+  allocate(g4big0t(npsi),g4bigt(npsi),g4bigpt(npsi),g4bigppt(npsi))
+  do j=1,npsi
+    read(77,802) psinorm(j),g4big0t(j),g4bigt(j),g4bigpt(j),g4bigppt(j)
+  enddo
+  close(77)
+return
+  802 format(5x,5e18.10)
+  803 format(i5)
+  804 format(i5)
+end subroutine readpgfiles
+subroutine g4get(pso, g4big0, g4big, g4bigp, g4bigpp)
+  real, intent(in) :: pso
+  real, intent(out) :: g4big0,g4big, g4bigp, g4bigpp
+  integer :: j,jj
+  real :: fac
+      do j=2,npsi
+        jj = j
+        if(psinorm(j).gt.pso) exit
+      enddo
+      fac = (pso - psinorm(jj-1))/(psinorm(jj)-psinorm(jj-1))
+      g4big0 = g4big0t(jj-1) + fac*(g4big0t(jj)-g4big0t(jj-1))
+      g4big = g4bigt(jj-1) + fac*(g4bigt(jj)-g4bigt(jj-1))
+      g4bigp = g4bigpt(jj-1) + fac*(g4bigpt(jj)-g4bigpt(jj-1))
+      g4bigpp = g4bigppt(jj-1) + fac*(g4bigppt(jj)-g4bigppt(jj-1))
+      return
+ end subroutine g4get
+subroutine fget(pso, fbig0, fbig, fbigp, fbigpp)
+  real, intent(in) :: pso
+  real, intent(out) :: fbig0,fbig, fbigp, fbigpp
+  integer :: j,jj
+  real :: fac
+      do j=2,npsi
+        jj = j
+        if(psinorm(j).gt.pso) exit
+      enddo
+      fac = (pso - psinorm(jj-1))/(psinorm(jj)-psinorm(jj-1))
+      fbig0 = fbig0t(jj-1) + fac*(fbig0t(jj)-fbig0t(jj-1))
+      fbig = fbigt(jj-1) + fac*(fbigt(jj)-fbigt(jj-1))
+      fbigp = fbigpt(jj-1) + fac*(fbigpt(jj)-fbigpt(jj-1))
+      fbigpp = fbigppt(jj-1) + fac*(fbigppt(jj)-fbigppt(jj-1))
+      return
+ end subroutine fget
 
 end module gradshafranov

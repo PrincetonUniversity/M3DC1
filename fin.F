@@ -131,6 +131,7 @@
 !.....iterate field solve
       iteratephi = 0
       icsym = 0
+      inumgs = 0
 !
 !.....iterate field solve
       irecalc_eta = 0
@@ -366,10 +367,14 @@
       dndt_fac = 1.
       dvdt_fac = 1.
       dbdt_fac = 1.
+!
+!......factor multiplying chi inertial term
+      chiiner = 1.
 
 !
       open(5,file='C1input',form='formatted',status='old')
       read(5,nml=inputnl)
+      close(5)
       if(amuc.eq.0.) amuc = amu
       if(thimp_ohm.lt.0) thimp_ohm = thimp
 !
