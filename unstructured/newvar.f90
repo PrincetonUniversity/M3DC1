@@ -267,18 +267,18 @@ subroutine define_transport_coefficients()
      case(0)
         ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)
         if(linear.eq.1) then
-          temp79a = sqrt((n079(:,OP_1)/(pefac*pe079(:,OP_1)))**3)
+          temp79a = eta0*sqrt((n079(:,OP_1)/(pefac*pe079(:,OP_1)))**3)
         else
-          temp79a = sqrt((nt79(:,OP_1)/(pefac*pet79(:,OP_1)))**3)
+          temp79a = eta0*sqrt((nt79(:,OP_1)/(pefac*pet79(:,OP_1)))**3)
         endif
 !
 !     added 08/05/08 for stability benchmarking
       case(1)
 #ifdef USECOMPLEX
-          temp79a = .5*(1. + tanh((real(ps079(:,OP_1))-(psilim + etaoff*(psilim-psimin)))      &
+          temp79a = eta0*.5*(1. + tanh((real(ps079(:,OP_1))-(psilim + etaoff*(psilim-psimin)))      &
                                  /(etadelt*(psilim-psimin))))
 #else
-          temp79a = .5*(1. + tanh((ps079(:,OP_1)-(psilim + etaoff*(psilim-psimin)))      &
+          temp79a = eta0*.5*(1. + tanh((ps079(:,OP_1)-(psilim + etaoff*(psilim-psimin)))      &
                                  /(etadelt*(psilim-psimin))))
 #endif
       end select
@@ -292,7 +292,7 @@ subroutine define_transport_coefficients()
         temp79b = kappa0*sqrt(nt79(:,OP_1)**3/pt79(:,OP_1))
 
         if(kappah.ne.0.) then
-           temp79c = (eta0*temp79a/2.)**2 * &
+           temp79c = ( temp79a/2.)**2 * &
                 ((nt79(:,OP_DZ)**2 + nt79(:,OP_DR)**2)/ nt79(:,OP_1)**2 &
                 +9.*(pet79(:,OP_DZ)**2 +pet79(:,OP_DR)**2)/pet79(:,OP_1)**2 &
                 - 6.*(nt79(:,OP_DZ)*pet79(:,OP_DZ) &
@@ -351,10 +351,26 @@ subroutine define_transport_coefficients()
      ! visc
      ! ~~~~
      if(solve_visc) then
+!
+!....added 10/18/08  to make viscosity function more like resistivity for iresfunc=1  scj
+     select case (iresfunc)
+     case(0)
         do i=1,npoints
            call mask(x_79(i)-xzero, z_79(i)-zzero, factor)
-           temp79d(i) = amu_edge*(1.-factor)
+           temp79d(i) = amu*amu_edge*(1.-factor)
         end do
+     case(1)
+#ifdef USECOMPLEX
+          temp79d = amu_edge*.5*(1. + tanh((real(ps079(:,OP_1))-(psilim + etaoff*(psilim-psimin)))      &
+                                 /(etadelt*(psilim-psimin))))
+#else
+          temp79d = amu_edge*.5*(1. + tanh((ps079(:,OP_1)-(psilim + etaoff*(psilim-psimin)))      &
+                                 /(etadelt*(psilim-psimin))))
+#endif
+      endselect
+
+
+
      endif
 
      ! tempvar
@@ -368,7 +384,7 @@ subroutine define_transport_coefficients()
 
         if(solve_resistivity) then
            resistivity(ione) = resistivity(ione) &
-                + eta0*int2(g79(:,OP_1,i),temp79a)
+                +  int2(g79(:,OP_1,i),temp79a)
         endif
 
         if(solve_kappa) then
@@ -424,11 +440,10 @@ subroutine define_transport_coefficients()
   do i=1,numnodes
      call entdofs(1,i,0,ibegin,iendplusone)
      resistivity(ibegin) = resistivity(ibegin) + etar
-     visc(ibegin) = visc(ibegin) + 1.
+     visc(ibegin) = visc(ibegin) + amu
      kappa(ibegin) = kappa(ibegin) + kappat
   enddo
 
-  visc_c = amuc*visc
-  visc = amu*visc
+  visc_c = (amuc/amu)*visc
   
 end subroutine define_transport_coefficients
