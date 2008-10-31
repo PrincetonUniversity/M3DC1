@@ -705,7 +705,7 @@ subroutine gradshafranov_solve
      ! degree of freedom in gamma3.  Could be used to fix qprime(0)
          select case(nonrect)
          case(0)
-     g0 = bzero*xzero
+     g0 = bzero*rzero
          case(1)
      g0 = bzero*rzero  !cjdebug xzero
 !    if(myrank.eq.0) print *,"You are working with curved mesh."
@@ -1247,7 +1247,7 @@ subroutine fundef
         case(1)
 !
 !.......read functions from a file for inumgs .eq. 1
-          call fget(pso, fbig0, fbig, fbigp, fbigpp)
+          call fget(pso, fbig0, fbig, fbigp, fbigpp,dpsii)
 !
         end select
 
@@ -1266,7 +1266,7 @@ subroutine fundef
         case(1)
 !
 !.......read functions from a file for inumgs .eq. 1
-          call g4get(pso, g4big0, g4big, g4bigp, g4bigpp)
+          call g4get(pso, g4big0, g4big, g4bigp, g4bigpp,dpsii)
 !
         end select
 
@@ -1335,7 +1335,7 @@ subroutine calc_toroidal_field(psii,tf)
   if(psii(1) .gt. 1.) then
          select case(nonrect)
          case(0)
-     call constant_field(tf, bzero*xzero)
+     call constant_field(tf, bzero*rzero)
          case(1)
      call constant_field(tf, bzero*rzero)  !cjdebug xzero
 !    if(myrank.eq.0) print *,"You are working with curved mesh."
@@ -1381,67 +1381,38 @@ subroutine calc_toroidal_field(psii,tf)
           + 72.*psii(1)**2 - 80.*psii(1)**3 + 30.*psii(1)**4)
 
 
-        select case (inumgs)
-        case (0)
-          g4big0 = 1. - 20.*psii(1)**3 + 45.*psii(1)**4 &
-                - 36.*psii(1)**5 + 10.*psii(1)**6
-          g4big = dpsii*(-60*psii(1)**2+180*psii(1)**3-180*psii(1)**4+60*psii(1)**5)
-          g4bigp= dpsii*(-120*psii(1)+540*psii(1)**2-720*psii(1)**3+300*psii(1)**4)
-          g4bigpp=dpsii*(-120   +1080*psii(1)  -2160*psii(1)**2+1200*psii(1)**3)
-        case(1)
+     select case (inumgs)
+     case (0)
+       g4big0 = 1. - 20.*psii(1)**3 + 45.*psii(1)**4 &
+             - 36.*psii(1)**5 + 10.*psii(1)**6
+       g4big = dpsii*(-60*psii(1)**2+180*psii(1)**3-180*psii(1)**4+60*psii(1)**5)
+       g4bigp= dpsii*(-120*psii(1)+540*psii(1)**2-720*psii(1)**3+300*psii(1)**4)
+       g4bigpp=dpsii*(-120   +1080*psii(1)  -2160*psii(1)**2+1200*psii(1)**3)
+     case(1)
 !
 !.......read functions from a file for inumgs .eq. 1
-          call g4get(psii(1), g4big0, g4big, g4bigp, g4bigpp)
+     call g4get(psii(1), g4big0, g4big, g4bigp, g4bigpp,dpsii)
 !
-        end select
+     end select
      
-!    g4(1) = 1. - 20.*psii(1)**3 + 45.*psii(1)**4 &
-!               - 36.*psii(1)**5 + 10.*psii(1)**6
-!    g4(2) = psii(2)*(-60.*psii(1)**2 +180.*psii(1)**3 &
-!         -180.*psii(1)**4 + 60.*psii(1)**5)
-!    g4(3) = psii(3)*(-60.*psii(1)**2 +180.*psii(1)**3 &
-!         -180.*psii(1)**4 + 60.*psii(1)**5)
-!    g4(4) = psii(4)*(-60.*psii(1)**2 +180.*psii(1)**3 &
-!         -180.*psii(1)**4 + 60.*psii(1)**5) + &
-!         psii(2)**2*(-120.*psii(1) +540.*psii(1)**2 &
-!         -720.*psii(1)**3 +300.*psii(1)**4)
-!    g4(5) = psii(5)*(-60.*psii(1)**2 +180.*psii(1)**3 &
-!         -180.*psii(1)**4 + 60.*psii(1)**5) + &
-!         psii(2)*psii(3)*(-120.*psii(1) +540.*psii(1)**2 &
-!         -720.*psii(1)**3 +300.*psii(1)**4)
-!    g4(6) = psii(6)*(-60.*psii(1)**2 +180.*psii(1)**3 &
-!         -180.*psii(1)**4 + 60.*psii(1)**5) + &
-!         psii(3)**2*(-120.*psii(1) +540.*psii(1)**2 &
-!         -720.*psii(1)**3 +300.*psii(1)**4)
      g4(1) = g4big0
      g4(2) = (psii(2)/dpsii)*g4big
      g4(3) = (psii(3)/dpsii)*g4big
      g4(4) = (psii(4)*g4big + psii(2)**2*g4bigp)/dpsii
      g4(5) = (psii(5)*g4big + psii(2)*psii(3)*g4bigp)/dpsii
      g4(6) = (psii(6)*g4big + psii(3)**2*g4bigp)/dpsii
-
-     g2 = g2*2.
-     g3 = g3*2.
-     g4 = g4*2.
      
-         select case(nonrect)
-         case(0)
-     tf(1) = sqrt((bzero*xzero)**2 + &
-          gamma2*g2(1) + gamma3*g3(1) + gamma4*g4(1))
-         case(1)
-     tf(1) = sqrt((bzero*rzero)**2 + &    !cjdebug xzero
-          gamma2*g2(1) + gamma3*g3(1) + gamma4*g4(1))
-!    if(myrank.eq.0) print *,"You are working with curved mesh."
-         end select
-     tf(2) = 0.5*(gamma2*g2(2) + gamma3*g3(2) + gamma4*g4(2)) / tf(1)
-     tf(3) = 0.5*(gamma2*g2(3) + gamma3*g3(3) + gamma4*g4(3)) / tf(1)
-     tf(4) = 0.5*(gamma2*g2(4) + gamma3*g3(4) + gamma4*g4(4)) / tf(1) &
-          - (0.5*(gamma2*g2(2) + gamma3*g3(2) + gamma4*g4(2)))**2 / tf(1)**3
-     tf(5) = 0.5*(gamma2*g2(5) + gamma3*g3(5) + gamma4*g4(5)) / tf(1) &
-          -  0.5*(gamma2*g2(2) + gamma3*g3(2) + gamma4*g4(2)) &
-          *  0.5*(gamma2*g2(3) + gamma3*g3(3) + gamma4*g4(3)) / tf(1)**3
-     tf(6) = 0.5*(gamma2*g2(6) + gamma3*g3(6) + gamma4*g4(6)) / tf(1) &
-          - (0.5*(gamma2*g2(3) + gamma3*g3(3) + gamma4*g4(3)))**2 / tf(1)**3
+     tf(1) = sqrt((bzero*rzero)**2 + &
+          gamma2*2.*g2(1) + gamma3*2.*g3(1) + gamma4*2.*g4(1))
+     tf(2) = (gamma2*g2(2) + gamma3*g3(2) + gamma4*g4(2)) / tf(1)
+     tf(3) = (gamma2*g2(3) + gamma3*g3(3) + gamma4*g4(3)) / tf(1)
+     tf(4) = (gamma2*g2(4) + gamma3*g3(4) + gamma4*g4(4)) / tf(1) &
+          - ((gamma2*g2(2) + gamma3*g3(2) + gamma4*g4(2)))**2 / tf(1)**3
+     tf(5) = (gamma2*g2(5) + gamma3*g3(5) + gamma4*g4(5)) / tf(1) &
+          -  (gamma2*g2(2) + gamma3*g3(2) + gamma4*g4(2)) &
+          *  (gamma2*g2(3) + gamma3*g3(3) + gamma4*g4(3)) / tf(1)**3
+     tf(6) = (gamma2*g2(6) + gamma3*g3(6) + gamma4*g4(6)) / tf(1) &
+          - ((gamma2*g2(3) + gamma3*g3(3) + gamma4*g4(3)))**2 / tf(1)**3
 
      if(bzero.lt.0) tf = -tf
   endif
@@ -1486,7 +1457,7 @@ subroutine calc_pressure(psii,pres)
         case(1)
 !
 !.......read functions from a file for inumgs .eq. 1
-          call fget(psii(1), fbig0, fbig, fbigp, fbigpp)
+          call fget(psii(1), fbig0, fbig, fbigp, fbigpp,dpsii)
 !
         end select
 
@@ -1577,8 +1548,8 @@ return
   803 format(i5)
   804 format(i5)
 end subroutine readpgfiles
-subroutine g4get(pso, g4big0, g4big, g4bigp, g4bigpp)
-  real, intent(in) :: pso
+subroutine g4get(pso, g4big0, g4big, g4bigp, g4bigpp,dpsii)
+  real, intent(in) :: pso, dpsii
   real, intent(out) :: g4big0,g4big, g4bigp, g4bigpp
   integer :: j,jj
   real :: fac
@@ -1588,13 +1559,13 @@ subroutine g4get(pso, g4big0, g4big, g4bigp, g4bigpp)
       enddo
       fac = (pso - psinorm(jj-1))/(psinorm(jj)-psinorm(jj-1))
       g4big0 = g4big0t(jj-1) + fac*(g4big0t(jj)-g4big0t(jj-1))
-      g4big = g4bigt(jj-1) + fac*(g4bigt(jj)-g4bigt(jj-1))
-      g4bigp = g4bigpt(jj-1) + fac*(g4bigpt(jj)-g4bigpt(jj-1))
-      g4bigpp = g4bigppt(jj-1) + fac*(g4bigppt(jj)-g4bigppt(jj-1))
+      g4big = (g4bigt(jj-1) + fac*(g4bigt(jj)-g4bigt(jj-1)))
+      g4bigp = (g4bigpt(jj-1) + fac*(g4bigpt(jj)-g4bigpt(jj-1)))
+      g4bigpp = (g4bigppt(jj-1) + fac*(g4bigppt(jj)-g4bigppt(jj-1)))
       return
  end subroutine g4get
-subroutine fget(pso, fbig0, fbig, fbigp, fbigpp)
-  real, intent(in) :: pso
+subroutine fget(pso, fbig0, fbig, fbigp, fbigpp,dpsii)
+  real, intent(in) :: pso, dpsii
   real, intent(out) :: fbig0,fbig, fbigp, fbigpp
   integer :: j,jj
   real :: fac
@@ -1604,9 +1575,9 @@ subroutine fget(pso, fbig0, fbig, fbigp, fbigpp)
       enddo
       fac = (pso - psinorm(jj-1))/(psinorm(jj)-psinorm(jj-1))
       fbig0 = fbig0t(jj-1) + fac*(fbig0t(jj)-fbig0t(jj-1))
-      fbig = fbigt(jj-1) + fac*(fbigt(jj)-fbigt(jj-1))
-      fbigp = fbigpt(jj-1) + fac*(fbigpt(jj)-fbigpt(jj-1))
-      fbigpp = fbigppt(jj-1) + fac*(fbigppt(jj)-fbigppt(jj-1))
+      fbig = (fbigt(jj-1) + fac*(fbigt(jj)-fbigt(jj-1))*dpsii)
+      fbigp = (fbigpt(jj-1) + fac*(fbigpt(jj)-fbigpt(jj-1))*dpsii)
+      fbigpp = (fbigppt(jj-1) + fac*(fbigppt(jj)-fbigppt(jj-1))*dpsii)
       return
  end subroutine fget
 
