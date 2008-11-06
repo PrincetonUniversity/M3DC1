@@ -208,7 +208,7 @@ subroutine gradshafranov_init()
 
      ! allow for initial toroidal rotation
      vz1_l = 0.
-     call add_angular_velocity(vz1_l, x+xzero, vzero*vmask)
+     if(vzero.ne.0) call add_angular_velocity(vz1_l, x+xzero, vzero*vmask)
 
      ! add random perturbations
      call random_per(x,z,23)    
@@ -352,7 +352,12 @@ subroutine gradshafranov_solve
     bv = 0.
   endif
   call getboundingboxsize(alx,alz)
+  select case(nonrect)
+  case(0)
+  rnorm = xzero + alx/2.
+  case(1)
   rnorm = rzero + alx/2.
+  end select
   if(myrank.eq.0 .and. iprint.ge.1) &
         print *, "gradshafranov_solve xmin zmin xmag zmag alx alz xzero zzero= ", &
                  xmin, zmin, xmag, zmag, alx, alz, xzero, zzero
@@ -483,7 +488,7 @@ subroutine gradshafranov_solve
 
   b1vecini = 0.
   call deltafun(xrel,zrel,b1vecini,tcuro, ier)
-  if(ier .gt. 0) stop
+  if(ier .gt. 0) call safestop(7)
   if(myrank.eq.0) then
   write(*,999) 
 999 format("    I    error        error2       xmag         psimin       psilim" &
@@ -537,7 +542,7 @@ subroutine gradshafranov_solve
          end select
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call magaxis(xguess,zguess,psi,numvargs,psimin, ier)
-     if(ier .gt. 0) stop
+     if(ier .gt. 0) call safestop(7)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_gs_magaxis = t_gs_magaxis + tend - tstart
@@ -705,7 +710,7 @@ subroutine gradshafranov_solve
      ! degree of freedom in gamma3.  Could be used to fix qprime(0)
          select case(nonrect)
          case(0)
-     g0 = bzero*rzero
+     g0 = bzero*xzero
          case(1)
      g0 = bzero*rzero  !cjdebug xzero
 !    if(myrank.eq.0) print *,"You are working with curved mesh."
@@ -1330,12 +1335,13 @@ subroutine calc_toroidal_field(psii,tf)
 
   real, dimension(6) :: g2, g3, g4
   real :: g4big0, g4big, g4bigp, g4bigpp
+      real :: g2big, g2bigp, g3big, g3bigp
   
 !  if(psii(1) .lt. 0. .or. psii(1) .gt. 1.) then
   if(psii(1) .gt. 1.) then
          select case(nonrect)
          case(0)
-     call constant_field(tf, bzero*rzero)
+     call constant_field(tf, bzero*xzero)
          case(1)
      call constant_field(tf, bzero*rzero)  !cjdebug xzero
 !    if(myrank.eq.0) print *,"You are working with curved mesh."
@@ -1343,51 +1349,35 @@ subroutine calc_toroidal_field(psii,tf)
   else
      g2(1) = psii(1) - 10.*psii(1)**3 + 20.*psii(1)**4 &
           - 15.*psii(1)**5 + 4.*psii(1)**6
-     g2(2) = psii(2)*(1. - 30.*psii(1)**2 + 80.*psii(1)**3 &
-          - 75.*psii(1)**4 + 24.*psii(1)**5)
-     g2(3) = psii(3)*(1. - 30.*psii(1)**2 + 80.*psii(1)**3 &
-          - 75.*psii(1)**4 + 24.*psii(1)**5)
-     g2(4) = psii(4)  *(1. - 30.*psii(1)**2 + 80.*psii(1)**3 &
-          - 75.*psii(1)**4 + 24.*psii(1)**5) + &
-          psii(1+1)**2*(-60.*psii(1)+240.*psii(1)**2 &
-          -300.*psii(1)**3 +120.*psii(1)**4)
-     g2(5) = psii(5)  *(1. - 30.*psii(1)**2 + 80.*psii(1)**3 &
-          - 75.*psii(1)**4 + 24.*psii(1)**5) + &
-          psii(2)*psii(3)* &
-          (-60.*psii(1)   +240.*psii(1)**2 &
-          -300.*psii(1)**3 +120.*psii(1)**4)
-     g2(6) = psii(6)  *(1. - 30.*psii(1)**2 + 80.*psii(1)**3 &
-          - 75.*psii(1)**4 + 24.*psii(1)**5) + &
-          psii(3)**2*(-60.*psii(1)+240.*psii(1)**2 &
-          -300.*psii(1)**3 +120.*psii(1)**4)
+     g2big =  (1. - 30.*psii(1)**2 + 80.*psii(1)**3                     &
+             - 75.*psii(1)**4 + 24.*psii(1)**5)
+     g2bigp =  (-60.*psii(1) + 240.*psii(1)**2                         &
+             - 300.*psii(1)**3 + 120.*psii(1)**4)
+     g2(2) = (psii(2))*g2big
+     g2(3) = (psii(3))*g2big
+     g2(4) = (psii(4)*g2big + psii(2)**2*g2bigp)
+     g2(5) = (psii(5)*g2big + psii(2)*psii(3)*g2bigp)
+     g2(6) = (psii(6)*g2big + psii(3)**2*g2bigp)
      
      g3(1) = psii(1)**2 - 4.*psii(1)**3 + 6.*psii(1)**4 &
           - 4.*psii(1)**5 + psii(1)**6
-     g3(2) = psii(2)*(2.*psii(1) - 12.*psii(1)**2 &
-          + 24.*psii(1)**3 - 20.*psii(1)**4 +  6.*psii(1)**5)
-     g3(3) = psii(3)*(2.*psii(1) - 12.*psii(1)**2 &
-          + 24.*psii(1)**3 - 20.*psii(1)**4 +  6.*psii(1)**5)
-     g3(4) = psii(4)*(2.*psii(1) - 12.*psii(1)**2 &
-          + 24.*psii(1)**3 - 20.*psii(1)**4 +  6.*psii(1)**5) + &
-          psii(2)**2*(2. - 24.*psii(1) &
-          + 72.*psii(1)**2 - 80.*psii(1)**3 + 30.*psii(1)**4)
-     g3(5) = psii(5)*(2.*psii(1) - 12.*psii(1)**2 &
-          + 24.*psii(1)**3 - 20.*psii(1)**4 +  6.*psii(1)**5) + &
-          psii(2)*psii(3)*(2. - 24.*psii(1) &
-          + 72.*psii(1)**2 - 80.*psii(1)**3 + 30.*psii(1)**4)
-     g3(6) = psii(6)*(2.*psii(1) - 12.*psii(1)**2 &
-          + 24.*psii(1)**3 - 20.*psii(1)**4 +  6.*psii(1)**5) + &
-          psii(3)**2*(2. - 24.*psii(1) &
-          + 72.*psii(1)**2 - 80.*psii(1)**3 + 30.*psii(1)**4)
 
+     g3big =  (2.*psii(1) - 12.*psii(1)**2 + 24.*psii(1)**3                &
+             - 20.*psii(1)**4 + 6.*psii(1)**5)
+     g3bigp =  (2. - 24.*psii(1) + 72.*psii(1)**2                      &
+             - 80.*psii(1)**3 + 30.*psii(1)**4)
+     g3(2) = (psii(2))*g3big
+     g3(3) = (psii(3))*g3big
+     g3(4) = (psii(4)*g3big + psii(2)**2*g3bigp)
+     g3(5) = (psii(5)*g3big + psii(2)*psii(3)*g3bigp)
+     g3(6) = (psii(6)*g3big + psii(3)**2*g3bigp)
 
      select case (inumgs)
      case (0)
        g4big0 = 1. - 20.*psii(1)**3 + 45.*psii(1)**4 &
              - 36.*psii(1)**5 + 10.*psii(1)**6
-       g4big = dpsii*(-60*psii(1)**2+180*psii(1)**3-180*psii(1)**4+60*psii(1)**5)
-       g4bigp= dpsii*(-120*psii(1)+540*psii(1)**2-720*psii(1)**3+300*psii(1)**4)
-       g4bigpp=dpsii*(-120   +1080*psii(1)  -2160*psii(1)**2+1200*psii(1)**3)
+       g4big = (-60*psii(1)**2+180*psii(1)**3-180*psii(1)**4+60*psii(1)**5)
+       g4bigp= (-120*psii(1)+540*psii(1)**2-720*psii(1)**3+300*psii(1)**4)
      case(1)
 !
 !.......read functions from a file for inumgs .eq. 1
@@ -1396,23 +1386,36 @@ subroutine calc_toroidal_field(psii,tf)
      end select
      
      g4(1) = g4big0
-     g4(2) = (psii(2)/dpsii)*g4big
-     g4(3) = (psii(3)/dpsii)*g4big
-     g4(4) = (psii(4)*g4big + psii(2)**2*g4bigp)/dpsii
-     g4(5) = (psii(5)*g4big + psii(2)*psii(3)*g4bigp)/dpsii
-     g4(6) = (psii(6)*g4big + psii(3)**2*g4bigp)/dpsii
+     g4(2) = (psii(2))*g4big
+     g4(3) = (psii(3))*g4big
+     g4(4) = (psii(4)*g4big + psii(2)**2*g4bigp)
+     g4(5) = (psii(5)*g4big + psii(2)*psii(3)*g4bigp)
+     g4(6) = (psii(6)*g4big + psii(3)**2*g4bigp)
+
+!
+!.....convert from gg' = .5(g^2)' to (g^2)'
+      g2 = 2.*g2
+      g3 = 2.*g3
+      g4 = 2.*g4
      
-     tf(1) = sqrt((bzero*rzero)**2 + &
-          gamma2*2.*g2(1) + gamma3*2.*g3(1) + gamma4*2.*g4(1))
-     tf(2) = (gamma2*g2(2) + gamma3*g3(2) + gamma4*g4(2)) / tf(1)
-     tf(3) = (gamma2*g2(3) + gamma3*g3(3) + gamma4*g4(3)) / tf(1)
-     tf(4) = (gamma2*g2(4) + gamma3*g3(4) + gamma4*g4(4)) / tf(1) &
-          - ((gamma2*g2(2) + gamma3*g3(2) + gamma4*g4(2)))**2 / tf(1)**3
-     tf(5) = (gamma2*g2(5) + gamma3*g3(5) + gamma4*g4(5)) / tf(1) &
-          -  (gamma2*g2(2) + gamma3*g3(2) + gamma4*g4(2)) &
-          *  (gamma2*g2(3) + gamma3*g3(3) + gamma4*g4(3)) / tf(1)**3
-     tf(6) = (gamma2*g2(6) + gamma3*g3(6) + gamma4*g4(6)) / tf(1) &
-          - ((gamma2*g2(3) + gamma3*g3(3) + gamma4*g4(3)))**2 / tf(1)**3
+         select case(nonrect)
+         case(0)
+     tf(1) = sqrt((bzero*xzero)**2 + &
+          gamma2*g2(1) + gamma3*g3(1) + gamma4*g4(1))
+         case(1)
+     tf(1) = sqrt((bzero*rzero)**2 + &    !cjdebug xzero
+          gamma2*g2(1) + gamma3*g3(1) + gamma4*g4(1))
+!    if(myrank.eq.0) print *,"You are working with curved mesh."
+         end select
+     tf(2) = 0.5*(gamma2*g2(2) + gamma3*g3(2) + gamma4*g4(2)) / tf(1)
+     tf(3) = 0.5*(gamma2*g2(3) + gamma3*g3(3) + gamma4*g4(3)) / tf(1)
+     tf(4) = 0.5*(gamma2*g2(4) + gamma3*g3(4) + gamma4*g4(4)) / tf(1) &
+          - (0.5*(gamma2*g2(2) + gamma3*g3(2) + gamma4*g4(2)))**2 / tf(1)**3
+     tf(5) = 0.5*(gamma2*g2(5) + gamma3*g3(5) + gamma4*g4(5)) / tf(1) &
+          -  0.5*(gamma2*g2(2) + gamma3*g3(2) + gamma4*g4(2)) &
+          *  0.5*(gamma2*g2(3) + gamma3*g3(3) + gamma4*g4(3)) / tf(1)**3
+     tf(6) = 0.5*(gamma2*g2(6) + gamma3*g3(6) + gamma4*g4(6)) / tf(1) &
+          - (0.5*(gamma2*g2(3) + gamma3*g3(3) + gamma4*g4(3)))**2 / tf(1)**3
 
      if(bzero.lt.0) tf = -tf
   endif
