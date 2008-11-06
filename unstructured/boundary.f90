@@ -12,7 +12,7 @@ subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,x,z)
   integer, intent(in) :: inode             ! node index
   integer, intent(out) :: izone,izonedim   ! zone type/dimension
 !cj  real, intent(out) :: normal              ! outward normal of boundary
-  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real, dimension(2) :: normal          !cj normal is changed from scalar to array
   real, intent(out) :: x,z                 ! coordinates of inode
   logical, intent(out) :: is_boundary      ! is inode on boundary
 
@@ -108,7 +108,7 @@ subroutine set_dirichlet_bc(imatrix,ibegin,rhs,bv,normal,izonedim)
   vectype, intent(inout), dimension(*) :: rhs ! right-hand-side of equation
   vectype, intent(in), dimension(6) :: bv     ! boundary values
 !cj  real, intent(in) :: normal                  ! angle of normal from horizontal
-  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real, dimension(2) :: normal          !cj normal is changed from scalar to array
   integer, intent(in) :: izonedim             ! dimension of boundary
   
 
@@ -154,7 +154,7 @@ subroutine set_tangent_bc(imatrix,ibegin,rhs,bv,normal,izonedim)
   integer, intent(in) :: imatrix              ! matrix handle
   integer, intent(in) :: ibegin               ! first dof of field
 !cj  real, intent(in) :: normal                  ! angle of normal from horizontal
-  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real, dimension(2) :: normal          !cj normal is changed from scalar to array
   vectype, intent(inout), dimension(*) :: rhs ! right-hand-side of equation
   vectype, intent(in), dimension(6) :: bv     ! boundary values
   integer, intent(in) :: izonedim             ! dimension of boundary
@@ -285,7 +285,7 @@ subroutine set_normal_bc(imatrix,ibegin,rhs,bv,normal,izonedim)
   integer, intent(in) :: imatrix              ! matrix handle
   integer, intent(in) :: ibegin               ! first dof of field
 !cj  real, intent(in) :: normal                  ! angle of normal from horizontal
-  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real, dimension(2) :: normal          !cj normal is changed from scalar to array
   vectype, intent(inout), dimension(*) :: rhs ! right-hand-side of equation
   vectype, intent(in), dimension(6) :: bv     ! boundary values
   integer, intent(in) :: izonedim             ! dimension of boundary
@@ -372,7 +372,7 @@ subroutine set_laplacian_bc(imatrix,ibegin,rhs,bv,normal,izonedim,radius)
   integer, intent(in) :: imatrix     ! matrix handle
   integer, intent(in) :: ibegin      ! first dof of field
 !cj  real, intent(in) :: normal         ! angle of normal vector from horizontal
-  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real, dimension(2) :: normal          !cj normal is changed from scalar to array
   vectype, intent(inout), dimension(*) :: rhs ! right-hand-side of equation
   vectype, intent(in), dimension(6) :: bv     ! boundary values
   integer, intent(in) :: izonedim    ! dimension of boundary
@@ -440,7 +440,7 @@ subroutine boundary_vel(imatrix, rhs)
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes
 !cj  real :: normal, x, z
-  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real, dimension(2) :: normal          !cj normal is changed from scalar to array
   real :: x, z
   vectype, dimension(6) :: temp
 
@@ -527,7 +527,7 @@ subroutine boundary_mag(imatrix, rhs)
   integer :: ibegin, iendplusone, numnodes
   integer :: ibegin1, iendplusone1
 !cj  real :: normal, x, z
-  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real, dimension(2) :: normal          !cj normal is changed from scalar to array
   real :: x, z
   vectype, dimension(6) :: temp
 
@@ -631,7 +631,7 @@ subroutine boundary_den(imatrix, rhs)
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes
 !cj  real :: normal,x,z
-  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real, dimension(2) :: normal          !cj normal is changed from scalar to array
   real :: x,z
   logical :: is_boundary
   vectype, dimension(6) :: temp
@@ -682,7 +682,7 @@ subroutine boundary_pres(imatrix, rhs)
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes
 !cj  real :: normal, x, z
-  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real, dimension(2) :: normal          !cj normal is changed from scalar to array
   real :: x, z
   logical :: is_boundary
   vectype, dimension(6) :: temp
@@ -732,7 +732,7 @@ subroutine boundary_dc(imatrix, rhs)
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes
 !cj  real :: normal, x, z
-  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real, dimension(2) :: normal          !cj normal is changed from scalar to array
   real :: x, z
   logical :: is_boundary
   vectype, dimension(6) :: temp
@@ -773,7 +773,7 @@ subroutine boundary_nm(imatrix, rhs)
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes
 !cj  real :: normal, x, z
-  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real, dimension(2) :: normal          !cj normal is changed from scalar to array
   real :: x, z
   logical :: is_boundary
   vectype, dimension(6) :: temp
@@ -816,7 +816,7 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes, ineg
 !cj  real :: normal, x, z, xmin, zmin, alx, alz
-  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real, dimension(2) :: normal          !cj normal is changed from scalar to array
   real :: x, z, xmin, zmin, alx, alz
   real, dimension(6) :: g
   real, dimension(1) :: xp, zp, xc, zc
@@ -895,7 +895,7 @@ subroutine boundary_vor(imatrix, rhs)
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes
 !cj  real :: normal, x, z
-  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real, dimension(2) :: normal          !cj normal is changed from scalar to array
   real :: x, z
   logical :: is_boundary
   vectype, dimension(6) :: temp
@@ -947,7 +947,7 @@ subroutine boundary_com(imatrix, rhs)
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes
 !cj  real :: normal, x, z
-  vectype, dimension(2) :: normal          !cj normal is changed from scalar to array 
+  real, dimension(2) :: normal          !cj normal is changed from scalar to array
   real :: x, z
   logical :: is_boundary
   vectype, dimension(6) :: temp

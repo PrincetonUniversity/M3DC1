@@ -959,3 +959,136 @@ end subroutine lcfs
 
 
 end module diagnostics
+subroutine magaxiso(xguess,zguess,phin,numvari,psim)
+  use basic
+  use t_data
+  use nintegrate_mod
+
+  implicit none
+
+  include 'mpif.h'
+
+  real, intent(inout) :: xguess, zguess
+  vectype, intent(in), dimension(*) :: phin
+  integer, intent(in) :: numvari
+  real, intent(out) :: psim
+
+  integer, parameter :: iterations = 5
+
+  integer :: itri, inews
+  integer :: i, ier
+  real :: x1, z1, x, z, theta, b, co, sn, si, eta
+  real :: sum, sum1, sum2, sum3, sum4, sum5
+  real :: term1, term2, term3, term4, term5
+  real :: pt, pt1, pt2, p11, p22, p12
+  real :: xnew, znew, denom, sinew, etanew
+  real :: alx, alz
+  vectype, dimension(20) :: avector
+  real, dimension(3) :: temp1, temp2
+
+
+  if(myrank.eq.0 .and. iprint.gt.0) &
+       print *, " magaxis: guess=", xguess, zguess
+
+  call getboundingboxsize(alx, alz)
+
+  x = xguess
+  z = zguess
+  
+  do inews=1, iterations
+
+     call whattri(x,z,itri,x1,z1)
+
+     ! calculate position of minimum
+     if(itri.gt.0) then
+        call calcavector(itri, phin, 1, numvari, avector)
+         
+        ! calculate local coordinates
+        theta = ttri(itri)
+        b = btri(itri)
+        co = cos(theta)
+        sn = sin(theta)
+        si  = (x-x1)*co + (z-z1)*sn - b
+        eta =-(x-x1)*sn + (z-z1)*co
+  
+        ! evaluate the polynomial and second derivative
+        sum = 0.
+        sum1 = 0.
+        sum2 = 0.
+        sum3 = 0.
+        sum4 = 0.
+        sum5 = 0.
+        do i=1,20
+           sum = sum + avector(i)*si**mi(i)*eta**ni(i)
+           term1 = 0.
+           if(mi(i).ge.1) term1 = mi(i)*si**(mi(i)-1)*eta**ni(i)
+           term2 = 0.
+           if(ni(i).ge.1) term2 = ni(i)*si**mi(i)*eta**(ni(i)-1)
+           term3 = 0.
+           if(mi(i).ge.2) term3 = mi(i)*(mi(i)-1)*si**(mi(i)-2)*eta**ni(i)
+           term4 = 0.
+           if(ni(i).ge.2) term4 = ni(i)*(ni(i)-1)*si**mi(i)*eta**(ni(i)-2)
+           term5 = 0.
+           if(ni(i)*mi(i) .ge. 1)                                          &
+                term5 = mi(i)*ni(i)*si**(mi(i)-1)*eta**(ni(i)-1)
+           
+           sum1 = sum1 + avector(i)*term1
+           sum2 = sum2 + avector(i)*term2
+           sum3 = sum3 + avector(i)*term3
+           sum4 = sum4 + avector(i)*term4
+           sum5 = sum5 + avector(i)*term5
+        enddo
+        pt  = sum
+        pt1 = sum1
+        pt2 = sum2
+        p11 = sum3
+        p22 = sum4
+        p12 = sum5
+
+        denom = p22*p11 - p12**2
+        sinew = si -  ( p22*pt1 - p12*pt2)/denom
+        etanew= eta - (-p12*pt1 + p11*pt2)/denom
+
+        xnew = x1 + co*(b+sinew) - sn*etanew
+        znew = z1 + sn*(b+sinew) + co*etanew
+     else
+        xnew = 0.
+        znew = 0.
+        pt   = 0.
+     endif  ! on itri.gt.0
+     
+     ! communicate new minimum to all processors
+     if(maxrank.gt.1) then
+        temp1(1) = xnew
+        temp1(2) = znew
+        temp1(3) = pt
+        call mpi_allreduce(temp1, temp2, 3, &
+             MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
+        xnew = temp2(1)
+        znew = temp2(2)
+        pt   = temp2(3)
+     endif
+
+     ! check to see whether the new minimum is outside the simulation domain
+     if(xnew .lt. 0 .or. xnew.gt.alx .or. &
+          znew .lt. 0 .or. znew.gt.alz .or. &
+          xnew.ne.xnew .or. znew.ne.znew) then
+        ! if not within the domain, safestop.
+
+        write(*,3333) inews,x,z,xnew,znew
+3333    format("magaxis: new minimum outside domain. ",i3,1p4e12.4)
+        call safestop(27)       
+     else
+        x = xnew
+        z = znew
+     endif
+  end do
+
+  xguess = x
+  zguess = z
+  psim = pt
+
+  if(myrank.eq.0 .and. iprint.gt.0) &
+       print *, " magaxis: minimum at ", xguess, zguess
+  
+end subroutine magaxiso
