@@ -1335,17 +1335,19 @@ subroutine calc_toroidal_field(psii,tf)
 
   real, dimension(6) :: g2, g3, g4
   real :: g4big0, g4big, g4bigp, g4bigpp
-      real :: g2big, g2bigp, g3big, g3bigp
+  real :: g2big, g2bigp, g3big, g3bigp
+  vectype :: g0
   
 !  if(psii(1) .lt. 0. .or. psii(1) .gt. 1.) then
   if(psii(1) .gt. 1.) then
-         select case(nonrect)
-         case(0)
-     call constant_field(tf, bzero*xzero)
-         case(1)
-     call constant_field(tf, bzero*rzero)  !cjdebug xzero
+     select case(nonrect)
+     case(0)
+        g0 = bzero*xzero
+     case(1)
+        g0 = bzero*rzero
 !    if(myrank.eq.0) print *,"You are working with curved mesh."
-         end select
+     end select
+     call constant_field(tf, g0)
   else
      g2(1) = psii(1) - 10.*psii(1)**3 + 20.*psii(1)**4 &
           - 15.*psii(1)**5 + 4.*psii(1)**6
