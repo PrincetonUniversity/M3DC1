@@ -487,7 +487,7 @@
       integer :: i, ndofs, numnodes, ibegin, iendplusone
       integer, allocatable ::  itemp(:)
 
-      real, parameter :: scalefac = 1e-10
+      real, parameter :: scalefac = 1.e-10
 
 !.....scale solution back if a linear calculation
 
@@ -497,40 +497,45 @@
       call numnod(numnodes)
       call numdofs(num_fields, ndofs)
       allocate(itemp(ndofs))
-      itemp = 1
+      itemp = 1.
       do i=1,numnodes
          call entdofs(num_fields, i, 0, ibegin, iendplusone)
-         if(itemp(ibegin) .eq. 1) then
-            field(ibegin:iendplusone-1) = scalefac* 
-     &           field(ibegin:iendplusone-1)
+         if(itemp(ibegin) .eq. 0) cycle
+         itemp(ibegin) = 0
 
-            call entdofs(vecsize_phi, i, 0, ibegin, iendplusone)
-            phiold(ibegin:iendplusone-1) = scalefac*
-     &           phiold(ibegin:iendplusone-1)
+         field(ibegin:iendplusone-1) = scalefac* 
+     &        field(ibegin:iendplusone-1)
 
-            if(isplitstep.eq.1) then
-               call entdofs(vecsize_vel, i, 0, ibegin, iendplusone)
-               velold(ibegin:iendplusone-1) = scalefac* 
-     &              velold(ibegin:iendplusone-1)
-               veloldn(ibegin:iendplusone-1) = scalefac*
-     &              veloldn(ibegin:iendplusone-1)
-               if(idens.eq.1) then 
-                  call entdofs(vecsize_n, i, 0, ibegin, iendplusone)
-                  denold(ibegin:iendplusone-1) = scalefac*
-     &                 denold(ibegin:iendplusone-1)
-               endif
-               if(ipres.eq.1) then
-                  call entdofs(vecsize_p, i, 0, ibegin, iendplusone)
-                  presold(ibegin:iendplusone-1) = scalefac*
-     &                 presold(ibegin:iendplusone-1)
-               endif
+         call entdofs(vecsize_phi, i, 0, ibegin, iendplusone)
+         phiold(ibegin:iendplusone-1) = scalefac*
+     &        phiold(ibegin:iendplusone-1)
+
+         if(isplitstep.eq.1) then
+            call entdofs(vecsize_vel, i, 0, ibegin, iendplusone)
+            velold(ibegin:iendplusone-1) = scalefac* 
+     &           velold(ibegin:iendplusone-1)
+            veloldn(ibegin:iendplusone-1) = scalefac*
+     &           veloldn(ibegin:iendplusone-1)
+            if(idens.eq.1) then 
+               call entdofs(vecsize_n, i, 0, ibegin, iendplusone)
+               denold(ibegin:iendplusone-1) = scalefac*
+     &              denold(ibegin:iendplusone-1)
             endif
-        
-            itemp(ibegin) = 0
+            if(ipres.eq.1) then
+               call entdofs(vecsize_p, i, 0, ibegin, iendplusone)
+               presold(ibegin:iendplusone-1) = scalefac*
+     &              presold(ibegin:iendplusone-1)
+            endif
+         endif
+         if(icomplex.eq.1) then
+            call entdofs(1, i, 0, ibegin, iendplusone)
+            bf(ibegin:iendplusone-1) = scalefac*
+     &           bf(ibegin:iendplusone-1)
          endif
       enddo
+
       deallocate(itemp)
-      
+
       end
 !==================================
       real function sech(x)

@@ -664,8 +664,8 @@ subroutine insval(imatrix, val, icom, i, j, iop)
 ! June-13-2008 cj
 ! take this line off for solve2: nonzero structure re-using
   if(val.eq.0.) then
-     if(myrank.eq.0 .and. iprint.gt.0 .and. drop_zeroes.eq.1) &
-        print *, "drop_zeroes = ", i, j, drop_zeroes
+!     if(myrank.eq.0 .and. iprint.gt.0 .and. drop_zeroes.eq.1) &
+!        print *, "drop_zeroes = ", i, j, drop_zeroes
      if(drop_zeroes.eq.1) return
   endif
 

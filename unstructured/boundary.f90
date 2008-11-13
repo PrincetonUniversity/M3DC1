@@ -112,7 +112,7 @@ subroutine set_dirichlet_bc(imatrix,ibegin,rhs,bv,normal,izonedim)
   integer, intent(in) :: izonedim             ! dimension of boundary
   
 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "set_dirichlet_bc called"
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "set_dirichlet_bc called"
 
   if(izonedim.eq.1) then
      ! edge points
@@ -166,7 +166,7 @@ subroutine set_tangent_bc(imatrix,ibegin,rhs,bv,normal,izonedim)
 
 
 !cjdebug  return
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "set_tangent_bc called"
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "set_tangent_bc called"
 
   numvals = 2
 !cj  vals(1) = -sin(normal)
@@ -204,7 +204,7 @@ subroutine set_tangent_bc(imatrix,ibegin,rhs,bv,normal,izonedim)
      rhs(irow_m) = -normal(2)*bv(2) + normal(1)*bv(3)    !cj tangent
 !    if(myrank.eq.0) print *,"You are working with curved mesh."
           end select
-     if(myrank.eq.0 .and. iprint.ge.1) &
+     if(myrank.eq.0 .and. iprint.ge.2) &
            print *, "set_tangent_bc : ibegin irow_n irow_m", &
                      ibegin, irow_n, irow_m
 
@@ -235,7 +235,7 @@ subroutine set_tangent_bc(imatrix,ibegin,rhs,bv,normal,izonedim)
      rhs(irow_m) = -normal(2)*bv(4) + normal(1)*bv(6)    !cj tangent
 !    if(myrank.eq.0) print *,"You are working with curved mesh."
           end select
-     if(myrank.eq.0 .and. iprint.ge.1) &
+     if(myrank.eq.0 .and. iprint.ge.2) &
            print *, "set_tangent_bc : ibegin irow_n irow_m", &
                      ibegin, irow_n, irow_m
 
@@ -297,7 +297,7 @@ subroutine set_normal_bc(imatrix,ibegin,rhs,bv,normal,izonedim)
 
 
 !cjdebug  return
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "set_normal_bc called"
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "set_normal_bc called"
 
   if(izonedim.eq.1) then
      ! edge points
@@ -340,7 +340,7 @@ subroutine set_normal_bc(imatrix,ibegin,rhs,bv,normal,izonedim)
 !     if(myrank.eq.0) print *,"You are working with curved mesh."
           end select
      rhs(ibegin+4) = bv(5)
-     if(myrank.eq.0 .and. iprint.ge.1) &
+     if(myrank.eq.0 .and. iprint.ge.2) &
            print *, "set_normal_bc : ibegin irow_n irow_m", &
                      ibegin, irow_n, irow_m
 
@@ -386,7 +386,7 @@ subroutine set_laplacian_bc(imatrix,ibegin,rhs,bv,normal,izonedim,radius)
 !cj 9/17/08
   if(nonrect .eq. 1) return
 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "set_laplacian_bc called"
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "set_laplacian_bc called"
 
   if(itor.eq.1) then
      numvals = 3
@@ -447,7 +447,7 @@ subroutine boundary_vel(imatrix, rhs)
   logical :: is_boundary
 
   if(iper.eq.1 .and. jper.eq.1) return 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "boundary_vel called"
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_vel called"
 
   call numnod(numnodes)
   do i=1, numnodes
@@ -534,7 +534,7 @@ subroutine boundary_mag(imatrix, rhs)
   logical :: is_boundary
 
   if(iper.eq.1 .and. jper.eq.1) return
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "boundary_mag called"
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_mag called"
 
   call numnod(numnodes)
 
@@ -637,7 +637,7 @@ subroutine boundary_den(imatrix, rhs)
   vectype, dimension(6) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "boundary_den called"
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_den called"
 
   call numnod(numnodes)
   do i=1, numnodes
@@ -688,7 +688,7 @@ subroutine boundary_pres(imatrix, rhs)
   vectype, dimension(6) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "boundary_pres called"
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_pres called"
 
   call numnod(numnodes)
   do i=1, numnodes
@@ -738,7 +738,7 @@ subroutine boundary_dc(imatrix, rhs)
   vectype, dimension(6) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "boundary_dc called"
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_dc called"
 
   temp = 0.
 
@@ -779,7 +779,7 @@ subroutine boundary_nm(imatrix, rhs)
   vectype, dimension(6) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "boundary_nm called"
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_nm called"
 
   temp = 0.
 
@@ -825,13 +825,13 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
   vectype, dimension(6) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "boundary_gs called"
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_gs called"
 
   call getboundingboxsize(alx, alz)
 
   call numnod(numnodes)
   call getmincoord(xmin,zmin)
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "xmin  zmin = ", xmin,zmin
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "xmin  zmin = ", xmin,zmin
 
 !cj added 10/06/08
 !cjdebug  call dump_matrix(imatrix)
@@ -901,7 +901,7 @@ subroutine boundary_vor(imatrix, rhs)
   vectype, dimension(6) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "boundary_vor called"
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_vor called"
 
   temp = 0.
 
@@ -953,7 +953,7 @@ subroutine boundary_com(imatrix, rhs)
   vectype, dimension(6) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "boundary_com called"
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_com called"
 
   temp = 0.
 
