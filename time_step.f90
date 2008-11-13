@@ -330,7 +330,7 @@ subroutine split_step(calc_matrices)
 
   
      ! solve linear system with rhs in vtemp (note LU-decomp done first time)
-     if(myrank.eq.0) print *, "solving velocity advance..."
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "solving velocity advance..."
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      if(flg_petsc .and. flg_solve2) then
         call solve2(s1matrix_sm, b1_vel, jer)
@@ -566,7 +566,6 @@ subroutine split_step(calc_matrices)
 
      ! Include linear n^-1 terms
      if(idens.eq.1 .and. linear.eq.1) then
-        ! b2vector = r15 * bf(n)
         
         ! make a larger vector that can be multiplied by a numvar=3 matrix
         phip = 0.

@@ -285,11 +285,11 @@
 !
 !.....parameters needed for toroidal plasma
       tcuro = 1.
-      xmag = xzero + 1.
+      xmag = 1.
       zmag = 0.
-      xlim = xzero
+      xlim = 0.
       zlim = 0.
-      rzero = 1.
+      rzero = -1.
       xlim2 = 0.
       zlim2 = 0.
       libetap = 1.2
@@ -397,6 +397,13 @@
 
       ! Validate input
       ! ~~~~~~~~~~~~~~
+      if(rzero.eq.-1) then
+         if(itor.eq.1) then 
+            rzero = xzero
+         else
+            rzero = 1.
+         endif
+      endif
       if(pefac.eq.0. .and. eta0.ne.0) then
          if(myrank.eq.0) print *, 'ERROR: Te = 0, but eta0 != 0.'
          call safestop(1)

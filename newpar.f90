@@ -268,6 +268,10 @@ Program Reducedquintic
   ! ~~~~~~~~~~~~~~
   do ntime=ntime+1,ntimemax
 
+     if(myrank.eq.0) then 
+        print *, 'TIME STEP: ',ntime
+     endif
+
      ! check for error
      if(ekin.ne.ekin .or. emag.ne.emag) then
         print *, "Error: energy is NaN"

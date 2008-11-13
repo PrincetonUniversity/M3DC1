@@ -420,7 +420,8 @@ subroutine hdf5_write_scalars(error)
 
   real :: temp
 
-  if(myrank.eq.1) print *, 'writing scalars for ntime = ', ntime
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, ' Writing scalars'
 
   call h5gopen_f(file_id, "/", root_id, error)
 

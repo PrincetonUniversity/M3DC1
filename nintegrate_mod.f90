@@ -457,7 +457,6 @@ subroutine define_fields(itri, fields, ngauss, gdef)
      r_79 = x_79 
   else 
      r_79 = 1.
-        rzero = 1.
   endif
   ri_79 = 1./r_79
   ri2_79 = ri_79*ri_79
@@ -476,7 +475,7 @@ subroutine define_fields(itri, fields, ngauss, gdef)
   ! PHI
   ! ~~~
   if(iand(fields, FIELD_PHI).eq.FIELD_PHI) then
-     if(itri.eq.1 .and. myrank.eq.0) print *, "   U..."
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   U..."
      
      call calcavector(itri, field, u_g, num_fields, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ph179)
@@ -504,7 +503,7 @@ subroutine define_fields(itri, fields, ngauss, gdef)
   ! PSI
   ! ~~~
   if(iand(fields, FIELD_PSI).eq.FIELD_PSI) then
-     if(itri.eq.1 .and. myrank.eq.0) print *, "   psi..."
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   psi..."
 
      call calcavector(itri, field, psi_g, num_fields, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ps179)
@@ -532,7 +531,7 @@ subroutine define_fields(itri, fields, ngauss, gdef)
   ! V
   ! ~
   if(iand(fields, FIELD_V).eq.FIELD_V) then
-     if(itri.eq.1 .and. myrank.eq.0) print *, "   V..."
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   V..."
 
      call calcavector(itri, field, vz_g, num_fields, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, vz179)
@@ -560,7 +559,7 @@ subroutine define_fields(itri, fields, ngauss, gdef)
   ! ~
   if(iand(fields, FIELD_I).eq.FIELD_I) then
      
-     if(itri.eq.1 .and. myrank.eq.0) print *, "   I..."
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   I..."
 
      if(numvar.ge.2) then
         
@@ -608,19 +607,10 @@ subroutine define_fields(itri, fields, ngauss, gdef)
         endif
 
         if(itor.eq.1) then
-         select case(nonrect)
-         case(0)
-           bzt79(:,OP_1) = bzt79(:,OP_1)*xzero
-           bzs79(:,OP_1) = bzs79(:,OP_1)*xzero
-           bz079(:,OP_1) = bz079(:,OP_1)*xzero
-           bz179(:,OP_1) = bz179(:,OP_1)*xzero
-         case(1) 
            bzt79(:,OP_1) = bzt79(:,OP_1)*rzero !cjdebug xzero
            bzs79(:,OP_1) = bzs79(:,OP_1)*rzero !cjdebug xzero
            bz079(:,OP_1) = bz079(:,OP_1)*rzero !cjdebug xzero
            bz179(:,OP_1) = bz179(:,OP_1)*rzero !cjdebug xzero
-!          if(myrank.eq.0) print *,"You are working with curved mesh."
-         end select
         endif
      endif
   endif
@@ -628,7 +618,7 @@ subroutine define_fields(itri, fields, ngauss, gdef)
   ! CHI
   ! ~~~
   if(iand(fields, FIELD_CHI).eq.FIELD_CHI) then
-     if(itri.eq.1 .and. myrank.eq.0) print *, "   chi..."
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   chi..."
 
      call calcavector(itri, field, chi_g, num_fields, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ch179)
@@ -656,7 +646,7 @@ subroutine define_fields(itri, fields, ngauss, gdef)
   ! ~~~~~~
   if((iand(fields, FIELD_PE).eq.FIELD_PE) .or. &
        (iand(fields, FIELD_P).eq.FIELD_P)) then
-     if(itri.eq.1 .and. myrank.eq.0) print *, "   P..."
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   P..."
 
      if(ipres.eq.1) then
         call calcavector(itri, field, p_g, num_fields, avec)
@@ -705,7 +695,7 @@ subroutine define_fields(itri, fields, ngauss, gdef)
   ! N
   ! ~
   if(iand(fields, FIELD_N).eq.FIELD_N) then
-     if(itri.eq.1 .and. myrank.eq.0) print *, "   n..."
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   n..."
 
      call calcavector(itri, field, den_g, num_fields, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, n179)
@@ -750,7 +740,7 @@ subroutine define_fields(itri, fields, ngauss, gdef)
   ! J
   ! ~
   if(iand(fields, FIELD_J).eq.FIELD_J) then
-     if(itri.eq.1 .and. myrank.eq.0) print *, "   j..."
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   j..."
 
      call calcavector(itri, jphi, 1, 1, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, jt79)
@@ -759,7 +749,7 @@ subroutine define_fields(itri, fields, ngauss, gdef)
   ! VOR
   ! ~~~
   if(iand(fields, FIELD_VOR).eq.FIELD_VOR) then
-     if(itri.eq.1 .and. myrank.eq.0) print *, "   vor..."
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   vor..."
 
      call calcavector(itri, vor, 1, 1, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, vot79)
@@ -768,7 +758,7 @@ subroutine define_fields(itri, fields, ngauss, gdef)
   ! COM
   ! ~~~
   if(iand(fields, FIELD_COM).eq.FIELD_COM) then
-     if(itri.eq.1 .and. myrank.eq.0) print *, "   com..."
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   com..."
 
      call calcavector(itri, com, 1, 1, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, cot79)
@@ -778,7 +768,7 @@ subroutine define_fields(itri, fields, ngauss, gdef)
   ! SRC
   ! ~~~
   if(iand(fields, FIELD_SRC).eq.FIELD_SRC) then
-     if(itri.eq.1 .and. myrank.eq.0) print *, "   sources..."
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   sources..."
 
      call calcavector(itri, sb1, 1, 1, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, sb179)
@@ -795,7 +785,7 @@ subroutine define_fields(itri, fields, ngauss, gdef)
   ! B2I
   ! ~~~
   if(iand(fields, FIELD_B2I).eq.FIELD_B2I) then
-     if(itri.eq.1 .and. myrank.eq.0) print *, "   B^-2..."
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   B^-2..."
 
      temp79a = ri2_79* &
           (pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2 + bzt79(:,OP_1)**2)
@@ -818,7 +808,7 @@ subroutine define_fields(itri, fields, ngauss, gdef)
   ! ETA
   ! ~~~
   if(iand(fields, FIELD_ETA).eq.FIELD_ETA) then
-     if(itri.eq.1 .and. myrank.eq.0) print *, "   eta..."
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   eta..."
 
      call calcavector(itri, resistivity, 1, 1, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, eta79)
@@ -827,7 +817,7 @@ subroutine define_fields(itri, fields, ngauss, gdef)
   ! KAP
   ! ~~~
   if(iand(fields, FIELD_KAP).eq.FIELD_KAP) then
-     if(itri.eq.1 .and. myrank.eq.0) print *, "   kappa..."
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   kappa..."
 
      call calcavector(itri, kappa, 1, 1, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, kap79)
@@ -845,7 +835,7 @@ subroutine define_fields(itri, fields, ngauss, gdef)
   ! SIG
   ! ~~~
   if((iand(fields, FIELD_SIG).eq.FIELD_SIG) .and. idens.eq.1) then
-     if(itri.eq.1 .and. myrank.eq.0) print *, "   sigma..."
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   sigma..."
 
      call calcavector(itri, sigma, 1, 1, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, sig79)
@@ -856,7 +846,7 @@ subroutine define_fields(itri, fields, ngauss, gdef)
   ! MU
   ! ~~
   if(iand(fields, FIELD_MU).eq.FIELD_MU) then
-     if(itri.eq.1 .and. myrank.eq.0) print *, "   vis..."
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   vis..."
 
      call calcavector(itri, visc, 1, 1, avec)
      call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, vis79)

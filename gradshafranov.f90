@@ -352,12 +352,7 @@ subroutine gradshafranov_solve
     bv = 0.
   endif
   call getboundingboxsize(alx,alz)
-  select case(nonrect)
-  case(0)
-  rnorm = xzero + alx/2.
-  case(1)
   rnorm = rzero + alx/2.
-  end select
   if(myrank.eq.0 .and. iprint.ge.1) &
         print *, "gradshafranov_solve xmin zmin xmag zmag alx alz xzero zzero= ", &
                  xmin, zmin, xmag, zmag, alx, alz, xzero, zzero
@@ -708,13 +703,7 @@ subroutine gradshafranov_solve
 
      ! choose gamma2 to fix q0/qstar.  Note that there is an additional
      ! degree of freedom in gamma3.  Could be used to fix qprime(0)
-         select case(nonrect)
-         case(0)
-     g0 = bzero*xzero
-         case(1)
      g0 = bzero*rzero  !cjdebug xzero
-!    if(myrank.eq.0) print *,"You are working with curved mesh."
-         end select
 
 !.....changed 06/04/08 to allow more flexibility
 !    if(numvar.eq.1 .or. nv1equ.eq.1) then
@@ -1340,13 +1329,7 @@ subroutine calc_toroidal_field(psii,tf)
   
 !  if(psii(1) .lt. 0. .or. psii(1) .gt. 1.) then
   if(psii(1) .gt. 1.) then
-     select case(nonrect)
-     case(0)
-        g0 = bzero*xzero
-     case(1)
-        g0 = bzero*rzero
-!    if(myrank.eq.0) print *,"You are working with curved mesh."
-     end select
+     g0 = bzero*rzero
      call constant_field(tf, g0)
   else
      g2(1) = psii(1) - 10.*psii(1)**3 + 20.*psii(1)**4 &
@@ -1400,15 +1383,8 @@ subroutine calc_toroidal_field(psii,tf)
       g3 = 2.*g3
       g4 = 2.*g4
      
-         select case(nonrect)
-         case(0)
-     tf(1) = sqrt((bzero*xzero)**2 + &
-          gamma2*g2(1) + gamma3*g3(1) + gamma4*g4(1))
-         case(1)
      tf(1) = sqrt((bzero*rzero)**2 + &    !cjdebug xzero
           gamma2*g2(1) + gamma3*g3(1) + gamma4*g4(1))
-!    if(myrank.eq.0) print *,"You are working with curved mesh."
-         end select
      tf(2) = 0.5*(gamma2*g2(2) + gamma3*g3(2) + gamma4*g4(2)) / tf(1)
      tf(3) = 0.5*(gamma2*g2(3) + gamma3*g3(3) + gamma4*g4(3)) / tf(1)
      tf(4) = 0.5*(gamma2*g2(4) + gamma3*g3(4) + gamma4*g4(4)) / tf(1) &

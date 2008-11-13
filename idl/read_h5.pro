@@ -1441,7 +1441,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
            endelse
        endif else r = 1.
 
-       data = (a_bracket(psi,phi,x,y)/r + s_bracket(psi,chi,x,y)) / $
+       data = -(a_bracket(psi,phi,x,y)/r + s_bracket(psi,chi,x,y)) / $
          sqrt(s_bracket(psi,psi,x,y))
        symbol = '!8u!Dr!N!X'
        units = make_units(/v0)
