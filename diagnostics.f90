@@ -400,12 +400,19 @@ subroutine calculate_scalars()
   use metricterms_new
 
   implicit none
+#include "finclude/petsc.h" 
  
   integer :: itri, numelms, i, ione, def_fields
   real :: x, z, xmin, zmin, factor
   real :: val, valpp
 
   double precision, dimension(3)  :: cogcoords
+
+  integer :: ier
+  PetscTruth :: flg_petsc, flg_solve2, flg_solve1
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ier)
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve1', flg_solve1,ier)
 
   ptoto = ptot
 
@@ -482,7 +489,11 @@ subroutine calculate_scalars()
         call copyvec(b1_phi,vz_g,vecsize_phi,gyro_tau,1,1)
      end if
 
+     if(flg_petsc .and. flg_solve1) then
+     call solve1(mass_matrix_lhs,gyro_tau,i)
+     else
      call solve(mass_matrix_lhs,gyro_tau,i)
+     endif
   endif
 
 

@@ -258,11 +258,13 @@ subroutine gradshafranov_solve
    
   real :: tstart, tend
 
-  PetscTruth :: flg
-  integer :: ipetsc, isuperlu 
-
+  PetscTruth :: flg_petsc, flg_solve2, flg_solve1
   if(myrank.eq.0 .and. iprint.gt.0) &
        print *, "Calculating Grad-Shafranov Equilibrium"
+
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ier)
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve1', flg_solve1,ier)
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart) ! t_gs_init
 
@@ -289,16 +291,13 @@ subroutine gradshafranov_solve
        print *, " forming the GS matrix..."
 
   ! default linear solver superlu cj-april-09-2008
-  ipetsc=0
-  isuperlu=1
-  call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-ipetsc',ipetsc,flg,ier)
-  if(ipetsc) isuperlu=0
-  if(ipetsc) call zeropetscmatrix(gsmatrix_sm, icomplex, numvar1_numbering)
-  if(isuperlu) call zerosuperlumatrix(gsmatrix_sm, icomplex, numvar1_numbering)
-     if(iprint.ge.1) then
-       if(ipetsc) print *, "	gradshafranov_solve zeropetscmatrix", gsmatrix_sm
-       if(isuperlu) print *, "	gradshafranov_solve zerosuperlumatrix", gsmatrix_sm
-     endif
+  if(flg_petsc) then
+     call zeropetscmatrix(gsmatrix_sm, icomplex, numvar1_numbering)
+     if(iprint.ge.1) print *, "	gradshafranov_solve zeropetscmatrix", gsmatrix_sm
+  else
+     call zerosuperlumatrix(gsmatrix_sm, icomplex, numvar1_numbering)
+     if(iprint.ge.1) print *, "	gradshafranov_solve zerosuperlumatrix", gsmatrix_sm
+  endif
 
   ! populate the matrix
   do itri=1,numelms
@@ -511,7 +510,11 @@ subroutine gradshafranov_solve
 
      ! perform LU backsubstitution to get psi solution
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     if(flg_petsc .and. flg_solve1) then 
+     call solve1(gsmatrix_sm,b1vecini,ier)
+     else
      call solve(gsmatrix_sm,b1vecini,ier)
+     endif
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_gs_solve = t_gs_solve + tend - tstart
