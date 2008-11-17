@@ -45,25 +45,26 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
   vectype :: temp
   vectype, allocatable :: rhs2(:)
 
-  PetscTruth :: flg
-  integer :: ipetsc, isuperlu
   integer :: ier
+  PetscTruth :: flg_petsc, flg_solve2, flg_solve1
 
   call numfac(numelms)
 
   ! populate matrix default linear solver superlu cj-april-09-2008
-  ipetsc=0
-  isuperlu=1
-  call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-ipetsc',ipetsc,flg,ier)
-  if(ipetsc) isuperlu=0
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ier)
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve1', flg_solve1,ier) 
 
   if(isolve.eq.NV_LHS) then
-     if(isuperlu)  call zerosuperlumatrix(matrix, icomplex, numvar1_numbering)
-     if(ipetsc)  call zeropetscmatrix(matrix, icomplex, numvar1_numbering)
-      if(iprint.ge.1) then
-        if(isuperlu) print *, "	newvar_create_matrix zerosuperlumatrix", matrix
-        if(ipetsc) print *, "	newvar_create_matrix zeropetscmatrix", matrix
-      endif
+     if(flg_petsc) then
+        call zeropetscmatrix(matrix, icomplex, numvar1_numbering)
+        if(iprint.ge.1) &
+        print *, "	newvar_create_matrix zeropetscmatrix", matrix
+     else
+        call zerosuperlumatrix(matrix, icomplex, numvar1_numbering)
+        if(iprint.ge.1) &
+        print *, "	newvar_create_matrix zerosuperlumatrix", matrix
+     endif
   else
      call zeromultiplymatrix(matrix, icomplex, numvar1_numbering)
   end if
@@ -150,14 +151,19 @@ subroutine newvar(ilhsmat,outarray,inarray,iplace,numvari,irhsmat,ibound)
   use nintegrate_mod
 
   implicit none
+#include "finclude/petsc.h" 
 
   integer, intent(in) :: iplace, ibound, numvari, ilhsmat, irhsmat
   vectype, intent(in) :: inarray(*)   ! size=numvari
   vectype, intent(out) :: outarray(*) ! size=1
 
-  integer :: ier
-
   vectype, allocatable :: temp(:)
+
+  integer :: ier
+  PetscTruth :: flg_petsc, flg_solve2, flg_solve1
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ier)
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve1', flg_solve1,ier) 
 
   ! if inarray is bigger than vecsize=1, then 
   ! create vecsize=1 for matrix multiplication
@@ -173,7 +179,11 @@ subroutine newvar(ilhsmat,outarray,inarray,iplace,numvari,irhsmat,ibound)
   if(ibound.eq.NV_DCBOUND) call boundary_dc(0, outarray)
   if(ibound.eq.NV_NMBOUND) call boundary_nm(0, outarray)
 
+  if(flg_petsc .and. flg_solve1) then 
+  call solve1(ilhsmat,outarray,ier)
+  else
   call solve(ilhsmat,outarray,ier)
+  endif
   
 end subroutine newvar
 
@@ -191,17 +201,26 @@ subroutine solve_newvar(rhs, ibound, imatrix)
   use sparse
 
   implicit none
+#include "finclude/petsc.h" 
 
   integer, intent(in) :: ibound, imatrix
   vectype, dimension(*), intent(inout) :: rhs
 
   integer :: ier
+  PetscTruth :: flg_petsc, flg_solve2, flg_solve1
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ier)
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve1', flg_solve1,ier) 
 
   call sumsharedppplvecvals(rhs)
 
   if(ibound.eq.NV_DCBOUND) call boundary_dc(0,rhs)
   if(ibound.eq.NV_NMBOUND) call boundary_nm(0,rhs)
+  if(flg_petsc .and. flg_solve1) then 
+  call solve1(imatrix,rhs,ier)
+  else
   call solve(imatrix,rhs,ier)
+  endif
 
 end subroutine solve_newvar
 

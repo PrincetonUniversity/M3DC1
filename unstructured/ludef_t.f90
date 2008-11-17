@@ -1656,9 +1656,8 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
 
   double precision cogcoords(3)
 
-  PetscTruth :: flg
-  integer :: ipetsc, isuperlu
   integer :: ier
+  PetscTruth :: flg_petsc, flg_solve2, flg_solve1 
   real :: eta_fac_old
 
   tfield = 0.
@@ -1674,19 +1673,21 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
        print *, " initializing matrices..."
 
   ! default linear solver superlu cj-april-09-2008 
-  ipetsc=0
-  isuperlu=1
-  call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-ipetsc',ipetsc,flg,ier)
-  if(ipetsc) isuperlu=0
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ier)
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve1', flg_solve1,ier)
 
   ! Clear matrices
   select case(isplitstep)
   case(0)
-     if(isuperlu) call zerosuperlumatrix(s1matrix_sm,icomplex, vecsize_vel)
-     if(ipetsc) call zeropetscmatrix(s1matrix_sm,icomplex, vecsize_vel)
-     if(myrank.eq.0 .and. iprint.ge.2) then
-        if(isuperlu) print *, "	ludef_t_ludefall zerosuperlumatrix", s1matrix_sm
-        if(ipetsc) print *, "	ludef_t_ludefall zeropetscmatrix", s1matrix_sm 
+     if(flg_petsc) then
+        call zeropetscmatrix(s1matrix_sm,icomplex, vecsize_vel)
+        if(myrank.eq.0 .and. iprint.ge.2) &
+        print *, "	ludef_t_ludefall zeropetscmatrix", s1matrix_sm 
+     else
+        call zerosuperlumatrix(s1matrix_sm,icomplex, vecsize_vel)
+        if(myrank.eq.0 .and. iprint.ge.2) &
+        print *, "	ludef_t_ludefall zerosuperlumatrix", s1matrix_sm
      endif
      call zeromultiplymatrix(d1matrix_sm,icomplex,vecsize_vel)
      if(idens_def.eq.1 .and. eqsubtract.eq.1) &
@@ -1699,11 +1700,14 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
   case(1)
 
      if(ivel_def.eq.1) then
-        if(isuperlu) call zerosuperlumatrix(s1matrix_sm,icomplex,vecsize_vel)
-        if(ipetsc) call zeropetscmatrix(s1matrix_sm,icomplex,vecsize_vel)
-        if(myrank.eq.0 .and. iprint.ge.2) then
-           if(isuperlu) print *, "	ludef_t_ludefall zerosuperlumatrix", s1matrix_sm
-           if(ipetsc) print *, "	ludef_t_ludefall zeropetscmatrix", s1matrix_sm 
+        if(flg_petsc) then
+           call zeropetscmatrix(s1matrix_sm,icomplex,vecsize_vel)
+           if(myrank.eq.0 .and. iprint.ge.2) &
+           print *, "	ludef_t_ludefall zeropetscmatrix", s1matrix_sm 
+        else
+           call zerosuperlumatrix(s1matrix_sm,icomplex,vecsize_vel)
+           if(myrank.eq.0 .and. iprint.ge.2) &
+           print *, "	ludef_t_ludefall zerosuperlumatrix", s1matrix_sm
         endif
         call zeromultiplymatrix(d1matrix_sm,icomplex,vecsize_vel)
         call zeromultiplymatrix(q1matrix_sm,icomplex,vecsize_phi)
@@ -1715,12 +1719,15 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
      end if
 
      if(ifield_def.eq.1) then
-        if(isuperlu) call zerosuperlumatrix(s2matrix_sm,icomplex,vecsize_phi)
-        if(ipetsc) call zeropetscmatrix(s2matrix_sm,icomplex,vecsize_phi)
-        if(myrank.eq.0 .and. iprint.ge.2) then
-           if(isuperlu) print *, "	ludef_t_ludefall zerosuperlumatrix", s2matrix_sm
-           if(ipetsc) print *, "	ludef_t_ludefall zeropetscmatrix", s2matrix_sm 
-        endif
+        if(flg_petsc) then
+           call zeropetscmatrix(s2matrix_sm,icomplex,vecsize_phi)
+           if(myrank.eq.0 .and. iprint.ge.2) &
+           print *, "	ludef_t_ludefall zeropetscmatrix", s2matrix_sm 
+        else
+           call zerosuperlumatrix(s2matrix_sm,icomplex,vecsize_phi)
+           if(myrank.eq.0 .and. iprint.ge.2) &
+           print *, "	ludef_t_ludefall zerosuperlumatrix", s2matrix_sm
+        endif 
         call zeromultiplymatrix(d2matrix_sm,icomplex,vecsize_phi)
         call zeromultiplymatrix(r2matrix_sm,icomplex,vecsize_vel)
         call zeromultiplymatrix(q2matrix_sm,icomplex,vecsize_vel)
@@ -1733,23 +1740,29 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
      end if
 
      if(idens_def.eq.1) then
-        if(isuperlu) call zerosuperlumatrix(s8matrix_sm,icomplex,vecsize_n)
-        if(ipetsc) call zeropetscmatrix(s8matrix_sm,icomplex,vecsize_n)
-        if(myrank.eq.0 .and. iprint.ge.2) then
-           if(isuperlu) print *, "	ludef_t_ludefall zerosuperlumatrix", s8matrix_sm
-           if(ipetsc) print *, "	ludef_t_ludefall zeropetscmatrix", s8matrix_sm 
-        endif
+        if(flg_petsc) then
+           call zeropetscmatrix(s8matrix_sm,icomplex,vecsize_n)
+           if(myrank.eq.0 .and. iprint.ge.2) &
+           print *, "	ludef_t_ludefall zeropetscmatrix", s8matrix_sm 
+        else 
+           call zerosuperlumatrix(s8matrix_sm,icomplex,vecsize_n)
+           if(myrank.eq.0 .and. iprint.ge.2) &
+           print *, "	ludef_t_ludefall zerosuperlumatrix", s8matrix_sm
+        endif 
         call zeromultiplymatrix(d8matrix_sm,icomplex,vecsize_n)
         call zeromultiplymatrix(q8matrix_sm,icomplex,vecsize_vel)
         call zeromultiplymatrix(r8matrix_sm,icomplex,vecsize_vel)
         qn4 = 0.
      endif
      if(ipres_def.eq.1) then
-        if(isuperlu) call zerosuperlumatrix(s9matrix_sm,icomplex,vecsize_p)
-        if(ipetsc) call zeropetscmatrix(s9matrix_sm,icomplex,vecsize_p)
-        if(myrank.eq.0 .and. iprint.ge.2) then
-           if(isuperlu) print *, "	ludef_t_ludefall zerosuperlumatrix", s9matrix_sm
-           if(ipetsc) print *, "	ludef_t_ludefall zeropetscmatrix", s9matrix_sm 
+        if(flg_petsc) then
+           call zeropetscmatrix(s9matrix_sm,icomplex,vecsize_p)
+           if(myrank.eq.0 .and. iprint.ge.2) &
+           print *, "	ludef_t_ludefall zeropetscmatrix", s9matrix_sm 
+        else
+           call zerosuperlumatrix(s9matrix_sm,icomplex,vecsize_p)
+           if(myrank.eq.0 .and. iprint.ge.2) &
+           print *, "	ludef_t_ludefall zerosuperlumatrix", s9matrix_sm
         endif
         call zeromultiplymatrix(d9matrix_sm,icomplex,vecsize_p)
         call zeromultiplymatrix(q9matrix_sm,icomplex,vecsize_vel)

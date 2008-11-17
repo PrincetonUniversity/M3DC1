@@ -1,5 +1,6 @@
 //#include "/u/xluo/develop.newCompiler.constraint/mctk/Examples/PPPL/PPPL/Matrix.h"
 #include "/u/xluo/develop.newCompiler.constraint/mctk/Examples/PPPL/PPPL/MatrixInterface.h"
+//#include "/u/xluo/develop.newCompiler.petscDev/mctk/Examples/PPPL/PPPL/MatrixInterface.h"
 #include "petsc.h"
 #include "petscmat.h"
 #include "petscksp.h"
@@ -45,20 +46,21 @@ enum FortranMatrixID {
 */
 int setPETScMat(int matrixid, Mat * A) {
   PetscErrorCode ierr;
-  PetscInt ipetscmpiaij =1;
-  PetscInt ipetscsuperlu=0;
+//PetscInt ipetscmpiaij =1;
+//PetscInt ipetscsuperlu=0;
 
-  PetscOptionsGetInt(PETSC_NULL,"-ipetscsuperlu",&ipetscsuperlu,PETSC_NULL);
-  if(ipetscsuperlu) ipetscmpiaij=0;
+//PetscOptionsGetInt(PETSC_NULL,"-ipetscsuperlu",&ipetscsuperlu,PETSC_NULL);
+//if(ipetscsuperlu) ipetscmpiaij=0;
 
-  if(ipetscmpiaij) {  /* create default distributed matrix type  */
+//if(ipetscmpiaij) {  /* create default distributed matrix type  */
     ierr = MatSetType(*A, MATMPIAIJ);CHKERRQ(ierr);
     PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScMat %d to MATMPIAIJ\n", matrixid); 
-  }
-  else {  /* create specialized matrix for SuperLU/SuperLU_DIST */
-    ierr = MatSetType(*A, MATSUPERLU_DIST);CHKERRQ(ierr);
-    PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScMat %d to MATSUPERLU_DIST\n", matrixid); 
-  }
+//}
+//else {  /* create specialized matrix for SuperLU/SuperLU_DIST */
+//  ierr = MatSetType(*A, MATSUPERLU_DIST);CHKERRQ(ierr);
+//  PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScMat %d to MATSUPERLU_DIST\n", matrixid); 
+//}
+    ierr = MatSetFromOptions(*A);CHKERRQ(ierr); 
   return 0;
 }
 
@@ -74,6 +76,7 @@ int setPETScKSP(int matrixid, KSP * ksp, Mat * A) {
   ierr = KSPSetTolerances(*ksp, .000001, .000000001, 
 			  PETSC_DEFAULT, PETSC_DEFAULT);CHKERRQ(ierr);
   ierr = KSPSetFromOptions(*ksp);CHKERRQ(ierr);
+  PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScKSP for %d\n", matrixid); 
   return 0;
 }
 
@@ -195,7 +198,14 @@ int solve2_(int *matrixId, double * rhs_sol, int * ier)
   ierr = MatAssemblyEnd((ksp_array[whichMatrix].A),MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = PetscGetTime(&v2); CHKERRQ(ierr);
 
-  /* Step 6: construct the rhs vec */
+  /* Step 6: construct the rhs vec
+  ierr = PetscMalloc(ldb*sizeof(PetscScalar),&tmp);CHKERRQ(ierr); 
+  ierr = PetscMemcpy((void *)tmp,rhs_sol,ldb*sizeof(PetscScalar));CHKERRQ(ierr);
+  ierr = PetscFree(tmp);CHKERRQ(ierr);
+  const PetscScalar *tmp;
+  tmp=&(rhs_sol[0]); 
+  ierr = VecCreateMPIWithArray(PETSC_COMM_WORLD,ldb,PETSC_DECIDE,tmp, &b);CHKERRQ(ierr);
+   */
   ierr = VecCreateMPIWithArray(PETSC_COMM_WORLD,ldb,PETSC_DECIDE,rhs_sol, &b);CHKERRQ(ierr);
   ierr = VecDuplicate(b, &u); CHKERRQ(ierr); 
 
@@ -217,7 +227,8 @@ int solve2_(int *matrixId, double * rhs_sol, int * ier)
      PetscPrintf(PETSC_COMM_WORLD, "\tsolve2_: pc_SAME_PRECONDITIONER for %d at %d\n",
                                *matrixId, ksp_array[whichMatrix].same_pc_count); 
      }
-  ierr = KSPSetInitialGuessNonzero((ksp_array[whichMatrix].ksp),PETSC_FALSE /*PETSC_TRUE*/);CHKERRQ(ierr); 
+  ierr = KSPSetInitialGuessNonzero((ksp_array[whichMatrix].ksp),PETSC_FALSE /*PETSC_TRUE*/);
+  CHKERRQ(ierr); 
   ierr = KSPSetTolerances((ksp_array[whichMatrix].ksp), 1.e-6, 1.e-9, PETSC_DEFAULT, PETSC_DEFAULT);
   CHKERRQ(ierr);
 
@@ -275,3 +286,153 @@ int dump_matrix_(int *matrixId)
   return 0;
 } 
 
+
+/* 
+   solve1 : replace solve in scorec software
+   for all matrices except Id=5,1,6
+*/
+#define MAX_S1_LINEAR_SYSTEM 30
+#define SOLVE1_DEBUG 0
+
+// global container
+KSP_ARRAY s1_ksp_array[MAX_S1_LINEAR_SYSTEM];
+
+int solve1_(int *matrixId, double * rhs_sol, int * ier)
+{ // local variables
+  static int startt=0;
+  int i, whichMatrix, flag, ldb, numglobaldofs;
+  int rowSize, rowId;
+  int colSize, *colId;
+  int valType = 0;
+  PetscScalar *values;
+  PetscErrorCode ierr;
+  PetscTruth     flg;
+  PetscLogDouble  v1,v2; 
+
+  // petsc structure
+  PC     pc; 
+  Vec    u,b;
+
+
+  /* at the very begining allocate space */
+  if(!startt) {
+     for(i=0; i<MAX_S1_LINEAR_SYSTEM; i++) {
+        s1_ksp_array[i].matrixId= -1;
+        s1_ksp_array[i].same_pc_count=0 ;
+     }
+     startt=1;
+  } // end of if(!startt)
+
+  /* find the slot for each individual solve */
+  for(i=0; i<MAX_S1_LINEAR_SYSTEM; i++) {
+     if(s1_ksp_array[i].matrixId == *matrixId ) { // found it
+        whichMatrix=i;
+        if(SOLVE1_DEBUG)
+        PetscPrintf(PETSC_COMM_WORLD, "\tsolve1_: found matrixId_%d in s1_ksp_array[%d] \n",
+                                       *matrixId, whichMatrix);
+        break;
+     }else{
+        if(s1_ksp_array[i].matrixId != -1 && (i+1)<MAX_S1_LINEAR_SYSTEM) 
+           continue; // there is enough space, but someone already take this one; go to avaialable slot
+        else if(s1_ksp_array[i].matrixId == -1 )  { // this is an empty slot; then take it
+           whichMatrix=i;
+           s1_ksp_array[i].matrixId = *matrixId;
+           PetscPrintf(PETSC_COMM_WORLD, "\tsolve1_: add matrixId_%d into s1_ksp_array[%d]\n",
+                                          *matrixId, whichMatrix);
+           
+           break;
+        }else{
+           PetscPrintf(PETSC_COMM_WORLD, "\tsolve1_: Need to increase the size of MAX_S1_LINEAR_SYSTEM.\n");
+           exit(1);
+        }
+     }
+  } //i<MAX_S1_LINEAR_SYSTEM
+
+  /* Step 0: check the matrix status */
+  checkMatrixStatus_(matrixId, &flag);
+  if(flag==0) return 0; // the matrix does not need to besolved
+
+  /* Step 1: number of local rows; number of global rows */
+  getMatrixLocalDofNum_(matrixId, &ldb); 
+  getMatrixGlobalDofs_(matrixId, &numglobaldofs);
+
+  /* at ntime=0,1 of each individual solve : allocate solve space */
+  if(!(s1_ksp_array[whichMatrix].same_pc_count)) { 
+     /* Step 2: construct matrix */
+     int *d_nnz, *o_nnz;
+     d_nnz = (int*)calloc(ldb, sizeof(int));
+     o_nnz = (int*)calloc(ldb, sizeof(int)); 
+     getMatrixPetscDnnzOnnz_(matrixId, &valType, d_nnz, o_nnz); 
+    
+     ierr = MatCreateMPIAIJ(MPI_COMM_WORLD, ldb, ldb, PETSC_DECIDE, PETSC_DECIDE,
+                            PETSC_NULL, d_nnz, PETSC_NULL, o_nnz, &(s1_ksp_array[whichMatrix].A));
+     CHKERRQ(ierr);
+     ierr=MatSetFromOptions((s1_ksp_array[whichMatrix].A)/*, MATSUPERLU_DIST MATMPIAIJ*/);CHKERRQ(ierr); 
+     //ierr=MatSetType((s1_ksp_array[whichMatrix].A), MATSUPERLU_DIST /*MATMPIAIJ*/);CHKERRQ(ierr);
+     PetscPrintf(PETSC_COMM_WORLD, "\tsolve1_: create A%d into s1_ksp_array\n", *matrixId);
+  
+     free(d_nnz);
+     free(o_nnz);
+
+     /* Step 3: construct ksp */
+     ierr=KSPCreate(PETSC_COMM_WORLD,&(s1_ksp_array[whichMatrix].ksp));CHKERRQ(ierr);
+     ierr=KSPAppendOptionsPrefix((s1_ksp_array[whichMatrix].ksp), "solve1_");CHKERRQ(ierr);
+     PetscPrintf(PETSC_COMM_WORLD, "\tsolve1_: create ksp_%d into s1_ksp_array\n", *matrixId);
+
+     /* Step 4 */
+     ierr = KSPGetPC((s1_ksp_array[whichMatrix].ksp),&pc); CHKERRQ(ierr);
+     ierr = KSPSetFromOptions((s1_ksp_array[whichMatrix].ksp)); CHKERRQ(ierr);
+  
+     /* Step 5 */
+     ierr = PetscGetTime(&v1); CHKERRQ(ierr); 
+     assemblePetscMatrixNNZs_(matrixId, &valType, &(s1_ksp_array[whichMatrix].A)); 
+     ierr = MatAssemblyBegin((s1_ksp_array[whichMatrix].A),MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+     ierr = MatAssemblyEnd((s1_ksp_array[whichMatrix].A),MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+     ierr = PetscGetTime(&v2); CHKERRQ(ierr);
+
+     /* Step 7: at the start of each new cycle, re-set A as the preconditioner 
+                for next MAX_SAME_PRECONDITIONER_COUNT times 
+     */
+     ierr = KSPSetOperators((s1_ksp_array[whichMatrix].ksp),
+                            (s1_ksp_array[whichMatrix].A),
+                            (s1_ksp_array[whichMatrix].A),SAME_PRECONDITIONER); CHKERRQ(ierr);
+     PetscPrintf(PETSC_COMM_WORLD, "\tsolve1_: pc_SAME_PRECONDITIONER for %d at %d\n",
+                               *matrixId, s1_ksp_array[whichMatrix].same_pc_count); 
+
+     ierr = KSPSetInitialGuessNonzero((s1_ksp_array[whichMatrix].ksp),PETSC_FALSE /*PETSC_TRUE*/);
+     CHKERRQ(ierr);
+     ierr = KSPSetTolerances((s1_ksp_array[whichMatrix].ksp), 1.e-6, 1.e-9, PETSC_DEFAULT, PETSC_DEFAULT);
+     CHKERRQ(ierr);
+  } // end of if(!(s1_ksp_array[whichMatrix].same_pc_count))
+
+  /* Step 6: construct the rhs vec 
+  const PetscScalar *tmp;
+  tmp=&(rhs_sol[0]);
+  ierr = VecCreateMPIWithArray(PETSC_COMM_WORLD,ldb,PETSC_DECIDE,tmp, &b);CHKERRQ(ierr);
+   */
+  ierr = VecCreateMPIWithArray(PETSC_COMM_WORLD,ldb,PETSC_DECIDE,rhs_sol, &b);CHKERRQ(ierr);
+  ierr = VecDuplicate(b, &u); CHKERRQ(ierr); 
+
+  /* Step 8 */
+  ierr = KSPSolve((s1_ksp_array[whichMatrix].ksp), b, u); CHKERRQ(ierr); 
+  if(SOLVE1_DEBUG)
+  PetscPrintf(PETSC_COMM_WORLD, "\tsolve1_: KSPSolve for %d at %d\n",
+                            *matrixId, s1_ksp_array[whichMatrix].same_pc_count); 
+
+  // Step 9: put solution back to rhs_sol
+  PetscScalar *value;
+  ierr = VecGetArray(u, &value); CHKERRQ(ierr);
+  for(i=0;i<ldb;i++) rhs_sol[i] = value[i];
+  ierr = VecRestoreArray(u, &value); CHKERRQ(ierr); 
+  
+  // Step 10: set back the matrix solution to mesh
+  setMatrixSoln_(matrixId, &valType, rhs_sol);
+  
+  /* Step 11: clean the stored data */
+  cleanMatrixValues_(matrixId); 
+  ierr = VecDestroy(u); CHKERRQ(ierr);
+  ierr = VecDestroy(b); CHKERRQ(ierr); 
+  (s1_ksp_array[whichMatrix].same_pc_count)++;
+
+  return 0;
+}

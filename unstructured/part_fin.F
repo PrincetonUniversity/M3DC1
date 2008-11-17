@@ -219,11 +219,15 @@
       vectype, allocatable :: temp(:)
       vectype, dimension(20) :: avec
 
-      PetscTruth :: flg
-      integer :: ipetsc, isuperlu
+      PetscTruth :: flg_petsc, flg_solve1 
 
 !
       if(myrank.eq.0 .and. iprint.eq.1) print *, " smoother1"
+
+      call PetscOptionsHasName
+     &(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
+      call PetscOptionsHasName
+     &(PETSC_NULL_CHARACTER,'-solve1', flg_solve1,ier)
 
       numvarsm = 2
       call numfac(numelms)
@@ -238,17 +242,13 @@
 !.....compute LU decomposition only once
 !
 !.....form matrix default linear solver superlu cj-april-09-2008
-      ipetsc=0
-      isuperlu=1
-      call PetscOptionsGetInt
-     &(PETSC_NULL_CHARACTER,'-ipetsc',ipetsc,flg,ier)
-      if(ipetsc) isuperlu=0
-      if(isuperlu) call zerosuperlumatrix(s5matrix_sm,icomplex,numvarsm)
-      if(ipetsc) call zeropetscmatrix(s5matrix_sm,icomplex,numvarsm)
-         if(isuperlu) 
-     &   print *, " smoother1 zerosuperlumatrix", s5matrix_sm
-         if(ipetsc) 
-     &   print *, "   smoother1 zeropetscmatrix", s5matrix_sm 
+      if(flg_petsc) then
+         call zeropetscmatrix(s5matrix_sm,icomplex,numvarsm)
+         print *, "   smoother1 zeropetscmatrix", s5matrix_sm 
+      else
+         call zerosuperlumatrix(s5matrix_sm,icomplex,numvarsm)
+         print *, " smoother1 zerosuperlumatrix", s5matrix_sm
+      endif
       do itri=1,numelms
 
          call define_fields(itri,0,25,1)
@@ -315,8 +315,11 @@
       call sumsharedppplvecvals(temp)
 !
 !.....perform LU backsubstitution to get outarray solution
-
+      if(flg_petsc .and. flg_solve1) then
+      call solve1(s5matrix_sm,temp,ier)
+      else
       call solve(s5matrix_sm,temp,ier)
+      endif
       if(ier.ne.0) then
          print *, "Error in smoother1 solve"
          call safestop(101)
@@ -363,13 +366,17 @@
 
       real, dimension(2,2) :: ssterm
       vectype, allocatable:: temp(:)
-      vectype, dimension(20) :: avec
+      vectype, dimension(20) :: avec 
 
+      PetscTruth :: flg_petsc, flg_solve1 
 
-      PetscTruth :: flg
-      integer :: ipetsc, isuperlu
 !
       if(myrank.eq.0 .and. iprint.eq.1) print *, " smoother3"
+
+      call PetscOptionsHasName
+     &(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
+      call PetscOptionsHasName
+     &(PETSC_NULL_CHARACTER,'-solve1', flg_solve1,ier)
 
       numvarsm = 2
       call numfac(numelms)
@@ -387,17 +394,13 @@
 !.....compute LU decomposition only once
 !
 !.....form matrix default linear solver superlu cj-april-09-2008
-      ipetsc=0
-      isuperlu=1
-      call PetscOptionsGetInt
-     &(PETSC_NULL_CHARACTER,'-ipetsc',ipetsc,flg,ier)
-      if(ipetsc) isuperlu=0
-      if(isuperlu) call zerosuperlumatrix(s7matrix_sm,icomplex,numvarsm)
-      if(ipetsc) call zeropetscmatrix(s7matrix_sm,icomplex,numvarsm)
-         if(isuperlu) 
-     &   print *, " smoother3 zerosuperlumatrix", s7matrix_sm
-         if(ipetsc) 
-     &   print *, "   smoother3 zeropetscmatrix", s7matrix_sm 
+      if(flg_petsc) then
+         call zeropetscmatrix(s7matrix_sm,icomplex,numvarsm)
+         print *, "   smoother3 zeropetscmatrix", s7matrix_sm 
+      else 
+         call zerosuperlumatrix(s7matrix_sm,icomplex,numvarsm)
+         print *, " smoother3 zerosuperlumatrix", s7matrix_sm
+      endif
       do itri=1,numelms
 
          call define_fields(itri,0,25,1)
@@ -461,7 +464,11 @@
       call sumsharedppplvecvals(temp)
 !
 !.....perform LU backsubstitution to get outarray solution
+      if(flg_petsc .and. flg_solve1) then
+      call solve1(s7matrix_sm,temp,ier)
+      else
       call solve(s7matrix_sm,temp,ier)
+      endif
       if(ier.ne.0) then
          print *, "Error in smoother3 solve"
          call safestop(102)
