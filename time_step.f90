@@ -38,6 +38,7 @@ subroutine onestep
   logical :: first_time = .true.
 
   real :: tstart, tend
+  vectype, allocatable :: temp_field(:)
 
 
   ! apply loop voltage
@@ -53,15 +54,25 @@ subroutine onestep
      calc_matrices = 0
   endif
 
-
   ! calculate matrices for time advance
-  if(calc_matrices.eq.1) then 
+  if(calc_matrices.eq.1) then
      if(myrank.eq.0 .and. iprint.eq.1) print *, "Defining matrices"
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+
+     ! in linear case, eliminate second-order terms from matrix
+     if(linear.eq.1) then
+        call createvec(temp_field, num_fields)
+        temp_field = field
+        field = 0.
+     endif
      if(imp_mod.eq.2 .and. isplitstep.eq.1) then
         call ludefall(1-istatic, 0, 0, 0)
      else
         call ludefall(1-istatic, idens, ipres, 1-iestatic)
+     endif
+     if(linear.eq.1) then
+        field = temp_field
+        call deletevec(temp_field)
      endif
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
@@ -69,6 +80,7 @@ subroutine onestep
      endif
      if(myrank.eq.0 .and. iprint.eq.1) print *, "Done defining matrices."
   endif
+
 
 
   ! copy field data to time-advance vectors

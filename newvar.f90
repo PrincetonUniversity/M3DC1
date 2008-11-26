@@ -449,6 +449,7 @@ subroutine define_transport_coefficients()
   if(solve_visc) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  viscosity'
      call solve_newvar(visc, NV_NOBOUND, mass_matrix_lhs)
+     visc_c = visc
   endif
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, '  size field'
@@ -460,9 +461,8 @@ subroutine define_transport_coefficients()
      call entdofs(1,i,0,ibegin,iendplusone)
      resistivity(ibegin) = resistivity(ibegin) + etar
      visc(ibegin) = visc(ibegin) + amu
+     visc_c(ibegin) = visc_c(ibegin) + amuc
      kappa(ibegin) = kappa(ibegin) + kappat
   enddo
 
-  visc_c = (amuc/amu)*visc
-  
 end subroutine define_transport_coefficients

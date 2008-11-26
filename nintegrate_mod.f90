@@ -488,11 +488,7 @@ subroutine define_fields(itri, fields, ngauss, gdef)
         call calcavector(itri, field0, u_g, num_fields, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ph079)
         phs79 = ph079 + ph179/2.
-        if(linear.eq.0) then
-          pht79 = ph079 + ph179
-        else
-          pht79 = ph079
-        endif
+        pht79 = ph079 + ph179
      else
         pht79 = ph179
         phs79 = ph179/2.
@@ -515,13 +511,8 @@ subroutine define_fields(itri, fields, ngauss, gdef)
      if(eqsubtract.eq.1) then
         call calcavector(itri, field0, psi_g, num_fields, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ps079)
-        if(linear.eq.0) then
-          pst79 = ps079 + ps179
-          pss79 = ps079 + ps179/2.
-        else
-          pst79 = ps079
-          pss79 = ps079 
-        endif
+        pst79 = ps079 + ps179
+        pss79 = ps079 + ps179/2.
      else
         pst79 = ps179
         pss79 = ps179/2.
@@ -544,11 +535,7 @@ subroutine define_fields(itri, fields, ngauss, gdef)
         call calcavector(itri, field0, vz_g, num_fields, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, vz079)
         vzs79 = vz079 + vz179/2.
-        if(linear.eq.0) then
-          vzt79 = vz079 + vz179
-        else
-          vzt79 = vz079 
-        endif
+        vzt79 = vz079 + vz179
      else
         vzt79 = vz179
         vzs79 = vz179/2.
@@ -578,13 +565,8 @@ subroutine define_fields(itri, fields, ngauss, gdef)
         if(eqsubtract.eq.1) then
            call calcavector(itri, field0, bz_g, num_fields, avec)
            call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, bz079)
-           if(linear.eq.0) then
-             bzt79 = bz079 + bz179
-             bzs79 = bz079 + bz179/2.
-           else
-             bzt79 = bz079 
-             bzs79 = bz079 
-           endif
+           bzt79 = bz079 + bz179
+           bzs79 = bz079 + bz179/2.
         else
            bzt79 = bz179
            bzs79 = bz179/2.
@@ -631,11 +613,7 @@ subroutine define_fields(itri, fields, ngauss, gdef)
         call calcavector(itri, field0, chi_g, num_fields, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ch079)
         chs79 = ch079 + ch179/2.
-        if(linear.eq.0) then
-          cht79 = ch079 + ch179
-        else
-          cht79 = ch079 
-        endif
+        cht79 = ch079 + ch179
      else
         cht79 = ch179
         chs79 = ch179/2.
@@ -676,13 +654,8 @@ subroutine define_fields(itri, fields, ngauss, gdef)
            call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, p079)
            pe079 = p079
         endif
-        if(linear.eq.0) then
-          pet79 = pe079 + pe179
-          pt79  =  p079 +  p179
-        else
-          pet79 = pe079 
-          pt79  =  p079 
-        endif
+        pet79 = pe079 + pe179
+        pt79  =  p079 +  p179
      else
         pet79 = pe179
         pt79  =  p179
@@ -706,11 +679,7 @@ subroutine define_fields(itri, fields, ngauss, gdef)
      if(eqsubtract.eq.1) then
         call calcavector(itri, field0, den_g, num_fields, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, n079)
-        if(linear.eq.0) then
-          nt79 = n079 + n179
-        else
-          nt79 = n079 
-        endif
+        nt79 = n079 + n179
      else
         nt79 = n179
      endif
@@ -856,7 +825,7 @@ subroutine define_fields(itri, fields, ngauss, gdef)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, vic79)
      endif
 
-     if(amupar.ne.0) vip79 = amupar*pit79/2.
+     if(amupar.ne.0.) vip79 = amupar*pit79/2.
   end if
 
   if(gdef.eq.1) then
