@@ -579,7 +579,7 @@ subroutine calculate_scalars()
         ekin3h = ekin3h + energy_k3h()
      endif
 
-     if(ike_only.eq.1) goto 99
+     if(ike_only.eq.1) cycle
 
      emagp  = emagp  + energy_mp ()
      emagpd = emagpd + energy_mpd()
@@ -685,7 +685,7 @@ subroutine calculate_scalars()
      endif
 
 
-     if(amupar.ne.0) then
+     if(amupar.ne.0.) then
         call PVS1(pht79,temp79a)
 
         if(numvar.ge.2) then
@@ -728,7 +728,7 @@ subroutine calculate_scalars()
      if(numvar.ge.3) call solve_newvar(sp1, NV_DCBOUND, mass_matrix_lhs_dc)
   endif
 
-99 call distribute_scalars
+  call distribute_scalars
 
   ekin = ekinp + ekint + ekin3
   emag = emagp + emagt + emag3

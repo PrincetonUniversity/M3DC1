@@ -2900,10 +2900,10 @@ function read_scalar, scalarname, filename=filename, title=title, $
        units =  b0+sq+l0+'!U3!N!X'+'/'+pi4+t0
    endif else if (strcmp("bwb2", scalarname, /fold_case) eq 1) then begin $
        amupar = read_parameter('amupar', filename=filename)
-       data = s.parallel_viscous_heating._data / amupar
+       data = 4.*s.parallel_viscous_heating._data / (3.*amupar)
        title = ''
 ;       symbol = '!6(!7l!D!9#!N!5b!9 . !3W!9 . !5b!6/2)!U2!N!X'
-       symbol = '!6(!5b!9.!3W!9.!5b!6)!U2!N!X
+       symbol = '!6(!5b!9.!3W!9.!5b!6)!U2!N!X'
        units = make_units(t0=-2,l0=3)
    endif else begin
        print, 'Scalar ', scalarname, ' not recognized.'
