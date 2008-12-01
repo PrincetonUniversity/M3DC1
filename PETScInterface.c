@@ -1,6 +1,7 @@
 //#include "/u/xluo/develop.newCompiler.constraint/mctk/Examples/PPPL/PPPL/Matrix.h"
-#include "/u/xluo/develop.newCompiler.constraint/mctk/Examples/PPPL/PPPL/MatrixInterface.h"
+//#include "/u/xluo/develop.newCompiler.constraint/mctk/Examples/PPPL/PPPL/MatrixInterface.h"
 //#include "/u/xluo/develop.newCompiler.petscDev/mctk/Examples/PPPL/PPPL/MatrixInterface.h"
+#include "mctk/Examples/PPPL/PPPL/MatrixInterface.h"
 #include "petsc.h"
 #include "petscmat.h"
 #include "petscksp.h"

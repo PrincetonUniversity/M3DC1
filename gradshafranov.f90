@@ -229,7 +229,9 @@ subroutine gradshafranov_solve
 
   implicit none
 
-! include 'mpif.h'
+#ifdef _AIX
+  include 'mpif.h'
+#endif
 #include "finclude/petsc.h"
   
   real :: gsint1,gsint4,gsint2,gsint3,lhs,cfac(18)
@@ -291,7 +293,7 @@ subroutine gradshafranov_solve
        print *, " forming the GS matrix..."
 
   ! default linear solver superlu cj-april-09-2008
-  if(flg_petsc) then
+  if(flg_petsc.eq.PETSC_TRUE) then
      call zeropetscmatrix(gsmatrix_sm, icomplex, numvar1_numbering)
      if(iprint.ge.1) print *, "	gradshafranov_solve zeropetscmatrix", gsmatrix_sm
   else
@@ -510,7 +512,7 @@ subroutine gradshafranov_solve
 
      ! perform LU backsubstitution to get psi solution
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     if(flg_petsc .and. flg_solve1) then 
+     if(flg_petsc.eq.PETSC_TRUE .and. flg_solve1.eq.PETSC_TRUE) then 
      call solve1(gsmatrix_sm,b1vecini,ier)
      else
      call solve(gsmatrix_sm,b1vecini,ier)
@@ -717,7 +719,7 @@ subroutine gradshafranov_solve
      else
 !......see if p and g functions defined numerically.  If so, only enforce total current condition
         if(inumgs .eq. 0) then
-          gamma2 =  -xmag**2*p0*p1 + -2.*abs(g0)/(xmag*q0*abs(dpsii))
+          gamma2 =  -xmag**2*p0*p1 - 2.*abs(g0)/(xmag*q0*abs(dpsii))
           gamma3 = -4.*(abs(g0)/xmag)*djdpsi/dpsii - xmag**2*p0*p2
         else
           gamma2 = 0.

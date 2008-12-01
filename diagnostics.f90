@@ -489,7 +489,7 @@ subroutine calculate_scalars()
         call copyvec(b1_phi,vz_g,vecsize_phi,gyro_tau,1,1)
      end if
 
-     if(flg_petsc .and. flg_solve1) then
+     if(flg_petsc.eq.PETSC_TRUE .and. flg_solve1.eq.PETSC_TRUE) then
      call solve1(mass_matrix_lhs,gyro_tau,i)
      else
      call solve(mass_matrix_lhs,gyro_tau,i)

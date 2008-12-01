@@ -242,7 +242,7 @@
 !.....compute LU decomposition only once
 !
 !.....form matrix default linear solver superlu cj-april-09-2008
-      if(flg_petsc) then
+      if(flg_petsc.eq.PETSC_TRUE) then
          call zeropetscmatrix(s5matrix_sm,icomplex,numvarsm)
          print *, "   smoother1 zeropetscmatrix", s5matrix_sm 
       else
@@ -315,7 +315,7 @@
       call sumsharedppplvecvals(temp)
 !
 !.....perform LU backsubstitution to get outarray solution
-      if(flg_petsc .and. flg_solve1) then
+      if(flg_petsc.eq.PETSC_TRUE .and. flg_solve1.eq.PETSC_TRUE) then
       call solve1(s5matrix_sm,temp,ier)
       else
       call solve(s5matrix_sm,temp,ier)
@@ -394,7 +394,7 @@
 !.....compute LU decomposition only once
 !
 !.....form matrix default linear solver superlu cj-april-09-2008
-      if(flg_petsc) then
+      if(flg_petsc.eq.PETSC_TRUE) then
          call zeropetscmatrix(s7matrix_sm,icomplex,numvarsm)
          print *, "   smoother3 zeropetscmatrix", s7matrix_sm 
       else 
@@ -464,7 +464,7 @@
       call sumsharedppplvecvals(temp)
 !
 !.....perform LU backsubstitution to get outarray solution
-      if(flg_petsc .and. flg_solve1) then
+      if(flg_petsc.eq.PETSC_TRUE .and. flg_solve1.eq.PETSC_TRUE) then
       call solve1(s7matrix_sm,temp,ier)
       else
       call solve(s7matrix_sm,temp,ier)

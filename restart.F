@@ -161,7 +161,7 @@ c     first put in information to check on run information
 
       read(56) ntime,time
       read(56) totcur0,tflux0,gbound,fbound,ptot,vloop
-      read(56,END=1199),psimin,psilim
+      read(56,END=1199) psimin,psilim
       goto 1200
  1199 if(myrank.eq.0) 
      &     print *, 'Warning: reading from a previous restart version'
@@ -312,7 +312,7 @@ c     below specifies that this is the last line
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
       if(myrank.eq.0) then
-         write(56),psimin,psilim
+         write(56) psimin,psilim
       endif
       close(56)
       
@@ -411,7 +411,7 @@ c     first put in information to check on run information
          read(56) globalid
       enddo 
 
-      read(56,END=1199),psimin,psilim
+      read(56,END=1199) psimin,psilim
       goto 1200
  1199 if(myrank.eq.0) 
      &     print *, 'Warning: reading from a previous restart version'
