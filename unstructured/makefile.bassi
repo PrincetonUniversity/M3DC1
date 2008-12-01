@@ -1,93 +1,124 @@
 SHELL=/bin/bash
-AUTOPACK_HOME = /project/projectdirs/mp288/acbauer/develop/autopack/1.3.2
+
 COMMONDIR = ../common/
+AUTOPACK_HOME = /project/projectdirs/mp288/acbauer/develop/autopack/1.3.2
 
-#INCLUDE = -I$(COMMONDIR) -I$(NTCCHOME)/mod -I$(LIBDIR) \
-#	  -I$(SUPERLU_DIST_HOME) -I$(HDF5_HOME)/include
+# define where you want to locate the mesh adapt libraries
+# defult is /u/xluo/develop
+ifndef SCORECDIR
+SCORECDIR = /project/projectdirs/mp288/scorec/develop.newCompiler.constraint/
+#SCORECDIR = /u/xluo/develop.newCompiler.constraint/
+#SCORECDIR = /u/nferraro/C1/src/SCOREC/
+endif
 
-INCLUDE = -I$(COMMONDIR) $(HDF5_INCLUDE) 
+
+INCLUDE = -I$(COMMONDIR) \
+	-I$(INCLUDE_PATH) $(HDF5_INCLUDE) \
+	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) \
+	-I$(SCORECDIR)
 
 LOADER = mpCC_r -blpdata
 PP     = xlc_r -E -C
 F90    = mpxlf90_r -c
 F77    = mpxlf_r -c
-CC     = mpcc_r -c
-QEXTNAME = -qextname=numdofs,sludexit,sludinit,ap_init,loadmesh,numnod,numfac,getmincoord2,getmaxcoord2,usesearchstructure,nodfac,xyznod,createdofnumbering,zonenod,checkveccreated,deleteppplvec,createppplvec,entdofs,sumshareddofs,numprocdofs,cogfac,zerosuperluarray,zeropetscarray,insertval,getmodeltags,setdiribc,solve,zeromultiplyarray,finalizearray,matrixvectormult,freesmo,deletesearchstructure,clearscorecdata,printfpointer,checksamevec,updateids,deletedofnumbering,setgeneralbc,getelmsizes
-#,gpl,gqacwk,gclrwk,gqclip,gsclip,gtx
+CC     = mpCC_r -c
 
-# For compiling complex version:
-#COMPLEX = -Dvectype=complex -DUSECOMPLEX
-#BIN_POSTFIX = _complex
+OPTS = 
 
-# For compling real version:
-COMPLEX = -Dvectype=real
-BIN_POSTFIX = 
+# define the complex version
+ifeq ($(COM), 1)
+OPTS := $(OPTS) -Dvectype=complex -DUSECOMPLEX
+BIN_POSTFIX := $(BIN_POSTFIX)-complex
+endif
 
-PPOPTS = -DPETSC_AVOID_MPIF_H -Dmpi -DNEW_VELOCITY -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/rs6000_64_O \
-	 ${COMPLEX}
-F90OPTS = -qautodbl=dbl4 -qsave $(QEXTNAME) -qstrict -O3 $(INCLUDE)
-F77OPTS = -qautodbl=dbl4 -qsave $(QEXTNAME) -O3 $(INCLUDE) -DIBM
-CCOPTS = -O3 -I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/rs6000_64_O 
-DBESJDBESJOPTS = -O3 -qstrict -qautodbl=dbl4 $(INCLUDE) $(QEXTNAME)
-TV80OPTS=  -qsave -O3 -qstrict $(INCLUDE) $(QEXTNAME)
+ifeq ($(RL), 1)
+OPTS := $(OPTS) -Dvectype=real
+BIN_POSTFIX := $(BIN_POSTFIX)-real
+endif
+
+# specify whether debug or optimization 
+ifeq ($(OPT), 1)
+ OPTS := $(OPTS) -O
+ SCORECOPT = -O
+ BIN_POSTFIX := $(BIN_POSTFIX)-opt
+else
+ OPTS := $(OPTS) -g 
+ SCORECOPT =
+endif
 
 
-NEWOBJS = M3Dmodules.o nintegrate_mod.o metricterms_n.o metricterms_new.o \
-	   newvar.o diagnostics.o gradshafranov.o control.o \
-           $(COMMONDIR)tv80lib.o $(COMMONDIR)subp.o \
-           $(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
-           $(COMMONDIR)fdump.o hdf5_output.o newpar.o \
-	    fin.o part_fin.o ludef_t.o \
-           boundary.o unknown.o restart.o \
-           acbauer.o metricterms.o compare.o \
-           init_conds.o PETScInterface.o 
+# Define the size of sampling point arrays.
+# This sets the upper limit for number of points used
+# in numerical integrations
+ifdef MAX_PTS
+OPTS := $(OPTS) -DMAX_PTS=$(MAX_PTS)
+BIN_POSTFIX := $(BIN_POSTFIX)-$(MAX_PTS)
+else
+OPTS := $(OPTS) -DMAX_PTS=79
+endif
 
-SCORECDIR = /project/projectdirs/mp288/acbauer/develop/
-SCORECVERS =-complex2
-SCORECOPT =-O
+BIN = gonewp${BIN_POSTFIX}
+
+
+PPOPTS = -DPETSC_AVOID_MPIF_H -Dmpi -DNEW_VELOCITY \
+	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/rs6000_64_O \
+	$(OPTS)
+F90OPTS = -qautodbl=dbl4 -qsave $(QEXTNAME) -qstrict -O2 $(INCLUDE)
+F77OPTS = -qautodbl=dbl4 -qsave $(QEXTNAME) -O2 $(INCLUDE)
+CCOPTS = -O2 $(INCLUDE)
+DBESJDBESJOPTS = -O2 -qstrict -qautodbl=dbl4 $(INCLUDE) $(QEXTNAME)
+TV80OPTS=  -qsave -O2 -qstrict $(INCLUDE) $(QEXTNAME)
+
+NEWOBJS = control.o M3Dmodules.o nintegrate_mod.o metricterms_new.o \
+	newvar.o diagnostics.o gradshafranov.o \
+	$(COMMONDIR)subp.o \
+	$(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
+        $(COMMONDIR)fdump.o hdf5_output.o time_step.o newpar.o \
+	fin.o part_fin.o ludef_t.o \
+	boundary.o unknown.o restart.o \
+	acbauer.o metricterms.o \
+	init_conds.o PETScInterface.o
 
 LDRNEW = \
-        -L$(SCORECDIR)FMDB$(SCORECVERS)/FMDB/lib/ibm_5  \
-        -L$(SCORECDIR)FMDB$(SCORECVERS)/SCORECModel/lib/ibm_5 \
-        -L$(SCORECDIR)FMDB$(SCORECVERS)/SCORECUtil/lib/ibm_5 \
-        -L$(SCORECDIR)mctk$(SCORECVERS)/Examples/PPPL/lib/ibm_5 \
-        -L$(SCORECDIR)mctk$(SCORECVERS)/Field/lib/ibm_5 \
-        -L$(SCORECDIR)mctk$(SCORECVERS)/Core/lib/ibm_5 \
-        -L$(SCORECDIR)mctk$(SCORECVERS)/Solver/lib/ibm_5 \
-        -L$(SCORECDIR)meshAdapt$(SCORECVERS)/meshAdapt/lib/ibm_5 \
-        -L$(SCORECDIR)meshAdapt$(SCORECVERS)/meshTools/lib/ibm_5 \
-        -L$(SCORECDIR)meshAdapt$(SCORECVERS)/templateRefine/lib/ibm_5 \
-        -lFMDB-mpich2$(SCORECOPT) -lSCORECModel-mpich2$(SCORECOPT) -lSCORECUtil-mpich2$(SCORECOPT) -lField-mpich2$(SCORECOPT) -lCore-mpich2$(SCORECOPT) \
-        -lmeshAdapt-mpich2$(SCORECOPT) -ltemplateRefine-mpich2$(SCORECOPT) -lmeshTools-mpich2$(SCORECOPT) -lSolver-mpich2$(SCORECOPT) -lPPPL-mpich2$(SCORECOPT) \
-        -L$(AUTOPACK_HOME)/lib/IBM -lautopack-O \
+        -L$(SCORECDIR)FMDB/FMDB/lib/ia64_linux \
+	-L$(SCORECDIR)FMDB/SCORECModel/lib/ia64_linux \
+	-L$(SCORECDIR)FMDB/SCORECUtil/lib/ia64_linux \
+	-L$(SCORECDIR)mctk/Examples/PPPL/lib/ia64_linux \
+	-L$(SCORECDIR)mctk/Field/lib/ia64_linux \
+	-L$(SCORECDIR)mctk/Core/lib/ia64_linux \
+	-L$(SCORECDIR)mctk/Solver/lib/ia64_linux \
+	-L$(SCORECDIR)meshAdapt/meshAdapt/lib/ia64_linux \
+	-L$(SCORECDIR)meshAdapt/meshTools/lib/ia64_linux \
+	-L$(SCORECDIR)meshAdapt/templateRefine/lib/ia64_linux \
+	-lFMDB-mpich2$(SCORECOPT) \
+	-lSCORECModel-mpich2$(SCORECOPT) \
+	-lSCORECUtil-mpich2$(SCORECOPT) \
+	-lField-mpich2$(SCORECOPT) \
+	-lCore-mpich2$(SCORECOPT) \
+	-lmeshAdapt-mpich2$(SCORECOPT) \
+	-ltemplateRefine-mpich2$(SCORECOPT) \
+	-lmeshTools-mpich2$(SCORECOPT) \
+	-lSolver-mpich2$(SCORECOPT) \
+	-lPPPL-mpich2$(SCORECOPT) \
+	-L$(AUTOPACK_HOME)/lib/IBM -lautopack-O \
 	$(ZOLTAN) \
-        $(METIS) -lparmetis -lmetis \
-        -L$(NETCDF_LIB) -lnetcdf \
-	-L$(PETSC_DIR)/lib/$(PETSC_ARCH)   -lpetscksp -lpetscmat -lpetscvec -lpetsc \
-        $(SUPERLU_DIST) $(LAPACK) \
-        $(NCAR) \
-        ${HDF5}  \
-        -lessl -lblas  -lxlfpmt4 -L/usr/vacpp/lib -lC -lpthreads -lm -lc -lxlopt -lxlf -lxlomp_ser -lxlf90
+	$(METIS) \
+	-L$(PETSC_DIR)/lib/$(PETSC_ARCH) -lpetscksp -lpetscmat -lpetscvec -lpetsc \
+	$(SUPERLU) $(SUPERLU_DIST) \
+	$(LAPACK) \
+	$(NCAR) \
+	$(HDF5) \
+	$(NAG) \
+	-lxlfpmt4 -L/usr/vacpp/lib \
+	-lC -lpthreads -lm -lc -lxlopt -lxlf -lxlomp_ser -lxlf90
 
-#-L/project/projectdirs/mp288/acbauer/develop/Zoltan/Obj_ibm -lzoltan -lzoltan_comm -lzoltan_dd -lzoltan_mem -lzoltan_timer
 
-gonewp: $(NEWOBJS)
+
+${BIN}: $(NEWOBJS)
 	$(LOADER) $(NEWOBJS) $(LDRNEW) -o $@
 
-$(COMMONDIR)tv80lib.o: $(COMMONDIR)tv80lib.f
-	$(F77) $(TV80OPTS) $< -o $@ 
-
-$(COMMONDIR)dbesj0.o : $(COMMONDIR)dbesj0.f
-	$(F77) $(DBESJOPTS) $< -o $@
-
-$(COMMONDIR)dbesj1.o : $(COMMONDIR)dbesj1.f
-	$(F77) $(DBESJOPTS) $< -o $@
-
-#ludef_t.o: ludef_t.f90
-#	$(F90) $(F90OPTS) -qsuffix=f=f90 $< -o $@
-
 %.o : %.c
-	$(CC) $(CCOPTS) $< -o $@
+	$(CC)  $(CCOPTS) $< -o $@
 
 %.o: %.f
 	$(F77) $(F77OPTS) $< -o $@
@@ -103,28 +134,18 @@ $(COMMONDIR)dbesj1.o : $(COMMONDIR)dbesj1.f
 	rm $<.i
 
 clean:
-	rm -f gonewp*
+	rm -f ${BIN}
 	rm -f $(NEWOBJS)
 	rm -f *.o 
 	rm -f *.mod 
 	rm -f *~
-	rm -f *.so
-	rm -f *.i
-	rm -f ../common/*.o
 
 fullclean:
-	rm -f gonewp* 
+	rm -f ${BIN}
 	rm -r lib*so
 	rm -f *.o 
 	rm -f *.mod 
 	rm -f out.* fort* new.* restartout PI* core*
 	rm -f setup* 
 	rm -f *~
-	rm -f *.i
-
-
-
-
-
-
 

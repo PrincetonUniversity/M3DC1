@@ -260,7 +260,7 @@ module basic
        gbound,fbound
 
   ! PID controllers
-  type(pid_control) :: i_control, n_control
+  type(pid_control), save :: i_control, n_control
 
   real :: eta_fac
 

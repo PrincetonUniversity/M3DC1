@@ -2,28 +2,21 @@ SHELL=/bin/bash
 
 COMMONDIR = ../common/
 
+# define where you want to locate the mesh adapt libraries
+# defult is /u/xluo/develop
+ifndef SCORECDIR
+SCORECDIR = /u/xluo/develop.newCompiler.constraint/
+endif
+
 INCLUDE = -I$(COMMONDIR) -I$(NTCCHOME)/mod -I$(LIBDIR) \
 	-I$(SUPERLU_DIST_HOME) -I$(HDF5_HOME)/include \
-	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH)
+	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) \
+	-I$(SCORECDIR)
 
 LOADER = ifort
 F90    = ifort -c
 F77    = ifort -c
 CC     = icc -c
-
-# define where you want to locate the mesh adapt libraries
-# defult is /u/xluo/develop
-ifndef SCORECDIR
-SCORECDIR = /u/xluo/develop.newCompiler.constraint/
-#SCORECDIR = /u/nferraro/C1/src/SCOREC/
-endif
-
-# define the version of mesh adapt : real or complex version
-# ---- Note, this is a temporary solution. Eventually, there should
-# ---- be only one version
-ifndef SCORECVERS
-SCORECVERS = 
-endif
 
 OPTS =
 
@@ -79,26 +72,26 @@ NEWOBJS = control.o M3Dmodules.o nintegrate_mod.o metricterms_new.o \
 	init_conds.o PETScInterface.o
 
 LDRNEW = \
-        -L$(SCORECDIR)FMDB$(SCORECVERS)/FMDB/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)FMDB$(SCORECVERS)/FMDB/lib/ia64_linux \
-	-L$(SCORECDIR)FMDB$(SCORECVERS)/SCORECModel/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)FMDB$(SCORECVERS)/SCORECModel/lib/ia64_linux \
-	-L$(SCORECDIR)FMDB$(SCORECVERS)/SCORECUtil/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)FMDB$(SCORECVERS)/SCORECUtil/lib/ia64_linux \
-	-L$(SCORECDIR)mctk$(SCORECVERS)/Examples/PPPL/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)mctk$(SCORECVERS)/Examples/PPPL/lib/ia64_linux \
-	-L$(SCORECDIR)mctk$(SCORECVERS)/Field/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)mctk$(SCORECVERS)/Field/lib/ia64_linux \
-	-L$(SCORECDIR)mctk$(SCORECVERS)/Core/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)mctk$(SCORECVERS)/Core/lib/ia64_linux \
-	-L$(SCORECDIR)mctk$(SCORECVERS)/Solver/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)mctk$(SCORECVERS)/Solver/lib/ia64_linux \
-	-L$(SCORECDIR)meshAdapt$(SCORECVERS)/meshAdapt/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)meshAdapt$(SCORECVERS)/meshAdapt/lib/ia64_linux \
-	-L$(SCORECDIR)meshAdapt$(SCORECVERS)/meshTools/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)meshAdapt$(SCORECVERS)/meshTools/lib/ia64_linux \
-	-L$(SCORECDIR)meshAdapt$(SCORECVERS)/templateRefine/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)meshAdapt$(SCORECVERS)/templateRefine/lib/ia64_linux \
+        -L$(SCORECDIR)FMDB/FMDB/lib/ia64_linux \
+	-Wl,-rpath,$(SCORECDIR)FMDB/FMDB/lib/ia64_linux \
+	-L$(SCORECDIR)FMDB/SCORECModel/lib/ia64_linux \
+	-Wl,-rpath,$(SCORECDIR)FMDB/SCORECModel/lib/ia64_linux \
+	-L$(SCORECDIR)FMDB/SCORECUtil/lib/ia64_linux \
+	-Wl,-rpath,$(SCORECDIR)FMDB/SCORECUtil/lib/ia64_linux \
+	-L$(SCORECDIR)mctk/Examples/PPPL/lib/ia64_linux \
+	-Wl,-rpath,$(SCORECDIR)mctk/Examples/PPPL/lib/ia64_linux \
+	-L$(SCORECDIR)mctk/Field/lib/ia64_linux \
+	-Wl,-rpath,$(SCORECDIR)mctk/Field/lib/ia64_linux \
+	-L$(SCORECDIR)mctk/Core/lib/ia64_linux \
+	-Wl,-rpath,$(SCORECDIR)mctk/Core/lib/ia64_linux \
+	-L$(SCORECDIR)mctk/Solver/lib/ia64_linux \
+	-Wl,-rpath,$(SCORECDIR)mctk/Solver/lib/ia64_linux \
+	-L$(SCORECDIR)meshAdapt/meshAdapt/lib/ia64_linux \
+	-Wl,-rpath,$(SCORECDIR)meshAdapt/meshAdapt/lib/ia64_linux \
+	-L$(SCORECDIR)meshAdapt/meshTools/lib/ia64_linux \
+	-Wl,-rpath,$(SCORECDIR)meshAdapt/meshTools/lib/ia64_linux \
+	-L$(SCORECDIR)meshAdapt/templateRefine/lib/ia64_linux \
+	-Wl,-rpath,$(SCORECDIR)meshAdapt/templateRefine/lib/ia64_linux \
 	-lFMDB-mpich2$(SCORECOPT) \
 	-lSCORECModel-mpich2$(SCORECOPT) \
 	-lSCORECUtil-mpich2$(SCORECOPT) \
