@@ -211,7 +211,7 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     if(region[3] eq 0.) then region[3]=1.
 
     ; width of color bar region
-    width1 = 0.2*(region[2]-region[0])
+    width1 = 0.25*(region[2]-region[0])
 
     ; dimensions of plotting region
     width = region[2]-region[0] - width1
@@ -222,15 +222,16 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     endif
 
     if keyword_set(iso) then begin
-        if strcmp(!d.name, 'PS') then begin
-            screen_size = [4.,3.]
-        endif else begin
-            device, get_screen_size=screen_size
-        endelse
+;        if strcmp(!d.name, 'PS') then begin
+;            screen_size = [4.,3.]
+;        endif else begin
+;            device, get_screen_size=screen_size
+;        endelse
         aspect_ratio = (max(y)-min(y))/(max(x)-min(x))
         if(aspect_ratio le 1) then top = width*aspect_ratio $
         else width = top/aspect_ratio
-    endif 
+    endif
+    charsize = !p.charsize*(3./2.)*(4./3.)*width/top
       
     if n_elements(label) eq 0 then label = ''
 
@@ -290,7 +291,7 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     yrange=[yy[0],yy[n_elements(yy)-1]]
 
     contour, zz, xx, yy, nlevels=nlevels, fill=fill, $
-      ytitle=label, xtitle='', $
+      ytitle=label, xtitle='', charsize=charsize, $
       xticks=1, xtickname=[' ',' '], levels=levels, title='', $
       xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, ylog=zlog
 ;    contour, zz, xx, yy, /overplot, nlevels=nlevels, levels=levels
@@ -307,11 +308,12 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
 
     contour, zed, x, y, fill=fill, levels=levels, nlevels=nlevels, $
       xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, _EXTRA=ex, $
-      isotropic=iso
+      isotropic=iso, charsize=charsize
 
     if(keyword_set(lines)) then begin
         contour, zed, x, y, /overplot, levels=levels, nlevels=nlevels, $
-          xrange=xrange, yrange=yrange, xstyle=1, ystyle=1,_EXTRA=ex
+          xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, $
+          charsize=charsize, _EXTRA=ex
     endif
     ;***
 

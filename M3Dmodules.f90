@@ -29,6 +29,7 @@ module basic
   ! transport coefficients
   real :: amu         ! incompressible viscosity
   real :: amuc        ! compressible viscosity
+  real :: amue        ! bootstrap viscosity coefficient
   real :: amupar      ! parallel viscosity coefficient
   integer :: iresfunc ! if 1, use new resistivity function
   real :: etar, eta0  ! iresfunc=0:  resistivity = etar + eta0/T^(3/2)
@@ -149,6 +150,7 @@ module basic
   integer :: iupwind     ! 1 = include upwinding term in pressure eqn
   integer :: inertia     ! 1 = include ion inertial terms (v.grad(v))
   integer :: itwofluid   ! 1 = include two-fluid terms in ohm's law
+  integer :: ibootstrap  ! bootstrap current model
 
   ! numerical parameters
   integer :: ntimemax    ! number of timesteps
@@ -219,7 +221,8 @@ module basic
        numvar,idens,ipres,gyro,isources,nosig,itor,jadv,       &
        gam,db,gravr,gravz,                                     &
        p0,pi0,bzero,vzero,phizero,                             &
-       etar,eta0,iresfunc,etaoff,etadelt,amu,amuc,amupar,denm, &
+       etar,eta0,iresfunc,etaoff,etadelt,                      &
+       amu,amuc,amupar,amue,denm,                              &
        kappat,kappa0,kappar,kappax,kappah,                     &
        hyper,hyperi,hyperv,hyperc,hyperp,deex,                 &
        iper,jper,imask,amu_edge,com_bc,pedge,                  &
@@ -251,7 +254,7 @@ module basic
        n_target, n_control_p, n_control_i, n_control_d,        &
        icalc_scalars, ike_only, ifout, inertia, itwofluid,     &
        int_pts_main, int_pts_aux, int_pts_diag,                &
-       iwave, bx0 , chiiner
+       iwave, bx0 , chiiner, ibootstrap
 
 
   !     derived quantities
@@ -311,9 +314,8 @@ module arrays
        jphi(:), vor(:), com(:),                     &
        resistivity(:), tempvar(:),                  &
        kappa(:),sigma(:), sb1(:), sb2(:), sp1(:),   &
-       visc(:), visc_c(:), bf(:), gyro_tau(:)
-       
-
+       visc(:), visc_c(:), visc_e(:), &
+       bf(:), gyro_tau(:)
 
   ! Arrays for advance
   vectype, allocatable, target :: &

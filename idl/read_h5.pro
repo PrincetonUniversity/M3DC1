@@ -2617,8 +2617,9 @@ pro plot_lcfs, time, color=color, val=psival, psi=psi, r=x, z=y, points=pts, $
                filename=filename, xlim=xlim, _EXTRA=extra
 
     if(n_elements(psi) eq 0) then begin
+        print, 'reading psi'
         psi = read_field('psi', x, y, slice=time, points=pts, $
-                         filename=filename, _EXTRA=extra, linear=0)
+                         filename=filename)
     endif
 
     ; if psival not passed, choose limiter value
@@ -3035,7 +3036,7 @@ end
 ; makes a vector plot of the poloidal velocity
 ; ==================================================
 pro plot_pol_velocity, time,  maxval=maxval, points=points, $
-                       lcfs=lcfs, _EXTRA=extra
+                       lcfs=lcfs, iso=iso, _EXTRA=extra
 
   if(n_elements(pts) eq 0) then pts=25
 
@@ -3063,14 +3064,20 @@ pro plot_pol_velocity, time,  maxval=maxval, points=points, $
 
   if(n_elements(title) eq 0) then begin
       title = '!6Poloidal Flow!X'
-       if(t gt 0) then begin
-           title = title +  $
-             string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!60!N)!X")', t)
-       endif else begin
-           title = title + $
-             string(FORMAT='("!6(!8t!6 = ",G0,")!X")', t)
-       endelse
-   endif
+      if(t gt 0) then begin
+          title = title +  $
+            string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!60!N)!X")', t)
+      endif else begin
+          title = title + $
+            string(FORMAT='("!6(!8t!6 = ",G0,")!X")', t)
+      endelse
+  endif
+  
+  if(keyword_set(iso)) then begin
+      charsize = !p.charsize*(3./2.)*(4./3.)*(max(x)-min(x))/(max(z)-min(z))
+  endif else begin
+      charsize = !p.charsize
+  endelse
 
   maxstr=string(format='("!6max(!8u!Dpol!N!6) = ",G0.3,"!X")',bigvel) + $
     '!6 ' + make_units(/v0) + '!X'
@@ -3078,7 +3085,7 @@ pro plot_pol_velocity, time,  maxval=maxval, points=points, $
   velovect, reform(vx), reform(vz), x, z, length=length, _EXTRA=extra, $
     xtitle='!8R!6 (' + make_units(/l0) + '!6)!X', $
     ytitle='!8Z!6 (' + make_units(/l0) + '!6)!X', $
-    title=title, subtitle=maxstr
+    title=title, subtitle=maxstr, charsize=charsize, iso=iso
 
   if(keyword_set(lcfs)) then begin
       plot_lcfs, time, color=130, _EXTRA=extra, points=200

@@ -246,7 +246,8 @@ subroutine define_transport_coefficients()
   real :: factor
 
   logical, save :: first_time = .true.
-  logical :: solve_sigma, solve_kappa, solve_visc, solve_resistivity
+  logical :: solve_sigma, solve_kappa, solve_visc, solve_resistivity, &
+       solve_visc_e
 
   if((linear.eq.1).and.(.not.first_time)) return
   first_time = .false.
@@ -256,20 +257,19 @@ subroutine define_transport_coefficients()
   solve_kappa = numvar.ge.3 .and. (kappa0.ne.0. .or. kappah.ne.0.)
   solve_sigma = idens.eq.1 .and. &
        (ipellet.eq.1 .or. ionization.eq.1 .or. isink.gt.0)
+  solve_visc_e = ibootstrap.gt.0
 
   resistivity = 0.
   kappa = 0.
   sigma = 0.
   visc = 0.
+  visc_e = 0.
   tempvar = 0.
 
   temp79c = 0.
 
-  def_fields = FIELD_N + FIELD_PE + FIELD_P + FIELD_PSI
+  def_fields = FIELD_N + FIELD_PE + FIELD_P + FIELD_PSI + FIELD_I
 
-!!$
-!!$  def_fields = def_fields + FIELD_PSI + FIELD_I
-  
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' defining...'
 
@@ -398,6 +398,13 @@ subroutine define_transport_coefficients()
 !!$     temp79e = ri_79* &
 !!$          (bzt79(:,OP_DZ)*pst79(:,OP_DR) - bzt79(:,OP_DR)*pst79(:,OP_DZ))
 
+
+     ! electron viscosity
+     ! ~~~~~~~~~~~~~~~~~~
+     temp79f = -amue * r2_79 * &
+          (bzt79(:,OP_DZ)*pst79(:,OP_DZ) + bzt79(:,OP_DR)*pst79(:,OP_DR)) &
+          / (nt79(:,OP_1)*(pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2 + 1e-1)**2)
+
      do i=1,18
         ione = isval1(itri,i)
 
@@ -419,7 +426,12 @@ subroutine define_transport_coefficients()
         if(solve_visc) then
            visc(ione) = visc(ione) &
                 + int2(g79(:,OP_1,i),temp79d)
-        end if
+        endif
+
+        if(solve_visc_e) then
+           visc_e(ione) = visc_e(ione) &
+                + int2(g79(:,OP_1,i),temp79f)
+        endif
 
         tempvar(ione) = tempvar(ione) &
              + int2(g79(:,OP_1,i),temp79e)
@@ -450,6 +462,11 @@ subroutine define_transport_coefficients()
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  viscosity'
      call solve_newvar(visc, NV_NOBOUND, mass_matrix_lhs)
      visc_c = visc
+  endif
+
+  if(solve_visc_e) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  electron viscosity'
+     call solve_newvar(visc_e, NV_NOBOUND, mass_matrix_lhs)
   endif
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, '  size field'
