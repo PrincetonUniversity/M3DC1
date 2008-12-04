@@ -457,16 +457,17 @@ module arrays
             chio_v => phiold
             pe_v => phi
             peo_v => phiold
-            if(ipres.eq.1) then
-               p_v => phi
-               po_v => phiold
-            endif
          endif
      
          if(idens.eq.1) then
             den_v => phi
             deno_v => phiold
          end if
+
+         if(ipres.eq.1) then
+            p_v => phi
+            po_v => phiold
+         endif
          
          u_i = 1
          psi_i = 2
