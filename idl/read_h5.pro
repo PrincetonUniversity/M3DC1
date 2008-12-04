@@ -3036,7 +3036,7 @@ end
 ; makes a vector plot of the poloidal velocity
 ; ==================================================
 pro plot_pol_velocity, time,  maxval=maxval, points=points, $
-                       lcfs=lcfs, iso=iso, _EXTRA=extra
+                       lcfs=lcfs, _EXTRA=extra
 
   if(n_elements(pts) eq 0) then pts=25
 
@@ -3073,19 +3073,13 @@ pro plot_pol_velocity, time,  maxval=maxval, points=points, $
       endelse
   endif
   
-  if(keyword_set(iso)) then begin
-      charsize = !p.charsize*(3./2.)*(4./3.)*(max(x)-min(x))/(max(z)-min(z))
-  endif else begin
-      charsize = !p.charsize
-  endelse
-
   maxstr=string(format='("!6max(!8u!Dpol!N!6) = ",G0.3,"!X")',bigvel) + $
     '!6 ' + make_units(/v0) + '!X'
 
   velovect, reform(vx), reform(vz), x, z, length=length, _EXTRA=extra, $
     xtitle='!8R!6 (' + make_units(/l0) + '!6)!X', $
     ytitle='!8Z!6 (' + make_units(/l0) + '!6)!X', $
-    title=title, subtitle=maxstr, charsize=charsize, iso=iso
+    title=title, subtitle=maxstr
 
   if(keyword_set(lcfs)) then begin
       plot_lcfs, time, color=130, _EXTRA=extra, points=200

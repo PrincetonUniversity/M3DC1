@@ -401,6 +401,7 @@
 
       ! Validate input
       ! ~~~~~~~~~~~~~~
+      if(isplitstep.eq.0) imp_mod = 0
       if(rzero.eq.-1) then
          if(itor.eq.1) then 
             rzero = xzero

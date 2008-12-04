@@ -206,32 +206,38 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     if n_elements(x) eq 0 then x = findgen(n_elements(zed[*,0]))
     if n_elements(y) eq 0 then y = findgen(n_elements(zed[0,*]))
 
+    if(1 eq strcmp('PS', !d.name)) then begin
+        device, xsize=10, ysize=8, /inches
+        screen_aspect = float(!d.y_size)/float(!d.x_size)
+    endif else begin
+        s = intarr(2)
+        device, get_screen_size=s
+        screen_aspect = float(s[1])/float(s[0])
+    endelse
+
     region = !p.region
     if(region[2] eq 0.) then region[2]=1.
     if(region[3] eq 0.) then region[3]=1.
 
-    ; width of color bar region
-    width1 = 0.25*(region[2]-region[0])
+    ; width of color bar
+    width1 = 0.05*(region[2]-region[0])
+    ; width of margins
+    lgap = 0.11*(region[2]-region[0])
+    cgap = 0.18*(region[2]-region[0])
+    tgap = 0.06*(region[3]-region[1])
+    bgap = 0.11*(region[2]-region[0])
+    rgap = 0.01*(region[2]-region[0])
 
     ; dimensions of plotting region
-    width = region[2]-region[0] - width1
-    top = region[3]-region[1]
-
-    if(1 eq strcmp('PS', !d.name)) then begin
-        device, xsize=10, ysize=8, /inches
-    endif
+    width = region[2]-region[0] - width1 - lgap - cgap - rgap
+    top = region[3]-region[1] - bgap - tgap
+    charsize = !p.charsize*sqrt((region[2]-region[0])*(region[3]-region[1]))
 
     if keyword_set(iso) then begin
-;        if strcmp(!d.name, 'PS') then begin
-;            screen_size = [4.,3.]
-;        endif else begin
-;            device, get_screen_size=screen_size
-;        endelse
         aspect_ratio = (max(y)-min(y))/(max(x)-min(x))
-        if(aspect_ratio le 1) then top = width*aspect_ratio $
-        else width = top/aspect_ratio
-    endif
-    charsize = !p.charsize*(3./2.)*(4./3.)*width/top
+        if(aspect_ratio le 1) then top = width*aspect_ratio/screen_aspect $
+        else width = screen_aspect*top/aspect_ratio
+    endif else aspect_ratio = top/width
       
     if n_elements(label) eq 0 then label = ''
 
@@ -279,8 +285,8 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
 
     ; plot the color scale
     ; ***
-    !p.region = [region[0]+width, region[1], $
-                 region[0]+width+width1, top+region[1]]
+    !p.position = [region[0]+width+lgap+cgap,        region[1]+bgap, $
+                   region[0]+width+lgap+cgap+width1, region[1]+bgap+top]
     
     xx = indgen(2)
     yy = levels
@@ -304,7 +310,8 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     xrange=[x[0],x[n_elements(x)-1]]
     yrange=[y[0],y[n_elements(y)-1]]
 
-    !p.region = [region[0], region[1], width+region[0], top+region[1]]
+    !p.position = [region[0]+lgap,       region[1]+bgap, $
+                   region[0]+lgap+width, region[1]+bgap+top]
 
     contour, zed, x, y, fill=fill, levels=levels, nlevels=nlevels, $
       xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, _EXTRA=ex, $
@@ -313,12 +320,12 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     if(keyword_set(lines)) then begin
         contour, zed, x, y, /overplot, levels=levels, nlevels=nlevels, $
           xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, $
-          charsize=charsize, _EXTRA=ex
+          _EXTRA=ex, charsize=charsize
     endif
     ;***
 
     !p.noerase = 0
-    !p.region = 0
+    !p.position = 0
 end
 
 
