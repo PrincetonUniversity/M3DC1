@@ -181,9 +181,13 @@
       inertia = 1
       itwofluid = 1
 !
+!.....bootstrap current model (0 = none)
+      ibootstrap = 0
+!
 !.....viscosity, resistivity, and heat conduction
       amu = 0.
       amuc = 0.
+      amue = 0.
       amupar = 0.
       iresfunc = 0     ! use old definition of resistivity
       etaoff = 0.

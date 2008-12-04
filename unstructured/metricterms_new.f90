@@ -4036,6 +4036,34 @@ vectype function b2psieta(e,f,g,h)
 end function b2psieta
 
 
+! B2psimue
+! ========
+vectype function b2psimue(e,f,g)
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype :: temp
+  
+  select case(ibform)
+  case(0)
+     temp = &
+          - int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ)) &
+          - int3(e(:,OP_1),f(:,OP_DR),g(:,OP_DR)) &
+          - int3(e(:,OP_1),f(:,OP_GS),g(:,OP_1 ))
+  case(1)
+     temp = &
+          - int4(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ)) &
+          - int4(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR)) &
+          - int4(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_1 ))
+  end select
+  b2psimue = temp
+  return
+end function b2psimue
+
+
 
 ! B2beta
 ! ======

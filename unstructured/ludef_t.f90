@@ -1252,6 +1252,12 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   temp = b2psieta(trial,lin,eta79,hi)*eta_fac
   ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
   ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
+
+  if(ibootstrap.gt.0) then
+     temp = b2psimue(trial,lin,visc_e)*dbf
+     ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
+     ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
+  endif
          
   temp = b2psiv(trial,lin,vzt79)
   ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp

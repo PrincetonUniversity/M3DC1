@@ -891,6 +891,15 @@ subroutine output_fields(time_group_id, equilibrium, error)
   call output_field(group_id, "visc_c", real(dum), 20, nelms, error)
   nfields = nfields + 1
 
+  if(ibootstrap.gt.0) then
+     ! visc_e
+     do i=1, nelms
+        call calcavector(i, visc_e, 1, 1, dum(:,i))
+     end do
+     call output_field(group_id, "visc_e", real(dum), 20, nelms, error)
+     nfields = nfields + 1
+  endif
+
   ! den
   do i=1, nelms
      call calcavector(i, f_ptr, den_g, num_fields, dum(:,i))
