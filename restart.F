@@ -125,7 +125,7 @@ c     first put in information to check on run information
          allocate(temp(ndofs))
 
          do j1=1,ndofs 
-            read(56) temp
+            read(56) temp(j1)
          enddo
          field = temp
          do j1=1,ndofs 
@@ -133,9 +133,9 @@ c     first put in information to check on run information
          enddo
          field0 = temp
          do j1=1,ndofs 
-            read(56) temp
+            read(56) temp(j1)
          enddo
-         fieldi = temp(j1)
+         fieldi = temp
 
          deallocate(temp)
 

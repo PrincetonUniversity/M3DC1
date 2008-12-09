@@ -2617,7 +2617,6 @@ pro plot_lcfs, time, color=color, val=psival, psi=psi, r=x, z=y, points=pts, $
                filename=filename, xlim=xlim, _EXTRA=extra
 
     if(n_elements(psi) eq 0) then begin
-        print, 'reading psi'
         psi = read_field('psi', x, y, slice=time, points=pts, $
                          filename=filename)
     endif
@@ -2631,7 +2630,7 @@ pro plot_lcfs, time, color=color, val=psival, psi=psi, r=x, z=y, points=pts, $
     ; plot contour
     if(n_elements(color) ne 0) then loadct, 12
     contour, psi, x, y, /overplot, nlevels=1, levels=psival, $
-      color=color, thick=!p.charthick*1.5
+      color=color, thick=!p.charthick*2.
 end
 
 

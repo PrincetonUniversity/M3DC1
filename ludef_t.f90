@@ -188,11 +188,11 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
                 (v1bsb2(trial,lin,sb279))
         endif
      else
-        temp = v1psib(trial,ps179,lin)
+        temp = v1psib(trial,lin,bz179)
         ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (.5-thimp*bdf)*dt*temp
 
-        temp = v1psib(trial,lin,bz179) &
+        temp = v1psib(trial,ps179,lin) &
              + v1bb  (trial,lin,bz179) &
              + v1bb  (trial,bz179,lin)
         ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
@@ -474,14 +474,12 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
           + v2upsib  (trial,lin,pst79,bzt79) &
           + v2ubb    (trial,lin,bzt79,bzt79) &
           + v2up     (trial,lin,pt79)
-
      ssterm(u_g) = ssterm(u_g) - thimp*thimp*dt*dt*temp
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
      temp = v2vpsipsi(trial,lin,pst79,pst79) &
           + v2vpsib  (trial,lin,pst79,bzt79) &
           + v2vp     (trial,lin,pt79)
-
      ssterm(vz_g) = ssterm(vz_g) - thimp*thimp*dt*dt*temp
      ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
 
@@ -493,7 +491,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
      ddterm(bz_g) = ddterm(bz_g) + dt* &
           (v2psib(trial,pss79,lin))
 
-     ddterm(p_g) = ddterm(p_g) + dt*    &
+     ddterm(p_g) = ddterm(p_g) + dt* &
           v2p(trial,lin)
      
      if(isources.eq.1) then
@@ -530,12 +528,18 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
 
      if(advfield.eq.1) then
         ddterm(psi_g) = ddterm(psi_g) + thimp*dt*dt* &
-             (v2upsib  (trial,ph079,lin,bzs79) &
+             (v2upsipsi(trial,ph079,lin,pss79) &
+             +v2upsipsi(trial,ph079,pss79,lin) &
+             +v2upsib  (trial,ph079,lin,bzs79) &
              +v2vpsipsi(trial,vz079,lin,pss79) &
-             +v2vpsipsi(trial,vz079,pss79,lin))
+             +v2vpsipsi(trial,vz079,pss79,lin) &
+             +v2vpsib  (trial,vz079,lin,bzs79))
         
         ddterm(bz_g) = ddterm(bz_g) + thimp*dt*dt* &
-             (v2upsib  (trial,ph079,pss79,lin))        
+             (v2upsib(trial,ph079,pss79,lin) &
+             +v2ubb  (trial,ph079,bzs79,lin) &
+             +v2ubb  (trial,ph079,lin,bzs79) &
+             +v2vpsib(trial,vz079,pss79,lin))        
 
         ddterm(p_g) = ddterm(p_g) + thimp*dt*dt* &
              (v2up  (trial,ph079,lin) &
@@ -1133,6 +1137,10 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
              + b1bbd  (trial,lin,bz079,ni79)*dbf
         ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
         ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
+
+        temp = b1psiv(trial,ps079,lin)
+        ssterm(vz_g) = ssterm(vz_g) -     thimpb     *dt*temp
+        ddterm(vz_g) = ddterm(vz_g) + (1.-thimpb*bdf)*dt*temp
 
         temp = b1bu(trial,bz079,lin)
         ssterm(u_g) = ssterm(u_g) -     thimpb     *dt*temp
@@ -2049,13 +2057,6 @@ subroutine ludefvel_n(itri)
            ss(:,psi_g) = 0; ss(:,bz_g) = 0; ss(:,p_g) = 0
            dd(:,psi_g) = 0; dd(:,bz_g) = 0; dd(:,p_g) = 0
         end if
-
-!!$        if(isplitstep.eq.0) then
-!!$           ss(:,psi_g) = -ss(:,psi_g)
-!!$           ss(:, bz_g) = -ss(:, bz_g)
-!!$           ss(:, pe_g) = -ss(:, pe_g)           
-!!$           ss(:,den_g) = -ss(:,den_g)
-!!$        endif
 
         call insval(vv1,ss(  u_g,  u_g),icomplex,iv+  u_off,jv+  u_off,1)
         call insval(vv0,dd(  u_g,  u_g),icomplex,iv+  u_off,jv+  u_off,1)
