@@ -1758,27 +1758,28 @@ vectype function v2upsipsi(e,f,g,h)
   select case(ivform)
   case(0)
      temp79a = h(:,OP_DZ)*(f(:,OP_DZZP)*g(:,OP_DR )-f(:,OP_DRZP)*g(:,OP_DZ )  &
-                       +f(:,OP_DZP )*g(:,OP_DRZ)-f(:,OP_DRP )*g(:,OP_DZZ)) &
-            + h(:,OP_DR)*(f(:,OP_DRZP)*g(:,OP_DR )-f(:,OP_DRRP)*g(:,OP_DZ )  &
-                       +f(:,OP_DZP )*g(:,OP_DRR)-f(:,OP_DRP )*g(:,OP_DRZ))
-    temp = -int3(ri3_79,e(:,OP_1),temp79a)
+                          +f(:,OP_DZP )*g(:,OP_DRZ)-f(:,OP_DRP )*g(:,OP_DZZ)) &
+             + h(:,OP_DR)*(f(:,OP_DRZP)*g(:,OP_DR )-f(:,OP_DRRP)*g(:,OP_DZ )  &
+                          +f(:,OP_DZP )*g(:,OP_DRR)-f(:,OP_DRP )*g(:,OP_DRZ))
+     temp = -int3(ri3_79,e(:,OP_1),temp79a)
 
-    if(itor.eq.1) then
-       temp79a = (f(:,OP_DZP)*g(:,OP_DR)-f(:,OP_DRP)*g(:,OP_DZ))*h(:,OP_DR)
-       temp = temp + int3(ri4_79,e(:,OP_1),temp79a)
-    endif
+     if(itor.eq.1) then
+        temp79a = (f(:,OP_DZP)*g(:,OP_DR)-f(:,OP_DRP)*g(:,OP_DZ))*h(:,OP_DR)
+        temp = temp + int3(ri4_79,e(:,OP_1),temp79a)
+     endif
  
   case(1)
-   temp79a = h(:,OP_DZ)*(f(:,OP_DZZP)*g(:,OP_DR )-f(:,OP_DRZP)*g(:,OP_DZ )  &
-                       +f(:,OP_DZP )*g(:,OP_DRZ)-f(:,OP_DRP )*g(:,OP_DZZ)) &
-            + h(:,OP_DR)*(f(:,OP_DRZP)*g(:,OP_DR )-f(:,OP_DRRP)*g(:,OP_DZ )  &
-                       +f(:,OP_DZP )*g(:,OP_DRR)-f(:,OP_DRP )*g(:,OP_DRZ))
-    temp = -int3(ri_79,e(:,OP_1),temp79a)
+     temp79a = h(:,OP_DZ)*(f(:,OP_DZZP)*g(:,OP_DR )-f(:,OP_DRZP)*g(:,OP_DZ )  &
+                          +f(:,OP_DZP )*g(:,OP_DRZ)-f(:,OP_DRP )*g(:,OP_DZZ)) &
+             + h(:,OP_DR)*(f(:,OP_DRZP)*g(:,OP_DR )-f(:,OP_DRRP)*g(:,OP_DZ )  &
+                          +f(:,OP_DZP )*g(:,OP_DRR)-f(:,OP_DRP )*g(:,OP_DRZ))
+     temp = -int3(ri_79,e(:,OP_1),temp79a)
 
-    if(itor.eq.1) then
-       temp79a = (f(:,OP_DZP)*g(:,OP_DR)-f(:,OP_DRP)*g(:,OP_DZ))*h(:,OP_DR)
-       temp = temp - int3(ri2_79,e(:,OP_1),temp79a)
-    endif
+     if(itor.eq.1) then
+        temp79a = (f(:,OP_DZP)*g(:,OP_DR)-f(:,OP_DRP)*g(:,OP_DZ))*h(:,OP_DR)
+!!        temp = temp - int3(ri2_79,e(:,OP_1),temp79a)
+        temp = temp + int3(ri2_79,e(:,OP_1),temp79a)
+     endif
 
   end select
 #else
