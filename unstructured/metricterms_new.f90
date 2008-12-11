@@ -1105,6 +1105,11 @@ vectype function v1ngrav(e,f)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
   vectype :: temp
 
+  if(gravr.eq.0. .and. gravz.eq.0.) then
+     v1ngrav = 0.
+     return
+  endif
+
   temp = gravz*int3( r_79,e(:,OP_1),f(:,OP_DR)) &
        - gravr*int3(ri_79,e(:,OP_1),f(:,OP_DZ))
 
@@ -1124,6 +1129,11 @@ vectype function v1ungrav(e,f,g)
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
+
+  if(gravr.eq.0. .and. gravz.eq.0.) then
+     v1ungrav = 0.
+     return
+  endif
 
   temp79a = f(:,OP_DR)*g(:,OP_DZ) - f(:,OP_DZ)*g(:,OP_DR)
 
@@ -1149,6 +1159,11 @@ vectype function v1chingrav(e,f,g)
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
+
+  if(gravr.eq.0. .and. gravz.eq.0.) then
+     v1chingrav = 0.
+     return
+  endif
 
   temp79a = r_79*(f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR) &
        + g(:,OP_1)*f(:,OP_LP))
@@ -1176,6 +1191,11 @@ vectype function v1ndenmgrav(e,f,g)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
   real, intent(in) :: g
   vectype :: temp
+
+  if(gravr.eq.0. .and. gravz.eq.0.) then
+     v1ndenmgrav = 0.
+     return
+  endif
 
   temp79a = -g*r_79*f(:,OP_LP)
 
@@ -1500,6 +1520,36 @@ vectype function v2vun(e,f,g,h)
   return
 end function v2vun
 
+
+! V2vvn
+! =====
+vectype function v2vvn(e,f,g,h)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype :: temp
+
+  if(inertia.eq.0) then
+     v2vvn = 0.
+     return
+  end if
+
+#ifdef USECOMPLEX
+  select case(ivform)
+  case(0)
+     temp = -int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DP),h(:,OP_1))
+  case(1)
+     temp = -int5(r2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DP),h(:,OP_1))
+  end select
+#else
+  temp = 0.
+#endif
+  v2vvn = temp
+end function v2vvn
 
 ! V2up
 ! ====
@@ -2175,8 +2225,9 @@ vectype function v2psif(e,f,g)
 #ifdef USECOMPLEX
   temp = &
        + int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZPP)) &
-       - int4(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DRPP))
-  
+       - int4(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DRPP)) &
+       + int4(ri_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DZP)) &
+       - int4(ri_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DRP))
 #else
   temp = 0.
 #endif
@@ -3308,6 +3359,11 @@ vectype function v3ngrav(e,f)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
   vectype :: temp
 
+  if(gravr.eq.0. .and. gravz.eq.0.) then
+     v3ngrav = 0.
+     return
+  endif
+
   temp = gravz*int2(       e(:,OP_DZ),f(:,OP_1)) & 
        + gravr*int3(ri2_79,e(:,OP_DR),f(:,OP_1)) 
 
@@ -3327,6 +3383,11 @@ vectype function v3ungrav(e,f,g)
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
+
+  if(gravr.eq.0. .and. gravz.eq.0.) then
+     v3ungrav = 0.
+     return
+  endif
 
   temp79a = f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ)
   
@@ -3349,6 +3410,11 @@ vectype function v3chingrav(e,f,g)
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
+
+  if(gravr.eq.0. .and. gravz.eq.0.) then
+     v3chingrav = 0.
+     return
+  endif
 
   temp79a = -(f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR) &
        + f(:,OP_LP)*g(:,OP_1))
@@ -3373,6 +3439,11 @@ vectype function v3ndenmgrav(e,f,g)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
   real, intent(in) :: g
   vectype :: temp
+
+  if(gravr.eq.0. .and. gravz.eq.0.) then
+     v3ndenmgrav = 0.
+     return
+  endif
 
   temp = gravz*int2(       e(:,OP_DZ),f(:,OP_LP)) &
        + gravr*int3(ri2_79,e(:,OP_DR),f(:,OP_LP))
@@ -6273,7 +6344,7 @@ real function energy_p()
   if(gam.eq.1.) then 
      temp = 0.
   else
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
+     if(linear.eq.1) then
         temp = int1(p179) / (gam - 1.)
      else
         temp = int1(pt79) / (gam - 1.)
@@ -6476,7 +6547,7 @@ real function energy_mtd()
 
   vectype :: temp
 
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
+  if(linear.eq.1) then
      temp = - &
           (int4(ri2_79,bzs79(:,OP_DZ),CONJUGATE(bz179(:,OP_DZ)),eta79(:,OP_1)) &
           +int4(ri2_79,bzs79(:,OP_DR),CONJUGATE(bz179(:,OP_DR)),eta79(:,OP_1)) &
@@ -6504,7 +6575,7 @@ real function energy_kpd()
 
   vectype :: temp
 
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
+  if(linear.eq.1) then
      temp = - &
           (int4(ri2_79,phs79(:,OP_GS),CONJUGATE(ph179(:,OP_GS)),vis79(:,OP_1)) &
           +int4(ri2_79,ph179(:,OP_GS),CONJUGATE(phs79(:,OP_GS)),vis79(:,OP_1)))
@@ -6537,7 +6608,7 @@ real function energy_ktd()
 
   select case(ivform)
   case(0)
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
+     if(linear.eq.1) then
         temp = - &
              (int4(ri2_79,vzs79(:,OP_DZ),CONJUGATE(vz179(:,OP_DZ)),vis79(:,OP_1)) &
              +int4(ri2_79,vzs79(:,OP_DR),CONJUGATE(vz179(:,OP_DR)),vis79(:,OP_1)) &
@@ -6549,7 +6620,7 @@ real function energy_ktd()
              +int4(ri2_79,vzt79(:,OP_DR),CONJUGATE(vzt79(:,OP_DR)),vis79(:,OP_1)))
      endif
   case(1)
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
+     if(linear.eq.1) then
         temp = - &
              (int4(r2_79,vzs79(:,OP_DZ),CONJUGATE(vz179(:,OP_DZ)),vis79(:,OP_1)) &
              +int4(r2_79,vzs79(:,OP_DR),CONJUGATE(vz179(:,OP_DR)),vis79(:,OP_1)) &
@@ -6577,7 +6648,7 @@ real function energy_k3d()
 
   vectype :: temp
 
-  if(linear.eq.1 .or. eqsubtract.eq.1) then
+  if(linear.eq.1) then
      temp = - 2.* &
           (int3(chs79(:,OP_LP),CONJUGATE(ch179(:,OP_LP)),vic79(:,OP_1)) &
           +int3(ch179(:,OP_LP),CONJUGATE(chs79(:,OP_LP)),vic79(:,OP_1)))
