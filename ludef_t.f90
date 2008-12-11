@@ -44,7 +44,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
   ddterm(u_g) = ddterm(u_g) + (.5-thimp*bdf)*dt*temp
 
-  if(idens.eq.1 .and. (gravr.ne.0. .or. gravz.ne.0.)) then
+  if(idens.eq.1) then
      ddterm(den_g) = ddterm(den_g) + dt* &
           v1ngrav(trial,lin)
   endif
@@ -57,12 +57,8 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
 
   if(advfield.eq.1) then
      temp = v1upsipsi(trial,lin,pst79,pst79) &
-          + v1up     (trial,lin,pt79)
-
-     if(gravr.ne.0. .or. gravz.ne.0.) then          
-        temp = temp + v1ungrav(trial,lin,nt79)
-     endif
-
+          + v1up     (trial,lin,pt79) &
+          + v1ungrav (trial,lin,nt79)
      ssterm(u_g) = ssterm(u_g) - thimp*thimp*dt*dt*temp
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
@@ -70,8 +66,10 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
           (v1psipsi(trial,lin,pss79)  &
           +v1psipsi(trial,pss79,lin))
 
-     ddterm(p_g) = ddterm(p_g) + dt*    &
-          v1p(trial,lin)
+     if(numvar.ge.3 .or. ipres.eq.1) then
+        ddterm(p_g) = ddterm(p_g) + dt*    &
+             v1p(trial,lin)
+     endif
   
      if(isources.eq.1) then
         ddterm(psi_g) = ddterm(psi_g) + thimp*dt*dt* &
@@ -83,14 +81,16 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
      ddterm(psi_g) = ddterm(psi_g) + (.5-thimp*bdf)*dt*temp
 
-     temp = v1p(trial,lin)
-     ssterm(p_g) = ssterm(p_g) -     thimp     *dt*temp
-     ddterm(p_g) = ddterm(p_g) + (1.-thimp*bdf)*dt*temp
-
-     if(idens.eq.1 .and. (gravr.ne.0. .or. gravz.ne.0.)) then
+     if(idens.eq.1) then
         temp = v1ngrav(trial,lin)
         ssterm(den_g) = ssterm(den_g) -     thimp     *dt*temp
         ddterm(den_g) = ddterm(den_g) + (1.-thimp*bdf)*dt*temp
+     endif
+
+     if(numvar.ge.3 .or. ipres.eq.1) then
+        temp = v1p(trial,lin)
+        ssterm(p_g) = ssterm(p_g) -     thimp     *dt*temp
+        ddterm(p_g) = ddterm(p_g) + (1.-thimp*bdf)*dt*temp
      endif
   endif
     
@@ -99,35 +99,32 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
           + v1uun(trial,ph079,lin,nt79)
      ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
      ddterm(u_g) = ddterm(u_g) + (1.-thimp*bdf)*dt*temp
+
+     if(idens.eq.1) then
+        ddterm(den_g) = ddterm(den_g) + dt* &
+             v1uun(trial,ph079,ph079,lin)
+     endif
      
      if(advfield.eq.1) then
         ddterm(psi_g) = ddterm(psi_g) + thimp*dt*dt* &
              (v1upsipsi(trial,ph079,lin,pss79) &
              +v1upsipsi(trial,ph079,pss79,lin))
 
-        ddterm(p_g) = ddterm(p_g) +  thimp*dt*dt* &
-                v1up(trial,ph079,lin)
-
         if(idens.eq.1) then
-           ddterm(den_g) = ddterm(den_g) + dt*              &
-                (v1un     (trial,ph079,lin)         &
-                +v1uun    (trial,ph079,ph079,lin))
-           if(idens.eq.1 .and. (gravr.ne.0. .or. gravz.ne.0.)) then
-              ddterm(den_g) = ddterm(den_g) + thimp*dt*dt*  &
-                   (v1ungrav   (trial,ph079,lin)) !    &
-!                   +v1ndenmgrav(trial,lin, denm))
-           endif
+           ddterm(den_g) = ddterm(den_g) + thimp*dt*dt*  &
+                (v1ungrav   (trial,ph079,lin)) !    &
+!               +v1ndenmgrav(trial,lin, denm))
+        endif
+
+        if(numvar.ge.3 .or. ipres.eq.1) then
+           ddterm(p_g) = ddterm(p_g) + thimp*dt*dt* &
+                v1up(trial,ph079,lin)
         endif
      else
         temp = v1psipsi(trial,lin,ps079) &
              + v1psipsi(trial,ps079,lin)
         ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
-
-        if(idens.eq.1) then
-           ddterm(den_g) = ddterm(den_g) + dt* &
-                v1uun(trial,ph079,ph079,lin)
-        endif
      endif
   endif
   
@@ -182,7 +179,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
              (v1psib(trial,pss79,lin) &
              +v1bb  (trial,lin,bzs79) &
              +v1bb  (trial,bzs79,lin))
-     
+
         if(isources.eq.1) then
            ddterm(bz_g) = ddterm(bz_g) + thimp*dt*dt* &
                 (v1bsb2(trial,lin,sb279))
@@ -206,6 +203,11 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
         ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
         ddterm(vz_g) = ddterm(vz_g) + (1.-thimp*bdf)*dt*temp
 
+        if(idens.eq.1) then
+           ddterm(den_g) = ddterm(den_g) + dt*       &
+                v1vvn(trial,vz079,vz079,lin)
+        endif
+
         if(advfield.eq.1) then
            ddterm(psi_g) = ddterm(psi_g) + thimp*dt*dt* &
                 (v1upsib  (trial,ph079,lin,bzs79) &
@@ -219,12 +221,9 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
                 +v1ubb  (trial,ph079,bzs79,lin) &
                 +v1vpsib(trial,vz079,pss79,lin))
 
-           ddterm(p_g) = ddterm(p_g) +  thimp*dt*dt* &
-                v1vp  (trial,vz079,lin)
-
-           if(idens.eq.1) then
-              ddterm(den_g) = ddterm(den_g) + dt*       &
-                   v1vvn(trial,vz079,vz079,lin)
+           if(numvar.ge.3. .or. ipres.eq.1) then
+              ddterm(p_g) = ddterm(p_g) +  thimp*dt*dt* &
+                   v1vp  (trial,vz079,lin)
            endif
         else
            temp = v1psib(trial,lin,bz079)
@@ -236,11 +235,6 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
                 + v1bb  (trial,bz079,lin)
            ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
-
-           if(idens.eq.1) then
-              ddterm(den_g) = ddterm(den_g) + dt* &
-                   v1vvn(trial,vz079,vz079,lin)
-           endif
         endif
      endif   !  on numvar .ne. 1
 
@@ -291,19 +285,13 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      endif
 
      if(advfield.eq.1) then
-
         temp = v1chipsipsi(trial,lin,pst79,pst79) &
              + v1chipsib  (trial,lin,pst79,bzt79) &
              + v1chibb    (trial,lin,bzt79,bzt79) &
-             + v1chip     (trial,lin,pt79)
-        if(idens.eq.1 .and. (gravr.ne.0. .or. gravz.ne.0.)) then
-           temp = temp &
-                + v1chingrav(trial,lin,nt79)
-        endif
+             + v1chip     (trial,lin,pt79)        &
+             + v1chingrav (trial,lin,nt79)
         ssterm(chi_g) = ssterm(chi_g) - thimp*thimp*dt*dt*temp
         ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
-
-     else
      endif
      
      if(eqsubtract.eq.1) then
@@ -314,6 +302,12 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
         temp = v1uchin(trial,ph079,lin,nt79)
         ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
         ddterm(chi_g) = ddterm(chi_g) + (1.-thimp*bdf)*dt*temp
+
+        if(idens.eq.1) then
+           ddterm(den_g) = ddterm(den_g) + dt* &
+                (v1uchin  (trial,vz079,ch079,lin) &
+                +v1chichin(trial,ch079,ch079,lin))
+        endif
         
         if(advfield.eq.1) then
            ddterm(psi_g) = ddterm(psi_g) + thimp*dt*dt* &
@@ -330,23 +324,14 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
                 v1chip(trial,ch079,lin)
 
            if(idens.eq.1) then
-              ddterm(den_g) = ddterm(den_g) + dt* &
-                   (v1uchin  (trial,ph079,ch079,lin) &
-                   +v1chichin(trial,ch079,ch079,lin))
-              if(gravr.ne.0. .or. gravz.ne.0.) then
-                 ddterm(den_g) = ddterm(den_g) + thimp*dt*dt* &
-                      v1chingrav (trial,ch079,lin)
-              endif
+              ddterm(den_g) = ddterm(den_g) + thimp*dt*dt* &
+                   v1chingrav(trial,ch079,lin)
            endif
         else
-           if(idens.eq.1) then
-              ddterm(den_g) = ddterm(den_g) + dt* &
-                   (v1uchin  (trial,vz079,ch079,lin) &
-                   +v1chichin(trial,ch079,ch079,lin))
-           endif
         endif
      endif
   endif
+
 
   ! Parallel Viscosity
   if(amupar.ne.0.) then
@@ -421,7 +406,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
   vectype, intent(out) :: q_bf
   vectype, dimension(3), intent(out) :: gyro_torque
   integer, intent(in) :: advfield
-  real :: temp
+  vectype :: temp
   real :: ththm
 
   vectype, dimension(MAX_PTS, OP_NUM) :: hv
@@ -453,7 +438,9 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
   ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
   ddterm(vz_g) = ddterm(vz_g) + (1.-thimp*bdf)*dt*temp
 
-  temp = v2vun(trial,lin,ph179,nt79)
+  temp = v2vun(trial,lin,ph179,nt79) &
+       + v2vvn(trial,lin,vz179,nt79) &
+       + v2vvn(trial,vz179,lin,nt79)
   ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
   ddterm(vz_g) = ddterm(vz_g) + (.5-thimp*bdf)*dt*temp
 
@@ -491,8 +478,10 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
      ddterm(bz_g) = ddterm(bz_g) + dt* &
           (v2psib(trial,pss79,lin))
 
-     ddterm(p_g) = ddterm(p_g) + dt* &
-          v2p(trial,lin)
+     if(numvar.ge.3 .or. ipres.eq.1) then
+        ddterm(p_g) = ddterm(p_g) + dt* &
+             v2p(trial,lin)
+     endif
      
      if(isources.eq.1) then
         ddterm(psi_g) = ddterm(psi_g) + thimp*dt*dt* &
@@ -511,9 +500,11 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
      ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (.5-thimp*bdf)*dt*temp
 
-     temp = v2p(trial,lin)
-     ssterm(p_g) = ssterm(p_g) -     thimp     *dt*temp
-     ddterm(p_g) = ddterm(p_g) + (1.-thimp*bdf)*dt*temp
+     if(numvar.ge.3 .or. ipres.eq.1) then
+        temp = v2p(trial,lin)
+        ssterm(p_g) = ssterm(p_g) -     thimp     *dt*temp
+        ddterm(p_g) = ddterm(p_g) + (1.-thimp*bdf)*dt*temp
+     endif
   endif
 
   if(eqsubtract.eq.1) then
@@ -522,7 +513,9 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
      ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
      ddterm(u_g) = ddterm(u_g) + (1.-thimp*bdf)*dt*temp
               
-     temp = v2vun(trial,lin,ph079,nt79)
+     temp = v2vun(trial,lin,ph079,nt79) &
+          + v2vvn(trial,lin,vz079,nt79) &
+          + v2vvn(trial,vz079,lin,nt79)
      ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
      ddterm(vz_g) = ddterm(vz_g) + (1.-thimp*bdf)*dt*temp
 
@@ -539,11 +532,13 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
              (v2upsib(trial,ph079,pss79,lin) &
              +v2ubb  (trial,ph079,bzs79,lin) &
              +v2ubb  (trial,ph079,lin,bzs79) &
-             +v2vpsib(trial,vz079,pss79,lin))        
+             +v2vpsib(trial,vz079,pss79,lin))
 
-        ddterm(p_g) = ddterm(p_g) + thimp*dt*dt* &
-             (v2up  (trial,ph079,lin) &
-             +v2vp  (trial,vz079,lin))
+        if(numvar.ge.3 .or. ipres.eq.1) then
+           ddterm(p_g) = ddterm(p_g) + thimp*dt*dt* &
+                (v2up  (trial,ph079,lin) &
+                +v2vp  (trial,vz079,lin))
+        endif
      else
         temp = v2psipsi(trial,lin,ps079) &
              + v2psipsi(trial,ps079,lin) &
@@ -557,7 +552,8 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
 
         if(idens.eq.1) then
            ddterm(den_g) = ddterm(den_g) + dt* &
-                v2vun(trial,vz079,ph079,lin)
+                (v2vun(trial,vz079,ph079,lin) &
+                +v2vvn(trial,vz079,vz079,lin))
         endif
      end if
   endif
@@ -577,6 +573,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
              +v2bf  (trial,bz079,lin))
      endif
   endif
+
         
   ! NUMVAR = 3
   ! ~~~~~~~~~~
@@ -607,8 +604,6 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
              + v2chibb    (trial,lin,bzt79,bzt79)
         ssterm(chi_g) = ssterm(chi_g) - thimp*thimp*dt*dt*temp
         ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
-
-     else
      end if
            
      if(eqsubtract.eq.1) then              
@@ -642,6 +637,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
         endif
      endif
   endif
+
 
   ! Parallel Viscosity
   if(amupar.ne.0.) then
@@ -712,7 +708,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   vectype, intent(out) :: q_bf
   integer, intent(in) :: advfield
 
-  real :: temp
+  vectype :: temp
   real :: ththm
 
 
@@ -770,7 +766,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
   ddterm(chi_g) = ddterm(chi_g) + (.5-thimp*bdf)*dt*temp
 
-  if(idens.eq.1 .and. (gravr.ne.0. .or. gravz.ne.0.)) then
+  if(idens.eq.1) then
      ddterm(den_g) = ddterm(den_g) + dt* &
           v3ngrav(trial,lin)
   endif
@@ -793,11 +789,8 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      temp = v3up     (trial,lin,pt79)        &
           + v3upsipsi(trial,lin,pst79,pst79) &
           + v3upsib  (trial,lin,pst79,bzt79) &
-          + v3ubb    (trial,lin,bzt79,bzt79) 
-     if(idens.eq.1 .and. (gravr.ne.0. .or. gravz.ne.0.)) then
-        temp = temp + thimp*dt* &
-             v3ungrav(trial,lin,nt79)
-     endif
+          + v3ubb    (trial,lin,bzt79,bzt79) &
+          + v3ungrav (trial,lin,nt79)
      ssterm(u_g) = ssterm(u_g) - thimp*thimp*dt*dt*temp
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
@@ -810,25 +803,22 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      temp = v3chip     (trial,lin,pt79)        &
           + v3chipsipsi(trial,lin,pst79,pst79) &
           + v3chipsib  (trial,lin,pst79,bzt79) &
-          + v3chibb    (trial,lin,bzt79,bzt79)
-     if(idens.eq.1 .and. (gravr.ne.0. .or. gravz.ne.0.)) then
-        temp = temp + &
-             v3chingrav(trial,lin,nt79)
-     endif
+          + v3chibb    (trial,lin,bzt79,bzt79) &
+          + v3chingrav (trial,lin,nt79)
      ssterm(chi_g) = ssterm(chi_g) - thimp*thimp*dt*dt*temp
      ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
 
-     ddterm(psi_g) = ddterm(psi_g) +    &
-          dt*                           &
-          (v3psipsi(trial,lin,pss79)    & 
-          +v3psipsi(trial,pss79,lin)    &
-          +v3psib(trial,lin,bzs79))
+     ddterm(psi_g) = ddterm(psi_g) + dt*  &
+          (v3psipsi(trial,lin,pss79)      & 
+          +v3psipsi(trial,pss79,lin)      &
+          +v3psib  (trial,lin,bzs79))
      
      ddterm(bz_g) = ddterm(bz_g) + dt*  &
-          (v3bb(trial,lin,bzs79)        &     
-          +v3bb(trial,bzs79,lin)) 
+          (v3psib(trial,pss79,lin)      &
+          +v3bb  (trial,lin,bzs79)      &     
+          +v3bb  (trial,bzs79,lin)) 
   
-     ddterm(p_g) = ddterm(p_g) + dt*    &
+     ddterm(p_g) = ddterm(p_g) + dt*  &
           v3p(trial,lin)
 
      if(isources.eq.1) then
@@ -843,12 +833,13 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   else
      temp = v3psipsi(trial,lin,ps179) &
           + v3psipsi(trial,ps179,lin) &
-          + v3psib(trial,lin,bz179)
+          + v3psib  (trial,lin,bz179)
      ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
      ddterm(psi_g) = ddterm(psi_g) + (.5-thimp*bdf)*dt*temp
 
-     temp = v3bb(trial,lin,bz179) &
-          + v3bb(trial,bz179,lin)
+     temp = v3psib(trial,ps179,lin) &
+          + v3bb  (trial,lin,bz179) &
+          + v3bb  (trial,bz179,lin)
      ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (.5-thimp*bdf)*dt*temp
 
@@ -856,7 +847,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      ssterm(p_g) = ssterm(p_g) -     thimp     *dt*temp
      ddterm(p_g) = ddterm(p_g) + (1.-thimp*bdf)*dt*temp
 
-     if(idens.eq.1 .and. (gravr.ne.0. .or. gravz.ne.0.)) then
+     if(idens.eq.1) then
         temp = v3ngrav(trial,lin)
         ssterm(den_g) = ssterm(den_g) -     thimp     *dt*temp
         ddterm(den_g) = ddterm(den_g) + (1.-thimp*bdf)*dt*temp
@@ -915,7 +906,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
              +v3vp  (trial,vz079,lin) &
              +v3chip(trial,ch079,lin))
         
-        if(idens.eq.1 .and. (gravr.ne.0. .or. gravz.ne.0.)) then
+        if(idens.eq.1) then
            ddterm(den_g) = ddterm(den_g) + thimp*dt*dt* &
                 (v3ungrav   (trial,ph079,lin) &
                 +v3chingrav (trial,ch079,lin)) ! &
@@ -925,12 +916,13 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      else
         temp = v3psipsi(trial,lin,ps079) &
              + v3psipsi(trial,ps079,lin) &
-             + v3psib(trial,lin,bz079)
+             + v3psib  (trial,lin,bz079)
         ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
 
-        temp = v3bb(trial,lin,bz079) &
-             + v3bb(trial,bz079,lin)
+        temp = v3psib(trial,ps079,lin) &
+             + v3bb  (trial,lin,bz079) &
+             + v3bb  (trial,bz079,lin)
         ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
         ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
 
@@ -2237,12 +2229,6 @@ subroutine ludefphi_n(itri)
            call electron_pressure_lin(g79(:,:,i),g79(:,:,j), &
                 ss(pe_g,:),dd(pe_g,:),q_ni(pe_g),q_bf(pe_g))
         endif
-
-!!$        if(isplitstep.eq.0) then
-!!$           ss(:,  u_g) = -ss(:,  u_g)
-!!$           ss(:, vz_g) = -ss(:, vz_g)
-!!$           ss(:,chi_g) = -ss(:,chi_g)
-!!$        endif
 
         call insval(bb1,ss(psi_g,psi_g),icomplex,ip+psi_off,jp+psi_off,1)
         call insval(bb0,dd(psi_g,psi_g),icomplex,ip+psi_off,jp+psi_off,1)
