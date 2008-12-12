@@ -66,7 +66,6 @@ Program Reducedquintic
 
   ! initialize needed variables and define geometry and triangles
   call init
-  eta_fac = 1.
 
   if(myrank.eq.0) then 
      select case(ivform)
@@ -562,9 +561,14 @@ subroutine derived_quantities(vec)
   endif
   
 
-!!$  ! find lcfs
-!!$  ! ~~~~~~~~~
-!!$  call lcfs(psi+psi0,1)
+  ! find lcfs
+  ! ~~~~~~~~~
+  if(eqsubtract.eq.1) then
+     if(ntime.eq.ntime0) &
+          call lcfs(field0,psi_g,num_fields)
+  else
+     call lcfs(field,psi_g,num_fields)
+  endif
 
   ! calculate scalars
   ! ~~~~~~~~~~~~~~~~~

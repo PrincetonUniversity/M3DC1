@@ -1827,8 +1827,7 @@ vectype function v2upsipsi(e,f,g,h)
 
      if(itor.eq.1) then
         temp79a = (f(:,OP_DZP)*g(:,OP_DR)-f(:,OP_DRP)*g(:,OP_DZ))*h(:,OP_DR)
-!!        temp = temp - int3(ri2_79,e(:,OP_1),temp79a)
-        temp = temp + int3(ri2_79,e(:,OP_1),temp79a)
+        temp = temp - int3(ri2_79,e(:,OP_1),temp79a)
      endif
 
   end select

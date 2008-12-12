@@ -37,6 +37,9 @@ module diagnostics
   real :: t_output_cgm, t_output_hdf5, t_output_reset
   real :: t_gs, t_gs_magaxis, t_gs_fundef, t_gs_solve, t_gs_init
 
+  ! magnetic diagnostics
+  real :: xnull, znull
+
 contains
 
   ! ======================================================================
@@ -295,9 +298,9 @@ contains
   ! ======================================================================
   ! reconnected_flux
   !
-  ! calculates the reconnected flux assuming an x-point at the center of 
-  ! the computational domain, and an o-point at the center of the right
-  ! boundary.
+  ! calculates the reconnected flux assuming an x-point at the center of
+  ! the computational domain, and an o-point at the center of the
+  ! left boundary
   ! ======================================================================
   real function reconnected_flux()
     
@@ -306,16 +309,22 @@ contains
   
     implicit none
 
-    real :: alx, alz
+    real :: alx, alz, xrel, zrel
     real, dimension(2) :: temp, temp2
     integer :: itri
 
     call getboundingboxsize(alx,alz)
 
+
     itri = 0
-    call evaluate(alx   ,alz/2.,temp(1),temp2(1),field,psi_g,num_fields,itri)
+    xrel = xzero
+    zrel = alz/2. + zzero
+    call evaluate(xrel,zrel,temp(1),temp2(1),field,psi_g,num_fields,itri)
+
     itri = 0
-    call evaluate(alx/2.,alz/2.,temp(2),temp2(2),field,psi_g,num_fields,itri)
+    xrel = alx/2. + xzero
+    zrel = alz/2. + zzero
+    call evaluate(xrel,zrel,temp(2),temp2(2),field,psi_g,num_fields,itri)
 
     reconnected_flux = 0.5*(temp(2)-temp(1))
 
@@ -704,23 +713,6 @@ subroutine calculate_scalars()
      
   end do
 
-  if(eta_djdt.ne.0) then
-     itri = 0
-     x = xmag-xzero
-     z = zmag-zzero
-     call evaluate(x,z,val,valpp,jphi,1,1,itri)
-     if(ifirsttime) then
-        djdt = 0.
-        ifirsttime = .false.
-     else
-        djdt = (val-j_onaxis)/dt
-     end if
-     j_onaxis = val
-     if(myrank.eq.0) then
-        print *, 'j_onaxis = ', j_onaxis
-        print *, 'dj/dt = ', djdt
-     end if
-  end if
 
   if(isources.eq.1) then
      call solve_newvar(sb1, NV_DCBOUND, mass_matrix_lhs_dc)
@@ -760,8 +752,10 @@ end subroutine calculate_scalars
 ! magaxis
 !
 ! locates the magnetic axis and the value of psi there
+! imethod = 0 finds the local minimum of psi
+! imethod = 1 finds the local zero of <psi,psi>
 !=====================================================
-subroutine magaxis(xguess,zguess,phin,numvari,psim, ier)
+subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
   use basic
   use t_data
   use nintegrate_mod
@@ -772,13 +766,13 @@ subroutine magaxis(xguess,zguess,phin,numvari,psim, ier)
 
   real, intent(inout) :: xguess, zguess
   vectype, intent(in), dimension(*) :: phin
-  integer, intent(in) :: numvari
+  integer, intent(in) :: iplace,numvari, imethod
   real, intent(out) :: psim
 
   integer, parameter :: iterations = 5
 
   integer :: itri, inews
-  integer :: i, ier
+  integer :: i, ier, in_domain
   real :: x1, z1, x, z, theta, b, co, sn, si, eta
   real :: sum, sum1, sum2, sum3, sum4, sum5
   real :: term1, term2, term3, term4, term5
@@ -786,7 +780,7 @@ subroutine magaxis(xguess,zguess,phin,numvari,psim, ier)
   real :: xnew, znew, denom, sinew, etanew
   real :: alx, alz
   vectype, dimension(20) :: avector
-  real, dimension(3) :: temp1, temp2
+  real, dimension(4) :: temp1, temp2
 
 
   if(myrank.eq.0 .and. iprint.gt.0) &
@@ -803,7 +797,7 @@ subroutine magaxis(xguess,zguess,phin,numvari,psim, ier)
 
      ! calculate position of minimum
      if(itri.gt.0) then
-        call calcavector(itri, phin, 1, numvari, avector)
+        call calcavector(itri, phin, iplace, numvari, avector)
          
         ! calculate local coordinates
         theta = ttri(itri)
@@ -840,48 +834,63 @@ subroutine magaxis(xguess,zguess,phin,numvari,psim, ier)
            sum4 = sum4 + avector(i)*term4
            sum5 = sum5 + avector(i)*term5
         enddo
-        pt  = sum
-        pt1 = sum1
-        pt2 = sum2
-        p11 = sum3
-        p22 = sum4
-        p12 = sum5
 
-        denom = p22*p11 - p12**2
-        sinew = si -  ( p22*pt1 - p12*pt2)/denom
-        etanew= eta - (-p12*pt1 + p11*pt2)/denom
+        select case(imethod)
+        case(0)  ! find local minimum of psi
+           pt  = sum
+           pt1 = sum1
+           pt2 = sum2
+           p11 = sum3
+           p22 = sum4
+           p12 = sum5
+           
+           denom = p22*p11 - p12**2
+           sinew = si -  ( p22*pt1 - p12*pt2)/denom
+           etanew= eta - (-p12*pt1 + p11*pt2)/denom
+
+        case(1) ! find local zero of <psi,psi>
+           pt = sum1**2 + sum2**2
+           pt1 = 2.*(sum1*sum3 + sum2*sum4)
+           pt2 = 2.*(sum1*sum4 + sum2*sum5)
+           
+           denom = pt1**2 + pt2**2
+           sinew = si - pt*pt1/denom
+           etanew = eta - pt*pt2/denom
+        end select
 
         xnew = x1 + co*(b+sinew) - sn*etanew
         znew = z1 + sn*(b+sinew) + co*etanew
 
-        ier=0
+        in_domain = 1
      else
         xnew = 0.
         znew = 0.
-        pt   = 0.
-
-        ier=1
+        sum  = 0.
+        in_domain = 0
      endif  ! on itri.gt.0
+
+     call mpi_barrier(MPI_COMM_WORLD, ier)
      
      ! communicate new minimum to all processors
      if(maxrank.gt.1) then
         temp1(1) = xnew
         temp1(2) = znew
-        temp1(3) = pt
-        call mpi_allreduce(temp1, temp2, 3, &
+        temp1(3) = sum
+        temp1(4) = in_domain
+        call mpi_allreduce(temp1, temp2, 4, &
              MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
         xnew = temp2(1)
         znew = temp2(2)
-        pt   = temp2(3)
+        sum  = temp2(3)
+        in_domain = temp2(4)
      endif
 
      ! check to see whether the new minimum is outside the simulation domain
-     if(ier .gt. 0) then
+     if(in_domain.eq.0) then
         ! if not within the domain, safestop.
-
-        write(*,3333) inews,x,z,xnew,znew
-3333    format("magaxis: new minimum outside domain. ",i3,1p4e12.4)
-        call safestop(27)       
+        print *, 'magaxis: guess outside domain', xguess, zguess
+        ier = 1
+        return
      else
         x = xnew
         z = znew
@@ -890,10 +899,12 @@ subroutine magaxis(xguess,zguess,phin,numvari,psim, ier)
 
   xguess = x
   zguess = z
-  psim = pt
+  psim = sum
 
-  if(myrank.eq.0 .and. iprint.gt.0) &
-       print *, " magaxis: minimum at ", xguess, zguess
+  if(myrank.eq.0 .and. iprint.ge.1) then
+     print *, " magaxis: minimum at ", xguess, zguess
+  end if
+  ier = 0
   
 end subroutine magaxis
 
@@ -904,7 +915,7 @@ end subroutine magaxis
 !
 ! locates the magnetic axis and the value of psi there
 !=====================================================
-subroutine lcfs(phin, numvari)
+subroutine lcfs(phin, iplace, numvari)
   use basic
   use t_data
   use nintegrate_mod
@@ -914,192 +925,94 @@ subroutine lcfs(phin, numvari)
   include 'mpif.h'
 
   vectype, intent(in), dimension(*) :: phin
-  integer, intent(in) :: numvari
+  integer, intent(in) :: iplace,numvari
 
-  integer :: itri
-  real :: ajlim
+  real :: psix, psib, psim
+  real :: xguess, zguess, x, z, temp1, temp2
+  integer :: ier, numnodes, inode, izone, izonedim
+  integer :: ibegin, iendplusone, index
+  logical :: is_boundary, first_point
+  real, dimension(2) :: normal
 
-  itri = 0.
-  call evaluate(xlim-xzero,zlim-zzero,psibound,ajlim,phin,1,numvari,itri)
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'Finding LCFS:'
 
-!!$  integer :: i, ifirst, ierr, numnodes, ibegin, iendplusone
-!!$  integer :: izone, izonedim, ibottom, itop, ileft, iright
-!!$  real :: numelms, normalderiv
-!!$  real, dimension(2) :: vin, vout
-!!$
-!!$  call numnod(numnodes)
-!!$
-!!$  call getmodeltags(ibottom, iright, itop, ileft)
-!!$
-!!$  ifirst = 1
-!!$
-!!$  do i=1, numnodes
-!!$     call zonenod(i,izone,izonedim)
-!!$
-!!$     if(izonedim.ne.1) cycle
-!!$
-!!$     call entdofs(numvari, i, 0, ibegin, iendplusone)
-!!$
-!!$     if(izone.eq.iright .and. iper.eq.0) then
-!!$        normalderiv = phin(ibegin+1)
-!!$     else if(izone.eq.ileft .and. iper.eq.0) then
-!!$        normalderiv = -phin(ibegin+1)
-!!$     else if(izone.eq.itop .and. jper.eq.0) then
-!!$        normalderiv = phin(ibegin+2)
-!!$     else if(izone.eq.ibottom .and. jper.eq.0) then
-!!$        normalderiv = -phin(ibegin+2)
-!!$     else
-!!$        cycle
-!!$     end if
-!!$
-!!$     if(normalderiv .lt. 0 .and. &
-!!$          (phin(ibegin).gt.psilim .or. ifirst.eq.1)) then
-!!$        psilim = phin(ibegin)
-!!$        ifirst = 0
-!!$     endif
-!!$  end do
-!!$
-!!$  if(maxrank.gt.1) then
-!!$     vin(1) = psilim
-!!$     call MPI_allreduce(vin, vout, 1, MPI_2DOUBLE_PRECISION, &
-!!$          MPI_MAXLOC, MPI_COMM_WORLD, ierr)
-!!$     psilim = vout(1)
-!!$  endif
+  ! Find magnetic axis
+  ! ~~~~~~~~~~~~~~~~~~
+  call magaxis(xmag,zmag,phin,iplace,numvari,psim,0,ier)
+  if(ier.eq.0) then
+     psimin = psim
+
+     if(myrank.eq.0 .and. iprint.ge.1) then 
+        print *, '  magnetic axis found at ', xmag, zmag
+        print *, '  value of psi at magnetic axis ', psimin
+     end if
+  else
+     if(myrank.eq.0 .and. iprint.ge.1) then 
+        print *, '  no magnetic axis found near ', xmag, zmag
+     end if
+  endif
+
+
+  ! Find the maximum value of psi at the boundary 
+  ! such that psi is not increasing outward 
+  ! (as in a private flux region)
+  first_point = .true.
+  call numnod(numnodes)
+  do inode=1, numnodes
+     call boundary_node(inode,is_boundary,izone,izonedim,normal,x,z)
+     if(.not.is_boundary) cycle
+
+     call entdofs(numvari,inode,0,ibegin,iendplusone)
+     index = ibegin+(iplace-1)*6
+     if((normal(1)*real(phin(index+1)) + &
+          normal(2)*real(phin(index+2))).gt.0.) cycle
+
+     if(first_point) then
+        psib = real(phin(index))
+        first_point =.false.
+     else
+        if(real(phin(index)).gt.psib) psib = real(phin(index))
+     endif
+  end do
+
+  temp1 = psib
+  call mpi_allreduce(temp1, temp2, 1, &
+       MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ier)
+  psib = temp2
+
+  if(myrank.eq.0 .and. iprint.ge.1) then
+     print *, '  psi at limiter = ', psib
+  endif
+
+  ! Find an x-point and find the value of psi
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  xnull = 0.6
+  znull = -1.0
+  call magaxis(xnull,znull,phin,iplace,numvari,psix,1,ier)
+  if(ier.eq.0) then
+     if(myrank.eq.0 .and. iprint.ge.1) then 
+        print *, '  x-point found at ', xnull, znull
+        print *, '  value of psi at divertor ', psix
+     end if
+  else 
+     psix = psib
+
+     if(myrank.eq.0 .and. iprint.ge.1) then 
+        print *, '  no X-point found near ', xnull, znull
+     end if
+  endif
+
+  psibound = max(psix, psib)
   
+  if(myrank.eq.0 .and. iprint.ge.1) then
+     if(psix .gt. psib) then 
+        print *, " Plasma is diverted."
+     else 
+        print *, " Plasma is limited."
+     endif
+  endif
+     
 end subroutine lcfs
 
 
 end module diagnostics
-subroutine magaxiso(xguess,zguess,phin,numvari,psim)
-  use basic
-  use t_data
-  use nintegrate_mod
-
-  implicit none
-
-  include 'mpif.h'
-
-  real, intent(inout) :: xguess, zguess
-  vectype, intent(in), dimension(*) :: phin
-  integer, intent(in) :: numvari
-  real, intent(out) :: psim
-
-  integer, parameter :: iterations = 5
-
-  integer :: itri, inews
-  integer :: i, ier
-  real :: x1, z1, x, z, theta, b, co, sn, si, eta
-  real :: sum, sum1, sum2, sum3, sum4, sum5
-  real :: term1, term2, term3, term4, term5
-  real :: pt, pt1, pt2, p11, p22, p12
-  real :: xnew, znew, denom, sinew, etanew
-  real :: alx, alz
-  vectype, dimension(20) :: avector
-  real, dimension(3) :: temp1, temp2
-
-
-  if(myrank.eq.0 .and. iprint.gt.0) &
-       print *, " magaxis: guess=", xguess, zguess
-
-  call getboundingboxsize(alx, alz)
-
-  x = xguess
-  z = zguess
-  
-  do inews=1, iterations
-
-     call whattri(x,z,itri,x1,z1)
-
-     ! calculate position of minimum
-     if(itri.gt.0) then
-        call calcavector(itri, phin, 1, numvari, avector)
-         
-        ! calculate local coordinates
-        theta = ttri(itri)
-        b = btri(itri)
-        co = cos(theta)
-        sn = sin(theta)
-        si  = (x-x1)*co + (z-z1)*sn - b
-        eta =-(x-x1)*sn + (z-z1)*co
-  
-        ! evaluate the polynomial and second derivative
-        sum = 0.
-        sum1 = 0.
-        sum2 = 0.
-        sum3 = 0.
-        sum4 = 0.
-        sum5 = 0.
-        do i=1,20
-           sum = sum + avector(i)*si**mi(i)*eta**ni(i)
-           term1 = 0.
-           if(mi(i).ge.1) term1 = mi(i)*si**(mi(i)-1)*eta**ni(i)
-           term2 = 0.
-           if(ni(i).ge.1) term2 = ni(i)*si**mi(i)*eta**(ni(i)-1)
-           term3 = 0.
-           if(mi(i).ge.2) term3 = mi(i)*(mi(i)-1)*si**(mi(i)-2)*eta**ni(i)
-           term4 = 0.
-           if(ni(i).ge.2) term4 = ni(i)*(ni(i)-1)*si**mi(i)*eta**(ni(i)-2)
-           term5 = 0.
-           if(ni(i)*mi(i) .ge. 1)                                          &
-                term5 = mi(i)*ni(i)*si**(mi(i)-1)*eta**(ni(i)-1)
-           
-           sum1 = sum1 + avector(i)*term1
-           sum2 = sum2 + avector(i)*term2
-           sum3 = sum3 + avector(i)*term3
-           sum4 = sum4 + avector(i)*term4
-           sum5 = sum5 + avector(i)*term5
-        enddo
-        pt  = sum
-        pt1 = sum1
-        pt2 = sum2
-        p11 = sum3
-        p22 = sum4
-        p12 = sum5
-
-        denom = p22*p11 - p12**2
-        sinew = si -  ( p22*pt1 - p12*pt2)/denom
-        etanew= eta - (-p12*pt1 + p11*pt2)/denom
-
-        xnew = x1 + co*(b+sinew) - sn*etanew
-        znew = z1 + sn*(b+sinew) + co*etanew
-     else
-        xnew = 0.
-        znew = 0.
-        pt   = 0.
-     endif  ! on itri.gt.0
-     
-     ! communicate new minimum to all processors
-     if(maxrank.gt.1) then
-        temp1(1) = xnew
-        temp1(2) = znew
-        temp1(3) = pt
-        call mpi_allreduce(temp1, temp2, 3, &
-             MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
-        xnew = temp2(1)
-        znew = temp2(2)
-        pt   = temp2(3)
-     endif
-
-     ! check to see whether the new minimum is outside the simulation domain
-     if(xnew .lt. 0 .or. xnew.gt.alx .or. &
-          znew .lt. 0 .or. znew.gt.alz .or. &
-          xnew.ne.xnew .or. znew.ne.znew) then
-        ! if not within the domain, safestop.
-
-        write(*,3333) inews,x,z,xnew,znew
-3333    format("magaxis: new minimum outside domain. ",i3,1p4e12.4)
-        call safestop(27)       
-     else
-        x = xnew
-        z = znew
-     endif
-  end do
-
-  xguess = x
-  zguess = z
-  psim = pt
-
-  if(myrank.eq.0 .and. iprint.gt.0) &
-       print *, " magaxis: minimum at ", xguess, zguess
-  
-end subroutine magaxiso

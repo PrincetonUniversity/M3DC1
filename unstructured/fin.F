@@ -201,8 +201,6 @@
       kappah = 0.
 !
 !
-      eta_djdt = 0.
-!
 !.....ratio of specific heats
       gam = 5./3.
 !

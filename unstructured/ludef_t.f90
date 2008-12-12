@@ -1044,7 +1044,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   ssterm(psi_g) = ssterm(psi_g) + dbdt_fac*temp
   ddterm(psi_g) = ddterm(psi_g) + dbdt_fac*temp*bdf
 
-  temp = b1psieta(trial,lin,eta79,hf)*eta_fac
+  temp = b1psieta(trial,lin,eta79,hf)
   ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
   ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
 
@@ -1088,7 +1088,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
      ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
      ddterm(psi_g) = ddterm(psi_g) + (.5-thimp*bdf)*dt*temp
 
-     temp = b1beta(trial,lin,eta79)*eta_fac
+     temp = b1beta(trial,lin,eta79)
      ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
 
@@ -1249,7 +1249,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
 
   if(numvar.lt.2) return          
 
-  temp = b2psieta(trial,lin,eta79,hi)*eta_fac
+  temp = b2psieta(trial,lin,eta79,hi)
   ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
   ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
 
@@ -1273,7 +1273,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   ssterm(bz_g) = ssterm(bz_g) + dbdt_fac*temp
   ddterm(bz_g) = ddterm(bz_g) + dbdt_fac*temp*bdf
 
-  temp = b2beta(trial,lin,eta79,hi)*eta_fac
+  temp = b2beta(trial,lin,eta79,hi)
   ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
   ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
 
@@ -1664,7 +1664,6 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
 
   integer :: ier
   PetscTruth :: flg_petsc, flg_solve2, flg_solve1 
-  real :: eta_fac_old
 
   tfield = 0.
   telm = 0.
@@ -1820,19 +1819,6 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
      bdf = 1.
   endif
 
-
-  ! define current penetration enhancement factor
-  if(eta_djdt.ne.0) then
-     eta_fac_old = eta_fac
-     eta_fac = (5.*eta_fac_old + 1. + abs(djdt/j_onaxis)*eta_djdt)/6.
-     eta_fac = min(eta_fac,5.)
-     if(myrank.eq.0) then
-        print *, 'abs(djdt/j_onaxis) = ', abs(djdt/j_onaxis)
-        print *, 'eta_fac = ', eta_fac
-     end if
-  else
-     eta_fac = 1.
-  endif
 
   ! Loop over elements
   do itri=1,numelms

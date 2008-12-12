@@ -34,8 +34,14 @@
       real x, z, xref, zref
       double precision coords(3), x2, z2
 
-      x2 = x
-      z2 = z
+      select case(nonrect)
+      case(0)
+         x2 = x - xzero
+         z2 = z - zzero
+      case(1)
+         x2 = x
+         z2 = z
+      end select
 
       call usesearchstructure(x2,z2,itri)
 
@@ -43,12 +49,15 @@
 
       call nodfac(itri,nodeids)
       call xyznod(nodeids(1), coords)
-      xref = coords(1)
-      zref = coords(2)
 
-!      if(itri.eq.1) then
-!         write(*,*) "x1,y1=", xref, zref
-!      endif
-!
+      select case(nonrect)
+      case(0)
+         xref = coords(1) + xzero
+         zref = coords(2) + zzero
+      case(1)
+         xref = coords(1)
+         zref = coords(2)
+      end select
+
       return
       end
