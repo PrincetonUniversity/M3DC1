@@ -58,7 +58,8 @@ module basic
   real :: libetap   !  li/2 + beta_poloidal estimate for equili/2brium calculation
   real :: xlim2   !  x-position of second limiter point as a diagnostic
   real :: zlim2   !  z-position of second limiter point as a diagnostic
-  integer :: nonrect     ! 1 = cylindrical coordinates; 0 = cartesian coordinates
+  integer :: nonrect     ! 1 = non-rectangular boundary; 0 = rectangular boundary
+  integer :: ifixedb   !  1 = plasma boundary is mesh boundary (for nonrect=1);   0 = free boundary
 
   ! boundary conditions
   integer :: iper, jper ! periodic boundary conditions
@@ -243,7 +244,7 @@ module basic
        iconstflux,regular,max_ke,                              &
        ntor,iadapt,istatic,iestatic,ivform, ibform,            &
        ihypeta,ikapscale,                                      &
-       iteratephi, icsym, inumgs, nonrect,                     &
+       iteratephi, icsym, inumgs, nonrect, ifixedb,            &
        inonormalflow, inoslip_pol, inoslip_tor, inostress_tor, &
        iconst_p, inograd_p, iconst_n, inograd_n, iconst_t,     &
        inocurrent_pol, inocurrent_tor, iconst_bz,              &

@@ -766,10 +766,12 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
 
   real, intent(inout) :: xguess, zguess
   vectype, intent(in), dimension(*) :: phin
-  integer, intent(in) :: iplace,numvari, imethod
+  integer, intent(in) :: iplace, numvari, imethod
   real, intent(out) :: psim
 
-  integer, parameter :: iterations = 5
+  integer, parameter :: iterations = 20  !  max number of Newton iterations
+  real, parameter :: bfac = 0.5   !max zone fraction for movement each iteration
+  real, parameter :: tol = 1.e-11   ! convergence tolorance
 
   integer :: itri, inews
   integer :: i, ier, in_domain
@@ -778,20 +780,21 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
   real :: term1, term2, term3, term4, term5
   real :: pt, pt1, pt2, p11, p22, p12
   real :: xnew, znew, denom, sinew, etanew
-  real :: alx, alz
+! real :: alx, alz
+  real :: xtry, ztry, rdiff
   vectype, dimension(20) :: avector
-  real, dimension(4) :: temp1, temp2
+  real, dimension(5) :: temp1, temp2
 
 
   if(myrank.eq.0 .and. iprint.gt.0) &
        print *, " magaxis: guess=", xguess, zguess
 
-  call getboundingboxsize(alx, alz)
+! call getboundingboxsize(alx, alz)
 
   x = xguess
   z = zguess
   
-  do inews=1, iterations
+  newton :  do inews=1, iterations
 
      call whattri(x,z,itri,x1,z1)
 
@@ -843,33 +846,41 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
            p11 = sum3
            p22 = sum4
            p12 = sum5
-           
+
            denom = p22*p11 - p12**2
            sinew = si -  ( p22*pt1 - p12*pt2)/denom
            etanew= eta - (-p12*pt1 + p11*pt2)/denom
 
-        case(1) ! find local zero of <psi,psi>
+        case(1)  ! find local zero of <psi,psi>
            pt = sum1**2 + sum2**2
            pt1 = 2.*(sum1*sum3 + sum2*sum4)
            pt2 = 2.*(sum1*sum4 + sum2*sum5)
-           
+
            denom = pt1**2 + pt2**2
            sinew = si - pt*pt1/denom
            etanew = eta - pt*pt2/denom
         end select
 
-        xnew = x1 + co*(b+sinew) - sn*etanew
-        znew = z1 + sn*(b+sinew) + co*etanew
+        xtry = x1 + co*(b+sinew) - sn*etanew
+        ztry = z1 + sn*(b+sinew) + co*etanew
 
+!....limit movement to bfac times zone spacing per iteration
+        rdiff = sqrt((x-xtry)**2 + (z-ztry)**2)
+        if(rdiff .lt. bfac*b) then
+          xnew = xtry
+          znew = ztry
+        else
+          xnew = x + bfac*b*(xtry-x)/rdiff
+          znew = z + bfac*b*(ztry-z)/rdiff
+        endif
         in_domain = 1
      else
         xnew = 0.
         znew = 0.
-        sum  = 0.
+        sum   = 0.
+        rdiff = 0.
         in_domain = 0
      endif  ! on itri.gt.0
-
-     call mpi_barrier(MPI_COMM_WORLD, ier)
      
      ! communicate new minimum to all processors
      if(maxrank.gt.1) then
@@ -877,17 +888,19 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
         temp1(2) = znew
         temp1(3) = sum
         temp1(4) = in_domain
-        call mpi_allreduce(temp1, temp2, 4, &
+        temp1(5) = rdiff
+        call mpi_allreduce(temp1, temp2, 5, &
              MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
-        xnew = temp2(1)
-        znew = temp2(2)
-        sum  = temp2(3)
+        xnew  = temp2(1)
+        znew  = temp2(2)
+        sum   = temp2(3)
         in_domain = temp2(4)
+        rdiff = temp2(5)
      endif
-
      ! check to see whether the new minimum is outside the simulation domain
      if(in_domain.eq.0) then
         ! if not within the domain, safestop.
+      if(myrank.eq.0 .and. iprint.ge.1)   &
         print *, 'magaxis: guess outside domain', xguess, zguess
         ier = 1
         return
@@ -895,16 +908,19 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
         x = xnew
         z = znew
      endif
-  end do
+        if(rdiff .lt. tol) exit newton
+  end do newton
 
   xguess = x
   zguess = z
   psim = sum
-
-  if(myrank.eq.0 .and. iprint.ge.1) then
-     print *, " magaxis: minimum at ", xguess, zguess
-  end if
   ier = 0
+
+!>>>>>debug
+!     write(90+myrank,1999) inews,x,z,x1,z1,pt,pt1,pt2,p11,p22,p12,theta,b
+!     write(90+myrank,2000) xnew,znew,xtry,ztry,denom,rdiff
+!2000 format(3x,1p12e10.2)
+!1999 format(i3,1p12e10.2)
   
 end subroutine magaxis
 
@@ -933,6 +949,7 @@ subroutine lcfs(phin, iplace, numvari)
   integer :: ibegin, iendplusone, index
   logical :: is_boundary, first_point
   real, dimension(2) :: normal
+      real curv
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, 'Finding LCFS:'
 
@@ -959,7 +976,7 @@ subroutine lcfs(phin, iplace, numvari)
   first_point = .true.
   call numnod(numnodes)
   do inode=1, numnodes
-     call boundary_node(inode,is_boundary,izone,izonedim,normal,x,z)
+     call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
      if(.not.is_boundary) cycle
 
      call entdofs(numvari,inode,0,ibegin,iendplusone)

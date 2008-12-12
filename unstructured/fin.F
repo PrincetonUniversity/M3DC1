@@ -13,7 +13,12 @@
       do i=1,numnodes
          call xyznod(i, coords)
 
-         x = coords(1) + xzero
+         select case (nonrect)
+         case(0)
+           x = coords(1) + xzero
+         case(1)
+           x = coords(1)
+         end select
 
          call entdofs(1, i, 0, ibegin, iendplusone)
          rinv(ibegin) =  1./x
@@ -217,6 +222,9 @@
 !
 !.....rectangular mesh or curved mesh
       nonrect = 0
+!
+!.....fixed boundary option
+      ifixedb = 0
 !
 !.....boundary conditions
 !     com_bc: 1 = sets laplacian(chi) = 0 on boundary
