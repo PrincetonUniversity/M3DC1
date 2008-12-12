@@ -234,19 +234,23 @@ subroutine gradshafranov_solve
 #endif
 #include "finclude/petsc.h"
   
-  real :: gsint1,gsint4,gsint2,gsint3,lhs,cfac(18)
+  real :: gsint1,gsint4,gsint2,gsint3,lhs,diff,cfac(18)
   real, allocatable :: temp(:)
   vectype, allocatable :: b1vecini(:)
+  vectype, allocatable :: b2vecini(:)
+      real, dimension (2)  :: normal
+      integer :: izone, izonedim
+      logical :: is_boundary
 
   integer, parameter :: maxcoils = NSTX_coils
-  integer :: numcoils
+  integer :: numcoils, ii
 
   integer :: itri,i,i1,j,j1,jone, k
   integer :: numelms, numnodes
   integer :: ibegin, iendplusone
   integer :: ineg, ier
   real :: dterm(18,18), sterm(18,18)
-  real :: fac, fac2, aminor, bv, feedfac, libetapeff, gnorm, fintl(-6:maxi,-6:maxi)
+  real :: fac, fac2, aminor, bv, feedfac, libetapeff, gnorm,curv, fintl(-6:maxi,-6:maxi)
   real, dimension(6,maxcoils) :: g
   real, dimension(6) :: g1, g2
   real, dimension(maxcoils) :: xp, zp, xc, zc
@@ -281,6 +285,7 @@ subroutine gradshafranov_solve
   ! allocate memory for arrays
   call createrealvec(temp, numvargs)
   call createvec(b1vecini, numvargs)
+  call createvec(b2vecini, numvargs)
   call createvec(psi, numvargs)
   call createrealvec(fun1, numvargs)
   call createrealvec(fun4, numvargs)
@@ -322,10 +327,18 @@ subroutine gradshafranov_solve
      enddo
   enddo
 
-  ! insert boundary conditions
   feedfac = 0.
+  ! insert boundary conditions
+!
+!.....NOTE:   This first call just modifies the gsmatrix_sm by inserting 1's
+!             on the diagonal for boundary points
+!
   call boundary_gs(gsmatrix_sm, b1vecini, feedfac)
   call finalizematrix(gsmatrix_sm)
+!
+!>>>>>debug
+!     call writematrixtofile(gsmatrix_sm,33)
+!     call safestop(0)
 
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
@@ -358,7 +371,7 @@ subroutine gradshafranov_solve
         print *, "gradshafranov_solve xmin zmin xmag zmag alx alz xzero zzero= ", &
                  xmin, zmin, xmag, zmag, alx, alz, xzero, zzero
 
-!......define feedback parameters
+!......define feedback parameters needed for normalization
   if(idevice .eq. 0) then
     xc(1) = 102.
     zc(1) = rnorm
@@ -470,7 +483,10 @@ subroutine gradshafranov_solve
   ! define initial b1vecini associated with delta-function source
   !     corresponding to current tcuro at location (xmag,zmag)
 
-  if(myrank.eq.0 .and. iprint.gt.0) print *, " initializing current..."
+  if(myrank.eq.0 .and. iprint.gt.0) then
+      write(*,2008) xrel,zrel,tcuro
+ 2008 format(" initializing current, xrel,zrel,tcuro =",1p3e12.4)
+      endif
 
   b1vecini = 0.
   call deltafun(xmag,zmag,b1vecini,tcuro, ier)
@@ -483,7 +499,7 @@ subroutine gradshafranov_solve
  
   !-------------------------------------------------------------------
   ! start of iteration loop on plasma current
-  mainloop: do itnum=1, igs
+  mainloop: do itnum=1, iabs(igs)
 
      if(myrank.eq.0 .and. iprint.eq.1) print *, "GS: iteration = ", itnum
      
@@ -502,10 +518,11 @@ subroutine gradshafranov_solve
 
      ! perform LU backsubstitution to get psi solution
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     b2vecini = b1vecini
      if(flg_petsc.eq.PETSC_TRUE .and. flg_solve1.eq.PETSC_TRUE) then 
-     call solve1(gsmatrix_sm,b1vecini,ier)
+       call solve1(gsmatrix_sm,b1vecini,ier)
      else
-     call solve(gsmatrix_sm,b1vecini,ier)
+       call solve(gsmatrix_sm,b1vecini,ier)
      endif
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
@@ -523,7 +540,7 @@ subroutine gradshafranov_solve
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call magaxis(xmag,zmag,psi,1,numvargs,psimin,0,ier)
-     if(ier .gt. 0) call safestop(27)
+      if(ier .gt. 0) call safestop(27)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_gs_magaxis = t_gs_magaxis + tend - tstart
@@ -553,13 +570,16 @@ subroutine gradshafranov_solve
 
      ! Calculate error in new solution
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-     ! (nodes shared between processes are currenly overcounted)
+     ! (nodes shared between processes are currenly overcounted:  also, skip boundary nodes)
      sum = 0.
      norm = 0.
      sum2 = 0.
      norm2 = 0.
      do i=1,numnodes
         
+        call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+!       if(is_boundary) cycle
+!
         call xyznod(i,coords)
          select case(nonrect)
          case(0)
@@ -573,15 +593,32 @@ subroutine gradshafranov_solve
         
         call entdofs(numvargs, i, 0, ibegin, iendplusone)
 
-        if(real(psi(ibegin)).le.psilim) then
            lhs = (psi(ibegin+3)-psi(ibegin+1)/x+psi(ibegin+5))/x
            rhs =  -(fun1(ibegin)+gamma2*fun2(ibegin)+                        &
                 gamma3*fun3(ibegin)+gamma4*fun4(ibegin))
+      if(.not. is_boundary) then
            sum = sum + (lhs-rhs)**2
            norm = norm + lhs**2
            sum2 = sum2 + abs(psi(ibegin)-b1vecini(ibegin))
            norm2 = norm2 + abs(psi(ibegin))
-        endif
+      endif
+           diff = lhs-rhs
+           temp1(1) = sqrt( (x-rzero)**2 + z**2)
+           temp1(2) = real(psi(ibegin+3)/x)
+           temp1(3) = real(-psi(ibegin+1)/x**2)
+           temp1(4) = psi(ibegin+5)/x
+!>>>>>debug
+!     if(is_boundary .and. itnum.eq.iabs(igs)) then
+!        write(70+myrank,1169) x,z,normal(1),normal(2),(real(psi(ibegin+ii)),ii=0,5), lhs,&
+!                               (real(b2vecini(ibegin+ii)),ii=0,5)
+!       write(80+myrank,1179) x,z,lhs,rhs
+!     endif
+!     if(.not.is_boundary .and. itnum.eq.iabs(igs)) then
+!       write(90+myrank,1179) x,z,lhs,rhs
+!     endif
+ 1179 format(1p4e12.4)
+ 1169 format(4f6.3,1p7e12.4,/,24x,1p6e12.4)
+!>>>>>debug end
      enddo
 
      if(maxrank.gt.1) then
@@ -599,6 +636,10 @@ subroutine gradshafranov_solve
      endif
      
      if(myrank.eq.0) then
+      if(iprint.eq.1) then
+      write(*,2002) (temp1(ii),ii=1,4)
+ 2002 format(" temp1 array",1p4e12.4)
+      endif
         write(*,1002) itnum,error,error2,xmag,psimin,psilim,psilim2
  1002   format(i5,1p6e13.5)
      endif
@@ -724,6 +765,11 @@ subroutine gradshafranov_solve
              " dpsii,djdpsi,tcurb         =",1p3e12.4,/,     &
              "gsint1,gint2,gsint3,gsint4  =",1p4e12.4,/,     &
              "gamm2a,gamm2b,gamm3a,gamm3b =",1p4e12.4)
+     endif
+!
+!....if igs is positive, stop after iabs(igs) iterations, continue for igs negative
+     if(itnum.eq.igs) then
+       call safestop(3)
      endif
 
   ! populate phi0 array
@@ -1170,7 +1216,8 @@ subroutine fundef
      call entdofs(numvargs, l, 0, ibegin, iendplusone)
      pso =  (psi(ibegin)-psimin)*dpsii
 
-!     if(pso .lt. 0. .or. pso .gt. 1.) then
+!
+!......the following line performs more reliably than: if(pso .lt. 0 .or. pso .gt. 1.) then
      if(pso .gt. 1.) then
         do i=0,5
            fun1(ibegin+i) = 0.

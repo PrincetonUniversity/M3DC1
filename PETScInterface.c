@@ -255,21 +255,19 @@ int solve2_(int *matrixId, double * rhs_sol, int * ier)
 }
 
 
-//cj added oct 6, 2008
-int dump_matrix_(int *matrixId)
-{
-//int fileid=33;
-//writeToFile(*matrixId, fileid);
 
-  int i, ldb;
-  int valType = 0;
+//cj added oct 6, 2008
+int dump_matrix_(int *matrixId, int *valType, int *whichrow)
+{
+  int ierr, i, ldb;
+  //int valType = 0;
   int *d_nnz, *o_nnz;
   int offset=6;
 
      getMatrixLocalDofNum_(matrixId, &ldb); 
      d_nnz = (int*)calloc(ldb, sizeof(int));
      o_nnz = (int*)calloc(ldb, sizeof(int));
-     getMatrixPetscDnnzOnnz_(matrixId, &valType, d_nnz, o_nnz);
+     getMatrixPetscDnnzOnnz_(matrixId, valType, d_nnz, o_nnz);
   
      for(i=0;i<ldb;i=i+offset) 
      PetscPrintf(PETSC_COMM_WORLD, "\tvertex_%d:  %d  %d  %d  %d  %d  %d\n",
@@ -284,7 +282,36 @@ int dump_matrix_(int *matrixId)
      free(d_nnz);
      free(o_nnz);
 
+//int fileid=33; 
+   //writeToFile(*matrixId, fileid);
+
+  int irow, icol, rowSize, colSize, rowId, *colId;
+  PetscScalar *values;
+     getMatrixNNZRowSize_(matrixId, valType, &rowSize);
+     irow = *whichrow; {
+     //for(irow=0;irow<rowSize;irow++) {
+        getMatrixNNZRowId_(matrixId, valType, irow, &rowId);
+        getMatrixNNZColSize_(matrixId, valType, &rowId, &colSize);
+        ierr = PetscMalloc(colSize*sizeof(PetscInt),&colId);CHKERRQ(ierr);
+        ierr = PetscMalloc(colSize*sizeof(PetscScalar),&values);CHKERRQ(ierr); 
+        //colId = malloc(colSize*sizeof(int));
+        //values = malloc(colSize*sizeof(double)); 
+        getMatrixNNZValues_(matrixId, valType, &rowId, colId, values);
+        for(icol=0;icol<colSize;icol++)
+           printf("c1 matrix row_%d col_%d val=%e\n", rowId, colId[icol], values[icol]);
+        ierr = PetscFree(colId);CHKERRQ(ierr);
+        ierr = PetscFree(values);CHKERRQ(ierr);
+        //free(colId);
+        //free(values);
+
+     } 
+     
   return 0;
+// *** glibc detected *** double free or corruption (!prev):
+//The two common reasons for that error message are 
+//1) passing the same address to free twice 
+//and 
+//2) overrunning an allocated area before passing its address to free.
 } 
 
 
