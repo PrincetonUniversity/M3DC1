@@ -461,7 +461,6 @@ subroutine define_transport_coefficients()
   if(solve_visc) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  viscosity'
      call solve_newvar(visc, NV_NOBOUND, mass_matrix_lhs)
-     visc_c = visc
   endif
 
   if(solve_visc_e) then
@@ -471,6 +470,8 @@ subroutine define_transport_coefficients()
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, '  size field'
   call solve_newvar(tempvar, NV_NOBOUND, mass_matrix_lhs)
+
+  visc_c = visc
 
   ! add in constant components
   call numnod(numnodes)

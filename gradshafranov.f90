@@ -469,21 +469,11 @@ subroutine gradshafranov_solve
 
   ! define initial b1vecini associated with delta-function source
   !     corresponding to current tcuro at location (xmag,zmag)
-         select case(nonrect)
-         case(0)
-  xrel = xmag-xzero
-  zrel = zmag-zzero
-         case(1)
-  xrel = xmag !cjdebug -xmin !cjdebug xzero
-  zrel = zmag !cjdebug -zmin !cjdebug zzero
-! if(myrank.eq.0) print *,"You are working with curved mesh."
-         end select
-
 
   if(myrank.eq.0 .and. iprint.gt.0) print *, " initializing current..."
 
   b1vecini = 0.
-  call deltafun(xrel,zrel,b1vecini,tcuro, ier)
+  call deltafun(xmag,zmag,b1vecini,tcuro, ier)
   if(ier .gt. 0) call safestop(7)
   if(myrank.eq.0) then
   write(*,999) 
@@ -531,60 +521,23 @@ subroutine gradshafranov_solve
     
      ! Find new magnetic axis (extremum of psi)
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-         select case(nonrect)
-         case(0)
-     xguess = xmag - xzero
-     zguess = zmag - zzero    
-         case(1)
-     xguess = xmag !cjdebug - xmin !cjdebug xzero
-     zguess = zmag !cjdebug - zmin !cjdebug zzero    
-!    if(myrank.eq.0) print *,"You are working with curved mesh."
-         end select
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     call magaxis(xguess,zguess,psi,numvargs,psimin, ier)
-     if(ier .gt. 0) call safestop(7)
+     call magaxis(xmag,zmag,psi,1,numvargs,psimin,0,ier)
+     if(ier .gt. 0) call safestop(27)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_gs_magaxis = t_gs_magaxis + tend - tstart
      endif
-         select case(nonrect)
-         case(0)
-     xmag = xguess + xzero
-     zmag = zguess + zzero
-         case(1)
-     xmag = xguess !cjdebug + xmin !cjdebug xzero
-     zmag = zguess !cjdebug + zmin !cjdebug zzero
-!    if(myrank.eq.0) print *,"You are working with curved mesh."
-         end select
     
      ! calculate psi at the limiter
-         select case(nonrect)
-         case(0)
-     xrel = xlim - xzero
-     zrel = zlim - zzero
-         case(1)
-     xrel = xlim !cjdebug - xmin !cjdebug xzero
-     zrel = zlim !cjdebug - zmin !cjdebug zzero
-!    if(myrank.eq.0) print *,"You are working with curved mesh."
-         end select
-     itri = 0.
 
-     call evaluate(xrel,zrel,psilim,ajlim,psi,1,numvargs,itri)
+     itri = 0.
+     call evaluate(xlim,zlim,psilim,ajlim,psi,1,numvargs,itri)
 
      ! calculate psi at a second limiter point as a diagnostic
      if(xlim2.gt.0) then
-         select case(nonrect)
-         case(0)
-       xrel = xlim2 - xzero
-       zrel = zlim2 - zzero
-         case(1)
-       xrel = xlim2 !cjdebug - xmin !cjdebug xzero
-       zrel = zlim2 !cjdebug - zmin !cjdebug zzero
-!      if(myrank.eq.0) print *,"You are working with curved mesh."
-         end select
        itri = 0.
-
-       call evaluate(xrel,zrel,psilim2,ajlim,psi,1,numvargs,itri)
+       call evaluate(xlim2,zlim2,psilim2,ajlim,psi,1,numvargs,itri)
      else
        psilim2 = psilim
      endif
