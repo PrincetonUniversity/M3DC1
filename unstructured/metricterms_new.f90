@@ -4999,33 +4999,6 @@ vectype function p1kappar(e,f,g,h,i,j,k)
        + int4(temp79a,g(:,OP_DZ),h(:,OP_1 ),i(:,OP_DR)) &
        - int4(temp79a,g(:,OP_DR),h(:,OP_1 ),i(:,OP_DZ))
 
-!!$  tm79(:,OP_DR ) = h(:,OP_1)*i(:,OP_DR ) + h(:,OP_DR )*i(:,OP_1)
-!!$  tm79(:,OP_DZ ) = h(:,OP_1)*i(:,OP_DZ ) + h(:,OP_DZ )*i(:,OP_1)
-!!$  tm79(:,OP_DRR) = h(:,OP_1)*i(:,OP_DRR) + h(:,OP_DRR)*i(:,OP_1) &
-!!$       + 2.*h(:,OP_DR)*i(:,OP_DR)
-!!$  tm79(:,OP_DRZ) = h(:,OP_1)*i(:,OP_DRZ) + h(:,OP_DRZ)*i(:,OP_1) &
-!!$       + h(:,OP_DR)*i(:,OP_DZ) + h(:,OP_DZ)*i(:,OP_DR)
-!!$  tm79(:,OP_DZZ) = h(:,OP_1)*i(:,OP_DZZ) + h(:,OP_DZZ)*i(:,OP_1) &
-!!$       + 2.*h(:,OP_DZ)*i(:,OP_DZ)
-!!$
-!!$  temp79a = g(:,OP_DR)* &
-!!$       (tm79(:,OP_DZZ)*f(:,OP_DR ) - tm79(:,OP_DRZ)*f(:,OP_DZ )  &
-!!$       +tm79(:,OP_DZ )*f(:,OP_DRZ) - tm79(:,OP_DR )*f(:,OP_DZZ)) &
-!!$       -    g(:,OP_DZ)* &
-!!$       (tm79(:,OP_DRZ)*f(:,OP_DR ) - tm79(:,OP_DRR)*f(:,OP_DZ )  &
-!!$       +tm79(:,OP_DZ )*f(:,OP_DRR) - tm79(:,OP_DR )*f(:,OP_DRZ))
-!!$
-!!$  temp79b = g(:,OP_DR)*(j(:,OP_1)*k(:,OP_DZ) + j(:,OP_DZ)*k(:,OP_1)) &
-!!$       -    g(:,OP_DZ)*(j(:,OP_1)*k(:,OP_DR) + j(:,OP_DR)*k(:,OP_1))
-!!$  if(itor.eq.1) then
-!!$     temp79b = temp79b + ri_79*j(:,OP_1)*k(:,OP_1)*g(:,OP_DZ)
-!!$  endif
-!!$
-!!$  temp79c = tm79(:,OP_DZ)*f(:,OP_DR) - tm79(:,OP_DR)*f(:,OP_DZ)
-!!$
-!!$  temp = int5(ri2_79,e(:,OP_1),j(:,OP_1),k(:,OP_1),temp79a) &
-!!$       + int4(ri2_79,e(:,OP_1),temp79c,temp79b)
-
   p1kappar = (gam - 1.) * temp
   return
 end function p1kappar
