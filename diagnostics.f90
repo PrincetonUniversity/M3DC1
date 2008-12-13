@@ -5,7 +5,7 @@ module diagnostics
   real :: tflux0, totcur0
 
   ! scalars integrated over entire computational domain
-  real :: tflux, area, totcur, totden, tmom, tvor, psibound, bwb2
+  real :: tflux, area, totcur, totden, tmom, tvor, bwb2
 
   ! scalars integrated within lcfs
   real :: pflux, parea, pcur, pden, pmom, pvor
@@ -28,7 +28,6 @@ module diagnostics
   ! momentum diagnostics
   real :: tau_em, tau_sol, tau_com, tau_visc, tau_gyro, tau_denm
 
-  real :: j_onaxis, djdt
   logical :: ifirsttime = .true.
 
   ! timing diagnostics
@@ -38,7 +37,10 @@ module diagnostics
   real :: t_gs, t_gs_magaxis, t_gs_fundef, t_gs_solve, t_gs_init
 
   ! magnetic diagnostics
-  real :: xnull, znull
+  real :: psimin       ! flux value at magnetic axis
+  real :: psilim       ! flux at the limiter
+  real :: psibound     ! flux at the lcfs
+  real :: xnull, znull ! coordinates of the limiting x-point
 
 contains
 
@@ -771,11 +773,11 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
 
   integer, parameter :: iterations = 20  !  max number of Newton iterations
   real, parameter :: bfac = 0.5   !max zone fraction for movement each iteration
-  real, parameter :: tol = 1.e-11   ! convergence tolorance
+  real, parameter :: tol = 1e-2   ! convergence tolorance (fraction of h)
 
   integer :: itri, inews
-  integer :: i, ier, in_domain
-  real :: x1, z1, x, z, theta, b, co, sn, si, eta
+  integer :: i, ier, in_domain, converged
+  real :: x1, z1, x, z, theta, a, b, c, co, sn, si, eta, h
   real :: sum, sum1, sum2, sum3, sum4, sum5
   real :: term1, term2, term3, term4, term5
   real :: pt, pt1, pt2, p11, p22, p12
@@ -804,7 +806,10 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
          
         ! calculate local coordinates
         theta = ttri(itri)
+        a = atri(itri)
         b = btri(itri)
+        c = ctri(itri)
+        h = sqrt((a+b)*c)
         co = cos(theta)
         sn = sin(theta)
         si  = (x-x1)*co + (z-z1)*sn - b
@@ -866,20 +871,23 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
 
 !....limit movement to bfac times zone spacing per iteration
         rdiff = sqrt((x-xtry)**2 + (z-ztry)**2)
-        if(rdiff .lt. bfac*b) then
+        if(rdiff .lt. bfac*h) then
           xnew = xtry
           znew = ztry
         else
-          xnew = x + bfac*b*(xtry-x)/rdiff
-          znew = z + bfac*b*(ztry-z)/rdiff
+          xnew = x + bfac*h*(xtry-x)/rdiff
+          znew = z + bfac*h*(ztry-z)/rdiff
         endif
         in_domain = 1
+        print *, rdiff/h
+        if(rdiff/h .lt. tol) converged = 1
      else
         xnew = 0.
         znew = 0.
         sum   = 0.
         rdiff = 0.
         in_domain = 0
+        converged = 0
      endif  ! on itri.gt.0
      
      ! communicate new minimum to all processors
@@ -888,28 +896,33 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
         temp1(2) = znew
         temp1(3) = sum
         temp1(4) = in_domain
-        temp1(5) = rdiff
+        temp1(5) = converged
         call mpi_allreduce(temp1, temp2, 5, &
              MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
         xnew  = temp2(1)
         znew  = temp2(2)
         sum   = temp2(3)
         in_domain = temp2(4)
-        rdiff = temp2(5)
+        converged = temp2(5)
      endif
      ! check to see whether the new minimum is outside the simulation domain
      if(in_domain.eq.0) then
         ! if not within the domain, safestop.
-      if(myrank.eq.0 .and. iprint.ge.1)   &
-        print *, 'magaxis: guess outside domain', xguess, zguess
+        if(myrank.eq.0 .and. iprint.ge.1)   &
+             print *, 'magaxis: guess outside domain', xguess, zguess
         ier = 1
         return
      else
         x = xnew
         z = znew
      endif
-        if(rdiff .lt. tol) exit newton
+
+     if(converged.eq.1) exit newton
   end do newton
+
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, " magaxis: iterations = ", inews
+
 
   xguess = x
   zguess = z

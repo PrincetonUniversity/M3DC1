@@ -129,7 +129,6 @@ module basic
   real :: q0          ! safety factor at magnetic axis
   real :: th_gs       ! relaxation factor
   real :: tol_gs  ! error tolorance for GS solver
-   real :: psimin, psilim    !   flux value at magnetic axis and limiter
 
   ! model options
   integer :: linear      ! 1 = linear simulation; 0 = nonlinear simulation
