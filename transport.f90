@@ -78,7 +78,7 @@ vectype function resistivity_func(i)
 
   temp = 0.
 
-  if(eta0 .ne. 0) then
+  if(eta0 .ne. 0.) then
      select case (iresfunc)
      case(0)  ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)
         if(linear.eq.1) then
@@ -165,7 +165,10 @@ vectype function kappa_func(i)
   endif
 
   if(kappah.ne.0.) then
-     ! insert h-mode model here!
+     temp79b = (pst79(:,OP_1) - psimin)/(psibound - psimin)
+     temp79a = kappah*tanh((real(temp79b) - 1.)/.2)**2
+!     temp79a = temp79b
+     temp = temp + int2(g79(:,OP_1,i),temp79a)
   end if
   
   kappa_func = temp

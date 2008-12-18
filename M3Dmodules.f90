@@ -147,7 +147,6 @@ module basic
   integer :: ihypeta     ! 1 = scale hyper-resistivity with eta
   integer :: ihypdx      ! scale hyper-resistivity with dx**ihypdx
   integer :: ikapscale   ! 1 = scale kappar with kappa
-  integer :: iupwind     ! 1 = include upwinding term in pressure eqn
   integer :: inertia     ! 1 = include ion inertial terms (v.grad(v))
   integer :: itwofluid   ! 1 = include two-fluid terms in ohm's law
   integer :: ibootstrap  ! bootstrap current model
@@ -173,9 +172,6 @@ module basic
   real :: thimp_ohm      ! implicitness parameter for ohmic heating
   real :: regular        ! regularization constant in chi equation
   real :: max_ke         ! max KE before fields are re-scaled when linear==1
-  real :: dndt_fac       ! factor to multiply dn/dt term
-  real :: dvdt_fac       ! factor to multiply dv/dt terms
-  real :: dbdt_fac       ! factor to multiply db/dt terms
   real :: chiiner        ! factor to multiply chi inertial terms
 
 
@@ -248,7 +244,6 @@ module basic
        iconst_p, inograd_p, iconst_n, inograd_n, iconst_t,     &
        inocurrent_pol, inocurrent_tor, iconst_bz,              &
        irecalc_eta,ihypdx, iconst_eta,                         &
-       iupwind, dndt_fac, dvdt_fac, dbdt_fac,                  &
        n_target, n_control_p, n_control_i, n_control_d,        &
        icalc_scalars, ike_only, ifout, inertia, itwofluid,     &
        int_pts_main, int_pts_aux, int_pts_diag,                &
