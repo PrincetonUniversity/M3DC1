@@ -180,9 +180,6 @@
 !.....scale kappar with kappa
       ikapscale = 0
 !
-!.....add upwinding-like diffusion to pressure and density advance
-      iupwind = 0
-!
       inertia = 1
       itwofluid = 1
 !
@@ -372,11 +369,6 @@
 !
 !.....1 = adapt mesh upon initialization
       iadapt = 0
-!
-!     factors multiplying time derivative terms
-      dndt_fac = 1.
-      dvdt_fac = 1.
-      dbdt_fac = 1.
 !
 !......factor multiplying chi inertial term
       chiiner = 1.

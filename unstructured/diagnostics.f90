@@ -1016,8 +1016,20 @@ subroutine lcfs(phin, iplace, numvari)
 
   ! Find an x-point and find the value of psi
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  xnull = 0.6
-  znull = -1.0
+  if(xnull.eq.0.) then
+     select case(idevice)
+     case(2)
+        xnull = 0.6
+        znull = -1.0
+     case(4)
+        xnull =  1.2
+        znull = -1.2
+     case default
+        xnull = xzero
+        znull = zzero
+     end select
+  endif
+        
   call magaxis(xnull,znull,phin,iplace,numvari,psix,1,ier)
   if(ier.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) then 
