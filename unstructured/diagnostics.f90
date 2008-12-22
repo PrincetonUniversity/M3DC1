@@ -40,7 +40,6 @@ module diagnostics
   real :: psimin       ! flux value at magnetic axis
   real :: psilim       ! flux at the limiter
   real :: psibound     ! flux at the lcfs
-  real :: xnull, znull ! coordinates of the limiting x-point
 
 contains
 
@@ -793,6 +792,8 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
 
 ! call getboundingboxsize(alx, alz)
 
+  converged = 0
+
   x = xguess
   z = zguess
   
@@ -831,10 +832,10 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
            term3 = 0.
            if(mi(i).ge.2) term3 = mi(i)*(mi(i)-1)*si**(mi(i)-2)*eta**ni(i)
            term4 = 0.
-           if(ni(i).ge.2) term4 = ni(i)*(ni(i)-1)*si**mi(i)*eta**(ni(i)-2)
-           term5 = 0.
            if(ni(i)*mi(i) .ge. 1)                                          &
-                term5 = mi(i)*ni(i)*si**(mi(i)-1)*eta**(ni(i)-1)
+                term4 = mi(i)*ni(i)*si**(mi(i)-1)*eta**(ni(i)-1)
+           term5 = 0.
+           if(ni(i).ge.2) term5 = ni(i)*(ni(i)-1)*si**mi(i)*eta**(ni(i)-2)
            
            sum1 = sum1 + avector(i)*term1
            sum2 = sum2 + avector(i)*term2
@@ -849,8 +850,8 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
            pt1 = sum1
            pt2 = sum2
            p11 = sum3
-           p22 = sum4
-           p12 = sum5
+           p12 = sum4
+           p22 = sum5
 
            denom = p22*p11 - p12**2
            sinew = si -  ( p22*pt1 - p12*pt2)/denom
@@ -879,7 +880,7 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
           znew = z + bfac*h*(ztry-z)/rdiff
         endif
         in_domain = 1
-        print *, rdiff/h
+        if(iprint.ge.1) print *, 'rdiff/h, tol', rdiff/h, tol
         if(rdiff/h .lt. tol) converged = 1
      else
         xnew = 0.
@@ -909,7 +910,7 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
      if(in_domain.eq.0) then
         ! if not within the domain, safestop.
         if(myrank.eq.0 .and. iprint.ge.1)   &
-             print *, 'magaxis: guess outside domain', xguess, zguess
+             print *, 'magaxis: guess outside domain', x, z
         ier = 1
         return
      else
@@ -994,8 +995,8 @@ subroutine lcfs(phin, iplace, numvari)
 
      call entdofs(numvari,inode,0,ibegin,iendplusone)
      index = ibegin+(iplace-1)*6
-     if((normal(1)*real(phin(index+1)) + &
-          normal(2)*real(phin(index+2))).gt.0.) cycle
+     if(((x-xmag)*real(phin(index+1)) + &
+          (z-zmag)*real(phin(index+2))).gt.0.) cycle
 
      if(first_point) then
         psib = real(phin(index))
@@ -1015,21 +1016,7 @@ subroutine lcfs(phin, iplace, numvari)
   endif
 
   ! Find an x-point and find the value of psi
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(xnull.eq.0.) then
-     select case(idevice)
-     case(2)
-        xnull = 0.6
-        znull = -1.0
-     case(4)
-        xnull =  1.2
-        znull = -1.2
-     case default
-        xnull = xzero
-        znull = zzero
-     end select
-  endif
-        
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~        
   call magaxis(xnull,znull,phin,iplace,numvari,psix,1,ier)
   if(ier.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) then 

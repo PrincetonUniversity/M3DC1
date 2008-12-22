@@ -330,6 +330,10 @@
       zdiv = zzero-1.
       divcur = 0.1
 !
+!.....approximate position of x-point
+      xnull = 0.
+      znull = 0.
+!
 !     derivative of current wrt normalized poloidal flux
       djdpsi = 0.0
 !

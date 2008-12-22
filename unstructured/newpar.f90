@@ -511,6 +511,16 @@ subroutine derived_quantities(vec)
   real :: tstart, tend
   vectype, dimension(*), intent(in) :: vec
 
+  ! Find lcfs
+  ! ~~~~~~~~~
+  if(eqsubtract.eq.1) then
+     if(ntime.eq.ntime0) &
+          call lcfs(field0,psi_g,num_fields)
+  else
+     call lcfs(field,psi_g,num_fields)
+  endif
+
+
   ! Define auxiliary fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Defining auxiliary fields."
@@ -558,16 +568,6 @@ subroutine derived_quantities(vec)
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      t_aux = t_aux + tend - tstart
-  endif
-  
-
-  ! find lcfs
-  ! ~~~~~~~~~
-  if(eqsubtract.eq.1) then
-     if(ntime.eq.ntime0) &
-          call lcfs(field0,psi_g,num_fields)
-  else
-     call lcfs(field,psi_g,num_fields)
   endif
 
   ! calculate scalars
