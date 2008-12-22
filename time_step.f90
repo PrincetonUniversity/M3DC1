@@ -689,6 +689,7 @@ subroutine split_step(calc_matrices)
         phi = b1_phi
         call export_time_advance_vectors
         ! redefine transport coefficients with new den/pe values
+        call lcfs(field,psi_g,num_fields)
         call define_transport_coefficients
         ! revert fields to old values
         phi = b2_phi
@@ -892,6 +893,7 @@ subroutine unsplit_step(calc_matrices)
      phi = b1_phi
      call export_time_advance_vectors
      ! redefine transport coefficients with new den/pe values
+     call lcfs(field,psi_g,num_fields)
      call define_transport_coefficients
      ! revert fields to old values
      phi = b2_phi

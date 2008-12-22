@@ -207,6 +207,7 @@ module basic
   ! complex options
   integer :: ntor     ! toroidal mode number
 
+  real :: xnull, znull ! coordinates of the limiting x-point
 !
 !.....input quantities---defined in subroutine input or in namelist
 !
@@ -247,7 +248,7 @@ module basic
        n_target, n_control_p, n_control_i, n_control_d,        &
        icalc_scalars, ike_only, ifout, inertia, itwofluid,     &
        int_pts_main, int_pts_aux, int_pts_diag,                &
-       iwave, bx0 , chiiner, ibootstrap
+       iwave, bx0 , chiiner, ibootstrap, xnull, znull
 
 
   !     derived quantities
