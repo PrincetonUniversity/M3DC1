@@ -188,7 +188,7 @@ end
 pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
                         isotropic=iso, lines=lines, range=range, $
                         color_table=ct, zlog=zlog, csym=csym, $ 
-                        nofill=nofill, _EXTRA = ex
+                        nofill=nofill, noautoct=noautoct, _EXTRA = ex
 
     zed = reform(z)
    
@@ -245,8 +245,13 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
         minval = min(zed)
         maxval = max(zed)
     endif else begin
-        minval = range[0]
-        maxval = range[1]
+        if(range[0] ne range[1]) then begin
+            minval = range[0]
+            maxval = range[1]
+        endif else begin
+            minval = min(zed)
+            maxval = max(zed)
+        endelse
     endelse
 
     if(keyword_set(zlog) and minval le 0) then begin
@@ -279,8 +284,10 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     endelse
 
     if(n_elements(ct) eq 0) then begin
-        if(minval*maxval lt 0.) then loadct, 39 $
-        else loadct, 3
+        if(not keyword_set(noautoct)) then begin
+            if(minval*maxval lt 0.) then loadct, 39 $
+            else loadct, 3
+        endif
     endif else loadct, ct
 
     ; plot the color scale
