@@ -35,6 +35,7 @@ module basic
   real :: etar, eta0  ! iresfunc=0:  resistivity = etar + eta0/T^(3/2)
   real :: etaoff, etadelt !iresfunc=1: = etar + .5 eta0 (1+tanh(psi-psilim(1+etaoff*DP)/etadelt*DP))
   !                                                      DP = psilim - psimin
+  real :: lambdae     ! multiplier of electron mass term in psi equation
   real :: kappat      ! isotropic temperature conductivity
   real :: kappa0      ! kappa = kappat + kappa0*n/T^(1/2)
   real :: kappah      ! phenomenological model for H-mode
@@ -217,7 +218,7 @@ module basic
        numvar,idens,ipres,gyro,isources,nosig,itor,jadv,       &
        gam,db,gravr,gravz,                                     &
        p0,pi0,bzero,vzero,phizero,                             &
-       etar,eta0,iresfunc,etaoff,etadelt,                      &
+       etar,eta0,iresfunc,etaoff,etadelt, lambdae,             &
        amu,amuc,amupar,amue,denm,                              &
        kappat,kappa0,kappar,kappax,kappah,                     &
        hyper,hyperi,hyperv,hyperc,hyperp,deex,                 &

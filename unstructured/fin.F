@@ -196,6 +196,7 @@
       etadelt = 0.
       etar = 0.
       eta0   = 0.
+      lambdae = 0.
       kappat = 0.
       kappar = 0.
       kappa0 = 0.
