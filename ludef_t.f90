@@ -1056,6 +1056,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   q_bf = 0.
 
   temp = b1psi(trial,lin)
+  if(lambdae.gt.0) temp = temp - lambdae*b1psieta(trial,lin,ni79,hf)   ! electron mass term
   ssterm(psi_g) = ssterm(psi_g) + temp
   ddterm(psi_g) = ddterm(psi_g) + temp*bdf
 
