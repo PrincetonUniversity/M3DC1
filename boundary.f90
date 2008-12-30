@@ -165,11 +165,11 @@ subroutine set_tangent_bc(imatrix,ibegin,rhs,bv,normal,curv,izonedim)
   vectype, intent(in), dimension(6) :: bv     ! boundary values
   integer, intent(in) :: izonedim             ! dimension of boundary
 
-  integer :: irow, irow_n, irow_m
+  integer :: irow, irow_n, irow_m, irow_l
   integer :: numvals
-  integer, dimension(2) :: cols
-  vectype, dimension(2) :: vals
-  real :: t1(2)
+  integer, dimension(3) :: cols
+  vectype, dimension(3) :: vals
+  real :: t1(3), t2(3)
   real :: psirsq, psizsq, gradpsi
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, "set_tangent_bc called"
@@ -197,32 +197,30 @@ subroutine set_tangent_bc(imatrix,ibegin,rhs,bv,normal,curv,izonedim)
        if(imatrix.ne.0) call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
        rhs(irow) = vals(1)*bv(2) + vals(2)*bv(3)
      case(1)
+!
        irow_n = ibegin + 1
        irow_m = ibegin + 2
        if(imatrix.ne.0) then
-!>>>>>debug:   either of the following pair should give the same results
-      if(imatrix.eq.16) write(*,1001) myrank,imatrix,irow_n,irow_m,icomplex,normal
- 1001 format(" applyLinCombinationForMatrix called",5i5,1p2e12.4)
-!...remove comments from the following lines
-!         call applyLinCombinationForMatrix(imatrix, irow_n, irow_m, normal, icomplex)
-!         call setgeneralbc(imatrix, irow_m, numvals, cols, vals, icomplex)
 !
-!         call applyLinCombinationForMatrix(imatrix, irow_n, irow_m, vals, icomplex)
-!         call setgeneralbc(imatrix, irow_n, numvals, cols, vals, icomplex)
+!....replace row_n with  normal(1)*row_n + normal(2)*row_m
+!            row_m with -normal(2)*row_n + normal(1)*row_m
+          call applyLinCombinationForMatrix(imatrix, irow_n, irow_m, normal, icomplex)
+          call setgeneralbc(imatrix, irow_m, numvals, cols, vals, icomplex)
+!
 !
        endif
-!>>>>>debug
-!    rhs(irow_n) =  normal(1)*rhs(irow_n) + normal(2)*rhs(irow_m)   !cj normal
-!    rhs(irow_m) = -normal(2)*bv(2)       + normal(1)*bv(3)    !cj tangent
-       rhs(irow_n) = 0.
-       rhs(irow_m) = 0.
+     rhs(irow_n) =  normal(1)*rhs(irow_n) + normal(2)*rhs(irow_m)   !cj normal
+     rhs(irow_m) = -normal(2)*bv(2)       + normal(1)*bv(3)    !cj tangent
      end select
 !
 
      ! clamp tangential 2nd-derivative
      cols(1) = ibegin + 3
      cols(2) = ibegin + 5
-     
+     cols(3) = ibegin + 4
+     irow_n = ibegin + 3
+     irow_m = ibegin + 5
+     irow_l = ibegin + 4
 
      select case(nonrect)
      case(0) 
@@ -234,23 +232,26 @@ subroutine set_tangent_bc(imatrix,ibegin,rhs,bv,normal,curv,izonedim)
        if(imatrix.ne.0) call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
        rhs(irow) = vals(1)*bv(4) + vals(2)*bv(6)
      case(1)
+!
+!....the following coding should restrict the tangential derivative
+!    but presently makes the solution worse, so it is bypassed
+     return
        if(imatrix.ne.0) then
          t1(1) =   normal(1)**2
          t1(2) =  -normal(2)**2
-         vals(1) = -t1(2)
-         vals(2) =  t1(1)
-         irow_n = ibegin + 3
-         irow_m = ibegin + 5
+         vals(1) =  normal(2)**2
+         vals(2) =  normal(1)**2
+         vals(3) = -2.*normal(1)*normal(2)
+         t2 = real(vals)
+         numvals = 3
 !
-!>>>>>>debug
-!...remove comments from the following lines
-!        call applyLinCombinationForMatrix(imatrix, irow_n, irow_m, vals, icomplex)
-!        call setgeneralbc(imatrix, irow_n, numvals, cols, vals, icomplex)
+         call applyLinCombinationForMatrix(imatrix, irow_n, irow_m, t2, icomplex)
+         call setgeneralbc(imatrix, irow_n, numvals, cols, vals, icomplex)
 !
        endif
 !
 !......curvature condition
-!      rhs(irow_n) =  0.00     !cj tangent
+       rhs(irow_n) =  curv !curv     !cj tangent
      end select
 
   else if(izonedim.eq.0) then
@@ -307,6 +308,7 @@ subroutine set_normal_bc(imatrix,ibegin,rhs,bv,normal,curv,izonedim)
   integer :: numvals
   integer, dimension(2) :: cols
   vectype, dimension(2) :: vals
+      real, dimension(2) :: t2
 
 
 !cjdebug  return
@@ -338,7 +340,8 @@ subroutine set_normal_bc(imatrix,ibegin,rhs,bv,normal,curv,izonedim)
         call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
         call setdiribc(imatrix, ibegin+4)
           case(1)
-        call applyLinCombinationForMatrix(imatrix, irow_n, irow_m, vals, icomplex) 
+        t2 = real(vals)
+        call applyLinCombinationForMatrix(imatrix, irow_n, irow_m, t2, icomplex)
         call setgeneralbc(imatrix, irow_n, numvals, cols, vals, icomplex)
         call setdiribc(imatrix, ibegin+4)
         rhs(irow_m) = -vals(2)*rhs(irow_n) + vals(1)*rhs(irow_m)  !cj tangent
@@ -882,7 +885,7 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
      call assign_local_pointers(i)
      call entdofs(numvargs, i, 0, ibegin, iendplusone)
 !>>>>>>debug
-!     if(imatrix.ne.0) write(35+myrank,1035) myrank,ibegin,x,z,normal,curv
+      if(imatrix.ne.0) write(35+myrank,1035) myrank,ibegin,x,z,normal,curv
 !     call MPI_Barrier(MPI_COMM_WORLD,ier)
  1035 format(2i5,1p5e12.4)
 
@@ -910,7 +913,7 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
      temp = psis_l
       if(ifixedb.eq.1) then
           call nodCurvature(i,curv)
-          curv = curv * sqrt(temp(2)**2+temp(3)**2)
+          curv = curv * sqrt(psi(ibegin+1)**2+psi(ibegin+2)**2)
           temp(1) = psiave
           temp(2) = 0.
           temp(3) = 0.
@@ -919,7 +922,7 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
 !
 
 !    ! no toroidal current
-     temp = 0.
+!    temp = 0.
 !    call set_laplacian_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim,-x)
   end do
 

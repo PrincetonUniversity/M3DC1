@@ -326,13 +326,13 @@ subroutine gradshafranov_solve
   ! insert boundary conditions
 !
 !.....NOTE:   This first call just modifies the gsmatrix_sm by inserting 1's
-!             on the diagonal for boundary points
+!             on the diagonal for boundary points (or vector angles for non-rect)
 !
   call boundary_gs(gsmatrix_sm, b1vecini, feedfac)
   call finalizematrix(gsmatrix_sm)
 !
 !>>>>>debug
-!     call writematrixtofile(gsmatrix_sm,33)
+      call writematrixtofile(gsmatrix_sm,33)
 !     call safestop(0)
 
   if(myrank.eq.0 .and. itimer.eq.1) then
@@ -612,17 +612,19 @@ subroutine gradshafranov_solve
            temp1(2) = real(psi(ibegin+3)/x)
            temp1(3) = real(-psi(ibegin+1)/x**2)
            temp1(4) = psi(ibegin+5)/x
+      temp1(1) = 0.5*sqrt(psi(ibegin+1)**2 + psi(ibegin+2)**2)
+      temp1(2) = normal(1)**2 *psi(ibegin+5) + normal(2)**2*psi(ibegin+3) -2.*normal(1)*normal(2)*psi(ibegin+4)
 !>>>>>debug
-!     if(is_boundary .and. itnum.eq.iabs(igs)) then
-!        write(70+myrank,1169) x,z,normal(1),normal(2),(real(psi(ibegin+ii)),ii=0,5), lhs,&
-!                               (real(b2vecini(ibegin+ii)),ii=0,5)
-!       write(80+myrank,1179) x,z,lhs,rhs
-!     endif
-!     if(.not.is_boundary .and. itnum.eq.iabs(igs)) then
-!       write(90+myrank,1179) x,z,lhs,rhs
-!     endif
+      if(is_boundary .and. itnum.eq.iabs(igs)) then
+         write(70+myrank,1169) x,z,normal(1),normal(2),(real(psi(ibegin+ii)),ii=0,5), lhs, temp1(1),temp1(2),&
+                                (real(b2vecini(ibegin+ii)),ii=0,5)
+        write(80+myrank,1179) x,z,lhs,rhs
+      endif
+      if(.not.is_boundary .and. itnum.eq.iabs(igs)) then
+        write(90+myrank,1179) x,z,lhs,rhs
+      endif
  1179 format(1p4e12.4)
- 1169 format(4f6.3,1p7e12.4,/,24x,1p6e12.4)
+ 1169 format(4f6.3,1p9e12.4,/,24x,1p6e12.4)
 !>>>>>debug end
      enddo
 
