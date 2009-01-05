@@ -1,15 +1,21 @@
-function get_fieldnames, descriptions=descriptions
+function get_fieldnames
    fieldnames = ['beta', 'chi', 'eta', 'den', 'I', 'jphi', $
                  'kappa', 'Omega', 'p', 'pe', 'phi', 'pi', 'psi', $
                  'T', 'Te', 'Ti', 'V', 'vz']
    return, fieldnames
 end
 
-function get_scalarnames, descriptions=descriptions
+function get_scalarnames
    fieldnames = ['Beta', 'Toroidal Current', 'Kinetic Energy', $
                  'Loop Voltage', 'Particles']
    return, fieldnames
 end
+
+function get_conservation_names
+   fieldnames = ['Energy', 'Flux', 'Angular Momentum', 'Particle Flux']
+   return, fieldnames
+end
+
 
 pro c1view_event, ev
    widget_control, ev.top, get_uvalue=state
@@ -17,17 +23,20 @@ pro c1view_event, ev
 
    if(n_elements(uval) eq 0) then return
 
-   print, uval
-
    case uval of
-       'AUTO_CT' : begin
-           state.auto_ct = 1-state.auto_ct
+       'CHANGE' : state.change = 1-state.change
+       'CONS_NAME' : begin
+           name = get_conservation_names()
+           state.conservation_name = name(ev.index)
+       end
+       'CT_OPT' : begin
+           state.ct_opt = ev.value
+           if(ev.value eq 2) then loadct,0
            ct_button = widget_info(ev.top, find_by_uname='SET_CT')
-           widget_control, ct_button, sensitive=1-state.auto_ct
+           widget_control, ct_button, sensitive=(state.ct_opt eq 0)
        end
        'DONE' : widget_control, ev.top, /destroy 
        'FIELD_OPTIONS' : begin
-           print, ev.value
            case ev.value of 
                'Contours': state.lines = 1-state.lines 
                'Isotropic' : state.isotropic = 1 - state.isotropic
@@ -42,42 +51,6 @@ pro c1view_event, ev
        end
        'FILENAME' : state.filename = ev.value
        'GAMMA' : state.growth_rate = 1-state.growth_rate
-       'PLOT_FIELD' : begin 
-           if(state.to_file eq 1) then begin
-               print, 'plotting to file', state.output_filename
-               setplot, 'ps'
-               device, filename=state.output_filename, /color, /encapsulated
-           endif
-           plot_field, state.fieldname, state.slice, $
-             filename=state.filename, $
-             isotropic=state.isotropic, $
-             lcfs=state.lcfs, $
-             linear=state.linear, $ 
-             mesh=state.mesh, $
-             lines=state.lines, $
-             range=state.zrange, zlog=state.zlog, $
-             noautoct=1-state.auto_ct 
-           if(state.to_file eq 1) then begin
-               device, /close
-               setplot, 'x'
-           endif
-       end
-       'PLOT_SCALAR' : begin
-           if(state.to_file eq 1) then begin
-               print, 'plotting to file', state.output_filename
-               setplot, 'ps'
-               device, filename=state.output_filename, /color, /encapsulated
-           endif
-           plot_scalar, state.scalarname, $
-             filename=state.filename[0:state.max_files-1], $
-             xrange=state.xrange, yrange=state.yrange, $
-             xlog=state.xlog, ylog=state.ylog, $
-             growth_rate=state.growth_rate
-           if(state.to_file eq 1) then begin
-               device, /close
-               setplot, 'x'
-           endif
-       end
        'SCALARNAME' : begin
            scalarnames = get_scalarnames()
            state.scalarname = scalarnames(ev.index)
@@ -91,7 +64,6 @@ pro c1view_event, ev
        'TO_FILENAME' : begin
            widget_control, ev.id, get_value=filename
            state.output_filename = filename
-           print, 'filename = ', filename
        end
        'XLOG' : state.xlog = 1-state.xlog
        'XMIN' : begin
@@ -102,6 +74,10 @@ pro c1view_event, ev
            widget_control, ev.id, get_value=xmax
            state.xrange[1] = float(xmax)
        end
+       'XTICKS' : begin
+           widget_control, ev.id, get_value=xticks
+           state.xticks = float(xticks)
+       end
        'YLOG' : state.ylog = 1-state.ylog
        'YMIN' : begin
            widget_control, ev.id, get_value=ymin
@@ -110,6 +86,10 @@ pro c1view_event, ev
        'YMAX' : begin
            widget_control, ev.id, get_value=ymax
            state.yrange[1] = float(ymax)
+       end
+       'YTICKS' : begin
+           widget_control, ev.id, get_value=yticks
+           state.yticks = float(yticks)
        end
        'ZLOG' : state.zlog = 1-state.zlog
        'ZMIN' : begin
@@ -128,6 +108,62 @@ pro c1view_event, ev
 end
 
 
+pro plot_event, ev
+   widget_control, ev.top, get_uvalue=state
+   widget_control, ev.id, get_uvalue=uval
+
+   if(n_elements(uval) eq 0) then return
+
+   for i=0, n_elements(state.label)-1 do begin
+       if(strlen(state.label[i]) eq 0) then $
+         state.label[i] = state.filename[i]
+   end
+
+   if(state.to_file eq 1) then begin
+       print, 'plotting to file', state.output_filename
+       setplot, 'ps'
+       device, filename=state.output_filename, /color, /encapsulated
+   endif
+
+   case uval of
+       'PLOT_CONS' : begin
+           plot_energy, state.conservation_name, $
+             filename=state.filename[0], $
+             diff=state.change, $
+             xrange=state.xrange, yrange=state.yrange, $
+             xlog=state.xlog, ylog=state.ylog
+       end
+       'PLOT_FIELD' : begin 
+           plot_field, state.fieldname, state.slice, $
+             filename=state.filename, $
+             isotropic=state.isotropic, $
+             lcfs=state.lcfs, $
+             linear=state.linear, $ 
+             mesh=state.mesh, $
+             lines=state.lines, $
+             range=state.zrange, zlog=state.zlog, $
+             noautoct=(state.ct_opt eq 0), $
+             xticks=state.xticks, yticks=state.yticks
+       end
+       'PLOT_SCALAR' : begin
+           plot_scalar, state.scalarname, $
+             filename=state.filename[0:state.max_files-1], $
+             xrange=state.xrange, yrange=state.yrange, $
+             xlog=state.xlog, ylog=state.ylog, $
+             growth_rate=state.growth_rate, $
+             bw=(state.ct_opt eq 2), $
+             names=state.label[0:state.max_files-1]             
+       end
+   end
+
+   if(state.to_file eq 1) then begin
+       device, /close
+       setplot, 'x'
+   endif
+
+end
+
+
 pro filename_event, ev
    widget_control, ev.id, get_uval=uval
    widget_control, ev.top, get_uval=state
@@ -141,18 +177,30 @@ pro filename_event, ev
    end
    state.max_files = i
    widget_control, ev.top, set_uval=state, bad_id=id
-
-   print, state.max_files, state.filename
 end
 
+pro label_event, ev
+   widget_control, ev.id, get_uval=uval
+   widget_control, ev.top, get_uval=state
+   widget_control, ev.id, get_value=value
+   
+   state.label[uval-1] = value
+
+   widget_control, ev.top, set_uval=state, bad_id=id
+end
+
+
 pro c1view
-   state = { filename:['C1.h5', '', ''], max_files:1, $
-             label:['1', '2', '3'], $
+   state = { filename:['C1.h5', '', '', '', ''], max_files:1, $
+             label:['', '', '', '', ''], $
              fieldname:'beta', slice:0, $
-             scalarname: 'beta', growth_rate:0, color_table:-1, auto_ct:1, $
+             scalarname:'beta', growth_rate:0, $
+             conservation_name:'energy', change:0, $
+             color_table:-1, ct_opt:1, $
              points:50, isotropic:1, lcfs:0, mesh:0, lines:0, linear:0, $
+             monochrome:0, $
              xrange:[0.,0.], yrange:[0.,0.], zrange:[0.,0.], $
-             xlog:0, ylog:0, zlog:0, $
+             xlog:0, ylog:0, zlog:0, xticks:0, yticks:0, $
              to_file:0, output_filename:'plot.eps' }
 
    base = widget_base(/row, /base_align_top)
@@ -187,7 +235,8 @@ pro c1view
    button_zlog = cw_bgroup(base_zrange, 'Log', uvalue='ZLOG', /nonexclusive)
 
    button_plot_field = widget_button(base_field, value='Plot', $
-                                     uvalue='PLOT_FIELD')
+                                     uvalue='PLOT_FIELD', $
+                                     event_pro='plot_event')
 
 
    ; Scalar Plot Tab
@@ -200,9 +249,23 @@ pro c1view
                              uval='SCALARNAME')
    widget_control, scalar_list, set_list_select=0
    button_gamma = cw_bgroup(base_scalar, 'Growth Rate', uvalue='GAMMA', $
-                            /nonexclusive)
+                            set_value=state.growth_rate, /nonexclusive)
    button_plot_scalar = widget_button(base_scalar, value='Plot', $
-                                     uvalue='PLOT_SCALAR')
+                                      uvalue='PLOT_SCALAR', $
+                                      event_pro='plot_event')
+
+   ; Convervation Laws Tab
+   ; ~~~~~~~~~~~~~~~~~~~~~
+   base_cons = widget_base(tab, title='Conservation Laws', /column)
+   scalar_list = widget_list(base_cons, value=get_conservation_names(), $
+                             ysize=5, uval='CONS_NAME')
+   widget_control, scalar_list, set_list_select=0
+   button_options = cw_bgroup(base_cons, 'Change', uvalue='CHANGE', $
+                              set_value=state.change, /nonexclusive)
+   button_plot_scalar = widget_button(base_cons, value='Plot', $
+                                      uvalue='PLOT_CONS', $
+                                      event_pro='plot_event')
+
 
 
    ; Plot Options Tab
@@ -217,6 +280,9 @@ pro c1view
    text_xmin = cw_field(base_xrange, value=state.xrange[1], /all_events, $
                            uvalue='XMAX', xsize=6, title='', /float)
    button_xlog = cw_bgroup(base_xrange, 'Log', uvalue='XLOG', /nonexclusive)
+   text_xticks = cw_field(base_xrange, title='Ticks', value=state.xticks, $
+                          /all_events, uvalue='XTICKS', xsize=6, /integer)
+
    tab_yrange = widget_tab(base_plot, value='yrange')
    base_yrange = widget_base(tab_yrange, /row, title='y Range')
    text_ymin = cw_field(base_yrange, value=state.yrange[0], /all_events, $
@@ -224,15 +290,19 @@ pro c1view
    text_ymin = cw_field(base_yrange, value=state.yrange[1], /all_events, $
                            uvalue='YMAX', xsize=6, title='', /float)
    button_ylog = cw_bgroup(base_yrange, 'Log', uvalue='YLOG', /nonexclusive)
+   text_yticks = cw_field(base_yrange, title='Ticks', value=state.yticks, $
+                          /all_events, uvalue='YTICKS', xsize=6, /integer)
+
 
 
    tab_ct = widget_tab(base_plot, value='ct')
    base_ct = widget_base(tab_ct, /row, title='Color Table')
    button_ct = widget_button(base_ct, value='Set color table', $
                              uvalue='SET_CT', uname='SET_CT', $
-                            sensitive=(1-state.auto_ct))
-   button_ct_auto = cw_bgroup(base_ct, 'Auto', uvalue='AUTO_CT', $
-                              /nonexclusive, set_value=state.auto_ct)
+                            sensitive=(state.ct_opt eq 0))
+   button_ct_auto = cw_bgroup(base_ct, ['User', 'Auto', 'Mono'], $
+                              set_value=state.ct_opt, /row, $
+                              uvalue='CT_OPT', /exclusive)
 
    button_to_file = cw_bgroup(base_plot, 'Output to file', $ 
                               uvalue='TO_FILE', /nonexclusive)
@@ -246,25 +316,41 @@ pro c1view
    label_filenames = widget_label(base_filenames, value='Filenames')
    text_file1 = widget_text(base_filenames, /all_events, uvalue=1, $
                             value=state.filename[0], /editable, $
-                           event_pro='filename_event')
+                            event_pro='filename_event')
    text_file2 = widget_text(base_filenames, /all_events, uvalue=2, $
                             value=state.filename[1], /editable, $
-                           event_pro='filename_event')
+                            event_pro='filename_event')
    text_file3 = widget_text(base_filenames, /all_events, uvalue=3, $
                             value=state.filename[2], /editable, $
-                           event_pro='filename_event')
+                            event_pro='filename_event')
+   text_file4 = widget_text(base_filenames, /all_events, uvalue=4, $
+                            value=state.filename[3], /editable, $
+                            event_pro='filename_event')
+   text_file5 = widget_text(base_filenames, /all_events, uvalue=5, $
+                            value=state.filename[4], /editable, $
+                            event_pro='filename_event')
+
    label_labels = widget_label(base_filenames, value='Labels')
    text_label1 = widget_text(base_filenames, /all_events, uvalue=1, $
-                             value='', /editable)
+                             value=state.label[0], /editable, $
+                             event_pro='label_event')
    text_label2 = widget_text(base_filenames, /all_events, uvalue=2, $
-                             value='', /editable)
+                             value=state.label[1], /editable, $
+                             event_pro='label_event')
    text_label3 = widget_text(base_filenames, /all_events, uvalue=3, $
-                             value='', /editable)
+                             value=state.label[2], /editable, $
+                             event_pro='label_event')
+   text_label4 = widget_text(base_filenames, /all_events, uvalue=4, $
+                             value=state.label[3], /editable, $
+                             event_pro='label_event')
+   text_label5 = widget_text(base_filenames, /all_events, uvalue=5, $
+                             value=state.label[4], /editable, $
+                             event_pro='label_event')
 
 
    button_done = widget_button(base, value='Done', uvalue='DONE')
 
-   draw = widget_draw(base, xsize=500, ysize=400)
+   draw = widget_draw(base, xsize=600, ysize=400)
 
    widget_control, base, set_uvalue = state
    widget_control, base, /realize

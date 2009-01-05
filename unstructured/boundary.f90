@@ -16,88 +16,147 @@ subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
   logical, intent(out) :: is_boundary       ! is inode on boundary
 
   integer :: ibottom, iright, ileft, itop
+  integer :: flag
   double precision :: coords(3)
 
-!cj 0: rect mesh; 1: curve mesh
-          select case(nonrect)
-          case(0)
-  call zonenod(inode,izone,izonedim)
+  curv = 0.
 
-  if(izonedim.ge.2) then
-     is_boundary = .false.
-     return
-  end if
+  select case(nonrect)
+  case(0)
+     call zonenod(inode,izone,izonedim)
 
-  call getmodeltags(ibottom, iright, itop, ileft)
-
-  ! for periodic bc's
-  ! skip if on a periodic boundary
-  ! and convert corner to an edge when one edge is periodic
-  if(iper.eq.1) then 
-     if(izonedim.eq.0) then 
-        izonedim = 1
-        izone = ibottom
-     endif
-     if(izone.eq.ileft .or. izone.eq.iright) then
+     if(izonedim.ge.2) then
         is_boundary = .false.
         return
      end if
-  endif
-  if(jper.eq.1) then 
-     if(izonedim.eq.0) then 
-        izonedim = 1
-        izone = ileft
+
+     call getmodeltags(ibottom, iright, itop, ileft)
+
+     ! for periodic bc's
+     ! skip if on a periodic boundary
+     ! and convert corner to an edge when one edge is periodic
+     if(iper.eq.1) then 
+        if(izonedim.eq.0) then 
+           izonedim = 1
+           izone = ibottom
+        endif
+        if(izone.eq.ileft .or. izone.eq.iright) then
+           is_boundary = .false.
+           return
+        end if
      endif
-     if(izone.eq.ibottom .or. izone.eq.itop) then
-        is_boundary = .false.
-        return
-     end if
-  endif
+     if(jper.eq.1) then 
+        if(izonedim.eq.0) then 
+           izonedim = 1
+           izone = ileft
+        endif
+        if(izone.eq.ibottom .or. izone.eq.itop) then
+           is_boundary = .false.
+           return
+        end if
+     endif
+     
+     is_boundary = .true.
+     if(izone.eq.iright) then
+        !cj     normal = 0.
+        normal(1) = 1.  !cos
+        normal(2) = 0.  !sin
+     else if(izone.eq.ileft) then
+        !cj     normal = pi
+        normal(1) =-1.  !cos
+        normal(2) = 0.  !sin
+     else if(izone.eq.itop) then
+        !cj     normal = pi/2.
+        normal(1) = 0.  !cos
+        normal(2) = 1.  !sin
+     else if(izone.eq.ibottom) then
+        !cj     normal = -pi/2.
+        normal(1) = 0.  !cos
+        normal(2) =-1.  !sin
+     endif
+     
+  case(1)
+     call nodNormalVec(inode, normal, is_boundary)
 
-  is_boundary = .true.
-  if(izone.eq.iright) then
-!cj     normal = 0.
-     normal(1) = 1.  !cos
-     normal(2) = 0.  !sin
-  else if(izone.eq.ileft) then
-!cj     normal = pi
-     normal(1) =-1.  !cos
-     normal(2) = 0.  !sin
-  else if(izone.eq.itop) then
-!cj     normal = pi/2.
-     normal(1) = 0.  !cos
-     normal(2) = 1.  !sin
-  else if(izone.eq.ibottom) then
-!cj     normal = -pi/2.
-     normal(1) = 0.  !cos
-     normal(2) =-1.  !sin
-  endif
+     if(.not.is_boundary) return
+     izonedim=1      !cj set izonedim always 1 for the shaped boundary
+     izone=1         !cj dummy for shaped boundary
 
-          case(1)
-  call nodNormalVec(inode, normal, is_boundary)
-   call nodCurvature(inode,curv)
-!
-!
-  if(.not.is_boundary) return
-  izonedim=1      !cj set izonedim always 1 for the shaped boundary
-  izone=1         !cj dummy for shaped boundary
-
-! if(myrank.eq.0) print *,"You are working with curved mesh."
-          end select 
-
+     flag = 1
+     call nodCurvature(inode, curv, flag)
+  end select
+  
   call xyznod(inode,coords)
-          select case(nonrect)
-          case(0)
-  x = coords(1) + xzero
-  z = coords(2) + zzero
-          case(1)
-  x = coords(1) !cjdebug + xzero
-  z = coords(2) !cjdebug + zzero
-! if(myrank.eq.0) print *,"You are working with curved mesh."
-          end select
-!     write(99,1099) inode,x,z,normal(1),normal(2)
-!1099 format(i5,1p4e12.4)
+  select case(nonrect)
+  case(0)
+     x = coords(1) + xzero
+     z = coords(2) + zzero
+  case(1)
+     x = coords(1) !cjdebug + xzero
+     z = coords(2) !cjdebug + zzero
+     ! if(myrank.eq.0) print *,"You are working with curved mesh."
+  end select
+  !     write(99,1099) inode,x,z,normal(1),normal(2)
+  !1099 format(i5,1p4e12.4)
 end subroutine boundary_node
+
+!======================================================================
+! rotate_vector
+! ~~~~~~~~~~~~~
+!
+! Performs coordinate rotation from (R, Z) to (n, t) on invec,
+! returns result in outvec.
+!======================================================================
+subroutine rotate_vector(invec, outvec, normal, curv)
+  implicit none
+  vectype, intent(in), dimension(6) :: invec
+  vectype, intent(out), dimension(6) :: outvec
+  real, intent(in) :: curv, normal(2)
+
+  outvec(1) = invec(1)
+  outvec(2) = normal(1)*invec(2) + normal(2)*invec(3)
+  outvec(3) = normal(1)*invec(3) - normal(2)*invec(2)
+  outvec(4) = normal(1)**2*invec(4) + normal(2)**2*invec(6) &
+       + 2.*normal(1)*normal(2)*invec(5)
+  outvec(5) = (normal(1)**2 - normal(2)**2)*invec(5) &
+       + normal(1)*normal(2)*(invec(6) - invec(4)) &
+       + curv*outvec(3)
+  outvec(6) = normal(1)**2*invec(6) + normal(2)**2*invec(4) &
+       - 2.*normal(1)*normal(2)*invec(5) &
+       - curv*outvec(2)
+end subroutine rotate_vector
+
+
+!======================================================================
+! rotate_matrix
+! ~~~~~~~~~~~~~
+!
+! Performs coordinate rotation from (R, Z) to (n, t) on imatrix
+!======================================================================
+subroutine rotate_matrix(imatrix, ibegin, normal, curv, rhs)
+  use basic
+  implicit none
+  integer, intent(in) :: imatrix, ibegin
+  real, intent(in) :: curv, normal(2)
+  vectype, dimension(*), intent(inout) :: rhs
+  integer :: row(5), i
+  real :: fac(2)
+  vectype, dimension(6) :: temp
+  
+  if(imatrix.ne.0) then
+     do i=1,5
+        row(i) = ibegin+i
+     end do
+     call applyLinCombinationForMatrix2(imatrix,&
+          row(1),row(2),row(3),row(4),row(5),normal,curv,icomplex)
+  endif
+
+  call rotate_vector(rhs(ibegin:ibegin+5),temp,normal,curv)
+  rhs(ibegin:ibegin+5) = temp
+
+end subroutine
+
+
 
 
 !======================================================================
@@ -114,36 +173,13 @@ subroutine set_dirichlet_bc(imatrix,ibegin,rhs,bv,normal,curv,izonedim)
   real, intent(in) :: normal(2), curv
   integer, intent(in) :: izonedim             ! dimension of boundary
   
-
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "set_dirichlet_bc called"
-
-  if(izonedim.eq.1) then
-     ! edge points
-     ! ~~~~~~~~~~~
-     !clamp value
-!>>>>>>debug ...remove following comment symbol
-     if(imatrix.ne.0) call setdiribc(imatrix, ibegin)
-     rhs(ibegin) = bv(1)
+  !clamp value
+  if(imatrix.ne.0) call setdiribc(imatrix, ibegin)
+  rhs(ibegin) = bv(1)
      
-     ! clamp tangential derivative
-       call set_tangent_bc(imatrix,ibegin,rhs,bv,normal,curv,izonedim)
+  ! clamp tangential derivative
+  call set_tangent_bc(imatrix,ibegin,rhs,bv,normal,curv,izonedim)
 
-  else if(izonedim.eq.0) then
-     ! corner points
-     ! ~~~~~~~~~~~~~
-     if(imatrix.ne.0) then 
-        call setdiribc(imatrix, ibegin)
-        call setdiribc(imatrix, ibegin+1)
-        call setdiribc(imatrix, ibegin+2)
-        call setdiribc(imatrix, ibegin+3)
-        call setdiribc(imatrix, ibegin+5)
-     endif
-     rhs(ibegin  ) = bv(1)
-     rhs(ibegin+1) = bv(2)
-     rhs(ibegin+2) = bv(3)
-     rhs(ibegin+3) = bv(4)
-     rhs(ibegin+5) = bv(6)
-  endif
 end subroutine set_dirichlet_bc
 
 
@@ -165,125 +201,64 @@ subroutine set_tangent_bc(imatrix,ibegin,rhs,bv,normal,curv,izonedim)
   vectype, intent(in), dimension(6) :: bv     ! boundary values
   integer, intent(in) :: izonedim             ! dimension of boundary
 
-  integer :: irow, irow_n, irow_m, irow_l
-  integer :: numvals
-  integer, dimension(3) :: cols
-  vectype, dimension(3) :: vals
-  real :: t1(3), t2(3)
-  real :: psirsq, psizsq, gradpsi
+  integer :: irow, numvals, i
+  integer, dimension(5) :: cols
+  vectype, dimension(5) :: vals
+  vectype, dimension(6) :: bv_rotated
+  real :: newnormal(2)
 
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "set_tangent_bc called"
+  if(imatrix.ne.0) then
+     do i=1,5 
+        cols(i) = ibegin + i
+     end do
+  endif
 
-  numvals = 2
-  vals(1) = -normal(2)
-  vals(2) =  normal(1)
-!
-
-  if(izonedim.eq.1) then
-! edge points
-! ~~~~~~~~~~~
-! clamp tangential 1st-derivative
-     cols(1) = ibegin + 1
-     cols(2) = ibegin + 2
-
+  call rotate_vector(bv, bv_rotated, normal, curv)
      
-     select case(nonrect)
-     case(0)
-       if(abs(normal(1)) .gt. abs(normal(2))) then
-          irow = ibegin + 2
-       else
-          irow = ibegin + 1
-       endif
-       if(imatrix.ne.0) call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
-       rhs(irow) = vals(1)*bv(2) + vals(2)*bv(3)
-     case(1)
-!
-       irow_n = ibegin + 1
-       irow_m = ibegin + 2
-       if(imatrix.ne.0) then
-!
-!....replace row_n with  normal(1)*row_n + normal(2)*row_m
-!            row_m with -normal(2)*row_n + normal(1)*row_m
-          call applyLinCombinationForMatrix(imatrix, irow_n, irow_m, normal, icomplex)
-          call setgeneralbc(imatrix, irow_m, numvals, cols, vals, icomplex)
-!
-!
-       endif
-     rhs(irow_n) =  normal(1)*rhs(irow_n) + normal(2)*rhs(irow_m)   !cj normal
-     rhs(irow_m) = -normal(2)*bv(2)       + normal(1)*bv(3)    !cj tangent
-     end select
-!
+  ! t
+  irow = ibegin+2
+  if(imatrix.ne.0) then
+     numvals = 2
+     vals(1) = -normal(2)
+     vals(2) =  normal(1)
+     call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
+  endif
+  rhs(irow) = bv_rotated(3)
+  
+  ! tt
+  irow = ibegin+5
+  if(imatrix.ne.0) then
+     numvals = 5
+     vals(1) = -curv*normal(1)
+     vals(2) = -curv*normal(2)
+     vals(3) = normal(2)**2
+     vals(4) = -2.*normal(1)*normal(2)
+     vals(5) = normal(1)**2
+     call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
+  endif
+  rhs(irow) = bv_rotated(6)
+  
+  if(izonedim.eq.0) then
+     ! n
+     irow = ibegin+1
+     if(imatrix.ne.0) then     
+        numvals = 2
+        vals(1) = normal(1)
+        vals(2) = normal(2)
+        call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
+     endif
+     rhs(irow) = bv_rotated(2)
 
-     ! clamp tangential 2nd-derivative
-     cols(1) = ibegin + 3
-     cols(2) = ibegin + 5
-     cols(3) = ibegin + 4
-     irow_n = ibegin + 3
-     irow_m = ibegin + 5
-     irow_l = ibegin + 4
-
-     select case(nonrect)
-     case(0) 
-       if(abs(normal(1)) .gt. abs(normal(2))) then
-          irow = ibegin + 5
-       else
-          irow = ibegin + 3
-       endif
-       if(imatrix.ne.0) call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
-       rhs(irow) = vals(1)*bv(4) + vals(2)*bv(6)
-     case(1)
-!
-!....the following coding should restrict the tangential derivative
-!    but presently makes the solution worse, so it is bypassed
-     return
-       if(imatrix.ne.0) then
-         t1(1) =   normal(1)**2
-         t1(2) =  -normal(2)**2
-         vals(1) =  normal(2)**2
-         vals(2) =  normal(1)**2
-         vals(3) = -2.*normal(1)*normal(2)
-         t2 = real(vals)
-         numvals = 3
-!
-         call applyLinCombinationForMatrix(imatrix, irow_n, irow_m, t2, icomplex)
-         call setgeneralbc(imatrix, irow_n, numvals, cols, vals, icomplex)
-!
-       endif
-!
-!......curvature condition
-       rhs(irow_n) =  curv !curv     !cj tangent
-     end select
-
-  else if(izonedim.eq.0) then
-     ! corner points
-     ! ~~~~~~~~~~~~~
-     ! clamp tangential 1st-derivative
-     cols(1) = ibegin + 1
-     cols(2) = ibegin + 2
-
-     irow = ibegin + 1    
-     if(imatrix.ne.0) &
-          call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
-     rhs(irow) = vals(1)*bv(2) + vals(2)*bv(3)
-
-     irow = ibegin + 2
-     if(imatrix.ne.0) &
-          call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
-     rhs(irow) = vals(1)*bv(2) + vals(2)*bv(3)
-
-     ! clamp tangential 2nd-derivative
-     cols(1) = ibegin + 3
-     cols(2) = ibegin + 5
-
-     irow = ibegin + 3
-     if(imatrix.ne.0) &
-          call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
-     rhs(irow) = vals(1)*bv(4) + vals(2)*bv(6)
-
-     irow = ibegin + 5
-     if(imatrix.ne.0) &
-          call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
-     rhs(irow) = vals(1)*bv(4) + vals(2)*bv(6)
+     ! nn
+     irow = ibegin+3
+     if(imatrix.ne.0) then
+        numvals = 3
+        vals(3) = normal(1)**2
+        vals(4) = 2.*normal(1)*normal(2)
+        vals(5) = normal(2)**2
+        call setgeneralbc(imatrix,irow,numvals,cols(3:5),vals(3:5),icomplex)
+     endif
+     rhs(irow) = bv_rotated(4)
   endif
 
 end subroutine set_tangent_bc
@@ -304,78 +279,58 @@ subroutine set_normal_bc(imatrix,ibegin,rhs,bv,normal,curv,izonedim)
   vectype, intent(in), dimension(6) :: bv     ! boundary values
   integer, intent(in) :: izonedim             ! dimension of boundary
 
-  integer :: irow, irow_n, irow_m
-  integer :: numvals
-  integer, dimension(2) :: cols
-  vectype, dimension(2) :: vals
-      real, dimension(2) :: t2
+  integer :: irow, numvals, i
+  integer, dimension(5) :: cols
+  vectype, dimension(5) :: vals
+  vectype, dimension(6) :: bv_rotated
+  real :: newnormal(2)
 
-
-!cjdebug  return
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "set_normal_bc called"
-
-  if(izonedim.eq.1) then
-     ! edge points
-     ! ~~~~~~~~~~~
-     numvals = 2
-     cols(1) = ibegin + 1
-     cols(2) = ibegin + 2
-!cj     vals(1) = cos(normal)
-!cj     vals(2) = sin(normal)
-     vals(1) = normal(1)
-     vals(2) = normal(2)
-
-!cj     if(abs(cos(normal)) .gt. abs(sin(normal))) then
-     if(abs(normal(1)) .gt. abs(normal(2))) then
-        irow = ibegin + 1
-     else
-        irow = ibegin + 2
-     endif
-        irow_n = ibegin + 1
-        irow_m = ibegin + 2
-
-     if(imatrix.ne.0) then
-          select case(nonrect)
-          case(0)
-        call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
-        call setdiribc(imatrix, ibegin+4)
-          case(1)
-        t2 = real(vals)
-        call applyLinCombinationForMatrix(imatrix, irow_n, irow_m, t2, icomplex)
-        call setgeneralbc(imatrix, irow_n, numvals, cols, vals, icomplex)
-        call setdiribc(imatrix, ibegin+4)
-        rhs(irow_m) = -vals(2)*rhs(irow_n) + vals(1)*rhs(irow_m)  !cj tangent
-!     if(myrank.eq.0) print *,"You are working with curved mesh."
-          end select
-     endif
-          select case(nonrect)
-          case(0)
-     rhs(irow) = vals(1)*bv(2) + vals(2)*bv(3)
-          case(1)
-     rhs(irow_n) = vals(1)*bv(2) + vals(2)*bv(3)   !cj normal
-!     if(myrank.eq.0) print *,"You are working with curved mesh."
-          end select
-     rhs(ibegin+4) = bv(5)
-     if(myrank.eq.0 .and. iprint.ge.2) &
-           print *, "set_normal_bc : ibegin irow_n irow_m", &
-                     ibegin, irow_n, irow_m
-
-  else if(izonedim.eq.0) then
-     ! corner points
-     ! ~~~~~~~~~~~~~
-     if(imatrix.ne.0) then
-        call setdiribc(imatrix, ibegin+1)
-        call setdiribc(imatrix, ibegin+2)
-        call setdiribc(imatrix, ibegin+4)
-     end if
-     rhs(ibegin+1) = bv(2)
-     rhs(ibegin+2) = bv(3)
-     rhs(ibegin+4) = bv(5)
+  if(imatrix.ne.0) then
+     do i=1,5 
+        cols(i) = ibegin + i
+     end do
   endif
 
+  call rotate_vector(bv, bv_rotated, normal, curv)
+     
+  ! n
+  irow = ibegin+1
+  if(imatrix.ne.0) then
+     numvals = 2
+     vals(1) = normal(1)
+     vals(2) = normal(2)
+     call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
+  endif
+  rhs(irow) = bv_rotated(2)
+
+  ! nt
+  irow = ibegin+4
+  if(imatrix.ne.0) then
+     numvals = 5
+     vals(1) = -curv*normal(2)
+     vals(2) = curv*normal(1)
+     vals(3) = -normal(1)*normal(2)
+     vals(4) = normal(1)**2 - normal(2)**2
+     vals(5) = normal(1)*normal(2)
+     call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
+  endif
+  rhs(irow) = bv_rotated(5)
+  
+  if(izonedim.eq.0) then
+     ! t
+     irow = ibegin+2
+     if(imatrix.ne.1) then
+        numvals = 2
+        vals(1) = -normal(2)
+        vals(2) =  normal(1)
+        call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
+     endif
+     rhs(irow) = bv_rotated(3)
+  endif
+     
 end subroutine set_normal_bc
-
-
+   
+   
 !======================================================================
 ! set_laplacian_bc
 !======================================================================
@@ -398,9 +353,6 @@ subroutine set_laplacian_bc(imatrix,ibegin,rhs,bv,normal,curv,izonedim,radius)
   integer, dimension(3) :: cols
   vectype, dimension(3) :: vals
 
-
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "set_laplacian_bc called"
-
   if(itor.eq.1) then
      numvals = 3
      cols(1) = ibegin + 1
@@ -420,23 +372,10 @@ subroutine set_laplacian_bc(imatrix,ibegin,rhs,bv,normal,curv,izonedim,radius)
   if(izonedim.eq.1) then
      ! edge points
      ! ~~~~~~~~~~~
-!cj     if(abs(cos(normal)) .gt. abs(sin(normal))) then
-     if(abs(normal(1)) .gt. abs(normal(2))) then
-        irow = ibegin + 3
-     else
-        irow = ibegin + 5
-     endif
-
-     if(imatrix.ne.0) call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
+     irow = ibegin + 3
+     if(imatrix.ne.0) &
+          call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
      rhs(irow) = 0.
-!
-!.....>>>>>debug test
-!    irow = ibegin + 4
-!    numvals = 1
-!    cols(1) = ibegin + 4
-!    vals(1) = 1.
-!    if(imatrix.ne.0) call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
-!    rhs(irow) = 0.
   end if
   
 end subroutine set_laplacian_bc
@@ -459,7 +398,6 @@ subroutine boundary_vel(imatrix, rhs)
   
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes
-!cj  real :: normal, x, z
   real :: normal(2), curv
   real :: x, z
   vectype, dimension(6) :: temp
@@ -467,7 +405,6 @@ subroutine boundary_vel(imatrix, rhs)
   logical :: is_boundary
 
   if(iper.eq.1 .and. jper.eq.1) return 
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_vel called"
 
   call numnod(numnodes)
   do i=1, numnodes
@@ -476,23 +413,33 @@ subroutine boundary_vel(imatrix, rhs)
      if(.not.is_boundary) cycle
 
      call entdofs(vecsize_vel, i, 0, ibegin, iendplusone)
+     call rotate_matrix(imatrix, ibegin+u_off, normal, curv, rhs)
+     if(numvar.ge.2) &
+          call rotate_matrix(imatrix, ibegin+vz_off, normal, curv, rhs)
+     if(numvar.ge.3) &
+          call rotate_matrix(imatrix, ibegin+chi_off, normal, curv, rhs)
+
      call assign_local_pointers(i)
 
      ! no normal flow
      if(inonormalflow.eq.1) then
         temp = 0.
-        call set_dirichlet_bc(imatrix,ibegin+u_off,rhs,temp,normal,curv,izonedim)
+        call set_dirichlet_bc(imatrix,ibegin+u_off,rhs,temp, &
+             normal,curv,izonedim)
         if(numvar.ge.3) then
-           call set_normal_bc(imatrix,ibegin+chi_off,rhs,temp,normal,curv,izonedim)
+           call set_normal_bc(imatrix,ibegin+chi_off,rhs,temp, &
+                normal,curv,izonedim)
         endif
      end if
      
      ! no poloidal slip
      if(inoslip_pol.eq.1) then
         temp = 0.
-        call set_normal_bc(imatrix,ibegin+u_off,rhs,temp,normal,curv,izonedim)
+        call set_normal_bc(imatrix,ibegin+u_off,rhs,temp, &
+             normal,curv,izonedim)
         if(numvar.ge.3) then
-           call set_dirichlet_bc(imatrix,ibegin+chi_off,rhs,temp,normal,curv,izonedim)
+           call set_dirichlet_bc(imatrix,ibegin+chi_off,rhs,temp, &
+                normal,curv,izonedim)
         endif
      end if
 
@@ -504,23 +451,27 @@ subroutine boundary_vel(imatrix, rhs)
            if(integrator.eq.1 .and. ntime.gt.1) then
               temp = 1.5*temp + 0.5*vzo_v(ibegin+vz_off:ibegin+vz_off+5)
            endif
-           call set_dirichlet_bc(imatrix,ibegin+vz_off,rhs,temp,normal,curv,izonedim)
+           call set_dirichlet_bc(imatrix,ibegin+vz_off,rhs,temp, &
+                normal,curv,izonedim)
         end if
         
         ! no toroidal stress
         if(inostress_tor.eq.1) then
            temp = 0.
-           call set_normal_bc(imatrix,ibegin+vz_off,rhs,temp,normal,curv,izonedim)
+           call set_normal_bc(imatrix,ibegin+vz_off,rhs,temp, &
+                normal,curv,izonedim)
         end if
      endif
        
      ! no vorticity
      temp = 0.
-     call set_laplacian_bc(imatrix,ibegin+u_off,rhs,temp,normal,curv,izonedim,-x)
+     call set_laplacian_bc(imatrix,ibegin+u_off,rhs,temp,normal, &
+          curv,izonedim,-x)
 
      ! no compression
      if(com_bc.eq.1 .and. numvar.ge.3) then
-        call set_laplacian_bc(imatrix,ibegin+chi_off,rhs,temp,normal,curv,izonedim,x)
+        call set_laplacian_bc(imatrix,ibegin+chi_off,rhs,temp, &
+             normal,curv,izonedim,x)
      endif
   end do
 
@@ -562,8 +513,14 @@ subroutine boundary_mag(imatrix, rhs)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
      if(.not.is_boundary) cycle
 
-     call entdofs(vecsize_phi, i, 0, ibegin, iendplusone)
      call entdofs(1, i, 0, ibegin1, iendplusone1)
+     call entdofs(vecsize_phi, i, 0, ibegin, iendplusone)
+     call rotate_matrix(imatrix, ibegin+psi_off, normal, curv, rhs)
+     if(numvar.ge.2) &
+          call rotate_matrix(imatrix, ibegin+bz_off, normal, curv, rhs)
+     if(numvar.ge.3) &
+          call rotate_matrix(imatrix, ibegin+pe_off, normal, curv, rhs)
+
      call assign_local_pointers(i)
 
      ! clamp poloidal field
@@ -589,7 +546,8 @@ subroutine boundary_mag(imatrix, rhs)
         if(integrator.eq.1 .and. ntime.gt.1) then
            temp = 1.5*temp + 0.5*bzo_v(ibegin+bz_off:ibegin+bz_off+5)
         endif
-        call set_dirichlet_bc(imatrix,ibegin+bz_off,rhs,temp,normal,curv,izonedim)
+        call set_dirichlet_bc(imatrix,ibegin+bz_off,rhs,temp, &
+             normal,curv,izonedim)
      endif
 
      ! no toroidal current
@@ -598,7 +556,8 @@ subroutine boundary_mag(imatrix, rhs)
         if(jadv.eq.1 .and. igauge.eq.0) then
            temp(1) = vloop/(2.*pi*resistivity(ibegin1))
         endif
-        call set_laplacian_bc(imatrix,ibegin+psi_off,rhs,temp,normal,curv,izonedim,-x)
+        call set_laplacian_bc(imatrix,ibegin+psi_off,rhs,temp, &
+             normal,curv,izonedim,-x)
      end if
 
      ! no tangential current
@@ -610,20 +569,23 @@ subroutine boundary_mag(imatrix, rhs)
      if(numvar.ge.3) then 
         if(inograd_p.eq.1) then
            temp = 0.
-           call set_normal_bc(imatrix,ibegin+pe_off,rhs,temp,normal,curv,izonedim)
+           call set_normal_bc(imatrix,ibegin+pe_off,rhs,temp, &
+                normal,curv,izonedim)
         end if
         if(iconst_p.eq.1) then
            temp = pes_l
            if(integrator.eq.1 .and. ntime.gt.1) then
               temp = 1.5*temp + 0.5*peo_v(ibegin+pe_off:ibegin+pe_off+5)
            endif
-           call set_dirichlet_bc(imatrix,ibegin+pe_off,rhs,temp,normal,curv,izonedim)
+           call set_dirichlet_bc(imatrix,ibegin+pe_off,rhs,temp, &
+                normal,curv,izonedim)
         else if(iconst_t.eq.1) then
            temp = pes_l*den1_l(1)/dens_l(1)
            if(integrator.eq.1 .and. ntime.gt.1) then
               temp = 1.5*temp + 0.5*peo_v(ibegin+pe_off:ibegin+pe_off+5)
            endif
-           call set_dirichlet_bc(imatrix,ibegin+pe_off,rhs,temp,normal,curv,izonedim)
+           call set_dirichlet_bc(imatrix,ibegin+pe_off,rhs,temp, &
+                normal,curv,izonedim)
         end if
 
      endif
@@ -663,6 +625,7 @@ subroutine boundary_den(imatrix, rhs)
      if(.not.is_boundary) cycle
 
      call entdofs(vecsize_n, i, 0, ibegin, iendplusone)
+     call rotate_matrix(imatrix, ibegin+den_off, normal, curv, rhs)
      call assign_local_pointers(i)
 
      if(inograd_n.eq.1) then
@@ -713,6 +676,7 @@ subroutine boundary_pres(imatrix, rhs)
      if(.not.is_boundary) cycle
 
      call entdofs(vecsize_p, i, 0, ibegin, iendplusone)
+     call rotate_matrix(imatrix, ibegin+p_off, normal, curv, rhs)
      call assign_local_pointers(i)
 
      if(inograd_p.eq.1) then
@@ -764,6 +728,8 @@ subroutine boundary_dc(imatrix, rhs)
      if(.not.is_boundary) cycle
 
      call entdofs(1, i, 0, ibegin, iendplusone)
+     call rotate_matrix(imatrix, ibegin, normal, curv, rhs)
+
 
      call set_dirichlet_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim)
   end do
@@ -804,6 +770,7 @@ subroutine boundary_nm(imatrix, rhs)
      if(.not.is_boundary) cycle
 
      call entdofs(1, i, 0, ibegin, iendplusone)
+     call rotate_matrix(imatrix, ibegin, normal, curv, rhs)
 
      call set_normal_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim)
   end do
@@ -851,32 +818,31 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
 
 !
 !......for fixed boundary run, set all psi values to average of psi on boundary
-      if(nonrect.eq.1 .and. ifixedb.eq.1) then
+  if(nonrect.eq.1 .and. ifixedb.eq.1) then
 
-        count = 0.
-        psisum = 0.
-        do i=1, numnodes
-           call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
-           if(.not.is_boundary) cycle
-           call assign_local_pointers(i)
-           call entdofs(numvargs, i, 0, ibegin, iendplusone)
-           count = count + 1.
-           temp = psis_l
-           psisum = psisum + temp(1)
-        end do
-           ! communicate sum and count to all processors
-           temp2 = 0.
-           if(maxrank.gt.1) then
-              temp1(1) = psisum
-              temp1(2) = count
-              call mpi_allreduce(temp1, temp2, 2, &
-                   MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
-              psisum = temp2(1)
-              count = temp2(2)
-              psiave = psisum / count
-           endif
-
-      endif
+     count = 0.
+     psisum = 0.
+     do i=1, numnodes
+        call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+        if(.not.is_boundary) cycle
+        call assign_local_pointers(i)
+        call entdofs(numvargs, i, 0, ibegin, iendplusone)
+        count = count + 1.
+        temp = psis_l
+        psisum = psisum + temp(1)
+     end do
+     ! communicate sum and count to all processors
+     temp2 = 0.
+     if(maxrank.gt.1) then
+        temp1(1) = psisum
+        temp1(2) = count
+        call mpi_allreduce(temp1, temp2, 2, &
+             MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
+        psisum = temp2(1)
+        count = temp2(2)
+        psiave = psisum / count
+     endif
+  endif
 
   do i=1, numnodes
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
@@ -884,6 +850,7 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
 
      call assign_local_pointers(i)
      call entdofs(numvargs, i, 0, ibegin, iendplusone)
+     call rotate_matrix(imatrix, ibegin, normal, curv, rhs)
 !>>>>>>debug
       if(imatrix.ne.0) write(35+myrank,1035) myrank,ibegin,x,z,normal,curv
 !     call MPI_Barrier(MPI_COMM_WORLD,ier)
@@ -911,19 +878,15 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
 
      ! clamp magnetic field
      temp = psis_l
-      if(ifixedb.eq.1) then
-          call nodCurvature(i,curv)
-          curv = curv * sqrt(psi(ibegin+1)**2+psi(ibegin+2)**2)
-          temp(1) = psiave
-          temp(2) = 0.
-          temp(3) = 0.
-      endif
+     if(ifixedb.eq.1) then
+        temp(1) = psiave
+        temp(2:6) = 0.
+     endif
      call set_dirichlet_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim)
-!
 
-!    ! no toroidal current
-!    temp = 0.
-!    call set_laplacian_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim,-x)
+!!$!    ! no toroidal current
+!!$    temp = 0.
+!!$    call set_laplacian_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim,-x)
   end do
 
 end subroutine boundary_gs
@@ -965,6 +928,8 @@ subroutine boundary_vor(imatrix, rhs)
 
      call assign_local_pointers(i)
      call entdofs(numvarsm, i, 0, ibegin, iendplusone)
+     call rotate_matrix(imatrix, ibegin, normal, curv, rhs)
+     call rotate_matrix(imatrix, ibegin+6, normal, curv, rhs)
 
      if(inonormalflow.eq.1) then
         call set_dirichlet_bc(imatrix,ibegin+6,rhs,temp,normal,curv,izonedim)
@@ -1016,6 +981,8 @@ subroutine boundary_com(imatrix, rhs)
 
      call assign_local_pointers(i)
      call entdofs(numvarsm, i, 0, ibegin, iendplusone)
+     call rotate_matrix(imatrix, ibegin, normal, curv, rhs)
+     call rotate_matrix(imatrix, ibegin, normal+6, curv, rhs)
 
      ! clamp compression
      call set_dirichlet_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim)
