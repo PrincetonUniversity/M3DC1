@@ -153,20 +153,12 @@ subroutine cartesian_to_cylindrical_all()
   implicit none
 
   integer :: inode, numnodes
-  real :: x
-  double precision :: coords(3)
+  real :: x, z
 
   call numnod(numnodes)
 
   do inode=1, numnodes
-     call xyznod(inode, coords)
-         select case(nonrect)
-         case(0)
-     x = coords(1) + xzero
-         case(1)
-     x = coords(1) !cjdebug  + xzero
-!    if(myrank.eq.0) print *,"You are working with curved mesh."
-         end select
+     call nodcoord(inode, x, z)
 
      call assign_local_pointers(inode)
 
@@ -203,18 +195,16 @@ subroutine tilting_cylinder_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z, alx, alz, xmin, zmin
-  double precision :: coords(3)
+  real :: x, z, alx, alz
 
-  call getmincoord(xmin, zmin)
   call getboundingboxsize(alx, alz)
 
   call numnod(numnodes)
   do l=1, numnodes
-     call xyznod(l, coords)
+     call nodcoord(l, x, z)
 
-     x = coords(1) - xmin - alx*.5
-     z = coords(2) - zmin - alz*.5
+     x = x - alx*.5
+     z = z - alz*.5
 
      call assign_local_pointers(l)
 
@@ -378,18 +368,16 @@ subroutine taylor_reconnection_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z, alx, alz, xmin, zmin
-  double precision :: coords(3)
+  real :: x, z, alx, alz
 
-  call getmincoord(xmin, zmin)
   call getboundingboxsize(alx, alz)
 
   call numnod(numnodes)
   do l=1, numnodes
-     call xyznod(l, coords)
+     call nodcoord(l, x, z)
 
-     x = coords(1) - xmin - alx*.5
-     z = coords(2) - zmin - alz*.5
+     x = x - alx*.5
+     z = z - alz*.5
 
      call assign_local_pointers(l)
 
@@ -462,18 +450,16 @@ subroutine force_free_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z, alx, alz, xmin, zmin
-  double precision :: coords(3)
+  real :: x, z, alx, alz
 
-  call getmincoord(xmin, zmin)
   call getboundingboxsize(alx, alz)
 
   call numnod(numnodes)
   do l=1, numnodes
-     call xyznod(l, coords)
+     call nodcoord(l, x,z)
 
-     x = coords(1) - xmin - alx*.5
-     z = coords(2) - zmin - alz*.5
+     x = x - alx*.5
+     z = z - alz*.5
 
      call assign_local_pointers(l)
 
@@ -558,10 +544,8 @@ subroutine gem_reconnection_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z, alx, alz, xmin, zmin
-  double precision :: coords(3)
+  real :: x, z, alx, alz
 
-  call getmincoord(xmin, zmin)
   call getboundingboxsize(alx, alz)
 
   akx = 2.*pi/alx
@@ -569,12 +553,12 @@ subroutine gem_reconnection_init()
 
   call numnod(numnodes)
   do l=1, numnodes
-     call xyznod(l, coords)
+     call nodcoord(l, x, z)
 
      call assign_local_pointers(l)
 
-     x = coords(1) - xmin - alx*.5
-     z = coords(2) - zmin - alz*.5
+     x = x - alx*.5
+     z = z - alz*.5
 
      call gem_reconnection_equ(x, z)
      call gem_reconnection_per(x, z)
@@ -718,16 +702,14 @@ subroutine wave_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z, xmin, zmin
+  real :: x, z
   real :: b2,a2
   real :: kp,km,t1,t2,t3
   real :: coef(4)
   real :: root(3)
   real :: error(3)
   real :: bi
-  double precision :: coords(3)
 
-  call getmincoord(xmin, zmin)
   call getboundingboxsize(alx, alz)
 
   ! for itaylorw=3, set up a phi perturbation only
@@ -839,10 +821,10 @@ subroutine wave_init()
 
   call numnod(numnodes)
   do l=1, numnodes
-     call xyznod(l, coords)
+     call nodcoord(l, x, z)
 
-     x = coords(1) - xmin - alx*.5
-     z = coords(2) - zmin - alz*.5
+     x = x - alx*.5
+     z = z - alz*.5
 
      call assign_local_pointers(l)
 
@@ -926,27 +908,13 @@ subroutine grav_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z, alx, alz, xmin, zmin
-  double precision :: coords(3)
-
-  call getmincoord(xmin, zmin)
-  call getboundingboxsize(alx, alz)
+  real :: x, z
 
   call numnod(numnodes)
   do l=1, numnodes
      call assign_local_pointers(l)
 
-     call xyznod(l, coords)
-
-         select case(nonrect)
-         case(0)
-     x = coords(1) + xzero - xmin
-     z = coords(2) + zzero - zmin
-         case(1)
-     x = coords(1) !cjdebug + xzero - xmin
-     z = coords(2) !cjdebug + zzero - zmin
-!    if(myrank.eq.0) print *,"You are working with curved mesh."
-         end select
+     call nodcoord(l, x, z)
 
      call grav_equ(x, z)
      call grav_per(x, z)
@@ -1064,18 +1032,16 @@ subroutine strauss_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z, xmin, zmin
-  double precision :: coords(3)
+  real :: x, z
 
-  call getmincoord(xmin, zmin)
   call getboundingboxsize(alx, alz)
 
   call numnod(numnodes)
   do l=1, numnodes
-     call xyznod(l, coords)
+     call nodcoord(l, x, z)
 
-     x = coords(1) - xmin - alx/2.
-     z = coords(2) - zmin - alz/2.
+     x = x - alx/2.
+     z = z - alz/2.
 
      call assign_local_pointers(l)
 
@@ -1157,7 +1123,7 @@ end module strauss
 !==============================================================================
 module circular_field
 
-  real :: alx, alz, xmin, zmin
+  real :: alx, alz
 
 contains
 
@@ -1169,17 +1135,15 @@ subroutine circular_field_init()
 
   integer :: l, numnodes
   real :: x, z
-  double precision :: coords(3)
 
-  call getmincoord(xmin, zmin)
   call getboundingboxsize(alx, alz)
 
   call numnod(numnodes)
   do l=1, numnodes
-     call xyznod(l, coords)
+     call nodcoord(l, x, z)
 
-     x = coords(1) - xmin - alx/2.
-     z = coords(2) - zmin - alz/2.
+     x = x - alx/2.
+     z = z - alz/2.
 
      call assign_local_pointers(l)
 
@@ -1303,10 +1267,8 @@ subroutine mri_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z, alx, alz, xmin, zmin
-  double precision :: coords(3)
+  real :: x, z, alx, alz
 
-  call getmincoord(xmin, zmin)
   call getboundingboxsize(alx, alz)
 
   kx = pi/alx
@@ -1314,17 +1276,9 @@ subroutine mri_init()
 
   call numnod(numnodes)
   do l=1, numnodes
-     call xyznod(l, coords)
+     call nodcoord(l, x, z)
 
-         select case(nonrect)
-         case(0)
-     x = coords(1) + xzero - xmin
-     z = coords(2) + zzero - zmin - alz*.5
-         case(1)
-     x = coords(1) !cjdebug + xzero - xmin
-     z = coords(2) !cjdebug + zzero - zmin - alz*.5
-!    if(myrank.eq.0) print *,"You are working with curved mesh."
-         end select
+     z = z - alz*.5
 
      call assign_local_pointers(l)
 
@@ -1434,25 +1388,15 @@ subroutine rotate_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z, alx, alz, xmin, zmin
-  double precision :: coords(3)
+  real :: x, z, alx, alz
 
-  call getmincoord(xmin, zmin)
   call getboundingboxsize(alx, alz)
 
   call numnod(numnodes)
   do l=1, numnodes
-     call xyznod(l, coords)
+     call nodcoord(l, x, z)
 
-         select case(nonrect)
-         case(0)
-     x = coords(1) + xzero - xmin
-     z = coords(2) + zzero - zmin - alz*.5
-         case(1)
-     x = coords(1) !cjdebug + xzero - xmin
-     z = coords(2) !cjdebug + zzero - zmin - alz*.5
-!    if(myrank.eq.0) print *,"You are working with curved mesh."
-         end select
+     z = z - alz*.5
 
      call assign_local_pointers(l)
 

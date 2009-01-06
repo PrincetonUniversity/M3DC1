@@ -2,7 +2,7 @@
       use basic
       implicit none
       integer itri, nodeids(4)
-      real xi, zi, theta, b, small, co, sn, xmin, zmin
+      real xi, zi, theta, b, small, co, sn
       dimension xi(*),zi(*)
       double precision coords(3)
       small = 1.e-8
@@ -11,7 +11,6 @@
 !     coordinate expansion:  x = Sum{ xi(i)*si**mi(i)*eta**ni(i)}; {i=1,3}
 !                            z = Sum{ zi(i)*si**mi(i)*eta**ni(i)}; {i=1,3}
 
-      call getmincoord(xmin,zmin)
       call nodfac(itri,nodeids)
       call xyznod(nodeids(2),coords)
       
@@ -27,12 +26,34 @@
       return
       end
 !============================================================
+      subroutine nodcoord(inode,x,z)
+      use basic
+      implicit none
+      integer, intent(in) :: inode
+      real, intent(out) :: x, z
+      double precision :: coords(3)
+      real :: xmin, zmin
+
+      call xyznod(inode,coords)
+      
+      select case(nonrect)
+      case(0)
+         call getmincoord(xmin,zmin)
+         x = coords(1) - xmin + xzero
+         z = coords(2) - zmin + zzero
+      case(1)
+         x = coords(1)
+         z = coords(2)
+      end select
+      end
+!============================================================
       subroutine whattri(x,z,itri,xref,zref)
       use basic
       implicit none
       integer itri, nodeids(4)
       real x, z, xref, zref
       double precision coords(3), x2, z2
+
 
       select case(nonrect)
       case(0)
@@ -49,7 +70,7 @@
 
       call nodfac(itri,nodeids)
       call xyznod(nodeids(1), coords)
-
+      
       select case(nonrect)
       case(0)
          xref = coords(1) + xzero

@@ -12,8 +12,6 @@ module gradshafranov
   integer :: npsi
   real, allocatable :: psinorm(:), g4big0t(:), g4bigt(:), g4bigpt(:), g4bigppt(:)
   real, allocatable :: fbig0t(:), fbigt(:), fbigpt(:), fbigppt(:)
-  
-  integer, parameter :: numvargs = 1
 
   integer, parameter :: NSTX_coils = 158
   real, dimension(NSTX_coils) :: NSTX_r, NSTX_z, NSTX_I
@@ -167,12 +165,8 @@ subroutine gradshafranov_init()
   implicit none
 
   integer :: l, numnodes
-  real :: tstart, tend, alx, alz, xmin, zmin, x, z
-  double precision :: coords(3)
+  real :: tstart, tend, x, z
   vectype, dimension(6) :: vmask
-
-  call getmincoord(xmin, zmin)
-  call getboundingboxsize(alx, alz)
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   call gradshafranov_solve()
@@ -184,10 +178,7 @@ subroutine gradshafranov_init()
   call numnod(numnodes)
   do l=1, numnodes
 
-     call xyznod(l, coords)
-
-     x = coords(1) - xmin
-     z = coords(2) - zmin
+     call nodcoord(l, x, z)
 
      call assign_local_pointers(l)
 
@@ -249,14 +240,12 @@ subroutine gradshafranov_solve
   real, dimension(6,maxcoils) :: g
   real, dimension(6) :: g1, g2
   real, dimension(maxcoils) :: xp, zp, xc, zc
-  real :: x, z, xmin, zmin, xrel, zrel, xguess, zguess, error, error2
+  real :: x, z, xrel, zrel, xguess, zguess, error, error2
   real :: sum, rhs, ajlim, curr, norm, rnorm, g0, sum2, norm2
   real, dimension(5) :: temp1, temp2
   real :: alx, alz
   real :: psilim2,gamma2a,gamma2b,gamma3a,gamma3b
   
-  double precision :: coords(3)
-   
   real :: tstart, tend
 
   PetscTruth :: flg_petsc, flg_solve2, flg_solve1
@@ -273,7 +262,6 @@ subroutine gradshafranov_solve
   t_gs_solve = 0.
   t_gs_fundef = 0.
 
-  call getmincoord(xmin, zmin)
   call numnod(numnodes)
   call numfac(numelms)
 
@@ -294,10 +282,10 @@ subroutine gradshafranov_solve
 
   ! default linear solver superlu cj-april-09-2008
   if(flg_petsc.eq.PETSC_TRUE) then
-     call zeropetscmatrix(gsmatrix_sm, icomplex, numvar1_numbering)
+     call zeropetscmatrix(gsmatrix_sm, icomplex, numvargs)
      if(iprint.ge.1) print *, "	gradshafranov_solve zeropetscmatrix", gsmatrix_sm
   else
-     call zerosuperlumatrix(gsmatrix_sm, icomplex, numvar1_numbering)
+     call zerosuperlumatrix(gsmatrix_sm, icomplex, numvargs)
      if(iprint.ge.1) print *, "	gradshafranov_solve zerosuperlumatrix", gsmatrix_sm
   endif
 
@@ -307,17 +295,32 @@ subroutine gradshafranov_solve
      call define_fields(itri,0,25,1)
     
      do j=1,18
-        j1 = isval1(itri,j)
         do i=1,18
-           i1 = isval1(itri,i)
+           select case(numvargs)
+           case(1)
+              i1 = isval1(itri,i)
+              j1 = isval1(itri,j)
+              temp79a = -ri2_79* &
+                   (g79(:,OP_DR,i)*g79(:,OP_DR,j) &
+                   +g79(:,OP_DZ,i)*g79(:,OP_DZ,j))
+              sum = int1(temp79a)
+              call insertval(gsmatrix_sm, sum, 0, i1,j1,1)
 
-           temp79a = -ri2_79* &
-                (g79(:,OP_DR,i)*g79(:,OP_DR,j) &
-                +g79(:,OP_DZ,i)*g79(:,OP_DZ,j))
+           case(2)
+              i1 = isval2(itri,i)
+              j1 = isval2(itri,j)
 
-           sum = int1(temp79a)
-
-           call insertval(gsmatrix_sm, sum, 0, i1,j1,1)
+              temp79a = -ri2_79* &
+                   (g79(:,OP_DR,i)*g79(:,OP_DR,j) &
+                   +g79(:,OP_DZ,i)*g79(:,OP_DZ,j))
+              sum = int1(temp79a)
+              call insertval(gsmatrix_sm, sum, 0, i1,j1,1)
+              sum = -int3(ri2_79,g79(:,OP_1,i),g79(:,OP_1,j)) &
+                   + 1e-3*int3(ri2_79,g79(:,OP_1,i),g79(:,OP_GS,j)) 
+              call insertval(gsmatrix_sm, sum, 0, i1,j1+6,1)
+              sum = int3(ri2_79,g79(:,OP_1,i),g79(:,OP_1,j))
+              call insertval(gsmatrix_sm, sum, 0, i1+6,j1+6,1)
+           end select
         enddo
      enddo
   enddo
@@ -328,7 +331,7 @@ subroutine gradshafranov_solve
 !.....NOTE:   This first call just modifies the gsmatrix_sm by inserting 1's
 !             on the diagonal for boundary points (or vector angles for non-rect)
 !
-  call boundary_gs(gsmatrix_sm, b1vecini, feedfac)
+  call boundary_gs(gsmatrix_sm, b2vecini, feedfac)
   call finalizematrix(gsmatrix_sm)
 !
 !>>>>>debug
@@ -363,8 +366,8 @@ subroutine gradshafranov_solve
   call getboundingboxsize(alx,alz)
   rnorm = rzero + alx/2.
   if(myrank.eq.0 .and. iprint.ge.1) &
-        print *, "gradshafranov_solve xmin zmin xmag zmag alx alz xzero zzero= ", &
-                 xmin, zmin, xmag, zmag, alx, alz, xzero, zzero
+        print *, "gradshafranov_solve xmag zmag alx alz xzero zzero= ", &
+                 xmag, zmag, alx, alz, xzero, zzero
 
 !......define feedback parameters needed for normalization
   if(idevice .eq. 0) then
@@ -381,110 +384,105 @@ subroutine gradshafranov_solve
 
 
   psi = 0.
-
-  if(myrank.eq.0 .and. iprint.ge.1) &
-        print *, "gradshafranov_solve i xp zp = "
+    
+  if(myrank.eq.0 .and. iprint.ge.2) &
+       print *, "gradshafranov_solve i xp zp = "
   do i=1,numnodes
-
-     call xyznod(i,coords)
-         select case(nonrect)
-         case(0)
-     xp = coords(1) - xmin + xzero
-     zp = coords(2) - zmin + zzero
-         case(1)
-     xp = coords(1) !cjdebug - xmin + xzero
-     zp = coords(2) !cjdebug - zmin + zzero
-!    if(myrank.eq.0) print *,"You are working with curved mesh."
-         end select
-
-  if(myrank.eq.0 .and. iprint.ge.1) &
-        print *, i, xp(1), zp(1)
 
      call entdofs(numvargs, i, 0, ibegin, iendplusone)
      call assign_local_pointers(i)
 
-     ! Field due to plasma current
-     xc(1) = xmag
-     zc(1) = zmag
-     call gvect(xp,zp,xc,zc,1,g,0,ineg)
-     psi(ibegin:ibegin+5) =   g(:,1)*fac
-
      separatrix_top = 1e10
      separatrix_bottom = -1e10
 
-     ! Field due to external coils
-     select case(idevice)
-     case(1) ! CDX-U
-        numcoils = 4
-        xc(1) = 0.846
-        zc(1) = 0.360
-        xc(2) = 0.846
-        zc(2) =-0.360
-        xc(3) = 0.381
-        zc(3) = 0.802
-        xc(4) = 0.381
-        zc(4) =-0.802
-        call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)     
-        g = -g*.2*fac
-     case(2) ! NSTX
-        numcoils = NSTX_coils
-        xc(1:NSTX_coils) = NSTX_r
-        zc(1:NSTX_coils) = NSTX_z
-        call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)     
-        do k=1,NSTX_coils 
-           g(:,k) = g(:,k)*fac*NSTX_I(k)
-        enddo
-     case(3) ! ITER
-        numcoils = ITER_coils
-        xc(1:ITER_coils) = ITER_r
-        zc(1:ITER_coils) = ITER_z
-        call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)     
-        do k=1,ITER_coils 
-           g(:,k) = g(:,k)*fac*ITER_I(k)
-        enddo
-        separatrix_top = 4.5
-        separatrix_bottom = -3.5
-     case(4) ! DIII
-        numcoils = DIII_coils
-        xc(1:DIII_coils) = DIII_r
-        zc(1:DIII_coils) = DIII_z
-        call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)     
-        do k=1,DIII_coils 
-           g(:,k) = g(:,k)*fac*DIII_I(k)
-        enddo
-        separatrix_top = 4.5
-        separatrix_bottom = -3.5
-     case default ! Generic
-        numcoils = 1
-        xc(1) = 102.
-        zc(1) = rnorm
-        call gvect(xp,zp,xc,zc,numcoils,g,1,ineg)     
-        g = g*bv*fac2
-     end select
-
-     
-     do k=1,numcoils 
-        psi(ibegin:ibegin+5) = psi(ibegin:ibegin+5) + g(:,k)
-     end do
-
-     ! Add fields from divertor coils
-     if(divertors.ge.1) then
-        xc = xdiv
-        zc(1) = zdiv
-        if(divertors.eq.2) zc(2) = -zdiv
-        call gvect(xp,zp,xc,zc,divertors,g,0,ineg)
-        do k=1,divertors
-           psi(ibegin:ibegin+5) = psi(ibegin:ibegin+5) + fac*divcur*g(:,k)
+     if(ifixedb.eq.0) then
+        call nodcoord(i,x,z)
+        xp = x
+        zp = z
+        
+        if(myrank.eq.0 .and. iprint.ge.2) &
+             print *, i, xp(1), zp(1)
+                
+        ! Field due to plasma current
+        xc(1) = xmag
+        zc(1) = zmag
+        call gvect(xp,zp,xc,zc,1,g,0,ineg)
+        psi(ibegin:ibegin+5) =   g(:,1)*fac
+                
+        ! Field due to external coils
+        select case(idevice)
+        case(1) ! CDX-U
+           numcoils = 4
+           xc(1) = 0.846
+           zc(1) = 0.360
+           xc(2) = 0.846
+           zc(2) =-0.360
+           xc(3) = 0.381
+           zc(3) = 0.802
+           xc(4) = 0.381
+           zc(4) =-0.802
+           call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)     
+           g = -g*.2*fac
+        case(2) ! NSTX
+           numcoils = NSTX_coils
+           xc(1:NSTX_coils) = NSTX_r
+           zc(1:NSTX_coils) = NSTX_z
+           call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)     
+           do k=1,NSTX_coils 
+              g(:,k) = g(:,k)*fac*NSTX_I(k)
+           enddo
+        case(3) ! ITER
+           numcoils = ITER_coils
+           xc(1:ITER_coils) = ITER_r
+           zc(1:ITER_coils) = ITER_z
+           call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)     
+           do k=1,ITER_coils 
+              g(:,k) = g(:,k)*fac*ITER_I(k)
+           enddo
+           separatrix_top = 4.5
+           separatrix_bottom = -3.5
+        case(4) ! DIII
+           numcoils = DIII_coils
+           xc(1:DIII_coils) = DIII_r
+           zc(1:DIII_coils) = DIII_z
+           call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)     
+           do k=1,DIII_coils 
+              g(:,k) = g(:,k)*fac*DIII_I(k)
+           enddo
+           separatrix_top = 4.5
+           separatrix_bottom = -3.5
+        case default ! Generic
+           numcoils = 1
+           xc(1) = 102.
+           zc(1) = rnorm
+           call gvect(xp,zp,xc,zc,numcoils,g,1,ineg)     
+           g = g*bv*fac2
+        end select
+        
+        
+        do k=1,numcoils 
+           psi(ibegin:ibegin+5) = psi(ibegin:ibegin+5) + g(:,k)
         end do
+        
+        ! Add fields from divertor coils
+        if(divertors.ge.1) then
+           xc = xdiv
+           zc(1) = zdiv
+           if(divertors.eq.2) zc(2) = -zdiv
+           call gvect(xp,zp,xc,zc,divertors,g,0,ineg)
+           do k=1,divertors
+              psi(ibegin:ibegin+5) = psi(ibegin:ibegin+5) + fac*divcur*g(:,k)
+           end do
+        endif
      endif
-
+        
      ! store boundary conditions on psi
      psis_l = psi(ibegin:ibegin+5)
   enddo
-
-!....read in numerical values for p and g functions for inumgs = 1
-      if(inumgs .eq. 1) call readpgfiles
-
+     
+  !....read in numerical values for p and g functions for inumgs = 1
+  if(inumgs .eq. 1) call readpgfiles
+     
   ! define initial b1vecini associated with delta-function source
   !     corresponding to current tcuro at location (xmag,zmag)
 
@@ -501,7 +499,7 @@ subroutine gradshafranov_solve
 999 format("    I    error        error2       xmag         psimin       psilim" &
               ,"       psilim2")
   endif
- 
+
   !-------------------------------------------------------------------
   ! start of iteration loop on plasma current
   mainloop: do itnum=1, iabs(igs)
@@ -552,16 +550,20 @@ subroutine gradshafranov_solve
      endif
     
      ! calculate psi at the limiter
-
-     itri = 0.
-     call evaluate(xlim,zlim,psilim,ajlim,psi,1,numvargs,itri)
-
-     ! calculate psi at a second limiter point as a diagnostic
-     if(xlim2.gt.0) then
-       itri = 0.
-       call evaluate(xlim2,zlim2,psilim2,ajlim,psi,1,numvargs,itri)
+     if(ifixedb.eq.1) then
+        psilim = 0.
+        psilim2 = 0.
      else
-       psilim2 = psilim
+        itri = 0.
+        call evaluate(xlim,zlim,psilim,ajlim,psi,1,numvargs,itri)
+
+        ! calculate psi at a second limiter point as a diagnostic
+        if(xlim2.gt.0) then
+           itri = 0.
+           call evaluate(xlim2,zlim2,psilim2,ajlim,psi,1,numvargs,itri)
+        else
+           psilim2 = psilim
+        endif
      endif
 
      ! define the pressure and toroidal field functions
@@ -584,17 +586,6 @@ subroutine gradshafranov_solve
         
         call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
 !       if(is_boundary) cycle
-!
-        call xyznod(i,coords)
-         select case(nonrect)
-         case(0)
-        x = coords(1) - xmin + xzero
-        z = coords(2) - zmin + zzero
-         case(1)
-        x = coords(1) !cjdebug - xmin + xzero
-        z = coords(2) !cjdebug - zmin + zzero
-!       if(myrank.eq.0) print *,"You are working with curved mesh."
-         end select
         
         call entdofs(numvargs, i, 0, ibegin, iendplusone)
 
@@ -672,7 +663,12 @@ subroutine gradshafranov_solve
         enddo
 
         do i=1,18
-           i1 = isval1(itri,i)
+           select case(numvargs)
+           case(1)
+              i1 = isval1(itri,i)
+           case(2)
+              i1 = isval2(itri,i)
+           end select
            
            gsint1 = gsint1 + cfac(i)*fun1(i1)
            gsint4 = gsint4 + cfac(i)*fun4(i1)
@@ -738,46 +734,58 @@ subroutine gradshafranov_solve
         call calcdterm(itri, dterm, fintl)
         
         do i=1,18
-           i1 = isval1(itri,i)
            sum = 0.
+           sum2 = 0.
            
            do j=1,18
-              j1 = isval1(itri,j)
+              select case(numvargs)
+              case(1)
+                 i1 = isval1(itri,i)
+                 j1 = isval1(itri,j)
+              case(2)
+                 i1 = isval2(itri,i)
+                 j1 = isval2(itri,j)
+              end select
               
               sum = sum - dterm(i,j)* &
                    (       fun1(j1) + gamma4*fun4(j1)               &
                    +gamma2*fun2(j1) + gamma3*fun3(j1))
            enddo
-           
-           b1vecini(i1) =  b1vecini(i1) + sum
+
+           select case(numvargs)
+           case(1)
+              b1vecini(i1) =  b1vecini(i1) + sum
+           case(2)
+              b1vecini(i1+6) =  b1vecini(i1+6) + sum
+           end select
         enddo
      enddo
      call sumsharedppplvecvals(b1vecini)
 
   end do mainloop
 
-     if(myrank.eq.0 ) then
-        print *, "Converged GS: curr =", curr," error =",error2
-      print *, "initial and final(effective) libetap", libetap, libetapeff
-        gamma2a = -xmag**2*p0*p1
-        gamma2b = -2.*(abs(g0)/(xmag*q0*dpsii))
-        gamma3a = -4.*(abs(g0)/xmag)*djdpsi/dpsii
-        gamma3b = -xmag**2*p0*p2
+  if(myrank.eq.0 ) then
+     print *, "Converged GS: curr =", curr," error =",error2
+     print *, "initial and final(effective) libetap", libetap, libetapeff
+     gamma2a = -xmag**2*p0*p1
+     gamma2b = -2.*(abs(g0)/(xmag*q0*dpsii))
+     gamma3a = -4.*(abs(g0)/xmag)*djdpsi/dpsii
+     gamma3b = -xmag**2*p0*p2
 
-        write(*,1001) gamma2,gamma3,gamma4,xmag,p0,p1,p2,g0,dpsii,   &
-                      djdpsi,tcuro,gsint1,gsint2,gsint3,gsint4,         &
-                      gamma2a,gamma2b,gamma3a,gamma3b
- 1001 format(" gamma2,gamma3,gamma4       =",1p3e12.4,/,     &
-             " xmag, p0,p1,p2,g0          =",1p5e12.4,/,     &
-             " dpsii,djdpsi,tcurb         =",1p3e12.4,/,     &
-             "gsint1,gint2,gsint3,gsint4  =",1p4e12.4,/,     &
-             "gamm2a,gamm2b,gamm3a,gamm3b =",1p4e12.4)
-     endif
+     write(*,1001) gamma2,gamma3,gamma4,xmag,p0,p1,p2,g0,dpsii,   &
+          djdpsi,tcuro,gsint1,gsint2,gsint3,gsint4,         &
+          gamma2a,gamma2b,gamma3a,gamma3b
+1001 format(" gamma2,gamma3,gamma4       =",1p3e12.4,/,     &
+          " xmag, p0,p1,p2,g0          =",1p5e12.4,/,     &
+          " dpsii,djdpsi,tcurb         =",1p3e12.4,/,     &
+          "gsint1,gint2,gsint3,gsint4  =",1p4e12.4,/,     &
+          "gamm2a,gamm2b,gamm3a,gamm3b =",1p4e12.4)
+  endif
 !
 !....if igs is positive, stop after iabs(igs) iterations, continue for igs negative
-     if(itnum.eq.igs) then
-       call safestop(3)
-     endif
+  if(itnum.eq.igs) then
+     call safestop(3)
+  endif
 
   ! populate phi0 array
   ! ~~~~~~~~~~~~~~~~~~~
@@ -796,14 +804,8 @@ subroutine gradshafranov_solve
      call calc_toroidal_field(temp(ibegin:ibegin+5), bz0_l)
      call calc_pressure(temp(ibegin:ibegin+5),p0_l)
 
-     call xyznod(i, coords)
-         select case(nonrect)
-         case(0)
-     z = coords(2) - zmin + zzero
-         case(1)
-     z = coords(2) !cjdebug - zmin + zzero
-!    if(myrank.eq.0) print *,"You are working with curved mesh."
-         end select
+     call nodcoord(i, x, z)
+
      if((z.gt.separatrix_top) .or. (z .lt.separatrix_bottom)) then
         p0_l(1) = pedge
         p0_l(2:6) = 0.
@@ -1166,7 +1168,12 @@ subroutine deltafun(x,z,dum,val,ier)
 
      ! calculate the contribution to b1vecini
      do i=1,18
-        index = isval1(itri,i)
+        select case(numvargs)
+        case(1)
+           index = isval1(itri,i)
+        case(2)
+           index = isval2(itri,i)+6
+        end select
 
         sum = 0.
         do k=1,20
@@ -1198,27 +1205,16 @@ subroutine fundef
   
   implicit none 
   integer :: l, numnodes, i, ibegin, iendplusone
-  real :: x, z, xmin, zmin, pso, psox, psoy, psoxx, psoxy, psoyy, fbig, fbig0
+  real :: x, z, pso, psox, psoy, psoxx, psoxy, psoyy, fbig, fbig0
   real :: fbigp, fbigpp, g4big0, g4big, g4bigp, g4bigpp, g2big, g2bigp
   real :: g2bigpp, g3big, g3bigp, g3bigpp
-  double precision :: coords(3)
 
-  call getmincoord(xmin, zmin)
   dpsii = 1./(psilim - psimin)
 
   call numnod(numnodes)
   do l=1,numnodes
 
-     call xyznod(l,coords)
-         select case(nonrect)
-         case(0)
-     x = coords(1) - xmin + xzero
-     z = coords(2) - zmin + zzero
-         case(1)
-     x = coords(1) !cjdebug - xmin + xzero
-     z = coords(2) !cjdebug - zmin + zzero
-!    if(myrank.eq.0) print *,"You are working with curved mesh."
-         end select
+     call nodcoord(l, x, z)
 
      call entdofs(numvargs, l, 0, ibegin, iendplusone)
      pso =  (psi(ibegin)-psimin)*dpsii

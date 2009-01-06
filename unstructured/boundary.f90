@@ -1,3 +1,15 @@
+!>>>>> dummy routine waiting for the SCOREC routine
+!>>>>> works for circle of radius 2
+subroutine nodCurvature(inode,curv)
+  implicit none
+  integer :: inode
+  real :: curv
+
+  curv = 1./2.
+  return
+end subroutine nodCurvature
+
+
 !======================================================================
 ! boundary_node
 !
@@ -16,8 +28,6 @@ subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
   logical, intent(out) :: is_boundary       ! is inode on boundary
 
   integer :: ibottom, iright, ileft, itop
-  integer :: flag
-  double precision :: coords(3)
 
   curv = 0.
 
@@ -82,22 +92,11 @@ subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
      izonedim=1      !cj set izonedim always 1 for the shaped boundary
      izone=1         !cj dummy for shaped boundary
 
-     flag = 1
-     call nodCurvature(inode, curv, flag)
+     call nodCurvature(inode, curv)
   end select
   
-  call xyznod(inode,coords)
-  select case(nonrect)
-  case(0)
-     x = coords(1) + xzero
-     z = coords(2) + zzero
-  case(1)
-     x = coords(1) !cjdebug + xzero
-     z = coords(2) !cjdebug + zzero
-     ! if(myrank.eq.0) print *,"You are working with curved mesh."
-  end select
-  !     write(99,1099) inode,x,z,normal(1),normal(2)
-  !1099 format(i5,1p4e12.4)
+  call nodcoord(inode,x,z)
+
 end subroutine boundary_node
 
 !======================================================================
@@ -315,7 +314,7 @@ subroutine set_normal_bc(imatrix,ibegin,rhs,bv,normal,curv,izonedim)
      call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
   endif
   rhs(irow) = bv_rotated(5)
-  
+
   if(izonedim.eq.0) then
      ! t
      irow = ibegin+2
@@ -798,7 +797,7 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes, ineg, ier
   real :: normal(2), curv
-  real :: x, z, xmin, zmin, alx, alz, count, psisum, psiave, rsq
+  real :: x, z,  alx, alz
   real, dimension(6) :: g
   real, dimension(1) :: xp, zp, xc, zc
   double precision :: coords(3)
@@ -813,36 +812,6 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
   call getboundingboxsize(alx, alz)
 
   call numnod(numnodes)
-  call getmincoord(xmin,zmin)
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "xmin  zmin = ", xmin,zmin
-
-!
-!......for fixed boundary run, set all psi values to average of psi on boundary
-  if(nonrect.eq.1 .and. ifixedb.eq.1) then
-
-     count = 0.
-     psisum = 0.
-     do i=1, numnodes
-        call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
-        if(.not.is_boundary) cycle
-        call assign_local_pointers(i)
-        call entdofs(numvargs, i, 0, ibegin, iendplusone)
-        count = count + 1.
-        temp = psis_l
-        psisum = psisum + temp(1)
-     end do
-     ! communicate sum and count to all processors
-     temp2 = 0.
-     if(maxrank.gt.1) then
-        temp1(1) = psisum
-        temp1(2) = count
-        call mpi_allreduce(temp1, temp2, 2, &
-             MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
-        psisum = temp2(1)
-        count = temp2(2)
-        psiave = psisum / count
-     endif
-  endif
 
   do i=1, numnodes
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
@@ -851,6 +820,9 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
      call assign_local_pointers(i)
      call entdofs(numvargs, i, 0, ibegin, iendplusone)
      call rotate_matrix(imatrix, ibegin, normal, curv, rhs)
+     if(numvargs.ge.2) &
+          call rotate_matrix(imatrix, ibegin+6, normal, curv, rhs)
+
 !>>>>>>debug
       if(imatrix.ne.0) write(35+myrank,1035) myrank,ibegin,x,z,normal,curv
 !     call MPI_Barrier(MPI_COMM_WORLD,ier)
@@ -858,33 +830,23 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
 
 !......add feedback field
      if(idevice .eq. 0 .and. ifixedb .eq. 0) then
-        call xyznod(i,coords)
-          select case(nonrect)
-          case(0)
-        xp = coords(1) - xmin + xzero
-        zp = coords(2) - zmin + zzero
-        xc(1) = 102.
-        zc(1) = xzero + alx/2.
-          case(1)
-        xp = coords(1) !cjdebug - xmin + xzero
-        zp = coords(2) !cjdebug - zmin + zzero
+        xp(1) = x
+        zp(1) = z
         xc(1) = 102.
         zc(1) = rzero + alx/2.
-!       if(myrank.eq.0) print *,"You are working with curved mesh."
-          end select
         call gvect(xp,zp,xc,zc,1,g,1,ineg)
         psis_l = psis_l + g*feedfac
      endif
 
-     ! clamp magnetic field
      temp = psis_l
-     if(ifixedb.eq.1) then
-        temp(1) = psiave
-        temp(2:6) = 0.
-     endif
      call set_dirichlet_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim)
 
-!!$!    ! no toroidal current
+     if(numvargs.ge.2) then
+        temp = 0.
+        call set_dirichlet_bc(imatrix,ibegin+6,rhs,temp,normal,curv,izonedim)
+     end if
+
+!!$    ! no toroidal current
 !!$    temp = 0.
 !!$    call set_laplacian_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim,-x)
   end do
@@ -1002,11 +964,3 @@ subroutine boundary_com(imatrix, rhs)
   end do
 
 end subroutine boundary_com
-  subroutine nodCurvature(inode,curv)
-  integer :: inode
-  real :: curv
-!
-!>>>>>dummy routine waiting for the SCOREC routine, works for circle of radius 2
-  curv = 1./2.
-  return
-  end
