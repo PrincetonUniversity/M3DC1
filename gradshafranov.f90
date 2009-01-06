@@ -315,8 +315,7 @@ subroutine gradshafranov_solve
                    +g79(:,OP_DZ,i)*g79(:,OP_DZ,j))
               sum = int1(temp79a)
               call insertval(gsmatrix_sm, sum, 0, i1,j1,1)
-              sum = -int3(ri2_79,g79(:,OP_1,i),g79(:,OP_1,j)) &
-                   + 1e-3*int3(ri2_79,g79(:,OP_1,i),g79(:,OP_GS,j)) 
+              sum = -int3(ri2_79,g79(:,OP_1,i),g79(:,OP_1,j))
               call insertval(gsmatrix_sm, sum, 0, i1,j1+6,1)
               sum = int3(ri2_79,g79(:,OP_1,i),g79(:,OP_1,j))
               call insertval(gsmatrix_sm, sum, 0, i1+6,j1+6,1)
