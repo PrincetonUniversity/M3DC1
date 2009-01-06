@@ -273,22 +273,10 @@ subroutine calcpos(itri,si,eta,ngauss,x,z)
 
   integer, dimension(4) :: nodeids(4)
   integer :: i
-  real :: xoff, zoff, b, co, sn, xmin, zmin
-  double precision :: coords(3)
+  real :: xoff, zoff, b, co, sn
 
-  call getmincoord(xmin,zmin)
   call nodfac(itri,nodeids)
-  call xyznod(nodeids(1), coords)
-
-         select case(nonrect)
-         case(0)
-  xoff = coords(1) - xmin + xzero
-  zoff = coords(2) - zmin + zzero
-         case(1)
-  xoff = coords(1) !cjdebug  - xmin + xzero
-  zoff = coords(2) !cjdebug  - zmin + zzero
-!        if(myrank.eq.0) print *,"You are working with curved mesh." 
-         end select 
+  call nodcoord(nodeids(1), xoff, zoff)
 
   b = btri(itri)
   co = cos(ttri(itri))
@@ -1042,14 +1030,12 @@ subroutine evaluate(x,z,ans,ans2,dum,itype,numvare,itri)
   real, intent(out) :: ans, ans2
 
   integer :: p, nodeids(4), ier
-  real :: x1, z1, xmin, zmin
+  real :: x1, z1
   vectype, dimension(20) :: avector
   real :: ri, si, eta, co, sn
   real :: term1, term2
   real, dimension(2) :: temp1, temp2
   integer :: hasval, tothasval
-
-  double precision :: coords(3)
 
   ! evaluate the solution to get the value [ans] at one point (x,z)
 
@@ -1061,9 +1047,7 @@ subroutine evaluate(x,z,ans,ans2,dum,itype,numvare,itri)
      call whattri(x,z,itri,x1,z1)
   else
      call nodfac(itri,nodeids)
-     call xyznod(nodeids(1), coords)
-     x1 = coords(1)
-     z1 = coords(2)
+     call nodcoord(nodeids(1), x1, z1)
   endif
 
   ans = 0.
@@ -1083,14 +1067,7 @@ subroutine evaluate(x,z,ans,ans2,dum,itype,numvare,itri)
 
      ! calculate the inverse radius
      if(itor.eq.1) then
-        call getmincoord(xmin, zmin)
-         select case(nonrect)
-         case(0)
-        ri = 1./(x - xmin + xzero)
-         case(1)
-        ri = 1./(x) !cjdebug - xmin + xzero)
-!       if(myrank.eq.0) print *,"You are working with curved mesh." 
-         end select
+        ri = 1./x
      else
         ri = 1.
      endif
