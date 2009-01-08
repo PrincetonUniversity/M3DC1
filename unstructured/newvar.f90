@@ -180,9 +180,13 @@ subroutine newvar(ilhsmat,outarray,inarray,iplace,numvari,irhsmat,ibound)
   if(ibound.eq.NV_NMBOUND) call boundary_nm(0, outarray)
 
   if(flg_petsc.eq.PETSC_TRUE .and. flg_solve1.eq.PETSC_TRUE) then 
-  call solve1(ilhsmat,outarray,ier)
+     call solve1(ilhsmat,outarray,ier)
   else
-  call solve(ilhsmat,outarray,ier)
+     call solve(ilhsmat,outarray,ier)
+  endif
+  if(ier.ne.0) then
+     if(myrank.eq.0) print *, 'Error in newvar solve'
+     call safestop(10)
   endif
   
 end subroutine newvar

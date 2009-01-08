@@ -72,19 +72,15 @@ subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
 !....convert tiltangle to radians and define normal vectors
      angler = tiltangled*pi/180.
      if(izone.eq.iright) then
-        !cj     normal = 0.
         normal(1) = cos(angler)  !cos
         normal(2) = sin(angler)  !sin
      else if(izone.eq.ileft) then
-        !cj     normal = pi
         normal(1) = cos(pi+angler)  !cos
         normal(2) = sin(pi+angler)  !sin
      else if(izone.eq.itop) then
-        !cj     normal = pi/2.
         normal(1) = cos(pi/2. + angler)  !cos
         normal(2) = sin(pi/2. + angler)  !sin
      else if(izone.eq.ibottom) then
-        !cj     normal = -pi/2.
         normal(1) = cos(3*pi/2. + angler)  !cos
         normal(2) = sin(3*pi/2. + angler)  !sin
      endif

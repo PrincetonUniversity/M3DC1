@@ -360,6 +360,7 @@ subroutine hdf5_write_parameters(error)
 
   call h5gopen_f(file_id, "/", root_id, error)
 
+  call write_int_attr (root_id, "version"    , version,    error)
   call write_int_attr (root_id, "numvar"     , numvar,     error)
   call write_int_attr (root_id, "idens"      , idens,      error)
   call write_int_attr (root_id, "ipres"      , ipres,      error)
@@ -374,13 +375,13 @@ subroutine hdf5_write_parameters(error)
   call write_int_attr (root_id, "ipellet"    , ipellet,    error)
   call write_int_attr (root_id, "ivform"     , ivform,     error)
   call write_int_attr (root_id, "ntor"       , ntor,       error)
+  call write_int_attr (root_id, "nonrect"    , nonrect,    error)
   call write_real_attr(root_id, "db"         , db,         error)
-  call write_real_attr(root_id, "xzero"      , xzero,      error)
-  call write_real_attr(root_id, "zzero"      , zzero,      error)
   call write_real_attr(root_id, "xlim"       , xlim,       error)
   call write_real_attr(root_id, "zlim"       , zlim,       error)
   call write_real_attr(root_id, "xmag"       , xmag,       error)
   call write_real_attr(root_id, "zmag"       , zmag,       error)
+  call write_real_attr(root_id, "rzero"      , rzero,      error)
   call write_real_attr(root_id, "vloop"      , vloop,      error)
   call write_real_attr(root_id, "gam"        , gam,        error)
   call write_real_attr(root_id, "thimp"      , thimp,      error)
@@ -654,9 +655,8 @@ subroutine output_mesh(time_group_id, nelms, error)
   integer(HID_T) :: mesh_group_id
   integer :: i
   real, dimension(6,nelms) :: elm_data
-  double precision, dimension(3) :: coords
   integer, dimension(4) :: nodeids
-  real :: alx, alz
+  real :: alx, alz, x, z
 
   ! Create the group
   call h5gcreate_f(time_group_id, "mesh", mesh_group_id, error) 
@@ -670,14 +670,14 @@ subroutine output_mesh(time_group_id, nelms, error)
   ! Output the mesh data
   do i=1, nelms
      call nodfac(i,nodeids)
-     call xyznod(nodeids(1), coords)
+     call nodcoord(nodeids(1), x, z)
 
      elm_data(1,i) = atri(i)
      elm_data(2,i) = btri(i)
      elm_data(3,i) = ctri(i)
      elm_data(4,i) = ttri(i)
-     elm_data(5,i) = coords(1)
-     elm_data(6,i) = coords(2)
+     elm_data(5,i) = x
+     elm_data(6,i) = z
   end do
   call output_field(mesh_group_id, "elements", elm_data, 6, nelms, error)
 
