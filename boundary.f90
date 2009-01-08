@@ -28,6 +28,7 @@ subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
   logical, intent(out) :: is_boundary       ! is inode on boundary
 
   integer :: ibottom, iright, ileft, itop
+  real :: angler
 
   curv = 0.
 
@@ -67,22 +68,25 @@ subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
      endif
      
      is_boundary = .true.
+!
+!....convert tiltangle to radians and define normal vectors
+     angler = tiltangled*pi/180.
      if(izone.eq.iright) then
         !cj     normal = 0.
-        normal(1) = 1.  !cos
-        normal(2) = 0.  !sin
+        normal(1) = cos(angler)  !cos
+        normal(2) = sin(angler)  !sin
      else if(izone.eq.ileft) then
         !cj     normal = pi
-        normal(1) =-1.  !cos
-        normal(2) = 0.  !sin
+        normal(1) = cos(pi+angler)  !cos
+        normal(2) = sin(pi+angler)  !sin
      else if(izone.eq.itop) then
         !cj     normal = pi/2.
-        normal(1) = 0.  !cos
-        normal(2) = 1.  !sin
+        normal(1) = cos(pi/2. + angler)  !cos
+        normal(2) = sin(pi/2. + angler)  !sin
      else if(izone.eq.ibottom) then
         !cj     normal = -pi/2.
-        normal(1) = 0.  !cos
-        normal(2) =-1.  !sin
+        normal(1) = cos(3*pi/2. + angler)  !cos
+        normal(2) = sin(3*pi/2. + angler)  !sin
      endif
      
   case(1)
@@ -318,7 +322,7 @@ subroutine set_normal_bc(imatrix,ibegin,rhs,bv,normal,curv,izonedim)
   if(izonedim.eq.0) then
      ! t
      irow = ibegin+2
-     if(imatrix.ne.1) then
+     if(imatrix.ne.0) then
         numvals = 2
         vals(1) = -normal(2)
         vals(2) =  normal(1)
@@ -944,7 +948,7 @@ subroutine boundary_com(imatrix, rhs)
      call assign_local_pointers(i)
      call entdofs(numvarsm, i, 0, ibegin, iendplusone)
      call rotate_matrix(imatrix, ibegin, normal, curv, rhs)
-     call rotate_matrix(imatrix, ibegin, normal+6, curv, rhs)
+     call rotate_matrix(imatrix, ibegin+6, normal, curv, rhs)
 
      ! clamp compression
      call set_dirichlet_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim)

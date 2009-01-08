@@ -379,6 +379,9 @@
 !
 !......factor multiplying chi inertial term
       chiiner = 1.
+!
+!......tilt angle of rectangular mesh (in degrees)
+      tiltangled = 0.
 
 !
       open(5,file='C1input',form='formatted',status='old')
