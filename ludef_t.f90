@@ -1055,8 +1055,8 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   q_ni = 0.
   q_bf = 0.
 
-  temp = b1psi(trial,lin)
-  if(lambdae.gt.0) temp = temp - lambdae*b1psieta(trial,lin,ni79,hf)   ! electron mass term
+  temp = b1psi (trial,lin) &
+       - b1psid(trial,lin,ni79)   ! electron mass term
   ssterm(psi_g) = ssterm(psi_g) + temp
   ddterm(psi_g) = ddterm(psi_g) + temp*bdf
 
@@ -1285,7 +1285,8 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
   ddterm(psi_g) = ddterm(psi_g) + (.5-thimp*bdf)*dt*temp
 
-  temp = b2b(trial,lin)
+  temp = b2b (trial,lin) &
+       - b2bd(trial,lin,ni79)   ! electron mass term
   ssterm(bz_g) = ssterm(bz_g) + temp
   ddterm(bz_g) = ddterm(bz_g) + temp*bdf
 

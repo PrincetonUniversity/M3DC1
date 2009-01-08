@@ -5,20 +5,12 @@
       implicit none
       integer i, numnodes, ibegin, iendplusone
       real, intent(out) :: rinv(*)
-      double precision coords(3)
 
-      real :: x
+      real :: x, z
 
       call numnod(numnodes)
       do i=1,numnodes
-         call xyznod(i, coords)
-
-         select case (nonrect)
-         case(0)
-           x = coords(1) + xzero
-         case(1)
-           x = coords(1)
-         end select
+         call nodcoord(i, x, z)
 
          call entdofs(1, i, 0, ibegin, iendplusone)
          rinv(ibegin) =  1./x
@@ -204,6 +196,7 @@
       kappa0 = 0.
       kappax = 0.
       kappah = 0.
+      mass_ratio = 0.
 !
 !
 !.....ratio of specific heats

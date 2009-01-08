@@ -271,8 +271,14 @@ pro plot_mesh, mesh, color=col, linestyle=lin, oplot=oplot, $
 
    if(n_elements(col) ne 0) then loadct, 12
  
-   xzero = read_parameter("xzero", filename=filename)
-   zzero = read_parameter("zzero", filename=filename)
+   version = read_parameter('version', filename=filename)
+   if(version eq 0) then begin
+       xzero = read_parameter("xzero", filename=filename)
+       zzero = read_parameter("zzero", filename=filename)
+   endif else begin
+       xzero = 0.
+       zzero = 0.
+   endelse
 
    for i=long(0), nelms-1 do begin
        a = mesh.elements._data[0,i]
@@ -435,15 +441,34 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
    localpos = fltarr(2)
    index = intarr(2)
 
-   xzero = read_parameter("xzero", filename=filename)
-   zzero = read_parameter("zzero", filename=filename)
+   version = read_parameter('version', filename=filename)
+   print, version
+   if(version eq 0) then begin
+       xzero = read_parameter("xzero", filename=filename)
+       zzero = read_parameter("zzero", filename=filename)
+
+       nonrect = read_parameter('nonrect', filename=filename)
+       if(nonrect eq 0.) then begin
+           xmin = min(mesh.elements._data[4,*])
+           ymin = min(mesh.elements._data[5,*])
+       endif else begin
+           xmin = 0.
+           ymin = 0.
+       endelse
+
+   endif else begin
+       xzero = 0.
+       zzero = 0.
+       xmin = 0.
+       ymin = 0.
+   endelse
 
    if(n_elements(xrange) lt 2) then $
      xrange = [min(mesh.elements._data[4,*]), $
-               max(mesh.elements._data[4,*])] + xzero
+               max(mesh.elements._data[4,*])] + xzero - xmin
    if(n_elements(yrange) lt 2) then $
      yrange = [min(mesh.elements._data[5,*]), $
-               max(mesh.elements._data[5,*])] + zzero
+               max(mesh.elements._data[5,*])] + zzero - ymin
 
    dx = (xrange[1] - xrange[0]) / (p - 1.)
    dy = (yrange[1] - yrange[0]) / (p - 1.)
@@ -768,8 +793,14 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
    nt = read_parameter("ntime", filename=filename)
    nv = read_parameter("numvar", filename=filename)
    itor = read_parameter("itor", filename=filename)
-   xzero = read_parameter("xzero", filename=filename)
-   zzero = read_parameter("zzero", filename=filename)
+   version = read_parameter('version', filename=filename)
+   if(version eq 0) then begin
+       xzero = read_parameter("xzero", filename=filename)
+       zzero = read_parameter("zzero", filename=filename)
+   endif else begin
+       xzero = 0.
+       zzero = 0.
+   endelse
    ilin = read_parameter('linear', filename=filename)
 
    if(keyword_set(last)) then time = [nt-1,nt-1]
@@ -2366,14 +2397,14 @@ pro plot_energy, name, filename=filename, norm=norm, diff=diff, $
 
    n = n_elements(names)
 
-   if(keyword_set(per_length)) then begin
-       itor = read_parameter('itor', filename=filename)
-       if(itor eq 1) then begin
-           xzero = read_parameter('xzero', filename=filename)
-           tot = tot / xzero
-           comp = comp / xzero
-       endif
-   endif
+;    if(keyword_set(per_length)) then begin
+;        itor = read_parameter('itor', filename=filename)
+;        if(itor eq 1) then begin
+;            xzero = read_parameter('xzero', filename=filename)
+;            tot = tot / xzero
+;            comp = comp / xzero
+;        endif
+;    endif
 
    if(keyword_set(diff)) then begin
        title = title + "!6 (Difference from Initial)!X"
@@ -2741,11 +2772,11 @@ function beta_normal, filename=filename
    a = 1.
 
    gamma = read_parameter('gam', filename=filename)
-   xzero = read_parameter('xzero', filename=filename)
+   rzero = read_parameter('rzero', filename=filename)
    xmag = read_parameter('xmag', filename=filename)
    bzero = read_parameter('bzero', filename=filename)
 
-   bt0 = bzero*(xzero/xmag)
+   bt0 = bzero*(rzero/xmag)
    
    s = read_scalars(filename=filename)
    i_n = s.toroidal_current._data / (a*bt0)
@@ -2989,8 +3020,8 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
   if(keyword_set(per_length)) then begin
       itor = read_parameter('itor', filename=filename)
       if(itor eq 1) then begin
-          xzero = read_parameter('xzero', filename=filename)
-          data = data / xzero
+          rzero = read_parameter('rzero', filename=filename)
+          data = data / rzero
       endif
   endif
   
@@ -3419,8 +3450,8 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, $
                           slice=time, _EXTRA=extra)
            
            bzero = read_parameter('bzero',_EXTRA=extra)
-           xzero = read_parameter('xzero',_EXTRA=extra)
-           izero = bzero*xzero
+           rzero = read_parameter('rzero',_EXTRA=extra)
+           izero = bzero*rzero
            print, 'izero = ', izero
        
            r = radius_matrix(x,z,t)
@@ -3657,7 +3688,7 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
   if(n_elements(pts) eq 0) then pts=128
 
   bzero = read_parameter('bzero', _EXTRA=extra)
-  xzero = read_parameter('xzero', _EXTRA=extra)
+  rzero = read_parameter('rzero', _EXTRA=extra)
 
   ; calculate flux averages
   psi = read_field('psi',x,z,t,slice=slice,points=pts,_EXTRA=extra)
@@ -3666,7 +3697,7 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
   I0 = read_field('I',x,z,t,slice=slice,points=pts,_EXTRA=extra)
   r = radius_matrix(x,z,t)
   beta = r^2*2.*p0/(s_bracket(psi,psi,x,z) + I0^2)
-  beta0 = mean(2.*p0*r^2/(bzero*xzero)^2)
+  beta0 = mean(2.*p0*r^2/(bzero*rzero)^2)
   b2 = (s_bracket(psi,psi,x,z) + I0^2)/r^2
   dx = mean(deriv(x))
   dz = mean(deriv(z))
@@ -3766,7 +3797,7 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
   r = r*l0                      / 100.
   x = x*l0                      / 100.
   z = z*l0                      / 100.
-  xzero = xzero*l0              / 100.
+  rzero = rzero*l0              / 100.
 
   nr = n_elements(flux)
   print, 'nr = ', nr
@@ -3792,10 +3823,10 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
   rmag = x[axis[0,0]]
   zmag = z[axis[1,0]]
   zip = tcur
-  bcentr = bzero*xzero/rmag
+  bcentr = bzero*rzero/rmag
   beta0 = beta0
   betacent = beta[0, axis[0,0], axis[1,0]]
-  beta_n = 100.*(bzero*xzero/rmag)*beta0/(zip/1e6)
+  beta_n = 100.*(bzero*rzero/rmag)*beta0/(zip/1e6)
   xdum = 0.
 
   print, 'rdim, zdim', rdim, zdim

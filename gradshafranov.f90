@@ -134,7 +134,7 @@ data ITER_I &
 !!$       0.8608, 0.8607, 0.8611, 0.8630, &
 !!$       1.0025, 2.6124, 2.3834, 1.2524, 1.6889 /
 
-! Coils 7 and 15 have been moved out 0.1 to avoid domain boundary
+! Coils 7 and 15 have been moved out 0.2 to avoid domain boundary
 data DIII_r &
      / 0.8608, 0.8614, 0.8628, 0.8611, &
        1.0041, 2.6124, 2.4733, 1.2518, 1.6890, &
@@ -526,6 +526,10 @@ subroutine gradshafranov_solve
      else
        call solve(gsmatrix_sm,b1vecini,ier)
      endif
+     if(ier.ne.0) then
+        if(myrank.eq.0) print *, 'Error in GS solve'
+        call safestop(10)
+     end if
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_gs_solve = t_gs_solve + tend - tstart

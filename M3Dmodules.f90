@@ -18,6 +18,8 @@ module basic
   use p_data
   use pid_controller
 
+  integer, parameter :: version = 1
+
 #ifdef USECOMPLEX
   integer, parameter :: icomplex = 1
   integer, parameter :: i3d = 1
@@ -25,6 +27,8 @@ module basic
   integer, parameter :: icomplex = 0
   integer, parameter :: i3d = 0
 #endif
+
+  real, parameter :: me_mi = 1./1836.2
 
   ! transport coefficients
   real :: amu         ! incompressible viscosity
@@ -52,6 +56,7 @@ module basic
   real :: gam         ! ratio of specific heats
   real :: gravr,gravz ! gravitational acceleration
   real :: vloop       ! loop voltage
+  real :: mass_ratio  ! me/mi (in units of me/mp)
 
   ! domain parameters
   real :: xzero, zzero  ! cooridinates of lower left corner of domain
@@ -220,7 +225,7 @@ real :: tiltangled   !   angle to which the rectangular mesh is tilted for tests
        numvar,idens,ipres,gyro,isources,nosig,itor,jadv,       &
        gam,db,gravr,gravz,                                     &
        p0,pi0,bzero,vzero,phizero,                             &
-       etar,eta0,iresfunc,etaoff,etadelt, lambdae,             &
+       etar,eta0,iresfunc,etaoff,etadelt,lambdae,mass_ratio,   &
        amu,amuc,amupar,amue,denm,                              &
        kappat,kappa0,kappar,kappax,kappah,                     &
        hyper,hyperi,hyperv,hyperc,hyperp,deex,                 &

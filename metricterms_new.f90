@@ -3807,6 +3807,27 @@ vectype function b1psiv(e,f,g)
 end function b1psiv
 
 
+! B1psid
+! ======
+vectype function b1psid(e,f,g)
+  use basic
+  use nintegrate_mod
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype :: temp
+
+  if(mass_ratio.eq.0. .or. dbf.eq.0.) then
+     b1psid = 0.
+     return
+  endif
+
+  temp = int3(e(:,OP_1),f(:,OP_GS),g(:,OP_1))
+
+  b1psid = temp*me_mi*mass_ratio*dbf**2
+  return
+end function b1psid
+
+
 ! B1bu
 ! ====
 vectype function b1bu(e,f,g)
@@ -4135,6 +4156,8 @@ vectype function b1bbd(e,f,g,h)
 #endif
   return
 end function b1bbd
+
+
 ! B1ped
 ! ====
 vectype function b1ped(e,f,g)
@@ -4471,6 +4494,40 @@ vectype function b2bchi(e,f,g)
   b2bchi = temp
   return
 end function b2bchi
+
+
+! B2bd
+! ====
+vectype function b2bd(e,f,g)
+  use basic
+  use nintegrate_mod
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype :: temp
+
+  if(mass_ratio.eq.0. .or. dbf.eq.0.) then
+     b2bd = 0.
+     return
+  endif
+
+  select case(ibform)
+  case(0)
+     temp = - &
+          (int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1)) &
+          +int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_1)))
+     if(itor.eq.1) then
+        temp = temp - 2.*int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1))
+     endif
+  case(1)
+     temp = - &
+          (int4(ri2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1)) &
+          +int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1)))
+  end select
+
+  b2bd = temp*me_mi*mass_ratio*dbf**2
+  return
+end function b2bd
+
 
 
 ! B2psiv

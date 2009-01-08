@@ -190,6 +190,7 @@ module tilting_cylinder
 contains
 
 subroutine tilting_cylinder_init()
+  use basic
   use arrays
 
   implicit none
@@ -203,8 +204,8 @@ subroutine tilting_cylinder_init()
   do l=1, numnodes
      call nodcoord(l, x, z)
 
-     x = x - alx*.5
-     z = z - alz*.5
+     x = x - alx*.5 - xzero
+     z = z - alz*.5 - zzero 
 
      call assign_local_pointers(l)
 
@@ -363,6 +364,7 @@ contains
 
 
 subroutine taylor_reconnection_init()
+  use basic
   use arrays
 
   implicit none
@@ -376,8 +378,8 @@ subroutine taylor_reconnection_init()
   do l=1, numnodes
      call nodcoord(l, x, z)
 
-     x = x - alx*.5
-     z = z - alz*.5
+     x = x - alx*.5 - xzero
+     z = z - alz*.5 - zzero
 
      call assign_local_pointers(l)
 
@@ -445,6 +447,7 @@ module force_free_state
 contains
 
 subroutine force_free_init()
+  use basic
   use arrays
 
   implicit none
@@ -458,8 +461,8 @@ subroutine force_free_init()
   do l=1, numnodes
      call nodcoord(l, x,z)
 
-     x = x - alx*.5
-     z = z - alz*.5
+     x = x - alx*.5 - xzero
+     z = z - alz*.5 - zzero
 
      call assign_local_pointers(l)
 
@@ -557,8 +560,8 @@ subroutine gem_reconnection_init()
 
      call assign_local_pointers(l)
 
-     x = x - alx*.5
-     z = z - alz*.5
+     x = x - alx*.5 - xzero
+     z = z - alz*.5 - zzero
 
      call gem_reconnection_equ(x, z)
      call gem_reconnection_per(x, z)
@@ -823,8 +826,8 @@ subroutine wave_init()
   do l=1, numnodes
      call nodcoord(l, x, z)
 
-     x = x - alx*.5
-     z = z - alz*.5
+     x = x - alx*.5 - xzero
+     z = z - alz*.5 - zzero
 
      call assign_local_pointers(l)
 
