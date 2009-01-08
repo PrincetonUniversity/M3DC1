@@ -29,11 +29,13 @@ Program Reducedquintic
   PetscInt :: mpetscint,npetscint
 
   ! Start up message passing, SuperLU process grid
+  if(myrank.eq.0) print *, 'Initializing MPI'
   call MPI_Init(ier)
   if (ier /= 0) then
      print *,'Error initializing MPI:',ier
      call safestop(1)
   endif
+  if(myrank.eq.0) print *, 'Initializing PETSc'
   call PetscInitialize(PETSC_NULL_CHARACTER, ier)
   call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-m',mpetscint,flg,ier)
   call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-n',npetscint,flg,ier)
@@ -42,7 +44,9 @@ Program Reducedquintic
      print *,'Error in MPI_Comm_rank:',ier
      call safestop(1)
   endif
+
   ! initialize the SUPERLU process grid
+  if(myrank.eq.0) print *, 'Setting up SuperLU process grid'
   call initsolvers
   call MPI_Comm_size(MPI_COMM_WORLD,maxrank,ier)
   if (ier /= 0) then
@@ -50,8 +54,10 @@ Program Reducedquintic
      call safestop(1)
   endif
   ! initialize autopack
+  if(myrank.eq.0) print *, 'Initializing Autopack'
   call AP_INIT()
 
+  if(myrank.eq.0) print *, 'Loading Mesh'
   call loadmesh("struct.dmg", "struct-dmg.sms")
 
   if(myrank.eq.0) then
@@ -65,6 +71,7 @@ Program Reducedquintic
   pi = acos(-1.)
 
   ! initialize needed variables and define geometry and triangles
+  if(myrank.eq.0) print *, 'Calling init'
   call init
 
   if(myrank.eq.0) then 

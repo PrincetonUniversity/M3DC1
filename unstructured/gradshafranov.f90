@@ -512,8 +512,9 @@ subroutine gradshafranov_solve
        feedfac = -0.25*(psilim - psilim2)/gnorm
 !......as a diagnostic, calculate the effective value of libetap (including feedback term)
        libetapeff =  libetapeff + feedfac/fac2
-       if(myrank.eq.0 .and. iprint.eq.1) print *,"feedfac, psilim, psilim2,gnorm", &
-          feedfac, psilim, psilim2, gnorm
+       if(myrank.eq.0 .and. iprint.eq.1) &
+            write(*,'(A,4F10.5)') "feedfac, psilim, psilim2,gnorm", &
+            feedfac, psilim, psilim2, gnorm
      endif
 
      call boundary_gs(0, b1vecini, feedfac)
@@ -837,6 +838,7 @@ subroutine gradshafranov_solve
   ! free memory
   call deleterealvec(temp)
   call deletevec(b1vecini)
+  call deletevec(b2vecini)
   call deletevec(psi)
   call deleterealvec(fun1)
   call deleterealvec(fun4)
