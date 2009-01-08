@@ -442,7 +442,6 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
    index = intarr(2)
 
    version = read_parameter('version', filename=filename)
-   print, version
    if(version eq 0) then begin
        xzero = read_parameter("xzero", filename=filename)
        zzero = read_parameter("zzero", filename=filename)

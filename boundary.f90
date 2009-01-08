@@ -96,6 +96,9 @@ subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
   end select
   
   call nodcoord(inode,x,z)
+!!$  if(izone.eq.itop) then
+!!$     write(*,'(5F10.5)') x, z, normal(1), normal(2), curv
+!!$  end if
 
 end subroutine boundary_node
 

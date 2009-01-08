@@ -788,7 +788,7 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
 
 
   if(myrank.eq.0 .and. iprint.gt.0) &
-       print *, " magaxis: guess=", xguess, zguess
+       write(*,'(A,2F8.5)') " magaxis: guess=", xguess, zguess
 
 ! call getboundingboxsize(alx, alz)
 
@@ -880,7 +880,7 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
           znew = z + bfac*h*(ztry-z)/rdiff
         endif
         in_domain = 1
-        if(iprint.ge.1) print *, 'rdiff/h, tol', rdiff/h, tol
+        if(iprint.ge.1) write(*,'(A,2F8.5)') 'rdiff/h, tol', rdiff/h, tol
         if(rdiff/h .lt. tol) converged = 1
      else
         xnew = 0.
@@ -910,7 +910,7 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
      if(in_domain.eq.0) then
         ! if not within the domain, safestop.
         if(myrank.eq.0 .and. iprint.ge.1)   &
-             print *, 'magaxis: guess outside domain', x, z
+             write(*,'(A,2F8.5)') 'magaxis: guess outside domain', x, z
         ier = 1
         return
      else
@@ -924,17 +924,10 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, " magaxis: iterations = ", inews
 
-
   xguess = x
   zguess = z
   psim = sum
   ier = 0
-
-!>>>>>debug
-!     write(90+myrank,1999) inews,x,z,x1,z1,pt,pt1,pt2,p11,p22,p12,theta,b
-!     write(90+myrank,2000) xnew,znew,xtry,ztry,denom,rdiff
-!2000 format(3x,1p12e10.2)
-!1999 format(i3,1p12e10.2)
   
 end subroutine magaxis
 
@@ -974,12 +967,12 @@ subroutine lcfs(phin, iplace, numvari)
      psimin = psim
 
      if(myrank.eq.0 .and. iprint.ge.1) then 
-        print *, '  magnetic axis found at ', xmag, zmag
-        print *, '  value of psi at magnetic axis ', psimin
+        write(*,'(A,2F10.5)') '  magnetic axis found at ', xmag, zmag
+        write(*,'(A, F10.5)') '  value of psi at magnetic axis ', psimin
      end if
   else
      if(myrank.eq.0 .and. iprint.ge.1) then 
-        print *, '  no magnetic axis found near ', xmag, zmag
+        write(*,'(A,2F10.5)') '  no magnetic axis found near ', xmag, zmag
      end if
   endif
 
@@ -1012,7 +1005,7 @@ subroutine lcfs(phin, iplace, numvari)
   psib = temp2
 
   if(myrank.eq.0 .and. iprint.ge.1) then
-     print *, '  psi at limiter = ', psib
+     write(*,'(A, F10.5)') '  psi at limiter = ', psib
   endif
 
   ! Find an x-point and find the value of psi
@@ -1020,14 +1013,14 @@ subroutine lcfs(phin, iplace, numvari)
   call magaxis(xnull,znull,phin,iplace,numvari,psix,1,ier)
   if(ier.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) then 
-        print *, '  x-point found at ', xnull, znull
-        print *, '  value of psi at divertor ', psix
+        write(*,'(A,2F10.5)') '  X-point found at ', xnull, znull
+        write(*,'(A, F10.5)') '  value of psi at divertor ', psix
      end if
   else 
      psix = psib
 
      if(myrank.eq.0 .and. iprint.ge.1) then 
-        print *, '  no X-point found near ', xnull, znull
+        write(*,'(A,2F10.5)') '  no X-point found near ', xnull, znull
      end if
   endif
 
