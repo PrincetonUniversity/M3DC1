@@ -96,9 +96,6 @@ subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
   end select
   
   call nodcoord(inode,x,z)
-!!$  if(izone.eq.itop) then
-!!$     write(*,'(5F10.5)') x, z, normal(1), normal(2), curv
-!!$  end if
 
 end subroutine boundary_node
 
@@ -732,7 +729,6 @@ subroutine boundary_dc(imatrix, rhs)
      call entdofs(1, i, 0, ibegin, iendplusone)
      call rotate_matrix(imatrix, ibegin, normal, curv, rhs)
 
-
      call set_dirichlet_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim)
   end do
 
@@ -849,9 +845,9 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
         call set_dirichlet_bc(imatrix,ibegin+6,rhs,temp,normal,curv,izonedim)
      end if
 
-!!$    ! no toroidal current
-!!$    temp = 0.
-!!$    call set_laplacian_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim,-x)
+    ! no toroidal current
+    temp = 0.
+    call set_laplacian_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim,-x)
   end do
 
 end subroutine boundary_gs
