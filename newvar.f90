@@ -83,21 +83,13 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
               temp = int2(g79(:,OP_1,i),g79(:,OP_1,j))
 
            case(NV_LP_MATRIX)
-              temp = - &
-                   (int2(g79(:,OP_DR,i),g79(:,OP_DR,j)) &
-                   +int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j)))
+              temp = int2(g79(:,OP_1,i),g79(:,OP_LP,j))
               if(ibound.eq.NV_NMBOUND) then
-                temp = temp - regular*int2(g79(:,OP_1,i),g79(:,OP_1,j))
+                 temp = temp - regular*int2(g79(:,OP_1,i),g79(:,OP_1,j))
               endif
 
            case(NV_GS_MATRIX)
-              temp = - &
-                   (int2(g79(:,OP_DR,i),g79(:,OP_DR,j)) &
-                   +int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j)))
-              if(itor.eq.1) then
-                 temp = temp - &
-                      2.*int3(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j))
-              endif
+              temp = int2(g79(:,OP_1,i),g79(:,OP_GS,j))
 
            case(NV_BF_MATRIX)
               temp = int3(ri2_79,g79(:,OP_1,i),g79(:,OP_1,j))
