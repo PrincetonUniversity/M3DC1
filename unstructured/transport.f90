@@ -240,7 +240,7 @@ subroutine define_transport_coefficients()
   kappa = 0.
   sigma = 0.
   visc = 0.
-  visc_e = 0.
+  if(ibootstrap.gt.0) visc_e = 0.
   tempvar = 0.
 
   def_fields = FIELD_N + FIELD_PE + FIELD_P + FIELD_PSI + FIELD_I
@@ -268,7 +268,7 @@ subroutine define_transport_coefficients()
         visc(ione) = visc(ione) + viscosity_func(i)
         if(.not.solve_visc) solve_visc = visc(ione).ne.0.
 
-        if(ibootstrap.eq.1) then
+        if(ibootstrap.gt.1) then
            visc_e(ione) = visc_e(ione) + electron_viscosity_func(i)
            if(.not.solve_visc_e) solve_visc_e = visc_e(ione).ne.0.
         endif

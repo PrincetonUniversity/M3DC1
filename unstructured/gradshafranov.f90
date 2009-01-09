@@ -514,7 +514,7 @@ subroutine gradshafranov_solve
 !......as a diagnostic, calculate the effective value of libetap (including feedback term)
        libetapeff =  libetapeff + feedfac/fac2
        if(myrank.eq.0 .and. iprint.eq.1) &
-            write(*,'(A,4F10.5)') "feedfac, psilim, psilim2,gnorm", &
+            write(*,'(A,4E12.4)') "feedfac, psilim, psilim2,gnorm", &
             feedfac, psilim, psilim2, gnorm
      endif
 
@@ -704,7 +704,7 @@ subroutine gradshafranov_solve
      end if
 
      if(myrank.eq.0 .and. iprint.ge.1) then 
-        print *, "GS: curr, x0, z0 = ", curr, xmag, zmag
+        write(*,'(A,3E12.4)') "GS: curr, x0, z0 = ", curr, xmag, zmag
      endif
 
 
