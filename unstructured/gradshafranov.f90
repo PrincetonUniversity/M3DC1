@@ -300,10 +300,11 @@ subroutine gradshafranov_solve
            case(1)
               i1 = isval1(itri,i)
               j1 = isval1(itri,j)
-              temp79a = -ri2_79* &
-                   (g79(:,OP_DR,i)*g79(:,OP_DR,j) &
-                   +g79(:,OP_DZ,i)*g79(:,OP_DZ,j))
-              sum = int1(temp79a)
+!!$              temp79a = -ri2_79* &
+!!$                   (g79(:,OP_DR,i)*g79(:,OP_DR,j) &
+!!$                   +g79(:,OP_DZ,i)*g79(:,OP_DZ,j))
+!!$              sum = int1(temp79a)
+              sum = int3(ri2_79,g79(:,OP_1,i),g79(:,OP_GS,j))
               call insertval(gsmatrix_sm, sum, 0, i1,j1,1)
 
            case(2)
