@@ -364,7 +364,7 @@ subroutine gradshafranov_solve
     bv = 0.
   endif
   call getboundingboxsize(alx,alz)
-  rnorm = rzero + alx/2.
+  rnorm = 10.
   if(myrank.eq.0 .and. iprint.ge.1) &
         print *, "gradshafranov_solve xmag zmag alx alz xzero zzero= ", &
                  xmag, zmag, alx, alz, xzero, zzero
@@ -1508,11 +1508,11 @@ subroutine calc_pressure(psii,pres)
 !         +30.*(10. +  4.*p1 +    p2)*psii(1)**4)
 
      pres(1) = fbig0
-     pres(2) = psii(2)*fbig/(p0*dpsii)
-     pres(3) = psii(3)*fbig/(p0*dpsii)
-     pres(4) = (psii(4)*fbig + psii(2)**2*fbigp)/(p0*dpsii)
-     pres(5) = (psii(5)*fbig + psii(2)*psii(3)*fbigp)/(p0*dpsii)
-     pres(6) = (psii(6)*fbig + psii(3)**2*fbigp)/(p0*dpsii)
+     pres(2) = psii(2)*fbig/(p0)
+     pres(3) = psii(3)*fbig/(p0)
+     pres(4) = (psii(4)*fbig + psii(2)**2*fbigp)/(p0)
+     pres(5) = (psii(5)*fbig + psii(2)*psii(3)*fbigp)/(p0)
+     pres(6) = (psii(6)*fbig + psii(3)**2*fbigp)/(p0)
   endif
 
   pres = p0*pres
@@ -1570,9 +1570,9 @@ subroutine fget(pso, fbig0, fbig, fbigp, fbigpp,dpsii)
       enddo
       fac = (pso - psinorm(jj-1))/(psinorm(jj)-psinorm(jj-1))
       fbig0 = fbig0t(jj-1) + fac*(fbig0t(jj)-fbig0t(jj-1))
-      fbig = (fbigt(jj-1) + fac*(fbigt(jj)-fbigt(jj-1))*dpsii)
-      fbigp = (fbigpt(jj-1) + fac*(fbigpt(jj)-fbigpt(jj-1))*dpsii)
-      fbigpp = (fbigppt(jj-1) + fac*(fbigppt(jj)-fbigppt(jj-1))*dpsii)
+      fbig = (fbigt(jj-1) + fac*(fbigt(jj)-fbigt(jj-1)))
+      fbigp = (fbigpt(jj-1) + fac*(fbigpt(jj)-fbigpt(jj-1)))
+      fbigpp = (fbigppt(jj-1) + fac*(fbigppt(jj)-fbigppt(jj-1)))
       return
  end subroutine fget
 

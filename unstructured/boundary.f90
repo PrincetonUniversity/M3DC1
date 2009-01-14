@@ -832,7 +832,7 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
         xp(1) = x
         zp(1) = z
         xc(1) = 102.
-        zc(1) = rzero + alx/2.
+        zc(1) = 10.
         call gvect(xp,zp,xc,zc,1,g,1,ineg)
         psis_l = psis_l + g*feedfac
      endif
