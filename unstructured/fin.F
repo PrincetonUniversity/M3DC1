@@ -532,7 +532,7 @@
       r1(5,6) = sn*co
 !
       r1(6,4) = sn**2
-      r1(6,5) = -2*sn*co
+      r1(6,5) = -2.*sn*co
       r1(6,6) = co**2
 ! 
       do i=1,18
@@ -801,7 +801,7 @@
          do i=-6,maxi
             do j=-6,maxi
                fint(i,j) = 0.
-               if(i.ge.0 .and.j.ge.0)                                          &
+               if(i.ge.0 .and.j.ge.0)
      &              fint(i,j) = f(i,j,atri(itri),btri(itri),ctri(itri))
             enddo
          enddo

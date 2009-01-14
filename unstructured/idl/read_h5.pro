@@ -312,7 +312,7 @@ end
 ;======================================================
 function is_in_tri, localp, a, b, c
 
-   small = (a+b+c)*1e-3
+   small = (a+b+c)*1e-2
 
    if(localp[1] lt 0. - small) then return, 0
    if(localp[1] gt c + small) then return, 0
@@ -473,6 +473,8 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
    dy = (yrange[1] - yrange[0]) / (p - 1.)
 
    result = fltarr(p,p)
+   mask = fltarr(p,p)
+   mask[*] = 1.
 
    small = 1e-3
 
@@ -498,7 +500,7 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
 
        index[1] = (minpos[1]-yrange[0]+zzero)/dy
        pos[1] = index[1]*dy+yrange[0]-zzero
-
+       
        while(pos[1] le maxpos[1] + small*dy) do begin
            index[0] = (minpos[0]-xrange[0]+xzero)/dx
            pos[0] = index[0]*dx+xrange[0]-xzero
@@ -513,9 +515,10 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
                        if(is_in_tri(localpos,a,b,c) eq 1) then begin
                            result[index[0], index[1]] = $
                              eval(field, localpos, t, i, op=op)
+                           mask[index[0], index[1]] = 0
                        endif
                    endif
-                                  
+                                
                    pos[0] = pos[0] + dx
                    index[0] = index[0] + 1
                end
@@ -525,6 +528,38 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
            index[1] = index[1] + 1
        end
    end
+
+;  determine 'edge' value
+   if(max(mask) eq 1) then begin
+       num_edge_vals = 0
+       edge_val = 0
+       for i=0,p-1 do begin
+           for j=0,p-1 do begin
+               if(mask[i,j] eq 0) then begin 
+                   is_edge = 0
+                   if(i gt 0) then begin
+                       if(mask[i,j] ne mask[i-1,j]) then is_edge = 1
+                   endif
+                   if(i lt p-1) then begin
+                       if(mask[i,j] ne mask[i+1,j]) then is_edge = 1
+                   endif
+                   if(j gt 0) then begin
+                       if(mask[i,j] ne mask[i,j-1]) then is_edge = 1
+                   endif
+                   if(j lt p-1) then begin
+                       if(mask[i,j] ne mask[i,j+1]) then is_edge = 1
+                   endif
+                   if(is_edge eq 1) then begin
+                       edge_val = (edge_val*num_edge_vals $
+                                   + result[i,j]) / (num_edge_vals + 1.)
+                       num_edge_vals = num_edge_vals + 1.
+                   endif
+               endif
+           endfor
+       endfor
+
+       result = result + mask*edge_val
+   endif
 
    xi = findgen(p)*(xrange[1]-xrange[0])/(p-1.) + xrange[0]
    yi = findgen(p)*(yrange[1]-yrange[0])/(p-1.) + yrange[0]
@@ -1756,6 +1791,9 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
                               at_points[1,k]-zzero]
                        base[k] = $
                          eval_global(field._data,mesh,pos,elm=elm,op=op)
+                       if(elm eq -1) then begin
+                           print, 'Warning: point outside domain'
+                       endif
                    end
                endelse
            endelse

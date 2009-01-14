@@ -4095,8 +4095,16 @@ vectype function b1psibd(e,f,g,h)
   end if
 
   if(jadv.eq.0) then
-     temp = int5(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1)) &
-          - int5(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1))
+!!$     temp = int5(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1)) &
+!!$          - int5(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1))
+!!$     temp = int5(ri_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_1),h(:,OP_1)) &
+!!$          - int5(ri_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_1),h(:,OP_1)) &
+!!$          + int5(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),h(:,OP_DZ)) &
+!!$          - int5(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_1),h(:,OP_DR))
+
+     temp79a = f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ)
+     temp = int4(ri_79,e(:,OP_1),temp79a,h(:,OP_1))
+
   else
      temp79a = f(:,OP_DZ )*g(:,OP_DR ) - f(:,OP_DR )*g(:,OP_DZ )
      temp79b = f(:,OP_DRZ)*g(:,OP_DR ) - f(:,OP_DRR)*g(:,OP_DZ ) &
