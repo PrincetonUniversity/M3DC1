@@ -73,7 +73,7 @@ subroutine add_angular_velocity(outarr, x,omega)
 
 end subroutine add_angular_velocity
 !=============================
-subroutine random_per(x,z,seed)
+subroutine random_per(x,z,seed,fac)
   use basic
   use arrays
 
@@ -81,7 +81,7 @@ subroutine random_per(x,z,seed)
 
   real :: rand
 
-  real, intent(in) :: x, z
+  real, intent(in) :: x, z, fac
   integer, intent(in) :: seed
   integer :: i, j
   integer, parameter :: maxn = 10
@@ -108,23 +108,23 @@ subroutine random_per(x,z,seed)
      do j=1, maxn
         kz = j*pi/alz
         call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
-        psi1_l = psi1_l + temp
+        psi1_l = psi1_l + fac*temp
         call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
-        u1_l = u1_l + temp
+        u1_l = u1_l + fac*temp
      end do
 !
      case (1)  !   make U odd symmetry about midplane:  perturb only U
      do j=1, maxn/2
         kz = 2.*j*pi/alz
         call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
-        u1_l = u1_l + temp
+        u1_l = u1_l + fac*temp
      end do
 !
      case (2)  !   make U even  symmetry about midplane:  perturb only U
      do j=1, maxn/2
         kz = (2.*j-1)*pi/alz
         call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
-        u1_l = u1_l + temp
+        u1_l = u1_l + fac*temp
      end do
 !
      end select
