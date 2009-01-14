@@ -326,16 +326,17 @@ subroutine gradshafranov_solve
   enddo
 
   feedfac = 0.
+  psilim = 0.
   ! insert boundary conditions
 !
 !.....NOTE:   This first call just modifies the gsmatrix_sm by inserting 1's
 !             on the diagonal for boundary points (or vector angles for non-rect)
 !
-  call boundary_gs(gsmatrix_sm, b2vecini, feedfac)
+  call boundary_gs(gsmatrix_sm, b2vecini, feedfac, psilim)
   call finalizematrix(gsmatrix_sm)
 !
 !>>>>>debug
-      call writematrixtofile(gsmatrix_sm,33)
+!     call writematrixtofile(gsmatrix_sm,33)
 !     call safestop(0)
 
   if(myrank.eq.0 .and. itimer.eq.1) then
@@ -518,7 +519,7 @@ subroutine gradshafranov_solve
             feedfac, psilim, psilim2, gnorm
      endif
 
-     call boundary_gs(0, b1vecini, feedfac)
+     call boundary_gs(0, b1vecini, feedfac, psilim)
 
      ! perform LU backsubstitution to get psi solution
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -807,6 +808,8 @@ subroutine gradshafranov_solve
      temp(ibegin+1:ibegin+5) = psi(ibegin+1:ibegin+5)*dpsii
 
      call calc_toroidal_field(temp(ibegin:ibegin+5), bz0_l)
+!
+!>>>>>>debug
      call calc_pressure(temp(ibegin:ibegin+5),p0_l)
 
      call nodcoord(i, x, z)
@@ -1341,8 +1344,8 @@ subroutine calc_toroidal_field(psii,tf)
   real :: g2big, g2bigp, g3big, g3bigp
   vectype :: g0
   
-!  if(psii(1) .lt. 0. .or. psii(1) .gt. 1.) then
-  if(psii(1) .gt. 1.) then
+  if(psii(1) .le. 0. .or. psii(1) .ge. 1.) then
+! if(psii(1) .gt. 1.) then
      g0 = bzero*rzero
      call constant_field(tf, g0)
   else
