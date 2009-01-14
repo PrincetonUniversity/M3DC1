@@ -782,7 +782,7 @@ end subroutine boundary_nm
 !
 ! sets boundary conditions on psi in the GS solver
 !=======================================================
-subroutine boundary_gs(imatrix, rhs, feedfac)
+subroutine boundary_gs(imatrix, rhs, feedfac, psilim)
   use basic
   use arrays
   use gradshafranov
@@ -790,7 +790,7 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
   implicit none
   
   integer, intent(in) :: imatrix
-  real, intent(in) :: feedfac
+  real, intent(in) :: feedfac, psilim
   vectype, intent(inout), dimension(*) :: rhs
   
   integer :: i, izone, izonedim
@@ -836,6 +836,9 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
         call gvect(xp,zp,xc,zc,1,g,1,ineg)
         psis_l = psis_l + g*feedfac
      endif
+      if(ifixedb.eq.0) then
+        psis_l(1) = psilim
+      endif
 
      temp = psis_l
      call set_dirichlet_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim)
