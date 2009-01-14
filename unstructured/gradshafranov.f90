@@ -164,9 +164,8 @@ subroutine gradshafranov_init()
 
   implicit none
 
-  integer :: l, numnodes, izone, izonedim
-  real :: tstart, tend, x, z, curv, normal(2)
-  logical :: is_boundary
+  integer :: l, numnodes
+  real :: tstart, tend, x, z, fac
   vectype, dimension(6) :: vmask
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -198,9 +197,12 @@ subroutine gradshafranov_init()
      if(vzero.ne.0) call add_angular_velocity(vz1_l, x+xzero, vzero*vmask)
 
      ! add random perturbations
-     
-     call boundary_node(l,is_boundary,izone,izonedim,normal,curv,x,z)
-     if(.not.is_boundary) call random_per(x,z,23)
+     if(ifixedb.eq.1) then
+        fac = vmask(1)
+     else
+        fac = 1.
+     endif
+     call random_per(x,z,23,vmask(1))
 
   enddo
   
