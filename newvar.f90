@@ -88,7 +88,7 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
                  temp = temp - regular*int2(g79(:,OP_1,i),g79(:,OP_1,j))
               endif
 
-           case(NV_GS_MATRIX)
+           case(NV_GS_MATRIX)              
               temp = int2(g79(:,OP_1,i),g79(:,OP_GS,j))
 
            case(NV_BF_MATRIX)

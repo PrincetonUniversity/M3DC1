@@ -164,8 +164,9 @@ subroutine gradshafranov_init()
 
   implicit none
 
-  integer :: l, numnodes
-  real :: tstart, tend, x, z
+  integer :: l, numnodes, izone, izonedim
+  real :: tstart, tend, x, z, curv, normal(2)
+  logical :: is_boundary
   vectype, dimension(6) :: vmask
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -197,7 +198,9 @@ subroutine gradshafranov_init()
      if(vzero.ne.0) call add_angular_velocity(vz1_l, x+xzero, vzero*vmask)
 
      ! add random perturbations
-     call random_per(x,z,23)    
+     
+     call boundary_node(l,is_boundary,izone,izonedim,normal,curv,x,z)
+     if(.not.is_boundary) call random_per(x,z,23)
 
   enddo
   
@@ -326,13 +329,12 @@ subroutine gradshafranov_solve
   enddo
 
   feedfac = 0.
-  psilim = 0.
   ! insert boundary conditions
 !
 !.....NOTE:   This first call just modifies the gsmatrix_sm by inserting 1's
 !             on the diagonal for boundary points (or vector angles for non-rect)
 !
-  call boundary_gs(gsmatrix_sm, b2vecini, feedfac, psilim)
+  call boundary_gs(gsmatrix_sm, b2vecini, feedfac)
   call finalizematrix(gsmatrix_sm)
 !
 !>>>>>debug
@@ -519,7 +521,7 @@ subroutine gradshafranov_solve
             feedfac, psilim, psilim2, gnorm
      endif
 
-     call boundary_gs(0, b1vecini, feedfac, psilim)
+     call boundary_gs(0, b1vecini, feedfac)
 
      ! perform LU backsubstitution to get psi solution
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -1511,11 +1513,11 @@ subroutine calc_pressure(psii,pres)
 !         +30.*(10. +  4.*p1 +    p2)*psii(1)**4)
 
      pres(1) = fbig0
-     pres(2) = psii(2)*fbig/(p0)
-     pres(3) = psii(3)*fbig/(p0)
-     pres(4) = (psii(4)*fbig + psii(2)**2*fbigp)/(p0)
-     pres(5) = (psii(5)*fbig + psii(2)*psii(3)*fbigp)/(p0)
-     pres(6) = (psii(6)*fbig + psii(3)**2*fbigp)/(p0)
+     pres(2) = psii(2)*fbig/(p0*dpsii)
+     pres(3) = psii(3)*fbig/(p0*dpsii)
+     pres(4) = (psii(4)*fbig + psii(2)**2*fbigp)/(p0*dpsii)
+     pres(5) = (psii(5)*fbig + psii(2)*psii(3)*fbigp)/(p0*dpsii)
+     pres(6) = (psii(6)*fbig + psii(3)**2*fbigp)/(p0*dpsii)
   endif
 
   pres = p0*pres

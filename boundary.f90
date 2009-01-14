@@ -782,7 +782,7 @@ end subroutine boundary_nm
 !
 ! sets boundary conditions on psi in the GS solver
 !=======================================================
-subroutine boundary_gs(imatrix, rhs, feedfac, psilim)
+subroutine boundary_gs(imatrix, rhs, feedfac)
   use basic
   use arrays
   use gradshafranov
@@ -790,7 +790,7 @@ subroutine boundary_gs(imatrix, rhs, feedfac, psilim)
   implicit none
   
   integer, intent(in) :: imatrix
-  real, intent(in) :: feedfac, psilim
+  real, intent(in) :: feedfac
   vectype, intent(inout), dimension(*) :: rhs
   
   integer :: i, izone, izonedim
@@ -822,11 +822,6 @@ subroutine boundary_gs(imatrix, rhs, feedfac, psilim)
      if(numvargs.ge.2) &
           call rotate_matrix(imatrix, ibegin+6, normal, curv, rhs)
 
-!>>>>>>debug
-      if(imatrix.ne.0) write(35+myrank,1035) myrank,ibegin,x,z,normal,curv
-!     call MPI_Barrier(MPI_COMM_WORLD,ier)
- 1035 format(2i5,1p5e12.4)
-
 !......add feedback field
      if(idevice .eq. 0 .and. ifixedb .eq. 0) then
         xp(1) = x
@@ -836,9 +831,6 @@ subroutine boundary_gs(imatrix, rhs, feedfac, psilim)
         call gvect(xp,zp,xc,zc,1,g,1,ineg)
         psis_l = psis_l + g*feedfac
      endif
-      if(ifixedb.eq.0) then
-        psis_l(1) = psilim
-      endif
 
      temp = psis_l
      call set_dirichlet_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim)
