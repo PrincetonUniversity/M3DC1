@@ -462,13 +462,42 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
        ymin = 0.
    endelse
 
-   if(n_elements(xrange) lt 2) then $
-     xrange = [min(mesh.elements._data[4,*]), $
-               max(mesh.elements._data[4,*])] + xzero - xmin
-   if(n_elements(yrange) lt 2) then $
-     yrange = [min(mesh.elements._data[5,*]), $
-               max(mesh.elements._data[5,*])] + zzero - ymin
+   ; find minimum and maximum node coordinates
+   if(n_elements(xrange) lt 2 or n_elements(yrange) lt 2) then begin
+       minx = min(mesh.elements._data[4,*])
+       maxx = max(mesh.elements._data[4,*])
+       miny = min(mesh.elements._data[5,*])
+       maxy = max(mesh.elements._data[5,*])
+       
+       for i=long(0),nelms-1 do begin
+           a = mesh.elements._data[0,i]
+           b = mesh.elements._data[1,i]
+           c = mesh.elements._data[2,i]
+           t = mesh.elements._data[3,i]
+           x = mesh.elements._data[4,i]
+           y = mesh.elements._data[5,i]
+           co = cos(t)
+           sn = sin(t)
 
+           p1 = [x,y]
+           p2 = p1 + [(b+a)*co, (b+a)*sn]
+           p3 = p1 + [b*co - c*sn, b*sn + c*co]
+
+           minpos = [min([p2[0], p3[0]]), min([p2[1], p3[1]])]
+           maxpos = [max([p2[0], p3[0]]), max([p2[1], p3[1]])]
+
+            if(minpos[0] lt minx) then minx = minpos[0]
+            if(maxpos[0] gt maxx) then maxx = maxpos[0]
+            if(minpos[1] lt miny) then miny = minpos[1]
+            if(maxpos[1] gt maxy) then maxy = maxpos[1]
+       endfor
+
+       if(n_elements(xrange) lt 2) then $
+         xrange = [minx, maxx] + xzero - xmin
+       if(n_elements(yrange) lt 2) then $
+         yrange = [miny, maxy] + zzero - ymin
+   endif
+   
    dx = (xrange[1] - xrange[0]) / (p - 1.)
    dy = (yrange[1] - yrange[0]) / (p - 1.)
 
@@ -478,6 +507,8 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
 
    small = 1e-3
 
+   ; for each triangle, evaluate points within triangle which fall on
+   ; rectilinear output grid
    for i=long(0),nelms-1 do begin
        a = mesh.elements._data[0,i]
        b = mesh.elements._data[1,i]
@@ -558,6 +589,7 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
            endfor
        endfor
 
+;       print, 'Setting value outside boundary = ', edge_val
        result = result + mask*edge_val
    endif
 
@@ -2656,7 +2688,7 @@ function lcfs, time, psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, $
 
    ; flux at separatrix
    sz = size(xpoint)
-   if(sz[0] gt 0) then begin
+   if(sz[0] gt 0 and (not keyword_set(xlim))) then begin
        xfluxes = fltarr(sz[0])
        for i=0, sz[0]-1 do xfluxes[i] = psi[0,xpoint[0,i],xpoint[1,i]]
        psix = min(xfluxes-flux0, i, /absolute)
@@ -3253,17 +3285,7 @@ function flux_coord_field, field, psi, theta, x, z, t, fbins=fbins, $
    return, result
 end
 
-; ==============================================
-; field_at_flux
-;
-; evaluates field at points where psi=flux
-; ==============================================
-function field_at_flux, field, psi, x, z, t, flux, theta=theta, angle=angle, $
-                      xp=xp, zp=zp, integrate=integrate, $
-                        _EXTRA=extra
-
-   if(n_elements(field) le 1) then return, 0
-
+function path_at_flux, psi,x,z,t,flux
    contour, psi[0,*,*], x, z, levels=flux, $
      path_xy=xy, path_info=info, /path_data_coords, /overplot
 
@@ -3283,6 +3305,24 @@ function field_at_flux, field, psi, x, z, t, flux, theta=theta, angle=angle, $
    l = (flux-f)/gf2
    xy[0,*] = xy[0,*] + l*fx
    xy[1,*] = xy[1,*] + l*fz
+
+   return, xy
+end
+
+; ==============================================
+; field_at_flux
+;
+; evaluates field at points where psi=flux
+; ==============================================
+function field_at_flux, field, psi, x, z, t, flux, theta=theta, angle=angle, $
+                      xp=xp, zp=zp, integrate=integrate, $
+                        _EXTRA=extra
+
+   if(n_elements(field) le 1) then return, 0
+
+   xy = path_at_flux(psi,x,z,t,flux)
+   if(n_elements(xy) le 1) then return, 0
+
    i = n_elements(x)*(xy[0,*]-min(x)) / (max(x)-min(x))
    j = n_elements(z)*(xy[1,*]-min(z)) / (max(z)-min(z))
 
@@ -3714,7 +3754,7 @@ end
 
 
 pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
-                  _EXTRA=extra
+                  psilim=psilim, _EXTRA=extra
   
   if(n_elements(slice) eq 0) then begin
       slice = read_parameter('ntime', _EXTRA=extra) - 1
@@ -3741,11 +3781,18 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
   tcur = abs(total(jphi*dx*dz/r))
   print, 'current = ', tcur
 
-   ; calculate lcfs
-  psilim = lcfs(time, psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, $
-                flux0=flux0, _EXTRA=extra)
+
+  ; find points at psi = psilim to use as boundary points
+  lcfs_psi = lcfs(time, psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, $
+                  flux0=flux0, _EXTRA=extra)
+  if(n_elements(psilim) eq 0) then begin
+      ; use psilim = lcfs if psilim is not given
+      psilim = lcfs_psi
+  endif
 
   contour, psi, x, z, levels=psilim, /path_data_coords, path_xy=lcfs_xy
+
+;  lcfs_xy = path_at_flux(psi,x,z,t,psilim)
 
   ; count only points on separatrix above the xpoint
   if(n_elements(xpoint) gt 1) then begin
@@ -3773,7 +3820,6 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
       j = j+1
   end
   print, 'lim points = ', nlim
-
 
   ; wall points
   xx = x[1:n_elements(x)-2]
