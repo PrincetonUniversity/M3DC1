@@ -820,6 +820,10 @@ subroutine define_fields(itri, fields, ngauss, gdef)
      do i=1,18
         call eval_ops(gtri(:,i,itri), si_79, eta_79, &
              ttri(itri), ri_79, npoints, g79(:,:,i))
+#ifdef USECOMPLEX
+        g79(:,OP_DP :OP_DZZP, i) = (0,1)*ntor*g79(:,OP_1:OP_DZZ,i)
+        g79(:,OP_DPP:OP_DZZPP,i) =   -ntor**2*g79(:,OP_1:OP_DZZ,i)
+#endif
      end do
   endif
 end subroutine define_fields
