@@ -1,15 +1,3 @@
-!>>>>> dummy routine waiting for the SCOREC routine
-!>>>>> works for circle of radius 2
-subroutine nodCurvature(inode,curv)
-  implicit none
-  integer :: inode
-  real :: curv
-
-  curv = 1./2.
-  return
-end subroutine nodCurvature
-
-
 !======================================================================
 ! boundary_node
 !
@@ -92,7 +80,8 @@ subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
      izonedim=1      !cj set izonedim always 1 for the shaped boundary
      izone=1         !cj dummy for shaped boundary
 
-     call nodCurvature(inode, curv)
+     call nodcurvature2(inode, curv, is_boundary)
+      if(.not.is_boundary) return
   end select
   
   call nodcoord(inode,x,z)
@@ -833,6 +822,7 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
      endif
 
      temp = psis_l
+      if(ifixedb.ge.1) temp=0.
      call set_dirichlet_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim)
 
      if(numvargs.ge.2) then
