@@ -202,7 +202,7 @@ subroutine gradshafranov_init()
      else
         fac = 1.
      endif
-     call random_per(x,z,23,vmask(1))
+     call random_per(x,z,23,fac)
 
   enddo
   
@@ -825,17 +825,22 @@ subroutine gradshafranov_solve
 
      pe0_l = (1. - ipres*pi0/p0)*p0_l
 
-     den0_l(1) = p0_l(1)**expn
-     den0_l(2) = p0_l(1)**(expn-1.)*p0_l(2)*expn
-     den0_l(3) = p0_l(1)**(expn-1.)*p0_l(3)*expn
-     den0_l(4) = p0_l(1)**(expn-1.)*p0_l(4)*expn &
-          + p0_l(1)**(expn-2.)*p0_l(2)**2.*expn*(expn-1.)
-     den0_l(5) = p0_l(1)**(expn-1.)*p0_l(5)*expn & 
-          + p0_l(1)**(expn-2.)*p0_l(2)*p0_l(3) &
-          * expn*(expn-1.)
-     den0_l(6) = p0_l(1)**(expn-1.)*p0_l(6)*expn &
-          + p0_l(1)**(expn-2.)*p0_l(3)**2.*expn*(expn-1.)
-     den0_l = den0_l/p0**expn
+     if(expn .gt. 0.) then
+        den0_l(1) = p0_l(1)**expn
+        den0_l(2) = p0_l(1)**(expn-1.)*p0_l(2)*expn
+        den0_l(3) = p0_l(1)**(expn-1.)*p0_l(3)*expn
+        den0_l(4) = p0_l(1)**(expn-1.)*p0_l(4)*expn &
+             + p0_l(1)**(expn-2.)*p0_l(2)**2.*expn*(expn-1.)
+        den0_l(5) = p0_l(1)**(expn-1.)*p0_l(5)*expn &
+             + p0_l(1)**(expn-2.)*p0_l(2)*p0_l(3) &
+             * expn*(expn-1.)
+        den0_l(6) = p0_l(1)**(expn-1.)*p0_l(6)*expn &
+             + p0_l(1)**(expn-2.)*p0_l(3)**2.*expn*(expn-1.)
+        den0_l = den0_l/p0**expn
+      else   ! expn.eq.0
+        den0_l(1) = 1.
+        den0_l(2:6) = 0.
+      endif
 
   end do
 
@@ -1348,8 +1353,8 @@ subroutine calc_toroidal_field(psii,tf)
   real :: g2big, g2bigp, g3big, g3bigp
   vectype :: g0
   
-  if(psii(1) .le. 0. .or. psii(1) .ge. 1.) then
-! if(psii(1) .gt. 1.) then
+! if(psii(1) .le. 0. .or. psii(1) .ge. 1.) then
+  if(psii(1) .gt. 1.) then
      g0 = bzero*rzero
      call constant_field(tf, g0)
   else
