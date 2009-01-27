@@ -499,7 +499,7 @@ subroutine calculate_scalars()
         call copyvec(b1_phi,vz_g,vecsize_phi,gyro_tau,1,1)
      end if
 
-     if(flg_petsc.eq.PETSC_TRUE .and. flg_solve1.eq.PETSC_TRUE) then
+     if(flg_petsc .and. flg_solve1) then
      call solve1(mass_matrix_lhs,gyro_tau,i)
      else
      call solve(mass_matrix_lhs,gyro_tau,i)
@@ -976,6 +976,11 @@ subroutine lcfs(phin, iplace, numvari)
         write(*,'(A,2E12.4)') '  no magnetic axis found near ', xmag, zmag
      end if
   endif
+
+  if(ifixedb) then 
+     psilim = 0.
+     return
+  end if
 
 
   ! Find the maximum value of psi at the boundary 

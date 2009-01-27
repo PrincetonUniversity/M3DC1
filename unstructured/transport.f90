@@ -91,6 +91,11 @@ vectype function resistivity_func(i)
         temp79a = eta0*.5* &
              (1. + tanh((real(ps079(:,OP_1))-(psilim+etaoff*(psilim-psimin)))&
              /(etadelt*(psilim-psimin))))
+
+     case(2)
+        temp79b = (ps079(:,OP_1)-psimin)/(psilim-psimin)
+        temp79a = eta0*.5* &
+             (1. + tanh((real(temp79b) - etaoff)/etadelt))
      end select
      temp = temp + int2(g79(:,OP_1,i),temp79a)
   endif

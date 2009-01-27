@@ -286,7 +286,7 @@ subroutine gradshafranov_solve
        print *, " forming the GS matrix..."
 
   ! default linear solver superlu cj-april-09-2008
-  if(flg_petsc.eq.PETSC_TRUE) then
+  if(flg_petsc) then
      call zeropetscmatrix(gsmatrix_sm, icomplex, numvargs)
      if(iprint.ge.1) print *, "	gradshafranov_solve zeropetscmatrix", gsmatrix_sm
   else
@@ -528,7 +528,7 @@ subroutine gradshafranov_solve
      ! perform LU backsubstitution to get psi solution
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      b2vecini = b1vecini
-     if(flg_petsc.eq.PETSC_TRUE .and. flg_solve1.eq.PETSC_TRUE) then 
+     if(flg_petsc .and. flg_solve1) then 
        call solve1(gsmatrix_sm,b1vecini,ier)
      else
        call solve(gsmatrix_sm,b1vecini,ier)
@@ -1445,28 +1445,28 @@ subroutine calc_pressure(psii,pres)
   if(psii(1) .gt. 1.) then
      pres = 0.
   else
-        select case (inumgs)
-        case (0)
-          fbig0 = 1.+p1*psii(1)+p2*psii(1)**2 &
-               -(20. + 10.*p1 + 4.*p2)*psii(1)**3 &
-               +(45. + 20.*p1 + 6.*p2)*psii(1)**4 &
-               -(36. + 15.*p1 + 4.*p2)*psii(1)**5 &
-               +(10. +  4.*p1 +    p2)*psii(1)**6
-          fbig = p0*dpsii*(p1 + 2.*p2*psii(1) - 3.*(20. + 10.*p1+4.*p2)*psii(1)**2     &
-               + 4.*(45.+20.*p1+6.*p2)*psii(1)**3 - 5.*(36.+15.*p1+4.*p2)*psii(1)**4   &
-               + 6.*(10.+4.*p1+p2)*psii(1)**5)
-          fbigp = p0*dpsii*(2.*p2 - 6.*(20. + 10.*p1+4.*p2)*psii(1)                &
-               + 12.*(45.+20.*p1+6*p2)*psii(1)**2 - 20.*(36.+15*p1+4*p2)*psii(1)**3    &
-               + 30.*(10.+4.*p1+p2)*psii(1)**4)
-          fbigpp= p0*dpsii*(- 6.*(20. + 10.*p1+4.*p2)                          &
-               + 24.*(45.+20.*p1+6*p2)*psii(1) - 60.*(36.+15*p1+4*p2)*psii(1)**2       &
-               + 120.*(10.+4.*p1+p2)*psii(1)**3)
-        case(1)
-!
+     select case (inumgs)
+     case (0)
+        fbig0 = 1.+p1*psii(1)+p2*psii(1)**2 &
+             -(20. + 10.*p1 + 4.*p2)*psii(1)**3 &
+             +(45. + 20.*p1 + 6.*p2)*psii(1)**4 &
+             -(36. + 15.*p1 + 4.*p2)*psii(1)**5 &
+             +(10. +  4.*p1 +    p2)*psii(1)**6
+        fbig = p0*dpsii*(p1 + 2.*p2*psii(1) - 3.*(20. + 10.*p1+4.*p2)*psii(1)**2     &
+             + 4.*(45.+20.*p1+6.*p2)*psii(1)**3 - 5.*(36.+15.*p1+4.*p2)*psii(1)**4   &
+             + 6.*(10.+4.*p1+p2)*psii(1)**5)
+        fbigp = p0*dpsii*(2.*p2 - 6.*(20. + 10.*p1+4.*p2)*psii(1)                &
+             + 12.*(45.+20.*p1+6*p2)*psii(1)**2 - 20.*(36.+15*p1+4*p2)*psii(1)**3    &
+             + 30.*(10.+4.*p1+p2)*psii(1)**4)
+        fbigpp= p0*dpsii*(- 6.*(20. + 10.*p1+4.*p2)                          &
+             + 24.*(45.+20.*p1+6*p2)*psii(1) - 60.*(36.+15*p1+4*p2)*psii(1)**2       &
+             + 120.*(10.+4.*p1+p2)*psii(1)**3)
+     case(1)
+
 !.......read functions from a file for inumgs .eq. 1
-          call fget(psii(1), fbig0, fbig, fbigp, fbigpp,dpsii)
+        call fget(psii(1), fbig0, fbig, fbigp, fbigpp,dpsii)
 !
-        end select
+     end select
 
 !    pres(1) = fbig0
 

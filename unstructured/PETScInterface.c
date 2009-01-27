@@ -88,7 +88,7 @@ int setPETScKSP(int matrixid, KSP * ksp, Mat * A) {
    preconditioner is update every MAX_SAME_PC_COUNT times
    only for matrix with Id=5,1,6
 */
-#define MAX_SAME_PC_COUNT 20
+#define MAX_SAME_PC_COUNT 10
 #define MAX_LINEAR_SYSTEM 3
 #define SOLVE2_DEBUG 0
 
