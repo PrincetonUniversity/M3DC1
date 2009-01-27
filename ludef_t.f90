@@ -1702,7 +1702,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
   ! Clear matrices
   select case(isplitstep)
   case(0)
-     if(flg_petsc.eq.PETSC_TRUE) then
+     if(flg_petsc) then
         call zeropetscmatrix(s1matrix_sm,icomplex, vecsize_vel)
         if(myrank.eq.0 .and. iprint.ge.2) &
         print *, "	ludef_t_ludefall zeropetscmatrix", s1matrix_sm 
@@ -1722,7 +1722,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
   case(1)
 
      if(ivel_def.eq.1) then
-        if(flg_petsc.eq.PETSC_TRUE) then
+        if(flg_petsc) then
            call zeropetscmatrix(s1matrix_sm,icomplex,vecsize_vel)
            if(myrank.eq.0 .and. iprint.ge.2) &
            print *, "	ludef_t_ludefall zeropetscmatrix", s1matrix_sm 
@@ -1741,7 +1741,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
      end if
 
      if(ifield_def.eq.1) then
-        if(flg_petsc.eq.PETSC_TRUE) then
+        if(flg_petsc) then
            call zeropetscmatrix(s2matrix_sm,icomplex,vecsize_phi)
            if(myrank.eq.0 .and. iprint.ge.2) &
            print *, "	ludef_t_ludefall zeropetscmatrix", s2matrix_sm 
@@ -1762,7 +1762,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
      end if
 
      if(idens_def.eq.1) then
-        if(flg_petsc.eq.PETSC_TRUE) then
+        if(flg_petsc) then
            call zeropetscmatrix(s8matrix_sm,icomplex,vecsize_n)
            if(myrank.eq.0 .and. iprint.ge.2) &
            print *, "	ludef_t_ludefall zeropetscmatrix", s8matrix_sm 
@@ -1777,7 +1777,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
         qn4 = 0.
      endif
      if(ipres_def.eq.1) then
-        if(flg_petsc.eq.PETSC_TRUE) then
+        if(flg_petsc) then
            call zeropetscmatrix(s9matrix_sm,icomplex,vecsize_p)
            if(myrank.eq.0 .and. iprint.ge.2) &
            print *, "	ludef_t_ludefall zeropetscmatrix", s9matrix_sm 

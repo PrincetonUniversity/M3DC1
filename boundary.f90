@@ -81,7 +81,7 @@ subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
      izone=1         !cj dummy for shaped boundary
 
      call nodcurvature2(inode, curv, is_boundary)
-      if(.not.is_boundary) return
+     if(.not.is_boundary) return
   end select
   
   call nodcoord(inode,x,z)

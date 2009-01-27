@@ -5,12 +5,13 @@ COMMONDIR = ../common/
 # define where you want to locate the mesh adapt libraries
 # defult is /u/xluo/develop
 ifndef SCORECDIR
-SCORECDIR = /u/xluo/develop.newCompiler.constraint/
+#SCORECDIR = /u/xluo/develop.newCompiler.constraint/
+SCORECDIR = /u/xluo/develop.petsc3/
 endif
 
 INCLUDE = -I$(COMMONDIR) -I$(NTCCHOME)/mod -I$(LIBDIR) \
 	-I$(SUPERLU_DIST_HOME) -I$(HDF5_HOME)/include \
-	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) \
+	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
 	-I$(SCORECDIR)
 
 LOADER = ifort
@@ -105,7 +106,7 @@ LDRNEW = \
 	-L$(AUTOPACK_HOME)/lib/ia64-sgi -Wl,-rpath,$(AUTOPACK_HOME)/lib/ia64-sgi -lautopack-O \
 	-L$(Zoltan_HOME)/lib -lzoltan \
 	-L$(PARMETIS_HOME)/lib -Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis \
-	-L$(PETSC_DIR)/lib/$(PETSC_ARCH) -lpetscksp -lpetscmat -lpetscvec -lpetsc \
+	-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc \
 	-L$(SUPERLU_HOME) -lsuperlu_3.0 \
 	-L$(SUPERLU_DIST_HOME)/lib -lsuperlu \
 	-L$(NCARG_ROOT)/lib -lncarg -lncarg_gks -lncarg_c \

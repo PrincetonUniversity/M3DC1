@@ -344,7 +344,7 @@ subroutine split_step(calc_matrices)
      ! solve linear system with rhs in vtemp (note LU-decomp done first time)
      if(myrank.eq.0 .and. iprint.ge.1) print *, "solving velocity advance..."
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     if(flg_petsc.eq.PETSC_TRUE .and. flg_solve2.eq.PETSC_TRUE) then
+     if(flg_petsc .and. flg_solve2) then
         call solve2(s1matrix_sm, b1_vel, jer)
      else
         call solve(s1matrix_sm, b1_vel, jer)
@@ -445,7 +445,7 @@ subroutine split_step(calc_matrices)
      ! solve linear system...LU decomposition done first time
      ! -- okay to here      call printarray(temp, 150, 0, 'vtemp on')
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     if(flg_petsc.eq.PETSC_TRUE .and. flg_solve2.eq.PETSC_TRUE) then
+     if(flg_petsc .and. flg_solve2) then
      call solve2(s8matrix_sm, temp, jer)
      else
      call solve(s8matrix_sm, temp, jer)
@@ -661,7 +661,7 @@ subroutine split_step(calc_matrices)
      ! solve linear system...LU decomposition done first time
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
-     if(flg_petsc.eq.PETSC_TRUE .and. flg_solve2.eq.PETSC_TRUE) then
+     if(flg_petsc .and. flg_solve2) then
         call solve2(s2matrix_sm, b1_phi, jer)
      else
         call solve(s2matrix_sm, b1_phi, jer)
@@ -766,7 +766,7 @@ subroutine split_step(calc_matrices)
         ! solve linear system...LU decomposition done first time
         if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
         
-        if(flg_petsc.eq.PETSC_TRUE .and. flg_solve2.eq.PETSC_TRUE) then
+        if(flg_petsc .and. flg_solve2) then
         call solve2(s2matrix_sm, b1_phi, jer)
         else
         call solve(s2matrix_sm, b1_phi, jer)
@@ -825,8 +825,8 @@ subroutine unsplit_step(calc_matrices)
   
   real :: tstart, tend
   PetscTruth :: flg_petsc, flg_solve2
-     call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
-     call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ier)
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ier)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Solving matrix equation..."
   
@@ -862,7 +862,7 @@ subroutine unsplit_step(calc_matrices)
   ! solve linear system...LU decomposition done first time
   if(myrank.eq.0 .and. iprint.eq.1) print *, "solving.."
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  if(flg_petsc.eq.PETSC_TRUE .and. flg_solve2.eq.PETSC_TRUE) then
+  if(flg_petsc .and. flg_solve2) then
   call solve2(s1matrix_sm, b1_phi, jer)
   else
   call solve(s1matrix_sm, b1_phi, jer)
@@ -939,7 +939,7 @@ subroutine unsplit_step(calc_matrices)
      ! solve linear system...LU decomposition done first time
      if(myrank.eq.0 .and. iprint.eq.1) print *, "solving.."
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     if(flg_petsc.eq.PETSC_TRUE .and. flg_solve2.eq.PETSC_TRUE) then
+     if(flg_petsc .and. flg_solve2) then
         call solve2(s1matrix_sm, b1_phi, jer)
      else
         call solve(s1matrix_sm, b1_phi, jer)
