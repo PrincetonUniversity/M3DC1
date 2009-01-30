@@ -242,12 +242,12 @@ Program Reducedquintic
 !        call outputfield(phi, numvar, 0, ntime, 123) 
 !        call writefieldatnodes(resistivity, 1, 1) 
         factor = 0.6
-        hmin = .08
+        hmin = .001
         hmax = 0.2
 
         print *, 'adapting mesh...'
 !!$#ifdef USECOMPLEX
-        call hessianadapt(resistivity,1, 0, ntime, factor, hmin, hmax) 
+        call hessianadapt(tempvar,1, 0, ntime, factor, hmin, hmax) 
 !!$#else
 !!$        call hessianadapt(resistivity,1, ntime, factor, hmin, hmax)
 !!$#endif
