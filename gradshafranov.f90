@@ -587,7 +587,8 @@ subroutine gradshafranov_solve
 
      ! Calculate error in new solution
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-     ! (nodes shared between processes are currenly overcounted:  also, skip boundary nodes)
+     ! (nodes shared between processes are currently overcounted.
+     !  also, skip boundary nodes)
      sum = 0.
      norm = 0.
      sum2 = 0.
@@ -599,34 +600,35 @@ subroutine gradshafranov_solve
         
         call entdofs(numvargs, i, 0, ibegin, iendplusone)
 
-           lhs = (psi(ibegin+3)-psi(ibegin+1)/x+psi(ibegin+5))/x
-           rhs =  -(fun1(ibegin)+gamma2*fun2(ibegin)+                        &
-                gamma3*fun3(ibegin)+gamma4*fun4(ibegin))
-      if(.not. is_boundary) then
+        lhs = (psi(ibegin+3)-psi(ibegin+1)/x+psi(ibegin+5))/x
+        rhs =  -(fun1(ibegin)+gamma2*fun2(ibegin)+                        &
+             gamma3*fun3(ibegin)+gamma4*fun4(ibegin))
+        if(.not. is_boundary) then
            sum = sum + (lhs-rhs)**2
            norm = norm + lhs**2
            sum2 = sum2 + abs(psi(ibegin)-b1vecini(ibegin))
            norm2 = norm2 + abs(psi(ibegin))
-      endif
-           diff = lhs-rhs
-           temp1(1) = sqrt( (x-rzero)**2 + z**2)
-           temp1(2) = real(psi(ibegin+3)/x)
-           temp1(3) = real(-psi(ibegin+1)/x**2)
-           temp1(4) = psi(ibegin+5)/x
-      temp1(1) = 0.5*sqrt(psi(ibegin+1)**2 + psi(ibegin+2)**2)
-      temp1(2) = normal(1)**2 *psi(ibegin+5) + normal(2)**2*psi(ibegin+3) -2.*normal(1)*normal(2)*psi(ibegin+4)
-!>>>>>debug
-      if(is_boundary .and. itnum.eq.iabs(igs)) then
-         write(70+myrank,1169) x,z,normal(1),normal(2),(real(psi(ibegin+ii)),ii=0,5), lhs, temp1(1),temp1(2),&
-                                (real(b2vecini(ibegin+ii)),ii=0,5)
-        write(80+myrank,1179) x,z,lhs,rhs
-      endif
-      if(.not.is_boundary .and. itnum.eq.iabs(igs)) then
-        write(90+myrank,1179) x,z,lhs,rhs
-      endif
- 1179 format(1p4e12.4)
- 1169 format(4f6.3,1p9e12.4,/,24x,1p6e12.4)
-!>>>>>debug end
+        endif
+!!$        diff = lhs-rhs
+!!$        temp1(1) = sqrt( (x-rzero)**2 + z**2)
+!!$        temp1(2) = real(psi(ibegin+3)/x)
+!!$        temp1(3) = real(-psi(ibegin+1)/x**2)
+!!$        temp1(4) = psi(ibegin+5)/x
+!!$        temp1(1) = 0.5*sqrt(psi(ibegin+1)**2 + psi(ibegin+2)**2)
+!!$        temp1(2) = normal(1)**2 *psi(ibegin+5) + normal(2)**2*psi(ibegin+3) &
+!!$             - 2.*normal(1)*normal(2)*psi(ibegin+4)
+!!$!>>>>>debug
+!!$      if(is_boundary .and. itnum.eq.iabs(igs)) then
+!!$         write(70+myrank,1169) x,z,normal(1),normal(2),(real(psi(ibegin+ii)),ii=0,5), lhs, temp1(1),temp1(2),&
+!!$                                (real(b2vecini(ibegin+ii)),ii=0,5)
+!!$        write(80+myrank,1179) x,z,lhs,rhs
+!!$      endif
+!!$      if(.not.is_boundary .and. itnum.eq.iabs(igs)) then
+!!$        write(90+myrank,1179) x,z,lhs,rhs
+!!$      endif
+!!$ 1179 format(1p4e12.4)
+!!$ 1169 format(4f6.3,1p9e12.4,/,24x,1p6e12.4)
+!!$!>>>>>debug end
      enddo
 
      if(maxrank.gt.1) then

@@ -2043,7 +2043,8 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
            if(keyword_set(lcfs) or n_elements(maskrange) ne 0) then begin
 
                if(n_elements(psi) eq 0 or keyword_set(linear)) then begin
-                   psi = read_field('psi',x,z,t,slice=time[0]+k,points=p)
+                   psi = read_field('psi',x,z,t,slice=time[0]+k,points=p, $
+                                   _EXTRA=ex, linear=0)
                endif
 
                if(n_elements(maskrange) eq 2) then begin
@@ -4358,6 +4359,8 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
   r2i = flux_average(1/r^2,slice,psi=psi,x=x,z=z,t=t,flux=flux,bins=pts,$
                    limiter=limiter,_EXTRA=extra)
 
+  betacent = field_at_point(beta[0,*,*], x, z, axis[0], axis[1])
+
   ; to cgs............. to si
   c = 3e10
   p = p*b0^2/(4.*!pi)           / 10.
@@ -4377,6 +4380,8 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
   r = r*l0                      / 100.
   x = x*l0                      / 100.
   z = z*l0                      / 100.
+  axis[0] = axis[0]*l0          / 100.
+  axis[1] = axis[1]*l0          / 100.
   rzero = rzero*l0              / 100.
   jdotb = jdotb*b0^2*c/(l0*4.*!pi) / (1e4*3e5)
   r2i = r2i/(l0^2)              * 100.^2
@@ -4409,7 +4414,6 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
   zip = tcur
   bcentr = bzero*rzero/rmag
   beta0 = beta0
-  betacent = field_at_point(beta[0,*,*], x, z, axis[0], axis[1])
   beta_n = 100.*(bzero*rzero/rmag)*beta0/(zip/1e6)
   xdum = 0.
 
@@ -4465,7 +4469,7 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
   isyms=  0
   ipest=  1
   kmax=nbdy-1
-  npsit = n_elements(flux)
+  npsit = n_elements(flux)-5
   
   times=  0.1140E-01
   xaxes=  axis[0]
@@ -4478,19 +4482,25 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
   psimins=min(flux)
   psilims=max(flux)
 
-  gzeros = bcentr
-  ;  gzeros= R * B_T in m-T   (at vacuum)
+  f2201 = '(20x,10a8)'
+  f6100 = '(5i10)'
+  f6101 = '(5e20.12)'
 
-  printf, file, ncycle,isyms,ipest,npsit,kmax
-  printf, file, times,xaxes,zmags,gzeros,apls,betas,betaps, $
+  ;  gzeros= R * B_T in m-T   (at vacuum)
+  gzeros = bzero*rzero
+
+  printf, file, format=f6100, ncycle,isyms,ipest,npsit,kmax
+  printf, file, format=f6101, times,xaxes,zmags,gzeros,apls,betas,betaps, $
     ali2s,qsaws,psimins,psilims
 
-  printf, file, p
-  printf, file, pprime
-  printf, file, (4.*!pi*1.e-7)*jdotb/(I0*r2i)
-  printf, file, nflux
-  printf, file, rlim
-  printf, file, zlim
+  ajpest2 = (4.*!pi*1.e-7)*jdotb/(I0*r2i)
+
+  printf, file, format=f6101, p[0:npsit-1]
+  printf, file, format=f6101, pprime[0:npsit-1]
+  printf, file, format=f6101, ajpest2[0:npsit-1]
+  printf, file, format=f6101, nflux[0:npsit-1]
+  printf, file, format=f6101, rlim
+  printf, file, format=f6101, zlim
   
   close, file
 

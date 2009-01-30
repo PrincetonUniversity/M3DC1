@@ -278,8 +278,11 @@ subroutine define_transport_coefficients()
            if(.not.solve_visc_e) solve_visc_e = visc_e(ione).ne.0.
         endif
 
+!!$        tempvar(ione) = tempvar(ione) &
+!!$             + int2(g79(:,OP_1,i),sz79(:,OP_1))
         tempvar(ione) = tempvar(ione) &
-             + int2(g79(:,OP_1,i),sz79(:,OP_1))
+             + resistivity_func(i) &
+             + int2(g79(:,OP_1,i),pt79(:,OP_1))
      end do
   end do
 
