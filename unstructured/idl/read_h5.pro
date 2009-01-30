@@ -2550,7 +2550,7 @@ pro nulls, psi, x, z, axis=axis, xpoints=xpoint, $
                for n=j, sz[3]-1 do begin
                    if(nulls[0,m,n] eq 0) then break
 
-                   if(field[0,m,n] lt currentmin) then begin
+                   if(field[0,m,n] le currentmin) then begin
                        currentmin = field[0,m,n]
                        currentpos = [m,n]
                    endif
@@ -2559,7 +2559,7 @@ pro nulls, psi, x, z, axis=axis, xpoints=xpoint, $
                for n=j-1, 0, -1 do begin
                    if(nulls[0,m,n] eq 0) then break
 
-                   if(field[0,m,n] lt currentmin) then begin
+                   if(field[0,m,n] le currentmin) then begin
                        currentmin = field[0,m,n]
                        currentpos = [m,n]
                    endif
@@ -2610,6 +2610,7 @@ pro nulls, psi, x, z, axis=axis, xpoints=xpoint, $
 
 
    if(n_elements(xpoint) ge 2) then begin
+       print, 'x-point guess at ', xpoint[0], xpoint[1]
        ; do iterative refinement on x-point
        for k=1, 10 do begin
            pt = field_at_point(field, x, z, xpoint[0], xpoint[1])
@@ -2622,10 +2623,22 @@ pro nulls, psi, x, z, axis=axis, xpoints=xpoint, $
            
            xpoint[0] = xpoint[0] - dx
            xpoint[1] = xpoint[1] - dz
-       end
-       print, 'Found X-point at ', xpoint[0], xpoint[1]
-   end
 
+           if(xpoint[0] le min(x) or xpoint[0] ge max(x)) then begin
+               xpoint = 0
+               break
+           endif
+           if(xpoint[1] le min(z) or xpoint[1] ge max(z)) then begin
+               xpoint = 0
+               break
+           endif           
+       end
+   endif
+   if(n_elements(xpoint) eq 2) then begin
+       print, 'Found X-point at ', xpoint[0], xpoint[1]
+   endif else begin
+       print, 'No X-point found'
+   endelse
 end
 
 
@@ -4313,6 +4326,7 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
       j = j+1
   end
   print, 'lim points = ', nlim
+  oplot, rlim, zlim, psym=4
 
   ; wall points
   xx = x[1:n_elements(x)-2]
