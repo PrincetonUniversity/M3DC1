@@ -4385,7 +4385,7 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, b0=b0, l0=l0, $
   jb = (s_bracket(I0,psi,x,z) - jphi*I0)/r^2
   jdotb = flux_average_field(jb,psi,x,z,t,flux=flux,$
                    limiter=limiter,_EXTRA=extra)
-  r2i = flux_average_field(1./r^2,psi,x,z,t,flux=flux,$
+  r2i = flux_average_field(1./r^2,psi,x,z,flux=flux,$
                    limiter=limiter,_EXTRA=extra)
 
   betacent = field_at_point(beta[0,*,*], x, z, axis[0], axis[1])
@@ -4497,7 +4497,7 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, b0=b0, l0=l0, $
   isyms=  0
   ipest=  1
   kmax=nlim-1
-  npsit = n_elements(flux)
+  npsit = n_elements(flux)-1 ; remove final point to avoid NaN's
   
   times=  0.1140E-01
   xaxes=  axis[0]
@@ -4522,7 +4522,7 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, b0=b0, l0=l0, $
     ali2s,qsaws,psimins,psilims
 
   mu0 = (4.*!pi*1.e-7)
-  ajpest2 = jdotb/(I0*r2i)
+  ajpest2 = jdotb/(I*r2i)
 
   printf, file, format=f6101, mu0*p[0:npsit-1]
   printf, file, format=f6101, mu0*pprime[0:npsit-1]
