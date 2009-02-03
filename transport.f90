@@ -163,16 +163,28 @@ vectype function kappa_func(i)
 
   temp = 0.
 
-  ! kappa = p/T**(3/2) = sqrt(n**3/p)
   if(kappa0.ne.0.) then
-     temp79a = kappa0*sqrt(nt79(:,OP_1)**3/pt79(:,OP_1))
+     select case (iresfunc)
+     case(0)
+        ! kappa = p/T**(3/2) = sqrt(n**3/p)
+        temp79a = kappa0*sqrt(nt79(:,OP_1)**3/pt79(:,OP_1))
+        
+     case(1)
+        temp79a = kappa0*.5* &
+             (1. + tanh((real(ps079(:,OP_1))-(psilim+etaoff*(psilim-psimin)))&
+             /(etadelt*(psilim-psimin))))
+        
+     case(2)
+        temp79b = (ps079(:,OP_1)-psimin)/(psilim-psimin)
+        temp79a = kappa0*.5* &
+             (1. + tanh((real(temp79b) - etaoff)/etadelt))
+     end select
      temp = temp + int2(g79(:,OP_1,i),temp79a)
   endif
 
   if(kappah.ne.0.) then
      temp79b = (pst79(:,OP_1) - psimin)/(psibound - psimin)
      temp79a = kappah*tanh((real(temp79b) - 1.)/.2)**2
-!     temp79a = temp79b
      temp = temp + int2(g79(:,OP_1,i),temp79a)
   end if
   

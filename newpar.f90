@@ -241,7 +241,7 @@ Program Reducedquintic
      if(maxrank .eq. 1) then
 !        call outputfield(phi, numvar, 0, ntime, 123) 
 !        call writefieldatnodes(resistivity, 1, 1) 
-        factor = 0.6
+        factor = 0.3
         hmin = .001
         hmax = 0.2
 
@@ -281,7 +281,7 @@ Program Reducedquintic
      ! check for error
      if(ekin.ne.ekin .or. emag.ne.emag) then
         print *, "Error: energy is NaN"
-        call safestop(3)
+        goto 101
      endif
 
      ! re-scale solution if energy is too large
