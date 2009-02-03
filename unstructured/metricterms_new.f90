@@ -4098,6 +4098,24 @@ vectype function b1psibd(e,f,g,h)
      temp = int5(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1)) &
           - int5(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1))
 
+!!$     temp79a = e(:,OP_1)*h(:,OP_1)* &
+!!$          (f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ))
+!!$     temp79b = &
+!!$          -f(:,OP_1)*h(:,OP_1)* &
+!!$          (e(:,OP_DZ)*g(:,OP_DR) - e(:,OP_DR)*g(:,OP_DZ)) &
+!!$          -f(:,OP_1)*e(:,OP_1)* &
+!!$          (h(:,OP_DZ)*g(:,OP_DR) - h(:,OP_DR)*g(:,OP_DZ))
+!!$     temp79c = &
+!!$          -g(:,OP_1)*h(:,OP_1)* &
+!!$          (f(:,OP_DZ)*e(:,OP_DR) - f(:,OP_DR)*e(:,OP_DZ)) &
+!!$          -g(:,OP_1)*e(:,OP_1)* &
+!!$          (f(:,OP_DZ)*h(:,OP_DR) - f(:,OP_DR)*h(:,OP_DZ))
+!!$
+!!$     temp = &
+!!$          (int2(ri_79,temp79a) &
+!!$          +int2(ri_79,temp79b) &
+!!$          +int2(ri_79,temp79c))/3.
+
   else
      temp79a = f(:,OP_DZ )*g(:,OP_DR ) - f(:,OP_DR )*g(:,OP_DZ )
      temp79b = f(:,OP_DRZ)*g(:,OP_DR ) - f(:,OP_DRR)*g(:,OP_DZ ) &
@@ -4676,6 +4694,23 @@ vectype function b2bbd(e,f,g,h)
         temp = temp &
              + 2.*int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZ),h(:,OP_1))
      endif
+
+!!$     temp79a = e(:,OP_1)*f(:,OP_1)* &
+!!$          (g(:,OP_DR)*h(:,OP_DZ) - g(:,OP_DZ)*h(:,OP_DR))
+!!$     temp79b = f(:,OP_1)*h(:,OP_1)* &
+!!$          (g(:,OP_DZ)*e(:,OP_DR) - g(:,OP_DR)*e(:,OP_DZ))
+!!$     temp79c = f(:,OP_1)*g(:,OP_1)* &
+!!$          (e(:,OP_DZ)*h(:,OP_DR) - e(:,OP_DR)*h(:,OP_DZ))
+!!$     if(itor.eq.1) then
+!!$        temp79a = temp79a + 2.*ri_79*e(:,OP_1)*f(:,OP_1)*g(:,OP_DZ)*h(:,OP_1)
+!!$        temp79b = temp79b + 2.*ri_79*e(:,OP_1)*f(:,OP_1)*g(:,OP_DZ)*h(:,OP_1)
+!!$        temp79c = temp79c - 2.*ri_79*f(:,OP_1)*g(:,OP_1)* &
+!!$             (e(:,OP_DZ)*h(:,OP_1 ) + e(:,OP_1 )*h(:,OP_DZ))
+!!$     endif
+!!$     temp = &
+!!$          (int2(ri_79,temp79a) &
+!!$          +int2(ri_79,temp79b) &
+!!$          +int2(ri_79,temp79c))/3.
 
   case(1)
      temp = int5(ri3_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_1),h(:,OP_1)) &

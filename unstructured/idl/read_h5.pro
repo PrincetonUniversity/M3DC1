@@ -4259,7 +4259,7 @@ pro plot_poloidal_rotation, _EXTRA=extra
 end
 
 
-pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
+pro write_geqdsk, eqfile=eqfile, slice=slice, b0=b0, l0=l0, $
                   psilim=psilim, _EXTRA=extra
   
   if(n_elements(slice) eq 0) then begin
@@ -4268,16 +4268,15 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
   if(n_elements(b0) eq 0) then b0 = 10000.
   if(n_elements(l0) eq 0) then l0 = 100.
   if(n_elements(eqfile) eq 0) then eqfile = 'geqdsk.out'
-  if(n_elements(pts) eq 0) then pts=128
 
   bzero = read_parameter('bzero', _EXTRA=extra)
   rzero = read_parameter('rzero', _EXTRA=extra)
 
   ; calculate flux averages
-  psi = read_field('psi',x,z,t,slice=slice,points=pts,_EXTRA=extra)
-  jphi= read_field('jphi',x,z,t,slice=slice,points=pts,_EXTRA=extra)
-  p0 = read_field('p',x,z,t,slice=slice,points=pts,_EXTRA=extra)
-  I0 = read_field('I',x,z,t,slice=slice,points=pts,_EXTRA=extra)
+  psi = read_field('psi',x,z,t,slice=slice,_EXTRA=extra)
+  jphi= read_field('jphi',x,z,t,slice=slice,_EXTRA=extra)
+  p0 = read_field('p',x,z,t,slice=slice,_EXTRA=extra)
+  I0 = read_field('I',x,z,t,slice=slice,_EXTRA=extra)
   r = radius_matrix(x,z,t)
   beta = r^2*2.*p0/(s_bracket(psi,psi,x,z) + I0^2)
   beta0 = mean(2.*p0*r^2/(bzero*rzero)^2)
@@ -4325,7 +4324,23 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
       zlim[j] = lcfs_xy[1,i]
       j = j+1
   end
-  print, 'lim points = ', nlim
+  print, 'lim points = ', nlim, j
+
+  ; reduce the boundary points if necessary
+  while(nlim ge 500) do begin
+      print, 'reducing lim points...'
+      nlim = nlim / 2
+      new_rlim = fltarr(nlim)
+      new_zlim = fltarr(nlim)
+      for k=0, nlim-1 do begin
+          new_rlim[k] = rlim[2*k]
+          new_zlim[k] = zlim[2*k]
+      endfor
+      rlim = new_rlim
+      zlim = new_zlim
+      print, 'new lim points = ', nlim
+  end
+
   oplot, rlim, zlim, psym=4
 
   ; wall points
@@ -4350,27 +4365,27 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
   i = i + n_elements(zz)
   rwall[o:i-1] = min(xx)
   zwall[o:i-1] = reverse(zz)
-  print, i, nwall
+  print, 'wall points = ', i, nwall
   
 
   ; calculate flux averages
-  p = flux_average(p0,slice,psi=psi,x=x,z=z,t=t,flux=flux,bins=pts,$
+  p = flux_average_field(p0,psi,x,z,flux=flux,$
                    limiter=limiter,_EXTRA=extra)
   pp = s_bracket(p0,psi,x,z)/s_bracket(psi,psi,x,z)
-  pprime = flux_average(pp,slice,psi=psi,x=x,z=z,t=t,flux=flux,bins=pts,$
+  pprime = flux_average_field(pp,psi,x,z,flux=flux,$
                  limiter=limiter,_EXTRA=extra)
-  I = flux_average(I0,slice,psi=psi,x=x,z=z,t=t,flux=flux,bins=pts,$
+  I = flux_average_field(I0,psi,x,z,flux=flux,$
                    limiter=limiter,_EXTRA=extra)
   ffp = I0*s_bracket(I0,psi,x,z)/s_bracket(psi,psi,x,z)
-  ffprim = flux_average(ffp,slice,psi=psi,x=x,z=z,t=t,flux=flux,bins=pts,$
+  ffprim = flux_average_field(ffp,psi,x,z,flux=flux,$
                    limiter=limiter,_EXTRA=extra)
   q = flux_average('q',slice,psi=psi,x=x,z=z,t=t,flux=flux, $
-                   limiter=limiter,points=pts,bins=pts,_EXTRA=extra)
-;  q = smooth(q,5,/edge)
-  jb = (s_bracket(I0,psi,x,z) - grad_shafranov(psi,x,z,/tor)*I0)/r^2
-  jdotb = flux_average(jb,slice,psi=psi,x=x,z=z,t=t,flux=flux,bins=pts,$
                    limiter=limiter,_EXTRA=extra)
-  r2i = flux_average(1/r^2,slice,psi=psi,x=x,z=z,t=t,flux=flux,bins=pts,$
+;  q = smooth(q,5,/edge)
+  jb = (s_bracket(I0,psi,x,z) - jphi*I0)/r^2
+  jdotb = flux_average_field(jb,psi,x,z,t,flux=flux,$
+                   limiter=limiter,_EXTRA=extra)
+  r2i = flux_average_field(1./r^2,psi,x,z,t,flux=flux,$
                    limiter=limiter,_EXTRA=extra)
 
   betacent = field_at_point(beta[0,*,*], x, z, axis[0], axis[1])
@@ -4476,14 +4491,13 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
   print, 'outputting to jsolver format...'
 
   jsfile = 'jsfile'
-  openw, file, jsfile
-  
-  nbdy = n_elements(rlim)
+  openw, file, jsfile  
+
   ncycle=  1
   isyms=  0
   ipest=  1
-  kmax=nbdy-1
-  npsit = n_elements(flux)-5
+  kmax=nlim-1
+  npsit = n_elements(flux)
   
   times=  0.1140E-01
   xaxes=  axis[0]
@@ -4507,12 +4521,13 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, points=pts, b0=b0, l0=l0, $
   printf, file, format=f6101, times,xaxes,zmags,gzeros,apls,betas,betaps, $
     ali2s,qsaws,psimins,psilims
 
-  ajpest2 = (4.*!pi*1.e-7)*jdotb/(I0*r2i)
+  mu0 = (4.*!pi*1.e-7)
+  ajpest2 = jdotb/(I0*r2i)
 
-  printf, file, format=f6101, p[0:npsit-1]
-  printf, file, format=f6101, pprime[0:npsit-1]
-  printf, file, format=f6101, ajpest2[0:npsit-1]
-  printf, file, format=f6101, nflux[0:npsit-1]
+  printf, file, format=f6101, mu0*p[0:npsit-1]
+  printf, file, format=f6101, mu0*pprime[0:npsit-1]
+  printf, file, format=f6101, mu0*ajpest2[0:npsit-1]
+  printf, file, format=f6101, flux[0:npsit-1] - flux[0]
   printf, file, format=f6101, rlim
   printf, file, format=f6101, zlim
   
