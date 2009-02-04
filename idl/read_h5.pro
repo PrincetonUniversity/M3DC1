@@ -4526,7 +4526,7 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, b0=b0, l0=l0, $
 
   printf, file, format=f6101, mu0*p[0:npsit-1]
   printf, file, format=f6101, mu0*pprime[0:npsit-1]
-  printf, file, format=f6101, mu0*ajpest2[0:npsit-1]
+  printf, file, format=f6101, -mu0*ajpest2[0:npsit-1]
   printf, file, format=f6101, flux[0:npsit-1] - flux[0]
   printf, file, format=f6101, rlim
   printf, file, format=f6101, zlim
@@ -4542,14 +4542,14 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, b0=b0, l0=l0, $
 
   loadct,12
   !p.multi = [0,3,2]
-  plot, nflux, p, title='p'
-  plot, nflux, pprime, title="p'"
-  oplot, nflux, deriv(flux,p), color=color(1,2), linestyle=2
+  plot, nflux, mu0*p, title='p'
+  plot, nflux, mu0*pprime, title="p'"
+  oplot, nflux, mu0*deriv(flux,p), color=color(1,2), linestyle=2
   plot, nflux, I, title='f'
   plot, nflux, ffprim, title="f f'"
   oplot, nflux, I*deriv(flux,I), color=color(1,2), linestyle=2
   plot, nflux, q, title='q', yrange=[0,10]
-  plot, nflux, jdotb, title='jdotb'
+  plot, nflux, mu0*ajpest2, title='ajpest2'
 
  
   !p.multi=0
