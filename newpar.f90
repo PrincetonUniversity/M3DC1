@@ -151,7 +151,8 @@ Program Reducedquintic
   ! Set initial conditions either from restart file
   ! or from initialization routine
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(irestart.eq.1) then
+  select case (irestart)
+  case(1)
      ! Read restart file(s)
 
      if(myrank.eq.1 .and. iprint.ge.1) print *, 'Reading restart file(s)...'
@@ -161,7 +162,7 @@ Program Reducedquintic
         call rdrestart
      endif
 
-  else
+  case(0)
      ! Initialize from routine
 
      ptot = 0.
@@ -198,8 +199,52 @@ Program Reducedquintic
         if(idens.eq.1) denold = den
         if(ipres.eq.1) presold = pres
      endif
+  case(2)
+     ! Read restart file(s) and use these to initialize grad-shafranov solve
+
+     if(myrank.eq.1 .and. iprint.ge.1) print *, 'Reading restart file(s)...'
+     if(iglobalin.eq.1) then
+        call rdrestartglobal
+     else
+        call rdrestart
+     endif
+     ptot = 0.
+     ntime = 0
+     time = 0.
+     if(myrank.eq.0 .and. iprint.ge.1) &
+          print *, 'defining initial conditions...'
+     call initial_conditions
+     if(myrank.eq.0 .and. iprint.ge.1) print *, 'done initial conditions'
+
+     if(eqsubtract.eq.1) then
+        fieldi = field
+     else
+        fieldi = field0
+     endif
+
+     ! correct for left-handed coordinates
+     if(myrank.eq.0 .and. iprint.ge.1) &
+          print *, "adjusting fields for left-handed coordinates"
+     call flip_handedness
+
+     ! combine the equilibrium and perturbed fields of linear=0
+     ! unless eqsubtract = 1
+     if(eqsubtract.eq.0) then
+        field = field + field0
+        field0 = 0.
+     endif
+
+     ! initialize t(n-1) values    
+     phiold = phi
+
+     if(isplitstep.eq.1) then
+        velold = vel
+        if(idens.eq.1) denold = den
+        if(ipres.eq.1) presold = pres
+     endif
+
      
-  endif                     !  end of the branch on restart/no restart
+  end select                     !  end of the branch on restart/no restart
 
   ntime0 = ntime
 
@@ -217,7 +262,7 @@ Program Reducedquintic
 
   ! output simulation parameters and equilibrium
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(irestart.eq.0) then
+  if(irestart.eq.0 .or. irestart.eq.2 .or. iadapt.gt.0) then
      if(myrank.eq.0 .and. iprint.ge.1) &
           print *, "Writing simulation parameters."
      call hdf5_write_parameters(ier)
@@ -236,29 +281,27 @@ Program Reducedquintic
 
   ! Adapt the mesh
   ! ~~~~~~~~~~~~~~
-  if(iadapt.eq.1) then
-!     call outputfield(phi, numvar, 0, ntime, 123) 
+  select case(iadapt)
+  case(1)
      if(maxrank .eq. 1) then
-!        call outputfield(phi, numvar, 0, ntime, 123) 
-!        call writefieldatnodes(resistivity, 1, 1) 
         factor = 0.3
         hmin = .001
         hmax = 0.2
 
         print *, 'adapting mesh...'
-!!$#ifdef USECOMPLEX
         call hessianadapt(tempvar,1, 0, ntime, factor, hmin, hmax) 
-!!$#else
-!!$        call hessianadapt(resistivity,1, ntime, factor, hmin, hmax)
-!!$#endif
         print *, 'done adapting.'
         call space(0)
         call tridef
      endif
-  endif
+  case(2)
+     call adapt(phi,psimin,psilim)
+     call tridef
+  case(0)
+  end select
 
 
-  if(irestart.eq.0) then
+  if(irestart.eq.0 .or. irestart.eq.2 .or. iadapt.gt.0) then
      tflux0 = tflux
      totcur0 = totcur
   endif

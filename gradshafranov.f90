@@ -347,158 +347,170 @@ subroutine gradshafranov_solve
      call second(tend)
      t_gs_init = tend - tstart
   endif
+     !....read in numerical values for p and g functions for inumgs = 1
+     if(inumgs .eq. 1) call readpgfiles
 
 
   ! Define initial values of psi
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(irestart.ne.2) then
 
-  if(myrank.eq.0 .and. iprint.gt.0) &
-       print *, " calculating boundary conditions..."
+     if(myrank.eq.0 .and. iprint.gt.0) &
+          print *, " calculating boundary conditions..."
 
-  ! based on filiment with current tcuro
-  ! and vertical field of strength bv given by shafranov formula
-  ! NOTE:  This formula assumes (li/2 + beta_P) = libetap
-  fac  = tcuro/(2.*pi)
-  fac2 = tcuro / (8.*pi**2*xmag)
-  ! minor radius
-  aminor = abs(xmag-xlim)
-  if(itor.eq.1) then
-    bv =  alog(8.*xmag/aminor) - 1.5 + libetap
-    libetapeff = libetap
-  else
-    bv = 0.
-  endif
-  call getboundingboxsize(alx,alz)
-  rnorm = 10.
-  if(myrank.eq.0 .and. iprint.ge.1) &
-        print *, "gradshafranov_solve xmag zmag alx alz xzero zzero= ", &
-                 xmag, zmag, alx, alz, xzero, zzero
+     ! based on filiment with current tcuro
+     ! and vertical field of strength bv given by shafranov formula
+     ! NOTE:  This formula assumes (li/2 + beta_P) = libetap
+     fac  = tcuro/(2.*pi)
+     fac2 = tcuro / (8.*pi**2*xmag)
+     ! minor radius
+     aminor = abs(xmag-xlim)
+     if(itor.eq.1) then
+       bv =  alog(8.*xmag/aminor) - 1.5 + libetap
+       libetapeff = libetap
+     else
+       bv = 0.
+     endif
+     call getboundingboxsize(alx,alz)
+     rnorm = 10.
+     if(myrank.eq.0 .and. iprint.ge.1) &
+           print *, "gradshafranov_solve xmag zmag alx alz xzero zzero= ", &
+                    xmag, zmag, alx, alz, xzero, zzero
 
 !......define feedback parameters needed for normalization
-  if(idevice .eq. 0) then
-    xc(1) = 102.
-    zc(1) = rnorm
-    xp = xlim
-    zp = zlim
-    call gvect(xp,zp,xc,zc,1,g1,1,ineg)
-    xp = xlim2
-    zp = zlim2
-    call gvect(xp,zp,xc,zc,1,g2,1,ineg)
-    gnorm = g1(1) - g2(1)
-  endif
-
-
-  psi = 0.
-    
-  if(myrank.eq.0 .and. iprint.ge.2) &
-       print *, "gradshafranov_solve i xp zp = "
-  do i=1,numnodes
-
-     call entdofs(numvargs, i, 0, ibegin, iendplusone)
-     call assign_local_pointers(i)
-
-     separatrix_top = 1e10
-     separatrix_bottom = -1e10
-
-     if(ifixedb.eq.0) then
-        call nodcoord(i,x,z)
-        xp = x
-        zp = z
-        
-        if(myrank.eq.0 .and. iprint.ge.2) &
-             print *, i, xp(1), zp(1)
-                
-        ! Field due to plasma current
-        xc(1) = xmag
-        zc(1) = zmag
-        call gvect(xp,zp,xc,zc,1,g,0,ineg)
-        psi(ibegin:ibegin+5) =   g(:,1)*fac
-                
-        ! Field due to external coils
-        select case(idevice)
-        case(1) ! CDX-U
-           numcoils = 4
-           xc(1) = 0.846
-           zc(1) = 0.360
-           xc(2) = 0.846
-           zc(2) =-0.360
-           xc(3) = 0.381
-           zc(3) = 0.802
-           xc(4) = 0.381
-           zc(4) =-0.802
-           call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)     
-           g = -g*.2*fac
-        case(2) ! NSTX
-           numcoils = NSTX_coils
-           xc(1:NSTX_coils) = NSTX_r
-           zc(1:NSTX_coils) = NSTX_z
-           call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)     
-           do k=1,NSTX_coils 
-              g(:,k) = g(:,k)*fac*NSTX_I(k)
-           enddo
-        case(3) ! ITER
-           numcoils = ITER_coils
-           xc(1:ITER_coils) = ITER_r
-           zc(1:ITER_coils) = ITER_z
-           call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)     
-           do k=1,ITER_coils 
-              g(:,k) = g(:,k)*fac*ITER_I(k)
-           enddo
-           separatrix_top = 4.5
-           separatrix_bottom = -3.5
-        case(4) ! DIII
-           numcoils = DIII_coils
-           xc(1:DIII_coils) = DIII_r
-           zc(1:DIII_coils) = DIII_z
-           call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)     
-           do k=1,DIII_coils 
-              g(:,k) = g(:,k)*fac*DIII_I(k)
-           enddo
-           separatrix_top = 4.5
-           separatrix_bottom = -3.5
-        case default ! Generic
-           numcoils = 1
-           xc(1) = 102.
-           zc(1) = rnorm
-           call gvect(xp,zp,xc,zc,numcoils,g,1,ineg)     
-           g = g*bv*fac2
-        end select
-        
-        
-        do k=1,numcoils 
-           psi(ibegin:ibegin+5) = psi(ibegin:ibegin+5) + g(:,k)
-        end do
-        
-        ! Add fields from divertor coils
-        if(divertors.ge.1) then
-           xc = xdiv
-           zc(1) = zdiv
-           if(divertors.eq.2) zc(2) = -zdiv
-           call gvect(xp,zp,xc,zc,divertors,g,0,ineg)
-           do k=1,divertors
-              psi(ibegin:ibegin+5) = psi(ibegin:ibegin+5) + fac*divcur*g(:,k)
-           end do
-        endif
+     if(idevice .eq. 0) then
+       xc(1) = 102.
+       zc(1) = rnorm
+       xp = xlim
+       zp = zlim
+       call gvect(xp,zp,xc,zc,1,g1,1,ineg)
+       xp = xlim2
+       zp = zlim2
+       call gvect(xp,zp,xc,zc,1,g2,1,ineg)
+       gnorm = g1(1) - g2(1)
      endif
-        
-     ! store boundary conditions on psi
-     psis_l = psi(ibegin:ibegin+5)
-  enddo
-     
-  !....read in numerical values for p and g functions for inumgs = 1
-  if(inumgs .eq. 1) call readpgfiles
-     
-  ! define initial b1vecini associated with delta-function source
-  !     corresponding to current tcuro at location (xmag,zmag)
 
-  if(myrank.eq.0 .and. iprint.gt.0) then
-      write(*,2008) xrel,zrel,tcuro
- 2008 format(" initializing current, xrel,zrel,tcuro =",1p3e12.4)
-      endif
 
-  b1vecini = 0.
-  call deltafun(xmag,zmag,b1vecini,tcuro, ier)
-  if(ier .gt. 0) call safestop(7)
+     psi = 0.
+
+     if(myrank.eq.0 .and. iprint.ge.2) &
+          print *, "gradshafranov_solve i xp zp = "
+     do i=1,numnodes
+
+        call entdofs(numvargs, i, 0, ibegin, iendplusone)
+        call assign_local_pointers(i)
+
+        separatrix_top = 1e10
+        separatrix_bottom = -1e10
+
+        if(ifixedb.eq.0) then
+           call nodcoord(i,x,z)
+           xp = x
+           zp = z
+
+           if(myrank.eq.0 .and. iprint.ge.2) &
+                print *, i, xp(1), zp(1)
+
+           ! Field due to plasma current
+           xc(1) = xmag
+           zc(1) = zmag
+           call gvect(xp,zp,xc,zc,1,g,0,ineg)
+           psi(ibegin:ibegin+5) =   g(:,1)*fac
+
+           ! Field due to external coils
+           select case(idevice)
+           case(1) ! CDX-U
+              numcoils = 4
+              xc(1) = 0.846
+              zc(1) = 0.360
+              xc(2) = 0.846
+              zc(2) =-0.360
+              xc(3) = 0.381
+              zc(3) = 0.802
+              xc(4) = 0.381
+              zc(4) =-0.802
+              call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)
+              g = -g*.2*fac
+           case(2) ! NSTX
+              numcoils = NSTX_coils
+              xc(1:NSTX_coils) = NSTX_r
+              zc(1:NSTX_coils) = NSTX_z
+              call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)
+              do k=1,NSTX_coils
+                 g(:,k) = g(:,k)*fac*NSTX_I(k)
+              enddo
+           case(3) ! ITER
+              numcoils = ITER_coils
+              xc(1:ITER_coils) = ITER_r
+              zc(1:ITER_coils) = ITER_z
+              call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)
+              do k=1,ITER_coils
+                 g(:,k) = g(:,k)*fac*ITER_I(k)
+              enddo
+              separatrix_top = 4.5
+              separatrix_bottom = -3.5
+           case(4) ! DIII
+              numcoils = DIII_coils
+              xc(1:DIII_coils) = DIII_r
+              zc(1:DIII_coils) = DIII_z
+              call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)
+              do k=1,DIII_coils
+                 g(:,k) = g(:,k)*fac*DIII_I(k)
+              enddo
+              separatrix_top = 4.5
+              separatrix_bottom = -3.5
+           case default ! Generic
+              numcoils = 1
+              xc(1) = 102.
+              zc(1) = rnorm
+              call gvect(xp,zp,xc,zc,numcoils,g,1,ineg)
+              g = g*bv*fac2
+           end select
+
+
+           do k=1,numcoils
+              psi(ibegin:ibegin+5) = psi(ibegin:ibegin+5) + g(:,k)
+           end do
+
+           ! Add fields from divertor coils
+           if(divertors.ge.1) then
+              xc = xdiv
+              zc(1) = zdiv
+              if(divertors.eq.2) zc(2) = -zdiv
+              call gvect(xp,zp,xc,zc,divertors,g,0,ineg)
+              do k=1,divertors
+                 psi(ibegin:ibegin+5) = psi(ibegin:ibegin+5) + fac*divcur*g(:,k)
+              end do
+           endif
+        endif
+
+        ! store boundary conditions on psi
+        psis_l = psi(ibegin:ibegin+5)
+     enddo
+
+
+     ! define initial b1vecini associated with delta-function source
+     !     corresponding to current tcuro at location (xmag,zmag)
+
+     if(myrank.eq.0 .and. iprint.gt.0) then
+         write(*,2008) xrel,zrel,tcuro
+    2008 format(" initializing current, xrel,zrel,tcuro =",1p3e12.4)
+         endif
+
+     b1vecini = 0.
+     call deltafun(xmag,zmag,b1vecini,tcuro, ier)
+     if(ier .gt. 0) call safestop(7)
+!
+  else   ! on irestart.ne.2
+     psimin = -psimin
+     psilim = -psilim
+     do i=1,numnodes
+       call entdofs(numvargs,i,0,ibegin,iendplusone)
+       call assign_local_pointers(i)
+       psi(ibegin:ibegin+5) = -psi0_l
+       psis_l = psi(ibegin:ibegin+5)
+     enddo
+  endif   ! on irestart.ne.2
   if(myrank.eq.0) then
   write(*,999) 
 999 format("    I    error        error2       xmag         psimin       psilim" &
@@ -513,39 +525,41 @@ subroutine gradshafranov_solve
      
      ! apply boundary conditions
 
-     feedfac = 0.
-     if(itnum.gt.1 .and. gnorm.ne.0 .and. xlim2.ne.0) then
-       feedfac = -0.25*(psilim - psilim2)/gnorm
+     if(irestart.ne.2 .or. itnum.gt.1) then
+       feedfac = 0.
+       if(itnum.gt.1 .and. gnorm.ne.0 .and. xlim2.ne.0) then
+         feedfac = -0.25*(psilim - psilim2)/gnorm
 !......as a diagnostic, calculate the effective value of libetap (including feedback term)
-       libetapeff =  libetapeff + feedfac/fac2
-       if(myrank.eq.0 .and. iprint.eq.1) &
-            write(*,'(A,4E12.4)') "feedfac, psilim, psilim2,gnorm", &
-            feedfac, psilim, psilim2, gnorm
-     endif
+         libetapeff =  libetapeff + feedfac/fac2
+         if(myrank.eq.0 .and. iprint.eq.1) &
+              write(*,'(A,4E12.4)') "feedfac, psilim, psilim2,gnorm", &
+              feedfac, psilim, psilim2, gnorm
+       endif
 
-     call boundary_gs(0, b1vecini, feedfac)
+       call boundary_gs(0, b1vecini, feedfac)
 
-     ! perform LU backsubstitution to get psi solution
-     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     b2vecini = b1vecini
-     if(flg_petsc .and. flg_solve1) then 
-       call solve1(gsmatrix_sm,b1vecini,ier)
-     else
-       call solve(gsmatrix_sm,b1vecini,ier)
-     endif
-     if(ier.ne.0) then
-        if(myrank.eq.0) print *, 'Error in GS solve'
-        call safestop(10)
-     end if
-     if(myrank.eq.0 .and. itimer.eq.1) then
-        call second(tend)
-        t_gs_solve = t_gs_solve + tend - tstart
-     endif
+       ! perform LU backsubstitution to get psi solution
+       if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+       b2vecini = b1vecini
+       if(flg_petsc .and. flg_solve1) then
+         call solve1(gsmatrix_sm,b1vecini,ier)
+       else
+         call solve(gsmatrix_sm,b1vecini,ier)
+       endif
+       if(ier.ne.0) then
+          if(myrank.eq.0) print *, 'Error in GS solve'
+          call safestop(10)
+       end if
+       if(myrank.eq.0 .and. itimer.eq.1) then
+          call second(tend)
+          t_gs_solve = t_gs_solve + tend - tstart
+       endif
 
-     if(itnum.eq.1) then
-        psi = b1vecini
-     else
-        psi = th_gs*b1vecini + (1.-th_gs)*psi
+       if(itnum.eq.1) then
+          psi = b1vecini
+       else
+          psi = th_gs*b1vecini + (1.-th_gs)*psi
+       endif
      endif
 
     

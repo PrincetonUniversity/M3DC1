@@ -106,6 +106,7 @@ module basic
 
   ! general equilibrium parameters
   integer :: irestart ! 1 = reads restart file as initial condition
+                      ! 2 = reads restart file to initialize GS solve
   integer :: itaylor  ! equilibrium
   integer :: idevice  ! for itor=1, itaylor=1, selects tokamak configuration
                       !  0 = generic
@@ -205,7 +206,7 @@ module basic
   integer :: ifout         ! 1 = output f field
 
   ! general behavior
-  integer :: iadapt     ! 1 = adapts mesh after initialization
+  integer :: iadapt     ! 1,2 = adapts mesh after initialization
 
   integer :: istart
   real :: beta
