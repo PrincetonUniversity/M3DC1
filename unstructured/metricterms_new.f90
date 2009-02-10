@@ -1671,12 +1671,11 @@ vectype function v2chimu(e,f,g,h)
   select case(ivform)
   case(0)
   case(1)
-     temp79a = (h(:,OP_1) - g(:,OP_1)) * &
-          (f(:,OP_DZZP) + f(:,OP_DRRP) - ri_79*f(:,OP_DRP))
+     temp79a = h(:,OP_1) - g(:,OP_1)
      temp = &
           - int4(ri2_79,e(:,OP_DZ),f(:,OP_DZP),g(:,OP_1)) &
           - int4(ri2_79,e(:,OP_DR),f(:,OP_DRP),g(:,OP_1)) &
-          + 2.*int3(ri2_79,e(:,OP_1),temp79a)
+          + 2.*int4(ri2_79,e(:,OP_1),f(:,OP_GSP),temp79a)
      if(itor.eq.1) then
         temp = temp &
              +2.*int4(ri3_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_1))
@@ -2281,7 +2280,7 @@ end function v2chipsib
 
 
 ! v2chibb
-! =========
+! =======
 vectype function v2chibb(e,f,g,h)
   use basic
   use nintegrate_mod
@@ -2295,13 +2294,11 @@ vectype function v2chibb(e,f,g,h)
 #ifdef USECOMPLEX
   select case (ivform)
   case(0)
-  temp = temp  &
-      +int5(ri2_79,f(:,OP_DRP),e(:,OP_1),g(:,OP_DR),h(:,OP_1)) &
-      +int5(ri2_79,f(:,OP_DZP),e(:,OP_1),g(:,OP_DZ),h(:,OP_1))
+     temp = temp  &
+          +int5(ri2_79,f(:,OP_DRP),e(:,OP_1),g(:,OP_DR),h(:,OP_1)) &
+          +int5(ri2_79,f(:,OP_DZP),e(:,OP_1),g(:,OP_DZ),h(:,OP_1))
   case(1)
-  temp = temp  &
-      +int5(ri4_79,f(:,OP_DRP),e(:,OP_1),g(:,OP_DR),h(:,OP_1)) &
-      +int5(ri4_79,f(:,OP_DZP),e(:,OP_1),g(:,OP_DZ),h(:,OP_1))
+     temp = 0.
   end select
 #endif
 
@@ -2474,7 +2471,6 @@ vectype function v2bf(e,f,g)
   temp = &
        - int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZP)) &
        - int3(e(:,OP_1),f(:,OP_DR),g(:,OP_DRP))
-
 #else
   temp = 0.
 #endif
@@ -2552,7 +2548,7 @@ vectype function v3chimu(e,f,g,h)
      temp = 2.* &
           (int4(ri4_79,e(:,OP_DZZ),f(:,OP_DZZ),g(:,OP_1)) &
           +int4(ri4_79,temp79a,temp79b,g(:,OP_1)) &
-          +int4(ri4_79,temp79c,temp79d,g(:,OP_1)) & 
+          +2.*int4(ri4_79,temp79c,temp79d,g(:,OP_1)) & 
           +int4(ri4_79,e(:,OP_GS),f(:,OP_GS),h(:,OP_1)) &
           -int4(ri4_79,e(:,OP_GS),f(:,OP_GS),g(:,OP_1)))
      if(itor.eq.1) then
@@ -2560,7 +2556,7 @@ vectype function v3chimu(e,f,g,h)
              + 2.*int4(ri6_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1))
      endif
 #ifdef USECOMPLEX
-     temp = temp - 2.* &
+     temp = temp - &
           (int4(ri6_79,e(:,OP_DZ),f(:,OP_DZPP),g(:,OP_1)) &
           +int4(ri6_79,e(:,OP_DR),f(:,OP_DRPP),g(:,OP_1)))
 #endif
@@ -2609,6 +2605,9 @@ vectype function v3umu(e,f,g,h)
         temp = temp - 2.* &
              (int4(ri2_79,e(:,OP_DRR),f(:,OP_DZ),g(:,OP_1)) &
              -int4(ri3_79,e(:,OP_DR ),f(:,OP_DZ),g(:,OP_1)))
+
+        temp79d = g(:,OP_1)-h(:,OP_1)
+        temp = temp + 4.*int4(ri2_79,e(:,OP_GS),f(:,OP_DZ),temp79d)
      endif
 
 #ifdef USECOMPLEX
@@ -2868,7 +2867,7 @@ end function v3psib
 
 
 ! V3psif
-! ========
+! ======
 vectype function v3psif(e,f,g)
 
   use basic
