@@ -629,13 +629,10 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
      endif
 
      if(advfield.eq.1) then
-        temp = v2chip(trial,lin,pt79)
-        ssterm(chi_g) = ssterm(chi_g) - thimp*thimp*dt*dt*temp
-        ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
-
         temp = v2chipsipsi(trial,lin,pst79,pst79) &
              + v2chipsib  (trial,lin,pst79,bzt79) &
-             + v2chibb    (trial,lin,bzt79,bzt79)
+             + v2chibb    (trial,lin,bzt79,bzt79) &
+             + v2chip     (trial,lin,pt79)
         ssterm(chi_g) = ssterm(chi_g) - thimp*thimp*dt*dt*temp
         ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
      end if
