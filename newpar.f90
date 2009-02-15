@@ -295,8 +295,8 @@ Program Reducedquintic
         call tridef
      endif
   case(2)
-     call adapt(phi,psimin,psilim)
-     call tridef
+!    call adapt(phi,psimin,psilim)
+!    call tridef
   case(0)
   end select
 
