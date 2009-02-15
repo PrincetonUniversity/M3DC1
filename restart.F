@@ -413,6 +413,7 @@ c     first put in information to check on run information
       enddo 
 
       read(56,END=1199) psimin,psilim
+      write(*,*) 'psimin,psilim',psimin,psilim
       read(56,END=1199) xnull,znull
       goto 1200
  1199 if(myrank.eq.0) 
