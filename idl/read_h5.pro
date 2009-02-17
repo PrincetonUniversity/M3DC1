@@ -4290,11 +4290,13 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, b0=b0, l0=l0, $
   ; find points at psi = psilim to use as boundary points
   lcfs_psi = lcfs(psi,x,z, axis=axis, xpoint=xpoint, $
                   flux0=flux0, _EXTRA=extra)
+  print, 'cjdebug: psilim= ', psilim, 'lcfs_psi= ', lcfs_psi
   if(n_elements(psilim) eq 0) then begin
       ; use psilim = lcfs if psilim is not given
       psilim = lcfs_psi
   endif
 
+  window, 0
   contour, psi, x, z, levels=psilim, /path_data_coords, path_xy=lcfs_xy
 
 ;  lcfs_xy = path_at_flux(psi,x,z,t,psilim)
@@ -4524,6 +4526,34 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, b0=b0, l0=l0, $
   mu0 = (4.*!pi*1.e-7)
   ajpest2 = jdotb/(I*r2i)
 
+  ;feb-16-2009
+  ;cj added to find correct bdy
+  fname='AnalyticModel' 
+  bdy=READ_ASCII(fname) 
+  print,bdy.(0)
+  X0 = bdy.(0)[0]
+  X1 = bdy.(0)[1]
+  X2 = bdy.(0)[2]
+  Z0 = bdy.(0)[3]
+  Z1 = bdy.(0)[4]
+  print, X0,X1,X2,Z0,Z1
+  print, nlim, n_elements(zlim), zlim[0], zlim[nlim-1]
+  rpass = fltarr(nlim)
+  zpass = fltarr(nlim)
+  theta = fltarr(nlim)
+  delta=2.*!pi/(nlim-1)
+  for index=0, nlim-1 do begin 
+      theta[index]= !pi - (index * delta)
+      rpass(index)=X0 + X1*cos(theta[index] + X2*sin(theta[index]))
+      zpass(index)=Z0 + Z1*sin(theta[index]                       )
+  endfor 
+  print, theta[0], theta[nlim-1]
+  print, rpass[0], rpass[nlim-1]
+  print, zpass[0], zpass[nlim-1] 
+  rlim = rpass
+  zlim = zpass
+  oplot, rlim, zlim, psym=4
+
   printf, file, format=f6101, mu0*p[0:npsit-1]
   printf, file, format=f6101, mu0*pprime[0:npsit-1]
   printf, file, format=f6101, -mu0*ajpest2[0:npsit-1]
@@ -4533,6 +4563,7 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, b0=b0, l0=l0, $
   
   close, file
 
+  window, 1
 ;  contour_and_legend, psi,x,z, /iso
 ;  loadct,12
 ;  oplot, rlim, zlim, color=color(1,3), thick=3.0
