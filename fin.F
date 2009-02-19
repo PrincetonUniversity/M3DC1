@@ -146,8 +146,6 @@
 !.....number of grad-shafranov iterations
       igs = 80
 !
-      numvargs = 1
-!
 !.....switch to use numvar equilibrium when numvar > 1
       nv1equ = 0
 !

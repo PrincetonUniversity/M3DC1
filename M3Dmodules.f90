@@ -125,7 +125,6 @@ module basic
   integer :: divertors! number of divertors
   integer :: igs      ! number of grad-shafranov iterations
   integer :: nv1equ   ! if set to 1, use numvar equilibrium for numvar > 1
-  integer :: numvargs ! 1 = psi eqn only; 2 = include j eqn
   real :: xmag, zmag  ! position of magnetic axis
   real :: xlim, zlim  ! position of limiter
   real :: xdiv, zdiv  ! position of divertor
@@ -245,7 +244,7 @@ real :: tiltangled   !   angle to which the rectangular mesh is tilted for tests
        irestart,istart,                                        &
        tcuro,djdpsi,xmag,zmag,xlim,zlim,                       &
        expn,q0,divertors,xdiv,zdiv,divcur,th_gs,p1,p2,         &
-       idevice,igs,nv1equ,tol_gs,numvargs,                     &
+       idevice,igs,nv1equ,tol_gs,                              &
        iconstflux,regular,max_ke,                              &
        ntor,iadapt,istatic,iestatic,ivform, ibform,            &
        ihypeta,ikapscale,                                      &

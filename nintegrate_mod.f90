@@ -4,6 +4,7 @@ implicit none
 
 integer :: npoints                 ! number of points in Gaussian quadrature
 !integer, parameter :: MAX_PTS = 79 ! maximum number of quad. points allowed
+logical :: surface_int
 
 integer, parameter :: OP_1    = 1
 integer, parameter :: OP_DR   = 2
@@ -59,15 +60,20 @@ vectype, dimension(MAX_PTS, OP_NUM, 18) :: g79
 real, dimension(MAX_PTS) :: x_79, z_79
 vectype, dimension(MAX_PTS) :: r_79, r2_79, r3_79, &
      ri_79, ri2_79, ri3_79, ri4_79, ri5_79, ri6_79, ri7_79, ri8_79
-vectype, dimension(MAX_PTS) :: temp79a, temp79b, temp79c, temp79d, temp79e, temp79f
+vectype, dimension(MAX_PTS) :: temp79a, temp79b, temp79c, &
+                               temp79d, temp79e, temp79f
 vectype, dimension(MAX_PTS, OP_NUM) :: sz79
 vectype, dimension(MAX_PTS, OP_NUM) :: tm79, ni79, b2i79, sb179, sb279, sp179
-vectype, dimension(MAX_PTS, OP_NUM) :: ps179, bz179, pe179, n179, p179, ph179, vz179, ch179
-vectype, dimension(MAX_PTS, OP_NUM) :: pst79, bzt79, pet79, nt79, pt79, pht79, vzt79, cht79
+vectype, dimension(MAX_PTS, OP_NUM) :: ps179, bz179, pe179, n179, & 
+                                       ph179, vz179, ch179, p179
+vectype, dimension(MAX_PTS, OP_NUM) :: pst79, bzt79, pet79, nt79, &
+                                       pht79, vzt79, cht79, pt79
 vectype, dimension(MAX_PTS, OP_NUM) :: vis79, vic79, vip79
-vectype, dimension(MAX_PTS, OP_NUM) :: jt79, cot79, vot79, pit79, eta79, sig79, bf79
+vectype, dimension(MAX_PTS, OP_NUM) :: jt79, cot79, vot79, pit79, &
+                                       eta79, sig79, bf79
 vectype, dimension(MAX_PTS, OP_NUM) :: kap79, kar79, kax79
-vectype, dimension(MAX_PTS, OP_NUM) :: ps079, bz079, pe079, n079, p079, ph079, vz079, ch079
+vectype, dimension(MAX_PTS, OP_NUM) :: ps079, bz079, pe079, n079, &
+                                       ph079, vz079, ch079, p079
 vectype, dimension(MAX_PTS, OP_NUM) :: pss79, bzs79, phs79, vzs79, chs79
 
 real, dimension(MAX_PTS) :: si_79, eta_79, weight_79
@@ -75,6 +81,12 @@ real, dimension(MAX_PTS) :: si_79, eta_79, weight_79
 real, dimension(12) :: alpha_12, beta_12, gamma_12, area_weight_12
 real, dimension(25) :: alpha_25, beta_25, gamma_25, area_weight_25
 real, dimension(79) :: alpha_79, beta_79, gamma_79, area_weight_79
+
+real, dimension(5) :: delta_5, line_weight_5
+vectype, dimension(MAX_PTS,2) :: norm79
+
+data delta_5        / -0.906180, -0.538469, 0.,       0.538469, 0.906180 /
+data line_weight_5  /  0.236927,  0.478629, 0.568889, 0.478629, 0.236927 /
 
 data alpha_12 &
      / 0.501426509658179, 0.249286745170910, 0.249286745170910, 0.873821971016996, &
@@ -230,6 +242,38 @@ logical function quadrature_implemented(i)
 end function quadrature_implemented
 
 !==============================================
+! edge_to_local
+! -------------
+!
+! Calculates linear transformation from [-1,1] 
+! to local coordinates (si, eta).
+!==============================================
+subroutine edge_to_local(ngauss, delta, line_weight, &
+     si1, eta1, si2, eta2, si, eta, local_weight, &
+     n1, n2)
+
+  implicit none
+
+  integer, intent(in) :: ngauss
+  real, dimension(ngauss), intent(in) :: delta, line_weight
+  real, intent(in) :: si1, si2, eta1, eta2
+  real, dimension(ngauss), intent(out) :: si, eta, local_weight
+  real, dimension(2), intent(in) :: n1, n2
+
+  real :: l
+
+  l = sqrt((si2-si1)**2 + (eta2-eta1)**2)
+
+  si =  0.5*(( si2- si1)*delta +  si2 +  si1)
+  eta = 0.5*((eta2-eta1)*delta + eta2 + eta1)
+  local_weight = 0.5*line_weight*l
+
+  norm79(1:ngauss,1) = 0.5*(n2(1)*(1.+delta) + n1(1)*(1.-delta))
+  norm79(1:ngauss,2) = 0.5*(n2(2)*(1.+delta) + n1(2)*(1.-delta))
+end subroutine edge_to_local
+
+
+!==============================================
 ! area_to_local
 ! -------------
 !
@@ -246,13 +290,9 @@ subroutine area_to_local(ngauss, alpha, beta, gamma, area_weight, &
   real, intent(in) :: a, b, c
   real, dimension(ngauss), intent(out) :: si, eta, local_weight
 
-  integer :: i
-
-  do i=1, ngauss
-     si(i) = (a+b)*(beta(i) - gamma(i))/2. + (a-b)*(1.-alpha(i))/2.
-     eta(i) = c*alpha(i)
-     local_weight(i) = area_weight(i)*(a+b)*c/2.
-  end do
+  si = (a+b)*(beta - gamma)/2. + (a-b)*(1.-alpha)/2.
+  eta = c*alpha
+  local_weight = area_weight*(a+b)*c/2.
 
 end subroutine area_to_local
 
@@ -394,24 +434,14 @@ subroutine eval_ops(avector,si,eta,theta,rinv,ngauss,outarr)
 end subroutine eval_ops
 
 
-
 !=====================================================
-! define_fields
+! define_triangle_quadrature
 !=====================================================
-subroutine define_fields(itri, fields, ngauss, gdef)
-
-  use basic
+subroutine define_triangle_quadrature(itri, ngauss)
   use t_data
-  use arrays
 
-  implicit none
-  
-  integer, intent(in) :: itri, fields, gdef, ngauss
-  
-  integer :: i
-  vectype, dimension(20) :: avec
+  integer, intent(in) :: itri, ngauss
 
-  ! calculate the local sampling points and weights for numerical integration
   select case(ngauss)
   case(12)
      call area_to_local(12,                          &
@@ -429,10 +459,103 @@ subroutine define_fields(itri, fields, ngauss, gdef)
           atri(itri), btri(itri), ctri(itri),        &
           si_79, eta_79, weight_79)
   case default
-     print *, "Error! ", ngauss, "-point quadrature not defined."
+     print *, "Error! ", ngauss, "-point triangle quadrature not defined."
      call safestop(44)
   end select
   npoints = ngauss
+
+  surface_int = .false.
+end subroutine define_triangle_quadrature
+
+
+subroutine boundary_edge(itri, is_edge, normal)
+  integer, intent(in) :: itri
+  logical, intent(out) :: is_edge(3)
+  real, intent(out) :: normal(2,3)
+
+  integer :: inode(4), izone, izoned(3), i, j
+  real :: x, z, c(3)
+  logical :: is_bound(3)
+
+  call nodfac(itri,inode)
+
+  do i=1,3
+     call boundary_node(inode(i),is_bound(i),izone,izoned(i), &
+          normal(:,i),c(i),x,z)
+  end do
+     
+  do i=1,3
+     j = mod(i,3) + 1
+     is_edge(i) = .false.
+     
+     ! skip edges not having both points on a boundary
+     if((.not.is_bound(i)).or.(.not.is_bound(j))) cycle
+        
+     ! skip edges cutting across corners
+     if(is_bound(1) .and. is_bound(2) .and. is_bound(3)) then
+        if(izoned(i).ne.0 .and. izoned(j).ne.0) cycle
+     endif
+
+     is_edge(i) = .true.
+  end do
+end subroutine boundary_edge
+
+
+!=====================================================
+! define_triangle_quadrature
+!=====================================================
+subroutine define_edge_quadrature(itri, inode, ngauss, normal)
+  use t_data 
+  integer, intent(in) :: itri, inode, ngauss
+  real, intent(in), dimension(2,3) :: normal
+  real :: si1, si2, eta1, eta2, n1(2), n2(2)
+
+  select case(inode)
+  case(1)
+     si1 = -btri(itri); eta1 = 0.
+     si2 =  atri(itri); eta2 = 0.
+  case(2)
+     si1 =  atri(itri); eta1 = 0.
+     si2 =  0.;         eta2 = ctri(itri)
+  case(3)
+     si1 =  0.;         eta1 = ctri(itri)
+     si2 = -btri(itri); eta2 = 0.
+  case default
+     print *, "Error: invalid node. ", inode
+     call safestop(45)
+  end select
+  n1 = normal(:,inode)
+  n2 = normal(:,mod(inode,3)+1)
+
+  select case(ngauss)
+  case(5)
+     call edge_to_local(ngauss, delta_5, line_weight_5, &
+     si1, eta1, si2, eta2, si_79, eta_79, weight_79, n1, n2)
+  case default 
+     print *, "Error: ", ngauss, &
+          "-point quadrature not defined for line integration"
+  end select
+
+  npoints = ngauss
+  surface_int = .true.
+end subroutine define_edge_quadrature
+
+
+!=====================================================
+! define_fields
+!=====================================================
+subroutine define_fields(itri, fields, gdef)
+
+  use basic
+  use t_data
+  use arrays
+
+  implicit none
+  
+  integer, intent(in) :: itri, fields, gdef
+
+  integer :: i
+  vectype, dimension(20) :: avec
 
   ! calculate the hyperviscosity coefficients and
   ! the size field for this element.

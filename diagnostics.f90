@@ -520,7 +520,8 @@ subroutine calculate_scalars()
      endif
      dbf = db*factor
 
-     call define_fields(itri, def_fields, int_pts_diag, isources)
+     call define_triangle_quadrature(itri, int_pts_diag)
+     call define_fields(itri, def_fields, isources)
 
 
      ! Define Source terms

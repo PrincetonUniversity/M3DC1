@@ -252,7 +252,8 @@
       endif
       do itri=1,numelms
 
-         call define_fields(itri,0,25,1)
+         call define_triangle_quadrature(itri, 25)
+         call define_fields(itri,0,1)
 
          hyp = hypc*amu
 
@@ -294,7 +295,8 @@
 !.....define RHS vector
       do itri=1,numelms
 
-         call define_fields(itri,0,25,1)
+         call define_triangle_quadrature(itri, 25)
+         call define_fields(itri,0,1)
 
          call calcavector(itri, inarray, 1, 1, avec)
          call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, 25, tm79)
@@ -404,7 +406,8 @@
       endif
       do itri=1,numelms
 
-         call define_fields(itri,0,25,1)
+         call define_triangle_quadrature(itri, 25)
+         call define_fields(itri,0,1)
 
          hyp = hypc*amuc
 
@@ -444,7 +447,8 @@
 !.....define RHS vector
       do itri=1,numelms
 
-         call define_fields(itri,0,25,1)
+         call define_triangle_quadrature(itri,25)
+         call define_fields(itri,0,1)
 
          call calcavector(itri, inarray, 1, 1, avec)
          call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, 25, tm79)

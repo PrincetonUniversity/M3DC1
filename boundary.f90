@@ -808,8 +808,6 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
      call assign_local_pointers(i)
      call entdofs(numvargs, i, 0, ibegin, iendplusone)
      call rotate_matrix(imatrix, ibegin, normal, curv, rhs)
-     if(numvargs.ge.2) &
-          call rotate_matrix(imatrix, ibegin+6, normal, curv, rhs)
 
 !......add feedback field
      if(idevice .eq. 0 .and. ifixedb .eq. 0) then
@@ -822,13 +820,8 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
      endif
 
      temp = psis_l
-      if(ifixedb.ge.1) temp=0.
+     if(ifixedb.ge.1) temp=0.
      call set_dirichlet_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim)
-
-     if(numvargs.ge.2) then
-        temp = 0.
-        call set_dirichlet_bc(imatrix,ibegin+6,rhs,temp,normal,curv,izonedim)
-     end if
 
     ! no toroidal current
     temp = 0.
