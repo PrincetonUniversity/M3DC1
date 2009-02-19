@@ -385,6 +385,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
 
 end subroutine vorticity_lin 
 
+
 subroutine vorticity_nolin(trial, r4term)
 
   use basic
@@ -1366,18 +1367,18 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   endif
 
   if(i3d.eq.1) then
-     temp = b2psif(trial,lin,bf79)*dbf
+     temp = b2psifd(trial,lin,bf79,ni79)*dbf
      ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
      ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
 
-     temp = b2bf(trial,lin,bf79)*dbf
+     temp = b2bfd(trial,lin,bf79,ni79)*dbf
      ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
 
      if(eqsubtract.eq.1) then
         q_bf = q_bf + dt* &
-             (b2psif(trial,ps079,lin)*dbf &
-             +b2bf  (trial,bz079,lin)*dbf)
+             (b2psifd(trial,ps079,lin,ni79)*dbf &
+             +b2bfd  (trial,bz079,lin,ni79)*dbf)
      endif
   endif
 
@@ -1707,6 +1708,10 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
   real :: x, z, xmin, zmin, factor
 
   real :: tstart, tend, tfield, telm, tsizefield, tfinalize
+  logical :: is_edge(3)  ! is inode on boundary
+  real :: normal(2), n(2,3)
+  integer :: iedge
+
 
   double precision cogcoords(3)
 
@@ -1884,7 +1889,8 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
 
      ! calculate the field values and derivatives at the sampling points
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     call define_fields(itri, def_fields, int_pts_main, 1)
+     call define_triangle_quadrature(itri, int_pts_main)
+     call define_fields(itri, def_fields, 1)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         tfield = tfield + tend - tstart
@@ -1900,6 +1906,26 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
         call second(tend)
         telm = telm + tend - tstart
      endif
+
+     if(.not.(ifixedb.eq.1 .and. ivform.eq.1 .and. ibform.eq.1 &
+          .and. numvar.le.2)) cycle
+
+     ! add surface terms
+     call boundary_edge(itri, is_edge, n)
+     
+     do iedge=1,3
+        if(.not.is_edge(iedge)) cycle
+
+        call define_edge_quadrature(itri, iedge, 5, n)
+        call define_fields(itri, def_fields, 1)
+
+        normal = n(:,iedge)
+
+        if(ivel_def.eq.1) call ludefvel_n(itri)
+!!$        if(ifield_def.eq.1) call ludefphi_n(itri)
+!!$        if(idens_def.eq.1) call ludefden_n(itri)
+!!$        if(ipres_def.eq.1) call ludefpres_n(itri)
+     end do
   end do
 
   if(myrank.eq.0 .and. iprint.ge.1) &

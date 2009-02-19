@@ -1,6 +1,8 @@
 module gradshafranov
 
   implicit none
+
+  integer, parameter :: numvargs = 1
   
   vectype, allocatable :: psi(:)
   real, allocatable :: fun1(:), fun2(:), fun3(:), fun4(:)
@@ -10,7 +12,8 @@ module gradshafranov
   real :: separatrix_top, separatrix_bottom
 
   integer :: npsi
-  real, allocatable :: psinorm(:), g4big0t(:), g4bigt(:), g4bigpt(:), g4bigppt(:)
+  real, allocatable :: psinorm(:)
+  real, allocatable :: g4big0t(:), g4bigt(:), g4bigpt(:), g4bigppt(:)
   real, allocatable :: fbig0t(:), fbigt(:), fbigpt(:), fbigppt(:)
 
   integer, parameter :: NSTX_coils = 158
@@ -229,9 +232,10 @@ subroutine gradshafranov_solve
   real, allocatable :: temp(:)
   vectype, allocatable :: b1vecini(:)
   vectype, allocatable :: b2vecini(:)
-      real, dimension (2)  :: normal
-      integer :: izone, izonedim
-      logical :: is_boundary
+  real, dimension (2)  :: normal
+  real :: curv
+  integer :: izone, izonedim
+  logical :: is_boundary
 
   integer, parameter :: maxcoils = NSTX_coils
   integer :: numcoils, ii
@@ -241,7 +245,7 @@ subroutine gradshafranov_solve
   integer :: ibegin, iendplusone
   integer :: ineg, ier
   real :: dterm(18,18), sterm(18,18)
-  real :: fac, fac2, aminor, bv, feedfac, libetapeff, gnorm,curv, fintl(-6:maxi,-6:maxi)
+  real :: fac, fac2, aminor, bv, feedfac, libetapeff, gnorm, fintl(-6:maxi,-6:maxi)
   real, dimension(6,maxcoils) :: g
   real, dimension(6) :: g1, g2
   real, dimension(maxcoils) :: xp, zp, xc, zc
@@ -252,6 +256,10 @@ subroutine gradshafranov_solve
   real :: psilim2,gamma2a,gamma2b,gamma3a,gamma3b
   
   real :: tstart, tend
+
+  integer :: nodeids(4), jj, izoned(3)
+  real :: n(2,3), c(3)
+  logical :: is_edge(3)  ! is inode on boundary
 
   PetscTruth :: flg_petsc, flg_solve2, flg_solve1
   if(myrank.eq.0 .and. iprint.gt.0) &
@@ -297,38 +305,46 @@ subroutine gradshafranov_solve
   ! populate the matrix
   do itri=1,numelms
 
-     call define_fields(itri,0,25,1)
+     call define_triangle_quadrature(itri,25)
+     call define_fields(itri,0,1)
     
      do j=1,18
         do i=1,18
-           select case(numvargs)
-           case(1)
-              i1 = isval1(itri,i)
-              j1 = isval1(itri,j)
-!!$              temp79a = -ri2_79* &
-!!$                   (g79(:,OP_DR,i)*g79(:,OP_DR,j) &
-!!$                   +g79(:,OP_DZ,i)*g79(:,OP_DZ,j))
-!!$              sum = int1(temp79a)
-              sum = int3(ri2_79,g79(:,OP_1,i),g79(:,OP_GS,j))
-              call insertval(gsmatrix_sm, sum, 0, i1,j1,1)
-
-           case(2)
-              i1 = isval2(itri,i)
-              j1 = isval2(itri,j)
-
-              temp79a = -ri2_79* &
-                   (g79(:,OP_DR,i)*g79(:,OP_DR,j) &
-                   +g79(:,OP_DZ,i)*g79(:,OP_DZ,j))
-              sum = int1(temp79a)
-              call insertval(gsmatrix_sm, sum, 0, i1,j1,1)
-              sum = -int3(ri2_79,g79(:,OP_1,i),g79(:,OP_1,j))
-              call insertval(gsmatrix_sm, sum, 0, i1,j1+6,1)
-              sum = int3(ri2_79,g79(:,OP_1,i),g79(:,OP_1,j))
-              call insertval(gsmatrix_sm, sum, 0, i1+6,j1+6,1)
-           end select
+           i1 = isval1(itri,i)
+           j1 = isval1(itri,j)
+           temp79a = -ri2_79* &
+                (g79(:,OP_DR,i)*g79(:,OP_DR,j) &
+                +g79(:,OP_DZ,i)*g79(:,OP_DZ,j))
+           sum = int1(temp79a)
+!!$           sum = int3(ri2_79,g79(:,OP_1,i),g79(:,OP_GS,j))
+           call insertval(gsmatrix_sm, sum, 0, i1,j1,1)
         enddo
      enddo
+
+     ! add surface terms
+     call boundary_edge(itri, is_edge, n)
+     
+     do ii=1,3
+        if(.not.is_edge(ii)) cycle
+
+        call define_edge_quadrature(itri, ii, 5, n)
+        call define_fields(itri, 0, 1)
+
+        normal = n(:,ii)
+
+        do j=1,18
+           j1 = isval1(itri,j)
+           do i=1,18
+              i1 = isval1(itri,i)
+              temp79a = norm79(:,1)*g79(:,OP_DR,j) &
+                      + norm79(:,2)*g79(:,OP_DZ,j)
+              sum = int3(ri2_79,g79(:,OP_1,i),temp79a)
+              call insertval(gsmatrix_sm, sum, 0, i1,j1,1)
+           enddo
+        enddo
+     end do
   enddo
+
 
   feedfac = 0.
   ! insert boundary conditions
@@ -689,12 +705,7 @@ subroutine gradshafranov_solve
         enddo
 
         do i=1,18
-           select case(numvargs)
-           case(1)
-              i1 = isval1(itri,i)
-           case(2)
-              i1 = isval2(itri,i)
-           end select
+           i1 = isval1(itri,i)
            
            gsint1 = gsint1 + cfac(i)*fun1(i1)
            gsint4 = gsint4 + cfac(i)*fun4(i1)
@@ -764,26 +775,15 @@ subroutine gradshafranov_solve
            sum2 = 0.
            
            do j=1,18
-              select case(numvargs)
-              case(1)
-                 i1 = isval1(itri,i)
-                 j1 = isval1(itri,j)
-              case(2)
-                 i1 = isval2(itri,i)
-                 j1 = isval2(itri,j)
-              end select
+              i1 = isval1(itri,i)
+              j1 = isval1(itri,j)
               
               sum = sum - dterm(i,j)* &
                    (       fun1(j1) + gamma4*fun4(j1)               &
                    +gamma2*fun2(j1) + gamma3*fun3(j1))
            enddo
 
-           select case(numvargs)
-           case(1)
-              b1vecini(i1) =  b1vecini(i1) + sum
-           case(2)
-              b1vecini(i1+6) =  b1vecini(i1+6) + sum
-           end select
+           b1vecini(i1) =  b1vecini(i1) + sum
         enddo
      enddo
      call sumsharedppplvecvals(b1vecini)
@@ -1202,12 +1202,7 @@ subroutine deltafun(x,z,dum,val,ier)
 
      ! calculate the contribution to b1vecini
      do i=1,18
-        select case(numvargs)
-        case(1)
-           index = isval1(itri,i)
-        case(2)
-           index = isval2(itri,i)+6
-        end select
+        index = isval1(itri,i)
 
         sum = 0.
         do k=1,20

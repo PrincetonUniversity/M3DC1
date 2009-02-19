@@ -71,7 +71,8 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
 
   do itri=1,numelms
 
-     call define_fields(itri,0,25,1)
+     call define_triangle_quadrature(itri, 25)
+     call define_fields(itri,0,1)
 
      do j=1,18
         jone = isval1(itri,j)

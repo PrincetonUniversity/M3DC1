@@ -273,7 +273,8 @@ subroutine define_transport_coefficients()
   call numfac(numelms)
   do itri=1,numelms
 
-     call define_fields(itri, def_fields, int_pts_aux, 1)
+     call define_triangle_quadrature(itri, int_pts_aux)
+     call define_fields(itri, def_fields, 1)
 
      do i=1,18
         ione = isval1(itri,i)
