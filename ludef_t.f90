@@ -1907,6 +1907,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
         telm = telm + tend - tstart
      endif
 
+     if(isurface.eq.0) cycle
      if(.not.(ifixedb.eq.1 .and. ivform.eq.1 .and. ibform.eq.1 &
           .and. numvar.le.2)) cycle
 
@@ -1922,7 +1923,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
         normal = n(:,iedge)
 
         if(ivel_def.eq.1) call ludefvel_n(itri)
-!!$        if(ifield_def.eq.1) call ludefphi_n(itri)
+        if(ifield_def.eq.1) call ludefphi_n(itri)
 !!$        if(idens_def.eq.1) call ludefden_n(itri)
 !!$        if(ipres_def.eq.1) call ludefpres_n(itri)
      end do

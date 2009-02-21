@@ -173,6 +173,7 @@ module basic
   integer :: int_pts_main! points in integration quadrature for time advance matrices
   integer :: int_pts_aux ! points in integration quadrature for auxiliary variable definitions
   integer :: int_pts_diag! points in integration quadrature for diagnostic calculations
+  integer :: isurface    ! include surface terms
   real :: dt             ! timestep
   real :: ddt            ! change in timestep per timestep
   real :: thimp          ! implicitness parameter (for Crank-Nicholson)
@@ -257,7 +258,7 @@ real :: tiltangled   !   angle to which the rectangular mesh is tilted for tests
        icalc_scalars, ike_only, ifout, inertia, itwofluid,     &
        int_pts_main, int_pts_aux, int_pts_diag,                &
        iwave, bx0 , chiiner, ibootstrap, xnull, znull,         &
-       tiltangled
+       tiltangled, isurface
 
 
   !     derived quantities
