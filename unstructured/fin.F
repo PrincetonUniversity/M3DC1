@@ -141,7 +141,7 @@
       ivform = 0
 !
 !.....form of toroidal field equation
-      ibform = 0
+      ibform = -1
 !
 !.....number of grad-shafranov iterations
       igs = 80
@@ -174,6 +174,8 @@
 !
       inertia = 1
       itwofluid = 1
+!
+      isurface = 0
 !
 !.....bootstrap current model (0 = none)
       ibootstrap = 0
@@ -400,6 +402,10 @@
 
       ! Validate input
       ! ~~~~~~~~~~~~~~
+      if(ibform.ne.-1) then
+         if(myrank.eq.0) 
+     &        print *, 'WARNING: ibform input parameter deprecated'
+      endif
       if(isplitstep.eq.0) imp_mod = 0
       if(rzero.eq.-1) then
          if(itor.eq.1) then 
