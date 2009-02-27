@@ -330,8 +330,6 @@ subroutine gradshafranov_solve
         call define_edge_quadrature(itri, ii, 5, n)
         call define_fields(itri, 0, 1)
 
-        normal = n(:,ii)
-
         do j=1,18
            j1 = isval1(itri,j)
            do i=1,18

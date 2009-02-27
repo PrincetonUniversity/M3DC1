@@ -757,7 +757,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   if(numvar.lt.3) return
 
   ! regularize the chi equation
-  if(inoslip_pol.eq.0) then
+  if(inoslip_pol.eq.0 .and. (.not.surface_int)) then
      temp = -regular*int2(trial(:,OP_1),lin(:,OP_1))
      ssterm(chi_g) = ssterm(chi_g) + temp
      ddterm(chi_g) = ddterm(chi_g) + temp*bdf
@@ -1709,7 +1709,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
 
   real :: tstart, tend, tfield, telm, tsizefield, tfinalize
   logical :: is_edge(3)  ! is inode on boundary
-  real :: normal(2), n(2,3)
+  real :: n(2,3)
   integer :: iedge
 
 
@@ -1908,8 +1908,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
      endif
 
      if(isurface.eq.0) cycle
-     if(.not.(ifixedb.eq.1 .and. ivform.eq.1 .and. ibform.eq.1 &
-          .and. numvar.le.2)) cycle
+     if(.not.(ifixedb.eq.1 .and. ivform.eq.1)) cycle
 
      ! add surface terms
      call boundary_edge(itri, is_edge, n)
@@ -1920,10 +1919,8 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
         call define_edge_quadrature(itri, iedge, 5, n)
         call define_fields(itri, def_fields, 1)
 
-        normal = n(:,iedge)
-
         if(ivel_def.eq.1) call ludefvel_n(itri)
-        if(ifield_def.eq.1) call ludefphi_n(itri)
+!!$        if(ifield_def.eq.1) call ludefphi_n(itri)
 !!$        if(idens_def.eq.1) call ludefden_n(itri)
 !!$        if(ipres_def.eq.1) call ludefpres_n(itri)
      end do

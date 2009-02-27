@@ -250,26 +250,55 @@ end function quadrature_implemented
 !==============================================
 subroutine edge_to_local(ngauss, delta, line_weight, &
      si1, eta1, si2, eta2, si, eta, local_weight, &
-     n1, n2)
+     n1, n2, theta)
 
   implicit none
 
   integer, intent(in) :: ngauss
   real, dimension(ngauss), intent(in) :: delta, line_weight
-  real, intent(in) :: si1, si2, eta1, eta2
+  real, intent(in) :: si1, si2, eta1, eta2, theta
   real, dimension(ngauss), intent(out) :: si, eta, local_weight
   real, dimension(2), intent(in) :: n1, n2
 
-  real :: l
+  real :: l, d
+
+  real :: m1(2), m2(2)    ! m are the normal vectors in the local coord sys
+  real :: co, sn, si0, eta0, cost, t, r, phi1, phi2, phi(ngauss)
+  real, parameter :: epsilon = 1.-1.e-6
 
   l = sqrt((si2-si1)**2 + (eta2-eta1)**2)
+!!$  cost = n1(1)*n2(1) + n1(2)*n2(2)
+!!$
+!!$  if(cost.gt.epsilon) then
+     si =  0.5*(( si2- si1)*delta +  si2 +  si1)
+     eta = 0.5*((eta2-eta1)*delta + eta2 + eta1)
+     local_weight = 0.5*line_weight*l
 
-  si =  0.5*(( si2- si1)*delta +  si2 +  si1)
-  eta = 0.5*((eta2-eta1)*delta + eta2 + eta1)
-  local_weight = 0.5*line_weight*l
-
-  norm79(1:ngauss,1) = 0.5*(n2(1)*(1.+delta) + n1(1)*(1.-delta))
-  norm79(1:ngauss,2) = 0.5*(n2(2)*(1.+delta) + n1(2)*(1.-delta))
+     norm79(1:ngauss,1) = 0.5*(n2(1)*(1.+delta) + n1(1)*(1.-delta))
+     norm79(1:ngauss,2) = 0.5*(n2(2)*(1.+delta) + n1(2)*(1.-delta))
+!!$  else
+!!$     co = cos(theta)
+!!$     sn = sin(theta)
+!!$
+!!$     m1(1) =  n1(1)*co + n1(2)*sn
+!!$     m1(2) = -n1(1)*sn + n1(2)*co 
+!!$     m2(1) =  n2(1)*co + n2(2)*sn
+!!$     m2(2) = -n2(1)*sn + n2(2)*co
+!!$
+!!$     t = acos(cost)
+!!$     r = abs(.5*l/sin(0.5*t))
+!!$     si0  =  si1 - r*m1(1)
+!!$     eta0 = eta1 - r*m1(2)
+!!$     phi1 = atan2(eta1-eta0,si1-si0)
+!!$     phi2 = atan2(eta2-eta0,si2-si0)
+!!$     phi = 0.5*(phi2*(1.+delta) + phi1*(1.-delta))
+!!$     si = r*cos(phi) + si0
+!!$     eta = r*sin(phi) + eta0
+!!$     local_weight = 0.5*line_weight*r*(phi2-phi1)
+!!$     norm79(1:ngauss,1) = cos(phi+theta)
+!!$     norm79(1:ngauss,2) = sin(phi+theta)
+!!$  end if
+ 
 end subroutine edge_to_local
 
 
@@ -530,7 +559,7 @@ subroutine define_edge_quadrature(itri, inode, ngauss, normal)
   select case(ngauss)
   case(5)
      call edge_to_local(ngauss, delta_5, line_weight_5, &
-     si1, eta1, si2, eta2, si_79, eta_79, weight_79, n1, n2)
+     si1, eta1, si2, eta2, si_79, eta_79, weight_79, n1, n2, ttri(itri))
   case default 
      print *, "Error: ", ngauss, &
           "-point quadrature not defined for line integration"
