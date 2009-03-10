@@ -2160,25 +2160,20 @@ function particle_flux, filename=filename, components=comp, names=names, t=t
 
    t = s.time._data
 
-   ipellet = read_parameter('ipellet', filename=filename) 
-
-   names = ['- dN/dt', 'Diffusive', 'Convective', 'Sources']
-
-;    if(ipellet eq 1) then names=[names, 'Pellet']
-
-  
-   comp = fltarr(n_elements(names), n_elements(t))
-   comp[0,*] = -deriv(t,s.particle_number._data)
+   v = read_parameter('version', filename=filename) 
+   print, 'version = ', v
+   if(v lt 2) then begin
+       names = ['- dN/dt', 'Diffusive', 'Convective', 'Sources']
+       comp = fltarr(n_elements(names), n_elements(t))
+       comp[0,*] = -deriv(t,s.particle_number._data)
+   endif else begin
+       names = ['dN/dt', 'Diffusive', 'Convective', 'Sources']
+       comp = fltarr(n_elements(names), n_elements(t))
+       comp[0,*] = deriv(t,s.particle_number._data)
+   endelse
    comp[1,*] = s.Particle_Flux_diffusive._data
    comp[2,*] = s.Particle_Flux_convective._data
    comp[3,*] = s.Particle_source._data
-
-;    n = 3
-
-;    if(ipellet eq 1) then begin
-;        comp[n,*] = read_parameter('pellet_rate', filename=filename) 
-;        n = n+1
-;    endif
 
    return, total(comp, 1)
 end
@@ -2203,18 +2198,25 @@ function momentum_flux, filename=filename, components=comp, names=names, t=t, $
 
    t = s.time._data
 
-   names = ['dL/dt', 'Magnetic', 'Solenoidal', $
-            'Compressional', 'Viscous', 'Gyroviscous']
-;           , 'denm']
+   v = read_parameter('version', filename=filename) 
+   if(v lt 2) then begin
+       names = ['- dL/dt', 'Magnetic', 'Solenoidal', $
+                'Compressional', 'Viscous', 'Gyroviscous']
+       comp = fltarr(n_elements(names), n_elements(t))
+       comp[0,*] = -deriv(t, s.angular_momentum._data)
+   endif else begin
+       names = ['- dL/dt', 'Magnetic', 'Solenoidal', $
+                'Compressional', 'Viscous', 'Gyroviscous', 'Parallel Viscous']
+       comp = fltarr(n_elements(names), n_elements(t))
+       comp[0,*] = deriv(t, s.angular_momentum._data)
+       comp[6,*] = s.Torque_parvisc._data
+   endelse
   
-   comp = fltarr(n_elements(names), n_elements(t))
-   comp[0,*] = deriv(t, s.angular_momentum._data)
-   comp[1,*] = -s.Torque_em._data
-   comp[2,*] = -s.Torque_sol._data
-   comp[3,*] = -s.Torque_com._data
-   comp[4,*] = -s.Torque_visc._data
-   comp[5,*] = -s.Torque_gyro._data
-;   comp[6,*] = -s.Torque_denm._data
+   comp[1,*] = s.Torque_em._data
+   comp[2,*] = s.Torque_sol._data
+   comp[3,*] = s.Torque_com._data
+   comp[4,*] = s.Torque_visc._data
+   comp[5,*] = s.Torque_gyro._data
 
    if(keyword_set(norm)) then comp = comp/max(abs(s.angular_momentum._data))
 
@@ -2274,39 +2276,8 @@ end
 
 
 ;==============================================================
-; energy_flux
-; ~~~~~~~~~~~
-;
-; Returns a time series of the total rate of energy lost 
-; through the simulation domain boundary.
-; 
-; Optional outputs:
-;  t: the time array
-;  names: the name of each flux component
-;  components: an array of time series of each flux component
-;==============================================================
-function energy_flux, filename=filename, components=comp, names=names, t=t
-   s = read_scalars(filename=filename)
-   if(n_tags(s) eq 0) then return, 0
-
-   t = s.time._data
-
-   names = ['Pressure', 'Kinetic', 'Poynting', 'Thermal']
-  
-   comp = fltarr(n_elements(names), n_elements(t))
-   comp[0,*] = s.Flux_pressure._data
-   comp[1,*] = s.Flux_kinetic._data
-   comp[2,*] = s.Flux_poynting._data
-;   comp[2,*] = -s.toroidal_current._data*s.loop_voltage._data/(2.*3.14159)
-   comp[3,*] = s.Flux_thermal._data
-
-   return, total(comp, 1)
-end
-
-
-;==============================================================
 ; energy
-; ~~~~~~~~~~~
+; ~~~~~~
 ;
 ; Returns a time series of the total energy within the
 ; simulation domain
@@ -2344,6 +2315,45 @@ function energy, filename=filename, components=comp, names=names, t=t
 
    return, total(comp, 1)
 end
+
+
+;==============================================================
+; energy_flux
+; ~~~~~~~~~~~
+;
+; Returns a time series of the total rate of energy lost 
+; through the simulation domain boundary.
+; 
+; Optional outputs:
+;  t: the time array
+;  names: the name of each flux component
+;  components: an array of time series of each flux component
+;==============================================================
+function energy_flux, filename=filename, components=comp, names=names, t=t
+   s = read_scalars(filename=filename)
+   if(n_tags(s) eq 0) then return, 0
+
+   en = energy(filename=filename, components=en_comp, names=en_names, t=t)
+
+   v = read_parameter('version', filename=filename) 
+   if(v lt 2) then begin
+       names = ['- dE/dt', 'Pressure', 'Kinetic', 'Poynting', 'Thermal']
+       comp = fltarr(n_elements(names), n_elements(t))
+       comp[0,*] = -deriv(t, en)
+   endif else begin
+       names = ['dE/dt', 'Pressure', 'Kinetic', 'Poynting', 'Thermal']
+       comp = fltarr(n_elements(names), n_elements(t))
+       comp[0,*] = deriv(t, en)
+   endelse
+
+   comp[1,*] = s.Flux_pressure._data
+   comp[2,*] = s.Flux_kinetic._data
+   comp[3,*] = s.Flux_poynting._data
+   comp[4,*] = s.Flux_thermal._data
+
+   return, total(comp, 1)
+end
+
 
 
 ;==============================================================
