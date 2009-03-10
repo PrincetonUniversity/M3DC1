@@ -276,6 +276,23 @@ subroutine edge_to_local(ngauss, delta, line_weight, &
 
      norm79(1:ngauss,1) = 0.5*(n2(1)*(1.+delta) + n1(1)*(1.-delta))
      norm79(1:ngauss,2) = 0.5*(n2(2)*(1.+delta) + n1(2)*(1.-delta))
+
+     co = cos(theta)
+     sn = sin(theta)
+
+     ! calculate expected normal vector (in global coordinates)
+     m1(1) = (eta2 - eta1)*co - (si1 - si2)*sn
+     m1(2) = (eta2 - eta1)*sn + (si1 - si2)*co
+     ! calculate actual normal vector
+     m2 = 0.5*(n1 + n2)
+
+     ! if actual normal vector is opposite sign of expected vector,
+     ! flip integration limits (i.e. flip sign of Jacobian)
+     if(m1(1)*m2(1) + m1(2)*m2(2) .lt. 0.) then
+        local_weight = -local_weight
+        print *, 'Flipping edge.'
+     endif
+
 !!$  else
 !!$     co = cos(theta)
 !!$     sn = sin(theta)
@@ -497,19 +514,20 @@ subroutine define_triangle_quadrature(itri, ngauss)
 end subroutine define_triangle_quadrature
 
 
-subroutine boundary_edge(itri, is_edge, normal)
+subroutine boundary_edge(itri, is_edge, normal, idim)
   integer, intent(in) :: itri
   logical, intent(out) :: is_edge(3)
   real, intent(out) :: normal(2,3)
+  integer, intent(out) :: idim(3)
 
-  integer :: inode(4), izone, izoned(3), i, j
+  integer :: inode(4), izone, i, j
   real :: x, z, c(3)
   logical :: is_bound(3)
 
   call nodfac(itri,inode)
 
   do i=1,3
-     call boundary_node(inode(i),is_bound(i),izone,izoned(i), &
+     call boundary_node(inode(i),is_bound(i),izone,idim(i), &
           normal(:,i),c(i),x,z)
   end do
      
@@ -522,9 +540,21 @@ subroutine boundary_edge(itri, is_edge, normal)
         
      ! skip edges cutting across corners
      if(is_bound(1) .and. is_bound(2) .and. is_bound(3)) then
-        if(izoned(i).ne.0 .and. izoned(j).ne.0) cycle
+        if(idim(i).ne.0 .and. idim(j).ne.0) then
+           print *, "Dropping corner-cutting edge"
+           cycle
+        end if
      endif
 
+     ! skip suspicious edges (edges w/o corner point where normal changes
+     ! dramatically)
+     if(idim(i).eq.1 .and. idim(j).eq.1 .and. idim(mod(i+1,3)+1).eq.2) then
+        if(normal(1,i)*normal(1,j) + normal(2,i)*normal(2,j) .lt. .5) then
+           print *, "Dopping suspicious edge (probably a corner-cutter)."
+           cycle
+        endif
+     end if
+    
      is_edge(i) = .true.
   end do
 end subroutine boundary_edge
@@ -533,13 +563,13 @@ end subroutine boundary_edge
 !=====================================================
 ! define_triangle_quadrature
 !=====================================================
-subroutine define_edge_quadrature(itri, inode, ngauss, normal)
+subroutine define_edge_quadrature(itri, ivertex, ngauss, normal, idim)
   use t_data 
-  integer, intent(in) :: itri, inode, ngauss
+  integer, intent(in) :: itri, ivertex, ngauss, idim(3)
   real, intent(in), dimension(2,3) :: normal
   real :: si1, si2, eta1, eta2, n1(2), n2(2)
 
-  select case(inode)
+  select case(ivertex)
   case(1)
      si1 = -btri(itri); eta1 = 0.
      si2 =  atri(itri); eta2 = 0.
@@ -550,11 +580,16 @@ subroutine define_edge_quadrature(itri, inode, ngauss, normal)
      si1 =  0.;         eta1 = ctri(itri)
      si2 = -btri(itri); eta2 = 0.
   case default
-     print *, "Error: invalid node. ", inode
+     print *, "Error: invalid ivertex. ", ivertex
      call safestop(45)
   end select
-  n1 = normal(:,inode)
-  n2 = normal(:,mod(inode,3)+1)
+  n1 = normal(:,ivertex)
+  n2 = normal(:,mod(ivertex,3)+1)
+
+  ! Set normal vector of corner nodes
+  ! equal to the the normal vector of its adjacent node on this edge.
+  if(idim(ivertex).eq.0) n1 = n2
+  if(idim(mod(ivertex,3)+1).eq.0) n2 = n1
 
   select case(ngauss)
   case(5)

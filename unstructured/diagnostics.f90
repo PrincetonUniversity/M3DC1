@@ -26,7 +26,7 @@ module diagnostics
 
 
   ! momentum diagnostics
-  real :: tau_em, tau_sol, tau_com, tau_visc, tau_gyro, tau_denm
+  real :: tau_em, tau_sol, tau_com, tau_visc, tau_gyro, tau_parvisc
 
   logical :: ifirsttime = .true.
 
@@ -166,7 +166,7 @@ contains
     tau_com = 0.
     tau_visc = 0.
     tau_gyro = 0.
-    tau_denm = 0.
+    tau_parvisc = 0.
 
     nfluxd = 0.
     nfluxv = 0.
@@ -238,7 +238,7 @@ contains
        temp(41) = tau_com
        temp(42) = tau_visc
        temp(43) = tau_gyro
-       temp(44) = tau_denm
+       temp(44) = tau_parvisc
        temp(45) = bwb2
          
        !checked that this should be MPI_DOUBLE_PRECISION
@@ -288,7 +288,7 @@ contains
        tau_com =temp2(41)
        tau_visc=temp2(42)
        tau_gyro=temp2(43)
-       tau_denm=temp2(44)
+       tau_parvisc=temp2(44)
        bwb2    =temp2(45)
 
     endif !if maxrank .gt. 1
@@ -415,6 +415,10 @@ subroutine calculate_scalars()
   integer :: itri, numelms, i, ione, def_fields
   real :: x, z, xmin, zmin, factor
   real :: val, valpp
+  logical :: is_edge(3)  ! is inode on boundary
+  real :: n(2,3)
+  integer :: iedge, idim(3)
+
 
   double precision, dimension(3)  :: cogcoords
 
@@ -487,25 +491,6 @@ subroutine calculate_scalars()
   end if
 
   call getmincoord(xmin,zmin)
-
-  ! calcuate torque due to gyroviscosity
-  if(gyro.eq.1 .and. numvar.ge.2) then
-     gyro_tau = 0.
-     if(isplitstep.eq.1) then
-        call matrixvectormult(gyro_torque_sm,vel,b1_vel)
-        call copyvec(b1_vel,vz_g,vecsize_vel,gyro_tau,1,1)
-     else
-        call matrixvectormult(gyro_torque_sm,phi,b1_phi)
-        call copyvec(b1_phi,vz_g,vecsize_phi,gyro_tau,1,1)
-     end if
-
-     if(flg_petsc .and. flg_solve1) then
-     call solve1(mass_matrix_lhs,gyro_tau,i)
-     else
-     call solve(mass_matrix_lhs,gyro_tau,i)
-     endif
-  endif
-
 
   call numfac(numelms)
   do itri=1,numelms
@@ -612,6 +597,8 @@ subroutine calculate_scalars()
      !  (extra factor of 1/r comes from delta function in toroidal coordinate)
      area   = area   + int1(ri_79)
      totcur = totcur - int2(ri2_79,pst79(:,OP_GS))
+     
+     ! enstrophy
      select case(ivform)
      case(0)
         tvor   = tvor   - int2(ri2_79,pht79(:,OP_GS))
@@ -621,57 +608,25 @@ subroutine calculate_scalars()
            tvor   =  tvor - 2.*int2(ri4_79,cht79(:,OP_DZ))
         end if
      end select
+
+     ! toroidal flux
      if(numvar.ge.2) then
-        tflux = tflux+ int2(ri2_79,bzt79(:,OP_1 ))
+        tflux = tflux + int2(ri2_79,bzt79(:,OP_1 ))
      endif
+
+     ! particle number
      totden = totden + int1(nt79(:,OP_1))
 
-     
-     ! Calculate fluxes
-     ! ~~~~~~~~~~~~~~~~
-     efluxk = efluxk + flux_ke()
-     efluxp = efluxp + flux_pressure()
-     efluxs = efluxs + flux_poynting()
-     efluxt = efluxt + flux_heat()
-
-     epotg = epotg + grav_pot()
-
-     if(idens.eq.1) then
-        nfluxd = nfluxd + denm*int1(nt79(:,OP_LP))
-
-        select case(ivform)
-        case(0)
-           nfluxv = nfluxv &
-                + int3(ri_79,pht79(:,OP_DZ),nt79(:,OP_DR)) &
-                - int3(ri_79,pht79(:,OP_DR),nt79(:,OP_DZ))
-           if(numvar.ge.3) then
-              nfluxv = nfluxv &
-                   - int2(cht79(:,OP_DZ),nt79(:,OP_DZ)) &
-                   - int2(cht79(:,OP_DR),nt79(:,OP_DR)) &
-                   - int2(cht79(:,OP_LP),nt79(:,OP_1 ))
-           endif
-        case(1)
-           nfluxv = nfluxv &
-                + int3(r_79,pht79(:,OP_DZ),nt79(:,OP_DR)) &
-                - int3(r_79,pht79(:,OP_DR),nt79(:,OP_DZ))
-           if(itor.eq.1) then
-              nfluxv = nfluxv + &
-                   2.*int2(pht79(:,OP_DZ),nt79(:,OP_1))
-           endif
-           if(numvar.ge.3) then
-              nfluxv = nfluxv &
-                   - int3(ri2_79,cht79(:,OP_DZ),nt79(:,OP_DZ)) &
-                   - int3(ri2_79,cht79(:,OP_DR),nt79(:,OP_DR)) &
-                   - int3(ri2_79,cht79(:,OP_GS),nt79(:,OP_1 ))
-           endif
-        end select
-        
-        nsource = nsource + int1(sig79)
+     ! particle source
+     if(idens.eq.1) then        
+        nsource = nsource - int1(sig79)
      endif
 
+     ! gravitational potential energy
+     epotg = epotg + grav_pot()
 
-     ! Calculate toroidal (angular) momentum
-     ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+     ! toroidal (angular) momentum
      if(numvar.ge.2) then
         select case(ivform)
         case(0)
@@ -685,14 +640,6 @@ subroutine calculate_scalars()
 !           pmom = pmom &
 !                + int4(r2_79,vzt79(:,OP_1),nt79(:,OP_1),temp79a)
         end select
-
-        ! fluxes
-        tau_em   = tau_em   + torque_em()
-        tau_sol  = tau_sol  + torque_sol()
-        tau_com  = tau_com  + torque_com()
-        tau_visc = tau_visc + torque_visc()
-        tau_gyro = tau_gyro + torque_gyro(itri)
-        tau_denm = tau_denm + torque_denm()
      endif
 
 
@@ -712,7 +659,66 @@ subroutine calculate_scalars()
         bwb2 = bwb2 + &
              3.*int3(vip79(:,OP_1),temp79a,temp79a)
      end if
+
+
+     ! add surface terms
+     call boundary_edge(itri, is_edge, n, idim)
      
+     do iedge=1,3
+        if(.not.is_edge(iedge)) cycle
+
+        call define_edge_quadrature(itri, iedge, 5, n, idim)
+        call define_fields(itri, def_fields, 1)
+
+        ! Energy fluxes
+        ! ~~~~~~~~~~~~~
+        efluxp = efluxp + flux_pressure()
+        efluxt = efluxt + flux_heat()
+        efluxs = efluxs + flux_poynting()
+        efluxk = efluxk + flux_ke()
+
+        ! Toroidal momentum fluxes
+        ! ~~~~~~~~~~~~~~~~~~~~~~~~
+        if(numvar.ge.2) then
+           tau_em   = tau_em   + torque_em()
+           tau_sol  = tau_sol  + torque_sol()
+           tau_com  = tau_com  + torque_com()
+           tau_visc = tau_visc + torque_visc()
+           tau_gyro = tau_gyro + torque_gyro()
+           tau_parvisc = tau_parvisc + torque_parvisc()
+        endif
+
+        ! Particle fluxes
+        ! ~~~~~~~~~~~~~~~
+        if(idens.eq.1) then
+           nfluxd = nfluxd - denm* &
+                (int2(norm79(:,1),nt79(:,OP_DR)) &
+                +int2(norm79(:,2),nt79(:,OP_DZ)))
+
+           select case(ivform)
+           case(0)
+              nfluxv = nfluxv &
+                   + int4(ri_79,nt79(:,OP_1),norm79(:,2),pht79(:,OP_DR)) &
+                   - int4(ri_79,nt79(:,OP_1),norm79(:,1),pht79(:,OP_DZ))
+              
+              if(numvar.ge.3) then
+                 nfluxv = nfluxv &
+                      + int3(nt79(:,OP_1),norm79(:,1),cht79(:,OP_DR)) &
+                      + int3(nt79(:,OP_1),norm79(:,2),cht79(:,OP_DZ))
+              endif
+           case(1)
+              nfluxv = nfluxv &
+                   + int4(r_79,nt79(:,OP_1),norm79(:,2),pht79(:,OP_DR)) &
+                   - int4(r_79,nt79(:,OP_1),norm79(:,1),pht79(:,OP_DZ))
+              
+              if(numvar.ge.3) then
+                 nfluxv = nfluxv &
+                      + int4(ri2_79,nt79(:,OP_1),norm79(:,1),cht79(:,OP_DR)) &
+                      + int4(ri2_79,nt79(:,OP_1),norm79(:,2),cht79(:,OP_DZ))
+              endif
+           end select
+        end if
+     end do
   end do
 
 

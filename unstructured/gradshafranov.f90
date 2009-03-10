@@ -257,7 +257,7 @@ subroutine gradshafranov_solve
   
   real :: tstart, tend
 
-  integer :: nodeids(4), jj, izoned(3)
+  integer :: nodeids(4), jj, idim(3)
   real :: n(2,3), c(3)
   logical :: is_edge(3)  ! is inode on boundary
 
@@ -322,12 +322,12 @@ subroutine gradshafranov_solve
      enddo
 
      ! add surface terms
-     call boundary_edge(itri, is_edge, n)
+     call boundary_edge(itri, is_edge, n, idim)
      
      do ii=1,3
         if(.not.is_edge(ii)) cycle
 
-        call define_edge_quadrature(itri, ii, 5, n)
+        call define_edge_quadrature(itri, ii, 5, n, idim)
         call define_fields(itri, 0, 1)
 
         do j=1,18

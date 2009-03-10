@@ -56,8 +56,9 @@ subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
      endif
      
      is_boundary = .true.
-!
-!....convert tiltangle to radians and define normal vectors
+
+     ! assign normal vector
+     !....convert tiltangle to radians and define normal vectors
      angler = tiltangled*pi/180.
      if(izone.eq.iright) then
         normal(1) = cos(angler)  !cos
@@ -69,10 +70,18 @@ subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
         normal(1) = cos(pi/2. + angler)  !cos
         normal(2) = sin(pi/2. + angler)  !sin
      else if(izone.eq.ibottom) then
-        normal(1) = cos(3*pi/2. + angler)  !cos
-        normal(2) = sin(3*pi/2. + angler)  !sin
+        normal(1) = cos(3.*pi/2. + angler)  !cos
+        normal(2) = sin(3.*pi/2. + angler)  !sin
+     else
+        print *, "Error: unknown zone tag ", izone
+        normal = 0.
      endif
-     
+
+     if(izonedim.eq.0) then
+        normal(1) = 0.
+        normal(2) = 1.
+     end if
+
   case(1)
      call nodNormalVec(inode, normal, is_boundary)
 

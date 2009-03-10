@@ -18,7 +18,7 @@ module basic
   use p_data
   use pid_controller
 
-  integer, parameter :: version = 1
+  integer, parameter :: version = 2
 
 #ifdef USECOMPLEX
   integer, parameter :: icomplex = 1
@@ -317,7 +317,7 @@ module arrays
        resistivity(:), tempvar(:),                  &
        kappa(:),sigma(:), sb1(:), sb2(:), sp1(:),   &
        visc(:), visc_c(:), visc_e(:), &
-       bf(:), gyro_tau(:)
+       bf(:)
 
   ! Arrays for advance
   vectype, allocatable, target :: &
@@ -649,8 +649,7 @@ module sparse
   integer, parameter :: lp_matrix_rhs = 28
   integer, parameter :: lp_matrix_rhs_dc = 29
   integer, parameter :: lp_matrix_lhs_nm = 30
-  integer, parameter :: gyro_torque_sm = 31
-  integer, parameter :: q42matrix_sm = 32
+  integer, parameter :: q42matrix_sm = 31
 
 
   
@@ -866,16 +865,6 @@ subroutine arrayresizevec(vec, ivecsize)
      allocate(bf(ivecsize))
      bf = 0.
      call updateids(vec, bf)
-     return
-  endif
-
-  call checksameppplvec(gyro_tau, vec, i)
-  if(i .eq. 1) then
-     print *, "gyro_tau"
-     if(allocated(gyro_tau)) deallocate(gyro_tau, STAT=i)
-     allocate(gyro_tau(ivecsize))
-     gyro_tau = 0.
-     call updateids(vec, gyro_tau)
      return
   endif
 

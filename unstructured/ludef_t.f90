@@ -419,7 +419,7 @@ end subroutine vorticity_nolin
 !======================================================================
 ! Axial Velocity Equation
 !======================================================================
-subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque)
+subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   
   use basic
   use arrays
@@ -431,7 +431,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
   vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: trial, lin 
   vectype, dimension(num_fields), intent(out) :: ssterm, ddterm
   vectype, intent(out) :: q_bf
-  vectype, dimension(3), intent(out) :: gyro_torque
+
   integer, intent(in) :: advfield
   vectype :: temp
   real :: ththm
@@ -448,7 +448,6 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
   ssterm = 0.
   ddterm = 0.
   q_bf = 0.
-  gyro_torque = 0.
 
   if(numvar.lt.2) return
 
@@ -479,12 +478,10 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
      temp = g2u(trial,lin)*dbf
      ssterm(u_g) = ssterm(u_g) +     thimp     *dt*temp
      ddterm(u_g) = ddterm(u_g) - (1.-thimp*bdf)*dt*temp
-     gyro_torque(1) = gyro_torque(1) + temp
      
      temp = g2v(trial,lin)*dbf
      ssterm(vz_g) = ssterm(vz_g) +     thimp     *dt*temp
      ddterm(vz_g) = ddterm(vz_g) - (1.-thimp*bdf)*dt*temp
-     gyro_torque(2) = gyro_torque(2) + temp
   endif
           
   if(advfield.eq.1) then 
@@ -626,7 +623,6 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield, gyro_torque
         temp = g2chi(trial,lin)*dbf
         ssterm(chi_g) = ssterm(chi_g) +     thimp     *dt*temp
         ddterm(chi_g) = ddterm(chi_g) - (1.-thimp*bdf)*dt*temp
-        gyro_torque(3) = gyro_torque(3) + temp
      endif
 
      if(advfield.eq.1) then
@@ -1710,7 +1706,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
   real :: tstart, tend, tfield, telm, tsizefield, tfinalize
   logical :: is_edge(3)  ! is inode on boundary
   real :: n(2,3)
-  integer :: iedge
+  integer :: iedge, idim(3)
 
 
   double precision cogcoords(3)
@@ -1829,11 +1825,6 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
      endif
   end select
 
-  if(gyro.eq.1 .and. numvar.ge.2 .and. ivel_def.eq.1) then
-     call zeromultiplymatrix(gyro_torque_sm,icomplex,vecsize_vel)
-  endif
-
-
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, " populating matrices..."
     
@@ -1911,12 +1902,12 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
      if(.not.(ifixedb.eq.1 .and. ivform.eq.1)) cycle
 
      ! add surface terms
-     call boundary_edge(itri, is_edge, n)
+     call boundary_edge(itri, is_edge, n, idim)
      
      do iedge=1,3
         if(.not.is_edge(iedge)) cycle
 
-        call define_edge_quadrature(itri, iedge, 5, n)
+        call define_edge_quadrature(itri, iedge, 5, n, idim)
         call define_fields(itri, def_fields, 1)
 
         if(ivel_def.eq.1) call ludefvel_n(itri)
@@ -1986,10 +1977,6 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
      endif ! on ipres_def.eq.1
   end select
 
-  if(gyro.eq.1 .and. numvar.ge.2 .and. ivel_def.eq.1) then
-     call finalizematrix(gyro_torque_sm)
-  endif
-
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      tfinalize = tfinalize + tend - tstart
@@ -2029,7 +2016,6 @@ subroutine ludefvel_n(itri)
   integer :: i, ii, iii, j, jj, jjj, ip, iv, jp, jv
   integer :: ib_vel, ib_phi, jb_vel, jb_phi, iendplusone
 
-  vectype, dimension(3) :: gyro_torque
   vectype :: temp
 
   vectype, dimension(num_fields,num_fields) :: ss, dd
@@ -2094,8 +2080,7 @@ subroutine ludefvel_n(itri)
                 ss(u_g,:),dd(u_g,:),q_bf(u_g),advfield)
            if(numvar.ge.2) then
               call axial_vel_lin(g79(:,:,i),g79(:,:,j), &
-                   ss(vz_g,:),dd(vz_g,:),q_bf(vz_g),advfield, &
-                   gyro_torque)
+                   ss(vz_g,:),dd(vz_g,:),q_bf(vz_g),advfield)
            endif
            if(numvar.ge.3) then
               call compression_lin(g79(:,:,i),g79(:,:,j), &
@@ -2175,17 +2160,6 @@ subroutine ludefvel_n(itri)
               call insval(vf0,q_bf(chi_g),icomplex,iv+chi_off,jv+bf_off,1)
            endif
         endif
-
-        if(gyro.eq.1 .and. numvar.ge.2) then
-           call insval(gyro_torque_sm,gyro_torque(1),icomplex, &
-                iv+vz_off,jv+  u_off,1)
-           call insval(gyro_torque_sm,gyro_torque(2),icomplex, &
-                iv+vz_off,jv+ vz_off,1)
-           if(numvar.ge.3) then
-              call insval(gyro_torque_sm,gyro_torque(3),icomplex, &
-                   iv+vz_off,jv+chi_off,1)
-           end if
-        end if
      enddo               ! on j
      enddo
 
