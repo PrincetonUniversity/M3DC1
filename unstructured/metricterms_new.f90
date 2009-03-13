@@ -4314,10 +4314,10 @@ vectype function v3chibb(e,f,g,h)
   case(1)
      if(surface_int) then
         temp79a = h(:,OP_1)*(norm79(:,1)*e(:,OP_DR) + norm79(:,2)*e(:,OP_DZ))
-        if(itor.eq.1) then
-           temp79a = temp79a &
-                - 2.*ri_79*norm79(:,1)*e(:,OP_1)*h(:,OP_1)
-        end if
+!        if(itor.eq.1) then
+!           temp79a = temp79a &
+!                - 2.*ri_79*norm79(:,1)*e(:,OP_1)*h(:,OP_1)
+!        end if
         temp = &
              - int4(ri6_79,temp79a,f(:,OP_GS),g(:,OP_1)) &
              - int4(ri6_79,temp79a,f(:,OP_DZ),g(:,OP_DZ)) &
@@ -5574,7 +5574,9 @@ vectype function b2beta(e,f,g,h)
   vectype :: temp
 
   if(surface_int) then
-     temp = 0.
+          temp = &
+          + int5(ri2_79,e(:,OP_1),norm79(:,2),f(:,OP_DZ),g(:,OP_1)) &
+          + int5(ri2_79,e(:,OP_1),norm79(:,1),f(:,OP_DR),g(:,OP_1))
   else
      temp = &
           - int4(ri2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1)) &
@@ -8622,6 +8624,6 @@ vectype function torque_denm()
 end function torque_denm
 
 
+
+
 end module metricterms_new
-
-

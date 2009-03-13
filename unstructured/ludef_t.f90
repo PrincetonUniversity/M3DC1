@@ -1911,7 +1911,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
         call define_fields(itri, def_fields, 1)
 
         if(ivel_def.eq.1) call ludefvel_n(itri)
-!!$        if(ifield_def.eq.1) call ludefphi_n(itri)
+           if(ifield_def.eq.1) call ludefphi_n(itri)
 !!$        if(idens_def.eq.1) call ludefden_n(itri)
 !!$        if(ipres_def.eq.1) call ludefpres_n(itri)
      end do

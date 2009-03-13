@@ -21,7 +21,6 @@ Program Reducedquintic
 
   integer :: j, ier, numelms, numnodes
   integer :: ndofs
-
   real :: tstart, tend
   real :: factor, hmin, hmax  
 
@@ -59,6 +58,7 @@ Program Reducedquintic
 
   if(myrank.eq.0) print *, 'Loading Mesh'
   call loadmesh("struct.dmg", "struct-dmg.sms")
+! call loaddebugger()
 
   if(myrank.eq.0) then
      call date_and_time( datec, timec)
@@ -291,8 +291,10 @@ Program Reducedquintic
         call tridef
      endif
   case(2)
-!    call adapt(phi,psimin,psilim)
-!    call tridef
+    call createvec(temporary_vector,1)
+    call copyvec(field0, psi_g, num_fields, temporary_vector, 1, 1)
+    call adapt(temporary_vector,psimin,psilim)
+    call tridef
   case(0)
   end select
 
