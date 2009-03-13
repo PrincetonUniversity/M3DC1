@@ -315,6 +315,7 @@ module arrays
   vectype, allocatable :: &
        jphi(:), vor(:), com(:),                     &
        resistivity(:), tempvar(:),                  &
+       temporary_vector(:),                  &
        kappa(:),sigma(:), sb1(:), sb2(:), sp1(:),   &
        visc(:), visc_c(:), visc_e(:), &
        bf(:)
@@ -1068,6 +1069,16 @@ subroutine arrayresizevec(vec, ivecsize)
      call updateids(vec, tempcompare)
      return
   endif  
+
+  call checksameppplvec(temporary_vector, vec, i)
+  if(i .eq. 1) then
+     print *, "temporary_vector"
+     if(allocated(temporary_vector)) deallocate(temporary_vector, STAT=i)
+     allocate(temporary_vector(ivecsize))
+     temporary_vector = 0.
+     call updateids(vec, temporary_vector)
+     return
+  endif
 
   print *, "Error: unknown vector"
 
