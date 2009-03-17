@@ -563,17 +563,13 @@ subroutine calculate_scalars()
      ekinpd = ekinpd + energy_kpd()
      ekinph = ekinph + energy_kph()
 
-     if(numvar.ge.2) then       
-        ekint  = ekint  + energy_kt ()
-        ekintd = ekintd + energy_ktd()
-        ekinth = ekinth + energy_kth()
-     endif
+     ekint  = ekint  + energy_kt ()
+     ekintd = ekintd + energy_ktd()
+     ekinth = ekinth + energy_kth()
 
-     if(numvar.ge.3) then
-        ekin3  = ekin3  + energy_k3 ()
-        ekin3d = ekin3d + energy_k3d()
-        ekin3h = ekin3h + energy_k3h()
-     endif
+     ekin3  = ekin3  + energy_k3 ()
+     ekin3d = ekin3d + energy_k3d()
+     ekin3h = ekin3h + energy_k3h()
 
      if(ike_only.eq.1) cycle
 
@@ -581,15 +577,11 @@ subroutine calculate_scalars()
      emagpd = emagpd + energy_mpd()
      emagph = emagph - qpsipsieta(tm79)
 
-     if(numvar.ge.2) then       
-        emagt  = emagt  + energy_mt ()
-        emagtd = emagtd + energy_mtd()
-        emagth = emagth - qbbeta(tm79)
-     endif
+     emagt  = emagt  + energy_mt ()
+     emagtd = emagtd + energy_mtd()
+     emagth = emagth - qbbeta(tm79)
 
-     if(numvar.ge.3) then
-        emag3 = emag3 + energy_p()
-     endif
+     emag3 = emag3 + energy_p()
 
 
      ! Calculate Scalars
@@ -603,16 +595,13 @@ subroutine calculate_scalars()
      case(0)
         tvor   = tvor   - int2(ri2_79,pht79(:,OP_GS))
      case(1)
-        tvor   = tvor   - int1(pht79(:,OP_LP))
-        if(numvar.ge.3) then
-           tvor   =  tvor - 2.*int2(ri4_79,cht79(:,OP_DZ))
-        end if
+        tvor   = tvor &
+             -    int1(pht79(:,OP_LP)) &
+             - 2.*int2(ri4_79,cht79(:,OP_DZ))
      end select
 
      ! toroidal flux
-     if(numvar.ge.2) then
-        tflux = tflux + int2(ri2_79,bzt79(:,OP_1 ))
-     endif
+     tflux = tflux + int2(ri2_79,bzt79(:,OP_1 ))
 
      ! particle number
      totden = totden + int1(nt79(:,OP_1))

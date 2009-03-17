@@ -825,7 +825,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      temp = v3up     (trial,lin,pt79)        &
           + v3upsipsi(trial,lin,pst79,pst79) &
           + v3upsib  (trial,lin,pst79,bzt79) &
-          + v3ubb    (trial,lin,bzt79,bzt79) &
+          + v3ubb    (trial,lin,bzt79,bzt79) & 
           + v3ungrav (trial,lin,nt79)
      ssterm(u_g) = ssterm(u_g) - thimp*thimp*dt*dt*temp
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
@@ -852,8 +852,8 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      
      ddterm(bz_g) = ddterm(bz_g) + dt*  &
           (v3psib(trial,pss79,lin)      &
-          +v3bb  (trial,lin,bzs79)      &     
-          +v3bb  (trial,bzs79,lin)) 
+          +v3bb  (trial,lin,bzs79)      &  
+          +v3bb  (trial,bzs79,lin))
   
      ddterm(p_g) = ddterm(p_g) + dt*  &
           v3p(trial,lin)
@@ -1911,7 +1911,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
         call define_fields(itri, def_fields, 1)
 
         if(ivel_def.eq.1) call ludefvel_n(itri)
-           if(ifield_def.eq.1) call ludefphi_n(itri)
+        if(ifield_def.eq.1) call ludefphi_n(itri)
 !!$        if(idens_def.eq.1) call ludefden_n(itri)
 !!$        if(ipres_def.eq.1) call ludefpres_n(itri)
      end do

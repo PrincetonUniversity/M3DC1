@@ -464,23 +464,19 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "E_MPH", emagph, ntime, error)
   call output_scalar(scalar_group_id, "E_KPH", ekinph, ntime, error)
 
-  if(numvar.ge.2) then
-     call output_scalar(scalar_group_id, "E_MT" , emagt , ntime, error)
-     call output_scalar(scalar_group_id, "E_KT" , ekint , ntime, error)
-     call output_scalar(scalar_group_id, "E_MTD", emagtd, ntime, error)
-     call output_scalar(scalar_group_id, "E_KTD", ekintd, ntime, error)
-     call output_scalar(scalar_group_id, "E_MTH", emagth, ntime, error)
-     call output_scalar(scalar_group_id, "E_KTH", ekinth, ntime, error)
-  endif
+  call output_scalar(scalar_group_id, "E_MT" , emagt , ntime, error)
+  call output_scalar(scalar_group_id, "E_KT" , ekint , ntime, error)
+  call output_scalar(scalar_group_id, "E_MTD", emagtd, ntime, error)
+  call output_scalar(scalar_group_id, "E_KTD", ekintd, ntime, error)
+  call output_scalar(scalar_group_id, "E_MTH", emagth, ntime, error)
+  call output_scalar(scalar_group_id, "E_KTH", ekinth, ntime, error)
 
-  if(numvar.ge.3) then
-     call output_scalar(scalar_group_id, "E_P" , emag3, ntime, error)
-     call output_scalar(scalar_group_id, "E_K3", ekin3, ntime, error)
-     call output_scalar(scalar_group_id, "E_PD", emag3d, ntime, error)
-     call output_scalar(scalar_group_id, "E_K3D", ekin3d, ntime, error)
-     call output_scalar(scalar_group_id, "E_PH", emag3h, ntime, error)
-     call output_scalar(scalar_group_id, "E_K3H", ekin3h, ntime, error)
-  endif
+  call output_scalar(scalar_group_id, "E_P" , emag3, ntime, error)
+  call output_scalar(scalar_group_id, "E_K3", ekin3, ntime, error)
+  call output_scalar(scalar_group_id, "E_PD", emag3d, ntime, error)
+  call output_scalar(scalar_group_id, "E_K3D", ekin3d, ntime, error)
+  call output_scalar(scalar_group_id, "E_PH", emag3h, ntime, error)
+  call output_scalar(scalar_group_id, "E_K3H", ekin3h, ntime, error)
 
   call output_scalar(scalar_group_id, "Flux_pressure ", efluxp, ntime, error)
   call output_scalar(scalar_group_id, "Flux_kinetic  ", efluxk, ntime, error)
