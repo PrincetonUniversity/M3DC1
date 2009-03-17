@@ -860,6 +860,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
    nv = read_parameter("numvar", filename=filename)
    itor = read_parameter("itor", filename=filename)
    version = read_parameter('version', filename=filename)
+   ivform = read_parameter('ivform', filename=filename)
    if(version eq 0) then begin
        xzero = read_parameter("xzero", filename=filename)
        zzero = read_parameter("zzero", filename=filename)
@@ -967,7 +968,11 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
            endelse
        endif else r = 1.
    
-       data = v/r
+       if(ivform eq 0) then begin
+           data = v/r
+       endif else if(ivform eq 1) then begin
+           data = v*r
+       endif
        symbol = '!8u!D!9P!N!X'
        units = make_units(/v0)
 
@@ -1323,8 +1328,13 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
            endelse
        endif else r = 1.
 
-       data = 0.5*n*(0.*s_bracket(u,u,x,y)/r^2 + v^2/r^2 + $
-                     0.*s_bracket(chi,chi,x,y) + 0.*2.*a_bracket(chi,u,x,y)/r)
+       if(ivform eq 0) then begin
+           data = 0.5*n*(s_bracket(u,u,x,y)/r^2+v^2/r^2 + $
+                         s_bracket(chi,chi,x,y)+2.*a_bracket(chi,u,x,y)/r)
+       endif else if(ivform eq 1) then begin
+           data = 0.5*n*(r^2*s_bracket(u,u,x,y)/r^2+r^2*v^2 + $
+                         s_bracket(chi,chi,x,y)/r^4+2.*a_bracket(chi,u,x,y)/r)
+       endif
        symbol ='!6Kinetic Energy Density!X'
        units = make_units(/p0)
 
@@ -1475,7 +1485,11 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
            endelse
        endif else r = 1.
 
-       data = v/r^2
+       if(ivform eq 0) then begin
+           data = v/r^2
+       endif else if(ivform eq 1) then begin
+           data = v
+       endif
        symbol = '!7x!X'
        units = make_units(t0=-1)
 
@@ -1887,22 +1901,6 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 
        symbol = translate(name, units=units, itor=itor)
    end
-
-   if(strcmp(name, "V", /fold_case) eq 1) then begin
-       ivform = read_parameter('ivform',filename=filename)
-       if(ivform eq 1) then begin
-           print, "ivform = 1"
-           if(itor eq 1) then begin
-               if(n_elements(at_points) eq 0) then begin
-                   r = radius_matrix(x,y,t)
-               endif else begin
-                   r = at_points[0,*]
-               endelse
-           endif else r = 1.
-           data = data*r^2
-       end
-   end
-
 
    if(n_elements(h_symmetry) eq 1) then begin
        data = (data + h_symmetry*reverse(data, 2)) / 2.

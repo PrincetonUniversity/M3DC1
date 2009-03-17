@@ -62,16 +62,41 @@ vectype function v1umu(e,f,g,h)
      endif
 
   case(1)
+
+     temp79b = f(:,OP_DZZ) - f(:,OP_DRR)
+     if(itor.eq.1) temp79b = temp79b - ri_79*f(:,OP_DR)
+
      if(surface_int) then
-        temp = 0.
+        temp = int5(r2_79,g(:,OP_1),norm79(:,2),e(:,OP_DZ),temp79b) &
+             - int5(r2_79,g(:,OP_1),norm79(:,1),e(:,OP_DR),temp79b) &
+             + 2.* &
+             (int5(r2_79,g(:,OP_1),norm79(:,1),e(:,OP_DZ),f(:,OP_DRZ)) &
+             +int5(r2_79,g(:,OP_1),norm79(:,2),e(:,OP_DR),f(:,OP_DRZ)))
+
+        if(itor.eq.1) then
+           temp79a = h(:,OP_1) - g(:,OP_1)
+           temp = temp &
+                + 2.*int5(r_79,g(:,OP_1),norm79(:,1),e(:,OP_DZ),f(:,OP_DZ)) &
+                + 4.* &
+                (int5(r_79,norm79(:,1),e(:,OP_DZ),f(:,OP_DZ),temp79a) &
+                -int5(r_79,norm79(:,2),e(:,OP_DR),f(:,OP_DZ),temp79a)) &
+                + 4.* &
+                (int5(r_79,e(:,OP_1),norm79(:,1),f(:,OP_DZZ),h(:,OP_1)) &
+                -int5(r_79,e(:,OP_1),norm79(:,2),f(:,OP_DRZ),h(:,OP_1)))
+        endif
+
+#ifdef USECOMPLEX
+        temp = temp &
+             - int4(e(:,OP_1),norm79(:,1),f(:,OP_DRPP),g(:,OP_1)) &
+             - int4(e(:,OP_1),norm79(:,2),f(:,OP_DZPP),g(:,OP_1))
+#endif
+
      else 
         temp79a = e(:,OP_DZZ) - e(:,OP_DRR)
-        temp79b = f(:,OP_DZZ) - f(:,OP_DRR)
         temp79c = 2.*e(:,OP_DRZ)
         temp79d = 2.*f(:,OP_DRZ)
         if(itor.eq.1) then
            temp79a = temp79a - ri_79*e(:,OP_DR)
-           temp79b = temp79b - ri_79*f(:,OP_DR)
            temp79c = temp79c + ri_79*e(:,OP_DZ)
            temp79d = temp79d + ri_79*f(:,OP_DZ)
         endif
@@ -116,7 +141,13 @@ vectype function v1vmu(e,f,g,h)
 
 #ifdef USECOMPLEX
   if(surface_int) then
-     temp = 0.
+     temp = int5(r_79,e(:,OP_1),norm79(:,2),f(:,OP_DRP),g(:,OP_1)) &
+          - int5(r_79,e(:,OP_1),norm79(:,1),f(:,OP_DZP),g(:,OP_1))
+     if(itor.eq.1) then
+        temp = temp &
+             + 2.*int4(e(:,OP_1),norm79(:,2),f(:,OP_DP),g(:,OP_1)) &
+             - 4.*int4(e(:,OP_1),norm79(:,2),f(:,OP_DP),h(:,OP_1))
+     endif
   else 
      temp = int4(r_79,e(:,OP_DR),f(:,OP_DZP),g(:,OP_1)) &
           - int4(r_79,e(:,OP_DZ),f(:,OP_DRP),g(:,OP_1))
@@ -170,7 +201,32 @@ vectype function v1chimu(e,f,g,h)
 
   case(1)
      if(surface_int) then
-        temp = 0.
+        temp = -2.* &
+             (int5(ri_79,e(:,OP_DZ),norm79(:,1),f(:,OP_DRR),g(:,OP_1)) &
+             +int5(ri_79,e(:,OP_DZ),norm79(:,2),f(:,OP_DRZ),g(:,OP_1)) &
+             -int5(ri_79,e(:,OP_DR),norm79(:,1),f(:,OP_DRZ),g(:,OP_1)) &
+             -int5(ri_79,e(:,OP_DR),norm79(:,2),f(:,OP_DZZ),g(:,OP_1))) &
+             + 2.* &
+             (int5(ri_79,norm79(:,1),e(:,OP_DZ),f(:,OP_GS),g(:,OP_1)) &
+             -int5(ri_79,norm79(:,2),e(:,OP_DR),f(:,OP_GS),g(:,OP_1)))
+
+        if(itor.eq.1) then
+           temp = temp + 2.* &
+                (int5(ri2_79,e(:,OP_DZ),norm79(:,1),f(:,OP_DR),g(:,OP_1)) &
+                +int5(ri2_79,e(:,OP_DZ),norm79(:,2),f(:,OP_DZ),g(:,OP_1)) &
+                +int5(ri2_79,e(:,OP_1),norm79(:,1),f(:,OP_DRZ),g(:,OP_1)) &
+                +int5(ri2_79,e(:,OP_1),norm79(:,2),f(:,OP_DZZ),g(:,OP_1)) &
+                +int5(ri2_79,e(:,OP_DZ),norm79(:,1),f(:,OP_DR),g(:,OP_1)) &
+                -int5(ri2_79,e(:,OP_DR),norm79(:,1),f(:,OP_DZ),g(:,OP_1)) &
+                -2.*int5(ri2_79,e(:,OP_1),norm79(:,2),f(:,OP_GS),h(:,OP_1)) &
+                -2.*int5(ri3_79,e(:,OP_1),norm79(:,1),f(:,OP_DZ),g(:,OP_1)))
+        end if
+
+#ifdef USECOMPLEX
+        temp = temp &
+             + int5(ri3_79,e(:,OP_1),g(:,OP_1),norm79(:,2),f(:,OP_DRPP)) &
+             - int5(ri3_79,e(:,OP_1),g(:,OP_1),norm79(:,1),f(:,OP_DZPP))
+#endif
      else 
         temp79a = e(:,OP_DRZ)
         temp79b = f(:,OP_DZZ) - f(:,OP_DRR)
@@ -3095,7 +3151,29 @@ vectype function v3chimu(e,f,g,h)
 
   case(1)
      if(surface_int) then
-        temp = 0.
+        temp = 2.* &
+             (int5(ri4_79,g(:,OP_1),e(:,OP_DR),norm79(:,1),f(:,OP_DZZ)) &
+             -int5(ri4_79,g(:,OP_1),e(:,OP_DR),norm79(:,2),f(:,OP_DRZ)) &
+             -int5(ri4_79,g(:,OP_1),e(:,OP_DZ),norm79(:,1),f(:,OP_DRZ)) &
+             +int5(ri4_79,g(:,OP_1),e(:,OP_DZ),norm79(:,2),f(:,OP_DRR)) &
+             -int5(ri4_79,h(:,OP_1),norm79(:,1),e(:,OP_DR),f(:,OP_GS)) &
+             -int5(ri4_79,h(:,OP_1),norm79(:,2),e(:,OP_DZ),f(:,OP_GS)))
+        if(itor.eq.1) then
+           temp = temp + 2.* &
+                (int5(ri5_79,g(:,OP_1),e(:,OP_DZ),norm79(:,1),f(:,OP_DZ)) &
+                -int5(ri5_79,g(:,OP_1),e(:,OP_DZ),norm79(:,2),f(:,OP_DR)) &
+                +int5(ri5_79,g(:,OP_1),e(:,OP_DR),norm79(:,1),f(:,OP_DR)) &
+                +int5(ri5_79,g(:,OP_1),e(:,OP_DR),norm79(:,2),f(:,OP_DZ)) &
+                +int5(ri5_79,g(:,OP_1),e(:,OP_1),norm79(:,1),f(:,OP_DZZ)) &
+                -int5(ri5_79,g(:,OP_1),e(:,OP_1),norm79(:,2),f(:,OP_DRZ)) &
+                +2.*int5(ri6_79,g(:,OP_1),e(:,OP_1),norm79(:,2),f(:,OP_DZ)))
+        endif
+
+#ifdef USECOMPLEX
+        temp = temp &
+             + int5(ri6_79,e(:,OP_1),g(:,OP_1),norm79(:,1),f(:,OP_DRPP)) &
+             + int5(ri6_79,e(:,OP_1),g(:,OP_1),norm79(:,2),f(:,OP_DZPP))
+#endif
      else
         temp79a = e(:,OP_DRR)
         temp79b = f(:,OP_DRR)
@@ -3156,16 +3234,42 @@ vectype function v3umu(e,f,g,h)
      end if
 
   case(1)
+     temp79c = f(:,OP_DZZ) - f(:,OP_DRR)
+     if(itor.eq.1) temp79c = temp79c - ri_79*f(:,OP_DR)
+
      if(surface_int) then
-        temp = 0.
+        temp = int5(ri_79,g(:,OP_1),norm79(:,1),e(:,OP_DZ),temp79c) &
+             + int5(ri_79,g(:,OP_1),norm79(:,2),e(:,OP_DR),temp79c) &
+             + 2.* &
+             (int5(ri_79,g(:,OP_1),norm79(:,1),e(:,OP_DR),f(:,OP_DRZ)) &
+             -int5(ri_79,g(:,OP_1),norm79(:,2),e(:,OP_DZ),f(:,OP_DRZ))) &
+             + int5(ri_79,g(:,OP_1),norm79(:,1),e(:,OP_DZ),f(:,OP_LP)) &
+             - int5(ri_79,g(:,OP_1),norm79(:,2),e(:,OP_DR),f(:,OP_LP))
+        if(itor.eq.1) then
+           temp79a = h(:,OP_1) - g(:,OP_1)
+           temp = temp &
+                + 2.*int5(ri2_79,g(:,OP_1),norm79(:,1),e(:,OP_DR),f(:,OP_DZ)) &
+                + 2.*int5(ri2_79,g(:,OP_1),norm79(:,2),e(:,OP_1),f(:,OP_LP)) &
+                + 4.* &
+                (int5(ri2_79,temp79a,norm79(:,1),e(:,OP_DR),f(:,OP_DZ)) &
+                +int5(ri2_79,temp79a,norm79(:,2),e(:,OP_DZ),f(:,OP_DZ))) &
+                - 4.* &
+                (int5(ri2_79,e(:,OP_1),norm79(:,1),f(:,OP_DRZ),h(:,OP_1)) &
+                +int5(ri2_79,e(:,OP_1),norm79(:,2),f(:,OP_DZZ),h(:,OP_1)))
+        endif
+
+#ifdef USECOMPLEX
+        temp = temp &
+             + int5(ri3_79,e(:,OP_1),norm79(:,2),f(:,OP_DRPP),g(:,OP_1)) &
+             - int5(ri3_79,e(:,OP_1),norm79(:,1),f(:,OP_DZPP),g(:,OP_1))
+#endif        
+
      else
         temp79a = e(:,OP_DZZ) - e(:,OP_DRR)
         temp79b = e(:,OP_DRZ)
-        temp79c = f(:,OP_DZZ) - f(:,OP_DRR)
         if(itor.eq.1) then
            temp79a = temp79a + 2.*ri_79*e(:,OP_DR)
            temp79b = temp79b -    ri_79*e(:,OP_DZ)
-           temp79c = temp79c -    ri_79*f(:,OP_DR)
         endif
         
         temp = 2.* &
@@ -3214,7 +3318,20 @@ vectype function v3vmu(e,f,g,h)
 
   case(1)
      if(surface_int) then
-        temp = 0.
+        temp79a = h(:,OP_1) - g(:,OP_1)
+        temp = -2.* &
+             (int5(ri2_79,norm79(:,1),e(:,OP_DR),f(:,OP_DP),temp79a) &
+             +int5(ri2_79,norm79(:,2),e(:,OP_DZ),f(:,OP_DP),temp79a)) &
+             + 2.* &
+             (int5(ri2_79,e(:,OP_1),norm79(:,1),f(:,OP_DRP),temp79a) &
+             +int5(ri2_79,e(:,OP_1),norm79(:,2),f(:,OP_DZP),temp79a)) &
+             + int5(ri2_79,e(:,OP_1),g(:,OP_1),norm79(:,1),f(:,OP_DRP)) &
+             + int5(ri2_79,e(:,OP_1),g(:,OP_1),norm79(:,2),f(:,OP_DZP))
+
+        if(itor.eq.1) then
+           temp = temp &
+                - 2.*int5(ri3_79,e(:,OP_1),g(:,OP_1),norm79(:,1),f(:,OP_DP))
+        endif
      else
         temp = &
              - int4(ri2_79,e(:,OP_DZ),f(:,OP_DZP),g(:,OP_1)) &
@@ -6853,30 +6970,67 @@ vectype function g1u(e,f)
               (e(:,OP_DZ)*temp79c - f(:,OP_DZ)*temp79e))
      endif
 
+     g1u = int2(pit79(:,OP_1),temp79a)
+
   case(1)
+
+!!$     temp79b = e(:,OP_DZZ) - e(:,OP_DRR)
+!!$     if(itor.eq.1) temp79b = temp79b - ri_79*e(:,OP_DR)
+!!$     temp79c = f(:,OP_DZZ) - f(:,OP_DRR)
+!!$     if(itor.eq.1) temp79c = temp79c - ri_79*f(:,OP_DR)
+!!$
+!!$     temp79a = 0.5*r_79*(5.-3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) * &
+!!$          (f(:,OP_DRZ)*temp79b - e(:,OP_DRZ)*temp79c)
+!!$
+!!$     if(itor.eq.1) then
+!!$        temp79a = temp79a &
+!!$             + 0.5*(1.+3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) * &
+!!$               (f(:,OP_DZ)*temp79b - e(:,OP_DZ)*temp79c) &
+!!$             + 3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)*pst79(:,OP_DR) * &
+!!$               (e(:,OP_DZ)*f(:,OP_DRZ) - f(:,OP_DZ)*e(:,OP_DRZ))
+!!$     endif
+!!$     
+!!$     temp79a = -temp79a*bzt79(:,OP_1)*b2i79(:,OP_1)
 
      temp79b = e(:,OP_DZZ) - e(:,OP_DRR)
      if(itor.eq.1) temp79b = temp79b - ri_79*e(:,OP_DR)
      temp79c = f(:,OP_DZZ) - f(:,OP_DRR)
      if(itor.eq.1) temp79c = temp79c - ri_79*f(:,OP_DR)
+     temp79d = e(:,OP_DRZ)
+     if(itor.eq.1) temp79d = temp79d + ri_79*e(:,OP_DZ)
 
-     temp79a = 0.5*r_79*(5.-3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) * &
-          (f(:,OP_DRZ)*temp79b - e(:,OP_DRZ)*temp79c)
+     temp79a = 2.*r_79*(5. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
+          * bzt79(:,OP_1)*(temp79b*f(:,OP_DRZ) - e(:,OP_DRZ)*temp79c) &
+          - 12.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)*pst79(:,OP_DZ) &
+          * bzt79(:,OP_1)*(e(:,OP_DRZ)*f(:,OP_DZ) - e(:,OP_DZ)*f(:,OP_DRZ))
 
      if(itor.eq.1) then
         temp79a = temp79a &
-             + 0.5*(1.+3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) * &
-               (f(:,OP_DZ)*temp79b - e(:,OP_DZ)*temp79c) &
-             + 3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)*pst79(:,OP_DR) * &
-               (e(:,OP_DZ)*f(:,OP_DRZ) - f(:,OP_DZ)*e(:,OP_DRZ))
-     endif
-     
-     temp79a = -temp79a*bzt79(:,OP_1)*b2i79(:,OP_1)
+             + 2.*(1. + 3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
+             *bzt79(:,OP_1)*(temp79b*f(:,OP_DZ) - e(:,OP_DZ)*temp79c)
+     end if
+
+#ifdef USECOMPLEX
+     temp79a = temp79a &
+          + (1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
+          * (temp79b*(pst79(:,OP_DZ)*f(:,OP_DZP)-pst79(:,OP_DR)*f(:,OP_DRP)) &
+            + 2.*(pst79(:,OP_DZ)*f(:,OP_DRP)*e(:,OP_DZ) &
+                 +pst79(:,OP_DR)*f(:,OP_DZP)*temp79d)) &
+          + 3.*ri2_79*b2i79(:,OP_1)* &
+            (pst79(:,OP_DZ)*f(:,OP_DZP) + pst79(:,OP_DR)*f(:,OP_DRP))* &
+            (temp79a*(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2) &
+            +2.*pst79(:,OP_DZ)*pst79(:,OP_DR)*(e(:,OP_DRZ)+temp79d))
+
+     if(itor.eq.1) then
+        temp79a = temp79a + 2.*ri_79*e(:,OP_DZ)* &
+             (pst79(:,OP_DZ)*f(:,OP_DRP) - pst79(:,OP_DR)*f(:,OP_DZP))
+     end if
+#endif
+
+     g1u = 0.25*int3(temp79a,pit79(:,OP_1),b2i79(:,OP_1))
 
   end select
   
-
-  g1u = int2(pit79(:,OP_1),temp79a)
   return
 end function g1u
 
@@ -6935,47 +7089,74 @@ vectype function g1v(e,f)
              -2.*ri_79*f(:,OP_1)*pst79(:,OP_DR))
      endif
 
+     g1v = int2(pit79(:,OP_1),temp79a)
+
   case(1)
 
-     temp79b = (f(:,OP_DZ)*e(:,OP_DZZ)                 &
-               +f(:,OP_DR)*e(:,OP_DRZ))*pst79(:,OP_DR) &
-             - (f(:,OP_DZ)*e(:,OP_DRZ)                 &
-               +f(:,OP_DR)*e(:,OP_DRR))*pst79(:,OP_DZ)
+!!$     temp79b = (f(:,OP_DZ)*e(:,OP_DZZ)                 &
+!!$               +f(:,OP_DR)*e(:,OP_DRZ))*pst79(:,OP_DR) &
+!!$             - (f(:,OP_DZ)*e(:,OP_DRZ)                 &
+!!$               +f(:,OP_DR)*e(:,OP_DRR))*pst79(:,OP_DZ)
+!!$     if(itor.eq.1) then
+!!$        temp79b = temp79b + ri_79*pst79(:,OP_DR)* &
+!!$             (e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))
+!!$     endif
+!!$
+!!$     temp79c = e(:,OP_DZZ)*pst79(:,OP_DZ)**2 &
+!!$          +    e(:,OP_DRR)*pst79(:,OP_DR)**2 &
+!!$          + 2.*e(:,OP_DRZ)*pst79(:,OP_DR)*pst79(:,OP_DZ)
+!!$     if(itor.eq.1) then
+!!$        temp79c = temp79c + ri_79*pst79(:,OP_DZ)* &
+!!$             (e(:,OP_DZ)*pst79(:,OP_DR) - e(:,OP_DR)*pst79(:,OP_DZ))
+!!$     endif
+!!$     
+!!$     temp79a = 1.5*ri_79*b2i79(:,OP_1)* &
+!!$          (temp79b*(pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2) &
+!!$          +temp79c*(pst79(:,OP_DZ)*f(:,OP_DR) - pst79(:,OP_DR)*f(:,OP_DZ))) &
+!!$          - 0.5*r_79* &
+!!$          (2.*e(:,OP_DRZ)*(f(:,OP_DR)*pst79(:,OP_DR)  &
+!!$                         - f(:,OP_DZ)*pst79(:,OP_DZ)) &
+!!$          +(e(:,OP_DZZ) - e(:,OP_DRR))*(f(:,OP_DR)*pst79(:,OP_DZ)  &
+!!$                                      + f(:,OP_DZ)*pst79(:,OP_DR)))
+!!$
+!!$     if(itor.eq.1) then
+!!$        temp79a = temp79a - 0.5* &
+!!$             (e(:,OP_DZ)*(3.*f(:,OP_DR)*pst79(:,OP_DR)  &
+!!$                         +   f(:,OP_DZ)*pst79(:,OP_DZ)) &
+!!$             -e(:,OP_DR)*(f(:,OP_DZ)*pst79(:,OP_DR) &
+!!$                        + f(:,OP_DR)*pst79(:,OP_DZ)))
+!!$     endif
+!!$
+!!$     temp79a = temp79a*b2i79(:,OP_1)
+
+     temp79b = e(:,OP_DZZ) - e(:,OP_DRR)
+     if(itor.eq.1) temp79b = temp79b - ri_79*e(:,OP_DR)
+     temp79c = e(:,OP_DRZ)
+     if(itor.eq.1) temp79c = temp79c + ri_79*e(:,OP_DZ)
+     temp79d = r_79*(f(:,OP_DZ)*pst79(:,OP_DR) - f(:,OP_DR)*pst79(:,OP_DZ))
+#ifdef USECOMPLEX
+     temp79d = temp79d + 2.*bzt79(:,OP_1)*f(:,OP_DP)
+#endif
+
+     temp79a = -r_79*(1.-3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
+          * (2.*e(:,OP_DRZ)* &
+             (pst79(:,OP_DR)*f(:,OP_DR) - pst79(:,OP_DZ)*f(:,OP_DZ)) &
+            +temp79b* &
+             (pst79(:,OP_DZ)*f(:,OP_DR) + pst79(:,OP_DR)*f(:,OP_DZ))) &
+          + 3.*ri2_79*b2i79(:,OP_1)*temp79d &
+          * ((pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*temp79b &
+            +2.*pst79(:,OP_DZ)*pst79(:,OP_DR)*(e(:,OP_DRZ)+temp79c))
+
      if(itor.eq.1) then
-        temp79b = temp79b + ri_79*pst79(:,OP_DR)* &
-             (e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))
+        temp79a = temp79a + 2.*e(:,OP_DZ)* &
+             (pst79(:,OP_DZ)*f(:,OP_DZ) &
+             +3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2 &
+             *pst79(:,OP_DR)*f(:,OP_DR))
      endif
 
-     temp79c = e(:,OP_DZZ)*pst79(:,OP_DZ)**2 &
-          +    e(:,OP_DRR)*pst79(:,OP_DR)**2 &
-          + 2.*e(:,OP_DRZ)*pst79(:,OP_DR)*pst79(:,OP_DZ)
-     if(itor.eq.1) then
-        temp79c = temp79c + ri_79*pst79(:,OP_DZ)* &
-             (e(:,OP_DZ)*pst79(:,OP_DR) - e(:,OP_DR)*pst79(:,OP_DZ))
-     endif
-     
-     temp79a = 1.5*ri_79*b2i79(:,OP_1)* &
-          (temp79b*(pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2) &
-          +temp79c*(pst79(:,OP_DZ)*f(:,OP_DR) - pst79(:,OP_DR)*f(:,OP_DZ))) &
-          - 0.5*r_79* &
-          (2.*e(:,OP_DRZ)*(f(:,OP_DR)*pst79(:,OP_DR)  &
-                         - f(:,OP_DZ)*pst79(:,OP_DZ)) &
-          +(e(:,OP_DZZ) - e(:,OP_DRR))*(f(:,OP_DR)*pst79(:,OP_DZ)  &
-                                      + f(:,OP_DZ)*pst79(:,OP_DR)))
-
-     if(itor.eq.1) then
-        temp79a = temp79a - 0.5* &
-             (e(:,OP_DZ)*(3.*f(:,OP_DR)*pst79(:,OP_DR)  &
-                         +   f(:,OP_DZ)*pst79(:,OP_DZ)) &
-             -e(:,OP_DR)*(f(:,OP_DZ)*pst79(:,OP_DR) &
-                        + f(:,OP_DR)*pst79(:,OP_DZ)))
-     endif
-
-     temp79a = temp79a*b2i79(:,OP_1)
-
+     g1v = 0.25*int3(temp79a,pit79(:,OP_1),b2i79(:,OP_1))
   end select
        
-  g1v = int2(pit79(:,OP_1),temp79a)
   return
 end function g1v
 
@@ -7019,39 +7200,77 @@ vectype function g1chi(e,f)
                -pst79(:,OP_DR)*pst79(:,OP_DZ)* &
                 (e(:,OP_DRZ)*temp79d + temp79b*temp79e)))
        
+     g1chi = int2(pit79(:,OP_1),temp79a)
+
   case(1)
+!!$     temp79b = e(:,OP_DZZ) - e(:,OP_DRR)
+!!$     if(itor.eq.1) temp79b = temp79b -     ri_79*e(:,OP_DR)
+!!$     temp79c = e(:,OP_DRZ)
+!!$     if(itor.eq.1) temp79c = temp79c - 0.5*ri_79*e(:,OP_DZ)
+!!$     temp79d = f(:,OP_DZZ) - f(:,OP_DRR)
+!!$     if(itor.eq.1) temp79d = temp79d + 2.0*ri_79*f(:,OP_DR)
+!!$     temp79e = f(:,OP_DRZ)
+!!$     if(itor.eq.1) temp79e = temp79e -     ri_79*f(:,OP_DZ)
+!!$     
+!!$     temp79a = 2.*temp79c*temp79e + 0.5*temp79b*temp79d + &
+!!$          3.*ri2_79*b2i79(:,OP_1)* &
+!!$          (0.5*temp79b*(f(:,OP_DZZ)*pst79(:,OP_DR)**2 &
+!!$                       -f(:,OP_DRR)*pst79(:,OP_DZ)**2) &
+!!$           +(pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2)*temp79c*temp79e &
+!!$           -pst79(:,OP_DZ)*pst79(:,OP_DR)*temp79c*f(:,OP_GS))
+!!$     
+!!$
+!!$     if(itor.eq.1) then
+!!$        temp79a = temp79a + 3.*ri3_79*b2i79(:,OP_1)* &
+!!$             (2.0*f(:,OP_DR)*temp79b*pst79(:,OP_DZ)**2 &
+!!$             +3.0*f(:,OP_DR)*temp79c*pst79(:,OP_DZ)*pst79(:,OP_DR) &
+!!$             -0.5*f(:,OP_DR)*temp79b*(pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2) &
+!!$             +0.5*e(:,OP_DZ)*temp79d*pst79(:,OP_DZ)*pst79(:,OP_DR) &
+!!$             +0.5*e(:,OP_DZ)*temp79e*(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2))
+!!$     end if
+!!$
+!!$     temp79a = -temp79a*ri2_79*bzt79(:,OP_1)*b2i79(:,OP_1)
+
      temp79b = e(:,OP_DZZ) - e(:,OP_DRR)
-     if(itor.eq.1) temp79b = temp79b -     ri_79*e(:,OP_DR)
+     if(itor.eq.1) temp79b = temp79b - ri_79*e(:,OP_DR)
      temp79c = e(:,OP_DRZ)
-     if(itor.eq.1) temp79c = temp79c - 0.5*ri_79*e(:,OP_DZ)
-     temp79d = f(:,OP_DZZ) - f(:,OP_DRR)
-     if(itor.eq.1) temp79d = temp79d + 2.0*ri_79*f(:,OP_DR)
-     temp79e = f(:,OP_DRZ)
-     if(itor.eq.1) temp79e = temp79e -     ri_79*f(:,OP_DZ)
-     
-     temp79a = 2.*temp79c*temp79e + 0.5*temp79b*temp79d + &
-          3.*ri2_79*b2i79(:,OP_1)* &
-          (0.5*temp79b*(f(:,OP_DZZ)*pst79(:,OP_DR)**2 &
-                       -f(:,OP_DRR)*pst79(:,OP_DZ)**2) &
-           +(pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2)*temp79c*temp79e &
-           -pst79(:,OP_DZ)*pst79(:,OP_DR)*temp79c*f(:,OP_GS))
-     
+     if(itor.eq.1) temp79c = temp79c + ri_79*e(:,OP_DZ)
+     temp79d = f(:,OP_DZZ)
+     if(itor.eq.1) temp79d = temp79d - ri_79*f(:,OP_DR)
+     temp79e = f(:,OP_DRR)
+     if(itor.eq.1) temp79e = temp79e - 3.*ri_79*f(:,OP_DR)
+     temp79f = f(:,OP_DRZ)
+     if(itor.eq.1) temp79f = temp79f - ri_79*f(:,OP_DZ)
+
+     temp79a = 2.*ri2_79*bzt79(:,OP_1) * &
+          (temp79b*(temp79d - temp79e) + 2.*temp79f*(e(:,OP_DRZ) + temp79c)) &
+          + 12.*ri4_79*b2i79(:,OP_1)*bzt79(:,OP_1) * &
+          (temp79f*(pst79(:,OP_DZ)**2*e(:,OP_DRZ)+pst79(:,OP_DR)**2*temp79c) &
+          -pst79(:,OP_DZ)*pst79(:,OP_DR)* &
+          (temp79e*temp79c + temp79d*e(:,OP_DRZ))) &
+          + 6.*ri4_79*b2i79(:,OP_1)*bzt79(:,OP_1)*temp79b* &
+          (pst79(:,OP_DR)**2*temp79d - pst79(:,OP_DZ)**2*temp79e)
+
+#ifdef USECOMPLEX
+     temp79a = temp79a &
+          + ri3_79*(1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) * &
+          (2.*(pst79(:,OP_DZ)*f(:,OP_DZP)*e(:,OP_DRZ) &
+              -pst79(:,OP_DR)*f(:,OP_DRP)*temp79c) &
+          -temp79b*(pst79(:,OP_DZ)*f(:,OP_DRP) + pst79(:,OP_DR)*f(:,OP_DZP))) &
+          + 3.*ri5_79*b2i79(:,OP_1) * &
+          (f(:,OP_DZP)*pst79(:,OP_DR) - f(:,OP_DRP)*pst79(:,OP_DZ)) * &
+          (temp79b*(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2) &
+          +2.*pst79(:,OP_DZ)*pst79(:,OP_DR)*(e(:,OP_DRZ) + temp79c))
 
      if(itor.eq.1) then
-        temp79a = temp79a + 3.*ri3_79*b2i79(:,OP_1)* &
-             (2.0*f(:,OP_DR)*temp79b*pst79(:,OP_DZ)**2 &
-             +3.0*f(:,OP_DR)*temp79c*pst79(:,OP_DZ)*pst79(:,OP_DR) &
-             -0.5*f(:,OP_DR)*temp79b*(pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2) &
-             +0.5*e(:,OP_DZ)*temp79d*pst79(:,OP_DZ)*pst79(:,OP_DR) &
-             +0.5*e(:,OP_DZ)*temp79e*(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2))
-     end if
+        temp79a = temp79a + 2.*ri4_79*e(:,OP_DZ) * &
+             (pst79(:,OP_DZ)*f(:,OP_DZP) + pst79(:,OP_DR)*f(:,OP_DRP))
+     endif
+#endif
 
-     temp79a = -temp79a*ri2_79*bzt79(:,OP_1)*b2i79(:,OP_1)
-     
+     g1chi = 0.25*int3(temp79a,pit79(:,OP_1),b2i79(:,OP_1))
   end select
 
-
-  g1chi = int2(pit79(:,OP_1),temp79a)
   return
 end function g1chi
 
@@ -7100,33 +7319,63 @@ vectype function g2u(e,f)
                           e(:,OP_DR)*pst79(:,OP_DR))
      endif
 
+     g2u = int2(pit79(:,OP_1),temp79a)
+
   case(1)
 
-     temp79b = 2.*e(:,OP_DZ)*f(:,OP_DRZ) &
-          - e(:,OP_DR)*(f(:,OP_DZZ) - f(:,OP_DRR))
-     temp79c = 2.*e(:,OP_DR)*f(:,OP_DRZ) &
-          + e(:,OP_DZ)*(f(:,OP_DZZ) - f(:,OP_DRR))
-     temp79d = pst79(:,OP_DZ)*pst79(:,OP_DR)*(f(:,OP_DZZ) - f(:,OP_DRR)) &
-          - (pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*f(:,OP_DRZ)
-     if(itor.eq.1) then
-        temp79b = temp79b + ri_79* &
-             (e(:,OP_DR)*f(:,OP_DR) - e(:,OP_DZ)*f(:,OP_DZ))
-        temp79c = temp79c - ri_79* &
-             (e(:,OP_DZ)*f(:,OP_DR) - 3.*e(:,OP_DR)*f(:,OP_DZ))
-        temp79d = temp79d + ri_79* &
-             (-pst79(:,OP_DZ)*pst79(:,OP_DR)*f(:,OP_DR) &
-             +(pst79(:,OP_DZ)**2 +2.* pst79(:,OP_DR)**2)*f(:,OP_DZ))
-     end if
+!!$     temp79b = 2.*e(:,OP_DZ)*f(:,OP_DRZ) &
+!!$          - e(:,OP_DR)*(f(:,OP_DZZ) - f(:,OP_DRR))
+!!$     temp79c = 2.*e(:,OP_DR)*f(:,OP_DRZ) &
+!!$          + e(:,OP_DZ)*(f(:,OP_DZZ) - f(:,OP_DRR))
+!!$     temp79d = pst79(:,OP_DZ)*pst79(:,OP_DR)*(f(:,OP_DZZ) - f(:,OP_DRR)) &
+!!$          - (pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*f(:,OP_DRZ)
+!!$     if(itor.eq.1) then
+!!$        temp79b = temp79b + ri_79* &
+!!$             (e(:,OP_DR)*f(:,OP_DR) - e(:,OP_DZ)*f(:,OP_DZ))
+!!$        temp79c = temp79c - ri_79* &
+!!$             (e(:,OP_DZ)*f(:,OP_DR) - 3.*e(:,OP_DR)*f(:,OP_DZ))
+!!$        temp79d = temp79d + ri_79* &
+!!$             (-pst79(:,OP_DZ)*pst79(:,OP_DR)*f(:,OP_DR) &
+!!$             +(pst79(:,OP_DZ)**2 +2.* pst79(:,OP_DR)**2)*f(:,OP_DZ))
+!!$     end if
+!!$
+!!$     temp79a = r_79*(1.-1.5*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) * &
+!!$          (pst79(:,OP_DZ)*temp79b - pst79(:,OP_DR)*temp79c) &
+!!$          + 1.5*ri_79*b2i79(:,OP_1)*temp79d * &
+!!$          (e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR))
+!!$
+!!$     temp79a = temp79a*b2i79(:,OP_1)
 
-     temp79a = r_79*(1.-1.5*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) * &
-          (pst79(:,OP_DZ)*temp79b - pst79(:,OP_DR)*temp79c) &
-          + 1.5*ri_79*b2i79(:,OP_1)*temp79d * &
-          (e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR))
+     temp79b = f(:,OP_DZZ) - f(:,OP_DRR)
+     if(itor.eq.1) temp79b = temp79b - ri_79*f(:,OP_DR)
+     temp79c = f(:,OP_DRZ)
+     if(itor.eq.1) temp79c = temp79c + ri_79*f(:,OP_DZ)
+     
+     temp79a = 2.*r_79*temp79b* &
+          ((1.-3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)**2) &
+          *pst79(:,OP_DZ)*e(:,OP_DR) &
+          +(1.-3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
+          *pst79(:,OP_DR)*e(:,OP_DZ)) &
+          + 2.*r_79* &
+          ((1.+3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
+          *e(:,OP_DZ)*pst79(:,OP_DZ)*temp79c &
+          -(1.+3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)**2) &
+          *e(:,OP_DR)*pst79(:,OP_DR)*f(:,OP_DRZ)) &
+          + 6.*ri_79*b2i79(:,OP_1)* &
+          ((bzt79(:,OP_1)**2 - pst79(:,OP_DZ)**2) &
+          *e(:,OP_DR)*pst79(:,OP_DR)*temp79c &
+          -(bzt79(:,OP_1)**2 - pst79(:,OP_DR)**2) &
+          *e(:,OP_DZ)*pst79(:,OP_DZ)*f(:,OP_DRZ))
 
-     temp79a = temp79a*b2i79(:,OP_1)
+#ifdef USECOMPLEX
+     temp79a = temp79a &
+          - 2.*(1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
+          *bzt79(:,OP_1)*(e(:,OP_DZ)*f(:,OP_DZP) + e(:,OP_DR)*f(:,OP_DRP))
+#endif
+
+     g2u = -0.25*int3(temp79a,pit79(:,OP_1),b2i79(:,OP_1))
   end select
 
-  g2u = int2(pit79(:,OP_1),temp79a)
   return
 end function g2u
 
@@ -7158,15 +7407,26 @@ vectype function g2v(e,f)
 
      temp79a = ri_79*b2i79(:,OP_1)*bzt79(:,OP_1)*temp79b* &
           (1. - 1.5*ri2_79*b2i79(:,OP_1)*(pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2))
-
+     g2v = int2(pit79(:,OP_1),temp79a)
   case(1)
-     temp79b = e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ)
-     
-     temp79a = 0.5*r_79*b2i79(:,OP_1)*bzt79(:,OP_1)*temp79b* &
-          (1.-3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)
+!!$     temp79b = e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ)
+!!$     
+!!$     temp79a = 0.5*r_79*b2i79(:,OP_1)*bzt79(:,OP_1)*temp79b* &
+!!$          (1.-3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)
+
+     temp79a = 2.*r_79*(1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
+          *bzt79(:,OP_1)*(e(:,OP_DZ)*f(:,OP_DR)-e(:,OP_DR)*f(:,OP_DZ))
+
+#ifdef USECOMPLEX
+     temp79a = temp79a &
+          - 2.*(1. + 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
+          *(e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR)) &
+          *f(:,OP_DP)
+#endif
+
+     g2v = -0.25*int3(temp79a,pit79(:,OP_1),b2i79(:,OP_1))
   end select
 
-  g2v = int2(pit79(:,OP_1),temp79a)
   return
 end function g2v
 
@@ -7206,35 +7466,67 @@ vectype function g2chi(e,f)
            +e(:,OP_DR)*temp79b*pst79(:,OP_DR) &
            -f(:,OP_DRZ)*(e(:,OP_DR)*pst79(:,OP_DZ) + &
                          e(:,OP_DZ)*pst79(:,OP_DR)))
+
+     g2chi = int2(pit79(:,OP_1),temp79a)
   case(1)
-     temp79b = pst79(:,OP_DZ)*f(:,OP_DZZ)+pst79(:,OP_DR)*f(:,OP_DRZ)
-     temp79c = pst79(:,OP_DZ)*f(:,OP_DRZ)+pst79(:,OP_DR)*f(:,OP_DRR)
-     temp79d = f(:,OP_GS)
-     temp79e = f(:,OP_DZZ) - f(:,OP_DRR)
-     temp79f = f(:,OP_DRZ)
-     if(itor.eq.1) then
-        temp79b = temp79b - ri_79 * &
-             (pst79(:,OP_DZ)*f(:,OP_DR) + pst79(:,OP_DR)*f(:,OP_DZ))
-        temp79c = temp79c - ri_79 * &
-             (pst79(:,OP_DZ)*f(:,OP_DZ) + 3.*pst79(:,OP_DR)*f(:,OP_DR))
-        temp79d = temp79d - ri_79 * 3.*f(:,OP_DR)
-        temp79e = temp79e + ri_79 * 2.*f(:,OP_DR)
-        temp79f = temp79f - ri_79 *    f(:,OP_DZ)
-     endif
+!!$     temp79b = pst79(:,OP_DZ)*f(:,OP_DZZ)+pst79(:,OP_DR)*f(:,OP_DRZ)
+!!$     temp79c = pst79(:,OP_DZ)*f(:,OP_DRZ)+pst79(:,OP_DR)*f(:,OP_DRR)
+!!$     temp79d = f(:,OP_GS)
+!!$     temp79e = f(:,OP_DZZ) - f(:,OP_DRR)
+!!$     temp79f = f(:,OP_DRZ)
+!!$     if(itor.eq.1) then
+!!$        temp79b = temp79b - ri_79 * &
+!!$             (pst79(:,OP_DZ)*f(:,OP_DR) + pst79(:,OP_DR)*f(:,OP_DZ))
+!!$        temp79c = temp79c - ri_79 * &
+!!$             (pst79(:,OP_DZ)*f(:,OP_DZ) + 3.*pst79(:,OP_DR)*f(:,OP_DR))
+!!$        temp79d = temp79d - ri_79 * 3.*f(:,OP_DR)
+!!$        temp79e = temp79e + ri_79 * 2.*f(:,OP_DR)
+!!$        temp79f = temp79f - ri_79 *    f(:,OP_DZ)
+!!$     endif
+!!$
+!!$     temp79a = ri2_79*(1.-3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) * &
+!!$          (e(:,OP_DZ)*temp79b - e(:,OP_DR)*temp79c) &
+!!$          + 3.*ri4_79*b2i79(:,OP_1)* &
+!!$          (temp79d*bzt79(:,OP_1)**2 * &
+!!$           (e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR)) &
+!!$          +(e(:,OP_DZ)*pst79(:,OP_DR) - e(:,OP_DZ)*pst79(:,OP_DR)) &
+!!$           *(temp79e*pst79(:,OP_DZ)*pst79(:,OP_DR) &
+!!$            -temp79f*(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)))
+!!$
+!!$     temp79a = 0.5*temp79a*b2i79(:,OP_1)
 
-     temp79a = ri2_79*(1.-3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) * &
-          (e(:,OP_DZ)*temp79b - e(:,OP_DR)*temp79c) &
-          + 3.*ri4_79*b2i79(:,OP_1)* &
-          (temp79d*bzt79(:,OP_1)**2 * &
-           (e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR)) &
-          +(e(:,OP_DZ)*pst79(:,OP_DR) - e(:,OP_DZ)*pst79(:,OP_DR)) &
-           *(temp79e*pst79(:,OP_DZ)*pst79(:,OP_DR) &
-            -temp79f*(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)))
+     temp79b = f(:,OP_DRR)
+     if(itor.eq.1) temp79b = temp79b - 3.*ri_79*f(:,OP_DR)
+     temp79c = f(:,OP_DZZ)
+     if(itor.eq.1) temp79c = temp79c -    ri_79*f(:,OP_DR)
+     temp79d = f(:,OP_DRZ)
+     if(itor.eq.1) temp79d = temp79d -    ri_79*f(:,OP_DZ)
 
-     temp79a = 0.5*temp79a*b2i79(:,OP_1)
+     temp79a = 2.*ri2_79* &
+          ((1. + 3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)**2) &
+          *e(:,OP_DR)*pst79(:,OP_DR)*temp79b  &
+          +(1. + 3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
+          *e(:,OP_DZ)*pst79(:,OP_DZ)*temp79c) &
+          - 4.*ri2_79*temp79d* &
+          ((1. - 3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)**2) &
+          *e(:,OP_DR)*pst79(:,OP_DZ) &
+          +(1. - 3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
+          *e(:,OP_DZ)*pst79(:,OP_DR)) &
+          + 6.*ri4_79*b2i79(:,OP_1)* &
+          ((bzt79(:,OP_1)**2 - pst79(:,OP_DZ)**2) &
+          *e(:,OP_DR)*pst79(:,OP_DR)*temp79c &
+          +(bzt79(:,OP_1)**2 - pst79(:,OP_DR)**2) &
+          *e(:,OP_DZ)*pst79(:,OP_DZ)*temp79b)
+
+#ifdef USECOMPLEX
+     temp79a = temp79a &
+          + 2.*ri3_79*(1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
+          *bzt79(:,OP_1)*(e(:,OP_DZ)*f(:,OP_DRP) - e(:,OP_DR)*f(:,OP_DZP))
+#endif
+
+     g2chi = -0.25*int3(temp79a,pit79(:,OP_1),b2i79(:,OP_1))          
   end select
      
-  g2chi = int2(pit79(:,OP_1),temp79a)
   return
 end function g2chi
 
@@ -7283,35 +7575,80 @@ vectype function g3u(e,f)
                 +(f(:,OP_DRZ) - temp79e)*(e(:,OP_DZZ) - temp79b    ) &
                 + temp79e               *(e(:,OP_DRR) - e(:,OP_DZZ)))))
      
+     g3u = int2(pit79(:,OP_1),temp79a)
   case(1)
-     temp79b = e(:,OP_DRZ)
-     if(itor.eq.1) temp79b = temp79b -     ri_79*e(:,OP_DZ)
-     temp79c = f(:,OP_DRZ)
-     if(itor.eq.1) temp79c = temp79c + 0.5*ri_79*f(:,OP_DZ)
-     temp79d = e(:,OP_DRR)
-     if(itor.eq.1) temp79d = temp79d - 3.0*ri_79*e(:,OP_DR)
-     temp79e = e(:,OP_DZZ)
-     if(itor.eq.1) temp79e = temp79e -     ri_79*e(:,OP_DR)
-     temp79f = f(:,OP_DZZ) - f(:,OP_DRR)
-     if(itor.eq.1) temp79f = temp79f -     ri_79*f(:,OP_DR)
+!!$     temp79b = e(:,OP_DRZ)
+!!$     if(itor.eq.1) temp79b = temp79b -     ri_79*e(:,OP_DZ)
+!!$     temp79c = f(:,OP_DRZ)
+!!$     if(itor.eq.1) temp79c = temp79c + 0.5*ri_79*f(:,OP_DZ)
+!!$     temp79d = e(:,OP_DRR)
+!!$     if(itor.eq.1) temp79d = temp79d - 3.0*ri_79*e(:,OP_DR)
+!!$     temp79e = e(:,OP_DZZ)
+!!$     if(itor.eq.1) temp79e = temp79e -     ri_79*e(:,OP_DR)
+!!$     temp79f = f(:,OP_DZZ) - f(:,OP_DRR)
+!!$     if(itor.eq.1) temp79f = temp79f -     ri_79*f(:,OP_DR)
+!!$
+!!$     temp79a = bzt79(:,OP_1)* &
+!!$          (-4.*temp79b*temp79c - temp79f*(temp79e-temp79d) &
+!!$           +6.*ri2_79*b2i79(:,OP_1)*(pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2)*temp79b*temp79c) &
+!!$           +3.*ri2_79*b2i79(:,OP_1)* &
+!!$           ((temp79d*pst79(:,OP_DZ)**2 - temp79e*pst79(:,OP_DR)**2)*temp79f &
+!!$           +2.*pst79(:,OP_DZ)*pst79(:,OP_DR)*(2.*temp79c - f(:,OP_DRZ))*(temp79e-temp79d))
+!!$     if(itor.eq.1) then
+!!$        temp79a = temp79a + bzt79(:,OP_1)*3.*ri2_79*b2i79(:,OP_1)*f(:,OP_DZ) * &
+!!$             ((pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*temp79b &
+!!$             -2.*pst79(:,OP_DZ)*pst79(:,OP_DR)*temp79e)
+!!$     endif
+!!$
+!!$     temp79a = 0.5*temp79a*ri2_79*b2i79(:,OP_1)
+          
+     temp79b = e(:,OP_DRR)
+     if(itor.eq.1) temp79b = temp79b - 2.*ri_79*e(:,OP_DR)
+     temp79c = e(:,OP_DRZ)
+     if(itor.eq.1) temp79c = temp79c -    ri_79*e(:,OP_DZ)
+     temp79d = f(:,OP_DZZ) - f(:,OP_DRR)
+     if(itor.eq.1) temp79d = temp79d -    ri_79*f(:,OP_DR)
+     temp79e = f(:,OP_DRZ)
+     if(itor.eq.1) temp79e = temp79e +    ri_79*f(:,OP_DZ)
 
-     temp79a = bzt79(:,OP_1)* &
-          (-4.*temp79b*temp79c - temp79f*(temp79e-temp79d) &
-           +6.*ri2_79*b2i79(:,OP_1)*(pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2)*temp79b*temp79c) &
-           +3.*ri2_79*b2i79(:,OP_1)* &
-           ((temp79d*pst79(:,OP_DZ)**2 - temp79e*pst79(:,OP_DR)**2)*temp79f &
-           +2.*pst79(:,OP_DZ)*pst79(:,OP_DR)*(2.*temp79c - f(:,OP_DRZ))*(temp79e-temp79d))
+     temp79a = bzt79(:,OP_1) * &
+          ((1. + 3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
+          *(2.*temp79c*temp79e     + e(:,OP_DZZ)*temp79d) & 
+          +(1. + 3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)**2) &
+          *(2.*temp79c*f(:,OP_DRZ) - temp79b    *temp79d) &
+          -6.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)*pst79(:,OP_DZ) &
+          *(e(:,OP_DZZ)*f(:,OP_DRZ) + temp79b*temp79e))
+
      if(itor.eq.1) then
-        temp79a = temp79a + bzt79(:,OP_1)*3.*ri2_79*b2i79(:,OP_1)*f(:,OP_DZ) * &
-             ((pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*temp79b &
-             -2.*pst79(:,OP_DZ)*pst79(:,OP_DR)*temp79e)
+        temp79a = temp79a + 3.*ri3_79*b2i79(:,OP_1)*bzt79(:,OP_1)*e(:,OP_DR)* &
+             ((pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*temp79d &
+             +2.*pst79(:,OP_DZ)*pst79(:,OP_DR)*(f(:,OP_DRZ) + temp79e))
      endif
 
-     temp79a = 0.5*temp79a*ri2_79*b2i79(:,OP_1)
-          
+#ifdef USECOMPLEX
+     temp79a = temp79a + 3.*ri3_79*b2i79(:,OP_1)* &
+          (pst79(:,OP_DZ)*f(:,OP_DZP) + pst79(:,OP_DR)*f(:,OP_DRP)) * &
+          ((pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*temp79c &
+          +pst79(:,OP_DZ)*pst79(:,OP_DR)*(temp79b - e(:,OP_DZZ))) &
+          + ri_79*(1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)*temp79c* &
+          (pst79(:,OP_DZ)*f(:,OP_DZP) - pst79(:,OP_DR)*f(:,OP_DRP)) &
+          + 3.*ri3_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2*(e(:,OP_DZZ)-temp79b)* &
+          (pst79(:,OP_DR)*f(:,OP_DZP) + pst79(:,OP_DZ)*f(:,OP_DRP)) &
+          - ri_79*(1. + 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)* &
+          (pst79(:,OP_DZ)*f(:,OP_DRP)*e(:,OP_DZZ) &
+          -pst79(:,OP_DR)*f(:,OP_DZP)*temp79b)
+
+     if(itor.eq.1) then
+        temp79a = temp79a + ri2_79*e(:,OP_DR)* &
+             (1. + 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)* &
+             (pst79(:,OP_DZ)*f(:,OP_DZP) - pst79(:,OP_DR)*f(:,OP_DZP))
+     endif
+#endif
+     
+     g3u = 0.5*int4(ri2_79,temp79a,pit79(:,OP_1),b2i79(:,OP_1))
+
   end select
 
-  g3u = int2(pit79(:,OP_1),temp79a)
   return
 end function g3u
 
@@ -7358,41 +7695,68 @@ vectype function g3v(e,f)
                        +pst79(:,OP_DR)* f(:,OP_DZ)) &
           -(e(:,OP_DZZ) - temp79b)*(f(:,OP_DR)-2.*temp79c)*pst79(:,OP_DR) &
           -(e(:,OP_DRR) - temp79b)* f(:,OP_DZ)            *pst79(:,OP_DZ))
-     
+
+     g3v = int2(pit79(:,OP_1),temp79a)     
   case(1)
 
-     temp79b = pst79(:,OP_DZ)*(e(:,OP_DZZ)*f(:,OP_DZ)  &
-                              +e(:,OP_DRZ)*f(:,OP_DR)) &
-              +pst79(:,OP_DR)*(e(:,OP_DRZ)*f(:,OP_DZ)  &
-                              +e(:,OP_DRR)*f(:,OP_DR))
+!!$     temp79b = pst79(:,OP_DZ)*(e(:,OP_DZZ)*f(:,OP_DZ)  &
+!!$                              +e(:,OP_DRZ)*f(:,OP_DR)) &
+!!$              +pst79(:,OP_DR)*(e(:,OP_DRZ)*f(:,OP_DZ)  &
+!!$                              +e(:,OP_DRR)*f(:,OP_DR))
+!!$
+!!$     temp79c = bzt79(:,OP_1)**2 * e(:,OP_GS) - &
+!!$          (pst79(:,OP_DZ)**2*e(:,OP_DZZ) &
+!!$          +pst79(:,OP_DR)**2*e(:,OP_DRR) &
+!!$          +2.*pst79(:,OP_DZ)*pst79(:,OP_DR)*e(:,OP_DRZ))
+!!$
+!!$     if(itor.eq.1) then
+!!$        temp79b = temp79b - ri_79* &
+!!$            (pst79(:,OP_DZ)* &
+!!$             (e(:,OP_DR)*f(:,OP_DZ) +    e(:,OP_DZ)*f(:,OP_DR)) &
+!!$            +pst79(:,OP_DR)* &
+!!$             (e(:,OP_DZ)*f(:,OP_DZ) + 3.*e(:,OP_DR)*f(:,OP_DR)))
+!!$
+!!$        temp79c = temp79c - ri_79* &
+!!$             (3.*bzt79(:,OP_1)**2 *e(:,OP_DR) &
+!!$             -   pst79(:,OP_DZ)**2*e(:,OP_DR) &
+!!$             -3.*pst79(:,OP_DR)**2*e(:,OP_DR) &
+!!$             -2.*pst79(:,OP_DZ)*pst79(:,OP_DR)*e(:,OP_DZ))
+!!$     end if
+!!$
+!!$     temp79a = ri2_79*b2i79(:,OP_1) * &
+!!$          (2.*(1.-1.5*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)*temp79b &
+!!$          +1.5*ri2_79*b2i79(:,OP_1)*temp79c * &
+!!$          (pst79(:,OP_DZ)*f(:,OP_DZ) + pst79(:,OP_DR)*f(:,OP_DR)))
+        
+     temp79b = e(:,OP_DRZ)
+     if(itor.eq.1) temp79b = temp79b - ri_79*e(:,OP_DZ)
+     temp79c = e(:,OP_DRR)
+     if(itor.eq.1) temp79c = temp79c - 2.*ri_79*e(:,OP_DR)
+     temp79d = ri2_79*(f(:,OP_DZ)*pst79(:,OP_DR) - f(:,OP_DR)*pst79(:,OP_DZ))
+#ifdef USECOMPLEX
+     temp79d = temp79d + 2.*ri3_79*bzt79(:,OP_1)*f(:,OP_DP)
+#endif
 
-     temp79c = bzt79(:,OP_1)**2 * e(:,OP_GS) - &
-          (pst79(:,OP_DZ)**2*e(:,OP_DZZ) &
-          +pst79(:,OP_DR)**2*e(:,OP_DRR) &
-          +2.*pst79(:,OP_DZ)*pst79(:,OP_DR)*e(:,OP_DRZ))
+     temp79a = &
+          (1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)* &
+          (pst79(:,OP_DR)*f(:,OP_DR)*e(:,OP_DZZ) &
+          +pst79(:,OP_DZ)*f(:,OP_DZ)*temp79c &
+          -(pst79(:,OP_DZ)*f(:,OP_DR) + pst79(:,OP_DR)*f(:,OP_DZ))*temp79b) &
+          + 3.*b2i79(:,OP_1)*temp79d* &
+          ((pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*temp79b &
+          +pst79(:,OP_DZ)*pst79(:,OP_DR)*(temp79c - e(:,OP_DZZ))) &
+          - (e(:,OP_DZZ) + temp79c) * &
+          (pst79(:,OP_DZ)*f(:,OP_DZ) + pst79(:,OP_DR)*f(:,OP_DR))
 
      if(itor.eq.1) then
-        temp79b = temp79b - ri_79* &
-            (pst79(:,OP_DZ)* &
-             (e(:,OP_DR)*f(:,OP_DZ) +    e(:,OP_DZ)*f(:,OP_DR)) &
-            +pst79(:,OP_DR)* &
-             (e(:,OP_DZ)*f(:,OP_DZ) + 3.*e(:,OP_DR)*f(:,OP_DR)))
+        temp79a = temp79a + ri_79*e(:,OP_DR)* &
+             (1. + 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)* &
+             (pst79(:,OP_DZ)*f(:,OP_DZ) + pst79(:,OP_DR)*f(:,OP_DR))
+     endif
 
-        temp79c = temp79c - ri_79* &
-             (3.*bzt79(:,OP_1)**2 *e(:,OP_DR) &
-             -   pst79(:,OP_DZ)**2*e(:,OP_DR) &
-             -3.*pst79(:,OP_DR)**2*e(:,OP_DR) &
-             -2.*pst79(:,OP_DZ)*pst79(:,OP_DR)*e(:,OP_DZ))
-     end if
-
-     temp79a = ri2_79*b2i79(:,OP_1) * &
-          (2.*(1.-1.5*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)*temp79b &
-          +1.5*ri2_79*b2i79(:,OP_1)*temp79c * &
-          (pst79(:,OP_DZ)*f(:,OP_DZ) + pst79(:,OP_DR)*f(:,OP_DR)))
-        
+     g3v = 0.5*int4(ri2_79,temp79a,pit79(:,OP_1),b2i79(:,OP_1))
   end select
 
-  g3v = int2(pit79(:,OP_1),temp79a)
   return
 end function g3v
 
@@ -7437,41 +7801,89 @@ vectype function g3chi(e,f)
            +pst79(:,OP_DZ)*pst79(:,OP_DR) * &
             ((e(:,OP_DRR) - temp79b)*(f(:,OP_DZZ) - temp79c) &
             -(e(:,OP_DZZ) - temp79b)*(f(:,OP_DRR) - temp79c)))
-     
+
+     g3chi = int2(pit79(:,OP_1),temp79a)     
   case(1)
-     temp79b = pst79(:,OP_DZ)*f(:,OP_DZZ) &
-          +    pst79(:,OP_DR)*f(:,OP_DRZ)
-     temp79c = pst79(:,OP_DZ)*f(:,OP_DRZ) &
-          +    pst79(:,OP_DR)*f(:,OP_DRR)
-     temp79d = f(:,OP_GS)
-     temp79e = f(:,OP_DZZ) - f(:,OP_DRR)
-     temp79f = f(:,OP_DRZ)
+!!$     temp79b = pst79(:,OP_DZ)*f(:,OP_DZZ) &
+!!$          +    pst79(:,OP_DR)*f(:,OP_DRZ)
+!!$     temp79c = pst79(:,OP_DZ)*f(:,OP_DRZ) &
+!!$          +    pst79(:,OP_DR)*f(:,OP_DRR)
+!!$     temp79d = f(:,OP_GS)
+!!$     temp79e = f(:,OP_DZZ) - f(:,OP_DRR)
+!!$     temp79f = f(:,OP_DRZ)
+!!$
+!!$     if(itor.eq.1) then
+!!$        temp79b = temp79b - ri_79* &
+!!$             (pst79(:,OP_DZ)*f(:,OP_DR) &
+!!$             +pst79(:,OP_DR)*f(:,OP_DZ))
+!!$        temp79c = temp79c - ri_79* &
+!!$             (   pst79(:,OP_DZ)*f(:,OP_DZ) &
+!!$             +3.*pst79(:,OP_DR)*f(:,OP_DR))
+!!$        temp79d = temp79d - 3.*ri_79*f(:,OP_DR)
+!!$        temp79e = temp79e + 2.*ri_79*f(:,OP_DR)
+!!$        temp79f = temp79f -    ri_79*f(:,OP_DR)
+!!$     end if
+!!$     
+!!$     temp79a = ri2_79*(1.-3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) * &
+!!$          (e(:,OP_DZ)*temp79b + e(:,OP_DR)*temp79c) &
+!!$          + 3.*ri4_79*b2i79(:,OP_1) * &
+!!$          (temp79d*bzt79(:,OP_1)**2 * &
+!!$           (e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR)) &
+!!$          +(e(:,OP_DZ)*pst79(:,OP_DR) - e(:,OP_DR)*pst79(:,OP_DZ)) * &
+!!$          (pst79(:,OP_DR)*pst79(:,OP_DZ)*temp79e &
+!!$          +(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*temp79f))
+!!$
+!!$     temp79a = 0.5*temp79a*b2i79(:,OP_1)
+
+
+     temp79b = e(:,OP_DRR)
+     if(itor.eq.1) temp79b = temp79b - 2.*ri_79*e(:,OP_DR)
+     temp79c = e(:,OP_DRZ)
+     if(itor.eq.1) temp79c = temp79c -    ri_79*e(:,OP_DZ)
+     temp79d = f(:,OP_DZZ)
+     if(itor.eq.1) temp79d = temp79d -    ri_79*f(:,OP_DR)
+     temp79e = f(:,OP_DRZ)
+     if(itor.eq.1) temp79e = temp79e -    ri_79*f(:,OP_DZ)
+     temp79f = f(:,OP_DRR)
+     if(itor.eq.1) temp79f = temp79f - 3.*ri_79*f(:,OP_DR)
+
+     temp79a = 2.*ri3_79*bzt79(:,OP_1) * &
+          ((1. + 3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
+          *(temp79c*temp79d - e(:,OP_DZZ)*temp79e) &
+          +(1. + 3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)**2) &
+          *(temp79b*temp79e - temp79c*temp79f)) &
+          + 6.*ri5_79*bzt79(:,OP_1)*pst79(:,OP_DR)*pst79(:,OP_DZ)* &
+          bzt79(:,OP_1)*(e(:,OP_DZZ)*temp79e - temp79c*temp79f)
 
      if(itor.eq.1) then
-        temp79b = temp79b - ri_79* &
-             (pst79(:,OP_DZ)*f(:,OP_DR) &
-             +pst79(:,OP_DR)*f(:,OP_DZ))
-        temp79c = temp79c - ri_79* &
-             (   pst79(:,OP_DZ)*f(:,OP_DZ) &
-             +3.*pst79(:,OP_DR)*f(:,OP_DR))
-        temp79d = temp79d - 3.*ri_79*f(:,OP_DR)
-        temp79e = temp79e + 2.*ri_79*f(:,OP_DR)
-        temp79f = temp79f -    ri_79*f(:,OP_DR)
-     end if
-     
-     temp79a = ri2_79*(1.-3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) * &
-          (e(:,OP_DZ)*temp79b + e(:,OP_DR)*temp79c) &
-          + 3.*ri4_79*b2i79(:,OP_1) * &
-          (temp79d*bzt79(:,OP_1)**2 * &
-           (e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR)) &
-          +(e(:,OP_DZ)*pst79(:,OP_DR) - e(:,OP_DR)*pst79(:,OP_DZ)) * &
-          (pst79(:,OP_DR)*pst79(:,OP_DZ)*temp79e &
-          +(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*temp79f))
+        temp79a = temp79a + 6.*ri6_79*b2i79(:,OP_1)*bzt79(:,OP_1)*e(:,OP_DR)* &
+             (pst79(:,OP_DZ)*pst79(:,OP_DR)*(temp79d-temp79f) &
+             -(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*temp79e)
+     endif
 
-     temp79a = 0.5*temp79a*b2i79(:,OP_1)
+#ifdef USECOMPLEX
+     temp79a = temp79a &
+          + ri4_79*(1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)* &
+          (pst79(:,OP_DR)*f(:,OP_DRP)*e(:,OP_DZZ) &
+          +pst79(:,OP_DZ)*f(:,OP_DZP)*temp79b &
+          -(pst79(:,OP_DZ)*f(:,OP_DRP) + pst79(:,OP_DR)*f(:,OP_DZP)*temp79c)) &
+          - ri4_79*(temp79b + e(:,OP_DZZ)) * &
+          (pst79(:,OP_DZ)*f(:,OP_DZP) + pst79(:,OP_DR)*f(:,OP_DRP)) &
+          + 3.*ri6_79*b2i79(:,OP_1) * &
+          (pst79(:,OP_DZ)*pst79(:,OP_DR)*(temp79b - e(:,OP_DZZ)) &
+          +(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*temp79c)* &
+          (f(:,OP_DZP)*pst79(:,OP_DRP) - f(:,OP_DRP)*pst79(:,OP_DZP))
+
+     if(itor.eq.1) then
+        temp79a = temp79a + ri5_79*e(:,OP_DR) * &
+             (1. + 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) * &
+             (pst79(:,OP_DZ)*f(:,OP_DZP) + pst79(:,OP_DR)*f(:,OP_DRP))
+     end if
+#endif
+
+     g3chi = 0.5*int4(ri2_79,temp79a,pit79(:,OP_1),b2i79(:,OP_1))
   end select
 
-  g3chi = int2(pit79(:,OP_1),temp79a)
   return
 end function g3chi
 
@@ -7939,51 +8351,51 @@ real function energy_k3()
   case(0)
      if(linear.eq.1) then
         temp = .5* &
-             (int3(chs79(:,OP_DZ),CONJUGATE(ch179(:,OP_DZ)),nt79(:,OP_1)) &
-             +int3(chs79(:,OP_DR),CONJUGATE(ch179(:,OP_DR)),nt79(:,OP_1)) &
-             +int3(ch179(:,OP_DZ),CONJUGATE(chs79(:,OP_DZ)),nt79(:,OP_1)) &
-             +int3(ch179(:,OP_DR),CONJUGATE(chs79(:,OP_DR)),nt79(:,OP_1)) &
-             +int4(ri_79,chs79(:,OP_DZ),CONJUGATE(ph179(:,OP_DR)),nt79(:,OP_1)) &
-             -int4(ri_79,chs79(:,OP_DR),CONJUGATE(ph179(:,OP_DZ)),nt79(:,OP_1)) &
-             +int4(ri_79,ch179(:,OP_DZ),CONJUGATE(phs79(:,OP_DR)),nt79(:,OP_1)) &
-             -int4(ri_79,ch179(:,OP_DR),CONJUGATE(phs79(:,OP_DZ)),nt79(:,OP_1)) &
-             +int4(ri_79,CONJUGATE(chs79(:,OP_DZ)),ph179(:,OP_DR),nt79(:,OP_1)) &
-             -int4(ri_79,CONJUGATE(chs79(:,OP_DR)),ph179(:,OP_DZ),nt79(:,OP_1)) &
-             +int4(ri_79,CONJUGATE(ch179(:,OP_DZ)),phs79(:,OP_DR),nt79(:,OP_1)) &
-             -int4(ri_79,CONJUGATE(ch179(:,OP_DR)),phs79(:,OP_DZ),nt79(:,OP_1)))
+          (int3(chs79(:,OP_DZ),CONJUGATE(ch179(:,OP_DZ)),nt79(:,OP_1)) &
+          +int3(chs79(:,OP_DR),CONJUGATE(ch179(:,OP_DR)),nt79(:,OP_1)) &
+          +int3(ch179(:,OP_DZ),CONJUGATE(chs79(:,OP_DZ)),nt79(:,OP_1)) &
+          +int3(ch179(:,OP_DR),CONJUGATE(chs79(:,OP_DR)),nt79(:,OP_1)) &
+          +int4(ri_79,chs79(:,OP_DZ),CONJUGATE(ph179(:,OP_DR)),nt79(:,OP_1)) &
+          -int4(ri_79,chs79(:,OP_DR),CONJUGATE(ph179(:,OP_DZ)),nt79(:,OP_1)) &
+          +int4(ri_79,ch179(:,OP_DZ),CONJUGATE(phs79(:,OP_DR)),nt79(:,OP_1)) &
+          -int4(ri_79,ch179(:,OP_DR),CONJUGATE(phs79(:,OP_DZ)),nt79(:,OP_1)) &
+          +int4(ri_79,CONJUGATE(chs79(:,OP_DZ)),ph179(:,OP_DR),nt79(:,OP_1)) &
+          -int4(ri_79,CONJUGATE(chs79(:,OP_DR)),ph179(:,OP_DZ),nt79(:,OP_1)) &
+          +int4(ri_79,CONJUGATE(ch179(:,OP_DZ)),phs79(:,OP_DR),nt79(:,OP_1)) &
+          -int4(ri_79,CONJUGATE(ch179(:,OP_DR)),phs79(:,OP_DZ),nt79(:,OP_1)))
      else
         temp = .5* &
-             (int3(cht79(:,OP_DZ),CONJUGATE(cht79(:,OP_DZ)),nt79(:,OP_1)) &
-             +int3(cht79(:,OP_DR),CONJUGATE(cht79(:,OP_DR)),nt79(:,OP_1)) &
-             +int4(ri_79,cht79(:,OP_DZ),CONJUGATE(pht79(:,OP_DR)),nt79(:,OP_1)) &
-             -int4(ri_79,cht79(:,OP_DR),CONJUGATE(pht79(:,OP_DZ)),nt79(:,OP_1)) &
-             +int4(ri_79,CONJUGATE(cht79(:,OP_DZ)),pht79(:,OP_DR),nt79(:,OP_1)) &
-             -int4(ri_79,CONJUGATE(cht79(:,OP_DR)),pht79(:,OP_DZ),nt79(:,OP_1)))
+          (int3(cht79(:,OP_DZ),CONJUGATE(cht79(:,OP_DZ)),nt79(:,OP_1)) &
+          +int3(cht79(:,OP_DR),CONJUGATE(cht79(:,OP_DR)),nt79(:,OP_1)) &
+          +int4(ri_79,cht79(:,OP_DZ),CONJUGATE(pht79(:,OP_DR)),nt79(:,OP_1)) &
+          -int4(ri_79,cht79(:,OP_DR),CONJUGATE(pht79(:,OP_DZ)),nt79(:,OP_1)) &
+          +int4(ri_79,CONJUGATE(cht79(:,OP_DZ)),pht79(:,OP_DR),nt79(:,OP_1)) &
+          -int4(ri_79,CONJUGATE(cht79(:,OP_DR)),pht79(:,OP_DZ),nt79(:,OP_1)))
      endif
      
   case(1)
      if(linear.eq.1) then
         temp = .5* &
-             (int4(ri4_79,chs79(:,OP_DZ),CONJUGATE(ch179(:,OP_DZ)),nt79(:,OP_1)) &
-             +int4(ri4_79,chs79(:,OP_DR),CONJUGATE(ch179(:,OP_DR)),nt79(:,OP_1)) &
-             +int4(ri4_79,ch179(:,OP_DZ),CONJUGATE(chs79(:,OP_DZ)),nt79(:,OP_1)) &
-             +int4(ri4_79,ch179(:,OP_DR),CONJUGATE(chs79(:,OP_DR)),nt79(:,OP_1)) &
-             +int4(ri_79,chs79(:,OP_DZ),CONJUGATE(ph179(:,OP_DR)),nt79(:,OP_1)) &
-             -int4(ri_79,chs79(:,OP_DR),CONJUGATE(ph179(:,OP_DZ)),nt79(:,OP_1)) &
-             +int4(ri_79,ch179(:,OP_DZ),CONJUGATE(phs79(:,OP_DR)),nt79(:,OP_1)) &
-             -int4(ri_79,ch179(:,OP_DR),CONJUGATE(phs79(:,OP_DZ)),nt79(:,OP_1)) &
-             +int4(ri_79,CONJUGATE(chs79(:,OP_DZ)),ph179(:,OP_DR),nt79(:,OP_1)) &
-             -int4(ri_79,CONJUGATE(chs79(:,OP_DR)),ph179(:,OP_DZ),nt79(:,OP_1)) &
-             +int4(ri_79,CONJUGATE(ch179(:,OP_DZ)),phs79(:,OP_DR),nt79(:,OP_1)) &
-             -int4(ri_79,CONJUGATE(ch179(:,OP_DR)),phs79(:,OP_DZ),nt79(:,OP_1)))
+          (int4(ri4_79,chs79(:,OP_DZ),CONJUGATE(ch179(:,OP_DZ)),nt79(:,OP_1)) &
+          +int4(ri4_79,chs79(:,OP_DR),CONJUGATE(ch179(:,OP_DR)),nt79(:,OP_1)) &
+          +int4(ri4_79,ch179(:,OP_DZ),CONJUGATE(chs79(:,OP_DZ)),nt79(:,OP_1)) &
+          +int4(ri4_79,ch179(:,OP_DR),CONJUGATE(chs79(:,OP_DR)),nt79(:,OP_1)) &
+          +int4(ri_79,chs79(:,OP_DZ),CONJUGATE(ph179(:,OP_DR)),nt79(:,OP_1)) &
+          -int4(ri_79,chs79(:,OP_DR),CONJUGATE(ph179(:,OP_DZ)),nt79(:,OP_1)) &
+          +int4(ri_79,ch179(:,OP_DZ),CONJUGATE(phs79(:,OP_DR)),nt79(:,OP_1)) &
+          -int4(ri_79,ch179(:,OP_DR),CONJUGATE(phs79(:,OP_DZ)),nt79(:,OP_1)) &
+          +int4(ri_79,CONJUGATE(chs79(:,OP_DZ)),ph179(:,OP_DR),nt79(:,OP_1)) &
+          -int4(ri_79,CONJUGATE(chs79(:,OP_DR)),ph179(:,OP_DZ),nt79(:,OP_1)) &
+          +int4(ri_79,CONJUGATE(ch179(:,OP_DZ)),phs79(:,OP_DR),nt79(:,OP_1)) &
+          -int4(ri_79,CONJUGATE(ch179(:,OP_DR)),phs79(:,OP_DZ),nt79(:,OP_1)))
      else
         temp = .5* &
-             (int4(ri4_79,cht79(:,OP_DZ),CONJUGATE(cht79(:,OP_DZ)),nt79(:,OP_1)) &
-             +int4(ri4_79,cht79(:,OP_DR),CONJUGATE(cht79(:,OP_DR)),nt79(:,OP_1)) &
-             +int4(ri_79,cht79(:,OP_DZ),CONJUGATE(pht79(:,OP_DR)),nt79(:,OP_1)) &
-             -int4(ri_79,cht79(:,OP_DR),CONJUGATE(pht79(:,OP_DZ)),nt79(:,OP_1)) &
-             +int4(ri_79,CONJUGATE(cht79(:,OP_DZ)),pht79(:,OP_DR),nt79(:,OP_1)) &
-             -int4(ri_79,CONJUGATE(cht79(:,OP_DR)),pht79(:,OP_DZ),nt79(:,OP_1)))
+          (int4(ri4_79,cht79(:,OP_DZ),CONJUGATE(cht79(:,OP_DZ)),nt79(:,OP_1)) &
+          +int4(ri4_79,cht79(:,OP_DR),CONJUGATE(cht79(:,OP_DR)),nt79(:,OP_1)) &
+          +int4(ri_79,cht79(:,OP_DZ),CONJUGATE(pht79(:,OP_DR)),nt79(:,OP_1)) &
+          -int4(ri_79,cht79(:,OP_DR),CONJUGATE(pht79(:,OP_DZ)),nt79(:,OP_1)) &
+          +int4(ri_79,CONJUGATE(cht79(:,OP_DZ)),pht79(:,OP_DR),nt79(:,OP_1)) &
+          -int4(ri_79,CONJUGATE(cht79(:,OP_DR)),pht79(:,OP_DZ),nt79(:,OP_1)))
      endif
   end select
 

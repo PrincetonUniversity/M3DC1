@@ -467,8 +467,14 @@ subroutine boundary_vel(imatrix, rhs)
 
      ! no compression
      if(com_bc.eq.1 .and. numvar.ge.3) then
-        call set_laplacian_bc(imatrix,ibegin+chi_off,rhs,temp, &
-             normal,curv,izonedim,x)
+        select case(ivform)
+        case(0)
+           call set_laplacian_bc(imatrix,ibegin+chi_off,rhs,temp, &
+                normal,curv,izonedim,x)
+        case(1)
+           call set_laplacian_bc(imatrix,ibegin+chi_off,rhs,temp, &
+                normal,curv,izonedim,-x)
+        end select
      endif
   end do
 
