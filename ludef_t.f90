@@ -1363,6 +1363,10 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   endif
 
   if(i3d.eq.1) then
+     temp = b2fv(trial,bf79,lin)
+     ssterm(vz_g) = ssterm(vz_g) - thimpb*dt*temp
+     ddterm(vz_g) = ddterm(vz_g) - thimpb*dt*temp*bdf
+
      temp = b2psifd(trial,lin,bf79,ni79)*dbf
      ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
      ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
@@ -1371,10 +1375,14 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
      ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
 
+     q_bf = q_bf + dt* &
+          b2feta(trial,lin,eta79)
+
      if(eqsubtract.eq.1) then
         q_bf = q_bf + dt* &
              (b2psifd(trial,ps079,lin,ni79)*dbf &
-             +b2bfd  (trial,bz079,lin,ni79)*dbf)
+             +b2bfd  (trial,bz079,lin,ni79)*dbf &
+             +b2fv   (trial,lin,vz079))
      endif
   endif
 
@@ -1382,7 +1390,6 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   ! NUMVAR = 3
   ! ~~~~~~~~~~
   if(numvar.ge.3) then
-
      temp = b2bchi(trial,lin,cht79)                  
      ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
