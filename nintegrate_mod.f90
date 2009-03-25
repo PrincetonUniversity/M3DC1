@@ -883,6 +883,10 @@ subroutine define_fields(itri, fields, gdef)
         ni79(:,OP_LP) = ni79(:,OP_LP) + ri_79*ni79(:,OP_DR)
         ni79(:,OP_GS) = ni79(:,OP_GS) - ri_79*ni79(:,OP_DR)
      endif
+#ifdef USECOMPLEX
+     ni79(:,OP_DP :OP_GSP ) = 0.
+     ni79(:,OP_DPP:OP_GSPP) = 0.
+#endif    
   endif
   
   ! J

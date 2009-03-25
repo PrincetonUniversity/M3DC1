@@ -1188,6 +1188,23 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
      end if
   end if
 
+  if(i3d.eq.1 .and. numvar.ge.2) then
+!!$     temp = b1psifd(trial,lin,bf79,ni79)*dbf
+!!$     ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
+!!$     ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
+!!$
+!!$     temp = b1bfd(trial,lin,bf79,ni79)*dbf
+!!$     ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
+!!$     ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
+!!$
+!!$     if(eqsubtract.eq.1) then
+!!$        q_bf = q_bf + dt* &
+!!$             (b1psifd(trial,ps079,lin,ni79)*dbf &
+!!$             +b1bfd  (trial,bz079,lin,ni79)*dbf)
+!!$     endif
+  endif
+
+
   ! NUMVAR = 3
   ! ~~~~~~~~~~
   if(numvar.ge.3) then
@@ -1228,10 +1245,16 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
         ! Term due to F0 = bzero when numvar=1
         q_ni = q_ni + dt* &
              (b1psibd(trial,ps079,bzt79,lin)*dbf)
-     else
+     endif
+
+     if(numvar.ge.2) then
         q_ni = q_ni + dt* &
              (b1psibd(trial,ps079,bz079,lin)*dbf &
              +b1bbd  (trial,bz079,bz079,lin)*dbf)
+     endif
+     if(numvar.ge.3) then
+        q_ni = q_ni + dt* &
+             (b1ped(trial,pe079,lin)*dbf)
      endif
   endif
 
@@ -1363,27 +1386,27 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   endif
 
   if(i3d.eq.1) then
-     temp = b2fv(trial,bf79,lin)
-     ssterm(vz_g) = ssterm(vz_g) - thimpb*dt*temp
-     ddterm(vz_g) = ddterm(vz_g) - thimpb*dt*temp*bdf
-
-     temp = b2psifd(trial,lin,bf79,ni79)*dbf
-     ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
-     ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
-
-     temp = b2bfd(trial,lin,bf79,ni79)*dbf
-     ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
-     ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
-
-     q_bf = q_bf + dt* &
-          b2feta(trial,lin,eta79)
-
-     if(eqsubtract.eq.1) then
-        q_bf = q_bf + dt* &
-             (b2psifd(trial,ps079,lin,ni79)*dbf &
-             +b2bfd  (trial,bz079,lin,ni79)*dbf &
-             +b2fv   (trial,lin,vz079))
-     endif
+!!$     temp = b2fv(trial,bf79,lin)
+!!$     ssterm(vz_g) = ssterm(vz_g) - thimpb*dt*temp
+!!$     ddterm(vz_g) = ddterm(vz_g) - thimpb*dt*temp*bdf
+!!$
+!!$     temp = b2psifd(trial,lin,bf79,ni79)*dbf
+!!$     ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
+!!$     ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
+!!$
+!!$     temp = b2bfd(trial,lin,bf79,ni79)*dbf
+!!$     ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
+!!$     ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
+!!$
+!!$     q_bf = q_bf + dt* &
+!!$          b2feta(trial,lin,eta79)
+!!$
+!!$     if(eqsubtract.eq.1) then
+!!$        q_bf = q_bf + dt* &
+!!$             (b2psifd(trial,ps079,lin,ni79)*dbf & 
+!!$             +b2bfd  (trial,bz079,lin,ni79)*dbf &
+!!$             +b2fv   (trial,lin,vz079))
+!!$     endif
   endif
 
 
@@ -1494,6 +1517,10 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
     ssterm(bz_g) = ssterm(bz_g) -     thimp_ohm     *dt*temp
     ddterm(bz_g) = ddterm(bz_g) + (.5-thimp_ohm*bdf)*dt*temp
   endif
+
+  temp = b3pepsid(trial,pe179,lin,ni79)*dbf*pefac
+  ssterm(psi_g) = ssterm(psi_g) - thimp*dt*temp
+  ddterm(psi_g) = ddterm(psi_g) - thimp*dt*temp*bdf
   
   temp = b3pebd(trial,pe179,lin,ni79)*dbf*pefac
   ssterm(bz_g) = ssterm(bz_g) - thimp*dt*temp
@@ -1575,6 +1602,10 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
      ssterm(bz_g) = ssterm(bz_g) -     thimp_ohm     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimp_ohm*bdf)*dt*temp
 
+     temp = b3pepsid(trial,pe079,lin,ni79)*dbf*pefac
+     ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
+     ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
+
      temp = b3pebd(trial,pe079,lin,ni79)*dbf*pefac
      ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
@@ -1613,11 +1644,24 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   endif
 
 
+  if(i3d.eq.1) then
+!!$     temp = b3pefd(trial,lin,bf79,ni79)*dbf*pefac
+!!$     ssterm(pe_g) = ssterm(pe_g) -     thimp     *dt*temp
+!!$     ddterm(pe_g) = ddterm(pe_g) + (1.-thimp*bdf)*dt*temp
+!!$
+!!$     if(eqsubtract.eq.1) then
+!!$        q_bf = q_bf + dt* &
+!!$             (b3pefd(trial,pe079,lin,ni79)*dbf*pefac)
+!!$     endif
+  endif
+
+
   ! density terms
   ! ~~~~~~~~~~~~~
   if(idens.eq.1 .and. eqsubtract.eq.1) then
      q_ni = q_ni + dt* &
-          (b3pebd(trial,pe079,bz079,lin)*dbf*pefac &
+          (b3pepsid(trial,pe079,ps079,lin)*dbf*pefac &
+          +b3pebd  (trial,pe079,bz079,lin)*dbf*pefac &
           +p1kappar(trial,ps079,ps079,pe079,lin,b2i79,kar79))
   endif
 
@@ -2258,8 +2302,25 @@ subroutine ludefphi_n(itri)
         jv = jb_vel + jj - 1
         jp = jb_phi + jj - 1
 
-        call flux_lin(g79(:,:,i),g79(:,:,j), &
-             ss(psi_g,:),dd(psi_g,:),q_ni(psi_g),q_bf(psi_g))
+        if(surface_int) then
+           ss(psi_g,:) = 0.
+           dd(psi_g,:) = 0.
+           q_ni(psi_g) = 0.
+           q_bf(psi_g) = 0.
+
+!!$           ss(bz_g,:) = 0.
+!!$           dd(bz_g,:) = 0.
+!!$           q_ni(bz_g) = 0.
+!!$           q_bf(bz_g) = 0.
+
+!!$           ss(pe_g,:) = 0.
+!!$           dd(pe_g,:) = 0.
+!!$           q_ni(pe_g) = 0.
+!!$           q_bf(pe_g) = 0.
+        else
+           call flux_lin(g79(:,:,i),g79(:,:,j), &
+                ss(psi_g,:),dd(psi_g,:),q_ni(psi_g),q_bf(psi_g))
+        endif
         if(numvar.ge.2) then
            call axial_field_lin(g79(:,:,i),g79(:,:,j), &
                 ss(bz_g,:),dd(bz_g,:),q_ni(bz_g),q_bf(bz_g))
