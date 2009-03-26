@@ -3894,9 +3894,13 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
    div_mask = fltarr(n_elements(x), n_elements(z))
    if(n_elements(xpoint) ge 2) then begin
        if(xpoint[1] lt axis[1]) then begin
-           div_mask[*,xpoint[1]:n_elements(z)-1] = 1.
+           for i=0, n_elements(z)-1 do begin
+               if(z[i] ge xpoint[1]) then div_mask[*,i] = 1.
+           end
        endif else begin
-           div_mask[*,0:xpoint[1]] = 1.
+           for i=0, n_elements(z)-1 do begin
+               if(z[i] le xpoint[1]) then div_mask[*,i] = 1.
+           end
        endelse
    endif else begin
        div_mask = 1.
