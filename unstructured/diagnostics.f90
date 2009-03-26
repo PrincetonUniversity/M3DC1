@@ -935,7 +935,7 @@ end subroutine magaxis
 !
 ! locates the magnetic axis and the value of psi there
 !=====================================================
-subroutine lcfs(phin, iplace, numvari)
+subroutine lcfs(phin, iplace, numvari, iaxis)
   use basic
   use t_data
   use nintegrate_mod
@@ -946,6 +946,7 @@ subroutine lcfs(phin, iplace, numvari)
 
   vectype, intent(in), dimension(*) :: phin
   integer, intent(in) :: iplace,numvari
+  integer, intent(in) :: iaxis
 
   real :: psix, psib, psim
   real :: xguess, zguess, x, z, temp1, temp2
@@ -957,20 +958,22 @@ subroutine lcfs(phin, iplace, numvari)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, 'Finding LCFS:'
 
-  ! Find magnetic axis
-  ! ~~~~~~~~~~~~~~~~~~
-  call magaxis(xmag,zmag,phin,iplace,numvari,psim,0,ier)
-  if(ier.eq.0) then
-     psimin = psim
-
-     if(myrank.eq.0 .and. iprint.ge.1) then 
-        write(*,'(A,2E12.4)') '  magnetic axis found at ', xmag, zmag
-        write(*,'(A, E12.4)') '  value of psi at magnetic axis ', psimin
-     end if
-  else
-     if(myrank.eq.0 .and. iprint.ge.1) then 
-        write(*,'(A,2E12.4)') '  no magnetic axis found near ', xmag, zmag
-     end if
+  if(iaxis.eq.1) then
+     ! Find magnetic axis
+     ! ~~~~~~~~~~~~~~~~~~
+     call magaxis(xmag,zmag,phin,iplace,numvari,psim,0,ier)
+     if(ier.eq.0) then
+        psimin = psim
+        
+        if(myrank.eq.0 .and. iprint.ge.1) then 
+           write(*,'(A,2E12.4)') '  magnetic axis found at ', xmag, zmag
+           write(*,'(A, E12.4)') '  value of psi at magnetic axis ', psimin
+        end if
+     else
+        if(myrank.eq.0 .and. iprint.ge.1) then 
+           write(*,'(A,2E12.4)') '  no magnetic axis found near ', xmag, zmag
+        end if
+     endif
   endif
 
   if(ifixedb) then 

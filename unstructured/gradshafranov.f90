@@ -200,7 +200,7 @@ subroutine gradshafranov_init()
      if(vzero.ne.0) call add_angular_velocity(vz1_l, x+xzero, vzero*vmask)
 
      ! add random perturbations
-     if(ifixedb.eq.1) then
+     if(nonrect.eq.1) then
         fac = vmask(1)
      else
         fac = 1.
@@ -592,15 +592,21 @@ subroutine gradshafranov_solve
         psilim = 0.
         psilim2 = 0.
      else
-        itri = 0.
-        call evaluate(xlim,zlim,psilim,ajlim,psi,1,numvargs,itri)
-
-        ! calculate psi at a second limiter point as a diagnostic
-        if(xlim2.gt.0) then
-           itri = 0.
-           call evaluate(xlim2,zlim2,psilim2,ajlim,psi,1,numvargs,itri)
+        if(xlim.eq.0) then
+           call lcfs(-psi, 1, 1, 0)
+           psilim = -psibound
+           print *, 'psilim, psimin', psilim, psimin
         else
-           psilim2 = psilim
+           itri = 0.
+           call evaluate(xlim,zlim,psilim,ajlim,psi,1,numvargs,itri)
+           
+           ! calculate psi at a second limiter point as a diagnostic
+           if(xlim2.gt.0) then
+              itri = 0.
+              call evaluate(xlim2,zlim2,psilim2,ajlim,psi,1,numvargs,itri)
+           else
+              psilim2 = psilim
+           endif
         endif
      endif
 

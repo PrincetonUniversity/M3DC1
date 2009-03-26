@@ -63,13 +63,13 @@ F77OPTS = ${FOPTS}
 CCOPTS = -c $(INCLUDE)
 
 NEWOBJS = $(COMMONDIR)subp.o $(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
-        $(COMMONDIR)fdump.o \
+        $(COMMONDIR)fdump.o interpolate.o \
 	control.o M3Dmodules.o nintegrate_mod.o metricterms_new.o \
 	newvar.o diagnostics.o gradshafranov.o transport.o \
 	hdf5_output.o time_step.o newpar.o \
 	fin.o part_fin.o ludef_t.o \
 	boundary.o unknown.o restart.o \
-	acbauer.o metricterms.o \
+	acbauer.o metricterms.o readgeqdsk.o \
 	init_conds.o PETScInterface.o
 
 LDRNEW = \

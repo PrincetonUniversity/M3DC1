@@ -560,9 +560,9 @@ subroutine derived_quantities(vec)
   ! ~~~~~~~~~
   if(eqsubtract.eq.1) then
      if(ntime.eq.ntime0) &
-          call lcfs(field0,psi_g,num_fields)
+          call lcfs(field0,psi_g,num_fields,1)
   else
-     call lcfs(field,psi_g,num_fields)
+     call lcfs(field,psi_g,num_fields,1)
   endif
 
 

@@ -195,7 +195,7 @@ module basic
   real :: n_control_d    ! derivative control time-scale
 
 
-  ! output parameters
+  ! input/output parameters
   integer :: iprint        ! print extra debugging info
   integer :: itimer        ! print timing info
   integer :: ntimepr       ! number of timesteps per output  
@@ -204,6 +204,7 @@ module basic
   integer :: icalc_scalars ! 1 = calculate scalars
   integer :: ike_only      ! 1 = only calculate kinetic energy
   integer :: ifout         ! 1 = output f field
+  integer :: iread_eqdsk   ! 1 = read geqdsk input
 
   ! general behavior
   integer :: iadapt     ! 1,2 = adapts mesh after initialization
@@ -258,7 +259,7 @@ real :: tiltangled   !   angle to which the rectangular mesh is tilted for tests
        icalc_scalars, ike_only, ifout, inertia, itwofluid,     &
        int_pts_main, int_pts_aux, int_pts_diag,                &
        iwave, bx0 , chiiner, ibootstrap, xnull, znull,         &
-       tiltangled, isurface
+       tiltangled, isurface, iread_eqdsk
 
 
   !     derived quantities
@@ -298,7 +299,6 @@ module arrays
   use p_data
   integer, parameter :: r8 = selected_real_kind(12,100)
   ! indices
-  integer :: p,q,r,s
   integer :: maxdofs1, maxdofs2, maxdofsn
   integer, allocatable :: isvaln(:,:),isval1(:,:),isval2(:,:)
   real :: fint(-6:maxi,-6:maxi), xi(3),zi(3),df(0:4,0:4)

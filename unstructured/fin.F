@@ -90,6 +90,8 @@
       integer :: ier
 
       if(myrank.eq.0 .and. iprint.eq.1) print *, " entering input.."
+
+      iread_eqdsk = 0
 !
 !.....linear parameter  0-nonlinear,  1-linear
       linear = 0

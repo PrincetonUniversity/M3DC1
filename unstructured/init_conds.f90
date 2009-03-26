@@ -1467,6 +1467,195 @@ end subroutine rotate_per
 end module rotate
 
 
+!==============================================================================
+! Eqdsk_eq
+! ~~~~~~~~
+!
+! Loads eqdsk equilibrium
+!==============================================================================
+module eqdsk_eq
+
+contains
+
+subroutine eqdsk_init()
+  use basic
+  use arrays
+
+  use eqdsk
+
+  implicit none
+
+  integer :: l, numnodes
+  real :: x, z, alx, alz
+
+  call load_eqdsk
+
+  if(myrank.eq.0) print *, press
+
+  call numnod(numnodes)
+  do l=1, numnodes
+     call nodcoord(l, x, z)
+
+     call assign_local_pointers(l)
+
+     call eqdsk_equ(x, z)
+     call eqdsk_per(x, z)
+  enddo
+
+  xmag = rmaxis
+  zmag = zmaxis
+
+  call unload_eqdsk
+
+end subroutine eqdsk_init
+
+subroutine eqdsk_equ(x, z)
+  use basic
+  use arrays
+
+  use eqdsk
+
+  implicit none
+
+  real, intent(in) :: x, z
+  real :: p, q
+  integer :: i, j, n, m
+
+  real :: dx, dz, temp, dpsi
+  real, dimension(4,4) :: a
+  real, dimension(4) :: b, c
+  
+  dx = rdim/nw
+  dz = zdim/nh
+  p = (x-rleft)/dx + 1.
+  q = (z-zmid)/dz + nh/2. + 1.
+  i = p
+  j = q
+
+  call bicubic_interpolation(psirz,nw,nh,i,j,a)
+
+  psi0_l = 0.
+  do n=1, 4
+     do m=1, 4
+        temp = a(n,m)
+        if(n.gt.1) temp = temp*(p-i)**(n-1)
+        if(m.gt.1) temp = temp*(q-j)**(m-1)
+        psi0_l(1) = psi0_l(1) + temp
+
+        temp = a(n,m)*(n-1)
+        if(n.gt.2) temp = temp*(p-i)**(n-2)
+        if(m.gt.1) temp = temp*(q-j)**(m-1)
+        psi0_l(2) = psi0_l(2) + temp/dx
+
+        temp = a(n,m)*(m-1)
+        if(n.gt.1) temp = temp*(p-i)**(n-1)
+        if(m.gt.2) temp = temp*(q-j)**(m-2)
+        psi0_l(3) = psi0_l(3) + temp/dz
+
+        temp = a(n,m)*(n-1)*(n-2)
+        if(n.gt.3) temp = temp*(p-i)**(n-3)
+        if(m.gt.1) temp = temp*(q-j)**(m-1)
+        psi0_l(4) = psi0_l(4) + temp/dx**2
+
+        temp = a(n,m)*(n-1)*(m-1)
+        if(n.gt.2) temp = temp*(p-i)**(n-2)
+        if(m.gt.2) temp = temp*(q-j)**(m-2)
+        psi0_l(5) = psi0_l(5) + temp/(dx*dz)
+
+        temp = a(n,m)*(m-1)*(m-2)
+        if(n.gt.1) temp = temp*(p-i)**(n-1)
+        if(m.gt.3) temp = temp*(q-j)**(m-3)
+        psi0_l(6) = psi0_l(6) + temp/dz**2
+     end do
+  end do
+
+  ! calculation of p
+  ! ~~~~~~~~~~~~~~~~
+  dpsi = (sibry - simag)/nw
+  p = (psi0_l(1) - simag)/dpsi + 1.
+  i = p
+
+  if(i.gt.nw) then
+     p0_l(1) = press(nw)
+     p0_l(2:6) = 0.
+     bz0_l(1) = fpol(nw)
+     bz0_l(2:6) = 0.
+  else
+     ! use press and fpol to calculate values of p and I
+     call cubic_interpolation(press,nw,i,b)
+     call cubic_interpolation(fpol,nw,i,c)
+
+     do n=1, 4
+        temp = b(n)
+        if(n.gt.1) temp = temp*(p-i)**(n-1)
+        p0_l(1) = p0_l(1) + temp
+
+        temp = c(n)
+        if(n.gt.1) temp = temp*(p-i)**(n-1)
+        bz0_l(1) = bz0_l(1) + temp
+     end do
+
+     ! use pprime and ffprime to calculate derivatives
+     call cubic_interpolation(pprime,nw,i,b)
+     call cubic_interpolation(ffprim,nw,i,c)
+
+     do n=1,4
+        temp = b(n)
+        if(n.gt.1) temp = temp*(p-i)**(n-1)
+        p0_l(2) = p0_l(2) + temp*psi0_l(2)
+        p0_l(3) = p0_l(3) + temp*psi0_l(3)
+        
+        temp = b(n)*(n-1)
+        if(n.gt.2) temp = temp*(p-i)**(n-2)
+        p0_l(4) = p0_l(4) + temp*psi0_l(4)
+        p0_l(5) = p0_l(5) + temp*psi0_l(5)
+        p0_l(6) = p0_l(6) + temp*psi0_l(6)
+
+        temp = c(n)/bz0_l(1)
+        if(n.gt.1) temp = temp*(p-i)**(n-1)
+        bz0_l(2) = bz0_l(2) + temp*psi0_l(2)
+        bz0_l(3) = bz0_l(3) + temp*psi0_l(3)
+        
+        temp = c(n)*(n-1)/bz0_l(1)
+        if(n.gt.2) temp = temp*(p-i)**(n-2)
+        bz0_l(4) = bz0_l(4) + temp*psi0_l(4)
+        bz0_l(5) = bz0_l(5) + temp*psi0_l(5)
+        bz0_l(6) = bz0_l(6) + temp*psi0_l(6)
+     end do
+  endif
+
+  ! Do unit conversions
+  p0_l = 4.*pi*1e-7*p0_l + pedge
+
+  pe0_l = p0_l*pefac
+
+  u0_l = 0.
+  vz0_l = 0.
+  chi0_l = 0.
+
+end subroutine eqdsk_equ
+
+
+subroutine eqdsk_per(x, z)
+  use basic
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x, z
+
+  u1_l = 0.
+  vz1_l = 0.
+  chi1_l = 0.
+  psi1_l = 0.
+  bz1_l = 0.
+  pe1_l = 0.
+  den1_l = 0.
+  p1_l = 0.
+
+end subroutine eqdsk_per
+  
+end module eqdsk_eq
 
 
 !=====================================
@@ -1484,8 +1673,14 @@ subroutine initial_conditions()
   use strauss
   use circular_field
   use rotate
+  use eqdsk_eq
 
   implicit none
+
+  if(iread_eqdsk.eq.1) then
+     call eqdsk_init()
+     return
+  endif
 
   if(itor.eq.0) then
      ! slab equilibria
