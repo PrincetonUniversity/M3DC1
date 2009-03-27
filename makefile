@@ -15,9 +15,9 @@ INCLUDE = -I$(COMMONDIR) -I$(NTCCHOME)/mod -I$(LIBDIR) \
 	-I$(SCORECDIR)
 
 LOADER = ifort
-F90    = ifort -c
-F77    = ifort -c
-CC     = icc -c
+F90    = ifort
+F77    = ifort
+CC     = icc
 
 OPTS =
 
@@ -56,7 +56,7 @@ endif
 BIN = gonewp${BIN_POSTFIX}
 
 #FOPTS = -r8 -implicitnone -fpp $(INCLUDE) ${OPTS}
-FOPTS = -r8 -implicitnone -save -fpp $(INCLUDE) $(OPTS) # -check all -check noarg_temp_created
+FOPTS = -c -r8 -implicitnone -save -fpp $(INCLUDE) $(OPTS) # -check all -check noarg_temp_created
 #FOPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE) ${OPTS}
 F90OPTS = ${FOPTS}
 F77OPTS = ${FOPTS}
@@ -120,6 +120,12 @@ LDRNEW = \
 
 ${BIN}: $(NEWOBJS)
 	$(LOADER) $(NEWOBJS) $(LDRNEW) -o $@
+
+make_polar : make_polar.c
+	$(CC) $< -lm -o $@
+
+readgato : readgato.f90
+	$(F90) $< -L${NTCCHOME}/lib -lpspline -o $@
 
 %.o : %.c
 	$(CC)  $(CCOPTS) $< -o $@

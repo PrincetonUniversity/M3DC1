@@ -371,6 +371,9 @@
 !
 !.....1 = adapt mesh upon initialization
       iadapt = 0
+      adapt_factor = 1.
+      adapt_hmin = 0.001
+      adapt_hmax = 0.1
 !
 !......factor multiplying chi inertial term
       chiiner = 1.
