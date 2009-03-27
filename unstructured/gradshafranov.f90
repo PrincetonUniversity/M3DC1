@@ -361,12 +361,12 @@ subroutine gradshafranov_solve
      call second(tend)
      t_gs_init = tend - tstart
   endif
-     !....read in numerical values for p and g functions for inumgs = 1
-     if(inumgs .eq. 1) call readpgfiles
+  !....read in numerical values for p and g functions for inumgs = 1
+  if(inumgs .eq. 1) call readpgfiles
 
 
   ! Define initial values of psi
-     ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(irestart.ne.2) then
 
      if(myrank.eq.0 .and. iprint.gt.0) &

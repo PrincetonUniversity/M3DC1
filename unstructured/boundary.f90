@@ -91,11 +91,11 @@ subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
 
      call nodcurvature2(inode, curv, is_boundary)
      if(.not.is_boundary) return
-
-!!$     write(*,'(A,3E12.4)') , "Normal, curv", normal, curv
   end select
   
   call nodcoord(inode,x,z)
+
+
 
 end subroutine boundary_node
 

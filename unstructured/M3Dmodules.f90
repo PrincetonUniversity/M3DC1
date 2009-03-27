@@ -206,8 +206,11 @@ module basic
   integer :: ifout         ! 1 = output f field
   integer :: iread_eqdsk   ! 1 = read geqdsk input
 
-  ! general behavior
+  ! adaptation options
   integer :: iadapt     ! 1,2 = adapts mesh after initialization
+  real :: adapt_factor
+  real :: adapt_hmin
+  real :: adapt_hmax  
 
   integer :: istart
   real :: beta
@@ -259,7 +262,8 @@ real :: tiltangled   !   angle to which the rectangular mesh is tilted for tests
        icalc_scalars, ike_only, ifout, inertia, itwofluid,     &
        int_pts_main, int_pts_aux, int_pts_diag,                &
        iwave, bx0 , chiiner, ibootstrap, xnull, znull,         &
-       tiltangled, isurface, iread_eqdsk
+       tiltangled, isurface, iread_eqdsk,                      &
+       adapt_factor, adapt_hmin, adapt_hmax
 
 
   !     derived quantities

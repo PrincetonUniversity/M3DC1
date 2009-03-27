@@ -21,6 +21,8 @@
       REAL*8, allocatable :: fspl(:,:)
       REAL*8 :: bcxmin,bcxmax,fval(3),gzero,g1,g2,psi30,psi40,g30,g40,g4bigim1,g4save
       integer :: ict(3),ibcxmin,ibcxmax,ilinx,ier,i40,i50
+
+      real, allocatable :: norm(:,:), curv(:)
 !
       pi = acos(-1.)
       amu0 = pi*4.e-7
@@ -66,6 +68,8 @@
       allocate(znorm(npsi,nthe))
       allocate(snorm(npsi),sn(np))
       allocate(xn(np,nthe),zn(np,nthe),snorm2(nthe+1),xnew(np,nt),znew(np,nt))
+      allocate(norm(2,nthe))
+      allocate(curv(nthe))
 !
       read(ngato,200) (psiflux(j),j=1,npsi) ! poloidal flux
       read(ngato,200) (fnorm(j),j=1,npsi) ! f
@@ -195,13 +199,20 @@
         enddo
       endif
 !
+      ! write POLAR file
+
       open(unit=74,file="POLAR",status="unknown")
       write(74,701) np,nt
-      do j=1,np
+      do j=1,np-1
         do i=1,nt
           write(74,702) xnew(j,i),znew(j,i)
         enddo
       enddo
+      call calc_norms(xnew(np,:),znew(np,:),nt,norm,curv)
+      do i=1,nt
+         write(74,703) xnew(np,i),znew(np,i),norm(1,i),norm(2,i),curv(i)
+      end do
+
       close(74)
 !
       open(unit=75,file="profiles",status="unknown")
@@ -318,6 +329,24 @@
       enddo
       close(77)
 !
+
+      deallocate(psiflux)
+      deallocate(fnorm)
+      deallocate(ffpnorm)
+      deallocate(ponly)
+      deallocate(pponly)
+      deallocate(qsf)
+      deallocate(dnorm)
+      deallocate(dpdz)
+      deallocate(dpdr)
+      deallocate(xnorm)
+      deallocate(znorm)
+      deallocate(snorm,sn)
+      deallocate(xn,zn,snorm2,xnew,znew)
+      deallocate(norm,curv)
+
+
+
       stop 0
    50 format(" isym, npsi, nthet, nthe  = ",4i5)
    51 format(" Rzero, Btor, I_P = ", 1p3e16.8)
@@ -335,6 +364,7 @@
   602   format(" periodicty check")
   701 format(2i5)
   702 format(1p2e18.10)
+  703 format(1p5e18.10)
   801 format(i5,"         psi                f                ff'",     &
                  "                p                 p'")
   803 format(i5,"      psinorm            fbig0             fbig",   &
@@ -343,3 +373,57 @@
                 "           g4bigp            g4bigpp")
   802 format(i5,1p6e18.10)
       end
+
+
+subroutine calc_norms(x, z, n, norm, curv)
+
+  implicit none
+
+  integer, intent(in) :: n
+  real*8, intent(in), dimension(n) :: x, z
+  real, intent(out), dimension(2,n) :: norm
+  real, intent(out), dimension(n) :: curv
+
+  integer :: i, i1, i2
+  real :: dx1, dx2, dz1, dz2, l, t1, t2, t3
+  real :: l1(n), l2(n), norm1(2), norm2(2)
+
+  ! calculate normals
+  do i=1,n
+     i1 = mod(i+n-2,n)+1
+     i2 = mod(i,n)+1
+     dx1 = x(i) - x(i1)
+     dx2 = x(i2) - x(i)
+     dz1 = z(i) - z(i1)
+     dz2 = z(i2) - z(i)
+
+     l1(i) = 1./sqrt(dx1**2 + dz1**2)
+     l2(i) = 1./sqrt(dx2**2 + dz2**2)
+     norm1(1) =  dz1*l1(i)
+     norm1(2) = -dx1*l1(i)
+     norm1(1) =  dz2*l2(i)
+     norm1(2) = -dx2*l2(i)
+
+     ! perform weigted average of adjacent edge normals
+     norm(:,i) = (l1(i)*norm1 + l2(i)*norm2)/(l1(i)+l2(i))
+
+     ! normalize normal
+     l = sqrt(norm(1,i)**2 + norm(2,i)**2)
+     norm(:,i) = norm(:,i)/l
+  enddo
+
+  ! calculate curvature
+  do i=1,n
+     i1 = mod(i+n-2,n)+1
+     i2 = mod(i,n)+1
+
+     t1 = atan2(norm(2,i1),norm(1,i1))
+     t2 = atan2(norm(2,i ),norm(1,i ))
+     t3 = atan2(norm(2,i2),norm(1,i2))
+     
+     ! perform weigted average of dtheta/dl
+     curv(i) = ((t2-t1)*l1(i)**2 + (t3-t2)*l2(i)**2)/(l1(i) + l2(i))
+  end do
+  
+
+end subroutine calc_norms

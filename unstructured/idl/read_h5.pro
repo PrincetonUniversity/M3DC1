@@ -260,7 +260,7 @@ function time_string, t
 end
 
 
-pro plot_mesh, mesh, color=col, linestyle=lin, oplot=oplot, $
+pro plot_mesh, mesh, color=col, oplot=oplot, $
                filename=filename, _EXTRA=ex
    nelms = mesh.nelms._data
    
@@ -294,11 +294,11 @@ pro plot_mesh, mesh, color=col, linestyle=lin, oplot=oplot, $
                   b * sin(t) + c * cos(t)]
        
        oplot, [p1[0],p2[0]]+xzero, [p1[1],p2[1]]+zzero, $
-         color=col, linestyle=lin
+         color=col
        oplot, [p2[0],p3[0]]+xzero, [p2[1],p3[1]]+zzero, $
-         color=col, linestyle=lin
+         color=col
        oplot, [p3[0],p1[0]]+xzero, [p3[1],p1[1]]+zzero, $
-         color=col, linestyle=lin
+         color=col
    end
 end
 

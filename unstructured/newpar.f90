@@ -22,7 +22,6 @@ Program Reducedquintic
   integer :: j, ier, numelms, numnodes
   integer :: ndofs
   real :: tstart, tend
-  real :: factor, hmin, hmax  
 
   PetscTruth :: flg
   PetscInt :: mpetscint,npetscint
@@ -280,12 +279,10 @@ Program Reducedquintic
   select case(iadapt)
   case(1)
      if(maxrank .eq. 1) then
-        factor = 0.3
-        hmin = .001
-        hmax = 0.2
 
         print *, 'adapting mesh...'
-        call hessianadapt(tempvar,1, 0, ntime, factor, hmin, hmax) 
+        call hessianadapt(tempvar,1, 0, ntime, &
+             adapt_factor, adapt_hmin, adapt_hmax)
         print *, 'done adapting.'
         call space(0)
         call tridef
@@ -295,7 +292,6 @@ Program Reducedquintic
     call copyvec(field0, psi_g, num_fields, temporary_vector, 1, 1)
     call adapt(temporary_vector,psimin,psilim)
     call tridef
-  case(0)
   end select
 
 

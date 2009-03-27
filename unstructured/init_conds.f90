@@ -1490,8 +1490,6 @@ subroutine eqdsk_init()
 
   call load_eqdsk
 
-  if(myrank.eq.0) print *, press
-
   call numnod(numnodes)
   do l=1, numnodes
      call nodcoord(l, x, z)
@@ -1576,10 +1574,8 @@ subroutine eqdsk_equ(x, z)
   i = p
 
   if(i.gt.nw) then
-     p0_l(1) = press(nw)
-     p0_l(2:6) = 0.
-     bz0_l(1) = fpol(nw)
-     bz0_l(2:6) = 0.
+     call constant_field(p0_l, press(nw))
+     call constant_field(bz0_l, fpol(nw))
   else
      ! use press and fpol to calculate values of p and I
      call cubic_interpolation(press,nw,i,b)
@@ -1627,7 +1623,13 @@ subroutine eqdsk_equ(x, z)
   ! Do unit conversions
   p0_l = 4.*pi*1e-7*p0_l + pedge
 
+  ! Set electron pressure and density
   pe0_l = p0_l*pefac
+  if(expn.eq.0) then
+     call constant_field(den0_l,1.)
+  else
+     den0_l = (p0_l/p0)**expn
+  end if
 
   u0_l = 0.
   vz0_l = 0.
