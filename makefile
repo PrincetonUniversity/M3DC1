@@ -56,7 +56,7 @@ endif
 BIN = gonewp${BIN_POSTFIX}
 
 #FOPTS = -r8 -implicitnone -fpp $(INCLUDE) ${OPTS}
-FOPTS = -c -r8 -implicitnone -save -fpp $(INCLUDE) $(OPTS) # -check all -check noarg_temp_created
+FOPTS = -c -r8 -implicitnone -save -fpp -warn unused $(INCLUDE) $(OPTS) # -check all -check noarg_temp_created
 #FOPTS = -r8 -save -Dmpi -ftz -fpp $(INCLUDE) ${OPTS}
 F90OPTS = ${FOPTS}
 F77OPTS = ${FOPTS}

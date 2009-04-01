@@ -267,9 +267,10 @@ real :: tiltangled   !   angle to which the rectangular mesh is tilted for tests
 
 
   !     derived quantities
-  real :: pi,dbf,bdf,hypv,hypc,hypf,hypi,hypp,   &
+  real :: dbf,bdf,hypv,hypc,hypf,hypi,hypp,   &
        time,                                     &
        gbound,fbound
+  real, parameter :: pi = 3.14159265358979323846
 
   ! PID controllers
   type(pid_control), save :: i_control, n_control

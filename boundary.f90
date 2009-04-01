@@ -139,7 +139,7 @@ subroutine rotate_matrix(imatrix, ibegin, normal, curv, rhs)
   real, intent(in) :: curv, normal(2)
   vectype, dimension(*), intent(inout) :: rhs
   integer :: row(5), i
-  real :: fac(2)
+
   vectype, dimension(6) :: temp
   
   if(imatrix.ne.0) then
@@ -196,7 +196,6 @@ subroutine set_tangent_bc(imatrix,ibegin,rhs,bv,normal,curv,izonedim)
   integer, intent(in) :: ibegin               ! first dof of field
   real, intent(in) :: normal(2), curv
   vectype, intent(inout), dimension(*) :: rhs ! right-hand-side of equation
-  vectype, dimension(6) :: temp
   vectype, intent(in), dimension(6) :: bv     ! boundary values
   integer, intent(in) :: izonedim             ! dimension of boundary
 
@@ -204,7 +203,6 @@ subroutine set_tangent_bc(imatrix,ibegin,rhs,bv,normal,curv,izonedim)
   integer, dimension(5) :: cols
   vectype, dimension(5) :: vals
   vectype, dimension(6) :: bv_rotated
-  real :: newnormal(2)
 
   if(imatrix.ne.0) then
      do i=1,5 
@@ -282,7 +280,6 @@ subroutine set_normal_bc(imatrix,ibegin,rhs,bv,normal,curv,izonedim)
   integer, dimension(5) :: cols
   vectype, dimension(5) :: vals
   vectype, dimension(6) :: bv_rotated
-  real :: newnormal(2)
 
   if(imatrix.ne.0) then
      do i=1,5 
@@ -800,16 +797,13 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
   vectype, intent(inout), dimension(*) :: rhs
   
   integer :: i, izone, izonedim
-  integer :: ibegin, iendplusone, numnodes, ineg, ier
+  integer :: ibegin, iendplusone, numnodes, ineg
   real :: normal(2), curv
   real :: x, z,  alx, alz
   real, dimension(6) :: g
   real, dimension(1) :: xp, zp, xc, zc
-  double precision :: coords(3)
   logical :: is_boundary
   vectype, dimension(6) :: temp
-  real, dimension(2) :: temp1, temp2
-  include 'mpif.h'
 
   if(iper.eq.1 .and. jper.eq.1) return
   if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_gs called"

@@ -2552,15 +2552,18 @@ pro nulls, psi, x, z, axis=axis, xpoints=xpoint, $
 
            currentmin = field[0,i,j]
            currentpos = [i,j]
+           foundlocalmin = 0
 
            ; find local minimum
            for m=i, sz[2]-1 do begin
-               for n=j, sz[3]-1 do begin
+               if(nulls[0,m,j] eq 0) then break
+               for n=j+1, sz[3]-1 do begin
                    if(nulls[0,m,n] eq 0) then break
 
                    if(field[0,m,n] le currentmin) then begin
                        currentmin = field[0,m,n]
                        currentpos = [m,n]
+                       foundlocalmin = 1
                    endif
                    nulls[0,m,n] = 0
                endfor
@@ -2570,10 +2573,13 @@ pro nulls, psi, x, z, axis=axis, xpoints=xpoint, $
                    if(field[0,m,n] le currentmin) then begin
                        currentmin = field[0,m,n]
                        currentpos = [m,n]
+                       foundlocalmin = 1
                    endif
                    nulls[0,m,n] = 0
                endfor
            endfor
+
+           if (foundlocalmin eq 0) then continue
 
            ; throw out local minima on boundaries
            if (currentpos[0] eq 0) or (currentpos[0] eq sz[2]-1) then continue
@@ -2581,15 +2587,17 @@ pro nulls, psi, x, z, axis=axis, xpoints=xpoint, $
 
            ; determine if point is an x-point or an axis and
            ; append the location index to the appropriate array
-           if(psi[0,currentpos[0],currentpos[1]] gt oldxflux) then begin
-               if(d2[0,currentpos[0],currentpos[1]] lt 0) then begin
+           if(d2[0,currentpos[0],currentpos[1]] lt 0) then begin
+               if(psi[0,currentpos[0],currentpos[1]] gt oldxflux) then begin
                    xpoint = [x[currentpos[0]], z[currentpos[1]]]
                    oldxflux = psi[0,currentpos[0],currentpos[1]]
-               endif else begin
+               end
+           endif else begin
+               if(psi[0,currentpos[0],currentpos[1]] gt oldxflux) then begin
                    axis = [x[currentpos[0]], z[currentpos[1]]]
                    oldaflux = psi[0,currentpos[0],currentpos[1]]
-               endelse
-           endif
+               endif
+           endelse
        endfor
    endfor 
 

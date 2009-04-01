@@ -1480,15 +1480,24 @@ contains
 subroutine eqdsk_init()
   use basic
   use arrays
-
   use eqdsk
+  use gradshafranov
+  use newvar_mod
+  use sparse
 
   implicit none
 
   integer :: l, numnodes
-  real :: x, z, alx, alz
+  real :: x, z, dpsi
+  real, parameter :: amu0 = pi*4.e-7
+
+  print *, "eqdsk_init called"
 
   call load_eqdsk
+  press = press*amu0
+  pprime = pprime*amu0
+  current = current*amu0
+
 
   call numnod(numnodes)
   do l=1, numnodes
@@ -1500,8 +1509,25 @@ subroutine eqdsk_init()
      call eqdsk_per(x, z)
   enddo
 
+  tcuro = current
   xmag = rmaxis
   zmag = zmaxis
+  rzero = rmaxis
+  bzero = fpol(nw)/rzero
+
+  if(igs.gt.0) then
+     fieldi = field0
+
+     dpsi = sibry-simag
+     call create_profile(nw,press,pprime,fpol,ffprim,dpsi)
+
+     ! initial guess
+!!$     call newvar(mass_matrix_lhs_dc,jphi,field0,psi_g,num_fields, &
+!!$          gs_matrix_rhs_dc,NV_DCBOUND)
+     call deltafun(xmag,zmag,tcuro,jphi,1,1)
+
+     call gradshafranov_solve()
+  endif
 
   call unload_eqdsk
 
@@ -1523,14 +1549,14 @@ subroutine eqdsk_equ(x, z)
   real, dimension(4,4) :: a
   real, dimension(4) :: b, c
   
-  dx = rdim/nw
-  dz = zdim/nh
+  dx = rdim/(nw - 1.)
+  dz = zdim/(nh - 1.)
   p = (x-rleft)/dx + 1.
   q = (z-zmid)/dz + nh/2. + 1.
   i = p
   j = q
 
-  call bicubic_interpolation(psirz,nw,nh,i,j,a)
+  call bicubic_interpolation_coeffs(psirz,nw,nh,i,j,a)
 
   psi0_l = 0.
   do n=1, 4
@@ -1569,7 +1595,7 @@ subroutine eqdsk_equ(x, z)
 
   ! calculation of p
   ! ~~~~~~~~~~~~~~~~
-  dpsi = (sibry - simag)/nw
+  dpsi = (sibry - simag)/(nw - 1.)
   p = (psi0_l(1) - simag)/dpsi + 1.
   i = p
 
@@ -1577,11 +1603,12 @@ subroutine eqdsk_equ(x, z)
      call constant_field(p0_l, press(nw))
      call constant_field(bz0_l, fpol(nw))
   else
-     ! use press and fpol to calculate values of p and I
-     call cubic_interpolation(press,nw,i,b)
-     call cubic_interpolation(fpol,nw,i,c)
 
-     do n=1, 4
+     ! use press and fpol to calculate values of p and I
+     call cubic_interpolation_coeffs(press,nw,i,b)
+     call cubic_interpolation_coeffs(fpol,nw,i,c)
+
+     do n=1,4
         temp = b(n)
         if(n.gt.1) temp = temp*(p-i)**(n-1)
         p0_l(1) = p0_l(1) + temp
@@ -1591,9 +1618,10 @@ subroutine eqdsk_equ(x, z)
         bz0_l(1) = bz0_l(1) + temp
      end do
 
+
      ! use pprime and ffprime to calculate derivatives
-     call cubic_interpolation(pprime,nw,i,b)
-     call cubic_interpolation(ffprim,nw,i,c)
+     call cubic_interpolation_coeffs(pprime,nw,i,b)
+     call cubic_interpolation_coeffs(ffprim,nw,i,c)
 
      do n=1,4
         temp = b(n)
@@ -1620,11 +1648,11 @@ subroutine eqdsk_equ(x, z)
      end do
   endif
 
-  ! Do unit conversions
-  p0_l = 4.*pi*1e-7*p0_l + pedge
+  p0_l = p0_l + pedge
 
   ! Set electron pressure and density
-  pe0_l = p0_l*pefac
+  pe0_l = (1. - ipres*pi0/p0)*p0_l
+
   if(expn.eq.0) then
      call constant_field(den0_l,1.)
   else
