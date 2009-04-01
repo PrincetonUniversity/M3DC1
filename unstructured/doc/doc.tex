@@ -236,8 +236,25 @@ runs.
 \end{enumerate}
 
 
+\section{Reading eqdsk ``g'' files}
 
-
+\codename may be initialized with an eqdsk equilibrium by the following method:
+\begin{enumerate}
+\item Place the eqdsk ``g'' file in the working directory, and rename
+  it \texttt{geqdsk}.
+\item Set \texttt{iread\_eqdsk=1}.
+\end{enumerate}
+To simply read in the eqdsk file, make sure that \texttt{igs=0} and
+run \codename.  To improve the accuracy of the equilibrium, the
+Grad-Shafranov solver may be run using the profiles in the eqdsk
+file.  To do this:
+\begin{enumerate}
+\item Set \texttt{igs} to a nonzero value.
+\item If there are no limiters in the interior of the simulation
+  domain, set \texttt{xlim=0} and set \texttt{xnull} and \texttt{znull}
+  to the approximate position of the active x-point if the equilibrium
+  is diverted.
+\end{enumerate}
 
 
 

@@ -260,61 +260,36 @@ subroutine edge_to_local(ngauss, delta, line_weight, &
   real, dimension(ngauss), intent(out) :: si, eta, local_weight
   real, dimension(2), intent(in) :: n1, n2
 
-  real :: l, d
+  real :: l
 
   real :: m1(2), m2(2)    ! m are the normal vectors in the local coord sys
-  real :: co, sn, si0, eta0, cost, t, r, phi1, phi2, phi(ngauss)
+  real :: co, sn
   real, parameter :: epsilon = 1.-1.e-6
 
   l = sqrt((si2-si1)**2 + (eta2-eta1)**2)
-!!$  cost = n1(1)*n2(1) + n1(2)*n2(2)
-!!$
-!!$  if(cost.gt.epsilon) then
-     si =  0.5*(( si2- si1)*delta +  si2 +  si1)
-     eta = 0.5*((eta2-eta1)*delta + eta2 + eta1)
-     local_weight = 0.5*line_weight*l
 
-     norm79(1:ngauss,1) = 0.5*(n2(1)*(1.+delta) + n1(1)*(1.-delta))
-     norm79(1:ngauss,2) = 0.5*(n2(2)*(1.+delta) + n1(2)*(1.-delta))
+  si =  0.5*(( si2- si1)*delta +  si2 +  si1)
+  eta = 0.5*((eta2-eta1)*delta + eta2 + eta1)
+  local_weight = 0.5*line_weight*l
 
-     co = cos(theta)
-     sn = sin(theta)
+  norm79(1:ngauss,1) = 0.5*(n2(1)*(1.+delta) + n1(1)*(1.-delta))
+  norm79(1:ngauss,2) = 0.5*(n2(2)*(1.+delta) + n1(2)*(1.-delta))
 
-     ! calculate expected normal vector (in global coordinates)
-     m1(1) = (eta2 - eta1)*co - (si1 - si2)*sn
-     m1(2) = (eta2 - eta1)*sn + (si1 - si2)*co
-     ! calculate actual normal vector
-     m2 = 0.5*(n1 + n2)
+  co = cos(theta)
+  sn = sin(theta)
 
-     ! if actual normal vector is opposite sign of expected vector,
-     ! flip integration limits (i.e. flip sign of Jacobian)
-     if(m1(1)*m2(1) + m1(2)*m2(2) .lt. 0.) then
-        local_weight = -local_weight
-        print *, 'Flipping edge.'
-     endif
+  ! calculate expected normal vector (in global coordinates)
+  m1(1) = (eta2 - eta1)*co - (si1 - si2)*sn
+  m1(2) = (eta2 - eta1)*sn + (si1 - si2)*co
+  ! calculate actual normal vector
+  m2 = 0.5*(n1 + n2)
 
-!!$  else
-!!$     co = cos(theta)
-!!$     sn = sin(theta)
-!!$
-!!$     m1(1) =  n1(1)*co + n1(2)*sn
-!!$     m1(2) = -n1(1)*sn + n1(2)*co 
-!!$     m2(1) =  n2(1)*co + n2(2)*sn
-!!$     m2(2) = -n2(1)*sn + n2(2)*co
-!!$
-!!$     t = acos(cost)
-!!$     r = abs(.5*l/sin(0.5*t))
-!!$     si0  =  si1 - r*m1(1)
-!!$     eta0 = eta1 - r*m1(2)
-!!$     phi1 = atan2(eta1-eta0,si1-si0)
-!!$     phi2 = atan2(eta2-eta0,si2-si0)
-!!$     phi = 0.5*(phi2*(1.+delta) + phi1*(1.-delta))
-!!$     si = r*cos(phi) + si0
-!!$     eta = r*sin(phi) + eta0
-!!$     local_weight = 0.5*line_weight*r*(phi2-phi1)
-!!$     norm79(1:ngauss,1) = cos(phi+theta)
-!!$     norm79(1:ngauss,2) = sin(phi+theta)
-!!$  end if
+  ! if actual normal vector is opposite sign of expected vector,
+  ! flip integration limits (i.e. flip sign of Jacobian)
+  if(m1(1)*m2(1) + m1(2)*m2(2) .lt. 0.) then
+     local_weight = -local_weight
+     print *, 'Flipping edge.'
+  endif
  
 end subroutine edge_to_local
 

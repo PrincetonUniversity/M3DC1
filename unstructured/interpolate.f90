@@ -1,12 +1,12 @@
 !=====================================================
-! bicubic_interpolation
-! ~~~~~~~~~~~~~~~~~~~~~
+! bicubic_interpolation_coeffs
+! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 !
 ! calculates bicubic polynomial coefficients a of
 ! x, an array of dimension m x n,
 ! about index (i,j)
 !=====================================================
-subroutine bicubic_interpolation(x,m,n,i,j,a)
+subroutine bicubic_interpolation_coeffs(x,m,n,i,j,a)
   implicit none
 
   integer, intent(in) :: m, n, i, j
@@ -61,17 +61,17 @@ subroutine bicubic_interpolation(x,m,n,i,j,a)
            -3.*x(i  ,j-1)+9.*x(i  ,j)-9.*x(i  ,j+1)+3.*x(i  ,j+2) &
            +3.*x(i+1,j-1)-9.*x(i+1,j)+9.*x(i+1,j+1)-3.*x(i+1,j+2) &
               -x(i+2,j-1)+3.*x(i+2,j)-3.*x(i+2,j+1)   +x(i+2,j+2))/36.  
-end subroutine bicubic_interpolation
+end subroutine bicubic_interpolation_coeffs
 
 !=====================================================
-! cubic_interpolation
-! ~~~~~~~~~~~~~~~~~~~
+! cubic_interpolation_coeffs
+! ~~~~~~~~~~~~~~~~~~~~~~~~~~
 !
 ! calculates cubic polynomial coefficients a of
 ! x, an array of dimension m x n,
 ! about index i
 !=====================================================
-subroutine cubic_interpolation(x,m,i,a)
+subroutine cubic_interpolation_coeffs(x,m,i,a)
 
   implicit none
 
@@ -89,12 +89,36 @@ subroutine cubic_interpolation(x,m,i,a)
      a(3) = (    x(i-1) - 2.*x(i)    + x(i+1))/2.
      a(4) = (   -x(i-1) + 3.*x(i) - 2.*x(i+1))/6.
   else if(i.eq.m) then
-     a(2) = (-2.*x(i-1) + 2.*x(i))/6.
-     a(3) = (    x(i-1) -    x(i))/2.
-     a(4) = (   -x(i-1) +    x(i))/6.
+     a(2) = (-x(i-1) + x(i))/3.
+     a(3) = ( x(i-1) - x(i))/2.
+     a(4) = (-x(i-1) + x(i))/6.
   else
      a(2) = (-2.*x(i-1) - 3.*x(i) + 6.*x(i+1) - x(i+2))/6.
      a(3) = (    x(i-1) - 2.*x(i)    + x(i+1)         )/2.
      a(4) = (   -x(i-1) + 3.*x(i) - 3.*x(i+1) + x(i+2))/6.
   end if
+end subroutine cubic_interpolation_coeffs
+
+subroutine cubic_interpolation(m, p, p0, f, f0)
+  implicit none
+
+  integer, intent(in) :: m
+  real, intent(in), dimension(m) :: f, p
+  real, intent(in) :: p0
+  real, intent(out) :: f0
+
+  real, dimension(4) :: a
+  integer :: i
+  real :: dp
+
+  do i=1, m-1
+     if(p(i+1).gt.p0) exit
+  end do
+
+  call cubic_interpolation_coeffs(f,m,i,a)
+
+  dp = (p0-p(i))/(p(i+1)-p(i))
+
+  f0 = a(1) + a(2)*dp + a(3)*dp**2 + a(4)*dp**3
+  
 end subroutine cubic_interpolation

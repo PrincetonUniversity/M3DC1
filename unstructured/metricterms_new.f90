@@ -9250,18 +9250,12 @@ vectype function torque_gyro()
 
   implicit none
 
-  vectype, dimension(20) :: avec
   vectype :: temp
 
   if(gyro.eq.0 .or. numvar.lt.2) then
      torque_gyro = 0.
      return
   endif
-
-!!$  call calcavector(itri, gyro_tau, 1, 1, avec)
-!!$  call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, tm79)
-!!$
-!!$  torque_gyro = int1(tm79(:,OP_1))
 
   temp79a = 0.25*dbf*b2i79(:,OP_1)
   temp79b = temp79a*(1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)

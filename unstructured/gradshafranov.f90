@@ -3,6 +3,12 @@ module gradshafranov
   implicit none
 
   integer, parameter :: numvargs = 1
+  integer, parameter :: maxbundles = 20
+  integer, parameter :: subcoils = 5
+  integer, parameter :: maxcoils = maxbundles*subcoils**2
+
+  character*8, parameter :: coil_filename = "coil.dat"
+  character*11, parameter :: current_filename = "current.dat"
   
   vectype, allocatable :: psi(:)
   real, allocatable :: fun1(:), fun2(:), fun3(:), fun4(:)
@@ -11,10 +17,14 @@ module gradshafranov
   integer :: itnum
   real :: separatrix_top, separatrix_bottom
 
+  logical :: constraint = .false.
+
   integer :: npsi
   real, allocatable :: psinorm(:)
   real, allocatable :: g4big0t(:), g4bigt(:), g4bigpt(:), g4bigppt(:)
   real, allocatable :: fbig0t(:), fbigt(:), fbigpt(:), fbigppt(:)
+
+  real :: fac2, gnorm, libetapeff
 
   integer, parameter :: NSTX_coils = 158
   real, dimension(NSTX_coils) :: NSTX_r, NSTX_z, NSTX_I
@@ -167,23 +177,46 @@ subroutine gradshafranov_init()
 
   implicit none
 
-  integer :: l, numnodes
+  integer :: i, numnodes
   real :: tstart, tend, x, z, fac
   vectype, dimension(6) :: vmask
 
+
+  call numnod(numnodes)
+
+  ! Define initial values of psi
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(irestart.ne.2) then
+
+     if(ifixedb.eq.0) call vacuum_field
+     
+     ! define initial field associated with delta-function source
+     !     corresponding to current tcuro at location (xmag,zmag)
+     call deltafun(xmag,zmag,tcuro,jphi,1,1)
+
+  else   ! on irestart.ne.2
+     psimin = -psimin
+     psilim = -psilim
+     do i=1,numnodes
+       call assign_local_pointers(i)
+       psi0_l = -psi0_l
+     enddo
+  endif   ! on irestart.ne.2
+
+  fieldi = field0
+
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  call gradshafranov_solve()
+  if(igs.ne.0) call gradshafranov_solve()
   if(myrank.eq.0 .and. itimer.eq.1) then 
      call second(tend)
      t_gs = tend - tstart
   endif
 
-  call numnod(numnodes)
-  do l=1, numnodes
+  do i=1, numnodes
 
-     call nodcoord(l, x, z)
+     call nodcoord(i, x, z)
 
-     call assign_local_pointers(l)
+     call assign_local_pointers(i)
 
      u0_l = 0.
      vz0_l = 0.
@@ -211,6 +244,140 @@ subroutine gradshafranov_init()
   
 end subroutine gradshafranov_init
 
+
+! vacuum_field
+subroutine vacuum_field()
+  use basic
+  use arrays
+
+  implicit none
+
+  real, dimension(6,maxcoils) :: g
+  real, dimension(6) :: g1, g2
+  real, dimension(maxcoils) :: xp, zp, xc, zc, ic
+  real, dimension(2) :: xx, zz
+  real :: x, z, aminor, bv, rnorm, gnorm, fac
+  integer :: i, k, Numnodes, ineg, ipole, numcoils
+
+  if(myrank.eq.0 .and. iprint.gt.0) &
+       print *, " calculating vacuum field conditions..."
+
+  ! based on filiment with current tcuro
+  ! and vertical field of strength bv given by shafranov formula
+  ! NOTE:  This formula assumes (li/2 + beta_P) = libetap
+  fac  = tcuro/(2.*pi)
+  fac2 = tcuro / (8.*pi**2*xmag)
+  ! minor radius
+  aminor = abs(xmag-xlim)
+  if(itor.eq.1) then
+     bv =  alog(8.*xmag/aminor) - 1.5 + libetap
+     libetapeff = libetap
+  else
+     bv = 0.
+  endif
+
+  rnorm = 10.
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, "gradshafranov_solve xmag zmag xzero zzero= ", &
+       xmag, zmag, xzero, zzero
+  
+  !......define feedback parameters needed for normalization
+  if(idevice .eq. 0) then
+     xx(1) = 102.
+     zz(1) = rnorm
+     xp = xlim
+     zp = zlim
+     call gvect(xp,zp,xx,zz,1,g1,1,ineg)
+     xp = xlim2
+     zp = zlim2
+     call gvect(xp,zp,xx,zz,1,g2,1,ineg)
+     gnorm = g1(1) - g2(1)
+  endif
+  
+    
+  ipole = 0
+  select case(idevice)
+  case(-1)
+     call load_coils(xc,zc,ic,numcoils)
+     
+  case(1) ! CDX-U
+     numcoils = 4
+     xc(1) = 0.846
+     zc(1) = 0.360
+     xc(2) = 0.846
+     zc(2) =-0.360
+     xc(3) = 0.381
+     zc(3) = 0.802
+     xc(4) = 0.381
+     zc(4) =-0.802
+     ic = -.2*fac
+     
+  case(2) ! NSTX
+     numcoils = NSTX_coils
+     xc(1:NSTX_coils) = NSTX_r
+     zc(1:NSTX_coils) = NSTX_z
+     ic(1:NSTX_coils) = fac*NSTX_I
+     
+  case(3) ! ITER
+     numcoils = ITER_coils
+     xc(1:ITER_coils) = ITER_r
+     zc(1:ITER_coils) = ITER_z
+     ic(1:ITER_coils) = fac*ITER_I
+     separatrix_top = 4.5
+     separatrix_bottom = -3.5
+     
+  case(4) ! DIII
+     numcoils = DIII_coils
+     xc(1:DIII_coils) = DIII_r
+     zc(1:DIII_coils) = DIII_z
+     ic(1:DIII_coils) = fac*DIII_I
+     separatrix_top = 1.2
+     separatrix_bottom = -1.2
+     
+  case default ! Generic
+     numcoils = 1
+     xc(1) = 102.
+     zc(1) = rnorm
+     ipole = 1
+     ic = bv*fac2
+  end select
+
+
+  call numnod(numnodes)
+  do i=1,numnodes
+     
+     call assign_local_pointers(i)
+     
+     call nodcoord(i,x,z)
+     xp = x
+     zp = z
+     
+     ! Field due to coil currents
+     call gvect(xp,zp,xc,zc,numcoils,g,ipole,ineg)
+     do k=1,numcoils
+        psi0_l = psi0_l + g(:,k)*ic(k)
+     end do
+        
+     ! Fields due to extra divertors
+     if(divertors.ge.1) then
+        xx(:) = xdiv
+        zz(1) = zdiv
+        if(divertors.eq.2) zc(2) = -zdiv
+        call gvect(xp,zp,xx,zz,divertors,g,0,ineg)
+        do k=1,divertors
+           psi0_l = psi0_l + fac*divcur*g(:,k)
+        end do
+     endif
+
+     ! Field due to plasma current
+     xx(1) = xmag
+     zz(1) = zmag
+     call gvect(xp,zp,xx,zz,1,g,0,ineg)
+     psi0_l = psi0_l + g(:,1)*tcuro/(2.*pi)
+  enddo
+  
+end subroutine vacuum_field
+
 !============================================================
 subroutine gradshafranov_solve
 
@@ -228,7 +395,7 @@ subroutine gradshafranov_solve
 #endif
 #include "finclude/petsc.h"
   
-  real :: gsint1,gsint4,gsint2,gsint3,lhs,diff,cfac(18)
+  real :: gsint1,gsint4,gsint2,gsint3,lhs,cfac(18)
   real, allocatable :: temp(:)
   vectype, allocatable :: b1vecini(:)
   vectype, allocatable :: b2vecini(:)
@@ -237,28 +404,21 @@ subroutine gradshafranov_solve
   integer :: izone, izonedim
   logical :: is_boundary
 
-  integer, parameter :: maxcoils = NSTX_coils
-  integer :: numcoils, ii
-
-  integer :: itri,i,i1,j,j1,jone, k
+  integer :: itri,i,ii,i1,j,j1,jone, k,ier
   integer :: numelms, numnodes
   integer :: ibegin, iendplusone
-  integer :: ineg, ier
   real :: dterm(18,18), sterm(18,18)
-  real :: fac, fac2, aminor, bv, feedfac, libetapeff, gnorm, fintl(-6:maxi,-6:maxi)
-  real, dimension(6,maxcoils) :: g
-  real, dimension(6) :: g1, g2
-  real, dimension(maxcoils) :: xp, zp, xc, zc
-  real :: x, z, xrel, zrel, xguess, zguess, error, error2
-  real :: sum, rhs, ajlim, curr, norm, rnorm, g0, sum2, norm2
+  real :: feedfac, fintl(-6:maxi,-6:maxi)
+
+  real :: x, z, error, error2
+  real :: sum, rhs, ajlim, curr, norm, g0, sum2, norm2
   real, dimension(5) :: temp1, temp2
-  real :: alx, alz
   real :: psilim2,gamma2a,gamma2b,gamma3a,gamma3b
   
   real :: tstart, tend
 
-  integer :: nodeids(4), jj, idim(3)
-  real :: n(2,3), c(3)
+  integer ::  idim(3)
+  real :: n(2,3)
   logical :: is_edge(3)  ! is inode on boundary
 
   PetscTruth :: flg_petsc, flg_solve2, flg_solve1
@@ -287,6 +447,10 @@ subroutine gradshafranov_solve
   call createrealvec(fun4, numvargs)
   call createrealvec(fun2, numvargs)
   call createrealvec(fun3, numvargs)  
+
+  call copyvec(field0, psi_g, num_fields, psi, 1, numvargs)
+  call copyvec(jphi, 1, 1, b1vecini, 1, numvargs)
+
 
   ! form the grad-sharfranov matrix
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -352,179 +516,19 @@ subroutine gradshafranov_solve
 !
   call boundary_gs(gsmatrix_sm, b2vecini, feedfac)
   call finalizematrix(gsmatrix_sm)
-!
-!>>>>>debug
-!     call writematrixtofile(gsmatrix_sm,33)
-!     call safestop(0)
 
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      t_gs_init = tend - tstart
   endif
   !....read in numerical values for p and g functions for inumgs = 1
-  if(inumgs .eq. 1) call readpgfiles
+  if(inumgs .eq. 1) then
+     call readpgfiles
+  else
+     if(.not.allocated(psinorm)) call default_profiles
+  endif
 
 
-  ! Define initial values of psi
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(irestart.ne.2) then
-
-     if(myrank.eq.0 .and. iprint.gt.0) &
-          print *, " calculating boundary conditions..."
-
-     ! based on filiment with current tcuro
-     ! and vertical field of strength bv given by shafranov formula
-     ! NOTE:  This formula assumes (li/2 + beta_P) = libetap
-     fac  = tcuro/(2.*pi)
-     fac2 = tcuro / (8.*pi**2*xmag)
-     ! minor radius
-     aminor = abs(xmag-xlim)
-     if(itor.eq.1) then
-       bv =  alog(8.*xmag/aminor) - 1.5 + libetap
-       libetapeff = libetap
-     else
-       bv = 0.
-     endif
-     call getboundingboxsize(alx,alz)
-     rnorm = 10.
-     if(myrank.eq.0 .and. iprint.ge.1) &
-           print *, "gradshafranov_solve xmag zmag alx alz xzero zzero= ", &
-                    xmag, zmag, alx, alz, xzero, zzero
-
-!......define feedback parameters needed for normalization
-     if(idevice .eq. 0) then
-       xc(1) = 102.
-       zc(1) = rnorm
-       xp = xlim
-       zp = zlim
-       call gvect(xp,zp,xc,zc,1,g1,1,ineg)
-       xp = xlim2
-       zp = zlim2
-       call gvect(xp,zp,xc,zc,1,g2,1,ineg)
-       gnorm = g1(1) - g2(1)
-     endif
-
-
-     psi = 0.
-
-     if(myrank.eq.0 .and. iprint.ge.2) &
-          print *, "gradshafranov_solve i xp zp = "
-     do i=1,numnodes
-
-        call entdofs(numvargs, i, 0, ibegin, iendplusone)
-        call assign_local_pointers(i)
-
-        separatrix_top = 1e10
-        separatrix_bottom = -1e10
-
-        if(ifixedb.eq.0) then
-           call nodcoord(i,x,z)
-           xp = x
-           zp = z
-
-           if(myrank.eq.0 .and. iprint.ge.2) &
-                print *, i, xp(1), zp(1)
-
-           ! Field due to plasma current
-           xc(1) = xmag
-           zc(1) = zmag
-           call gvect(xp,zp,xc,zc,1,g,0,ineg)
-           psi(ibegin:ibegin+5) =   g(:,1)*fac
-
-           ! Field due to external coils
-           select case(idevice)
-           case(1) ! CDX-U
-              numcoils = 4
-              xc(1) = 0.846
-              zc(1) = 0.360
-              xc(2) = 0.846
-              zc(2) =-0.360
-              xc(3) = 0.381
-              zc(3) = 0.802
-              xc(4) = 0.381
-              zc(4) =-0.802
-              call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)
-              g = -g*.2*fac
-           case(2) ! NSTX
-              numcoils = NSTX_coils
-              xc(1:NSTX_coils) = NSTX_r
-              zc(1:NSTX_coils) = NSTX_z
-              call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)
-              do k=1,NSTX_coils
-                 g(:,k) = g(:,k)*fac*NSTX_I(k)
-              enddo
-           case(3) ! ITER
-              numcoils = ITER_coils
-              xc(1:ITER_coils) = ITER_r
-              zc(1:ITER_coils) = ITER_z
-              call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)
-              do k=1,ITER_coils
-                 g(:,k) = g(:,k)*fac*ITER_I(k)
-              enddo
-              separatrix_top = 4.5
-              separatrix_bottom = -3.5
-           case(4) ! DIII
-              numcoils = DIII_coils
-              xc(1:DIII_coils) = DIII_r
-              zc(1:DIII_coils) = DIII_z
-              call gvect(xp,zp,xc,zc,numcoils,g,0,ineg)
-              do k=1,DIII_coils
-                 g(:,k) = g(:,k)*fac*DIII_I(k)
-              enddo
-              separatrix_top = 4.5
-              separatrix_bottom = -3.5
-           case default ! Generic
-              numcoils = 1
-              xc(1) = 102.
-              zc(1) = rnorm
-              call gvect(xp,zp,xc,zc,numcoils,g,1,ineg)
-              g = g*bv*fac2
-           end select
-
-
-           do k=1,numcoils
-              psi(ibegin:ibegin+5) = psi(ibegin:ibegin+5) + g(:,k)
-           end do
-
-           ! Add fields from divertor coils
-           if(divertors.ge.1) then
-              xc = xdiv
-              zc(1) = zdiv
-              if(divertors.eq.2) zc(2) = -zdiv
-              call gvect(xp,zp,xc,zc,divertors,g,0,ineg)
-              do k=1,divertors
-                 psi(ibegin:ibegin+5) = psi(ibegin:ibegin+5) + fac*divcur*g(:,k)
-              end do
-           endif
-        endif
-
-        ! store boundary conditions on psi
-        psis_l = psi(ibegin:ibegin+5)
-     enddo
-
-
-     ! define initial b1vecini associated with delta-function source
-     !     corresponding to current tcuro at location (xmag,zmag)
-
-     if(myrank.eq.0 .and. iprint.gt.0) then
-         write(*,2008) xrel,zrel,tcuro
-    2008 format(" initializing current, xrel,zrel,tcuro =",1p3e12.4)
-         endif
-
-     b1vecini = 0.
-     call deltafun(xmag,zmag,b1vecini,tcuro, ier)
-     if(ier .gt. 0) call safestop(7)
-!
-  else   ! on irestart.ne.2
-     psimin = -psimin
-     psilim = -psilim
-     do i=1,numnodes
-       call entdofs(numvargs,i,0,ibegin,iendplusone)
-       call assign_local_pointers(i)
-       psi(ibegin:ibegin+5) = -psi0_l
-       psis_l = psi(ibegin:ibegin+5)
-     enddo
-  endif   ! on irestart.ne.2
   if(myrank.eq.0) then
   write(*,999) 
 999 format("    I    error        error2       xmag         psimin       psilim" &
@@ -540,42 +544,42 @@ subroutine gradshafranov_solve
      ! apply boundary conditions
 
      if(irestart.ne.2 .or. itnum.gt.1) then
-       feedfac = 0.
-       if(itnum.gt.1 .and. gnorm.ne.0 .and. xlim2.ne.0) then
-         feedfac = -0.25*(psilim - psilim2)/gnorm
-!......as a diagnostic, calculate the effective value of libetap (including feedback term)
-         libetapeff =  libetapeff + feedfac/fac2
-         if(myrank.eq.0 .and. iprint.eq.1) &
-              write(*,'(A,4E12.4)') "feedfac, psilim, psilim2,gnorm", &
-              feedfac, psilim, psilim2, gnorm
-       endif
-
-       call boundary_gs(0, b1vecini, feedfac)
-
-       ! perform LU backsubstitution to get psi solution
-       if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-       b2vecini = b1vecini
-       if(flg_petsc .and. flg_solve1) then
-         call solve1(gsmatrix_sm,b1vecini,ier)
-       else
-         call solve(gsmatrix_sm,b1vecini,ier)
-       endif
-       if(ier.ne.0) then
-          if(myrank.eq.0) print *, 'Error in GS solve'
-          call safestop(10)
-       end if
-       if(myrank.eq.0 .and. itimer.eq.1) then
-          call second(tend)
-          t_gs_solve = t_gs_solve + tend - tstart
-       endif
-
-       if(itnum.eq.1) then
-          psi = b1vecini
-       else
-          psi = th_gs*b1vecini + (1.-th_gs)*psi
-       endif
+        feedfac = 0.
+        if(itnum.gt.1 .and. gnorm.ne.0 .and. xlim2.ne.0) then
+           feedfac = -0.25*(psilim - psilim2)/gnorm
+           !......as a diagnostic, calculate the effective value of libetap (including feedback term)
+           libetapeff =  libetapeff + feedfac/fac2
+           if(myrank.eq.0 .and. iprint.eq.1) &
+                write(*,'(A,4E12.4)') "feedfac, psilim, psilim2,gnorm", &
+                feedfac, psilim, psilim2, gnorm
+        endif
+        
+        call boundary_gs(0, b1vecini, feedfac)
+        
+        ! perform LU backsubstitution to get psi solution
+        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+        b2vecini = b1vecini
+        if(flg_petsc .and. flg_solve1) then
+           call solve1(gsmatrix_sm,b1vecini,ier)
+        else
+           call solve(gsmatrix_sm,b1vecini,ier)
+        endif
+        if(ier.ne.0) then
+           if(myrank.eq.0) print *, 'Error in GS solve'
+           call safestop(10)
+        end if
+        if(myrank.eq.0 .and. itimer.eq.1) then
+           call second(tend)
+           t_gs_solve = t_gs_solve + tend - tstart
+        endif
+        
+        if(itnum.eq.1) then
+           psi = b1vecini
+        else
+           psi = th_gs*b1vecini + (1.-th_gs)*psi
+        endif
      endif
-
+     
     
      ! Find new magnetic axis (extremum of psi)
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -592,10 +596,9 @@ subroutine gradshafranov_solve
         psilim = 0.
         psilim2 = 0.
      else
-        if(xlim.eq.0) then
+        if(xlim.eq.0.) then
            call lcfs(-psi, 1, 1, 0)
            psilim = -psibound
-           print *, 'psilim, psimin', psilim, psimin
         else
            itri = 0.
            call evaluate(xlim,zlim,psilim,ajlim,psi,1,numvargs,itri)
@@ -680,14 +683,14 @@ subroutine gradshafranov_solve
      endif
      
      if(myrank.eq.0) then
-      if(iprint.eq.1) then
-      write(*,2002) (temp1(ii),ii=1,4)
- 2002 format(" temp1 array",1p4e12.4)
-      endif
+        if(iprint.eq.1) then
+           write(*,2002) (temp2(ii),ii=1,4)
+2002       format(" temp1 array",1p4e12.4)
+        endif
         write(*,1002) itnum,error,error2,xmag,psimin,psilim,psilim2
- 1002   format(i5,1p6e13.5)
+1002    format(i5,1p6e13.5)
      endif
-  if(itnum .gt. 1 .and. error2 .lt. tol_gs) exit mainloop
+     if(itnum .gt. 1 .and. error2 .lt. tol_gs) exit mainloop
      
      ! start of loop over triangles to compute integrals needed to keep
      !     total current and q_0 constant using gamma4, gamma2, gamma3
@@ -746,7 +749,7 @@ subroutine gradshafranov_solve
 
      ! choose gamma2 to fix q0/qstar.  Note that there is an additional
      ! degree of freedom in gamma3.  Could be used to fix qprime(0)
-     g0 = bzero*rzero  !cjdebug xzero
+     g0 = bzero*rzero
 
 !.....changed 06/04/08 to allow more flexibility
 !    if(numvar.eq.1 .or. nv1equ.eq.1) then
@@ -756,14 +759,16 @@ subroutine gradshafranov_solve
         gamma4 = 0.
      else
 !......see if p and g functions defined numerically.  If so, only enforce total current condition
-        if(inumgs .eq. 0) then
-          gamma2 =  -xmag**2*p0*p1 - 2.*abs(g0)/(xmag*q0*abs(dpsii))
-          gamma3 = -4.*(abs(g0)/xmag)*djdpsi/dpsii - xmag**2*p0*p2
-        else
+        if(constraint) then
           gamma2 = 0.
           gamma3 = 0.
+          gamma4 = 1.
+!!$          gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
+       else
+          gamma2 =  -xmag**2*p0*p1 - 2.*abs(g0)/(xmag*q0*abs(dpsii))
+          gamma3 = -4.*(abs(g0)/xmag)*djdpsi/dpsii - xmag**2*p0*p2
+          gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
         endif
-        gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
      endif
          
      ! start loop over elements to define RHS vector
@@ -825,6 +830,7 @@ subroutine gradshafranov_solve
      call assign_local_pointers(i)
 
      psi0_l = psi(ibegin:ibegin+5)
+     psi1_l = 0.
 
      ! temp = Psi (normalized flux)
      dpsii = 1./(psilim - psimin)
@@ -832,16 +838,16 @@ subroutine gradshafranov_solve
      temp(ibegin+1:ibegin+5) = psi(ibegin+1:ibegin+5)*dpsii
 
      call calc_toroidal_field(temp(ibegin:ibegin+5), bz0_l)
-!
-!>>>>>>debug
+
      call calc_pressure(temp(ibegin:ibegin+5),p0_l)
 
      call nodcoord(i, x, z)
 
-     if((z.gt.separatrix_top) .or. (z .lt.separatrix_bottom)) then
-        p0_l(1) = pedge
-        p0_l(2:6) = 0.
-     endif
+!!$     if((z.gt.separatrix_top) .or. (z .lt.separatrix_bottom) .and. &
+!!$          (separatrix_top.ne.0. .or. separatrix_bottom.ne.0.)) then
+!!$        p0_l(1) = pedge
+!!$        p0_l(2:6) = 0.
+!!$     endif
 
      pe0_l = (1. - ipres*pi0/p0)*p0_l
 
@@ -1180,7 +1186,7 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
 end subroutine gvect
 
 ! ===========================================================
-subroutine deltafun(x,z,dum,val,ier)
+subroutine deltafun(x,z,val,dum,iplace,isize)
 
   use t_data
   use basic
@@ -1188,10 +1194,11 @@ subroutine deltafun(x,z,dum,val,ier)
 
   implicit none
 
+  integer, intent(in) :: iplace, isize
   real, intent(in) :: x, z, val
   vectype, intent(out) :: dum(*)
 
-  integer :: itri, i, k, index, ier
+  integer :: itri, i, ii, iii, k, index, ibegin, iendplusone
   real :: x1, z1, b, theta, si, eta, sum
   
   call whattri(x,z,itri,x1,z1)
@@ -1205,20 +1212,19 @@ subroutine deltafun(x,z,dum,val,ier)
      eta =-(x-x1)*sin(theta) + (z-z1)*cos(theta)
 
      ! calculate the contribution to b1vecini
-     do i=1,18
-        index = isval1(itri,i)
+     do iii=1,3
+        call entdofs(isize, ist(itri,iii)+1, 0, ibegin, iendplusone)
+        do ii=1,6
+           i = (iii-1)*6 + ii
+           index = ibegin + ii - 1 + 6*(iplace-1)
 
-        sum = 0.
-        do k=1,20
-           sum = sum + gtri(k,i,itri)*si**mi(k)*eta**ni(k)
+           sum = 0.
+           do k=1,20
+              sum = sum + gtri(k,i,itri)*si**mi(k)*eta**ni(k)
+           enddo
+           dum(index) = dum(index) + sum*val
         enddo
-        dum(index) = dum(index) + sum*val
-     enddo
-     ier=0
-  else
-!    print *, "deltafun : cannot find triangle. itri = ", itri
-!    ier=1
-!    return
+     end do
   end if
 
   call sumsharedppplvecvals(dum)
@@ -1268,23 +1274,13 @@ subroutine fundef
         psoxy= psi(ibegin+4)*dpsii
         psoyy= psi(ibegin+5)*dpsii
      
-        select case (inumgs)
-        case (0)
-          fbig = p0*dpsii*(p1 + 2.*p2*pso - 3.*(20. + 10.*p1+4.*p2)*pso**2     &
-               + 4.*(45.+20.*p1+6.*p2)*pso**3 - 5.*(36.+15.*p1+4.*p2)*pso**4   &
-               + 6.*(10.+4.*p1+p2)*pso**5)
-          fbigp = p0*dpsii*(2.*p2 - 6.*(20. + 10.*p1+4.*p2)*pso                &
-               + 12.*(45.+20.*p1+6*p2)*pso**2 - 20.*(36.+15*p1+4*p2)*pso**3    &
-               + 30.*(10.+4.*p1+p2)*pso**4)
-          fbigpp= p0*dpsii*(- 6.*(20. + 10.*p1+4.*p2)                          &
-               + 24.*(45.+20.*p1+6*p2)*pso - 60.*(36.+15*p1+4*p2)*pso**2       &
-               + 120.*(10.+4.*p1+p2)*pso**3)
-        case(1)
-!
-!.......read functions from a file for inumgs .eq. 1
-          call fget(pso, fbig0, fbig, fbigp, fbigpp,dpsii)
-!
-        end select
+        call fget(pso, fbig0, fbig, fbigp, fbigpp)
+
+        if(inumgs.eq.0) then
+           fbig = fbig*dpsii
+           fbigp = fbigp*dpsii
+           fbigpp = fbigpp*dpsii
+        endif
 
         fun1(ibegin)   = x*fbig
         fun1(ibegin+1) = fbig + x*fbigp*psox
@@ -1293,17 +1289,13 @@ subroutine fundef
         fun1(ibegin+4) = fbigp*psoy + x*(fbigpp*psox*psoy +fbigp*psoxy)
         fun1(ibegin+5) = x*(fbigpp*psoy**2 + fbigp*psoyy)
 
-        select case (inumgs)
-        case (0)
-          g4big = dpsii*(-60*pso**2+180*pso**3-180*pso**4+60*pso**5)
-          g4bigp= dpsii*(-120*pso+540*pso**2-720*pso**3+300*pso**4)
-          g4bigpp=dpsii*(-120   +1080*pso  -2160*pso**2+1200*pso**3)
-        case(1)
-!
-!.......read functions from a file for inumgs .eq. 1
-          call g4get(pso, g4big0, g4big, g4bigp, g4bigpp,dpsii)
-!
-        end select
+        call g4get(pso, g4big0, g4big, g4bigp, g4bigpp)
+
+        if(inumgs.eq.0) then
+           g4big = g4big*dpsii
+           g4bigp = g4bigp*dpsii
+           g4bigpp = g4bigpp*dpsii
+        endif
 
         fun4(ibegin)  = g4big/x
         fun4(ibegin+1)= g4bigp*psox/x - g4big/x**2
@@ -1313,7 +1305,7 @@ subroutine fundef
         fun4(ibegin+4)= (g4bigpp*psox*psoy+g4bigp*psoxy)/x                  &
              - g4bigp*psoy/x**2
         fun4(ibegin+5)=  (g4bigpp*psoy**2 + g4bigp*psoyy)/x
-        
+
         g2big =  dpsii*(1. - 30.*pso**2 + 80.*pso**3                     &
              - 75.*pso**4 + 24.*pso**5)
         g2bigp =  dpsii*(-60.*pso + 240.*pso**2                         &
@@ -1368,48 +1360,38 @@ subroutine calc_toroidal_field(psii,tf)
   real :: g2big, g2bigp, g3big, g3bigp
   vectype :: g0
   
-! if(psii(1) .le. 0. .or. psii(1) .ge. 1.) then
   if(psii(1) .gt. 1.) then
      g0 = bzero*rzero
      call constant_field(tf, g0)
   else
-     g2(1) = psii(1) - 10.*psii(1)**3 + 20.*psii(1)**4 &
-          - 15.*psii(1)**5 + 4.*psii(1)**6
-     g2big =  (1. - 30.*psii(1)**2 + 80.*psii(1)**3                     &
+     if(.not.constraint) then
+        g2(1) = psii(1) - 10.*psii(1)**3 + 20.*psii(1)**4       &
+             - 15.*psii(1)**5 + 4.*psii(1)**6
+        g2big =  (1. - 30.*psii(1)**2 + 80.*psii(1)**3          &
              - 75.*psii(1)**4 + 24.*psii(1)**5)
-     g2bigp =  (-60.*psii(1) + 240.*psii(1)**2                         &
+        g2bigp =  (-60.*psii(1) + 240.*psii(1)**2               &
              - 300.*psii(1)**3 + 120.*psii(1)**4)
-     g2(2) = (psii(2))*g2big
-     g2(3) = (psii(3))*g2big
-     g2(4) = (psii(4)*g2big + psii(2)**2*g2bigp)
-     g2(5) = (psii(5)*g2big + psii(2)*psii(3)*g2bigp)
-     g2(6) = (psii(6)*g2big + psii(3)**2*g2bigp)
-     
-     g3(1) = psii(1)**2 - 4.*psii(1)**3 + 6.*psii(1)**4 &
-          - 4.*psii(1)**5 + psii(1)**6
-
-     g3big =  (2.*psii(1) - 12.*psii(1)**2 + 24.*psii(1)**3                &
+        g2(2) = (psii(2))*g2big
+        g2(3) = (psii(3))*g2big
+        g2(4) = (psii(4)*g2big + psii(2)**2*g2bigp)
+        g2(5) = (psii(5)*g2big + psii(2)*psii(3)*g2bigp)
+        g2(6) = (psii(6)*g2big + psii(3)**2*g2bigp)
+        
+        g3(1) = psii(1)**2 - 4.*psii(1)**3 + 6.*psii(1)**4      &
+             - 4.*psii(1)**5 + psii(1)**6
+        
+        g3big =  (2.*psii(1) - 12.*psii(1)**2 + 24.*psii(1)**3  &
              - 20.*psii(1)**4 + 6.*psii(1)**5)
-     g3bigp =  (2. - 24.*psii(1) + 72.*psii(1)**2                      &
+        g3bigp =  (2. - 24.*psii(1) + 72.*psii(1)**2            &
              - 80.*psii(1)**3 + 30.*psii(1)**4)
-     g3(2) = (psii(2))*g3big
-     g3(3) = (psii(3))*g3big
-     g3(4) = (psii(4)*g3big + psii(2)**2*g3bigp)
-     g3(5) = (psii(5)*g3big + psii(2)*psii(3)*g3bigp)
-     g3(6) = (psii(6)*g3big + psii(3)**2*g3bigp)
+        g3(2) = (psii(2))*g3big
+        g3(3) = (psii(3))*g3big
+        g3(4) = (psii(4)*g3big + psii(2)**2*g3bigp)
+        g3(5) = (psii(5)*g3big + psii(2)*psii(3)*g3bigp)
+        g3(6) = (psii(6)*g3big + psii(3)**2*g3bigp)
+     end if
 
-     select case (inumgs)
-     case (0)
-       g4big0 = 1. - 20.*psii(1)**3 + 45.*psii(1)**4 &
-             - 36.*psii(1)**5 + 10.*psii(1)**6
-       g4big = (-60*psii(1)**2+180*psii(1)**3-180*psii(1)**4+60*psii(1)**5)
-       g4bigp= (-120*psii(1)+540*psii(1)**2-720*psii(1)**3+300*psii(1)**4)
-     case(1)
-!
-!.......read functions from a file for inumgs .eq. 1
-     call g4get(psii(1), g4big0, g4big, g4bigp, g4bigpp,dpsii)
-!
-     end select
+     call g4get(psii(1), g4big0, g4big, g4bigp, g4bigpp)
      
      g4(1) = g4big0
      g4(2) = (psii(2))*g4big
@@ -1420,11 +1402,11 @@ subroutine calc_toroidal_field(psii,tf)
 
 !
 !.....convert from gg' = .5(g^2)' to (g^2)'
-      g2 = 2.*g2
-      g3 = 2.*g3
-      g4 = 2.*g4
+     g2 = 2.*g2
+     g3 = 2.*g3
+     g4 = 2.*g4
      
-     tf(1) = sqrt((bzero*rzero)**2 + &    !cjdebug xzero
+     tf(1) = sqrt((bzero*rzero)**2 + &
           gamma2*g2(1) + gamma3*g3(1) + gamma4*g4(1))
      tf(2) = 0.5*(gamma2*g2(2) + gamma3*g3(2) + gamma4*g4(2)) / tf(1)
      tf(3) = 0.5*(gamma2*g2(3) + gamma3*g3(3) + gamma4*g4(3)) / tf(1)
@@ -1453,6 +1435,8 @@ subroutine calc_pressure(psii,pres)
   
   use basic
 
+  implicit none
+
   real, intent(in), dimension(6)  :: psii     ! normalized flux
   real :: fbig0, fbig, fbigp, fbigpp
   vectype, intent(out), dimension(6) :: pres     ! pressure
@@ -1460,95 +1444,31 @@ subroutine calc_pressure(psii,pres)
   if(psii(1) .gt. 1.) then
      pres = 0.
   else
-     select case (inumgs)
-     case (0)
-        fbig0 = 1.+p1*psii(1)+p2*psii(1)**2 &
-             -(20. + 10.*p1 + 4.*p2)*psii(1)**3 &
-             +(45. + 20.*p1 + 6.*p2)*psii(1)**4 &
-             -(36. + 15.*p1 + 4.*p2)*psii(1)**5 &
-             +(10. +  4.*p1 +    p2)*psii(1)**6
-        fbig = p0*dpsii*(p1 + 2.*p2*psii(1) - 3.*(20. + 10.*p1+4.*p2)*psii(1)**2     &
-             + 4.*(45.+20.*p1+6.*p2)*psii(1)**3 - 5.*(36.+15.*p1+4.*p2)*psii(1)**4   &
-             + 6.*(10.+4.*p1+p2)*psii(1)**5)
-        fbigp = p0*dpsii*(2.*p2 - 6.*(20. + 10.*p1+4.*p2)*psii(1)                &
-             + 12.*(45.+20.*p1+6*p2)*psii(1)**2 - 20.*(36.+15*p1+4*p2)*psii(1)**3    &
-             + 30.*(10.+4.*p1+p2)*psii(1)**4)
-        fbigpp= p0*dpsii*(- 6.*(20. + 10.*p1+4.*p2)                          &
-             + 24.*(45.+20.*p1+6*p2)*psii(1) - 60.*(36.+15*p1+4*p2)*psii(1)**2       &
-             + 120.*(10.+4.*p1+p2)*psii(1)**3)
-     case(1)
-
-!.......read functions from a file for inumgs .eq. 1
-        call fget(psii(1), fbig0, fbig, fbigp, fbigpp,dpsii)
-!
-     end select
-
-!    pres(1) = fbig0
-
-!    pres(2) = psii(2)* &
-!         (p1+2.*p2*psii(1) &
-!         -3.*(20. + 10.*p1 + 4.*p2)*psii(1)**2 &
-!         +4.*(45. + 20.*p1 + 6.*p2)*psii(1)**3 &
-!         -5.*(36. + 15.*p1 + 4.*p2)*psii(1)**4 &
-!         +6.*(10. +  4.*p1 +    p2)*psii(1)**5)
-!    pres(3) = psii(3)* &
-!         (p1+2.*p2*psii(1) &
-!         -3.*(20. + 10.*p1 + 4.*p2)*psii(1)**2 &
-!         +4.*(45. + 20.*p1 + 6.*p2)*psii(1)**3 &
-!         -5.*(36. + 15.*p1 + 4.*p2)*psii(1)**4 &
-!         +6.*(10. +  4.*p1 +    p2)*psii(1)**5)
-!    pres(4) = psii(4)* &
-!         (p1+2.*p2*psii(1) &
-!         -3.*(20. + 10.*p1 + 4.*p2)*psii(1)**2 &
-!         +4.*(45. + 20.*p1 + 6.*p2)*psii(1)**3 &
-!         -5.*(36. + 15.*p1 + 4.*p2)*psii(1)**4 &
-!         +6.*(10. +  4.*p1 +    p2)*psii(1)**5) + &
-!         psii(2)**2* &
-!         (2.*p2 &
-!         - 6.*(20. + 10.*p1 + 4.*p2)*psii(1) &
-!         +12.*(45. + 20.*p1 + 6.*p2)*psii(1)**2 &
-!         -20.*(36. + 15.*p1 + 4.*p2)*psii(1)**3 &
-!         +30.*(10. +  4.*p1 +    p2)*psii(1)**4)
-!    pres(5) = psii(5)* &
-!         (p1+2.*p2*psii(1) &
-!         -3.*(20. + 10.*p1 + 4.*p2)*psii(1)**2 &
-!         +4.*(45. + 20.*p1 + 6.*p2)*psii(1)**3 &
-!         -5.*(36. + 15.*p1 + 4.*p2)*psii(1)**4 &
-!         +6.*(10. +  4.*p1 +    p2)*psii(1)**5) + &
-!         psii(2)*psii(3)* &
-!         (2.*p2 &
-!         - 6.*(20. + 10.*p1 + 4.*p2)*psii(1) &
-!         +12.*(45. + 20.*p1 + 6.*p2)*psii(1)**2 &
-!         -20.*(36. + 15.*p1 + 4.*p2)*psii(1)**3 &
-!         +30.*(10. +  4.*p1 +    p2)*psii(1)**4)
-!    pres(6) = psii(6)* &
-!         (p1+2.*p2*psii(1) &
-!         -3.*(20. + 10.*p1 + 4.*p2)*psii(1)**2 &
-!         +4.*(45. + 20.*p1 + 6.*p2)*psii(1)**3 &
-!         -5.*(36. + 15.*p1 + 4.*p2)*psii(1)**4 &
-!         +6.*(10. +  4.*p1 +    p2)*psii(1)**5) + &
-!         psii(3)**2* &
-!         (2.*p2 &
-!         - 6.*(20. + 10.*p1 + 4.*p2)*psii(1) &
-!         +12.*(45. + 20.*p1 + 6.*p2)*psii(1)**2 &
-!         -20.*(36. + 15.*p1 + 4.*p2)*psii(1)**3 &
-!         +30.*(10. +  4.*p1 +    p2)*psii(1)**4)
-
+     call fget(psii(1), fbig0, fbig, fbigp, fbigpp)
+     
      pres(1) = fbig0
-     pres(2) = psii(2)*fbig/(p0*dpsii)
-     pres(3) = psii(3)*fbig/(p0*dpsii)
-     pres(4) = (psii(4)*fbig + psii(2)**2*fbigp)/(p0*dpsii)
-     pres(5) = (psii(5)*fbig + psii(2)*psii(3)*fbigp)/(p0*dpsii)
-     pres(6) = (psii(6)*fbig + psii(3)**2*fbigp)/(p0*dpsii)
+     pres(2) = psii(2)*fbig
+     pres(3) = psii(3)*fbig
+     pres(4) = (psii(4)*fbig + psii(2)**2*fbigp)
+     pres(5) = (psii(5)*fbig + psii(2)*psii(3)*fbigp)
+     pres(6) = (psii(6)*fbig + psii(3)**2*fbigp)
   endif
 
-  pres = p0*pres
+  pres = pres
   pres(1) = pres(1) + pedge
+
   return
 end subroutine calc_pressure
 
 subroutine readpgfiles
-  integer j
+  use basic
+
+  implicit none
+
+  integer :: j
+
+  print *, "Reading profiles files"
+
   open(unit=76,file="profiles-p",status="old")
   read(76,803) npsi
   allocate(psinorm(npsi))
@@ -1557,7 +1477,9 @@ subroutine readpgfiles
     read(76,802) psinorm(j),fbig0t(j),fbigt(j),fbigpt(j),fbigppt(j)
   enddo
   close(76)
-!
+
+  fbig0t = p0*fbig0t
+
   open(unit=77,file="profiles-g",status="old")
   read(77,804) npsi
   allocate(g4big0t(npsi),g4bigt(npsi),g4bigpt(npsi),g4bigppt(npsi))
@@ -1565,42 +1487,223 @@ subroutine readpgfiles
     read(77,802) psinorm(j),g4big0t(j),g4bigt(j),g4bigpt(j),g4bigppt(j)
   enddo
   close(77)
+
+  constraint = .true.
+
 return
   802 format(5x,5e18.10)
   803 format(i5)
   804 format(i5)
 end subroutine readpgfiles
-subroutine g4get(pso, g4big0, g4big, g4bigp, g4bigpp,dpsii)
-  real, intent(in) :: pso, dpsii
+
+subroutine g4get(pso, g4big0, g4big, g4bigp, g4bigpp)
+  implicit none
+
+  real, intent(in) :: pso
   real, intent(out) :: g4big0,g4big, g4bigp, g4bigpp
-  integer :: j,jj
-  real :: fac
-      do j=2,npsi
-        jj = j
-        if(psinorm(j).gt.pso) exit
-      enddo
-      fac = (pso - psinorm(jj-1))/(psinorm(jj)-psinorm(jj-1))
-      g4big0 = g4big0t(jj-1) + fac*(g4big0t(jj)-g4big0t(jj-1))
-      g4big = (g4bigt(jj-1) + fac*(g4bigt(jj)-g4bigt(jj-1)))
-      g4bigp = (g4bigpt(jj-1) + fac*(g4bigpt(jj)-g4bigpt(jj-1)))
-      g4bigpp = (g4bigppt(jj-1) + fac*(g4bigppt(jj)-g4bigppt(jj-1)))
-      return
- end subroutine g4get
-subroutine fget(pso, fbig0, fbig, fbigp, fbigpp,dpsii)
-  real, intent(in) :: pso, dpsii
+
+  call cubic_interpolation(npsi,psinorm,pso,g4big0t,g4big0)
+  call cubic_interpolation(npsi,psinorm,pso,g4bigt,g4big)
+  call cubic_interpolation(npsi,psinorm,pso,g4bigpt,g4bigp)
+  call cubic_interpolation(npsi,psinorm,pso,g4bigppt,g4bigpp)
+  return
+end subroutine g4get
+
+subroutine fget(pso, fbig0, fbig, fbigp, fbigpp)
+  implicit none
+
+  real, intent(in) :: pso
   real, intent(out) :: fbig0,fbig, fbigp, fbigpp
-  integer :: j,jj
-  real :: fac
-      do j=2,npsi
-        jj = j
-        if(psinorm(j).gt.pso) exit
-      enddo
-      fac = (pso - psinorm(jj-1))/(psinorm(jj)-psinorm(jj-1))
-      fbig0 = fbig0t(jj-1) + fac*(fbig0t(jj)-fbig0t(jj-1))
-      fbig = (fbigt(jj-1) + fac*(fbigt(jj)-fbigt(jj-1)))
-      fbigp = (fbigpt(jj-1) + fac*(fbigpt(jj)-fbigpt(jj-1)))
-      fbigpp = (fbigppt(jj-1) + fac*(fbigppt(jj)-fbigppt(jj-1)))
-      return
- end subroutine fget
+
+  call cubic_interpolation(npsi,psinorm,pso,fbig0t,fbig0)
+  call cubic_interpolation(npsi,psinorm,pso,fbigt,fbig)
+  call cubic_interpolation(npsi,psinorm,pso,fbigpt,fbigp)
+  call cubic_interpolation(npsi,psinorm,pso,fbigppt,fbigpp)  
+  return
+end subroutine fget
+
+ subroutine load_coils(xc,zc,ic,numcoils)
+   use basic
+
+   implicit none
+
+   include 'mpif.h'
+
+   real, intent(out), dimension(maxcoils) :: xc, zc, ic
+   integer, intent(out) :: numcoils
+
+   real :: x, z, w, h, a1, a2, c
+   real, dimension(maxcoils) :: vbuff
+
+   integer :: fcoil, fcurr, i, j, k, s, ier, ibuff
+   real :: dx, dz
+
+   xc = 0.
+   zc = 0.
+   ic = 0.
+   numcoils = 0
+
+   if(myrank.eq.0) then
+      ! Read coil data
+      if(iprint.ge.1) &
+           print *, "Reading coil data.."
+
+      fcoil = 10
+      open(unit=fcoil, file=coil_filename, status="old",err=200, readonly)
+      fcurr = 20
+      open(unit=fcurr, file=current_filename, status="old",err=201, readonly)
+
+
+      s = 0
+      do i=1, maxbundles
+         read(fcoil,'(6f12.4)',end=100) x, z, w, h, a1, a2
+         read(fcurr,'(1f12.4)',end=100) c
+         
+         a1 = a1*pi/180.
+         a2 = a2*pi/180.
+         if(a2.ne.0.) a2 = a2 + pi/2.
+         a1 = tan(a1)
+         a2 = tan(a2)
+         
+         print *, c
+         c = 4.*pi*1e-7 * 1000. * c / (subcoils**2) / (2.*pi)
+         print *, c
+         
+         do j=1, subcoils
+            do k=1, subcoils
+               s = s + 1
+               dx = w*(2.*j/subcoils - 1.)/2.
+               dz = h*(2.*k/subcoils - 1.)/2.
+               xc(s) = x + dx - dz*a2
+               zc(s) = z + dz + dx*a1
+               
+               ic(s) = c
+            end do
+         end do
+      end do
+
+      print *, "Error: too many coils!"
+
+100   if(iprint.ge.1) &
+           print *, "Read ", i-1, " coils."
+
+      ! divide coils into sub-coils
+      numcoils = (i-1)*subcoils**2
+   
+      goto 300
+
+200   if(myrank.eq.0 .and. iprint.ge.1) &
+           print *, "Error reading ", coil_filename
+      goto 300
+201   if(myrank.eq.0 .and. iprint.ge.1) &
+           print *, "Error reading ", coil_filename
+      
+300   close(fcoil)
+      close(fcurr)
+   end if
+
+   ! share coil data
+   call mpi_allreduce(xc, vbuff, maxcoils, MPI_DOUBLE_PRECISION, &
+        MPI_SUM, MPI_COMM_WORLD, ier)
+   xc = vbuff
+   call mpi_allreduce(zc, vbuff, maxcoils, MPI_DOUBLE_PRECISION, &
+        MPI_SUM, MPI_COMM_WORLD, ier)
+   zc = vbuff
+   call mpi_allreduce(ic, vbuff, maxcoils, MPI_DOUBLE_PRECISION, &
+        MPI_SUM, MPI_COMM_WORLD, ier)
+   ic = vbuff
+   call mpi_allreduce(numcoils, ibuff, 1, MPI_INTEGER, &
+        MPI_SUM, MPI_COMM_WORLD, ier)
+   numcoils = ibuff
+ end subroutine load_coils
+
+ subroutine default_profiles
+   
+   use basic
+
+   implicit none
+
+   integer :: j
+   real :: psii
+
+   npsi = 500
+   allocate(psinorm(npsi))
+   allocate(fbig0t(npsi),fbigt(npsi),fbigpt(npsi),fbigppt(npsi))
+   allocate(g4big0t(npsi),g4bigt(npsi),g4bigpt(npsi),g4bigppt(npsi))
+  
+   do j=1, npsi
+      psii = (j-1.)/(npsi-1.)
+      psinorm(j) = psii
+      fbig0t(j) = p0*(1.+p1*psii+p2*psii**2 &
+           - (20. + 10.*p1 + 4.*p2)*psii**3 &
+           + (45. + 20.*p1 + 6.*p2)*psii**4 &
+           - (36. + 15.*p1 + 4.*p2)*psii**5 &
+           + (10. +  4.*p1 +    p2)*psii**6)
+      fbigt(j) = p0*(p1 + 2.*p2*psii - 3.*(20. + 10.*p1+4.*p2)*psii**2      &
+           + 4.*(45.+20.*p1+6.*p2)*psii**3 - 5.*(36.+15.*p1+4.*p2)*psii**4  &
+           + 6.*(10.+4.*p1+p2)*psii**5)
+      fbigpt(j) = p0*(2.*p2 - 6.*(20. + 10.*p1+4.*p2)*psii                  &
+           + 12.*(45.+20.*p1+6*p2)*psii**2 - 20.*(36.+15*p1+4*p2)*psii**3   &
+           + 30.*(10.+4.*p1+p2)*psii**4)
+      fbigppt(j) = p0*(- 6.*(20. + 10.*p1+4.*p2)                            &
+           + 24.*(45.+20.*p1+6*p2)*psii - 60.*(36.+15*p1+4*p2)*psii**2      &
+           + 120.*(10.+4.*p1+p2)*psii**3)
+
+      g4big0t(j) = 1.- 20.*psii**3+  45.*psii**4-  36.*psii**5+  10.*psii**6
+      g4bigt(j)  =   - 60.*psii**2+ 180.*psii**3- 180.*psii**4+  60.*psii**5
+      g4bigpt(j) =   -120.*psii   + 540.*psii**2- 720.*psii**3+ 300.*psii**4
+      g4bigppt(j)=   -120.        +1080.*psii   -2160.*psii**2+1200.*psii**3
+   end do
+
+ end subroutine default_profiles
+
+!================================================================
+! create_profile
+! ~~~~~~~~~~~~~~
+!
+! Sets up the GS solver to use a specific profile for p and I.
+! n = number of radial points in profile
+! p = pressure profile
+! pp = p' = dp/dpsi (with psi the non-normalized flux)
+! f = I = R*B_phi
+! ffp =  I*I'
+! dp = difference in psi between axis and edge
+!================================================================
+ subroutine create_profile(n, p, pp, f, ffp, dp)
+   implicit none
+
+   integer, intent(in) :: n
+   real, dimension(n), intent(in) :: p, pp, f, ffp
+   real, intent(in) :: dp
+
+   real, dimension(4) :: a
+   integer :: j
+
+   npsi = n
+
+   allocate(psinorm(npsi))
+   allocate(fbig0t(npsi),fbigt(npsi),fbigpt(npsi),fbigppt(npsi))
+   allocate(g4big0t(npsi),g4bigt(npsi),g4bigpt(npsi),g4bigppt(npsi))
+
+   fbig0t = p
+   fbigt = pp*dp
+   g4big0t = 0.5*(f**2 - f(npsi)**2)
+   g4bigt = ffp*dp
+
+   do j=1,npsi 
+      psinorm(j) = (j-1.)/(npsi-1.)
+
+      call cubic_interpolation_coeffs(fbigt,npsi,j,a)
+      fbigpt(j) =     a(2)*((npsi-1.)/dp)
+      fbigppt(j) = 2.*a(3)*((npsi-1.)/dp)**2
+
+      call cubic_interpolation_coeffs(g4bigt,npsi,j,a)
+      g4bigpt(j)  =    a(2)*((npsi-1.)/dp)
+      g4bigppt(j) = 2.*a(3)*((npsi-1.)/dp)**2
+   end do
+
+   constraint = .true.
+
+ end subroutine create_profile
 
 end module gradshafranov

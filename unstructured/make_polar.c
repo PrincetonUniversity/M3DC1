@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
 {
   int i, j, k;
   double r, theta, sn, co, dx, dz, ddx, ddz, eps;
-  double x, z, norm1, norm2, curv;
+  double x, z, v, norm1, norm2, curv;
 
   FILE* f;
 
@@ -98,16 +98,18 @@ int main(int argc, char* argv[])
       z = r*e*sn;
       
       if(i==nr-1) {
-	norm1 = co;
-	norm2 = sn;
-	
 	dx = a*(-sn - 2.*t*sn*co);
 	dz = a*e*co;
 	
 	ddx =  a*(-co + 2.*t*(sn*sn - co*co));
 	ddz = -a*e*sn;
+
+	v = sqrt(dx*dx + dz*dz);
 	
-	curv = sqrt((ddx*ddx + ddz*ddz)/(dx*dx + dz*dz));
+	curv = sqrt(ddx*ddx + ddz*ddz)/v;
+
+	norm1 =  dz/v;
+	norm2 = -dx/v;
 	
 	fprintf(f, "%12.8f %12.8f %12.8f %12.8f %12.8f\n",
 		x, z, norm1, norm2, curv);

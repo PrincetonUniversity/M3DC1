@@ -67,8 +67,6 @@ Program Reducedquintic
           "TIME: ",a2,":",a2,":",a4,/)
   endif
 
-  pi = acos(-1.)
-
   ! initialize needed variables and define geometry and triangles
   if(myrank.eq.0) print *, 'Calling init'
   call init
@@ -533,6 +531,7 @@ subroutine copyvec(inarr, inpos, insize, outarr, outpos, outsize)
   enddo
 
 end subroutine copyvec
+
 
 ! ======================================================================
 ! derived_quantities

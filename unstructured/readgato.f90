@@ -318,14 +318,14 @@
       open(unit=76,file="profiles-p",status="unknown")
       write(76,803) npsi
       do j=1,npsi
-        write(76,802) j,psinormt(j),fbig0t(j),fbig(j),fbigp(j),fbigpp(j)
+         write(76,802) j,psinormt(j),fbig0t(j),fbig(j),fbigp(j),fbigpp(j)
       enddo
       close(76)
 !
       open(unit=77,file="profiles-g",status="unknown")
       write(77,804) npsi
       do j=1,npsi
-        write(77,802) j,psinormt(j),g4big0t(j),g4big(j),g4bigp(j),g4bigpp(j)
+         write(77,802) j,psinormt(j),g4big0t(j),g4big(j),g4bigp(j),g4bigpp(j)
       enddo
       close(77)
 !
@@ -401,8 +401,8 @@ subroutine calc_norms(x, z, n, norm, curv)
      l2(i) = 1./sqrt(dx2**2 + dz2**2)
      norm1(1) =  dz1*l1(i)
      norm1(2) = -dx1*l1(i)
-     norm1(1) =  dz2*l2(i)
-     norm1(2) = -dx2*l2(i)
+     norm2(1) =  dz2*l2(i)
+     norm2(2) = -dx2*l2(i)
 
      ! perform weigted average of adjacent edge normals
      norm(:,i) = (l1(i)*norm1 + l2(i)*norm2)/(l1(i)+l2(i))

@@ -414,7 +414,6 @@ subroutine calculate_scalars()
  
   integer :: itri, numelms, i, ione, def_fields
   real :: x, z, xmin, zmin, factor
-  real :: val, valpp
   logical :: is_edge(3)  ! is inode on boundary
   real :: n(2,3)
   integer :: iedge, idim(3)
@@ -949,7 +948,7 @@ subroutine lcfs(phin, iplace, numvari, iaxis)
   integer, intent(in) :: iaxis
 
   real :: psix, psib, psim
-  real :: xguess, zguess, x, z, temp1, temp2
+  real :: x, z, temp1, temp2
   integer :: ier, numnodes, inode, izone, izonedim
   integer :: ibegin, iendplusone, index
   logical :: is_boundary, first_point
@@ -981,6 +980,7 @@ subroutine lcfs(phin, iplace, numvari, iaxis)
      return
   end if
 
+  psib = -1.e10
 
   ! Find the maximum value of psi at the boundary 
   ! such that psi is not increasing outward 
