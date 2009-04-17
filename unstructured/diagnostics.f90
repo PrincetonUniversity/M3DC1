@@ -766,8 +766,8 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
   real, intent(out) :: psim
 
   integer, parameter :: iterations = 20  !  max number of Newton iterations
-  real, parameter :: bfac = 0.5   !max zone fraction for movement each iteration
-  real, parameter :: tol = 1e-2   ! convergence tolorance (fraction of h)
+  real, parameter :: bfac = 0.5  !max zone fraction for movement each iteration
+  real, parameter :: tol = 1e-3   ! convergence tolorance (fraction of h)
 
   integer :: itri, inews
   integer :: i, ier, in_domain, converged
@@ -776,7 +776,6 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
   real :: term1, term2, term3, term4, term5
   real :: pt, pt1, pt2, p11, p22, p12
   real :: xnew, znew, denom, sinew, etanew
-! real :: alx, alz
   real :: xtry, ztry, rdiff
   vectype, dimension(20) :: avector
   real, dimension(5) :: temp1, temp2
@@ -784,8 +783,6 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
 
   if(myrank.eq.0 .and. iprint.gt.0) &
        write(*,'(A,2E12.4)') '  magaxis: guess = ', xguess, zguess
-
-! call getboundingboxsize(alx, alz)
 
   converged = 0
 
@@ -875,7 +872,7 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
           znew = z + bfac*h*(ztry-z)/rdiff
         endif
         in_domain = 1
-        if(iprint.ge.1) &
+        if(iprint.ge.2) &
              write(*,'(A,2E12.4)') '  magaxis: rdiff/h, tol', rdiff/h, tol
         if(rdiff/h .lt. tol) converged = 1
      else
@@ -901,6 +898,13 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
         sum   = temp2(3)
         in_domain = temp2(4)
         converged = temp2(5)
+
+        if(in_domain .gt. 1) then
+           if(myrank.eq.0 .and. iprint.ge.1) print *, "In multiple domains."
+           xnew = xnew / in_domain
+           znew = znew / in_domain
+           sum = sum / in_domain
+        end if
      endif
      ! check to see whether the new minimum is outside the simulation domain
      if(in_domain.eq.0) then
@@ -914,16 +918,16 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
         z = znew
      endif
 
-     if(converged.eq.1) exit newton
+     if(converged.ge.1) exit newton
   end do newton
-
-  if(myrank.eq.0 .and. iprint.ge.1) &
-       print *, ' magaxis: iterations = ', inews
 
   xguess = x
   zguess = z
   psim = sum
   ier = 0
+
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       write(*,'(A,I12,2E12.4)'), ' magaxis: iterations, x, z = ', inews, x, z
   
 end subroutine magaxis
 

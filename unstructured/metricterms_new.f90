@@ -296,7 +296,6 @@ vectype function v1un(e,f,g)
      else
         temp = int4(r2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1)) &
              + int4(r2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1))
-
      end if
   end select
 
@@ -6690,7 +6689,10 @@ vectype function b3pedkappa(e,f,g,h,i)
   end if
 
   if(surface_int) then
-     temp = 0.
+     temp = int5(e(:,OP_1),norm79(:,1),f(:,OP_DR),g(:,OP_1 ),h(:,OP_1)) &
+          + int5(e(:,OP_1),norm79(:,2),f(:,OP_DZ),g(:,OP_1 ),h(:,OP_1)) &
+          + int5(e(:,OP_1),norm79(:,1),f(:,OP_1 ),g(:,OP_DR),h(:,OP_1)) &
+          + int5(e(:,OP_1),norm79(:,2),f(:,OP_1 ),g(:,OP_DZ),h(:,OP_1))
   else
      temp = &
           - int4(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1 ),h(:,OP_1)) &
@@ -6940,8 +6942,9 @@ vectype function p1pu(e,f,g)
 
   case(1)
      if(surface_int) then
-        temp = int5(r_79,e(:,OP_1),f(:,OP_1),norm79(:,1),g(:,OP_DZ)) &
-             - int5(r_79,e(:,OP_1),f(:,OP_1),norm79(:,2),g(:,OP_DR))
+!!$        temp = int5(r_79,e(:,OP_1),f(:,OP_1),norm79(:,1),g(:,OP_DZ)) &
+!!$             - int5(r_79,e(:,OP_1),f(:,OP_1),norm79(:,2),g(:,OP_DR))
+        temp = 0.
      else
         temp = int4(r_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DR)) &
              - int4(r_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DZ))
@@ -7016,9 +7019,10 @@ vectype function p1pchi(e,f,g)
      
   case(1)
      if(surface_int) then
-        temp = &
-             - int5(ri2_79,e(:,OP_1),f(:,OP_1),norm79(:,1),g(:,OP_DR)) &
-             - int5(ri2_79,e(:,OP_1),f(:,OP_1),norm79(:,2),g(:,OP_DZ))
+!!$        temp = &
+!!$             - int5(ri2_79,e(:,OP_1),f(:,OP_1),norm79(:,1),g(:,OP_DR)) &
+!!$             - int5(ri2_79,e(:,OP_1),f(:,OP_1),norm79(:,2),g(:,OP_DZ))
+        temp = 0.
      else
         temp79a = e(:,OP_DR)*g(:,OP_DR) + e(:,OP_DZ)*g(:,OP_DZ) &
              - (gam-1.)*e(:,OP_1)*g(:,OP_GS)
@@ -7051,7 +7055,12 @@ vectype function p1kappar(e,f,g,h,i,j,k)
   end if
 
   if(surface_int) then
-     temp = 0.
+     temp79a = ri2_79*k(:,OP_1)*j(:,OP_1)*e(:,OP_1)* &
+          (norm79(:,1)*f(:,OP_DZ) - norm79(:,2)*f(:,OP_DR))
+     temp = int4(temp79a,g(:,OP_DZ),h(:,OP_DR),i(:,OP_1 )) &
+          - int4(temp79a,g(:,OP_DR),h(:,OP_DZ),i(:,OP_1 )) &
+          + int4(temp79a,g(:,OP_DZ),h(:,OP_1 ),i(:,OP_DR)) &
+          - int4(temp79a,g(:,OP_DR),h(:,OP_1 ),i(:,OP_DZ))
   else
      temp79a = k(:,OP_1)*ri2_79* &
           (e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))*j(:,OP_1)
@@ -7254,21 +7263,37 @@ subroutine PVS1(i,o)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: i
   vectype, intent(out), dimension(MAX_PTS) :: o
 
-  if(surface_int) then
-     o = 0.
-  else
+
+  select case(ivform)
+  case(0)
      o = ri_79* &
           (i(:,OP_DRZ) * (pst79(:,OP_DR)**2 - pst79(:,OP_DZ)**2) &
           +pst79(:,OP_DR)*pst79(:,OP_DZ)*(i(:,OP_DZZ) - i(:,OP_DRR)))
-     
+        
      if(itor.eq.1) then
         o = o + ri2_79*(pst79(:,OP_DZ) * &
              (i(:,OP_DZ)*pst79(:,OP_DZ) + i(:,OP_DR)*pst79(:,OP_DR)) &
              - i(:,OP_DZ)*bzt79(:,OP_1)**2)
      end if
+        
+     o = o * ri2_79*b2i79(:,OP_1)
+
+  case(1)
+     o = r_79* &
+          (pst79(:,OP_DR)*pst79(:,OP_DZ)*(i(:,OP_DZZ) - i(:,OP_DRR)) &
+          -(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*i(:,OP_DRZ))
+     if(itor.eq.1) then
+        o = o + pst79(:,OP_DR)* &
+             (i(:,OP_DZ)*pst79(:,OP_DR) - i(:,OP_DR)*pst79(:,OP_DZ))
+     endif
 
      o = o * ri2_79*b2i79(:,OP_1)
-  end if
+
+     if(itor.eq.1) then
+        o = o - (1./3.)*i(:,OP_DZ)
+     endif
+     
+  end select
 
 end subroutine PVS1
 
@@ -7286,27 +7311,19 @@ subroutine PVS2(i,o)
 
   select case(ivform)
   case(0)
-     if(surface_int) then
-        o = 0.
-     else
-        o = ri_79*bzt79(:,OP_1)* &
-             (i(:,OP_DZ)*pst79(:,OP_DR) - i(:,OP_DR)*pst79(:,OP_DZ))
+     o = ri_79*bzt79(:,OP_1)* &
+          (i(:,OP_DZ)*pst79(:,OP_DR) - i(:,OP_DR)*pst79(:,OP_DZ))
         
-        if(itor.eq.1) then
-           o = o + 2.*ri2_79*bzt79(:,OP_1)*pst79(:,OP_DZ)*i(:,OP_1)
-        endif
-        o = o * ri2_79*b2i79(:,OP_1)
-     end if
+     if(itor.eq.1) then
+        o = o + 2.*ri2_79*bzt79(:,OP_1)*pst79(:,OP_DZ)*i(:,OP_1)
+     endif
 
   case(1)
-     if(surface_int) then
-        o = 0.
-     else
-        o = r_79*bzt79(:,OP_1)* &
-             (i(:,OP_DZ)*pst79(:,OP_DR) - i(:,OP_DR)*pst79(:,OP_DZ))
-        o = o * ri2_79*b2i79(:,OP_1)
-     endif
+     o = r_79*bzt79(:,OP_1)* &
+          (i(:,OP_DZ)*pst79(:,OP_DR) - i(:,OP_DR)*pst79(:,OP_DZ))
   end select
+
+  o = o * ri2_79*b2i79(:,OP_1)
 
 end subroutine PVS2
 
@@ -7322,18 +7339,35 @@ subroutine PVS3(i,o)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: i
   vectype, intent(out), dimension(MAX_PTS) :: o
 
-  if(surface_int) then
-     o = 0.
-  else
+  select case(ivform)
+  case(0)
      o = i(:,OP_DZZ)*pst79(:,OP_DR)**2 + i(:,OP_DRR)*pst79(:,OP_DZ)**2 &
           - 2.*i(:,OP_DRZ)*pst79(:,OP_DR)*pst79(:,OP_DZ)
-
+  
      if(itor.eq.1) then
         o = o + ri_79*i(:,OP_DR)*bzt79(:,OP_1)**2
      endif
 
      o = o * ri2_79*b2i79(:,OP_1) - (1./3.)*i(:,OP_LP)
-  endif
+
+  case(1)
+     o = -ri2_79* &
+          (pst79(:,OP_DZ)**2*i(:,OP_DZZ) + pst79(:,OP_DR)**2*i(:,OP_DRR) &
+          +2.*pst79(:,OP_DZ)*pst79(:,OP_DR)*i(:,OP_DRZ) &
+          -i(:,OP_GS)*(pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2)) 
+  
+     if(itor.eq.1) then
+        o = o + 2.*ri3_79*pst79(:,OP_DZ) * &
+             (i(:,OP_DZ)*pst79(:,OP_DR) - i(:,OP_DR)*pst79(:,OP_DZ))
+        
+     endif
+
+     o = o * ri2_79*b2i79(:,OP_1) - (1./3.)*ri2_79*i(:,OP_GS)
+
+     if(itor.eq.1) then
+        o = o + (1./3.)*ri3_79*i(:,OP_DR)
+     end if
+  end select
  
 end subroutine PVS3
 
@@ -7350,11 +7384,15 @@ subroutine PVV1(e,o)
   vectype, intent(out), dimension(MAX_PTS) :: o
 
   if(surface_int) then
+!!$     o = 3.*ri_79*b2i79(:,OP_1)* &
+!!$          (e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR))* &
+!!$          (norm79(:,1)*pst79(:,OP_DZ) - norm79(:,2)*pst79(:,OP_DR)) &
+!!$          - r_79*(norm79(:,1)*e(:,OP_DZ) - norm79(:,2)*e(:,OP_DR))
      o = 0.
   else
      o =   (e(:,OP_DZZ) - e(:,OP_DRR))*pst79(:,OP_DR)*pst79(:,OP_DZ) &
           + e(:,OP_DRZ)*(pst79(:,OP_DR)**2 - pst79(:,OP_DZ)**2)
-
+ 
      if(itor.eq.1) then
         o = o + ri_79* &
              (pst79(:,OP_DZ)* &
@@ -7363,8 +7401,21 @@ subroutine PVV1(e,o)
              +2.*e(:,OP_DR)*pst79(:,OP_DR)*pst79(:,OP_DZ)) &
              -e(:,OP_DZ)*bzt79(:,OP_1)**2)
      endif
-
+ 
      o = 3.*ri_79*b2i79(:,OP_1)*o
+
+
+!!$     o = 3.*ri_79*b2i79(:,OP_1)* &
+!!$          (e(:,OP_DZZ) - e(:,OP_DRR))*pst79(:,OP_DR)*pst79(:,OP_DZ) &
+!!$          -e(:,OP_DRZ)*(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)
+!!$
+!!$     if(itor.eq.1) then
+!!$        o = o - 3.*ri2_79*b2i79(:,OP_1)* &
+!!$             (pst79(:,OP_DZ)* &
+!!$             (e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR)) &
+!!$             +e(:,OP_DZ)*bzt79(:,OP_1)**2) &
+!!$            + 2.*e(:,OP_DZ)
+!!$     endif
   end if
 end subroutine  PVV1
 
@@ -7380,7 +7431,8 @@ subroutine PVV2(e,o)
   vectype, intent(out), dimension(MAX_PTS) :: o
 
   if(surface_int) then
-     o = 0.
+     o = 3.*ri_79*b2i79(:,OP_1)*bzt79(:,OP_1)*e(:,OP_1)* &
+          (norm79(:,1)*pst79(:,OP_DZ) - norm79(:,2)*pst79(:,OP_DR))
   else
      o = 3.*ri_79*b2i79(:,OP_1)*bzt79(:,OP_1)* &
           (e(:,OP_DZ)*pst79(:,OP_DR) - e(:,OP_DR)*pst79(:,OP_DZ))
@@ -7414,6 +7466,18 @@ subroutine PVV3(e,o)
         o = o + 3.*ri3_79*b2i79(:,OP_1)*e(:,OP_DR)* &
              (pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2 - bzt79(:,OP_1)**2)
      endif
+
+!!$     o = -3.*b2i79(:,OP_1)*ri4_79* &
+!!$          (e(:,OP_DZZ)*pst79(:,OP_DR)**2 + e(:,OP_DRR)*pst79(:,OP_DZ)**2 &
+!!$          -2.*pst79(:,OP_DR)*pst79(:,OP_DZ)*e(:,OP_DRZ)) &
+!!$          + ri2_79*e(:,OP_GS)
+!!$
+!!$     if(itor.eq.1) then
+!!$        o = o - 3.*b2i79(:,OP_1)*ri5_79 * &
+!!$             (2.*pst79(:,OP_DZ) &
+!!$             *(e(:,OP_DZ)*pst79(:,OP_DR) - e(:,OP_DR)*pst79(:,OP_DZ)) &
+!!$             + e(:,OP_DR)*bzt79(:,OP_1)**2)
+!!$     endif
   end if
      
 end subroutine  PVV3

@@ -47,7 +47,8 @@ c     first put in information to check on run information
 !
       write(56) ntime,time
       write(56) totcur0,tflux0,gbound,fbound,ptot,vloop
-      write(56) psimin, psilim, xnull, znull
+      write(56) psimin, psilim
+      write(56) xnull, znull
       close(56)
 
       if(maxrank.eq.1) then

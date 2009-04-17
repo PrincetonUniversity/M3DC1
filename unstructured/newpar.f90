@@ -115,14 +115,15 @@ Program Reducedquintic
   call create_matrix(mass_matrix_lhs,       NV_NOBOUND, NV_I_MATRIX,  NV_LHS)
   call create_matrix(gs_matrix_rhs_dc,      NV_DCBOUND, NV_GS_MATRIX, NV_RHS)
   if(numvar.ge.3 .and. hyperc.ne.0. .and. com_bc.eq.0) then
-     call create_matrix(lp_matrix_rhs,      NV_NOBOUND, NV_LP_MATRIX, NV_RHS)
+     if(com_bc.eq.0) then
+        call create_matrix(lp_matrix_rhs,   NV_NOBOUND, NV_LP_MATRIX, NV_RHS)
+     else
+        call create_matrix(lp_matrix_rhs_dc,NV_DCBOUND, NV_LP_MATRIX, NV_RHS)
+     endif
   endif
-  if(numvar.ge.3 .and. hyperc.ne.0. .and. com_bc.eq.1) then
-     call create_matrix(lp_matrix_rhs_dc,   NV_DCBOUND, NV_LP_MATRIX, NV_RHS)
-  end if
   if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
-     call create_matrix(bf_matrix_rhs_nm, NV_NOBOUND, NV_BF_MATRIX, NV_RHS)
-     call create_matrix(lp_matrix_lhs_nm, NV_NMBOUND, NV_LP_MATRIX, NV_LHS)
+     call create_matrix(mass_matrix_rhs_nm, NV_NMBOUND, NV_I_MATRIX,  NV_RHS)
+     call create_matrix(bf_matrix_lhs_nm,   NV_NMBOUND, NV_BF_MATRIX, NV_LHS)
   endif
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, "Done generating newvar matrices."
@@ -288,10 +289,14 @@ Program Reducedquintic
   case(2)
     call createvec(temporary_vector,1)
     call copyvec(field0, psi_g, num_fields, temporary_vector, 1, 1)
+    print *, "psimin, psilim", psimin, psilim
     call adapt(temporary_vector,psimin,psilim)
+    print *, 'done adapting.'
+    call space(0)
     call tridef
-  end select
 
+    call write_normlcurv
+  end select
 
   if(irestart.eq.0 .or. irestart.eq.2 .or. iadapt.gt.0) then
      tflux0 = tflux
@@ -380,8 +385,8 @@ Program Reducedquintic
      call deletematrix(q9matrix_sm)
   endif
   if(i3d.eq.1 .or. ifout.eq.1) then
-     call deletematrix(bf_matrix_rhs_nm)
-     call deletematrix(lp_matrix_lhs_nm)
+     call deletematrix(mass_matrix_rhs_nm)
+     call deletematrix(bf_matrix_lhs_nm)
   end if
   if(idens.eq.1 .and. linear.eq.1) then
      call deletematrix(q42matrix_sm)
@@ -601,8 +606,8 @@ subroutine derived_quantities(vec)
 !    call newvar(lp_matrix_lhs_nm,bf,vec,bz_g,num_fields, &
 !         bf_matrix_rhs_nm,NV_DCBOUND)
 !....the preceeding two lines  (08/30/08) scj were replaced by the following two lines  (08/30/08) scj
-     call newvar(lp_matrix_lhs_nm,bf,vec,bz_g,num_fields, &
-          bf_matrix_rhs_nm,NV_NMBOUND)
+     call newvar(bf_matrix_lhs_nm,bf,vec,bz_g,num_fields, &
+          mass_matrix_rhs_nm,NV_NMBOUND)
   endif
 
   if(myrank.eq.0 .and. itimer.eq.1) then

@@ -23,12 +23,13 @@ const double e0 = 1.;
 const double t0 = 0.;
 const double s0 = 0.;
 const double w10 = 0.1;
+const double z00 = 0.;
 const int nr0 = 20;
 const int np0 = 50;
 
 const char filename[] = "POLAR";
 
-double R, a, e, t, s;
+double R, a, e, t, s, z0;
 double s1, f1, g1, w1;
 int nr, np;
 
@@ -59,6 +60,7 @@ int main(int argc, char* argv[])
   s1 = 0;
   f1 = 0;
   w1 = w10;
+  z0 = z00;
 
   // read command line parameters
   if(read_inputs(argc,argv) != 0) {
@@ -95,7 +97,7 @@ int main(int argc, char* argv[])
       eps = r/a;
       
       x = r*(co - eps*eps*t*sn*sn) + s*(1.-eps*eps) + R;
-      z = r*e*sn;
+      z = r*e*sn + z0;
       
       if(i==nr-1) {
 	dx = a*(-sn - 2.*t*sn*co);
@@ -106,7 +108,7 @@ int main(int argc, char* argv[])
 
 	v = sqrt(dx*dx + dz*dz);
 	
-	curv = sqrt(ddx*ddx + ddz*ddz)/v;
+	curv = (dx*ddz - dz*ddx) / (v*v*v);
 
 	norm1 =  dz/v;
 	norm2 = -dx/v;
@@ -160,6 +162,7 @@ void print_usage()
   printf(" <s>: Shafranov shift (default=%g)\n",s0);
   printf(" <e>: elongation (default=%g)\n", e0);
   printf(" <t>: triangularity (default=%g)\n", t0);
+  printf(" <z0>: Z-coordinate of midplane (default=%g)\n", z00);
   printf(" <nr>: number of radial grid points (default=%d)\n", nr0);
   printf(" <np>: number of poloidal grid points (default=%d)\n", np0);
   printf(" <s1>: normalized position of packing region (0=axis, 1=boundary)\n");
@@ -174,6 +177,7 @@ void print_parameters()
   printf("Shafranov shift:\t%g\n", s);
   printf("Elongation:\t%g\n", e);
   printf("Triangularity:\t%g\n", t);
+  printf("Z-coordinate of midplane:\t%g\n", z0);
   printf("Radial grid points:\t%d\n", nr);
   printf("Poloidal grid points:\t%d\n", np);
   printf("Packing surface:\t%g\n", s1);
@@ -206,6 +210,9 @@ int read_inputs(int argc, char* argv[])
     } else if(0==strcmp(arg, "-t")) {
       if(++i==argc) return 1;
       t = atof(argv[i]);
+    } else if(0==strcmp(arg, "-z0")) {
+      if(++i==argc) return 1;
+      z0 = atof(argv[i]);
     } else if(0==strcmp(arg, "-s1")) {
       if(++i==argc) return 1;
       s1 = atof(argv[i]);
@@ -262,6 +269,9 @@ int read_input_file(const char* infile)
     } else if(0==strcmp(tok, "t")) {
       tok = strtok(NULL, " =\n!");
       t = atof(tok);
+    } else if(0==strcmp(tok, "z0")) {
+      tok = strtok(NULL, " =\n!");
+      z0 = atof(tok);
     } else if(0==strcmp(tok, "s1")) {
       tok = strtok(NULL, " =\n!");
       s1 = atof(tok);

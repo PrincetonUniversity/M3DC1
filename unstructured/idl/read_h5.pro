@@ -259,26 +259,88 @@ function time_string, t
    return, str
 end
 
+;========================================================
+; get_slice_time
+; ~~~~~~~~~~~~~~
+;
+; Returns the physical time associated with time slice
+;========================================================
+function get_slice_time, filename=filename, slice=slice
+   if(n_elements(filename) eq 0) then filename='C1.h5'
+   if(n_elements(slice) eq 0) then slice=0
 
-pro plot_mesh, mesh, color=col, oplot=oplot, $
-               filename=filename, _EXTRA=ex
+   file_id = h5f_open(filename)
+   time_group_id = h5g_open(file_id, time_name(slice))
+   time_id = h5a_open_name(time_group_id, "time")
+
+   t = h5a_read(time_id)
+
+   h5a_close, time_id
+   h5g_close, time_group_id
+   h5f_close, file_id
+
+   return, t
+end
+
+
+;=========================================================
+; read_mesh
+; ~~~~~~~~~
+;
+; Returns the mesh data structure at a given time slice
+;=========================================================
+function read_mesh, filename=filename, slice=t
+   if(n_elements(filename) eq 0) then filename='C1.h5'
+   if(n_elements(t) eq 0) then t = 0
+
+   if(hdf5_file_test(filename) eq 0) then return, 0
+
+   file_id = h5f_open(filename)
+
+   time_group_id = h5g_open(file_id, time_name(t))
+   mesh = h5_parse(time_group_id, 'mesh', /read_data)   
+
+   h5g_close, time_group_id
+   h5f_close, file_id
+
+   return, mesh
+end
+
+
+;=========================================================
+; plot_mesh
+; ~~~~~~~~~
+;
+; Plots the mesh.
+; /boundary: only plot the mesh boundary
+; /oplot: plots mesh as overlay to previous plot
+;=========================================================
+pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary,  _EXTRA=ex
+
+   if(n_elements(mesh) eq 0) then mesh = read_mesh(_EXTRA=ex)
+   if(n_tags(mesh) eq 0) then return
+
    nelms = mesh.nelms._data
    
    if(not keyword_set(oplot)) then begin
        plot, mesh.elements._data[4,*], $
-         mesh.elements._data[5,*], psym = 3, _EXTRA=ex
+         mesh.elements._data[5,*], psym = 3, _EXTRA=ex, /nodata
    endif  
 
    if(n_elements(col) ne 0) then loadct, 12
  
-   version = read_parameter('version', filename=filename)
+   version = read_parameter('version', _EXTRA=ex)
    if(version eq 0) then begin
-       xzero = read_parameter("xzero", filename=filename)
-       zzero = read_parameter("zzero", filename=filename)
+       xzero = read_parameter("xzero", _EXTRA=ex)
+       zzero = read_parameter("zzero", _EXTRA=ex)
    endif else begin
        xzero = 0.
        zzero = 0.
    endelse
+
+   if(keyword_set(boundary) and version ge 3) then begin
+       boundary = 1
+   endif else boundary = 0
 
    for i=long(0), nelms-1 do begin
        a = mesh.elements._data[0,i]
@@ -287,18 +349,22 @@ pro plot_mesh, mesh, color=col, oplot=oplot, $
        t = mesh.elements._data[3,i]
        x = mesh.elements._data[4,i]
        y = mesh.elements._data[5,i]
+       if(boundary) then begin
+           bound = fix(mesh.elements._data[6,i])
+       endif else bound = 7
+
 
        p1 = [x, y]
        p2 = p1 + [(b+a) * cos(t), (b+a) * sin(t)]
        p3 = p1 + [b * cos(t) - c * sin(t), $
                   b * sin(t) + c * cos(t)]
        
-       oplot, [p1[0],p2[0]]+xzero, [p1[1],p2[1]]+zzero, $
-         color=col
-       oplot, [p2[0],p3[0]]+xzero, [p2[1],p3[1]]+zzero, $
-         color=col
-       oplot, [p3[0],p1[0]]+xzero, [p3[1],p1[1]]+zzero, $
-         color=col
+       if((bound and 1) eq 1) then $
+         oplot, [p1[0],p2[0]]+xzero, [p1[1],p2[1]]+zzero, _EXTRA=ex
+       if((bound and 2) eq 2) then $
+         oplot, [p2[0],p3[0]]+xzero, [p2[1],p3[1]]+zzero, _EXTRA=ex
+       if((bound and 4) eq 4) then $
+         oplot, [p3[0],p1[0]]+xzero, [p3[1],p1[1]]+zzero, _EXTRA=ex
    end
 end
 
@@ -631,27 +697,88 @@ function read_raw_field, name, time, mesh=mesh, filename=filename, time=t
 end
 
 
+pro get_normalizations, b0=b0_norm, n0=n0_norm, l0=l0_norm, _EXTRA=extra
+   b0_norm = read_parameter('b0_norm', _EXTRA=extra)
+   n0_norm = read_parameter('n0_norm', _EXTRA=extra)
+   l0_norm = read_parameter('l0_norm', _EXTRA=extra)
+end
+
+;===============================================================
+; convert_units
+; ~~~~~~~~~~~~~
+;
+; converts x having dimensions d to cgs units
+; where b0, n0, and l0 are the normalizations (in cgs units)
+;===============================================================
+pro convert_units, x, d, b0, n0, l0, cgs=cgs, mks=mks
+   if(n_elements(x) eq 0) then return
+
+   if(not (keyword_set(cgs) or keyword_set(mks))) then return
+
+   if(b0 eq 0 or n0 eq 0 or l0 eq 0) then begin
+       print, "Warning: unknown conversion factors."
+       return
+   endif
+
+   val = 1.
+   if(keyword_set(cgs)) then begin
+       fp = (4.*!pi)
+       c0 = 3.e10
+       v0 = 2.18e11*b0/sqrt(n0)
+       t0 = l0/v0
+       temp0 = b0^2/(fp*n0) * 1./(1.6022e-12)
+       j0 = c0*b0/(fp*l0)
+       e0 = b0^2*l0^3/fp
+
+       val = fp^d[0] $
+         * c0^d[1] $
+         * n0^d[2] $
+         * v0^d[3] $
+         * b0^d[4] $
+         * t0^d[8] $
+         * l0^d[9] $
+         * temp0^d[5] $
+         * j0^d[6] $
+         * e0^d[7]
+       
+   endif else if(keyword_set(mks)) then begin
+       convert_units, x, d, b0, n0, l0, /cgs
+
+       val = (1.e-2)^d[1] $
+         * (1.e6)^d[2] $
+         * (1.e-2)^d[3] $
+         * (1.e-4)^d[4] $
+         * (1.e-2)^d[9] $
+         * (3.e9)^(-d[6]) $
+         * (1.e-7)^d[7]
+   end
+
+   x = x*val
+end
+
 ;=====================================================================
 ; dimensions
 ; ~~~~~~~~~~
 ;
 ; returs a vector with specified dimensions
 ;=====================================================================
-function dimensions, current=curr, energy=ener, eta=eta, j0=j, $
+function dimensions, energy=ener, eta=eta, j0=j, $
                      p0=pres, temperature=temp, e0=elec, $
                      l0=len, light=c, fourpi=fourpi, n0=den, $
                      v0=vel, t0=time, b0=mag, mu0=visc
-  d = intarr(7)
+  d = intarr(10)
 
-  fp = [1,0,0,0,0,0,0]
-  c0 = [0,1,0,0,0,0,0]
-  n0 = [0,0,1,0,0,0,0]
-  v0 = [0,0,0,1,0,0,0]
-  b0 = [0,0,0,0,1,0,0]
-  t0 = [0,0,0,0,0,1,0]  
-  l0 = [0,0,0,0,0,0,1]
-  p0 = b0*2-fp
-  j0 = c0+b0-fp-l0
+  fp =    [1,0,0,0,0,0,0,0,0,0]
+  c0 =    [0,1,0,0,0,0,0,0,0,0]
+  n0 =    [0,0,1,0,0,0,0,0,0,0]
+  v0 =    [0,0,0,1,0,0,0,0,0,0]
+  b0 =    [0,0,0,0,1,0,0,0,0,0]
+  temp0 = [0,0,0,0,0,1,0,0,0,0]
+  j0 =    [0,0,0,0,0,0,1,0,0,0]
+  e0 =    [0,0,0,0,0,0,0,1,0,0]
+  t0 =    [0,0,0,0,0,0,0,0,1,0]
+  l0 =    [0,0,0,0,0,0,0,0,0,1]
+  p0 = e0 - 3*l0
   
   if(keyword_set(fourpi)) then d = d + fp*fourpi
   if(keyword_set(light))  then d = d + c0*light
@@ -660,14 +787,13 @@ function dimensions, current=curr, energy=ener, eta=eta, j0=j, $
   if(keyword_set(mag))    then d = d + b0*mag
   if(keyword_set(time))   then d = d + t0*time
   if(keyword_set(len))    then d = d + l0*len
+  if(keyword_set(temp))   then d = d + temp0*temp
+  if(keyword_set(j))      then d = d + j0*j - 2*l0
+  if(keyword_set(ener))   then d = d + ener*e0
 
-  if(keyword_set(curr)) then d = d + curr*(j0+l0*2)
   if(keyword_set(elec)) then d = d + elec*(b0+v0-c0)
-  if(keyword_set(ener)) then d = d + ener*(p0+l0*3)
-  if(keyword_set(eta))  then d = d +  eta*(v0+l0+fp-c0*2)
-  if(keyword_set(j))    then d = d +    j*(j0)
+  if(keyword_set(eta))  then d = d +  eta*(2*l0-t0+fp-2*c0)
   if(keyword_set(pres)) then d = d + pres*(p0)
-  if(keyword_set(temp)) then d = d + temp*(p0-n0)
   if(keyword_set(visc)) then d = d + visc*(p0+t0)
 
   return, d
@@ -679,13 +805,44 @@ end
 ; ~~~~~~~~~~~
 ;
 ; x is a vector containing the dimensions of
-; [4pi, c, n0, vA0, B0, tA0, L0]
+; [4pi, c, n0, vA0, B0, T0, j0, e0, tA0, L0]
+; [  0, 1,  2,   3,  4,   5,  6,  7,  8,  9]
 ; 
 ; output is a string containing units
 ;=====================================================================
-function parse_units, x
-   u = ['!64!7p!X', '!8c!X', '!8n!D!60!N!X', '!8v!DA!60!N!X', $
-        '!8B!D!60!N!X', '!7s!DA!60!N!X', '!8L!D!60!N!X']
+function parse_units, x, cgs=cgs, mks=mks
+   if(keyword_set(cgs)) then begin
+       x[9] = x[9] - 3*x[2] + x[3] + x[1]
+       x[8] = x[8]          - x[3] - x[1]
+       x[0] = 0
+       x[1] = 0
+       x[2] = 0
+       x[3] = 0
+       u = ['!64!7p', '!8c', '!6cm', '!8v!DA!60!N', $
+            '!6G', '!6eV', '!6statamps', '!6erg', '!6s', '!6cm'] + '!X'
+   endif else if(keyword_set(mks)) then begin
+       x[9] = x[9] - 3*x[2] + x[3] + x[1]
+       x[8] = x[8]          - x[3] - x[1]
+       x[0] = 0
+       x[1] = 0
+       x[2] = 0
+       x[3] = 0
+       u = ['!64!7p', '!8c', '!6cm', '!8v!DA!60!N', $
+            '!6T', '!6eV', '!6A', '!6J', '!6s', '!6m'] + '!X'
+   endif else begin
+       x[0] = x[0]   - x[5] - x[6] -   x[7]
+       x[1] = x[1]          + x[6]
+       x[4] = x[4] + 2*x[5] + x[6] + 2*x[7]
+       x[9] = x[9]          - x[6] - 3*x[7]
+       x[5] = 0
+       x[6] = 0
+       x[7] = 0
+
+
+       u = ['!64!7p', '!8c', '!8n!D!60!N', '!8v!DA!60!N', $
+            '!8B!D!60!N', '!6temp', '!6curr', $
+            '!6energy', '!7s!DA!60!N', '!8L!D!60!N'] + '!X'
+   endelse
    units = ''
 
    nu = n_elements(x)
@@ -693,34 +850,50 @@ function parse_units, x
    if(max(x) gt 0) then pos=1 else pos=0
    if(min(x) lt 0) then neg=1 else neg=0
 
+   is = 0
    sscript = '("!U!6",G0,"!N!X")'
    for i=0, nu-1 do begin
        if(x[i] gt 0) then begin 
+           if(is eq 1) then units = units + ' '
            units = units + u[i]
            if(x[i] ne 1) then $
              units = units + string(format=sscript,x[i])
+           is = 1
        endif
    end
 
    if(pos eq 1) then begin
-       if(neg eq 1) then units = units + '!6/!X'
+       if(neg eq 1) then begin
+           units = units + '!6/!X'
+           is = 0
+       end
        for i=0, nu-1 do begin
            if(x[i] lt  0) then begin
+               if(is eq 1) then units = units + ' '
                units = units + u[i]
                if(x[i] ne -1) then $
-                 units = units + string(format=sscript,-x[i])
+                   units = units + string(format=sscript,-x[i])
+               is = 1
            endif
        end
    endif else begin
        for i=0, nu-1 do begin
-           if(x[i] lt  0) then begin
+           if(x[i] lt 0) then begin
+               if(is eq 1) then units = units + ' '
                units = units + u[i]
                units = units + string(format=sscript, x[i])
+               is = 1
            endif
        end
    endelse
 
-   return, units   
+   return, units
+end
+
+function make_label, s, d, _EXTRA=extra
+   if(n_elements(d) eq 0) then d = dimensions(_EXTRA=extra)
+   if(max(d,/abs) eq 0.) then return, s
+   return, s + ' !6(!X' + parse_units(d, _EXTRA=extra) + '!6)!X'
 end
 
 ;======================================================================
@@ -730,7 +903,7 @@ end
 ; creates a string given the specified unit dimensions
 ;======================================================================
 function make_units, _EXTRA=extra
-   return, parse_units(dimensions(_EXTRA=extra))
+   return, parse_units(dimensions(_EXTRA=extra), _EXTRA=extra)
 end
 
 
@@ -741,51 +914,52 @@ end
 ; provides the associated symbol and units for fields defined in C1.h5
 ;======================================================================
 function translate, name, units=units, itor=itor
-   units = ''
+   units = dimensions()
 
    if(strcmp(name, 'psi', /fold_case) eq 1) then begin
-       units = make_units(/b0, l0=1+itor)
+       units = dimensions(/b0, l0=1+itor)
        return, "!7w!X"
    endif else if(strcmp(name, 'I', /fold_case) eq 1) then begin
-       units = make_units(/b0, l0=itor)
+       units = dimensions(/b0, l0=itor)
        return, "!8I!X"
    endif else if(strcmp(name, 'phi', /fold_case) eq 1) then begin
-       units = make_units(/v0, l0=1+itor)
+       units = dimensions(/v0, l0=1+itor)
        return, "!8U!X"
    endif else if(strcmp(name, 'V', /fold_case) eq 1) then begin
-       units = make_units(/v0, l0=itor)
+       units = dimensions(/v0, l0=itor)
        return, "!8V!X"
    endif else if(strcmp(name, 'chi', /fold_case) eq 1) then begin
-       units = make_units(/v0, l0=1)
+       units = dimensions(/v0, l0=1)
        return, "!7v!X"
    endif else if(strcmp(name, 'eta', /fold_case) eq 1) then begin
-       units = make_units(/eta)
+       units = dimensions(/eta)
        return, "!7g!X"
    endif else if(strcmp(name, 'den', /fold_case) eq 1) then begin
-       units = make_units(/n0)
+       units = dimensions(/n0)
        return, "!8n!X"
    endif else if(strcmp(name, 'p', /fold_case) eq 1) then begin
-       units = make_units(/p0)
+       units = dimensions(/p0)
        return, "!8p!X"
    endif else if(strcmp(name, 'pe', /fold_case) eq 1) then begin
-       units = make_units(/p0)
+       units = dimensions(/p0)
        return, "!8p!De!N!X"
    endif else if(strcmp(name, 'sigma', /fold_case) eq 1) then begin
-       units = make_units(/n0,t0=-1)
+       units = dimensions(/n0,t0=-1)
        return, "!7r!X"
    endif else if(strcmp(name, 'kappa', /fold_case) eq 1) then begin
+       units = dimensions(/n0, l0=2, t0=-1)
        return, "!7j!X"
    endif else if((strcmp(name, 'visc', /fold_case) eq 1) or $
      (strcmp(name, 'visc_c', /fold_case) eq 1)) then begin
        return, "!7l!X"
    endif else if(strcmp(name, 'jphi', /fold_case) eq 1) then begin
-       units = make_units(/b0, l0=itor-1)
-       return, "!7D!6!U*!N!7w!x"
+       units = dimensions(/b0, l0=itor-1)
+       return, "!7D!6!U*!N!7w!X"
    endif else if(strcmp(name, 'vor', /fold_case) eq 1) then begin
-       units = make_units(/v0, l0=itor-1)
-       return, "!7D!6!U*!N!8U!x"
+       units = dimensions(/v0, l0=itor-1)
+       return, "!7D!6!U*!N!8U!X"
    endif else if(strcmp(name, 'com', /fold_case) eq 1) then begin
-       units = make_units(/v0, l0=-1)
+       units = dimensions(/v0, l0=-1)
        return, "!9G.!17v!X"
    endif  
 
@@ -799,7 +973,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
                      h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                      diff=diff, at_points=at_points,operation=op, $
                      linear=linear, last=last, average=average, $
-                     dpsi=dpsi, symbol=symbol, units=units
+                     dpsi=dpsi, symbol=symbol, units=units, cgs=cgs, mks=mks
 
 
    if(keyword_set(average)) then begin
@@ -819,7 +993,8 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
                         rrange=xrange, zrange=yrange, $
                         h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                         diff=diff, at_points=at_points,operation=op, $
-                        linear=linear, last=last,symbol=symbol,units=units)
+                        linear=linear, last=last,symbol=symbol,units=units, $
+                       cgs=cgs, mks=mks)
        end
        data = data/n
        return, data
@@ -841,7 +1016,8 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
                         rrange=xrange, zrange=yrange, $
                         h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                         at_points=at_points,operation=op, $
-                        linear=linear, last=last,symbol=symbol,units=units) $
+                        linear=linear, last=last,symbol=symbol,units=units, $
+                       cgs=cgs, mks=mks) $
              *((-1)^i)
        end
 
@@ -894,9 +1070,9 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
        if(ilin eq 1) then base = fltarr(sz[1])
    endelse
 
-   units=''
+   d = dimensions()
    symbol=name
-  
+ 
    ;==========================================
    ; local_beta = 2*P/B^2
    ;==========================================
@@ -948,7 +1124,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
    
        data = I/r
        symbol = '!8B!D!9P!N!X'
-       units = make_units(/b0)
+       d = dimensions(/b0, _EXTRA=extra)
 
    ;===========================================
    ; toroidal velocity
@@ -974,7 +1150,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
            data = v*r
        endif
        symbol = '!8u!D!9P!N!X'
-       units = make_units(/v0)
+       d = dimensions(/v0, _EXTRA=extra)
 
    ;===========================================
    ; thermal velocity
@@ -990,7 +1166,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
          
        data = sqrt(Temp)
        symbol = '!8v!Dt!N!X'
-       units = make_units(/v0)
+       d = dimensions(/v0, _EXTRA=extra)
 
    ;===========================================
    ; sound speed
@@ -1005,7 +1181,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
   
        data = sqrt(gam)*vt
        symbol = '!8c!Ds!N!X'
-       units = make_units(/v0)
+       d = dimensions(/v0, _EXTRA=extra)
 
    ;===========================================
    ; Mach number
@@ -1058,7 +1234,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
   
        data = p/n
        symbol = '!8T!X'
-       units = make_units(/temperature)
+       d = dimensions(/temperature, _EXTRA=extra)
 
    ;===========================================
    ; electron temperature
@@ -1076,7 +1252,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
   
        data = pe/n
        symbol = '!8T!De!N!X'
-       units = make_units(/temperature)
+       d = dimensions(/temperature, _EXTRA=extra)
 
    ;===========================================
    ; ion temperature
@@ -1098,7 +1274,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
   
        data = (p-pe)/n
        symbol = '!8T!Di!N!X'
-       units = make_units(/temperature)
+       d = dimensions(/temperature, _EXTRA=extra)
 
    ;===========================================
    ; ion pressure
@@ -1116,7 +1292,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
   
        data = p-pe
        symbol = '!8p!Di!N!X'
-       units = make_units(/p0)
+       d = dimensions(/p0, _EXTRA=extra)
 
    ;===========================================
    ; angular momentum
@@ -1130,17 +1306,13 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange, at_points=at_points)
 
-       if(idens eq 1) then begin
-           n = read_field('den', x, y, t, slices=time, mesh=mesh, $
-                          filename=filename, points=pts, $
-                          rrange=xrange, zrange=yrange, at_points=at_points)
-       endif else begin
-           n = 1.
-       endelse
+       n = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange, at_points=at_points)
   
        data = n*v
        symbol = '!8L!D!9P!N!X'
-       units = make_units(/n0, /v0, /l0)
+       d = dimensions(/n0, /v0, /l0, _EXTRA=extra)
 
    ;===========================================
    ; toroidal current
@@ -1163,7 +1335,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 
        data = -jphi/r
        symbol = '!8J!D!9P!N!X'
-       units = make_units(/j0)
+       d = dimensions(/j0, _EXTRA=extra)
 
 
    ;===========================================
@@ -1194,7 +1366,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
        endelse
 
        symbol = '!8r!X'
-       units = make_units(/l0)
+       d = dimensions(/l0, _EXTRA=extra)
 
    ;===========================================
    ; polodal angle
@@ -1252,7 +1424,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 
        data = sqrt((s_bracket(psi,psi,x,y) + I^2)/r^2)
        symbol = '!3|!5B!3|!X'
-       units = make_units(/b0)
+       d = dimensions(/b0, _EXTRA=extra)
             
    ;===========================================
    ; Poloidal Field strength
@@ -1275,7 +1447,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 
        data = sqrt(s_bracket(psi,psi,x,y)/r^2)
        symbol = '!3|!5B!D!8p!N!3|!X'
-       units = make_units(/b0)
+       d = dimensions(/b0, _EXTRA=extra)
 
 
    ;===========================================
@@ -1299,7 +1471,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 
        data = sqrt(I^2/r^2)
        symbol = '!3|!8B!D!9P!N!3|!X'
-       units = make_units(/b0)
+       d = dimensions(/b0, _EXTRA=extra)
 
 
    ;===========================================
@@ -1336,7 +1508,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
                          s_bracket(chi,chi,x,y)/r^4+2.*a_bracket(chi,u,x,y)/r)
        endif
        symbol ='!6Kinetic Energy Density!X'
-       units = make_units(/p0)
+       d = dimensions(/p0, _EXTRA=extra)
 
    ;===========================================
    ; Alfven velocity
@@ -1352,7 +1524,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
                        rrange=xrange, zrange=yrange, at_points=at_points)
        data = b/sqrt(den)
        symbol = '!8v!DA!N'
-       units = make_units(/v0)
+       d = dimensions(/v0, _EXTRA=extra)
 
    ;===========================================
    ; (minor) radial current density
@@ -1376,7 +1548,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
        
        data = a_bracket(i,psi,x,y)/(r*sqrt(s_bracket(psi,psi,x,y)))
        symbol = '!8J!Dr!N!X'
-       units = make_units(/j0)
+       d = dimensions(/j0, _EXTRA=extra)
 
    ;===========================================
    ; poloidal current density
@@ -1400,7 +1572,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
        
        data = s_bracket(i,psi,x,y)/(r*sqrt(s_bracket(psi,psi,x,y)))
        symbol = '!8J!Dp!N!X'
-       units = make_units(/j0)
+       d = dimensions(/j0, _EXTRA=extra)
 
        
    ;===========================================
@@ -1413,7 +1585,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 ;                           rrange=xrange, zrange=yrange)
 
 ;          data = -grad_shafranov(psi,x,y,tor=itor)
-;          symbol = translate('jphi', units=units, itor=itor)
+;          symbol = translate('jphi', units=d, itor=itor)
 
    ;===========================================
    ; vorticity
@@ -1425,7 +1597,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
                            rrange=xrange, zrange=yrange, at_points=at_points)
 
           data = grad_shafranov(phi,x,y,tor=itor)
-          symbol = translate('vor', units=units, itor=itor)
+          symbol = translate('vor', units=d, itor=itor)
 
    ;===========================================
    ; divergence
@@ -1437,7 +1609,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
                           rrange=xrange, zrange=yrange, at_points=at_points)
 
          data = laplacian(chi,x,y,tor=itor)
-         symbol = translate('com', units=units, itor=itor)
+         symbol = translate('com', units=d, itor=itor)
 
    ;===========================================
    ; rotational transform
@@ -1491,7 +1663,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
            data = v
        endif
        symbol = '!7x!X'
-       units = make_units(t0=-1)
+       d = dimensions(t0=-1, _EXTRA=extra)
 
    ;===========================================
    ; parallel flow
@@ -1527,7 +1699,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
        data = ((s_bracket(phi,psi,x,y) + v*I)/r^2 $
                + a_bracket(chi,psi,x,y)/r)/sqrt(b2)
        symbol = '!8u!D!9#!N!X'
-       units = make_units(/v0)
+       d = dimensions(/v0, _EXTRA=extra)
          
    ;===========================================
    ; radial flow
@@ -1552,10 +1724,15 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
            endelse
        endif else r = 1.
 
-       data = -(a_bracket(psi,phi,x,y)/r + s_bracket(psi,chi,x,y)) / $
-         sqrt(s_bracket(psi,psi,x,y))
+       if(ivform eq 0) then begin
+           data = -(a_bracket(psi,phi,x,y)/r + s_bracket(psi,chi,x,y)) / $
+             sqrt(s_bracket(psi,psi,x,y))
+       endif else if (ivform eq 1) then begin
+           data = -(a_bracket(psi,phi,x,y)*r + s_bracket(psi,chi,x,y)/r^2) / $
+             sqrt(s_bracket(psi,psi,x,y))
+       endif
        symbol = '!8u!Dr!N!X'
-       units = make_units(/v0)
+       d = dimensions(/v0, _EXTRA=extra)
 
    ;===========================================
    ; poloidal flow
@@ -1583,7 +1760,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
        data = (s_bracket(phi,psi,x,y)/r + a_bracket(chi,psi,x,y)) / $ 
          sqrt(s_bracket(psi,psi,x,y))
        symbol = '!8u!Dp!N!X'
-       units = make_units(/v0)
+       d = dimensions(/v0, _EXTRA=extra)
 
 
    ;===========================================
@@ -1620,7 +1797,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
        data = (i*s_bracket(phi,psi,x,y) - v*psipsi $
                +i*a_bracket(chi,psi,x,y)*r) / (r^2 * sqrt(psipsi*b2))
        symbol = '!8u!Ds!N!X'
-       units = make_units(/v0)
+       d = dimensions(/v0, _EXTRA=extra)
 
 
    ;===========================================
@@ -1689,6 +1866,30 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
           i*(s_bracket(phi,psi,x,y) + r*a_bracket(chi,psi,x,y))/psipsi) $
          /r^2
 
+   ;===========================================
+   ; Lundquist number
+   ;===========================================
+   endif else if(strcmp('S', name, /fold_case) eq 1) then begin
+
+       va = read_field('va', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       eta= read_field('eta',   x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
+
+       data = va/eta
+       symbol = '!8S!X'
+       d = dimensions(_EXTRA=extra)
+       
 
    ;===========================================
    ; b.W.b
@@ -1788,7 +1989,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
                                 ; Normalize field
        data = -data/sqrt(s_bracket(psi,psi,x,y))
        symbol = '!8E!Dr!N!X'
-       units = make_units(/e0)
+       d = dimensions(/e0, _EXTRA=extra)
 
        
    endif else begin
@@ -1899,7 +2100,7 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 
        h5f_close, file_id
 
-       symbol = translate(name, units=units, itor=itor)
+       symbol = translate(name, units=d, itor=itor)
    end
 
    if(n_elements(h_symmetry) eq 1) then begin
@@ -1909,6 +2110,12 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
        print, "v symmetry = ", v_symmetry
        data = (data + v_symmetry*reverse(data, 3)) / 2.
    endif
+
+   get_normalizations, filename=filename,b0=b0,n0=n0,l0=l0
+   convert_units, data, d, b0, n0, l0, cgs=cgs, mks=mks
+   convert_units, x, dimensions(/l0), b0, n0, l0, cgs=cgs, mks=mks
+   convert_units, y, dimensions(/l0), b0, n0, l0, cgs=cgs, mks=mks
+   units = parse_units(d, cgs=cgs, mks=mks)
 
    return, data
 end
@@ -1979,7 +2186,8 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                 maskrange=maskrange, maskfield=maskfield, range=range, $
                 rrange=rrange, zrange=zrange, linear=linear, $
                 xrange=xrange, yrange=yrange, xlim=xlim, $
-                cutx=cutx, cutz=cutz, mpeg=mpeg, _EXTRA = ex
+                cutx=cutx, cutz=cutz, mpeg=mpeg, $
+                boundary=boundary, _EXTRA = ex
 
    if(n_elements(time) eq 0) then time = 0
    if(n_elements(title) eq 0) then notitle = 1 else notitle = 0
@@ -2033,9 +2241,10 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                title = fieldname
            end
            
-           contour_and_legend, field[k,*,*], x, y, title=title, label=units, $
-             xtitle='!8R!6 (' + make_units(/l0) + '!6)!X', $
-             ytitle='!8Z!6 (' + make_units(/l0) + '!6)!X', $
+           contour_and_legend, field[k,*,*], x, y, title=title, $
+             label=units, $
+             xtitle=make_label('!8R!X', /l0, _EXTRA=ex), $
+             ytitle=make_label('!8Z!X', /l0, _EXTRA=ex), $
              range=range, _EXTRA=ex
 
            if(keyword_set(lcfs) or n_elements(maskrange) ne 0) then begin
@@ -2046,18 +2255,23 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                endif
 
                if(n_elements(maskrange) eq 2) then begin
-                   plot_lcfs, psi,x,z, color=130, psival=maskrange[0], $
-                     xlim=xlim
-                   plot_lcfs, psi,x,z, color=130, psival=maskrange[1], $
-                     xlim=xlim
+                   loadct,12
+                   plot_lcfs, psi,x,z, color=color(3,5),xlim=xlim, $
+                     psival=maskrange[0],slice=time[0]+k
+                   plot_lcfs, psi,x,z, color=color(3,5),xlim=xlim, $
+                     psival=maskrange[1],slice=time[0]+k
                endif else begin
-                   plot_lcfs, psi,x,z, color=130, xlim=xlim, _EXTRA=ex
+                   loadct,12
+                   plot_lcfs, psi,x,z, color=color(3,5), xlim=xlim, $
+                     slice=time[0]+k, _EXTRA=ex
                endelse
            endif
-           
+
+           if(keyword_set(boundary)) then plotmesh=1
            if(keyword_set(plotmesh)) then begin
                loadct, 12
-               plot_mesh, mesh, color=color(3,5), /oplot, _EXTRA=ex
+               plot_mesh, mesh=mesh, color=color(3,5), /oplot, $
+                 boundary=boundary, _EXTRA=ex
            endif
            
            if(n_elements(mpeg) ne 0) then begin
@@ -2518,16 +2732,33 @@ function field_at_point, field, x, z, x0, z0
 end
 
 
+pro read_nulls, axis=axis, xpoints=xpoint, _EXTRA=extra
+   s = read_scalars(_EXTRA=extra)
+
+   t0 = get_slice_time(_EXTRA=extra)
+
+   dum = min(s.time._data - t0, i, /abs)
+
+   xpoint = fltarr(2)
+   axis = fltarr(2)
+   xpoint[0] = s.xnull._data[i]
+   xpoint[1] = s.znull._data[i]
+   axis[0] = s.xmag._data[i]
+   axis[1] = s.zmag._data[i]
+   
+   return
+end
+
+
 ; ==============================================================
-; nulls
-; -----
+; find_nulls
+; ----------
 ;
 ;  Finds field nulls.
-;  xpoint = fltarr(2,xpoints): indices of x-point locations
-;  axis   = fltarr(2,axes)   : indices of axis locations
+;  xpoint = fltarr(2) : position of active x-point
+;  axis   = fltarr(2) : position of magnetic axis
 ; ==============================================================
-pro nulls, psi, x, z, axis=axis, xpoints=xpoint, $
-              _EXTRA=extra
+pro find_nulls, psi, x, z, axis=axis, xpoints=xpoint, _EXTRA=extra
 
    if(n_elements(time) eq 0) then time = 0
    
@@ -2658,14 +2889,26 @@ pro nulls, psi, x, z, axis=axis, xpoints=xpoint, $
 end
 
 
+pro nulls, psi, x, z, axis=axis, xpoints=xpoint, _EXTRA=extra
+    version = read_parameter('version', _EXTRA=extra)
+    if(version ge 3) then begin
+        read_nulls, axis=axis, xpoint=xpoint, _EXTRA=extra
+    endif else begin
+        find_nulls, psi, x, z, axis=axis, xpoint=xpoint, _EXTRA=extra
+    endelse 
+end
+
 ; ========================================================
 ; lcfs
 ; ~~~~
 ;
 ; returns the flux value of the last closed flux surface
 ; ========================================================
-function lcfs, psi, x, z, axis=axis, xpoint=xpoint, $
+function find_lcfs, psi, x, z, axis=axis, xpoint=xpoint, $
                flux0=flux0, psilim=psilim, xlim=xlim, _EXTRA=extra
+
+   if(n_elements(psi) eq 0 or n_elements(x) eq 0 or n_elements(z) eq 0) then $
+     psi = read_field('psi',x,z,t,_EXTRA=extra,linear=0)
 
    nulls, psi, x, z, xpoint=xpoint, axis=axis, _EXTRA=extra
 
@@ -2748,25 +2991,62 @@ function lcfs, psi, x, z, axis=axis, xpoint=xpoint, $
 end
 
 
+function read_lcfs, axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra
+   s = read_scalars(_EXTRA=extra)
+
+   t0 = get_slice_time(_EXTRA=extra)
+
+   dum = min(s.time._data - t0, i, /abs)
+
+   xpoint = fltarr(2)
+   axis = fltarr(2)
+   xpoint[0] = s.xnull._data[i]
+   xpoint[1] = s.znull._data[i]
+   axis[0] = s.xmag._data[i]
+   axis[1] = s.zmag._data[i]
+   
+   return, s.psibound._data[i]
+end
+
+
+; ========================================================
+; lcfs
+; ~~~~
+;
+; returns the flux value of the last closed flux surface
+; ========================================================
+function lcfs, psi, x, z, axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra
+
+    version = read_parameter('version', _EXTRA=extra)
+    if(version ge 3) then begin
+        psilim = read_lcfs(axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra)
+    endif else begin
+        psilim = find_lcfs(psi, x, z,axis=axis, xpoint=xpoint, flux0=flux0, $
+                           _EXTRA=extra)
+    endelse 
+    return, psilim
+end
+
+
+
 ; ========================================================
 ; plot_lcfs
 ; ~~~~~~~~~
 ;
 ; plots the last closed flux surface
 ; ========================================================
-pro plot_lcfs, psi,x,z, color=color, psival=psival, $
-               filename=filename, xlim=xlim, _EXTRA=extra
+pro plot_lcfs, psi, x, z, psival=psival,_EXTRA=extra
+
+    if(n_elements(psi) eq 0 or n_elements(x) eq 0 or n_elements(z) eq 0) then $
+      psi = read_field('psi',x,z,t,_EXTRA=extra)
 
     ; if psival not passed, choose limiter value
-    if(n_elements(psival) eq 0) then begin
-        psival = lcfs(psi,x,z, points=pts, $
-                      xlim=xlim, _EXTRA=extra, linear=0)
-    endif
+    if(n_elements(psival) eq 0) then psival = lcfs(psi,x,z,_EXTRA=extra)
 
     ; plot contour
     if(n_elements(color) ne 0) then loadct, 12
     contour, psi, x, z, /overplot, nlevels=1, levels=psival, $
-      color=color, thick=!p.charthick*2.
+      thick=!p.charthick*2., _EXTRA=extra
 end
 
 
@@ -2896,9 +3176,9 @@ function beta_normal, filename=filename
    return, 100.*beta_t/i_n
 end
 
-
 function read_scalar, scalarname, filename=filename, title=title, $
-                      symbol=symbol, units=units, time=time, final=final
+                      symbol=symbol, units=units, time=time, final=final, $
+                      _EXTRA=extra
 
    if(n_elements(scalarname) eq 0) then begin
        print, "Error: no scalar name provided"
@@ -2918,44 +3198,38 @@ function read_scalar, scalarname, filename=filename, title=title, $
    endif
 
    s = read_scalars(filename=filename)
+   itor = read_parameter('itor', filename=filename)
    if(n_tags(s) eq 0) then return, 0
 
    time = s.time._data
 
-   units = ''
-   va0 = '!8v!DA!60!N!X'
-   b0 = '!8B!D!60!N!X'
-   n0 = '!8n!D!60!N!X'
-   t0 = '!7s!DA!60!N!X'
-   l0 = '!8L!D!60!N!X'
-   pi4 = '!64!7p!X'
-   sq = '!U!62!N!X'
-   c = '!8c!X'
+   d = dimensions()
 
    if(strcmp("toroidal current", scalarname, /fold_case) eq 1) or $
      (strcmp("it", scalarname, /fold_case) eq 1) then begin
        data = s.toroidal_current._data
        title = 'Toroidal Current'
        symbol = '!8I!DT!N!X'
-       units = c + b0 + '/' + pi4 + l0
+       d = dimensions(/j0, l0=2, _EXTRA=extra)
    endif else $
      if (strcmp("toroidal flux", scalarname, /fold_case) eq 1) then begin
        data = s.toroidal_flux._data
        title = 'Toroidal Flux'
        symbol = 'Flux'
-       units = l0 + '!U2!N' + b0
+       d = dimensions(/b0, l0=2, _EXTRA=extra)
    endif else $
      if (strcmp("reconnected flux", scalarname, /fold_case) eq 1) then begin
        data = abs(s.reconnected_flux._data)
        title = 'Reconnected Flux'
-       symbol = translate('psi', units=u)
-       units = u
+       symbol = translate('psi')
+       d = dimensions(/b0, l0=1+itor, _EXTRA=extra)
    endif else $
      if (strcmp("loop voltage", scalarname, /fold_case) eq 1) or $
      (strcmp("vl", scalarname, /fold_case) eq 1) then begin
        data = s.loop_voltage._data
        title = 'Loop Voltage'
        symbol = '!8V!DL!N!X'
+       d = dimensions(/e0,/l0, _EXTRA=extra)
    endif else $
      if (strcmp("beta", scalarname, /fold_case) eq 1) then begin
        data = beta(filename=filename)
@@ -2973,7 +3247,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
        data = beta_normal(filename=filename)
        title = 'Average Normal Beta'
        symbol = '!7b!D!8N!N!3'
-       units = '!6%!X'
+       d = '!6%!X'
    endif else if $
      (strcmp("kinetic energy", scalarname, /fold_case) eq 1) or $
      (strcmp("ke", scalarname, /fold_case) eq 1)then begin
@@ -2983,7 +3257,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
        if(nv ge 3) then data = data + s.E_K3._data
        title = 'Kinetic Energy'
        symbol = '!8KE!X'
-       units = make_units(/energy)
+       d = dimensions(/energy, _EXTRA=extra)
    endif else if $
      (strcmp("magnetic energy", scalarname, /fold_case) eq 1) or $
      (strcmp("me", scalarname, /fold_case) eq 1)then begin
@@ -2992,7 +3266,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
        if(nv ge 2) then data = data + s.E_MT._data 
        title = 'Magnetic Energy'
        symbol = '!8ME!X'
-       units = make_units(/energy)
+       d = dimensions(/energy, _EXTRA=extra)
    endif else if $
      (strcmp("thermal energy", scalarname, /fold_case) eq 1) or $
      (strcmp("te", scalarname, /fold_case) eq 1)then begin
@@ -3000,68 +3274,70 @@ function read_scalar, scalarname, filename=filename, title=title, $
        data = s.E_P._data 
        title = 'Thermal Energy'
        symbol = '!8TE!X'
-       units = make_units(/energy)
+       d = dimensions(/energy, _EXTRA=extra)
    endif else if $
      (strcmp("energy", scalarname, /fold_case) eq 1) then begin
        nv = read_parameter("numvar", filename=filename)
        data = energy(filename=filename)
        title = 'Total Energy'
        symbol = '!8E!X'
-       units = b0 + '!U2!N' + l0 + '!U3!N' + '/' + pi4
+       d = dimensions(/energy, _EXTRA=extra)
    endif else if $
      (strcmp("particles", scalarname, /fold_case) eq 1) or $
      (strcmp("n", scalarname, /fold_case) eq 1) then begin
        data = s.particle_number._data
        title = 'Particle Number'
        symbol = '!8N!X'
-       units = n0 + l0 + '!U3!N!X'
+       d = dimensions(/n0,l0=3, _EXTRA=extra)
    endif else if $
      (strcmp("angular momentum", scalarname, /fold_case) eq 1) then begin
        data = s.angular_momentum._data
        title = 'Angular Momentum'
        symbol = '!8L!D!9P!N!X'
-       units = b0 + '!U2!N' + l0 + '!U3!N' + '/' + pi4 + t0
+       d = dimensions(/energy,/t0, _EXTRA=extra)
    endif else if (strcmp("circulation", scalarname, /fold_case) eq 1) or $
      (strcmp("vorticity", scalarname, /fold_case) eq 1) then begin
        data = s.circulation._data
 ;      data = s.vorticity._data
        title = 'Circulation'
        symbol = '!9I!S!7x!R!A!6_!D!9P!N !8dA !x'
-       units = va0 + l0
+       d = dimensions(/v0,/l0, _EXTRA=extra)
    endif else if (strcmp("parallel viscous heating", scalarname, /fold_case) eq 1) then begin $
        data = s.parallel_viscous_heating._data
        title = 'Parallel Viscous Heating'
 ;       symbol = '!6(!7l!D!9#!N!5b!9 . !3W!9 . !5b!6/2)!U2!N!X'
        symbol = '-!9I!8dV !7P!D!9#!N!3:!9G!5u!X'
-       units =  b0+sq+l0+'!U3!N!X'+'/'+pi4+t0
+       d = dimensions(/energy,t0=-1, _EXTRA=extra)
    endif else if (strcmp("bwb2", scalarname, /fold_case) eq 1) then begin $
        amupar = read_parameter('amupar', filename=filename)
        data = 4.*s.parallel_viscous_heating._data / (3.*amupar)
        title = ''
 ;       symbol = '!6(!7l!D!9#!N!5b!9 . !3W!9 . !5b!6/2)!U2!N!X'
        symbol = '!6(!5b!9.!3W!9.!5b!6)!U2!N!X'
-       units = make_units(t0=-2,l0=3)
+       d = dimensions(t0=-2,l0=3, _EXTRA=extra)
    endif else begin
        print, 'Scalar ', scalarname, ' not recognized.'
        return, 0
    endelse
    
-   itor = read_parameter('itor', filename=filename)
-   if(itor eq 0) then units = units + ' / ' + l0
-
    if(keyword_set(final)) then begin
        data = data[n_elements(data)-1]
    endif
 
+   get_normalizations, b0=b0,n0=n0,l0=l0, filename=filename, _EXTRA=extra
+   convert_units, data, d, b0, n0, l0, _EXTRA=extra
+   convert_units, time, dimensions(/t0), b0, n0, l0, _EXTRA=extra
+   units = parse_units(d, _EXTRA=extra)
+
    return, data
 end
-
 
 pro plot_scalar, scalarname, x, filename=filename, names=names, $
                  _EXTRA=extra, overplot=overplot, $
                  ylog=ylog, xlog=xlog, absolute_value=absolute, $
                  power_spectrum=power_spectrum, per_length=per_length, $
-                 growth_rate=growth_rate, bw=bw, nolegend=nolegend
+                 growth_rate=growth_rate, bw=bw, nolegend=nolegend, $
+                 cgs=cgs,mks=mks
 
   if(n_elements(filename) eq 0) then filename='C1.h5'
 
@@ -3084,14 +3360,14 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
                 color=co[i], _EXTRA=extra, ylog=ylog, xlog=xlog, $
                 power_spectrum=power_spectrum, per_length=per_length, $
                 growth_rate=growth_rate, linestyle=ls[i], nolegend=nolegend, $
-                absolute_value=absolute
+                absolute_value=absolute,cgs=cgs,mks=mks
           endif else begin
               plot_scalar, scalarname, x[i], filename=filename[i], $
                 overplot=((i gt 0) or keyword_set(overplot)), $
                 color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, $
                 power_spectrum=power_spectrum, per_length=per_length, $
                 growth_rate=growth_rate, nolegend=nolegend, $
-                absolute_value=absolute
+                absolute_value=absolute,cgs=cgs,mks=mks
           endelse
       end
 
@@ -3104,10 +3380,11 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
   endif 
 
   data = read_scalar(scalarname, filename=filename, time=time, $
-                     title=title, symbol=symbol, units=units)
+                     title=title, symbol=symbol, units=units, cgs=cgs, mks=mks)
   if(n_elements(data) le 1) then return
 
   title = '!6' + title + '!X'
+
   ytitle = symbol
   if(strlen(units) gt 0) then begin
       ytitle = ytitle + '!6 (' + units + ')!X'
@@ -3115,10 +3392,10 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
 
   if(keyword_set(power_spectrum)) then begin
 ;      xtitle = '!7x!6 (!7s!D!8A!N!6!U-1!N)!X'
-      xtitle = '!7x!6 (' + make_units(t0=-1) + ')!X'
+      xtitle = make_label('!7x!X', t0=-1, cgs=cgs, mks=mks, _EXTRA=extra)
       data = power_spectrum(data, frequency=tdata, t=max(time)) 
   endif else begin
-      xtitle = '!8t!6 (' + make_units(/t0) + ')!X'
+      xtitle = make_label('!8t!X', /t0, cgs=cgs, mks=mks, _EXTRA=extra)
       tdata = time
   endelse
 
@@ -3133,12 +3410,12 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
   if(keyword_set(growth_rate)) then begin
       data = deriv(tdata, alog(abs(data)))
 ;      ytitle = '!7c !6(!7s!D!8A!N!6!U-1!N)!X'
-      ytitle = '!7c!6 (' + make_units(t0=-1) + ')!X'
+      ytitle = make_label('!7c!X', t0=-1, cgs=cgs, mks=mks, _EXTRA=extra)
   endif
 
   if(keyword_set(absolute)) then data = abs(data)
 
-  if(n_elements(x) eq 0) then begin
+  if(n_elements(x) eq 0) then begin   
       if(keyword_set(overplot)) then begin
           oplot, tdata, data, color=c, _EXTRA=extra
       endif else begin
@@ -3212,8 +3489,8 @@ pro plot_pol_velocity, time,  maxval=maxval, points=points, $
     '!6 ' + make_units(/v0) + '!X'
 
   velovect, reform(vx), reform(vz), x, z, length=length, _EXTRA=extra, $
-    xtitle='!8R!6 (' + make_units(/l0) + '!6)!X', $
-    ytitle='!8Z!6 (' + make_units(/l0) + '!6)!X', $
+    xtitle=make_label('!8R!X', /l0, _EXTRA=extra), $
+    ytitle=make_label('!8Z!X', /l0, _EXTRA=extra), $
     title=title, subtitle=maxstr
 
   if(keyword_set(lcfs)) then begin
@@ -3231,460 +3508,6 @@ pro plot_pol_velocity, time,  maxval=maxval, points=points, $
         color=color, thick=!p.charthick*2.
   endif
 end
-
-
-pro plot_timings, filename=filename, overplot=overplot, _EXTRA=extra
-
-   if(n_elements(filename) eq 0) then filename = 'C1.h5'
-
-   if(hdf5_file_test(filename) eq 0) then return
-
-   file_id = h5f_open(filename)
-   root_id = h5g_open(file_id, "/")
-   timings = h5_parse(root_id, "timings", /read_data)
-   h5g_close, root_id
-   h5f_close, file_id
-
-   t_solve = timings.t_solve_b._data + timings.t_solve_v._data + $
-     timings.t_solve_n._data + timings.t_solve_p._data
-   t_output = timings.t_output_cgm._data + timings.t_output_hdf5._data + $
-     timings.t_output_reset._data
-
-   loadct, 12
-
-   if(keyword_set(overplot)) then begin
-       oplot, timings.t_onestep._data
-   endif else begin
-       plot, timings.t_onestep._data>0, title='!6Timings!3', $
-         xtitle='!6Time Step!3', ytitle='!8t!6 (s)!3', _EXTRA=extra
-   endelse
-   oplot, timings.t_ludefall._data, linestyle=2, color=color(1,8)
-   oplot, timings.t_sources._data, linestyle=1, color=color(2,8)
-   oplot, timings.t_aux._data, linestyle=1, color=color(3,8)
-   oplot, timings.t_smoother._data, linestyle=1, color=color(4,8)
-   oplot, timings.t_mvm._data, linestyle=1, color=color(5,8)
-   oplot, t_solve, linestyle=2, color=color(6,8)
-   oplot, t_output, linestyle=2, color=color(7,8)
-
-
-   plot_legend, ['Onestep', 'ludefall', 'sources', 'aux', $
-                 'smoother', 'mat vec mult', 'solve', 'output'], $
-     linestyle=[0,2,1,1,1,1,2,2], color=colors(8)
-
-end
-
-
-function minor_radius, r=x, z=z, _extra=extra
-   psi = read_field('psi',x,z,t,_extra=extra)
-   sz = size(psi)
-
-   rr = radius_matrix(x,z,t)
-   zz = rr
-   a = rr
-
-   for k=0,sz[1]-1 do begin
-       for j=0,sz[2]-1 do zz[k,j,*] = z
-       psimax = max(psi[k,*,*], i)
-       xi = i/sz[3]
-       zi = i mod sz[3]
-       a[k,*,*] = sqrt((rr[k,*,*]-x[xi])^2 + zz[k,*,*]^2)
-   endfor
-
-   return, a
-end
-
-; =====================================================
-; Scalar functions
-; =====================================================
-
-
-; ==============
-; beta = 2*p/B^2
-; ==============
-function beta, filename=filename
-   nv = read_parameter("numvar", filename=filename)
-   if(nv lt 3) then begin
-       print, "Must be numvar = 3 for beta calculation"
-       return, 0
-   endif
-
-   gamma = read_parameter('gam', filename=filename)
-   s = read_scalars(filename=filename)
-
-   return, (gamma - 1.)*s.E_P._data / (s.E_MP._data + s.E_MT._data)
-end
-
-
-; ==========================
-; beta_poloidal = 2*P/(Ip^2)
-; ==========================
-function beta_poloidal, filename=filename
-   nv = read_parameter("numvar", filename=filename)
-   if(nv lt 3) then begin
-       print, "Must be numvar = 3 for beta calculation"
-       return, 0
-   endif
-
-   gamma = read_parameter('gam', filename=filename)
-   s = read_scalars(filename=filename)
-
-   return, 2.*(gamma-1.)*s.E_P._data/s.toroidal_current._data^2
-end
-
-
-; ====================================
-; beta_normal = beta_t * (B_T*a / I_p)
-; ====================================
-function beta_normal, filename=filename
-
-   a = 1.
-
-   gamma = read_parameter('gam', filename=filename)
-   rzero = read_parameter('rzero', filename=filename)
-   xmag = read_parameter('xmag', filename=filename)
-   bzero = read_parameter('bzero', filename=filename)
-
-   bt0 = bzero*(rzero/xmag)
-   
-   s = read_scalars(filename=filename)
-   i_n = s.toroidal_current._data / (a*bt0)
-
-   beta_t = (gamma-1.)*s.E_P._data/(s.E_MT._data)
-   
-   print, 'bt0 =', bt0
-   print, 'i_n =', i_n
-   print, 'a = ', a
-   print, 'beta_T = ', beta_t
-
-   return, 100.*beta_t/i_n
-end
-
-
-function read_scalar, scalarname, filename=filename, title=title, $
-                      symbol=symbol, units=units, time=time, final=final
-
-   if(n_elements(scalarname) eq 0) then begin
-       print, "Error: no scalar name provided"
-       return, 0
-   end
-
-   if(n_elements(filename) eq 0) then filename='C1.h5'
-
-   if(n_elements(filename) gt 1) then begin
-       data = fltarr(n_elements(filename))
-       for i=0, n_elements(filename)-1 do begin
-           data[i] = read_scalar(scalarname, filename=filename[i], $
-                                 title=title, symbol=symbol, units=units, $
-                                 time=time, /final)
-       end
-       return, data
-   endif
-
-   s = read_scalars(filename=filename)
-   if(n_tags(s) eq 0) then return, 0
-
-   time = s.time._data
-
-   units = ''
-   va0 = '!8v!DA!60!N!X'
-   b0 = '!8B!D!60!N!X'
-   n0 = '!8n!D!60!N!X'
-   t0 = '!7s!DA!60!N!X'
-   l0 = '!8L!D!60!N!X'
-   pi4 = '!64!7p!X'
-   sq = '!U!62!N!X'
-   c = '!8c!X'
-
-   if(strcmp("toroidal current", scalarname, /fold_case) eq 1) or $
-     (strcmp("it", scalarname, /fold_case) eq 1) then begin
-       data = s.toroidal_current._data
-       title = 'Toroidal Current'
-       symbol = '!8I!DT!N!X'
-       units = c + b0 + '/' + pi4 + l0
-   endif else $
-     if (strcmp("toroidal flux", scalarname, /fold_case) eq 1) then begin
-       data = s.toroidal_flux._data
-       title = 'Toroidal Flux'
-       symbol = 'Flux'
-       units = l0 + '!U2!N' + b0
-   endif else $
-     if (strcmp("reconnected flux", scalarname, /fold_case) eq 1) then begin
-       data = abs(s.reconnected_flux._data)
-       title = 'Reconnected Flux'
-       symbol = translate('psi', units=u)
-       units = u
-   endif else $
-     if (strcmp("loop voltage", scalarname, /fold_case) eq 1) or $
-     (strcmp("vl", scalarname, /fold_case) eq 1) then begin
-       data = s.loop_voltage._data
-       title = 'Loop Voltage'
-       symbol = '!8V!DL!N!X'
-   endif else $
-     if (strcmp("beta", scalarname, /fold_case) eq 1) then begin
-       data = beta(filename=filename)
-       title = 'Average Beta'
-       symbol = '!7b!X'
-   endif else if $
-     (strcmp("poloidal beta", scalarname, /fold_case) eq 1) or $
-     (strcmp("bp", scalarname, /fold_case) eq 1) then begin
-       data = beta_poloidal(filename=filename)
-       title = 'Average Poloidal Beta'
-       symbol = '!7b!D!8p!N!X'
-   endif else $
-     if (strcmp("normal beta", scalarname, /fold_case) eq 1) or $
-     (strcmp("bn", scalarname, /fold_case) eq 1) then begin
-       data = beta_normal(filename=filename)
-       title = 'Average Normal Beta'
-       symbol = '!7b!D!8N!N!3'
-       units = '!6%!X'
-   endif else if $
-     (strcmp("kinetic energy", scalarname, /fold_case) eq 1) or $
-     (strcmp("ke", scalarname, /fold_case) eq 1)then begin
-       nv = read_parameter("numvar", filename=filename)
-       data = s.E_KP._data 
-       if(nv ge 2) then data = data + s.E_KT._data 
-       if(nv ge 3) then data = data + s.E_K3._data
-       title = 'Kinetic Energy'
-       symbol = '!8KE!X'
-       units = make_units(/energy)
-   endif else if $
-     (strcmp("magnetic energy", scalarname, /fold_case) eq 1) or $
-     (strcmp("me", scalarname, /fold_case) eq 1)then begin
-       nv = read_parameter("numvar", filename=filename)
-       data = s.E_MP._data 
-       if(nv ge 2) then data = data + s.E_MT._data 
-       title = 'Magnetic Energy'
-       symbol = '!8ME!X'
-       units = make_units(/energy)
-   endif else if $
-     (strcmp("thermal energy", scalarname, /fold_case) eq 1) or $
-     (strcmp("te", scalarname, /fold_case) eq 1)then begin
-       nv = read_parameter("numvar", filename=filename)
-       data = s.E_P._data 
-       title = 'Thermal Energy'
-       symbol = '!8TE!X'
-       units = make_units(/energy)
-   endif else if $
-     (strcmp("energy", scalarname, /fold_case) eq 1) then begin
-       nv = read_parameter("numvar", filename=filename)
-       data = energy(filename=filename)
-       title = 'Total Energy'
-       symbol = '!8E!X'
-       units = b0 + '!U2!N' + l0 + '!U3!N' + '/' + pi4
-   endif else if $
-     (strcmp("particles", scalarname, /fold_case) eq 1) or $
-     (strcmp("n", scalarname, /fold_case) eq 1) then begin
-       data = s.particle_number._data
-       title = 'Particle Number'
-       symbol = '!8N!X'
-       units = n0 + l0 + '!U3!N!X'
-   endif else if $
-     (strcmp("angular momentum", scalarname, /fold_case) eq 1) then begin
-       data = s.angular_momentum._data
-       title = 'Angular Momentum'
-       symbol = '!8L!D!9P!N!X'
-       units = b0 + '!U2!N' + l0 + '!U3!N' + '/' + pi4 + t0
-   endif else if (strcmp("circulation", scalarname, /fold_case) eq 1) or $
-     (strcmp("vorticity", scalarname, /fold_case) eq 1) then begin
-       data = s.circulation._data
-;      data = s.vorticity._data
-       title = 'Circulation'
-       symbol = '!9I!S!7x!R!A!6_!D!9P!N !8dA !x'
-       units = va0 + l0
-   endif else if (strcmp("parallel viscous heating", scalarname, /fold_case) eq 1) then begin $
-       data = s.parallel_viscous_heating._data
-       title = 'Parallel Viscous Heating'
-;       symbol = '!6(!7l!D!9#!N!5b!9 . !3W!9 . !5b!6/2)!U2!N!X'
-       symbol = '-!9I!8dV !7P!D!9#!N!3:!9G!5u!X'
-       units =  b0+sq+l0+'!U3!N!X'+'/'+pi4+t0
-   endif else if (strcmp("bwb2", scalarname, /fold_case) eq 1) then begin $
-       amupar = read_parameter('amupar', filename=filename)
-       data = 4.*s.parallel_viscous_heating._data / (3.*amupar)
-       title = ''
-;       symbol = '!6(!7l!D!9#!N!5b!9 . !3W!9 . !5b!6/2)!U2!N!X'
-       symbol = '!6(!5b!9.!3W!9.!5b!6)!U2!N!X'
-       units = make_units(t0=-2,l0=3)
-   endif else begin
-       print, 'Scalar ', scalarname, ' not recognized.'
-       return, 0
-   endelse
-   
-   itor = read_parameter('itor', filename=filename)
-   if(itor eq 0) then units = units + ' / ' + l0
-
-   if(keyword_set(final)) then begin
-       data = data[n_elements(data)-1]
-   endif
-
-   return, data
-end
-
-
-pro plot_scalar, scalarname, x, filename=filename, names=names, $
-                 _EXTRA=extra, overplot=overplot, $
-                 ylog=ylog, xlog=xlog, absolute_value=absolute, $
-                 power_spectrum=power_spectrum, per_length=per_length, $
-                 growth_rate=growth_rate, bw=bw, nolegend=nolegend
-
-  if(n_elements(filename) eq 0) then filename='C1.h5'
-
-  if(n_elements(names) eq 0) then names=filename
-
-  nfiles = n_elements(filename)
-  if(nfiles gt 1) then begin
-      if(keyword_set(bw)) then begin
-          ls = indgen(nfiles)
-          co = replicate(color(0,1),nfiles)
-      endif else begin
-          ls = replicate(0, nfiles)
-          co = colors(nfiles)
-      endelse
-
-      for i=0, nfiles-1 do begin
-          if(n_elements(x) eq 0) then begin
-              plot_scalar, scalarname, filename=filename[i], $
-                overplot=((i gt 0) or keyword_set(overplot)), $
-                color=co[i], _EXTRA=extra, ylog=ylog, xlog=xlog, $
-                power_spectrum=power_spectrum, per_length=per_length, $
-                growth_rate=growth_rate, linestyle=ls[i], nolegend=nolegend, $
-                absolute_value=absolute
-          endif else begin
-              plot_scalar, scalarname, x[i], filename=filename[i], $
-                overplot=((i gt 0) or keyword_set(overplot)), $
-                color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, $
-                power_spectrum=power_spectrum, per_length=per_length, $
-                growth_rate=growth_rate, nolegend=nolegend, $
-                absolute_value=absolute
-          endelse
-      end
-
-      if((n_elements(names) gt 0) and (not keyword_set(nolegend))) then begin
-          plot_legend, names, ylog=ylog, xlog=xlog, $
-            color=co, linestyle=ls, _EXTRA=extra
-      endif    
-
-      return
-  endif 
-
-  data = read_scalar(scalarname, filename=filename, time=time, $
-                     title=title, symbol=symbol, units=units)
-  if(n_elements(data) le 1) then return
-
-  title = '!6' + title + '!X'
-  ytitle = symbol
-  if(strlen(units) gt 0) then begin
-      ytitle = ytitle + '!6 (' + units + ')!X'
-  endif
-
-  if(keyword_set(power_spectrum)) then begin
-;      xtitle = '!7x!6 (!7s!D!8A!N!6!U-1!N)!X'
-      xtitle = '!7x!6 (' + make_units(t0=-1) + ')!X'
-      data = power_spectrum(data, frequency=tdata, t=max(time)) 
-  endif else begin
-      xtitle = '!8t!6 (' + make_units(/t0) + ')!X'
-      tdata = time
-  endelse
-
-  if(keyword_set(per_length)) then begin
-      itor = read_parameter('itor', filename=filename)
-      if(itor eq 1) then begin
-          rzero = read_parameter('rzero', filename=filename)
-          data = data / rzero
-      endif
-  endif
-  
-  if(keyword_set(growth_rate)) then begin
-      data = deriv(tdata, alog(abs(data)))
-;      ytitle = '!7c !6(!7s!D!8A!N!6!U-1!N)!X'
-      ytitle = '!7c!6 (' + make_units(t0=-1) + ')!X'
-  endif
-
-  if(keyword_set(absolute)) then data = abs(data)
-
-  if(n_elements(x) eq 0) then begin
-      if(keyword_set(overplot)) then begin
-          oplot, tdata, data, color=c, _EXTRA=extra
-      endif else begin
-          plot, tdata, data, xtitle=xtitle, ytitle=ytitle, $
-            title=title, _EXTRA=extra, ylog=ylog, xlog=xlog, $
-            color=c
-      endelse
-  endif else begin
-      xi = x
-      x = fltarr(1)
-      z = fltarr(1)
-      x[0] = xi
-      z[0] = data[n_elements(data)-1]
-
-      if(keyword_set(overplot)) then begin
-          oplot, x, z, color=c, _EXTRA=extra
-      endif else begin
-          plot, x, z, $
-            title=title, xtitle=xtitle, ytitle=ytitle, $
-            _EXTRA=extra, ylog=ylog, xlog=xlog, color=c
-      endelse
-  endelse
-end
-
-
-; ==================================================
-; plot_pol_velocity
-; ~~~~~~~~~~~~~~~~~
-;
-; makes a vector plot of the poloidal velocity
-; ==================================================
-pro plot_pol_velocity, time,  maxval=maxval, points=points, $
-                       lcfs=lcfs, _EXTRA=extra
-
-  if(n_elements(pts) eq 0) then pts=25
-
-  nv = read_parameter('numvar', _EXTRA=extra)
-  itor = read_parameter('itor', _EXTRA=extra)
-  if(n_elements(itor) gt 1) then itor=itor[0]
-
-  phi = read_field('phi', x, z, t, points=points, _EXTRA=extra, slice=time)
-  if(n_elements(phi) le 1) then return
-
-  if(itor eq 1) then r = radius_matrix(x,z,t) else r = 1.
-
-  vx = -dz(phi,z)/r
-  vz =  dx(phi,x)/r
-
-  chi = read_field('chi', x, z, t, points=points, _EXTRA=extra, slice=time)
-  vx = vx + dx(chi,x)
-  vz = vz + dz(chi,z)
-
-  bigvel = max(sqrt(vx^2 + vz^2))
-  print, "maximum velocity: ", bigvel
-  if(n_elements(maxval) ne 0) then begin
-      length = bigvel/maxval
-  endif else length=1
-
-  if(n_elements(title) eq 0) then begin
-      title = '!6Poloidal Flow!X'
-      if(t gt 0) then begin
-          title = title +  $
-            string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!60!N)!X")', t)
-      endif else begin
-          title = title + $
-            string(FORMAT='("!6(!8t!6 = ",G0,")!X")', t)
-      endelse
-  endif
-  
-  maxstr=string(format='("!6max(!8u!Dpol!N!6) = ",G0.3,"!X")',bigvel) + $
-    '!6 ' + make_units(/v0) + '!X'
-
-  velovect, reform(vx), reform(vz), x, z, length=length, _EXTRA=extra, $
-    xtitle='!8R!6 (' + make_units(/l0) + '!6)!X', $
-    ytitle='!8Z!6 (' + make_units(/l0) + '!6)!X', $
-    title=title, subtitle=maxstr
-
-  if(keyword_set(lcfs)) then begin
-      psi = read_field('psi',x,z,t,slice=time,_EXTRA=extra,points=200)
-      plot_lcfs, psi,x,z, color=130, _EXTRA=extra
-  endif
-end
-
 
 
 ;==================================================================
@@ -4104,7 +3927,7 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, r0=r0, $
    endif else begin
        name = ''
        symbol = ''
-       units = ''
+       units = make_units()
    endelse
 
    return, flux_average_field(field, psi, x, z, t, r0=r0, $
