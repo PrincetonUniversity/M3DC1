@@ -178,11 +178,7 @@ subroutine gradshafranov_init()
   implicit none
 
   integer :: i, numnodes
-  real :: tstart, tend, x, z, fac
-  vectype, dimension(6) :: vmask
-
-
-  call numnod(numnodes)
+  real :: tstart, tend
 
   ! Define initial values of psi
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -197,6 +193,8 @@ subroutine gradshafranov_init()
   else   ! on irestart.ne.2
      psimin = -psimin
      psilim = -psilim
+
+     call numnod(numnodes)
      do i=1,numnodes
        call assign_local_pointers(i)
        psi0_l = -psi0_l
@@ -210,7 +208,25 @@ subroutine gradshafranov_init()
   if(myrank.eq.0 .and. itimer.eq.1) then 
      call second(tend)
      t_gs = tend - tstart
-  endif
+  endif  
+
+  call gradshafranov_per()
+end subroutine gradshafranov_init
+
+subroutine gradshafranov_per()
+
+  use basic
+  use arrays
+  use diagnostics
+
+  implicit none
+
+  integer :: i, numnodes
+  real :: x, z
+  vectype, dimension(6) :: vmask
+
+
+  call numnod(numnodes)
 
   do i=1, numnodes
 
@@ -224,6 +240,12 @@ subroutine gradshafranov_init()
 
      vmask = p0_l/p0
      vmask(1) = vmask(1) - pedge/p0
+!!$     if(real(psi0_l(1)) .lt. psilim) then
+!!$        vmask = psi0_l/(psilim - psimin)
+!!$        vmask(1) = vmask(1) - psilim/(psimin - psilim)
+!!$     else 
+!!$        vmask = 0.
+!!$     endif
      
      ! initial parallel rotation
      u1_l = phizero*vmask
@@ -233,16 +255,15 @@ subroutine gradshafranov_init()
      if(vzero.ne.0) call add_angular_velocity(vz1_l, x+xzero, vzero*vmask)
 
      ! add random perturbations
-     if(nonrect.eq.1) then
-        fac = vmask(1)
-     else
-        fac = 1.
+     if(nonrect.eq.0) then
+        vmask(1) = 1.
+        vmask(2:6) = 0.
      endif
-     call random_per(x,z,23,fac)
+     call random_per(x,z,23,vmask)
 
   enddo
-  
-end subroutine gradshafranov_init
+
+end subroutine gradshafranov_per
 
 
 ! vacuum_field
@@ -258,6 +279,8 @@ subroutine vacuum_field()
   real, dimension(2) :: xx, zz
   real :: x, z, aminor, bv, rnorm, gnorm, fac
   integer :: i, k, Numnodes, ineg, ipole, numcoils
+
+  
 
   if(myrank.eq.0 .and. iprint.gt.0) &
        print *, " calculating vacuum field conditions..."
@@ -317,7 +340,9 @@ subroutine vacuum_field()
      xc(1:NSTX_coils) = NSTX_r
      zc(1:NSTX_coils) = NSTX_z
      ic(1:NSTX_coils) = fac*NSTX_I
-     
+     separatrix_top = 1.25
+     separatrix_bottom = -1.25
+
   case(3) ! ITER
      numcoils = ITER_coils
      xc(1:ITER_coils) = ITER_r
@@ -374,7 +399,7 @@ subroutine vacuum_field()
      zz(1) = zmag
      call gvect(xp,zp,xx,zz,1,g,0,ineg)
      psi0_l = psi0_l + g(:,1)*tcuro/(2.*pi)
-  enddo
+  end do
   
 end subroutine vacuum_field
 
@@ -843,11 +868,14 @@ subroutine gradshafranov_solve
 
      call nodcoord(i, x, z)
 
-!!$     if((z.gt.separatrix_top) .or. (z .lt.separatrix_bottom) .and. &
-!!$          (separatrix_top.ne.0. .or. separatrix_bottom.ne.0.)) then
-!!$        p0_l(1) = pedge
-!!$        p0_l(2:6) = 0.
-!!$     endif
+     if(((z.gt.separatrix_top) .or. (z .lt.separatrix_bottom)) .and. &
+          (separatrix_top.ne.0. .or. separatrix_bottom.ne.0.)) then
+!!$        if(myrank.eq.0 .and. iprint.ge.1) &
+!!$             print *, 'removing points above ', separatrix_top, &
+!!$             ' and below', separatrix_bottom
+        p0_l(1) = pedge
+        p0_l(2:6) = 0.
+     endif
 
      pe0_l = (1. - ipres*pi0/p0)*p0_l
 
@@ -1359,7 +1387,7 @@ subroutine calc_toroidal_field(psii,tf)
   real :: g4big0, g4big, g4bigp, g4bigpp
   real :: g2big, g2bigp, g3big, g3bigp
   vectype :: g0
-  
+
   if(psii(1) .gt. 1.) then
      g0 = bzero*rzero
      call constant_field(tf, g0)
@@ -1565,9 +1593,7 @@ end subroutine fget
          a1 = tan(a1)
          a2 = tan(a2)
          
-         print *, c
-         c = 4.*pi*1e-7 * 1000. * c / (subcoils**2) / (2.*pi)
-         print *, c
+         c = pi*4.e-7 * 1000. * c / (subcoils**2) / (2.*pi)
          
          do j=1, subcoils
             do k=1, subcoils
@@ -1625,6 +1651,8 @@ end subroutine fget
 
    integer :: j
    real :: psii
+
+   if(myrank.eq.0) print *, "Using default p and I profiles"
 
    npsi = 500
    allocate(psinorm(npsi))

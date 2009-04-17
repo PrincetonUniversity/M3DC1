@@ -407,6 +407,9 @@ subroutine hdf5_write_parameters(error)
   call write_real_attr(root_id, "hyperv"     , hyperv,     error)
   call write_real_attr(root_id, "hyperc"     , hyperc,     error)
   call write_real_attr(root_id, "hyperp"     , hyperp,     error)
+  call write_real_attr(root_id, "b0_norm"    , b0_norm,    error)
+  call write_real_attr(root_id, "n0_norm"    , n0_norm,    error)
+  call write_real_attr(root_id, "l0_norm"    , l0_norm,    error)
 
   call h5gclose_f(root_id, error)
 
@@ -499,6 +502,13 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "Torque_parvisc",tau_parvisc,ntime,error)
 
   call output_scalar(scalar_group_id, "Parallel_viscous_heating",bwb2,ntime,error)
+
+  call output_scalar(scalar_group_id, "xnull"   ,xnull   ,ntime,error)
+  call output_scalar(scalar_group_id, "znull"   ,znull   ,ntime,error)
+  call output_scalar(scalar_group_id, "xmag"    ,xmag    ,ntime,error)
+  call output_scalar(scalar_group_id, "zmag"    ,zmag    ,ntime,error)
+  call output_scalar(scalar_group_id, "psibound",psibound,ntime,error)
+  call output_scalar(scalar_group_id, "psimin"  ,psimin  ,ntime,error)
 
   if(itaylor.eq.3) then
      temp = reconnected_flux()
@@ -609,8 +619,8 @@ subroutine hdf5_write_time_slice(equilibrium, error)
      endif
   endif
 
-  if(myrank.eq.1 .and. iprint.eq.1) &
-       print *, 'Writing time slice ', time_group_name
+  if(myrank.eq.0 .and. iprint.eq.1) &
+       print *, ' Writing time slice ', time_group_name
 
   ! create the group
   call h5gcreate_f(file_id, time_group_name, time_group_id, error)
@@ -621,9 +631,11 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   call write_int_attr(time_group_id, "nspace", 2, error)
 
   ! Output the mesh data
+  if(myrank.eq.0 .and. iprint.eq.1) print *, 'Writing mesh '
   call output_mesh(time_group_id, nelms, error)
 
   ! Output the field data 
+  if(myrank.eq.0 .and. iprint.eq.1) print *, 'Writing fields '
   call output_fields(time_group_id, equilibrium, error)
 
 
@@ -646,6 +658,7 @@ subroutine output_mesh(time_group_id, nelms, error)
   use hdf5
   use hdf5_output
   use t_data
+  use basic
 
   implicit none
 
@@ -655,9 +668,14 @@ subroutine output_mesh(time_group_id, nelms, error)
 
   integer(HID_T) :: mesh_group_id
   integer :: i
-  real, dimension(6,nelms) :: elm_data
+  real, dimension(7,nelms) :: elm_data
   integer, dimension(4) :: nodeids
   real :: alx, alz, x, z
+
+  logical :: is_edge(3)
+  real :: normal(2,3)
+  integer :: idim(3)
+  real :: bound
 
   ! Create the group
   call h5gcreate_f(time_group_id, "mesh", mesh_group_id, error) 
@@ -673,14 +691,25 @@ subroutine output_mesh(time_group_id, nelms, error)
      call nodfac(i,nodeids)
      call nodcoord(nodeids(1), x, z)
 
+     ! don't call boundary_edge if iadapt != 0
+     ! because bug in scorec software causes crash when querying 
+     ! normal/curvature at newly created boundary nodes
+     if(iadapt.eq.0) call boundary_edge(i, is_edge, normal, idim)
+
+     bound = 0.
+     if(is_edge(1)) bound = bound + 1.
+     if(is_edge(2)) bound = bound + 2.
+     if(is_edge(3)) bound = bound + 4.
+
      elm_data(1,i) = atri(i)
      elm_data(2,i) = btri(i)
      elm_data(3,i) = ctri(i)
      elm_data(4,i) = ttri(i)
      elm_data(5,i) = x
      elm_data(6,i) = z
+     elm_data(7,i) = bound
   end do
-  call output_field(mesh_group_id, "elements", elm_data, 6, nelms, error)
+  call output_field(mesh_group_id, "elements", elm_data, 7, nelms, error)
 
   ! Close the group
   call h5gclose_f(mesh_group_id, error)

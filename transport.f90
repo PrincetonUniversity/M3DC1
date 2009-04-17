@@ -125,7 +125,7 @@ vectype function viscosity_func(i)
 
      ! added 10/18/08  to make viscosity function more like resistivity 
      ! for iresfunc=1  scj
-     select case (iresfunc)
+     select case (ivisfunc)
      case(0)
         do j=1,npoints
            call mask(x_79(j)-xzero, z_79(j)-zzero, factor)
@@ -134,13 +134,13 @@ vectype function viscosity_func(i)
 
      case(1)
         temp79a = amu_edge*.5* &
-             (1. + tanh((real(ps079(:,OP_1))-(psilim+etaoff*(psilim-psimin))) &
-             /(etadelt*(psilim-psimin))))
+             (1. + tanh((real(ps079(:,OP_1))-(psilim+amuoff*(psilim-psimin))) &
+             /(amudelt*(psilim-psimin))))
 
      case(2)
         temp79b = (ps079(:,OP_1)-psimin)/(psilim-psimin)
         temp79a = amu_edge*.5* &
-             (1. + tanh((real(temp79b) - etaoff)/etadelt))
+             (1. + tanh((real(temp79b) - amuoff)/amudelt))
      end select
      temp = temp + int2(g79(:,OP_1,i),temp79a)
   endif
@@ -169,20 +169,20 @@ vectype function kappa_func(i)
   temp = 0.
 
   if(kappa0.ne.0.) then
-     select case (iresfunc)
+     select case (ikappafunc)
      case(0)
         ! kappa = p/T**(3/2) = sqrt(n**3/p)
         temp79a = kappa0*sqrt(nt79(:,OP_1)**3/pt79(:,OP_1))
         
      case(1)
         temp79a = kappa0*.5* &
-             (1. + tanh((real(ps079(:,OP_1))-(psilim+etaoff*(psilim-psimin)))&
-             /(etadelt*(psilim-psimin))))
+             (1. + tanh((real(ps079(:,OP_1))-(psilim+kappaoff*(psilim-psimin)))&
+             /(kappadelt*(psilim-psimin))))
         
      case(2)
         temp79b = (ps079(:,OP_1)-psimin)/(psilim-psimin)
         temp79a = kappa0*.5* &
-             (1. + tanh((real(temp79b) - etaoff)/etadelt))
+             (1. + tanh((real(temp79b) - kappaoff)/kappadelt))
      end select
      temp = temp + int2(g79(:,OP_1,i),temp79a)
   endif

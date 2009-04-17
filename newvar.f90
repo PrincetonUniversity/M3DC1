@@ -93,7 +93,8 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
               temp = int2(g79(:,OP_1,i),g79(:,OP_GS,j))
 
            case(NV_BF_MATRIX)
-              temp = int3(ri2_79,g79(:,OP_1,i),g79(:,OP_1,j))
+              temp = int3(r2_79,g79(:,OP_1,i),g79(:,OP_LP,j)) &
+                   - regular*int3(r2_79,g79(:,OP_1,i),g79(:,OP_1,j))
            end select
            call insval(matrix, temp, icomplex, ione, jone, 1)
         enddo
@@ -195,6 +196,7 @@ end subroutine newvar
 !=====================================================
 subroutine solve_newvar(rhs, ibound, imatrix)
 
+  use basic
   use sparse
 
   implicit none
@@ -214,9 +216,14 @@ subroutine solve_newvar(rhs, ibound, imatrix)
   if(ibound.eq.NV_DCBOUND) call boundary_dc(0,rhs)
   if(ibound.eq.NV_NMBOUND) call boundary_nm(0,rhs)
   if(flg_petsc .and. flg_solve1) then 
-  call solve1(imatrix,rhs,ier)
+     call solve1(imatrix,rhs,ier)
   else
-  call solve(imatrix,rhs,ier)
+     call solve(imatrix,rhs,ier)
+  endif
+
+  if(ier .ne. 0) then
+     if(myrank.eq.0) print *, "Error in solve_newvar solve."
+     call safestop(4)
   endif
 
 end subroutine solve_newvar

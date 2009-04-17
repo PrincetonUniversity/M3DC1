@@ -91,6 +91,10 @@
 
       if(myrank.eq.0 .and. iprint.eq.1) print *, " entering input.."
 
+      b0_norm = 0.
+      n0_norm = 0.
+      l0_norm = 0.
+
       iread_eqdsk = 0
 !
 !.....linear parameter  0-nonlinear,  1-linear
@@ -199,6 +203,13 @@
       kappax = 0.
       kappah = 0.
       mass_ratio = 0.
+!
+      ivisfunc = 0
+      amuoff = 0.
+      amudelt = 0.
+      ikappafunc = 0
+      kappaoff = 0.
+      kappadelt = 0.
 !
 !
 !.....ratio of specific heats
@@ -388,7 +399,14 @@
       if(amuc.eq.0.) amuc = amu
       if(thimp_ohm.lt.0) thimp_ohm = thimp
 !
-      if(linear.eq.1) eqsubtract = 1
+      if(linear.eq.1) then
+         eqsubtract = 1
+         if(iteratephi.eq.1) then
+            if(myrank.eq.0) 
+     &           print *, "iteratephi=1 is not allowed with linear=1."
+            call safestop(1)
+         endif
+      endif
 
       ! calculate pfac (pe*pfac = electron pressure)
       if(ipres.eq.1) then
@@ -418,6 +436,9 @@
          else
             rzero = 1.
          endif
+      endif
+      if(rzero.le.0) then
+         print *, 'WARNING: rzero <= 0'
       endif
       if(pefac.eq.0. .and. eta0.ne.0) then
          if(myrank.eq.0) print *, 'ERROR: Te = 0, but eta0 != 0.'

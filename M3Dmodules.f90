@@ -18,7 +18,7 @@ module basic
   use p_data
   use pid_controller
 
-  integer, parameter :: version = 2
+  integer, parameter :: version = 3
 
 #ifdef USECOMPLEX
   integer, parameter :: icomplex = 1
@@ -30,15 +30,24 @@ module basic
 
   real, parameter :: me_mi = 1./1836.2
 
+  ! normalizations
+  real :: b0_norm     ! magnetic field normalization (in Gauss)
+  real :: l0_norm     ! length normalization (in centimeters)
+  real :: n0_norm     ! density normalization (in cm^-3)
+
   ! transport coefficients
   real :: amu         ! incompressible viscosity
   real :: amuc        ! compressible viscosity
   real :: amue        ! bootstrap viscosity coefficient
   real :: amupar      ! parallel viscosity coefficient
-  integer :: iresfunc ! if 1, use new resistivity function
+  integer :: iresfunc   ! if 1, use new resistivity function
+  integer :: ivisfunc   ! if 1, use new resistivity function
+  integer :: ikappafunc ! if 1, use new resistivity function
   real :: etar, eta0  ! iresfunc=0:  resistivity = etar + eta0/T^(3/2)
   real :: etaoff, etadelt !iresfunc=1: = etar + .5 eta0 (1+tanh(psi-psilim(1+etaoff*DP)/etadelt*DP))
   !                                                      DP = psilim - psimin
+  real :: amuoff, amudelt
+  real :: kappaoff, kappadelt
   real :: lambdae     ! multiplier of electron mass term in psi equation
   real :: kappat      ! isotropic temperature conductivity
   real :: kappa0      ! kappa = kappat + kappa0*n/T^(1/2)
@@ -205,6 +214,7 @@ module basic
   integer :: ike_only      ! 1 = only calculate kinetic energy
   integer :: ifout         ! 1 = output f field
   integer :: iread_eqdsk   ! 1 = read geqdsk input
+                           ! 2 = read geqdsk for psi, but use default profiles
 
   ! adaptation options
   integer :: iadapt     ! 1,2 = adapts mesh after initialization
@@ -231,8 +241,9 @@ real :: tiltangled   !   angle to which the rectangular mesh is tilted for tests
        gam,db,gravr,gravz,                                     &
        p0,pi0,bzero,vzero,phizero,                             &
        etar,eta0,iresfunc,etaoff,etadelt,lambdae,mass_ratio,   &
-       amu,amuc,amupar,amue,denm,                              &
-       kappat,kappa0,kappar,kappax,kappah,                     &
+       ivisfunc,amu,amuc,amupar,amue,amuoff,amudelt,denm,      &
+       ikappafunc,kappat,kappa0,kappaoff,kappadelt,            &
+       kappar,kappax,kappah,                                   &
        hyper,hyperi,hyperv,hyperc,hyperp,deex,                 &
        iper,jper,imask,amu_edge,com_bc,pedge,                  &
        eps,ln,                                                 &
@@ -263,7 +274,8 @@ real :: tiltangled   !   angle to which the rectangular mesh is tilted for tests
        int_pts_main, int_pts_aux, int_pts_diag,                &
        iwave, bx0 , chiiner, ibootstrap, xnull, znull,         &
        tiltangled, isurface, iread_eqdsk,                      &
-       adapt_factor, adapt_hmin, adapt_hmax
+       adapt_factor, adapt_hmin, adapt_hmax,                   &
+       b0_norm, n0_norm, l0_norm
 
 
   !     derived quantities
@@ -648,13 +660,13 @@ module sparse
   integer, parameter :: r14matrix_sm = 21
   integer, parameter :: mass_matrix_lhs = 22
   integer, parameter :: mass_matrix_lhs_dc = 23
-  integer, parameter :: bf_matrix_rhs_nm = 24
+  integer, parameter :: mass_matrix_rhs_nm = 24
   integer, parameter :: o1matrix_sm = 25
   integer, parameter :: o2matrix_sm = 26
   integer, parameter :: gs_matrix_rhs_dc = 27
   integer, parameter :: lp_matrix_rhs = 28
   integer, parameter :: lp_matrix_rhs_dc = 29
-  integer, parameter :: lp_matrix_lhs_nm = 30
+  integer, parameter :: bf_matrix_lhs_nm = 30
   integer, parameter :: q42matrix_sm = 31
 
 

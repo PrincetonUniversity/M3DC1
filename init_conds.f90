@@ -73,6 +73,18 @@ subroutine add_angular_velocity(outarr, x,omega)
 
 end subroutine add_angular_velocity
 !=============================
+subroutine add_product(x,a,b)
+  vectype, dimension(6), intent(in) :: a,b
+  vectype, dimension(6), intent(inout) :: x
+
+  x(1) = x(1) + a(1)*b(1)
+  x(2) = x(2) + a(1)*b(2) + a(2)*b(1)
+  x(3) = x(3) + a(1)*b(3) + a(3)*b(1)
+  x(4) = x(4) + a(1)*b(4) + a(4)*b(1) + 2.*a(2)*b(2)
+  x(5) = x(5) + a(1)*b(5) + a(5)*b(1) + a(2)*b(3) + a(3)*b(2)
+  x(6) = x(6) + a(1)*b(6) + a(6)*b(1) + 2.*a(3)*b(3)
+end subroutine add_product
+!=============================
 subroutine random_per(x,z,seed,fac)
   use basic
   use arrays
@@ -81,7 +93,8 @@ subroutine random_per(x,z,seed,fac)
 
   real :: rand
 
-  real, intent(in) :: x, z, fac
+  real, intent(in) :: x, z
+  vectype, intent(in), dimension(6) :: fac
   integer, intent(in) :: seed
   integer :: i, j
   integer, parameter :: maxn = 10
@@ -108,23 +121,23 @@ subroutine random_per(x,z,seed,fac)
      do j=1, maxn
         kz = j*pi/alz
         call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
-        psi1_l = psi1_l + fac*temp
+        call add_product(psi1_l,fac,temp)
         call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
-        u1_l = u1_l + fac*temp
+        call add_product(u1_l,fac,temp)
      end do
 !
      case (1)  !   make U odd symmetry about midplane:  perturb only U
      do j=1, maxn/2
         kz = 2.*j*pi/alz
         call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
-        u1_l = u1_l + fac*temp
+        call add_product(u1_l,fac,temp)
      end do
 !
      case (2)  !   make U even  symmetry about midplane:  perturb only U
      do j=1, maxn/2
         kz = (2.*j-1)*pi/alz
         call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
-        u1_l = u1_l + fac*temp
+        call add_product(u1_l,fac,temp)
      end do
 !
      end select
@@ -1498,7 +1511,6 @@ subroutine eqdsk_init()
   pprime = pprime*amu0
   current = current*amu0
 
-
   call numnod(numnodes)
   do l=1, numnodes
      call nodcoord(l, x, z)
@@ -1517,16 +1529,23 @@ subroutine eqdsk_init()
 
   if(igs.gt.0) then
      fieldi = field0
+     separatrix_top = abs(znull)
+     separatrix_bottom = -separatrix_top
 
-     dpsi = sibry-simag
-     call create_profile(nw,press,pprime,fpol,ffprim,dpsi)
+     if(iread_eqdsk.eq.2) then
+        call default_profiles
+     else
+        dpsi = sibry-simag
+        call create_profile(nw,press,pprime,fpol,ffprim,dpsi)
+     end if
 
      ! initial guess
 !!$     call newvar(mass_matrix_lhs_dc,jphi,field0,psi_g,num_fields, &
 !!$          gs_matrix_rhs_dc,NV_DCBOUND)
      call deltafun(xmag,zmag,tcuro,jphi,1,1)
 
-     call gradshafranov_solve()
+     call gradshafranov_solve
+     call gradshafranov_per
   endif
 
   call unload_eqdsk
@@ -1707,7 +1726,7 @@ subroutine initial_conditions()
 
   implicit none
 
-  if(iread_eqdsk.eq.1) then
+  if(iread_eqdsk.ge.1) then
      call eqdsk_init()
      return
   endif
