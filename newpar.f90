@@ -228,7 +228,7 @@ Program Reducedquintic
         field0 = 0.
      endif
 
-     ! initialize t(n-1) values    
+     ! initialize t(n-1) values
      phiold = phi
 
      if(isplitstep.eq.1) then
@@ -256,7 +256,7 @@ Program Reducedquintic
 
   ! output simulation parameters and equilibrium
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(irestart.eq.0 .or. irestart.eq.2 .or. iadapt.gt.0) then
+  if(irestart.eq.0  .or. iadapt.gt.0) then
      if(myrank.eq.0 .and. iprint.ge.1) &
           print *, "Writing simulation parameters."
      call hdf5_write_parameters(ier)
@@ -298,7 +298,7 @@ Program Reducedquintic
     call write_normlcurv
   end select
 
-  if(irestart.eq.0 .or. irestart.eq.2 .or. iadapt.gt.0) then
+  if(irestart.eq.0  .or. iadapt.gt.0) then
      tflux0 = tflux
      totcur0 = totcur
   endif
