@@ -1501,8 +1501,9 @@ subroutine eqdsk_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z, dpsi
+  real :: x, z
   real, parameter :: amu0 = pi*4.e-7
+  real, allocatable :: flux(:)
 
   print *, "eqdsk_init called"
 
@@ -1535,8 +1536,12 @@ subroutine eqdsk_init()
      if(iread_eqdsk.eq.2) then
         call default_profiles
      else
-        dpsi = sibry-simag
-        call create_profile(nw,press,pprime,fpol,ffprim,dpsi)
+        allocate(flux(nw))
+        do l=1,nw
+           flux(l) = l*(sibry-simag)/(nw-1.)
+        end do
+        call create_profile(nw,press,pprime,fpol,ffprim,flux)
+        deallocate(flux)
      end if
 
      ! initial guess
@@ -1707,6 +1712,109 @@ end subroutine eqdsk_per
 end module eqdsk_eq
 
 
+!==============================================================================
+! Dskbal_eq
+! ~~~~~~~~~
+!
+! Loads dskbal equilibrium
+!==============================================================================
+module dskbal_eq
+
+  implicit none
+
+contains
+
+subroutine dskbal_init()
+  use basic
+  use arrays
+  use dskbal
+  use gradshafranov
+  use newvar_mod
+  use sparse
+  use diagnostics
+
+  implicit none
+
+  integer :: i, inode, numnodes
+  real, parameter :: amu0 = pi*4.e-7
+  real :: dp, a(4), minden, minte, minti
+
+  print *, "dskbal_init called"
+
+  call load_dskbal
+  p_bal = p_bal*amu0
+  pprime_bal = pprime_bal*amu0
+
+  ! find "vacuum" values
+  do i=1,npsi_bal
+     if(ne_bal(i) .le. 0.) exit
+     minden = ne_bal(i)
+     minte = te_bal(i)
+     minti = ti_bal(i)
+  end do
+
+  ! replace zeroed-out values with "vacuum" values
+  do i=1,npsi_bal
+     if(ne_bal(i) .le. 0.) ne_bal(i) = minden
+     if(ti_bal(i) .le. 0.) ti_bal(i) = minti
+     if(te_bal(i) .le. 0.) te_bal(i) = minte
+     if(p_bal(i) .le. 0.) p_bal(i) = minden*(minte + minti)*1.6022e-12*amu0/10.
+  end do
+
+  xmag = x_bal(1,1)
+  zmag = z_bal(1,1)
+  rzero = xmag
+  bzero = f_bal(npsi_bal)/rzero
+
+  ifixedb = 1
+
+  fieldi = field0
+  separatrix_top = abs(znull)
+  separatrix_bottom = -separatrix_top
+
+  if(iread_dskbal.eq.2) then
+     call default_profiles
+  else
+     call create_profile(npsi_bal,p_bal,pprime_bal,f_bal,ffprime_bal,psi_bal)
+  end if
+  
+  ! initial plasma current filament
+  call deltafun(xmag,zmag,tcuro,jphi,1,1)
+
+  call gradshafranov_solve
+  call gradshafranov_per  
+
+  ! set density profile
+  call numnod(numnodes)
+  do inode=1, numnodes
+     call assign_local_pointers(inode)
+     do i=1, npsi_bal-1
+        if((psi_bal(i+1)-psi_bal(1))/(psi_bal(npsi_bal)-psi_bal(1)) &
+             .gt. (real(psi0_l(1))-psimin)/(psilim-psimin)) exit
+     end do
+
+     call cubic_interpolation_coeffs(ne_bal,npsi_bal,i,a)
+
+     dp = ((real(psi0_l(1))-psimin) &
+          *(psi_bal(npsi_bal) - psi_bal(1))/(psilim - psimin) &
+          -(psi_bal(i)-psi_bal(1))) / (psi_bal(i+1) - psi_bal(i))
+
+     den0_l(1) = a(1) + a(2)*dp + a(3)*dp**2 + a(4)*dp**3
+     den0_l(2) = (a(2) + 2.*a(3)*dp + 3.*a(4)*dp**2)*psi0_l(2)
+     den0_l(3) = (a(2) + 2.*a(3)*dp + 3.*a(4)*dp**2)*psi0_l(3)
+     den0_l(4) = (2.*a(3) + 6.*a(4)*dp)*psi0_l(4)
+     den0_l(5) = (2.*a(3) + 6.*a(4)*dp)*psi0_l(5)
+     den0_l(6) = (2.*a(3) + 6.*a(4)*dp)*psi0_l(6)
+     den0_l = den0_l / n0_norm
+  enddo
+
+  call unload_dskbal
+
+end subroutine dskbal_init
+  
+end module dskbal_eq
+
+
 !=====================================
 subroutine initial_conditions()
   use basic
@@ -1723,11 +1831,15 @@ subroutine initial_conditions()
   use circular_field
   use rotate
   use eqdsk_eq
+  use dskbal_eq
 
   implicit none
 
   if(iread_eqdsk.ge.1) then
      call eqdsk_init()
+     return
+  else if(iread_dskbal.ge.1) then
+     call dskbal_init()
      return
   endif
 

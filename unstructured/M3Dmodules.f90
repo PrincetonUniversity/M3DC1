@@ -161,6 +161,7 @@ module basic
   integer :: ivform      ! 0: V = v grad(phi).  1: V = R^2 v grad(phi)
   integer :: ibform      ! 0: multiply bz equation by r^2
   integer :: ihypeta     ! 1 = scale hyper-resistivity with eta
+  integer :: ihypamu     ! 1 = scale hyper-viscosity with visc
   integer :: ihypdx      ! scale hyper-resistivity with dx**ihypdx
   integer :: ikapscale   ! 1 = scale kappar with kappa
   integer :: inertia     ! 1 = include ion inertial terms (v.grad(v))
@@ -215,6 +216,7 @@ module basic
   integer :: ifout         ! 1 = output f field
   integer :: iread_eqdsk   ! 1 = read geqdsk input
                            ! 2 = read geqdsk for psi, but use default profiles
+  integer :: iread_dskbal  ! 1 = read dskbal input
 
   ! adaptation options
   integer :: iadapt     ! 1,2 = adapts mesh after initialization
@@ -263,7 +265,7 @@ real :: tiltangled   !   angle to which the rectangular mesh is tilted for tests
        idevice,igs,nv1equ,tol_gs,                              &
        iconstflux,regular,max_ke,                              &
        ntor,iadapt,istatic,iestatic,ivform, ibform,            &
-       ihypeta,ikapscale,                                      &
+       ihypeta,ikapscale,ihypamu,                              &
        iteratephi, icsym, inumgs, nonrect, ifixedb,            &
        inonormalflow, inoslip_pol, inoslip_tor, inostress_tor, &
        iconst_p, inograd_p, iconst_n, inograd_n, iconst_t,     &
@@ -273,7 +275,7 @@ real :: tiltangled   !   angle to which the rectangular mesh is tilted for tests
        icalc_scalars, ike_only, ifout, inertia, itwofluid,     &
        int_pts_main, int_pts_aux, int_pts_diag,                &
        iwave, bx0 , chiiner, ibootstrap, xnull, znull,         &
-       tiltangled, isurface, iread_eqdsk,                      &
+       tiltangled, isurface, iread_eqdsk, iread_dskbal,        &
        adapt_factor, adapt_hmin, adapt_hmax,                   &
        b0_norm, n0_norm, l0_norm
 

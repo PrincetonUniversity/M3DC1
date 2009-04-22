@@ -2075,9 +2075,14 @@ vectype function v2vmu(e,f,g,h,i)
 
         ! hyperviscous
         if(hypv.ne.0.) then
-           temp79a = e(:,OP_GS)*g(:,OP_1) + &
-                e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR)
-           if(itor.eq.1) temp79a = temp79a + 4.*ri_79*e(:,OP_DR)*g(:,OP_1)
+           if(ihypamu.eq.1) then
+              temp79a = e(:,OP_GS)*g(:,OP_1) + &
+                   e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR)
+              if(itor.eq.1) temp79a = temp79a + 4.*ri_79*e(:,OP_DR)*g(:,OP_1)
+           else
+              temp79a = e(:,OP_GS)
+              if(itor.eq.1) temp79a = temp79a + 4.*ri_79*e(:,OP_DR)
+           endif
            temp = temp - int3(temp79a,f(:,OP_GS),i(:,OP_1))  
         endif
      end if
@@ -2096,9 +2101,14 @@ vectype function v2vmu(e,f,g,h,i)
 
         ! hyperviscous
         if(hypv.ne.0.) then
-           temp79a = e(:,OP_GS)*g(:,OP_1) + &
-                e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR)
-           if(itor.eq.1) temp79a = temp79a + 4.*ri_79*e(:,OP_DR)*g(:,OP_1)
+           if(ihypamu.eq.1) then
+              temp79a = e(:,OP_GS)*g(:,OP_1) + &
+                   e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR)
+              if(itor.eq.1) temp79a = temp79a + 4.*ri_79*e(:,OP_DR)*g(:,OP_1)
+           else
+              temp79a = e(:,OP_GS)
+              if(itor.eq.1) temp79a = temp79a + 4.*ri_79*e(:,OP_DR)
+           endif
         
            temp = temp - int4(r2_79,temp79a,f(:,OP_GS),i(:,OP_1))
            if(itor.eq.1) then

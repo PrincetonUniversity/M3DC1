@@ -69,7 +69,7 @@ NEWOBJS = $(COMMONDIR)subp.o $(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
 	hdf5_output.o time_step.o newpar.o \
 	fin.o part_fin.o ludef_t.o \
 	boundary.o unknown.o restart.o \
-	acbauer.o metricterms.o readgeqdsk.o \
+	acbauer.o metricterms.o readgeqdsk.o read_dskbal.o \
 	init_conds.o PETScInterface.o
 
 LDRNEW = \

@@ -114,7 +114,7 @@ Program Reducedquintic
   call create_matrix(mass_matrix_lhs_dc,    NV_DCBOUND, NV_I_MATRIX,  NV_LHS)
   call create_matrix(mass_matrix_lhs,       NV_NOBOUND, NV_I_MATRIX,  NV_LHS)
   call create_matrix(gs_matrix_rhs_dc,      NV_DCBOUND, NV_GS_MATRIX, NV_RHS)
-  if(numvar.ge.3 .and. hyperc.ne.0. .and. com_bc.eq.0) then
+  if(numvar.ge.3 .and. hyperc.ne.0.) then
      if(com_bc.eq.0) then
         call create_matrix(lp_matrix_rhs,   NV_NOBOUND, NV_LP_MATRIX, NV_RHS)
      else
@@ -485,12 +485,12 @@ subroutine smooth(vec)
 
   ! smooth compression
   if(numvar.ge.3) then
-     if(com_bc.eq.1) then
-        call newvar(mass_matrix_lhs_dc,com,vec,chi_i,vecsize_vel, &
-             lp_matrix_rhs_dc,NV_DCBOUND)
-     else
+     if(com_bc.eq.0) then
         call newvar(mass_matrix_lhs   ,com,vec,chi_i,vecsize_vel, &
              lp_matrix_rhs,   NV_NOBOUND)
+     else
+        call newvar(mass_matrix_lhs_dc,com,vec,chi_i,vecsize_vel, &
+             lp_matrix_rhs_dc,NV_DCBOUND)
      endif
              
      call smoother3(com,vec,vecsize_vel,chi_i)
@@ -680,6 +680,7 @@ subroutine flip_handedness
 
   use basic
   use arrays
+  use diagnostics
 
   implicit none
 
@@ -712,4 +713,8 @@ subroutine flip_handedness
      endif
   enddo
   deallocate(itemp)
+
+  psimin = -psimin
+  psilim = -psilim
+
 end subroutine flip_handedness

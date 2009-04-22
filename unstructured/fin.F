@@ -172,6 +172,9 @@
 !.....scale hyper-resistivity with eta
       ihypeta = 1
 !
+!.....scale hyper-viscosity with visc
+      ihypamu = 1
+!
 !.....don't evolve resistivity
       iconst_eta = 0
 !

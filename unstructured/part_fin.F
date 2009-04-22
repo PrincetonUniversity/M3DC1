@@ -254,7 +254,8 @@
          call define_triangle_quadrature(itri, 25)
          call define_fields(itri,0,1)
 
-         hyp = hypc*amu
+         hyp = hypc
+         if(ihypamu.eq.1) hyp = hyp*amu
 
          do i=1,18
             do j=1,18
@@ -300,7 +301,8 @@
          call calcavector(itri, inarray, 1, 1, avec)
          call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, 25, tm79)
 
-         hyp = hypc*amu
+         hyp = hypc
+         if(ihypamu.eq.1) hyp = hyp*amu
 
          do i=1,18
             itwo = isval2(itri,i)
@@ -408,7 +410,8 @@
          call define_triangle_quadrature(itri, 25)
          call define_fields(itri,0,1)
 
-         hyp = hypc*amuc
+         hyp = hypc
+         if(ihypamu.eq.1) hyp = hyp*amuc
 
          do i=1,18
             do j=1,18
@@ -452,7 +455,8 @@
          call calcavector(itri, inarray, 1, 1, avec)
          call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, 25, tm79)
 
-         hyp = hypc*amuc
+         hyp = hypc
+         if(ihypamu.eq.1) hyp = hyp*amuc
 
          do i=1,18
             itwo = isval2(itri,i)
