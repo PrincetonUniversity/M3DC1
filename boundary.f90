@@ -1028,7 +1028,7 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
      endif
 
      temp = psis_l
-     if(ifixedb.ge.1) temp=0.
+     if(ifixedb.ge.1) temp = 0.
      call set_dirichlet_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim)
 
     ! no toroidal current

@@ -240,12 +240,6 @@ subroutine gradshafranov_per()
 
      vmask = p0_l/p0
      vmask(1) = vmask(1) - pedge/p0
-!!$     if(real(psi0_l(1)) .lt. psilim) then
-!!$        vmask = psi0_l/(psilim - psimin)
-!!$        vmask(1) = vmask(1) - psilim/(psimin - psilim)
-!!$     else 
-!!$        vmask = 0.
-!!$     endif
      
      ! initial parallel rotation
      u1_l = phizero*vmask
@@ -277,7 +271,7 @@ subroutine vacuum_field()
   real, dimension(6) :: g1, g2
   real, dimension(maxcoils) :: xp, zp, xc, zc, ic
   real, dimension(2) :: xx, zz
-  real :: x, z, aminor, bv, rnorm, gnorm, fac
+  real :: x, z, aminor, bv, rnorm, fac
   integer :: i, k, Numnodes, ineg, ipole, numcoils
 
   
@@ -316,14 +310,14 @@ subroutine vacuum_field()
      call gvect(xp,zp,xx,zz,1,g2,1,ineg)
      gnorm = g1(1) - g2(1)
   endif
-  
-    
+
   ipole = 0
   select case(idevice)
   case(-1)
      call load_coils(xc,zc,ic,numcoils)
      
   case(1) ! CDX-U
+     if(myrank.eq.0) print *, "Using standard CDX-U configuration"
      numcoils = 4
      xc(1) = 0.846
      zc(1) = 0.360
@@ -336,6 +330,7 @@ subroutine vacuum_field()
      ic = -.2*fac
      
   case(2) ! NSTX
+     if(myrank.eq.0) print *, "Using standard NSTX configuration"
      numcoils = NSTX_coils
      xc(1:NSTX_coils) = NSTX_r
      zc(1:NSTX_coils) = NSTX_z
@@ -344,6 +339,7 @@ subroutine vacuum_field()
      separatrix_bottom = -1.25
 
   case(3) ! ITER
+     if(myrank.eq.0) print *, "Using standard ITER configuration"
      numcoils = ITER_coils
      xc(1:ITER_coils) = ITER_r
      zc(1:ITER_coils) = ITER_z
@@ -352,6 +348,7 @@ subroutine vacuum_field()
      separatrix_bottom = -3.5
      
   case(4) ! DIII
+     if(myrank.eq.0) print *, "Using standard DIII-D configuration"
      numcoils = DIII_coils
      xc(1:DIII_coils) = DIII_r
      zc(1:DIII_coils) = DIII_z
@@ -360,6 +357,9 @@ subroutine vacuum_field()
      separatrix_bottom = -1.2
      
   case default ! Generic
+
+     if(myrank.eq.0) print *, "Using generic (dipole) configuration"
+
      numcoils = 1
      xc(1) = 102.
      zc(1) = rnorm
@@ -897,10 +897,6 @@ subroutine gradshafranov_solve
       endif
 
   end do
-
-  ! correct for left-handedness
-  psimin = -psimin
-  psilim = -psilim
 
   ! free memory
   call deleterealvec(temp)
@@ -1697,14 +1693,14 @@ end subroutine fget
 ! ffp =  I*I'
 ! dp = difference in psi between axis and edge
 !================================================================
- subroutine create_profile(n, p, pp, f, ffp, dp)
+ subroutine create_profile(n, p, pp, f, ffp, flux)
    implicit none
 
    integer, intent(in) :: n
-   real, dimension(n), intent(in) :: p, pp, f, ffp
-   real, intent(in) :: dp
+   real, dimension(n), intent(in) :: p, pp, f, ffp, flux
 
    real, dimension(4) :: a
+   real :: dp
    integer :: j
 
    npsi = n
@@ -1714,20 +1710,22 @@ end subroutine fget
    allocate(g4big0t(npsi),g4bigt(npsi),g4bigpt(npsi),g4bigppt(npsi))
 
    fbig0t = p
-   fbigt = pp*dp
+   fbigt = pp * (flux(npsi) - flux(1))
    g4big0t = 0.5*(f**2 - f(npsi)**2)
-   g4bigt = ffp*dp
+   g4bigt = ffp * (flux(npsi) - flux(1))
 
    do j=1,npsi 
-      psinorm(j) = (j-1.)/(npsi-1.)
+      call cubic_interpolation_coeffs(flux,npsi,j,a)
+      psinorm(j) = (flux(j) - flux(1)) / (flux(npsi) - flux(1))
+      dp = a(2)
 
       call cubic_interpolation_coeffs(fbigt,npsi,j,a)
-      fbigpt(j) =     a(2)*((npsi-1.)/dp)
-      fbigppt(j) = 2.*a(3)*((npsi-1.)/dp)**2
+      fbigpt(j) =     a(2)/dp
+      fbigppt(j) = 2.*a(3)/dp**2
 
       call cubic_interpolation_coeffs(g4bigt,npsi,j,a)
-      g4bigpt(j)  =    a(2)*((npsi-1.)/dp)
-      g4bigppt(j) = 2.*a(3)*((npsi-1.)/dp)**2
+      g4bigpt(j)  =    a(2)/dp
+      g4bigppt(j) = 2.*a(3)/dp**2
    end do
 
    constraint = .true.
