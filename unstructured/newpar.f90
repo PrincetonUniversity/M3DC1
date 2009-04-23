@@ -277,15 +277,14 @@ Program Reducedquintic
   ! ~~~~~~~~~~~~~~
   select case(iadapt)
   case(1)
-     if(maxrank .eq. 1) then
-
-        print *, 'adapting mesh...'
-        call hessianadapt(tempvar,1, 0, ntime, &
-             adapt_factor, adapt_hmin, adapt_hmax)
-        print *, 'done adapting.'
-        call space(0)
-        call tridef
-     endif
+     print *, 'adapting mesh...'
+     call hessianadapt(tempvar,1, 0, ntime, &
+          adapt_factor, adapt_hmin, adapt_hmax)
+     print *, 'done adapting.'
+     call space(0)
+     call tridef
+     
+     call write_normlcurv
   case(2)
     call createvec(temporary_vector,1)
     call copyvec(field0, psi_g, num_fields, temporary_vector, 1, 1)

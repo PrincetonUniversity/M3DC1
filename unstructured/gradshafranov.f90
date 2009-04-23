@@ -501,35 +501,35 @@ subroutine gradshafranov_solve
         do i=1,18
            i1 = isval1(itri,i)
            j1 = isval1(itri,j)
-           temp79a = -ri2_79* &
-                (g79(:,OP_DR,i)*g79(:,OP_DR,j) &
-                +g79(:,OP_DZ,i)*g79(:,OP_DZ,j))
-           sum = int1(temp79a)
-!!$           sum = int3(ri2_79,g79(:,OP_1,i),g79(:,OP_GS,j))
+!!$           temp79a = -ri2_79* &
+!!$                (g79(:,OP_DR,i)*g79(:,OP_DR,j) &
+!!$                +g79(:,OP_DZ,i)*g79(:,OP_DZ,j))
+!!$           sum = int1(temp79a)
+           sum = int3(ri2_79,g79(:,OP_1,i),g79(:,OP_GS,j))
            call insertval(gsmatrix_sm, sum, 0, i1,j1,1)
         enddo
      enddo
 
-     ! add surface terms
-     call boundary_edge(itri, is_edge, n, idim)
-     
-     do ii=1,3
-        if(.not.is_edge(ii)) cycle
-
-        call define_edge_quadrature(itri, ii, 5, n, idim)
-        call define_fields(itri, 0, 1)
-
-        do j=1,18
-           j1 = isval1(itri,j)
-           do i=1,18
-              i1 = isval1(itri,i)
-              temp79a = norm79(:,1)*g79(:,OP_DR,j) &
-                      + norm79(:,2)*g79(:,OP_DZ,j)
-              sum = int3(ri2_79,g79(:,OP_1,i),temp79a)
-              call insertval(gsmatrix_sm, sum, 0, i1,j1,1)
-           enddo
-        enddo
-     end do
+!!$     ! add surface terms
+!!$     call boundary_edge(itri, is_edge, n, idim)
+!!$     
+!!$     do ii=1,3
+!!$        if(.not.is_edge(ii)) cycle
+!!$
+!!$        call define_edge_quadrature(itri, ii, 5, n, idim)
+!!$        call define_fields(itri, 0, 1)
+!!$
+!!$        do j=1,18
+!!$           j1 = isval1(itri,j)
+!!$           do i=1,18
+!!$              i1 = isval1(itri,i)
+!!$              temp79a = norm79(:,1)*g79(:,OP_DR,j) &
+!!$                      + norm79(:,2)*g79(:,OP_DZ,j)
+!!$              sum = int3(ri2_79,g79(:,OP_1,i),temp79a)
+!!$              call insertval(gsmatrix_sm, sum, 0, i1,j1,1)
+!!$           enddo
+!!$        enddo
+!!$     end do
   enddo
 
 

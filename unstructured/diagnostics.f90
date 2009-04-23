@@ -792,8 +792,8 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
   newton :  do inews=1, iterations
 
      call whattri(x,z,itri,x1,z1)
-  if(iprint.gt.0) write(*,1001) myrank,x,z,itri,x1,z1
-1001 format("myrank,x,z,itri,x1,z1",i3,1p2e12.4,i5,1p2e12.4)
+!!$  if(iprint.gt.0) write(*,1001) myrank,x,z,itri,x1,z1
+!!$1001 format("myrank,x,z,itri,x1,z1",i3,1p2e12.4,i5,1p2e12.4)
 
      ! calculate position of minimum
      if(itri.gt.0) then
