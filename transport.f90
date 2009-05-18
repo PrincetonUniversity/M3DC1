@@ -239,12 +239,15 @@ subroutine define_transport_coefficients()
 
   implicit none
 
+#include 'mpif.h'
+
   integer :: i, itri, ibegin, iendplusone, numnodes
-  integer :: ione, numelms, def_fields
+  integer :: ione, numelms, def_fields,ier
 
   logical, save :: first_time = .true.
   logical :: solve_sigma, solve_kappa, solve_visc, solve_resistivity, &
        solve_visc_e
+  integer, dimension(5) :: temp, temp2
 
   if((linear.eq.1).and.(.not.first_time)) return
   first_time = .false.
@@ -274,7 +277,7 @@ subroutine define_transport_coefficients()
   do itri=1,numelms
 
      call define_triangle_quadrature(itri, int_pts_aux)
-     call define_fields(itri, def_fields, 1)
+     call define_fields(itri, def_fields, 1, linear)
 
      do i=1,18
         ione = isval1(itri,i)
@@ -303,6 +306,22 @@ subroutine define_transport_coefficients()
              + int2(g79(:,OP_1,i),pt79(:,OP_1))
      end do
   end do
+
+  ! make sure all processes agree on what needs to be solved
+  if(maxrank.gt.1) then 
+     temp = 0
+     if(solve_resistivity) temp(1) = 1
+     if(solve_kappa)       temp(2) = 1
+     if(solve_sigma)       temp(3) = 1
+     if(solve_visc)        temp(4) = 1
+     if(solve_visc_e)      temp(5) = 1
+     call mpi_allreduce(temp,temp2,5,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ier)
+     solve_resistivity = temp2(1).eq.1
+     solve_kappa       = temp2(2).eq.1
+     solve_sigma       = temp2(3).eq.1
+     solve_visc        = temp2(4).eq.1
+     solve_visc_e      = temp2(5).eq.1
+  end if
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' solving...'
 

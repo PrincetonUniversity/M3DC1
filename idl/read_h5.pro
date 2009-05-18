@@ -307,6 +307,277 @@ function read_mesh, filename=filename, slice=t
 end
 
 
+pro get_normalizations, b0=b0_norm, n0=n0_norm, l0=l0_norm, _EXTRA=extra
+   b0_norm = read_parameter('b0_norm', _EXTRA=extra)
+   n0_norm = read_parameter('n0_norm', _EXTRA=extra)
+   l0_norm = read_parameter('l0_norm', _EXTRA=extra)
+end
+
+;===============================================================
+; convert_units
+; ~~~~~~~~~~~~~
+;
+; converts x having dimensions d to cgs units
+; where b0, n0, and l0 are the normalizations (in cgs units)
+;===============================================================
+pro convert_units, x, d, b0, n0, l0, cgs=cgs, mks=mks
+   if(n_elements(x) eq 0) then return
+
+   if(not (keyword_set(cgs) or keyword_set(mks))) then return
+
+   if(b0 eq 0 or n0 eq 0 or l0 eq 0) then begin
+       print, "Warning: unknown conversion factors."
+       return
+   endif
+
+   val = 1.
+   if(keyword_set(cgs)) then begin
+       fp = (4.*!pi)
+       c0 = 3.e10
+       v0 = 2.18e11*b0/sqrt(n0)
+       t0 = l0/v0
+       temp0 = b0^2/(fp*n0) * 1./(1.6022e-12)
+       j0 = c0*b0/(fp*l0)
+       e0 = b0^2*l0^3/fp
+
+       val = fp^d[0] $
+         * c0^d[1] $
+         * n0^d[2] $
+         * v0^d[3] $
+         * b0^d[4] $
+         * t0^d[8] $
+         * l0^d[9] $
+         * temp0^d[5] $
+         * j0^d[6] $
+         * e0^d[7]
+       
+   endif else if(keyword_set(mks)) then begin
+       convert_units, x, d, b0, n0, l0, /cgs
+
+       val = (1.e-2)^d[1] $
+         * (1.e6)^d[2] $
+         * (1.e-2)^d[3] $
+         * (1.e-4)^d[4] $
+         * (1.e-2)^d[9] $
+         * (3.e9)^(-d[6]) $
+         * (1.e-7)^d[7]
+   end
+
+   x = x*val
+end
+
+;=====================================================================
+; dimensions
+; ~~~~~~~~~~
+;
+; returs a vector with specified dimensions
+;=====================================================================
+function dimensions, energy=ener, eta=eta, j0=j, $
+                     p0=pres, temperature=temp, e0=elec, $
+                     l0=len, light=c, fourpi=fourpi, n0=den, $
+                     v0=vel, t0=time, b0=mag, mu0=visc
+  d = intarr(10)
+
+  fp =    [1,0,0,0,0,0,0,0,0,0]
+  c0 =    [0,1,0,0,0,0,0,0,0,0]
+  n0 =    [0,0,1,0,0,0,0,0,0,0]
+  v0 =    [0,0,0,1,0,0,0,0,0,0]
+  b0 =    [0,0,0,0,1,0,0,0,0,0]
+  temp0 = [0,0,0,0,0,1,0,0,0,0]
+  j0 =    [0,0,0,0,0,0,1,0,0,0]
+  e0 =    [0,0,0,0,0,0,0,1,0,0]
+  t0 =    [0,0,0,0,0,0,0,0,1,0]
+  l0 =    [0,0,0,0,0,0,0,0,0,1]
+  p0 = e0 - 3*l0
+  
+  if(keyword_set(fourpi)) then d = d + fp*fourpi
+  if(keyword_set(light))  then d = d + c0*light
+  if(keyword_set(den))    then d = d + n0*den
+  if(keyword_set(vel))    then d = d + v0*vel
+  if(keyword_set(mag))    then d = d + b0*mag
+  if(keyword_set(time))   then d = d + t0*time
+  if(keyword_set(len))    then d = d + l0*len
+  if(keyword_set(temp))   then d = d + temp0*temp
+  if(keyword_set(j))      then d = d + j0*j - 2*l0
+  if(keyword_set(ener))   then d = d + ener*e0
+
+  if(keyword_set(elec)) then d = d + elec*(b0+v0-c0)
+  if(keyword_set(eta))  then d = d +  eta*(2*l0-t0+fp-2*c0)
+  if(keyword_set(pres)) then d = d + pres*(p0)
+  if(keyword_set(visc)) then d = d + visc*(p0+t0)
+
+  return, d
+end
+
+
+;=====================================================================
+; parse_units
+; ~~~~~~~~~~~
+;
+; x is a vector containing the dimensions of
+; [4pi, c, n0, vA0, B0, T0, j0, e0, tA0, L0]
+; [  0, 1,  2,   3,  4,   5,  6,  7,  8,  9]
+; 
+; output is a string containing units
+;=====================================================================
+function parse_units, x, cgs=cgs, mks=mks
+   if(keyword_set(cgs)) then begin
+       x[9] = x[9] - 3*x[2] + x[3] + x[1]
+       x[8] = x[8]          - x[3] - x[1]
+       x[0] = 0
+       x[1] = 0
+       x[2] = 0
+       x[3] = 0
+       u = ['!64!7p', '!8c', '!6cm', '!8v!DA!60!N', $
+            '!6G', '!6eV', '!6statamps', '!6erg', '!6s', '!6cm'] + '!X'
+   endif else if(keyword_set(mks)) then begin
+       x[9] = x[9] - 3*x[2] + x[3] + x[1]
+       x[8] = x[8]          - x[3] - x[1]
+       x[0] = 0
+       x[1] = 0
+       x[2] = 0
+       x[3] = 0
+       u = ['!64!7p', '!8c', '!6cm', '!8v!DA!60!N', $
+            '!6T', '!6eV', '!6A', '!6J', '!6s', '!6m'] + '!X'
+   endif else begin
+       x[0] = x[0]   - x[5] - x[6] -   x[7]
+       x[1] = x[1]          + x[6]
+       x[4] = x[4] + 2*x[5] + x[6] + 2*x[7]
+       x[9] = x[9]          - x[6] - 3*x[7]
+       x[5] = 0
+       x[6] = 0
+       x[7] = 0
+
+
+       u = ['!64!7p', '!8c', '!8n!D!60!N', '!8v!DA!60!N', $
+            '!8B!D!60!N', '!6temp', '!6curr', $
+            '!6energy', '!7s!DA!60!N', '!8L!D!60!N'] + '!X'
+   endelse
+   units = ''
+
+   nu = n_elements(x)
+
+   if(max(x) gt 0) then pos=1 else pos=0
+   if(min(x) lt 0) then neg=1 else neg=0
+
+   is = 0
+   sscript = '("!U!6",G0,"!N!X")'
+   for i=0, nu-1 do begin
+       if(x[i] gt 0) then begin 
+           if(is eq 1) then units = units + ' '
+           units = units + u[i]
+           if(x[i] ne 1) then $
+             units = units + string(format=sscript,x[i])
+           is = 1
+       endif
+   end
+
+   if(pos eq 1) then begin
+       if(neg eq 1) then begin
+           units = units + '!6/!X'
+           is = 0
+       end
+       for i=0, nu-1 do begin
+           if(x[i] lt  0) then begin
+               if(is eq 1) then units = units + ' '
+               units = units + u[i]
+               if(x[i] ne -1) then $
+                   units = units + string(format=sscript,-x[i])
+               is = 1
+           endif
+       end
+   endif else begin
+       for i=0, nu-1 do begin
+           if(x[i] lt 0) then begin
+               if(is eq 1) then units = units + ' '
+               units = units + u[i]
+               units = units + string(format=sscript, x[i])
+               is = 1
+           endif
+       end
+   endelse
+
+   return, units
+end
+
+function make_label, s, d, _EXTRA=extra
+   if(n_elements(d) eq 0) then d = dimensions(_EXTRA=extra)
+   if(max(d,/abs) eq 0.) then return, s
+   return, s + ' !6(!X' + parse_units(d, _EXTRA=extra) + '!6)!X'
+end
+
+;======================================================================
+; make_units
+; ~~~~~~~~~~
+;
+; creates a string given the specified unit dimensions
+;======================================================================
+function make_units, _EXTRA=extra
+   return, parse_units(dimensions(_EXTRA=extra), _EXTRA=extra)
+end
+
+
+;======================================================================
+; translate
+; ~~~~~~~~~
+;
+; provides the associated symbol and units for fields defined in C1.h5
+;======================================================================
+function translate, name, units=units, itor=itor
+   units = dimensions()
+
+   if(strcmp(name, 'psi', /fold_case) eq 1) then begin
+       units = dimensions(/b0, l0=1+itor)
+       return, "!7w!X"
+   endif else if(strcmp(name, 'I', /fold_case) eq 1) then begin
+       units = dimensions(/b0, l0=itor)
+       return, "!8I!X"
+   endif else if(strcmp(name, 'phi', /fold_case) eq 1) then begin
+       units = dimensions(/v0, l0=1+itor)
+       return, "!8U!X"
+   endif else if(strcmp(name, 'V', /fold_case) eq 1) then begin
+       units = dimensions(/v0, l0=itor)
+       return, "!8V!X"
+   endif else if(strcmp(name, 'chi', /fold_case) eq 1) then begin
+       units = dimensions(/v0, l0=1)
+       return, "!7v!X"
+   endif else if(strcmp(name, 'eta', /fold_case) eq 1) then begin
+       units = dimensions(/eta)
+       return, "!7g!X"
+   endif else if(strcmp(name, 'den', /fold_case) eq 1) then begin
+       units = dimensions(/n0)
+       return, "!8n!X"
+   endif else if(strcmp(name, 'p', /fold_case) eq 1) then begin
+       units = dimensions(/p0)
+       return, "!8p!X"
+   endif else if(strcmp(name, 'pe', /fold_case) eq 1) then begin
+       units = dimensions(/p0)
+       return, "!8p!De!N!X"
+   endif else if(strcmp(name, 'sigma', /fold_case) eq 1) then begin
+       units = dimensions(/n0,t0=-1)
+       return, "!7r!X"
+   endif else if(strcmp(name, 'kappa', /fold_case) eq 1) then begin
+       units = dimensions(/n0, l0=2, t0=-1)
+       return, "!7j!X"
+   endif else if((strcmp(name, 'visc', /fold_case) eq 1) or $
+     (strcmp(name, 'visc_c', /fold_case) eq 1)) then begin
+       return, "!7l!X"
+   endif else if(strcmp(name, 'jphi', /fold_case) eq 1) then begin
+       units = dimensions(/b0, l0=itor-1)
+       return, "!7D!6!U*!N!7w!X"
+   endif else if(strcmp(name, 'vor', /fold_case) eq 1) then begin
+       units = dimensions(/v0, l0=itor-1)
+       return, "!7D!6!U*!N!8U!X"
+   endif else if(strcmp(name, 'com', /fold_case) eq 1) then begin
+       units = dimensions(/v0, l0=-1)
+       return, "!9G.!17v!X"
+   endif  
+
+   return, '!8' + name + '!X'
+end
+
+
+
 ;=========================================================
 ; plot_mesh
 ; ~~~~~~~~~
@@ -315,7 +586,7 @@ end
 ; /boundary: only plot the mesh boundary
 ; /oplot: plots mesh as overlay to previous plot
 ;=========================================================
-pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary,  _EXTRA=ex
+pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
 
    if(n_elements(mesh) eq 0) then mesh = read_mesh(_EXTRA=ex)
    if(n_tags(mesh) eq 0) then return
@@ -323,7 +594,9 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary,  _EXTRA=ex
    nelms = mesh.nelms._data
    
    if(not keyword_set(oplot)) then begin
-       plot, mesh.elements._data[4,*], $
+       xtitle = make_label('!8R!X',/l0)
+       ytitle = make_label('!8Z!X',/l0)
+       plot, mesh.elements._data[4,*], xtitle=xtitle, ytitle=ytitle, $
          mesh.elements._data[5,*], psym = 3, _EXTRA=ex, /nodata
    endif  
 
@@ -694,276 +967,6 @@ function read_raw_field, name, time, mesh=mesh, filename=filename, time=t
    h5f_close, file_id
 
    return, field._data
-end
-
-
-pro get_normalizations, b0=b0_norm, n0=n0_norm, l0=l0_norm, _EXTRA=extra
-   b0_norm = read_parameter('b0_norm', _EXTRA=extra)
-   n0_norm = read_parameter('n0_norm', _EXTRA=extra)
-   l0_norm = read_parameter('l0_norm', _EXTRA=extra)
-end
-
-;===============================================================
-; convert_units
-; ~~~~~~~~~~~~~
-;
-; converts x having dimensions d to cgs units
-; where b0, n0, and l0 are the normalizations (in cgs units)
-;===============================================================
-pro convert_units, x, d, b0, n0, l0, cgs=cgs, mks=mks
-   if(n_elements(x) eq 0) then return
-
-   if(not (keyword_set(cgs) or keyword_set(mks))) then return
-
-   if(b0 eq 0 or n0 eq 0 or l0 eq 0) then begin
-       print, "Warning: unknown conversion factors."
-       return
-   endif
-
-   val = 1.
-   if(keyword_set(cgs)) then begin
-       fp = (4.*!pi)
-       c0 = 3.e10
-       v0 = 2.18e11*b0/sqrt(n0)
-       t0 = l0/v0
-       temp0 = b0^2/(fp*n0) * 1./(1.6022e-12)
-       j0 = c0*b0/(fp*l0)
-       e0 = b0^2*l0^3/fp
-
-       val = fp^d[0] $
-         * c0^d[1] $
-         * n0^d[2] $
-         * v0^d[3] $
-         * b0^d[4] $
-         * t0^d[8] $
-         * l0^d[9] $
-         * temp0^d[5] $
-         * j0^d[6] $
-         * e0^d[7]
-       
-   endif else if(keyword_set(mks)) then begin
-       convert_units, x, d, b0, n0, l0, /cgs
-
-       val = (1.e-2)^d[1] $
-         * (1.e6)^d[2] $
-         * (1.e-2)^d[3] $
-         * (1.e-4)^d[4] $
-         * (1.e-2)^d[9] $
-         * (3.e9)^(-d[6]) $
-         * (1.e-7)^d[7]
-   end
-
-   x = x*val
-end
-
-;=====================================================================
-; dimensions
-; ~~~~~~~~~~
-;
-; returs a vector with specified dimensions
-;=====================================================================
-function dimensions, energy=ener, eta=eta, j0=j, $
-                     p0=pres, temperature=temp, e0=elec, $
-                     l0=len, light=c, fourpi=fourpi, n0=den, $
-                     v0=vel, t0=time, b0=mag, mu0=visc
-  d = intarr(10)
-
-  fp =    [1,0,0,0,0,0,0,0,0,0]
-  c0 =    [0,1,0,0,0,0,0,0,0,0]
-  n0 =    [0,0,1,0,0,0,0,0,0,0]
-  v0 =    [0,0,0,1,0,0,0,0,0,0]
-  b0 =    [0,0,0,0,1,0,0,0,0,0]
-  temp0 = [0,0,0,0,0,1,0,0,0,0]
-  j0 =    [0,0,0,0,0,0,1,0,0,0]
-  e0 =    [0,0,0,0,0,0,0,1,0,0]
-  t0 =    [0,0,0,0,0,0,0,0,1,0]
-  l0 =    [0,0,0,0,0,0,0,0,0,1]
-  p0 = e0 - 3*l0
-  
-  if(keyword_set(fourpi)) then d = d + fp*fourpi
-  if(keyword_set(light))  then d = d + c0*light
-  if(keyword_set(den))    then d = d + n0*den
-  if(keyword_set(vel))    then d = d + v0*vel
-  if(keyword_set(mag))    then d = d + b0*mag
-  if(keyword_set(time))   then d = d + t0*time
-  if(keyword_set(len))    then d = d + l0*len
-  if(keyword_set(temp))   then d = d + temp0*temp
-  if(keyword_set(j))      then d = d + j0*j - 2*l0
-  if(keyword_set(ener))   then d = d + ener*e0
-
-  if(keyword_set(elec)) then d = d + elec*(b0+v0-c0)
-  if(keyword_set(eta))  then d = d +  eta*(2*l0-t0+fp-2*c0)
-  if(keyword_set(pres)) then d = d + pres*(p0)
-  if(keyword_set(visc)) then d = d + visc*(p0+t0)
-
-  return, d
-end
-
-
-;=====================================================================
-; parse_units
-; ~~~~~~~~~~~
-;
-; x is a vector containing the dimensions of
-; [4pi, c, n0, vA0, B0, T0, j0, e0, tA0, L0]
-; [  0, 1,  2,   3,  4,   5,  6,  7,  8,  9]
-; 
-; output is a string containing units
-;=====================================================================
-function parse_units, x, cgs=cgs, mks=mks
-   if(keyword_set(cgs)) then begin
-       x[9] = x[9] - 3*x[2] + x[3] + x[1]
-       x[8] = x[8]          - x[3] - x[1]
-       x[0] = 0
-       x[1] = 0
-       x[2] = 0
-       x[3] = 0
-       u = ['!64!7p', '!8c', '!6cm', '!8v!DA!60!N', $
-            '!6G', '!6eV', '!6statamps', '!6erg', '!6s', '!6cm'] + '!X'
-   endif else if(keyword_set(mks)) then begin
-       x[9] = x[9] - 3*x[2] + x[3] + x[1]
-       x[8] = x[8]          - x[3] - x[1]
-       x[0] = 0
-       x[1] = 0
-       x[2] = 0
-       x[3] = 0
-       u = ['!64!7p', '!8c', '!6cm', '!8v!DA!60!N', $
-            '!6T', '!6eV', '!6A', '!6J', '!6s', '!6m'] + '!X'
-   endif else begin
-       x[0] = x[0]   - x[5] - x[6] -   x[7]
-       x[1] = x[1]          + x[6]
-       x[4] = x[4] + 2*x[5] + x[6] + 2*x[7]
-       x[9] = x[9]          - x[6] - 3*x[7]
-       x[5] = 0
-       x[6] = 0
-       x[7] = 0
-
-
-       u = ['!64!7p', '!8c', '!8n!D!60!N', '!8v!DA!60!N', $
-            '!8B!D!60!N', '!6temp', '!6curr', $
-            '!6energy', '!7s!DA!60!N', '!8L!D!60!N'] + '!X'
-   endelse
-   units = ''
-
-   nu = n_elements(x)
-
-   if(max(x) gt 0) then pos=1 else pos=0
-   if(min(x) lt 0) then neg=1 else neg=0
-
-   is = 0
-   sscript = '("!U!6",G0,"!N!X")'
-   for i=0, nu-1 do begin
-       if(x[i] gt 0) then begin 
-           if(is eq 1) then units = units + ' '
-           units = units + u[i]
-           if(x[i] ne 1) then $
-             units = units + string(format=sscript,x[i])
-           is = 1
-       endif
-   end
-
-   if(pos eq 1) then begin
-       if(neg eq 1) then begin
-           units = units + '!6/!X'
-           is = 0
-       end
-       for i=0, nu-1 do begin
-           if(x[i] lt  0) then begin
-               if(is eq 1) then units = units + ' '
-               units = units + u[i]
-               if(x[i] ne -1) then $
-                   units = units + string(format=sscript,-x[i])
-               is = 1
-           endif
-       end
-   endif else begin
-       for i=0, nu-1 do begin
-           if(x[i] lt 0) then begin
-               if(is eq 1) then units = units + ' '
-               units = units + u[i]
-               units = units + string(format=sscript, x[i])
-               is = 1
-           endif
-       end
-   endelse
-
-   return, units
-end
-
-function make_label, s, d, _EXTRA=extra
-   if(n_elements(d) eq 0) then d = dimensions(_EXTRA=extra)
-   if(max(d,/abs) eq 0.) then return, s
-   return, s + ' !6(!X' + parse_units(d, _EXTRA=extra) + '!6)!X'
-end
-
-;======================================================================
-; make_units
-; ~~~~~~~~~~
-;
-; creates a string given the specified unit dimensions
-;======================================================================
-function make_units, _EXTRA=extra
-   return, parse_units(dimensions(_EXTRA=extra), _EXTRA=extra)
-end
-
-
-;======================================================================
-; translate
-; ~~~~~~~~~
-;
-; provides the associated symbol and units for fields defined in C1.h5
-;======================================================================
-function translate, name, units=units, itor=itor
-   units = dimensions()
-
-   if(strcmp(name, 'psi', /fold_case) eq 1) then begin
-       units = dimensions(/b0, l0=1+itor)
-       return, "!7w!X"
-   endif else if(strcmp(name, 'I', /fold_case) eq 1) then begin
-       units = dimensions(/b0, l0=itor)
-       return, "!8I!X"
-   endif else if(strcmp(name, 'phi', /fold_case) eq 1) then begin
-       units = dimensions(/v0, l0=1+itor)
-       return, "!8U!X"
-   endif else if(strcmp(name, 'V', /fold_case) eq 1) then begin
-       units = dimensions(/v0, l0=itor)
-       return, "!8V!X"
-   endif else if(strcmp(name, 'chi', /fold_case) eq 1) then begin
-       units = dimensions(/v0, l0=1)
-       return, "!7v!X"
-   endif else if(strcmp(name, 'eta', /fold_case) eq 1) then begin
-       units = dimensions(/eta)
-       return, "!7g!X"
-   endif else if(strcmp(name, 'den', /fold_case) eq 1) then begin
-       units = dimensions(/n0)
-       return, "!8n!X"
-   endif else if(strcmp(name, 'p', /fold_case) eq 1) then begin
-       units = dimensions(/p0)
-       return, "!8p!X"
-   endif else if(strcmp(name, 'pe', /fold_case) eq 1) then begin
-       units = dimensions(/p0)
-       return, "!8p!De!N!X"
-   endif else if(strcmp(name, 'sigma', /fold_case) eq 1) then begin
-       units = dimensions(/n0,t0=-1)
-       return, "!7r!X"
-   endif else if(strcmp(name, 'kappa', /fold_case) eq 1) then begin
-       units = dimensions(/n0, l0=2, t0=-1)
-       return, "!7j!X"
-   endif else if((strcmp(name, 'visc', /fold_case) eq 1) or $
-     (strcmp(name, 'visc_c', /fold_case) eq 1)) then begin
-       return, "!7l!X"
-   endif else if(strcmp(name, 'jphi', /fold_case) eq 1) then begin
-       units = dimensions(/b0, l0=itor-1)
-       return, "!7D!6!U*!N!7w!X"
-   endif else if(strcmp(name, 'vor', /fold_case) eq 1) then begin
-       units = dimensions(/v0, l0=itor-1)
-       return, "!7D!6!U*!N!8U!X"
-   endif else if(strcmp(name, 'com', /fold_case) eq 1) then begin
-       units = dimensions(/v0, l0=-1)
-       return, "!9G.!17v!X"
-   endif  
-
-   return, '!8' + name + '!X'
 end
 
 
@@ -2121,6 +2124,312 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
 end
 
 
+; field_at_point
+function field_at_point, field, x, z, x0, z0
+   i = n_elements(x)*(x0-min(x)) / (max(x)-min(x))
+   j = n_elements(z)*(z0-min(z)) / (max(z)-min(z))
+   return, interpolate(reform(field),i,j)
+end
+
+
+pro read_nulls, axis=axis, xpoints=xpoint, _EXTRA=extra
+   s = read_scalars(_EXTRA=extra)
+
+   t0 = get_slice_time(_EXTRA=extra)
+
+   dum = min(s.time._data - t0, i, /abs)
+
+   xpoint = fltarr(2)
+   axis = fltarr(2)
+   xpoint[0] = s.xnull._data[i]
+   xpoint[1] = s.znull._data[i]
+   axis[0] = s.xmag._data[i]
+   axis[1] = s.zmag._data[i]
+   
+   return
+end
+
+
+; ==============================================================
+; find_nulls
+; ----------
+;
+;  Finds field nulls.
+;  xpoint = fltarr(2) : position of active x-point
+;  axis   = fltarr(2) : position of magnetic axis
+; ==============================================================
+pro find_nulls, psi, x, z, axis=axis, xpoints=xpoint, _EXTRA=extra
+
+   if(n_elements(time) eq 0) then time = 0
+   
+   field = s_bracket(psi,psi,x,z)
+   d2 = dz(dz(psi,z),z)*dx(dx(psi,x),x)
+   
+   nulls = field lt mean(field)/10.
+
+   sz = size(field)
+
+   xpoints = 0
+   xpoint = 0.
+   axes = 0
+   axis = 0.
+
+   oldxflux = min(psi)
+   oldaflux = min(psi)
+   
+   for i=0, sz[2]-1 do begin
+       for j=0, sz[3]-1 do begin
+           if(nulls[0,i,j] eq 0) then continue
+
+           currentmin = field[0,i,j]
+           currentpos = [i,j]
+           foundlocalmin = 0
+
+           ; find local minimum
+           for m=i, sz[2]-1 do begin
+               if(nulls[0,m,j] eq 0) then break
+               for n=j+1, sz[3]-1 do begin
+                   if(nulls[0,m,n] eq 0) then break
+
+                   if(field[0,m,n] le currentmin) then begin
+                       currentmin = field[0,m,n]
+                       currentpos = [m,n]
+                       foundlocalmin = 1
+                   endif
+                   nulls[0,m,n] = 0
+               endfor
+               for n=j-1, 0, -1 do begin
+                   if(nulls[0,m,n] eq 0) then break
+
+                   if(field[0,m,n] le currentmin) then begin
+                       currentmin = field[0,m,n]
+                       currentpos = [m,n]
+                       foundlocalmin = 1
+                   endif
+                   nulls[0,m,n] = 0
+               endfor
+           endfor
+
+           if (foundlocalmin eq 0) then continue
+
+           ; throw out local minima on boundaries
+           if (currentpos[0] eq 0) or (currentpos[0] eq sz[2]-1) then continue
+           if (currentpos[1] eq 0) or (currentpos[1] eq sz[3]-1) then continue
+
+           ; determine if point is an x-point or an axis and
+           ; append the location index to the appropriate array
+           if(d2[0,currentpos[0],currentpos[1]] lt 0) then begin
+               if(psi[0,currentpos[0],currentpos[1]] gt oldxflux) then begin
+                   xpoint = [x[currentpos[0]], z[currentpos[1]]]
+                   oldxflux = psi[0,currentpos[0],currentpos[1]]
+               end
+           endif else begin
+               if(psi[0,currentpos[0],currentpos[1]] gt oldxflux) then begin
+                   axis = [x[currentpos[0]], z[currentpos[1]]]
+                   oldaflux = psi[0,currentpos[0],currentpos[1]]
+               endif
+           endelse
+       endfor
+   endfor 
+
+   if(n_elements(axis) lt 2) then begin
+       print, 'Warning: cannot find magnetic axis'
+   endif
+
+   fieldr = dx(field,x)
+   fieldz = dz(field,z)
+
+   ; do iterative refinement on magnetic axis
+   for k=1, 2 do begin
+       pt = field_at_point(field, x, z, axis[0], axis[1])
+       pt1 = field_at_point(fieldr, x, z, axis[0], axis[1])
+       pt2 = field_at_point(fieldz, x, z, axis[0], axis[1])
+
+       denom = pt1^2 + pt2^2           
+       dx = pt*pt1/denom
+       dz = pt*pt2/denom           
+
+       axis[0] = axis[0] - dx
+       axis[1] = axis[1] - dz
+   end
+
+   print, 'Found axis at ', axis[0], axis[1]
+
+
+   if(n_elements(xpoint) ge 2) then begin
+       print, 'x-point guess at ', xpoint[0], xpoint[1]
+       ; do iterative refinement on x-point
+       for k=1, 10 do begin
+           pt = field_at_point(field, x, z, xpoint[0], xpoint[1])
+           pt1 = field_at_point(fieldr, x, z, xpoint[0], xpoint[1])
+           pt2 = field_at_point(fieldz, x, z, xpoint[0], xpoint[1])
+           
+           denom = pt1^2 + pt2^2           
+           dx = pt*pt1/denom
+           dz = pt*pt2/denom           
+           
+           xpoint[0] = xpoint[0] - dx
+           xpoint[1] = xpoint[1] - dz
+
+           if(xpoint[0] le min(x) or xpoint[0] ge max(x)) then begin
+               xpoint = 0
+               break
+           endif
+           if(xpoint[1] le min(z) or xpoint[1] ge max(z)) then begin
+               xpoint = 0
+               break
+           endif           
+       end
+   endif
+   if(n_elements(xpoint) eq 2) then begin
+       print, 'Found X-point at ', xpoint[0], xpoint[1]
+   endif else begin
+       print, 'No X-point found'
+   endelse
+end
+
+
+pro nulls, psi, x, z, axis=axis, xpoints=xpoint, _EXTRA=extra
+    version = read_parameter('version', _EXTRA=extra)
+    if(version ge 3) then begin
+        read_nulls, axis=axis, xpoint=xpoint, _EXTRA=extra
+    endif else begin
+        find_nulls, psi, x, z, axis=axis, xpoint=xpoint, _EXTRA=extra
+    endelse 
+end
+
+; ========================================================
+; lcfs
+; ~~~~
+;
+; returns the flux value of the last closed flux surface
+; ========================================================
+function find_lcfs, psi, x, z, axis=axis, xpoint=xpoint, $
+               flux0=flux0, psilim=psilim, xlim=xlim, _EXTRA=extra
+
+   if(n_elements(psi) eq 0 or n_elements(x) eq 0 or n_elements(z) eq 0) then $
+     psi = read_field('psi',x,z,t,_EXTRA=extra,linear=0)
+
+   nulls, psi, x, z, xpoint=xpoint, axis=axis, _EXTRA=extra
+
+   ; flux at magnetic axis
+   if(n_elements(axis) lt 2) then begin
+       print, "Error: no magnetic axis"
+       flux0 = max(psi[0,*,*])
+   endif else begin
+       flux0 = field_at_point(psi,x,z,axis[0],axis[1])
+   endelse
+   if(n_elements(axis) gt 2) then begin
+       print, "Warning: there is more than one magnetic axis"
+   endif
+   print, "Flux on axis:", flux0
+
+   ; If xlim is set, then use limiter values
+   ; given in C1input file
+   if(keyword_set(xlim)) then begin
+       limiter = fltarr(2)
+       limiter[0] = read_parameter('xlim', _EXTRA=extra)
+       limiter[1] = read_parameter('zlim', _EXTRA=extra)
+       print, "limiter at: ", limiter
+   endif
+
+   ; limiting value
+   ; Find limiting flux by calculating outward normal derivative of
+   ; the normalized flux.  If this derivative is negative, there is a
+   ; limiter.
+   if(n_elements(psilim) eq 0) then begin
+       if(n_elements(limiter) eq 2) then begin
+           xerr = min(x-limiter[0],xi,/absolute)
+           zerr = min(z-limiter[1],zi,/absolute)
+           psilim = psi[0,xi,zi]
+       endif else begin
+           print, ' No limiter provided, using wall.'
+           sz = size(psi)
+           
+           psiz = dz(psi,z)
+           psix = dx(psi,x)
+           
+           normal_mask = psi*0.
+           normal_mask[0,      *,      0] = 1.
+           normal_mask[0,      *,sz[3]-1] = 1.
+           normal_mask[0,      0,      *] = 1.
+           normal_mask[0,sz[2]-1,      *] = 1.
+           
+           xx = fltarr(1,sz[2],sz[3])
+           zz = fltarr(1,sz[2],sz[3])
+           for i=0,sz[3]-1 do xx[0,*,i] = x - axis[0]
+           for i=0,sz[2]-1 do zz[0,i,*] = z - axis[1]
+           normal_deriv = (psix*xx + psiz*zz)*normal_mask
+           
+           normal_deriv = normal_deriv lt 0
+           
+           psi_bound = psi*normal_deriv + (1-normal_deriv)*1e10
+           
+           psilim = min(psi_bound-flux0, i, /absolute)
+           psilim = psi_bound[i]
+       endelse
+       
+       print, "Flux at limiter", psilim
+       
+       
+       ; flux at separatrix
+       sz = size(xpoint)
+       if(sz[0] gt 0 and (not keyword_set(xlim))) then begin
+           psix = field_at_point(psi,x,z,xpoint[0],xpoint[1])
+           print, "Flux at separatrix:", psix
+           
+           if(abs(psix-flux0) gt abs(psilim-flux0)) then begin
+               print, "Plasma is limited."
+           endif else begin
+               print, "Plasma is diverted."
+               psilim = psix
+           endelse
+       endif
+   end
+   
+   return, psilim
+end
+
+
+function read_lcfs, axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra
+   s = read_scalars(_EXTRA=extra)
+
+   t0 = get_slice_time(_EXTRA=extra)
+
+   dum = min(s.time._data - t0, i, /abs)
+
+   xpoint = fltarr(2)
+   axis = fltarr(2)
+   xpoint[0] = s.xnull._data[i]
+   xpoint[1] = s.znull._data[i]
+   axis[0] = s.xmag._data[i]
+   axis[1] = s.zmag._data[i]
+   
+   return, s.psibound._data[i]
+end
+
+
+; ========================================================
+; lcfs
+; ~~~~
+;
+; returns the flux value of the last closed flux surface
+; ========================================================
+function lcfs, psi, x, z, axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra
+
+    version = read_parameter('version', _EXTRA=extra)
+    if(version ge 3) then begin
+        psilim = read_lcfs(axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra)
+    endif else begin
+        psilim = find_lcfs(psi, x, z,axis=axis, xpoint=xpoint, flux0=flux0, $
+                           _EXTRA=extra)
+    endelse 
+    return, psilim
+end
+
+
+
+
 pro animate, name, nslices=nslices, slice=slice, _EXTRA=extra
    ntor = read_parameter('ntor',_EXTRA=extra)
   
@@ -2255,15 +2564,12 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                endif
 
                if(n_elements(maskrange) eq 2) then begin
-                   loadct,12
-                   plot_lcfs, psi,x,z, color=color(3,5),xlim=xlim, $
+                   plot_lcfs, psi,x,z, xlim=xlim, $
                      psival=maskrange[0],slice=time[0]+k
-                   plot_lcfs, psi,x,z, color=color(3,5),xlim=xlim, $
+                   plot_lcfs, psi,x,z, xlim=xlim, $
                      psival=maskrange[1],slice=time[0]+k
                endif else begin
-                   loadct,12
-                   plot_lcfs, psi,x,z, color=color(3,5), xlim=xlim, $
-                     slice=time[0]+k, _EXTRA=ex
+                   plot_lcfs, psi,x,z, _EXTRA=ex, xlim=xlim, slice=time[0]+k
                endelse
            endif
 
@@ -2291,6 +2597,20 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
        mpeg_save, mpegid, filename=mpeg
        mpeg_close, mpegid
    end
+end
+
+
+pro plot_flux, norm=norm, _EXTRA=extra
+   psi = read_field('psi',x,z,t,_EXTRA=extra)
+
+   psilim = lcfs(psi,x,z,flux0=flux0)
+
+   if(keyword_set(norm)) then begin
+       psi = (psi - flux0)/(psilim - flux0)
+   endif
+
+   loadct,12
+   contour, psi, x, z, _EXTRA=extra
 end
 
 
@@ -2724,310 +3044,6 @@ pro plot_energy, name, filename=filename, norm=norm, diff=diff, $
    plot_legend, ['Total', names], color=colors(n+1), _EXTRA=extra
 end
 
-; field_at_point
-function field_at_point, field, x, z, x0, z0
-   i = n_elements(x)*(x0-min(x)) / (max(x)-min(x))
-   j = n_elements(z)*(z0-min(z)) / (max(z)-min(z))
-   return, interpolate(reform(field),i,j)
-end
-
-
-pro read_nulls, axis=axis, xpoints=xpoint, _EXTRA=extra
-   s = read_scalars(_EXTRA=extra)
-
-   t0 = get_slice_time(_EXTRA=extra)
-
-   dum = min(s.time._data - t0, i, /abs)
-
-   xpoint = fltarr(2)
-   axis = fltarr(2)
-   xpoint[0] = s.xnull._data[i]
-   xpoint[1] = s.znull._data[i]
-   axis[0] = s.xmag._data[i]
-   axis[1] = s.zmag._data[i]
-   
-   return
-end
-
-
-; ==============================================================
-; find_nulls
-; ----------
-;
-;  Finds field nulls.
-;  xpoint = fltarr(2) : position of active x-point
-;  axis   = fltarr(2) : position of magnetic axis
-; ==============================================================
-pro find_nulls, psi, x, z, axis=axis, xpoints=xpoint, _EXTRA=extra
-
-   if(n_elements(time) eq 0) then time = 0
-   
-   field = s_bracket(psi,psi,x,z)
-   d2 = dz(dz(psi,z),z)*dx(dx(psi,x),x)
-   
-   nulls = field lt mean(field)/10.
-
-   sz = size(field)
-
-   xpoints = 0
-   xpoint = 0.
-   axes = 0
-   axis = 0.
-
-   oldxflux = min(psi)
-   oldaflux = min(psi)
-   
-   for i=0, sz[2]-1 do begin
-       for j=0, sz[3]-1 do begin
-           if(nulls[0,i,j] eq 0) then continue
-
-           currentmin = field[0,i,j]
-           currentpos = [i,j]
-           foundlocalmin = 0
-
-           ; find local minimum
-           for m=i, sz[2]-1 do begin
-               if(nulls[0,m,j] eq 0) then break
-               for n=j+1, sz[3]-1 do begin
-                   if(nulls[0,m,n] eq 0) then break
-
-                   if(field[0,m,n] le currentmin) then begin
-                       currentmin = field[0,m,n]
-                       currentpos = [m,n]
-                       foundlocalmin = 1
-                   endif
-                   nulls[0,m,n] = 0
-               endfor
-               for n=j-1, 0, -1 do begin
-                   if(nulls[0,m,n] eq 0) then break
-
-                   if(field[0,m,n] le currentmin) then begin
-                       currentmin = field[0,m,n]
-                       currentpos = [m,n]
-                       foundlocalmin = 1
-                   endif
-                   nulls[0,m,n] = 0
-               endfor
-           endfor
-
-           if (foundlocalmin eq 0) then continue
-
-           ; throw out local minima on boundaries
-           if (currentpos[0] eq 0) or (currentpos[0] eq sz[2]-1) then continue
-           if (currentpos[1] eq 0) or (currentpos[1] eq sz[3]-1) then continue
-
-           ; determine if point is an x-point or an axis and
-           ; append the location index to the appropriate array
-           if(d2[0,currentpos[0],currentpos[1]] lt 0) then begin
-               if(psi[0,currentpos[0],currentpos[1]] gt oldxflux) then begin
-                   xpoint = [x[currentpos[0]], z[currentpos[1]]]
-                   oldxflux = psi[0,currentpos[0],currentpos[1]]
-               end
-           endif else begin
-               if(psi[0,currentpos[0],currentpos[1]] gt oldxflux) then begin
-                   axis = [x[currentpos[0]], z[currentpos[1]]]
-                   oldaflux = psi[0,currentpos[0],currentpos[1]]
-               endif
-           endelse
-       endfor
-   endfor 
-
-   if(n_elements(axis) lt 2) then begin
-       print, 'Warning: cannot find magnetic axis'
-   endif
-
-   fieldr = dx(field,x)
-   fieldz = dz(field,z)
-
-   ; do iterative refinement on magnetic axis
-   for k=1, 2 do begin
-       pt = field_at_point(field, x, z, axis[0], axis[1])
-       pt1 = field_at_point(fieldr, x, z, axis[0], axis[1])
-       pt2 = field_at_point(fieldz, x, z, axis[0], axis[1])
-
-       denom = pt1^2 + pt2^2           
-       dx = pt*pt1/denom
-       dz = pt*pt2/denom           
-
-       axis[0] = axis[0] - dx
-       axis[1] = axis[1] - dz
-   end
-
-   print, 'Found axis at ', axis[0], axis[1]
-
-
-   if(n_elements(xpoint) ge 2) then begin
-       print, 'x-point guess at ', xpoint[0], xpoint[1]
-       ; do iterative refinement on x-point
-       for k=1, 10 do begin
-           pt = field_at_point(field, x, z, xpoint[0], xpoint[1])
-           pt1 = field_at_point(fieldr, x, z, xpoint[0], xpoint[1])
-           pt2 = field_at_point(fieldz, x, z, xpoint[0], xpoint[1])
-           
-           denom = pt1^2 + pt2^2           
-           dx = pt*pt1/denom
-           dz = pt*pt2/denom           
-           
-           xpoint[0] = xpoint[0] - dx
-           xpoint[1] = xpoint[1] - dz
-
-           if(xpoint[0] le min(x) or xpoint[0] ge max(x)) then begin
-               xpoint = 0
-               break
-           endif
-           if(xpoint[1] le min(z) or xpoint[1] ge max(z)) then begin
-               xpoint = 0
-               break
-           endif           
-       end
-   endif
-   if(n_elements(xpoint) eq 2) then begin
-       print, 'Found X-point at ', xpoint[0], xpoint[1]
-   endif else begin
-       print, 'No X-point found'
-   endelse
-end
-
-
-pro nulls, psi, x, z, axis=axis, xpoints=xpoint, _EXTRA=extra
-    version = read_parameter('version', _EXTRA=extra)
-    if(version ge 3) then begin
-        read_nulls, axis=axis, xpoint=xpoint, _EXTRA=extra
-    endif else begin
-        find_nulls, psi, x, z, axis=axis, xpoint=xpoint, _EXTRA=extra
-    endelse 
-end
-
-; ========================================================
-; lcfs
-; ~~~~
-;
-; returns the flux value of the last closed flux surface
-; ========================================================
-function find_lcfs, psi, x, z, axis=axis, xpoint=xpoint, $
-               flux0=flux0, psilim=psilim, xlim=xlim, _EXTRA=extra
-
-   if(n_elements(psi) eq 0 or n_elements(x) eq 0 or n_elements(z) eq 0) then $
-     psi = read_field('psi',x,z,t,_EXTRA=extra,linear=0)
-
-   nulls, psi, x, z, xpoint=xpoint, axis=axis, _EXTRA=extra
-
-   ; flux at magnetic axis
-   if(n_elements(axis) lt 2) then begin
-       print, "Error: no magnetic axis"
-       flux0 = max(psi[0,*,*])
-   endif else begin
-       flux0 = field_at_point(psi,x,z,axis[0],axis[1])
-   endelse
-   if(n_elements(axis) gt 2) then begin
-       print, "Warning: there is more than one magnetic axis"
-   endif
-   print, "Flux on axis:", flux0
-
-   ; If xlim is set, then use limiter values
-   ; given in C1input file
-   if(keyword_set(xlim)) then begin
-       limiter = fltarr(2)
-       limiter[0] = read_parameter('xlim', _EXTRA=extra)
-       limiter[1] = read_parameter('zlim', _EXTRA=extra)
-       print, "limiter at: ", limiter
-   endif
-
-   ; limiting value
-   ; Find limiting flux by calculating outward normal derivative of
-   ; the normalized flux.  If this derivative is negative, there is a
-   ; limiter.
-   if(n_elements(psilim) eq 0) then begin
-       if(n_elements(limiter) eq 2) then begin
-           xerr = min(x-limiter[0],xi,/absolute)
-           zerr = min(z-limiter[1],zi,/absolute)
-           psilim = psi[0,xi,zi]
-       endif else begin
-           print, ' No limiter provided, using wall.'
-           sz = size(psi)
-           
-           psiz = dz(psi,z)
-           psix = dx(psi,x)
-           
-           normal_mask = psi*0.
-           normal_mask[0,      *,      0] = 1.
-           normal_mask[0,      *,sz[3]-1] = 1.
-           normal_mask[0,      0,      *] = 1.
-           normal_mask[0,sz[2]-1,      *] = 1.
-           
-           xx = fltarr(1,sz[2],sz[3])
-           zz = fltarr(1,sz[2],sz[3])
-           for i=0,sz[3]-1 do xx[0,*,i] = x - axis[0]
-           for i=0,sz[2]-1 do zz[0,i,*] = z - axis[1]
-           normal_deriv = (psix*xx + psiz*zz)*normal_mask
-           
-           normal_deriv = normal_deriv lt 0
-           
-           psi_bound = psi*normal_deriv + (1-normal_deriv)*1e10
-           
-           psilim = min(psi_bound-flux0, i, /absolute)
-           psilim = psi_bound[i]
-       endelse
-       
-       print, "Flux at limiter", psilim
-       
-       
-       ; flux at separatrix
-       sz = size(xpoint)
-       if(sz[0] gt 0 and (not keyword_set(xlim))) then begin
-           psix = field_at_point(psi,x,z,xpoint[0],xpoint[1])
-           print, "Flux at separatrix:", psix
-           
-           if(abs(psix-flux0) gt abs(psilim-flux0)) then begin
-               print, "Plasma is limited."
-           endif else begin
-               print, "Plasma is diverted."
-               psilim = psix
-           endelse
-       endif
-   end
-   
-   return, psilim
-end
-
-
-function read_lcfs, axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra
-   s = read_scalars(_EXTRA=extra)
-
-   t0 = get_slice_time(_EXTRA=extra)
-
-   dum = min(s.time._data - t0, i, /abs)
-
-   xpoint = fltarr(2)
-   axis = fltarr(2)
-   xpoint[0] = s.xnull._data[i]
-   xpoint[1] = s.znull._data[i]
-   axis[0] = s.xmag._data[i]
-   axis[1] = s.zmag._data[i]
-   
-   return, s.psibound._data[i]
-end
-
-
-; ========================================================
-; lcfs
-; ~~~~
-;
-; returns the flux value of the last closed flux surface
-; ========================================================
-function lcfs, psi, x, z, axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra
-
-    version = read_parameter('version', _EXTRA=extra)
-    if(version ge 3) then begin
-        psilim = read_lcfs(axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra)
-    endif else begin
-        psilim = find_lcfs(psi, x, z,axis=axis, xpoint=xpoint, flux0=flux0, $
-                           _EXTRA=extra)
-    endelse 
-    return, psilim
-end
-
-
 
 ; ========================================================
 ; plot_lcfs
@@ -3044,9 +3060,9 @@ pro plot_lcfs, psi, x, z, psival=psival,_EXTRA=extra
     if(n_elements(psival) eq 0) then psival = lcfs(psi,x,z,_EXTRA=extra)
 
     ; plot contour
-    if(n_elements(color) ne 0) then loadct, 12
+    loadct, 12
     contour, psi, x, z, /overplot, nlevels=1, levels=psival, $
-      thick=!p.charthick*2., _EXTRA=extra
+      thick=!p.charthick*2., color=color(3,5)
 end
 
 
@@ -3337,7 +3353,7 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
                  ylog=ylog, xlog=xlog, absolute_value=absolute, $
                  power_spectrum=power_spectrum, per_length=per_length, $
                  growth_rate=growth_rate, bw=bw, nolegend=nolegend, $
-                 cgs=cgs,mks=mks
+                 cgs=cgs,mks=mks,linestyle=ls, color=co
 
   if(n_elements(filename) eq 0) then filename='C1.h5'
 
@@ -3346,11 +3362,11 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
   nfiles = n_elements(filename)
   if(nfiles gt 1) then begin
       if(keyword_set(bw)) then begin
-          ls = indgen(nfiles)
-          co = replicate(color(0,1),nfiles)
+          if(n_elements(ls) eq 0) then ls = indgen(nfiles)
+          if(n_elements(co) eq 0) then co = replicate(color(0,1),nfiles)
       endif else begin
-          ls = replicate(0, nfiles)
-          co = colors(nfiles)
+          if(n_elements(ls) eq 0) then ls = replicate(0, nfiles)
+          if(n_elements(co) eq 0) then co = colors(nfiles)
       endelse
 
       for i=0, nfiles-1 do begin
@@ -3417,11 +3433,11 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
 
   if(n_elements(x) eq 0) then begin   
       if(keyword_set(overplot)) then begin
-          oplot, tdata, data, color=c, _EXTRA=extra
+          oplot, tdata, data, color=co, linestyle=ls, _EXTRA=extra
       endif else begin
           plot, tdata, data, xtitle=xtitle, ytitle=ytitle, $
             title=title, _EXTRA=extra, ylog=ylog, xlog=xlog, $
-            color=c
+            color=co, linestyle=ls
       endelse
   endif else begin
       xi = x
@@ -3431,11 +3447,12 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
       z[0] = data[n_elements(data)-1]
 
       if(keyword_set(overplot)) then begin
-          oplot, x, z, color=c, _EXTRA=extra
+          oplot, x, z, color=co, linestyle=ls, _EXTRA=extra
       endif else begin
           plot, x, z, $
             title=title, xtitle=xtitle, ytitle=ytitle, $
-            _EXTRA=extra, ylog=ylog, xlog=xlog, color=c
+            _EXTRA=extra, ylog=ylog, xlog=xlog, color=co, $
+            linstyle=ls
       endelse
   endelse
 end
@@ -3510,110 +3527,12 @@ pro plot_pol_velocity, time,  maxval=maxval, points=points, $
 end
 
 
-;==================================================================
-; flux_coord_field
-; ~~~~~~~~~~~~~~~~~~
-;==================================================================
-function flux_coord_field, field, psi, theta, x, z, t, fbins=fbins, $
-                           tbins=tbins, flux=flux, angle=angle, $
-                           psirange=frange, norm=nflux, _EXTRA=extra
-
-   sz = size(field)
-
-   points = sqrt(sz[2]*sz[3])
-
-   if(n_elements(fbins) eq 0) then fbins = 10
-   if(n_elements(tbins) eq 0) then tbins = 10
-
-   result = fltarr(sz[1], fbins, tbins)
-   flux = fltarr(sz[1], fbins)
-   angle = fltarr(sz[1], tbins)
-   sfield = 0
-
-   psival = lcfs(psi=psi, r=x, z=z, axis=axis, xpoint=xpoint, _EXTRA=extra)
-   
-   if(n_elements(range) eq 0) then begin
-       ; if range not provided, use all flux within lcfs
-       range = fltarr(sz[1],2)
-       for k=0, sz[1]-1 do range[k,*] = [psival, max(psi[k,*,*])]
-   endif else if(n_elements(range) eq 2) then begin
-       oldrange = range
-       range = fltarr(sz[1],2)
-       for k=0, sz[1]-1 do range[k,*] = oldrange
-   endif
-
-   ; remove divertor region from consideration
-   div_mask = fltarr(n_elements(x), n_elements(z))
-   if(n_elements(xpoint) ge 2) then begin
-       if(xpoint[1] lt axis[1]) then begin
-           div_mask[*,xpoint[1]:n_elements(z)-1] = 1.
-       endif else begin
-           div_mask[*,0:xpoint[1]] = 1.
-       endelse
-   endif else begin
-       div_mask = 1.
-   endelse
-
-   r = radius_matrix(x,z,t)
-
-   bp = sqrt(1./r^2)
-;   bp = sqrt(s_bracket(psi,psi,x,z)/r^2)
-   bpprime = s_bracket(bp,psi,x,z)/s_bracket(psi,psi,x,z)
-
-   fprime = s_bracket(field,psi,x,z)/s_bracket(psi,psi,x,z)
-
-   for k=0, sz[1]-1 do begin
-       dpsi = float(range[k,1] - range[k,0])/float(fbins)
-       dtheta = 2.*!pi/float(tbins)
-       
-       for p=0, fbins-1 do begin
-           fval = range[k,1] - dpsi*(p+1)
-           flux[k,p] = fval + dpsi/2.
-           
-           for q=0, tbins-1 do begin
-               tval = !pi - dtheta*(q+1)
-               angle[k,q] = tval + dtheta/2.
-
-               mask = float((psi[k,*,*] gt fval) $
-                            and (psi[k,*,*] le fval+dpsi) $
-                            and (theta[k,*,*] gt tval) $
-                            and (theta[k,*,*] le tval+dtheta))
-               mask = mask*div_mask
-
-               mask = mask/bp[k,*,*]
-;           mask = mask/(bp[k,*,*]+bpprime[k,*,*]*(flux[k,p]-psi[k,*,*]))
-
-               if(n_elements(field) gt 1) then begin
-                   sfield = field[k,*,*]*mask[0,*,*]
-;               sfield = (field[k,*,*]+fprime[k,*,*]*(flux[k,p]-psi[k,*,*])) $
-;                 *mask[0,*,*]
-               endif
-
-               tot = total(mask)
-
-               if(tot eq 0.) then begin
-                   print, 'error: no data points in bin', p, q
-                   result[k, p, q] = 0.
-               endif else begin
-                   result[k, p, q] = total(sfield)/tot
-               endelse
-           endfor
-       endfor
-   endfor
-
-   if(keyword_set(nflux)) then begin
-       flux = (flux - max(psi)) / (psival-max(psi))
-   endif
-       
-   return, result
-end
-
 function path_at_flux, psi,x,z,t,flux
    contour, psi[0,*,*], x, z, levels=flux, $
      path_xy=xy, path_info=info, /path_data_coords, /overplot
 
    if(n_elements(xy) eq 0) then begin
-       print, 'Error: no points at this flux value'
+       print, 'Error: no points at this flux value', flux
        return, 0
    end
 
@@ -3678,6 +3597,92 @@ function field_at_flux, field, psi, x, z, t, flux, theta=theta, angle=angle, $
    endif
 
    return, test
+end
+
+
+
+;==================================================================
+; flux_coord_field
+; ~~~~~~~~~~~~~~~~~~
+;==================================================================
+function flux_coord_field, fieldname, slice=slice, $
+                           fbins=fbins,  tbins=tbins, flux=flux, angle=angle, $
+                           psirange=frange, norm=nflux, pest=pest, _EXTRA=extra
+
+   psi = read_field('psi',x,z,t,slice=-1,_EXTRA=extra)
+   field = read_field(fieldname,x,z,t,slice=slice,_EXTRA=extra)
+   
+   sz = size(field)
+
+   if(n_elements(fbins) eq 0) then fbins = 10
+   if(n_elements(tbins) eq 0) then tbins = 10
+
+   result = fltarr(sz[1], fbins, tbins)
+   flux = fltarr(sz[1], fbins)
+   angle = fltarr(sz[1], tbins)
+   sfield = 0
+
+   psival = lcfs(psi,x,z,axis=axis,xpoint=xpoint,slice=slice,_EXTRA=extra)
+   
+   if(n_elements(range) eq 0) then begin
+       ; if range not provided, use all flux within lcfs
+       range = fltarr(sz[1],2)
+       for k=0, sz[1]-1 do range[k,*] = [psival, max(psi[k,*,*])]
+   endif else if(n_elements(range) eq 2) then begin
+       oldrange = range
+       range = fltarr(sz[1],2)
+       for k=0, sz[1]-1 do range[k,*] = oldrange
+   endif
+
+   r = radius_matrix(x,z,t)
+
+   rho = psi
+   theta = psi
+   for i=0, n_elements(x)-1 do begin
+       for j=0, n_elements(z)-1 do begin
+           rho[0,i,j] = sqrt((x[i]-axis[0])^2 + (z[j]-axis[1])^2)
+           theta[0,i,j] = atan(z[j]-axis[1],x[i]-axis[0])
+       end
+   end
+   if(keyword_set(pest)) then begin
+;       db = rho/(r*abs(s_bracket(rho,psi,x,z))+0.01)
+       i = read_field('i',x,z,t,slice=-1,_EXTRA=extra)
+       bp = sqrt(s_bracket(psi,psi,x,z)/r^2)
+       bt = i/r
+       db = rho*bt/(r*bp)
+   endif
+
+   for k=0, sz[1]-1 do begin
+
+       angle[k,*] = 2.*!pi*findgen(tbins)/float(tbins) - !pi
+       dpsi = float(range[k,1] - range[k,0])/float(fbins)
+
+       for p=0, fbins-1 do begin
+           flux[k,p] = range[k,1] - dpsi*(p+0.5)
+       
+           f = field_at_flux(field, psi, x, z, t, flux[k,p], $
+                             theta=theta, angle=a)
+           
+           if(keyword_set(pest)) then begin
+               g = field_at_flux(db, psi, x, z, t, flux[k,p], $
+                             theta=theta, angle=a)
+               da = deriv(a)
+               dum = min(a, i, /abs)
+               
+               a = total(da*g,/cum)
+               a = 2.*!pi*a/(max(a)-min(a))
+               a = a + dum - a[i]
+           endif
+
+           result[k,p,*] = interpol(f,a,angle[k,*])
+       end
+   endfor
+
+   if(keyword_set(nflux)) then begin
+       flux = (flux - max(psi)) / (psival-max(psi))
+   endif
+       
+   return, result
 end
 
 
@@ -4046,7 +4051,7 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
 
    if(keyword_set(nflux) or keyword_set(lcfs) or keyword_set(srnorm)) $
      then begin
-       lcfs_psi = lcfs(psi, x, z)
+       lcfs_psi = lcfs(psi, x, z, filename=filename, _EXTRA=extra)
    endif
 
    if(keyword_set(nflux)) then begin

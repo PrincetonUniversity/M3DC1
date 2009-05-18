@@ -354,6 +354,8 @@
 !
 !.....parameters for taylor problem (itaylor=1)
       eps = .01
+
+      irmp = 0
 !
 !.....gravitational acceleration
       gravr = 0.
@@ -431,6 +433,11 @@
       if(ibform.ne.-1) then
          if(myrank.eq.0) 
      &        print *, 'WARNING: ibform input parameter deprecated'
+      endif
+      if(i3d.eq.1 .and. jadv.eq.0) then
+         if(myrank.eq.0)
+     &        print *, 'WARNING: nonaxisymmetric cases should &
+     &        use jadv=1'
       endif
       if(isplitstep.eq.0) imp_mod = 0
       if(rzero.eq.-1) then
