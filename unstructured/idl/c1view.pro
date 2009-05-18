@@ -41,8 +41,9 @@ pro c1view_event, ev
                'Contours': state.lines = 1-state.lines 
                'Isotropic' : state.isotropic = 1 - state.isotropic
                'LCFS' : state.lcfs = 1 - state.lcfs
-               'Linear' : state.lcfs = 1 - state.linear
+               'Linear' : state.linear = 1 - state.linear
                'Mesh' : state.mesh = 1 - state.mesh
+               'Boundary' : state.boundary = 1 - state.boundary
            end
        end
        'FIELDNAME' : begin
@@ -51,6 +52,10 @@ pro c1view_event, ev
        end
        'FILENAME' : state.filename = ev.value
        'GAMMA' : state.growth_rate = 1-state.growth_rate
+       'POINTS' : begin
+           widget_control, ev.id, get_value=value
+           state.points = value
+       end
        'SCALARNAME' : begin
            scalarnames = get_scalarnames()
            state.scalarname = scalarnames(ev.index)
@@ -135,15 +140,17 @@ pro plot_event, ev
        end
        'PLOT_FIELD' : begin 
            plot_field, state.fieldname, state.slice, $
-             filename=state.filename, $
+             filename=state.filename[0], $
              isotropic=state.isotropic, $
              lcfs=state.lcfs, $
              linear=state.linear, $ 
              mesh=state.mesh, $
+             boundary=state.boundary, $
              lines=state.lines, $
              range=state.zrange, zlog=state.zlog, $
              noautoct=(state.ct_opt eq 0), $
-             xticks=state.xticks, yticks=state.yticks
+             xticks=state.xticks, yticks=state.yticks, $
+             points=state.points
        end
        'PLOT_SCALAR' : begin
            plot_scalar, state.scalarname, $
@@ -198,7 +205,7 @@ pro c1view
              conservation_name:'energy', change:0, $
              color_table:-1, ct_opt:1, $
              points:50, isotropic:1, lcfs:0, mesh:0, lines:0, linear:0, $
-             monochrome:0, $
+             monochrome:0, boundary:0, $
              xrange:[0.,0.], yrange:[0.,0.], zrange:[0.,0.], $
              xlog:0, ylog:0, zlog:0, xticks:0, yticks:0, $
              to_file:0, output_filename:'plot.eps' }
@@ -219,10 +226,11 @@ pro c1view
                             uval='FIELDNAME')
    widget_control, list_field, set_list_select=0
 
-   options = ['Contours', 'Isotropic', 'LCFS', 'Linear', 'Mesh']
-   value = [state.lines,state.isotropic, state.lcfs, state.linear, state.mesh]
+   options = ['Contours', 'Isotropic', 'LCFS', 'Linear', 'Mesh', 'Boundary']
+   value = [state.lines,state.isotropic, state.lcfs, state.linear, $
+            state.mesh, state.boundary]
    group_plot_options = cw_bgroup(base_field, options, frame=1, $
-                                  uvalue='FIELD_OPTIONS', column=2, $
+                                  uvalue='FIELD_OPTIONS', column=3, $
                                   /nonexclusive, label_top='Plot Options', $
                                  set_value=value, /return_name)
 
@@ -256,7 +264,7 @@ pro c1view
 
    ; Convervation Laws Tab
    ; ~~~~~~~~~~~~~~~~~~~~~
-   base_cons = widget_base(tab, title='Conservation Laws', /column)
+   base_cons = widget_base(tab, title='Conservation', /column)
    scalar_list = widget_list(base_cons, value=get_conservation_names(), $
                              ysize=5, uval='CONS_NAME')
    widget_control, scalar_list, set_list_select=0
@@ -293,6 +301,11 @@ pro c1view
    text_yticks = cw_field(base_yrange, title='Ticks', value=state.yticks, $
                           /all_events, uvalue='YTICKS', xsize=6, /integer)
 
+
+   tab_points = widget_tab(base_plot, value='points')
+   base_points = widget_base(tab_points, /row, title='Sampling Points')
+   text_points = cw_field(base_points, value=state.points, /all_events, $
+                           uvalue='POINTS', xsize=6, title='', /integer)
 
 
    tab_ct = widget_tab(base_plot, value='ct')

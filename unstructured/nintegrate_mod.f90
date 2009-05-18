@@ -288,7 +288,7 @@ subroutine edge_to_local(ngauss, delta, line_weight, &
   ! flip integration limits (i.e. flip sign of Jacobian)
   if(m1(1)*m2(1) + m1(2)*m2(2) .lt. 0.) then
      local_weight = -local_weight
-     print *, 'Flipping edge.'
+     write(*,'(A,6f10.4)') 'Flipping edge.', m1,m2
   endif
  
 end subroutine edge_to_local
@@ -537,7 +537,7 @@ end subroutine define_edge_quadrature
 !=====================================================
 ! define_fields
 !=====================================================
-subroutine define_fields(itri, fields, gdef)
+subroutine define_fields(itri, fields, gdef, ilin)
 
   use basic
   use t_data
@@ -545,7 +545,7 @@ subroutine define_fields(itri, fields, gdef)
 
   implicit none
   
-  integer, intent(in) :: itri, fields, gdef
+  integer, intent(in) :: itri, fields, gdef, ilin
 
   integer :: i
   vectype, dimension(20) :: avec
@@ -585,12 +585,16 @@ subroutine define_fields(itri, fields, gdef)
   if(iand(fields, FIELD_PHI).eq.FIELD_PHI) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   U..."
      
-     call calcavector(itri, field, u_g, num_fields, avec)
-     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ph179)
+     if(ilin.eq.0) then
+        call calcavector(itri, field, u_g, num_fields, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ph179)
 #ifdef USECOMPLEX
-     ph179(:,OP_DP :OP_GSP ) = (0,1)*ntor*ph179(:,OP_1:OP_GS)
-     ph179(:,OP_DPP:OP_GSPP) =   -ntor**2*ph179(:,OP_1:OP_GS)
+        ph179(:,OP_DP :OP_GSP ) = (0,1)*ntor*ph179(:,OP_1:OP_GS)
+        ph179(:,OP_DPP:OP_GSPP) =   -ntor**2*ph179(:,OP_1:OP_GS)
 #endif
+     else
+        ph179 = 0.
+     endif
 
      if(eqsubtract.eq.1) then
         call calcavector(itri, field0, u_g, num_fields, avec)
@@ -609,12 +613,16 @@ subroutine define_fields(itri, fields, gdef)
   if(iand(fields, FIELD_PSI).eq.FIELD_PSI) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   psi..."
 
-     call calcavector(itri, field, psi_g, num_fields, avec)
-     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ps179)
+     if(ilin.eq.0) then
+        call calcavector(itri, field, psi_g, num_fields, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ps179)
 #ifdef USECOMPLEX
-     ps179(:,OP_DP :OP_GSP ) = (0,1)*ntor*ps179(:,OP_1:OP_GS)
-     ps179(:,OP_DPP:OP_GSPP) =   -ntor**2*ps179(:,OP_1:OP_GS)
+        ps179(:,OP_DP :OP_GSP ) = (0,1)*ntor*ps179(:,OP_1:OP_GS)
+        ps179(:,OP_DPP:OP_GSPP) =   -ntor**2*ps179(:,OP_1:OP_GS)
 #endif
+     else
+        ps179 = 0.
+     end if
 
      if(eqsubtract.eq.1) then
         call calcavector(itri, field0, psi_g, num_fields, avec)
@@ -632,13 +640,17 @@ subroutine define_fields(itri, fields, gdef)
   if(iand(fields, FIELD_V).eq.FIELD_V) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   V..."
 
-     call calcavector(itri, field, vz_g, num_fields, avec)
-     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, vz179)
+     if(ilin.eq.0) then
+        call calcavector(itri, field, vz_g, num_fields, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, vz179)
 #ifdef USECOMPLEX
-     vz179(:,OP_DP :OP_GSP ) = (0,1)*ntor*vz179(:,OP_1:OP_GS)
-     vz179(:,OP_DPP:OP_GSPP) = -ntor**2*vz179(:,OP_1:OP_GS)
+        vz179(:,OP_DP :OP_GSP ) = (0,1)*ntor*vz179(:,OP_1:OP_GS)
+        vz179(:,OP_DPP:OP_GSPP) = -ntor**2*vz179(:,OP_1:OP_GS)
 #endif
-    
+     else
+        vz179 = 0.
+     end if
+
      if(eqsubtract.eq.1) then
         call calcavector(itri, field0, vz_g, num_fields, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, vz079)
@@ -656,8 +668,7 @@ subroutine define_fields(itri, fields, gdef)
      
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   I..."
 
-     if(numvar.ge.2) then
-        
+     if(ilin.eq.0) then
         call calcavector(itri, field, bz_g, num_fields, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, bz179)
 #ifdef USECOMPLEX
@@ -669,39 +680,19 @@ subroutine define_fields(itri, fields, gdef)
         bf79(:,OP_DP :OP_GSP ) = (0,1)*ntor   *bf79(:,OP_1:OP_GS)
         bf79(:,OP_DPP:OP_GSPP) =      -ntor**2*bf79(:,OP_1:OP_GS)
 #endif
-       
-        if(eqsubtract.eq.1) then
-           call calcavector(itri, field0, bz_g, num_fields, avec)
-           call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, bz079)
-           bzt79 = bz079 + bz179
-           bzs79 = bz079 + bz179/2.
-        else
-           bzt79 = bz179
-           bzs79 = bz179/2.
-        endif
      else
-
-        bz079 = 0.
         bz179 = 0.
-        bzt79 = 0.
-        bzs79 = 0.
-
-        ! negative signs adjust for left-handed coordinates.
-        bzt79(:,OP_1) = -bzero
-        bzs79(:,OP_1) = -bzero/2.
-        
-        if(eqsubtract.eq.1) then
-           bz079(:,OP_1) = -bzero
-        else
-           bz179(:,OP_1) = -bzero
-        endif
-
-        if(itor.eq.1) then
-           bzt79(:,OP_1) = bzt79(:,OP_1)*rzero !cjdebug xzero
-           bzs79(:,OP_1) = bzs79(:,OP_1)*rzero !cjdebug xzero
-           bz079(:,OP_1) = bz079(:,OP_1)*rzero !cjdebug xzero
-           bz179(:,OP_1) = bz179(:,OP_1)*rzero !cjdebug xzero
-        endif
+        bf79 = 0.
+     endif
+       
+     if(eqsubtract.eq.1) then
+        call calcavector(itri, field0, bz_g, num_fields, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, bz079)
+        bzt79 = bz079 + bz179
+        bzs79 = bz079 + bz179/2.
+     else
+        bzt79 = bz179
+        bzs79 = bz179/2.
      endif
   endif
 
@@ -710,12 +701,16 @@ subroutine define_fields(itri, fields, gdef)
   if(iand(fields, FIELD_CHI).eq.FIELD_CHI) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   chi..."
 
-     call calcavector(itri, field, chi_g, num_fields, avec)
-     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ch179)
+     if(ilin.eq.0) then
+        call calcavector(itri, field, chi_g, num_fields, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ch179)
 #ifdef USECOMPLEX
-     ch179(:,OP_DP :OP_GSP ) = (0,1)*ntor*ch179(:,OP_1:OP_GS)
-     ch179(:,OP_DPP:OP_GSPP) = -ntor**2*ch179(:,OP_1:OP_GS)
+        ch179(:,OP_DP :OP_GSP ) = (0,1)*ntor*ch179(:,OP_1:OP_GS)
+        ch179(:,OP_DPP:OP_GSPP) = -ntor**2*ch179(:,OP_1:OP_GS)
 #endif
+     else
+        ch179 = 0.
+     end if
 
      if(eqsubtract.eq.1) then
         call calcavector(itri, field0, chi_g, num_fields, avec)
@@ -734,22 +729,27 @@ subroutine define_fields(itri, fields, gdef)
        (iand(fields, FIELD_P).eq.FIELD_P)) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   P..."
 
-     if(ipres.eq.1) then
-        call calcavector(itri, field, p_g, num_fields, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, p179)
-        call calcavector(itri, field, pe_g, num_fields, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, pe179)
-     else
-        call calcavector(itri, field, pe_g, num_fields, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, p179)
-        pe179 = p179
-     endif
+     if(ilin.eq.0) then
+        if(ipres.eq.1) then
+           call calcavector(itri, field, p_g, num_fields, avec)
+           call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, p179)
+           call calcavector(itri, field, pe_g, num_fields, avec)
+           call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, pe179)
+        else
+           call calcavector(itri, field, pe_g, num_fields, avec)
+           call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, p179)
+           pe179 = p179
+        endif
 #ifdef USECOMPLEX
-     p179(:,OP_DP :OP_GSP ) = (0,1)*ntor*p179(:,OP_1:OP_GS)
-     p179(:,OP_DPP:OP_GSPP) = -ntor**2*p179(:,OP_1:OP_GS)
-     pe179(:,OP_DP :OP_GSP ) = (0,1)*ntor*pe179(:,OP_1:OP_GS)
-     pe179(:,OP_DPP:OP_GSPP) = -ntor**2*pe179(:,OP_1:OP_GS)
+        p179(:,OP_DP :OP_GSP ) = (0,1)*ntor*p179(:,OP_1:OP_GS)
+        p179(:,OP_DPP:OP_GSPP) = -ntor**2*p179(:,OP_1:OP_GS)
+        pe179(:,OP_DP :OP_GSP ) = (0,1)*ntor*pe179(:,OP_1:OP_GS)
+        pe179(:,OP_DPP:OP_GSPP) = -ntor**2*pe179(:,OP_1:OP_GS)
 #endif
+     else
+        p179 = 0.
+        pe179 = 0.
+     end if
         
      if(eqsubtract.eq.1) then
         if(ipres.eq.1) then
@@ -778,12 +778,17 @@ subroutine define_fields(itri, fields, gdef)
   if(iand(fields, FIELD_N).eq.FIELD_N) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   n..."
 
-     call calcavector(itri, field, den_g, num_fields, avec)
-     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, n179)
+     if(ilin.eq.0) then
+        call calcavector(itri, field, den_g, num_fields, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, n179)
 #ifdef USECOMPLEX
-     n179(:,OP_DP :OP_GSP ) = (0,1)*ntor*n179(:,OP_1:OP_GS)
-     n179(:,OP_DPP:OP_GSPP) = -ntor**2*n179(:,OP_1:OP_GS)
+        n179(:,OP_DP :OP_GSP ) = (0,1)*ntor*n179(:,OP_1:OP_GS)
+        n179(:,OP_DPP:OP_GSPP) = -ntor**2*n179(:,OP_1:OP_GS)
 #endif    
+     else
+        n179 = 0.
+     end if
+
      if(eqsubtract.eq.1) then
         call calcavector(itri, field0, den_g, num_fields, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, n079)
@@ -823,8 +828,12 @@ subroutine define_fields(itri, fields, gdef)
   if(iand(fields, FIELD_J).eq.FIELD_J) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   j..."
 
-     call calcavector(itri, jphi, 1, 1, avec)
-     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, jt79)
+     if(ilin.eq.0) then
+        call calcavector(itri, jphi, 1, 1, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, jt79)
+     else
+        jt79 = 0.
+     end if
   endif
 
   ! VOR
@@ -832,8 +841,12 @@ subroutine define_fields(itri, fields, gdef)
   if(iand(fields, FIELD_VOR).eq.FIELD_VOR) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   vor..."
 
-     call calcavector(itri, vor, 1, 1, avec)
-     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, vot79)
+     if(ilin.eq.0) then
+        call calcavector(itri, vor, 1, 1, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, vot79)
+     else
+        vot79 = 0.
+     end if
   endif
 
   ! COM
@@ -841,8 +854,12 @@ subroutine define_fields(itri, fields, gdef)
   if(iand(fields, FIELD_COM).eq.FIELD_COM) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   com..."
 
-     call calcavector(itri, com, 1, 1, avec)
-     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, cot79)
+     if(ilin.eq.0) then
+        call calcavector(itri, com, 1, 1, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, cot79)
+     else
+        cot79 = 0.
+     end if
   endif
 
 

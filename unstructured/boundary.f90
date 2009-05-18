@@ -268,16 +268,16 @@ subroutine write_normlcurv
      endif
   end do
 
-!!$  ! smooth curv and normal
-!!$  do j=1,5
-!!$     do i=1,nbound
-!!$        i1 = adjacent(1,i)
-!!$        i2 = adjacent(2,i)
-!!$     
-!!$        curv_new(i) = (curv(i0) + curv(i1) + curv(i) + curv(i2) + curv(i3))/3.
-!!$     end do
-!!$     curv = curv_new
-!!$  end do
+!  ! smooth curv and normal
+!  do j=1,5
+!     do i=1,nbound
+!        i1 = adjacent(1,i)
+!        i2 = adjacent(2,i)
+!     
+!        curv_new(i) = (curv(i0) + curv(i1) + curv(i) + curv(i2) + curv(i3))/3.
+!     end do
+!     curv = curv_new
+!  end do
 
   ! write normlcurv
   open(unit=23, file='normlcurv_new', status='unknown')
@@ -294,6 +294,30 @@ subroutine write_normlcurv
   deallocate(x,z,adjacent,id,d,nn,norm,curv,curv_new)
 
 end subroutine write_normlcurv
+
+!!$subroutine write_normlcurv
+!!$  implicit none
+!!$
+!!$  integer :: numnodes, inode, izone, izonedim
+!!$  logical :: is_boundary
+!!$  real :: normal(2), curv, x, z
+!!$  
+!!$  call numnod(numnodes)
+!!$
+!!$  ! write normlcurv
+!!$  open(unit=23, file='normlcurv_new', status='unknown')
+!!$
+!!$  do inode=1,numnodes
+!!$     call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
+!!$     if(.not.is_boundary) cycle
+!!$
+!!$     write(23,'(I5,5F10.6)') inode, x, z, normal(1), normal(2), curv
+!!$  end do
+!!$
+!!$  close(23)
+!!$  
+!!$end subroutine write_normlcurv
+
 
 
 !======================================================================
@@ -986,6 +1010,7 @@ subroutine boundary_gs(imatrix, rhs, feedfac)
   use basic
   use arrays
   use gradshafranov
+  use coils
 
   implicit none
   

@@ -252,7 +252,7 @@
       do itri=1,numelms
 
          call define_triangle_quadrature(itri, 25)
-         call define_fields(itri,0,1)
+         call define_fields(itri,0,1,0)
 
          hyp = hypc
          if(ihypamu.eq.1) hyp = hyp*amu
@@ -296,7 +296,7 @@
       do itri=1,numelms
 
          call define_triangle_quadrature(itri, 25)
-         call define_fields(itri,0,1)
+         call define_fields(itri,0,1,0)
 
          call calcavector(itri, inarray, 1, 1, avec)
          call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, 25, tm79)
@@ -408,7 +408,7 @@
       do itri=1,numelms
 
          call define_triangle_quadrature(itri, 25)
-         call define_fields(itri,0,1)
+         call define_fields(itri,0,1,0)
 
          hyp = hypc
          if(ihypamu.eq.1) hyp = hyp*amuc
@@ -450,7 +450,7 @@
       do itri=1,numelms
 
          call define_triangle_quadrature(itri,25)
-         call define_fields(itri,0,1)
+         call define_fields(itri,0,1,0)
 
          call calcavector(itri, inarray, 1, 1, avec)
          call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, 25, tm79)
@@ -506,7 +506,7 @@
 
 !.....scale solution back if a linear calculation
 
-      if(ekin .lt. max_ke) return
+      if(ekin.lt.max_ke .or. max_ke.eq.0) return
       if(myrank.eq.0) write(*,*) " =>solution scaled back at time", time
 
       call numnod(numnodes)

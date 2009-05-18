@@ -129,6 +129,8 @@ module basic
   real :: ln          ! length of equilibrium gradient
   real :: eps         ! size of initial perturbation
   integer :: iwave    ! which wave to initialize in wave prop. equilibrium
+  integer :: irmp     ! 1 = read rmp coil/currents from rmp_coil.dat, rmp_current.dat
+
 
   ! grad-shafranov options
   integer :: divertors! number of divertors
@@ -248,7 +250,7 @@ real :: tiltangled   !   angle to which the rectangular mesh is tilted for tests
        kappar,kappax,kappah,                                   &
        hyper,hyperi,hyperv,hyperc,hyperp,deex,                 &
        iper,jper,imask,amu_edge,com_bc,pedge,                  &
-       eps,ln,                                                 &
+       eps,ln,irmp,                                            &
        vloop,control_p,control_i,control_d,tcur,               &
        ipellet, pellet_x, pellet_z, pellet_rate, pellet_var,   &
        ionization, ionization_rate, ionization_temp, ionization_depth, &

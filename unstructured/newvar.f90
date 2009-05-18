@@ -72,7 +72,7 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
   do itri=1,numelms
 
      call define_triangle_quadrature(itri, 25)
-     call define_fields(itri,0,1)
+     call define_fields(itri,0,1,0)
 
      do j=1,18
         jone = isval1(itri,j)
@@ -215,6 +215,7 @@ subroutine solve_newvar(rhs, ibound, imatrix)
 
   if(ibound.eq.NV_DCBOUND) call boundary_dc(0,rhs)
   if(ibound.eq.NV_NMBOUND) call boundary_nm(0,rhs)
+
   if(flg_petsc .and. flg_solve1) then 
      call solve1(imatrix,rhs,ier)
   else

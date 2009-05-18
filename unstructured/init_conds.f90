@@ -98,7 +98,7 @@ subroutine random_per(x,z,seed,fac)
   integer, intent(in) :: seed
   integer :: i, j
   integer, parameter :: maxn = 10
-  real :: alx, alz, kx, kz
+  real :: alx, alz, kx, kz, xx, zz
   vectype, dimension(6) :: temp
 
   call getboundingboxsize(alx, alz)
@@ -113,6 +113,9 @@ subroutine random_per(x,z,seed,fac)
 #define RAND_ARG 0
 #endif
 
+  xx = x - xzero
+  zz = z - zzero
+
   do i=1,maxn
      kx = pi*i/alx
      select case (icsym)
@@ -120,23 +123,23 @@ subroutine random_per(x,z,seed,fac)
      case (0)   !  original option...no symmetry imposed
      do j=1, maxn
         kz = j*pi/alz
-        call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
+        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
         call add_product(psi1_l,fac,temp)
-        call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
+        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
         call add_product(u1_l,fac,temp)
      end do
 !
      case (1)  !   make U odd symmetry about midplane:  perturb only U
      do j=1, maxn/2
         kz = 2.*j*pi/alz
-        call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
+        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
         call add_product(u1_l,fac,temp)
      end do
 !
      case (2)  !   make U even  symmetry about midplane:  perturb only U
      do j=1, maxn/2
         kz = (2.*j-1)*pi/alz
-        call plane_wave2(temp,x,z,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
+        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
         call add_product(u1_l,fac,temp)
      end do
 !
@@ -1497,6 +1500,7 @@ subroutine eqdsk_init()
   use gradshafranov
   use newvar_mod
   use sparse
+  use coils
 
   implicit none
 
@@ -1504,6 +1508,10 @@ subroutine eqdsk_init()
   real :: x, z
   real, parameter :: amu0 = pi*4.e-7
   real, allocatable :: flux(:)
+
+  logical :: is_boundary
+  integer :: izone, izonedim
+  real :: normal(2), curv
 
   print *, "eqdsk_init called"
 
@@ -1551,6 +1559,23 @@ subroutine eqdsk_init()
 
      call gradshafranov_solve
      call gradshafranov_per
+  endif
+
+  if(irmp.ge.1) then
+     call load_field_from_coils('rmp_coil.dat', 'rmp_current.dat', &
+          field,num_fields,psi_g)
+
+     ! leave perterbation only on the boundary
+     if(irmp.eq.2) then
+        call numnod(numnodes)
+        do l=1, numnodes
+           call boundary_node(l,is_boundary,izone,izonedim,normal,curv,x,z)
+           if(.not.is_boundary) then
+              call assign_local_pointers(l)
+              psi1_l = 0.
+           endif
+        end do
+     endif
   endif
 
   call unload_eqdsk

@@ -95,6 +95,9 @@ Program Reducedquintic
      print *, 'proc, numnodes, numfaces', myrank, numnodes,numelms
   endif
 
+!!$  if(nonrect.eq.1) call updatenormalcurvature
+!!$  call write_normlcurv
+
   ! check time-integration options
   select case(integrator)
   case(1)
@@ -284,7 +287,9 @@ Program Reducedquintic
      call space(0)
      call tridef
      
+!     call updatenormalcurvature
      call write_normlcurv
+     
   case(2)
     call createvec(temporary_vector,1)
     call copyvec(field0, psi_g, num_fields, temporary_vector, 1, 1)
@@ -294,6 +299,7 @@ Program Reducedquintic
     call space(0)
     call tridef
 
+!    call updatenormalcurvature
     call write_normlcurv
   end select
 

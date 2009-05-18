@@ -1519,21 +1519,22 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   endif
 
   temp = b3pepsid(trial,pe179,lin,ni79)*dbf*pefac
-  ssterm(psi_g) = ssterm(psi_g) - thimp*dt*temp
-  ddterm(psi_g) = ddterm(psi_g) - thimp*dt*temp*bdf
+  ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
+  ddterm(psi_g) = ddterm(psi_g) + (.5-thimp*bdf)*dt*temp
   
   temp = b3pebd(trial,pe179,lin,ni79)*dbf*pefac
-  ssterm(bz_g) = ssterm(bz_g) - thimp*dt*temp
-  ddterm(bz_g) = ddterm(bz_g) - thimp*dt*temp*bdf
+  ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
+  ddterm(bz_g) = ddterm(bz_g) + (.5-thimp*bdf)*dt*temp
 
-  temp = b3pebd(trial,lin,bzt79,ni79)*dbf*pefac &
-       + b3pedkappa(trial,lin,ni79,kap79,hp)
+  temp = b3pepsid(trial,lin,ps179,ni79)*dbf*pefac & 
+       + b3pebd  (trial,lin,bz179,ni79)*dbf*pefac
   ssterm(pe_g) = ssterm(pe_g) -     thimp     *dt*temp
-  ddterm(pe_g) = ddterm(pe_g) + (1.-thimp*bdf)*dt*temp
+  ddterm(pe_g) = ddterm(pe_g) + (.5-thimp*bdf)*dt*temp
 
   temp = p1pu  (trial,lin,pht79) & 
        + p1pv  (trial,lin,vzt79) &
-       + p1pchi(trial,lin,cht79)
+       + p1pchi(trial,lin,cht79) &
+       + b3pedkappa(trial,lin,ni79,kap79,hp)
   ssterm(pe_g) = ssterm(pe_g) -     thimp     *dt*temp
   ddterm(pe_g) = ddterm(pe_g) + (1.-thimp*bdf)*dt*temp
 
@@ -1609,6 +1610,11 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
      temp = b3pebd(trial,pe079,lin,ni79)*dbf*pefac
      ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
+
+     temp = b3pepsid(trial,lin,ps079,ni79)*dbf*pefac &
+          + b3pebd  (trial,lin,bz079,ni79)*dbf*pefac
+     ssterm(pe_g) = ssterm(pe_g) -     thimp     *dt*temp
+     ddterm(pe_g) = ddterm(pe_g) + (1.-thimp*bdf)*dt*temp
      
      temp = p1pu(trial,pe079,lin)
      ssterm(u_g) = ssterm(u_g) -     thimpb     *dt*temp
@@ -1932,7 +1938,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
      ! calculate the field values and derivatives at the sampling points
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call define_triangle_quadrature(itri, int_pts_main)
-     call define_fields(itri, def_fields, 1)
+     call define_fields(itri, def_fields, 1, linear)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         tfield = tfield + tend - tstart
@@ -1959,7 +1965,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
         if(.not.is_edge(iedge)) cycle
 
         call define_edge_quadrature(itri, iedge, 5, n, idim)
-        call define_fields(itri, def_fields, 1)
+        call define_fields(itri, def_fields, 1, linear)
 
         if(ivel_def.eq.1) call ludefvel_n(itri)
         if(ifield_def.eq.1) call ludefphi_n(itri)
@@ -2302,7 +2308,7 @@ subroutine ludefphi_n(itri)
         jv = jb_vel + jj - 1
         jp = jb_phi + jj - 1
 
-        if(surface_int) then
+        if(surface_int.eq.1) then
            ss(psi_g,:) = 0.
            dd(psi_g,:) = 0.
            q_ni(psi_g) = 0.

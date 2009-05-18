@@ -505,7 +505,7 @@ subroutine calculate_scalars()
      dbf = db*factor
 
      call define_triangle_quadrature(itri, int_pts_diag)
-     call define_fields(itri, def_fields, isources)
+     call define_fields(itri, def_fields, isources, 0)
 
 
      ! Define Source terms
@@ -651,12 +651,12 @@ subroutine calculate_scalars()
 
      ! add surface terms
      call boundary_edge(itri, is_edge, n, idim)
-     
+
      do iedge=1,3
         if(.not.is_edge(iedge)) cycle
 
         call define_edge_quadrature(itri, iedge, 5, n, idim)
-        call define_fields(itri, def_fields, 1)
+        call define_fields(itri, def_fields, 1, 0)
 
         ! Energy fluxes
         ! ~~~~~~~~~~~~~
