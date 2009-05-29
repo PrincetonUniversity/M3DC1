@@ -65,11 +65,7 @@ subroutine onestep
         temp_field = field
         field = 0.
      endif
-     if(imp_mod.eq.2 .and. isplitstep.eq.1) then
-        call ludefall(1-istatic, 0, 0, 0)
-     else
-        call ludefall(1-istatic, idens, ipres, 1-iestatic)
-     endif
+     call ludefall(1-istatic, idens, ipres, 1-iestatic)
      if(linear.eq.1) then
         field = temp_field
         call deletevec(temp_field)
@@ -369,16 +365,6 @@ subroutine split_step(calc_matrices)
      ! apply smoothing operators
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~
      call smooth(vel)
-
-     ! calculate new matrices with advanced velocity
-     if(imp_mod.eq.2) then
-        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-        call ludefall(0, idens, ipres, 1-iestatic)
-        if(myrank.eq.0 .and. itimer.eq.1) then
-           call second(tend)
-           t_ludefall = t_ludefall + tend - tstart
-        endif
-     endif
   else
      velold = vel
   end if
@@ -821,7 +807,7 @@ subroutine unsplit_step(calc_matrices)
 #include "finclude/petsc.h" 
 
   integer, intent(in) :: calc_matrices
-  integer :: l, jer, ier
+  integer :: jer, ier
   
   real :: tstart, tend
   PetscTruth :: flg_petsc, flg_solve2

@@ -89,11 +89,12 @@ vectype function resistivity_func(i)
 
      case(1)      ! added 08/05/08 for stability benchmarking
         temp79a = eta0*.5* &
-             (1. + tanh((real(ps079(:,OP_1))-(psilim+etaoff*(psilim-psimin)))&
-             /(etadelt*(psilim-psimin))))
+             (1. + &
+             tanh((real(ps079(:,OP_1))-(psibound+etaoff*(psibound-psimin)))&
+             /(etadelt*(psibound-psimin))))
 
      case(2)
-        temp79b = (ps079(:,OP_1)-psimin)/(psilim-psimin)
+        temp79b = (ps079(:,OP_1)-psimin)/(psibound-psimin)
         temp79a = eta0*.5* &
              (1. + tanh((real(temp79b) - etaoff)/etadelt))
      end select
@@ -134,11 +135,12 @@ vectype function viscosity_func(i)
 
      case(1)
         temp79a = amu_edge*.5* &
-             (1. + tanh((real(ps079(:,OP_1))-(psilim+amuoff*(psilim-psimin))) &
-             /(amudelt*(psilim-psimin))))
+             (1. + &
+             tanh((real(ps079(:,OP_1))-(psibound+amuoff*(psibound-psimin))) &
+             /(amudelt*(psibound-psimin))))
 
      case(2)
-        temp79b = (ps079(:,OP_1)-psimin)/(psilim-psimin)
+        temp79b = (ps079(:,OP_1)-psimin)/(psibound-psimin)
         temp79a = amu_edge*.5* &
              (1. + tanh((real(temp79b) - amuoff)/amudelt))
      end select
@@ -176,11 +178,12 @@ vectype function kappa_func(i)
         
      case(1)
         temp79a = kappa0*.5* &
-             (1. + tanh((real(ps079(:,OP_1))-(psilim+kappaoff*(psilim-psimin)))&
-             /(kappadelt*(psilim-psimin))))
+             (1. + &
+             tanh((real(ps079(:,OP_1))-(psibound+kappaoff*(psibound-psimin)))&
+             /(kappadelt*(psibound-psimin))))
         
      case(2)
-        temp79b = (ps079(:,OP_1)-psimin)/(psilim-psimin)
+        temp79b = (ps079(:,OP_1)-psimin)/(psibound-psimin)
         temp79a = kappa0*.5* &
              (1. + tanh((real(temp79b) - kappaoff)/kappadelt))
      end select

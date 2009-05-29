@@ -491,12 +491,6 @@
 
       if(ntimepr.lt.1) ntimepr = 1
 
-      if(imp_mod.eq.2 .and. linear.eq.1) then
-         if(myrank.eq.0)
-     &        print *, 'imp_mod = 2 should not be used with linear=1'
-         call safestop(1)
-      endif
-
       ! Read PETSc options
       call PetscOptionsHasName(PETSC_NULL_CHARACTER,
      &     '-ipetsc', flg_petsc,ier)
