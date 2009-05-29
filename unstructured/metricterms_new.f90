@@ -8684,6 +8684,14 @@ real function energy_mp()
           +int3(ri2_79,pst79(:,OP_DR),CONJUGATE(pst79(:,OP_DR))))
   endif
 
+#ifdef USECOMPLEX
+  temp = temp + .5* &
+       (int3(ri_79,pst79(:,OP_DZ),CONJUGATE(bf79(:,OP_DRP))) &
+       -int3(ri_79,pst79(:,OP_DR),CONJUGATE(bf79(:,OP_DZP))) &
+       +int3(ri_79,CONJUGATE(pst79(:,OP_DZ)),bf79(:,OP_DRP)) &
+       -int3(ri_79,CONJUGATE(pst79(:,OP_DR)),bf79(:,OP_DZP)))
+#endif
+
   energy_mp = temp
   return
 end function energy_mp

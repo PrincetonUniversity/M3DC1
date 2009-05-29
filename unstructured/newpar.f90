@@ -281,7 +281,7 @@ Program Reducedquintic
   select case(iadapt)
   case(1)
      print *, 'adapting mesh...'
-     call hessianadapt(tempvar,1, 0, ntime, &
+     call hessianadapt(resistivity,1, 0, ntime, &
           adapt_factor, adapt_hmin, adapt_hmax)
      print *, 'done adapting.'
      call space(0)
@@ -721,5 +721,6 @@ subroutine flip_handedness
 
   psimin = -psimin
   psilim = -psilim
+  psibound = -psibound
 
 end subroutine flip_handedness

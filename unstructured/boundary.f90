@@ -145,178 +145,178 @@ subroutine boundary_edge(itri, is_edge, normal, idim)
   end do
 end subroutine boundary_edge
 
-! write_normlcurv
-subroutine write_normlcurv
-
-  use basic
-  
-  implicit none
-  
-  integer :: numnodes, i, j, inode(4), izone, izonedim, nbound, numelms, itri
-  integer :: i0, i1, i2, i3
-  real :: dx1, dx2, dz1, dz2, norm1(2), norm2(2), l, dl1, dl2, dl
-  real :: vx1, vx2, vz1, vz2, ax, az
-  integer, allocatable :: id(:), d(:), adjacent(:,:), nn(:)
-  real, allocatable :: x(:), z(:), norm(:,:), curv(:), curv_new(:)
-
-  if(maxrank.gt.1) then
-     if(myrank.eq.0) print *, 'write_normlcurv can only be called in serial.'
-     return
-  end if
-     
-  call numnod(numnodes)
-  call numfac(numelms)
-
-  ! calculate number of boundary nodes
-  nbound = 0
-  do i=1, numnodes
-     call zonenod(i,izone,izonedim)
-     if(izonedim.eq.2) cycle
-     nbound = nbound + 1
-  end do
-  
-  ! allocate memory
-  allocate(x(nbound), z(nbound), adjacent(2,nbound), norm(2,nbound), &
-       id(nbound), d(nbound), nn(numnodes), curv(nbound), curv_new(nbound))
-
-  nbound = 0
-  nn = 0
-  do i=1, numnodes
-     call zonenod(i,izone,izonedim)
-     if(izonedim.eq.2) cycle
-     nbound = nbound + 1
-     
-     call nodcoord(i,x(nbound),z(nbound))
-     id(nbound) = i
-     d(nbound) = izonedim
-     nn(i) = nbound
-  end do
-  
-  ! determine adjacent nodes
-  adjacent = 0
-  do itri=1, numelms
-
-     call nodfac(itri,inode)
-
-     do i=1,3
-        j = mod(i,3) + 1
-     
-        if((nn(inode(i)).eq.0).or.(nn(inode(j)).eq.0)) cycle
-        
-        if(adjacent(1,nn(inode(i))).eq.0) then
-           adjacent(1,nn(inode(i))) = nn(inode(j))
-        else if(adjacent(2,nn(inode(i))).eq.0) then
-           adjacent(2,nn(inode(i))) = nn(inode(j))
-        else
-           print *, "Error in write_normlcurv", 1
-        endif
-        if(adjacent(1,nn(inode(j))).eq.0) then
-           adjacent(1,nn(inode(j))) = nn(inode(i))
-        else if(adjacent(2,nn(inode(j))).eq.0) then
-           adjacent(2,nn(inode(j))) = nn(inode(i))
-        else
-           print *, "Error in write_normlcurv", 1
-        endif
-     end do
-  end do
-
-  ! calculate normals
-  do i=1, nbound
-     i1 = adjacent(1,i)
-     i2 = adjacent(2,i)
-
-     if(i1.eq.0 .or. i2.eq.0) then
-        print *, 'Error in write_normlcurv', 3
-        cycle
-     endif
-
-     dx1 = x(i) - x(i1)
-     dx2 = x(i2) - x(i)
-     dz1 = z(i) - z(i1)
-     dz2 = z(i2) - z(i)
-
-     dl1 = sqrt(dx1**2 + dz1**2)
-     dl2 = sqrt(dx2**2 + dz2**2)
-     norm1(1) =  dz1/dl1
-     norm1(2) = -dx1/dl1
-     norm2(1) =  dz2/dl2
-     norm2(2) = -dx2/dl2
-
-     ! perform weigted average of adjacent edge normals
-     norm(:,i) = (norm1/dl1 + norm2/dl2) / (1./dl1 + 1./dl2)
-
-     ! normalize normal
-     l = sqrt(norm(1,i)**2 + norm(2,i)**2)
-     norm(:,i) = norm(:,i)/l
-
-     ! calculate curvature
-     vx1 = dx1/dl1
-     vx2 = dx2/dl2
-     vz1 = dz1/dl1
-     vz2 = dz2/dl2
-
-     dl = .5*(dl1 + dl2)
-
-     ax = (vx2 - vx1) / dl
-     az = (vz2 - vz1) / dl
-
-     curv(i) = sqrt(ax**2 + az**2)
-
-     ! make sure normal is pointing outward
-     if(norm(1,i)*(x(i)-xmag) + norm(2,i)*(z(i)-zmag) .lt. 0) then
-        norm(:,i) = -norm(:,i)
-     endif
-  end do
-
-!  ! smooth curv and normal
-!  do j=1,5
-!     do i=1,nbound
-!        i1 = adjacent(1,i)
-!        i2 = adjacent(2,i)
-!     
-!        curv_new(i) = (curv(i0) + curv(i1) + curv(i) + curv(i2) + curv(i3))/3.
-!     end do
-!     curv = curv_new
-!  end do
-
-  ! write normlcurv
-  open(unit=23, file='normlcurv_new', status='unknown')
-
-  do j=1,numnodes
-     i = nn(j)
-     if(i.eq.0) cycle
-     write(23,'(I5,5F10.6)') j, x(i), z(i), norm(1,i), norm(2,i), curv(i)
-  end do
-
-  close(23)
-  
-  ! free memory
-  deallocate(x,z,adjacent,id,d,nn,norm,curv,curv_new)
-
-end subroutine write_normlcurv
-
+!!$! write_normlcurv
 !!$subroutine write_normlcurv
-!!$  implicit none
 !!$
-!!$  integer :: numnodes, inode, izone, izonedim
-!!$  logical :: is_boundary
-!!$  real :: normal(2), curv, x, z
+!!$  use basic
 !!$  
+!!$  implicit none
+!!$  
+!!$  integer :: numnodes, i, j, inode(4), izone, izonedim, nbound, numelms, itri
+!!$  integer :: i1, i2
+!!$  real :: dx1, dx2, dz1, dz2, norm1(2), norm2(2), l, dl1, dl2, dl
+!!$  real :: vx1, vx2, vz1, vz2, ax, az
+!!$  integer, allocatable :: id(:), d(:), adjacent(:,:), nn(:)
+!!$  real, allocatable :: x(:), z(:), norm(:,:), curv(:), curv_new(:)
+!!$
+!!$  if(maxrank.gt.1) then
+!!$     if(myrank.eq.0) print *, 'write_normlcurv can only be called in serial.'
+!!$     return
+!!$  end if
+!!$     
 !!$  call numnod(numnodes)
+!!$  call numfac(numelms)
+!!$
+!!$  ! calculate number of boundary nodes
+!!$  nbound = 0
+!!$  do i=1, numnodes
+!!$     call zonenod(i,izone,izonedim)
+!!$     if(izonedim.eq.2) cycle
+!!$     nbound = nbound + 1
+!!$  end do
+!!$  
+!!$  ! allocate memory
+!!$  allocate(x(nbound), z(nbound), adjacent(2,nbound), norm(2,nbound), &
+!!$       id(nbound), d(nbound), nn(numnodes), curv(nbound), curv_new(nbound))
+!!$
+!!$  nbound = 0
+!!$  nn = 0
+!!$  do i=1, numnodes
+!!$     call zonenod(i,izone,izonedim)
+!!$     if(izonedim.eq.2) cycle
+!!$     nbound = nbound + 1
+!!$     
+!!$     call nodcoord(i,x(nbound),z(nbound))
+!!$     id(nbound) = i
+!!$     d(nbound) = izonedim
+!!$     nn(i) = nbound
+!!$  end do
+!!$  
+!!$  ! determine adjacent nodes
+!!$  adjacent = 0
+!!$  do itri=1, numelms
+!!$
+!!$     call nodfac(itri,inode)
+!!$
+!!$     do i=1,3
+!!$        j = mod(i,3) + 1
+!!$     
+!!$        if((nn(inode(i)).eq.0).or.(nn(inode(j)).eq.0)) cycle
+!!$        
+!!$        if(adjacent(1,nn(inode(i))).eq.0) then
+!!$           adjacent(1,nn(inode(i))) = nn(inode(j))
+!!$        else if(adjacent(2,nn(inode(i))).eq.0) then
+!!$           adjacent(2,nn(inode(i))) = nn(inode(j))
+!!$        else
+!!$           print *, "Error in write_normlcurv", 1
+!!$        endif
+!!$        if(adjacent(1,nn(inode(j))).eq.0) then
+!!$           adjacent(1,nn(inode(j))) = nn(inode(i))
+!!$        else if(adjacent(2,nn(inode(j))).eq.0) then
+!!$           adjacent(2,nn(inode(j))) = nn(inode(i))
+!!$        else
+!!$           print *, "Error in write_normlcurv", 1
+!!$        endif
+!!$     end do
+!!$  end do
+!!$
+!!$  ! calculate normals
+!!$  do i=1, nbound
+!!$     i1 = adjacent(1,i)
+!!$     i2 = adjacent(2,i)
+!!$
+!!$     if(i1.eq.0 .or. i2.eq.0) then
+!!$        print *, 'Error in write_normlcurv', 3
+!!$        cycle
+!!$     endif
+!!$
+!!$     dx1 = x(i) - x(i1)
+!!$     dx2 = x(i2) - x(i)
+!!$     dz1 = z(i) - z(i1)
+!!$     dz2 = z(i2) - z(i)
+!!$
+!!$     dl1 = sqrt(dx1**2 + dz1**2)
+!!$     dl2 = sqrt(dx2**2 + dz2**2)
+!!$     norm1(1) =  dz1/dl1
+!!$     norm1(2) = -dx1/dl1
+!!$     norm2(1) =  dz2/dl2
+!!$     norm2(2) = -dx2/dl2
+!!$
+!!$     ! perform weigted average of adjacent edge normals
+!!$     norm(:,i) = (norm1/dl1 + norm2/dl2) / (1./dl1 + 1./dl2)
+!!$
+!!$     ! normalize normal
+!!$     l = sqrt(norm(1,i)**2 + norm(2,i)**2)
+!!$     norm(:,i) = norm(:,i)/l
+!!$
+!!$     ! calculate curvature
+!!$     vx1 = dx1/dl1
+!!$     vx2 = dx2/dl2
+!!$     vz1 = dz1/dl1
+!!$     vz2 = dz2/dl2
+!!$
+!!$     dl = .5*(dl1 + dl2)
+!!$
+!!$     ax = (vx2 - vx1) / dl
+!!$     az = (vz2 - vz1) / dl
+!!$
+!!$     curv(i) = sqrt(ax**2 + az**2)
+!!$
+!!$     ! make sure normal is pointing outward
+!!$     if(norm(1,i)*(x(i)-xmag) + norm(2,i)*(z(i)-zmag) .lt. 0) then
+!!$        norm(:,i) = -norm(:,i)
+!!$     endif
+!!$  end do
+!!$
+!!$!  ! smooth curv and normal
+!!$!  do j=1,5
+!!$!     do i=1,nbound
+!!$!        i1 = adjacent(1,i)
+!!$!        i2 = adjacent(2,i)
+!!$!     
+!!$!        curv_new(i) = (curv(i0) + curv(i1) + curv(i) + curv(i2) + curv(i3))/3.
+!!$!     end do
+!!$!     curv = curv_new
+!!$!  end do
 !!$
 !!$  ! write normlcurv
 !!$  open(unit=23, file='normlcurv_new', status='unknown')
 !!$
-!!$  do inode=1,numnodes
-!!$     call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
-!!$     if(.not.is_boundary) cycle
-!!$
-!!$     write(23,'(I5,5F10.6)') inode, x, z, normal(1), normal(2), curv
+!!$  do j=1,numnodes
+!!$     i = nn(j)
+!!$     if(i.eq.0) cycle
+!!$     write(23,'(I5,5F10.6)') j, x(i), z(i), norm(1,i), norm(2,i), curv(i)
 !!$  end do
 !!$
 !!$  close(23)
 !!$  
+!!$  ! free memory
+!!$  deallocate(x,z,adjacent,id,d,nn,norm,curv,curv_new)
+!!$
 !!$end subroutine write_normlcurv
+
+subroutine write_normlcurv
+  implicit none
+
+  integer :: numnodes, inode, izone, izonedim
+  logical :: is_boundary
+  real :: normal(2), curv, x, z
+  
+  call numnod(numnodes)
+
+  ! write normlcurv
+  open(unit=23, file='normlcurv_new', status='unknown')
+
+  do inode=1,numnodes
+     call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
+     if(.not.is_boundary) cycle
+
+     write(23,'(I5,5F10.6)') inode, x, z, normal(1), normal(2), curv
+  end do
+
+  close(23)
+  
+end subroutine write_normlcurv
 
 
 

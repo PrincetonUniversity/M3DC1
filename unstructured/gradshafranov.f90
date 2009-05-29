@@ -875,6 +875,7 @@ subroutine gradshafranov_solve
         den0_l(2:6) = 0.
       endif
 
+      psibound = psilim
   end do
 
   ! free memory

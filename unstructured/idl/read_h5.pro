@@ -615,6 +615,9 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
        boundary = 1
    endif else boundary = 0
 
+   maxr = [max(mesh.elements._data[4,*]), max(mesh.elements._data[5,*])]
+   minr = [min(mesh.elements._data[4,*]), min(mesh.elements._data[5,*])]
+
    for i=long(0), nelms-1 do begin
        a = mesh.elements._data[0,i]
        b = mesh.elements._data[1,i]
@@ -638,7 +641,18 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
          oplot, [p2[0],p3[0]]+xzero, [p2[1],p3[1]]+zzero, _EXTRA=ex
        if((bound and 4) eq 4) then $
          oplot, [p3[0],p1[0]]+xzero, [p3[1],p1[1]]+zzero, _EXTRA=ex
+
+       maxr[0] = max([maxr[0], p1[0], p2[0], p3[0]])
+       minr[0] = min([minr[0], p1[0], p2[0], p3[0]])
+       maxr[1] = max([maxr[1], p1[1], p2[1], p3[1]])
+       minr[1] = min([minr[1], p1[1], p2[1], p3[1]])
    end
+
+   print, 'Elements: ', nelms
+   print, 'sqrt(nodes) (estimated): ', sqrt(nelms/2.)
+   print, 'Width: ', maxr[0] - minr[0]
+   print, 'Height: ', maxr[1] - minr[1]
+
 end
 
 ;======================================================
@@ -2405,6 +2419,8 @@ function read_lcfs, axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra
    axis[0] = s.xmag._data[i]
    axis[1] = s.zmag._data[i]
    
+   flux0 = s.psimin._data[i]
+
    return, s.psibound._data[i]
 end
 
@@ -3603,15 +3619,22 @@ end
 
 ;==================================================================
 ; flux_coord_field
-; ~~~~~~~~~~~~~~~~~~
+; ~~~~~~~~~~~~~~~~
 ;==================================================================
-function flux_coord_field, fieldname, slice=slice, $
+function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, $
                            fbins=fbins,  tbins=tbins, flux=flux, angle=angle, $
-                           psirange=frange, norm=nflux, pest=pest, _EXTRA=extra
+                           psirange=frange, nflux=nflux, pest=pest, $
+                           _EXTRA=extra
 
-   psi = read_field('psi',x,z,t,slice=-1,_EXTRA=extra)
-   field = read_field(fieldname,x,z,t,slice=slice,_EXTRA=extra)
-   
+   if(n_elements(psi) eq 0) then begin
+       linear = read_parameter('linear',_EXTRA=extra)
+       if(linear eq 1) then begin
+           psi = read_field('psi',x,z,t,slice=-1,_EXTRA=extra)
+       endif else begin
+           psi = read_field('psi',x,z,t,slice=slice,_EXTRA=extra)
+       endelse
+   endif
+
    sz = size(field)
 
    if(n_elements(fbins) eq 0) then fbins = 10
@@ -3620,9 +3643,11 @@ function flux_coord_field, fieldname, slice=slice, $
    result = fltarr(sz[1], fbins, tbins)
    flux = fltarr(sz[1], fbins)
    angle = fltarr(sz[1], tbins)
+   area = fltarr(sz[1], fbins)
    sfield = 0
 
-   psival = lcfs(psi,x,z,axis=axis,xpoint=xpoint,slice=slice,_EXTRA=extra)
+   psival = lcfs(psi,x,z,axis=axis,xpoint=xpoint,slice=slice,flux0=flux0, $
+                 _EXTRA=extra)
    
    if(n_elements(range) eq 0) then begin
        ; if range not provided, use all flux within lcfs
@@ -3645,12 +3670,18 @@ function flux_coord_field, fieldname, slice=slice, $
        end
    end
    if(keyword_set(pest)) then begin
-;       db = rho/(r*abs(s_bracket(rho,psi,x,z))+0.01)
-       i = read_field('i',x,z,t,slice=-1,_EXTRA=extra)
+       linear = read_parameter('linear',_EXTRA=extra)
+       if(linear eq 1) then begin
+           i = read_field('i',x,z,t,slice=-1,_EXTRA=extra)
+       endif else begin
+           i = read_field('i',x,z,t,slice=slice,_EXTRA=extra)
+       endelse
        bp = sqrt(s_bracket(psi,psi,x,z)/r^2)
        bt = i/r
-       db = rho*bt/(r*bp)
+       db = bt/(r*bp)
    endif
+
+   print, 'binning with fbins, tbins=', fbins, tbins
 
    for k=0, sz[1]-1 do begin
 
@@ -3661,15 +3692,21 @@ function flux_coord_field, fieldname, slice=slice, $
            flux[k,p] = range[k,1] - dpsi*(p+0.5)
        
            f = field_at_flux(field, psi, x, z, t, flux[k,p], $
-                             theta=theta, angle=a)
-           
+                             theta=theta, angle=a, xp=xp, zp=zp)
+
+           dx = deriv(xp)
+           dz = deriv(zp)
+           ds = sqrt(dx^2 + dz^2)
+           area[k,p] = total(ds*xp)
+
            if(keyword_set(pest)) then begin
                g = field_at_flux(db, psi, x, z, t, flux[k,p], $
                              theta=theta, angle=a)
-               da = deriv(a)
                dum = min(a, i, /abs)
                
-               a = total(da*g,/cum)
+               dt = ds*g
+               
+               a = total(dt,/cum)
                a = 2.*!pi*a/(max(a)-min(a))
                a = a + dum - a[i]
            endif
@@ -3678,9 +3715,7 @@ function flux_coord_field, fieldname, slice=slice, $
        end
    endfor
 
-   if(keyword_set(nflux)) then begin
-       flux = (flux - max(psi)) / (psival-max(psi))
-   endif
+   nflux = (flux-flux0)/(psival-flux0)
        
    return, result
 end
@@ -3697,7 +3732,7 @@ end
 function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
                              area=area, dV=dV, psirange=range, $
                              integrate=integrate, r0=r0, $
-                             normalize_flux=normalize_flux, _EXTRA=extra
+                             nflux=nflux, _EXTRA=extra
 
    sz = size(field)
 
@@ -3713,13 +3748,13 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
    area = fltarr(sz[1], bins)
    sfield = 0
 
-   psival = lcfs(psi, x, z, axis=axis, xpoint=xpoint, _EXTRA=extra)
+   psival = lcfs(psi, x, z, axis=axis, xpoint=xpoint, flux0=flux0,_EXTRA=extra)
    r0 = axis[0]
 
    if(n_elements(range) eq 0) then begin
        ; if range not provided, use all flux within lcfs
        range = fltarr(sz[1],2)
-       for k=0, sz[1]-1 do range[k,*] = [psival, max(psi[k,*,*])]
+       for k=0, sz[1]-1 do range[k,*] = [psival, flux0]
    endif else if(n_elements(range) eq 2) then begin
        oldrange = range
        range = fltarr(sz[1],2)
@@ -3772,9 +3807,7 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
        endif
    endfor
 
-    if(keyword_set(normalize_flux)) then begin
-        flux = (max(psi)-flux)/(max(psi)-psival)
-    endif
+   nflux = (flux0-flux)/(flux0-psival)
 
    return, result
 end
@@ -3805,9 +3838,9 @@ end
 ;  units:  the formatted units of the field
 ;==================================================================
 function flux_average, field, time, psi=psi, x=x, z=z, t=t, r0=r0, $
-                       flux=flux, area=area, dV=dV, bins=bins, $
+                       flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
                        points=points, name=name, symbol=symbol, units=units, $
-                       last=last, _EXTRA=extra
+                       last=last, integrate=integrate, _EXTRA=extra
 
    if(keyword_set(last)) then time = read_parameter('ntime',_EXTRA=extra)-1
 
@@ -3833,27 +3866,51 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, r0=r0, $
    if(type eq 7) then begin ; named field
        if (strcmp(field, 'Safety Factor', /fold_case) eq 1) or $
          (strcmp(field, 'q', /fold_case) eq 1) then begin
-           minor_r = read_field('r', x, z, t, points=points, $
-                                slice=time, _EXTRA=extra)
 
-           itor = read_parameter('itor', _EXTRA=extra)
-           if(itor eq 1) then begin
-               r = radius_matrix(x,z,t)
-           endif else begin
-               r = read_parameter('ln', _EXTRA=extra)/(2.*!pi)
-           endelse
-
-           numvar = read_parameter('numvar', _EXTRA=extra)
-           I = read_field('I', x, z, t, points=points, $
-                          slice=time, _EXTRA=extra)
-
-           bt = sqrt(I^2/r^2)
-           bp = sqrt(s_bracket(psi,psi,x,z)/r^2)
-
-           field = minor_r * bt / (r * bp)
+           flux_t = flux_average('flux_t', time, psi=psi, x=x, z=z, t=t, $
+             r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
+             points=points, last=last, _EXTRA=extra)
+           
            units = ''
            name = '!6Safety Factor!X'
            symbol = '!8q!X'
+
+           return, abs(deriv(flux, flux_t))/(2.*!pi)
+
+       endif else $
+         if(strcmp(field, 'q2', /fold_case) eq 1) then begin
+
+           minor_r = read_field('r', x, z, t, points=points, $
+                                slice=time, _EXTRA=extra)
+           
+           r = radius_matrix(x,z,t)
+           
+           numvar = read_parameter('numvar', _EXTRA=extra)
+           I = read_field('I', x, z, t, points=points, $
+                          slice=time, _EXTRA=extra)
+           
+           bt = sqrt(I^2/r^2)
+           bp = sqrt(s_bracket(psi,psi,x,z)/r^2)
+           
+           field = minor_r * bt / (r * bp)
+           
+           units = ''
+           name = '!6Safety Factor!X'
+           symbol = '!8q!X'
+
+       endif else $
+         if(strcmp(field, 'flux_t', /fold_case) eq 1) then begin
+           I = read_field('I', x, z, t, points=points, $
+                          slice=time, _EXTRA=extra)
+
+           r = radius_matrix(x,z,t)
+           field = I/r^2
+
+           units = ''
+           name = '!6Toroidal Flux!X'
+           symbol = '!7w!D!8t!N!X'
+
+           integrate = 1
 
        endif else $
          if(strcmp(field, 'beta_pol', /fold_case) eq 1) then begin
@@ -3935,8 +3992,9 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, r0=r0, $
        units = make_units()
    endelse
 
-   return, flux_average_field(field, psi, x, z, t, r0=r0, $
-     flux=flux, area=area, dV=dV, bins=bins, _EXTRA=extra)
+   return, flux_average_field(field, psi, x, z, t, r0=r0, flux=flux, $
+                              nflux=nflux, area=area, dV=dV, bins=bins, $
+                              integrate=integrate, _EXTRA=extra)
 end
 
 
@@ -3950,7 +4008,7 @@ end
 pro plot_flux_average, field, time, filename=filename, points=pts, $
                        _EXTRA=extra, color=c, names=names, $
                        xlog=xlog, ylog=ylog, overplot=overplot, $
-                       lcfs=lcfs, normalized_flux=nflux, $
+                       lcfs=lcfs, normalized_flux=norm, $
                        minor_radius=minor_radius, smooth=sm, t=t, rms=rms, $
                        bw=bw, srnorm=srnorm
 
@@ -3975,7 +4033,7 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
            plot_flux_average, newfield, time, filename=filename[i], $
              overplot=((i gt 0) or keyword_set(overplot)), points=pts, $
              color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
-             normalized_flux=nflux, minor_radius=minor_radius, smooth=sm, $
+             normalized_flux=norm, minor_radius=minor_radius, smooth=sm, $
              rms=rms, linestyle=ls[i], srnorm=srnorm
        end
        if(n_elements(names) gt 0) then begin
@@ -4001,7 +4059,7 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
            plot_flux_average, newfield, time[i], filename=filename, $
              overplot=((i gt 0) or keyword_set(overplot)), points=pts, $
              color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
-             normalized_flux=nflux, minor_radius=minor_radius, smooth=sm, $
+             normalized_flux=norm, minor_radius=minor_radius, smooth=sm, $
              t=t, rms=rms, linestyle=ls[i], srnorm=srnorm
            names[i] = string(format='(%"!8t!6 = %d !7s!D!8A!N!X")', t)
        end
@@ -4019,7 +4077,7 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
 
    fa = flux_average(field,time,flux=flux,points=pts,filename=filename,t=t, $
                      name=title, symbol=symbol, units=units, $
-                     psi=psi,x=x,z=z,_EXTRA=extra)
+                     psi=psi,x=x,z=z,nflux=nflux,EXTRA=extra)
 
    if(n_elements(fa) le 1) then begin
        print, 'Error in flux_average. returning.'
@@ -4030,7 +4088,7 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
    if(strlen(units) gt 0) then ytitle = ytitle + '!6 ('+units+ '!6)!X'
 
    if(keyword_set(rms)) then begin
-       fa2 = flux_average(field^2,time,flux=flux,points=pts, $
+       fa2 = flux_average(field^2,time,flux=flux,nflux=nflux,points=pts, $
                           filename=filename, t=t, _EXTRA=extra)
        fa = sqrt(1. - fa^2/fa2)
 
@@ -4049,18 +4107,13 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
 ;   endelse
 ;   title = "!12<" + title + "!12>!7!Dw!N!X"
 
-   if(keyword_set(nflux) or keyword_set(lcfs) or keyword_set(srnorm)) $
-     then begin
-       lcfs_psi = lcfs(psi, x, z, filename=filename, _EXTRA=extra)
-   endif
-
-   if(keyword_set(nflux)) then begin
-       flux = (flux - max(psi)) / (lcfs_psi-max(psi))
+   if(keyword_set(norm)) then begin
+       flux = nflux
        xtitle = '!7W!X'
        lcfs_psi = 1.
    endif
    if(keyword_set(srnorm)) then begin
-       flux = sqrt((flux - max(psi)) / (lcfs_psi-max(psi)))
+       flux = sqrt(nflux)
        xtitle = '!9r!7W!X'
        lcfs_psi = 1.
    end       

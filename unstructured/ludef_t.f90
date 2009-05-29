@@ -18,11 +18,14 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   vectype :: temp
   real :: ththm
 
-  if(imp_mod.eq.0) then
+  select case(imp_mod)
+  case(0)
      ththm = (1.-thimp*bdf)*thimp
-  else
+  case(1)
      ththm = -bdf*thimp**2
-  endif
+  case(2)
+     ththm = -bdf*thimp
+  end select
 
   ssterm = 0.
   ddterm = 0.
@@ -439,11 +442,14 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   vectype, dimension(MAX_PTS, OP_NUM) :: hv
   hv = hypv*sz79
 
-  if(imp_mod.eq.0) then
+  select case(imp_mod)
+  case(0)
      ththm = (1.-thimp*bdf)*thimp
-  else
+  case(1)
      ththm = -bdf*thimp**2
-  endif
+  case(2)
+     ththm = -bdf*thimp
+  end select
 
   ssterm = 0.
   ddterm = 0.
@@ -451,7 +457,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
 
   if(numvar.lt.2) return
 
-  temp = v2umu  (trial,lin,vis79,vic79)
+  temp = v2umu(trial,lin,vis79,vic79)
   ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
   ddterm(u_g) = ddterm(u_g) + (1.-thimp*bdf)*dt*temp
          
@@ -739,12 +745,14 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   vectype :: temp
   real :: ththm
 
-
-  if(imp_mod.eq.0) then
+  select case(imp_mod)
+  case(0)
      ththm = (1.-thimp*bdf)*thimp
-  else
+  case(1)
      ththm = -bdf*thimp**2
-  endif
+  case(2)
+     ththm = -bdf*thimp
+  end select
 
   ssterm = 0.
   ddterm = 0.
@@ -2135,10 +2143,17 @@ subroutine ludefvel_n(itri)
         else 
            call vorticity_lin(g79(:,:,i),g79(:,:,j), &
                 ss(u_g,:),dd(u_g,:),q_bf(u_g),advfield)
-           if(numvar.ge.2) then
-              call axial_vel_lin(g79(:,:,i),g79(:,:,j), &
-                   ss(vz_g,:),dd(vz_g,:),q_bf(vz_g),advfield)
-           endif
+
+           if(surface_int.eq.1) then
+              ss(vz_g,:) = 0.
+              dd(vz_g,:) = 0.
+              q_bf(vz_g) = 0.
+           else
+              if(numvar.ge.2) then
+                 call axial_vel_lin(g79(:,:,i),g79(:,:,j), &
+                      ss(vz_g,:),dd(vz_g,:),q_bf(vz_g),advfield)
+              endif
+           end if
            if(numvar.ge.3) then
               call compression_lin(g79(:,:,i),g79(:,:,j), &
                    ss(chi_g,:),dd(chi_g,:),q_bf(chi_g),advfield)
