@@ -96,6 +96,8 @@
       l0_norm = 0.
 
       iread_eqdsk = 0
+      iread_dskbal = 0
+      iread_jsolver = 0
 !
 !.....linear parameter  0-nonlinear,  1-linear
       linear = 0
@@ -335,6 +337,12 @@
       q0 = 1.
       th_gs = 0.5
       tol_gs = 1.e-8
+
+      idenfunc = 0
+      den_edge = 0.
+      den0 = 1.
+      dendelt = 0.1
+      denoff = 1.
 !
 !.....divertor information
       divertors = 0

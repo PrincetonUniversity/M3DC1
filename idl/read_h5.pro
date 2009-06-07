@@ -3180,6 +3180,32 @@ function beta_poloidal, filename=filename
    return, 2.*(gamma-1.)*s.E_P._data/s.toroidal_current._data^2
 end
 
+; ======================================
+; beta_toroidal = 2*<P>/B_T0^2
+; ======================================
+function beta_toroidal, filename=filename
+
+print, 'filename = ', filename
+
+   gamma = read_parameter('gam', filename=filename)
+   xmag = read_parameter('xmag', filename=filename)
+   rzero = read_parameter('rzero', filename=filename)
+   if(rzero eq 0) then rzero = xmag
+   bzero = read_parameter('bzero', filename=filename)
+
+   bt0 = bzero*(rzero/xmag)
+   
+   s = read_scalars(filename=filename)
+
+   beta_t = 2.*(gamma-1.)*s.E_P._data/bt0^2
+   
+   print, 'bt0 =', bt0
+   print, 'rzero = ', rzero
+   print, 'bzero = ', bzero
+
+   return, beta_t
+end
+
 
 ; ====================================
 ; beta_normal = beta_t * (B_T*a / I_p)
@@ -3189,23 +3215,22 @@ function beta_normal, filename=filename
    a = 1.
 
    gamma = read_parameter('gam', filename=filename)
-   rzero = read_parameter('rzero', filename=filename)
    xmag = read_parameter('xmag', filename=filename)
+   rzero = read_parameter('rzero', filename=filename)
+   if(rzero eq 0) then rzero = xmag
    bzero = read_parameter('bzero', filename=filename)
 
    bt0 = bzero*(rzero/xmag)
    
    s = read_scalars(filename=filename)
-   i_n = s.toroidal_current._data / (a*bt0)
+   ip = s.toroidal_current._data
 
-   beta_t = (gamma-1.)*s.E_P._data/(s.E_MT._data)
+   beta_t = 2.*(gamma-1.)*s.E_P._data/bt0^2
+   beta_n = beta_t * abs(bt0*a/ip)
+
+   print, 'ip', ip
    
-   print, 'bt0 =', bt0
-   print, 'i_n =', i_n
-   print, 'a = ', a
-   print, 'beta_T = ', beta_t
-
-   return, 100.*beta_t/i_n
+   return, 100.*beta_n
 end
 
 function read_scalar, scalarname, filename=filename, title=title, $
@@ -3267,19 +3292,27 @@ function read_scalar, scalarname, filename=filename, title=title, $
        data = beta(filename=filename)
        title = 'Average Beta'
        symbol = '!7b!X'
+       d = dimensions(_EXTRA=extra)
    endif else if $
      (strcmp("poloidal beta", scalarname, /fold_case) eq 1) or $
      (strcmp("bp", scalarname, /fold_case) eq 1) then begin
        data = beta_poloidal(filename=filename)
-       title = 'Average Poloidal Beta'
-       symbol = '!7b!D!8p!N!X'
+       title = 'Poloidal Beta'
+       symbol = '!7b!D!8P!N!X'
+       d = dimensions(_EXTRA=extra)
    endif else $
      if (strcmp("normal beta", scalarname, /fold_case) eq 1) or $
      (strcmp("bn", scalarname, /fold_case) eq 1) then begin
        data = beta_normal(filename=filename)
-       title = 'Average Normal Beta'
+       title = 'Normal Beta'
        symbol = '!7b!D!8N!N!3'
-       d = '!6%!X'
+       d = dimensions(_EXTRA=extra)
+   endif else if $
+     (strcmp("toroidal beta", scalarname, /fold_case) eq 1) or $
+     (strcmp("bt", scalarname, /fold_case) eq 1) then begin
+       data = beta_toroidal(filename=filename)
+       title = 'Toroidal Beta'
+       symbol = '!7b!D!8T!N!X'
    endif else if $
      (strcmp("kinetic energy", scalarname, /fold_case) eq 1) or $
      (strcmp("ke", scalarname, /fold_case) eq 1)then begin
@@ -4006,7 +4039,7 @@ end
 ; plots the flux average quantity "name" at a give time
 ;======================================================
 pro plot_flux_average, field, time, filename=filename, points=pts, $
-                       _EXTRA=extra, color=c, names=names, $
+                       _EXTRA=extra, color=c, names=names, bins=bins, $
                        xlog=xlog, ylog=ylog, overplot=overplot, $
                        lcfs=lcfs, normalized_flux=norm, $
                        minor_radius=minor_radius, smooth=sm, t=t, rms=rms, $
@@ -4034,7 +4067,7 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
              overplot=((i gt 0) or keyword_set(overplot)), points=pts, $
              color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
              normalized_flux=norm, minor_radius=minor_radius, smooth=sm, $
-             rms=rms, linestyle=ls[i], srnorm=srnorm
+             rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins
        end
        if(n_elements(names) gt 0) then begin
            plot_legend, names, color=colors, ylog=ylog, xlog=xlog, $
@@ -4060,7 +4093,7 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
              overplot=((i gt 0) or keyword_set(overplot)), points=pts, $
              color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
              normalized_flux=norm, minor_radius=minor_radius, smooth=sm, $
-             t=t, rms=rms, linestyle=ls[i], srnorm=srnorm
+             t=t, rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins
            names[i] = string(format='(%"!8t!6 = %d !7s!D!8A!N!X")', t)
        end
 
@@ -4076,7 +4109,7 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
    title = ''
 
    fa = flux_average(field,time,flux=flux,points=pts,filename=filename,t=t, $
-                     name=title, symbol=symbol, units=units, $
+                     name=title, symbol=symbol, units=units, bins=bins, $
                      psi=psi,x=x,z=z,nflux=nflux,EXTRA=extra)
 
    if(n_elements(fa) le 1) then begin
@@ -4120,7 +4153,7 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
 
    if(keyword_set(minor_radius)) then begin
        flux = flux_average('r',time,points=pts,file=filename,t=t, $
-                    name=xtitle, units=units,_EXTRA=extra)
+                    name=xtitle, bins=bins, units=units,_EXTRA=extra)
        xtitle = '!12<' + xtitle + '!12> !6 ('+units+')!X'
    endif
 

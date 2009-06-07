@@ -21,6 +21,9 @@ CC     = icc
 
 OPTS =
 
+READGATO_OBJS = polar.o readgato.o
+READJSOLVER_OBJS = polar.o read_jsolver_exec.o
+
 # define the complex version
 ifeq ($(COM), 1)
 OPTS := $(OPTS) -Dvectype=complex -DUSECOMPLEX
@@ -69,7 +72,7 @@ NEWOBJS = $(COMMONDIR)subp.o $(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
 	hdf5_output.o time_step.o newpar.o \
 	fin.o part_fin.o ludef_t.o \
 	boundary.o unknown.o restart.o \
-	acbauer.o metricterms.o readgeqdsk.o read_dskbal.o \
+	acbauer.o metricterms.o readgeqdsk.o read_dskbal.o read_jsolver.o \
 	init_conds.o PETScInterface.o
 
 LDRNEW = \
@@ -124,8 +127,14 @@ ${BIN}: $(NEWOBJS)
 make_polar : make_polar.c
 	$(CC) $< -lm -o $@
 
-readgato : readgato.f90
-	$(F90) $< -L${NTCCHOME}/lib -lpspline -o $@
+readgato :  $(READGATO_OBJS)
+	$(F90) $(READGATO_OBJS) -L${NTCCHOME}/lib -lpspline -o $@
+
+readjsolver : $(READJSOLVER_OBJS)
+	$(F90) $(READJSOLVER_OBJS) -o $@
+
+read_jsolver_exec.o : read_jsolver.f90
+	$(F90) $< $(F90OPTS) -DREAD_JSOLVER -o $@
 
 %.o : %.c
 	$(CC)  $(CCOPTS) $< -o $@

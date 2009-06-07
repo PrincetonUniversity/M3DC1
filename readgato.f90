@@ -6,6 +6,8 @@
 !=======================================================================
 !
 !--> Part 0.0  declare variables
+        use polar
+
       IMPLICIT  none
       REAL*8, ALLOCATABLE  :: xnorm(:,:), znorm(:,:)
       REAL*8, ALLOCATABLE  :: psiflux(:), fnorm(:), ffpnorm(:), ponly(:)
@@ -200,21 +202,9 @@
       endif
 !
       ! write POLAR file
-
-      open(unit=74,file="POLAR",status="unknown")
-      write(74,701) np,nt
-      do j=1,np-1
-        do i=1,nt
-          write(74,702) xnew(j,i),znew(j,i)
-        enddo
-      enddo
-      call calc_norms(xnew(np,:),znew(np,:),nt,norm,curv)
-      do i=1,nt
-         write(74,703) xnew(np,i),znew(np,i),norm(1,i),norm(2,i),curv(i)
-      end do
-
-      close(74)
+      call write_polar(xnew, znew, np, nt, 1)
 !
+      ! write profiles
       open(unit=75,file="profiles",status="unknown")
       write(75,801) npsi
       do j=1,npsi
@@ -375,55 +365,3 @@
       end
 
 
-subroutine calc_norms(x, z, n, norm, curv)
-
-  implicit none
-
-  integer, intent(in) :: n
-  real*8, intent(in), dimension(n) :: x, z
-  real, intent(out), dimension(2,n) :: norm
-  real, intent(out), dimension(n) :: curv
-
-  integer :: i, i1, i2
-  real :: dx1, dx2, dz1, dz2, l, t1, t2, t3
-  real :: l1(n), l2(n), norm1(2), norm2(2)
-
-  ! calculate normals
-  do i=1,n
-     i1 = mod(i+n-2,n)+1
-     i2 = mod(i,n)+1
-     dx1 = x(i) - x(i1)
-     dx2 = x(i2) - x(i)
-     dz1 = z(i) - z(i1)
-     dz2 = z(i2) - z(i)
-
-     l1(i) = 1./sqrt(dx1**2 + dz1**2)
-     l2(i) = 1./sqrt(dx2**2 + dz2**2)
-     norm1(1) =  dz1*l1(i)
-     norm1(2) = -dx1*l1(i)
-     norm2(1) =  dz2*l2(i)
-     norm2(2) = -dx2*l2(i)
-
-     ! perform weigted average of adjacent edge normals
-     norm(:,i) = (l1(i)*norm1 + l2(i)*norm2)/(l1(i)+l2(i))
-
-     ! normalize normal
-     l = sqrt(norm(1,i)**2 + norm(2,i)**2)
-     norm(:,i) = norm(:,i)/l
-  enddo
-
-  ! calculate curvature
-  do i=1,n
-     i1 = mod(i+n-2,n)+1
-     i2 = mod(i,n)+1
-
-     t1 = atan2(norm(2,i1),norm(1,i1))
-     t2 = atan2(norm(2,i ),norm(1,i ))
-     t3 = atan2(norm(2,i2),norm(1,i2))
-     
-     ! perform weigted average of dtheta/dl
-     curv(i) = ((t2-t1)*l1(i)**2 + (t3-t2)*l2(i)**2)/(l1(i) + l2(i))
-  end do
-  
-
-end subroutine calc_norms
