@@ -148,6 +148,12 @@ module basic
   real :: th_gs       ! relaxation factor
   real :: tol_gs      ! error tolorance for GS solver
 
+  integer :: idenfunc ! specifies a specific form for equilibrium density
+  real :: den_edge
+  real :: den0
+  real :: dendelt
+  real :: denoff
+
   ! model options
   integer :: linear      ! 1 = linear simulation; 0 = nonlinear simulation
   integer :: eqsubtract  ! 1 = subtract equilibrium in noninear simulations
@@ -219,6 +225,7 @@ module basic
   integer :: iread_eqdsk   ! 1 = read geqdsk input
                            ! 2 = read geqdsk for psi, but use default profiles
   integer :: iread_dskbal  ! 1 = read dskbal input
+  integer :: iread_jsolver
 
   ! adaptation options
   integer :: iadapt     ! 1,2 = adapts mesh after initialization
@@ -277,9 +284,11 @@ real :: tiltangled   !   angle to which the rectangular mesh is tilted for tests
        icalc_scalars, ike_only, ifout, inertia, itwofluid,     &
        int_pts_main, int_pts_aux, int_pts_diag,                &
        iwave, bx0 , chiiner, ibootstrap, xnull, znull,         &
-       tiltangled, isurface, iread_eqdsk, iread_dskbal,        &
+       tiltangled, isurface,                                   &
+       iread_eqdsk, iread_dskbal, iread_jsolver,               &
        adapt_factor, adapt_hmin, adapt_hmax,                   &
-       b0_norm, n0_norm, l0_norm
+       b0_norm, n0_norm, l0_norm,                              &
+       idenfunc, den_edge, den0, denoff, dendelt
 
 
   !     derived quantities

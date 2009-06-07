@@ -68,7 +68,7 @@ end subroutine bicubic_interpolation_coeffs
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
 !
 ! calculates cubic polynomial coefficients a of
-! x, an array of dimension m x n,
+! x, an array of dimension m,
 ! about index i
 !=====================================================
 subroutine cubic_interpolation_coeffs(x,m,i,a)
@@ -99,6 +99,13 @@ subroutine cubic_interpolation_coeffs(x,m,i,a)
   end if
 end subroutine cubic_interpolation_coeffs
 
+!=====================================================
+! cubic_interpolation
+! ~~~~~~~~~~~~~~~~~~~
+!
+! interpolates function f(p) at point p0
+! where f and p are arrays of length m
+!=====================================================
 subroutine cubic_interpolation(m, p, p0, f, f0)
   implicit none
 
@@ -110,6 +117,11 @@ subroutine cubic_interpolation(m, p, p0, f, f0)
   real, dimension(4) :: a
   integer :: i
   real :: dp
+
+  if(p0.lt.p(1)) then 
+     f0 = f(1)
+     return
+  end if
 
   do i=1, m-1
      if(p(i+1).gt.p0) exit

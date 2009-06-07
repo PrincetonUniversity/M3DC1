@@ -192,7 +192,82 @@ subroutine cartesian_to_cylindrical_all()
      
   end do
 end subroutine cartesian_to_cylindrical_all
+!==============================================================================
+subroutine den_eq
+  use basic
+  use arrays
+  use diagnostics
 
+  integer :: numnodes, inode
+  real :: temp(6), k, kx
+  real :: sech
+  
+  if(idenfunc.eq.0) return
+
+  call numnod(numnodes)
+
+  do inode=1, numnodes 
+
+     call assign_local_pointers(inode)
+     
+     select case(idenfunc)
+     case(1)      ! added 08/05/08 for stability benchmarking
+        den0_l(1) = den0*.5* &
+             (1. + &
+             tanh((real(psi0_l(1))-(psibound+denoff*(psibound-psimin)))&
+             /(dendelt*(psibound-psimin))))
+        
+     case(2)
+        temp(1) = real((psi0_l(1)-psimin)/(psibound-psimin))
+        temp(2:6) = real(psi0_l(2:6))/(psibound-psimin)
+
+        k = 1./dendelt
+        kx = k*(temp(1) - denoff)
+
+        den0_l(1) = 1. + tanh(kx)
+        den0_l(2) = k*sech(kx)**2 * temp(2)
+        den0_l(3) = k*sech(kx)**2 * temp(3)
+        den0_l(4) = k*sech(kx)**2 * temp(4) &
+             -2.*k**2*sech(kx)**2*tanh(kx) * temp(2)**2
+        den0_l(5) = k*sech(kx)**2 * temp(5) &
+             -2.*k**2*sech(kx)**2*tanh(kx) * temp(2)*temp(3)
+        den0_l(6) = k*sech(kx)**2 * temp(6) &
+             -2.*k**2*sech(kx)**2*tanh(kx) * temp(3)**2
+
+        den0_l = den0_l * 0.5*(den_edge-den0)
+        den0_l(1) = den0_l(1) + den0
+     end select
+
+  end do
+
+end subroutine den_eq
+!==============================================================================
+subroutine rmp_per
+  use basic
+  use arrays
+  use coils
+
+  implicit none
+
+  logical :: is_boundary
+  integer :: izone, izonedim, numnodes, l
+  real :: normal(2), curv, x, z
+
+  call load_field_from_coils('rmp_coil.dat', 'rmp_current.dat', &
+       field,num_fields,psi_g)
+
+  ! leave perterbation only on the boundary
+  if(irmp.eq.2) then
+     call numnod(numnodes)
+     do l=1, numnodes
+        call boundary_node(l,is_boundary,izone,izonedim,normal,curv,x,z)
+        if(.not.is_boundary) then
+           call assign_local_pointers(l)
+           psi1_l = 0.
+        endif
+     end do
+  endif
+end subroutine rmp_per
 
 !==============================================================================
 ! Tilting Cylinder (itaylor = 0)
@@ -1500,7 +1575,7 @@ subroutine eqdsk_init()
   use gradshafranov
   use newvar_mod
   use sparse
-  use coils
+  use diagnostics
 
   implicit none
 
@@ -1508,10 +1583,6 @@ subroutine eqdsk_init()
   real :: x, z
   real, parameter :: amu0 = pi*4.e-7
   real, allocatable :: flux(:)
-
-  logical :: is_boundary
-  integer :: izone, izonedim
-  real :: normal(2), curv
 
   print *, "eqdsk_init called"
 
@@ -1559,23 +1630,9 @@ subroutine eqdsk_init()
 
      call gradshafranov_solve
      call gradshafranov_per
-  endif
-
-  if(irmp.ge.1) then
-     call load_field_from_coils('rmp_coil.dat', 'rmp_current.dat', &
-          field,num_fields,psi_g)
-
-     ! leave perterbation only on the boundary
-     if(irmp.eq.2) then
-        call numnod(numnodes)
-        do l=1, numnodes
-           call boundary_node(l,is_boundary,izone,izonedim,normal,curv,x,z)
-           if(.not.is_boundary) then
-              call assign_local_pointers(l)
-              psi1_l = 0.
-           endif
-        end do
-     endif
+  else
+     psibound = sibry
+     psimin = simag
   endif
 
   call unload_eqdsk
@@ -1840,6 +1897,167 @@ end subroutine dskbal_init
 end module dskbal_eq
 
 
+!==============================================================================
+! Jsolver_eq
+! ~~~~~~~~~~
+!
+! Loads eqdsk equilibrium
+!==============================================================================
+module jsolver_eq
+
+contains
+
+subroutine jsolver_init()
+  use basic
+  use arrays
+  use eqdsk
+  use gradshafranov
+  use newvar_mod
+  use sparse
+  use coils
+  use diagnostics
+  use jsolver
+
+  implicit none
+
+  integer :: l, numnodes
+  real :: x, z
+  real, parameter :: amu0 = pi*4.e-7
+  real, allocatable :: ffprime(:)
+
+  print *, "jsolver_init called"
+
+  call load_jsolver
+
+  call numnod(numnodes)
+  do l=1, numnodes
+     call nodcoord(l, x, z)
+
+     call assign_local_pointers(l)
+
+     call jsolver_equ(x, z)
+     call jsolver_per(x, z)
+  enddo
+
+  xmag = x_jsv(1,1)
+  zmag = z_jsv(1,1)
+  rzero = xzero_jsv
+  bzero = gxx_jsv(1)
+
+  ! remove factor of 1/xzero_jsv in definition of g
+  gxx_jsv = gxx_jsv*xzero_jsv
+  gpx_jsv = gpx_jsv*xzero_jsv
+
+  ! shift gxx and p to be defined at psi_j locations
+  ! instead of at psi_{j+1/2} locations
+  do l=npsi_jsv, 2, -1
+     gxx_jsv(l) = 0.5*(gxx_jsv(l) + gxx_jsv(l-1))
+     p_jsv(l) = 0.5*(p_jsv(l) + p_jsv(l-1))
+  end do
+
+  if(igs.gt.0) then
+     fieldi = field0
+     separatrix_top = abs(znull)
+     separatrix_bottom = -separatrix_top
+
+     if(iread_jsolver.eq.2) then
+        call default_profiles
+     else
+        allocate(ffprime(npsi_jsv))
+        ffprime = gpx_jsv*gxx_jsv
+        call create_profile(npsi_jsv,p_jsv,ppxx_jsv,gxx_jsv,ffprime,psival_jsv)
+        deallocate(ffprime)
+     end if
+
+     call deltafun(xmag,zmag,tcuro,jphi,1,1)
+
+     call gradshafranov_solve
+     call gradshafranov_per
+  else
+     psibound = psival_jsv(npsi_jsv)
+     psimin = psival_jsv(1)
+  endif
+
+  call unload_jsolver
+
+end subroutine jsolver_init
+
+subroutine jsolver_equ(x, z)
+  use basic
+  use arrays
+
+  use jsolver
+
+  implicit none
+
+  real, intent(in) :: x, z
+
+  integer :: i, j, n
+  real :: i0, j0, d, dmin, temp
+  real, dimension(4) :: a, b, c
+
+  ! determine jsolver index (i0,j0) of this node
+  dmin = (x - x_jsv(2,1))**2 + (z - z_jsv(2,1))**2
+  do i=2, nthe
+     do j=1, npsi_jsv
+        d = (x - x_jsv(i,j))**2 + (z - z_jsv(i,j))**2
+        if(d.lt.dmin) then
+           dmin = d
+           i0 = i
+           j0 = j
+        end if
+     end do
+  end do
+  
+  j = j0
+  call cubic_interpolation_coeffs(psival_jsv,npsi_jsv,j,a)
+  call cubic_interpolation_coeffs(gxx_jsv,npsi_jsv,j,b)
+  call cubic_interpolation_coeffs(p_jsv,npsi_jsv,j,c)
+  
+  do n=1,4
+     temp = a(n)
+     if(n.gt.1) temp = temp*(j-j0)**(n-1)
+     psi0_l(1) = psi0_l(1) + temp
+
+     temp = b(n)
+     if(n.gt.1) temp = temp*(j-j0)**(n-1)
+     bz0_l(1) = bz0_l(1) + temp
+
+     temp = c(n)
+     if(n.gt.1) temp = temp*(j-j0)**(n-1)
+     p0_l(1) = p0_l(1) + temp
+  end do
+  
+  u0_l = 0.
+  vz0_l = 0.
+  chi0_l = 0.
+
+end subroutine jsolver_equ
+
+
+subroutine jsolver_per(x, z)
+  use basic
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x, z
+
+  u1_l = 0.
+  vz1_l = 0.
+  chi1_l = 0.
+  psi1_l = 0.
+  bz1_l = 0.
+  pe1_l = 0.
+  den1_l = 0.
+  p1_l = 0.
+
+end subroutine jsolver_per
+  
+end module jsolver_eq
+
+
+
 !=====================================
 subroutine initial_conditions()
   use basic
@@ -1857,53 +2075,57 @@ subroutine initial_conditions()
   use rotate
   use eqdsk_eq
   use dskbal_eq
+  use jsolver_eq
 
   implicit none
 
   if(iread_eqdsk.ge.1) then
      call eqdsk_init()
-     return
   else if(iread_dskbal.ge.1) then
      call dskbal_init()
-     return
-  endif
-
-  if(itor.eq.0) then
-     ! slab equilibria
-     select case(itaylor)
-     case(0)
-        call tilting_cylinder_init()
-     case(1)
-        call taylor_reconnection_init()
-     case(2)
-        call force_free_init()
-     case(3)
-        call gem_reconnection_init()
-     case(4)
-        call wave_init()
-     case(5)
-        call grav_init()
-     case(6)
-        call strauss_init()
-     case(7)
-        call circular_field_init()
-     end select
+  else if(iread_jsolver.ge.1) then
+     call jsolver_init()
   else
-     ! toroidal equilibria
-     select case(itaylor)
-     case(0)
-        call tilting_cylinder_init()
-        call cartesian_to_cylindrical_all()
-     case(1)
-        call gradshafranov_init()
-     case(2)
-        call mri_init()
-     case(3)
-        call rotate_init()
-     case(7)
-        call circular_field_init()
-     end select
-  endif
+     if(itor.eq.0) then
+        ! slab equilibria
+        select case(itaylor)
+        case(0)
+           call tilting_cylinder_init()
+        case(1)
+           call taylor_reconnection_init()
+        case(2)
+           call force_free_init()
+        case(3)
+           call gem_reconnection_init()
+        case(4)
+           call wave_init()
+        case(5)
+           call grav_init()
+        case(6)
+           call strauss_init()
+        case(7)
+           call circular_field_init()
+        end select
+     else
+        ! toroidal equilibria
+        select case(itaylor)
+        case(0)
+           call tilting_cylinder_init()
+           call cartesian_to_cylindrical_all()
+        case(1)
+           call gradshafranov_init()
+        case(2)
+           call mri_init()
+        case(3)
+           call rotate_init()
+        case(7)
+           call circular_field_init()
+        end select
+     endif
+  end if
+     
+  call den_eq()
+  if(irmp.ge.1) call rmp_per()
 
 end subroutine initial_conditions
 
