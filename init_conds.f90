@@ -97,7 +97,7 @@ subroutine random_per(x,z,seed,fac)
   vectype, intent(in), dimension(6) :: fac
   integer, intent(in) :: seed
   integer :: i, j
-  integer, parameter :: maxn = 10
+  integer, parameter :: maxn = 50
   real :: alx, alz, kx, kz, xx, zz
   vectype, dimension(6) :: temp
 
@@ -1922,7 +1922,6 @@ subroutine jsolver_init()
 
   integer :: l, numnodes
   real :: x, z
-  real, parameter :: amu0 = pi*4.e-7
   real, allocatable :: ffprime(:)
 
   print *, "jsolver_init called"
@@ -1950,9 +1949,15 @@ subroutine jsolver_init()
 
   ! shift gxx and p to be defined at psi_j locations
   ! instead of at psi_{j+1/2} locations
-  do l=npsi_jsv, 2, -1
-     gxx_jsv(l) = 0.5*(gxx_jsv(l) + gxx_jsv(l-1))
-     p_jsv(l) = 0.5*(p_jsv(l) + p_jsv(l-1))
+!!$  do l=npsi_jsv,2,-1    
+!!$     p_jsv(l) = (p_jsv(l-1) + p_jsv(l))/2.
+!!$     gxx_jsv(l) = (gxx_jsv(l-1) + gxx_jsv(l))/2.
+!!$  end do
+  do l=npsi_jsv-1,1,-1
+!!$     p_jsv(l) = p_jsv(l+1) - ppxx_jsv(l)*(psival_jsv(l+1) - psival_jsv(l))
+!!$     gxx_jsv(l) = gxx_jsv(l+1) - gpx_jsv(l)*(psival_jsv(l+1) - psival_jsv(l))
+     ppxx_jsv(l) = (p_jsv(l+1) - p_jsv(l))/(psival_jsv(l+1) - psival_jsv(l))
+     gpx_jsv(l) = (gxx_jsv(l+1) - gxx_jsv(l))/(psival_jsv(l+1) - psival_jsv(l))
   end do
 
   if(igs.gt.0) then
@@ -1965,7 +1970,8 @@ subroutine jsolver_init()
      else
         allocate(ffprime(npsi_jsv))
         ffprime = gpx_jsv*gxx_jsv
-        call create_profile(npsi_jsv,p_jsv,ppxx_jsv,gxx_jsv,ffprime,psival_jsv)
+        call create_profile(npsi_jsv,p_jsv(1:npsi_jsv),ppxx_jsv(1:npsi_jsv), &
+             gxx_jsv(1:npsi_jsv),ffprime,psival_jsv(1:npsi_jsv))
         deallocate(ffprime)
      end if
 

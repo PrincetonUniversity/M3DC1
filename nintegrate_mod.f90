@@ -252,6 +252,8 @@ subroutine edge_to_local(ngauss, delta, line_weight, &
      si1, eta1, si2, eta2, si, eta, local_weight, &
      n1, n2, theta)
 
+  use basic
+
   implicit none
 
   integer, intent(in) :: ngauss
@@ -272,8 +274,13 @@ subroutine edge_to_local(ngauss, delta, line_weight, &
   eta = 0.5*((eta2-eta1)*delta + eta2 + eta1)
   local_weight = 0.5*line_weight*l
 
-  norm79(1:ngauss,1) = 0.5*(n2(1)*(1.+delta) + n1(1)*(1.-delta))
-  norm79(1:ngauss,2) = 0.5*(n2(2)*(1.+delta) + n1(2)*(1.-delta))
+  if(icurv.eq.0) then
+     norm79(1:ngauss,1) = 0.5*(n2(1) + n1(1))
+     norm79(1:ngauss,2) = 0.5*(n2(2) + n1(2))
+  else
+     norm79(1:ngauss,1) = 0.5*(n2(1)*(1.+delta) + n1(1)*(1.-delta))
+     norm79(1:ngauss,2) = 0.5*(n2(2)*(1.+delta) + n1(2)*(1.-delta))
+  end if
 
   co = cos(theta)
   sn = sin(theta)
@@ -286,10 +293,10 @@ subroutine edge_to_local(ngauss, delta, line_weight, &
 
   ! if actual normal vector is opposite sign of expected vector,
   ! flip integration limits (i.e. flip sign of Jacobian)
-  if(m1(1)*m2(1) + m1(2)*m2(2) .lt. 0.) then
-     local_weight = -local_weight
-     write(*,'(A,6f10.4)') 'Flipping edge.', m1,m2
-  endif
+!!$  if(m1(1)*m2(1) + m1(2)*m2(2) .lt. 0.) then
+!!$     write(*,'(A,6f10.4)') 'Flipping edge.', m1,m2
+!!$     local_weight = -local_weight
+!!$  endif
  
 end subroutine edge_to_local
 

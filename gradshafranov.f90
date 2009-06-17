@@ -487,6 +487,8 @@ subroutine gradshafranov_solve
         enddo
      enddo
 
+     if(isurface.eq.0) cycle
+
      ! add surface terms
      call boundary_edge(itri, is_edge, n, idim)
      

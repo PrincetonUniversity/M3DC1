@@ -91,6 +91,8 @@
 
       if(myrank.eq.0 .and. iprint.eq.1) print *, " entering input.."
 
+      icurv = 2
+
       b0_norm = 0.
       n0_norm = 0.
       l0_norm = 0.

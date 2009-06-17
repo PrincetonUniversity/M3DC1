@@ -2575,8 +2575,13 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
            if(keyword_set(lcfs) or n_elements(maskrange) ne 0) then begin
 
                if(n_elements(psi) eq 0 or keyword_set(linear)) then begin
-                   psi = read_field('psi',x,z,t,slice=time[0]+k,points=p, $
-                                   _EXTRA=ex, linear=0)
+                   if(keyword_set(linear)) then begin
+                       psi = read_field('psi',x,z,t,slice=-1,points=p, $
+                                        linear=0, _EXTRA=ex)
+                   endif else begin
+                       psi = read_field('psi',x,z,t,slice=time[0]+k,points=p, $
+                                        _EXTRA=ex)
+                   endelse
                endif
 
                if(n_elements(maskrange) eq 2) then begin
@@ -3069,8 +3074,10 @@ end
 ; ========================================================
 pro plot_lcfs, psi, x, z, psival=psival,_EXTRA=extra
 
-    if(n_elements(psi) eq 0 or n_elements(x) eq 0 or n_elements(z) eq 0) then $
-      psi = read_field('psi',x,z,t,_EXTRA=extra)
+    if(n_elements(psi) eq 0 or n_elements(x) eq 0 or n_elements(z) eq 0) then begin
+        print, 'reading psi, plot_lcfs'
+        psi = read_field('psi',x,z,t,_EXTRA=extra,linear=0)
+    end
 
     ; if psival not passed, choose limiter value
     if(n_elements(psival) eq 0) then psival = lcfs(psi,x,z,_EXTRA=extra)
