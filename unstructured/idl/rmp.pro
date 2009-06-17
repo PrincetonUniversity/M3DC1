@@ -1,5 +1,9 @@
 pro plot_br, _EXTRA=extra, plotq=plotq
 
+   get_normalizations, b0=b0, n0=n0, l0=l0, _EXTRA=extra
+
+   if(b0 eq 0.) then b0 = 1e4
+
    psi0 = read_field('psi',x,z,t,slice=-1,_EXTRA=extra)
    psi1r = read_field('psi',x,z,t,/last,/linear,_EXTRA=extra)
    psi1i = read_field('psi_i',x,z,t,/last,/linear,_EXTRA=extra)
@@ -8,19 +12,6 @@ pro plot_br, _EXTRA=extra, plotq=plotq
        q = flux_average('q',slice,psi=psi,x=x,z=z,t=t,flux=flux2,slice=-1, $
                         nflux=nflux2, _EXTRA=extra)
    end
-
-;    r = radius_matrix(x,z,t)
-;    bp0 = sqrt(s_bracket(psi0,psi0,x,z))/r
-;    br_r = a_bracket(psi1r,psi0,x,z)/(bp0*r^2)
-;    br_i = a_bracket(psi1i,psi0,x,z)/(bp0*r^2)
-
-;   br = sqrt(br_r*br_r + br_i*br_i)
-;   br = br_r
-
-;    a_r = flux_coord_field(br_r,psi0,x,z,t,flux=flux,angle=angle,area=area, $
-;                         _EXTRA=extra,/norm)
-;    a_i = flux_coord_field(br_i,psi0,x,z,t,flux=flux,angle=angle,area=area, $
-;                         _EXTRA=extra,/norm)
 
    a_r = flux_coord_field(psi1r,psi0,x,z,t,flux=flux,angle=angle,area=area, $
                         nflux=nflux,_EXTRA=extra)
@@ -31,7 +22,7 @@ pro plot_br, _EXTRA=extra, plotq=plotq
 
    b = transpose(a,[0,2,1])
 
-   c = fft(b, 1, dimension=2)
+   c = fft(b, -1, dimension=2)
 
    n = n_elements(angle)
    d = c
@@ -45,14 +36,14 @@ pro plot_br, _EXTRA=extra, plotq=plotq
 
     for i=0, n-1 do begin
         for j=0, n_elements(flux)-1 do begin
-            d[0,i,j] = d[0,i,j]*(2.*!pi)^2*f[i]/area[j]
+            d[0,i,j] = d[0,i,j]*f[i]/area[j]
         end
     end
 
    xtitle='!6m!X'
    ytitle='!9r!7W!X'
 
-   contour_and_legend, abs(d), -f, sqrt(nflux),  $
+   contour_and_legend, abs(d)*b0, f, sqrt(nflux),  $
      color_table=39, xtitle=xtitle, ytitle=ytitle, $
      xrange=[-15,15], yrange=[0,1]
 

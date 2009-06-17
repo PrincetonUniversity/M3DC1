@@ -94,6 +94,8 @@ module basic
   integer :: com_bc   ! 1 = forces div(V) = 0 on boundary
   real :: amu_edge    ! factor by which to increase viscosity at boundaries
 
+  integer :: icurv  ! treats boundaries as if curvature = 0.
+
   ! density sources
   integer :: ipellet  ! 1 = include pellet injection density source
   real :: pellet_x    ! x coordinate of pellet injection
@@ -288,7 +290,8 @@ real :: tiltangled   !   angle to which the rectangular mesh is tilted for tests
        iread_eqdsk, iread_dskbal, iread_jsolver,               &
        adapt_factor, adapt_hmin, adapt_hmax,                   &
        b0_norm, n0_norm, l0_norm,                              &
-       idenfunc, den_edge, den0, denoff, dendelt
+       idenfunc, den_edge, den0, denoff, dendelt,              &
+       icurv
 
 
   !     derived quantities
