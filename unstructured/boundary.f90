@@ -336,7 +336,19 @@ subroutine rotate_vector(invec, outvec, normal, curv, ic)
   real, intent(in) :: curv, normal(2) 
   integer, intent(in) :: ic
 
-  if(ic.eq.2) then
+  if(ic.eq.1) then
+     outvec(1) = invec(1)
+     outvec(2) = normal(1)*invec(2) + normal(2)*invec(3)
+     outvec(3) = normal(1)*invec(3) - normal(2)*invec(2)
+     outvec(4) = normal(1)**2*invec(4) + normal(2)**2*invec(6) &
+          + 2.*normal(1)*normal(2)*invec(5)
+     outvec(5) = (normal(1)**2 - normal(2)**2)*invec(5) &
+          + normal(1)*normal(2)*(invec(6) - invec(4)) &
+          + curv*outvec(3)
+     outvec(6) = normal(1)**2*invec(6) + normal(2)**2*invec(4) &
+          - 2.*normal(1)*normal(2)*invec(5) &
+          - curv*outvec(2)
+  else
      outvec(1) = invec(1)
      outvec(2) = normal(1)*invec(2) + normal(2)*invec(3) &
           + curv*normal(2)**2*invec(4) &
@@ -351,18 +363,6 @@ subroutine rotate_vector(invec, outvec, normal, curv, ic)
           + 2.*normal(1)*normal(2)*(invec(6) - invec(4))
      outvec(6) = normal(1)**2*invec(6) + normal(2)**2*invec(4) &
           - normal(1)*normal(2)*invec(5)
-  else
-     outvec(1) = invec(1)
-     outvec(2) = normal(1)*invec(2) + normal(2)*invec(3)
-     outvec(3) = normal(1)*invec(3) - normal(2)*invec(2)
-     outvec(4) = normal(1)**2*invec(4) + normal(2)**2*invec(6) &
-          + 2.*normal(1)*normal(2)*invec(5)
-     outvec(5) = (normal(1)**2 - normal(2)**2)*invec(5) &
-          + normal(1)*normal(2)*(invec(6) - invec(4)) &
-          + curv*outvec(3)
-     outvec(6) = normal(1)**2*invec(6) + normal(2)**2*invec(4) &
-          - 2.*normal(1)*normal(2)*invec(5) &
-          - curv*outvec(2)
   endif
 end subroutine rotate_vector
 
@@ -382,16 +382,18 @@ subroutine rotate_matrix(imatrix, ibegin, normal, curv, rhs, ic)
   integer :: row(5), i
 
   vectype, dimension(6) :: temp
+
+  if(ic.lt.0) return
   
   if(imatrix.ne.0) then
      do i=1,5
         row(i) = ibegin+i
      end do
-     if(ic.eq.2) then
-        call applyLinCombinationForMatrix3(imatrix,&
+     if(ic.eq.1) then
+        call applyLinCombinationForMatrix2(imatrix,&
              row(1),row(2),row(3),row(4),row(5),normal,curv,icomplex)
      else
-        call applyLinCombinationForMatrix2(imatrix,&
+        call applyLinCombinationForMatrix3(imatrix,&
              row(1),row(2),row(3),row(4),row(5),normal,curv,icomplex)
      endif
   endif
@@ -1140,6 +1142,56 @@ subroutine boundary_vor(imatrix, rhs)
   end do
 
 end subroutine boundary_vor
+
+
+
+!=======================================================
+! boundary_jphi
+! ~~~~~~~~~~~~~
+!
+! sets boundary conditions on Delta*(phi) 
+! in the smoother
+!=======================================================
+subroutine boundary_jphi(imatrix, rhs)
+  use basic
+  use arrays
+
+  implicit none
+  
+  integer, intent(in) :: imatrix
+  vectype, intent(inout), dimension(*) :: rhs
+  
+  integer, parameter :: numvarsm = 2
+  integer :: i, izone, izonedim
+  integer :: ibegin, iendplusone, numnodes
+  real :: normal(2), curv
+  real :: x, z
+  logical :: is_boundary
+  vectype, dimension(6) :: temp
+
+  if(iper.eq.1 .and. jper.eq.1) return
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_jphi called"
+
+  call numnod(numnodes)
+  do i=1, numnodes
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+     if(.not.is_boundary) cycle
+
+     call assign_local_pointers(i)
+     call entdofs(numvarsm, i, 0, ibegin, iendplusone)
+     call rotate_matrix(imatrix, ibegin, normal, curv, rhs, icurv)
+     call rotate_matrix(imatrix, ibegin+6, normal, curv, rhs, icurv)
+
+     temp = psis_l
+     call set_dirichlet_bc(imatrix,ibegin+6,rhs,temp,normal,curv,izonedim)
+
+     ! no vorticity
+     temp = 0.
+     call set_dirichlet_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim)
+  end do
+
+end subroutine boundary_jphi
+
 
 !=======================================================
 ! boundary_com

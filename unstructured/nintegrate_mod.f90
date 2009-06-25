@@ -293,10 +293,10 @@ subroutine edge_to_local(ngauss, delta, line_weight, &
 
   ! if actual normal vector is opposite sign of expected vector,
   ! flip integration limits (i.e. flip sign of Jacobian)
-!!$  if(m1(1)*m2(1) + m1(2)*m2(2) .lt. 0.) then
-!!$     write(*,'(A,6f10.4)') 'Flipping edge.', m1,m2
-!!$     local_weight = -local_weight
-!!$  endif
+  if(m1(1)*m2(1) + m1(2)*m2(2) .lt. 0.) then
+     write(*,'(A,6f10.4)') 'Flipping edge.', m1,m2
+     local_weight = -local_weight
+  endif
  
 end subroutine edge_to_local
 

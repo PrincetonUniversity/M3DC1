@@ -1729,9 +1729,15 @@ function read_field, name, x, y, t, slices=time, mesh=mesh, $
        chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, at_points=at_points)
-       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
-                        filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange, at_points=at_points)
+       if(ilin eq 1) then begin
+           psi = read_field('psi', x, y, t, slices=-1, mesh=mesh, $
+                            filename=filename, points=pts, $
+                            rrange=xrange, zrange=yrange, at_points=at_points)
+       endif else begin
+           psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                            filename=filename, points=pts, $
+                            rrange=xrange, zrange=yrange, at_points=at_points)
+       end
        
        if(itor eq 1) then begin
            if(n_elements(at_points) eq 0) then begin

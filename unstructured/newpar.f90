@@ -117,16 +117,26 @@ Program Reducedquintic
   call create_matrix(mass_matrix_lhs_dc,    NV_DCBOUND, NV_I_MATRIX,  NV_LHS)
   call create_matrix(mass_matrix_lhs,       NV_NOBOUND, NV_I_MATRIX,  NV_LHS)
   call create_matrix(gs_matrix_rhs_dc,      NV_DCBOUND, NV_GS_MATRIX, NV_RHS)
-  if(numvar.ge.3 .and. hyperc.ne.0.) then
-     if(com_bc.eq.0) then
-        call create_matrix(lp_matrix_rhs,   NV_NOBOUND, NV_LP_MATRIX, NV_RHS)
-     else
-        call create_matrix(lp_matrix_rhs_dc,NV_DCBOUND, NV_LP_MATRIX, NV_RHS)
-     endif
+  if(hyperc.ne.0) then
+     call create_matrix(s5matrix_sm, NV_SVBOUND, NV_SV_MATRIX, NV_LHS)
+     call create_matrix(d5matrix_sm, NV_SVBOUND, NV_SV_MATRIX, NV_RHS)
+     if(numvar.ge.3) then
+        call create_matrix(s7matrix_sm, NV_SCBOUND, NV_SC_MATRIX, NV_LHS)
+        call create_matrix(d7matrix_sm, NV_SCBOUND, NV_SC_MATRIX, NV_RHS)
+        if(com_bc.eq.0) then
+           call create_matrix(lp_matrix_rhs,   NV_NOBOUND,NV_LP_MATRIX,NV_RHS)
+        else
+           call create_matrix(lp_matrix_rhs_dc,NV_DCBOUND,NV_LP_MATRIX,NV_RHS)
+        endif
+     end if
   endif
   if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
      call create_matrix(mass_matrix_rhs_nm, NV_NMBOUND, NV_I_MATRIX,  NV_RHS)
      call create_matrix(bf_matrix_lhs_nm,   NV_NMBOUND, NV_BF_MATRIX, NV_LHS)
+  endif
+  if(jadv.eq.1 .and. hyper.ne.0.) then
+     call create_matrix(s10matrix_sm, NV_SJBOUND, NV_SJ_MATRIX, NV_LHS)
+     call create_matrix(d10matrix_sm, NV_SJBOUND, NV_SJ_MATRIX, NV_RHS)
   endif
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, "Done generating newvar matrices."
@@ -389,6 +399,8 @@ Program Reducedquintic
      call deletematrix(r9matrix_sm)
      call deletematrix(q9matrix_sm)
   endif
+  call deletematrix(s10matrix_sm)
+  call deletematrix(d10matrix_sm)
   if(i3d.eq.1 .or. ifout.eq.1) then
      call deletematrix(mass_matrix_rhs_nm)
      call deletematrix(bf_matrix_lhs_nm)
@@ -461,13 +473,12 @@ end subroutine output
 
 
 ! ======================================================================
-! smooth
-! ~~~~~~
+! smooth_velocity
+! ~~~~~~~~~~~~~~~
 !
-! applies smoothing operators
-!
+! applies smoothing operators to velocity
 ! ======================================================================
-subroutine smooth(vec)
+subroutine smooth_velocity(vec)
   use basic
   use arrays
   use newvar_mod
@@ -478,35 +489,88 @@ subroutine smooth(vec)
 
   vectype, dimension(*), intent(inout) :: vec
   real :: tstart, tend
+  vectype, allocatable :: temp(:)
 
-  if(hyperc.eq.0.) return
+  if(hyperc.eq.0) return
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     
-  ! smooth vorticity
-  call newvar(mass_matrix_lhs_dc,vor,vec,u_i,vecsize_vel, &
-       gs_matrix_rhs_dc,NV_DCBOUND)
-  call smoother1(vor,vec,vecsize_vel,u_i)
 
+  call createvec(temp,2)
+
+  ! smooth vorticity
+  call newvar1(mass_matrix_lhs_dc,vor,vec,u_i,vecsize_vel, &
+       gs_matrix_rhs_dc,NV_DCBOUND)
+
+  temp = 0.
+  call copyvec(vor,1,1,temp,2,2)
+  call newvar(s5matrix_sm,temp,d5matrix_sm,temp,NV_SVBOUND)
+  call copyvec(temp,2,2,vec,u_i,vecsize_vel)
+  
   ! smooth compression
   if(numvar.ge.3) then
      if(com_bc.eq.0) then
-        call newvar(mass_matrix_lhs   ,com,vec,chi_i,vecsize_vel, &
+        call newvar1(mass_matrix_lhs   ,com,vec,chi_i,vecsize_vel, &
              lp_matrix_rhs,   NV_NOBOUND)
      else
-        call newvar(mass_matrix_lhs_dc,com,vec,chi_i,vecsize_vel, &
+        call newvar1(mass_matrix_lhs_dc,com,vec,chi_i,vecsize_vel, &
              lp_matrix_rhs_dc,NV_DCBOUND)
      endif
-             
-     call smoother3(com,vec,vecsize_vel,chi_i)
+
+     temp = 0.
+     call copyvec(com,1,1,temp,2,2)
+     call newvar(s7matrix_sm,temp,d7matrix_sm,temp,NV_SCBOUND)
+     call copyvec(temp,2,2,vec,chi_i,vecsize_vel)
   endif
+
+  call deletevec(temp)
+  
+  if(myrank.eq.0 .and. itimer.eq.1) then
+     call second(tend)
+     t_smoother = t_smoother + tend - tstart
+  endif
+  
+end subroutine smooth_velocity
+
+! ======================================================================
+! smooth_fields
+! ~~~~~~~~~~~~~
+!
+! applies smoothing operators to fields
+! ======================================================================
+subroutine smooth_fields(vec)
+  use basic
+  use arrays
+  use newvar_mod
+  use diagnostics
+  use sparse
+
+  implicit none
+
+  vectype, dimension(*), intent(inout) :: vec
+  vectype, allocatable :: temp(:)
+  real :: tstart, tend
+
+  if(jadv.eq.0 .or. hyper.eq.0.) return
+
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+
+  ! smooth current density
+  call newvar1(mass_matrix_lhs_dc,jphi,vec,psi_i,vecsize_phi, &
+       gs_matrix_rhs_dc,NV_DCBOUND)
+
+  call createvec(temp,2)
+  temp = 0.
+  call copyvec(jphi,1,1,temp,2,2)
+  call newvar(s10matrix_sm,temp,d10matrix_sm,temp,NV_SJBOUND)
+  call copyvec(temp,2,2,vec,psi_i,vecsize_phi)
+  call deletevec(temp)
 
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      t_smoother = t_smoother + tend - tstart
   endif
-
-end subroutine smooth
+     
+end subroutine smooth_fields
 
 
 !======================================================================
@@ -581,23 +645,23 @@ subroutine derived_quantities(vec)
 
   !   toroidal current
   if(myrank.eq.0 .and. iprint.ge.1) print *, "-Toroidal current"
-  call newvar(mass_matrix_lhs_dc,jphi,vec,psi_g,num_fields, &
+  call newvar1(mass_matrix_lhs_dc,jphi,vec,psi_g,num_fields, &
        gs_matrix_rhs_dc,NV_DCBOUND)
 
   if(hyperc.ne.0.) then
      !   vorticity
      if(myrank.eq.0 .and. iprint.ge.1) print *, "-Vorticity"
-     call newvar(mass_matrix_lhs_dc,vor,vec,u_g,num_fields, &
+     call newvar1(mass_matrix_lhs_dc,vor,vec,u_g,num_fields, &
           gs_matrix_rhs_dc,NV_DCBOUND)
 
      !   compression
      if(numvar.ge.3) then
         if(myrank.eq.0 .and. iprint.ge.1) print *, "-Compression"
         if(com_bc.eq.1) then
-           call newvar(mass_matrix_lhs_dc,com,vec,chi_g,num_fields, &
+           call newvar1(mass_matrix_lhs_dc,com,vec,chi_g,num_fields, &
                 lp_matrix_rhs_dc,NV_DCBOUND)
         else
-           call newvar(mass_matrix_lhs,   com,vec,chi_g,num_fields, &
+           call newvar1(mass_matrix_lhs,   com,vec,chi_g,num_fields, &
                 lp_matrix_rhs,   NV_NOBOUND)
         endif
      else
@@ -611,7 +675,7 @@ subroutine derived_quantities(vec)
 !    call newvar(lp_matrix_lhs_nm,bf,vec,bz_g,num_fields, &
 !         bf_matrix_rhs_nm,NV_DCBOUND)
 !....the preceeding two lines  (08/30/08) scj were replaced by the following two lines  (08/30/08) scj
-     call newvar(bf_matrix_lhs_nm,bf,vec,bz_g,num_fields, &
+     call newvar1(bf_matrix_lhs_nm,bf,vec,bz_g,num_fields, &
           mass_matrix_rhs_nm,NV_NMBOUND)
   endif
 

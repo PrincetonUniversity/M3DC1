@@ -162,6 +162,7 @@
 !.....CN implicitness parameter (thimp > 0.5 for stability)
       thimp = 0.5
       thimp_ohm = -1.
+      thimpsm = 1.
 !
 !.....hyper-resistivity coefficients
       deex = 1.
@@ -386,7 +387,7 @@
       iglobalin = 0
 !     
 !.....1 = output f field
-      ifout = i3d
+      ifout = -1
 !
       icalc_scalars = 1
       ike_only = 0
@@ -440,6 +441,12 @@
 
       ! Validate input
       ! ~~~~~~~~~~~~~~
+      if(ntor.ne.0 .and. icomplex.eq.1) then
+         i3d = 1
+      else 
+         i3d = 0
+      endif
+      if(ifout.eq.-1) ifout = i3d
       if(ibform.ne.-1) then
          if(myrank.eq.0) 
      &        print *, 'WARNING: ibform input parameter deprecated'
