@@ -20,12 +20,11 @@ module basic
 
   integer, parameter :: version = 3
 
+  integer :: i3d
 #ifdef USECOMPLEX
   integer, parameter :: icomplex = 1
-  integer, parameter :: i3d = 1
 #else
   integer, parameter :: icomplex = 0
-  integer, parameter :: i3d = 0
 #endif
 
   real, parameter :: me_mi = 1./1836.2
@@ -198,6 +197,7 @@ module basic
   real :: ddt            ! change in timestep per timestep
   real :: thimp          ! implicitness parameter (for Crank-Nicholson)
   real :: thimp_ohm      ! implicitness parameter for ohmic heating
+  real :: thimpsm        ! implicitness parameter for smoothers
   real :: regular        ! regularization constant in chi equation
   real :: max_ke         ! max KE before fields are re-scaled when linear==1
   real :: chiiner        ! factor to multiply chi inertial terms
@@ -266,6 +266,7 @@ real :: tiltangled   !   angle to which the rectangular mesh is tilted for tests
        isink, sink1_x, sink2_x, sink1_z, sink2_z,              &
        sink1_rate, sink2_rate, sink1_var, sink2_var,           &
        ntimemax,dt,ddt,integrator,thimp,thimp_ohm,imp_mod,     &
+       thimpsm,                                                &
        igauge,                                                 &
        isplitstep,                                             &
        linear,nskip,eqsubtract,                                &
@@ -684,8 +685,10 @@ module sparse
   integer, parameter :: lp_matrix_rhs_dc = 29
   integer, parameter :: bf_matrix_lhs_nm = 30
   integer, parameter :: q42matrix_sm = 31
-
-
+  integer, parameter :: d5matrix_sm = 32
+  integer, parameter :: s10matrix_sm = 33
+  integer, parameter :: d10matrix_sm = 34
+  integer, parameter :: d7matrix_sm = 36
   
 end module sparse
 

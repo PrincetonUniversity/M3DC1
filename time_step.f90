@@ -364,7 +364,7 @@ subroutine split_step(calc_matrices)
    
      ! apply smoothing operators
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-     call smooth(vel)
+     call smooth_velocity(vel)
   else
      velold = vel
   end if
@@ -775,7 +775,10 @@ subroutine split_step(calc_matrices)
 
      phiold = phi
      phi = b1_phi
-  
+
+     ! apply smoothing operators
+     ! ~~~~~~~~~~~~~~~~~~~~~~~~~
+     call smooth_fields(phi) 
   end if
 
 
@@ -869,7 +872,8 @@ subroutine unsplit_step(calc_matrices)
   endif
 
   ! apply smoothing operators
-  call smooth(phi)
+  call smooth_velocity(phi)
+  call smooth_fields(phi)
 
   if(iteratephi.eq.1 .and. iestatic.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, "secondary advance..."
@@ -945,7 +949,8 @@ subroutine unsplit_step(calc_matrices)
      endif
      
      ! apply smoothing operators
-     call smooth(phi)
+     call smooth_velocity(phi)
+     call smooth_fields(phi)
   endif
      
   phiold = phi
