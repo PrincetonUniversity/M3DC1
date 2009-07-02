@@ -77,7 +77,7 @@ subroutine cubic_interpolation_coeffs(x,m,i,a)
 
   integer, intent(in) :: m, i
   real, intent(in), dimension(m) :: x
-  real, dimension(4) :: a
+  real, intent(out), dimension(4) :: a
 
   a(1) = x(i)
   if(i.eq.1) then

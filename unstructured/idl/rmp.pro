@@ -45,7 +45,7 @@ pro plot_br, _EXTRA=extra, plotq=plotq
 
    contour_and_legend, abs(d)*b0, f, sqrt(nflux),  $
      color_table=39, xtitle=xtitle, ytitle=ytitle, $
-     xrange=[-15,15], yrange=[0,1]
+     xrange=[-15,15], yrange=[0,1], _EXTRA=extra
 
    if(keyword_set(plotq)) then begin
        ntor = 3
