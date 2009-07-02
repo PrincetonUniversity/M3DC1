@@ -56,6 +56,13 @@ subroutine load_jsolver
   read(ifile,1099) (ti_jsv(j),j=1,nz2)
   read(ifile,1099) (avez_jsv(j),j=1,nz2)
   read(ifile,1099) (zeffa_jsv(j),j=1,nz2)
+!
+!.....note on the centering of the variables:
+!  defined at flux value psival_jsv(j):
+!  ppxx_jsv(j), gpx_jsv(j)
+!
+!  defined at flux value .5*(psival_jsv(j)+psival_jsv(j+1)):
+!  p_jsv(j), gxx_jsv(j), f(j)
 
   close(ifile)
 
@@ -89,8 +96,8 @@ Program readjsolver
 
   call load_jsolver
 
-  call write_polar(x_jsv(2:nthe,1:npsi_jsv), z_jsv(2:nthe,1:npsi_jsv), &
-       nthe-1, npsi_jsv, 0)
+  call write_polar(x_jsv(3:nthe+2,1:npsi_jsv), z_jsv(3:nthe+2,1:npsi_jsv), &
+       nthe, npsi_jsv, 0)
 
   call unload_jsolver
 
