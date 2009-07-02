@@ -1283,7 +1283,7 @@ end subroutine fget
 ! pp = p' = dp/dpsi (with psi the non-normalized flux)
 ! f = I = R*B_phi
 ! ffp =  I*I'
-! dp = difference in psi between axis and edge
+! flux = psi
 !================================================================
  subroutine create_profile(n, p, pp, f, ffp, flux)
    implicit none
@@ -1292,7 +1292,7 @@ end subroutine fget
    real, dimension(n), intent(in) :: p, pp, f, ffp, flux
 
    real, dimension(4) :: a
-   real :: dp
+   real :: dp, dpp
    integer :: j
 
    npsi = n
@@ -1301,24 +1301,30 @@ end subroutine fget
    allocate(fbig0t(npsi),fbigt(npsi),fbigpt(npsi),fbigppt(npsi))
    allocate(g4big0t(npsi),g4bigt(npsi),g4bigpt(npsi),g4bigppt(npsi))
 
-   fbig0t = p
-   fbigt = pp * (flux(npsi) - flux(1))
-   g4big0t = 0.5*(f**2 - f(npsi)**2)
-   g4bigt = ffp * (flux(npsi) - flux(1))
+   fbig0t = p                                 ! p
+   fbigt = pp * (flux(npsi) - flux(1))        ! p' = dp/dPsi
+   g4big0t = 0.5*(f**2 - f(npsi)**2)          ! g
+   g4bigt = ffp * (flux(npsi) - flux(1))      ! f f' = f * df/dPsi
 
    do j=1,npsi 
       call cubic_interpolation_coeffs(flux,npsi,j,a)
       psinorm(j) = (flux(j) - flux(1)) / (flux(npsi) - flux(1))
-      dp = a(2)
+      dp = a(2)      ! d psi/dn
+      dpp = 2.*a(3)  ! d^2 psi/dn^2
 
       call cubic_interpolation_coeffs(fbigt,npsi,j,a)
-      fbigpt(j) =     a(2)/dp
-      fbigppt(j) = 2.*a(3)/dp**2
+      fbigpt(j) =     a(2)/dp                       ! p''
+      fbigppt(j) = 2.*a(3)/dp**2 - a(2)*dpp/dp**3   ! p'''
 
       call cubic_interpolation_coeffs(g4bigt,npsi,j,a)
-      g4bigpt(j)  =    a(2)/dp
-      g4bigppt(j) = 2.*a(3)/dp**2
+      g4bigpt(j)  =    a(2)/dp                      ! (f f')'
+      g4bigppt(j) = 2.*a(3)/dp**2 - a(2)*dpp/dp**3  ! (f f')''
    end do
+
+   fbigpt = fbigpt*(flux(npsi) - flux(1))
+   fbigppt = fbigppt*(flux(npsi) - flux(1))**2
+   g4bigpt = g4bigpt*(flux(npsi) - flux(1))
+   g4bigppt = g4bigppt*(flux(npsi) - flux(1))**2
 
    constraint = .true.
 

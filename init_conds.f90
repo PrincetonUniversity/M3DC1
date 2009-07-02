@@ -1591,6 +1591,10 @@ subroutine eqdsk_init()
   pprime = pprime*amu0
   current = current*amu0
 
+  if(myrank.eq.0 .and. iprint.eq.1) then
+     print *, 'normalized current ', current
+  end if
+
   call numnod(numnodes)
   do l=1, numnodes
      call nodcoord(l, x, z)
@@ -1947,15 +1951,17 @@ subroutine jsolver_init()
   gxx_jsv = gxx_jsv*xzero_jsv
   gpx_jsv = gpx_jsv*xzero_jsv
 
+!!$  if(myrank.eq.0) then
+!!$     print *, 'printing....'
+!!$     do l=1,npsi_jsv
+!!$        write(*,'(3f12.8)') psival_jsv(l), ppxx_jsv(l), gpx_jsv(l)*gxx_jsv(l)
+!!$     end do
+!!$     print *, 'done printing...'
+!!$  end if
+
   ! shift gxx and p to be defined at psi_j locations
   ! instead of at psi_{j+1/2} locations
-!!$  do l=npsi_jsv,2,-1    
-!!$     p_jsv(l) = (p_jsv(l-1) + p_jsv(l))/2.
-!!$     gxx_jsv(l) = (gxx_jsv(l-1) + gxx_jsv(l))/2.
-!!$  end do
   do l=npsi_jsv-1,1,-1
-!!$     p_jsv(l) = p_jsv(l+1) - ppxx_jsv(l)*(psival_jsv(l+1) - psival_jsv(l))
-!!$     gxx_jsv(l) = gxx_jsv(l+1) - gpx_jsv(l)*(psival_jsv(l+1) - psival_jsv(l))
      ppxx_jsv(l) = (p_jsv(l+1) - p_jsv(l))/(psival_jsv(l+1) - psival_jsv(l))
      gpx_jsv(l) = (gxx_jsv(l+1) - gxx_jsv(l))/(psival_jsv(l+1) - psival_jsv(l))
   end do
@@ -1998,13 +2004,15 @@ subroutine jsolver_equ(x, z)
 
   real, intent(in) :: x, z
 
-  integer :: i, j, n
-  real :: i0, j0, d, dmin, temp
-  real, dimension(4) :: a, b, c
+  integer :: i, j
+  real :: i0, j0, d, dmin, dj
+  real, dimension(4) :: a
 
   ! determine jsolver index (i0,j0) of this node
-  dmin = (x - x_jsv(2,1))**2 + (z - z_jsv(2,1))**2
-  do i=2, nthe
+  i0 = 3
+  j0 = 1
+  dmin = (x - x_jsv(3,1))**2 + (z - z_jsv(3,1))**2
+  do i=3, nthe+2
      do j=1, npsi_jsv
         d = (x - x_jsv(i,j))**2 + (z - z_jsv(i,j))**2
         if(d.lt.dmin) then
@@ -2014,29 +2022,27 @@ subroutine jsolver_equ(x, z)
         end if
      end do
   end do
-  
+ 
   j = j0
+  dj = j - j0
   call cubic_interpolation_coeffs(psival_jsv,npsi_jsv,j,a)
-  call cubic_interpolation_coeffs(gxx_jsv,npsi_jsv,j,b)
-  call cubic_interpolation_coeffs(p_jsv,npsi_jsv,j,c)
-  
-  do n=1,4
-     temp = a(n)
-     if(n.gt.1) temp = temp*(j-j0)**(n-1)
-     psi0_l(1) = psi0_l(1) + temp
+  psi0_l(1) = a(1) + a(2)*dj + a(3)*dj**2 + a(4)*dj**3
 
-     temp = b(n)
-     if(n.gt.1) temp = temp*(j-j0)**(n-1)
-     bz0_l(1) = bz0_l(1) + temp
+  call cubic_interpolation_coeffs(gxx_jsv,npsi_jsv,j,a)
+  bz0_l(1) = a(1) + a(2)*dj + a(3)*dj**2 + a(4)*dj**3
 
-     temp = c(n)
-     if(n.gt.1) temp = temp*(j-j0)**(n-1)
-     p0_l(1) = p0_l(1) + temp
-  end do
+  call cubic_interpolation_coeffs(p_jsv,npsi_jsv,j,a)
+  p0_l(1) = a(1) + a(2)*dj + a(3)*dj**2 + a(4)*dj**3
   
   u0_l = 0.
   vz0_l = 0.
   chi0_l = 0.
+
+  p0_l = p0_l + pedge
+
+  ! Set electron pressure and density
+  pe0_l = (1. - ipres*pi0/p0)*p0_l
+
 
 end subroutine jsolver_equ
 
