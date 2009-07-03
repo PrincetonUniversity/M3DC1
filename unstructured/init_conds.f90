@@ -97,7 +97,7 @@ subroutine random_per(x,z,seed,fac)
   vectype, intent(in), dimension(6) :: fac
   integer, intent(in) :: seed
   integer :: i, j
-  integer, parameter :: maxn = 50
+  integer, parameter :: maxn = 200
   real :: alx, alz, kx, kz, xx, zz
   vectype, dimension(6) :: temp
 
@@ -1924,7 +1924,7 @@ subroutine jsolver_init()
 
   implicit none
 
-  integer :: ll, numnodes
+  integer :: l, numnodes
   real :: x, z, pzero_jsv, gzero_jsv
   real, allocatable :: ffprime(:),ppxx_jsv2(:),gpx_jsv2(:)
 
@@ -1933,10 +1933,10 @@ subroutine jsolver_init()
   call load_jsolver
 
   call numnod(numnodes)
-  do ll=1, numnodes
-     call nodcoord(ll, x, z)
+  do l=1, numnodes
+     call nodcoord(l, x, z)
 
-     call assign_local_pointers(ll)
+     call assign_local_pointers(l)
 
      call jsolver_equ(x, z)
      call jsolver_per(x, z)
@@ -1953,15 +1953,15 @@ subroutine jsolver_init()
 !
 !.calculate ppxx_jsv and gpx_jsv another way for comparison
   allocate(ppxx_jsv2(npsi_jsv),gpx_jsv2(npsi_jsv))
-  do ll=2,npsi_jsv-1
-     ppxx_jsv2(ll) =  (p_jsv(ll) - p_jsv(ll-1)) /(psival_jsv(ll) - psival_jsv(ll-1))
-     gpx_jsv2(ll) = (gxx_jsv(ll) - gxx_jsv(ll-1))/(psival_jsv(ll) - psival_jsv(ll-1))
+  do l=2,npsi_jsv-1
+     ppxx_jsv2(l) =  (p_jsv(l) - p_jsv(l-1)) /(psival_jsv(l) - psival_jsv(l-1))
+     gpx_jsv2(l) = (gxx_jsv(l) - gxx_jsv(l-1))/(psival_jsv(l) - psival_jsv(l-1))
   enddo
 ! shift gxx and p to be defined at psi_j locations
 ! instead of at psi_{j+1/2} locations
-  do ll=npsi_jsv,2,-1
-     p_jsv(ll) = (p_jsv(ll-1) + p_jsv(ll))/2.
-     gxx_jsv(ll) = (gxx_jsv(ll-1) + gxx_jsv(ll))/2.
+  do l=npsi_jsv,2,-1
+     p_jsv(l) = (p_jsv(l-1) + p_jsv(l))/2.
+     gxx_jsv(l) = (gxx_jsv(l-1) + gxx_jsv(l))/2.
   end do
   p_jsv(1)   = pzero_jsv
   gxx_jsv(1) = gzero_jsv
@@ -2004,7 +2004,7 @@ subroutine jsolver_equ(x, z)
 
   real, intent(in) :: x, z
 
-  integer :: ii, jj
+  integer :: i, j
   real :: i0, j0, d, dmin, dj
   real, dimension(4) :: a
 
@@ -2012,26 +2012,26 @@ subroutine jsolver_equ(x, z)
   i0 = 3
   j0 = 1
   dmin = (x - x_jsv(3,1))**2 + (z - z_jsv(3,1))**2
-  do ii=3, nthe+2
-     do jj=1, npsi_jsv
-        d = (x - x_jsv(ii,jj))**2 + (z - z_jsv(ii,jj))**2
+  do i=3, nthe+2
+     do j=1, npsi_jsv
+        d = (x - x_jsv(i,j))**2 + (z - z_jsv(i,j))**2
         if(d.lt.dmin) then
            dmin = d
-           i0 = ii
-           j0 = jj
+           i0 = i
+           j0 = j
         end if
      end do
   end do
  
-  jj = j0
-  dj = jj - j0
-  call cubic_interpolation_coeffs(psival_jsv,npsi_jsv,jj,a)
+  j = j0
+  dj = j - j0
+  call cubic_interpolation_coeffs(psival_jsv,npsi_jsv,j,a)
   psi0_l(1) = a(1) + a(2)*dj + a(3)*dj**2 + a(4)*dj**3
 
-  call cubic_interpolation_coeffs(gxx_jsv,npsi_jsv,jj,a)
+  call cubic_interpolation_coeffs(gxx_jsv,npsi_jsv,j,a)
   bz0_l(1) = a(1) + a(2)*dj + a(3)*dj**2 + a(4)*dj**3
 
-  call cubic_interpolation_coeffs(p_jsv,npsi_jsv,jj,a)
+  call cubic_interpolation_coeffs(p_jsv,npsi_jsv,j,a)
   p0_l(1) = a(1) + a(2)*dj + a(3)*dj**2 + a(4)*dj**3
   
   u0_l = 0.

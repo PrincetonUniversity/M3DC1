@@ -2317,8 +2317,8 @@ pro nulls, psi, x, z, axis=axis, xpoints=xpoint, _EXTRA=extra
 end
 
 ; ========================================================
-; lcfs
-; ~~~~
+; find_lcfs
+; ~~~~~~~~~
 ;
 ; returns the flux value of the last closed flux surface
 ; ========================================================
@@ -2444,6 +2444,12 @@ function lcfs, psi, x, z, axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra
         psilim = find_lcfs(psi, x, z,axis=axis, xpoint=xpoint, flux0=flux0, $
                            _EXTRA=extra)
     endelse 
+
+    print, 'LCFS: '
+    print, ' Magnetic axis found at ', axis
+    print, ' Active x-point at ', xpoint
+    print, ' psi_0, psi_s = ', flux0, psilim
+    
     return, psilim
 end
 
@@ -3577,13 +3583,13 @@ function path_at_flux, psi,x,z,t,flux
    j = n_elements(z)*(xy[1,*]-min(z)) / (max(z)-min(z))
 
    ; refine the surface found by contour with a single newton iteration
-   f = interpolate(reform(psi[0,*,*]),i,j)
-   fx = interpolate(reform(dx(psi[0,*,*],x)),i,j)
-   fz = interpolate(reform(dz(psi[0,*,*],z)),i,j)
-   gf2 = fx^2 + fz^2
-   l = (flux-f)/gf2
-   xy[0,*] = xy[0,*] + l*fx
-   xy[1,*] = xy[1,*] + l*fz
+;    f = interpolate(reform(psi[0,*,*]),i,j)
+;    fx = interpolate(reform(dx(psi[0,*,*],x)),i,j)
+;    fz = interpolate(reform(dz(psi[0,*,*],z)),i,j)
+;    gf2 = fx^2 + fz^2
+;    l = (flux-f)/gf2
+;    xy[0,*] = xy[0,*] + l*fx
+;    xy[1,*] = xy[1,*] + l*fz
 
    return, xy
 end
@@ -3785,15 +3791,19 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
    ; remove divertor region from consideration
    div_mask = fltarr(n_elements(x), n_elements(z))
    if(n_elements(xpoint) ge 2) then begin
-       if(xpoint[1] lt axis[1]) then begin
-           for i=0, n_elements(z)-1 do begin
-               if(z[i] ge xpoint[1]) then div_mask[*,i] = 1.
-           end
-       endif else begin
-           for i=0, n_elements(z)-1 do begin
-               if(z[i] le xpoint[1]) then div_mask[*,i] = 1.
-           end
-       endelse
+       if(xpoint[0] ne 0. or xpoint[1] ne 0.) then begin
+           if(xpoint[1] lt axis[1]) then begin
+               for i=0, n_elements(z)-1 do begin
+                   if(z[i] ge xpoint[1]) then div_mask[*,i] = 1.
+               end
+               print, ' removing points below ', xpoint
+           endif else begin
+               for i=0, n_elements(z)-1 do begin
+                   if(z[i] le xpoint[1]) then div_mask[*,i] = 1.
+               end
+               print, ' removing points above ', xpoint
+           endelse
+       endif else div_mask = 1.
    endif else begin
        div_mask = 1.
    endelse
@@ -3893,6 +3903,8 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, r0=r0, $
              r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
              points=points, last=last, _EXTRA=extra)
            
+           print, abs(deriv(flux, flux_t))/(2.*!pi)
+
            units = ''
            name = '!6Safety Factor!X'
            symbol = '!8q!X'
