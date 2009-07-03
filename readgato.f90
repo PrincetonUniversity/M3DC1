@@ -14,14 +14,14 @@
       REAL*8, ALLOCATABLE  :: pponly(:), qsf(:), dnorm(:), dpdz(:), dpdr(:)
       REAL*8, ALLOCATABLE  :: sn(:),xn(:,:),zn(:,:),snorm(:)
       REAL*8, ALLOCATABLE  :: snorm2(:), xnew(:,:), znew(:,:)
-      REAL*8 :: d0, xmag, zmag,btorgato,rcgato, eaxe, curtot, ds, fac, dela, delb, denom, delpsi, amu0, pi
+      REAL*8 :: d0, xmag, zmag,btorgato,rcgato, eaxe, curtot, ds, fac,denom, delpsi, amu0, pi
       REAL*8, ALLOCATABLE :: psinormt(:), g4big0t(:), g4bigt(:), g4bigp(:),g4bigpp(:)
       REAL*8, ALLOCATABLE :: fbig0t(:), fbigt(:), fbigp(:), fbigpp(:)
       REAL*8, ALLOCATABLE :: psinorm(:), g4big0(:), g4big(:), fbig0(:), fbig(:)
       INTEGER :: i,j,ngato, nthet, npsi, nt, np, jjold, jstart, jj
       INTEGER :: ii, im, iz, iiold, istart, nthe, iprint, isym
       REAL*8, allocatable :: fspl(:,:)
-      REAL*8 :: bcxmin,bcxmax,fval(3),gzero,g1,g2,psi30,psi40,g30,g40,g4bigim1,g4save
+      REAL*8 :: bcxmin,bcxmax,fval(3),gzero,g1,g4bigim1,g4save
       integer :: ict(3),ibcxmin,ibcxmax,ilinx,ier,i40,i50
 
       real, allocatable :: norm(:,:), curv(:)
@@ -204,6 +204,8 @@
       ! write POLAR file
       call write_polar(xnew, znew, np, nt, 1)
 !
+       write(*,2000) rcgato, btorgato, fnorm(1), ponly(1),xmag,zmag
+  2000 format( "rcgato = ",1pe12.4,"   btorgato = ",1pe12.4,"   gzero = ",1pe12.4,"   ponly(1) ",e12.4,/," xmag,zmag = ",1p2e12.4)
       ! write profiles
       open(unit=75,file="profiles",status="unknown")
       write(75,801) npsi
@@ -222,9 +224,13 @@
       do j=1,npsi
         psinormt(j) = (psiflux(j)-psiflux(1))/(delpsi)
         g4big0t(j) = 0.5*(fnorm(j)**2 - (rcgato*btorgato)**2)
-        g4bigt(j)= ffpnorm(j)
-        fbig0t(j) = ponly(j)/ponly(1)
-        fbigt(j) = pponly(j)*amu0
+!.......changed 07/03/09
+!        g4bigt(j)= ffpnorm(j)
+!        fbig0t(j) = ponly(j)/ponly(1)
+!        fbigt(j) = pponly(j)*amu0
+         g4bigt(j)= ffpnorm(j)*delpsi
+         fbig0t(j) = ponly(j)*amu0
+         fbigt(j) = pponly(j)*amu0*delpsi
       enddo
 !
       do j=1,npsi

@@ -636,6 +636,8 @@ subroutine gradshafranov_solve
      norm2 = 0.
      do i=1,numnodes
         
+!.....added 06/23/09...scj
+       call nodcoord(i,x,z)
         call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
 !       if(is_boundary) cycle
         
@@ -877,8 +879,8 @@ subroutine gradshafranov_solve
         den0_l(2:6) = 0.
       endif
 
-      psibound = psilim
   end do
+      psibound = psilim
 
   ! free memory
   call deleterealvec(temp)
@@ -1187,7 +1189,9 @@ subroutine readpgfiles
   enddo
   close(76)
 
-  fbig0t = p0*fbig0t
+!
+!.....note:  removed this on 07/03/09...fbig0t is now total pressure
+! fbig0t = p0*fbig0t
 
   open(unit=77,file="profiles-g",status="old")
   read(77,804) npsi
@@ -1292,7 +1296,7 @@ end subroutine fget
    real, dimension(n), intent(in) :: p, pp, f, ffp, flux
 
    real, dimension(4) :: a
-   real :: dp, dpp
+   real :: dp,dpp
    integer :: j
 
    npsi = n

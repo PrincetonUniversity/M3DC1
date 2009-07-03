@@ -131,7 +131,7 @@ readgato :  $(READGATO_OBJS)
 	$(F90) $(READGATO_OBJS) -L${NTCCHOME}/lib -lpspline -o $@
 
 readjsolver : $(READJSOLVER_OBJS)
-	$(F90) $(READJSOLVER_OBJS) -o $@
+	$(F90) $(READJSOLVER_OBJS) -L${NTCCHOME}/lib -lpspline -o $@
 
 read_jsolver_exec.o : read_jsolver.f90
 	$(F90) $< $(F90OPTS) -DREAD_JSOLVER -o $@
