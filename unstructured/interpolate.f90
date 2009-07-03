@@ -78,25 +78,57 @@ subroutine cubic_interpolation_coeffs(x,m,i,a)
   integer, intent(in) :: m, i
   real, intent(in), dimension(m) :: x
   real, intent(out), dimension(4) :: a
+  integer :: ihermite
+  real  :: xpi,xpip
 
-  a(1) = x(i)
-  if(i.eq.1) then
+  ihermite = 0
+  select case(ihermite)
+  case(0)
+    a(1) = x(i)
+    if(i.eq.1) then
      a(2) = (-3.*x(i) + 4.*x(i+1) - x(i+2))/2.
      a(3) = (    x(i) - 2.*x(i+1) + x(i+2))/2.
      a(4) = 0.
-  else if(i.eq.m-1) then
+    else if(i.eq.m-1) then
      a(2) = (-2.*x(i-1) - 3.*x(i) + 5.*x(i+1))/6.
      a(3) = (    x(i-1) - 2.*x(i)    + x(i+1))/2.
      a(4) = (   -x(i-1) + 3.*x(i) - 2.*x(i+1))/6.
-  else if(i.eq.m) then
+    else if(i.eq.m) then
      a(2) = (-x(i-1) + x(i))/3.
      a(3) = ( x(i-1) - x(i))/2.
      a(4) = (-x(i-1) + x(i))/6.
-  else
+    else
      a(2) = (-2.*x(i-1) - 3.*x(i) + 6.*x(i+1) - x(i+2))/6.
      a(3) = (    x(i-1) - 2.*x(i)    + x(i+1)         )/2.
      a(4) = (   -x(i-1) + 3.*x(i) - 3.*x(i+1) + x(i+2))/6.
-  end if
+    end if
+  case(1)
+    a(1) = x(i)
+    if(i.eq.1) then
+      xpip= .5*(x(i+2)-x(i))
+      a(2) = -2*x(i) +2*x(i+1) - xpip     
+      a(3) =    x(i) -  x(i+1) + xpip
+      a(4) = 0.
+    else if(i.eq.m-1) then
+      xpi = .5*(x(i+1)-x(i-1))
+      xpip=    (x(i+1)-x(i))
+      a(2) = xpi
+      a(3) = -.5*x(i+1) + 2.0*x(i) - 2.5*x(i-1) +     x(i-2)
+      a(4) =  .5*x(i+1) - 1.5*x(i) + 1.5*x(i-1) - 0.5*x(i-2)
+    else if(i.eq.m) then
+      xpi = .5*(x(i+1)-x(i-1))
+      xpip=     x(i) - x(i-1)
+      a(2) = xpip
+      a(3) = -.5*x(i) + 2.0*x(i-1) - 2.5*x(i-2) +     x(i-3)
+      a(4) =  .5*x(i) - 1.5*x(i-1) + 1.5*x(i-2) - 0.5*x(i-3)
+    else
+      xpi = .5*(x(i+1)-x(i-1))
+      xpip= .5*(x(i+2)-x(i))
+      a(2) = xpi
+      a(3) = -3*x(i) +3*x(i+1) - 2*xpi - xpip
+      a(4) =  2*x(i) -2*x(i+1) +   xpi + xpip
+    endif
+  endselect
 end subroutine cubic_interpolation_coeffs
 
 !=====================================================
