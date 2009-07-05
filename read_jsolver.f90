@@ -152,9 +152,9 @@ Program readjsolver
   do j=1,npsi_jsv
      psinormt(j) = (psival_jsv(j)-psival_jsv(1))/(delpsi)
      g4big0t(j) = 0.5*(gxx_jsv(j)**2 - (rzero*bzero)**2)
-     g4bigt(j)= ffpnorm(j)*delpsi
+     g4bigt(j)= ffpnorm(j)
      fbig0t(j) = p_jsv(j)     !NOTE:  now fbig0t is total pressure
-     fbigt(j) = ppxx_jsv(j)*delpsi
+     fbigt(j) = ppxx_jsv(j)
   enddo
   !
   do j=1,npsi_jsv

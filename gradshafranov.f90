@@ -1103,6 +1103,13 @@ subroutine calc_toroidal_field(psii,tf)
      end if
 
      call g4get(psii(1), g4big0, g4big, g4bigp, g4bigpp)
+
+!.....changed 07/05/09 scj  for inumgs.ne.0 g4big is derivative wrt total psi, not normalized
+        if(inumgs.ne.0) then
+           g4big = g4big/dpsii
+           g4bigp = g4bigp/dpsii
+           g4bigpp = g4bigpp/dpsii
+        endif
      
      g4(1) = g4big0
      g4(2) = (psii(2))*g4big
@@ -1156,6 +1163,13 @@ subroutine calc_pressure(psii,pres)
      pres = 0.
   else
      call fget(psii(1), fbig0, fbig, fbigp, fbigpp)
+!
+!.....changed 07/05/09 scj  for inumgs.ne.0 fbig is derivative wrt total psi, not normalized
+      if(inumgs.ne.0) then
+        fbig = fbig/dpsii
+        fbigp = fbigp/dpsii
+      endif
+!
      
      pres(1) = fbig0
      pres(2) = psii(2)*fbig
