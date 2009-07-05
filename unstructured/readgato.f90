@@ -225,12 +225,10 @@
         psinormt(j) = (psiflux(j)-psiflux(1))/(delpsi)
         g4big0t(j) = 0.5*(fnorm(j)**2 - (rcgato*btorgato)**2)
 !.......changed 07/03/09
-!        g4bigt(j)= ffpnorm(j)
 !        fbig0t(j) = ponly(j)/ponly(1)
-!        fbigt(j) = pponly(j)*amu0
-         g4bigt(j)= ffpnorm(j)*delpsi
+         fbigt(j) = pponly(j)*amu0
          fbig0t(j) = ponly(j)*amu0
-         fbigt(j) = pponly(j)*amu0*delpsi
+         g4bigt(j)= ffpnorm(j)
       enddo
 !
       do j=1,npsi
