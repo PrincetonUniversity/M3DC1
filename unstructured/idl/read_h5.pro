@@ -655,6 +655,79 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
 
 end
 
+
+function find_next_boundary_point, xy, mesh=mesh
+   tol = 1.e-5
+   nelms = mesh.nelms._data
+
+   for i=long(0), nelms-1 do begin
+       a = mesh.elements._data[0,i]
+       b = mesh.elements._data[1,i]
+       c = mesh.elements._data[2,i]
+       t = mesh.elements._data[3,i]
+       x = mesh.elements._data[4,i]
+       y = mesh.elements._data[5,i]
+       bound = fix(mesh.elements._data[6,i])
+
+       p1 = [x, y]
+       p2 = p1 + [(b+a) * cos(t), (b+a) * sin(t)]
+       p3 = p1 + [b * cos(t) - c * sin(t), $
+                  b * sin(t) + c * cos(t)]
+       
+       if((bound and 1) eq 1) then begin
+           if(n_elements(xy) eq 0) then return, p1
+           if(abs(p1[0] - xy[0]) lt tol and $
+              abs(p1[1] - xy[1]) lt tol) then begin
+               return, p2
+           end
+       endif
+       if((bound and 2) eq 2) then begin
+           if(n_elements(xy) eq 0) then return, p2
+           if(abs(p2[0] - xy[0]) lt tol and $
+              abs(p2[1] - xy[1]) lt tol) then begin
+               return, p3
+           end
+       endif
+       if((bound and 4) eq 4) then begin
+           if(n_elements(xy) eq 0) then return, p3
+           if(abs(p3[0] - xy[0]) lt tol and $
+              abs(p3[1] - xy[1]) lt tol) then begin
+               return, p1
+           end
+       endif
+   end
+
+   print, 'Error: no next boundary point found'
+   return, xy
+end
+
+function get_boundary_path, mesh=mesh, _EXTRA=extra
+
+   if(n_elements(mesh) eq 0) then mesh = read_mesh(_EXTRA=ex)
+   if(n_tags(mesh) eq 0) then return, [0,0]
+
+   nelms = mesh.nelms._data
+
+   nbound = 0
+   for i=long(0), nelms-1 do begin
+       bound = fix(mesh.elements._data[6,i])
+       if((bound and 1) eq 1) then nbound = nbound + 1
+       if((bound and 2) eq 2) then nbound = nbound + 1
+       if((bound and 4) eq 4) then nbound = nbound + 1
+   end
+
+   xy = fltarr(2,nbound)
+
+   xy[*,0] = find_next_boundary_point(mesh=mesh)
+
+   for i=1, nbound-1 do begin
+       xy[*,i] = find_next_boundary_point(xy[*,i-1],mesh=mesh)
+   end
+   
+   return, xy
+end
+
+
 ;======================================================
 ; is_in_tri
 ; ~~~~~~~~~
@@ -3579,17 +3652,16 @@ function path_at_flux, psi,x,z,t,flux
        return, 0
    end
 
-   i = n_elements(x)*(xy[0,*]-min(x)) / (max(x)-min(x))
-   j = n_elements(z)*(xy[1,*]-min(z)) / (max(z)-min(z))
-
-   ; refine the surface found by contour with a single newton iteration
-;    f = interpolate(reform(psi[0,*,*]),i,j)
-;    fx = interpolate(reform(dx(psi[0,*,*],x)),i,j)
-;    fz = interpolate(reform(dz(psi[0,*,*],z)),i,j)
-;    gf2 = fx^2 + fz^2
-;    l = (flux-f)/gf2
-;    xy[0,*] = xy[0,*] + l*fx
-;    xy[1,*] = xy[1,*] + l*fz
+; refine the surface found by contour with a single newton iteration
+;   i = n_elements(x)*(xy[0,*]-min(x)) / (max(x)-min(x))
+;   j = n_elements(z)*(xy[1,*]-min(z)) / (max(z)-min(z))
+;   f = interpolate(reform(psi[0,*,*]),i,j)
+;   fx = interpolate(reform(dx(psi[0,*,*],x)),i,j)
+;   fz = interpolate(reform(dz(psi[0,*,*],z)),i,j)
+;   gf2 = fx^2 + fz^2
+;   l = (flux-f)/gf2
+;   xy[0,*] = xy[0,*] + l*fx
+;   xy[1,*] = xy[1,*] + l*fz
 
    return, xy
 end
@@ -4195,7 +4267,7 @@ pro plot_poloidal_rotation, _EXTRA=extra
 end
 
 
-pro write_geqdsk, eqfile=eqfile, slice=slice, b0=b0, l0=l0, $
+pro write_geqdsk, eqfile=eqfile, b0=b0, l0=l0, $
                   psilim=psilim, _EXTRA=extra
   
   if(n_elements(slice) eq 0) then begin
@@ -4209,10 +4281,10 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, b0=b0, l0=l0, $
   rzero = read_parameter('rzero', _EXTRA=extra)
 
   ; calculate flux averages
-  psi = read_field('psi',x,z,t,slice=slice,_EXTRA=extra)
-  jphi= read_field('jphi',x,z,t,slice=slice,_EXTRA=extra)
-  p0 = read_field('p',x,z,t,slice=slice,_EXTRA=extra)
-  I0 = read_field('I',x,z,t,slice=slice,_EXTRA=extra)
+  psi = read_field('psi',x,z,t,mesh=mesh,/equilibrium,_EXTRA=extra)
+  jphi= read_field('jphi',x,z,t,/equilibrium,_EXTRA=extra)
+  p0 = read_field('p',x,z,t,/equilibrium,_EXTRA=extra)
+  I0 = read_field('I',x,z,t,/equilibrium,_EXTRA=extra)
   r = radius_matrix(x,z,t)
   beta = r^2*2.*p0/(s_bracket(psi,psi,x,z) + I0^2)
   beta0 = mean(2.*p0*r^2/(bzero*rzero)^2)
@@ -4222,47 +4294,76 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, b0=b0, l0=l0, $
   tcur = abs(total(jphi*dx*dz/r))
   print, 'current = ', tcur
 
-
-  ; find points at psi = psilim to use as boundary points
+  ; calculate magnetic axis and xpoint
   lcfs_psi = lcfs(psi,x,z, axis=axis, xpoint=xpoint, $
                   flux0=flux0, _EXTRA=extra)
-  print, 'cjdebug: psilim= ', psilim, 'lcfs_psi= ', lcfs_psi
-  if(n_elements(psilim) eq 0) then begin
-      ; use psilim = lcfs if psilim is not given
-      psilim = lcfs_psi
-  endif
 
-  window, 0
-  contour, psi, x, z, levels=psilim, /path_data_coords, path_xy=lcfs_xy
-
-;  lcfs_xy = path_at_flux(psi,x,z,t,psilim)
-
-  ; count only points on separatrix above the xpoint
-  if(n_elements(xpoint) gt 1) then begin
-      if(xpoint[1] lt axis[1]) then begin
-          lcfs_mask = lcfs_xy[1,*] gt xpoint[1]
-      endif else begin
-          lcfs_mask = lcfs_xy[1,*] lt xpoint[1]
-      endelse
-  endif else begin
-      lcfs_mask = fltarr(1, n_elements(lcfs_xy[1,*]))
-      lcfs_mask[*] = 1
-  endelse
-
+  ; plot psi
   contour_and_legend, psi, x, z
-  oplot, lcfs_xy[0,*], lcfs_xy[1,*]
 
-  nlim = fix(total(lcfs_mask))
-  rlim = fltarr(nlim)
-  zlim = fltarr(nlim)
-  j = 0 
-  for i=0, n_elements(lcfs_mask)-1 do begin
-      if(not lcfs_mask[0, i]) then continue
-      rlim[j] = lcfs_xy[0,i]
-      zlim[j] = lcfs_xy[1,i]
-      j = j+1
-  end
-  print, 'lim points = ', nlim, j
+  ; calculate wall points
+  bound_xy = get_boundary_path(mesh=mesh, _EXTRA=extra)
+  nwall = n_elements(bound_xy[0,*])
+  rwall = fltarr(nwall)
+  zwall = fltarr(nwall)
+  rwall = bound_xy[0,*]
+  zwall = bound_xy[1,*]
+
+  ifixedb = read_parameter('ifixedb', _EXTRA=extra)
+  print, 'ifixedb = ', ifixedb
+
+  if(ifixedb eq 1) then begin
+      psilim = 0.
+      lcfs_psi = 0.
+      
+      ; for ifixedb eq 1, boundary points are same as wall points
+      nlim = nwall
+      rlim = rwall
+      zlim = zwall
+
+  endif else begin
+      ; find points at psi = psilim to use as boundary points
+      if(n_elements(psilim) eq 0) then begin
+          ; use psilim = lcfs if psilim is not given
+          psilim = lcfs_psi
+      endif
+      print, 'lcfs_psi = ', lcfs_psi
+      print, 'psilim = ', psilim
+      
+      window, 0
+      lcfs_xy = path_at_flux(psi,x,z,t,psilim)
+
+      ; count only points on separatrix above the xpoint
+      if(n_elements(xpoint) gt 1) then begin
+          if(xpoint[0] ne 0 or xpoint[1] ne 0) then begin
+              if(xpoint[1] lt axis[1]) then begin
+                  lcfs_mask = lcfs_xy[1,*] gt xpoint[1]
+              endif else begin
+                  lcfs_mask = lcfs_xy[1,*] lt xpoint[1]
+              endelse
+          endif else begin
+              lcfs_mask = fltarr(1, n_elements(lcfs_xy[1,*]))
+              lcfs_mask[*] = 1
+          endelse
+      endif else begin
+          lcfs_mask = fltarr(1, n_elements(lcfs_xy[1,*]))
+          lcfs_mask[*] = 1
+      endelse
+      
+      oplot, lcfs_xy[0,*], lcfs_xy[1,*]
+      
+      nlim = fix(total(lcfs_mask))
+      rlim = fltarr(nlim)
+      zlim = fltarr(nlim)
+      j = 0 
+      for i=0, n_elements(lcfs_mask)-1 do begin
+          if(not lcfs_mask[0, i]) then continue
+          rlim[j] = lcfs_xy[0,i]
+          zlim[j] = lcfs_xy[1,i]
+          j = j+1
+      end
+      print, 'lim points = ', nlim, j
+  endelse
 
   ; reduce the boundary points if necessary
   while(nlim ge 500) do begin
@@ -4278,33 +4379,9 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, b0=b0, l0=l0, $
       zlim = new_zlim
       print, 'new lim points = ', nlim
   end
-
+      
   oplot, rlim, zlim, psym=4
-
-  ; wall points
-  xx = x[1:n_elements(x)-2]
-  zz = z[1:n_elements(x)-2]
-  nwall = 2*n_elements(xx) + 2*n_elements(zz)
-  rwall = fltarr(nwall)
-  zwall = fltarr(nwall)
-  o = 0
-  i = n_elements(xx)
-  rwall[o:i-1] = xx
-  zwall[o:i-1] = min(zz)
-  o = i
-  i = i + n_elements(zz)
-  rwall[o:i-1] = max(xx)
-  zwall[o:i-1] = zz
-  o = i
-  i = i + n_elements(xx)
-  rwall[o:i-1] = reverse(xx)
-  zwall[o:i-1] = max(zz)
-  o = i
-  i = i + n_elements(zz)
-  rwall[o:i-1] = min(xx)
-  zwall[o:i-1] = reverse(zz)
-  print, 'wall points = ', i, nwall
-  
+ 
 
   ; calculate flux averages
   p = flux_average_field(p0,psi,x,z,flux=flux,$
@@ -4461,34 +4538,6 @@ pro write_geqdsk, eqfile=eqfile, slice=slice, b0=b0, l0=l0, $
 
   mu0 = (4.*!pi*1.e-7)
   ajpest2 = jdotb/(I*r2i)
-
-  ;feb-16-2009
-  ;cj added to find correct bdy
-  fname='AnalyticModel' 
-  bdy=READ_ASCII(fname) 
-  print,bdy.(0)
-  X0 = bdy.(0)[0]
-  X1 = bdy.(0)[1]
-  X2 = bdy.(0)[2]
-  Z0 = bdy.(0)[3]
-  Z1 = bdy.(0)[4]
-  print, X0,X1,X2,Z0,Z1
-  print, nlim, n_elements(zlim), zlim[0], zlim[nlim-1]
-  rpass = fltarr(nlim)
-  zpass = fltarr(nlim)
-  theta = fltarr(nlim)
-  delta=2.*!pi/(nlim-1)
-  for index=0, nlim-1 do begin 
-      theta[index]= !pi - (index * delta)
-      rpass(index)=X0 + X1*cos(theta[index] + X2*sin(theta[index]))
-      zpass(index)=Z0 + Z1*sin(theta[index]                       )
-  endfor 
-  print, theta[0], theta[nlim-1]
-  print, rpass[0], rpass[nlim-1]
-  print, zpass[0], zpass[nlim-1] 
-  rlim = rpass
-  zlim = zpass
-  oplot, rlim, zlim, psym=4
 
   printf, file, format=f6101, mu0*p[0:npsit-1]
   printf, file, format=f6101, mu0*pprime[0:npsit-1]

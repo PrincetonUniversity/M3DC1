@@ -65,6 +65,11 @@ Program Reducedquintic
           timec(1:2),timec(3:4),timec(5:8)
 1001 format("M3D-C1 VERSION 1.0    DATE: ", a4,1x,a2,1x,a2,3x,               &
           "TIME: ",a2,":",a2,":",a4,/)
+#ifdef USECOMPLEX
+     write(*,*) 'COMPLEX VERSION'
+#else
+     write(*,*) 'REAL VERSION'
+#endif
   endif
 
   ! initialize needed variables and define geometry and triangles
