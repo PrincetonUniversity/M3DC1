@@ -404,6 +404,39 @@ subroutine rotate_matrix(imatrix, ibegin, normal, curv, rhs, ic)
 end subroutine
 
 
+!======================================================================
+! set_total_bc
+!======================================================================
+subroutine set_total_bc(imatrix,ibegin,rhs,bv,normal,curv,izonedim)
+  use basic
+  implicit none
+
+  integer, intent(in) :: imatrix              ! matrix handle
+  integer, intent(in) :: ibegin               ! first dof of field
+  vectype, intent(inout), dimension(*) :: rhs ! right-hand-side of equation
+  vectype, intent(in), dimension(6) :: bv     ! boundary values
+  real, intent(in) :: normal(2), curv
+  integer, intent(in) :: izonedim             ! dimension of boundary
+  
+  !clamp value
+  if(imatrix.ne.0) then
+     call setdiribc(imatrix, ibegin)
+     call setdiribc(imatrix, ibegin+1)
+     call setdiribc(imatrix, ibegin+2)
+     call setdiribc(imatrix, ibegin+3)
+     call setdiribc(imatrix, ibegin+4)
+     call setdiribc(imatrix, ibegin+5)
+  end if
+  rhs(ibegin  ) = bv(1)
+  rhs(ibegin+1) = bv(2)
+  rhs(ibegin+2) = bv(3)
+  rhs(ibegin+3) = bv(4)
+  rhs(ibegin+4) = bv(5)
+  rhs(ibegin+5) = bv(6)
+
+end subroutine set_total_bc
+
+
 
 
 !======================================================================
@@ -502,6 +535,19 @@ subroutine set_tangent_bc(imatrix,ibegin,rhs,bv,normal,curv,izonedim)
         call setgeneralbc(imatrix,irow,numvals,cols(3:5),vals(3:5),icomplex)
      endif
      rhs(irow) = bv_rotated(4)
+
+     ! nt
+     irow = ibegin+4
+     if(imatrix.ne.0) then
+        numvals = 5
+        vals(1) = -curv*normal(2)
+        vals(2) = curv*normal(1)
+        vals(3) = -normal(1)*normal(2)
+        vals(4) = normal(1)**2 - normal(2)**2
+        vals(5) = normal(1)*normal(2)
+        call setgeneralbc(imatrix, irow, numvals, cols, vals, icomplex)
+     endif
+     rhs(irow) = bv_rotated(5)
   endif
 
 end subroutine set_tangent_bc

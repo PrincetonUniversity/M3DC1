@@ -53,3 +53,42 @@ pro plot_br, _EXTRA=extra, plotq=plotq
        oplot, -ntor*q, sqrt(nflux2), linestyle=2, color=!d.table_size-1
    endif
 end
+
+pro integrate_j, df=df, _EXTRA=extra
+   
+   ntor = read_parameter('ntor', _EXTRA=extra)
+   q0 = findgen(10)/float(ntor)
+
+   fq = flux_at_q(q0, _EXTRA=extra)
+
+   psi = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra)
+   jphi = read_field('jphi',x,z,t,_EXTRA=extra)
+       r = radius_matrix(x,z,t)
+
+   psibound = lcfs(flux0=flux0, _EXTRA=extra)
+
+   ndf = 500
+
+   int_j = fltarr(n_elements(fq), ndf)
+   df = (findgen(ndf)+1.)/1000.
+
+   for i=0, n_elements(fq)-1 do begin   
+       for k=0, ndf-1 do begin
+           deltaf = abs((flux0 - psibound)) * df[k]
+           
+           fmin = fq[i] - deltaf
+           fmax = fq[i] + deltaf
+           j = -((psi ge fmin) and (psi le fmax)) * jphi / r
+           int_j[i, k] = total(j*r)*mean(deriv(x))*mean(deriv(z))
+       end
+       
+       if(i eq 0) then begin
+           plot, df, int_j[i,*], color=color(i,n_elements(fq)), yrange=[0,0.1]
+       endif else begin
+           oplot, df, int_j[i,*], color=color(i,n_elements(fq))
+       endelse
+   end
+
+   plot_legend, string(format='("m = ",I)', indgen(10)), $
+     color=colors(n_elements(fq))
+end

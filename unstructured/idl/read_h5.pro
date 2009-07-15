@@ -600,7 +600,8 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
          mesh.elements._data[5,*], psym = 3, _EXTRA=ex, /nodata
    endif  
 
-   if(n_elements(col) ne 0) then loadct, 12
+   loadct, 12
+   col = color(3,5)
  
    version = read_parameter('version', _EXTRA=ex)
    if(version eq 0) then begin
@@ -625,22 +626,27 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
        t = mesh.elements._data[3,i]
        x = mesh.elements._data[4,i]
        y = mesh.elements._data[5,i]
-       if(boundary) then begin
-           bound = fix(mesh.elements._data[6,i])
-       endif else bound = 7
-
+       bound = fix(mesh.elements._data[6,i])
 
        p1 = [x, y]
        p2 = p1 + [(b+a) * cos(t), (b+a) * sin(t)]
        p3 = p1 + [b * cos(t) - c * sin(t), $
                   b * sin(t) + c * cos(t)]
-       
-       if((bound and 1) eq 1) then $
-         oplot, [p1[0],p2[0]]+xzero, [p1[1],p2[1]]+zzero, _EXTRA=ex
-       if((bound and 2) eq 2) then $
-         oplot, [p2[0],p3[0]]+xzero, [p2[1],p3[1]]+zzero, _EXTRA=ex
-       if((bound and 4) eq 4) then $
-         oplot, [p3[0],p1[0]]+xzero, [p3[1],p1[1]]+zzero, _EXTRA=ex
+      
+       if(boundary) then pp=bound else pp=7
+ 
+       if((pp and 1) eq 1) then begin
+           if((bound and 1) eq 1) then th=!p.thick*3 else th=!p.thick
+           oplot, [p1[0],p2[0]]+xzero, [p1[1],p2[1]]+zzero, color=col, thick=th
+       end
+       if((pp and 2) eq 2) then begin
+           if((bound and 2) eq 2) then th=!p.thick*3 else th=!p.thick
+           oplot, [p2[0],p3[0]]+xzero, [p2[1],p3[1]]+zzero, color=col, thick=th
+       end
+       if((pp and 4) eq 4) then begin
+           if((bound and 4) eq 4) then th=!p.thick*3 else th=!p.thick
+           oplot, [p3[0],p1[0]]+xzero, [p3[1],p1[1]]+zzero, color=col, thick=th
+       end
 
        maxr[0] = max([maxr[0], p1[0], p2[0], p3[0]])
        minr[0] = min([minr[0], p1[0], p2[0], p3[0]])
@@ -852,7 +858,8 @@ end
 
 
 function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
-                     filename=filename, xrange=xrange, yrange=yrange
+                     filename=filename, xrange=xrange, yrange=yrange, $
+                     mask=mask
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
@@ -1016,6 +1023,7 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
        endfor
 
 ;       print, 'Setting value outside boundary = ', edge_val
+       print, 'applying mask with edge_val = ', edge_val
        result = result + mask*edge_val
    endif
 
@@ -1058,7 +1066,7 @@ end
 
 
 function read_field, name, x, y, t, slices=slices, mesh=mesh, $
-                     filename=filename, points=pts, $
+                     filename=filename, points=pts, mask=mask, $
                      rrange=xrange, zrange=yrange,equilibrium=equilibrium, $
                      h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                      diff=diff, at_points=at_points,operation=op, $
@@ -1123,7 +1131,9 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
    if(hdf5_file_test(filename) eq 0) then return, 0
 
-   print, 'reading field ', name, ' from file ', filename
+   print, 'reading field ', name, ' from file ', filename, $
+     ' linear=', keyword_set(linear), $
+     ' points=', pts
 
    nt = read_parameter("ntime", filename=filename)
    nv = read_parameter("numvar", filename=filename)
@@ -1394,8 +1404,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    endif else if(strcmp('angular momentum', name, /fold_case) eq 1) or $
      (strcmp('lz', name, /fold_case) eq 1) then begin
 
-       idens = read_parameter('idens', filename=filename)
-
        V = read_field('V', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange, at_points=at_points)
@@ -1413,11 +1421,17 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('jz', name, /fold_case) eq 1) then begin
 
-       idens = read_parameter('idens', filename=filename)
+;       jphi = read_field('jphi', x, y, t, slices=time, mesh=mesh, $
+;                         filename=filename, points=pts, mask=mask, $
+;                         rrange=xrange, zrange=yrange, at_points=at_points)
 
-       jphi = read_field('jphi', x, y, t, slices=time, mesh=mesh, $
-                         filename=filename, points=pts, $
+       lp = read_field('psi', x, y, t, slices=time, mesh=mesh, op=7, $
+                         filename=filename, points=pts, mask=mask, $
                          rrange=xrange, zrange=yrange, at_points=at_points)
+       psir = read_field('psi', x, y, t, slices=time, mesh=mesh, op=2, $
+                         filename=filename, points=pts, mask=mask, $
+                         rrange=xrange, zrange=yrange, at_points=at_points)
+
 
        if(itor eq 1) then begin
            if(n_elements(at_points) eq 0) then begin
@@ -1427,7 +1441,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            endelse
        endif else r = 1.
 
-       data = -jphi/r
+       data = -(lp - psir/r)/r
        symbol = '!8J!D!9P!N!X'
        d = dimensions(/j0, _EXTRA=extra)
 
@@ -1528,7 +1542,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
      then begin
 
        psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
-                        filename=filename, points=pts, $
+                        filename=filename, points=pts, mask=mask, $
                         rrange=xrange, zrange=yrange, at_points=at_points)
 
        if(itor eq 1) then begin
@@ -1687,7 +1701,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
       endif else if(strcmp('vor', name, /fold_case) eq 1) then begin
 
           phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
-                           filename=filename, points=pts, $
+                           filename=filename, points=pts, mask=mask, $
                            rrange=xrange, zrange=yrange, at_points=at_points)
 
           data = grad_shafranov(phi,x,y,tor=itor)
@@ -1699,7 +1713,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
      endif else if(strcmp('com', name, /fold_case) eq 1) then begin
 
          chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
-                          filename=filename, points=pts, $
+                          filename=filename, points=pts, mask=mask, $
                           rrange=xrange, zrange=yrange, at_points=at_points)
 
          data = laplacian(chi,x,y,tor=itor)
@@ -1800,14 +1814,14 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('vr', name, /fold_case) eq 1) then begin
 
-       phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
-                        filename=filename, points=pts, $
+       phi = read_field('phi', x, y, t, slices=time, mesh=mesh, linear=linear,$
+                        filename=filename, points=pts, mask=mask, $
                         rrange=xrange, zrange=yrange, at_points=at_points)
-       chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
-                        filename=filename, points=pts, $
+       chi = read_field('chi', x, y, t, slices=time, mesh=mesh, linear=linear,$
+                        filename=filename, points=pts, mask=mask, $
                         rrange=xrange, zrange=yrange, at_points=at_points)
-       psi = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
-                        filename=filename, points=pts, slices=time, $
+       psi = read_field('psi', x, y, t, /equilibrium, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, mask=mask, $
                         rrange=xrange, zrange=yrange, at_points=at_points)
        
        if(itor eq 1) then begin
@@ -1827,6 +1841,32 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        endif
        symbol = '!8u!Dr!N!X'
        d = dimensions(/v0, _EXTRA=extra)
+
+   ;===========================================
+   ; radial field
+   ;===========================================
+   endif else if(strcmp('br', name, /fold_case) eq 1) then begin
+
+       psi0 = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+                        filename=filename, points=pts, slices=time, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       psi = read_field('psi', x, y, t, mesh=mesh, $
+                        filename=filename, points=pts, slices=time, $
+                        rrange=xrange, zrange=yrange, at_points=at_points, $
+                       linear=linear)
+       
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
+
+       data = a_bracket(psi,psi0,x,y)/(r*sqrt(s_bracket(psi0,psi0,x,y)))
+       symbol = '!8B!Dr!N!X'
+       d = dimensions(/b0, _EXTRA=extra)
+
 
    ;===========================================
    ; poloidal flow
@@ -2094,51 +2134,18 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        t = fltarr(trange[1]-trange[0]+1)
        file_id = h5f_open(filename)
 
-       if((ilin eq 1) and (not keyword_set(linear))) then begin
-           time_group_id = h5g_open(file_id, time_name(-1))
-           mesh = h5_parse(time_group_id, 'mesh', /read_data)   
-
-           field_group_id = h5g_open(time_group_id, 'fields')
-
-                                ; check to see if "name" exists
-           nmembers = h5g_get_nmembers(time_group_id, 'fields')
-           match = 0
-           for m=0, nmembers-1 do begin
-               thisname = h5g_get_member_name(time_group_id, 'fields', m)
-               if(strcmp(thisname, name, /fold_case) eq 1) then begin
-                   name = thisname
-                   match = 1
-                   break
-               endif
-           end
-           if(match eq 0) then begin
-               print, "No field named ", name, " at time slice", -1
-           endif else begin
-       
-               field = h5_parse(field_group_id, name, /read_data)
-           
-               h5g_close, field_group_id
-               h5g_close, time_group_id
-
-               if(n_elements(at_points) eq 0) then begin
-                   base[*,*] = $
-                     eval_field(field._data, mesh, points=pts, $
-                                r=x, z=y, op=op, filename=filename, $
-                                xrange=xrange, yrange=yrange)
-               endif else begin
-                   print, sz
-                   for k=0, sz[1]-1 do begin
-                       pos = [at_points[0,k]-xzero, $
-                              at_points[1,k]-zzero]
-                       base[k] = $
-                         eval_global(field._data,mesh,pos,elm=elm,op=op)
-                       if(elm eq -1) then begin
-                           print, 'Warning: point outside domain'
-                       endif
-                   end
-               endelse
-           endelse
+       if((max(trange) ge 0) and $
+          (ilin eq 1) and (not keyword_set(linear))) then begin
+           base = read_field(name, x, y, t, slices=-1, mesh=mesh, $
+                             filename=filename, points=pts, $
+                             rrange=xrange, zrange=yrange, $
+                             h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
+                             at_points=at_points,operation=op, $
+                             last=last,symbol=symbol,units=units, $
+                             cgs=cgs, mks=mks)
        endif else base = 0.
+
+           
 
        for i=trange[0], trange[1] do begin
            
@@ -2178,7 +2185,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                data[i-trange[0],*,*] = $
                  eval_field(field._data, mesh, points=pts, $
                             r=x, z=y, op=op, filename=filename, $
-                            xrange=xrange, yrange=yrange) $
+                            xrange=xrange, yrange=yrange, mask=mask) $
                  + base*(i ne -1)
            endif else begin
                print, sz
@@ -2527,171 +2534,14 @@ function lcfs, psi, x, z, axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra
 end
 
 
-pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
-                mcolor=mc, lcfs=lcfs, title=title, units=units, $
-                maskrange=maskrange, maskfield=maskfield, range=range, $
-                rrange=rrange, zrange=zrange, linear=linear, $
-                xrange=xrange, yrange=yrange, xlim=xlim, $
-                cutx=cutx, cutz=cutz, mpeg=mpeg, $
-                boundary=boundary, _EXTRA = ex
-
-   if(n_elements(time) eq 0) then time = 0
-   if(n_elements(title) eq 0) then notitle = 1 else notitle = 0
-
-   if(size(name, /type) eq 7) then begin
-       field = read_field(name, x, y, t, slices=time, mesh=mesh, $
-                          points=p, rrange=rrange, zrange=zrange, $
-                          symbol=fieldname, units=u, linear=linear, $
-                          _EXTRA=ex)
-       if(n_elements(field) le 1) then return
-
-       if(n_elements(units) eq 0) then units=u
-   endif else begin
-       field = name
-       if(n_elements(field) le 1) then return
-   endelse
-
-   if(n_elements(maskrange) eq 2) then begin
-       if((strcmp(name, maskfield) eq 1) and $
-         (not keyword_set(linear))) then begin
-           psi = field
-       endif else begin
-           psi = read_field(maskfield, slices=time, mesh=mesh, $
-                            points=p, rrange=rrange, zrange=zrange, $
-                           /equilibrium, _EXTRA=ex)
-       endelse
-       mask = (psi ge maskrange[0]) and (psi le maskrange[1])
-       field = mask*field + (1-mask)*(min(field-mask*field,/absolute))
-   endif
-
-   sz = size(field, /dimension)
-   nt = sz[0]
-
-   ; open mpeg object
-   if(n_elements(mpeg) ne 0) then begin
-       mpegid = mpeg_open([640,480],bitrate=104857200, iframe_gap=4)
-   end
-
-   if(n_elements(range) eq 0) then range = [min(field),max(field)]
 
 
-   if(n_elements(cutx) gt 0) then begin
-       dum = min(x-cutx,i,/absolute)
-       plot, y, field[0,i,*]
-   endif else if(n_elements(cutz) gt 0) then begin
-       dum = min(y-cutz,i,/absolute)
-       plot, x, field[0,*,i]
-   endif else begin
-       for k=0, nt-1 do begin
-           if((notitle eq 1) and (n_elements(t) ne 0)) then begin
-               title = fieldname
-           end
-           
-           contour_and_legend, field[k,*,*], x, y, title=title, $
-             label=units, $
-             xtitle=make_label('!8R!X', /l0, _EXTRA=ex), $
-             ytitle=make_label('!8Z!X', /l0, _EXTRA=ex), $
-             range=range, _EXTRA=ex
+pro plot_flux_contour, fval, _EXTRA=extra
+   n = n_elements(fval)
 
-           if(keyword_set(lcfs)) then plot_lcfs, _EXTRA=ex
+   psi = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra)
 
-           if(keyword_set(boundary)) then plotmesh=1
-           if(keyword_set(plotmesh)) then begin
-               loadct, 12
-               plot_mesh, mesh=mesh, color=color(3,5), /oplot, $
-                 boundary=boundary, _EXTRA=ex
-           endif
-           
-           if(n_elements(mpeg) ne 0) then begin
-               image = tvrd(true=1)
-               
-               image[0,*,*] = rotate(reform(image[0,*,*]), 7)
-               image[1,*,*] = rotate(reform(image[1,*,*]), 7)
-               image[2,*,*] = rotate(reform(image[2,*,*]), 7)
-               
-               mpeg_put, mpegid, image=image, frame=5*k
-           end
-       end
-   endelse
-
-   if(n_elements(mpeg) ne 0) then begin
-       print, 'Writing mpeg...'
-       mpeg_save, mpegid, filename=mpeg
-       mpeg_close, mpegid
-   end
-end
-
-
-pro plot_flux, norm=norm, _EXTRA=extra
-   psi = read_field('psi',x,z,t,_EXTRA=extra)
-
-   psilim = lcfs(psi,x,z,flux0=flux0)
-
-   if(keyword_set(norm)) then begin
-       psi = (psi - flux0)/(psilim - flux0)
-   endif
-
-   loadct,12
-   contour, psi, x, z, _EXTRA=extra
-end
-
-
-pro animate, name, nslices=nslices, slice=slice, _EXTRA=extra
-   ntor = read_parameter('ntor',_EXTRA=extra)
-  
-   print, 'ntor = ', ntor
-
-   if(n_elements(slice) eq 0) then begin
-       field = read_field(name,x,z,t,_EXTRA=extra, /last,$
-                          symbol=symbol,units=units)
-       field_i = read_field(name+'_i',x,z,t,_EXTRA=extra, /last)
-   endif else begin
-       field = read_field(name,x,z,t,_EXTRA=extra, slice=slice,$
-                          symbol=symbol,units=units)
-       field_i = read_field(name+'_i',x,z,t,_EXTRA=extra, slice=slice)
-   endelse
-
-   if(n_elements(field) le 1) then return
-
-   if(n_elements(nslices) eq 0) then nslices = 12
-      
-   f = fltarr(nslices,n_elements(x),n_elements(z))
-
-   for i=0, nslices-1 do begin
-       f[i,*,*] = field[0,*,*]*cos(2.*!pi*i/nslices) + $
-         field_i[0,*,*]*sin(2.*!pi*i/nslices)
-   end
-
-   fstr = '("!9P!6 = ",g0.2,"!7p!X")'
-   
-   range=[min(f), max(f)]
-
-   for i=0, nslices-1 do begin
-       if(i eq 0) then begin
-           title = '!9P!6 = 0!X'
-       endif else if(2.*i/nslices eq 1) then begin
-           title = '!9P!6 = !7p!X'
-       endif else begin
-           title = string(format=fstr,2.*i/nslices)
-       endelse
-       title = symbol + ' !6(' + title + '!6)!X'
-       print, 'plotting...'
-       plot_field, f[i,*,*],-1,x,z, title=title, range=range, $
-        _EXTRA=extra
-       print, 'reading...'
-       image = tvrd(/true)
-       
-       print, 'setting...'
-       if(i eq 0) then begin
-           sz = size(image, /dim)
-           xinteranimate, set=[sz[1], sz[2],nslices], $
-             mpeg_bitrate=104857200
-; mpeg_quality=100, mpeg_format=1, mpeg_bitrate=429496729200
-       endif
-       xinteranimate, frame=i, image=image
-   endfor
-
-   xinteranimate, 10
+   contour, psi, x, z, levels=fval(sort(fval)), _EXTRA=extra
 end
 
 
@@ -3144,8 +2994,11 @@ pro plot_lcfs, psi, x, z, psival=psival,_EXTRA=extra
 
     ; plot contour
     loadct, 12
-    contour, psi, x, z, /overplot, nlevels=1, levels=psival, $
-      thick=!p.charthick*2., color=color(3,5)
+;    contour, psi, x, z, /overplot, nlevels=1, levels=psival, $
+;      thick=!p.charthick*2., color=color(3,5)
+    xy = path_at_flux(psi, x, z, t, psival)
+
+    oplot, xy[0,*], xy[1,*], thick=!p.thick*3, color=color(3,5)
 end
 
 
@@ -3626,25 +3479,12 @@ pro plot_pol_velocity, time,  maxval=maxval, points=points, $
     ytitle=make_label('!8Z!X', /l0, _EXTRA=extra), $
     title=title, subtitle=maxstr
 
-  if(keyword_set(lcfs)) then begin
-      psi = read_field('psi',x,z,t,slice=time,_EXTRA=extra,points=200)
-      plot_lcfs
-      ; if psival not passed, choose limiter value
-      if(n_elements(psival) eq 0) then begin
-          psival = lcfs(psi,x,z, points=pts, $
-                        xlim=xlim, _EXTRA=extra, linear=0)
-      endif
-
-      ; plot contour
-      if(n_elements(color) ne 0) then loadct, 12
-      contour, psi, x, y, /overplot, nlevels=1, levels=psival, $
-        color=color, thick=!p.charthick*2.
-  endif
+  if(keyword_set(lcfs)) then plot_lcfs, points=200, _EXTRA=extra
 end
 
 
 function path_at_flux, psi,x,z,t,flux
-   contour, psi[0,*,*], x, z, levels=flux, $
+   contour, psi[0,*,*], x, z, levels=flux, closed=0, $
      path_xy=xy, path_info=info, /path_data_coords, /overplot
 
    if(n_elements(xy) eq 0) then begin
@@ -3653,15 +3493,15 @@ function path_at_flux, psi,x,z,t,flux
    end
 
 ; refine the surface found by contour with a single newton iteration
-;   i = n_elements(x)*(xy[0,*]-min(x)) / (max(x)-min(x))
-;   j = n_elements(z)*(xy[1,*]-min(z)) / (max(z)-min(z))
-;   f = interpolate(reform(psi[0,*,*]),i,j)
-;   fx = interpolate(reform(dx(psi[0,*,*],x)),i,j)
-;   fz = interpolate(reform(dz(psi[0,*,*],z)),i,j)
-;   gf2 = fx^2 + fz^2
-;   l = (flux-f)/gf2
-;   xy[0,*] = xy[0,*] + l*fx
-;   xy[1,*] = xy[1,*] + l*fz
+   i = n_elements(x)*(xy[0,*]-min(x)) / (max(x)-min(x))
+   j = n_elements(z)*(xy[1,*]-min(z)) / (max(z)-min(z))
+   f = interpolate(reform(psi[0,*,*]),i,j)
+   fx = interpolate(reform(dx(psi[0,*,*],x)),i,j)
+   fz = interpolate(reform(dz(psi[0,*,*],z)),i,j)
+   gf2 = fx^2 + fz^2
+   l = (flux-f)/gf2
+   xy[0,*] = xy[0,*] + l*fx
+   xy[1,*] = xy[1,*] + l*fz
 
    return, xy
 end
@@ -3713,7 +3553,6 @@ function field_at_flux, field, psi, x, z, t, flux, theta=theta, angle=angle, $
 
    return, test
 end
-
 
 
 ;==================================================================
@@ -3868,12 +3707,12 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
                for i=0, n_elements(z)-1 do begin
                    if(z[i] ge xpoint[1]) then div_mask[*,i] = 1.
                end
-               print, ' removing points below ', xpoint
+               print, ' removing points below z=', xpoint[1]
            endif else begin
                for i=0, n_elements(z)-1 do begin
                    if(z[i] le xpoint[1]) then div_mask[*,i] = 1.
                end
-               print, ' removing points above ', xpoint
+               print, ' removing points above z=', xpoint[1]
            endelse
        endif else div_mask = 1.
    endif else begin
@@ -3894,6 +3733,8 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
            bpf = field_at_flux(bp[k,*,*], psi[k,*,*], $
                                x, z, t, xp=xp, zp=zp, flux[k,p])
 
+           if(n_elements(bpf) lt 3) then continue
+
            dl = sqrt(deriv(xp)^2 + deriv(zp)^2)
 
            dv[k,p] = total(dl*xp/bpf)
@@ -3902,7 +3743,7 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
                result[k,p] = total(faf*xp*dl*(-dpsi)/bpf)
            end else begin
 ;               result[k,p] = total(faf*xp*dl) / total(xp*dl)
-               result[k,p] = total(faf*xp*dl/bpf) / total(xp*dl/bpf)
+               result[k,p] = total(faf*xp*dl/bpf)/total(xp*dl/bpf)
            endelse
        endfor
        if(keyword_set(integrate)) then begin
@@ -3940,13 +3781,10 @@ end
 ; symbol:  the formatted symbol of the field
 ;  units:  the formatted units of the field
 ;==================================================================
-function flux_average, field, time, psi=psi, x=x, z=z, t=t, r0=r0, $
+function flux_average, field, psi=psi, x=x, z=z, t=t, r0=r0, $
                        flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
                        points=points, name=name, symbol=symbol, units=units, $
-                       last=last, integrate=integrate, _EXTRA=extra,$
-                       linear=linear
-
-   if(keyword_set(last)) then time = read_parameter('ntime',_EXTRA=extra)-1
+                       integrate=integrate, _EXTRA=extra
 
    type = size(field, /type)
 
@@ -3960,8 +3798,8 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, r0=r0, $
       or (n_elements(x) eq 0) or (n_elements(z) eq 0) $
       or (n_elements(t) eq 0)) then begin
 
-       psi = read_field('psi', x, z, t, slice=time, points=points, $
-                        _EXTRA=extra)
+       psi = read_field('psi', x, z, t, points=points, $
+                        mask=mask, /equilibrium, _EXTRA=extra)
 
        sz = size(psi)
        if(n_elements(psi) le 1) then return, 0
@@ -3971,12 +3809,10 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, r0=r0, $
        if (strcmp(field, 'Safety Factor', /fold_case) eq 1) or $
          (strcmp(field, 'q', /fold_case) eq 1) then begin
 
-           flux_t = flux_average('flux_t', time, psi=psi, x=x, z=z, t=t, $
+           flux_t = flux_average('flux_t', psi=psi, x=x, z=z, t=t, $
              r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
              points=points, last=last, _EXTRA=extra)
            
-           print, abs(deriv(flux, flux_t))/(2.*!pi)
-
            units = ''
            name = '!6Safety Factor!X'
            symbol = '!8q!X'
@@ -3987,13 +3823,13 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, r0=r0, $
          if(strcmp(field, 'q2', /fold_case) eq 1) then begin
 
            minor_r = read_field('r', x, z, t, points=points, $
-                                slice=time, _EXTRA=extra)
+                                _EXTRA=extra)
            
            r = radius_matrix(x,z,t)
            
            numvar = read_parameter('numvar', _EXTRA=extra)
            I = read_field('I', x, z, t, points=points, $
-                          slice=time, _EXTRA=extra)
+                          _EXTRA=extra)
            
            bt = sqrt(I^2/r^2)
            bp = sqrt(s_bracket(psi,psi,x,z)/r^2)
@@ -4007,7 +3843,7 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, r0=r0, $
        endif else $
          if(strcmp(field, 'flux_t', /fold_case) eq 1) then begin
            I = read_field('I', x, z, t, points=points, $
-                          slice=time, _EXTRA=extra)
+                          _EXTRA=extra)
 
            r = radius_matrix(x,z,t)
            field = I/r^2
@@ -4021,7 +3857,7 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, r0=r0, $
        endif else $
          if(strcmp(field, 'beta_pol', /fold_case) eq 1) then begin
            I = read_field('I', x, z, t, points=points, $
-                          slice=time, _EXTRA=extra)
+                          _EXTRA=extra)
            
            bzero = read_parameter('bzero',_EXTRA=extra)
            rzero = read_parameter('rzero',_EXTRA=extra)
@@ -4047,13 +3883,13 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, r0=r0, $
            
        endif else if (strcmp(field, 'gam', /fold_case) eq 1) then begin
            minor_r = read_field('r', x, z, t, points=points, $
-                                slice=time, _EXTRA=extra)
+                                _EXTRA=extra)
            I = read_field('I', x, z, t, points=points, $
-                          slice=time, _EXTRA=extra)
+                          _EXTRA=extra)
            P = read_field('P', x, z, t, points=points, $
-                          slice=time, _EXTRA=extra)
+                          _EXTRA=extra)
            den = read_field('den', x, z, t, points=points, $
-                            slice=time, _EXTRA=extra)
+                            _EXTRA=extra)
            gam = read_parameter('gam', _EXTRA=extra)
 
            r = radius_matrix(x,z,t)
@@ -4069,13 +3905,13 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, r0=r0, $
 
        endif else $
          if(strcmp(field, 'alpha', /fold_case) eq 1) then begin
-           q = flux_average('q',time,psi=psi,x=x,z=z, $
+           q = flux_average('q',psi=psi,x=x,z=z, $
                             flux=flux, bins=bins, $
                             points=points, last=last, _EXTRA=extra)
-           beta = flux_average('beta',time,psi=psi,x=x,z=z, $
+           beta = flux_average('beta',psi=psi,x=x,z=z, $
                             flux=flux, bins=bins, $
                             points=points, last=last, _EXTRA=extra)
-           r = flux_average('r',time,psi=psi,x=x,z=z, $
+           r = flux_average('r',psi=psi,x=x,z=z, $
                             flux=flux, bins=bins,r0=r0, $
                             points=points, last=last, _EXTRA=extra)
 
@@ -4088,9 +3924,8 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, r0=r0, $
            return, -q^2*betap*r0
 
        endif else begin
-           field = read_field(field, x, z, t, slice=time, points=points,$
-                              linear=linear, $
-                              _EXTRA=extra, symbol=symbol, units=units)
+           field = read_field(field, x, z, t, points=points,$
+                              symbol=symbol, units=units, _EXTRA=extra)
            name = symbol
        endelse
    endif else begin
@@ -4105,6 +3940,154 @@ function flux_average, field, time, psi=psi, x=x, z=z, t=t, r0=r0, $
 end
 
 
+function flux_at_q, qval, normalized_flux=norm, $
+                    q=q, flux=flux, _EXTRA=extra
+   q = flux_average('q', flux=flux, nflux=nflux, /equilibrium, _EXTRA=extra)
+   if(keyword_set(norm)) then flux=nflux
+
+   dq_dpsi = deriv(flux,q)
+
+   n = n_elements(qval)
+   if(n eq 0) then return, 0
+
+   fval = fltarr(n)
+   for k=0, n-1 do begin
+       ; make initial guess
+       dum = min(q-qval[k],/abs,i)
+       fval[k] = flux[i]
+       
+       ; perform newton iterations to refine result
+       for j=0, 5 do begin
+           dq = interpol(dq_dpsi,flux,fval[k]) 
+           q0 = interpol(q,flux,fval[k])
+           dpsi = (qval[k] - q0)/dq_dpsi[i]
+           fval[k] = fval[k] + dpsi
+           if((fval[k] gt max(flux)) or (fval[k] lt min(flux))) then begin
+               print, 'flux_at_q: could find surface with q = ', $
+                 qval[k]
+               break
+           endif
+;           print, qval[k], q0, fval[k]
+       end
+   end
+
+   return, fval
+end
+
+
+pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
+                mcolor=mc, lcfs=lcfs, title=title, units=units, $
+                maskrange=maskrange, maskfield=maskfield, range=range, $
+                rrange=rrange, zrange=zrange, linear=linear, $
+                xlim=xlim, cutx=cutx, cutz=cutz, mpeg=mpeg, $
+                mask_val=mask_val, boundary=boundary, q_contours=q_contours, $
+                _EXTRA=ex
+
+   if(n_elements(time) eq 0) then time = 0
+   if(n_elements(title) eq 0) then notitle = 1 else notitle = 0
+
+   if(size(name, /type) eq 7) then begin
+       print, 'points = ', p
+       field = read_field(name, x, y, t, slices=time, mesh=mesh, $
+                          points=p, rrange=rrange, zrange=zrange, $
+                          symbol=fieldname, units=u, linear=linear, $
+                          mask=mask, _EXTRA=ex)
+       if(n_elements(field) le 1) then return
+
+       if(n_elements(units) eq 0) then units=u
+   endif else begin
+       field = name
+       if(n_elements(field) le 1) then return
+   endelse
+
+   ; remove NaN's from result
+   i = where(not float(finite(field)), count)
+   if(count gt 0) then begin
+       print, "removing NaN's"
+       field[i] = 0.
+   endif
+
+   if(n_elements(maskrange) eq 2) then begin
+       if((strcmp(name, maskfield) eq 1) and $
+         (not keyword_set(linear))) then begin
+           psi = field
+       endif else begin
+           psi = read_field(maskfield, slices=time, mesh=mesh, $
+                            points=p, rrange=rrange, zrange=zrange, $
+                           /equilibrium, mask=mask, _EXTRA=ex)
+       endelse
+       newmask = (psi ge maskrange[0]) and (psi le maskrange[1])
+       field = newmask*field + (1-newmask)*(min(field-newmask*field,/absolute))
+   endif
+
+   sz = size(field, /dimension)
+   nt = sz[0]
+
+   ; open mpeg object
+   if(n_elements(mpeg) ne 0) then begin
+       mpegid = mpeg_open([640,480],bitrate=104857200, iframe_gap=4)
+   end
+
+   if(n_elements(range) eq 0) then range = [min(field),max(field)]
+
+   if(n_elements(mask_val) ne 0) then begin
+       for k=0, nt-1 do begin
+           field[k,*,*] = field[k,*,*] - mask*(field[k,*,*] - mask_val)
+       end
+   endif
+
+   if(n_elements(cutx) gt 0) then begin
+       dum = min(x-cutx,i,/absolute)
+       plot, y, field[0,i,*], _EXTRA=ex
+   endif else if(n_elements(cutz) gt 0) then begin
+       dum = min(y-cutz,i,/absolute)
+       plot, x, field[0,*,i], _EXTRA=ex
+   endif else begin
+       for k=0, nt-1 do begin
+           if((notitle eq 1) and (n_elements(t) ne 0)) then begin
+               title = fieldname
+           end
+           
+           contour_and_legend, field[k,*,*], x, y, title=title, $
+             label=units, $
+             xtitle=make_label('!8R!X', /l0, _EXTRA=ex), $
+             ytitle=make_label('!8Z!X', /l0, _EXTRA=ex), $
+             range=range, _EXTRA=ex
+
+           if(keyword_set(lcfs)) then plot_lcfs, points=p, _EXTRA=ex
+
+           if(n_elements(q_contours) ne 0) then begin
+               fval = flux_at_q(q_contours,_EXTRA=ex)
+               plot_flux_contour, fval, /overplot, _EXTRA=ex
+           endif
+
+           if(keyword_set(boundary)) then plotmesh=1
+           if(keyword_set(plotmesh)) then begin
+               loadct, 12
+               plot_mesh, mesh=mesh, color=color(3,5), /oplot, $
+                 boundary=boundary, _EXTRA=ex
+           endif
+           
+           if(n_elements(mpeg) ne 0) then begin
+               image = tvrd(true=1)
+               
+               image[0,*,*] = rotate(reform(image[0,*,*]), 7)
+               image[1,*,*] = rotate(reform(image[1,*,*]), 7)
+               image[2,*,*] = rotate(reform(image[2,*,*]), 7)
+               
+               mpeg_put, mpegid, image=image, frame=5*k
+           end
+       end
+   endelse
+
+   if(n_elements(mpeg) ne 0) then begin
+       print, 'Writing mpeg...'
+       mpeg_save, mpegid, filename=mpeg
+       mpeg_close, mpegid
+   end
+end
+
+
 
 ;======================================================
 ; plot_flux_average
@@ -4112,16 +4095,19 @@ end
 ;
 ; plots the flux average quantity "name" at a give time
 ;======================================================
-pro plot_flux_average, field, time, filename=filename, points=pts, $
-                       color=c, names=names, bins=bins, $
+pro plot_flux_average, field, time, filename=filename, $
+                       color=c, names=names, bins=bins, linear=linear, $
                        xlog=xlog, ylog=ylog, overplot=overplot, $
-                       lcfs=lcfs, normalized_flux=norm, $
+                       lcfs=lcfs, normalized_flux=norm, points=pts, $
                        minor_radius=minor_radius, smooth=sm, t=t, rms=rms, $
-                       bw=bw, srnorm=srnorm, linear=linear, _EXTRA=extra
+                       bw=bw, srnorm=srnorm, last=last, mks=mks, cgs=cgs, $
+                       q_contours=q_contours, _EXTRA=extra
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
    if(n_elements(time) eq 0) then time=0
+   if(keyword_set(last)) then $
+     time = fix(read_parameter('ntime',filename=filename)-1)
 
    nfiles = n_elements(filename)
    if(nfiles gt 1) then begin
@@ -4130,17 +4116,20 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
            ls = indgen(nfiles)
            colors = replicate(color(0,1), nfiles)
        endif else begin
+           print, 'hello'
            if(n_elements(c) eq 0) then colors = colors(nfiles)
            ls = replicate(0,nfiles)
        endelse
+       if(n_elements(time) eq 1) then time = replicate(time,nfiles)
 
        for i=0, nfiles-1 do begin
            newfield = field
-           plot_flux_average, newfield, time, filename=filename[i], $
+           plot_flux_average, newfield, time[i], filename=filename[i], $
              overplot=((i gt 0) or keyword_set(overplot)), points=pts, $
              color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
              normalized_flux=norm, minor_radius=minor_radius, smooth=sm, $
-             rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, linear=linear
+             rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, $
+             linear=linear
        end
        if(n_elements(names) gt 0) then begin
            plot_legend, names, color=colors, ylog=ylog, xlog=xlog, $
@@ -4149,6 +4138,7 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
        
        return
    endif
+
    nt = n_elements(time)
    if(nt gt 1) then begin
        if(n_elements(names) eq 0) then names=strarr(nt)
@@ -4182,9 +4172,10 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
    xtitle='!7w!X'
    title = ''
 
-   fa = flux_average(field,time,flux=flux,points=pts,filename=filename,t=t, $
+   fa = flux_average(field,slice=time,flux=flux,points=pts,filename=filename, $
                      name=title, symbol=symbol, units=units, bins=bins, $
-                     psi=psi,x=x,z=z,nflux=nflux,EXTRA=extra,linear=linear)
+                     psi=psi,x=x,z=z,t=t,nflux=nflux,linear=linear, $
+                     mks=mks, cgs=cgs, EXTRA=extra)
 
    if(n_elements(fa) le 1) then begin
        print, 'Error in flux_average. returning.'
@@ -4195,8 +4186,9 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
    if(strlen(units) gt 0) then ytitle = ytitle + '!6 ('+units+ '!6)!X'
 
    if(keyword_set(rms)) then begin
-       fa2 = flux_average(field^2,time,flux=flux,nflux=nflux,points=pts, $
-                          filename=filename, t=t, _EXTRA=extra,linear=linear)
+       fa2 = flux_average(field^2,flux=flux,nflux=nflux,points=pts,slice=time,$
+                          filename=filename, t=t, linear=linear,_EXTRA=extra, $
+                         mks=mks, cgs=cgs)
        fa = sqrt(1. - fa^2/fa2)
 
        ytitle = '!9S!6(1 - !12<' + symbol + '!12>!U2!n/!12<' + $
@@ -4226,8 +4218,9 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
    end       
 
    if(keyword_set(minor_radius)) then begin
-       flux = flux_average('r',time,points=pts,file=filename,t=t,linear=linear,$
-                    name=xtitle, bins=bins, units=units,_EXTRA=extra)
+       flux = flux_average('r',points=pts,file=filename,t=t,linear=linear,$
+                    name=xtitle,bins=bins,units=units,slice=time,_EXTRA=extra,$
+                          mks=mks, cgs=cgs)
        xtitle = '!12<' + xtitle + '!12> !6 ('+units+')!X'
    endif
 
@@ -4244,7 +4237,15 @@ pro plot_flux_average, field, time, filename=filename, points=pts, $
    endelse
 
    if(keyword_set(lcfs)) then begin
-       oplot, [lcfs_psi,lcfs_psi], !y.crange, linestyle=1, color=c
+       oplot, [lcfs_psi,lcfs_psi], !y.crange, linestyle=2, color=c
+   endif
+
+   if(n_elements(q_contours) ne 0) then begin
+       fvals = flux_at_q(q_contours, points=pts, filename=filename, $
+                         slice=time, normalized_flux=norm, bins=bins)
+       for k=0, n_elements(fvals)-1 do begin
+           oplot, [fvals[k], fvals[k]], !y.crange, linestyle=1
+       end
    endif
 end
 
@@ -4265,6 +4266,66 @@ pro plot_poloidal_rotation, _EXTRA=extra
    plot, t, total(total(sym,2),2)
    
 end
+
+
+pro animate, name, nslices=nslices, slice=slice, _EXTRA=extra
+   ntor = read_parameter('ntor',_EXTRA=extra)
+  
+   print, 'ntor = ', ntor
+
+   if(n_elements(slice) eq 0) then begin
+       field = read_field(name,x,z,t,_EXTRA=extra, /last,$
+                          symbol=symbol,units=units)
+       field_i = read_field(name+'_i',x,z,t,_EXTRA=extra, /last)
+   endif else begin
+       field = read_field(name,x,z,t,_EXTRA=extra, slice=slice,$
+                          symbol=symbol,units=units)
+       field_i = read_field(name+'_i',x,z,t,_EXTRA=extra, slice=slice)
+   endelse
+
+   if(n_elements(field) le 1) then return
+
+   if(n_elements(nslices) eq 0) then nslices = 12
+      
+   f = fltarr(nslices,n_elements(x),n_elements(z))
+
+   for i=0, nslices-1 do begin
+       f[i,*,*] = field[0,*,*]*cos(2.*!pi*i/nslices) + $
+         field_i[0,*,*]*sin(2.*!pi*i/nslices)
+   end
+
+   fstr = '("!9P!6 = ",g0.2,"!7p!X")'
+   
+   range=[min(f), max(f)]
+
+   for i=0, nslices-1 do begin
+       if(i eq 0) then begin
+           title = '!9P!6 = 0!X'
+       endif else if(2.*i/nslices eq 1) then begin
+           title = '!9P!6 = !7p!X'
+       endif else begin
+           title = string(format=fstr,2.*i/nslices)
+       endelse
+       title = symbol + ' !6(' + title + '!6)!X'
+       print, 'plotting...'
+       plot_field, f[i,*,*],-1,x,z, title=title, range=range, $
+        _EXTRA=extra
+       print, 'reading...'
+       image = tvrd(/true)
+       
+       print, 'setting...'
+       if(i eq 0) then begin
+           sz = size(image, /dim)
+           xinteranimate, set=[sz[1], sz[2],nslices], $
+             mpeg_bitrate=104857200
+; mpeg_quality=100, mpeg_format=1, mpeg_bitrate=429496729200
+       endif
+       xinteranimate, frame=i, image=image
+   endfor
+
+   xinteranimate, 10
+end
+
 
 
 pro write_geqdsk, eqfile=eqfile, b0=b0, l0=l0, $
@@ -4394,7 +4455,7 @@ pro write_geqdsk, eqfile=eqfile, b0=b0, l0=l0, $
   ffp = I0*s_bracket(I0,psi,x,z)/s_bracket(psi,psi,x,z)
   ffprim = flux_average_field(ffp,psi,x,z,flux=flux,$
                    limiter=limiter,_EXTRA=extra)
-  q = flux_average('q',slice,psi=psi,x=x,z=z,t=t,flux=flux, $
+  q = flux_average('q',slice=time,psi=psi,x=x,z=z,t=t,flux=flux, $
                    limiter=limiter,_EXTRA=extra)
 ;  q = smooth(q,5,/edge)
   jb = (s_bracket(I0,psi,x,z) - jphi*I0)/r^2
