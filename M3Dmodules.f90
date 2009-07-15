@@ -416,8 +416,30 @@ module arrays
   vectype, pointer :: den1_l(:), den0_l(:), dens_l(:) 
   vectype, pointer ::   p1_l(:),   p0_l(:),   ps_l(:)
 
-  contains
+  integer, parameter :: OP_PLUS = 1
 
+contains
+  
+  subroutine scalar_operation(vec, iplace, isize, iop, val)
+
+    implicit none
+
+    vectype, intent(inout), dimension(*) :: vec
+    integer, intent(in) :: iplace, isize, iop
+    vectype, intent(in) :: val
+
+    integer :: inode, ibegin, iendplusone, numnodes
+
+    call numnod(numnodes)
+    do inode=1, numnodes
+       call entdofs(isize, inode, 0, ibegin, iendplusone)
+       select case(iop)
+       case(OP_PLUS)
+          vec(ibegin+(iplace-1)*6) = vec(ibegin+(iplace-1)*6) + val
+       end select
+    end do
+  end subroutine scalar_operation
+  
 
 !==========================================================
 ! assign_variables

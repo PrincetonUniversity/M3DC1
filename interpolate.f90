@@ -84,24 +84,24 @@ subroutine cubic_interpolation_coeffs(x,m,i,a)
   ihermite = 0
   select case(ihermite)
   case(0)
-    a(1) = x(i)
-    if(i.eq.1) then
-     a(2) = (-3.*x(i) + 4.*x(i+1) - x(i+2))/2.
-     a(3) = (    x(i) - 2.*x(i+1) + x(i+2))/2.
-     a(4) = 0.
-    else if(i.eq.m-1) then
-     a(2) = (-2.*x(i-1) - 3.*x(i) + 5.*x(i+1))/6.
-     a(3) = (    x(i-1) - 2.*x(i)    + x(i+1))/2.
-     a(4) = (   -x(i-1) + 3.*x(i) - 2.*x(i+1))/6.
-    else if(i.eq.m) then
-     a(2) = (-x(i-1) + x(i))/3.
-     a(3) = ( x(i-1) - x(i))/2.
-     a(4) = (-x(i-1) + x(i))/6.
-    else
-     a(2) = (-2.*x(i-1) - 3.*x(i) + 6.*x(i+1) - x(i+2))/6.
-     a(3) = (    x(i-1) - 2.*x(i)    + x(i+1)         )/2.
-     a(4) = (   -x(i-1) + 3.*x(i) - 3.*x(i+1) + x(i+2))/6.
-    end if
+     a(1) = x(i)
+     if(i.eq.1) then
+        a(2) = (-3.*x(i) + 4.*x(i+1) - x(i+2))/2.
+        a(3) = (    x(i) - 2.*x(i+1) + x(i+2))/2.
+        a(4) = 0.
+     else if(i.eq.m-1) then
+        a(2) = (-2.*x(i-1) - 3.*x(i) + 5.*x(i+1))/6.
+        a(3) = (    x(i-1) - 2.*x(i)    + x(i+1))/2.
+        a(4) = (   -x(i-1) + 3.*x(i) - 2.*x(i+1))/6.
+     else if(i.eq.m) then
+        a(2) = (-x(i-1) + x(i))/3.
+        a(3) = ( x(i-1) - x(i))/2.
+        a(4) = (-x(i-1) + x(i))/6.
+     else
+        a(2) = (-2.*x(i-1) - 3.*x(i) + 6.*x(i+1) - x(i+2))/6.
+        a(3) = (    x(i-1) - 2.*x(i)    + x(i+1)         )/2.
+        a(4) = (   -x(i-1) + 3.*x(i) - 3.*x(i+1) + x(i+2))/6.
+     end if
   case(1)
     a(1) = x(i)
     if(i.eq.1) then

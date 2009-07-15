@@ -1,3 +1,94 @@
+pro ct1
+    x = findgen(64)/63.
+    r = bytarr(256)
+    g = bytarr(256)
+    b = bytarr(256)
+
+    b[0:63] = 255
+    b[64:127] = bytscl(-x)
+    r[128:191] = bytscl(x)
+    r[192:255] = 255
+
+    g[0:63] = bytscl(x)
+    g[64:127] = bytscl(-x)
+    g[128:191] = bytscl(x)
+    g[192:255] = bytscl(-x)
+
+    r[0] = 0
+    g[0] = 0
+    b[0] = 0
+    r[255] = 255
+    g[255] = 255
+    b[255] = 255
+
+    tvlct, r, g, b
+end
+
+;pro ct2
+;    x = indgen(42)
+;     r = bytarr(256)
+;     g = bytarr(256)
+;     b = bytarr(256)
+
+;     b[0] = 255
+;     b[1:42] = 255
+;     b[43:84] = 255
+;     b[85:126] = bytscl(-x)
+;     b[211:252] = bytscl(x)
+
+;     r[0] = 255
+;     r[1:42] = bytscl(-x)
+;     r[127:168] = bytscl(x)
+;     r[169:252] = 255
+
+;     g[0] = 255
+;     g[1:42] = 255
+;     g[43:84] = bytscl(-x)
+;     g[85:126] = 0.
+;     g[127:168] = 0.
+;     g[169:210] = bytscl(x)
+;     g[211:252] = 255
+
+;     r[253:255] = [255, 255, 255]
+;     g[253:255] = [255, 255, 255]
+;     b[253:255] = [255, 255, 255]
+
+;     tvlct, r, g, b
+; end
+
+
+pro ct2
+    x = indgen(64)
+    r = bytarr(256)
+    g = bytarr(256)
+    b = bytarr(256)
+
+    r[0:63] = 0
+    r[64:127] = bytscl(x)
+    r[128:191] = 255
+    r[192:255] = 255
+
+    g[0:63] = bytscl(-x)
+    g[64:127] = bytscl(x)
+    g[128:191] = bytscl(-x)
+    g[192:255] = bytscl(x)
+
+    b[0:63] = 255
+    b[64:127] = 255
+    b[128:191] = bytscl(-x)
+    b[192:255] = 0
+
+    r[253:255] = [0, 0, 255]
+    g[253:255] = [0, 0, 255]
+    b[253:255] = [0, 0, 255]
+
+    !p.color=253
+    !p.background=255
+
+    tvlct, r, g, b
+end
+
+
 function colors, maxcolors
 
     c = findgen(maxcolors) * !d.table_size / maxcolors
@@ -186,9 +277,10 @@ end
 ; ======================================================================
 
 pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
-                        isotropic=iso, lines=lines, range=range, $
-                        color_table=ct, zlog=zlog, csym=csym, $ 
-                        nofill=nofill, noautoct=noautoct, _EXTRA = ex
+                               isotropic=iso, lines=lines, range=range, $
+                               table=ct, zlog=zlog, csym=csym, $ 
+                               nofill=nofill, noautoct=noautoct, $
+                               nolegend=nolegend, color=color, _EXTRA = ex
 
     zed = reform(z)
    
@@ -288,8 +380,12 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
             if(minval*maxval lt 0.) then loadct, 39 $
             else loadct, 3
         endif
+    endif else if(ct eq -1) then begin
+        ct2
     endif else loadct, ct
+        
 
+    if(not keyword_set(nolegend)) then begin
     ; plot the color scale
     ; ***
     !p.position = [region[0]+width+lgap+cgap,        region[1]+bgap, $
@@ -306,11 +402,13 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     contour, zz, xx, yy, nlevels=nlevels, fill=fill, $
       ytitle=label, xtitle='', charsize=charsize, $
       xticks=1, xtickname=[' ',' '], levels=levels, title='', $
-      xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, ylog=zlog
+      xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, ylog=zlog, $
+      color=color    
 ;    contour, zz, xx, yy, /overplot, nlevels=nlevels, levels=levels
     ; ***
 
     !p.noerase = 1
+    endif
 
     ; Plot the countours
     ;***
@@ -320,9 +418,10 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     !p.position = [region[0]+lgap,       region[1]+bgap, $
                    region[0]+lgap+width, region[1]+bgap+top]
 
-    contour, zed, x, y, fill=fill, levels=levels, nlevels=nlevels, $
+    contour, zed > minval < maxval, x, y, $
+      fill=fill, levels=levels, nlevels=nlevels, $
       xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, _EXTRA=ex, $
-      isotropic=iso, charsize=charsize
+      isotropic=iso, charsize=charsize, color=color
 
     if(keyword_set(lines)) then begin
         contour, zed, x, y, /overplot, levels=levels, nlevels=nlevels, $

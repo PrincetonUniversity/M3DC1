@@ -145,7 +145,7 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
               temp(1,1) = int2(g79(:,OP_1,i),g79(:,OP_GS,j))
               
            case(NV_BF_MATRIX)
-              temp(1,1) = int3(r2_79,g79(:,OP_1,i),g79(:,OP_LP,j)) &
+              temp(1,1) = int3(r2_79,g79(:,OP_1,i),g79(:,OP_LP,j))  &
                    - regular*int3(r2_79,g79(:,OP_1,i),g79(:,OP_1,j))
 
            case(NV_SJ_MATRIX)

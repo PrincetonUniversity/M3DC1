@@ -22,6 +22,7 @@ Program Reducedquintic
   integer :: j, ier, numelms, numnodes
   integer :: ndofs
   real :: tstart, tend
+  vectype :: temp
 
   PetscTruth :: flg
   PetscInt :: mpetscint,npetscint
@@ -279,7 +280,12 @@ Program Reducedquintic
           print *, "Writing simulation parameters."
      call hdf5_write_parameters(ier)
 
-     if(eqsubtract.eq.1) call derived_quantities(field0)
+     if(eqsubtract.eq.1) then
+        temp = -bzero*rzero
+        call scalar_operation(field0,bz_g,num_fields,OP_PLUS, -temp)
+        call derived_quantities(field0)
+        call scalar_operation(field0,bz_g,num_fields,OP_PLUS,  temp)
+     end if
 
      ! Output the equilibrium
      if(eqsubtract.eq.1) call hdf5_write_time_slice(1,ier)
@@ -677,9 +683,6 @@ subroutine derived_quantities(vec)
   ! vector potential stream function
   if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, "-f"
-!    call newvar(lp_matrix_lhs_nm,bf,vec,bz_g,num_fields, &
-!         bf_matrix_rhs_nm,NV_DCBOUND)
-!....the preceeding two lines  (08/30/08) scj were replaced by the following two lines  (08/30/08) scj
      call newvar1(bf_matrix_lhs_nm,bf,vec,bz_g,num_fields, &
           mass_matrix_rhs_nm,NV_NMBOUND)
   endif
