@@ -1799,7 +1799,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
   ! Clear matrices
   select case(isplitstep)
   case(0)
-     if(flg_petsc) then
+     if(flg_petsc.eq.PETSC_TRUE) then
         call zeropetscmatrix(s1matrix_sm,icomplex, vecsize_vel)
         if(myrank.eq.0 .and. iprint.ge.2) &
         print *, "	ludef_t_ludefall zeropetscmatrix", s1matrix_sm 
@@ -1819,7 +1819,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
   case(1)
 
      if(ivel_def.eq.1) then
-        if(flg_petsc) then
+        if(flg_petsc.eq.PETSC_TRUE) then
            call zeropetscmatrix(s1matrix_sm,icomplex,vecsize_vel)
            if(myrank.eq.0 .and. iprint.ge.2) &
            print *, "	ludef_t_ludefall zeropetscmatrix", s1matrix_sm 
@@ -1838,7 +1838,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
      end if
 
      if(ifield_def.eq.1) then
-        if(flg_petsc) then
+        if(flg_petsc.eq.PETSC_TRUE) then
            call zeropetscmatrix(s2matrix_sm,icomplex,vecsize_phi)
            if(myrank.eq.0 .and. iprint.ge.2) &
            print *, "	ludef_t_ludefall zeropetscmatrix", s2matrix_sm 
@@ -1859,7 +1859,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
      end if
 
      if(idens_def.eq.1) then
-        if(flg_petsc) then
+        if(flg_petsc.eq.PETSC_TRUE) then
            call zeropetscmatrix(s8matrix_sm,icomplex,vecsize_n)
            if(myrank.eq.0 .and. iprint.ge.2) &
            print *, "	ludef_t_ludefall zeropetscmatrix", s8matrix_sm 
@@ -1874,7 +1874,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
         qn4 = 0.
      endif
      if(ipres_def.eq.1) then
-        if(flg_petsc) then
+        if(flg_petsc.eq.PETSC_TRUE) then
            call zeropetscmatrix(s9matrix_sm,icomplex,vecsize_p)
            if(myrank.eq.0 .and. iprint.ge.2) &
            print *, "	ludef_t_ludefall zeropetscmatrix", s9matrix_sm 
@@ -2144,7 +2144,7 @@ subroutine ludefvel_n(itri)
            call vorticity_lin(g79(:,:,i),g79(:,:,j), &
                 ss(u_g,:),dd(u_g,:),q_bf(u_g),advfield)
 
-           if(surface_int.eq.1) then
+           if(surface_int) then
               ss(vz_g,:) = 0.
               dd(vz_g,:) = 0.
               q_bf(vz_g) = 0.
@@ -2323,7 +2323,7 @@ subroutine ludefphi_n(itri)
         jv = jb_vel + jj - 1
         jp = jb_phi + jj - 1
 
-        if(surface_int.eq.1) then
+        if(surface_int) then
            ss(psi_g,:) = 0.
            dd(psi_g,:) = 0.
            q_ni(psi_g) = 0.

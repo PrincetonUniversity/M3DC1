@@ -513,7 +513,7 @@
      &     '-ipetsc', flg_petsc,ier)
       call PetscOptionsHasName(PETSC_NULL_CHARACTER,
      &     '-solve2', flg_solve2,ier)
-      if(flg_petsc .and. flg_solve2) then 
+      if(flg_petsc.eq.PETSC_TRUE .and. flg_solve2.eq.PETSC_TRUE) then 
          drop_zeroes = 0 
       else 
          select case(nonrect)
