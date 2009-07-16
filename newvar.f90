@@ -94,7 +94,7 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
   call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve1', flg_solve1,ier) 
 
   if(isolve.eq.NV_LHS) then
-     if(flg_petsc) then
+     if(flg_petsc.eq.PETSC_TRUE) then
         call zeropetscmatrix(matrix, icomplex, isize)
         if(iprint.ge.1) &
         print *, "	newvar_create_matrix zeropetscmatrix", matrix
@@ -254,7 +254,7 @@ subroutine newvar(ilhsmat,outarray,irhsmat,inarray,ibound)
 
   call apply_bc(0,outarray,ibound)
 
-  if(flg_petsc .and. flg_solve1) then 
+  if(flg_petsc.eq.PETSC_TRUE .and. flg_solve1.eq.PETSC_TRUE) then 
      call solve1(ilhsmat,outarray,ier)
   else
      call solve(ilhsmat,outarray,ier)
@@ -322,7 +322,7 @@ subroutine solve_newvar(rhs, ibound, imatrix)
 
   call apply_bc(0,rhs,ibound)
 
-  if(flg_petsc .and. flg_solve1) then 
+  if(flg_petsc.eq.PETSC_TRUE .and. flg_solve1.eq.PETSC_TRUE) then 
      call solve1(imatrix,rhs,ier)
   else
      call solve(imatrix,rhs,ier)

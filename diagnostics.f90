@@ -929,7 +929,7 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
   ier = 0
 
   if(myrank.eq.0 .and. iprint.ge.1) &
-       write(*,'(A,I12,2E12.4)'), ' magaxis: iterations, x, z = ', inews, x, z
+       write(*,'(A,I12,2E12.4)') ' magaxis: iterations, x, z = ', inews, x, z
   
 end subroutine magaxis
 
@@ -981,7 +981,7 @@ subroutine lcfs(phin, iplace, numvari, iaxis)
      endif
   endif
 
-  if(ifixedb) then 
+  if(ifixedb.eq.1) then 
      psilim = 0.
      return
   end if

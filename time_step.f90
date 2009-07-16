@@ -340,7 +340,7 @@ subroutine split_step(calc_matrices)
      ! solve linear system with rhs in vtemp (note LU-decomp done first time)
      if(myrank.eq.0 .and. iprint.ge.1) print *, "solving velocity advance..."
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     if(flg_petsc .and. flg_solve2) then
+     if(flg_petsc.eq.PETSC_TRUE .and. flg_solve2.eq.PETSC_TRUE) then
         call solve2(s1matrix_sm, b1_vel, jer)
      else
         call solve(s1matrix_sm, b1_vel, jer)
@@ -431,10 +431,10 @@ subroutine split_step(calc_matrices)
      ! solve linear system...LU decomposition done first time
      ! -- okay to here      call printarray(temp, 150, 0, 'vtemp on')
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     if(flg_petsc .and. flg_solve2) then
-     call solve2(s8matrix_sm, temp, jer)
+     if(flg_petsc.eq.PETSC_TRUE .and. flg_solve2.eq.PETSC_TRUE) then
+        call solve2(s8matrix_sm, temp, jer)
      else
-     call solve(s8matrix_sm, temp, jer)
+        call solve(s8matrix_sm, temp, jer)
      endif
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
@@ -647,7 +647,7 @@ subroutine split_step(calc_matrices)
      ! solve linear system...LU decomposition done first time
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
-     if(flg_petsc .and. flg_solve2) then
+     if(flg_petsc.eq.PETSC_TRUE .and. flg_solve2.eq.PETSC_TRUE) then
         call solve2(s2matrix_sm, b1_phi, jer)
      else
         call solve(s2matrix_sm, b1_phi, jer)
@@ -752,10 +752,10 @@ subroutine split_step(calc_matrices)
         ! solve linear system...LU decomposition done first time
         if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
         
-        if(flg_petsc .and. flg_solve2) then
-        call solve2(s2matrix_sm, b1_phi, jer)
+        if(flg_petsc.eq.PETSC_TRUE .and. flg_solve2.eq.PETSC_TRUE) then
+           call solve2(s2matrix_sm, b1_phi, jer)
         else
-        call solve(s2matrix_sm, b1_phi, jer)
+           call solve(s2matrix_sm, b1_phi, jer)
         endif
         
         if(myrank.eq.0 .and. itimer.eq.1) then
@@ -851,10 +851,10 @@ subroutine unsplit_step(calc_matrices)
   ! solve linear system...LU decomposition done first time
   if(myrank.eq.0 .and. iprint.eq.1) print *, "solving.."
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  if(flg_petsc .and. flg_solve2) then
-  call solve2(s1matrix_sm, b1_phi, jer)
+  if(flg_petsc.eq.PETSC_TRUE .and. flg_solve2.eq.PETSC_TRUE) then
+     call solve2(s1matrix_sm, b1_phi, jer)
   else
-  call solve(s1matrix_sm, b1_phi, jer)
+     call solve(s1matrix_sm, b1_phi, jer)
   endif
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
@@ -929,7 +929,7 @@ subroutine unsplit_step(calc_matrices)
      ! solve linear system...LU decomposition done first time
      if(myrank.eq.0 .and. iprint.eq.1) print *, "solving.."
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     if(flg_petsc .and. flg_solve2) then
+     if(flg_petsc.eq.PETSC_TRUE .and. flg_solve2.eq.PETSC_TRUE) then
         call solve2(s1matrix_sm, b1_phi, jer)
      else
         call solve(s1matrix_sm, b1_phi, jer)

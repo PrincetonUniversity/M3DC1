@@ -43,9 +43,9 @@ contains
       if(iprint.ge.1) print *, "Reading coil data..", coil_filename
 
       fcoil = 10
-      open(unit=fcoil, file=coil_filename, status="old",err=200, readonly)
+      open(unit=fcoil,file=coil_filename,status="old",err=200,action='read')
       fcurr = 20
-      open(unit=fcurr, file=current_filename, status="old",err=201, readonly)
+      open(unit=fcurr,file=current_filename,status="old",err=201,action='read')
 
 
       s = 0
