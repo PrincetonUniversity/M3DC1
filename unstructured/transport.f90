@@ -242,9 +242,7 @@ subroutine define_transport_coefficients()
 
   implicit none
 
-#ifdef _AIX
   include 'mpif.h'
-#endif
 
   integer :: i, itri, ibegin, iendplusone, numnodes
   integer :: ione, numelms, def_fields,ier
