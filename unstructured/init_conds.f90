@@ -1593,7 +1593,23 @@ subroutine eqdsk_init()
 
   if(myrank.eq.0 .and. iprint.eq.1) then
      print *, 'normalized current ', current
+     write(*,1001) nw
+ 1001 format(" nw = ",i4)
+
+     write(*,*) "press"
+     write(*,1002) press
+ 1002 format(1p5e12.4)
+
+     write(*,*) "pprime"
+     write(*,1002) pprime
+
+     write(*,*) "ffprim"
+     write(*,1002) ffprim
+
+     write(*,*) "fpol"
+     write(*,1002) fpol
   end if
+
 
   call numnod(numnodes)
   do l=1, numnodes
@@ -1623,14 +1639,25 @@ subroutine eqdsk_init()
         do l=1,nw
            flux(l) = l*(sibry-simag)/(nw-1.)
         end do
-        call create_profile(nw,press,pprime,fpol,ffprim,flux)
+        call create_profile(nw,press,pprime,fpol,ffprim,flux,myrank)
+!
+      if(myrank.eq.0 .and. iprint.ge.1) then
+        open(unit=77,file="debug-out",status="unknown")
+        write(77,2010) xmag,zmag,tcuro
+  2010 format("xmag,zmag,tcuro =",1p3e12.4,/,  &
+     "l   press       pprime      fpol        ffprim      flux")
+        do l=1,nw
+        write(77,2011) l,press(l),pprime(l),fpol(l),ffprim(l),flux(l)
+        enddo
+  2011 format(i3,1p5e12.4)
+       close(77)
+      endif
+!
         deallocate(flux)
      end if
 
-     ! initial guess
-!!$     call newvar(mass_matrix_lhs_dc,jphi,field0,psi_g,num_fields, &
-!!$          gs_matrix_rhs_dc,NV_DCBOUND)
-     call deltafun(xmag,zmag,tcuro,jphi,1,1)
+     psibound = sibry
+     psimin = simag
 
      call gradshafranov_solve
      call gradshafranov_per
@@ -1861,7 +1888,7 @@ subroutine dskbal_init()
   if(iread_dskbal.eq.2) then
      call default_profiles
   else
-     call create_profile(npsi_bal,p_bal,pprime_bal,f_bal,ffprime_bal,psi_bal)
+     call create_profile(npsi_bal,p_bal,pprime_bal,f_bal,ffprime_bal,psi_bal,myrank)
   end if
   
   ! initial plasma current filament
@@ -1977,7 +2004,20 @@ subroutine jsolver_init()
         allocate(ffprime(npsi_jsv))
         ffprime = gpx_jsv*gxx_jsv
         call create_profile(npsi_jsv,p_jsv(1:npsi_jsv),ppxx_jsv(1:npsi_jsv), &
-             gxx_jsv(1:npsi_jsv),ffprime,psival_jsv(1:npsi_jsv))
+             gxx_jsv(1:npsi_jsv),ffprime,psival_jsv(1:npsi_jsv),myrank)
+!
+      if(myrank.eq.0 .and. iprint.ge.1) then
+        open(unit=77,file="debug-out",status="unknown")
+        write(77,2010) xmag,zmag,tcuro
+  2010 format("xmag,zmag,tcuro =",1p3e12.4,/,  &
+     "i   press       pprime      fpol        ffprim      flux")
+        do l=1,npsi_jsv
+        write(77,2011) l,p_jsv(l),ppxx_jsv(l),gxx_jsv(l),ffprime(l),psival_jsv(l)
+        enddo
+  2011 format(i3,1p5e12.4)
+       close(77)
+      endif
+!
         deallocate(ffprime)
      end if
 

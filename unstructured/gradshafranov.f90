@@ -451,6 +451,7 @@ subroutine gradshafranov_solve
   call createrealvec(fun3, numvargs)  
 
   call copyvec(field0, psi_g, num_fields, psi, 1, numvargs)
+  if(iread_eqdsk .eq. 1) psilim = psibound
   call copyvec(jphi, 1, 1, b1vecini, 1, numvargs)
 
 
@@ -536,7 +537,7 @@ subroutine gradshafranov_solve
   if(myrank.eq.0) then
   write(*,999) 
 999 format("    I    error        error2       xmag         psimin       psilim" &
-              ,"       psilim2")
+              ,"       psilim2     xnull       znull")
   endif
 
   !-------------------------------------------------------------------
@@ -547,7 +548,7 @@ subroutine gradshafranov_solve
      
      ! apply boundary conditions
 
-     if(irestart.ne.2 .or. itnum.gt.1) then
+     if((iread_eqdsk .ne. 1 .and. irestart.ne.2) .or. itnum.gt.1) then
         feedfac = 0.
         if(itnum.gt.1 .and. gnorm.ne.0 .and. xlim2.ne.0) then
            feedfac = -0.25*(psilim - psilim2)/gnorm
@@ -652,26 +653,6 @@ subroutine gradshafranov_solve
            sum2 = sum2 + abs(psi(ibegin)-b1vecini(ibegin))
            norm2 = norm2 + abs(psi(ibegin))
         endif
-!!$        diff = lhs-rhs
-!!$        temp1(1) = sqrt( (x-rzero)**2 + z**2)
-!!$        temp1(2) = real(psi(ibegin+3)/x)
-!!$        temp1(3) = real(-psi(ibegin+1)/x**2)
-!!$        temp1(4) = psi(ibegin+5)/x
-!!$        temp1(1) = 0.5*sqrt(psi(ibegin+1)**2 + psi(ibegin+2)**2)
-!!$        temp1(2) = normal(1)**2 *psi(ibegin+5) + normal(2)**2*psi(ibegin+3) &
-!!$             - 2.*normal(1)*normal(2)*psi(ibegin+4)
-!!$!>>>>>debug
-!!$      if(is_boundary .and. itnum.eq.iabs(igs)) then
-!!$         write(70+myrank,1169) x,z,normal(1),normal(2),(real(psi(ibegin+ii)),ii=0,5), lhs, temp1(1),temp1(2),&
-!!$                                (real(b2vecini(ibegin+ii)),ii=0,5)
-!!$        write(80+myrank,1179) x,z,lhs,rhs
-!!$      endif
-!!$      if(.not.is_boundary .and. itnum.eq.iabs(igs)) then
-!!$        write(90+myrank,1179) x,z,lhs,rhs
-!!$      endif
-!!$ 1179 format(1p4e12.4)
-!!$ 1169 format(4f6.3,1p9e12.4,/,24x,1p6e12.4)
-!!$!>>>>>debug end
      enddo
 
      if(maxrank.gt.1) then
@@ -693,8 +674,8 @@ subroutine gradshafranov_solve
            write(*,2002) (temp2(ii),ii=1,4)
 2002       format(" temp1 array",1p4e12.4)
         endif
-        write(*,1002) itnum,error,error2,xmag,psimin,psilim,psilim2
-1002    format(i5,1p6e13.5)
+        write(*,1002) itnum,error,error2,xmag,psimin,psilim,psilim2,xnull,znull
+1002    format(i5,1p8e13.5)
      endif
      if(itnum .gt. 1 .and. error2 .lt. tol_gs) exit mainloop
      
@@ -804,6 +785,7 @@ subroutine gradshafranov_solve
      call sumsharedppplvecvals(b1vecini)
 
   end do mainloop
+!
 
   if(myrank.eq.0 ) then
      print *, "Converged GS: curr =", curr," error =",error2
@@ -1303,10 +1285,10 @@ end subroutine fget
 ! ffp =  I*I'
 ! flux = psi
 !================================================================
- subroutine create_profile(n, p, pp, f, ffp, flux)
+ subroutine create_profile(n, p, pp, f, ffp, flux,myrankt)
    implicit none
 
-   integer, intent(in) :: n
+   integer, intent(in) :: n , myrankt
    real, dimension(n), intent(in) :: p, pp, f, ffp, flux
 
    real, dimension(4) :: a
@@ -1344,6 +1326,22 @@ end subroutine fget
    g4bigpt = g4bigpt*(flux(npsi) - flux(1))
    g4bigppt = g4bigppt*(flux(npsi) - flux(1))**2
 
+ if( myrankt.eq.0) then
+    !
+    open(unit=76,file="profilesdb-p",status="unknown")
+    do j=1,npsi
+       write(76,802) j,psinorm(j),fbig0t(j),fbigt(j),fbigpt(j),fbigppt(j)
+    enddo
+    close(76)
+    !
+    open(unit=77,file="profilesdb-g",status="unknown")
+    do j=1,npsi
+       write(77,802) j,psinorm(j),g4big0t(j),g4bigt(j),g4bigpt(j),g4bigppt(j)
+    enddo
+802 format(i5,1p6e18.10)
+    close(77)
+ endif
+  !
    constraint = .true.
 
  end subroutine create_profile
