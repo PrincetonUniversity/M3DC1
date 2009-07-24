@@ -36,11 +36,6 @@ module diagnostics
   real :: t_output_cgm, t_output_hdf5, t_output_reset
   real :: t_gs, t_gs_magaxis, t_gs_fundef, t_gs_solve, t_gs_init
 
-  ! magnetic diagnostics
-  real :: psimin       ! flux value at magnetic axis
-  real :: psilim       ! flux at the limiter
-  real :: psibound     ! flux at the lcfs
-
 contains
 
   ! ======================================================================
@@ -1040,8 +1035,10 @@ subroutine lcfs(phin, iplace, numvari, iaxis)
   if(myrank.eq.0 .and. iprint.ge.1) then
      if(psix .gt. psib) then 
         print *, " Plasma is diverted."
+        is_diverted = .true.
      else 
         print *, " Plasma is limited."
+        is_diverted = .false.
      endif
   endif
      

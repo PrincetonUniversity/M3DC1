@@ -97,6 +97,8 @@ vectype function resistivity_func(i)
         temp79b = (ps079(:,OP_1)-psimin)/(psibound-psimin)
         temp79a = eta0*.5* &
              (1. + tanh((real(temp79b) - etaoff)/etadelt))
+     case(3)
+        temp79a = eta79(:,OP_1) - etar
      end select
      temp = temp + int2(g79(:,OP_1,i),temp79a)
   endif
@@ -143,6 +145,8 @@ vectype function viscosity_func(i)
         temp79b = (ps079(:,OP_1)-psimin)/(psibound-psimin)
         temp79a = amu_edge*.5* &
              (1. + tanh((real(temp79b) - amuoff)/amudelt))
+     case(3)
+        temp79a = vis79(:,OP_1) - amu
      end select
      temp = temp + int2(g79(:,OP_1,i),temp79a)
   endif
@@ -271,7 +275,8 @@ subroutine define_transport_coefficients()
   if(ibootstrap.gt.0) visc_e = 0.
   tempvar = 0.
 
-  def_fields = FIELD_N + FIELD_PE + FIELD_P + FIELD_PSI + FIELD_I
+  def_fields = FIELD_N + FIELD_PE + FIELD_P + FIELD_PSI + FIELD_I 
+  if(iresfunc.eq.3) def_fields = def_fields + FIELD_ETA + FIELD_MU
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' defining...'
 
@@ -302,11 +307,8 @@ subroutine define_transport_coefficients()
            if(.not.solve_visc_e) solve_visc_e = visc_e(ione).ne.0.
         endif
 
-!!$        tempvar(ione) = tempvar(ione) &
-!!$             + int2(g79(:,OP_1,i),sz79(:,OP_1))
         tempvar(ione) = tempvar(ione) &
-             + resistivity_func(i) &
-             + int2(g79(:,OP_1,i),pt79(:,OP_1))
+             + int2(g79(:,OP_1,i),n079(:,OP_1))
      end do
   end do
 

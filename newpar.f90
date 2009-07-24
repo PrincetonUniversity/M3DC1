@@ -368,8 +368,10 @@ Program Reducedquintic
      ! feedback control on toroidal current
 !!$     if(itor.eq.1 .and. itaylor.eq.1) call control_pid
 
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Applying feedback.."
      call control(totcur, vloop,       i_control, dt)
      call control(totden, pellet_rate, n_control, dt)
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Done applying feedback."
 
      ! Write output
      call output

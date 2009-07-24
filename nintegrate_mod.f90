@@ -797,8 +797,20 @@ subroutine define_fields(itri, fields, gdef, ilin)
      end if
 
      if(eqsubtract.eq.1) then
-        call calcavector(itri, field0, den_g, num_fields, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, n079)
+        if(idenfunc.eq.3) then
+           temp79a = (pst79(:,OP_1) - psimin)/(psibound - psimin)
+           temp79b = (pst79(:,OP_DR)*(x_79 - xmag) &
+                +     pst79(:,OP_DZ)*(z_79 - zmag))*(psibound-psimin)
+           n079 = 0.
+           where(real(temp79a).lt.denoff .and. real(temp79b).gt.0.)
+              n079(:,OP_1) = den0
+           elsewhere
+              n079(:,OP_1) = den_edge
+           end where
+        else
+           call calcavector(itri, field0, den_g, num_fields, avec)
+           call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, n079)
+        end if
         nt79 = n079 + n179
      else
         nt79 = n179
@@ -915,8 +927,20 @@ subroutine define_fields(itri, fields, gdef, ilin)
   if(iand(fields, FIELD_ETA).eq.FIELD_ETA) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   eta..."
 
-     call calcavector(itri, resistivity, 1, 1, avec)
-     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, eta79)
+     if(iresfunc.eq.3) then
+        temp79a = (pst79(:,OP_1) - psimin)/(psibound - psimin)
+        temp79b = (pst79(:,OP_DR)*(x_79 - xmag) &
+             +     pst79(:,OP_DZ)*(z_79 - zmag))*(psibound-psimin)
+        eta79 = 0.
+        where(real(temp79a).lt.etaoff .and. real(temp79b).gt.0.)
+           eta79(:,OP_1) = etar
+        elsewhere
+           eta79(:,OP_1) = eta0
+        end where
+     else
+        call calcavector(itri, resistivity, 1, 1, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, eta79)
+     end if
   end if
 
   ! KAP
@@ -953,12 +977,27 @@ subroutine define_fields(itri, fields, gdef, ilin)
   if(iand(fields, FIELD_MU).eq.FIELD_MU) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   vis..."
 
-     call calcavector(itri, visc, 1, 1, avec)
-     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, vis79)
+     if(ivisfunc.eq.3) then
+        temp79a = (pst79(:,OP_1) - psimin)/(psibound - psimin)
+        temp79b = (pst79(:,OP_DR)*(x_79 - xmag) &
+             +     pst79(:,OP_DZ)*(z_79 - zmag))*(psibound-psimin)
+        vis79 = 0.
+        vic79 = 0.
+        where(real(temp79a).lt.amuoff .and. real(temp79b).gt.0.)
+           vis79(:,OP_1) = amu
+           vic79(:,OP_1) = amuc
+        elsewhere
+           vis79(:,OP_1) = amu_edge
+           vic79(:,OP_1) = amu_edge
+        end where
+     else
+        call calcavector(itri, visc, 1, 1, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, vis79)
 
-     if(numvar.ge.3) then
-        call calcavector(itri, visc_c, 1, 1, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, vic79)
+        if(numvar.ge.3) then
+           call calcavector(itri, visc_c, 1, 1, avec)
+           call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, vic79)
+        endif
      endif
 
      if(amupar.ne.0.) vip79 = amupar*pit79/2.
