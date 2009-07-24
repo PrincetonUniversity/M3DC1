@@ -49,6 +49,7 @@ c     first put in information to check on run information
       write(56) totcur0,tflux0,gbound,fbound,ptot,vloop
       write(56) psimin, psilim
       write(56) xnull, znull
+      write(56) xmag, zmag
       close(56)
 
       if(maxrank.eq.1) then
@@ -164,6 +165,7 @@ c     first put in information to check on run information
       read(56) totcur0,tflux0,gbound,fbound,ptot,vloop
       read(56,END=1199) psimin,psilim
       read(56,END=1199) xnull,znull
+      read(56,END=1199) xmag,zmag
       goto 1200
  1199 if(myrank.eq.0) 
      &     print *, 'Warning: reading from a previous restart version'
@@ -315,6 +317,7 @@ c     below specifies that this is the last line
 
       if(myrank.eq.0) then
          write(56) psimin,psilim,xnull,znull
+         write(56) xmag,zmag
       endif
       close(56)
       
@@ -416,6 +419,7 @@ c     first put in information to check on run information
       read(56,END=1199) psimin,psilim
       write(*,*) 'psimin,psilim',psimin,psilim
       read(56,END=1199) xnull,znull
+      read(56,END=1199) xmag,zmag
       goto 1200
  1199 if(myrank.eq.0) 
      &     print *, 'Warning: reading from a previous restart version'

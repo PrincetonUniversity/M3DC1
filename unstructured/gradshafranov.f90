@@ -834,9 +834,9 @@ subroutine gradshafranov_solve
      if(linear.eq.0) then
         if(((z.gt.separatrix_top) .or. (z .lt.separatrix_bottom)) .and. &
              (separatrix_top.ne.0. .or. separatrix_bottom.ne.0.)) then
-           !        if(myrank.eq.0 .and. iprint.ge.1) &
-           !             print *, 'removing points above ', separatrix_top, &
-           !             ' and below', separatrix_bottom
+           if(myrank.eq.0 .and. iprint.ge.1) &
+                print *, 'removing points above ', separatrix_top, &
+                ' and below', separatrix_bottom
            p0_l(1) = pedge
            p0_l(2:6) = 0.
         endif

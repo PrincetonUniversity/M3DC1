@@ -1,4 +1,4 @@
-pro plot_br, _EXTRA=extra, plotq=plotq
+pro plot_br, _EXTRA=extra, plotq=plotq, b=b
 
    get_normalizations, b0=b0, n0=n0, l0=l0, _EXTRA=extra
 
@@ -9,7 +9,7 @@ pro plot_br, _EXTRA=extra, plotq=plotq
    psi1i = read_field('psi_i',x,z,t,/last,/linear,_EXTRA=extra)
   
    if(keyword_set(plotq)) then begin
-       q = flux_average('q',slice,psi=psi,x=x,z=z,t=t,flux=flux2,slice=-1, $
+       q = flux_average('q',psi=psi,x=x,z=z,t=t,flux=flux2,slice=-1, $
                         nflux=nflux2, _EXTRA=extra)
    end
 
@@ -44,7 +44,7 @@ pro plot_br, _EXTRA=extra, plotq=plotq
    ytitle='!9r!7W!X'
 
    contour_and_legend, abs(d)*b0, f, sqrt(nflux),  $
-     color_table=39, xtitle=xtitle, ytitle=ytitle, $
+     table=39, xtitle=xtitle, ytitle=ytitle, $
      xrange=[-15,15], yrange=[0,1], _EXTRA=extra
 
    if(keyword_set(plotq)) then begin

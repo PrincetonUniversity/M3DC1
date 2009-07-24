@@ -2248,6 +2248,30 @@ pro read_nulls, axis=axis, xpoints=xpoint, _EXTRA=extra
 end
 
 
+function path_at_flux, psi,x,z,t,flux
+   contour, psi[0,*,*], x, z, levels=flux, closed=0, $
+     path_xy=xy, path_info=info, /path_data_coords, /overplot
+
+   if(n_elements(xy) eq 0) then begin
+       print, 'Error: no points at this flux value', flux
+       return, 0
+   end
+
+; refine the surface found by contour with a single newton iteration
+   i = n_elements(x)*(xy[0,*]-min(x)) / (max(x)-min(x))
+   j = n_elements(z)*(xy[1,*]-min(z)) / (max(z)-min(z))
+   f = interpolate(reform(psi[0,*,*]),i,j)
+   fx = interpolate(reform(dx(psi[0,*,*],x)),i,j)
+   fz = interpolate(reform(dz(psi[0,*,*],z)),i,j)
+   gf2 = fx^2 + fz^2
+   l = (flux-f)/gf2
+   xy[0,*] = xy[0,*] + l*fx
+   xy[1,*] = xy[1,*] + l*fz
+  
+   return, xy
+end
+
+
 ; ==============================================================
 ; find_nulls
 ; ----------
@@ -2541,7 +2565,7 @@ pro plot_flux_contour, fval, _EXTRA=extra
 
    psi = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra)
 
-   contour, psi, x, z, levels=fval(sort(fval)), _EXTRA=extra
+   contour, psi, x, z, closed=0, levels=fval(sort(fval)), _EXTRA=extra
 end
 
 
@@ -3483,37 +3507,13 @@ pro plot_pol_velocity, time,  maxval=maxval, points=points, $
 end
 
 
-function path_at_flux, psi,x,z,t,flux
-   contour, psi[0,*,*], x, z, levels=flux, closed=0, $
-     path_xy=xy, path_info=info, /path_data_coords, /overplot
-
-   if(n_elements(xy) eq 0) then begin
-       print, 'Error: no points at this flux value', flux
-       return, 0
-   end
-
-; refine the surface found by contour with a single newton iteration
-   i = n_elements(x)*(xy[0,*]-min(x)) / (max(x)-min(x))
-   j = n_elements(z)*(xy[1,*]-min(z)) / (max(z)-min(z))
-   f = interpolate(reform(psi[0,*,*]),i,j)
-   fx = interpolate(reform(dx(psi[0,*,*],x)),i,j)
-   fz = interpolate(reform(dz(psi[0,*,*],z)),i,j)
-   gf2 = fx^2 + fz^2
-   l = (flux-f)/gf2
-   xy[0,*] = xy[0,*] + l*fx
-   xy[1,*] = xy[1,*] + l*fz
-
-   return, xy
-end
-
-
 ; ==============================================
 ; field_at_flux
 ;
 ; evaluates field at points where psi=flux
 ; ==============================================
 function field_at_flux, field, psi, x, z, t, flux, theta=theta, angle=angle, $
-                      xp=xp, zp=zp, integrate=integrate, $
+                      xp=xp, zp=zp, integrate=integrate, axis=axis, $
                         _EXTRA=extra
 
    if(n_elements(field) le 1) then return, 0
@@ -3528,7 +3528,11 @@ function field_at_flux, field, psi, x, z, t, flux, theta=theta, angle=angle, $
    if(n_elements(theta) ne 0) then begin
        angle = interpolate(reform(theta[0,*,*]),i,j)
    endif else begin
-       angle = findgen(n_elements(test))
+       if(n_elements(axis eq 0)) then begin
+           angle = findgen(n_elements(test))
+       endif else begin
+           angle = atan(xy[1,*]-axis[1],xy[0,*]-axis[0])
+       endelse
    endelse
 
    ; re-order array
@@ -3538,8 +3542,6 @@ function field_at_flux, field, psi, x, z, t, flux, theta=theta, angle=angle, $
    angle = shift(angle, -p)
    xp = shift(xy[0,*],-p)
    zp = shift(xy[1,*],-p)
-
-   if(angle[0] lt angle[1]) then angle[0] = !pi
 
    if(keyword_set(integrate)) then begin
        r = radius_matrix(x,z,t)
@@ -3582,7 +3584,6 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, $
    flux = fltarr(sz[1], fbins)
    angle = fltarr(sz[1], tbins)
    area = fltarr(sz[1], fbins)
-   sfield = 0
 
    psival = lcfs(psi,x,z,axis=axis,xpoint=xpoint,slice=slice,flux0=flux0, $
                  _EXTRA=extra)
@@ -3599,14 +3600,6 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, $
 
    r = radius_matrix(x,z,t)
 
-   rho = psi
-   theta = psi
-   for i=0, n_elements(x)-1 do begin
-       for j=0, n_elements(z)-1 do begin
-           rho[0,i,j] = sqrt((x[i]-axis[0])^2 + (z[j]-axis[1])^2)
-           theta[0,i,j] = atan(z[j]-axis[1],x[i]-axis[0])
-       end
-   end
    if(keyword_set(pest)) then begin
        linear = read_parameter('linear',_EXTRA=extra)
        if(linear eq 1) then begin
@@ -3630,7 +3623,7 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, $
            flux[k,p] = range[k,1] - dpsi*(p+0.5)
        
            f = field_at_flux(field, psi, x, z, t, flux[k,p], $
-                             theta=theta, angle=a, xp=xp, zp=zp)
+                             angle=a, xp=xp, zp=zp, axis=axis)
 
            dx = deriv(xp)
            dz = deriv(zp)
@@ -3639,7 +3632,7 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, $
 
            if(keyword_set(pest)) then begin
                g = field_at_flux(db, psi, x, z, t, flux[k,p], $
-                             theta=theta, angle=a)
+                                 angle=a, axis=axis)
                dum = min(a, i, /abs)
                
                dt = ds*g
@@ -3684,7 +3677,6 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
    flux = fltarr(sz[1], bins)
    dV = fltarr(sz[1], bins)
    area = fltarr(sz[1], bins)
-   sfield = 0
 
    psival = lcfs(psi, x, z, axis=axis, xpoint=xpoint, flux0=flux0,_EXTRA=extra)
    r0 = axis[0]
@@ -4058,7 +4050,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
 
            if(n_elements(q_contours) ne 0) then begin
                fval = flux_at_q(q_contours,_EXTRA=ex)
-               plot_flux_contour, fval, /overplot, _EXTRA=ex
+               plot_flux_contour, fval, closed=0, /overplot, _EXTRA=ex
            endif
 
            if(keyword_set(boundary)) then plotmesh=1

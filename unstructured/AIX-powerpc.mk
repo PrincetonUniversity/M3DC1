@@ -1,14 +1,12 @@
-SHELL=/bin/bash
-
-COMMONDIR = ../common/
-AUTOPACK_HOME = /project/projectdirs/mp288/acbauer/develop/autopack/1.3.2
+LOADER = mpCC_r -blpdata
+PP     = xlc_r -E -C
+F90    = mpxlf90_r -c
+F77    = mpxlf_r -c
+CC     = mpCC_r -c
 
 # define where you want to locate the mesh adapt libraries
-# defult is /u/xluo/develop
 ifndef SCORECDIR
-SCORECDIR = /project/projectdirs/mp288/scorec/develop.newCompiler.constraint/
-#SCORECDIR = /u/xluo/develop.newCompiler.constraint/
-#SCORECDIR = /u/nferraro/C1/src/SCOREC/
+  SCORECDIR = /project/projectdirs/mp288/scorec/develop.newCompiler.constraint/
 endif
 
 
@@ -16,49 +14,6 @@ INCLUDE = -I$(COMMONDIR) \
 	-I$(INCLUDE_PATH) $(HDF5_INCLUDE) \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) \
 	-I$(SCORECDIR)
-
-LOADER = mpCC_r -blpdata
-PP     = xlc_r -E -C
-F90    = mpxlf90_r -c
-F77    = mpxlf_r -c
-CC     = mpCC_r -c
-
-OPTS = 
-
-# define the complex version
-ifeq ($(COM), 1)
-OPTS := $(OPTS) -Dvectype=complex -DUSECOMPLEX
-BIN_POSTFIX := $(BIN_POSTFIX)-complex
-endif
-
-ifeq ($(RL), 1)
-OPTS := $(OPTS) -Dvectype=real
-BIN_POSTFIX := $(BIN_POSTFIX)-real
-endif
-
-# specify whether debug or optimization 
-ifeq ($(OPT), 1)
- OPTS := $(OPTS) -O
- SCORECOPT = -O
- BIN_POSTFIX := $(BIN_POSTFIX)-opt
-else
- OPTS := $(OPTS) -g 
- SCORECOPT =
-endif
-
-
-# Define the size of sampling point arrays.
-# This sets the upper limit for number of points used
-# in numerical integrations
-ifdef MAX_PTS
-OPTS := $(OPTS) -DMAX_PTS=$(MAX_PTS)
-BIN_POSTFIX := $(BIN_POSTFIX)-$(MAX_PTS)
-else
-OPTS := $(OPTS) -DMAX_PTS=79
-endif
-
-BIN = gonewp${BIN_POSTFIX}
-
 
 PPOPTS = -DPETSC_AVOID_MPIF_H -Dmpi -DNEW_VELOCITY \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/rs6000_64_O \
@@ -69,17 +24,7 @@ CCOPTS = -O2 $(INCLUDE)
 DBESJDBESJOPTS = -O2 -qstrict -qautodbl=dbl4 $(INCLUDE) $(QEXTNAME)
 TV80OPTS=  -qsave -O2 -qstrict $(INCLUDE) $(QEXTNAME)
 
-NEWOBJS = $(COMMONDIR)subp.o $(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
-        $(COMMONDIR)fdump.o interpolate.o \
-	control.o M3Dmodules.o nintegrate_mod.o metricterms_new.o \
-	newvar.o diagnostics.o coils.o gradshafranov.o transport.o \
-	hdf5_output.o time_step.o newpar.o \
-	fin.o part_fin.o ludef_t.o \
-	boundary.o unknown.o restart.o \
-	acbauer.o metricterms.o readgeqdsk.o read_dskbal.o read_jsolver.o \
-	init_conds.o PETScInterface.o
-
-LDRNEW = \
+LIBS = \
         -L$(SCORECDIR)FMDB/FMDB/lib/ia64_linux \
 	-L$(SCORECDIR)FMDB/SCORECModel/lib/ia64_linux \
 	-L$(SCORECDIR)FMDB/SCORECUtil/lib/ia64_linux \
@@ -112,11 +57,6 @@ LDRNEW = \
 	-lxlfpmt4 -L/usr/vacpp/lib \
 	-lC -lpthreads -lm -lc -lxlopt -lxlf -lxlomp_ser -lxlf90
 
-
-
-${BIN}: $(NEWOBJS)
-	$(LOADER) $(NEWOBJS) $(LDRNEW) -o $@
-
 %.o : %.c
 	$(CC)  $(CCOPTS) $< -o $@
 
@@ -132,20 +72,3 @@ ${BIN}: $(NEWOBJS)
 	$(PP) $(PPOPTS) $< > $<.i
 	$(F90) $(F90OPTS) -qsuffix=f=i $<.i -o $@
 	rm $<.i
-
-clean:
-	rm -f ${BIN}
-	rm -f $(NEWOBJS)
-	rm -f *.o 
-	rm -f *.mod 
-	rm -f *~
-
-fullclean:
-	rm -f ${BIN}
-	rm -r lib*so
-	rm -f *.o 
-	rm -f *.mod 
-	rm -f out.* fort* new.* restartout PI* core*
-	rm -f setup* 
-	rm -f *~
-

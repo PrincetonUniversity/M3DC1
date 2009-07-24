@@ -242,8 +242,7 @@ module basic
   ! complex options
   integer :: ntor     ! toroidal mode number
 
-  real :: xnull, znull ! coordinates of the limiting x-point
-real :: tiltangled   !   angle to which the rectangular mesh is tilted for tests of boundary conditions
+  real :: tiltangled   !   angle to which the rectangular mesh is tilted for tests of boundary conditions
 !
 !.....input quantities---defined in subroutine input or in namelist
 !
@@ -300,6 +299,13 @@ real :: tiltangled   !   angle to which the rectangular mesh is tilted for tests
        time,                                     &
        gbound,fbound
   real, parameter :: pi = 3.14159265358979323846
+
+  ! magnetic diagnostics
+  real :: psimin       ! flux value at magnetic axis
+  real :: psilim       ! flux at the limiter
+  real :: psibound     ! flux at the lcfs
+  logical :: is_diverted ! whether plasma is diverted or not
+  real :: xnull, znull ! coordinates of the limiting x-point
 
   ! PID controllers
   type(pid_control), save :: i_control, n_control
