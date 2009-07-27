@@ -285,7 +285,7 @@ contains
 
   ! output_scalar
   ! =============
-  subroutine output_scalar(parent_id, name, value, time, error)
+  subroutine output_scalar(parent_id, name, value, t, error)
     use basic
     use hdf5
 
@@ -294,7 +294,7 @@ contains
     integer(HID_T), intent(in) :: parent_id
     character(LEN=*), intent(in) :: name
     real, intent(in) :: value
-    integer, intent(in) :: time
+    integer, intent(in) :: t
     integer, intent(out) :: error
 
     integer(HSIZE_T) :: chunk_size(1) = (/ 100 /)
@@ -305,12 +305,12 @@ contains
     real :: values(1)
     integer(HID_T) :: memspace, filespace, dset_id, p_id
 
-    dims(1) = time+1
+    dims(1) = t+1
     maxdims(1) = H5S_UNLIMITED_F
     values(1) = value
-    coord(1,1) = time + 1
+    coord(1,1) = t + 1
     
-    if((time.eq.0 .and. irestart.eq.0) .or. iadapt.gt.0) then
+    if((t.eq.0 .and. irestart.eq.0) .or. iadapt.gt.0) then
        call h5screate_simple_f(1, dims, filespace, error, maxdims)
        call h5pcreate_f(H5P_DATASET_CREATE_F, p_id, error)
        call h5pset_chunk_f(p_id, 1, chunk_size, error)

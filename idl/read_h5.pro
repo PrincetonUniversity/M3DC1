@@ -3976,6 +3976,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                 _EXTRA=ex
 
    if(n_elements(time) eq 0) then time = 0
+   if(n_elements(p) eq 0) then p = 50
    if(n_elements(title) eq 0) then notitle = 1 else notitle = 0
 
    if(size(name, /type) eq 7) then begin

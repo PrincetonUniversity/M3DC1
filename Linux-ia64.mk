@@ -60,7 +60,7 @@ SCOREC_LIBS = \
 	-ltemplateRefine-mpich2$(SCORECOPT) \
 	-lmeshTools-mpich2$(SCORECOPT) \
 	-lSolver-mpich2$(SCORECOPT) \
-	-lPPPL-mpich2$(SCORECOPT) \
+	-lPPPL-mpich2$(SCORECOPT)
 
 
 LIBS = $(SCOREC_LIBS) \
