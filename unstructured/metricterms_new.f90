@@ -6544,6 +6544,11 @@ vectype function b2psifd(e,f,g,h)
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
+
+  if(itwofluid.eq.0) then
+     b2psifd = 0.
+     return
+  end if
   
 #ifdef USECOMPLEX
   if(surface_int) then
@@ -6572,6 +6577,11 @@ vectype function b2bfd(e,f,g,h)
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
+
+  if(itwofluid.eq.0) then
+     b2bfd = 0.
+     return
+  end if
   
 #ifdef USECOMPLEX
   if(surface_int) then

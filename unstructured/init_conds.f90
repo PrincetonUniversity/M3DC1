@@ -503,7 +503,7 @@ subroutine taylor_reconnection_equ(x, z)
 
   call constant_field( bz0_l, bzero)
   call constant_field( pe0_l, p0-pi0*ipres)
-  call constant_field(den0_l, 1)
+  call constant_field(den0_l, 1.)
   
 end subroutine taylor_reconnection_equ
 
@@ -963,23 +963,23 @@ subroutine wave_per(x, z)
 
   real, intent(in) :: x, z
 
-  call plane_wave(u1_l, x, z,  akx, 0, phiper, pi/2.)
-  call plane_wave(vz1_l, x, z, akx, 0, vzper, pi/2.)
-  call plane_wave(chi1_l, x, z, akx, 0, chiper, pi)
+  call plane_wave(u1_l, x, z,  akx, 0., phiper, pi/2.)
+  call plane_wave(vz1_l, x, z, akx, 0., vzper, pi/2.)
+  call plane_wave(chi1_l, x, z, akx, 0., chiper, pi)
   
-  call plane_wave(psi1_l, x, z, akx, 0, psiper, pi/2.)
-  call plane_wave( bz1_l, x, z, akx, 0, bzper, pi/2.)
+  call plane_wave(psi1_l, x, z, akx, 0., psiper, pi/2.)
+  call plane_wave( bz1_l, x, z, akx, 0., bzper, pi/2.)
 
   if(ipres.eq.1) then 
-     call plane_wave(pe1_l, x, z, akx, 0, peper, pi/2.)
-     call plane_wave( p1_l, x, z, akx, 0,  pper, pi/2.)
+     call plane_wave(pe1_l, x, z, akx, 0., peper, pi/2.)
+     call plane_wave( p1_l, x, z, akx, 0.,  pper, pi/2.)
   else
-     call plane_wave(pe1_l, x, z, akx, 0, pper, pi/2.)
-     call plane_wave( p1_l, x, z, akx, 0, pper, pi/2.)    
+     call plane_wave(pe1_l, x, z, akx, 0., pper, pi/2.)
+     call plane_wave( p1_l, x, z, akx, 0., pper, pi/2.)    
   endif
 
   if(idens.eq.1) then
-     call plane_wave(den1_l, x, z, akx, 0, nper, pi/2.)    
+     call plane_wave(den1_l, x, z, akx, 0., nper, pi/2.)    
   endif
 
 end subroutine wave_per
