@@ -13,7 +13,9 @@ INCLUDE = -I$(COMMONDIR) -I$(NTCCHOME)/mod -I$(LIBDIR) \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
 	-I$(SCORECDIR)
 
-FOPTS = -c -r8 -implicitnone -save -fpp -warn unused $(INCLUDE) $(OPTS) # -check all -check noarg_temp_created
+H5_VERSION = 166
+
+FOPTS = -c -r8 -implicitnone -save -fpp -warn unused $(INCLUDE) $(OPTS) -DH5_VERSION=$(H5_VERSION) # -check all -check noarg_temp_created
 F90OPTS = $(FOPTS)
 F77OPTS = $(FOPTS)
 CCOPTS = -c $(INCLUDE)
