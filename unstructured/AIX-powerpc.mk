@@ -15,10 +15,12 @@ INCLUDE = -I$(COMMONDIR) \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/$(PETSC_ARCH) \
 	-I$(SCORECDIR)
 
+H5_VERSION = 169
+
 PPOPTS = -DPETSC_AVOID_MPIF_H -Dmpi -DNEW_VELOCITY \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/bmake/rs6000_64_O \
 	$(OPTS)
-F90OPTS = -qautodbl=dbl4 -qsave $(QEXTNAME) -qstrict -O2 $(INCLUDE)
+F90OPTS = -qautodbl=dbl4 -qsave $(QEXTNAME) -qstrict -DH5_VERSION=$(H5_VERSION) -O2 $(INCLUDE)
 F77OPTS = -qautodbl=dbl4 -qsave $(QEXTNAME) -O2 $(INCLUDE)
 CCOPTS = -O2 $(INCLUDE)
 DBESJDBESJOPTS = -O2 -qstrict -qautodbl=dbl4 $(INCLUDE) $(QEXTNAME)

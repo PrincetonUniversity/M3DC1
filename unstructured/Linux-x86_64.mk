@@ -1,4 +1,4 @@
-LOADER = mpiCC
+LOADER = mpif90
 F90    = mpif90
 F77    = mpif90
 CC     = mpicc
@@ -11,12 +11,13 @@ endif
 #INCLUDE = -I$(COMMONDIR) -I$(SCORECDIR) -I$(INCLUDE_PATH)
 
 INCLUDE = -I$(COMMONDIR) -I$(SCORECDIR) \
-	-I/usr/pppl/pathscale/3.2-pkgs/vsmpich-1.2.7/include \
-	-I/usr/pppl/pathscale/3.2-pkgs/vsmpich-pkgs/PETSc-3.0.0-p6/path-vsmp/include \
-	-I/usr/pppl/pathscale/3.2-pkgs/hdf5-1.8.1-serial/include
+	-I$(MPIHOME)/include \
+	-I$(PETSC_DIR)/path-vsmp/include \
+	-I$(HDF5_HOME)/include -I$(HDF5_HOME)/lib
 
+H5_VERSION = 169
 
-FOPTS = -c -r8 -cpp $(INCLUDE) $(OPTS) # -check all -check noarg_temp_created
+FOPTS = -c -r8 -cpp -intrinsic=PGI -DH5_VERSION=$(H5_VERSION) $(INCLUDE) $(OPTS) # -check all -check noarg_temp_created
 F90OPTS = $(FOPTS)
 F77OPTS = $(FOPTS)
 CCOPTS = -c $(INCLUDE)
@@ -65,17 +66,18 @@ SCOREC_LIBS = \
 	-lSolver-mpich2$(SCORECOPT) \
 	-lPPPL-mpich2$(SCORECOPT)
 
-LIBS = $(SCOREC_LIBS) \
+LIBS =  $(SCOREC_LIBS) \
 	$(AUTOPACK_LIBS) \
 	-L$(Zoltan_HOME)/lib -lzoltan \
 	$(PARMETIS_LIBS) \
 	$(PETSC_LIBS) \
 	$(SUPERLU_LIBS) \
 	-L$(NCARG_ROOT)/lib -lncarg -lncarg_gks -lncarg_c \
-	-L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5 -lz \
-	-Wl,-rpath -Wl,$(HDF5_HOME) \
-        -L/usr/X11R6/lib -lX11 \
-	-L$(ACML_HOME)/pathscale64/lib -lacml
+	-L$(ACML_HOME)/pathscale64/lib -lacml \
+	-L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5 -lhdf5_hl \
+	-Wl,-rpath,$(HDF5_HOME)/lib \
+	-L$(ZLIB_HOME)/lib -lz \
+        -L/usr/X11R6/lib -lX11
 
 
 %.o : %.c
