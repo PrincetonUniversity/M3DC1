@@ -21,7 +21,8 @@
       if(ifirstrs .ne. 1) call rename(fname, oldfname)
       ifirstrs = 0
 
-      open(56,file=fname,form='unformatted',status='unknown')
+      open(56,file=fname,form='unformatted',status='replace',
+     &     action='write')
 c     first put in information to check on run information
       write(56) numnodes
       write(56) numelms
@@ -81,7 +82,7 @@ c     first put in information to check on run information
       call numnod(numnodes)
       call numfac(numelms)
 
-      open(56,file=fname,form='unformatted',status='old')
+      open(56,file=fname,form='unformatted',status='unknown')
       read(56) inumnodes
       read(56) inumelms
       read(56) immnn18
@@ -267,7 +268,8 @@ c     first put in information to check on run information
       else
          if(ifirstrs2 .ne. 1) call rename('C1restart', 'C1restarto')
          ifirstrs2 = 0
-         open(56,file='C1restart',form='unformatted',status='unknown')
+         open(56,file='C1restart',form='unformatted',status='replace', 
+     &        action='write')
 c     first put in information to check on run information
          call numglobaldofs(num_fields, numdofsglobal)
          call numglobalents(numentsglobal(1),numentsglobal(2),

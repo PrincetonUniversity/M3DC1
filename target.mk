@@ -28,4 +28,4 @@ makefile : ;
 
 .PHONY: clean
 clean : 
-	rm -fr _$(ARCH)*
+	rm -fr _$(ARCH)* ../common/*.o

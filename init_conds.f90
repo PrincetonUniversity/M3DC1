@@ -3,7 +3,7 @@ subroutine constant_field(outarr, val)
   implicit none
 
   vectype, dimension(6), intent(out) :: outarr
-  vectype, intent(in) :: val
+  real, intent(in) :: val
 
   outarr(1) = val
   outarr(2:6) = 0.
