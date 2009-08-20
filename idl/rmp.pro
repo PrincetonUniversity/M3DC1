@@ -57,20 +57,30 @@ end
 pro integrate_j, df=df, _EXTRA=extra
    
    ntor = read_parameter('ntor', _EXTRA=extra)
-   q0 = findgen(10)/float(ntor)
+   q0 = findgen(8)/float(ntor)
 
    fq = flux_at_q(q0, _EXTRA=extra)
 
-   psi = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra)
-   jphi = read_field('jphi',x,z,t,_EXTRA=extra)
-       r = radius_matrix(x,z,t)
+   psi0  = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra)
+   psix_r = read_field('psi',x,z,t,/last,/linear,op=2,_EXTRA=extra)
+   psix_i = read_field('psi_i',x,z,/last,/linear,op=2,_EXTRA=extra)
+   psilp_r = read_field('psi',x,z,t,/last,/linear,op=7,_EXTRA=extra)
+   psilp_i = read_field('psi_i',x,z,t,/last,/linear,op=7,_EXTRA=extra)
+;   jphi = read_field('jphi',x,z,t,_EXTRA=extra)
+
+   r = radius_matrix(x,z,t)
+
+   jz = -(complex(psilp_r, psilp_i) - complex(psix_r,psix_i)/r)/r
+
+;   contour_and_legend, abs(jz), x, z
+;   return
 
    psibound = lcfs(flux0=flux0, _EXTRA=extra)
 
    ndf = 500
 
    int_j = fltarr(n_elements(fq), ndf)
-   df = (findgen(ndf)+1.)/1000.
+   df = (findgen(ndf)+1.)/3000.
 
    for i=0, n_elements(fq)-1 do begin   
        for k=0, ndf-1 do begin
@@ -78,17 +88,17 @@ pro integrate_j, df=df, _EXTRA=extra
            
            fmin = fq[i] - deltaf
            fmax = fq[i] + deltaf
-           j = -((psi ge fmin) and (psi le fmax)) * jphi / r
+           j = ((psi0 ge fmin) and (psi0 le fmax)) * abs(jz)
            int_j[i, k] = total(j*r)*mean(deriv(x))*mean(deriv(z))
        end
        
        if(i eq 0) then begin
-           plot, df, int_j[i,*], color=color(i,n_elements(fq)), yrange=[0,0.1]
+           plot, df, deriv(int_j[i,*]), color=color(i,n_elements(fq)), yrange=[0,.1]
        endif else begin
-           oplot, df, int_j[i,*], color=color(i,n_elements(fq))
+           oplot, df, deriv(int_j[i,*]), color=color(i,n_elements(fq))
        endelse
    end
 
-   plot_legend, string(format='("m = ",I)', indgen(10)), $
+   plot_legend, string(format='("m = ",I)', fix(q0*ntor)), $
      color=colors(n_elements(fq))
 end

@@ -47,6 +47,7 @@ Program Reducedquintic
   ! initialize the SUPERLU process grid
   if(myrank.eq.0) print *, 'Setting up SuperLU process grid'
   call initsolvers
+  if(myrank.eq.0) print *, 'Done initsolvers'
   call MPI_Comm_size(MPI_COMM_WORLD,maxrank,ier)
   if (ier /= 0) then
      print *,'Error in MPI_Comm_size:',ier

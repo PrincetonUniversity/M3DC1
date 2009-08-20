@@ -1265,7 +1265,6 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
              (b1ped(trial,pe079,lin)*dbf)
      endif
   endif
-
         
 end subroutine flux_lin
 
@@ -1371,6 +1370,14 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   ssterm(vz_g) = ssterm(vz_g) - thimpb*dt*temp
   ddterm(vz_g) = ddterm(vz_g) - thimpb*dt*temp*bdf
 
+  temp = b2harnedmikic_psi(trial,lin)
+  ssterm(psi_g) = ssterm(psi_g) + dt*dt*temp
+  ddterm(psi_g) = ddterm(psi_g) + dt*dt*temp
+
+  temp = b2harnedmikic_b(trial,lin)
+  ssterm(bz_g) = ssterm(bz_g) + dt*dt*temp
+  ddterm(bz_g) = ddterm(bz_g) + dt*dt*temp
+
   if(eqsubtract.eq.1) then
      temp = b2psipsid(trial,lin,ps079,ni79)*dbf &
           + b2psipsid(trial,ps079,lin,ni79)*dbf &
@@ -1454,7 +1461,6 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
              (b2ped (trial,pe079,lin)*dbf*pefac)
      endif
   endif
-
 
 end subroutine axial_field_lin
 
@@ -1678,7 +1684,6 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
           +b3pebd  (trial,pe079,bz079,lin)*dbf*pefac &
           +p1kappar(trial,ps079,ps079,pe079,lin,b2i79,kar79))
   endif
-
 
 end subroutine electron_pressure_lin
 
@@ -2144,16 +2149,16 @@ subroutine ludefvel_n(itri)
            call vorticity_lin(g79(:,:,i),g79(:,:,j), &
                 ss(u_g,:),dd(u_g,:),q_bf(u_g),advfield)
 
-           if(surface_int) then
-              ss(vz_g,:) = 0.
-              dd(vz_g,:) = 0.
-              q_bf(vz_g) = 0.
-           else
+!!$           if(surface_int) then
+!!$              ss(vz_g,:) = 0.
+!!$              dd(vz_g,:) = 0.
+!!$              q_bf(vz_g) = 0.
+!!$           else
               if(numvar.ge.2) then
                  call axial_vel_lin(g79(:,:,i),g79(:,:,j), &
                       ss(vz_g,:),dd(vz_g,:),q_bf(vz_g),advfield)
               endif
-           end if
+!!$           end if
            if(numvar.ge.3) then
               call compression_lin(g79(:,:,i),g79(:,:,j), &
                    ss(chi_g,:),dd(chi_g,:),q_bf(chi_g),advfield)

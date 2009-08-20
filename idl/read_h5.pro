@@ -1842,6 +1842,33 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        symbol = '!8u!Dr!N!X'
        d = dimensions(/v0, _EXTRA=extra)
 
+
+   endif else if(strcmp('vx', name, /fold_case) eq 1) then begin
+
+       chi_r = read_field('chi', x, y, t, slices=time,mesh=mesh,linear=linear,$
+                        filename=filename, points=pts, mask=mask, op=2, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       phi_z = read_field('psi', x, y, t, slices=time,mesh=mesh,linear=linear,$
+                        filename=filename, points=pts, mask=mask, op=3, $
+                        rrange=xrange, zrange=yrange, at_points=at_points)
+       
+       if(itor eq 1) then begin
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
+       endif else r = 1.
+
+       if(ivform eq 0) then begin
+           data = -phi_z/r + chi_r
+       endif else if (ivform eq 1) then begin
+           data = -r*phi_z + chi_r/r^2
+       endif
+       symbol = '!8u!DR!N!X'
+       d = dimensions(/v0, _EXTRA=extra)
+
+
    ;===========================================
    ; radial field
    ;===========================================
@@ -2248,7 +2275,7 @@ pro read_nulls, axis=axis, xpoints=xpoint, _EXTRA=extra
 end
 
 
-function path_at_flux, psi,x,z,t,flux
+function path_at_flux, psi,x,z,t,flux,breaks=breaks
    contour, psi[0,*,*], x, z, levels=flux, closed=0, $
      path_xy=xy, path_info=info, /path_data_coords, /overplot
 
@@ -2258,16 +2285,23 @@ function path_at_flux, psi,x,z,t,flux
    end
 
 ; refine the surface found by contour with a single newton iteration
-   i = n_elements(x)*(xy[0,*]-min(x)) / (max(x)-min(x))
-   j = n_elements(z)*(xy[1,*]-min(z)) / (max(z)-min(z))
-   f = interpolate(reform(psi[0,*,*]),i,j)
-   fx = interpolate(reform(dx(psi[0,*,*],x)),i,j)
-   fz = interpolate(reform(dz(psi[0,*,*],z)),i,j)
-   gf2 = fx^2 + fz^2
-   l = (flux-f)/gf2
-   xy[0,*] = xy[0,*] + l*fx
-   xy[1,*] = xy[1,*] + l*fz
+;    i = n_elements(x)*(xy[0,*]-min(x)) / (max(x)-min(x))
+;    j = n_elements(z)*(xy[1,*]-min(z)) / (max(z)-min(z))
+;    f = interpolate(reform(psi[0,*,*]),i,j)
+;    fx = interpolate(reform(dx(psi[0,*,*],x)),i,j)
+;    fz = interpolate(reform(dz(psi[0,*,*],z)),i,j)
+;    gf2 = fx^2 + fz^2
+;    l = (flux-f)/gf2
+;    xy[0,*] = xy[0,*] + l*fx
+;    xy[1,*] = xy[1,*] + l*fz
   
+   ; find breaks
+   
+   dx = sqrt(deriv(xy[0,*])^2 + deriv(xy[1,*])^2)
+   minforbreak = 10.*median(dx)
+
+   breaks = where(dx gt minforbreak,count)
+
    return, xy
 end
 
@@ -3020,9 +3054,27 @@ pro plot_lcfs, psi, x, z, psival=psival,_EXTRA=extra
     loadct, 12
 ;    contour, psi, x, z, /overplot, nlevels=1, levels=psival, $
 ;      thick=!p.charthick*2., color=color(3,5)
-    xy = path_at_flux(psi, x, z, t, psival)
+    xy = path_at_flux(psi, x, z, t, psival, breaks=breaks)
 
-    oplot, xy[0,*], xy[1,*], thick=!p.thick*3, color=color(3,5)
+    n = n_elements(breaks)
+    nxy = n_elements(xy[0,*])
+
+    if(breaks[0] ne -1) then begin
+        oplot, xy[0,0:breaks[0]], xy[1,0:breaks[0]], $
+          thick=!p.thick*3, color=color(3,5)
+        if(n ge 2) then begin
+            for i=1, n-2 do begin
+                oplot, xy[0,breaks[i-1]:breaks[i]], $
+                  xy[1,breaks[i-1]:breaks[i]], $
+                  thick=!p.thick*3, color=color(3,5)
+            endfor
+        endif
+        oplot, xy[0,breaks[n-1]:nxy-1], xy[1,breaks[n-1]:nxy-1], $
+          thick=!p.thick*3, color=color(3,5)
+
+    endif else begin
+        oplot, xy[0,*], xy[1,*], thick=!p.thick*3, color=color(3,5)
+    endelse
 end
 
 
@@ -3528,7 +3580,7 @@ function field_at_flux, field, psi, x, z, t, flux, theta=theta, angle=angle, $
    if(n_elements(theta) ne 0) then begin
        angle = interpolate(reform(theta[0,*,*]),i,j)
    endif else begin
-       if(n_elements(axis eq 0)) then begin
+       if(n_elements(axis) eq 0) then begin
            angle = findgen(n_elements(test))
        endif else begin
            angle = atan(xy[1,*]-axis[1],xy[0,*]-axis[0])
@@ -4047,7 +4099,8 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
              ytitle=make_label('!8Z!X', /l0, _EXTRA=ex), $
              range=range, _EXTRA=ex
 
-           if(keyword_set(lcfs)) then plot_lcfs, points=p, _EXTRA=ex
+           if(keyword_set(lcfs)) then $
+             plot_lcfs, points=p, slice=time, _EXTRA=ex
 
            if(n_elements(q_contours) ne 0) then begin
                fval = flux_at_q(q_contours,_EXTRA=ex)

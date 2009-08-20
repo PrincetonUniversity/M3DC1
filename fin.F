@@ -163,6 +163,8 @@
       thimp = 0.5
       thimp_ohm = -1.
       thimpsm = 1.
+
+      harned_mikic = 0.
 !
 !.....hyper-resistivity coefficients
       deex = 1.
@@ -365,6 +367,8 @@
 !
 !.....parameters for taylor problem (itaylor=1)
       eps = .01
+
+      maxn = 200
 
       irmp = 0
 !

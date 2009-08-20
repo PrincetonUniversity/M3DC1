@@ -272,7 +272,7 @@ contains
   
     ! Write the dataset
     call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, global_dims, error, &
-         file_space_id = filespace, mem_space_id = memspace, xfer_prp = plist_id)
+         file_space_id=filespace, mem_space_id=memspace, xfer_prp=plist_id)
 
     ! Close HDF5 handles
     call h5sclose_f(filespace, error)
