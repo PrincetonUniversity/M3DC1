@@ -577,9 +577,6 @@ subroutine calculate_scalars()
 
      emag3 = emag3 + energy_p()
 
-     if(myrank.eq.0) print *, emagp
-     if(myrank.eq.0) print *, emagt
-
 
      ! Calculate Scalars
      ! ~~~~~~~~~~~~~~~~~

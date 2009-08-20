@@ -263,7 +263,42 @@ subroutine rmp_per
 
   logical :: is_boundary
   integer :: izone, izonedim, numnodes, l
-  real :: normal(2), curv, x, z
+  real :: normal(2), curv, x, z, r2, dx, dz, ii
+
+  if(irmp.eq.3) then
+     call numnod(numnodes)
+     do l=1, numnodes
+        call boundary_node(l,is_boundary,izone,izonedim,normal,curv,x,z)
+        if(.not.is_boundary) cycle
+        
+        call assign_local_pointers(l)
+
+        dx = x - xmag
+        dz = z - zmag
+        r2 = dx**2 + dz**2
+        psi1_l(1) = (dx**2 - dz**2)/r2
+        psi1_l(2) = 4.*dx*dz**2/r2**2
+        psi1_l(3) =-4.*dz*dx**2/r2**2
+        psi1_l(4) = 4.*dz**2*(1.-4.*dx**2/r2)/r2**2
+        psi1_l(5) = 8.*dx*dz*(dx**2 - dz**2)/r2**3
+        psi1_l(6) =-4.*dx**2*(1.-4.*dz**2/r2)/r2**2
+#ifdef USECOMPLEX
+        if(ntor.lt.0) then
+           ii = -(0,1)
+        else
+           ii = (0,1)
+        endif
+        psi1_l(1) = psi1_l(1) + ii*2.*dx*dz/r2
+        psi1_l(2) = psi1_l(2) + ii*2.*dz*(1. - 2.*dx**2/r2)/r2
+        psi1_l(3) = psi1_l(3) + ii*2.*dx*(1. - 2.*dz**2/r2)/r2
+        psi1_l(4) = psi1_l(4) + ii*4.*dx*dz*(1. - 4.*dz**2/r2)/r2**2
+        psi1_l(5) = psi1_l(5) - ii*2.*(1. - 8.*dx**2*dz**2/r2**2)/r2
+        psi1_l(6) = psi1_l(6) + ii*4.*dx*dz*(1. - 4.*dx**2/r2)/r2**2
+#endif
+        psi1_l = psi1_l*0.5*bx0
+     end do
+     return
+  endif
 
   call load_field_from_coils('rmp_coil.dat', 'rmp_current.dat', &
        field,num_fields,psi_g)
