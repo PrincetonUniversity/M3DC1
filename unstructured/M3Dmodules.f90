@@ -131,6 +131,7 @@ module basic
   real :: eps         ! size of initial perturbation
   integer :: iwave    ! which wave to initialize in wave prop. equilibrium
   integer :: irmp     ! 1 = read rmp coil/currents from rmp_coil.dat, rmp_current.dat
+  integer :: maxn     ! maximum frequency in random initial conditions
 
 
   ! grad-shafranov options
@@ -201,6 +202,7 @@ module basic
   real :: regular        ! regularization constant in chi equation
   real :: max_ke         ! max KE before fields are re-scaled when linear==1
   real :: chiiner        ! factor to multiply chi inertial terms
+  real :: harned_mikic   ! coefficient of harned-mikic 2f stabilization term
 
 
   ! current controller parameters
@@ -258,14 +260,14 @@ module basic
        kappar,kappax,kappah,                                   &
        hyper,hyperi,hyperv,hyperc,hyperp,deex,                 &
        iper,jper,imask,amu_edge,com_bc,pedge,                  &
-       eps,ln,irmp,                                            &
+       eps,ln,irmp,maxn,                                       &
        vloop,control_p,control_i,control_d,tcur,               &
        ipellet, pellet_x, pellet_z, pellet_rate, pellet_var,   &
        ionization, ionization_rate, ionization_temp, ionization_depth, &
        isink, sink1_x, sink2_x, sink1_z, sink2_z,              &
        sink1_rate, sink2_rate, sink1_var, sink2_var,           &
        ntimemax,dt,ddt,integrator,thimp,thimp_ohm,imp_mod,     &
-       thimpsm,                                                &
+       thimpsm,harned_mikic,                                   &
        igauge,                                                 &
        isplitstep,                                             &
        linear,nskip,eqsubtract,                                &

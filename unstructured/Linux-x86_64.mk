@@ -5,7 +5,7 @@ CC     = mpicc
 
 # define where you want to locate the mesh adapt libraries
 ifndef SCORECDIR
-  SCORECDIR = /u/xluo/develop.petsc3.stix/
+  SCORECDIR = /u/xluo/develop.petsc3.stix.intel/
 endif
 
 INCLUDE = -I$(COMMONDIR) -I$(SCORECDIR) \
@@ -21,7 +21,7 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 CCOPTS = -c $(INCLUDE)
 
 AUTOPACK_LIBS = -L$(AUTOPACK_HOME)/lib \
-	-Wl,-rpath,$(AUTOPACK_HOME)/lib -lautopack
+	-Wl,-rpath,$(AUTOPACK_HOME)/lib -lautopack-O
 
 PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
 	-lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc \
@@ -32,27 +32,29 @@ SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu \
 PARMETIS_LIBS = -L$(PARMETIS_HOME)/lib \
 	-Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis
 
+SCOREC_ARCH=x86_64_linux-icc
+
 SCOREC_LIBS = \
-	-L$(SCORECDIR)FMDB/FMDB/lib/x86_64_linux \
-	-Wl,-rpath,$(SCORECDIR)FMDB/FMDB/lib/x86_64_linux \
-	-L$(SCORECDIR)FMDB/SCORECModel/lib/x86_64_linux \
-	-Wl,-rpath,$(SCORECDIR)FMDB/SCORECModel/lib/x86_64_linux \
-	-L$(SCORECDIR)FMDB/SCORECUtil/lib/x86_64_linux \
-	-Wl,-rpath,$(SCORECDIR)FMDB/SCORECUtil/lib/x86_64_linux \
-	-L$(SCORECDIR)mctk/Examples/PPPL/lib/x86_64_linux \
-	-Wl,-rpath,$(SCORECDIR)mctk/Examples/PPPL/lib/x86_64_linux \
-	-L$(SCORECDIR)mctk/Field/lib/x86_64_linux \
-	-Wl,-rpath,$(SCORECDIR)mctk/Field/lib/x86_64_linux \
-	-L$(SCORECDIR)mctk/Core/lib/x86_64_linux \
-	-Wl,-rpath,$(SCORECDIR)mctk/Core/lib/x86_64_linux \
-	-L$(SCORECDIR)mctk/Solver/lib/x86_64_linux \
-	-Wl,-rpath,$(SCORECDIR)mctk/Solver/lib/x86_64_linux \
-	-L$(SCORECDIR)meshAdapt/meshAdapt/lib/x86_64_linux \
-	-Wl,-rpath,$(SCORECDIR)meshAdapt/meshAdapt/lib/x86_64_linux \
-	-L$(SCORECDIR)meshAdapt/meshTools/lib/x86_64_linux \
-	-Wl,-rpath,$(SCORECDIR)meshAdapt/meshTools/lib/x86_64_linux \
-	-L$(SCORECDIR)meshAdapt/templateRefine/lib/x86_64_linux \
-	-Wl,-rpath,$(SCORECDIR)meshAdapt/templateRefine/lib/x86_64_linux \
+	-L$(SCORECDIR)FMDB/FMDB/lib/$(SCOREC_ARCH) \
+	-Wl,-rpath,$(SCORECDIR)FMDB/FMDB/lib/$(SCOREC_ARCH) \
+	-L$(SCORECDIR)FMDB/SCORECModel/lib/$(SCOREC_ARCH) \
+	-Wl,-rpath,$(SCORECDIR)FMDB/SCORECModel/lib/$(SCOREC_ARCH) \
+	-L$(SCORECDIR)FMDB/SCORECUtil/lib/$(SCOREC_ARCH) \
+	-Wl,-rpath,$(SCORECDIR)FMDB/SCORECUtil/lib/$(SCOREC_ARCH) \
+	-L$(SCORECDIR)mctk/Examples/PPPL/lib/$(SCOREC_ARCH) \
+	-Wl,-rpath,$(SCORECDIR)mctk/Examples/PPPL/lib/$(SCOREC_ARCH) \
+	-L$(SCORECDIR)mctk/Field/lib/$(SCOREC_ARCH) \
+	-Wl,-rpath,$(SCORECDIR)mctk/Field/lib/$(SCOREC_ARCH) \
+	-L$(SCORECDIR)mctk/Core/lib/$(SCOREC_ARCH) \
+	-Wl,-rpath,$(SCORECDIR)mctk/Core/lib/$(SCOREC_ARCH) \
+	-L$(SCORECDIR)mctk/Solver/lib/$(SCOREC_ARCH) \
+	-Wl,-rpath,$(SCORECDIR)mctk/Solver/lib/$(SCOREC_ARCH) \
+	-L$(SCORECDIR)meshAdapt/meshAdapt/lib/$(SCOREC_ARCH) \
+	-Wl,-rpath,$(SCORECDIR)meshAdapt/meshAdapt/lib/$(SCOREC_ARCH) \
+	-L$(SCORECDIR)meshAdapt/meshTools/lib/$(SCOREC_ARCH) \
+	-Wl,-rpath,$(SCORECDIR)meshAdapt/meshTools/lib/$(SCOREC_ARCH) \
+	-L$(SCORECDIR)meshAdapt/templateRefine/lib/$(SCOREC_ARCH) \
+	-Wl,-rpath,$(SCORECDIR)meshAdapt/templateRefine/lib/$(SCOREC_ARCH) \
 	-lFMDB-mpich2$(SCORECOPT) \
 	-lSCORECModel-mpich2$(SCORECOPT) \
 	-lSCORECUtil-mpich2$(SCORECOPT) \
@@ -64,7 +66,7 @@ SCOREC_LIBS = \
 	-lSolver-mpich2$(SCORECOPT) \
 	-lPPPL-mpich2$(SCORECOPT)
 
-LIBS = $(SCOREC_LIBS) \
+LIBS = 	$(SCOREC_LIBS) \
 	-L$(CCHOME)/lib/intel64 -lguide \
 	-L$(CCHOME)/mkl/lib/em64t -lmkl -lmkl_lapack -lmkl_ipr \
 	$(AUTOPACK_LIBS) \

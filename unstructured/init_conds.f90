@@ -97,7 +97,6 @@ subroutine random_per(x,z,seed,fac)
   vectype, intent(in), dimension(6) :: fac
   integer, intent(in) :: seed
   integer :: i, j
-  integer, parameter :: maxn = 200
   real :: alx, alz, kx, kz, xx, zz
   vectype, dimension(6) :: temp
 
@@ -199,7 +198,7 @@ subroutine den_eq
   use diagnostics
 
   integer :: numnodes, inode
-  real :: temp(6), k, kx
+  real :: temp(6), k, kx, x, z
   real :: sech
   
   if(idenfunc.eq.0) return
@@ -236,6 +235,19 @@ subroutine den_eq
 
         den0_l = den0_l * 0.5*(den_edge-den0)
         den0_l(1) = den0_l(1) + den0
+
+     case(3)
+        call nodcoord(inode, x, z)
+
+        temp(1) = real((psi0_l(1)-psimin)/(psibound-psimin))
+        temp(2) = (psi0_l(2)*(x - xmag) &
+             +     psi0_l(3)*(z - zmag))*(psibound-psimin)
+
+        if(temp(1).lt.denoff .and. temp(2).gt.0.) then
+           call constant_field(den0_l, den0)
+        else
+           call constant_field(den0_l, den_edge)
+        end if
      end select
 
   end do

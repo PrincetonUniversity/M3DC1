@@ -6602,6 +6602,106 @@ vectype function b2bfd(e,f,g,h)
 end function b2bfd
 
 
+! B2harndemikic_b
+! ===============
+vectype function b2harnedmikic_b(e,f)
+  use basic
+  use nintegrate_mod
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f
+  vectype :: temp
+
+  if(itwofluid.eq.0 .or. surface_int .or. &
+       dbf.eq.0. .or. harned_mikic.eq.0) then
+     b2harnedmikic_b = 0.
+     return
+  end if
+
+  temp79a = - ri2_79*e(:,OP_1)*bzt79(:,OP_1)**2 &
+       + pst79(:,OP_DRZ)*(e(:,OP_DR)*pst79(:,OP_DZ) &
+                         +e(:,OP_DZ)*pst79(:,OP_DR)) &
+       - pst79(:,OP_DZZ)*e(:,OP_DR)*pst79(:,OP_DR) &
+       - pst79(:,OP_DRR)*e(:,OP_DZ)*pst79(:,OP_DZ) &
+       + pst79(:,OP_DR)**2*e(:,OP_DZZ) &
+       + pst79(:,OP_DZ)**2*e(:,OP_DRR) &
+       - 2.*pst79(:,OP_DR)*pst79(:,OP_DZ)*e(:,OP_DRZ)
+
+  if(itor.eq.1) then
+     temp79a = temp79a + ri_79* &
+          (e(:,OP_1)*(pst79(:,OP_DZZ)*pst79(:,OP_DR) &
+                     -pst79(:,OP_DRZ)*pst79(:,OP_DZ)) &
+          +3.*pst79(:,OP_DZ)*(e(:,OP_DZ)*pst79(:,OP_DR) &
+                             -e(:,OP_DR)*pst79(:,OP_DZ))) &
+          +3.*ri2_79*e(:,OP_1)*pst79(:,OP_DZ)**2
+  endif
+
+  temp = int4(ri4_79,temp79a,f(:,OP_GS),ni79(:,OP_1))
+
+  b2harnedmikic_b = temp*(dbf**2)*harned_mikic
+end function b2harnedmikic_b
+
+
+! B2harnedmikic_psi
+! =================
+vectype function b2harnedmikic_psi(e,f)
+  use basic
+  use nintegrate_mod
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f
+  vectype :: temp
+
+  if(itwofluid.eq.0 .or. surface_int .or. &
+       dbf.eq.0. .or. harned_mikic.eq.0) then
+     b2harnedmikic_psi = 0.
+     return
+  end if
+
+  if(itor.eq.0) then
+     b2harnedmikic_psi = 0.
+     return
+  endif
+
+  temp79a = ri3_79* &
+       (2.*bzt79(:,OP_DR)* &
+        (pst79(:,OP_DZ )*e(:,OP_DR ) - pst79(:,OP_DR )*e(:,OP_DZ )) &
+       +2.*bzt79(:,OP_1 )* &
+        (pst79(:,OP_DRZ)*e(:,OP_DR ) - pst79(:,OP_DRR)*e(:,OP_DZ )) &
+       +2.*bzt79(:,OP_1 )* &
+        (pst79(:,OP_DZ )*e(:,OP_DRR) - pst79(:,OP_DR )*e(:,OP_DRZ)) &
+       + e(:,OP_DR)* &
+        (pst79(:,OP_DZ )*bzt79(:,OP_DR ) - pst79(:,OP_DR )*bzt79(:,OP_DZ )) &
+       + e(:,OP_1 )* &
+        (pst79(:,OP_DRZ)*bzt79(:,OP_DR ) - pst79(:,OP_DRR)*bzt79(:,OP_DZ )) &
+       + e(:,OP_1 )* &
+        (pst79(:,OP_DZ )*bzt79(:,OP_DRR) - pst79(:,OP_DR )*bzt79(:,OP_DRZ))) &
+        - 3.*ri4_79* &
+       (2.*bzt79(:,OP_1)* &
+        (pst79(:,OP_DZ)*e(:,OP_DR) - pst79(:,OP_DR)*e(:,OP_DZ)) &
+       + e(:,OP_1) * &
+        (pst79(:,OP_DZ)*bzt79(:,OP_DR) - pst79(:,OP_DR)*bzt79(:,OP_DZ)))
+
+  temp79b = ri3_79* &
+       (2.*bzt79(:,OP_DZ)* &
+        (pst79(:,OP_DZ )*e(:,OP_DR ) - pst79(:,OP_DR )*e(:,OP_DZ )) &
+       +2.*bzt79(:,OP_1)* &
+        (pst79(:,OP_DZZ)*e(:,OP_DR ) - pst79(:,OP_DRZ)*e(:,OP_DZ )) &
+       +2.*bzt79(:,OP_1 )* &
+        (pst79(:,OP_DZ )*e(:,OP_DRZ) - pst79(:,OP_DR )*e(:,OP_DZZ)) &
+       + e(:,OP_DZ)* &
+        (pst79(:,OP_DZ )*bzt79(:,OP_DR ) - pst79(:,OP_DR )*bzt79(:,OP_DZ )) &
+       + e(:,OP_1 )* &
+        (pst79(:,OP_DZZ)*bzt79(:,OP_DR ) - pst79(:,OP_DRZ)*bzt79(:,OP_DZ )) &
+       + e(:,OP_1 )* &
+        (pst79(:,OP_DZ )*bzt79(:,OP_DRZ) - pst79(:,OP_DR )*bzt79(:,OP_DZZ)))
+
+  temp = int4(ri2_79,f(:,OP_DRZ),temp79a,ni79(:,OP_1)) &
+       + int4(ri2_79,f(:,OP_DZZ),temp79b,ni79(:,OP_1))
+
+
+  b2harnedmikic_psi = temp*(dbf**2)*harned_mikic
+end function b2harnedmikic_psi
+
+
 !=============================================================================
 ! B3 TERMS
 !=============================================================================
