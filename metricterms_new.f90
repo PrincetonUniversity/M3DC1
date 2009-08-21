@@ -8784,23 +8784,27 @@ real function energy_mp()
 
   if(linear.eq.1) then
      temp = .5* &
-          (int3(ri2_79,pss79(:,OP_DZ),CONJUGATE(ps179(:,OP_DZ))) &
-          +int3(ri2_79,pss79(:,OP_DR),CONJUGATE(ps179(:,OP_DR))) &
-          +int3(ri2_79,ps179(:,OP_DZ),CONJUGATE(pss79(:,OP_DZ))) &
-          +int3(ri2_79,ps179(:,OP_DR),CONJUGATE(pss79(:,OP_DR))))
+          (int3(ri2_79,ps179(:,OP_DZ),CONJUGATE(ps179(:,OP_DZ))) &
+          +int3(ri2_79,ps179(:,OP_DR),CONJUGATE(ps179(:,OP_DR))))
+#ifdef USECOMPLEX
+     temp = temp + .5* &
+          (int3(ri_79,ps179(:,OP_DZ),CONJUGATE(bf79(:,OP_DRP))) &
+          -int3(ri_79,ps179(:,OP_DR),CONJUGATE(bf79(:,OP_DZP))) &
+          +int3(ri_79,CONJUGATE(ps179(:,OP_DZ)),bf79(:,OP_DRP)) &
+          -int3(ri_79,CONJUGATE(ps179(:,OP_DR)),bf79(:,OP_DZP)))
+#endif
   else
      temp = .5* &
           (int3(ri2_79,pst79(:,OP_DZ),CONJUGATE(pst79(:,OP_DZ))) &
           +int3(ri2_79,pst79(:,OP_DR),CONJUGATE(pst79(:,OP_DR))))
-  endif
-
 #ifdef USECOMPLEX
-  temp = temp + .5* &
-       (int3(ri_79,pst79(:,OP_DZ),CONJUGATE(bf79(:,OP_DRP))) &
-       -int3(ri_79,pst79(:,OP_DR),CONJUGATE(bf79(:,OP_DZP))) &
-       +int3(ri_79,CONJUGATE(pst79(:,OP_DZ)),bf79(:,OP_DRP)) &
-       -int3(ri_79,CONJUGATE(pst79(:,OP_DR)),bf79(:,OP_DZP)))
+     temp = temp + .5* &
+          (int3(ri_79,pst79(:,OP_DZ),CONJUGATE(bf79(:,OP_DRP))) &
+          -int3(ri_79,pst79(:,OP_DR),CONJUGATE(bf79(:,OP_DZP))) &
+          +int3(ri_79,CONJUGATE(pst79(:,OP_DZ)),bf79(:,OP_DRP)) &
+          -int3(ri_79,CONJUGATE(pst79(:,OP_DR)),bf79(:,OP_DZP)))
 #endif
+  endif
 
   energy_mp = temp
   return
@@ -8819,9 +8823,7 @@ real function energy_mt()
   vectype :: temp
 
   if(linear.eq.1) then
-     temp = .5* &
-          (int3(ri2_79,bzs79(:,OP_1),CONJUGATE(bz179(:,OP_1))) &
-          +int3(ri2_79,bz179(:,OP_1),CONJUGATE(bzs79(:,OP_1))))
+     temp = .5*int3(ri2_79,bz179(:,OP_1),CONJUGATE(bz179(:,OP_1)))
   else
      temp = .5*int3(ri2_79,bzt79(:,OP_1),CONJUGATE(bzt79(:,OP_1)))
   endif
@@ -8873,10 +8875,8 @@ real function energy_kp()
   case(0)
      if(linear.eq.1) then
         temp = .5* &
-             (int4(ri2_79,phs79(:,OP_DZ),CONJUGATE(ph179(:,OP_DZ)),nt79(:,OP_1)) &
-             +int4(ri2_79,phs79(:,OP_DR),CONJUGATE(ph179(:,OP_DR)),nt79(:,OP_1)) &
-             +int4(ri2_79,ph179(:,OP_DZ),CONJUGATE(phs79(:,OP_DZ)),nt79(:,OP_1)) &
-             +int4(ri2_79,ph179(:,OP_DR),CONJUGATE(phs79(:,OP_DR)),nt79(:,OP_1)))
+             (int4(ri2_79,ph179(:,OP_DZ),CONJUGATE(ph179(:,OP_DZ)),nt79(:,OP_1)) &
+             +int4(ri2_79,ph179(:,OP_DR),CONJUGATE(ph179(:,OP_DR)),nt79(:,OP_1)))
      else
         temp = .5* &
              (int4(ri2_79,pht79(:,OP_DZ),CONJUGATE(pht79(:,OP_DZ)),nt79(:,OP_1)) &
@@ -8886,10 +8886,8 @@ real function energy_kp()
   case(1)
      if(linear.eq.1) then
         temp = .5* &
-             (int4(r2_79,phs79(:,OP_DZ),CONJUGATE(ph179(:,OP_DZ)),nt79(:,OP_1)) &
-             +int4(r2_79,phs79(:,OP_DR),CONJUGATE(ph179(:,OP_DR)),nt79(:,OP_1)) &
-             +int4(r2_79,ph179(:,OP_DZ),CONJUGATE(phs79(:,OP_DZ)),nt79(:,OP_1)) &
-             +int4(r2_79,ph179(:,OP_DR),CONJUGATE(phs79(:,OP_DR)),nt79(:,OP_1)))
+             (int4(r2_79,ph179(:,OP_DZ),CONJUGATE(ph179(:,OP_DZ)),nt79(:,OP_1)) &
+             +int4(r2_79,ph179(:,OP_DR),CONJUGATE(ph179(:,OP_DR)),nt79(:,OP_1)))
      else
         temp = .5* &
              (int4(r2_79,pht79(:,OP_DZ),CONJUGATE(pht79(:,OP_DZ)),nt79(:,OP_1)) &
@@ -8916,18 +8914,14 @@ real function energy_kt()
   select case(ivform)
   case(0)
      if(linear.eq.1) then
-        temp = .5* &
-             (int4(ri2_79,vzs79(:,OP_1),CONJUGATE(vz179(:,OP_1)),nt79(:,OP_1)) &
-             +int4(ri2_79,vz179(:,OP_1),CONJUGATE(vzs79(:,OP_1)),nt79(:,OP_1)))
+        temp = .5*int4(ri2_79,vz179(:,OP_1),CONJUGATE(vz179(:,OP_1)),nt79(:,OP_1)) 
      else
         temp = .5*int4(ri2_79,vzt79(:,OP_1),CONJUGATE(vzt79(:,OP_1)),nt79(:,OP_1))
      endif
 
   case(1)
      if(linear.eq.1) then
-        temp = .5* &
-             (int4(r2_79,vzs79(:,OP_1),CONJUGATE(vz179(:,OP_1)),nt79(:,OP_1)) &
-             +int4(r2_79,vz179(:,OP_1),CONJUGATE(vzs79(:,OP_1)),nt79(:,OP_1)))
+        temp = .5*int4(r2_79,vz179(:,OP_1),CONJUGATE(vz179(:,OP_1)),nt79(:,OP_1))
      else
         temp = .5*int4(r2_79,vzt79(:,OP_1),CONJUGATE(vzt79(:,OP_1)),nt79(:,OP_1))
      endif
@@ -8953,18 +8947,12 @@ real function energy_k3()
   case(0)
      if(linear.eq.1) then
         temp = .5* &
-          (int3(chs79(:,OP_DZ),CONJUGATE(ch179(:,OP_DZ)),nt79(:,OP_1)) &
-          +int3(chs79(:,OP_DR),CONJUGATE(ch179(:,OP_DR)),nt79(:,OP_1)) &
-          +int3(ch179(:,OP_DZ),CONJUGATE(chs79(:,OP_DZ)),nt79(:,OP_1)) &
-          +int3(ch179(:,OP_DR),CONJUGATE(chs79(:,OP_DR)),nt79(:,OP_1)) &
-          +int4(ri_79,chs79(:,OP_DZ),CONJUGATE(ph179(:,OP_DR)),nt79(:,OP_1)) &
-          -int4(ri_79,chs79(:,OP_DR),CONJUGATE(ph179(:,OP_DZ)),nt79(:,OP_1)) &
-          +int4(ri_79,ch179(:,OP_DZ),CONJUGATE(phs79(:,OP_DR)),nt79(:,OP_1)) &
-          -int4(ri_79,ch179(:,OP_DR),CONJUGATE(phs79(:,OP_DZ)),nt79(:,OP_1)) &
-          +int4(ri_79,CONJUGATE(chs79(:,OP_DZ)),ph179(:,OP_DR),nt79(:,OP_1)) &
-          -int4(ri_79,CONJUGATE(chs79(:,OP_DR)),ph179(:,OP_DZ),nt79(:,OP_1)) &
-          +int4(ri_79,CONJUGATE(ch179(:,OP_DZ)),phs79(:,OP_DR),nt79(:,OP_1)) &
-          -int4(ri_79,CONJUGATE(ch179(:,OP_DR)),phs79(:,OP_DZ),nt79(:,OP_1)))
+          (int3(ch179(:,OP_DZ),CONJUGATE(ch179(:,OP_DZ)),nt79(:,OP_1)) &
+          +int3(ch179(:,OP_DR),CONJUGATE(ch179(:,OP_DR)),nt79(:,OP_1)) &
+          +int4(ri_79,ch179(:,OP_DZ),CONJUGATE(ph179(:,OP_DR)),nt79(:,OP_1)) &
+          -int4(ri_79,ch179(:,OP_DR),CONJUGATE(ph179(:,OP_DZ)),nt79(:,OP_1)) &
+          +int4(ri_79,CONJUGATE(ch179(:,OP_DZ)),ph179(:,OP_DR),nt79(:,OP_1)) &
+          -int4(ri_79,CONJUGATE(ch179(:,OP_DR)),ph179(:,OP_DZ),nt79(:,OP_1)))
      else
         temp = .5* &
           (int3(cht79(:,OP_DZ),CONJUGATE(cht79(:,OP_DZ)),nt79(:,OP_1)) &
@@ -8978,18 +8966,12 @@ real function energy_k3()
   case(1)
      if(linear.eq.1) then
         temp = .5* &
-          (int4(ri4_79,chs79(:,OP_DZ),CONJUGATE(ch179(:,OP_DZ)),nt79(:,OP_1)) &
-          +int4(ri4_79,chs79(:,OP_DR),CONJUGATE(ch179(:,OP_DR)),nt79(:,OP_1)) &
-          +int4(ri4_79,ch179(:,OP_DZ),CONJUGATE(chs79(:,OP_DZ)),nt79(:,OP_1)) &
-          +int4(ri4_79,ch179(:,OP_DR),CONJUGATE(chs79(:,OP_DR)),nt79(:,OP_1)) &
-          +int4(ri_79,chs79(:,OP_DZ),CONJUGATE(ph179(:,OP_DR)),nt79(:,OP_1)) &
-          -int4(ri_79,chs79(:,OP_DR),CONJUGATE(ph179(:,OP_DZ)),nt79(:,OP_1)) &
-          +int4(ri_79,ch179(:,OP_DZ),CONJUGATE(phs79(:,OP_DR)),nt79(:,OP_1)) &
-          -int4(ri_79,ch179(:,OP_DR),CONJUGATE(phs79(:,OP_DZ)),nt79(:,OP_1)) &
-          +int4(ri_79,CONJUGATE(chs79(:,OP_DZ)),ph179(:,OP_DR),nt79(:,OP_1)) &
-          -int4(ri_79,CONJUGATE(chs79(:,OP_DR)),ph179(:,OP_DZ),nt79(:,OP_1)) &
-          +int4(ri_79,CONJUGATE(ch179(:,OP_DZ)),phs79(:,OP_DR),nt79(:,OP_1)) &
-          -int4(ri_79,CONJUGATE(ch179(:,OP_DR)),phs79(:,OP_DZ),nt79(:,OP_1)))
+          (int4(ri4_79,ch179(:,OP_DZ),CONJUGATE(ch179(:,OP_DZ)),nt79(:,OP_1)) &
+          +int4(ri4_79,ch179(:,OP_DR),CONJUGATE(ch179(:,OP_DR)),nt79(:,OP_1)) &
+          +int4(ri_79,ch179(:,OP_DZ),CONJUGATE(ph179(:,OP_DR)),nt79(:,OP_1)) &
+          -int4(ri_79,ch179(:,OP_DR),CONJUGATE(ph179(:,OP_DZ)),nt79(:,OP_1)) &
+          +int4(ri_79,CONJUGATE(ch179(:,OP_DZ)),ph179(:,OP_DR),nt79(:,OP_1)) &
+          -int4(ri_79,CONJUGATE(ch179(:,OP_DR)),ph179(:,OP_DZ),nt79(:,OP_1)))
      else
         temp = .5* &
           (int4(ri4_79,cht79(:,OP_DZ),CONJUGATE(cht79(:,OP_DZ)),nt79(:,OP_1)) &
@@ -9018,15 +9000,11 @@ real function energy_mpd()
   vectype :: temp
 
   if(linear.eq.1) then
-     temp = &
-          -int4(ri2_79,pss79(:,OP_GS),CONJUGATE(ps179(:,OP_GS)),eta79(:,OP_1)) &
-          -int4(ri2_79,ps179(:,OP_GS),CONJUGATE(pss79(:,OP_GS)),eta79(:,OP_1))
+     temp = -int4(ri2_79,ps179(:,OP_GS),CONJUGATE(ps179(:,OP_GS)),eta79(:,OP_1))
 #ifdef USECOMPLEX
      temp = temp - &
-          (int4(ri4_79,pss79(:,OP_DZP),CONJUGATE(ps179(:,OP_DZP)),eta79(:,OP_1)) &
-          +int4(ri4_79,pss79(:,OP_DRP),CONJUGATE(ps179(:,OP_DRP)),eta79(:,OP_1)) &
-          +int4(ri4_79,ps179(:,OP_DZP),CONJUGATE(pss79(:,OP_DZP)),eta79(:,OP_1)) &
-          +int4(ri4_79,ps179(:,OP_DRP),CONJUGATE(pss79(:,OP_DRP)),eta79(:,OP_1)))
+          (int4(ri4_79,ps179(:,OP_DZP),CONJUGATE(ps179(:,OP_DZP)),eta79(:,OP_1)) &
+          +int4(ri4_79,ps179(:,OP_DRP),CONJUGATE(ps179(:,OP_DRP)),eta79(:,OP_1)))
 #endif
   else
      temp = -int4(ri2_79,pst79(:,OP_GS),CONJUGATE(pst79(:,OP_GS)),eta79(:,OP_1))
@@ -9050,13 +9028,11 @@ real function energy_mtd()
 
   if(linear.eq.1) then
      temp = - &
-          (int4(ri2_79,bzs79(:,OP_DZ),CONJUGATE(bz179(:,OP_DZ)),eta79(:,OP_1)) &
-          +int4(ri2_79,bzs79(:,OP_DR),CONJUGATE(bz179(:,OP_DR)),eta79(:,OP_1)) &
-          +int4(ri2_79,bz179(:,OP_DZ),CONJUGATE(bzs79(:,OP_DZ)),eta79(:,OP_1)) &
-          +int4(ri2_79,bz179(:,OP_DR),CONJUGATE(bzs79(:,OP_DR)),eta79(:,OP_1)))
+          (int4(ri2_79,bz179(:,OP_DZ),CONJUGATE(bz179(:,OP_DZ)),eta79(:,OP_1))&
+          +int4(ri2_79,bz179(:,OP_DR),CONJUGATE(bz179(:,OP_DR)),eta79(:,OP_1)))
   else
      temp = - &
-          (int4(ri2_79,bzt79(:,OP_DZ),CONJUGATE(bzt79(:,OP_DZ)),eta79(:,OP_1)) &
+          (int4(ri2_79,bzt79(:,OP_DZ),CONJUGATE(bzt79(:,OP_DZ)),eta79(:,OP_1))&
           +int4(ri2_79,bzt79(:,OP_DR),CONJUGATE(bzt79(:,OP_DR)),eta79(:,OP_1)))
   end if
 
@@ -9077,15 +9053,11 @@ real function energy_kpd()
   vectype :: temp
 
   if(linear.eq.1) then
-     temp = - &
-          (int4(ri2_79,phs79(:,OP_GS),CONJUGATE(ph179(:,OP_GS)),vis79(:,OP_1)) &
-          +int4(ri2_79,ph179(:,OP_GS),CONJUGATE(phs79(:,OP_GS)),vis79(:,OP_1)))
+     temp = -int4(ri2_79,ph179(:,OP_GS),CONJUGATE(ph179(:,OP_GS)),vis79(:,OP_1))
 #ifdef USECOMPLEX
      temp = temp - &
-          (int4(ri4_79,phs79(:,OP_DZP),CONJUGATE(ph179(:,OP_DZP)),vis79(:,OP_1)) &
-          +int4(ri4_79,phs79(:,OP_DRP),CONJUGATE(ph179(:,OP_DRP)),vis79(:,OP_1)) &
-          +int4(ri4_79,ph179(:,OP_DZP),CONJUGATE(phs79(:,OP_DZP)),vis79(:,OP_1)) &
-          +int4(ri4_79,ph179(:,OP_DRP),CONJUGATE(phs79(:,OP_DRP)),vis79(:,OP_1)))
+          (int4(ri4_79,ph179(:,OP_DZP),CONJUGATE(ph179(:,OP_DZP)),vis79(:,OP_1)) &
+          +int4(ri4_79,ph179(:,OP_DRP),CONJUGATE(ph179(:,OP_DRP)),vis79(:,OP_1)))
 #endif
   else
      temp = -int4(ri2_79,pht79(:,OP_GS),CONJUGATE(pht79(:,OP_GS)),vis79(:,OP_1))
@@ -9111,10 +9083,8 @@ real function energy_ktd()
   case(0)
      if(linear.eq.1) then
         temp = - &
-             (int4(ri2_79,vzs79(:,OP_DZ),CONJUGATE(vz179(:,OP_DZ)),vis79(:,OP_1)) &
-             +int4(ri2_79,vzs79(:,OP_DR),CONJUGATE(vz179(:,OP_DR)),vis79(:,OP_1)) &
-             +int4(ri2_79,vz179(:,OP_DZ),CONJUGATE(vzs79(:,OP_DZ)),vis79(:,OP_1)) &
-             +int4(ri2_79,vz179(:,OP_DR),CONJUGATE(vzs79(:,OP_DR)),vis79(:,OP_1)))
+             (int4(ri2_79,vz179(:,OP_DZ),CONJUGATE(vz179(:,OP_DZ)),vis79(:,OP_1)) &
+             +int4(ri2_79,vz179(:,OP_DR),CONJUGATE(vz179(:,OP_DR)),vis79(:,OP_1)))
      else
         temp = - &
              (int4(ri2_79,vzt79(:,OP_DZ),CONJUGATE(vzt79(:,OP_DZ)),vis79(:,OP_1)) &
@@ -9123,10 +9093,8 @@ real function energy_ktd()
   case(1)
      if(linear.eq.1) then
         temp = - &
-             (int4(r2_79,vzs79(:,OP_DZ),CONJUGATE(vz179(:,OP_DZ)),vis79(:,OP_1)) &
-             +int4(r2_79,vzs79(:,OP_DR),CONJUGATE(vz179(:,OP_DR)),vis79(:,OP_1)) &
-             +int4(r2_79,vz179(:,OP_DZ),CONJUGATE(vzs79(:,OP_DZ)),vis79(:,OP_1)) &
-             +int4(r2_79,vz179(:,OP_DR),CONJUGATE(vzs79(:,OP_DR)),vis79(:,OP_1)))
+             (int4(r2_79,vz179(:,OP_DZ),CONJUGATE(vz179(:,OP_DZ)),vis79(:,OP_1)) &
+             +int4(r2_79,vz179(:,OP_DR),CONJUGATE(vz179(:,OP_DR)),vis79(:,OP_1)))
      else
         temp = - &
              (int4(r2_79,vzt79(:,OP_DZ),CONJUGATE(vzt79(:,OP_DZ)),vis79(:,OP_1)) &
@@ -9150,9 +9118,7 @@ real function energy_k3d()
   vectype :: temp
 
   if(linear.eq.1) then
-     temp = - 2.* &
-          (int3(chs79(:,OP_LP),CONJUGATE(ch179(:,OP_LP)),vic79(:,OP_1)) &
-          +int3(ch179(:,OP_LP),CONJUGATE(chs79(:,OP_LP)),vic79(:,OP_1)))
+     temp = - 2.*int3(ch179(:,OP_LP),CONJUGATE(ch179(:,OP_LP)),vic79(:,OP_1))
   else
      temp = - 2.*int3(cht79(:,OP_LP),CONJUGATE(cht79(:,OP_LP)),vic79(:,OP_1))
   endif
