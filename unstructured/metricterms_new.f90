@@ -8875,8 +8875,8 @@ real function energy_kp()
   case(0)
      if(linear.eq.1) then
         temp = .5* &
-             (int4(ri2_79,ph179(:,OP_DZ),CONJUGATE(ph179(:,OP_DZ)),nt79(:,OP_1)) &
-             +int4(ri2_79,ph179(:,OP_DR),CONJUGATE(ph179(:,OP_DR)),nt79(:,OP_1)))
+             (int4(ri2_79,ph179(:,OP_DZ),CONJUGATE(ph179(:,OP_DZ)),n079(:,OP_1)) &
+             +int4(ri2_79,ph179(:,OP_DR),CONJUGATE(ph179(:,OP_DR)),n079(:,OP_1)))
      else
         temp = .5* &
              (int4(ri2_79,pht79(:,OP_DZ),CONJUGATE(pht79(:,OP_DZ)),nt79(:,OP_1)) &
@@ -8886,8 +8886,8 @@ real function energy_kp()
   case(1)
      if(linear.eq.1) then
         temp = .5* &
-             (int4(r2_79,ph179(:,OP_DZ),CONJUGATE(ph179(:,OP_DZ)),nt79(:,OP_1)) &
-             +int4(r2_79,ph179(:,OP_DR),CONJUGATE(ph179(:,OP_DR)),nt79(:,OP_1)))
+             (int4(r2_79,ph179(:,OP_DZ),CONJUGATE(ph179(:,OP_DZ)),n079(:,OP_1)) &
+             +int4(r2_79,ph179(:,OP_DR),CONJUGATE(ph179(:,OP_DR)),n079(:,OP_1)))
      else
         temp = .5* &
              (int4(r2_79,pht79(:,OP_DZ),CONJUGATE(pht79(:,OP_DZ)),nt79(:,OP_1)) &
@@ -8914,14 +8914,14 @@ real function energy_kt()
   select case(ivform)
   case(0)
      if(linear.eq.1) then
-        temp = .5*int4(ri2_79,vz179(:,OP_1),CONJUGATE(vz179(:,OP_1)),nt79(:,OP_1)) 
+        temp = .5*int4(ri2_79,vz179(:,OP_1),CONJUGATE(vz179(:,OP_1)),n079(:,OP_1)) 
      else
         temp = .5*int4(ri2_79,vzt79(:,OP_1),CONJUGATE(vzt79(:,OP_1)),nt79(:,OP_1))
      endif
 
   case(1)
      if(linear.eq.1) then
-        temp = .5*int4(r2_79,vz179(:,OP_1),CONJUGATE(vz179(:,OP_1)),nt79(:,OP_1))
+        temp = .5*int4(r2_79,vz179(:,OP_1),CONJUGATE(vz179(:,OP_1)),n079(:,OP_1))
      else
         temp = .5*int4(r2_79,vzt79(:,OP_1),CONJUGATE(vzt79(:,OP_1)),nt79(:,OP_1))
      endif
@@ -8947,12 +8947,12 @@ real function energy_k3()
   case(0)
      if(linear.eq.1) then
         temp = .5* &
-          (int3(ch179(:,OP_DZ),CONJUGATE(ch179(:,OP_DZ)),nt79(:,OP_1)) &
-          +int3(ch179(:,OP_DR),CONJUGATE(ch179(:,OP_DR)),nt79(:,OP_1)) &
-          +int4(ri_79,ch179(:,OP_DZ),CONJUGATE(ph179(:,OP_DR)),nt79(:,OP_1)) &
-          -int4(ri_79,ch179(:,OP_DR),CONJUGATE(ph179(:,OP_DZ)),nt79(:,OP_1)) &
-          +int4(ri_79,CONJUGATE(ch179(:,OP_DZ)),ph179(:,OP_DR),nt79(:,OP_1)) &
-          -int4(ri_79,CONJUGATE(ch179(:,OP_DR)),ph179(:,OP_DZ),nt79(:,OP_1)))
+          (int3(ch179(:,OP_DZ),CONJUGATE(ch179(:,OP_DZ)),n079(:,OP_1)) &
+          +int3(ch179(:,OP_DR),CONJUGATE(ch179(:,OP_DR)),n079(:,OP_1)) &
+          +int4(ri_79,ch179(:,OP_DZ),CONJUGATE(ph179(:,OP_DR)),n079(:,OP_1)) &
+          -int4(ri_79,ch179(:,OP_DR),CONJUGATE(ph179(:,OP_DZ)),n079(:,OP_1)) &
+          +int4(ri_79,CONJUGATE(ch179(:,OP_DZ)),ph179(:,OP_DR),n079(:,OP_1)) &
+          -int4(ri_79,CONJUGATE(ch179(:,OP_DR)),ph179(:,OP_DZ),n079(:,OP_1)))
      else
         temp = .5* &
           (int3(cht79(:,OP_DZ),CONJUGATE(cht79(:,OP_DZ)),nt79(:,OP_1)) &
@@ -8966,12 +8966,12 @@ real function energy_k3()
   case(1)
      if(linear.eq.1) then
         temp = .5* &
-          (int4(ri4_79,ch179(:,OP_DZ),CONJUGATE(ch179(:,OP_DZ)),nt79(:,OP_1)) &
-          +int4(ri4_79,ch179(:,OP_DR),CONJUGATE(ch179(:,OP_DR)),nt79(:,OP_1)) &
-          +int4(ri_79,ch179(:,OP_DZ),CONJUGATE(ph179(:,OP_DR)),nt79(:,OP_1)) &
-          -int4(ri_79,ch179(:,OP_DR),CONJUGATE(ph179(:,OP_DZ)),nt79(:,OP_1)) &
-          +int4(ri_79,CONJUGATE(ch179(:,OP_DZ)),ph179(:,OP_DR),nt79(:,OP_1)) &
-          -int4(ri_79,CONJUGATE(ch179(:,OP_DR)),ph179(:,OP_DZ),nt79(:,OP_1)))
+          (int4(ri4_79,ch179(:,OP_DZ),CONJUGATE(ch179(:,OP_DZ)),n079(:,OP_1)) &
+          +int4(ri4_79,ch179(:,OP_DR),CONJUGATE(ch179(:,OP_DR)),n079(:,OP_1)) &
+          +int4(ri_79,ch179(:,OP_DZ),CONJUGATE(ph179(:,OP_DR)),n079(:,OP_1)) &
+          -int4(ri_79,ch179(:,OP_DR),CONJUGATE(ph179(:,OP_DZ)),n079(:,OP_1)) &
+          +int4(ri_79,CONJUGATE(ch179(:,OP_DZ)),ph179(:,OP_DR),n079(:,OP_1)) &
+          -int4(ri_79,CONJUGATE(ch179(:,OP_DR)),ph179(:,OP_DZ),n079(:,OP_1)))
      else
         temp = .5* &
           (int4(ri4_79,cht79(:,OP_DZ),CONJUGATE(cht79(:,OP_DZ)),nt79(:,OP_1)) &

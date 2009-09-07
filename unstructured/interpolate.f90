@@ -94,9 +94,12 @@ subroutine cubic_interpolation_coeffs(x,m,i,a)
         a(3) = (    x(i-1) - 2.*x(i)    + x(i+1))/2.
         a(4) = (   -x(i-1) + 3.*x(i) - 2.*x(i+1))/6.
      else if(i.eq.m) then
-        a(2) = (-x(i-1) + x(i))/3.
+!!$        a(2) = (-x(i-1) + x(i))/3.
+!!$        a(3) = ( x(i-1) - x(i))/2.
+!!$        a(4) = (-x(i-1) + x(i))/6.
+        a(2) = (-x(i-1) + x(i))/4.
         a(3) = ( x(i-1) - x(i))/2.
-        a(4) = (-x(i-1) + x(i))/6.
+        a(4) = (-x(i-1) + x(i))/4.
      else
         a(2) = (-2.*x(i-1) - 3.*x(i) + 6.*x(i+1) - x(i+2))/6.
         a(3) = (    x(i-1) - 2.*x(i)    + x(i+1)         )/2.
@@ -147,19 +150,38 @@ subroutine cubic_interpolation(m, p, p0, f, f0)
   real, intent(out) :: f0
 
   real, dimension(4) :: a
-  integer :: i
+  integer :: i, iguess
   real :: dp
 
   if(p0.lt.p(1)) then 
      f0 = f(1)
      return
   end if
+  if(p0.gt.p(m)) then
+     f0 = f(m)
+     return
+  end if
 
-  do i=1, m-1
-     if(p(i+1).gt.p0) exit
+  iguess = (m-1)*(p0-p(0))/(p(m)-p(0)) + 1
+
+  if(p(iguess).lt.p0) goto 90
+  if(p(iguess).gt.p0) goto 80
+  goto 100
+
+  ! search backward
+80 continue
+  do i=iguess, 1
+     if(p(i).le.p0) goto 100
+  end do
+  goto 100
+
+90 continue 
+  ! search forward
+  do i=iguess, m-1
+     if(p(i+1).gt.p0) goto 100
   end do
 
-  call cubic_interpolation_coeffs(f,m,i,a)
+100 call cubic_interpolation_coeffs(f,m,i,a)
 
   dp = (p0-p(i))/(p(i+1)-p(i))
 

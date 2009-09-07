@@ -28,9 +28,12 @@ subroutine apply_bc(imatrix, rhs, ibound)
   integer, intent(in) :: imatrix, ibound
   vectype, dimension(*), intent(inout) :: rhs
 
+  vectype :: val
+  val = 0.
+
   select case(ibound)
   case(NV_DCBOUND)
-     call boundary_dc(imatrix, rhs)
+     call boundary_dc(imatrix, rhs, val)
   case(NV_NMBOUND)
      call boundary_nm(imatrix, rhs)
   case(NV_SJBOUND)

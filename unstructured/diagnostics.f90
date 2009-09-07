@@ -924,7 +924,7 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
   ier = 0
 
   if(myrank.eq.0 .and. iprint.ge.1) &
-       write(*,'(A,I12,2E12.4)') ' magaxis: iterations, x, z = ', inews, x, z
+       write(*,'(A,I12,2E12.4)') '  magaxis: iterations, x, z = ', inews, x, z
   
 end subroutine magaxis
 
@@ -949,12 +949,12 @@ subroutine lcfs(phin, iplace, numvari, iaxis)
   integer, intent(in) :: iaxis
 
   real :: psix, psib, psim
-  real :: x, z, temp1, temp2
-  integer :: ier, numnodes, inode, izone, izonedim
+  real :: x, z, temp1, temp2, ajlim
+  integer :: ier, numnodes, inode, izone, izonedim, itri
   integer :: ibegin, iendplusone, index
   logical :: is_boundary, first_point
   real, dimension(2) :: normal
-      real curv
+  real :: curv
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, 'Finding LCFS:'
 
@@ -976,12 +976,12 @@ subroutine lcfs(phin, iplace, numvari, iaxis)
      endif
   endif
 
-  if(ifixedb.eq.1) then 
+  if(ifixedb.eq.1) then
      psilim = 0.
+     psilim2 = 0.
+     psibound = 0.
      return
-  end if
-
-  psib = -1.e10
+  endif
 
   ! Find the maximum value of psi at the boundary 
   ! such that psi is not increasing outward 
@@ -995,13 +995,14 @@ subroutine lcfs(phin, iplace, numvari, iaxis)
      call entdofs(numvari,inode,0,ibegin,iendplusone)
      index = ibegin+(iplace-1)*6
      if(((x-xmag)*real(phin(index+1)) + &
-          (z-zmag)*real(phin(index+2))).gt.0.) cycle
+          (z-zmag)*real(phin(index+2)))*(real(phin(index))-psimin).lt.0.) cycle
 
      if(first_point) then
         psib = real(phin(index))
         first_point =.false.
      else
-        if(real(phin(index)).gt.psib) psib = real(phin(index))
+        if(abs(real(phin(index)) - psimin).lt.abs(psib - psimin)) &
+             psib = real(phin(index))
      endif
   end do
 
@@ -1014,8 +1015,8 @@ subroutine lcfs(phin, iplace, numvari, iaxis)
      write(*,'(A, E12.4)') '  psi at limiter = ', psib
   endif
 
-  ! Find an x-point and find the value of psi
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~        
+  ! Calculate psi at the x-point
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   call magaxis(xnull,znull,phin,iplace,numvari,psix,1,ier)
   if(ier.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) then 
@@ -1030,15 +1031,41 @@ subroutine lcfs(phin, iplace, numvari, iaxis)
      end if
   endif
 
-  psibound = max(psix, psib)
-  
-  if(myrank.eq.0 .and. iprint.ge.1) then
-     if(psix .gt. psib) then 
-        print *, " Plasma is diverted."
-        is_diverted = .true.
-     else 
-        print *, " Plasma is limited."
+
+  if(abs(psix - psimin).lt.abs(psib - psimin)) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, 'Plasma is diverted.'
+     is_diverted = .true.
+     psibound = psix
+  else
+     if(myrank.eq.0 .and. iprint.ge.1) print *, 'Plasma is limited.'
+     is_diverted = .true.
+     psibound = psib
+  end if
+
+
+  ! Calculate psi at the limiter
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(xlim.eq.0.) then
+     ! when xlim = 0, use the lcfs as the limiting flux
+     psilim = psibound
+     psilim2 = psilim
+  else
+     itri = 0
+     call evaluate(xlim,zlim,psilim,ajlim,phin,iplace,numvari,itri)
+     
+     ! calculate psi at a second limiter point as a diagnostic
+     if(xlim2.gt.0) then
+        itri = 0
+        call evaluate(xlim2,zlim2,psilim2,ajlim,phin,iplace,numvari,itri)
+     else
+        psilim2 = psilim
+     endif
+
+     if(abs(psilim - psimin) .lt. abs(psibound - psimin)) then
+        if(myrank.eq.0 .and. iprint.ge.1) &
+             print *, 'Plasma is limited by internal limiter.'
         is_diverted = .false.
+        psibound = psilim
      endif
   endif
      
