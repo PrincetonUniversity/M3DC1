@@ -799,3 +799,30 @@ subroutine flip_handedness
   psibound = -psibound
 
 end subroutine flip_handedness
+
+
+logical function inside_lcfs(psi, x, z, exclude_pf)
+  use basic
+
+  vectype, intent(in), dimension(6) :: psi
+  real, intent(in) :: x, z
+  logical :: exclude_pf
+  real :: dpsii
+
+  dpsii = psilim - psimin
+
+  if((real(psi(1)) - psimin)/dpsii .gt. 1.) then
+     inside_lcfs = .false.
+     return
+  endif
+
+  if(exclude_pf) then
+     if((real(psi(2))*(x-xmag) + real(psi(3))*(z-zmag))*dpsii .lt. 0.) then
+        inside_lcfs = .false.
+        return
+     endif
+  endif
+
+  inside_lcfs = .true.
+  return
+end function inside_lcfs

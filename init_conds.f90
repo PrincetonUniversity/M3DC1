@@ -263,31 +263,44 @@ subroutine rmp_per
 
   logical :: is_boundary
   integer :: izone, izonedim, numnodes, l
-  real :: normal(2), curv, x, z, r2, dx, dz, ii
+  real :: normal(2), curv, x, z, r2, dx, dz
+  complex :: ii
 
   if(irmp.eq.3) then
      call numnod(numnodes)
      do l=1, numnodes
         call boundary_node(l,is_boundary,izone,izonedim,normal,curv,x,z)
         if(.not.is_boundary) cycle
-        
+!!$        call nodcoord(l, x,z)
+
         call assign_local_pointers(l)
 
         dx = x - xmag
         dz = z - zmag
         r2 = dx**2 + dz**2
+
+!!$        if(((real(psi0_l(1)) - psimin)/(psibound - psimin) .lt. 1.) .and. &
+!!$           (real(psi0_l(2)*dx+psi0_l(3)*dz)*(psibound-psimin) .gt. 0.)) &
+!!$           cycle
+
+        ! psi = 0.5*bx0*exp( i*2*theta)*exp(i*ntor*phi)
+        !     = 0.5*bx0*(cos(2*theta) + i*sin(2*theta))*exp(i*ntor*phi)
+
+        ! cos(2*theta)
         psi1_l(1) = (dx**2 - dz**2)/r2
         psi1_l(2) = 4.*dx*dz**2/r2**2
         psi1_l(3) =-4.*dz*dx**2/r2**2
         psi1_l(4) = 4.*dz**2*(1.-4.*dx**2/r2)/r2**2
         psi1_l(5) = 8.*dx*dz*(dx**2 - dz**2)/r2**3
         psi1_l(6) =-4.*dx**2*(1.-4.*dz**2/r2)/r2**2
+
 #ifdef USECOMPLEX
         if(ntor.lt.0) then
-           ii = -(0,1)
+           ii = -(0,1.)
         else
-           ii = (0,1)
+           ii =  (0,1.)
         endif
+        ! sin(2*theta)
         psi1_l(1) = psi1_l(1) + ii*2.*dx*dz/r2
         psi1_l(2) = psi1_l(2) + ii*2.*dz*(1. - 2.*dx**2/r2)/r2
         psi1_l(3) = psi1_l(3) + ii*2.*dx*(1. - 2.*dz**2/r2)/r2
@@ -303,7 +316,7 @@ subroutine rmp_per
   call load_field_from_coils('rmp_coil.dat', 'rmp_current.dat', &
        field,num_fields,psi_g)
 
-  ! leave perterbation only on the boundary
+  ! leave perturbation only on the boundary
   if(irmp.eq.2) then
      call numnod(numnodes)
      do l=1, numnodes

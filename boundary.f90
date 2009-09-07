@@ -995,7 +995,7 @@ end subroutine boundary_pres
 !
 ! sets homogeneous dirichlet boundary condition
 !=======================================================
-subroutine boundary_dc(imatrix, rhs)
+subroutine boundary_dc(imatrix, rhs, val)
   use basic
   use arrays
 
@@ -1003,6 +1003,7 @@ subroutine boundary_dc(imatrix, rhs)
   
   integer, intent(in) :: imatrix
   vectype, intent(inout), dimension(*) :: rhs
+  vectype, intent(in) :: val
   
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes
@@ -1014,7 +1015,8 @@ subroutine boundary_dc(imatrix, rhs)
   if(iper.eq.1 .and. jper.eq.1) return
   if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_dc called"
 
-  temp = 0.
+  temp(1) = val
+  temp(2:6) = 0.
 
   call numnod(numnodes)
   do i=1, numnodes

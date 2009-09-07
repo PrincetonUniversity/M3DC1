@@ -138,6 +138,7 @@ module basic
   integer :: divertors! number of divertors
   integer :: igs      ! number of grad-shafranov iterations
   integer :: nv1equ   ! if set to 1, use numvar equilibrium for numvar > 1
+  integer :: igs_method
   real :: xmag, zmag  ! position of magnetic axis
   real :: xlim, zlim  ! position of limiter
   real :: xdiv, zdiv  ! position of divertor
@@ -275,7 +276,7 @@ module basic
        irestart,istart,                                        &
        tcuro,djdpsi,xmag,zmag,xlim,zlim,                       &
        expn,q0,divertors,xdiv,zdiv,divcur,th_gs,p1,p2,         &
-       idevice,igs,nv1equ,tol_gs,                              &
+       idevice,igs,nv1equ,tol_gs,igs_method,                   &
        iconstflux,regular,max_ke,                              &
        ntor,iadapt,istatic,iestatic,ivform, ibform,            &
        ihypeta,ikapscale,ihypamu,                              &
@@ -304,7 +305,7 @@ module basic
 
   ! magnetic diagnostics
   real :: psimin       ! flux value at magnetic axis
-  real :: psilim       ! flux at the limiter
+  real :: psilim,psilim2       ! flux at the limiter
   real :: psibound     ! flux at the lcfs
   logical :: is_diverted ! whether plasma is diverted or not
   real :: xnull, znull ! coordinates of the limiting x-point
@@ -425,6 +426,7 @@ module arrays
   vectype, pointer ::   p1_l(:),   p0_l(:),   ps_l(:)
 
   integer, parameter :: OP_PLUS = 1
+  integer, parameter :: OP_POW = 2
 
 contains
   
@@ -435,15 +437,29 @@ contains
     vectype, intent(inout), dimension(*) :: vec
     integer, intent(in) :: iplace, isize, iop
     vectype, intent(in) :: val
+    vectype, dimension(6) :: newvec
 
-    integer :: inode, ibegin, iendplusone, numnodes
+    integer :: inode, ibegin, iendplusone, numnodes, i
 
     call numnod(numnodes)
     do inode=1, numnodes
        call entdofs(isize, inode, 0, ibegin, iendplusone)
+       i = ibegin+(iplace-1)*6
        select case(iop)
        case(OP_PLUS)
-          vec(ibegin+(iplace-1)*6) = vec(ibegin+(iplace-1)*6) + val
+          vec(i) = vec(i) + val
+
+       case(OP_POW)
+          newvec(1) =     vec(i)**val
+          newvec(2) = val*newvec(1)/vec(i) * vec(i+1)
+          newvec(3) = val*newvec(1)/vec(i) * vec(i+2)
+          newvec(4) = val*(val-1.)*newvec(1)/vec(i)**2 * vec(i+1)**2 &
+               + val*newvec(1)/vec(i) * vec(i+3)
+          newvec(5) = val*(val-1.)*newvec(1)/vec(i)**2 * vec(i+1)*vec(i+2) &
+               + val*newvec(1)/vec(i) * vec(i+4)
+          newvec(6) = val*(val-1.)*newvec(1)/vec(i)**2 * vec(i+2)**2 &
+               + val*newvec(1)/vec(i) * vec(i+5)
+          vec(i:i+5) = newvec(1:6)
        end select
     end do
   end subroutine scalar_operation
@@ -719,6 +735,7 @@ module sparse
   integer, parameter :: s10matrix_sm = 33
   integer, parameter :: d10matrix_sm = 34
   integer, parameter :: d7matrix_sm = 36
+  integer, parameter :: ppmatrix_lhs = 37
   
 end module sparse
 
