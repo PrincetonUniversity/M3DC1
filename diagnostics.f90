@@ -949,7 +949,7 @@ subroutine lcfs(phin, iplace, numvari, iaxis)
   integer, intent(in) :: iaxis
 
   real :: psix, psib, psim
-  real :: x, z, temp1, temp2, ajlim
+  real :: x, z, temp1, temp2, temp_min, temp_max, ajlim
   integer :: ier, numnodes, inode, izone, izonedim, itri
   integer :: ibegin, iendplusone, index
   logical :: is_boundary, first_point
@@ -1006,10 +1006,23 @@ subroutine lcfs(phin, iplace, numvari, iaxis)
      endif
   end do
 
-  temp1 = psib
-  call mpi_allreduce(temp1, temp2, 1, &
+  if(first_point) then
+     temp1 = -1e10
+     temp2 =  1e10
+  else 
+     temp1 = psib
+     temp2 = psib
+  end if
+  call mpi_allreduce(temp1, temp_max, 1, &
        MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ier)
-  psib = temp2
+  call mpi_allreduce(temp2, temp_min, 1, &
+       MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD, ier)
+  if(abs(temp_max - psimin).lt.abs(temp_min - psimin)) then
+     psib = temp_max
+  else
+     psib = temp_min
+  endif
+  
 
   if(myrank.eq.0 .and. iprint.ge.1) then
      write(*,'(A, E12.4)') '  psi at limiter = ', psib
