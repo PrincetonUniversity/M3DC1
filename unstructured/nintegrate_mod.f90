@@ -2,8 +2,7 @@ module nintegrate_mod
 
 implicit none
 
-integer :: npoints                 ! number of points in Gaussian quadrature
-!integer, parameter :: MAX_PTS = 79 ! maximum number of quad. points allowed
+integer :: npoints        ! number of points in Gaussian quadrature
 logical :: surface_int
 
 integer, parameter :: OP_1    = 1
@@ -78,11 +77,11 @@ vectype, dimension(MAX_PTS, OP_NUM) :: pss79, bzs79, phs79, vzs79, chs79
 
 real, dimension(MAX_PTS) :: si_79, eta_79, weight_79
 
-real, dimension(12) :: alpha_12, beta_12, gamma_12, area_weight_12
-real, dimension(25) :: alpha_25, beta_25, gamma_25, area_weight_25
-real, dimension(79) :: alpha_79, beta_79, gamma_79, area_weight_79
+real, private, dimension(12) :: alpha_12, beta_12, gamma_12, area_weight_12
+real, private, dimension(25) :: alpha_25, beta_25, gamma_25, area_weight_25
+real, private, dimension(79) :: alpha_79, beta_79, gamma_79, area_weight_79
 
-real, dimension(5) :: delta_5, line_weight_5
+real, private, dimension(5) :: delta_5, line_weight_5
 vectype, dimension(MAX_PTS,2) :: norm79
 
 data delta_5        / -0.906180, -0.538469, 0.,       0.538469, 0.906180 /
@@ -1123,203 +1122,10 @@ vectype function int5(vari,varj,vark,varl,varm)
 
 end function int5
 
-end module nintegrate_mod
-
-!==========================================================
-subroutine calcavector(itri, inarr, itype, numvare, avector)
-
-  use t_data
-
-  implicit none
-
-  integer, intent(in) :: itri, itype, numvare
-  vectype, dimension(*), intent(in) :: inarr
-  vectype, dimension(20), intent(out) :: avector
-
-  integer :: ibegin, iendplusone
-    
-  integer :: i, ii, iii, k
-  vectype, dimension(18) :: wlocal
-
-  ! construct the 18 vector corresponding to this triangle
-  ! calculate the index and local coordinates for this triangle
-  do iii=1,3  
-     call entdofs(numvare, ist(itri,iii)+1, 0, ibegin, iendplusone)
-     do ii=1,6
-        i = (iii-1)*6 + ii
-        wlocal(i) = inarr(ibegin+ii-1+(itype-1)*6)
-     enddo
-  enddo
-
-  ! calculate the function value corresponding to this point
-  do i=1,20
-     avector(i) = 0.
-     do k=1,18
-        avector(i) = avector(i) + gtri(i,k,itri)*wlocal(k)
-     enddo
-  enddo
-
-end subroutine calcavector
-!==========================================================
-subroutine calcrvector(itri, x1, z1, rvector)
-
-  use t_data
-  use basic
-
-  implicit none
-
-  integer, intent(in) :: itri
-  real, intent(in) :: x1, z1
-  real, dimension(20), intent(out) :: rvector
-  
-  integer :: i, iii, k
-  real, dimension(18) :: rlocal
-
-  ! construct the 6-vector corresponding to 1/r at the nodes of the triangle
-  do iii=1,3  
-     i = (iii-1)*6 + 1
-     rlocal(i)   =  1./(x1+xzero)
-     rlocal(i+1) = -1./(x1+xzero)**2
-     rlocal(i+2) = 0.
-     rlocal(i+3) =  2./(x1+xzero)**3
-     rlocal(i+4) = 0.
-     rlocal(i+5) = 0.
-     rlocal(i+6) = 0.
-  enddo
-
-  ! calculate the value of 1/r corresponding to this point
-  do i=1,20
-     rvector(i) = 0.
-     do k=1,18
-        rvector(i) = rvector(i) + gtri(i,k,itri)*rlocal(k)
-     enddo
-  enddo
-
-end subroutine calcrvector
-
-!============================================================
-subroutine evaluate(x,z,ans,ans2,dum,itype,numvare,itri)
-  
-  use p_data
-  use t_data
-  use basic
-
-  use nintegrate_mod
-
-  implicit none
-
-  include 'mpif.h'
-
-  integer, intent(in) :: itype, numvare
-  integer, intent(inout) :: itri
-  real, intent(in) :: x, z
-  vectype, intent(in) :: dum(*)
-  real, intent(out) :: ans, ans2
-
-  integer :: p, nodeids(4), ier
-  real :: x1, z1
-  vectype, dimension(20) :: avector
-  real :: ri, si, eta, co, sn
-  real :: term1, term2
-  real, dimension(2) :: temp1, temp2
-  integer :: hasval, tothasval
-
-  ! evaluate the solution to get the value [ans] at one point (x,z)
-
-  ! first find out what triangle x,z is in.  whattri
-  ! returns itri, x1, and z1 with x1 and z1 being
-  ! the coordinates of the first node/vertex
-
-  if(itri.eq.0) then
-     call whattri(x,z,itri,x1,z1)
-  else
-     call nodfac(itri,nodeids)
-     call nodcoord(nodeids(1), x1, z1)
-  endif
-
-  ans = 0.
-  ans2 = 0.
-
-
-  ! If this process contains the point, evaluate the field at that point.
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(itri.gt.0) then
-
-     ! calculate local coordinates
-     co = cos(ttri(itri))
-     sn = sin(ttri(itri))
-  
-     si  = (x-x1)*co + (z-z1)*sn - btri(itri)
-     eta =-(x-x1)*sn + (z-z1)*co
-
-     ! calculate the inverse radius
-     if(itor.eq.1) then
-        ri = 1./x
-     else
-        ri = 1.
-     endif
-
-     ! calculate the value of the function
-     call calcavector(itri, dum, itype, numvare, avector)
-     
-     do p=1,20
-     
-        term1 = si**mi(p)*eta**ni(p)
-        term2 = 0.
-        
-        if(mi(p).ge.1) then
-           if(itor.eq.1) then
-              term2 = term2 - 2.*co*(mi(p)*si**(mi(p)-1) * eta**ni(p))*ri
-           endif
-           
-           if(mi(p).ge.2) then
-              term2 = term2 + si**(mi(p)-2)*(mi(p)-1)*mi(p) * eta**ni(p)
-           endif
-        endif
-     
-        if(ni(p).ge.1) then
-           if(itor.eq.1) then
-              term2 = term2 + 2.*sn*(si**mi(p) * eta**(ni(p)-1)*ni(p))*ri
-           endif
-           
-           if(ni(p).ge.2) then
-              term2 = term2 + si**mi(p) * eta**(ni(p)-2)*(ni(p)-1)*ni(p)
-           endif
-        endif
-     
-        ans = ans + avector(p)*term1
-        ans2 = ans2 + avector(p)*term2
-        hasval = 1
-     enddo
-  else
-     hasval = 0
-  endif
-     
-
-  ! Distribute the result if necessary
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(maxrank.gt.1) then
-     ! Determine number of processes whose domains contain this point
-     call mpi_allreduce(hasval, tothasval, 1, MPI_INTEGER, MPI_SUM, &
-          MPI_COMM_WORLD, ier)
-
-     ! Find the average value at this point over all processes containing
-     ! the point.  (Each value should be identical.)
-     temp1(1) = ans
-     temp1(2) = ans2
-     call mpi_allreduce(temp1, temp2, 2, MPI_DOUBLE_PRECISION, MPI_SUM, &
-          MPI_COMM_WORLD, ier)
-     ans = temp2(1)/tothasval
-     ans2 = temp2(2)/tothasval
-  endif
-
-end subroutine evaluate
-!============================================================
-
 subroutine interpolate_size_field(itri)
 
   use basic
-  use nintegrate_mod
+  use t_data
 
   implicit none
 
@@ -1337,7 +1143,10 @@ subroutine interpolate_size_field(itri)
      sz79(:,OP_DZZ) = 0.
   end if
 
-  call getelmparams(itri, a, b, c, theta)
+  a = atri(itri)
+  b = btri(itri)
+  c = ctri(itri)
+  theta = ttri(itri)
   call getelmsizes(itri, node_sz)
 
   ! use size**2 field
@@ -1357,3 +1166,5 @@ subroutine interpolate_size_field(itri)
   sz79(:,OP_DZZ) = 0. 
 
 end subroutine interpolate_size_field
+
+end module nintegrate_mod

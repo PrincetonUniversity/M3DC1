@@ -1689,8 +1689,6 @@ subroutine eqdsk_init()
 
   if(igs.gt.0) then
      fieldi = field0
-     separatrix_top = abs(znull)
-     separatrix_bottom = -separatrix_top
 
      if(iread_eqdsk.eq.2) then
         call default_profiles
@@ -1942,8 +1940,6 @@ subroutine dskbal_init()
   ifixedb = 1
 
   fieldi = field0
-  separatrix_top = abs(znull)
-  separatrix_bottom = -separatrix_top
 
   if(iread_dskbal.eq.2) then
      call default_profiles
@@ -2055,8 +2051,6 @@ subroutine jsolver_init()
 
   if(igs.gt.0) then
      fieldi = field0
-     separatrix_top = abs(znull)
-     separatrix_bottom = -separatrix_top
 
      if(iread_jsolver.eq.2) then
         call default_profiles

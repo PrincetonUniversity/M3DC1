@@ -19,8 +19,7 @@ Program Reducedquintic
 #endif
 #include "finclude/petsc.h"
 
-  integer :: j, ier, numelms, numnodes
-  integer :: ndofs
+  integer :: ier
   real :: tstart, tend
   vectype :: temp
 
@@ -28,13 +27,11 @@ Program Reducedquintic
   PetscInt :: mpetscint,npetscint
 
   ! Start up message passing, SuperLU process grid
-  if(myrank.eq.0) print *, 'Initializing MPI'
   call MPI_Init(ier)
   if (ier /= 0) then
      print *,'Error initializing MPI:',ier
      call safestop(1)
   endif
-  if(myrank.eq.0) print *, 'Initializing PETSc'
   call PetscInitialize(PETSC_NULL_CHARACTER, ier)
   call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-m',mpetscint,flg,ier)
   call PetscOptionsGetInt(PETSC_NULL_CHARACTER,'-n',npetscint,flg,ier)
@@ -44,10 +41,21 @@ Program Reducedquintic
      call safestop(1)
   endif
 
+  if(myrank.eq.0) then
+     call date_and_time( datec, timec)
+     write(*,1001) datec(1:4),datec(5:6),datec(7:8), &
+          timec(1:2),timec(3:4),timec(5:8)
+1001 format("M3D-C1 DATE: ", a4,1x,a2,1x,a2,3x,"TIME: ",a2,":",a2,":",a4,/)
+#ifdef USECOMPLEX
+     write(*,*) 'COMPLEX VERSION'
+#else
+     write(*,*) 'REAL VERSION'
+#endif
+  endif
+
   ! initialize the SUPERLU process grid
   if(myrank.eq.0) print *, 'Setting up SuperLU process grid'
   call initsolvers
-  if(myrank.eq.0) print *, 'Done initsolvers'
   call MPI_Comm_size(MPI_COMM_WORLD,maxrank,ier)
   if (ier /= 0) then
      print *,'Error in MPI_Comm_size:',ier
@@ -61,62 +69,17 @@ Program Reducedquintic
   call loadmesh("struct.dmg", "struct-dmg.sms")
 ! call loaddebugger()
 
-  if(myrank.eq.0) then
-     call date_and_time( datec, timec)
-     write(*,1001) datec(1:4),datec(5:6),datec(7:8),                        &
-          timec(1:2),timec(3:4),timec(5:8)
-1001 format("M3D-C1 VERSION 1.0    DATE: ", a4,1x,a2,1x,a2,3x,               &
-          "TIME: ",a2,":",a2,":",a4,/)
-#ifdef USECOMPLEX
-     write(*,*) 'COMPLEX VERSION'
-#else
-     write(*,*) 'REAL VERSION'
-#endif
-  endif
+  ! read input file
+  call input
 
-  ! initialize needed variables and define geometry and triangles
-  if(myrank.eq.0) print *, 'Calling init'
+  ! allocate arrays
+  call space(1)
+
+  ! initialize variables
   call init
 
-  if(myrank.eq.0) then 
-     select case(ivform)
-     case(0)
-        print*, "V = grad(U)xgrad(phi) + V grad(phi) + grad(chi)"
-     case(1)
-        print*, "V = R^2 grad(U)xgrad(phi) + R^2 V grad(phi) + grad(chi)/R^2"
-     end select
-  endif
-
-  ! Output information about local dofs, nodes, etc.
-  if(iprint.ge.1) then
-     if(myrank.eq.0) then
-        call numglobaldofs(1, ndofs)
-        print *, 'global dofs = ', ndofs
-     end if
-
-     call numfac(numelms)
-     call numnod(numnodes)
-     call numprocdofs(1, j)
-     call numdofs(1, ndofs)
-     print *, 'proc, owned dofs, needed dofs',myrank, j, ndofs
-     print *, 'proc, numnodes, numfaces', myrank, numnodes,numelms
-  endif
-
-!!$  if(nonrect.eq.1) call updatenormalcurvature
-!!$  call write_normlcurv
-
-  ! check time-integration options
-  select case(integrator)
-  case(1)
-     ! For BDF2 integration, first timestep is Crank-Nicholson with thimp=1,
-     ! and subsequent timesteps are BDF2.
-     if(myrank.eq.0) print *, "Time integration: BDF2."
-     thimp = 1.
-     thimp_ohm = 1.
-  case default
-     if(myrank.eq.0) print *, "Time integration: Crank-Nicholson."
-  end select
-
+  ! output info about simulation to be run
+  call print_info
 
   ! create the newvar matrices
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -147,19 +110,6 @@ Program Reducedquintic
   endif
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, "Done generating newvar matrices."
-
-
-  ! Set up PID controllers
-  ! ~~~~~~~~~~~~~~~~~~~~~~
-  i_control%p = control_p
-  i_control%i = control_i
-  i_control%d = control_d
-  i_control%target_val = tcur
-
-  n_control%p = n_control_p
-  n_control%i = n_control_i
-  n_control%d = n_control_d
-  n_control%target_val = n_target
 
 
   ! Set initial conditions either from restart file
@@ -315,8 +265,8 @@ Program Reducedquintic
   case(2)
     call createvec(temporary_vector,1)
     call copyvec(field0, psi_g, num_fields, temporary_vector, 1, 1)
-    print *, "psimin, psilim", psimin, psilim
-    call adapt(temporary_vector,psimin,psilim)
+    print *, 'adapting mesh...'
+    call adapt(temporary_vector,psimin,psibound)
     print *, 'done adapting.'
     call space(0)
     call tridef
@@ -341,9 +291,7 @@ Program Reducedquintic
   ! ~~~~~~~~~~~~~~
   do ntime=ntime+1,ntimemax
 
-     if(myrank.eq.0) then 
-        print *, 'TIME STEP: ',ntime
-     endif
+     if(myrank.eq.0) print *, 'TIME STEP: ',ntime
 
      ! check for error
      if(ekin.ne.ekin .or. emag.ne.emag) then
@@ -381,56 +329,135 @@ Program Reducedquintic
 
 101 continue
 
-
-!     free memory from sparse matrices
-  call deletematrix(mass_matrix_lhs)
-  call deletematrix(mass_matrix_lhs_dc)
-  call deletematrix(gs_matrix_rhs_dc)
-  call deletematrix(lp_matrix_rhs)
-  call deletematrix(lp_matrix_rhs_dc)
-  call deletematrix(gsmatrix_sm)
-  call deletematrix(s7matrix_sm)
-  call deletematrix(s4matrix_sm)
-  call deletematrix(s5matrix_sm)
-  call deletematrix(s1matrix_sm)
-  call deletematrix(s2matrix_sm)
-  call deletematrix(d1matrix_sm)
-  call deletematrix(d2matrix_sm)
-  call deletematrix(d4matrix_sm)
-  call deletematrix(q1matrix_sm)
-  call deletematrix(r2matrix_sm)
-  call deletematrix(q2matrix_sm)
-  call deletematrix(r14matrix_sm)
-  if(idens.eq.1) then
-     call deletematrix(s8matrix_sm)
-     call deletematrix(d8matrix_sm)
-     call deletematrix(q8matrix_sm) 
-     call deletematrix(r8matrix_sm)
-  end if
-  if(ipres.eq.1) then 
-     call deletematrix(s9matrix_sm)
-     call deletematrix(d9matrix_sm)
-     call deletematrix(r9matrix_sm)
-     call deletematrix(q9matrix_sm)
-  endif
-  call deletematrix(s10matrix_sm)
-  call deletematrix(d10matrix_sm)
-  if(i3d.eq.1 .or. ifout.eq.1) then
-     call deletematrix(mass_matrix_rhs_nm)
-     call deletematrix(bf_matrix_lhs_nm)
-  end if
-  if(idens.eq.1 .and. linear.eq.1) then
-     call deletematrix(q42matrix_sm)
-  end if
-#ifdef USECOMPLEX
-  call deletematrix(o1matrix_sm)
-  call deletematrix(o2matrix_sm)
-#endif
-  call deletesearchstructure()
-
   call safestop(2)
 
 end Program Reducedquintic
+
+
+!============================================================
+! init
+! ~~~~
+! initialize variables
+!============================================================
+subroutine init
+  use basic
+  use t_data
+  
+  implicit none
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, " Entering init..."
+  
+  ! define properties of triangles
+  call tridef
+
+  ! define 1/r vector
+  if(itor.eq.1) call rinvdef(rinv)
+
+
+  fbound = 0.
+  gbound = 0.
+
+
+  ! Set up PID controllers
+  i_control%p = control_p
+  i_control%i = control_i
+  i_control%d = control_d
+  i_control%target_val = tcur
+
+  n_control%p = n_control_p
+  n_control%i = n_control_i
+  n_control%d = n_control_d
+  n_control%target_val = n_target
+
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, " Exiting init."
+
+  return
+end subroutine init
+
+
+subroutine print_info
+  use basic
+
+  implicit none
+
+  integer :: ndofs, numelms, numnodes, j
+
+
+  if(myrank.eq.0) then
+     select case(ivform)
+     case(0)
+        print*, "V = grad(U)xgrad(phi) + V grad(phi) + grad(chi)"
+     case(1)
+        print*, "V = R^2 grad(U)xgrad(phi) + R^2 V grad(phi) + grad(chi)/R^2"
+     end select
+  endif
+
+  ! Output information about local dofs, nodes, etc.
+  if(iprint.ge.1) then
+     if(myrank.eq.0) then
+        call numglobaldofs(1, ndofs)
+        print *, 'global dofs = ', ndofs
+     end if
+
+     call numfac(numelms)
+     call numnod(numnodes)
+     call numprocdofs(1, j)
+     call numdofs(1, ndofs)
+     print *, 'proc, owned dofs, needed dofs',myrank, j, ndofs
+     print *, 'proc, numnodes, numfaces', myrank, numnodes,numelms
+  endif
+
+!!$  if(nonrect.eq.1) call updatenormalcurvature
+!!$  call write_normlcurv
+
+  ! check time-integration options
+  select case(integrator)
+  case(1)
+     ! For BDF2 integration, first timestep is Crank-Nicholson with thimp=1,
+     ! and subsequent timesteps are BDF2.
+     if(myrank.eq.0) print *, "Time integration: BDF2."
+  case default
+     if(myrank.eq.0) print *, "Time integration: Crank-Nicholson."
+  end select
+end subroutine print_info
+
+
+! Stop program
+subroutine safestop(iarg)
+
+  use basic
+  use sparse
+  use hdf5_output
+
+  implicit none
+      
+  integer, intent(in) :: iarg
+
+  include 'mpif.h'
+
+  integer :: ier
+      
+  ! close hdf5 file
+  print *, "finalizing hdf5..."
+  call hdf5_finalize(ier)
+  print *, "done."
+  
+  print *, "finalizing SCOREC software..."
+  call delete_matrices()
+  call deletesearchstructure()
+  call clearscorecdata()
+  print *, "done."
+  
+  call finalizesolvers
+  call PetscFinalize(ier)
+  call MPI_Finalize(ier)
+  if (ier.ne.0) print *,'Error terminating MPI:',ier
+  
+  write(*,*) "stopped at", iarg
+  stop
+end subroutine safestop
+
 
 ! ======================================================================
 ! output
@@ -587,40 +614,6 @@ subroutine smooth_fields(vec)
 end subroutine smooth_fields
 
 
-!======================================================================
-! copyvec
-! ~~~~~~~
-! copies a field from inarr to outarr
-!======================================================================
-subroutine copyvec(inarr, inpos, insize, outarr, outpos, outsize)
-
-  implicit none
-
-  vectype, intent(in) :: inarr(*)
-  integer, intent(in) :: insize, inpos
-  vectype, intent(out) :: outarr(*)
-  integer, intent(in) :: outsize, outpos
-
-  integer :: ibegini, iendplusonei
-  integer :: ibegino, iendplusoneo
-  integer :: l, numnodes, in_i, out_i
-
-  in_i = (inpos-1)*6
-  out_i = (outpos-1)*6
-
-  call numnod(numnodes)
-
-  do l=1,numnodes
-     call entdofs(insize, l, 0, ibegini, iendplusonei)
-     call entdofs(outsize, l, 0, ibegino, iendplusoneo)
-
-     outarr(ibegino+out_i:ibegino+out_i+5) = &
-          inarr(ibegini+in_i:ibegini+in_i+5)
-  enddo
-
-end subroutine copyvec
-
-
 ! ======================================================================
 ! derived_quantities
 ! ~~~~~~~~~~~~~~~~~~
@@ -643,9 +636,9 @@ subroutine derived_quantities(vec)
   ! ~~~~~~~~~
   if(eqsubtract.eq.1) then
      if(ntime.eq.ntime0) &
-          call lcfs(field0,psi_g,num_fields,1)
+          call lcfs(field0,psi_g,num_fields)
   else
-     call lcfs(field,psi_g,num_fields,1)
+     call lcfs(field,psi_g,num_fields)
   endif
 
 
@@ -809,7 +802,7 @@ logical function inside_lcfs(psi, x, z, exclude_pf)
   logical :: exclude_pf
   real :: dpsii
 
-  dpsii = psilim - psimin
+  dpsii = psibound - psimin
 
   if((real(psi(1)) - psimin)/dpsii .gt. 1.) then
      inside_lcfs = .false.

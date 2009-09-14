@@ -398,30 +398,6 @@ c================================================
       return
       end
 c================================================
-      subroutine getlocaldofs(itri, numvarin, dofs, gdofs1mult, gdofs1, 
-     &     isvl1, gdofs2mult, gdofs2, isvl2)
-c     numvarin may not be necessary here
-      use arrays
-      use t_data
-      implicit none
-      integer itri, i, j, isvl1(ntri,18), isvl2(ntri,18), numvarin
-      real dofs(20), gdofs1(*), gdofs2(*), temp(18),gdofs1mult, 
-     &     gdofs2mult
-
-      do i=1,18
-         temp(i) = gdofs1mult * gdofs1(isvl1(itri,i)) + 
-     &        gdofs2mult * gdofs2(isvl2(itri,i))
-      enddo
-      do j=1,20
-         dofs(j) = 0.
-         do i=1,18
-            dofs(j) = dofs(j) + gtri(j,i,itri)*temp(i)
-         enddo
-      enddo
-
-      return 
-      end
-c===========================
       subroutine set4(p1, p2, p3, p4, i1, i2, i3, i4,  
      &     ind1, ind2, ind3)
       implicit none

@@ -350,45 +350,6 @@ contains
 
 
 ! ======================================================================
-! calc_chi_error
-! --------------
-!
-! calculates the error in the equation Laplacian(chi) = com
-! ======================================================================
-subroutine calc_chi_error(chierror)
-
-  use arrays
-  use t_data
-
-  implicit none
-
-  include "mpif.h"
-
-  real, intent(out) :: chierror
-
-  integer :: ier, itri, j, jone, numelms
-  real :: chierror_local
-  real :: fintl(-6:maxi,-6:maxi), d2term(18)
-
-  call numfac(numelms)
-
-  chierror_local = 0
-
-  do itri=1,numelms
-     call calcfint(fintl, maxi, atri(itri),btri(itri), ctri(itri))
-     call calcd2term(itri, d2term, fintl)
-     do j=1,18
-        jone = isval1(itri,j)
-        chierror_local = chierror_local + d2term(j)*com(jone)
-     enddo
-  enddo                  ! loop over itri
-  call mpi_allreduce(chierror_local, chierror, 1, MPI_DOUBLE_PRECISION, &
-       MPI_SUM, MPI_COMM_WORLD, ier)
-
-end subroutine calc_chi_error
-
-
-! ======================================================================
 ! calculate scalars
 ! -----------------
 !
@@ -787,13 +748,11 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
   newton :  do inews=1, iterations
 
      call whattri(x,z,itri,x1,z1)
-!!$  if(iprint.gt.0) write(*,1001) myrank,x,z,itri,x1,z1
-!!$1001 format("myrank,x,z,itri,x1,z1",i3,1p2e12.4,i5,1p2e12.4)
 
      ! calculate position of minimum
      if(itri.gt.0) then
         call calcavector(itri, phin, iplace, numvari, avector)
-         
+
         ! calculate local coordinates
         theta = ttri(itri)
         a = atri(itri)
@@ -804,7 +763,7 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
         sn = sin(theta)
         si  = (x-x1)*co + (z-z1)*sn - b
         eta =-(x-x1)*sn + (z-z1)*co
-  
+ 
         ! evaluate the polynomial and second derivative
         sum = 0.
         sum1 = 0.
@@ -897,7 +856,9 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
         converged = temp2(5)
 
         if(in_domain .gt. 1) then
-           if(myrank.eq.0 .and. iprint.ge.1) print *, "In multiple domains."
+           if(myrank.eq.0 .and. iprint.ge.1) &
+                print *, "In multiple domains.", in_domain
+
            xnew = xnew / in_domain
            znew = znew / in_domain
            sum = sum / in_domain
@@ -935,7 +896,7 @@ end subroutine magaxis
 !
 ! locates the magnetic axis and the value of psi there
 !=====================================================
-subroutine lcfs(phin, iplace, numvari, iaxis)
+subroutine lcfs(phin, iplace, numvari)
   use basic
   use t_data
   use nintegrate_mod
@@ -946,7 +907,6 @@ subroutine lcfs(phin, iplace, numvari, iaxis)
 
   vectype, intent(in), dimension(*) :: phin
   integer, intent(in) :: iplace,numvari
-  integer, intent(in) :: iaxis
 
   real :: psix, psib, psim
   real :: x, z, temp1, temp2, temp_min, temp_max, ajlim
@@ -958,22 +918,20 @@ subroutine lcfs(phin, iplace, numvari, iaxis)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, 'Finding LCFS:'
 
-  if(iaxis.eq.1) then
-     ! Find magnetic axis
-     ! ~~~~~~~~~~~~~~~~~~
-     call magaxis(xmag,zmag,phin,iplace,numvari,psim,0,ier)
-     if(ier.eq.0) then
-        psimin = psim
-        
-        if(myrank.eq.0 .and. iprint.ge.1) then 
-           write(*,'(A,2E12.4)') '  magnetic axis found at ', xmag, zmag
-           write(*,'(A, E12.4)') '  value of psi at magnetic axis ', psimin
-        end if
-     else
-        if(myrank.eq.0 .and. iprint.ge.1) then 
-           write(*,'(A,2E12.4)') '  no magnetic axis found near ', xmag, zmag
-        end if
-     endif
+  ! Find magnetic axis
+  ! ~~~~~~~~~~~~~~~~~~
+  call magaxis(xmag,zmag,phin,iplace,numvari,psim,0,ier)
+  if(ier.eq.0) then
+     psimin = psim
+     
+     if(myrank.eq.0 .and. iprint.ge.1) then 
+        write(*,'(A,2E12.4)') '  magnetic axis found at ', xmag, zmag
+        write(*,'(A, E12.4)') '  value of psi at magnetic axis ', psimin
+     end if
+  else
+     if(myrank.eq.0 .and. iprint.ge.1) then 
+        write(*,'(A,2E12.4)') '  no magnetic axis found near ', xmag, zmag
+     end if
   endif
 
   if(ifixedb.eq.1) then
@@ -1022,19 +980,14 @@ subroutine lcfs(phin, iplace, numvari, iaxis)
   else
      psib = temp_min
   endif
-  
 
-  if(myrank.eq.0 .and. iprint.ge.1) then
-     write(*,'(A, E12.4)') '  psi at limiter = ', psib
-  endif
 
   ! Calculate psi at the x-point
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   call magaxis(xnull,znull,phin,iplace,numvari,psix,1,ier)
   if(ier.eq.0) then
-     if(myrank.eq.0 .and. iprint.ge.1) then 
+     if(myrank.eq.0 .and. iprint.ge.1) then
         write(*,'(A,2E12.4)') '  X-point found at ', xnull, znull
-        write(*,'(A, E12.4)') '  value of psi at divertor ', psix
      end if
   else 
      psix = psib
@@ -1046,11 +999,9 @@ subroutine lcfs(phin, iplace, numvari, iaxis)
 
 
   if(abs(psix - psimin).lt.abs(psib - psimin)) then
-     if(myrank.eq.0 .and. iprint.ge.1) print *, 'Plasma is diverted.'
      is_diverted = .true.
      psibound = psix
   else
-     if(myrank.eq.0 .and. iprint.ge.1) print *, 'Plasma is limited.'
      is_diverted = .true.
      psibound = psib
   end if
@@ -1075,12 +1026,35 @@ subroutine lcfs(phin, iplace, numvari, iaxis)
      endif
 
      if(abs(psilim - psimin) .lt. abs(psibound - psimin)) then
-        if(myrank.eq.0 .and. iprint.ge.1) &
-             print *, 'Plasma is limited by internal limiter.'
         is_diverted = .false.
         psibound = psilim
      endif
+     if(abs(psilim2 - psimin) .lt. abs(psibound - psimin)) then
+        is_diverted = .false.
+        psibound = psilim2
+     endif
   endif
+
+  ! daignostic output
+  if(myrank.eq.0 .and. iprint.ge.1) then
+     write(*,'(1A10,6A11)') 'psi at:', &
+          'axis', 'wall', 'divertor', 'lim1', 'lim2', 'lcfs'
+     write(*,'(1A10,1p6e11.3)') '',  &
+          psimin, psib, psix, psilim, psilim2, psibound
+
+     if(psibound.eq.psib) then
+        print *, 'Plasma is limited by wall'
+     else if(psibound.eq.psix) then
+        print *, 'Plasma is diverted'
+     else if(psibound.eq.psilim) then
+        print *, 'Plasma is limited by internal limiter #1.'
+     else if(psibound.eq.psilim2) then
+        print *, 'Plasma is limited by internal limiter #2.'
+     else 
+        print *, 'Plasma limiter is unknown!'
+     end if
+  end if
+
      
 end subroutine lcfs
 

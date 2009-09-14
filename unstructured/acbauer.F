@@ -55,47 +55,6 @@
       alz = zmax - zmin
       return
       end
-!===================
-      subroutine getelmparams(elmid, a, b, c, theta)
-      implicit none
-      real a, b, c, theta, x1, x2, x3, z1, z2, z3
-      real x2p, x3p, z2p, z3p
-      integer elmid, nodeids(4)
-      double precision coords(3)
-      
-!      write(*,*) 'elmid ===',elmid
-      call nodfac(elmid, nodeids)
-      call xyznod(nodeids(1),coords)
-      x1 = coords(1)
-      z1 = coords(2)
-      call xyznod(nodeids(2),coords)
-      x2 = coords(1)
-      z2 = coords(2)
-      call xyznod(nodeids(3),coords)
-      x3 = coords(1)
-      z3 = coords(2)
-
-      theta = atan2(z2-z1,x2-x1)
-      x2 = x2 - x1
-      z2 = z2 - z1
-      x3 = x3 - x1
-      z3 = z3 - z1
-      x2p = cos(-theta) * x2 - sin(-theta) * z2
-      z2p = sin(-theta) * x2 + cos(-theta) * z2
-      x3p = cos(-theta) * x3 - sin(-theta) * z3
-      z3p = sin(-theta) * x3 + cos(-theta) * z3
-      if(z2p .gt. 0.0001 .or. z2p .lt. -0.0001) then
-         write(*,*) "z2p should be 0.d0 but is ", z2p
-      endif
-      a = x2p-x3p
-      b = x3p
-      c = z3p
-      if(c .le. 0.) then
-         write(*,*) 'clockwise node ordering for element',elmid
-         call safestop(6894)
-      endif
-
-      end subroutine getelmparams
 !=====
 ! my routine to print out arrays
       subroutine printarray(aa,n,m, string)
@@ -295,44 +254,6 @@ c         write(*,*) 0, i+icounter, vec(i)
       call safestop(4841)
       return 
       end      
-!====================
-      subroutine global2local(itri, x, z, si, eta)
-      implicit none
-      integer itri, nodes(4)
-      real x, z, si, eta, a, b, c, theta, co, sn, x1, z1
-      double precision coord(3)
-
-      call nodfac(itri, nodes)
-      call xyznod(nodes(1), coord) 
-      x1 = coord(1)
-      z1 = coord(2)
-      call getelmparams(itri, a, b, c, theta)
-      co = cos(theta)
-      sn = sin(theta)
-      si  = (x-x1)*co + (z-z1)*sn - b
-      eta =-(x-x1)*sn + (z-z1)*co
-      
-      return
-      end
-!====================
-      subroutine local2global(itri, si, eta, x, z)
-      implicit none
-      integer itri, nodes(4)
-      real x, z, si, eta, a, b, c, theta, co, sn, x1, z1
-      double precision coord(3)
-
-      call nodfac(itri, nodes)
-      call xyznod(itri, coord)
-      x1 = coord(1)
-      z1 = coord(2)
-      call getelmparams(itri, a, b, c, theta)
-      co = cos(theta)
-      sn = sin(theta)
-      x = x1 + co*(b+si) - sn*eta
-      z = z1 + sn*(b+si) + co*eta
-      
-      return
-      end
 !============================================================
       subroutine printmesh()
       implicit none
@@ -358,50 +279,6 @@ c         write(*,*) 0, i+icounter, vec(i)
 
  10   format(i3, x, 3(x, e8.3))
  12   format('params ',i3, x, 4(x, e10.4))
-
-      return
-      end
-
-!============================================================
-      subroutine getdeex(itri, deex)
-      use t_data
-      implicit none
-      
-      integer, intent(in) :: itri
-      real, intent(out) :: deex
-      
-c$$$      real area, length
-c$$$      double precision coords(9)
-c$$$      integer nodeids(4)
-
-      real :: alx, alz
-      integer :: numnodes, numfaces, numedges, numregions
-
-c$$$      area = .5*(atri(itri)+btri(itri))*ctri(itri)
-c$$$      call nodfac(itri, nodeids)
-c$$$      call xyznod(nodeids(1),coords)
-c$$$      call xyznod(nodeids(2),coords(4))
-c$$$      call xyznod(nodeids(3),coords(7))
-c$$$      
-c$$$      deex = (coords(4)-coords(1))*(coords(4)-coords(1)) +
-c$$$     &       (coords(5)-coords(2))*(coords(5)-coords(2))
-c$$$      length =  (coords(4)-coords(7))*(coords(4)-coords(7)) +
-c$$$     &          (coords(5)-coords(8))*(coords(5)-coords(8))
-c$$$      if(deex .gt. length) deex = length
-c$$$      length = (coords(1)-coords(7))*(coords(1)-coords(7)) +
-c$$$     &         (coords(2)-coords(8))*(coords(2)-coords(8))
-c$$$
-c$$$      if(deex .gt. length) deex = length
-c$$$
-c$$$      deex = 2.*area/sqrt(deex)
-
-      call getboundingboxsize(alx,alz)
-      call numglobalents(numnodes, numedges, numfaces, numregions)
-
-      deex = sqrt(alx*alz/2.*numfaces)
-
-      deex = alx/30.
-      print *, "shouldn't be here!", deex
 
       return
       end

@@ -229,6 +229,7 @@ vectype function electron_viscosity_func(i)
   electron_viscosity_func = temp
   return
 end function electron_viscosity_func
+
 end module transport_coefficients
 
 
@@ -371,3 +372,43 @@ subroutine define_transport_coefficients()
   enddo
 
 end subroutine define_transport_coefficients
+
+
+subroutine mask(x,z,factor)
+ use basic
+  implicit none
+
+  real, intent(in) :: x, z
+  real, intent(out) :: factor
+
+  real :: alphax, alphaz, alx, alz, xmin, zmin
+  real :: x_left, x_right, z_bottom, z_top
+  factor = 1.
+
+  if(nonrect) return
+
+  call getboundingboxsize(alx, alz)
+  call getmincoord(xmin, zmin)
+  
+  x_left = alx / 20.
+  x_right = alx - alx / 20.
+  z_bottom = alz / 20.
+  z_top = alz - alz / 20.
+      
+  alphax = 40. / alx
+  alphaz = 40. / alz
+
+  factor = 1.
+  
+  if(iper.eq.0) then
+     factor = factor * 0.5* &
+          (tanh(alphax*(x - x_left)) - tanh(alphax*(x - x_right)))
+  endif
+  
+  if(jper.eq.0) then
+     factor = factor * 0.5* &
+          (tanh(alphaz*(z - z_bottom)) - tanh(alphaz*(z - z_top)))
+  endif
+  
+  return
+end subroutine mask
