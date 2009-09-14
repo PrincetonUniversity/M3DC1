@@ -15,7 +15,7 @@ INCLUDE = -I$(COMMONDIR) -I$(NTCCHOME)/mod -I$(LIBDIR) \
 
 H5_VERSION = 166
 
-FOPTS = -c -r8 -implicitnone -save -fpp -warn unused $(INCLUDE) $(OPTS) -DH5_VERSION=$(H5_VERSION) # -check all -check noarg_temp_created
+FOPTS = -c -r8 -implicitnone -fpp -warn all $(INCLUDE) $(OPTS) -DH5_VERSION=$(H5_VERSION) # -check all -check noarg_temp_created
 F90OPTS = $(FOPTS)
 F77OPTS = $(FOPTS)
 CCOPTS = -c $(INCLUDE)

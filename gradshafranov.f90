@@ -4,32 +4,29 @@ module gradshafranov
 
   integer, parameter :: numvargs = 1
   
-  vectype, allocatable :: psi(:)
-  vectype, dimension(20) :: avec
+  vectype, private, allocatable :: psi(:)
+  vectype, private, allocatable :: fun1(:), fun2(:), fun3(:), fun4(:)
+  real, private :: dpsii
+  real, private :: gamma2, gamma3, gamma4  
 
-  vectype, allocatable :: fun1(:), fun2(:), fun3(:), fun4(:)
-  real :: dpsii
-  real :: gamma2, gamma3, gamma4  
-  integer :: itnum
-  real :: separatrix_top, separatrix_bottom
+  logical, private :: constraint = .false.
 
-  logical :: constraint = .false.
+  real, private :: gnorm, libetapeff, fac2
 
-  integer :: npsi
-  real, allocatable :: psinorm(:)
-  real, allocatable :: g4big0t(:), g4bigt(:), g4bigpt(:), g4bigppt(:)
-  real, allocatable :: fbig0t(:), fbigt(:), fbigpt(:), fbigppt(:)
+  integer, private :: npsi ! number of radial points in input profile
 
-  real :: fac2, gnorm, libetapeff
+  real, private, allocatable :: psinorm(:)
+  real, private, allocatable :: g4big0t(:), g4bigt(:), g4bigpt(:), g4bigppt(:)
+  real, private, allocatable :: fbig0t(:), fbigt(:), fbigpt(:), fbigppt(:)
 
-  integer, parameter :: NSTX_coils = 158
-  real, dimension(NSTX_coils) :: NSTX_r, NSTX_z, NSTX_I
+  integer, private, parameter :: NSTX_coils = 158
+  real, private, dimension(NSTX_coils) :: NSTX_r, NSTX_z, NSTX_I
 
-  integer, parameter :: ITER_coils = 18
-  real, dimension(ITER_coils) :: ITER_r, ITER_z, ITER_I
+  integer, private, parameter :: ITER_coils = 18
+  real, private, dimension(ITER_coils) :: ITER_r, ITER_z, ITER_I
 
-  integer, parameter :: DIII_coils = 18
-  real, dimension(DIII_coils) :: DIII_r, DIII_z, DIII_I
+  integer, private, parameter :: DIII_coils = 18
+  real, private, dimension(DIII_coils) :: DIII_r, DIII_z, DIII_I
 
 
   data NSTX_r &
@@ -329,8 +326,6 @@ subroutine vacuum_field()
      xc(1:NSTX_coils) = NSTX_r
      zc(1:NSTX_coils) = NSTX_z
      ic(1:NSTX_coils) = fac*NSTX_I
-     separatrix_top = 1.25
-     separatrix_bottom = -1.25
 
   case(3) ! ITER
      if(myrank.eq.0) print *, "Using standard ITER configuration"
@@ -338,8 +333,6 @@ subroutine vacuum_field()
      xc(1:ITER_coils) = ITER_r
      zc(1:ITER_coils) = ITER_z
      ic(1:ITER_coils) = fac*ITER_I
-     separatrix_top = 4.5
-     separatrix_bottom = -3.5
      
   case(4) ! DIII
      if(myrank.eq.0) print *, "Using standard DIII-D configuration"
@@ -347,8 +340,6 @@ subroutine vacuum_field()
      xc(1:DIII_coils) = DIII_r
      zc(1:DIII_coils) = DIII_z
      ic(1:DIII_coils) = fac*DIII_I
-     separatrix_top = 1.2
-     separatrix_bottom = -1.2
      
   case default ! Generic
 
@@ -401,23 +392,17 @@ subroutine gradshafranov_solve
 #endif
 #include "finclude/petsc.h"
   
-  real :: gsint1,gsint4,gsint2,gsint3,lhs,cfac(18)
   vectype, allocatable :: b1vecini(:)
   vectype, allocatable :: b2vecini(:)
-  real, dimension (2)  :: normal
-  real :: curv
-  integer :: izone, izonedim
-  logical :: is_boundary
 
-  integer :: itri,i,ii,i1,j,j1,jone, k,ier
+  integer :: itri,i,ii,i1,j,j1,ier, itnum
   integer :: numelms, numnodes
   integer :: ibegin, iendplusone
-  real :: dterm(18,18), sterm(18,18)
+  real :: dterm(18,18)
   real :: feedfac, fintl(-6:maxi,-6:maxi)
 
   real :: x, z, error, error2
-  real :: sum, rhs, curr, norm, g0, sum2, norm2
-  real, dimension(5) :: temp1, temp2
+  real :: sum, g0, sum2
   real :: gamma2a,gamma2b,gamma3a,gamma3b
   
   real :: tstart, tend
@@ -426,6 +411,7 @@ subroutine gradshafranov_solve
   real :: n(2,3)
   logical :: is_edge(3)  ! is inode on boundary
   vectype, dimension(6) :: tf
+  vectype, dimension(20) :: avec
 
   PetscTruth :: flg_petsc, flg_solve2, flg_solve1
   if(myrank.eq.0 .and. iprint.gt.0) &
@@ -531,6 +517,7 @@ subroutine gradshafranov_solve
      call second(tend)
      t_gs_init = tend - tstart
   endif
+
   !....read in numerical values for p and g functions for inumgs = 1
   if(inumgs .eq. 1) then
      call readpgfiles
@@ -552,7 +539,6 @@ subroutine gradshafranov_solve
      if(myrank.eq.0 .and. iprint.eq.1) print *, "GS: iteration = ", itnum
      
      ! apply boundary conditions
-
      if((iread_eqdsk .ne. 1 .and. irestart.ne.2) .or. itnum.gt.1) then
         feedfac = 0.
         if(itnum.gt.1 .and. gnorm.ne.0 .and. xlim2.ne.0) then
@@ -564,10 +550,8 @@ subroutine gradshafranov_solve
                 feedfac, psilim, psilim2, gnorm
         endif
     
-        if(myrank.eq.0 .and. iprint.eq.1) print *, 'applying bcs...'
         call boundary_gs(0, b1vecini, feedfac)
         
-        if(myrank.eq.0 .and. iprint.eq.1) print *, 'solving...'
         ! perform LU backsubstitution to get psi solution
         if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
         b2vecini = b1vecini
@@ -580,11 +564,16 @@ subroutine gradshafranov_solve
            if(myrank.eq.0) print *, 'Error in GS solve'
            call safestop(10)
         end if
+        if(b1vecini(1).ne.b1vecini(1)) then 
+           print *, 'Error: solution is NaN'
+           call safestop(11)
+        endif
         if(myrank.eq.0 .and. itimer.eq.1) then
            call second(tend)
            t_gs_solve = t_gs_solve + tend - tstart
-        endif
-        
+        endif           
+
+        ! combine solve result with old solution to get new solution
         if(itnum.eq.1) then
            psi = b1vecini
         else
@@ -592,17 +581,10 @@ subroutine gradshafranov_solve
         endif
      endif
      
-     
-     ! Find new magnetic axis (extremum of psi)
-     ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-!     call magaxis(xmag,zmag,psi,1,numvargs,psimin,0,ier)
-!      if(ier .gt. 0) call safestop(27)
-!     if(myrank.eq.0 .and. itimer.eq.1) then
-!        call second(tend)
-!        t_gs_magaxis = t_gs_magaxis + tend - tstart
-!     endif
-     call lcfs(psi,1,1,1)
+
+     ! Find new magnetic axis and lcfs
+     call lcfs(psi,1,1)
+
         
      ! define the pressure and toroidal field functions
      if(myrank.eq.0 .and. iprint.ge.1) print *, 'calculating funs...'
@@ -618,140 +600,21 @@ subroutine gradshafranov_solve
      endif
 
      ! Calculate error in new solution
-     ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-     ! (nodes shared between processes are currently overcounted.
-     !  also, skip boundary nodes)
-     if(myrank.eq.0 .and. iprint.ge.1) print *, 'calculating error...'
-     sum = 0.
-     norm = 0.
-     sum2 = 0.
-     norm2 = 0.
-     do i=1,numnodes
-        
-        !.....added 06/23/09...scj
-        call nodcoord(i,x,z)
-        call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
-        !       if(is_boundary) cycle
-        
-        call entdofs(numvargs, i, 0, ibegin, iendplusone)
-        
-        lhs = (psi(ibegin+3)-psi(ibegin+1)/x+psi(ibegin+5))/x
-        rhs =  -(fun1(ibegin)+gamma2*fun2(ibegin)+                        &
-             gamma3*fun3(ibegin)+gamma4*fun4(ibegin))
-        if(.not. is_boundary) then
-           sum = sum + (lhs-rhs)**2
-           norm = norm + lhs**2
-           sum2 = sum2 + abs(psi(ibegin)-b1vecini(ibegin))
-           norm2 = norm2 + abs(psi(ibegin))
-        endif
-     enddo
-     
-     if(maxrank.gt.1) then
-        temp1(1) = sum
-        temp1(2) = norm
-        temp1(3) = sum2
-        temp1(4) = norm2
-        call mpi_allreduce(temp1, temp2, 4, MPI_DOUBLE_PRECISION, &
-             MPI_SUM, MPI_COMM_WORLD, ier)
-        error = sqrt(temp2(1)/temp2(2))
-        error2= temp2(3)/temp2(4)
-     else
-        error = sqrt(sum/norm)
-        error2= sum2/norm2
-     endif
-     
+     call calculate_error(error,error2,b1vecini)
+
      if(myrank.eq.0) then
-        if(iprint.eq.1) then
-           write(*,2002) (temp2(ii),ii=1,4)
-2002       format(" temp1 array",1p4e12.4)
-        endif
-        write(*,1002) itnum,error,error2,xmag,psimin,psilim,psilim2,xnull,znull
-1002    format(i5,1p8e13.5)
+        write(*,'(i5,1p8e13.5)') &
+             itnum,error,error2,xmag,psimin,psilim,psilim2,xnull,znull
      endif
+
+     ! if error is sufficiently small, stop iterating
      if(itnum .gt. 1 .and. error2 .lt. tol_gs) exit mainloop
-               
-     ! start of loop over triangles to compute integrals needed to keep
-     !     total current and q_0 constant using gamma4, gamma2, gamma3
-     if(myrank.eq.0 .and. iprint.ge.1) print *, 'calculating gsints...'
-     gsint1 = 0.
-     gsint4 = 0.
-     gsint2 = 0.
-     gsint3 = 0.
-     curr = 0.
-     do itri=1,numelms
-        
-        call calcfint(fintl,maxi,atri(itri),btri(itri),ctri(itri))
-        call calcsterm(itri, sterm, fintl)
-        
-        do j=1,18
-           cfac(j) = 0.
-           do k=1,20
-              cfac(j) = cfac(j) + gtri(k,j,itri)*fintl(mi(k),ni(k))
-           enddo
-        enddo
-        
-        do i=1,18
-           i1 = isval1(itri,i)
-           
-           gsint1 = gsint1 + cfac(i)*fun1(i1)
-           gsint4 = gsint4 + cfac(i)*fun4(i1)
-           gsint2 = gsint2 + cfac(i)*fun2(i1)
-           gsint3 = gsint3 + cfac(i)*fun3(i1)
-           
-           do j=1,18
-              jone = isval1(itri,j)
-              curr = curr + sterm(i,j)*psi(i1)*rinv(jone)
-           enddo
-           
-        enddo
-     enddo
+    
+     ! calculate gammas to constrain current, etc.
+     call calculate_gamma(gamma2,gamma3,gamma4)
      
-     if(maxrank.gt.1) then
-        temp1(1) = curr
-        temp1(2) = gsint1
-        temp1(3) = gsint2
-        temp1(4) = gsint3
-        temp1(5) = gsint4
-        call mpi_allreduce(temp1, temp2, 5, MPI_DOUBLE_PRECISION, &
-             MPI_SUM, MPI_COMM_WORLD, ier)
-        curr   = temp2(1)
-        gsint1 = temp2(2)
-        gsint2 = temp2(3)
-        gsint3 = temp2(4)
-        gsint4 = temp2(5)
-     end if
-     
-     if(myrank.eq.0 .and. iprint.ge.1) then 
-        write(*,'(A,3E12.4)') "GS: curr, x0, z0 = ", curr, xmag, zmag
-     endif
-     
-     
-     ! choose gamma2 to fix q0/qstar.  Note that there is an additional
-     ! degree of freedom in gamma3.  Could be used to fix qprime(0)
-     
-     !.....changed 06/04/08 to allow more flexibility
-     !    if(numvar.eq.1 .or. nv1equ.eq.1) then
-     if(nv1equ.eq.1) then
-        gamma2 = 0.
-        gamma3 = 0.
-        gamma4 = 0.
-     else
-        !......see if p and g functions defined numerically.  If so, only enforce total current condition
-        if(constraint) then
-           gamma2 = 0.
-           gamma3 = 0.
-           gamma4 = 1.
-!!$          gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
-        else
-           gamma2 =  -xmag**2*p0*p1 - 2.*abs(g0)/(xmag*q0*abs(dpsii))
-           gamma3 = -4.*(abs(g0)/xmag)*djdpsi/dpsii - xmag**2*p0*p2
-           gamma4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
-        endif
-     endif
-     
-     ! start loop over elements to define RHS vector
+     ! Define RHS vector
      b1vecini = 0.
-     
      do itri=1,numelms
         
         call calcfint(fintl,maxi,atri(itri),btri(itri),ctri(itri))
@@ -771,6 +634,7 @@ subroutine gradshafranov_solve
            enddo
            
            b1vecini(i1) =  b1vecini(i1) + sum
+           if(fun1(i1).ne.fun1(i1)) print *, fun1(i1)
         enddo
      enddo
      call sumsharedppplvecvals(b1vecini)
@@ -778,8 +642,8 @@ subroutine gradshafranov_solve
   end do mainloop
 !
 
-  if(myrank.eq.0 ) then
-     print *, "Converged GS: curr =", curr," error =",error2
+  if(myrank.eq.0 .and. iprint.ge.1) then
+     print *, "Converged GS error =",error2
      print *, "initial and final(effective) libetap", libetap, libetapeff
      gamma2a = -xmag**2*p0*p1
      gamma2b = -2.*(abs(g0)/(xmag*q0*dpsii))
@@ -787,82 +651,23 @@ subroutine gradshafranov_solve
      gamma3b = -xmag**2*p0*p2
 
      write(*,1001) gamma2,gamma3,gamma4,xmag,p0,p1,p2,g0,dpsii,   &
-          djdpsi,tcuro,gsint1,gsint2,gsint3,gsint4,         &
-          gamma2a,gamma2b,gamma3a,gamma3b
+          djdpsi,tcuro,gamma2a,gamma2b,gamma3a,gamma3b
 1001 format(" gamma2,gamma3,gamma4       =",1p3e12.4,/,     &
           " xmag, p0,p1,p2,g0          =",1p5e12.4,/,     &
           " dpsii,djdpsi,tcurb         =",1p3e12.4,/,     &
-          "gsint1,gint2,gsint3,gsint4  =",1p4e12.4,/,     &
           "gamm2a,gamm2b,gamm3a,gamm3b =",1p4e12.4)
   endif
-!
-!....if igs is positive, stop after iabs(igs) iterations, continue for igs negative
+
+  ! if igs is positive, stop after iabs(igs) iterations
+  ! continue for igs negative
   if(itnum.eq.igs) call safestop(3)
 
 
-!!$  ! solve for p and I
-!!$  ! ~~~~~~~~~~~~~~~~~
-!!$  call zerosuperlumatrix(ppmatrix_lhs, icomplex, numvargs)
-!!$
-!!$  ! populate the matrix
-!!$  b1vecini = 0.
-!!$  b2vecini = 0.
-!!$  do itri=1,numelms
-!!$
-!!$     call define_triangle_quadrature(itri,25)
-!!$     call define_fields(itri,0,1,0)
-!!$    
-!!$     call calcavector(itri, psi, 1, numvargs, avec)
-!!$     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ps079)
-!!$     call calcavector(itri, fun1, 1, numvargs, avec)
-!!$     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ph079)
-!!$     call calcavector(itri, fun2, 1, numvargs, avec)
-!!$     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, vz079)
-!!$     call calcavector(itri, fun3, 1, numvargs, avec)
-!!$     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, vz179)
-!!$     call calcavector(itri, fun4, 1, numvargs, avec)
-!!$     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ch079)
-!!$
-!!$
-!!$     do i=1,18
-!!$        i1 = isval1(itri,i)
-!!$
-!!$        do j=1,18
-!!$           j1 = isval1(itri,j)
-!!$           sum =  int3(g79(:,OP_1,i),g79(:,OP_DZ,j),ps079(:,OP_DZ)) &
-!!$                + int3(g79(:,OP_1,i),g79(:,OP_DR,j),ps079(:,OP_DR))
-!!$           call insertval(ppmatrix_lhs, sum, 0, i1, j1, 1)
-!!$        enddo
-!!$
-!!$        temp79a = ps079(:,OP_DZ)**2 + ps079(:,OP_DR)**2
-!!$        b1vecini(i1) = b1vecini(i1) &
-!!$             + int4(ri_79,g79(:,OP_1,i),temp79a,ph079(:,OP_1))
-!!$        b2vecini(i1) = b2vecini(i1) &
-!!$             + 2.*gamma2*int4(r_79,g79(:,OP_1,i),temp79a,vz079(:,OP_1)) &
-!!$             + 2.*gamma3*int4(r_79,g79(:,OP_1,i),temp79a,vz179(:,OP_1)) &
-!!$             + 2.*gamma4*int4(r_79,g79(:,OP_1,i),temp79a,ch079(:,OP_1))
-!!$     enddo
-!!$  enddo
-!!$  call sumsharedppplvecvals(b1vecini)
-!!$  call sumsharedppplvecvals(b2vecini)
-!!$
-!!$  call boundary_dc(ppmatrix_lhs, b1vecini, pedge)
-!!$  call finalizematrix(ppmatrix_lhs)
-!!$  call solve(ppmatrix_lhs, b1vecini, ier)
-!!$  call copyvec(b1vecini, 1, 1, field0, p_g, num_fields)
-!!$
-!!$  g02 = (bzero*rzero)**2
-!!$  call boundary_dc(0., b2vecini, g02)
-!!$  call solve(ppmatrix_lhs, b2vecini, ier)
-!!$  g02 = 0.5
-!!$  call scalar_operation(b2vecini, 1, 1, OP_POW, g02)
-!!$  if(bzero.lt.0) b2vecini = -b2vecini
-!!$  call copyvec(b2vecini, 1, 1, field0, bz_g, num_fields)
-!!$  
-!!$  call deletematrix(ppmatrix_lhs)
-
+  ! Define equilibrium fields
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~
 
   if(igs_method.eq.2) then
+     ! solve for p and f fields which best approximate gs solution
      b1vecini = 0.
      b2vecini = 0.
      do itri=1,numelms
@@ -892,10 +697,7 @@ subroutine gradshafranov_solve
      call copyvec(b2vecini, 1, 1, field0, bz_g, num_fields)
   end if
      
-  ! populate phi0 array
-  ! ~~~~~~~~~~~~~~~~~~~
   do i=1,numnodes
-     !.....defines the source functions for the GS equation:
      call entdofs(numvargs, i, 0, ibegin, iendplusone)
      call assign_local_pointers(i)
 
@@ -941,6 +743,168 @@ subroutine gradshafranov_solve
   return
 
 end subroutine gradshafranov_solve
+
+subroutine calculate_error(error, error2, psinew)
+  use basic
+
+  implicit none
+
+  include 'mpif.h'
+
+  real, intent(out) :: error, error2
+  vectype, intent(in) :: psinew(*)
+
+  integer :: i, numnodes, ibegin, iendplusone, izone, izonedim, ier
+  real :: sum, sum2, norm, norm2, normal(2), curv, x, z, lhs, rhs
+  logical :: is_boundary
+  real, dimension(5) :: temp1, temp2
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'calculating error...'
+
+  sum = 0.
+  norm = 0.
+  sum2 = 0.
+  norm2 = 0.
+
+  call numnod(numnodes)
+  do i=1,numnodes
+
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+     if(is_boundary) cycle
+
+     call nodcoord(i,x,z)
+        
+     call entdofs(numvargs, i, 0, ibegin, iendplusone)
+     
+     lhs = (psi(ibegin+3)-psi(ibegin+1)/x+psi(ibegin+5))/x
+     rhs =  -(fun1(ibegin)+gamma2*fun2(ibegin)+                        &
+          gamma3*fun3(ibegin)+gamma4*fun4(ibegin))
+
+     sum = sum + (lhs-rhs)**2
+     norm = norm + lhs**2
+     sum2 = sum2 + abs(psi(ibegin)-psinew(ibegin))
+     norm2 = norm2 + abs(psi(ibegin))
+  enddo
+  
+  if(maxrank.gt.1) then
+     temp1(1) = sum
+     temp1(2) = norm
+     temp1(3) = sum2
+     temp1(4) = norm2
+     call mpi_allreduce(temp1, temp2, 4, MPI_DOUBLE_PRECISION, &
+          MPI_SUM, MPI_COMM_WORLD, ier)
+     error = sqrt(temp2(1)/temp2(2))
+     error2= temp2(3)/temp2(4)
+  else
+     error = sqrt(sum/norm)
+     error2= sum2/norm2
+  endif
+end subroutine calculate_error
+
+!============================================================
+! calculate_gamma
+! ~~~~~~~~~~~~~~~
+! calculates the values of gamma2, gamma3, and gamma4 to
+! constrain solution to have the specified current, etc.
+!============================================================
+subroutine calculate_gamma(g2, g3, g4)
+  use basic
+  use t_data
+  use arrays
+
+  implicit none
+
+  include 'mpif.h'
+
+  real, intent(out) :: g2, g3, g4
+
+  integer :: i, j, itri, numelms, i1, jone, ier
+
+  real :: gsint1, gsint2, gsint3, gsint4, curr, g0
+  real :: sterm(18,18), fintl(-6:maxi,-6:maxi), cfac(18)
+  real, dimension(5) :: temp1, temp2
+
+  ! start of loop over triangles to compute integrals needed to keep
+  !     total current and q_0 constant using gamma4, gamma2, gamma3
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'calculating gammas...'
+
+  if(nv1equ.eq.1) then
+     g2 = 0.
+     g3 = 0.
+     g4 = 0.
+     return
+  endif
+       
+  if(constraint) then
+     g2 = 0.
+     g3 = 0.
+     g4 = 1.
+     return
+  endif
+
+  g0 = bzero*rzero
+
+  gsint1 = 0.
+  gsint4 = 0.
+  gsint2 = 0.
+  gsint3 = 0.
+  curr = 0.
+
+  call numfac(numelms)
+
+  do itri=1,numelms
+     call calcfint(fintl,maxi,atri(itri),btri(itri),ctri(itri))
+     call calcsterm(itri, sterm, fintl)
+           
+     do j=1,18
+        cfac(j) = 0.
+        do i=1,20
+           cfac(j) = cfac(j) + gtri(i,j,itri)*fintl(mi(i),ni(i))
+        enddo
+     enddo
+     
+     do i=1,18
+        i1 = isval1(itri,i)
+              
+        gsint1 = gsint1 + cfac(i)*fun1(i1)
+        gsint4 = gsint4 + cfac(i)*fun4(i1)
+        gsint2 = gsint2 + cfac(i)*fun2(i1)
+        gsint3 = gsint3 + cfac(i)*fun3(i1)
+              
+        do j=1,18
+           jone = isval1(itri,j)
+           curr = curr + sterm(i,j)*psi(i1)*rinv(jone)
+        enddo
+     enddo
+  enddo
+     
+  if(maxrank.gt.1) then
+     temp1(1) = curr
+     temp1(2) = gsint1
+     temp1(3) = gsint2
+     temp1(4) = gsint3
+     temp1(5) = gsint4
+     call mpi_allreduce(temp1, temp2, 5, MPI_DOUBLE_PRECISION, &
+          MPI_SUM, MPI_COMM_WORLD, ier)
+     curr   = temp2(1)
+     gsint1 = temp2(2)
+     gsint2 = temp2(3)
+     gsint3 = temp2(4)
+     gsint4 = temp2(5)
+  end if
+        
+  if(myrank.eq.0 .and. iprint.ge.1) then 
+     write(*,'(A,3E12.4)') "GS: curr, x0, z0 = ", curr, xmag, zmag
+  endif
+  
+  ! choose gamma2 to fix q0/qstar.  Note that there is an additional
+  ! degree of freedom in gamma3.  Could be used to fix qprime(0)
+  
+  g2 =  -xmag**2*p0*p1 - 2.*abs(g0)/(xmag*q0*abs(dpsii))
+  g3 = -4.*(abs(g0)/xmag)*djdpsi/dpsii - xmag**2*p0*p2
+  g4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
+end subroutine calculate_gamma
+
 
 ! ===========================================================
 subroutine deltafun(x,z,val,dum,iplace,isize)
@@ -1115,6 +1079,7 @@ subroutine fundef2
 
   integer :: i, ione, itri, numelms
   real :: pso, dpsii
+  vectype, dimension(20) :: avec
       
   logical :: inside_lcfs
 
@@ -1317,7 +1282,7 @@ subroutine readpgfiles
 
   integer :: j
 
-  print *, "Reading profiles files"
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Reading profiles files"
 
   open(unit=76,file="profiles-p",status="old")
   read(76,803) npsi

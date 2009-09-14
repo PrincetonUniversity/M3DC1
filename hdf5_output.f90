@@ -4,7 +4,8 @@ module hdf5_output
 
   implicit none
 
-  integer(HID_T) :: file_id, offset, global_elms
+  integer(HID_T) :: file_id
+  integer :: offset, global_elms
   integer :: times_output
   logical :: initialized = .false.
   character(LEN=7), parameter :: hdf5_filename = "C1.h5"
@@ -445,7 +446,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "time" , time  , ntime, error)
 
   call output_scalar(scalar_group_id, "loop_voltage"    , vloop , ntime, error)
-  call output_scalar(scalar_group_id, "psi_lcfs"        , psibound, ntime, error)
+  call output_scalar(scalar_group_id, "psi_lcfs"        , psibound,ntime, error)
 
   call output_scalar(scalar_group_id, "area"            , area  , ntime, error)
   call output_scalar(scalar_group_id, "toroidal_flux"   , tflux , ntime, error)
@@ -508,7 +509,6 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "znull"   ,znull   ,ntime,error)
   call output_scalar(scalar_group_id, "xmag"    ,xmag    ,ntime,error)
   call output_scalar(scalar_group_id, "zmag"    ,zmag    ,ntime,error)
-  call output_scalar(scalar_group_id, "psibound",psibound,ntime,error)
   call output_scalar(scalar_group_id, "psimin"  ,psimin  ,ntime,error)
 
   if(itaylor.eq.3) then

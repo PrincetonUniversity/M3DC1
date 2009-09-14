@@ -4,7 +4,6 @@ module p_data
   
   integer :: maxi     ! highest degree polynomial kept in nonlinear calculations
   integer :: ires     ! linear resolution of the plot files
-  integer :: ntri
   integer :: maxplots ! maximum dimension of the graph array
   integer :: ijacobian
 
@@ -470,115 +469,115 @@ contains
 ! ~~~~~~~~~~~~~~~
 ! Assigns variables to appropriate vectors for time advance
 !==========================================================
-    subroutine assign_variables()
+  subroutine assign_variables()
 
-      use basic
+    use basic
 
-      implicit none
+    implicit none
+    
+    if(isplitstep.eq.1) then
+       
+       u_v => vel
+       uo_v => velold    
+       psi_v => phi
+       psio_v => phiold
+       
+       if(numvar.ge.2) then
+          vz_v => vel
+          vzo_v => velold
+          bz_v => phi
+          bzo_v => phiold
+       endif
 
-      if(isplitstep.eq.1) then
+       if(numvar.ge.3) then
+          chi_v => vel
+          chio_v => velold
+          pe_v => phi
+          peo_v => phiold
+       endif
 
-         u_v => vel
-         uo_v => velold    
-         psi_v => phi
-         psio_v => phiold
+       if(ipres.eq.1) then
+          p_v => pres
+          po_v => presold
+       end if
 
-         if(numvar.ge.2) then
-            vz_v => vel
-            vzo_v => velold
-            bz_v => phi
-            bzo_v => phiold
-         endif
+       if(idens.eq.1) then
+          den_v => den
+          deno_v => denold
+       end if
 
-         if(numvar.ge.3) then
-            chi_v => vel
-            chio_v => velold
-            pe_v => phi
-            peo_v => phiold
-         endif
+       u_i = 1
+       psi_i = 1
+       vz_i = 2
+       bz_i = 2
+       chi_i = 3
+       pe_i = 3
+       den_i = 1
+       bf_i = 1
 
-         if(ipres.eq.1) then
-            p_v => pres
-            po_v => presold
-         end if
+       if(ipres.eq.1) then
+          p_i = 1
+       else
+          p_i = 3
+       end if
 
-         if(idens.eq.1) then
-            den_v => den
-            deno_v => denold
-         end if
+    else
+       u_v => phi
+       uo_v => phiold
+       psi_v => phi
+       psio_v => phiold
 
-         u_i = 1
-         psi_i = 1
-         vz_i = 2
-         bz_i = 2
-         chi_i = 3
-         pe_i = 3
-         den_i = 1
-         bf_i = 1
+       if(numvar.ge.2) then
+          vz_v => phi
+          vzo_v => phiold
+          bz_v => phi
+          bzo_v => phiold
+       endif
 
-         if(ipres.eq.1) then
-            p_i = 1
-         else
-            p_i = 3
-         end if
-
-      else
-         u_v => phi
-         uo_v => phiold
-         psi_v => phi
-         psio_v => phiold
-
-         if(numvar.ge.2) then
-            vz_v => phi
-            vzo_v => phiold
-            bz_v => phi
-            bzo_v => phiold
-         endif
-
-         if(numvar.ge.3) then
-            chi_v => phi
-            chio_v => phiold
-            pe_v => phi
-            peo_v => phiold
-         endif
+       if(numvar.ge.3) then
+          chi_v => phi
+          chio_v => phiold
+          pe_v => phi
+          peo_v => phiold
+       endif
      
-         if(idens.eq.1) then
-            den_v => phi
-            deno_v => phiold
-         end if
+       if(idens.eq.1) then
+          den_v => phi
+          deno_v => phiold
+       end if
 
-         if(ipres.eq.1) then
-            p_v => phi
-            po_v => phiold
-         endif
+       if(ipres.eq.1) then
+          p_v => phi
+          po_v => phiold
+       endif
          
-         u_i = 1
-         psi_i = 2
-         vz_i = 3
-         bz_i = 4
-         chi_i = 5
-         pe_i = 6    
-         den_i = 2*numvar+1
-         if(ipres.eq.1) then
-            p_i = 2*numvar+idens+1
-         else
-            p_i = pe_i
-         endif
-         bf_i = 1
+       u_i = 1
+       psi_i = 2
+       vz_i = 3
+       bz_i = 4
+       chi_i = 5
+       pe_i = 6    
+       den_i = 2*numvar+1
+       if(ipres.eq.1) then
+          p_i = 2*numvar+idens+1
+       else
+          p_i = pe_i
+       endif
+       bf_i = 1
          
-      endif
+    endif
       
-      u_off = (u_i-1)*6
-      psi_off = (psi_i-1)*6
-      vz_off = (vz_i-1)*6
-      bz_off = (bz_i-1)*6
-      chi_off = (chi_i-1)*6
-      pe_off = (pe_i-1)*6
-      den_off = (den_i-1)*6
-      p_off = (p_i-1)*6
-      bf_off = (bf_i-1)*6
+    u_off = (u_i-1)*6
+    psi_off = (psi_i-1)*6
+    vz_off = (vz_i-1)*6
+    bz_off = (bz_i-1)*6
+    chi_off = (chi_i-1)*6
+    pe_off = (pe_i-1)*6
+    den_off = (den_i-1)*6
+    p_off = (p_i-1)*6
+    bf_off = (bf_i-1)*6
 
-    end subroutine assign_variables
+  end subroutine assign_variables
 
 !======================================================
 ! assign_local_pointers
@@ -587,106 +586,110 @@ contains
 ! in global field vectors.
 !
 !======================================================
-    subroutine assign_local_pointers(inode)
+  subroutine assign_local_pointers(inode)
 
-      use basic
+    use basic
 
-      implicit none
+    implicit none
 
-      integer, intent(in) :: inode
-      integer :: ibegin, iendplusone, iend
+    integer, intent(in) :: inode
+    integer :: ibegin, iendplusone, iend
 
-      call entdofs(num_fields, inode, 0, ibegin, iendplusone)
-      iend = ibegin+5
+    call entdofs(num_fields, inode, 0, ibegin, iendplusone)
+    iend = ibegin+5
 
-      psi1_l => field (ibegin+(psi_g-1)*6:iend+(psi_g-1)*6)
-      psi0_l => field0(ibegin+(psi_g-1)*6:iend+(psi_g-1)*6)
-      psis_l => fieldi(ibegin+(psi_g-1)*6:iend+(psi_g-1)*6)
-        u1_l => field (ibegin+(  u_g-1)*6:iend+(  u_g-1)*6)
-        u0_l => field0(ibegin+(  u_g-1)*6:iend+(  u_g-1)*6)
-        us_l => fieldi(ibegin+(  u_g-1)*6:iend+(  u_g-1)*6)
-       vz1_l => field (ibegin+( vz_g-1)*6:iend+( vz_g-1)*6)
-       vz0_l => field0(ibegin+( vz_g-1)*6:iend+( vz_g-1)*6)
-       vzs_l => fieldi(ibegin+( vz_g-1)*6:iend+( vz_g-1)*6)
-       bz1_l => field (ibegin+( bz_g-1)*6:iend+( bz_g-1)*6)
-       bz0_l => field0(ibegin+( bz_g-1)*6:iend+( bz_g-1)*6)
-       bzs_l => fieldi(ibegin+( bz_g-1)*6:iend+( bz_g-1)*6)
-      chi1_l => field (ibegin+(chi_g-1)*6:iend+(chi_g-1)*6)
-      chi0_l => field0(ibegin+(chi_g-1)*6:iend+(chi_g-1)*6)
-      chis_l => fieldi(ibegin+(chi_g-1)*6:iend+(chi_g-1)*6)
-       pe1_l => field (ibegin+( pe_g-1)*6:iend+( pe_g-1)*6)
-       pe0_l => field0(ibegin+( pe_g-1)*6:iend+( pe_g-1)*6)
-       pes_l => fieldi(ibegin+( pe_g-1)*6:iend+( pe_g-1)*6)
-        p1_l => field (ibegin+(  p_g-1)*6:iend+(  p_g-1)*6)
-        p0_l => field0(ibegin+(  p_g-1)*6:iend+(  p_g-1)*6)
-        ps_l => fieldi(ibegin+(  p_g-1)*6:iend+(  p_g-1)*6)
-      den1_l => field (ibegin+(den_g-1)*6:iend+(den_g-1)*6)
-      den0_l => field0(ibegin+(den_g-1)*6:iend+(den_g-1)*6)
-      dens_l => fieldi(ibegin+(den_g-1)*6:iend+(den_g-1)*6)
+    psi1_l => field (ibegin+(psi_g-1)*6:iend+(psi_g-1)*6)
+    psi0_l => field0(ibegin+(psi_g-1)*6:iend+(psi_g-1)*6)
+    psis_l => fieldi(ibegin+(psi_g-1)*6:iend+(psi_g-1)*6)
+      u1_l => field (ibegin+(  u_g-1)*6:iend+(  u_g-1)*6)
+      u0_l => field0(ibegin+(  u_g-1)*6:iend+(  u_g-1)*6)
+      us_l => fieldi(ibegin+(  u_g-1)*6:iend+(  u_g-1)*6)
+     vz1_l => field (ibegin+( vz_g-1)*6:iend+( vz_g-1)*6)
+     vz0_l => field0(ibegin+( vz_g-1)*6:iend+( vz_g-1)*6)
+     vzs_l => fieldi(ibegin+( vz_g-1)*6:iend+( vz_g-1)*6)
+     bz1_l => field (ibegin+( bz_g-1)*6:iend+( bz_g-1)*6)
+     bz0_l => field0(ibegin+( bz_g-1)*6:iend+( bz_g-1)*6)
+     bzs_l => fieldi(ibegin+( bz_g-1)*6:iend+( bz_g-1)*6)
+    chi1_l => field (ibegin+(chi_g-1)*6:iend+(chi_g-1)*6)
+    chi0_l => field0(ibegin+(chi_g-1)*6:iend+(chi_g-1)*6)
+    chis_l => fieldi(ibegin+(chi_g-1)*6:iend+(chi_g-1)*6)
+     pe1_l => field (ibegin+( pe_g-1)*6:iend+( pe_g-1)*6)
+     pe0_l => field0(ibegin+( pe_g-1)*6:iend+( pe_g-1)*6)
+     pes_l => fieldi(ibegin+( pe_g-1)*6:iend+( pe_g-1)*6)
+      p1_l => field (ibegin+(  p_g-1)*6:iend+(  p_g-1)*6)
+      p0_l => field0(ibegin+(  p_g-1)*6:iend+(  p_g-1)*6)
+      ps_l => fieldi(ibegin+(  p_g-1)*6:iend+(  p_g-1)*6)
+    den1_l => field (ibegin+(den_g-1)*6:iend+(den_g-1)*6)
+    den0_l => field0(ibegin+(den_g-1)*6:iend+(den_g-1)*6)
+    dens_l => fieldi(ibegin+(den_g-1)*6:iend+(den_g-1)*6)
     
-    end subroutine assign_local_pointers
+  end subroutine assign_local_pointers
 !================================
-    subroutine createvec(vec, numberingid)
-      implicit none
-      integer :: numberingid, ndof
-      vectype, allocatable :: vec(:)
+  subroutine createvec(vec, numberingid)
+    implicit none
+    integer :: numberingid, ndof
+    vectype, allocatable :: vec(:)
 
-      if(allocated(vec)) call deletevec(vec)
-
-      call numdofs(numberingid, ndof)
-      allocate(vec(ndof))
+    if(allocated(vec)) call deletevec(vec)
+    
+    call numdofs(numberingid, ndof)
+    allocate(vec(ndof))
 
 #ifdef USECOMPLEX
-      call createppplvec(vec, numberingid, 1)
+    call createppplvec(vec, numberingid, 1)
 #else
-      call createppplvec(vec, numberingid, 0)
+    call createppplvec(vec, numberingid, 0)
 #endif
-      vec = 0.
-    end subroutine createvec
-!===============================
-    subroutine createrealvec(vec, numberingid)
-      implicit none
-      integer :: numberingid, ndof
-      real, allocatable ::  vec(:)
-      
-      if(allocated(vec)) call deleterealvec(vec)
-
-      call numdofs(numberingid, ndof)
-      allocate(vec(ndof))
-
-      call createppplvec(vec, numberingid, 0)
-
-      vec = 0.
-    end subroutine createrealvec
+    vec = 0.
+  end subroutine createvec
 !================================
-    subroutine deletevec(vec)
-      implicit none
-      integer :: i
-      vectype, allocatable :: vec(:) 
+  subroutine deletevec(vec)
+    implicit none
+    integer :: i
+    vectype, allocatable :: vec(:) 
+    
+    call checkppplveccreated(vec, i)
+    if(i .ne. 0) then
+       call deleteppplvec(vec)
+       deallocate(vec)
+    else
+       write(*,*) 'vector does not exist'
+    endif
+  end subroutine deletevec
+
+!======================================================================
+! copyvec
+! ~~~~~~~
+! copies a field from inarr to outarr
+!======================================================================
+  subroutine copyvec(inarr, inpos, insize, outarr, outpos, outsize)
+
+    implicit none
+
+    vectype, intent(in) :: inarr(*)
+    integer, intent(in) :: insize, inpos
+    vectype, intent(out) :: outarr(*)
+    integer, intent(in) :: outsize, outpos
+
+    integer :: ibegini, iendplusonei
+    integer :: ibegino, iendplusoneo
+    integer :: l, numnodes, in_i, out_i
+    
+    in_i = (inpos-1)*6
+    out_i = (outpos-1)*6
       
-      call checkppplveccreated(vec, i)
-      if(i .ne. 0) then
-         call deleteppplvec(vec)
-         deallocate(vec)
-      else
-         write(*,*) 'vector does not exist'
-      endif
-    end subroutine deletevec
-!================================
-    subroutine deleterealvec(vec)
-      implicit none
-      integer :: i
-      real, allocatable :: vec(:) 
+    call numnod(numnodes)
       
-      call checkppplveccreated(vec, i)
-      if(i .ne. 0) then
-         call deleteppplvec(vec)
-         deallocate(vec)
-      else
-         write(*,*) 'vector does not exist'
-      endif
-    end subroutine deleterealvec
-!================================
+    do l=1,numnodes
+       call entdofs(insize, l, 0, ibegini, iendplusonei)
+       call entdofs(outsize, l, 0, ibegino, iendplusoneo)
+       
+       outarr(ibegino+out_i:ibegino+out_i+5) = &
+            inarr(ibegini+in_i:ibegini+in_i+5)
+    enddo
+      
+  end subroutine copyvec
+
 end module arrays
 
   
@@ -736,8 +739,169 @@ module sparse
   integer, parameter :: d10matrix_sm = 34
   integer, parameter :: d7matrix_sm = 36
   integer, parameter :: ppmatrix_lhs = 37
+  integer, parameter :: num_matrices = 37
+
+contains
+  subroutine delete_matrices
+    implicit none
+    integer :: i
+
+    do i=1, num_matrices
+       call deletematrix(i)
+    end do
+  end subroutine delete_matrices
   
 end module sparse
+
+
+!============================================================
+! space
+! ~~~~~
+! allocates space for big arrays
+!
+! ifirstcall = 1 if this is the first call and 0 otherwise
+!============================================================
+subroutine space(ifirstcall)
+
+  use p_data
+  use t_data
+  use basic
+  use arrays
+  use sparse
+
+  implicit none
+
+  integer, intent(in) :: ifirstcall
+
+  integer :: numnodes, numelms
+
+  if(myrank.eq.1 .and. iprint.ge.1) print *, " Entering space..."
+
+  if(isplitstep.eq.1) then
+     vecsize_phi = numvar
+     vecsize_vel = numvar
+     vecsize_n = 1
+     vecsize_p = 1
+  else
+     vecsize_phi  = numvar*2 + idens + ipres
+     vecsize_vel  = vecsize_phi
+     vecsize_n    = vecsize_phi
+     vecsize_p    = vecsize_phi
+  endif
+
+!
+!.....create numberings
+  if(ifirstcall .eq. 1) then
+     call createdofnumbering(numvar1_numbering, iper, jper, &
+          6, 0, 0, 0, maxdofs1)
+     call createdofnumbering(numvar2_numbering, iper, jper, &
+          12, 0, 0, 0, maxdofs2)
+     call createdofnumbering(num_fields, iper, jper, &
+          num_fields*6, 0, 0, 0, maxdofsn)
+     if(vecsize_phi.gt.2 .and. vecsize_phi.ne.num_fields) then
+        call createdofnumbering(vecsize_phi, iper, jper, &
+             vecsize_phi*6, 0, 0, 0, maxdofsn)
+     endif
+     if(vecsize_vel.gt.2 .and. vecsize_vel.ne.vecsize_phi) then
+        call createdofnumbering(vecsize_vel, iper, jper, &
+             vecsize_vel*6, 0, 0, 0, maxdofsn)
+     endif
+  endif
+  
+  call numnod(numnodes)
+  call numfac(numelms)
+
+! arrays defined at all vertices
+! createvec will delete the arrays if they have already been allocated
+  if(ifirstcall.eq.1) then
+     if(myrank.eq.0 .and. iprint.eq.1) print *, 'Allocating...'
+     
+     ! Physical Variables
+     call createvec(field , num_fields)
+     call createvec(field0, num_fields)
+     call createvec(fieldi, num_fields)
+
+     ! Auxiliary Variables
+     call createvec(jphi, 1)
+     call createvec(vor, 1)
+     call createvec(com, 1)
+     call createvec(resistivity, 1)
+     call createvec(kappa, 1)
+     call createvec(visc, 1)
+     call createvec(visc_c, 1)
+     call createvec(sigma, 1)
+     call createvec(tempvar,1)
+     if(icomplex.eq.1 .or. ifout.eq.1) call createvec(bf,1)
+     if(ibootstrap.gt.0) call createvec(visc_e,1)
+
+     ! Arrays for implicit time advance
+     call createvec(phi,      vecsize_phi)
+     call createvec(phiold,   vecsize_phi)
+     call createvec(phip,     vecsize_phi)
+     call createvec(q4,       vecsize_phi)
+     
+     call createvec(b1_phi,   vecsize_phi)
+     call createvec(b2_phi,   vecsize_phi)
+
+     if(isplitstep.eq.1) then
+        call createvec(vel,      vecsize_vel)
+        call createvec(velold,   vecsize_vel)
+        call createvec(veln,     vecsize_vel)
+        call createvec(veloldn,  vecsize_vel)
+        call createvec(r4,       vecsize_vel)
+
+        if(ipres.eq.1) then
+           call createvec(pres,    vecsize_p)
+           call createvec(presold, vecsize_p)
+           call createvec(qp4,     vecsize_p)
+        endif
+        
+        call createvec(den,    vecsize_n)        
+        call createvec(denold, vecsize_n)
+        call createvec(qn4,    vecsize_n)
+        
+        call createvec(b1_vel,   vecsize_vel)
+        call createvec(b2_vel,   vecsize_vel)
+        
+        if(isources.eq.1) then
+           call createvec(sb1, 1)
+           call createvec(sb2, 1)
+           call createvec(sp1, 1)
+        endif
+     endif
+  endif
+
+  ! arrays associated with the triangles
+  if(ifirstcall.eq.0) then
+     if(myrank.eq.0 .and. iprint.eq.1) print *, ' deallocating...'
+     deallocate(ist)
+     deallocate(isvaln)
+     deallocate(isval1)
+     deallocate(isval2)
+     deallocate(atri)
+     deallocate(btri)
+     deallocate(ctri)
+     deallocate(ttri)
+     deallocate(gtri)
+  endif
+  
+  if(myrank.eq.0 .and. iprint.eq.1) print *, ' Allocting tri...'
+  allocate(ist(numelms,3),isvaln(numelms,18),isval1(numelms,18), &
+       isval2(numelms,18))
+  allocate(atri(numelms),btri(numelms),ctri(numelms),ttri(numelms), &
+       gtri(20,18,numelms)) 
+
+  ! metric terms involved in toroidal geometry
+  if(ifirstcall.eq.0) deallocate(rinv)
+  allocate(rinv(numnodes*6))
+
+  ! assign pointers to proper vectors
+  call assign_variables
+
+  if(myrank.eq.1 .and. iprint.ge.1) print *, " Exiting space."
+
+  return
+end subroutine space
 
 
 subroutine insval(imatrix, val, icom, i, j, iop)

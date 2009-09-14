@@ -2563,7 +2563,7 @@ function read_lcfs, axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra
    
    flux0 = s.psimin._data[i]
 
-   return, s.psibound._data[i]
+   return, s.psi_lcfs._data[i]
 end
 
 
