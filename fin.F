@@ -29,7 +29,6 @@
 
       implicit none
 #include "finclude/petsc.h"
-!      include 'mpif.h'
 
       PetscTruth :: flg_petsc, flg_solve2
       integer :: ier
@@ -468,6 +467,15 @@
      &     '-ipetsc', flg_petsc,ier)
       call PetscOptionsHasName(PETSC_NULL_CHARACTER,
      &     '-solve2', flg_solve2,ier)
+
+      if(myrank.eq.0) then
+         print *, "petsc arguments: ipetsc, solve2",
+     &        flg_petsc, flg_solve2
+         print *, "petsc true/false", PETSC_TRUE, PETSC_FALSE
+         if(flg_petsc.eq.PETSC_TRUE) print*, 'Using PETSc.'
+         if(flg_solve2.eq.PETSC_TRUE) print*, 'Using solve2.'
+      endif
+
       if(flg_petsc.eq.PETSC_TRUE .and. flg_solve2.eq.PETSC_TRUE) then 
          drop_zeroes = 0 
       else 
@@ -485,7 +493,6 @@
 
       return
       end
-!============================================================
 !============================================================
       real function fact(n)
 

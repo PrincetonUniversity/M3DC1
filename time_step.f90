@@ -35,7 +35,7 @@ subroutine onestep
   implicit none
 
   integer :: calc_matrices
-  logical :: first_time = .true.
+  logical, save :: first_time = .true.
 
   real :: tstart, tend
   vectype, allocatable :: temp_field(:)
@@ -80,7 +80,7 @@ subroutine onestep
 
 
   ! copy field data to time-advance vectors
-  if(myrank.eq.0 .and. iprint.eq.1) print *, "Importing time advance vectors.."
+  if(myrank.eq.0 .and. iprint.eq.2) print *, "Importing time advance vectors.."
   call import_time_advance_vectors
 
 
@@ -102,7 +102,7 @@ subroutine onestep
 
 
   ! copy time advance vectors to field data
-  if(myrank.eq.0 .and. iprint.eq.1) print *, "Exporting time advance vectors.."
+  if(myrank.eq.0 .and. iprint.eq.2) print *, "Exporting time advance vectors.."
   call export_time_advance_vectors
 
 

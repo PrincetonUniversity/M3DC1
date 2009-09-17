@@ -702,7 +702,7 @@ end subroutine calculate_scalars
 
 !=====================================================
 ! magaxis
-!
+! ~~~~~~~
 ! locates the magnetic axis and the value of psi there
 ! imethod = 0 finds the local minimum of psi
 ! imethod = 1 finds the local zero of <psi,psi>

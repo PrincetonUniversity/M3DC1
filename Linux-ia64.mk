@@ -8,7 +8,7 @@ ifndef SCORECDIR
   SCORECDIR = /u/xluo/develop.petsc3/
 endif
 
-INCLUDE = -I$(COMMONDIR) -I$(NTCCHOME)/mod -I$(LIBDIR) \
+INCLUDE = -I$(NTCCHOME)/mod -I$(LIBDIR) \
 	-I$(SUPERLU_DIST_HOME) -I$(HDF5_HOME)/include \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
 	-I$(SCORECDIR)
@@ -89,4 +89,4 @@ LIBS = $(SCOREC_LIBS) \
 	$(F77) $(F77OPTS) $< -o $@
 
 %.o: %.f90
-	$(F90) $(F90OPTS) -fpic $< -o $@
+	$(F90) $(F90OPTS) $< -o $@
