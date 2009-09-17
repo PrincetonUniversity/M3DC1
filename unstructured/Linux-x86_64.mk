@@ -8,7 +8,7 @@ ifndef SCORECDIR
   SCORECDIR = /u/xluo/develop.petsc3.stix.intel/
 endif
 
-INCLUDE = -I$(COMMONDIR) -I$(SCORECDIR) \
+INCLUDE = -I$(SCORECDIR) \
 	-I$(MPIHOME)/include \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
 	-I$(HDF5_HOME)/include -I$(HDF5_HOME)/lib

@@ -204,25 +204,29 @@ subroutine den_eq
   if(idenfunc.eq.0) return
 
   call numnod(numnodes)
+  
+  select case(idenfunc)
+  case(1)      ! added 08/05/08 for stability benchmarking
 
-  do inode=1, numnodes 
+     do inode=1, numnodes 
+        call assign_local_pointers(inode)
 
-     call assign_local_pointers(inode)
-     
-     select case(idenfunc)
-     case(1)      ! added 08/05/08 for stability benchmarking
         den0_l(1) = den0*.5* &
              (1. + &
              tanh((real(psi0_l(1))-(psibound+denoff*(psibound-psimin)))&
              /(dendelt*(psibound-psimin))))
+     end do
         
-     case(2)
+  case(2)
+     do inode=1, numnodes 
+        call assign_local_pointers(inode)
+        
         temp(1) = real((psi0_l(1)-psimin)/(psibound-psimin))
         temp(2:6) = real(psi0_l(2:6))/(psibound-psimin)
-
+        
         k = 1./dendelt
         kx = k*(temp(1) - denoff)
-
+        
         den0_l(1) = 1. + tanh(kx)
         den0_l(2) = k*sech(kx)**2 * temp(2)
         den0_l(3) = k*sech(kx)**2 * temp(3)
@@ -232,27 +236,122 @@ subroutine den_eq
              -2.*k**2*sech(kx)**2*tanh(kx) * temp(2)*temp(3)
         den0_l(6) = k*sech(kx)**2 * temp(6) &
              -2.*k**2*sech(kx)**2*tanh(kx) * temp(3)**2
-
+        
         den0_l = den0_l * 0.5*(den_edge-den0)
         den0_l(1) = den0_l(1) + den0
-
-     case(3)
+     end do
+     
+  case(3)
+     do inode=1, numnodes 
+        call assign_local_pointers(inode)
         call nodcoord(inode, x, z)
-
+        
         temp(1) = real((psi0_l(1)-psimin)/(psibound-psimin))
         temp(2) = (psi0_l(2)*(x - xmag) &
              +     psi0_l(3)*(z - zmag))*(psibound-psimin)
-
+        
         if(temp(1).lt.denoff .and. temp(2).gt.0.) then
            call constant_field(den0_l, den0)
         else
            call constant_field(den0_l, den_edge)
         end if
-     end select
-
-  end do
-
+     end do
+     
+  case(4)
+     call read_density_profile
+  end select
+  
 end subroutine den_eq
+
+!======================================================================
+subroutine read_density_profile
+  use basic
+  use t_data
+  use arrays
+  use sparse
+  use nintegrate_mod
+  use newvar_mod
+
+  implicit none
+
+  include 'mpif.h'
+
+  integer, parameter :: ifile = 123
+  integer :: npsi, itype, numelms, itri, i, k, i1, ier
+  real :: psii
+  real, allocatable :: spsi(:), density(:)
+  vectype, allocatable :: temp(:)
+  vectype, dimension(20) :: avec
+
+  logical :: inside_lcfs
+
+  if(myrank.eq.0) then
+     if(iprint.eq.1) print *, 'Reading density profile...'
+
+     open(unit=ifile,file='PROFDEN.txt',status='unknown')
+     read(ifile,'(I5,I8)') npsi, itype
+
+     print *, "NPSI = ", npsi
+     
+     allocate(spsi(npsi), density(npsi))
+     
+     do i=1, npsi
+        read(ifile,'(F5.3,1pE13.4)') spsi(i), density(i)
+     end do
+
+     close(ifile)
+  endif
+
+  if(maxrank.gt.0) then
+     call mpi_bcast(npsi,1,MPI_INTEGER,0,MPI_COMM_WORLD, ier)
+
+     print *, 'MYRANK, NPSI',  myrank, npsi
+
+     if(myrank.ne.0) allocate(spsi(npsi), density(npsi))
+
+     call mpi_bcast(spsi,npsi,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD, ier)
+     call mpi_bcast(density,npsi,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD, ier)
+  endif
+
+  if(iprint.eq.1) print *, 'Solving density profile...'
+
+  call createvec(temp,1)
+
+  temp = 0.
+  call numfac(numelms)
+  do itri=1,numelms
+     call define_triangle_quadrature(itri, 25)
+     call define_fields(itri, 0, 1, 0)
+
+     call calcavector(itri, field0, psi_g, num_fields, avec)
+     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ps079)
+                     
+     do i=1, 18
+        i1 = isval1(itri,i)
+
+        do k=1, npoints
+           psii = (real(ps079(k,OP_1)) - psimin)/(psibound - psimin)
+           if(inside_lcfs(ps079(k,:), x_79(k), z_79(k), .true.)) then
+              call cubic_interpolation(npsi,spsi,sqrt(psii), &
+                   density,temp79a(k))
+           else
+              temp79a = density(npsi)
+           endif
+        end do
+        temp79a = temp79a / (n0_norm*1.e6)
+
+        temp(i1) = temp(i1) + int2(g79(:,OP_1,i),temp79a)
+     end do
+  end do
+  
+  call solve_newvar(temp,NV_NOBOUND,mass_matrix_lhs)
+  
+  call copyvec(temp, 1, 1, field0, den_g, num_fields)
+  
+  call deletevec(temp)
+  deallocate(spsi, density)
+end subroutine read_density_profile
+
 !==============================================================================
 subroutine rmp_per
   use basic
@@ -271,17 +370,12 @@ subroutine rmp_per
      do l=1, numnodes
         call boundary_node(l,is_boundary,izone,izonedim,normal,curv,x,z)
         if(.not.is_boundary) cycle
-!!$        call nodcoord(l, x,z)
 
         call assign_local_pointers(l)
 
         dx = x - xmag
         dz = z - zmag
         r2 = dx**2 + dz**2
-
-!!$        if(((real(psi0_l(1)) - psimin)/(psibound - psimin) .lt. 1.) .and. &
-!!$           (real(psi0_l(2)*dx+psi0_l(3)*dz)*(psibound-psimin) .gt. 0.)) &
-!!$           cycle
 
         ! psi = 0.5*bx0*exp( i*2*theta)*exp(i*ntor*phi)
         !     = 0.5*bx0*(cos(2*theta) + i*sin(2*theta))*exp(i*ntor*phi)
@@ -336,7 +430,7 @@ module tilting_cylinder
 
   implicit none
 
-  real, parameter :: k = 3.8317059702
+  real, parameter, private :: k = 3.8317059702
 
 contains
 
@@ -1175,7 +1269,7 @@ module strauss
 
   implicit none
 
-  real :: alx,alz
+  real, private :: alx,alz
 
 contains
 
@@ -1277,7 +1371,7 @@ end module strauss
 !==============================================================================
 module circular_field
 
-  real :: alx, alz
+  real, private :: alx, alz
 
 contains
 
@@ -1653,21 +1747,21 @@ subroutine eqdsk_init()
 
   if(myrank.eq.0 .and. iprint.eq.1) then
      print *, 'normalized current ', current
-     write(*,1001) nw
- 1001 format(" nw = ",i4)
-
-     write(*,*) "press"
-     write(*,1002) press
- 1002 format(1p5e12.4)
-
-     write(*,*) "pprime"
-     write(*,1002) pprime
-
-     write(*,*) "ffprim"
-     write(*,1002) ffprim
-
-     write(*,*) "fpol"
-     write(*,1002) fpol
+!!$     write(*,1001) nw
+!!$ 1001 format(" nw = ",i4)
+!!$
+!!$     write(*,*) "press"
+!!$     write(*,1002) press
+!!$ 1002 format(1p5e12.4)
+!!$
+!!$     write(*,*) "pprime"
+!!$     write(*,1002) pprime
+!!$
+!!$     write(*,*) "ffprim"
+!!$     write(*,1002) ffprim
+!!$
+!!$     write(*,*) "fpol"
+!!$     write(*,1002) fpol
   end if
 
 

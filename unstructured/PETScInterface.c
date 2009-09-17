@@ -319,8 +319,8 @@ int dump_matrix_(int *matrixId, int *valType, int *whichrow)
    solve1 : replace solve in scorec software
    for all matrices except Id=5,1,6
 */
-#define MAX_S1_LINEAR_SYSTEM 30
-#define SOLVE1_DEBUG 0
+#define MAX_S1_LINEAR_SYSTEM 40
+#define SOLVE1_DEBUG 1
 
 // global container
 KSP_ARRAY s1_ksp_array[MAX_S1_LINEAR_SYSTEM];

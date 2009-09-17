@@ -496,7 +496,9 @@ end subroutine define_triangle_quadrature
 
 
 !=====================================================
-! define_triangle_quadrature
+! define_edge_quadrature
+! ~~~~~~~~~~~~~~~~~~~~~~
+! 
 !=====================================================
 subroutine define_edge_quadrature(itri, ivertex, ngauss, normal, idim)
   use t_data 

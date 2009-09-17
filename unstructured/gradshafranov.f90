@@ -401,7 +401,7 @@ subroutine gradshafranov_solve
   real :: dterm(18,18)
   real :: feedfac, fintl(-6:maxi,-6:maxi)
 
-  real :: x, z, error, error2
+  real :: x, z, error, error2, error3
   real :: sum, g0, sum2
   real :: gamma2a,gamma2b,gamma3a,gamma3b
   
@@ -590,7 +590,7 @@ subroutine gradshafranov_solve
      if(myrank.eq.0 .and. iprint.ge.1) print *, 'calculating funs...'
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      if(constraint .and. igs_method.eq.2) then
-        call fundef2
+        call fundef2(error3)
      else
         call fundef
      end if
@@ -601,6 +601,7 @@ subroutine gradshafranov_solve
 
      ! Calculate error in new solution
      call calculate_error(error,error2,b1vecini)
+     if(constraint .and. igs_method.eq.2) error = error3
 
      if(myrank.eq.0) then
         write(*,'(i5,1p8e13.5)') &
@@ -665,7 +666,7 @@ subroutine gradshafranov_solve
 
   ! Define equilibrium fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining equilibrium fields...'
   if(igs_method.eq.2) then
      ! solve for p and f fields which best approximate gs solution
      b1vecini = 0.
@@ -740,7 +741,12 @@ subroutine gradshafranov_solve
   call deletevec(fun2)
   call deletevec(fun3)
 
-  return
+  ! calculate final error
+  call calculate_gs_error(error)
+  if(myrank.eq.0) print *, 'Final error in GS solution: ', error
+
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'done gradshafranov_solve.'
 
 end subroutine gradshafranov_solve
 
@@ -1066,7 +1072,7 @@ subroutine fundef
 end subroutine fundef
 
 
-subroutine fundef2
+subroutine fundef2(error)
 
   use basic
   use t_data
@@ -1077,8 +1083,12 @@ subroutine fundef2
 
   implicit none
 
-  integer :: i, ione, itri, numelms
-  real :: pso, dpsii
+  include 'mpif.h'
+
+  real, intent(out) :: error
+
+  integer :: i, ione, itri, numelms, ier
+  real :: pso, dpsii, norm, temp1(2), temp2(2)
   vectype, dimension(20) :: avec
       
   logical :: inside_lcfs
@@ -1088,6 +1098,8 @@ subroutine fundef2
   fun2 = 0.
   fun3 = 0.
   fun4 = 0.
+  norm = 0.
+  error = 0.
 
   call numfac(numelms)
 
@@ -1122,11 +1134,27 @@ subroutine fundef2
         fun1(ione) = fun1(ione) + int3(r_79, g79(:,OP_1,i),temp79a)
         fun4(ione) = fun4(ione) + int3(ri_79,g79(:,OP_1,i),temp79b)
      end do
+     
+     temp79c = ps079(:,OP_GS) + r2_79*temp79a + temp79b
+
+     norm = norm + abs(int2(ri_79,ps079(:,OP_GS)))
+     error = error + abs(int2(ri_79,temp79c))
   end do
 
   if(myrank.eq.0 .and. iprint.eq.1) print *, 'solving funs...'
   call solve_newvar(fun1, NV_NOBOUND, mass_matrix_lhs)
   call solve_newvar(fun4, NV_NOBOUND, mass_matrix_lhs)
+
+  if(maxrank.gt.1) then
+     temp1(1) = norm
+     temp1(2) = error
+     call mpi_allreduce(temp1, temp2, 2, MPI_DOUBLE_PRECISION, &
+          MPI_SUM, MPI_COMM_WORLD, ier)
+     norm     = temp2(1)
+     error    = temp2(2)
+  end if
+  if(myrank.eq.0) write(*,'(A,1p2E12.4)') 'Error, norm: ', error, norm
+  error = error / norm
 
 end subroutine fundef2
 
@@ -1454,4 +1482,50 @@ end subroutine fget
 
  end subroutine create_profile
 
+ subroutine calculate_gs_error(error)
+   use basic
+   use nintegrate_mod
+   
+   implicit none
+   
+   include 'mpif.h'
+   
+   real, intent(out) :: error
+   
+   real :: norm, temp1(2), temp2(2)
+   integer :: itri, nelms, def_fields, ier
+   
+   norm = 0.
+   error = 0.
+   
+   def_fields = FIELD_PSI + FIELD_P + FIELD_I
+   
+   call numfac(nelms)
+   do itri=1, nelms
+      call define_triangle_quadrature(itri, int_pts_main)
+      call define_fields(itri, def_fields, 0, 1)
+      
+      temp79a = ps079(:,OP_GS)*(ps079(:,OP_DR)**2 + ps079(:,OP_DZ)**2)
+      temp79b = -r2_79* &
+           (p079(:,OP_DR)*ps079(:,OP_DR) + p079(:,OP_DZ)*ps079(:,OP_DZ))
+      temp79c = -bz079(:,OP_1)* &
+           (bz079(:,OP_DR)*ps079(:,OP_DR) + bz079(:,OP_DZ)*ps079(:,OP_DZ))
+      temp79d = temp79a - (temp79b + temp79c)
+      
+      norm = norm + abs(int2(ri_79,temp79a))
+      error = error + abs(int2(ri_79,temp79d))
+   end do
+   
+   if(maxrank.gt.1) then
+      temp1(1) = norm
+      temp1(2) = error
+      call mpi_allreduce(temp1, temp2, 2, MPI_DOUBLE_PRECISION, &
+           MPI_SUM, MPI_COMM_WORLD, ier)
+      norm     = temp2(1)
+      error    = temp2(2)
+   end if
+   if(myrank.eq.0) write(*,'(A,1p2E12.4)') 'Final error, norm: ', error, norm
+   error = error / norm
+ end subroutine calculate_gs_error
+ 
 end module gradshafranov

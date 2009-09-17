@@ -32,6 +32,8 @@ else
 OPTS := $(OPTS) -DMAX_PTS=79
 endif
 
+OPTS := $(OPTS) -DPETSC_FORTRAN_PETSCTRUTH_INT
+
 export OPTS
 export SCORECOPT
 
@@ -47,13 +49,10 @@ VPATH=$(SRCDIR)
 
 BIN = m3dc1
 
-COMMONDIR = $(SRCDIR)/../common/
-
 READGATO_OBJS = polar.o readgato.o
 READJSOLVER_OBJS = polar.o read_jsolver_exec.o
 
-OBJS = $(COMMONDIR)subp.o $(COMMONDIR)dbesj0.o $(COMMONDIR)dbesj1.o \
-        $(COMMONDIR)fdump.o interpolate.o control.o M3Dmodules.o \
+OBJS = subp.o dbesj0.o dbesj1.o fdump.o interpolate.o control.o M3Dmodules.o \
 	nintegrate_mod.o metricterms_new.o newvar.o diagnostics.o \
 	coils.o gradshafranov.o transport.o hdf5_output.o time_step.o \
 	newpar.o fin.o ludef_t.o boundary.o mesh.o \
