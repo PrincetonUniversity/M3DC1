@@ -72,4 +72,10 @@ make_polar : make_polar.c
 readgato :  $(READGATO_OBJS)
 	$(F90) $(READGATO_OBJS) -L$(NTCCHOME)/lib -lpspline -o $@
 
+read_jsolver : $(READJSOLVER_OBJS)
+	$(F90) $(READJSOLVER_OBJS) -L$(NTCCHOME)/lib -lpspline -o $@
+
+read_jsolver_exec.o : read_jsolver.f90
+	$(F90) $(F90OPTS) -DREAD_JSOLVER $< -o $@
+
 endif

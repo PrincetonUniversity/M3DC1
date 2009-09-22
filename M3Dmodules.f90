@@ -44,7 +44,7 @@ module basic
   real :: etar, eta0  ! iresfunc=0:  resistivity = etar + eta0/T^(3/2)
   real :: etaoff, etadelt !iresfunc=1: = etar + .5 eta0 (1+tanh(psi-psilim(1+etaoff*DP)/etadelt*DP))
   !                                                      DP = psilim - psimin
-  real :: amuoff, amudelt
+  real :: amuoff, amudelt, amuoff2, amudelt2
   real :: kappaoff, kappadelt
   real :: lambdae     ! multiplier of electron mass term in psi equation
   real :: kappat      ! isotropic temperature conductivity
@@ -256,6 +256,7 @@ module basic
        p0,pi0,bzero,vzero,phizero,                             &
        etar,eta0,iresfunc,etaoff,etadelt,lambdae,mass_ratio,   &
        ivisfunc,amu,amuc,amupar,amue,amuoff,amudelt,denm,      &
+       amuoff2, amudelt2,                                      &
        ikappafunc,kappat,kappa0,kappaoff,kappadelt,            &
        kappar,kappax,kappah,                                   &
        hyper,hyperi,hyperv,hyperc,hyperp,deex,                 &

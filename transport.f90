@@ -145,6 +145,11 @@ vectype function viscosity_func(i)
         temp79b = (ps079(:,OP_1)-psimin)/(psibound-psimin)
         temp79a = amu_edge*.5* &
              (1. + tanh((real(temp79b) - amuoff)/amudelt))
+        if(amuoff2.ne.0. .and. amudelt2.ne.0.) then
+           temp79a = temp79a + amu_edge*.5* &
+                (1. + tanh((real(temp79b) - amuoff2)/amudelt2))
+           temp79a = temp79a / 2.
+        endif
      case(3)
         temp79a = vis79(:,OP_1) - amu
      end select
@@ -385,7 +390,7 @@ subroutine mask(x,z,factor)
   real :: x_left, x_right, z_bottom, z_top
   factor = 1.
 
-  if(nonrect) return
+  if(nonrect.eq.1) return
 
   call getboundingboxsize(alx, alz)
   call getmincoord(xmin, zmin)
