@@ -162,6 +162,8 @@
       ivisfunc = 0
       amuoff = 0.
       amudelt = 0.
+      amuoff2 = 0.
+      amudelt2 = 0.
       ikappafunc = 0
       kappaoff = 0.
       kappadelt = 0.
