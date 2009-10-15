@@ -8788,10 +8788,12 @@ real function energy_mp()
           +int3(ri2_79,ps179(:,OP_DR),CONJUGATE(ps179(:,OP_DR))))
 #ifdef USECOMPLEX
      temp = temp + .5* &
-          (int3(ri_79,ps179(:,OP_DZ),CONJUGATE(bf79(:,OP_DRP))) &
-          -int3(ri_79,ps179(:,OP_DR),CONJUGATE(bf79(:,OP_DZP))) &
-          +int3(ri_79,CONJUGATE(ps179(:,OP_DZ)),bf79(:,OP_DRP)) &
-          -int3(ri_79,CONJUGATE(ps179(:,OP_DR)),bf79(:,OP_DZP)))
+          (int2(bf179(:,OP_DZP),CONJUGATE(bf179(:,OP_DZP))) &
+          +int2(bf179(:,OP_DRP),CONJUGATE(bf179(:,OP_DRP))) &
+          +int3(ri_79,ps179(:,OP_DZ),CONJUGATE(bf179(:,OP_DRP))) &
+          -int3(ri_79,ps179(:,OP_DR),CONJUGATE(bf179(:,OP_DZP))) &
+          +int3(ri_79,CONJUGATE(ps179(:,OP_DZ)),bf179(:,OP_DRP)) &
+          -int3(ri_79,CONJUGATE(ps179(:,OP_DR)),bf179(:,OP_DZP)))
 #endif
   else
      temp = .5* &
@@ -8799,10 +8801,12 @@ real function energy_mp()
           +int3(ri2_79,pst79(:,OP_DR),CONJUGATE(pst79(:,OP_DR))))
 #ifdef USECOMPLEX
      temp = temp + .5* &
-          (int3(ri_79,pst79(:,OP_DZ),CONJUGATE(bf79(:,OP_DRP))) &
-          -int3(ri_79,pst79(:,OP_DR),CONJUGATE(bf79(:,OP_DZP))) &
-          +int3(ri_79,CONJUGATE(pst79(:,OP_DZ)),bf79(:,OP_DRP)) &
-          -int3(ri_79,CONJUGATE(pst79(:,OP_DR)),bf79(:,OP_DZP)))
+          (int2(bft79(:,OP_DZP),CONJUGATE(bft79(:,OP_DZP))) &
+          +int2(bft79(:,OP_DRP),CONJUGATE(bft79(:,OP_DRP))) &
+          +int3(ri_79,pst79(:,OP_DZ),CONJUGATE(bft79(:,OP_DRP))) &
+          -int3(ri_79,pst79(:,OP_DR),CONJUGATE(bft79(:,OP_DRP))) &
+          +int3(ri_79,CONJUGATE(pst79(:,OP_DZ)),bft79(:,OP_DRP)) &
+          -int3(ri_79,CONJUGATE(pst79(:,OP_DR)),bft79(:,OP_DZP)))
 #endif
   endif
 

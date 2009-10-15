@@ -182,10 +182,17 @@ subroutine cubic_interpolation(m, p, p0, f, f0)
      if(p(i+1).gt.p0) goto 100
   end do
 
-100 call cubic_interpolation_coeffs(f,m,i,a)
+100 continue
+  if(i .lt. 1) i = 1
+  if(i .gt. m) i = m
 
-  dp = (p0-p(i))/(p(i+1)-p(i))
+  call cubic_interpolation_coeffs(f,m,i,a)
 
-  f0 = a(1) + a(2)*dp + a(3)*dp**2 + a(4)*dp**3
+  if(i.ge.m) then
+     f0 = a(1)
+  else
+     dp = (p0-p(i))/(p(i+1)-p(i))
+     f0 = a(1) + a(2)*dp + a(3)*dp**2 + a(4)*dp**3
+  endif
   
 end subroutine cubic_interpolation

@@ -94,6 +94,9 @@
 !.....form of toroidal velocity
       ivform = 0
 !
+!.....flip handedness
+      iflip = 0
+!
 !.....form of toroidal field equation
       ibform = -1
 !
@@ -268,7 +271,7 @@
       libetap = 1.2
 !
 !..... toroidal current controller parameters
-      tcur = tcuro
+      tcur = 0.
       control_p = 0.
       control_i = 0.
       control_d = 0.
@@ -393,7 +396,7 @@
       ! Validate input
       ! ~~~~~~~~~~~~~~
 
-      if(ntor.ne.0 .and. icomplex.eq.1) then
+      if(icomplex.eq.1) then
          i3d = 1
       else 
          i3d = 0
@@ -462,6 +465,11 @@
          thimp_ohm = 1.
       endif
       
+      if(iflip.eq.1) then
+         vloop = -vloop
+         tcur = -tcur
+      endif
+
       if(ntimepr.lt.1) ntimepr = 1
 
       ! Read PETSc options

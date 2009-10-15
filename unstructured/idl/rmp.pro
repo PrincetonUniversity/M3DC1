@@ -1,37 +1,89 @@
-pro plot_br, _EXTRA=extra, plotq=plotq, b=b, usepsi=usepsi
+pro plot_br, _EXTRA=extra, plotq=plotq, bins=bins, usepsi=usepsi, $
+             subtract_vacuum=subtract_vacuum, vacuum=vacuum, ntor=ntor, $
+             plotbn=plotbn
+
+   if(n_elements(ntor) eq 0) then begin
+       ntor = read_parameter('ntor', _EXTRA=extra)
+   endif
+   print, 'ntor = ', ntor
+
+   ; convert result to Tesla / radian
+   get_normalizations, b0=b0, n0=n0, l0=l0, _EXTRA=extra
+   if(b0 eq 0.) then b0 = 1.e4
+   if(l0 eq 0.) then l0 = 100.
+   print, 'normalizations: b0, l0 = ', b0, l0
 
    psi0 = read_field('psi',x,z,t,slice=-1,_EXTRA=extra)
-   psi1r = read_field('psi',x,z,t,/last,/linear,_EXTRA=extra)
-   psi1i = read_field('psi_i',x,z,t,/last,/linear,_EXTRA=extra)
 
-   bp = sqrt(s_bracket(psi1r,psi1r,x,z) + s_bracket(psi1i,psi1i,x,z)) $
-     / radius_matrix(x,z,t)
-   br_r = a_bracket(psi0,psi1r,x,z) $
-     / (sqrt(s_bracket(psi0,psi0,x,z))*radius_matrix(x,z,t))
-   br_i = a_bracket(psi0,psi1i,x,z) $
-     / (sqrt(s_bracket(psi0,psi0,x,z))*radius_matrix(x,z,t))
-
-   if(keyword_set(plotq)) then begin
-       q = flux_average('q',psi=psi,x=x,z=z,t=t,flux=flux2,slice=-1, $
-                        nflux=nflux2, _EXTRA=extra)
-   end
-
-   ; shift frequency values so that most negative frequency comes first
-   if(keyword_set(usepsi)) then begin
-       a_r = flux_coord_field(psi1r,psi0,x,z,t,flux=flux,angle=angle, $
-                              area=area,nflux=nflux,_EXTRA=extra)
-       a_i = flux_coord_field(psi1i,psi0,x,z,t,flux=flux,angle=angle, $
-                              area=area, nflux=nflux,_EXTRA=extra)
+   If(keyword_set(vacuum)) then begin
+       vacuum_field,psi1r,x,z,ntor
+;       vacuum_field,psi1r2,x,z,-ntor
+;       psi1r = (psi1r + psi1r2)/2.
+       psi1i = psi1r*0.
    endif else begin
-       a_r = flux_coord_field(br_r,psi0,x,z,t,flux=flux,angle=angle, $
-                              area=area,nflux=nflux,_EXTRA=extra)
-       a_i = flux_coord_field(br_i,psi0,x,z,t,flux=flux,angle=angle, $
-                              area=area,nflux=nflux,_EXTRA=extra)
+       bx = read_field('bx',x,z,t,/last,/linear,_EXTRA=extra, /complex)
+       by = read_field('by',x,z,t,/last,/linear,_EXTRA=extra, /complex)
+       i0 = read_field('i',x,z,t,slice=-1,_EXTRA=extra)
    endelse
 
+   if(keyword_set(subtract_vacuum)) then begin
+       bx0 = read_field('bx',x,z,t,slice=0,/linear,_EXTRA=extra)
+       by0 = read_field('by',x,z,t,slice=0,/linear,_EXTRA=extra)
+       bx = bx - bx0
+       by = by - by0
+   endif
+
+   r = radius_matrix(x,z,t)
+   y = z_matrix(x,z,t)
+
+   bt = sqrt(s_bracket(psi0,psi0,x,z))/r
+
+   br = -(bx*s_bracket(psi0,r,x,z) + by*s_bracket(psi0,y,x,z)) / (r*bt)
+
+   br_r = real_part(br)
+   br_i = imaginary(br)
+
+   if(keyword_set(usepsi)) then begin
+       a_r = flux_coord_field(psi1r,psi0,x,z,t,flux=flux,angle=angle,q=q, $
+                              area=area,nflux=nflux,tbins=bins,fbins=bins, $
+                              _EXTRA=extra)
+       a_i = flux_coord_field(psi1i,psi0,x,z,t,flux=flux,angle=angle,q=q, $
+                              area=area, nflux=nflux,tbins=bins,fbins=bins, $
+                              _EXTRA=extra)
+   endif else begin
+       if(keyword_set(plotbn)) then begin
+           jac = 1.
+           pest = 0
+       endif else begin
+           jac = r^3*bt/i0
+           pest = 1
+       endelse
+       a_r = flux_coord_field(br_r*jac,psi0,x,z,t,flux=flux,angle=angle,q=q, $
+                              area=area,nflux=nflux,tbins=bins,fbins=bins, $
+                              pest=pest, _EXTRA=extra)
+       a_i = flux_coord_field(br_i*jac,psi0,x,z,t,flux=flux,angle=angle, q=q,$
+                              area=area,nflux=nflux,tbins=bins,fbins=bins, $
+                              pest=pest, _EXTRA=extra)
+
+
+       if(keyword_set(plotbn)) then begin
+           dum = min(sqrt(nflux)-.97817, i, /abs)
+           print, 'Psi, q = ', nflux[i], q[0,i]
+           plot, angle, a_r[0,i,*], _EXTRA=extra
+           return
+       endif
+
+       ; ignore flux surfaces where q > 10
+       q = q*(q lt 10.)
+
+       for i=0, n_elements(angle)-1 do begin
+           a_r[0,*,i] = a_r[0,*,i]*q/area
+           a_i[0,*,i] = a_i[0,*,i]*q/area
+       end
+   endelse
    a = complex(a_r, a_i)
    b = transpose(a,[0,2,1])
-   c = fft(b, -1, dimension=2)
+   c = sqrt(2.*!pi)*fft(b, -1, dimension=2)
 
    ; shift frequency values so that most negative frequency comes first
    n = n_elements(angle)
@@ -52,22 +104,16 @@ pro plot_br, _EXTRA=extra, plotq=plotq, b=b, usepsi=usepsi
    xtitle='!6m!X'
    ytitle='!9r!7W!X'
 
-   ; convert result to Tesla / radian
-   get_normalizations, b0=b0, n0=n0, l0=l0, _EXTRA=extra
-   if(b0 eq 0.) then b0 = 1.e4
-
-   b0 = b0/1.e4
-
-   print, 'b0 = ', b0
-
-   contour_and_legend, abs(d)*b0, m, sqrt(nflux),  $
+   contour_and_legend, abs(d), m, sqrt(nflux),  $
      table=39, xtitle=xtitle, ytitle=ytitle, $
-     xrange=[-15,15], yrange=[0,1], _EXTRA=extra
+     xrange=[-15,15], yrange=[0,1], /lines, $
+     ccolor=!d.table_size-1, label='!8B!Dn!N!6 (!8T!6)!X', $
+     _EXTRA=extra
 
    if(keyword_set(plotq)) then begin
        ntor = 3
-       oplot, ntor*q, sqrt(nflux2), linestyle=2, color=!d.table_size-1
-       oplot, -ntor*q, sqrt(nflux2), linestyle=2, color=!d.table_size-1
+       oplot, ntor*q, sqrt(nflux), linestyle=2, color=!d.table_size-1
+       oplot, -ntor*q, sqrt(nflux), linestyle=2, color=!d.table_size-1
    endif
 end
 

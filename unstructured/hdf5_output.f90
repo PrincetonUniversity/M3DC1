@@ -734,12 +734,14 @@ subroutine output_fields(time_group_id, equilibrium, error)
   integer(HID_T) :: group_id
   integer :: i, nelms, nfields
   vectype, allocatable :: dum(:,:)
-  vectype, pointer :: f_ptr(:)
+  vectype, pointer :: f_ptr(:), bf_ptr(:)
 
   if(equilibrium.eq.1) then
      f_ptr => field0
+     if(ifout) bf_ptr => bf0
   else
      f_ptr => field
+     if(ifout) bf_ptr => bf
   endif
 
   nfields = 0
@@ -825,7 +827,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   ! BF
   if(ifout.eq.1) then
      do i=1, nelms
-        call calcavector(i, bf, 1, 1, dum(:,i))
+        call calcavector(i, bf_ptr, 1, 1, dum(:,i))
      end do
      call output_field(group_id, "f", real(dum), 20, nelms, error)
      nfields = nfields + 1

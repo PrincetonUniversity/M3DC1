@@ -255,11 +255,11 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      endif   !  on numvar .ne. 1
 
      if(i3d.eq.1) then
-        temp = v1psif(trial,lin,bf79)
+        temp = v1psif(trial,lin,bft79)
         ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
 
-        temp = v1bf(trial,lin,bf79)
+        temp = v1bf(trial,lin,bft79)
         ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
         ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
 
@@ -593,11 +593,11 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   endif
 
   if(i3d.eq.1) then
-     temp = v2psif(trial,lin,bf79)
+     temp = v2psif(trial,lin,bft79)
      ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
      ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
 
-     temp = v2bf(trial,lin,bf79)
+     temp = v2bf(trial,lin,bft79)
      ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
 
@@ -1014,11 +1014,11 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
 
   ! 3D terms
   if(i3d.eq.1) then
-     temp = v3psif(trial,lin,bf79)
+     temp = v3psif(trial,lin,bft79)
      ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
      ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
 
-     temp = v3bf(trial,lin,bf79)
+     temp = v3bf(trial,lin,bft79)
      ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
 
@@ -1197,11 +1197,11 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   end if
 
   if(i3d.eq.1 .and. numvar.ge.2) then
-     temp = b1psifd(trial,lin,bf79,ni79)*dbf
+     temp = b1psifd(trial,lin,bft79,ni79)*dbf
      ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
      ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
 
-     temp = b1bfd(trial,lin,bf79,ni79)*dbf
+     temp = b1bfd(trial,lin,bft79,ni79)*dbf
      ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
 
@@ -1401,15 +1401,15 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   endif
 
   if(i3d.eq.1) then
-     temp = b2fv(trial,bf79,lin)
+     temp = b2fv(trial,bft79,lin)
      ssterm(vz_g) = ssterm(vz_g) - thimpb*dt*temp
      ddterm(vz_g) = ddterm(vz_g) - thimpb*dt*temp*bdf
 
-     temp = b2psifd(trial,lin,bf79,ni79)*dbf
+     temp = b2psifd(trial,lin,bft79,ni79)*dbf
      ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
      ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
 
-     temp = b2bfd(trial,lin,bf79,ni79)*dbf
+     temp = b2bfd(trial,lin,bft79,ni79)*dbf
      ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
 
@@ -1665,7 +1665,7 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
 
 
   if(i3d.eq.1) then
-     temp = b3pefd(trial,lin,bf79,ni79)*dbf*pefac
+     temp = b3pefd(trial,lin,bft79,ni79)*dbf*pefac
      ssterm(pe_g) = ssterm(pe_g) -     thimp     *dt*temp
      ddterm(pe_g) = ddterm(pe_g) + (1.-thimp*bdf)*dt*temp
 
@@ -2290,7 +2290,7 @@ subroutine ludefphi_n(itri)
   vectype, dimension(num_fields) :: q_ni, q_bf
   vectype :: temp
 
-  integer :: bb1, bb0, bv1, bv0, bf0, bni
+  integer :: bb1, bb0, bv1, bv0, bbf, bni
   vectype, pointer :: bsource(:)
 
   if(isplitstep.eq.1) then
@@ -2298,7 +2298,7 @@ subroutine ludefphi_n(itri)
      bb0 = d2matrix_sm
      bv1 = r2matrix_sm
      bv0 = q2matrix_sm
-     bf0 = o2matrix_sm
+     bbf = o2matrix_sm
      bni = q42matrix_sm
      bsource => q4
   else
@@ -2306,7 +2306,7 @@ subroutine ludefphi_n(itri)
      bb0 = d1matrix_sm
      bv1 = s1matrix_sm
      bv0 = d1matrix_sm
-     bf0 = o1matrix_sm
+     bbf = o1matrix_sm
      bni = q42matrix_sm
      bsource => q4
   endif
@@ -2351,7 +2351,7 @@ subroutine ludefphi_n(itri)
         call insval(bv1,ss(psi_g,  u_g),icomplex,iv+psi_off,jv+  u_off,1)
         call insval(bv0,dd(psi_g,  u_g),icomplex,iv+psi_off,jv+  u_off,1)
         if(i3d.eq.1) then
-           call insval(bf0,q_bf(psi_g),icomplex,ip+psi_off,jp+bf_off,1)
+           call insval(bbf,q_bf(psi_g),icomplex,ip+psi_off,jp+bf_off,1)
         endif
         if(numvar.ge.2) then
            call insval(bb1,ss(psi_g, bz_g),icomplex,ip+psi_off,jp+ bz_off,1)
@@ -2367,7 +2367,7 @@ subroutine ludefphi_n(itri)
            call insval(bv0,dd( bz_g,  u_g),icomplex,iv+ bz_off,jv+  u_off,1)
            call insval(bv0,dd( bz_g, vz_g),icomplex,iv+ bz_off,jv+ vz_off,1)
            if(i3d.eq.1) then
-              call insval(bf0,q_bf(bz_g),icomplex,ip+bz_off,jp+bf_off,1)
+              call insval(bbf,q_bf(bz_g),icomplex,ip+bz_off,jp+bf_off,1)
            endif
         endif
         if(numvar .eq. 3) then        
@@ -2392,7 +2392,7 @@ subroutine ludefphi_n(itri)
            call insval(bv0,dd( pe_g,  u_g),icomplex,iv+ pe_off,jv+  u_off,1)
            call insval(bv0,dd( pe_g, vz_g),icomplex,iv+ pe_off,jv+ vz_off,1)
            if(i3d.eq.1) then
-              call insval(bf0,q_bf(pe_g),icomplex,ip+pe_off,jp+bf_off,1)
+              call insval(bbf,q_bf(pe_g),icomplex,ip+pe_off,jp+bf_off,1)
            endif
            if(idens.eq.1 .and. eqsubtract.eq.1) then
               call insval(bni,q_ni(psi_g),icomplex,ip+psi_off,jp,1)

@@ -338,31 +338,31 @@ subroutine define_transport_coefficients()
 
   if(solve_resistivity) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  resistivity'
-     call solve_newvar(resistivity, NV_NOBOUND, mass_matrix_lhs)
+     call solve_newvar(resistivity, NV_NOBOUND, mass_matrix_lhs, resistivity)
   end if
 
   if(solve_kappa) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  kappa'
-     call solve_newvar(kappa, NV_NOBOUND, mass_matrix_lhs)
+     call solve_newvar(kappa, NV_NOBOUND, mass_matrix_lhs, kappa)
   endif
 
   if(solve_sigma) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  sigma'
-     call solve_newvar(sigma, NV_NOBOUND, mass_matrix_lhs)
+     call solve_newvar(sigma, NV_NOBOUND, mass_matrix_lhs, sigma)
   endif
 
   if(solve_visc) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  viscosity'
-     call solve_newvar(visc, NV_NOBOUND, mass_matrix_lhs)
+     call solve_newvar(visc, NV_NOBOUND, mass_matrix_lhs, visc)
   endif
 
   if(solve_visc_e) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  electron viscosity'
-     call solve_newvar(visc_e, NV_NOBOUND, mass_matrix_lhs)
+     call solve_newvar(visc_e, NV_NOBOUND, mass_matrix_lhs, visc_e)
   endif
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, '  size field'
-  call solve_newvar(tempvar, NV_NOBOUND, mass_matrix_lhs)
+  call solve_newvar(tempvar, NV_NOBOUND, mass_matrix_lhs, tempvar)
 
   visc_c = visc
 

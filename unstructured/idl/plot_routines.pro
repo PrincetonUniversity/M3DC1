@@ -24,38 +24,6 @@ pro ct1
     tvlct, r, g, b
 end
 
-;pro ct2
-;    x = indgen(42)
-;     r = bytarr(256)
-;     g = bytarr(256)
-;     b = bytarr(256)
-
-;     b[0] = 255
-;     b[1:42] = 255
-;     b[43:84] = 255
-;     b[85:126] = bytscl(-x)
-;     b[211:252] = bytscl(x)
-
-;     r[0] = 255
-;     r[1:42] = bytscl(-x)
-;     r[127:168] = bytscl(x)
-;     r[169:252] = 255
-
-;     g[0] = 255
-;     g[1:42] = 255
-;     g[43:84] = bytscl(-x)
-;     g[85:126] = 0.
-;     g[127:168] = 0.
-;     g[169:210] = bytscl(x)
-;     g[211:252] = 255
-
-;     r[253:255] = [255, 255, 255]
-;     g[253:255] = [255, 255, 255]
-;     b[253:255] = [255, 255, 255]
-
-;     tvlct, r, g, b
-; end
-
 
 pro ct2
     x = indgen(64)
@@ -278,9 +246,10 @@ end
 
 pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
                                isotropic=iso, lines=lines, range=range, $
-                               table=ct, zlog=zlog, csym=csym, $ 
+                               table=ct, zlog=zlog, csym=csym, $
                                nofill=nofill, noautoct=noautoct, $
-                               nolegend=nolegend, color=color, _EXTRA = ex
+                               nolegend=nolegend, color=color, $
+                               clevels=clevels, ccolor=ccolor, _EXTRA = ex
 
     zed = reform(z)
    
@@ -289,11 +258,12 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     endif
     if(keyword_set(nofill)) then fill=0 else fill=1
 
-    if n_elements(lines) eq 0 then lines = 0
+    if keyword_set(lines) then begin
+        if(n_elements(clevels) eq 0) then clevels = 10
+    endif else lines = 0
 
-    if n_elements(nlevels) eq 0 then begin
-        if lines eq 0 then nlevels=100 else nlevels=10
-    endif
+    if n_elements(nlevels) eq 0 then nlevels=100
+
 
     if n_elements(x) eq 0 then x = findgen(n_elements(zed[*,0]))
     if n_elements(y) eq 0 then y = findgen(n_elements(zed[0,*]))
@@ -424,9 +394,17 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
       isotropic=iso, charsize=charsize, color=color
 
     if(keyword_set(lines)) then begin
-        contour, zed, x, y, /overplot, levels=levels, nlevels=nlevels, $
+        if(keyword_set(zlog)) then begin
+            levels = 10^(alog10(maxval/minval)* $
+                         findgen(clevels+1)/(float(clevels)) + alog10(minval))
+        endif else begin
+            levels = (maxval-minval)*findgen(clevels+1)/(float(clevels)) $
+              + minval
+        endelse
+
+        contour, zed, x, y, /overplot, levels=levels, nlevels=clevels, $
           xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, $
-          _EXTRA=ex, charsize=charsize
+          _EXTRA=ex, charsize=charsize, color=ccolor
     endif
     ;***
 

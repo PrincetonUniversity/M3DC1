@@ -103,6 +103,7 @@ Program Reducedquintic
   if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
      call create_matrix(mass_matrix_rhs_nm, NV_NMBOUND, NV_I_MATRIX,  NV_RHS)
      call create_matrix(bf_matrix_lhs_nm,   NV_NMBOUND, NV_BF_MATRIX, NV_LHS)
+     call create_matrix(bf_matrix_rhs,      NV_NOBOUND, NV_BF_MATRIX, NV_RHS)
   endif
   if(jadv.eq.1 .and. hyper.ne.0.) then
      call create_matrix(s10matrix_sm, NV_SJBOUND, NV_SJ_MATRIX, NV_LHS)
@@ -144,9 +145,7 @@ Program Reducedquintic
      endif
 
      ! correct for left-handed coordinates
-     if(myrank.eq.0 .and. iprint.ge.1) &
-          print *, "adjusting fields for left-handed coordinates"
-     call flip_handedness
+     if(iflip.eq.1) call flip_handedness
 
      ! combine the equilibrium and perturbed fields of linear=0
      ! unless eqsubtract = 1
@@ -186,10 +185,7 @@ Program Reducedquintic
         fieldi = field0
      endif
 
-     ! correct for left-handed coordinates
-     if(myrank.eq.0 .and. iprint.ge.1) &
-          print *, "adjusting fields for left-handed coordinates"
-     call flip_handedness
+     if(iflip.eq.1) call flip_handedness
 
      ! combine the equilibrium and perturbed fields of linear=0
      ! unless eqsubtract = 1
@@ -205,9 +201,7 @@ Program Reducedquintic
         velold = vel
         if(idens.eq.1) denold = den
         if(ipres.eq.1) presold = pres
-     endif
-
-     
+     endif  
   end select                     !  end of the branch on restart/no restart
 
   ntime0 = ntime
@@ -232,9 +226,9 @@ Program Reducedquintic
      call hdf5_write_parameters(ier)
 
      if(eqsubtract.eq.1) then
-        temp = -bzero*rzero
+        temp = bzero*rzero
         call scalar_operation(field0,bz_g,num_fields,OP_PLUS, -temp)
-        call derived_quantities(field0)
+        call derived_quantities(field0, bf0)
         call scalar_operation(field0,bz_g,num_fields,OP_PLUS,  temp)
      end if
 
@@ -242,10 +236,9 @@ Program Reducedquintic
      if(eqsubtract.eq.1) call hdf5_write_time_slice(1,ier)
   end if
 
-
   ! Calculate all quantities derived from basic fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  call derived_quantities(field)
+  call derived_quantities(field, bf)
 
 
   ! Adapt the mesh
@@ -540,26 +533,26 @@ subroutine smooth_velocity(vec)
 
   ! smooth vorticity
   call newvar1(mass_matrix_lhs_dc,vor,vec,u_i,vecsize_vel, &
-       gs_matrix_rhs_dc,NV_DCBOUND)
+       gs_matrix_rhs_dc,NV_DCBOUND,vor)
 
   temp = 0.
   call copyvec(vor,1,1,temp,2,2)
-  call newvar(s5matrix_sm,temp,d5matrix_sm,temp,NV_SVBOUND)
+  call newvar(s5matrix_sm,temp,d5matrix_sm,temp,NV_SVBOUND,temp)
   call copyvec(temp,2,2,vec,u_i,vecsize_vel)
   
   ! smooth compression
   if(numvar.ge.3) then
      if(com_bc.eq.0) then
         call newvar1(mass_matrix_lhs   ,com,vec,chi_i,vecsize_vel, &
-             lp_matrix_rhs,   NV_NOBOUND)
+             lp_matrix_rhs,   NV_NOBOUND,com)
      else
         call newvar1(mass_matrix_lhs_dc,com,vec,chi_i,vecsize_vel, &
-             lp_matrix_rhs_dc,NV_DCBOUND)
+             lp_matrix_rhs_dc,NV_DCBOUND,com)
      endif
 
      temp = 0.
      call copyvec(com,1,1,temp,2,2)
-     call newvar(s7matrix_sm,temp,d7matrix_sm,temp,NV_SCBOUND)
+     call newvar(s7matrix_sm,temp,d7matrix_sm,temp,NV_SCBOUND,temp)
      call copyvec(temp,2,2,vec,chi_i,vecsize_vel)
   endif
 
@@ -597,12 +590,12 @@ subroutine smooth_fields(vec)
 
   ! smooth current density
   call newvar1(mass_matrix_lhs_dc,jphi,vec,psi_i,vecsize_phi, &
-       gs_matrix_rhs_dc,NV_DCBOUND)
+       gs_matrix_rhs_dc,NV_DCBOUND,jphi)
 
   call createvec(temp,2)
   temp = 0.
   call copyvec(jphi,1,1,temp,2,2)
-  call newvar(s10matrix_sm,temp,d10matrix_sm,temp,NV_SJBOUND)
+  call newvar(s10matrix_sm,temp,d10matrix_sm,temp,NV_SJBOUND,temp)
   call copyvec(temp,2,2,vec,psi_i,vecsize_phi)
   call deletevec(temp)
 
@@ -620,7 +613,7 @@ end subroutine smooth_fields
 ! calculates all derived quantities, including auxiliary fields
 ! and scalars
 ! ======================================================================
-subroutine derived_quantities(vec)
+subroutine derived_quantities(vec, bfv)
   use basic
   use arrays
   use newvar_mod
@@ -630,7 +623,11 @@ subroutine derived_quantities(vec)
   implicit none
 
   real :: tstart, tend
+  integer :: ndofs
   vectype, dimension(*), intent(in) :: vec
+  vectype, dimension(*), intent(inout) :: bfv
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Calculating derived fields..."
 
   ! Find lcfs
   ! ~~~~~~~~~
@@ -653,23 +650,23 @@ subroutine derived_quantities(vec)
   !   toroidal current
   if(myrank.eq.0 .and. iprint.ge.1) print *, "-Toroidal current"
   call newvar1(mass_matrix_lhs_dc,jphi,vec,psi_g,num_fields, &
-       gs_matrix_rhs_dc,NV_DCBOUND)
+       gs_matrix_rhs_dc,NV_DCBOUND,jphi)
 
   if(hyperc.ne.0.) then
      !   vorticity
      if(myrank.eq.0 .and. iprint.ge.1) print *, "-Vorticity"
      call newvar1(mass_matrix_lhs_dc,vor,vec,u_g,num_fields, &
-          gs_matrix_rhs_dc,NV_DCBOUND)
+          gs_matrix_rhs_dc,NV_DCBOUND,vor)
 
      !   compression
      if(numvar.ge.3) then
         if(myrank.eq.0 .and. iprint.ge.1) print *, "-Compression"
         if(com_bc.eq.1) then
            call newvar1(mass_matrix_lhs_dc,com,vec,chi_g,num_fields, &
-                lp_matrix_rhs_dc,NV_DCBOUND)
+                lp_matrix_rhs_dc,NV_DCBOUND,com)
         else
            call newvar1(mass_matrix_lhs,   com,vec,chi_g,num_fields, &
-                lp_matrix_rhs,   NV_NOBOUND)
+                lp_matrix_rhs,   NV_NOBOUND,com)
         endif
      else
         com = 0.
@@ -679,8 +676,10 @@ subroutine derived_quantities(vec)
   ! vector potential stream function
   if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, "-f"
-     call newvar1(bf_matrix_lhs_nm,bf,vec,bz_g,num_fields, &
-          mass_matrix_rhs_nm,NV_NMBOUND)
+     call numdofs(1, ndofs)
+     bfi = bfv(1:ndofs)
+     call newvar1(bf_matrix_lhs_nm,bfv,vec,bz_g,num_fields, &
+          mass_matrix_rhs_nm,NV_NMBOUND,bfi)
   endif
 
   if(myrank.eq.0 .and. itimer.eq.1) then

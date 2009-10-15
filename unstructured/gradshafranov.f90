@@ -201,7 +201,7 @@ subroutine gradshafranov_init()
   if(myrank.eq.0 .and. itimer.eq.1) then 
      call second(tend)
      t_gs = tend - tstart
-  endif  
+  endif
 
   call gradshafranov_per()
 end subroutine gradshafranov_init
@@ -355,7 +355,7 @@ subroutine vacuum_field()
 
   ! Field due to coil currents
   call field_from_coils(xc,zc,ic,numcoils,field0,num_fields,psi_g,ipole)
-  
+ 
   ! Field due to extra divertor currents
   if(divertors.ge.1) then
      xc(1:2) = xdiv
@@ -691,8 +691,8 @@ subroutine gradshafranov_solve
            b2vecini(i1) = b2vecini(i1) + int2(g79(:,OP_1,i),temp79b)
         end do
      end do
-     call solve_newvar(b1vecini,NV_NOBOUND,mass_matrix_lhs)
-     call solve_newvar(b2vecini,NV_NOBOUND,mass_matrix_lhs)
+     call solve_newvar(b1vecini,NV_NOBOUND,mass_matrix_lhs,b1vecini)
+     call solve_newvar(b2vecini,NV_NOBOUND,mass_matrix_lhs,b2vecini)
      
      call copyvec(b1vecini, 1, 1, field0, p_g, num_fields)
      call copyvec(b2vecini, 1, 1, field0, bz_g, num_fields)
@@ -908,7 +908,7 @@ subroutine calculate_gamma(g2, g3, g4)
   
   g2 =  -xmag**2*p0*p1 - 2.*abs(g0)/(xmag*q0*abs(dpsii))
   g3 = -4.*(abs(g0)/xmag)*djdpsi/dpsii - xmag**2*p0*p2
-  g4 = -(tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
+  g4 = -(-tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
 end subroutine calculate_gamma
 
 
@@ -949,7 +949,7 @@ subroutine deltafun(x,z,val,dum,iplace,isize)
            do k=1,20
               sum = sum + gtri(k,i,itri)*si**mi(k)*eta**ni(k)
            enddo
-           dum(index) = dum(index) + sum*val
+           dum(index) = dum(index) - sum*val
         enddo
      end do
   end if
@@ -1142,8 +1142,8 @@ subroutine fundef2(error)
   end do
 
   if(myrank.eq.0 .and. iprint.eq.1) print *, 'solving funs...'
-  call solve_newvar(fun1, NV_NOBOUND, mass_matrix_lhs)
-  call solve_newvar(fun4, NV_NOBOUND, mass_matrix_lhs)
+  call solve_newvar(fun1, NV_NOBOUND, mass_matrix_lhs, fun1)
+  call solve_newvar(fun4, NV_NOBOUND, mass_matrix_lhs, fun4)
 
   if(maxrank.gt.1) then
      temp1(1) = norm
@@ -1186,7 +1186,7 @@ subroutine calc_toroidal_field(psi0,tf,x,z)
      call constant_field(tf,g0)
   else
      psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
-     psii(2:5) = real(psi0(2:5))/(psilim - psimin)
+     psii(2:6) = real(psi0(2:6))/(psilim - psimin)
 
      if(.not.constraint) then
         g2(1) = psii(1) - 10.*psii(1)**3 + 20.*psii(1)**4       &
@@ -1280,7 +1280,7 @@ subroutine calc_pressure(psi0,pres, x, z)
      call constant_field(pres,0.)
   else
      psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
-     psii(2:5) = real(psi0(2:5))/(psilim - psimin)
+     psii(2:6) = real(psi0(2:6))/(psilim - psimin)
 
      call fget(psii(1), fbig0, fbig, fbigp, fbigpp)
 !
