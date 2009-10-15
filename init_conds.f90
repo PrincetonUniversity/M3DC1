@@ -344,7 +344,7 @@ subroutine read_density_profile
      end do
   end do
   
-  call solve_newvar(temp,NV_NOBOUND,mass_matrix_lhs)
+  call solve_newvar(temp,NV_NOBOUND,mass_matrix_lhs,temp)
   
   call copyvec(temp, 1, 1, field0, den_g, num_fields)
   
@@ -1820,6 +1820,17 @@ subroutine eqdsk_init()
 
   call unload_eqdsk
 
+  ! flip psi sign convention
+  do l=1, numnodes
+     call assign_local_pointers(l)
+     psi0_l = -psi0_l
+     psi1_l = -psi1_l
+     psis_l = -psis_l
+  end do
+  psibound = -psibound
+  psimin = -psimin
+  psilim = -psilim
+
 end subroutine eqdsk_init
 
 subroutine eqdsk_equ(x, z)
@@ -2325,6 +2336,7 @@ subroutine initial_conditions()
   end if
      
   call den_eq()
+
   if(irmp.ge.1) call rmp_per()
 
 end subroutine initial_conditions

@@ -1038,7 +1038,7 @@ end subroutine boundary_dc
 !
 ! sets homogeneous Neumann boundary condition
 !=======================================================
-subroutine boundary_nm(imatrix, rhs)
+subroutine boundary_nm(imatrix, rhs, bvec)
   use basic
   use arrays
 
@@ -1046,6 +1046,7 @@ subroutine boundary_nm(imatrix, rhs)
   
   integer, intent(in) :: imatrix
   vectype, intent(inout), dimension(*) :: rhs
+  vectype, intent(in), dimension(*) :: bvec
   
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes
@@ -1057,8 +1058,6 @@ subroutine boundary_nm(imatrix, rhs)
   if(iper.eq.1 .and. jper.eq.1) return
   if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_nm called"
 
-  temp = 0.
-
   call numnod(numnodes)
   do i=1, numnodes
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
@@ -1067,6 +1066,7 @@ subroutine boundary_nm(imatrix, rhs)
      call entdofs(1, i, 0, ibegin, iendplusone)
      call rotate_matrix(imatrix, ibegin, normal, curv, rhs, icurv)
 
+     temp = bvec(ibegin:ibegin+5)
      call set_normal_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim)
   end do
 

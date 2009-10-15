@@ -23,10 +23,11 @@ module newvar_mod
 contains
 
 
-subroutine apply_bc(imatrix, rhs, ibound)
+subroutine apply_bc(imatrix, rhs, ibound, bvec)
   implicit none
   integer, intent(in) :: imatrix, ibound
   vectype, dimension(*), intent(inout) :: rhs
+  vectype, dimension(*), intent(in) :: bvec
 
   vectype :: val
   val = 0.
@@ -35,7 +36,7 @@ subroutine apply_bc(imatrix, rhs, ibound)
   case(NV_DCBOUND)
      call boundary_dc(imatrix, rhs, val)
   case(NV_NMBOUND)
-     call boundary_nm(imatrix, rhs)
+     call boundary_nm(imatrix, rhs, bvec)
   case(NV_SJBOUND)
      call boundary_jphi(imatrix, rhs)
   case(NV_SVBOUND)
@@ -211,7 +212,7 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
   ! apply boundary conditions
   if(isolve.eq.NV_LHS) then
      call createvec(rhs2, isize)
-     call apply_bc(matrix, rhs2, ibound)
+     call apply_bc(matrix, rhs2, ibound, rhs2)
      call deletevec(rhs2)
   end if
 
@@ -235,7 +236,7 @@ end subroutine create_matrix
 !   NV_NOBOUND: no boundary conditions
 !   NV_DCBOUND: Dirichlet boundary conditions
 !======================================================================
-subroutine newvar(ilhsmat,outarray,irhsmat,inarray,ibound)
+subroutine newvar(ilhsmat,outarray,irhsmat,inarray,ibound,bvec)
 
   use basic
   use arrays
@@ -246,6 +247,7 @@ subroutine newvar(ilhsmat,outarray,irhsmat,inarray,ibound)
   integer, intent(in) :: ibound, ilhsmat, irhsmat
   vectype, intent(in) :: inarray(*)
   vectype, intent(out) :: outarray(*)
+  vectype, intent(in) :: bvec(*)
 
   integer :: ier
   PetscTruth :: flg_petsc, flg_solve2, flg_solve1
@@ -255,7 +257,7 @@ subroutine newvar(ilhsmat,outarray,irhsmat,inarray,ibound)
 
   call matrixvectormult(irhsmat, inarray, outarray)
 
-  call apply_bc(0,outarray,ibound)
+  call apply_bc(0,outarray,ibound,bvec)
 
   if(flg_petsc.eq.PETSC_TRUE .and. flg_solve1.eq.PETSC_TRUE) then 
      call solve1(ilhsmat,outarray,ier)
@@ -270,7 +272,7 @@ subroutine newvar(ilhsmat,outarray,irhsmat,inarray,ibound)
 end subroutine newvar
 
 
-subroutine newvar1(ilhsmat,outarray,inarray,iplace,numvari,irhsmat,ibound)
+subroutine newvar1(ilhsmat,outarray,inarray,iplace,numvari,irhsmat,ibound,bvec)
 
   use arrays
 
@@ -279,6 +281,7 @@ subroutine newvar1(ilhsmat,outarray,inarray,iplace,numvari,irhsmat,ibound)
   integer, intent(in) :: iplace, ibound, numvari, ilhsmat, irhsmat
   vectype, intent(in) :: inarray(*)   ! size=numvari
   vectype, intent(out) :: outarray(*) ! size=1
+  vectype, intent(in) :: bvec(*)
 
   vectype, allocatable :: temp(:)
 
@@ -287,13 +290,42 @@ subroutine newvar1(ilhsmat,outarray,inarray,iplace,numvari,irhsmat,ibound)
   if(numvari.gt.1) then
      call createvec(temp,1)
      call copyvec(inarray,iplace,numvari,temp,1,1)
-     call newvar(ilhsmat,outarray,irhsmat,temp,ibound)
+     call newvar(ilhsmat,outarray,irhsmat,temp,ibound,bvec)
      call deletevec(temp)
   else
-     call newvar(ilhsmat,outarray,irhsmat,inarray,ibound)
+     call newvar(ilhsmat,outarray,irhsmat,inarray,ibound,bvec)
   end if
   
 end subroutine newvar1
+
+
+subroutine newvarn(ilhsmat,outarray,oplace,numvaro, &
+     inarray,iplace,numvari,irhsmat,ibound,bvec)
+
+  use arrays
+
+  implicit none
+
+  integer, intent(in) :: iplace, ibound, numvari, ilhsmat, irhsmat
+  integer, intent(in) :: oplace, numvaro
+  vectype, intent(in) :: inarray(*)   ! size=numvari
+  vectype, intent(out) :: outarray(*) ! size=1
+  vectype, intent(in) :: bvec(*)
+
+  vectype, allocatable :: temp(:)
+
+  ! if inarray is bigger than vecsize=1, then 
+  ! create vecsize=1 for matrix multiplication
+  if(numvaro.gt.1) then
+     call createvec(temp,1)
+     call newvar1(ilhsmat,temp,inarray,iplace,numvari,irhsmat,ibound,bvec)
+     call copyvec(temp,1,1,outarray,oplace,numvaro)
+     call deletevec(temp)
+  else
+     call newvar1(ilhsmat,outarray,inarray,iplace,numvari,irhsmat,ibound,bvec)
+  end if
+  
+end subroutine newvarn
 
 
 !=====================================================
@@ -304,7 +336,7 @@ end subroutine newvar1
 ! rhs is overwritten with result (x) on return.
 ! Be sure imatrix was also generated using ibound.
 !=====================================================
-subroutine solve_newvar(rhs, ibound, imatrix)
+subroutine solve_newvar(rhs, ibound, imatrix, bvec)
 
   use basic
   use sparse
@@ -314,6 +346,7 @@ subroutine solve_newvar(rhs, ibound, imatrix)
 
   integer, intent(in) :: ibound, imatrix
   vectype, dimension(*), intent(inout) :: rhs
+  vectype, dimension(*), intent(in) :: bvec
 
   integer :: ier
   PetscTruth :: flg_petsc, flg_solve2, flg_solve1
@@ -323,7 +356,7 @@ subroutine solve_newvar(rhs, ibound, imatrix)
 
   call sumsharedppplvecvals(rhs)
 
-  call apply_bc(0,rhs,ibound)
+  call apply_bc(0,rhs,ibound,bvec)
 
   if(flg_petsc.eq.PETSC_TRUE .and. flg_solve1.eq.PETSC_TRUE) then 
      call solve1(imatrix,rhs,ier)

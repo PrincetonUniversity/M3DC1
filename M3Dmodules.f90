@@ -177,6 +177,7 @@ module basic
   integer :: inertia     ! 1 = include ion inertial terms (v.grad(v))
   integer :: itwofluid   ! 1 = include two-fluid terms in ohm's law
   integer :: ibootstrap  ! bootstrap current model
+  integer :: iflip       ! 1 = flip handedness
 
   ! numerical parameters
   integer :: ntimemax    ! number of timesteps
@@ -294,7 +295,7 @@ module basic
        adapt_factor, adapt_hmin, adapt_hmax,                   &
        b0_norm, n0_norm, l0_norm,                              &
        idenfunc, den_edge, den0, denoff, dendelt,              &
-       icurv
+       icurv, iflip
 
 
   !     derived quantities
@@ -352,7 +353,8 @@ module arrays
 
   ! Arrays containing physical fields
   vectype, allocatable, target :: &
-       field(:), field0(:), fieldi(:) 
+       field(:), field0(:), fieldi(:), &
+       bf(:), bfi(:), bf0(:)
 
   ! Arrays containing auxiliary variables
   vectype, allocatable :: &
@@ -360,8 +362,7 @@ module arrays
        resistivity(:), tempvar(:),                  &
        temporary_vector(:),                  &
        kappa(:),sigma(:), sb1(:), sb2(:), sp1(:),   &
-       visc(:), visc_c(:), visc_e(:), &
-       bf(:)
+       visc(:), visc_c(:), visc_e(:)
 
   ! Arrays for advance
   vectype, allocatable, target :: &
@@ -740,7 +741,9 @@ module sparse
   integer, parameter :: d10matrix_sm = 34
   integer, parameter :: d7matrix_sm = 36
   integer, parameter :: ppmatrix_lhs = 37
-  integer, parameter :: num_matrices = 37
+  integer, parameter :: brmatrix_sm = 38
+  integer, parameter :: bf_matrix_rhs = 39
+  integer, parameter :: num_matrices = 39
 
 contains
   subroutine delete_matrices
@@ -832,7 +835,9 @@ subroutine space(ifirstcall)
      call createvec(visc_c, 1)
      call createvec(sigma, 1)
      call createvec(tempvar,1)
-     if(icomplex.eq.1 .or. ifout.eq.1) call createvec(bf,1)
+     call createvec(bf,1)
+     call createvec(bfi,1)
+     call createvec(bf0,1)
      if(ibootstrap.gt.0) call createvec(visc_e,1)
 
      ! Arrays for implicit time advance

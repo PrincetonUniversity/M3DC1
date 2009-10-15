@@ -107,7 +107,7 @@ subroutine onestep
 
 
   ! Calculate all quantities derived from basic fields
-  call derived_quantities(field)
+  call derived_quantities(field, bf)
 
 
   ! Conserve toroidal flux
@@ -345,6 +345,7 @@ subroutine split_step(calc_matrices)
      else
         call solve(s1matrix_sm, b1_vel, jer)
      endif
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "done solve."
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_solve_v = t_solve_v + tend - tstart

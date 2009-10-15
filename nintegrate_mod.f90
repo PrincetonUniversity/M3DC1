@@ -69,7 +69,8 @@ vectype, dimension(MAX_PTS, OP_NUM) :: pst79, bzt79, pet79, nt79, &
                                        pht79, vzt79, cht79, pt79
 vectype, dimension(MAX_PTS, OP_NUM) :: vis79, vic79, vip79
 vectype, dimension(MAX_PTS, OP_NUM) :: jt79, cot79, vot79, pit79, &
-                                       eta79, sig79, bf79
+                                       eta79, sig79
+vectype, dimension(MAX_PTS, OP_NUM) :: bf079, bf179, bft79
 vectype, dimension(MAX_PTS, OP_NUM) :: kap79, kar79, kax79
 vectype, dimension(MAX_PTS, OP_NUM) :: ps079, bz079, pe079, n079, &
                                        ph079, vz079, ch079, p079
@@ -684,13 +685,13 @@ subroutine define_fields(itri, fields, gdef, ilin)
         bz179(:,OP_DPP:OP_GSPP) =      -ntor**2*bz179(:,OP_1:OP_GS)
 
         call calcavector(itri, bf, 1, 1, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, bf79)
-        bf79(:,OP_DP :OP_GSP ) = (0,1)*ntor   *bf79(:,OP_1:OP_GS)
-        bf79(:,OP_DPP:OP_GSPP) =      -ntor**2*bf79(:,OP_1:OP_GS)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, bf179)
+        bf179(:,OP_DP :OP_GSP ) = (0,1)*ntor   *bf179(:,OP_1:OP_GS)
+        bf179(:,OP_DPP:OP_GSPP) =      -ntor**2*bf179(:,OP_1:OP_GS)
 #endif
      else
         bz179 = 0.
-        bf79 = 0.
+        bf179 = 0.
      endif
        
      if(eqsubtract.eq.1) then
@@ -698,9 +699,19 @@ subroutine define_fields(itri, fields, gdef, ilin)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, bz079)
         bzt79 = bz079 + bz179
         bzs79 = bz079 + bz179/2.
+
+#ifdef USECOMPLEX
+        call calcavector(itri, bf0, 1, 1, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, bf079)
+        bft79 = bf079 + bf179
+#endif
      else
         bzt79 = bz179
         bzs79 = bz179/2.
+
+#ifdef USECOMPLEX
+        bft79 = bf179
+#endif
      endif
   endif
 

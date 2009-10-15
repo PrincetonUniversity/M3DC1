@@ -1,8 +1,8 @@
 module coils
   implicit none
 
-  integer, parameter :: maxbundles = 20
-  integer, parameter :: subcoils = 5
+  integer, parameter :: maxbundles = 200
+  integer, parameter :: subcoils = 1
   integer, parameter :: maxcoils = maxbundles*subcoils**2
 
 !!$  character*8, parameter :: coil_filename = "coil.dat"
@@ -113,7 +113,6 @@ contains
  subroutine field_from_coils(xc, zc, ic, nc, field, isize, iplace, ipole)
    implicit none
 
-   
    real, intent(in), dimension(nc) :: xc, zc, ic
    integer, intent(in) :: nc
    vectype, intent(inout), dimension(*) :: field
@@ -128,6 +127,7 @@ contains
    do i=1,numnodes
      
       call entdofs(isize, i, 0, ibegin, iendplusone)
+      ibegin = ibegin + (iplace-1)*6
       iend = ibegin+5
 
       call nodcoord(i,x,z)
@@ -137,9 +137,7 @@ contains
       ! Field due to coil currents
       call gvect(xp,zp,xc,zc,nc,g,ipole,ineg)
       do k=1,nc
-
-         field(ibegin+(iplace-1)*6:iend+(iplace-1)*6) = &
-              field(ibegin+(iplace-1)*6:iend+(iplace-1)*6) + g(:,k)*ic(k)
+         field(ibegin:iend) = field(ibegin:iend) - g(:,k)*ic(k)
       end do
    end do
  end subroutine field_from_coils
@@ -158,7 +156,8 @@ contains
    integer :: nc
 
    call load_coils(xc, zc, ic, nc, coil_filename, current_filename)
-   call field_from_coils(xc, zc, ic, nc, field, isize, iplace, 0)
+!   call field_from_coils(xc, zc, ic, nc, field, isize, iplace, 0)
+   call field_from_coils_2(xc, zc, ic, nc, field, isize, iplace)
 
  end subroutine load_field_from_coils
 
@@ -459,6 +458,379 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
   return
 end subroutine gvect
 
+! Int(cos(2 ntor x)/(1 + k2*sin(x)^2)^(3/2) dx)/pi     0 < x < pi/2
+subroutine integral(npts,k2,ntor,f)
+  implicit none
+
+  real, intent(in) :: k2(npts)
+  real, intent(out) :: f(npts)
+  integer, intent(in) :: ntor, npts
+
+  real, parameter :: pi = 3.141592653589793
+  real :: dx, dx2, x
+  real, dimension(npts) :: f0, f1, f2
+
+  ! If k2 is large, contribution will be small
+  ! and simple asymptotic solution suffices
+!!$  if(real(k2(1)).gt.10.) then
+!!$     f = 4./(pi * sqrt(k2))
+!!$     return
+!!$  endif
+
+  dx = (pi/2.) / 100.
+  dx2 = dx/2.
+
+  ! Integrate using Simpson's rule
+  f = 0.
+  f0 = 1.
+  do x=0., pi/2., dx
+     f1 = cos(2.*ntor*(x+dx2))/sqrt((1.+k2*sin(x+dx2)**2)**3)
+     f2 = cos(2.*ntor*(x+dx))/sqrt((1.+k2*sin(x+dx)**2)**3)
+     f = f + (f0 + 4.*f1 + f2)
+     f0 = f2
+  end do
+  f = f * (dx/6.) / pi
+end subroutine integral
+
+
+subroutine coil(curr, r1, z1, npts, r0, z0, ntor, fr, fphi, fz)
+  implicit none
+
+  real, intent(in) :: curr
+  real, intent(in) :: r1, z1
+  integer, intent(in) :: ntor, npts
+  real, intent(in), dimension(npts) :: r0, z0
+  vectype, intent(inout), dimension(npts) :: fr, fphi, fz
+
+  real, dimension(npts) :: dr2, k2, temp, co, fac
+
+  dr2 = (r0 - r1)**2 + (z0 - z1)**2
+  k2 = 4.*r1*r0/dr2
+
+  fac = curr*r1/sqrt(dr2**3)
+
+  ! calculate contribution from coils
+  call integral(npts,k2,ntor,temp)
+  fz = fz + fac*r1*temp
+  
+  call integral(npts,k2,ntor+1,co)
+  call integral(npts,k2,ntor-1,temp)
+
+  fr = fr + fac*(z0 - z1)*(co + temp)/2.
+  fz = fz - fac*r0*(co + temp)/2.
+  fphi = fphi - fac*(0,1)*(z0 - z1)*(co - temp)/2.
+  
+end subroutine coil
+
+subroutine surface(r, z, dldR, dldZ, npts, r0, z0, ntor, fr, fphi, fz)
+  implicit none
+  
+  real, intent(in) :: r, z, dldZ, dldR
+  integer, intent(in) :: npts, ntor
+  real, intent(in), dimension(npts) :: r0, z0
+  vectype, intent(out), dimension(npts) :: fr, fphi, fz
+  
+  real, dimension(npts) :: dr2, fac, k2, temp1, temp2
+
+  dr2 = (r - r0)**2 + (z - z0)**2
+  k2 = 4.*r*r0/dr2
+  fac = -ntor/sqrt(dr2**3)
+
+  call integral(npts, k2, ntor+1, temp1)
+  call integral(npts, k2, ntor-1, temp2)
+
+  fr =  fac*(dldZ*r+dldR*(z0-z))*(temp1 - temp2)/2.
+  fz = -fac*dldR*r0*(temp1 - temp2)/2.
+  fphi =  -fac*(0,1)*(dldZ*r + dldR*(z0 - z))*(temp1 + temp2)/2.
+
+  call integral(npts, k2, ntor, temp1)
+  fphi = fphi + fac*(0,1)*dldZ*r0*temp1
+end subroutine surface
+
+!======================================================================
+! pane
+! ~~~~
+! Adds 'window pane' contribution to magnetic field (fr, fphi, fz)
+! at observation point r=(r0, z0) from two axisymmetric coils
+! at (r1,z1) and (r2,z2) carrying currents curr and -curr
+!======================================================================
+subroutine pane(curr, r1, r2, z1, z2, npts, r0, z0, ntor, fr, fphi, fz)
+  implicit none
+
+  real, intent(in) :: curr
+  real, intent(in) :: r1, r2, z1, z2
+  integer, intent(in) :: ntor, npts
+  real, intent(in), dimension(npts) :: r0, z0
+  vectype, intent(inout), dimension(npts) :: fr, fphi, fz
+
+  vectype, dimension(npts) :: fr0, fphi0, fz0
+  vectype, dimension(npts) :: fr1, fphi1, fz1
+  vectype, dimension(npts) :: fr2, fphi2, fz2
+  real :: l, dl, lmax, dldZ, dldR, r, z, dl2
+
+  ! calculate conitrbution from coils
+  call coil( curr,r1,z1,npts,r0,z0,ntor,fr,fphi,fz)
+  call coil(-curr,r2,z2,npts,r0,z0,ntor,fr,fphi,fz)
+
+  lmax = sqrt((r2-r1)**2 + (z2-z1)**2)
+  dl = lmax/100.
+  dl2 = dl/2.
+  
+  dldR = (r2 - r1)/lmax
+  dldZ = (z2 - z1)/lmax
+
+  ! calculate contribution from surface currents 
+  r = r1
+  z = z1
+  call surface(r, z, dldR, dldZ, npts, r0, z0, ntor, fr0, fphi0, fz0)
+  do l=0., lmax, dl
+     r = (r2*(l+dl2) + r1*(lmax-(l+dl2)))/lmax
+     z = (z2*(l+dl2) + z1*(lmax-(l+dl2)))/lmax
+     call surface(r, z, dldR, dldZ, npts, r0, z0, ntor, fr1, fphi1, fz1)
+       
+     r = (r2*(l+dl) + r1*(lmax-(l+dl)))/lmax
+     z = (z2*(l+dl) + z1*(lmax-(l+dl)))/lmax
+     call surface(r, z, dldR, dldZ, npts, r0, z0, ntor, fr2, fphi2, fz2)
+
+     fr = fr + curr*dl*(fr0 + 4.*fr1 + fr2)/6.
+     fphi = fphi + curr*dl*(fphi0 + 4.*fphi1 + fphi2)/6.
+     fz = fz + curr*dl*(fz0 + 4.*fz1 + fz2)/6.
+
+     fr0 = fr2
+     fphi0 = fphi2
+     fz0 = fz2
+  end do
+  
+end subroutine pane
+
+
+subroutine field_from_coils_2(xc, zc, ic, nc, fin, isize, iplace)
+  use t_data
+  use basic
+  use sparse
+  use arrays
+  use nintegrate_mod
+  use newvar_mod
+
+  implicit none
+
+  include 'mpif.h'
+
+  real, intent(in), dimension(nc) :: xc, zc, ic
+  integer, intent(in) :: nc
+  vectype, intent(inout), dimension(*) :: fin
+  integer, intent(in) :: isize, iplace
+
+  vectype, allocatable :: psi(:)
+  integer :: i, ii, iii, j, jj, jjj, k, l, itri, nelms, ier, i1, j1
+  integer :: ibegin, iendplusone, jbegin, jendplusone
+  vectype :: temp(3,3)
+
+  integer, parameter :: imethod = 3
+  integer :: inumb
+
+  integer :: numnodes
+  real :: x, z
+  vectype :: divb, norm2, buff1(5), buff2(5), divbr, divbz, divbphi
+  real :: norm
+
+  if(myrank.eq.0) print *, 'IN FIELD_FROM_COILS_2'
+  
+  select case(imethod)
+  case(0)               ! set psi=BR, p=BZ, i=bphi
+     inumb = 3
+  case(1)               ! find least-squares solution to 
+     inumb = 1          ! dpsi/dR = -R*BR;  dpsi/dR = R*BZ
+  case(2)
+     inumb = 2
+  case(3)               ! find least-squares solution to 
+     inumb = 2          ! BR = -dpsi/DZ/R - d^2f/dRdphi
+                        ! BZ =  dpsi/DR/R - d^2f/dZdphi
+                        ! Bphi = R del_perp^2(f)
+  end select
+
+
+  call createvec(psi,inumb)
+  psi = 0.
+
+  call zerosuperlumatrix(brmatrix_sm, icomplex, inumb)
+
+  call numfac(nelms)
+
+  do itri=1,nelms
+        
+     call define_triangle_quadrature(itri,25)
+     call define_fields(itri,0,1,0)
+
+     temp79a = 0.    ! B_R
+     temp79b = 0.    ! B_phi
+     temp79c = 0.    ! B_Z
+
+     do i=1, nc, 2
+        call pane(ic(i),xc(i),xc(i+1),zc(i),zc(i+1),npoints,x_79,z_79,ntor,&
+             temp79a,temp79b,temp79c)
+     end do
+
+     temp79a = -temp79a*2.*pi
+     temp79b = -temp79b*2.*pi
+     temp79c = -temp79c*2.*pi
+     
+     do iii=1,3
+     call entdofs(inumb,  ist(itri,iii)+1, 0, ibegin, iendplusone)
+     do ii=1,6
+        i = (iii-1)*6 + ii
+        i1 = ibegin + ii - 1
+
+        do jjj=1,3
+        call entdofs(inumb,  ist(itri,jjj)+1, 0, jbegin, jendplusone)
+        do jj=1,6
+           j = (jjj-1)*6 + jj
+           j1 = jbegin + jj - 1
+
+           temp = 0.
+           select case(imethod)
+           case(0)
+              temp(1,1) = int2(g79(:,OP_1,i),g79(:,OP_1,j))
+              temp(2,2) = temp(1,1)
+              temp(3,3) = temp(1,1)
+
+           case(1)
+              temp(1,1) = int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j)) &
+                        + int2(g79(:,OP_DR,i),g79(:,OP_DR,j))
+
+           case(2)
+#ifdef USECOMPLEX
+              temp(1,1) = -int3(ri_79,g79(:,OP_1,i),g79(:,OP_DZ,j))
+              temp(1,2) = int2(g79(:,OP_1,i),g79(:,OP_DRP,j))
+              temp(2,1) = int3(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j))
+              temp(2,2) = int2(g79(:,OP_1,i),g79(:,OP_DZP,j))
+#endif            
+           case(3)
+#ifdef USECOMPLEX
+              temp(1,1) = int3(ri2_79,g79(:,OP_DR,i),g79(:,OP_DR,j)) &
+                   +      int3(ri2_79,g79(:,OP_DZ,i),g79(:,OP_DZ,j)) 
+              temp(1,2) = int3(ri_79, g79(:,OP_DZ,i),g79(:,OP_DRP,j)) &
+                   -      int3(ri_79, g79(:,OP_DR,i),g79(:,OP_DZP,j))
+              temp(2,1) = int3(ri_79, g79(:,OP_DRP,i),g79(:,OP_DZ,j)) &
+                   -      int3(ri_79, g79(:,OP_DZP,i),g79(:,OP_DR,j))
+              temp(2,2) = int2(g79(:,OP_DRP,i),g79(:,OP_DRP,j)) &
+                   +      int2(g79(:,OP_DZP,i),g79(:,OP_DZP,j)) &
+                   +      int3(r2_79,g79(:,OP_LP,i),g79(:,OP_LP,j))
+#endif
+           end select
+                    
+           do k=1,inumb
+              do l=1,inumb
+                 call insertval(brmatrix_sm, temp(k,l), icomplex, &
+                      i1+6*(k-1),j1+6*(l-1),1)
+              end do
+           end do
+        end do
+        end do
+
+        select case(imethod)
+        case(0)
+           psi(i1   ) = psi(i1   ) + int2(g79(:,OP_1,i),temp79a)
+           psi(i1+6 ) = psi(i1+6 ) + int3(r_79,g79(:,OP_1,i),temp79b)
+           psi(i1+12) = psi(i1+12) + int2(g79(:,OP_1,i),temp79c)
+
+        case(1)
+           psi(i1) = psi(i1) &
+                + int3(r_79,g79(:,OP_DR,i),temp79c) &
+                - int3(r_79,g79(:,OP_DZ,i),temp79a)
+
+        case(2)
+           psi(i1  ) = psi(i1  ) + int2(g79(:,OP_1,i),temp79a)
+           psi(i1+6) = psi(i1+6) + int2(g79(:,OP_1,i),temp79c)
+
+        case(3)
+#ifdef USECOMPLEX           
+           psi(i1   ) = psi(i1   ) &
+                + int3(ri_79,g79(:,OP_DR,i),temp79c) &
+                - int3(ri_79,g79(:,OP_DZ,i),temp79a)
+           psi(i1+6 ) = psi(i1+6 ) &
+                - int2(g79(:,OP_DRP,i),temp79a) &
+                - int2(g79(:,OP_DZP,i),temp79c) &
+                + int3(r_79,g79(:,OP_LP,i),temp79b)
+#endif
+        end select
+     end do
+     end do
+  end do
+
+  call sumsharedppplvecvals(psi)
+  call finalizematrix(brmatrix_sm)
+
+  call solve(brmatrix_sm,psi,ier)
+  
+  select case(imethod)
+  case(0)
+     call copyvec(psi,1,inumb,field,psi_g,num_fields)
+     call copyvec(psi,2,inumb,field,bz_g,num_fields)
+     call copyvec(psi,3,inumb,field,chi_g,num_fields)
+
+#ifdef USECOMPLEX
+#define CONJUGATE(x) conjg(x)
+#else
+#define CONJUGATE(x) x
+#endif
+
+     divb = 0.
+     divbr = 0.
+     divbz = 0.
+     divbz = 0.
+     norm2 = 0.
+     call numnod(numnodes)
+     do i=1, numnodes
+        call assign_local_pointers(i)
+        call nodcoord(i,x,z)
+        divbr = divbr + psi1_l(2) + psi1_l(1)/x
+        divbz = divbz + chi1_l(3)
+        divbphi = divbphi + (0,1)*ntor*bz1_l(1)/x**2
+        divb = divb + psi1_l(2) + psi1_l(1)/x + chi1_l(3) &
+             + (0,1)*ntor * bz1_l(1)/x**2
+        norm2 = norm2 &
+             + psi1_l(2)*CONJUGATE(psi1_l(2)) &
+             + chi1_l(3)*CONJUGATE(chi1_l(3)) &
+             + (ntor/x)**2*bz1_l(1)*CONJUGATE(bz1_l(1))
+     end do
+     if(maxrank.gt.1) then
+        buff1(1) = divb
+        buff1(2) = norm2
+        buff1(3) = divbr
+        buff1(4) = divbz
+        buff1(5) = divbphi
+        call mpi_allreduce(buff1, buff2, 2*5, MPI_DOUBLE_PRECISION, &
+             MPI_SUM, MPI_COMM_WORLD, ier)
+        divb = buff2(1)
+        norm2 = buff2(2)
+        divbr = buff2(3)
+        divbz = buff2(4)
+        divbphi = buff2(5)
+     end if
+     norm = real(sqrt(norm2))
+     divb = divb / norm
+     if(myrank.eq.0) then
+        print *, 'Div(B), norm2 = ', divb, norm2
+        print *, 'R, Z, phi = ', divbr, divbz, divbphi
+     end if
+
+  case(1)
+     call copyvec(psi,1,inumb,field,psi_g,num_fields)
+  case(2)
+     call copyvec(psi,1,inumb,field,psi_g,num_fields)
+     call copyvec(psi,2,inumb,field,bz_g,num_fields)
+  case(3)
+     call copyvec(psi,1,inumb,field,psi_g,num_fields)
+     call copyvec(psi,2,inumb,bf,1,1)
+
+     call newvarn(mass_matrix_lhs,field,bz_g,num_fields, &
+          psi,2,inumb,bf_matrix_rhs,NV_NOBOUND,field)
+  end select
+
+  call deletevec(psi)
+
+end subroutine field_from_coils_2
 
 
 end module coils
