@@ -361,6 +361,9 @@
 !
 !......tilt angle of rectangular mesh (in degrees)
       tiltangled = 0.
+!
+!.....Bateman scaling factor
+      bscale = 1.
 
 !
       open(5,file='C1input',form='formatted',status='old')

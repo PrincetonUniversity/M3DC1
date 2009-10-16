@@ -1734,8 +1734,8 @@ subroutine eqdsk_init()
 
   implicit none
 
-  integer :: l, numnodes
-  real :: x, z
+  integer :: l, numnodes, ll
+  real :: x, z , dpsi
   real, parameter :: amu0 = pi*4.e-7
   real, allocatable :: flux(:)
 
@@ -1780,6 +1780,10 @@ subroutine eqdsk_init()
   xmag = rmaxis
   zmag = zmaxis
   rzero = rmaxis
+!
+!.....bateman scaling parameter introduced 9/11/09 (SCJ)
+  fpol(nw) = fpol(nw)*bscale
+!
   bzero = fpol(nw)/rzero
 
   if(igs.gt.0) then
@@ -1789,8 +1793,12 @@ subroutine eqdsk_init()
         call default_profiles
      else
         allocate(flux(nw))
+           dpsi = (sibry-simag)/(nw-1.)
         do l=1,nw
-           flux(l) = l*(sibry-simag)/(nw-1.)
+           flux(l) = l*dpsi
+           ll = nw-l
+!          redefine fpol keeping ffprim fixed
+           if(ll.gt.0) fpol(ll) = -sqrt(fpol(ll+1)**2 - dpsi*(ffprim(ll)+ffprim(ll+1)))
         end do
         call create_profile(nw,press,pprime,fpol,ffprim,flux,myrank)
 !

@@ -1237,6 +1237,7 @@ subroutine calc_toroidal_field(psi0,tf,x,z)
      g3 = 2.*g3
      g4 = 2.*g4
      
+!
      tf(1) = sqrt((bzero*rzero)**2 + &
           gamma2*g2(1) + gamma3*g3(1) + gamma4*g4(1))
      tf(2) = 0.5*(gamma2*g2(2) + gamma3*g3(2) + gamma4*g4(2)) / tf(1)
