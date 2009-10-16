@@ -1371,7 +1371,7 @@ end module strauss
 !==============================================================================
 module circular_field
 
-  real, private :: alx, alz
+  real, private :: alx, alz, x0, z0
 
 contains
 
@@ -1386,12 +1386,14 @@ subroutine circular_field_init()
 
   call getboundingboxsize(alx, alz)
 
+  x0 = xzero + 3.*alx/4.
+  z0 = zzero + alz/2.
+
   call numnod(numnodes)
   do l=1, numnodes
      call nodcoord(l, x, z)
-
-     x = x - alx/2.
-     z = z - alz/2.
+     x = x - alx/2. - xzero
+     z = z - alz/2. - zzero
 
      call assign_local_pointers(l)
 
@@ -1409,7 +1411,7 @@ subroutine circular_field_equ(x, z)
 
   real, intent(in) :: x, z
   real :: ss
-
+  
   ss = min(alx,alz)/10.
 
   u0_l = 0.
@@ -1446,7 +1448,6 @@ subroutine circular_field_per(x, z)
 
   real, intent(in) :: x, z
 
-  real :: x0,z0
   real :: ss
 
   ss = min(alx,alz)/4.
@@ -1472,19 +1473,19 @@ subroutine circular_field_per(x, z)
 
   ! for parallel viscosity test...
 
-  u1_l(1) = eps*exp(-(x**2+z**2)/(2.*ss**2))
-  u1_l(2) = -x*u1_l(1)/ss**2
-  u1_l(3) = -z*u1_l(1)/ss**2
-  u1_l(4) = ((x/ss)**2 - 1.)*u1_l(1)/ss**2
-  u1_l(5) =  x*z*u1_l(1)/ss**4
-  u1_l(6) = ((z/ss)**2 - 1.)*u1_l(1)/ss**2
-  vz1_l(1) = vzero*exp(-(x**2+z**2)/(2.*ss**2))
-  vz1_l(2) = -x*vz1_l(1)/ss**2
-  vz1_l(3) = -z*vz1_l(1)/ss**2
-  vz1_l(4) = ((x/ss)**2 - 1.)*vz1_l(1)/ss**2
-  vz1_l(5) =  x*z*psi0_l(1)/ss**4
-  vz1_l(6) = ((z/ss)**2 - 1.)*vz1_l(1)/ss**2
-  p1_l = 0.
+!!$  u1_l(1) = eps*exp(-(x**2+z**2)/(2.*ss**2))
+!!$  u1_l(2) = -x*u1_l(1)/ss**2
+!!$  u1_l(3) = -z*u1_l(1)/ss**2
+!!$  u1_l(4) = ((x/ss)**2 - 1.)*u1_l(1)/ss**2
+!!$  u1_l(5) =  x*z*u1_l(1)/ss**4
+!!$  u1_l(6) = ((z/ss)**2 - 1.)*u1_l(1)/ss**2
+!!$  vz1_l(1) = vzero*exp(-(x**2+z**2)/(2.*ss**2))
+!!$  vz1_l(2) = -x*vz1_l(1)/ss**2
+!!$  vz1_l(3) = -z*vz1_l(1)/ss**2
+!!$  vz1_l(4) = ((x/ss)**2 - 1.)*vz1_l(1)/ss**2
+!!$  vz1_l(5) =  x*z*psi0_l(1)/ss**4
+!!$  vz1_l(6) = ((z/ss)**2 - 1.)*vz1_l(1)/ss**2
+!!$  p1_l = 0.
 
   if(ipres.eq.1) then
      pe1_l = pefac*p1_l

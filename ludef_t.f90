@@ -1585,14 +1585,41 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
 
   ! Anisotropic Heat Flux
   if(kappar.ne.0.) then
-     temp = (p1kappar(trial,lin,pst79,pet79,ni79,b2i79,kar79) &
-          +  p1kappar(trial,pst79,lin,pet79,ni79,b2i79,kar79))
-     ssterm(psi_g) = ssterm(psi_g) - thimp*dt*temp
-     ddterm(psi_g) = ddterm(psi_g) - thimp*dt*temp*bdf
-     
-     temp = p1kappar(trial,pst79,pst79,lin,ni79,b2i79,kar79)
-     ssterm(pe_g) = ssterm(pe_g) -     thimp     *dt*temp
-     ddterm(pe_g) = ddterm(pe_g) + (1.-thimp*bdf)*dt*temp
+     if(linear.eq.0) then
+        temp = (p1kappar(trial,lin,ps179,pe179,ni79,b2i79,kar79) &
+             +  p1kappar(trial,ps179,lin,pe179,ni79,b2i79,kar79))
+        ssterm(psi_g) = ssterm(psi_g) -          thimp     *dt*temp
+        ddterm(psi_g) = ddterm(psi_g) + (1./3. - thimp*bdf)*dt*temp
+        
+        temp = p1kappar(trial,ps179,ps179,lin,ni79,b2i79,kar79)
+        ssterm(pe_g) = ssterm(pe_g) -          thimp     *dt*temp
+        ddterm(pe_g) = ddterm(pe_g) + (1./3. - thimp*bdf)*dt*temp
+     endif
+
+     if(eqsubtract.eq.1) then 
+        temp = (p1kappar(trial,lin,ps079,pe079,ni79,b2i79,kar79) &
+             +  p1kappar(trial,ps079,lin,pe079,ni79,b2i79,kar79))
+        ssterm(psi_g) = ssterm(psi_g) -       thimp     *dt*temp
+        ddterm(psi_g) = ddterm(psi_g) + (1. - thimp*bdf)*dt*temp
+
+        temp = p1kappar(trial,ps079,ps079,lin,ni79,b2i79,kar79)
+        ssterm(pe_g) = ssterm(pe_g) -       thimp     *dt*temp
+        ddterm(pe_g) = ddterm(pe_g) + (1. - thimp*bdf)*dt*temp      
+
+        if(linear.eq.0) then 
+           temp = (p1kappar(trial,lin,ps179,pe079,ni79,b2i79,kar79) &
+                +  p1kappar(trial,lin,ps079,pe179,ni79,b2i79,kar79) &
+                +  p1kappar(trial,ps179,lin,pe079,ni79,b2i79,kar79) &
+                +  p1kappar(trial,ps079,lin,pe179,ni79,b2i79,kar79))
+           ssterm(psi_g) = ssterm(psi_g) -          thimp     *dt*temp
+           ddterm(psi_g) = ddterm(psi_g) + (1./2. - thimp*bdf)*dt*temp
+           
+           temp = p1kappar(trial,ps179,ps079,lin,ni79,b2i79,kar79) &
+                + p1kappar(trial,ps079,ps179,lin,ni79,b2i79,kar79)
+           ssterm(pe_g) = ssterm(pe_g) -          thimp     *dt*temp
+           ddterm(pe_g) = ddterm(pe_g) + (1./2. - thimp*bdf)*dt*temp      
+        endif
+     endif   
   endif
 
   ! Cross-field Heat Flux
