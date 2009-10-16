@@ -226,7 +226,8 @@ Program Reducedquintic
      call hdf5_write_parameters(ier)
 
      if(eqsubtract.eq.1) then
-        temp = bzero*rzero
+!   should there be a minus sign in the next line?  SCJ Oct16 2009
+        temp = bscale*bzero*rzero
         call scalar_operation(field0,bz_g,num_fields,OP_PLUS, -temp)
         call derived_quantities(field0, bf0)
         call scalar_operation(field0,bz_g,num_fields,OP_PLUS,  temp)

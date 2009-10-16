@@ -71,6 +71,7 @@ module basic
   real :: libetap   !  li/2 + beta_poloidal estimate for equili/2brium calculation
   real :: xlim2   !  x-position of second limiter point as a diagnostic
   real :: zlim2   !  z-position of second limiter point as a diagnostic
+  real :: bscale     ! Batemann scaling parameter (default to 1)
   integer :: nonrect     ! 1 = non-rectangular boundary; 0 = rectangular boundary
   integer :: ifixedb   !  1 = plasma boundary is mesh boundary (for nonrect=1);   0 = free boundary
 
@@ -293,7 +294,7 @@ module basic
        tiltangled, isurface,                                   &
        iread_eqdsk, iread_dskbal, iread_jsolver,               &
        adapt_factor, adapt_hmin, adapt_hmax,                   &
-       b0_norm, n0_norm, l0_norm,                              &
+       b0_norm, n0_norm, l0_norm, bscale,                      &
        idenfunc, den_edge, den0, denoff, dendelt,              &
        icurv, iflip
 
