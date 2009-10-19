@@ -59,16 +59,26 @@ end
 
 function colors, maxcolors
 
-    c = findgen(maxcolors) * !d.table_size / maxcolors
+    if(maxcolors gt 6) then begin
+        c = (indgen(maxcolors) - 1) * (!d.table_size-3) / (maxcolors - 1)
+    endif else begin
+        c = intarr(6)
+        c[1] = !d.table_size*0.4
+        c[2] = !d.table_size*0.8
+        c[3] = !d.table_size*0.6
+        c[4] = !d.table_size*0.1
+        c[5] = !d.table_size*0.45
+    endelse
 
     if (1 EQ strcmp(!d.name, 'PS')) then begin
         c[0] = 0
     endif else begin
         c[0] = !d.table_size-1
-    endelse
+    endelse    
     
-    return, c
+    return, c[0:maxcolors-1]
 end
+
 
 pro setplot, p
    if(1 eq strcmp(p, 'ps', /fold_case)) then begin
@@ -90,7 +100,7 @@ function color, c, maxcolors
 end
 
 pro plot_legend, names, linestyles=ls, colors=cs, left=l, top=t, psyms=p, $
-                 ylog=ylog, xlog=xlog
+                 ylog=ylog, xlog=xlog, charsize=charsize
     
     N = n_elements(names)
 
@@ -124,7 +134,7 @@ pro plot_legend, names, linestyles=ls, colors=cs, left=l, top=t, psyms=p, $
             oplot, [d(0), d(2)], [z, z], linestyle=ls(i), color=cs(i)
         endelse
 
-        xyouts, d(3), z, names(i), color=cs(i)
+        xyouts, d(3), z, names(i), color=cs(i), charsize=charsize
         y = y - dy
     endfor
 end

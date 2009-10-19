@@ -2214,7 +2214,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
    if(not keyword_set(complex)) then data = real_part(data)
 
-   if(n_elements(mask) ne 0) then data = data * (1. - mask)
+;   if(n_elements(mask) ne 0) then data = data * (1. - mask)
 
    return, data
 end
@@ -4107,7 +4107,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                 rrange=rrange, zrange=zrange, linear=linear, $
                 xlim=xlim, cutx=cutx, cutz=cutz, mpeg=mpeg, $
                 mask_val=mask_val, boundary=boundary, q_contours=q_contours, $
-                _EXTRA=ex
+                overplot=overplot, _EXTRA=ex
 
    if(n_elements(time) eq 0) then time = 0
    if(n_elements(p) eq 0) then p = 50
@@ -4167,10 +4167,14 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
 
    if(n_elements(cutx) gt 0) then begin
        dum = min(x-cutx,i,/absolute)
-       plot, y, field[0,i,*], _EXTRA=ex
+       if(keyword_set(overplot)) then begin
+           oplot, y, field[0,i,*], _EXTRA=ex
+       endif else plot, y, field[0,i,*], _EXTRA=ex
    endif else if(n_elements(cutz) gt 0) then begin
        dum = min(y-cutz,i,/absolute)
-       plot, x, field[0,*,i], _EXTRA=ex
+       if(keyword_set(overplot)) then begin
+           oplot, x, field[0,*,i], _EXTRA=ex
+       endif else plot, x, field[0,*,i], _EXTRA=ex
    endif else begin
        for k=0, nt-1 do begin
            if((notitle eq 1) and (n_elements(t) ne 0)) then begin
@@ -4183,13 +4187,14 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
              ytitle=make_label('!8Z!X', /l0, _EXTRA=ex), $
              range=range, _EXTRA=ex
 
-           if(keyword_set(lcfs)) then $
-             plot_lcfs, points=p, slice=time, _EXTRA=ex
-
            if(n_elements(q_contours) ne 0) then begin
                fval = flux_at_q(q_contours,_EXTRA=ex)
-               plot_flux_contour, fval, closed=0, /overplot, _EXTRA=ex
+               plot_flux_contour, fval, closed=0, /overplot, $
+                 thick=1, _EXTRA=ex
            endif
+
+           if(keyword_set(lcfs)) then $
+             plot_lcfs, points=p, slice=time, _EXTRA=ex
 
            if(keyword_set(boundary)) then plotmesh=1
            if(keyword_set(plotmesh)) then begin

@@ -1386,8 +1386,8 @@ subroutine circular_field_init()
 
   call getboundingboxsize(alx, alz)
 
-  x0 = xzero + 3.*alx/4.
-  z0 = zzero + alz/2.
+  x0 = alx/4.
+  z0 = 0.
 
   call numnod(numnodes)
   do l=1, numnodes
@@ -2340,6 +2340,7 @@ subroutine initial_conditions()
            call rotate_init()
         case(7)
            call circular_field_init()
+           call cartesian_to_cylindrical_all()
         end select
      endif
   end if
