@@ -7258,9 +7258,9 @@ vectype function p1pchi(e,f,g)
 end function p1pchi
 
 
-! P1kappar
-! ========
-vectype function p1kappar(e,f,g,h,i,j,k)
+! P1psipsikappar
+! ==============
+vectype function p1psipsikappar(e,f,g,h,i,j,k)
 
   use basic
   use nintegrate_mod
@@ -7271,7 +7271,7 @@ vectype function p1kappar(e,f,g,h,i,j,k)
   vectype :: temp
 
   if(gam.eq.1.) then
-     p1kappar = 0.
+     p1psipsikappar = 0.
      return
   end if
 
@@ -7292,9 +7292,145 @@ vectype function p1kappar(e,f,g,h,i,j,k)
           - int4(temp79a,g(:,OP_DR),h(:,OP_1 ),i(:,OP_DZ))
   end if
 
-  p1kappar = (gam - 1.) * temp
+  p1psipsikappar = (gam - 1.) * temp
   return
-end function p1kappar
+end function p1psipsikappar
+
+
+! P1psibkappar
+! ============
+vectype function p1psibkappar(e,f,g,h,i,j,k)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j,k
+  vectype :: temp
+
+  if(gam.eq.1.) then
+     p1psibkappar = 0.
+     return
+  end if
+
+#ifdef USECOMPLEX
+  if(surface_int) then
+     temp79a = -ri3_79*k(:,OP_1)*j(:,OP_1)*e(:,OP_1)*g(:,OP_1)* &
+          (norm79(:,1)*f(:,OP_DZ) - norm79(:,2)*f(:,OP_DR))
+
+     temp = int3(temp79a,h(:,OP_DP),i(:,OP_1 )) &
+          + int3(temp79a,h(:,OP_1 ),i(:,OP_DP))
+  else
+     temp79a = -k(:,OP_1)*ri3_79*g(:,OP_1)* &
+          (e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))*j(:,OP_1)
+
+     temp = int3(temp79a,h(:,OP_DP),i(:,OP_1 )) &
+          + int3(temp79a,h(:,OP_1 ),i(:,OP_DP))
+  end if
+#else
+  temp = 0.
+#endif
+
+  p1psibkappar = (gam - 1.) * temp
+  return
+end function p1psibkappar
+
+
+! P1psifkappar
+! ============
+vectype function p1psifkappar(e,f,g,h,i,j,k)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j,k
+  vectype :: temp
+
+  if(gam.eq.1.) then
+     p1psifkappar = 0.
+     return
+  end if
+
+#ifdef USECOMPLEX
+  if(surface_int) then
+     temp79a = k(:,OP_1)*ri_79*e(:,OP_1)* &
+          (norm79(:,2)*f(:,OP_DR) - norm79(:,1)*f(:,OP_DZ))*j(:,OP_1)
+     temp79b = -k(:,OP_1)*ri_79*e(:,OP_1)* &
+          (norm79(:,2)*g(:,OP_DZP) + norm79(:,1)*g(:,OP_DRP))*j(:,OP_1)
+
+     temp = int4(temp79a,g(:,OP_DZP),h(:,OP_DZ),i(:,OP_1 )) &
+          + int4(temp79a,g(:,OP_DRP),h(:,OP_DR),i(:,OP_1 )) &
+          + int4(temp79a,g(:,OP_DZP),h(:,OP_1 ),i(:,OP_DZ)) &
+          + int4(temp79a,g(:,OP_DRP),h(:,OP_1 ),i(:,OP_DR)) &
+          + int4(temp79b,f(:,OP_DR ),h(:,OP_DZ),i(:,OP_1 )) &
+          - int4(temp79b,f(:,OP_DZ ),h(:,OP_DR),i(:,OP_1 )) &
+          + int4(temp79b,f(:,OP_DR ),h(:,OP_1 ),i(:,OP_DZ)) &
+          - int4(temp79b,f(:,OP_DZ ),h(:,OP_1 ),i(:,OP_DR))
+  else
+     temp79a = k(:,OP_1)*ri_79* &
+          (e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))*j(:,OP_1)
+     temp79b = k(:,OP_1)*ri_79* &
+          (e(:,OP_DZ)*g(:,OP_DZP) + e(:,OP_DR)*g(:,OP_DRP))*j(:,OP_1)
+
+     temp = int4(temp79a,g(:,OP_DZP),h(:,OP_DZ),i(:,OP_1 )) &
+          + int4(temp79a,g(:,OP_DRP),h(:,OP_DR),i(:,OP_1 )) &
+          + int4(temp79a,g(:,OP_DZP),h(:,OP_1 ),i(:,OP_DZ)) &
+          + int4(temp79a,g(:,OP_DRP),h(:,OP_1 ),i(:,OP_DR)) &
+          + int4(temp79b,f(:,OP_DR ),h(:,OP_DZ),i(:,OP_1 )) &
+          - int4(temp79b,f(:,OP_DZ ),h(:,OP_DR),i(:,OP_1 )) &
+          + int4(temp79b,f(:,OP_DR ),h(:,OP_1 ),i(:,OP_DZ)) &
+          - int4(temp79b,f(:,OP_DZ ),h(:,OP_1 ),i(:,OP_DR))
+  end if
+#else
+  temp = 0.
+#endif
+
+  p1psifkappar = (gam - 1.) * temp
+  return
+end function p1psifkappar
+
+
+! P1bfkappar
+! ============
+vectype function p1bfkappar(e,f,g,h,i,j,k)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j,k
+  vectype :: temp
+
+  if(gam.eq.1.) then
+     p1bfkappar = 0.
+     return
+  end if
+
+#ifdef USECOMPLEX
+  if(surface_int) then
+     temp79a = -ri2_79*k(:,OP_1)*j(:,OP_1)*e(:,OP_1)*f(:,OP_1)* &
+          (norm79(:,1)*g(:,OP_DRP) + norm79(:,2)*g(:,OP_DZP))
+
+     temp = int3(temp79a,h(:,OP_DP),i(:,OP_1 )) &
+          + int3(temp79a,h(:,OP_1 ),i(:,OP_DP))
+  else
+     temp79a = k(:,OP_1)*ri2_79*f(:,OP_1)* &
+          (e(:,OP_DZ)*g(:,OP_DZP) + e(:,OP_DR)*g(:,OP_DRP))*j(:,OP_1)
+
+     temp = int3(temp79a,h(:,OP_DP),i(:,OP_1 )) &
+          + int3(temp79a,h(:,OP_1 ),i(:,OP_DP))
+  end if
+#else
+  temp = 0.
+#endif
+
+  p1bfkappar = (gam - 1.) * temp
+  return
+end function p1bfkappar
 
 
 ! P1kappax

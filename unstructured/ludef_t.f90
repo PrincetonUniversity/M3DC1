@@ -1585,41 +1585,72 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
 
   ! Anisotropic Heat Flux
   if(kappar.ne.0.) then
+     ! Assumes no contribution from equilibrium f
+
      if(linear.eq.0) then
-        temp = (p1kappar(trial,lin,ps179,pe179,ni79,b2i79,kar79) &
-             +  p1kappar(trial,ps179,lin,pe179,ni79,b2i79,kar79))
+        temp = p1psipsikappar(trial,lin,ps179,pe179,ni79,b2i79,kar79) &
+             + p1psipsikappar(trial,ps179,lin,pe179,ni79,b2i79,kar79) &
+             + p1psibkappar  (trial,lin,bz179,pe179,ni79,b2i79,kar79)
         ssterm(psi_g) = ssterm(psi_g) -          thimp     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (1./3. - thimp*bdf)*dt*temp
+
+        temp = p1psibkappar  (trial,ps179,lin,pe179,ni79,b2i79,kar79)
+        ssterm(bz_g) = ssterm(bz_g) -          thimp     *dt*temp
+        ddterm(bz_g) = ddterm(bz_g) + (1./3. - thimp*bdf)*dt*temp
         
-        temp = p1kappar(trial,ps179,ps179,lin,ni79,b2i79,kar79)
+        temp = p1psipsikappar(trial,ps179,ps179,lin,ni79,b2i79,kar79) &
+             + p1psibkappar  (trial,ps179,bz179,lin,ni79,b2i79,kar79)
         ssterm(pe_g) = ssterm(pe_g) -          thimp     *dt*temp
         ddterm(pe_g) = ddterm(pe_g) + (1./3. - thimp*bdf)*dt*temp
      endif
 
      if(eqsubtract.eq.1) then 
-        temp = (p1kappar(trial,lin,ps079,pe079,ni79,b2i79,kar79) &
-             +  p1kappar(trial,ps079,lin,pe079,ni79,b2i79,kar79))
+        temp = p1psipsikappar(trial,lin,ps079,pe079,ni79,b2i79,kar79) &
+             + p1psipsikappar(trial,ps079,lin,pe079,ni79,b2i79,kar79) &
+             + p1psibkappar  (trial,lin,bz079,pe079,ni79,b2i79,kar79)
         ssterm(psi_g) = ssterm(psi_g) -       thimp     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (1. - thimp*bdf)*dt*temp
 
-        temp = p1kappar(trial,ps079,ps079,lin,ni79,b2i79,kar79)
+        temp = p1psibkappar  (trial,ps079,lin,pe079,ni79,b2i79,kar79)
+        ssterm(bz_g) = ssterm(bz_g) -       thimp     *dt*temp
+        ddterm(bz_g) = ddterm(bz_g) + (1. - thimp*bdf)*dt*temp
+
+        temp = p1psipsikappar(trial,ps079,ps079,lin,ni79,b2i79,kar79) &
+             + p1psibkappar  (trial,ps079,bz079,lin,ni79,b2i79,kar79)
         ssterm(pe_g) = ssterm(pe_g) -       thimp     *dt*temp
         ddterm(pe_g) = ddterm(pe_g) + (1. - thimp*bdf)*dt*temp      
 
         if(linear.eq.0) then 
-           temp = (p1kappar(trial,lin,ps179,pe079,ni79,b2i79,kar79) &
-                +  p1kappar(trial,lin,ps079,pe179,ni79,b2i79,kar79) &
-                +  p1kappar(trial,ps179,lin,pe079,ni79,b2i79,kar79) &
-                +  p1kappar(trial,ps079,lin,pe179,ni79,b2i79,kar79))
+           temp = p1psipsikappar(trial,lin,ps179,pe079,ni79,b2i79,kar79) &
+                + p1psipsikappar(trial,lin,ps079,pe179,ni79,b2i79,kar79) &
+                + p1psipsikappar(trial,ps179,lin,pe079,ni79,b2i79,kar79) &
+                + p1psipsikappar(trial,ps079,lin,pe179,ni79,b2i79,kar79) &
+                + p1psibkappar  (trial,lin,bz179,pe079,ni79,b2i79,kar79) &
+                + p1psibkappar  (trial,lin,bz179,pe179,ni79,b2i79,kar79)
            ssterm(psi_g) = ssterm(psi_g) -          thimp     *dt*temp
            ddterm(psi_g) = ddterm(psi_g) + (1./2. - thimp*bdf)*dt*temp
+
+           temp = p1psibkappar  (trial,ps179,lin,pe079,ni79,b2i79,kar79) &
+                + p1psibkappar  (trial,ps079,lin,pe179,ni79,b2i79,kar79)
+           ssterm(bz_g) = ssterm(bz_g) -          thimp     *dt*temp
+           ddterm(bz_g) = ddterm(bz_g) + (1./2. - thimp*bdf)*dt*temp
            
-           temp = p1kappar(trial,ps179,ps079,lin,ni79,b2i79,kar79) &
-                + p1kappar(trial,ps079,ps179,lin,ni79,b2i79,kar79)
+           temp = p1psipsikappar(trial,ps179,ps079,lin,ni79,b2i79,kar79) &
+                + p1psipsikappar(trial,ps079,ps179,lin,ni79,b2i79,kar79) &
+                + p1psibkappar  (trial,ps179,bz079,lin,ni79,b2i79,kar79) &
+                + p1psibkappar  (trial,ps079,bz179,lin,ni79,b2i79,kar79)
            ssterm(pe_g) = ssterm(pe_g) -          thimp     *dt*temp
            ddterm(pe_g) = ddterm(pe_g) + (1./2. - thimp*bdf)*dt*temp      
         endif
      endif   
+
+     if(i3d.eq.1) then
+        if(eqsubtract.eq.1) then
+           q_bf = q_bf + dt* &
+                (p1psifkappar(trial,ps079,lin,pe079,ni79,b2i79,kar79) &
+                +p1bfkappar  (trial,bz079,lin,pe079,ni79,b2i79,kar79))
+        endif
+     endif
   endif
 
   ! Cross-field Heat Flux
@@ -1709,7 +1740,8 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
      q_ni = q_ni + dt* &
           (b3pepsid(trial,pe079,ps079,lin)*dbf*pefac &
           +b3pebd  (trial,pe079,bz079,lin)*dbf*pefac &
-          +p1kappar(trial,ps079,ps079,pe079,lin,b2i79,kar79))
+          +p1psipsikappar(trial,ps079,ps079,pe079,lin,b2i79,kar79) &
+          +p1psibkappar  (trial,ps079,bz079,pe079,lin,b2i79,kar79))
   endif
 
 end subroutine electron_pressure_lin
@@ -2732,7 +2764,7 @@ subroutine ludefpres_n(itri)
         if(numvar.ge.3) then
            temp = p1pchi    (g79(:,:,i),g79(:,:,j),cht79) &
                 + b3pedkappa(g79(:,:,i),g79(:,:,j),ni79,kap79,hp) &
-                + p1kappar  (g79(:,:,i),pst79,pst79,g79(:,:,j),ni79,b2i79,kar79) &
+                + p1psipsikappar(g79(:,:,i),pst79,pst79,g79(:,:,j),ni79,b2i79,kar79) &
                 + p1kappax  (g79(:,:,i),g79(:,:,j),bzt79,ni79,kax79)
            ssterm = ssterm -     thimp     *dt*temp
            ddterm = ddterm + (1.-thimp*bdf)*dt*temp
@@ -2816,7 +2848,7 @@ subroutine ludefpres_n(itri)
         if(eqsubtract.eq.1) then
            psource(ione) = psource(ione) + dt* &
                 (b3pedkappa(g79(:,:,i),p079,ni79,kap79,hp) &
-                +p1kappar  (g79(:,:,i),ps079,ps079,p079,ni79,b2i79,kar79) &
+                +p1psipsikappar(g79(:,:,i),ps079,ps079,p079,ni79,b2i79,kar79) &
                 +p1kappax  (g79(:,:,i),pe079,bz079,ni79,kax79) &
                 +p1uus    (g79(:,:,i),ph079,ph079,sig79) &
                 +p1vvs    (g79(:,:,i),vz079,vz079,sig79) &
