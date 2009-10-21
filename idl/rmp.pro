@@ -1,11 +1,12 @@
 pro plot_br, _EXTRA=extra, plotq=plotq, bins=bins, usepsi=usepsi, $
              subtract_vacuum=subtract_vacuum, vacuum=vacuum, ntor=ntor, $
-             plotbn=plotbn
+             plotbn=plotbn, slice=slice
 
    if(n_elements(ntor) eq 0) then begin
        ntor = read_parameter('ntor', _EXTRA=extra)
    endif
    print, 'ntor = ', ntor
+   if(n_elements(slice) eq 0) then last=1
 
    ; convert result to Tesla / radian
    get_normalizations, b0=b0, n0=n0, l0=l0, _EXTRA=extra
@@ -21,8 +22,10 @@ pro plot_br, _EXTRA=extra, plotq=plotq, bins=bins, usepsi=usepsi, $
 ;       psi1r = (psi1r + psi1r2)/2.
        psi1i = psi1r*0.
    endif else begin
-       bx = read_field('bx',x,z,t,/last,/linear,_EXTRA=extra, /complex)
-       by = read_field('by',x,z,t,/last,/linear,_EXTRA=extra, /complex)
+       bx = read_field('bx',x,z,t,last=last,slice=slice, $
+                       /linear,_EXTRA=extra, /complex)
+       by = read_field('by',x,z,t,last=last,slice=slice, $
+                       /linear,_EXTRA=extra, /complex)
        i0 = read_field('i',x,z,t,slice=-1,_EXTRA=extra)
    endelse
 

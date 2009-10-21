@@ -1071,7 +1071,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                      h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                      diff=diff, operation=op, complex=complex, $
                      linear=linear, last=last, average=average, $
-                     dpsi=dpsi, symbol=symbol, units=units, cgs=cgs, mks=mks
+                     dpsi=dpsi, symbol=symbol, units=units, cgs=cgs, mks=mks, $
+                     real=real, imaginary=imag
 
    if(n_elements(slices) ne 0) then time=slices
 
@@ -1138,6 +1139,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    nt = read_parameter("ntime", filename=filename)
    nv = read_parameter("numvar", filename=filename)
    itor = read_parameter("itor", filename=filename)
+   ntor = read_parameter("ntor", filename=filename)
    version = read_parameter('version', filename=filename)
    ivform = read_parameter('ivform', filename=filename)
    if(version eq 0) then begin
@@ -1412,11 +1414,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    ; toroidal current
    ;===========================================
-   endif else if(strcmp('jz', name, /fold_case) eq 1) then begin
-
-;       jphi = read_field('jphi', x, y, t, slices=time, mesh=mesh, $
-;                         filename=filename, points=pts, mask=mask, $
-;                         rrange=xrange, zrange=yrange)
+   endif else if(strcmp('jy', name, /fold_case) eq 1) then begin
 
        lp = read_field('psi', x, y, t, slices=time, mesh=mesh, op=7, $
                          filename=filename, points=pts, mask=mask, $
@@ -1603,7 +1601,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    ; (minor) radial current density
    ;===========================================
-   endif else if(strcmp('jr', name, /fold_case) eq 1) then begin
+   endif else if(strcmp('jn', name, /fold_case) eq 1) then begin
        
        psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
@@ -1617,8 +1615,69 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        endif else r = 1.
        
        data = a_bracket(i,psi,x,y)/(r*sqrt(s_bracket(psi,psi,x,y)))
-       symbol = '!8J!Dr!N!X'
+       symbol = '!8J!Dn!N!X'
        d = dimensions(/j0,_EXTRA=extra)
+
+   ;===========================================
+   ; (major) radial current density
+   ;===========================================
+   endif else if(strcmp('jr', name, /fold_case) eq 1) then begin
+       
+       i_z = read_field('i', x, y, t, slices=time, mesh=mesh, op=3, $
+                      filename=filename, points=pts, linear=linear, $
+                      rrange=xrange, zrange=yrange, complex=complex)
+
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+
+       data = -i_z / r
+
+       if(ntor ne 0) then begin
+           psi_r = read_field('psi', x, y, t, slices=time, mesh=mesh, op=2, $
+                            filename=filename, points=pts, linear=linear, $
+                            rrange=xrange, zrange=yrange, complex=complex)
+
+           f_z = read_field('f', x, y, t, slices=time, mesh=mesh, op=3, $
+                          filename=filename, points=pts, linear=linear, $
+                          rrange=xrange, zrange=yrange, complex=complex)
+
+           data = data + ntor^2 * f_z / r + complex(0., ntor)*psi_r/r^2
+       endif
+       
+       symbol = '!8J!DR!N!X'
+       d = dimensions(/j0,_EXTRA=extra)
+
+   ;===========================================
+   ; vertical current density
+   ;===========================================
+   endif else if(strcmp('jz', name, /fold_case) eq 1) then begin
+       
+       i_r = read_field('i', x, y, t, slices=time, mesh=mesh, op=2, $
+                      filename=filename, points=pts, linear=linear, $
+                      rrange=xrange, zrange=yrange, complex=complex)
+
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+
+       data = i_r / r
+
+       if(ntor ne 0) then begin
+           psi_z = read_field('psi', x, y, t, slices=time, mesh=mesh, op=3, $
+                            filename=filename, points=pts, linear=linear, $
+                            rrange=xrange, zrange=yrange, complex=complex)
+
+           f_r = read_field('f', x, y, t, slices=time, mesh=mesh, op=2, $
+                          filename=filename, points=pts, linear=linear, $
+                          rrange=xrange, zrange=yrange, complex=complex)
+
+           data = data - ntor^2 * f_r / r + complex(0., ntor)*psi_z/r^2
+       endif
+       
+       symbol = '!8J!DZ!N!X'
+       d = dimensions(/j0,_EXTRA=extra)
+
 
    ;===========================================
    ; poloidal current density
@@ -2212,7 +2271,12 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    convert_units, y, dimensions(/l0), b0, n0, l0, cgs=cgs, mks=mks
    units = parse_units(d, cgs=cgs, mks=mks)
 
-   if(not keyword_set(complex)) then data = real_part(data)
+   if(not keyword_set(complex)) then begin
+       data = real_part(data)
+   endif else begin
+       if(keyword_set(real)) then data=real_part(data)
+       if(keyword_set(imag)) then data=imaginary(data)
+   endelse
 
 ;   if(n_elements(mask) ne 0) then data = data * (1. - mask)
 
@@ -4251,7 +4315,6 @@ pro plot_flux_average, field, time, filename=filename, $
            ls = indgen(nfiles)
            colors = replicate(color(0,1), nfiles)
        endif else begin
-           print, 'hello'
            if(n_elements(c) eq 0) then colors = colors(nfiles)
            ls = replicate(0,nfiles)
        endelse
@@ -4317,7 +4380,7 @@ pro plot_flux_average, field, time, filename=filename, $
        return
    endif
 
-   ytitle = symbol
+   ytitle = '!12<!X' + symbol + '!12>!X'
    if(strlen(units) gt 0) then ytitle = ytitle + '!6 ('+units+ '!6)!X'
 
    if(keyword_set(rms)) then begin
@@ -4329,7 +4392,7 @@ pro plot_flux_average, field, time, filename=filename, $
        ytitle = '!9S!6(1 - !12<' + symbol + '!12>!U2!n/!12<' + $
          symbol + '!6!U2!N!12>!6)!X'
        title = '!6Poloidal Deviation of ' + title + '!X'
-   end
+   endif
 
 
 ;   if(t gt 0) then begin
@@ -4720,6 +4783,13 @@ pro write_geqdsk, eqfile=eqfile, b0=b0, l0=l0, $
   qsaws=  0.5000E+00
   psimins=min(flux)
   psilims=max(flux)
+
+  ; jsolver wants boundary points in clockwise direction
+  if(ifixedb eq 1) then begin
+      print, 'Reversing boundary points'
+      rlim = reverse(rlim)
+      zlim = reverse(zlim)
+  end
 
   f2201 = '(20x,10a8)'
   f6100 = '(5i10)'

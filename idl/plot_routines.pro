@@ -57,18 +57,49 @@ pro ct2
 end
 
 
+pro ct3
+    n = 10
+    rgb = bytarr(n,3)
+
+    rgb[0,*] = [  0,   0,   0]
+    rgb[1,*] = [255,   0,   0]
+    rgb[2,*] = [  0,   0, 255]
+    rgb[3,*] = [  0, 192,   0]
+    rgb[4,*] = [128,   0, 128]
+    rgb[5,*] = [255, 128,   0]
+    rgb[6,*] = [  0, 192, 192]
+    rgb[7,*] = [192, 192,   0]
+    rgb[8,*] = [ 64, 128,  64]
+    rgb[9,*] = [255, 255, 255]
+
+    dx = !d.table_size/n
+    rgb_big = bytarr(!d.table_size, 3)
+    rgb_big[*] = 255.
+    for i=0, n-1 do begin
+        for j=i*dx, (i+1)*dx-1 do rgb_big[j,*] = rgb[i,*]
+    end
+
+    tvlct, rgb_big
+end
+
+
+
 function colors, maxcolors
 
-    if(maxcolors gt 6) then begin
-        c = (indgen(maxcolors) - 1) * (!d.table_size-3) / (maxcolors - 1)
-    endif else begin
-        c = intarr(6)
-        c[1] = !d.table_size*0.4
-        c[2] = !d.table_size*0.8
-        c[3] = !d.table_size*0.6
-        c[4] = !d.table_size*0.1
-        c[5] = !d.table_size*0.45
-    endelse
+   if(n_elements(maxcolors) eq 0) then maxcolors=10
+
+;    if(maxcolors gt 7) then begin
+        c = indgen(maxcolors) * !d.table_size / maxcolors
+;     endif else begin
+;         print, 'hello'
+;         c = intarr(7)
+;         c[1] = !d.table_size*0.4
+;         c[2] = !d.table_size*0.8
+;         c[3] = !d.table_size*0.6
+;         c[4] = !d.table_size*0.1
+;         c[5] = !d.table_size*0.45
+;         c[6] = !d.table_size*0.25
+;     endelse
 
     if (1 EQ strcmp(!d.name, 'PS')) then begin
         c[0] = 0
