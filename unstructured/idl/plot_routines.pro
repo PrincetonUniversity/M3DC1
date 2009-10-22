@@ -27,6 +27,14 @@ end
 
 pro ct2
     x = indgen(64)
+    x[0] = 4
+    x[1] = 4
+    x[2] = 4
+    x[4] = 4
+    x[60] = 60
+    x[61] = 60
+    x[62] = 60
+    x[63] = 60
     r = bytarr(256)
     g = bytarr(256)
     b = bytarr(256)
@@ -87,27 +95,17 @@ end
 function colors, maxcolors
 
    if(n_elements(maxcolors) eq 0) then maxcolors=10
+   mc = max([maxcolors,10])
 
-;    if(maxcolors gt 7) then begin
-        c = indgen(maxcolors) * !d.table_size / maxcolors
-;     endif else begin
-;         print, 'hello'
-;         c = intarr(7)
-;         c[1] = !d.table_size*0.4
-;         c[2] = !d.table_size*0.8
-;         c[3] = !d.table_size*0.6
-;         c[4] = !d.table_size*0.1
-;         c[5] = !d.table_size*0.45
-;         c[6] = !d.table_size*0.25
-;     endelse
+   c = indgen(mc) * !d.table_size / mc
 
-    if (1 EQ strcmp(!d.name, 'PS')) then begin
-        c[0] = 0
-    endif else begin
-        c[0] = !d.table_size-1
-    endelse    
-    
-    return, c[0:maxcolors-1]
+   if (1 EQ strcmp(!d.name, 'PS')) then begin
+       c[0] = 0
+   endif else begin
+       c[0] = !d.table_size-1
+   endelse    
+   
+   return, c[0:maxcolors-1]
 end
 
 

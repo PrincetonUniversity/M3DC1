@@ -114,7 +114,9 @@ pro plot_br, _EXTRA=extra, plotq=plotq, bins=bins, usepsi=usepsi, $
      _EXTRA=extra
 
    if(keyword_set(plotq)) then begin
-       ntor = 3
+;       q = flux_average('q', psi0=psi0, x=x, z=z, t=t, /equilibrium, $
+;                       nflux=nflux, bins=bins, points=points, _EXTRA=extra)
+
        oplot, ntor*q, sqrt(nflux), linestyle=2, color=!d.table_size-1
        oplot, -ntor*q, sqrt(nflux), linestyle=2, color=!d.table_size-1
    endif

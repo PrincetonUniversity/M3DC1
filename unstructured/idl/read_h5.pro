@@ -601,7 +601,7 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
    endif  
 
    loadct, 12
-   col = color(3,5)
+   col = color(6,10)
  
    version = read_parameter('version', _EXTRA=ex)
    if(version eq 0) then begin
@@ -1074,7 +1074,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                      dpsi=dpsi, symbol=symbol, units=units, cgs=cgs, mks=mks, $
                      real=real, imaginary=imag
 
-   if(n_elements(slices) ne 0) then time=slices
+   if(n_elements(slices) ne 0) then time=slices else time=0
 
    if(keyword_set(average)) then begin
        if(n_elements(filename) gt 1) then begin
@@ -1134,7 +1134,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
    print, 'reading field ', name, ' from file ', filename, $
      ' linear=', keyword_set(linear), $
-     ' points=', pts
+     ' points=', pts, $
+     ' slices=', time
 
    nt = read_parameter("ntime", filename=filename)
    nv = read_parameter("numvar", filename=filename)
@@ -1264,7 +1265,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        idens = read_parameter('idens', filename=filename)
 
        Temp = read_field('T',x,y,t,slices=time, mesh=mesh, $
-                      filename=filename, points=pts, $
+                      filename=filename, points=pts, linear=linear, $
                       rrange=xrange, zrange=yrange)
          
        data = sqrt(Temp)
@@ -2178,6 +2179,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        ; try to read it directly from C1.h5 file
 
        if(keyword_set(complex)) then begin
+           print, 'Reading complex field'
            data_r = read_field(name, x, y, t, slices=time, mesh=mesh, $
                                filename=filename, points=pts, $
                                rrange=xrange, zrange=yrange, complex=0, $
@@ -2199,7 +2201,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        file_id = h5f_open(filename)
 
        if((max(trange) ge 0) and $
-          (ilin eq 1) and (not keyword_set(linear))) then begin
+          (ilin eq 1) and (not keyword_set(linear)))  then begin
+           print, 'Reading base field', trange
            base = read_field(name, x, y, t, slices=-1, mesh=mesh, $
                              filename=filename, points=pts, $
                              rrange=xrange, zrange=yrange, $
@@ -2667,6 +2670,9 @@ function lcfs, psi, x, z, axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra
         psilim = find_lcfs(psi, x, z,axis=axis, xpoint=xpoint, flux0=flux0, $
                            _EXTRA=extra)
     endelse 
+
+    ifixedb = read_parameter('ifixedb', _EXTRA=extra)
+    if(ifixedb eq 1) then psilim = 0.
 
     print, 'LCFS: '
     print, ' Magnetic axis found at ', axis
@@ -3138,7 +3144,7 @@ pro plot_lcfs, psi, x, z, psival=psival,_EXTRA=extra
     ; plot contour
     loadct, 12
 ;    contour, psi, x, z, /overplot, nlevels=1, levels=psival, $
-;      thick=!p.charthick*2., color=color(3,5)
+;      thick=!p.charthick*2., color=color(6,10)
     xy = path_at_flux(psi, x, z, t, psival, breaks=breaks)
 
     n = n_elements(breaks)
@@ -3146,19 +3152,19 @@ pro plot_lcfs, psi, x, z, psival=psival,_EXTRA=extra
 
     if(breaks[0] ne -1) then begin
         oplot, xy[0,0:breaks[0]], xy[1,0:breaks[0]], $
-          thick=!p.thick, color=color(3,5)
+          thick=!p.thick, color=color(6,5)
         if(n ge 2) then begin
             for i=1, n-2 do begin
                 oplot, xy[0,breaks[i-1]:breaks[i]], $
                   xy[1,breaks[i-1]:breaks[i]], $
-                  thick=!p.thick, color=color(3,5)
+                  thick=!p.thick, color=color(6,5)
             endfor
         endif
         oplot, xy[0,breaks[n-1]:nxy-1], xy[1,breaks[n-1]:nxy-1], $
-          thick=!p.thick, color=color(3,5)
+          thick=!p.thick, color=color(6,10)
 
     endif else begin
-        oplot, xy[0,*], xy[1,*], thick=!p.thick, color=color(3,5)
+        oplot, xy[0,*], xy[1,*], thick=!p.thick, color=color(6,10)
     endelse
 end
 
@@ -4263,7 +4269,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
            if(keyword_set(boundary)) then plotmesh=1
            if(keyword_set(plotmesh)) then begin
                loadct, 12
-               plot_mesh, mesh=mesh, color=color(3,5), /oplot, $
+               plot_mesh, mesh=mesh, color=color(6,10), /oplot, $
                  boundary=boundary, _EXTRA=ex
            endif
            
@@ -4300,7 +4306,8 @@ pro plot_flux_average, field, time, filename=filename, $
                        lcfs=lcfs, normalized_flux=norm, points=pts, $
                        minor_radius=minor_radius, smooth=sm, t=t, rms=rms, $
                        bw=bw, srnorm=srnorm, last=last, mks=mks, cgs=cgs, $
-                       q_contours=q_contours, _EXTRA=extra
+                       q_contours=q_contours, $
+                       multiply_flux=multiply_flux, _EXTRA=extra
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
@@ -4319,6 +4326,8 @@ pro plot_flux_average, field, time, filename=filename, $
            ls = replicate(0,nfiles)
        endelse
        if(n_elements(time) eq 1) then time = replicate(time,nfiles)
+       if(n_elements(multiply_flux) eq 1) then $
+         multiply_flux = replicate(multiply_flux,nfiles)
 
        for i=0, nfiles-1 do begin
            newfield = field
@@ -4327,7 +4336,7 @@ pro plot_flux_average, field, time, filename=filename, $
              color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
              normalized_flux=norm, minor_radius=minor_radius, smooth=sm, $
              rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, $
-             linear=linear
+             linear=linear, multiply_flux=multiply_flux[i]
        end
        if(n_elements(names) gt 0) then begin
            plot_legend, names, color=colors, ylog=ylog, xlog=xlog, $
@@ -4355,7 +4364,7 @@ pro plot_flux_average, field, time, filename=filename, $
              color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
              normalized_flux=norm, minor_radius=minor_radius, smooth=sm, $
              t=t, rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, $
-             linear=linear
+             linear=linear, multiply_flux=multiply_flux
            names[i] = string(format='(%"!8t!6 = %d !7s!D!8A!N!X")', t)
        end
 
@@ -4394,15 +4403,11 @@ pro plot_flux_average, field, time, filename=filename, $
        title = '!6Poloidal Deviation of ' + title + '!X'
    endif
 
-
-;   if(t gt 0) then begin
-;       title = "!12<" + title + $
-;        string(FORMAT='("!6(!8t!6 = ",G0," !7s!D!8A!N!6)!12>!7!Dw!N!X")',t)
-;   endif else begin
-;       title = "!12<!8" + title + $
-;         string(FORMAT='("!6(!8t!6 = ",G0,")!3!12>!7!Dw!N!X")', t)
-;   endelse
-;   title = "!12<" + title + "!12>!7!Dw!N!X"
+   if(n_elements(multiply_flux) ne 0) then begin
+       print, 'multiplying flux by', multiply_flux
+       flux = flux*multiply_flux
+       nflux=nflux*multiply_flux
+   end
 
    if(keyword_set(norm)) then begin
        flux = nflux
@@ -4413,7 +4418,7 @@ pro plot_flux_average, field, time, filename=filename, $
        flux = sqrt(nflux)
        xtitle = '!9r!7W!X'
        lcfs_psi = 1.
-   end       
+   end
 
    if(keyword_set(minor_radius)) then begin
        flux = flux_average('r',points=pts,file=filename,t=t,linear=linear,$
@@ -4541,9 +4546,15 @@ pro write_geqdsk, eqfile=eqfile, b0=b0, l0=l0, $
 
   ; calculate flux averages
   psi = read_field('psi',x,z,t,mesh=mesh,/equilibrium,_EXTRA=extra)
+  psi_r = read_field('psi',x,z,t,mesh=mesh,/equilibrium,op=2,_EXTRA=extra)
+  psi_z = read_field('psi',x,z,t,mesh=mesh,/equilibrium,op=3,_EXTRA=extra)
   jphi= read_field('jphi',x,z,t,/equilibrium,_EXTRA=extra)
   p0 = read_field('p',x,z,t,/equilibrium,_EXTRA=extra)
+  p0_r = read_field('p',x,z,t,/equilibrium,op=2,_EXTRA=extra)
+  p0_z = read_field('p',x,z,t,/equilibrium,op=3,_EXTRA=extra)
   I0 = read_field('I',x,z,t,/equilibrium,_EXTRA=extra)
+  I0_r = read_field('I',x,z,t,/equilibrium,op=2,_EXTRA=extra)
+  I0_z = read_field('I',x,z,t,/equilibrium,op=3,_EXTRA=extra)
   r = radius_matrix(x,z,t)
   beta = r^2*2.*p0/(s_bracket(psi,psi,x,z) + I0^2)
   beta0 = mean(2.*p0*r^2/(bzero*rzero)^2)
@@ -4562,11 +4573,11 @@ pro write_geqdsk, eqfile=eqfile, b0=b0, l0=l0, $
 
   ; calculate wall points
   bound_xy = get_boundary_path(mesh=mesh, _EXTRA=extra)
-  nwall = n_elements(bound_xy[0,*])
+  nwall = n_elements(reform(bound_xy[0,*]))
   rwall = fltarr(nwall)
   zwall = fltarr(nwall)
-  rwall = bound_xy[0,*]
-  zwall = bound_xy[1,*]
+  rwall[*] = bound_xy[0,*]
+  zwall[*] = bound_xy[1,*]
 
   ifixedb = read_parameter('ifixedb', _EXTRA=extra)
   print, 'ifixedb = ', ifixedb
@@ -4641,26 +4652,20 @@ pro write_geqdsk, eqfile=eqfile, b0=b0, l0=l0, $
       
   oplot, rlim, zlim, psym=4
  
+  r2bp = psi_r^2 + psi_z^2
 
   ; calculate flux averages
-  p = flux_average_field(p0,psi,x,z,flux=flux,$
-                   limiter=limiter,_EXTRA=extra)
-  pp = s_bracket(p0,psi,x,z)/s_bracket(psi,psi,x,z)
-  pprime = flux_average_field(pp,psi,x,z,flux=flux,$
-                 limiter=limiter,_EXTRA=extra)
-  I = flux_average_field(I0,psi,x,z,flux=flux,$
-                   limiter=limiter,_EXTRA=extra)
-  ffp = I0*s_bracket(I0,psi,x,z)/s_bracket(psi,psi,x,z)
-  ffprim = flux_average_field(ffp,psi,x,z,flux=flux,$
-                   limiter=limiter,_EXTRA=extra)
-  q = flux_average('q',slice=time,psi=psi,x=x,z=z,t=t,flux=flux, $
-                   limiter=limiter,_EXTRA=extra)
+  p = flux_average_field(p0,psi,x,z,flux=flux,_EXTRA=extra)
+  pp = (p0_r*psi_r + p0_z*psi_z)/r2bp
+  pprime = flux_average_field(pp,psi,x,z,flux=flux,_EXTRA=extra)
+  I = flux_average_field(I0,psi,x,z,flux=flux,_EXTRA=extra)
+  ffp = I0*(I0_r*psi_r + I0_z*psi_z)/r2bp
+  ffprim = flux_average_field(ffp,psi,x,z,flux=flux,_EXTRA=extra)
+  q = flux_average('q',slice=time,psi=psi,x=x,z=z,t=t,flux=flux,_EXTRA=extra)
 ;  q = smooth(q,5,/edge)
-  jb = (s_bracket(I0,psi,x,z) - jphi*I0)/r^2
-  jdotb = flux_average_field(jb,psi,x,z,t,flux=flux,$
-                   limiter=limiter,_EXTRA=extra)
-  r2i = flux_average_field(1./r^2,psi,x,z,flux=flux,$
-                   limiter=limiter,_EXTRA=extra)
+  jb = (I0_z*psi_r - I0_r*psi_z - jphi*I0)/r^2
+  jdotb = flux_average_field(jb,psi,x,z,t,flux=flux,_EXTRA=extra)
+  r2i = flux_average_field(1./r^2,psi,x,z,flux=flux,_EXTRA=extra)
 
   betacent = field_at_point(beta[0,*,*], x, z, axis[0], axis[1])
 
@@ -4811,7 +4816,7 @@ pro write_geqdsk, eqfile=eqfile, b0=b0, l0=l0, $
   printf, file, format=f6101, flux[0:npsit-1] - flux[0]
   printf, file, format=f6101, rlim
   printf, file, format=f6101, zlim
-  
+
   close, file
 
   window, 1
@@ -4835,5 +4840,7 @@ pro write_geqdsk, eqfile=eqfile, b0=b0, l0=l0, $
 
  
   !p.multi=0
+
+  window, 0
 
 end

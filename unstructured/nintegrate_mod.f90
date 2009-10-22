@@ -919,18 +919,43 @@ subroutine define_fields(itri, fields, gdef, ilin)
      temp79a = ri2_79* &
           (pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2 + bzt79(:,OP_1)**2)
 
-     b2i79(:,OP_1 ) = 1./temp79a
-     b2i79(:,OP_DR) = -2.*b2i79(:,OP_1)**2 * ri2_79 * &
+#ifdef USECOMPLEX
+     temp79b = &
+          (bft79(:,OP_DRP)**2 + bft79(:,OP_DZP)**2) &
+          + ri_79* &
+          (pst79(:,OP_DZ)*bft79(:,OP_DRP) - pst79(:,OP_DR)*bft79(:,OP_DZP))
+#endif
+
+     b2i79(:,OP_1 ) = 1./(temp79a + temp79b)
+     b2i79(:,OP_DR) = ri2_79 * &
           (pst79(:,OP_DR)*pst79(:,OP_DRR) + pst79(:,OP_DZ)*pst79(:,OP_DRZ) &
           +bzt79(:,OP_1 )*bzt79(:,OP_DR ))
-     b2i79(:,OP_DZ) = -2.*b2i79(:,OP_1)**2 * ri2_79 * &
+     b2i79(:,OP_DZ) = ri2_79 * &
           (pst79(:,OP_DR)*pst79(:,OP_DRZ) + pst79(:,OP_DZ)*pst79(:,OP_DZZ) &
           +bzt79(:,OP_1 )*bzt79(:,OP_DZ ))
 
      if(itor.eq.1) then 
-        b2i79(:,OP_DR) = b2i79(:,OP_DR) + 2.*b2i79(:,OP_1)*ri_79
+        b2i79(:,OP_DR) = b2i79(:,OP_DR) - ri_79*temp79a
      endif
 
+#ifdef USECOMPLEX
+     b2i79(:,OP_DR) = b2i79(:,OP_DR) + ri_79* &
+          (pst79(:,OP_DZ )*bft79(:,OP_DRRP)-pst79(:,OP_DR )*bft79(:,OP_DRZP) &
+          +pst79(:,OP_DRZ)*bft79(:,OP_DRP )-pst79(:,OP_DRR)*bft79(:,OP_DZP ))&
+          +bft79(:,OP_DRRP)*bft79(:,OP_DRP)+bft79(:,OP_DRZP)*bft79(:,OP_DZP)
+     b2i79(:,OP_DZ) = b2i79(:,OP_DZ) + ri_79* &
+          (pst79(:,OP_DZ )*bft79(:,OP_DRZP)-pst79(:,OP_DR )*bft79(:,OP_DZZP) &
+          +pst79(:,OP_DZZ)*bft79(:,OP_DRP )-pst79(:,OP_DRZ)*bft79(:,OP_DZP ))&
+          +bft79(:,OP_DRZP)*bft79(:,OP_DRP)+bft79(:,OP_DZZP)*bft79(:,OP_DZP)
+
+     if(itor.eq.1) then
+        b2i79(:,OP_DR) = b2i79(:,OP_DR) - ri2_79* &
+          (pst79(:,OP_DZ)*bft79(:,OP_DRP) - pst79(:,OP_DR)*bft79(:,OP_DZP))
+     endif
+#endif
+
+     b2i79(:,OP_DR) = -2.*b2i79(:,OP_DR)*b2i79(:,OP_1)**2
+     b2i79(:,OP_DZ) = -2.*b2i79(:,OP_DZ)*b2i79(:,OP_1)**2
   endif
 
 
