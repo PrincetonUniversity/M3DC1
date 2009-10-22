@@ -725,10 +725,10 @@ subroutine gradshafranov_solve
         den0_l(6) = p0_l(1)**(expn-1.)*p0_l(6)*expn &
              + p0_l(1)**(expn-2.)*p0_l(3)**2.*expn*(expn-1.)
         den0_l = den0_l/p0**expn
-      else   ! expn.eq.0
+     else   ! expn.eq.0
         den0_l(1) = 1.
         den0_l(2:6) = 0.
-      endif
+     endif
 
   end do
 
