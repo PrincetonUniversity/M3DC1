@@ -7323,10 +7323,26 @@ vectype function p1psibkappar(e,f,g,h,i,j,k)
           + int3(temp79a,h(:,OP_1 ),i(:,OP_DP))
   else
      temp79a = -k(:,OP_1)*ri3_79*g(:,OP_1)* &
-          (e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))*j(:,OP_1)
+          (e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))*j(:,OP_1)  
+
+     temp79b = f(:,OP_DR)*(h(:,OP_DZ)*i(:,OP_1) + h(:,OP_1)*i(:,OP_DZ)) &
+          -    f(:,OP_DZ)*(h(:,OP_DR)*i(:,OP_1) + h(:,OP_1)*i(:,OP_DR))
+
+     temp79c = f(:,OP_DRP)*(h(:,OP_DZ )*i(:,OP_1 ) + h(:,OP_1 )*i(:,OP_DZ )) &
+          -    f(:,OP_DZP)*(h(:,OP_DR )*i(:,OP_1 ) + h(:,OP_1 )*i(:,OP_DR )) &
+          +    f(:,OP_DR )*(h(:,OP_DZP)*i(:,OP_1 ) + h(:,OP_DP)*i(:,OP_DZ )) &
+          -    f(:,OP_DZ )*(h(:,OP_DRP)*i(:,OP_1 ) + h(:,OP_DP)*i(:,OP_DR )) &
+          +    f(:,OP_DR )*(h(:,OP_DZ )*i(:,OP_DP) + h(:,OP_1 )*i(:,OP_DZP)) &
+          -    f(:,OP_DZ )*(h(:,OP_DR )*i(:,OP_DP) + h(:,OP_1 )*i(:,OP_DRP))
+
+     temp79d = temp79c*g(:,OP_1 )*j(:,OP_1 )*k(:,OP_1 ) &
+          +    temp79b*g(:,OP_DP)*j(:,OP_1 )*k(:,OP_1 ) &
+          +    temp79b*g(:,OP_1 )*j(:,OP_DP)*k(:,OP_1 ) &
+          +    temp79b*g(:,OP_1 )*j(:,OP_1 )*k(:,OP_DP)
 
      temp = int3(temp79a,h(:,OP_DP),i(:,OP_1 )) &
-          + int3(temp79a,h(:,OP_1 ),i(:,OP_DP))
+          + int3(temp79a,h(:,OP_1 ),i(:,OP_DP)) &
+          + int3(ri3_79,e(:,OP_1),temp79d)
   end if
 #else
   temp = 0.
@@ -7335,6 +7351,51 @@ vectype function p1psibkappar(e,f,g,h,i,j,k)
   p1psibkappar = (gam - 1.) * temp
   return
 end function p1psibkappar
+
+
+! P1bbkappar
+! ==========
+vectype function p1bbkappar(e,f,g,h,i,j,k)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j,k
+  vectype :: temp
+
+  if(gam.eq.1.) then
+     p1bbkappar = 0.
+     return
+  end if
+
+#ifdef USECOMPLEX
+  if(surface_int) then
+     temp = 0.
+  else
+     temp79a = h(:,OP_DP)*i(:,OP_1) + h(:,OP_1)*i(:,OP_DP)
+     temp79b = h(:,OP_DPP)*i(:,OP_1  ) &
+          + 2.*h(:,OP_DP )*i(:,OP_DP ) &
+          +    h(:,OP_1  )*i(:,OP_DPP)
+
+     temp79c = f(:,OP_DP)*g(:,OP_1 )*temp79a*j(:,OP_1 )*k(:,OP_1 ) &
+          +    f(:,OP_1 )*g(:,OP_DP)*temp79a*j(:,OP_1 )*k(:,OP_1 ) &
+          +    f(:,OP_1 )*g(:,OP_1 )*temp79b*j(:,OP_1 )*k(:,OP_1 ) &
+          +    f(:,OP_1 )*g(:,OP_1 )*temp79a*j(:,OP_1 )*k(:,OP_1 ) &
+          +    f(:,OP_1 )*g(:,OP_1 )*temp79a*j(:,OP_DP)*k(:,OP_1 ) &
+          +    f(:,OP_1 )*g(:,OP_1 )*temp79a*j(:,OP_1 )*k(:,OP_DP)
+
+     temp = int3(ri4_79,e(:,OP_1),temp79c)
+  end if
+#else
+  temp = 0.
+#endif
+
+  p1bbkappar = (gam - 1.) * temp
+  return
+end function p1bbkappar
+
 
 
 ! P1psifkappar
@@ -7394,7 +7455,7 @@ end function p1psifkappar
 
 
 ! P1bfkappar
-! ============
+! ==========
 vectype function p1bfkappar(e,f,g,h,i,j,k)
 
   use basic
@@ -7421,8 +7482,24 @@ vectype function p1bfkappar(e,f,g,h,i,j,k)
      temp79a = k(:,OP_1)*ri2_79*f(:,OP_1)* &
           (e(:,OP_DZ)*g(:,OP_DZP) + e(:,OP_DR)*g(:,OP_DRP))*j(:,OP_1)
 
+     temp79b = g(:,OP_DZP)*(h(:,OP_DZ)*i(:,OP_1) + h(:,OP_1)*i(:,OP_DZ)) &
+          +    g(:,OP_DRP)*(h(:,OP_DR)*i(:,OP_1) + h(:,OP_1)*i(:,OP_DR))
+
+     temp79c = g(:,OP_DZPP)*(h(:,OP_DZ )*i(:,OP_1 ) + h(:,OP_1 )*i(:,OP_DZ )) &
+          +    g(:,OP_DRPP)*(h(:,OP_DR )*i(:,OP_1 ) + h(:,OP_1 )*i(:,OP_DR )) &
+          +    g(:,OP_DZP )*(h(:,OP_DZP)*i(:,OP_1 ) + h(:,OP_DP)*i(:,OP_DZ )) &
+          +    g(:,OP_DRP )*(h(:,OP_DRP)*i(:,OP_1 ) + h(:,OP_DP)*i(:,OP_DR )) &
+          +    g(:,OP_DZP )*(h(:,OP_DZ )*i(:,OP_DP) + h(:,OP_1 )*i(:,OP_DZP)) &
+          +    g(:,OP_DRP )*(h(:,OP_DR )*i(:,OP_DP) + h(:,OP_1 )*i(:,OP_DRP))
+
+     temp79d = temp79c*f(:,OP_1 )*j(:,OP_1 )*k(:,OP_1 ) &
+          +    temp79b*f(:,OP_DP)*j(:,OP_1 )*k(:,OP_1 ) &
+          +    temp79b*f(:,OP_1 )*j(:,OP_DP)*k(:,OP_1 ) &
+          +    temp79b*f(:,OP_1 )*j(:,OP_1 )*k(:,OP_DP)
+
      temp = int3(temp79a,h(:,OP_DP),i(:,OP_1 )) &
-          + int3(temp79a,h(:,OP_1 ),i(:,OP_DP))
+          + int3(temp79a,h(:,OP_1 ),i(:,OP_DP)) &
+          - int3(ri2_79,e(:,OP_1),temp79d)
   end if
 #else
   temp = 0.
