@@ -1594,12 +1594,15 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
         ssterm(psi_g) = ssterm(psi_g) -          thimp     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (1./3. - thimp*bdf)*dt*temp
 
-        temp = p1psibkappar  (trial,ps179,lin,pe179,ni79,b2i79,kar79)
+        temp = p1psibkappar  (trial,ps179,lin,pe179,ni79,b2i79,kar79) &
+             + p1bbkappar    (trial,lin,bz179,pe179,ni79,b2i79,kar79) &
+             + p1bbkappar    (trial,bz179,lin,pe179,ni79,b2i79,kar79)
         ssterm(bz_g) = ssterm(bz_g) -          thimp     *dt*temp
         ddterm(bz_g) = ddterm(bz_g) + (1./3. - thimp*bdf)*dt*temp
         
         temp = p1psipsikappar(trial,ps179,ps179,lin,ni79,b2i79,kar79) &
-             + p1psibkappar  (trial,ps179,bz179,lin,ni79,b2i79,kar79)
+             + p1psibkappar  (trial,ps179,bz179,lin,ni79,b2i79,kar79) &
+             + p1bbkappar    (trial,bz179,bz179,lin,ni79,b2i79,kar79)
         ssterm(pe_g) = ssterm(pe_g) -          thimp     *dt*temp
         ddterm(pe_g) = ddterm(pe_g) + (1./3. - thimp*bdf)*dt*temp
      endif
@@ -1611,12 +1614,15 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
         ssterm(psi_g) = ssterm(psi_g) -       thimp     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (1. - thimp*bdf)*dt*temp
 
-        temp = p1psibkappar  (trial,ps079,lin,pe079,ni79,b2i79,kar79)
+        temp = p1psibkappar  (trial,ps079,lin,pe079,ni79,b2i79,kar79) &
+             + p1bbkappar    (trial,lin,bz079,pe079,ni79,b2i79,kar79) &
+             + p1bbkappar    (trial,bz079,lin,pe079,ni79,b2i79,kar79)
         ssterm(bz_g) = ssterm(bz_g) -       thimp     *dt*temp
         ddterm(bz_g) = ddterm(bz_g) + (1. - thimp*bdf)*dt*temp
 
         temp = p1psipsikappar(trial,ps079,ps079,lin,ni79,b2i79,kar79) &
-             + p1psibkappar  (trial,ps079,bz079,lin,ni79,b2i79,kar79)
+             + p1psibkappar  (trial,ps079,bz079,lin,ni79,b2i79,kar79) &
+             + p1bbkappar    (trial,bz079,bz079,lin,ni79,b2i79,kar79)
         ssterm(pe_g) = ssterm(pe_g) -       thimp     *dt*temp
         ddterm(pe_g) = ddterm(pe_g) + (1. - thimp*bdf)*dt*temp      
 
@@ -1631,14 +1637,20 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
            ddterm(psi_g) = ddterm(psi_g) + (1./2. - thimp*bdf)*dt*temp
 
            temp = p1psibkappar  (trial,ps179,lin,pe079,ni79,b2i79,kar79) &
-                + p1psibkappar  (trial,ps079,lin,pe179,ni79,b2i79,kar79)
+                + p1psibkappar  (trial,ps079,lin,pe179,ni79,b2i79,kar79) &
+                + p1bbkappar    (trial,lin,bz179,pe079,ni79,b2i79,kar79) &
+                + p1bbkappar    (trial,lin,bz079,pe179,ni79,b2i79,kar79) &
+                + p1bbkappar    (trial,bz179,lin,pe079,ni79,b2i79,kar79) &
+                + p1bbkappar    (trial,bz079,lin,pe179,ni79,b2i79,kar79)
            ssterm(bz_g) = ssterm(bz_g) -          thimp     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (1./2. - thimp*bdf)*dt*temp
            
            temp = p1psipsikappar(trial,ps179,ps079,lin,ni79,b2i79,kar79) &
                 + p1psipsikappar(trial,ps079,ps179,lin,ni79,b2i79,kar79) &
                 + p1psibkappar  (trial,ps179,bz079,lin,ni79,b2i79,kar79) &
-                + p1psibkappar  (trial,ps079,bz179,lin,ni79,b2i79,kar79)
+                + p1psibkappar  (trial,ps079,bz179,lin,ni79,b2i79,kar79) &
+                + p1bbkappar    (trial,bz179,bz079,lin,ni79,b2i79,kar79) &
+                + p1bbkappar    (trial,bz079,bz179,lin,ni79,b2i79,kar79)
            ssterm(pe_g) = ssterm(pe_g) -          thimp     *dt*temp
            ddterm(pe_g) = ddterm(pe_g) + (1./2. - thimp*bdf)*dt*temp      
         endif
