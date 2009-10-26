@@ -1789,29 +1789,34 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    endif else if(strcmp('vpar', name, /fold_case) eq 1) then begin
 
        phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
-                        filename=filename, points=pts, $
+                        filename=filename, points=pts, linear=linear, $
                         rrange=xrange, zrange=yrange)
        v = read_field('v', x, y, t, slices=time, mesh=mesh, $
-                      filename=filename, points=pts, $
+                      filename=filename, points=pts, linear=linear, $
                       rrange=xrange, zrange=yrange)
        chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
-                        filename=filename, points=pts, $
+                        filename=filename, points=pts, linear=linear, $
                         rrange=xrange, zrange=yrange)
        psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange, /equilibrium)
        I = read_field('I', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange)
+                      rrange=xrange, zrange=yrange, /equilibrium)
          
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
        endif else r = 1.
 
-
+       
        b2 = (s_bracket(psi,psi,x,y) + I^2)/r^2
-       data = ((s_bracket(phi,psi,x,y) + v*I)/r^2 $
-               + a_bracket(chi,psi,x,y)/r)/sqrt(b2)
+       if(ivform eq 0) then begin
+           data = ((s_bracket(phi,psi,x,y) + v*I)/r^2 $
+                   + a_bracket(chi,psi,x,y)/r)/sqrt(b2)
+       endif else begin
+           data = (s_bracket(phi,psi,x,y) + v*I/r^2 $
+                   + a_bracket(chi,psi,x,y)/r^3)/sqrt(b2)
+       endelse
        symbol = '!8u!D!9#!N!X'
        d = dimensions(/v0, _EXTRA=extra)
          

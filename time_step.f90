@@ -107,7 +107,7 @@ subroutine onestep
 
 
   ! Calculate all quantities derived from basic fields
-  call derived_quantities(field, bf)
+  call derived_quantities(field, bf, 1)
 
 
   ! Conserve toroidal flux

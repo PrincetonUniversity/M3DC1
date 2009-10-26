@@ -1494,11 +1494,15 @@ end subroutine fget
    real, intent(out) :: error
    
    real :: norm, temp1(2), temp2(2)
-   integer :: itri, nelms, def_fields, ier
+   integer :: itri, nelms, def_fields, ier, ieqs_temp
    
    norm = 0.
    error = 0.
    
+   ! must set eqsubtract=1 so that equilibrium field is read
+   ieqs_temp = eqsubtract
+   eqsubtract = 1
+
    def_fields = FIELD_PSI + FIELD_P + FIELD_I
    
    call numfac(nelms)
@@ -1516,7 +1520,9 @@ end subroutine fget
       norm = norm + abs(int2(ri_79,temp79a))
       error = error + abs(int2(ri_79,temp79d))
    end do
-   
+
+   eqsubtract = ieqs_temp
+
    if(maxrank.gt.1) then
       temp1(1) = norm
       temp1(2) = error

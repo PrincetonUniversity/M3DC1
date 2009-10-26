@@ -7721,6 +7721,11 @@ subroutine PVS1(i,o)
              (i(:,OP_DZ)*pst79(:,OP_DR) - i(:,OP_DR)*pst79(:,OP_DZ))
      endif
 
+#ifdef USECOMPLEX
+     o = o + bzt79(:,OP_1)* &
+          (pst79(:,OP_DZ)*i(:,OP_DZP) + pst79(:,OP_DR)*i(:,OP_DRP))
+#endif
+
      o = o * ri2_79*b2i79(:,OP_1)
 
      if(itor.eq.1) then
@@ -7752,12 +7757,22 @@ subroutine PVS2(i,o)
         o = o + 2.*ri2_79*bzt79(:,OP_1)*pst79(:,OP_DZ)*i(:,OP_1)
      endif
 
+     o = o * ri2_79*b2i79(:,OP_1)
+
   case(1)
      o = r_79*bzt79(:,OP_1)* &
           (i(:,OP_DZ)*pst79(:,OP_DR) - i(:,OP_DR)*pst79(:,OP_DZ))
-  end select
 
-  o = o * ri2_79*b2i79(:,OP_1)
+#ifdef USECOMPLEX
+     o = o + bzt79(:,OP_1)**2 * i(:,OP_DP)
+#endif
+
+     o = o * ri2_79*b2i79(:,OP_1)
+
+#ifdef USECOMPLEX
+     o = o - i(:,OP_DP)/3.
+#endif
+  end select
 
 end subroutine PVS2
 
@@ -7795,6 +7810,11 @@ subroutine PVS3(i,o)
              (i(:,OP_DZ)*pst79(:,OP_DR) - i(:,OP_DR)*pst79(:,OP_DZ))
         
      endif
+
+#ifdef USECOMPLEX
+     o = o + ri3_79*bzt79(:,OP_1) * &
+          (i(:,OP_DZP)*pst79(:,OP_DR) - i(:,OP_DRP)*pst79(:,OP_DZ))
+#endif
 
      o = o * ri2_79*b2i79(:,OP_1) - (1./3.)*ri2_79*i(:,OP_GS)
 
@@ -7835,21 +7855,19 @@ subroutine PVV1(e,o)
              +2.*e(:,OP_DR)*pst79(:,OP_DR)*pst79(:,OP_DZ)) &
              -e(:,OP_DZ)*bzt79(:,OP_1)**2)
      endif
- 
+
      o = 3.*ri_79*b2i79(:,OP_1)*o
 
+#ifdef USECOMPLEX
+     o = o - 3.*ri2_79* &
+          ((b2i79(:,OP_DP)*bzt79(:,OP_1) + b2i79(:,OP_1)*bzt79(:,OP_DP))* &
+          (e(:,OP_DZ)*pst79(:,OP_DZ ) + e(:,OP_DR)*pst79(:,OP_DR )) &
+          + b2i79(:,OP_1 )*bzt79(:,OP_1) * &
+          (e(:,OP_DZ)*pst79(:,OP_DZP) + e(:,OP_DR)*pst79(:,OP_DRP)))
 
-!!$     o = 3.*ri_79*b2i79(:,OP_1)* &
-!!$          (e(:,OP_DZZ) - e(:,OP_DRR))*pst79(:,OP_DR)*pst79(:,OP_DZ) &
-!!$          -e(:,OP_DRZ)*(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)
-!!$
-!!$     if(itor.eq.1) then
-!!$        o = o - 3.*ri2_79*b2i79(:,OP_1)* &
-!!$             (pst79(:,OP_DZ)* &
-!!$             (e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR)) &
-!!$             +e(:,OP_DZ)*bzt79(:,OP_1)**2) &
-!!$            + 2.*e(:,OP_DZ)
-!!$     endif
+     o = o - (0.,1.)*ntor*3.*ri2_79*bzt79(:,OP_1) * &
+          (e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR))
+#endif
   end if
 end subroutine  PVV1
 
@@ -7867,9 +7885,18 @@ subroutine PVV2(e,o)
   if(surface_int) then
      o = 3.*ri_79*b2i79(:,OP_1)*bzt79(:,OP_1)*e(:,OP_1)* &
           (norm79(:,1)*pst79(:,OP_DZ) - norm79(:,2)*pst79(:,OP_DR))
+!!$     o = 0.
   else
      o = 3.*ri_79*b2i79(:,OP_1)*bzt79(:,OP_1)* &
           (e(:,OP_DZ)*pst79(:,OP_DR) - e(:,OP_DR)*pst79(:,OP_DZ))
+
+#ifdef USECOMPLEX
+     o = o + 3.*ri2_79*bzt79(:,OP_1)*e(:,OP_1)* &
+          (b2i79(:,OP_1)*bzt79(:,OP_DP) + 2.*b2i79(:,OP_1)*bzt79(:,OP_DP))
+
+     o = o - (0.,1.)*ntor*e(:,OP_1) * &
+          (1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)
+#endif
   end if
      
 end subroutine  PVV2
@@ -7901,17 +7928,16 @@ subroutine PVV3(e,o)
              (pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2 - bzt79(:,OP_1)**2)
      endif
 
-!!$     o = -3.*b2i79(:,OP_1)*ri4_79* &
-!!$          (e(:,OP_DZZ)*pst79(:,OP_DR)**2 + e(:,OP_DRR)*pst79(:,OP_DZ)**2 &
-!!$          -2.*pst79(:,OP_DR)*pst79(:,OP_DZ)*e(:,OP_DRZ)) &
-!!$          + ri2_79*e(:,OP_GS)
-!!$
-!!$     if(itor.eq.1) then
-!!$        o = o - 3.*b2i79(:,OP_1)*ri5_79 * &
-!!$             (2.*pst79(:,OP_DZ) &
-!!$             *(e(:,OP_DZ)*pst79(:,OP_DR) - e(:,OP_DR)*pst79(:,OP_DZ)) &
-!!$             + e(:,OP_DR)*bzt79(:,OP_1)**2)
-!!$     endif
+#ifdef USECOMPLEX
+     o = o - 3.*ri5_79* &
+          ((b2i79(:,OP_DP)*bzt79(:,OP_1) + b2i79(:,OP_1)*bzt79(:,OP_DP))* &
+          (e(:,OP_DZ)*pst79(:,OP_DR ) - e(:,OP_DR )*pst79(:,OP_DZ )) &
+          + b2i79(:,OP_1 )*bzt79(:,OP_1) * &
+          (e(:,OP_DZ)*pst79(:,OP_DRP) - e(:,OP_DR )*pst79(:,OP_DZP)))
+
+     o = o - (0.,1.)*ntor*3.*ri5_79*bzt79(:,OP_1) * &
+          (e(:,OP_DZ)*pst79(:,OP_DR) - e(:,OP_DR)*pst79(:,OP_DZ))
+#endif
   end if
      
 end subroutine  PVV3

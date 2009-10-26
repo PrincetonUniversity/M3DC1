@@ -281,7 +281,7 @@ subroutine define_transport_coefficients()
   if(ibootstrap.gt.0) visc_e = 0.
   tempvar = 0.
 
-  def_fields = FIELD_N + FIELD_PE + FIELD_P + FIELD_PSI + FIELD_I 
+  def_fields = FIELD_N + FIELD_PE + FIELD_P + FIELD_PSI + FIELD_I + FIELD_B2I
   if(iresfunc.eq.3) def_fields = def_fields + FIELD_ETA + FIELD_MU
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' defining...'
@@ -314,7 +314,7 @@ subroutine define_transport_coefficients()
         endif
 
         tempvar(ione) = tempvar(ione) &
-             + int2(g79(:,OP_1,i),n079(:,OP_1))
+             + int2(g79(:,OP_1,i),b2i79(:,OP_1))
      end do
   end do
 
