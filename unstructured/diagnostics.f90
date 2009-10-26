@@ -1,3 +1,10 @@
+#ifdef USECOMPLEX
+#define CONJUGATE(x) conjg(x)
+#else
+#define CONJUGATE(x) x
+#endif
+
+
 module diagnostics
 
   implicit none
@@ -601,7 +608,7 @@ subroutine calculate_scalars()
         endif
 
         bwb2 = bwb2 + &
-             3.*int3(vip79(:,OP_1),temp79a,temp79a)
+             3.*int3(vip79(:,OP_1),temp79a,CONJUGATE(temp79a))
      end if
 
 

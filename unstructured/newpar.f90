@@ -21,7 +21,6 @@ Program Reducedquintic
 
   integer :: ier
   real :: tstart, tend
-  vectype :: temp
 
   PetscTruth :: flg
   PetscInt :: mpetscint,npetscint
@@ -226,11 +225,7 @@ Program Reducedquintic
      call hdf5_write_parameters(ier)
 
      if(eqsubtract.eq.1) then
-!   should there be a minus sign in the next line?  SCJ Oct16 2009
-        temp = bscale*bzero*rzero
-        call scalar_operation(field0,bz_g,num_fields,OP_PLUS, -temp)
-        call derived_quantities(field0, bf0)
-        call scalar_operation(field0,bz_g,num_fields,OP_PLUS,  temp)
+        call derived_quantities(field0, bf0, 0)
      end if
 
      ! Output the equilibrium
@@ -239,7 +234,7 @@ Program Reducedquintic
 
   ! Calculate all quantities derived from basic fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  call derived_quantities(field, bf)
+  call derived_quantities(field, bf, 1)
 
 
   ! Adapt the mesh
@@ -614,7 +609,7 @@ end subroutine smooth_fields
 ! calculates all derived quantities, including auxiliary fields
 ! and scalars
 ! ======================================================================
-subroutine derived_quantities(vec, bfv)
+subroutine derived_quantities(vec, bfv, ilin)
   use basic
   use arrays
   use newvar_mod
@@ -623,10 +618,13 @@ subroutine derived_quantities(vec, bfv)
 
   implicit none
 
-  real :: tstart, tend
-  integer :: ndofs
+  integer, intent(in) :: ilin    ! 0 for equilibrium fields, 1 for perturbed
   vectype, dimension(*), intent(in) :: vec
   vectype, dimension(*), intent(inout) :: bfv
+
+  real :: tstart, tend
+  integer :: ndofs
+  vectype :: temp
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Calculating derived fields..."
 
@@ -677,10 +675,17 @@ subroutine derived_quantities(vec, bfv)
   ! vector potential stream function
   if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, "-f"
+     if(ilin.eq.0) then 
+        temp = bscale*bzero*rzero
+        call scalar_operation(field0,bz_g,num_fields,OP_PLUS, -temp)
+     endif
      call numdofs(1, ndofs)
      bfi = bfv(1:ndofs)
      call newvar1(bf_matrix_lhs_nm,bfv,vec,bz_g,num_fields, &
           mass_matrix_rhs_nm,NV_NMBOUND,bfi)
+     if(ilin.eq.0) then 
+        call scalar_operation(field0,bz_g,num_fields,OP_PLUS, temp)
+     endif
   endif
 
   if(myrank.eq.0 .and. itimer.eq.1) then

@@ -924,9 +924,11 @@ subroutine define_fields(itri, fields, gdef, ilin)
           (bft79(:,OP_DRP)**2 + bft79(:,OP_DZP)**2) &
           + ri_79* &
           (pst79(:,OP_DZ)*bft79(:,OP_DRP) - pst79(:,OP_DR)*bft79(:,OP_DZP))
-#endif
 
      b2i79(:,OP_1 ) = 1./(temp79a + temp79b)
+#else
+     b2i79(:,OP_1 ) = 1./temp79a
+#endif
      b2i79(:,OP_DR) = ri2_79 * &
           (pst79(:,OP_DR)*pst79(:,OP_DRR) + pst79(:,OP_DZ)*pst79(:,OP_DRZ) &
           +bzt79(:,OP_1 )*bzt79(:,OP_DR ))

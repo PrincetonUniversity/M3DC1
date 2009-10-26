@@ -363,7 +363,9 @@ subroutine rmp_per
   logical :: is_boundary
   integer :: izone, izonedim, numnodes, l
   real :: normal(2), curv, x, z, r2, dx, dz
-  complex :: ii
+#ifdef USECOMPLEX
+  vectype :: ii
+#endif
 
   if(irmp.eq.3) then
      call numnod(numnodes)
@@ -1460,12 +1462,12 @@ subroutine circular_field_per(x, z)
   bz1_l = 0.
   p1_l = 0.
 
-  p1_l(1) = eps*exp(-((x-x0)**2+z**2)/(2.*ln**2))
-  p1_l(2) = -(x-x0)*p1_l(1)/ln**2
-  p1_l(3) = -(z-z0)*p1_l(1)/ln**2
-  p1_l(4) = (((x-x0)/ln)**2 - 1.)*p1_l(1)/ln**2
-  p1_l(5) =  (x-x0)*(z-z0)*p1_l(1)/ln**4
-  p1_l(6) = (((z-z0)/ln)**2 - 1.)*p1_l(1)/ln**2
+!!$  p1_l(1) = eps*exp(-((x-x0)**2+z**2)/(2.*ln**2))
+!!$  p1_l(2) = -(x-x0)*p1_l(1)/ln**2
+!!$  p1_l(3) = -(z-z0)*p1_l(1)/ln**2
+!!$  p1_l(4) = (((x-x0)/ln)**2 - 1.)*p1_l(1)/ln**2
+!!$  p1_l(5) =  (x-x0)*(z-z0)*p1_l(1)/ln**4
+!!$  p1_l(6) = (((z-z0)/ln)**2 - 1.)*p1_l(1)/ln**2
 
   ! for viscosity test..
 !  vz1_l = p1_l
@@ -1473,12 +1475,12 @@ subroutine circular_field_per(x, z)
 
   ! for parallel viscosity test...
 
-!!$  u1_l(1) = eps*exp(-(x**2+z**2)/(2.*ss**2))
-!!$  u1_l(2) = -x*u1_l(1)/ss**2
-!!$  u1_l(3) = -z*u1_l(1)/ss**2
-!!$  u1_l(4) = ((x/ss)**2 - 1.)*u1_l(1)/ss**2
-!!$  u1_l(5) =  x*z*u1_l(1)/ss**4
-!!$  u1_l(6) = ((z/ss)**2 - 1.)*u1_l(1)/ss**2
+  u1_l(1) = eps*exp(-(x**2+z**2)/(2.*ss**2))
+  u1_l(2) = -x*u1_l(1)/ss**2
+  u1_l(3) = -z*u1_l(1)/ss**2
+  u1_l(4) = ((x/ss)**2 - 1.)*u1_l(1)/ss**2
+  u1_l(5) =  x*z*u1_l(1)/ss**4
+  u1_l(6) = ((z/ss)**2 - 1.)*u1_l(1)/ss**2
 !!$  vz1_l(1) = vzero*exp(-(x**2+z**2)/(2.*ss**2))
 !!$  vz1_l(2) = -x*vz1_l(1)/ss**2
 !!$  vz1_l(3) = -z*vz1_l(1)/ss**2
