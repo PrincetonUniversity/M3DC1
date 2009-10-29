@@ -125,7 +125,7 @@ end
 
 function color, c, maxcolors
     col = colors(maxcolors)
-    return, col(c) 
+    return, col[c] 
 end
 
 pro plot_legend, names, linestyles=ls, colors=cs, left=l, top=t, psyms=p, $
