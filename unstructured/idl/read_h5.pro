@@ -1784,6 +1784,56 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        d = dimensions(t0=-1, _EXTRA=extra)
 
    ;===========================================
+   ; cyclogron frequency
+   ;===========================================
+   endif else if(strcmp('omega_ci', name, /fold_case) eq 1) then begin
+
+       db = read_parameter('db', filename=filename, _EXTRA=extra)
+       print, 'db = ', db
+       if(db eq 0.) then begin
+           print, 'Warning: Assuming d_i = 1.'
+           db = 1.
+       endif
+
+       B = read_field('B', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+
+       data = B/db
+       symbol = '!7x!8!Dc!N!X'
+       d = dimensions(t0=-1, _EXTRA=extra)
+
+   ;===========================================
+   ; Larmor radius
+   ;===========================================
+   endif else if(strcmp('rho_i', name, /fold_case) eq 1) then begin
+
+       db = read_parameter('db', filename=filename, _EXTRA=extra)
+       print, 'db = ', db
+
+       Ti = read_field('Ti', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       B = read_field('B', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+
+
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+
+       data = db*sqrt(Ti)/B
+       symbol = '!7q!8!Di!N!X'
+       d = dimensions(l0=1, _EXTRA=extra)
+
+       print, 'done.'
+
+   ;===========================================
    ; parallel flow
    ;===========================================
    endif else if(strcmp('vpar', name, /fold_case) eq 1) then begin
@@ -3155,19 +3205,16 @@ pro plot_lcfs, psi, x, z, psival=psival,_EXTRA=extra
     n = n_elements(breaks)
     nxy = n_elements(xy[0,*])
 
-    if(breaks[0] ne -1) then begin
-        oplot, xy[0,0:breaks[0]], xy[1,0:breaks[0]], $
-          thick=!p.thick, color=color(6,5)
-        if(n ge 2) then begin
-            for i=1, n-2 do begin
-                oplot, xy[0,breaks[i-1]:breaks[i]], $
-                  xy[1,breaks[i-1]:breaks[i]], $
-                  thick=!p.thick, color=color(6,5)
-            endfor
-        endif
-        oplot, xy[0,breaks[n-1]:nxy-1], xy[1,breaks[n-1]:nxy-1], $
-          thick=!p.thick, color=color(6,10)
+    dx2 = deriv(xy[0,*])^2 + deriv(xy[1,*])^2
 
+    if(breaks[0] ne -1) then begin
+        breaks = [0, breaks, nxy-1]
+
+        for i=0, n-2, 2 do begin
+            oplot, xy[0,breaks[i]:breaks[i+1]], $
+              xy[1,breaks[i]:breaks[i+1]], $
+              thick=!p.thick, color=color(6,10)
+        end
     endif else begin
         oplot, xy[0,*], xy[1,*], thick=!p.thick, color=color(6,10)
     endelse
