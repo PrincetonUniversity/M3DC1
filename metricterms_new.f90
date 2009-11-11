@@ -5055,23 +5055,6 @@ vectype function b1psiu(e,f,g)
         if(jadv.eq.0) then
            temp = 0.
         else
-!!$           temp79a = f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ)
-!!$           temp = int5(ri_79,e(:,OP_1),norm79(:,1),f(:,OP_DRZ),g(:,OP_DR)) &
-!!$                - int5(ri_79,e(:,OP_1),norm79(:,1),f(:,OP_DRR),g(:,OP_DZ)) &
-!!$                + int5(ri_79,e(:,OP_1),norm79(:,1),f(:,OP_DZ),g(:,OP_DRR)) &
-!!$                - int5(ri_79,e(:,OP_1),norm79(:,1),f(:,OP_DR),g(:,OP_DRZ)) &
-!!$                + int5(ri_79,e(:,OP_1),norm79(:,2),f(:,OP_DZZ),g(:,OP_DR)) &
-!!$                - int5(ri_79,e(:,OP_1),norm79(:,2),f(:,OP_DRZ),g(:,OP_DZ)) &
-!!$                + int5(ri_79,e(:,OP_1),norm79(:,2),f(:,OP_DZ),g(:,OP_DRZ)) &
-!!$                - int5(ri_79,e(:,OP_1),norm79(:,2),f(:,OP_DR),g(:,OP_DZZ)) &
-!!$                - int4(ri_79,temp79a,norm79(:,1),e(:,OP_DR)) &
-!!$                - int4(ri_79,temp79a,norm79(:,2),e(:,OP_DZ))
-!!$           if(itor.eq.1) then
-!!$              temp = temp &
-!!$                   + int4(ri2_79,e(:,OP_1),temp79a,norm79(:,1))
-!!$           endif
-!!$           temp = -temp
-
            temp = 0.
         endif
 
@@ -5391,6 +5374,14 @@ vectype function b1psieta(e,f,g,h)
            temp = temp - int3(temp79a,f(:,OP_GS),h(:,OP_1))
            if(itor.eq.1) temp = temp + &
                 2.*int4(ri_79,temp79a,f(:,OP_DR),h(:,OP_1))
+
+#ifdef USECOMPLEX
+           if(ihypeta.eq.0) then
+              temp = temp - int4(ri2_79,e(:,OP_1),f(:,OP_GSPP),h(:,OP_1))
+              if(itor.eq.1) temp = temp + 2.* &
+                   int4(ri3_79,e(:,OP_1),f(:,OP_DRPP),h(:,OP_1))
+           endif
+#endif
         end if
      end if
   else
@@ -6084,6 +6075,36 @@ vectype function b1fchi(e,f,g)
 #endif
 end function b1fchi
 
+
+! B1e
+! ===
+vectype function b1e(e,f)
+
+  use basic
+  use nintegrate_mod
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
+  vectype :: temp
+
+#ifdef USECOMPLEX
+  if(jadv.eq.1) then
+     temp = 0.
+  else
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = -int2(e(:,OP_1),f(:,OP_DP))
+     end if
+  endif
+#else
+  temp = 0.
+#endif
+
+  b1e = temp
+  return
+end function b1e
 
 
 !==============================================================================
