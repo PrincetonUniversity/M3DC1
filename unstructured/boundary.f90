@@ -814,6 +814,11 @@ subroutine boundary_mag(imatrix, rhs)
           call rotate_matrix(imatrix, ibegin+bz_off, normal, curv, rhs, icurv)
      if(numvar.ge.3) &
           call rotate_matrix(imatrix, ibegin+pe_off, normal, curv, rhs, icurv)
+#ifdef USECOMPLEX
+     if(jadv.eq.0) then
+        call rotate_matrix(imatrix, ibegin+e_off, normal, curv, rhs, icurv)
+     endif
+#endif
 
      call assign_local_pointers(i)
 
@@ -881,8 +886,17 @@ subroutine boundary_mag(imatrix, rhs)
            call set_dirichlet_bc(imatrix,ibegin+pe_off,rhs,temp, &
                 normal,curv,izonedim)
         end if
-
      endif
+
+#ifdef USECOMPLEX
+     if(jadv.eq.0) then
+        ! electrostatic potential
+        temp = 0.
+        call set_dirichlet_bc(imatrix,ibegin+e_off,rhs,temp, &
+             normal,curv,izonedim)
+     endif
+#endif
+
   end do
 
 end subroutine boundary_mag

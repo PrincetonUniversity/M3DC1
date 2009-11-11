@@ -812,6 +812,18 @@ subroutine output_fields(time_group_id, equilibrium, error)
   call output_field(group_id, "tempvar", real(dum), 20, nelms, error)
   nfields = nfields + 1
 
+#ifdef USECOMPLEX
+  if(jadv.eq.0) then 
+     ! electrostatic potential
+     do i=1, nelms
+        call calcavector(i, phi, e_i, vecsize_phi, dum(:,i))
+     end do
+     call output_field(group_id, "potential", real(dum), 20, nelms, error)
+     nfields = nfields + 1
+  endif
+#endif
+
+
   ! I
   do i=1, nelms
      call calcavector(i, f_ptr, bz_g, num_fields, dum(:,i))

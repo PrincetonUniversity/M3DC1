@@ -1135,7 +1135,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    print, 'reading field ', name, ' from file ', filename, $
      ' linear=', keyword_set(linear), $
      ' points=', pts, $
-     ' slices=', time
+     ' slices=', time, $
+     ' equilibrium=', keyword_set(equilibrium)
 
    nt = read_parameter("ntime", filename=filename)
    nv = read_parameter("numvar", filename=filename)
@@ -1813,7 +1814,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    endif else if(strcmp('rho_i', name, /fold_case) eq 1) then begin
 
        db = read_parameter('db', filename=filename, _EXTRA=extra)
-       print, 'db = ', db
 
        Ti = read_field('Ti', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
@@ -1830,8 +1830,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        data = db*sqrt(Ti)/B
        symbol = '!7q!8!Di!N!X'
        d = dimensions(l0=1, _EXTRA=extra)
-
-       print, 'done.'
 
    ;===========================================
    ; parallel flow
@@ -1933,13 +1931,23 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        psi = read_field('psi', x, y, t, mesh=mesh, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange, $
-                       linear=linear)
+                       linear=linear, complex=complex)
        
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
        endif else r = 1.
 
-       data = a_bracket(psi,psi0,x,y)/(r*sqrt(s_bracket(psi0,psi0,x,y)))
+       data = a_bracket(psi,psi0,x,y)/r
+
+       if(ntor ne 0) then begin
+           f = read_field('f', x, y, t, mesh=mesh, $
+                          filename=filename, points=pts, slices=time, $
+                          rrange=xrange, zrange=yrange, $
+                          linear=linear, complex=complex)
+           data = data + complex(0,ntor)*s_bracket(f,psi0,x,y)
+       endif
+
+       data = data / sqrt(s_bracket(psi0,psi0,x,y))
        symbol = '!8B!Dr!N!X'
        d = dimensions(/b0, _EXTRA=extra)
 
@@ -2241,14 +2249,16 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                                h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                                diff=diff, operation=op, $
                                linear=linear, last=last,symbol=symbol, $
-                               units=units, cgs=cgs, mks=mks)
+                               units=units, cgs=cgs, mks=mks, $
+                              equilibrium=equilibrium)
            data_i = read_field(name + '_i', x, y, t, slices=time, mesh=mesh, $
                                filename=filename, points=pts, $
                                rrange=xrange, zrange=yrange, complex=0, $
                                h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                                diff=diff, operation=op, $
                                linear=linear, last=last,symbol=symbol, $
-                               units=units, cgs=cgs, mks=mks)
+                               units=units, cgs=cgs, mks=mks, $
+                              equilibrium=equilibrium)
            return, complex(data_r, data_i)
        endif
 
@@ -2263,7 +2273,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                              rrange=xrange, zrange=yrange, $
                              h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                              operation=op, $
-                             last=last,symbol=symbol,units=units, $
+                             last=0,symbol=symbol,units=units, $
                              cgs=cgs, mks=mks)
        endif else base = 0.
 
@@ -4190,7 +4200,8 @@ end
 
 function flux_at_q, qval, normalized_flux=norm, $
                     q=q, flux=flux, _EXTRA=extra
-   q = flux_average('q', flux=flux, nflux=nflux, /equilibrium, _EXTRA=extra)
+   q = flux_average('q', flux=flux, nflux=nflux, /equilibrium, $
+                    _EXTRA=extra)
    if(keyword_set(norm)) then flux=nflux
 
    dq_dpsi = deriv(flux,q)

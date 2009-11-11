@@ -406,14 +406,14 @@ module arrays
   integer :: u_i, vz_i, chi_i
   integer :: psi_i, bz_i, pe_i
   integer :: den_i, p_i
-  integer :: bf_i
+  integer :: bf_i, e_i
 
   ! the offset (relative to the node offset) of the named field within
   ! their respective vectors
   integer :: u_off, vz_off, chi_off
   integer :: psi_off, bz_off, pe_off
   integer :: den_off, p_off
-  integer :: bf_off
+  integer :: bf_off, e_off
   integer :: vecsize_vel, vecsize_phi, vecsize_n, vecsize_p
   
   ! the following pointers point to the locations of the named field within
@@ -517,6 +517,7 @@ contains
        pe_i = 3
        den_i = 1
        bf_i = 1
+       e_i = numvar + 1
 
        if(ipres.eq.1) then
           p_i = 1
@@ -567,6 +568,7 @@ contains
           p_i = pe_i
        endif
        bf_i = 1
+       e_i = 2*numvar+idens+ipres+1
          
     endif
       
@@ -579,6 +581,7 @@ contains
     den_off = (den_i-1)*6
     p_off = (p_i-1)*6
     bf_off = (bf_i-1)*6
+    e_off = (e_i-1)*6
 
   end subroutine assign_variables
 
@@ -693,6 +696,39 @@ contains
       
   end subroutine copyvec
 
+!======================================================================
+! copyfullvec
+! ~~~~~~~~~~~
+! copies a field from inarr to outarr
+!======================================================================
+  subroutine copyfullvec(inarr, insize, outarr, outsize)
+
+    implicit none
+
+    vectype, intent(in) :: inarr(*)
+    integer, intent(in) :: insize
+    vectype, intent(out) :: outarr(*)
+    integer, intent(in) :: outsize
+
+    integer :: ibegini, iendplusonei
+    integer :: ibegino, iendplusoneo
+    integer :: l, numnodes, isize
+    
+    isize = min(insize, outsize)
+
+    call numnod(numnodes)
+      
+    do l=1,numnodes
+       call entdofs(insize, l, 0, ibegini, iendplusonei)
+       call entdofs(outsize, l, 0, ibegino, iendplusoneo)
+       
+       outarr(ibegino:ibegino+(isize-1)*6+5) = &
+            inarr(ibegini:ibegini+(isize-1)*6+5)
+    enddo
+      
+  end subroutine copyfullvec
+
+
 end module arrays
 
   
@@ -745,6 +781,7 @@ module sparse
   integer, parameter :: brmatrix_sm = 38
   integer, parameter :: bf_matrix_rhs = 39
   integer, parameter :: num_matrices = 39
+  
 
 contains
   subroutine delete_matrices
@@ -789,6 +826,14 @@ subroutine space(ifirstcall)
      vecsize_p = 1
   else
      vecsize_phi  = numvar*2 + idens + ipres
+  endif
+
+! add electrostatic potential equation
+#ifdef USECOMPLEX
+  if(jadv.eq.0) vecsize_phi = vecsize_phi + 1
+#endif
+
+  if(isplitstep.eq.0) then
      vecsize_vel  = vecsize_phi
      vecsize_n    = vecsize_phi
      vecsize_p    = vecsize_phi

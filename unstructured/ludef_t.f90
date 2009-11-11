@@ -1081,7 +1081,7 @@ end subroutine compression_nolin
 !======================================================================
 ! Flux Equation
 !======================================================================
-subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
+subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf, r_e, q_e)
   
   use basic
   use arrays
@@ -1093,9 +1093,9 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
 
   vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: trial, lin 
   vectype, dimension(num_fields), intent(out) :: ssterm, ddterm
-  vectype, intent(out) :: q_ni, q_bf
+  vectype, intent(out) :: q_ni, q_bf, r_e, q_e
   vectype :: temp, temp2
-  real :: thimpb, thimpf
+  real :: thimpb, thimpf, thimpe
 
   vectype, dimension(MAX_PTS, OP_NUM) :: hf
   hf = hypf*sz79
@@ -1108,11 +1108,14 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   endif
 
   thimpf = thimp
+  thimpe = 1.
 
   ssterm = 0.
   ddterm = 0.
   q_ni = 0.
   q_bf = 0.
+  r_e = 0.
+  q_e = 0.
 
   temp = b1psi (trial,lin) &
        - b1psid(trial,lin,ni79)   ! electron mass term
@@ -1303,6 +1306,12 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
              (b1ped(trial,pe079,lin)*dbf)
      endif
   endif
+
+  ! electrostatic potential
+  ! ~~~~~~~~~~~~~~~~~~~~~~~
+  temp = b1e(trial,lin)
+  r_e = r_e       - thimpe     *dt*temp
+  q_e = q_e + (1. - thimpe*bdf)*dt*temp
         
 end subroutine flux_lin
 
@@ -1970,10 +1979,10 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
            print *, "	ludef_t_ludefall zerosuperlumatrix", s2matrix_sm
         endif 
         call zeromultiplymatrix(d2matrix_sm,icomplex,vecsize_phi)
-        call zeromultiplymatrix(r2matrix_sm,icomplex,vecsize_vel)
-        call zeromultiplymatrix(q2matrix_sm,icomplex,vecsize_vel)
+        call zeromultiplymatrix(r2matrix_sm,icomplex,vecsize_phi)
+        call zeromultiplymatrix(q2matrix_sm,icomplex,vecsize_phi)
         if(idens_def.eq.1 .and. eqsubtract.eq.1) &
-             call zeromultiplymatrix(q42matrix_sm,icomplex,vecsize_vel)
+             call zeromultiplymatrix(q42matrix_sm,icomplex,vecsize_phi)
 #ifdef USECOMPLEX
         call zeromultiplymatrix(o2matrix_sm,icomplex,vecsize_phi)
 #endif
@@ -2298,7 +2307,7 @@ subroutine ludefvel_n(itri)
                 call insval(vn1,ss(  u_g,den_g),icomplex,iv+  u_off,jv+den_off,1)
         endif
         if(i3d.eq.1) then
-           call insval(vf0,q_bf(u_g),icomplex,iv+u_off,jv+bf_off,1)
+           call insval(vf0,q_bf(u_g),icomplex,ip+u_off,jp+bf_off,1)
         endif
         if(numvar.ge.2) then
            call insval(vv1,ss(  u_g, vz_g),icomplex,iv+  u_off,jv+ vz_off,1)
@@ -2320,7 +2329,7 @@ subroutine ludefvel_n(itri)
                    call insval(vn1,ss( vz_g,den_g),icomplex,iv+vz_off,jv+den_off,1)
            end if
            if(i3d.eq.1) then
-              call insval(vf0,q_bf(vz_g),icomplex,iv+vz_off,jv+bf_off,1)
+              call insval(vf0,q_bf(vz_g),icomplex,ip+vz_off,jp+bf_off,1)
            endif
         endif
         if(numvar.ge.3) then
@@ -2351,7 +2360,7 @@ subroutine ludefvel_n(itri)
                    call insval(vn1,ss(chi_g,den_g),icomplex,iv+chi_off,jv+den_off,1)
            endif
            if(i3d.eq.1) then
-              call insval(vf0,q_bf(chi_g),icomplex,iv+chi_off,jv+bf_off,1)
+              call insval(vf0,q_bf(chi_g),icomplex,ip+chi_off,jp+bf_off,1)
            endif
         endif
      enddo               ! on j
@@ -2396,6 +2405,8 @@ subroutine ludefphi_n(itri)
   use arrays
   use sparse
 
+  use electrostatic_potential
+
   implicit none
 
   integer, intent(in) :: itri
@@ -2404,8 +2415,8 @@ subroutine ludefphi_n(itri)
   integer :: ib_vel, ib_phi, jb_vel, jb_phi, iendplusone
   
   vectype, dimension(num_fields,num_fields) :: ss, dd
-  vectype, dimension(num_fields) :: q_ni, q_bf
-  vectype :: temp
+  vectype, dimension(num_fields) :: q_ni, q_bf, ss_e, dd_e
+  vectype :: temp, r_e, q_e, q_ni_e, q_bf_e, r_e_e
 
   integer :: bb1, bb0, bv1, bv0, bbf, bni
   vectype, pointer :: bsource(:)
@@ -2445,6 +2456,9 @@ subroutine ludefphi_n(itri)
         jv = jb_vel + jj - 1
         jp = jb_phi + jj - 1
 
+        iv = ip
+        jv = jp
+
         if(surface_int) then
            ss(psi_g,:) = 0.
            dd(psi_g,:) = 0.
@@ -2452,7 +2466,7 @@ subroutine ludefphi_n(itri)
            q_bf(psi_g) = 0.
         else
            call flux_lin(g79(:,:,i),g79(:,:,j), &
-                ss(psi_g,:),dd(psi_g,:),q_ni(psi_g),q_bf(psi_g))
+                ss(psi_g,:),dd(psi_g,:),q_ni(psi_g),q_bf(psi_g),r_e,q_e)
         endif
         if(numvar.ge.2) then
            call axial_field_lin(g79(:,:,i),g79(:,:,j), &
@@ -2519,6 +2533,41 @@ subroutine ludefphi_n(itri)
                    call insval(bni,q_ni(pe_g),icomplex,ip+pe_off,jp,1)
            endif
         endif
+
+#ifdef USECOMPLEX
+        if(jadv.eq.0) then
+           call potential_lin(g79(:,:,i),g79(:,:,j), &
+                ss_e,dd_e,q_ni_e,q_bf_e,r_e_e)
+
+           call insval(bb1,r_e,        icomplex,ip+psi_off,jp+e_off,1)
+           call insval(bb0,q_e,        icomplex,ip+psi_off,jp+e_off,1)
+
+           call insval(bb1,r_e_e,      icomplex,ip+e_off,jp+  e_off,1)
+
+           call insval(bb1,ss_e(psi_g),icomplex,ip+e_off,jp+psi_off,1)
+           call insval(bb0,dd_e(psi_g),icomplex,ip+e_off,jp+psi_off,1)
+           call insval(bv1,ss_e(  u_g),icomplex,iv+e_off,jv+  u_off,1)
+           call insval(bv0,dd_e(  u_g),icomplex,iv+e_off,jv+  u_off,1)
+           if(numvar.ge.2) then
+              call insval(bb1,ss_e(bz_g),icomplex,ip+e_off,jp+ bz_off,1)
+              call insval(bb0,dd_e(bz_g),icomplex,ip+e_off,jp+ bz_off,1)
+              call insval(bv1,ss_e(vz_g),icomplex,iv+e_off,jv+ vz_off,1)
+              call insval(bv0,dd_e(vz_g),icomplex,iv+e_off,jv+ vz_off,1)
+           endif
+           if(numvar.ge.3) then
+              call insval(bb1,ss_e( pe_g),icomplex,ip+e_off,jp+ pe_off,1)
+              call insval(bb0,dd_e( pe_g),icomplex,ip+e_off,jp+ pe_off,1)
+              call insval(bv1,ss_e(chi_g),icomplex,iv+e_off,jv+chi_off,1)
+              call insval(bv0,dd_e(chi_g),icomplex,iv+e_off,jv+chi_off,1)
+           endif
+           if(i3d.eq.1) then
+              call insval(bbf,q_bf_e,icomplex,ip+e_off,jp+bf_off,1)
+           endif
+           if(idens.eq.1 .and. eqsubtract.eq.1) then
+              call insval(bni,q_ni_e,icomplex,ip+e_off,jp,1)
+           endif
+        endif
+#endif
        
      enddo ! on j
      enddo
@@ -2536,7 +2585,6 @@ subroutine ludefphi_n(itri)
 
   enddo ! on i
   enddo
-     
 
 end subroutine ludefphi_n
 

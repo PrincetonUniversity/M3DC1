@@ -38,8 +38,6 @@ subroutine onestep
   logical, save :: first_time = .true.
 
   real :: tstart, tend
-  vectype, allocatable :: temp_field(:)
-
 
   ! apply loop voltage
   fbound = fbound + dt*vloop/(2.*pi)
@@ -60,23 +58,13 @@ subroutine onestep
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
      ! in linear case, eliminate second-order terms from matrix
-     if(linear.eq.1) then
-        call createvec(temp_field, num_fields)
-        temp_field = field
-        field = 0.
-     endif
      call ludefall(1-istatic, idens, ipres, 1-iestatic)
-     if(linear.eq.1) then
-        field = temp_field
-        call deletevec(temp_field)
-     endif
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_ludefall = t_ludefall + tend - tstart
      endif
      if(myrank.eq.0 .and. iprint.eq.1) print *, "Done defining matrices."
   endif
-
 
 
   ! copy field data to time-advance vectors
@@ -243,7 +231,7 @@ subroutine split_step(calc_matrices)
   integer :: ibegin, iendplusone, ibeginnv, iendplusonenv
   integer :: jer, ier
   integer, allocatable:: itemp(:)
-  vectype, allocatable :: temp(:)
+  vectype, allocatable :: temp(:), vel_temp(:), veln_temp(:), veloldn_temp(:)
 
   PetscTruth :: flg_petsc, flg_solve2
   call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
@@ -546,22 +534,31 @@ subroutine split_step(calc_matrices)
   if(iestatic.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Fields"
    
+     ! make new velocity vectors of the correct length
+     call createvec(vel_temp, vecsize_phi)
+     call createvec(veln_temp, vecsize_phi)
+     call createvec(veloldn_temp, vecsize_phi)
+
+     call copyfullvec(vel, vecsize_vel, vel_temp, vecsize_phi)
+     call copyfullvec(veln, vecsize_vel, veln_temp, vecsize_phi)
+     call copyfullvec(veloldn, vecsize_vel, veloldn_temp, vecsize_phi)
+
      ! r2matrix_sm * vel(n+1)
-     call matvecmult(r2matrix_sm,vel,b1_vel)
+     call matvecmult(r2matrix_sm,vel_temp,b1_phi)
    
      ! r2matrix_sm * vel(n-1)
      if(integrator.eq.1 .and. ntime.gt.1) then
-        call matvecmult(r2matrix_sm,veloldn,b2_vel)
-        b1_vel = 1.5*b1_vel + 0.5*b2_vel
+        call matvecmult(r2matrix_sm,veloldn_temp,b2_phi)
+        b1_phi = 1.5*b1_phi + 0.5*b2_phi
      endif
 
      ! q2matrix_sm * vel(n)
-     call matvecmult(q2matrix_sm,veln,b2_vel)
-     b1_vel = -b1_vel + b2_vel
-
+     call matvecmult(q2matrix_sm,veln_temp,b2_phi)
+     b1_phi = -b1_phi + b2_phi
 
      ! d2matrix_sm * phi(n)
-     call matvecmult(d2matrix_sm,phi,b1_phi)
+     call matvecmult(d2matrix_sm,phi,b2_phi)
+     b1_phi = b1_phi + b2_phi
 
      ! Include linear n^-1 terms
      if(idens.eq.1 .and. linear.eq.1) then
@@ -611,22 +608,26 @@ subroutine split_step(calc_matrices)
         b1_phi = b1_phi + b2_phi
      endif
 
-     ! Construct right-hand side
-     call numdofs(vecsize_phi,ndofs)
-     allocate(itemp(ndofs)) ! this is used to make sure that we 
-     ! don't double count the sum for periodic dofs
-     itemp = 1
-     do l=1,numnodes
-        call entdofs(vecsize_phi, l, 0, ibegin, iendplusone)
-        call entdofs(vecsize_vel, l, 0, ibeginnv, iendplusonenv)
-        do i=0,iendplusone-ibegin-1
-           b1_phi(ibegin+i) = b1_phi(ibegin+i) + itemp(ibegin+i) * &
-                (b1_vel(ibeginnv+i) + q4(ibegin+i))
+     b1_phi = b1_phi + q4
 
-           itemp(ibegin+i) = 0
-        enddo
-     enddo
-     deallocate(itemp)
+!!$     ! Construct right-hand side
+!!$     call numdofs(vecsize_phi,ndofs)
+!!$     allocate(itemp(ndofs)) ! this is used to make sure that we 
+!!$     ! don't double count the sum for periodic dofs
+!!$     itemp = 1
+!!$     do l=1,numnodes
+!!$        call entdofs(vecsize_phi, l, 0, ibegin, iendplusone)
+!!$        call entdofs(vecsize_vel, l, 0, ibeginnv, iendplusonenv)
+!!$        do i=0,iendplusone-ibegin-1
+!!$           b1_phi(ibegin+i) = b1_phi(ibegin+i) + itemp(ibegin+i) * &
+!!$                (b1_vel(ibeginnv+i) + q4(ibegin+i))
+!!$           b1_phi(ibegin+i) = b1_phi(ibegin+i) + &
+!!$                itemp(ibegin+i) * q4(ibegin+i)
+!!$
+!!$           itemp(ibegin+i) = 0
+!!$        enddo
+!!$     enddo
+!!$     deallocate(itemp)
 
        
      ! Insert boundary conditions
@@ -693,20 +694,21 @@ subroutine split_step(calc_matrices)
         if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Fields Again"
 
         ! r2matrix_sm * vel(n+1)
-        call matvecmult(r2matrix_sm,vel,b1_vel)
+        call matvecmult(r2matrix_sm,vel_temp,b1_phi)
    
         ! r2matrix_sm * vel(n-1)
         if(integrator.eq.1 .and. ntime.gt.1) then
-           call matvecmult(r2matrix_sm,veloldn,b2_vel)
-           b1_vel = 1.5*b1_vel + 0.5*b2_vel
+           call matvecmult(r2matrix_sm,veloldn_temp,b2_phi)
+           b1_phi = 1.5*b1_phi + 0.5*b2_phi
         endif
 
         ! q2matrix_sm * vel(n)
-        call matvecmult(q2matrix_sm,veln,b2_vel)
-        b1_vel = -b1_vel + b2_vel
+        call matvecmult(q2matrix_sm,veln_temp,b2_phi)
+        b1_phi = -b1_phi + b2_phi
 
         ! d2matrix_sm * phi(n)
-        call matvecmult(d2matrix_sm,phi,b1_phi)
+        call matvecmult(d2matrix_sm,phi,b2_phi)
+        b1_phi = b1_phi + b2_phi
       
         ! Include linear f terms
         if(numvar.ge.2 .and. i3d.eq.1) then
@@ -719,22 +721,24 @@ subroutine split_step(calc_matrices)
            b1_phi = b1_phi + b1_phi
         endif
 
-        ! Construct right-hand side
-        call numdofs(vecsize_phi,ndofs)
-        allocate(itemp(ndofs)) ! this is used to make sure that we 
-        ! don't double count the sum for periodic dofs
-        itemp = 1
-        do l=1,numnodes
-           call entdofs(vecsize_phi, l, 0, ibegin, iendplusone)
-           call entdofs(vecsize_vel, l, 0, ibeginnv, iendplusonenv)
-           do i=0,iendplusone-ibegin-1
-              b1_phi(ibegin+i) = b1_phi(ibegin+i) + itemp(ibegin+i) * &
-                   (b1_vel(ibeginnv+i) + q4(ibegin+i))
-              
-              itemp(ibegin+i) = 0
-           enddo
-        enddo
-        deallocate(itemp)
+        b1_phi = b1_phi + q4
+
+!!$        ! Construct right-hand side
+!!$        call numdofs(vecsize_phi,ndofs)
+!!$        allocate(itemp(ndofs)) ! this is used to make sure that we 
+!!$        ! don't double count the sum for periodic dofs
+!!$        itemp = 1
+!!$        do l=1,numnodes
+!!$           call entdofs(vecsize_phi, l, 0, ibegin, iendplusone)
+!!$           call entdofs(vecsize_vel, l, 0, ibeginnv, iendplusonenv)
+!!$           do i=0,iendplusone-ibegin-1
+!!$              b1_phi(ibegin+i) = b1_phi(ibegin+i) + itemp(ibegin+i) * &
+!!$                   (b1_vel(ibeginnv+i) + q4(ibegin+i))
+!!$              
+!!$              itemp(ibegin+i) = 0
+!!$           enddo
+!!$        enddo
+!!$        deallocate(itemp)
         
         ! Insert boundary conditions
         if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -776,6 +780,10 @@ subroutine split_step(calc_matrices)
 
      phiold = phi
      phi = b1_phi
+
+     call deletevec(vel_temp)
+     call deletevec(veln_temp)
+     call deletevec(veloldn_temp)
 
      ! apply smoothing operators
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~
