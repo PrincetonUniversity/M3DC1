@@ -1153,7 +1153,8 @@ subroutine fundef2(error)
      norm     = temp2(1)
      error    = temp2(2)
   end if
-  if(myrank.eq.0) write(*,'(A,1p2E12.4)') 'Error, norm: ', error, norm
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       write(*,'(A,1p2E12.4)') 'Error, norm: ', error, norm
   error = error / norm
 
 end subroutine fundef2
