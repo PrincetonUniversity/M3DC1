@@ -15,7 +15,7 @@ INCLUDE = -I$(SCORECDIR) \
 
 H5_VERSION = 169
 
-FOPTS = -c -r8 -implicitnone -save -fpp -warn unused $(INCLUDE) $(OPTS) -DH5_VERSION=$(H5_VERSION) # -check all -check noarg_temp_created
+FOPTS = -c -r8 -implicitnone -fpp -warn unused $(INCLUDE) $(OPTS) -DH5_VERSION=$(H5_VERSION) # -check all -check noarg_temp_created
 F90OPTS = $(F90FLAGS) $(FOPTS)
 F77OPTS = $(F77FLAGS) $(FOPTS)
 CCOPTS = -c $(INCLUDE)
