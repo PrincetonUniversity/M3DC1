@@ -298,6 +298,12 @@
       den0 = 1.
       dendelt = 0.1
       denoff = 1.
+
+!....equilibrium rotation parameters
+      irot = 0.
+      alpha0 = 0.
+      alpha1 = 0.
+      alpha2 = 0.
 !
 !.....divertor information
       divertors = 0

@@ -18,6 +18,7 @@ module gradshafranov
   real, private, allocatable :: psinorm(:)
   real, private, allocatable :: g4big0t(:), g4bigt(:), g4bigpt(:), g4bigppt(:)
   real, private, allocatable :: fbig0t(:), fbigt(:), fbigpt(:), fbigppt(:)
+  real, private, allocatable :: alphap0t(:), alphapt(:), alphappt(:), alphapppt(:)
 
   integer, private, parameter :: NSTX_coils = 158
   real, private, dimension(NSTX_coils) :: NSTX_r, NSTX_z, NSTX_I
@@ -229,6 +230,7 @@ subroutine gradshafranov_per()
 
      u0_l = 0.
      vz0_l = 0.
+     call calc_rotation(psi0_l,vz0_l,x,z)
      chi0_l = 0.
 
      vmask = p0_l/p0
@@ -713,22 +715,7 @@ subroutine gradshafranov_solve
 
      pe0_l = (1. - ipres*pi0/p0)*p0_l
 
-     if(expn .gt. 0.) then
-        den0_l(1) = p0_l(1)**expn
-        den0_l(2) = p0_l(1)**(expn-1.)*p0_l(2)*expn
-        den0_l(3) = p0_l(1)**(expn-1.)*p0_l(3)*expn
-        den0_l(4) = p0_l(1)**(expn-1.)*p0_l(4)*expn &
-             + p0_l(1)**(expn-2.)*p0_l(2)**2.*expn*(expn-1.)
-        den0_l(5) = p0_l(1)**(expn-1.)*p0_l(5)*expn &
-             + p0_l(1)**(expn-2.)*p0_l(2)*p0_l(3) &
-             * expn*(expn-1.)
-        den0_l(6) = p0_l(1)**(expn-1.)*p0_l(6)*expn &
-             + p0_l(1)**(expn-2.)*p0_l(3)**2.*expn*(expn-1.)
-        den0_l = den0_l/p0**expn
-     else   ! expn.eq.0
-        den0_l(1) = 1.
-        den0_l(2:6) = 0.
-     endif
+     call calc_density(psi0_l,p0_l,den0_l,x,z)
 
   end do
 
@@ -974,6 +961,8 @@ subroutine fundef
   real :: x, z, pso, psox, psoy, psoxx, psoxy, psoyy, fbig, fbig0
   real :: fbigp, fbigpp, g4big0, g4big, g4bigp, g4bigpp, g2big, g2bigp
   real :: g2bigpp, g3big, g3bigp, g3bigpp
+  real :: alphap0, alphap, alphapp, alphappp
+  real :: r0m, r1, r1m, r2, r3, ealpha,  pspx, pspy, pspxx, pspxy, pspyy
   logical :: inside_lcfs
 
   vectype, dimension(6) :: temp
@@ -1011,13 +1000,106 @@ subroutine fundef
            fbigp = fbigp*dpsii
            fbigpp = fbigpp*dpsii
         endif
+      if(irot.eq.1) then
+!.....include toroidal rotation in equilibrium
+!...this section calculates pressure derivatives in presence of rotation
+!   scj   11/19/10
+!
+!....assumes pressure of the form p(x,psi) = p(psi) exp (alpha(psi)*r1)
+!
+!...spatial derivatives of psi, not normalized psi
+     pspx = psi(ibegin+1)
+     pspy = psi(ibegin+2)
+     pspxx= psi(ibegin+3)
+     pspxy= psi(ibegin+4)
+     pspyy= psi(ibegin+5)
 
+     r0m = 1./rzero**2
+     r1 = (x**2-rzero**2)/rzero**2
+     r1m= x**2/rzero**2
+     r2 = (x**2 - rzero**2)**2/rzero**4
+     r3 = (x**2 - rzero**2)**3/rzero**6
+     call alphaget(pso,alphap0,alphap,alphapp,alphappp)
+
+!...convert all derivatives to wrt psi, not normalized psi
+     fbigp = fbigp*dpsii
+     fbigpp= fbigpp*dpsii**2
+     alphap = alphap*dpsii
+     alphapp = alphapp*dpsii**2
+     alphappp = alphapp*dpsii**3
+
+     ealpha = exp(alphap0*r1)
+
+         fun1(ibegin) = ealpha*( x *fbig + fbig0*alphap*x*r1)
+
+         fun1(ibegin+1) = ealpha*                                           &
+                (fbig + fbig0*alphap*x*r1                                   &
+                +fbig0*alphap0*alphap*2*r1m*r1                              &
+           + (alphap0*fbig + fbig0*alphap) * 2.*r1m                         &
+           + pspx*( x*fbigp + (2.*fbig*alphap + fbig0*alphapp)*x*r1         &
+            + fbig0 * alphap**2 * x*r2))
+
+         fun1(ibegin+2) = ealpha*                                           &
+            pspx*( x*fbigp + (2.*fbig*alphap + fbig0*alphapp)*x*r1          &
+            + fbig0 * alphap**2 * x*r2)
+
+         fun1(ibegin+3) = ealpha*                                           &
+                 ((3*alphap0*fbig + 3*fbig0*alphap)*2*x*r0m                 &
+                 + 3*fbig0*alphap0*alphap*2*x*r0m*r1                        &
+                 + fbig0*alphap0**2*alphap*4*r1m*r0m*r1                     &
+                 + alphap0*(alphap0*fbig+2*fbig0*alphap)*4.*r1m*r0m         &
+                 + pspx*( 2*fbigp                                           &
+                +(2*fbig0*alphapp + 4*alphap*fbig)*r1                       &
+                +(4*alphap*fbig + 2*alphap0*fbigp + 2*fbig0*alphapp)*2*r1m  &
+                +(4*alphap*fbig + 2*alphap0*fbigp + 2*fbig0*alphapp)*r1m    &
+                +2*fbig0*alphap**2*r2                                       &
+                +(4*fbig0*alphap**2 + 2*fbig0*alphap0*alphapp               &
+                                            + 4*alphap0*fbig*alphap)*r1m*r1 &
+                + 2*fbig0*alphap0*alphap**2*2*r1m*r2)                       &
+                + pspx*pspx*(x*fbigpp                                       &
+                +(3*fbigp*alphap + 3*fbig*alphapp + fbig0*alphappp)*x*r1    &
+                +3*(fbig0*alphapp + fbig*alphap)*alphap*x*r2                &
+                + fbig0*alphap**3*x*r3)                                     &  
+                   + pspxx*(x*fbigp                                         &
+                + (2*fbig*alphap + fbig0*alphapp)*x*r1                      &
+                + p0*alphap**2*x*r2))
+
+         fun1(ibegin+4) = ealpha*                                           &
+                (pspy*(fbigp                                                &
+              + (2.*fbig*alphap + fbig0*alphapp)*r1                         &
+              + (2.*fbig*alphap + fbig0*alphapp + fbigp*alphap0)*2*r1m      &
+              + (2*fbig*alphap*alphap0 + fbig0*alphapp*alphap0              &
+                                            + 2*fbig0*alphap**2)*2*r1m*r1   &
+              +  fbig0*alphap**2*r2                                         &
+              +  fbig0*alphap**2*alphap0*2*r1m*r2)                          &
+              +pspx*pspy*(x*fbigpp                                          &
+              + (3*fbigp*alphap + 3*fbig*alphapp + fbig0*alphappp)*x*r1     &
+              + (3*fbig*alphap + 3*fbig0*alphapp)*alphap*x*r2               &
+              + fbig0*alphap**3*x*r3)                                       &
+              + pspxy*(x*fbigp                                              &
+                + (2*fbig*alphap + fbig0*alphapp)*x*r1                      &
+                + p0*alphap**2*x*r2))
+
+         fun1(ibegin+5) = ealpha*                                           &
+                (pspy*pspy*(x*fbigpp                                        &
+              + (3*fbigp*alphap + 3*fbig*alphapp + fbig0*alphappp)*x*r1     &
+              + (3*fbig*alphap + 3*fbig0*alphapp)*alphap*x*r2               &
+              + fbig0*alphap**3*x*r3)                                       &
+              + pspyy*(x*fbigp                                              &
+                + (2*fbig*alphap + fbig0*alphapp)*x*r1                      &
+                + p0*alphap**2*x*r2))
+
+      else
+!
+!....no toroidal rotation in equilibrium
         fun1(ibegin)   = x*fbig
         fun1(ibegin+1) = fbig + x*fbigp*psox
         fun1(ibegin+2) =        x*fbigp*psoy
         fun1(ibegin+3) = 2.*fbigp*psox + x*(fbigpp*psox**2+fbigp*psoxx)
         fun1(ibegin+4) = fbigp*psoy + x*(fbigpp*psox*psoy +fbigp*psoxy)
         fun1(ibegin+5) = x*(fbigpp*psoy**2 + fbigp*psoyy)
+
+      endif   !...end of branch on irot
 
         call g4get(pso, g4big0, g4big, g4bigp, g4bigpp)
 
@@ -1261,7 +1343,7 @@ end subroutine calc_toroidal_field
 ! calc_pressure
 ! ~~~~~~~~~~~~~
 !
-! calculates the pressure as a function of the normalized flux
+! calculates the pressure as a function of the poloidal flux (and major radius if rotation is present)
 !======================================================================
 subroutine calc_pressure(psi0,pres, x, z)
   
@@ -1274,12 +1356,14 @@ subroutine calc_pressure(psi0,pres, x, z)
   vectype, intent(out), dimension(6) :: pres     ! pressure
 
   real :: fbig0, fbig, fbigp, fbigpp
+  real :: alphap0, alphap, alphapp, alphappp
+  real :: r0m, r1, r1m, r2, r3, ealpha,  pspx, pspy, pspxx, pspxy, pspyy
   real, dimension(6) :: psii     ! normalized flux
 
   logical :: inside_lcfs
 
   if(.not.inside_lcfs(psi0,x,z,.true.)) then
-     call constant_field(pres,0.)
+     call constant_field(pres,pedge)
   else
      psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
      psii(2:6) = real(psi0(2:6))/(psilim - psimin)
@@ -1291,6 +1375,60 @@ subroutine calc_pressure(psi0,pres, x, z)
         fbig = fbig/dpsii
         fbigp = fbigp/dpsii
      endif
+!
+!
+  if(irot.eq.1) then
+!.....include toroidal rotation in equilibrium
+!...this section calculates pressure derivatives in presence of rotation
+!   scj   11/19/10
+!
+!....assumes pressure of the form p(x,psi) = p(psi) exp (alpha(psi)*r1)
+!
+!...spatial derivatives of psi, not normalized psi
+     pspx = real(psi0(2))
+     pspy = real(psi0(3))
+     pspxx= real(psi0(4))
+     pspxy= real(psi0(5))
+     pspyy= real(psi0(6))
+
+     r0m = 1./rzero**2
+     r1 = (x**2-rzero**2)/rzero**2
+     r1m= x**2/rzero**2
+     r2 = (x**2 - rzero**2)**2/rzero**4
+     r3 = (x**2 - rzero**2)**3/rzero**6
+     call alphaget(psii(1),alphap0,alphap,alphapp,alphappp)
+
+!...convert all derivatives to wrt psi, not normalized psi
+     fbig = fbig*dpsii
+     fbigp = fbigp*dpsii**2
+     alphap = alphap*dpsii
+     alphapp = alphapp*dpsii**2
+
+     ealpha = exp(alphap0*r1)
+
+     pres(1) = ealpha*fbig0
+
+     pres(2) = ealpha*(fbig0*alphap0*2*x*r0m                                                &
+                     + (fbig + fbig0*alphap*r1)*pspx)
+
+     pres(3) = ealpha*(fbig + fbig0*alphap*r1)*pspy
+
+     pres(4) = ealpha*(                                                                     &
+             fbig0*alphap0*2*r0m + fbig0*alphap0*alphap0*4*r0m*r1m                          &
+            +((2*fbig0*alphap + 2.*fbig*alphap0) + 2*fbig0*alphap0*alphap*r1)*2*x*r0m*pspx  &
+            +(fbigp + (2*fbig*alphap + fbig0*alphapp)*r1 + fbig0*alphap**2*r2)*pspx*pspx    &
+            +(fbig + fbig0*alphap*r1)*pspxx)
+
+     pres(5) = ealpha*(                                                                     &
+             (fbig*alphap0 + fbig0*alphap +fbig0*alphap0*alphap*r1)*2*x*r0m*pspy       &
+            +(fbigp + (2.*fbig*alphap + fbig0*alphapp)*r1 + fbig0 *alphap**2*r2)*pspx*pspy  &
+            +(fbig + fbig0*alphap*r1)*pspxy)
+
+     pres(6) = ealpha*(                                                                     &
+            +(fbigp + (2.*fbig*alphap + fbig0*alphapp)*r1 + fbig0 *alphap**2*r2)*pspy*pspy  &
+            +(fbig + fbig0*alphap*r1)*pspyy)
+
+  else
 
      pres(1) = fbig0
      pres(2) = psii(2)*fbig
@@ -1298,6 +1436,7 @@ subroutine calc_pressure(psi0,pres, x, z)
      pres(4) = (psii(4)*fbig + psii(2)**2*fbigp)
      pres(5) = (psii(5)*fbig + psii(2)*psii(3)*fbigp)
      pres(6) = (psii(6)*fbig + psii(3)**2*fbigp)
+  endif     !....end of branch on irot
   
   endif
   pres(1) = pres(1) + pedge
@@ -1322,6 +1461,9 @@ subroutine readpgfiles
     read(76,802) psinorm(j),fbig0t(j),fbigt(j),fbigpt(j),fbigppt(j)
   enddo
   close(76)
+!
+!.....p0 is central pressure.   This is used in calc_density and calc_rotation if irot=1
+      p0 = fbig0t(1)
 
 !
 !.....note:  removed this on 07/03/09...fbig0t is now total pressure
@@ -1369,6 +1511,19 @@ subroutine fget(pso, fbig0, fbig, fbigp, fbigpp)
   return
 end subroutine fget
 
+subroutine alphaget(pso, alphap0, alphap, alphapp, alphappp)
+  implicit none
+
+  real, intent(in) :: pso
+  real, intent(out) :: alphap0,alphap, alphapp, alphappp
+
+  call cubic_interpolation(npsi,psinorm,pso,alphap0t,alphap0)
+  call cubic_interpolation(npsi,psinorm,pso,alphapt,alphap)
+  call cubic_interpolation(npsi,psinorm,pso,alphappt,alphapp)
+  call cubic_interpolation(npsi,psinorm,pso,alphapppt,alphappp)
+  return
+end subroutine alphaget
+
  subroutine default_profiles
    
    use basic
@@ -1378,11 +1533,12 @@ end subroutine fget
    integer :: j
    real :: psii
 
-   if(myrank.eq.0) print *, "Using default p and I profiles"
+   if(myrank.eq.0) print *, "Using default p, alpha, and I profiles"
 
    npsi = 500
    allocate(psinorm(npsi))
    allocate(fbig0t(npsi),fbigt(npsi),fbigpt(npsi),fbigppt(npsi))
+   allocate(alphap0t(npsi),alphapt(npsi),alphappt(npsi),alphapppt(npsi))
    allocate(g4big0t(npsi),g4bigt(npsi),g4bigpt(npsi),g4bigppt(npsi))
   
    do j=1, npsi
@@ -1402,6 +1558,11 @@ end subroutine fget
       fbigppt(j) = p0*(- 6.*(20. + 10.*p1+4.*p2)                            &
            + 24.*(45.+20.*p1+6*p2)*psii - 60.*(36.+15*p1+4*p2)*psii**2      &
            + 120.*(10.+4.*p1+p2)*psii**3)
+
+      alphap0t(j) = alpha0 + alpha1*psii + alpha2*psii**2
+      alphapt(j)  =          alpha1   + 2.*alpha2*psii
+      alphappt(j) =   2.*alpha2
+      alphapppt(j) = 0.
 
       g4big0t(j) = 1.- 20.*psii**3+  45.*psii**4-  36.*psii**5+  10.*psii**6
       g4bigt(j)  =   - 60.*psii**2+ 180.*psii**3- 180.*psii**4+  60.*psii**5
@@ -1437,6 +1598,7 @@ end subroutine fget
 
    allocate(psinorm(npsi))
    allocate(fbig0t(npsi),fbigt(npsi),fbigpt(npsi),fbigppt(npsi))
+   allocate(alphap0t(npsi),alphapt(npsi),alphappt(npsi),alphapppt(npsi))
    allocate(g4big0t(npsi),g4bigt(npsi),g4bigpt(npsi),g4bigppt(npsi))
 
    fbig0t(1:n) = p                                 ! p
@@ -1536,4 +1698,250 @@ end subroutine fget
    error = error / norm
  end subroutine calculate_gs_error
  
+
+!======================================================================
+! calc_density
+! ~~~~~~~~~~~~~
+!
+! calculates the density as a function of the poloidal flux (and major radius if rotation is present)
+!======================================================================
+subroutine calc_density(psi0,pres,dens, x, z)
+  
+  use basic
+
+  implicit none
+
+  vectype, intent(in), dimension(6)  :: psi0, pres
+  real, intent(in) :: x, z
+  vectype, intent(out), dimension(6) :: dens     ! density
+
+  real :: fbig0, fbig, fbigp, fbigpp
+  real :: rbig0, rbig, rbigp, p0ni, redge
+  real :: alphap0, alphap, alphapp, alphappp
+  real :: r0m, r1, r1m, r2, r3, ealpha,  pspx, pspy, pspxx, pspxy, pspyy
+  real, dimension(6) :: psii     ! normalized flux
+
+  logical :: inside_lcfs
+
+  if(.not.inside_lcfs(psi0,x,z,.true.)) then
+     call constant_field(dens,redge)
+      redge = (pedge/p0)**expn
+  else
+     psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
+     psii(2:6) = real(psi0(2:6))/(psilim - psimin)
+
+     call fget(psii(1), fbig0, fbig, fbigp, fbigpp)
+      fbig0 = fbig0 + pedge
+!
+!.....changed 07/05/09 scj  for inumgs.ne.0 fbig is derivative wrt total psi, not normalized
+     if(inumgs.ne.0) then
+        fbig = fbig*(psilim-psimin)
+        fbigp = fbigp*(psilim-psimin)
+     endif
+!
+!
+  if(irot.eq.1) then
+!.....include toroidal rotation in equilibrium
+!...this section calculates density derivatives in presence of rotation
+!   scj   11/19/10
+!
+!....assumes density of the form p(x,psi) = p(psi) exp (alpha(psi)*r1)
+!
+!...spatial derivatives of psi, not normalized psi
+     pspx = real(psi0(2))
+     pspy = real(psi0(3))
+     pspxx= real(psi0(4))
+     pspxy= real(psi0(5))
+     pspyy= real(psi0(6))
+
+     r0m = 1./rzero**2
+     r1 = (x**2-rzero**2)/rzero**2
+     r1m= x**2/rzero**2
+     r2 = (x**2 - rzero**2)**2/rzero**4
+     r3 = (x**2 - rzero**2)**3/rzero**6
+     call alphaget(psii(1),alphap0,alphap,alphapp,alphappp)
+
+!...convert all derivatives to wrt psi, not normalized psi
+     fbig = fbig/(psilim-psimin)
+     fbigp = fbigp/(psilim-psimin)**2
+     alphap = alphap/(psilim-psimin)
+     alphapp = alphapp/(psilim-psimin)**2
+
+     p0ni = (1./p0)**expn
+     rbig0 = p0ni*fbig0**expn
+     rbig = 0.
+     rbigp = 0.
+     if(fbig0.gt.0.) then
+       rbig = p0ni*expn*fbig0**(expn-1)*fbig
+       rbigp= p0ni*expn*((expn-1)*fbig0**(expn-2)*fbig**2 + fbig0**(expn-1.)*fbigp)
+     endif
+
+     ealpha = exp(alphap0*r1)
+
+     dens(1) = ealpha*rbig0
+
+     dens(2) = ealpha*(rbig0*alphap0*2*x*r0m                                                &
+                     + (rbig + rbig0*alphap*r1)*pspx)
+
+     dens(3) = ealpha*(rbig + rbig0*alphap*r1)*pspy
+
+     dens(4) = ealpha*(                                                                     &
+             rbig0*alphap0*2*r0m + rbig0*alphap0*alphap0*4*r0m*r1m                          &
+            +((2*rbig0*alphap + 2.*rbig*alphap0) + 2*rbig0*alphap0*alphap*r1)*2*x*r0m*pspx  &
+            +(rbigp + (2*rbig*alphap + rbig0*alphapp)*r1 + rbig0*alphap**2*r2)*pspx*pspx    &
+            +(rbig + rbig0*alphap*r1)*pspxx)
+
+     dens(5) = ealpha*(                                                                     &
+             (rbig*alphap0 + rbig0*alphap +rbig0*alphap0*alphap*r1)*2*x*r0m*pspy       &
+            +(rbigp + (2.*rbig*alphap + rbig0*alphapp)*r1 + rbig0 *alphap**2*r2)*pspx*pspy  &
+            +(rbig + rbig0*alphap*r1)*pspxy)
+
+     dens(6) = ealpha*(                                                                     &
+            +(rbigp + (2.*rbig*alphap + rbig0*alphapp)*r1 + rbig0 *alphap**2*r2)*pspy*pspy  &
+            +(rbig + rbig0*alphap*r1)*pspyy)
+
+  else
+
+     if(expn .gt. 0.) then
+        dens(1) = pres(1)**expn
+        dens(2) = pres(1)**(expn-1.)*pres(2)*expn
+        dens(3) = pres(1)**(expn-1.)*pres(3)*expn
+        dens(4) = pres(1)**(expn-1.)*pres(4)*expn &
+             + pres(1)**(expn-2.)*pres(2)**2.*expn*(expn-1.)
+        dens(5) = pres(1)**(expn-1.)*pres(5)*expn &
+             + pres(1)**(expn-2.)*pres(2)*pres(3) &
+             * expn*(expn-1.)
+        dens(6) = pres(1)**(expn-1.)*pres(6)*expn &
+             + pres(1)**(expn-2.)*pres(3)**2.*expn*(expn-1.)
+        dens = dens/p0**expn
+     else   ! expn.eq.0
+        dens(1) = 1.
+        dens(2:6) = 0.
+     endif
+  endif     !....end of branch on irot
+  
+  endif
+  
+  return
+end subroutine calc_density
+
+
+!======================================================================
+! calc_rotation
+! ~~~~~~~~~~~~~
+!
+! calculates the rotation as a function of the poloidal flux
+!======================================================================
+subroutine calc_rotation(psi0,omega, x, z)
+  
+  use basic
+
+  implicit none
+
+  vectype, intent(in), dimension(6)  :: psi0
+  real, intent(in) :: x, z
+  vectype, intent(out), dimension(6) :: omega     ! rotation
+
+  real :: fbig0, fbig, fbigp, fbigpp
+  real :: alphap0, alphap, alphapp, alphappp
+  real :: tp0,tp,tpp,p0n,befoh,befomh,befom3h
+  real :: r0m, r1, r1m, r2, r3,  pspx, pspy, pspxx, pspxy, pspyy
+  real, dimension(6) :: psii     ! normalized flux
+
+  logical :: inside_lcfs
+
+  if(.not.inside_lcfs(psi0,x,z,.true.)) then
+     call constant_field(omega,0.)
+  else
+     psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
+     psii(2:6) = real(psi0(2:6))/(psilim - psimin)
+
+     call fget(psii(1), fbig0, fbig, fbigp, fbigpp)
+      fbig0 = fbig0 + pedge
+!
+!.....changed 07/05/09 scj  for inumgs.ne.0 fbig is derivative wrt total psi, not normalized
+     if(inumgs.ne.0) then
+        fbig = fbig*(psilim-psimin)
+        fbigp = fbigp*(psilim-psimin)
+     endif
+!
+!
+  if(irot.eq.1) then
+!.....include toroidal rotation in equilibrium
+!...this section calculates rotation derivatives in presence of rotation
+!   scj   11/19/10
+!
+!....assumes rotation of the form p(x,psi) = p(psi) exp (alpha(psi)*r1)
+!
+!...spatial derivatives of psi, not normalized psi
+     pspx = real(psi0(2))
+     pspy = real(psi0(3))
+     pspxx= real(psi0(4))
+     pspxy= real(psi0(5))
+     pspyy= real(psi0(6))
+
+     r0m = 1./rzero**2
+     r1 = (x**2-rzero**2)/rzero**2
+     r1m= x**2/rzero**2
+     r2 = (x**2 - rzero**2)**2/rzero**4
+     r3 = (x**2 - rzero**2)**3/rzero**6
+     call alphaget(psii(1),alphap0,alphap,alphapp,alphappp)
+
+!...convert all derivatives to wrt psi, not normalized psi
+     fbig = fbig/(psilim-psimin)
+     fbigp = fbigp/(psilim-psimin)**2
+     alphap = alphap/(psilim-psimin)
+     alphapp = alphapp/(psilim-psimin)**2
+!...define temperature and derivatives
+     p0n = 0.
+     tp0 = 0.
+     tp = 0.
+     tpp = 0.
+     befoh = 0.
+     befomh = 0.
+     befom3h = 0.
+     omega = 0.
+     if(p0 .gt. 0 .and. fbig0 .gt.0) then
+        p0n = p0**expn
+        tp0 = p0n*fbig0**(1.-expn)
+        tp  = p0n*(1.-expn)*fbig0**(-expn)*fbig
+        tpp = p0n*(expn*(expn-1.)*fbig0**(-1.-expn)*fbig**2 + (1.-expn)*fbig0**(-expn)*fbigp)
+
+        befoh   = (2.*alphap0*tp0/rzero**2)**0.5
+        befomh  = (2.*alphap0*tp0/rzero**2)**(-0.5)
+        befom3h = (2.*alphap0*tp0/rzero**2)**(-1.5)
+
+        omega(1) = befoh
+
+        omega(2) = befomh*r0m*(alphap*tp0 + alphap0*tp)*pspx
+
+        omega(3) = befomh*r0m*(alphap*tp0 + alphap0*tp)*pspy
+
+        omega(4) = -befom3h*r0m**2*(alphap*tp0 + alphap0*tp)**2*pspx*pspx                   &
+                 +   befomh*r0m*((alphapp*tp0 + 2.*alphap*tp + alphap0*tpp)*pspx*pspx       &
+                                +(alphap*tp0 + alphap0*tp)*pspxx)
+
+        omega(5) =  -befom3h*r0m**2*(alphap*tp0 + alphap0*tp)**2*pspx*pspy                  &
+                 +   befomh*r0m*((alphapp*tp0 + 2.*alphap*tp + alphap0*tpp)*pspx*pspy       &
+                                +(alphap*tp0 + alphap0*tp)*pspxy)
+
+        omega(6) =  -befom3h*r0m**2*(alphap*tp0 + alphap0*tp)**2*pspy*pspy                  &
+                 +   befomh*r0m*((alphapp*tp0 + 2.*alphap*tp + alphap0*tpp)*pspy*pspy       &
+                                +(alphap*tp0 + alphap0*tp)*pspyy)
+     endif
+  else
+
+     omega(1) = 0.
+     omega(2) = 0.
+     omega(3) = 0.
+     omega(4) = 0.
+     omega(5) = 0.
+     omega(6) = 0.
+  endif     !....end of branch on irot
+  
+  endif
+  
+  return
+end subroutine calc_rotation
+
 end module gradshafranov

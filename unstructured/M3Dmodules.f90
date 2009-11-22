@@ -157,6 +157,10 @@ module basic
   real :: dendelt
   real :: denoff
 
+  integer :: irot  !  if irot=1, include toroidal rotation in equilibrium
+  real :: alpha0, alpha1, alpha2  !  rotation profile is
+!                                   (alpha0 + alpha1*psin + alpha2*psin**2)*pressure
+
   ! model options
   integer :: linear      ! 1 = linear simulation; 0 = nonlinear simulation
   integer :: eqsubtract  ! 1 = subtract equilibrium in noninear simulations
@@ -296,6 +300,7 @@ module basic
        adapt_factor, adapt_hmin, adapt_hmax,                   &
        b0_norm, n0_norm, l0_norm, bscale,                      &
        idenfunc, den_edge, den0, denoff, dendelt,              &
+       irot, alpha0, alpha1, alpha2,                           &
        icurv, iflip
 
 
