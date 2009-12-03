@@ -70,37 +70,31 @@ vectype function b4psietahyp(e,f,g,h)
   vectype :: temp
 
 #ifdef USECOMPLEX
-  select case(ivform)
-  case(0)
-     ! not yet implemented
+  if(surface_int) then 
      temp = 0.
-  case(1)
-     if(surface_int) then 
-        temp = 0.
-     else
-        if(ihypeta.eq.0) then
-           temp79a = e(:,OP_DZZ)
-           if(itor.eq.1) temp79a = temp79a -    ri_79*e(:,OP_DR)
-           temp79b = e(:,OP_DRR)
-           if(itor.eq.1) temp79b = temp79b - 3.*ri_79*e(:,OP_DR)
-           temp79c = e(:,OP_DRZ)
-           if(itor.eq.1) temp79c = temp79c -    ri_79*e(:,OP_DZ)             
-
-           temp = 2.*int4(ri4_79,temp79a,f(:,OP_DZZP),h(:,OP_1)) &
-                + 2.*int4(ri4_79,temp79b,f(:,OP_DRRP),h(:,OP_1)) &
-                + 4.*int4(ri4_79,temp79c,f(:,OP_DRZP),h(:,OP_1)) &
-                -    int4(ri4_79,e(:,OP_GS),f(:,OP_GSP),h(:,OP_1))
-
-           if(itor.eq.1) then
-              temp = temp &
-                   - 4.*int4(ri5_79,temp79b,f(:,OP_DRP),h(:,OP_1)) &
-                   - 4.*int4(ri5_79,temp79c,f(:,OP_DZP),h(:,OP_1))
-           endif
-        else
-           temp = 0.
+  else
+     if(ihypeta.eq.0) then
+        temp79a = e(:,OP_DZZ)
+        if(itor.eq.1) temp79a = temp79a -    ri_79*e(:,OP_DR)
+        temp79b = e(:,OP_DRR)
+        if(itor.eq.1) temp79b = temp79b - 3.*ri_79*e(:,OP_DR)
+        temp79c = e(:,OP_DRZ)
+        if(itor.eq.1) temp79c = temp79c -    ri_79*e(:,OP_DZ)             
+        
+        temp = 2.*int4(ri4_79,temp79a,f(:,OP_DZZP),h(:,OP_1)) &
+             + 2.*int4(ri4_79,temp79b,f(:,OP_DRRP),h(:,OP_1)) &
+             + 4.*int4(ri4_79,temp79c,f(:,OP_DRZP),h(:,OP_1)) &
+             -    int4(ri4_79,e(:,OP_GS),f(:,OP_GSP),h(:,OP_1))
+        
+        if(itor.eq.1) then
+           temp = temp &
+                - 4.*int4(ri5_79,temp79b,f(:,OP_DRP),h(:,OP_1)) &
+                - 4.*int4(ri5_79,temp79c,f(:,OP_DZP),h(:,OP_1))
         endif
+     else
+        temp = 0.
      endif
-  end select
+  endif
 #else
   temp = 0.
 #endif

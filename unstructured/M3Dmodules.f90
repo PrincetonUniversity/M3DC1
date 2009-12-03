@@ -138,7 +138,11 @@ module basic
   integer :: divertors! number of divertors
   integer :: igs      ! number of grad-shafranov iterations
   integer :: nv1equ   ! if set to 1, use numvar equilibrium for numvar > 1
-  integer :: igs_method
+  integer :: igs_method  ! 1 = use node-based method (fastest, least accurate)
+                         ! 2 = use element-based method, and calculate p from
+                         !     input p profile (closest fit to input equil.)
+                         ! 3 = use element-based method, and calculate p from
+                         !     input p' profile (best gs solution)
   real :: xmag, zmag  ! position of magnetic axis
   real :: xlim, zlim  ! position of limiter
   real :: xdiv, zdiv  ! position of divertor
@@ -236,6 +240,7 @@ module basic
                            ! 2 = read geqdsk for psi, but use default profiles
   integer :: iread_dskbal  ! 1 = read dskbal input
   integer :: iread_jsolver
+  integer :: iwrite_restart ! 0 = don't write restart files
 
   ! adaptation options
   integer :: iadapt     ! 1,2 = adapts mesh after initialization
@@ -301,7 +306,7 @@ module basic
        b0_norm, n0_norm, l0_norm, bscale,                      &
        idenfunc, den_edge, den0, denoff, dendelt,              &
        irot, alpha0, alpha1, alpha2,                           &
-       icurv, iflip
+       icurv, iflip, iwrite_restart
 
 
   !     derived quantities
@@ -785,7 +790,8 @@ module sparse
   integer, parameter :: ppmatrix_lhs = 37
   integer, parameter :: brmatrix_sm = 38
   integer, parameter :: bf_matrix_rhs = 39
-  integer, parameter :: num_matrices = 39
+  integer, parameter :: dp_matrix_lhs = 40
+  integer, parameter :: num_matrices = 40
   
 
 contains
@@ -870,7 +876,7 @@ subroutine space(ifirstcall)
 ! createvec will delete the arrays if they have already been allocated
   if(ifirstcall.eq.1) then
      if(myrank.eq.0 .and. iprint.eq.1) print *, 'Allocating...'
-     
+
      ! Physical Variables
      call createvec(field , num_fields)
      call createvec(field0, num_fields)
