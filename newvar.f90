@@ -16,6 +16,7 @@ module newvar_mod
   integer, parameter :: NV_SJ_MATRIX = 4  ! Current density smoother
   integer, parameter :: NV_SV_MATRIX = 5  ! Vorticity smoother
   integer, parameter :: NV_SC_MATRIX = 6  ! Compression smoother
+  integer, parameter :: NV_DP_MATRIX = 7
 
   integer, parameter :: NV_RHS = 0
   integer, parameter :: NV_LHS = 1
@@ -29,12 +30,9 @@ subroutine apply_bc(imatrix, rhs, ibound, bvec)
   vectype, dimension(*), intent(inout) :: rhs
   vectype, dimension(*), intent(in) :: bvec
 
-  vectype :: val
-  val = 0.
-
   select case(ibound)
   case(NV_DCBOUND)
-     call boundary_dc(imatrix, rhs, val)
+     call boundary_dc(imatrix, rhs, bvec)
   case(NV_NMBOUND)
      call boundary_nm(imatrix, rhs, bvec)
   case(NV_SJBOUND)
@@ -193,6 +191,9 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
                       int2(g79(:,OP_LP,i),g79(:,OP_LP,j))
               end if
 
+           case(NV_DP_MATRIX)              
+              temp(1,1) = int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j)) &
+                   +      int2(g79(:,OP_DR,i),g79(:,OP_DR,j))
 
            end select
            do m=1,isize

@@ -1009,7 +1009,7 @@ end subroutine boundary_pres
 !
 ! sets homogeneous dirichlet boundary condition
 !=======================================================
-subroutine boundary_dc(imatrix, rhs, val)
+subroutine boundary_dc(imatrix, rhs, bvec)
   use basic
   use arrays
 
@@ -1017,7 +1017,7 @@ subroutine boundary_dc(imatrix, rhs, val)
   
   integer, intent(in) :: imatrix
   vectype, intent(inout), dimension(*) :: rhs
-  vectype, intent(in) :: val
+  vectype, intent(in), dimension(*) :: bvec
   
   integer :: i, izone, izonedim
   integer :: ibegin, iendplusone, numnodes
@@ -1029,9 +1029,6 @@ subroutine boundary_dc(imatrix, rhs, val)
   if(iper.eq.1 .and. jper.eq.1) return
   if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_dc called"
 
-  temp(1) = val
-  temp(2:6) = 0.
-
   call numnod(numnodes)
   do i=1, numnodes
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
@@ -1040,6 +1037,7 @@ subroutine boundary_dc(imatrix, rhs, val)
      call entdofs(1, i, 0, ibegin, iendplusone)
      call rotate_matrix(imatrix, ibegin, normal, curv, rhs, icurv)
 
+     temp = bvec(ibegin:ibegin+5)
      call set_dirichlet_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim)
   end do
 

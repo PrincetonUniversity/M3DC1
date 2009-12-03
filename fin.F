@@ -345,6 +345,7 @@
 !.....1 = output/input global restart files
       iglobalout = 0
       iglobalin = 0
+      iwrite_restart = 1
 !     
 !.....1 = output f field
       ifout = -1

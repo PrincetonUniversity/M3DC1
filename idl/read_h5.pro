@@ -3544,7 +3544,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
 end
 
 pro plot_scalar, scalarname, x, filename=filename, names=names, $
-                 _EXTRA=extra, overplot=overplot, $
+                 _EXTRA=extra, overplot=overplot, difference=diff, $
                  ylog=ylog, xlog=xlog, absolute_value=absolute, $
                  power_spectrum=power_spectrum, per_length=per_length, $
                  growth_rate=growth_rate, bw=bw, nolegend=nolegend, $
@@ -3571,14 +3571,14 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
                 color=co[i], _EXTRA=extra, ylog=ylog, xlog=xlog, $
                 power_spectrum=power_spectrum, per_length=per_length, $
                 growth_rate=growth_rate, linestyle=ls[i], nolegend=nolegend, $
-                absolute_value=absolute,cgs=cgs,mks=mks
+                absolute_value=absolute,cgs=cgs,mks=mks,difference=diff
           endif else begin
               plot_scalar, scalarname, x[i], filename=filename[i], $
                 overplot=((i gt 0) or keyword_set(overplot)), $
                 color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, $
                 power_spectrum=power_spectrum, per_length=per_length, $
                 growth_rate=growth_rate, nolegend=nolegend, $
-                absolute_value=absolute,cgs=cgs,mks=mks
+                absolute_value=absolute,cgs=cgs,mks=mks,difference=diff
           endelse
       end
 
@@ -3623,6 +3623,10 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
 ;      ytitle = '!7c !6(!7s!D!8A!N!6!U-1!N)!X'
       ytitle = make_label('!7c!X', t0=-1, cgs=cgs, mks=mks, _EXTRA=extra)
   endif
+
+  if(keyword_set(diff)) then begin
+      data = data - data[0]
+  end
 
   if(keyword_set(absolute)) then data = abs(data)
 

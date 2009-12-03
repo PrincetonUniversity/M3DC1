@@ -471,11 +471,14 @@ subroutine output
   if(mod(ntime-ntime0,ntimepr).eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, "-Time slice (HDF5)."
      call hdf5_write_time_slice(0,ier)
-     if(myrank.eq.0 .and. iprint.ge.1) print *, "-Restart file(s)."
-     if(iglobalout.eq.1) then
-        call wrrestartglobal
-     else
-        call wrrestart
+
+     if(iwrite_restart.eq.1) then
+        if(myrank.eq.0 .and. iprint.ge.1) print *, "-Restart file(s)."
+        if(iglobalout.eq.1) then
+           call wrrestartglobal
+        else
+           call wrrestart
+        endif
      endif
   endif
   if(myrank.eq.0 .and. itimer.eq.1) then
