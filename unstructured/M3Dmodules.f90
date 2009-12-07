@@ -90,7 +90,8 @@ module basic
   integer :: iconst_bz     ! 1 = toroidal field held constant
   integer :: inograd_p     ! 1 = no normal pressure gradient
   integer :: inograd_n     ! 1 = no normal density gradient
-  integer :: com_bc   ! 1 = forces div(V) = 0 on boundary
+  integer :: com_bc        ! 1 = forces div(V) = 0 on boundary
+  integer :: ifbound       ! bc on f.  0=none, 1=dirichlet, 2=neumann
   real :: amu_edge    ! factor by which to increase viscosity at boundaries
 
   integer :: icurv  ! treats boundaries as if curvature = 0.
@@ -294,7 +295,7 @@ module basic
        iteratephi, icsym, inumgs, nonrect, ifixedb,            &
        inonormalflow, inoslip_pol, inoslip_tor, inostress_tor, &
        iconst_p, inograd_p, iconst_n, inograd_n, iconst_t,     &
-       inocurrent_pol, inocurrent_tor, iconst_bz,              &
+       inocurrent_pol, inocurrent_tor, iconst_bz, ifbound,     &
        irecalc_eta,ihypdx, iconst_eta,                         &
        n_target, n_control_p, n_control_i, n_control_d,        &
        icalc_scalars, ike_only, ifout, inertia, itwofluid,     &

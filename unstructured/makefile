@@ -79,4 +79,7 @@ read_jsolver : $(READJSOLVER_OBJS)
 read_jsolver_exec.o : read_jsolver.f90
 	$(F90) $(F90OPTS) -DREAD_JSOLVER $< -o $@
 
+struct2vac : struct2vac.o
+	$(LOADER) -Wl,--warn-unresolved-symbols $< $(LIBS) -o $@
+
 endif
