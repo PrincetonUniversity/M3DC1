@@ -609,26 +609,6 @@ subroutine split_step(calc_matrices)
      endif
 
      b1_phi = b1_phi + q4
-
-!!$     ! Construct right-hand side
-!!$     call numdofs(vecsize_phi,ndofs)
-!!$     allocate(itemp(ndofs)) ! this is used to make sure that we 
-!!$     ! don't double count the sum for periodic dofs
-!!$     itemp = 1
-!!$     do l=1,numnodes
-!!$        call entdofs(vecsize_phi, l, 0, ibegin, iendplusone)
-!!$        call entdofs(vecsize_vel, l, 0, ibeginnv, iendplusonenv)
-!!$        do i=0,iendplusone-ibegin-1
-!!$           b1_phi(ibegin+i) = b1_phi(ibegin+i) + itemp(ibegin+i) * &
-!!$                (b1_vel(ibeginnv+i) + q4(ibegin+i))
-!!$           b1_phi(ibegin+i) = b1_phi(ibegin+i) + &
-!!$                itemp(ibegin+i) * q4(ibegin+i)
-!!$
-!!$           itemp(ibegin+i) = 0
-!!$        enddo
-!!$     enddo
-!!$     deallocate(itemp)
-
        
      ! Insert boundary conditions
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -722,24 +702,7 @@ subroutine split_step(calc_matrices)
         endif
 
         b1_phi = b1_phi + q4
-
-!!$        ! Construct right-hand side
-!!$        call numdofs(vecsize_phi,ndofs)
-!!$        allocate(itemp(ndofs)) ! this is used to make sure that we 
-!!$        ! don't double count the sum for periodic dofs
-!!$        itemp = 1
-!!$        do l=1,numnodes
-!!$           call entdofs(vecsize_phi, l, 0, ibegin, iendplusone)
-!!$           call entdofs(vecsize_vel, l, 0, ibeginnv, iendplusonenv)
-!!$           do i=0,iendplusone-ibegin-1
-!!$              b1_phi(ibegin+i) = b1_phi(ibegin+i) + itemp(ibegin+i) * &
-!!$                   (b1_vel(ibeginnv+i) + q4(ibegin+i))
-!!$              
-!!$              itemp(ibegin+i) = 0
-!!$           enddo
-!!$        enddo
-!!$        deallocate(itemp)
-        
+       
         ! Insert boundary conditions
         if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
         if(calc_matrices.eq.1) then
@@ -916,7 +879,7 @@ subroutine unsplit_step(calc_matrices)
      
         ! make a larger vector that can be multiplied by a vecsize matrix
         phip = 0.
-        call copyvec(bf,1,1,phip,1,vecsize_phi)
+        call copyvec(bf,1,1,phip,bf_i,vecsize_phi)
         call matvecmult(o1matrix_sm,phip,b2_phi)
         b1_phi = b1_phi + b2_phi
      endif

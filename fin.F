@@ -139,7 +139,7 @@
       inertia = 1
       itwofluid = 1
 !
-      isurface = 0
+      isurface = 1
 !
 !.....bootstrap current model (0 = none)
       ibootstrap = 0
@@ -194,7 +194,7 @@
 !
 !.....boundary conditions
 !     com_bc: 1 = sets laplacian(chi) = 0 on boundary
-      com_bc = 1
+      com_bc = 0
       iconst_p = 1
       iconst_n = 1
       iconst_t = 0
@@ -206,7 +206,8 @@
       inoslip_tor = 1
       inostress_tor = 0
       inocurrent_pol = 1
-      inocurrent_tor = 1
+      inocurrent_tor = 0
+      ifbound = 1
 !
 !.....density source
       ipellet = 0

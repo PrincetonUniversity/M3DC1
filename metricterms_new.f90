@@ -4736,7 +4736,7 @@ vectype function v3vchin(e,f,g,h)
      temp = 0.
   case(1)
      temp = int5(ri4_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DZP),h(:,OP_1)) &
-          - int5(ri4_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DRP),h(:,OP_1))
+          + int5(ri4_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DRP),h(:,OP_1))
   end select
 #else
   temp = 0.

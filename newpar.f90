@@ -100,8 +100,8 @@ Program Reducedquintic
      end if
   endif
   if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
-     call create_matrix(mass_matrix_rhs_nm, NV_NMBOUND, NV_I_MATRIX,  NV_RHS)
-     call create_matrix(bf_matrix_lhs_nm,   NV_NMBOUND, NV_BF_MATRIX, NV_LHS)
+     call create_matrix(mass_matrix_rhs_nm, ifbound, NV_I_MATRIX,  NV_RHS)
+     call create_matrix(bf_matrix_lhs_nm,   ifbound, NV_BF_MATRIX, NV_LHS)
      call create_matrix(bf_matrix_rhs,      NV_NOBOUND, NV_BF_MATRIX, NV_RHS)
   endif
   if(jadv.eq.1 .and. hyper.ne.0.) then
@@ -685,7 +685,7 @@ subroutine derived_quantities(vec, bfv, ilin)
      call numdofs(1, ndofs)
      bfi = bfv(1:ndofs)
      call newvar1(bf_matrix_lhs_nm,bfv,vec,bz_g,num_fields, &
-          mass_matrix_rhs_nm,NV_NMBOUND,bfi)
+          mass_matrix_rhs_nm,ifbound,bfi)
      if(ilin.eq.0) then 
         call scalar_operation(field0,bz_g,num_fields,OP_PLUS, temp)
      endif
