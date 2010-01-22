@@ -5,7 +5,7 @@ CC     = icc
 
 # define where you want to locate the mesh adapt libraries
 ifndef SCORECDIR
-  SCORECDIR = /u/xluo/develop.petsc3/
+  SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3/
 endif
 
 INCLUDE = -I$(NTCCHOME)/mod -I$(LIBDIR) \

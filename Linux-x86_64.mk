@@ -5,7 +5,7 @@ CC     = mpicc
 
 # define where you want to locate the mesh adapt libraries
 ifndef SCORECDIR
-  SCORECDIR = /u/xluo/develop.petsc3.stix.intel/
+  SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.stix.intel/
 endif
 
 INCLUDE = -I$(SCORECDIR) \
