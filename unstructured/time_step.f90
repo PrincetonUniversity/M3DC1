@@ -562,7 +562,7 @@ subroutine split_step(calc_matrices)
      b1_phi = b1_phi + b2_phi
 
      ! Include linear n^-1 terms and B^-2 terms
-     if(idens.eq.1 .and. linear.eq.1) then
+     if(eqsubtract.eq.1) then
         
         ! make a larger vector that can be multiplied by a numvar=3 matrix
         phip = 0.

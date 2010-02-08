@@ -51,6 +51,17 @@ c     first put in information to check on run information
       write(56) psimin, psilim
       write(56) xnull, znull
       write(56) xmag, zmag
+      call numdofs(1, ndofs)
+      do j1=1,ndofs 
+         write(56) bf(j1)
+      enddo
+      do j1=1,ndofs 
+         write(56) bf0(j1)
+      enddo
+      do j1=1,ndofs 
+         write(56) bfi(j1)
+      enddo
+
       close(56)
 
       if(maxrank.eq.1) then
@@ -167,6 +178,18 @@ c     first put in information to check on run information
       read(56,END=1199) psimin,psilim
       read(56,END=1199) xnull,znull
       read(56,END=1199) xmag,zmag
+
+      call numdofs(1, ndofs)
+      do j1=1,ndofs 
+         read(56,END=1199) bf(j1)
+      enddo
+      do j1=1,ndofs 
+         read(56,END=1199) bf0(j1)
+      enddo
+      do j1=1,ndofs 
+         read(56,END=1199) bfi(j1)
+      enddo
+
       goto 1200
  1199 if(myrank.eq.0) 
      &     print *, 'Warning: reading from a previous restart version'
