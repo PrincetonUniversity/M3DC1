@@ -822,12 +822,16 @@ subroutine boundary_mag(imatrix, rhs)
 
      call assign_local_pointers(i)
 
-     ! clamp poloidal field
-     temp = psis_l
-     if(integrator.eq.1 .and. ntime.gt.1) then
-        temp = 1.5*temp + 0.5*psio_v(ibegin+psi_off:ibegin+psi_off+5)
+     if(eta_wall .eq. 0.) then
+        ! clamp poloidal field
+        temp = psis_l
+        if(integrator.eq.1 .and. ntime.gt.1) then
+           temp = 1.5*temp + 0.5*psio_v(ibegin+psi_off:ibegin+psi_off+5)
+        endif
+        call set_dirichlet_bc(imatrix,ibegin+psi_off,rhs,temp,normal,curv, &
+             izonedim)
      endif
-     call set_dirichlet_bc(imatrix,ibegin+psi_off,rhs,temp,normal,curv,izonedim)
+
 
      ! add loop voltage
      if(jadv.eq.0 .and. igauge.eq.0) then
@@ -1309,3 +1313,56 @@ subroutine boundary_com(imatrix, rhs)
   end do
 
 end subroutine boundary_com
+
+subroutine insert_resistive_wall(ibb1, ibb0, ibf0)
+  use basic
+  use arrays
+  use vacuum_interface
+
+  implicit none
+  
+  integer, intent(in) :: ibb1, ibb0, ibf0
+
+  integer :: i, j, ii, jj, ip, jp
+  integer :: inode, ibegin, iendplusone, jbegin, jendplusone
+
+  vectype :: ss_psi, dd_psi, dd_bf
+  
+  do i=1, nodes
+     call globalidnod(node_id(i),inode)
+
+     if(inode.le.0) cycle
+
+     call entdofs(vecsize_phi, inode, 0, ibegin, iendplusone)
+
+     do ii=1, 6
+        ip = ibegin + ii - i
+
+        do j=1, nodes
+                      
+           ! need global entdofs here
+           call entdofs(vecsize_phi, j, 0, jbegin, jendplusone)
+           
+           do jj=1, 6
+              jp = jbegin + jj - 1
+              
+              ss_psi = dt*(  -thimp)*(eta_wall/delta_wall)*psi_mat(i,j)
+              dd_psi = dt*(1.-thimp)*(eta_wall/delta_wall)*psi_mat(i,j)
+
+              dd_bf  = dt*(eta_wall/delta_wall)*bf_mat(i,j)
+
+              if(i==j) then
+                 ss_psi = ss_psi + 1.
+                 dd_psi = dd_psi + 1.
+              endif
+
+              call insval(ibb1,ss_psi,icomplex,ip+psi_off,jp+psi_off,0)
+              call insval(ibb0,dd_psi,icomplex,ip+psi_off,jp+psi_off,0)
+              call insval(ibf0, dd_bf,icomplex,ip+psi_off,jp+ bf_off,0)
+           end do
+        end do
+
+     end do
+  end do
+
+end subroutine insert_resistive_wall

@@ -103,6 +103,9 @@
 !.....number of grad-shafranov iterations
       igs = 80
       igs_method = 1
+
+      iflip_b = 0
+      iflip_v = 0
 !
 !.....switch to use numvar equilibrium when numvar > 1
       nv1equ = 0
@@ -208,6 +211,10 @@
       inocurrent_pol = 1
       inocurrent_tor = 0
       ifbound = 1
+!
+!.....resistive wall
+      eta_wall = 0.
+      delta_wall = 1.
 !
 !.....density source
       ipellet = 0

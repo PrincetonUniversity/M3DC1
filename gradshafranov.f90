@@ -524,7 +524,6 @@ subroutine gradshafranov_solve
      if(.not.allocated(psinorm)) call default_profiles
   endif
 
-
   if(myrank.eq.0) then
   write(*,999) 
 999 format("    I    error        error2       xmag         psimin       psilim" &
@@ -1088,64 +1087,64 @@ subroutine fundef
 
      ealpha = exp(alphap0*r1)
 
-         fun1(ibegin) = ealpha*( x *fbig + fbig0*alphap*x*r1)
+     fun1(ibegin) = ealpha*( x *fbig + fbig0*alphap*x*r1)
 
-         fun1(ibegin+1) = ealpha*                                           &
-                (fbig + fbig0*alphap*x*r1                                   &
-                +fbig0*alphap0*alphap*2*r1m*r1                              &
-           + (alphap0*fbig + fbig0*alphap) * 2.*r1m                         &
-           + pspx*( x*fbigp + (2.*fbig*alphap + fbig0*alphapp)*x*r1         &
-            + fbig0 * alphap**2 * x*r2))
+     fun1(ibegin+1) = ealpha*                                           &
+          (fbig + fbig0*alphap*x*r1                                   &
+          +fbig0*alphap0*alphap*2*r1m*r1                              &
+          + (alphap0*fbig + fbig0*alphap) * 2.*r1m                         &
+          + pspx*( x*fbigp + (2.*fbig*alphap + fbig0*alphapp)*x*r1         &
+          + fbig0 * alphap**2 * x*r2))
 
-         fun1(ibegin+2) = ealpha*                                           &
-            pspx*( x*fbigp + (2.*fbig*alphap + fbig0*alphapp)*x*r1          &
-            + fbig0 * alphap**2 * x*r2)
+     fun1(ibegin+2) = ealpha*                                           &
+          pspx*( x*fbigp + (2.*fbig*alphap + fbig0*alphapp)*x*r1          &
+          + fbig0 * alphap**2 * x*r2)
 
-         fun1(ibegin+3) = ealpha*                                           &
-                 ((3*alphap0*fbig + 3*fbig0*alphap)*2*x*r0m                 &
-                 + 3*fbig0*alphap0*alphap*2*x*r0m*r1                        &
-                 + fbig0*alphap0**2*alphap*4*r1m*r0m*r1                     &
-                 + alphap0*(alphap0*fbig+2*fbig0*alphap)*4.*r1m*r0m         &
-                 + pspx*( 2*fbigp                                           &
-                +(2*fbig0*alphapp + 4*alphap*fbig)*r1                       &
-                +(4*alphap*fbig + 2*alphap0*fbigp + 2*fbig0*alphapp)*2*r1m  &
-                +(4*alphap*fbig + 2*alphap0*fbigp + 2*fbig0*alphapp)*r1m    &
-                +2*fbig0*alphap**2*r2                                       &
-                +(4*fbig0*alphap**2 + 2*fbig0*alphap0*alphapp               &
-                                            + 4*alphap0*fbig*alphap)*r1m*r1 &
-                + 2*fbig0*alphap0*alphap**2*2*r1m*r2)                       &
-                + pspx*pspx*(x*fbigpp                                       &
-                +(3*fbigp*alphap + 3*fbig*alphapp + fbig0*alphappp)*x*r1    &
-                +3*(fbig0*alphapp + fbig*alphap)*alphap*x*r2                &
-                + fbig0*alphap**3*x*r3)                                     &  
-                   + pspxx*(x*fbigp                                         &
-                + (2*fbig*alphap + fbig0*alphapp)*x*r1                      &
-                + p0*alphap**2*x*r2))
+     fun1(ibegin+3) = ealpha*                                           &
+          ((3*alphap0*fbig + 3*fbig0*alphap)*2*x*r0m                 &
+          + 3*fbig0*alphap0*alphap*2*x*r0m*r1                        &
+          + fbig0*alphap0**2*alphap*4*r1m*r0m*r1                     &
+          + alphap0*(alphap0*fbig+2*fbig0*alphap)*4.*r1m*r0m         &
+          + pspx*( 2*fbigp                                           &
+          +(2*fbig0*alphapp + 4*alphap*fbig)*r1                       &
+          +(4*alphap*fbig + 2*alphap0*fbigp + 2*fbig0*alphapp)*2*r1m  &
+          +(4*alphap*fbig + 2*alphap0*fbigp + 2*fbig0*alphapp)*r1m    &
+          +2*fbig0*alphap**2*r2                                       &
+          +(4*fbig0*alphap**2 + 2*fbig0*alphap0*alphapp               &
+          + 4*alphap0*fbig*alphap)*r1m*r1 &
+          + 2*fbig0*alphap0*alphap**2*2*r1m*r2)                       &
+          + pspx*pspx*(x*fbigpp                                       &
+          +(3*fbigp*alphap + 3*fbig*alphapp + fbig0*alphappp)*x*r1    &
+          +3*(fbig0*alphapp + fbig*alphap)*alphap*x*r2                &
+          + fbig0*alphap**3*x*r3)                                     &  
+          + pspxx*(x*fbigp                                         &
+          + (2*fbig*alphap + fbig0*alphapp)*x*r1                      &
+          + p0*alphap**2*x*r2))
 
-         fun1(ibegin+4) = ealpha*                                           &
-                (pspy*(fbigp                                                &
-              + (2.*fbig*alphap + fbig0*alphapp)*r1                         &
-              + (2.*fbig*alphap + fbig0*alphapp + fbigp*alphap0)*2*r1m      &
-              + (2*fbig*alphap*alphap0 + fbig0*alphapp*alphap0              &
-                                            + 2*fbig0*alphap**2)*2*r1m*r1   &
-              +  fbig0*alphap**2*r2                                         &
-              +  fbig0*alphap**2*alphap0*2*r1m*r2)                          &
-              +pspx*pspy*(x*fbigpp                                          &
-              + (3*fbigp*alphap + 3*fbig*alphapp + fbig0*alphappp)*x*r1     &
-              + (3*fbig*alphap + 3*fbig0*alphapp)*alphap*x*r2               &
-              + fbig0*alphap**3*x*r3)                                       &
-              + pspxy*(x*fbigp                                              &
-                + (2*fbig*alphap + fbig0*alphapp)*x*r1                      &
-                + p0*alphap**2*x*r2))
+     fun1(ibegin+4) = ealpha*                                           &
+            (pspy*(fbigp                                                &
+          + (2.*fbig*alphap + fbig0*alphapp)*r1                         &
+          + (2.*fbig*alphap + fbig0*alphapp + fbigp*alphap0)*2*r1m      &
+          + (2*fbig*alphap*alphap0 + fbig0*alphapp*alphap0              &
+          + 2*fbig0*alphap**2)*2*r1m*r1   &
+          +  fbig0*alphap**2*r2                                         &
+          +  fbig0*alphap**2*alphap0*2*r1m*r2)                          &
+          +pspx*pspy*(x*fbigpp                                          &
+          + (3*fbigp*alphap + 3*fbig*alphapp + fbig0*alphappp)*x*r1     &
+          + (3*fbig*alphap + 3*fbig0*alphapp)*alphap*x*r2               &
+          + fbig0*alphap**3*x*r3)                                       &
+          + pspxy*(x*fbigp                                              &
+          +   (2*fbig*alphap + fbig0*alphapp)*x*r1                      &
+          + p0*alphap**2*x*r2))
 
-         fun1(ibegin+5) = ealpha*                                           &
-                (pspy*pspy*(x*fbigpp                                        &
-              + (3*fbigp*alphap + 3*fbig*alphapp + fbig0*alphappp)*x*r1     &
-              + (3*fbig*alphap + 3*fbig0*alphapp)*alphap*x*r2               &
-              + fbig0*alphap**3*x*r3)                                       &
-              + pspyy*(x*fbigp                                              &
-                + (2*fbig*alphap + fbig0*alphapp)*x*r1                      &
-                + p0*alphap**2*x*r2))
+     fun1(ibegin+5) = ealpha*                                           &
+          (pspy*pspy*(x*fbigpp                                        &
+          + (3*fbigp*alphap + 3*fbig*alphapp + fbig0*alphappp)*x*r1     &
+          + (3*fbig*alphap + 3*fbig0*alphapp)*alphap*x*r2               &
+          + fbig0*alphap**3*x*r3)                                       &
+          + pspyy*(x*fbigp                                              &
+          + (2*fbig*alphap + fbig0*alphapp)*x*r1                      &
+          + p0*alphap**2*x*r2))
 
       else
 !
@@ -1401,6 +1400,8 @@ subroutine calc_toroidal_field(psi0,tf,x,z)
   
      if(bzero.lt.0) tf = -tf
   endif
+
+  if(iflip_b.eq.1) tf = -tf
 
 end subroutine calc_toroidal_field
 
@@ -1859,7 +1860,7 @@ subroutine calc_density(psi0,pres,dens, x, z)
      alphap = alphap/(psilim-psimin)
      alphapp = alphapp/(psilim-psimin)**2
 
-     p0ni = (1./p0)**expn
+     p0ni = den0*(1./p0)**expn
      rbig0 = p0ni*fbig0**expn
      rbig = 0.
      rbigp = 0.
@@ -1904,7 +1905,7 @@ subroutine calc_density(psi0,pres,dens, x, z)
              * expn*(expn-1.)
         dens(6) = pres(1)**(expn-1.)*pres(6)*expn &
              + pres(1)**(expn-2.)*pres(3)**2.*expn*(expn-1.)
-        dens = dens/p0**expn
+        dens = den0*dens/p0**expn
      else   ! expn.eq.0
         dens(1) = 1.
         dens(2:6) = 0.
@@ -1990,7 +1991,7 @@ subroutine calc_rotation(psi0,omega, x, z)
   alphapp = alphapp/(psilim-psimin)**2
 
 !...define temperature and derivatives
-  p0n = p0**expn
+  p0n = p0**expn/den0
   tp0 = p0n*fbig0**(1.-expn)
   tp  = p0n*(1.-expn)*fbig0**(-expn)*fbig
   tpp = p0n*(expn*(expn-1.)*fbig0**(-1.-expn)*fbig**2 + (1.-expn)*fbig0**(-expn)*fbigp)
@@ -2030,6 +2031,9 @@ subroutine calc_rotation(psi0,omega, x, z)
      omega(2) = x**2 * omega(2) + 2.*x*omega(1)
      omega(1) = x**2 * omega(1)
   endif
+
+  if(iflip_v.eq.1) omega = -omega
+  if(iflip_v.eq.-1) omega = 0.
 end subroutine calc_rotation
 
 end module gradshafranov
