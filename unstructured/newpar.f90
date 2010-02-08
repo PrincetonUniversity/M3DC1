@@ -12,6 +12,7 @@ Program Reducedquintic
   use sparse
   use hdf5_output
   use diagnostics
+  use vacuum_interface
 
   implicit none
 #ifdef _AIX
@@ -76,6 +77,12 @@ Program Reducedquintic
 
   ! initialize variables
   call init
+
+  ! load resistive wall response matrix
+  if(eta_wall .ne. 0.) then
+     call load_vacuum_data(ier)
+     if(ier.ne.0) call safestop(7)
+  end if
 
   ! output info about simulation to be run
   call print_info
@@ -418,6 +425,7 @@ subroutine safestop(iarg)
   use basic
   use sparse
   use hdf5_output
+  use vacuum_interface
 
   implicit none
       
@@ -427,6 +435,9 @@ subroutine safestop(iarg)
 
   integer :: ier
       
+  ! unload resistive wall response matrix
+  if(eta_wall .ne. 0.) call unload_vacuum_data
+
   ! close hdf5 file
   print *, "finalizing hdf5..."
   call hdf5_finalize(ier)

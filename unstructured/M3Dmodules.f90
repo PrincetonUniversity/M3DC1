@@ -96,6 +96,9 @@ module basic
 
   integer :: icurv  ! treats boundaries as if curvature = 0.
 
+  real :: eta_wall    ! resistivity of boundary
+  real :: delta_wall  ! thickness of boundary
+
   ! density sources
   integer :: ipellet  ! 1 = include pellet injection density source
   real :: pellet_x    ! x coordinate of pellet injection
@@ -188,6 +191,8 @@ module basic
   integer :: itwofluid   ! 1 = include two-fluid terms in ohm's law
   integer :: ibootstrap  ! bootstrap current model
   integer :: iflip       ! 1 = flip handedness
+  integer :: iflip_b     ! 1 = flip toroidal field
+  integer :: iflip_v     ! 1 = flip toroidal velocity
 
   ! numerical parameters
   integer :: ntimemax    ! number of timesteps
@@ -307,7 +312,8 @@ module basic
        b0_norm, n0_norm, l0_norm, bscale,                      &
        idenfunc, den_edge, den0, denoff, dendelt,              &
        irot, alpha0, alpha1, alpha2,                           &
-       icurv, iflip, iwrite_restart
+       icurv, iflip, iwrite_restart,                           &
+       eta_wall, delta_wall, iflip_b, iflip_v
 
 
   !     derived quantities

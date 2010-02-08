@@ -232,6 +232,7 @@ subroutine split_step(calc_matrices)
   integer :: jer, ier
   integer, allocatable:: itemp(:)
   vectype, allocatable :: temp(:), vel_temp(:), veln_temp(:), veloldn_temp(:)
+  real :: x, z
 
   PetscTruth :: flg_petsc, flg_solve2
   call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
@@ -560,7 +561,7 @@ subroutine split_step(calc_matrices)
      call matvecmult(d2matrix_sm,phi,b2_phi)
      b1_phi = b1_phi + b2_phi
 
-     ! Include linear n^-1 terms
+     ! Include linear n^-1 terms and B^-2 terms
      if(idens.eq.1 .and. linear.eq.1) then
         
         ! make a larger vector that can be multiplied by a numvar=3 matrix
@@ -570,27 +571,14 @@ subroutine split_step(calc_matrices)
            call entdofs(vecsize_phi, l, 0, ibeginnv, iendplusonenv)
            
            i = ibegin+6*(den_g-1)
+           call nodcoord(l,x,z)
 
-           phip(ibeginnv) = -field(i)/field0(i)**2
-           phip(ibeginnv+1) = &
-                -(field(i+1)*field0(i) - 2.*field(i)*field0(i+1))/field0(i)**3
-           phip(ibeginnv+2) = &
-                -(field(i+2)*field0(i) - 2.*field(i)*field0(i+2))/field0(i)**3
-           phip(ibeginnv+3) = &
-                -field(i+3)/field0(i)**2 &
-                +2.*(2.*field(i+1)*field0(i+1) &
-                    +   field(i)*field0(i+3))/field0(i)**3 &
-                -6.*field(i)*field0(i+1)**2/field0(i)**4
-           phip(ibeginnv+4) = &
-                -field(i+4)/field0(i)**2 &
-                +2.*(field(i+1)*field0(i+2) + field(i+2)*field0(i+1) &
-                    +field(i)*field0(i+4))/field0(i)**3 &
-                -6.*field(i)*field0(i+1)*field0(i+2)/field0(i)**4
-           phip(ibeginnv+5) = &
-                -field(i+5)/field0(i)**2 &
-                +2.*(2.*field(i+2)*field0(i+2) &
-                    +   field(i)*field0(i+5))/field0(i)**3 &
-                -6.*field(i)*field0(i+2)**2/field0(i)**4
+           call calc_ni(phip(ibeginnv:ibeginnv+5),field0(i:i+5),field(i:i+5))
+           call calc_b2i(phip(ibeginnv+6:ibeginnv+11),x, &
+                field0(ibegin+6*(psi_g-1):ibegin+6*(psi_g-1)+5), &
+                field (ibegin+6*(psi_g-1):ibegin+6*(psi_g-1)+5), &
+                field0(ibegin+6*( bz_g-1):ibegin+6*( bz_g-1)+5), &
+                field (ibegin+6*( bz_g-1):ibegin+6*( bz_g-1)+5))
         enddo
         call matvecmult(q42matrix_sm,phip,b2_phi)
         b1_phi = b1_phi + b2_phi
@@ -930,3 +918,73 @@ subroutine unsplit_step(calc_matrices)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done solving matrix equation."
 end subroutine unsplit_step
+
+
+subroutine calc_ni(vec, n0, n1)
+  use arrays
+
+  implicit none
+
+  vectype, dimension(6), intent(out) :: vec
+  vectype, dimension(6), intent(in) :: n0, n1
+
+  vec(1) = -n1(1)/n0(1)**2
+  vec(2) = &
+       -(n1(2)*n0(1) - 2.*n1(1)*n0(2))/n0(1)**3
+  vec(3) = &
+       -(n1(3)*n0(1) - 2.*n1(1)*n0(3))/n0(1)**3
+  vec(4) = &
+       -n1(4)/n0(1)**2 &
+       +2.*(2.*n1(2)*n0(2) &
+       +   n1(1)*n0(4))/n0(1)**3 &
+       -6.*n1(1)*n0(2)**2/n0(1)**4
+  vec(5) = &
+       -n1(5)/n0(1)**2 &
+       +2.*(n1(2)*n0(3) + n1(3)*n0(2) &
+       +n1(1)*n0(5))/n0(1)**3 &
+       -6.*n1(1)*n0(2)*n0(3)/n0(1)**4
+  vec(6) = &
+       -n1(6)/n0(1)**2 &
+       +2.*(2.*n1(3)*n0(3) &
+       +   n1(1)*n0(6))/n0(1)**3 &
+       -6.*n1(1)*n0(3)**2/n0(1)**4
+end subroutine calc_ni
+
+subroutine calc_b2i(vec, x, psi0, psi1, b0, b1)
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x
+  vectype, dimension(6), intent(out) :: vec
+  vectype, dimension(6), intent(in) :: psi0, psi1, b0, b1
+
+  vectype, dimension(6) :: b2i
+  vectype :: b20
+
+  b20 = psi0(2)**2 + psi0(3)**2 + b0(1)**2
+
+  b2i(1) = x**2/b20
+  b2i(2) = 2.*x/b20 &
+       - (2.*x**2/b20**2)*(psi0(2)*psi0(4) + psi0(3)*psi0(5) + b0(1)*b0(2))
+  b2i(3) = &
+       - (2.*x**2/b20**2)*(psi0(2)*psi0(5) + psi0(3)*psi0(6) + b0(1)*b0(3))
+  b2i(4:6) = 0.
+
+  vec(1) = -2.*b2i(1)**2/x**2 * &
+       (b0(1)*b1(1) + psi0(2)*psi1(2) + psi0(3)*psi1(3))
+  vec(2) = -2.*b2i(2)**2/x**2 * &
+       (b0(1)*b1(1) + psi0(2)*psi1(2) + psi0(3)*psi1(3)) &
+           -2.*b2i(1)**2/x**2 * &
+       (b0(2)*b1(1) + psi0(4)*psi1(2) + psi0(5)*psi1(3)  &
+       +b0(1)*b1(2) + psi0(2)*psi1(4) + psi0(3)*psi1(5)) &
+           +4.*b2i(1)**2/x**3 * &
+       (b0(1)*b1(1) + psi0(2)*psi1(2) + psi0(3)*psi1(3))
+  vec(3) = -2.*b2i(3)**2/x**2 * &
+       (b0(1)*b1(1) + psi0(2)*psi1(2) + psi0(3)*psi1(3)) &
+           -2.*b2i(1)**2/x**2 * &
+       (b0(3)*b1(1) + psi0(5)*psi1(2) + psi0(6)*psi1(3)  &
+       +b0(1)*b1(3) + psi0(2)*psi1(5) + psi0(3)*psi1(6))
+  vec(4:6) = 0.
+
+end subroutine calc_b2i

@@ -327,7 +327,10 @@ pro convert_units, x, d, b0, n0, l0, cgs=cgs, mks=mks
 
    if(b0 eq 0 or n0 eq 0 or l0 eq 0) then begin
        print, "Warning: unknown conversion factors."
-       return
+       print, "Using l0=100, B0=1e4, n0=1e14."
+       l0 = 100.
+       b0 = 1.e4
+       n0 = 1.e14
    endif
 
    val = 1.
@@ -337,7 +340,7 @@ pro convert_units, x, d, b0, n0, l0, cgs=cgs, mks=mks
        v0 = 2.18e11*b0/sqrt(n0)
        t0 = l0/v0
        temp0 = b0^2/(fp*n0) * 1./(1.6022e-12)
-       j0 = c0*b0*l0/fp
+       i0 = c0*b0*l0/fp
        e0 = b0^2*l0^3/fp
 
        val = fp^d[0] $
@@ -348,7 +351,7 @@ pro convert_units, x, d, b0, n0, l0, cgs=cgs, mks=mks
          * t0^d[8] $
          * l0^d[9] $
          * temp0^d[5] $
-         * j0^d[6] $
+         * i0^d[6] $
          * e0^d[7]
        
    endif else if(keyword_set(mks)) then begin
@@ -384,7 +387,7 @@ function dimensions, energy=ener, eta=eta, j0=j, $
   v0 =    [0,0,0,1,0,0,0,0,0,0]
   b0 =    [0,0,0,0,1,0,0,0,0,0]
   temp0 = [0,0,0,0,0,1,0,0,0,0]
-  j0 =    [0,0,0,0,0,0,1,0,0,0]
+  i0 =    [0,0,0,0,0,0,1,0,0,0]
   e0 =    [0,0,0,0,0,0,0,1,0,0]
   t0 =    [0,0,0,0,0,0,0,0,1,0]
   l0 =    [0,0,0,0,0,0,0,0,0,1]
@@ -398,7 +401,7 @@ function dimensions, energy=ener, eta=eta, j0=j, $
   if(keyword_set(time))   then d = d + t0*time
   if(keyword_set(len))    then d = d + l0*len
   if(keyword_set(temp))   then d = d + temp0*temp
-  if(keyword_set(j))      then d = d + j0*j - 2*l0
+  if(keyword_set(j))      then d = d + i0*j - 2*l0
   if(keyword_set(ener))   then d = d + ener*e0
 
   if(keyword_set(elec)) then d = d + elec*(b0+v0-c0)
@@ -415,8 +418,8 @@ end
 ; ~~~~~~~~~~~
 ;
 ; x is a vector containing the dimensions of
-; [4pi, c, n0, vA0, B0, T0, j0, e0, tA0, L0]
-; [  0, 1,  2,   3,  4,   5,  6,  7,  8,  9]
+; [4pi, c, n0, vA0, B0, T0, i0, e0, tA0, L0]
+; [  0, 1,  2,   3,  4,  5,  6,  7,   8,  9]
 ; 
 ; output is a string containing units
 ;=====================================================================
@@ -1072,7 +1075,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                      diff=diff, operation=op, complex=complex, $
                      linear=linear, last=last, average=average, $
                      dpsi=dpsi, symbol=symbol, units=units, cgs=cgs, mks=mks, $
-                     real=real, imaginary=imag
+                     real=real, imaginary=imag, edge_val=edge_val
 
    if(n_elements(slices) ne 0) then time=slices else time=0
 
@@ -1136,7 +1139,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
      ' linear=', keyword_set(linear), $
      ' points=', pts, $
      ' slices=', time, $
-     ' equilibrium=', keyword_set(equilibrium)
+     ' equilibrium=', keyword_set(equilibrium), $
+     ' mks=', keyword_set(mks)
 
    nt = read_parameter("ntime", filename=filename)
    nv = read_parameter("numvar", filename=filename)
@@ -2186,6 +2190,30 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            data = data + I^2*(dx(chi,x)/r-dz(u,y)/r^2)/r2b2
        endif
 
+   endif else if(strcmp('jpar', name, /fold_case) eq 1) then begin
+
+       psi = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+                        filename=filename, points=pts, slices=time, $
+                        rrange=xrange, zrange=yrange)
+       jphi = read_field('jphi', x, y, t, linear=linear, mesh=mesh, $
+                        filename=filename, points=pts, slices=time, $
+                        rrange=xrange, zrange=yrange)
+       i = read_field('i', x, y, t, mesh=mesh, $
+                      filename=filename, points=pts, slices=time, $
+                      rrange=xrange, zrange=yrange, $
+                      linear=linear, complex=complex)
+       i0 = read_field('i', x, y, t, mesh=mesh, $
+                      filename=filename, points=pts, slices=time, $
+                      rrange=xrange, zrange=yrange, /equilibrium, $
+                      complex=complex)
+       
+       r = radius_matrix(x,y,t)
+       b0 = s_bracket(psi,psi,x,y)/r^2 + i0^2/r^2
+       data = abs((s_bracket(i,i0,x,y)/r^2 - jphi*i0/r^2)/b0)
+
+       symbol = '!3|!8J!D!3||!6!N/!8B!3|!X'
+       d = dimensions(j0=1,b0=-1,_EXTRA=extra)
+
    ;===========================================
    ; radial electric field
    ;===========================================
@@ -2346,7 +2374,9 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        if(keyword_set(imag)) then data=imaginary(data)
    endelse
 
-;   if(n_elements(mask) ne 0) then data = data * (1. - mask)
+   if(n_elements(mask) ne 0 and n_elements(edge_val) ne 0) then begin
+       data = data * (1. - mask) + mask*edge_val
+   end
 
    return, data
 end
@@ -4171,20 +4201,6 @@ function flux_average, field, psi=psi, x=x, z=z, t=t, r0=r0, $
 
            return, deriv(r, q)*r/q
 
-       endif else $
-         if(strcmp(field, 'jpar', /fold_case) eq 1) then begin
-           jphi = read_field('jphi',x,z,t,points=points,last=last,_EXTRA=extra)
-           i = read_field('i',x,z,t,points=points,last=last,_EXTRA=extra)
-           i0 = read_field('i',x,z,t,points=points,/equilibrium,_EXTRA=extra)
-        
-           r = radius_matrix(x,z,t)
-           b0 = s_bracket(psi,psi,x,z)/r^2 + i0^2/r^2
-           field = abs((s_bracket(i,i0,x,z)/r^2 - jphi*i0/r^2)/b0)
-
-           symbol = '!3|!8J!D!3||!6!N/!8B!3|!X'
-           units = make_units(j0=1,b0=-1)
-           name = '!6Normalized Parallel Current Density!X'
-
        endif else begin
            field = read_field(field, x, z, t, points=points,$
                               symbol=symbol, units=units, _EXTRA=extra)
@@ -4382,6 +4398,8 @@ pro plot_flux_average, field, time, filename=filename, $
    if(keyword_set(last)) then $
      time = fix(read_parameter('ntime',filename=filename)-1)
 
+   if(n_elements(multiply_flux) eq 0) then multiply_flux = 0.
+
    nfiles = n_elements(filename)
    if(nfiles gt 1) then begin
        if(n_elements(names) eq 0) then names=filename
@@ -4403,7 +4421,7 @@ pro plot_flux_average, field, time, filename=filename, $
              color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
              normalized_flux=norm, minor_radius=minor_radius, smooth=sm, $
              rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, $
-             linear=linear, multiply_flux=multiply_flux[i]
+             linear=linear, multiply_flux=multiply_flux[i], mks=mks, cgs=cgs
        end
        if(n_elements(names) gt 0) then begin
            plot_legend, names, color=colors, ylog=ylog, xlog=xlog, $
@@ -4431,7 +4449,7 @@ pro plot_flux_average, field, time, filename=filename, $
              color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
              normalized_flux=norm, minor_radius=minor_radius, smooth=sm, $
              t=t, rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, $
-             linear=linear, multiply_flux=multiply_flux
+             linear=linear, multiply_flux=multiply_flux, mks=mks, cgs=cgs
            names[i] = string(format='(%"!8t!6 = %d !7s!D!8A!N!X")', t)
        end
 
@@ -4471,9 +4489,11 @@ pro plot_flux_average, field, time, filename=filename, $
    endif
 
    if(n_elements(multiply_flux) ne 0) then begin
-       print, 'multiplying flux by', multiply_flux
-       flux = flux*multiply_flux
-       nflux=nflux*multiply_flux
+       if(multiply_flux ne 0) then begin
+           print, 'multiplying flux by', multiply_flux
+           flux = flux*multiply_flux
+           nflux=nflux*multiply_flux
+       end
    end
 
    if(keyword_set(norm)) then begin

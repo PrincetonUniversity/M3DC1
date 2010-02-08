@@ -6,10 +6,12 @@ program struct2vac
 
   integer :: ifirst, itotal, ilast, inode, ier
   integer, parameter :: ifile = 5
-  character*10, parameter :: filename = 'ordered.points'
+  character (len=*), parameter :: filename = 'ordered.points'
 
   integer :: next_node
   real, dimension(4) :: coords
+  real :: normal(2)
+  logical :: is_boundary
 
   call MPI_Init(ier)
 
@@ -28,7 +30,10 @@ program struct2vac
 
   ! write node entry for first node
   call xyznod(ifirst,coords)
-  write(ifile, '(I8,2f12.8)') ifirst, coords(1), coords(2)
+  call nodNormalVec(ifirst,normal,is_boundary)
+
+  write(ifile, '(I8,4f12.8)') ifirst, coords(1), coords(2), &
+       normal(1), normal(2)
 
   inode = ifirst
   do
@@ -40,7 +45,10 @@ program struct2vac
 
      ! write node entry
      call xyznod(inode,coords)
-     write(ifile, '(I8,2f12.8)') inode, coords(1), coords(2)
+     call nodNormalVec(inode,normal,is_boundary)
+
+     write(ifile, '(I8,4f12.8)') inode, coords(1), coords(2), &
+       normal(1), normal(2)
   end do
 
   ! close output file
@@ -116,11 +124,3 @@ integer function next_node(inode)
   print *, 'Error: cannot find next node'
   next_node = -1
 end function next_node
-
-subroutine space(i)
-  implicit none
-  integer, intent(in) :: i
-end subroutine space
-
-subroutine resizevec()
-end subroutine resizevec
