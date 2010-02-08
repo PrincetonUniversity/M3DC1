@@ -1747,7 +1747,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
         print *, "	ludef_t_ludefall zerosuperlumatrix", s1matrix_sm
      endif
      call zeromultiplymatrix(d1matrix_sm,icomplex,vecsize_vel)
-     if(idens_def.eq.1 .and. eqsubtract.eq.1) &
+     if(eqsubtract.eq.1) &
           call zeromultiplymatrix(q42matrix_sm,icomplex,vecsize_vel)
 #ifdef USECOMPLEX
      call zeromultiplymatrix(o1matrix_sm,icomplex,vecsize_vel)
@@ -1788,7 +1788,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
         call zeromultiplymatrix(d2matrix_sm,icomplex,vecsize_phi)
         call zeromultiplymatrix(r2matrix_sm,icomplex,vecsize_phi)
         call zeromultiplymatrix(q2matrix_sm,icomplex,vecsize_phi)
-        if(idens_def.eq.1 .and. eqsubtract.eq.1) &
+        if(eqsubtract.eq.1) &
              call zeromultiplymatrix(q42matrix_sm,icomplex,vecsize_phi)
 #ifdef USECOMPLEX
         call zeromultiplymatrix(o2matrix_sm,icomplex,vecsize_phi)
@@ -1934,7 +1934,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
   select case(isplitstep)
   case(0)
      call finalizematrix(d1matrix_sm)
-     if(idens_def.eq.1 .and. eqsubtract.eq.1) &
+     if(eqsubtract.eq.1) &
           call finalizematrix(q42matrix_sm)
 #ifdef USECOMPLEX
      call finalizematrix(o1matrix_sm)
@@ -1959,7 +1959,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
 #ifdef USECOMPLEX
         call finalizematrix(o2matrix_sm)
 #endif   
-        if(idens_def.eq.1 .and. eqsubtract.eq.1) &
+        if(eqsubtract.eq.1) &
              call finalizematrix(q42matrix_sm)
         call sumsharedppplvecvals(q4)
      end if
