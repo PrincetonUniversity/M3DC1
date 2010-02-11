@@ -99,6 +99,9 @@ vectype function resistivity_func(i)
              (1. + tanh((real(temp79b) - etaoff)/etadelt))
      case(3)
         temp79a = eta79(:,OP_1) - etar
+     case(4)
+        temp79a = eta79(:,OP_1) - etar
+
      end select
      temp = temp + int2(g79(:,OP_1,i),temp79a)
   endif
@@ -282,7 +285,8 @@ subroutine define_transport_coefficients()
   tempvar = 0.
 
   def_fields = FIELD_N + FIELD_PE + FIELD_P + FIELD_PSI + FIELD_I + FIELD_B2I
-  if(iresfunc.eq.3) def_fields = def_fields + FIELD_ETA + FIELD_MU
+  if(iresfunc.eq.3 .or. iresfunc.eq.4) def_fields = def_fields + FIELD_ETA
+  if(ivisfunc.eq.3) def_fields = def_fields + FIELD_MU
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' defining...'
 
