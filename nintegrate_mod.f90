@@ -976,6 +976,45 @@ subroutine define_fields(itri, fields, gdef, ilin)
         elsewhere
            eta79(:,OP_1) = eta0
         end where
+     else if(iresfunc.eq.4) then
+        eta79 = 0.
+        temp79a = sqrt(pefac*pet79(:,OP_1)/nt79(:,OP_1))
+        eta79(:,OP_1 ) = 1. / temp79a**3
+        eta79(:,OP_DR) = (-3./2.) * pefac / temp79a**5 * &
+             (pet79(:,OP_DR)/nt79(:,OP_1) &
+             -pet79(:,OP_1)*nt79(:,OP_DR)/nt79(:,OP_1)**2)
+        eta79(:,OP_DZ) = (-3./2.) * pefac / temp79a**5 * &
+             (pet79(:,OP_DZ)/nt79(:,OP_1) &
+             -pet79(:,OP_1)*nt79(:,OP_DZ)/nt79(:,OP_1)**2)
+        eta79(:,OP_DRR) = (15./4.) * pefac**2 / temp79a**7 * &
+             (pet79(:,OP_DR)/nt79(:,OP_1) &
+             -pet79(:,OP_1)*nt79(:,OP_DR)/nt79(:,OP_1)**2)**2 &
+             + (-3./2.) * pefac / temp79a**5 * &
+             (pet79(:,OP_DRR)/nt79(:,OP_1) &
+             -2.*pet79(:,OP_DR)*nt79(:,OP_DR)/nt79(:,OP_1)**2 &
+             -pet79(:,OP_1)*nt79(:,OP_DRR)/nt79(:,OP_1)**2 &
+             +2.*pet79(:,OP_1)*nt79(:,OP_DR)**2/nt79(:,OP_1)**3)
+        eta79(:,OP_DRZ) = (15./4.) * pefac**2 / temp79a**7 * &
+             (pet79(:,OP_DR)/nt79(:,OP_1) &
+             -pet79(:,OP_1)*nt79(:,OP_DR)/nt79(:,OP_1)**2) &
+             *(pet79(:,OP_DZ)/nt79(:,OP_1) &
+             -pet79(:,OP_1)*nt79(:,OP_DZ)/nt79(:,OP_1)**2) &
+             + (-3./2.) * pefac / temp79a**5 * &
+             (pet79(:,OP_DRZ)/nt79(:,OP_1) &
+             -pet79(:,OP_DR)*nt79(:,OP_DZ)/nt79(:,OP_1)**2 &
+             -pet79(:,OP_DZ)*nt79(:,OP_DR)/nt79(:,OP_1)**2 &
+             -pet79(:,OP_1)*nt79(:,OP_DRZ)/nt79(:,OP_1)**2 &
+             +2.*pet79(:,OP_1)*nt79(:,OP_DR)*nt79(:,OP_DZ)/nt79(:,OP_1)**3)
+        eta79(:,OP_DZZ) = (15./4.) * pefac**2 / temp79a**7 * &
+             (pet79(:,OP_DZ)/nt79(:,OP_1) &
+             -pet79(:,OP_1)*nt79(:,OP_DZ)/nt79(:,OP_1)**2)**2 &
+             + (-3./2.) * pefac / temp79a**5 * &
+             (pet79(:,OP_DZZ)/nt79(:,OP_1) &
+             -2.*pet79(:,OP_DZ)*nt79(:,OP_DZ)/nt79(:,OP_1)**2 &
+             -pet79(:,OP_1)*nt79(:,OP_DZZ)/nt79(:,OP_1)**2 &
+             +2.*pet79(:,OP_1)*nt79(:,OP_DZ)**2/nt79(:,OP_1)**3)
+
+        eta79 = eta79 * 3.4e-22*n0_norm**2/(b0_norm**4*l0_norm)*17.
      else
         call calcavector(itri, resistivity, 1, 1, avec)
         call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, eta79)

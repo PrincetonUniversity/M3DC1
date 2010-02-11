@@ -597,14 +597,18 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
    nelms = mesh.nelms._data
    
    if(not keyword_set(oplot)) then begin
-       xtitle = make_label('!8R!X',/l0)
-       ytitle = make_label('!8Z!X',/l0)
+       xtitle = make_label('!8R!X',/l0,_EXTRA=ex)
+       ytitle = make_label('!8Z!X',/l0,_EXTRA=ex)
        plot, mesh.elements._data[4,*], xtitle=xtitle, ytitle=ytitle, $
          mesh.elements._data[5,*], psym = 3, _EXTRA=ex, /nodata
    endif  
 
+   get_normalizations, b0=b0, n0=n0, l0=l0, _EXTRA=ex
+   fac = 1.
+   convert_units, fac, dimensions(/l0), b0, n0, l0, _EXTRA=ex
+
    loadct, 12
-   col = color(6,10)
+   col = color(1,10)
  
    version = read_parameter('version', _EXTRA=ex)
    if(version eq 0) then begin
@@ -619,16 +623,16 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
        boundary = 1
    endif else boundary = 0
 
-   maxr = [max(mesh.elements._data[4,*]), max(mesh.elements._data[5,*])]
-   minr = [min(mesh.elements._data[4,*]), min(mesh.elements._data[5,*])]
+   maxr = [max(mesh.elements._data[4,*]), max(mesh.elements._data[5,*])]*fac
+   minr = [min(mesh.elements._data[4,*]), min(mesh.elements._data[5,*])]*fac
 
    for i=long(0), nelms-1 do begin
-       a = mesh.elements._data[0,i]
-       b = mesh.elements._data[1,i]
-       c = mesh.elements._data[2,i]
+       a = mesh.elements._data[0,i]*fac
+       b = mesh.elements._data[1,i]*fac
+       c = mesh.elements._data[2,i]*fac
        t = mesh.elements._data[3,i]
-       x = mesh.elements._data[4,i]
-       y = mesh.elements._data[5,i]
+       x = mesh.elements._data[4,i]*fac
+       y = mesh.elements._data[5,i]*fac
        bound = fix(mesh.elements._data[6,i])
 
        p1 = [x, y]
@@ -639,15 +643,15 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
        if(boundary) then pp=bound else pp=7
  
        if((pp and 1) eq 1) then begin
-           if((bound and 1) eq 1) then th=!p.thick*3 else th=!p.thick
+           if((bound and 1) eq 1) then th=!p.thick*3 else th=!p.thick/2.
            oplot, [p1[0],p2[0]]+xzero, [p1[1],p2[1]]+zzero, color=col, thick=th
        end
        if((pp and 2) eq 2) then begin
-           if((bound and 2) eq 2) then th=!p.thick*3 else th=!p.thick
+           if((bound and 2) eq 2) then th=!p.thick*3 else th=!p.thick/2.
            oplot, [p2[0],p3[0]]+xzero, [p2[1],p3[1]]+zzero, color=col, thick=th
        end
        if((pp and 4) eq 4) then begin
-           if((bound and 4) eq 4) then th=!p.thick*3 else th=!p.thick
+           if((bound and 4) eq 4) then th=!p.thick*3 else th=!p.thick/2.
            oplot, [p3[0],p1[0]]+xzero, [p3[1],p1[1]]+zzero, color=col, thick=th
        end
 
@@ -4346,15 +4350,14 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                  thick=1, _EXTRA=ex
            endif
 
-           if(keyword_set(lcfs)) then $
-             plot_lcfs, points=p, slice=time, _EXTRA=ex
-
            if(keyword_set(boundary)) then plotmesh=1
            if(keyword_set(plotmesh)) then begin
-               loadct, 12
-               plot_mesh, mesh=mesh, color=color(6,10), /oplot, $
+               plot_mesh, mesh=mesh, /oplot, $
                  boundary=boundary, _EXTRA=ex
            endif
+
+           if(keyword_set(lcfs)) then $
+             plot_lcfs, points=p, slice=time, _EXTRA=ex
            
            if(n_elements(mpeg) ne 0) then begin
                image = tvrd(true=1)
