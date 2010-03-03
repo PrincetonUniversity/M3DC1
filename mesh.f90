@@ -337,7 +337,7 @@ subroutine getelmparams(elmid, a, b, c, theta)
   b = x3p
   c = z3p
   if(c .le. 0.) then
-     write(*,*) 'clockwise node ordering for element',elmid
+     write(*,*) 'ERROR: clockwise node ordering for element',elmid
      call safestop(6894)
   endif
   

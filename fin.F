@@ -300,6 +300,7 @@
       q0 = 1.
       th_gs = 0.5
       tol_gs = 1.e-8
+      psiscale = 1.
 
       idenfunc = 0
       den_edge = 0.
@@ -477,6 +478,11 @@
          if(myrank.eq.0) 
      &        print*, 'ERROR: integration quadrature not implemented.'
          call safestop(1)
+      endif
+      if(psiscale.gt.1.) then
+         if(myrank.eq.0) 
+     &        print*, 'Warning: psiscale > 1 not supported'
+         psiscale = 1.
       endif
       if(integrator.eq.1) then
          thimp = 1.

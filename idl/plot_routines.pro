@@ -133,7 +133,13 @@ pro plot_legend, names, linestyles=ls, colors=cs, left=l, top=t, psyms=p, $
     
     N = n_elements(names)
 
-    if n_elements(ls) eq 0 then ls = intarr(N)
+    if n_elements(ls) eq 0 then begin
+        if(n_elements(p) eq 0) then begin
+            ls = replicate(0,N)
+        endif else begin
+            ls = replicate(-1,N)
+        endelse
+    endif
     if n_elements(cs) eq 0 then begin
         cs = intarr(N)
         cs[*] = color(0,N)
@@ -153,15 +159,17 @@ pro plot_legend, names, linestyles=ls, colors=cs, left=l, top=t, psyms=p, $
         if keyword_set(xlog) then d=10.^d
         if keyword_set(ylog) then z=10.^y else z=y
 
-        if (n_elements(p) ne 0) then begin
-            if (p[i] ne 0) then begin
-                oplot, [d(1)], [z], color=cs(i), psym=p(i)
-            endif else begin
+        if(n_elements(ls) ne 0) then begin
+            if(ls[i] ge 0) then begin
                 oplot, [d(0), d(2)], [z, z], linestyle=ls(i), color=cs(i)
-            endelse
-        endif else begin
-            oplot, [d(0), d(2)], [z, z], linestyle=ls(i), color=cs(i)
-        endelse
+            endif
+        endif
+
+        if (n_elements(p) ne 0) then begin
+            if (p[i] gt 0) then begin
+                oplot, [d(1)], [z], color=cs(i), psym=p(i)
+            endif
+        endif
 
         xyouts, d(3), z, names(i), color=cs(i), charsize=charsize
         y = y - dy

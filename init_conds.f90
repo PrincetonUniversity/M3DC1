@@ -2298,6 +2298,7 @@ subroutine initial_conditions()
   use eqdsk_eq
   use dskbal_eq
   use jsolver_eq
+  use biharmonic
 
   implicit none
 
@@ -2327,6 +2328,10 @@ subroutine initial_conditions()
            call strauss_init()
         case(7)
            call circular_field_init()
+        case(8)
+           call biharmonic_init(1)
+        case(9)
+           call biharmonic_init(0)
         end select
      else
         ! toroidal equilibria
