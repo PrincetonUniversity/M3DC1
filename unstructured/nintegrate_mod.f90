@@ -13,26 +13,28 @@ integer, parameter :: OP_DRZ  = 5
 integer, parameter :: OP_DZZ  = 6
 integer, parameter :: OP_LP   = 7
 integer, parameter :: OP_GS   = 8
+integer, parameter :: OP_LPR  = 9
+integer, parameter :: OP_LPZ  = 10
 #ifndef USECOMPLEX
-integer, parameter :: OP_NUM  = 8
+integer, parameter :: OP_NUM  = 10
 #else
-integer, parameter :: OP_DP    = 9
-integer, parameter :: OP_DRP   = 10
-integer, parameter :: OP_DZP   = 11
-integer, parameter :: OP_DRRP  = 12
-integer, parameter :: OP_DRZP  = 13
-integer, parameter :: OP_DZZP  = 14
-integer, parameter :: OP_LPP   = 15
-integer, parameter :: OP_GSP   = 16
-integer, parameter :: OP_DPP   = 17
-integer, parameter :: OP_DRPP  = 18
-integer, parameter :: OP_DZPP  = 19
-integer, parameter :: OP_DRRPP = 20
-integer, parameter :: OP_DRZPP = 21
-integer, parameter :: OP_DZZPP = 22
-integer, parameter :: OP_LPPP  = 23
-integer, parameter :: OP_GSPP  = 24
-integer, parameter :: OP_NUM   = 24
+integer, parameter :: OP_DP    = 11
+integer, parameter :: OP_DRP   = 12
+integer, parameter :: OP_DZP   = 13
+integer, parameter :: OP_DRRP  = 14
+integer, parameter :: OP_DRZP  = 15
+integer, parameter :: OP_DZZP  = 16
+integer, parameter :: OP_LPP   = 17
+integer, parameter :: OP_GSP   = 18
+integer, parameter :: OP_DPP   = 19
+integer, parameter :: OP_DRPP  = 20
+integer, parameter :: OP_DZPP  = 21
+integer, parameter :: OP_DRRPP = 22
+integer, parameter :: OP_DRZPP = 23
+integer, parameter :: OP_DZZPP = 24
+integer, parameter :: OP_LPPP  = 25
+integer, parameter :: OP_GSPP  = 26
+integer, parameter :: OP_NUM   = 26
 #endif
 
 integer, parameter :: FIELD_PHI =     1
@@ -443,6 +445,41 @@ subroutine eval_ops(avector,si,eta,theta,rinv,ngauss,outarr)
               sum(OP_DRZ) = sum(OP_DRZ) + (co2-sn2)*temp
            endif
         endif
+
+        ! for surface terms, higher derivatives may be taken
+        if(surface_int) then
+           if(mi(p).ge.2) then
+              if(ni(p).ge.1) then
+                 ! d_si^2 d_eta terms
+                 temp = si(k)**(mi(p)-2) * eta(k)**(ni(p)-1) * &
+                      (mi(p)-1)*mi(p)*ni(p)
+                 sum(OP_LPR) = sum(OP_LPR) - sn*temp
+                 sum(OP_LPZ) = sum(OP_LPZ) + co*temp
+              endif
+           endif
+           if(ni(p).ge.2) then
+              if(mi(p).ge.1) then
+                 ! d_eta^2 d_si terms
+                 temp = si(k)**(mi(p)-1) * eta(k)**(ni(p)-2) * &
+                      mi(p)*(ni(p)-1)*ni(p)
+                 sum(OP_LPR) = sum(OP_LPR) + co*temp
+                 sum(OP_LPZ) = sum(OP_LPZ) + sn*temp
+              endif
+           endif
+
+           if(mi(p).ge.3) then
+              ! d_si^3 terms
+              temp = si(k)**(mi(p)-3) * eta(k)**ni(p)*(mi(p)-2)*(mi(p)-1)*mi(p)
+              sum(OP_LPR) = sum(OP_LPR) + co*temp
+              sum(OP_LPZ) = sum(OP_LPZ) + sn*temp
+           endif
+           if(ni(p).ge.3) then
+              ! d_eta^3 terms
+              temp = si(k)**mi(p) * eta(k)**(ni(p)-3)*(ni(p)-2)*(ni(p)-1)*ni(p)
+              sum(OP_LPR) = sum(OP_LPR) - sn*temp
+              sum(OP_LPZ) = sum(OP_LPZ) + co*temp
+           endif
+        endif
                
         ! Grad-Shafranov operator, and
         ! cylindrical correction to Laplacian
@@ -450,6 +487,12 @@ subroutine eval_ops(avector,si,eta,theta,rinv,ngauss,outarr)
         if(itor.eq.1) then
            sum(OP_GS) = sum(OP_GS) - sum(OP_DR)*rinv(k)
            sum(OP_LP) = sum(OP_LP) + sum(OP_DR)*rinv(k)
+
+           if(surface_int) then
+              sum(OP_LPR) = sum(OP_LPR) + sum(OP_DRR)*rinv(k) &
+                   - sum(OP_DR)*rinv(k)*rinv(k)
+              sum(OP_LPZ) = sum(OP_LPZ) + sum(OP_DRZ)*rinv(k)
+           endif
         endif
 
         do op=1,OP_NUM

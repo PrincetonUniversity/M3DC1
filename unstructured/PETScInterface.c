@@ -1,7 +1,7 @@
 //#include "/p/tsc/m3dc1/lib/develop.newCompiler.constraint/mctk/Examples/PPPL/PPPL/Matrix.h"
 //#include "/p/tsc/m3dc1/lib/develop.newCompiler.constraint/mctk/Examples/PPPL/PPPL/MatrixInterface.h"
 //#include "/p/tsc/m3dc1/lib/develop.newCompiler.petscDev/mctk/Examples/PPPL/PPPL/MatrixInterface.h"
-#include "mctk/Examples/PPPL/PPPL/MatrixInterface.h"
+#include "MatrixInterface.h"
 #include "petsc.h"
 #include "petscmat.h"
 #include "petscksp.h"

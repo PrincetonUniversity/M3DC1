@@ -2082,16 +2082,10 @@ subroutine ludefvel_n(itri)
            call vorticity_lin(g79(:,:,i),g79(:,:,j), &
                 ss(u_g,:),dd(u_g,:),q_bf(u_g),advfield)
 
-!!$           if(surface_int) then
-!!$              ss(vz_g,:) = 0.
-!!$              dd(vz_g,:) = 0.
-!!$              q_bf(vz_g) = 0.
-!!$           else
-              if(numvar.ge.2) then
-                 call axial_vel_lin(g79(:,:,i),g79(:,:,j), &
-                      ss(vz_g,:),dd(vz_g,:),q_bf(vz_g),advfield)
-              endif
-!!$           end if
+           if(numvar.ge.2) then
+              call axial_vel_lin(g79(:,:,i),g79(:,:,j), &
+                   ss(vz_g,:),dd(vz_g,:),q_bf(vz_g),advfield)
+           endif
            if(numvar.ge.3) then
               call compression_lin(g79(:,:,i),g79(:,:,j), &
                    ss(chi_g,:),dd(chi_g,:),q_bf(chi_g),advfield)

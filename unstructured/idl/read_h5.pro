@@ -800,6 +800,36 @@ function eval, field, localpos, theta, elm, operation=op
               sum = sum + field[p,elm]* $
               ni[p]*(ni[p]-1)*localpos[1]^(ni[p]-2)*localpos[0]^mi[p]
            end
+        8: begin
+            sum = sum + field[p,elm]* $
+             ( co $
+              *mi[p]*(mi[p]-1)*(mi[p]-2)*localpos[0]^(mi[p]-3>0) $
+              *                          localpos[1]^ ni[p]      $
+             - sn $
+              *                          localpos[0]^ mi[p]      $
+              *ni[p]*(ni[p]-1)*(ni[p]-2)*localpos[1]^(ni[p]-3>0) $
+             - sn $
+              *mi[p]*(mi[p]-1)*          localpos[0]^(mi[p]-2>0) $
+              *ni[p]*                    localpos[1]^(ni[p]-1>0) $
+             + co $
+              *mi[p]*                    localpos[0]^(mi[p]-1>0) $
+              *ni[p]*(ni[p]-1)*          localpos[1]^(ni[p]-2>0))
+           end
+        9: begin
+            sum = sum + field[p,elm]* $
+             ( sn $
+              *mi[p]*(mi[p]-1)*(mi[p]-2)*localpos[0]^(mi[p]-3>0) $
+              *                          localpos[1]^ ni[p]      $
+             + co $
+              *                          localpos[0]^ mi[p]      $
+              *ni[p]*(ni[p]-1)*(ni[p]-2)*localpos[1]^(ni[p]-3>0) $
+             + co $
+              *mi[p]*(mi[p]-1)*          localpos[0]^(mi[p]-2>0) $
+              *ni[p]*                    localpos[1]^(ni[p]-1>0) $
+             + sn $
+              *mi[p]*                    localpos[0]^(mi[p]-1>0) $
+              *ni[p]*(ni[p]-1)*          localpos[1]^(ni[p]-2>0))
+           end
         end
    end
 

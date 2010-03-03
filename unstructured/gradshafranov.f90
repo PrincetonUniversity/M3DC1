@@ -757,6 +757,32 @@ subroutine gradshafranov_solve
   endif
   if(igs_method.eq.3) call deletematrix(dp_matrix_lhs)
      
+  if(igs_method.eq.3) then
+     b1vecini = 0.
+     do itri=1,numelms
+        call define_triangle_quadrature(itri, int_pts_aux)
+        call define_fields(itri, 0, 1, 0)
+        
+        call calcavector(itri, field0, psi_g, num_fields, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ps079)
+        call calcavector(itri, field0, p_g, num_fields, avec)
+        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, p079)
+
+        do i=1, npoints       
+           call calc_density(ps079(i,:),p079(i,:),tf,x_79(i),z_79(i))
+           temp79c(i) = tf(1)
+        end do
+
+        do i=1, 18
+           i1 = isval1(itri,i)
+           b1vecini(i1) = b1vecini(i1) + int2(g79(:,OP_1,i),temp79c)
+        end do
+     end do
+
+     call solve_newvar(b1vecini,NV_NOBOUND,mass_matrix_lhs,b1vecini)
+     call copyvec(b1vecini, 1, 1, field0, den_g, num_fields)
+  endif
+
   do i=1,numnodes
      call entdofs(numvargs, i, 0, ibegin, iendplusone)
      call assign_local_pointers(i)
@@ -771,6 +797,11 @@ subroutine gradshafranov_solve
         call calc_density(psi0_l,p0_l,den0_l,x,z)
         call calc_rotation(psi0_l,vz0_l,x,z)
      end if
+
+!!$     if(igs_method.eq.3) then
+!!$        call nodcoord(i, x, z)
+!!$        call calc_density(psi0_l,p0_l,den0_l,x,z)
+!!$     endif
 
      pe0_l = (1. - ipres*pi0/p0)*p0_l
 
@@ -1515,16 +1546,16 @@ subroutine readpgfiles
 
   implicit none
 
-  integer :: j
+  integer :: j, n
   real :: psii
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Reading profiles files"
 
   open(unit=76,file="profiles-p",status="old")
-  read(76,803) npsi
-  allocate(psinorm(npsi))
-  allocate(fbig0t(npsi),fbigt(npsi),fbigpt(npsi),fbigppt(npsi))
-  do j=1,npsi
+  read(76,803) n
+  allocate(psinorm(n))
+  allocate(fbig0t(n),fbigt(n),fbigpt(n),fbigppt(n))
+  do j=1,n
     read(76,802) psinorm(j),fbig0t(j),fbigt(j),fbigpt(j),fbigppt(j)
   enddo
   close(76)
@@ -1537,12 +1568,19 @@ subroutine readpgfiles
 ! fbig0t = p0*fbig0t
 
   open(unit=77,file="profiles-g",status="old")
-  read(77,804) npsi
-  allocate(g4big0t(npsi),g4bigt(npsi),g4bigpt(npsi),g4bigppt(npsi))
-  do j=1,npsi
+  read(77,804) n
+  allocate(g4big0t(n),g4bigt(n),g4bigpt(n),g4bigppt(n))
+  do j=1,n
     read(77,802) psinorm(j),g4big0t(j),g4bigt(j),g4bigpt(j),g4bigppt(j)
   enddo
   close(77)
+
+  do npsi=1, n
+     if (psinorm(npsi) .ge. psiscale) exit
+  end do
+  print *, 'npsi, n, psinorm(npsi)', npsi, n, psinorm(npsi)
+  psinorm = psinorm/psinorm(npsi)
+
 
   if(irot.eq.1) then
      allocate(alphap0t(npsi),alphapt(npsi),alphappt(npsi),alphapppt(npsi))
@@ -1674,7 +1712,10 @@ end subroutine alphaget
    real :: dp,dpp
    integer :: j
 
-   npsi = n
+   do npsi=1, n
+      if ((flux(npsi) - flux(1)) / (flux(n) - flux(1)) .ge. psiscale) exit
+   end do
+   print *, 'npsi, n', npsi, n
 
    allocate(psinorm(npsi))
    allocate(fbig0t(npsi),fbigt(npsi),fbigpt(npsi),fbigppt(npsi))
@@ -1686,17 +1727,17 @@ end subroutine alphaget
    g4big0t(1:n) = 0.5*(f**2 - f(n)**2)          ! g
    g4bigt(1:n) = ffp * (flux(n) - flux(1))      ! f f' = f * df/dPsi
 
-   do j=1,n
-      call cubic_interpolation_coeffs(flux,n,j,a)
-      psinorm(j) = (flux(j) - flux(1)) / (flux(n) - flux(1))
+   do j=1,npsi
+      call cubic_interpolation_coeffs(flux,npsi,j,a)
+      psinorm(j) = (flux(j) - flux(1)) / (flux(npsi) - flux(1))
       dp = a(2)      ! d psi/dn
       dpp = 2.*a(3)  ! d^2 psi/dn^2
 
-      call cubic_interpolation_coeffs(fbigt,n,j,a)
+      call cubic_interpolation_coeffs(fbigt,npsi,j,a)
       fbigpt(j) =     a(2)/dp                       ! p''
       fbigppt(j) = 2.*a(3)/dp**2 - a(2)*dpp/dp**3   ! p'''
 
-      call cubic_interpolation_coeffs(g4bigt,n,j,a)
+      call cubic_interpolation_coeffs(g4bigt,npsi,j,a)
       g4bigpt(j)  =    a(2)/dp                      ! (f f')'
       g4bigppt(j) = 2.*a(3)/dp**2 - a(2)*dpp/dp**3  ! (f f')''
 
@@ -1709,12 +1750,12 @@ end subroutine alphaget
    end do
 
    ! change derivatives from normalized flux to actual flux
-   fbigpt = fbigpt*(flux(n) - flux(1))
-   fbigppt = fbigppt*(flux(n) - flux(1))**2
-   g4bigpt = g4bigpt*(flux(n) - flux(1))
-   g4bigppt = g4bigppt*(flux(n) - flux(1))**2
-   alphapt = alphapt*(flux(n) - flux(1))
-   alphappt = alphappt*(flux(n) - flux(1))**2
+   fbigpt = fbigpt*(flux(npsi) - flux(1))
+   fbigppt = fbigppt*(flux(npsi) - flux(1))**2
+   g4bigpt = g4bigpt*(flux(npsi) - flux(1))
+   g4bigppt = g4bigppt*(flux(npsi) - flux(1))**2
+   alphapt = alphapt*(flux(npsi) - flux(1))
+   alphappt = alphappt*(flux(npsi) - flux(1))**2
 
 
  if( myrankt.eq.0) then

@@ -5,13 +5,13 @@ CC     = icc
 
 # define where you want to locate the mesh adapt libraries
 ifndef SCORECDIR
-  SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3/
+  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib
 endif
 
 INCLUDE = -I$(NTCCHOME)/mod -I$(LIBDIR) \
 	-I$(SUPERLU_DIST_HOME) -I$(HDF5_HOME)/include \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
-	-I$(SCORECDIR)
+	-I$(SCORECDIR)/include/Viz/latest
 
 H5_VERSION = 166
 
@@ -33,26 +33,8 @@ PARMETIS_LIBS = -L$(PARMETIS_HOME)/lib \
 	-Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis
 
 SCOREC_LIBS = \
-	-L$(SCORECDIR)FMDB/FMDB/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)FMDB/FMDB/lib/ia64_linux \
-	-L$(SCORECDIR)FMDB/SCORECModel/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)FMDB/SCORECModel/lib/ia64_linux \
-	-L$(SCORECDIR)FMDB/SCORECUtil/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)FMDB/SCORECUtil/lib/ia64_linux \
-	-L$(SCORECDIR)mctk/Examples/PPPL/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)mctk/Examples/PPPL/lib/ia64_linux \
-	-L$(SCORECDIR)mctk/Field/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)mctk/Field/lib/ia64_linux \
-	-L$(SCORECDIR)mctk/Core/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)mctk/Core/lib/ia64_linux \
-	-L$(SCORECDIR)mctk/Solver/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)mctk/Solver/lib/ia64_linux \
-	-L$(SCORECDIR)meshAdapt/meshAdapt/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)meshAdapt/meshAdapt/lib/ia64_linux \
-	-L$(SCORECDIR)meshAdapt/meshTools/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)meshAdapt/meshTools/lib/ia64_linux \
-	-L$(SCORECDIR)meshAdapt/templateRefine/lib/ia64_linux \
-	-Wl,-rpath,$(SCORECDIR)meshAdapt/templateRefine/lib/ia64_linux \
+	-L$(SCORECDIR)/lib/Viz/latest \
+	-Wl,-rpath,$(SCORECDIR)/lib/Viz/latest \
 	-lFMDB-mpich2$(SCORECOPT) \
 	-lSCORECModel-mpich2$(SCORECOPT) \
 	-lSCORECUtil-mpich2$(SCORECOPT) \

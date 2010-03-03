@@ -158,6 +158,7 @@ module basic
   real :: q0          ! safety factor at magnetic axis
   real :: th_gs       ! relaxation factor
   real :: tol_gs      ! error tolorance for GS solver
+  real :: psiscale    ! profile scale-factor (psiscale < 1 throws out edge pts)
 
   integer :: idenfunc ! specifies a specific form for equilibrium density
   real :: den_edge
@@ -293,7 +294,7 @@ module basic
        irestart,istart,                                        &
        tcuro,djdpsi,xmag,zmag,xlim,zlim,                       &
        expn,q0,divertors,xdiv,zdiv,divcur,th_gs,p1,p2,         &
-       idevice,igs,nv1equ,tol_gs,igs_method,                   &
+       idevice,igs,nv1equ,tol_gs,igs_method,psiscale,          &
        iconstflux,regular,max_ke,                              &
        ntor,iadapt,istatic,iestatic,ivform, ibform,            &
        ihypeta,ikapscale,ihypamu,                              &

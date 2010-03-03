@@ -8,7 +8,7 @@ ifndef SCORECDIR
   SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.stix.intel/
 endif
 
-INCLUDE = -I$(SCORECDIR) \
+INCLUDE = -I$(SCORECDIR)/mctk/Examples/PPPL/PPPL \
 	-I$(MPIHOME)/include \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
 	-I$(HDF5_HOME)/include -I$(HDF5_HOME)/lib
