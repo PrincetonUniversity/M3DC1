@@ -2242,8 +2242,8 @@ subroutine ludefphi_n(itri)
   endif
 
   do iii=1,3
-  call entdofs(vecsize_phi,  ist(itri,iii)+1, 0, ib_phi, iendplusone)
-  call entdofs(vecsize_vel,  ist(itri,iii)+1, 0, ib_vel, iendplusone)
+  call entdofs(vecsize_phi, ist(itri,iii)+1, 0, ib_phi, iendplusone)
+  call entdofs(vecsize_vel, ist(itri,iii)+1, 0, ib_vel, iendplusone)
 
   do ii=1,6
      i = (iii-1)*6 + ii
@@ -2261,11 +2261,14 @@ subroutine ludefphi_n(itri)
         iv = ip
         jv = jp
 
+        ! skip flux equation if resistive wall has been applied
         if(surface_int) then
            ss(psi_g,:) = 0.
            dd(psi_g,:) = 0.
            q_ni(psi_g,:) = 0.
            q_bf(psi_g) = 0.
+           r_e = 0.
+           q_e = 0.
         else
            call flux_lin(g79(:,:,i),g79(:,:,j), &
                 ss(psi_g,:),dd(psi_g,:),q_ni(psi_g,:),q_bf(psi_g),r_e,q_e)
@@ -2334,11 +2337,13 @@ subroutine ludefphi_n(itri)
               if(numvar.ge.3) &
                    call insval(bni,q_ni(pe_g,1),icomplex,ip+pe_off,jp,1)
            endif
-           call insval(bni,q_ni(psi_g,2),icomplex,ip+psi_off,jp+6,1)
-           if(numvar.ge.2) &
-                call insval(bni,q_ni(bz_g,2),icomplex,ip+bz_off,jp+6,1)
-           if(numvar.ge.3) &
-                call insval(bni,q_ni(pe_g,2),icomplex,ip+pe_off,jp+6,1)
+           if(numvar.ge.2) then
+              call insval(bni,q_ni(psi_g,2),icomplex,ip+psi_off,jp+6,1)
+              if(numvar.ge.2) &
+                   call insval(bni,q_ni(bz_g,2),icomplex,ip+bz_off,jp+6,1)
+              if(numvar.ge.3) &
+                   call insval(bni,q_ni(pe_g,2),icomplex,ip+pe_off,jp+6,1)
+           endif
         endif
 
 #ifdef USECOMPLEX
@@ -2392,8 +2397,6 @@ subroutine ludefphi_n(itri)
 
   enddo ! on i
   enddo
-
-  if(eta_wall.ne.0.) call insert_resistive_wall(bb1, bb0, bbf)
 
 end subroutine ludefphi_n
 

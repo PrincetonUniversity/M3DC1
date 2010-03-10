@@ -757,6 +757,7 @@ subroutine gradshafranov_solve
   endif
   if(igs_method.eq.3) call deletematrix(dp_matrix_lhs)
      
+  ! calculate density profile for igs_method.eq.3
   if(igs_method.eq.3) then
      b1vecini = 0.
      do itri=1,numelms
@@ -797,11 +798,6 @@ subroutine gradshafranov_solve
         call calc_density(psi0_l,p0_l,den0_l,x,z)
         call calc_rotation(psi0_l,vz0_l,x,z)
      end if
-
-!!$     if(igs_method.eq.3) then
-!!$        call nodcoord(i, x, z)
-!!$        call calc_density(psi0_l,p0_l,den0_l,x,z)
-!!$     endif
 
      pe0_l = (1. - ipres*pi0/p0)*p0_l
 

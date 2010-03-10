@@ -198,6 +198,7 @@
 !.....boundary conditions
 !     com_bc: 1 = sets laplacian(chi) = 0 on boundary
       com_bc = 0
+      vor_bc = 0
       iconst_p = 1
       iconst_n = 1
       iconst_t = 0
