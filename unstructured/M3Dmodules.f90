@@ -90,7 +90,8 @@ module basic
   integer :: iconst_bz     ! 1 = toroidal field held constant
   integer :: inograd_p     ! 1 = no normal pressure gradient
   integer :: inograd_n     ! 1 = no normal density gradient
-  integer :: com_bc        ! 1 = forces div(V) = 0 on boundary
+  integer :: com_bc        ! 1 = forces del^2(chi) = 0 on boundary
+  integer :: vor_bc        ! 1 = forces del*(phi) = 0 on boundary
   integer :: ifbound       ! bc on f.  0=none, 1=dirichlet, 2=neumann
   real :: amu_edge    ! factor by which to increase viscosity at boundaries
 
@@ -278,7 +279,7 @@ module basic
        ikappafunc,kappat,kappa0,kappaoff,kappadelt,            &
        kappar,kappax,kappah,                                   &
        hyper,hyperi,hyperv,hyperc,hyperp,deex,                 &
-       iper,jper,imask,amu_edge,com_bc,pedge,                  &
+       iper,jper,imask,amu_edge,com_bc,vor_bc,pedge,           &
        eps,ln,irmp,maxn,                                       &
        vloop,control_p,control_i,control_d,tcur,               &
        ipellet, pellet_x, pellet_z, pellet_rate, pellet_var,   &
@@ -799,7 +800,9 @@ module sparse
   integer, parameter :: brmatrix_sm = 38
   integer, parameter :: bf_matrix_rhs = 39
   integer, parameter :: dp_matrix_lhs = 40
-  integer, parameter :: num_matrices = 40
+  integer, parameter :: rwpsi_sm = 41
+  integer, parameter :: rwbf_sm = 42
+  integer, parameter :: num_matrices = 42
   
 
 contains

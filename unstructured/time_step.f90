@@ -534,7 +534,7 @@ subroutine split_step(calc_matrices)
 
   if(iestatic.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Fields"
-   
+
      ! make new velocity vectors of the correct length
      call createvec(vel_temp, vecsize_phi)
      call createvec(veln_temp, vecsize_phi)
@@ -574,11 +574,13 @@ subroutine split_step(calc_matrices)
            call nodcoord(l,x,z)
 
            call calc_ni(phip(ibeginnv:ibeginnv+5),field0(i:i+5),field(i:i+5))
-           call calc_b2i(phip(ibeginnv+6:ibeginnv+11),x, &
-                field0(ibegin+6*(psi_g-1):ibegin+6*(psi_g-1)+5), &
-                field (ibegin+6*(psi_g-1):ibegin+6*(psi_g-1)+5), &
-                field0(ibegin+6*( bz_g-1):ibegin+6*( bz_g-1)+5), &
-                field (ibegin+6*( bz_g-1):ibegin+6*( bz_g-1)+5))
+           if(numvar.ge.2) then
+              call calc_b2i(phip(ibeginnv+6:ibeginnv+11),x, &
+                   field0(ibegin+6*(psi_g-1):ibegin+6*(psi_g-1)+5), &
+                   field (ibegin+6*(psi_g-1):ibegin+6*(psi_g-1)+5), &
+                   field0(ibegin+6*( bz_g-1):ibegin+6*( bz_g-1)+5), &
+                   field (ibegin+6*( bz_g-1):ibegin+6*( bz_g-1)+5))
+           endif
         enddo
         call matvecmult(q42matrix_sm,phip,b2_phi)
         b1_phi = b1_phi + b2_phi

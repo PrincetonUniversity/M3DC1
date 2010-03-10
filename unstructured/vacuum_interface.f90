@@ -3,54 +3,13 @@ module vacuum_interface
   implicit none
 
   integer :: nodes
-  integer, allocatable :: node_id(:)
+  integer, allocatable :: global_id(:)
+  integer, allocatable :: local_id(:)
   real, allocatable :: normal(:,:)
   real, allocatable :: zgrbth(:,:), zgrbph(:,:)
-
-  vectype, allocatable :: psi_mat(:,:), bf_mat(:,:)
+  real, allocatable :: zgrbthp(:,:), zgrbphp(:,:)
 
 contains 
-
-  subroutine populate_boundary_matrices(ierr)
-    implicit none
-
-    integer, intent(out) :: ierr
-
-    integer :: i, j, i1, j1
-    real :: dtheta
-    real :: ident
-
-    ierr = 0
-
-    allocate(psi_mat(6*nodes,6*nodes), bf_mat(6*nodes,6*nodes))
-
-    psi_mat = 0.
-    bf_mat = 0.
-
-    dtheta = 2.*3.14159265/nodes
-    do i=1,nodes
-       i1 = 6*(i-1) + 1
-
-       do j=1,i
-          j1 = 6*(j-1) + 1
-
-          if(i .eq. j) then
-             ident = 1.
-          else 
-             ident = 0.
-          end if
-          psi_mat(i1  ,j1+1) = ident - dtheta*zgrbth(i,j)*normal(1,j)
-          psi_mat(i1  ,j1+2) = ident - dtheta*zgrbth(i,j)*normal(2,j)
-
-          psi_mat(i1+1,j1+3) = ident - dtheta*zgrbth(i,j)*normal(1,j)
-          psi_mat(i1+1,j1+4) = ident - dtheta*zgrbth(i,j)*normal(2,j)
-
-          psi_mat(i1+2,j1+4) = ident - dtheta*zgrbth(i,j)*normal(1,j)
-          psi_mat(i1+2,j1+5) = ident - dtheta*zgrbth(i,j)*normal(2,j)
-       end do
-    end do
-    
-  end subroutine populate_boundary_matrices
 
   subroutine load_boundary_nodes(ierr)
     implicit none
@@ -69,13 +28,15 @@ contains
     ! read total number of nodes
     read(ifile, '(I8)') nodes
 
-    allocate(node_id(nodes))
+    allocate(global_id(nodes))
+    allocate(local_id(nodes))
     allocate(normal(2,nodes))
 
     ! write node entry for first node
     do i=1, nodes
-       read(ifile, '(I8,4f12.8)') node_id(i), dummy, dummy, &
+       read(ifile, '(I8,4f12.8)') global_id(i), dummy, dummy, &
             normal(1,i), normal(2,i)
+       call globalidnod(global_id(i),local_id(i))
     end do
 
     close(ifile)
@@ -91,6 +52,7 @@ contains
     character(len=*), parameter :: filename = 'RESPONSE-M3DC1'
     integer, parameter :: ifile = 2
     integer :: idum, i, j
+    real :: dtheta
 
     ierr = 0
 
@@ -120,7 +82,8 @@ contains
        goto 100
     endif
 
-    allocate(zgrbph(nodes+1,nodes+1),zgrbth(nodes+1,nodes+1))
+    allocate(zgrbph (nodes+1,nodes+1),zgrbth (nodes+1,nodes+1))
+    allocate(zgrbphp(nodes+1,nodes+1),zgrbthp(nodes+1,nodes+1))
 
     read(ifile, & 
          '(/,1x, "B_theta response Matrix, Rth(obs,srce):" )' )
@@ -136,10 +99,23 @@ contains
        read(ifile, '(/, 1x, "i_obs = ", i5 )' ) idum
        read(ifile, '( (1x, 8es14.6) )' ) (zgrbph(idum,j), j=1, nodes+1)
     end do
+
+    dtheta = 2.*3.14159265358979323846/nodes
+    zgrbth = zgrbth*dtheta
+    zgrbph = zgrbph*dtheta
+
+    ! calculate derivatives (wrt i)
+    zgrbthp(1,:) = 0.5*(zgrbth(2,:) - zgrbth(nodes+1,:))/dtheta
+    zgrbphp(1,:) = 0.5*(zgrbph(2,:) - zgrbph(nodes+1,:))/dtheta
+    do i=2,nodes
+       zgrbthp(i,:) = 0.5*(zgrbth(i+1,:) - zgrbth(i-1,:))/dtheta
+       zgrbphp(i,:) = 0.5*(zgrbph(i+1,:) - zgrbph(i-1,:))/dtheta
+    end do
     
 100 continue
 
     close(ifile)
+
     
   end subroutine load_response_matrix
 
@@ -153,22 +129,21 @@ contains
     
     call load_response_matrix(ierr)
     if(ierr .ne. 0) return
-
-    call populate_boundary_matrices(ierr)
-    if(ierr .ne. 0) return
-       
+      
   end subroutine load_vacuum_data
 
   subroutine unload_vacuum_data
     implicit none
 
     print *, 'unloading vacuum data'
-    if(allocated(node_id)) deallocate(node_id)
+    if(allocated(global_id)) deallocate(global_id)
+    if(allocated(local_id)) deallocate(local_id)
     if(allocated(normal)) deallocate(normal)
     if(allocated(zgrbth)) deallocate(zgrbth)
     if(allocated(zgrbph)) deallocate(zgrbph)
-    if(allocated(psi_mat)) deallocate(psi_mat)
-    if(allocated(bf_mat)) deallocate(bf_mat)
+    if(allocated(zgrbthp)) deallocate(zgrbthp)
+    if(allocated(zgrbphp)) deallocate(zgrbphp)
+
   end subroutine unload_vacuum_data
 
 
