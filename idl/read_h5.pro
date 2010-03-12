@@ -1913,10 +1913,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        phi = read_field('phi', x, y, t, slices=time, mesh=mesh, linear=linear,$
                         filename=filename, points=pts, mask=mask, $
-                        rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange, complex=complex)
        chi = read_field('chi', x, y, t, slices=time, mesh=mesh, linear=linear,$
                         filename=filename, points=pts, mask=mask, $
-                        rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange,complex=complex)
        psi = read_field('psi', x, y, t, /equilibrium, slices=time, mesh=mesh, $
                         filename=filename, points=pts, mask=mask, $
                         rrange=xrange, zrange=yrange)
@@ -4962,5 +4962,102 @@ pro write_geqdsk, eqfile=eqfile, b0=b0, l0=l0, $
   !p.multi=0
 
   window, 0
+
+end
+
+pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
+                   light_brightness=light_brightness, $
+                   brightness=brightness, specular=specular, $
+                   solid=solid, positive_only=positive_only, $
+                   power=power, _EXTRA=extra
+
+  field = read_field(fieldname,x,z,t,/complex,_EXTRA=extra,edge_val=0.)
+
+  angles = n_elements(x)
+
+  if(keyword_set(solid)) then begin
+      if(n_elements(flux) eq 0) then flux = 1.
+      psi0 = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra)
+      psival = lcfs(psi0,x,z,flux0=flux0,_EXTRA=extra)
+      flux1 = (psival-flux0)*flux + flux0
+      shown_angles = angles*3/4
+      psi = fltarr(n_elements(x),shown_angles,n_elements(z))
+  endif else begin
+      shown_angles = angles
+  endelse
+
+  data = fltarr(n_elements(x),shown_angles,n_elements(z))
+
+  ntor = read_parameter('ntor',_EXTRA=extra)
+
+  for i = 0, shown_angles-1 do begin
+      phi = 2.*!pi*i/(angles-1.)
+      data[*,i,*] = real_part(field[0,*,*]* $
+                              (cos(ntor*phi) + complex(0.,1.)*sin(ntor*phi)))
+     
+      if(keyword_set(solid)) then psi[*,i,*] = psi0[0,*,*]
+  end
+  if(keyword_set(positive_only)) then begin
+      data = data > 0.
+  endif else data = abs(data)
+
+  if(n_elements(power) ne 0.) then data = data^power
+
+  print, 'calling interval_volume'
+  if(keyword_set(solid)) then begin
+      interval_volume, psi, flux0, flux1, v, conn, $
+        auxdata_in=data, auxdata_out=aout
+      print, 'calling tetra_surface'
+      p = tetra_surface(v, conn)
+  
+  endif else begin
+      isosurface, data, max(data)*0.05, v, p
+  endelse
+   
+  ; reduce values at edge
+;  result = where(v[1,*] eq min(v[1,*]) or v[1,*] eq max(v[1,*]))
+;  aout(result) = aout(result)/2.
+
+  r = (v[0,*] - min(v[0,*]))*(max(x) - min(x))/(max(v[0,*]) - min(v[0,*])) $
+    + min(x)
+  zz = (v[2,*] - min(v[2,*]))*(max(z) - min(z))/(max(v[2,*]) - min(v[2,*])) $
+    + min(z)
+
+  q = v
+  q(0,*) = r*cos(2.*!pi*v[1,*]/(angles-1.))
+  q(1,*) = r*sin(2.*!pi*v[1,*]/(angles-1.))
+  q(2,*) = zz
+ 
+  s = intarr(2)
+  device, get_screen_size=s
+  screen_aspect = float(s[1])/float(s[0])
+
+  xrange = [-max(r),max(r)]*0.75
+  yrange = xrange
+  zrange = xrange*screen_aspect
+
+  if(keyword_set(solid)) then az=-25 else az=0.
+  if(keyword_set(solid)) then ax=35 else ax=15.
+
+  scale3, xrange=xrange, yrange=yrange, zrange=zrange, ax=ax, az=az
+
+  if(n_elements(brightness) eq 0) then brightness=0.15
+  if(n_elements(contrast) eq 0) then contrast=1.
+  if(n_elements(light_brightness) eq 0) then light_brightness=0.3
+  if(n_elements(specular) eq 0) then specular=0.0
+
+  if(keyword_set(solid)) then begin
+      light_dir = [0., 1., -1.]/sqrt(2.)
+      normals = compute_mesh_normals(q, p)
+      reflect = -(light_dir[0]*normals[0,*] + $
+                  light_dir[1]*normals[1,*] + $
+                  light_dir[2]*normals[2,*]) > 0
+      shades = bytscl(aout) * contrast + brightness*255 $
+        + light_brightness*reflect*255 $
+        + specular*exp((reflect-1.)*5.)*255< 255
+  endif
+
+  print, 'plotting'
+  tv, polyshade(q, p, /t3d, shades=shades)
 
 end
