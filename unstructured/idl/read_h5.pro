@@ -4969,7 +4969,7 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
                    light_brightness=light_brightness, $
                    brightness=brightness, specular=specular, $
                    solid=solid, positive_only=positive_only, $
-                   power=power, _EXTRA=extra
+                   power=power, angle=angle, ax=ax, az=az, _EXTRA=extra
 
   field = read_field(fieldname,x,z,t,/complex,_EXTRA=extra,edge_val=0.)
 
@@ -4980,15 +4980,19 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
       psi0 = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra)
       psival = lcfs(psi0,x,z,flux0=flux0,_EXTRA=extra)
       flux1 = (psival-flux0)*flux + flux0
-      shown_angles = angles*3/4
-      psi = fltarr(n_elements(x),shown_angles,n_elements(z))
+      if(n_elements(angle) eq 0) then angle = .75
   endif else begin
-      shown_angles = angles
+      if(n_elements(angle) eq 0) then angle = 1.
   endelse
 
+  shown_angles = angles*angle
+
   data = fltarr(n_elements(x),shown_angles,n_elements(z))
+  if(keyword_set(solid)) then $
+    psi = fltarr(n_elements(x),shown_angles,n_elements(z))
 
   ntor = read_parameter('ntor',_EXTRA=extra)
+  print, 'ntor = ', ntor
 
   for i = 0, shown_angles-1 do begin
       phi = 2.*!pi*i/(angles-1.)
@@ -5036,8 +5040,12 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
   yrange = xrange
   zrange = xrange*screen_aspect
 
-  if(keyword_set(solid)) then az=-25 else az=0.
-  if(keyword_set(solid)) then ax=35 else ax=15.
+  if(n_elements(az) eq 0) then begin
+      if(keyword_set(solid)) then az=-25 else az=0.
+  endif
+  if(n_elements(ax) eq 0) then begin
+      if(keyword_set(solid)) then ax=35 else ax=15.
+  endif
 
   scale3, xrange=xrange, yrange=yrange, zrange=zrange, ax=ax, az=az
 

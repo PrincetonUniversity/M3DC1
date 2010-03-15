@@ -1485,13 +1485,13 @@ subroutine insert_resistive_wall(imatrix, rhs)
                  jp1 = jbegin1 + jj - 1
                  
                  if(imatrix.ne.0) then
-                    call globalinsertval(imatrix,ss_psi(ii,jj),icomplex, &
+                    call insertval(imatrix,ss_psi(ii,jj),icomplex, &
                          ip+psi_off,jp+psi_off,0)
                  endif
-                 call globalinsertval(rwpsi_sm,dd_psi(ii,jj),icomplex, &
+                 call insertval(rwpsi_sm,dd_psi(ii,jj),icomplex, &
                       ip1,jp1,0)
                  if(i3d.eq.1) then
-                    call globalinsertval(rwbf_sm,dd_bf(ii,jj),icomplex, &
+                    call insertval(rwbf_sm,dd_bf(ii,jj),icomplex, &
                          ip1,jp1,0)
                  end if
               end do
