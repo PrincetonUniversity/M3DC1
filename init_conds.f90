@@ -2165,6 +2165,9 @@ subroutine jsolver_init()
   p_jsv(1)   = pzero_jsv
   gxx_jsv(1) = gzero_jsv
 
+  rzero = xzero_jsv
+  bzero = gzero_jsv/rzero
+
   if(igs.gt.0) then
      fieldi = field0
 
