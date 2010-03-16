@@ -2165,8 +2165,9 @@ subroutine jsolver_init()
   p_jsv(1)   = pzero_jsv
   gxx_jsv(1) = gzero_jsv
 
+!...Adopt JSOLVER convention that R*B_T = xzero_jsv
   rzero = xzero_jsv
-  bzero = gzero_jsv/rzero
+  bzero = 1.0
 
   if(igs.gt.0) then
      fieldi = field0
