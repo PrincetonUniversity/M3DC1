@@ -1592,7 +1592,7 @@ subroutine readpgfiles
   constraint = .true.
 
 return
-  802 format(5x,5e18.10)
+  802 format(5x,5e18.9)
   803 format(i5)
   804 format(i5)
 end subroutine readpgfiles
@@ -1766,7 +1766,7 @@ end subroutine alphaget
     do j=1,npsi
        write(77,802) j,psinorm(j),g4big0t(j),g4bigt(j),g4bigpt(j),g4bigppt(j)
     enddo
-802 format(i5,1p6e18.10)
+802 format(i5,1p6e18.9)
     close(77)
  endif
   !
