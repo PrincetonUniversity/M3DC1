@@ -1286,13 +1286,14 @@ subroutine fundef2(error)
            if(irot.eq.1) then
               call cubic_interpolation(npsi,psinorm,pso,alphap0t,temp79c(i))
               call cubic_interpolation(npsi,psinorm,pso,alphapt,temp79d(i))
-              temp79c(i) = exp(temp79c(i)*(x_79(i)**2 - rzero**2)/rzero**2)
+              call cubic_interpolation(npsi,psinorm,pso,fbig0t,temp79e(i))
            endif
         else
            temp79a(i) = 0.
            temp79b(i) = 0.
-           temp79c(i) = 1.
+           temp79c(i) = 0.
            temp79d(i) = 0.
+           temp79e(i) = 0.
         endif
      end do
      
@@ -1300,6 +1301,11 @@ subroutine fundef2(error)
         temp79a = temp79a*dpsii
         temp79b = temp79b*dpsii
         temp79d = temp79d*dpsii
+     endif
+
+     if(irot.eq.1) then
+        temp79a = exp(temp79c*(x_79**2 - rzero**2)/rzero**2)* &
+             (temp79a + temp79e*temp79d*(x_79**2 - rzero**2)/rzero**2)
      endif
 
      do i=1,18
@@ -1795,6 +1801,9 @@ end subroutine alphaget
    eqsubtract = 1
 
    def_fields = FIELD_PSI + FIELD_P + FIELD_I
+   if(irot.eq.1) then
+      def_fields = def_fields + FIELD_V + FIELD_N
+   endif
    
    call numfac(nelms)
    do itri=1, nelms
@@ -1806,10 +1815,22 @@ end subroutine alphaget
            (p079(:,OP_DR)*ps079(:,OP_DR) + p079(:,OP_DZ)*ps079(:,OP_DZ))
       temp79c = -bz079(:,OP_1)* &
            (bz079(:,OP_DR)*ps079(:,OP_DR) + bz079(:,OP_DZ)*ps079(:,OP_DZ))
-      temp79d = temp79a - (temp79b + temp79c)
       
+      if(irot.eq.1) then
+         select case(ivform)
+         case(0)
+            temp79d = ri_79*n079(:,OP_1)*vz079(:,OP_1)**2*ps079(:,OP_DR)
+         case(1)
+            temp79d = r3_79*n079(:,OP_1)*vz079(:,OP_1)**2*ps079(:,OP_DR)
+         end select
+      else 
+         temp79d = 0.
+      endif
+
+      temp79e = temp79a - (temp79b + temp79c + temp79d)
+         
       norm = norm + abs(int2(ri_79,temp79a))
-      error = error + abs(int2(ri_79,temp79d))
+      error = error + abs(int2(ri_79,temp79e))
    end do
 
    eqsubtract = ieqs_temp
@@ -1844,7 +1865,7 @@ subroutine calc_density(psi0,pres,dens, x, z)
   vectype, intent(out), dimension(6) :: dens     ! density
 
   real :: fbig0, fbig, fbigp, fbigpp
-  real :: rbig0, rbig, rbigp, p0ni, redge
+  real :: rbig0, rbig, rbigp, p0ni
   real :: alphap0, alphap, alphapp, alphappp
   real :: r0m, r1, r1m, r2, r3, ealpha,  pspx, pspy, pspxx, pspxy, pspyy
   real, dimension(6) :: psii     ! normalized flux
