@@ -740,10 +740,10 @@ subroutine output_fields(time_group_id, equilibrium, error)
 
   if(equilibrium.eq.1) then
      f_ptr => field0
-     if(ifout) bf_ptr => bf0
+     if(ifout.eq.1) bf_ptr => bf0
   else
      f_ptr => field
-     if(ifout) bf_ptr => bf
+     if(ifout.eq.1) bf_ptr => bf
   endif
 
   nfields = 0

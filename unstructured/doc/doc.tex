@@ -21,6 +21,7 @@
 \newcommand{\E}{\vec{E}}
 \newcommand{\R}{\vec{R}}
 \newcommand{\x}{\vec{x}}
+\renewcommand{\r}{R}
 \renewcommand{\v}{\vec{v}}
 \renewcommand{\u}{\vec{u}}
 \newcommand{\F}{\vec{F}}
@@ -1928,36 +1929,15 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
   \texttt{eqsubtract}& 0& 1: remove equilibrium terms from equations\\
   \texttt{isource}   & 0& 1: include ``source'' terms in velocity
     advance\\
-  \texttt{jadv}   & 0   & 1: Use toroidal current density equation
-                          instead of poloidal flux equation.\\
   \texttt{igauge} & 0   & 1: Loop voltage appears explicitly in Ohm's law.\\
   \texttt{ntor}   & 0   & The toroidal modenumber of linear perturbations in
                           complex simulations.\\
-  \texttt{max\_ke}& 1   & Maximum value of KE before solution is
-                          rescaled in linear simulations.\\
-  \texttt{ivform} & 0   & 1: Use angular frequency as toroidal velocity
-                             variable\\
   \texttt{istatic}& 0   & 1: Do not advance velocity\\
   \texttt{iestatic}&0   & 1: Do not advance magnetic fields\\
+  \texttt{inertia} & 1  & 1: Include $\u \cdot \grad{\u}$ terms\\
+  \texttt{itwofluid}& 1 & 1: Include $\j\times\B$ and
+  $\grad{p_e}$ terms in Ohm's law\\ 
 \end{tabular}
-
-
-\subsection{Initial Conditions Options}
-
-\begin{tabular}{llll}
-  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
-  \hline
-  \texttt{irestart} & 0 & 1: Read initial conditions from restart file(s)\\
-  \texttt{itaylor}  & 0 & \parbox[t]{2in}{Determines initial
-  conditions.\\
-  0: Tilting cylinder\\
-  1: Taylor Reconnection\\
-  2: Force-Free equilibrium\\
-  3: GEM Reconnection\\
-  4: Wave Propagation\\
-  5: Gravitational Instability\\}
-\end{tabular}
-
 
 
 \subsection{Physical Parameters}
@@ -1965,6 +1945,7 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
 \begin{tabular}{llcl}
   \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
   \hline
+  \texttt{gam}    & $\Gamma$& 5/3 & Adiabatic constant\\
   \texttt{db}     & $d_i$   & 0   & Ion skin depth\\
   \texttt{gravr}, \texttt{gravz} & \vec{g} & 0 & \parbox[t]{1.8in}{Gravity.\\
                        $\vec{g} = -(\mathtt{gravr}/r^2) \uvec{r} 
@@ -1974,59 +1955,68 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
 
 \subsection{Transport Coefficients}
 
-\begin{tabular}{llcp{2.2in}}
+\begin{tabular}{llcp{2.25in}}
   \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
   \hline
-  \texttt{gam}    & $\Gamma$& 5/3 & Adiabatic constant\\
-  \texttt{denm}   & $D_n$   & 0   & Density diffusion coefficient\\
-  \texttt{amu}    & $\mu$   & 0   & Shear viscosity coefficient\\
-  \texttt{amuc}   & $\mu_c$ &$\mu$& Compressional viscosity coefficient\\
+  \texttt{denm}      & $D_n$   & 0   & Density diffusion coefficient\\
+  \hline
+  \texttt{amu}       & $\mu_r$       & 0 & \\
+  \texttt{amu\_edge} & $\mu_0$       & 0 & \\
+  \texttt{amuoff}    & $\Psi_c^\mu$ & 0 & \\
+  \texttt{amudelt}   & $\Delta^\mu$ & 0 & \\
+  \texttt{iresfunc} & & 0 &
+  \begin{minipage}[t]{2.2in}
+    0: $\mu = \mu_r$\\
+    2: $\mu = \mu_r + \frac{1}{2}\mu_0 \{1 + \tanh[(\Psi - \Psi_c^{\mu})/\Delta^{\mu}]\}$\\
+    3: $\mu = \mu_r + \eta_0 H(\Psi - \Psi_c^{\mu})$\\
+  \end{minipage}\\  
+  \texttt{amuc}   & $\mu_c$ & $\mu_r$ & Compressional viscosity coefficient\\
   \texttt{amupar} & $\mu_\parallel$ & 0 & Parallel viscosity coefficient\\
-  \texttt{etar}, \texttt{eta0}
-                  & $\eta$  & 0   & Resistivity.  
-                  $\eta = \mathtt{etar} + \mathtt{eta0}/T^{3/2}$\\
-  \texttt{kappat}, \texttt{kappa0}
-                  & $\kappa$& 0   & Isotropic thermal conductivity.
-                  $\kappa = \mathtt{kappat} + \mathtt{kappa0}\ p/T^{3/2}$\\
+  \hline
+  \texttt{etar}   & $\eta_r$   & 0 & \\
+  \texttt{eta0}   & $\eta_0$ & 0 & \\
+  \texttt{etaoff} & $\Psi_c^\eta$ & 0 & \\
+  \texttt{etadelt}& $\Delta^\eta$ & 0 & \\
+  \texttt{iresfunc} & & 0 &
+  \begin{minipage}[t]{2.2in}
+    0: $\eta = \eta_r + \eta_0/T_e^{3/2}$\\
+    2: $\eta = \eta_r + \frac{1}{2}\eta_0 \{1 + \tanh[(\Psi - \Psi_c^{\eta})/\Delta^{\eta}]\}$\\
+    3: $\eta = \eta_r + \eta_0 H(\Psi - \Psi_c^{\eta})$\\
+    4: $\eta = \eta_{Spitzer}$
+  \end{minipage}\\
+  \hline
+  \texttt{kappat}   & $\eta_t$    & 0 & \\
+  \texttt{kappa0}   & $\eta_0$    & 0 & \\
+  \texttt{kappaoff} & $\Psi_c^\kappa$ & 0 & \\
+  \texttt{kappadelt}& $\Delta^\kappa$ & 0 & \\
+  \texttt{iresfunc} & & 0 &
+  \begin{minipage}[t]{2.2in}
+    0: $\kappa = \kappa_t + \kappa_0*p/T^{3/2}$\\
+    2: $\kappa = \kappa_t + \frac{1}{2}\kappa_0 \{1 + \tanh[(\Psi - \Psi_c^{\kappa})/\Delta^{\kappa}]\}$
+  \end{minipage}\\
   \texttt{kappar} & $\kappa_\parallel$ & 0 
-                  & Parallel thermal conductivity coefficient\\ 
-  \texttt{kappax} & $\kappa_\times$ & 0 
-                  & Crosswise thermal conductivity coefficient\\ 
+                  & Parallel thermal conductivity\\
   \texttt{ikapscale}& & 0 & 1: Multiply \texttt{kappar} by $\kappa$\\
-  \texttt{deex}   & & 0 & Hyper-diffusive scale length
-    (All \texttt{hyper}* quantities are multiplied by \texttt{deex}$^2$).\\
-  \texttt{hyper}  & $\lambda$ & 0 & Poloidal hyper-resistive coefficient\\
-  \texttt{hyperi} & $\lambda$ & 0 & Toroidal hyper-resistive coefficient\\
-  \texttt{hyperc} & & 0 & Poloidal hyper-viscous coefficient\\
-  \texttt{hyperv} & & 0 & Toroidal hyper-viscous coefficient\\
-  \texttt{hyperp} & & 0 & Thermal hyper-diffusive coefficient\\
-  \texttt{ihypeta}& & 0 & 1: Multiply hyper-resistivities by $\eta$
+  \texttt{kappax} & $\kappa_\times$ & 0 
+                  & Crosswise thermal conductivity\\ 
 \end{tabular}
 
+\subsection{Hyper-Diffusivity}
 
-
-\subsection{Boundary and Domain Options}
-
-\begin{tabular}{lcp{2.5in}}
+\begin{tabular}{lcp{2.2in}}
   \textbf{Option} & \textbf{Default} & \textbf{Description}\\
-  \hline
-  \texttt{xzero}  & 0 & $r$-coordinate of bottom left corner of domain\\
-  \texttt{zzero}  & 0 & $z$-coordinate of bottom left corder of domain\\
-  \texttt{iper}   & 0 & 1: Left/right boundaries periodic\\
-  \texttt{jper}   & 0 & 2: Top/bottom boundaries periodic\\
-  \texttt{inonormalflow}& 1 & 1: No-normal-flow boundary\\
-  \texttt{inoslip\_pol} & 0 & 1: No-slip boundaries for poloidal velocity\\
-  \texttt{inoslip\_tor} & 1 & 1: No-slip boundaries for toroidal velocity\\
-  \texttt{inostress\_tor}&0 & 1: No-normal-stress boundary for toroidal 
-                                 velocity\\
-  \texttt{com\_bc}& 1 & 1: $\nabla^2 \chi = 0$\\
-  \texttt{iconst\_t}  & 0 & 0: $\partial_t T = 0$\\
-  \texttt{inograd\_t} & 0 & 0: No normal temperature gradient\\
-  \texttt{vloop}  & 0 & Loop voltage.  $\partial_t \psi = \mathtt{vloop}$\\
-  \texttt{imask}  & 0 & 1: Smoothly bring $d_i$ to zero near
-    boundaries\\
-  \texttt{amu\_edge} & 0 &    Factor by which to increase viscosity near 
-                              boundaries
+ \hline
+  \texttt{hyper}    & 0 & Poloidal hyper-resistive coefficient\\
+  \texttt{hyperi}   & 0 & Toroidal hyper-resistive coefficient\\
+  \texttt{hyperc}   & 0 & Poloidal hyper-viscous coefficient\\
+  \texttt{hyperv}   & 0 & Toroidal hyper-viscous coefficient\\
+  \texttt{hyperp}   & 0 & Thermal hyper-diffusive coefficient\\
+  \texttt{deex}     & 1 & Hyper-diffusive scale length\\
+  \texttt{ihypdx}   & 2 & Multiply \texttt{hyper}* by 
+                          \texttt{deex}$^\mathtt{ihypdx}$\\
+  \texttt{ihypeta}  & 1 & 1: Multiply hyper-resistivities by $\eta$\\
+  \texttt{ihypamu}  & 1 & 1: Multiply hyper-viscosities by $\mu$\\
+  \texttt{ihypkappa}& 1 & 1: Multiply hyper-diffusion by $\kappa$\\
 \end{tabular}
 
 
@@ -2037,15 +2027,19 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
   \texttt{dt}         & 0.1 & Time step\\
   \texttt{ntimemax}   & 20  & Total number of time steps\\
   \texttt{integrator} & 0   & 0: Crank-Nicholson (CN); 1: BDF2\\
-  \texttt{thimp}      & 0.5 & CN impliciness\\
+  \texttt{imp\_mod}   & 0   & 
+  \begin{minipage}[t]{3in}
+    0: $\theta$-implicit\\
+    1: Implicit leapfrof (\texttt{isplitstep} = 1 only)\\
+  \end{minipage}\\
+  \texttt{thimp}      & 0.5 & Implicitness parameter\\
   \texttt{thimp\_ohm} & \texttt{thimp} & 
-                              CN impliciness of ohmic heating terms\\
+                              Implicitness of ohmic heating terms\\
+  \texttt{thimpsm}    & 1   & Implicitness of the smoother functions\\
   \texttt{isplitstep} & 1   & 0: Fully implicit time step; 
                               1: split time step.\\
   \texttt{iresolve}   & 0   & 1: Re-solve velocity after 
                               field advance of split time step.\\
-  \texttt{imp\_mod}   & 0   & Alternative implicitization
-    schemes. 0: Standard; 1: Caramana.\\
   \texttt{iteratephi} & 0   & 1: Calculate transport coefficients after
     field advance, then recalculate field advance.
 \end{tabular}
@@ -2064,73 +2058,21 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
 \end{tabular}
 
 
-\subsection{Grad-Shafranov Solver Options}
-\begin{tabular}{lcl}
+\subsection{Numerical Options}
+\begin{tabular}{llp{3in}}
   \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
-  \texttt{igs}   & 80     & Number of Picard iterations\\
-  \texttt{xmag}  & \texttt{xzero}+1 & $r$-coordinate of magnetic axis\\
-  \texttt{zmag}  & 0      & $z$-coordinate of magnetic axis\\
-  \texttt{xlim}  & \texttt{xzero}   & $r$-coordinate of limiter\\
-  \texttt{zlim}  & 0      & $z$-coordinate of limiter\\
-  \texttt{tcuro} & 1      & Plasma current in GS equilibrium\\
-  \texttt{q0}    & 1      & Safety factor at magnetic axis\\
-  \texttt{djdpsi}& 0      & $J_\tor'(\Psi)$ at magnetic axis\\
-  \texttt{bzero} & 1      & $B_\tor$ at \texttt{xzero}\\
-  \texttt{p0}    & 0.01   & Pressure at magnetic axis\\
-  \texttt{p1}    & -1     & $p'(\Psi)$ at magnetic axis\\
-  \texttt{p2}    & -2     & $p''(\Psi)$ at magnetic axis\\
-  \texttt{pedge} & 0      & Pressure in vacuum region\\
-  \texttt{divertors} & 0  & Number of divertors (0--2)\\
-  \texttt{divcur}& 0.1    & Divertor current(s), as fraction of tcuro\\
-  \texttt{xdiv}  & \texttt{xmag} & $r$-coordinate of divertor current(s)\\
-  \texttt{zdiv}  & \texttt{zmag} & \parbox[t]{3in}{$z$-coordinate of 
-    divertor 
-    current.  If $\mathtt{divertors} = 2$, the second divertor has 
-    $z = -\mathtt{zdiv}$.}\\
-  \texttt{expn}  & 0 & \parbox[t]{3in}{Fraction of pressure gradient due to
-    density gradient: $n = p^\mathtt{expn}$.}\\
-  \texttt{th\_gs} & 0.5 & Relaxation paramter for GS iteration
+  \texttt{ivform} & 0   & 0: $\u = \grad{U}\times\grad{\tor} + V
+   \grad{\tor} + \grad{\chi}$\\
+   & & 1: $\u = \r^2 \grad{U}\times\grad{\tor} + \r^2 \omega
+   \grad{\tor} + \r^{-2} \grad{\chi}$\\
+  \texttt{jadv}   & 0   & 1: Use toroidal current density equation
+                          instead of poloidal flux equation.\\
+  \texttt{max\_ke}& 1.0  & Maximum value of kinetic energy before solution is
+                          rescaled in linear simulations. (0 = don't rescale)\\
+  \texttt{harned\_mikic} & 0.0 & Coefficient of Harned-Mikic two-fluid
+                          stabilization term.\\
 \end{tabular}
-
-
-\subsection{Current Controller Options}
-
-\begin{tabular}{llcl}
-  \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
-  \hline
-  \texttt{tcur}       & $I_0$ & \texttt{tcuro} & Target toroidal current\\
-  \texttt{control\_p} & $c_p$ & 0              & Proportional coefficient\\
-  \texttt{control\_i} & $c_i$ & 0              & Integral coefficient\\
-  \texttt{control\_d} & $c_d$ & 0              & Derivative coefficient\\
-\end{tabular}
-
-
-\subsection{External Source Options}
-
-\begin{tabular}{llcp{2in}}
-  \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
-  \hline
-  \texttt{ipellet}      & & 0    & 1: include pellet density
-    source (\textit{c.f.} section~\ref{sec:pellet_injection})\\
-  \texttt{pellet\_rate} & $\alpha_p$ & \texttt{denm} 
-                                     & Particle number injection rate\\
-  \texttt{pellet\_var}  & $l_p$      & 1    & Variance of  
-                                              injection profile\\
-  \texttt{pellet\_x}    & $r_p$      & \texttt{xmag} 
-                                     & $r$-coordinate of injection profile\\
-  \texttt{pellet\_z}    & $z_p$      & \texttt{zmag} 
-                                     & $z$-coordinate of injection profile\\
-  \texttt{ionization}   & & 0  & 1: include neutral ionization
-    source (\textit{c.f.} section~\ref{sec:ionization})\\
-  \texttt{ionization\_rate} & $\alpha_i$ & \texttt{denm} 
-                                     & Ionization rate coefficient\\
-  \texttt{ionization\_temp} & $E_i$   & 0.01 & Ionization energy\\
-  \texttt{ionization\_depth}& $l_i$   & 0.01 & Temperature 
-    scale-length of neutral burn-out
-\end{tabular}
-
-
 
 \subsection{Input/Output Options}
 
@@ -2140,8 +2082,198 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
   \texttt{ntimepr}   & 5 & Number of timesteps per full field output\\
   \texttt{iprint}    & 0 & 1: Print detailed info to stdout\\
   \texttt{iglobalout}& 0 & 1: Write process-independent output file\\
-  \texttt{iglobalin} & 0 & 1: Read process-independent output file on restart
+  \texttt{iglobalin} & 0 & 1: Read process-independent output file on restart\\
+  \texttt{irestart}  & 0 & 1: Read restart file\\
+  \texttt{iread\_eqdsk}   & 0 & 1: Read EFIT g-file 'geqdsk'\\
+  \texttt{iread\_dskbal}  & 0 & 1: Read BAL file 'dskbal'\\
+  \texttt{iread\_jsolver} & 0 & 1: Read Jsolver file 'fixed'
 \end{tabular}
+
+
+\subsection{Initial Conditions Options}
+
+\begin{tabular}{llcp{2.5in}}
+  \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{itaylor} & & 0 & \begin{minipage}[t]{2.5in}
+    Pre-defined initial conditions.\\
+    0: Tilting cylinder\\
+    1: Taylor Reconnection\\
+    2: Force-Free equilibrium\\
+    3: GEM Reconnection\\
+    4: Wave Propagation\\
+    5: Gravitational Instability\\
+  \end{minipage}\\
+  \texttt{irmp} & & 0 & 
+  \begin{minipage}[t]{2.5in}
+    Add nonaxisymmetric perturbation from
+    \texttt{rmp\_coil.dat} and \texttt{rmp\_current.dat} with $n =
+    \mathtt{ntor}$\\
+    1: Initial perturbation is vacuum field\\
+    2: Perturbation only at boundary
+  \end{minipage}\\
+  \texttt{maxn}     & & 200 & Maximum wavenumber of initial random noise\\
+  \texttt{eps}      & & 0.01 & Size of random perturbation\\
+  \texttt{iflip}    & & 0 & 1: Flip coordinate system handedness\\
+  \texttt{iflip\_b} & & 0 & 1: Flip sign of toroidal field\\
+  \texttt{iflip\_v} & & 0 & 1: Flip sign of toroidal velocity\\
+  \texttt{icsym}    & & 0 &
+  \begin{minipage}[t]{2.5in}
+    Impose symmetry on random perturbations
+    0: No symmetry\\
+    1: Odd up-down symmetry (in $U$)\\
+    2: Even up-down symmetry (in $U$)
+  \end{minipage}\\
+  \texttt{bscale}      & & 1.0 & Bateman scaling for toroidal field\\
+  \hline
+  \texttt{den\_edge}   & $\rho_e$      & 0.0 & \\
+  \texttt{den0}        & $\rho_0$      & 1.0 & \\
+  \texttt{denoff}      & $\Psi_c^\rho$ & 1.0 & \\
+  \texttt{dendelt}     & $\Delta^\rho$ & 0.1 & \\
+  \texttt{idenfunc}    &               & 0   &
+  \begin{minipage}[t]{2.5in}
+    0: Use problem-specific density\\
+    2: $\rho = \rho_0 + \frac{1}{2}\rho_e \{1 + \tanh[(\Psi - \Psi_c^{\rho})/\Delta^{\rho}]\}$\\
+    3: $\rho = \rho_0 + \rho_e H(\Psi - \Psi_c^{\rho})$\\
+    4: Read density profile from 'PROFDEN.txt'
+  \end{minipage}
+\end{tabular}
+
+\subsection{Grad-Shafranov Solver Options}
+\begin{tabular}{lcp{3in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{igs}   & 80     & Number of Picard iterations\\
+  \texttt{igs\_method} & 1 & 
+  \begin{minipage}[t]{3in}
+    1: Calculate GS solution at nodes\\
+    2: Calculate solution on FE basis, using $p$\\
+    3: Calculate solution of FE basis, using $p'$
+  \end{minipage}\\
+  \texttt{th\_gs} & 0.8   & Relaxation paramter for GS iteration\\
+  \hline
+  \texttt{xmag}  & 1      & $r$-coordinate of magnetic axis\\
+  \texttt{zmag}  & 0      & $z$-coordinate of magnetic axis\\
+  \texttt{xlim}  & 0      & $r$-coordinate of limiter\\
+  \texttt{zlim}  & 0      & $z$-coordinate of limiter\\
+  \hline
+  \texttt{divertors} & 0  & Number of divertors (0--2)\\
+  \texttt{divcur}& 0.1    & Divertor current(s), as fraction of tcuro\\
+  \texttt{xdiv}  & 0      & $r$-coordinate of divertor current(s)\\
+  \texttt{zdiv}  & 0      & \parbox[t]{3in}{$z$-coordinate of 
+    divertor 
+    current.  If $\mathtt{divertors} = 2$, the second divertor has 
+    $z = -\mathtt{zdiv}$.}\\
+  \hline
+  \texttt{tcuro} & 1      & Plasma current in GS equilibrium\\
+  \texttt{q0}    & 1      & Safety factor at magnetic axis\\
+  \texttt{djdpsi}& 0      & $J_\tor'(\Psi)$ at magnetic axis\\
+  \texttt{bzero} & 1      & $B_\tor$ at \texttt{rzero}\\
+  \texttt{pedge} & 0      & Pressure in vacuum region\\
+  \texttt{p0}    & 0.01   & Pressure at magnetic axis\\
+  \texttt{p1}    & -1     & $p'(\Psi)$ at magnetic axis\\
+  \texttt{p2}    & -2     & $p''(\Psi)$ at magnetic axis\\
+  \texttt{expn}  & 0 & \parbox[t]{3in}{Fraction of pressure gradient due to
+    density gradient: $n = p^\mathtt{expn}$.}\\
+  \texttt{psiscale} & 1.0 & Rescale profiles s.t. LCFS is at 
+  $\Psi=\mathtt{psiscale}$.
+\end{tabular}
+
+
+
+\subsection{Boundary and Domain Options}
+
+\begin{tabular}{lcp{2.5in}}
+  \textbf{Option} & \textbf{Default} & \textbf{Description}\\
+  \hline
+  \texttt{xzero}  & 0 & $r$-coordinate of bottom left corner of domain\\
+  \texttt{zzero}  & 0 & $z$-coordinate of bottom left corder of domain\\
+  \texttt{iper}   & 0 & 1: Left/right boundaries periodic\\
+  \texttt{jper}   & 0 & 2: Top/bottom boundaries periodic\\
+  \hline
+  \texttt{ifixedb} & 0 & Set $\psi=0$ on boundary\\
+  \texttt{inonormalflow}& 1 & 1: No-normal-flow boundary\\
+  \texttt{inoslip\_pol} & 0 & 1: No-slip boundaries for poloidal velocity\\
+  \texttt{inoslip\_tor} & 1 & 1: No-slip boundaries for toroidal velocity\\
+  \texttt{inostress\_tor}&0 & 1: No-normal-stress boundary for toroidal 
+                                 velocity\\
+  \texttt{iconst\_bz} & 1 & 1: Toroidal field held constant on boundary\\
+  \texttt{iconst\_n}  & 0 & 1: Density held constant on boundary\\
+  \texttt{iconst\_p}  & 1 & 1: Pressure held constant on boundary\\
+  \texttt{iconst\_t}  & 0 & 1: Temperature held constant on boundary\\
+  \texttt{inograd\_p} & 0 & 1: No normal pressure gradient\\
+  \texttt{inograd\_t} & 0 & 1: No normal temperature gradient\\
+  \texttt{com\_bc}& 0 & 1: $\nabla^2 \chi = 0$\\
+  \texttt{vor\_bc}& 0 & 1: $\Delta^* U = 0$\\
+  \texttt{imask}  & 0 & 1: Smoothly bring $d_i$ to zero near
+    boundaries\\
+  \hline
+  \texttt{eta\_wall}   & 0 & Resistivity of the wall\\
+  \texttt{delta\_wall} & 1 & Thickness of the resistive wall
+\end{tabular}
+
+
+
+\subsection{Unit Normalizations}
+\begin{tabular}{lcp{3in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{n0\_norm} & $10^{14}$ & Density normalization (in cgs)\\
+  \texttt{b0\_norm} & $10^4$    & Magnetic field normalization (in cgs)\\
+  \texttt{l0\_norm} & $100$     & Length normalization (in cgs)
+\end{tabular}
+
+
+\subsection{Current Controller Options}
+
+\begin{tabular}{llcl}
+  \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{vloop}      & $V_L$ & 0              & (Initial) loop voltage.\\
+  \texttt{tcur}       & $I_0$ & \texttt{tcuro} & Target toroidal current\\
+  \texttt{control\_p} & $c_p$ & 0              & Proportional coefficient\\
+  \texttt{control\_i} & $c_i$ & 0              & Integral coefficient\\
+  \texttt{control\_d} & $c_d$ & 0              & Derivative coefficient\\
+\end{tabular}
+
+
+\subsection{Density Source Options}
+
+\begin{tabular}{llcp{2in}}
+  \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{ipellet}      & & 0    & 1: include pellet density
+    source (\textit{c.f.} section~\ref{sec:pellet_injection})\\
+  \texttt{pellet\_rate} & $\alpha_p$ & 0 
+                                     & Particle number injection rate\\
+  \texttt{pellet\_var}  & $l_p$      & 1    & Variance of  
+                                              injection profile\\
+  \texttt{pellet\_x}    & $r_p$      & 0 
+                                     & $r$-coordinate of injection site\\
+  \texttt{pellet\_z}    & $z_p$      & 0
+                                     & $z$-coordinate of injection site\\
+  \texttt{ionization}   & & 0  & 1: include neutral ionization
+    source (\textit{c.f.} section~\ref{sec:ionization})\\
+  \texttt{ionization\_rate} & $\alpha_i$ & 0 
+                                     & Ionization rate coefficient\\
+  \texttt{ionization\_temp} & $E_i$   & 0.01 & Ionization energy\\
+  \texttt{ionization\_depth}& $l_i$   & 0.01 & Temperature 
+    scale-length of neutral burn-out
+\end{tabular}
+
+
+\subsection{Diagnostics Options}
+
+\begin{tabular}{lcp{3in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{xnull}     & 0 & Guess for $r$-coordinate of x-point\\
+  \texttt{znull}     & 0 & Guess for $z$-coordinate of x-point\\
+  \texttt{icalc\_scalars} & 1 & 1: Calculate volume-integrated scalars 
+                                (\textit{e.g.} energy)\\
+  \texttt{ike\_only} & 0 & 1: Only calculate kinetic energy
+\end{tabular}
+
 
 
 \bibliographystyle{plain}
