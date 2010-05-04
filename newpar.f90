@@ -90,9 +90,9 @@ Program Reducedquintic
   ! create the newvar matrices
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Generating newvar matrices..."
-  call create_matrix(mass_matrix_lhs_dc,    NV_DCBOUND, NV_I_MATRIX,  NV_LHS)
-  call create_matrix(mass_matrix_lhs,       NV_NOBOUND, NV_I_MATRIX,  NV_LHS)
-  call create_matrix(gs_matrix_rhs_dc,      NV_DCBOUND, NV_GS_MATRIX, NV_RHS)
+  call create_matrix(mass_matrix_lhs_dc, NV_DCBOUND, NV_I_MATRIX,  NV_LHS)
+  call create_matrix(mass_matrix_lhs,    NV_NOBOUND, NV_I_MATRIX,  NV_LHS)
+  call create_matrix(gs_matrix_rhs_dc,   NV_DCBOUND, NV_GS_MATRIX, NV_RHS)
   if(hyperc.ne.0) then
      call create_matrix(s5matrix_sm, NV_SVBOUND, NV_SV_MATRIX, NV_LHS)
      call create_matrix(d5matrix_sm, NV_SVBOUND, NV_SV_MATRIX, NV_RHS)
@@ -298,8 +298,8 @@ Program Reducedquintic
      ! re-scale solution if energy is too large
      if(linear.eq.1) call scaleback
 
-     if(myrank.eq.0 .and. iprint.ge.1) print *, "ntime = ", ntime
 
+     ! take time step
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Before onestep"
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call onestep
@@ -311,8 +311,6 @@ Program Reducedquintic
 
 
      ! feedback control on toroidal current
-!!$     if(itor.eq.1 .and. itaylor.eq.1) call control_pid
-
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Applying feedback.."
      call control(totcur, vloop,       i_control, dt)
      call control(totden, pellet_rate, n_control, dt)
@@ -371,7 +369,43 @@ subroutine init
   return
 end subroutine init
 
+!=============================
+! scaleback
+! ~~~~~~~~~
+! rescale eigenfunction
+!=============================
+subroutine scaleback
 
+  use basic
+  use arrays
+  use diagnostics
+
+  implicit none
+
+  real, parameter :: scalefac = 1.e-10
+
+  if(ekin.lt.max_ke .or. max_ke.eq.0) return
+  if(myrank.eq.0) write(*,*) " =>solution scaled back at time", time
+
+  field = scalefac*field
+  fieldi = scalefac*fieldi
+  phiold = scalefac*phiold
+  if(isplitstep.eq.1) then
+     velold = scalefac*velold
+     veloldn = scalefac*veloldn
+     if(idens.eq.1) denold = scalefac*denold
+     if(ipres.eq.1) presold = scalefac*presold
+  endif
+  if(i3d.eq.1) bf = scalefac*bf
+  
+end subroutine scaleback
+
+
+!============================================
+! print_info
+! ~~~~~~~~~~
+! print basic info about simulation options
+!============================================
 subroutine print_info
   use basic
 
@@ -379,7 +413,7 @@ subroutine print_info
 
   integer :: ndofs, numelms, numnodes, j
 
-
+  ! velocity form
   if(myrank.eq.0) then
      select case(ivform)
      case(0)
@@ -404,9 +438,6 @@ subroutine print_info
      print *, 'proc, numnodes, numfaces', myrank, numnodes,numelms
   endif
 
-!!$  if(nonrect.eq.1) call updatenormalcurvature
-!!$  call write_normlcurv
-
   ! check time-integration options
   select case(integrator)
   case(1)
@@ -418,8 +449,11 @@ subroutine print_info
   end select
 end subroutine print_info
 
-
-! Stop program
+!=========================================
+! safestop
+! ~~~~~~~~
+! stop program
+!=========================================
 subroutine safestop(iarg)
 
   use basic
@@ -457,6 +491,36 @@ subroutine safestop(iarg)
   write(*,*) "stopped at", iarg
   stop
 end subroutine safestop
+
+
+
+!===============
+! rinvdef
+! ~~~~~~~
+! define 1/r
+!===============
+subroutine rinvdef(rinv)
+
+  use basic
+
+  implicit none
+  integer i, numnodes, ibegin, iendplusone
+  real, intent(out) :: rinv(*)
+
+  real :: x, z
+
+  call numnod(numnodes)
+  do i=1,numnodes
+     call nodcoord(i, x, z)
+     
+     call entdofs(1, i, 0, ibegin, iendplusone)
+     rinv(ibegin) =  1./x
+     rinv(ibegin+1) = -1./x**2
+     rinv(ibegin+3) =  2./x**3
+  enddo
+  
+  return
+end subroutine rinvdef
 
 
 ! ======================================================================

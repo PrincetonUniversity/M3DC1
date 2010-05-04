@@ -50,15 +50,16 @@ end subroutine calcavector
 ! f = Int{si**m*eta**n}d(si)d(eta)
 !============================================================
 real function f(m,n,a,b,c)
-  
+  use math
+
   implicit none
 
   integer, intent(in) :: m,n
   real, intent(in) :: a, b, c
-  real :: anum, denom, fact
+  real :: anum, denom
   
-  anum = c**(n+1)*(a**(m+1)-(-b)**(m+1))*fact(m)*fact(n)
-  denom = fact(m+n+2)
+  anum = c**(n+1)*(a**(m+1)-(-b)**(m+1))*factorial(m)*factorial(n)
+  denom = factorial(m+n+2)
   f = anum/denom
 end function f
 

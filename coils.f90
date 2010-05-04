@@ -23,12 +23,14 @@ contains
 
    include 'mpif.h'
 
-   real, intent(out), dimension(maxcoils) :: xc, zc, ic
+   real, intent(out), dimension(maxcoils) :: xc, zc
+   complex, intent(out), dimension(maxcoils) :: ic
    character*(*) :: coil_filename, current_filename
    integer, intent(out) :: numcoils
 
-   real :: x, z, w, h, a1, a2, c
+   real :: x, z, w, h, a1, a2, c, phase
    real, dimension(maxcoils) :: vbuff
+   complex, dimension(maxcoils) :: cbuff
 
    integer :: fcoil, fcurr, i, j, k, s, ier, ibuff
    real :: dx, dz
@@ -51,7 +53,8 @@ contains
       s = 0
       do i=1, maxbundles
          read(fcoil,'(6f12.4)',end=100) x, z, w, h, a1, a2
-         read(fcurr,'(1f12.4)',end=100) c
+         read(fcurr,'(2f12.4)',end=100) c, phase
+         print *, "current, phase = ", c, phase
          
          a1 = a1*pi/180.
          a2 = a2*pi/180.
@@ -69,7 +72,7 @@ contains
                xc(s) = x + dx - dz*a2
                zc(s) = z + dz + dx*a1
                
-               ic(s) = c
+               ic(s) = c*(cos(ntor*pi*phase/180.) + (0.,1.)*sin(ntor*pi*phase/180.))
             end do
          end do
       end do
@@ -101,9 +104,9 @@ contains
    call mpi_allreduce(zc, vbuff, maxcoils, MPI_DOUBLE_PRECISION, &
         MPI_SUM, MPI_COMM_WORLD, ier)
    zc = vbuff
-   call mpi_allreduce(ic, vbuff, maxcoils, MPI_DOUBLE_PRECISION, &
+   call mpi_allreduce(ic, cbuff, 2*maxcoils, MPI_DOUBLE_PRECISION, &
         MPI_SUM, MPI_COMM_WORLD, ier)
-   ic = vbuff
+   ic = cbuff
    call mpi_allreduce(numcoils, ibuff, 1, MPI_INTEGER, &
         MPI_SUM, MPI_COMM_WORLD, ier)
    numcoils = ibuff
@@ -113,7 +116,8 @@ contains
  subroutine field_from_coils(xc, zc, ic, nc, field, isize, iplace, ipole)
    implicit none
 
-   real, intent(in), dimension(nc) :: xc, zc, ic
+   real, intent(in), dimension(nc) :: xc, zc
+   complex, intent(in), dimension(nc) :: ic
    integer, intent(in) :: nc
    vectype, intent(inout), dimension(*) :: field
    integer, intent(in) :: isize, iplace, ipole
@@ -137,7 +141,11 @@ contains
       ! Field due to coil currents
       call gvect(xp,zp,xc,zc,nc,g,ipole,ineg)
       do k=1,nc
+#ifdef USECOMPLEX
          field(ibegin:iend) = field(ibegin:iend) - g(:,k)*ic(k)
+#else
+         field(ibegin:iend) = field(ibegin:iend) - g(:,k)*real(ic(k))
+#endif
       end do
    end do
  end subroutine field_from_coils
@@ -152,7 +160,8 @@ contains
    vectype, dimension(*), intent(inout) :: field
    integer, intent(in) :: isize, iplace
 
-   real, dimension(maxcoils) :: xc, zc, ic
+   real, dimension(maxcoils) :: xc, zc
+   complex, dimension(maxcoils) :: ic
    integer :: nc
 
    call load_coils(xc, zc, ic, nc, coil_filename, current_filename)
@@ -470,13 +479,6 @@ subroutine integral(npts,k2,ntor,f)
   real :: dx, dx2, x
   real, dimension(npts) :: f0, f1, f2
 
-  ! If k2 is large, contribution will be small
-  ! and simple asymptotic solution suffices
-!!$  if(real(k2(1)).gt.10.) then
-!!$     f = 4./(pi * sqrt(k2))
-!!$     return
-!!$  endif
-
   dx = (pi/2.) / 100.
   dx2 = dx/2.
 
@@ -496,13 +498,14 @@ end subroutine integral
 subroutine coil(curr, r1, z1, npts, r0, z0, ntor, fr, fphi, fz)
   implicit none
 
-  real, intent(in) :: curr
+  complex, intent(in) :: curr
   real, intent(in) :: r1, z1
   integer, intent(in) :: ntor, npts
   real, intent(in), dimension(npts) :: r0, z0
   vectype, intent(inout), dimension(npts) :: fr, fphi, fz
 
-  real, dimension(npts) :: dr2, k2, temp, co, fac
+  real, dimension(npts) :: dr2, k2, temp, co
+  complex, dimension(npts) :: fac
 
   dr2 = (r0 - r1)**2 + (z0 - z1)**2
   k2 = 4.*r1*r0/dr2
@@ -518,7 +521,7 @@ subroutine coil(curr, r1, z1, npts, r0, z0, ntor, fr, fphi, fz)
 
   fr = fr + fac*(z0 - z1)*(co + temp)/2.
   fz = fz - fac*r0*(co + temp)/2.
-  fphi = fphi - fac*(0,1)*(z0 - z1)*(co - temp)/2.
+  fphi = fphi - fac*(0.,1.)*(z0 - z1)*(co - temp)/2.
   
 end subroutine coil
 
@@ -541,10 +544,10 @@ subroutine surface(r, z, dldR, dldZ, npts, r0, z0, ntor, fr, fphi, fz)
 
   fr =  fac*(dldZ*r+dldR*(z0-z))*(temp1 - temp2)/2.
   fz = -fac*dldR*r0*(temp1 - temp2)/2.
-  fphi =  -fac*(0,1)*(dldZ*r + dldR*(z0 - z))*(temp1 + temp2)/2.
+  fphi =  -fac*(0.,1.)*(dldZ*r + dldR*(z0 - z))*(temp1 + temp2)/2.
 
   call integral(npts, k2, ntor, temp1)
-  fphi = fphi + fac*(0,1)*dldZ*r0*temp1
+  fphi = fphi + fac*(0.,1.)*dldZ*r0*temp1
 end subroutine surface
 
 !======================================================================
@@ -557,7 +560,7 @@ end subroutine surface
 subroutine pane(curr, r1, r2, z1, z2, npts, r0, z0, ntor, fr, fphi, fz)
   implicit none
 
-  real, intent(in) :: curr
+  complex, intent(in) :: curr
   real, intent(in) :: r1, r2, z1, z2
   integer, intent(in) :: ntor, npts
   real, intent(in), dimension(npts) :: r0, z0
@@ -616,7 +619,8 @@ subroutine field_from_coils_2(xc, zc, ic, nc, fin, isize, iplace)
 
   include 'mpif.h'
 
-  real, intent(in), dimension(nc) :: xc, zc, ic
+  real, intent(in), dimension(nc) :: xc, zc
+  complex, intent(in), dimension(nc) :: ic
   integer, intent(in) :: nc
   vectype, intent(inout), dimension(*) :: fin
   integer, intent(in) :: isize, iplace
@@ -674,7 +678,8 @@ subroutine field_from_coils_2(xc, zc, ic, nc, fin, isize, iplace)
      temp79a = -temp79a*2.*pi
      temp79b = -temp79b*2.*pi
      temp79c = -temp79c*2.*pi
-     
+
+     ! assemble matrix
      do iii=1,3
      call entdofs(inumb,  ist(itri,iii)+1, 0, ibegin, iendplusone)
      do ii=1,6
@@ -728,6 +733,7 @@ subroutine field_from_coils_2(xc, zc, ic, nc, fin, isize, iplace)
         end do
         end do
 
+        ! assemble RHS
         select case(imethod)
         case(0)
            psi(i1   ) = psi(i1   ) + int2(g79(:,OP_1,i),temp79a)
@@ -759,10 +765,19 @@ subroutine field_from_coils_2(xc, zc, ic, nc, fin, isize, iplace)
   end do
 
   call sumsharedppplvecvals(psi)
+
+  ! insert boundary conditions
+  if(imethod.eq.3) then
+     call boundary_bf(brmatrix_sm,psi)
+  endif
+
   call finalizematrix(brmatrix_sm)
 
+  ! solve matrix equatio
   call solve(brmatrix_sm,psi,ier)
   
+
+  ! copy solution
   select case(imethod)
   case(0)
      call copyvec(psi,1,inumb,field,psi_g,num_fields)
@@ -831,6 +846,47 @@ subroutine field_from_coils_2(xc, zc, ic, nc, fin, isize, iplace)
   call deletevec(psi)
 
 end subroutine field_from_coils_2
+
+
+!=======================================================
+! boundary_bf
+! ~~~~~~~~~~~
+!=======================================================
+subroutine boundary_bf(imatrix, rhs)
+  use basic
+  use arrays
+
+  implicit none
+  
+  integer, intent(in) :: imatrix
+  vectype, intent(inout), dimension(*) :: rhs
+  
+  integer, parameter :: numvarbf = 2
+  integer :: i, izone, izonedim
+  integer :: ibegin, iendplusone, numnodes
+  real :: normal(2), curv
+  real :: x, z
+  logical :: is_boundary
+  vectype, dimension(6) :: temp
+
+  if(iper.eq.1 .and. jper.eq.1) return
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_jphi called"
+
+  call numnod(numnodes)
+  do i=1, numnodes
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+     if(.not.is_boundary) cycle
+
+     call assign_local_pointers(i)
+     call entdofs(numvarbf, i, 0, ibegin, iendplusone)
+!     call rotate_matrix(imatrix, ibegin, normal, curv, rhs, icurv)
+     call rotate_matrix(imatrix, ibegin+6, normal, curv, rhs, icurv)
+
+     temp = 0.
+     call set_dirichlet_bc(imatrix,ibegin+6,rhs,temp,normal,curv,izonedim)
+  end do
+
+end subroutine boundary_bf
 
 
 end module coils

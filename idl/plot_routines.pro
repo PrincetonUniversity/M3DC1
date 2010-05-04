@@ -72,7 +72,7 @@ pro ct3
     rgb[0,*] = [  0,   0,   0]
     rgb[1,*] = [255,   0,   0]
     rgb[2,*] = [  0,   0, 255]
-    rgb[3,*] = [  0, 192,   0]
+    rgb[3,*] = [  0, 128,   0]
     rgb[4,*] = [128,   0, 128]
     rgb[5,*] = [255, 128,   0]
     rgb[6,*] = [  0, 192, 192]
@@ -111,7 +111,7 @@ end
 
 pro setplot, p
    if(1 eq strcmp(p, 'ps', /fold_case)) then begin
-       !p.charthick=3
+       !p.charthick=5
        !p.thick=5
        !p.charsize=1.7
    endif else if (1 eq strcmp(p, 'x', /fold_case)) then begin

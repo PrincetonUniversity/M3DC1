@@ -187,6 +187,7 @@ module basic
   integer :: ibform      ! 0: multiply bz equation by r^2
   integer :: ihypeta     ! 1 = scale hyper-resistivity with eta
   integer :: ihypamu     ! 1 = scale hyper-viscosity with visc
+  integer :: ihypkappa   ! 1 = scale hyper-diffusivity with kappa
   integer :: ihypdx      ! scale hyper-resistivity with dx**ihypdx
   integer :: ikapscale   ! 1 = scale kappar with kappa
   integer :: inertia     ! 1 = include ion inertial terms (v.grad(v))
@@ -256,7 +257,6 @@ module basic
   real :: adapt_hmin
   real :: adapt_hmax  
 
-  integer :: istart
   real :: beta
   real :: pefac
 
@@ -292,13 +292,13 @@ module basic
        isplitstep,                                             &
        linear,nskip,eqsubtract,                                &
        itimer,iprint,ntimepr,iglobalout,iglobalin,             &
-       irestart,istart,                                        &
+       irestart,                                               &
        tcuro,djdpsi,xmag,zmag,xlim,zlim,                       &
        expn,q0,divertors,xdiv,zdiv,divcur,th_gs,p1,p2,         &
        idevice,igs,nv1equ,tol_gs,igs_method,psiscale,          &
        iconstflux,regular,max_ke,                              &
        ntor,iadapt,istatic,iestatic,ivform, ibform,            &
-       ihypeta,ikapscale,ihypamu,                              &
+       ihypeta,ihypamu,ihypkappa,ikapscale,                    &
        iteratephi, icsym, inumgs, nonrect, ifixedb,            &
        inonormalflow, inoslip_pol, inoslip_tor, inostress_tor, &
        iconst_p, inograd_p, iconst_n, inograd_n, iconst_t,     &
