@@ -5,7 +5,6 @@ module vacuum_interface
   integer :: nodes
   integer, allocatable :: global_id(:)
   integer, allocatable :: local_id(:)
-  real, allocatable :: normal(:,:)
   real, allocatable :: zgrbth(:,:), zgrbph(:,:)
   real, allocatable :: zgrbthp(:,:), zgrbphp(:,:)
 
@@ -30,12 +29,10 @@ contains
 
     allocate(global_id(nodes))
     allocate(local_id(nodes))
-    allocate(normal(2,nodes))
 
     ! write node entry for first node
     do i=1, nodes
-       read(ifile, '(I8,4f12.8)') global_id(i), dummy, dummy, &
-            normal(1,i), normal(2,i)
+       read(ifile, '(I8,2f12.6)') global_id(i), dummy, dummy
        call globalidnod(global_id(i),local_id(i))
     end do
 
@@ -104,6 +101,9 @@ contains
     zgrbth = zgrbth*dtheta
     zgrbph = zgrbph*dtheta
 
+    zgrbth = zgrbth * 0.5
+    zgrbph = zgrbph * 0.5
+
     ! calculate derivatives (wrt i)
     zgrbthp(1,:) = 0.5*(zgrbth(2,:) - zgrbth(nodes+1,:))/dtheta
     zgrbphp(1,:) = 0.5*(zgrbph(2,:) - zgrbph(nodes+1,:))/dtheta
@@ -138,7 +138,6 @@ contains
     print *, 'unloading vacuum data'
     if(allocated(global_id)) deallocate(global_id)
     if(allocated(local_id)) deallocate(local_id)
-    if(allocated(normal)) deallocate(normal)
     if(allocated(zgrbth)) deallocate(zgrbth)
     if(allocated(zgrbph)) deallocate(zgrbph)
     if(allocated(zgrbthp)) deallocate(zgrbthp)

@@ -5817,8 +5817,16 @@ vectype function b1bfd(e,f,g,h)
         endif
      else
         temp = int5(ri2_79,e(:,OP_GS),f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1)) &
-             + int5(ri2_79,e(:,OP_GS),f(:,OP_DR),g(:,OP_DRP),h(:,OP_1))
-        !! terms missing
+             + int5(ri2_79,e(:,OP_GS),f(:,OP_DR),g(:,OP_DRP),h(:,OP_1)) &
+             + int5(ri4_79,e(:,OP_DZ),g(:,OP_DZPP),f(:,OP_DP),h(:,OP_1 ))  &
+             + int5(ri4_79,e(:,OP_DR),g(:,OP_DRPP),f(:,OP_DP),h(:,OP_1 ))  &
+             + int5(ri4_79,e(:,OP_DZ),g(:,OP_DZPP),f(:,OP_1 ),h(:,OP_DP))  &
+             + int5(ri4_79,e(:,OP_DR),g(:,OP_DRPP),f(:,OP_1 ),h(:,OP_DP))
+
+        ! f''' term hack
+        temp = temp + ntor*(0., 1.)* &
+             (int5(ri4_79,e(:,OP_DZ),g(:,OP_DZPP),f(:,OP_1),h(:,OP_1))  &
+             +int5(ri4_79,e(:,OP_DR),g(:,OP_DRPP),f(:,OP_1),h(:,OP_1)))
      endif
   endif
   b1bfd = temp
@@ -6924,11 +6932,15 @@ vectype function b3pedkappa(e,f,g,h,i)
         ! Laplacian[f g]
         temp79a = f(:,OP_LP)*g(:,OP_1) + f(:,OP_1)*g(:,OP_LP) &
              + 2.*(f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR))
-        
-        temp = temp - &
-             (int4(temp79a,e(:,OP_LP),h(:,OP_1 ),i(:,OP_1)) &
-             +int4(temp79a,e(:,OP_DZ),h(:,OP_DZ),i(:,OP_1)) &
-             +int4(temp79a,e(:,OP_DR),h(:,OP_DR),i(:,OP_1)))
+
+        if(ihypkappa.eq.1) then        
+           temp = temp - &
+                (int4(temp79a,e(:,OP_LP),h(:,OP_1 ),i(:,OP_1)) &
+                +int4(temp79a,e(:,OP_DZ),h(:,OP_DZ),i(:,OP_1)) &
+                +int4(temp79a,e(:,OP_DR),h(:,OP_DR),i(:,OP_1)))
+        else
+           temp = temp - int3(temp79a,e(:,OP_LP),i(:,OP_1))
+        endif
      endif
   end if
 
@@ -6988,7 +7000,11 @@ vectype function n1ndenm(e,f,g,h)
 #endif
 
      if(hypp.ne.0.) then
-        temp = temp - g*int3(e(:,OP_LP),f(:,OP_LP),h(:,OP_1))
+        if(ihypkappa.eq.1) then
+           temp = temp - g*int3(e(:,OP_LP),f(:,OP_LP),h(:,OP_1))
+        else
+           temp = temp - int3(e(:,OP_LP),f(:,OP_LP),h(:,OP_1))
+        endif
      endif
   end if
 

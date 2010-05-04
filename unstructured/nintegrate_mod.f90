@@ -235,6 +235,12 @@ data area_weight_79 &
 
 contains
 
+!==================================================
+! quadrature_implemented
+! ~~~~~~~~~~~~~~~~~~~~~~
+! returns true if an i-point numerical integration
+! quadrature is implemented
+!==================================================
 logical function quadrature_implemented(i)
   implicit none
   integer, intent(in) :: i
@@ -1121,7 +1127,8 @@ subroutine define_fields(itri, fields, gdef, ilin)
         endif
      endif
 
-     if(amupar.ne.0.) vip79 = amupar*pit79/2.
+!     if(amupar.ne.0.) vip79 = amupar*pit79/2.
+     if(amupar.ne.0.) vip79 = amupar
   end if
 
   if(gdef.eq.1) then

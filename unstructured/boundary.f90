@@ -856,7 +856,6 @@ subroutine boundary_mag(imatrix, rhs)
         endif
      endif
 
-
      ! clamp toroidal field
      if(iconst_bz.eq.1 .and. numvar.ge.2) then
         temp = bzs_l
@@ -1351,29 +1350,32 @@ subroutine insert_resistive_wall(imatrix, rhs)
   real :: fac, thimprw
   real :: xii, zii, xjj, zjj, normi(2), normj(2), curvi, curvj
   integer, parameter :: num_rows = 1
-  integer :: rows(num_rows)
+  integer :: rows(3)
   
   logical :: is_boundary
   integer :: izone, izonedim
 
   logical, save :: first_time = .true.
 
-  vectype :: ssi_psi(6,6), ddi_psi(6,6), ddi_bf(6,6)
-  vectype :: ssj_psi(6,6), ddj_psi(6,6), ddj_bf(6,6)
-  vectype :: ss_psi(6,6), dd_psi(6,6), dd_bf(6,6)
+  vectype, dimension(6,6) :: ssi_psi, ddi_psi, ddi_bf
+  vectype, dimension(6,6) :: ssj_psi, ddj_psi, ddj_bf
+  vectype, dimension(6,6) :: ss_psi, dd_psi, dd_bf
   vectype :: temp(6)
+
+  real :: m, a, k
+  m = 2.
+  a = 1.
+  k = ntor/100.
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'Inserting resistive wall'
 
   rows(1) = 1
   if(num_rows.ge.2) rows(2) = 3
 
-  call createvec(tempin, 1)
-  call createvec(tempout, 1)
-
-  thimprw = thimp
-
-  if(myrank.eq.0 .and. iprint.ge.1) print *, 'Inserting resistive wall'
-
   if(first_time) then
+
+     thimprw = thimp
+     ! thimprw = 1.
 
      fac = dt*eta_wall/delta_wall
 
@@ -1401,13 +1403,6 @@ subroutine insert_resistive_wall(imatrix, rhs)
         call entdofs(vecsize_phi, global_id(i), 0, ibegin, iendplusone)
         call entdofs(1, global_id(i), 0, ibegin1, iendplusone1)
 
-        if(imatrix.ne.0) then
-           do ir=1,num_rows
-              call setdiribc(imatrix, ibegin+psi_off+rows(ir)-1)
-           end do
-        end if
-        
-
         do j=1, nodes
 
            call boundary_node(local_id(j), is_boundary, izone, izonedim, &
@@ -1416,7 +1411,6 @@ subroutine insert_resistive_wall(imatrix, rhs)
 !           call globalentdofs(vecsize_phi, global_id(j), 0, jbegin, jendplusone)
            call entdofs(vecsize_phi, global_id(j), 0, jbegin, jendplusone)
            call entdofs(1, global_id(j), 0, jbegin1, jendplusone1)
-
      
            ! d(psi_i)/dt = -eta_wall/delta_wall * 
            ! [ n_i.grad(psi_i) - R_i *t_i.grad(f'_i)
@@ -1426,37 +1420,48 @@ subroutine insert_resistive_wall(imatrix, rhs)
            if(i.eq.j) then
               ddi_psi(1,2) = -1.     ! coefficient of n_i.grad(psi_i)
               ddi_psi(3,5) = -1.     ! coefficient of t_i.grad(n_i.grad(psi_i))
-              
-#ifdef USECOMPLEX        
-              ddi_bf(1,3) = xii       ! coefficient of t_i.grad(f'_i)
-              ddi_bf(3,3) = -normi(2)
-              ddi_bf(3,6) = xii       ! coefficient of t_i.grad(t_i.grad(f'_i))
-#endif
            endif
 
            ! coefficients of t_j.grad(psi_j)
            ddj_psi(1,3) =                       - xii*zgrbth (i,j) /xjj
            ddj_psi(3,3) = (normi(2)*zgrbth(i,j) - xii*zgrbthp(i,j))/xjj
            
-#ifdef USECOMPLEX
            ! coefficients of n_j.grad(f'_j)
            ddj_bf(1,2) =                      - xii*zgrbth (i,j)
            ddj_bf(3,2) = normi(2)*zgrbth(i,j) - xii*zgrbthp(i,j)
-#endif
 
            ssj_psi =    -thimprw *fac*ddj_psi
            ddj_psi = (1.-thimprw)*fac*ddj_psi
            ddj_bf =  (0.,1.)*ntor*fac*ddj_bf
+
            if(i.eq.j) then
               ssi_psi =    -thimprw *fac*ddi_psi
               ddi_psi = (1.-thimprw)*fac*ddi_psi
               ddi_bf  = (0.,1.)*ntor*fac*ddi_bf
               
-              ! ssi_psi(1,1) = 1.      ! already taken care of by setdiribc
-              ! ssi_psi(3,1) = 1.      ! already taken care of by setdiribc
+              ssi_psi(1,1) = 1.
+              ssi_psi(3,3) = 1.
               ddi_psi(1,1) = 1.
-              ddi_psi(3,1) = 1.
+              ddi_psi(3,3) = 1.
            endif
+
+!!$           ! cylindrical approximation
+!!$           ! ===========================
+!!$           ssi_psi = 0.
+!!$           ssj_psi = 0.
+!!$           ddi_psi = 0.
+!!$           ddj_psi = 0.
+!!$           ddi_bf = 0.
+!!$           ddj_bf = 0.
+!!$
+!!$           if(i.eq.j) then
+!!$              ssi_psi(1,1) = 1. - fac*(m/a)**2/k*(-5.e-3)
+!!$           
+!!$              ssi_psi(1,2) = fac
+!!$              ddi_psi(1,1) = 1.
+!!$           endif
+!!$           ! ===========================
+
                 
            do ir=1, num_rows
               ii = rows(ir)
@@ -1479,20 +1484,19 @@ subroutine insert_resistive_wall(imatrix, rhs)
                  call rotate_vector(ddi_bf(ii,:),temp,normi,curvi,-1)
                  dd_bf(ii,:) = dd_bf(ii,:) + temp
               endif
-              
+
+              ! insert values into the appropriate matrices
               do jj=1, 6
                  jp = jbegin + jj - 1
                  jp1 = jbegin1 + jj - 1
                  
                  if(imatrix.ne.0) then
                     call insertval(imatrix,ss_psi(ii,jj),icomplex, &
-                         ip+psi_off,jp+psi_off,0)
+                         ip+psi_off,jp+psi_off,1)
                  endif
-                 call insertval(rwpsi_sm,dd_psi(ii,jj),icomplex, &
-                      ip1,jp1,0)
-                 if(i3d.eq.1) then
-                    call insertval(rwbf_sm,dd_bf(ii,jj),icomplex, &
-                         ip1,jp1,0)
+                 call insertval(rwpsi_sm,dd_psi(ii,jj),icomplex,ip1,jp1,1)
+                 if(i3d.eq.1 .and. numvar.ge.2) then
+                    call insertval(rwbf_sm,dd_bf(ii,jj),icomplex,ip1,jp1,1)
                  end if
               end do
            end do
@@ -1505,13 +1509,21 @@ subroutine insert_resistive_wall(imatrix, rhs)
      if(imatrix.ne.0) first_time = .false.
   endif
 
+  ! create temporary vectors for matrix multiplication
+  call createvec(tempin, 1)
+  call createvec(tempout, 1)
+
+  ! calculate contribution to rhs vector from rwpsi_sm.psi
   call copyvec(phi, psi_i, vecsize_phi, tempin, 1, 1)
   call matvecmult(rwpsi_sm, tempin, tempout)
-  if(i3d.eq.1) then
+
+  if(i3d.eq.1 .and. numvar.ge.2) then
+     ! calculate contribution to rhs vector from rwbf_sm.bf
      call matvecmult(rwbf_sm, bf, tempin)
      tempout = tempout + tempin
   endif
-     
+
+  ! add contributions to rhs vector
   call numnod(numnodes)
   do i=1, nodes
      if(local_id(i).le.0) cycle
@@ -1525,5 +1537,5 @@ subroutine insert_resistive_wall(imatrix, rhs)
 
   call deletevec(tempin)
   call deletevec(tempout)
-  
+
 end subroutine insert_resistive_wall

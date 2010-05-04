@@ -261,7 +261,8 @@ subroutine vacuum_field()
   implicit none
 
   real, dimension(6) :: g1, g2
-  real, dimension(maxcoils) :: xp, zp, xc, zc, ic
+  real, dimension(maxcoils) :: xp, zp, xc, zc
+  complex, dimension(maxcoils) :: ic
   real :: aminor, bv, rnorm, fac
   integer :: ineg, ipole, numcoils
   
@@ -1580,7 +1581,7 @@ subroutine readpgfiles
   do npsi=1, n
      if (psinorm(npsi) .ge. psiscale) exit
   end do
-  print *, 'npsi, n, psinorm(npsi)', npsi, n, psinorm(npsi)
+
   psinorm = psinorm/psinorm(npsi)
 
 

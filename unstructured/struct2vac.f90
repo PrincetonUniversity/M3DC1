@@ -32,8 +32,9 @@ program struct2vac
   call xyznod(ifirst,coords)
   call nodNormalVec(ifirst,normal,is_boundary)
 
-  write(ifile, '(I8,4f12.8)') ifirst, coords(1), coords(2), &
-       normal(1), normal(2)
+!!$  write(ifile, '(I8,4f12.8)') ifirst, coords(1), coords(2), &
+!!$       normal(1), normal(2)
+  write(ifile, '(I8,2f12.6)') ifirst, coords(1), coords(2)
 
   inode = ifirst
   do
@@ -47,8 +48,10 @@ program struct2vac
      call xyznod(inode,coords)
      call nodNormalVec(inode,normal,is_boundary)
 
-     write(ifile, '(I8,4f12.8)') inode, coords(1), coords(2), &
-       normal(1), normal(2)
+!!$     write(ifile, '(I8,4f12.8)') inode, coords(1), coords(2), &
+!!$       normal(1), normal(2)
+     write(ifile, '(I8,2f12.6)') inode, coords(1), coords(2)
+
   end do
 
   ! close output file

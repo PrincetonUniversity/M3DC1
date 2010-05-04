@@ -1533,7 +1533,7 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
           + b3psipsieta(trial,ps079,lin,eta79)
      ssterm(psi_g) = ssterm(psi_g) -     thimp_ohm     *dt*temp
      ddterm(psi_g) = ddterm(psi_g) + (1.-thimp_ohm*bdf)*dt*temp
-
+     
      temp = b3bbeta(trial,lin,bz079,eta79) &
           + b3bbeta(trial,bz079,lin,eta79)
      ssterm(bz_g) = ssterm(bz_g) -     thimp_ohm     *dt*temp
@@ -2207,6 +2207,7 @@ subroutine ludefphi_n(itri)
   use sparse
 
   use electrostatic_potential
+  use vacuum_interface
 
   implicit none
 
@@ -2222,6 +2223,8 @@ subroutine ludefphi_n(itri)
 
   integer :: bb1, bb0, bv1, bv0, bbf, bni
   vectype, pointer :: bsource(:)
+
+  logical :: is_rw
 
   if(isplitstep.eq.1) then
      bb1 = s2matrix_sm
@@ -2250,6 +2253,16 @@ subroutine ludefphi_n(itri)
      iv = ib_vel + ii - 1
      ip = ib_phi + ii - 1
 
+     is_rw = .false.
+     if(ii.eq.1 .and. eta_wall.ne.0.) then
+        do jj=1, nodes
+           if(local_id(jj) .eq. ist(itri,iii)+1) then
+              is_rw = .true.
+              exit
+           endif
+        end do
+     endif
+
      do jjj=1,3
      call entdofs(vecsize_phi,  ist(itri,jjj)+1, 0, jb_phi, iendplusone)
      call entdofs(vecsize_vel,  ist(itri,jjj)+1, 0, jb_vel, iendplusone)
@@ -2261,15 +2274,16 @@ subroutine ludefphi_n(itri)
         iv = ip
         jv = jp
 
+        ss = 0.
+        dd = 0.
+        q_ni = 0.
+        q_bf = 0.
+        r_e = 0.
+        q_e = 0.
+
+
         ! skip flux equation if resistive wall has been applied
-        if(surface_int) then
-           ss(psi_g,:) = 0.
-           dd(psi_g,:) = 0.
-           q_ni(psi_g,:) = 0.
-           q_bf(psi_g) = 0.
-           r_e = 0.
-           q_e = 0.
-        else
+        if(.not.surface_int .and. .not.is_rw) then
            call flux_lin(g79(:,:,i),g79(:,:,j), &
                 ss(psi_g,:),dd(psi_g,:),q_ni(psi_g,:),q_bf(psi_g),r_e,q_e)
         endif
@@ -2337,7 +2351,7 @@ subroutine ludefphi_n(itri)
               if(numvar.ge.3) &
                    call insval(bni,q_ni(pe_g,1),icomplex,ip+pe_off,jp,1)
            endif
-           if(numvar.ge.2) then
+           if(numvar.ge.2 .and. eqsubtract.eq.1) then
               call insval(bni,q_ni(psi_g,2),icomplex,ip+psi_off,jp+6,1)
               if(numvar.ge.2) &
                    call insval(bni,q_ni(bz_g,2),icomplex,ip+bz_off,jp+6,1)
@@ -2394,7 +2408,6 @@ subroutine ludefphi_n(itri)
         call electron_pressure_nolin(g79(:,:,i),temp)
         bsource(ip+ pe_off) = bsource(ip+ pe_off) + temp
      endif
-
   enddo ! on i
   enddo
 

@@ -32,6 +32,8 @@ SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu \
 PARMETIS_LIBS = -L$(PARMETIS_HOME)/lib \
 	-Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis
 
+NAG_LIBS = -L$(NAG_ROOT)/lib -lnag
+
 SCOREC_ARCH=x86_64_linux-icc
 
 SCOREC_LIBS = \

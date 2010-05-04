@@ -91,7 +91,7 @@ subroutine random_per(x,z,seed,fac)
 
   implicit none
 
-  real :: rand
+  real :: drand
 
   real, intent(in) :: x, z
   vectype, intent(in), dimension(6) :: fac
@@ -122,23 +122,23 @@ subroutine random_per(x,z,seed,fac)
      case (0)   !  original option...no symmetry imposed
      do j=1, maxn
         kz = j*pi/alz
-        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
+        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(drand(RAND_ARG)-.5),0.,0.)
         call add_product(psi1_l,fac,temp)
-        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
+        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(drand(RAND_ARG)-.5),0.,0.)
         call add_product(u1_l,fac,temp)
      end do
 !
      case (1)  !   make U odd symmetry about midplane:  perturb only U
      do j=1, maxn/2
         kz = 2.*j*pi/alz
-        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
+        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(drand(RAND_ARG)-.5),0.,0.)
         call add_product(u1_l,fac,temp)
      end do
 !
      case (2)  !   make U even  symmetry about midplane:  perturb only U
      do j=1, maxn/2
         kz = (2.*j-1)*pi/alz
-        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(rand(RAND_ARG)-.5),0.,0.)
+        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(drand(RAND_ARG)-.5),0.,0.)
         call add_product(u1_l,fac,temp)
      end do
 !
@@ -196,10 +196,10 @@ subroutine den_eq
   use basic
   use arrays
   use diagnostics
+  use math
 
   integer :: numnodes, inode
   real :: temp(6), k, kx, x, z
-  real :: sech
   
   if(idenfunc.eq.0) return
 
@@ -296,7 +296,7 @@ subroutine read_density_profile
      allocate(spsi(npsi), density(npsi))
      
      do i=1, npsi
-        read(ifile,'(F5.3,1pE13.4)') spsi(i), density(i)
+        read(ifile,*) spsi(i), density(i)
      end do
 
      close(ifile)
@@ -304,8 +304,6 @@ subroutine read_density_profile
 
   if(maxrank.gt.0) then
      call mpi_bcast(npsi,1,MPI_INTEGER,0,MPI_COMM_WORLD, ier)
-
-     print *, 'MYRANK, NPSI',  myrank, npsi
 
      if(myrank.ne.0) allocate(spsi(npsi), density(npsi))
 
@@ -819,12 +817,13 @@ end subroutine gem_reconnection_init
 subroutine gem_reconnection_equ(x, z)
   use basic
   use arrays
+  use math
 
   implicit none
 
   real, intent(in) :: x, z
 
-  real :: sech, pezero
+  real :: pezero
 
   call constant_field(  u0_l, 0.)
   if(numvar.ge.2) call constant_field( vz0_l, 0.)
