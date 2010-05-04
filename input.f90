@@ -34,9 +34,9 @@ subroutine set_defaults
   implicit none
 
   ! normalizations
-  b0_norm = 0.
-  n0_norm = 0.
-  l0_norm = 0.
+  b0_norm = 1.e4
+  n0_norm = 1.e14
+  l0_norm = 100.
   
   ! equilibria input options
   iread_eqdsk = 0
@@ -59,7 +59,7 @@ subroutine set_defaults
   etaoff = 0.
   etadelt = 0.
   etar = 0.
-  eta0   = 0.
+  eta0 = 0.
 
   ikappafunc = 0
   kappaoff = 0.
@@ -174,8 +174,8 @@ subroutine set_defaults
   denoff = 1.
 
   divertors = 0
-  xdiv = xmag
-  zdiv = zzero-1.
+  xdiv = 0.
+  zdiv = 0.
   divcur = 0.1
 
   xnull = 0.
@@ -235,7 +235,7 @@ subroutine set_defaults
   pellet_var = 1.
 
   ionization = 0
-  ionization_rate = denm
+  ionization_rate = 0.
   ionization_temp = 0.01
   ionization_depth = 0.01
 
@@ -275,6 +275,8 @@ subroutine set_defaults
   adapt_hmax = 0.1
 
   ! mesh options
+  xzero = 0.
+  zzero = 0.
   tiltangled = 0.
 
   imask = 0
