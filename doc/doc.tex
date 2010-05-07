@@ -17,6 +17,7 @@
 \renewcommand{\vec}[1]{\ensuremath{\mathbf{#1}}}
 \newcommand{\tensor}[1]{\mathsf{#1}}
 \newcommand{\tor}{\varphi}              % toroidal coordinate
+\newcommand{\A}{\vec{A}}
 \newcommand{\B}{\vec{B}}
 \newcommand{\E}{\vec{E}}
 \newcommand{\R}{\vec{R}}
@@ -35,7 +36,9 @@
 \newcommand{\codename}{M3D-$C^1$}
 
 \newcommand{\grad}[1]{\nabla #1}
+\newcommand{\gradp}[1]{\nabla_\perp #1}
 \renewcommand{\div}[1]{\nabla \cdot #1}
+\newcommand{\divp}[1]{\nabla_\perp \cdot #1}
 \newcommand{\curl}[1]{\nabla \times #1}
 
 \newcommand{\dotdot}{:}
@@ -299,6 +302,188 @@ The extended-MHD model consists of the following equations:
   - \div{\P_e} + \R + \F \right)
 \end{eqnarray}
 \end{subequations}
+
+\subsection{Units}
+
+Quantities are given in a system of non-dimensional usits determined
+by three independent, arbitrary characteristic quantities: $n_0$, the
+characteristic number density; $L_0$, the characteristic length scale;
+and $B_0$, the characteristic magnetic field strength.  From these
+quantities, the characteristic Alfv\'en velocity and Alfv\'en time are
+defined, respectively, as
+\begin{eqnarray}
+  v_{A 0} & = & \frac{B_0}{\sqrt{4\pi m_i n_0}}\\
+  \tau_{A 0} & = & \frac{L_0}{v_{A 0}}
+\end{eqnarray}
+
+Variables in \codename\ use the following system of units:
+
+\begin{tabular}{lcrl}
+  \textbf{Variable} & \textbf{Unit}              &  \textbf{Default} &\\
+  \hline
+  Current           & $c B_0 L_0 / 4\pi$         & 796       & kA\\
+  Current Density   & $c B_0 / 4\pi L_0$         & 796       & kA/m$^2$\\
+  Diffusivity       & $L_0^2/\tau_{A 0}$         & $2.18\times10^6$ & m$^2$/s\\
+  Electric Field    & $v_{A 0} B_0/c$            & 2180      & kV/m\\
+  Frequency         & $v_{A 0}/L_0$              & 2180      & kHz\\
+  Length            & $L_0$                      & 1         & m \\
+  Magnetic Field    & $B_0$                      & 1         & T\\
+  Number Density    & $n_0$                      & $10^{20}$ & m$^{-3}$\\
+  Potential         & $L_0 v_{A 0} B_0/c$        & 2180      & kV\\
+  Pressure          & $B_0^2/4\pi$               & 7.85      & atm\\
+  Resistivity       & $4\pi v_{A 0} L_0/c^2$     & 2.74      & $\Omega$ m\\
+  Temperature       & $B_0^2/4\pi n_0$           & 40.1      & keV\\
+  Velocity          & $v_{A 0}$                  & 2180      & km/s\\
+  Viscosity         & $m_i n_0 L_0^2/\tau_{A 0}$ & 0.365     & kg/m s
+\end{tabular}\\
+where the ``default'' values are calculated using the default
+characteristic quantities: $n_0 = 10^{14}$ cm$^{-3}$, $L_0 = 100$ cm,
+and $B_0 = 10^4$ G.
+
+\section{Weak Form}
+
+\subsection{Density Equation}
+
+\begin{equation}
+  \nu \ddt{n} = 
+  n \u \cdot \grad{\nu} 
+  + \nu D 
+  - (\nu n \u \cdot \grad{\tor})_\tor
+  - \divp{(\nu n \u)}
+\end{equation}
+
+\subsection{Vorticity Equation}
+
+\begin{eqnarray}
+  -\nu \grad{\tor} \cdot \curl{(R^2 n \u)}
+  & = & - R^2 n \u \cdot (\grad{\nu} \times \grad{\tor})
+  + R^2 (\nu n \grad{\tor} \times \u)_\tor \\ \nonumber & & \mbox{}
+  + \divp{(R^2 \nu n \grad{\tor} \times \u)}
+\end{eqnarray}
+
+\subsection{Toroidal Velocity Equation}
+
+\subsection{Compression Equation}
+
+\subsection{Pressure Equation}
+
+\subsection{Poloidal Flux Equation}
+
+\begin{equation}
+  \ddt \A = -\E - \grad{\phi}
+\end{equation}
+
+\begin{eqnarray}
+\lefteqn{ -R^2 \nu \grad{\tor} \cdot \ddt \A = } \\
+ & & -R^2 \nu \grad{\tor} \cdot \left\{
+  -\grad{\phi} - \u \times \B 
+  + \frac{d_i}{n} \left(\j \times \B - \grad{p_e} + \R + \F \right) \right\}
+  \\ \nonumber & & \mbox{} 
+  - \P_e : \grad{\left(\frac{d_i}{n} R^2 \nu \grad{\tor} \right)}
+  + \left(\frac{d_i}{n} R^2 \nu \grad{\tor} \cdot \P_e \cdot
+  \grad{\tor} \right)_\tor
+  \\ \nonumber & & \mbox{}
+  + \divp{\left(\frac{d_i}{n} R^2 \nu \grad{\tor} \cdot \P_e \right)}
+\end{eqnarray}
+
+\subsection{Toroidal Current Density Equation}
+
+\begin{eqnarray}
+  -\nu \grad{\tor} \cdot \curl{\ddt \B} & = & 
+  \nu \grad{\tor} \cdot \curl{\curl{\E}}
+  \\ \nonumber
+   & = & 
+  - \gs{\nu} \curl{\E} \cdot \grad{\tor}
+  + \left[ \grad{\tor} \cdot \E \times (\grad{\nu} \times \grad{\tor})
+    \right]_\tor
+  \\ \nonumber & & \mbox{}
+  + \divp{\left[ \E \times (\grad{\nu} \times \grad{\tor})
+  - \nu \grad{\tor} \times \curl{\E} \right]}
+\end{eqnarray}
+
+\subsection{Toroidal Field Equation}
+
+\begin{eqnarray}
+  \nu \grad{\tor} \cdot \ddt{\B} & = &
+  -(\grad{\nu} \times \grad{\tor}) \cdot \E
+  + \divp{(\nu \grad{\tor} \times \E)} 
+  \\ \nonumber & = &
+  -(\grad{\nu} \times \grad{\tor}) \cdot \left\{
+  -\u \times \B + \frac{d_i}{n} \left(
+  \j \times \B - \grad{p_e} + \R + \F \right) \right\}
+  \\ \nonumber & & \mbox{}
+  - \P_e : \grad{ \left( \frac{d_i}{n} \grad{\nu} \times \grad{\tor}
+    \right)}
+  + \left[ \frac{d_i}{n} (\grad{\nu} \times \grad{\tor}) \cdot \P_e
+  \cdot \grad{\tor} \right]_\tor
+  \\ \nonumber & & \mbox{}
+  + \divp{\left[\frac{d_i}{n} (\grad{\nu} \times \grad{\tor}) \cdot
+      \P_e \right]} + \divp{(\nu \grad{\tor} \times \E)}
+\end{eqnarray}
+
+\section{Scalar Form}
+
+Without loss of generality, the vector potential may be written
+\begin{equation}
+  \A = R^2 \grad{\tor} \times \grad{f} + \psi \grad{\psi},
+\end{equation}
+which obtains the magnetic field
+\begin{equation}
+  \B = \grad{\psi} \times \grad{\tor} + R^2 \lp{f} xc\grad{\tor} -
+  \gradp{f_\tor}.
+\end{equation}
+
+In cylindrical coordinates, the velocity may be written as
+\begin{equation}
+  \u = R^2 \grad{U} \times \grad{\tor} 
+  + R^2 \omega \grad{\tor}
+  + \frac{1}{R^2}\grad{\chi}.
+\end{equation}
+This form has the advantage that $U$ purely advects the toroidal
+component of the magnetic field, and therefore velocities which
+manifestly do not compress the toroidal field may be represented.
+Expressions for the individual scalar components of $\u$ may be
+obtained by acting on $\u$ with the operators
+\begin{subequations}
+\begin{eqnarray}
+  & \grad{\tor} \cdot \curl{(R^2 \u)} & \\
+  &  R^2 \grad{\tor} \cdot \u & \\
+  &  \divp{\left(\frac{\u}{R^2}\right)} &
+\end{eqnarray}
+\end{subequations}
+
+\subsection{Density Equation}
+
+\subsubsection{Volume Terms}
+
+\begin{equation}
+  \nu \ddt{n} = 
+  R^2 n \pb{\nu}{U} 
+  - \nu (n \omega)_\tor
+  + \frac{1}{R^2} n \ip{\nu}{\chi} 
+  + \nu D
+  - \divp{(\nu n \u)}
+\end{equation}
+
+\subsubsection{Surface Terms}
+
+\begin{equation}
+  \n \cdot (\nu n \u) = \nu n \n \cdot \u
+\end{equation}
+
+
+\subsection{Vorticity Equation}
+
+\begin{eqnarray}
+  \lefteqn{-\nu \grad{\tor} \cdot \curl{(R^2 n \u)} = }\\
+  & & -\pb{\nu}{\psi}\gs{\psi} + \ip{\nu}{f_\tor}\gs{\psi}
+      -\frac{1}{R^2} F \ip{\nu}{\psi_\tor}
+      -F \pb{\nu}{f_{\tor \tor}}\\
+  & & \mbox{} R^2 n \left\{ R^2 \pb{\nu}{U} \lp{U}
+      + \frac{1}{2} \pb{R^2 \ip{U}{U}}{\nu}
+      + \omega \ip{\nu}{U_\psi} + \nu_Z \omega^2
+      - \frac{1}{R^2} \pb{nu}{\chi_\tor} \right\}
+\end{eqnarray}
 
 
 \subsection{Scalar Form}
