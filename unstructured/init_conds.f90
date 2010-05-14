@@ -284,6 +284,7 @@ subroutine read_density_profile
   vectype, dimension(20) :: avec
 
   logical :: inside_lcfs
+  real :: tm
 
   if(myrank.eq.0) then
      if(iprint.eq.1) print *, 'Reading density profile...'
@@ -331,7 +332,8 @@ subroutine read_density_profile
            psii = (real(ps079(k,OP_1)) - psimin)/(psibound - psimin)
            if(inside_lcfs(ps079(k,:), x_79(k), z_79(k), .true.)) then
               call cubic_interpolation(npsi,spsi,sqrt(psii), &
-                   density,temp79a(k))
+                   density,tm)
+              temp79a(k) = tm
            else
               temp79a = density(npsi)
            endif
@@ -1801,7 +1803,7 @@ subroutine eqdsk_init()
 !          redefine fpol keeping ffprim fixed
            if(ll.gt.0) fpol(ll) = -sqrt(fpol(ll+1)**2 - dpsi*(ffprim(ll)+ffprim(ll+1)))
         end do
-        call create_profile(nw,press,pprime,fpol,ffprim,flux,myrank)
+        call create_profile(nw,press,pprime,fpol,ffprim,flux)
 !
       if(myrank.eq.0 .and. iprint.ge.1) then
         open(unit=77,file="debug-out",status="unknown")
@@ -2059,7 +2061,7 @@ subroutine dskbal_init()
   if(iread_dskbal.eq.2) then
      call default_profiles
   else
-     call create_profile(npsi_bal,p_bal,pprime_bal,f_bal,ffprime_bal,psi_bal,myrank)
+     call create_profile(npsi_bal,p_bal,pprime_bal,f_bal,ffprime_bal,psi_bal)
   end if
   
   ! initial plasma current filament
@@ -2177,7 +2179,7 @@ subroutine jsolver_init()
         allocate(ffprime(npsi_jsv))
         ffprime = gpx_jsv*gxx_jsv
         call create_profile(npsi_jsv,p_jsv(1:npsi_jsv),ppxx_jsv(1:npsi_jsv), &
-             gxx_jsv(1:npsi_jsv),ffprime,psival_jsv(1:npsi_jsv),myrank)
+             gxx_jsv(1:npsi_jsv),ffprime,psival_jsv(1:npsi_jsv))
 !
       if(myrank.eq.0 .and. iprint.ge.1) then
         open(unit=77,file="debug-out",status="unknown")

@@ -73,11 +73,43 @@ function dz, a, z
 end
 
 function a_bracket, a, b, x, z
-    return, -dx(a,x)*dz(b,z) + dz(a,z)*dx(b,x)
+    s1 = size(a, /dim)
+    s2 = size(b, /dim)
+
+    if(s1[0] gt 1 and s2[0] eq 1) then begin
+        c = fltarr(s1[0], n_elements(x), n_elements(z))
+        for i=0, s1[0]-1 do c[i,*,*] = a_bracket(a[i,*,*], b[0,*,*],x,z)
+        return, c
+    endif else if(s2[0] gt 1 and s1[0] eq 1) then begin
+        c = fltarr(s2[0], n_elements(x), n_elements(z))
+        for i=0, s2[0]-1 do c[i,*,*] = a_bracket(a[0,*,*], b[i,*,*],x,z)
+        return, c
+    endif else if(s1[0] eq 1 and s2[0] eq 1) then begin
+        return, -dx(a,x)*dz(b,z) + dz(a,z)*dx(b,x)
+    endif else begin
+        print, 'Error: sizes do not conform!'
+        return, 0
+    endelse
 end
 
 function s_bracket, a, b, x, z
-    return, dx(a,x)*dx(b,x) + dz(a,z)*dz(b,z)
+    s1 = size(a, /dim)
+    s2 = size(b, /dim)
+
+    if(s1[0] gt 1 and s2[0] eq 1) then begin
+        c = fltarr(s1[0], n_elements(x), n_elements(z))
+        for i=0, s1[0]-1 do c[i,*,*] = s_bracket(a[i,*,*], b[0,*,*],x,z)
+        return, c
+    endif else if(s2[0] gt 1 and s1[0] eq 1) then begin
+        c = fltarr(s2[0], n_elements(x), n_elements(z))
+        for i=0, s2[0]-1 do c[i,*,*] = s_bracket(a[0,*,*], b[i,*,*],x,z)
+        return, c
+    endif else if(s1[0] eq 1 and s2[0] eq 1) then begin
+        return, dx(a,x)*dx(b,x) + dz(a,z)*dz(b,z)
+    endif else begin
+        print, 'Error: sizes do not conform!'
+        return, 0
+    endelse
 end
 
 
@@ -1793,6 +1825,22 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
          symbol = translate('com', units=d, itor=itor)
 
    ;===========================================
+   ; chi_perp
+   ;===========================================
+     endif else if(strcmp('chi_perp', name, /fold_case) eq 1) then begin
+
+         kappa = read_field('kappa', x, y, t, slices=time, mesh=mesh, $
+                          filename=filename, points=pts, mask=mask, $
+                          rrange=xrange, zrange=yrange)
+         den = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                          filename=filename, points=pts, mask=mask, $
+                          rrange=xrange, zrange=yrange, /equilibrium)
+
+         data = kappa/den
+         d = dimensions(l0=2, t0=-1, _EXTRA=extra)
+         symbol = '!7v!X'
+
+   ;===========================================
    ; rotational transform
    ;===========================================
    endif else if(strcmp('iota', name, /fold_case) eq 1) then begin
@@ -2029,7 +2077,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        data = data / sqrt(s_bracket(psi0,psi0,x,y))
        symbol = '!8B!Dr!N!X'
        d = dimensions(/b0, _EXTRA=extra)
-
 
    ;===========================================
    ; (Major) Radial field

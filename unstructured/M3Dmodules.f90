@@ -802,9 +802,10 @@ module sparse
   integer, parameter :: dp_matrix_lhs = 40
   integer, parameter :: rwpsi_sm = 41
   integer, parameter :: rwbf_sm = 42
-  integer, parameter :: num_matrices = 42
+  integer, parameter :: ecpsi_sm = 43
+  integer, parameter :: ecbf_sm = 44
+  integer, parameter :: num_matrices = 44
   
-
 contains
   subroutine delete_matrices
     implicit none

@@ -1,5 +1,5 @@
-pro plot_br, _EXTRA=extra, plotq=plotq, bins=bins, usepsi=usepsi, $
-             subtract_vacuum=subtract_vacuum, vacuum=vacuum, ntor=ntor, $
+pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
+             subtract_vacuum=subtract_vacuum, ntor=ntor, $
              plotbn=plotbn, slice=slice
 
    if(n_elements(ntor) eq 0) then begin
@@ -8,33 +8,20 @@ pro plot_br, _EXTRA=extra, plotq=plotq, bins=bins, usepsi=usepsi, $
    print, 'ntor = ', ntor
    if(n_elements(slice) eq 0) then last=1
 
-   ; convert result to Tesla / radian
-   get_normalizations, b0=b0, n0=n0, l0=l0, _EXTRA=extra
-   if(b0 eq 0.) then b0 = 1.e4
-   if(l0 eq 0.) then l0 = 100.
-   print, 'normalizations: b0, l0 = ', b0, l0
+   psi0 = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra)
+   i0   = read_field('i'  ,x,z,t,/equilibrium,_EXTRA=extra)
 
-   psi0 = read_field('psi',x,z,t,slice=-1,_EXTRA=extra)
-
-   If(keyword_set(vacuum)) then begin
-       vacuum_field,psi1r,x,z,ntor
-;       vacuum_field,psi1r2,x,z,-ntor
-;       psi1r = (psi1r + psi1r2)/2.
-       psi1i = psi1r*0.
-   endif else begin
-       bx = read_field('bx',x,z,t,last=last,slice=slice, $
-                       /linear,_EXTRA=extra, /complex)
-       by = read_field('by',x,z,t,last=last,slice=slice, $
-                       /linear,_EXTRA=extra, /complex)
-       i0 = read_field('i',x,z,t,slice=-1,_EXTRA=extra)
-   endelse
+   bx = read_field('bx',x,z,t,last=last,slice=slice, $
+                   /linear,_EXTRA=extra,/complex)
+   by = read_field('by',x,z,t,last=last,slice=slice, $
+                   /linear,_EXTRA=extra,/complex)
 
    if(keyword_set(subtract_vacuum)) then begin
        bx0 = read_field('bx',x,z,t,slice=0,/linear,_EXTRA=extra)
        by0 = read_field('by',x,z,t,slice=0,/linear,_EXTRA=extra)
        bx = bx - bx0
        by = by - by0
-   endif
+   endif   
 
    r = radius_matrix(x,z,t)
    y = z_matrix(x,z,t)
@@ -46,44 +33,35 @@ pro plot_br, _EXTRA=extra, plotq=plotq, bins=bins, usepsi=usepsi, $
    br_r = real_part(br)
    br_i = imaginary(br)
 
-   if(keyword_set(usepsi)) then begin
-       a_r = flux_coord_field(psi1r,psi0,x,z,t,flux=flux,angle=angle,q=q, $
-                              area=area,nflux=nflux,tbins=bins,fbins=bins, $
-                              _EXTRA=extra)
-       a_i = flux_coord_field(psi1i,psi0,x,z,t,flux=flux,angle=angle,q=q, $
-                              area=area, nflux=nflux,tbins=bins,fbins=bins, $
-                              _EXTRA=extra)
+   if(keyword_set(plotbn)) then begin
+       jac = 1.
+       pest = 0
    endif else begin
-       if(keyword_set(plotbn)) then begin
-           jac = 1.
-           pest = 0
-       endif else begin
-           jac = r^3*bt/i0
-           pest = 1
-       endelse
-       a_r = flux_coord_field(br_r*jac,psi0,x,z,t,flux=flux,angle=angle,q=q, $
-                              area=area,nflux=nflux,tbins=bins,fbins=bins, $
-                              pest=pest, _EXTRA=extra)
-       a_i = flux_coord_field(br_i*jac,psi0,x,z,t,flux=flux,angle=angle, q=q,$
-                              area=area,nflux=nflux,tbins=bins,fbins=bins, $
-                              pest=pest, _EXTRA=extra)
-
-
-       if(keyword_set(plotbn)) then begin
-           dum = min(sqrt(nflux)-.97817, i, /abs)
-           print, 'Psi, q = ', nflux[i], q[0,i]
-           plot, angle, a_r[0,i,*], _EXTRA=extra
-           return
-       endif
-
-       ; ignore flux surfaces where q > 10
-       q = q*(q lt 10.)
-
-       for i=0, n_elements(angle)-1 do begin
-           a_r[0,*,i] = a_r[0,*,i]*q/area
-           a_i[0,*,i] = a_i[0,*,i]*q/area
-       end
+       jac = r^3*bt/i0
+       pest = 1
    endelse
+   a_r = flux_coord_field(br_r*jac,psi0,x,z,t,flux=flux,angle=angle,q=q, $
+                          area=area,nflux=nflux,tbins=bins,fbins=bins, $
+                          pest=pest, _EXTRA=extra)
+   a_i = flux_coord_field(br_i*jac,psi0,x,z,t,flux=flux,angle=angle, q=q,$
+                          area=area,nflux=nflux,tbins=bins,fbins=bins, $
+                          pest=pest, _EXTRA=extra)
+
+   if(keyword_set(plotbn)) then begin
+       dum = min(sqrt(nflux)-.97817, i, /abs)
+       print, 'Psi, q = ', nflux[i], q[0,i]
+       plot, angle, a_r[0,i,*], _EXTRA=extra
+       return
+   endif
+
+   ; ignore flux surfaces where q > 10
+   q = q*(q lt 10.)
+
+   for i=0, n_elements(angle)-1 do begin
+       a_r[0,*,i] = a_r[0,*,i]*q/area
+       a_i[0,*,i] = a_i[0,*,i]*q/area
+   end
+
    a = complex(a_r, a_i)
    b = transpose(a,[0,2,1])
    c = sqrt(2.*!pi)*fft(b, -1, dimension=2)
@@ -94,32 +72,28 @@ pro plot_br, _EXTRA=extra, plotq=plotq, bins=bins, usepsi=usepsi, $
    f[n/2+1] = n/2 + 1 - n + findgen((n-1)/2)
    m = shift(f,-(n/2+1))
    d = shift(c,0,-(n/2+1),0)
-
-   if(keyword_set(usepsi)) then begin
-       ; B_r_{m,n} = psi_{m,n} * (2*pi)^2*m/S
-       for i=0, n-1 do begin
-           for j=0, n_elements(flux)-1 do begin
-               d[0,i,j] = d[0,i,j]*(2.*!pi)^2*m[i]/area[j]
-           end
-       end
-   endif
    
    xtitle='!6m!X'
    ytitle='!9r!7W!X'
 
+   ; convert to cgs
+   get_normalizations, b0=b0_norm, n0=n0_norm, l0=l0_norm, _EXTRA=extra
+   d = d*b0_norm
+
+   if(n_elements(q_val) ne 0) then begin
+       dum = min(q-q_val, i, /abs)
+       print, 'Psi, q = ', nflux[i], q[0,i]
+       plot, m[*], abs(d[0,*,i])
+       return
+   endif
+
    contour_and_legend, abs(d), m, sqrt(nflux),  $
      table=39, xtitle=xtitle, ytitle=ytitle, $
-     xrange=[-15,15], yrange=[0,1], /lines, $
-     ccolor=!d.table_size-1, label='!8B!Dn!N!6 (!8T!6)!X', $
+     xrange=[-20,20], yrange=[0,1], /lines, c_thick=1, $
+     ccolor=!d.table_size-1, label='!8B!Dn!N!6 (!8G!6)!X', $
      _EXTRA=extra
 
-   if(keyword_set(plotq)) then begin
-;       q = flux_average('q', psi0=psi0, x=x, z=z, t=t, /equilibrium, $
-;                       nflux=nflux, bins=bins, points=points, _EXTRA=extra)
-
-       oplot, ntor*q, sqrt(nflux), linestyle=2, color=!d.table_size-1
-       oplot, -ntor*q, sqrt(nflux), linestyle=2, color=!d.table_size-1
-   endif
+   oplot, -ntor*q, sqrt(nflux), linestyle=2, color=!d.table_size-1
 end
 
 pro integrate_j, df=df, _EXTRA=extra

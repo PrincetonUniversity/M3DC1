@@ -56,7 +56,8 @@ OBJS = subp.o dbesj0.o dbesj1.o fdump.o \
 	math.o interpolate.o control.o M3Dmodules.o \
 	nintegrate_mod.o harned_mikic.o metricterms_new.o biharmonic.o \
 	electrostatic_potential.o newvar.o diagnostics.o vacuum_interface.o \
-	coils.o gradshafranov.o transport.o hdf5_output.o time_step.o \
+	coils.o coil_sets.o gradshafranov.o transport.o \
+	hdf5_output.o time_step.o \
 	newpar.o input.o ludef_t.o boundary.o mesh.o \
 	restart.o acbauer.o metricterms.o readgeqdsk.o read_dskbal.o \
 	read_jsolver.o init_conds.o PETScInterface.o

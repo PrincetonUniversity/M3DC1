@@ -138,7 +138,8 @@ subroutine tmatrix(ti,ndim,a,b,c)
 
   integer :: i, j, ierrorchk, ifail, info1, info2
   real :: danaly, det, percent, diff
-  real :: t(20,20), wkspce(9400), ipiv(20)
+  real :: t(20,20), wkspce(9400)
+  integer :: ipiv(20)
  
   ierrorchk = 0
 
