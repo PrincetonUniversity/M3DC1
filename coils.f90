@@ -5,9 +5,6 @@ module coils
   integer, parameter :: subcoils = 1
   integer, parameter :: maxcoils = maxbundles*subcoils**2
 
-!!$  character*8, parameter :: coil_filename = "coil.dat"
-!!$  character*11, parameter :: current_filename = "current.dat"
-
 contains
 
   !======================================================
@@ -72,7 +69,8 @@ contains
                xc(s) = x + dx - dz*a2
                zc(s) = z + dz + dx*a1
                
-               ic(s) = c*(cos(ntor*pi*phase/180.) + (0.,1.)*sin(ntor*pi*phase/180.))
+               ic(s) = c*(cos(ntor*pi*phase/180.) &
+                    + (0.,1.)*sin(ntor*pi*phase/180.))
             end do
          end do
       end do
