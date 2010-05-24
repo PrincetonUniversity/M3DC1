@@ -1378,6 +1378,7 @@ subroutine insert_resistive_wall(imatrix, rhs)
   fac = dt*eta_wall/delta_wall
 
   if(first_time) then
+  if(myrank.eq.0  ) print *, 'Inserting resistive wall:  fac, imatrix=',fac,imatrix
 
      ss_psi = 0.
      dd_psi = 0.
@@ -1406,6 +1407,7 @@ subroutine insert_resistive_wall(imatrix, rhs)
 
         call boundary_node(local_id(i), is_boundary, izone, izonedim, normi, &
              curvi, xii, zii)
+            if(itor.eq.0) xii = 1.0
 
 !        call globalentdofs(vecsize_phi, global_id(i), 0, ibegin, iendplusone)
 !        call globalentdofs(1, global_id(i), 0, ibegin1, iendplusone1)
@@ -1416,6 +1418,7 @@ subroutine insert_resistive_wall(imatrix, rhs)
 
            call boundary_node(local_id(j), is_boundary, izone, izonedim, &
                 normj, curvj, xjj, zjj)
+            if(itor.eq.0) xjj = 1.0
                      
 !           call globalentdofs(vecsize_phi, global_id(j), 0, jbegin, jendplusone)
 !           call globalentdofs(1, global_id(j), 0, jbegin1, jendplusone1)
@@ -1553,13 +1556,13 @@ subroutine insert_resistive_wall(imatrix, rhs)
   endif
 
   ! subtract off exernal fields
-  call copyvec(fieldi, psi_g, num_fields, tempin, 1, 1)
-  call matvecmult(ecpsi_sm, tempin, tempout2)
-  tempout = tempout - tempout2
-  if(i3d.eq.1 .and. numvar.ge.2) then
-     call matvecmult(ecbf_sm, bfi, tempout2)
-     tempout = tempout - tempout2
-  endif
+! call copyvec(fieldi, psi_g, num_fields, tempin, 1, 1)
+! call matvecmult(ecpsi_sm, tempin, tempout2)
+! tempout = tempout - tempout2
+! if(i3d.eq.1 .and. numvar.ge.2) then
+!    call matvecmult(ecbf_sm, bfi, tempout2)
+!    tempout = tempout - tempout2
+! endif
 
 
   ! add contributions to rhs vector

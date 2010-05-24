@@ -82,6 +82,7 @@ Program Reducedquintic
   if(eta_wall .ne. 0.) then
      call load_vacuum_data(ier)
      if(ier.ne.0) call safestop(7)
+   if(myrank.eq.0) print *, 'Vacuum Data loaded'
   end if
 
   ! output info about simulation to be run

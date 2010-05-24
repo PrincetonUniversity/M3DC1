@@ -262,6 +262,7 @@ module basic
 
   ! complex options
   integer :: ntor     ! toroidal mode number
+  integer :: mpol     ! poloidal mode number for certain test problems
 
   real :: tiltangled   !   angle to which the rectangular mesh is tilted for tests of boundary conditions
 !
@@ -297,7 +298,7 @@ module basic
        expn,q0,divertors,xdiv,zdiv,divcur,th_gs,p1,p2,         &
        idevice,igs,nv1equ,tol_gs,igs_method,psiscale,          &
        iconstflux,regular,max_ke,                              &
-       ntor,iadapt,istatic,iestatic,ivform, ibform,            &
+       ntor, mpol,iadapt,istatic,iestatic,ivform, ibform,            &
        ihypeta,ihypamu,ihypkappa,ikapscale,                    &
        iteratephi, icsym, inumgs, nonrect, ifixedb,            &
        inonormalflow, inoslip_pol, inoslip_tor, inostress_tor, &

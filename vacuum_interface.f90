@@ -5,7 +5,7 @@ module vacuum_interface
   integer :: nodes
   integer, allocatable :: global_id(:)
   integer, allocatable :: local_id(:)
-  real, allocatable :: zgrbth(:,:), zgrbph(:,:)
+  real, allocatable :: zgrbth(:,:), zgrbph(:,:), xnode(:), znode(:)
   real, allocatable :: zgrbthp(:,:), zgrbphp(:,:)
 
 contains 
@@ -29,10 +29,12 @@ contains
 
     allocate(global_id(nodes))
     allocate(local_id(nodes))
+    allocate(xnode(nodes+1))
+    allocate(znode(nodes+1))
 
     ! write node entry for first node
     do i=1, nodes
-       read(ifile, '(I8,2f12.6)') global_id(i), dummy, dummy
+       read(ifile, '(I8,2f12.6)') global_id(i), xnode(i),znode(i)
        call globalidnod(global_id(i),local_id(i))
     end do
 
@@ -42,6 +44,7 @@ contains
 
 
   subroutine load_response_matrix(ierr)
+    use basic
     implicit none
 
     integer, intent(out) :: ierr
@@ -49,9 +52,12 @@ contains
     character(len=*), parameter :: filename = 'RESPONSE-M3DC1'
     integer, parameter :: ifile = 2
     integer :: idum, i, j
-    real :: dtheta
+    real :: dtheta, ka, thetai, thetaj, fac, bessk, besskp, grate
 
     ierr = 0
+!
+!...check if analytic test problem
+    if(itaylor.ne.10) then
 
     open(unit=ifile,file=filename,action='read',status='unknown')
 
@@ -115,6 +121,29 @@ contains
 100 continue
 
     close(ifile)
+!
+    else      ! on itaylor.eq.10
+      allocate(zgrbph (nodes+1,nodes+1),zgrbth (nodes+1,nodes+1))
+      allocate(zgrbphp(nodes+1,nodes+1),zgrbthp(nodes+1,nodes+1))
+!...  define matrices with analytic formula
+      xnode(nodes+1) = xnode(1)
+      znode(nodes+1) = znode(1)
+      ka = ntor
+      fac = 2.*mpol/(nodes*ntor)*bessk(mpol,ka)/besskp(mpol,ka)
+      do i=1,nodes+1
+      do j=1,nodes+1
+        thetai = atan2(znode(i),xnode(i))
+        thetaj = atan2(znode(j),xnode(j))
+        zgrbth(i,j) = fac*sin(mpol*(thetai-thetaj))
+      enddo
+      write(97,1002) (zgrbth(i,j),j=1,nodes+1)
+ 1002 format(1p10e12.4)
+      enddo
+      grate = (eta_wall/delta_wall)*(mpol + (mpol**2*bessk(mpol,ka))/(ntor*besskp(mpol,ka)))
+      write(*,1001) grate
+      write(97,1001) grate
+ 1001 format(" Analytic Decay rate ",1pe12.4)
+    endif      ! on itaylor.eq.10
 
     
   end subroutine load_response_matrix
@@ -126,9 +155,11 @@ contains
 
     call load_boundary_nodes(ierr)
     if(ierr .ne. 0) return
+    print *, 'boundary nodes loaded'
     
     call load_response_matrix(ierr)
     if(ierr .ne. 0) return
+    print *, 'response matrix loaded'
       
   end subroutine load_vacuum_data
 
