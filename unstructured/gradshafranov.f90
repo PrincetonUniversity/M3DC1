@@ -1468,7 +1468,7 @@ subroutine readpgfiles
   constraint = .true.
 
 return
-  802 format(5x,5e18.9)
+  802 format(5x,5e17.8)
   803 format(i5)
   804 format(i5)
 end subroutine readpgfiles
@@ -1628,7 +1628,6 @@ end subroutine alphaget
    g4bigppt = g4bigppt*(flux(npsi) - flux(1))**2
    alphapt = alphapt*(flux(npsi) - flux(1))
    alphappt = alphappt*(flux(npsi) - flux(1))**2
-  
    constraint = .true.
 
  end subroutine create_profile

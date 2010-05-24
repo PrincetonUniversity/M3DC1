@@ -1502,6 +1502,199 @@ end subroutine circular_field_per
 
 end module circular_field
 
+!==============================================================================
+! Circular shell for resistive wall test
+!==============================================================================
+module circ_shell_only
+
+
+contains
+
+subroutine circ_shell_only_init()
+  use basic
+  use arrays
+
+  implicit none
+
+  integer :: l, numnodes
+  real :: x, z
+
+
+
+  call numnod(numnodes)
+  do l=1, numnodes
+     call nodcoord(l, x, z)
+
+     call assign_local_pointers(l)
+
+     call circ_shell_only_equ(x, z)
+     call circ_shell_only_per(x, z)
+  enddo
+
+end subroutine circ_shell_only_init
+
+subroutine circ_shell_only_equ(x, z)
+  use basic
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x, z
+
+
+  call constant_field(den0_l, 1.)
+  u0_l = 0.
+
+  psi0_l(1) = x**2 + z**2
+  psi0_l(2) = 2.*x
+  psi0_l(3) = 2.*z
+  psi0_l(4) = 2.
+  psi0_l(5) = 0.
+  psi0_l(6) = 2.
+
+  if(numvar.le.1) return
+
+  vz0_l = 0.
+  call constant_field(bz0_l , bzero)
+
+  if(numvar.le.2) return
+  chi0_l = 0.
+  call constant_field(p0_l  , p0)
+  call constant_field(pe0_l , p0-pi0*idens)
+  return
+
+end subroutine circ_shell_only_equ
+
+
+subroutine circ_shell_only_per(x, z)
+  use basic
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x, z
+  real     ::  k, r, kr, theta, sinm, cosm, besm, besmp1, besmp1p
+  real   :: bessi, bessip
+!
+  real   :: x1,z1,delta,val(9),der(7),valr(7)
+  integer :: l,i,icheck
+  den1_l = 0.
+
+  u1_l = 0.
+  psi1_l = 0.
+  r = sqrt(x**2 + z**2)
+  if(r.eq.0) return
+  k = ntor/rzero
+  kr = k*r
+  theta = atan2(z,x)
+  sinm = sin(mpol*theta)
+  cosm = cos(mpol*theta)
+!..for del_squared...bessel function (not used)
+!  besm = bessi(mpol,kr)
+!  besmp1 = bessi(mpol+1,kr)
+!  besmp1p = bessip(mpol+1,kr)
+!  psi1_l(1) = eps*cosm * besm
+!  psi1_l(2) = eps*(( z*sinm + x*cosm)*mpol*besm/r**2 + k*cosm*x*besmp1/r)
+!  psi1_l(3) = eps*((-x*sinm + z*cosm)*mpol*besm/r**2 + k*cosm*z*besmp1/r)
+!  psi1_l(4) = eps*((2*x*z*sinm + (x**2 - z**2)*cosm)*mpol*(mpol-1)*besm/r**4 !    &
+!                  +k*(2*mpol*z*x*sinm + (z**2+mpol*x**2)*cosm)*besmp1/r**3   !    &
+!                  + k**2*cosm*x**2*besmp1p/r**2 )
+!  psi1_l(5) = eps*((2*x*z*cosm + (z**2 - x**2)*sinm)*mpol*(mpol-1)*besm/r**4 !    &
+!                  +k*((mpol-1)*z*x*cosm + (z**2-x**2)*sinm*mpol)*besmp1/r**3 !      &
+!                  + k**2*cosm*x*z*besmp1p/r**2 )
+!  psi1_l(6) = eps*((-2*x*z*sinm + (z**2 - x**2)*cosm)*mpol*(mpol-1)*besm/r**4!     &
+!                  +k*(-2*mpol*z*x*sinm + (x**2+mpol*z**2)*cosm)*besmp1/r**3  !     &
+!                  + k**2*cosm*z**2*besmp1p/r**2 )
+!..for del_perp_squared
+  psi1_l(1) = eps*cosm * r**mpol
+  psi1_l(2) = eps*(( z*sinm + x*cosm)*mpol*r**(mpol-2))
+  psi1_l(3) = eps*((-x*sinm + z*cosm)*mpol*r**(mpol-2))
+  psi1_l(4) = eps*((2*x*z*sinm + (x**2 - z**2)*cosm)*mpol*(mpol-1)*r**(mpol-4))
+  psi1_l(5) = eps*((2*x*z*cosm + (z**2 - x**2)*sinm)*mpol*(mpol-1)*r**(mpol-4))
+  psi1_l(6) = eps*((-2*x*z*sinm + (z**2 - x**2)*cosm)*mpol*(mpol-1)*r**(mpol-4))    
+!
+!.....finite difference to test 
+  icheck = 0
+  if(icheck.eq.1) then
+  delta = 1.e-5
+  do l=1,9
+    select case(l)
+    case(1)
+      x1 = x-delta
+      z1 = z+delta
+    case(2)
+      x1 = x
+      z1 = z+delta
+    case(3)
+      x1 = x+delta
+      z1 = z+delta
+    case(4)
+      x1 = x-delta
+      z1 = z
+    case(5)
+      x1 = x
+      z1 = z
+    case(6)
+      x1 = x+delta
+      z1 = z
+    case(7)
+      x1 = x-delta
+      z1 = z-delta
+    case(8)
+      x1 = x
+      z1 = z-delta
+    case(9)
+      x1 = x+delta
+      z1 = z-delta
+    end select
+    r = sqrt(x1**2 + z1**2)
+    k = ntor/rzero
+    kr = k*r
+    theta = atan2(z1,x1)
+    cosm = cos(mpol*theta)
+!    besm = bessi(mpol,kr) 
+!    val(l) = eps*cosm*besm
+     val(l) = eps*cosm*r**mpol
+  enddo
+  do i=1,6
+    valr(i) = real(psi1_l(i))
+  enddo
+  valr(7) = valr(4)+valr(6)
+  der(1) =  val(5)
+  der(2) = (val(6)-val(4))/(2.*delta)
+  der(3) = (val(2)-val(8))/(2.*delta)
+  der(4) = (val(6)-2.*val(5)+val(4))/delta**2
+  der(5) = (val(3)+val(7)-val(9)-val(1))/(4.*delta**2)
+  der(6) = (val(2)-2.*val(5)+val(8))/delta**2
+  der(7) = der(4)+der(6)
+  write(11,1001) x,z,(valr(i),i=1,7)
+  write(11,1002)     (der(i),i=1,7)
+ 1001 format(1p9e12.4)
+ 1002 format(24x,1p7e12.4)
+  endif  ! on icheck
+ 
+
+  if(numvar.le.1) return
+  vz1_l = 0.
+  bz1_l = 0.
+
+  if(numvar.le.2) return
+  chi1_l = 0.
+  p1_l = 0.
+
+  if(ipres.eq.1) then
+     pe1_l = pefac*p1_l
+  else
+     pe1_l = p1_l
+  endif
+  return
+
+
+
+end subroutine circ_shell_only_per
+
+end module circ_shell_only
+
 
 !==============================================================================
 ! Magnetorotational Equilibrium (itor = 1, itaylor = 2)
@@ -1801,7 +1994,7 @@ subroutine eqdsk_init()
            flux(l) = l*dpsi
            ll = nw-l
 !          redefine fpol keeping ffprim fixed
-           if(ll.gt.0) fpol(ll) = -sqrt(fpol(ll+1)**2 - dpsi*(ffprim(ll)+ffprim(ll+1)))
+           if(ll.gt.0) fpol(ll) = sign(1.0,fpol(nw))*sqrt(fpol(ll+1)**2 - dpsi*(ffprim(ll)+ffprim(ll+1)))
         end do
         call create_profile(nw,press,pprime,fpol,ffprim,flux)
 !
@@ -2299,6 +2492,7 @@ subroutine initial_conditions()
   use grav
   use strauss
   use circular_field
+  use circ_shell_only
   use rotate
   use eqdsk_eq
   use dskbal_eq
@@ -2337,6 +2531,8 @@ subroutine initial_conditions()
            call biharmonic_init(1)
         case(9)
            call biharmonic_init(0)
+        case(10)
+           call circ_shell_only_init()
         end select
      else
         ! toroidal equilibria

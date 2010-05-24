@@ -81,7 +81,7 @@ subroutine cubic_interpolation_coeffs(x,m,i,a)
   integer :: ihermite
   real  :: xpi,xpip
 
-  ihermite = 0
+  ihermite = 1
   select case(ihermite)
   case(0)
      a(1) = x(i)
