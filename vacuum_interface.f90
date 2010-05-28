@@ -5,8 +5,8 @@ module vacuum_interface
   integer :: nodes
   integer, allocatable :: global_id(:)
   integer, allocatable :: local_id(:)
-  real, allocatable :: zgrbth(:,:), zgrbph(:,:), xnode(:), znode(:)
-  real, allocatable :: zgrbthp(:,:), zgrbphp(:,:)
+  complex, allocatable :: zgrbth(:,:), zgrbph(:,:), zgrbthp(:,:), zgrbphp(:,:)
+  real, allocatable :: xnode(:), znode(:)
 
 contains 
 
@@ -51,8 +51,8 @@ contains
     
     character(len=*), parameter :: filename = 'RESPONSE-M3DC1'
     integer, parameter :: ifile = 2
-    integer :: idum, i, j
-    real :: dtheta, ka, thetai, thetaj, fac, bessk, besskp, grate
+    integer :: idum, i, j, m, mmax
+    real :: dtheta, ka, thetai, thetaj, fac, bessk, besskp, grate, temp
 
     ierr = 0
 !
@@ -104,11 +104,11 @@ contains
     end do
 
     dtheta = 2.*3.14159265358979323846/nodes
-    zgrbth = zgrbth*dtheta
-    zgrbph = zgrbph*dtheta
+!
+!...NOTE:  equivalent to multiplying by dtheta and dividing by 2 pi
+    zgrbth = zgrbth/nodes
+    zgrbph = zgrbph/nodes
 
-    zgrbth = zgrbth * 0.5
-    zgrbph = zgrbph * 0.5
 
     ! calculate derivatives (wrt i)
     zgrbthp(1,:) = 0.5*(zgrbth(2,:) - zgrbth(nodes+1,:))/dtheta
@@ -128,23 +128,38 @@ contains
 !...  define matrices with analytic formula
       xnode(nodes+1) = xnode(1)
       znode(nodes+1) = znode(1)
-      ka = ntor
-      fac = 2.*mpol/(nodes*ntor)*bessk(mpol,ka)/besskp(mpol,ka)
-      do i=1,nodes+1
-      do j=1,nodes+1
-        thetai = atan2(znode(i),xnode(i))
-        thetaj = atan2(znode(j),xnode(j))
-        zgrbth(i,j) = fac*sin(mpol*(thetai-thetaj))
+      zgrbph = (0.,0.)
+      ka = aminor*ntor/xzero
+      mmax = 30
+      do m=1,mmax
+        fac = 2.*m/(nodes*ka)*bessk(m,ka)/besskp(m,ka)
+        do i=1,nodes+1
+        do j=1,nodes+1
+          thetai = atan2(znode(i),xnode(i)-xzero)
+          thetaj = atan2(znode(j),xnode(j)-xzero)
+          zgrbth(i,j) = zgrbth(i,j) + fac*sin(m*(thetai-thetaj))
+        enddo
+        enddo
       enddo
-      write(97,1002) (zgrbth(i,j),j=1,nodes+1)
- 1002 format(1p10e12.4)
-      enddo
-      grate = (eta_wall/delta_wall)*(mpol + (mpol**2*bessk(mpol,ka))/(ntor*besskp(mpol,ka)))
+
+      ka = aminor*ntor/xzero
+      grate = (eta_wall/(delta_wall*aminor))*(mpol + (mpol**2*bessk(mpol,ka))/(ka*besskp(mpol,ka)))
       write(*,1001) grate
-      write(97,1001) grate
- 1001 format(" Analytic Decay rate ",1pe12.4)
+      write(98,1001) grate, bessk(mpol,ka), besskp(mpol,ka), xzero
+ 1001 format(" Analytic Decay rate ",1p4e12.4)
     endif      ! on itaylor.eq.10
 
+!      do i=1,nodes+1
+!
+!.....debug:   change write to read
+!        read(97,1002) (zgrbth(i,j),j=1,nodes+1)
+!        do j=1,nodes+1
+!          zgrbthp(i,j) = 0.
+!          zgrbph(i,j) = 0.
+!          zgrbphp(i,j) = 0.
+!        enddo
+!      enddo
+ 1002 format(1p6e12.4)
     
   end subroutine load_response_matrix
 

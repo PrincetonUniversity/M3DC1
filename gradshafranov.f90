@@ -132,7 +132,7 @@ subroutine vacuum_field()
   real, dimension(6) :: g1, g2
   real, dimension(maxcoils) :: xp, zp, xc, zc
   complex, dimension(maxcoils) :: ic
-  real :: aminor, bv, rnorm, fac
+  real :: asmall, bv, rnorm, fac
   integer :: ineg, ipole, numcoils
   
 
@@ -145,9 +145,9 @@ subroutine vacuum_field()
   fac  = tcuro/(2.*pi)
   fac2 = tcuro / (8.*pi**2*xmag)
   ! minor radius
-  aminor = abs(xmag-xlim)
+  asmall = abs(xmag-xlim)
   if(itor.eq.1) then
-     bv =  alog(8.*xmag/aminor) - 1.5 + libetap
+     bv =  alog(8.*xmag/asmall) - 1.5 + libetap
      libetapeff = libetap
   else
      bv = 0.
