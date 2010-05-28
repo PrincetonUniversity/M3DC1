@@ -122,7 +122,7 @@ module basic
   ! general equilibrium parameters
   integer :: irestart ! 1 = reads restart file as initial condition
                       ! 2 = reads restart file to initialize GS solve
-  integer :: itaylor  ! equilibrium
+  integer :: itaylor  ! switch used to select certain equilibrium and perturbations for test problems
   integer :: idevice  ! for itor=1, itaylor=1, selects tokamak configuration
                       !  0 = generic
                       !  1 = CDX-U
@@ -263,6 +263,7 @@ module basic
   ! complex options
   integer :: ntor     ! toroidal mode number
   integer :: mpol     ! poloidal mode number for certain test problems
+  real :: aminor    ! minor radius for test problem with itaylor=10,11
 
   real :: tiltangled   !   angle to which the rectangular mesh is tilted for tests of boundary conditions
 !
@@ -272,7 +273,7 @@ module basic
        itaylor,                                                &
        xzero,zzero,beta,rzero, libetap, xlim2, zlim2,          &
        numvar,idens,ipres,gyro,isources,nosig,itor,jadv,       &
-       gam,db,gravr,gravz,                                     &
+       gam,db,gravr,gravz,aminor,                              &
        p0,pi0,bzero,vzero,phizero,                             &
        etar,eta0,iresfunc,etaoff,etadelt,lambdae,mass_ratio,   &
        ivisfunc,amu,amuc,amupar,amue,amuoff,amudelt,denm,      &

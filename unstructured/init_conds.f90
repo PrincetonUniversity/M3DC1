@@ -1517,7 +1517,7 @@ subroutine circ_shell_only_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z
+  real :: x, z, xs
 
 
 
@@ -1526,9 +1526,10 @@ subroutine circ_shell_only_init()
      call nodcoord(l, x, z)
 
      call assign_local_pointers(l)
+      xs = x - xzero
 
-     call circ_shell_only_equ(x, z)
-     call circ_shell_only_per(x, z)
+     call circ_shell_only_equ(xs, z)
+     call circ_shell_only_per(xs, z)
   enddo
 
 end subroutine circ_shell_only_init
@@ -2531,7 +2532,7 @@ subroutine initial_conditions()
            call biharmonic_init(1)
         case(9)
            call biharmonic_init(0)
-        case(10)
+        case(10:11)
            call circ_shell_only_init()
         end select
      else
