@@ -309,6 +309,7 @@ contains
     
     use basic
     use arrays
+    use mesh_mod
   
     implicit none
 
@@ -316,18 +317,18 @@ contains
     real, dimension(2) :: temp, temp2
     integer :: itri
 
-    call getboundingboxsize(alx,alz)
+    call get_bounding_box_size(alx,alz)
 
 
     itri = 0
     xrel = xzero
     zrel = alz/2. + zzero
-    call evaluate(xrel,zrel,temp(1),temp2(1),field,psi_g,num_fields,itri)
+    call evaluate(xrel,zrel,temp(1),temp2(1),psi_field,itri)
 
     itri = 0
     xrel = alx/2. + xzero
     zrel = alz/2. + zzero
-    call evaluate(xrel,zrel,temp(2),temp2(2),field,psi_g,num_fields,itri)
+    call evaluate(xrel,zrel,temp(2),temp2(2),psi_field,itri)
 
     reconnected_flux = 0.5*(temp(2)-temp(1))
 
@@ -365,30 +366,20 @@ contains
 subroutine calculate_scalars()
 
   use basic
-  use t_data
+  use mesh_mod
   use arrays
   use nintegrate_mod
   use newvar_mod
   use sparse
   use metricterms_new
+  use boundary_conditions
 
   implicit none
-#include "finclude/petsc.h" 
  
-  integer :: itri, numelms, i, ione, def_fields
-  real :: x, z, xmin, zmin, factor
+  integer :: itri, numelms, def_fields
   logical :: is_edge(3)  ! is inode on boundary
   real :: n(2,3)
   integer :: iedge, idim(3)
-
-
-  double precision, dimension(3)  :: cogcoords
-
-  integer :: ier
-  PetscTruth :: flg_petsc, flg_solve2, flg_solve1
-  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
-  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ier)
-  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve1', flg_solve1,ier)
 
   ptoto = ptot
 
@@ -446,78 +437,16 @@ subroutine calculate_scalars()
   tm79 = 0.
   tm79(:,OP_1) = 1.
 
-  if(isources.eq.1) then
-     sb1 = 0.
-     sb2 = 0.
-     sp1 = 0.
-  end if
+  call finalize(field0_vec)
+  call finalize(field_vec)
 
-  call getmincoord(xmin,zmin)
-
-  call numfac(numelms)
+  numelms = local_elements()
   do itri=1,numelms
 
-     if(imask.eq.1) then
-        call cogfac(itri,cogcoords)
-        x = cogcoords(1)-xmin
-        z = cogcoords(2)-zmin
-        call mask(x,z,factor)
-     else
-        factor = 1.
-     endif
-     dbf = db*factor
+     dbf = db
 
      call define_triangle_quadrature(itri, int_pts_diag)
-     call define_fields(itri, def_fields, isources, 0)
-
-
-     ! Define Source terms
-     ! ~~~~~~~~~~~~~~~~~~~
-     if(isources.eq.1) then
-
-        do i=1,18
-           ione = isval1(itri,i)
-          
-           ! Definition of Source Terms
-           ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
-           sb1(ione) = sb1(ione) + b1psieta(g79(:,:,i),pst79,eta79,hypf*sz79)
-           
-           if(numvar.ge.2) then
-              sb1(ione) = sb1(ione) + b1psibd(g79(:,:,i),pst79,bzt79,ni79)*dbf
-              
-              sb2(ione) = sb2(ione)  &
-                   + b2psipsid(g79(:,:,i),pst79,pst79,ni79)*dbf &
-                   + b2bbd    (g79(:,:,i),bzt79,bzt79,ni79)*dbf &
-                   + b2beta   (g79(:,:,i),bzt79,eta79,hypi*sz79)
-           endif
-        
-           if(numvar.ge.3) then
-              sb2(ione) = sb2(ione) + b2ped(g79(:,:,i),pet79,ni79)*dbf*pefac
-              
-              sp1(ione) = sp1(ione) &
-                   + b3psipsieta(g79(:,:,i),pst79,pst79,eta79)   &
-                   + b3bbeta    (g79(:,:,i),bzt79,bzt79,eta79)   &
-!                   + b3pedkappa (g79(:,:,i),pt79,ni79,kappat,hypp*sz79) &
-!                   + p1kappar   (g79(:,:,i),pst79,pst79,pet79,ni79,b2i79,kar79) &
-!                   + p1kappax   (g79(:,:,i),pet79,bzt79,ni79,b2i79,kar79) &
-                   + b3pebd(g79(:,:,i),pet79,bzt79,ni79)*dbf*pefac
-              
-              ! ohmic heating
-              sp1(ione) = sp1(ione) + (gam-1.)* &
-                   (qpsipsieta(g79(:,:,i)) &
-                   +qbbeta    (g79(:,:,i)))
-           
-              ! viscous heating
-              sp1(ione) = sp1(ione) - (gam-1.)* &
-                   (quumu    (g79(:,:,i),pht79,pht79,vis79,      hypc*sz79) &
-                   +qvvmu    (g79(:,:,i),vzt79,vzt79,vis79,      hypv*sz79) &
-                   +quchimu  (g79(:,:,i),pht79,cht79,vis79,vic79,hypc*sz79) &
-                   +qchichimu(g79(:,:,i),cht79,cht79,      vic79,hypc*sz79))
-           endif ! on numvar.ge.3
-        end do
-
-     endif ! on isources
-
+     call define_fields(itri, def_fields, 0, 0)
 
      ! Calculate energy
      ! ~~~~~~~~~~~~~~~~
@@ -576,7 +505,6 @@ subroutine calculate_scalars()
      ! gravitational potential energy
      epotg = epotg + grav_pot()
 
-
      ! toroidal (angular) momentum
      if(numvar.ge.2) then
         select case(ivform)
@@ -610,7 +538,6 @@ subroutine calculate_scalars()
         bwb2 = bwb2 + &
              3.*int3(vip79(:,OP_1),temp79a,CONJUGATE(temp79a))
      end if
-
 
      ! add surface terms
      call boundary_edge(itri, is_edge, n, idim)
@@ -672,13 +599,6 @@ subroutine calculate_scalars()
      end do
   end do
 
-
-  if(isources.eq.1) then
-     call solve_newvar(sb1, NV_DCBOUND, mass_matrix_lhs_dc, sb1)
-     if(numvar.ge.2) call solve_newvar(sb2, NV_DCBOUND, mass_matrix_lhs_dc,sb2)
-     if(numvar.ge.3) call solve_newvar(sp1, NV_DCBOUND, mass_matrix_lhs_dc,sp1)
-  endif
-
   call distribute_scalars
 
   ekin = ekinp + ekint + ekin3
@@ -714,27 +634,29 @@ end subroutine calculate_scalars
 ! imethod = 0 finds the local minimum of psi
 ! imethod = 1 finds the local zero of <psi,psi>
 !=====================================================
-subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
+subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
   use basic
-  use t_data
+  use mesh_mod
   use nintegrate_mod
+  use field
 
   implicit none
 
   include 'mpif.h'
 
   real, intent(inout) :: xguess, zguess
-  vectype, intent(in), dimension(*) :: phin
-  integer, intent(in) :: iplace, numvari, imethod
+  type(field_type), intent(in) :: psi
+  integer, intent(in) :: imethod
   real, intent(out) :: psim
 
-  integer, parameter :: iterations = 200  !  max number of Newton iterations
+  integer, parameter :: iterations = 20  !  max number of Newton iterations
   real, parameter :: bfac = 0.5  !max zone fraction for movement each iteration
   real, parameter :: tol = 1e-3   ! convergence tolorance (fraction of h)
 
+  type(element_data) :: d
   integer :: itri, inews
   integer :: i, ier, in_domain, converged
-  real :: x1, z1, x, z, theta, a, b, c, co, sn, si, eta, h
+  real :: x1, z1, x, z, si, eta, h
   real :: sum, sum1, sum2, sum3, sum4, sum5
   real :: term1, term2, term3, term4, term5
   real :: pt, pt1, pt2, p11, p22, p12
@@ -758,18 +680,14 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
 
      ! calculate position of minimum
      if(itri.gt.0) then
-        call calcavector(itri, phin, iplace, numvari, avector)
+        call calcavector(itri, psi, avector)
+        call get_element_data(itri, d)
 
         ! calculate local coordinates
-        theta = ttri(itri)
-        a = atri(itri)
-        b = btri(itri)
-        c = ctri(itri)
-        h = sqrt((a+b)*c)
-        co = cos(theta)
-        sn = sin(theta)
-        si  = (x-x1)*co + (z-z1)*sn - b
-        eta =-(x-x1)*sn + (z-z1)*co
+        call global_to_local(d, x, z, si, eta)
+
+        ! calculate mesh size
+        h = sqrt((d%a+d%b)*d%c)
  
         ! evaluate the polynomial and second derivative
         sum = 0.
@@ -822,8 +740,8 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
            etanew = eta - pt*pt2/denom
         end select
 
-        xtry = x1 + co*(b+sinew) - sn*etanew
-        ztry = z1 + sn*(b+sinew) + co*etanew
+        xtry = x1 + d%co*(d%b+sinew) - d%sn*etanew
+        ztry = z1 + d%sn*(d%b+sinew) + d%co*etanew
 
 !....limit movement to bfac times zone spacing per iteration
         rdiff = sqrt((x-xtry)**2 + (z-ztry)**2)
@@ -834,7 +752,6 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
           xnew = x + bfac*h*(xtry-x)/rdiff
           znew = z + bfac*h*(ztry-z)/rdiff
         endif
-!        znew = zguess
         in_domain = 1
         if(iprint.ge.2) &
              write(*,'(A,4E12.4)') '  magaxis: rdiff/h, tol, xnew,znew', rdiff/h, tol, xnew,znew
@@ -904,31 +821,32 @@ end subroutine magaxis
 !
 ! locates the magnetic axis and the value of psi there
 !=====================================================
-subroutine lcfs(phin, iplace, numvari)
+subroutine lcfs(psi)
   use basic
-  use t_data
+  use mesh_mod
   use nintegrate_mod
+  use field
+  use boundary_conditions
 
   implicit none
 
   include 'mpif.h'
 
-  vectype, intent(in), dimension(*) :: phin
-  integer, intent(in) :: iplace,numvari
+  type(field_type), intent(in) :: psi
 
   real :: psix, psib, psim
   real :: x, z, temp1, temp2, temp_min, temp_max, ajlim
   integer :: ier, numnodes, inode, izone, izonedim, itri
-  integer :: ibegin, iendplusone, index
   logical :: is_boundary, first_point
   real, dimension(2) :: normal
   real :: curv
+  vectype, dimension(dofs_per_node) :: data
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, 'Finding LCFS:'
 
   ! Find magnetic axis
   ! ~~~~~~~~~~~~~~~~~~
-  call magaxis(xmag,zmag,phin,iplace,numvari,psim,0,ier)
+  call magaxis(xmag,zmag,psi,psim,0,ier)
   if(ier.eq.0) then
      psimin = psim
      
@@ -953,22 +871,22 @@ subroutine lcfs(phin, iplace, numvari)
   ! such that psi is not increasing outward 
   ! (as in a private flux region)
   first_point = .true.
-  call numnod(numnodes)
+  numnodes = owned_nodes()
   do inode=1, numnodes
      call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
      if(.not.is_boundary) cycle
 
-     call entdofs(numvari,inode,0,ibegin,iendplusone)
-     index = ibegin+(iplace-1)*6
-     if(((x-xmag)*real(phin(index+1)) + &
-          (z-zmag)*real(phin(index+2)))*(real(phin(index))-psimin).lt.0.) cycle
+     call get_node_data(psi,inode,data)
+
+     if(((x-xmag)*real(data(2)) + (z-zmag)*real(data(3))) &
+          *(real(data(1))-psimin).lt.0.) cycle
 
      if(first_point) then
-        psib = real(phin(index))
+        psib = real(data(1))
         first_point =.false.
      else
-        if(abs(real(phin(index)) - psimin).lt.abs(psib - psimin)) &
-             psib = real(phin(index))
+        if(abs(real(data(1)) - psimin).lt.abs(psib - psimin)) &
+             psib = real(data(1))
      endif
   end do
 
@@ -992,7 +910,8 @@ subroutine lcfs(phin, iplace, numvari)
 
   ! Calculate psi at the x-point
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  call magaxis(xnull,znull,phin,iplace,numvari,psix,1,ier)
+  if(myrank.eq.0 .and. iprint.ge.2) print *, 'calculating psi at x-point'
+  call magaxis(xnull,znull,psi,psix,1,ier)
   if(ier.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) then
         write(*,'(A,2E12.4)') '  X-point found at ', xnull, znull
@@ -1017,18 +936,19 @@ subroutine lcfs(phin, iplace, numvari)
 
   ! Calculate psi at the limiter
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(myrank.eq.0 .and. iprint.ge.2) print *, 'calculating psi at limiter'
   if(xlim.eq.0.) then
      ! when xlim = 0, use the lcfs as the limiting flux
      psilim = psibound
      psilim2 = psilim
   else
      itri = 0
-     call evaluate(xlim,zlim,psilim,ajlim,phin,iplace,numvari,itri)
+     call evaluate(xlim,zlim,psilim,ajlim,psi,itri)
      
      ! calculate psi at a second limiter point as a diagnostic
      if(xlim2.gt.0) then
         itri = 0
-        call evaluate(xlim2,zlim2,psilim2,ajlim,phin,iplace,numvari,itri)
+        call evaluate(xlim2,zlim2,psilim2,ajlim,psi,itri)
      else
         psilim2 = psilim
      endif

@@ -135,7 +135,6 @@ subroutine set_defaults
   eps = .01
   maxn = 200
   irmp = 0
-  bscale = 1.
 
   ! grad-shafranov options
   inumgs = 0
@@ -143,7 +142,7 @@ subroutine set_defaults
   igs_method = 1
   nv1equ = 0
   tcuro = 1.
-  xmag = 0.
+  xmag = 1.
   zmag = 0.
   xlim = 0.
   zlim = 0.
@@ -161,6 +160,8 @@ subroutine set_defaults
   th_gs = 0.8
   tol_gs = 1.e-8
   psiscale = 1.
+  pscale = 1.
+  bscale = 1.
 
   irot = 0.
   alpha0 = 0.
@@ -184,10 +185,11 @@ subroutine set_defaults
 
   ! hyper-diffusivity
   deex = 1.
-  hyper = 0.0
-  hyperi= 0.0
-  hyperv= 0.0
-  hyperp= 0.0
+  hyper  = 0.
+  hyperi = 0.
+  hyperv = 0.
+  hyperp = 0.
+  hyperc = 0.
   ihypdx = 2
   ihypeta = 1
   ihypamu = 1
@@ -211,8 +213,9 @@ subroutine set_defaults
   inoslip_pol = 1
   inoslip_tor = 1
   inostress_tor = 0
-  inocurrent_pol = 1
+  inocurrent_pol = 0
   inocurrent_tor = 0
+  inocurrent_norm = 0
   ifbound = 1
   iconstflux = 0
   
@@ -267,6 +270,7 @@ subroutine set_defaults
 
   ! 3-D options
   ntor = 0
+  mpol = 0
 
   ! adaptation options
   iadapt = 0
@@ -279,13 +283,12 @@ subroutine set_defaults
   zzero = 0.
   tiltangled = 0.
 
-  imask = 0
-
 end subroutine set_defaults
 
 
 subroutine validate_input
   use basic
+  use mesh_mod
   use nintegrate_mod
 
   implicit none
@@ -317,7 +320,7 @@ subroutine validate_input
      if(myrank.eq.0 .and. iprint.ge.1) print *, "pefac = ", pefac
   endif
 
-  if(icomplex.eq.1) then
+  if(icomplex.eq.1 .and. ntor.ne.0) then
      i3d = 1
   else 
      i3d = 0
@@ -331,7 +334,15 @@ subroutine validate_input
           print *, 'WARNING: nonaxisymmetric cases should use jadv=1'
   endif
 
-  if(isplitstep.eq.0) imp_mod = 0
+  if(isplitstep.eq.0) then
+     imp_mod = 0
+
+     if(hyperc.ne.0.) &
+          print *, 'WARNING: poloidal velocity smoothing not available with isplitstep=0'
+     if(jadv.eq.1 .and. hyper.ne.0) &
+          print *, 'WARNING: poloidal flux smoothing not available with isplitstep=0 and jadv=1'
+  end if
+
   if(rzero.eq.-1) then
      if(itor.eq.1) then 
         rzero = xzero
@@ -392,6 +403,13 @@ subroutine validate_input
      tcur = -tcur
   endif
 
+!  if(eta_wall.ne.0.) then
+!     if(maxrank.gt.1) then
+!        print *, 'Error: resistive wall only supported for single-process runs'
+!        call safestop(1)
+!     end if
+!  endif
+
   if(ntimepr.lt.1) ntimepr = 1
 
   ! Read PETSc options
@@ -415,6 +433,8 @@ subroutine validate_input
         drop_zeroes = 0 
      end select
   endif
+
+  is_rectilinear = (nonrect.eq.0)
 
   if(myrank.eq.0) write(*,nml=inputnl)
 

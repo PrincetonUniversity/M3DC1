@@ -13,13 +13,27 @@ OPTS := $(OPTS) -Dvectype=real
 BIN_POSTFIX := $(BIN_POSTFIX)-real
 endif
 
+ifeq ($(USEPETSC), 1)
+OPTS := $(OPTS) -DUSEPETSC -Dmesh_mod=basic_mesh_mod \
+	-Dvector_mod=petsc_vector_mod -Dmatrix_mod=petsc_matrix_mod \
+	-Dmatrix_type=petsc_matrix -Dvector_type=petsc_vector
+V_OBJ := basic_mesh.o petsc_vector.o petsc_matrix.o
+BIN_POSTFIX := $(BIN_POSTFIX)-petsc
+else
+USESCOREC = 1
+OPTS := $(OPTS) -DUSESCOREC -Dmesh_mod=scorec_mesh_mod \
+	-Dvector_mod=scorec_vector_mod -Dmatrix_mod=scorec_matrix_mod \
+	 -Dmatrix_type=scorec_matrix -Dvector_type=scorec_vector
+V_OBJ := scorec_mesh.o scorec_vector.o scorec_matrix.o PETScInterface.o
+endif
+
 # specify whether debug or optimization 
 ifeq ($(OPT), 1)
 OPTS := $(OPTS) -O
 SCORECOPT = -O
 BIN_POSTFIX := $(BIN_POSTFIX)-opt
 else
-OPTS := $(OPTS) -g 
+SCORECOPT =
 endif
 
 # Define the size of sampling point arrays.
@@ -36,6 +50,8 @@ OPTS := $(OPTS) -DPETSC_FORTRAN_PETSCTRUTH_INT
 
 export OPTS
 export SCORECOPT
+export V_OBJ
+export USESCOREC
 
 include target.mk
 
@@ -47,24 +63,31 @@ else
 
 VPATH=$(SRCDIR)
 
+include $(SRCDIR)/$(ARCH).mk
+
 BIN = m3dc1
 
 READGATO_OBJS = polar.o readgato.o
 READJSOLVER_OBJS = polar.o read_jsolver_exec.o
 
-OBJS = subp.o dbesj0.o dbesj1.o fdump.o \
-	math.o interpolate.o control.o M3Dmodules.o \
-	nintegrate_mod.o harned_mikic.o metricterms_new.o biharmonic.o \
-	electrostatic_potential.o newvar.o diagnostics.o vacuum_interface.o \
+OBJS := $(AUX) subp.o dbesj0.o dbesj1.o fdump.o \
+	math.o interpolate.o control.o \
+	element.o $(V_OBJ) field.o \
+	M3Dmodules.o \
+	nintegrate_mod.o vacuum_interface.o boundary.o \
+	harned_mikic.o metricterms_new.o biharmonic.o \
+	electrostatic_potential.o newvar.o diagnostics.o \
 	coils.o coil_sets.o gradshafranov.o transport.o \
-	hdf5_output.o time_step.o \
-	newpar.o input.o ludef_t.o boundary.o mesh.o \
-	restart.o acbauer.o metricterms.o readgeqdsk.o read_dskbal.o \
-	read_jsolver.o init_conds.o PETScInterface.o
+	time_step.o hdf5_output.o \
+	newpar.o input.o ludef_t.o \
+	restart.o readgeqdsk.o read_dskbal.o \
+	read_jsolver.o output.o \
+	ic_resistive_wall.o \
+	init_conds.o
+
+S2V_OBJS = math.o element.o scorec_mesh.o struct2vac.o
 
 all : $(BIN)
-
-include $(SRCDIR)/$(ARCH).mk
 
 $(BIN): $(OBJS)
 	$(LOADER) $(OBJS) $(LIBS) -o $@
@@ -81,7 +104,7 @@ read_jsolver : $(READJSOLVER_OBJS)
 read_jsolver_exec.o : read_jsolver.f90
 	$(F90) $(F90OPTS) -DREAD_JSOLVER $< -o $@
 
-struct2vac : struct2vac.o
-	$(LOADER) -Wl,--warn-unresolved-symbols $< $(LIBS) -o $@
+struct2vac : $(S2V_OBJS)
+	$(LOADER) -Wl,--warn-unresolved-symbols $(S2V_OBJS) $(LIBS) -o $@
 
 endif

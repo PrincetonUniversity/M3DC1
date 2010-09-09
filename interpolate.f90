@@ -15,8 +15,8 @@ subroutine bicubic_interpolation_coeffs(x,m,n,i,j,a)
 
   a = 0.
 
-  if(i-1.lt.1 .or. i+2.gt.m) return
-  if(j-1.lt.1 .or. j+2.gt.n) return
+  if(i.lt.1 .or. i.gt.m) return
+  if(j.lt.1 .or. j.gt.n) return
 
   a(1,1) = x(i,j)
   a(1,2) = (-2.*x(i,j-1)-3.*x(i,j)+6.*x(i,j+1)-x(i,j+2))/6.
@@ -78,9 +78,10 @@ subroutine cubic_interpolation_coeffs(x,m,i,a)
   integer, intent(in) :: m, i
   real, intent(in), dimension(m) :: x
   real, intent(out), dimension(4) :: a
-  integer, parameter :: ihermite = 0
+  integer :: ihermite
   real  :: xpi,xpip
 
+  ihermite = 0
   select case(ihermite)
   case(0)
      a(1) = x(i)
@@ -161,6 +162,7 @@ subroutine cubic_interpolation(m, p, p0, f, f0)
      return
   end if
 
+  if(p(m).eq.p(1)) print *, 'ERROR 1!!!', p(1), p(m) 
   iguess = (m-1)*(p0-p(1))/(p(m)-p(1)) + 1
 
   if(p(iguess).lt.p0) goto 90
@@ -190,6 +192,7 @@ subroutine cubic_interpolation(m, p, p0, f, f0)
   if(i.ge.m) then
      f0 = a(1)
   else
+     if(p(i+1).eq.p(i)) print *, 'ERROR 2!!!', p(i+1), p(i) 
      dp = (p0-p(i))/(p(i+1)-p(i))
      f0 = a(1) + a(2)*dp + a(3)*dp**2 + a(4)*dp**3
   endif

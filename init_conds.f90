@@ -86,31 +86,27 @@ subroutine add_product(x,a,b)
 end subroutine add_product
 !=============================
 subroutine random_per(x,z,seed,fac)
+  use math
   use basic
   use arrays
+  use mesh_mod
 
   implicit none
 
-  real :: drand
+  real :: drand, rand
 
   real, intent(in) :: x, z
-  vectype, intent(in), dimension(6) :: fac
+  vectype, intent(in), dimension(dofs_per_node) :: fac
   integer, intent(in) :: seed
-  integer :: i, j
+  integer :: i, j, k
   real :: alx, alz, kx, kz, xx, zz
-  vectype, dimension(6) :: temp
+  vectype, dimension(dofs_per_node) :: temp
 
-  call getboundingboxsize(alx, alz)
+  call get_bounding_box_size(alx, alz)
 
   call srand(seed)
 
   temp = 0.
-
-#ifdef _AIX
-#define RAND_ARG
-#else
-#define RAND_ARG 0
-#endif
 
   xx = x - xzero
   zz = z - zzero
@@ -118,30 +114,30 @@ subroutine random_per(x,z,seed,fac)
   do i=1,maxn
      kx = pi*i/alx
      select case (icsym)
-!
+
      case (0)   !  original option...no symmetry imposed
      do j=1, maxn
         kz = j*pi/alz
-        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(drand(RAND_ARG)-.5),0.,0.)
+        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(RANDOM_NUM-.5),0.,0.)
         call add_product(psi1_l,fac,temp)
-        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(drand(RAND_ARG)-.5),0.,0.)
+        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(RANDOM_NUM-.5),0.,0.)
         call add_product(u1_l,fac,temp)
      end do
-!
+
      case (1)  !   make U odd symmetry about midplane:  perturb only U
      do j=1, maxn/2
         kz = 2.*j*pi/alz
-        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(drand(RAND_ARG)-.5),0.,0.)
+        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(RANDOM_NUM-.5),0.,0.)
         call add_product(u1_l,fac,temp)
      end do
-!
+
      case (2)  !   make U even  symmetry about midplane:  perturb only U
      do j=1, maxn/2
         kz = (2.*j-1)*pi/alz
-        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(drand(RAND_ARG)-.5),0.,0.)
+        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(RANDOM_NUM-.5),0.,0.)
         call add_product(u1_l,fac,temp)
      end do
-!
+
      end select
   end do
 
@@ -164,18 +160,19 @@ end subroutine cartesian_to_cylindrical
 subroutine cartesian_to_cylindrical_all()
   use basic
   use arrays
+  use mesh_mod
 
   implicit none
 
   integer :: inode, numnodes
   real :: x, z
 
-  call numnod(numnodes)
+  numnodes = owned_nodes()
 
   do inode=1, numnodes
-     call nodcoord(inode, x, z)
+     call get_node_pos(inode, x, z)
 
-     call assign_local_pointers(inode)
+     call get_local_vals(inode)
 
      call cartesian_to_cylindrical(x,psi0_l)
      call cartesian_to_cylindrical(x,psi1_l)
@@ -189,6 +186,7 @@ subroutine cartesian_to_cylindrical_all()
         call cartesian_to_cylindrical(x,vz1_l)
      endif
      
+     call set_local_vals(inode)
   end do
 end subroutine cartesian_to_cylindrical_all
 !==============================================================================
@@ -197,29 +195,32 @@ subroutine den_eq
   use arrays
   use diagnostics
   use math
+  use mesh_mod
 
   integer :: numnodes, inode
   real :: temp(6), k, kx, x, z
   
   if(idenfunc.eq.0) return
 
-  call numnod(numnodes)
+  numnodes = owned_nodes()
   
   select case(idenfunc)
   case(1)      ! added 08/05/08 for stability benchmarking
 
      do inode=1, numnodes 
-        call assign_local_pointers(inode)
+        call get_local_vals(inode)
 
         den0_l(1) = den0*.5* &
              (1. + &
              tanh((real(psi0_l(1))-(psibound+denoff*(psibound-psimin)))&
              /(dendelt*(psibound-psimin))))
+
+        call set_local_vals(inode)
      end do
         
   case(2)
      do inode=1, numnodes 
-        call assign_local_pointers(inode)
+        call get_local_vals(inode)
         
         temp(1) = real((psi0_l(1)-psimin)/(psibound-psimin))
         temp(2:6) = real(psi0_l(2:6))/(psibound-psimin)
@@ -239,12 +240,14 @@ subroutine den_eq
         
         den0_l = den0_l * 0.5*(den_edge-den0)
         den0_l(1) = den0_l(1) + den0
+
+        call set_local_vals(inode)
      end do
      
   case(3)
      do inode=1, numnodes 
-        call assign_local_pointers(inode)
-        call nodcoord(inode, x, z)
+        call get_local_vals(inode)
+        call get_node_pos(inode, x, z)
         
         temp(1) = real((psi0_l(1)-psimin)/(psibound-psimin))
         temp(2) = (psi0_l(2)*(x - xmag) &
@@ -255,6 +258,8 @@ subroutine den_eq
         else
            call constant_field(den0_l, den_edge)
         end if
+
+        call set_local_vals(inode)
      end do
      
   case(4)
@@ -266,7 +271,7 @@ end subroutine den_eq
 !======================================================================
 subroutine read_density_profile
   use basic
-  use t_data
+  use mesh_mod
   use arrays
   use sparse
   use nintegrate_mod
@@ -276,15 +281,16 @@ subroutine read_density_profile
 
   include 'mpif.h'
 
+  type(element_data) :: d
   integer, parameter :: ifile = 123
-  integer :: npsi, itype, numelms, itri, i, k, i1, ier
-  real :: psii
+  integer :: npsi, itype, numelms, itri, i, k, ier
+  real :: psii, temp
   real, allocatable :: spsi(:), density(:)
-  vectype, allocatable :: temp(:)
+  type(field_type) :: temp_field
   vectype, dimension(20) :: avec
+  vectype, dimension(dofs_per_element) :: dofs
 
   logical :: inside_lcfs
-  real :: tm
 
   if(myrank.eq.0) then
      if(iprint.eq.1) print *, 'Reading density profile...'
@@ -312,43 +318,42 @@ subroutine read_density_profile
      call mpi_bcast(density,npsi,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD, ier)
   endif
 
-  if(iprint.eq.1) print *, 'Solving density profile...'
+  if(myrank.eq.0 .and. iprint.eq.1) print *, 'Solving density profile...'
 
-  call createvec(temp,1)
+  call create_field(temp_field)
 
-  temp = 0.
-  call numfac(numelms)
+  numelms = local_elements()
   do itri=1,numelms
      call define_triangle_quadrature(itri, 25)
      call define_fields(itri, 0, 1, 0)
+     call get_element_data(itri, d)
 
-     call calcavector(itri, field0, psi_g, num_fields, avec)
-     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ps079)
+     call calcavector(itri, psi_field(0), avec)
+     call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, ps079)
                      
-     do i=1, 18
-        i1 = isval1(itri,i)
-
+     do i=1,dofs_per_element
         do k=1, npoints
            psii = (real(ps079(k,OP_1)) - psimin)/(psibound - psimin)
            if(inside_lcfs(ps079(k,:), x_79(k), z_79(k), .true.)) then
               call cubic_interpolation(npsi,spsi,sqrt(psii), &
-                   density,tm)
-              temp79a(k) = tm
+                   density,temp)
+              temp79a(k) = temp
            else
               temp79a = density(npsi)
            endif
         end do
         temp79a = temp79a / (n0_norm*1.e6)
 
-        temp(i1) = temp(i1) + int2(g79(:,OP_1,i),temp79a)
+        dofs(i) = int2(mu79(:,OP_1,i),temp79a)
      end do
+     call vector_insert_block(temp_field%vec,itri,1,dofs,VEC_ADD)
   end do
   
-  call solve_newvar(temp,NV_NOBOUND,mass_matrix_lhs,temp)
+  call newvar_solve(temp_field%vec,mass_mat_lhs)
   
-  call copyvec(temp, 1, 1, field0, den_g, num_fields)
+  den_field(0) = temp_field
   
-  call deletevec(temp)
+  call destroy_field(temp_field)
   deallocate(spsi, density)
 end subroutine read_density_profile
 
@@ -357,6 +362,7 @@ subroutine rmp_per
   use basic
   use arrays
   use coils
+  use boundary_conditions
 
   implicit none
 
@@ -368,12 +374,12 @@ subroutine rmp_per
 #endif
 
   if(irmp.eq.3) then
-     call numnod(numnodes)
+     numnodes = owned_nodes()
      do l=1, numnodes
         call boundary_node(l,is_boundary,izone,izonedim,normal,curv,x,z)
         if(.not.is_boundary) cycle
 
-        call assign_local_pointers(l)
+        call get_local_vals(l)
 
         dx = x - xmag
         dz = z - zmag
@@ -405,21 +411,24 @@ subroutine rmp_per
         psi1_l(6) = psi1_l(6) + ii*4.*dx*dz*(1. - 4.*dx**2/r2)/r2**2
 #endif
         psi1_l = psi1_l*0.5*bx0
+
+        call set_local_vals(l)
      end do
      return
   endif
 
   call load_field_from_coils('rmp_coil.dat', 'rmp_current.dat', &
-       field,num_fields,psi_g)
+       field_vec,num_fields,psi_g)
 
   ! leave perturbation only on the boundary
   if(irmp.eq.2) then
-     call numnod(numnodes)
+     numnodes = owned_nodes()
      do l=1, numnodes
         call boundary_node(l,is_boundary,izone,izonedim,normal,curv,x,z)
         if(.not.is_boundary) then
-           call assign_local_pointers(l)
+           call get_local_vals(l)
            psi1_l = 0.
+           call set_local_vals(l)
         endif
      end do
   endif
@@ -439,25 +448,28 @@ contains
 subroutine tilting_cylinder_init()
   use basic
   use arrays
+  use mesh_mod
 
   implicit none
 
   integer :: l, numnodes
   real :: x, z, alx, alz
 
-  call getboundingboxsize(alx, alz)
+  call get_bounding_box_size(alx, alz)
 
-  call numnod(numnodes)
+  numnodes = owned_nodes()
   do l=1, numnodes
-     call nodcoord(l, x, z)
+     call get_node_pos(l, x, z)
 
      x = x - alx*.5 - xzero
-     z = z - alz*.5 - zzero 
+     z = z - alz*.5 - zzero
 
-     call assign_local_pointers(l)
+     call get_local_vals(l)
 
      call cylinder_equ(x, z)
      call cylinder_per(x, z)
+
+     call set_local_vals(l)
   enddo
 
 end subroutine tilting_cylinder_init
@@ -471,8 +483,7 @@ subroutine cylinder_equ(x, z)
   real, intent(in) :: x, z
 
   real :: rr, ri, arg, befo, ff, fp, fpp, j0, j1, kb
-  real :: s17aef, s17aff
-  integer :: ifail1, ifail2, ifail3
+  real :: dbesj0, dbesj1
   
   u0_l = 0.
   vz0_l = 0.
@@ -487,9 +498,9 @@ subroutine cylinder_equ(x, z)
   if(rr.ne.0) ri = 1./rr
   arg = k*rr
   if(rr.le.1) then
-     befo = 2./s17aef(k,ifail1)
-     j0 = s17aef(arg,ifail2)
-     j1 = s17aff(arg,ifail3)
+     befo = 2./dbesj0(k)
+     j0 = dbesj0(arg)
+     j1 = dbesj1(arg)
      ff = .5*befo
      fp = 0.
      fpp = -.125*k**2*befo
@@ -613,25 +624,28 @@ contains
 subroutine taylor_reconnection_init()
   use basic
   use arrays
+  use mesh_mod
 
   implicit none
 
   integer :: l, numnodes
   real :: x, z, alx, alz
 
-  call getboundingboxsize(alx, alz)
+  call get_bounding_box_size(alx, alz)
 
-  call numnod(numnodes)
+  numnodes = owned_nodes()
   do l=1, numnodes
-     call nodcoord(l, x, z)
+     call get_node_pos(l, x, z)
 
      x = x - alx*.5 - xzero
      z = z - alz*.5 - zzero
 
-     call assign_local_pointers(l)
+     call get_local_vals(l)
 
      call taylor_reconnection_equ(x, z)
      call taylor_reconnection_per(x, z)
+
+     call set_local_vals(l)
   enddo
 
 end subroutine taylor_reconnection_init
@@ -696,32 +710,37 @@ contains
 subroutine force_free_init()
   use basic
   use arrays
+  use mesh_mod
 
   implicit none
 
   integer :: l, numnodes
   real :: x, z, alx, alz
 
-  call getboundingboxsize(alx, alz)
+  call get_bounding_box_size(alx, alz)
 
-  call numnod(numnodes)
+  numnodes = owned_nodes()
   do l=1, numnodes
-     call nodcoord(l, x,z)
+     call get_node_pos(l, x,z)
 
      x = x - alx*.5 - xzero
      z = z - alz*.5 - zzero
 
-     call assign_local_pointers(l)
+     call get_local_vals(l)
 
      call force_free_equ(x, z)
      call force_free_per(x, z)
+
+     call set_local_vals(l)
   enddo
 
 end subroutine force_free_init
 
 subroutine force_free_equ(x, z)
+  use math
   use basic
   use arrays
+  use mesh_mod
 
   implicit none
 
@@ -729,7 +748,7 @@ subroutine force_free_equ(x, z)
   
   real :: kx, kz, alx, alz, alam
   
-  call getboundingboxsize(alx, alz)
+  call get_bounding_box_size(alx, alz)
 
   kx = pi/alx
   kz = pi/alz
@@ -788,30 +807,34 @@ module gem_reconnection
 contains
 
 subroutine gem_reconnection_init()
+  use math
   use basic
   use arrays
+  use mesh_mod
 
   implicit none
 
   integer :: l, numnodes
   real :: x, z, alx, alz
 
-  call getboundingboxsize(alx, alz)
+  call get_bounding_box_size(alx, alz)
 
-  akx = 2.*pi/alx
+  akx = twopi/alx
   akz = pi/alz
 
-  call numnod(numnodes)
+  numnodes = owned_nodes()
   do l=1, numnodes
-     call nodcoord(l, x, z)
+     call get_node_pos(l, x, z)
 
-     call assign_local_pointers(l)
+     call get_local_vals(l)
 
      x = x - alx*.5 - xzero
      z = z - alz*.5 - zzero
 
      call gem_reconnection_equ(x, z)
      call gem_reconnection_per(x, z)
+
+     call set_local_vals(l)
   enddo
 
 end subroutine gem_reconnection_init
@@ -947,8 +970,10 @@ module wave_propagation
 contains
 
 subroutine wave_init()
+  use math
   use basic
   use arrays
+  use mesh_mod
 
   implicit none
 
@@ -961,7 +986,7 @@ subroutine wave_init()
   real :: error(3)
   real :: bi
 
-  call getboundingboxsize(alx, alz)
+  call get_bounding_box_size(alx, alz)
 
   ! for itaylorw=3, set up a phi perturbation only
   if(iwave.eq.3) then
@@ -976,7 +1001,7 @@ subroutine wave_init()
      goto 1
   endif
 
-  akx = 2.*pi/alx      
+  akx = twopi/alx      
   akx2 = akx**2
   b2 = bzero*bzero + bx0*bx0
   a2 = bx0**2/b2
@@ -1070,17 +1095,19 @@ subroutine wave_init()
 
 1 continue
 
-  call numnod(numnodes)
+  numnodes = owned_nodes()
   do l=1, numnodes
-     call nodcoord(l, x, z)
+     call get_node_pos(l, x, z)
 
      x = x - alx*.5 - xzero
      z = z - alz*.5 - zzero
 
-     call assign_local_pointers(l)
+     call get_local_vals(l)
 
      call wave_equ(x, z)
      call wave_per(x, z)
+
+     call set_local_vals(l)
   enddo
 
 end subroutine wave_init
@@ -1113,6 +1140,7 @@ end subroutine wave_equ
 
 
 subroutine wave_per(x, z)
+  use math
   use basic
   use arrays
 
@@ -1155,20 +1183,23 @@ contains
 subroutine grav_init()
   use basic
   use arrays
+  use mesh_mod
 
   implicit none
 
   integer :: l, numnodes
   real :: x, z
 
-  call numnod(numnodes)
+  numnodes = owned_nodes()
   do l=1, numnodes
-     call assign_local_pointers(l)
+     call get_local_vals(l)
 
-     call nodcoord(l, x, z)
+     call get_node_pos(l, x, z)
 
      call grav_equ(x, z)
      call grav_per(x, z)
+
+     call set_local_vals(l)
   enddo
 
 end subroutine grav_init
@@ -1229,8 +1260,10 @@ end subroutine grav_equ
 
 
 subroutine grav_per(x, z)
+  use math
   use basic
   use arrays
+  use mesh_mod
 
   implicit none
 
@@ -1238,8 +1271,8 @@ subroutine grav_per(x, z)
 
   real :: kx, kz, alx, alz
 
-  call getboundingboxsize(alx, alz)
-  kx = 2.*pi/alx
+  call get_bounding_box_size(alx, alz)
+  kx = twopi/alx
   kz = pi/alz
 
   u1_l = 0.
@@ -1279,30 +1312,34 @@ contains
 subroutine strauss_init()
   use basic
   use arrays
+  use mesh_mod
 
   implicit none
 
   integer :: l, numnodes
   real :: x, z
 
-  call getboundingboxsize(alx, alz)
+  call get_bounding_box_size(alx, alz)
 
-  call numnod(numnodes)
+  numnodes = owned_nodes()
   do l=1, numnodes
-     call nodcoord(l, x, z)
+     call get_node_pos(l, x, z)
 
      x = x - alx/2.
      z = z - alz/2.
 
-     call assign_local_pointers(l)
+     call get_local_vals(l)
 
      call strauss_equ(x, z)
      call strauss_per(x, z)
+
+     call set_local_vals(l)
   enddo
 
 end subroutine strauss_init
 
 subroutine strauss_equ(x, z)
+  use math
   use basic
   use arrays
 
@@ -1337,6 +1374,7 @@ end subroutine strauss_equ
 
 
 subroutine strauss_per(x, z)
+  use math
   use basic
   use arrays
 
@@ -1347,7 +1385,7 @@ subroutine strauss_per(x, z)
   real :: akx, akz
 
   akx = pi/alx
-  akz = 2.*pi/alz
+  akz = twopi/alz
 
   psi1_l(1) = -eps*cos(akx*x)*sin(akz*z)
   psi1_l(2) =  eps*sin(akx*x)*sin(akz*z)*akx
@@ -1381,28 +1419,34 @@ contains
 subroutine circular_field_init()
   use basic
   use arrays
+  use mesh_mod
 
   implicit none
 
   integer :: l, numnodes
   real :: x, z
 
-  call getboundingboxsize(alx, alz)
+  call get_bounding_box_size(alx, alz)
 
   x0 = alx/4.
   z0 = 0.
 
-  call numnod(numnodes)
+  numnodes = owned_nodes()
   do l=1, numnodes
-     call nodcoord(l, x, z)
+     call get_node_pos(l, x, z)
      x = x - alx/2. - xzero
      z = z - alz/2. - zzero
 
-     call assign_local_pointers(l)
+     call get_local_vals(l)
 
      call circular_field_equ(x, z)
      call circular_field_per(x, z)
+
+     call set_local_vals(l)
   enddo
+
+  call finalize(field0_vec)
+  call finalize(field_vec)
 
 end subroutine circular_field_init
 
@@ -1434,10 +1478,17 @@ subroutine circular_field_equ(x, z)
 !!$  psi0_l(5) =  x*z*psi0_l(1)/ss**4
 !!$  psi0_l(6) = ((z/ss)**2 - 1.)*psi0_l(1)/ss**2
 
+  p0_l(1) = 0.1 - 0.01*(x**2 + z**2)
+  p0_l(2) = -2.*x * 0.01
+  p0_l(3) = -2.*z * 0.01
+  p0_l(4) = -2.   * 0.01
+  p0_l(5) =  0.
+  p0_l(6) = -2.   * 0.01
+  pe0_l = p0_l*(p0-pi0*ipres)/p0
 
   call constant_field(bz0_l , bzero)
-  call constant_field(p0_l  , p0)
-  call constant_field(pe0_l , p0-pi0*idens)
+!  call constant_field(p0_l  , p0)
+!  call constant_field(pe0_l , p0-pi0*ipres)
   call constant_field(den0_l, 1.)
 
 end subroutine circular_field_equ
@@ -1502,234 +1553,6 @@ end subroutine circular_field_per
 
 end module circular_field
 
-!==============================================================================
-! Circular shell for resistive wall test
-!==============================================================================
-module circ_shell_only
-
-
-contains
-
-  subroutine analytic_response_matrix
-    use basic
-    use vacuum_interface
-
-    implicit none
-
-    real :: ka, thetai, thetaj, fac, bessk, besskp, grate, a
-    integer :: ierr, i, j
-
-    print *, 'Using analytic response matrix.'
-
-    call load_boundary_nodes(ierr)
-    if(ierr.ne.0) return
-
-    !...  define matrices with analytic formula
-    a = 1.
-    ka = a*ntor
-    fac = 2.*mpol/(nodes*ntor)*bessk(mpol,ka)/besskp(mpol,ka)
-    do i=1,nodes+1
-       do j=1,nodes+1
-          thetai = atan2(znode(i)-zzero,xnode(i)-xzero)
-          thetaj = atan2(znode(j)-zzero,xnode(j)-xzero)
-          zgrbth(i,j) = fac*sin(mpol*(thetai-thetaj))
-       enddo
-    enddo
-    grate = (eta_wall/delta_wall)*(mpol/a)* &
-         (1. + (mpol/ka)*bessk(mpol,ka)/besskp(mpol,ka))
-    write(*,'(A,1pe12.4)') " Analytic decay rate",  grate
-    write(97,'(A,1pe12.4)') " Analytic decay rate",  grate
-
-  end subroutine analytic_response_matrix
-
-
-subroutine circ_shell_only_init()
-  use basic
-  use arrays
-  use vacuum_interface
-
-  implicit none
-
-  integer :: i,j, numnodes
-  real :: x, z
-
-  open(unit=97,file="response_matrix",status="unknown")
-  if(itaylor.eq.10) call analytic_response_matrix
-
-  do i=1, nodes
-     write(97,'(1p10e12.4)') (zgrbth(i,j),j=1,nodes+1)
-  end do
-  close(97)
-
-  call numnod(numnodes)
-  do i=1, numnodes
-     call nodcoord(i, x, z)
-
-     call assign_local_pointers(i)
-
-     x = x - xzero
-     z = z - zzero
-
-     call circ_shell_only_equ(x, z)
-     call circ_shell_only_per(x, z)
-  enddo
-
-end subroutine circ_shell_only_init
-
-subroutine circ_shell_only_equ(x, z)
-  use basic
-  use arrays
-
-  implicit none
-
-  real, intent(in) :: x, z
-
-
-  call constant_field(den0_l, 1.)
-  u0_l = 0.
-
-  psi0_l(1) = x**2 + z**2
-  psi0_l(2) = 2.*x
-  psi0_l(3) = 2.*z
-  psi0_l(4) = 2.
-  psi0_l(5) = 0.
-  psi0_l(6) = 2.
-
-  if(numvar.le.1) return
-
-  vz0_l = 0.
-  call constant_field(bz0_l , bzero)
-
-  if(numvar.le.2) return
-  chi0_l = 0.
-  call constant_field(p0_l  , p0)
-  call constant_field(pe0_l , p0-pi0*idens)
-
-end subroutine circ_shell_only_equ
-
-
-subroutine circ_shell_only_per(x, z)
-  use basic
-  use arrays
-
-  implicit none
-
-  real, intent(in) :: x, z
-  real     ::  k, r, kr, theta, sinm, cosm, besm, besmp1, besmp1p
-  real   :: bessi, bessip
-!
-  real   :: x1,z1,delta,val(9),der(7),valr(7)
-  integer :: l,i,icheck
-  den1_l = 0.
-
-  u1_l = 0.
-  psi1_l = 0.
-  r = sqrt(x**2 + z**2)
-  if(r.eq.0) return
-  k = ntor
-  kr = k*r
-  theta = atan2(z,x)
-  sinm = sin(mpol*theta)
-  cosm = cos(mpol*theta)
-!..for del_squared...bessel function (not used)
-!  besm = bessi(mpol,kr)
-!  besmp1 = bessi(mpol+1,kr)
-!  besmp1p = bessip(mpol+1,kr)
-!  psi1_l(1) = eps*cosm * besm
-!  psi1_l(2) = eps*(( z*sinm + x*cosm)*mpol*besm/r**2 + k*cosm*x*besmp1/r)
-!  psi1_l(3) = eps*((-x*sinm + z*cosm)*mpol*besm/r**2 + k*cosm*z*besmp1/r)
-!  psi1_l(4) = eps*((2*x*z*sinm + (x**2 - z**2)*cosm)*mpol*(mpol-1)*besm/r**4 !    &
-!                  +k*(2*mpol*z*x*sinm + (z**2+mpol*x**2)*cosm)*besmp1/r**3   !    &
-!                  + k**2*cosm*x**2*besmp1p/r**2 )
-!  psi1_l(5) = eps*((2*x*z*cosm + (z**2 - x**2)*sinm)*mpol*(mpol-1)*besm/r**4 !    &
-!                  +k*((mpol-1)*z*x*cosm + (z**2-x**2)*sinm*mpol)*besmp1/r**3 !      &
-!                  + k**2*cosm*x*z*besmp1p/r**2 )
-!  psi1_l(6) = eps*((-2*x*z*sinm + (z**2 - x**2)*cosm)*mpol*(mpol-1)*besm/r**4!     &
-!                  +k*(-2*mpol*z*x*sinm + (x**2+mpol*z**2)*cosm)*besmp1/r**3  !     &
-!                  + k**2*cosm*z**2*besmp1p/r**2 )
-!..for del_perp_squared
-  psi1_l(1) = eps*cosm * r**mpol
-  psi1_l(2) = eps*(( z*sinm + x*cosm)*mpol*r**(mpol-2))
-  psi1_l(3) = eps*((-x*sinm + z*cosm)*mpol*r**(mpol-2))
-  psi1_l(4) = eps*((2*x*z*sinm + (x**2 - z**2)*cosm)*mpol*(mpol-1)*r**(mpol-4))
-  psi1_l(5) = eps*((2*x*z*cosm + (z**2 - x**2)*sinm)*mpol*(mpol-1)*r**(mpol-4))
-  psi1_l(6) = eps*((-2*x*z*sinm + (z**2 - x**2)*cosm)*mpol*(mpol-1)*r**(mpol-4))    
-!
-!.....finite difference to test 
-  icheck = 0
-  if(icheck.eq.1) then
-     delta = 1.e-5
-     do l=1,9
-        select case(l)
-        case(1)
-           x1 = x-delta
-           z1 = z+delta
-        case(2)
-           x1 = x
-           z1 = z+delta
-        case(3)
-           x1 = x+delta
-           z1 = z+delta
-        case(4)
-           x1 = x-delta
-           z1 = z
-        case(5)
-           x1 = x
-           z1 = z
-        case(6)
-           x1 = x+delta
-           z1 = z
-        case(7)
-           x1 = x-delta
-           z1 = z-delta
-        case(8)
-           x1 = x
-           z1 = z-delta
-        case(9)
-           x1 = x+delta
-           z1 = z-delta
-        end select
-        r = sqrt(x1**2 + z1**2)
-        k = ntor/rzero
-        kr = k*r
-        theta = atan2(z1,x1)
-        cosm = cos(mpol*theta)
-        !    besm = bessi(mpol,kr) 
-        !    val(l) = eps*cosm*besm
-        val(l) = eps*cosm*r**mpol
-     enddo
-     valr(1:6) = real(psi1_l(i))
-     valr(7) = valr(4)+valr(6)
-     
-     der(1) =  val(5)
-     der(2) = (val(6)-val(4))/(2.*delta)
-     der(3) = (val(2)-val(8))/(2.*delta)
-     der(4) = (val(6)-2.*val(5)+val(4))/delta**2
-     der(5) = (val(3)+val(7)-val(9)-val(1))/(4.*delta**2)
-     der(6) = (val(2)-2.*val(5)+val(8))/delta**2
-     der(7) = der(4)+der(6)
-     write(11,'(1p9e12.4)') x,z,(valr(i),i=1,7)
-     write(11,'(24x,1p7e12.4)')     (der(i),i=1,7)
-  endif  ! on icheck
- 
-  if(numvar.le.1) return
-  vz1_l = 0.
-  bz1_l = 0.
-
-  if(numvar.le.2) return
-  chi1_l = 0.
-  p1_l = 0.
-
-  if(ipres.eq.1) then
-     pe1_l = pefac*p1_l
-  else
-     pe1_l = p1_l
-  endif
-
-end subroutine circ_shell_only_per
-
-end module circ_shell_only
-
 
 !==============================================================================
 ! Magnetorotational Equilibrium (itor = 1, itaylor = 2)
@@ -1741,29 +1564,33 @@ module mri
 contains
 
 subroutine mri_init()
+  use math
   use basic
   use arrays
+  use mesh_mod
 
   implicit none
 
   integer :: l, numnodes
   real :: x, z, alx, alz
 
-  call getboundingboxsize(alx, alz)
+  call get_bounding_box_size(alx, alz)
 
   kx = pi/alx
-  kz = 2.*pi/alz
+  kz = twopi/alz
 
-  call numnod(numnodes)
+  numnodes = owned_nodes()
   do l=1, numnodes
-     call nodcoord(l, x, z)
+     call get_node_pos(l, x, z)
 
      z = z - alz*.5
 
-     call assign_local_pointers(l)
+     call get_local_vals(l)
 
      call mri_equ(x, z)
      call mri_per(x, z)
+
+     call set_local_vals(l)
   enddo
 
 end subroutine mri_init
@@ -1864,24 +1691,27 @@ contains
 subroutine rotate_init()
   use basic
   use arrays
+  use mesh_mod
 
   implicit none
 
   integer :: l, numnodes
   real :: x, z, alx, alz
 
-  call getboundingboxsize(alx, alz)
+  call get_bounding_box_size(alx, alz)
 
-  call numnod(numnodes)
+  numnodes = owned_nodes()
   do l=1, numnodes
-     call nodcoord(l, x, z)
+     call get_node_pos(l, x, z)
 
      z = z - alz*.5
 
-     call assign_local_pointers(l)
+     call get_local_vals(l)
 
      call rotate_equ(x, z)
      call rotate_per(x, z)
+
+     call set_local_vals(l)
   enddo
 
 end subroutine rotate_init
@@ -1955,6 +1785,7 @@ module eqdsk_eq
 contains
 
 subroutine eqdsk_init()
+  use math
   use basic
   use arrays
   use eqdsk
@@ -1962,12 +1793,13 @@ subroutine eqdsk_init()
   use newvar_mod
   use sparse
   use diagnostics
+  use mesh_mod
 
   implicit none
 
   integer :: l, numnodes, ll
   real :: x, z , dpsi
-  real, parameter :: amu0 = pi*4.e-7
+
   real, allocatable :: flux(:)
 
   print *, "eqdsk_init called"
@@ -1979,51 +1811,43 @@ subroutine eqdsk_init()
 
   if(myrank.eq.0 .and. iprint.eq.1) then
      print *, 'normalized current ', current
-     write(*,1001) nw
- 1001 format(" nw = ",i4)
-
-     write(*,*) "press"
-     write(*,1002) press
- 1002 format(1p5e12.4)
-
-     write(*,*) "pprime"
-     write(*,1002) pprime
-
-     write(*,*) "ffprim"
-     write(*,1002) ffprim
-
-     write(*,*) "fpol"
-     write(*,1002) fpol
+!!$     write(*,1001) nw
+!!$ 1001 format(" nw = ",i4)
+!!$
+!!$     write(*,*) "press"
+!!$     write(*,1002) press
+!!$ 1002 format(1p5e12.4)
+!!$
+!!$     write(*,*) "pprime"
+!!$     write(*,1002) pprime
+!!$
+!!$     write(*,*) "ffprim"
+!!$     write(*,1002) ffprim
+!!$
+!!$     write(*,*) "fpol"
+!!$     write(*,1002) fpol
   end if
 
-  call numnod(numnodes)
-  do l=1, numnodes
-     call nodcoord(l, x, z)
 
-     call assign_local_pointers(l)
+  numnodes = owned_nodes()
+  do l=1, numnodes
+     call get_node_pos(l, x, z)
+
+     call get_local_vals(l)
 
      call eqdsk_equ(x, z)
      call eqdsk_per(x, z)
+
+     call set_local_vals(l)
   enddo
 
   tcuro = current
-  if(xmag.eq.0.) then
-     xmag = rmaxis
-     zmag = zmaxis
-  end if
-  if(rzero.eq.0.) then
-     rzero = rmaxis
-  endif
-
-!
-!.....bateman scaling parameter introduced 9/11/09 (SCJ)
-  fpol(nw) = fpol(nw)*bscale
-!
+  xmag = rmaxis
+  zmag = zmaxis
+  rzero = rmaxis
   bzero = fpol(nw)/rzero
 
   if(igs.gt.0) then
-     fieldi = field0
-
      if(iread_eqdsk.eq.2) then
         call default_profiles
      else
@@ -2033,7 +1857,7 @@ subroutine eqdsk_init()
            flux(l) = l*dpsi
            ll = nw-l
 !          redefine fpol keeping ffprim fixed
-           if(ll.gt.0) fpol(ll) = sign(1.0,fpol(nw))*sqrt(fpol(ll+1)**2 - dpsi*(ffprim(ll)+ffprim(ll+1)))
+           if(ll.gt.0) fpol(ll) = -sqrt(fpol(ll+1)**2 - dpsi*(ffprim(ll)+ffprim(ll+1)))
         end do
         call create_profile(nw,press,pprime,fpol,ffprim,flux)
 !
@@ -2066,10 +1890,10 @@ subroutine eqdsk_init()
 
   ! flip psi sign convention
   do l=1, numnodes
-     call assign_local_pointers(l)
+     call get_local_vals(l)
      psi0_l = -psi0_l
      psi1_l = -psi1_l
-     psis_l = -psis_l
+     call set_local_vals(l)
   end do
   psibound = -psibound
   psimin = -psimin
@@ -2096,7 +1920,7 @@ subroutine eqdsk_equ(x, z)
   dx = rdim/(nw - 1.)
   dz = zdim/(nh - 1.)
   p = (x-rleft)/dx + 1.
-  q = (z-zmid)/dz + nh/2. + 1.
+  q = (z-zmid)/dz + nh/2. + .5
   i = p
   j = q
 
@@ -2245,6 +2069,7 @@ module dskbal_eq
 contains
 
 subroutine dskbal_init()
+  use math
   use basic
   use arrays
   use dskbal
@@ -2256,7 +2081,6 @@ subroutine dskbal_init()
   implicit none
 
   integer :: i, inode, numnodes
-  real, parameter :: amu0 = pi*4.e-7
   real :: dp, a(4), minden, minte, minti
 
   print *, "dskbal_init called"
@@ -2288,8 +2112,6 @@ subroutine dskbal_init()
 
   ifixedb = 1
 
-  fieldi = field0
-
   if(iread_dskbal.eq.2) then
      call default_profiles
   else
@@ -2297,15 +2119,15 @@ subroutine dskbal_init()
   end if
   
   ! initial plasma current filament
-  call deltafun(xmag,zmag,tcuro,jphi,1,1)
+  call deltafun(xmag,zmag,tcuro,jphi_field)
 
   call gradshafranov_solve
   call gradshafranov_per  
 
   ! set density profile
-  call numnod(numnodes)
+  numnodes = owned_nodes()
   do inode=1, numnodes
-     call assign_local_pointers(inode)
+     call get_local_vals(inode)
      do i=1, npsi_bal-1
         if((psi_bal(i+1)-psi_bal(1))/(psi_bal(npsi_bal)-psi_bal(1)) &
              .gt. (real(psi0_l(1))-psimin)/(psilim-psimin)) exit
@@ -2324,6 +2146,7 @@ subroutine dskbal_init()
      den0_l(5) = (2.*a(3) + 6.*a(4)*dp)*psi0_l(5)
      den0_l(6) = (2.*a(3) + 6.*a(4)*dp)*psi0_l(6)
      den0_l = den0_l / n0_norm
+     call set_local_vals(inode)
   enddo
 
   call unload_dskbal
@@ -2346,13 +2169,13 @@ contains
 subroutine jsolver_init()
   use basic
   use arrays
-  use eqdsk
   use gradshafranov
   use newvar_mod
   use sparse
   use coils
   use diagnostics
   use jsolver
+  use mesh_mod
 
   implicit none
 
@@ -2364,14 +2187,16 @@ subroutine jsolver_init()
 
   call load_jsolver
 
-  call numnod(numnodes)
+  numnodes = owned_nodes()
   do l=1, numnodes
-     call nodcoord(l, x, z)
+     call get_node_pos(l, x, z)
 
-     call assign_local_pointers(l)
+     call get_local_vals(l)
 
      call jsolver_equ(x, z)
      call jsolver_per(x, z)
+
+     call set_local_vals(l)
   enddo
 
   xmag = x_jsv(1,1)
@@ -2403,8 +2228,6 @@ subroutine jsolver_init()
   bzero = 1.0
 
   if(igs.gt.0) then
-     fieldi = field0
-
      if(iread_jsolver.eq.2) then
         call default_profiles
      else
@@ -2428,7 +2251,7 @@ subroutine jsolver_init()
         deallocate(ffprime)
      end if
 
-     call deltafun(xmag,zmag,tcuro,jphi,1,1)
+     call deltafun(xmag,zmag,tcuro,jphi_field)
 
      call gradshafranov_solve
      call gradshafranov_per
@@ -2520,6 +2343,8 @@ end module jsolver_eq
 !=====================================
 subroutine initial_conditions()
   use basic
+  use vector_mod
+  use arrays
 
   use tilting_cylinder
   use taylor_reconnection
@@ -2531,12 +2356,13 @@ subroutine initial_conditions()
   use grav
   use strauss
   use circular_field
-  use circ_shell_only
   use rotate
   use eqdsk_eq
   use dskbal_eq
   use jsolver_eq
   use biharmonic
+  use circ_shell_only
+  use resistive_wall_test
 
   implicit none
 
@@ -2572,6 +2398,8 @@ subroutine initial_conditions()
            call biharmonic_init(0)
         case(10,11)
            call circ_shell_only_init()
+        case(12,13)
+           call resistive_wall_test_init()
         end select
      else
         ! toroidal equilibria
@@ -2591,6 +2419,9 @@ subroutine initial_conditions()
         case(10,11)
            call circ_shell_only_init()
            call cartesian_to_cylindrical_all()
+        case(12,13)
+           call resistive_wall_test_init()
+           call cartesian_to_cylindrical_all()
         end select
      endif
   end if
@@ -2600,45 +2431,3 @@ subroutine initial_conditions()
   if(irmp.ge.1) call rmp_per()
 
 end subroutine initial_conditions
-
-! ===============================================================
-subroutine cubic_roots(coef, root, error)
-
-!     calculate the roots of a 3rd degree polynomial
-!     coef(4)*x**3 + coef(3)*x**2 + coef(2)*x + coef(1) = 0
-
-  use basic
-  implicit none
-  real, intent(out), dimension(3) :: root, error
-  real, intent(inout), dimension(4) :: coef
-  real qqs, rrs, ths, fun, dfun
-  integer r, ll
-
-  !     normalize the coefficients to the 3rd degree coefficient
-  coef(1) = coef(1)/coef(4)
-  coef(2) = coef(2)/coef(4)
-  coef(3) = coef(3)/coef(4)
-  coef(4) = 1.0
-       
-  !     solve using method in Numerical Recipes
-  qqs = ((coef(3)**2 - 3.*coef(2))/9.)
-  rrs = (2.*coef(3)**3 - 9.*coef(3)*coef(2) + 27.*coef(1))/54.
-  ths = acos(rrs/sqrt(qqs**3))
-
-  root(1) = -2.*sqrt(qqs)*cos(ths/3.) - coef(3)/3.
-  root(2) = -2.*sqrt(qqs)*cos((ths+6.283185307)/3.) - coef(3)/3.
-  root(3) = -2.*sqrt(qqs)*cos((ths-6.283185307)/3.) - coef(3)/3.
-  
-  !........refine with Newton's method
-  do r=1,3
-     do ll=1,3
-        fun  = root(r)**3 + coef(3)*root(r)**2 + coef(2)*root(r)    &
-             + coef(1)
-        dfun = 3.*root(r)**2 + 2.*coef(3)*root(r) + coef(2)
-        root(r) = root(r) - fun/dfun
-     enddo
-     error(r) =  root(r)**3 + coef(3)*root(r)**2 + coef(2)*root(r)  &
-          + coef(1)
-  enddo
-!      
-end subroutine cubic_roots

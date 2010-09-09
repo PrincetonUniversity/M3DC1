@@ -5,6 +5,7 @@ contains
 ! Density Sources/Sinks
 ! ~~~~~~~~~~~~~~~~~~~~~
 vectype function sigma_func(i)
+  use math
   use basic
   use nintegrate_mod
   use diagnostics
@@ -22,7 +23,7 @@ vectype function sigma_func(i)
      temp79a = ri_79*pellet_rate/(2.*pi*pellet_var**2) & 
           *exp(-((x_79 - pellet_x)**2 + (z_79 - pellet_z)**2) &
           /(2.*pellet_var**2))
-     temp = temp + int2(g79(:,OP_1,i),temp79a)
+     temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
 
   ! Ionization model
@@ -40,7 +41,7 @@ vectype function sigma_func(i)
      
      temp79a = ionization_rate * temp79e * &
           exp(-ionization_temp / temp79d)
-     temp = temp + int2(g79(:,OP_1,i),temp79a)
+     temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
 
   ! Localized sink(s)
@@ -49,14 +50,14 @@ vectype function sigma_func(i)
           - nt79(:,OP_1)*ri_79*sink1_rate/(2.*pi*sink1_var**2) & 
           *exp(-((x_79 - sink1_x)**2 + (z_79 - sink1_z)**2) &
           /(2.*sink1_var**2))
-     temp = temp + int2(g79(:,OP_1,i),temp79a)
+     temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
   if(isink.ge.2) then
      temp79a = &
           - nt79(:,OP_1)*ri_79*sink2_rate/(2.*pi*sink2_var**2) & 
           *exp(-((x_79 - sink2_x)**2 + (z_79 - sink2_z)**2) &
           /(2.*sink2_var**2))
-     temp = temp + int2(g79(:,OP_1,i),temp79a)
+     temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
 
   sigma_func = temp
@@ -103,7 +104,7 @@ vectype function resistivity_func(i)
         temp79a = eta79(:,OP_1) - etar
 
      end select
-     temp = temp + int2(g79(:,OP_1,i),temp79a)
+     temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
 
   resistivity_func = temp
@@ -121,22 +122,15 @@ vectype function viscosity_func(i)
   implicit none
 
   integer, intent(in) :: i
-  integer :: j
-  real :: factor
   vectype :: temp
 
   temp = 0.
 
   if(amu_edge.ne.0.) then
 
-     ! added 10/18/08  to make viscosity function more like resistivity 
-     ! for iresfunc=1  scj
      select case (ivisfunc)
      case(0)
-        do j=1,npoints
-           call mask(x_79(j)-xzero, z_79(j)-zzero, factor)
-           temp79a(j) = amu*amu_edge*(1.-factor)
-        end do
+        temp79a = 0.
 
      case(1)
         temp79a = amu_edge*.5* &
@@ -156,7 +150,7 @@ vectype function viscosity_func(i)
      case(3)
         temp79a = vis79(:,OP_1) - amu
      end select
-     temp = temp + int2(g79(:,OP_1,i),temp79a)
+     temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
 
   viscosity_func = temp
@@ -199,13 +193,13 @@ vectype function kappa_func(i)
         temp79a = kappa0*.5* &
              (1. + tanh((real(temp79b) - kappaoff)/kappadelt))
      end select
-     temp = temp + int2(g79(:,OP_1,i),temp79a)
+     temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
 
   if(kappah.ne.0.) then
      temp79b = (pst79(:,OP_1) - psimin)/(psibound - psimin)
      temp79a = kappah*tanh((real(temp79b) - 1.)/.2)**2
-     temp = temp + int2(g79(:,OP_1,i),temp79a)
+     temp = temp + int2(mu79(:,OP_1,i),temp79a)
   end if
   
   kappa_func = temp
@@ -231,7 +225,7 @@ vectype function electron_viscosity_func(i)
      temp79f = -amue * r2_79 * &
           (bzt79(:,OP_DZ)*pst79(:,OP_DZ) + bzt79(:,OP_DR)*pst79(:,OP_DR)) &
           / (nt79(:,OP_1)*(pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2 + 1e-1)**2)
-     temp = temp + int2(g79(:,OP_1,i),temp79a)
+     temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
 
   electron_viscosity_func = temp
@@ -257,13 +251,14 @@ subroutine define_transport_coefficients()
 
   include 'mpif.h'
 
-  integer :: i, itri, ibegin, iendplusone, numnodes
-  integer :: ione, numelms, def_fields,ier
+  integer :: i, itri
+  integer :: numelms, def_fields,ier
 
   logical, save :: first_time = .true.
   logical :: solve_sigma, solve_kappa, solve_visc, solve_resistivity, &
        solve_visc_e
   integer, dimension(5) :: temp, temp2
+  vectype, dimension(dofs_per_element) :: dofs
 
   if((linear.eq.1).and.(.not.first_time)) return
   first_time = .false.
@@ -277,12 +272,12 @@ subroutine define_transport_coefficients()
   solve_sigma = .false.
   solve_visc_e = .false.
 
-  resistivity = 0.
-  kappa = 0.
-  sigma = 0.
-  visc = 0.
-  if(ibootstrap.gt.0) visc_e = 0.
-  tempvar = 0.
+  resistivity_field = 0.
+  kappa_field = 0.
+  sigma_field = 0.
+  visc_field = 0.
+  if(ibootstrap.gt.0) visc_e_field = 0.
+  tempvar_field = 0.
 
   def_fields = FIELD_N + FIELD_PE + FIELD_P + FIELD_PSI + FIELD_I + FIELD_B2I
   if(iresfunc.eq.3 .or. iresfunc.eq.4) def_fields = def_fields + FIELD_ETA
@@ -290,36 +285,57 @@ subroutine define_transport_coefficients()
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' defining...'
 
+  call finalize(field0_vec)
+  call finalize(field_vec)
+
   ! Calculate RHS
-  call numfac(numelms)
+  numelms = local_elements()
   do itri=1,numelms
 
      call define_triangle_quadrature(itri, int_pts_aux)
      call define_fields(itri, def_fields, 1, linear)
 
-     do i=1,18
-        ione = isval1(itri,i)
-
-        resistivity(ione) = resistivity(ione) + resistivity_func(i)
-        if(.not.solve_resistivity) solve_resistivity = resistivity(ione).ne.0.
-
-        kappa(ione) = kappa(ione) + kappa_func(i)
-        if(.not.solve_kappa) solve_kappa = kappa(ione).ne.0.
-
-        sigma(ione) = sigma(ione) + sigma_func(i)
-        if(.not.solve_sigma) solve_sigma = sigma(ione).ne.0.
-
-        visc(ione) = visc(ione) + viscosity_func(i)
-        if(.not.solve_visc) solve_visc = visc(ione).ne.0.
-
-        if(ibootstrap.gt.1) then
-           visc_e(ione) = visc_e(ione) + electron_viscosity_func(i)
-           if(.not.solve_visc_e) solve_visc_e = visc_e(ione).ne.0.
-        endif
-
-        tempvar(ione) = tempvar(ione) &
-             + int2(g79(:,OP_1,i),b2i79(:,OP_1))
+     do i=1, dofs_per_element
+        dofs(i) = resistivity_func(i)
+        if(.not.solve_resistivity) solve_resistivity = dofs(i).ne.0.
      end do
+     if(solve_resistivity) &
+          call vector_insert_block(resistivity_field%vec,itri,1,dofs,VEC_ADD)
+
+     do i=1, dofs_per_element
+        dofs(i) = kappa_func(i)
+        if(.not.solve_kappa) solve_kappa = dofs(i).ne.0.
+     end do
+     if(solve_kappa) &
+          call vector_insert_block(kappa_field%vec,itri,1,dofs,VEC_ADD)
+
+     do i=1, dofs_per_element
+        dofs(i) = sigma_func(i)
+        if(.not.solve_sigma) solve_sigma = dofs(i).ne.0.
+     end do
+     if(solve_sigma) &
+          call vector_insert_block(sigma_field%vec,itri,1,dofs,VEC_ADD)
+
+     do i=1, dofs_per_element
+        dofs(i) = viscosity_func(i)
+        if(.not.solve_visc) solve_visc = dofs(i).ne.0.
+     end do
+     if(solve_visc) &
+          call vector_insert_block(visc_field%vec,itri,1,dofs,VEC_ADD)
+
+     if(ibootstrap.gt.1) then
+        do i=1, dofs_per_element
+           dofs(i) = electron_viscosity_func(i)
+           if(.not.solve_visc_e) solve_visc_e = dofs(i).ne.0.
+        end do
+        if(solve_visc_e) &
+             call vector_insert_block(visc_e_field%vec,itri,1,dofs,VEC_ADD)
+     end if
+
+!!$     do i=1, dofs_per_element
+!!$        dofs(i) = int2(mu79(:,OP_1,i),b2i79(:,OP_1))
+!!$     end do
+!!$     call vector_insert_block(tempvar_field%vec,itri,1,dofs,VEC_ADD)
   end do
 
   ! make sure all processes agree on what needs to be solved
@@ -342,82 +358,41 @@ subroutine define_transport_coefficients()
 
   if(solve_resistivity) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  resistivity'
-     call solve_newvar(resistivity, NV_NOBOUND, mass_matrix_lhs, resistivity)
+     call newvar_solve(resistivity_field%vec, mass_mat_lhs)
   end if
 
   if(solve_kappa) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  kappa'
-     call solve_newvar(kappa, NV_NOBOUND, mass_matrix_lhs, kappa)
+     call newvar_solve(kappa_field%vec, mass_mat_lhs)
   endif
 
   if(solve_sigma) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  sigma'
-     call solve_newvar(sigma, NV_NOBOUND, mass_matrix_lhs, sigma)
+     call newvar_solve(sigma_field%vec, mass_mat_lhs)
   endif
 
   if(solve_visc) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  viscosity'
-     call solve_newvar(visc, NV_NOBOUND, mass_matrix_lhs, visc)
+     call newvar_solve(visc_field%vec, mass_mat_lhs)
   endif
 
   if(solve_visc_e) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  electron viscosity'
-     call solve_newvar(visc_e, NV_NOBOUND, mass_matrix_lhs, visc_e)
+     call newvar_solve(visc_e_field%vec, mass_mat_lhs)
   endif
 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, '  size field'
-  call solve_newvar(tempvar, NV_NOBOUND, mass_matrix_lhs, tempvar)
+!!$  if(myrank.eq.0 .and. iprint.ge.1) print *, '  size field'
+!!$  call newvar_solve(tempvar_field%vec, mass_mat_lhs)
 
-  visc_c = visc
+  visc_c_field = visc_field
 
   ! add in constant components
-  call numnod(numnodes)
-  do i=1,numnodes
-     call entdofs(1,i,0,ibegin,iendplusone)
-     resistivity(ibegin) = resistivity(ibegin) + etar
-     visc(ibegin) = visc(ibegin) + amu
-     visc_c(ibegin) = visc_c(ibegin) + amuc
-     kappa(ibegin) = kappa(ibegin) + kappat
-  enddo
+  call add(resistivity_field, etar)
+  call add(visc_field, amu)
+  call add(visc_c_field, amuc)
+  call add(kappa_field, kappat)
+
+  if(myrank.eq.0 .and. iprint.ge.2) &
+       print *, 'done define_transport_coefficients'
 
 end subroutine define_transport_coefficients
-
-
-subroutine mask(x,z,factor)
- use basic
-  implicit none
-
-  real, intent(in) :: x, z
-  real, intent(out) :: factor
-
-  real :: alphax, alphaz, alx, alz, xmin, zmin
-  real :: x_left, x_right, z_bottom, z_top
-  factor = 1.
-
-  if(nonrect.eq.1) return
-
-  call getboundingboxsize(alx, alz)
-  call getmincoord(xmin, zmin)
-  
-  x_left = alx / 20.
-  x_right = alx - alx / 20.
-  z_bottom = alz / 20.
-  z_top = alz - alz / 20.
-      
-  alphax = 40. / alx
-  alphaz = 40. / alz
-
-  factor = 1.
-  
-  if(iper.eq.0) then
-     factor = factor * 0.5* &
-          (tanh(alphax*(x - x_left)) - tanh(alphax*(x - x_right)))
-  endif
-  
-  if(jper.eq.0) then
-     factor = factor * 0.5* &
-          (tanh(alphaz*(z - z_bottom)) - tanh(alphaz*(z - z_top)))
-  endif
-  
-  return
-end subroutine mask

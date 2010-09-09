@@ -2,59 +2,129 @@ module vacuum_interface
 
   implicit none
 
-  integer :: nodes
+  integer :: nodes, boundary_edges
   integer, allocatable :: global_id(:)
   integer, allocatable :: local_id(:)
-
+  integer, allocatable :: edge_elm(:), edge_nodes(:,:), edge_edge(:)
   complex, allocatable :: zgrbth(:,:), zgrbph(:,:)
   complex, allocatable :: zgrbthp(:,:), zgrbphp(:,:)
-  real, allocatable :: xnode(:),znode(:)
+  real, allocatable :: xnode(:),znode(:),nxnode(:),nznode(:)
+
 
 contains 
 
   subroutine load_boundary_nodes(ierr)
+    use mesh_mod
     implicit none
-    
+        
     integer, intent(out) :: ierr
 
     character(len=*), parameter :: filename = 'ordered.points'
     integer, parameter :: ifile = 1
-    integer :: i
-
+    integer :: i, j, k, numnodes, num_local, n, numelms, itri
+    integer :: inode(nodes_per_element)
+    real :: x, z
+    real, parameter :: tol = 1e-5
+    logical :: is_edge(3)  ! is inode on boundary
+    real :: norm(2,3)
+    integer :: iedge, idim(3)
+    
     ierr = 0
 
     open(unit=ifile,file=filename,action='read',status='unknown')
+
+    ! read toroidal mode number
+    read(ifile, '(I8)') n
 
     ! read total number of nodes
     read(ifile, '(I8)') nodes
 
     allocate(global_id(nodes))
     allocate(local_id(nodes))
-    allocate(xnode(nodes+1))
-    allocate(znode(nodes+1))
+    allocate(xnode(nodes+1),nxnode(nodes+1))
+    allocate(znode(nodes+1),nznode(nodes+1))
 
+    ! read list of nodes
     do i=1, nodes
-       read(ifile, '(I8,2f12.6)') global_id(i), xnode(i),znode(i)
-       call globalidnod(global_id(i),local_id(i))
+       read(ifile, '(I8,4f12.6)') global_id(i), xnode(i), znode(i), &
+            nxnode(i), nznode(i)
     end do
-    xnode(nodes+1) = xnode(1)
-    znode(nodes+1) = znode(1)
 
     close(ifile)
 
+    xnode(nodes+1) = xnode(1)
+    znode(nodes+1) = znode(1)
+    
+    ! allocate response matrices
     allocate(zgrbph (nodes+1,nodes+1),zgrbth (nodes+1,nodes+1))
     allocate(zgrbphp(nodes+1,nodes+1),zgrbthp(nodes+1,nodes+1))
+
+
+    ! find local and global ids of each node
+    numnodes = local_nodes()
+    num_local = 0
+    do i=1, nodes
+       local_id(i) = -1
+       do j=1, numnodes
+          call get_node_pos(j,x,z)
+          if((abs(x - xnode(i)).lt.tol) .and. (abs(z-znode(i)).lt.tol)) then
+             local_id(i) = j
+             itri = global_node_id(local_id(i))
+             if(itri.ne.global_id(i)) then
+                print *, "Error: global ids don't match: ", local_id(i), itri, global_id(i), x, z
+                call safestop(0)
+             endif
+             num_local = num_local + 1
+          endif
+       end do
+    end do
+    print *, 'Found ', num_local, ' local boundary nodes.'
+
+    ! compile list of boundary edges
+    allocate(edge_elm(nodes),edge_nodes(2,nodes),edge_edge(nodes))
+    boundary_edges = 0
+    numelms = local_elements()
+    do itri=1, numelms
+       call boundary_edge(itri, is_edge, norm, idim)
+     
+       do iedge=1,3
+          if(.not.is_edge(iedge)) cycle
+
+          call get_element_nodes(itri, inode)
+
+          boundary_edges = boundary_edges + 1
+          edge_elm(boundary_edges) = itri
+          edge_nodes(1,boundary_edges) = inode(iedge)
+          edge_nodes(2,boundary_edges) = inode(mod(iedge,nodes_per_element)+1)
+          edge_edge(boundary_edges) = iedge
+       end do
+    end do
+    ! convert from local node numbering to boundary numbering
+    do i=1, boundary_edges
+       do j=1,nodes_per_edge
+          do k=1, nodes
+             if(edge_nodes(j,i).eq.local_id(k)) then
+                edge_nodes(j,i) = k
+                exit
+             endif
+          end do
+       end do
+    end do
+    print *, 'Found ', boundary_edges, ' local boundary edges.'
     
   end subroutine load_boundary_nodes
 
-  subroutine load_response_matrix(ierr)
+
+  subroutine load_response_matrix(n, ierr)
+    use math
+
     implicit none
 
+    integer, intent(in) :: n
     integer, intent(out) :: ierr
     
     character(len=*), parameter :: filename = 'RESPONSE-M3DC1'
     integer, parameter :: ifile = 2
-
     integer :: idum, i, j
     real :: dtheta
 
@@ -79,15 +149,12 @@ contains
     read(ifile, &
          '(/,1x, "Number of surface points on the closed domain = ", i5 )' ) &
          idum
-    write(*, &
-         '(/,1x, "Number of surface points on the closed domain = ", i5 )' ) &
-         idum
 
     if(idum .ne. nodes+1) then 
        print *, 'Error: nodes in response file different from nodes in ordered.points', idum-1, nodes
        ierr = 1
        close(ifile)
-       return
+       call safestop(6)
     endif
 
     read(ifile, '(/,1x, "B_theta response Matrix, Rth(obs,srce):" )' )
@@ -104,9 +171,16 @@ contains
        read(ifile, '( (1x, 8es14.6) )' ) (zgrbph(idum,j), j=1, nodes+1)
     end do
 
-    dtheta = 2.*3.14159265358979323846/nodes
+    dtheta = -twopi/nodes
+!    dtheta = twopi/nodes
+
+    ! multiply by dtheta/twopi
     zgrbth = zgrbth/nodes
     zgrbph = zgrbph/nodes
+
+    zgrbth = -zgrbth
+
+!    zgrbph = -zgrbph
 
     ! calculate derivatives (wrt i)
     zgrbthp(1,:) = 0.5*(zgrbth(2,:) - zgrbth(nodes+1,:))/dtheta
@@ -115,22 +189,21 @@ contains
        zgrbthp(i,:) = 0.5*(zgrbth(i+1,:) - zgrbth(i-1,:))/dtheta
        zgrbphp(i,:) = 0.5*(zgrbph(i+1,:) - zgrbph(i-1,:))/dtheta
     end do
-   
+    
     close(ifile)
   end subroutine load_response_matrix
 
-  subroutine load_vacuum_data(ierr)
+  subroutine load_vacuum_data(n, ierr)
     implicit none
 
+    integer, intent(in) :: n
     integer, intent(out) :: ierr
 
     call load_boundary_nodes(ierr)
     if(ierr .ne. 0) return
-    print *, 'boundary nodes loaded'
-
-    call load_response_matrix(ierr)
+    
+    call load_response_matrix(n, ierr)
     if(ierr .ne. 0) return
-    print *, 'response matrix loaded'
       
   end subroutine load_vacuum_data
 
@@ -146,6 +219,11 @@ contains
     if(allocated(zgrbphp)) deallocate(zgrbphp)
     if(allocated(xnode)) deallocate(xnode)
     if(allocated(znode)) deallocate(znode)
+    if(allocated(nxnode)) deallocate(nxnode)
+    if(allocated(nznode)) deallocate(nznode)
+    if(allocated(edge_elm)) deallocate(edge_elm)
+    if(allocated(edge_nodes)) deallocate(edge_nodes)
+    if(allocated(edge_edge)) deallocate(edge_edge)
 
   end subroutine unload_vacuum_data
 

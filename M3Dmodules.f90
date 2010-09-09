@@ -1,13 +1,12 @@
 module p_data
 
   implicit none
-  
-  integer :: maxi     ! highest degree polynomial kept in nonlinear calculations
+ 
   integer :: ires     ! linear resolution of the plot files
   integer :: maxplots ! maximum dimension of the graph array
   integer :: ijacobian
 
-  parameter(maxplots=50, maxi=20, ires=201, ijacobian=1)
+  parameter(maxplots=50, ires=201, ijacobian=1)
   
   integer, dimension(ires, ires) :: whichtri
 
@@ -15,6 +14,7 @@ end module p_data
 
 module basic
   use p_data
+  use mesh_mod
   use pid_controller
 
   integer, parameter :: version = 3
@@ -66,36 +66,31 @@ module basic
   real :: mass_ratio  ! me/mi (in units of me/mp)
 
   ! domain parameters
-  real :: xzero, zzero  ! cooridinates of lower left corner of domain
   real :: rzero    ! nominal major radius of the device
   real :: libetap   !  li/2 + beta_poloidal estimate for equili/2brium calculation
   real :: xlim2   !  x-position of second limiter point as a diagnostic
   real :: zlim2   !  z-position of second limiter point as a diagnostic
-  real :: bscale     ! Batemann scaling parameter (default to 1)
   integer :: nonrect     ! 1 = non-rectangular boundary; 0 = rectangular boundary
   integer :: ifixedb   !  1 = plasma boundary is mesh boundary (for nonrect=1);   0 = free boundary
 
   ! boundary conditions
-  integer :: iper, jper ! periodic boundary conditions
-  integer :: imask      ! 1 = ignore 2-fluid terms near boundaries
-  integer :: inonormalflow ! 1 = no normal flow
-  integer :: inoslip_pol   ! 1 = no slip (poloidal flow)
-  integer :: inoslip_tor   ! 1 = no slip (toroidal flow)
-  integer :: inostress_tor ! 1 = no stress (toroidal flow)
-  integer :: inocurrent_pol! 1 = no tangential current
-  integer :: inocurrent_tor! 1 = no toroidal current
-  integer :: iconst_p      ! 1 = pressure held constant
-  integer :: iconst_t      ! 1 = pressure held constant
-  integer :: iconst_n      ! 1 = density held constant
-  integer :: iconst_bz     ! 1 = toroidal field held constant
-  integer :: inograd_p     ! 1 = no normal pressure gradient
-  integer :: inograd_n     ! 1 = no normal density gradient
-  integer :: com_bc        ! 1 = forces del^2(chi) = 0 on boundary
-  integer :: vor_bc        ! 1 = forces del*(phi) = 0 on boundary
-  integer :: ifbound       ! bc on f.  0=none, 1=dirichlet, 2=neumann
+  integer :: inonormalflow   ! 1 = no normal flow
+  integer :: inoslip_pol     ! 1 = no slip (poloidal flow)
+  integer :: inoslip_tor     ! 1 = no slip (toroidal flow)
+  integer :: inostress_tor   ! 1 = no stress (toroidal flow)
+  integer :: inocurrent_pol  ! 1 = no tangential current
+  integer :: inocurrent_tor  ! 1 = no toroidal current
+  integer :: inocurrent_norm ! 1 = no toroidal current
+  integer :: iconst_p        ! 1 = pressure held constant
+  integer :: iconst_t        ! 1 = pressure held constant
+  integer :: iconst_n        ! 1 = density held constant
+  integer :: iconst_bz       ! 1 = toroidal field held constant
+  integer :: inograd_p       ! 1 = no normal pressure gradient
+  integer :: inograd_n       ! 1 = no normal density gradient
+  integer :: com_bc          ! 1 = forces del^2(chi) = 0 on boundary
+  integer :: vor_bc          ! 1 = forces del*(phi) = 0 on boundary
+  integer :: ifbound         ! bc on f.  0=none, 1=dirichlet, 2=neumann
   real :: amu_edge    ! factor by which to increase viscosity at boundaries
-
-  integer :: icurv  ! treats boundaries as if curvature = 0.
 
   real :: eta_wall    ! resistivity of boundary
   real :: delta_wall  ! thickness of boundary
@@ -122,7 +117,7 @@ module basic
   ! general equilibrium parameters
   integer :: irestart ! 1 = reads restart file as initial condition
                       ! 2 = reads restart file to initialize GS solve
-  integer :: itaylor  ! switch used to select certain equilibrium and perturbations for test problems
+  integer :: itaylor  ! equilibrium
   integer :: idevice  ! for itor=1, itaylor=1, selects tokamak configuration
                       !  0 = generic
                       !  1 = CDX-U
@@ -132,6 +127,8 @@ module basic
   real :: vzero       ! initial toroidal velocity
   real :: phizero     ! initial poloidal velocity
   real :: p0, pi0     ! total, ion pressures
+  real :: pscale      ! factor by which to scale equilibrium pressure
+  real :: bscale      ! factor by which to scale equilibrium toroidal field
   real :: ln          ! length of equilibrium gradient
   real :: eps         ! size of initial perturbation
   integer :: iwave    ! which wave to initialize in wave prop. equilibrium
@@ -263,9 +260,8 @@ module basic
   ! complex options
   integer :: ntor     ! toroidal mode number
   integer :: mpol     ! poloidal mode number for certain test problems
-  real :: aminor    ! minor radius for test problem with itaylor=10,11
+  complex :: rfac
 
-  real :: tiltangled   !   angle to which the rectangular mesh is tilted for tests of boundary conditions
 !
 !.....input quantities---defined in subroutine input or in namelist
 !
@@ -273,15 +269,15 @@ module basic
        itaylor,                                                &
        xzero,zzero,beta,rzero, libetap, xlim2, zlim2,          &
        numvar,idens,ipres,gyro,isources,nosig,itor,jadv,       &
-       gam,db,gravr,gravz,aminor,                              &
-       p0,pi0,bzero,vzero,phizero,                             &
+       gam,db,gravr,gravz,                                     &
+       p0,pi0,bzero,vzero,phizero, pscale,bscale,              &
        etar,eta0,iresfunc,etaoff,etadelt,lambdae,mass_ratio,   &
        ivisfunc,amu,amuc,amupar,amue,amuoff,amudelt,denm,      &
        amuoff2, amudelt2,                                      &
        ikappafunc,kappat,kappa0,kappaoff,kappadelt,            &
        kappar,kappax,kappah,                                   &
        hyper,hyperi,hyperv,hyperc,hyperp,deex,                 &
-       iper,jper,imask,amu_edge,com_bc,vor_bc,pedge,           &
+       iper,jper,amu_edge,com_bc,vor_bc,pedge,                 &
        eps,ln,irmp,maxn,                                       &
        vloop,control_p,control_i,control_d,tcur,               &
        ipellet, pellet_x, pellet_z, pellet_rate, pellet_var,   &
@@ -299,12 +295,13 @@ module basic
        expn,q0,divertors,xdiv,zdiv,divcur,th_gs,p1,p2,         &
        idevice,igs,nv1equ,tol_gs,igs_method,psiscale,          &
        iconstflux,regular,max_ke,                              &
-       ntor, mpol,iadapt,istatic,iestatic,ivform, ibform,            &
+       ntor,mpol,iadapt,istatic,iestatic,ivform, ibform,       &
        ihypeta,ihypamu,ihypkappa,ikapscale,                    &
        iteratephi, icsym, inumgs, nonrect, ifixedb,            &
        inonormalflow, inoslip_pol, inoslip_tor, inostress_tor, &
        iconst_p, inograd_p, iconst_n, inograd_n, iconst_t,     &
-       inocurrent_pol, inocurrent_tor, iconst_bz, ifbound,     &
+       inocurrent_pol, inocurrent_tor, inocurrent_norm,        &
+       iconst_bz, ifbound,     &
        irecalc_eta,ihypdx, iconst_eta,                         &
        n_target, n_control_p, n_control_i, n_control_d,        &
        icalc_scalars, ike_only, ifout, inertia, itwofluid,     &
@@ -313,7 +310,7 @@ module basic
        tiltangled, isurface,                                   &
        iread_eqdsk, iread_dskbal, iread_jsolver,               &
        adapt_factor, adapt_hmin, adapt_hmax,                   &
-       b0_norm, n0_norm, l0_norm, bscale,                      &
+       b0_norm, n0_norm, l0_norm,                              &
        idenfunc, den_edge, den0, denoff, dendelt,              &
        irot, alpha0, alpha1, alpha2,                           &
        icurv, iflip, iwrite_restart,                           &
@@ -323,8 +320,7 @@ module basic
   !     derived quantities
   real :: dbf,bdf,hypv,hypc,hypf,hypi,hypp,   &
        time,                                     &
-       gbound,fbound
-  real, parameter :: pi = 3.14159265358979323846
+       gbound
 
   ! magnetic diagnostics
   real :: psimin       ! flux value at magnetic axis
@@ -350,67 +346,31 @@ module basic
 
 end module basic
 
-module t_data
-  use p_data
-
-  ! variables used to define the triangles
-  real, allocatable :: atri(:),btri(:),ctri(:),ttri(:)
-  vectype, allocatable :: gtri(:,:,:)
-  real, allocatable :: rinv(:)
-  integer, allocatable :: ist(:,:)
-
-end module t_data
-
 module arrays
   use p_data
+  use field
+  use element
+
   integer, parameter :: r8 = selected_real_kind(12,100)
-  ! indices
-  integer :: maxdofs1, maxdofs2, maxdofsn
-  integer, allocatable :: isvaln(:,:),isval1(:,:),isval2(:,:)
-  real :: fint(-6:maxi,-6:maxi), xi(3),zi(3),df(0:4,0:4)
 
   ! arrays defined at all vertices
   ! any change to this list of variables needs to be taken into
   ! account in the arrayresizevec subroutine
 
   ! Arrays containing physical fields
-  vectype, allocatable, target :: &
-       field(:), field0(:), fieldi(:), &
-       bf(:), bfi(:), bf0(:)
+  type(vector_type), target :: field_vec, field0_vec
+  type(field_type) :: bf_field(0:1)
 
   ! Arrays containing auxiliary variables
-  vectype, allocatable :: &
-       jphi(:), vor(:), com(:),                     &
-       resistivity(:), tempvar(:),                  &
-       temporary_vector(:),                  &
-       kappa(:),sigma(:), sb1(:), sb2(:), sp1(:),   &
-       visc(:), visc_c(:), visc_e(:)
+  type(field_type) :: jphi_field, vor_field, com_field
+  type(field_type) :: resistivity_field, kappa_field, sigma_field
+  type(field_type) :: visc_field, visc_c_field, visc_e_field
+  type(field_type) :: tempvar_field
 
-  ! Arrays for advance
-  vectype, allocatable, target :: &
-       phi(:), phiold(:),  &
-       vel(:), velold(:),  &
-       den(:), denold(:),  &
-       pres(:), presold(:),  &
-       q4(:), r4(:), qn4(:), qp4(:)  
-
-  vectype, allocatable :: &
-       veln(:), veloldn(:), phip(:),                          &
-       b1_vel(:), b2_vel(:), b1_phi(:), b2_phi(:),            &
-       tempcompare(:)
-
-
-  ! the following pointers point to the vector containing the named field.
-  ! set by assign_variables()
-  vectype, pointer ::   u_v(:),   uo_v(:)
-  vectype, pointer ::  vz_v(:),  vzo_v(:)
-  vectype, pointer :: chi_v(:), chio_v(:)
-  vectype, pointer :: psi_v(:), psio_v(:)
-  vectype, pointer ::  bz_v(:),  bzo_v(:)
-  vectype, pointer ::  pe_v(:),  peo_v(:)
-  vectype, pointer :: den_v(:), deno_v(:)
-  vectype, pointer ::   p_v(:),   po_v(:)
-
+  type(field_type) :: temporary_field
+  
+  type(vector_type) :: external_field
+  type(field_type) :: external_psi_field, external_bf_field, external_bz_field
 
   ! the indicies of the named fields within the field vector
   integer, parameter :: u_g = 1
@@ -423,337 +383,108 @@ module arrays
   integer, parameter :: p_g = 8
   integer, parameter :: num_fields = 8
 
-  ! the indicies of the named fields within their respective vectors
-  integer :: u_i, vz_i, chi_i
-  integer :: psi_i, bz_i, pe_i
-  integer :: den_i, p_i
-  integer :: bf_i, e_i
+  type(field_type) :: u_field(0:1), vz_field(0:1), chi_field(0:1)
+  type(field_type) :: psi_field(0:1), bz_field(0:1), pe_field(0:1)
+  type(field_type) :: den_field(0:1), p_field(0:1)
 
-  ! the offset (relative to the node offset) of the named field within
-  ! their respective vectors
-  integer :: u_off, vz_off, chi_off
-  integer :: psi_off, bz_off, pe_off
-  integer :: den_off, p_off
-  integer :: bf_off, e_off
-  integer :: vecsize_vel, vecsize_phi, vecsize_n, vecsize_p
-  
   ! the following pointers point to the locations of the named field within
   ! the respective vector.  set by assign_local_pointers()
-  vectype, pointer ::   u1_l(:),   u0_l(:),   us_l(:)
-  vectype, pointer ::  vz1_l(:),  vz0_l(:),  vzs_l(:)
-  vectype, pointer :: chi1_l(:), chi0_l(:), chis_l(:) 
-  vectype, pointer :: psi1_l(:), psi0_l(:), psis_l(:)
-  vectype, pointer ::  bz1_l(:),  bz0_l(:),  bzs_l(:) 
-  vectype, pointer ::  pe1_l(:),  pe0_l(:),  pes_l(:)
-  vectype, pointer :: den1_l(:), den0_l(:), dens_l(:) 
-  vectype, pointer ::   p1_l(:),   p0_l(:),   ps_l(:)
+!!$  vectype, pointer ::   u1_l(:),   u0_l(:)
+!!$  vectype, pointer ::  vz1_l(:),  vz0_l(:)
+!!$  vectype, pointer :: chi1_l(:), chi0_l(:)
+!!$  vectype, pointer :: psi1_l(:), psi0_l(:)
+!!$  vectype, pointer ::  bz1_l(:),  bz0_l(:)
+!!$  vectype, pointer ::  pe1_l(:),  pe0_l(:)
+!!$  vectype, pointer :: den1_l(:), den0_l(:)
+!!$  vectype, pointer ::   p1_l(:),   p0_l(:)
+  vectype, dimension(dofs_per_node) ::   u1_l,   u0_l
+  vectype, dimension(dofs_per_node) ::  vz1_l,  vz0_l
+  vectype, dimension(dofs_per_node) :: chi1_l, chi0_l
+  vectype, dimension(dofs_per_node) :: psi1_l, psi0_l
+  vectype, dimension(dofs_per_node) ::  bz1_l,  bz0_l
+  vectype, dimension(dofs_per_node) ::  pe1_l,  pe0_l
+  vectype, dimension(dofs_per_node) :: den1_l, den0_l
+  vectype, dimension(dofs_per_node) ::   p1_l,   p0_l
 
-  integer, parameter :: OP_PLUS = 1
-  integer, parameter :: OP_POW = 2
 
 contains
-  
-  subroutine scalar_operation(vec, iplace, isize, iop, val)
 
-    implicit none
-
-    vectype, intent(inout), dimension(*) :: vec
-    integer, intent(in) :: iplace, isize, iop
-    vectype, intent(in) :: val
-    vectype, dimension(6) :: newvec
-
-    integer :: inode, ibegin, iendplusone, numnodes, i
-
-    call numnod(numnodes)
-    do inode=1, numnodes
-       call entdofs(isize, inode, 0, ibegin, iendplusone)
-       i = ibegin+(iplace-1)*6
-       select case(iop)
-       case(OP_PLUS)
-          vec(i) = vec(i) + val
-
-       case(OP_POW)
-          newvec(1) =     vec(i)**val
-          newvec(2) = val*newvec(1)/vec(i) * vec(i+1)
-          newvec(3) = val*newvec(1)/vec(i) * vec(i+2)
-          newvec(4) = val*(val-1.)*newvec(1)/vec(i)**2 * vec(i+1)**2 &
-               + val*newvec(1)/vec(i) * vec(i+3)
-          newvec(5) = val*(val-1.)*newvec(1)/vec(i)**2 * vec(i+1)*vec(i+2) &
-               + val*newvec(1)/vec(i) * vec(i+4)
-          newvec(6) = val*(val-1.)*newvec(1)/vec(i)**2 * vec(i+2)**2 &
-               + val*newvec(1)/vec(i) * vec(i+5)
-          vec(i:i+5) = newvec(1:6)
-       end select
-    end do
-  end subroutine scalar_operation
-  
-
-!==========================================================
-! assign_variables
-! ~~~~~~~~~~~~~~~
-! Assigns variables to appropriate vectors for time advance
-!==========================================================
-  subroutine assign_variables()
-
-    use basic
-
-    implicit none
-    
-    if(isplitstep.eq.1) then
-       
-       u_v => vel
-       uo_v => velold    
-       psi_v => phi
-       psio_v => phiold
-       
-       if(numvar.ge.2) then
-          vz_v => vel
-          vzo_v => velold
-          bz_v => phi
-          bzo_v => phiold
-       endif
-
-       if(numvar.ge.3) then
-          chi_v => vel
-          chio_v => velold
-          pe_v => phi
-          peo_v => phiold
-       endif
-
-       if(ipres.eq.1) then
-          p_v => pres
-          po_v => presold
-       end if
-
-       if(idens.eq.1) then
-          den_v => den
-          deno_v => denold
-       end if
-
-       u_i = 1
-       psi_i = 1
-       vz_i = 2
-       bz_i = 2
-       chi_i = 3
-       pe_i = 3
-       den_i = 1
-       bf_i = 1
-       e_i = numvar + 1
-
-       if(ipres.eq.1) then
-          p_i = 1
-       else
-          p_i = 3
-       end if
-
-    else
-       u_v => phi
-       uo_v => phiold
-       psi_v => phi
-       psio_v => phiold
-
-       if(numvar.ge.2) then
-          vz_v => phi
-          vzo_v => phiold
-          bz_v => phi
-          bzo_v => phiold
-       endif
-
-       if(numvar.ge.3) then
-          chi_v => phi
-          chio_v => phiold
-          pe_v => phi
-          peo_v => phiold
-       endif
-     
-       if(idens.eq.1) then
-          den_v => phi
-          deno_v => phiold
-       end if
-
-       if(ipres.eq.1) then
-          p_v => phi
-          po_v => phiold
-       endif
-         
-       u_i = 1
-       psi_i = 2
-       vz_i = 3
-       bz_i = 4
-       chi_i = 5
-       pe_i = 6    
-       den_i = 2*numvar+1
-       if(ipres.eq.1) then
-          p_i = 2*numvar+idens+1
-       else
-          p_i = pe_i
-       endif
-       bf_i = 1
-       e_i = 2*numvar+idens+ipres+1
-         
-    endif
-      
-    u_off = (u_i-1)*6
-    psi_off = (psi_i-1)*6
-    vz_off = (vz_i-1)*6
-    bz_off = (bz_i-1)*6
-    chi_off = (chi_i-1)*6
-    pe_off = (pe_i-1)*6
-    den_off = (den_i-1)*6
-    p_off = (p_i-1)*6
-    bf_off = (bf_i-1)*6
-    e_off = (e_i-1)*6
-
-  end subroutine assign_variables
-
-!======================================================
-! assign_local_pointers
-! ~~~~~~~~~~~~~~~~~~~~~
-! Assigns local field pointers to appropriate locations
-! in global field vectors.
-!
-!======================================================
-  subroutine assign_local_pointers(inode)
+  !======================================================
+  ! get_local_vals
+  ! ~~~~~~~~~~~~~~
+  !======================================================
+  subroutine get_local_vals(inode)
 
     use basic
 
     implicit none
 
     integer, intent(in) :: inode
-    integer :: ibegin, iendplusone, iend
 
-    call entdofs(num_fields, inode, 0, ibegin, iendplusone)
-    iend = ibegin+5
+!!$    call field_get_local_pointer(  u_field(0), inode,   u0_l)
+!!$    call field_get_local_pointer( vz_field(0), inode,  vz0_l)
+!!$    call field_get_local_pointer(chi_field(0), inode, chi0_l)
+!!$    call field_get_local_pointer(psi_field(0), inode, psi0_l)
+!!$    call field_get_local_pointer( bz_field(0), inode,  bz0_l)
+!!$    call field_get_local_pointer( pe_field(0), inode,  pe0_l)
+!!$    call field_get_local_pointer(  p_field(0), inode,   p0_l)
+!!$    call field_get_local_pointer(den_field(0), inode, den0_l)
+!!$    call field_get_local_pointer(  u_field(1), inode,   u1_l)
+!!$    call field_get_local_pointer( vz_field(1), inode,  vz1_l)
+!!$    call field_get_local_pointer(chi_field(1), inode, chi1_l)
+!!$    call field_get_local_pointer(psi_field(1), inode, psi1_l)
+!!$    call field_get_local_pointer( bz_field(1), inode,  bz1_l)
+!!$    call field_get_local_pointer( pe_field(1), inode,  pe1_l)
+!!$    call field_get_local_pointer(  p_field(1), inode,   p1_l)
+!!$    call field_get_local_pointer(den_field(1), inode, den1_l)
+    call get_node_data(  u_field(0), inode,   u0_l)
+    call get_node_data( vz_field(0), inode,  vz0_l)
+    call get_node_data(chi_field(0), inode, chi0_l)
+    call get_node_data(psi_field(0), inode, psi0_l)
+    call get_node_data( bz_field(0), inode,  bz0_l)
+    call get_node_data( pe_field(0), inode,  pe0_l)
+    call get_node_data(  p_field(0), inode,   p0_l)
+    call get_node_data(den_field(0), inode, den0_l)
+    call get_node_data(  u_field(1), inode,   u1_l)
+    call get_node_data( vz_field(1), inode,  vz1_l)
+    call get_node_data(chi_field(1), inode, chi1_l)
+    call get_node_data(psi_field(1), inode, psi1_l)
+    call get_node_data( bz_field(1), inode,  bz1_l)
+    call get_node_data( pe_field(1), inode,  pe1_l)
+    call get_node_data(  p_field(1), inode,   p1_l)
+    call get_node_data(den_field(1), inode, den1_l)
 
-    psi1_l => field (ibegin+(psi_g-1)*6:iend+(psi_g-1)*6)
-    psi0_l => field0(ibegin+(psi_g-1)*6:iend+(psi_g-1)*6)
-    psis_l => fieldi(ibegin+(psi_g-1)*6:iend+(psi_g-1)*6)
-      u1_l => field (ibegin+(  u_g-1)*6:iend+(  u_g-1)*6)
-      u0_l => field0(ibegin+(  u_g-1)*6:iend+(  u_g-1)*6)
-      us_l => fieldi(ibegin+(  u_g-1)*6:iend+(  u_g-1)*6)
-     vz1_l => field (ibegin+( vz_g-1)*6:iend+( vz_g-1)*6)
-     vz0_l => field0(ibegin+( vz_g-1)*6:iend+( vz_g-1)*6)
-     vzs_l => fieldi(ibegin+( vz_g-1)*6:iend+( vz_g-1)*6)
-     bz1_l => field (ibegin+( bz_g-1)*6:iend+( bz_g-1)*6)
-     bz0_l => field0(ibegin+( bz_g-1)*6:iend+( bz_g-1)*6)
-     bzs_l => fieldi(ibegin+( bz_g-1)*6:iend+( bz_g-1)*6)
-    chi1_l => field (ibegin+(chi_g-1)*6:iend+(chi_g-1)*6)
-    chi0_l => field0(ibegin+(chi_g-1)*6:iend+(chi_g-1)*6)
-    chis_l => fieldi(ibegin+(chi_g-1)*6:iend+(chi_g-1)*6)
-     pe1_l => field (ibegin+( pe_g-1)*6:iend+( pe_g-1)*6)
-     pe0_l => field0(ibegin+( pe_g-1)*6:iend+( pe_g-1)*6)
-     pes_l => fieldi(ibegin+( pe_g-1)*6:iend+( pe_g-1)*6)
-      p1_l => field (ibegin+(  p_g-1)*6:iend+(  p_g-1)*6)
-      p0_l => field0(ibegin+(  p_g-1)*6:iend+(  p_g-1)*6)
-      ps_l => fieldi(ibegin+(  p_g-1)*6:iend+(  p_g-1)*6)
-    den1_l => field (ibegin+(den_g-1)*6:iend+(den_g-1)*6)
-    den0_l => field0(ibegin+(den_g-1)*6:iend+(den_g-1)*6)
-    dens_l => fieldi(ibegin+(den_g-1)*6:iend+(den_g-1)*6)
-    
-  end subroutine assign_local_pointers
-!================================
-  subroutine createvec(vec, numberingid)
-    implicit none
-    integer :: numberingid, ndof
-    vectype, allocatable :: vec(:)
+  end subroutine get_local_vals
 
-    if(allocated(vec)) call deletevec(vec)
-    
-    call numdofs(numberingid, ndof)
-    allocate(vec(ndof))
-
-#ifdef USECOMPLEX
-    call createppplvec(vec, numberingid, 1)
-#else
-    call createppplvec(vec, numberingid, 0)
-#endif
-    vec = 0.
-  end subroutine createvec
-!================================
-  subroutine deletevec(vec)
-    implicit none
-    integer :: i
-    vectype, allocatable :: vec(:) 
-    
-    call checkppplveccreated(vec, i)
-    if(i .ne. 0) then
-       call deleteppplvec(vec)
-       deallocate(vec)
-    else
-       write(*,*) 'vector does not exist'
-    endif
-  end subroutine deletevec
-
-!======================================================================
-! copyvec
-! ~~~~~~~
-! copies a field from inarr to outarr
-!======================================================================
-  subroutine copyvec(inarr, inpos, insize, outarr, outpos, outsize)
-
+  subroutine set_local_vals(inode)
+    use basic
     implicit none
 
-    vectype, intent(in) :: inarr(*)
-    integer, intent(in) :: insize, inpos
-    vectype, intent(out) :: outarr(*)
-    integer, intent(in) :: outsize, outpos
+    integer, intent(in) :: inode
 
-    integer :: ibegini, iendplusonei
-    integer :: ibegino, iendplusoneo
-    integer :: l, numnodes, in_i, out_i
-    
-    in_i = (inpos-1)*6
-    out_i = (outpos-1)*6
-      
-    call numnod(numnodes)
-      
-    do l=1,numnodes
-       call entdofs(insize, l, 0, ibegini, iendplusonei)
-       call entdofs(outsize, l, 0, ibegino, iendplusoneo)
-       
-       outarr(ibegino+out_i:ibegino+out_i+5) = &
-            inarr(ibegini+in_i:ibegini+in_i+5)
-    enddo
-      
-  end subroutine copyvec
+    call set_node_data(  u_field(0), inode,   u0_l)
+    call set_node_data( vz_field(0), inode,  vz0_l)
+    call set_node_data(chi_field(0), inode, chi0_l)
+    call set_node_data(psi_field(0), inode, psi0_l)
+    call set_node_data( bz_field(0), inode,  bz0_l)
+    call set_node_data( pe_field(0), inode,  pe0_l)
+    call set_node_data(  p_field(0), inode,   p0_l)
+    call set_node_data(den_field(0), inode, den0_l)
+    call set_node_data(  u_field(1), inode,   u1_l)
+    call set_node_data( vz_field(1), inode,  vz1_l)
+    call set_node_data(chi_field(1), inode, chi1_l)
+    call set_node_data(psi_field(1), inode, psi1_l)
+    call set_node_data( bz_field(1), inode,  bz1_l)
+    call set_node_data( pe_field(1), inode,  pe1_l)
+    call set_node_data(  p_field(1), inode,   p1_l)
+    call set_node_data(den_field(1), inode, den1_l)
 
-!======================================================================
-! copyfullvec
-! ~~~~~~~~~~~
-! copies a field from inarr to outarr
-!======================================================================
-  subroutine copyfullvec(inarr, insize, outarr, outsize)
-
-    implicit none
-
-    vectype, intent(in) :: inarr(*)
-    integer, intent(in) :: insize
-    vectype, intent(out) :: outarr(*)
-    integer, intent(in) :: outsize
-
-    integer :: ibegini, iendplusonei
-    integer :: ibegino, iendplusoneo
-    integer :: l, numnodes, isize
-    
-    isize = min(insize, outsize)
-
-    call numnod(numnodes)
-      
-    do l=1,numnodes
-       call entdofs(insize, l, 0, ibegini, iendplusonei)
-       call entdofs(outsize, l, 0, ibegino, iendplusoneo)
-       
-       outarr(ibegino:ibegino+(isize-1)*6+5) = &
-            inarr(ibegini:ibegini+(isize-1)*6+5)
-    enddo
-      
-  end subroutine copyfullvec
-
-
+  end subroutine set_local_vals
 end module arrays
-
   
 module sparse
+  use matrix_mod
+
   integer, parameter :: numvar1_numbering = 1
   integer, parameter :: numvar2_numbering = 2
   integer, parameter :: numvar3_numbering = 3
@@ -763,645 +494,72 @@ module sparse
   integer, parameter :: numvar7_numbering = 7
   integer, parameter :: numvar8_numbering = 8
 
-  integer, parameter :: s8matrix_sm = 1
-  integer, parameter :: s7matrix_sm = 2
+  integer, parameter :: s8_mat_index = 1
+  integer, parameter :: s7_mat_index = 2
   integer, parameter :: s4matrix_sm = 3
-  integer, parameter :: s5matrix_sm = 4
-  integer, parameter :: s1matrix_sm = 5
-  integer, parameter :: s2matrix_sm = 6
-  integer, parameter :: d1matrix_sm = 7
-  integer, parameter :: d2matrix_sm = 8
+  integer, parameter :: s5_mat_index = 4
+  integer, parameter :: s1_mat_index = 5
+  integer, parameter :: s2_mat_index = 6
+  integer, parameter :: d1_mat_index = 7
+  integer, parameter :: d2_mat_index = 8
   integer, parameter :: d4matrix_sm = 9
-  integer, parameter :: d8matrix_sm = 10
-  integer, parameter :: q1matrix_sm = 11
-  integer, parameter :: r2matrix_sm = 12
-  integer, parameter :: r8matrix_sm = 13
-  integer, parameter :: q2matrix_sm = 14
-  integer, parameter :: q8matrix_sm = 15
+  integer, parameter :: d8_mat_index = 10
+  integer, parameter :: q1_mat_index = 11
+  integer, parameter :: r2_mat_index = 12
+  integer, parameter :: r8_mat_index = 13
+  integer, parameter :: q2_mat_index = 14
+  integer, parameter :: q8_mat_index = 15
   integer, parameter :: gsmatrix_sm = 16
-  integer, parameter :: s9matrix_sm = 17
-  integer, parameter :: d9matrix_sm = 18
-  integer, parameter :: r9matrix_sm = 19
-  integer, parameter :: q9matrix_sm = 20
-  integer, parameter :: r14matrix_sm = 21
-  integer, parameter :: mass_matrix_lhs = 22
-  integer, parameter :: mass_matrix_lhs_dc = 23
-  integer, parameter :: mass_matrix_rhs_nm = 24
-  integer, parameter :: o1matrix_sm = 25
-  integer, parameter :: o2matrix_sm = 26
-  integer, parameter :: gs_matrix_rhs_dc = 27
-  integer, parameter :: lp_matrix_rhs = 28
-  integer, parameter :: lp_matrix_rhs_dc = 29
-  integer, parameter :: bf_matrix_lhs_nm = 30
-  integer, parameter :: q42matrix_sm = 31
-  integer, parameter :: d5matrix_sm = 32
-  integer, parameter :: s10matrix_sm = 33
-  integer, parameter :: d10matrix_sm = 34
-  integer, parameter :: d7matrix_sm = 36
+  integer, parameter :: s9_mat_index = 17
+  integer, parameter :: d9_mat_index = 18
+  integer, parameter :: r9_mat_index = 19
+  integer, parameter :: q9_mat_index = 20
+  integer, parameter :: r14_mat_index = 21
+  integer, parameter :: mass_mat_lhs_index = 22
+  integer, parameter :: mass_mat_lhs_dc_index = 23
+  integer, parameter :: mass_mat_rhs_dc_index = 24
+  integer, parameter :: o1_mat_index = 25
+  integer, parameter :: o2_mat_index = 26
+  integer, parameter :: gs_mat_rhs_dc_index = 27
+  integer, parameter :: lp_mat_rhs_index = 28
+  integer, parameter :: lp_mat_rhs_dc_index = 29
+  integer, parameter :: bf_mat_lhs_dc_index = 30
+  integer, parameter :: q42_mat_index = 31
+  integer, parameter :: d5_mat_index = 32
+  integer, parameter :: s10_mat_index = 33
+  integer, parameter :: d10_mat_index = 34
+  integer, parameter :: d7_mat_index = 36
   integer, parameter :: ppmatrix_lhs = 37
-  integer, parameter :: brmatrix_sm = 38
-  integer, parameter :: bf_matrix_rhs = 39
-  integer, parameter :: dp_matrix_lhs = 40
-  integer, parameter :: rwpsi_sm = 41
-  integer, parameter :: rwbf_sm = 42
-  integer, parameter :: ecpsi_sm = 43
-  integer, parameter :: ecbf_sm = 44
-  integer, parameter :: num_matrices = 44
-  
+  integer, parameter :: br_mat_index = 38
+  integer, parameter :: bf_mat_rhs_index = 39
+  integer, parameter :: dp_mat_lhs_index = 40
+  integer, parameter :: mass_mat_rhs_index = 41
+  integer, parameter :: rwpsi_mat_index = 42
+  integer, parameter :: rwbf_mat_index = 43
+  integer, parameter :: ecpsi_mat_index = 44
+  integer, parameter :: ecbf_mat_index = 45
+  integer, parameter :: rw_rhs_mat_index = 46
+  integer, parameter :: rw_lhs_mat_index = 47
+  integer, parameter :: num_matrices = 47
+
+  type(matrix_type), target :: s1_mat, d1_mat, q1_mat, r14_mat, o1_mat
+  type(matrix_type), target :: q42_mat
+  type(matrix_type), target :: s2_mat, d2_mat, r2_mat, q2_mat, o2_mat
+  type(matrix_type), target :: s8_mat, d8_mat, r8_mat, q8_mat
+  type(matrix_type), target :: s9_mat, d9_mat, r9_mat, q9_mat
+  type(matrix_type) :: rwpsi_mat, rwbf_mat, ecpsi_mat, ecbf_mat
+  type(matrix_type) :: rw_rhs_mat, rw_lhs_mat
+
 contains
   subroutine delete_matrices
     implicit none
     integer :: i
 
+#ifdef USESCOREC
     do i=1, num_matrices
        call deletematrix(i)
     end do
+#endif
   end subroutine delete_matrices
   
 end module sparse
-
-
-!============================================================
-! space
-! ~~~~~
-! allocates space for big arrays
-!
-! ifirstcall = 1 if this is the first call and 0 otherwise
-!============================================================
-subroutine space(ifirstcall)
-
-  use p_data
-  use t_data
-  use basic
-  use arrays
-  use sparse
-
-  implicit none
-
-  integer, intent(in) :: ifirstcall
-
-  integer :: numnodes, numelms
-
-  if(myrank.eq.1 .and. iprint.ge.1) print *, " Entering space..."
-
-  if(isplitstep.eq.1) then
-     vecsize_phi = numvar
-     vecsize_vel = numvar
-     vecsize_n = 1
-     vecsize_p = 1
-  else
-     vecsize_phi  = numvar*2 + idens + ipres
-  endif
-
-! add electrostatic potential equation
-#ifdef USECOMPLEX
-  if(jadv.eq.0) vecsize_phi = vecsize_phi + 1
-#endif
-
-  if(isplitstep.eq.0) then
-     vecsize_vel  = vecsize_phi
-     vecsize_n    = vecsize_phi
-     vecsize_p    = vecsize_phi
-  endif
-
-!
-!.....create numberings
-  if(ifirstcall .eq. 1) then
-     call createdofnumbering(numvar1_numbering, iper, jper, &
-          6, 0, 0, 0, maxdofs1)
-     call createdofnumbering(numvar2_numbering, iper, jper, &
-          12, 0, 0, 0, maxdofs2)
-     call createdofnumbering(num_fields, iper, jper, &
-          num_fields*6, 0, 0, 0, maxdofsn)
-     if(vecsize_phi.gt.2 .and. vecsize_phi.ne.num_fields) then
-        call createdofnumbering(vecsize_phi, iper, jper, &
-             vecsize_phi*6, 0, 0, 0, maxdofsn)
-     endif
-     if(vecsize_vel.gt.2 .and. vecsize_vel.ne.vecsize_phi) then
-        call createdofnumbering(vecsize_vel, iper, jper, &
-             vecsize_vel*6, 0, 0, 0, maxdofsn)
-     endif
-  endif
-  
-  call numnod(numnodes)
-  call numfac(numelms)
-
-! arrays defined at all vertices
-! createvec will delete the arrays if they have already been allocated
-  if(ifirstcall.eq.1) then
-     if(myrank.eq.0 .and. iprint.eq.1) print *, 'Allocating...'
-
-     ! Physical Variables
-     call createvec(field , num_fields)
-     call createvec(field0, num_fields)
-     call createvec(fieldi, num_fields)
-
-     ! Auxiliary Variables
-     call createvec(jphi, 1)
-     call createvec(vor, 1)
-     call createvec(com, 1)
-     call createvec(resistivity, 1)
-     call createvec(kappa, 1)
-     call createvec(visc, 1)
-     call createvec(visc_c, 1)
-     call createvec(sigma, 1)
-     call createvec(tempvar,1)
-     call createvec(bf,1)
-     call createvec(bfi,1)
-     call createvec(bf0,1)
-     if(ibootstrap.gt.0) call createvec(visc_e,1)
-
-     ! Arrays for implicit time advance
-     call createvec(phi,      vecsize_phi)
-     call createvec(phiold,   vecsize_phi)
-     call createvec(phip,     vecsize_phi)
-     call createvec(q4,       vecsize_phi)
-     
-     call createvec(b1_phi,   vecsize_phi)
-     call createvec(b2_phi,   vecsize_phi)
-
-     if(isplitstep.eq.1) then
-        call createvec(vel,      vecsize_vel)
-        call createvec(velold,   vecsize_vel)
-        call createvec(veln,     vecsize_vel)
-        call createvec(veloldn,  vecsize_vel)
-        call createvec(r4,       vecsize_vel)
-
-        if(ipres.eq.1) then
-           call createvec(pres,    vecsize_p)
-           call createvec(presold, vecsize_p)
-           call createvec(qp4,     vecsize_p)
-        endif
-        
-        call createvec(den,    vecsize_n)        
-        call createvec(denold, vecsize_n)
-        call createvec(qn4,    vecsize_n)
-        
-        call createvec(b1_vel,   vecsize_vel)
-        call createvec(b2_vel,   vecsize_vel)
-        
-        if(isources.eq.1) then
-           call createvec(sb1, 1)
-           call createvec(sb2, 1)
-           call createvec(sp1, 1)
-        endif
-     endif
-  endif
-
-  ! arrays associated with the triangles
-  if(ifirstcall.eq.0) then
-     if(myrank.eq.0 .and. iprint.eq.1) print *, ' deallocating...'
-     deallocate(ist)
-     deallocate(isvaln)
-     deallocate(isval1)
-     deallocate(isval2)
-     deallocate(atri)
-     deallocate(btri)
-     deallocate(ctri)
-     deallocate(ttri)
-     deallocate(gtri)
-  endif
-  
-  if(myrank.eq.0 .and. iprint.eq.1) print *, ' Allocting tri...'
-  allocate(ist(numelms,3),isvaln(numelms,18),isval1(numelms,18), &
-       isval2(numelms,18))
-  allocate(atri(numelms),btri(numelms),ctri(numelms),ttri(numelms), &
-       gtri(20,18,numelms)) 
-
-  ! metric terms involved in toroidal geometry
-  if(ifirstcall.eq.0) deallocate(rinv)
-  allocate(rinv(numnodes*6))
-
-  ! assign pointers to proper vectors
-  call assign_variables
-
-  if(myrank.eq.1 .and. iprint.ge.1) print *, " Exiting space."
-
-  return
-end subroutine space
-
-
-subroutine insval(imatrix, val, icom, i, j, iop)
-
-  use basic
-
-  implicit none
-  
-  integer, intent(in) :: imatrix, i, j, iop, icom
-  vectype, intent(in) :: val
-
-! June-13-2008 cj
-! take this line off for solve2: nonzero structure re-using
-!!$  if(val.eq.0.) then
-!!$     if(drop_zeroes.eq.1) return
-!!$  endif
-
-  call insertval(imatrix, val, icom, i, j, iop)
-
-end subroutine insval
-
-
-
-subroutine resizevec(vec, ivecsize)
-  use arrays
-  implicit none
-  integer ivecsize
-  double precision :: vec
-
-  call arrayresizevec(vec, ivecsize)
-
-  return
-end subroutine resizevec
-
-subroutine arrayresizevec(vec, ivecsize)
-  use arrays
-
-  implicit none
-  integer :: ivecsize, i
-  double precision :: vec
-
-  print *, "In arrayresizevec!", ivecsize
-
-  call checkppplveccreated(vec, i)
-  if(i .eq. 0) then
-     call printfpointer(vec)
-     write(*,*) 'trying to resize a vector that has not been created'
-     call safestop(8844)
-  endif
-
-
-  call checksameppplvec(field, vec, i)
-  if(i .eq. 1) then
-     print *, "field"
-     if(allocated(field)) deallocate(field, STAT=i)
-     allocate(field(ivecsize))
-     field = 0.
-     call updateids(vec, field)
-     print *, 'done'
-     return
-  endif
-
-  call checksameppplvec(field0, vec, i)
-  if(i .eq. 1) then
-     print *, "field0"
-     if(allocated(field0)) deallocate(field0, STAT=i)
-     allocate(field0(ivecsize))
-     field0 = 0.
-     call updateids(vec, field0)
-     return
-  endif
-
-  call checksameppplvec(fieldi, vec, i)
-  if(i .eq. 1) then
-     print *, "fieldi"
-     if(allocated(fieldi)) deallocate(fieldi, STAT=i)
-     allocate(fieldi(ivecsize))
-     fieldi = 0.
-     call updateids(vec, fieldi)
-     return
-  endif
-
-  call checksameppplvec(jphi, vec, i)
-  if(i .eq. 1) then
-     print *, "jphi"
-     if(allocated(jphi)) deallocate(jphi, STAT=i)
-     allocate(jphi(ivecsize))
-     jphi = 0.
-     call updateids(vec, jphi)
-     return
-  endif
-  
-  call checksameppplvec(vor, vec, i)
-  if(i .eq. 1) then
-     print *, "vor"
-     if(allocated(vor)) deallocate(vor, STAT=i)
-     allocate(vor(ivecsize))
-     vor = 0.
-     call updateids(vec, vor)
-     return
-  endif
-  
-  call checksameppplvec(com, vec, i)
-  if(i .eq. 1) then
-     print *, "com"
-     if(allocated(com)) deallocate(com, STAT=i)
-     allocate(com(ivecsize))
-     com = 0.
-     call updateids(vec, com)
-     return
-  endif
-  
-  call checksameppplvec(resistivity, vec, i)
-  if(i .eq. 1) then
-     print *, "resistivity"
-     if(allocated(resistivity)) deallocate(resistivity, STAT=i)
-     allocate(resistivity(ivecsize))
-     resistivity = 0.
-     call updateids(vec, resistivity)
-     return
-  endif
-  
-  call checksameppplvec(tempvar, vec, i)
-  if(i .eq. 1) then
-     print *, "tempvar"
-     if(allocated(tempvar)) deallocate(tempvar, STAT=i)
-     allocate(tempvar(ivecsize))
-     tempvar = 0.
-     call updateids(vec, tempvar)
-     return
-  endif
-  
-  call checksameppplvec(kappa, vec, i)
-  if(i .eq. 1) then
-     print *, "kappa"
-     if(allocated(kappa)) deallocate(kappa, STAT=i)
-     allocate(kappa(ivecsize))
-     kappa = 0.
-     call updateids(vec, kappa)
-     return
-  endif
-
-  call checksameppplvec(sigma, vec, i)
-  if(i .eq. 1) then
-     print *, "sigma"
-     if(allocated(sigma)) deallocate(sigma, STAT=i)
-     allocate(sigma(ivecsize))
-     sigma = 0.
-     call updateids(vec, sigma)
-     return
-  endif
-      
-  call checksameppplvec(sb1, vec, i)
-  if(i .eq. 1) then
-     print *, "sb1"
-     if(allocated(sb1)) deallocate(sb1, STAT=i)
-     allocate(sb1(ivecsize))
-     sb1 = 0.
-     call updateids(vec, sb1)
-     return
-  endif
-  
-  call checksameppplvec(sb2, vec, i)
-  if(i .eq. 1) then
-     print *, "sb2"
-     if(allocated(sb2)) deallocate(sb2, STAT=i)
-     allocate(sb2(ivecsize))
-     sb2 = 0.
-     call updateids(vec, sb2)
-     return
-  endif
-  
-  call checksameppplvec(sp1, vec, i)
-  if(i .eq. 1) then
-     print *, "sp1"
-     if(allocated(sp1)) deallocate(sp1, STAT=i)
-     allocate(sp1(ivecsize))
-     sp1 = 0.
-     call updateids(vec, sp1)
-     return
-  endif
-  
-  call checksameppplvec(visc, vec, i)
-  if(i .eq. 1) then
-     print *, "visc"
-     if(allocated(visc)) deallocate(visc, STAT=i)
-     allocate(visc(ivecsize))
-     visc = 0.
-     call updateids(vec, visc)
-     return
-  endif
-  
-  call checksameppplvec(visc_c, vec, i)
-  if(i .eq. 1) then
-     print *, "visc_c"
-     if(allocated(visc_c)) deallocate(visc_c, STAT=i)
-     allocate(visc_c(ivecsize))
-     visc_c = 0.
-     call updateids(vec, visc_c)
-     return
-  endif
-
-  call checksameppplvec(bf, vec, i)
-  if(i .eq. 1) then
-     print *, "bf"
-     if(allocated(bf)) deallocate(bf, STAT=i)
-     allocate(bf(ivecsize))
-     bf = 0.
-     call updateids(vec, bf)
-     return
-  endif
-
-  call checksameppplvec(phi, vec, i)
-  if(i .eq. 1) then
-     print *, "phi"
-     if(allocated(phi)) deallocate(phi, STAT=i)
-     allocate(phi(ivecsize))
-     phi = 0.
-     call updateids(vec, phi)
-     return
-  endif
-     
-  call checksameppplvec(phiold, vec, i)
-  if(i .eq. 1) then
-     print *, "phiold"
-     if(allocated(phiold)) deallocate(phiold, STAT=i)
-     allocate(phiold(ivecsize))
-     phiold = 0.
-     call updateids(vec, phiold)
-     return
-  endif
-
-  call checksameppplvec(vel, vec, i)
-  if(i .eq. 1) then
-     print *, "vel"
-     if(allocated(vel)) deallocate(vel, STAT=i)
-     allocate(vel(ivecsize))
-     vel = 0.
-     call updateids(vec, vel)
-     return
-  endif
-      
-  call checksameppplvec(velold, vec, i)
-  if(i .eq. 1) then
-     print *, "velold"
-     if(allocated(velold)) deallocate(velold, STAT=i)
-     allocate(velold(ivecsize))
-     velold = 0.
-     call updateids(vec, velold)
-     return
-  endif
-   
-     
-  call checksameppplvec(den, vec, i)
-  if(i .eq. 1) then
-     print *, "den"
-     if(allocated(den)) deallocate(den, STAT=i)
-     allocate(den(ivecsize))
-     den = 0.
-     call updateids(vec, den)
-     return
-  endif
-  
-  call checksameppplvec(denold, vec, i)
-  if(i .eq. 1) then
-     print *, "denold"
-     if(allocated(denold)) deallocate(denold, STAT=i)
-     allocate(denold(ivecsize))
-     denold = 0.
-     call updateids(vec, denold)
-     return
-  endif
-  
-  call checksameppplvec(pres, vec, i)
-  if(i .eq. 1) then
-     print *, "pres"
-     if(allocated(pres)) deallocate(pres, STAT=i)
-     allocate(pres(ivecsize))
-     pres = 0.
-     call updateids(vec, pres)
-     return
-  endif
-  
-  call checksameppplvec(presold, vec, i)
-  if(i .eq. 1) then
-     print *, "presold"
-     if(allocated(presold)) deallocate(presold, STAT=i)
-     allocate(presold(ivecsize))
-     presold = 0.
-     call updateids(vec, presold)
-     return
-  endif
-     
-  call checksameppplvec(q4, vec, i)
-  if(i .eq. 1) then
-     print *, "q4"
-     if(allocated(q4)) deallocate(q4, STAT=i)
-     allocate(q4(ivecsize))
-     q4 = 0.
-     call updateids(vec, q4)
-     return
-  endif
-
-  call checksameppplvec(r4, vec, i)
-  if(i .eq. 1) then
-     print *, "r4"
-     if(allocated(r4)) deallocate(r4, STAT=i)
-     allocate(r4(ivecsize))
-     r4 = 0.
-     call updateids(vec, r4)
-     return
-  endif
-
-  call checksameppplvec(qn4, vec, i)
-  if(i .eq. 1) then
-     print *, "qn4"
-     if(allocated(qn4)) deallocate(qn4, STAT=i)
-     allocate(qn4(ivecsize))
-     qn4 = 0.
-     call updateids(vec, qn4)
-     return
-  endif
-  
-  call checksameppplvec(qp4, vec, i)
-  if(i .eq. 1) then
-     print *, "qp4"
-     if(allocated(qp4)) deallocate(qp4, STAT=i)
-     allocate(qp4(ivecsize))
-     qp4 = 0.
-     call updateids(vec, qp4)
-     return
-  endif
-
-  call checksameppplvec(veln, vec, i)
-  if(i .eq. 1) then
-     print *, "veln"
-     if(allocated(veln)) deallocate(veln, STAT=i)
-     allocate(veln(ivecsize))
-     veln = 0.
-     call updateids(vec, veln)
-     return
-  endif
-      
-  call checksameppplvec(veloldn, vec, i)
-  if(i .eq. 1) then
-     print *, "veloldn"
-     if(allocated(veloldn)) deallocate(veloldn, STAT=i)
-     allocate(veloldn(ivecsize))
-     veloldn = 0.
-     call updateids(vec, veloldn)
-     return
-  endif
-
-  call checksameppplvec(phip, vec, i)
-  if(i .eq. 1) then
-     print *, "phip"
-     if(allocated(phip)) deallocate(phip, STAT=i)
-     allocate(phip(ivecsize))
-     phip = 0.
-     call updateids(vec, phip)
-     return
-  endif
-  
-  call checksameppplvec(b1_phi, vec, i)
-  if(i .eq. 1) then
-     print *, "b1_phi"
-     if(allocated(b1_phi)) deallocate(b1_phi, STAT=i)
-     allocate(b1_phi(ivecsize))
-     b1_phi = 0.
-     call updateids(vec, b1_phi)
-     return
-  endif
-  
-  call checksameppplvec(b2_phi, vec, i)
-  if(i .eq. 1) then
-     print *, "b2_phi"
-     if(allocated(b2_phi)) deallocate(b2_phi, STAT=i)
-     allocate(b2_phi(ivecsize))
-     b2_phi = 0.
-     call updateids(vec, b2_phi)
-     return
-  endif
-  
-  call checksameppplvec(b1_vel, vec, i)
-  if(i .eq. 1) then
-     print *, "b1_vel"
-     if(allocated(b1_vel)) deallocate(b1_vel, STAT=i)
-     allocate(b1_vel(ivecsize))
-     b1_vel = 0.
-     call updateids(vec, b1_vel)
-     return
-  endif
-  
-  call checksameppplvec(b2_vel, vec, i)
-  if(i .eq. 1) then
-     print *, "b2_vel"
-     if(allocated(b2_vel)) deallocate(b2_vel, STAT=i)
-     allocate(b2_vel(ivecsize))
-     b2_vel = 0.
-     call updateids(vec, b2_vel)
-     return
-  endif
-    
-  call checksameppplvec(tempcompare, vec, i)
-  if(i .eq. 1) then
-     print *, "tempcompare"
-     if(allocated(tempcompare)) deallocate(tempcompare, STAT=i)
-     allocate(tempcompare(ivecsize))
-     tempcompare = 0.
-     call updateids(vec, tempcompare)
-     return
-  endif  
-
-  call checksameppplvec(temporary_vector, vec, i)
-  if(i .eq. 1) then
-     print *, "temporary_vector"
-     if(allocated(temporary_vector)) deallocate(temporary_vector, STAT=i)
-     allocate(temporary_vector(ivecsize))
-     temporary_vector = 0.
-     call updateids(vec, temporary_vector)
-     return
-  endif
-
-  print *, "Error: unknown vector"
-
-end subroutine arrayresizevec

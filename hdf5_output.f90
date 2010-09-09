@@ -28,18 +28,19 @@ contains
 
   ! hdf5_initialize
   ! ===============
-  subroutine hdf5_initialize(error)
-    use basic
+  subroutine hdf5_initialize(restart, error)
     use hdf5
 
     implicit none
 
     include 'mpif.h'
-   
+
+    logical, intent(in) :: restart     ! if true, do not overwrite file
     integer, intent(out) :: error
 
     integer(HID_T) :: root_id, plist_id
     integer :: info
+
 
     call h5open_f(error)
     if(error.lt.0) then
@@ -52,8 +53,8 @@ contains
     info = MPI_INFO_NULL
     call h5pset_fapl_mpio_f(plist_id, MPI_COMM_WORLD, info, error)
 
-    ! if irestart.eq.0 then create hdf5 file
-    if(irestart.eq.0 .or. iadapt.gt.0) then
+    if(.not.restart) then
+       ! create hdf5 file
        call h5fcreate_f(hdf5_filename, H5F_ACC_TRUNC_F, file_id, error, &
             access_prp = plist_id)
        if(error.lt.0) then
@@ -68,7 +69,7 @@ contains
 
        times_output = 0
     else
-    ! else open hdf5 file
+       ! open hdf5 file
        call h5fopen_f(hdf5_filename, H5F_ACC_RDWR_F, file_id, error, &
             access_prp = plist_id)
        if(error.lt.0) then
@@ -148,7 +149,6 @@ contains
     integer(HSIZE_T), dimension(1) :: dims = 1
 
     call h5screate_f(H5S_SCALAR_F, dspace_id, error)
-    
     call h5acreate_f(parent_id, name, H5T_NATIVE_INTEGER, dspace_id, attr_id, error)
     call h5awrite_f(attr_id, H5T_NATIVE_INTEGER, value, dims, error)
     call h5aclose_f(attr_id, error)
@@ -345,7 +345,6 @@ contains
 
 end module hdf5_output
 
-
 ! hdf5_write_parameters
 ! =====================
 subroutine hdf5_write_parameters(error)
@@ -371,7 +370,6 @@ subroutine hdf5_write_parameters(error)
   call write_int_attr (root_id, "eqsubtract" , eqsubtract, error)
   call write_int_attr (root_id, "iper"       , iper,       error)
   call write_int_attr (root_id, "jper"       , jper,       error)
-  call write_int_attr (root_id, "imask"      , imask,      error)
   call write_int_attr (root_id, "integrator" , integrator, error)
   call write_int_attr (root_id, "ipellet"    , ipellet,    error)
   call write_int_attr (root_id, "ivform"     , ivform,     error)
@@ -596,7 +594,7 @@ subroutine hdf5_write_time_slice(equilibrium, error)
 
 !  integer :: global_nodes, global_edges, global_regions
    
-  call numfac(nelms)
+  nelms = local_elements()
 
   ! Calculate offset of current process
   call mpi_scan(nelms, offset, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, error)
@@ -660,8 +658,9 @@ end subroutine hdf5_write_time_slice
 subroutine output_mesh(time_group_id, nelms, error)
   use hdf5
   use hdf5_output
-  use t_data
+  use mesh_mod
   use basic
+  use boundary_conditions
 
   implicit none
 
@@ -669,11 +668,12 @@ subroutine output_mesh(time_group_id, nelms, error)
   integer, intent(in) :: nelms
   integer, intent(out) :: error
 
+  type(element_data) :: d
   integer(HID_T) :: mesh_group_id
   integer :: i
   real, dimension(7,nelms) :: elm_data
-  integer, dimension(4) :: nodeids
-  real :: alx, alz, x, z
+  integer, dimension(nodes_per_element) :: nodeids
+  real :: alx, alz
 
   logical :: is_edge(3)
   real :: normal(2,3)
@@ -685,14 +685,13 @@ subroutine output_mesh(time_group_id, nelms, error)
 
   ! Write attributes
   call write_int_attr(mesh_group_id, "nelms", global_elms, error)
-  call getboundingboxsize(alx, alz)
+  call get_bounding_box_size(alx, alz)
   call write_real_attr(mesh_group_id, "width", alx, error)
   call write_real_attr(mesh_group_id, "height", alz, error)
 
   ! Output the mesh data
   do i=1, nelms
-     call nodfac(i,nodeids)
-     call nodcoord(nodeids(1), x, z)
+     call get_element_nodes(i,nodeids)
 
      ! don't call boundary_edge if iadapt != 0
      ! because bug in scorec software causes crash when querying 
@@ -704,12 +703,14 @@ subroutine output_mesh(time_group_id, nelms, error)
      if(is_edge(2)) bound = bound + 2.
      if(is_edge(3)) bound = bound + 4.
 
-     elm_data(1,i) = atri(i)
-     elm_data(2,i) = btri(i)
-     elm_data(3,i) = ctri(i)
-     elm_data(4,i) = ttri(i)
-     elm_data(5,i) = x
-     elm_data(6,i) = z
+     call get_element_data(i, d)
+
+     elm_data(1,i) = d%a
+     elm_data(2,i) = d%b
+     elm_data(3,i) = d%c
+     elm_data(4,i) = atan2(d%sn,d%co)
+     elm_data(5,i) = d%x
+     elm_data(6,i) = d%z
      elm_data(7,i) = bound
   end do
   call output_field(mesh_group_id, "elements", elm_data, 7, nelms, error)
@@ -726,6 +727,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   use hdf5_output
   use basic
   use arrays
+  use time_step
   
   implicit none
 
@@ -734,20 +736,13 @@ subroutine output_fields(time_group_id, equilibrium, error)
   integer, intent(in) :: equilibrium
   
   integer(HID_T) :: group_id
-  integer :: i, nelms, nfields
+  integer :: i, nelms, nfields, ilin
   vectype, allocatable :: dum(:,:)
-  vectype, pointer :: f_ptr(:), bf_ptr(:)
 
-  if(equilibrium.eq.1) then
-     f_ptr => field0
-     if(ifout.eq.1) bf_ptr => bf0
-  else
-     f_ptr => field
-     if(ifout.eq.1) bf_ptr => bf
-  endif
+  ilin = 1 - equilibrium
 
   nfields = 0
-  call numfac(nelms)
+  nelms = local_elements()
   
   allocate(dum(20,nelms))
 
@@ -759,7 +754,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   
   ! psi
   do i=1, nelms
-     call calcavector(i, f_ptr, psi_g, num_fields, dum(:,i))
+     call calcavector(i, psi_field(ilin), dum(:,i))
   end do
   call output_field(group_id, "psi", real(dum), 20, nelms, error)
   nfields = nfields + 1
@@ -770,7 +765,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
 
   ! u
   do i=1, nelms
-     call calcavector(i, f_ptr, u_g, num_fields, dum(:,i))
+     call calcavector(i, u_field(ilin), dum(:,i))
   end do
   call output_field(group_id, "phi", real(dum), 20, nelms, error)
   nfields = nfields + 1
@@ -781,54 +776,56 @@ subroutine output_fields(time_group_id, equilibrium, error)
 
   ! jphi
   do i=1, nelms
-     call calcavector(i, jphi, 1, 1, dum(:,i))
+     call calcavector(i, jphi_field, dum(:,i))
   end do
   call output_field(group_id, "jphi", real(dum), 20, nelms, error)
   nfields = nfields + 1
 
   ! vor
   do i=1, nelms
-     call calcavector(i, vor, 1, 1, dum(:,i))
+     call calcavector(i, vor_field, dum(:,i))
   end do
   call output_field(group_id, "vor", real(dum), 20, nelms, error)
   nfields = nfields + 1
 
   ! eta
   do i=1, nelms
-     call calcavector(i, resistivity, 1, 1, dum(:,i))
+     call calcavector(i, resistivity_field, dum(:,i))
   end do
   call output_field(group_id, "eta", real(dum), 20, nelms, error)
   nfields = nfields + 1
 
   ! visc
   do i=1, nelms
-     call calcavector(i, visc, 1, 1, dum(:,i))
+     call calcavector(i, visc_field, dum(:,i))
   end do
   call output_field(group_id, "visc", real(dum), 20, nelms, error)
   nfields = nfields + 1
 
   ! tempvar
   do i=1, nelms
-     call calcavector(i, tempvar, 1, 1, dum(:,i))
+     call calcavector(i, tempvar_field, dum(:,i))
   end do
   call output_field(group_id, "tempvar", real(dum), 20, nelms, error)
   nfields = nfields + 1
-
 #ifdef USECOMPLEX
-  if(jadv.eq.0) then 
+  call output_field(group_id, "tempvar_i", aimag(dum), 20, nelms, error)
+  nfields = nfields + 1
+#endif
+
+
+  if(jadv.eq.0 .and. i3d.eq.1) then 
      ! electrostatic potential
      do i=1, nelms
-        call calcavector(i, phi, e_i, vecsize_phi, dum(:,i))
+        call calcavector(i, e_v, dum(:,i))
      end do
      call output_field(group_id, "potential", real(dum), 20, nelms, error)
      nfields = nfields + 1
   endif
-#endif
-
 
   ! I
   do i=1, nelms
-     call calcavector(i, f_ptr, bz_g, num_fields, dum(:,i))
+     call calcavector(i, bz_field(ilin), dum(:,i))
   end do
   call output_field(group_id, "I", real(dum), 20, nelms, error)
   nfields = nfields + 1
@@ -841,7 +838,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   ! BF
   if(ifout.eq.1) then
      do i=1, nelms
-        call calcavector(i, bf_ptr, 1, 1, dum(:,i))
+        call calcavector(i, bf_field(ilin), dum(:,i))
      end do
      call output_field(group_id, "f", real(dum), 20, nelms, error)
      nfields = nfields + 1
@@ -853,7 +850,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
 
   ! V
   do i=1, nelms
-     call calcavector(i, f_ptr, vz_g, num_fields, dum(:,i))
+     call calcavector(i, vz_field(ilin), dum(:,i))
   end do
   call output_field(group_id, "V", real(dum), 20, nelms, error)
   nfields = nfields + 1
@@ -866,7 +863,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   ! P and Pe
   if(ipres.eq.1) then
      do i=1, nelms
-        call calcavector(i, f_ptr, pe_g, num_fields, dum(:,i))
+        call calcavector(i, pe_field(ilin), dum(:,i))
      end do
      call output_field(group_id, "Pe", real(dum), 20, nelms, error)
      nfields = nfields + 1
@@ -876,7 +873,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
 #endif
 
      do i=1, nelms
-        call calcavector(i, f_ptr, p_g, num_fields, dum(:,i))
+        call calcavector(i, p_field(ilin), dum(:,i))
      end do
      call output_field(group_id, "P", real(dum), 20, nelms, error)
      nfields = nfields + 1
@@ -887,7 +884,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
 
   else
      do i=1, nelms
-        call calcavector(i, f_ptr, pe_g, num_fields, dum(:,i))
+        call calcavector(i, pe_field(ilin), dum(:,i))
      end do
      call output_field(group_id, "Pe", pefac*real(dum), 20, nelms, error)
      nfields = nfields + 1
@@ -906,7 +903,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
      
   ! chi
   do i=1, nelms
-     call calcavector(i, f_ptr, chi_g, num_fields, dum(:,i))
+     call calcavector(i, chi_field(ilin), dum(:,i))
   end do
   call output_field(group_id, "chi", real(dum), 20, nelms, error)
   nfields = nfields + 1
@@ -919,21 +916,21 @@ subroutine output_fields(time_group_id, equilibrium, error)
 
   ! com
   do i=1, nelms
-     call calcavector(i, com, 1, 1, dum(:,i))
+     call calcavector(i, com_field, dum(:,i))
   end do
   call output_field(group_id, "com", real(dum), 20, nelms, error)
   nfields = nfields + 1
 
   ! kappa
   do i=1, nelms
-     call calcavector(i, kappa, 1, 1, dum(:,i))
+     call calcavector(i, kappa_field, dum(:,i))
   end do
   call output_field(group_id, "kappa", real(dum), 20, nelms, error)
   nfields = nfields + 1
 
   ! visc_c
   do i=1, nelms
-     call calcavector(i, visc_c, 1, 1, dum(:,i))
+     call calcavector(i, visc_c_field, dum(:,i))
   end do
   call output_field(group_id, "visc_c", real(dum), 20, nelms, error)
   nfields = nfields + 1
@@ -941,7 +938,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   if(ibootstrap.gt.0) then
      ! visc_e
      do i=1, nelms
-        call calcavector(i, visc_e, 1, 1, dum(:,i))
+        call calcavector(i, visc_e_field, dum(:,i))
      end do
      call output_field(group_id, "visc_e", real(dum), 20, nelms, error)
      nfields = nfields + 1
@@ -949,7 +946,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
 
   ! den
   do i=1, nelms
-     call calcavector(i, f_ptr, den_g, num_fields, dum(:,i))
+     call calcavector(i, den_field(ilin), dum(:,i))
   end do
   call output_field(group_id, "den", real(dum), 20, nelms, error)
   nfields = nfields + 1
@@ -961,32 +958,10 @@ subroutine output_fields(time_group_id, equilibrium, error)
   
   if(ipellet.eq.1 .or. ionization.eq.1 .or. isink.gt.0) then
      do i=1, nelms
-        call calcavector(i, sigma, 1, 1, dum(:,i))
+        call calcavector(i, sigma_field, dum(:,i))
      end do
      call output_field(group_id, "sigma", real(dum), 20, nelms, error)
      nfields = nfields + 1
-  endif
-
-  if(isources.eq.1) then
-     do i=1, nelms
-        call calcavector(i, sb1, 1, 1, dum(:,i))
-     end do
-     call output_field(group_id, "sb1", real(dum), 20, nelms, error)
-     nfields = nfields + 1
-     if(numvar.ge.2) then
-        do i=1, nelms
-           call calcavector(i, sb2, 1, 1, dum(:,i))
-        end do
-        call output_field(group_id, "sb2", real(dum), 20, nelms, error)
-        nfields = nfields + 1
-     endif
-     if(numvar.ge.3) then
-        do i=1, nelms
-           call calcavector(i, sp1, 1, 1, dum(:,i))
-        end do
-        call output_field(group_id, "sp1", real(dum), 20, nelms, error)
-        nfields = nfields + 1
-     endif
   endif
 
   call write_int_attr(group_id, "nfields", nfields, error)

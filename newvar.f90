@@ -1,13 +1,16 @@
 module newvar_mod
 
+  use matrix_mod
+
   implicit none
 
   integer, parameter :: NV_NOBOUND = 0
-  integer, parameter :: NV_DCBOUND = 1
-  integer, parameter :: NV_NMBOUND = 2
+  integer, parameter :: NV_DCBOUND = 1  ! Dirichlet boundary conditions
+  integer, parameter :: NV_NMBOUND = 2  ! Neumann boundary conditions
   integer, parameter :: NV_SJBOUND = 3
   integer, parameter :: NV_SVBOUND = 4
   integer, parameter :: NV_SCBOUND = 5
+  integer, parameter :: NV_CYBOUND = 6  ! Cauchy boundary conditions
 
   integer, parameter :: NV_I_MATRIX = 0
   integer, parameter :: NV_LP_MATRIX = 1
@@ -21,33 +24,144 @@ module newvar_mod
   integer, parameter :: NV_RHS = 0
   integer, parameter :: NV_LHS = 1
 
+  type newvar_matrix
+     type(matrix_type) :: mat
+     integer :: ibound
+  end type newvar_matrix
+
+  type(newvar_matrix) :: mass_mat_lhs
+  type(newvar_matrix) :: mass_mat_lhs_dc
+  type(newvar_matrix) :: mass_mat_rhs
+  type(newvar_matrix) :: lp_mat_rhs
+  type(newvar_matrix) :: lp_mat_rhs_dc
+  type(newvar_matrix) :: gs_mat_rhs_dc
+  type(newvar_matrix) :: bf_mat_rhs
+  type(newvar_matrix) :: bf_mat_lhs
+  type(newvar_matrix) :: mass_mat_rhs_bf
+  type(newvar_matrix) :: s5_mat, d5_mat
+  type(newvar_matrix) :: s7_mat, d7_mat
+  type(newvar_matrix) :: s10_mat, d10_mat
+
 contains
 
+  !================================================================
+  ! set_newvar_indices
+  ! ~~~~~~~~~~~~~~~~~~
+  ! Sets the scorec indices of the newvar matrices
+  ! This must be called before matrices are created or used
+  !================================================================
+  subroutine set_newvar_indices
+    use sparse
 
-subroutine apply_bc(imatrix, rhs, ibound, bvec)
+    implicit none
+
+    call set_matrix_index(mass_mat_lhs%mat,    mass_mat_lhs_index)
+    call set_matrix_index(mass_mat_rhs%mat,    mass_mat_rhs_index)
+    call set_matrix_index(mass_mat_lhs_dc%mat, mass_mat_lhs_dc_index)
+    call set_matrix_index(lp_mat_rhs%mat,      lp_mat_rhs_index)
+    call set_matrix_index(lp_mat_rhs_dc%mat,   lp_mat_rhs_dc_index)
+    call set_matrix_index(gs_mat_rhs_dc%mat,   gs_mat_rhs_dc_index)
+    call set_matrix_index(bf_mat_rhs%mat,      bf_mat_rhs_index)
+    call set_matrix_index(bf_mat_lhs%mat,      bf_mat_lhs_dc_index)
+    call set_matrix_index(mass_mat_rhs_bf%mat, mass_mat_rhs_dc_index)
+    call set_matrix_index(s5_mat%mat,          s5_mat_index)
+    call set_matrix_index(d5_mat%mat,          d5_mat_index)
+    call set_matrix_index(s7_mat%mat,          s7_mat_index)
+    call set_matrix_index(d7_mat%mat,          d7_mat_index)
+    call set_matrix_index(s10_mat%mat,         s10_mat_index)
+    call set_matrix_index(d10_mat%mat,         d10_mat_index)
+  end subroutine set_newvar_indices
+
+
+  !==========================================================
+  ! create_newvar_matrices
+  ! ~~~~~~~~~~~~~~~~~~~~~~
+  ! populate all of the newvar matrices that will be used
+  !==========================================================
+  subroutine create_newvar_matrices
+    use sparse
+    use basic
+    
+    ! assign the proper reference indicies to each matrix
+    call set_newvar_indices
+
+    call create_newvar_matrix(mass_mat_lhs_dc, NV_DCBOUND,NV_I_MATRIX, .true.)
+    call create_newvar_matrix(mass_mat_lhs,    NV_NOBOUND,NV_I_MATRIX, .true.)
+    call create_newvar_matrix(gs_mat_rhs_dc,   NV_DCBOUND,NV_GS_MATRIX,.false.)
+    if(irmp.gt.0) &
+         call create_newvar_matrix(bf_mat_rhs,NV_NOBOUND,NV_BF_MATRIX,.false.)
+    if(hyperc.ne.0) then
+       call create_newvar_matrix(s5_mat, NV_SVBOUND, NV_SV_MATRIX, .true.)
+       call create_newvar_matrix(d5_mat, NV_SVBOUND, NV_SV_MATRIX, .false.)
+       if(numvar.ge.3) then
+          call create_newvar_matrix(s7_mat, NV_SCBOUND, NV_SC_MATRIX, .true.)
+          call create_newvar_matrix(d7_mat, NV_SCBOUND, NV_SC_MATRIX, .false.)
+       endif
+
+       if(numvar.ge.3 .and. com_bc.eq.0) then
+          call create_newvar_matrix(lp_mat_rhs,NV_NOBOUND,NV_LP_MATRIX,.false.)
+       else
+          call create_newvar_matrix(lp_mat_rhs_dc,NV_DCBOUND,NV_LP_MATRIX,.false.)
+       endif
+    endif
+    if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
+       if(inocurrent_pol.eq.1) then
+          call create_newvar_matrix(bf_mat_lhs, &
+               NV_CYBOUND, NV_BF_MATRIX, .true.)
+          call create_newvar_matrix(mass_mat_rhs_bf, NV_CYBOUND, &
+               NV_I_MATRIX,  .false.)
+       else
+          call create_newvar_matrix(bf_mat_lhs, &
+               NV_DCBOUND, NV_BF_MATRIX, .true.)
+          call create_newvar_matrix(mass_mat_rhs_bf, NV_DCBOUND, &
+               NV_I_MATRIX,  .false.)
+       end if
+    endif
+    if(jadv.eq.1 .and. hyper.ne.0.) then
+       call create_newvar_matrix(s10_mat, NV_SJBOUND, NV_SJ_MATRIX, .true.)
+       call create_newvar_matrix(d10_mat, NV_SJBOUND, NV_SJ_MATRIX, .false.)
+    endif
+
+    if(igs.ne.0) then
+       call create_newvar_matrix(mass_mat_rhs,NV_NOBOUND,NV_I_MATRIX, .false.)
+    endif
+  end subroutine create_newvar_matrices
+
+subroutine apply_bc(rhs, ibound, bvec, mat)
+  use basic
+  use vector_mod
+  use matrix_mod
+  use boundary_conditions
+
   implicit none
-  integer, intent(in) :: imatrix, ibound
-  vectype, dimension(*), intent(inout) :: rhs
-  vectype, dimension(*), intent(in) :: bvec
+
+  type(matrix_type), optional :: mat
+  integer, intent(in) :: ibound
+  type(vector_type) :: rhs
+  type(vector_type) :: bvec
+
+  if(ibound.eq.NV_NOBOUND) return
 
   select case(ibound)
   case(NV_DCBOUND)
-     call boundary_dc(imatrix, rhs, bvec)
+     call boundary_dc(rhs, bvec, mat)
   case(NV_NMBOUND)
-     call boundary_nm(imatrix, rhs, bvec)
+     call boundary_nm(rhs, bvec, mat)
   case(NV_SJBOUND)
-     call boundary_jphi(imatrix, rhs)
+     call boundary_jphi(rhs, mat)
   case(NV_SVBOUND)
-     call boundary_vor(imatrix, rhs)
+     call boundary_vor(rhs, mat)
   case(NV_SCBOUND)
-     call boundary_com(imatrix, rhs)
+     call boundary_com(rhs, mat)
+  case(NV_CYBOUND)
+     call boundary_cy(rhs, mat)
   end select
-
 end subroutine apply_bc
 
+
 !============================================
-! create_matrix
-! ~~~~~~~~~~~~~
+! create_newvar_matrix
+! ~~~~~~~~~~~~~~~~~~~~
 ! creates a matrix.
 ! ibound:
 !   NV_NOBOUND: no boundary conditions
@@ -55,28 +169,23 @@ end subroutine apply_bc
 !   NV_NMBOUND: Neumann boundary conditions
 ! itype: operator (NV_I_MATRIX, etc..)
 !============================================
-subroutine create_matrix(matrix, ibound, itype, isolve)
-
+subroutine create_newvar_matrix(mat, ibound, itype, is_lhs)
+  use vector_mod
   use basic
-  use p_data
-  use t_data
-  use arrays
-  use sparse
   use nintegrate_mod
+  use boundary_conditions
 
   implicit none
 
-#include "finclude/petsc.h"
+  type(newvar_matrix), intent(out) :: mat
+  integer, intent(in) :: ibound
+  integer, intent(in) :: itype
+  logical, intent(in) :: is_lhs
 
-  integer, intent(in) :: matrix, ibound, itype, isolve
-
-  integer :: numelms, itri, i, ii, iii, j, jj, jjj, in, jn, m, n
-  integer :: isize, ibegin, iendplusone, jbegin, jendplusone, ier
-  vectype, allocatable :: temp(:,:)
-  vectype, allocatable :: rhs2(:)
+  integer :: numelms, itri, i, j, m, n, isize
+  vectype, allocatable :: temp(:,:,:,:)
+  type(vector_type) :: rhs2
   real :: hyp
-
-  PetscTruth :: flg_petsc, flg_solve2, flg_solve1
 
   ! determine the size of the matrix
   select case(itype)
@@ -90,286 +199,272 @@ subroutine create_matrix(matrix, ibound, itype, isolve)
   if(itype.eq.NV_SV_MATRIX .and. ihypamu.eq.1) hyp = hypc*amu
   if(itype.eq.NV_SC_MATRIX .and. ihypamu.eq.1) hyp = hypc*amuc
 
-  ! populate matrix default linear solver superlu cj-april-09-2008
-  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
-  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ier)
-  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve1', flg_solve1,ier) 
+  call create_mat(mat%mat, isize, isize, icomplex, is_lhs)
+  mat%ibound = ibound
 
-  if(isolve.eq.NV_LHS) then
-     if(flg_petsc.eq.PETSC_TRUE) then
-        call zeropetscmatrix(matrix, icomplex, isize)
-        if(iprint.ge.1) &
-        print *, "	newvar_create_matrix zeropetscmatrix", matrix
-     else
-        call zerosuperlumatrix(matrix, icomplex, isize)
-        if(iprint.ge.1) &
-        print *, "	newvar_create_matrix zerosuperlumatrix", matrix
-     endif
-  else
-     call zeromultiplymatrix(matrix, icomplex, isize)
-  end if
+  allocate(temp(dofs_per_element, dofs_per_element, isize, isize))
 
-  allocate(temp(isize, isize))
-  call numfac(numelms)
 
+  if(myrank.eq.0 .and. iprint.ge.2) print *, ' populating matrix...', &
+       mat%mat%m, mat%mat%n
+  numelms = local_elements()
   do itri=1,numelms
-
      call define_triangle_quadrature(itri, 25)
      call define_fields(itri,0,1,0)
 
-     do iii=1,3
-     call entdofs(isize,  ist(itri,iii)+1, 0, ibegin, iendplusone)
-     do ii=1,6
-        i = (iii-1)*6 + ii
-        in = ibegin + ii - 1
+     temp = 0.
 
-        do jjj=1,3
-        call entdofs(isize,  ist(itri,jjj)+1, 0, jbegin, jendplusone)
-        do jj=1,6
-           j = (jjj-1)*6 + jj
-           jn = jbegin + jj - 1
-                 
-           temp = 0.
+     do i=1,dofs_per_element
+        do j=1,dofs_per_element
 
            selectcase(itype)
               
            case(NV_I_MATRIX)
-              temp(1,1) = int2(g79(:,OP_1,i),g79(:,OP_1,j))
+              temp(i,j,1,1) = int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
               
            case(NV_LP_MATRIX)
-              temp(1,1) = int2(g79(:,OP_1,i),g79(:,OP_LP,j))
+              temp(i,j,1,1) = int2(mu79(:,OP_1,i),nu79(:,OP_LP,j))
               if(ibound.eq.NV_NMBOUND) then
-                 temp(1,1) = temp(1,1) &
-                      - regular*int2(g79(:,OP_1,i),g79(:,OP_1,j))
+                 temp(i,j,1,1) = temp(i,j,1,1) &
+                      - regular*int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
               endif
               
            case(NV_GS_MATRIX)              
-              temp(1,1) = int2(g79(:,OP_1,i),g79(:,OP_GS,j))
+              temp(i,j,1,1) = int2(mu79(:,OP_1,i),nu79(:,OP_GS,j))
               
            case(NV_BF_MATRIX)
-              temp(1,1) = int3(r2_79,g79(:,OP_1,i),g79(:,OP_LP,j))  &
-                   - regular*int3(r2_79,g79(:,OP_1,i),g79(:,OP_1,j))
+              temp(i,j,1,1) = int3(r2_79,mu79(:,OP_1,i),nu79(:,OP_LP,j))  &
+                   - regular*int3(r2_79,mu79(:,OP_1,i),nu79(:,OP_1,j))
 
            case(NV_SJ_MATRIX)
-              if(isolve.eq.NV_LHS) then
-                 temp(1,1) =  int2(g79(:,OP_1,i),g79(:,OP_1,j))
-                 temp(1,2) = -int2(g79(:,OP_1,i),g79(:,OP_GS,j))
-                 temp(2,1) = dt*hypf*thimpsm* &
-                      int2(g79(:,OP_GS,i),g79(:,OP_GS,j))
-                 temp(2,2) = -temp(1,2)
+              if(is_lhs) then
+                 temp(i,j,1,1) =  int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
+                 temp(i,j,1,2) = -int2(mu79(:,OP_1,i),nu79(:,OP_GS,j))
+                 temp(i,j,2,1) = dt*hypf*thimpsm* &
+                      int2(mu79(:,OP_GS,i),nu79(:,OP_GS,j))
+                 temp(i,j,2,2) = -temp(i,j,1,2)
               else
-                 temp(2,2) = int2(g79(:,OP_1,i),g79(:,OP_1,j)) &
+                 temp(i,j,2,2) = int2(mu79(:,OP_1,i),nu79(:,OP_1,j)) &
                       -dt*hypf*(1.-thimpsm)* &
-                      int2(g79(:,OP_GS,i),g79(:,OP_GS,j))
+                      int2(mu79(:,OP_GS,i),nu79(:,OP_GS,j))
               end if
 
            case(NV_SV_MATRIX)
-              if(isolve.eq.NV_LHS) then
-                 temp(1,1) =  int2(g79(:,OP_1,i),g79(:,OP_1,j))
-                 temp(1,2) = -int2(g79(:,OP_1,i),g79(:,OP_GS,j))
-                 temp(2,1) = dt*hyp*thimpsm* &
-                      int2(g79(:,OP_GS,i),g79(:,OP_GS,j))
-                 temp(2,2) = -temp(1,2)
-                 if(inoslip_pol.eq.0) temp(2,2) = temp(2,2) - regular*temp(1,1)
+              if(is_lhs) then
+                 temp(i,j,1,1) =  int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
+                 temp(i,j,1,2) = -int2(mu79(:,OP_1,i),nu79(:,OP_GS,j))
+                 temp(i,j,2,1) = dt*hyp*thimpsm* &
+                      int2(mu79(:,OP_GS,i),nu79(:,OP_GS,j))
+                 temp(i,j,2,2) = -temp(i,j,1,2)
+                 if(inoslip_pol.eq.0) temp(i,j,2,2) = temp(i,j,2,2) - regular*temp(i,j,1,1)
               else
-                 temp(2,2) = int2(g79(:,OP_1,i),g79(:,OP_1,j)) &
+                 temp(i,j,2,2) = int2(mu79(:,OP_1,i),nu79(:,OP_1,j)) &
                       -dt*hypf*(1.-thimpsm)* &
-                      int2(g79(:,OP_GS,i),g79(:,OP_GS,j))
+                      int2(mu79(:,OP_GS,i),nu79(:,OP_GS,j))
               end if
 
            case(NV_SC_MATRIX)
-              if(isolve.eq.NV_LHS) then
-                 temp(1,1) =  int2(g79(:,OP_1,i),g79(:,OP_1,j))
-                 temp(1,2) = -int2(g79(:,OP_1,i),g79(:,OP_LP,j))
-                 temp(2,1) = dt*hyp*thimpsm* &
-                      int2(g79(:,OP_LP,i),g79(:,OP_LP,j))
-                 temp(2,2) = -temp(1,2)
-                 if(inoslip_pol.eq.0) temp(2,2) = temp(2,2) - regular*temp(1,1)
+              if(is_lhs) then
+                 temp(i,j,1,1) =  int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
+                 temp(i,j,1,2) = -int2(mu79(:,OP_1,i),nu79(:,OP_LP,j))
+                 temp(i,j,2,1) = dt*hyp*thimpsm* &
+                      int2(mu79(:,OP_LP,i),nu79(:,OP_LP,j))
+                 temp(i,j,2,2) = -temp(i,j,1,2)
+                 if(inoslip_pol.eq.0) temp(i,j,2,2) = temp(i,j,2,2) - regular*temp(i,j,1,1)
               else
-                 temp(2,2) = int2(g79(:,OP_1,i),g79(:,OP_1,j)) &
+                 temp(i,j,2,2) = int2(mu79(:,OP_1,i),nu79(:,OP_1,j)) &
                       -dt*hypf*(1.-thimpsm)* &
-                      int2(g79(:,OP_LP,i),g79(:,OP_LP,j))
+                      int2(mu79(:,OP_LP,i),nu79(:,OP_LP,j))
               end if
 
            case(NV_DP_MATRIX)              
-              temp(1,1) = int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j)) &
-                   +      int2(g79(:,OP_DR,i),g79(:,OP_DR,j))
+              temp(i,j,1,1) = int2(mu79(:,OP_DZ,i),nu79(:,OP_DZ,j)) &
+                   +      int2(mu79(:,OP_DR,i),nu79(:,OP_DR,j))
 
            end select
-           do m=1,isize
-              do n=1,isize
-                 call insval(matrix, temp(m,n), icomplex, &
-                      in+6*(m-1), jn+6*(n-1), 1)
-              end do
-           end do
-        end do
         end do
      end do
+
+     select case(ibound)
+     case(NV_DCBOUND)
+        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,1,1))
+     case(NV_NMBOUND)
+        call apply_boundary_mask(itri, BOUNDARY_NEUMANN, temp(:,:,1,1))
+     case(NV_SJBOUND)
+        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,1,1))
+        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,1,2))
+        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,2,1))
+        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,2,2))
+     case(NV_SVBOUND)
+
+     case(NV_SCBOUND)
+
+     case(NV_CYBOUND)
+        call apply_boundary_mask(itri, & 
+             BOUNDARY_DIRICHLET + BOUNDARY_NEUMANN, temp(:,:,1,1))
+     end select
+
+     do m=1,isize
+        do n=1,isize
+           call insert_block(mat%mat,itri,m,n,temp(:,:,m,n),MAT_ADD)
+        end do
      end do
   end do
 
   deallocate(temp)
 
   ! apply boundary conditions
-  if(isolve.eq.NV_LHS) then
-     call createvec(rhs2, isize)
-     call apply_bc(matrix, rhs2, ibound, rhs2)
-     call deletevec(rhs2)
+  if(is_lhs .and. ibound.ne.NV_NOBOUND) then
+     if(myrank.eq.0 .and. iprint.ge.2) print *, ' applying bcs...'
+     call flush(mat%mat)
+     call create_vector(rhs2, isize)
+     call apply_bc(rhs2, ibound, rhs2, mat%mat)
+     call destroy_vector(rhs2)
   end if
 
-  call finalizematrix(matrix)
+  call finalize(mat%mat) 
 
-end subroutine create_matrix
+  if(myrank.eq.0 .and. iprint.ge.2) print *, ' done.'
+
+end subroutine create_newvar_matrix
 
 
 !=====================================================================
-! newvar
-! ~~~~~~
+! solve_newvar_axby
+! ~~~~~~~~~~~~~~~~~
 ! creates rhs and solves matrix equation:
 !  A x = B y
 !
-! ilhs: lhs matrix (A)
-! outarray: array to contain the result (x)
-! inarray: array containing rhs vector (y)
-! irhs: rhs matrix(B)
-! isize: size of matrix equation
-! ibound: boundary conditions to apply
-!   NV_NOBOUND: no boundary conditions
-!   NV_DCBOUND: Dirichlet boundary conditions
+! mata: lhs matrix (A)
+! vout: vector to contain the result (x)
+! vin:  vector y
+! matb: rhs matrix(B)
 !======================================================================
-subroutine newvar(ilhsmat,outarray,irhsmat,inarray,ibound,bvec)
-
+subroutine solve_newvar_axby(mata,vout,matb,vin,bvec)
+  use vector_mod
   use basic
-  use arrays
 
   implicit none
-#include "finclude/petsc.h" 
 
-  integer, intent(in) :: ibound, ilhsmat, irhsmat
-  vectype, intent(in) :: inarray(*)
-  vectype, intent(out) :: outarray(*)
-  vectype, intent(in) :: bvec(*)
+  type(newvar_matrix), intent(in) :: mata, matb
+  type(vector_type), intent(inout), target :: vout
+  type(vector_type), intent(in) :: vin
+  type(vector_type), target, optional :: bvec
+  type(vector_type) :: temp
 
+  type(vector_type), pointer :: bptr
   integer :: ier
-  PetscTruth :: flg_petsc, flg_solve2, flg_solve1
-  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
-  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ier)
-  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve1', flg_solve1,ier) 
 
-  call matrixvectormult(irhsmat, inarray, outarray)
-
-  call apply_bc(0,outarray,ibound,bvec)
-
-  if(flg_petsc.eq.PETSC_TRUE .and. flg_solve1.eq.PETSC_TRUE) then 
-     call solve1(ilhsmat,outarray,ier)
+  if(present(bvec)) then
+     bptr => bvec
   else
-     call solve(ilhsmat,outarray,ier)
-  endif
+     bptr => vout
+  end if
+
+  call create_vector(temp, matb%mat%m)
+  call matvecmult(matb%mat, vin, temp)
+  call apply_bc(temp,mata%ibound,bptr)
+  call newsolve(mata%mat,temp,ier)
   if(ier.ne.0) then
      if(myrank.eq.0) print *, 'Error in newvar solve'
      call safestop(10)
   endif
+
+  vout = temp
+  call destroy_vector(temp)
   
-end subroutine newvar
+end subroutine solve_newvar_axby
 
 
-subroutine newvar1(ilhsmat,outarray,inarray,iplace,numvari,irhsmat,ibound,bvec)
+!=====================================================================
+! solve_newvar1
+! ~~~~~~~~~~~~~
+! creates rhs and solves matrix equation:
+!  A x = B y
+! for two fields x and y (i.e. matrix eqn is rank 1)
+!
+! mata: lhs matrix (A)
+! fout: field x
+! fin: field y
+! matb: rhs matrix(B)
+!======================================================================
+subroutine solve_newvar1(lhsmat, fout, rhsmat, fin, bvec)
 
-  use arrays
+  use field
 
   implicit none
 
-  integer, intent(in) :: iplace, ibound, numvari, ilhsmat, irhsmat
-  vectype, intent(in) :: inarray(*)   ! size=numvari
-  vectype, intent(out) :: outarray(*) ! size=1
-  vectype, intent(in) :: bvec(*)
+  type(newvar_matrix), intent(in) :: lhsmat, rhsmat
+  type(field_type), intent(in), target :: fin
+  type(field_type), intent(inout), target :: fout
+  type(field_type), intent(in), target, optional :: bvec
 
-  vectype, allocatable :: temp(:)
+  type(field_type), target :: temp_in, temp_out
+  type(vector_type), pointer :: bptr, ptrin, ptrout
 
   ! if inarray is bigger than vecsize=1, then 
   ! create vecsize=1 for matrix multiplication
-  if(numvari.gt.1) then
-     call createvec(temp,1)
-     call copyvec(inarray,iplace,numvari,temp,1,1)
-     call newvar(ilhsmat,outarray,irhsmat,temp,ibound,bvec)
-     call deletevec(temp)
+  if(fin%vec%isize.gt.1) then
+     call create_field(temp_in)
+     temp_in = fin
+     ptrin => temp_in%vec
   else
-     call newvar(ilhsmat,outarray,irhsmat,inarray,ibound,bvec)
+     ptrin => fin%vec
   end if
-  
-end subroutine newvar1
 
-
-subroutine newvarn(ilhsmat,outarray,oplace,numvaro, &
-     inarray,iplace,numvari,irhsmat,ibound,bvec)
-
-  use arrays
-
-  implicit none
-
-  integer, intent(in) :: iplace, ibound, numvari, ilhsmat, irhsmat
-  integer, intent(in) :: oplace, numvaro
-  vectype, intent(in) :: inarray(*)   ! size=numvari
-  vectype, intent(out) :: outarray(*) ! size=1
-  vectype, intent(in) :: bvec(*)
-
-  vectype, allocatable :: temp(:)
-
-  ! if inarray is bigger than vecsize=1, then 
-  ! create vecsize=1 for matrix multiplication
-  if(numvaro.gt.1) then
-     call createvec(temp,1)
-     call newvar1(ilhsmat,temp,inarray,iplace,numvari,irhsmat,ibound,bvec)
-     call copyvec(temp,1,1,outarray,oplace,numvaro)
-     call deletevec(temp)
+  if(fout%vec%isize.gt.1) then
+     call create_field(temp_out)
+     temp_out = fout
+     ptrout => temp_out%vec
   else
-     call newvar1(ilhsmat,outarray,inarray,iplace,numvari,irhsmat,ibound,bvec)
+     ptrout => fout%vec
   end if
-  
-end subroutine newvarn
 
-
-!=====================================================
-! solve_newvar
-! ~~~~~~~~~~~~
-! Solves equation imatrix*x = rhs
-! with ibound boundary conditions applied to rhs.
-! rhs is overwritten with result (x) on return.
-! Be sure imatrix was also generated using ibound.
-!=====================================================
-subroutine solve_newvar(rhs, ibound, imatrix, bvec)
-
-  use basic
-  use sparse
-
-  implicit none
-#include "finclude/petsc.h" 
-
-  integer, intent(in) :: ibound, imatrix
-  vectype, dimension(*), intent(inout) :: rhs
-  vectype, dimension(*), intent(in) :: bvec
-
-  integer :: ier
-  PetscTruth :: flg_petsc, flg_solve2, flg_solve1
-  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
-  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ier)
-  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve1', flg_solve1,ier) 
-
-  call sumsharedppplvecvals(rhs)
-
-  call apply_bc(0,rhs,ibound,bvec)
-
-  if(flg_petsc.eq.PETSC_TRUE .and. flg_solve1.eq.PETSC_TRUE) then 
-     call solve1(imatrix,rhs,ier)
+  if(present(bvec)) then
+     bptr => bvec%vec
   else
-     call solve(imatrix,rhs,ier)
-  endif
+     bptr => ptrout
+  end if 
 
-  if(ier .ne. 0) then
-     if(myrank.eq.0) print *, "Error in solve_newvar solve."
-     call safestop(4)
-  endif
+  call solve_newvar_axby(lhsmat,ptrout,rhsmat,ptrin,bptr)
 
-end subroutine solve_newvar
+  if(fin%vec%isize.gt.1)  call destroy_field(temp_in)
+  if(fout%vec%isize.gt.1) then
+     fout = temp_out
+     call destroy_field(temp_out)
+  endif
+end subroutine solve_newvar1
+
+
+  !=====================================================
+  ! newvar_solve
+  ! ~~~~~~~~~~~~
+  ! Solves equation mat*x = rhs
+  ! with ibound boundary conditions applied to rhs.
+  ! rhs is overwritten with result (x) on return.
+  ! Be sure imatrix was also generated using ibound.
+  !=====================================================
+  subroutine newvar_solve(rhs, mat, bvec)
+    use vector_mod
+
+    implicit none
+
+    type(vector_type), intent(inout), target :: rhs
+    type(newvar_matrix), intent(in) :: mat
+    type(vector_type), intent(inout), target, optional :: bvec
+
+    integer :: ier
+    type(vector_type), pointer :: bptr
+
+    if(.not.present(bvec)) then
+       bptr => rhs
+    else
+       bptr => bvec
+    end if
+    call sum_shared(rhs)
+    call apply_bc(rhs,mat%ibound,bptr)
+    call newsolve(mat%mat,rhs,ier)
+    call finalize(rhs)
+  end subroutine newvar_solve
 
 end module newvar_mod
