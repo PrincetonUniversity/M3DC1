@@ -47,9 +47,11 @@ contains
     implicit none
 
 #include "finclude/petsc.h"
+#ifndef PETSC_31
 #include "finclude/petscvec.h"
 #include "finclude/petscmat.h"
 #include "finclude/petscis.h"
+#endif
 #include "finclude/petscis.h90"
 
     integer, parameter :: m = 9
