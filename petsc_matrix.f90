@@ -100,14 +100,15 @@ contains
     use vector_mod
     implicit none
 #include "finclude/petsc.h"
+#ifndef PETSC_31
 #include "finclude/petscmat.h"
+#endif
 
     type(petsc_matrix) :: mat
     integer, intent(in) :: m, n, icomplex
     logical, intent(in) :: lhs
 
-    integer :: ierr, local_m, local_n, global_m, global_n, i
-    integer, allocatable :: gid(:)
+    integer :: ierr, local_m, local_n, global_m, global_n
 
     mat%m = m
     mat%n = n
@@ -392,7 +393,7 @@ contains
     integer, intent(in), dimension(ncols) :: icols
     vectype, intent(in), dimension(ncols) :: vals
 
-    integer :: irow_local(1), irow_global(1), ierr, i
+    integer :: irow_global(1), ierr, i
     integer, dimension(ncols) :: icols_global
 
     irow_global(1) = irow - 1
@@ -410,10 +411,8 @@ contains
     type(matrix_type), intent(in) :: m
     character(len=*) :: file
 
-    Vec :: vl
     PetscViewer :: pv
     integer :: ierr
-    
     
     call PetscViewerASCIIOpen(PETSC_COMM_WORLD, file, pv, ierr)
     call MatView(m%data, pv, ierr)
