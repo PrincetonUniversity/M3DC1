@@ -999,9 +999,14 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
        if(n_elements(yrange) lt 2) then $
          yrange = [miny, maxy] + zzero - ymin
    endif
-   
-   dx = (xrange[1] - xrange[0]) / (p - 1.)
-   dy = (yrange[1] - yrange[0]) / (p - 1.)
+
+   if(p eq 1) then begin
+       dx = 0
+       dy = 0
+   endif else begin
+       dx = (xrange[1] - xrange[0]) / (p - 1.)
+       dy = (yrange[1] - yrange[0]) / (p - 1.)
+   endelse
 
    result = fltarr(p,p)
    mask = fltarr(p,p)
@@ -1327,6 +1332,32 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        endif
        symbol = '!8u!D!9P!N!X'
        d = dimensions(/v0, _EXTRA=extra)
+
+   ;===========================================
+   ; toroidal velocity shear
+   ;===========================================
+   endif else if(strcmp('toroidal velocity shear', name, /fold_case) eq 1) or $
+     (strcmp('vzp', name, /fold_case) eq 1) then begin
+       
+       v = read_field('V',x,y,t,slices=time, mesh=mesh, filename=filename, $
+                        points=pts,rrange=xrange,zrange=yrange, linear=linear)
+       psi = read_field('psi',x,y,t,slices=time, mesh=mesh, filename=filename,$
+                        points=pts,rrange=xrange,zrange=yrange,/equilibrium)
+
+
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+   
+       if(ivform eq 0) then begin
+           vz = v/r
+       endif else if(ivform eq 1) then begin
+           vz = v*r
+       endif
+
+       data = s_bracket(vz,psi,x,y)/sqrt(s_bracket(psi,psi,x,y))
+       symbol = "!8u!D!9P!N'!X"
+       d = dimensions(/t0, _EXTRA=extra)
 
    ;===========================================
    ; thermal velocity
@@ -1690,21 +1721,38 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ; (minor) radial current density
    ;===========================================
    endif else if(strcmp('jn', name, /fold_case) eq 1) then begin
-       
-       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
-                        filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
+     
+       psi0 = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, /equilibrium, $
+                        rrange=xrange, zrange=yrange, complex=complex)
        i = read_field('i', x, y, t, slices=time, mesh=mesh, $
-                      filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange)
+                      filename=filename, points=pts, linear=linear, $
+                      rrange=xrange, zrange=yrange, complex=complex)
 
        if(itor eq 1) then begin
-           r = radius_matrix(x,y,t)
+           if(n_elements(at_points) eq 0) then begin
+               r = radius_matrix(x,y,t)
+           endif else begin
+               r = at_points[0,*]
+           endelse
        endif else r = 1.
+
        
-       data = a_bracket(i,psi,x,y)/(r*sqrt(s_bracket(psi,psi,x,y)))
-       symbol = '!8J!Dn!N!X'
-       d = dimensions(/j0,_EXTRA=extra)
+       data = a_bracket(i,psi0,x,y)/(r*sqrt(s_bracket(psi0,psi0,x,y)))
+
+       help, i
+
+       if(ntor ne 0) then begin
+
+           psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                            filename=filename, points=pts, linear=linear, $
+                            rrange=xrange, zrange=yrange, complex=complex)
+           data = data - complex(0,ntor)*s_bracket(psi,psi0,x,y) $
+             /(r^2*s_bracket(psi0,psi0,x,y))
+       endif
+
+       symbol = '!8J!Dr!N!X'
+       d = dimensions(/j0, _EXTRA=extra)
 
    ;===========================================
    ; (major) radial current density
@@ -2566,7 +2614,8 @@ end
 
 
 function path_at_flux, psi,x,z,t,flux,breaks=breaks,refine=refine,$
-                       interval=interval, axis=axis, psilim=psilim
+                       interval=interval, axis=axis, psilim=psilim, $
+                       contiguous=contiguous
 
    contour, psi[0,*,*], x, z, levels=flux, closed=0, $
      path_xy=xy, path_info=info, /path_data_coords, /overplot
@@ -2575,15 +2624,6 @@ function path_at_flux, psi,x,z,t,flux,breaks=breaks,refine=refine,$
        print, 'Error: no points at this flux value', flux
        return, 0
    end
-   
-   if(n_elements(interval) ne 0) then begin
-       if(interval eq 0) then begin
-           spline_p, xy[0,*], xy[1,*], xp_new, zp_new
-       endif else begin
-           spline_p, xy[0,*], xy[1,*], xp_new, zp_new, interval=interval
-       endelse
-       xy = transpose([[xp_new],[zp_new]])
-   endif
 
    ; refine the surface found by contour with a single newton iteration
    if(keyword_set(refine)) then begin
@@ -2601,7 +2641,8 @@ function path_at_flux, psi,x,z,t,flux,breaks=breaks,refine=refine,$
    ; remove points in private flux region
    if(n_elements(axis) gt 0 and n_elements(psilim) gt 0) then begin
        ip = in_plasma(xy,psi,x,z,axis,psilim)
-       n_new = total(ip)
+       n_new = fix(total(ip))
+       n_old = n_elements(xy[0,*])
        if(n_new gt 0) then begin
            xy_new = fltarr(2,n_new)
            j = 0
@@ -2619,9 +2660,22 @@ function path_at_flux, psi,x,z,t,flux,breaks=breaks,refine=refine,$
   
    ; find breaks
    dx = sqrt(deriv(xy[0,*])^2 + deriv(xy[1,*])^2)
-   minforbreak = 10.*median(dx)
+   minforbreak = 2.*median(dx)
 
    breaks = where(dx gt minforbreak,count)
+
+   if(breaks[0] ge 0 and keyword_set(contiguous)) then begin
+       xy = xy[*,0:breaks[0]-1]
+   end
+
+   if(n_elements(interval) ne 0) then begin
+       if(interval eq 0) then begin
+           spline_p, xy[0,*], xy[1,*], xp_new, zp_new
+       endif else begin
+           spline_p, xy[0,*], xy[1,*], xp_new, zp_new, interval=interval
+       endelse
+       xy = transpose([[xp_new],[zp_new]])
+   endif
 
    return, xy
 end
@@ -3889,12 +3943,12 @@ end
 function field_at_flux, field, psi, x, z, t, flux, theta=theta, angle=angle, $
                         xp=xp, zp=zp, integrate=integrate, axis=axis, $
                         refine=refine, interval=interval, $
-                        psilim=psilim, _EXTRA=extra
+                        psilim=psilim, contiguous=contiguous, _EXTRA=extra
 
    if(n_elements(field) le 1) then return, 0
 
    xy = path_at_flux(psi,x,z,t,flux,refine=refine, interval=interval, $
-                    axis=axis,psilim=psilim)
+                    axis=axis,psilim=psilim,contiguous=contiguous)
    if(n_elements(xy) le 1) then return, 0
 
    i = n_elements(x)*(xy[0,*]-min(x)) / (max(x)-min(x))
@@ -3940,7 +3994,7 @@ end
 function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, $
                            fbins=fbins,  tbins=tbins, flux=flux, angle=angle, $
                            psirange=frange, nflux=nflux, pest=pest,q=q, $
-                           _EXTRA=extra
+                           dV=dV, volume=volume, _EXTRA=extra
 
    if(n_elements(psi) eq 0) then begin
        linear = read_parameter('linear',_EXTRA=extra)
@@ -3960,6 +4014,8 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, $
    flux = fltarr(sz[1], fbins)
    angle = fltarr(sz[1], tbins)
    area = fltarr(sz[1], fbins)
+   volume = fltarr(sz[1], fbins)
+   dV = fltarr(sz[1], fbins)
 
    psival = lcfs(psi,x,z,axis=axis,xpoint=xpoint,slice=slice,flux0=flux0, $
                  _EXTRA=extra)
@@ -4003,16 +4059,18 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, $
        
            f = field_at_flux(field, psi, x, z, t, flux[k,p], $
                              angle=a, xp=xp, zp=zp, axis=axis, $
-                             interval=0, psilim=psival)
+                             psilim=psival, /contiguous)
 
            dx = deriv(xp)
            dz = deriv(zp)
            ds = sqrt(dx^2 + dz^2)
            area[k,p] = 2.*!pi*int_tabulated(findgen(n_elements(ds)),ds*xp)
+           ix = n_elements(x)*(xp - min(x))/(max(x) - min(x))
+           iz = n_elements(z)*(zp - min(z))/(max(z) - min(z))
+           h = interpolate(reform(bp[k,*,*]),ix,iz)
+           dV[k,p] = 2.*!pi*int_tabulated(findgen(n_elements(ds)),ds/h)
 
            if(keyword_set(pest)) then begin
-               ix = n_elements(x)*(xp - min(x))/(max(x) - min(x))
-               iz = n_elements(z)*(zp - min(z))/(max(z) - min(z))
                g = interpolate(reform(db[k,*,*]),ix,iz)
 
                ; determine position where angle changes sign
@@ -4032,30 +4090,21 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, $
                q[k,p] = (max(pest_angle)-min(pest_angle))/(2.*!pi)
                pest_angle = pest_angle/q[k,p]
 
-;                if(sqrt((flux[k,p]-flux0)/(psival-flux0)) gt .978 $
-;                  and printed eq 0) then begin
-;                    print, 'sqrt(Psi) =', sqrt((flux[k,p]-flux0)/(psival-flux0))
-;                  print, 'q = ', q[p]
-;                    print, 'index = ', index
-;                    plot, a, g
-;                    for l=0, n_elements(a)-1, 10 do begin
-;                        print, xp[l], zp[l]-axis[1], a[l], pest_angle[l]
-;                    end
-;                    print, 'q_approx = ', q_approx
-;                    printed = 1
-;                endif
-
                result[k,p,*] = interpol(f,pest_angle,angle[k,*])
            endif else begin
                result[k,p,*] = interpol(f,a,angle[k,*])
            endelse
        end
+
+       if(dpsi gt 0) then dV[k,*] = -dV[k,*]
+
+       for i=1, n_elements(flux)-1 do $
+         volume[k,i] = volume[k,i-1] $
+         + (dV[k,i]+dV[k,i-1])/2. * (flux[k,i] - flux[k,i-1])
    endfor
 
    nflux = (flux-flux0)/(psival-flux0)
 
-   wait, 3
-       
    return, result
 end
 
@@ -4069,7 +4118,7 @@ end
 ; call flux_average
 ;==================================================================
 function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
-                             area=area, dV=dV, psirange=range, $
+                             area=area, volume=volume, dV=dV, psirange=range, $
                              integrate=integrate, r0=r0, $
                              nflux=nflux, _EXTRA=extra
 
@@ -4153,6 +4202,10 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
    endfor
 
    nflux = (flux0-flux)/(flux0-psival)
+
+   volume = fltarr(n_elements(flux))
+   for i=1, n_elements(flux)-1 do $
+     volume[i] = volume[i-1] + (dV[i]+dV[i-1])/2. * (flux[i] - flux[i-1])
 
    return, result
 end
@@ -4531,7 +4584,7 @@ pro plot_flux_average, field, time, filename=filename, $
                        lcfs=lcfs, normalized_flux=norm, points=pts, $
                        minor_radius=minor_radius, smooth=sm, t=t, rms=rms, $
                        bw=bw, srnorm=srnorm, last=last, mks=mks, cgs=cgs, $
-                       q_contours=q_contours, $
+                       q_contours=q_contours, rho=rho, $
                        multiply_flux=multiply_flux, _EXTRA=extra
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
@@ -4642,18 +4695,21 @@ pro plot_flux_average, field, time, filename=filename, $
        flux = nflux
        xtitle = '!7W!X'
        lcfs_psi = 1.
-   endif
-   if(keyword_set(srnorm)) then begin
+   endif else if(keyword_set(srnorm)) then begin
        flux = sqrt(nflux)
        xtitle = '!9r!7W!X'
        lcfs_psi = 1.
-   end
-
-   if(keyword_set(minor_radius)) then begin
+   end else if(keyword_set(minor_radius)) then begin
        flux = flux_average('r',points=pts,file=filename,t=t,linear=linear,$
                     name=xtitle,bins=bins,units=units,slice=time,_EXTRA=extra,$
                           mks=mks, cgs=cgs)
        xtitle = '!12<' + xtitle + '!12> !6 ('+units+')!X'
+   endif else if(keyword_set(rho)) then begin
+       flux = flux_average('flux_t',points=pts,file=filename,/equilibrium,$
+                           bins=bins,slice=time,_EXTRA=extra)
+       flux = sqrt((flux - flux[0])/(flux[n_elements(flux)-1] - flux[0]))
+       lcfs_psi = 1.
+       xtitle = '!7q!X'
    endif
 
    if(n_elements(sm) eq 1) then begin
@@ -4994,7 +5050,7 @@ pro write_geqdsk, eqfile=eqfile, b0=b0, l0=l0, $
   printf, file, format=f2020, p
   printf, file, format=f2020, ffprim
   printf, file, format=f2020, pprime
-  printf, file, format=f2020, psi[0,*,*]
+  printf, file, format=f2020, reform(psi[0,*,*])
   printf, file, format=f2020, q
   printf, file, format=f2022, nlim, nwall
   printf, file, format=f2020, transpose([[rlim],[zlim]])

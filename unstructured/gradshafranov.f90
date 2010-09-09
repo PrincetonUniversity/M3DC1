@@ -476,7 +476,7 @@ subroutine gradshafranov_solve
      endif
 
      ! if error is sufficiently small, stop iterating
-     if(itnum .gt. 1 .and. error2 .lt. tol_gs) exit mainloop
+     if(itnum .gt. 1 .and. error2.lt.tol_gs) exit mainloop
     
      ! calculate gammas to constrain current, etc.
      call calculate_gamma(gamma2,gamma3,gamma4)
@@ -1418,7 +1418,7 @@ subroutine readpgfiles
 
   implicit none
 
-  integer :: j, n
+  integer :: j, n, dum
   real :: psii
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Reading profiles files"
@@ -1428,7 +1428,7 @@ subroutine readpgfiles
   allocate(psinorm(n))
   allocate(fbig0t(n),fbigt(n),fbigpt(n),fbigppt(n))
   do j=1,n
-    read(76,802) psinorm(j),fbig0t(j),fbigt(j),fbigpt(j),fbigppt(j)
+     read(76,*) dum,psinorm(j),fbig0t(j),fbigt(j),fbigpt(j),fbigppt(j)
   enddo
   close(76)
 !
@@ -1443,7 +1443,7 @@ subroutine readpgfiles
   read(77,804) n
   allocate(g4big0t(n),g4bigt(n),g4bigpt(n),g4bigppt(n))
   do j=1,n
-    read(77,802) psinorm(j),g4big0t(j),g4bigt(j),g4bigpt(j),g4bigppt(j)
+    read(77,*) dum,psinorm(j),g4big0t(j),g4bigt(j),g4bigpt(j),g4bigppt(j)
   enddo
   close(77)
 
@@ -1468,7 +1468,7 @@ subroutine readpgfiles
   constraint = .true.
 
 return
-  802 format(5x,5e17.8)
+  802 format(i5,1p6e18.10)
   803 format(i5)
   804 format(i5)
 end subroutine readpgfiles
@@ -1594,7 +1594,7 @@ end subroutine alphaget
    allocate(alphap0t(npsi),alphapt(npsi),alphappt(npsi),alphapppt(npsi))
    allocate(g4big0t(npsi),g4bigt(npsi),g4bigpt(npsi),g4bigppt(npsi))
 
-   fbig0t(1:n) = p                                 ! p
+   fbig0t(1:n) = p                              ! p
    fbigt(1:n) = pp * (flux(n) - flux(1))        ! p' = dp/dPsi
    g4big0t(1:n) = 0.5*(f**2 - f(n)**2)          ! g
    g4bigt(1:n) = ffp * (flux(n) - flux(1))      ! f f' = f * df/dPsi

@@ -771,7 +771,7 @@ subroutine field_from_coils_2(xc, zc, ic, nc, fin, isize, iplace)
 
   call finalizematrix(brmatrix_sm)
 
-  ! solve matrix equatio
+  ! solve matrix equation
   call solve(brmatrix_sm,psi,ier)
   
 

@@ -79,10 +79,10 @@ Program Reducedquintic
   call init
 
   ! load resistive wall response matrix
-  if(eta_wall .ne. 0.) then
+  if(eta_wall.ne.0. .and. itaylor.ne.10) then
      call load_vacuum_data(ier)
      if(ier.ne.0) call safestop(7)
-   if(myrank.eq.0) print *, 'Vacuum Data loaded'
+     if(myrank.eq.0) print *, 'Vacuum data loaded'
   end if
 
   ! output info about simulation to be run
@@ -471,7 +471,7 @@ subroutine safestop(iarg)
   integer :: ier
       
   ! unload resistive wall response matrix
-  if(eta_wall .ne. 0.) call unload_vacuum_data
+  call unload_vacuum_data
 
   ! close hdf5 file
   print *, "finalizing hdf5..."
@@ -884,21 +884,22 @@ logical function inside_lcfs(psi, x, z, exclude_pf)
   vectype, intent(in), dimension(6) :: psi
   real, intent(in) :: x, z
   logical :: exclude_pf
-  real :: dpsii
+  real :: dpsii, psii
 
   dpsii = psibound - psimin
+  psii = (real(psi(1)) - psimin)/dpsii
 
-  if((real(psi(1)) - psimin)/dpsii .gt. 1.) then
+  if(psii.gt.1. .or. psii.lt.0.) then
      inside_lcfs = .false.
      return
   endif
 
-  if(exclude_pf) then
-     if((real(psi(2))*(x-xmag) + real(psi(3))*(z-zmag))*dpsii .lt. 0.) then
-        inside_lcfs = .false.
-        return
-     endif
-  endif
+!!$  if(exclude_pf) then
+!!$     if((real(psi(2))*(x-xmag) + real(psi(3))*(z-zmag))*dpsii .lt. 0.) then
+!!$        inside_lcfs = .false.
+!!$        return
+!!$     endif
+!!$  endif
 
   inside_lcfs = .true.
   return

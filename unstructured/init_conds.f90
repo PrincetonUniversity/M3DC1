@@ -1510,26 +1510,68 @@ module circ_shell_only
 
 contains
 
+  subroutine analytic_response_matrix
+    use basic
+    use vacuum_interface
+
+    implicit none
+
+    real :: ka, thetai, thetaj, fac, bessk, besskp, grate, a
+    integer :: ierr, i, j
+
+    print *, 'Using analytic response matrix.'
+
+    call load_boundary_nodes(ierr)
+    if(ierr.ne.0) return
+
+    !...  define matrices with analytic formula
+    a = 1.
+    ka = a*ntor
+    fac = 2.*mpol/(nodes*ntor)*bessk(mpol,ka)/besskp(mpol,ka)
+    do i=1,nodes+1
+       do j=1,nodes+1
+          thetai = atan2(znode(i)-zzero,xnode(i)-xzero)
+          thetaj = atan2(znode(j)-zzero,xnode(j)-xzero)
+          zgrbth(i,j) = fac*sin(mpol*(thetai-thetaj))
+       enddo
+    enddo
+    grate = (eta_wall/delta_wall)*(mpol/a)* &
+         (1. + (mpol/ka)*bessk(mpol,ka)/besskp(mpol,ka))
+    write(*,'(A,1pe12.4)') " Analytic decay rate",  grate
+    write(97,'(A,1pe12.4)') " Analytic decay rate",  grate
+
+  end subroutine analytic_response_matrix
+
+
 subroutine circ_shell_only_init()
   use basic
   use arrays
+  use vacuum_interface
 
   implicit none
 
-  integer :: l, numnodes
-  real :: x, z, xs
+  integer :: i,j, numnodes
+  real :: x, z
 
+  open(unit=97,file="response_matrix",status="unknown")
+  if(itaylor.eq.10) call analytic_response_matrix
 
+  do i=1, nodes
+     write(97,'(1p10e12.4)') (zgrbth(i,j),j=1,nodes+1)
+  end do
+  close(97)
 
   call numnod(numnodes)
-  do l=1, numnodes
-     call nodcoord(l, x, z)
+  do i=1, numnodes
+     call nodcoord(i, x, z)
 
-     call assign_local_pointers(l)
-      xs = x - xzero
+     call assign_local_pointers(i)
 
-     call circ_shell_only_equ(xs, z)
-     call circ_shell_only_per(xs, z)
+     x = x - xzero
+     z = z - zzero
+
+     call circ_shell_only_equ(x, z)
+     call circ_shell_only_per(x, z)
   enddo
 
 end subroutine circ_shell_only_init
@@ -1562,7 +1604,6 @@ subroutine circ_shell_only_equ(x, z)
   chi0_l = 0.
   call constant_field(p0_l  , p0)
   call constant_field(pe0_l , p0-pi0*idens)
-  return
 
 end subroutine circ_shell_only_equ
 
@@ -1585,7 +1626,7 @@ subroutine circ_shell_only_per(x, z)
   psi1_l = 0.
   r = sqrt(x**2 + z**2)
   if(r.eq.0) return
-  k = ntor/rzero
+  k = ntor
   kr = k*r
   theta = atan2(z,x)
   sinm = sin(mpol*theta)
@@ -1617,64 +1658,60 @@ subroutine circ_shell_only_per(x, z)
 !.....finite difference to test 
   icheck = 0
   if(icheck.eq.1) then
-  delta = 1.e-5
-  do l=1,9
-    select case(l)
-    case(1)
-      x1 = x-delta
-      z1 = z+delta
-    case(2)
-      x1 = x
-      z1 = z+delta
-    case(3)
-      x1 = x+delta
-      z1 = z+delta
-    case(4)
-      x1 = x-delta
-      z1 = z
-    case(5)
-      x1 = x
-      z1 = z
-    case(6)
-      x1 = x+delta
-      z1 = z
-    case(7)
-      x1 = x-delta
-      z1 = z-delta
-    case(8)
-      x1 = x
-      z1 = z-delta
-    case(9)
-      x1 = x+delta
-      z1 = z-delta
-    end select
-    r = sqrt(x1**2 + z1**2)
-    k = ntor/rzero
-    kr = k*r
-    theta = atan2(z1,x1)
-    cosm = cos(mpol*theta)
-!    besm = bessi(mpol,kr) 
-!    val(l) = eps*cosm*besm
-     val(l) = eps*cosm*r**mpol
-  enddo
-  do i=1,6
-    valr(i) = real(psi1_l(i))
-  enddo
-  valr(7) = valr(4)+valr(6)
-  der(1) =  val(5)
-  der(2) = (val(6)-val(4))/(2.*delta)
-  der(3) = (val(2)-val(8))/(2.*delta)
-  der(4) = (val(6)-2.*val(5)+val(4))/delta**2
-  der(5) = (val(3)+val(7)-val(9)-val(1))/(4.*delta**2)
-  der(6) = (val(2)-2.*val(5)+val(8))/delta**2
-  der(7) = der(4)+der(6)
-  write(11,1001) x,z,(valr(i),i=1,7)
-  write(11,1002)     (der(i),i=1,7)
- 1001 format(1p9e12.4)
- 1002 format(24x,1p7e12.4)
+     delta = 1.e-5
+     do l=1,9
+        select case(l)
+        case(1)
+           x1 = x-delta
+           z1 = z+delta
+        case(2)
+           x1 = x
+           z1 = z+delta
+        case(3)
+           x1 = x+delta
+           z1 = z+delta
+        case(4)
+           x1 = x-delta
+           z1 = z
+        case(5)
+           x1 = x
+           z1 = z
+        case(6)
+           x1 = x+delta
+           z1 = z
+        case(7)
+           x1 = x-delta
+           z1 = z-delta
+        case(8)
+           x1 = x
+           z1 = z-delta
+        case(9)
+           x1 = x+delta
+           z1 = z-delta
+        end select
+        r = sqrt(x1**2 + z1**2)
+        k = ntor/rzero
+        kr = k*r
+        theta = atan2(z1,x1)
+        cosm = cos(mpol*theta)
+        !    besm = bessi(mpol,kr) 
+        !    val(l) = eps*cosm*besm
+        val(l) = eps*cosm*r**mpol
+     enddo
+     valr(1:6) = real(psi1_l(i))
+     valr(7) = valr(4)+valr(6)
+     
+     der(1) =  val(5)
+     der(2) = (val(6)-val(4))/(2.*delta)
+     der(3) = (val(2)-val(8))/(2.*delta)
+     der(4) = (val(6)-2.*val(5)+val(4))/delta**2
+     der(5) = (val(3)+val(7)-val(9)-val(1))/(4.*delta**2)
+     der(6) = (val(2)-2.*val(5)+val(8))/delta**2
+     der(7) = der(4)+der(6)
+     write(11,'(1p9e12.4)') x,z,(valr(i),i=1,7)
+     write(11,'(24x,1p7e12.4)')     (der(i),i=1,7)
   endif  ! on icheck
  
-
   if(numvar.le.1) return
   vz1_l = 0.
   bz1_l = 0.
@@ -1688,9 +1725,6 @@ subroutine circ_shell_only_per(x, z)
   else
      pe1_l = p1_l
   endif
-  return
-
-
 
 end subroutine circ_shell_only_per
 
@@ -1945,23 +1979,22 @@ subroutine eqdsk_init()
 
   if(myrank.eq.0 .and. iprint.eq.1) then
      print *, 'normalized current ', current
-!!$     write(*,1001) nw
-!!$ 1001 format(" nw = ",i4)
-!!$
-!!$     write(*,*) "press"
-!!$     write(*,1002) press
-!!$ 1002 format(1p5e12.4)
-!!$
-!!$     write(*,*) "pprime"
-!!$     write(*,1002) pprime
-!!$
-!!$     write(*,*) "ffprim"
-!!$     write(*,1002) ffprim
-!!$
-!!$     write(*,*) "fpol"
-!!$     write(*,1002) fpol
-  end if
+     write(*,1001) nw
+ 1001 format(" nw = ",i4)
 
+     write(*,*) "press"
+     write(*,1002) press
+ 1002 format(1p5e12.4)
+
+     write(*,*) "pprime"
+     write(*,1002) pprime
+
+     write(*,*) "ffprim"
+     write(*,1002) ffprim
+
+     write(*,*) "fpol"
+     write(*,1002) fpol
+  end if
 
   call numnod(numnodes)
   do l=1, numnodes
@@ -1974,9 +2007,14 @@ subroutine eqdsk_init()
   enddo
 
   tcuro = current
-  xmag = rmaxis
-  zmag = zmaxis
-  rzero = rmaxis
+  if(xmag.eq.0.) then
+     xmag = rmaxis
+     zmag = zmaxis
+  end if
+  if(rzero.eq.0.) then
+     rzero = rmaxis
+  endif
+
 !
 !.....bateman scaling parameter introduced 9/11/09 (SCJ)
   fpol(nw) = fpol(nw)*bscale
@@ -2532,7 +2570,7 @@ subroutine initial_conditions()
            call biharmonic_init(1)
         case(9)
            call biharmonic_init(0)
-        case(10:11)
+        case(10,11)
            call circ_shell_only_init()
         end select
      else
@@ -2549,6 +2587,9 @@ subroutine initial_conditions()
            call rotate_init()
         case(7)
            call circular_field_init()
+           call cartesian_to_cylindrical_all()
+        case(10,11)
+           call circ_shell_only_init()
            call cartesian_to_cylindrical_all()
         end select
      endif

@@ -2079,17 +2079,19 @@ subroutine ludefvel_n(itri)
            ss(u_g,u_g) = temp; ss(vz_g, vz_g) = temp; ss(chi_g,chi_g) = temp
            dd(u_g,u_g) = temp; dd(vz_g, vz_g) = temp; dd(chi_g,chi_g) = temp
         else 
-           call vorticity_lin(g79(:,:,i),g79(:,:,j), &
-                ss(u_g,:),dd(u_g,:),q_bf(u_g),advfield)
+           if(.not.surface_int) then
+              call vorticity_lin(g79(:,:,i),g79(:,:,j), &
+                   ss(u_g,:),dd(u_g,:),q_bf(u_g),advfield)
 
-           if(numvar.ge.2) then
-              call axial_vel_lin(g79(:,:,i),g79(:,:,j), &
-                   ss(vz_g,:),dd(vz_g,:),q_bf(vz_g),advfield)
-           endif
-           if(numvar.ge.3) then
-              call compression_lin(g79(:,:,i),g79(:,:,j), &
-                   ss(chi_g,:),dd(chi_g,:),q_bf(chi_g),advfield)
-           endif
+              if(numvar.ge.2) then
+                 call axial_vel_lin(g79(:,:,i),g79(:,:,j), &
+                      ss(vz_g,:),dd(vz_g,:),q_bf(vz_g),advfield)
+              endif
+              if(numvar.ge.3) then
+                 call compression_lin(g79(:,:,i),g79(:,:,j), &
+                      ss(chi_g,:),dd(chi_g,:),q_bf(chi_g),advfield)
+              endif
+           end if
         endif
 
         if(iestatic.eq.1 .and. isplitstep.eq.1) then 
@@ -2287,9 +2289,11 @@ subroutine ludefphi_n(itri)
            call flux_lin(g79(:,:,i),g79(:,:,j), &
                 ss(psi_g,:),dd(psi_g,:),q_ni(psi_g,:),q_bf(psi_g),r_e,q_e)
         endif
-        if(numvar.ge.2) then
-           call axial_field_lin(g79(:,:,i),g79(:,:,j), &
-                ss(bz_g,:),dd(bz_g,:),q_ni(bz_g,:),q_bf(bz_g))
+        if(.not.surface_int) then
+           if(numvar.ge.2) then
+              call axial_field_lin(g79(:,:,i),g79(:,:,j), &
+                   ss(bz_g,:),dd(bz_g,:),q_ni(bz_g,:),q_bf(bz_g))
+           endif
         endif
         if(numvar.ge.3) then
            call electron_pressure_lin(g79(:,:,i),g79(:,:,j), &

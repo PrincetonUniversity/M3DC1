@@ -15,8 +15,8 @@ subroutine bicubic_interpolation_coeffs(x,m,n,i,j,a)
 
   a = 0.
 
-  if(i.lt.1 .or. i.gt.m) return
-  if(j.lt.1 .or. j.gt.n) return
+  if(i-1.lt.1 .or. i+2.gt.m) return
+  if(j-1.lt.1 .or. j+2.gt.n) return
 
   a(1,1) = x(i,j)
   a(1,2) = (-2.*x(i,j-1)-3.*x(i,j)+6.*x(i,j+1)-x(i,j+2))/6.
@@ -78,10 +78,9 @@ subroutine cubic_interpolation_coeffs(x,m,i,a)
   integer, intent(in) :: m, i
   real, intent(in), dimension(m) :: x
   real, intent(out), dimension(4) :: a
-  integer :: ihermite
+  integer, parameter :: ihermite = 0
   real  :: xpi,xpip
 
-  ihermite = 1
   select case(ihermite)
   case(0)
      a(1) = x(i)

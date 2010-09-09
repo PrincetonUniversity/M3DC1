@@ -1378,7 +1378,6 @@ subroutine insert_resistive_wall(imatrix, rhs)
   fac = dt*eta_wall/delta_wall
 
   if(first_time) then
-  if(myrank.eq.0  ) print *, 'Inserting resistive wall:  fac, imatrix=',fac,imatrix
 
      ss_psi = 0.
      dd_psi = 0.
@@ -1506,9 +1505,9 @@ subroutine insert_resistive_wall(imatrix, rhs)
                  call rotate_vector(ddi_bf(ii,:),temp,normi,curvi,-1)
                  dd_bf(ii,:) = dd_bf(ii,:) + temp
 
-                 call rotate_vector(rri_psi(ii,:),temp,normj,curvj,-1)
+                 call rotate_vector(rri_psi(ii,:),temp,normi,curvi,-1)
                  rr_psi(ii,:) = rr_psi(ii,:) + temp
-                 call rotate_vector(rri_bf(ii,:),temp,normj,curvj,-1)
+                 call rotate_vector(rri_bf(ii,:),temp,normi,curvi,-1)
                  rr_bf(ii,:) = rr_bf(ii,:) + temp
               endif
 
@@ -1556,15 +1555,16 @@ subroutine insert_resistive_wall(imatrix, rhs)
   endif
 
   ! subtract off exernal fields
-! call copyvec(fieldi, psi_g, num_fields, tempin, 1, 1)
-! call matvecmult(ecpsi_sm, tempin, tempout2)
-! tempout = tempout - tempout2
-! if(i3d.eq.1 .and. numvar.ge.2) then
-!    call matvecmult(ecbf_sm, bfi, tempout2)
-!    tempout = tempout - tempout2
-! endif
-
-
+  if(itaylor.ne.10 .and. itaylor.ne.11) then
+     call copyvec(fieldi, psi_g, num_fields, tempin, 1, 1)
+     call matvecmult(ecpsi_sm, tempin, tempout2)
+     tempout = tempout - tempout2
+     if(i3d.eq.1 .and. numvar.ge.2) then
+        call matvecmult(ecbf_sm, bfi, tempout2)
+        tempout = tempout - tempout2
+     endif
+  endif
+     
   ! add contributions to rhs vector
   call numnod(numnodes)
   do i=1, nodes
