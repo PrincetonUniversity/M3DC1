@@ -1,5 +1,7 @@
 module nintegrate_mod
 
+  use element
+
 implicit none
 
 integer :: npoints        ! number of points in Gaussian quadrature
@@ -53,18 +55,16 @@ integer, parameter :: FIELD_B2I =  4096
 integer, parameter :: FIELD_ETA =  8192
 integer, parameter :: FIELD_KAP = 16384
 integer, parameter :: FIELD_SIG = 32768
-integer, parameter :: FIELD_SRC = 65536
-integer, parameter :: FIELD_MU  =131072
+integer, parameter :: FIELD_MU  = 65536
 
-
-vectype, dimension(MAX_PTS, OP_NUM, 18) :: g79
+vectype, dimension(MAX_PTS, OP_NUM, dofs_per_element) :: mu79, nu79
 real, dimension(MAX_PTS) :: x_79, z_79
 vectype, dimension(MAX_PTS) :: r_79, r2_79, r3_79, &
      ri_79, ri2_79, ri3_79, ri4_79, ri5_79, ri6_79, ri7_79, ri8_79
 vectype, dimension(MAX_PTS) :: temp79a, temp79b, temp79c, &
                                temp79d, temp79e, temp79f
 vectype, dimension(MAX_PTS, OP_NUM) :: sz79
-vectype, dimension(MAX_PTS, OP_NUM) :: tm79, ni79, b2i79, sb179, sb279, sp179
+vectype, dimension(MAX_PTS, OP_NUM) :: tm79, ni79, b2i79
 vectype, dimension(MAX_PTS, OP_NUM) :: ps179, bz179, pe179, n179, & 
                                        ph179, vz179, ch179, p179
 vectype, dimension(MAX_PTS, OP_NUM) :: pst79, bzt79, pet79, nt79, &
@@ -261,7 +261,7 @@ end function quadrature_implemented
 !==============================================
 subroutine edge_to_local(ngauss, delta, line_weight, &
      si1, eta1, si2, eta2, si, eta, local_weight, &
-     n1, n2, theta)
+     n1, n2, co, sn)
 
   use basic
 
@@ -269,14 +269,13 @@ subroutine edge_to_local(ngauss, delta, line_weight, &
 
   integer, intent(in) :: ngauss
   real, dimension(ngauss), intent(in) :: delta, line_weight
-  real, intent(in) :: si1, si2, eta1, eta2, theta
+  real, intent(in) :: si1, si2, eta1, eta2, co, sn
   real, dimension(ngauss), intent(out) :: si, eta, local_weight
   real, dimension(2), intent(in) :: n1, n2
 
   real :: l
 
   real :: m1(2), m2(2)    ! m are the normal vectors in the local coord sys
-  real :: co, sn
   real, parameter :: epsilon = 1.-1.e-6
 
   l = sqrt((si2-si1)**2 + (eta2-eta1)**2)
@@ -292,9 +291,6 @@ subroutine edge_to_local(ngauss, delta, line_weight, &
      norm79(1:ngauss,1) = 0.5*(n2(1)*(1.+delta) + n1(1)*(1.-delta))
      norm79(1:ngauss,2) = 0.5*(n2(2)*(1.+delta) + n1(2)*(1.-delta))
   end if
-
-  co = cos(theta)
-  sn = sin(theta)
 
   ! calculate expected normal vector (in global coordinates)
   m1(1) = (eta2 - eta1)*co - (si1 - si2)*sn
@@ -337,50 +333,13 @@ end subroutine area_to_local
 
 
 
-!=====================================================
-! calcpos
-! -------
-!
-! Calculates global coordinates at each sampling point
-!=====================================================
-subroutine calcpos(itri,si,eta,ngauss,x,z)
-
-  use basic
-  use t_data
-
-  implicit none
-
-  integer, intent(in) :: itri, ngauss
-  real, dimension(ngauss), intent(in) :: si, eta
-  real, dimension(ngauss), intent(out) :: x, z
-
-  integer, dimension(4) :: nodeids
-  integer :: i
-  real :: xoff, zoff, b, co, sn
-
-  call nodfac(itri,nodeids)
-  call nodcoord(nodeids(1), xoff, zoff)
-
-  b = btri(itri)
-  co = cos(ttri(itri))
-  sn = sin(ttri(itri))
-
-  do i=1, ngauss
-     x(i) = (si(i) + b)*co - eta(i)*sn + xoff
-     z(i) = (si(i) + b)*sn + eta(i)*co + zoff
-  end do
-
-end subroutine calcpos
-
-
-
 !===============================================
 ! eval_ops
 ! --------
 !
 ! evaluates linear unitary operators
 !===============================================
-subroutine eval_ops(avector,si,eta,theta,rinv,ngauss,outarr)
+subroutine eval_ops(avector,si,eta,co,sn,ri,ngauss,outarr)
 
   use basic
 
@@ -389,16 +348,13 @@ subroutine eval_ops(avector,si,eta,theta,rinv,ngauss,outarr)
   integer, intent(in) :: ngauss
   vectype, dimension(20), intent(in) :: avector
   real, dimension(ngauss), intent(in) :: si, eta
-  vectype, dimension(ngauss), intent(in) :: rinv
+  real, intent(in) :: co, sn
+  vectype, dimension(ngauss), intent(in) :: ri
   vectype, dimension(MAX_PTS, OP_NUM), intent(out) :: outarr
-  real, intent(in) :: theta
 
   integer :: k,p,op
   real, dimension(OP_NUM) :: sum
-  real :: co, sn, co2, sn2, cosn, temp
-
-  co = cos(theta)
-  sn = sin(theta)
+  real :: co2, sn2, cosn, temp
 
   co2 = co*co
   sn2 = sn*sn
@@ -494,13 +450,13 @@ subroutine eval_ops(avector,si,eta,theta,rinv,ngauss,outarr)
         ! cylindrical correction to Laplacian
         sum(OP_GS) = sum(OP_LP)
         if(itor.eq.1) then
-           sum(OP_GS) = sum(OP_GS) - sum(OP_DR)*rinv(k)
-           sum(OP_LP) = sum(OP_LP) + sum(OP_DR)*rinv(k)
+           sum(OP_GS) = sum(OP_GS) - sum(OP_DR)*ri(k)
+           sum(OP_LP) = sum(OP_LP) + sum(OP_DR)*ri(k)
 
            if(surface_int) then
-              sum(OP_LPR) = sum(OP_LPR) + sum(OP_DRR)*rinv(k) &
-                   - sum(OP_DR)*rinv(k)*rinv(k)
-              sum(OP_LPZ) = sum(OP_LPZ) + sum(OP_DRZ)*rinv(k)
+              sum(OP_LPR) = sum(OP_LPR) + sum(OP_DRR)*ri(k) &
+                   - sum(OP_DR)*ri(k)*ri(k)
+              sum(OP_LPZ) = sum(OP_LPZ) + sum(OP_DRZ)*ri(k)
            endif
         endif
 
@@ -518,26 +474,25 @@ end subroutine eval_ops
 ! define_triangle_quadrature
 !=====================================================
 subroutine define_triangle_quadrature(itri, ngauss)
-  use t_data
+  use mesh_mod
 
+  type(element_data) :: d
   integer, intent(in) :: itri, ngauss
 
+  call get_element_data(itri,d)
   select case(ngauss)
   case(12)
      call area_to_local(12,                          &
           alpha_12,beta_12,gamma_12,area_weight_12,  &
-          atri(itri), btri(itri), ctri(itri),        &
-          si_79, eta_79, weight_79)
+          d%a, d%b, d%c, si_79, eta_79, weight_79)
   case(25)
      call area_to_local(25,                          &
           alpha_25,beta_25,gamma_25,area_weight_25,  &
-          atri(itri), btri(itri), ctri(itri),        &
-          si_79, eta_79, weight_79)
+          d%a, d%b, d%c, si_79, eta_79, weight_79)
   case(79)
      call area_to_local(79,                          &
           alpha_79,beta_79,gamma_79,area_weight_79,  &
-          atri(itri), btri(itri), ctri(itri),        &
-          si_79, eta_79, weight_79)
+          d%a, d%b, d%c, si_79, eta_79, weight_79)
   case default
      print *, "Error! ", ngauss, "-point triangle quadrature not defined."
      call safestop(44)
@@ -554,21 +509,26 @@ end subroutine define_triangle_quadrature
 ! 
 !=====================================================
 subroutine define_edge_quadrature(itri, ivertex, ngauss, normal, idim)
-  use t_data 
+  use mesh_mod
+  
+  implicit none
+
+  type(element_data) :: d
   integer, intent(in) :: itri, ivertex, ngauss, idim(3)
   real, intent(in), dimension(2,3) :: normal
   real :: si1, si2, eta1, eta2, n1(2), n2(2)
 
+  call get_element_data(itri,d)
   select case(ivertex)
   case(1)
-     si1 = -btri(itri); eta1 = 0.
-     si2 =  atri(itri); eta2 = 0.
+     si1 = -d%b; eta1 = 0.
+     si2 =  d%a; eta2 = 0.
   case(2)
-     si1 =  atri(itri); eta1 = 0.
-     si2 =  0.;         eta2 = ctri(itri)
+     si1 =  d%a; eta1 = 0.
+     si2 =  0.;  eta2 = d%c
   case(3)
-     si1 =  0.;         eta1 = ctri(itri)
-     si2 = -btri(itri); eta2 = 0.
+     si1 =  0.;  eta1 = d%c
+     si2 = -d%b; eta2 = 0.
   case default
      print *, "Error: invalid ivertex. ", ivertex
      call safestop(45)
@@ -584,7 +544,7 @@ subroutine define_edge_quadrature(itri, ivertex, ngauss, normal, idim)
   select case(ngauss)
   case(5)
      call edge_to_local(ngauss, delta_5, line_weight_5, &
-     si1, eta1, si2, eta2, si_79, eta_79, weight_79, n1, n2, ttri(itri))
+     si1, eta1, si2, eta2, si_79, eta_79, weight_79, n1, n2, d%co, d%sn)
   case default 
      print *, "Error: ", ngauss, &
           "-point quadrature not defined for line integration"
@@ -601,15 +561,16 @@ end subroutine define_edge_quadrature
 subroutine define_fields(itri, fields, gdef, ilin)
 
   use basic
-  use t_data
+  use mesh_mod
   use arrays
 
   implicit none
   
   integer, intent(in) :: itri, fields, gdef, ilin
-  real :: fac
 
+  real :: fac
   integer :: i
+  type(element_data) :: d
   vectype, dimension(20) :: avec
 
   ! calculate the hyperviscosity coefficients and
@@ -627,9 +588,10 @@ subroutine define_fields(itri, fields, gdef, ilin)
   call interpolate_size_field(itri)
 
   ! calculate the major radius, and useful powers
-  call calcpos(itri, si_79, eta_79, npoints, x_79, z_79)
+  call get_element_data(itri, d)
+  call local_to_global(d, si_79, eta_79, x_79, z_79)
   if(itor.eq.1) then 
-     r_79 = x_79 
+     r_79 = x_79
   else 
      r_79 = 1.
   endif
@@ -646,26 +608,25 @@ subroutine define_fields(itri, fields, gdef, ilin)
 
   if(ijacobian.eq.1) weight_79 = weight_79 * r_79
 
- 
   ! PHI
   ! ~~~
   if(iand(fields, FIELD_PHI).eq.FIELD_PHI) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   U..."
      
      if(ilin.eq.0) then
-        call calcavector(itri, field, u_g, num_fields, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ph179)
+        call calcavector(itri, u_field(1), avec)
+        call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, ph179)
 #ifdef USECOMPLEX
-        ph179(:,OP_DP :OP_GSP ) = (0,1)*ntor*ph179(:,OP_1:OP_GS)
-        ph179(:,OP_DPP:OP_GSPP) =   -ntor**2*ph179(:,OP_1:OP_GS)
+        ph179(:,OP_DP :OP_GSP ) = ph179(:,OP_1:OP_GS)*rfac
+        ph179(:,OP_DPP:OP_GSPP) = ph179(:,OP_1:OP_GS)*rfac**2
 #endif
      else
         ph179 = 0.
      endif
 
      if(eqsubtract.eq.1) then
-        call calcavector(itri, field0, u_g, num_fields, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ph079)
+        call calcavector(itri, u_field(0), avec)
+        call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, ph079)
         phs79 = ph079 + ph179/2.
         pht79 = ph079 + ph179
      else
@@ -681,19 +642,19 @@ subroutine define_fields(itri, fields, gdef, ilin)
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   psi..."
 
      if(ilin.eq.0) then
-        call calcavector(itri, field, psi_g, num_fields, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ps179)
+        call calcavector(itri, psi_field(1), avec)
+        call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, ps179)
 #ifdef USECOMPLEX
-        ps179(:,OP_DP :OP_GSP ) = (0,1)*ntor*ps179(:,OP_1:OP_GS)
-        ps179(:,OP_DPP:OP_GSPP) =   -ntor**2*ps179(:,OP_1:OP_GS)
+        ps179(:,OP_DP :OP_GSP ) = ps179(:,OP_1:OP_GS)*rfac
+        ps179(:,OP_DPP:OP_GSPP) = ps179(:,OP_1:OP_GS)*rfac**2
 #endif
      else
         ps179 = 0.
      end if
 
      if(eqsubtract.eq.1) then
-        call calcavector(itri, field0, psi_g, num_fields, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ps079)
+        call calcavector(itri, psi_field(0), avec)
+        call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, ps079)
         pst79 = ps079 + ps179
         pss79 = ps079 + ps179/2.
      else
@@ -708,19 +669,19 @@ subroutine define_fields(itri, fields, gdef, ilin)
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   V..."
 
      if(ilin.eq.0) then
-        call calcavector(itri, field, vz_g, num_fields, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, vz179)
+        call calcavector(itri, vz_field(1), avec)
+        call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, vz179)
 #ifdef USECOMPLEX
-        vz179(:,OP_DP :OP_GSP ) = (0,1)*ntor*vz179(:,OP_1:OP_GS)
-        vz179(:,OP_DPP:OP_GSPP) = -ntor**2*vz179(:,OP_1:OP_GS)
+        vz179(:,OP_DP :OP_GSP ) = vz179(:,OP_1:OP_GS)*rfac
+        vz179(:,OP_DPP:OP_GSPP) = vz179(:,OP_1:OP_GS)*rfac**2
 #endif
      else
         vz179 = 0.
      end if
 
      if(eqsubtract.eq.1) then
-        call calcavector(itri, field0, vz_g, num_fields, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, vz079)
+        call calcavector(itri, vz_field(0), avec)
+        call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, vz079)
         vzs79 = vz079 + vz179/2.
         vzt79 = vz079 + vz179
      else
@@ -736,16 +697,16 @@ subroutine define_fields(itri, fields, gdef, ilin)
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   I..."
 
      if(ilin.eq.0) then
-        call calcavector(itri, field, bz_g, num_fields, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, bz179)
+        call calcavector(itri, bz_field(1), avec)
+        call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, bz179)
 #ifdef USECOMPLEX
-        bz179(:,OP_DP :OP_GSP ) = (0,1)*ntor   *bz179(:,OP_1:OP_GS)
-        bz179(:,OP_DPP:OP_GSPP) =      -ntor**2*bz179(:,OP_1:OP_GS)
+        bz179(:,OP_DP :OP_GSP ) = bz179(:,OP_1:OP_GS)*rfac
+        bz179(:,OP_DPP:OP_GSPP) = bz179(:,OP_1:OP_GS)*rfac**2
 
-        call calcavector(itri, bf, 1, 1, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, bf179)
-        bf179(:,OP_DP :OP_GSP ) = (0,1)*ntor   *bf179(:,OP_1:OP_GS)
-        bf179(:,OP_DPP:OP_GSPP) =      -ntor**2*bf179(:,OP_1:OP_GS)
+        call calcavector(itri, bf_field(1), avec)
+        call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, bf179)
+        bf179(:,OP_DP :OP_GSP ) = bf179(:,OP_1:OP_GS)*rfac
+        bf179(:,OP_DPP:OP_GSPP) = bf179(:,OP_1:OP_GS)*rfac**2
 #endif
      else
         bz179 = 0.
@@ -753,14 +714,14 @@ subroutine define_fields(itri, fields, gdef, ilin)
      endif
        
      if(eqsubtract.eq.1) then
-        call calcavector(itri, field0, bz_g, num_fields, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, bz079)
+        call calcavector(itri, bz_field(0), avec)
+        call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, bz079)
         bzt79 = bz079 + bz179
         bzs79 = bz079 + bz179/2.
 
 #ifdef USECOMPLEX
-        call calcavector(itri, bf0, 1, 1, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, bf079)
+        call calcavector(itri, bf_field(0), avec)
+        call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, bf079)
         bft79 = bf079 + bf179
 #endif
      else
@@ -779,19 +740,19 @@ subroutine define_fields(itri, fields, gdef, ilin)
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   chi..."
 
      if(ilin.eq.0) then
-        call calcavector(itri, field, chi_g, num_fields, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ch179)
+        call calcavector(itri, chi_field(1), avec)
+        call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, ch179)
 #ifdef USECOMPLEX
-        ch179(:,OP_DP :OP_GSP ) = (0,1)*ntor*ch179(:,OP_1:OP_GS)
-        ch179(:,OP_DPP:OP_GSPP) = -ntor**2*ch179(:,OP_1:OP_GS)
+        ch179(:,OP_DP :OP_GSP ) = ch179(:,OP_1:OP_GS)*rfac
+        ch179(:,OP_DPP:OP_GSPP) = ch179(:,OP_1:OP_GS)*rfac**2
 #endif
      else
         ch179 = 0.
      end if
 
      if(eqsubtract.eq.1) then
-        call calcavector(itri, field0, chi_g, num_fields, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ch079)
+        call calcavector(itri, chi_field(0), avec)
+        call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, ch079)
         chs79 = ch079 + ch179/2.
         cht79 = ch079 + ch179
      else
@@ -808,35 +769,35 @@ subroutine define_fields(itri, fields, gdef, ilin)
 
      if(ilin.eq.0) then
         if(ipres.eq.1) then
-           call calcavector(itri, field, p_g, num_fields, avec)
-           call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, p179)
-           call calcavector(itri, field, pe_g, num_fields, avec)
-           call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, pe179)
+           call calcavector(itri, p_field(1), avec)
+           call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, p179)
+           call calcavector(itri, pe_field(1), avec)
+           call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, pe179)
         else
-           call calcavector(itri, field, pe_g, num_fields, avec)
-           call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, p179)
+           call calcavector(itri, pe_field(1), avec)
+           call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, p179)
            pe179 = p179
         endif
 #ifdef USECOMPLEX
-        p179(:,OP_DP :OP_GSP ) = (0,1)*ntor*p179(:,OP_1:OP_GS)
-        p179(:,OP_DPP:OP_GSPP) = -ntor**2*p179(:,OP_1:OP_GS)
-        pe179(:,OP_DP :OP_GSP ) = (0,1)*ntor*pe179(:,OP_1:OP_GS)
-        pe179(:,OP_DPP:OP_GSPP) = -ntor**2*pe179(:,OP_1:OP_GS)
+        p179(:,OP_DP :OP_GSP ) = p179(:,OP_1:OP_GS)*rfac
+        p179(:,OP_DPP:OP_GSPP) = p179(:,OP_1:OP_GS)*rfac**2
+        pe179(:,OP_DP :OP_GSP ) = pe179(:,OP_1:OP_GS)*rfac
+        pe179(:,OP_DPP:OP_GSPP) = pe179(:,OP_1:OP_GS)*rfac**2
 #endif
      else
         p179 = 0.
         pe179 = 0.
      end if
-        
+
      if(eqsubtract.eq.1) then
         if(ipres.eq.1) then
-           call calcavector(itri, field0, p_g, num_fields, avec)
-           call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, p079)
-           call calcavector(itri, field0, pe_g, num_fields, avec)
-           call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, pe079)
+           call calcavector(itri, p_field(0), avec)
+           call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, p079)
+           call calcavector(itri, pe_field(0), avec)
+           call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, pe079)
         else
-           call calcavector(itri, field0, pe_g, num_fields, avec)
-           call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, p079)
+           call calcavector(itri, pe_field(0), avec)
+           call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, p079)
            pe079 = p079
         endif
         pet79 = pe079 + pe179
@@ -856,11 +817,11 @@ subroutine define_fields(itri, fields, gdef, ilin)
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   n..."
 
      if(ilin.eq.0) then
-        call calcavector(itri, field, den_g, num_fields, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, n179)
+        call calcavector(itri, den_field(1), avec)
+        call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, n179)
 #ifdef USECOMPLEX
-        n179(:,OP_DP :OP_GSP ) = (0,1)*ntor*n179(:,OP_1:OP_GS)
-        n179(:,OP_DPP:OP_GSPP) = -ntor**2*n179(:,OP_1:OP_GS)
+        n179(:,OP_DP :OP_GSP ) = n179(:,OP_1:OP_GS)*rfac
+        n179(:,OP_DPP:OP_GSPP) = n179(:,OP_1:OP_GS)*rfac**2
 #endif    
      else
         n179 = 0.
@@ -878,8 +839,8 @@ subroutine define_fields(itri, fields, gdef, ilin)
               n079(:,OP_1) = den_edge
            end where
         else
-           call calcavector(itri, field0, den_g, num_fields, avec)
-           call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, n079)
+           call calcavector(itri, den_field(0), avec)
+           call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, n079)
         end if
         nt79 = n079 + n179
      else
@@ -891,7 +852,8 @@ subroutine define_fields(itri, fields, gdef, ilin)
   ! NI
   ! ~~
   if(iand(fields, FIELD_NI).eq.FIELD_NI) then
-     ni79(:,OP_1  ) = 1./nt79(:,OP_1)
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   n^-1..."
+     ni79(1:npoints,OP_1  ) = 1./nt79(1:npoints,OP_1)
      ni79(:,OP_DR ) = -ni79(:,OP_1)**2 * nt79(:,OP_DR)
      ni79(:,OP_DZ ) = -ni79(:,OP_1)**2 * nt79(:,OP_DZ)
      ni79(:,OP_DRR) = 2.*ni79(:,OP_1)**3 * nt79(:,OP_DR )**2             &
@@ -918,8 +880,8 @@ subroutine define_fields(itri, fields, gdef, ilin)
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   j..."
 
      if(ilin.eq.0) then
-        call calcavector(itri, jphi, 1, 1, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, jt79)
+        call calcavector(itri, jphi_field, avec)
+        call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, jt79)
      else
         jt79 = 0.
      end if
@@ -931,8 +893,8 @@ subroutine define_fields(itri, fields, gdef, ilin)
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   vor..."
 
      if(ilin.eq.0) then
-        call calcavector(itri, vor, 1, 1, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, vot79)
+        call calcavector(itri, vor_field, avec)
+        call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, vot79)
      else
         vot79 = 0.
      end if
@@ -944,30 +906,13 @@ subroutine define_fields(itri, fields, gdef, ilin)
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   com..."
 
      if(ilin.eq.0) then
-        call calcavector(itri, com, 1, 1, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, cot79)
+        call calcavector(itri, com_field, avec)
+        call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, cot79)
      else
         cot79 = 0.
      end if
   endif
 
-
-  ! SRC
-  ! ~~~
-  if(iand(fields, FIELD_SRC).eq.FIELD_SRC) then
-     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   sources..."
-
-     call calcavector(itri, sb1, 1, 1, avec)
-     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, sb179)
-     if(numvar.ge.2) then
-        call calcavector(itri, sb2, 1, 1, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, sb279)
-     endif
-     if(numvar.ge.3) then
-        call calcavector(itri, sp1, 1, 1, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, sp179)
-     endif
-  endif
 
   ! B2I
   ! ~~~
@@ -983,9 +928,9 @@ subroutine define_fields(itri, fields, gdef, ilin)
           + ri_79* &
           (pst79(:,OP_DZ)*bft79(:,OP_DRP) - pst79(:,OP_DR)*bft79(:,OP_DZP))
 
-     b2i79(:,OP_1 ) = 1./(temp79a + temp79b)
+     b2i79(1:npoints,OP_1 ) = 1./(temp79a(1:npoints) + temp79b(1:npoints))
 #else
-     b2i79(:,OP_1 ) = 1./temp79a
+     b2i79(1:npoints,OP_1 ) = 1./temp79a(1:npoints)
 #endif
      b2i79(:,OP_DR) = ri2_79 * &
           (pst79(:,OP_DR)*pst79(:,OP_DRR) + pst79(:,OP_DZ)*pst79(:,OP_DRZ) &
@@ -1017,7 +962,6 @@ subroutine define_fields(itri, fields, gdef, ilin)
      b2i79(:,OP_DR) = -2.*b2i79(:,OP_DR)*b2i79(:,OP_1)**2
      b2i79(:,OP_DZ) = -2.*b2i79(:,OP_DZ)*b2i79(:,OP_1)**2
   endif
-
 
   ! ETA
   ! ~~~
@@ -1074,8 +1018,8 @@ subroutine define_fields(itri, fields, gdef, ilin)
 
         eta79 = eta79 * 3.4e-22*n0_norm**2/(b0_norm**4*l0_norm)*17.
      else
-        call calcavector(itri, resistivity, 1, 1, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, eta79)
+        call calcavector(itri, resistivity_field, avec)
+        call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, eta79)
      end if
   end if
 
@@ -1084,8 +1028,8 @@ subroutine define_fields(itri, fields, gdef, ilin)
   if(iand(fields, FIELD_KAP).eq.FIELD_KAP) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   kappa..."
 
-     call calcavector(itri, kappa, 1, 1, avec)
-     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, kap79)
+     call calcavector(itri, kappa_field, avec)
+     call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, kap79)
 
      if(ikapscale.eq.1) then
         kar79 = kappar*kap79
@@ -1102,8 +1046,8 @@ subroutine define_fields(itri, fields, gdef, ilin)
   if((iand(fields, FIELD_SIG).eq.FIELD_SIG) .and. idens.eq.1) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.1) print *, "   sigma..."
 
-     call calcavector(itri, sigma, 1, 1, avec)
-     call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, sig79)
+     call calcavector(itri, sigma_field, avec)
+     call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, sig79)
   else
      sig79 = 0.
   end if
@@ -1127,12 +1071,12 @@ subroutine define_fields(itri, fields, gdef, ilin)
            vic79(:,OP_1) = amu_edge
         end where
      else
-        call calcavector(itri, visc, 1, 1, avec)
-        call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, vis79)
+        call calcavector(itri, visc_field, avec)
+        call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, vis79)
 
         if(numvar.ge.3) then
-           call calcavector(itri, visc_c, 1, 1, avec)
-           call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, vic79)
+           call calcavector(itri, visc_c_field, avec)
+           call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, vic79)
         endif
      endif
 
@@ -1141,12 +1085,17 @@ subroutine define_fields(itri, fields, gdef, ilin)
   end if
 
   if(gdef.eq.1) then
-     do i=1,18
+     do i=1,dofs_per_element
         call eval_ops(gtri(:,i,itri), si_79, eta_79, &
-             ttri(itri), ri_79, npoints, g79(:,:,i))
+             d%co, d%sn, ri_79, npoints, mu79(:,:,i))
+        call eval_ops(gtri_old(:,i,itri), si_79, eta_79, &
+             d%co, d%sn, ri_79, npoints, nu79(:,:,i))
+
 #ifdef USECOMPLEX
-        g79(:,OP_DP :OP_GSP, i) = (0,1)*ntor*g79(:,OP_1:OP_GS,i)
-        g79(:,OP_DPP:OP_GSPP,i) =   -ntor**2*g79(:,OP_1:OP_GS,i)
+        mu79(:,OP_DP :OP_GSP, i) = mu79(:,OP_1:OP_GS,i)*rfac
+        mu79(:,OP_DPP:OP_GSPP,i) = mu79(:,OP_1:OP_GS,i)*rfac**2
+        nu79(:,OP_DP :OP_GSP, i) = nu79(:,OP_1:OP_GS,i)*rfac
+        nu79(:,OP_DPP:OP_GSPP,i) = nu79(:,OP_1:OP_GS,i)*rfac**2
 #endif
      end do
   endif
@@ -1203,7 +1152,6 @@ vectype function int2(vari,varj)
   enddo
 
   int2 = ksum
-
 end function int2
 !==============================================
 vectype function int3(vari,varj,vark)
@@ -1263,14 +1211,15 @@ end function int5
 subroutine interpolate_size_field(itri)
 
   use basic
-  use t_data
+  use mesh_mod
 
   implicit none
 
   integer, intent(in) :: itri
 
+  type(element_data) :: d
   double precision, dimension(3) :: node_sz
-  real :: a,b,c,theta,k,l,m,d
+  real :: k,l,m,h
 
   if(ihypdx.eq.0) then
      sz79(:,OP_1  ) = 1.
@@ -1282,24 +1231,24 @@ subroutine interpolate_size_field(itri)
      return
   end if
 
-  a = atri(itri)
-  b = btri(itri)
-  c = ctri(itri)
-  theta = ttri(itri)
-  call getelmsizes(itri, node_sz)
+  call get_element_data(itri, d)
+  h = d%b / (d%a + d%b)
 
+#ifdef USESCOREC
+  call getelmsizes(itri, node_sz)
+#else
+  node_sz = h
+#endif
   ! use size**2 field
   node_sz = node_sz**ihypdx
 
-  d = b / (a + b)
-
-  m = (node_sz(3) - node_sz(1) - d*(node_sz(2) - node_sz(1))) / c
-  l = (node_sz(2) - node_sz(1)) / (a + b)
-  k = node_sz(1) + l*b
+  m = (node_sz(3) - node_sz(1) - h*(node_sz(2) - node_sz(1))) / d%c
+  l = (node_sz(2) - node_sz(1)) / (d%a + d%b)
+  k = node_sz(1) + l*d%b
 
   sz79(:,OP_1  ) = k + l*si_79 + m*eta_79
-  sz79(:,OP_DR ) = k + l*cos(theta) + m*sin(theta)
-  sz79(:,OP_DZ ) = k - l*sin(theta) + m*cos(theta)
+  sz79(:,OP_DR ) = k + l*d%co + m*d%sn
+  sz79(:,OP_DZ ) = k - l*d%sn + m*d%co
   sz79(:,OP_DRR) = 0.
   sz79(:,OP_DRZ) = 0.
   sz79(:,OP_DZZ) = 0. 

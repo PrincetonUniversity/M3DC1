@@ -1,122 +1,208 @@
 program struct2vac
 
+  use mesh_mod
+
   implicit none
 
   include 'mpif.h'
 
-  integer :: ifirst, itotal, ilast, inode, ier
-  integer, parameter :: ifile = 5
+  integer :: inode, ier, num_global_nodes, num_local_nodes
+  integer :: i, j, ilast, ifirst, numnodes
+  integer, parameter :: ifile = 5, inew = 6, ntor = 1
   character (len=*), parameter :: filename = 'ordered.points'
 
-  integer :: next_node
+  integer :: next_node, myrank, maxrank
   real, dimension(4) :: coords
   real :: normal(2)
-  logical :: is_boundary
+  logical :: is_boundary, myturn, first_time
+  integer :: idum
+
+#ifdef USESCOREC
+  integer :: maxdofs1
+#endif
 
   call MPI_Init(ier)
+  call MPI_Comm_rank(MPI_COMM_WORLD, myrank, ier)
+  call MPI_Comm_size(MPI_COMM_WORLD,maxrank, ier)
+
+
+#ifdef USESCOREC
+  ! initialize autopack
+  if(myrank.eq.0) print *, 'Initializing Autopack'
+  call AP_INIT()
+#endif
 
   ! load mesh data
-  call loadmesh("struct.dmg", "struct-dmg.sms")
+  print *, 'loading mesh'
+  call load_mesh
 
-  ! open file for output
-  open(unit=ifile,file=filename,action='write',status='replace')
+#ifdef USESCOREC
+  call createdofnumbering(1, iper, jper, 6, 0, 0, 0, maxdofs1)
+#endif
 
-  ! find first boundary node and total number of boundary nodes
-  call first_node(ifirst, itotal)
-  print *, 'Found ', itotal, ' boundary nodes.  First node = ', ifirst
+  numnodes = local_nodes()
 
-  ! write total number of nodes
-  write(ifile, '(I8)') itotal
-
-  ! write node entry for first node
-  call xyznod(ifirst,coords)
-  call nodNormalVec(ifirst,normal,is_boundary)
-
-!!$  write(ifile, '(I8,4f12.8)') ifirst, coords(1), coords(2), &
-!!$       normal(1), normal(2)
-  write(ifile, '(I8,2f12.6)') ifirst, coords(1), coords(2)
-
-  inode = ifirst
-  do
-     ilast = inode
-     inode = next_node(ilast)    ! find next node
-
-     ! if next node is the first node, we're done
-     if(inode.eq.ifirst .or. inode.eq.-1) exit
-
-     ! write node entry
-     call xyznod(inode,coords)
-     call nodNormalVec(inode,normal,is_boundary)
-
-!!$     write(ifile, '(I8,4f12.8)') inode, coords(1), coords(2), &
-!!$       normal(1), normal(2)
-     write(ifile, '(I8,2f12.6)') inode, coords(1), coords(2)
-
+  ! find the boundary node with the largest global id
+  ifirst = -1
+  do i=1, numnodes
+     if(is_boundary_node(i)) then
+        call entglobalid(i,0,inode)
+        if(inode.gt.ifirst) ilast = inode
+     endif
   end do
 
-  ! close output file
-  close(ifile)
+  first_time = .true.
+  num_local_nodes = 0
+  do
+     call mpi_allreduce(ilast, inode, 1, MPI_INTEGER, &
+          MPI_MAX, MPI_COMM_WORLD, ier)
 
-  call deletesearchstructure()
-  call clearscorecdata()
+     if(myrank.eq.0) then
+        print *, "=====Boundary section starting at node", inode, "======="
+     endif
+ 
+     if(first_time) then
+        ifirst = inode
+     else if (ifirst.eq.inode) then
+        exit
+     end if
+
+     myturn = .false.
+     ! Check to see if I own current node
+     do i=1, numnodes
+        call entglobalid(i,0,j)
+        if(j.eq.inode) then
+           myturn = .true.
+           exit
+        end if
+     end do
+     
+     ! Check to see if I own the next node
+     if(myturn) then
+        j = next_node(i)
+        myturn = j.ne.-1
+     endif
+ 
+     ! If I do own the next node, I have to write the data
+     if(myturn) then
+        print *, 'node ', myrank, ' owns node ', inode
+
+        if(first_time) then
+           open(unit=ifile, file='scratch',action='write',status='replace')
+
+           ! write toroidal mode number
+           write(ifile, '(I8)') ntor
+
+           ! write total number of nodes
+           write(ifile, '(I8)') 0
+        else
+           open(unit=ifile,file='scratch',action='write', &
+                status='old',access='append')           
+        endif
+
+        do
+           ! We own this node, so write it to the list
+           call xyznod(i,coords)
+           call nodNormalVec(i,normal,is_boundary)
+           write(ifile, '(I8,4f12.6)') inode, coords(1), coords(2), &
+                normal(1), normal(2)           
+           num_local_nodes = num_local_nodes + 1
+
+           ! Move to next node
+           i = j
+
+           ! Check if we have arrived at the first global node
+           call entglobalid(i,0,inode)
+           if(inode.eq.ifirst) exit
+
+           ! Check if we own the subsequent node
+           ! If not, it is not our responsibility to write the current node
+           j = next_node(i)
+           if(j.eq.-1) exit
+        end do
+       
+        close(ifile)
+
+        print *, myrank, ' wrote ', num_local_nodes, ' nodes.'
+
+        ilast = inode
+     else
+        ilast = -1
+     endif
+    
+     first_time = .false.
+  end do
+
+  call mpi_reduce(num_local_nodes, num_global_nodes, 1, MPI_INTEGER, &
+       MPI_SUM, 0, MPI_COMM_WORLD, ier)
+
+  if(myrank.eq.0) then
+     print *, 'Wrote ', num_global_nodes, ' nodes.'
+
+     ! overwrite header
+     ! ~~~~~~~~~~~~~~~~
+     open(unit=ifile,file='scratch',action='readwrite',status='old', &
+          disp='delete')
+     open(unit=inew,file=filename,action='write',status='replace')
+
+     ! write toroidal mode number
+     read(ifile, '(I8)') idum
+     write(inew, '(I8)') ntor
+
+     ! number of global nodes
+     read(ifile, '(I8)') idum
+     write(inew, '(I8)') num_global_nodes
+
+     ! re-write node data
+     ! ~~~~~~~~~~~~~~~~~~
+     do i=1, num_global_nodes
+        read(ifile, '(I8,4f12.6)') inode, coords(1), coords(2), &
+             normal(1), normal(2)           
+        write(inew, '(I8,4f12.6)') inode, coords(1), coords(2), &
+             normal(1), normal(2)           
+     end do
+
+     close(ifile)
+     close(inew)
+
+     ! delete scratch file
+     ! ~~~~~~~~~~~~~~~~~~~
+     
+  endif
+
+  call unload_mesh
+
   call MPI_finalize(ier)
 
 end program struct2vac
 
-
-logical function is_boundary(inode)
-  implicit none
-
-  integer, intent(in) :: inode
-  integer :: izone, izonedim
-  
-  call zonenod(inode, izone, izonedim)
-
-  is_boundary = (izonedim.le.1)
-end function is_boundary
-
-
-subroutine first_node(ifirst, itotal)
-  implicit none
-
-  integer, intent(out) :: ifirst, itotal
-
-  integer :: numnodes, i
-  logical :: is_boundary
-  
-  call numnod(numnodes)
-
-  ifirst = -1
-  itotal = 0
-
-  do i=1, numnodes
-     if(is_boundary(i)) then
-        if(ifirst.eq.-1) ifirst = i
-        itotal = itotal + 1
-     endif
-  end do
-end subroutine first_node
-
-
+!=======================================================
+! next_node
+! ~~~~~~~~~
+! returns the local id of the boundary node that
+! succeeds the boundary node with local id inode
+!=======================================================
 integer function next_node(inode)
+
+  use element
+  use mesh_mod
 
   implicit none
 
   integer, intent(in) :: inode
 
   integer :: ntri, i, j, k
-  integer, dimension(4) :: id
-  logical :: is_boundary
+  integer, dimension(nodes_per_element) :: id
 
   call numfac(ntri)
 
   do i=1, ntri
      call nodfac(i,id)
      
-     do j=1, 3
+     do j=1, nodes_per_element
         if(id(j).eq.inode) then
-           k = mod(j,3)+1
-           if(is_boundary(id(k))) then
+           k = mod(j,nodes_per_element)+1
+           if(is_boundary_node(id(k))) then
               next_node = id(k)
               return
            endif
@@ -124,6 +210,5 @@ integer function next_node(inode)
      end do
   end do
 
-  print *, 'Error: cannot find next node'
   next_node = -1
 end function next_node

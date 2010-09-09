@@ -1720,14 +1720,14 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    ; (minor) radial current density
    ;===========================================
-   endif else if(strcmp('jn', name, /fold_case) eq 1) then begin
-     
+   endif else if(strcmp('jr', name, /fold_case) eq 1) then begin
+
        psi0 = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, /equilibrium, $
-                        rrange=xrange, zrange=yrange, complex=complex)
+                        rrange=xrange, zrange=yrange, at_points=at_points)
        i = read_field('i', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, linear=linear, $
-                      rrange=xrange, zrange=yrange, complex=complex)
+                      rrange=xrange, zrange=yrange, at_points=at_points)
 
        if(itor eq 1) then begin
            if(n_elements(at_points) eq 0) then begin
@@ -1746,7 +1746,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
            psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                             filename=filename, points=pts, linear=linear, $
-                            rrange=xrange, zrange=yrange, complex=complex)
+                            rrange=xrange, zrange=yrange, at_points=at_points)
            data = data - complex(0,ntor)*s_bracket(psi,psi0,x,y) $
              /(r^2*s_bracket(psi0,psi0,x,y))
        endif

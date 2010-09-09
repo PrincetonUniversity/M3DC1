@@ -15,6 +15,7 @@ contains
   !======================================================
  subroutine load_coils(xc, zc, ic, numcoils, coil_filename, current_filename)
    use basic
+   use math
 
    implicit none
 
@@ -59,7 +60,7 @@ contains
          a1 = tan(a1)
          a2 = tan(a2)
          
-         c = pi*4.e-7 * 1000. * c / (subcoils**2) / (2.*pi)
+         c = amu0 * 1000. * c / (subcoils**2) / (twopi)
          
          do j=1, subcoils
             do k=1, subcoils
@@ -111,51 +112,53 @@ contains
  end subroutine load_coils
 
 
- subroutine field_from_coils(xc, zc, ic, nc, field, isize, iplace, ipole)
+ subroutine field_from_coils(xc, zc, ic, nc, f, ipole)
+   use field
+   use mesh_mod
+
    implicit none
 
-   real, intent(in), dimension(nc) :: xc, zc
-   complex, intent(in), dimension(nc) :: ic
-   integer, intent(in) :: nc
-   vectype, intent(inout), dimension(*) :: field
-   integer, intent(in) :: isize, iplace, ipole
+   real, intent(in), dimension(nc) :: xc, zc   ! array of coil positions
+   complex, intent(in), dimension(nc) :: ic    ! array of coil currents
+   integer, intent(in) :: nc                   ! number of coils
+   type(field_type), intent(inout) :: f          ! poloidal flux field
+   integer, intent(in) :: ipole                ! type of field to add
 
-   integer :: i, numnodes, ineg, ibegin, iendplusone, iend, k
+   integer :: i, numnodes, ineg, k
    real :: x, z
    real, dimension(nc) :: xp, zp
-   real, dimension(6,maxcoils) :: g
+   real, dimension(dofs_per_node,maxcoils) :: g
+   vectype, dimension(dofs_per_node) :: data
 
-   call numnod(numnodes)
+   numnodes = owned_nodes()
    do i=1,numnodes
      
-      call entdofs(isize, i, 0, ibegin, iendplusone)
-      ibegin = ibegin + (iplace-1)*6
-      iend = ibegin+5
-
-      call nodcoord(i,x,z)
+      call get_node_pos(i,x,z)
       xp = x
       zp = z
      
       ! Field due to coil currents
       call gvect(xp,zp,xc,zc,nc,g,ipole,ineg)
+
+      call get_node_data(f, i, data)
       do k=1,nc
-#ifdef USECOMPLEX
-         field(ibegin:iend) = field(ibegin:iend) - g(:,k)*ic(k)
-#else
-         field(ibegin:iend) = field(ibegin:iend) - g(:,k)*real(ic(k))
-#endif
+         data = data - g(:,k)*ic(k)
       end do
+      call set_node_data(f, i, data)      
    end do
+
+   call finalize(f%vec)
+
  end subroutine field_from_coils
 
 
  subroutine load_field_from_coils(coil_filename, current_filename, &
       field, isize, iplace)
-   
+   use vector_mod
    implicit none
 
    character*(*) :: coil_filename, current_filename
-   vectype, dimension(*), intent(inout) :: field
+   type(vector_type), intent(inout) :: field
    integer, intent(in) :: isize, iplace
 
    real, dimension(maxcoils) :: xc, zc
@@ -164,13 +167,14 @@ contains
 
    call load_coils(xc, zc, ic, nc, coil_filename, current_filename)
 !   call field_from_coils(xc, zc, ic, nc, field, isize, iplace, 0)
-   call field_from_coils_2(xc, zc, ic, nc, field, isize, iplace)
+   call field_from_coils_2(xc, zc, ic, nc, isize, iplace)
 
  end subroutine load_field_from_coils
 
 !============================================================
 subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
   ! calculates derivatives wrt first argument
+  use math
 
   implicit none
 
@@ -183,7 +187,6 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
   real :: b0,b1,b2,b3,b4
   real :: c1,c2,c3,c4
   real :: d1,d2,d3,d4
-  real :: pi,tpi
 
   real :: rpxi, rxi, zmzi, rk, ce, ck, term1, term2, rz, co
   real :: rksq, sqrxi, x
@@ -198,7 +201,6 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
        4.757383546e-2,1.736506451e-2/
   data d1,d2,d3,d4/.24998368310,9.200180037e-2,                     &
        4.069697526e-2,5.26449639e-3/
-  data pi,tpi/3.1415926535,6.283185308/
   
   if(nmult.gt.0) go to 101
   do i=1,n
@@ -248,7 +250,7 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
 10   continue
         
      ! even nullapole
-     g(1,i) = tpi*rz**2
+     g(1,i) = twopi*rz**2
      g(2,i) = 0.
      g(3,i) = 0.
      g(4,i) = 0.
@@ -268,17 +270,17 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
 12   continue
 
      ! even dipole
-     g(1,i) = tpi*(r(i)**2 - rz**2)/2.
-     g(2,i) = tpi*r(i)
+     g(1,i) = twopi*(r(i)**2 - rz**2)/2.
+     g(2,i) = twopi*r(i)
      g(3,i) = 0.
      g(5,i) = 0.
      g(6,i) = 0.
-     g(4,i) = tpi
+     g(4,i) = twopi
      go to 200
 13   continue
      
      ! odd dipole
-     co=tpi/rz
+     co=twopi/rz
      g(1,i) = co*(r(i)**2*z(i))
      g(2,i) = co*(2.*r(i)*z(i))
      g(3,i) = co*(r(i)**2)
@@ -467,13 +469,14 @@ end subroutine gvect
 
 ! Int(cos(2 ntor x)/(1 + k2*sin(x)^2)^(3/2) dx)/pi     0 < x < pi/2
 subroutine integral(npts,k2,ntor,f)
+  use math
+
   implicit none
 
   real, intent(in) :: k2(npts)
   real, intent(out) :: f(npts)
   integer, intent(in) :: ntor, npts
 
-  real, parameter :: pi = 3.141592653589793
   real :: dx, dx2, x
   real, dimension(npts) :: f0, f1, f2
 
@@ -605,13 +608,15 @@ subroutine pane(curr, r1, r2, z1, z2, npts, r0, z0, ntor, fr, fphi, fz)
 end subroutine pane
 
 
-subroutine field_from_coils_2(xc, zc, ic, nc, fin, isize, iplace)
-  use t_data
+subroutine field_from_coils_2(xc, zc, ic, nc, isize, iplace)
+  use math
+  use mesh_mod
   use basic
   use sparse
   use arrays
   use nintegrate_mod
   use newvar_mod
+  use boundary_conditions
 
   implicit none
 
@@ -620,45 +625,30 @@ subroutine field_from_coils_2(xc, zc, ic, nc, fin, isize, iplace)
   real, intent(in), dimension(nc) :: xc, zc
   complex, intent(in), dimension(nc) :: ic
   integer, intent(in) :: nc
-  vectype, intent(inout), dimension(*) :: fin
   integer, intent(in) :: isize, iplace
 
-  vectype, allocatable :: psi(:)
-  integer :: i, ii, iii, j, jj, jjj, k, l, itri, nelms, ier, i1, j1
-  integer :: ibegin, iendplusone, jbegin, jendplusone
-  vectype :: temp(3,3)
+  type(matrix_type) :: br_mat
+  type(vector_type) :: psi_vec
+  integer :: i, j, itri, nelms, ier
 
-  integer, parameter :: imethod = 3
-  integer :: inumb
+  vectype :: temp(dofs_per_element,dofs_per_element,2,2)
+  vectype :: temp2(dofs_per_element,2)
 
-  integer :: numnodes
-  real :: x, z
-  vectype :: divb, norm2, buff1(5), buff2(5), divbr, divbz, divbphi
-  real :: norm
+  integer, parameter :: inumb = 2
 
-  if(myrank.eq.0) print *, 'IN FIELD_FROM_COILS_2'
-  
-  select case(imethod)
-  case(0)               ! set psi=BR, p=BZ, i=bphi
-     inumb = 3
-  case(1)               ! find least-squares solution to 
-     inumb = 1          ! dpsi/dR = -R*BR;  dpsi/dR = R*BZ
-  case(2)
-     inumb = 2
-  case(3)               ! find least-squares solution to 
-     inumb = 2          ! BR = -dpsi/DZ/R - d^2f/dRdphi
-                        ! BZ =  dpsi/DR/R - d^2f/dZdphi
-                        ! Bphi = R del_perp^2(f)
-  end select
+  type(field_type) :: psi_f, bf_f
 
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'Called field_from_coils_2'
 
-  call createvec(psi,inumb)
-  psi = 0.
+  call create_vector(psi_vec,inumb)
+  call associate_field(psi_f,psi_vec,1)
+  call associate_field(bf_f,psi_vec,2)
 
-  call zerosuperlumatrix(brmatrix_sm, icomplex, inumb)
+  call set_matrix_index(br_mat, br_mat_index)
+  call create_mat(br_mat, inumb, inumb, icomplex, .true.)
 
-  call numfac(nelms)
-
+  if(myrank.eq.0 .and. iprint.ge.2) print *, 'populating'
+  nelms = local_elements()
   do itri=1,nelms
         
      call define_triangle_quadrature(itri,25)
@@ -677,171 +667,72 @@ subroutine field_from_coils_2(xc, zc, ic, nc, fin, isize, iplace)
      temp79b = -temp79b*2.*pi
      temp79c = -temp79c*2.*pi
 
+#ifdef USECOMPLEX
      ! assemble matrix
-     do iii=1,3
-     call entdofs(inumb,  ist(itri,iii)+1, 0, ibegin, iendplusone)
-     do ii=1,6
-        i = (iii-1)*6 + ii
-        i1 = ibegin + ii - 1
+     do i=1,dofs_per_element
+        do j=1,dofs_per_element
 
-        do jjj=1,3
-        call entdofs(inumb,  ist(itri,jjj)+1, 0, jbegin, jendplusone)
-        do jj=1,6
-           j = (jjj-1)*6 + jj
-           j1 = jbegin + jj - 1
-
-           temp = 0.
-           select case(imethod)
-           case(0)
-              temp(1,1) = int2(g79(:,OP_1,i),g79(:,OP_1,j))
-              temp(2,2) = temp(1,1)
-              temp(3,3) = temp(1,1)
-
-           case(1)
-              temp(1,1) = int2(g79(:,OP_DZ,i),g79(:,OP_DZ,j)) &
-                        + int2(g79(:,OP_DR,i),g79(:,OP_DR,j))
-
-           case(2)
-#ifdef USECOMPLEX
-              temp(1,1) = -int3(ri_79,g79(:,OP_1,i),g79(:,OP_DZ,j))
-              temp(1,2) = int2(g79(:,OP_1,i),g79(:,OP_DRP,j))
-              temp(2,1) = int3(ri_79,g79(:,OP_1,i),g79(:,OP_DR,j))
-              temp(2,2) = int2(g79(:,OP_1,i),g79(:,OP_DZP,j))
-#endif            
-           case(3)
-#ifdef USECOMPLEX
-              temp(1,1) = int3(ri2_79,g79(:,OP_DR,i),g79(:,OP_DR,j)) &
-                   +      int3(ri2_79,g79(:,OP_DZ,i),g79(:,OP_DZ,j)) 
-              temp(1,2) = int3(ri_79, g79(:,OP_DZ,i),g79(:,OP_DRP,j)) &
-                   -      int3(ri_79, g79(:,OP_DR,i),g79(:,OP_DZP,j))
-              temp(2,1) = int3(ri_79, g79(:,OP_DRP,i),g79(:,OP_DZ,j)) &
-                   -      int3(ri_79, g79(:,OP_DZP,i),g79(:,OP_DR,j))
-              temp(2,2) = int2(g79(:,OP_DRP,i),g79(:,OP_DRP,j)) &
-                   +      int2(g79(:,OP_DZP,i),g79(:,OP_DZP,j)) &
-                   +      int3(r2_79,g79(:,OP_LP,i),g79(:,OP_LP,j))
-#endif
-           end select
-                    
-           do k=1,inumb
-              do l=1,inumb
-                 call insertval(brmatrix_sm, temp(k,l), icomplex, &
-                      i1+6*(k-1),j1+6*(l-1),1)
-              end do
-           end do
-        end do
+           temp(i,j,1,1) = int3(ri2_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j)) &
+                +      int3(ri2_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j)) 
+           temp(i,j,1,2) = int3(ri_79, mu79(:,OP_DZ,i),nu79(:,OP_DRP,j)) &
+                -      int3(ri_79, mu79(:,OP_DR,i),nu79(:,OP_DZP,j))
+           temp(i,j,2,1) = int3(ri_79, mu79(:,OP_DRP,i),nu79(:,OP_DZ,j)) &
+                -      int3(ri_79, mu79(:,OP_DZP,i),nu79(:,OP_DR,j))
+           temp(i,j,2,2) = int2(mu79(:,OP_DRP,i),nu79(:,OP_DRP,j)) &
+                +      int2(mu79(:,OP_DZP,i),nu79(:,OP_DZP,j)) &
+                +      int3(r2_79,mu79(:,OP_LP,i),nu79(:,OP_LP,j))
         end do
 
         ! assemble RHS
-        select case(imethod)
-        case(0)
-           psi(i1   ) = psi(i1   ) + int2(g79(:,OP_1,i),temp79a)
-           psi(i1+6 ) = psi(i1+6 ) + int3(r_79,g79(:,OP_1,i),temp79b)
-           psi(i1+12) = psi(i1+12) + int2(g79(:,OP_1,i),temp79c)
-
-        case(1)
-           psi(i1) = psi(i1) &
-                + int3(r_79,g79(:,OP_DR,i),temp79c) &
-                - int3(r_79,g79(:,OP_DZ,i),temp79a)
-
-        case(2)
-           psi(i1  ) = psi(i1  ) + int2(g79(:,OP_1,i),temp79a)
-           psi(i1+6) = psi(i1+6) + int2(g79(:,OP_1,i),temp79c)
-
-        case(3)
-#ifdef USECOMPLEX           
-           psi(i1   ) = psi(i1   ) &
-                + int3(ri_79,g79(:,OP_DR,i),temp79c) &
-                - int3(ri_79,g79(:,OP_DZ,i),temp79a)
-           psi(i1+6 ) = psi(i1+6 ) &
-                - int2(g79(:,OP_DRP,i),temp79a) &
-                - int2(g79(:,OP_DZP,i),temp79c) &
-                + int3(r_79,g79(:,OP_LP,i),temp79b)
+        temp2(i,1) = &
+             + int3(ri_79,mu79(:,OP_DR,i),temp79c) &
+             - int3(ri_79,mu79(:,OP_DZ,i),temp79a)
+        temp2(i,2) = &
+             - int2(mu79(:,OP_DRP,i),temp79a) &
+             - int2(mu79(:,OP_DZP,i),temp79c) &
+             + int3(r_79,mu79(:,OP_LP,i),temp79b)
+     end do
 #endif
-        end select
-     end do
-     end do
+     call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,2,1))
+     call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,2,2))
+
+     call insert_block(br_mat, itri, 1, 1, temp(:,:,1,1), MAT_ADD)
+     call insert_block(br_mat, itri, 1, 2, temp(:,:,1,2), MAT_ADD)
+     call insert_block(br_mat, itri, 2, 1, temp(:,:,2,1), MAT_ADD)
+     call insert_block(br_mat, itri, 2, 2, temp(:,:,2,2), MAT_ADD)
+
+     call vector_insert_block(psi_vec, itri, 1, temp2(:,1), MAT_ADD)
+     call vector_insert_block(psi_vec, itri, 2, temp2(:,2), MAT_ADD)
   end do
 
-  call sumsharedppplvecvals(psi)
+  call sum_shared(psi_vec)
 
   ! insert boundary conditions
-  if(imethod.eq.3) then
-     call boundary_bf(brmatrix_sm,psi)
-  endif
+  if(myrank.eq.0 .and. iprint.ge.2) print *, 'inserting bcs'
+  call boundary_bf(psi_vec, br_mat)
 
-  call finalizematrix(brmatrix_sm)
+  call finalize(br_mat)
 
   ! solve matrix equation
-  call solve(brmatrix_sm,psi,ier)
+  if(myrank.eq.0 .and. iprint.ge.2) print *, 'solving psi and f'
+  call newsolve(br_mat,psi_vec,ier)
   
-
   ! copy solution
-  select case(imethod)
-  case(0)
-     call copyvec(psi,1,inumb,field,psi_g,num_fields)
-     call copyvec(psi,2,inumb,field,bz_g,num_fields)
-     call copyvec(psi,3,inumb,field,chi_g,num_fields)
+  psi_field(1) = psi_f
+  bf_field(1) = bf_f
 
-#ifdef USECOMPLEX
-#define CONJUGATE(x) conjg(x)
-#else
-#define CONJUGATE(x) x
-#endif
+  ! calculate bz from bf
+  if(myrank.eq.0 .and. iprint.ge.2) print *, 'calculating bz'
+  call solve_newvar1(mass_mat_lhs,bz_field(1),bf_mat_rhs,bf_f)
+  if(myrank.eq.0 .and. iprint.ge.2) print *, 'done calculating bz'
 
-     divb = 0.
-     divbr = 0.
-     divbz = 0.
-     divbz = 0.
-     norm2 = 0.
-     call numnod(numnodes)
-     do i=1, numnodes
-        call assign_local_pointers(i)
-        call nodcoord(i,x,z)
-        divbr = divbr + psi1_l(2) + psi1_l(1)/x
-        divbz = divbz + chi1_l(3)
-        divbphi = divbphi + (0,1)*ntor*bz1_l(1)/x**2
-        divb = divb + psi1_l(2) + psi1_l(1)/x + chi1_l(3) &
-             + (0,1)*ntor * bz1_l(1)/x**2
-        norm2 = norm2 &
-             + psi1_l(2)*CONJUGATE(psi1_l(2)) &
-             + chi1_l(3)*CONJUGATE(chi1_l(3)) &
-             + (ntor/x)**2*bz1_l(1)*CONJUGATE(bz1_l(1))
-     end do
-     if(maxrank.gt.1) then
-        buff1(1) = divb
-        buff1(2) = norm2
-        buff1(3) = divbr
-        buff1(4) = divbz
-        buff1(5) = divbphi
-        call mpi_allreduce(buff1, buff2, 2*5, MPI_DOUBLE_PRECISION, &
-             MPI_SUM, MPI_COMM_WORLD, ier)
-        divb = buff2(1)
-        norm2 = buff2(2)
-        divbr = buff2(3)
-        divbz = buff2(4)
-        divbphi = buff2(5)
-     end if
-     norm = real(sqrt(norm2))
-     divb = divb / norm
-     if(myrank.eq.0) then
-        print *, 'Div(B), norm2 = ', divb, norm2
-        print *, 'R, Z, phi = ', divbr, divbz, divbphi
-     end if
+  call destroy_vector(psi_vec)
 
-  case(1)
-     call copyvec(psi,1,inumb,field,psi_g,num_fields)
-  case(2)
-     call copyvec(psi,1,inumb,field,psi_g,num_fields)
-     call copyvec(psi,2,inumb,field,bz_g,num_fields)
-  case(3)
-     call copyvec(psi,1,inumb,field,psi_g,num_fields)
-     call copyvec(psi,2,inumb,bf,1,1)
+  ! set bf to zero so that future solves use homogeneous boundary conditions
+  bf_field(0) = 0.
+  bf_field(1) = 0.
 
-     call newvarn(mass_matrix_lhs,field,bz_g,num_fields, &
-          psi,2,inumb,bf_matrix_rhs,NV_NOBOUND,field)
-  end select
-
-  call deletevec(psi)
+  if(myrank.eq.0 .and. iprint.ge.2) print *, 'done field_from_coils_2'
 
 end subroutine field_from_coils_2
 
@@ -850,39 +741,41 @@ end subroutine field_from_coils_2
 ! boundary_bf
 ! ~~~~~~~~~~~
 !=======================================================
-subroutine boundary_bf(imatrix, rhs)
+subroutine boundary_bf(rhs, mat)
   use basic
   use arrays
+  use vector_mod
+  use matrix_mod
+  use boundary_conditions
 
   implicit none
-  
-  integer, intent(in) :: imatrix
-  vectype, intent(inout), dimension(*) :: rhs
+
+  type(vector_type) :: rhs
+  type(matrix_type), optional :: mat
   
   integer, parameter :: numvarbf = 2
   integer :: i, izone, izonedim
-  integer :: ibegin, iendplusone, numnodes
+  integer :: ibegin, numnodes
   real :: normal(2), curv
   real :: x, z
   logical :: is_boundary
-  vectype, dimension(6) :: temp
+  vectype, dimension(dofs_per_node) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
   if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_jphi called"
 
-  call numnod(numnodes)
+  numnodes = owned_nodes()
   do i=1, numnodes
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
      if(.not.is_boundary) cycle
 
-     call assign_local_pointers(i)
-     call entdofs(numvarbf, i, 0, ibegin, iendplusone)
-!     call rotate_matrix(imatrix, ibegin, normal, curv, rhs, icurv)
-     call rotate_matrix(imatrix, ibegin+6, normal, curv, rhs, icurv)
+     ibegin = node_index(rhs, i, 2)
 
      temp = 0.
-     call set_dirichlet_bc(imatrix,ibegin+6,rhs,temp,normal,curv,izonedim)
+     call set_dirichlet_bc(ibegin,rhs,temp,normal,curv,izonedim,mat)
   end do
+
+  call finalize(rhs)
 
 end subroutine boundary_bf
 

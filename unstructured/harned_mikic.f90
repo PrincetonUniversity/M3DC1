@@ -58,7 +58,7 @@ subroutine b1harnedmikic(trial,lin,psiterm,bterm)
   psiterm = psiterm &
        - int5(ri4_79,trial(:,OP_1),temp79d,lin(:,OP_GSPP),temp79e)
 
-  temp79d = (0.,1.)*ntor* &
+  temp79d = rfac* &
        (pst79(:,OP_DZ)*lin(:,OP_DRPP) - pst79(:,OP_DR)*lin(:,OP_DZPP))
   psiterm = psiterm &
        + int5(ri5_79,trial(:,OP_1),bzt79(:,OP_1),temp79d,temp79e)
@@ -204,7 +204,7 @@ subroutine b2harnedmikic(trial,lin,psiterm,bterm)
   temp79d = trial(:,OP_DZ)*pst79(:,OP_DZ) + trial(:,OP_DR)*pst79(:,OP_DR)
   psiterm = psiterm + int5(ri6_79,bzt79(:,OP_1),temp79d,lin(:,OP_GSPP),temp79e)
 
-  temp79d = (0.,1.)*ntor* &
+  temp79d = rfac* &
        (trial(:,OP_DZ)*lin(:,OP_DRPP) - trial(:,OP_DR)*lin(:,OP_DZPP))
   psiterm = psiterm - int5(ri7_79,bzt79(:,OP_1),bzt79(:,OP_1),temp79d,temp79e)
 

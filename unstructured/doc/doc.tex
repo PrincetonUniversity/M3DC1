@@ -33,7 +33,7 @@
 \renewcommand{\P}{\tensor{\Pi}}
 \renewcommand{\b}{\vec{b}}
 \newcommand{\W}{\tensor{W}}
-\newcommand{\codename}{M3D-$C^1$}
+\newcommand{\codename}{\textsc{M3D-$C^1$}}
 
 \newcommand{\grad}[1]{\nabla #1}
 \newcommand{\gradp}[1]{\nabla_\perp #1}
@@ -61,11 +61,11 @@
 \newcommand{\n}{\ensuremath{\uvec{n}}}
 
 
-\newcommand{\repositoryloc}{/p/tsc/C1/svn}
+\newcommand{\repositoryloc}{portal.pppl.gov/p/tsc/C1/svn}
 \newcommand{\svnurl}{http://subversion.tigris.org/}
 
-\title{Documentation for \codename}
-\author{Nathaniel M. Ferraro \and Andrew C. Bauer}
+\title{\codename\ User's Guide}
+\author{Nathaniel M. Ferraro}
 
 \begin{document}
 
@@ -76,43 +76,25 @@
 
 \chapter{Building and Running \codename}
 
-\section{Source code Repository}
+\section{Obtaining the code}
 
-\subsection{Obtaining the code}
-
-The source code for \codename\ is in an SVN repository located at
-\repositoryloc.  To place a local copy of the current version of
-\codename\ in the current working directory, run the command:
+The source code for \codename\ is in an SVN repository.  To place a
+local copy of the current version of \codename\ in the current working
+directory, run the command:
 \begin{verbatim}
-  svn co file:///p/tsc/C1/svn/trunk
+  svn co svn+ssh://username@portal.pppl.gov/p/tsc/C1/svn .
 \end{verbatim}
-The code may then be compiled and run as described in the following
-sections.
+where \texttt{username} should be replaced with your username on the
+\texttt{portal.pppl.gov} system.  You may be asked for your password
+more than once.
 
-Changes made to the local copy of the source code may be transmitted to
-the repository by
+If you have already downloaded a copy of the code, you may update to
+the most recent version of the code by running
 \begin{verbatim}
-  svn commit
+  svn update
 \end{verbatim}
-This will open the default text editor, where a description of the
-changes should be entered.  When the editor is closed, the repository
-will be updated with the new source code.  (Note: if the evironment
-variable \texttt{EDITOR} is not defined, the commit will fail.  It can
-be defined by running \texttt{setenv EDITOR xemacs}, for example).
-
-Changes made to the local copy of the source code since the last
-commit may be undone by
-\begin{verbatim}
-  svn revert
-\end{verbatim}
-
-More information on using the SVN repository may be found at
-
-\svnurl.
-
-
-
-
+in the code directory.  Complete documentation on using SVN can be
+found at \svnurl.
 
 \section{Building}
 
@@ -239,26 +221,88 @@ runs.
   \texttt{irestart=1} and \texttt{iglobalin=1}.
 \end{enumerate}
 
+\chapter{Defining Equilibria}
 
-\section{Reading eqdsk ``g'' files}
+\section{Reading EFIT ``g'' files}
 
-\codename may be initialized with an eqdsk equilibrium by the following method:
+The equilibrium fields may be defined by intepolating data from an
+EFIT equilibrium ``g'' file by the following procedure:
+
 \begin{enumerate}
-\item Place the eqdsk ``g'' file in the working directory, and rename
+\item Place the EFIT ``g'' file in the working directory, and rename
   it \texttt{geqdsk}.
 \item Set \texttt{iread\_eqdsk=1}.
 \end{enumerate}
-To simply read in the eqdsk file, make sure that \texttt{igs=0} and
-run \codename.  To improve the accuracy of the equilibrium, the
-Grad-Shafranov solver may be run using the profiles in the eqdsk
-file.  To do this:
+
+Depending on the resolution of the ``g'' file, the interpolated data
+may or may not be smooth enough for accurate linear calculations.  The
+interpolated data may be refined using the built-in Grad-Shafranov
+solver, as discussed in section~\ref{sec:gs_efit}.
+
+
+\section{The Grad-Shafranov Solver}
+
+\codename\ contains a Grad-Shafranov solver which may be used to
+compute Grad-Shafranov equilibria.  Analytic pressure and toroidal
+field profiles may be used, or these profiles may be imported from a
+file.  If invoked, this solver is executed, and the results stored as
+the equilibrium fields, before any physical time steps are carried
+out.
+
+\subsection{Examples}
+
+\subsubsection{Refining an EFIT equilibrium}
+\label{sec:gs_efit}
+
+When an equilibrium file is read, the interpolated data may not be the
+optimal solution to the Grad-Shafranov equation on \codename's finite
+element basis.  The Grad-Shafranov solver may be used to improve the
+solution by using the interpolated data as an initial guess, and
+proceeding to calculate the Grad-Shafranov solution in the ususal way,
+holding the boundary conditions obtained from the interpolated data
+fixed.  For example, when reading in an EFIT equilibrium, the following
+procedure should be used:
+
 \begin{enumerate}
-\item Set \texttt{igs} to a nonzero value.
-\item If there are no limiters in the interior of the simulation
-  domain, set \texttt{xlim=0} and set \texttt{xnull} and \texttt{znull}
-  to the approximate position of the active x-point if the equilibrium
-  is diverted.
+\item The EFIT ``g'' file should be placed in the working directory,
+  and named \texttt{geqdsk}.
+\item Set \texttt{iread\_eqdsk=1}
+\item If there is an active x-point in the equilibrium, set
+  \texttt{xnull} and \texttt{znull} to the approximate position of the
+  x-point.
+\item If there is an internal limiter (\emph{i.e.} a limiter within
+  the computational domain) set \texttt{xlim} and \texttt{zlim} to the
+  position of this limiter.  Otherwise, set \texttt{xlim=0} and
+  \texttt{zlim=0}.
+\item Set \texttt{igs} to a number greater than 0 (30 is typical).
 \end{enumerate}
+
+The LCFS will be chosen to be the flux surface closest to the magnetic
+axis which is within the separatrix (if present), is within the
+internal limiter (if present), and does not intersect the
+computational domain boundary (\textit{i.e.} the domain boundary is
+considered to be a physical limiter).
+
+
+\section{Non-Axisymmetric Coils}
+
+Fields from non-axisymmetric coils may be added to the initial
+conditions in the following way.  Presently, nonaxisymmetric currents
+having a single toroidal mode number are supported.
+
+\begin{enumerate}
+\item Coil positions and currents should be defined in the files
+  \texttt{rmp\_coil.dat} and \texttt{rmp\_current.dat}, respectively.
+\item Set \texttt{ntor} to be the toroidal mode number of the
+  nonaxisymmetric currents.
+\item To have the resulting fields superimposed on the initial
+  conditions throughout the domain, set \texttt{irmp=1}.
+\item To have the resulting fields superimposed on the initial
+  conditions only at the boundaries, set \texttt{irmp=2}.
+\end{enumerate}
+
+
+\section{Random Perturbations}
 
 
 
@@ -499,7 +543,7 @@ are defined as
 \]
 and the Grad-Shafranov operator is
 \[
-\gs{a} = r^2 \div{\left(\frac{\grad{a}}{r^2}\right)}.
+\gs{a} = R^2 \div{\left(\frac{\grad{a}}{R^2}\right)}.
 \]
 When dealing with tensors, the following bilinear operators are often
 useful:
@@ -530,7 +574,7 @@ above binary operators:
 
 The magnetic and velocity fields are written flux/potential form:
 \[
-\B = \grad{\psi} \times \grad{\tor} + I \grad{\tor},
+\B = \grad{\psi} \times \grad{\tor} + F \grad{\tor},
 \quad
 \u = \grad{U} \times \grad{\tor} + V \grad{\tor} + \grad{\chi}.
 \]
@@ -541,8 +585,8 @@ and Faraday's Law (equations (\ref{eq:momentum}) and
 \begin{subequations}
   \label{eq:operators}
   \begin{eqnarray}
-    -r^2 \grad{\tor} \cdot \curl{\mbox{}},\quad 
-    r^2 \grad{\tor} \cdot \mbox{},\quad \mbox{and }
+    -R^2 \grad{\tor} \cdot \curl{\mbox{}},\quad 
+    R^2 \grad{\tor} \cdot \mbox{},\quad \mbox{and }
     \div{\mbox{}}.
   \end{eqnarray}
 \end{subequations}
@@ -556,61 +600,61 @@ This yields
   \\
   \label{eq:scalar_p}
   \dot{p} & = & - \pb{p}{U} - \ip{p}{\chi} - \Gamma p \lp{\chi} 
-  - \frac{1}{n}\pb{I}{p_e} - \Gamma p_e \pb{I}{\frac{1}{n}} 
+  - \frac{1}{n}\pb{F}{p_e} - \Gamma p_e \pb{F}{\frac{1}{n}} 
   \\ & & \mbox{} + (\Gamma-1) (Q - \div\q )
   \nonumber \\
   \label{eq:scalar_pe}
   \dot{p_e} & = & - \pb{p_e}{U} - \ip{p_e}{\chi} - \Gamma p_e \lp{\chi} 
-  - \frac{1}{n}\pb{I}{p_e} - \Gamma p_e \pb{I}{\frac{1}{n}} 
+  - \frac{1}{n}\pb{F}{p_e} - \Gamma p_e \pb{F}{\frac{1}{n}} 
     \\ & & \mbox{}
   + (\Gamma-1) (Q_e - \div\q_e)
   \nonumber \\
   \label{eq:scalar_psi}
   \cola{\dot{\psi}} & \cola{=} & \cola{-\pb{\psi}{U}} - \ip{\psi}{\chi} 
-  + \colb{\frac{1}{n}\pb{\psi}{I}}
+  + \colb{\frac{1}{n}\pb{\psi}{F}}
   + \cola{\eta \gs{\left(\psi - \lambda_B \gs{\psi} \right)}}
   \\
-  \label{eq:scalar_I}
-  \colb{\dot{I}} & \colb{=} & \colb{- r^2 \pb{\frac{I}{r^2}}{U} 
-    - r^2 \pb{\psi}{\frac{V}{r^2}}} - I \gs{\chi} - \ip{I}{\chi}
+  \label{eq:scalar_F}
+  \colb{\dot{F}} & \colb{=} & \colb{- R^2 \pb{\frac{F}{R^2}}{U} 
+    - R^2 \pb{\psi}{\frac{V}{R^2}}} - F \gs{\chi} - \ip{F}{\chi}
    \\ && \mbox{}
-  + \colb{r^2\pb{\frac{\gs{\psi}}{r^2 n}}{\psi}
-    + \frac{r^2}{2} \pb{\frac{1}{r^2 n}}{I^2}}
-  + r^2 \pb{\frac{1}{n}}{p_e}  \nonumber \\ && \mbox{}
-  + \colb{\eta \gs{\left(I - \lambda_B \gs{I} \right)}
-    + \ip{\eta}{I - \lambda_B \gs{I}}} 
+  + \colb{R^2\pb{\frac{\gs{\psi}}{R^2 n}}{\psi}
+    + \frac{R^2}{2} \pb{\frac{1}{R^2 n}}{F^2}}
+  + R^2 \pb{\frac{1}{n}}{p_e}  \nonumber \\ && \mbox{}
+  + \colb{\eta \gs{\left(F - \lambda_B \gs{F} \right)}
+    + \ip{\eta}{F - \lambda_B \gs{F}}} 
   \nonumber \\
   \label{eq:scalar_U}
-  \lefteqn{\cola{n \gs{\dot{U}} + \ip{n}{\dot{U}}} - r^2
+  \lefteqn{\cola{n \gs{\dot{U}} + \ip{n}{\dot{U}}} - R^2
   \pb{n}{\dot{\chi}}}\\
   & = &
-  \cola{r^2 \pb{\frac{\gs{\psi}}{r^2}}{\psi}} 
-  + \colb{\frac{\left(I^2 \right)_z}{r^2}}
-  - \cola{r^2 \pb{n \frac{\gs{U}}{r^2}}{U}
-    - \frac{r^2}{2} \pb{\frac{\ip{U}{U}}{r^2}}{n}} \nonumber \\ && \mbox{}
-  - \colb{\frac{\left(n V^2 \right)_z}{r^2}}
+  \cola{R^2 \pb{\frac{\gs{\psi}}{R^2}}{\psi}} 
+  + \colb{\frac{\left(F^2 \right)_Z}{R^2}}
+  - \cola{R^2 \pb{n \frac{\gs{U}}{R^2}}{U}
+    - \frac{R^2}{2} \pb{\frac{\ip{U}{U}}{R^2}}{n}} \nonumber \\ && \mbox{}
+  - \colb{\frac{\left(n V^2 \right)_Z}{R^2}}
   - \ip{n \gs{U}}{\chi} - n \gs{U}\gs{\chi}
-  - r^2 \pb{n}{\pb{U}{\chi}} \nonumber \\ && \mbox{}
+  - R^2 \pb{n}{\pb{U}{\chi}} \nonumber \\ && \mbox{}
   - \frac{1}{2} \pb{\ip{\chi}{\chi}}{n} 
-  - \cola{D \gs{U} -\ip{D}{U}} + r^2 \pb{D}{\chi}
+  - \cola{D \gs{U} -\ip{D}{U}} + R^2 \pb{D}{\chi}
   \nonumber \\ &&
-  \cola{\mbox{} - r^2 \grad{\tor} \cdot \curl{(\F - \div \P)}}\nonumber
+  \cola{\mbox{} - R^2 \grad{\tor} \cdot \curl{(\F - \div \P)}}\nonumber
   \\
   \label{eq:scalar_vz}
-  \colb{n \dot{V}} & \colb{=} & \colb{\pb{I}{\psi} - n \pb{V}{U}} 
+  \colb{n \dot{V}} & \colb{=} & \colb{\pb{F}{\psi} - n \pb{V}{U}} 
   - n\pb{V}{\chi}
-  - \colb{D V + r^2 \grad{\tor} \cdot (\F - \div\P)}
+  - \colb{D V + R^2 \grad{\tor} \cdot (\F - \div\P)}
   \\
   \label{eq:scalar_chi}
   \lefteqn{n \gs{\dot{\chi}} + \ip{n}{\dot{\chi}} + \pb{n}{\dot{U}}} \\ 
-  & = & - \lp{p} - \frac{1}{r^2} \left[(\gs{\psi})^2 +
+  & = & - \lp{p} - \frac{1}{R^2} \left[(\gs{\psi})^2 +
   \ip{\gs{\psi}}{\psi} \right]
-  - \frac{1}{2 r^2}\gs{\left(I^2\right)} \nonumber  \\ && \mbox{}
-  + \frac{1}{r^2} \left[ n (\gs{U})^2 + \ip{n \gs{U}}{U} \right]
+  - \frac{1}{2 R^2}\gs{\left(F^2\right)} \nonumber  \\ && \mbox{}
+  + \frac{1}{R^2} \left[ n (\gs{U})^2 + \ip{n \gs{U}}{U} \right]
    \nonumber \\ && \mbox{} 
-  - \frac{1}{2} \left[n\lp{\left(\frac{\ip{U}{U}}{r^2}\right)}
-    + \ip{n}{\frac{\ip{U}{U}}{r^2}} \right] \nonumber \\ && \mbox{}
-  + \frac{1}{r}\left(\frac{n V^2}{r^2}\right)_r 
+  - \frac{1}{2} \left[n\lp{\left(\frac{\ip{U}{U}}{R^2}\right)}
+    + \ip{n}{\frac{\ip{U}{U}}{R^2}} \right] \nonumber \\ && \mbox{}
+  + \frac{1}{R}\left(\frac{n V^2}{R^2}\right)_r 
   - n \lp{\pb{\chi}{U}}
   - \pb{n \gs{U}}{\chi} + \ip{n}{\pb{U}{\chi}}
    \nonumber \\ && \mbox{}
@@ -629,6 +673,29 @@ $\q$, the heat flux $Q$, and the external force $\F$ have not been
 expanded in the above equations.  The expanded, scalar forms of these
 terms are given in sections~\ref{sec:transport_coefficients} and
 \ref{sec:phenom_models}.
+
+\section{Reduced Models}
+
+The full extended-MHD equations contain as subsets simpler, fully
+consistent, energy-conserving (up to dissipative terms) fluid models.
+Because of the flux/po\-ten\-tial repreresentation of the fields,
+these models may be obtained simply by dropping some of the scalar
+equations from the full system.  Specifically, by dropping the
+density, pressure, electron pressure and compression equations, the
+four-field model of Fitzpatrick and Porcelli~\cite{Fitzpatrick04} is
+recovered.  This model is represented by the terms in blue and red,
+and may be chosen by setting \texttt{numvar=2}.  By also dropping the
+axial field and axial velocity equations, a two-field model
+appropriate in the low-$\beta$, high axial field limit is recovered
+(indicated by red terms).  This model may be chosen by setting
+\texttt{numvar=1}.  Setting \texttt{numvar=3} advances all three
+velocity components, both magnetic field components, and the pressure.
+
+For any choice of \texttt{numvar}, The particle density equation may
+or may not be included by setting \texttt{idens=1} or \texttt{0},
+respectively.  If \texttt{numvar=3}, the electron pressure equation is
+included by setting \texttt{ipres=1}.
+
 
 \section{Transport Coefficients \label{sec:transport_coefficients}}
 
@@ -663,22 +730,22 @@ Braginskii's model for a magnetized plasma.
 \begin{eqnarray}
   \label{eq:parallel_viscosity}
   \P_\parallel & = & \mu_\parallel   \left( \b \cdot \W \cdot \b \right)
-  \left( \tensor{I} - 3 \b \b \right)
+  \left( \tensor{F} - 3 \b \b \right)
   \\
   \label{eq:gyroviscosity}
   \P_\times & = & \frac{p_i}{4 \omega_{c i}} \left\{
-    \b \times \W \cdot (\tensor{I} + 3 \b\b) +
-    \left[\b \times \W \cdot (\tensor{I} + 3 \b\b)\right]^\top
+    \b \times \W \cdot (\tensor{F} + 3 \b\b) +
+    \left[\b \times \W \cdot (\tensor{F} + 3 \b\b)\right]^\top
     \right\}
   \\
   \label{eq:general_viscosity}
   \P_\circ & = & -\mu \left(\grad{\u} + \grad{\u}^\top\right)
-   -2 \left(\mu_c - \mu \right)\ \tensor{I}\ \div{\u}.
+   -2 \left(\mu_c - \mu \right)\ \tensor{F}\ \div{\u}.
 \end{eqnarray}
 The rate-of-strain tensor is
 \begin{displaymath}
   \W = \nabla \u + (\nabla \u)^\top 
-  - \frac{2}{3}\ \tensor{I}\ \div{\u}
+  - \frac{2}{3}\ \tensor{F}\ \div{\u}
 \end{displaymath}
 and where, in the Braginskii model,
 \begin{eqnarray*}
@@ -697,18 +764,18 @@ For the isotropic viscosity, it is found that
 \end{eqnarray*}
 and
 \begin{eqnarray}
-   r^2 \grad{\tor} \cdot \curl{\div \P^d} & = & 
-   \gs{(\mu \gs{U})} - 2 r^2 \funcaa{\mu}{U} + 2\pb{\mu_z}{U}
+   R^2 \grad{\tor} \cdot \curl{\div \P^d} & = & 
+   \gs{(\mu \gs{U})} - 2 R^2 \funcaa{\mu}{U} + 2\pb{\mu_Z}{U}
    \\ \nonumber && \mbox{} 
-   - 2 r^2 \left( \funcsa{\mu}{\chi} + \pb{\mu}{\lp{\chi}} \right)
+   - 2 R^2 \left( \funcsa{\mu}{\chi} + \pb{\mu}{\lp{\chi}} \right)
    \\
-   -r^2 \grad \tor \cdot \div \P^d & = & \mu \gs{V} 
-   + r^2 \ip{\mu}{\frac{V}{r^2}}
+   -R^2 \grad \tor \cdot \div \P^d & = & \mu \gs{V} 
+   + R^2 \ip{\mu}{\frac{V}{R^2}}
    \\
    -\div \div \P^d & = & 2 \left\{ \lp{(\mu_c \lp{\chi})} 
    + \funcss{\mu}{\chi} - \lp{\mu}\lp{\chi}
    \right. \\ && \left. \nonumber \mbox{}
-   + \funcsa{\mu}{U} + \pb{\mu}{\gs{U}} - \pb{\frac{\mu_r}{r}}{U} 
+   + \funcsa{\mu}{U} + \pb{\mu}{\gs{U}} - \pb{\frac{\mu_R}{R}}{U} 
    \right\}.
 \end{eqnarray}
 
@@ -718,27 +785,27 @@ The viscous heating associated with the above form of the ion pressure
 tensor is
 \begin{eqnarray}
   - \P_\circ \dotdot \grad{\u} & = & 2 \mu \left\{
-    \frac{1}{2 r^2} (\gs{U})^2 
-    - \funcaa{U}{U} + \frac{2}{r} \pb{U}{\pb{r}{U}}
+    \frac{1}{2 R^2} (\gs{U})^2 
+    - \funcaa{U}{U} + \frac{2}{R} \pb{U}{\pb{R}{U}}
     \right. \\ \nonumber & & \left. \mbox{} 
-    - 2 \funcsa{U}{\chi} + 2 \pb{U}{\frac{\ip{r}{\chi}}{r}}
+    - 2 \funcsa{U}{\chi} + 2 \pb{U}{\frac{\ip{R}{\chi}}{R}}
     \right. \\ \nonumber & & \left. \mbox{}
-    + \frac{r^2}{2} \ip{\frac{V}{r^2}}{\frac{V}{r^2}}
+    + \frac{R^2}{2} \ip{\frac{V}{R^2}}{\frac{V}{R^2}}
     + \funcss{\chi}{\chi} \right\}
   + 2 (\mu_c - \mu) (\lp{\chi})^2
 \end{eqnarray}
 \begin{eqnarray}
   \lefteqn{-\P_\parallel \dotdot \grad{\u} = - \mu_\parallel
-    \left( 1-3 \frac{\ip{\psi}{\psi}}{r^2 B^2} \right) \lp{\chi}}
+    \left( 1-3 \frac{\ip{\psi}{\psi}}{R^2 B^2} \right) \lp{\chi}}
   \\ && \mbox{}
-    - \frac{3 \mu_\parallel}{r^2 B^2} \left( \begin{array}{l}
-      \frac{1}{2} r^2 \pb{U}{\frac{\ip{\psi}{\psi}}{r^2}}
-      -\ip{\psi}{\pb{U}{\psi}} + \frac{1}{r^2} I^2 \partial_z U
+    - \frac{3 \mu_\parallel}{R^2 B^2} \left( \begin{array}{l}
+      \frac{1}{2} R^2 \pb{U}{\frac{\ip{\psi}{\psi}}{R^2}}
+      -\ip{\psi}{\pb{U}{\psi}} + \frac{1}{R^2} F^2 \partial_Z U
        \\ \mbox{}
-    + r^2 I \pb{\psi}{\frac{V}{r^2}}
+    + R^2 F \pb{\psi}{\frac{V}{R^2}}
        \\ \mbox{}
-    - \frac{1}{2}r^2 \ip{\chi}{\frac{\ip{\psi}{\psi}}{r^2}}
-    + \ip{\psi}{\ip{\chi}{\psi}} - \frac{1}{r}I^2 \partial_r \chi
+    - \frac{1}{2}R^2 \ip{\chi}{\frac{\ip{\psi}{\psi}}{R^2}}
+    + \ip{\psi}{\ip{\chi}{\psi}} - \frac{1}{R}F^2 \partial_r \chi
     \end{array}    \right)\nonumber
 \end{eqnarray}
 \begin{equation}
@@ -767,13 +834,13 @@ The viscous heating of electrons is
 \begin{eqnarray}
   \lefteqn{\P_e \dotdot \grad{\frac{\j}{n}} = }
   \\ & &
-  \frac{\lambda \eta}{r^2} \left\{ 
-  \funcss{I}{I} 
-  + \frac{1}{2} r^4 n \ip{\frac{1}{r^2 n}}{\frac{\ip{I}{I}}{r^2}}
-  -\frac{2}{r^2} I_r^2
+  \frac{\lambda \eta}{R^2} \left\{ 
+  \funcss{F}{F} 
+  + \frac{1}{2} R^4 n \ip{\frac{1}{R^2 n}}{\frac{\ip{F}{F}}{R^2}}
+  -\frac{2}{R^2} F_R^2
   \nonumber \right. \\ & & \left. \mbox{}
-  + r^2 n \ip{\frac{\gs{\psi}}{r n}}{\frac{\gs{\psi}}{r}}
-  + \frac{1}{r^2} (\gs{\psi})^2 \right\}.
+  + R^2 n \ip{\frac{\gs{\psi}}{R n}}{\frac{\gs{\psi}}{R}}
+  + \frac{1}{R^2} (\gs{\psi})^2 \right\}.
 \end{eqnarray}
 
 
@@ -793,7 +860,7 @@ The divergence of the heat flux density, in scalar form, is
 \begin{eqnarray}
   -\div \q & = & \kappa \lp{T} + \ip{\kappa}{T} 
   + \pb{\psi}{\kappa_\parallel \frac{\pb{\psi}{T}}{B^2}}
-  - \pb{\frac{\kappa_\times I}{B}}{T}.
+  - \pb{\frac{\kappa_\times F}{B}}{T}.
 \end{eqnarray}
 
 \subsection{Resistive Heating $Q$, $Q_e$}
@@ -807,7 +874,7 @@ The equipartition term, $Q_\Delta = 3 (m_e/m_i) (p_e - p_i) / \tau_e$,
 is due to the flow of heat from the hotter to the cooler specie, and
 does not contribute to $Q$.  In scalar form,
 \begin{displaymath}
-  Q = \frac{1}{r^2} \eta \left[ (\gs{\psi})^2 + \ip{I}{I} \right]
+  Q = \frac{1}{R^2} \eta \left[ (\gs{\psi})^2 + \ip{F}{F} \right]
 \end{displaymath}
 
 
@@ -822,16 +889,16 @@ maximum stable timestep when simulating gravitational instabilities
 such as the Rayleigh-Taylor instability.
 \begin{equation}
   \label{eq:gravity}
-  \F_g = n \g = -\frac{n g_r}{r^2}\uvec{r} - n g_z \uvec{z}
+  \F_g = n \g = -\frac{n g_R}{R^2}\uvec{R} - n g_Z \uvec{Z}
 \end{equation}
 \begin{eqnarray*}
-  -r^2 \grad \tor \cdot \curl \F_g & = & \frac{g_r \partial_z n}{r} 
-  - r g_z \partial_r n,
+  -R^2 \grad \tor \cdot \curl \F_g & = & \frac{g_r \partial_Z n}{R} 
+  - r g_Z \partial_r n,
   \\
-  r^2 \tor \cdot \F_g & = & 0,
+  R^2 \tor \cdot \F_g & = & 0,
   \\
-  \div{\F_g} & = & - \frac{g_r}{r} \frac{\partial}{\partial_r} \left(
-  \frac{n_x}{r} \right) - g_z \partial_z n.
+  \div{\F_g} & = & - \frac{g_R}{R} \frac{\partial}{\partial_R} \left(
+  \frac{n_x}{R} \right) - g_Z \partial_Z n.
 \end{eqnarray*}
 
 \subsection{Ohmic Current Drive}
@@ -845,12 +912,12 @@ constant rate, $\partial_t \psi = V_L/(2 \pi)$.
 
 Pellet injection in \codename is simplistically modeled by the
 inclusion of a density source centered at a specified location, $(r_p,
-z_p)$.  The density source is axisymmetric, with a Gaussian poloidal
+Z_p)$.  The density source is axisymmetric, with a Gaussian poloidal
 cross-section, having constant, arbitrary rate ($\alpha_p$) and
 variance ($l_p$).  Specfically,
 \begin{equation}
   \sigma_p = \frac{\alpha_{p}}{2 \pi l_{p}^2}
-  \exp \left[ -\frac{(r-r_p)^2 + (z-z_p)^2}{2 l_p^2}\right].
+  \exp \left[ -\frac{(r-r_p)^2 + (Z-Z_p)^2}{2 l_p^2}\right].
 \end{equation}
 It is assumed that the injected plasma is cold and stationary, and
 therefore there is no associated energy or momentum source.
@@ -892,10 +959,10 @@ steady level.  A PID (proportional, integral, derivative) controller
 is implemented in \codename which accomplishes this by adjusting the
 loop voltage $V_L$ at each time step in the following way:
 \begin{equation}
-  V_L^{(n+1)} = V_L^{(n)} - \dt\, V_L \left\{ c_p (I_p - I_0) + c_i
-  \int_0^t dt'\,[I_p(t') - I_0] + c_d \ddt{I_p} \right\},
+  V_L^{(n+1)} = V_L^{(n)} - \dt\, V_L \left\{ c_p (F_p - F_0) + c_i
+  \int_0^t dt'\,[F_p(t') - F_0] + c_d \ddt{F_p} \right\},
 \end{equation}
-where $I_p$ is the total toroidal current and $I_0$ is the target
+where $F_p$ is the total toroidal current and $F_0$ is the target
 toroidal current.  The parameters $c_p$, $c_i$, and $c_d$ determine
 the response of the feedback loop.
 
@@ -929,7 +996,7 @@ energy per unit time.
 \begin{equation}
   \frac{\Gamma}{\Gamma - 1} \div \left[ p \u - p_e \frac{\j}{n}
   \right] = \frac{\Gamma}{\Gamma - 1} \left( 
-  p \lp\chi + \ip{p}{\chi} + \pb{p}{U} - d_i \pb{T_e}{I} \right)
+  p \lp\chi + \ip{p}{\chi} + \pb{p}{U} - d_i \pb{T_e}{F} \right)
 \end{equation}
 The total power flux due to the advective thermal flux is
 \begin{eqnarray*}
@@ -938,10 +1005,10 @@ The total power flux due to the advective thermal flux is
   & = & \frac{\Gamma}{\Gamma - 1} \int dS\ \uvec{n} \cdot
   \left( p \u - p_e \frac{\j}{n} \right) \\ 
   & = & \frac{\Gamma}{\Gamma - 1} \int dS\ 
-  \left( p \uvec{n} \cdot \u - \frac{1}{r} T_e \uvec{t}\cdot \grad I \right).
+  \left( p \uvec{n} \cdot \u - \frac{1}{R} T_e \uvec{t}\cdot \grad F \right).
 \end{eqnarray*}
 This flux vanishes when both no-normal-flow ($\uvec{n} \cdot \u =
-0$) and no-normal-current ($\uvec{n} \cdot \j = \uvec{t} \cdot \grad I
+0$) and no-normal-current ($\uvec{n} \cdot \j = \uvec{t} \cdot \grad F
 = 0$) boundary conditions are enfoced.
 
 \subsection{Poynting Flux}
@@ -950,24 +1017,24 @@ The second term represents the flux of electromagnetic energy per unit
 time.  In the case where $\E$ is determined by the generalized Ohm's
 law, equation~(\ref{eq:ohm}), on the boundary,
 \begin{eqnarray}
-  \div (\E\times\B) & = & -\frac{1}{r^2} 
+  \div (\E\times\B) & = & -\frac{1}{R^2} 
   \left[\eta (\gs{\psi})^2 + \ip{\eta \gs\psi}{\psi}
-    + \eta I \gs{I} + \ip{\eta I}{I} \right]
+    + \eta F \gs{F} + \ip{\eta F}{F} \right]
   \\ && \mbox{}
-  + \frac{1}{r^2}\left(\gs\psi\pb{\psi}{U} 
+  + \frac{1}{R^2}\left(\gs\psi\pb{\psi}{U} 
   + \ip{\pb{\psi}{U}}{\psi} \right)
-  + \pb{\frac{I^2}{r^2}}{U}
+  + \pb{\frac{F^2}{R^2}}{U}
   \nonumber \\ && \mbox{}
-  + \pb{\psi}{\frac{1}{r^2} I V}
+  + \pb{\psi}{\frac{1}{R^2} F V}
   \nonumber \\ && \mbox{}
-  + \frac{1}{r^2}\left(\gs\psi\ip{\psi}{\chi}
+  + \frac{1}{R^2}\left(\gs\psi\ip{\psi}{\chi}
   + \ip{\ip{\psi}{\chi}}{\psi} \right)
-  + \frac{1}{r^2}\left(I^2\gs\chi + \ip{I^2}{\chi}\right)
+  + \frac{1}{R^2}\left(F^2\gs\chi + \ip{F^2}{\chi}\right)
   \nonumber \\ && \mbox{}
-  + I \pb{\psi}{\frac{\gs{\psi}}{r^2 n}}
-  + \frac{1}{r^2} \ip{\frac{\pb{I}{\psi}}{n}}{\psi}
-  + I^2 \pb{I}{\frac{1}{r^2 n}} 
-  + \pb{p_e}{\frac{I}{n}} \nonumber
+  + F \pb{\psi}{\frac{\gs{\psi}}{R^2 n}}
+  + \frac{1}{R^2} \ip{\frac{\pb{F}{\psi}}{n}}{\psi}
+  + F^2 \pb{F}{\frac{1}{R^2 n}} 
+  + \pb{p_e}{\frac{F}{n}} \nonumber
 \end{eqnarray}
 where terms due to $\P_e$ have been omitted.  However, if the
 boundary conditions are such that $\E = -\frac{V_L}{2 \pi} \grad\tor$
@@ -975,17 +1042,17 @@ boundary conditions are such that $\E = -\frac{V_L}{2 \pi} \grad\tor$
 heating), then, on the boundary
 \begin{equation}
   \uvec{n} \cdot (\E\times\B) = 
-  -\frac{V_L}{2 \pi r^2} \uvec{n} \cdot \grad\psi.
+  -\frac{V_L}{2 \pi R^2} \uvec{n} \cdot \grad\psi.
 \end{equation}
 The total power flux out of boundaries is then
 \begin{eqnarray*}
   \int dV\ \div (\E\times\B) 
   & = & \oint dS\ \uvec{n} \cdot (\E\times\B) \\
-  & = & -\oint dS\ \uvec{n} \cdot \frac{V_L}{2 \pi r^2} \grad\psi \\
-  & = & -\int dV\ \frac{V_L}{2 \pi r^2} \gs\psi\\
-  & = & I_p V_L,
+  & = & -\oint dS\ \uvec{n} \cdot \frac{V_L}{2 \pi R^2} \grad\psi \\
+  & = & -\int dV\ \frac{V_L}{2 \pi R^2} \gs\psi\\
+  & = & F_p V_L,
 \end{eqnarray*}
-where $I_p$ is the total toroidal current within the boundaries
+where $F_p$ is the total toroidal current within the boundaries
 
 
 \subsection{Advective Kinetic Flux}
@@ -995,16 +1062,16 @@ unit time.
 \begin{eqnarray*}
   \lefteqn{\div \left(\frac{1}{2} n u^2 \u \right)}  \\
   & = & 
-  \frac{1}{2} \left(\frac{\ip{U}{U}}{r^2} + \frac{V^2}{r^2} +
+  \frac{1}{2} \left(\frac{\ip{U}{U}}{R^2} + \frac{V^2}{R^2} +
   \ip{\chi}{\chi} + 2\pb{\chi}{U}\right) \left(n \lp \chi +
   \ip{n}{\chi} + \pb{n}{u} \right) 
    \\ & & \mbox{} 
-  + \frac{1}{2} n \pb{\frac{\ip{U}{U}}{r^2}}{U}
-  + \frac{1}{2} n \ip{\frac{\ip{U}{U}}{r^2}}{\chi}
+  + \frac{1}{2} n \pb{\frac{\ip{U}{U}}{R^2}}{U}
+  + \frac{1}{2} n \ip{\frac{\ip{U}{U}}{R^2}}{\chi}
   + n \pb{U}{\pb{U}{\chi}}
    \\ & & \mbox{} 
-  + \frac{1}{2} n \pb{\frac{V^2}{r^2}}{U}
-  + \frac{1}{2} n \ip{\frac{V^2}{r^2}}{\chi}
+  + \frac{1}{2} n \pb{\frac{V^2}{R^2}}{U}
+  + \frac{1}{2} n \ip{\frac{V^2}{R^2}}{\chi}
    \\ & & \mbox{} 
   + \frac{1}{2} n \ip{\ip{\chi}{\chi}}{\chi}
   + \frac{1}{2} n \pb{\ip{\chi}{\chi}}{U}
@@ -1025,7 +1092,7 @@ The final term represents the heat flux:
 \begin{eqnarray*}
   \div \q & = & -\kappa \lp{T} - \ip{\kappa}{T} 
   - \pb{\psi}{\kappa_\parallel \frac{\pb{\psi}{T}}{B^2}}
-  + \pb{\kappa_\times I}{T}
+  + \pb{\kappa_\times F}{T}
 \end{eqnarray*}
 The total energy flux due to the divergence of the heat flux density
 is
@@ -1035,12 +1102,111 @@ is
    - \kappa_\parallel \frac{\B \B}{B^2} \cdot \grad T\right)
    \\
    & = & \oint dS\ \left(-\kappa \uvec{n} \cdot \grad T 
-   - \frac{1}{r} \kappa_\parallel \uvec{t}\cdot \grad \psi 
+   - \frac{1}{R} \kappa_\parallel \uvec{t}\cdot \grad \psi 
    \frac{\B}{B^2} \cdot \grad T 
-   + \frac{1}{r} \kappa_\times I \uvec{t} \cdot \grad T \right),
+   + \frac{1}{R} \kappa_\times F \uvec{t} \cdot \grad T \right),
 \end{eqnarray*}
 the isotropic diffusion part of which vanishes in the case of
 no-normal-tem\-per\-a\-ture-grad\-i\-ent boundary conditions.
+
+
+\chapter{Boundary Conditions}
+
+In all cases, $f = 0$ on the boundary, and therefore also $\uvec{t}
+\cdot \grad{f} = 0$.  Some other boundary conditions that may be
+specified are as follows:
+
+\begin{description}
+\item[No normal flow (\texttt{inonormalflow=1})] Holds $\uvec{n} \cdot
+  \u$ constant.
+\item[No poloidal flow (\texttt{inoslip\_pol=1})] Holds $\uvec{t} \cdot
+  \u$ constant.
+\item[No toroidal flow (\texttt{inoslip\_tor=1})] Holds $\uvec{\tor}
+  \cdot \u$ constant.
+\item[No normal current (\texttt{inocurrent\_norm=1})] Holds $\uvec{n} \cdot
+  \j$ constant.
+\item[No poloidal current (\texttt{inocurrent\_pol=1})] Holds $\uvec{t} \cdot
+  \j$ constant.
+\item[No toroidal current (\texttt{inocurrent\_tor=1})] Holds $\uvec{\tor}
+  \cdot \j$ constant.
+\end{description}
+
+\begin{eqnarray}
+  \uvec{n} \cdot \u & = & 
+  -R \uvec{t}\cdot\grad{U}+ \frac{1}{R^2} \uvec{n} \cdot \grad{\chi}
+  \\
+  \uvec{t} \cdot \u & = & 
+  R \uvec{n}\cdot\grad{U} + \frac{1}{R^2} \uvec{t} \cdot \grad{\chi}
+  \\
+  \uvec{\tor} \cdot \u & = & R \omega
+\end{eqnarray}
+
+\begin{eqnarray}
+  \uvec{n} \cdot \B & = & 
+  -\frac{1}{R} \uvec{t}\cdot\grad{\psi}
+  - \frac{1}{R^2} \uvec{n} \cdot \grad{f_\tor}
+  \\
+  \uvec{t} \cdot \B & = & 
+  \frac{1}{R} \uvec{n}\cdot\grad{\psi} 
+  \\
+  \uvec{\tor} \cdot \B & = & \frac{F}{R}
+\end{eqnarray}
+
+\begin{eqnarray}
+  \uvec{n} \cdot \j & = & 
+  -\frac{1}{R} \uvec{t} \cdot \grad{F}
+  + \frac{1}{R^2} \uvec{n} \cdot \grad{\psi_\tor}
+  \\
+  \uvec{t} \cdot \j & = & 
+  \frac{1}{R} \uvec{n}\cdot\grad{(F + f_{\tor \tor})} 
+  + \frac{1}{R^2} \uvec{t} \cdot \grad{\psi_\tor}
+  \\
+  \uvec{\tor} \cdot \j & = & -\frac{1}{R}\gs{\psi}
+\end{eqnarray}
+In the above definitions, $\uvec{n}$ is the unit vector normal to the
+boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
+
+\section{Resistive Wall Boundary Condition}
+
+For a thin resistive wall of resistivity $\eta_W$ and width
+$\delta_W$, the following equations are obtained at the
+boundary~\cite{Jardin10}:
+\begin{eqnarray}
+  \ddt{\psi} & = & -\frac{\eta_W}{\delta_W} \left(\uvec{n} \cdot
+  \grad{\psi} - R \uvec{t} \cdot \B_v \right)
+    \\
+  \ddt{F} & = & -\frac{\eta_W}{\delta_W} \left(F - R \uvec{\tor} \cdot
+  \B_v \right)
+\end{eqnarray}
+Here, $\B_v$ is the magnetic field on the outside of the wall.  $B_v$
+may be obtained from the magnetic field on the inside of the wall
+using a vacuum response matrix calculated by the $\textsc{vacuum}$
+code,~\cite{Chance10} for example.
+
+\subsection{Using a resistive wall in \codename\ with \textsc{vacuum}}
+
+The following assumes that the \textsc{vacuum} code is located in the
+directory \texttt{\$VACUUM\_DIR}.  On \texttt{sunfire},
+\texttt{\$VACUUM\_DIR = /u/chance/Vacuum\_SVN\_Work}
+
+\begin{enumerate}
+\item Build \textsc{struct2vac} with\\
+  \texttt{make OPT=1 struct2vac}
+\item Generate \texttt{ordered.points} by running \textsc{struct2vac}
+  in the working directory.
+\item \texttt{tac ordered.points > vacin\_c1}
+\item Edit \texttt{vacin\_c1}, and move the last line to be the first
+  line.
+\item \texttt{cp vacin\_c1 ordered.points}
+\item \texttt{cp \$VACUUM\_DIR/Runs/C1Vac/modiv\_m3dc1 .}
+\item \texttt{\$VACUUM\_DIR/Bin/vacuum.x86\_64.linux vacin\_c1 modiv\_m3dc1}
+\item In \texttt{C1input}, set \texttt{eta\_wall} and
+  \texttt{delta\_wall} to the appropriate values.
+\end{enumerate}
+
+Presently, the resistive wall only works on single-process runs.
+
+
 
 \chapter{Discretization}
 
@@ -1088,14 +1254,14 @@ from the vector form, equations~(\ref{eq:xmhd}) and use the following
 identities when applying the operations to extract the scalar
 equations:
 \begin{eqnarray*}
-  -\int dV\, r^2 \nu \grad{\tor} \cdot \curl{\vec{A}} & = & 
-  -\int dV\, \vec{A} \cdot \left[\grad{(r^2 \nu)} \times \grad{\tor}
+  -\int dV\, R^2 \nu \grad{\tor} \cdot \curl{\vec{A}} & = & 
+  -\int dV\, \vec{A} \cdot \left[\grad{(R^2 \nu)} \times \grad{\tor}
     \right]
   \\
   \int dV\, \nu \div{\vec{A}} & = & 
   -\int dV\, \grad{\nu} \cdot \vec{A}.
 \end{eqnarray*}
-(Note that the torodal operator, $r^2 \nu \grad{\tor} \cdot$, is not a
+(Note that the torodal operator, $R^2 \nu \grad{\tor} \cdot$, is not a
 differential operator and therefore the integration by parts cannot be
 performed \emph{a priori}.)  
 
@@ -1104,15 +1270,15 @@ stress tensor $\P$ are:
 \begin{subequations}
 \label{eq:tensor_identities}
 \begin{eqnarray}
-  r^2 \nu \grad{\tor} \cdot \curl{(\div{\P})} & = & 
-  r^2 \partial_z \nu \grad{\tor} \cdot \P \cdot \grad{\tor}
-  - \grad{\nu} \cdot \P \cdot \grad{z}
+  R^2 \nu \grad{\tor} \cdot \curl{(\div{\P})} & = & 
+  R^2 \partial_Z \nu \grad{\tor} \cdot \P \cdot \grad{\tor}
+  - \grad{\nu} \cdot \P \cdot \grad{Z}
   \\ && \mbox{}
   + r \grad{\tor} \cdot \left[\grad{\grad{(\nu r)}} \dottimes \P\right]
   + \div{ \vec{A}_1 }\nonumber
   \\
-  -r^2 \nu \grad{\tor} \cdot (\div{\P}) & = &
-  r^2 \grad{\nu} \cdot \P \cdot \grad{\tor}
+  -R^2 \nu \grad{\tor} \cdot (\div{\P}) & = &
+  R^2 \grad{\nu} \cdot \P \cdot \grad{\tor}
   + \div{\vec{A}_2}
   \\
   -\nu \div{(\div{\P})} & = & -\grad{\grad{\nu}} \dotdot \P + \div{\vec{A}_3}
@@ -1121,11 +1287,11 @@ stress tensor $\P$ are:
 where
 \begin{eqnarray*} 
   \vec{A}_1 & = & 
-  - r^2 \nu \grad{\tor} \times (\div{\P})
+  - R^2 \nu \grad{\tor} \times (\div{\P})
   - r \P \cdot \left[ \grad{\tor} \times \grad{(r \nu)} \right]
-  + \nu \P \cdot \grad{z}
+  + \nu \P \cdot \grad{Z}
   \\
-  \vec{A}_2 & = & -r^2 \nu \P \cdot \grad{\tor}
+  \vec{A}_2 & = & -R^2 \nu \P \cdot \grad{\tor}
   \\
   \vec{A}_3 & = & \grad{\nu} \cdot \P - \nu \div{\P}.
 \end{eqnarray*}
@@ -1144,34 +1310,34 @@ divergences vanish upon integration.
   \left[ 
     U_{U U n} + U_{V V n} + U_{U \chi n} + U_{\chi \chi n} 
     \right. \\ && \nonumber \left. \mbox{} 
-    + U_{\psi \psi} + U_{I I} + U_{U \mu} + U_{\chi \mu} + U_g
+    + U_{\psi \psi} + U_{F F} + U_{U \mu} + U_{\chi \mu} + U_g
     \right. \\ && \nonumber \left. \mbox{} 
     + U_{U D} + U_{\chi D} + U_{\P_\parallel} + U_{\P_\times}
     \right]
   \\
   \int dV\, V_{V n} & = & \int dV\, \left[
-    V_{V U n} + V_{V \chi n} + V_{\psi I} + V_{V \mu} 
+    V_{V U n} + V_{V \chi n} + V_{\psi F} + V_{V \mu} 
     \right. \\ && \nonumber \left. \mbox{} + V_{V D}  
     + V_{\P_\parallel} + V_{\P_\times} \right]
   \\
   \int dV\, \left[X_{U n} + X_{\chi n}\right] & = & \int dV\, \left[
     X_{U U n}+ X_{V V n}+ X_{U \chi n}+ X_{\chi \chi n} 
     \right.\\  && \nonumber \left. \mbox{} 
-    + X_p + X_{\psi \psi} + X_{I I} + X_{U \mu} + X_{\chi \mu} + X_g 
+    + X_p + X_{\psi \psi} + X_{F F} + X_{U \mu} + X_{\chi \mu} + X_g 
     \right. \\ && \nonumber \left. \mbox{} 
     + X_{U D} + X_{\chi D} + X_{\P_\parallel} + X_{\P_\times}
     \right]
   \\
   \int dV\, \Psi_\psi & = & \int dV\, \left[
-    \Psi_{\psi U} + \Psi_{\psi \chi} + \Psi_{\psi I n}
+    \Psi_{\psi U} + \Psi_{\psi \chi} + \Psi_{\psi F n}
     + \Psi_{\psi \eta} \right]
   \\
-  \int dV\, I_I & = & \int dV\, \left[
-    I_{I U} + I_{\psi V} + I_{I \chi} + I_{\psi n} + I_{I n} 
-    \right. \\ && \nonumber \left. \mbox{} + I_{p_e n} + I_{I \eta} \right]
+  \int dV\, F_F & = & \int dV\, \left[
+    F_{F U} + F_{\psi V} + F_{F \chi} + F_{\psi n} + F_{F n} 
+    \right. \\ && \nonumber \left. \mbox{} + F_{p_e n} + F_{F \eta} \right]
   \\
   \int dV\, P_p & = & \int dV\, \left[
-    P_{p U} + P_{p \chi} + P_{p_e I n} + P_{\eta \psi} + P_{\eta I} 
+    P_{p U} + P_{p \chi} + P_{p_e F n} + P_{\eta \psi} + P_{\eta F} 
     \right. \\ && \nonumber \left. \mbox{} 
     + P_\kappa + P_{\kappa_\parallel} + P_{\kappa_\times} \right]
 \end{eqnarray}
@@ -1199,30 +1365,30 @@ equations, which do not depend on any specific choice of closure.
 
 \begin{equation}
   \begin{array}{lcl}
-    U_{U n}(\nu, \dot U, n) & = & -\frac{1}{r^2} n \ip{r^2 \nu}{\dot{U}}
+    U_{U n}(\nu, \dot U, n) & = & -\frac{1}{R^2} n \ip{R^2 \nu}{\dot{U}}
     \\
-    U_{\chi n}(\nu, \dot \chi, n) & = & -r^2 \nu \pb{n}{\dot{\chi}}
+    U_{\chi n}(\nu, \dot \chi, n) & = & -R^2 \nu \pb{n}{\dot{\chi}}
     \\
-    U_{U U n}(\nu, U, U, n) & = & \frac{1}{r^2} n \gs{U} \pb{r^2\nu}{U}
-      + \frac{1}{2 r^2} \ip{U}{U}\pb{r^2\nu}{n}
+    U_{U U n}(\nu, U, U, n) & = & \frac{1}{R^2} n \gs{U} \pb{R^2\nu}{U}
+      + \frac{1}{2 R^2} \ip{U}{U}\pb{R^2\nu}{n}
     \\
-    U_{V V n}(\nu, V,  V, n) & = &  \frac{1}{2 r^2} \pb{\nu}{r^2} V V n
+    U_{V V n}(\nu, V,  V, n) & = &  \frac{1}{2 R^2} \pb{\nu}{R^2} V V n
     \\
     U_{U \chi n}(\nu, U, \chi, n) & = & 
-      \frac{1}{r^2}n \gs{U}\ip{r^2\nu}{\chi} 
-      - \pb{U}{\chi} \pb{r^2\nu}{n}
+      \frac{1}{R^2}n \gs{U}\ip{R^2\nu}{\chi} 
+      - \pb{U}{\chi} \pb{R^2\nu}{n}
     \\
     U_{\chi \chi n}(\nu, \chi, \chi, n) & = &
-      \frac{1}{2} \ip{\chi}{\chi} \pb{r^2 \nu}{n}
+      \frac{1}{2} \ip{\chi}{\chi} \pb{R^2 \nu}{n}
     \\
     U_{\psi \psi}(\nu, \psi, \psi) & = &
-      -\frac{1}{r^2} \pb{r^2 \nu}{\psi} \gs{\psi}
+      -\frac{1}{R^2} \pb{R^2 \nu}{\psi} \gs{\psi}
     \\
-    U_{I I}(\nu, I, I) & = & -r^2 \nu I \pb{I}{\frac{1}{r^2}}
+    U_{F F}(\nu, F, F) & = & -R^2 \nu F \pb{F}{\frac{1}{R^2}}
     \\
-    U_{U D}(\nu, U, D) & = & \frac{1}{r^2} \ip{r^2 \nu}{U} D
+    U_{U D}(\nu, U, D) & = & \frac{1}{R^2} \ip{R^2 \nu}{U} D
     \\
-    U_{\chi D}(\nu, \chi, D) & = & -\pb{r^2 \nu}{\chi} D
+    U_{\chi D}(\nu, \chi, D) & = & -\pb{R^2 \nu}{\chi} D
   \end{array}
 \end{equation}
 
@@ -1231,7 +1397,7 @@ equations, which do not depend on any specific choice of closure.
     V_{V n}(\nu, V, n) & = & \nu n \dot{V}\\
     V_{V U n}(\nu, V, U, n) & = & \nu n \pb{U}{V}\\
     V_{V \chi n}(\nu, V, \chi, n) & = & -\nu n \ip{\chi}{V}\\
-    V_{\psi I}(\nu, \psi, I) & = & \nu \pb{I}{\psi}\\
+    V_{\psi F}(\nu, \psi, F) & = & \nu \pb{F}{\psi}\\
     V_{V D}(\nu, V, D) & = & -\nu V D
   \end{array}
 \end{equation}    
@@ -1244,11 +1410,11 @@ equations, which do not depend on any specific choice of closure.
     \\
     X_p(\nu, p) & = & \ip{\nu}{p}
     \\
-    X_{U U n}(\nu, U, U, n) & = & -\frac{1}{r^2} n \gs{U} \ip{\nu}{U}
-      + \frac{1}{2} n \ip{\nu}{\frac{\ip{U}{U}}{r^2}}
+    X_{U U n}(\nu, U, U, n) & = & -\frac{1}{R^2} n \gs{U} \ip{\nu}{U}
+      + \frac{1}{2} n \ip{\nu}{\frac{\ip{U}{U}}{R^2}}
     \\
     X_{V V n}(\nu, V,  V, n) & = & 
-      \frac{1}{2} n V V \ip{\frac{1}{r^2}}{\nu}
+      \frac{1}{2} n V V \ip{\frac{1}{R^2}}{\nu}
     \\
     X_{U \chi n}(\nu, U, \chi, n) & = & 
       \left( n \lp{\nu} + \ip{n}{\nu} \right) \pb{U}{\chi}
@@ -1258,9 +1424,9 @@ equations, which do not depend on any specific choice of closure.
       \ip{\nu}{\ip{\chi}{\chi}}
     \\
     X_{\psi \psi}(\nu, \psi, \psi) & = & 
-      \frac{1}{r^2} \gs{\psi} \ip{\nu}{\psi}
+      \frac{1}{R^2} \gs{\psi} \ip{\nu}{\psi}
     \\
-    X_{I I}(\nu, I, I) & = & \frac{1}{r^2} I \ip{\nu}{I}
+    X_{F F}(\nu, F, F) & = & \frac{1}{R^2} F \ip{\nu}{F}
     \\
     X_{U D}(\nu, U, D) & = & \pb{\nu}{U} D
     \\
@@ -1274,24 +1440,24 @@ equations, which do not depend on any specific choice of closure.
     \Psi_{\psi}(\nu, \dot{\psi}) & = & \nu \dot{\psi}\\
     \Psi_{\psi U}(\nu, \psi, U) & = & \nu \pb{U}{\psi}\\
     \Psi_{\psi \chi}(\nu, \psi, \chi) & = & -\nu \ip{\chi}{\psi}\\
-    \Psi_{\psi I n}(\nu, \psi, I, n) & = & d_i \nu \frac{1}{n} \pb{\psi}{I}\\
+    \Psi_{\psi F n}(\nu, \psi, F, n) & = & d_i \nu \frac{1}{n} \pb{\psi}{F}\\
     \Psi_{\psi \eta}(\nu, \psi, \eta) & = & 
-        -\frac{1}{r^2} \ip{\psi}{r^2 \nu \eta} 
+        -\frac{1}{R^2} \ip{\psi}{R^2 \nu \eta} 
   \end{array}
 \end{equation}
 
 \begin{equation}
   \begin{array}{lcl}
-    I_I (\nu, \dot{I}) & = & \nu \dot{I}\\
-    I_{I U}(\nu, I, U) & = & r^2 \nu \pb{U}{\frac{I}{r^2}}\\
-    I_{\psi V}(\nu, \psi, V) & = & r^2 \nu \pb{\frac{V}{r^2}}{\psi}\\
-    I_{I \chi}(\nu, I, \chi) & = & \frac{I}{r^2} \ip{r^2 \nu}{\chi}\\
-    I_{\psi n}(\nu, \psi, \psi, n) & = &
-       d_i \frac{\gs{\psi}}{r^2 n}\pb{\psi}{r^2\nu}\\
-    I_{I n}(\nu, I, I, n) & = &
-       d_i r^2 \nu I \pb{\frac{1}{r^2 n}}{I}\\
-    I_{p_e n}(\nu, p_e, n) & = & d_i r^2 \nu \pb{\frac{1}{n}}{p_e}\\
-    I_{I \eta}(\nu, I, \eta) & = & -\frac{1}{r^2} \eta \ip{r^2 \nu}{I}
+    F_F (\nu, \dot{F}) & = & \nu \dot{F}\\
+    F_{F U}(\nu, F, U) & = & R^2 \nu \pb{U}{\frac{F}{R^2}}\\
+    F_{\psi V}(\nu, \psi, V) & = & R^2 \nu \pb{\frac{V}{R^2}}{\psi}\\
+    F_{F \chi}(\nu, F, \chi) & = & \frac{F}{R^2} \ip{R^2 \nu}{\chi}\\
+    F_{\psi n}(\nu, \psi, \psi, n) & = &
+       d_i \frac{\gs{\psi}}{R^2 n}\pb{\psi}{R^2\nu}\\
+    F_{F n}(\nu, F, F, n) & = &
+       d_i R^2 \nu F \pb{\frac{1}{R^2 n}}{F}\\
+    F_{p_e n}(\nu, p_e, n) & = & d_i R^2 \nu \pb{\frac{1}{n}}{p_e}\\
+    F_{F \eta}(\nu, F, \eta) & = & -\frac{1}{R^2} \eta \ip{R^2 \nu}{F}
   \end{array}
 \end{equation}
 
@@ -1304,14 +1470,14 @@ equations, which do not depend on any specific choice of closure.
   P_{p \chi}(\nu, p, \chi) & = & \Gamma p \ip{\nu}{\chi} 
     + (\Gamma - 1) \nu \ip{p}{\chi}
   \\
-  P_{p_e, I, n}(\nu, p_e, I, n) & = & d_i \left( 
-      \frac{1}{n} \nu \pb{p_e}{I} 
-    + \Gamma \nu p_e \pb{\frac{1}{n}}{I} \right)
+  P_{p_e, F, n}(\nu, p_e, F, n) & = & d_i \left( 
+      \frac{1}{n} \nu \pb{p_e}{F} 
+    + \Gamma \nu p_e \pb{\frac{1}{n}}{F} \right)
   \\
   P_{\eta, \psi}(\nu, \eta, \psi, \psi) & = & (\Gamma - 1) \nu
-  \frac{(\gs{\psi})^2}{r^2}
+  \frac{(\gs{\psi})^2}{R^2}
   \\
-  P_{\eta, I}(\nu, \eta, I, I) & = & (\Gamma - 1) \nu \frac{I^2}{r^2}
+  P_{\eta, F}(\nu, \eta, F, F) & = & (\Gamma - 1) \nu \frac{F^2}{R^2}
   \end{array}
 \end{equation}
 
@@ -1322,10 +1488,10 @@ equation~(\ref{eq:gravity}).
 
 \begin{equation}
   \begin{array}{lcl}
-    U_g(\nu, n) & = & g_r \nu \pb{n}{r} - g_z r \nu \ip{n}{r}
+    U_g(\nu, n) & = & g_r \nu \pb{n}{R} - g_Z r \nu \ip{n}{R}
     \\
-    X_g(\nu, n) & = & \frac{n}{r^2} \left( 
-    g_r \ip{\nu}{r} + g_z r \pb{\nu}{r} \right)
+    X_g(\nu, n) & = & \frac{n}{R^2} \left( 
+    g_r \ip{\nu}{R} + g_Z r \pb{\nu}{R} \right)
   \end{array}
 \end{equation}
 
@@ -1344,14 +1510,14 @@ described in section~\ref{sec:heat_flux}.
     P_{\kappa_\parallel}(\nu, \kappa_\parallel, T, \psi, \psi, B^{-2}) & = &
     -(\Gamma - 1) \kappa_\parallel \frac{1}{B^2} \pb{\psi}{\nu} \pb{\psi}{T}
     \\
-    P_{\kappa_\times}(\nu, \kappa_\times, T, I, B^{-2}) & = & 
-    (\Gamma - 1) \kappa_\times \frac{I}{B} \pb{\nu}{T}
+    P_{\kappa_\times}(\nu, \kappa_\times, T, F, B^{-2}) & = & 
+    (\Gamma - 1) \kappa_\times \frac{F}{B} \pb{\nu}{T}
   \end{array}
 \end{equation}
 
 \begin{eqnarray*}
   T & = & p/n \\
-  B^2 & = & \frac{1}{r^2} \left[ \ip{\psi}{\psi} + I^2 \right]
+  B^2 & = & \frac{1}{R^2} \left[ \ip{\psi}{\psi} + F^2 \right]
 \end{eqnarray*}
 
 
@@ -1362,17 +1528,17 @@ equation~(\ref{eq:general_viscosity}).
 
 \begin{equation}
   \begin{array}{lcl}
-    U_{U \mu}(\nu, U, \mu) & = & \frac{1}{r^2} \left [ \left(
-      \ip{\mu}{r^2 \nu} + \mu \gs{(r^2 \nu)} \right) \gs{U} \right. \\
-      & & \left. \mbox{} + \lp{\mu} \ip{r^2 \nu}{U} 
-      + \gs{(r^2 \nu)} \ip{\mu}{U} \right]
+    U_{U \mu}(\nu, U, \mu) & = & \frac{1}{R^2} \left [ \left(
+      \ip{\mu}{R^2 \nu} + \mu \gs{(R^2 \nu)} \right) \gs{U} \right. \\
+      & & \left. \mbox{} + \lp{\mu} \ip{R^2 \nu}{U} 
+      + \gs{(R^2 \nu)} \ip{\mu}{U} \right]
     \\
-    U_{\chi \mu}(\nu, \chi, \mu) & = & -\lp{(r^2 \nu)} \pb{\mu}{\chi}
-      - \gs{\mu}\pb{r^2\nu}{\chi} \\ & & \mbox{}
-      - \frac{1}{r^2}\gs{(r^2 \chi)} \pb{r^2 \nu}{\mu}
+    U_{\chi \mu}(\nu, \chi, \mu) & = & -\lp{(R^2 \nu)} \pb{\mu}{\chi}
+      - \gs{\mu}\pb{R^2\nu}{\chi} \\ & & \mbox{}
+      - \frac{1}{R^2}\gs{(R^2 \chi)} \pb{R^2 \nu}{\mu}
     \\
     V_{V \mu}(\nu, V, \mu) & = & \left[\ip{\nu}{\mu} 
-      + \frac{1}{r^2}\mu \gs{(r^2 \nu)} \right] V
+      + \frac{1}{R^2}\mu \gs{(R^2 \nu)} \right] V
     \\
     X_{U \mu}(\nu, U, \mu) & = & \lp{\nu} \pb{\mu}{U} 
       + \lp{\mu} \pb{\nu}{U} + \gs{U} \pb{\nu}{\mu}
@@ -1389,7 +1555,7 @@ These terms are obtained assuming a parallel viscosity of the form
 given in equation~(\ref{eq:parallel_viscosity}).  These equations were
 obtained using equations~(\ref{eq:tensor_identities}).  For
 compactness, derivatives are written as subscripts in the following
-expressions (\textit{i.e.} $\nu_z = \partial_z \nu$).
+expressions (\textit{i.e.} $\nu_Z = \partial_Z \nu$).
 
 \begin{equation}
   \begin{array}{lcl}
@@ -1423,38 +1589,38 @@ expressions (\textit{i.e.} $\nu_z = \partial_z \nu$).
 
 \begin{eqnarray*}
   D_U & = & \frac{3}{B^2} \left\{ 
-  - \frac{1}{2}r^2\pb{\nu}{\frac{\ip{\psi}{\psi}}{r^2}}
+  - \frac{1}{2}R^2\pb{\nu}{\frac{\ip{\psi}{\psi}}{R^2}}
   + \ip{\psi}{\pb{\nu}{\psi}} 
-  - \frac{1}{r^2} I^2 \nu_z 
+  - \frac{1}{R^2} F^2 \nu_Z 
   \right.\\ && \left. \mbox{}
-  - \frac{2}{r^2}\left[ \nu_z (\psi_z^2 - \psi_r^2) + 2\nu_r \psi_r \psi_z
+  - \frac{2}{R^2}\left[ \nu_Z (\psi_Z^2 - \psi_R^2) + 2\nu_r \psi_r \psi_Z
     \right]
   \right\}
   \\
-  D_V & = & - 3 \frac{I}{B^2} \pb{\nu}{\psi}
+  D_V & = & - 3 \frac{F}{B^2} \pb{\nu}{\psi}
   \\
   D_X & = & - \lp{\nu} 
-  \left(1 - \frac{3}{r^2}\frac{\ip{\psi}{\psi}}{B^2} \right)
+  \left(1 - \frac{3}{R^2}\frac{\ip{\psi}{\psi}}{B^2} \right)
   \\ &&  \mbox{}
-  + \frac{3}{r^2 B^2} \left(
-    \frac{1}{2}r^2\ip{\nu}{\frac{\ip{\psi}{\psi}}{r^2}}
+  + \frac{3}{R^2 B^2} \left(
+    \frac{1}{2}R^2\ip{\nu}{\frac{\ip{\psi}{\psi}}{R^2}}
     - \ip{\psi}{\ip{\nu}{\psi}} 
-    + \frac{1}{r} I^2 \nu_r \right)
+    + \frac{1}{R} F^2 \nu_r \right)
 \end{eqnarray*}
 
 \begin{eqnarray*}
-  {\mu_\parallel}_U & = & \eta_0 \frac{p_i \tau_i}{r^2 B^2} \left( 
-  - \frac{1}{2} r^2 \pb{U}{\frac{\ip{\psi}{\psi}}{r^2}}
+  {\mu_\parallel}_U & = & \eta_0 \frac{p_i \tau_i}{R^2 B^2} \left( 
+  - \frac{1}{2} R^2 \pb{U}{\frac{\ip{\psi}{\psi}}{R^2}}
   + \ip{\psi}{\pb{U}{\psi}}
-  - \frac{1}{r^2} I^2 U_z \right)
+  - \frac{1}{R^2} F^2 U_Z \right)
   \\
-  {\mu_\parallel}_V & = & -\eta_0 p_i \tau_i \frac{I}{B^2} 
-  \pb{\psi}{\frac{V}{r^2}}
+  {\mu_\parallel}_V & = & -\eta_0 p_i \tau_i \frac{F}{B^2} 
+  \pb{\psi}{\frac{V}{R^2}}
   \\
-  {\mu_\parallel}_\chi & = & \eta_0 \frac{p_i \tau_i}{r^2 B^2} \left(
-    \frac{1}{2} r^2 \ip{\chi}{\frac{\ip{\psi}{\psi}}{r^2}}
+  {\mu_\parallel}_\chi & = & \eta_0 \frac{p_i \tau_i}{R^2 B^2} \left(
+    \frac{1}{2} R^2 \ip{\chi}{\frac{\ip{\psi}{\psi}}{R^2}}
   - \ip{\psi}{\ip{\chi}{\psi}}
-  + \frac{1}{r} I^2 \chi_r 
+  + \frac{1}{R} F^2 \chi_r 
   \right.\\ && \left. \mbox{}
   + \lp{\chi} \ip{\psi}{\psi}
   \right)
@@ -1468,36 +1634,36 @@ assuming a gyroviscosity of the form given by
 equation~(\ref{eq:gyroviscosity}).
 
 \begin{eqnarray*}
-  & \lefteqn{U_{\P_\times U}(\nu, U) = -\frac{p_i I}{2 r^3 B^2}} & 
+  & \lefteqn{U_{\P_\times U}(\nu, U) = -\frac{p_i F}{2 R^3 B^2}} & 
   \\ & & \mbox{} \times
     \left\{ \begin{array}{l} 
-      \left(1+\frac{3}{2 r^2}\frac{\ip{\psi}{\psi}}{B^2}\right)
+      \left(1+\frac{3}{2 R^2}\frac{\ip{\psi}{\psi}}{B^2}\right)
       \left[ \begin{array}{r@{}l}
-	     & \left( [r^3 \nu_z]_z - [r^3 \nu_r]_r \right)
-	       \left( \left[\frac{U_r}{r}\right]_z 
-	            + \left[\frac{U_z}{r}\right]_r \right) 
+	     & \left( [R^3 \nu_Z]_Z - [R^3 \nu_r]_r \right)
+	       \left( \left[\frac{U_R}{R}\right]_Z 
+	            + \left[\frac{U_Z}{R}\right]_r \right) 
              \\ \mbox{}
-	   - & \left( [r^3 \nu_r]_z + [r^3 \nu_z]_r \right)
-	       \left( \left[\frac{U_z}{r}\right]_z 
-	            - \left[\frac{U_r}{r}\right]_r \right) 
+	   - & \left( [R^3 \nu_r]_Z + [R^3 \nu_Z]_r \right)
+	       \left( \left[\frac{U_Z}{R}\right]_Z 
+	            - \left[\frac{U_R}{R}\right]_r \right) 
 	     \end{array} \right]
        \\ \mbox{}
       + \frac{9}{2 r B^2} 
       \\ \mbox{} \times \left[ 
 	\begin{array}{r@{}l}
-	  \left( \psi_z^2 - \psi_r^2 \right) &
-	  \left( r \nu_z \left[ 
-	    \left( \frac{U_z}{r} \right)_z -
-	    \left( \frac{U_r}{r} \right)_r \right]
-          -\frac{1}{r^3} U_z \left[ 
-	    (r^3 \nu_z)_z - (r^3 \nu_r)_r \right] \right)
+	  \left( \psi_Z^2 - \psi_R^2 \right) &
+	  \left( r \nu_Z \left[ 
+	    \left( \frac{U_Z}{R} \right)_Z -
+	    \left( \frac{U_R}{R} \right)_r \right]
+          -\frac{1}{R^3} U_Z \left[ 
+	    (R^3 \nu_Z)_Z - (R^3 \nu_r)_r \right] \right)
 	  \\ 
-	  \mbox{} + 2 \psi_r \psi_z &
-          \left( r \nu_z \left[ 
-	    \left( \frac{U_r}{r} \right)_z +
-	    \left( \frac{U_z}{r} \right)_r \right]
-          -\frac{1}{r^3} U_z \left[ 
-	    (r^3 \nu_r)_z + (r^3 \nu_z)_r \right] \right)
+	  \mbox{} + 2 \psi_r \psi_Z &
+          \left( r \nu_Z \left[ 
+	    \left( \frac{U_R}{R} \right)_Z +
+	    \left( \frac{U_Z}{R} \right)_r \right]
+          -\frac{1}{R^3} U_Z \left[ 
+	    (R^3 \nu_r)_Z + (R^3 \nu_Z)_r \right] \right)
 	  \end{array} \right] 
     \end{array} \right\}
 \end{eqnarray*}
@@ -1506,43 +1672,43 @@ equation~(\ref{eq:gyroviscosity}).
   & \lefteqn{U_{\P_\times V}(\nu, V) = -\frac{p_i}{B^2}} &
   \\ && \mbox{} \times
   \left\{ \begin{array}{l}
-      \frac{1}{4 r^2} \left(1 - \frac{3 I^2}{B^2 r^2} \right) 
+      \frac{1}{4 R^2} \left(1 - \frac{3 F^2}{B^2 R^2} \right) 
       \\ \mbox{} \times
-      \left( \ip{\frac{V}{r^2}}{r^4 \pb{\psi}{\nu}}
-            -\ip{\psi}{r^4\pb{\nu}{\frac{V}{r^2}}}
-	    +\frac{1}{r^2}\pb{\nu}{r^6\ip{\frac{V}{r^2}}{\psi}} \right)
+      \left( \ip{\frac{V}{R^2}}{R^4 \pb{\psi}{\nu}}
+            -\ip{\psi}{R^4\pb{\nu}{\frac{V}{R^2}}}
+	    +\frac{1}{R^2}\pb{\nu}{R^6\ip{\frac{V}{R^2}}{\psi}} \right)
       \\ \mbox{}
-      -\frac{3}{4 B^2} \pb{\psi}{\frac{V}{r^2}}
+      -\frac{3}{4 B^2} \pb{\psi}{\frac{V}{R^2}}
       \\ \mbox{} \times
       \left( 2 \ip{\psi}{\ip{\psi}{\nu}}
-           - r^2 \ip{\nu}{\frac{\ip{\psi}{\psi}}{r^2}}
+           - R^2 \ip{\nu}{\frac{\ip{\psi}{\psi}}{R^2}}
 	   - \gs{\nu} \ip{\psi}{\psi}
-	   + 6 \psi_z \pb{\nu}{\psi} \right)
+	   + 6 \psi_Z \pb{\nu}{\psi} \right)
       \\ \mbox{}
-      +\frac{9 I^2}{2 B^2 r^2} \nu_z \ip{\psi}{\frac{V}{r^2}}
+      +\frac{9 F^2}{2 B^2 R^2} \nu_Z \ip{\psi}{\frac{V}{R^2}}
     \end{array} \right\}
 \end{eqnarray*}
 
 \begin{eqnarray*}
-  & \lefteqn{U_{\P_\times \chi}(\nu, \chi) = -\frac{p_i I}{2 r^3 B^2}} &
+  & \lefteqn{U_{\P_\times \chi}(\nu, \chi) = -\frac{p_i F}{2 R^3 B^2}} &
   \\ && \mbox{} \times 
   \left\{ \begin{array}{l}
-    \left[ \left( \chi_{r r} - \chi_{z z} \right)
-           \left( [r^3 \nu_r]_r - [r^3 \nu_z]_z \right)
-       +   2 \chi_{r z} 
-           \left( [r^3 \nu_r]_z + [r^3 \nu_z]_r \right)
+    \left[ \left( \chi_{R R} - \chi_{Z Z} \right)
+           \left( [R^3 \nu_r]_r - [R^3 \nu_Z]_Z \right)
+       +   2 \chi_{R Z} 
+           \left( [R^3 \nu_r]_Z + [R^3 \nu_Z]_r \right)
            \right]
     \\ \mbox{}
-    + \frac{3}{r^2 B^2} \left[ \begin{array}{l} 
-	\left( \gs{\chi}[\psi_z^2 - \psi_r^2] 
-        - \chi_{z z} \psi_z^2 + \chi_{r r} \psi_r^2 \right)
-	\left( [r^3 \nu_r]_r - [r^3 \nu_z]_z \right)
-	\\ \mbox{} + 2 \chi_{r z} 
-	\left( \psi_z^2 [r^3 \nu_r]_z
-	      +\psi_r^2 [r^3 \nu_z]_r \right)
-	\\ \mbox{} - 2 \psi_r \psi_z 
-	\left( \left[\chi_{z z} - \frac{1}{r}\chi_r \right] [r^3 \nu_r]_z
-	      +\left[\chi_{r r} - \frac{1}{r}\chi_r \right][r^3 \nu_z]_r 
+    + \frac{3}{R^2 B^2} \left[ \begin{array}{l} 
+	\left( \gs{\chi}[\psi_Z^2 - \psi_R^2] 
+        - \chi_{Z Z} \psi_Z^2 + \chi_{R R} \psi_R^2 \right)
+	\left( [R^3 \nu_r]_r - [R^3 \nu_Z]_Z \right)
+	\\ \mbox{} + 2 \chi_{R Z} 
+	\left( \psi_Z^2 [R^3 \nu_r]_Z
+	      +\psi_R^2 [R^3 \nu_Z]_r \right)
+	\\ \mbox{} - 2 \psi_r \psi_Z 
+	\left( \left[\chi_{Z Z} - \frac{1}{R}\chi_r \right] [R^3 \nu_r]_Z
+	      +\left[\chi_{R R} - \frac{1}{R}\chi_r \right][R^3 \nu_Z]_r 
 	      \right)
       \end{array} \right]
   \end{array} \right\}
@@ -1552,68 +1718,68 @@ equation~(\ref{eq:gyroviscosity}).
   & \lefteqn{V_{\P_\times U}(\nu, U) = \frac{p_i}{4 r B^2}} &
   \\ && \mbox{} \times 
   \left\{ \begin{array}{l}
-    \left(1 - \frac{3}{r^2} \frac{I^2}{B^2} \right)
-    \left( \ip{\psi}{r \pb{U}{\nu}}+\ip{\nu}{r \pb{U}{\psi}}
-          -\frac{1}{r^3} \pb{U}{r^4 \ip{\nu}{\psi}}
-	  +U_r \pb{\nu}{\psi} + \frac{2}{r} \psi_z \ip{\nu}{U} \right)
+    \left(1 - \frac{3}{R^2} \frac{F^2}{B^2} \right)
+    \left( \ip{\psi}{R \pb{U}{\nu}}+\ip{\nu}{R \pb{U}{\psi}}
+          -\frac{1}{R^3} \pb{U}{R^4 \ip{\nu}{\psi}}
+	  +U_r \pb{\nu}{\psi} + \frac{2}{R} \psi_Z \ip{\nu}{U} \right)
     \\ \mbox{} + 
-    \frac{3}{r B^2} \pb{\psi}{\nu}
+    \frac{3}{R B^2} \pb{\psi}{\nu}
     \left( 2\ip{\psi}{\ip{U}{\psi}} - \gs{U}\ip{\psi}{\psi} 
-          - \frac{1}{r^2}\ip{U}{r^2\ip{\psi}{\psi}} 
-	  +\pb{\psi}{r^2}\pb{\psi}{U} \right)
+          - \frac{1}{R^2}\ip{U}{R^2\ip{\psi}{\psi}} 
+	  +\pb{\psi}{R^2}\pb{\psi}{U} \right)
     \\ \mbox{} - 
-    \frac{18}{r^2} \frac{I^2}{B^2} \pb{U}{r} \ip{\nu}{\psi}
+    \frac{18}{R^2} \frac{F^2}{B^2} \pb{U}{R} \ip{\nu}{\psi}
   \end{array} \right\}
 \end{eqnarray*}
 
 \begin{eqnarray*}
-  V_{\P_\times V}(\nu, V) & = & \frac{p_i I r^2}{4 B^2}
-  \left(1 - \frac{3}{r^2} \frac{\ip{\psi}{\psi} - I^2}{B^2} \right)
-    \pb{\nu}{\frac{V}{r^2}}
+  V_{\P_\times V}(\nu, V) & = & \frac{p_i F R^2}{4 B^2}
+  \left(1 - \frac{3}{R^2} \frac{\ip{\psi}{\psi} - F^2}{B^2} \right)
+    \pb{\nu}{\frac{V}{R^2}}
 \end{eqnarray*}
 
 \begin{eqnarray*}
   & \lefteqn{V_{\P_\times \chi}(\nu, \chi) = \frac{p_i}{B^2}} &
   \\ && \mbox{} \times 
   \left\{ \begin{array}{l}
-    \left( \frac{1}{r^2}\ip{\chi}{r^2 \ip{\nu}{\psi}}
+    \left( \frac{1}{R^2}\ip{\chi}{R^2 \ip{\nu}{\psi}}
           -\ip{\nu}{\ip{\chi}{\psi}} - \ip{\psi}{\ip{\nu}{\chi}} \right)
     \\ \mbox{} + \frac{3}{2 r B^2} \pb{\psi}{\nu}
-    \left( \ip{\psi}{r \pb{\chi}{\psi}} 
+    \left( \ip{\psi}{R \pb{\chi}{\psi}} 
          - \frac{1}{2} r \pb{\chi}{\ip{\psi}{\psi}} \right)
-    \\ \mbox{} + \frac{3}{4 r^2} \frac{I^2}{B^2}
+    \\ \mbox{} + \frac{3}{4 R^2} \frac{F^2}{B^2}
     \left( \ip{\psi}{\ip{\chi}{\nu}} + \ip{\nu}{\ip{\chi}{\psi}}
           -\ip{\chi}{\ip{\nu}{\psi}} - 2 \gs{\chi}\ip{\nu}{\psi} \right)
   \end{array} \right\}
 \end{eqnarray*}
 
 \begin{eqnarray*}
-  & \lefteqn{X_{\P_\times U}(\nu, U) = \frac{p_i I}{2 r^2 B^2}} &
+  & \lefteqn{X_{\P_\times U}(\nu, U) = \frac{p_i F}{2 R^2 B^2}} &
   \\ && \mbox{} \times  
   \left\{ \begin{array}{l}
-  \funcss{\nu}{U} - r^2 \funcaa{\nu}{U} 
-  + \frac{1}{r} \left[ U_r (\nu_{z z} - \nu_{r r})
-                     -2 U_z \nu_{r z} - \frac{1}{r} U_r \nu_r \right]
+  \funcss{\nu}{U} - R^2 \funcaa{\nu}{U} 
+  + \frac{1}{R} \left[ U_r (\nu_{Z Z} - \nu_{R R})
+                     -2 U_Z \nu_{R Z} - \frac{1}{R} U_r \nu_r \right]
   \\ \mbox{}
-  + \frac{3}{r B^2} \left[ \begin{array}{l}
-    \left( \left[\frac{U_z}{r} \right]_z 
-         - \left[\frac{U_r}{r} \right]_r \right)
-    \left(\nu_{z z} \psi_r^2 - \nu_{r r} \psi_z^2
-         +\frac{1}{r} \nu_r [\psi_z^2 - \psi_r^2] \right)
+  + \frac{3}{R B^2} \left[ \begin{array}{l}
+    \left( \left[\frac{U_Z}{R} \right]_Z 
+         - \left[\frac{U_R}{R} \right]_r \right)
+    \left(\nu_{Z Z} \psi_R^2 - \nu_{R R} \psi_Z^2
+         +\frac{1}{R} \nu_r [\psi_Z^2 - \psi_R^2] \right)
     \\ \mbox{}
-    + 2\nu_{r z} \left( 
-        \left[ \frac{U_r}{r} \right]_z \psi_r^2
-      + \left[ \frac{U_z}{r} \right]_r \psi_z^2
-      - \frac{1}{r^2} U_z [\psi_z^2 - \psi_r^2] \right)
+    + 2\nu_{R Z} \left( 
+        \left[ \frac{U_R}{R} \right]_Z \psi_R^2
+      + \left[ \frac{U_Z}{R} \right]_r \psi_Z^2
+      - \frac{1}{R^2} U_Z [\psi_Z^2 - \psi_R^2] \right)
     \\ \mbox{}
-    - 2 \psi_r \psi_z \left( \begin{array}{l}
-        \left[ \frac{U_r}{r} \right]_z \nu_{r r}
-      + \left[ \frac{U_z}{r} \right]_r \nu_{z z}
-      - \frac{1}{r^2} U_z [\nu_{z z} - \nu_{r r}] 
+    - 2 \psi_r \psi_Z \left( \begin{array}{l}
+        \left[ \frac{U_R}{R} \right]_Z \nu_{R R}
+      + \left[ \frac{U_Z}{R} \right]_r \nu_{Z Z}
+      - \frac{1}{R^2} U_Z [\nu_{Z Z} - \nu_{R R}] 
       \\ \mbox{}
-      - \frac{1}{r} \nu_r \left[ 
-	  \left( \frac{U_r}{r} \right)_z
-	+ \left( \frac{U_z}{r} \right)_r \right] 
+      - \frac{1}{R} \nu_r \left[ 
+	  \left( \frac{U_R}{R} \right)_Z
+	+ \left( \frac{U_Z}{R} \right)_r \right] 
       \end{array} \right)
     \end{array} \right]
   \end{array} \right\}
@@ -1623,38 +1789,38 @@ equation~(\ref{eq:gyroviscosity}).
   & \lefteqn{X_{\P_\times V}(\nu, V) = \frac{p_i}{4 B^2}} &
   \\ && \mbox{} \times 
   \left\{ \begin{array}{l}
-    \left(1 - \frac{3}{r^2} \frac{I^2}{B^2} \right) \left(
-    \frac{1}{r^2} \ip{\nu}{r^2\ip{\frac{V}{r^2}}{\psi}}
-    - \ip{\psi}{\ip{\frac{V}{r^2}}{\nu}}
-    - \ip{\frac{V}{r^2}}{\ip{\psi}{\nu}} \right)
-    \\ \mbox{} + \frac{6}{B^2} \pb{\psi}{\frac{V}{r^2}}
-    \left(\frac{1}{r} \ip{\psi}{r \pb{\nu}{\psi}}
+    \left(1 - \frac{3}{R^2} \frac{F^2}{B^2} \right) \left(
+    \frac{1}{R^2} \ip{\nu}{R^2\ip{\frac{V}{R^2}}{\psi}}
+    - \ip{\psi}{\ip{\frac{V}{R^2}}{\nu}}
+    - \ip{\frac{V}{R^2}}{\ip{\psi}{\nu}} \right)
+    \\ \mbox{} + \frac{6}{B^2} \pb{\psi}{\frac{V}{R^2}}
+    \left(\frac{1}{R} \ip{\psi}{R \pb{\nu}{\psi}}
     - \frac{1}{2} \pb{\nu}{\ip{\psi}{\psi}} \right)
-    \\ \mbox{} - 6 \frac{I^2}{B^2} \ip{\psi}{\frac{V}{r^2}}
-    \left[ \left(\frac{\nu_z}{r^2} \right)_z
-         + \left(\frac{\nu_r}{r^2} \right)_r \right]
+    \\ \mbox{} - 6 \frac{F^2}{B^2} \ip{\psi}{\frac{V}{R^2}}
+    \left[ \left(\frac{\nu_Z}{R^2} \right)_Z
+         + \left(\frac{\nu_R}{R^2} \right)_r \right]
   \end{array} \right\}
 \end{eqnarray*}
 
 
 \begin{eqnarray*}
-  & \lefteqn{X_{\P_\times \chi}(\nu, \chi) = -\frac{p_i I}{B^2}} &
+  & \lefteqn{X_{\P_\times \chi}(\nu, \chi) = -\frac{p_i F}{B^2}} &
   \\ && \mbox{} \times 
   \left\{ \begin{array}{l}
-    \left(1 + \frac{3}{2 r^2} \frac{\ip{\psi}{\psi}}{B^2} \right)
+    \left(1 + \frac{3}{2 R^2} \frac{\ip{\psi}{\psi}}{B^2} \right)
     \funcsa{\nu}{\chi}
     \\ \mbox{} + \frac{3}{2 B^2} \left[ \begin{array}{r@{}l}
       & \left(- \frac{1}{2} \pb{\chi}{\ip{\psi}{\psi}}
-	      + \frac{1}{r} \ip{\psi}{r\pb{\chi}{\psi}} 
+	      + \frac{1}{R} \ip{\psi}{R\pb{\chi}{\psi}} 
              \right)
-	\left( \left[ \frac{\nu_r}{r^2} \right]_r
-	     + \left[ \frac{\nu_z}{r^2} \right]_z \right)
+	\left( \left[ \frac{\nu_R}{R^2} \right]_r
+	     + \left[ \frac{\nu_Z}{R^2} \right]_Z \right)
     \\ \mbox{}
      - & \left(- \frac{1}{2} \pb{\nu}{\ip{\psi}{\psi}}
-               + \frac{1}{r} \ip{\psi}{r\pb{\nu}{\psi}} 
+               + \frac{1}{R} \ip{\psi}{R\pb{\nu}{\psi}} 
               \right)
-         \left( \left[ \frac{\chi_r}{r^2} \right]_r
-	      + \left[ \frac{\chi_z}{r^2} \right]_z \right)
+         \left( \left[ \frac{\chi_R}{R^2} \right]_r
+	      + \left[ \frac{\chi_Z}{R^2} \right]_Z \right)
       \end{array} \right]
   \end{array} \right\}
 \end{eqnarray*}
@@ -1675,7 +1841,7 @@ taken from ref.~\cite{Dunavant85}.
 
 The coordinates of the sampling points are given in the ``natural
 coordinates'' $(\alpha, \beta, \gamma)$ in ref.~\cite{Dunavant85}.
-These coordinates may be converted to cartesian coordinates $(r, z)$
+These coordinates may be converted to cartesian coordinates $(r, Z)$
 for an equilateral triangle $e$ having vertices
 \[
 \left\{\left(-\frac{\sqrt{3}}{2},-\frac{1}{2}\right),
@@ -1695,7 +1861,7 @@ To find the coordinates of the sampling points for a general triangle
 $g$ having vertices $\{(-b,0), (a,0), (0,c)\}$, as in
 ref.~\cite{Jardin04}, one may use the linear transformation
 \begin{eqnarray*}
-  \phi_{e \to g}(r,z) & = & 
+  \phi_{e \to g}(r,Z) & = & 
     \left(\frac{a+b}{\sqrt{3}} x + \frac{a-b}{3} (1-y), 
     \frac{c}{3}(2y+1) \right) \\
   \mathcal{J}_{\phi_{e \to g}} & = &  \frac{2 c}{3 \sqrt{3}} (a+b).
@@ -1703,7 +1869,7 @@ ref.~\cite{Jardin04}, one may use the linear transformation
 The transformation from natural coordinates to cartesian coordinates
 for a triangle having vertices $\{(-b,0), (a,0), (0,c)\}$ is therefore
 \begin{eqnarray*}
-  \phi_{n \to g}(r,z) & = & 
+  \phi_{n \to g}(r,Z) & = & 
   \left(\frac{1}{2} (a+b) (\beta-\gamma) +
   \frac{1}{2} (a-b)(1-\alpha), c \alpha \right) \\
   \mathcal{J}_{\phi_{n \to g}} & = & \frac{1}{2} (a+b) c.
@@ -1714,9 +1880,9 @@ are polynomials of degree 20 (or less).  In the case of quintic finite
 elements, this means the integration is exact for terms involving
 products of three fields or fewer, not including the degree-five
 trial function $\nu$.  In cylindrical geometry, the presence factors
-of $1/r$ will cause the quadrature not to be exact, as $1/r$ is not in
+of $1/R$ will cause the quadrature not to be exact, as $1/R$ is not in
 the form of a polynomial.  The weights $w_i$ must also be multiplied
-by $r_i$ in cylindrical coordinates to account for the Jacobian of the
+by $R_i$ in cylindrical coordinates to account for the Jacobian of the
 transformation from cartesian to cylindrical coordinates.
 
 
@@ -1751,7 +1917,7 @@ temporally according to the chosen time integration method
           S^v_{2 3}  &        0         &
 	  R^v_{2 4}  &       R^v_{2 3}
     \\
-    \colb{R^B_{2 1}} & \cola{S^B_{2 1}} &
+    \colb{R^B_{2 1}} & \colb{S^B_{2 1}} &
     \colb{R^B_{2 2}} & \colb{S^B_{2 2}} & 
           R^B_{2 3}  &       S^B_{2 3}  &
               0      &        0
@@ -1778,7 +1944,7 @@ temporally according to the chosen time integration method
   \end{pmatrix}
   \begin{pmatrix}
     \cola{U}\\ \cola{\psi}\\ 
-    \colb{V}\\ \colb{I}   \\
+    \colb{V}\\ \colb{F}   \\
     \chi \\ p_e \\ 
     n \\ p
   \end{pmatrix}^{(n+1)} = \nonumber \\
@@ -1798,7 +1964,7 @@ temporally according to the chosen time integration method
           D^v_{2 3}  &        0         &
 	  Q^v_{2 4}  &       Q^v_{2 3}
     \\
-    \colb{Q^B_{2 1}} & \cola{D^B_{2 1}} &
+    \colb{Q^B_{2 1}} & \colb{D^B_{2 1}} &
     \colb{Q^B_{2 2}} & \colb{D^B_{2 2}} & 
           Q^B_{2 3}  &       D^B_{2 3}  &
               0      &        0
@@ -1825,7 +1991,7 @@ temporally according to the chosen time integration method
   \end{pmatrix}
   \begin{pmatrix}
     \cola{U}\\ \cola{\psi}\\ 
-    \colb{V}\\ \colb{I}   \\
+    \colb{V}\\ \colb{F}   \\
     \chi \\ p_e \\ 
     n \\ p
   \end{pmatrix}^{(n)} +   
@@ -1847,7 +2013,7 @@ are advanced separately, and finally the magnetic field and electron
 pressure are advanced together.  Though the velocity and magnetic
 field are advanced separately, the Alfv\'en and magnetosonic waves are
 treated implicitly by using
-equations~(\ref{eq:scalar_p}--\ref{eq:scalar_I}) to calculate
+equations~(\ref{eq:scalar_p}--\ref{eq:scalar_F}) to calculate
 analytically the advanced-time values of the pressure and magnetic
 field for use in the velocity time step.
 
@@ -1880,7 +2046,7 @@ field for use in the velocity time step.
           Q^v_{3 1}  &       Q^v_{3 2}  & Q^v_{3 3}\\
   \end{pmatrix} 
   \begin{pmatrix}
-    \cola{\psi}\\ \colb{I}\\ p
+    \cola{\psi}\\ \colb{F}\\ p
   \end{pmatrix}^{(n)} \nonumber
   \\ & & \mbox{} + 
   \begin{pmatrix}
@@ -1921,7 +2087,7 @@ field for use in the velocity time step.
           S^B_{3 1}  &       S^B_{3 2}  & S^B_{3 3}\\
   \end{pmatrix} 
   \begin{pmatrix}
-    \cola{\psi}\\ \colb{I}\\ p_e
+    \cola{\psi}\\ \colb{F}\\ p_e
   \end{pmatrix}^{(n+1)}}\\
   & = & 
   \begin{pmatrix}
@@ -1930,7 +2096,7 @@ field for use in the velocity time step.
           D^B_{3 1}  &       D^B_{3 2}  & D^B_{3 3}\\
   \end{pmatrix} 
   \begin{pmatrix}
-    \cola{\psi}\\ \colb{I}\\ p_e
+    \cola{\psi}\\ \colb{F}\\ p_e
   \end{pmatrix}^{(n)} +
   \begin{pmatrix}
     \cola{R^B_{1 1}} & \colb{R^B_{1 2}} & R^B_{1 3}\\
@@ -2044,59 +2210,8 @@ and the truncation error is
   + \cdots.
 \end{equation}
 
-\section{Reduced Models}
 
-The full extended-MHD equations contain as subsets simpler, fully
-consistent, energy-conserving (up to dissipative terms) fluid models.
-Because of the flux/po\-ten\-tial repreresentation of the fields, these
-models may be obtained simply by dropping some of the scalar equations
-from the full system.  Specifically, by dropping the density,
-pressure, electron pressure and compression equations, the four-field
-model of Fitzpatrick and Porcelli~\cite{Fitzpatrick04} is recovered.
-This model is represented by the terms in blue and red.  By further
-dropping the axial field and axial velocity equations, a two-field
-model appropriate in the low-$\beta$, high axial field limit is
-recovered (indicated by red terms).
-
-
-\section{Boundary Conditions}
-
-Boundary conditions are imposed on each of the scalar fields
-separately.  The following boundary conditions have been implemented:
-
-\begin{description}
-\item[No normal flow]
-  \[ \uvec{t} \cdot \grad U = 0  \mbox{ \emph{and} }
-     \uvec{n} \cdot \grad\chi = 0. \]
-\item[No toroidal slip \emph{or} No normal stress]
-  \[ \partial_t V = 0 \mbox{ \emph{or} } \uvec{n} \cdot \grad V = 0 \]
-\item[No vorticity]
-  \[ \gs{U} = 0 \]
-\item[No compression]
-  \[ \lp{\chi} = 0 \]
-\item[Conducting boundaries]
-  \[ \partial_t \psi = V_L / (2 \pi) \mbox{ \emph{and} } \partial_t I = 0 \]
-\item[No toroidal current]
-  \[ \gs{\psi} = 0 \]
-\item[No tangential current]
-  \[ \uvec{n} \cdot \grad I = 0 \]
-\item[Constant pressure \emph{or} No diffusive pressure flux]
-  \[ \partial_t p = 0 \mbox{ \emph{or} } \uvec{n} \cdot \grad p = 0 \]
-\item[Constant density \emph{or} No diffusive density flux]
-  \[ \partial_t n = 0 \mbox{ \emph{or} } \uvec{n} \cdot \grad n = 0 \]
-\end{description}
-In the above definitions, $\uvec{n}$ is the unit vector normal to the
-boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
-
-
-
-
-
-
-
-
-
-\section{Input Parameters}
+\chapter{Input Parameters}
 \label{sec:input_parameters}
 
 \subsection{Model Options}
@@ -2133,8 +2248,8 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
   \texttt{gam}    & $\Gamma$& 5/3 & Adiabatic constant\\
   \texttt{db}     & $d_i$   & 0   & Ion skin depth\\
   \texttt{gravr}, \texttt{gravz} & \vec{g} & 0 & \parbox[t]{1.8in}{Gravity.\\
-                       $\vec{g} = -(\mathtt{gravr}/r^2) \uvec{r} 
-                                  - \mathtt{gravz}\ \uvec{z}$.}
+                       $\vec{g} = -(\mathtt{gravr}/R^2) \uvec{R} 
+                                  - \mathtt{gravz}\ \uvec{Z}$.}
 \end{tabular}
 
 
@@ -2190,18 +2305,24 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
 
 \begin{tabular}{lcp{2.2in}}
   \textbf{Option} & \textbf{Default} & \textbf{Description}\\
- \hline
-  \texttt{hyper}    & 0 & Poloidal hyper-resistive coefficient\\
-  \texttt{hyperi}   & 0 & Toroidal hyper-resistive coefficient\\
-  \texttt{hyperc}   & 0 & Poloidal hyper-viscous coefficient\\
-  \texttt{hyperv}   & 0 & Toroidal hyper-viscous coefficient\\
-  \texttt{hyperp}   & 0 & Thermal hyper-diffusive coefficient\\
-  \texttt{deex}     & 1 & Hyper-diffusive scale length\\
-  \texttt{ihypdx}   & 2 & Multiply \texttt{hyper}* by 
-                          \texttt{deex}$^\mathtt{ihypdx}$\\
-  \texttt{ihypeta}  & 1 & 1: Multiply hyper-resistivities by $\eta$\\
-  \texttt{ihypamu}  & 1 & 1: Multiply hyper-viscosities by $\mu$\\
-  \texttt{ihypkappa}& 1 & 1: Multiply hyper-diffusion by $\kappa$\\
+  \hline
+  \texttt{xzero}  & 0 & $R$-coordinate of bottom left corner of domain\\
+  \texttt{zzero}  & 0 & $Z$-coordinate of bottom left corder of domain\\
+  \texttt{iper}   & 0 & 1: Left/right boundaries periodic\\
+  \texttt{jper}   & 0 & 2: Top/bottom boundaries periodic\\
+  \texttt{inonormalflow}& 1 & 1: No-normal-flow boundary\\
+  \texttt{inoslip\_pol} & 0 & 1: No-slip boundaries for poloidal velocity\\
+  \texttt{inoslip\_tor} & 1 & 1: No-slip boundaries for toroidal velocity\\
+  \texttt{inostress\_tor}&0 & 1: No-normal-stress boundary for toroidal 
+                                 velocity\\
+  \texttt{com\_bc}& 1 & 1: $\nabla^2 \chi = 0$\\
+  \texttt{iconst\_t}  & 0 & 0: $\partial_t T = 0$\\
+  \texttt{inograd\_t} & 0 & 0: No normal temperature gradient\\
+  \texttt{vloop}  & 0 & Loop voltage.  $\partial_t \psi = \mathtt{vloop}$\\
+  \texttt{imask}  & 0 & 1: Smoothly bring $d_i$ to zero near
+    boundaries\\
+  \texttt{amu\_edge} & 0 &    Factor by which to increase viscosity near 
+                              boundaries
 \end{tabular}
 
 
@@ -2329,18 +2450,10 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
   \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
   \texttt{igs}   & 80     & Number of Picard iterations\\
-  \texttt{igs\_method} & 1 & 
-  \begin{minipage}[t]{3in}
-    1: Calculate GS solution at nodes\\
-    2: Calculate solution on FE basis, using $p$\\
-    3: Calculate solution of FE basis, using $p'$
-  \end{minipage}\\
-  \texttt{th\_gs} & 0.8   & Relaxation paramter for GS iteration\\
-  \hline
-  \texttt{xmag}  & 1      & $r$-coordinate of magnetic axis\\
-  \texttt{zmag}  & 0      & $z$-coordinate of magnetic axis\\
-  \texttt{xlim}  & 0      & $r$-coordinate of limiter\\
-  \texttt{zlim}  & 0      & $z$-coordinate of limiter\\
+  \texttt{xmag}  & \texttt{xzero}+1 & $R$-coordinate of magnetic axis\\
+  \texttt{zmag}  & 0      & $Z$-coordinate of magnetic axis\\
+  \texttt{xlim}  & \texttt{xzero}   & $R$-coordinate of limiter\\
+  \texttt{zlim}  & 0      & $Z$-coordinate of limiter\\
   \hline
   \texttt{divertors} & 0  & Number of divertors (0--2)\\
   \texttt{divcur}& 0.1    & Divertor current(s), as fraction of tcuro\\
@@ -2358,6 +2471,14 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
   \texttt{p0}    & 0.01   & Pressure at magnetic axis\\
   \texttt{p1}    & -1     & $p'(\Psi)$ at magnetic axis\\
   \texttt{p2}    & -2     & $p''(\Psi)$ at magnetic axis\\
+  \texttt{pedge} & 0      & Pressure in vacuum region\\
+  \texttt{divertors} & 0  & Number of divertors (0--2)\\
+  \texttt{divcur}& 0.1    & Divertor current(s), as fraction of tcuro\\
+  \texttt{xdiv}  & \texttt{xmag} & $R$-coordinate of divertor current(s)\\
+  \texttt{zdiv}  & \texttt{zmag} & \parbox[t]{3in}{$Z$-coordinate of 
+    divertor 
+    current.  If $\mathtt{divertors} = 2$, the second divertor has 
+    $Z = -\mathtt{zdiv}$.}\\
   \texttt{expn}  & 0 & \parbox[t]{3in}{Fraction of pressure gradient due to
     density gradient: $n = p^\mathtt{expn}$.}\\
   \texttt{psiscale} & 1.0 & Rescale profiles s.t. LCFS is at 
@@ -2433,10 +2554,10 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
                                      & Particle number injection rate\\
   \texttt{pellet\_var}  & $l_p$      & 1    & Variance of  
                                               injection profile\\
-  \texttt{pellet\_x}    & $r_p$      & 0 
-                                     & $r$-coordinate of injection site\\
-  \texttt{pellet\_z}    & $z_p$      & 0
-                                     & $z$-coordinate of injection site\\
+  \texttt{pellet\_x}    & $R_p$      & \texttt{xmag} 
+                                     & $R$-coordinate of injection profile\\
+  \texttt{pellet\_z}    & $Z_p$      & \texttt{zmag} 
+                                     & $Z$-coordinate of injection profile\\
   \texttt{ionization}   & & 0  & 1: include neutral ionization
     source (\textit{c.f.} section~\ref{sec:ionization})\\
   \texttt{ionization\_rate} & $\alpha_i$ & 0 
@@ -2465,8 +2586,6 @@ boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
 \bibliography{doc.bib}
 
 \appendix
-
-\include{SCORECdoc}
 
 \include{idl_postprocessor}
 

@@ -11,28 +11,9 @@ module biharmonic
 
 contains
 
-  integer function factorial(n)
-    implicit none
-
-    integer, intent(in) :: n
-
-    integer :: i
-
-    factorial = 1.
-    do i=2,n
-       factorial = factorial*i
-    end do
-  end function factorial
-
-  real function binomial(n, m)
-    implicit none
-
-    integer, intent(in) :: n, m
-
-    binomial = factorial(n)/(factorial(m)*factorial(n-m))
-  end function binomial
-
   subroutine analytic_solution(n, x, z, soln)
+    use math
+
     implicit none
 
     integer, intent(in) :: n
@@ -80,56 +61,62 @@ contains
     use basic
     use sparse
     use arrays
-    use t_data
+    use mesh_mod
     use nintegrate_mod
+    use boundary_conditions
 
     implicit none
     
     integer, intent(in) :: bi
-    integer :: itri, i, ii, i1, j, j1, numnodes, numelms, ier
-    integer :: ibegin, iendplusone
+    integer :: itri, i, ii, j, numnodes, numelms, ier
     logical :: is_edge(3)  ! is inode on boundary
     real :: n(2,3), sum, sum2, x, z
     integer :: idim(3), izone, izonedim
     logical :: is_boundary
     real :: normal(2), curv
     vectype, dimension(20) :: avec
-  
-    vectype, allocatable :: rhs(:), bcs(:)
+
+    type(element_data) :: d
+    type(field_type) :: rhs, bcs
     real :: soln(MAX_PTS)
 
-    integer, parameter :: biharmonic_sm = 1
+    integer, dimension(nodes_per_element) :: inode
+    integer, parameter :: biharmonic_mat_index = 1
+    type(matrix_type) :: biharmonic_mat
+    integer, dimension(1, dofs_per_element) :: ind
 
     biharmonic_operator = bi
 
-    print *, 'zeroing matrix'
-    call zerosuperlumatrix(biharmonic_sm, icomplex, 1)
+    call set_matrix_index(biharmonic_mat, biharmonic_mat_index)
+    call create_mat(biharmonic_mat, 1, 1, icomplex, .true.)
 
-    call numfac(numelms)
+    numelms = local_elements()
 
     print *, 'populating matrix'
     ! populate the matrix
     do itri=1,numelms
+       call get_element_nodes(itri,inode)
 
        call define_triangle_quadrature(itri,25)
        call define_fields(itri,0,1,0)
+
+       call get_basis_indices(1, itri, ind)
     
-       do i=1,18
-          i1 = isval1(itri,i)
-          do j=1,18
-             j1 = isval1(itri,j)
+       do i=1, dofs_per_element
+          do j=1, dofs_per_element
+             
              select case(biharmonic_operator)
              case(0)
                 temp79a = &
-                     -(g79(:,OP_DZ,i)*g79(:,OP_DZ,j) &
-                      +g79(:,OP_DR,i)*g79(:,OP_DR,j))
+                     -(mu79(:,OP_DZ,i)*nu79(:,OP_DZ,j) &
+                      +mu79(:,OP_DR,i)*nu79(:,OP_DR,j))
              case(1)
                 temp79a = &
-                     (g79(:,OP_LP,i)*g79(:,OP_LP,j) &
-                     +g79(:,OP_LP,i)*g79(:,OP_LP,j))
+                     (mu79(:,OP_LP,i)*nu79(:,OP_LP,j) &
+                     +mu79(:,OP_LP,i)*nu79(:,OP_LP,j))
              end select
              sum = int1(temp79a)
-             call insertval(biharmonic_sm, sum, 0, i1,j1,1)
+             call insert(biharmonic_mat, sum, ind(1,i), ind(1,j), MAT_ADD)
           enddo
        enddo
        
@@ -138,47 +125,43 @@ contains
        ! add surface terms
        call boundary_edge(itri, is_edge, n, idim)
        
-       do ii=1,3
+       do ii=1,edges_per_element
           if(.not.is_edge(ii)) cycle
           
           call define_edge_quadrature(itri, ii, 5, n, idim)
           call define_fields(itri, 0, 1, 0)
           
-          do j=1,18
-             j1 = isval1(itri,j)
-             do i=1,18
-                i1 = isval1(itri,i)
+          do i=1,dofs_per_element
+             do j=1,dofs_per_element
                 select case(biharmonic_operator)
                 case(0)
                    temp79a = &
-                        (norm79(:,1)*g79(:,OP_DR,j) &
-                        +norm79(:,2)*g79(:,OP_DZ,j))
-                   sum = int2(g79(:,OP_1,i),temp79a)
+                        (norm79(:,1)*nu79(:,OP_DR,j) &
+                        +norm79(:,2)*nu79(:,OP_DZ,j))
+                   sum = int2(mu79(:,OP_1,i),temp79a)
                 case(1)
                    temp79a = &
-                        (norm79(:,1)*g79(:,OP_LPR,j)*g79(:,OP_1,i) &
-                        +norm79(:,2)*g79(:,OP_LPZ,j)*g79(:,OP_1,i) &
-                        -norm79(:,1)*g79(:,OP_DR,i)*g79(:,OP_LP,j) &
-                        -norm79(:,2)*g79(:,OP_DZ,i)*g79(:,OP_LP,j))
+                        (norm79(:,1)*nu79(:,OP_LPR,j)*mu79(:,OP_1,i) &
+                        +norm79(:,2)*nu79(:,OP_LPZ,j)*mu79(:,OP_1,i) &
+                        -norm79(:,1)*mu79(:,OP_DR,i)*nu79(:,OP_LP,j) &
+                        -norm79(:,2)*mu79(:,OP_DZ,i)*nu79(:,OP_LP,j))
                    sum = int1(temp79a)
                 end select
-                call insertval(biharmonic_sm, sum, 0, i1,j1,1)
+                call insert(biharmonic_mat, sum, ind(1,i), ind(1,j), MAT_ADD)
              enddo
           enddo
-       end do
-    enddo
+       enddo
+    end do
 
     print *, 'allocating arrays'
-    call createvec(rhs, 1)
-    call createvec(bcs, 1)
+    call create_field(rhs)
+    call create_field(bcs)
 
     print *, 'defining bcs'
-    call numnod(numnodes)
+    numnodes = owned_nodes()
 
     ! define boundary conditions
     do i=1, numnodes
-       call entdofs(1, i, 0, ibegin, iendplusone)
-
        call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
 
        if(.not.is_boundary) cycle
@@ -199,17 +182,16 @@ contains
 !!$
 !!$
        call analytic_solution(solution_order,x,z,soln(1:6))
-       bcs(ibegin:ibegin+5) = soln(1:6)
-
+       call set_node_data(bcs, i, soln(1:6))
     end do
    
-    call boundary_biharmonic(biharmonic_sm, rhs, bcs)
+    call boundary_biharmonic(rhs, bcs, biharmonic_mat)
 
     ! solve equation
     print *, 'solving'
-    call finalizematrix(biharmonic_sm)
+    call finalize(biharmonic_mat)
 
-    call solve(biharmonic_sm, rhs, ier)
+    call newsolve(biharmonic_mat, rhs%vec, ier)
    
     ! calculate error
     sum = 0.
@@ -217,9 +199,10 @@ contains
     do itri=1, numelms
        call define_triangle_quadrature(itri,npts_biharmonic)
        call define_fields(itri,0,0,0)
+       call get_element_data(itri,d)
 
-       call calcavector(itri, rhs, 1, 1, avec)
-       call eval_ops(avec, si_79, eta_79, ttri(itri), ri_79, npoints, ps079)
+       call calcavector(itri, rhs, avec)
+       call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, ps079)
 
 !!$       call biharmonic_solution(x_79,z_79,1.,soln)
 !!$       ps179(:,OP_1) = soln
@@ -237,12 +220,13 @@ contains
 
     ! copy solution to psi0
     print *, 'copying solution bcs'
-    call copyvec(rhs, 1, 1, field0, psi_g, num_fields)
+    psi_field(0) = rhs
 
     ! free temporary arrays
     print *, 'deallocating arrays'
-    call deletevec(rhs)
-    call deletevec(bcs)
+    call destroy_field(rhs)
+    call destroy_field(bcs)
+    call destroy_mat(biharmonic_mat)
    
   end subroutine biharmonic_init
 
@@ -270,14 +254,14 @@ contains
   end function biharmonic_integrand
  
   subroutine biharmonic_solution(x, z, a, w)
-
+    use math
+    
     implicit none
 
     real, intent(in), dimension(npts_biharmonic) :: x, z
     real, intent(in) :: a
     real, intent(out), dimension(npts_biharmonic) :: w
     real :: eta, deta
-    real, parameter :: pi = 3.14159265358979323846
     integer :: i, n
 
     r2 = x**2 + z**2
@@ -289,55 +273,57 @@ contains
 
     w = biharmonic_integrand(0.) + biharmonic_integrand(2.*pi)
 
-    deta = 2.*pi/n
+    deta = twopi/n
     eta = deta
     do i=1, n-1
        w = w + 2.*biharmonic_integrand(eta)
        eta = eta + deta
     end do
-    w = w*2.*pi/(2.*n)
+    w = w*twopi/(2.*n)
 
     select case(biharmonic_operator)
     case(0)
-       w = w*(a2 - r2)/(2.*pi)
+       w = w*(a2 - r2)/(twopi)
     case(1)
-       w = w*(a2 - r2)**2/(2.*pi*a)
+       w = w*(a2 - r2)**2/(twopi*a)
     end select
    
   end subroutine biharmonic_solution
 
-  subroutine boundary_biharmonic(imatrix, rhs, bvec)
+  subroutine boundary_biharmonic(rhs, bvec, mat)
     use basic
+    use boundary_conditions
+    use field
+    use matrix_mod
 
     implicit none
   
-    integer, intent(in) :: imatrix
-    vectype, intent(inout), dimension(*) :: rhs
-    vectype, intent(in), dimension(*) :: bvec
+    type(field_type), intent(inout) :: rhs
+    type(field_type), intent(in) :: bvec
+    type(matrix_type), intent(inout), optional :: mat
     
-    integer :: i, izone, izonedim
-    integer :: ibegin, iendplusone, numnodes
+    integer :: i, izone, izonedim, index
+    integer :: numnodes
     real :: normal(2), curv
     real :: x, z
     logical :: is_boundary
-    vectype, dimension(6) :: temp
+    vectype, dimension(dofs_per_node) :: temp
 
     if(iper.eq.1 .and. jper.eq.1) return
     if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_biharmonic called"
     
-    call numnod(numnodes)
+    numnodes = owned_nodes()
     do i=1, numnodes
        call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
        if(.not.is_boundary) cycle
        
-       call entdofs(1, i, 0, ibegin, iendplusone)
-       call rotate_matrix(imatrix, ibegin, normal, curv, rhs, icurv)
+       index = node_index(rhs, i)
        
-       temp = bvec(ibegin:ibegin+5)
-       call set_dirichlet_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim)
+       call get_node_data(bvec, i, temp)
+       call set_dirichlet_bc(index,rhs%vec,temp,normal,curv,izonedim,mat)
 
        if(biharmonic_operator.eq.1) then
-          call set_normal_bc(imatrix,ibegin,rhs,temp,normal,curv,izonedim)
+          call set_normal_bc(index,rhs%vec,temp,normal,curv,izonedim,mat)
        endif
     end do
     

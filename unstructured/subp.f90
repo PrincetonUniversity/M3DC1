@@ -1,3 +1,24 @@
+subroutine f07adf(m,n,a,lda,ipiv,info)
+  integer, intent(in) :: m, n, lda
+  double precision, dimension(lda,n), intent(inout) :: a
+  integer, dimension(min(m,n)), intent(out) :: ipiv
+  integer, intent(out) :: info
+
+  call DGETRF(m,n,a,lda,ipiv,info)
+  return
+end subroutine f07adf
+
+subroutine f07ajf(n,a,lda,ipiv,work,lwork,info)
+  integer, intent(in) :: n, lda, lwork
+  double precision, dimension(lda,n), intent(inout) :: a
+  integer, dimension(n), intent(in) :: ipiv
+  double precision, dimension(max(1,lwork)), intent(out) :: work
+  integer, intent(out) :: info
+  
+  call DGETRI(n,a,lda,ipiv,work,lwork,info)
+  return
+end subroutine f07ajf
+
 ! ----------------------------------------------------------------------
       FUNCTION BESSK0(X)
 !     CALCUL DE LA FONCTION BESSEL MODIFIEE DU 3EME ESPECE D'ORDRE 0
@@ -100,23 +121,6 @@
       RETURN
       END
 
-! End of file Tbessk.f90
-      subroutine f07adf(n1,n2,ti,n3,ipiv,info1)
-      call DGETRF(n1,n2,ti,n3,ipiv,info1)
-      return
-      end
-      subroutine f07ajf(n1,ti,n2,ipiv,wkspce,n3,info2)
-      call DGETRI(n1,ti,n2,ipiv,wkspce,n3,info2)
-      return
-      end
-      function s17aef(arg,idum)
-      s17aef = dbesj0(arg)
-      return
-      end
-      function s17aff(arg,idum)
-      s17aff = dbesj1(arg)
-      return
-      end
 
 ! ----------------------------------------------------------------------
       FUNCTION BESSIP(N,X)

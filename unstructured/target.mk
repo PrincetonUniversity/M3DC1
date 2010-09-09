@@ -26,6 +26,11 @@ makefile : ;
 
 % :: $(OBJDIR) ; :
 
+.PHONY: cleanall
+cleanall : 
+	rm -fr _$(ARCH)*
+
 .PHONY: clean
 clean : 
-	rm -fr _$(ARCH)*
+	rm -fr _$(BIN_POSTFIX)*
+

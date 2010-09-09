@@ -1,0 +1,410 @@
+module scorec_mesh_mod
+  use element
+
+  implicit none
+
+  logical :: is_rectilinear
+
+  vectype, allocatable :: gtri(:,:,:), gtri_old(:,:,:)
+
+  real :: xzero, zzero
+  real :: tiltangled
+  integer :: iper, jper
+  integer :: icurv
+
+  integer, parameter :: maxi = 20
+  logical, allocatable :: is_ghost(:)
+
+  logical, private :: has_bounding_box = .false.
+  real, private :: bb(4)
+
+contains
+
+  subroutine load_mesh
+    implicit none
+
+    ! initialize scorec solvers
+    call initsolvers
+
+    ! initialize autopack
+    call AP_INIT()
+
+    ! load mesh
+    call loadmesh("struct.dmg", "struct-dmg.sms")
+  end subroutine load_mesh
+
+  subroutine unload_mesh
+    call deletesearchstructure
+    call clearscorecdata
+    call finalizesolvers
+  end subroutine unload_mesh
+
+
+  !==============================================================
+  ! local_nodes
+  ! ~~~~~~~~~~~
+  ! returns the number of elements local to this process
+  !==============================================================
+  integer function local_elements()
+    implicit none
+    call numfac(local_elements)
+  end function local_elements
+
+  !==============================================================
+  ! owned_nodes
+  ! ~~~~~~~~~~~
+  ! returns the number of elements owned by to this process
+  !==============================================================
+  integer function owned_nodes()
+    implicit none
+    call numnod(owned_nodes)
+  end function owned_nodes
+
+
+  !==============================================================
+  ! local_nodes
+  ! ~~~~~~~~~~~
+  ! returns the number of nodes local to this process
+  !==============================================================
+  integer function local_nodes()
+    implicit none
+    call numnod(local_nodes)
+  end function local_nodes
+
+
+  !==============================================================
+  ! global_node_id
+  ! ~~~~~~~~~~~~~~
+  !==============================================================
+  integer function global_node_id(inode)
+    implicit none
+    integer, intent(in) :: inode
+
+    call entglobalid(inode, 0, global_node_id)
+  end function global_node_id
+
+  !==============================================================
+  ! get_element_nodes
+  ! ~~~~~~~~~~~~~~~~~
+  ! returns the indices of each element node
+  !==============================================================
+  subroutine get_element_nodes(itri,n)
+    implicit none
+    integer, intent(in) :: itri
+    integer, intent(out), dimension(nodes_per_element) :: n
+    call nodfac(itri, n) 
+  end subroutine get_element_nodes
+
+
+  !==============================================================
+  ! get_bounding_box
+  ! ~~~~~~~~~~~~~~~~
+  ! returns the lower-left and upper-right coordinates of the 
+  ! mesh bounding box
+  !==============================================================
+  subroutine get_bounding_box(x1, z1, x2, z2)
+    implicit none
+    real, intent(out) :: x1, z1, x2, z2
+    
+    if(.not.has_bounding_box) then
+       call getmincoord2(bb(1), bb(2))
+       call getmaxcoord2(bb(3), bb(4))
+       has_bounding_box = .true.
+    endif
+    x1 = bb(1)
+    z1 = bb(2)
+    x2 = bb(3)
+    z2 = bb(4) 
+  end subroutine get_bounding_box
+
+
+  !==============================================================
+  ! get_bounding_box
+  ! ~~~~~~~~~~~~~~~~
+  ! returns the width and heightof the
+  ! mesh bounding box
+  !==============================================================
+  subroutine get_bounding_box_size(alx, alz)
+    implicit none
+
+    real, intent(out) :: alx, alz
+    real :: x1, z1, x2, z2
+    call get_bounding_box(x1,z1,x2,z2)
+    alx = x2 - x1
+    alz = z2 - z1
+  end subroutine get_bounding_box_size
+
+
+  !============================================================
+  ! get_node_pos
+  ! ~~~~~~~~~~~~
+  ! get the global coordinates (x,z) of node inode
+  !============================================================
+  subroutine get_node_pos(inode,x,z)
+    implicit none
+    
+    integer, intent(in) :: inode
+    real, intent(out) :: x, z
+    
+    double precision :: coords(3)
+    real :: x1, z1, x2, z2
+    
+    call xyznod(inode,coords)
+    
+    if(is_rectilinear) then
+       call get_bounding_box(x1,z1,x2,z2)
+       x = coords(1) - x1 + xzero
+       z = coords(2) - z1 + zzero
+    else
+       x = coords(1)
+       z = coords(2)
+    endif
+  end subroutine get_node_pos
+
+
+  !============================================================
+  ! get_element_data
+  ! ~~~~~~~~~~~~~~~~
+  ! calculates element parameters a, b, c, and theta from
+  ! node coordinates
+  !============================================================
+  subroutine get_element_data(itri, d)
+    implicit none
+    integer, intent(in) :: itri
+    type(element_data), intent(out) :: d
+    real :: x2, x3, z2, z3, x2p, x3p, z2p, z3p, hi
+    integer :: nodeids(4)
+    
+    call get_element_nodes(itri, nodeids)
+    
+    call get_node_pos(nodeids(1), d%x, d%z)
+    call get_node_pos(nodeids(2), x2, z2)
+    call get_node_pos(nodeids(3), x3, z3)
+    x2 = x2 - d%x
+    z2 = z2 - d%z
+    x3 = x3 - d%x
+    z3 = z3 - d%z
+    
+    hi = 1./sqrt(x2**2 + z2**2)
+    d%co = x2*hi
+    d%sn = z2*hi
+
+    x2p =  d%co * x2 + d%sn * z2
+    z2p = -d%sn * x2 + d%co * z2
+    x3p =  d%co * x3 + d%sn * z3
+    z3p = -d%sn * x3 + d%co * z3
+    if(z2p .gt. 0.0001 .or. z2p .lt. -0.0001) then
+       print *, "z2p should be 0.d0 but is ", z2p
+    endif
+    d%a = x2p-x3p
+    d%b = x3p
+    d%c = z3p
+    if(d%c .le. 0.) then
+       print *, 'ERROR: clockwise node ordering for element',itri
+    endif
+    
+  end subroutine get_element_data
+
+  
+  !============================================================
+  ! whattri
+  ! ~~~~~~~
+  ! Gets the element itri in which global coordinates (x,z)
+  ! fall.  If no element on this process contains (x,z) then
+  ! itri = -1.  Otherwise, xref and zref are global coordinates
+  ! of the first node of element itri.
+  !============================================================
+  subroutine whattri(x,z,itri,xref,zref)
+    implicit none
+    
+    real, intent(in) :: x, z
+    integer, intent(inout) :: itri
+    real, intent(out) :: xref, zref
+    
+    double precision :: x0, z0
+    integer :: nodeids(nodes_per_element)
+    real :: x1, z1, x2, z2
+    
+    if(is_rectilinear) then
+       call get_bounding_box(x1,z1,x2,z2)
+       x0 = x + x1 - xzero
+       z0 = z + z1 - zzero
+    else
+       x0 = x
+       z0 = z
+    endif
+    
+    call usesearchstructure(x0,z0,itri)
+    
+    if(itri.lt.0) return
+    
+    call get_element_nodes(itri,nodeids)
+    call get_node_pos(nodeids(1), xref, zref)
+  end subroutine whattri
+  
+  !=========================================
+  ! is_boundary_node
+  ! ~~~~~~~~~~~~~~~~
+  ! returns true if node lies on boundary
+  !=========================================
+  logical function is_boundary_node(inode)
+    implicit none
+    integer, intent(in) :: inode
+    logical :: is_boundary
+    integer :: izone, izonedim
+    real :: normal(2), curv, x, z
+
+    call boundary_node(inode, is_boundary, izone, izonedim, normal, curv, x, z)
+    is_boundary_node = is_boundary
+  end function is_boundary_node
+
+  !======================================================================
+  ! boundary_node
+  ! ~~~~~~~~~~~~~
+  ! determines if node is on boundary, and returns relevant info
+  ! about boundary surface
+  !======================================================================
+  subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
+
+    use math
+    
+    implicit none
+    
+    integer, intent(in) :: inode              ! node index
+    integer, intent(out) :: izone,izonedim    ! zone type/dimension
+    real, intent(out) :: normal(2), curv
+    real, intent(out) :: x,z                  ! coordinates of inode
+    logical, intent(out) :: is_boundary       ! is inode on boundary
+    
+    integer :: ibottom, iright, ileft, itop, ib
+    real :: angler
+    real, dimension(3) :: norm
+    
+    curv = 0.
+    
+    if(is_rectilinear) then
+       call zonenod(inode,izone,izonedim)
+       
+       if(izonedim.ge.2) then
+          is_boundary = .false.
+          return
+       end if
+       
+       call getmodeltags(ibottom, iright, itop, ileft)
+       
+       ! for periodic bc's
+       ! skip if on a periodic boundary
+       ! and convert corner to an edge when one edge is periodic
+       if(iper.eq.1) then 
+          if(izonedim.eq.0) then 
+             izonedim = 1
+             izone = ibottom
+          endif
+          if(izone.eq.ileft .or. izone.eq.iright) then
+             is_boundary = .false.
+             return
+          end if
+       endif
+       if(jper.eq.1) then 
+          if(izonedim.eq.0) then 
+             izonedim = 1
+             izone = ileft
+          endif
+          if(izone.eq.ibottom .or. izone.eq.itop) then
+             is_boundary = .false.
+             return
+          end if
+       endif
+       
+       is_boundary = .true.
+       
+       ! assign normal vector
+       !....convert tiltangle to radians and define normal vectors
+       angler = tiltangled*pi/180.
+       if(izone.eq.iright) then
+          normal(1) = cos(angler)  !cos
+          normal(2) = sin(angler)  !sin
+       else if(izone.eq.ileft) then
+          normal(1) = cos(pi+angler)  !cos
+          normal(2) = sin(pi+angler)  !sin
+       else if(izone.eq.itop) then
+          normal(1) = cos(pi/2. + angler)  !cos
+          normal(2) = sin(pi/2. + angler)  !sin
+       else if(izone.eq.ibottom) then
+          normal(1) = cos(3.*pi/2. + angler)  !cos
+          normal(2) = sin(3.*pi/2. + angler)  !sin
+       else
+          print *, "Error: unknown zone tag ", izone
+          normal = 0.
+       endif
+       
+       if(izonedim.eq.0) then
+          normal(1) = 0.
+          normal(2) = 1.
+       end if
+       
+    else 
+       call nodNormalVec(inode, norm, ib)
+       normal = norm(1:2)
+       is_boundary = ib.eq.1
+
+       if(.not.is_boundary) return
+       izonedim = 1
+       izone = 1
+      
+       if(icurv.eq.0) then
+          curv = 0.
+       else
+          call nodcurvature2(inode, curv, ib)
+          is_boundary = ib.eq.1
+       end if
+
+       if(.not.is_boundary) return
+    end if
+    
+    call get_node_pos(inode,x,z)
+    
+  end subroutine boundary_node
+
+
+  subroutine boundary_edge(itri, is_edge, normal, idim)
+
+    implicit none
+    integer, intent(in) :: itri
+    logical, intent(out) :: is_edge(3)
+    real, intent(out) :: normal(2,3)
+    integer, intent(out) :: idim(3)
+    
+    integer :: inode(nodes_per_element), izone, i, j
+    real :: x, z, c(3)
+    logical :: is_bound(3)
+    
+    call get_element_nodes(itri,inode)
+    
+    do i=1,3
+       call boundary_node(inode(i),is_bound(i),izone,idim(i), &
+            normal(:,i),c(i),x,z)
+    end do
+    
+    do i=1,3
+       j = mod(i,3) + 1
+       is_edge(i) = .false.
+       
+       ! skip edges not having both points on a boundary
+       if((.not.is_bound(i)).or.(.not.is_bound(j))) cycle
+       
+       ! skip edges cutting across corners
+       if(is_bound(1) .and. is_bound(2) .and. is_bound(3)) then
+          if(idim(i).ne.0 .and. idim(j).ne.0) cycle
+       endif
+       
+       ! skip suspicious edges (edges w/o corner point where normal changes
+       ! dramatically)
+       if(idim(i).eq.1 .and. idim(j).eq.1 .and. idim(mod(i+1,3)+1).eq.2) then
+          if(normal(1,i)*normal(1,j) + normal(2,i)*normal(2,j) .lt. .5) cycle
+       end if
+       
+       is_edge(i) = .true.
+    end do
+  end subroutine boundary_edge
+end module scorec_mesh_mod

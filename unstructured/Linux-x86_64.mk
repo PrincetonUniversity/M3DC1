@@ -4,35 +4,50 @@ F77    = mpif90
 CC     = mpicc
 
 # define where you want to locate the mesh adapt libraries
-ifndef SCORECDIR
-  SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.stix.intel/
-endif
 
-INCLUDE = -I$(SCORECDIR)/mctk/Examples/PPPL/PPPL \
-	-I$(MPIHOME)/include \
+INCLUDE = -I$(MPIHOME)/include \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
 	-I$(HDF5_HOME)/include -I$(HDF5_HOME)/lib
 
 H5_VERSION = 169
 
-FOPTS = -c -r8 -implicitnone -fpp -warn unused $(INCLUDE) $(OPTS) -DH5_VERSION=$(H5_VERSION) # -g -check all -check noarg_temp_created
-F90OPTS = $(F90FLAGS) $(FOPTS)
-F77OPTS = $(F77FLAGS) $(FOPTS)
-CCOPTS = -c $(INCLUDE)
-
-AUTOPACK_LIBS = -L$(AUTOPACK_HOME)/lib \
-	-Wl,-rpath,$(AUTOPACK_HOME)/lib -lautopack-O
-
 PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
-	-lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc \
+	-lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc
 
 SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu \
 	-L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist
+
+MUMPS_LIBS = -L$(MUMPS_HOME)/lib -ldmumps -lmumps_common -lpord
+
+BLACS_LIBS = -L$(BLACS_HOME)/lib -lmpiblacs -lmpiblacsF77init
+
+SCALAPACK_LIBS = -L$(SCALAPACK_HOME)/lib -lscalapack
 
 PARMETIS_LIBS = -L$(PARMETIS_HOME)/lib \
 	-Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis
 
 NAG_LIBS = -L$(NAG_ROOT)/lib -lnag
+
+LIBS = 	$(PETSC_LIBS) \
+	$(SUPERLU_LIBS) \
+	$(MUMPS_LIBS) \
+	$(SCALAPACK_LIBS) \
+	$(BLACS_LIBS) \
+	$(PARMETIS_LIBS) \
+	-L$(Zoltan_HOME)/lib -lzoltan \
+	-L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5 \
+	-L$(CCHOME)/lib/intel64 -lguide \
+	-L$(CCHOME)/mkl/lib/em64t -lmkl -lmkl_lapack -lmkl_ipr \
+	-L$(NCARG_ROOT)/lib -lncarg -lncarg_gks -lncarg_c \
+	-Wl,-rpath -Wl,$(HDF5_HOME)/lib \
+	-L$(ZLIB_HOME) -lz \
+        -L/usr/X11R6/lib -lX11
+
+
+ifeq ($(USESCOREC), 1)
+ifndef SCORECDIR
+  SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.stix.intel/
+endif
 
 SCOREC_ARCH=x86_64_linux-icc
 
@@ -68,19 +83,22 @@ SCOREC_LIBS = \
 	-lSolver-mpich2$(SCORECOPT) \
 	-lPPPL-mpich2$(SCORECOPT)
 
-LIBS = 	$(SCOREC_LIBS) \
-	-L$(CCHOME)/lib/intel64 -lguide \
-	-L$(CCHOME)/mkl/lib/em64t -lmkl -lmkl_lapack -lmkl_ipr \
-	$(AUTOPACK_LIBS) \
-	-L$(Zoltan_HOME)/lib -lzoltan \
-	$(PARMETIS_LIBS) \
-	$(PETSC_LIBS) \
-	$(SUPERLU_LIBS) \
-	-L$(NCARG_ROOT)/lib -lncarg -lncarg_gks -lncarg_c \
-	-L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5 \
-	-Wl,-rpath -Wl,$(HDF5_HOME)/lib \
-	-L$(ZLIB_HOME) -lz \
-        -L/usr/X11R6/lib -lX11
+AUTOPACK_LIBS = -L$(AUTOPACK_HOME)/lib \
+	-Wl,-rpath,$(AUTOPACK_HOME)/lib -lautopack-O
+
+INCLUDE := -I$(SCORECDIR)/mctk/Examples/PPPL/PPPL $(INCLUDE)
+LIBS := $(SCOREC_LIBS) $(AUTOPACK_LIBS) $(LIBS)
+
+endif
+
+FOPTS = -c -r8 -implicitnone -fpp -warn all $(INCLUDE) $(OPTS) \
+	-DH5_VERSION=$(H5_VERSION) -DRANDOM_NUM='drand(0)' \
+	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs # \
+#	-g -check all -check noarg_temp_created -debug all -ftrapuv
+F90OPTS = $(F90FLAGS) $(FOPTS) -gen-interfaces
+F77OPTS = $(F77FLAGS) $(FOPTS)
+CCOPTS = -c $(INCLUDE)
+
 
 %.o : %.c
 	$(CC)  $(CCOPTS) $< -o $@

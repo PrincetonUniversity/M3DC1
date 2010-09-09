@@ -30,22 +30,32 @@ subroutine load_eqdsk
 2022 format (2i5)
 
   read (neqdsk,2000) (name(i),i=1,6),idum,nw,nh
+
+  print *, 'nw, nh = ', nw, nh
   allocate(psirz(nw,nh),fpol(nw),press(nw),ffprim(nw),pprime(nw),qpsi(nw))
 
   read (neqdsk,2020) rdim,zdim,rcentr,rleft,zmid
   read (neqdsk,2020) rmaxis,zmaxis,simag,sibry,bcentr
   read (neqdsk,2020) current,simag,xdum,rmaxis,xdum
   read (neqdsk,2020) zmaxis,xdum,sibry,xdum,xdum
+  print *, 'reading fpol'
   read (neqdsk,2020) (fpol(i),i=1,nw)
+  print *, 'reading press'
   read (neqdsk,2020) (press(i),i=1,nw)
+  print *, 'reading ffprim'
   read (neqdsk,2020) (ffprim(i),i=1,nw)
+  print *, 'reading pprim'
   read (neqdsk,2020) (pprime(i),i=1,nw)
+  print *, 'reading psirz'
   read (neqdsk,2020) ((psirz(i,j),i=1,nw),j=1,nh)
+  print *, 'reading qpsi'
   read (neqdsk,2020) (qpsi(i),i=1,nw)
-  read (neqdsk,2022) nbbbs,limitr
-
-  allocate(rbbbs(nbbbs),zbbbs(nbbbs),rlim(limitr),zlim(limitr))
-  read (neqdsk,2020) (rbbbs(i),zbbbs(i),i=1,nbbbs)
+  print *, 'reading nbbbs, limitr'
+!!$  read (neqdsk,2022) nbbbs,limitr
+!!$
+!!$  print *, 'nbbbs, limitr', nbbbs, limitr
+!!$  allocate(rbbbs(nbbbs),zbbbs(nbbbs),rlim(limitr),zlim(limitr))
+!!$  read (neqdsk,2020) (rbbbs(i),zbbbs(i),i=1,nbbbs)
 
 
   print *, name
@@ -64,8 +74,8 @@ end subroutine load_eqdsk
 subroutine unload_eqdsk
   implicit none
   
-  deallocate(psirz,fpol,press,ffprim,pprime,qpsi, &
-       rbbbs,zbbbs,rlim,zlim)
+  deallocate(psirz,fpol,press,ffprim,pprime,qpsi)
+!!$  deallocate(rbbbs,zbbbs,rlim,zlim)
   
 end subroutine unload_eqdsk
 
