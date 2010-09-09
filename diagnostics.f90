@@ -728,7 +728,7 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
   integer, intent(in) :: iplace, numvari, imethod
   real, intent(out) :: psim
 
-  integer, parameter :: iterations = 20  !  max number of Newton iterations
+  integer, parameter :: iterations = 200  !  max number of Newton iterations
   real, parameter :: bfac = 0.5  !max zone fraction for movement each iteration
   real, parameter :: tol = 1e-3   ! convergence tolorance (fraction of h)
 
@@ -834,6 +834,7 @@ subroutine magaxis(xguess,zguess,phin,iplace,numvari,psim,imethod,ier)
           xnew = x + bfac*h*(xtry-x)/rdiff
           znew = z + bfac*h*(ztry-z)/rdiff
         endif
+!        znew = zguess
         in_domain = 1
         if(iprint.ge.2) &
              write(*,'(A,4E12.4)') '  magaxis: rdiff/h, tol, xnew,znew', rdiff/h, tol, xnew,znew

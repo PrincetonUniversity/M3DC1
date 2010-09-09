@@ -688,7 +688,7 @@ subroutine split_step(calc_matrices)
            phip = 0.        
            call copyvec(bf,1,1,phip,1,vecsize_phi)
            call matvecmult(o2matrix_sm,phip,b2_phi)
-           b1_phi = b1_phi + b1_phi
+           b1_phi = b1_phi + b2_phi
         endif
 
         b1_phi = b1_phi + q4

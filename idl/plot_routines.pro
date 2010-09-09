@@ -197,7 +197,7 @@ end
 
 pro contour_and_legend, z, x, y, label=label, range=range, $
                           title=title, _EXTRA=ex, jpeg=jpeg, lines=lines, $
-                        nlevels=nlevels, zlog=zlog
+                        nlevels=nlevels, zlog=zlog, xsize=xsize, ysize=ysize
 
     if(n_elements(z) eq 0) then begin
         print, "contour_and_legend error:  nothing to plot"
@@ -231,17 +231,30 @@ pro contour_and_legend, z, x, y, label=label, range=range, $
     endif
     if(n_elements(lines) eq 0) then lines=0
     if(n_elements(lines) lt n) then lines = intarr(n) + lines
+    if(n_elements(xsize) eq 0) then xsize = 1.
+    if(n_elements(ysize) eq 0) then ysize = 1.
 
     rows = ceil(sqrt(n))
     cols = rows
 
     erase
 
+    if(xsize gt ysize) then begin
+        ysize = float(ysize)/float(xsize)
+        xsize = 1.
+    endif else begin
+        xsize = float(xsize)/float(ysize)
+        ysize = 1.
+    endelse
+    print, 'xsize =', xsize
+    print, 'ysize =', ysize
+
+
     k = 0
     for i=0, rows-1 do begin
         for j=0, cols-1 do begin
-            !p.region = [float(i)/rows, float(j)/cols, $
-                         float(i+1)/rows,float(j+1)/cols]
+            !p.region = [xsize*float(i)/rows,  ysize*float(j)/cols, $
+                         xsize*float(i+1)/rows,ysize*float(j+1)/cols]
 
             if(n_elements(nlevels) eq 0) then begin
                 contour_and_legend_single, z[k,*,*], x, y, $
@@ -440,7 +453,7 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
       xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, _EXTRA=ex, $
       isotropic=iso, charsize=charsize, color=color
 
-    if(keyword_set(lines)) then begin
+    if(keyword_set(lines) and fill eq 1) then begin
         if(keyword_set(zlog)) then begin
             levels = 10^(alog10(maxval/minval)* $
                          findgen(clevels+1)/(float(clevels)) + alog10(minval))

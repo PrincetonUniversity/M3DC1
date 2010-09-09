@@ -143,7 +143,7 @@ subroutine set_defaults
   igs_method = 1
   nv1equ = 0
   tcuro = 1.
-  xmag = 1.
+  xmag = 0.
   zmag = 0.
   xlim = 0.
   zlim = 0.
