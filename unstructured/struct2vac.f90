@@ -25,13 +25,6 @@ program struct2vac
   call MPI_Comm_rank(MPI_COMM_WORLD, myrank, ier)
   call MPI_Comm_size(MPI_COMM_WORLD,maxrank, ier)
 
-
-#ifdef USESCOREC
-  ! initialize autopack
-  if(myrank.eq.0) print *, 'Initializing Autopack'
-  call AP_INIT()
-#endif
-
   ! load mesh data
   print *, 'loading mesh'
   call load_mesh

@@ -3,13 +3,15 @@ module vacuum_interface
   implicit none
 
   integer :: nodes, boundary_edges
-  integer, allocatable :: global_id(:)
-  integer, allocatable :: local_id(:)
-  integer, allocatable :: edge_elm(:), edge_nodes(:,:), edge_edge(:)
-  complex, allocatable :: zgrbth(:,:), zgrbph(:,:)
-  complex, allocatable :: zgrbthp(:,:), zgrbphp(:,:)
-  real, allocatable :: xnode(:),znode(:),nxnode(:),nznode(:)
-
+  integer, allocatable :: global_id(:)    ! global dof of boundary node i
+  integer, allocatable :: local_id(:)     ! local dof of boundary node i
+  integer, allocatable :: edge_elm(:)     ! local elm of boundary node i
+  integer, allocatable :: edge_nodes(:,:) ! boundary nodes of boundary edge j
+  integer, allocatable :: edge_edge(:)    ! elm node of boundary edge i
+  real, allocatable :: xnode(:),znode(:)   ! position of boundary node i
+  real, allocatable :: nxnode(:),nznode(:) ! normal vector at boundary node i
+  complex, allocatable :: zgrbth(:,:), zgrbph(:,:)   ! response matrices
+  complex, allocatable :: zgrbthp(:,:), zgrbphp(:,:) ! tangential derivs
 
 contains 
 

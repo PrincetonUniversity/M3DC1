@@ -1687,8 +1687,6 @@ end subroutine boundary_pres
                curvi, xii, zii)
           if(itor.eq.0) xii = 1.
 
-!          print *, 'getting psi', myrank
-!          ibegin = global_node_index(rhs, global_id(i), 1)
           ibegin = global_dof_ids_1(i)
 
           if(ibegin.le.0) then
@@ -1696,7 +1694,6 @@ end subroutine boundary_pres
              call safestop(0)
           endif
 
-!          call get_global_dof_indices(rw_rhs_mat, global_id(i), irow, icol)
           do ii=1, 2
              do jj=1, dofs_per_node
                 irow(ii,jj) = global_dof_ids_row(i) &
@@ -1713,16 +1710,12 @@ end subroutine boundary_pres
 
           do j=1, nodes
              
-!!$             call boundary_node(local_id(j), is_boundary, izone, izonedim, &
-!!$                  normj, curvj, xjj, zjj)
              normj(1) = nxnode(j)
              normj(2) = nznode(j)
              xjj = xnode(j)
              if(itor.eq.0) xjj = 1.
           
-!             jbegin = global_node_index(rhs, global_id(j), 1)
              jbegin = global_dof_ids_1(j)
-!             call get_global_dof_indices(rw_rhs_mat, global_id(j), jrow, jcol)
              do ii=1, 2
                 do jj=1, dofs_per_node
                    jrow(ii,jj) = global_dof_ids_row(j) &
@@ -1868,8 +1861,7 @@ end subroutine boundary_pres
           call get_vector_node_data(tempout, 2, local_id(i), temp)
           call get_vector_node_data(tempout0, 2, local_id(i), temp0)
           temp = temp + temp0
-!          call get_node_data(mag_bz, local_id(i), temp0)
-!          write(*, '(4e15.5)') temp, temp0
+
           do j=1, dofs_per_node
              call insert(rhs, ibegin+j-1, temp(j), VEC_ADD)
           end do
@@ -1932,15 +1924,14 @@ end subroutine boundary_pres
        call define_edge_quadrature(itri, iedge, 5, norm, idim)
        call define_fields(itri, 0, 1, linear)
 
+       ! cycle through each node of the element containing the present edge
        do iii=1,nodes_per_element
-!          inode = inodes(iii)
           inode = global_node_id(inodes(iii))
           call boundary_node(inodes(iii), is_boundary, izone, izonedim, &
                normi, curvi, xii, zii)
           if(itor.eq.0) xjj = 1.
 
-!          call get_global_dof_indices(mat, inode, irow, icol)
-!          call get_global_dof_indices(rhs_mat, inode, irow_rh, icol_rh)
+          ! determine the boundary-index of inode
           do j=1, nodes
              if(inodes(iii).eq.local_id(j)) exit
           end do
@@ -1956,32 +1947,22 @@ end subroutine boundary_pres
           ir_rh = global_dof_ids_row(j)
           ic_rh = global_dof_ids_col(j)
 
+          ! cycle through each trial function associated with inode
           do ii=1,dofs_per_node
-             ! find the inner product of the chosen basis function
-             ! with each trial function associated with this node
-             idof = (iii-1)*dofs_per_node + ii
-
+          idof = (iii-1)*dofs_per_node + ii
 
           ! for each boundary edge, there are 2 associated nodes
           do j=1, 2
              ! we are only calculating the value (not derivatives) of
              ! the vacuum toroidal field; choose the basis function
              ! associated with the value at inode.
-
              jdof = mod(iedge+j-2,nodes_per_element)*dofs_per_node+1
+
+             
+             ! plasma toroidal field term
              do jj=1, dofs_per_node
                 temp = dt*eta_wall/delta_wall * &
                      int3(ri2_79,mu79(:,OP_1,idof),nu79(:,OP_1,jdof+jj-1))
-
-!!$                val = thimprw*temp
-!!$                call insert_global(mat,val, &
-!!$                     irow(bz_i,ii),icol(bz_i,jj),MAT_ADD)
-!!$                call insert_global(lhs_mat,val, &
-!!$                     irow_rh(2,ii),icol_rh(2,jj),MAT_ADD)
-!!$                
-!!$                val = (thimprw-1.)*temp
-!!$                call insert_global(rhs_mat,val, &
-!!$                     irow_rh(2,ii),icol_rh(2,jj),MAT_ADD)
 
                 val = thimprw*temp
                 call insert_global(mat,val, &
@@ -1994,64 +1975,35 @@ end subroutine boundary_pres
                 call insert_global(rhs_mat,val, &
                      dof_index(ir_rh,2,ii),dof_index(ic_rh,2,jj),MAT_ADD)
              end do
-
-             temp = dt*eta_wall/delta_wall * &
-                     (zgrbph(edge_nodes(j,i),k) &
-                     *int3(ri_79,mu79(:,OP_1,idof),nu79(:,OP_1,jdof)) &
-                     +zgrbphp(edge_nodes(j,i),k) &
-                     *(normi(1) &
-                      *int3(ri_79,mu79(:,OP_1,idof),nu79(:,OP_1,jdof+2)) &
-                      -normi(2) &
-                      *int3(ri_79,mu79(:,OP_1,idof),nu79(:,OP_1,jdof+1))))
-             
+            
              ! The coefficient of the chosen basis function is simply
              ! the value of the vacuum toroidal field at inode,
              ! which is a linear combination of the normal field
              ! at every boundary node.
              do k=1, nodes
+                ! int[ mu V(x) dS]
+                temp = dt*eta_wall/delta_wall * &
+                     (zgrbph(edge_nodes(j,i),k) &
+                     *int3(ri_79,mu79(:,OP_1,idof),nu79(:,OP_1,jdof)) )! &
+!!$                     +zgrbphp(edge_nodes(j,i),k) &
+!!$                     *(normi(1) &
+!!$                     *int3(ri_79,mu79(:,OP_1,idof),nu79(:,OP_1,jdof+2)) &
+!!$                     -normi(2) &
+!!$                     *int3(ri_79,mu79(:,OP_1,idof),nu79(:,OP_1,jdof+1))))
+
                 jnode = global_id(k)
                 
-!!$                call boundary_node(jnode, is_boundary, izone, izonedim, &
-!!$                     normj, curvj, xjj, zjj)
                 normj(1) = nxnode(k)
                 normj(2) = nznode(k)
                 xjj = xnode(k)
                 if(itor.eq.0) xjj = 1.
 
-!!$                call get_global_dof_indices(mat, jnode, jrow, jcol)
-!!$                call get_global_dof_indices(rhs_mat, jnode, &
-!!$                     jrow_rh, jcol_rh)
                 jr_lh = global_dof_ids_1(k)
                 jc_lh = global_dof_ids_1(k)
                 jr_rh = global_dof_ids_row(k)
                 jc_rh = global_dof_ids_col(k)
 
                 
-!!$                ! -(1/R_j) * (dpsi/dt)
-!!$                val = thimprw*temp/xjj
-!!$                call insert_global(mat,-normj(2)*val, &
-!!$                     irow(bz_i,ii),jcol(psi_i,2),MAT_ADD)
-!!$                call insert_global(mat, normj(1)*val, &
-!!$                     irow(bz_i,ii),jcol(psi_i,3),MAT_ADD)
-!!$                call insert_global(lhs_mat,-normj(2)*val, &
-!!$                     irow_rh(2,ii),jcol_rh(1,2),MAT_ADD)
-!!$                call insert_global(lhs_mat, normj(1)*val, &
-!!$                     irow_rh(2,ii),jcol_rh(1,3),MAT_ADD)
-!!$
-!!$                val = (thimprw-1.)*temp/xjj
-!!$                call insert_global(rhs_mat,-normj(2)*val, &
-!!$                     irow_rh(2,ii),jcol_rh(1,2),MAT_ADD)
-!!$                call insert_global(rhs_mat, normj(1)*val, &
-!!$                     irow_rh(2,ii),jcol_rh(1,3),MAT_ADD)
-!!$
-!!$                ! -df'/dn
-!!$                val = -temp*rfac
-!!$                call insert_global(rhs_mat,normj(1)*val, &
-!!$                     irow_rh(2,ii),jcol_rh(3,2),MAT_ADD)
-!!$                call insert_global(rhs_mat,normj(2)*val, &
-!!$                     irow_rh(2,ii),jcol_rh(3,3),MAT_ADD)
-
-
                 ! -(1/R_j) * (dpsi/dt)
                 val = thimprw*temp/xjj
                 call insert_global(mat,-normj(2)*val, &
