@@ -928,8 +928,9 @@ end
 
 function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
                      filename=filename, xrange=xrange, yrange=yrange, $
-                     mask=mask
+                     mask=mask, phi=phi0
 
+   if(n_elements(phi0) eq 0) then phi0 = 0.
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
    nelms = mesh.nelms._data 
@@ -1023,6 +1024,12 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
        t = mesh.elements._data[3,i]
        x = mesh.elements._data[4,i]
        y = mesh.elements._data[5,i]
+       if(mesh._3d._data eq 1) then begin
+           d = mesh.elements._data[7,i]
+           phi = mesh.elements._data[8,i]
+           localphi = phi0 - phi
+           if(localphi lt 0 or localphi gt d) then continue
+       endif
        co = cos(t)
        sn = sin(t)
 
@@ -1146,7 +1153,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                      diff=diff, operation=op, complex=complex, $
                      linear=linear, last=last, average=average, $
                      dpsi=dpsi, symbol=symbol, units=units, cgs=cgs, mks=mks, $
-                     real=real, imaginary=imag, edge_val=edge_val
+                     real=real, imaginary=imag, edge_val=edge_val, phi=phi0
 
    if(n_elements(slices) ne 0) then time=slices else time=0
 
@@ -1168,7 +1175,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                         diff=diff, operation=op, $
                         linear=linear, last=last,symbol=symbol,units=units, $
-                       cgs=cgs, mks=mks)
+                       cgs=cgs, mks=mks, phi=phi0)
        end
        data = data/n
        return, data
@@ -1191,7 +1198,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                         operation=op, complex=complex, $
                         linear=linear, last=last,symbol=symbol,units=units, $
-                       cgs=cgs, mks=mks) $
+                       cgs=cgs, mks=mks, phi=phi0) $
              *((-1)^i)
        end
 
@@ -2530,7 +2537,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            data[i-trange[0],*,*] = $
              eval_field(field._data, mesh, points=pts, $
                         r=x, z=y, op=op, filename=filename, $
-                        xrange=xrange, yrange=yrange, mask=mask) $
+                        xrange=xrange, yrange=yrange, mask=mask, phi=phi0) $
              + base*(i ne -1)
        end
 
@@ -4454,7 +4461,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                 rrange=rrange, zrange=zrange, linear=linear, $
                 xlim=xlim, cutx=cutx, cutz=cutz, mpeg=mpeg, $
                 mask_val=mask_val, boundary=boundary, q_contours=q_contours, $
-                overplot=overplot, _EXTRA=ex
+                overplot=overplot, phi=phi0, _EXTRA=ex
 
    if(n_elements(time) eq 0) then time = 0
    if(n_elements(p) eq 0) then p = 50
@@ -4465,7 +4472,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
        field = read_field(name, x, y, t, slices=time, mesh=mesh, $
                           points=p, rrange=rrange, zrange=zrange, $
                           symbol=fieldname, units=u, linear=linear, $
-                          mask=mask, _EXTRA=ex)
+                          mask=mask, phi=phi0, _EXTRA=ex)
        if(n_elements(field) le 1) then return
 
        if(n_elements(units) eq 0) then units=u
@@ -4488,7 +4495,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
        endif else begin
            psi = read_field(maskfield, slices=time, mesh=mesh, $
                             points=p, rrange=rrange, zrange=zrange, $
-                           /equilibrium, mask=mask, _EXTRA=ex)
+                           /equilibrium, mask=mask, phi=phi0, _EXTRA=ex)
        endelse
        newmask = (psi ge maskrange[0]) and (psi le maskrange[1])
        field = newmask*field + (1-newmask)*(min(field-newmask*field,/absolute))
