@@ -182,7 +182,7 @@ contains
 
     zgrbth = -zgrbth
 
-!    zgrbph = -zgrbph
+    zgrbph = -zgrbph
 
     ! calculate derivatives (wrt i)
     zgrbthp(1,:) = 0.5*(zgrbth(2,:) - zgrbth(nodes+1,:))/dtheta

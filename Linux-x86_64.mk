@@ -46,32 +46,13 @@ LIBS = 	$(PETSC_LIBS) \
 
 ifeq ($(USESCOREC), 1)
 ifndef SCORECDIR
-  SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.stix.intel/
+#  SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.stix.intel/
+  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/091510
 endif
 
-SCOREC_ARCH=x86_64_linux-icc
-
 SCOREC_LIBS = \
-	-L$(SCORECDIR)FMDB/FMDB/lib/$(SCOREC_ARCH) \
-	-Wl,-rpath,$(SCORECDIR)FMDB/FMDB/lib/$(SCOREC_ARCH) \
-	-L$(SCORECDIR)FMDB/SCORECModel/lib/$(SCOREC_ARCH) \
-	-Wl,-rpath,$(SCORECDIR)FMDB/SCORECModel/lib/$(SCOREC_ARCH) \
-	-L$(SCORECDIR)FMDB/SCORECUtil/lib/$(SCOREC_ARCH) \
-	-Wl,-rpath,$(SCORECDIR)FMDB/SCORECUtil/lib/$(SCOREC_ARCH) \
-	-L$(SCORECDIR)mctk/Examples/PPPL/lib/$(SCOREC_ARCH) \
-	-Wl,-rpath,$(SCORECDIR)mctk/Examples/PPPL/lib/$(SCOREC_ARCH) \
-	-L$(SCORECDIR)mctk/Field/lib/$(SCOREC_ARCH) \
-	-Wl,-rpath,$(SCORECDIR)mctk/Field/lib/$(SCOREC_ARCH) \
-	-L$(SCORECDIR)mctk/Core/lib/$(SCOREC_ARCH) \
-	-Wl,-rpath,$(SCORECDIR)mctk/Core/lib/$(SCOREC_ARCH) \
-	-L$(SCORECDIR)mctk/Solver/lib/$(SCOREC_ARCH) \
-	-Wl,-rpath,$(SCORECDIR)mctk/Solver/lib/$(SCOREC_ARCH) \
-	-L$(SCORECDIR)meshAdapt/meshAdapt/lib/$(SCOREC_ARCH) \
-	-Wl,-rpath,$(SCORECDIR)meshAdapt/meshAdapt/lib/$(SCOREC_ARCH) \
-	-L$(SCORECDIR)meshAdapt/meshTools/lib/$(SCOREC_ARCH) \
-	-Wl,-rpath,$(SCORECDIR)meshAdapt/meshTools/lib/$(SCOREC_ARCH) \
-	-L$(SCORECDIR)meshAdapt/templateRefine/lib/$(SCOREC_ARCH) \
-	-Wl,-rpath,$(SCORECDIR)meshAdapt/templateRefine/lib/$(SCOREC_ARCH) \
+	-L$(SCORECDIR) \
+	-Wl,-rpath,$(SCORECDIR) \
 	-lFMDB-mpich2$(SCORECOPT) \
 	-lSCORECModel-mpich2$(SCORECOPT) \
 	-lSCORECUtil-mpich2$(SCORECOPT) \
@@ -82,6 +63,39 @@ SCOREC_LIBS = \
 	-lmeshTools-mpich2$(SCORECOPT) \
 	-lSolver-mpich2$(SCORECOPT) \
 	-lPPPL-mpich2$(SCORECOPT)
+
+#SCOREC_ARCH=x86_64_linux-icc
+#SCOREC_LIBS = \
+#	-L$(SCORECDIR)FMDB/FMDB/lib/$(SCOREC_ARCH) \
+#	-Wl,-rpath,$(SCORECDIR)FMDB/FMDB/lib/$(SCOREC_ARCH) \
+#	-L$(SCORECDIR)FMDB/SCORECModel/lib/$(SCOREC_ARCH) \
+#	-Wl,-rpath,$(SCORECDIR)FMDB/SCORECModel/lib/$(SCOREC_ARCH) \
+#	-L$(SCORECDIR)FMDB/SCORECUtil/lib/$(SCOREC_ARCH) \
+#	-Wl,-rpath,$(SCORECDIR)FMDB/SCORECUtil/lib/$(SCOREC_ARCH) \
+#	-L$(SCORECDIR)mctk/Examples/PPPL/lib/$(SCOREC_ARCH) \
+#	-Wl,-rpath,$(SCORECDIR)mctk/Examples/PPPL/lib/$(SCOREC_ARCH) \
+#	-L$(SCORECDIR)mctk/Field/lib/$(SCOREC_ARCH) \
+#	-Wl,-rpath,$(SCORECDIR)mctk/Field/lib/$(SCOREC_ARCH) \
+#	-L$(SCORECDIR)mctk/Core/lib/$(SCOREC_ARCH) \
+#	-Wl,-rpath,$(SCORECDIR)mctk/Core/lib/$(SCOREC_ARCH) \
+#	-L$(SCORECDIR)mctk/Solver/lib/$(SCOREC_ARCH) \
+#	-Wl,-rpath,$(SCORECDIR)mctk/Solver/lib/$(SCOREC_ARCH) \
+#	-L$(SCORECDIR)meshAdapt/meshAdapt/lib/$(SCOREC_ARCH) \
+#	-Wl,-rpath,$(SCORECDIR)meshAdapt/meshAdapt/lib/$(SCOREC_ARCH) \
+#	-L$(SCORECDIR)meshAdapt/meshTools/lib/$(SCOREC_ARCH) \
+#	-Wl,-rpath,$(SCORECDIR)meshAdapt/meshTools/lib/$(SCOREC_ARCH) \
+#	-L$(SCORECDIR)meshAdapt/templateRefine/lib/$(SCOREC_ARCH) \
+#	-Wl,-rpath,$(SCORECDIR)meshAdapt/templateRefine/lib/$(SCOREC_ARCH) \
+#	-lFMDB-mpich2$(SCORECOPT) \
+#	-lSCORECModel-mpich2$(SCORECOPT) \
+#	-lSCORECUtil-mpich2$(SCORECOPT) \
+#	-lField-mpich2$(SCORECOPT) \
+#	-lCore-mpich2$(SCORECOPT) \
+#	-lmeshAdapt-mpich2$(SCORECOPT) \
+#	-ltemplateRefine-mpich2$(SCORECOPT) \
+#	-lmeshTools-mpich2$(SCORECOPT) \
+#	-lSolver-mpich2$(SCORECOPT) \
+#	-lPPPL-mpich2$(SCORECOPT)
 
 AUTOPACK_LIBS = -L$(AUTOPACK_HOME)/lib \
 	-Wl,-rpath,$(AUTOPACK_HOME)/lib -lautopack-O
