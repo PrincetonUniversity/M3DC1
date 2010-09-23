@@ -804,6 +804,13 @@ end
 ;==============================================================
 function eval, field, localpos, theta, elm, operation=op
 
+   sz = size(field, /dim)
+   if(sz[0] eq 80) then begin
+       threed = 1
+   endif else begin
+       threed = 0
+   endelse
+   
    mi = [0,1,0,2,1,0,3,2,1,0,4,3,2,1,0,5,3,2,1,0]
    ni = [0,0,1,0,1,2,0,1,2,3,0,1,2,3,4,0,2,3,4,5]
    sum = 0.
@@ -814,26 +821,27 @@ function eval, field, localpos, theta, elm, operation=op
    sn = sin(theta)
 
    for p=0, 19 do begin
+       temp = 0.
         case op of
-        1: sum = sum + field[p,elm]*localpos[0]^mi[p]*localpos[1]^ni[p]
-        2: sum = sum $
+        1: temp = localpos[0]^mi[p]*localpos[1]^ni[p]
+        2: temp = $
           + co*field[p,elm]*mi[p]*localpos[0]^(mi[p]-1>0)*localpos[1]^ni[p] $
           - sn*field[p,elm]*ni[p]*localpos[0]^mi[p]*localpos[1]^(ni[p]-1>0)
-        3: sum = sum $
+        3: temp = $
           + sn*field[p,elm]*mi[p]*localpos[0]^(mi[p]-1>0)*localpos[1]^ni[p] $
           + co*field[p,elm]*ni[p]*localpos[0]^mi[p]*localpos[1]^(ni[p]-1>0)
         4:
         5:
         7: begin
             if(mi[p] ge 2) then $
-              sum = sum + field[p,elm]* $
+              temp = temp + field[p,elm]* $
               mi[p]*(mi[p]-1)*localpos[0]^(mi[p]-2)*localpos[1]^ni[p]
             if(ni[p] ge 2) then $
-              sum = sum + field[p,elm]* $
+              temp = temp + field[p,elm]* $
               ni[p]*(ni[p]-1)*localpos[1]^(ni[p]-2)*localpos[0]^mi[p]
            end
         8: begin
-            sum = sum + field[p,elm]* $
+            temp = temp + field[p,elm]* $
              ( co $
               *mi[p]*(mi[p]-1)*(mi[p]-2)*localpos[0]^(mi[p]-3>0) $
               *                          localpos[1]^ ni[p]      $
@@ -848,7 +856,7 @@ function eval, field, localpos, theta, elm, operation=op
               *ni[p]*(ni[p]-1)*          localpos[1]^(ni[p]-2>0))
            end
         9: begin
-            sum = sum + field[p,elm]* $
+            temp = temp + field[p,elm]* $
              ( sn $
               *mi[p]*(mi[p]-1)*(mi[p]-2)*localpos[0]^(mi[p]-3>0) $
               *                          localpos[1]^ ni[p]      $
@@ -862,7 +870,15 @@ function eval, field, localpos, theta, elm, operation=op
               *mi[p]*                    localpos[0]^(mi[p]-1>0) $
               *ni[p]*(ni[p]-1)*          localpos[1]^(ni[p]-2>0))
            end
-        end
+       end
+
+       sum = sum + field[p,elm]*temp
+       if(threed eq 1) then begin
+           sum = sum + temp* $
+           (field[p+20,elm]*localpos[2]   $
+           +field[p+40,elm]*localpos[2]^2 $
+           +field[p+60,elm]*localpos[2]^3)
+       endif
    end
 
    return, sum
@@ -1014,6 +1030,14 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
    mask[*] = 1.
 
    small = 1e-3
+   localphi = 0.
+
+   sz = size(mesh.elements._data, /dim)
+   if(sz[0] gt 7) then begin
+       threed = 1
+   endif else begin
+       threed = 0
+   endelse
 
    ; for each triangle, evaluate points within triangle which fall on
    ; rectilinear output grid
@@ -1024,7 +1048,7 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
        t = mesh.elements._data[3,i]
        x = mesh.elements._data[4,i]
        y = mesh.elements._data[5,i]
-       if(mesh._3d._data eq 1) then begin
+       if(threed) then begin
            d = mesh.elements._data[7,i]
            phi = mesh.elements._data[8,i]
            localphi = phi0 - phi
@@ -1054,7 +1078,8 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
 
                while(pos[0] le maxpos[0] + small*dx) do begin
                    localpos = [(pos[0]-x)*co + (pos[1]-y)*sn - b, $
-                              -(pos[0]-x)*sn + (pos[1]-y)*co]
+                              -(pos[0]-x)*sn + (pos[1]-y)*co, $
+                              localphi]
 
                    if (index[0] ge 0) and (index[0] lt p) then begin
                        if(is_in_tri(localpos,a,b,c) eq 1) then begin

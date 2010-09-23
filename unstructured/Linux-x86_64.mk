@@ -47,7 +47,7 @@ LIBS = 	$(PETSC_LIBS) \
 ifeq ($(USESCOREC), 1)
 ifndef SCORECDIR
 #  SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.stix.intel/
-  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/091510
+  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/092210
 endif
 
 SCOREC_LIBS = \
@@ -100,7 +100,8 @@ SCOREC_LIBS = \
 AUTOPACK_LIBS = -L$(AUTOPACK_HOME)/lib \
 	-Wl,-rpath,$(AUTOPACK_HOME)/lib -lautopack-O
 
-INCLUDE := -I$(SCORECDIR)/mctk/Examples/PPPL/PPPL $(INCLUDE)
+#INCLUDE := -I$(SCORECDIR)/mctk/Examples/PPPL/PPPL $(INCLUDE)
+INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/092210 $(INCLUDE)
 LIBS := $(SCOREC_LIBS) $(AUTOPACK_LIBS) $(LIBS)
 
 endif
