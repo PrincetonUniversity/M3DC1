@@ -447,7 +447,7 @@ contains
   subroutine write_matrix(mat)
     type(scorec_matrix), intent(in) :: mat
     
-    call writematrixtofile(mat%imatrix, 28)
+    call writematrixtofile(mat%imatrix, mat%imatrix)
   end subroutine write_matrix
 
 

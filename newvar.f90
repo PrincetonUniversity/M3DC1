@@ -88,20 +88,42 @@ contains
     call create_newvar_matrix(mass_mat_lhs_dc, NV_DCBOUND,NV_I_MATRIX, .true.)
     call create_newvar_matrix(mass_mat_lhs,    NV_NOBOUND,NV_I_MATRIX, .true.)
     call create_newvar_matrix(gs_mat_rhs_dc,   NV_DCBOUND,NV_GS_MATRIX,.false.)
+#ifdef CJ_MATRIX_DUMP
+    print *, "create_mat newvar mass_mat_lhs_dc", mass_mat_lhs_dc%mat%imatrix     
+    print *, "create_mat newvar mass_mat_lhs",    mass_mat_lhs%mat%imatrix     
+    print *, "create_mat newvar gs_mat_rhs_dc",   gs_mat_rhs_dc%mat%imatrix     
+#endif 
     if(irmp.gt.0) &
          call create_newvar_matrix(bf_mat_rhs,NV_NOBOUND,NV_BF_MATRIX,.false.)
+#ifdef CJ_MATRIX_DUMP
+         print *, "create_mat newvar bf_mat_rhs", bf_mat_rhs%mat%imatrix     
+#endif 
     if(hyperc.ne.0) then
        call create_newvar_matrix(s5_mat, NV_SVBOUND, NV_SV_MATRIX, .true.)
        call create_newvar_matrix(d5_mat, NV_SVBOUND, NV_SV_MATRIX, .false.)
+#ifdef CJ_MATRIX_DUMP
+       print *, "create_mat newvar s5_mat", s5_mat%mat%imatrix     
+       print *, "create_mat newvar d5_mat", d5_mat%mat%imatrix     
+#endif 
        if(numvar.ge.3) then
           call create_newvar_matrix(s7_mat, NV_SCBOUND, NV_SC_MATRIX, .true.)
           call create_newvar_matrix(d7_mat, NV_SCBOUND, NV_SC_MATRIX, .false.)
+#ifdef CJ_MATRIX_DUMP
+          print *, "create_mat newvar s7_mat", s7_mat%mat%imatrix     
+          print *, "create_mat newvar d7_mat", d7_mat%mat%imatrix     
+#endif 
        endif
 
        if(numvar.ge.3 .and. com_bc.eq.0) then
           call create_newvar_matrix(lp_mat_rhs,NV_NOBOUND,NV_LP_MATRIX,.false.)
+#ifdef CJ_MATRIX_DUMP
+          print *, "create_mat newvar lp_mat_rhs", lp_mat_rhs%mat%imatrix     
+#endif 
        else
           call create_newvar_matrix(lp_mat_rhs_dc,NV_DCBOUND,NV_LP_MATRIX,.false.)
+#ifdef CJ_MATRIX_DUMP
+          print *, "create_mat newvar lp_mat_rhs_dc", lp_mat_rhs_dc%mat%imatrix     
+#endif 
        endif
     endif
     if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
@@ -110,20 +132,35 @@ contains
                NV_CYBOUND, NV_BF_MATRIX, .true.)
           call create_newvar_matrix(mass_mat_rhs_bf, NV_CYBOUND, &
                NV_I_MATRIX,  .false.)
+#ifdef CJ_MATRIX_DUMP
+          print *, "create_mat newvar bf_mat_lhs", bf_mat_lhs%mat%imatrix     
+          print *, "create_mat newvar mass_mat_rhs_bf", mass_mat_rhs_bf%mat%imatrix     
+#endif 
        else
           call create_newvar_matrix(bf_mat_lhs, &
                NV_DCBOUND, NV_BF_MATRIX, .true.)
           call create_newvar_matrix(mass_mat_rhs_bf, NV_DCBOUND, &
                NV_I_MATRIX,  .false.)
+#ifdef CJ_MATRIX_DUMP
+          print *, "create_mat newvar bf_mat_lhs", bf_mat_lhs%mat%imatrix     
+          print *, "create_mat newvar mass_mat_rhs_bf", mass_mat_rhs_bf%mat%imatrix     
+#endif 
        end if
     endif
     if(jadv.eq.1 .and. hyper.ne.0.) then
        call create_newvar_matrix(s10_mat, NV_SJBOUND, NV_SJ_MATRIX, .true.)
        call create_newvar_matrix(d10_mat, NV_SJBOUND, NV_SJ_MATRIX, .false.)
+#ifdef CJ_MATRIX_DUMP
+       print *, "create_mat newvar s10_mat", s10_mat%mat%imatrix     
+       print *, "create_mat newvar d10_mat", d10_mat%mat%imatrix     
+#endif 
     endif
 
     if(igs.ne.0) then
        call create_newvar_matrix(mass_mat_rhs,NV_NOBOUND,NV_I_MATRIX, .false.)
+#ifdef CJ_MATRIX_DUMP
+       print *, "create_mat newvar mass_mat_rhs", mass_mat_rhs%mat%imatrix     
+#endif 
     endif
   end subroutine create_newvar_matrices
 
@@ -355,6 +392,8 @@ subroutine solve_newvar_axby(mata,vout,matb,vin,bvec)
   type(vector_type), pointer :: bptr
   integer :: ier
 
+  character*30 filename
+
   if(present(bvec)) then
      bptr => bvec
   else
@@ -364,7 +403,24 @@ subroutine solve_newvar_axby(mata,vout,matb,vin,bvec)
   call create_vector(temp, matb%mat%m)
   call matvecmult(matb%mat, vin, temp)
   call apply_bc(temp,mata%ibound,bptr)
+
+#ifdef CJ_MATRIX_DUMP
+  if(ntime.eq.2) then 
+     write ( filename, * ) mata%mat%imatrix, '_rhs.out' 
+     call write_matrix(mata%mat)
+     call write_vector(temp, trim(filename))
+  endif
+#endif 
+
   call newsolve(mata%mat,temp,ier)
+
+#ifdef CJ_MATRIX_DUMP
+  if(ntime.eq.2) then
+     write ( filename, * ) mata%mat%imatrix, '_sol.out' 
+     call write_vector(temp, trim(filename))
+  endif
+#endif 
+
   if(ier.ne.0) then
      if(myrank.eq.0) print *, 'Error in newvar solve'
      call safestop(10)
@@ -446,6 +502,9 @@ end subroutine solve_newvar1
   !=====================================================
   subroutine newvar_solve(rhs, mat, bvec)
     use vector_mod
+#ifdef CJ_MATRIX_DUMP
+    use basic
+#endif
 
     implicit none
 
@@ -456,6 +515,8 @@ end subroutine solve_newvar1
     integer :: ier
     type(vector_type), pointer :: bptr
 
+    character*30 filename
+
     if(.not.present(bvec)) then
        bptr => rhs
     else
@@ -463,7 +524,24 @@ end subroutine solve_newvar1
     end if
     call sum_shared(rhs)
     call apply_bc(rhs,mat%ibound,bptr)
+
+#ifdef CJ_MATRIX_DUMP
+  if(ntime.eq.2) then 
+     write ( filename, * ) mat%mat%imatrix, '_rhs.out' 
+     call write_matrix(mat%mat)
+     call write_vector(rhs, trim(filename))
+  endif
+#endif 
+
     call newsolve(mat%mat,rhs,ier)
+
+#ifdef CJ_MATRIX_DUMP
+  if(ntime.eq.2) then
+     write ( filename, * ) mat%mat%imatrix, '_sol.out' 
+     call write_vector(rhs, trim(filename))
+  endif
+#endif 
+
     call finalize(rhs)
   end subroutine newvar_solve
 

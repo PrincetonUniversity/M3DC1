@@ -309,6 +309,9 @@ subroutine gradshafranov_solve
 
   call set_matrix_index(gs_matrix, gsmatrix_sm)
   call create_mat(gs_matrix, numvargs, numvargs, icomplex, .true.)
+#ifdef CJ_MATRIX_DUMP
+  print *, "create_mat gradshafranov gs_matrix", gs_matrix%imatrix     
+#endif 
 
   ! populate the matrix
   do itri=1,numelms
@@ -388,7 +391,22 @@ subroutine gradshafranov_solve
         ! perform LU backsubstitution to get psi solution
         if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
         if(myrank.eq.0 .and. iprint.eq.2) print *, 'solving...'
+
+#ifdef CJ_MATRIX_DUMP
+  if(itnum.eq.iabs(igs)) then 
+     call write_matrix(gs_matrix)
+     call write_vector(b1vecini_vec%vec, 'gs_matrix_rhs.out')
+  endif
+#endif 
+
         call newsolve(gs_matrix,b1vecini_vec%vec,ier)
+
+#ifdef CJ_MATRIX_DUMP
+  if(itnum.eq.iabs(igs)) then 
+     call write_vector(b1vecini_vec%vec, 'gs_matrix_sol.out')
+  endif
+#endif 
+
         if(ier.ne.0) then
            if(myrank.eq.0) print *, 'Error in GS solve'
            call safestop(10)
@@ -484,6 +502,9 @@ subroutine gradshafranov_solve
      if(myrank.eq.0 .and. iprint.ge.2) print *, ' creating solution matrix...'
      call set_matrix_index(dp_mat_lhs%mat, dp_mat_lhs_index)
      call create_newvar_matrix(dp_mat_lhs, NV_DCBOUND, NV_DP_MATRIX, .true.)
+#ifdef CJ_MATRIX_DUMP
+     print *, "create_mat gradshafranov dp_mat_lhs", dp_mat_lhs%mat%imatrix     
+#endif 
   endif
   if(igs_method.eq.2 .or. igs_method.eq.3) then
      ! solve for p and f fields which best approximate gs solution

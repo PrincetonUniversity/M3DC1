@@ -646,6 +646,9 @@ subroutine field_from_coils_2(xc, zc, ic, nc, isize, iplace)
 
   call set_matrix_index(br_mat, br_mat_index)
   call create_mat(br_mat, inumb, inumb, icomplex, .true.)
+#ifdef CJ_MATRIX_DUMP
+  print *, "create_mat coils br_mat", br_mat%imatrix 
+#endif
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, 'populating'
   nelms = local_elements()
@@ -715,8 +718,22 @@ subroutine field_from_coils_2(xc, zc, ic, nc, isize, iplace)
 
   ! solve matrix equation
   if(myrank.eq.0 .and. iprint.ge.2) print *, 'solving psi and f'
+
+#ifdef CJ_MATRIX_DUMP
+!!$  if(ntime.eq.2) then 
+     call write_matrix(br_mat)
+     call write_vector(psi_vec, 'br_mat_rhs.out')
+!!$  endif
+#endif 
+
   call newsolve(br_mat,psi_vec,ier)
   
+#ifdef CJ_MATRIX_DUMP
+!!$  if(ntime.eq.2) then
+     call write_vector(psi_vec, 'br_mat_sol.out')
+!!$  endif
+#endif 
+
   ! copy solution
   psi_field(1) = psi_f
   bf_field(1) = bf_f
