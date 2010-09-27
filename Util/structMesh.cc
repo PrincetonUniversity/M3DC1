@@ -2,6 +2,7 @@
 #include <fstream>
 #include <stdio.h>
 #include <string>
+#include <math.h>
 
 using std::cout;
 using std::ofstream;
@@ -26,7 +27,7 @@ using std::string;
 
 int main(int argc, char * argv[]) {
   string fileName("struct.sms");
-  if(argc != 5) {
+  if(argc < 5) {
     cout << "Need to add the number of vertices in x and z directions and the bounding box size\n";
     cout << "./<executable name> <number of vertices in x direction> <number of vertices in z direction> <maximum x> <maximum z>\n";
     return 1;
@@ -44,8 +45,16 @@ int main(int argc, char * argv[]) {
   int gentid, gentitytype, numEdges;
   double xDomainLength = atof(argv[3]);
   double yDomainLength = atof(argv[4]);
+
+  double angle = 0.;
+  if(argc >= 6) angle = atof(argv[5]);
+
   cout << "The bounding box is x:0 - "<< xDomainLength <<
     ", y:0 - " << yDomainLength << endl;
+  cout << "The rotation angle is " << angle << " degrees." << endl;
+
+  angle = angle*M_PI/180.;
+
   double dx = xDomainLength/(m-1.);
   double dy = yDomainLength/(n-1.);
   for(j=0;j<n;j++)  
@@ -100,10 +109,15 @@ int main(int argc, char * argv[]) {
 	  gentitytype = 2;
 	  numEdges = 6;
 	}
-	    
+	/*	    
 	fprintf(outFile, "%d %d %d\n%.15f %.15f 0 ",
 	      gentid+1, gentitytype, numEdges, 
 	      i*dx, j*dy);
+	*/
+	fprintf(outFile, "%d %d %d\n%.15f %.15f 0 ",
+		gentid+1, gentitytype, numEdges,
+		 i*dx*cos(angle) + j*dy*sin(angle), 
+		-i*dx*sin(angle) + j*dy*cos(angle));
 	switch(gentitytype)
 	  {
           case 1: //ofs << " 0";

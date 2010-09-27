@@ -95,7 +95,7 @@
       implicit none
       integer  maxi,ntimep,irs,ntri,ntridim,ioddm,maxfiles,             &
      &         maxhdf5,maxplots
-      parameter(maxplots=60,maxi=20,ntimep=10000,irs=201,ntridim=7564,  &
+      parameter(maxplots=60,maxi=20,ntimep=10000,irs=201,ntridim=1984,  &
      &          ioddm=2, maxfiles=100, maxhdf5=30)
       character*11, parameter :: version="M3D-C1 12.2"
       end module p_data

@@ -246,9 +246,6 @@ pro contour_and_legend, z, x, y, label=label, range=range, $
         xsize = float(xsize)/float(ysize)
         ysize = 1.
     endelse
-    print, 'xsize =', xsize
-    print, 'ysize =', ysize
-
 
     k = 0
     for i=0, rows-1 do begin

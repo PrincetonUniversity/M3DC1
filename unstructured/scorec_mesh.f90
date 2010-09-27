@@ -339,8 +339,8 @@ contains
        endif
        
        if(izonedim.eq.0) then
-          normal(1) = 0.
-          normal(2) = 1.
+          normal(1) = 1.
+          normal(2) = 0.
        end if
        
     else 
