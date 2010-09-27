@@ -820,28 +820,31 @@ function eval, field, localpos, theta, elm, operation=op
    co = cos(theta)
    sn = sin(theta)
 
+   op2 = (op-1) / 10
+   op1 = op - op2*10
+
    for p=0, 19 do begin
        temp = 0.
-        case op of
+        case op1 of
         1: temp = localpos[0]^mi[p]*localpos[1]^ni[p]
         2: temp = $
-          + co*field[p,elm]*mi[p]*localpos[0]^(mi[p]-1>0)*localpos[1]^ni[p] $
-          - sn*field[p,elm]*ni[p]*localpos[0]^mi[p]*localpos[1]^(ni[p]-1>0)
+          + co*mi[p]*localpos[0]^(mi[p]-1>0)*localpos[1]^ni[p] $
+          - sn*ni[p]*localpos[0]^mi[p]*localpos[1]^(ni[p]-1>0)
         3: temp = $
-          + sn*field[p,elm]*mi[p]*localpos[0]^(mi[p]-1>0)*localpos[1]^ni[p] $
-          + co*field[p,elm]*ni[p]*localpos[0]^mi[p]*localpos[1]^(ni[p]-1>0)
+          + sn*mi[p]*localpos[0]^(mi[p]-1>0)*localpos[1]^ni[p] $
+          + co*ni[p]*localpos[0]^mi[p]*localpos[1]^(ni[p]-1>0)
         4:
         5:
         7: begin
             if(mi[p] ge 2) then $
-              temp = temp + field[p,elm]* $
+              temp = temp + $
               mi[p]*(mi[p]-1)*localpos[0]^(mi[p]-2)*localpos[1]^ni[p]
             if(ni[p] ge 2) then $
-              temp = temp + field[p,elm]* $
+              temp = temp + $
               ni[p]*(ni[p]-1)*localpos[1]^(ni[p]-2)*localpos[0]^mi[p]
            end
         8: begin
-            temp = temp + field[p,elm]* $
+            temp = temp + $
              ( co $
               *mi[p]*(mi[p]-1)*(mi[p]-2)*localpos[0]^(mi[p]-3>0) $
               *                          localpos[1]^ ni[p]      $
@@ -856,7 +859,7 @@ function eval, field, localpos, theta, elm, operation=op
               *ni[p]*(ni[p]-1)*          localpos[1]^(ni[p]-2>0))
            end
         9: begin
-            temp = temp + field[p,elm]* $
+            temp = temp + $
              ( sn $
               *mi[p]*(mi[p]-1)*(mi[p]-2)*localpos[0]^(mi[p]-3>0) $
               *                          localpos[1]^ ni[p]      $
@@ -869,16 +872,36 @@ function eval, field, localpos, theta, elm, operation=op
              + sn $
               *mi[p]*                    localpos[0]^(mi[p]-1>0) $
               *ni[p]*(ni[p]-1)*          localpos[1]^(ni[p]-2>0))
-           end
+        end
        end
 
-       sum = sum + field[p,elm]*temp
-       if(threed eq 1) then begin
-           sum = sum + temp* $
-           (field[p+20,elm]*localpos[2]   $
-           +field[p+40,elm]*localpos[2]^2 $
-           +field[p+60,elm]*localpos[2]^3)
-       endif
+
+       case op2 of
+           0: begin
+               sum = sum + field[p,elm]*temp
+               if(threed eq 1) then begin
+                   sum = sum + temp* $
+                     (field[p+20,elm]*localpos[2]   $
+                     +field[p+40,elm]*localpos[2]^2 $
+                     +field[p+60,elm]*localpos[2]^3)
+               endif
+           end
+           1: begin
+               if(threed eq 1) then begin
+                   sum = sum + temp* $
+                     (field[p+20,elm]   $
+                     +field[p+40,elm]*localpos[2]*2. $
+                     +field[p+60,elm]*localpos[2]^2*3.)
+               endif
+           end
+           2: begin
+               if(threed eq 1) then begin
+                   sum = sum + temp* $
+                     (field[p+40,elm]*2. $
+                     +field[p+60,elm]*localpos[2]*6.)
+               endif
+           end
+       end
    end
 
    return, sum
@@ -1048,11 +1071,11 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
        t = mesh.elements._data[3,i]
        x = mesh.elements._data[4,i]
        y = mesh.elements._data[5,i]
-       if(threed) then begin
+       if(threed eq 1) then begin
            d = mesh.elements._data[7,i]
            phi = mesh.elements._data[8,i]
            localphi = phi0 - phi
-           if(localphi lt 0 or localphi gt d) then continue
+           if(localphi lt 0 or localphi gt d) then  continue
        endif
        co = cos(t)
        sn = sin(t)
