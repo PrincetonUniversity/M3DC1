@@ -255,10 +255,6 @@ subroutine gradshafranov_solve
 
   implicit none
 
-#ifdef _AIX
-  include 'mpif.h'
-#endif
-
   type(element_data) :: d
   type(field_type) :: b1vecini_vec, b2vecini_vec
   type(field_type) :: b3vecini_vec, b4vecini_vec
@@ -387,7 +383,7 @@ subroutine gradshafranov_solve
 
         if(myrank.eq.0 .and. iprint.eq.2) print *, 'applying bcs...'
         call boundary_gs(b1vecini_vec%vec, feedfac)
-        
+
         ! perform LU backsubstitution to get psi solution
         if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
         if(myrank.eq.0 .and. iprint.eq.2) print *, 'solving...'
@@ -1559,7 +1555,6 @@ end subroutine alphaget
    do npsi=1, n
       if ((flux(npsi) - flux(1)) / (flux(n) - flux(1)) .ge. psiscale) exit
    end do
-   print *, 'npsi, n', npsi, n
 
    allocate(psinorm(npsi))
    allocate(fbig0t(npsi),fbigt(npsi),fbigpt(npsi),fbigppt(npsi))
@@ -1604,7 +1599,6 @@ end subroutine alphaget
    alphappt = alphappt*(flux(npsi) - flux(1))**2
   
    constraint = .true.
-
  end subroutine create_profile
 
 

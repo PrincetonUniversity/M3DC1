@@ -40,7 +40,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    m = shift(f,-(n/2+1))
    d = shift(c,0,-(n/2+1),0)
    
-   xtitle='!6m!X'
+   xtitle='!8m!X'
    ytitle='!9r!7W!X'
 
    if(n_elements(q_val) ne 0) then begin
