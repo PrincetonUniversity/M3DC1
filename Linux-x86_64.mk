@@ -47,7 +47,8 @@ LIBS = 	$(PETSC_LIBS) \
 ifeq ($(USESCOREC), 1)
 ifndef SCORECDIR
 #  SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.stix.intel/
-  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/092210
+  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/022310
+#  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/100410_dev
 endif
 
 SCOREC_LIBS = \
@@ -101,14 +102,15 @@ AUTOPACK_LIBS = -L$(AUTOPACK_HOME)/lib \
 	-Wl,-rpath,$(AUTOPACK_HOME)/lib -lautopack-O
 
 #INCLUDE := -I$(SCORECDIR)/mctk/Examples/PPPL/PPPL $(INCLUDE)
-INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/092210 $(INCLUDE)
+INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/022310 $(INCLUDE)
+#INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/100410_dev $(INCLUDE)
 LIBS := $(SCOREC_LIBS) $(AUTOPACK_LIBS) $(LIBS)
 
 endif
 
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(INCLUDE) $(OPTS) \
 	-DH5_VERSION=$(H5_VERSION) -DRANDOM_NUM='drand(0)' \
-	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs # \
+	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs #\
 #	-g -check all -check noarg_temp_created -debug all -ftrapuv
 F90OPTS = $(F90FLAGS) $(FOPTS) -gen-interfaces
 F77OPTS = $(F77FLAGS) $(FOPTS)

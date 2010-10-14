@@ -1282,6 +1282,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        zzero = 0.
    endelse
    ilin = read_parameter('linear', filename=filename)
+   print, 'ilin = ', ilin
 
    if(keyword_set(last)) then time = [nt-1,nt-1]
    if(ilin eq 1 and keyword_set(equilibrium)) then time=[-1,-1]
@@ -1577,10 +1578,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        lp = read_field('psi', x, y, t, slices=time, mesh=mesh, op=7, $
                          filename=filename, points=pts, mask=mask, $
-                         rrange=xrange, zrange=yrange)
+                         rrange=xrange, zrange=yrange, linear=linear)
        psir = read_field('psi', x, y, t, slices=time, mesh=mesh, op=2, $
                          filename=filename, points=pts, mask=mask, $
-                         rrange=xrange, zrange=yrange)
+                         rrange=xrange, zrange=yrange, linear=linear)
 
 
        if(itor eq 1) then begin
@@ -1988,6 +1989,37 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        endif
        symbol = '!7x!X'
        d = dimensions(t0=-1, _EXTRA=extra)
+
+   ;===========================================
+   ; electron angular velocity
+   ;===========================================
+   endif else if(strcmp('omega_e', name, /fold_case) eq 1) then begin
+
+       db = read_parameter('db', filename=filename)
+       print, 'db = ', db
+
+       omega = read_field('omega', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       jy = read_field('jy', x, y, t, slices=time, mesh=mesh, $
+                       filename=filename, points=pts, $
+                       rrange=xrange, zrange=yrange)
+       den = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                       filename=filename, points=pts, $
+                       rrange=xrange, zrange=yrange)
+
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+
+       if(ivform eq 0) then begin
+           data = omega - (db*jy/den)/r
+       endif else if(ivform eq 1) then begin
+           data = omega - (db*jy/den)
+       endif
+       symbol = '!7x!D!8e!N!X'
+       d = dimensions(t0=-1, _EXTRA=extra)
+
 
    ;===========================================
    ; cyclotron frequency
@@ -5193,18 +5225,17 @@ pro write_geqdsk, eqfile=eqfile, b0=b0, l0=l0, $
 end
 
 pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
-                   light_brightness=light_brightness, $
+                   light_brightness=light_brightness, points=points, $
                    brightness=brightness, specular=specular, $
                    solid=solid, positive_only=positive_only, $
                    power=power, angle=angle, ax=ax, az=az, _EXTRA=extra
 
-  field = read_field(fieldname,x,z,t,/complex,_EXTRA=extra,edge_val=0.)
-
-  angles = n_elements(x)
+  if(n_elements(points) eq 0) then points = 50
+  angles = points
 
   if(keyword_set(solid)) then begin
       if(n_elements(flux) eq 0) then flux = 1.
-      psi0 = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra)
+      psi0 = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra,points=points)
       psival = lcfs(psi0,x,z,flux0=flux0,_EXTRA=extra)
       flux1 = (psival-flux0)*flux + flux0
       if(n_elements(angle) eq 0) then angle = .75
@@ -5214,20 +5245,37 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
 
   shown_angles = angles*angle
 
-  data = fltarr(n_elements(x),shown_angles,n_elements(z))
+  data = fltarr(points,shown_angles,points)
   if(keyword_set(solid)) then $
-    psi = fltarr(n_elements(x),shown_angles,n_elements(z))
+    psi = fltarr(points,shown_angles,points)
 
-  ntor = read_parameter('ntor',_EXTRA=extra)
-  print, 'ntor = ', ntor
+  threed = read_parameter('3d', _EXTRA=extra)
+  print, '3d = ', threed
 
-  for i = 0, shown_angles-1 do begin
-      phi = 2.*!pi*i/(angles-1.)
-      data[*,i,*] = real_part(field[0,*,*]* $
-                              (cos(ntor*phi) + complex(0.,1.)*sin(ntor*phi)))
-     
-      if(keyword_set(solid)) then psi[*,i,*] = psi0[0,*,*]
-  end
+  if(threed eq 1) then begin
+      for i=0, shown_angles-1 do begin
+          phi = 2.*!pi*i/(angles-1.)
+          data[*,i,*] = $
+            read_field(fieldname,x,z,t,_EXTRA=extra,edge_val=0.,phi=phi, $
+                      points=points)
+          if(keyword_set(solid)) then psi[*,i,*] = psi0[0,*,*]
+      end
+  endif else begin
+      ntor = read_parameter('ntor',_EXTRA=extra)
+      print, 'ntor = ', ntor
+      
+      field = read_field(fieldname,x,z,t,/complex,_EXTRA=extra,edge_val=0., $
+                        points=points)
+      for i = 0, shown_angles-1 do begin
+          phi = 2.*!pi*i/(angles-1.)
+          data[*,i,*] = real_part(field[0,*,*]* $
+                                  (cos(ntor*phi) + $
+                                   complex(0.,1.)*sin(ntor*phi)))
+          
+          if(keyword_set(solid)) then psi[*,i,*] = psi0[0,*,*]
+      end
+  endelse
+
   if(keyword_set(positive_only)) then begin
       data = data > 0.
   endif else data = abs(data)
@@ -5255,17 +5303,28 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
     + min(z)
 
   q = v
-  q(0,*) = r*cos(2.*!pi*v[1,*]/(angles-1.))
-  q(1,*) = r*sin(2.*!pi*v[1,*]/(angles-1.))
-  q(2,*) = zz
- 
+
   s = intarr(2)
   device, get_screen_size=s
   screen_aspect = float(s[1])/float(s[0])
 
-  xrange = [-max(r),max(r)]*0.75
-  yrange = xrange
-  zrange = xrange*screen_aspect
+  itor = read_parameter('itor', _EXTRA=extra)
+  if(itor eq 1) then begin
+      q[0,*] = r*cos(2.*!pi*v[1,*]/(angles-1.))
+      q[1,*] = r*sin(2.*!pi*v[1,*]/(angles-1.))
+      q[2,*] = zz
+      xrange = [-max(r),max(r)]*0.75
+      yrange = xrange
+      zrange = xrange*screen_aspect
+  endif else begin
+      q[0,*] = r
+      q[1,*] = 2.*!pi*v[1,*]/(angles-1.)
+      q[2,*] = zz
+      xrange = [min(r),max(r)]*1.5/screen_aspect
+      yrange = [min(q[1,*]),max(q[1,*])]*1.5
+      zrange = [min(zz),max(zz)]*1.5
+  endelse
+ 
 
   if(n_elements(az) eq 0) then begin
       if(keyword_set(solid)) then az=-25 else az=0.

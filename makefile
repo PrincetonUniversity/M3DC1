@@ -46,7 +46,7 @@ else
 OPTS := $(OPTS) -DMAX_PTS=79
 endif
 
-OPTS := $(OPTS) -DPETSC_FORTRAN_PETSCTRUTH_INT -DxCJ_MATRIX_DUMP
+OPTS := $(OPTS) -DPETSC_FORTRAN_PETSCTRUTH_INT # -DxCJ_MATRIX_DUMP
 
 export OPTS
 export SCORECOPT
@@ -70,7 +70,7 @@ BIN = m3dc1
 READGATO_OBJS = polar.o readgato.o
 READJSOLVER_OBJS = polar.o read_jsolver_exec.o
 
-OBJS := $(AUX) subp.o dbesj0.o dbesj1.o fdump.o \
+OBJS := $(AUX) subp.o \
 	math.o interpolate.o control.o \
 	element.o $(V_OBJ) field.o \
 	M3Dmodules.o \

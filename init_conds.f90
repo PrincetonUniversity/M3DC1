@@ -1802,14 +1802,12 @@ subroutine eqdsk_init()
 
   real, allocatable :: flux(:)
 
-  print *, "eqdsk_init called"
-
   call load_eqdsk
   press = press*amu0
   pprime = pprime*amu0
   current = current*amu0
 
-  if(myrank.eq.0 .and. iprint.eq.1) then
+  if(myrank.eq.0 .and. iprint.ge.1) then
      print *, 'normalized current ', current
 !!$     write(*,1001) nw
 !!$ 1001 format(" nw = ",i4)
@@ -1852,27 +1850,27 @@ subroutine eqdsk_init()
         call default_profiles
      else
         allocate(flux(nw))
-           dpsi = (sibry-simag)/(nw-1.)
+        dpsi = (sibry-simag)/(nw-1.)
+        
         do l=1,nw
            flux(l) = l*dpsi
-           ll = nw-l
-!          redefine fpol keeping ffprim fixed
-           if(ll.gt.0) fpol(ll) = -sqrt(fpol(ll+1)**2 - dpsi*(ffprim(ll)+ffprim(ll+1)))
+!!$           ll = nw-l
+!!$!          redefine fpol keeping ffprim fixed
+!!$           if(ll.gt.0) fpol(ll) = -sqrt(fpol(ll+1)**2 - dpsi*(ffprim(ll)+ffprim(ll+1)))
         end do
         call create_profile(nw,press,pprime,fpol,ffprim,flux)
-!
-      if(myrank.eq.0 .and. iprint.ge.1) then
-        open(unit=77,file="debug-out",status="unknown")
-        write(77,2010) xmag,zmag,tcuro
-  2010 format("xmag,zmag,tcuro =",1p3e12.4,/,  &
-     "l   press       pprime      fpol        ffprim      flux")
-        do l=1,nw
-        write(77,2011) l,press(l),pprime(l),fpol(l),ffprim(l),flux(l)
-        enddo
-  2011 format(i3,1p5e12.4)
-       close(77)
-      endif
-!
+
+        if(myrank.eq.0 .and. iprint.ge.1) then
+           open(unit=77,file="debug-out",status="unknown")
+           write(77,2010) xmag,zmag,tcuro
+2010       format("xmag,zmag,tcuro =",1p3e12.4,/,  &
+                "l   press       pprime      fpol        ffprim      flux")
+           do l=1,nw
+              write(77,2011) l,press(l),pprime(l),fpol(l),ffprim(l),flux(l)
+           enddo
+2011       format(i3,1p5e12.4)
+           close(77)
+        endif
         deallocate(flux)
      end if
 

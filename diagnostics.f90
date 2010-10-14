@@ -323,12 +323,12 @@ contains
     itri = 0
     xrel = xzero
     zrel = alz/2. + zzero
-    call evaluate(xrel,zrel,temp(1),temp2(1),psi_field,itri)
+    call evaluate(xrel,zrel,temp(1),temp2(1),psi_field(1),itri)
 
     itri = 0
     xrel = alx/2. + xzero
     zrel = alz/2. + zzero
-    call evaluate(xrel,zrel,temp(2),temp2(2),psi_field,itri)
+    call evaluate(xrel,zrel,temp(2),temp2(2),psi_field(1),itri)
 
     reconnected_flux = 0.5*(temp(2)-temp(1))
 
@@ -727,8 +727,13 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
            p22 = sum5
 
            denom = p22*p11 - p12**2
-           sinew = si -  ( p22*pt1 - p12*pt2)/denom
-           etanew= eta - (-p12*pt1 + p11*pt2)/denom
+           if(denom.ne.0.) then
+              sinew = si -  ( p22*pt1 - p12*pt2)/denom
+              etanew= eta - (-p12*pt1 + p11*pt2)/denom
+           else
+              sinew = si
+              etanew= eta
+           endif
 
         case(1)  ! find local zero of <psi,psi>
            pt = sum1**2 + sum2**2

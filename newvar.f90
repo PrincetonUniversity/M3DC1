@@ -81,7 +81,7 @@ contains
   subroutine create_newvar_matrices
     use sparse
     use basic
-    
+
     ! assign the proper reference indicies to each matrix
     call set_newvar_indices
 
@@ -93,11 +93,12 @@ contains
     print *, "create_mat newvar mass_mat_lhs",    mass_mat_lhs%mat%imatrix     
     print *, "create_mat newvar gs_mat_rhs_dc",   gs_mat_rhs_dc%mat%imatrix     
 #endif 
+
     if(irmp.gt.0) &
          call create_newvar_matrix(bf_mat_rhs,NV_NOBOUND,NV_BF_MATRIX,.false.)
 #ifdef CJ_MATRIX_DUMP
          print *, "create_mat newvar bf_mat_rhs", bf_mat_rhs%mat%imatrix     
-#endif 
+#endif
     if(hyperc.ne.0) then
        call create_newvar_matrix(s5_mat, NV_SVBOUND, NV_SV_MATRIX, .true.)
        call create_newvar_matrix(d5_mat, NV_SVBOUND, NV_SV_MATRIX, .false.)
@@ -126,6 +127,7 @@ contains
 #endif 
        endif
     endif
+
     if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
        if(inocurrent_pol.eq.1) then
           call create_newvar_matrix(bf_mat_lhs, &
@@ -147,6 +149,7 @@ contains
 #endif 
        end if
     endif
+
     if(jadv.eq.1 .and. hyper.ne.0.) then
        call create_newvar_matrix(s10_mat, NV_SJBOUND, NV_SJ_MATRIX, .true.)
        call create_newvar_matrix(d10_mat, NV_SJBOUND, NV_SJ_MATRIX, .false.)
@@ -240,7 +243,6 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs)
   mat%ibound = ibound
 
   allocate(temp(dofs_per_element, dofs_per_element, isize, isize))
-
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, ' populating matrix...', &
        mat%mat%m, mat%mat%n
@@ -392,7 +394,9 @@ subroutine solve_newvar_axby(mata,vout,matb,vin,bvec)
   type(vector_type), pointer :: bptr
   integer :: ier
 
+#ifdef CJ_MATRIX_DUMP
   character*30 filename
+#endif
 
   if(present(bvec)) then
      bptr => bvec
@@ -515,7 +519,9 @@ end subroutine solve_newvar1
     integer :: ier
     type(vector_type), pointer :: bptr
 
+#ifdef CJ_MATRIX_DUMP
     character*30 filename
+#endif
 
     if(.not.present(bvec)) then
        bptr => rhs

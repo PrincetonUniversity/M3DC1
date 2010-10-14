@@ -56,6 +56,12 @@ Program Reducedquintic
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh'
   call load_mesh
 
+!!$#if defined(USECOMPLEX) && defined(USESCOREC)
+!!$  if(eta_wall.ne.0) then
+!!$     call setresistivewallbcstate(1)
+!!$  endif
+!!$#endif
+
   ! read input file
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Reading input'
   call input
@@ -82,6 +88,7 @@ Program Reducedquintic
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Generating newvar matrices'
   call create_newvar_matrices
+
 
   ! Set initial conditions either from restart file
   ! or from initialization routine
