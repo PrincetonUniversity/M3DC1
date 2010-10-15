@@ -56,12 +56,6 @@ Program Reducedquintic
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh'
   call load_mesh
 
-!!$#if defined(USECOMPLEX) && defined(USESCOREC)
-!!$  if(eta_wall.ne.0) then
-!!$     call setresistivewallbcstate(1)
-!!$  endif
-!!$#endif
-
   ! read input file
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Reading input'
   call input
@@ -1232,7 +1226,18 @@ subroutine space(ifirstcall)
         call createdofnumbering(vecsize_vel, iper, jper, &
              vecsize_vel*6, 0, 0, 0, maxdofsn)
      endif
-  endif
+
+#ifdef USERW
+     ! set resistive wall bcs for relevant numberings
+     if(eta_wall.ne.0) then
+        call setresistivewallbcstate(1,3)
+        if(vecsize_phi .ne. 3) then
+           call setresistivewallbcstate(1,vecsize_phi)
+        endif
+     endif
+#endif
+
+  endif ! on firstcall
 #endif
   
   numelms = local_elements()

@@ -10,8 +10,7 @@ INCLUDE = -I$(NTCCHOME)/mod -I$(LIBDIR) \
 H5_VERSION = 166
 
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(INCLUDE) $(OPTS) \
-	-DH5_VERSION=$(H5_VERSION) -DRANDOM_NUM='rand()' \
-#	-Dglobalentdofs=entdofs -Dglobalinsertval=insertval \
+	-DH5_VERSION=$(H5_VERSION) -DRANDOM_NUM='rand()'
 #	-g -check all -check noarg_temp_created
 F90OPTS = $(FOPTS)
 F77OPTS = $(FOPTS)
@@ -50,6 +49,7 @@ SCOREC_ARCH = ia64_linux
 #  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Viz/022310
 #endif
 #SCORECINCLUDE = -I/p/tsc/m3dc1/lib/SCORECLib/include/Viz/022310
+#FOPTS := $(FOPTS) -Dglobalentdofs=entdofs -Dglobalinsertval=insertval
 #SCOREC_LIBS = \
 #	-L$(SCORECDIR) \
 #	-Wl,-rpath,$(SCORECDIR) \
@@ -67,10 +67,9 @@ SCOREC_ARCH = ia64_linux
 
 # For new libraries =============================
 ifndef SCORECDIR
-#  SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.petscGlob2/
-#  SCORECDIR = /p/tsc/m3dc1/lib/develop.petscGlob2/
-  SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/
+  SCORECDIR = /p/tsc/m3dc1/lib/develop.petscGlob2/
 endif
+FOPTS := $(FOPTS) -DUSERW
 SCORECINCLUDE = -I$(SCORECDIR)/mctk/Examples/PPPL/PPPL
 SCOREC_LIBS = \
 	-L$(SCORECDIR)FMDB/FMDB/lib/$(SCOREC_ARCH) \
