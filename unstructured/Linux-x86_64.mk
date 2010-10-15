@@ -28,6 +28,9 @@ PARMETIS_LIBS = -L$(PARMETIS_HOME)/lib \
 
 NAG_LIBS = -L$(NAG_ROOT)/lib -lnag
 
+AUTOPACK_LIBS = -L$(AUTOPACK_HOME)/lib \
+	-Wl,-rpath,$(AUTOPACK_HOME)/lib -lautopack-O
+
 LIBS = 	$(PETSC_LIBS) \
 	$(SUPERLU_LIBS) \
 	$(MUMPS_LIBS) \
@@ -45,11 +48,11 @@ LIBS = 	$(PETSC_LIBS) \
 
 
 ifeq ($(USESCOREC), 1)
+
 ifndef SCORECDIR
-#  SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.stix.intel/
   SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/022310
-#  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/100410_dev
 endif
+INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/022310 $(INCLUDE)
 
 SCOREC_LIBS = \
 	-L$(SCORECDIR) \
@@ -65,6 +68,13 @@ SCOREC_LIBS = \
 	-lSolver-mpich2$(SCORECOPT) \
 	-lPPPL-mpich2$(SCORECOPT)
 
+
+
+#ifndef SCORECDIR
+#  SCORECDIR = /p/tsc/m3dc1/lib/develop.petscGlob2/
+#endif
+#INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/022310 $(INCLUDE)
+#
 #SCOREC_ARCH=x86_64_linux-icc
 #SCOREC_LIBS = \
 #	-L$(SCORECDIR)FMDB/FMDB/lib/$(SCOREC_ARCH) \
@@ -98,15 +108,10 @@ SCOREC_LIBS = \
 #	-lSolver-mpich2$(SCORECOPT) \
 #	-lPPPL-mpich2$(SCORECOPT)
 
-AUTOPACK_LIBS = -L$(AUTOPACK_HOME)/lib \
-	-Wl,-rpath,$(AUTOPACK_HOME)/lib -lautopack-O
-
-#INCLUDE := -I$(SCORECDIR)/mctk/Examples/PPPL/PPPL $(INCLUDE)
-INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/022310 $(INCLUDE)
-#INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/100410_dev $(INCLUDE)
 LIBS := $(SCOREC_LIBS) $(AUTOPACK_LIBS) $(LIBS)
 
 endif
+
 
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(INCLUDE) $(OPTS) \
 	-DH5_VERSION=$(H5_VERSION) -DRANDOM_NUM='drand(0)' \
