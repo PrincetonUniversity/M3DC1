@@ -1,37 +1,66 @@
 module element
 
-!!$  integer, parameter :: VAL       = 1
-!!$  integer, parameter :: VAL_DX    = 2
-!!$  integer, parameter :: VAL_DZ    = 3
-!!$  integer, parameter :: VAL_DXX   = 4
-!!$  integer, parameter :: VAL_DXZ   = 5
-!!$  integer, parameter :: VAL_DZZ   = 6
+  ! The following give the meaning of each dof at one node
+  integer, parameter :: DOF_1   = 1
+  integer, parameter :: DOF_DR  = 2
+  integer, parameter :: DOF_DZ  = 3
+  integer, parameter :: DOF_DRR = 4
+  integer, parameter :: DOF_DRZ = 5
+  integer, parameter :: DOF_DZZ = 6
 #ifdef USE3D
-!!$  integer, parameter :: VAL_DY    = 8
-!!$  integer, parameter :: VAL_DXY   = 9
-!!$  integer, parameter :: VAL_DYZ   = 10
-!!$  integer, parameter :: VAL_DXXY  = 11
-!!$  integer, parameter :: VAL_DXYZ  = 12
-!!$  integer, parameter :: VAL_DYZZ  = 13
-!!$  integer, parameter :: VAL_DYY   = 14
-!!$  integer, parameter :: VAL_DXYY  = 15
-!!$  integer, parameter :: VAL_DYYZ  = 16
-!!$  integer, parameter :: VAL_DXXYY = 17
-!!$  integer, parameter :: VAL_DXYYZ = 18
-!!$  integer, parameter :: VAL_DYYZZ = 19
-  integer, parameter :: dofs_per_node = 19
-#else
-  integer, parameter :: dofs_per_node = 6
+  integer, parameter :: DOF_DP   = 7
+  integer, parameter :: DOF_DRP  = 8
+  integer, parameter :: DOF_DZP  = 9
+  integer, parameter :: DOF_DRRP = 10
+  integer, parameter :: DOF_DRZP = 11
+  integer, parameter :: DOF_DZZP = 12
 #endif
 
-  integer, parameter :: nodes_per_edge = 2
-  integer, parameter :: nodes_per_element = 3
+  ! The dofs per element are the concatenation of the dofs per node
+  ! for each node in the element
+
+  integer, parameter :: maxpol = 3
+  integer, parameter :: pol_dofs_per_node = 6
+  integer, parameter :: pol_nodes_per_element = 3
+#ifdef USE3D
+  integer, parameter :: tor_dofs_per_node = 2
+  integer, parameter :: tor_nodes_per_element = 2
+  integer, parameter :: maxtor = 3
+  integer, parameter :: edges_per_element = 9
+  integer, parameter :: coeffs_per_dphi = 4
+  integer, parameter :: dofs_per_dphi = 4
+#else
+  integer, parameter :: tor_dofs_per_node = 1
+  integer, parameter :: tor_nodes_per_element = 1
+  integer, parameter :: maxtor = 1
   integer, parameter :: edges_per_element = 3
+  integer, parameter :: coeffs_per_dphi = 1
+  integer, parameter :: dofs_per_dphi = 1
+#endif
+  integer, parameter :: dofs_per_node = tor_dofs_per_node*pol_dofs_per_node
+  integer, parameter :: nodes_per_element = &
+       pol_nodes_per_element*tor_nodes_per_element
+  integer, parameter :: coeffs_per_tri = 20
+  integer, parameter :: dofs_per_tri = 18
+
+  integer, parameter :: nodes_per_edge = 2
   integer, parameter :: dofs_per_element = nodes_per_element*dofs_per_node
+  integer, parameter :: coeffs_per_element = coeffs_per_tri*coeffs_per_dphi
 
   type element_data
-     real :: x, z, a, b, c, co, sn
+     real :: R, Phi, Z, a, b, c, d, co, sn, itri
   end type element_data
+
+  integer :: ni(coeffs_per_tri),mi(coeffs_per_tri)  
+  data mi /0,1,0,2,1,0,3,2,1,0,4,3,2,1,0,5,3,2,1,0/
+  data ni /0,0,1,0,1,2,0,1,2,3,0,1,2,3,4,0,2,3,4,5/
+#ifdef USE3D
+  integer :: li(coeffs_per_dphi)
+  data li /0,1,2,3/
+#endif
+
+  real, allocatable :: gtri(:,:,:), gtri_old(:,:,:)
+  real, allocatable :: htri(:,:,:)
 
 contains
 
@@ -42,15 +71,16 @@ contains
   ! transforms from global coordinates 
   ! to local (element) coordinates
   !=======================================================
-  elemental subroutine global_to_local(d, x, z, xi, eta)
+  elemental subroutine global_to_local(d, R, Phi, Z, xi, zi, eta)
     implicit none
 
     type(element_data), intent(in) :: d
-    real, intent(in) :: x, z
-    real, intent(out) :: xi, eta
+    real, intent(in) :: R, Phi, Z
+    real, intent(out) :: xi, zi, eta
 
-    xi  =  (x-d%x)*d%co + (z-d%z)*d%sn - d%b
-    eta = -(x-d%x)*d%sn + (z-d%z)*d%co
+    xi  =  (R-d%R)*d%co + (Z-d%Z)*d%sn - d%b
+    eta = -(R-d%R)*d%sn + (Z-d%Z)*d%co
+    zi  =  Phi - d%Phi
   end subroutine global_to_local
 
   !=======================================================
@@ -59,16 +89,42 @@ contains
   ! transforms from local (element) coordinates
   ! to global coordinates
   !=======================================================   
-  elemental subroutine local_to_global(d, xi, eta, x, z)
+  elemental subroutine local_to_global(d, xi, zi, eta, R, Phi, Z)
     implicit none
 
     type(element_data), intent(in) :: d
-    real, intent(in) :: xi, eta
-    real, intent(out) :: x, z
+    real, intent(in) :: xi, zi, eta
+    real, intent(out) :: R, Phi, Z
 
-    x = d%x + (d%b+xi)*d%co - eta*d%sn
-    z = d%z + (d%b+xi)*d%sn + eta*d%co
+    R = d%R + (d%b+xi)*d%co - eta*d%sn
+    Z = d%Z + (d%b+xi)*d%sn + eta*d%co
+    Phi = d%Phi + zi
   end subroutine local_to_global
+
+  logical function is_in_element(d, R, phi, z)
+    implicit none
+    type(element_data), intent(in) :: d
+    real, intent(in) :: R, Phi, Z
+    real :: f, xi, zi, eta
+
+    call global_to_local(d, R, Phi, Z, xi, zi, eta)
+
+    is_in_element = .false.
+    if(eta.lt.0.) return
+    if(eta.gt.d%c) return
+
+    f = 1. - eta/d%c
+    if(xi.lt.-f*d%b) return
+    if(xi.gt. f*d%a) return
+    
+#ifdef USE3D
+    if(zi.le.0.) return
+    if(zi.ge.d%d) return
+#endif
+
+    is_in_element = .true.
+  end function is_in_element
+
 
   !======================================================================
   ! rotate_dofs
@@ -98,6 +154,19 @@ contains
        outvec(6) = normal(1)**2*invec(6) + normal(2)**2*invec(4) &
             - 2.*normal(1)*normal(2)*invec(5) &
             - curv*outvec(2)
+#ifdef USE3D
+       outvec(7) = invec(7)
+       outvec(8) = normal(1)*invec(8) + normal(2)*invec(9)
+       outvec(9) = normal(1)*invec(9) - normal(2)*invec(8)
+       outvec(10) = normal(1)**2*invec(10) + normal(2)**2*invec(12) &
+            + 2.*normal(1)*normal(2)*invec(11)
+       outvec(11) = (normal(1)**2 - normal(2)**2)*invec(11) &
+            + normal(1)*normal(2)*(invec(12) - invec(10)) &
+            + curv*outvec(9)
+       outvec(12) = normal(1)**2*invec(12) + normal(2)**2*invec(10) &
+            - 2.*normal(1)*normal(2)*invec(11) &
+            - curv*outvec(8)
+#endif
     else if (ic.eq.-1) then
        outvec(1) = invec(1)
        outvec(2) = normal(1)*invec(2) - normal(2)*invec(3) &
@@ -110,6 +179,19 @@ contains
             + (normal(1)**2 - normal(2)**2)*invec(5)
        outvec(6) = normal(2)**2*invec(4) + normal(1)**2*invec(6) &
                + normal(2)*normal(2)*invec(5)
+#ifdef USE3D
+       outvec(7) = invec(7)
+       outvec(8) = normal(1)*invec(8) - normal(2)*invec(9) &
+            - curv*normal(2)*invec(11) - curv*normal(1)*invec(12)
+       outvec(9) = normal(2)*invec(8) + normal(1)*invec(9) &
+            + curv*normal(1)*invec(11) - curv*normal(2)*invec(12)
+       outvec(10) = normal(1)**2*invec(10) + normal(2)**2*invec(12) &
+            - normal(1)*normal(2)*invec(11)
+       outvec(11) = 2.*normal(1)*normal(2)*(invec(10) - invec(12)) &
+            + (normal(1)**2 - normal(2)**2)*invec(11)
+       outvec(12) = normal(2)**2*invec(10) + normal(1)**2*invec(12) &
+               + normal(2)*normal(2)*invec(11)
+#endif
     else
        outvec(1) = invec(1)
        outvec(2) = normal(1)*invec(2) + normal(2)*invec(3) &
@@ -125,9 +207,24 @@ contains
             + 2.*normal(1)*normal(2)*(invec(6) - invec(4))
        outvec(6) = normal(1)**2*invec(6) + normal(2)**2*invec(4) &
             - normal(1)*normal(2)*invec(5)
+#ifdef USE3D
+       outvec(7) = invec(7)
+       outvec(8) = normal(1)*invec(8) + normal(2)*invec(9) &
+            + curv*normal(2)**2*invec(10) &
+            - curv*normal(1)*normal(2)*invec(11) &
+            + curv*normal(1)**2*invec(12)
+       outvec(9) = normal(1)*invec(9) - normal(2)*invec(8) &
+            + 2.*curv*normal(1)*normal(2)*(invec(10) - invec(12)) &
+            - curv*(normal(1)**2 - normal(2)**2)*invec(11)
+       outvec(10) = normal(1)**2*invec(10) + normal(2)**2*invec(12) &
+            + normal(1)*normal(2)*invec(11)
+       outvec(11) = (normal(1)**2 - normal(2)**2)*invec(11) &
+            + 2.*normal(1)*normal(2)*(invec(12) - invec(10))
+       outvec(12) = normal(1)**2*invec(12) + normal(2)**2*invec(10) &
+            - normal(1)*normal(2)*invec(11)
+#endif
     endif
   end subroutine rotate_dofs
-
 
   !============================================================
   ! tmatrix
@@ -143,8 +240,8 @@ contains
     
     integer :: ifail, info1, info2
     real :: danaly, det, percent, diff
-    real :: t(20,20), wkspce(9400)
-    integer :: ipiv(20)
+    real :: t(coeffs_per_tri,coeffs_per_tri), wkspce(9400)
+    integer :: ipiv(coeffs_per_tri)
     
     integer, parameter :: ierrorchk = 0
     
@@ -288,5 +385,214 @@ contains
     if(info1.ne.0.or.info2.ne.0) write(*,'(3I5)') info1,info2
     
   end subroutine tmatrix
+
+
+  !======================================================================
+  ! local_coeff_vector
+  ! ~~~~~~~~~~~~~~~~~~
+  ! calculates the coefficients of the polynomial expansion of the
+  ! field in the element domain
+  !======================================================================
+  subroutine local_coeff_vector(itri, c, iold)
+    implicit none
+
+    integer, intent(in) :: itri
+    real, intent(out), dimension(dofs_per_element,coeffs_per_element) :: c
+    logical, intent(in) :: iold
+
+    integer :: i, j, k, l, m, n
+    integer :: idof, icoeff, ip, it
+
+    c = 0.
+
+    icoeff = 0
+    do i=1,coeffs_per_dphi
+       do j=1,coeffs_per_tri
+          icoeff = icoeff + 1
+          idof = 0
+          it = 0
+          do k=1,tor_nodes_per_element
+             do l=1,pol_nodes_per_element
+                do m=1,tor_dofs_per_node
+                   do n=1,pol_dofs_per_node
+                      idof = idof + 1
+                      ip = n + (l-1)*pol_dofs_per_node
+                      it = m + (k-1)*tor_dofs_per_node
+                      if(iold) then
+                         c(idof,icoeff) = c(idof,icoeff) &
+                              + htri(i,it,itri)*gtri_old(j,ip,itri)
+                      else
+                         c(idof,icoeff) = c(idof,icoeff) &
+                              + htri(i,it,itri)*gtri(j,ip,itri)
+                      endif
+                   end do
+                end do
+             end do
+          end do
+       end do
+    end do
+  end subroutine local_coeff_vector
+
+
+  !======================================================================
+  ! local_coeffs
+  ! ~~~~~~~~~~~~
+  ! calculates the coefficients of the polynomial expansion of the
+  ! field in the element domain
+  !======================================================================
+  subroutine local_coeffs(itri, dof, c)
+    implicit none
+
+    integer, intent(in) :: itri
+    vectype, intent(in), dimension(dofs_per_element) :: dof
+    vectype, intent(out), dimension(coeffs_per_element) :: c
+
+    real, dimension(dofs_per_element,coeffs_per_element) :: cl
+    integer :: i, j
+
+    call local_coeff_vector(itri, cl, .true.)
+    c = 0.
+    do i=1, coeffs_per_element
+       do j=1, dofs_per_element
+          c(i) = c(i) + cl(j,i)*dof(j)
+       end do
+    end do
+  end subroutine local_coeffs
+
+
+!!$  !======================================================================
+!!$  ! local_value
+!!$  ! ~~~~~~~~~~~
+!!$  ! calculates the value of a field at n points within an element
+!!$  ! v(m,i,j,k) is d^(i-1)_R d^(j-1)_Phi d^(k-1)_Z of the field at point m
+!!$  !======================================================================
+!!$  subroutine local_value(d, n, xi, zi, eta, dpol, dtor, v)
+!!$    type(element_data), intent(in) :: d
+!!$    integer, intent(in) :: n
+!!$    vectype, intent(in), dimension(dofs_per_element) :: dof
+!!$    real, intent(in), dimension(n) :: xi, zi, eta
+!!$    vectype, intent(out), dimension(n, maxpol, maxtor, maxpol) :: v
+!!$
+!!$    vectype, dimension(coeffs_per_element) :: c
+!!$
+!!$    integer :: p,q,i,j,k
+!!$    real :: co, sn, co2, cosn, sn2
+!!$    real, dimension(maxpol, maxpol) :: lval
+!!$    real, dimension(maxpol, maxtor, maxpol) :: val
+!!$
+!!$    call local_coeffs(dof, c)
+!!$
+!!$    ! need inverse rotation to get from local to global coords
+!!$    co =  d%co
+!!$    sn = -d%sn
+!!$
+!!$    co2 = co*co
+!!$    cosn = co*sn
+!!$    sn2 = sn*sn
+!!$
+!!$    do k=1, n
+!!$       do p=1, coeffs_per_tri
+!!$          val = 0.
+!!$          
+!!$          ! calculate values in local coordinates
+!!$          lval(0,0) = xi(k)**mi(p) * eta(k)**ni(p)
+!!$          
+!!$          if(dpol.ge.1) then
+!!$             if(mi(p).ge.1) then
+!!$                ! d_xi terms
+!!$                lval(1,0) = mi(p)*xi(k)**(mi(p)-1) * eta(k)**ni(p)
+!!$             endif
+!!$             if(ni(p).ge.1) then
+!!$                ! d_eta terms
+!!$                lval(0,1) = xi(k)**mi(p) * eta(k)**(ni(p)-1)*ni(p)
+!!$             endif
+!!$          endif
+!!$          
+!!$          if(dpol.ge.2) then
+!!$             if(mi(p).ge.2) then
+!!$                ! d_xi^2 terms
+!!$                lval(2,0) = xi(k)**(mi(p)-2)*(mi(p)-1)*mi(p) * eta(k)**ni(p)
+!!$             endif
+!!$             
+!!$             if(ni(p).ge.2) then
+!!$                ! d_eta^2 terms
+!!$                lval(0,2) = xi(k)**mi(p) * eta(k)**(ni(p)-2)*(ni(p)-1)*ni(p)
+!!$             endif
+!!$             
+!!$             if(mi(p).ge.1 .and. ni(p).ge.1) then
+!!$                ! d_xi d_eta terms
+!!$                lval(1,1) = xi(k)**(mi(p)-1)*mi(p) * eta(k)**(ni(p)-1)*ni(p)
+!!$             endif
+!!$          endif
+!!$
+!!$          if(dpol.ge.3) then
+!!$             if(mi(p).ge.3) then
+!!$                ! d_xi^3 terms
+!!$                lval(3,0) = xi(k)**(mi(p)-3)*(mi(p)-2)*(mi(p)-1)*mi(p) &
+!!$                     *     eta(k)**ni(p)
+!!$             endif
+!!$             if(mi(p).ge.2 .and. ni(p).ge.1) then
+!!$                ! d_xi^2 d_eta terms
+!!$                lval(2,1) = xi(k)**(mi(p)-2)*(mi(p)-1)*mi(p) &
+!!$                     *     eta(k)**(ni(p)-1)* ni(p)
+!!$             endif
+!!$             if(mi(p).ge.1 .and. ni(p).ge.2) then
+!!$                ! d_xi d_eta^2 terms
+!!$                lval(1,2) = xi(k)**(mi(p)-1)*mi(p) &
+!!$                     *     eta(k)**(ni(p)-2)*(ni(p)-1)*ni(p)
+!!$             endif
+!!$             if(ni(p).ge.3) then
+!!$                ! d_eta^3 terms
+!!$                lval(0,3) = xi(k)**mi(p) &
+!!$                     *     eta(k)**(ni(p)-3)*(ni(p)-2)*(ni(p)-1)*ni(p)
+!!$             endif             
+!!$          endif
+!!$
+!!$
+!!$          ! rotate values to global coordinates
+!!$          val(0,0,0) = lval(0,0)
+!!$          val(1,0,0) = co*lval(1,0) + sn*lval(0,1)
+!!$          val(0,0,1) = co*lval(0,1) - sn*lval(1,0)
+!!$          val(2,0,0) = co2*lval(2,0) + sn2*lval(0,2) + 2.*cosn*lval(1,1)
+!!$          val(1,0,1) = (co2 - sn2)*lval(1,1) + cosn*(lval(0,2) - lval(2,0))
+!!$          val(0,0,2) = co2*lval(0,2) + sn2*lval(2,0) - 2.*cosn*lval(1,1)
+!!$
+!!$          ! NEED TO INCLUDE ROTATION OF 3RD DERIVATIVE TERMS HERE
+!!$
+!!$          ! include toroidal derivatives
+!!$          do q=1, coeffs_per_dphi
+!!$#ifdef USE3D
+!!$             if(dtor.ge.3) then
+!!$                if(li(q).ge.3) then
+!!$                   val(:,3,:) = val(:,0,:) &
+!!$                        *zi**(li(q)-3)*(li(q)-2)*(li(q)-1)*li(q)
+!!$                else
+!!$                   val(:,3,:) = 0.
+!!$                endif
+!!$             endif
+!!$             if(dtor.ge.2) then
+!!$                if(li(q).ge.2) then
+!!$                   val(:,2,:) = val(:,0,:)*zi**(li(q)-2)*(li(q)-1)*li(q)
+!!$                else
+!!$                   val(:,2,:) = 0.
+!!$                endif
+!!$             endif
+!!$             if(dtor.ge.1) then
+!!$                if(li(q).ge.1) then
+!!$                   val(:,1,:) = val(:,0,:)*zi**(li(q)-1)*li(q)
+!!$                else
+!!$                   val(:,1,:) = 0.
+!!$                endif
+!!$             endif
+!!$             val(:,0,:) = val(:,0,:)*zi**li(q)
+!!$#endif
+!!$             v(k,:,:,:) = v(k,:,:,:) + c(j)*val(:,:,:)
+!!$
+!!$             j = j + 1
+!!$          end do
+!!$       end do
+!!$    end do
+!!$    
+!!$  end subroutine local_value
   
 end module element

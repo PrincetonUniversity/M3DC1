@@ -69,7 +69,7 @@ subroutine gradshafranov_per()
   implicit none
 
   integer :: i, numnodes
-  real :: x, z
+  real :: x, phi, z
   vectype, dimension(dofs_per_node) :: vmask
 
 
@@ -79,7 +79,7 @@ subroutine gradshafranov_per()
 
   do i=1, numnodes
 
-     call get_node_pos(i, x, z)
+     call get_node_pos(i, x, phi, z)
 
      call get_local_vals(i)
 
@@ -147,8 +147,7 @@ subroutine vacuum_field()
 
   rnorm = 10.
   if(myrank.eq.0 .and. iprint.ge.1) &
-       print *, "gradshafranov_solve xmag zmag xzero zzero= ", &
-       xmag, zmag, xzero, zzero
+       print *, "gradshafranov_solve xmag zmag ", xmag, zmag
   
   !......define feedback parameters needed for normalization
   if(idevice .eq. 0) then
@@ -166,7 +165,7 @@ subroutine vacuum_field()
   ipole = 0
   select case(idevice)
   case(-1)
-     call load_coils(xc,zc,ic,numcoils,'coil.dat','current.dat')
+     call load_coils(xc,zc,ic,numcoils,'coil.dat','current.dat',0)
      
   case(1) ! CDX-U
      if(myrank.eq.0) print *, "Using standard CDX-U configuration"
@@ -249,7 +248,7 @@ subroutine gradshafranov_solve
   use sparse
   use diagnostics
   use newvar_mod
-  use nintegrate_mod
+  use m3dc1_nint
   use matrix_mod
   use boundary_conditions
 
@@ -266,11 +265,11 @@ subroutine gradshafranov_solve
   integer :: numelms, numnodes
   real :: feedfac
 
-  real :: x, z, error, error2, error3 
+  real :: x, phi, z, error, error2, error3 
   real :: tstart, tend
 
   vectype, dimension(dofs_per_node) :: tf, tm
-  vectype, dimension(20) :: avec
+  vectype, dimension(coeffs_per_element) :: avec
   vectype, dimension(dofs_per_element,dofs_per_element) :: temp
 
   if(myrank.eq.0 .and. iprint.gt.0) &
@@ -312,7 +311,7 @@ subroutine gradshafranov_solve
   ! populate the matrix
   do itri=1,numelms
 
-     call define_triangle_quadrature(itri,25)
+     call define_element_quadrature(itri,25,5)
      call define_fields(itri,0,1,0)
 
      do i=1,dofs_per_element
@@ -357,12 +356,6 @@ subroutine gradshafranov_solve
 
   if(myrank.eq.0) call write_profile
 
-  if(myrank.eq.0) then
-     print *, &
-          "    I    error        error2       xmag         psimin       " &
-          , "psilim       psilim2     xnull       znull"
-  endif
-
   !-------------------------------------------------------------------
   ! start of iteration loop on plasma current
   mainloop: do itnum=1, iabs(igs)
@@ -376,17 +369,16 @@ subroutine gradshafranov_solve
            feedfac = -0.25*(psilim - psilim2)/gnorm
            !......as a diagnostic, calculate the effective value of libetap (including feedback term)
            libetapeff =  libetapeff + feedfac/fac2
-           if(myrank.eq.0 .and. iprint.eq.1) &
-                write(*,'(A,4E12.4)') "feedfac, psilim, psilim2,gnorm", &
-                feedfac, psilim, psilim2, gnorm
+           if(myrank.eq.0 .and. iprint.ge.2) &
+                write(*,'(A,2E12.4)') "feedfac, gnorm", feedfac,  gnorm
         endif
 
-        if(myrank.eq.0 .and. iprint.eq.2) print *, 'applying bcs...'
+        if(myrank.eq.0 .and. iprint.eq.2) print *, '  applying bcs'
         call boundary_gs(b1vecini_vec%vec, feedfac)
 
         ! perform LU backsubstitution to get psi solution
         if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-        if(myrank.eq.0 .and. iprint.eq.2) print *, 'solving...'
+        if(myrank.eq.0 .and. iprint.eq.2) print *, '  solving'
 
 #ifdef CJ_MATRIX_DUMP
   if(itnum.eq.iabs(igs)) then 
@@ -432,7 +424,7 @@ subroutine gradshafranov_solve
      call lcfs(psi_vec)
 
      ! define the pressure and toroidal field functions
-     if(myrank.eq.0 .and. iprint.ge.1) print *, 'calculating funs...'
+     if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating funs'
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      if(constraint .and. igs_method.ne.1) then
         call fundef2(error3)
@@ -445,18 +437,19 @@ subroutine gradshafranov_solve
      endif
 
      ! Calculate error in new solution
+     if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating error'
      call calculate_error(error,error2,b1vecini_vec)
      if(constraint .and. igs_method.ne.1) error = error3
 
-     if(myrank.eq.0) then
-        write(*,'(i5,1p8e13.5)') &
-             itnum,error,error2,xmag,psimin,psilim,psilim2,xnull,znull
+     if(myrank.eq.0 .and. iprint.ge.1) then
+        write(*,'(A,1p2e12.4)') ' Error in GS solution: ', error, error2
      endif
 
      ! if error is sufficiently small, stop iterating
      if(itnum .gt. 1 .and. error2 .lt. tol_gs) exit mainloop
     
      ! calculate gammas to constrain current, etc.
+     if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating gammas'
      call calculate_gamma(gamma2,gamma3,gamma4)
      
      ! Define RHS vector
@@ -493,9 +486,9 @@ subroutine gradshafranov_solve
 
   ! Define equilibrium fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining equilibrium fields...'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' defining equilibrium fields'
   if(igs_method.eq.3) then
-     if(myrank.eq.0 .and. iprint.ge.2) print *, ' creating solution matrix...'
+     if(myrank.eq.0 .and. iprint.ge.2) print *, '  creating solution matrix'
      call set_matrix_index(dp_mat_lhs%mat, dp_mat_lhs_index)
      call create_newvar_matrix(dp_mat_lhs, NV_DCBOUND, NV_DP_MATRIX, .true.)
 #ifdef CJ_MATRIX_DUMP
@@ -510,14 +503,15 @@ subroutine gradshafranov_solve
      call create_field(b3vecini_vec)
      if(irot.eq.1) call create_field(b4vecini_vec)
 
-     if(myrank.eq.0 .and. iprint.ge.2) print *, 'populating...'
+     if(myrank.eq.0 .and. iprint.ge.2) print *, '  populating'
      do itri=1,numelms
-        call define_triangle_quadrature(itri, int_pts_aux)
+        call define_element_quadrature(itri, int_pts_aux, 5)
         call define_fields(itri, 0, 1, 0)
 
         call get_element_data(itri, d)
         call calcavector(itri, psi_vec, avec)
-        call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, ps079)
+        call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
+             npoints, ps079)
 
         if(igs_method.eq.2) then 
            do i=1, npoints       
@@ -549,9 +543,11 @@ subroutine gradshafranov_solve
         else if(igs_method.eq.3) then
 
            call calcavector(itri, fun1_vec, avec)
-           call eval_ops(avec,si_79,eta_79, d%co, d%sn, ri_79,npoints,ph079)
+           call eval_ops(avec,xi_79,zi_79,eta_79, d%co, d%sn, ri_79, &
+                npoints,ph079)
            call calcavector(itri, fun4_vec, avec)
-           call eval_ops(avec,si_79,eta_79, d%co, d%sn, ri_79,npoints,vz079)
+           call eval_ops(avec,xi_79,zi_79,eta_79, d%co, d%sn, ri_79, &
+                npoints,vz079)
 
            do i=1, dofs_per_element
               temp(i,1) = &
@@ -566,7 +562,7 @@ subroutine gradshafranov_solve
         endif
      end do
 
-     if(myrank.eq.0 .and. iprint.ge.2) print *, 'solving...'
+     if(myrank.eq.0 .and. iprint.ge.2) print *, '  solving...'
      if(igs_method.eq.2) then
         call newvar_solve(b1vecini_vec%vec,mass_mat_lhs)
         p_field(0) = b1vecini_vec
@@ -605,14 +601,16 @@ subroutine gradshafranov_solve
      if(myrank.eq.0 .and. iprint.ge.2) print *, 'calculating density...'
      b1vecini_vec = 0.
      do itri=1,numelms
-        call define_triangle_quadrature(itri, int_pts_aux)
+        call define_element_quadrature(itri, int_pts_aux, 5)
         call define_fields(itri, 0, 1, 0)
         call get_element_data(itri, d)
         
         call calcavector(itri, psi_field(0), avec)
-        call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, ps079)
+        call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, npoints, &
+             ps079)
         call calcavector(itri, p_field(0), avec)
-        call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, p079)
+        call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, npoints, &
+             p079)
 
         do i=1, npoints       
            call calc_density(ps079(i,:),p079(i,:),tf,x_79(i),z_79(i))
@@ -634,7 +632,7 @@ subroutine gradshafranov_solve
 
   if(igs_method.eq.1) then
      do i=1,numnodes
-        call get_node_pos(i, x, z)
+        call get_node_pos(i, x, phi, z)
         call get_local_vals(i)
         call calc_toroidal_field(psi0_l, bz0_l, x, z)
         call calc_pressure(psi0_l, p0_l, x, z)
@@ -683,12 +681,10 @@ subroutine calculate_error(error, error2, psinew)
   type(field_type), intent(in) :: psinew
 
   integer :: i, numnodes, izone, izonedim, ier
-  real :: sum, sum2, norm, norm2, normal(2), curv, x, z, lhs, rhs
+  real :: sum, sum2, norm, norm2, normal(2), curv, x, phi, z, lhs, rhs
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: psi0, psi1, f1, f2, f3, f4
   real, dimension(5) :: temp1, temp2
-
-  if(myrank.eq.0 .and. iprint.ge.1) print *, 'calculating error...'
 
   sum = 0.
   norm = 0.
@@ -701,7 +697,7 @@ subroutine calculate_error(error, error2, psinew)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
      if(is_boundary) cycle
 
-     call get_node_pos(i,x,z)
+     call get_node_pos(i,x,phi,z)
 
      call get_node_data(psi_vec, i, psi0)
      call get_node_data(psinew, i, psi1)
@@ -744,7 +740,7 @@ subroutine calculate_gamma(g2, g3, g4)
   use basic
   use mesh_mod
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -759,12 +755,10 @@ subroutine calculate_gamma(g2, g3, g4)
   real, dimension(5) :: temp1, temp2
 
   vectype, dimension(MAX_PTS,OP_NUM) :: psi_n, fun1_n, fun2_n, fun3_n, fun4_n
-  vectype, dimension(20) :: avec
+  vectype, dimension(coeffs_per_element) :: avec
 
   ! start of loop over triangles to compute integrals needed to keep
   !     total current and q_0 constant using gamma4, gamma2, gamma3
-  if(myrank.eq.0 .and. iprint.ge.1) print *, 'calculating gammas...'
-
   if(nv1equ.eq.1) then
      g2 = 0.
      g3 = 0.
@@ -790,20 +784,25 @@ subroutine calculate_gamma(g2, g3, g4)
   numelms = local_elements()
 
   do itri=1,numelms
-     call define_triangle_quadrature(itri, 25)
+     call define_element_quadrature(itri, 25, 5)
      call define_fields(itri, 0, 0, 0)
      call get_element_data(itri, d)
 
      call calcavector(itri, psi_vec, avec)
-     call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, psi_n)
+     call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
+          npoints, psi_n)
      call calcavector(itri, fun1_vec, avec)
-     call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, fun1_n)
+     call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
+          npoints, fun1_n)
      call calcavector(itri, fun2_vec, avec)
-     call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, fun2_n)
+     call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
+          npoints, fun2_n)
      call calcavector(itri, fun3_vec, avec)
-     call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, fun3_n)
+     call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
+          npoints, fun3_n)
      call calcavector(itri, fun4_vec, avec)
-     call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, fun4_n)
+     call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
+          npoints, fun4_n)
 
      curr = curr - int2(ri2_79,psi_n(:,OP_GS))
      gsint1 = gsint1 + int2(ri_79,fun1_n)
@@ -826,17 +825,15 @@ subroutine calculate_gamma(g2, g3, g4)
      gsint3 = temp2(4)
      gsint4 = temp2(5)
   end if
-        
-  if(myrank.eq.0 .and. iprint.ge.1) then 
-     write(*,'(A,3E12.4)') "GS: curr, x0, z0 = ", curr, xmag, zmag
-  endif
-  
+
   ! choose gamma2 to fix q0/qstar.  Note that there is an additional
   ! degree of freedom in gamma3.  Could be used to fix qprime(0)
   
   g2 =  -xmag**2*p0*p1 - 2.*abs(g0)/(xmag*q0*abs(dpsii))
   g3 = -4.*(abs(g0)/xmag)*djdpsi/dpsii - xmag**2*p0*p2
   g4 = -(-tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
+
+  if(myrank.eq.0 .and. iprint.ge.1) write(*,'(A,1p1e12.4)') ' current = ', curr
 end subroutine calculate_gamma
 
 
@@ -855,21 +852,22 @@ subroutine deltafun(x,z,val,jout)
   type(field_type), intent(out) :: jout
 
   integer :: itri, i, k
-  real :: x1, z1, si, eta
+  real :: x1, z1, si, zi, eta
   vectype, dimension(dofs_per_element) :: temp
   
-  call whattri(x,z,itri,x1,z1)
+  itri = 0
+  call whattri(x, 0., z, itri, x1, z1)
 
   if(itri.gt.0) then
 
      call get_element_data(itri, d)
      ! calculate local coordinates
-     call global_to_local(d, x, z, si, eta)
+     call global_to_local(d, x, 0., z, si, zi, eta)
 
      ! calculate the contribution to j
      temp = 0.
-     do i=1,dofs_per_element
-        do k=1,20
+     do i=1, 18
+        do k=1, 20
            temp(i) = temp(i) - val*gtri(k,i,itri)*si**mi(k)*eta**ni(k)
         end do
      end do
@@ -877,7 +875,6 @@ subroutine deltafun(x,z,val,jout)
   end if
 
   call sum_shared(jout%vec)
-!  call finalize(jout%vec)
 
 end subroutine deltafun
 !============================================================
@@ -895,7 +892,7 @@ subroutine fundef
   
   implicit none 
   integer :: inode, numnodes
-  real :: x, z, pso, psox, psoy, psoxx, psoxy, psoyy, fbig, fbig0
+  real :: x, phi, z, pso, psox, psoy, psoxx, psoxy, psoyy, fbig, fbig0
   real :: fbigp, fbigpp, g4big0, g4big, g4bigp, g4bigpp, g2big, g2bigp
   real :: g2bigpp, g3big, g3bigp, g3bigpp
   real :: alphap0, alphap, alphapp, alphappp
@@ -909,7 +906,7 @@ subroutine fundef
   numnodes = owned_nodes()
   do inode=1,numnodes
      
-     call get_node_pos(inode, x, z)
+     call get_node_pos(inode, x, phi, z)
      
      call get_node_data(psi_vec, inode, temp)
      pso =  (temp(1) - psimin)*dpsii
@@ -1103,7 +1100,7 @@ subroutine fundef2(error)
   use arrays
   use sparse
   use newvar_mod
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -1114,7 +1111,7 @@ subroutine fundef2(error)
   type(element_data) :: d
   integer :: i, itri, numelms, ier
   real :: pso, dpsii, norm, temp1(2), temp2(2)
-  vectype, dimension(20) :: avec
+  vectype, dimension(coeffs_per_element) :: avec
   vectype, dimension(dofs_per_element) :: temp3, temp4
       
   logical :: inside_lcfs
@@ -1132,12 +1129,13 @@ subroutine fundef2(error)
 
   do itri=1,numelms
 
-     call define_triangle_quadrature(itri, int_pts_aux)
+     call define_element_quadrature(itri, int_pts_aux, 5)
      call define_fields(itri, 0, 1, 0)
      call get_element_data(itri, d)
 
      call calcavector(itri, psi_vec, avec)
-     call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, ps079)
+     call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
+          npoints, ps079)
 
      do i=1, npoints
         
@@ -1184,7 +1182,6 @@ subroutine fundef2(error)
      error = error + abs(int2(ri_79,temp79c))
   end do
 
-  if(myrank.eq.0 .and. iprint.eq.1) print *, 'solving funs...'
   call newvar_solve(fun1_vec%vec, mass_mat_lhs)
   call newvar_solve(fun4_vec%vec, mass_mat_lhs)
 
@@ -1196,8 +1193,6 @@ subroutine fundef2(error)
      norm     = temp2(1)
      error    = temp2(2)
   end if
-  if(myrank.eq.0 .and. iprint.ge.1) &
-       write(*,'(A,1p2E12.4)') 'Error, norm: ', error, norm
   error = error / norm
 
 end subroutine fundef2
@@ -1634,7 +1629,7 @@ end subroutine alphaget
  !=============================================================
  subroutine calculate_gs_error(error)
    use basic
-   use nintegrate_mod
+   use m3dc1_nint
    
    implicit none
    
@@ -1659,7 +1654,7 @@ end subroutine alphaget
 
    nelms = local_elements()
    do itri=1, nelms
-      call define_triangle_quadrature(itri, int_pts_main)
+      call define_element_quadrature(itri, int_pts_main, 5)
       call define_fields(itri, def_fields, 0, 1)
       
       temp79a = ps079(:,OP_GS)*(ps079(:,OP_DR)**2 + ps079(:,OP_DZ)**2)
@@ -1992,7 +1987,7 @@ subroutine boundary_gs(rhs, feedfac, mat)
         xc(1) = 102.
         zc(1) = 10.
         call gvect(xp,zp,xc,zc,1,g,1,ineg)
-        temp = g*feedfac
+        temp(1:6) = g*feedfac
         call add(psi_field(0), i, temp)
      endif
 

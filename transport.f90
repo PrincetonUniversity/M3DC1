@@ -7,7 +7,7 @@ contains
 vectype function sigma_func(i)
   use math
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   use diagnostics
 
   implicit none
@@ -69,7 +69,7 @@ end function sigma_func
 ! ~~~~~~~~~~~
 vectype function resistivity_func(i)
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   use diagnostics
 
   implicit none
@@ -116,7 +116,7 @@ end function resistivity_func
 ! ~~~~~~~~~
 vectype function viscosity_func(i)
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   use diagnostics
 
   implicit none
@@ -161,7 +161,7 @@ end function viscosity_func
 ! ~~~~~
 vectype function kappa_func(i)
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   use diagnostics
   
   implicit none
@@ -211,7 +211,7 @@ end function kappa_func
 ! ~~~~~~~~~~~~~~~~~~
 vectype function electron_viscosity_func(i)
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   use diagnostics
 
   implicit none
@@ -242,7 +242,7 @@ subroutine define_transport_coefficients()
 
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
   use newvar_mod
   use sparse
   use transport_coefficients
@@ -292,7 +292,7 @@ subroutine define_transport_coefficients()
   numelms = local_elements()
   do itri=1,numelms
 
-     call define_triangle_quadrature(itri, int_pts_aux)
+     call define_element_quadrature(itri, int_pts_aux, 5)
      call define_fields(itri, def_fields, 1, linear)
 
      do i=1, dofs_per_element

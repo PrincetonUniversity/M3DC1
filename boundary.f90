@@ -45,6 +45,16 @@ subroutine get_boundary_mask(itri, ibound, imask)
            imask(k+3) = 0
            imask(k+4) = 0
         end if
+#ifdef USE3D
+        imask(k+6 ) = 0
+        imask(k+8 ) = 0
+        imask(k+11) = 0
+        if(izonedim.eq.0) then
+           imask(k+7 ) = 0
+           imask(k+9 ) = 0
+           imask(k+10) = 0
+        end if
+#endif
      endif
      if(iand(ibound, BOUNDARY_NEUMANN).eq.BOUNDARY_NEUMANN) then
         imask(k+1) = 0
@@ -141,6 +151,13 @@ subroutine set_dirichlet_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
   ! clamp tangential derivative
   call set_tangent_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
 
+#ifdef USE3D
+  if(present(mat)) then
+     call identity_row(mat, ibegin+6)
+  endif
+  call insert(rhs, ibegin+6, bv(7), VEC_SET)
+#endif
+
 end subroutine set_dirichlet_bc
 
 
@@ -183,6 +200,11 @@ subroutine set_tangent_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
      call set_row_vals(mat, irow, numvals, cols, vals)
   endif
   call insert(rhs, irow, bv_rotated(3), VEC_SET)
+#ifdef USE3D
+  if(present(mat)) call set_row_vals(mat, irow+6, numvals, cols+6, vals)
+  call insert(rhs, irow+6, bv_rotated(9), VEC_SET)
+#endif
+  
 
   ! tt
   irow = ibegin+5
@@ -196,6 +218,11 @@ subroutine set_tangent_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
      call set_row_vals(mat, irow, numvals, cols, vals)
   endif
   call insert(rhs, irow, bv_rotated(6), VEC_SET)
+#ifdef USE3D
+  if(present(mat)) call set_row_vals(mat, irow+6, numvals, cols+6, vals)
+  call insert(rhs, irow+6, bv_rotated(12), VEC_SET)
+#endif
+
 
   if(izonedim.eq.0) then
      ! n
@@ -207,6 +234,10 @@ subroutine set_tangent_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
         call set_row_vals(mat, irow, numvals, cols, vals)
      endif
      call insert(rhs, irow, bv_rotated(2), VEC_SET)
+#ifdef USE3D
+     if(present(mat)) call set_row_vals(mat, irow+6, numvals, cols+6, vals)
+     call insert(rhs, irow+6, bv_rotated(8), VEC_SET)
+#endif
 
      ! nn
      irow = ibegin+3
@@ -218,6 +249,10 @@ subroutine set_tangent_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
         call set_row_vals(mat,irow,numvals,cols(3:5),vals(3:5))
      endif
      call insert(rhs, irow, bv_rotated(4), VEC_SET)
+#ifdef USE3D
+     if(present(mat)) call set_row_vals(mat, irow+6, numvals, cols+6, vals)
+     call insert(rhs, irow+6, bv_rotated(10), VEC_SET)
+#endif
 
      ! nt
      irow = ibegin+4
@@ -231,6 +266,11 @@ subroutine set_tangent_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
         call set_row_vals(mat, irow, numvals, cols, vals)
      endif
      call insert(rhs, irow, bv_rotated(5), VEC_SET)
+#ifdef USE3D
+     if(present(mat)) call set_row_vals(mat, irow+6, numvals, cols+6, vals)
+     call insert(rhs, irow+6, bv_rotated(11), VEC_SET)
+#endif
+
   endif
 
 end subroutine set_tangent_bc
@@ -389,7 +429,7 @@ subroutine boundary_dc(rhs, bvec, mat)
 
      ibegin = node_index(rhs, i, 1)
 
-     call get_vector_node_data(bvec, 1, i, temp)
+     call get_node_data(bvec, 1, i, temp)
      call set_dirichlet_bc(ibegin,rhs,temp,normal,curv,izonedim,mat)
   end do
 
@@ -432,7 +472,7 @@ subroutine boundary_nm(rhs, bvec, mat)
 
      ibegin = node_index(rhs, i, 1)
 
-     call get_vector_node_data(bvec, 1, i, temp)
+     call get_node_data(bvec, 1, i, temp)
      call set_normal_bc(ibegin,rhs,temp,normal,curv,izonedim,mat)
   end do
 

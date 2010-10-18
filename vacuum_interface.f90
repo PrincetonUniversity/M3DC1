@@ -25,7 +25,7 @@ contains
     integer, parameter :: ifile = 1
     integer :: i, j, k, numnodes, num_local, n, numelms, itri
     integer :: inode(nodes_per_element)
-    real :: x, z
+    real :: x, phi, z
     real, parameter :: tol = 1e-5
     logical :: is_edge(3)  ! is inode on boundary
     real :: norm(2,3)
@@ -68,7 +68,7 @@ contains
     do i=1, nodes
        local_id(i) = -1
        do j=1, numnodes
-          call get_node_pos(j,x,z)
+          call get_node_pos(j,x,phi,z)
           if((abs(x - xnode(i)).lt.tol) .and. (abs(z-znode(i)).lt.tol)) then
              local_id(i) = j
              itri = global_node_id(local_id(i))

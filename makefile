@@ -6,45 +6,55 @@ ifeq (,$(filter _%,$(notdir $(CURDIR))))
 
 # specify whether real or complex
 ifeq ($(COM), 1)
-OPTS := $(OPTS) -Dvectype=complex -DUSECOMPLEX
-BIN_POSTFIX := $(BIN_POSTFIX)-complex
+  OPTS := $(OPTS) -Dvectype=complex -DUSECOMPLEX
+  BIN_POSTFIX := $(BIN_POSTFIX)-complex
 else
-OPTS := $(OPTS) -Dvectype=real
-BIN_POSTFIX := $(BIN_POSTFIX)-real
+  OPTS := $(OPTS) -Dvectype=real
+  BIN_POSTFIX := $(BIN_POSTFIX)-real
 endif
 
 ifeq ($(USEPETSC), 1)
-OPTS := $(OPTS) -DUSEPETSC -Dmesh_mod=basic_mesh_mod \
+  OPTS := $(OPTS) -DUSEPETSC -Dmesh_mod=basic_mesh_mod \
 	-Dvector_mod=petsc_vector_mod -Dmatrix_mod=petsc_matrix_mod \
 	-Dmatrix_type=petsc_matrix -Dvector_type=petsc_vector
-V_OBJ := basic_mesh.o petsc_vector.o petsc_matrix.o
-BIN_POSTFIX := $(BIN_POSTFIX)-petsc
+  V_OBJ := basic_mesh.o petsc_vector.o petsc_matrix.o
+  BIN_POSTFIX := $(BIN_POSTFIX)-petsc
 else
-USESCOREC = 1
-OPTS := $(OPTS) -DUSESCOREC -Dmesh_mod=scorec_mesh_mod \
+  USESCOREC = 1
+  OPTS := $(OPTS) -DUSESCOREC -Dmesh_mod=scorec_mesh_mod \
 	-Dvector_mod=scorec_vector_mod -Dmatrix_mod=scorec_matrix_mod \
-	 -Dmatrix_type=scorec_matrix -Dvector_type=scorec_vector
-V_OBJ := scorec_mesh.o scorec_vector.o scorec_matrix.o PETScInterface.o
+	-Dmatrix_type=scorec_matrix -Dvector_type=scorec_vector
+  V_OBJ := scorec_mesh.o scorec_vector.o scorec_matrix.o PETScInterface.o
 endif
 
 # specify whether debug or optimization 
 ifeq ($(OPT), 1)
-OPTS := $(OPTS) -O
-SCORECOPT = -O
-BIN_POSTFIX := $(BIN_POSTFIX)-opt
+  OPTS := $(OPTS) -O
+  SCORECOPT = -O
+  BIN_POSTFIX := $(BIN_POSTFIX)-opt
 else
-SCORECOPT =
+  SCORECOPT =
+endif
+
+ifeq ($(3D), 1)
+  OPTS := $(OPTS) -DUSE3D
+  BIN_POSTFIX := $(BIN_POSTFIX)-3d
+  USE3D = 1
+  ifndef MAX_PTS
+    MAX_PTS = 125
+  endif
+else
+  USE3D = 0
+  ifndef MAX_PTS
+    MAX_PTS = 25
+  endif
 endif
 
 # Define the size of sampling point arrays.
 # This sets the upper limit for number of points used
 # in numerical integrations
-ifdef MAX_PTS
 OPTS := $(OPTS) -DMAX_PTS=$(MAX_PTS)
 BIN_POSTFIX := $(BIN_POSTFIX)-$(MAX_PTS)
-else
-OPTS := $(OPTS) -DMAX_PTS=79
-endif
 
 OPTS := $(OPTS) -DPETSC_FORTRAN_PETSCTRUTH_INT # -DxCJ_MATRIX_DUMP
 
@@ -52,6 +62,7 @@ export OPTS
 export SCORECOPT
 export V_OBJ
 export USESCOREC
+export USE3D
 
 include target.mk
 
@@ -72,9 +83,9 @@ READJSOLVER_OBJS = polar.o read_jsolver_exec.o
 
 OBJS := $(AUX) subp.o \
 	math.o interpolate.o control.o \
-	element.o $(V_OBJ) field.o \
+	element.o $(V_OBJ) field.o nintegrate_mod.o \
 	M3Dmodules.o \
-	nintegrate_mod.o vacuum_interface.o boundary.o \
+	m3dc1_nint.o vacuum_interface.o boundary.o \
 	harned_mikic.o metricterms_new.o biharmonic.o \
 	electrostatic_potential.o newvar.o diagnostics.o \
 	coils.o coil_sets.o gradshafranov.o transport.o \

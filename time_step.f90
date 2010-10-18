@@ -1057,15 +1057,12 @@ subroutine unsplit_step(calc_matrices)
      call write_vector(b1_phi, 's1_mat_rhs.out')
   endif
 #endif 
-
   call newsolve(s1_mat, b1_phi, jer)
-
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.2) then
      call write_vector(b1_phi, 's1_mat_sol.out')
   endif
 #endif 
-
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      t_solve_b = t_solve_b + tend - tstart
@@ -1194,7 +1191,7 @@ subroutine calc_ni(ni_field, n0_field, n1_field)
   type(field_type), intent(in) :: n0_field, n1_field
 
   integer :: numnodes, inode
-  vectype, dimension(dofs_per_node) :: ni, n0, n1
+  vectype, dimension(dofs_per_node) :: ninv, n0, n1
 
   numnodes = owned_nodes()
 
@@ -1202,28 +1199,28 @@ subroutine calc_ni(ni_field, n0_field, n1_field)
      call get_node_data(n0_field, inode, n0)
      call get_node_data(n1_field, inode, n1)
 
-     ni(1) = -n1(1)/n0(1)**2
-     ni(2) = &
+     ninv(1) = -n1(1)/n0(1)**2
+     ninv(2) = &
           -(n1(2)*n0(1) - 2.*n1(1)*n0(2))/n0(1)**3
-     ni(3) = &
+     ninv(3) = &
           -(n1(3)*n0(1) - 2.*n1(1)*n0(3))/n0(1)**3
-     ni(4) = &
+     ninv(4) = &
           -n1(4)/n0(1)**2 &
           +2.*(2.*n1(2)*n0(2) &
           +   n1(1)*n0(4))/n0(1)**3 &
           -6.*n1(1)*n0(2)**2/n0(1)**4
-     ni(5) = &
+     ninv(5) = &
           -n1(5)/n0(1)**2 &
           +2.*(n1(2)*n0(3) + n1(3)*n0(2) &
           +n1(1)*n0(5))/n0(1)**3 &
           -6.*n1(1)*n0(2)*n0(3)/n0(1)**4
-     ni(6) = &
+     ninv(6) = &
           -n1(6)/n0(1)**2 &
           +2.*(2.*n1(3)*n0(3) &
           +   n1(1)*n0(6))/n0(1)**3 &
           -6.*n1(1)*n0(3)**2/n0(1)**4
 
-     call set_node_data(ni_field, inode, ni)
+     call set_node_data(ni_field, inode, ninv)
   end do
 end subroutine calc_ni
 
@@ -1238,7 +1235,7 @@ subroutine calc_b2i(b2i_field, psi0_field, psi1_field, b0_field, b1_field)
   vectype, dimension(dofs_per_node) :: vec, psi0, psi1, b0, b1
   vectype, dimension(dofs_per_node) :: b2i
   vectype :: b20
-  real :: x, z
+  real :: x, phi, z
   integer :: inode, numnodes
 
   numnodes = owned_nodes()
@@ -1252,7 +1249,7 @@ subroutine calc_b2i(b2i_field, psi0_field, psi1_field, b0_field, b1_field)
      if(itor.eq.0) then
         x = 1.
      else
-        call get_node_pos(inode, x, z)
+        call get_node_pos(inode, x, phi, z)
      endif
 
      b20 = psi0(2)**2 + psi0(3)**2 + b0(1)**2
@@ -1513,12 +1510,10 @@ subroutine boundary_mag(rhs, mat)
   integer :: i_psi, i_bz, i_pe, i_e
   logical :: is_boundary
 
-
   if(iper.eq.1 .and. jper.eq.1) return
   if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_mag called"
 
   numnodes = owned_nodes()
-
   do i=1, numnodes
 
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
@@ -1559,11 +1554,11 @@ subroutine boundary_mag(rhs, mat)
      ! no normal current
      if(inocurrent_norm.eq.1) then
         if(i3d.eq.1) then
-!!$        if(numvar.ge.2) then
-!!$           call get_node_data(bz_field(1), i, temp2)
-!!$        else
-!!$           temp2 = 0.
-!!$        endif
+!        if(numvar.ge.2) then
+!           call get_node_data(bz_field(1), i, temp2)
+!        else
+!           temp2 = 0.
+!        endif
            call get_node_data(psi_field(1), i, temp)
            call set_normal_bc(i_psi,rhs,temp,normal,curv,izonedim,mat)
         else
@@ -1798,7 +1793,7 @@ end subroutine boundary_pres
        do i=1, nodes
           if(local_id(i).le.0) cycle
           global_dof_ids_1(i) = global_node_index(rhs, global_id(i), 1)
-          call get_global_dof_indices(rw_rhs_mat, global_id(i), irow, icol)
+          call get_global_node_indices(rw_rhs_mat, global_id(i), irow, icol)
           global_dof_ids_row(i) = irow(1,1)
           global_dof_ids_col(i) = icol(1,1)
        end do
@@ -1991,8 +1986,8 @@ end subroutine boundary_pres
        if(local_id(i).le.0) cycle
 
        ibegin = node_index(rhs, local_id(i), psi_i)
-       call get_vector_node_data(tempout, 1, local_id(i), temp)
-       call get_vector_node_data(tempout0, 1, local_id(i), temp0)
+       call get_node_data(tempout, 1, local_id(i), temp)
+       call get_node_data(tempout0, 1, local_id(i), temp0)
        temp = temp + temp0
        do j=1, num_rows
           call insert(rhs, ibegin+rows(j)-1, temp(rows(j)), VEC_SET)
@@ -2000,8 +1995,8 @@ end subroutine boundary_pres
 
        if(use_resistive_bz) then
           ibegin = node_index(rhs, local_id(i), bz_i)
-          call get_vector_node_data(tempout, 2, local_id(i), temp)
-          call get_vector_node_data(tempout0, 2, local_id(i), temp0)
+          call get_node_data(tempout, 2, local_id(i), temp)
+          call get_node_data(tempout0, 2, local_id(i), temp0)
           temp = temp + temp0
 
           do j=1, dofs_per_node
@@ -2021,7 +2016,7 @@ end subroutine boundary_pres
     use vacuum_interface
     use matrix_mod
     use boundary_conditions
-    use nintegrate_mod
+    use m3dc1_nint
 
     implicit none
 
@@ -2063,7 +2058,7 @@ end subroutine boundary_pres
        
        call get_element_nodes(itri,inodes)
 
-       call define_edge_quadrature(itri, iedge, 5, norm, idim)
+       call define_boundary_quadrature(itri, iedge, 5, norm, idim)
        call define_fields(itri, 0, 1, linear)
 
        ! cycle through each node of the element containing the present edge

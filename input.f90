@@ -269,6 +269,7 @@ subroutine set_defaults
   irestart = 0
 
   ! 3-D options
+  nplanes = 1
   ntor = 0
   mpol = 0
 
@@ -289,7 +290,7 @@ end subroutine set_defaults
 subroutine validate_input
   use basic
   use mesh_mod
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -320,11 +321,12 @@ subroutine validate_input
      if(myrank.eq.0 .and. iprint.ge.1) print *, "pefac = ", pefac
   endif
 
-  if(icomplex.eq.1 .and. ntor.ne.0) then
-     i3d = 1
-  else 
-     i3d = 0
-  endif
+#if defined(USE3D) || defined(USECOMPLEX)
+  i3d = 1
+#else
+  i3d = 0
+#endif
+
   if(ifout.eq.-1) ifout = i3d
   if(ibform.ne.-1) then
      if(myrank.eq.0) print *, 'WARNING: ibform input parameter deprecated'
@@ -403,6 +405,13 @@ subroutine validate_input
      tcur = -tcur
   endif
 
+#ifdef USE3D
+  if(gyro.eq.1) then
+     print *, 'Error: gyroviscosity not yet implemented in 3D'
+     call safestop(1)
+  endif
+#endif
+
 !  if(eta_wall.ne.0.) then
 !     if(maxrank.gt.1) then
 !        print *, 'Error: resistive wall only supported for single-process runs'
@@ -411,6 +420,15 @@ subroutine validate_input
 !  endif
 
   if(ntimepr.lt.1) ntimepr = 1
+
+  if(nplanes.lt.1) nplanes = 1
+
+#ifndef USE3D
+  if(nplanes.ne.1) then
+     print *, "Compile option '3D=1' must be set to use nplanes>1"
+     call safestop(1)
+  end if
+#endif
 
   ! Read PETSc options
   call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)

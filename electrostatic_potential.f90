@@ -7,7 +7,7 @@ contains
 vectype function b4e(e,f)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -33,7 +33,7 @@ end function b4e
 vectype function b4psieta(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -62,7 +62,7 @@ end function b4psieta
 vectype function b4psietahyp(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -109,7 +109,7 @@ end function b4psietahyp
 vectype function b4beta(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -133,7 +133,7 @@ end function b4beta
 vectype function b4betahyp(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -181,7 +181,7 @@ end function b4betahyp
 vectype function b4feta(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -209,7 +209,7 @@ end function b4feta
 vectype function b4fetahyp(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -256,7 +256,7 @@ end function b4fetahyp
 vectype function b4psiv(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -286,7 +286,7 @@ end function b4psiv
 vectype function b4bu(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -316,7 +316,7 @@ end function b4bu
 vectype function b4bchi(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -345,7 +345,7 @@ end function b4bchi
 vectype function b4fv(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -379,7 +379,7 @@ end function b4fv
 vectype function b4psipsid(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   
   implicit none
 
@@ -410,7 +410,7 @@ end function b4psipsid
 vectype function b4psibd(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   
   implicit none
 
@@ -444,7 +444,7 @@ end function b4psibd
 vectype function b4psifd(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   
   implicit none
 
@@ -478,7 +478,7 @@ end function b4psifd
 vectype function b4bbd(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   
   implicit none
 
@@ -509,7 +509,7 @@ end function b4bbd
 vectype function b4bfd(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   
   implicit none
 
@@ -544,7 +544,7 @@ end function b4bfd
 vectype function b4ped(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   
   implicit none
 
@@ -577,7 +577,7 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, q_bf, r_e)
 
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
   use metricterms_new
 
   implicit none

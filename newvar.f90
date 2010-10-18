@@ -168,7 +168,6 @@ contains
   end subroutine create_newvar_matrices
 
 subroutine apply_bc(rhs, ibound, bvec, mat)
-  use basic
   use vector_mod
   use matrix_mod
   use boundary_conditions
@@ -212,7 +211,7 @@ end subroutine apply_bc
 subroutine create_newvar_matrix(mat, ibound, itype, is_lhs)
   use vector_mod
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   use boundary_conditions
 
   implicit none
@@ -248,11 +247,11 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs)
        mat%mat%m, mat%mat%n
   numelms = local_elements()
   do itri=1,numelms
-     call define_triangle_quadrature(itri, 25)
+
+     call define_element_quadrature(itri, 25, 5)
      call define_fields(itri,0,1,0)
 
      temp = 0.
-
      do i=1,dofs_per_element
         do j=1,dofs_per_element
 
@@ -361,7 +360,7 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs)
      call destroy_vector(rhs2)
   end if
 
-  call finalize(mat%mat) 
+  call finalize(mat%mat)
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, ' done.'
 
@@ -381,7 +380,6 @@ end subroutine create_newvar_matrix
 !======================================================================
 subroutine solve_newvar_axby(mata,vout,matb,vin,bvec)
   use vector_mod
-  use basic
 
   implicit none
 
@@ -426,7 +424,7 @@ subroutine solve_newvar_axby(mata,vout,matb,vin,bvec)
 #endif 
 
   if(ier.ne.0) then
-     if(myrank.eq.0) print *, 'Error in newvar solve'
+     print *, 'Error in newvar solve'
      call safestop(10)
   endif
 

@@ -1,12 +1,17 @@
 !==============================
 subroutine constant_field(outarr, val)
+  use element
+
   implicit none
 
-  vectype, dimension(6), intent(out) :: outarr
+  vectype, dimension(dofs_per_node), intent(out) :: outarr
   real, intent(in) :: val
 
   outarr(1) = val
   outarr(2:6) = 0.
+#ifdef USE3D
+  outarr(7:12) = 0.
+#endif
 
 end subroutine constant_field
 !==============================
@@ -165,12 +170,12 @@ subroutine cartesian_to_cylindrical_all()
   implicit none
 
   integer :: inode, numnodes
-  real :: x, z
+  real :: x, phi, z
 
   numnodes = owned_nodes()
 
   do inode=1, numnodes
-     call get_node_pos(inode, x, z)
+     call get_node_pos(inode, x, phi, z)
 
      call get_local_vals(inode)
 
@@ -198,7 +203,7 @@ subroutine den_eq
   use mesh_mod
 
   integer :: numnodes, inode
-  real :: temp(6), k, kx, x, z
+  real :: temp(6), k, kx, x, phi, z
   
   if(idenfunc.eq.0) return
 
@@ -247,7 +252,7 @@ subroutine den_eq
   case(3)
      do inode=1, numnodes 
         call get_local_vals(inode)
-        call get_node_pos(inode, x, z)
+        call get_node_pos(inode, x, phi, z)
         
         temp(1) = real((psi0_l(1)-psimin)/(psibound-psimin))
         temp(2) = (psi0_l(2)*(x - xmag) &
@@ -274,7 +279,7 @@ subroutine read_density_profile
   use mesh_mod
   use arrays
   use sparse
-  use nintegrate_mod
+  use m3dc1_nint
   use newvar_mod
 
   implicit none
@@ -287,7 +292,7 @@ subroutine read_density_profile
   real :: psii, temp
   real, allocatable :: spsi(:), density(:)
   type(field_type) :: temp_field
-  vectype, dimension(20) :: avec
+  vectype, dimension(coeffs_per_element) :: avec
   vectype, dimension(dofs_per_element) :: dofs
 
   logical :: inside_lcfs
@@ -324,12 +329,13 @@ subroutine read_density_profile
 
   numelms = local_elements()
   do itri=1,numelms
-     call define_triangle_quadrature(itri, 25)
+     call define_element_quadrature(itri, 25, 5)
      call define_fields(itri, 0, 1, 0)
      call get_element_data(itri, d)
 
      call calcavector(itri, psi_field(0), avec)
-     call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, ps079)
+     call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
+          npoints, ps079)
                      
      do i=1,dofs_per_element
         do k=1, npoints
@@ -368,7 +374,7 @@ subroutine rmp_per
 
   logical :: is_boundary
   integer :: izone, izonedim, numnodes, l
-  real :: normal(2), curv, x, z, r2, dx, dz
+  real :: normal(2), curv, x, phi, z, r2, dx, dz
 #ifdef USECOMPLEX
   vectype :: ii
 #endif
@@ -417,8 +423,7 @@ subroutine rmp_per
      return
   endif
 
-  call load_field_from_coils('rmp_coil.dat', 'rmp_current.dat', &
-       field_vec,num_fields,psi_g)
+  call load_field_from_coils('rmp_coil.dat', 'rmp_current.dat', ntor)
 
   ! leave perturbation only on the boundary
   if(irmp.eq.2) then
@@ -453,13 +458,13 @@ subroutine tilting_cylinder_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z, alx, alz
+  real :: x, phi, z, alx, alz
 
   call get_bounding_box_size(alx, alz)
 
   numnodes = owned_nodes()
   do l=1, numnodes
-     call get_node_pos(l, x, z)
+     call get_node_pos(l, x, phi, z)
 
      x = x - alx*.5 - xzero
      z = z - alz*.5 - zzero
@@ -629,13 +634,13 @@ subroutine taylor_reconnection_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z, alx, alz
+  real :: x, phi, z, alx, alz
 
   call get_bounding_box_size(alx, alz)
 
   numnodes = owned_nodes()
   do l=1, numnodes
-     call get_node_pos(l, x, z)
+     call get_node_pos(l, x, phi, z)
 
      x = x - alx*.5 - xzero
      z = z - alz*.5 - zzero
@@ -715,13 +720,13 @@ subroutine force_free_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z, alx, alz
+  real :: x, phi, z, alx, alz
 
   call get_bounding_box_size(alx, alz)
 
   numnodes = owned_nodes()
   do l=1, numnodes
-     call get_node_pos(l, x,z)
+     call get_node_pos(l, x, phi, z)
 
      x = x - alx*.5 - xzero
      z = z - alz*.5 - zzero
@@ -815,7 +820,7 @@ subroutine gem_reconnection_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z, alx, alz
+  real :: x, phi, z, alx, alz
 
   call get_bounding_box_size(alx, alz)
 
@@ -824,7 +829,7 @@ subroutine gem_reconnection_init()
 
   numnodes = owned_nodes()
   do l=1, numnodes
-     call get_node_pos(l, x, z)
+     call get_node_pos(l, x, phi, z)
 
      call get_local_vals(l)
 
@@ -978,7 +983,7 @@ subroutine wave_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z
+  real :: x, phi, z
   real :: b2,a2
   real :: kp,km,t1,t2,t3
   real :: coef(4)
@@ -1097,7 +1102,7 @@ subroutine wave_init()
 
   numnodes = owned_nodes()
   do l=1, numnodes
-     call get_node_pos(l, x, z)
+     call get_node_pos(l, x, phi, z)
 
      x = x - alx*.5 - xzero
      z = z - alz*.5 - zzero
@@ -1188,13 +1193,13 @@ subroutine grav_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z
+  real :: x, phi, z
 
   numnodes = owned_nodes()
   do l=1, numnodes
      call get_local_vals(l)
 
-     call get_node_pos(l, x, z)
+     call get_node_pos(l, x, phi, z)
 
      call grav_equ(x, z)
      call grav_per(x, z)
@@ -1317,13 +1322,13 @@ subroutine strauss_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z
+  real :: x, phi, z
 
   call get_bounding_box_size(alx, alz)
 
   numnodes = owned_nodes()
   do l=1, numnodes
-     call get_node_pos(l, x, z)
+     call get_node_pos(l, x, phi, z)
 
      x = x - alx/2.
      z = z - alz/2.
@@ -1424,7 +1429,7 @@ subroutine circular_field_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z
+  real :: x, phi, z
 
   call get_bounding_box_size(alx, alz)
 
@@ -1433,7 +1438,7 @@ subroutine circular_field_init()
 
   numnodes = owned_nodes()
   do l=1, numnodes
-     call get_node_pos(l, x, z)
+     call get_node_pos(l, x, phi, z)
      x = x - alx/2. - xzero
      z = z - alz/2. - zzero
 
@@ -1572,7 +1577,7 @@ subroutine mri_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z, alx, alz
+  real :: x, phi, z, alx, alz
 
   call get_bounding_box_size(alx, alz)
 
@@ -1581,7 +1586,7 @@ subroutine mri_init()
 
   numnodes = owned_nodes()
   do l=1, numnodes
-     call get_node_pos(l, x, z)
+     call get_node_pos(l, x, phi, z)
 
      z = z - alz*.5
 
@@ -1696,13 +1701,13 @@ subroutine rotate_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z, alx, alz
+  real :: x, phi, z, alx, alz
 
   call get_bounding_box_size(alx, alz)
 
   numnodes = owned_nodes()
   do l=1, numnodes
-     call get_node_pos(l, x, z)
+     call get_node_pos(l, x, phi, z)
 
      z = z - alz*.5
 
@@ -1798,7 +1803,7 @@ subroutine eqdsk_init()
   implicit none
 
   integer :: l, numnodes, ll
-  real :: x, z , dpsi
+  real :: x, phi, z , dpsi
 
   real, allocatable :: flux(:)
 
@@ -1829,7 +1834,7 @@ subroutine eqdsk_init()
 
   numnodes = owned_nodes()
   do l=1, numnodes
-     call get_node_pos(l, x, z)
+     call get_node_pos(l, x, phi, z)
 
      call get_local_vals(l)
 
@@ -2088,6 +2093,9 @@ subroutine dskbal_init()
   pprime_bal = pprime_bal*amu0
 
   ! find "vacuum" values
+  minden = 0.
+  minte = 0.
+  minti = 0.
   do i=1,npsi_bal
      if(ne_bal(i) .le. 0.) exit
      minden = ne_bal(i)
@@ -2178,7 +2186,7 @@ subroutine jsolver_init()
   implicit none
 
   integer :: l, numnodes
-  real :: x, z, pzero_jsv, gzero_jsv
+  real :: x, phi, z, pzero_jsv, gzero_jsv
   real, allocatable :: ffprime(:),ppxx_jsv2(:),gpx_jsv2(:)
 
   print *, "jsolver_init called"
@@ -2187,7 +2195,7 @@ subroutine jsolver_init()
 
   numnodes = owned_nodes()
   do l=1, numnodes
-     call get_node_pos(l, x, z)
+     call get_node_pos(l, x, phi, z)
 
      call get_local_vals(l)
 
@@ -2337,6 +2345,101 @@ end subroutine jsolver_per
 end module jsolver_eq
 
 
+!==============================================================================
+! 3D Test
+! ~~~~~~~
+! This is a test case which initializes a 2-dimensional equilibrium
+! With a 3-dimensional initial perturbation
+!==============================================================================
+module threed_test
+
+  real, private :: kx, kz, kphi, omega
+
+contains
+
+subroutine threed_test_init()
+  use math
+  use basic
+  use arrays
+  use mesh_mod
+
+  implicit none
+
+  integer :: l, numnodes
+  real :: x, phi, z, x1, x2, z1, z2
+
+  call get_bounding_box(x1, z1, x2, z2)
+  kx = pi/(x2-x1)
+  kz = pi/(z2-z1)
+  kphi = ntor/rzero
+
+  omega = (rzero*bzero)*kphi
+  if(myrank.eq.0) print *, 'omega = ', omega
+
+  numnodes = owned_nodes()
+  do l=1, numnodes
+     call get_node_pos(l, x, phi, z)
+
+     x = x - x1
+     z = z - z1
+
+     call get_local_vals(l)
+
+     call threed_test_equ(x, phi, z)
+     call threed_test_per(x, phi, z)
+
+     call set_local_vals(l)
+  enddo
+end subroutine threed_test_init
+
+subroutine threed_test_equ(x, phi, z)
+  use basic
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x, phi, z
+
+  psi0_l = 0.
+
+  call constant_field(bz0_l, bzero)
+  call constant_field(den0_l, 1.)
+  call constant_field(p0_l, p0)
+  call constant_field(pe0_l, p0-pi0*ipres)
+
+end subroutine threed_test_equ
+
+
+subroutine threed_test_per(x, phi, z)
+  use basic
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x, phi, z
+
+  psi1_l(1) = eps*sin(kx*x)*sin(kz*z)*cos(kphi*phi)
+  psi1_l(2) = eps*cos(kx*x)*sin(kz*z)*cos(kphi*phi)*kx
+  psi1_l(3) = eps*sin(kx*x)*cos(kz*z)*cos(kphi*phi)*kz
+  psi1_l(4) =-eps*sin(kx*x)*sin(kz*z)*cos(kphi*phi)*kx**2
+  psi1_l(5) = eps*cos(kx*x)*cos(kz*z)*cos(kphi*phi)*kx*kz
+  psi1_l(6) =-eps*sin(kx*x)*sin(kz*z)*cos(kphi*phi)*kz**2
+#ifdef USE3D
+  psi1_l(7)  =-eps*sin(kx*x)*sin(kz*z)*sin(kphi*phi)*kphi
+  psi1_l(8)  =-eps*cos(kx*x)*sin(kz*z)*sin(kphi*phi)*kphi*kx
+  psi1_l(9)  =-eps*sin(kx*x)*cos(kz*z)*sin(kphi*phi)*kphi*kz
+  psi1_l(10) = eps*sin(kx*x)*sin(kz*z)*sin(kphi*phi)*kphi*kx**2
+  psi1_l(11) =-eps*cos(kx*x)*cos(kz*z)*sin(kphi*phi)*kphi*kx*kz
+  psi1_l(12) = eps*sin(kx*x)*sin(kz*z)*sin(kphi*phi)*kphi*kz**2
+#endif
+
+  u1_l = -psi1_l*omega*(bzero*rzero)*kphi/omega
+
+end subroutine threed_test_per
+
+end module threed_test
+
+
 
 !=====================================
 subroutine initial_conditions()
@@ -2361,6 +2464,7 @@ subroutine initial_conditions()
   use biharmonic
   use circ_shell_only
   use resistive_wall_test
+  use threed_test
 
   implicit none
 
@@ -2398,6 +2502,8 @@ subroutine initial_conditions()
            call circ_shell_only_init()
         case(12,13)
            call resistive_wall_test_init()
+        case(14)
+           call threed_test_init()
         end select
      else
         ! toroidal equilibria
@@ -2420,6 +2526,8 @@ subroutine initial_conditions()
         case(12,13)
            call resistive_wall_test_init()
            call cartesian_to_cylindrical_all()
+        case(14)
+           call threed_test_init()
         end select
      endif
   end if

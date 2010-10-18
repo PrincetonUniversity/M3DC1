@@ -4,9 +4,6 @@ module petsc_vector_mod
 
 #include "finclude/petscvecdef.h"
 
-  integer, parameter :: VEC_SET = 0
-  integer,  parameter :: VEC_ADD = 1
-
   type :: petsc_vector
      Vec :: vec
      integer :: isize
@@ -16,85 +13,100 @@ module petsc_vector_mod
      logical :: is_finalized
   end type petsc_vector
 
-  
-  interface create_vector
-     module procedure create_petsc_vec
-  end interface
-
-  interface destroy_vector
-     module procedure destroy_petsc_vec
-  end interface
+  integer, parameter :: VEC_SET = 0
+  integer, parameter :: VEC_ADD = 1
 
   interface assignment(=)
-     module procedure copy_petsc_vec 
-     module procedure const_petsc_vec_real
+     module procedure petsc_vector_copy
+     module procedure petsc_vector_const_real
   end interface
 
   interface add
-     module procedure add_petsc_vectors
+     module procedure petsc_vector_add
+  end interface
+  
+  interface create_vector
+     module procedure petsc_vector_create
   end interface
 
-  interface mult
-     module procedure multiply_petsc_vector_by_real
-#ifdef USECOMPLEX
-     module procedure multiply_petsc_vector_by_complex
-#endif
-  end interface
-
-  interface insert
-     module procedure insert_real_petsc_vec
-#ifdef USECOMPLEX
-     module procedure insert_complex_petsc_vec
-#endif
+  interface destroy_vector
+     module procedure petsc_vector_destroy
   end interface
 
   interface finalize
-     module procedure finalize_petsc_vector
+     module procedure petsc_vector_finalize
   end interface
 
-  interface sum_shared
-     module procedure sum_shared_petsc_vector
+  interface get_element_indices
+     module procedure petsc_vector_get_element_indices
   end interface
 
-  interface node_index
-     module procedure node_index_vector
+  interface get_global_node_index
+     module procedure petsc_vector_get_node_index
   end interface
 
-  interface global_node_index
-     module procedure node_index_vector
+  interface get_global_node_indices
+     module procedure petsc_vector_get_node_indices
   end interface
 
-  interface get_dof_indices
-     module procedure get_dof_indices_petsc
-  end interface
-
-  interface get_global_dof_indices
-     module procedure get_dof_indices_petsc
+  interface get_node_data
+     module procedure petsc_vector_get_node_data_real
+#ifdef USECOMPLEX
+     module procedure petsc_vector_get_node_data_complex
+#endif
   end interface
 
   interface get_node_index
-     module procedure get_node_index_petsc
+     module procedure petsc_vector_get_node_index
+  end interface
+
+  interface get_node_indices
+     module procedure petsc_vector_get_node_indices
+  end interface
+
+  interface global_node_index
+     module procedure petsc_vector_node_index
+  end interface
+
+  interface insert
+     module procedure petsc_vector_insert_real
+#ifdef USECOMPLEX
+     module procedure petsc_vector_insert_complex
+#endif
+  end interface
+
+  interface is_nan
+     module procedure petsc_vector_is_nan
+  end interface
+
+  interface mult
+     module procedure petsc_vector_multiply_real
+#ifdef USECOMPLEX
+     module procedure petsc_vector_multiply_complex
+#endif
+  end interface
+
+  interface node_index
+     module procedure petsc_vector_node_index
+  end interface
+
+  interface set_node_data
+     module procedure petsc_vector_set_node_data_real
+#ifdef USECOMPLEX
+     module procedure petsc_vector_set_node_data_complex
+#endif
+  end interface
+
+  interface sum_shared
+     module procedure petsc_vector_sum_shared
   end interface
 
   interface vector_insert_block
      module procedure petsc_vector_insert_block
   end interface
 
-  interface is_nan
-     module procedure petsc_is_nan
-  end interface
-
-  interface set_vector_node_data
-     module procedure set_petsc_vector_node_data_real
-#ifdef USECOMPLEX
-     module procedure set_petsc_vector_node_data_complex
-#endif
-  end interface
-  interface get_vector_node_data
-     module procedure get_petsc_vector_node_data_real
-#ifdef USECOMPLEX
-     module procedure get_petsc_vector_node_data_complex
-#endif
+  interface write_vector
+     module procedure petsc_vector_write
   end interface
 
 contains
@@ -113,11 +125,11 @@ contains
 
 
   !======================================================================
-  ! create_petsc_vec
-  ! ~~~~~~~~~~~~~~~~
+  ! create
+  ! ~~~~~~
   ! creates a vector of size n
   !======================================================================
-  subroutine create_petsc_vec(v,n)
+  subroutine petsc_vector_create(v,n)
     use mesh_mod
     implicit none
 #include "finclude/petsc.h"
@@ -152,23 +164,23 @@ contains
 
     v%isize = n
     v%is_finalized = .true.
-  end subroutine create_petsc_vec
+  end subroutine petsc_vector_create
 
-  subroutine destroy_petsc_vec(v)
+  subroutine petsc_vector_destroy(v)
     implicit none
     type(petsc_vector), intent(inout) :: v
     integer :: ierr
 
     call VecDestroy(v%vec, ierr)
-  end subroutine destroy_petsc_vec
+  end subroutine petsc_vector_destroy
 
 
   !======================================================================
-  ! copy_petsc_vec
-  ! ~~~~~~~~~~~~~~
+  ! copy
+  ! ~~~~
   ! copy data from vin to vout
   !======================================================================
-  subroutine copy_petsc_vec(vout,vin)
+  subroutine petsc_vector_copy(vout,vin)
     use mesh_mod
     implicit none
 #include "finclude/petscvec.h"
@@ -201,15 +213,15 @@ contains
     endif
 
     call finalize(vout)
-  end subroutine copy_petsc_vec
+  end subroutine petsc_vector_copy
 
 
   !======================================================================
-  ! const_petsc_vec_real
-  ! ~~~~~~~~~~~~~~~~~~~~
+  ! const_real
+  ! ~~~~~~~~~~
   ! set all elements of v to s
   !======================================================================
-  subroutine const_petsc_vec_real(v,s)
+  subroutine petsc_vector_const_real(v,s)
     implicit none
 #include "finclude/petscvec.h"
 
@@ -221,11 +233,15 @@ contains
     val = s
     call VecSet(v%vec, val, ierr)
     call finalize(v)
-  end subroutine const_petsc_vec_real
+  end subroutine petsc_vector_const_real
 
 
-
-  subroutine add_petsc_vectors(vout,vin)
+  !======================================================================
+  ! add
+  ! ~~~
+  ! Adds vin to vout
+  !======================================================================
+  subroutine petsc_vector_add(vout,vin)
     use mesh_mod
     implicit none
 #include "finclude/petscvec.h"
@@ -258,10 +274,15 @@ contains
        call VecAXPY(vout%vec, alpha, vin%vec, ierr)
     endif
     call finalize(vout)
-  end subroutine add_petsc_vectors
+  end subroutine petsc_vector_add
 
 
-  subroutine multiply_petsc_vector_by_real(v, s)
+  !======================================================================
+  ! multiply_real
+  ! ~~~~~~~~~~~~~
+  ! multiplies vector v by real scalar s
+  !======================================================================
+  subroutine petsc_vector_multiply_real(v, s)
     implicit none
 #include "finclude/petscvec.h"
     type(petsc_vector), intent(inout) :: v
@@ -271,10 +292,15 @@ contains
     val = s
     call VecScale(v%vec, s, ierr)
     call finalize(v)
-end subroutine multiply_petsc_vector_by_real
+  end subroutine petsc_vector_multiply_real
 
 #ifdef USECOMPLEX
-  subroutine multiply_petsc_vector_by_complex(v, s)
+  !======================================================================
+  ! multiply_real
+  ! ~~~~~~~~~~~~~
+  ! multiplies vector v by complex scalar s
+  !======================================================================
+  subroutine petsc_vector_multiply_complex(v, s)
     implicit none
     type(petsc_vector), intent(inout) :: v
     complex, intent(in) :: s
@@ -282,17 +308,15 @@ end subroutine multiply_petsc_vector_by_real
     val = s
     call VecScale(v%vec, s, ierr)
     call finalize(v)
-  end subroutine multiply_petsc_vector_by_complex
+  end subroutine petsc_vector_multiply_complex
 #endif
 
-
-
   !======================================================================
-  ! insert_petsc_vec
-  ! ~~~~~~~~~~~~~~~~
+  ! insert
+  ! ~~~~~~
   ! set element i of v to s
   !======================================================================
-  subroutine insert_real_petsc_vec(v, i, s, iop)
+  subroutine petsc_vector_insert_real(v, i, s, iop)
     implicit none
 #include "finclude/petscvec.h"
     
@@ -316,10 +340,10 @@ end subroutine multiply_petsc_vector_by_real
        print *, 'Error: invalid vector operation'
     end select
     v%is_finalized = .false.
-  end subroutine insert_real_petsc_vec
+  end subroutine petsc_vector_insert_real
 
 #ifdef USECOMPLEX
-  subroutine insert_complex_petsc_vec(v, i, s, iop)
+  subroutine petsc_vector_insert_complex(v, i, s, iop)
     implicit none
 #include "finclude/petscvec.h"
     
@@ -343,11 +367,11 @@ end subroutine multiply_petsc_vector_by_real
        print *, 'Error: invalid vector operation'
     end select
     v%is_finalized = .false.
-  end subroutine insert_complex_petsc_vec
+  end subroutine petsc_vector_insert_complex
 #endif
 
 
-  subroutine sum_shared_petsc_vector(v)
+  subroutine petsc_vector_sum_shared(v)
     implicit none
 #include "finclude/petscvec.h"
 
@@ -362,16 +386,16 @@ end subroutine multiply_petsc_vector_by_real
     call VecGhostUpdateBegin(v%vec, INSERT_VALUES, SCATTER_FORWARD, ierr)
     call VecGhostUpdateEnd(v%vec, INSERT_VALUES, SCATTER_FORWARD, ierr)
     v%is_finalized = .true.
-  end subroutine sum_shared_petsc_vector
+  end subroutine petsc_vector_sum_shared
 
-  subroutine finalize_petsc_vector(v)
+  subroutine petsc_vector_finalize(v)
     implicit none
 #include "finclude/petscvec.h"
 
     type(petsc_vector), intent(inout) :: v
     integer :: ierr
 
-    if(v%is_finalized) print *, 'multiple finalizes'
+!    if(v%is_finalized) print *, 'multiple finalizes'
 
     call VecAssemblyBegin(v%vec,ierr)
     call VecAssemblyEnd(v%vec,ierr)
@@ -379,16 +403,16 @@ end subroutine multiply_petsc_vector_by_real
     call VecGhostUpdateBegin(v%vec, INSERT_VALUES, SCATTER_FORWARD, ierr)
     call VecGhostUpdateEnd(v%vec, INSERT_VALUES, SCATTER_FORWARD, ierr)
     v%is_finalized = .true.
-  end subroutine finalize_petsc_vector
+  end subroutine petsc_vector_finalize
 
 
   !========================================================
-  ! get_dof_indices
+  ! get_node_indices
   ! ~~~~~~~~~~~~~~~~
-  ! returns the indices of node inode for each field
-  ! of a vector of size isize
+  ! returns the indices of dofs associated with node inode 
+  ! for each field of a vector of size isize
   !========================================================
-  subroutine get_dof_indices_petsc(isize, inode, ind)
+  subroutine petsc_vector_get_node_indices(isize, inode, ind)
     use mesh_mod
     implicit none
     integer, intent(in) :: isize, inode
@@ -402,16 +426,15 @@ end subroutine multiply_petsc_vector_by_real
           ind(i,j) = ibegin + (i-1)*dofs_per_node + j - 1
        end do
     end do
-
-  end subroutine get_dof_indices_petsc
+  end subroutine petsc_vector_get_node_indices
 
   !========================================================
   ! get_node_index
   ! ~~~~~~~~~~~~~~
-  ! returns the index of node inode in field iplace
-  ! of a vector of size isize
+  ! returns the first index associated with node inode 
+  ! in field iplace of a vector of size isize
   !========================================================
-  subroutine get_node_index_petsc(inode, iplace, isize, ind)
+  subroutine petsc_vector_get_node_index(inode, iplace, isize, ind)
     use element
     use mesh_mod
     implicit none
@@ -419,9 +442,14 @@ end subroutine multiply_petsc_vector_by_real
     integer, intent(out) :: ind
 
     ind = ((global_node_id(inode) - 1)*isize + (iplace - 1))*dofs_per_node + 1
-  end subroutine get_node_index_petsc
+  end subroutine petsc_vector_get_node_index
 
-
+  !======================================================================
+  ! insert_block
+  ! ~~~~~~~~~~~~
+  ! inserts values val into vector v at the locations associated
+  ! with field m dofs of element itri
+  !======================================================================
   subroutine petsc_vector_insert_block(v, itri, m, val, iop)
     use element
 
@@ -433,14 +461,14 @@ end subroutine multiply_petsc_vector_by_real
     integer, dimension(v%isize, dofs_per_element) :: irow
     integer :: i
 
-    call get_basis_indices(v%isize, itri, irow)
+    call get_element_indices(v%isize, itri, irow)
 
     do i=1,dofs_per_element
        call insert(v, irow(m,i), val(i), iop)
     end do
   end subroutine petsc_vector_insert_block
 
-  logical function petsc_is_nan(v)
+  logical function petsc_vector_is_nan(v)
     implicit none
 #include "finclude/petsc.h"
     type(petsc_vector), intent(in) :: v
@@ -453,10 +481,10 @@ end subroutine multiply_petsc_vector_by_real
 
     call VecGetValues(v%vec, ni, ix, y, ierr)
 
-    petsc_is_nan = y(1).ne.y(1)
-  end function petsc_is_nan
+    petsc_vector_is_nan = y(1).ne.y(1)
+  end function petsc_vector_is_nan
 
-  subroutine get_petsc_vector_node_data_real(v, iplace, inode, data)
+  subroutine petsc_vector_get_node_data_real(v, iplace, inode, data)
     use element
     use mesh_mod
     implicit none
@@ -487,11 +515,11 @@ end subroutine multiply_petsc_vector_by_real
     data = vals
     call VecGhostRestoreLocalForm(v%vec, vl, ierr)
 
-  end subroutine get_petsc_vector_node_data_real
+  end subroutine petsc_vector_get_node_data_real
 
 
 #ifdef USECOMPLEX
-  subroutine get_petsc_vector_node_data_complex(v, iplace, inode, data)
+  subroutine petsc_vector_get_node_data_complex(v, iplace, inode, data)
     use element
     implicit none
 #include "finclude/petsc.h"
@@ -520,10 +548,10 @@ end subroutine multiply_petsc_vector_by_real
     call VecGetValues(vl, dofs_per_node, ind, vals, ierr)
     data = vals
     call VecGhostRestoreLocalForm(v%vec, vl, ierr)
-  end subroutine get_petsc_vector_node_data_complex
+  end subroutine petsc_vector_get_node_data_complex
 #endif
 
-  subroutine set_petsc_vector_node_data_real(v, iplace, inode, data)
+  subroutine petsc_vector_set_node_data_real(v, iplace, inode, data)
     use element
     implicit none
 #include "finclude/petscvec.h"
@@ -543,10 +571,10 @@ end subroutine multiply_petsc_vector_by_real
 
     call VecSetValues(v%vec, dofs_per_node, ind, vals, INSERT_VALUES, ierr)
     v%is_finalized = .false.
-  end subroutine set_petsc_vector_node_data_real
+  end subroutine petsc_vector_set_node_data_real
 
 #ifdef USECOMPLEX
-  subroutine set_petsc_vector_node_data_complex(v, iplace, inode, data)
+  subroutine petsc_vector_set_node_data_complex(v, iplace, inode, data)
     use element
     implicit none
 #include "finclude/petscvec.h"
@@ -566,7 +594,7 @@ end subroutine multiply_petsc_vector_by_real
 
     call VecSetValues(v%vec, dofs_per_node, ind, vals, INSERT_VALUES, ierr)
     v%is_finalized = .false.
-  end subroutine set_petsc_vector_node_data_complex
+  end subroutine petsc_vector_set_node_data_complex
 #endif
 
 !============================================================================
@@ -575,7 +603,7 @@ end subroutine multiply_petsc_vector_by_real
   ! node_index
   ! ~~~~~~~~~~
   !======================================================================
-  integer function node_index_vector(v, inode, ifield)
+  integer function petsc_vector_node_index(v, inode, ifield)
     implicit none
     
     type(vector_type), intent(in) :: v
@@ -589,8 +617,8 @@ end subroutine multiply_petsc_vector_by_real
        iplace = 1
     endif
 
-    call get_node_index(inode, iplace, v%isize, node_index_vector)
-  end function node_index_vector
+    call get_node_index(inode, iplace, v%isize, petsc_vector_node_index)
+  end function petsc_vector_node_index
 
   integer function global_dof_id(isize, idof_local)
     use element
@@ -611,7 +639,7 @@ end subroutine multiply_petsc_vector_by_real
     endif
   end function global_dof_id
 
-  subroutine write_vector(v, file)
+  subroutine petsc_vector_write(v, file)
     implicit none
 #include "finclude/petsc.h"    
     type(vector_type), intent(in) :: v
@@ -623,18 +651,17 @@ end subroutine multiply_petsc_vector_by_real
     call PetscViewerASCIIOpen(PETSC_COMM_WORLD, file, pv, ierr)
     call VecView(v%vec, pv, ierr)
     call PetscViewerDestroy(pv, ierr)
-  end subroutine write_vector
+  end subroutine petsc_vector_write
 
 
-!========================================================================
   !===================================================================
-  ! get_basis_indices
-  ! ~~~~~~~~~~~~~~~~~
+  ! get_element_indices
+  ! ~~~~~~~~~~~~~~~~~~~
   ! Return a list of local indices ind
   ! for each dof associated with element itri
   ! in a vector of size isize
   !===================================================================
-  subroutine get_basis_indices(isize, itri, ind)
+  subroutine petsc_vector_get_element_indices(isize, itri, ind)
     use mesh_mod
 
     implicit none
@@ -649,11 +676,11 @@ end subroutine multiply_petsc_vector_by_real
 
     i = 1
     do iii=1,nodes_per_element
-       call get_dof_indices(isize, inode(iii), temp)
+       call get_node_indices(isize, inode(iii), temp)
        ind(:,i:i+dofs_per_node-1) = temp
        i = i + dofs_per_node
     end do
        
-  end subroutine get_basis_indices
+  end subroutine petsc_vector_get_element_indices
     
 end module petsc_vector_mod

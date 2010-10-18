@@ -5,7 +5,7 @@ contains
 
 subroutine b1harnedmikic(trial,lin,psiterm,bterm)
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: trial, lin
   vectype, intent(out) :: psiterm, bterm
@@ -89,7 +89,7 @@ end subroutine b1harnedmikic
 subroutine b2harnedmikic(trial,lin,psiterm,bterm)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: trial, lin
   vectype, intent(out) :: psiterm, bterm

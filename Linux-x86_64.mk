@@ -49,12 +49,58 @@ LIBS = 	$(PETSC_LIBS) \
 
 ifeq ($(USESCOREC), 1)
 
-ifndef SCORECDIR
-  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/022310
-endif
-INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/022310 $(INCLUDE)
+  ifeq ($(USE3D), 1)
 
-SCOREC_LIBS = \
+    # 3D libraries
+    ifndef SCORECDIR
+      SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.stix
+    endif
+    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/022310 $(INCLUDE)
+
+    SCOREC_ARCH=x86_64_linux-icc
+    SCOREC_LIBS = \
+	-L$(SCORECDIR)/FMDB/FMDB/lib/$(SCOREC_ARCH) \
+	-Wl,-rpath,$(SCORECDIR)/FMDB/FMDB/lib/$(SCOREC_ARCH) \
+	-L$(SCORECDIR)/FMDB/SCORECModel/lib/$(SCOREC_ARCH) \
+	-Wl,-rpath,$(SCORECDIR)/FMDB/SCORECModel/lib/$(SCOREC_ARCH) \
+	-L$(SCORECDIR)/FMDB/SCORECUtil/lib/$(SCOREC_ARCH) \
+	-Wl,-rpath,$(SCORECDIR)/FMDB/SCORECUtil/lib/$(SCOREC_ARCH) \
+	-L$(SCORECDIR)/mctk/Examples/PPPL/lib/$(SCOREC_ARCH) \
+	-Wl,-rpath,$(SCORECDIR)/mctk/Examples/PPPL/lib/$(SCOREC_ARCH) \
+	-L$(SCORECDIR)/mctk/Field/lib/$(SCOREC_ARCH) \
+	-Wl,-rpath,$(SCORECDIR)/mctk/Field/lib/$(SCOREC_ARCH) \
+	-L$(SCORECDIR)/mctk/Core/lib/$(SCOREC_ARCH) \
+	-Wl,-rpath,$(SCORECDIR)/mctk/Core/lib/$(SCOREC_ARCH) \
+	-L$(SCORECDIR)/mctk/Solver/lib/$(SCOREC_ARCH) \
+	-Wl,-rpath,$(SCORECDIR)/mctk/Solver/lib/$(SCOREC_ARCH) \
+	-L$(SCORECDIR)/meshAdapt/meshAdapt/lib/$(SCOREC_ARCH) \
+	-Wl,-rpath,$(SCORECDIR)/meshAdapt/meshAdapt/lib/$(SCOREC_ARCH) \
+	-L$(SCORECDIR)/meshAdapt/meshTools/lib/$(SCOREC_ARCH) \
+	-Wl,-rpath,$(SCORECDIR)/meshAdapt/meshTools/lib/$(SCOREC_ARCH) \
+	-L$(SCORECDIR)/meshAdapt/templateRefine/lib/$(SCOREC_ARCH) \
+	-Wl,-rpath,$(SCORECDIR)/meshAdapt/templateRefine/lib/$(SCOREC_ARCH) \
+	-L$(SCORECDIR)/ipcomman/lib/$(SCOREC_ARCH) \
+	-Wl,-rpath,$(SCORECDIR)/ipcomman/lib/$(SCOREC_ARCH) \
+	-lFMDB-mpich2$(SCORECOPT) \
+	-lSCORECModel-mpich2$(SCORECOPT) \
+	-lSCORECUtil-mpich2$(SCORECOPT) \
+	-lField-mpich2$(SCORECOPT) \
+	-lCore-mpich2$(SCORECOPT) \
+	-lmeshAdapt-mpich2$(SCORECOPT) \
+	-ltemplateRefine-mpich2$(SCORECOPT) \
+	-lmeshTools-mpich2$(SCORECOPT) \
+	-lSolver-mpich2$(SCORECOPT) \
+	-lPPPL-mpich2$(SCORECOPT) \
+	-lipcomman-mpich2$(SCORECOPT)
+  else
+    # 2D Libraries
+
+    ifndef SCORECDIR
+      SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/022310
+    endif
+    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/022310 $(INCLUDE)
+
+    SCOREC_LIBS = \
 	-L$(SCORECDIR) \
 	-Wl,-rpath,$(SCORECDIR) \
 	-lFMDB-mpich2$(SCORECOPT) \
@@ -68,54 +114,16 @@ SCOREC_LIBS = \
 	-lSolver-mpich2$(SCORECOPT) \
 	-lPPPL-mpich2$(SCORECOPT)
 
+  endif # on USE3D
 
+  LIBS := $(SCOREC_LIBS) $(AUTOPACK_LIBS) $(LIBS)
 
-#ifndef SCORECDIR
-#  SCORECDIR = /p/tsc/m3dc1/lib/develop.petscGlob2/
-#endif
-#INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/022310 $(INCLUDE)
-#
-#SCOREC_ARCH=x86_64_linux-icc
-#SCOREC_LIBS = \
-#	-L$(SCORECDIR)FMDB/FMDB/lib/$(SCOREC_ARCH) \
-#	-Wl,-rpath,$(SCORECDIR)FMDB/FMDB/lib/$(SCOREC_ARCH) \
-#	-L$(SCORECDIR)FMDB/SCORECModel/lib/$(SCOREC_ARCH) \
-#	-Wl,-rpath,$(SCORECDIR)FMDB/SCORECModel/lib/$(SCOREC_ARCH) \
-#	-L$(SCORECDIR)FMDB/SCORECUtil/lib/$(SCOREC_ARCH) \
-#	-Wl,-rpath,$(SCORECDIR)FMDB/SCORECUtil/lib/$(SCOREC_ARCH) \
-#	-L$(SCORECDIR)mctk/Examples/PPPL/lib/$(SCOREC_ARCH) \
-#	-Wl,-rpath,$(SCORECDIR)mctk/Examples/PPPL/lib/$(SCOREC_ARCH) \
-#	-L$(SCORECDIR)mctk/Field/lib/$(SCOREC_ARCH) \
-#	-Wl,-rpath,$(SCORECDIR)mctk/Field/lib/$(SCOREC_ARCH) \
-#	-L$(SCORECDIR)mctk/Core/lib/$(SCOREC_ARCH) \
-#	-Wl,-rpath,$(SCORECDIR)mctk/Core/lib/$(SCOREC_ARCH) \
-#	-L$(SCORECDIR)mctk/Solver/lib/$(SCOREC_ARCH) \
-#	-Wl,-rpath,$(SCORECDIR)mctk/Solver/lib/$(SCOREC_ARCH) \
-#	-L$(SCORECDIR)meshAdapt/meshAdapt/lib/$(SCOREC_ARCH) \
-#	-Wl,-rpath,$(SCORECDIR)meshAdapt/meshAdapt/lib/$(SCOREC_ARCH) \
-#	-L$(SCORECDIR)meshAdapt/meshTools/lib/$(SCOREC_ARCH) \
-#	-Wl,-rpath,$(SCORECDIR)meshAdapt/meshTools/lib/$(SCOREC_ARCH) \
-#	-L$(SCORECDIR)meshAdapt/templateRefine/lib/$(SCOREC_ARCH) \
-#	-Wl,-rpath,$(SCORECDIR)meshAdapt/templateRefine/lib/$(SCOREC_ARCH) \
-#	-lFMDB-mpich2$(SCORECOPT) \
-#	-lSCORECModel-mpich2$(SCORECOPT) \
-#	-lSCORECUtil-mpich2$(SCORECOPT) \
-#	-lField-mpich2$(SCORECOPT) \
-#	-lCore-mpich2$(SCORECOPT) \
-#	-lmeshAdapt-mpich2$(SCORECOPT) \
-#	-ltemplateRefine-mpich2$(SCORECOPT) \
-#	-lmeshTools-mpich2$(SCORECOPT) \
-#	-lSolver-mpich2$(SCORECOPT) \
-#	-lPPPL-mpich2$(SCORECOPT)
-
-LIBS := $(SCOREC_LIBS) $(AUTOPACK_LIBS) $(LIBS)
-
-endif
+endif   # on USESCOREC
 
 
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(INCLUDE) $(OPTS) \
 	-DH5_VERSION=$(H5_VERSION) -DRANDOM_NUM='drand(0)' \
-	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs #\
+	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs # \
 #	-g -check all -check noarg_temp_created -debug all -ftrapuv
 F90OPTS = $(F90FLAGS) $(FOPTS) -gen-interfaces
 F77OPTS = $(F77FLAGS) $(FOPTS)

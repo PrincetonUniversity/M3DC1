@@ -12,7 +12,7 @@ module diagnostics
   real :: tflux0, totcur0
 
   ! scalars integrated over entire computational domain
-  real :: tflux, area, totcur, totden, tmom, tvor, bwb2
+  real :: tflux, area, volume, totcur, totden, tmom, tvor, bwb2
 
   ! scalars integrated within lcfs
   real :: pflux, parea, pcur, pden, pmom, pvor
@@ -298,6 +298,129 @@ contains
   end subroutine distribute_scalars
 
 
+!============================================================
+! evaluate
+! ~~~~~~~~
+! calculates the value ans of field dum at global coordinates
+! (x,z).  itri is the element containing (x,z).  (If this
+! element does not reside on this process, itri=-1).
+!============================================================
+subroutine evaluate(x,phi,z,ans,ans2,fin,itri)
+  
+  use p_data
+  use mesh_mod
+  use basic
+  use m3dc1_nint
+  use field
+
+  implicit none
+
+  include 'mpif.h'
+
+  integer, intent(inout) :: itri
+  real, intent(in) :: x, phi, z
+  type(field_type), intent(in) :: fin
+
+  real, intent(out) :: ans, ans2
+
+  type(element_data) :: d
+  integer :: p, nodeids(nodes_per_element), ier
+  real :: x1, phi1, z1
+  vectype, dimension(coeffs_per_element) :: avector
+  real :: ri, si, zi, eta
+  real :: term1, term2
+  real, dimension(2) :: temp1, temp2
+  integer :: hasval, tothasval
+
+  ! evaluate the solution to get the value [ans] at one point (x,z)
+
+  ! first find out what triangle x,z is in.  whattri
+  ! returns itri, x1, and z1 with x1 and z1 being
+  ! the coordinates of the first node/vertex
+
+  if(itri.eq.0) then
+     call whattri(x,phi,z,itri,x1,z1)
+  else
+     call get_element_nodes(itri,nodeids)
+     call get_node_pos(nodeids(1), x1, phi1, z1)
+  endif
+
+  ans = 0.
+  ans2 = 0.
+
+
+  ! if this process contains the point, evaluate the field at that point.
+  if(itri.gt.0) then
+
+     call get_element_data(itri, d)
+
+     ! calculate local coordinates
+     call global_to_local(d, x, phi, z, si, zi, eta)
+
+     ! calculate the inverse radius
+     if(itor.eq.1) then
+        ri = 1./x
+     else
+        ri = 1.
+     endif
+
+     ! calculate the value of the function
+     call calcavector(itri, fin, avector)
+     
+     do p=1,20
+     
+        term1 = si**mi(p)*eta**ni(p)
+        term2 = 0.
+        
+        if(mi(p).ge.1) then
+           if(itor.eq.1) then
+              term2 = term2 - 2.*d%co*(mi(p)*si**(mi(p)-1) * eta**ni(p))*ri
+           endif
+           
+           if(mi(p).ge.2) then
+              term2 = term2 + si**(mi(p)-2)*(mi(p)-1)*mi(p) * eta**ni(p)
+           endif
+        endif
+     
+        if(ni(p).ge.1) then
+           if(itor.eq.1) then
+              term2 = term2 + 2.*d%sn*(si**mi(p) * eta**(ni(p)-1)*ni(p))*ri
+           endif
+           
+           if(ni(p).ge.2) then
+              term2 = term2 + si**mi(p) * eta**(ni(p)-2)*(ni(p)-1)*ni(p)
+           endif
+        endif
+     
+        ans = ans + avector(p)*term1
+        ans2 = ans2 + avector(p)*term2
+        hasval = 1
+     enddo
+  else
+     hasval = 0
+  endif
+     
+
+  ! Distribute the result if necessary
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(maxrank.gt.1) then
+     ! Determine number of processes whose domains contain this point
+     call mpi_allreduce(hasval, tothasval, 1, MPI_INTEGER, MPI_SUM, &
+          MPI_COMM_WORLD, ier)
+
+     ! Find the average value at this point over all processes containing
+     ! the point.  (Each value should be identical.)
+     temp1(1) = ans
+     temp1(2) = ans2
+     call mpi_allreduce(temp1, temp2, 2, MPI_DOUBLE_PRECISION, MPI_SUM, &
+          MPI_COMM_WORLD, ier)
+     ans = temp2(1)/tothasval
+     ans2 = temp2(2)/tothasval
+  endif
+
+end subroutine evaluate
+
+
   ! ======================================================================
   ! reconnected_flux
   !
@@ -323,12 +446,12 @@ contains
     itri = 0
     xrel = xzero
     zrel = alz/2. + zzero
-    call evaluate(xrel,zrel,temp(1),temp2(1),psi_field(1),itri)
+    call evaluate(xrel,0.,zrel,temp(1),temp2(1),psi_field(1),itri)
 
     itri = 0
     xrel = alx/2. + xzero
     zrel = alz/2. + zzero
-    call evaluate(xrel,zrel,temp(2),temp2(2),psi_field(1),itri)
+    call evaluate(xrel,0.,zrel,temp(2),temp2(2),psi_field(1),itri)
 
     reconnected_flux = 0.5*(temp(2)-temp(1))
 
@@ -368,7 +491,7 @@ subroutine calculate_scalars()
   use basic
   use mesh_mod
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
   use newvar_mod
   use sparse
   use metricterms_new
@@ -445,7 +568,7 @@ subroutine calculate_scalars()
 
      dbf = db
 
-     call define_triangle_quadrature(itri, int_pts_diag)
+     call define_element_quadrature(itri, int_pts_diag, 5)
      call define_fields(itri, def_fields, 0, 0)
 
      ! Calculate energy
@@ -477,9 +600,14 @@ subroutine calculate_scalars()
 
      ! Calculate Scalars
      ! ~~~~~~~~~~~~~~~~~
-     !  (extra factor of 1/r comes from delta function in toroidal coordinate)
-     area   = area   + int1(ri_79)
-     totcur = totcur - int2(ri2_79,pst79(:,OP_GS))
+     ! extra factor of 1/r comes from delta function in toroidal coordinate)
+     area   = area   + int1(ri_79)/nplanes
+
+     ! toroidal current
+     totcur = totcur - int2(ri2_79,pst79(:,OP_GS))/nplanes
+
+     ! toroidal flux
+     tflux = tflux + int2(ri2_79,bzt79(:,OP_1 ))/nplanes
      
      ! enstrophy
      select case(ivform)
@@ -491,8 +619,8 @@ subroutine calculate_scalars()
              - 2.*int2(ri4_79,cht79(:,OP_DZ))
      end select
 
-     ! toroidal flux
-     tflux = tflux + int2(ri2_79,bzt79(:,OP_1 ))
+     ! volume
+     volume = volume + int0()
 
      ! particle number
      totden = totden + int1(nt79(:,OP_1))
@@ -545,7 +673,7 @@ subroutine calculate_scalars()
      do iedge=1,3
         if(.not.is_edge(iedge)) cycle
 
-        call define_edge_quadrature(itri, iedge, 5, n, idim)
+        call define_boundary_quadrature(itri, iedge, 5, n, idim)
         call define_fields(itri, def_fields, 1, 0)
 
         ! Energy fluxes
@@ -620,6 +748,7 @@ subroutine calculate_scalars()
  
      print *, "Scalars:"
      print *, "  Area = ", area
+     print *, "  Volume = ", volume
      print *, "  Toroidal current = ", totcur
      print *, "  Total particles = ", totden
   endif
@@ -637,7 +766,7 @@ end subroutine calculate_scalars
 subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
   use basic
   use mesh_mod
-  use nintegrate_mod
+  use m3dc1_nint
   use field
 
   implicit none
@@ -654,19 +783,19 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
   real, parameter :: tol = 1e-3   ! convergence tolorance (fraction of h)
 
   type(element_data) :: d
-  integer :: itri, inews
+  integer :: inews
   integer :: i, ier, in_domain, converged
-  real :: x1, z1, x, z, si, eta, h
+  real :: x1, z1, x, z, si, zi, eta, h
   real :: sum, sum1, sum2, sum3, sum4, sum5
   real :: term1, term2, term3, term4, term5
   real :: pt, pt1, pt2, p11, p22, p12
   real :: xnew, znew, denom, sinew, etanew
   real :: xtry, ztry, rdiff
-  vectype, dimension(20) :: avector
+  vectype, dimension(coeffs_per_element) :: avector
   real, dimension(5) :: temp1, temp2
+  integer, save :: itri = 0
 
-
-  if(myrank.eq.0 .and. iprint.gt.0) &
+  if(myrank.eq.0 .and. iprint.ge.2) &
        write(*,'(A,2E12.4)') '  magaxis: guess = ', xguess, zguess
 
   converged = 0
@@ -676,7 +805,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
   
   newton :  do inews=1, iterations
 
-     call whattri(x,z,itri,x1,z1)
+     call whattri(x,0.,z,itri,x1,z1)
 
      ! calculate position of minimum
      if(itri.gt.0) then
@@ -684,7 +813,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
         call get_element_data(itri, d)
 
         ! calculate local coordinates
-        call global_to_local(d, x, z, si, eta)
+        call global_to_local(d, x, 0., z, si, zi, eta)
 
         ! calculate mesh size
         h = sqrt((d%a+d%b)*d%c)
@@ -743,6 +872,10 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
            denom = pt1**2 + pt2**2
            sinew = si - pt*pt1/denom
            etanew = eta - pt*pt2/denom
+        case default
+           print *, 'Error: unknown null-finding method: ', imethod
+           sinew = si
+           etanew = eta
         end select
 
         xtry = x1 + d%co*(d%b+sinew) - d%sn*etanew
@@ -758,8 +891,10 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
           znew = z + bfac*h*(ztry-z)/rdiff
         endif
         in_domain = 1
-        if(iprint.ge.2) &
-             write(*,'(A,4E12.4)') '  magaxis: rdiff/h, tol, xnew,znew', rdiff/h, tol, xnew,znew
+        if(iprint.ge.2) then
+           write(*,'(A,4E12.4)') &
+                '  magaxis: rdiff/h, tol, xnew,znew', rdiff/h, tol, xnew, znew
+        end if
         if(rdiff/h .lt. tol) converged = 1
      else
         xnew = 0.
@@ -814,7 +949,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
   psim = sum
   ier = 0
 
-  if(myrank.eq.0 .and. iprint.ge.1) &
+  if(myrank.eq.0 .and. iprint.ge.2) &
        write(*,'(A,I12,2E12.4)') '  magaxis: iterations, x, z = ', inews, x, z
   
 end subroutine magaxis
@@ -829,7 +964,7 @@ end subroutine magaxis
 subroutine lcfs(psi)
   use basic
   use mesh_mod
-  use nintegrate_mod
+  use m3dc1_nint
   use field
   use boundary_conditions
 
@@ -847,17 +982,17 @@ subroutine lcfs(psi)
   real :: curv
   vectype, dimension(dofs_per_node) :: data
 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, 'Finding LCFS:'
 
   ! Find magnetic axis
   ! ~~~~~~~~~~~~~~~~~~
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Finding magnetic axis'
   call magaxis(xmag,zmag,psi,psim,0,ier)
   if(ier.eq.0) then
      psimin = psim
      
      if(myrank.eq.0 .and. iprint.ge.1) then 
-        write(*,'(A,2E12.4)') '  magnetic axis found at ', xmag, zmag
-        write(*,'(A, E12.4)') '  value of psi at magnetic axis ', psimin
+        write(*,'(A,2E12.4)') '  magnetic axis: ', xmag, zmag
+        write(*,'(A, E12.4)') '  psi at magnetic axis: ', psimin
      end if
   else
      if(myrank.eq.0 .and. iprint.ge.1) then 
@@ -915,7 +1050,7 @@ subroutine lcfs(psi)
 
   ! Calculate psi at the x-point
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(myrank.eq.0 .and. iprint.ge.2) print *, 'calculating psi at x-point'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Finding X-point'
   call magaxis(xnull,znull,psi,psix,1,ier)
   if(ier.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) then
@@ -941,19 +1076,19 @@ subroutine lcfs(psi)
 
   ! Calculate psi at the limiter
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(myrank.eq.0 .and. iprint.ge.2) print *, 'calculating psi at limiter'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Finding LCFS'
   if(xlim.eq.0.) then
      ! when xlim = 0, use the lcfs as the limiting flux
      psilim = psibound
      psilim2 = psilim
   else
      itri = 0
-     call evaluate(xlim,zlim,psilim,ajlim,psi,itri)
+     call evaluate(xlim,0.,zlim,psilim,ajlim,psi,itri)
      
      ! calculate psi at a second limiter point as a diagnostic
      if(xlim2.gt.0) then
         itri = 0
-        call evaluate(xlim2,zlim2,psilim2,ajlim,psi,itri)
+        call evaluate(xlim2,0.,zlim2,psilim2,ajlim,psi,itri)
      else
         psilim2 = psilim
      endif
@@ -970,21 +1105,23 @@ subroutine lcfs(psi)
 
   ! daignostic output
   if(myrank.eq.0 .and. iprint.ge.1) then
-     write(*,'(1A10,6A11)') 'psi at:', &
-          'axis', 'wall', 'divertor', 'lim1', 'lim2', 'lcfs'
-     write(*,'(1A10,1p6e11.3)') '',  &
-          psimin, psib, psix, psilim, psilim2, psibound
+     if(iprint.ge.2) then
+        write(*,'(1A10,6A11)') 'psi at:', &
+             'axis', 'wall', 'divertor', 'lim1', 'lim2', 'lcfs'
+        write(*,'(1A10,1p6e11.3)') '',  &
+             psimin, psib, psix, psilim, psilim2, psibound
+     endif
 
      if(psibound.eq.psib) then
-        print *, 'Plasma is limited by wall'
+        print *, ' Plasma is limited by wall'
      else if(psibound.eq.psix) then
-        print *, 'Plasma is diverted'
+        print *, ' Plasma is diverted'
      else if(psibound.eq.psilim) then
-        print *, 'Plasma is limited by internal limiter #1.'
+        print *, ' Plasma is limited by internal limiter #1.'
      else if(psibound.eq.psilim2) then
-        print *, 'Plasma is limited by internal limiter #2.'
+        print *, ' Plasma is limited by internal limiter #2.'
      else 
-        print *, 'Plasma limiter is unknown!'
+        print *, ' Plasma limiter is unknown!'
      end if
   end if
 

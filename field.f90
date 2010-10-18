@@ -37,10 +37,14 @@ module field
      module procedure raise_field_to_real_power
   end interface
 
+  interface get_node_data
+     module procedure field_get_node_data
+  end interface
+
   interface set_node_data
-     module procedure set_node_data_real
+     module procedure field_set_node_data_real
 #ifdef USECOMPLEX
-     module procedure set_node_data_complex
+     module procedure field_set_node_data_complex
 #endif
   end interface
 
@@ -140,7 +144,7 @@ contains
   ! ~~~~~~~~~~~~~
   ! copies array data into dofs of f associated with node inode
   !======================================================================
-  subroutine set_node_data_real(f, inode, data)
+  subroutine field_set_node_data_real(f, inode, data)
     use element
     implicit none
     
@@ -148,11 +152,11 @@ contains
     integer, intent(in) :: inode
     real, dimension(dofs_per_node), intent(in) :: data
 
-    call set_vector_node_data(f%vec,f%index,inode,data)
-  end subroutine set_node_data_real
+    call set_node_data(f%vec,f%index,inode,data)
+  end subroutine field_set_node_data_real
 
 #ifdef USECOMPLEX
-  subroutine set_node_data_complex(f, inode, data)
+  subroutine field_set_node_data_complex(f, inode, data)
     use element
     implicit none
     
@@ -160,8 +164,8 @@ contains
     integer, intent(in) :: inode
     complex, dimension(dofs_per_node), intent(in) :: data
     
-    call set_vector_node_data(f%vec,f%index,inode,data)
-  end subroutine set_node_data_complex
+    call set_node_data(f%vec,f%index,inode,data)
+  end subroutine field_set_node_data_complex
 #endif
 
 
@@ -179,9 +183,9 @@ contains
     real, dimension(dofs_per_node), intent(in) :: data
     real, dimension(dofs_per_node) :: d
 
-    call get_vector_node_data(f%vec, f%index, inode, d)
+    call get_node_data(f%vec, f%index, inode, d)
     d = d + data
-    call set_vector_node_data(f%vec, f%index, inode, d)
+    call set_node_data(f%vec, f%index, inode, d)
   end subroutine add_real_to_node
 
 #ifdef USECOMPLEX
@@ -194,9 +198,9 @@ contains
     complex, dimension(dofs_per_node), intent(in) :: data
     complex, dimension(dofs_per_node) :: d
 
-    call get_vector_node_data(f%vec, f%index, inode, d)
+    call get_node_data(f%vec, f%index, inode, d)
     d = d + data
-    call set_vector_node_data(f%vec, f%index, inode, d)
+    call set_node_data(f%vec, f%index, inode, d)
   end subroutine add_complex_to_node
 #endif
 
@@ -206,7 +210,7 @@ contains
   ! ~~~~~~~~~~~~~
   ! populates data with dofs of f associated with node inode
   !======================================================================
-  subroutine get_node_data(f, inode, data)
+  subroutine field_get_node_data(f, inode, data)
     use element
     implicit none
     
@@ -214,8 +218,8 @@ contains
     integer, intent(in) :: inode
     vectype, dimension(dofs_per_node), intent(out) :: data
 
-    call get_vector_node_data(f%vec, f%index, inode, data)
-  end subroutine get_node_data
+    call get_node_data(f%vec, f%index, inode, data)
+  end subroutine field_get_node_data
 
 
   !======================================================================
@@ -475,42 +479,54 @@ contains
     field_is_nan = is_nan(f%vec)
   end function field_is_nan
 
-  !==========================================================
-  ! calcavector
-  ! ~~~~~~~~~~~
-  !
-  ! calculates the 20 polynomial coefficients avector
-  ! of field inarr in element itri.
-  !==========================================================
-  subroutine calcavector(itri, fin, avector)
+  !===========================================================
+  ! get_element_dofs
+  ! ~~~~~~~~~~~~~~~~
+  ! get dofs associated with element itri
+  !===========================================================
+  subroutine get_element_dofs(fin, itri, dofs)
     use element
     use mesh_mod
-    
+
     implicit none
-    
-    integer, intent(in) :: itri
+
     type(field_type), intent(in) :: fin
-    vectype, dimension(20), intent(out) :: avector
-    
-    integer :: i, iii, k
+    integer, intent(in) :: itri
+    vectype, dimension(dofs_per_element), intent(out) :: dofs
+
+    integer :: i, iii
     integer, dimension(nodes_per_element) :: inode
-    vectype, dimension(nodes_per_element*dofs_per_node) :: wlocal
 
     call get_element_nodes(itri, inode)
     i = 1
     do iii=1, nodes_per_element
-       call get_node_data(fin, inode(iii), wlocal(i:i+dofs_per_node-1))
+       call get_node_data(fin, inode(iii), dofs(i:i+dofs_per_node-1))
        i = i + dofs_per_node
     enddo
     
-    ! calculate the function value corresponding to this point
-    do i=1,20
-       avector(i) = 0.
-       do k=1,nodes_per_element*dofs_per_node
-          avector(i) = avector(i) + gtri_old(i,k,itri)*wlocal(k)
-       enddo
-    enddo
+  end subroutine get_element_dofs
+
+  !==========================================================
+  ! calcavector
+  ! ~~~~~~~~~~~
+  !
+  ! calculates the polynomial coefficients avector
+  ! of field fin in element itri.
+  !==========================================================
+  subroutine calcavector(itri, fin, avector)
+    use element
+    implicit none
+    
+    integer, intent(in) :: itri
+    type(field_type), intent(in) :: fin
+
+    vectype, dimension(coeffs_per_element), intent(out) :: avector
+    vectype, dimension(dofs_per_element) :: dofs
+
+    call get_element_dofs(fin, itri, dofs)
+    call local_coeffs(itri, dofs, avector)
   end subroutine calcavector
+
 
   subroutine matvecmult_field_vec(mat,fin,vout)
     use vector_mod

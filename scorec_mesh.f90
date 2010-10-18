@@ -5,12 +5,11 @@ module scorec_mesh_mod
 
   logical :: is_rectilinear
 
-  vectype, allocatable :: gtri(:,:,:), gtri_old(:,:,:)
-
   real :: xzero, zzero
   real :: tiltangled
   integer :: iper, jper
   integer :: icurv
+  integer :: nplanes
 
   integer, parameter :: maxi = 20
 
@@ -20,7 +19,14 @@ module scorec_mesh_mod
 contains
 
   subroutine load_mesh
+    use math
     implicit none
+
+#ifdef USE3D
+    include 'mpif.h'
+    real :: minphi, maxphi
+    integer :: procs_per_plane, maxrank, ier
+#endif
 
     ! initialize scorec solvers
     call initsolvers
@@ -29,7 +35,29 @@ contains
     call AP_INIT()
 
     ! load mesh
+#ifdef USE3D 
+
+    print *, 'setting number of planes = ', nplanes
+    call setTotNbPlane(nplanes)
+    
+    call MPI_Comm_size(MPI_COMM_WORLD,maxrank,ier)
+    procs_per_plane = 1
+    print *, 'setting number of processes per plane = ', procs_per_plane
+    call setNbProcPlane(procs_per_plane)
+
+    minphi = 0.
+    maxphi = twopi/nplanes * (nplanes-1)
+    print *, 'setting phi range', minphi, maxphi
+    call setPhiRange(minphi, maxphi)
+
+    print *, 'loading partitioned mesh...'
+    call loadPtnMesh('struct.dmg')
+
+    print *, 'setting up 3D mesh...'
+    call threeDMeshSetup(0)
+#else 
     call loadmesh("struct.dmg", "struct-dmg.sms")
+#endif
   end subroutine load_mesh
 
   subroutine unload_mesh
@@ -46,7 +74,11 @@ contains
   !==============================================================
   integer function local_elements()
     implicit none
+#ifdef USE3D
+    call numwed(local_elements)
+#else
     call numfac(local_elements)
+#endif
   end function local_elements
 
   !==============================================================
@@ -87,11 +119,23 @@ contains
   ! ~~~~~~~~~~~~~~~~~
   ! returns the indices of each element node
   !==============================================================
-  subroutine get_element_nodes(itri,n)
+  subroutine get_element_nodes(ielm,n)
     implicit none
-    integer, intent(in) :: itri
+    integer, intent(in) :: ielm
     integer, intent(out), dimension(nodes_per_element) :: n
-    call nodfac(itri, n) 
+
+#ifdef USE3D
+    integer :: nelms
+    call numwed(nelms)
+    if(ielm.gt.nelms) then
+       print *, 'error!', ielm, nelms
+       return
+    end if
+
+    call nodwed(ielm, n)
+#else
+    call nodfac(ielm, n)
+#endif
   end subroutine get_element_nodes
 
 
@@ -108,6 +152,12 @@ contains
     if(.not.has_bounding_box) then
        call getmincoord2(bb(1), bb(2))
        call getmaxcoord2(bb(3), bb(4))
+       if(is_rectilinear) then
+          bb(1) = bb(1) + xzero
+          bb(2) = bb(2) + zzero
+          bb(3) = bb(3) + xzero
+          bb(4) = bb(4) + zzero
+       endif
        has_bounding_box = .true.
     endif
     x1 = bb(1)
@@ -139,25 +189,26 @@ contains
   ! ~~~~~~~~~~~~
   ! get the global coordinates (x,z) of node inode
   !============================================================
-  subroutine get_node_pos(inode,x,z)
+  subroutine get_node_pos(inode,x,phi,z)
     implicit none
     
     integer, intent(in) :: inode
-    real, intent(out) :: x, z
+    real, intent(out) :: x, phi, z
     
-    double precision :: coords(3)
+    real :: coords(3)
     real :: x1, z1, x2, z2
     
     call xyznod(inode,coords)
-    
+    x = coords(1)
+    z = coords(2)
+
     if(is_rectilinear) then
-       call get_bounding_box(x1,z1,x2,z2)
-       x = coords(1) - x1 + xzero
-       z = coords(2) - z1 + zzero
-    else
-       x = coords(1)
-       z = coords(2)
+       x = x + xzero
+       z = z + zzero
     endif
+#ifdef USE3D
+    phi = coords(3)
+#endif
   end subroutine get_node_pos
 
 
@@ -168,21 +219,24 @@ contains
   ! node coordinates
   !============================================================
   subroutine get_element_data(itri, d)
+    use math
     implicit none
     integer, intent(in) :: itri
     type(element_data), intent(out) :: d
-    real :: x2, x3, z2, z3, x2p, x3p, z2p, z3p, hi
-    integer :: nodeids(4)
+    real :: x2, x3, z2, z3, phi2, phi3, x2p, x3p, z2p, z3p, hi
+    integer :: nodeids(nodes_per_element)
     
+    d%itri = itri
+
     call get_element_nodes(itri, nodeids)
     
-    call get_node_pos(nodeids(1), d%x, d%z)
-    call get_node_pos(nodeids(2), x2, z2)
-    call get_node_pos(nodeids(3), x3, z3)
-    x2 = x2 - d%x
-    z2 = z2 - d%z
-    x3 = x3 - d%x
-    z3 = z3 - d%z
+    call get_node_pos(nodeids(1), d%R, d%phi, d%Z)
+    call get_node_pos(nodeids(2), x2, phi2, z2)
+    call get_node_pos(nodeids(3), x3, phi3, z3)
+    x2 = x2 - d%R
+    z2 = z2 - d%Z
+    x3 = x3 - d%R
+    z3 = z3 - d%Z
     
     hi = 1./sqrt(x2**2 + z2**2)
     d%co = x2*hi
@@ -201,10 +255,17 @@ contains
     if(d%c .le. 0.) then
        print *, 'ERROR: clockwise node ordering for element',itri
     endif
-    
+
+#ifdef USE3D
+    call get_node_pos(nodeids(4), x2, phi2, z2)
+    d%d = phi2 - d%Phi
+    if(d%d .le. 0.) d%d = d%d + twopi
+#else
+    d%d = 0.
+#endif
   end subroutine get_element_data
 
-  
+
   !============================================================
   ! whattri
   ! ~~~~~~~
@@ -213,34 +274,41 @@ contains
   ! itri = -1.  Otherwise, xref and zref are global coordinates
   ! of the first node of element itri.
   !============================================================
-  subroutine whattri(x,z,itri,xref,zref)
+  subroutine whattri(x,phi,z,ielm,xref,zref)
     implicit none
     
-    real, intent(in) :: x, z
-    integer, intent(inout) :: itri
+    real, intent(in) :: x, phi, z
+    integer, intent(inout) :: ielm
     real, intent(out) :: xref, zref
     
-    double precision :: x0, z0
-    integer :: nodeids(nodes_per_element)
-    real :: x1, z1, x2, z2
-    
-    if(is_rectilinear) then
-       call get_bounding_box(x1,z1,x2,z2)
-       x0 = x + x1 - xzero
-       z0 = z + z1 - zzero
-    else
-       x0 = x
-       z0 = z
+    integer :: nelms, i
+    type(element_data) :: d
+
+    ! first, try ielm
+    if(ielm.gt.0) then
+       call get_element_data(ielm,d)
+       if(is_in_element(d,x,phi,z)) then
+          xref = d%R
+          zref = d%Z
+          return
+       endif
     endif
-    
-    call usesearchstructure(x0,z0,itri)
-    
-    if(itri.lt.0) return
-    
-    call get_element_nodes(itri,nodeids)
-    call get_node_pos(nodeids(1), xref, zref)
+
+    ! try all elements
+    ielm = -1
+    nelms = local_elements()
+    do i=1, nelms
+       call get_element_data(i,d)
+       if(is_in_element(d,x,phi,z)) then
+          xref = d%R
+          zref = d%Z
+          ielm = i
+          return
+       end if
+    end do
   end subroutine whattri
-  
+
+
   !=========================================
   ! is_boundary_node
   ! ~~~~~~~~~~~~~~~~
@@ -276,7 +344,7 @@ contains
     logical, intent(out) :: is_boundary       ! is inode on boundary
     
     integer :: ibottom, iright, ileft, itop, ib
-    real :: angler
+    real :: angler, phi
     real, dimension(3) :: norm
     
     curv = 0.
@@ -361,7 +429,7 @@ contains
        if(.not.is_boundary) return
     end if
     
-    call get_node_pos(inode,x,z)
+    call get_node_pos(inode,x,phi,z)
     
   end subroutine boundary_node
 
