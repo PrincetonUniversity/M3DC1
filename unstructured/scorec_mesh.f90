@@ -13,7 +13,6 @@ module scorec_mesh_mod
   integer :: icurv
 
   integer, parameter :: maxi = 20
-  logical, allocatable :: is_ghost(:)
 
   logical, private :: has_bounding_box = .false.
   real, private :: bb(4)

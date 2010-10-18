@@ -136,7 +136,7 @@ Program Reducedquintic
 
   ! initialize hdf5
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Initializing HDF5'
-  call hdf5_initialize(irestart.eq.1 .or. iadapt.ne.0,ier)
+  call hdf5_initialize(ntime.gt.0,ier)
   if(ier.lt.0) then 
      print *, "Error initializing HDF5"
      call safestop(5)
@@ -943,11 +943,7 @@ end subroutine evaluate
     numelms = local_elements()
     numnodes = local_nodes()
     ndofs = numnodes*dofs_per_node
-
-    ! determine which nodes are ghost nodes
-    allocate(is_ghost(numnodes), is_set(ndofs))
-    is_set = .false.
-     
+    
     ! start the loop over triangles within a rectangular region
     do itri=1,numelms
 
