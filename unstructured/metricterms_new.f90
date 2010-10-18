@@ -14,7 +14,7 @@ contains
 vectype function v1umu(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -50,7 +50,7 @@ vectype function v1umu(e,f,g,h)
                 - 2.*int4(ri_79,e(:,OP_1),g(:,OP_LP),f(:,OP_DR))
         endif
         
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp = temp + &
              (int4(ri2_79,e(:,OP_DZ),f(:,OP_DZPP),g(:,OP_1)) &
              +int4(ri2_79,e(:,OP_DR),f(:,OP_DRPP),g(:,OP_1)))
@@ -88,7 +88,7 @@ vectype function v1umu(e,f,g,h)
                    -int5(r_79,e(:,OP_1),norm79(:,2),f(:,OP_DRZ),h(:,OP_1)))
            endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
            temp = temp &
                 - int4(e(:,OP_1),norm79(:,1),f(:,OP_DRPP),g(:,OP_1)) &
                 - int4(e(:,OP_1),norm79(:,2),f(:,OP_DZPP),g(:,OP_1))
@@ -114,7 +114,7 @@ vectype function v1umu(e,f,g,h)
                 - 8.*int3(e(:,OP_DZ),f(:,OP_DZ),h(:,OP_1))
         endif
      
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp = temp &
              + int3(e(:,OP_DZ),f(:,OP_DZPP),g(:,OP_1)) &
              + int3(e(:,OP_DR),f(:,OP_DRPP),g(:,OP_1))
@@ -133,7 +133,7 @@ end function v1umu
 vectype function v1vmu(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -142,7 +142,7 @@ vectype function v1vmu(e,f,g,h)
 
   temp = 0.
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
      ! not implemented
@@ -183,7 +183,7 @@ end function v1vmu
 vectype function v1chimu(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -239,7 +239,7 @@ vectype function v1chimu(e,f,g,h)
                    -2.*int5(ri3_79,e(:,OP_1),norm79(:,1),f(:,OP_DZ),g(:,OP_1)))
            end if
            
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
            temp = temp &
                 + int5(ri3_79,e(:,OP_1),g(:,OP_1),norm79(:,2),f(:,OP_DRPP)) &
                 - int5(ri3_79,e(:,OP_1),g(:,OP_1),norm79(:,1),f(:,OP_DZPP))
@@ -267,7 +267,7 @@ vectype function v1chimu(e,f,g,h)
                 - 3.*int4(ri2_79,e(:,OP_DZ),f(:,OP_GS),g(:,OP_1))
         endif
      
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp = temp &
              + int4(ri3_79,e(:,OP_DR),f(:,OP_DZPP),g(:,OP_1)) &
              - int4(ri3_79,e(:,OP_DZ),f(:,OP_DRPP),g(:,OP_1))
@@ -287,7 +287,7 @@ end function v1chimu
 vectype function v1un(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -331,7 +331,7 @@ end function v1un
 vectype function v1chin(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -371,7 +371,7 @@ end function v1chin
 vectype function v1psipsi(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -414,14 +414,14 @@ end function v1psipsi
 vectype function v1psib(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
      if(surface_int) then
@@ -463,7 +463,7 @@ end function v1psib
 vectype function v1bb(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -505,7 +505,7 @@ end function v1bb
 vectype function v1uun(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -567,14 +567,14 @@ end function v1uun
 vectype function v1uvn(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(inertia.eq.0) then
      v1uvn = 0.
      return
@@ -609,7 +609,7 @@ end function v1uvn
 vectype function v1uchin(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -669,7 +669,7 @@ end function v1uchin
 vectype function v1vvn(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -713,14 +713,14 @@ end function v1vvn
 vectype function v1vchin(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(inertia.eq.0) then
      v1vchin = 0.
      return
@@ -754,7 +754,7 @@ end function v1vchin
 vectype function v1chichin(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -811,7 +811,7 @@ end function v1chichin
 vectype function v1upsipsi(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -907,13 +907,13 @@ end function v1upsipsi
 vectype function v1upsib(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
 
   select case(ivform)
   case(0)
@@ -996,7 +996,7 @@ end function v1upsib
 vectype function v1ubb(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -1016,7 +1016,7 @@ vectype function v1ubb(e,f,g,h)
                 -2.*int5(ri4_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1 ),h(:,OP_1)))
         endif
         
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp = temp + &
              (int5(ri4_79,e(:,OP_DZ),f(:,OP_DZPP),g(:,OP_1),h(:,OP_1)) &
              +int5(ri4_79,e(:,OP_DR),f(:,OP_DRPP),g(:,OP_1),h(:,OP_1)))
@@ -1034,7 +1034,7 @@ vectype function v1ubb(e,f,g,h)
         temp79a = f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ)
         temp = int4(e(:,OP_1),temp79a,norm79(:,2),h(:,OP_DR)) &
              - int4(e(:,OP_1),temp79a,norm79(:,1),h(:,OP_DZ))
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp79a = e(:,OP_1)*h(:,OP_DP)
         temp = temp &
              + int5(ri2_79,temp79a,norm79(:,1),f(:,OP_DR),g(:,OP_DP)) &
@@ -1043,7 +1043,7 @@ vectype function v1ubb(e,f,g,h)
              + int5(ri2_79,temp79a,norm79(:,2),f(:,OP_DZP),g(:,OP_1))
 #endif
      else
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp79a = &
              (e(:,OP_DZ)*f(:,OP_DZPP) + e(:,OP_DR)*f(:,OP_DRPP))*g(:,OP_1) &
         + 2.*(e(:,OP_DZ)*f(:,OP_DZP) + e(:,OP_DR)*f(:,OP_DRP))*g(:,OP_DP) &
@@ -1064,7 +1064,7 @@ end function v1ubb
 vectype function v1up(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -1108,14 +1108,14 @@ end function v1up
 vectype function v1vpsipsi(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
 
   select case(ivform)
   case(0)
@@ -1176,7 +1176,7 @@ end function v1vpsipsi
 vectype function v1vpsib(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -1195,7 +1195,7 @@ vectype function v1vpsib(e,f,g,h)
                 -   int5(ri3_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1)) &
                 +2.*int5(ri4_79,e(:,OP_DZ),f(:,OP_1 ),g(:,OP_DZ),h(:,OP_1)))
         endif
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp = temp - &
              (int5(ri4_79,e(:,OP_DZ),f(:,OP_DPP),g(:,OP_DZ),h(:,OP_1)) &
              +int5(ri4_79,e(:,OP_DR),f(:,OP_DPP),g(:,OP_DR),h(:,OP_1)))
@@ -1212,7 +1212,7 @@ vectype function v1vpsib(e,f,g,h)
         temp79a = f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ)
         temp = int4(e(:,OP_1),temp79a,norm79(:,2),h(:,OP_DR)) &
              - int4(e(:,OP_1),temp79a,norm79(:,1),h(:,OP_DZ))
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp79a = e(:,OP_1)*h(:,OP_DP)
         temp = temp &
              - int5(ri2_79,temp79a,norm79(:,1),g(:,OP_DR),f(:,OP_DP)) &
@@ -1223,7 +1223,7 @@ vectype function v1vpsib(e,f,g,h)
      else
         temp = 0.
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp79a = &
              f(:,OP_DPP)*(e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR)) &
              +2.*f(:,OP_DP)*(e(:,OP_DZ)*g(:,OP_DZP) + e(:,OP_DR)*g(:,OP_DRP)) &
@@ -1243,7 +1243,7 @@ end function v1vpsib
 vectype function v1vp(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -1261,7 +1261,7 @@ vectype function v1vp(e,f,g)
   case(1)
 
      temp = 0.
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
      if(itor.eq.1) then
         if(surface_int) then
            temp = -2.* &
@@ -1289,7 +1289,7 @@ vectype function v1chipsipsi(e,f,g,h)
 
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -1387,7 +1387,7 @@ vectype function v1chipsib(e,f,g,h)
   
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
   
@@ -1395,7 +1395,7 @@ vectype function v1chipsib(e,f,g,h)
   vectype :: temp
 
    temp = 0.
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
    select case(ivform)
    case(0)
       if(surface_int) then
@@ -1479,7 +1479,7 @@ vectype function v1chibb(e,f,g,h)
 
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -1501,7 +1501,7 @@ vectype function v1chibb(e,f,g,h)
                 +int5(ri2_79,e(:,OP_DZ),g(:,OP_DR),f(:,OP_DR),h(:,OP_1)))
         endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp = temp &
              + int5(ri3_79,f(:,OP_DZPP),e(:,OP_DR),g(:,OP_1),h(:,OP_1)) &
              - int5(ri3_79,f(:,OP_DRPP),e(:,OP_DZ),g(:,OP_1),h(:,OP_1))
@@ -1523,7 +1523,7 @@ vectype function v1chibb(e,f,g,h)
            temp = temp &
                 - 2.*int4(ri4_79,temp79a,f(:,OP_DR),g(:,OP_1))
         endif
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp79b = e(:,OP_1)*h(:,OP_DP)
         temp = temp &
              + int5(ri5_79,temp79b,g(:,OP_1 ),norm79(:,1),f(:,OP_DZP)) &
@@ -1533,7 +1533,7 @@ vectype function v1chibb(e,f,g,h)
 #endif
      else
         temp = 0.
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp79a = &
              (e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))*g(:,OP_DPP) &
         + 2.*(e(:,OP_DZ)*f(:,OP_DRP) - e(:,OP_DR)*f(:,OP_DZP))*g(:,OP_DP) &
@@ -1554,7 +1554,7 @@ end function v1chibb
 vectype function v1chip(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -1594,7 +1594,7 @@ end function v1chip
 vectype function v1ngrav(e,f)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -1623,7 +1623,7 @@ end function v1ngrav
 vectype function v1ungrav(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -1657,7 +1657,7 @@ end function v1ungrav
 vectype function v1chingrav(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -1692,7 +1692,7 @@ end function v1chingrav
 vectype function v1ndenmgrav(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -1727,7 +1727,7 @@ end function v1ndenmgrav
 vectype function v1us(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -1781,7 +1781,7 @@ end function v1us
 vectype function v1chis(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -1835,14 +1835,14 @@ end function v1chis
 vectype function v1psif(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
   temp = 0.
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case (ivform)
   case(0)
      if(surface_int) then
@@ -1887,13 +1887,13 @@ end function v1psif
 vectype function v1bf(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case (ivform)
   case(0)
      if(surface_int) then
@@ -1936,7 +1936,7 @@ end function v1bf
 vectype function v1p(e,f)
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -1984,7 +1984,7 @@ end function v1p
 vectype function v2vn(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -2013,7 +2013,7 @@ end function v2vn
 vectype function v2umu(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -2021,7 +2021,7 @@ vectype function v2umu(e,f,g,h)
   vectype :: temp
 
   temp = 0.
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
      ! not imeplemented
@@ -2052,7 +2052,7 @@ end function v2umu
 vectype function v2vmu(e,f,g,h,i)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -2072,7 +2072,7 @@ vectype function v2vmu(e,f,g,h,i)
            temp = temp - 2.*int4(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DR))
         endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp = temp + 2.*int4(ri2_79,e(:,OP_1),f(:,OP_DPP),h(:,OP_1))
 #endif
 
@@ -2098,7 +2098,7 @@ vectype function v2vmu(e,f,g,h,i)
         temp = -int4(r2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1)) &
              -  int4(r2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1))
      
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp = temp + 2.*int3(e(:,OP_1),f(:,OP_DPP),h(:,OP_1))
 #endif
 
@@ -2131,7 +2131,7 @@ end function v2vmu
 vectype function v2chimu(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -2139,7 +2139,7 @@ vectype function v2chimu(e,f,g,h)
   vectype :: temp
 
   temp = 0.
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
      ! not implemented
@@ -2173,7 +2173,7 @@ end function v2chimu
 vectype function v2vun(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -2211,7 +2211,7 @@ end function v2vun
 vectype function v2vvn(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -2223,7 +2223,7 @@ vectype function v2vvn(e,f,g,h)
      return
   end if
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
      temp = -int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DP),h(:,OP_1))
@@ -2241,7 +2241,7 @@ end function v2vvn
 vectype function v2up(e,f,g)
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
   
   implicit none
 
@@ -2255,7 +2255,7 @@ vectype function v2up(e,f,g)
      return
   end if
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
      temp = & 
@@ -2286,7 +2286,7 @@ end function v2up
 vectype function v2vp(e,f,g)
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -2301,7 +2301,7 @@ vectype function v2vp(e,f,g)
 
   temp = 0.
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
      temp =          int4(ri2_79,e(:,OP_1),g(:,OP_DPP),f(:,OP_1)) &
@@ -2325,7 +2325,7 @@ vectype function v2chip(e,f,g)
 
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -2339,7 +2339,7 @@ vectype function v2chip(e,f,g)
 
   temp = 0.
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case (ivform)
   case(0)
      temp =     int3(e(:,OP_1),f(:,OP_DRP),g(:,OP_DR ))    &
@@ -2368,7 +2368,7 @@ end function v2chip
 vectype function v2p(e,f)
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -2383,7 +2383,7 @@ vectype function v2p(e,f)
 
   temp = 0.
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   ! same for both ivforms
   temp = -int2(e(:,OP_1),f(:,OP_DP))
 #endif
@@ -2398,7 +2398,7 @@ end function v2p
 vectype function v2psipsi(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -2410,7 +2410,7 @@ vectype function v2psipsi(e,f,g)
      return
   end if
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   ! same for both ivforms
   temp = - &
        (int4(ri2_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DZ)) &
@@ -2428,7 +2428,7 @@ end function v2psipsi
 vectype function v2psib(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -2453,7 +2453,7 @@ end function v2psib
 vectype function v2vpsipsi(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -2474,7 +2474,7 @@ vectype function v2vpsipsi(e,f,g,h)
            temp = temp - 2.*int4(ri3_79,f(:,OP_1),g(:,OP_DZ),temp79a)
         endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp = temp + &
              (int5(ri4_79,e(:,OP_1),f(:,OP_DPP),g(:,OP_DZ),h(:,OP_DZ)) &
              +int5(ri4_79,e(:,OP_1),f(:,OP_DPP),g(:,OP_DR),h(:,OP_DR)))
@@ -2490,7 +2490,7 @@ vectype function v2vpsipsi(e,f,g,h)
         temp = int3(f(:,OP_DR),g(:,OP_DZ),temp79a) &
              - int3(f(:,OP_DZ),g(:,OP_DR),temp79a)
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp79b = &
               f(:,OP_DPP)*(g(:,OP_DZ )*h(:,OP_DZ ) + g(:,OP_DR )*h(:,OP_DR )) &
           + 2.*f(:,OP_DP)*(g(:,OP_DZP)*h(:,OP_DZ ) + g(:,OP_DRP)*h(:,OP_DR )) &
@@ -2513,14 +2513,14 @@ end function v2vpsipsi
 vectype function v2vpsib(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
      if(surface_int) then
@@ -2560,14 +2560,14 @@ end function v2vpsib
 vectype function v2upsipsi(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-#ifdef USECOMPLEX  
+#if defined(USE3D) || defined(USECOMPLEX)  
   select case(ivform)
   case(0)
      if(surface_int) then
@@ -2622,7 +2622,7 @@ end function v2upsipsi
 vectype function v2upsib(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -2644,7 +2644,7 @@ vectype function v2upsib(e,f,g,h)
                 -int5(ri3_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1)))
         endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp = temp - &
              (int5(ri4_79,e(:,OP_1),f(:,OP_DZPP),g(:,OP_DZ),h(:,OP_1)) &
              +int5(ri4_79,e(:,OP_1),f(:,OP_DRPP),g(:,OP_DR),h(:,OP_1)))
@@ -2660,7 +2660,7 @@ vectype function v2upsib(e,f,g,h)
         temp = (int3(temp79a,g(:,OP_DR),h(:,OP_DZ)) &
              -  int3(temp79a,g(:,OP_DZ),h(:,OP_DR)))
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp79b = &
           2.*(f(:,OP_DZP)*g(:,OP_DZ ) + f(:,OP_DRP)*g(:,OP_DR ))*h(:,OP_DP ) &
           +  (f(:,OP_DZ )*g(:,OP_DZP) + f(:,OP_DR )*g(:,OP_DRP))*h(:,OP_DP ) &
@@ -2683,14 +2683,14 @@ end function v2upsib
 vectype function v2ubb(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
      if(surface_int) then
@@ -2729,7 +2729,7 @@ end function v2ubb
 vectype function v2upsisb2(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -2745,7 +2745,7 @@ end function v2upsisb2
 vectype function v2ubsb1(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -2760,7 +2760,7 @@ end function v2ubsb1
 ! ===========
 vectype function v2chipsipsi(e,f,g,h)
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -2768,7 +2768,7 @@ vectype function v2chipsipsi(e,f,g,h)
   vectype :: temp
 
   temp = 0.
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
      if(surface_int) then
@@ -2817,7 +2817,7 @@ end function v2chipsipsi
 vectype function v2chipsib(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -2840,7 +2840,7 @@ vectype function v2chipsib(e,f,g,h)
         temp = int3(ri_79,temp79a,temp79c) &
              + int4(ri_79,temp79b,f(:,OP_DZ),g(:,OP_DZ)) &
              + int4(ri_79,temp79b,f(:,OP_DR),g(:,OP_DR)) 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp = temp  &
              -int5(ri3_79,f(:,OP_DZPP),e(:,OP_1),g(:,OP_DR),h(:,OP_1)) &
              +int5(ri3_79,f(:,OP_DRPP),e(:,OP_1),g(:,OP_DZ),h(:,OP_1))
@@ -2869,7 +2869,7 @@ vectype function v2chipsib(e,f,g,h)
            temp = temp - &
                 2.*int4(ri4_79,temp79c,f(:,OP_DR),h(:,OP_1))
         endif
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp79d = &
          2.*(f(:,OP_DZP)*g(:,OP_DR ) - f(:,OP_DRP)*g(:,OP_DZ ))*h(:,OP_DP ) &
          +  (f(:,OP_DZ )*g(:,OP_DRP) - f(:,OP_DR )*g(:,OP_DZP))*h(:,OP_DP ) &
@@ -2891,7 +2891,7 @@ end function v2chipsib
 ! =======
 vectype function v2chibb(e,f,g,h)
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -2899,7 +2899,7 @@ vectype function v2chibb(e,f,g,h)
   vectype :: temp
 
   temp = 0.
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case (ivform)
   case(0)
      if(surface_int) then
@@ -2931,7 +2931,7 @@ end function v2chibb
 vectype function v2vchin(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -2967,7 +2967,7 @@ end function v2vchin
 vectype function v2chibsb1(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -2982,7 +2982,7 @@ end function v2chibsb1
 vectype function v2psisb2(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -3005,7 +3005,7 @@ end function v2psisb2
 vectype function v2bsb1(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -3029,7 +3029,7 @@ end function v2bsb1
 vectype function v2vs(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -3061,7 +3061,7 @@ end function v2vs
 vectype function v2psif(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -3073,7 +3073,7 @@ vectype function v2psif(e,f,g)
      return
   end if
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   ! same for both ivforms
   temp = &
        + int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZPP)) &
@@ -3093,7 +3093,7 @@ end function v2psif
 vectype function v2bf(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -3104,7 +3104,7 @@ vectype function v2bf(e,f,g)
      v2bf = 0.
      return
   endif
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   ! same for both ivforms
   temp = &
        - int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZP)) &
@@ -3121,7 +3121,7 @@ end function v2bf
 vectype function v2ff(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -3132,7 +3132,7 @@ vectype function v2ff(e,f,g)
      v2ff = 0.
      return
   endif
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   ! same for both ivforms
   temp = &
        - int3(e(:,OP_1),f(:,OP_DZPP),g(:,OP_DZP)) &
@@ -3156,7 +3156,7 @@ end function v2ff
 vectype function v3chin(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -3195,7 +3195,7 @@ end function v3chin
 vectype function v3chimu(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -3236,7 +3236,7 @@ vectype function v3chimu(e,f,g,h)
                 +2.*int5(ri6_79,g(:,OP_1),e(:,OP_1),norm79(:,2),f(:,OP_DZ)))
         endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp = temp &
              + int5(ri6_79,e(:,OP_1),g(:,OP_1),norm79(:,1),f(:,OP_DRPP)) &
              + int5(ri6_79,e(:,OP_1),g(:,OP_1),norm79(:,2),f(:,OP_DZPP))
@@ -3262,7 +3262,7 @@ vectype function v3chimu(e,f,g,h)
            temp = temp &
                 + 2.*int4(ri6_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1))
         endif
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp = temp - &
              (int4(ri6_79,e(:,OP_DZ),f(:,OP_DZPP),g(:,OP_1)) &
              +int4(ri6_79,e(:,OP_DR),f(:,OP_DRPP),g(:,OP_1)))
@@ -3280,7 +3280,7 @@ end function v3chimu
 vectype function v3umu(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -3325,7 +3325,7 @@ vectype function v3umu(e,f,g,h)
                 +int5(ri2_79,e(:,OP_1),norm79(:,2),f(:,OP_DZZ),h(:,OP_1)))
         endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp = temp &
              + int5(ri3_79,e(:,OP_1),norm79(:,2),f(:,OP_DRPP),g(:,OP_1)) &
              - int5(ri3_79,e(:,OP_1),norm79(:,1),f(:,OP_DZPP),g(:,OP_1))
@@ -3351,7 +3351,7 @@ vectype function v3umu(e,f,g,h)
            temp = temp + 4.*int4(ri2_79,e(:,OP_GS),f(:,OP_DZ),temp79d)
         endif
         
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp = temp &
              + int4(ri3_79,e(:,OP_DR),f(:,OP_DZPP),g(:,OP_1)) &
              - int4(ri3_79,e(:,OP_DZ),f(:,OP_DRPP),g(:,OP_1))
@@ -3369,7 +3369,7 @@ end function v3umu
 vectype function v3vmu(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -3377,7 +3377,7 @@ vectype function v3vmu(e,f,g,h)
   vectype :: temp
 
   temp = 0.
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
      ! not implemented
@@ -3421,7 +3421,7 @@ end function v3vmu
 vectype function v3un(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -3457,7 +3457,7 @@ end function v3un
 vectype function v3p(e,f)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -3495,7 +3495,7 @@ end function v3p
 vectype function v3up(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -3556,7 +3556,7 @@ vectype function v3vp(e,f,g)
 
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -3565,7 +3565,7 @@ vectype function v3vp(e,f,g)
   vectype :: temp
   temp = 0.
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
      if(surface_int) then
@@ -3607,7 +3607,7 @@ end function v3vp
 vectype function v3chip(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -3664,7 +3664,7 @@ end function v3chip
 vectype function v3psipsi(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -3705,14 +3705,14 @@ end function v3psipsi
 vectype function v3psib(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
      if(surface_int) then
@@ -3747,14 +3747,14 @@ end function v3psib
 vectype function v3psif(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
 
   vectype :: temp
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
      temp = int4(ri_79,e(:,OP_DZ),g(:,OP_DRP),f(:,OP_GS)) &
@@ -3785,7 +3785,7 @@ end function v3psif
 vectype function v3bb(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -3824,7 +3824,7 @@ end function v3bb
 vectype function v3bf(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -3832,7 +3832,7 @@ vectype function v3bf(e,f,g)
 
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
      if(surface_int) then
@@ -3868,7 +3868,7 @@ end function v3bf
 vectype function v3psisb1(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -3894,7 +3894,7 @@ end function v3psisb1
 vectype function v3bsb2(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -3921,7 +3921,7 @@ end function v3bsb2
 vectype function v3upsipsi(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -4011,7 +4011,7 @@ vectype function v3upsib(e,f,g,h)
 
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
@@ -4019,7 +4019,7 @@ vectype function v3upsib(e,f,g,h)
   vectype :: temp
   temp = 0.
 
-#ifdef USECOMPLEX 
+#if defined(USE3D) || defined(USECOMPLEX) 
   select case (ivform)
   case(0)
      if(surface_int) then
@@ -4083,7 +4083,7 @@ vectype function v3ubb(e,f,g,h)
 
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -4103,7 +4103,7 @@ vectype function v3ubb(e,f,g,h)
            temp = temp + 2.* &
                 int5(ri4_79,e(:,OP_GS),f(:,OP_DZ),g(:,OP_1),h(:,OP_1))
         endif
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp = temp -   &
              int5(ri5_79,f(:,OP_DRPP),e(:,OP_DZ),g(:,OP_1),h(:,OP_1)) &
              +int5(ri5_79,f(:,OP_DZPP),e(:,OP_DR),g(:,OP_1),h(:,OP_1))
@@ -4129,7 +4129,7 @@ vectype function v3ubb(e,f,g,h)
                 2.*int3(ri4_79,e(:,OP_DR),temp79a)
         endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp79b = (e(:,OP_DZ)*f(:,OP_DR)-e(:,OP_DR)*f(:,OP_DZ))*g(:,OP_DPP) &
              + 2.*(e(:,OP_DZ)*f(:,OP_DRP)-e(:,OP_DR)*f(:,OP_DZP))*g(:,OP_DP) &
              +    (e(:,OP_DZ)*f(:,OP_DRPP)-e(:,OP_DR)*f(:,OP_DZPP))*g(:,OP_1)
@@ -4154,7 +4154,7 @@ vectype function v3vpsipsi(e,f,g,h)
 !  g psi
 !  h psi
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -4162,7 +4162,7 @@ vectype function v3vpsipsi(e,f,g,h)
   vectype :: temp
 
   temp = 0.
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
 
   select case(ivform)
   case(0)
@@ -4213,7 +4213,7 @@ end function v3vpsipsi
 vectype function v3vpsib(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -4233,7 +4233,7 @@ vectype function v3vpsib(e,f,g,h)
                 int5(ri4_79,e(:,OP_GS),f(:,OP_1),g(:,OP_DZ),h(:,OP_1))
         endif
         
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp = temp    &
              +int5(ri5_79,f(:,OP_DPP),e(:,OP_DZ),g(:,OP_DR),h(:,OP_1)) &
              -int5(ri5_79,f(:,OP_DPP),e(:,OP_DZ),g(:,OP_DR),h(:,OP_1)) 
@@ -4259,7 +4259,7 @@ vectype function v3vpsib(e,f,g,h)
                 2.*int3(ri4_79,e(:,OP_DR),temp79a)
         endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp79b = f(:,OP_DPP)*(e(:,OP_DZ)*g(:,OP_DR)-e(:,OP_DR)*g(:,OP_DZ)) &
              + 2.*f(:,OP_DP)*(e(:,OP_DZ)*g(:,OP_DRP)-e(:,OP_DR)*g(:,OP_DZP)) &
              +    f(:,OP_1)*(e(:,OP_DZ)*g(:,OP_DRPP)-e(:,OP_DR)*g(:,OP_DZPP))
@@ -4278,7 +4278,7 @@ end function v3vpsib
 ! =====
 vectype function v3vbb(e,f,g,h)
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -4286,7 +4286,7 @@ vectype function v3vbb(e,f,g,h)
   vectype :: temp
 
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
 
   select case(ivform)
   case(0)
@@ -4314,7 +4314,7 @@ vectype function v3chipsipsi(e,f,g,h)
 
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -4394,7 +4394,7 @@ end function v3chipsipsi
 vectype function v3chipsib(e,f,g,h)
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -4403,7 +4403,7 @@ vectype function v3chipsib(e,f,g,h)
   vectype :: temp
   temp = 0.
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
      if(surface_int) then
@@ -4470,7 +4470,7 @@ vectype function v3chibb(e,f,g,h)
 
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -4487,7 +4487,7 @@ vectype function v3chibb(e,f,g,h)
              + int5(ri2_79,e(:,OP_GS),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1)) &
              + int5(ri2_79,e(:,OP_GS),f(:,OP_DR),g(:,OP_DR),h(:,OP_1))
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp = temp    &
              - int5(ri4_79,e(:,OP_DR),f(:,OP_DRPP),g(:,OP_1),h(:,OP_1)) &
              - int5(ri4_79,e(:,OP_DZ),f(:,OP_DZPP),g(:,OP_1),h(:,OP_1))
@@ -4524,7 +4524,7 @@ vectype function v3chibb(e,f,g,h)
                 2.*int4(ri7_79,e(:,OP_DR),temp79a,h(:,OP_1))
         endif
         
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp79b = &
              (e(:,OP_DZ)*f(:,OP_DZPP) + e(:,OP_DR)*f(:,OP_DRPP))*g(:,OP_1  ) &
         + 2.*(e(:,OP_DZ)*f(:,OP_DZP ) + e(:,OP_DR)*f(:,OP_DRP ))*g(:,OP_DP ) &
@@ -4547,7 +4547,7 @@ vectype function v3uun(e,f,g,h)
 
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -4595,14 +4595,14 @@ end function v3uun
 vectype function v3uvn(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(inertia.eq.0 .or. surface_int) then
      v3uvn = 0.
      return
@@ -4630,7 +4630,7 @@ end function v3uvn
 vectype function v3vvn(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -4663,7 +4663,7 @@ end function v3vvn
 vectype function v3uchin(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -4711,14 +4711,14 @@ end function v3uchin
 vectype function v3vchin(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(inertia.eq.0 .or. surface_int) then
      v3vchin = 0.
      return
@@ -4747,7 +4747,7 @@ vectype function v3chichin(e,f,g,h)
 
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -4791,7 +4791,7 @@ end function v3chichin
 vectype function v3ngrav(e,f)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -4820,7 +4820,7 @@ end function v3ngrav
 vectype function v3ungrav(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -4851,7 +4851,7 @@ vectype function v3ungrav(e,f,g)
 vectype function v3chingrav(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -4883,7 +4883,7 @@ end function v3chingrav
 vectype function v3ndenmgrav(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -4913,7 +4913,7 @@ end function v3ndenmgrav
 vectype function v3us(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -4945,7 +4945,7 @@ end function v3us
 vectype function v3chis(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -4993,7 +4993,7 @@ end function v3chis
 vectype function b1psi(e,f)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -5039,7 +5039,7 @@ end function b1psi
 vectype function b1psiu(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -5104,14 +5104,14 @@ end function b1psiu
 vectype function b1psiv(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
     temp = 0.
   else
@@ -5157,7 +5157,7 @@ end function b1psiv
 ! ======
 vectype function b1psid(e,f,g)
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
@@ -5183,14 +5183,14 @@ end function b1psid
 vectype function b1bu(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      temp = 0.
   else
@@ -5236,7 +5236,7 @@ end function b1bu
 vectype function b1bv(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -5251,7 +5251,7 @@ end function b1bv
 vectype function b1psichi(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
@@ -5330,12 +5330,12 @@ end function b1psichi
 vectype function b1bchi(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      temp = 0.
   else
@@ -5382,7 +5382,7 @@ end function b1bchi
 vectype function b1psieta(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -5410,7 +5410,7 @@ vectype function b1psieta(e,f,g,h)
                  temp = temp - 2.*int4(ri_79,e(:,OP_DR),f(:,OP_GS),h(:,OP_1))
               endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
               temp = temp &
                    - 2.*int4(ri2_79,e(:,OP_1),f(:,OP_GSPP),h(:,OP_1)) &
                    - int4(ri2_79,e(:,OP_DZ),f(:,OP_DZPP),h(:,OP_1)) &
@@ -5433,7 +5433,7 @@ vectype function b1psieta(e,f,g,h)
                 - int5(ri2_79,g(:,OP_1),f(:,OP_GS),norm79(:,2),e(:,OP_DZ))
         endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         if(inocurrent_norm.eq.1) then
            temp = temp
         else
@@ -5445,7 +5445,7 @@ vectype function b1psieta(e,f,g,h)
      else
         temp = int4(ri2_79,g(:,OP_1),e(:,OP_GS),f(:,OP_GS))
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp = temp - &
              (int4(ri4_79,e(:,OP_DZ),f(:,OP_DZPP),g(:,OP_1)) &
              +int4(ri4_79,e(:,OP_DR),f(:,OP_DRPP),g(:,OP_1)))
@@ -5463,14 +5463,14 @@ end function b1psieta
 vectype function b1beta(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      temp = 0.
   else 
@@ -5505,7 +5505,7 @@ end function b1beta
 vectype function b1psipsid(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -5517,7 +5517,7 @@ vectype function b1psipsid(e,f,g,h)
      return
   end if
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      if(surface_int) then
         temp = 0.
@@ -5577,7 +5577,7 @@ end function b1psipsid
 vectype function b1psibd(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -5619,7 +5619,7 @@ vectype function b1psibd(e,f,g,h)
                 - int5(ri4_79,e(:,OP_1),temp79a,norm79(:,1),h(:,OP_1))
         endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp79c = e(:,OP_1)*h(:,OP_DP)
         temp = temp &
              + int5(ri5_79,temp79b,norm79(:,2),f(:,OP_DRPP),g(:,OP_1 )) &
@@ -5633,7 +5633,7 @@ vectype function b1psibd(e,f,g,h)
         temp = int5(ri3_79,e(:,OP_GS),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1)) &
              - int5(ri3_79,e(:,OP_GS),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1))
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
         temp = temp &
              + int5(ri5_79,e(:,OP_DR),f(:,OP_DZPP),g(:,OP_1 ),h(:,OP_1 )) &
              - int5(ri5_79,e(:,OP_DZ),f(:,OP_DRPP),g(:,OP_1 ),h(:,OP_1 )) &
@@ -5656,7 +5656,7 @@ end function b1psibd
 vectype function b1psifd(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -5668,7 +5668,7 @@ vectype function b1psifd(e,f,g,h)
      return
   end if
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      if(surface_int) then
         temp = 0.
@@ -5732,7 +5732,7 @@ end function b1psifd
 vectype function b1bbd(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -5744,7 +5744,7 @@ vectype function b1bbd(e,f,g,h)
      return
   end if
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      if(surface_int) then
         temp = 0.
@@ -5783,7 +5783,7 @@ end function b1bbd
 vectype function b1bfd(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -5795,7 +5795,7 @@ vectype function b1bfd(e,f,g,h)
      return
   end if
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      if(surface_int) then
         temp = 0.
@@ -5838,10 +5838,12 @@ vectype function b1bfd(e,f,g,h)
              + int5(ri4_79,e(:,OP_DZ),g(:,OP_DZPP),f(:,OP_1 ),h(:,OP_DP))  &
              + int5(ri4_79,e(:,OP_DR),g(:,OP_DRPP),f(:,OP_1 ),h(:,OP_DP))
 
+#ifdef USECOMPLEX
         ! f''' term hack
         temp = temp + rfac* &
              (int5(ri4_79,e(:,OP_DZ),g(:,OP_DZPP),f(:,OP_1),h(:,OP_1))  &
              +int5(ri4_79,e(:,OP_DR),g(:,OP_DRPP),f(:,OP_1),h(:,OP_1)))
+#endif
      endif
   endif
   b1bfd = temp
@@ -5857,7 +5859,7 @@ end function b1bfd
 vectype function b1ped(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
@@ -5868,7 +5870,7 @@ vectype function b1ped(e,f,g)
      return
   end if
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      if(surface_int) then
         temp = 0.
@@ -5905,14 +5907,14 @@ end function b1ped
 vectype function b1feta(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
 
   if(jadv.eq.0) then
      temp = 0.
@@ -5932,14 +5934,14 @@ end function b1feta
 ! ====
 vectype function b1fu(e,f,g)
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
 
   select case(ivform)
   case(0)
@@ -6008,14 +6010,14 @@ end function b1fu
 ! ====
 vectype function b1fv(e,f,g)
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
 
   select case(ivform)
   case(0)
@@ -6055,14 +6057,14 @@ end function b1fv
 ! ======
 vectype function b1fchi(e,f,g)
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
 
   select case(ivform)
   case(0)
@@ -6128,14 +6130,14 @@ end function b1fchi
 vectype function b1e(e,f)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.1) then
      temp = 0.
   else
@@ -6163,7 +6165,7 @@ end function b1e
 vectype function b2b(e,f)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -6186,14 +6188,14 @@ end function b2b
 vectype function b2psieta(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      if(inocurrent_pol.eq.1) then
         temp = 0.
@@ -6237,7 +6239,7 @@ end function b2psieta
 ! ========
 vectype function b2psimue(e,f,g)
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -6264,7 +6266,7 @@ end function b2psimue
 vectype function b2beta(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -6307,7 +6309,7 @@ vectype function b2beta(e,f,g,h)
                    + 4.*int4(ri3_79,temp79b,f(:,OP_DZ),h(:,OP_1))
            endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
            temp = temp &
                 + int4(ri4_79,e(:,OP_DZ),f(:,OP_DZPP),h(:,OP_1)) &
                 + int4(ri4_79,e(:,OP_DR),f(:,OP_DRPP),h(:,OP_1))
@@ -6326,14 +6328,14 @@ end function b2beta
 ! ======
 vectype function b2feta(e,f,g,h)
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      if(inocurrent_pol.eq.1) then
         temp = 0.
@@ -6381,7 +6383,7 @@ end function b2feta
 vectype function b2bu(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -6422,7 +6424,7 @@ end function b2bu
 vectype function b2bchi(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
 
@@ -6461,7 +6463,7 @@ end function b2bchi
 ! ====
 vectype function b2bd(e,f,g)
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
@@ -6490,7 +6492,7 @@ end function b2bd
 vectype function b2psiv(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -6530,14 +6532,14 @@ end function b2psiv
 vectype function b2fv(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
      if(surface_int) then
@@ -6579,7 +6581,7 @@ end function b2fv
 vectype function b2psipsid(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -6614,7 +6616,7 @@ end function b2psipsid
 vectype function b2psibd(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -6626,7 +6628,7 @@ vectype function b2psibd(e,f,g,h)
      return
   end if
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      if(inocurrent_norm.eq.1) then
         temp = 0.
@@ -6654,7 +6656,7 @@ end function b2psibd
 vectype function b2bbd(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -6690,7 +6692,7 @@ end function b2bbd
 vectype function b2ped(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
@@ -6718,7 +6720,7 @@ end function b2ped
 vectype function b2psifd(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
@@ -6728,7 +6730,7 @@ vectype function b2psifd(e,f,g,h)
      return
   end if
   
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      if(inocurrent_tor.eq.1) then
         temp = 0.
@@ -6755,7 +6757,7 @@ end function b2psifd
 vectype function b2bfd(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
@@ -6765,7 +6767,7 @@ vectype function b2bfd(e,f,g,h)
      return
   end if
   
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      if(inocurrent_norm.eq.1) then
         temp = 0.
@@ -6797,7 +6799,7 @@ end function b2bfd
 vectype function b3pe(e,f)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -6820,7 +6822,7 @@ end function b3pe
 vectype function b3psipsieta(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -6847,7 +6849,7 @@ end function b3psipsieta
 vectype function b3bbeta(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -6874,7 +6876,7 @@ end function b3bbeta
 vectype function b3pepsid(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -6886,7 +6888,7 @@ vectype function b3pepsid(e,f,g,h)
      return
   end if
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   temp = int5(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1)) &
        + int5(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DRP),h(:,OP_1)) &
        - int5(ri2_79,e(:,OP_1),f(:,OP_DP),g(:,OP_GS),h(:,OP_1)) &
@@ -6909,7 +6911,7 @@ end function b3pepsid
 vectype function b3pebd(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -6938,7 +6940,7 @@ end function b3pebd
 vectype function b3pefd(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -6950,7 +6952,7 @@ vectype function b3pefd(e,f,g,h)
      return
   end if
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   temp = int5(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DRPP),h(:,OP_1)) &
         -int5(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZPP),h(:,OP_1)) &
        + gam* &
@@ -6972,7 +6974,7 @@ end function b3pefd
 vectype function b3pedkappa(e,f,g,h,i)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -6996,7 +6998,7 @@ vectype function b3pedkappa(e,f,g,h,i)
           - int4(e(:,OP_DZ),f(:,OP_1 ),g(:,OP_DZ),h(:,OP_1)) &
           - int4(e(:,OP_DR),f(:,OP_1 ),g(:,OP_DR),h(:,OP_1))
   
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
      temp = temp +                       &
           int5(ri2_79,e(:,OP_1),f(:,OP_DPP),g(:,OP_1),h(:,OP_1))
 #endif
@@ -7031,7 +7033,7 @@ end function b3pedkappa
 vectype function n1n(e,f)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7054,7 +7056,7 @@ end function n1n
 vectype function n1ndenm(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7067,7 +7069,7 @@ vectype function n1ndenm(e,f,g,h)
   else
      temp = g*int2(e(:,OP_1),f(:,OP_LP))
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
      temp = temp + g*int3(ri2_79,e(:,OP_1),f(:,OP_DPP))
 #endif
 
@@ -7091,7 +7093,7 @@ end function n1ndenm
 vectype function n1nu(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7131,14 +7133,14 @@ end function n1nu
 vectype function n1nv(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
      if(surface_int) then
@@ -7169,7 +7171,7 @@ end function n1nv
 vectype function n1nchi(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7209,7 +7211,7 @@ end function n1nchi
 vectype function n1s(e,f)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7237,7 +7239,7 @@ end function n1s
 vectype function p1pu(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7281,7 +7283,7 @@ end function p1pu
 vectype function p1pv(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7289,7 +7291,7 @@ vectype function p1pv(e,f,g)
 
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
      if(surface_int) then
@@ -7321,7 +7323,7 @@ end function p1pv
 vectype function p1pchi(e,f,g)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7367,7 +7369,7 @@ end function p1pchi
 vectype function p1psipsikappar(e,f,g,h,i,j,k)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7406,7 +7408,7 @@ end function p1psipsikappar
 vectype function p1psibkappar(e,f,g,h,i,j,k)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7418,7 +7420,7 @@ vectype function p1psibkappar(e,f,g,h,i,j,k)
      return
   end if
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      temp79a = -ri3_79*k(:,OP_1)*j(:,OP_1)*e(:,OP_1)*g(:,OP_1)* &
           (norm79(:,1)*f(:,OP_DZ) - norm79(:,2)*f(:,OP_DR))
@@ -7462,7 +7464,7 @@ end function p1psibkappar
 vectype function p1bbkappar(e,f,g,h,i,j,k)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7474,7 +7476,7 @@ vectype function p1bbkappar(e,f,g,h,i,j,k)
      return
   end if
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      temp = 0.
   else
@@ -7506,7 +7508,7 @@ end function p1bbkappar
 vectype function p1psifkappar(e,f,g,h,i,j,k)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7518,7 +7520,7 @@ vectype function p1psifkappar(e,f,g,h,i,j,k)
      return
   end if
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      temp79a = k(:,OP_1)*ri_79*e(:,OP_1)* &
           (norm79(:,2)*f(:,OP_DR) - norm79(:,1)*f(:,OP_DZ))*j(:,OP_1)
@@ -7562,7 +7564,7 @@ end function p1psifkappar
 vectype function p1bfkappar(e,f,g,h,i,j,k)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7574,7 +7576,7 @@ vectype function p1bfkappar(e,f,g,h,i,j,k)
      return
   end if
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      temp79a = -ri2_79*k(:,OP_1)*j(:,OP_1)*e(:,OP_1)*f(:,OP_1)* &
           (norm79(:,1)*g(:,OP_DRP) + norm79(:,2)*g(:,OP_DZP))
@@ -7618,7 +7620,7 @@ end function p1bfkappar
 vectype function p1kappax(e,f,g,h,i)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7653,7 +7655,7 @@ end function p1kappax
 vectype function p1uus(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7689,7 +7691,7 @@ end function p1uus
 vectype function p1vvs(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7723,7 +7725,7 @@ end function p1vvs
 vectype function p1chichis(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7760,7 +7762,7 @@ end function p1chichis
 vectype function p1uchis(e,f,g,h)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7793,7 +7795,7 @@ end function p1uchis
 subroutine PVS1(i,o)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7824,7 +7826,7 @@ subroutine PVS1(i,o)
              (i(:,OP_DZ)*pst79(:,OP_DR) - i(:,OP_DR)*pst79(:,OP_DZ))
      endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
      o = o + bzt79(:,OP_1)* &
           (pst79(:,OP_DZ)*i(:,OP_DZP) + pst79(:,OP_DR)*i(:,OP_DRP))
 #endif
@@ -7844,7 +7846,7 @@ end subroutine PVS1
 subroutine PVS2(i,o)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7866,13 +7868,13 @@ subroutine PVS2(i,o)
      o = r_79*bzt79(:,OP_1)* &
           (i(:,OP_DZ)*pst79(:,OP_DR) - i(:,OP_DR)*pst79(:,OP_DZ))
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
      o = o + bzt79(:,OP_1)**2 * i(:,OP_DP)
 #endif
 
      o = o * ri2_79*b2i79(:,OP_1)
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
      o = o - i(:,OP_DP)/3.
 #endif
   end select
@@ -7884,7 +7886,7 @@ end subroutine PVS2
 subroutine PVS3(i,o)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7914,7 +7916,7 @@ subroutine PVS3(i,o)
         
      endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
      o = o + ri3_79*bzt79(:,OP_1) * &
           (i(:,OP_DZP)*pst79(:,OP_DR) - i(:,OP_DRP)*pst79(:,OP_DZ))
 #endif
@@ -7933,7 +7935,7 @@ end subroutine PVS3
 ! ====
 subroutine PVV1(e,o)
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -7984,7 +7986,7 @@ subroutine PVV1(e,o)
            o = o + 2.*e(:,OP_DZ)
         endif
         
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
 !!$     o = o - 3.*ri2_79* &
 !!$          ((b2i79(:,OP_DP)*bzt79(:,OP_1) + b2i79(:,OP_1)*bzt79(:,OP_DP))* &
 !!$          (e(:,OP_DZ)*pst79(:,OP_DZ ) + e(:,OP_DR)*pst79(:,OP_DR )) &
@@ -8002,7 +8004,7 @@ end subroutine  PVV1
 ! ====
 subroutine PVV2(e,o)
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -8019,7 +8021,7 @@ subroutine PVV2(e,o)
         o = 3.*ri_79*b2i79(:,OP_1)*bzt79(:,OP_1)* &
              (e(:,OP_DZ)*pst79(:,OP_DR) - e(:,OP_DR)*pst79(:,OP_DZ))
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
 !!$     o = o + 3.*ri2_79*bzt79(:,OP_1)*e(:,OP_1)* &
 !!$          (b2i79(:,OP_1)*bzt79(:,OP_DP) + 2.*b2i79(:,OP_1)*bzt79(:,OP_DP))
 !!$
@@ -8036,7 +8038,7 @@ end subroutine  PVV2
 ! ====
 subroutine PVV3(e,o)
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -8077,7 +8079,7 @@ subroutine PVV3(e,o)
         
         o = -3.*ri4_79*b2i79(:,OP_1)*o + ri2_79*e(:,OP_GS)
         
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
 !!$     o = o - 3.*ri5_79* &
 !!$          ((b2i79(:,OP_DP)*bzt79(:,OP_1) + b2i79(:,OP_1)*bzt79(:,OP_DP))* &
 !!$          (e(:,OP_DZ)*pst79(:,OP_DR ) - e(:,OP_DR )*pst79(:,OP_DZ )) &
@@ -8098,7 +8100,7 @@ end subroutine  PVV3
 vectype function P1vip(e)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -8134,7 +8136,7 @@ end function P1vip
 vectype function g1u(e,f)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -8192,7 +8194,7 @@ vectype function g1u(e,f)
              *bzt79(:,OP_1)*(temp79b*f(:,OP_DZ) - e(:,OP_DZ)*temp79c)
      end if
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
      temp79a = temp79a &
           + (1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
           * (temp79b*(pst79(:,OP_DZ)*f(:,OP_DZP)-pst79(:,OP_DR)*f(:,OP_DRP)) &
@@ -8245,7 +8247,7 @@ end function g1u
 vectype function g1v(e,f)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -8304,7 +8306,7 @@ vectype function g1v(e,f)
      temp79c = e(:,OP_DRZ)
      if(itor.eq.1) temp79c = temp79c + ri_79*e(:,OP_DZ)
      temp79d = r_79*(f(:,OP_DZ)*pst79(:,OP_DR) - f(:,OP_DR)*pst79(:,OP_DZ))
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
      temp79d = temp79d + 2.*bzt79(:,OP_1)*f(:,OP_DP)
 #endif
 
@@ -8324,7 +8326,7 @@ vectype function g1v(e,f)
              *pst79(:,OP_DR)*f(:,OP_DR))
      endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
      temp79a = temp79a + 2.* &
           ((1.-3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
           *bzt79(:,OP_1)*(e(:,OP_DZ)*f(:,OP_DZP) + e(:,OP_DR)*f(:,OP_DRP)) &
@@ -8344,7 +8346,7 @@ end function g1v
 vectype function g1chi(e,f)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -8403,7 +8405,7 @@ vectype function g1chi(e,f)
           + 6.*ri4_79*b2i79(:,OP_1)*bzt79(:,OP_1)*temp79b* &
           (pst79(:,OP_DR)**2*temp79d - pst79(:,OP_DZ)**2*temp79e)
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
      temp79a = temp79a &
           + ri3_79*(1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) * &
           (2.*(pst79(:,OP_DZ)*f(:,OP_DZP)*e(:,OP_DRZ) &
@@ -8457,7 +8459,7 @@ end function g1chi
 vectype function g2u(e,f)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -8522,7 +8524,7 @@ vectype function g2u(e,f)
           -(bzt79(:,OP_1)**2 - pst79(:,OP_DR)**2) &
           *e(:,OP_DZ)*pst79(:,OP_DZ)*f(:,OP_DRZ))
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
      temp79a = temp79a &
           - 2.*(1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
           *bzt79(:,OP_1)*(e(:,OP_DZ)*f(:,OP_DZP) + e(:,OP_DR)*f(:,OP_DRP))
@@ -8553,7 +8555,7 @@ end function g2u
 vectype function g2v(e,f)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -8581,7 +8583,7 @@ vectype function g2v(e,f)
      temp79a = 2.*r_79*(1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
           *bzt79(:,OP_1)*(e(:,OP_DZ)*f(:,OP_DR)-e(:,OP_DR)*f(:,OP_DZ))
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
      temp79a = temp79a &
           - 2.*(1. + 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
           *(e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR)) &
@@ -8604,7 +8606,7 @@ end function g2v
 vectype function g2chi(e,f)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
 
@@ -8661,7 +8663,7 @@ vectype function g2chi(e,f)
           +(bzt79(:,OP_1)**2 - pst79(:,OP_DR)**2) &
           *e(:,OP_DZ)*pst79(:,OP_DZ)*temp79b)
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
      temp79a = temp79a &
           + 2.*ri3_79*(1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
           *bzt79(:,OP_1)*(e(:,OP_DZ)*f(:,OP_DRP) - e(:,OP_DR)*f(:,OP_DZP))
@@ -8691,7 +8693,7 @@ end function g2chi
 vectype function g3u(e,f)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -8756,7 +8758,7 @@ vectype function g3u(e,f)
              +2.*pst79(:,OP_DZ)*pst79(:,OP_DR)*(f(:,OP_DRZ) + temp79e))
      endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
      temp79a = temp79a + 3.*ri3_79*b2i79(:,OP_1)* &
           (pst79(:,OP_DZ)*f(:,OP_DZP) + pst79(:,OP_DR)*f(:,OP_DRP)) * &
           ((pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*temp79c &
@@ -8812,7 +8814,7 @@ end function g3u
 vectype function g3v(e,f)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -8858,7 +8860,7 @@ vectype function g3v(e,f)
      temp79c = e(:,OP_DRR)
      if(itor.eq.1) temp79c = temp79c - 2.*ri_79*e(:,OP_DR)
      temp79d = ri2_79*(f(:,OP_DZ)*pst79(:,OP_DR) - f(:,OP_DR)*pst79(:,OP_DZ))
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
      temp79d = temp79d + 2.*ri3_79*bzt79(:,OP_1)*f(:,OP_DP)
 #endif
 
@@ -8879,7 +8881,7 @@ vectype function g3v(e,f)
              (pst79(:,OP_DZ)*f(:,OP_DZ) + pst79(:,OP_DR)*f(:,OP_DR))
      endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
      temp79a = temp79a - ri_79* &
           ((1.-3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
           *bzt79(:,OP_1)*(e(:,OP_DZ)*f(:,OP_DRP) - e(:,OP_DR)*f(:,OP_DZP)) &
@@ -8899,7 +8901,7 @@ end function g3v
 vectype function g3chi(e,f)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -8963,7 +8965,7 @@ vectype function g3chi(e,f)
              -(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*temp79e)
      endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
      temp79a = temp79a &
           + ri4_79*(1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)* &
           (pst79(:,OP_DR)*f(:,OP_DRP)*e(:,OP_DZZ) &
@@ -9029,7 +9031,7 @@ end function g3chi
 vectype function qpsipsieta(e)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9076,7 +9078,7 @@ end function qpsipsieta
 vectype function qbbeta(e)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9135,7 +9137,7 @@ end function qbbeta
 vectype function quumu(e,f,g,h,i)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9183,7 +9185,7 @@ end function quumu
 vectype function quchimu(e,f,g,h,i,j)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9199,7 +9201,7 @@ end function quchimu
 vectype function qvvmu(e,f,g,h,i)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9253,7 +9255,7 @@ end function qvvmu
 vectype function qchichimu(e,f,g,h,i)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9310,7 +9312,7 @@ end function qchichimu
 real function energy_mp()
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9354,7 +9356,7 @@ end function energy_mp
 real function energy_mt()
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9376,7 +9378,7 @@ end function energy_mt
 real function energy_p()
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9403,7 +9405,7 @@ end function energy_p
 real function energy_kp()
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9443,7 +9445,7 @@ end function energy_kp
 real function energy_kt()
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9475,7 +9477,7 @@ end function energy_kt
 real function energy_k3()
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9531,7 +9533,7 @@ end function energy_k3
 real function energy_mpd()
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9558,7 +9560,7 @@ end function energy_mpd
 real function energy_mtd()
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9584,7 +9586,7 @@ end function energy_mtd
 real function energy_kpd()
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9611,7 +9613,7 @@ end function energy_kpd
 real function energy_ktd()
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9649,7 +9651,7 @@ end function energy_ktd
 real function energy_k3d()
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9671,7 +9673,7 @@ end function energy_k3d
 real function energy_kph()
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9691,7 +9693,7 @@ end function energy_kph
 real function energy_kth()
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9713,7 +9715,7 @@ end function energy_kth
 real function energy_k3h()
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9739,7 +9741,7 @@ end function energy_k3h
 real function flux_pressure()
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9784,7 +9786,7 @@ end function flux_pressure
 real function flux_ke()
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9828,7 +9830,7 @@ real function flux_poynting()
 
   use math
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
   vectype :: temp
@@ -9847,7 +9849,7 @@ end function flux_poynting
 real function flux_heat()
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9883,7 +9885,7 @@ end function flux_heat
 real function grav_pot()
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9914,7 +9916,7 @@ end function grav_pot
 ! torque_em
 ! ~~~~~~~~~
 vectype function torque_em()
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9930,7 +9932,7 @@ end function torque_em
 ! ~~~~~~~~~~
 vectype function torque_sol()
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9952,7 +9954,7 @@ end function torque_sol
 ! ~~~~~~~~~~
 vectype function torque_com()
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -9982,7 +9984,7 @@ end function torque_com
 ! ~~~~~~~~~~~
 vectype function torque_visc()
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -10005,7 +10007,7 @@ end function torque_visc
 ! ~~~~~~~~~~~~~~
 vectype function torque_parvisc()
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -10042,7 +10044,7 @@ end function torque_parvisc
 vectype function torque_gyro()
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 
@@ -10127,7 +10129,7 @@ end function torque_gyro
 ! ~~~~~~~~~~~
 vectype function torque_denm()
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
 
   implicit none
 

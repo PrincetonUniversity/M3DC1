@@ -10,8 +10,10 @@ INCLUDE = -I$(NTCCHOME)/mod -I$(LIBDIR) \
 H5_VERSION = 166
 
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(INCLUDE) $(OPTS) \
-	-DH5_VERSION=$(H5_VERSION) -DRANDOM_NUM='rand()'
-#	-g -check all -check noarg_temp_created
+	-DH5_VERSION=$(H5_VERSION) -DRANDOM_NUM='rand()' # \
+#	-g -check all -check noarg_temp_created 
+#	-Dglobalentdofs=entdofs -Dglobalinsertval=insertval
+
 F90OPTS = $(FOPTS)
 F77OPTS = $(FOPTS)
 CCOPTS = -c $(INCLUDE)
@@ -44,26 +46,7 @@ ifeq ($(USESCOREC), 1)
 
 SCOREC_ARCH = ia64_linux
 
-# For old libraries =============================
-#ifndef SCORECDIR
-#  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Viz/022310
-#endif
-#SCORECINCLUDE = -I/p/tsc/m3dc1/lib/SCORECLib/include/Viz/022310
-#FOPTS := $(FOPTS) -Dglobalentdofs=entdofs -Dglobalinsertval=insertval
-#SCOREC_LIBS = \
-#	-L$(SCORECDIR) \
-#	-Wl,-rpath,$(SCORECDIR) \
-#	-lFMDB-mpich2$(SCORECOPT) \
-#	-lSCORECModel-mpich2$(SCORECOPT) \
-#	-lSCORECUtil-mpich2$(SCORECOPT) \
-#	-lField-mpich2$(SCORECOPT) \
-#	-lCore-mpich2$(SCORECOPT) \
-#	-lmeshAdapt-mpich2$(SCORECOPT) \
-#	-ltemplateRefine-mpich2$(SCORECOPT) \
-#	-lmeshTools-mpich2$(SCORECOPT) \
-#	-lSolver-mpich2$(SCORECOPT) \
-#	-lPPPL-mpich2$(SCORECOPT)
-# ===============================================
+ifeq ($(USE3D), 1)
 
 # For new libraries =============================
 ifndef SCORECDIR
@@ -107,10 +90,34 @@ SCOREC_LIBS = \
 	-lipcomman-mpich2$(SCORECOPT)
 # ===============================================
 
+else  # on 3D
+
+# For old libraries =============================
+ifndef SCORECDIR
+  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Viz/022310
+endif
+SCORECINCLUDE = -I/p/tsc/m3dc1/lib/SCORECLib/include/Viz/022310
+SCOREC_LIBS = \
+	-L$(SCORECDIR) \
+	-Wl,-rpath,$(SCORECDIR) \
+	-lFMDB-mpich2$(SCORECOPT) \
+	-lSCORECModel-mpich2$(SCORECOPT) \
+	-lSCORECUtil-mpich2$(SCORECOPT) \
+	-lField-mpich2$(SCORECOPT) \
+	-lCore-mpich2$(SCORECOPT) \
+	-lmeshAdapt-mpich2$(SCORECOPT) \
+	-ltemplateRefine-mpich2$(SCORECOPT) \
+	-lmeshTools-mpich2$(SCORECOPT) \
+	-lSolver-mpich2$(SCORECOPT) \
+	-lPPPL-mpich2$(SCORECOPT)
+# ===============================================
+
+endif  # on 3D
+
 INCLUDE := $(SCORECINCLUDE) $(INCLUDE)
 LIBS := $(SCOREC_LIBS) $(AUTOPACK_LIBS) $(LIBS)
 
-endif
+endif  # on USESCOREC
 
 
 %.o : %.c

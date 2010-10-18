@@ -133,6 +133,9 @@ contains
 #ifdef USECOMPLEX
        call get_node_data(bf_field(1), i, f_data)
        bn(i) = bn(i) - rfac*(normal(1)*f_data(2) + normal(2)*f_data(3))
+#elif defined(USE3D)
+       call get_node_data(bf_field(1), i, f_data)
+       bn(i) = bn(i) - (normal(1)*f_data(8) + normal(2)*f_data(9))
 #endif
     end do
 
@@ -154,6 +157,8 @@ contains
 
   end subroutine write_boundary_bn
 
+
+
 ! hdf5_write_parameters
 ! =====================
 subroutine hdf5_write_parameters(error)
@@ -168,6 +173,13 @@ subroutine hdf5_write_parameters(error)
   integer(HID_T) :: root_id
 
   call h5gopen_f(file_id, "/", root_id, error)
+
+#ifdef USE3D
+  call write_int_attr (root_id, "3d"         , 1,          error)
+#else
+  call write_int_attr (root_id, "3d"         , 0,          error)
+#endif
+  call write_int_attr (root_id, "nplanes"    , nplanes,    error)
 
   call write_int_attr (root_id, "version"    , version,    error)
   call write_int_attr (root_id, "numvar"     , numvar,     error)
@@ -246,7 +258,7 @@ subroutine hdf5_write_scalars(error)
 
   call h5gopen_f(file_id, "/", root_id, error)
 
-  if(ntime.eq.0) then
+  if((ntime.eq.0 .and. irestart.eq.0) .or. iadapt.gt.0) then
      call h5gcreate_f(root_id, "scalars", scalar_group_id, error)
   else
      call h5gopen_f(root_id, "scalars", scalar_group_id, error)
@@ -348,7 +360,7 @@ subroutine hdf5_write_timings(error)
 
   call h5gopen_f(file_id, "/", root_id, error)
 
-  if(ntime.eq.0) then
+  if((ntime.eq.0 .and. irestart.eq.0) .or. iadapt.gt.0) then
      call h5gcreate_f(root_id, "timings", timing_group_id, error)
 
      ! for grad-shafranov equilibrium, output gs times
@@ -410,6 +422,8 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   offset = offset - nelms
 !  print *, "Offset of ", myrank, " = ", offset
 !  call numglobalents(global_nodes, gobal_edges, global_elms, global_regions)
+!  print *, 'myrank, local_elms, global_elms, offset', &
+!       myrank, nelms, global_elms, offset
   call mpi_allreduce(nelms, global_elms, 1, MPI_INTEGER, &
        MPI_SUM, MPI_COMM_WORLD, error)
 
@@ -429,7 +443,7 @@ subroutine hdf5_write_time_slice(equilibrium, error)
      endif
   endif
 
-  if(myrank.eq.0 .and. iprint.eq.1) &
+  if(myrank.eq.0 .and. iprint.ge.1) &
        print *, ' Writing time slice ', time_group_name
 
   ! create the group
@@ -441,11 +455,11 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   call write_int_attr(time_group_id, "nspace", 2, error)
 
   ! Output the mesh data
-  if(myrank.eq.0 .and. iprint.eq.1) print *, 'Writing mesh '
+  if(myrank.eq.0 .and. iprint.ge.2) print *, '  Writing mesh '
   call output_mesh(time_group_id, nelms, error)
 
   ! Output the field data 
-  if(myrank.eq.0 .and. iprint.eq.1) print *, 'Writing fields '
+  if(myrank.eq.0 .and. iprint.ge.2) print *, '  Writing fields '
   call output_fields(time_group_id, equilibrium, error)
 
 
@@ -480,7 +494,12 @@ subroutine output_mesh(time_group_id, nelms, error)
   type(element_data) :: d
   integer(HID_T) :: mesh_group_id
   integer :: i
-  real, dimension(7,nelms) :: elm_data
+#ifdef USE3D
+  integer, parameter :: vals_per_elm = 9
+#else
+  integer, parameter :: vals_per_elm = 7
+#endif
+  real, dimension(vals_per_elm,nelms) :: elm_data
   integer, dimension(nodes_per_element) :: nodeids
   real :: alx, alz
 
@@ -497,6 +516,11 @@ subroutine output_mesh(time_group_id, nelms, error)
   call get_bounding_box_size(alx, alz)
   call write_real_attr(mesh_group_id, "width", alx, error)
   call write_real_attr(mesh_group_id, "height", alz, error)
+#ifdef USE3D
+  call write_int_attr(mesh_group_id, "3D", 1, error)
+#else
+  call write_int_attr(mesh_group_id, "3D", 0, error)
+#endif
 
   ! Output the mesh data
   do i=1, nelms
@@ -518,11 +542,16 @@ subroutine output_mesh(time_group_id, nelms, error)
      elm_data(2,i) = d%b
      elm_data(3,i) = d%c
      elm_data(4,i) = atan2(d%sn,d%co)
-     elm_data(5,i) = d%x
-     elm_data(6,i) = d%z
+     elm_data(5,i) = d%R
+     elm_data(6,i) = d%Z
      elm_data(7,i) = bound
+#ifdef USE3D
+     elm_data(8,i) = d%d
+     elm_data(9,i) = d%Phi
+#endif
   end do
-  call output_field(mesh_group_id, "elements", elm_data, 7, nelms, error)
+  call output_field(mesh_group_id, "elements", elm_data, vals_per_elm, &
+       nelms, error)
 
   ! Close the group
   call h5gclose_f(mesh_group_id, error)
@@ -553,22 +582,24 @@ subroutine output_fields(time_group_id, equilibrium, error)
   nfields = 0
   nelms = local_elements()
   
-  allocate(dum(20,nelms))
+  allocate(dum(coeffs_per_element,nelms))
 
   ! Create the fields group
   call h5gcreate_f(time_group_id, "fields", group_id, error)
 
   ! Output the fields
   ! ~~~~~~~~~~~~~~~~~
-  
+
   ! psi
   do i=1, nelms
      call calcavector(i, psi_field(ilin), dum(:,i))
   end do
-  call output_field(group_id, "psi", real(dum), 20, nelms, error)
+  call output_field(group_id, "psi", real(dum), coeffs_per_element, &
+       nelms, error)
   nfields = nfields + 1
 #ifdef USECOMPLEX
-     call output_field(group_id,"psi_i",aimag(dum),20,nelms,error)
+     call output_field(group_id,"psi_i",aimag(dum),coeffs_per_element, &
+          nelms,error)
      nfields = nfields + 1
 #endif
 
@@ -576,10 +607,12 @@ subroutine output_fields(time_group_id, equilibrium, error)
   do i=1, nelms
      call calcavector(i, u_field(ilin), dum(:,i))
   end do
-  call output_field(group_id, "phi", real(dum), 20, nelms, error)
+  call output_field(group_id, "phi", real(dum), coeffs_per_element, &
+       nelms, error)
   nfields = nfields + 1
 #ifdef USECOMPLEX
-  call output_field(group_id,"phi_i",aimag(dum),20,nelms,error)
+  call output_field(group_id,"phi_i",aimag(dum),coeffs_per_element, &
+       nelms,error)
   nfields = nfields + 1
 #endif
 
@@ -587,48 +620,54 @@ subroutine output_fields(time_group_id, equilibrium, error)
   do i=1, nelms
      call calcavector(i, jphi_field, dum(:,i))
   end do
-  call output_field(group_id, "jphi", real(dum), 20, nelms, error)
+  call output_field(group_id, "jphi", real(dum), coeffs_per_element, &
+       nelms, error)
   nfields = nfields + 1
 
   ! vor
   do i=1, nelms
      call calcavector(i, vor_field, dum(:,i))
   end do
-  call output_field(group_id, "vor", real(dum), 20, nelms, error)
+  call output_field(group_id, "vor", real(dum), coeffs_per_element, &
+       nelms, error)
   nfields = nfields + 1
 
   ! eta
   do i=1, nelms
      call calcavector(i, resistivity_field, dum(:,i))
   end do
-  call output_field(group_id, "eta", real(dum), 20, nelms, error)
+  call output_field(group_id, "eta", real(dum), coeffs_per_element, &
+       nelms, error)
   nfields = nfields + 1
 
   ! visc
   do i=1, nelms
      call calcavector(i, visc_field, dum(:,i))
   end do
-  call output_field(group_id, "visc", real(dum), 20, nelms, error)
+  call output_field(group_id, "visc", real(dum), coeffs_per_element, &
+       nelms, error)
   nfields = nfields + 1
 
   ! tempvar
   do i=1, nelms
      call calcavector(i, tempvar_field, dum(:,i))
   end do
-  call output_field(group_id, "tempvar", real(dum), 20, nelms, error)
+  call output_field(group_id, "tempvar", real(dum), coeffs_per_element, &
+       nelms, error)
   nfields = nfields + 1
 #ifdef USECOMPLEX
-  call output_field(group_id, "tempvar_i", aimag(dum), 20, nelms, error)
+  call output_field(group_id, "tempvar_i", aimag(dum), coeffs_per_element, &
+       nelms, error)
   nfields = nfields + 1
 #endif
 
-
+  ! electrostatic potential
   if(jadv.eq.0 .and. i3d.eq.1) then 
-     ! electrostatic potential
      do i=1, nelms
         call calcavector(i, e_v, dum(:,i))
      end do
-     call output_field(group_id, "potential", real(dum), 20, nelms, error)
+     call output_field(group_id, "potential", real(dum), coeffs_per_element, &
+          nelms, error)
      nfields = nfields + 1
   endif
 
@@ -636,23 +675,26 @@ subroutine output_fields(time_group_id, equilibrium, error)
   do i=1, nelms
      call calcavector(i, bz_field(ilin), dum(:,i))
   end do
-  call output_field(group_id, "I", real(dum), 20, nelms, error)
+  call output_field(group_id, "I", real(dum), coeffs_per_element, &
+       nelms, error)
   nfields = nfields + 1
 #ifdef USECOMPLEX
-  call output_field(group_id,"I_i",aimag(dum),20,nelms,error)
+  call output_field(group_id,"I_i",aimag(dum),coeffs_per_element, &
+       nelms,error)
   nfields = nfields + 1
 #endif
-
 
   ! BF
   if(ifout.eq.1) then
      do i=1, nelms
         call calcavector(i, bf_field(ilin), dum(:,i))
      end do
-     call output_field(group_id, "f", real(dum), 20, nelms, error)
+     call output_field(group_id, "f", real(dum), coeffs_per_element, &
+          nelms, error)
      nfields = nfields + 1
 #ifdef USECOMPLEX
-     call output_field(group_id,"f_i",aimag(dum),20,nelms,error)
+     call output_field(group_id,"f_i",aimag(dum),coeffs_per_element, &
+          nelms,error)
      nfields = nfields + 1
 #endif
   endif
@@ -661,33 +703,38 @@ subroutine output_fields(time_group_id, equilibrium, error)
   do i=1, nelms
      call calcavector(i, vz_field(ilin), dum(:,i))
   end do
-  call output_field(group_id, "V", real(dum), 20, nelms, error)
+  call output_field(group_id, "V", real(dum), coeffs_per_element, &
+       nelms, error)
   nfields = nfields + 1
 #ifdef USECOMPLEX
-  call output_field(group_id,"V_i",aimag(dum),20,nelms,error)
+  call output_field(group_id,"V_i",aimag(dum),coeffs_per_element, &
+       nelms,error)
   nfields = nfields + 1
 #endif
-
 
   ! P and Pe
   if(ipres.eq.1) then
      do i=1, nelms
         call calcavector(i, pe_field(ilin), dum(:,i))
      end do
-     call output_field(group_id, "Pe", real(dum), 20, nelms, error)
+     call output_field(group_id, "Pe", real(dum), coeffs_per_element, &
+          nelms, error)
      nfields = nfields + 1
 #ifdef USECOMPLEX
-     call output_field(group_id,"Pe_i",aimag(dum),20,nelms,error)
+     call output_field(group_id,"Pe_i",aimag(dum),coeffs_per_element, &
+          nelms,error)
      nfields = nfields + 1
 #endif
 
      do i=1, nelms
         call calcavector(i, p_field(ilin), dum(:,i))
      end do
-     call output_field(group_id, "P", real(dum), 20, nelms, error)
+     call output_field(group_id, "P", real(dum), coeffs_per_element, &
+          nelms, error)
      nfields = nfields + 1
 #ifdef USECOMPLEX
-     call output_field(group_id,"P_i",aimag(dum),20,nelms,error)
+     call output_field(group_id,"P_i",aimag(dum),coeffs_per_element, &
+          nelms,error)
      nfields = nfields + 1
 #endif
 
@@ -695,17 +742,21 @@ subroutine output_fields(time_group_id, equilibrium, error)
      do i=1, nelms
         call calcavector(i, pe_field(ilin), dum(:,i))
      end do
-     call output_field(group_id, "Pe", pefac*real(dum), 20, nelms, error)
+     call output_field(group_id, "Pe", pefac*real(dum), coeffs_per_element, &
+          nelms, error)
      nfields = nfields + 1
 #ifdef USECOMPLEX
-     call output_field(group_id,"Pe_i",pefac*aimag(dum),20,nelms,error)
+     call output_field(group_id,"Pe_i",pefac*aimag(dum),coeffs_per_element,&
+          nelms,error)
      nfields = nfields + 1
 #endif
 
-     call output_field(group_id, "P", real(dum), 20, nelms, error)
+     call output_field(group_id, "P", real(dum), coeffs_per_element, &
+          nelms, error)
      nfields = nfields + 1
 #ifdef USECOMPLEX
-     call output_field(group_id,"P_i",aimag(dum),20,nelms,error)
+     call output_field(group_id,"P_i",aimag(dum),coeffs_per_element, &
+          nelms,error)
      nfields = nfields + 1
 #endif
   endif
@@ -714,34 +765,36 @@ subroutine output_fields(time_group_id, equilibrium, error)
   do i=1, nelms
      call calcavector(i, chi_field(ilin), dum(:,i))
   end do
-  call output_field(group_id, "chi", real(dum), 20, nelms, error)
+  call output_field(group_id,"chi",real(dum),coeffs_per_element,nelms,error)
   nfields = nfields + 1
 
 #ifdef USECOMPLEX
-  call output_field(group_id,"chi_i",aimag(dum),20,nelms,error)
+  call output_field(group_id,"chi_i",aimag(dum),coeffs_per_element,nelms,error)
   nfields = nfields + 1
 #endif
-
 
   ! com
   do i=1, nelms
      call calcavector(i, com_field, dum(:,i))
   end do
-  call output_field(group_id, "com", real(dum), 20, nelms, error)
+  call output_field(group_id, "com", real(dum), coeffs_per_element, &
+       nelms, error)
   nfields = nfields + 1
 
   ! kappa
   do i=1, nelms
      call calcavector(i, kappa_field, dum(:,i))
   end do
-  call output_field(group_id, "kappa", real(dum), 20, nelms, error)
+  call output_field(group_id, "kappa", real(dum), coeffs_per_element, &
+       nelms, error)
   nfields = nfields + 1
 
   ! visc_c
   do i=1, nelms
      call calcavector(i, visc_c_field, dum(:,i))
   end do
-  call output_field(group_id, "visc_c", real(dum), 20, nelms, error)
+  call output_field(group_id, "visc_c", real(dum), coeffs_per_element, &
+       nelms, error)
   nfields = nfields + 1
 
   if(ibootstrap.gt.0) then
@@ -749,7 +802,8 @@ subroutine output_fields(time_group_id, equilibrium, error)
      do i=1, nelms
         call calcavector(i, visc_e_field, dum(:,i))
      end do
-     call output_field(group_id, "visc_e", real(dum), 20, nelms, error)
+     call output_field(group_id, "visc_e", real(dum), coeffs_per_element, &
+          nelms, error)
      nfields = nfields + 1
   endif
 
@@ -757,27 +811,30 @@ subroutine output_fields(time_group_id, equilibrium, error)
   do i=1, nelms
      call calcavector(i, den_field(ilin), dum(:,i))
   end do
-  call output_field(group_id, "den", real(dum), 20, nelms, error)
+  call output_field(group_id, "den", real(dum), coeffs_per_element, &
+       nelms, error)
   nfields = nfields + 1
 #ifdef USECOMPLEX
-  call output_field(group_id,"den_i",aimag(dum),20,nelms,error)
+  call output_field(group_id,"den_i",aimag(dum),coeffs_per_element,nelms,error)
   nfields = nfields + 1
 #endif
- 
+
+  
   if(ipellet.eq.1 .or. ionization.eq.1 .or. isink.gt.0) then
      do i=1, nelms
         call calcavector(i, sigma_field, dum(:,i))
      end do
-     call output_field(group_id, "sigma", real(dum), 20, nelms, error)
+     call output_field(group_id, "sigma", real(dum), coeffs_per_element, &
+          nelms, error)
      nfields = nfields + 1
   endif
 
-  ! partition
-  dum = 0
-  dum(1,:) = myrank
-  call output_field(group_id, "part", real(dum), 20, nelms, error)
-  nfields = nfields + 1
-
+!!$  ! partition
+!!$  dum = 0
+!!$  dum(1,:) = myrank
+!!$  call output_field(group_id, "part", real(dum), coeffs_per_element, &
+!!$       nelms, error)
+!!$  nfields = nfields + 1
 
   call write_int_attr(group_id, "nfields", nfields, error)
 

@@ -13,34 +13,37 @@ contains
   !
   ! reads coil and current data from file
   !======================================================
- subroutine load_coils(xc, zc, ic, numcoils, coil_filename, current_filename)
-   use basic
+ subroutine load_coils(xc, zc, ic, numcoils, coil_filename, current_filename, &
+      ntor)
    use math
 
    implicit none
 
    include 'mpif.h'
 
-   real, intent(out), dimension(maxcoils) :: xc, zc
-   complex, intent(out), dimension(maxcoils) :: ic
-   character*(*) :: coil_filename, current_filename
-   integer, intent(out) :: numcoils
+   real, intent(out), dimension(maxcoils) :: xc, zc  ! coordinates of each coil
+   complex, intent(out), dimension(maxcoils) :: ic   ! current in each coil
+   integer, intent(out) :: numcoils                  ! number of coils read
+   character*(*) :: coil_filename, current_filename  ! input files
+   integer, intent(in) :: ntor                       ! toroidal mode number
 
    real :: x, z, w, h, a1, a2, c, phase
    real, dimension(maxcoils) :: vbuff
    complex, dimension(maxcoils) :: cbuff
 
-   integer :: fcoil, fcurr, i, j, k, s, ier, ibuff
+   integer :: fcoil, fcurr, i, j, k, s, ier, ibuff, rank
    real :: dx, dz
+
+  call MPI_Comm_rank(MPI_COMM_WORLD, rank, ier)
 
    xc = 0.
    zc = 0.
    ic = 0.
    numcoils = 0
 
-   if(myrank.eq.0) then
+   if(rank.eq.0) then
       ! Read coil data
-      if(iprint.ge.1) print *, "Reading coil data..", coil_filename
+      print *, "Reading coil data..", coil_filename
 
       fcoil = 10
       open(unit=fcoil,file=coil_filename,status="old",err=200,action='read')
@@ -78,19 +81,16 @@ contains
 
       print *, "Error: too many coils!"
 
-100   if(iprint.ge.1) &
-           print *, "Read ", i-1, " coils."
+100   print *, "Read ", i-1, " coils."
 
       ! divide coils into sub-coils
       numcoils = (i-1)*subcoils**2
    
       goto 300
 
-200   if(myrank.eq.0 .and. iprint.ge.1) &
-           print *, "Error reading ", coil_filename
+200   if(rank.eq.0) print *, "Error reading ", coil_filename
       goto 300
-201   if(myrank.eq.0 .and. iprint.ge.1) &
-           print *, "Error reading ", coil_filename
+201   if(rank.eq.0) print *, "Error reading ", current_filename
       
 300   close(fcoil)
       close(fcurr)
@@ -121,11 +121,11 @@ contains
    real, intent(in), dimension(nc) :: xc, zc   ! array of coil positions
    complex, intent(in), dimension(nc) :: ic    ! array of coil currents
    integer, intent(in) :: nc                   ! number of coils
-   type(field_type), intent(inout) :: f          ! poloidal flux field
+   type(field_type), intent(inout) :: f        ! poloidal flux field
    integer, intent(in) :: ipole                ! type of field to add
 
    integer :: i, numnodes, ineg, k
-   real :: x, z
+   real :: x, phi, z
    real, dimension(nc) :: xp, zp
    real, dimension(dofs_per_node,maxcoils) :: g
    vectype, dimension(dofs_per_node) :: data
@@ -133,7 +133,7 @@ contains
    numnodes = owned_nodes()
    do i=1,numnodes
      
-      call get_node_pos(i,x,z)
+      call get_node_pos(i,x,phi,z)
       xp = x
       zp = z
      
@@ -152,22 +152,19 @@ contains
  end subroutine field_from_coils
 
 
- subroutine load_field_from_coils(coil_filename, current_filename, &
-      field, isize, iplace)
+ subroutine load_field_from_coils(coil_filename, current_filename, ntor)
    use vector_mod
    implicit none
 
    character*(*) :: coil_filename, current_filename
-   type(vector_type), intent(inout) :: field
-   integer, intent(in) :: isize, iplace
+   integer, intent(in) :: ntor
 
    real, dimension(maxcoils) :: xc, zc
    complex, dimension(maxcoils) :: ic
    integer :: nc
 
-   call load_coils(xc, zc, ic, nc, coil_filename, current_filename)
-!   call field_from_coils(xc, zc, ic, nc, field, isize, iplace, 0)
-   call field_from_coils_2(xc, zc, ic, nc, isize, iplace)
+   call load_coils(xc, zc, ic, nc, coil_filename, current_filename, ntor)
+   call field_from_coils_2(xc, zc, ic, nc, ntor)
 
  end subroutine load_field_from_coils
 
@@ -202,269 +199,257 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
   data d1,d2,d3,d4/.24998368310,9.200180037e-2,                     &
        4.069697526e-2,5.26449639e-3/
   
-  if(nmult.gt.0) go to 101
-  do i=1,n
-     rpxi=r(i)+xi(i)
-     rxi=r(i)*xi(i)
-     zmzi=z(i)-zi(i)
-     rksq=4.*rxi/(rpxi**2+zmzi**2)
-     rk=sqrt(rksq)
-     sqrxi=sqrt(rxi)
-     x=1.-rksq
-     ce=1.+x*(c1+x*(c2+x*(c3+x*c4)))+                                  &
-          x*(d1+x*(d2+x*(d3+x*d4)))*(-alog(x))
-     ck=a0+x*(a1+x*(a2+x*(a3+x*a4)))+                                  &
-          (b0+x*(b1+x*(b2+x*(b3+x*b4))))*(-alog(x))
-     
-     term1=2.*ck-2.*ce-ce*rksq/x
-     term2=2.*xi(i)-rksq*rpxi
-     
-     g(1,i) =- sqrxi*(2.*ck-2.*ce-ck*rksq)/rk
-     g(2,i)=-rk*0.25/sqrxi*(rpxi*term1                                  &
-          +2.*xi(i)*(ce/x-ck))
-     g(3,i)=-rk*0.25*zmzi/sqrxi*term1
-     g(5,i)=0.0625*zmzi*(rk/sqrxi)**3*(rpxi*term1                      &
-          +(ce-ck+2.*ce*rksq/x)*                                            &
-          (term2)/x)
-     g(6,i)=-rk*0.25/sqrxi*(term1*                                     &
-          (1.-rksq*zmzi**2/(4.*rxi))+zmzi**2*rksq**2/(4.*rxi*x)             &
-          *(ce-ck+2.*ce*rksq/x))
-     g(4,i)=-rk*0.25/sqrxi*(-rksq*rpxi/(4.*rxi)*                       &
-          (rpxi*term1+2.*xi(i)*(ce/x-ck))+term1-                            &
-          rksq*rpxi/(4.*rxi*x)*(ce-ck+2.*ce*rksq/x)*                        &
-          (term2)+rksq/(2.*r(i)*x)*(2.*ce/x-ck)*term2)
-100 end do
+  if(nmult.le.0) then
+     do i=1,n
+        rpxi=r(i)+xi(i)
+        rxi=r(i)*xi(i)
+        zmzi=z(i)-zi(i)
+        rksq=4.*rxi/(rpxi**2+zmzi**2)
+        rk=sqrt(rksq)
+        sqrxi=sqrt(rxi)
+        x=1.-rksq
+        ce=1.+x*(c1+x*(c2+x*(c3+x*c4)))+                                  &
+             x*(d1+x*(d2+x*(d3+x*d4)))*(-alog(x))
+        ck=a0+x*(a1+x*(a2+x*(a3+x*a4)))+                                  &
+             (b0+x*(b1+x*(b2+x*(b3+x*b4))))*(-alog(x))
+        
+        term1=2.*ck-2.*ce-ce*rksq/x
+        term2=2.*xi(i)-rksq*rpxi
+        
+        g(1,i) =- sqrxi*(2.*ck-2.*ce-ck*rksq)/rk
+        g(2,i)=-rk*0.25/sqrxi*(rpxi*term1                                 &
+             +2.*xi(i)*(ce/x-ck))
+        g(3,i)=-rk*0.25*zmzi/sqrxi*term1
+        g(5,i)=0.0625*zmzi*(rk/sqrxi)**3*(rpxi*term1                      &
+             +(ce-ck+2.*ce*rksq/x)*                                       &
+             (term2)/x)
+        g(6,i)=-rk*0.25/sqrxi*(term1*                                     &
+             (1.-rksq*zmzi**2/(4.*rxi))+zmzi**2*rksq**2/(4.*rxi*x)        &
+             *(ce-ck+2.*ce*rksq/x))
+        g(4,i)=-rk*0.25/sqrxi*(-rksq*rpxi/(4.*rxi)*                       &
+             (rpxi*term1+2.*xi(i)*(ce/x-ck))+term1-                       &
+             rksq*rpxi/(4.*rxi*x)*(ce-ck+2.*ce*rksq/x)*                   &
+             (term2)+rksq/(2.*r(i)*x)*(2.*ce/x-ck)*term2)
+     end do
  
-  return
-
-101 continue
+     return
+  endif
      
-     ! check for multipolar coils
+  ! check for multipolar coils
   do i=1,n
-     if(xi(i) .lt. 100.) go to 200
+     if(xi(i) .lt. 100.) cycle
      rz = zi(i)
      imult = ifix(xi(i) - 100.)
-     if(imult .lt. 0 .or. imult.gt.10) go to 250
+     if(imult .lt. 0 .or. imult.gt.10) then
+        ! error
+        ineg=39
+        return
+     endif
      imultp = imult + 1
-     go to(10,11,12,13,14,15,16,17,18,19,20),imultp
-10   continue
         
-     ! even nullapole
-     g(1,i) = twopi*rz**2
-     g(2,i) = 0.
-     g(3,i) = 0.
-     g(4,i) = 0.
-     g(5,i) = 0.
-     g(6,i) = 0.
-     go to 200
-11   continue
+     select case(imultp)
+     case(10)
+        ! even nullapole
+        g(1,i) = twopi*rz**2
+        g(2,i) = 0.
+        g(3,i) = 0.
+        g(4,i) = 0.
+        g(5,i) = 0.
+        g(6,i) = 0.
 
-     ! odd nullapole
-     g(1,i) = 0.
-     g(2,i) = 0.
-     g(3,i) = 0.
-     g(4,i) = 0.
-     g(5,i) = 0.
-     g(6,i) = 0.
-     go to 200
-12   continue
+     case(11)
+        ! odd nullapole
+        g(1,i) = 0.
+        g(2,i) = 0.
+        g(3,i) = 0.
+        g(4,i) = 0.
+        g(5,i) = 0.
+        g(6,i) = 0.
 
-     ! even dipole
-     g(1,i) = twopi*(r(i)**2 - rz**2)/2.
-     g(2,i) = twopi*r(i)
-     g(3,i) = 0.
-     g(5,i) = 0.
-     g(6,i) = 0.
-     g(4,i) = twopi
-     go to 200
-13   continue
-     
-     ! odd dipole
-     co=twopi/rz
-     g(1,i) = co*(r(i)**2*z(i))
-     g(2,i) = co*(2.*r(i)*z(i))
-     g(3,i) = co*(r(i)**2)
-     g(5,i) = co*2.*r(i)
-     g(6,i) = 0.
-     g(4,i) = co*2*z(i)
-     go to 200
-14   continue
+     case(12)
+        ! even dipole
+        g(1,i) = twopi*(r(i)**2 - rz**2)/2.
+        g(2,i) = twopi*r(i)
+        g(3,i) = 0.
+        g(5,i) = 0.
+        g(6,i) = 0.
+        g(4,i) = twopi
+
+     case(13)
+        ! odd dipole
+        co=twopi/rz
+        g(1,i) = co*(r(i)**2*z(i))
+        g(2,i) = co*(2.*r(i)*z(i))
+        g(3,i) = co*(r(i)**2)
+        g(5,i) = co*2.*r(i)
+        g(6,i) = 0.
+        g(4,i) = co*2*z(i)
+
+     case(14)
+        ! even quadrapole
+        co=pi/(4.*rz**2)
+        g(1,i) = co*(r(i)**4-4.*r(i)**2*z(i)**2 - 2.*r(i)**2*rz**2+rz**4)
+        g(2,i) = co*(4.*r(i)**3-8.*r(i)*z(i)**2-4.*r(i)*rz**2)
+        g(3,i) = co*(-8.*r(i)**2*z(i))
+        g(5,i) = co*(-16.*r(i)*z(i))
+        g(6,i) = co*(-8.*r(i)**2)
+        g(4,i) = co*(12.*r(i)**2 - 8.*z(i)**2 - 4.*rz**2)
         
-     ! even quadrapole
-     co=pi/(4.*rz**2)
-     g(1,i) = co*(r(i)**4-4.*r(i)**2*z(i)**2 - 2.*r(i)**2*rz**2+rz**4)
-     g(2,i) = co*(4.*r(i)**3-8.*r(i)*z(i)**2-4.*r(i)*rz**2)
-     g(3,i) = co*(-8.*r(i)**2*z(i))
-     g(5,i) = co*(-16.*r(i)*z(i))
-     g(6,i) = co*(-8.*r(i)**2)
-     g(4,i) = co*(12.*r(i)**2 - 8.*z(i)**2 - 4.*rz**2)
-     go to 200
-15   continue
+     case(15)
+        ! odd quadrapole
+        co=pi/(3.*rz**3)
+        g(1,i) = co*r(i)**2*z(i)*(3.*r(i)**2-4.*z(i)**2-3.*rz**2)
+        g(2,i) = co*(12.*r(i)**3*z(i)-8.*r(i)*z(i)**3-6.*r(i)*z(i)*rz**2)
+        g(3,i) = co*(3.*r(i)**4 - 12.*r(i)**2*z(i)**2 - 3.*r(i)**2*rz**2)
+        g(5,i) = co*(12.*r(i)**3-24.*r(i)*z(i)**2 - 6.*r(i)*rz**2)
+        g(6,i) = co*(-24.*r(i)**2*z(i))
+        g(4,i) = co*(36.*r(i)**2*z(i)-8.*z(i)**3-6.*z(i)*rz**2)
 
-     ! odd quadrapole
-     co=pi/(3.*rz**3)
-     g(1,i) = co*r(i)**2*z(i)*(3.*r(i)**2-4.*z(i)**2-3.*rz**2)
-     g(2,i) = co*(12.*r(i)**3*z(i)-8.*r(i)*z(i)**3-6.*r(i)*z(i)*rz**2)
-     g(3,i) = co*(3.*r(i)**4 - 12.*r(i)**2*z(i)**2 - 3.*r(i)**2*rz**2)
-     g(5,i) = co*(12.*r(i)**3-24.*r(i)*z(i)**2 - 6.*r(i)*rz**2)
-     g(6,i) = co*(-24.*r(i)**2*z(i))
-     g(4,i) = co*(36.*r(i)**2*z(i)-8.*z(i)**3-6.*z(i)*rz**2)
-     go to 200
-16   continue
+     case(16)
+        ! even hexapole
+        co=pi/(12.*rz**4)
+        g(1,i) = co*(r(i)**6 - 12.*r(i)**4*z(i)**2 - 3.*r(i)**4*rz**2       &
+             + 8.*r(i)**2*z(i)**4 + 12.*r(i)**2*z(i)**2*rz**2           &
+             + 3.*r(i)**2*rz**4 - rz**6 )
+        g(2,i)= co*(6.*r(i)**5 - 48.*r(i)**3*z(i)**2                       &
+             - 12.*r(i)**3*rz**2 + 16.*r(i)*z(i)**4                     &
+             + 24.*r(i)*z(i)**2*rz**2 + 6.*r(i)*rz**4 )
+        g(3,i)= co*(-24.*r(i)**4*z(i) + 32.*r(i)**2*z(i)**3                &
+             + 24.*r(i)**2*z(i)*rz**2)
+        g(5,i)=co*(-96.*r(i)**3*z(i)+64.*r(i)*z(i)**3                     &
+             + 48.*r(i)*z(i)*rz**2 )
+        g(4,i)=co*(30.*r(i)**4-144.*r(i)**2*z(i)**2-36.*r(i)**2*rz**2     &
+             + 16.*z(i)**4 + 24.*z(i)**2*rz**2 + 6.*rz**4)
+        g(6,i)=co*(-24.*r(i)**4 + 96.*r(i)**2*z(i)**2 + 24.*r(i)**2*rz**2)
 
-     ! even hexapole
-     co=pi/(12.*rz**4)
-     g(1,i) = co*(r(i)**6 - 12.*r(i)**4*z(i)**2 - 3.*r(i)**4*rz**2       &
-          + 8.*r(i)**2*z(i)**4 + 12.*r(i)**2*z(i)**2*rz**2           &
-          + 3.*r(i)**2*rz**4 - rz**6 )
-     g(2,i)= co*(6.*r(i)**5 - 48.*r(i)**3*z(i)**2                       &
-          - 12.*r(i)**3*rz**2 + 16.*r(i)*z(i)**4                     &
-          + 24.*r(i)*z(i)**2*rz**2 + 6.*r(i)*rz**4 )
-     g(3,i)= co*(-24.*r(i)**4*z(i) + 32.*r(i)**2*z(i)**3                &
-          + 24.*r(i)**2*z(i)*rz**2)
-     g(5,i)=co*(-96.*r(i)**3*z(i)+64.*r(i)*z(i)**3                     &
-          + 48.*r(i)*z(i)*rz**2 )
-     g(4,i)=co*(30.*r(i)**4-144.*r(i)**2*z(i)**2-36.*r(i)**2*rz**2     &
-          + 16.*z(i)**4 + 24.*z(i)**2*rz**2 + 6.*rz**4)
-     g(6,i)=co*(-24.*r(i)**4 + 96.*r(i)**2*z(i)**2 + 24.*r(i)**2*rz**2)
-     go to 200
-17   continue
-        
-     ! odd hexapole
-     co=pi/(30.*rz**5)
-     g(1,i) = co*(15.*r(i)**6*z(i) - 60.*r(i)**4*z(i)**3                 &
-          - 30.*r(i)**4*z(i)*rz**2 + 24.*r(i)**2*z(i)**5             &
-          + 40.*r(i)**2*z(i)**3*rz**2 + 15.*r(i)**2*z(i)*rz**4)
-     g(2,i)= co*(90.*r(i)**5*z(i) - 240.*r(i)**3*z(i)**3                &
-          - 120.*r(i)**3*z(i)*rz**2 + 48.*r(i)*z(i)**5               &
-          + 80.*r(i)*z(i)**3*rz**2 + 30.*r(i)*z(i)*rz**4)
-     g(3,i)= co*(15.*r(i)**6 - 180.*r(i)**4*z(i)**2                     &
-          - 30.*r(i)**4*rz**2 + 120.*r(i)**2*z(i)**4                 &
-          +120.*r(i)**2*z(i)**2*rz**2 + 15.*r(i)**2*rz**4)
-     g(5,i)=co*(90.*r(i)**5 - 720.*r(i)**3*z(i)**2                     &
-          - 120.*r(i)**3*rz**2 + 240.*r(i)*z(i)**4                   &
-          + 240.*r(i)*z(i)**2*rz**2 + 30.*r(i)*rz**4)
-     g(6,i)=co*(-360.*r(i)**4*z(i) + 480.*r(i)**2*z(i)**3              &
-          + 240.*r(i)**2*z(i)*rz**2)
-     g(4,i)=co*(450.*r(i)**4*z(i) - 720.*r(i)**2*z(i)**3               &
-          - 360.*r(i)**2*z(i)*rz**2 + 48.*z(i)**5                    &
-          + 80.*z(i)**3*rz**2 + 30.*z(i)*rz**4)
-     go to 200
-18   continue
-        
-     ! even octapole
-     co=pi/(160.*rz**6)
-     g(1,i) = co*(5.*r(i)**8 - 120.*r(i)**6*z(i)**2 - 20.*r(i)**6*rz**2  &
-          + 240.*r(i)**4*z(i)**4 + 240.*r(i)**4*z(i)**2*rz**2        &
-          + 30.*r(i)**4*rz**4 - 64.*r(i)**2*z(i)**6                  &
-          - 160.*r(i)**2*z(i)**4*rz**2 - 120.*r(i)**2*z(i)**2*rz**4  &
-          - 20.*r(i)**2*rz**6 + 5.*rz**8)
-     g(2,i)= co*(40.*r(i)**7 - 720.*r(i)**5*z(i)**2 - 120.*r(i)**5*rz**2 &
-          + 960.*r(i)**3*z(i)**4 + 960.*r(i)**3*z(i)**2*rz**2        &
-          + 120.*r(i)**3*rz**4 - 128.*r(i)*z(i)**6                   &
-          - 320.*r(i)*z(i)**4*rz**2 - 240.*r(i)*z(i)**2*rz**4        &
-          - 40.*r(i)*rz**6)
-     g(3,i)= co*(-240.*r(i)**6*z(i) + 960.*r(i)**4*z(i)**3              &
-          + 480.*r(i)**4*z(i)*rz**2 - 384.*r(i)**2*z(i)**5           &
-          - 640.*r(i)**2*z(i)**3*rz**2 - 240.*r(i)**2*z(i)*rz**4)
-     g(5,i)=co*(-1440.*r(i)**5*z(i) + 3840.*r(i)**3*z(i)**3            &
-          + 1920.*r(i)**3*z(i)*rz**2 - 768.*r(i)*z(i)**5             &
-          - 1280.*r(i)*z(i)**3*rz**2 - 480.*r(i)*z(i)*rz**4)
-     g(6,i)=co*(-240.*r(i)**6 + 2880.*r(i)**4*z(i)**2                  &
-          + 480.*r(i)**4*rz**2 - 1920.*r(i)**2*z(i)**4               &
-          - 1920.*r(i)**2*z(i)**2*rz**2 - 240.*r(i)**2*rz**4)
-     g(4,i)=co*(280.*r(i)**6 - 3600.*r(i)**4*z(i)**2                   &
-          - 600.*r(i)**4*rz**2 + 2880.*r(i)**2*z(i)**4               &
-          + 2880.*r(i)**2*z(i)**2*rz**2                              &
-          + 360.*r(i)**2*rz**4 - 128.*z(i)**6                        &
-          - 320.*z(i)**4*rz**2 - 240.*z(i)**2*rz**4 - 40.*rz**6)
-     go to 200
-19   continue
+     case(17)
+        ! odd hexapole
+        co=pi/(30.*rz**5)
+        g(1,i) = co*(15.*r(i)**6*z(i) - 60.*r(i)**4*z(i)**3                 &
+             - 30.*r(i)**4*z(i)*rz**2 + 24.*r(i)**2*z(i)**5             &
+             + 40.*r(i)**2*z(i)**3*rz**2 + 15.*r(i)**2*z(i)*rz**4)
+        g(2,i)= co*(90.*r(i)**5*z(i) - 240.*r(i)**3*z(i)**3                &
+             - 120.*r(i)**3*z(i)*rz**2 + 48.*r(i)*z(i)**5               &
+             + 80.*r(i)*z(i)**3*rz**2 + 30.*r(i)*z(i)*rz**4)
+        g(3,i)= co*(15.*r(i)**6 - 180.*r(i)**4*z(i)**2                     &
+             - 30.*r(i)**4*rz**2 + 120.*r(i)**2*z(i)**4                 &
+             +120.*r(i)**2*z(i)**2*rz**2 + 15.*r(i)**2*rz**4)
+        g(5,i)=co*(90.*r(i)**5 - 720.*r(i)**3*z(i)**2                     &
+             - 120.*r(i)**3*rz**2 + 240.*r(i)*z(i)**4                   &
+             + 240.*r(i)*z(i)**2*rz**2 + 30.*r(i)*rz**4)
+        g(6,i)=co*(-360.*r(i)**4*z(i) + 480.*r(i)**2*z(i)**3              &
+             + 240.*r(i)**2*z(i)*rz**2)
+        g(4,i)=co*(450.*r(i)**4*z(i) - 720.*r(i)**2*z(i)**3               &
+             - 360.*r(i)**2*z(i)*rz**2 + 48.*z(i)**5                    &
+             + 80.*z(i)**3*rz**2 + 30.*z(i)*rz**4)
 
-     ! odd octapole
-     co=pi/(140.*rz**7)
-     g(1,i) = co*r(i)**2*z(i)*(35.*r(i)**6 - 280.*r(i)**4*z(i)**2        &
-          - 105.*r(i)**4*rz**2 + 336.*r(i)**2*z(i)**4                &
-          + 420.*r(i)**2*z(i)**2*rz**2 + 105.*r(i)**2*rz**4          &
-          - 64.*z(i)**6 - 168.*z(i)**4*rz**2                         &
-          - 140.*z(i)**2*rz**4 - 35.*rz**6)
-     g(2,i)= co*(280.*r(i)**7*z(i) - 1680.*r(i)**5*z(i)**3              &
-          - 630.*r(i)**5*z(i)*rz**2 + 1344.*r(i)**3*z(i)**5          &
-          + 1680.*r(i)**3*z(i)**3*rz**2 + 420.*r(i)**3*z(i)*rz**4    &
-          - 128.*r(i)*z(i)**7 - 336.*r(i)*z(i)**5*rz**2              &
-          - 280.*r(i)*z(i)**3*rz**4 - 70.*r(i)*z(i)*rz**6)
-     g(3,i)= co*(35.*r(i)**8-840.*r(i)**6*z(i)**2-105.*r(i)**6*rz**2    &
-          + 1680.*r(i)**4*z(i)**4 + 1260.*r(i)**4*z(i)**2*rz**2      &
-          + 105.*r(i)**4*rz**4 - 448.*r(i)**2*z(i)**6                &
-          - 840.*r(i)**2*z(i)**4*rz**2 - 420.*r(i)**2*z(i)**2*rz**4  &
-          - 35.*r(i)**2*rz**6)
-     g(5,i)=co*(280.*r(i)**7 - 5040.*r(i)**5*z(i)**2                   &
-          - 630.*r(i)**5*rz**2 + 6720.*r(i)**3*z(i)**4               &
-          + 5040.*r(i)**3*z(i)**2*rz**2 + 420.*r(i)**3*rz**4         &
-          - 896.*r(i)*z(i)**6 - 1680.*r(i)*z(i)**4*rz**2             &
-          - 840.*r(i)*z(i)**2*rz**4 - 70.*r(i)*rz**6)
-     g(6,i)=co*(-1680.*r(i)**6*z(i) + 6720.*r(i)**4*z(i)**3            &
-          + 2520.*r(i)**4*z(i)*rz**2 - 2688.*r(i)**2*z(i)**5         &
-          - 3360.*r(i)**2*z(i)**3*rz**2 - 840.*r(i)**2*z(i)*rz**4)
-     g(4,i)=co*(1960.*r(i)**6*z(i) - 8400.*r(i)**4*z(i)**3             &
-          - 3150.*r(i)**4*z(i)*rz**2 + 4032.*r(i)**2*z(i)**5         &
-          + 5040.*r(i)**2*z(i)**3*rz**2 + 1260.*r(i)**2*z(i)*rz**4   &
-          - 128.*z(i)**7 - 336.*z(i)**5*rz**2                        &
-          - 280.*z(i)**3*rz**4 - 70.*z(i)*rz**6)
-     go to 200
-20   continue
-        
-     ! even decapole
-     co=pi/(560.*rz**8)
-     g(1,i) = co*(7.*r(i)**10 - 280.*r(i)**8*z(i)**2 - 35.*r(i)**8*rz**2 &
-          + 1120.*r(i)**6*z(i)**4 + 840.*r(i)**6*z(i)**2*rz**2       &
-          + 70.*r(i)**6*rz**4 - 896.*r(i)**4*z(i)**6                 &
-          - 1680.*r(i)**4*z(i)**4*rz**2 - 840.*r(i)**4*z(i)**2*rz**4 &
-          - 70.*r(i)**4*rz**6 + 128.*r(i)**2*z(i)**8                 &
-          + 448.*r(i)**2*z(i)**6*rz**2 + 560.*r(i)**2*z(i)**4*rz**4  &
-          + 280.*r(i)**2*z(i)**2*rz**6 + 35.*r(i)**2*rz**8           &
-          - 7.*rz**10)
-     g(2,i)= co*(70.*r(i)**9 - 2240.*r(i)**7*z(i)**2                    &
-          - 280.*r(i)**7*rz**2 + 6720.*r(i)**5*z(i)**4               &
-          + 5040.*r(i)**5*z(i)**2*rz**2 + 420.*r(i)**5*rz**4         &
-          - 3584.*r(i)**3*z(i)**6 - 6720.*r(i)**3*z(i)**4*rz**2      &
-          - 3360.*r(i)**3*z(i)**2*rz**4 - 280.*r(i)**3*rz**6         &
-          + 256.*r(i)*z(i)**8 + 896.*r(i)*z(i)**6*rz**2              &
-          + 1120.*r(i)*z(i)**4*rz**4 + 560.*r(i)*z(i)**2*rz**6       &
-          + 70.*r(i)*rz**8)
-     g(3,i)= co*(-560.*r(i)**8*z(i) + 4480.*r(i)**6*z(i)**3             &
-          + 1680.*r(i)**6*z(i)*rz**2 - 5376.*r(i)**4*z(i)**5         &
-          - 6720.*r(i)**4*z(i)**3*rz**2 - 1680.*r(i)**4*z(i)*rz**4   &
-          + 1024.*r(i)**2*z(i)**7 + 2688.*r(i)**2*z(i)**5*rz**2      &
-          + 2240.*r(i)**2*z(i)**3*rz**4 + 560.*r(i)**2*z(i)*rz**6)
-     g(5,i)=co*(-4480.*r(i)**7*z(i) + 26880.*r(i)**5*z(i)**3           &
-          + 10080.*r(i)**5*z(i)*rz**2 - 21504.*r(i)**3*z(i)**5       &
-          - 26880.*r(i)**3*z(i)**3*rz**2 - 6720.*r(i)**3*z(i)*rz**4  &
-          + 2048.*r(i)*z(i)**7 + 5376.*r(i)*z(i)**5*rz**2            &
-          + 4480.*r(i)*z(i)**3*rz**4 + 1120.*r(i)*z(i)*rz**6)
-     g(6,i)=co*(-560.*r(i)**8 + 13440.*r(i)**6*z(i)**2                 &
-          + 1680.*r(i)**6*rz**2 - 26880.*r(i)**4*z(i)**4             &
-          - 20160.*r(i)**4*z(i)**2*rz**2 - 1680.*r(i)**4*rz**4       &
-          + 7168.*r(i)**2*z(i)**6 + 13440.*r(i)**2*z(i)**4*rz**2     &
-          + 6720.*r(i)**2*z(i)**2*rz**4 + 560.*r(i)**2*rz**6)
-     g(4,i)=co*(630.*r(i)**8 - 15680.*r(i)**6*z(i)**2                  &
-          - 1960.*r(i)**6*rz**2 + 33600*r(i)**4*z(i)**4              &
-          + 25200.*r(i)**4*z(i)**2*rz**2 + 2100.*r(i)**4*rz**4       &
-          - 10752.*r(i)**2*z(i)**6 - 20160.*r(i)**2*z(i)**4*rz**2    &
-          - 10080.*r(i)**2*z(i)**2*rz**4 - 840.*r(i)**2*rz**6        &
-          + 256.*z(i)**8 + 896.*z(i)**6*rz**2                        &
-          + 1120.*z(i)**4*rz**4 + 560.*z(i)**2*rz**6                 &
-          + 70.*rz**8)
-     go to 200
-200 end do
+     case(18)
+        ! even octapole
+        co=pi/(160.*rz**6)
+        g(1,i) = co*(5.*r(i)**8 - 120.*r(i)**6*z(i)**2 - 20.*r(i)**6*rz**2  &
+             + 240.*r(i)**4*z(i)**4 + 240.*r(i)**4*z(i)**2*rz**2        &
+             + 30.*r(i)**4*rz**4 - 64.*r(i)**2*z(i)**6                  &
+             - 160.*r(i)**2*z(i)**4*rz**2 - 120.*r(i)**2*z(i)**2*rz**4  &
+             - 20.*r(i)**2*rz**6 + 5.*rz**8)
+        g(2,i)= co*(40.*r(i)**7 - 720.*r(i)**5*z(i)**2 - 120.*r(i)**5*rz**2 &
+             + 960.*r(i)**3*z(i)**4 + 960.*r(i)**3*z(i)**2*rz**2        &
+             + 120.*r(i)**3*rz**4 - 128.*r(i)*z(i)**6                   &
+             - 320.*r(i)*z(i)**4*rz**2 - 240.*r(i)*z(i)**2*rz**4        &
+             - 40.*r(i)*rz**6)
+        g(3,i)= co*(-240.*r(i)**6*z(i) + 960.*r(i)**4*z(i)**3              &
+             + 480.*r(i)**4*z(i)*rz**2 - 384.*r(i)**2*z(i)**5           &
+             - 640.*r(i)**2*z(i)**3*rz**2 - 240.*r(i)**2*z(i)*rz**4)
+        g(5,i)=co*(-1440.*r(i)**5*z(i) + 3840.*r(i)**3*z(i)**3            &
+             + 1920.*r(i)**3*z(i)*rz**2 - 768.*r(i)*z(i)**5             &
+             - 1280.*r(i)*z(i)**3*rz**2 - 480.*r(i)*z(i)*rz**4)
+        g(6,i)=co*(-240.*r(i)**6 + 2880.*r(i)**4*z(i)**2                  &
+             + 480.*r(i)**4*rz**2 - 1920.*r(i)**2*z(i)**4               &
+             - 1920.*r(i)**2*z(i)**2*rz**2 - 240.*r(i)**2*rz**4)
+        g(4,i)=co*(280.*r(i)**6 - 3600.*r(i)**4*z(i)**2                   &
+             - 600.*r(i)**4*rz**2 + 2880.*r(i)**2*z(i)**4               &
+             + 2880.*r(i)**2*z(i)**2*rz**2                              &
+             + 360.*r(i)**2*rz**4 - 128.*z(i)**6                        &
+             - 320.*z(i)**4*rz**2 - 240.*z(i)**2*rz**4 - 40.*rz**6)
 
-  return
-250 continue
-   
-  ! error
-  ineg=39
-  
-  return
+     case(19)
+        ! odd octapole
+        co=pi/(140.*rz**7)
+        g(1,i) = co*r(i)**2*z(i)*(35.*r(i)**6 - 280.*r(i)**4*z(i)**2        &
+             - 105.*r(i)**4*rz**2 + 336.*r(i)**2*z(i)**4                &
+             + 420.*r(i)**2*z(i)**2*rz**2 + 105.*r(i)**2*rz**4          &
+             - 64.*z(i)**6 - 168.*z(i)**4*rz**2                         &
+             - 140.*z(i)**2*rz**4 - 35.*rz**6)
+        g(2,i)= co*(280.*r(i)**7*z(i) - 1680.*r(i)**5*z(i)**3              &
+             - 630.*r(i)**5*z(i)*rz**2 + 1344.*r(i)**3*z(i)**5          &
+             + 1680.*r(i)**3*z(i)**3*rz**2 + 420.*r(i)**3*z(i)*rz**4    &
+             - 128.*r(i)*z(i)**7 - 336.*r(i)*z(i)**5*rz**2              &
+             - 280.*r(i)*z(i)**3*rz**4 - 70.*r(i)*z(i)*rz**6)
+        g(3,i)= co*(35.*r(i)**8-840.*r(i)**6*z(i)**2-105.*r(i)**6*rz**2    &
+             + 1680.*r(i)**4*z(i)**4 + 1260.*r(i)**4*z(i)**2*rz**2      &
+             + 105.*r(i)**4*rz**4 - 448.*r(i)**2*z(i)**6                &
+             - 840.*r(i)**2*z(i)**4*rz**2 - 420.*r(i)**2*z(i)**2*rz**4  &
+             - 35.*r(i)**2*rz**6)
+        g(5,i)=co*(280.*r(i)**7 - 5040.*r(i)**5*z(i)**2                   &
+             - 630.*r(i)**5*rz**2 + 6720.*r(i)**3*z(i)**4               &
+             + 5040.*r(i)**3*z(i)**2*rz**2 + 420.*r(i)**3*rz**4         &
+             - 896.*r(i)*z(i)**6 - 1680.*r(i)*z(i)**4*rz**2             &
+             - 840.*r(i)*z(i)**2*rz**4 - 70.*r(i)*rz**6)
+        g(6,i)=co*(-1680.*r(i)**6*z(i) + 6720.*r(i)**4*z(i)**3            &
+             + 2520.*r(i)**4*z(i)*rz**2 - 2688.*r(i)**2*z(i)**5         &
+             - 3360.*r(i)**2*z(i)**3*rz**2 - 840.*r(i)**2*z(i)*rz**4)
+        g(4,i)=co*(1960.*r(i)**6*z(i) - 8400.*r(i)**4*z(i)**3             &
+             - 3150.*r(i)**4*z(i)*rz**2 + 4032.*r(i)**2*z(i)**5         &
+             + 5040.*r(i)**2*z(i)**3*rz**2 + 1260.*r(i)**2*z(i)*rz**4   &
+             - 128.*z(i)**7 - 336.*z(i)**5*rz**2                        &
+             - 280.*z(i)**3*rz**4 - 70.*z(i)*rz**6)
+
+     case(20)
+        ! even decapole
+        co=pi/(560.*rz**8)
+        g(1,i) = co*(7.*r(i)**10 - 280.*r(i)**8*z(i)**2 - 35.*r(i)**8*rz**2 &
+             + 1120.*r(i)**6*z(i)**4 + 840.*r(i)**6*z(i)**2*rz**2       &
+             + 70.*r(i)**6*rz**4 - 896.*r(i)**4*z(i)**6                 &
+             - 1680.*r(i)**4*z(i)**4*rz**2 - 840.*r(i)**4*z(i)**2*rz**4 &
+             - 70.*r(i)**4*rz**6 + 128.*r(i)**2*z(i)**8                 &
+             + 448.*r(i)**2*z(i)**6*rz**2 + 560.*r(i)**2*z(i)**4*rz**4  &
+             + 280.*r(i)**2*z(i)**2*rz**6 + 35.*r(i)**2*rz**8           &
+             - 7.*rz**10)
+        g(2,i)= co*(70.*r(i)**9 - 2240.*r(i)**7*z(i)**2                    &
+             - 280.*r(i)**7*rz**2 + 6720.*r(i)**5*z(i)**4               &
+             + 5040.*r(i)**5*z(i)**2*rz**2 + 420.*r(i)**5*rz**4         &
+             - 3584.*r(i)**3*z(i)**6 - 6720.*r(i)**3*z(i)**4*rz**2      &
+             - 3360.*r(i)**3*z(i)**2*rz**4 - 280.*r(i)**3*rz**6         &
+             + 256.*r(i)*z(i)**8 + 896.*r(i)*z(i)**6*rz**2              &
+             + 1120.*r(i)*z(i)**4*rz**4 + 560.*r(i)*z(i)**2*rz**6       &
+             + 70.*r(i)*rz**8)
+        g(3,i)= co*(-560.*r(i)**8*z(i) + 4480.*r(i)**6*z(i)**3             &
+             + 1680.*r(i)**6*z(i)*rz**2 - 5376.*r(i)**4*z(i)**5         &
+             - 6720.*r(i)**4*z(i)**3*rz**2 - 1680.*r(i)**4*z(i)*rz**4   &
+             + 1024.*r(i)**2*z(i)**7 + 2688.*r(i)**2*z(i)**5*rz**2      &
+             + 2240.*r(i)**2*z(i)**3*rz**4 + 560.*r(i)**2*z(i)*rz**6)
+        g(5,i)=co*(-4480.*r(i)**7*z(i) + 26880.*r(i)**5*z(i)**3           &
+             + 10080.*r(i)**5*z(i)*rz**2 - 21504.*r(i)**3*z(i)**5       &
+             - 26880.*r(i)**3*z(i)**3*rz**2 - 6720.*r(i)**3*z(i)*rz**4  &
+             + 2048.*r(i)*z(i)**7 + 5376.*r(i)*z(i)**5*rz**2            &
+             + 4480.*r(i)*z(i)**3*rz**4 + 1120.*r(i)*z(i)*rz**6)
+        g(6,i)=co*(-560.*r(i)**8 + 13440.*r(i)**6*z(i)**2                 &
+             + 1680.*r(i)**6*rz**2 - 26880.*r(i)**4*z(i)**4             &
+             - 20160.*r(i)**4*z(i)**2*rz**2 - 1680.*r(i)**4*rz**4       &
+             + 7168.*r(i)**2*z(i)**6 + 13440.*r(i)**2*z(i)**4*rz**2     &
+             + 6720.*r(i)**2*z(i)**2*rz**4 + 560.*r(i)**2*rz**6)
+        g(4,i)=co*(630.*r(i)**8 - 15680.*r(i)**6*z(i)**2                  &
+             - 1960.*r(i)**6*rz**2 + 33600*r(i)**4*z(i)**4              &
+             + 25200.*r(i)**4*z(i)**2*rz**2 + 2100.*r(i)**4*rz**4       &
+             - 10752.*r(i)**2*z(i)**6 - 20160.*r(i)**2*z(i)**4*rz**2    &
+             - 10080.*r(i)**2*z(i)**2*rz**4 - 840.*r(i)**2*rz**6        &
+             + 256.*z(i)**8 + 896.*z(i)**6*rz**2                        &
+             + 1120.*z(i)**4*rz**4 + 560.*z(i)**2*rz**6                 &
+             + 70.*rz**8)
+
+     case default
+        print *, 'Error: unknown multipole ', imultp
+     end select
+  end do
 end subroutine gvect
 
 ! Int(cos(2 ntor x)/(1 + k2*sin(x)^2)^(3/2) dx)/pi     0 < x < pi/2
@@ -479,18 +464,22 @@ subroutine integral(npts,k2,ntor,f)
 
   real :: dx, dx2, x
   real, dimension(npts) :: f0, f1, f2
+  integer :: ix
+  integer, parameter :: ixmax = 100
 
-  dx = (pi/2.) / 100.
+  dx = (pi/2.) / ixmax
   dx2 = dx/2.
 
   ! Integrate using Simpson's rule
   f = 0.
   f0 = 1.
-  do x=0., pi/2., dx
+  x = 0.
+  do ix=1, ixmax
      f1 = cos(2.*ntor*(x+dx2))/sqrt((1.+k2*sin(x+dx2)**2)**3)
      f2 = cos(2.*ntor*(x+dx))/sqrt((1.+k2*sin(x+dx)**2)**3)
      f = f + (f0 + 4.*f1 + f2)
      f0 = f2
+     x = x + dx
   end do
   f = f * (dx/6.) / pi
 end subroutine integral
@@ -571,13 +560,15 @@ subroutine pane(curr, r1, r2, z1, z2, npts, r0, z0, ntor, fr, fphi, fz)
   vectype, dimension(npts) :: fr1, fphi1, fz1
   vectype, dimension(npts) :: fr2, fphi2, fz2
   real :: l, dl, lmax, dldZ, dldR, r, z, dl2
+  integer :: il
+  integer, parameter :: ilmax = 100
 
   ! calculate conitrbution from coils
   call coil( curr,r1,z1,npts,r0,z0,ntor,fr,fphi,fz)
   call coil(-curr,r2,z2,npts,r0,z0,ntor,fr,fphi,fz)
 
   lmax = sqrt((r2-r1)**2 + (z2-z1)**2)
-  dl = lmax/100.
+  dl = lmax/ilmax
   dl2 = dl/2.
   
   dldR = (r2 - r1)/lmax
@@ -587,7 +578,9 @@ subroutine pane(curr, r1, r2, z1, z2, npts, r0, z0, ntor, fr, fphi, fz)
   r = r1
   z = z1
   call surface(r, z, dldR, dldZ, npts, r0, z0, ntor, fr0, fphi0, fz0)
-  do l=0., lmax, dl
+  l = 0.
+  do il=1, ilmax
+     
      r = (r2*(l+dl2) + r1*(lmax-(l+dl2)))/lmax
      z = (z2*(l+dl2) + z1*(lmax-(l+dl2)))/lmax
      call surface(r, z, dldR, dldZ, npts, r0, z0, ntor, fr1, fphi1, fz1)
@@ -603,18 +596,19 @@ subroutine pane(curr, r1, r2, z1, z2, npts, r0, z0, ntor, fr, fphi, fz)
      fr0 = fr2
      fphi0 = fphi2
      fz0 = fz2
+     
+     l = l + dl
   end do
   
 end subroutine pane
 
 
-subroutine field_from_coils_2(xc, zc, ic, nc, isize, iplace)
+subroutine field_from_coils_2(xc, zc, ic, nc, ntor)
   use math
   use mesh_mod
-  use basic
   use sparse
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
   use newvar_mod
   use boundary_conditions
 
@@ -625,7 +619,7 @@ subroutine field_from_coils_2(xc, zc, ic, nc, isize, iplace)
   real, intent(in), dimension(nc) :: xc, zc
   complex, intent(in), dimension(nc) :: ic
   integer, intent(in) :: nc
-  integer, intent(in) :: isize, iplace
+  integer, intent(in) :: ntor
 
   type(matrix_type) :: br_mat
   type(vector_type) :: psi_vec
@@ -638,23 +632,20 @@ subroutine field_from_coils_2(xc, zc, ic, nc, isize, iplace)
 
   type(field_type) :: psi_f, bf_f
 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, 'Called field_from_coils_2'
-
   call create_vector(psi_vec,inumb)
   call associate_field(psi_f,psi_vec,1)
   call associate_field(bf_f,psi_vec,2)
 
   call set_matrix_index(br_mat, br_mat_index)
-  call create_mat(br_mat, inumb, inumb, icomplex, .true.)
+  call create_mat(br_mat, inumb, inumb, 1, .true.)
 #ifdef CJ_MATRIX_DUMP
   print *, "create_mat coils br_mat", br_mat%imatrix 
 #endif
 
-  if(myrank.eq.0 .and. iprint.ge.2) print *, 'populating'
   nelms = local_elements()
   do itri=1,nelms
         
-     call define_triangle_quadrature(itri,25)
+     call define_element_quadrature(itri,25,5)
      call define_fields(itri,0,1,0)
 
      temp79a = 0.    ! B_R
@@ -711,13 +702,11 @@ subroutine field_from_coils_2(xc, zc, ic, nc, isize, iplace)
   call sum_shared(psi_vec)
 
   ! insert boundary conditions
-  if(myrank.eq.0 .and. iprint.ge.2) print *, 'inserting bcs'
   call boundary_bf(psi_vec, br_mat)
 
   call finalize(br_mat)
 
   ! solve matrix equation
-  if(myrank.eq.0 .and. iprint.ge.2) print *, 'solving psi and f'
 
 #ifdef CJ_MATRIX_DUMP
 !!$  if(ntime.eq.2) then 
@@ -739,18 +728,13 @@ subroutine field_from_coils_2(xc, zc, ic, nc, isize, iplace)
   bf_field(1) = bf_f
 
   ! calculate bz from bf
-  if(myrank.eq.0 .and. iprint.ge.2) print *, 'calculating bz'
   call solve_newvar1(mass_mat_lhs,bz_field(1),bf_mat_rhs,bf_f)
-  if(myrank.eq.0 .and. iprint.ge.2) print *, 'done calculating bz'
 
   call destroy_vector(psi_vec)
 
   ! set bf to zero so that future solves use homogeneous boundary conditions
   bf_field(0) = 0.
   bf_field(1) = 0.
-
-  if(myrank.eq.0 .and. iprint.ge.2) print *, 'done field_from_coils_2'
-
 end subroutine field_from_coils_2
 
 
@@ -759,10 +743,9 @@ end subroutine field_from_coils_2
 ! ~~~~~~~~~~~
 !=======================================================
 subroutine boundary_bf(rhs, mat)
-  use basic
-  use arrays
   use vector_mod
   use matrix_mod
+  use mesh_mod
   use boundary_conditions
 
   implicit none
@@ -777,9 +760,6 @@ subroutine boundary_bf(rhs, mat)
   real :: x, z
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
-
-  if(iper.eq.1 .and. jper.eq.1) return
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_jphi called"
 
   numnodes = owned_nodes()
   do i=1, numnodes

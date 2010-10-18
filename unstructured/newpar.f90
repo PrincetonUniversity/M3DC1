@@ -23,12 +23,14 @@ Program Reducedquintic
   integer :: ier
   real :: tstart, tend
 
-  ! Start up message passing, SuperLU process grid
+  print *, 'initializing mpi...'
   call MPI_Init(ier)
   if (ier /= 0) then
      print *,'Error initializing MPI:',ier
      call safestop(1)
   endif
+
+  print *, 'initializing petsc...'
   call PetscInitialize(PETSC_NULL_CHARACTER, ier)
   call MPI_Comm_rank(MPI_COMM_WORLD, myrank, ier)
   if (ier /= 0) then
@@ -40,6 +42,7 @@ Program Reducedquintic
      print *,'Error in MPI_Comm_size:',ier
      call safestop(1)
   endif
+  
 
   if(myrank.eq.0) then
      call date_and_time( datec, timec)
@@ -47,19 +50,24 @@ Program Reducedquintic
           timec(1:2),timec(3:4),timec(5:8)
 1001 format("M3D-C1 DATE: ", a4,1x,a2,1x,a2,3x,"TIME: ",a2,":",a2,":",a4,/)
 #ifdef USECOMPLEX
-     write(*,*) 'COMPLEX VERSION'
+     print *, 'COMPLEX VERSION'
 #else
-     write(*,*) 'REAL VERSION'
+     print *, 'REAL VERSION'
+#endif
+#ifdef USE3D
+     print *, '3D VERSION'
+#else
+     print *, '2D VERSION'
 #endif
   endif
-
-  ! load mesh
-  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh'
-  call load_mesh
 
   ! read input file
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Reading input'
   call input
+
+  ! load mesh
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh'
+  call load_mesh
 
   ! allocate arrays
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Allocating arrays'
@@ -155,7 +163,6 @@ Program Reducedquintic
      if(myrank.eq.0 .and. iprint.ge.2) print *, ' Writing equilibrium'
      call hdf5_write_time_slice(1,ier)
   end if
-
 
   ! Calculate all quantities derived from basic fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -303,7 +310,9 @@ subroutine print_info
 
   implicit none
 
+#ifdef USESCOREC
   integer :: ndofs, numelms, numnodes, j
+#endif
 
   ! velocity form
   if(myrank.eq.0) then
@@ -735,128 +744,6 @@ subroutine rotation(rot,ndim,theta)
 end subroutine rotation
 
 
-!============================================================
-! evaluate
-! ~~~~~~~~
-! calculates the value ans of field dum at global coordinates
-! (x,z).  itri is the element containing (x,z).  (If this
-! element does not reside on this process, itri=-1).
-!============================================================
-subroutine evaluate(x,z,ans,ans2,fin,itri)
-  
-  use p_data
-  use mesh_mod
-  use basic
-  use nintegrate_mod
-  use field
-
-  implicit none
-
-  include 'mpif.h'
-
-  integer, intent(inout) :: itri
-  real, intent(in) :: x, z
-  type(field_type), intent(in) :: fin
-
-  real, intent(out) :: ans, ans2
-
-  type(element_data) :: d
-  integer :: p, nodeids(nodes_per_element), ier
-  real :: x1, z1
-  vectype, dimension(20) :: avector
-  real :: ri, si, eta
-  real :: term1, term2
-  real, dimension(2) :: temp1, temp2
-  integer :: hasval, tothasval
-
-  ! evaluate the solution to get the value [ans] at one point (x,z)
-
-  ! first find out what triangle x,z is in.  whattri
-  ! returns itri, x1, and z1 with x1 and z1 being
-  ! the coordinates of the first node/vertex
-
-  if(itri.eq.0) then
-     call whattri(x,z,itri,x1,z1)
-  else
-     call get_element_nodes(itri,nodeids)
-     call get_node_pos(nodeids(1), x1, z1)
-  endif
-
-  ans = 0.
-  ans2 = 0.
-
-
-  ! if this process contains the point, evaluate the field at that point.
-  if(itri.gt.0) then
-
-     call get_element_data(itri, d)
-
-     ! calculate local coordinates
-     call global_to_local(d, x, z, si, eta)
-
-     ! calculate the inverse radius
-     if(itor.eq.1) then
-        ri = 1./x
-     else
-        ri = 1.
-     endif
-
-     ! calculate the value of the function
-     call calcavector(itri, fin, avector)
-     
-     do p=1,20
-     
-        term1 = si**mi(p)*eta**ni(p)
-        term2 = 0.
-        
-        if(mi(p).ge.1) then
-           if(itor.eq.1) then
-              term2 = term2 - 2.*d%co*(mi(p)*si**(mi(p)-1) * eta**ni(p))*ri
-           endif
-           
-           if(mi(p).ge.2) then
-              term2 = term2 + si**(mi(p)-2)*(mi(p)-1)*mi(p) * eta**ni(p)
-           endif
-        endif
-     
-        if(ni(p).ge.1) then
-           if(itor.eq.1) then
-              term2 = term2 + 2.*d%sn*(si**mi(p) * eta**(ni(p)-1)*ni(p))*ri
-           endif
-           
-           if(ni(p).ge.2) then
-              term2 = term2 + si**mi(p) * eta**(ni(p)-2)*(ni(p)-1)*ni(p)
-           endif
-        endif
-     
-        ans = ans + avector(p)*term1
-        ans2 = ans2 + avector(p)*term2
-        hasval = 1
-     enddo
-  else
-     hasval = 0
-  endif
-     
-
-  ! Distribute the result if necessary
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(maxrank.gt.1) then
-     ! Determine number of processes whose domains contain this point
-     call mpi_allreduce(hasval, tothasval, 1, MPI_INTEGER, MPI_SUM, &
-          MPI_COMM_WORLD, ier)
-
-     ! Find the average value at this point over all processes containing
-     ! the point.  (Each value should be identical.)
-     temp1(1) = ans
-     temp1(2) = ans2
-     call mpi_allreduce(temp1, temp2, 2, MPI_DOUBLE_PRECISION, MPI_SUM, &
-          MPI_COMM_WORLD, ier)
-     ans = temp2(1)/tothasval
-     ans2 = temp2(2)/tothasval
-  endif
-
-end subroutine evaluate
-
   !============================================================
   ! tridef
   ! ~~~~~~
@@ -865,25 +752,24 @@ end subroutine evaluate
   subroutine tridef
 
     use math
-    use arrays
     use mesh_mod
-    use time_step
 
     implicit none
   
     type(element_data) :: d
     integer :: itri, i, j, k, ii, jj, numelms, numnodes, ndofs
-    real :: ti(20,20),rot(18,18),newrot(18,18), sum, theta
+    real :: ti(20,20), rot(18,18), newrot(18,18), sum, theta
     real :: norm(2), curv, x, z
     integer :: inode(nodes_per_element)
     logical :: is_boundary
     integer :: izone, izonedim
-  
+
     numelms = local_elements()
     numnodes = local_nodes()
     ndofs = numnodes*dofs_per_node
     
     ! start the loop over triangles within a rectangular region
+
     do itri=1,numelms
 
        ! define a,b,c and theta
@@ -900,10 +786,11 @@ end subroutine evaluate
        
        newrot = 0.
        call get_element_nodes(itri, inode)
-       do i=1, nodes_per_element
+
+       do i=1, 3
           call boundary_node(inode(i), &
                is_boundary, izone, izonedim, norm, curv, x, z)
-          k = (i-1)*dofs_per_node + 1
+          k = (i-1)*6 + 1
           if(is_boundary) then
              newrot(k  ,k  ) = 1.
              newrot(k+1,k+1) =  norm(1)
@@ -925,11 +812,8 @@ end subroutine evaluate
              newrot(k+5,k+3) =  norm(2)**2
              newrot(k+5,k+4) = -norm(1)*norm(2)
              newrot(k+5,k+5) =  norm(1)**2
-
-             if(abs(norm(1)**2 + norm(2)**2 - 1.) > 0.01) &
-                  print *, 'warning: bad normals', norm(1), norm(2)
           else
-             do j=1, dofs_per_node
+             do j=1, 6
                 newrot(k+j-1,k+j-1) = 1.
              end do
           end if
@@ -954,8 +838,31 @@ end subroutine evaluate
              gtri(k,j,itri) = sum
           enddo
        enddo
+
+       htri(1,1,itri) = 1.
+#ifdef USE3D
+       htri(2,1,itri) = 0.
+       htri(3,1,itri) =-3./d%d**2
+       htri(4,1,itri) = 2./d%d**3
+
+       htri(1,2,itri) = 0.
+       htri(2,2,itri) = 1.
+       htri(3,2,itri) =-2./d%d
+       htri(4,2,itri) = 1./d%d**2
+
+       htri(1,3,itri) = 0.
+       htri(2,3,itri) = 0.
+       htri(3,3,itri) = 3./d%d**2
+       htri(4,3,itri) =-2./d%d**3
+
+       htri(1,4,itri) = 0.
+       htri(2,4,itri) = 0.
+       htri(3,4,itri) =-1./d%d
+       htri(4,4,itri) = 1./d%d**2
+#endif
     end do
   end subroutine tridef
+
 
 ! write_normlcurv
 subroutine write_normlcurv
@@ -965,10 +872,11 @@ subroutine write_normlcurv
   
   implicit none
   
-  integer :: numnodes, i, j, inode(4), nbound, numelms, itri
+  integer, dimension(nodes_per_element) :: inode
+  integer :: numnodes, i, j, nbound, numelms, itri
   integer :: i1, i2
   real :: dx1, dx2, dz1, dz2, norm1(2), norm2(2), l, dl1, dl2, dl
-  real :: vx1, vx2, vz1, vz2, ax, az
+  real :: vx1, vx2, vz1, vz2, ax, az, dum
   integer, allocatable :: id(:), adjacent(:,:), nn(:)
   real, allocatable :: x(:), z(:), norm(:,:), curv(:), curv_new(:)
 
@@ -996,7 +904,7 @@ subroutine write_normlcurv
      if(.not.is_boundary_node(i)) cycle
      nbound = nbound + 1
      
-     call get_node_pos(i,x(nbound),z(nbound))
+     call get_node_pos(i,x(nbound),dum,z(nbound))
      id(nbound) = i
      nn(i) = nbound
   end do
@@ -1103,6 +1011,7 @@ end subroutine write_normlcurv
 !============================================================
 subroutine space(ifirstcall)
 
+  use element
   use p_data
   use mesh_mod
   use basic
@@ -1114,8 +1023,11 @@ subroutine space(ifirstcall)
 
   integer, intent(in) :: ifirstcall
 
-  integer :: maxdofs1, maxdofs2, maxdofs3, maxdofsn
   integer :: numelms
+
+#ifdef USESCOREC
+  integer :: maxdofs1, maxdofs2, maxdofs3, maxdofsn
+#endif
 
   if(myrank.eq.1 .and. iprint.ge.1) print *, " Entering space..."
 
@@ -1129,9 +1041,7 @@ subroutine space(ifirstcall)
   endif
 
 ! add electrostatic potential equation
-#ifdef USECOMPLEX
-  if(jadv.eq.0) vecsize_phi = vecsize_phi + 1
-#endif
+  if(jadv.eq.0 .and. i3d.eq.1) vecsize_phi = vecsize_phi + 1
 
   if(isplitstep.eq.0) then
      vecsize_vel  = vecsize_phi
@@ -1144,22 +1054,22 @@ subroutine space(ifirstcall)
 #ifdef USESCOREC
   if(ifirstcall .eq. 1) then
      call createdofnumbering(numvar1_numbering, iper, jper, &
-          6, 0, 0, 0, maxdofs1)
+          dofs_per_node, 0, 0, 0, maxdofs1)
      call createdofnumbering(numvar2_numbering, iper, jper, &
-          12, 0, 0, 0, maxdofs2)
+          2*dofs_per_node, 0, 0, 0, maxdofs2)
      call createdofnumbering(numvar3_numbering, iper, jper, &
-          18, 0, 0, 0, maxdofs3)
+          3*dofs_per_node, 0, 0, 0, maxdofs3)
      if(num_fields.gt.3) then
         call createdofnumbering(num_fields, iper, jper, &
-             num_fields*6, 0, 0, 0, maxdofsn)
+             num_fields*dofs_per_node, 0, 0, 0, maxdofsn)
      endif
      if(vecsize_phi.gt.3 .and. vecsize_phi.ne.num_fields) then
         call createdofnumbering(vecsize_phi, iper, jper, &
-             vecsize_phi*6, 0, 0, 0, maxdofsn)
+             vecsize_phi*dofs_per_node, 0, 0, 0, maxdofsn)
      endif
      if(vecsize_vel.gt.3 .and. vecsize_vel.ne.vecsize_phi) then
         call createdofnumbering(vecsize_vel, iper, jper, &
-             vecsize_vel*6, 0, 0, 0, maxdofsn)
+             vecsize_vel*dofs_per_node, 0, 0, 0, maxdofsn)
      endif
 
 #ifdef USERW
@@ -1240,11 +1150,13 @@ subroutine space(ifirstcall)
   ! arrays associated with the triangles
   if(ifirstcall.eq.0) then
      if(myrank.eq.0 .and. iprint.eq.1) print *, ' deallocating...'
-     deallocate(gtri,gtri_old)
+     deallocate(gtri,gtri_old,htri)
   endif
   
   if(myrank.eq.0 .and. iprint.eq.1) print *, ' Allocating tri...'
-  allocate(gtri(20,18,numelms),gtri_old(20,18,numelms)) 
+  allocate(gtri(coeffs_per_tri,dofs_per_tri,numelms))
+  allocate(gtri_old(coeffs_per_tri,dofs_per_tri,numelms))
+  allocate(htri(coeffs_per_dphi,dofs_per_dphi,numelms))
 
   if(myrank.eq.0 .and. iprint.eq.1) print *, ' associating...'
   call associate_field(u_field(1),   field_vec, u_g)

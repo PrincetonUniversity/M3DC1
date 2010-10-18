@@ -13,17 +13,18 @@ contains
 
   subroutine analytic_solution(n, x, z, soln)
     use math
+    use element
 
     implicit none
 
     integer, intent(in) :: n
     real, intent(in) :: x, z
-    real, intent(out), dimension(6) :: soln
+    real, intent(out), dimension(dofs_per_node) :: soln
 
     integer :: i
-    real :: fac, s(6)
+    real :: fac, s(dofs_per_node)
     
-    soln(1:6) = 0.
+    soln = 0.
 
     do i=0, n
        fac = binomial(2*n+1, 2*i)*(-1)**i
@@ -62,7 +63,7 @@ contains
     use sparse
     use arrays
     use mesh_mod
-    use nintegrate_mod
+    use m3dc1_nint
     use boundary_conditions
 
     implicit none
@@ -74,7 +75,7 @@ contains
     integer :: idim(3), izone, izonedim
     logical :: is_boundary
     real :: normal(2), curv
-    vectype, dimension(20) :: avec
+    vectype, dimension(coeffs_per_element) :: avec
 
     type(element_data) :: d
     type(field_type) :: rhs, bcs
@@ -100,10 +101,10 @@ contains
     do itri=1,numelms
        call get_element_nodes(itri,inode)
 
-       call define_triangle_quadrature(itri,25)
+       call define_element_quadrature(itri,25,5)
        call define_fields(itri,0,1,0)
 
-       call get_basis_indices(1, itri, ind)
+       call get_element_indices(1, itri, ind)
     
        do i=1, dofs_per_element
           do j=1, dofs_per_element
@@ -131,7 +132,7 @@ contains
        do ii=1,edges_per_element
           if(.not.is_edge(ii)) cycle
           
-          call define_edge_quadrature(itri, ii, 5, n, idim)
+          call define_boundary_quadrature(itri, ii, 5, n, idim)
           call define_fields(itri, 0, 1, 0)
           
           do i=1,dofs_per_element
@@ -184,8 +185,8 @@ contains
 !!$       bcs(ibegin+5) =                     - 6.*x      + 6.*z
 !!$
 !!$
-       call analytic_solution(solution_order,x,z,soln(1:6))
-       call set_node_data(bcs, i, soln(1:6))
+       call analytic_solution(solution_order,x,z,soln(1:dofs_per_node))
+       call set_node_data(bcs, i, soln(1:dofs_per_node))
     end do
    
     call boundary_biharmonic(rhs, bcs, biharmonic_mat)
@@ -213,18 +214,20 @@ contains
     sum = 0.
     sum2 = 0.
     do itri=1, numelms
-       call define_triangle_quadrature(itri,npts_biharmonic)
+       call define_element_quadrature(itri,npts_biharmonic,5)
        call define_fields(itri,0,0,0)
        call get_element_data(itri,d)
 
        call calcavector(itri, rhs, avec)
-       call eval_ops(avec, si_79, eta_79, d%co, d%sn, ri_79, npoints, ps079)
+       call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
+            npoints, ps079)
 
 !!$       call biharmonic_solution(x_79,z_79,1.,soln)
 !!$       ps179(:,OP_1) = soln
 !!$       ps179(:,OP_1) = x_79**3 - 3.*x_79**2*z_79 - 3.*x_79*z_79**2 + z_79**3
        do i=1, npts_biharmonic
-          call analytic_solution(solution_order,x_79(i),z_79(i),soln(1:6))
+          call analytic_solution(solution_order,x_79(i),z_79(i), &
+               soln(1:dofs_per_node))
           ps179(i,OP_1) = soln(1)
        end do
 

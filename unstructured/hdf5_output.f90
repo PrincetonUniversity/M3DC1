@@ -7,8 +7,8 @@ module hdf5_output
   integer(HID_T) :: file_id
   integer :: offset, global_elms
   integer :: times_output
-  logical :: initialized = .false.
-  character(LEN=7), parameter :: hdf5_filename = "C1.h5"
+  logical, private :: initialized = .false.
+  character(LEN=7), parameter, private :: hdf5_filename = "C1.h5"
 
 contains
 
@@ -40,7 +40,6 @@ contains
 
     integer(HID_T) :: root_id, plist_id
     integer :: info
-
 
     call h5open_f(error)
     if(error.lt.0) then
@@ -344,4 +343,3 @@ contains
   end subroutine output_scalar
 
 end module hdf5_output
-

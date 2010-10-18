@@ -10,95 +10,96 @@ module scorec_vector_mod
   integer, parameter :: VEC_ADD = 1
 
   interface assignment(=)
-     module procedure copy_scorec_vec 
-     module procedure const_scorec_vec_real
+     module procedure scorec_vector_copy
+     module procedure scorec_vector_const_real
   end interface
 
   interface add
-     module procedure add_scorec_vectors
-  end interface
-
-  interface mult
-     module procedure multiply_scorec_vector_by_real
-#ifdef USECOMPLEX
-     module procedure multiply_scorec_vector_by_complex
-#endif
+     module procedure scorec_vector_add
   end interface
 
   interface create_vector
-     module procedure create_scorec_vec
+     module procedure scorec_vector_create
   end interface
 
   interface destroy_vector
-     module procedure destroy_scorec_vec
+     module procedure scorec_vector_destroy
   end interface
 
-  interface insert
-     module procedure insert_real_scorec_vec
+  interface finalize
+     module procedure scorec_vector_finalize
+  end interface
+
+  interface get_element_indices
+     module procedure scorec_vector_get_element_indices
+  end interface
+
+  interface get_global_node_index
+     module procedure scorec_vector_get_global_node_index
+  end interface
+
+  interface get_global_node_indices
+     module procedure scorec_vector_get_global_node_indices
+  end interface
+
+  interface get_node_data
+     module procedure scorec_vector_get_node_data_real
 #ifdef USECOMPLEX
-     module procedure insert_complex_scorec_vec
+     module procedure scorec_vector_get_node_data_complex
 #endif
   end interface
 
-  interface vector_insert_block
-     module procedure scorec_vector_insert_block
+  interface get_node_index
+     module procedure scorec_vector_get_node_index
   end interface
 
-  interface get_basis_indices
-     module procedure get_basis_indices_scorec
+  interface get_node_indices
+     module procedure scorec_vector_get_node_indices
+  end interface
+
+  interface global_node_index
+     module procedure scorec_vector_global_node_index
+  end interface
+
+  interface insert
+     module procedure scorec_vector_insert_real
+#ifdef USECOMPLEX
+     module procedure scorec_vector_insert_complex
+#endif
+  end interface
+
+  interface is_nan
+     module procedure scorec_vector_is_nan
+  end interface
+
+  interface mult
+     module procedure scorec_vector_multiply_real
+#ifdef USECOMPLEX
+     module procedure scorec_vector_multiply_complex
+#endif
   end interface
 
   interface node_index
      module procedure node_index_vector
   end interface
 
-  interface global_node_index
-     module procedure global_node_index_vector
-  end interface
-
-  interface get_dof_indices
-     module procedure get_dof_indices_scorec
-  end interface
-
-  interface get_global_dof_indices
-     module procedure get_global_dof_indices_scorec
-  end interface
-
-  interface get_node_index
-     module procedure get_node_index_scorec
-  end interface
-
-  interface get_global_node_index
-     module procedure get_global_node_index_scorec
-  end interface
-
-  interface set_vector_node_data
-     module procedure set_vector_node_data_real
+  interface set_node_data
+     module procedure scorec_vector_set_node_data_real
 #ifdef USECOMPLEX
-     module procedure set_vector_node_data_complex
+     module procedure scorec_vector_set_node_data_complex
 #endif
-  end interface
-  interface get_vector_node_data
-     module procedure get_vector_node_data_real
-#ifdef USECOMPLEX
-     module procedure get_vector_node_data_complex
-#endif
-  end interface
-
-  interface is_nan
-     module procedure scorec_is_nan
-  end interface
-
-  interface finalize
-     module procedure finalize_scorec_vector
-  end interface
-
-  interface flush
-     module procedure flush_scorec_vector
   end interface
 
   interface sum_shared
-     module procedure sum_shared_scorec_vector
+     module procedure scorec_vector_sum_shared
+  end interface
+
+  interface vector_insert_block
+     module procedure scorec_vector_insert_block
+  end interface
+
+  interface write_vector
+     module procedure scorec_vector_write
   end interface
 
 contains
@@ -106,22 +107,23 @@ contains
   !========================================================
   ! dof_index
   ! ~~~~~~~~~
-  ! Get the dof index where ifirst is the first index associated with the node
-  ! iplace is the field place, and idof is the local dof number
+  ! Get the dof index where 
+  ! ifirst is the first index associated with the node 
+  ! iplace is the field place, and 
+  ! idof is the local dof number
   !========================================================
   integer function dof_index(ifirst, iplace, idof)
     integer, intent(in) :: ifirst, iplace, idof
     dof_index = ifirst + (iplace-1)*dofs_per_node + idof-1
   end function dof_index
   
-
   !========================================================
-  ! get_node_index_scorec
-  ! ~~~~~~~~~~~~~~~~~~~~~
+  ! get_node_index
+  ! ~~~~~~~~~~~~~~
   ! returns the index of node inode in field iplace
   ! of a vector of size isize
   !========================================================
-  subroutine get_node_index_scorec(inode, iplace, isize, ind)
+  subroutine scorec_vector_get_node_index(inode, iplace, isize, ind)
 
     implicit none
     integer, intent(in) :: iplace, isize, inode
@@ -130,15 +132,15 @@ contains
     integer :: ibegin, iendplusone
     call entdofs(isize, inode, 0, ibegin, iendplusone)
     ind = ibegin + (iplace-1)*dofs_per_node
-  end subroutine get_node_index_scorec
+  end subroutine scorec_vector_get_node_index
 
   !========================================================
   ! get_global_node_index_scorec
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ! returns the index of node inode in field iplace
   ! of a vector of size isize
   !========================================================
-  subroutine get_global_node_index_scorec(inode, iplace, isize, ind)
+  subroutine scorec_vector_get_global_node_index(inode, iplace, isize, ind)
 
     implicit none
     integer, intent(in) :: iplace, isize, inode
@@ -147,16 +149,16 @@ contains
     integer :: ibegin, iendplusone
     call globalentdofs(isize, inode, 0, ibegin, iendplusone)
     ind = ibegin + (iplace-1)*dofs_per_node
-  end subroutine get_global_node_index_scorec
+  end subroutine scorec_vector_get_global_node_index
 
 
   !========================================================
-  ! get_dof_indices
-  ! ~~~~~~~~~~~~~~~
-  ! returns the indices of node inode for each field
+  ! get_node_indices
+  ! ~~~~~~~~~~~~~~~~
+  ! returns the global indices of node inode for each field
   ! of a vector of size isize
   !========================================================
-  subroutine get_dof_indices_scorec(isize, inode, ind)
+  subroutine scorec_vector_get_node_indices(isize, inode, ind)
 
     implicit none
     integer, intent(in) :: isize, inode
@@ -170,15 +172,15 @@ contains
        end do
     end do
 
-  end subroutine get_dof_indices_scorec
+  end subroutine scorec_vector_get_node_indices
 
   !========================================================
-  ! get_global_dof_indices
-  ! ~~~~~~~~~~~~~~~~~~~~~~
-  ! returns the indices of node inode for each field
-  ! of a vector of size isize
+  ! get_global_nodes_indices
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~
+  ! returns the indices of dofs associated with node inode
+  ! for each field of a vector of size isize
   !========================================================
-  subroutine get_global_dof_indices_scorec(isize, inode, ind)
+  subroutine scorec_vector_get_global_node_indices(isize, inode, ind)
 
     implicit none
     integer, intent(in) :: isize, inode
@@ -191,7 +193,7 @@ contains
           ind(i,j) = ibegin + (i-1)*dofs_per_node + j - 1
        end do
     end do
-  end subroutine get_global_dof_indices_scorec
+  end subroutine scorec_vector_get_global_node_indices
 
 
   !======================================================================
@@ -199,7 +201,7 @@ contains
   ! ~~~~~~~~~~~~~~~~~~
   ! adds v2 to v1.  result is stored in v1
   !======================================================================
-  subroutine add_scorec_vectors(v1, v2)
+  subroutine scorec_vector_add(v1, v2)
     use mesh_mod
 
     implicit none
@@ -224,9 +226,9 @@ contains
           v1%data(i1:i1+dofs-1) = v1%data(i1:i1+dofs-1) + v2%data(i2:i2+dofs-1)
        end do
     endif
-  end subroutine add_scorec_vectors
+  end subroutine scorec_vector_add
 
-  subroutine multiply_scorec_vector_by_real(v, s)
+  subroutine scorec_vector_multiply_real(v, s)
     implicit none
 
     type(scorec_vector), intent(inout) :: v
@@ -234,10 +236,10 @@ contains
 
     if(.not.allocated(v%data)) print *, 'Error: vector not allocated'
     v%data = v%data * s
-  end subroutine multiply_scorec_vector_by_real
+  end subroutine scorec_vector_multiply_real
 
 #ifdef USECOMPLEX
-  subroutine multiply_scorec_vector_by_complex(v, s)
+  subroutine scorec_vector_multiply_complex(v, s)
     implicit none
 
     type(scorec_vector), intent(inout) :: v
@@ -245,7 +247,7 @@ contains
 
     if(.not.allocated(v%data)) print *, 'Error: vector not allocated'
     v%data = v%data * s
-  end subroutine multiply_scorec_vector_by_complex
+  end subroutine scorec_vector_multiply_complex
 #endif
 
 
@@ -254,7 +256,7 @@ contains
   ! ~~~~~~~~~~~~~~~~~~~~~
   ! set all elements of v to s
   !======================================================================
-  subroutine const_scorec_vec_real(v,s)
+  subroutine scorec_vector_const_real(v,s)
     implicit none
 
     type(scorec_vector), intent(inout) :: v
@@ -262,11 +264,10 @@ contains
 
     if(.not.allocated(v%data)) print *, 'Error: vector not allocated'
     v%data = s
-  end subroutine const_scorec_vec_real
+  end subroutine scorec_vector_const_real
 
 
-
-  subroutine get_vector_node_data_real(v, iplace, inode, data)
+  subroutine scorec_vector_get_node_data_real(v, iplace, inode, data)
     implicit none
     type(scorec_vector), intent(in) :: v
     integer, intent(in) :: inode, iplace
@@ -275,11 +276,11 @@ contains
     integer :: index
     call get_node_index(inode, iplace, v%isize, index)
     data = v%data(index:index+dofs_per_node-1)
-  end subroutine get_vector_node_data_real
+  end subroutine scorec_vector_get_node_data_real
 
 
 #ifdef USECOMPLEX
-  subroutine get_vector_node_data_complex(v, iplace, inode, data)
+  subroutine scorec_vector_get_node_data_complex(v, iplace, inode, data)
     implicit none
     type(scorec_vector), intent(in) :: v
     integer, intent(in) :: inode, iplace
@@ -288,10 +289,10 @@ contains
     integer :: index
     call get_node_index(inode, iplace, v%isize, index)
     data = v%data(index:index+dofs_per_node-1)
-  end subroutine get_vector_node_data_complex
+  end subroutine scorec_vector_get_node_data_complex
 #endif
 
-  subroutine set_vector_node_data_real(v, iplace, inode, data)
+  subroutine scorec_vector_set_node_data_real(v, iplace, inode, data)
     implicit none
     type(scorec_vector), intent(inout) :: v
     integer, intent(in) :: inode, iplace
@@ -300,10 +301,10 @@ contains
     integer :: index
     call get_node_index(inode, iplace, v%isize, index)
     v%data(index:index+dofs_per_node-1) = data
-  end subroutine set_vector_node_data_real
+  end subroutine scorec_vector_set_node_data_real
 
 #ifdef USECOMPLEX
-  subroutine set_vector_node_data_complex(v, iplace, inode, data)
+  subroutine scorec_vector_set_node_data_complex(v, iplace, inode, data)
     implicit none
     type(scorec_vector), intent(inout) :: v
     integer, intent(in) :: inode, iplace
@@ -312,17 +313,17 @@ contains
     integer :: index
     call get_node_index(inode, iplace, v%isize, index)
     v%data(index:index+dofs_per_node-1) = data
-  end subroutine set_vector_node_data_complex
+  end subroutine scorec_vector_set_node_data_complex
 #endif
 
 
 
   !======================================================================
-  ! copy_scorec_vec
-  ! ~~~~~~~~~~~~~~~
+  ! copy
+  ! ~~~~
   ! copy data from vin to vout
   !======================================================================
-  subroutine copy_scorec_vec(vout,vin)
+  subroutine scorec_vector_copy(vout,vin)
     use mesh_mod
 
     implicit none
@@ -345,14 +346,14 @@ contains
        vout%data = vin%data
     endif
 
-  end subroutine copy_scorec_vec
+  end subroutine scorec_vector_copy
 
   !======================================================================
-  ! insert_scorec_vec
-  ! ~~~~~~~~~~~~~~~~~
+  ! insert
+  ! ~~~~~~
   ! set element i of v to s
   !======================================================================
-  subroutine insert_real_scorec_vec(v, i, s, iop)
+  subroutine scorec_vector_insert_real(v, i, s, iop)
     implicit none
     
     type(scorec_vector), intent(inout) :: v
@@ -368,10 +369,10 @@ contains
     case default
        print *, 'Error: invalid vector operation'
     end select
-  end subroutine insert_real_scorec_vec
+  end subroutine scorec_vector_insert_real
 
 #ifdef USECOMPLEX
-  subroutine insert_complex_scorec_vec(v, i, s, iop)
+  subroutine scorec_vector_insert_complex(v, i, s, iop)
     implicit none
     
     type(scorec_vector), intent(inout) :: v
@@ -387,16 +388,16 @@ contains
     case default
        print *, 'Error: invalid vector operation'
     end select
-  end subroutine insert_complex_scorec_vec
+  end subroutine scorec_vector_insert_complex
 
 #endif 
 
   !======================================================================
-  ! create_scorec_vec
-  ! ~~~~~~~~~~~~~~~~~
+  ! create
+  ! ~~~~~~
   ! creates a vector of size n
   !======================================================================
-  subroutine create_scorec_vec(f,n)
+  subroutine scorec_vector_create(f,n)
     implicit none
 
     type(scorec_vector), intent(inout) :: f
@@ -413,14 +414,14 @@ contains
 #endif
     f%data = 0.
     f%isize = n
-  end subroutine create_scorec_vec
+  end subroutine scorec_vector_create
 
   !======================================================================
-  ! destroy_scorec_vec
-  ! ~~~~~~~~~~~~~~~~~~
+  ! destroy
+  ! ~~~~~~~
   ! frees the memory allocated with create_field
   !======================================================================
-  subroutine destroy_scorec_vec(f)
+  subroutine scorec_vector_destroy(f)
     implicit none
 
     type(scorec_vector), intent(inout) :: f
@@ -431,7 +432,7 @@ contains
        call deleteppplvec(f%data)
        deallocate(f%data)
     endif
-  end subroutine destroy_scorec_vec
+  end subroutine scorec_vector_destroy
 
   subroutine scorec_vector_insert_block(v, itri, m, val, iop)
     implicit none
@@ -442,14 +443,14 @@ contains
     integer, dimension(v%isize, dofs_per_element) :: irow
     integer :: i
 
-    call get_basis_indices(v%isize, itri, irow)
+    call get_element_indices(v%isize, itri, irow)
 
     do i=1,dofs_per_element
        call insert(v, irow(m,i), val(i), iop)
     end do
   end subroutine scorec_vector_insert_block
 
-  subroutine get_basis_indices_scorec(isize, itri, ind)
+  subroutine scorec_vector_get_element_indices(isize, itri, ind)
     use mesh_mod
     implicit none
     integer, intent(in) :: isize, itri
@@ -463,40 +464,35 @@ contains
 
     i = 1
     do iii=1,nodes_per_element
-       call get_dof_indices(isize, inode(iii), temp)
+       call get_node_indices(isize, inode(iii), temp)
        ind(:,i:i+dofs_per_node-1) = temp
        i = i + dofs_per_node
     end do
        
-  end subroutine get_basis_indices_scorec
+  end subroutine scorec_vector_get_element_indices
 
-  logical function scorec_is_nan(v)
+  logical function scorec_vector_is_nan(v)
     implicit none
     type(scorec_vector) :: v
 
-    scorec_is_nan = v%data(1).ne.v%data(1)
-  end function scorec_is_nan
+    scorec_vector_is_nan = v%data(1).ne.v%data(1)
+  end function scorec_vector_is_nan
 
-  subroutine finalize_scorec_vector(v)
+  subroutine scorec_vector_finalize(v)
     implicit none
     type(scorec_vector) :: v
-  end subroutine finalize_scorec_vector
-
-  subroutine flush_scorec_vector(v)
-    implicit none
-    type(scorec_vector) :: v
-  end subroutine flush_scorec_vector
+  end subroutine scorec_vector_finalize
 
 
-  subroutine sum_shared_scorec_vector(v)
+  subroutine scorec_vector_sum_shared(v)
     implicit none
     type(scorec_vector) :: v
 
     call sumsharedppplvecvals(v%data)
-  end subroutine sum_shared_scorec_vector
+  end subroutine scorec_vector_sum_shared
 
 
-  subroutine write_vector(v, file)
+  subroutine scorec_vector_write(v, file)
     implicit none
     type(scorec_vector), intent(in) :: v
     character(len=*) :: file    
@@ -505,7 +501,7 @@ contains
     write(29, '(1e20.10)') v%data
     close(29)
 
-  end subroutine write_vector
+  end subroutine scorec_vector_write
 
 
 !==========================================================================
@@ -526,10 +522,10 @@ contains
   end function node_index_vector
 
   !======================================================================
-  ! global_node_index_vector
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~
+  ! global_node_index
+  ! ~~~~~~~~~~~~~~~~~
   !======================================================================
-  integer function global_node_index_vector(v, inode, iplace)
+  integer function scorec_vector_global_node_index(v, inode, iplace)
     implicit none
     
     type(vector_type), intent(in) :: v
@@ -537,7 +533,7 @@ contains
     integer, intent(in) :: iplace
 
     call get_global_node_index(inode, iplace, v%isize, &
-         global_node_index_vector)
-  end function global_node_index_vector
+         scorec_vector_global_node_index)
+  end function scorec_vector_global_node_index
 
 end module scorec_vector_mod

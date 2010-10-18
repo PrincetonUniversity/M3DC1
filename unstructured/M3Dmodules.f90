@@ -296,6 +296,7 @@ module basic
        idevice,igs,nv1equ,tol_gs,igs_method,psiscale,          &
        iconstflux,regular,max_ke,                              &
        ntor,mpol,iadapt,istatic,iestatic,ivform, ibform,       &
+       nplanes,                                                &
        ihypeta,ihypamu,ihypkappa,ikapscale,                    &
        iteratephi, icsym, inumgs, nonrect, ifixedb,            &
        inonormalflow, inoslip_pol, inoslip_tor, inostress_tor, &
@@ -334,10 +335,6 @@ module basic
 
   integer :: ntime, ntime0
   character*10 :: datec, timec
-
-  integer :: ni(20),mi(20)  
-  data mi /0,1,0,2,1,0,3,2,1,0,4,3,2,1,0,5,3,2,1,0/
-  data ni /0,0,1,0,1,2,0,1,2,3,0,1,2,3,4,0,2,3,4,5/
 
 ! MPI variable(s)
   integer myrank, maxrank
@@ -389,14 +386,6 @@ module arrays
 
   ! the following pointers point to the locations of the named field within
   ! the respective vector.  set by assign_local_pointers()
-!!$  vectype, pointer ::   u1_l(:),   u0_l(:)
-!!$  vectype, pointer ::  vz1_l(:),  vz0_l(:)
-!!$  vectype, pointer :: chi1_l(:), chi0_l(:)
-!!$  vectype, pointer :: psi1_l(:), psi0_l(:)
-!!$  vectype, pointer ::  bz1_l(:),  bz0_l(:)
-!!$  vectype, pointer ::  pe1_l(:),  pe0_l(:)
-!!$  vectype, pointer :: den1_l(:), den0_l(:)
-!!$  vectype, pointer ::   p1_l(:),   p0_l(:)
   vectype, dimension(dofs_per_node) ::   u1_l,   u0_l
   vectype, dimension(dofs_per_node) ::  vz1_l,  vz0_l
   vectype, dimension(dofs_per_node) :: chi1_l, chi0_l
@@ -421,22 +410,6 @@ contains
 
     integer, intent(in) :: inode
 
-!!$    call field_get_local_pointer(  u_field(0), inode,   u0_l)
-!!$    call field_get_local_pointer( vz_field(0), inode,  vz0_l)
-!!$    call field_get_local_pointer(chi_field(0), inode, chi0_l)
-!!$    call field_get_local_pointer(psi_field(0), inode, psi0_l)
-!!$    call field_get_local_pointer( bz_field(0), inode,  bz0_l)
-!!$    call field_get_local_pointer( pe_field(0), inode,  pe0_l)
-!!$    call field_get_local_pointer(  p_field(0), inode,   p0_l)
-!!$    call field_get_local_pointer(den_field(0), inode, den0_l)
-!!$    call field_get_local_pointer(  u_field(1), inode,   u1_l)
-!!$    call field_get_local_pointer( vz_field(1), inode,  vz1_l)
-!!$    call field_get_local_pointer(chi_field(1), inode, chi1_l)
-!!$    call field_get_local_pointer(psi_field(1), inode, psi1_l)
-!!$    call field_get_local_pointer( bz_field(1), inode,  bz1_l)
-!!$    call field_get_local_pointer( pe_field(1), inode,  pe1_l)
-!!$    call field_get_local_pointer(  p_field(1), inode,   p1_l)
-!!$    call field_get_local_pointer(den_field(1), inode, den1_l)
     call get_node_data(  u_field(0), inode,   u0_l)
     call get_node_data( vz_field(0), inode,  vz0_l)
     call get_node_data(chi_field(0), inode, chi0_l)
@@ -553,9 +526,10 @@ module sparse
 contains
   subroutine delete_matrices
     implicit none
-    integer :: i
 
 #ifdef USESCOREC
+    integer :: i
+
     do i=1, num_matrices
        call deletematrix(i)
     end do

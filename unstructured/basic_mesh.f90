@@ -5,12 +5,11 @@ module basic_mesh_mod
 
   logical :: is_rectilinear
 
-  vectype, allocatable :: gtri(:,:,:), gtri_old(:,:,:)
-
   real :: xzero, zzero
   real :: tiltangled
   integer :: iper, jper
   integer :: icurv
+  integer :: nplanes
 
   integer, parameter :: maxi = 20
 
@@ -19,7 +18,7 @@ module basic_mesh_mod
 
   type, private :: node_type
      integer :: izone, idim
-     real :: x, z
+     real :: R, Phi, Z
      real :: normal(2), curv
   end type node_type
 
@@ -31,6 +30,7 @@ module basic_mesh_mod
   integer, private :: num_local_nodes     ! local nodes, excluding ghosts
   integer, private :: total_local_nodes   ! local nodes, including ghosts
   integer, private :: num_local_elements
+  integer, private :: nodes_per_plane
 
   type(node_type), allocatable, private :: local_node(:)
   type(element_type), allocatable, private :: local_elm(:)
@@ -43,6 +43,8 @@ contains
 
   subroutine load_mesh
 
+    use math
+
     implicit none
 
 #include "finclude/petsc.h"
@@ -53,16 +55,16 @@ contains
 #endif
 #include "finclude/petscis.h90"
 
-    integer, parameter :: m = 9
-    integer, parameter :: n = 9
+    integer, parameter :: m = 11
+    integer, parameter :: n = 11
 
-    real :: dx, dz
+    real :: dx, dphi, dz
     integer :: num_global_elements
     type(node_type), allocatable :: global_node(:)
     type(element_type), allocatable :: global_elm(:)
     Mat :: connectivity, adjacency
     MatPartitioning :: partitioning
-    integer :: i, j, k, ierr, rank, size, itri
+    integer :: i, j, k, l, ierr, rank, size, itri
     integer :: min_node, max_node
     integer, allocatable :: local_id(:)
     logical, allocatable :: is_ghost(:)
@@ -82,52 +84,68 @@ contains
 
     dx = (bb(3) - bb(1))/(m-1)
     dz = (bb(4) - bb(2))/(n-1)
+    dphi = twopi/nplanes
 
-    num_global_nodes = m*n
-    num_global_elements = 2*(m-1)*(n-1)
+    nodes_per_plane = m*n
+    num_global_nodes = nodes_per_plane*nplanes
+    num_global_elements = 2*(m-1)*(n-1)*nplanes
 
     allocate(global_node(num_global_nodes), global_elm(num_global_elements))
 
     ! initialize nodes
     ! ~~~~~~~~~~~~~~~~
     k = 1
-    do i=1,m
-       do j=1,n
-          global_node(k)%x = dx*(j-1) + bb(1)
-          global_node(k)%z = dz*(i-1) + bb(2)
-          global_node(k)%idim = 2
-          if(j.eq.1 .or. j.eq.n) then
-             global_node(k)%idim = global_node(k)%idim - 1
-             global_node(k)%normal(2) = 0
-             global_node(k)%curv = 0
-             if(j.eq.1) global_node(k)%normal(1) = -1
-             if(j.eq.n) global_node(k)%normal(1) = 1
-          endif
-          if(i.eq.1 .or. i.eq.m) then
-             global_node(k)%idim = global_node(k)%idim - 1
-             global_node(k)%normal(1) = 0
-             global_node(k)%curv = 0
-             if(i.eq.1) global_node(k)%normal(2) = -1
-             if(i.eq.m) global_node(k)%normal(2) = 1
-          endif
-
-          k = k + 1
+    do l=1, nplanes
+       do i=1,m
+          do j=1,n
+             global_node(k)%R =   dx  *(j-1) + bb(1)
+             global_node(k)%Z =   dz  *(i-1) + bb(2)
+             global_node(k)%Phi = dphi*(l-1)
+             global_node(k)%idim = 2
+             if(j.eq.1 .or. j.eq.n) then
+                global_node(k)%idim = global_node(k)%idim - 1
+                global_node(k)%normal(2) = 0
+                global_node(k)%curv = 0
+                if(j.eq.1) global_node(k)%normal(1) = -1
+                if(j.eq.n) global_node(k)%normal(1) = 1
+             endif
+             if(i.eq.1 .or. i.eq.m) then
+                global_node(k)%idim = global_node(k)%idim - 1
+                global_node(k)%normal(1) = 0
+                global_node(k)%curv = 0
+                if(i.eq.1) global_node(k)%normal(2) = -1
+                if(i.eq.m) global_node(k)%normal(2) = 1
+             endif
+             k = k + 1
+          end do
        end do
     end do
 
     ! initialize elements
     ! ~~~~~~~~~~~~~~~~~~~
     k = 1
-    do i=1,m-1
-       do j=1,n-1
-          global_elm(k)%inode(1) = (i-1)*n + (j  )
-          global_elm(k)%inode(2) = (i  )*n + (j+1)
-          global_elm(k)%inode(3) = (i  )*n + (j  )
-          k = k + 1
-          global_elm(k)%inode(1) = (i-1)*n + (j  )
-          global_elm(k)%inode(2) = (i-1)*n + (j+1)
-          global_elm(k)%inode(3) = (i  )*n + (j+1)
-          k = k + 1
+    do l=1, nplanes
+       do i=1,m-1
+          do j=1,n-1
+             global_elm(k)%inode(1) = (i-1)*n + (j  ) + (l-1)*n*m
+             global_elm(k)%inode(2) = (i  )*n + (j+1) + (l-1)*n*m
+             global_elm(k)%inode(3) = (i  )*n + (j  ) + (l-1)*n*m
+#ifdef USE3D
+             global_elm(k)%inode(4) = (i-1)*n + (j  ) + mod(l,nplanes)*n*m
+             global_elm(k)%inode(5) = (i  )*n + (j+1) + mod(l,nplanes)*n*m
+             global_elm(k)%inode(6) = (i  )*n + (j  ) + mod(l,nplanes)*n*m
+#endif
+             k = k + 1
+             global_elm(k)%inode(1) = (i-1)*n + (j  ) + (l-1)*n*m
+             global_elm(k)%inode(2) = (i-1)*n + (j+1) + (l-1)*n*m
+             global_elm(k)%inode(3) = (i  )*n + (j+1) + (l-1)*n*m
+#ifdef USE3D
+             global_elm(k)%inode(4) = (i-1)*n + (j  ) + mod(l,nplanes)*n*m
+             global_elm(k)%inode(5) = (i-1)*n + (j+1) + mod(l,nplanes)*n*m
+             global_elm(k)%inode(6) = (i  )*n + (j+1) + mod(l,nplanes)*n*m
+#endif
+             k = k + 1
+          end do
        end do
     end do
 
@@ -135,97 +153,107 @@ contains
     call MPI_comm_rank(PETSC_COMM_WORLD,rank,ierr)
 
     ! Partition nodes
-    ! ~~~~~~~~~~~~~~~    
-    min_node = (num_global_nodes/size) * rank + 1
-    if(rank.eq.size-1) then
-       max_node = num_global_nodes
+    ! ~~~~~~~~~~~~~~~
+    if(nplanes.ne.1) then
+       min_node = (nplanes/size)*rank * nodes_per_plane + 1
+       if(rank.eq.size-1) then
+          max_node = num_global_nodes
+       else
+          max_node = min_node + (nplanes/size) * nodes_per_plane - 1
+       endif
+       num_local_nodes = max_node - min_node + 1
     else
-       max_node = min_node + num_global_nodes/size - 1
-    endif
-    num_local_nodes = max_node - min_node + 1
+       min_node = (num_global_nodes/size) * rank + 1
+       if(rank.eq.size-1) then
+          max_node = num_global_nodes
+       else
+          max_node = min_node + num_global_nodes/size - 1
+       endif
+       num_local_nodes = max_node - min_node + 1
 
-    ! Create Connectivity Matrix
-    call MatCreate(PETSC_COMM_WORLD, connectivity, ierr)
-    call MatSetSizes(connectivity, num_local_nodes, num_local_nodes, &
-         num_global_nodes, num_global_nodes, ierr)
-    call MatSetFromOptions(connectivity, ierr)
+       ! Create Connectivity Matrix
+       call MatCreate(PETSC_COMM_WORLD, connectivity, ierr)
+       call MatSetSizes(connectivity, num_local_nodes, num_local_nodes, &
+            num_global_nodes, num_global_nodes, ierr)
+       call MatSetFromOptions(connectivity, ierr)
 
-    print *, 'populating connectivity matrix'
-    do i=1, num_global_elements
-       do j=1, nodes_per_element
-          if(global_elm(i)%inode(j).lt.min_node) cycle
-          if(global_elm(i)%inode(j).gt.max_node) cycle
-          do k=1, nodes_per_element
-             if(j.eq.k) cycle
-             call MatSetValue(connectivity, global_elm(i)%inode(j)-1, &
-                  global_elm(i)%inode(k)-1, 1., INSERT_VALUES, ierr)
+       print *, 'populating connectivity matrix'
+       do i=1, num_global_elements
+          do j=1, nodes_per_element
+             if(global_elm(i)%inode(j).lt.min_node) cycle
+             if(global_elm(i)%inode(j).gt.max_node) cycle
+             do k=1, nodes_per_element
+                if(j.eq.k) cycle
+                call MatSetValue(connectivity, global_elm(i)%inode(j)-1, &
+                     global_elm(i)%inode(k)-1, 1., INSERT_VALUES, ierr)
+             end do
           end do
        end do
-    end do
+       
+       call MatAssemblyBegin(connectivity, MAT_FINAL_ASSEMBLY, ierr)
+       call MatAssemblyEnd(connectivity, MAT_FINAL_ASSEMBLY, ierr)
+       
+       call MatConvert(connectivity, MATMPIADJ, MAT_INITIAL_MATRIX, &
+            adjacency, ierr)
+       call MatDestroy(connectivity, ierr)
+       
+       call MatPartitioningCreate(PETSC_COMM_WORLD, partitioning, ierr)
+       call MatPartitioningSetAdjacency(partitioning, adjacency, ierr)
+       call MatPartitioningSetFromOptions(partitioning, ierr)
+       call MatPartitioningApply(partitioning, node_distribution, ierr)
+       call MatPartitioningDestroy(partitioning, ierr)
+       call MatDestroy(adjacency, ierr)
+       call ISPartitioningToNumbering(node_distribution,global_numbering,ierr)
+       
+       call AOCreateBasicIS(global_numbering, PETSC_NULL, ordering, ierr)
+       
+       call PetscViewerASCIIOpen(PETSC_COMM_WORLD,'node_distribution',pv,ierr)
+       call ISView(node_distribution, pv, ierr)
+       call PetscViewerDestroy(pv, ierr)
+       
+       call PetscViewerASCIIOpen(PETSC_COMM_WORLD,'global_numbering',pv,ierr)
+       call ISView(global_numbering, pv, ierr)
+       call PetscViewerDestroy(pv, ierr)
+       
+       call PetscViewerASCIIOpen(PETSC_COMM_WORLD, 'ordering', pv, ierr)
+       call AOView(ordering, pv, ierr)
+       call PetscViewerDestroy(pv, ierr)
 
-    call MatAssemblyBegin(connectivity, MAT_FINAL_ASSEMBLY, ierr)
-    call MatAssemblyEnd(connectivity, MAT_FINAL_ASSEMBLY, ierr)
+       ! Determine the number of nodes per process
+       ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+       allocate(nodes_per_proc_local(size), nodes_per_proc(size))
+       nodes_per_proc_local = 0
 
-    call MatConvert(connectivity, MATMPIADJ, MAT_INITIAL_MATRIX, adjacency, &
-         ierr)
-    call MatDestroy(connectivity, ierr)
+       call ISGetIndicesF90(node_distribution, idx, ierr)
+       do i=1, num_local_nodes
+          nodes_per_proc_local(idx(i)+1) = nodes_per_proc_local(idx(i)+1) + 1
+       end do
+       call ISRestoreIndicesF90(node_distribution, idx, ierr)
+       
+       call mpi_allreduce(nodes_per_proc_local, nodes_per_proc, size, &
+            MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
 
-    call MatPartitioningCreate(PETSC_COMM_WORLD, partitioning, ierr)
-    call MatPartitioningSetAdjacency(partitioning, adjacency, ierr)
-    call MatPartitioningSetFromOptions(partitioning, ierr)
-    call MatPartitioningApply(partitioning, node_distribution, ierr)
-    call MatPartitioningDestroy(partitioning, ierr)
-    call MatDestroy(adjacency, ierr)
-    call ISPartitioningToNumbering(node_distribution, global_numbering, ierr)
+       min_node = 1
+       do i=1, rank
+          min_node = min_node + nodes_per_proc(i)
+       end do
+       max_node = min_node + nodes_per_proc(i) - 1
+       num_local_nodes = nodes_per_proc(rank+1)
+       
+       deallocate(nodes_per_proc_local, nodes_per_proc)
 
-    call AOCreateBasicIS(global_numbering, PETSC_NULL, ordering, ierr)
+       ! Re-number element node data
+       ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+       do itri=1, num_global_elements
+          global_elm(itri)%inode = global_elm(itri)%inode - 1
+          call AOPetscToApplication(ordering, nodes_per_element, &
+               global_elm(itri)%inode, ierr)
+          global_elm(itri)%inode = global_elm(itri)%inode + 1
+       end do
+    endif
 
-    call PetscViewerASCIIOpen(PETSC_COMM_WORLD, 'node_distribution', pv, ierr)
-    call ISView(node_distribution, pv, ierr)
-    call PetscViewerDestroy(pv, ierr)
-
-    call PetscViewerASCIIOpen(PETSC_COMM_WORLD, 'global_numbering', pv, ierr)
-    call ISView(global_numbering, pv, ierr)
-    call PetscViewerDestroy(pv, ierr)
-
-    call PetscViewerASCIIOpen(PETSC_COMM_WORLD, 'ordering', pv, ierr)
-    call AOView(ordering, pv, ierr)
-    call PetscViewerDestroy(pv, ierr)
-
-
-    ! Determine the number of nodes per process
-    ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    allocate(nodes_per_proc_local(size), nodes_per_proc(size))
-    nodes_per_proc_local = 0
-
-    call ISGetIndicesF90(node_distribution, idx, ierr)
-    do i=1, num_local_nodes
-       nodes_per_proc_local(idx(i)+1) = nodes_per_proc_local(idx(i)+1) + 1
-    end do
-    call ISRestoreIndicesF90(node_distribution, idx, ierr)
-    
-    call mpi_allreduce(nodes_per_proc_local, nodes_per_proc, size, &
-         MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
-
-    min_node = 1
-    do i=1, rank
-       min_node = min_node + nodes_per_proc(i)
-    end do
-    max_node = min_node + nodes_per_proc(i) - 1
-    num_local_nodes = nodes_per_proc(rank+1)
-
-    deallocate(nodes_per_proc_local, nodes_per_proc)
-
+    print *, 'rank, min_node, max_node, local_nodes'
     print *, rank, min_node, max_node, num_local_nodes
-
-    ! Re-number element node data
-    ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    do itri=1, num_global_elements
-       global_elm(itri)%inode = global_elm(itri)%inode - 1
-       call AOPetscToApplication(ordering, nodes_per_element, &
-            global_elm(itri)%inode, ierr)
-       global_elm(itri)%inode = global_elm(itri)%inode + 1
-    end do
 
 
     ! Determine local elements
@@ -294,18 +322,22 @@ contains
     do i=1, num_local_nodes
        global_id(k) = i + min_node - 1
        local_id(global_id(k)) = k
-       ! the 'global_node' array uses the original ordering
        new_id(1) = global_id(k)-1
-       call AOApplicationToPetsc(ordering, 1, new_id, ierr)
+       if(nplanes.eq.1) then
+          ! the 'global_node' array uses the original ordering
+          call AOApplicationToPetsc(ordering, 1, new_id, ierr)
+       end if
        local_node(k) = global_node(new_id(1)+1)
        k = k + 1
     end do
     do i=1, num_ghost_nodes
        global_id(k) = ghost_node(i)
        local_id(ghost_node(i)) = k
-       ! the 'global_node' array uses the original ordering
        new_id(1) = ghost_node(i)-1
-       call AOApplicationToPetsc(ordering, 1, new_id, ierr)
+       if(nplanes.eq.1) then
+          ! the 'global_node' array uses the original ordering
+          call AOApplicationToPetsc(ordering, 1, new_id, ierr)
+       end if
        local_node(k) = global_node(new_id(1)+1)
        k = k + 1
     end do
@@ -324,7 +356,9 @@ contains
     deallocate(global_node)
     deallocate(global_elm)
 
-    call AODestroy(ordering, ierr)
+    if(nplanes.eq.1) then
+       call AODestroy(ordering, ierr)
+    end if
 
     print *, 'global nodes, elements', num_global_nodes, num_global_elements
     print *, 'local nodes, elements', num_local_nodes, num_local_elements    
@@ -482,16 +516,17 @@ contains
   !============================================================
   ! get_node_pos
   ! ~~~~~~~~~~~~
-  ! get the global coordinates (x,z) of node inode
+  ! get the global coordinates (R,Phi,Z) of node inode
   !============================================================
-  subroutine get_node_pos(inode,x,z)
+  subroutine get_node_pos(inode,R,Phi,Z)
     implicit none
     
     integer, intent(in) :: inode
-    real, intent(out) :: x, z
+    real, intent(out) :: R, Phi, Z
     
-    x = local_node(inode)%x
-    z = local_node(inode)%z
+    R = local_node(inode)%R
+    Phi = local_node(inode)%Phi
+    Z = local_node(inode)%Z
     
   end subroutine get_node_pos
 
@@ -503,21 +538,25 @@ contains
   ! node coordinates
   !============================================================
   subroutine get_element_data(itri, d)
+    use math
     implicit none
     integer, intent(in) :: itri
     type(element_data), intent(out) :: d
-    real :: x2, x3, z2, z3, x2p, x3p, z2p, z3p, hi
-    integer :: nodeids(4)
+    real :: x2, x3, z2, z3, x2p, x3p, z2p, z3p, hi, phi2, phi3
+    integer :: nodeids(nodes_per_element)
     
+    d%itri = itri
+
     call get_element_nodes(itri, nodeids)
     
-    call get_node_pos(nodeids(1), d%x, d%z)
-    call get_node_pos(nodeids(2), x2, z2)
-    call get_node_pos(nodeids(3), x3, z3)
-    x2 = x2 - d%x
-    z2 = z2 - d%z
-    x3 = x3 - d%x
-    z3 = z3 - d%z
+    call get_node_pos(nodeids(1), d%R, d%Phi, d%Z)
+    call get_node_pos(nodeids(2), x2, phi2, z2)
+    call get_node_pos(nodeids(3), x3, phi3, z3)
+
+    x2 = x2 - d%R
+    z2 = z2 - d%Z
+    x3 = x3 - d%R
+    z3 = z3 - d%Z
     
     hi = 1./sqrt(x2**2 + z2**2)
     d%co = x2*hi
@@ -531,10 +570,18 @@ contains
     d%a = x2p-x3p
     d%b = x3p
     d%c = z3p
+
+#ifdef USE3D
+    call get_node_pos(nodeids(4), x2, phi2, z2)
+    d%d = phi2 - d%Phi
+    if(d%d .le. 0.) d%d = d%d + twopi
+#else
+    d%d = 0.
+#endif
     
   end subroutine get_element_data
 
-  
+
   !============================================================
   ! whattri
   ! ~~~~~~~
@@ -543,32 +590,40 @@ contains
   ! itri = -1.  Otherwise, xref and zref are global coordinates
   ! of the first node of element itri.
   !============================================================
-  subroutine whattri(x,z,itri,xref,zref)
+  subroutine whattri(x,phi,z,ielm,xref,zref)
     implicit none
     
-    real, intent(in) :: x, z
-    integer, intent(inout) :: itri
+    real, intent(in) :: x, phi, z
+    integer, intent(inout) :: ielm
     real, intent(out) :: xref, zref
     
+    integer :: nelms, i
     type(element_data) :: d
-    integer :: i, numelms
-    real :: xi, eta
 
-    numelms = local_elements()
-    do i=1, numelms
-       call get_element_data(i, d)
-       call global_to_local(d, x, z, xi, eta)
-       if(eta .lt. 0.) cycle
-       if(eta .gt. d%c) cycle
-       if(xi .lt. -d%b*(1.-eta/d%c)) cycle
-       if(xi .gt.  d%a*(1.-eta/d%c)) cycle
-       itri = i
-       xref = d%x
-       zref = d%z
-       return
+    ! first, try ielm
+    if(ielm.gt.0) then
+       call get_element_data(ielm,d)
+       if(is_in_element(d,x,phi,z)) then
+          xref = d%R
+          zref = d%Z
+          return
+       endif
+    endif
+
+    ! try all elements
+    ielm = -1
+    nelms = local_elements()
+    do i=1, nelms
+       call get_element_data(i,d)
+       if(is_in_element(d,x,phi,z)) then
+          xref = d%R
+          zref = d%Z
+          ielm = i
+          return
+       end if
     end do
-    itri = -1
   end subroutine whattri
+
   
   !=========================================
   ! is_boundary_node
@@ -609,8 +664,8 @@ contains
        izonedim = local_node(inode)%idim
        normal = local_node(inode)%normal
        curv = local_node(inode)%curv
-       x = local_node(inode)%x
-       z = local_node(inode)%z
+       x = local_node(inode)%R
+       z = local_node(inode)%Z
     endif
   end subroutine boundary_node
 

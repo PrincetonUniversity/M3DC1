@@ -11,90 +11,97 @@ module scorec_matrix_mod
      logical :: lhs
   end type scorec_matrix
 
-  interface create_mat
-     module procedure create_scorec_matrix
-  end interface
+  integer, parameter :: MAT_SET = 0
+  integer, parameter :: MAT_ADD = 1
 
   interface clear_mat
-     module procedure clear_scorec_matrix
+     module procedure scorec_matrix_clear
+  end interface
+
+  interface create_mat
+     module procedure scorec_matrix_create
   end interface
 
   interface destroy_mat
-     module procedure destroy_scorec_matrix
-  end interface
-
-  interface set_matrix_index
-     module procedure set_scorec_index
-  end interface
-
-  interface matvecmult
-     module procedure matvecmult_scorec
-  end interface
-
-  interface newsolve
-     module procedure solve_scorec
+     module procedure scorec_matrix_destroy
   end interface
 
   interface finalize
-     module procedure finalize_scorec
+     module procedure scorec_matrix_finalize
   end interface
 
   interface flush
-     module procedure flush_scorec
+     module procedure scorec_matrix_flush
   end interface
 
-  interface get_dof_indices
-     module procedure scorec_matrix_get_dof_indices
+  interface get_global_node_indices
+     module procedure scorec_matrix_get_global_node_indices
   end interface
 
-  interface get_global_dof_indices
-     module procedure scorec_matrix_get_global_dof_indices
+  interface get_element_indices
+     module procedure scorec_matrix_get_element_indices
+  end interface
+
+  interface get_node_indices
+     module procedure scorec_matrix_get_node_indices
   end interface
 
   interface insert
-     module procedure insert_real_scorec
+     module procedure scorec_matrix_insert_real
 #ifdef USECOMPLEX
-     module procedure insert_complex_scorec
+     module procedure scorec_matrix_insert_complex
 #endif
+  end interface
+
+  interface insert_block
+     module procedure scorec_matrix_insert_block
   end interface
 
   interface insert_global
-     module procedure insert_global_real_scorec
+     module procedure scorec_matrix_insert_global_real
 #ifdef USECOMPLEX
-     module procedure insert_global_complex_scorec
+     module procedure scorec_matrix_insert_global_complex
 #endif
   end interface
 
-
-  interface insert_block
-     module procedure matrix_insert_block
+  interface matvecmult
+     module procedure scorec_matrix_matvecmult
   end interface
 
-  integer, parameter :: MAT_SET = 0
-  integer, parameter :: MAT_ADD = 1
+  interface newsolve
+     module procedure scorec_matrix_solve
+  end interface
+
+  interface set_matrix_index
+     module procedure scorec_matrix_set_index
+  end interface
+
+  interface write_matrix
+     module procedure scorec_matrix_write
+  end interface
 
 contains
 
   !====================================================================
-  ! set_scorec_index
+  ! set_matrix_index
   ! ~~~~~~~~~~~~~~~~
   ! sets the index of a scorec matrix
   ! this must be called before the matrix is created
   !====================================================================
-  subroutine set_scorec_index(mat, imat)
+  subroutine scorec_matrix_set_index(mat, imat)
     implicit none
     type(scorec_matrix) :: mat
     integer, intent(in) :: imat
 
     mat%imatrix = imat
-  end subroutine set_scorec_index
+  end subroutine scorec_matrix_set_index
 
   !====================================================================
-  ! create_scorec_matrix
-  ! ~~~~~~~~~~~~~~~~~~~~
+  ! create
+  ! ~~~~~~
   ! creates a scorec solve matrix with index imat and size isize
   !====================================================================
-  subroutine create_scorec_matrix(mat, m, n, icomplex, lhs)
+  subroutine scorec_matrix_create(mat, m, n, icomplex, lhs)
     implicit none
 
     type(scorec_matrix) :: mat
@@ -128,42 +135,42 @@ contains
     else
        call zeromultiplymatrix(mat%imatrix, mat%icomplex, mat%isize)
     endif
-  end subroutine create_scorec_matrix
+  end subroutine scorec_matrix_create
 
 
   !====================================================================
-  ! clear_scorec_matrix
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~
+  ! clear
+  ! ~~~~~
   ! zeroes out a scorec solve matrix
   !====================================================================
-  subroutine clear_scorec_matrix(mat)
+  subroutine scorec_matrix_clear(mat)
     implicit none
 
     type(scorec_matrix), intent(inout) :: mat
 
-    call create_scorec_matrix(mat,mat%m,mat%n,mat%icomplex,mat%lhs)
-  end subroutine clear_scorec_matrix
+    call create_mat(mat,mat%m,mat%n,mat%icomplex,mat%lhs)
+  end subroutine scorec_matrix_clear
 
 
   !====================================================================
-  ! destroy_scorec_matrix
-  ! ~~~~~~~~~~~~~~~~~~~~~
+  ! destroy
+  ! ~~~~~~~
   ! destroys and scorec solve matrix
   !====================================================================
-  subroutine destroy_scorec_matrix(mat)
+  subroutine scorec_matrix_destroy(mat)
     implicit none
     
     type(scorec_matrix) :: mat
     call deletematrix(mat%imatrix)
-  end subroutine destroy_scorec_matrix
+  end subroutine scorec_matrix_destroy
 
 
   !====================================================================
-  ! matvecmult_scorec
-  ! ~~~~~~~~~~~~~~~~~
+  ! matvecmult
+  ! ~~~~~~~~~~
   ! matrix vector multiply with scorec data structures
   !====================================================================
-  subroutine matvecmult_scorec(mat,vin,vout)
+  subroutine scorec_matrix_matvecmult(mat,vin,vout)
 
     use vector_mod
 
@@ -210,15 +217,15 @@ contains
        call destroy_vector(temp_out)
     endif
      
-  end subroutine matvecmult_scorec
+  end subroutine scorec_matrix_matvecmult
 
 
   !====================================================================
-  ! insert_real_scorec
-  ! ~~~~~~~~~~~~~~~~~~
+  ! insert_real
+  ! ~~~~~~~~~~~
   ! inserts (or increments) a matrix element with real value
   !====================================================================
-  subroutine insert_real_scorec(mat,val,i,j,iop)
+  subroutine scorec_matrix_insert_real(mat,val,i,j,iop)
     implicit none
 
     type(scorec_matrix), intent(in) :: mat
@@ -226,16 +233,16 @@ contains
     integer, intent(in) :: i, j, iop
 
     call insertval(mat%imatrix, val, 0, i, j, iop)
-  end subroutine insert_real_scorec
+  end subroutine scorec_matrix_insert_real
 
 
 #ifdef USECOMPLEX
   !====================================================================
-  ! insert_complex_scorec
-  ! ~~~~~~~~~~~~~~~~~~~~~
+  ! insert_complex
+  ! ~~~~~~~~~~~~~~
   ! inserts (or increments) a matrix element with complex value
   !====================================================================
-  subroutine insert_complex_scorec(mat,val,i,j,iop)
+  subroutine scorec_matrix_insert_complex(mat,val,i,j,iop)
     implicit none
 
     type(scorec_matrix), intent(in) :: mat
@@ -243,16 +250,16 @@ contains
     integer, intent(in) :: i, j, iop
 
     call insertval(mat%imatrix, val, 1, i, j, iop)
-  end subroutine insert_complex_scorec
+  end subroutine scorec_matrix_insert_complex
 #endif
 
   !====================================================================
-  ! insert_global_real_scorec
+  ! insert_global_real
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
   ! inserts (or increments) a matrix element with real value
   ! using global indices
   !====================================================================
-  subroutine insert_global_real_scorec(mat,val,i,j,iop)
+  subroutine scorec_matrix_insert_global_real(mat,val,i,j,iop)
 
     implicit none
 
@@ -261,17 +268,17 @@ contains
     integer, intent(in) :: i, j, iop
 
     call globalinsertval(mat%imatrix, val, 0, i, j, iop)
-  end subroutine insert_global_real_scorec
+  end subroutine scorec_matrix_insert_global_real
 
 
 #ifdef USECOMPLEX
   !====================================================================
-  ! insert_global_complex_scorec
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ! insert_global_complex
+  ! ~~~~~~~~~~~~~~~~~~~~~
   ! inserts (or increments) a matrix element with complex value
   ! using local indices
   !====================================================================
-  subroutine insert_global_complex_scorec(mat,val,i,j,iop)
+  subroutine scorec_matrix_insert_global_complex(mat,val,i,j,iop)
 
     implicit none
 
@@ -280,16 +287,16 @@ contains
     integer, intent(in) :: i, j, iop
 
     call globalinsertval(mat%imatrix, val, 1, i, j, iop)
-  end subroutine insert_global_complex_scorec
+  end subroutine scorec_matrix_insert_global_complex
 #endif
 
 
   !====================================================================
-  ! solve_scorec
-  ! ~~~~~~~~~~~~
+  ! solve
+  ! ~~~~~
   ! linear matrix solve with scorec data structures
   !====================================================================
-  subroutine solve_scorec(mat, v, ierr)
+  subroutine scorec_matrix_solve(mat, v, ierr)
     use vector_mod
     
     implicit none
@@ -310,32 +317,41 @@ contains
     else
        call solve(mat%imatrix,v%data,ierr)
     endif
-  end subroutine solve_scorec
+  end subroutine scorec_matrix_solve
 
   !====================================================================
-  ! finalize_scorec
-  ! ~~~~~~~~~~~~~~~
+  ! finalize
+  ! ~~~~~~~~
   ! finalizes matrix 
   !====================================================================
-  subroutine finalize_scorec(mat)
+  subroutine scorec_matrix_finalize(mat)
     implicit none
     type(scorec_matrix) :: mat   
 
     call finalizematrix(mat%imatrix)
-  end subroutine finalize_scorec
+  end subroutine scorec_matrix_finalize
 
 
   !====================================================================
-  ! flush_scorec
-  ! ~~~~~~~~~~~~
+  ! flush
+  ! ~~~~~
   ! flushes matrix 
   !====================================================================
-  subroutine flush_scorec(mat)
+  subroutine scorec_matrix_flush(mat)
     implicit none
     type(scorec_matrix) :: mat
-  end subroutine flush_scorec
+  end subroutine scorec_matrix_flush
 
-  subroutine scorec_matrix_get_dof_indices(mat, inode, irow, icol)
+  !======================================================================
+  ! get_node_indices
+  ! ~~~~~~~~~~~~~~~~
+  ! given a matrix mat and node inode, returns:
+  ! irow(i,j): the local row index associated with dof j associated 
+  !           with field i
+  ! icol(i,j): the local column index associated with dof j associated 
+  !           with field i
+  !======================================================================
+  subroutine scorec_matrix_get_node_indices(mat, inode, irow, icol)
     use vector_mod
     implicit none
     type(scorec_matrix), intent(in) :: mat
@@ -346,16 +362,25 @@ contains
     integer, dimension(mat%isize,dofs_per_node) :: ind
     integer :: i
 
-    call get_dof_indices(mat%isize,inode,ind)
+    call get_node_indices(mat%isize,inode,ind)
     do i=1,mat%m
        irow(i,:) = ind(i,:)
     end do
     do i=1,mat%n
        icol(i,:) = ind(i,:)
     end do    
-  end subroutine scorec_matrix_get_dof_indices
+  end subroutine scorec_matrix_get_node_indices
 
-  subroutine scorec_matrix_get_global_dof_indices(mat, inode, irow, icol)
+  !======================================================================
+  ! get_global_node_indices
+  ! ~~~~~~~~~~~~~~~~~~~~~~~
+  ! given a matrix mat and node inode, returns:
+  ! irow(i,j): the global row index associated with dof j associated 
+  !           with field i
+  ! icol(i,j): the global column index associated with dof j associated 
+  !           with field i
+  !======================================================================
+  subroutine scorec_matrix_get_global_node_indices(mat, inode, irow, icol)
     use vector_mod
     implicit none
     type(scorec_matrix), intent(in) :: mat
@@ -366,17 +391,25 @@ contains
     integer, dimension(mat%isize,dofs_per_node) :: ind
     integer :: i
 
-    call get_global_dof_indices(mat%isize,inode,ind)
+    call get_global_node_indices(mat%isize,inode,ind)
     do i=1,mat%m
        irow(i,:) = ind(i,:)
     end do
     do i=1,mat%n
        icol(i,:) = ind(i,:)
     end do
-  end subroutine scorec_matrix_get_global_dof_indices
+  end subroutine scorec_matrix_get_global_node_indices
 
-
-  subroutine get_indices(mat, itri, irow, icol)
+  !======================================================================
+  ! get_element_indices
+  ! ~~~~~~~~~~~~~~~~~~~
+  ! given a matrix mat and element itri, returns:
+  ! irow(i,j): the local row index associated with dof j associated 
+  !           with field i
+  ! icol(i,j): the local column index associated with dof j associated 
+  !           with field i
+  !======================================================================
+  subroutine scorec_matrix_get_element_indices(mat, itri, irow, icol)
     use vector_mod
     implicit none
     type(scorec_matrix), intent(in) :: mat
@@ -386,16 +419,16 @@ contains
 
     integer, dimension(mat%isize,dofs_per_element) :: ind
     integer :: i
-    call get_basis_indices(mat%isize,itri,ind)
+    call get_element_indices(mat%isize,itri,ind)
     do i=1,mat%m
        irow(i,:) = ind(i,:)
     end do
     do i=1,mat%n
        icol(i,:) = ind(i,:)
     end do
-  end subroutine get_indices
+  end subroutine scorec_matrix_get_element_indices
 
-  subroutine matrix_insert_block(mat, itri, m, n, val, iop)
+  subroutine scorec_matrix_insert_block(mat, itri, m, n, val, iop)
     implicit none
     type(matrix_type) :: mat
     integer, intent(in) :: itri, m, n, iop
@@ -405,14 +438,14 @@ contains
     integer, dimension(mat%n,dofs_per_element) :: icol
     integer :: i, j
 
-    call get_indices(mat, itri, irow, icol)
+    call get_element_indices(mat, itri, irow, icol)
 
     do i=1, dofs_per_element
        do j=1, dofs_per_element
           call insert(mat,val(i,j),irow(m,i),icol(n,j),iop)
        end do
     end do
-  end subroutine matrix_insert_block
+  end subroutine scorec_matrix_insert_block
 
   subroutine identity_row(mat, irow)
     implicit none
@@ -436,19 +469,14 @@ contains
 #else
     call setgeneralbc(mat%imatrix, irow, ncols, icols, vals, 0)
 #endif
-
-!!$    integer :: i
-!!$
-!!$    do i=1, ncols
-!!$       call insert(mat,vals(i),irow,icols(i),MAT_ADD)
-!!$    end do
   end subroutine set_row_vals
 
-  subroutine write_matrix(mat)
+  subroutine scorec_matrix_write(mat, file)
     type(scorec_matrix), intent(in) :: mat
-    
+    character(len=*) :: file
+
     call writematrixtofile(mat%imatrix, mat%imatrix)
-  end subroutine write_matrix
+  end subroutine scorec_matrix_write
 
 
 end module scorec_matrix_mod

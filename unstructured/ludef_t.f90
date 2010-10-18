@@ -5,7 +5,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
   use metricterms_new
 
   implicit none
@@ -56,6 +56,14 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
           + v1uun(trial,ph179,lin,nt79)
      ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
      ddterm(u_g) = ddterm(u_g) + (.5-thimp*bdf)*dt*temp
+
+     temp = v1uvn(trial,lin,vz179,nt79)
+     ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
+     ddterm(u_g) = ddterm(u_g) + (.5-thimp*bdf)*dt*temp
+
+     temp = v1uchin(trial,lin,ch179,nt79)       
+     ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
+     ddterm(u_g) = ddterm(u_g) + (.5-thimp*bdf)*dt*temp
   endif
   
   if(gyro.eq.1) then
@@ -86,6 +94,10 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      if(linear.eq.0) then
         temp = v1psipsi(trial,lin,ps179) &
              + v1psipsi(trial,ps179,lin)
+        ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
+        ddterm(psi_g) = ddterm(psi_g) + (.5-thimp*bdf)*dt*temp
+
+        temp = v1psib(trial,lin,bz179)
         ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (.5-thimp*bdf)*dt*temp
      endif
@@ -122,14 +134,14 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
      ddterm(vz_g) = ddterm(vz_g) + (1.-thimp*bdf)*dt*temp
 
-     if(linear.eq.0) then 
-        temp = v1uvn(trial,lin,vz179,nt79)
-        ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
-        ddterm(u_g) = ddterm(u_g) + (.5-thimp*bdf)*dt*temp
-        
+     if(linear.eq.0) then        
         temp = v1vvn(trial,lin,vz179,nt79) &
              + v1vvn(trial,vz179,lin,nt79) &
              + v1uvn(trial,ph179,lin,nt79)
+        ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
+        ddterm(vz_g) = ddterm(vz_g) + (.5-thimp*bdf)*dt*temp
+
+        temp = v1vchin(trial,lin,ch179,nt79)       
         ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
         ddterm(vz_g) = ddterm(vz_g) + (.5-thimp*bdf)*dt*temp
      endif
@@ -153,10 +165,6 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
              +v1bb  (trial,bzs79,lin))
      else
         if(linear.eq.0) then 
-           temp = v1psib(trial,lin,bz179)
-           ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
-           ddterm(psi_g) = ddterm(psi_g) + (.5-thimp*bdf)*dt*temp
-
            temp = v1psib(trial,ps179,lin) &
                 + v1bb  (trial,lin,bz179) &
                 + v1bb  (trial,bz179,lin)
@@ -204,14 +212,6 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   if(numvar.ge.3) then
      
      if(linear.eq.0) then 
-        temp = v1uchin(trial,lin,ch179,nt79)       
-        ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
-        ddterm(u_g) = ddterm(u_g) + (.5-thimp*bdf)*dt*temp
-
-        temp = v1vchin(trial,lin,ch179,nt79)       
-        ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
-        ddterm(vz_g) = ddterm(vz_g) + (.5-thimp*bdf)*dt*temp
-
         temp = v1uchin  (trial,ph179,lin,nt79) &
              + v1vchin  (trial,vz179,lin,nt79) &
              + v1chichin(trial,lin,ch179,nt79) &
@@ -307,7 +307,7 @@ end subroutine vorticity_lin
 subroutine vorticity_nolin(trial, r4term)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   use metricterms_new
 
   implicit none
@@ -341,7 +341,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
   use metricterms_new
 
   implicit none
@@ -393,6 +393,10 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      temp = v2vun(trial,lin,ph179,nt79) &
           + v2vvn(trial,lin,vz179,nt79) &
           + v2vvn(trial,vz179,lin,nt79)
+     ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
+     ddterm(vz_g) = ddterm(vz_g) + (.5-thimp*bdf)*dt*temp
+
+     temp = v2vchin(trial,lin,ch179,nt79)
      ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
      ddterm(vz_g) = ddterm(vz_g) + (.5-thimp*bdf)*dt*temp
   endif
@@ -512,10 +516,6 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   if(numvar.ge.3) then
 
      if(linear.eq.0) then 
-        temp = v2vchin(trial,lin,ch179,nt79)
-        ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
-        ddterm(vz_g) = ddterm(vz_g) + (.5-thimp*bdf)*dt*temp
-
         temp = v2vchin(trial,vz179,lin,nt79)
         ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
         ddterm(chi_g) = ddterm(chi_g) + (.5-thimp*bdf)*dt*temp
@@ -586,7 +586,7 @@ end subroutine axial_vel_lin
 subroutine axial_vel_nolin(trial, r4term)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   use metricterms_new
 
   implicit none
@@ -616,7 +616,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
   use metricterms_new
 
   implicit none
@@ -880,7 +880,7 @@ end subroutine compression_lin
 subroutine compression_nolin(trial, r4term)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   use metricterms_new
 
   implicit none
@@ -911,7 +911,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf, r_e, q_e)
   
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
   use metricterms_new
   use harned_mikic_mod
 
@@ -973,7 +973,15 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf, r_e, q_e)
      ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
      ddterm(psi_g) = ddterm(psi_g) + (.5-thimpf*bdf)*dt*temp
 
+     temp = b1psibd(trial,lin,bz179,ni79)*dbf
+     ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
+     ddterm(psi_g) = ddterm(psi_g) + (.5-thimpf*bdf)*dt*temp
+
      temp = b1psiu(trial,ps179,lin)
+     ssterm(u_g) = ssterm(u_g) - thimpb*dt*temp
+     ddterm(u_g) = ddterm(u_g) - thimpb*dt*temp*bdf
+
+     temp = b1bu(trial,bz179,lin)
      ssterm(u_g) = ssterm(u_g) - thimpb*dt*temp
      ddterm(u_g) = ddterm(u_g) - thimpb*dt*temp*bdf
   endif
@@ -1004,20 +1012,12 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf, r_e, q_e)
   ! ~~~~~~~~~~
   if(numvar.ge.2) then
      if(linear.eq.0) then 
-        temp = b1psibd(trial,lin,bz179,ni79)*dbf
-        ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
-        ddterm(psi_g) = ddterm(psi_g) + (.5-thimpf*bdf)*dt*temp
-
         temp = b1psibd(trial,ps179,lin,ni79)*dbf &
              + b1bbd  (trial,bz179,lin,ni79)*dbf &
              + b1bbd  (trial,lin,bz179,ni79)*dbf
         ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
         ddterm(bz_g) = ddterm(bz_g) + (.5-thimpf*bdf)*dt*temp
         
-        temp = b1bu(trial,bz179,lin)
-        ssterm(u_g) = ssterm(u_g) - thimpb*dt*temp
-        ddterm(u_g) = ddterm(u_g) - thimpb*dt*temp*bdf
-
         temp = b1psiv(trial,ps179,lin) &
              + b1bv  (trial,bz179,lin)  
         ssterm(vz_g) = ssterm(vz_g) - thimpb*dt*temp
@@ -1129,7 +1129,7 @@ subroutine flux_nolin(trial, r4term)
 
   use math
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   use metricterms_new
 
   implicit none
@@ -1154,7 +1154,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
   use metricterms_new
   use harned_mikic_mod
 
@@ -1338,7 +1338,7 @@ end subroutine axial_field_lin
 subroutine axial_field_nolin(trial, r4term)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   use metricterms_new
 
   implicit none
@@ -1358,7 +1358,7 @@ subroutine electron_pressure_lin(trial, lin, ssterm, ddterm, q_ni, q_bf)
   
   use basic
   use arrays
-  use nintegrate_mod
+  use m3dc1_nint
   use metricterms_new
 
   implicit none
@@ -1643,7 +1643,7 @@ end subroutine electron_pressure_lin
 subroutine electron_pressure_nolin(trial, r4term)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   use metricterms_new
 
   implicit none
@@ -1709,7 +1709,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
   use basic
   use arrays
   use sparse
-  use nintegrate_mod
+  use m3dc1_nint
   use diagnostics
   use boundary_conditions
   use time_step
@@ -1830,7 +1830,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
 
      ! calculate the field values and derivatives at the sampling points
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     call define_triangle_quadrature(itri, int_pts_main)
+     call define_element_quadrature(itri, int_pts_main, 5)
      call define_fields(itri, def_fields, 1, linear)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
@@ -1857,7 +1857,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
      do iedge=1,3
         if(.not.is_edge(iedge)) cycle
 
-        call define_edge_quadrature(itri, iedge, 5, n, idim)
+        call define_boundary_quadrature(itri, iedge, 5, n, idim)
         call define_fields(itri, def_fields, 1, linear)
 
         if(ivel_def.eq.1) call ludefvel_n(itri)
@@ -1951,7 +1951,7 @@ subroutine ludefvel_n(itri)
 
   use basic
   use mesh_mod
-  use nintegrate_mod
+  use m3dc1_nint
   use arrays
   use sparse
   use time_step
@@ -2098,7 +2098,7 @@ end subroutine ludefvel_n
 subroutine ludefphi_n(itri)
   use basic
   use mesh_mod
-  use nintegrate_mod
+  use m3dc1_nint
   use arrays
   use sparse
   use electrostatic_potential
@@ -2263,7 +2263,7 @@ end subroutine ludefphi_n
 subroutine ludefden_n(itri)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   use arrays
   use sparse
   use metricterms_new
@@ -2433,7 +2433,7 @@ end subroutine ludefden_n
 subroutine ludefpres_n(itri)
 
   use basic
-  use nintegrate_mod
+  use m3dc1_nint
   use arrays
   use sparse
   use metricterms_new

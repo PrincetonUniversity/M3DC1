@@ -14,57 +14,45 @@ module petsc_matrix_mod
      logical :: lhs
   end type petsc_matrix
 
-  interface create_mat
-     module procedure create_petsc_matrix
-  end interface
+  integer, parameter :: MAT_SET = 0
+  integer, parameter :: MAT_ADD = 1
 
   interface clear_mat
-     module procedure clear_petsc_matrix
+     module procedure petsc_matrix_clear
+  end interface
+
+  interface create_mat
+     module procedure petsc_matrix_create
   end interface
 
   interface destroy_mat
-     module procedure destroy_petsc_matrix
-  end interface
-
-  interface set_matrix_index
-     module procedure set_petsc_index
-  end interface
-
-  interface matvecmult
-     module procedure matvecmult_petsc
-  end interface
-
-  interface newsolve
-     module procedure solve_petsc
+     module procedure petsc_matrix_destroy
   end interface
 
   interface flush
-     module procedure flush_petsc
+     module procedure petsc_matrix_flush
   end interface
 
   interface finalize
-     module procedure finalize_petsc
+     module procedure petsc_matrix_finalize
   end interface
 
-  interface get_dof_indices
-     module procedure petsc_matrix_get_dof_indices
+  interface get_element_indices
+     module procedure petsc_matrix_get_element_indices
   end interface
 
-  interface get_global_dof_indices
-     module procedure petsc_matrix_get_dof_indices
+  interface get_global_node_indices
+     module procedure petsc_matrix_get_node_indices
+  end interface
+
+  interface get_node_indices
+     module procedure petsc_matrix_get_node_indices
   end interface
 
   interface insert
-     module procedure insert_real_petsc
+     module procedure petsc_matrix_insert_real
 #ifdef USECOMPLEX
-     module procedure insert_complex_petsc
-#endif
-  end interface
-
-  interface insert_global
-     module procedure insert_real_petsc
-#ifdef USECOMPLEX
-     module procedure insert_complex_petsc
+     module procedure petsc_matrix_insert_complex
 #endif
   end interface
 
@@ -72,30 +60,50 @@ module petsc_matrix_mod
      module procedure petsc_matrix_insert_block
   end interface
 
-  integer, parameter :: MAT_SET = 0
-  integer, parameter :: MAT_ADD = 1
+  interface insert_global
+     module procedure petsc_matrix_insert_real
+#ifdef USECOMPLEX
+     module procedure petsc_matrix_insert_complex
+#endif
+  end interface
+
+  interface matvecmult
+     module procedure petsc_matrix_matvecmult
+  end interface
+
+  interface newsolve
+     module procedure petsc_matrix_solve
+  end interface
+
+  interface set_matrix_index
+     module procedure petsc_matrix_set_matrix_index
+  end interface
+
+  interface write_matrix
+     module procedure petsc_matrix_write
+  end interface
 
 contains
 
   !====================================================================
-  ! set_petsc_index
+  ! set_matrix_index
   ! ~~~~~~~~~~~~~~~~
   ! sets the index of a petsc matrix
   ! this must be called before the matrix is created
   !====================================================================
-  subroutine set_petsc_index(mat, imat)
+  subroutine petsc_matrix_set_matrix_index(mat, imat)
     implicit none
     type(petsc_matrix) :: mat
     integer, intent(in) :: imat
 
-  end subroutine set_petsc_index
+  end subroutine petsc_matrix_set_matrix_index
 
   !====================================================================
-  ! create_petsc_matrix
+  ! petsc_matrix_create
   ! ~~~~~~~~~~~~~~~~~~~
-  ! creates a petsc solve matrix with index imat and size isize
+  ! creates a petsc matrix with index imat and size isize
   !====================================================================
-  subroutine create_petsc_matrix(mat, m, n, icomplex, lhs)
+  subroutine petsc_matrix_create(mat, m, n, icomplex, lhs)
     use mesh_mod
     use vector_mod
     implicit none
@@ -110,6 +118,13 @@ contains
 
     integer :: ierr, local_m, local_n, global_m, global_n
 
+    ! average number of nodes coupled to any given node (including itself)
+#ifdef USE3D
+    integer, parameter :: neighbors = 7*3
+#else
+    integer, parameter :: neighbors = 7
+#endif
+
     mat%m = m
     mat%n = n
     mat%lhs = lhs
@@ -123,15 +138,15 @@ contains
     call MatSetSizes(mat%data, local_m, local_n, global_m, global_n, ierr)
     call MatSetFromOptions(mat%data,ierr)
     call MatMPIAIJSetPreallocation(mat%data, &
-         7*dofs_per_node*mat%n, PETSC_NULL_INTEGER, &
+         neighbors*dofs_per_node*mat%n, PETSC_NULL_INTEGER, &
          0, PETSC_NULL_INTEGER, ierr)
     call MatSeqAIJSetPreallocation(mat%data, &
-         7*dofs_per_node*mat%n, PETSC_NULL_INTEGER, ierr)
+         neighbors*dofs_per_node*mat%n, PETSC_NULL_INTEGER, ierr)
     call MatMPIBAIJSetPreallocation(mat%data,dofs_per_node, &
-         7*mat%n,PETSC_NULL_INTEGER,&
+         neighbors*mat%n,PETSC_NULL_INTEGER,&
          0,PETSC_NULL_INTEGER,ierr)
     call MatSeqBAIJSetPreallocation(mat%data,dofs_per_node, &
-         7*mat%n,PETSC_NULL_INTEGER,ierr)
+         neighbors*mat%n,PETSC_NULL_INTEGER,ierr)
 
 
 !    call MatSetOption(mat%data,MAT_KEEP_ZEROED_ROWS,PETSC_TRUE,ierr)
@@ -143,44 +158,44 @@ contains
        call KSPSetFromOptions(mat%context,ierr)
     end if
 
-  end subroutine create_petsc_matrix
+  end subroutine petsc_matrix_create
 
 
   !====================================================================
-  ! clear_petsc_matrix
-  ! ~~~~~~~~~~~~~~~~~~
+  ! clear
+  ! ~~~~~
   ! zeroes out a petsc matrix
   !====================================================================
-  subroutine clear_petsc_matrix(mat)
+  subroutine petsc_matrix_clear(mat)
     implicit none
     type(petsc_matrix), intent(inout) :: mat
     integer :: ierr
 
     call MatZeroEntries(mat%data, ierr)
-  end subroutine clear_petsc_matrix
+  end subroutine petsc_matrix_clear
 
 
   !====================================================================
-  ! destroy_petsc_matrix
-  ! ~~~~~~~~~~~~~~~~~~~~
+  ! destroy
+  ! ~~~~~~~
   ! destroys a petsc matrix
   !====================================================================
-  subroutine destroy_petsc_matrix(mat)
+  subroutine petsc_matrix_destroy(mat)
     implicit none   
     type(petsc_matrix) :: mat
     integer :: ierr
 
     if(mat%lhs) call KSPDestroy(mat%context,ierr)
     call MatDestroy(mat%data, ierr)
-  end subroutine destroy_petsc_matrix
+  end subroutine petsc_matrix_destroy
 
 
   !====================================================================
-  ! matvecmult_petsc
-  ! ~~~~~~~~~~~~~~~~
+  ! matvecmult
+  ! ~~~~~~~~~~
   ! matrix vector multiply with petsc data structures
   !====================================================================
-  subroutine matvecmult_petsc(mat,vin,vout)
+  subroutine petsc_matrix_matvecmult(mat,vin,vout)
 
     use vector_mod
 
@@ -205,15 +220,15 @@ contains
     call VecAssemblyEnd(vout%vec, ierr)
     call MatMult(mat%data,vin%vec,vout%vec,ierr)
      
-  end subroutine matvecmult_petsc
+  end subroutine petsc_matrix_matvecmult
 
 
   !====================================================================
-  ! insert_real_petsc
-  ! ~~~~~~~~~~~~~~~~~
+  ! insert_real
+  ! ~~~~~~~~~~~
   ! inserts (or increments) a matrix element
   !====================================================================
-  subroutine insert_real_petsc(mat,val,i,j,iop)
+  subroutine petsc_matrix_insert_real(mat,val,i,j,iop)
     use vector_mod
     use mesh_mod
     implicit none
@@ -235,16 +250,16 @@ contains
     case(MAT_SET)
        call MatSetValues(mat%data,1,im,1,in,data,INSERT_VALUES,ierr)
     end select
-  end subroutine insert_real_petsc
+  end subroutine petsc_matrix_insert_real
 
 
 #ifdef USECOMPLEX
   !====================================================================
-  ! insert_real_petsc
-  ! ~~~~~~~~~~~~~~~~~
+  ! insert_complex
+  ! ~~~~~~~~~~~~~~
   ! inserts (or increments) a matrix element
   !====================================================================
-  subroutine insert_complex_petsc(mat,val,i,j,iop)
+  subroutine petsc_matrix_insert_complex(mat,val,i,j,iop)
     use vector_mod
     implicit none
 #include "finclude/petscvec.h"
@@ -265,15 +280,15 @@ contains
     case(MAT_SET)
        call MatSetValues(mat%data,1,im,1,in,data,INSERT_VALUES,ierr)
     end select     
-  end subroutine insert_complex_petsc
+  end subroutine petsc_matrix_insert_complex
 #endif
 
   !====================================================================
-  ! solve_petsc
-  ! ~~~~~~~~~~~
+  ! solve
+  ! ~~~~~
   ! linear matrix solve with petsc data structures
   !====================================================================
-  subroutine solve_petsc(mat, v, ierr)
+  subroutine petsc_matrix_solve(mat, v, ierr)
     use vector_mod
     
     implicit none
@@ -281,18 +296,18 @@ contains
     type(petsc_vector), intent(inout) :: v
     integer, intent(out) :: ierr
 
-!    call finalize(v)
+    call finalize(v)
     call KSPSolve(mat%context,v%vec,v%vec,ierr)
 !    call finalize(v)
 
-  end subroutine solve_petsc
+  end subroutine petsc_matrix_solve
 
   !====================================================================
-  ! finalize_petsc
-  ! ~~~~~~~~~~~~~~
+  ! finalize
+  ! ~~~~~~~~
   ! finalizes matrix 
   !====================================================================
-  subroutine finalize_petsc(mat)
+  subroutine petsc_matrix_finalize(mat)
     implicit none
 #include "finclude/petscmat.h"
     type(petsc_matrix) :: mat
@@ -300,14 +315,14 @@ contains
 
     call MatAssemblyBegin(mat%data, MAT_FINAL_ASSEMBLY, ierr)
     call MatAssemblyEnd(mat%data, MAT_FINAL_ASSEMBLY, ierr)
-  end subroutine finalize_petsc
+  end subroutine petsc_matrix_finalize
 
   !====================================================================
-  ! flush_petsc
-  ! ~~~~~~~~~~~
-  ! flush matrix 
+  ! flush
+  ! ~~~~~
+  ! flush matrix operations 
   !====================================================================
-  subroutine flush_petsc(mat)
+  subroutine petsc_matrix_flush(mat)
     implicit none
 #include "finclude/petscmat.h"
     type(petsc_matrix) :: mat
@@ -315,10 +330,18 @@ contains
 
     call MatAssemblyBegin(mat%data, MAT_FLUSH_ASSEMBLY, ierr)
     call MatAssemblyEnd(mat%data, MAT_FLUSH_ASSEMBLY, ierr)
-  end subroutine flush_petsc
+  end subroutine petsc_matrix_flush
 
-
-  subroutine get_indices(mat, itri, irow, icol)
+  !======================================================================
+  ! get_element_indices
+  ! ~~~~~~~~~~~~~~~~~~~
+  ! given a matrix mat and element itri, returns:
+  ! irow(i,j): the local row index associated with dof j associated 
+  !           with field i
+  ! icol(i,j): the local column index associated with dof j associated 
+  !           with field i
+  !======================================================================
+  subroutine petsc_matrix_get_element_indices(mat, itri, irow, icol)
     use vector_mod
     implicit none
     type(petsc_matrix), intent(in) :: mat
@@ -326,12 +349,21 @@ contains
     integer, intent(out), dimension(mat%m,dofs_per_element) :: irow
     integer, intent(out), dimension(mat%n,dofs_per_element) :: icol
 
-    call get_basis_indices(mat%m,itri,irow)
-    call get_basis_indices(mat%n,itri,icol)
+    call get_element_indices(mat%m,itri,irow)
+    call get_element_indices(mat%n,itri,icol)
     
-  end subroutine get_indices
+  end subroutine petsc_matrix_get_element_indices
 
-  subroutine petsc_matrix_get_dof_indices(mat, inode, irow, icol)
+  !======================================================================
+  ! get_node_indices
+  ! ~~~~~~~~~~~~~~~~
+  ! given a matrix mat and node inode, returns:
+  ! irow(i,j): the local row index associated with dof j associated 
+  !           with field i
+  ! icol(i,j): the local column index associated with dof j associated 
+  !           with field i
+  !======================================================================
+  subroutine petsc_matrix_get_node_indices(mat, inode, irow, icol)
     use vector_mod
     implicit none
     type(petsc_matrix), intent(in) :: mat
@@ -339,12 +371,18 @@ contains
     integer, intent(out), dimension(mat%m,dofs_per_node) :: irow
     integer, intent(out), dimension(mat%n,dofs_per_node) :: icol
 
-    call get_dof_indices(mat%m,inode,irow)
-    call get_dof_indices(mat%n,inode,icol)
+    call get_node_indices(mat%m,inode,irow)
+    call get_node_indices(mat%n,inode,icol)
     
-  end subroutine petsc_matrix_get_dof_indices
+  end subroutine petsc_matrix_get_node_indices
 
-
+  !======================================================================
+  ! insert_block
+  ! ~~~~~~~~~~~~
+  ! inserts values val into matrix mat, into the
+  ! rows associated with field m dofs of itri
+  ! cols associated with field n dofs of itri
+  !======================================================================
   subroutine petsc_matrix_insert_block(mat, itri, m, n, val, iop)
     use mesh_mod
     implicit none
@@ -356,7 +394,7 @@ contains
     integer, dimension(mat%n,dofs_per_element) :: icol
     integer :: i, j
 
-    call get_indices(mat, itri, irow, icol)
+    call get_element_indices(mat, itri, irow, icol)
 
     do i=1, dofs_per_element
        do j=1, dofs_per_element
@@ -405,7 +443,7 @@ contains
     
   end subroutine set_row_vals
 
-  subroutine write_matrix(m, file)
+  subroutine petsc_matrix_write(m, file)
     implicit none
 #include "finclude/petsc.h"    
     type(matrix_type), intent(in) :: m
@@ -418,7 +456,7 @@ contains
     call MatView(m%data, pv, ierr)
     call PetscViewerDestroy(pv, ierr)
 
-  end subroutine write_matrix
+  end subroutine petsc_matrix_write
 
 
 end module petsc_matrix_mod
