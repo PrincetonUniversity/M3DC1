@@ -224,7 +224,7 @@ Program Reducedquintic
   ! ~~~~~~~~~~~~~~
   do ntime=ntime+1,ntimemax
 
-     if(myrank.eq.0) print *, 'TIME STEP: ',ntime
+     if(myrank.eq.0) print *, 'TIME STEP: ', ntime
 
      ! check for error
      if(ekin.ne.ekin .or. emag.ne.emag) then
@@ -253,6 +253,11 @@ Program Reducedquintic
      ! Write output
      if(myrank.eq.0 .and. iprint.ge.1) print *, " Writing output."
      call output
+
+     if(myrank.eq.0) then
+        print *, ' KE = ', ekin
+        if(dt .ne. 0.) print *, ' gamma = ', (ekin - ekino)/(2.*ekin*dt)
+     endif
   enddo ! ntime
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done time loop."
