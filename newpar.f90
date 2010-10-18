@@ -14,6 +14,7 @@ Program Reducedquintic
   use vacuum_interface
   use boundary_conditions
   use time_step
+  use m3dc1_output
 
   implicit none
 
@@ -134,13 +135,8 @@ Program Reducedquintic
 
   ntime0 = ntime
 
-  ! initialize hdf5
-  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Initializing HDF5'
-  call hdf5_initialize(ntime.gt.0,ier)
-  if(ier.lt.0) then 
-     print *, "Error initializing HDF5"
-     call safestop(5)
-  end if
+  ! initialize output
+  call initialize_output
 
   if(itimer.eq.1) call reset_timings
 
@@ -220,6 +216,7 @@ Program Reducedquintic
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Initializing timestep'
   call initialize_timestep
 
+
   ! main time loop
   ! ~~~~~~~~~~~~~~
   do ntime=ntime+1,ntimemax
@@ -253,11 +250,6 @@ Program Reducedquintic
      ! Write output
      if(myrank.eq.0 .and. iprint.ge.1) print *, " Writing output."
      call output
-
-     if(myrank.eq.0) then
-        print *, ' KE = ', ekin
-        if(dt .ne. 0.) print *, ' gamma = ', (ekin - ekino)/(2.*ekin*dt)
-     endif
   enddo ! ntime
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done time loop."
@@ -360,7 +352,7 @@ subroutine safestop(iarg)
 
   use basic
   use sparse
-  use hdf5_output
+  use m3dc1_output
   use vacuum_interface
   use time_step
 
@@ -376,9 +368,8 @@ subroutine safestop(iarg)
   call unload_vacuum_data
 
   ! close hdf5 file
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "  finalizing hdf5..."
-  call hdf5_finalize(ier)
-  if(ier.ne.0) print *, 'Error finalizing HDF5:',ier
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "  finalizing output..."
+  call finalize_output
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, "  deleting matrices..."
   call delete_matrices
@@ -397,61 +388,6 @@ subroutine safestop(iarg)
   print *, "Stopped at", iarg
   stop
 end subroutine safestop
-
-
-! ======================================================================
-! output
-! ~~~~~~
-!
-! writes output and restart files
-! ======================================================================
-subroutine output
-  use basic
-  use hdf5_output
-  use diagnostics
-
-  implicit none
-
-  integer :: ier
-  real :: tstart, tend
-
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "  writing scalars"
-  call hdf5_write_scalars(ier)
-  if(mod(ntime-ntime0,ntimepr).eq.0) then
-     if(myrank.eq.0 .and. iprint.ge.2) print *, "  writing timeslice"
-     call hdf5_write_time_slice(0,ier)
-
-     if(iwrite_restart.eq.1) then
-        if(myrank.eq.0 .and. iprint.ge.2) print *, "  writing restart files"
-        if(iglobalout.eq.1) then
-           call wrrestartglobal
-        else
-           call wrrestart
-        endif
-     endif
-  endif
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_output_hdf5 = t_output_hdf5 + tend - tstart
-  end if
-  
-  if(itimer.eq.1) then
-     if(myrank.eq.0) call second(tstart)
-     if(myrank.eq.0 .and. iprint.ge.2) print *, "  writing timings"
-     call hdf5_write_timings(ier)
-     call reset_timings
-  end if
-  
-  ! flush hdf5 data to disk
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "  flushing data to file"
-  call hdf5_flush(ier)
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_output_hdf5 = t_output_hdf5 + tend - tstart
-  end if
-
-end subroutine output
 
 
 ! ======================================================================
@@ -937,9 +873,7 @@ end subroutine evaluate
   
     type(element_data) :: d
     integer :: itri, i, j, k, ii, jj, numelms, numnodes, ndofs
-    integer, dimension(num_fields, dofs_per_node) :: ind
     real :: ti(20,20),rot(18,18),newrot(18,18), sum, theta
-    logical, allocatable :: is_set(:)
     real :: norm(2), curv, x, z
     integer :: inode(nodes_per_element)
     logical :: is_boundary

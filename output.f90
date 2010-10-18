@@ -1,6 +1,107 @@
-module ouput
+module m3dc1_output
+
+  integer, parameter, private :: ke_file = 11
+  character*(*), parameter, private :: ke_filename = 'C1ke'
 
 contains
+
+  subroutine initialize_output
+    use basic
+    use hdf5_output
+    implicit none
+
+    integer :: ier
+
+    call hdf5_initialize(ntime.gt.0,ier)
+    if(ier.lt.0) then 
+       print *, "Error initializing HDF5"
+       call safestop(5)
+    end if
+
+    if(myrank.eq.0) then
+       open(unit=ke_file, file=ke_filename, status='unknown')
+    endif
+  end subroutine initialize_output
+
+  subroutine finalize_output
+    use basic
+    use hdf5_output
+    implicit none
+
+    integer :: ier
+
+    if(myrank.eq.0) then
+       close(ke_file)
+    end if
+
+    call hdf5_finalize(ier)
+    if(ier.ne.0) print *, 'Error finalizing HDF5:',ier
+  end subroutine finalize_output
+
+  ! ======================================================================
+  ! output
+  ! ~~~~~~
+  !
+  ! writes output and restart files
+  ! ======================================================================
+  subroutine output
+    use basic
+    use hdf5_output
+    use diagnostics
+
+    implicit none
+
+    integer :: ier
+    real :: gamma
+    real :: tstart, tend
+
+    if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+    if(myrank.eq.0 .and. iprint.ge.2) print *, "  writing scalars"
+    call hdf5_write_scalars(ier)
+    if(mod(ntime-ntime0,ntimepr).eq.0) then
+       if(myrank.eq.0 .and. iprint.ge.2) print *, "  writing timeslice"
+       call hdf5_write_time_slice(0,ier)
+       
+       if(iwrite_restart.eq.1) then
+          if(myrank.eq.0 .and. iprint.ge.2) print *, "  writing restart files"
+          if(iglobalout.eq.1) then
+             call wrrestartglobal
+          else
+             call wrrestart
+          endif
+       endif
+    endif
+    if(myrank.eq.0 .and. itimer.eq.1) then
+       call second(tend)
+       t_output_hdf5 = t_output_hdf5 + tend - tstart
+    end if
+    
+    if(itimer.eq.1) then
+       if(myrank.eq.0) call second(tstart)
+       if(myrank.eq.0 .and. iprint.ge.2) print *, "  writing timings"
+       call hdf5_write_timings(ier)
+       call reset_timings
+    end if
+    
+    ! flush hdf5 data to disk
+    if(myrank.eq.0 .and. iprint.ge.2) print *, "  flushing data to file"
+    call hdf5_flush(ier)
+
+    if(myrank.eq.0) then
+       if(dt .eq. 0.) then 
+          gamma = 0.
+       else
+          gamma = (ekin - ekino)/(2.*ekin*dt)
+       endif
+       write(ke_file, '(I8, 1p3e14.6)') ntime, time, ekin, gamma
+    endif
+
+    if(myrank.eq.0 .and. itimer.eq.1) then
+       call second(tend)
+       t_output_hdf5 = t_output_hdf5 + tend - tstart
+    end if    
+  end subroutine output
+
 
   subroutine write_boundary_bn
     use basic
@@ -53,4 +154,638 @@ contains
 
   end subroutine write_boundary_bn
 
-end module ouput
+! hdf5_write_parameters
+! =====================
+subroutine hdf5_write_parameters(error)
+  use hdf5
+  use hdf5_output
+  use basic
+
+  implicit none
+
+  integer, intent(out) :: error
+
+  integer(HID_T) :: root_id
+
+  call h5gopen_f(file_id, "/", root_id, error)
+
+  call write_int_attr (root_id, "version"    , version,    error)
+  call write_int_attr (root_id, "numvar"     , numvar,     error)
+  call write_int_attr (root_id, "idens"      , idens,      error)
+  call write_int_attr (root_id, "ipres"      , ipres,      error)
+  call write_int_attr (root_id, "itor"       , itor,       error)
+  call write_int_attr (root_id, "gyro"       , gyro,       error)
+  call write_int_attr (root_id, "linear"     , linear,     error)
+  call write_int_attr (root_id, "eqsubtract" , eqsubtract, error)
+  call write_int_attr (root_id, "iper"       , iper,       error)
+  call write_int_attr (root_id, "jper"       , jper,       error)
+  call write_int_attr (root_id, "integrator" , integrator, error)
+  call write_int_attr (root_id, "ipellet"    , ipellet,    error)
+  call write_int_attr (root_id, "ivform"     , ivform,     error)
+  call write_int_attr (root_id, "ntor"       , ntor,       error)
+  call write_int_attr (root_id, "nonrect"    , nonrect,    error)
+  call write_int_attr (root_id, "ifixedb"    , ifixedb,    error)
+  call write_real_attr(root_id, "db"         , db,         error)
+  call write_real_attr(root_id, "xlim"       , xlim,       error)
+  call write_real_attr(root_id, "zlim"       , zlim,       error)
+  call write_real_attr(root_id, "xmag"       , xmag,       error)
+  call write_real_attr(root_id, "zmag"       , zmag,       error)
+  call write_real_attr(root_id, "rzero"      , rzero,      error)
+  call write_real_attr(root_id, "vloop"      , vloop,      error)
+  call write_real_attr(root_id, "gam"        , gam,        error)
+  call write_real_attr(root_id, "thimp"      , thimp,      error)
+  call write_real_attr(root_id, "bzero"      , bzero,      error)
+  call write_real_attr(root_id, "gravr"      , gravr,      error)
+  call write_real_attr(root_id, "gravz"      , gravz,      error)
+  call write_real_attr(root_id, "amu"        , amu,        error)
+  call write_real_attr(root_id, "amuc"       , amuc,       error)
+  call write_real_attr(root_id, "amupar"     , amupar,     error)
+  call write_real_attr(root_id, "etar"       , etar,       error)
+  call write_real_attr(root_id, "eta0"       , eta0,       error)
+  call write_real_attr(root_id, "kappar"     , kappar,     error)
+  call write_real_attr(root_id, "kappa0"     , kappa0,     error)
+  call write_real_attr(root_id, "kappat"     , kappat,     error)
+  call write_real_attr(root_id, "denm"       , denm,       error)
+  call write_real_attr(root_id, "pellet_rate", pellet_rate,error)
+  call write_real_attr(root_id, "pellet_var" , pellet_var, error)
+  call write_real_attr(root_id, "pellet_x"   , pellet_x,   error)
+  call write_real_attr(root_id, "pellet_z"   , pellet_z,   error)
+  call write_real_attr(root_id, "ln"         , ln,         error)
+  call write_real_attr(root_id, "hyper"      , hyper,      error)
+  call write_real_attr(root_id, "hyperi"     , hyperi,     error)
+  call write_real_attr(root_id, "hyperv"     , hyperv,     error)
+  call write_real_attr(root_id, "hyperc"     , hyperc,     error)
+  call write_real_attr(root_id, "hyperp"     , hyperp,     error)
+  call write_real_attr(root_id, "b0_norm"    , b0_norm,    error)
+  call write_real_attr(root_id, "n0_norm"    , n0_norm,    error)
+  call write_real_attr(root_id, "l0_norm"    , l0_norm,    error)
+  call write_real_attr(root_id, "eta_wall"   , eta_wall,   error)
+  call write_real_attr(root_id, "delta_wall" , delta_wall, error)
+
+  call h5gclose_f(root_id, error)
+
+end subroutine hdf5_write_parameters
+
+! hdf5_write_scalars
+! ==================
+subroutine hdf5_write_scalars(error)
+  use basic
+  use diagnostics
+  use hdf5_output
+
+  implicit none
+
+  integer, intent(out) :: error
+
+  integer(HID_T) :: root_id, scalar_group_id
+
+  real :: temp
+
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, ' Writing scalars'
+
+  call h5gopen_f(file_id, "/", root_id, error)
+
+  if(ntime.eq.0) then
+     call h5gcreate_f(root_id, "scalars", scalar_group_id, error)
+  else
+     call h5gopen_f(root_id, "scalars", scalar_group_id, error)
+  endif
+
+  call output_scalar(scalar_group_id, "time" , time  , ntime, error)
+
+  call output_scalar(scalar_group_id, "loop_voltage"    , vloop , ntime, error)
+  call output_scalar(scalar_group_id, "psi_lcfs"        , psibound,ntime, error)
+
+  call output_scalar(scalar_group_id, "area"            , area  , ntime, error)
+  call output_scalar(scalar_group_id, "toroidal_flux"   , tflux , ntime, error)
+  call output_scalar(scalar_group_id, "toroidal_current", totcur, ntime, error)
+  call output_scalar(scalar_group_id, "particle_number" , totden, ntime, error)
+  call output_scalar(scalar_group_id, "angular_momentum", tmom  , ntime, error)
+  call output_scalar(scalar_group_id, "circulation"     , tvor  , ntime, error)
+
+  call output_scalar(scalar_group_id, "area_p"            , parea, ntime, error)
+  call output_scalar(scalar_group_id, "toroidal_flux_p"   , pflux, ntime, error)
+  call output_scalar(scalar_group_id, "toroidal_current_p", pcur , ntime, error)
+  call output_scalar(scalar_group_id, "particle_number_p" , pden , ntime, error)
+  call output_scalar(scalar_group_id, "angular_momentum_p", pmom , ntime, error)
+  call output_scalar(scalar_group_id, "circulation_p"     , pvor , ntime, error)
+  
+  call output_scalar(scalar_group_id, "E_MP" , emagp , ntime, error)
+  call output_scalar(scalar_group_id, "E_KP" , ekinp , ntime, error)
+  call output_scalar(scalar_group_id, "E_MPD", emagpd, ntime, error)
+  call output_scalar(scalar_group_id, "E_KPD", ekinpd, ntime, error)
+  call output_scalar(scalar_group_id, "E_MPH", emagph, ntime, error)
+  call output_scalar(scalar_group_id, "E_KPH", ekinph, ntime, error)
+
+  call output_scalar(scalar_group_id, "E_MT" , emagt , ntime, error)
+  call output_scalar(scalar_group_id, "E_KT" , ekint , ntime, error)
+  call output_scalar(scalar_group_id, "E_MTD", emagtd, ntime, error)
+  call output_scalar(scalar_group_id, "E_KTD", ekintd, ntime, error)
+  call output_scalar(scalar_group_id, "E_MTH", emagth, ntime, error)
+  call output_scalar(scalar_group_id, "E_KTH", ekinth, ntime, error)
+
+  call output_scalar(scalar_group_id, "E_P" , emag3, ntime, error)
+  call output_scalar(scalar_group_id, "E_K3", ekin3, ntime, error)
+  call output_scalar(scalar_group_id, "E_PD", emag3d, ntime, error)
+  call output_scalar(scalar_group_id, "E_K3D", ekin3d, ntime, error)
+  call output_scalar(scalar_group_id, "E_PH", emag3h, ntime, error)
+  call output_scalar(scalar_group_id, "E_K3H", ekin3h, ntime, error)
+
+  call output_scalar(scalar_group_id, "Flux_pressure ", efluxp, ntime, error)
+  call output_scalar(scalar_group_id, "Flux_kinetic  ", efluxk, ntime, error)
+  call output_scalar(scalar_group_id, "Flux_poynting ", efluxs, ntime, error)
+  call output_scalar(scalar_group_id, "Flux_thermal  ", efluxt, ntime, error)
+  call output_scalar(scalar_group_id, "E_grav        ", epotg,  ntime, error)
+
+  call output_scalar(scalar_group_id, "Particle_Flux_diffusive", &
+       nfluxd, ntime, error)
+  call output_scalar(scalar_group_id, "Particle_Flux_convective", &
+       nfluxv, ntime, error)
+  call output_scalar(scalar_group_id, "Particle_source", &
+       nsource, ntime, error)
+
+  call output_scalar(scalar_group_id, "Torque_em",   tau_em,   ntime, error)
+  call output_scalar(scalar_group_id, "Torque_sol",  tau_sol,  ntime, error)
+  call output_scalar(scalar_group_id, "Torque_com",  tau_com,  ntime, error)
+  call output_scalar(scalar_group_id, "Torque_visc", tau_visc, ntime, error)
+  call output_scalar(scalar_group_id, "Torque_gyro", tau_gyro, ntime, error)
+  call output_scalar(scalar_group_id, "Torque_parvisc",tau_parvisc,ntime,error)
+
+  call output_scalar(scalar_group_id, "Parallel_viscous_heating",bwb2,ntime,error)
+
+  call output_scalar(scalar_group_id, "xnull"   ,xnull   ,ntime,error)
+  call output_scalar(scalar_group_id, "znull"   ,znull   ,ntime,error)
+  call output_scalar(scalar_group_id, "xmag"    ,xmag    ,ntime,error)
+  call output_scalar(scalar_group_id, "zmag"    ,zmag    ,ntime,error)
+  call output_scalar(scalar_group_id, "psimin"  ,psimin  ,ntime,error)
+
+  if(itaylor.eq.3) then
+     temp = reconnected_flux()
+     call output_scalar(scalar_group_id, "Reconnected_Flux", temp, ntime, error)
+  endif
+
+  call h5gclose_f(scalar_group_id, error)
+  call h5gclose_f(root_id, error)
+
+end subroutine hdf5_write_scalars
+
+
+! hdf5_write_timings
+! ==================
+subroutine hdf5_write_timings(error)
+  use basic
+  use diagnostics
+  use hdf5_output
+
+  implicit none
+
+  integer, intent(out) :: error
+
+  integer(HID_T) :: root_id, timing_group_id
+
+  if(maxrank.gt.1) call distribute_timings
+
+  call h5gopen_f(file_id, "/", root_id, error)
+
+  if(ntime.eq.0) then
+     call h5gcreate_f(root_id, "timings", timing_group_id, error)
+
+     ! for grad-shafranov equilibrium, output gs times
+     if(itor.eq.1 .and. itaylor.eq.1) then
+        call write_real_attr(timing_group_id, "t_gs", t_gs, error) 
+        call write_real_attr(timing_group_id, "t_gs_magaxis", t_gs_magaxis, error) 
+        call write_real_attr(timing_group_id, "t_gs_fundef", t_gs_fundef, error)
+        call write_real_attr(timing_group_id, "t_gs_solve", t_gs_solve, error) 
+        call write_real_attr(timing_group_id, "t_gs_init", t_gs_init, error) 
+     endif
+  else
+     call h5gopen_f(root_id, "timings", timing_group_id, error)
+  endif
+
+  call output_scalar(timing_group_id, "t_ludefall"    , t_ludefall    , ntime, error)
+  call output_scalar(timing_group_id, "t_sources"     , t_sources     , ntime, error)
+  call output_scalar(timing_group_id, "t_smoother"    , t_smoother    , ntime, error)
+  call output_scalar(timing_group_id, "t_aux"         , t_aux         , ntime, error)
+  call output_scalar(timing_group_id, "t_solve_v"     , t_solve_v     , ntime, error)
+  call output_scalar(timing_group_id, "t_solve_b"     , t_solve_b     , ntime, error)
+  call output_scalar(timing_group_id, "t_solve_n"     , t_solve_n     , ntime, error)
+  call output_scalar(timing_group_id, "t_solve_p"     , t_solve_p     , ntime, error)
+  call output_scalar(timing_group_id, "t_output_cgm"  , t_output_cgm  , ntime, error)
+  call output_scalar(timing_group_id, "t_output_hdf5" , t_output_hdf5 , ntime, error)
+  call output_scalar(timing_group_id, "t_output_reset", t_output_reset, ntime, error)
+  call output_scalar(timing_group_id, "t_mvm"         , t_mvm         , ntime, error)
+  call output_scalar(timing_group_id, "t_onestep"     , t_onestep     , ntime, error)
+
+  call h5gclose_f(timing_group_id, error)
+  call h5gclose_f(root_id, error)
+
+end subroutine hdf5_write_timings
+
+
+! hdf5_write_time_slice
+! =====================
+subroutine hdf5_write_time_slice(equilibrium, error)
+  use hdf5
+  use hdf5_output
+  use basic
+
+  implicit none
+  
+  include 'mpif.h'
+
+  integer, intent(out) :: error
+  integer, intent(in) :: equilibrium
+
+  character(LEN=19) :: time_group_name
+  integer(HID_T) :: time_group_id, root_id
+  integer :: nelms
+
+!  integer :: global_nodes, global_edges, global_regions
+   
+  nelms = local_elements()
+
+  ! Calculate offset of current process
+  call mpi_scan(nelms, offset, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, error)
+  offset = offset - nelms
+!  print *, "Offset of ", myrank, " = ", offset
+!  call numglobalents(global_nodes, gobal_edges, global_elms, global_regions)
+  call mpi_allreduce(nelms, global_elms, 1, MPI_INTEGER, &
+       MPI_SUM, MPI_COMM_WORLD, error)
+
+
+  ! Create the time group
+  ! ~~~~~~~~~~~~~~~~~~~~~
+  
+  ! create the name of the group
+  if(equilibrium.eq.1) then
+     time_group_name = "equilibrium"
+  else
+     write(time_group_name, '("time_",I3.3)') times_output
+     ! remove the time group if it already exists
+     ! (from before a restart, for example)
+     if((irestart.gt.0 .and. (ntime.eq.ntime0)) .and. iadapt.eq.0) then
+        call h5gunlink_f(file_id, time_group_name, error)
+     endif
+  endif
+
+  if(myrank.eq.0 .and. iprint.eq.1) &
+       print *, ' Writing time slice ', time_group_name
+
+  ! create the group
+  call h5gcreate_f(file_id, time_group_name, time_group_id, error)
+
+  ! Write attributes
+  ! ~~~~~~~~~~~~~~~~
+  call write_real_attr(time_group_id, "time", time, error)
+  call write_int_attr(time_group_id, "nspace", 2, error)
+
+  ! Output the mesh data
+  if(myrank.eq.0 .and. iprint.eq.1) print *, 'Writing mesh '
+  call output_mesh(time_group_id, nelms, error)
+
+  ! Output the field data 
+  if(myrank.eq.0 .and. iprint.eq.1) print *, 'Writing fields '
+  call output_fields(time_group_id, equilibrium, error)
+
+
+  ! Close the time group
+  ! ~~~~~~~~~~~~~~~~~~~~
+  call h5gclose_f(time_group_id, error)  
+
+  if(equilibrium.eq.0) times_output = times_output + 1
+  call h5gopen_f(file_id, "/", root_id, error)
+  call update_int_attr(root_id, "ntime", times_output, error)
+  call h5gclose_f(root_id, error)
+
+
+end subroutine hdf5_write_time_slice
+
+
+! output_mesh
+! ===========
+subroutine output_mesh(time_group_id, nelms, error)
+  use hdf5
+  use hdf5_output
+  use mesh_mod
+  use basic
+  use boundary_conditions
+
+  implicit none
+
+  integer(HID_T), intent(in) :: time_group_id
+  integer, intent(in) :: nelms
+  integer, intent(out) :: error
+
+  type(element_data) :: d
+  integer(HID_T) :: mesh_group_id
+  integer :: i
+  real, dimension(7,nelms) :: elm_data
+  integer, dimension(nodes_per_element) :: nodeids
+  real :: alx, alz
+
+  logical :: is_edge(3)
+  real :: normal(2,3)
+  integer :: idim(3)
+  real :: bound
+
+  ! Create the group
+  call h5gcreate_f(time_group_id, "mesh", mesh_group_id, error) 
+
+  ! Write attributes
+  call write_int_attr(mesh_group_id, "nelms", global_elms, error)
+  call get_bounding_box_size(alx, alz)
+  call write_real_attr(mesh_group_id, "width", alx, error)
+  call write_real_attr(mesh_group_id, "height", alz, error)
+
+  ! Output the mesh data
+  do i=1, nelms
+     call get_element_nodes(i,nodeids)
+
+     ! don't call boundary_edge if iadapt != 0
+     ! because bug in scorec software causes crash when querying 
+     ! normal/curvature at newly created boundary nodes
+     if(iadapt.eq.0) call boundary_edge(i, is_edge, normal, idim)
+
+     bound = 0.
+     if(is_edge(1)) bound = bound + 1.
+     if(is_edge(2)) bound = bound + 2.
+     if(is_edge(3)) bound = bound + 4.
+
+     call get_element_data(i, d)
+
+     elm_data(1,i) = d%a
+     elm_data(2,i) = d%b
+     elm_data(3,i) = d%c
+     elm_data(4,i) = atan2(d%sn,d%co)
+     elm_data(5,i) = d%x
+     elm_data(6,i) = d%z
+     elm_data(7,i) = bound
+  end do
+  call output_field(mesh_group_id, "elements", elm_data, 7, nelms, error)
+
+  ! Close the group
+  call h5gclose_f(mesh_group_id, error)
+end subroutine output_mesh
+
+
+! output_fields
+! =============
+subroutine output_fields(time_group_id, equilibrium, error)
+  use hdf5
+  use hdf5_output
+  use basic
+  use arrays
+  use time_step
+  
+  implicit none
+
+  integer(HID_T), intent(in) :: time_group_id
+  integer, intent(out) :: error
+  integer, intent(in) :: equilibrium
+  
+  integer(HID_T) :: group_id
+  integer :: i, nelms, nfields, ilin
+  vectype, allocatable :: dum(:,:)
+
+  ilin = 1 - equilibrium
+
+  nfields = 0
+  nelms = local_elements()
+  
+  allocate(dum(20,nelms))
+
+  ! Create the fields group
+  call h5gcreate_f(time_group_id, "fields", group_id, error)
+
+  ! Output the fields
+  ! ~~~~~~~~~~~~~~~~~
+  
+  ! psi
+  do i=1, nelms
+     call calcavector(i, psi_field(ilin), dum(:,i))
+  end do
+  call output_field(group_id, "psi", real(dum), 20, nelms, error)
+  nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id,"psi_i",aimag(dum),20,nelms,error)
+     nfields = nfields + 1
+#endif
+
+  ! u
+  do i=1, nelms
+     call calcavector(i, u_field(ilin), dum(:,i))
+  end do
+  call output_field(group_id, "phi", real(dum), 20, nelms, error)
+  nfields = nfields + 1
+#ifdef USECOMPLEX
+  call output_field(group_id,"phi_i",aimag(dum),20,nelms,error)
+  nfields = nfields + 1
+#endif
+
+  ! jphi
+  do i=1, nelms
+     call calcavector(i, jphi_field, dum(:,i))
+  end do
+  call output_field(group_id, "jphi", real(dum), 20, nelms, error)
+  nfields = nfields + 1
+
+  ! vor
+  do i=1, nelms
+     call calcavector(i, vor_field, dum(:,i))
+  end do
+  call output_field(group_id, "vor", real(dum), 20, nelms, error)
+  nfields = nfields + 1
+
+  ! eta
+  do i=1, nelms
+     call calcavector(i, resistivity_field, dum(:,i))
+  end do
+  call output_field(group_id, "eta", real(dum), 20, nelms, error)
+  nfields = nfields + 1
+
+  ! visc
+  do i=1, nelms
+     call calcavector(i, visc_field, dum(:,i))
+  end do
+  call output_field(group_id, "visc", real(dum), 20, nelms, error)
+  nfields = nfields + 1
+
+  ! tempvar
+  do i=1, nelms
+     call calcavector(i, tempvar_field, dum(:,i))
+  end do
+  call output_field(group_id, "tempvar", real(dum), 20, nelms, error)
+  nfields = nfields + 1
+#ifdef USECOMPLEX
+  call output_field(group_id, "tempvar_i", aimag(dum), 20, nelms, error)
+  nfields = nfields + 1
+#endif
+
+
+  if(jadv.eq.0 .and. i3d.eq.1) then 
+     ! electrostatic potential
+     do i=1, nelms
+        call calcavector(i, e_v, dum(:,i))
+     end do
+     call output_field(group_id, "potential", real(dum), 20, nelms, error)
+     nfields = nfields + 1
+  endif
+
+  ! I
+  do i=1, nelms
+     call calcavector(i, bz_field(ilin), dum(:,i))
+  end do
+  call output_field(group_id, "I", real(dum), 20, nelms, error)
+  nfields = nfields + 1
+#ifdef USECOMPLEX
+  call output_field(group_id,"I_i",aimag(dum),20,nelms,error)
+  nfields = nfields + 1
+#endif
+
+
+  ! BF
+  if(ifout.eq.1) then
+     do i=1, nelms
+        call calcavector(i, bf_field(ilin), dum(:,i))
+     end do
+     call output_field(group_id, "f", real(dum), 20, nelms, error)
+     nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id,"f_i",aimag(dum),20,nelms,error)
+     nfields = nfields + 1
+#endif
+  endif
+
+  ! V
+  do i=1, nelms
+     call calcavector(i, vz_field(ilin), dum(:,i))
+  end do
+  call output_field(group_id, "V", real(dum), 20, nelms, error)
+  nfields = nfields + 1
+#ifdef USECOMPLEX
+  call output_field(group_id,"V_i",aimag(dum),20,nelms,error)
+  nfields = nfields + 1
+#endif
+
+
+  ! P and Pe
+  if(ipres.eq.1) then
+     do i=1, nelms
+        call calcavector(i, pe_field(ilin), dum(:,i))
+     end do
+     call output_field(group_id, "Pe", real(dum), 20, nelms, error)
+     nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id,"Pe_i",aimag(dum),20,nelms,error)
+     nfields = nfields + 1
+#endif
+
+     do i=1, nelms
+        call calcavector(i, p_field(ilin), dum(:,i))
+     end do
+     call output_field(group_id, "P", real(dum), 20, nelms, error)
+     nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id,"P_i",aimag(dum),20,nelms,error)
+     nfields = nfields + 1
+#endif
+
+  else
+     do i=1, nelms
+        call calcavector(i, pe_field(ilin), dum(:,i))
+     end do
+     call output_field(group_id, "Pe", pefac*real(dum), 20, nelms, error)
+     nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id,"Pe_i",pefac*aimag(dum),20,nelms,error)
+     nfields = nfields + 1
+#endif
+
+     call output_field(group_id, "P", real(dum), 20, nelms, error)
+     nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id,"P_i",aimag(dum),20,nelms,error)
+     nfields = nfields + 1
+#endif
+  endif
+     
+  ! chi
+  do i=1, nelms
+     call calcavector(i, chi_field(ilin), dum(:,i))
+  end do
+  call output_field(group_id, "chi", real(dum), 20, nelms, error)
+  nfields = nfields + 1
+
+#ifdef USECOMPLEX
+  call output_field(group_id,"chi_i",aimag(dum),20,nelms,error)
+  nfields = nfields + 1
+#endif
+
+
+  ! com
+  do i=1, nelms
+     call calcavector(i, com_field, dum(:,i))
+  end do
+  call output_field(group_id, "com", real(dum), 20, nelms, error)
+  nfields = nfields + 1
+
+  ! kappa
+  do i=1, nelms
+     call calcavector(i, kappa_field, dum(:,i))
+  end do
+  call output_field(group_id, "kappa", real(dum), 20, nelms, error)
+  nfields = nfields + 1
+
+  ! visc_c
+  do i=1, nelms
+     call calcavector(i, visc_c_field, dum(:,i))
+  end do
+  call output_field(group_id, "visc_c", real(dum), 20, nelms, error)
+  nfields = nfields + 1
+
+  if(ibootstrap.gt.0) then
+     ! visc_e
+     do i=1, nelms
+        call calcavector(i, visc_e_field, dum(:,i))
+     end do
+     call output_field(group_id, "visc_e", real(dum), 20, nelms, error)
+     nfields = nfields + 1
+  endif
+
+  ! den
+  do i=1, nelms
+     call calcavector(i, den_field(ilin), dum(:,i))
+  end do
+  call output_field(group_id, "den", real(dum), 20, nelms, error)
+  nfields = nfields + 1
+#ifdef USECOMPLEX
+  call output_field(group_id,"den_i",aimag(dum),20,nelms,error)
+  nfields = nfields + 1
+#endif
+ 
+  if(ipellet.eq.1 .or. ionization.eq.1 .or. isink.gt.0) then
+     do i=1, nelms
+        call calcavector(i, sigma_field, dum(:,i))
+     end do
+     call output_field(group_id, "sigma", real(dum), 20, nelms, error)
+     nfields = nfields + 1
+  endif
+
+  ! partition
+  dum = 0
+  dum(1,:) = myrank
+  call output_field(group_id, "part", real(dum), 20, nelms, error)
+  nfields = nfields + 1
+
+
+  call write_int_attr(group_id, "nfields", nfields, error)
+
+  ! Close the mesh group
+  call h5gclose_f(group_id, error)
+
+  deallocate(dum)
+
+end subroutine output_fields
+
+end module m3dc1_output
