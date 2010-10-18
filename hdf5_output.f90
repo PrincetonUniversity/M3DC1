@@ -311,7 +311,7 @@ contains
     values(1) = value
     coord(1,1) = t + 1
     
-    if((t.eq.0 .and. irestart.eq.0) .or. iadapt.gt.0) then
+    if(t.eq.0) then
        call h5screate_simple_f(1, dims, filespace, error, maxdims)
        call h5pcreate_f(H5P_DATASET_CREATE_F, p_id, error)
        call h5pset_chunk_f(p_id, 1, chunk_size, error)
@@ -437,7 +437,7 @@ subroutine hdf5_write_scalars(error)
 
   call h5gopen_f(file_id, "/", root_id, error)
 
-  if((ntime.eq.0 .and. irestart.eq.0) .or. iadapt.gt.0) then
+  if(ntime.eq.0) then
      call h5gcreate_f(root_id, "scalars", scalar_group_id, error)
   else
      call h5gopen_f(root_id, "scalars", scalar_group_id, error)
@@ -539,7 +539,7 @@ subroutine hdf5_write_timings(error)
 
   call h5gopen_f(file_id, "/", root_id, error)
 
-  if((ntime.eq.0 .and. irestart.eq.0) .or. iadapt.gt.0) then
+  if(ntime.eq.0) then
      call h5gcreate_f(root_id, "timings", timing_group_id, error)
 
      ! for grad-shafranov equilibrium, output gs times

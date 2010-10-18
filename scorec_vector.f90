@@ -219,7 +219,6 @@ contains
        dofs = min(v1%isize, v2%isize)*dofs_per_node
 
        do i=1, numnodes
-          if(is_ghost(i)) cycle
           i1 = node_index(v2, i, 1)
           i2 = node_index(v2, i, 1)
           v1%data(i1:i1+dofs-1) = v1%data(i1:i1+dofs-1) + v2%data(i2:i2+dofs-1)
