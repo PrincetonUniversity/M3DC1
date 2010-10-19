@@ -304,6 +304,7 @@ contains
     implicit none
     type(petsc_vector), intent(inout) :: v
     complex, intent(in) :: s
+    integer :: ierr
     PetscScalar :: val
     val = s
     call VecScale(v%vec, s, ierr)
@@ -521,6 +522,7 @@ contains
 #ifdef USECOMPLEX
   subroutine petsc_vector_get_node_data_complex(v, iplace, inode, data)
     use element
+    use mesh_mod
     implicit none
 #include "finclude/petsc.h"
     type(petsc_vector), intent(in) :: v

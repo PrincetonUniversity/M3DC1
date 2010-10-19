@@ -27,8 +27,12 @@ CCOPTS = -c $(INCLUDE)
 
 NAG_LIBS = # -L$(NAG_ROOT)/lib -lnag
 
+ifeq ($(USECOMPLEX), 1)
+  PETSC_ARCH = arch-osx-10.6-complex
+endif
+
 PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc \
-	-lmumps_common -ldmumps -lpord \
+	-lmumps_common -ldmumps -lzmumps -lpord \
 	-lblas -lblacs -llapack -lscalapack
 
 SUPERLU_LIBS = -lsuperlu_dist_2.3
