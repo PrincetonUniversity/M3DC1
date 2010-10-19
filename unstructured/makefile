@@ -18,15 +18,6 @@ else
   V_OBJ := scorec_mesh.o scorec_vector.o scorec_matrix.o PETScInterface.o
 endif
 
-# specify whether debug or optimization 
-ifeq ($(OPT), 1)
-  OPTS := $(OPTS) -O
-  SCORECOPT = -O
-  BIN_POSTFIX := $(BIN_POSTFIX)-opt
-else
-  SCORECOPT =
-endif
-
 # determine whether 2d, 3d, or 2d-complex
 ifeq ($(3D), 1)
   OPTS := $(OPTS) -DUSE3D -Dvectype=real
@@ -52,6 +43,14 @@ else
   endif
 endif
 
+# specify whether debug or optimization 
+ifeq ($(OPT), 1)
+  OPTS := $(OPTS) -O
+  SCORECOPT = -O
+  BIN_POSTFIX := $(BIN_POSTFIX)-opt
+else
+  SCORECOPT =
+endif
 
 # Define the size of sampling point arrays.
 # This sets the upper limit for number of points used
