@@ -4,15 +4,6 @@ ifeq (,$(filter _%,$(notdir $(CURDIR))))
 # and prepares a directory for object files and modules
 #--------------------------------------------------------------
 
-# specify whether real or complex
-ifeq ($(COM), 1)
-  OPTS := $(OPTS) -Dvectype=complex -DUSECOMPLEX
-  BIN_POSTFIX := $(BIN_POSTFIX)-complex
-else
-  OPTS := $(OPTS) -Dvectype=real
-  BIN_POSTFIX := $(BIN_POSTFIX)-real
-endif
-
 ifeq ($(USEPETSC), 1)
   OPTS := $(OPTS) -DUSEPETSC -Dmesh_mod=basic_mesh_mod \
 	-Dvector_mod=petsc_vector_mod -Dmatrix_mod=petsc_matrix_mod \
@@ -36,8 +27,9 @@ else
   SCORECOPT =
 endif
 
+# determine whether 2d, 3d, or 2d-complex
 ifeq ($(3D), 1)
-  OPTS := $(OPTS) -DUSE3D
+  OPTS := $(OPTS) -DUSE3D -Dvectype=real
   BIN_POSTFIX := $(BIN_POSTFIX)-3d
   USE3D = 1
   ifndef MAX_PTS
@@ -48,7 +40,18 @@ else
   ifndef MAX_PTS
     MAX_PTS = 25
   endif
+
+  # specify whether real or complex
+  ifeq ($(COM), 1)
+    OPTS := $(OPTS) -Dvectype=complex -DUSECOMPLEX
+    BIN_POSTFIX := $(BIN_POSTFIX)-complex
+    USECOMPLEX = 1
+  else
+    OPTS := $(OPTS) -Dvectype=real
+    USECOMPLEX = 0
+  endif
 endif
+
 
 # Define the size of sampling point arrays.
 # This sets the upper limit for number of points used
@@ -62,6 +65,7 @@ export OPTS
 export SCORECOPT
 export V_OBJ
 export USESCOREC
+export USECOMPLEX
 export USE3D
 
 include target.mk
@@ -92,7 +96,7 @@ OBJS := $(AUX) subp.o \
 	time_step.o hdf5_output.o output.o \
 	newpar.o input.o ludef_t.o \
 	restart.o readgeqdsk.o read_dskbal.o \
-	read_jsolver.o output.o \
+	read_jsolver.o \
 	ic_resistive_wall.o \
 	init_conds.o
 
