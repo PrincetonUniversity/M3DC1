@@ -298,7 +298,7 @@ subroutine read_density_profile
   logical :: inside_lcfs
 
   if(myrank.eq.0) then
-     if(iprint.eq.1) print *, 'Reading density profile...'
+     if(iprint.ge.1) print *, 'Reading density profile...'
 
      open(unit=ifile,file='PROFDEN.txt',status='unknown')
      read(ifile,'(I5,I8)') npsi, itype
@@ -323,7 +323,7 @@ subroutine read_density_profile
      call mpi_bcast(density,npsi,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD, ier)
   endif
 
-  if(myrank.eq.0 .and. iprint.eq.1) print *, 'Solving density profile...'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'Solving density profile...'
 
   call create_field(temp_field)
 
@@ -1051,13 +1051,13 @@ subroutine wave_init()
      coef(1) = -6.*gam*p0*a2**2*akx2**3*b2**4                       &
           *(4.*b2+akx2*bi*(1.-3.*a2))**2
 
-     if(myrank.eq.0 .and. iprint.eq.1) then
+     if(myrank.eq.0 .and. iprint.ge.1) then
         write(*,*) "Coefs: ", coef(1), coef(2), coef(3), coef(4)
      endif
 
      call cubic_roots(coef, root, error)
 
-     if(myrank.eq.0 .and. iprint.eq.1) then
+     if(myrank.eq.0 .and. iprint.ge.1) then
         write(*,*) "Coefs: ", coef(1), coef(2), coef(3), coef(4)
         write(*,*) "Roots: ", root(1), root(2), root(3)
         write(*,*) "Error: ", error(1), error(2), error(3)

@@ -123,7 +123,7 @@ endif   # on USESCOREC
 
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(INCLUDE) $(OPTS) \
 	-DH5_VERSION=$(H5_VERSION) -DRANDOM_NUM='drand(0)' \
-	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs # \
+	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs #\
 #	-g -check all -check noarg_temp_created -debug all -ftrapuv
 F90OPTS = $(F90FLAGS) $(FOPTS) -gen-interfaces
 F77OPTS = $(F77FLAGS) $(FOPTS)

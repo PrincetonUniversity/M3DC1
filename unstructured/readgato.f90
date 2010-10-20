@@ -90,7 +90,7 @@
       read(ngato,200) (dpdz(i),i=1,nthet) ! dpsi/dz on boundary
       read(ngato,200) (dpdr(i),i=1,nthet) ! dpsi/dr on boundary
 !
-      if(iprint.eq.1) write(*,400)
+      if(iprint.ge.1) write(*,400)
       read(ngato,200) ((xnorm(j,i),j=1,npsi),i=1,nthet) ! R
 !
       write(*,500) xnorm(1,1), xmag
@@ -99,7 +99,7 @@
       write(*,600) znorm(1,1), zmag
 !
 !     check on the periodicity conditions
-      if(iprint.eq.1) then 
+      if(iprint.ge.1) then 
         write(*,602)
         do j=1,npsi,10
           write(*,601) j,xnorm(j,nthet-1),xnorm(j,nthet),xnorm(j,1),xnorm(j,2)
@@ -147,7 +147,7 @@
           zn(j,i) = znorm(jj-1,i) + fac*(znorm(jj,i)-znorm(jj-1,i))
         enddo
       enddo
-      if(iprint.eq.1) then
+      if(iprint.ge.1) then
         write(*,402) 
         do j=1,np
           do i=1,nthe,10
@@ -193,7 +193,7 @@
           znew(j,i) = zn(j,im) + fac*(zn(j,iz)-zn(j,im))
         enddo
       enddo
-      if(iprint.eq.1) then
+      if(iprint.ge.1) then
         do j=1,np
           do i=1,nt
              write(*,401) i,j,xnew(j,i),znew(j,i)

@@ -253,12 +253,9 @@ subroutine hdf5_write_scalars(error)
 
   real :: temp
 
-  if(myrank.eq.0 .and. iprint.ge.1) &
-       print *, ' Writing scalars'
-
   call h5gopen_f(file_id, "/", root_id, error)
 
-  if((ntime.eq.0 .and. irestart.eq.0) .or. iadapt.gt.0) then
+  if(ntime.eq.0) then
      call h5gcreate_f(root_id, "scalars", scalar_group_id, error)
   else
      call h5gopen_f(root_id, "scalars", scalar_group_id, error)
@@ -360,7 +357,7 @@ subroutine hdf5_write_timings(error)
 
   call h5gopen_f(file_id, "/", root_id, error)
 
-  if((ntime.eq.0 .and. irestart.eq.0) .or. iadapt.gt.0) then
+  if(ntime.eq.0) then
      call h5gcreate_f(root_id, "timings", timing_group_id, error)
 
      ! for grad-shafranov equilibrium, output gs times
@@ -438,7 +435,7 @@ subroutine hdf5_write_time_slice(equilibrium, error)
      write(time_group_name, '("time_",I3.3)') times_output
      ! remove the time group if it already exists
      ! (from before a restart, for example)
-     if((irestart.gt.0 .and. (ntime.eq.ntime0)) .and. iadapt.eq.0) then
+     if(ntime.ne.0 .and. ntime.eq.ntime0) then
         call h5gunlink_f(file_id, time_group_name, error)
      endif
   endif

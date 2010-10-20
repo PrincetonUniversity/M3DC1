@@ -150,7 +150,7 @@ Program Reducedquintic
 
   ! output simulation parameters and equilibrium
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(irestart.eq.0  .or. iadapt.gt.0) then
+  if(ntime.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) &
           print *, " Writing simulation parameters"
      call hdf5_write_parameters(ier)
@@ -188,7 +188,7 @@ Program Reducedquintic
     call create_field(temporary_field)
     temporary_field = psi_field(0)
 
-    print *, 'adapting mesh...'
+    print *, 'adapting mesh...', psimin, psibound
     call adapt(temporary_field%vec%data,psimin,psibound)
     print *, 'done adapting.'
 
@@ -1090,7 +1090,7 @@ subroutine space(ifirstcall)
 ! arrays defined at all vertices
 ! createvec will delete the arrays if they have already been allocated
   if(ifirstcall.eq.1) then
-     if(myrank.eq.0 .and. iprint.eq.1) print *, 'Allocating...'
+     if(myrank.eq.0 .and. iprint.ge.1) print *, 'Allocating...'
 
      ! Physical Variables
      call create_vector(field_vec , num_fields)
@@ -1149,16 +1149,16 @@ subroutine space(ifirstcall)
 
   ! arrays associated with the triangles
   if(ifirstcall.eq.0) then
-     if(myrank.eq.0 .and. iprint.eq.1) print *, ' deallocating...'
+     if(myrank.eq.0 .and. iprint.ge.1) print *, ' deallocating...'
      deallocate(gtri,gtri_old,htri)
   endif
   
-  if(myrank.eq.0 .and. iprint.eq.1) print *, ' Allocating tri...'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Allocating tri...'
   allocate(gtri(coeffs_per_tri,dofs_per_tri,numelms))
   allocate(gtri_old(coeffs_per_tri,dofs_per_tri,numelms))
   allocate(htri(coeffs_per_dphi,dofs_per_dphi,numelms))
 
-  if(myrank.eq.0 .and. iprint.eq.1) print *, ' associating...'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' associating...'
   call associate_field(u_field(1),   field_vec, u_g)
   call associate_field(vz_field(1),  field_vec, vz_g)
   call associate_field(chi_field(1), field_vec, chi_g)
@@ -1178,7 +1178,7 @@ subroutine space(ifirstcall)
 
 
   ! assign pointers to proper vectors
-  if(myrank.eq.0 .and. iprint.eq.1) print *, ' assinging...'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' assinging...'
   call assign_variables
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, " Exiting space."

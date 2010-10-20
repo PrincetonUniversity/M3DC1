@@ -360,7 +360,7 @@ subroutine gradshafranov_solve
   ! start of iteration loop on plasma current
   mainloop: do itnum=1, iabs(igs)
 
-     if(myrank.eq.0 .and. iprint.eq.1) print *, "GS: iteration = ", itnum
+     if(myrank.eq.0) print *, "GS iteration = ", itnum
      
      ! apply boundary conditions
      if(iread_eqdsk.ne.1 .or. itnum.gt.1) then
@@ -373,12 +373,12 @@ subroutine gradshafranov_solve
                 write(*,'(A,2E12.4)') "feedfac, gnorm", feedfac,  gnorm
         endif
 
-        if(myrank.eq.0 .and. iprint.eq.2) print *, '  applying bcs'
+        if(myrank.eq.0 .and. iprint.ge.2) print *, '  applying bcs'
         call boundary_gs(b1vecini_vec%vec, feedfac)
 
         ! perform LU backsubstitution to get psi solution
         if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-        if(myrank.eq.0 .and. iprint.eq.2) print *, '  solving'
+        if(myrank.eq.0 .and. iprint.ge.2) print *, '  solving'
 
 #ifdef CJ_MATRIX_DUMP
   if(itnum.eq.iabs(igs)) then 
