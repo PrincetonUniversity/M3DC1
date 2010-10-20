@@ -367,7 +367,7 @@ subroutine onestep
 
   ! calculate matrices for time advance
   if(calc_matrices.eq.1) then
-     if(myrank.eq.0 .and. iprint.eq.1) print *, "Defining matrices"
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Defining matrices"
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
      ! in linear case, eliminate second-order terms from matrix
@@ -376,16 +376,16 @@ subroutine onestep
         call second(tend)
         t_ludefall = t_ludefall + tend - tstart
      endif
-     if(myrank.eq.0 .and. iprint.eq.1) print *, "Done defining matrices."
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Done defining matrices."
   endif
 
 
   ! copy field data to time-advance vectors
-  if(myrank.eq.0 .and. iprint.eq.2) print *, "Importing time advance vectors.."
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "Importing time advance vectors.."
   call import_time_advance_vectors
 
   ! advance time
-  if(myrank.eq.0 .and. iprint.eq.1) print *, "Advancing times..."
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing times..."
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   if(isplitstep.eq.1) then
      call split_step(calc_matrices)
@@ -401,7 +401,7 @@ subroutine onestep
   dt = dt + ddt
 
   ! copy time advance vectors to field data
-  if(myrank.eq.0 .and. iprint.eq.2) print *, "Exporting time advance vectors.."
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "Exporting time advance vectors.."
   call export_time_advance_vectors
 
   ! Calculate all quantities derived from basic fields
@@ -989,7 +989,7 @@ subroutine split_step(calc_matrices)
   end if
 
 
-  if(myrank.eq.0 .and. iprint.eq.1 .and. itimer.eq.1) then
+  if(myrank.eq.0 .and. iprint.ge.1 .and. itimer.eq.1) then
      print *, " split_step: Time solve: ", &
           t_solve_v + t_solve_b + t_solve_n + t_solve_p
      print *, " split_step: Time bcs: ", t_bound
@@ -1134,7 +1134,7 @@ subroutine unsplit_step(calc_matrices)
      endif
      
      ! solve linear system...LU decomposition done first time
-     if(myrank.eq.0 .and. iprint.eq.1) print *, "solving.."
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "solving.."
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
 #ifdef CJ_MATRIX_DUMP
