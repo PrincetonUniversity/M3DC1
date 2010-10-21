@@ -99,6 +99,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
 
         temp = v1psib(trial,lin,bz179)
         ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
+        if(numvar.eq.1) temp = 2.*temp
         ddterm(psi_g) = ddterm(psi_g) + (.5-thimp*bdf)*dt*temp
      endif
 
@@ -983,7 +984,11 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, q_bf, r_e, q_e)
 
      temp = b1bu(trial,bz179,lin)
      ssterm(u_g) = ssterm(u_g) - thimpb*dt*temp
-     ddterm(u_g) = ddterm(u_g) - thimpb*dt*temp*bdf
+     if(numvar.eq.1) then
+        ddterm(u_g) = ddterm(u_g) - (1.-2.*thimpb)*dt*temp*bdf
+     else
+        ddterm(u_g) = ddterm(u_g) - thimpb*dt*temp*bdf
+     endif
   endif
 
   if(eqsubtract.eq.1) then
