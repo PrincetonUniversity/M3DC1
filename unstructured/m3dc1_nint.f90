@@ -430,6 +430,8 @@ contains
           bft79 = bf179
 #endif
        endif
+
+       if(numvar.eq.1) bzs79 = bzt79
     endif
 
     ! CHI
