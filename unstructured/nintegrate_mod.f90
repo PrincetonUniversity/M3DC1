@@ -21,10 +21,20 @@ implicit none
   real, private, dimension(25) :: alpha_25, beta_25, gamma_25, area_weight_25
   real, private, dimension(79) :: alpha_79, beta_79, gamma_79, area_weight_79
 
+  real, private, dimension(2) :: delta_2, line_weight_2
+  real, private, dimension(3) :: delta_3, line_weight_3
   real, private, dimension(5) :: delta_5, line_weight_5
 
-data delta_5        / -0.906180, -0.538469, 0.,       0.538469, 0.906180 /
-data line_weight_5  /  0.236927,  0.478629, 0.568889, 0.478629, 0.236927 /
+data delta_2        / -0.577350269, 0.577350269 /
+data line_weight_2  /  1.,          1.          /
+
+data delta_3        / -0.774596669, 0.,            0.774596669 /
+data line_weight_3  /  0.555555556, 0.888888889  , 0.555555556 /
+
+data delta_5 &
+     / -0.906179846, -0.53846931, 0.,         0.53846931, 0.906179846 /
+data line_weight_5 &
+     /  0.236926885,  0.47862867, 0.56888889, 0.47862867, 0.236926885 /
 
 data alpha_12 &
 / 0.501426509658179, 0.249286745170910, 0.249286745170910, 0.873821971016996, &
@@ -278,6 +288,14 @@ subroutine extrude_quadrature(npol, ntor)
   integer :: i, j
 
   select case(ntor)
+  case(2)
+     phi = (delta_2 + 1.)/2.
+     wt = line_weight_2/2.
+
+  case(3)
+     phi = (delta_3 + 1.)/2.
+     wt = line_weight_3/2.
+
   case(5)
      phi = (delta_5 + 1.)/2.
      wt = line_weight_5/2.
@@ -359,6 +377,14 @@ subroutine define_boundary_quadrature(ielm, iedge, ngauss, normal, idim)
   if(idim(mod(iedge,3)+1).eq.0) n2 = n1
 
   select case(ngauss)
+  case(2)
+     call edge_to_local(ngauss, delta_2, line_weight_2, &
+     si1, eta1, si2, eta2, xi_79, eta_79, weight_79, n1, n2, d%co, d%sn)
+
+  case(3)
+     call edge_to_local(ngauss, delta_3, line_weight_3, &
+     si1, eta1, si2, eta2, xi_79, eta_79, weight_79, n1, n2, d%co, d%sn)
+
   case(5)
      call edge_to_local(ngauss, delta_5, line_weight_5, &
      si1, eta1, si2, eta2, xi_79, eta_79, weight_79, n1, n2, d%co, d%sn)

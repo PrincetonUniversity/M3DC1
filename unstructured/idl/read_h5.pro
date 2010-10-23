@@ -2654,6 +2654,21 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    return, data
 end
 
+function read_field_3d, name, phi, x, z, t, points=points, _EXTRA=extra
+   field = fltarr(points, points, points)
+
+   phi = fltarr(points)
+
+   for i=0, points-1 do begin
+       phi[i] = 2.*!pi*i/points
+       print, phi[i]
+       field[i,*,*] = reform(read_field(name,x,z,t,phi=phi[i],points=points,$
+                                        _EXTRA=extra))
+   end
+
+   return, field
+end
+
 
 ; field_at_point
 function field_at_point, field, x, z, x0, z0
@@ -4658,6 +4673,20 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
 end
 
 
+pro plot_3d, name, xslice=xslice, yslice=yslice, zslice=zslice, $
+             _EXTRA=extra
+
+   field = read_field_3d(name,y,x,z,t,_EXTRA=extra)
+
+   data = fltarr(n_elements(x), n_elements(y))
+   surface, data, x, y, /nodata, /save, zrange=[min(z), max(z)], _EXTRA=extra
+
+
+   isosurface, data, max(data)*0.05, v, p
+
+   tv, polyshade(v, p, /t3d, shades=shades)
+
+end
 
 ;======================================================
 ; plot_flux_average
@@ -5228,7 +5257,9 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
                    light_brightness=light_brightness, points=points, $
                    brightness=brightness, specular=specular, $
                    solid=solid, positive_only=positive_only, $
-                   power=power, angle=angle, ax=ax, az=az, _EXTRA=extra
+                   power=power, angle=angle, ax=ax, az=az, $
+                   xslice=xslice, zslice=zslice, _EXTRA=extra, $
+                   absolute_value=absolute
 
   if(n_elements(points) eq 0) then points = 50
   angles = points
@@ -5252,11 +5283,13 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
   threed = read_parameter('3d', _EXTRA=extra)
   print, '3d = ', threed
 
+  phi = fltarr(shown_angles)
   if(threed eq 1) then begin
       for i=0, shown_angles-1 do begin
-          phi = 2.*!pi*i/(angles-1.)
+          phi[i] = 2.*!pi*i/(angles-1.)
+          if(i eq angles-1) then pp = 0 else pp = phi[i]
           data[*,i,*] = $
-            read_field(fieldname,x,z,t,_EXTRA=extra,edge_val=0.,phi=phi, $
+            read_field(fieldname,x,z,t,_EXTRA=extra,edge_val=0.,phi=pp, $
                       points=points)
           if(keyword_set(solid)) then psi[*,i,*] = psi0[0,*,*]
       end
@@ -5267,10 +5300,10 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
       field = read_field(fieldname,x,z,t,/complex,_EXTRA=extra,edge_val=0., $
                         points=points)
       for i = 0, shown_angles-1 do begin
-          phi = 2.*!pi*i/(angles-1.)
+          phi[i] = 2.*!pi*i/(angles-1.)
           data[*,i,*] = real_part(field[0,*,*]* $
-                                  (cos(ntor*phi) + $
-                                   complex(0.,1.)*sin(ntor*phi)))
+                                  (cos(ntor*phi[i]) + $
+                                   complex(0.,1.)*sin(ntor*phi[i])))
           
           if(keyword_set(solid)) then psi[*,i,*] = psi0[0,*,*]
       end
@@ -5278,53 +5311,77 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
 
   if(keyword_set(positive_only)) then begin
       data = data > 0.
-  endif else data = abs(data)
+  endif else if(keyword_set(absolute)) then begin
+      data = abs(data)
+  endif
 
   if(n_elements(power) ne 0.) then data = data^power
 
-  print, 'calling interval_volume'
+  xrange = [min(x), max(x)]
+  zrange = [min(z), max(z)]
+  itor = read_parameter('itor', _EXTRA=extra)
+  if(itor eq 1) then begin
+      yrange = xrange
+  endif else begin
+      yrange = [min(phi), max(phi)]
+  endelse
+
+  tmpdat = fltarr(2, 2)
+  surface, tmpdat, xrange, yrange, charsize=2.5, $
+    /nodata, /save, ax=ax, az=az, xstyle=1, ystyle=1, zstyle=1, $
+    xrange=xrange, yrange=yrange, zrange=zrange, $
+    xtitle='R', ytitle='!9P!X', ztitle='Z'
+  
+
   if(keyword_set(solid)) then begin
+      print, 'calling interval_volume'
       interval_volume, psi, flux0, flux1, v, conn, $
         auxdata_in=data, auxdata_out=aout
       print, 'calling tetra_surface'
       p = tetra_surface(v, conn)
+      set_shading, reject=1
   
   endif else begin
-      isosurface, data, max(data)*0.05, v, p
+
+      if(n_elements(xslice) eq 1 and n_elements(zslice) eq 1) then begin
+          value = [xslice, zslice]
+          normal = [[1,0,0],[0,0,1]]
+      endif else if(n_elements(xslice) eq 1) then begin
+          value = xslice
+          normal = [1,0,0]
+      endif else if(n_elements(zslice) eq 1) then begin
+          value = zslice
+          normal = [0,0,1]
+      endif
+      if(n_elements(value) ne 0) then begin
+          plot_slice, data, x, phi, z, value=value, normal=normal
+          surface, tmpdat, xrange, yrange, xstyle=1, ystyle=1, zstyle=1, $
+            /nodata, /noerase, ax=ax, az=az, charsize=2.5, $
+            xrange=xrange, yrange=yrange, zrange=zrange, $
+            xtitle='R', ytitle='!9P!X', ztitle='Z'
+          return
+      endif
   endelse
    
   ; reduce values at edge
 ;  result = where(v[1,*] eq min(v[1,*]) or v[1,*] eq max(v[1,*]))
 ;  aout(result) = aout(result)/2.
 
-  r = (v[0,*] - min(v[0,*]))*(max(x) - min(x))/(max(v[0,*]) - min(v[0,*])) $
-    + min(x)
-  zz = (v[2,*] - min(v[2,*]))*(max(z) - min(z))/(max(v[2,*]) - min(v[2,*])) $
-    + min(z)
+  rr = (max(x) - min(x))*v[0,*]/(n_elements(x)-1.) + min(x)
+  yy = (max(phi) - min(phi))*v[0,*]/(n_elements(phi)-1.) + min(phi)
+  zz = (max(z) - min(z))*v[2,*]/(n_elements(z)-1.) + min(z)
 
   q = v
 
-  s = intarr(2)
-  device, get_screen_size=s
-  screen_aspect = float(s[1])/float(s[0])
-
-  itor = read_parameter('itor', _EXTRA=extra)
   if(itor eq 1) then begin
-      q[0,*] = r*cos(2.*!pi*v[1,*]/(angles-1.))
-      q[1,*] = r*sin(2.*!pi*v[1,*]/(angles-1.))
+      q[0,*] = rr*cos(yy)
+      q[1,*] = rr*sin(yy)
       q[2,*] = zz
-      xrange = [-max(r),max(r)]*0.75
-      yrange = xrange
-      zrange = xrange*screen_aspect
   endif else begin
-      q[0,*] = r
-      q[1,*] = 2.*!pi*v[1,*]/(angles-1.)
+      q[0,*] = rr
+      q[1,*] = yy
       q[2,*] = zz
-      xrange = [min(r),max(r)]*1.5/screen_aspect
-      yrange = [min(q[1,*]),max(q[1,*])]*1.5
-      zrange = [min(zz),max(zz)]*1.5
   endelse
- 
 
   if(n_elements(az) eq 0) then begin
       if(keyword_set(solid)) then az=-25 else az=0.
@@ -5332,8 +5389,6 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
   if(n_elements(ax) eq 0) then begin
       if(keyword_set(solid)) then ax=35 else ax=15.
   endif
-
-  scale3, xrange=xrange, yrange=yrange, zrange=zrange, ax=ax, az=az
 
   if(n_elements(brightness) eq 0) then brightness=0.15
   if(n_elements(contrast) eq 0) then contrast=1.
@@ -5349,9 +5404,19 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
       shades = bytscl(aout) * contrast + brightness*255 $
         + light_brightness*reflect*255 $
         + specular*exp((reflect-1.)*5.)*255< 255
-  endif
+  endif else begin
+      shades = bytscl(aout)
+  endelse
+
 
   print, 'plotting'
   tv, polyshade(q, p, /t3d, shades=shades)
+
+
+  
+  surface, tmpdat, xrange, yrange, xstyle=1, ystyle=1, zstyle=1, $
+    /nodata, /noerase, ax=ax, az=az, charsize=2.5, $
+    xrange=xrange, yrange=yrange, zrange=zrange, $
+    xtitle='R', ytitle='!9P!X', ztitle='Z'
 
 end
