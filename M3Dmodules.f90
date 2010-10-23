@@ -206,9 +206,10 @@ module basic
   integer :: inumgs  ! if 1, use numerical definition of p and g from profile-p and profile-g files
   integer :: irecalc_eta ! 1 = recalculate transport coeffs after den solve
   integer :: iconst_eta  ! 1 = don't evolve resistivity
-  integer :: int_pts_main! points in integration quadrature for time advance matrices
-  integer :: int_pts_aux ! points in integration quadrature for auxiliary variable definitions
-  integer :: int_pts_diag! points in integration quadrature for diagnostic calculations
+  integer :: int_pts_main! pol points in int. quad. for time advance matrices
+  integer :: int_pts_aux ! pol points in int. quad. for aux. var, definitions
+  integer :: int_pts_diag! pol points in int. quad. for diagnostic calculations
+  integer :: int_pts_tor ! tor points in int. quad.
   integer :: isurface    ! include surface terms
   real :: dt             ! timestep
   real :: ddt            ! change in timestep per timestep
@@ -306,7 +307,7 @@ module basic
        irecalc_eta,ihypdx, iconst_eta,                         &
        n_target, n_control_p, n_control_i, n_control_d,        &
        icalc_scalars, ike_only, ifout, inertia, itwofluid,     &
-       int_pts_main, int_pts_aux, int_pts_diag,                &
+       int_pts_main, int_pts_aux, int_pts_diag, int_pts_tor,   &
        iwave, bx0 , chiiner, ibootstrap, xnull, znull,         &
        tiltangled, isurface,                                   &
        iread_eqdsk, iread_dskbal, iread_jsolver,               &

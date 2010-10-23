@@ -505,7 +505,7 @@ subroutine gradshafranov_solve
 
      if(myrank.eq.0 .and. iprint.ge.2) print *, '  populating'
      do itri=1,numelms
-        call define_element_quadrature(itri, int_pts_aux, 5)
+        call define_element_quadrature(itri, int_pts_aux, int_pts_tor)
         call define_fields(itri, 0, 1, 0)
 
         call get_element_data(itri, d)
@@ -601,7 +601,7 @@ subroutine gradshafranov_solve
      if(myrank.eq.0 .and. iprint.ge.2) print *, 'calculating density...'
      b1vecini_vec = 0.
      do itri=1,numelms
-        call define_element_quadrature(itri, int_pts_aux, 5)
+        call define_element_quadrature(itri, int_pts_aux, int_pts_tor)
         call define_fields(itri, 0, 1, 0)
         call get_element_data(itri, d)
         
@@ -1129,7 +1129,7 @@ subroutine fundef2(error)
 
   do itri=1,numelms
 
-     call define_element_quadrature(itri, int_pts_aux, 5)
+     call define_element_quadrature(itri, int_pts_aux, int_pts_tor)
      call define_fields(itri, 0, 1, 0)
      call get_element_data(itri, d)
 
@@ -1654,7 +1654,7 @@ end subroutine alphaget
 
    nelms = local_elements()
    do itri=1, nelms
-      call define_element_quadrature(itri, int_pts_main, 5)
+      call define_element_quadrature(itri, int_pts_main, int_pts_tor)
       call define_fields(itri, def_fields, 0, 1)
       
       temp79a = ps079(:,OP_GS)*(ps079(:,OP_DR)**2 + ps079(:,OP_DZ)**2)

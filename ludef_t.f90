@@ -1835,7 +1835,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
 
      ! calculate the field values and derivatives at the sampling points
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     call define_element_quadrature(itri, int_pts_main, 5)
+     call define_element_quadrature(itri, int_pts_main, int_pts_tor)
      call define_fields(itri, def_fields, 1, linear)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)

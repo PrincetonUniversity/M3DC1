@@ -568,7 +568,7 @@ subroutine calculate_scalars()
 
      dbf = db
 
-     call define_element_quadrature(itri, int_pts_diag, 5)
+     call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
      call define_fields(itri, def_fields, 0, 0)
 
      ! Calculate energy

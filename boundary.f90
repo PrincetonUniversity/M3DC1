@@ -43,7 +43,6 @@ subroutine get_boundary_mask(itri, ibound, imask)
         if(izonedim.eq.0) then
            imask(k+1) = 0
            imask(k+3) = 0
-           imask(k+4) = 0
         end if
 #ifdef USE3D
         imask(k+6 ) = 0
@@ -52,7 +51,6 @@ subroutine get_boundary_mask(itri, ibound, imask)
         if(izonedim.eq.0) then
            imask(k+7 ) = 0
            imask(k+9 ) = 0
-           imask(k+10) = 0
         end if
 #endif
      endif
@@ -62,6 +60,13 @@ subroutine get_boundary_mask(itri, ibound, imask)
         if(izonedim.eq.0) then
            imask(k+2) = 0
         endif
+#ifdef USE3D
+        imask(k+7) = 0
+        imask(k+10) = 0
+        if(izonedim.eq.0) then
+           imask(k+8) = 0
+        endif
+#endif
      endif
      if(iand(ibound, BOUNDARY_LAPLACIAN).eq.BOUNDARY_LAPLACIAN) then
         imask(k+3) = 0
@@ -250,27 +255,11 @@ subroutine set_tangent_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
      endif
      call insert(rhs, irow, bv_rotated(4), VEC_SET)
 #ifdef USE3D
-     if(present(mat)) call set_row_vals(mat, irow+6, numvals, cols+6, vals)
+     if(present(mat)) then
+        call set_row_vals(mat, irow+6, numvals, cols(3:5)+6, vals(3:5))
+     end if
      call insert(rhs, irow+6, bv_rotated(10), VEC_SET)
 #endif
-
-     ! nt
-     irow = ibegin+4
-     if(present(mat)) then
-        numvals = 5
-        vals(1) = -curv*normal(2)
-        vals(2) = curv*normal(1)
-        vals(3) = -normal(1)*normal(2)
-        vals(4) = normal(1)**2 - normal(2)**2
-        vals(5) = normal(1)*normal(2)
-        call set_row_vals(mat, irow, numvals, cols, vals)
-     endif
-     call insert(rhs, irow, bv_rotated(5), VEC_SET)
-#ifdef USE3D
-     if(present(mat)) call set_row_vals(mat, irow+6, numvals, cols+6, vals)
-     call insert(rhs, irow+6, bv_rotated(11), VEC_SET)
-#endif
-
   endif
 
 end subroutine set_tangent_bc
@@ -315,6 +304,10 @@ subroutine set_normal_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
      call set_row_vals(mat, irow, numvals, cols, vals)
   endif
   call insert(rhs, irow, bv_rotated(2), VEC_SET)
+#ifdef USE3D
+     if(present(mat)) call set_row_vals(mat, irow+6, numvals, cols+6, vals)
+     call insert(rhs, irow+6, bv_rotated(8), VEC_SET)
+#endif
 
   ! nt
   irow = ibegin+4
@@ -328,6 +321,10 @@ subroutine set_normal_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
      call set_row_vals(mat, irow, numvals, cols, vals)
   endif
   call insert(rhs, irow, bv_rotated(5), VEC_SET)
+#ifdef USE3D
+     if(present(mat)) call set_row_vals(mat, irow+6, numvals, cols+6, vals)
+     call insert(rhs, irow+6, bv_rotated(11), VEC_SET)
+#endif
 
   if(izonedim.eq.0) then
      ! t
@@ -339,6 +336,10 @@ subroutine set_normal_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
         call set_row_vals(mat, irow, numvals, cols, vals)
      endif
      call insert(rhs, irow, bv_rotated(3), VEC_SET)
+#ifdef USE3D
+     if(present(mat)) call set_row_vals(mat, irow+6, numvals, cols+6, vals)
+     call insert(rhs, irow+6, bv_rotated(9), VEC_SET)
+#endif
   endif
      
 end subroutine set_normal_bc

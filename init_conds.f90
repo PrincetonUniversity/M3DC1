@@ -2346,18 +2346,18 @@ end module jsolver_eq
 
 
 !==============================================================================
-! 3D Test
-! ~~~~~~~
+! 3D wave Test
+! ~~~~~~~~~~~~
 ! This is a test case which initializes a 2-dimensional equilibrium
 ! With a 3-dimensional initial perturbation
 !==============================================================================
-module threed_test
+module threed_wave_test
 
   real, private :: kx, kz, kphi, omega
 
 contains
 
-subroutine threed_test_init()
+subroutine threed_wave_test_init()
   use math
   use basic
   use arrays
@@ -2385,14 +2385,14 @@ subroutine threed_test_init()
 
      call get_local_vals(l)
 
-     call threed_test_equ(x, phi, z)
-     call threed_test_per(x, phi, z)
+     call threed_wave_test_equ(x, phi, z)
+     call threed_wave_test_per(x, phi, z)
 
      call set_local_vals(l)
   enddo
-end subroutine threed_test_init
+end subroutine threed_wave_test_init
 
-subroutine threed_test_equ(x, phi, z)
+subroutine threed_wave_test_equ(x, phi, z)
   use basic
   use arrays
 
@@ -2407,10 +2407,10 @@ subroutine threed_test_equ(x, phi, z)
   call constant_field(p0_l, p0)
   call constant_field(pe0_l, p0-pi0*ipres)
 
-end subroutine threed_test_equ
+end subroutine threed_wave_test_equ
 
 
-subroutine threed_test_per(x, phi, z)
+subroutine threed_wave_test_per(x, phi, z)
   use basic
   use arrays
 
@@ -2435,9 +2435,112 @@ subroutine threed_test_per(x, phi, z)
 
   u1_l = -psi1_l*omega*(bzero*rzero)*kphi/omega
 
-end subroutine threed_test_per
+end subroutine threed_wave_test_per
 
-end module threed_test
+end module threed_wave_test
+
+
+!==============================================================================
+! 3D diffusion Test
+! ~~~~~~~~~~~~
+! This is a test case which initializes a 2-dimensional equilibrium
+! With a 3-dimensional initial perturbation
+!==============================================================================
+module threed_diffusion_test
+
+  real, private :: kx, kz, kphi, phi0
+
+contains
+
+subroutine threed_diffusion_test_init()
+  use math
+  use basic
+  use arrays
+  use mesh_mod
+
+  implicit none
+
+  integer :: l, numnodes
+  real :: x, phi, z, x1, x2, z1, z2
+
+  call get_bounding_box(x1, z1, x2, z2)
+  kx = pi/(x2-x1)
+  kz = pi/(z2-z1)
+  kphi = ntor/rzero
+
+#ifdef USE3D
+  phi0 = pi
+#else
+  phi0 = 0
+#endif
+
+  numnodes = owned_nodes()
+  do l=1, numnodes
+     call get_node_pos(l, x, phi, z)
+
+     x = x - x1
+     z = z - z1
+
+     call get_local_vals(l)
+
+     call threed_diffusion_test_equ(x, phi, z)
+     call threed_diffusion_test_per(x, phi, z)
+
+     call set_local_vals(l)
+  enddo
+end subroutine threed_diffusion_test_init
+
+subroutine threed_diffusion_test_equ(x, phi, z)
+  use basic
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x, phi, z
+
+  psi0_l = 0.
+
+  call constant_field(bz0_l, bzero)
+  call constant_field(den0_l, 1.)
+  call constant_field(p0_l, p0)
+  call constant_field(pe0_l, p0-pi0*ipres)
+
+end subroutine threed_diffusion_test_equ
+
+
+subroutine threed_diffusion_test_per(x, phi, z)
+  use basic
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x, phi, z
+  real :: ex, dex
+
+  ex = eps*exp(-(kphi*(phi-phi0))**2)
+  dex = 2.*kphi**2*(phi-phi0)*ex
+
+  p1_l(1) = sin(kx*x)*sin(kz*z)*ex
+  p1_l(2) = cos(kx*x)*sin(kz*z)*ex*kx
+  p1_l(3) = sin(kx*x)*cos(kz*z)*ex*kz
+  p1_l(4) =-sin(kx*x)*sin(kz*z)*ex*kx**2
+  p1_l(5) = cos(kx*x)*cos(kz*z)*ex*kx*kz
+  p1_l(6) =-sin(kx*x)*sin(kz*z)*ex*kz**2
+#ifdef USE3D
+  p1_l(7)  =-sin(kx*x)*sin(kz*z)*dex
+  p1_l(8)  =-cos(kx*x)*sin(kz*z)*dex*kx
+  p1_l(9)  =-sin(kx*x)*cos(kz*z)*dex*kz
+  p1_l(10) = sin(kx*x)*sin(kz*z)*dex*kx**2
+  p1_l(11) =-cos(kx*x)*cos(kz*z)*dex*kx*kz
+  p1_l(12) = sin(kx*x)*sin(kz*z)*dex*kz**2
+#endif
+
+  den1_l = p1_l
+  pe1_l = p1_l*pefac
+
+end subroutine threed_diffusion_test_per
+
+end module threed_diffusion_test
 
 
 
@@ -2464,7 +2567,8 @@ subroutine initial_conditions()
   use biharmonic
   use circ_shell_only
   use resistive_wall_test
-  use threed_test
+  use threed_wave_test
+  use threed_diffusion_test
 
   implicit none
 
@@ -2503,7 +2607,10 @@ subroutine initial_conditions()
         case(12,13)
            call resistive_wall_test_init()
         case(14)
-           call threed_test_init()
+           call threed_wave_test_init()
+        case(15)
+           call threed_diffusion_test_init()
+
         end select
      else
         ! toroidal equilibria
@@ -2527,7 +2634,10 @@ subroutine initial_conditions()
            call resistive_wall_test_init()
            call cartesian_to_cylindrical_all()
         case(14)
-           call threed_test_init()
+           call threed_wave_test_init()
+        case(15)
+           call threed_diffusion_test_init()
+
         end select
      endif
   end if

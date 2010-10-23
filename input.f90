@@ -115,9 +115,10 @@ subroutine set_defaults
   jadv = 0
   ivform = 0
   ibform = -1
-  int_pts_main = 79
-  int_pts_aux = 79
-  int_pts_diag = 79
+  int_pts_main = 25
+  int_pts_aux = 25
+  int_pts_diag = 25
+  int_pts_tor = 5
   max_ke = 1.
 
   ! equilibrium options
