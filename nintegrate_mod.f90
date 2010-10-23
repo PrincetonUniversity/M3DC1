@@ -278,27 +278,28 @@ end subroutine area_to_local
 ! Extends a 2D npol-point quadrature to 3D 
 ! by taking external product with ntor-point 1D quadrature
 !======================================================================
-subroutine extrude_quadrature(npol, ntor)
+subroutine extrude_quadrature(d, npol, ntor)
   implicit none
 
-  integer, intent(in) :: npol            ! number of poloidal quadrature points
-  integer, intent(in) :: ntor            ! number of toroidal quadrature points
+  real, intent(in) :: d        ! toroidal extent of element
+  integer, intent(in) :: npol  ! number of poloidal quadrature points
+  integer, intent(in) :: ntor  ! number of toroidal quadrature points
 
   real, dimension(ntor) :: phi, wt
   integer :: i, j
 
   select case(ntor)
   case(2)
-     phi = (delta_2 + 1.)/2.
-     wt = line_weight_2/2.
+     phi = d*(delta_2 + 1.)/2.
+     wt = d*line_weight_2/2.
 
   case(3)
-     phi = (delta_3 + 1.)/2.
-     wt = line_weight_3/2.
+     phi = d*(delta_3 + 1.)/2.
+     wt = d*line_weight_3/2.
 
   case(5)
-     phi = (delta_5 + 1.)/2.
-     wt = line_weight_5/2.
+     phi = d*(delta_5 + 1.)/2.
+     wt = d*line_weight_5/2.
      
   case default
      print *, "Error! ", ntor, "-point line quadrature not defined."
@@ -396,7 +397,7 @@ subroutine define_boundary_quadrature(ielm, iedge, ngauss, normal, idim)
   surface_int = .true.
 
 #ifdef USE3D
-  call extrude_quadrature(ngauss,ngauss)
+  call extrude_quadrature(d%d,ngauss,ngauss)
 #else
   npoints = ngauss
 #endif
@@ -434,7 +435,7 @@ subroutine define_element_quadrature(ielm, pol_gauss, tor_gauss)
 
   surface_int = .false.
 #ifdef USE3D
-  call extrude_quadrature(pol_gauss,tor_gauss)
+  call extrude_quadrature(d%d,pol_gauss,tor_gauss)
 #else
   npoints = pol_gauss
 #endif

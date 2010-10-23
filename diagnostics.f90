@@ -151,6 +151,7 @@ contains
     epotg = 0.
 
     area = 0.
+    volume = 0.
     totcur = 0.
     tflux = 0.
     totden = 0.
@@ -191,7 +192,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 45
+    integer, parameter :: num_scalars = 46
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -242,6 +243,7 @@ contains
        temp(43) = tau_gyro
        temp(44) = tau_parvisc
        temp(45) = bwb2
+       temp(46) = volume
          
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -292,6 +294,7 @@ contains
        tau_gyro=temp2(43)
        tau_parvisc=temp2(44)
        bwb2    =temp2(45)
+       volume  =temp2(46)
 
     endif !if maxrank .gt. 1
 
