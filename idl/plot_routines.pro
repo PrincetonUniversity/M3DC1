@@ -565,46 +565,52 @@ end
 
 
 pro plot_slice, data, x, y, z, value=value, normal=normal, itor=itor
-   n = n_elements(value)
-   for m=0, n-1 do begin
-       xdata = data
-       for i=0, n_elements(x)-1 do begin
-           for j=0, n_elements(y)-1 do begin
-               for k=0, n_elements(z)-1 do begin
-                   xdata[i,j,k] = $
-                     normal[0,m]*x[i] + normal[1,m]*y[j] + normal[2,m]*z[k]
+
+   if(n_elements(normal) gt 0) then begin
+       n = n_elements(value)
+       for m=0, n-1 do begin
+           xdata = data
+           for i=0, n_elements(x)-1 do begin
+               for j=0, n_elements(y)-1 do begin
+                   for k=0, n_elements(z)-1 do begin
+                       xdata[i,j,k] = $
+                         normal[0,m]*x[i] + normal[1,m]*y[j] + normal[2,m]*z[k]
+                   end
                end
            end
-       end
-       isosurface, xdata, value[m], v1, p1
-
-       if(n_elements(v1) le 3) then begin
-           print, 'Error: surface does not intersect domain'
-           return
-       endif
-
-       if(m eq 0) then begin
-           v = v1
-           p = p1
-       endif else begin
-           for i=0, n_elements(p1)-1, 4 do begin
-               p1[i+1] = p1[i+1] + n_elements(v[0,*])
-               p1[i+2] = p1[i+2] + n_elements(v[0,*])
-               p1[i+3] = p1[i+3] + n_elements(v[0,*])
+           isosurface, xdata, value[m], v1, p1
+           
+           if(n_elements(v1) le 3) then begin
+               print, 'Error: surface does not intersect domain'
+               return
+           endif
+           
+           if(m eq 0) then begin
+               v = v1
+               p = p1
+           endif else begin
+               for i=0, n_elements(p1)-1, 4 do begin
+                   p1[i+1] = p1[i+1] + n_elements(v[0,*])
+                   p1[i+2] = p1[i+2] + n_elements(v[0,*])
+                   p1[i+3] = p1[i+3] + n_elements(v[0,*])
+               end
+               p = [p, p1]
+               v = [[v], [v1]]
            end
-           p = [p, p1]
-           v = [[v], [v1]]
        end
-   end
 
+       aout = interpolate(data, reform(v[0,*]), reform(v[1,*]), reform(v[2,*]))
+       set_shading, reject=0
+       shades = bytscl(aout)
+   endif else begin
+       isosurface, data, max(data)*value, v, p
+       set_shading, reject=1
+   endelse
+       
    if(n_elements(v) le 3) then begin
        print, 'Error: surface does not intersect domain'
        return
    endif
-
-   
-   aout = interpolate(data, reform(v[0,*]), reform(v[1,*]), reform(v[2,*]))
-   set_shading, reject=0
 
    rr = (max(x) - min(x))*v[0,*]/(n_elements(x)-1.) + min(x)
    yy = (max(y) - min(y))*v[1,*]/(n_elements(y)-1.) + min(y)
@@ -622,6 +628,5 @@ pro plot_slice, data, x, y, z, value=value, normal=normal, itor=itor
        q[2,*] = zz
    endelse
 
-   shades = bytscl(aout)
    tv, polyshade(q, p, /t3d, shades=shades)
 end

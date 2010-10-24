@@ -188,7 +188,7 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
   real :: rpxi, rxi, zmzi, rk, ce, ck, term1, term2, rz, co
   real :: rksq, sqrxi, x
 
-  integer :: i, imult, imultp
+  integer :: i, imult
 
   data a0,a1,a2,a3,a4/1.38629436112,9.666344259e-2,                 &
        3.590092383e-2,3.742563713e-2,1.451196212e-2/
@@ -245,10 +245,9 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
         ineg=39
         return
      endif
-     imultp = imult + 1
         
-     select case(imultp)
-     case(10)
+     select case(imult)
+     case(0)
         ! even nullapole
         g(1,i) = twopi*rz**2
         g(2,i) = 0.
@@ -257,7 +256,7 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
         g(5,i) = 0.
         g(6,i) = 0.
 
-     case(11)
+     case(1)
         ! odd nullapole
         g(1,i) = 0.
         g(2,i) = 0.
@@ -266,7 +265,7 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
         g(5,i) = 0.
         g(6,i) = 0.
 
-     case(12)
+     case(2)
         ! even dipole
         g(1,i) = twopi*(r(i)**2 - rz**2)/2.
         g(2,i) = twopi*r(i)
@@ -275,7 +274,7 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
         g(6,i) = 0.
         g(4,i) = twopi
 
-     case(13)
+     case(3)
         ! odd dipole
         co=twopi/rz
         g(1,i) = co*(r(i)**2*z(i))
@@ -285,7 +284,7 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
         g(6,i) = 0.
         g(4,i) = co*2*z(i)
 
-     case(14)
+     case(4)
         ! even quadrapole
         co=pi/(4.*rz**2)
         g(1,i) = co*(r(i)**4-4.*r(i)**2*z(i)**2 - 2.*r(i)**2*rz**2+rz**4)
@@ -295,7 +294,7 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
         g(6,i) = co*(-8.*r(i)**2)
         g(4,i) = co*(12.*r(i)**2 - 8.*z(i)**2 - 4.*rz**2)
         
-     case(15)
+     case(5)
         ! odd quadrapole
         co=pi/(3.*rz**3)
         g(1,i) = co*r(i)**2*z(i)*(3.*r(i)**2-4.*z(i)**2-3.*rz**2)
@@ -305,7 +304,7 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
         g(6,i) = co*(-24.*r(i)**2*z(i))
         g(4,i) = co*(36.*r(i)**2*z(i)-8.*z(i)**3-6.*z(i)*rz**2)
 
-     case(16)
+     case(6)
         ! even hexapole
         co=pi/(12.*rz**4)
         g(1,i) = co*(r(i)**6 - 12.*r(i)**4*z(i)**2 - 3.*r(i)**4*rz**2       &
@@ -322,7 +321,7 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
              + 16.*z(i)**4 + 24.*z(i)**2*rz**2 + 6.*rz**4)
         g(6,i)=co*(-24.*r(i)**4 + 96.*r(i)**2*z(i)**2 + 24.*r(i)**2*rz**2)
 
-     case(17)
+     case(7)
         ! odd hexapole
         co=pi/(30.*rz**5)
         g(1,i) = co*(15.*r(i)**6*z(i) - 60.*r(i)**4*z(i)**3                 &
@@ -343,7 +342,7 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
              - 360.*r(i)**2*z(i)*rz**2 + 48.*z(i)**5                    &
              + 80.*z(i)**3*rz**2 + 30.*z(i)*rz**4)
 
-     case(18)
+     case(8)
         ! even octapole
         co=pi/(160.*rz**6)
         g(1,i) = co*(5.*r(i)**8 - 120.*r(i)**6*z(i)**2 - 20.*r(i)**6*rz**2  &
@@ -371,7 +370,7 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
              + 360.*r(i)**2*rz**4 - 128.*z(i)**6                        &
              - 320.*z(i)**4*rz**2 - 240.*z(i)**2*rz**4 - 40.*rz**6)
 
-     case(19)
+     case(9)
         ! odd octapole
         co=pi/(140.*rz**7)
         g(1,i) = co*r(i)**2*z(i)*(35.*r(i)**6 - 280.*r(i)**4*z(i)**2        &
@@ -403,7 +402,7 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
              - 128.*z(i)**7 - 336.*z(i)**5*rz**2                        &
              - 280.*z(i)**3*rz**4 - 70.*z(i)*rz**6)
 
-     case(20)
+     case(10)
         ! even decapole
         co=pi/(560.*rz**8)
         g(1,i) = co*(7.*r(i)**10 - 280.*r(i)**8*z(i)**2 - 35.*r(i)**8*rz**2 &
@@ -447,7 +446,7 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
              + 70.*rz**8)
 
      case default
-        print *, 'Error: unknown multipole ', imultp
+        print *, 'Error: unknown multipole ', imult
      end select
   end do
 end subroutine gvect
