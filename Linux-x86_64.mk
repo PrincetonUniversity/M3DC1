@@ -55,7 +55,7 @@ ifeq ($(USESCOREC), 1)
     ifndef SCORECDIR
       SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.stix
     endif
-    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/022310 $(INCLUDE)
+    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/latest $(INCLUDE)
 
     SCOREC_ARCH=x86_64_linux-icc
     SCOREC_LIBS = \
@@ -96,9 +96,9 @@ ifeq ($(USESCOREC), 1)
     # 2D Libraries
 
     ifndef SCORECDIR
-      SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/022310
+      SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/latest
     endif
-    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/022310 $(INCLUDE)
+    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/latest $(INCLUDE)
 
     SCOREC_LIBS = \
 	-L$(SCORECDIR) \
