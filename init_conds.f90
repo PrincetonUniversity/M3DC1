@@ -2483,7 +2483,7 @@ subroutine threed_diffusion_test_init()
 
      call get_local_vals(l)
 
-     call threed_diffusion_test_equ(x-x1, phi, z)
+     call threed_diffusion_test_equ(x-x1, phi, z-z1)
      call threed_diffusion_test_per(x-x0, phi-phi0, z-z0)
 
      call set_local_vals(l)
@@ -2499,11 +2499,11 @@ subroutine threed_diffusion_test_equ(x, phi, z)
   real, intent(in) :: x, phi, z
 
   psi0_l(1) = bx0*sin(kx*x)*sin(kz*z)
-  psi0_l(2) = bx0*cos(kx*x)*sin(kz*z)
-  psi0_l(3) = bx0*sin(kx*x)*cos(kz*z)
-  psi0_l(4) =-bx0*sin(kx*x)*sin(kz*z)
-  psi0_l(5) = bx0*cos(kx*x)*cos(kz*z)
-  psi0_l(6) =-bx0*sin(kx*x)*sin(kz*z)
+  psi0_l(2) = bx0*cos(kx*x)*sin(kz*z)*kx
+  psi0_l(3) = bx0*sin(kx*x)*cos(kz*z)*kz
+  psi0_l(4) =-bx0*sin(kx*x)*sin(kz*z)*kx**2
+  psi0_l(5) = bx0*cos(kx*x)*cos(kz*z)*kx*kz
+  psi0_l(6) =-bx0*sin(kx*x)*sin(kz*z)*kz**2
 
   call constant_field(bz0_l, bzero)
   call constant_field(den0_l, 1.)

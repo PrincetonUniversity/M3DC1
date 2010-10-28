@@ -635,10 +635,10 @@ contains
      temp79a = ri2_79* &
           (pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2 + bzt79(:,OP_1)**2)
 
-#ifdef USECOMPLEX
+#if defined(USECOMPLEX) || defined(USE3D)
      temp79b = &
           (bft79(:,OP_DRP)**2 + bft79(:,OP_DZP)**2) &
-          + ri_79* &
+          + 2.*ri_79* &
           (pst79(:,OP_DZ)*bft79(:,OP_DRP) - pst79(:,OP_DR)*bft79(:,OP_DZP))
 
      b2i79(1:npoints,OP_1 ) = 1./(temp79a(1:npoints) + temp79b(1:npoints))
@@ -656,7 +656,7 @@ contains
         b2i79(:,OP_DR) = b2i79(:,OP_DR) - ri_79*temp79a
      endif
 
-#ifdef USECOMPLEX
+#if defined(USECOMPLEX) || defined(USE3D)
      b2i79(:,OP_DR) = b2i79(:,OP_DR) + ri_79* &
           (pst79(:,OP_DZ )*bft79(:,OP_DRRP)-pst79(:,OP_DR )*bft79(:,OP_DRZP) &
           +pst79(:,OP_DRZ)*bft79(:,OP_DRP )-pst79(:,OP_DRR)*bft79(:,OP_DZP ))&

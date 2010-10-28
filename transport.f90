@@ -332,10 +332,10 @@ subroutine define_transport_coefficients()
              call vector_insert_block(visc_e_field%vec,itri,1,dofs,VEC_ADD)
      end if
 
-!!$     do i=1, dofs_per_element
-!!$        dofs(i) = int2(mu79(:,OP_1,i),b2i79(:,OP_1))
-!!$     end do
-!!$     call vector_insert_block(tempvar_field%vec,itri,1,dofs,VEC_ADD)
+     do i=1, dofs_per_element
+        dofs(i) = int2(mu79(:,OP_1,i),b2i79(:,OP_1))
+     end do
+     call vector_insert_block(tempvar_field%vec,itri,1,dofs,VEC_ADD)
   end do
 
   ! make sure all processes agree on what needs to be solved
@@ -381,8 +381,8 @@ subroutine define_transport_coefficients()
      call newvar_solve(visc_e_field%vec, mass_mat_lhs)
   endif
 
-!!$  if(myrank.eq.0 .and. iprint.ge.1) print *, '  size field'
-!!$  call newvar_solve(tempvar_field%vec, mass_mat_lhs)
+  if(myrank.eq.0 .and. iprint.ge.1) print *, '  tempvar field'
+  call newvar_solve(tempvar_field%vec, mass_mat_lhs)
 
   visc_c_field = visc_field
 
