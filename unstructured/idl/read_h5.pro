@@ -5258,8 +5258,9 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
                    brightness=brightness, specular=specular, $
                    solid=solid, positive_only=positive_only, $
                    power=power, angle=angle, ax=ax, az=az, $
-                   xslice=xslice, zslice=zslice, _EXTRA=extra, $
-                   absolute_value=absolute
+                   xslice=xslice, zslice=zslice, phislice=phislice, $
+                   absolute_value=absolute, _EXTRA=extra
+
 
   if(n_elements(points) eq 0) then points = 50
   angles = points
@@ -5342,19 +5343,25 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
       set_shading, reject=1
   
   endif else begin
-
-      if(n_elements(xslice) eq 1 and n_elements(zslice) eq 1) then begin
-          value = [xslice, zslice]
-          normal = [[1,0,0],[0,0,1]]
-      endif else if(n_elements(xslice) eq 1) then begin
-          value = xslice
-          normal = [1,0,0]
-      endif else if(n_elements(zslice) eq 1) then begin
-          value = zslice
-          normal = [0,0,1]
-      endif else begin
-          value = 0.9
-      endelse
+      if(n_elements(xslice) eq 1) then begin
+          if(n_elements(value) eq 0) then value = xslice $
+          else value = [value,xslice]
+          if(n_elements(normal) eq 0) then normal = [1,0,0] $
+          else normal = [[normal], [1,0,0]]
+      endif
+      if(n_elements(zslice) eq 1) then begin
+          if(n_elements(value) eq 0) then value = zslice $
+          else value = [value,zslice]
+          if(n_elements(normal) eq 0) then normal = [0,0,1] $
+          else normal = [[normal], [0,0,1]]
+      endif
+      if(n_elements(phislice) eq 1) then begin
+          if(n_elements(value) eq 0) then value = phislice $
+          else value = [value,phislice]
+          if(n_elements(normal) eq 0) then normal = [0,1,0] $
+          else normal = [[normal], [0,1,0]]
+      endif
+      if(n_elements(value) eq 0) then value=0.9
       plot_slice, data, x, phi, z, value=value, normal=normal
       surface, tmpdat, xrange, yrange, xstyle=1, ystyle=1, zstyle=1, $
         /nodata, /noerase, ax=ax, az=az, charsize=2.5, $

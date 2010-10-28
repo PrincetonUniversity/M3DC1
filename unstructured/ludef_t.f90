@@ -826,8 +826,10 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
      if(eqsubtract.eq.1) then 
         ddterm(den_g) = ddterm(den_g) + dt* &
              (v3uun    (trial,ph079,ph079,lin) &
+             +v3uvn    (trial,ph079,vz079,lin) &
              +v3uchin  (trial,ph079,ch079,lin) &
              +v3vvn    (trial,vz079,vz079,lin) &
+             +v3vchin  (trial,vz079,ch079,lin) &
              +v3chichin(trial,ch079,ch079,lin))
      endif
   endif

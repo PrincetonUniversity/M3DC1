@@ -41,7 +41,7 @@ contains
     call setTotNbPlane(nplanes)
     
     call MPI_Comm_size(MPI_COMM_WORLD,maxrank,ier)
-    procs_per_plane = 1
+    procs_per_plane = maxrank/nplanes
     print *, 'setting number of processes per plane = ', procs_per_plane
     call setNbProcPlane(procs_per_plane)
 
