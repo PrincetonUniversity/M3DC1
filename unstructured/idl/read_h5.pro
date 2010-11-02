@@ -2342,6 +2342,19 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        symbol = '!8u!6!D*!N!X'
        d = dimensions(/v0, _EXTRA=extra)
 
+   endif else if(strcmp('omega_star', name, /fold_case) eq 1) then begin
+       v_star = read_field('v_star', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+       
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1
+
+       data = v_star/r
+       symbol = '!7x!6!D*!N!X'
+       d = dimensions(t0=-1, _EXTRA=extra)
+
    ;===========================================
    ; ideal_k
    ;===========================================
@@ -3536,22 +3549,7 @@ pro plot_lcfs, psi, x, z, psival=psival,_EXTRA=extra
 ;      thick=!p.charthick*2., color=color(6,10)
     xy = path_at_flux(psi, x, z, t, psival, breaks=breaks)
 
-    n = n_elements(breaks)
-    nxy = n_elements(xy[0,*])
-
-    dx2 = deriv(xy[0,*])^2 + deriv(xy[1,*])^2
-
-    if(breaks[0] ne -1) then begin
-        breaks = [0, breaks, nxy-1]
-
-        for i=0, n-2, 2 do begin
-            oplot, xy[0,breaks[i]:breaks[i+1]], $
-              xy[1,breaks[i]:breaks[i+1]], $
-              thick=!p.thick, color=color(6,10)
-        end
-    endif else begin
-        oplot, xy[0,*], xy[1,*], thick=!p.thick, color=color(6,10)
-    endelse
+    oplot, xy[0,*], xy[1,*], thick=!p.thick, color=color(6,10)
 end
 
 

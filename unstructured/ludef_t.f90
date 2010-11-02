@@ -229,7 +229,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
           + v1chis (trial,lin,sig79)
      ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
      ddterm(chi_g) = ddterm(chi_g) + (1.-thimp*bdf)*dt*temp
-               
+
      if(gyro.eq.1) then
         temp = g1chi(trial,lin)*dbf
         ssterm(chi_g) = ssterm(chi_g) +     thimp     *dt*temp
