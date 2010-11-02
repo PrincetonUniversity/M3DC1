@@ -1443,7 +1443,8 @@ vectype function v1chipsib(e,f,g,h)
                 +int5(ri5_79,temp79b,norm79(:,1),f(:,OP_DR),g(:,OP_DR)))
         endif
      else
-        temp79a = h(:,OP_DZ)*f(:,OP_DR) - h(:,OP_DR)*f(:,OP_DZ)
+        temp79a = h(:,OP_DZP)*f(:,OP_DR ) - h(:,OP_DRP)*f(:,OP_DZ ) &
+             +    h(:,OP_DZ )*f(:,OP_DRP) - h(:,OP_DR )*f(:,OP_DZP)
         temp79b = (e(:,OP_DZ)*f(:,OP_DZ )+e(:,OP_DR)*f(:,OP_DR ))*h(:,OP_DP) &
              +    (e(:,OP_DZ)*f(:,OP_DZP)+e(:,OP_DR)*f(:,OP_DRP))*h(:,OP_1 )
         temp79c = f(:,OP_DZP)*g(:,OP_DZ ) + f(:,OP_DRP)*g(:,OP_DR ) &
@@ -1451,7 +1452,8 @@ vectype function v1chipsib(e,f,g,h)
         temp79d = h(:,OP_1)*f(:,OP_GS) &
              + h(:,OP_DZ)*f(:,OP_DZ) + h(:,OP_DR)*f(:,OP_DR)
         if(itor.eq.1) then
-           temp79a = temp79a + 4.*ri_79*h(:,OP_1)*f(:,OP_DZ)
+           temp79a = temp79a + 4.*ri_79* &
+                (h(:,OP_DP)*f(:,OP_DZ) + h(:,OP_1)*f(:,OP_DZP))
            temp79d = temp79d - 2.*ri_79*h(:,OP_1)*f(:,OP_DR)
         endif
      
