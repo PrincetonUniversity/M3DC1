@@ -1284,9 +1284,6 @@ subroutine calc_toroidal_field(psi0,tf,x,z)
   
      if(bzero.lt.0) tf = -tf
   endif
-
-  if(iflip_b.eq.1) tf = -tf
-
 end subroutine calc_toroidal_field
 
 
@@ -1936,9 +1933,6 @@ subroutine calc_rotation(psi0,omega, x, z)
      omega(2) = x**2 * omega(2) + 2.*x*omega(1)
      omega(1) = x**2 * omega(1)
   endif
-
-  if(iflip_v.eq.1) omega = -omega
-  if(iflip_v.eq.-1) omega = 0.
 end subroutine calc_rotation
 
 !=======================================================
