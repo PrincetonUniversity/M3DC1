@@ -153,10 +153,10 @@ contains
        call getmincoord2(bb(1), bb(2))
        call getmaxcoord2(bb(3), bb(4))
        if(is_rectilinear) then
-          bb(1) = bb(1) + xzero
-          bb(2) = bb(2) + zzero
-          bb(3) = bb(3) + xzero
-          bb(4) = bb(4) + zzero
+          bb(3) = bb(3) - bb(1) + xzero
+          bb(4) = bb(4) - bb(2) + zzero
+          bb(1) = xzero
+          bb(2) = zzero
        endif
        has_bounding_box = .true.
     endif
@@ -203,8 +203,9 @@ contains
     z = coords(2)
 
     if(is_rectilinear) then
-       x = x + xzero
-       z = z + zzero
+       call getmincoord2(x1, z1)
+       x = x + xzero - x1
+       z = z + zzero - z1
     endif
 #ifdef USE3D
     phi = coords(3)

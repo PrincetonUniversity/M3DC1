@@ -191,8 +191,8 @@ module basic
   integer :: itwofluid   ! 1 = include two-fluid terms in ohm's law
   integer :: ibootstrap  ! bootstrap current model
   integer :: iflip       ! 1 = flip handedness
-  integer :: iflip_b     ! 1 = flip toroidal field
-  integer :: iflip_v     ! 1 = flip toroidal velocity
+  integer :: iflip_b     ! 1 = flip equilibrium toroidal field
+  integer :: iflip_v     ! 1 = flip equilibrium toroidal velocity
 
   ! numerical parameters
   integer :: ntimemax    ! number of timesteps
