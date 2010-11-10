@@ -563,7 +563,7 @@ subroutine split_step(calc_matrices)
 
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.2) then 
-     call write_matrix(s1_mat)
+     call write_matrix(s1_mat,'s1_mat')
      call write_vector(b1_vel, 's1_mat_rhs.out')
   endif
 #endif 
@@ -652,7 +652,7 @@ subroutine split_step(calc_matrices)
 
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.2) then 
-     call write_matrix(s8_mat)
+     call write_matrix(s8_mat,'s8_mat')
      call write_vector(temp, 's8_mat_rhs.out')
   endif
 #endif 
@@ -741,7 +741,7 @@ subroutine split_step(calc_matrices)
 
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.2) then 
-     call write_matrix(s9_mat)
+     call write_matrix(s9_mat,'s9_mat')
      call write_vector(temp, 's9_mat_rhs.out')
   endif
 #endif 
@@ -847,7 +847,7 @@ subroutine split_step(calc_matrices)
 
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.2) then 
-     call write_matrix(s2_mat)
+     call write_matrix(s2_mat,'s2_mat')
      call write_vector(b1_phi, 's2_mat_rhs.out')
   endif
 #endif 
@@ -950,7 +950,7 @@ subroutine split_step(calc_matrices)
         
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.2) then 
-     call write_matrix(s2_mat)
+     call write_matrix(s2_mat,'s2_mat')
      call write_vector(b1_phi, 's2_mat_rhs.out')
   endif
 #endif 
@@ -1053,7 +1053,7 @@ subroutine unsplit_step(calc_matrices)
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.2) then 
-     call write_matrix(s1_mat)
+     call write_matrix(s1_mat,'s1_mat')
      call write_vector(b1_phi, 's1_mat_rhs.out')
   endif
 #endif 
@@ -1139,7 +1139,7 @@ subroutine unsplit_step(calc_matrices)
 
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.2) then 
-     call write_matrix(s1_mat)
+     call write_matrix(s1_mat,'s1_mat')
      call write_vector(b1_phi, 's1_mat_rhs.out')
   endif
 #endif 

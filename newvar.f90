@@ -407,20 +407,20 @@ subroutine solve_newvar_axby(mata,vout,matb,vin,bvec)
   call apply_bc(temp,mata%ibound,bptr)
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then 
+!cj  if(ntime.eq.2) then 
      write ( filename, * ) mata%mat%imatrix, '_rhs.out' 
-     call write_matrix(mata%mat)
+     call write_matrix(mata%mat,filename)
      call write_vector(temp, trim(filename))
-  endif
+!cj  endif
 #endif 
 
   call newsolve(mata%mat,temp,ier)
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then
+!cj  if(ntime.eq.2) then
      write ( filename, * ) mata%mat%imatrix, '_sol.out' 
      call write_vector(temp, trim(filename))
-  endif
+!cj  endif
 #endif 
 
   if(ier.ne.0) then
@@ -504,9 +504,6 @@ end subroutine solve_newvar1
   !=====================================================
   subroutine newvar_solve(rhs, mat, bvec)
     use vector_mod
-#ifdef CJ_MATRIX_DUMP
-    use basic
-#endif
 
     implicit none
 
@@ -530,20 +527,20 @@ end subroutine solve_newvar1
     call apply_bc(rhs,mat%ibound,bptr)
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then 
+!cj  if(ntime.eq.2) then 
      write ( filename, * ) mat%mat%imatrix, '_rhs.out' 
-     call write_matrix(mat%mat)
+     call write_matrix(mat%mat,filename)
      call write_vector(rhs, trim(filename))
-  endif
+!cj  endif
 #endif 
 
     call newsolve(mat%mat,rhs,ier)
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then
+!cj  if(ntime.eq.2) then
      write ( filename, * ) mat%mat%imatrix, '_sol.out' 
      call write_vector(rhs, trim(filename))
-  endif
+!cj  endif
 #endif 
 
     call finalize(rhs)

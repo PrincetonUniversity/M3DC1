@@ -197,7 +197,7 @@ contains
 
 #ifdef CJ_MATRIX_DUMP
 !!$  if(ntime.eq.2) then 
-     call write_matrix(biharmonic_mat)
+     call write_matrix(biharmonic_mat,'biharmonic_mat')
      call write_vector(rhs%vec, 'biharmonic_mat_rhs.out')
 !!$  endif
 #endif 

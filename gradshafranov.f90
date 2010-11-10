@@ -382,7 +382,7 @@ subroutine gradshafranov_solve
 
 #ifdef CJ_MATRIX_DUMP
   if(itnum.eq.iabs(igs)) then 
-     call write_matrix(gs_matrix)
+     call write_matrix(gs_matrix,'gs_matrix')
      call write_vector(b1vecini_vec%vec, 'gs_matrix_rhs.out')
   endif
 #endif 
