@@ -709,7 +709,7 @@ subroutine field_from_coils_2(xc, zc, ic, nc, ntor)
 
 #ifdef CJ_MATRIX_DUMP
 !!$  if(ntime.eq.2) then 
-     call write_matrix(br_mat)
+     call write_matrix(br_mat,'br_mat')
      call write_vector(psi_vec, 'br_mat_rhs.out')
 !!$  endif
 #endif 
