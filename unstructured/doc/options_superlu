@@ -1,0 +1,26 @@
+-ksp_type preonly 
+-pc_type lu
+-pc_factor_mat_solver_package superlu_dist
+-ksp_converged_reason
+-ksp_view
+-xhelp
+
+-solve1_ksp_type preonly 
+-solve1_pc_type lu
+-solve1_pc_factor_mat_solver_package superlu_dist
+-solve1_ksp_converged_reason
+-solve1_ksp_view
+-xsolve1_help
+
+-solve2_ksp_type preonly 
+-solve2_pc_type lu
+-solve2_pc_factor_mat_solver_package superlu_dist
+-solve2_ksp_converged_reason
+-solve2_ksp_view
+-xsolve2_help
+
+-options_table
+-options_left
+
+-xtrdump
+-malloc_log
