@@ -486,9 +486,14 @@ subroutine split_step(calc_matrices)
   use diagnostics
   use matrix_mod
   use boundary_conditions
-  use mesh_mod
+  use mesh_mod 
 
   implicit none
+
+#ifdef CJ_MATRIX_DUMP
+  integer :: counter
+#endif
+
 
   integer, intent(in) :: calc_matrices
   real :: tstart, tend, t_bound
@@ -562,18 +567,19 @@ subroutine split_step(calc_matrices)
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then 
-     call write_matrix(s1_mat,'s1_mat')
-     call write_vector(b1_vel, 's1_mat_rhs.out')
-  endif
+     call get_counter( s1_mat%imatrix, counter) 
+     if(counter.le.0) then 
+        call write_matrix(s1_mat,'s1_mat')
+        call write_vector(b1_vel, 's1_mat_rhs.out')
+     endif
 #endif 
 
      call newsolve(s1_mat, b1_vel, jer)
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then
-     call write_vector(b1_vel, 's1_mat_sol.out')
-  endif
+     if(counter.le.0) then 
+        call write_vector(b1_vel, 's1_mat_sol.out')
+     endif
 #endif 
 
      if(myrank.eq.0 .and. iprint.ge.2) print *, "  done solve"
@@ -1016,6 +1022,11 @@ subroutine unsplit_step(calc_matrices)
 
   implicit none
 
+#ifdef CJ_MATRIX_DUMP
+  integer :: counter
+#endif 
+
+
   integer, intent(in) :: calc_matrices
   integer :: jer
   
@@ -1052,14 +1063,15 @@ subroutine unsplit_step(calc_matrices)
   if(myrank.eq.0 .and. iprint.ge.1) print *, "solving.."
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then 
+  call get_counter( s1_mat%imatrix, counter) 
+  if(counter.le.0) then 
      call write_matrix(s1_mat,'s1_mat')
      call write_vector(b1_phi, 's1_mat_rhs.out')
   endif
 #endif 
   call newsolve(s1_mat, b1_phi, jer)
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then
+  if(counter.le.0) then 
      call write_vector(b1_phi, 's1_mat_sol.out')
   endif
 #endif 
@@ -1138,18 +1150,18 @@ subroutine unsplit_step(calc_matrices)
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then 
-     call write_matrix(s1_mat,'s1_mat')
-     call write_vector(b1_phi, 's1_mat_rhs.out')
-  endif
+     if(counter.le.0) then 
+        call write_matrix(s1_mat,'s1_mat')
+        call write_vector(b1_phi, 's1_mat_rhs.out')
+     endif
 #endif 
 
      call newsolve(s1_mat, b1_phi, jer)
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then
-     call write_vector(b1_phi, 's1_mat_sol.out')
-  endif
+     if(counter.le.0) then
+        call write_vector(b1_phi, 's1_mat_sol.out')
+     endif
 #endif 
 
      if(myrank.eq.0 .and. itimer.eq.1) then

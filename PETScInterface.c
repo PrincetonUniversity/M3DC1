@@ -82,6 +82,52 @@ int setPETScKSP(int matrixid, KSP * ksp, Mat * A) {
 }
 
 
+/*
+   dec 1, 2010 cj
+   get_counter fix newvar_solve matrix print bug
+*/
+typedef struct
+{
+  int matrixId;
+  int counter; // count when a pc needs to be refreshed
+} MAT_COUNTER;
+// global container
+MAT_COUNTER matcounter[40];
+int get_counter_(int *matrixId, int *counter)
+{ // local variables
+  static int start=0;
+  int i;
+  /* at the very begining */
+  if(!start) {
+     for(i=0; i<40; i++) {
+        matcounter[i].matrixId= -1;
+        matcounter[i].counter=0 ;
+     }
+     start=1;
+  } // end of if(!start)
+  /* find the slot for each individual matrix */
+  for(i=0; i<40; i++) {
+     if(matcounter[i].matrixId == *matrixId ) { // found it
+        matcounter[i].counter ++ ;
+        break;
+     }else{
+        if(matcounter[i].matrixId != -1 && (i+1)<40)
+           continue; // there is enough space, but someone already take this one; go to avaialable slot
+        else if(matcounter[i].matrixId == -1 )  { // this is an empty slot; then take it
+           matcounter[i].matrixId = *matrixId;
+           break;
+        }else{
+           PetscPrintf(PETSC_COMM_WORLD, "\tget_counter: Need to increase the container size.\n");
+           exit(1);
+        }
+     }
+  } //i<40 
+  *counter = matcounter[i].counter;
+  PetscPrintf(PETSC_COMM_WORLD, "\tget_counter: found matrix %d %d times.\n", *matrixId, *counter);
+  return 0;
+}
+
+
 /* 
    solve2 new strategy for preconditioner 
    src/ksp/ksp/examples/tutorials/ex6f.F
@@ -253,66 +299,6 @@ int solve2_(int *matrixId, double * rhs_sol, int * ier)
 
   return 0;
 }
-
-
-
-//cj added oct 6, 2008
-int dump_matrix_(int *matrixId, int *valType, int *whichrow)
-{
-  int ierr, i, ldb;
-  //int valType = 0;
-  int *d_nnz, *o_nnz;
-  int offset=6;
-
-     getMatrixLocalDofNum_(matrixId, &ldb); 
-     d_nnz = (int*)calloc(ldb, sizeof(int));
-     o_nnz = (int*)calloc(ldb, sizeof(int));
-     getMatrixPetscDnnzOnnz_(matrixId, valType, d_nnz, o_nnz);
-  
-     for(i=0;i<ldb;i=i+offset) 
-     PetscPrintf(PETSC_COMM_WORLD, "\tvertex_%d:  %d  %d  %d  %d  %d  %d\n",
-     i/offset,
-     d_nnz[i+0]+o_nnz[i+0],
-     d_nnz[i+1]+o_nnz[i+1],
-     d_nnz[i+2]+o_nnz[i+2],
-     d_nnz[i+3]+o_nnz[i+3],
-     d_nnz[i+4]+o_nnz[i+4],
-     d_nnz[i+5]+o_nnz[i+5]); 
-
-     free(d_nnz);
-     free(o_nnz);
-
-//int fileid=33; 
-   //writeToFile(*matrixId, fileid);
-
-  int irow, icol, rowSize, colSize, rowId, *colId;
-  PetscScalar *values;
-     getMatrixNNZRowSize_(matrixId, valType, &rowSize);
-     irow = *whichrow; {
-     //for(irow=0;irow<rowSize;irow++) {
-        getMatrixNNZRowId_(matrixId, valType, irow, &rowId);
-        getMatrixNNZColSize_(matrixId, valType, &rowId, &colSize);
-        ierr = PetscMalloc(colSize*sizeof(PetscInt),&colId);CHKERRQ(ierr);
-        ierr = PetscMalloc(colSize*sizeof(PetscScalar),&values);CHKERRQ(ierr); 
-        //colId = malloc(colSize*sizeof(int));
-        //values = malloc(colSize*sizeof(double)); 
-        getMatrixNNZValues_(matrixId, valType, &rowId, colId, values);
-        for(icol=0;icol<colSize;icol++)
-           printf("c1 matrix row_%d col_%d val=%e\n", rowId, colId[icol], values[icol]);
-        ierr = PetscFree(colId);CHKERRQ(ierr);
-        ierr = PetscFree(values);CHKERRQ(ierr);
-        //free(colId);
-        //free(values);
-
-     } 
-     
-  return 0;
-// *** glibc detected *** double free or corruption (!prev):
-//The two common reasons for that error message are 
-//1) passing the same address to free twice 
-//and 
-//2) overrunning an allocated area before passing its address to free.
-} 
 
 
 /* 

@@ -381,7 +381,7 @@ subroutine gradshafranov_solve
         if(myrank.eq.0 .and. iprint.ge.2) print *, '  solving'
 
 #ifdef CJ_MATRIX_DUMP
-  if(itnum.eq.iabs(igs)) then 
+  if(itnum.le.1) then 
      call write_matrix(gs_matrix,'gs_matrix')
      call write_vector(b1vecini_vec%vec, 'gs_matrix_rhs.out')
   endif
@@ -390,7 +390,7 @@ subroutine gradshafranov_solve
         call newsolve(gs_matrix,b1vecini_vec%vec,ier)
 
 #ifdef CJ_MATRIX_DUMP
-  if(itnum.eq.iabs(igs)) then 
+  if(itnum.le.1) then 
      call write_vector(b1vecini_vec%vec, 'gs_matrix_sol.out')
   endif
 #endif 
