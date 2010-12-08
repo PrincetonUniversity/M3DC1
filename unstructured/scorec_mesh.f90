@@ -196,7 +196,7 @@ contains
     real, intent(out) :: x, phi, z
     
     real :: coords(3)
-    real :: x1, z1, x2, z2
+    real :: x1, z1
     
     call xyznod(inode,coords)
     x = coords(1)
@@ -349,7 +349,7 @@ contains
     real, dimension(3) :: norm
     
     curv = 0.
-    
+
     if(is_rectilinear) then
        call zonenod(inode,izone,izonedim)
        
@@ -359,6 +359,13 @@ contains
        end if
        
        call getmodeltags(ibottom, iright, itop, ileft)
+
+#ifdef USE3D
+       ! compensate for bug in SCOREC software
+       ib = ibottom
+       ibottom = ileft
+       ileft = ib
+#endif
        
        ! for periodic bc's
        ! skip if on a periodic boundary

@@ -1483,12 +1483,12 @@ subroutine circular_field_equ(x, z)
 !!$  psi0_l(5) =  x*z*psi0_l(1)/ss**4
 !!$  psi0_l(6) = ((z/ss)**2 - 1.)*psi0_l(1)/ss**2
 
-  p0_l(1) = 0.1 - 0.01*(x**2 + z**2)
-  p0_l(2) = -2.*x * 0.01
-  p0_l(3) = -2.*z * 0.01
-  p0_l(4) = -2.   * 0.01
+  p0_l(1) = p0*(1. - (x**2 + z**2))
+  p0_l(2) = -2.*x * p0
+  p0_l(3) = -2.*z * p0
+  p0_l(4) = -2.   * p0
   p0_l(5) =  0.
-  p0_l(6) = -2.   * 0.01
+  p0_l(6) = -2.   * p0
   pe0_l = p0_l*(p0-pi0*ipres)/p0
 
   call constant_field(bz0_l , bzero)

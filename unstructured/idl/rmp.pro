@@ -9,11 +9,18 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    if(n_elements(i0) eq 0) then begin
        i0   = read_field('i'  ,x,z,t,/equilibrium,_EXTRA=extra)
    endif
+   if(n_elements(ntor) eq 0) then begin
+       ntor = read_parameter('ntor',_EXTRA=extra)
+   endif
 
    r = radius_matrix(x,z,t)
 
    bt = sqrt(s_bracket(psi0,psi0,x,z))/r
    jac = r^3*bt/abs(i0)
+
+   if(size(field, /type) eq 7) then begin
+       field = read_field(field,x,z,t,/complex,_EXTRA=extra)
+   endif
 
    a_r = flux_coord_field(real_part(field)*jac,psi0,x,z,t, $
                           flux=flux,angle=angle,q=q, $
@@ -206,6 +213,66 @@ pro plot_vpar, _EXTRA=extra, bins=bins, q_val=q_val, $
 
    schaffer_plot, vpar, x, z, t, _EXTRA=extra, psi0=psi0,i0=i0, $
      label='!8v!d!9#!N!6 (m/s!N)!X', points=points, bins=bins, ntor=ntor
+end
+
+
+pro plot_epar, _EXTRA=extra, bins=bins, q_val=q_val, $
+             ntor=ntor, slice=slice
+
+   if(n_elements(ntor) eq 0) then begin
+       ntor = read_parameter('ntor', _EXTRA=extra)
+   endif
+   print, 'ntor = ', ntor
+   if(n_elements(slice) eq 0) then last=1
+
+   psi0_lp = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra,op=7)
+   psi0_r = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra,op=2)
+   psi0_z = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra,op=3)
+   i0 = read_field('i',x,z,t,/equilibrium,_EXTRA=extra)
+   i0_r = read_field('i',x,z,t,/equilibrium,_EXTRA=extra,op=2)
+   i0_z = read_field('i',x,z,t,/equilibrium,_EXTRA=extra,op=3)
+   eta = read_field('eta',x,z,t,/equilibrium,_EXTRA=extra)
+
+   psi1_lp = read_field('psi',x,z,t,last=last, $
+                     /linear,_EXTRA=extra,/complex,op=7)
+   psi1_r = read_field('psi',x,z,t,last=last, $
+                     /linear,_EXTRA=extra,/complex,op=2)
+   psi1_z = read_field('psi',x,z,t,last=last, $
+                     /linear,_EXTRA=extra,/complex,op=3)
+   i1 = read_field('i',x,z,t,last=last,slice=slice, $
+                   /linear,_EXTRA=extra,/complex)
+   f1 = read_field('f',x,z,t,last=last,slice=slice, $
+                   /linear,_EXTRA=extra,/complex)
+
+   r = radius_matrix(x,z,t)
+
+   jphi0 = psi0_lp - psi0_r/r
+   jphi1 = psi1_lp - psi1_r/r
+
+
+   ddpsi = complex(0.,1.)*ntor
+
+   epar = (eta/r^2)* $
+     (s_bracket(i1 + ddpsi*ddpsi*f1,psi0,x,z) + (i0_r*psi1_r + i0_z*psi1_z) $
+      - i0*jphi1 - i1*jphi0 $
+      - ddpsi*(psi0_z*psi1_r - psi0_r*psi1_z)/r $
+      + r*a_bracket(i0,ddpsi*f1,x,z))
+
+   B2 = (abs(psi0_r)^2 + abs(psi0_z)^2)/r^2 + abs(i0)^2/r^2
+
+   epar = epar/sqrt(B2)
+
+;   contour_and_legend, abs(epar), x, z, _EXTRA=extra
+;   return
+
+   ; convert to cgs
+   get_normalizations, b0=b0_norm, n0=n0_norm, l0=l0_norm, _EXTRA=extra
+   epar = epar*b0_norm^2/sqrt(4.*!pi*n0_norm*1.6726e-24)/3.e10
+   ; convert to mks
+   epar = epar*3.e4
+
+   schaffer_plot, epar, x, z, t, _EXTRA=extra, psi0=psi0,i0=i0, $
+     label='!8E!D!9#!N!6 (V/m!N)!X', points=points, bins=bins, ntor=ntor
 end
 
 
