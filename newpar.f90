@@ -183,6 +183,7 @@ Program Reducedquintic
      
 !     call updatenormalcurvature
      call write_normlcurv
+     call safestop(2)
      
   case(2)
     call create_field(temporary_field)
@@ -199,6 +200,8 @@ Program Reducedquintic
 
 !    call updatenormalcurvature
     call write_normlcurv
+    call safestop(2)
+
   end select
 #endif
 
@@ -1212,8 +1215,8 @@ subroutine arrayresizevec(vec, ivecsize)
 
   call checkppplveccreated(vec, i)
   if(i .eq. 0) then
-     call printfpointer(vec)
      write(*,*) 'trying to resize a vector that has not been created'
+     call printfpointer(vec)
      call safestop(8844)
   endif
 

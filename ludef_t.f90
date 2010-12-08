@@ -406,8 +406,8 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
   ssterm(vz_g) = ssterm(vz_g) + temp
   ddterm(vz_g) = ddterm(vz_g) + temp*bdf
      
-  temp = v2vmu  (trial,lin,vis79,vic79,hv) &
-       + v2vs   (trial,lin,sig79)
+  temp = v2vmu(trial,lin,vis79,vic79,hv) &
+       + v2vs (trial,lin,sig79)
   ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
   ddterm(vz_g) = ddterm(vz_g) + (1.-thimp*bdf)*dt*temp
 
@@ -522,7 +522,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, q_bf, advfield)
         ddterm(chi_g) = ddterm(chi_g) + (.5-thimp*bdf)*dt*temp
      endif
 
-     temp = v2chimu  (trial,lin,vis79,vic79)
+     temp = v2chimu(trial,lin,vis79,vic79)
      ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
      ddterm(chi_g) = ddterm(chi_g) + (1.-thimp*bdf)*dt*temp
            

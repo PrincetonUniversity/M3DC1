@@ -502,7 +502,7 @@ subroutine boundary_cy(rhs, mat)
   vectype, dimension(dofs_per_node) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_dc called"
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_cy called"
 
   numnodes = owned_nodes()
   do i=1, numnodes

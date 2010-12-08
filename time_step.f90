@@ -572,7 +572,7 @@ subroutine split_step(calc_matrices)
         call write_matrix(s1_mat,'s1_mat')
         call write_vector(b1_vel, 's1_mat_rhs.out')
      endif
-#endif 
+#endif
 
      call newsolve(s1_mat, b1_vel, jer)
 

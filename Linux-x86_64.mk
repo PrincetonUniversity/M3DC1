@@ -53,34 +53,14 @@ ifeq ($(USESCOREC), 1)
 
     # 3D libraries
     ifndef SCORECDIR
-      SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.stix
+      SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/lib
     endif
-    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/latest $(INCLUDE)
+    INCLUDE := -I/p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/include $(INCLUDE)
 
     SCOREC_ARCH=x86_64_linux-icc
-    SCOREC_LIBS = \
-	-L$(SCORECDIR)/FMDB/FMDB/lib/$(SCOREC_ARCH) \
-	-Wl,-rpath,$(SCORECDIR)/FMDB/FMDB/lib/$(SCOREC_ARCH) \
-	-L$(SCORECDIR)/FMDB/SCORECModel/lib/$(SCOREC_ARCH) \
-	-Wl,-rpath,$(SCORECDIR)/FMDB/SCORECModel/lib/$(SCOREC_ARCH) \
-	-L$(SCORECDIR)/FMDB/SCORECUtil/lib/$(SCOREC_ARCH) \
-	-Wl,-rpath,$(SCORECDIR)/FMDB/SCORECUtil/lib/$(SCOREC_ARCH) \
-	-L$(SCORECDIR)/mctk/Examples/PPPL/lib/$(SCOREC_ARCH) \
-	-Wl,-rpath,$(SCORECDIR)/mctk/Examples/PPPL/lib/$(SCOREC_ARCH) \
-	-L$(SCORECDIR)/mctk/Field/lib/$(SCOREC_ARCH) \
-	-Wl,-rpath,$(SCORECDIR)/mctk/Field/lib/$(SCOREC_ARCH) \
-	-L$(SCORECDIR)/mctk/Core/lib/$(SCOREC_ARCH) \
-	-Wl,-rpath,$(SCORECDIR)/mctk/Core/lib/$(SCOREC_ARCH) \
-	-L$(SCORECDIR)/mctk/Solver/lib/$(SCOREC_ARCH) \
-	-Wl,-rpath,$(SCORECDIR)/mctk/Solver/lib/$(SCOREC_ARCH) \
-	-L$(SCORECDIR)/meshAdapt/meshAdapt/lib/$(SCOREC_ARCH) \
-	-Wl,-rpath,$(SCORECDIR)/meshAdapt/meshAdapt/lib/$(SCOREC_ARCH) \
-	-L$(SCORECDIR)/meshAdapt/meshTools/lib/$(SCOREC_ARCH) \
-	-Wl,-rpath,$(SCORECDIR)/meshAdapt/meshTools/lib/$(SCOREC_ARCH) \
-	-L$(SCORECDIR)/meshAdapt/templateRefine/lib/$(SCOREC_ARCH) \
-	-Wl,-rpath,$(SCORECDIR)/meshAdapt/templateRefine/lib/$(SCOREC_ARCH) \
-	-L$(SCORECDIR)/ipcomman/lib/$(SCOREC_ARCH) \
-	-Wl,-rpath,$(SCORECDIR)/ipcomman/lib/$(SCOREC_ARCH) \
+
+    SCOREC_LIBS = -L$(SCORECDIR) \
+	-Wl,-rpath,$(SCORECDIR) \
 	-lFMDB-mpich2$(SCORECOPT) \
 	-lSCORECModel-mpich2$(SCORECOPT) \
 	-lSCORECUtil-mpich2$(SCORECOPT) \
@@ -92,13 +72,52 @@ ifeq ($(USESCOREC), 1)
 	-lSolver-mpich2$(SCORECOPT) \
 	-lPPPL-mpich2$(SCORECOPT) \
 	-lipcomman-mpich2$(SCORECOPT)
+
+#    SCOREC_LIBS = \
+#	-L$(SCORECDIR)/FMDB/FMDB/lib/$(SCOREC_ARCH) \
+#	-Wl,-rpath,$(SCORECDIR)/FMDB/FMDB/lib/$(SCOREC_ARCH) \
+#	-L$(SCORECDIR)/FMDB/SCORECModel/lib/$(SCOREC_ARCH) \
+#	-Wl,-rpath,$(SCORECDIR)/FMDB/SCORECModel/lib/$(SCOREC_ARCH) \
+#	-L$(SCORECDIR)/FMDB/SCORECUtil/lib/$(SCOREC_ARCH) \
+#	-Wl,-rpath,$(SCORECDIR)/FMDB/SCORECUtil/lib/$(SCOREC_ARCH) \
+#	-L$(SCORECDIR)/mctk/Examples/PPPL/lib/$(SCOREC_ARCH) \
+#	-Wl,-rpath,$(SCORECDIR)/mctk/Examples/PPPL/lib/$(SCOREC_ARCH) \
+#	-L$(SCORECDIR)/mctk/Field/lib/$(SCOREC_ARCH) \
+#	-Wl,-rpath,$(SCORECDIR)/mctk/Field/lib/$(SCOREC_ARCH) \
+#	-L$(SCORECDIR)/mctk/Core/lib/$(SCOREC_ARCH) \
+#	-Wl,-rpath,$(SCORECDIR)/mctk/Core/lib/$(SCOREC_ARCH) \
+#	-L$(SCORECDIR)/mctk/Solver/lib/$(SCOREC_ARCH) \
+#	-Wl,-rpath,$(SCORECDIR)/mctk/Solver/lib/$(SCOREC_ARCH) \
+#	-L$(SCORECDIR)/meshAdapt/meshAdapt/lib/$(SCOREC_ARCH) \
+#	-Wl,-rpath,$(SCORECDIR)/meshAdapt/meshAdapt/lib/$(SCOREC_ARCH) \
+#	-L$(SCORECDIR)/meshAdapt/meshTools/lib/$(SCOREC_ARCH) \
+#	-Wl,-rpath,$(SCORECDIR)/meshAdapt/meshTools/lib/$(SCOREC_ARCH) \
+#	-L$(SCORECDIR)/meshAdapt/templateRefine/lib/$(SCOREC_ARCH) \
+#	-Wl,-rpath,$(SCORECDIR)/meshAdapt/templateRefine/lib/$(SCOREC_ARCH) \
+#	-L$(SCORECDIR)/ipcomman/lib/$(SCOREC_ARCH) \
+#	-Wl,-rpath,$(SCORECDIR)/ipcomman/lib/$(SCOREC_ARCH) \
+#	-lFMDB-mpich2$(SCORECOPT) \
+#	-lSCORECModel-mpich2$(SCORECOPT) \
+#	-lSCORECUtil-mpich2$(SCORECOPT) \
+#	-lField-mpich2$(SCORECOPT) \
+#	-lCore-mpich2$(SCORECOPT) \
+#	-lmeshAdapt-mpich2$(SCORECOPT) \
+#	-ltemplateRefine-mpich2$(SCORECOPT) \
+#	-lmeshTools-mpich2$(SCORECOPT) \
+#	-lSolver-mpich2$(SCORECOPT) \
+#	-lPPPL-mpich2$(SCORECOPT) \
+#	-lipcomman-mpich2$(SCORECOPT)
   else
     # 2D Libraries
 
     ifndef SCORECDIR
-      SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/latest
+      SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/092210
+#      SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/10212010
+#      SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/latest
     endif
-    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/latest $(INCLUDE)
+    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/092210 $(INCLUDE)
+#    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/10212010 $(INCLUDE)
+#    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/latest $(INCLUDE)
 
     SCOREC_LIBS = \
 	-L$(SCORECDIR) \

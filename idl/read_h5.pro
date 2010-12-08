@@ -1586,9 +1586,9 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
-       endif else r = 1.
+           data = -(lp - psir/r)/r
+       endif else data = -lp
 
-       data = -(lp - psir/r)/r
        symbol = '!8J!D!9P!N!X'
        d = dimensions(/j0,_EXTRA=extra)
 
@@ -1974,8 +1974,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('omega', name, /fold_case) eq 1) then begin
 
-       v = read_field('v', x, y, t, slices=time, mesh=mesh, $
-                      filename=filename, points=pts, $
+       v = read_field('v', x, y, t, slices=time, mesh=mesh, complex=complex, $
+                      filename=filename, points=pts, linear=linear, $
                       rrange=xrange, zrange=yrange)
 
        if(itor eq 1) then begin
@@ -2124,7 +2124,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            data = ((s_bracket(phi,psi,x,y) + v*I)/r^2 $
                    + a_bracket(chi,psi,x,y)/r)/sqrt(b2)
        endif else begin
-           data = (s_bracket(phi,psi,x,y) + v*I/r^2 $
+           data = (s_bracket(phi,psi,x,y) + v*I $
                    + a_bracket(chi,psi,x,y)/r^3)/sqrt(b2)
        endelse
        symbol = '!8u!D!9#!N!X'
@@ -2304,24 +2304,31 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange)
-       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
-                        filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-       i   = read_field('i',   x, y, t, slices=time, mesh=mesh, $
-                        filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
        V   = read_field('V',   x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange)
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, /equilibrium)
+       i   = read_field('i',   x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, /equilibrium)
 
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
        endif else r = 1.
 
        psipsi = s_bracket(psi,psi,x,y)
-       b2 = psipsi + i^2
-       data = (i*s_bracket(phi,psi,x,y) - v*psipsi $
-               +i*a_bracket(chi,psi,x,y)*r) / (r^2 * sqrt(psipsi*b2))
+       if(ivform eq 0) then begin
+           b2 = psipsi + i^2
+           data = -(i*s_bracket(phi,psi,x,y) - v*psipsi $
+                   +i*a_bracket(chi,psi,x,y)*r) / (r^2 * sqrt(psipsi*b2))
+       endif else begin
+           b2 = (psipsi + i^2)/r^2
+           data = -(i*s_bracket(phi,psi,x,y) - v*psipsi $
+                   + i*a_bracket(chi,psi,x,y)/r^3) / sqrt(b2*psipsi)
+
+       endelse
        symbol = '!8u!Ds!N!X'
        d = dimensions(/v0, _EXTRA=extra)
 
@@ -2501,6 +2508,94 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        d = dimensions(j0=1,b0=-1,_EXTRA=extra)
 
    ;===========================================
+   ; toroidal angular momentum flux
+   ;===========================================
+   endif else if(strcmp('torque_b', name, /fold_case) eq 1) then begin
+
+       bn = read_field('bn', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange)
+       i = read_field('i', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange)
+       
+       data = -bn*conj(i)
+       d = dimensions(/p0, l0=1)
+       symbol = '!6Angular Momentum Flux!X'
+
+   ;===========================================
+   ; toroidal angular momentum flux
+   ;===========================================
+   endif else if(strcmp('torque_mu', name, /fold_case) eq 1) then begin
+
+       mu = read_field('visc', x, y, t, slices=time,mesh=mesh,linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange,/equilibrium)
+       psi0 = read_field('psi', x, y, t, slices=time,mesh=mesh,linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange,/equilibrium)
+
+       w = read_field('omega', x, y, t, slices=time,mesh=mesh,linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange)
+
+       if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
+
+       data = r^2*s_bracket(psi0,w,x,y)
+
+       if(ntor ne 0) then begin
+           u = read_field('phi',x,y,t,slices=time, mesh=mesh, linear=linear, $
+                          filename=filename, points=pts, complex=complex, $
+                          rrange=xrange, zrange=yrange)
+           chi = read_field('chi',x,y,t,slices=time, mesh=mesh, linear=linear,$
+                            filename=filename, points=pts, complex=complex, $
+                            rrange=xrange, zrange=yrange)
+           ddphi = complex(0.,1.)*ntor
+           
+           data = data + r*a_bracket(psi0,ddphi*u,x,y) $
+             + s_bracket(psi0,ddphi*chi,x,y)/r^2
+       endif
+       
+       data = data * mu/sqrt(s_bracket(psi0,psi0,x,y))
+       d = dimensions(/p0, l0=1)
+       symbol = '!6Angular Momentum Flux!X'
+
+   ;===========================================
+   ; toroidal angular momentum flux
+   ;===========================================
+   endif else if(strcmp('torque_vv', name, /fold_case) eq 1) then begin
+
+       mu = read_field('visc', x, y, t, slices=time,mesh=mesh,linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange,/equilibrium)
+       psi0 = read_field('psi', x, y, t, slices=time,mesh=mesh,linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange,/equilibrium)
+       w0 = read_field('omega', x, y, t, slices=time,mesh=mesh,linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, /equilibrium)
+       n0 = read_field('den', x, y, t, slices=time,mesh=mesh,linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, /equilibrium)
+
+
+       u = read_field('phi',x,y,t,slices=time, mesh=mesh, linear=linear, $
+                      filename=filename, points=pts, complex=complex, $
+                      rrange=xrange, zrange=yrange)
+       chi = read_field('chi',x,y,t,slices=time, mesh=mesh, linear=linear,$
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange)
+
+       if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
+       
+       data = -n0*w0*(r^3*a_bracket(psi0,u,x,y) + s_bracket(psi0,chi,x,y)) $
+         / sqrt(s_bracket(psi0,psi0,x,y))
+       d = dimensions(/p0, l0=1)
+       symbol = '!6Angular Momentum Flux!X'
+
+
+
+   ;===========================================
    ; radial electric field
    ;===========================================
    endif else if(strcmp('e_r', name, /fold_case) eq 1) then begin
@@ -2574,7 +2669,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                                units=units, cgs=cgs, mks=mks, $
                               equilibrium=equilibrium)
            return, complex(data_r, data_i)
-       endif
+       endif else print, 'Reading real field'
 
        t = fltarr(trange[1]-trange[0]+1)
        file_id = h5f_open(filename)
@@ -3849,8 +3944,17 @@ function read_scalar, scalarname, filename=filename, title=title, $
        symbol = '!6(!5b!9.!3W!9.!5b!6)!U2!N!X'
        d = dimensions(t0=-2,l0=3, _EXTRA=extra)
    endif else begin
-       print, 'Scalar ', scalarname, ' not recognized.'
-       return, 0
+       s = read_scalars(filename=filename)
+       n = tag_names(s)
+       match = where(strcmp(n, scalarname, /fold_case) eq 1,count)
+       if(count eq 0) then begin
+           print, 'Scalar ', scalarname, ' not recognized.'
+           return, 0
+       endif
+       data = s.(match[0])._data
+       title = ''
+       symbol = scalarname
+       d = dimensions()
    endelse
    
    if(keyword_set(final)) then begin
@@ -4338,7 +4442,7 @@ end
 function flux_average, field, psi=psi, x=x, z=z, t=t, r0=r0, $
                        flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
                        points=points, name=name, symbol=symbol, units=units, $
-                       integrate=integrate, _EXTRA=extra
+                       integrate=integrate, complex=complex, _EXTRA=extra
 
    type = size(field, /type)
 
@@ -4495,7 +4599,7 @@ function flux_average, field, psi=psi, x=x, z=z, t=t, r0=r0, $
            return, -q^2*r0*alpha
 
        endif else begin
-           field = read_field(field, x, z, t, points=points,$
+           field = read_field(field, x, z, t, points=points, complex=complex, $
                               symbol=symbol, units=units, _EXTRA=extra)
            name = symbol
            symbol = '!12<!X' + symbol + '!12>!X'
@@ -4692,13 +4796,13 @@ end
 ;
 ; plots the flux average quantity "name" at a give time
 ;======================================================
-pro plot_flux_average, field, time, filename=filename, $
+pro plot_flux_average, field, time, filename=filename, complex=complex, $
                        color=colors, names=names, bins=bins, linear=linear, $
                        xlog=xlog, ylog=ylog, overplot=overplot, $
                        lcfs=lcfs, normalized_flux=norm, points=pts, $
                        minor_radius=minor_radius, smooth=sm, t=t, rms=rms, $
                        bw=bw, srnorm=srnorm, last=last, mks=mks, cgs=cgs, $
-                       q_contours=q_contours, rho=rho, $
+                       q_contours=q_contours, rho=rho, integrate=integrate, $
                        multiply_flux=multiply_flux, _EXTRA=extra
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
@@ -4730,7 +4834,8 @@ pro plot_flux_average, field, time, filename=filename, $
              color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
              normalized_flux=norm, minor_radius=minor_radius, smooth=sm, $
              rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, $
-             linear=linear, multiply_flux=multiply_flux[i], mks=mks, cgs=cgs
+             linear=linear, multiply_flux=multiply_flux[i], mks=mks, cgs=cgs, $
+             integrate=integrate, complex=complex
        end
        if(n_elements(names) gt 0) then begin
            plot_legend, names, color=colors, ylog=ylog, xlog=xlog, $
@@ -4758,7 +4863,8 @@ pro plot_flux_average, field, time, filename=filename, $
              color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
              normalized_flux=norm, minor_radius=minor_radius, smooth=sm, $
              t=t, rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, $
-             linear=linear, multiply_flux=multiply_flux, mks=mks, cgs=cgs
+             linear=linear, multiply_flux=multiply_flux, mks=mks, cgs=cgs, $
+             integrate=integrate, complex=complex
            names[i] = string(format='(%"!8t!6 = %d !7s!D!8A!N!X")', t)
        end
 
@@ -4776,7 +4882,8 @@ pro plot_flux_average, field, time, filename=filename, $
    fa = flux_average(field,slice=time,flux=flux,points=pts,filename=filename, $
                      name=title, symbol=symbol, units=units, bins=bins, $
                      psi=psi,x=x,z=z,t=t,nflux=nflux,linear=linear, $
-                     mks=mks, cgs=cgs, EXTRA=extra)
+                     mks=mks, cgs=cgs, area=area, integrate=integrate, $
+                    complex=complex)
 
    if(n_elements(fa) le 1) then begin
        print, 'Error in flux_average. returning.'
@@ -4788,8 +4895,8 @@ pro plot_flux_average, field, time, filename=filename, $
 
    if(keyword_set(rms)) then begin
        fa2 = flux_average(field^2,flux=flux,nflux=nflux,points=pts,slice=time,$
-                          filename=filename, t=t, linear=linear,_EXTRA=extra, $
-                         mks=mks, cgs=cgs)
+                          filename=filename, t=t, linear=linear, $
+                         mks=mks, cgs=cgs, complex=complex)
        fa = sqrt(1. - fa^2/fa2)
 
        ytitle = '!9S!6(1 - !12<' + symbol + '!12>!U2!n/!12<' + $
@@ -4815,12 +4922,12 @@ pro plot_flux_average, field, time, filename=filename, $
        lcfs_psi = 1.
    end else if(keyword_set(minor_radius)) then begin
        flux = flux_average('r',points=pts,file=filename,t=t,linear=linear,$
-                    name=xtitle,bins=bins,units=units,slice=time,_EXTRA=extra,$
+                    name=xtitle,bins=bins,units=units,slice=time, $
                           mks=mks, cgs=cgs)
        xtitle = '!12<' + xtitle + '!12> !6 ('+units+')!X'
    endif else if(keyword_set(rho)) then begin
        flux = flux_average('flux_t',points=pts,file=filename,/equilibrium,$
-                           bins=bins,slice=time,_EXTRA=extra)
+                           bins=bins,slice=time)
        flux = sqrt((flux - flux[0])/(flux[n_elements(flux)-1] - flux[0]))
        lcfs_psi = 1.
        xtitle = '!7q!X'
