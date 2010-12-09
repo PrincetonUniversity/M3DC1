@@ -210,15 +210,16 @@ contains
   ! ~~~~~~~~~~~~~
   ! populates data with dofs of f associated with node inode
   !======================================================================
-  subroutine field_get_node_data(f, inode, data)
+  subroutine field_get_node_data(f, inode, data, rotate)
     use element
     implicit none
     
     type(field_type), intent(in) :: f
     integer, intent(in) :: inode
     vectype, dimension(dofs_per_node), intent(out) :: data
+    logical, intent(in), optional :: rotate
 
-    call get_node_data(f%vec, f%index, inode, data)
+    call get_node_data(f%vec, f%index, inode, data, rotate)
   end subroutine field_get_node_data
 
 

@@ -1935,26 +1935,17 @@ end subroutine boundary_pres
                 ip = ibegin + ii - 1
                 
                 ! transform from boundary coordinates to global coordinates
-                do m=1,2
-                   do n=1,3
-                      call rotate_dofs(ssj(ii,:,m,n),temp,normj,curvj,-1)
-                      ss(ii,:,m,n) = temp
-                      call rotate_dofs(ddj(ii,:,m,n),temp,normj,curvj,-1)
-                      dd(ii,:,m,n) = temp
-                      
-                      if(i.eq.j) then
-                         call rotate_dofs(ssi(ii,:,m,n),temp,normi,curvi,-1)
-                         ss(ii,:,m,n) = ss(ii,:,m,n) + temp
-                         call rotate_dofs(ddi(ii,:,m,n),temp,normi,curvi,-1)
-                         dd(ii,:,m,n) = dd(ii,:,m,n) + temp
-                      endif
-                   end do
-                end do
+                ss(ii,:,:,:) = ssj(ii,:,:,:)
+                dd(ii,:,:,:) = ddj(ii,:,:,:)
+                if(i.eq.j) then
+                   ss(ii,:,:,:) = ss(ii,:,:,:) + ssi(ii,:,:,:)
+                   dd(ii,:,:,:) = dd(ii,:,:,:) + ddi(ii,:,:,:)
+                end if
 
                 ! insert values into the appropriate matrices
                 do jj=1, dofs_per_node
                    jp = jbegin + jj - 1
-!                   print *, ip, jp, irow(1,ii), jcol(1,jj)
+
                    if(present(mat)) then
                       call insert_global(mat,ss(ii,jj,1,1), &
                            ip+psi_off,jp+psi_off,MAT_SET)
@@ -1998,8 +1989,8 @@ end subroutine boundary_pres
        if(local_id(i).le.0) cycle
 
        ibegin = node_index(rhs, local_id(i), psi_i)
-       call get_node_data(tempout, 1, local_id(i), temp)
-       call get_node_data(tempout0, 1, local_id(i), temp0)
+       call get_node_data(tempout, 1, local_id(i), temp, rotate=.false.)
+       call get_node_data(tempout0, 1, local_id(i), temp0, rotate=.false.)
        temp = temp + temp0
        do j=1, num_rows
           call insert(rhs, ibegin+rows(j)-1, temp(rows(j)), VEC_SET)
@@ -2007,8 +1998,8 @@ end subroutine boundary_pres
 
        if(use_resistive_bz) then
           ibegin = node_index(rhs, local_id(i), bz_i)
-          call get_node_data(tempout, 2, local_id(i), temp)
-          call get_node_data(tempout0, 2, local_id(i), temp0)
+          call get_node_data(tempout, 2, local_id(i), temp, rotate=.false.)
+          call get_node_data(tempout0, 2, local_id(i), temp0, rotate=.false.)
           temp = temp + temp0
 
           do j=1, dofs_per_node
@@ -2036,9 +2027,6 @@ end subroutine boundary_pres
     type(matrix_type) :: mat
 
     integer :: i, j, k, itri, iedge, inode, jnode, idof, jdof
-    integer, allocatable :: irow(:,:), icol(:,:), jrow(:,:), jcol(:,:)
-    integer, allocatable :: irow_rh(:,:), icol_rh(:,:)
-    integer, allocatable :: jrow_rh(:,:), jcol_rh(:,:)
     vectype :: val, temp
 
     logical :: is_edge(3), is_boundary
@@ -2056,11 +2044,6 @@ end subroutine boundary_pres
     integer :: jr_lh, jc_lh, jr_rh, jc_rh
 
     thimprw = thimp
-
-    allocate(irow(mat%m,dofs_per_node), icol(mat%n,dofs_per_node))
-    allocate(jrow(mat%m,dofs_per_node), jcol(mat%n,dofs_per_node))
-    allocate(irow_rh(rhs_mat%m,dofs_per_node), icol_rh(rhs_mat%n,dofs_per_node))
-    allocate(jrow_rh(rhs_mat%m,dofs_per_node), jcol_rh(rhs_mat%n,dofs_per_node))
 
     ! cycle through each boundary edge
     do i=1, boundary_edges
@@ -2091,6 +2074,9 @@ end subroutine boundary_pres
              endif
              cycle
           endif
+
+          ! these are the global row and column id's of the first dof
+          ! associated with boundary-node j for the two matrices
           ir_lh = global_dof_ids_1(j)
           ic_lh = global_dof_ids_1(j)
           ir_rh = global_dof_ids_row(j)
@@ -2098,6 +2084,9 @@ end subroutine boundary_pres
 
           ! cycle through each trial function associated with inode
           do ii=1,dofs_per_node
+
+          ! idof is the element-based dof index
+          ! of global node inode
           idof = (iii-1)*dofs_per_node + ii
 
           ! for each boundary edge, there are 2 associated nodes
@@ -2105,8 +2094,10 @@ end subroutine boundary_pres
              ! we are only calculating the value (not derivatives) of
              ! the vacuum toroidal field; choose the basis function
              ! associated with the value at inode.
-             jdof = mod(iedge+j-2,nodes_per_element)*dofs_per_node+1
 
+             ! jdof is the element-based dof index
+             ! of the first dof associated with the current boundary node
+             jdof = mod(iedge+j-2,nodes_per_element)*dofs_per_node+1
              
              ! plasma toroidal field term
              do jj=1, dofs_per_node
@@ -2147,43 +2138,33 @@ end subroutine boundary_pres
                 xjj = xnode(k)
                 if(itor.eq.0) xjj = 1.
 
+                ! these are the global row and column id's of the first dof
+                ! associated with boundary-node k for the two matrices
                 jr_lh = global_dof_ids_1(k)
                 jc_lh = global_dof_ids_1(k)
                 jr_rh = global_dof_ids_row(k)
                 jc_rh = global_dof_ids_col(k)
-
                 
                 ! -(1/R_j) * (dpsi/dt)
                 val = thimprw*temp/xjj
-                call insert_global(mat,-normj(2)*val, &
-                     dof_index(ir_lh,bz_i,ii),dof_index(jc_lh,psi_i,2),MAT_ADD)
-                call insert_global(mat, normj(1)*val, &
+                call insert_global(mat, val, &
                      dof_index(ir_lh,bz_i,ii),dof_index(jc_lh,psi_i,3),MAT_ADD)
-                call insert_global(lhs_mat,-normj(2)*val, &
-                     dof_index(ir_rh,2,ii),dof_index(jc_rh,1,2),MAT_ADD)
-                call insert_global(lhs_mat, normj(1)*val, &
+                call insert_global(lhs_mat, val, &
                      dof_index(ir_rh,2,ii),dof_index(jc_rh,1,3),MAT_ADD)
 
                 val = (thimprw-1.)*temp/xjj
-                call insert_global(rhs_mat,-normj(2)*val, &
-                     dof_index(ir_rh,2,ii),dof_index(jc_rh,1,2),MAT_ADD)
-                call insert_global(rhs_mat, normj(1)*val, &
+                call insert_global(rhs_mat, val, &
                      dof_index(ir_rh,2,ii),dof_index(jc_rh,1,3),MAT_ADD)
 
                 ! -df'/dn
                 val = -temp*rfac
-                call insert_global(rhs_mat,normj(1)*val, &
+                call insert_global(rhs_mat, val, &
                      dof_index(ir_rh,2,ii),dof_index(jc_rh,3,2),MAT_ADD)
-                call insert_global(rhs_mat,normj(2)*val, &
-                     dof_index(ir_rh,2,ii),dof_index(jc_rh,3,3),MAT_ADD)
              end do
           end do ! on j
        end do    ! on ii
        end do    ! on iii
     end do
-
-    deallocate(irow, icol, jrow, jcol)
-    deallocate(irow_rh, icol_rh, jrow_rh, jcol_rh)
   end subroutine insert_resistive_wall_bz
 
 
