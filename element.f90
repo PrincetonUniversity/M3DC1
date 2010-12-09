@@ -142,6 +142,7 @@ contains
     vectype, dimension(dofs_per_node), intent(in) :: invec
     vectype, dimension(dofs_per_node), intent(out) :: outvec
 
+    ! Transformation from (R,Z) coeffs to (n,t) coeffs
     if(ic.eq.1) then
        outvec(1) = invec(1)
        outvec(2) = normal(1)*invec(2) + normal(2)*invec(3)
@@ -167,7 +168,44 @@ contains
             - 2.*normal(1)*normal(2)*invec(11) &
             - curv*outvec(8)
 #endif
+
+    ! Transformation from (n,t) coeffs to (R,Z) coeffs
     else if (ic.eq.-1) then
+       outvec(1) = invec(1)
+       outvec(2) = normal(1)*invec(2) - normal(2)*invec(3)
+       outvec(3) = normal(2)*invec(2) + normal(1)*invec(3)
+       outvec(4) = normal(1)**2*invec(4) + normal(2)**2*invec(6) &
+            - 2.*normal(1)*normal(2)*invec(5) &
+            + curv*normal(2)**2*invec(2) &
+            + curv*2.*normal(1)*normal(2)*invec(3)
+       outvec(5) = normal(1)*normal(2)*(invec(4) - invec(6)) &
+            + (normal(1)**2 - normal(2)**2)*invec(5) &
+            - curv*normal(1)*normal(2)*invec(2) &
+            - curv*(normal(1)**2 - normal(2)**2)*invec(3)
+       outvec(6) = normal(2)**2*invec(4) + normal(1)**2*invec(6) &
+            + 2.*normal(1)*normal(2)*invec(5) &
+            + curv*normal(1)**2*invec(2) &
+            - curv*2.*normal(1)*normal(2)*invec(3)
+#ifdef USE3D
+       outvec(7) = invec(7)
+       outvec(8) = normal(1)*invec(8) - normal(2)*invec(9)
+       outvec(9) = normal(2)*invec(8) + normal(1)*invec(9)
+       outvec(10) = normal(1)**2*invec(10) + normal(2)**2*invec(12) &
+            - 2.*normal(1)*normal(2)*invec(11) &
+            + curv*normal(2)**2*invec(8) &
+            + curv*2.*normal(1)*normal(2)*invec(9)
+       outvec(11) = normal(1)*normal(2)*(invec(10) - invec(12)) &
+            + (normal(1)**2 - normal(2)**2)*invec(11) &
+            - curv*normal(1)*normal(2)*invec(8) &
+            - curv*(normal(1)**2 - normal(2)**2)*invec(9)
+       outvec(12) = normal(2)**2*invec(10) + normal(1)**2*invec(12) &
+            + 2.*normal(1)*normal(2)*invec(11) &
+            + curv*normal(1)**2*invec(8) &
+            - curv*2.*normal(1)*normal(2)*invec(9)
+#endif
+
+    ! Transformation from (n,t) basis to (R,Z) basis
+    else if (ic.eq.-2) then
        outvec(1) = invec(1)
        outvec(2) = normal(1)*invec(2) - normal(2)*invec(3) &
             - curv*normal(2)*invec(5) - curv*normal(1)*invec(6)
@@ -178,7 +216,7 @@ contains
        outvec(5) = 2.*normal(1)*normal(2)*(invec(4) - invec(6)) &
             + (normal(1)**2 - normal(2)**2)*invec(5)
        outvec(6) = normal(2)**2*invec(4) + normal(1)**2*invec(6) &
-               + normal(2)*normal(2)*invec(5)
+               + normal(1)*normal(2)*invec(5)
 #ifdef USE3D
        outvec(7) = invec(7)
        outvec(8) = normal(1)*invec(8) - normal(2)*invec(9) &
@@ -190,8 +228,10 @@ contains
        outvec(11) = 2.*normal(1)*normal(2)*(invec(10) - invec(12)) &
             + (normal(1)**2 - normal(2)**2)*invec(11)
        outvec(12) = normal(2)**2*invec(10) + normal(1)**2*invec(12) &
-               + normal(2)*normal(2)*invec(11)
+               + normal(1)*normal(2)*invec(11)
 #endif
+
+    ! Transformation from (R,Z) basis to (n,t) basis
     else
        outvec(1) = invec(1)
        outvec(2) = normal(1)*invec(2) + normal(2)*invec(3) &

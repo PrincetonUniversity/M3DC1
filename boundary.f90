@@ -183,82 +183,42 @@ subroutine set_tangent_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
   integer, intent(in) :: izonedim             ! dimension of boundary
   type(matrix_type), optional :: mat
 
-  integer :: irow, numvals, i
-  integer, dimension(5) :: cols
-  vectype, dimension(5) :: vals
   vectype, dimension(dofs_per_node) :: bv_rotated
-
-  if(present(mat)) then
-     do i=1,5 
-        cols(i) = ibegin + i
-     end do
-  endif
 
   call rotate_dofs(bv, bv_rotated, normal, curv, 1)
      
   ! t
-  irow = ibegin+2
-  if(present(mat)) then
-     numvals = 2
-     vals(1) = -normal(2)
-     vals(2) =  normal(1)
-     call set_row_vals(mat, irow, numvals, cols, vals)
-  endif
-  call insert(rhs, irow, bv_rotated(3), VEC_SET)
+  if(present(mat)) call identity_row(mat, ibegin+2)
+  call insert(rhs, ibegin+2, bv_rotated(3), VEC_SET)
 #ifdef USE3D
-  if(present(mat)) call set_row_vals(mat, irow+6, numvals, cols+6, vals)
-  call insert(rhs, irow+6, bv_rotated(9), VEC_SET)
+  if(present(mat)) call identity_row(mat, ibegin+8)
+  call insert(rhs, ibegin+8, bv_rotated(9), VEC_SET)
 #endif
   
 
   ! tt
-  irow = ibegin+5
-  if(present(mat)) then
-     numvals = 5
-     vals(1) = -curv*normal(1)
-     vals(2) = -curv*normal(2)
-     vals(3) = normal(2)**2
-     vals(4) = -2.*normal(1)*normal(2)
-     vals(5) = normal(1)**2
-     call set_row_vals(mat, irow, numvals, cols, vals)
-  endif
-  call insert(rhs, irow, bv_rotated(6), VEC_SET)
+  if(present(mat)) call identity_row(mat, ibegin+5)
+  call insert(rhs, ibegin+5, bv_rotated(6), VEC_SET)
 #ifdef USE3D
-  if(present(mat)) call set_row_vals(mat, irow+6, numvals, cols+6, vals)
-  call insert(rhs, irow+6, bv_rotated(12), VEC_SET)
+  if(present(mat)) call identity_row(mat, ibegin+11)
+  call insert(rhs, ibegin+11, bv_rotated(12), VEC_SET)
 #endif
-
 
   if(izonedim.eq.0) then
      ! n
-     irow = ibegin+1
-     if(present(mat)) then     
-        numvals = 2
-        vals(1) = normal(1)
-        vals(2) = normal(2)
-        call set_row_vals(mat, irow, numvals, cols, vals)
-     endif
-     call insert(rhs, irow, bv_rotated(2), VEC_SET)
+     if(present(mat)) call identity_row(mat, ibegin+1)
+     call insert(rhs, ibegin+1, bv_rotated(2), VEC_SET)
 #ifdef USE3D
-     if(present(mat)) call set_row_vals(mat, irow+6, numvals, cols+6, vals)
-     call insert(rhs, irow+6, bv_rotated(8), VEC_SET)
+     if(present(mat)) call identity_row(mat, ibegin+7)
+     call insert(rhs, ibegin+7, bv_rotated(8), VEC_SET)
 #endif
 
      ! nn
-     irow = ibegin+3
-     if(present(mat)) then
-        numvals = 3
-        vals(3) = normal(1)**2
-        vals(4) = 2.*normal(1)*normal(2)
-        vals(5) = normal(2)**2
-        call set_row_vals(mat,irow,numvals,cols(3:5),vals(3:5))
-     endif
-     call insert(rhs, irow, bv_rotated(4), VEC_SET)
+     if(present(mat)) call identity_row(mat, ibegin+3)
+     call insert(rhs, ibegin+3, bv_rotated(4), VEC_SET)
 #ifdef USE3D
-     if(present(mat)) then
-        call set_row_vals(mat, irow+6, numvals, cols(3:5)+6, vals(3:5))
-     end if
-     call insert(rhs, irow+6, bv_rotated(10), VEC_SET)
+     if(present(mat)) call identity_row(mat, ibegin+9)
+     call insert(rhs, ibegin+9, bv_rotated(10), VEC_SET)
 #endif
   endif
 
@@ -282,63 +242,33 @@ subroutine set_normal_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
   integer, intent(in) :: izonedim             ! dimension of boundary
   type(matrix_type), optional :: mat
 
-  integer :: irow, numvals, i
-  integer, dimension(5) :: cols
-  vectype, dimension(5) :: vals
   vectype, dimension(dofs_per_node) :: bv_rotated
-
-  if(present(mat)) then
-     do i=1,5 
-        cols(i) = ibegin + i
-     end do
-  endif
 
   call rotate_dofs(bv, bv_rotated, normal, curv, 1)
      
   ! n
-  irow = ibegin+1
-  if(present(mat)) then
-     numvals = 2
-     vals(1) = normal(1)
-     vals(2) = normal(2)
-     call set_row_vals(mat, irow, numvals, cols, vals)
-  endif
-  call insert(rhs, irow, bv_rotated(2), VEC_SET)
+  if(present(mat)) call identity_row(mat, ibegin+1)
+  call insert(rhs, ibegin+1, bv_rotated(2), VEC_SET)
 #ifdef USE3D
-     if(present(mat)) call set_row_vals(mat, irow+6, numvals, cols+6, vals)
-     call insert(rhs, irow+6, bv_rotated(8), VEC_SET)
+     if(present(mat)) call identity_row(mat, ibegin+7)
+     call insert(rhs, ibegin+7, bv_rotated(8), VEC_SET)
 #endif
 
   ! nt
-  irow = ibegin+4
-  if(present(mat)) then
-     numvals = 5
-     vals(1) = -curv*normal(2)
-     vals(2) = curv*normal(1)
-     vals(3) = -normal(1)*normal(2)
-     vals(4) = normal(1)**2 - normal(2)**2
-     vals(5) = normal(1)*normal(2)
-     call set_row_vals(mat, irow, numvals, cols, vals)
-  endif
-  call insert(rhs, irow, bv_rotated(5), VEC_SET)
+  if(present(mat)) call identity_row(mat, ibegin+4)
+  call insert(rhs, ibegin+4, bv_rotated(5), VEC_SET)
 #ifdef USE3D
-     if(present(mat)) call set_row_vals(mat, irow+6, numvals, cols+6, vals)
-     call insert(rhs, irow+6, bv_rotated(11), VEC_SET)
+     if(present(mat)) call identity_row(mat, ibegin+10)
+     call insert(rhs, ibegin+10, bv_rotated(11), VEC_SET)
 #endif
 
   if(izonedim.eq.0) then
      ! t
-     irow = ibegin+2
-     if(present(mat)) then
-        numvals = 2
-        vals(1) = -normal(2)
-        vals(2) =  normal(1)
-        call set_row_vals(mat, irow, numvals, cols, vals)
-     endif
-     call insert(rhs, irow, bv_rotated(3), VEC_SET)
+     if(present(mat)) call identity_row(mat, ibegin+2)
+     call insert(rhs, ibegin+2, bv_rotated(3), VEC_SET)
 #ifdef USE3D
-     if(present(mat)) call set_row_vals(mat, irow+6, numvals, cols+6, vals)
-     call insert(rhs, irow+6, bv_rotated(9), VEC_SET)
+     if(present(mat)) call identity_row(mat, ibegin+8)
+     call insert(rhs, ibegin+8, bv_rotated(9), VEC_SET)
 #endif
   endif
      
@@ -365,17 +295,19 @@ subroutine set_laplacian_bc(ibegin,rhs,bv,normal,curv,izonedim,radius,mat)
   type(matrix_type), optional :: mat
   
   integer :: numvals, irow
-  integer, dimension(3) :: cols
-  vectype, dimension(3) :: vals
+  integer, dimension(4) :: cols
+  vectype, dimension(4) :: vals
 
   if(itor.eq.1) then
-     numvals = 3
+     numvals = 4
      cols(1) = ibegin + 1
-     cols(2) = ibegin + 3
-     cols(3) = ibegin + 5
-     vals(1) =  1./radius
-     vals(2) =  1.
+     cols(2) = ibegin + 2
+     cols(3) = ibegin + 3
+     cols(4) = ibegin + 5
+     vals(1) =  normal(1)/radius
+     vals(2) = -normal(2)/radius
      vals(3) =  1.
+     vals(4) =  1.
   else
      numvals = 2
      cols(1) = ibegin + 3

@@ -803,17 +803,6 @@ contains
   end if
 
   if(gdef.eq.1) then
-
-     call local_coeff_vector(itri, cl, .true.)
-     do i=1, dofs_per_element
-        avec = cl(i,:)
-        call eval_ops(avec, xi_79, zi_79, eta_79, &
-             d%co, d%sn, ri_79, npoints, nu79(:,:,i))
-#ifdef USECOMPLEX
-        nu79(:,OP_DP :OP_GSP, i) = nu79(:,OP_1:OP_GS,i)*rfac
-        nu79(:,OP_DPP:OP_GSPP,i) = nu79(:,OP_1:OP_GS,i)*rfac**2
-#endif
-     end do
      call local_coeff_vector(itri, cl, .false.)
      do i=1, dofs_per_element
         avec = cl(i,:)
@@ -824,6 +813,7 @@ contains
         mu79(:,OP_DPP:OP_GSPP,i) = mu79(:,OP_1:OP_GS,i)*rfac**2
 #endif
      end do
+     nu79 = mu79
   endif
 
 end subroutine define_fields

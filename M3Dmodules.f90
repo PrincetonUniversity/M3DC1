@@ -17,7 +17,7 @@ module basic
   use mesh_mod
   use pid_controller
 
-  integer, parameter :: version = 3
+  integer, parameter :: version = 4
 
   integer :: i3d
 #ifdef USECOMPLEX
