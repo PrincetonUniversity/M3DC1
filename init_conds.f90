@@ -1445,7 +1445,7 @@ subroutine circular_field_init()
      call get_local_vals(l)
 
      call circular_field_equ(x, z)
-     call circular_field_per(x, z)
+     call circular_field_per(x, phi, z)
 
      call set_local_vals(l)
   enddo
@@ -1499,13 +1499,13 @@ subroutine circular_field_equ(x, z)
 end subroutine circular_field_equ
 
 
-subroutine circular_field_per(x, z)
+subroutine circular_field_per(x, phi, z)
   use basic
   use arrays
 
   implicit none
 
-  real, intent(in) :: x, z
+  real, intent(in) :: x, phi, z
   real :: r2, l2, fac
 
   l2 = ln**2
@@ -1520,13 +1520,18 @@ subroutine circular_field_per(x, z)
   bz1_l = 0.
   p1_l = 0.
 
-  psi1_l(1) = fac*sin(z/ln)
+  psi1_l(1) = fac* sin(z/ln)
   psi1_l(2) = fac* sin(z/ln)*(-2.*x/l2)
   psi1_l(3) = fac*(sin(z/ln)*(-2.*z/l2) + cos(z/ln)/ln)
   psi1_l(4) = fac* sin(z/ln)*(-2.  /l2 + (2.*x/l2)**2)
   psi1_l(5) = fac*(sin(z/ln)*(-2.*z/l2) + cos(z/ln)/ln)*(-2.*x/l2)
   psi1_l(6) = fac*(sin(z/ln)*(-2.*z/l2) + cos(z/ln)/ln)*(-2.*z/l2) &
        - fac*(2.*cos(z/ln)*z/ln + 3.*sin(z/ln))/l2
+
+#ifdef USE3D
+  psi1_l(7:12) = -ntor*psi1_l(1:6)*sin(ntor*phi)
+  psi1_l(1:6) = psi1_l(1:6)*cos(ntor*phi)
+#endif
 
 !!$  p1_l(1) = eps*exp(-((x-x0)**2+z**2)/(2.*ln**2))
 !!$  p1_l(2) = -(x-x0)*p1_l(1)/ln**2
