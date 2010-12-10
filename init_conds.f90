@@ -1439,8 +1439,8 @@ subroutine circular_field_init()
   numnodes = owned_nodes()
   do l=1, numnodes
      call get_node_pos(l, x, phi, z)
-     x = x - alx/2. - xzero
-     z = z - alz/2. - zzero
+     x = x - xmag
+     z = z - zmag
 
      call get_local_vals(l)
 
@@ -1462,38 +1462,38 @@ subroutine circular_field_equ(x, z)
   implicit none
 
   real, intent(in) :: x, z
-  real :: ss
+  real :: j0, r2, fac, l2, jf
   
-  ss = min(alx,alz)/10.
+
+  j0 = 2.*bzero/q0
+  l2 = ln**2
+  r2 = (x**2 + z**2)/l2
+  fac = exp(-r2)
+  jf = j0*fac
 
   u0_l = 0.
   vz0_l = 0.
   chi0_l = 0.
 
-  psi0_l(1) = x**2 + z**2
-  psi0_l(2) = 2.*x
-  psi0_l(3) = 2.*z
-  psi0_l(4) = 2.
-  psi0_l(5) = 0.
-  psi0_l(6) = 2.
-!!$  psi0_l(1) = exp(-(x**2+z**2)/(2.*ss**2))
-!!$  psi0_l(2) = -x*psi0_l(1)/ss**2
-!!$  psi0_l(3) = -z*psi0_l(1)/ss**2
-!!$  psi0_l(4) = ((x/ss)**2 - 1.)*psi0_l(1)/ss**2
-!!$  psi0_l(5) =  x*z*psi0_l(1)/ss**4
-!!$  psi0_l(6) = ((z/ss)**2 - 1.)*psi0_l(1)/ss**2
+  psi0_l(1) = jf*l2/4.
+  psi0_l(2) = -(2./l2)*psi0_l(1)*x
+  psi0_l(3) = -(2./l2)*psi0_l(1)*z
+  psi0_l(4) = -(2./l2)*(psi0_l(1) + psi0_l(2)*x)
+  psi0_l(5) =  (2./l2)**2 * psi0_l(1)*x*z
+  psi0_l(6) = -(2./l2)*(psi0_l(1) + psi0_l(3)*z)
 
-  p0_l(1) = p0*(1. - (x**2 + z**2))
-  p0_l(2) = -2.*x * p0
-  p0_l(3) = -2.*z * p0
-  p0_l(4) = -2.   * p0
-  p0_l(5) =  0.
-  p0_l(6) = -2.   * p0
-  pe0_l = p0_l*(p0-pi0*ipres)/p0
+  bz0_l(1) = sqrt(bzero**2 - (j0**2*l2/8.)*(1. - (1.-2.*r2)*fac**2))
+  bz0_l(2) = -jf**2*x*(1.-r2)/(2.*bz0_l(1))
+  bz0_l(3) = -jf**2*z*(1.-r2)/(2.*bz0_l(1))
+  bz0_l(4) = jf**2/(2.*bz0_l(1)) * &
+       ((x*bz0_l(2)/bz0_l(1) - 1.) * (1.-r2) + 2.*(x**2/l2)*(3.-2.*r2))
+  bz0_l(5) = -jf**2*x*z/bz0_l(1) * &
+       (((1.-r2)*jf/(2.*bz0_l(1)))**2 - (3.-2.*r2)/l2)
+  bz0_l(6) = jf**2/(2.*bz0_l(1)) * &
+       ((z*bz0_l(3)/bz0_l(1) - 1.) * (1.-r2) + 2.*(z**2/l2)*(3.-2.*r2))
 
-  call constant_field(bz0_l , bzero)
-!  call constant_field(p0_l  , p0)
-!  call constant_field(pe0_l , p0-pi0*ipres)
+  call constant_field(p0_l, p0)
+  call constant_field(pe0_l, p0-pi0*ipres)
   call constant_field(den0_l, 1.)
 
 end subroutine circular_field_equ
@@ -1506,10 +1506,11 @@ subroutine circular_field_per(x, z)
   implicit none
 
   real, intent(in) :: x, z
+  real :: r2, l2, fac
 
-  real :: ss
-
-  ss = min(alx,alz)/4.
+  l2 = ln**2
+  r2 = (x**2 + z**2)/l2
+  fac = eps*exp(-r2)
 
   u1_l = 0.
   vz1_l = 0.
@@ -1518,6 +1519,14 @@ subroutine circular_field_per(x, z)
   psi1_l = 0.
   bz1_l = 0.
   p1_l = 0.
+
+  psi1_l(1) = fac*sin(z/ln)
+  psi1_l(2) = fac* sin(z/ln)*(-2.*x/l2)
+  psi1_l(3) = fac*(sin(z/ln)*(-2.*z/l2) + cos(z/ln)/ln)
+  psi1_l(4) = fac* sin(z/ln)*(-2.  /l2 + (2.*x/l2)**2)
+  psi1_l(5) = fac*(sin(z/ln)*(-2.*z/l2) + cos(z/ln)/ln)*(-2.*x/l2)
+  psi1_l(6) = fac*(sin(z/ln)*(-2.*z/l2) + cos(z/ln)/ln)*(-2.*z/l2) &
+       - fac*(2.*cos(z/ln)*z/ln + 3.*sin(z/ln))/l2
 
 !!$  p1_l(1) = eps*exp(-((x-x0)**2+z**2)/(2.*ln**2))
 !!$  p1_l(2) = -(x-x0)*p1_l(1)/ln**2
@@ -1532,12 +1541,12 @@ subroutine circular_field_per(x, z)
 
   ! for parallel viscosity test...
 
-  u1_l(1) = eps*exp(-(x**2+z**2)/(2.*ss**2))
-  u1_l(2) = -x*u1_l(1)/ss**2
-  u1_l(3) = -z*u1_l(1)/ss**2
-  u1_l(4) = ((x/ss)**2 - 1.)*u1_l(1)/ss**2
-  u1_l(5) =  x*z*u1_l(1)/ss**4
-  u1_l(6) = ((z/ss)**2 - 1.)*u1_l(1)/ss**2
+!!$  u1_l(1) = eps*exp(-(x**2+z**2)/(2.*ss**2))
+!!$  u1_l(2) = -x*u1_l(1)/ss**2
+!!$  u1_l(3) = -z*u1_l(1)/ss**2
+!!$  u1_l(4) = ((x/ss)**2 - 1.)*u1_l(1)/ss**2
+!!$  u1_l(5) =  x*z*u1_l(1)/ss**4
+!!$  u1_l(6) = ((z/ss)**2 - 1.)*u1_l(1)/ss**2
 !!$  vz1_l(1) = vzero*exp(-(x**2+z**2)/(2.*ss**2))
 !!$  vz1_l(2) = -x*vz1_l(1)/ss**2
 !!$  vz1_l(3) = -z*vz1_l(1)/ss**2

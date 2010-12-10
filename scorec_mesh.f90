@@ -51,7 +51,13 @@ contains
     call setPhiRange(minphi, maxphi)
 
     print *, 'loading partitioned mesh...'
-    call loadPtnMesh('struct.dmg')
+    if(is_rectilinear) then
+       print *, 'loading rectilinear mesh model...'
+       call loadPtnMesh('struct.dmg')
+    else
+       print *, 'loading curved mesh model...'
+       call loadPtnMesh('AnalyticModel')
+    endif
 
     print *, 'setting up 3D mesh...'
     call threeDMeshSetup(0)
