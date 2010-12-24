@@ -101,11 +101,14 @@ contains
     Phi = d%Phi + zi
   end subroutine local_to_global
 
-  logical function is_in_element(d, R, phi, z)
+  logical function is_in_element(d, R, phi, z, nophi)
     implicit none
     type(element_data), intent(in) :: d
     real, intent(in) :: R, Phi, Z
+    logical, intent(in), optional :: nophi
+
     real :: f, xi, zi, eta
+    logical :: np
 
     call global_to_local(d, R, Phi, Z, xi, zi, eta)
 
@@ -118,8 +121,16 @@ contains
     if(xi.gt. f*d%a) return
     
 #ifdef USE3D
-    if(zi.le.0.) return
-    if(zi.ge.d%d) return
+    if(present(nophi)) then
+       np=nophi 
+    else 
+       np=.false.
+    endif
+
+    if(.not.np) then 
+       if(zi.lt.0.) return
+       if(zi.ge.d%d) return
+    end if
 #endif
 
     is_in_element = .true.

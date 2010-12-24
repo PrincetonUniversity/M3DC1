@@ -375,24 +375,23 @@ subroutine gradshafranov_solve
 
         if(myrank.eq.0 .and. iprint.ge.2) print *, '  applying bcs'
         call boundary_gs(b1vecini_vec%vec, feedfac)
-
+        
         ! perform LU backsubstitution to get psi solution
         if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
         if(myrank.eq.0 .and. iprint.ge.2) print *, '  solving'
 
 #ifdef CJ_MATRIX_DUMP
-  if(itnum.le.1) then 
-     call write_matrix(gs_matrix,'gs_matrix')
-     call write_vector(b1vecini_vec%vec, 'gs_matrix_rhs.out')
-  endif
+        if(itnum.le.1) then 
+           call write_matrix(gs_matrix,'gs_matrix')
+           call write_vector(b1vecini_vec%vec, 'gs_matrix_rhs.out')
+        endif
 #endif 
-
         call newsolve(gs_matrix,b1vecini_vec%vec,ier)
 
 #ifdef CJ_MATRIX_DUMP
-  if(itnum.le.1) then 
-     call write_vector(b1vecini_vec%vec, 'gs_matrix_sol.out')
-  endif
+        if(itnum.le.1) then 
+           call write_vector(b1vecini_vec%vec, 'gs_matrix_sol.out')
+        endif
 #endif 
 
         if(ier.ne.0) then
@@ -844,6 +843,8 @@ subroutine deltafun(x,z,val,jout)
   use basic
   use arrays
   use field
+  use m3dc1_nint
+  use math
 
   implicit none
 
@@ -854,24 +855,32 @@ subroutine deltafun(x,z,val,jout)
   integer :: itri, i, k
   real :: x1, z1, si, zi, eta
   vectype, dimension(dofs_per_element) :: temp
-  
+  vectype, dimension(dofs_per_element,coeffs_per_element) :: c
+
   itri = 0
-  call whattri(x, 0., z, itri, x1, z1)
+  call whattri(x, 0., z, itri, x1, z1, IGNORE_PHI)
 
   if(itri.gt.0) then
 
-     call get_element_data(itri, d)
+     temp = 0.
+
      ! calculate local coordinates
+     call get_element_data(itri, d)
      call global_to_local(d, x, 0., z, si, zi, eta)
 
-     ! calculate the contribution to j
-     temp = 0.
-     do i=1, 18
-        do k=1, 20
-           temp(i) = temp(i) - val*gtri(k,i,itri)*si**mi(k)*eta**ni(k)
+     ! calculate temp_i = -val*mu_i(si,eta)
+     call local_coeff_vector(itri, c, .false.)
+     do i=1,dofs_per_element
+        do k=1, coeffs_per_tri
+           temp(i) = temp(i) - val*c(i,k)*si**mi(k)*eta**ni(k)
         end do
      end do
-     call vector_insert_block(jout%vec,itri,jout%index,temp,VEC_ADD)
+
+#ifdef USE3D
+     temp = temp*twopi/nplanes
+#endif
+
+     call vector_insert_block(jout%vec, itri, jout%index, temp, VEC_ADD)
   end if
 
   call sum_shared(jout%vec)

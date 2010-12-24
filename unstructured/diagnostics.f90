@@ -782,7 +782,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
   real, intent(out) :: psim
 
   integer, parameter :: iterations = 20  !  max number of Newton iterations
-  real, parameter :: bfac = 0.5  !max zone fraction for movement each iteration
+  real, parameter :: bfac = 0.1  !max zone fraction for movement each iteration
   real, parameter :: tol = 1e-3   ! convergence tolorance (fraction of h)
 
   type(element_data) :: d
@@ -820,7 +820,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
 
         ! calculate mesh size
         h = sqrt((d%a+d%b)*d%c)
- 
+
         ! evaluate the polynomial and second derivative
         sum = 0.
         sum1 = 0.
@@ -828,7 +828,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
         sum3 = 0.
         sum4 = 0.
         sum5 = 0.
-        do i=1,20
+        do i=1, coeffs_per_tri
            sum = sum + avector(i)*si**mi(i)*eta**ni(i)
            term1 = 0.
            if(mi(i).ge.1) term1 = mi(i)*si**(mi(i)-1)*eta**ni(i)
@@ -936,7 +936,8 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
      if(in_domain.eq.0) then
         ! if not within the domain, safestop.
         if(myrank.eq.0 .and. iprint.ge.1)   &
-             write(*,'(A,2E12.4)') '  magaxis: guess outside domain ', x, z
+             write(*,'(A,2E12.4)') '  magaxis: guess outside domain ', &
+             xnew, znew
         ier = 1
         return
      else

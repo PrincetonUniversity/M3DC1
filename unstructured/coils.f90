@@ -138,7 +138,7 @@ contains
       zp = z
      
       ! Field due to coil currents
-      call gvect(xp,zp,xc,zc,nc,g,ipole,ineg)
+      call gvect(xp,zp,xc,zc,nc,g(1:6,:),ipole,ineg)
 
       call get_node_data(f, i, data)
       do k=1,nc
