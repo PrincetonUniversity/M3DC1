@@ -133,7 +133,7 @@ Program Reducedquintic
   case(1)
      ! Read restart file(s)
 
-     if(myrank.eq.1 .and. iprint.ge.1) print *, ' Reading restart file(s)'
+     if(myrank.eq.0 .and. iprint.ge.1) print *, ' Reading restart file(s)'
      if(iglobalin.eq.1) then
         call rdrestartglobal
      else
@@ -1032,7 +1032,7 @@ subroutine space(ifirstcall)
   integer :: maxdofs1, maxdofs2, maxdofs3, maxdofsn
 #endif
 
-  if(myrank.eq.1 .and. iprint.ge.1) print *, " Entering space..."
+  if(myrank.eq.0 .and. iprint.ge.1) print *, " Entering space..."
 
   if(isplitstep.eq.1) then
      vecsize_phi = numvar

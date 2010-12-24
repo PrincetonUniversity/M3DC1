@@ -16,6 +16,8 @@ module scorec_mesh_mod
   logical, private :: has_bounding_box = .false.
   real, private :: bb(4)
 
+  logical, parameter :: IGNORE_PHI = .true.
+
 contains
 
   subroutine load_mesh
@@ -281,12 +283,13 @@ contains
   ! itri = -1.  Otherwise, xref and zref are global coordinates
   ! of the first node of element itri.
   !============================================================
-  subroutine whattri(x,phi,z,ielm,xref,zref)
+  subroutine whattri(x,phi,z,ielm,xref,zref,nophi)
     implicit none
     
     real, intent(in) :: x, phi, z
     integer, intent(inout) :: ielm
     real, intent(out) :: xref, zref
+    logical, intent(in), optional :: nophi
     
     integer :: nelms, i
     type(element_data) :: d
@@ -294,7 +297,7 @@ contains
     ! first, try ielm
     if(ielm.gt.0) then
        call get_element_data(ielm,d)
-       if(is_in_element(d,x,phi,z)) then
+       if(is_in_element(d,x,phi,z,nophi)) then
           xref = d%R
           zref = d%Z
           return
@@ -306,7 +309,7 @@ contains
     nelms = local_elements()
     do i=1, nelms
        call get_element_data(i,d)
-       if(is_in_element(d,x,phi,z)) then
+       if(is_in_element(d,x,phi,z,nophi)) then
           xref = d%R
           zref = d%Z
           ielm = i
