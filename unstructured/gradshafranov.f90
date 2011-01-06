@@ -897,7 +897,6 @@ subroutine deltafun(x,z,val,jout)
 #ifdef USE3D
      temp = temp*twopi/nplanes
 #endif
-      write(*,*) "FROM DELTAFUN",myrank,itri,val
 
      call vector_insert_block(jout%vec, itri, jout%index, temp, VEC_SET)
   end if
