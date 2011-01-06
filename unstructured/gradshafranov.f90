@@ -360,7 +360,9 @@ subroutine gradshafranov_solve
   ! start of iteration loop on plasma current
   mainloop: do itnum=1, iabs(igs)
 
-     if(myrank.eq.0) print *, "GS iteration = ", itnum
+     if(myrank.eq.0) print *, "GS iteration = ", itnum, error2
+      if(myrank.eq.0 .and. iprint.ge.1) write(69,1069) itnum,pscale,bscale,gamma2,gamma3,gamma4
+ 1069 format(i5,1p5e12.4)
      
      ! apply boundary conditions
      if(iread_eqdsk.ne.1 .or. itnum.gt.1) then
@@ -832,6 +834,9 @@ subroutine calculate_gamma(g2, g3, g4)
   g3 = -4.*(abs(g0)/xmag)*djdpsi/dpsii - xmag**2*p0*p2
   g4 = -(-tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
 
+      if(myrank.eq.0 .and. iprint.ge.2) write(79,1079) dpsii,tcuro,gsint1,gsint2,gsint3,gsint4
+!
+ 1079 format("dpsii,tcuro,gsint1,gsint2,gsint3,gsint4",1p6e12.4)
   if(myrank.eq.0 .and. iprint.ge.1) write(*,'(A,1p1e12.4)') ' current = ', curr
 end subroutine calculate_gamma
 
@@ -848,17 +853,30 @@ subroutine deltafun(x,z,val,jout)
 
   implicit none
 
+  include 'mpif.h'
+
   type(element_data) :: d
   real, intent(in) :: x, z, val
+  real :: val2, temp1(1),temp2(1)
   type(field_type), intent(out) :: jout
 
-  integer :: itri, i, k
+  integer :: itri, i, k,in_domain,ier
   real :: x1, z1, si, zi, eta
   vectype, dimension(dofs_per_element) :: temp
   vectype, dimension(dofs_per_element,coeffs_per_element) :: c
 
   itri = 0
   call whattri(x, 0., z, itri, x1, z1, IGNORE_PHI)
+
+  val2 = val
+  if(maxrank.gt.1) then
+    in_domain = 0
+    if(itri.gt.0) in_domain = 1
+    temp1(1) = in_domain
+    call mpi_allreduce(temp1,temp2,1,MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
+    in_domain = temp2(1)
+    val2 = val/in_domain
+  endif
 
   if(itri.gt.0) then
 
@@ -872,15 +890,16 @@ subroutine deltafun(x,z,val,jout)
      call local_coeff_vector(itri, c, .false.)
      do i=1,dofs_per_element
         do k=1, coeffs_per_tri
-           temp(i) = temp(i) - val*c(i,k)*si**mi(k)*eta**ni(k)
+           temp(i) = temp(i) - val2*c(i,k)*si**mi(k)*eta**ni(k)
         end do
      end do
 
 #ifdef USE3D
      temp = temp*twopi/nplanes
 #endif
+      write(*,*) "FROM DELTAFUN",myrank,itri,val
 
-     call vector_insert_block(jout%vec, itri, jout%index, temp, VEC_ADD)
+     call vector_insert_block(jout%vec, itri, jout%index, temp, VEC_SET)
   end if
 
   call sum_shared(jout%vec)
