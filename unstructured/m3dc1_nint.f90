@@ -259,7 +259,7 @@ contains
     integer :: i
     type(element_data) :: d
     vectype, dimension(coeffs_per_element) :: avec
-    real, dimension(dofs_per_element,coeffs_per_element) :: cl
+    vectype, dimension(dofs_per_element,coeffs_per_element) :: cl
 
     ! calculate the hyperviscosity coefficients and
     ! the size field for this element.
