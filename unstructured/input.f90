@@ -296,7 +296,7 @@ subroutine validate_input
   implicit none
 
 #include "finclude/petsc.h"
-  PetscTruth :: flg_petsc, flg_solve2, flg_solve1
+  PetscTruth :: flg_petsc, flg_solve2, flg_pdslin
   integer :: ier
 
   if(amuc.eq.0.) amuc = amu
@@ -434,14 +434,14 @@ subroutine validate_input
   ! Read PETSc options
   call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
   call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ier)
-  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve1', flg_solve2,ier)
+  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-pdslin', flg_pdslin,ier)
   
   if(myrank.eq.0) then
-     print *, "petsc arguments: ipetsc, solve2, solve1", flg_petsc, flg_solve2, flg_solve1
+     print *, "petsc arguments: ipetsc, solve2, solve1", flg_petsc, flg_solve2, flg_pdslin
      print *, "petsc true/false", PETSC_TRUE, PETSC_FALSE
-     if(flg_petsc.eq.PETSC_TRUE) print*, 'Using PETSc.'
-     if(flg_petsc.eq.PETSC_TRUE .and. flg_solve2.eq.PETSC_TRUE) print*, 'Using PPPL solve2.'
-     if(flg_petsc.eq.PETSC_TRUE .and. flg_solve1.eq.PETSC_TRUE) print*, 'Using PPPL solve1.'
+     if(flg_petsc.eq.PETSC_TRUE) print*, 'Using SCOREC PETSc.'
+     if(flg_solve2.eq.PETSC_TRUE) print*, 'Using PPPL solve2.'
+     if(flg_pdslin.eq.PETSC_TRUE) print*, 'Using PDSLin.'
   endif
 
   if(flg_petsc.eq.PETSC_TRUE .and. flg_solve2.eq.PETSC_TRUE) then 

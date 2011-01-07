@@ -1,0 +1,42 @@
+-pc_type asm 
+-pc_asm_overlap 1 
+-sub_pc_type ilu 
+-sub_pc_factor_levels 3 
+-ksp_type gmres 
+-ksp_gmres_restart 100
+-xksp_converged_reason 
+-xksp_max_it 10
+-xksp_view
+-xksp_monitor
+-xhelp 
+
+-solve2_pc_type asm 
+-solve2_pc_asm_overlap 1 
+-solve2_sub_pc_type ilu 
+-solve2_sub_pc_factor_levels 3
+-solve2_ksp_type gmres 
+-solve2_ksp_gmres_restart 500 
+-xsolve2_ksp_converged_reason 
+-xsolve2_ksp_max_it 10
+-xsolve2_ksp_view
+-xsolve2_ksp_monitor
+-xsolve1_help 
+
+-solve1_pc_type asm 
+-solve1_pc_asm_overlap 1 
+-solve1_sub_pc_type ilu 
+-solve1_sub_pc_factor_levels 3
+-solve1_ksp_type gmres 
+-solve1_ksp_gmres_restart 50 
+-solve1_ksp_converged_reason 
+-xsolve1_ksp_max_it 10
+-xsolve1_ksp_view
+-xsolve1_ksp_monitor
+-xsolve1_help 
+
+-xoptions_table
+-xoptions_left
+
+-xtrdump
+-xmalloc_log
+
