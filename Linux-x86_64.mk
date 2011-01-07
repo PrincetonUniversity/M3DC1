@@ -4,10 +4,13 @@ F77    = mpif90
 CC     = mpicc
 
 # define where you want to locate the mesh adapt libraries
+HYBRID_HOME = /p/swim/jchen/hybrid.test
+#HYBRID_HOME = /u/iyamazak/release/v2/hybrid.test
 
 INCLUDE = -I$(MPIHOME)/include \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
-	-I$(HDF5_HOME)/include -I$(HDF5_HOME)/lib
+	-I$(HDF5_HOME)/include -I$(HDF5_HOME)/lib \
+	-I$(HYBRID_HOME)/include
 
 H5_VERSION = 169
 
@@ -19,7 +22,7 @@ SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu \
 
 MUMPS_LIBS = -L$(MUMPS_HOME)/lib -ldmumps -lmumps_common -lpord
 
-BLACS_LIBS = -L$(BLACS_HOME)/lib -lmpiblacs -lmpiblacsF77init
+BLACS_LIBS = -L$(BLACS_HOME)/lib -lmpiblacs -lmpiblacsF77init -lmpiblacsCinit -lmpiblacs
 
 SCALAPACK_LIBS = -L$(SCALAPACK_HOME)/lib -lscalapack
 
@@ -31,12 +34,15 @@ NAG_LIBS = -L$(NAG_ROOT)/lib -lnag
 AUTOPACK_LIBS = -L$(AUTOPACK_HOME)/lib \
 	-Wl,-rpath,$(AUTOPACK_HOME)/lib -lautopack-O
 
+HYBRID_LIBS = $(HYBRID_HOME)/lib/libhsolver.a
+
 LIBS = 	$(PETSC_LIBS) \
 	$(SUPERLU_LIBS) \
 	$(MUMPS_LIBS) \
 	$(SCALAPACK_LIBS) \
 	$(BLACS_LIBS) \
 	$(PARMETIS_LIBS) \
+	$(HYBRID_LIBS) \
 	-L$(Zoltan_HOME)/lib -lzoltan \
 	-L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5 \
 	-L$(CCHOME)/lib/intel64 -lguide \
@@ -58,8 +64,8 @@ ifeq ($(USESCOREC), 1)
     INCLUDE := -I/p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/include $(INCLUDE)
 
     SCOREC_ARCH=x86_64_linux-icc
-
-    SCOREC_LIBS = -L$(SCORECDIR) \
+    SCOREC_LIBS = \
+        -L$(SCORECDIR) \
 	-Wl,-rpath,$(SCORECDIR) \
 	-lFMDB-mpich2$(SCORECOPT) \
 	-lSCORECModel-mpich2$(SCORECOPT) \
@@ -67,7 +73,6 @@ ifeq ($(USESCOREC), 1)
 	-lField-mpich2$(SCORECOPT) \
 	-lCore-mpich2$(SCORECOPT) \
 	-lmeshAdapt-mpich2$(SCORECOPT) \
-	-ltemplateRefine-mpich2$(SCORECOPT) \
 	-lmeshTools-mpich2$(SCORECOPT) \
 	-lSolver-mpich2$(SCORECOPT) \
 	-lPPPL-mpich2$(SCORECOPT) \
@@ -77,15 +82,11 @@ ifeq ($(USESCOREC), 1)
 
     ifndef SCORECDIR
       SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/092210
-#      SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/10212010
-#      SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/latest
     endif
     INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/092210 $(INCLUDE)
-#    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/10212010 $(INCLUDE)
-#    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/latest $(INCLUDE)
 
     SCOREC_LIBS = \
-	-L$(SCORECDIR) \
+        -L$(SCORECDIR) \
 	-Wl,-rpath,$(SCORECDIR) \
 	-lFMDB-mpich2$(SCORECOPT) \
 	-lSCORECModel-mpich2$(SCORECOPT) \

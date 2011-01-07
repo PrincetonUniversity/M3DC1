@@ -306,17 +306,39 @@ contains
     type(scorec_matrix), intent(in) :: mat
     type(vector_type), intent(inout) :: v
     integer, intent(out) :: ierr
+#ifdef CJ_MATRIX_DUMP
+    integer :: ndof, gndof, i
+    real rms, grms
+#endif 
 
-    PetscTruth :: flg_petsc, flg_solve1
+    PetscTruth :: flg_petsc, flg_solve2, flg_pdslin
 
     call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc ,ierr)
-    call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve1', flg_solve1,ierr)
+    call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ierr)
+    call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-pdslin', flg_pdslin,ierr)
 
-    if(flg_petsc.eq.PETSC_TRUE .and. flg_solve1.eq.PETSC_TRUE) then
-       call solve1(mat%imatrix,v%data,ierr)
-    else
+    if(flg_solve2.eq.PETSC_TRUE) then  ! use pppl petsc
+       call solve2(mat%imatrix,v%data,ierr)
+    else if(flg_pdslin.eq.PETSC_TRUE) then  ! use pdslin
+       call hybridsolve(mat%imatrix,v%data,ierr)
+    else  ! use scorec superlu or petsc (-ipetsc)
        call solve(mat%imatrix,v%data,ierr)
     endif
+
+#ifdef CJ_MATRIX_DUMP
+    call numdofs(v%isize, ndof) 
+    call mpi_allreduce(ndof, gndof, 1, MPI_INTEGER, &
+         MPI_SUM, MPI_COMM_WORLD, ierr) 
+    rms=0.
+    do i=1, ndof
+       rms = rms + v%data(i) * v%data(i)
+       !print *, "scorec_matrix_solve sol=", mat%imatrix, i, v%data(i)
+    enddo
+    call mpi_allreduce(rms, grms, 1, MPI_DOUBLE_PRECISION, &
+         MPI_SUM, MPI_COMM_WORLD, ierr) 
+    write(*,'(a,2i7,2e20.10)') "scorec_matrix_solve sol_rms=", &
+                          mat%imatrix, ndof, grms, sqrt(grms)/real(gndof) 
+#endif 
   end subroutine scorec_matrix_solve
 
   !====================================================================
