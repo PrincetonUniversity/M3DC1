@@ -742,6 +742,7 @@ subroutine calculate_gamma(g2, g3, g4)
   use mesh_mod
   use arrays
   use m3dc1_nint
+  use math
 
   implicit none
 
@@ -811,6 +812,8 @@ subroutine calculate_gamma(g2, g3, g4)
      gsint3 = gsint3 + int2(ri_79,fun3_n)
      gsint4 = gsint4 + int2(ri_79,fun4_n)
   enddo
+      if(iprint.ge.2) write(80+myrank,1080) myrank,curr,gsint1,gsint2,gsint3,gsint4
+ 1080 format(i12,1p5e12.4)
      
   if(maxrank.gt.1) then
      temp1(1) = curr
@@ -826,6 +829,13 @@ subroutine calculate_gamma(g2, g3, g4)
      gsint3 = temp2(4)
      gsint4 = temp2(5)
   end if
+!
+#ifdef USE3D
+     gsint1 = gsint1/twopi
+     gsint2 = gsint2/twopi
+     gsint3 = gsint3/twopi
+     gsint4 = gsint4/twopi
+#endif
 
   ! choose gamma2 to fix q0/qstar.  Note that there is an additional
   ! degree of freedom in gamma3.  Could be used to fix qprime(0)
@@ -834,9 +844,9 @@ subroutine calculate_gamma(g2, g3, g4)
   g3 = -4.*(abs(g0)/xmag)*djdpsi/dpsii - xmag**2*p0*p2
   g4 = -(-tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
 
-      if(myrank.eq.0 .and. iprint.ge.2) write(79,1079) dpsii,tcuro,gsint1,gsint2,gsint3,gsint4
+      if(myrank.eq.0 .and. iprint.ge.2) write(79,1079) dpsii,curr,gsint1,gsint2,gsint3,gsint4
 !
- 1079 format("dpsii,tcuro,gsint1,gsint2,gsint3,gsint4",1p6e12.4)
+ 1079 format("dpsii,curr,gsint1,gsint2,gsint3,gsint4",1p6e12.4)
   if(myrank.eq.0 .and. iprint.ge.1) write(*,'(A,1p1e12.4)') ' current = ', curr
 end subroutine calculate_gamma
 
@@ -895,7 +905,7 @@ subroutine deltafun(x,z,val,jout)
      end do
 
 #ifdef USE3D
-     temp = temp*twopi/nplanes
+     temp = temp*twopi
 #endif
 
      call vector_insert_block(jout%vec, itri, jout%index, temp, VEC_SET)
