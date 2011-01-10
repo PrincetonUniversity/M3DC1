@@ -48,10 +48,11 @@ contains
     use basic
     use hdf5_output
     use diagnostics
-
     implicit none
 
-    integer :: ier
+#include "mpif.h"
+
+    integer :: ier,i
     real :: gamma
     real :: tstart, tend
 
@@ -67,7 +68,12 @@ contains
           if(iglobalout.eq.1) then
              call wrrestartglobal
           else
-             call wrrestart
+!            call wrrestart
+!...........sequential restart writing
+            do i=0,maxrank-1
+               if(myrank.eq.i) call wrrestart
+               call MPI_Barrier(MPI_COMM_WORLD,ier)
+            enddo
           endif
        endif
     endif
