@@ -1,7 +1,28 @@
-LOADER = mpif90
-F90    = mpif90
-F77    = mpif90
-CC     = mpicc
+H5_VERSION = 169
+
+FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) \
+	-DH5_VERSION=$(H5_VERSION) 
+	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs #\
+#	-g -check all -check noarg_temp_created -debug all -ftrapuv
+CCOPTS  = -c
+
+ifeq ($(TAU), 1)
+  CC     = tau_cc.sh
+  F90    = tau_f90.sh
+  F77    = tau_f90.sh
+  LOADER = tau_f90.sh
+  TAU_OPTIONS = '-optCPPOpts=-DRANDOM_NUM="drand(0)" -optVerbose -optPreProcess -optMpi -optTauSelectFile=../select.tau'
+  export TAU_OPTIONS
+else
+  CC = mpicc -c
+  F90 = mpif90
+  F77 = mpif90
+  LOADER = mpif90
+  FOPTS := $(FOPTS) -DRANDOM_NUM='drand(0)'
+endif
+F90OPTS = $(F90FLAGS) $(FOPTS) -gen-interfaces
+F77OPTS = $(F77FLAGS) $(FOPTS)
+
 
 # define where you want to locate the mesh adapt libraries
 HYBRID_HOME = /p/swim/jchen/hybrid.test
@@ -12,7 +33,6 @@ INCLUDE = -I$(MPIHOME)/include \
 	-I$(HDF5_HOME)/include -I$(HDF5_HOME)/lib \
 	-I$(HYBRID_HOME)/include
 
-H5_VERSION = 169
 
 PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
 	-lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc
@@ -106,23 +126,14 @@ ifeq ($(USESCOREC), 1)
 endif   # on USESCOREC
 
 
-FOPTS = -c -r8 -implicitnone -fpp -warn all $(INCLUDE) $(OPTS) \
-	-DH5_VERSION=$(H5_VERSION) -DRANDOM_NUM='drand(0)' \
-	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs #\
-#	-g -check all -check noarg_temp_created -debug all -ftrapuv
-F90OPTS = $(F90FLAGS) $(FOPTS) -gen-interfaces
-F77OPTS = $(F77FLAGS) $(FOPTS)
-CCOPTS = -c $(INCLUDE)
-
-
 %.o : %.c
-	$(CC)  $(CCOPTS) $< -o $@
+	$(CC)  $(CCOPTS) $(INCLUDE) $< -o $@
 
 %.o: %.f
-	$(F77) $(F77OPTS) $< -o $@
+	$(F77) $(F77OPTS) $(INCLUDE) $< -o $@
 
 %.o: %.F
-	$(F77) $(F77OPTS) $< -o $@
+	$(F77) $(F77OPTS) $(INCLUDE) $< -o $@
 
 %.o: %.f90
-	$(F90) $(F90OPTS) -fpic $< -o $@
+	$(F90) $(F90OPTS) $(INCLUDE) -fpic $< -o $@

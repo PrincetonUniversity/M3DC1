@@ -761,7 +761,9 @@ end subroutine rotation
   
     type(element_data) :: d
     integer :: itri, i, j, k, ii, jj, numelms, numnodes, ndofs
-    real :: ti(20,20), rot(18,18), newrot(18,18), sum, theta
+    real, dimension(coeffs_per_tri,coeffs_per_tri) :: ti 
+    real, dimension(dofs_per_tri, dofs_per_tri) :: rot, newrot
+    real :: sum, theta
     real :: norm(2), curv, x, z
     integer :: inode(nodes_per_element)
     logical :: is_boundary
@@ -781,11 +783,11 @@ end subroutine rotation
        ! define the Inverse Transformation Matrix that enforces the 
        ! condition that the normal slope between triangles has only 
        ! cubic variation
-       call tmatrix(ti,20,d%a,d%b,d%c)
+       call tmatrix(ti,coeffs_per_tri,d%a,d%b,d%c)
        
        ! calculate the rotation matrix rot
        theta = atan2(d%sn,d%co)
-       call rotation(rot,18,theta)
+       call rotation(rot,dofs_per_tri,theta)
        
        newrot = 0.
        call get_element_nodes(itri, inode)
@@ -793,6 +795,7 @@ end subroutine rotation
        do i=1, 3
           call boundary_node(inode(i), &
                is_boundary, izone, izonedim, norm, curv, x, z)
+
           k = (i-1)*6 + 1
           if(is_boundary) then
              newrot(k  ,k  ) = 1.
@@ -823,21 +826,20 @@ end subroutine rotation
        end do
 
        ! form the matrix g by multiplying ti and rot
-       do k=1,20
-          do j=1,18
+       do k=1, coeffs_per_tri
+          do j=1, dofs_per_tri
              sum = 0.
-             do ii = 1,18
+             do ii = 1, dofs_per_tri
                 sum = sum + ti(k,ii)*rot(ii,j)
              enddo
              gtri_old(k,j,itri) = sum
 
              sum = 0.
-             do ii = 1,18
-                do jj=1, 18
+             do ii = 1, dofs_per_tri
+                do jj=1, dofs_per_tri
                    sum = sum + newrot(j,jj)*ti(k,ii)*rot(ii,jj)
                 end do
              enddo
-
              gtri(k,j,itri) = sum
           enddo
        enddo

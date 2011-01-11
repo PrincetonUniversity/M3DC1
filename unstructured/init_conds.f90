@@ -33,27 +33,40 @@ subroutine plane_wave(outarr, x, z, kx, kz, amp, phase)
   outarr(6) = -amp*cos(arg)*kz*kz
 end subroutine plane_wave
 !==============================
-subroutine plane_wave2(outarr,x,z,kx,kz,amp,phasex,phasez)
+subroutine plane_wave2(outarr,x,phi,z,kx,kphi,kz,amp,phasex,phasephi,phasez)
+  use element
+
   implicit none
 
-  vectype, dimension(6), intent(out) :: outarr
-  real, intent(in)  :: x, z, kx, kz, amp, phasex, phasez
+  vectype, dimension(dofs_per_node), intent(out) :: outarr
+  real, intent(in)  :: x, phi, z, kx, kphi, kz, amp, phasex, phasephi, phasez
 
-  real :: argx,argz,cox,coz,six,siz
-  argx = kx*x + phasex
-  argz = kz*z + phasez
+  real :: argx,argp,argz,cox,cop,coz,six,sip,siz
+  argx = kx*x     + phasex
+  argp = kphi*phi + phasephi
+  argz = kz*z     + phasez
 
   six = sin(argx)
   cox = cos(argx)
+  sip = sin(argp)
+  cop = cos(argp)
   siz = sin(argz)
   coz = cos(argz)
 
-  outarr(1) =  amp*six*siz
-  outarr(2) =  amp*cox*siz*kx
-  outarr(3) =  amp*six*coz*kz
-  outarr(4) = -amp*six*siz*kx*kx
-  outarr(5) =  amp*cox*coz*kx*kz
-  outarr(6) = -amp*six*siz*kz*kz
+  outarr(1) =  amp*cop*six*siz
+  outarr(2) =  amp*cop*cox*siz*kx
+  outarr(3) =  amp*cop*six*coz*kz
+  outarr(4) = -amp*cop*six*siz*kx*kx
+  outarr(5) =  amp*cop*cox*coz*kx*kz
+  outarr(6) = -amp*cop*six*siz*kz*kz
+#ifdef USE3D
+  outarr(7 ) = -amp*sip*six*siz*kphi
+  outarr(8 ) = -amp*sip*cox*siz*kx*kphi
+  outarr(9 ) = -amp*sip*six*coz*kz*kphi
+  outarr(10) =  amp*sip*six*siz*kx*kx*kphi
+  outarr(11) = -amp*sip*cox*coz*kx*kz*kphi
+  outarr(12) =  amp*sip*six*siz*kz*kz*kphi
+#endif
 end subroutine plane_wave2
 !==============================
 subroutine add_angular_velocity(outarr, x,omega)
@@ -90,7 +103,7 @@ subroutine add_product(x,a,b)
   x(6) = x(6) + a(1)*b(6) + a(6)*b(1) + 2.*a(3)*b(3)
 end subroutine add_product
 !=============================
-subroutine random_per(x,z,seed,fac)
+subroutine random_per(x,phi,z,seed,fac)
   use math
   use basic
   use arrays
@@ -100,11 +113,11 @@ subroutine random_per(x,z,seed,fac)
 
   real :: drand, rand
 
-  real, intent(in) :: x, z
+  real, intent(in) :: x, phi, z
   vectype, intent(in), dimension(dofs_per_node) :: fac
   integer, intent(in) :: seed
   integer :: i, j, k
-  real :: alx, alz, kx, kz, xx, zz
+  real :: alx, alz, kx, kp, kz, xx, zz
   vectype, dimension(dofs_per_node) :: temp
 
   call get_bounding_box_size(alx, alz)
@@ -123,23 +136,30 @@ subroutine random_per(x,z,seed,fac)
      case (0)   !  original option...no symmetry imposed
      do j=1, maxn
         kz = j*pi/alz
-        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(RANDOM_NUM-.5),0.,0.)
+        kp = j
+        call plane_wave2(temp,xx,phi,zz,kx,kp,kz,2.*eps*(RANDOM_NUM-.5), &
+             0.,0.,0.)
         call add_product(psi1_l,fac,temp)
-        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(RANDOM_NUM-.5),0.,0.)
+        call plane_wave2(temp,xx,phi,zz,kx,kp,kz,2.*eps*(RANDOM_NUM-.5), &
+             0.,0.,0.)
         call add_product(u1_l,fac,temp)
      end do
 
      case (1)  !   make U odd symmetry about midplane:  perturb only U
      do j=1, maxn/2
         kz = 2.*j*pi/alz
-        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(RANDOM_NUM-.5),0.,0.)
+        kp = j
+        call plane_wave2(temp,xx,phi,zz,kx,kp,kz,2.*eps*(RANDOM_NUM-.5), &
+             0.,0.,0.)
         call add_product(u1_l,fac,temp)
      end do
 
      case (2)  !   make U even  symmetry about midplane:  perturb only U
      do j=1, maxn/2
         kz = (2.*j-1)*pi/alz
-        call plane_wave2(temp,xx,zz,kx,kz,2.*eps*(RANDOM_NUM-.5),0.,0.)
+        kp = j
+        call plane_wave2(temp,xx,phi,zz,kx,kp,kz,2.*eps*(RANDOM_NUM-.5), &
+             0.,0.,0.)
         call add_product(u1_l,fac,temp)
      end do
 
@@ -329,7 +349,7 @@ subroutine read_density_profile
 
   numelms = local_elements()
   do itri=1,numelms
-     call define_element_quadrature(itri, 25, 5)
+     call define_element_quadrature(itri, int_pts_main, 5)
      call define_fields(itri, 0, 1, 0)
      call get_element_data(itri, d)
 

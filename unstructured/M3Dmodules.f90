@@ -1,15 +1,7 @@
 module p_data
-
   implicit none
  
-  integer :: ires     ! linear resolution of the plot files
-  integer :: maxplots ! maximum dimension of the graph array
-  integer :: ijacobian
-
-  parameter(maxplots=50, ires=201, ijacobian=1)
-  
-  integer, dimension(ires, ires) :: whichtri
-
+  integer, parameter :: ijacobian = 1
 end module p_data
 
 module basic

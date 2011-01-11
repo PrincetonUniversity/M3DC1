@@ -1325,6 +1325,12 @@ subroutine get_flux_mask(itri, imask)
      ibound = BOUNDARY_RESISTIVE_WALL
   end if
   if(inocurrent_tor.eq.1) ibound = ior(ibound, BOUNDARY_LAPLACIAN)
+  if(inocurrent_norm.eq.1) then
+     if(i3d.eq.1) then
+        ibound = ior(ibound, BOUNDARY_NEUMANN)
+     endif
+  endif
+
   call get_boundary_mask(itri, ibound, imask)
 end subroutine get_flux_mask
 
@@ -2053,7 +2059,7 @@ end subroutine boundary_pres
        
        call get_element_nodes(itri,inodes)
 
-       call define_boundary_quadrature(itri, iedge, 5, norm, idim)
+       call define_boundary_quadrature(itri, iedge, 5, 5, norm, idim)
        call define_fields(itri, 0, 1, linear)
 
        ! cycle through each node of the element containing the present edge

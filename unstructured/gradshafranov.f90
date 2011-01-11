@@ -23,6 +23,8 @@ module gradshafranov
   real, private, allocatable :: fbig0t(:), fbigt(:), fbigpt(:), fbigppt(:)
   real, private, allocatable :: alphap0t(:), alphapt(:), alphappt(:), alphapppt(:)
 
+  integer, private :: int_tor = 0
+
 contains
 
 subroutine gradshafranov_init()
@@ -83,7 +85,8 @@ subroutine gradshafranov_per()
 
      call get_local_vals(i)
 
-     vmask = p0_l/p0
+     vmask = 1.
+     vmask(1:6) = p0_l(1:6)/p0
      vmask(1) = vmask(1) - pedge/p0
      
      ! initial parallel rotation
@@ -98,7 +101,7 @@ subroutine gradshafranov_per()
         vmask(1) = 1.
         vmask(2:6) = 0.
      endif
-     call random_per(x,z,23,vmask)
+     call random_per(x,phi,z,23,vmask)
 
      call set_local_vals(i)
   enddo
@@ -261,12 +264,14 @@ subroutine gradshafranov_solve
   type(matrix_type) :: gs_matrix
   type(newvar_matrix) :: dp_mat_lhs
 
-  integer :: itri,i,j,ier, itnum
+  integer :: itri,i,j,ier, itnum, ibound
   integer :: numelms, numnodes
   real :: feedfac
 
   real :: x, phi, z, error, error2, error3 
   real :: tstart, tend
+
+  integer, dimension(dofs_per_element) :: imask
 
   vectype, dimension(dofs_per_node) :: tf, tm
   vectype, dimension(coeffs_per_element) :: avec
@@ -308,19 +313,25 @@ subroutine gradshafranov_solve
   print *, "create_mat gradshafranov gs_matrix", gs_matrix%imatrix     
 #endif 
 
+  ibound = BOUNDARY_DIRICHLET + BOUNDARY_AXISYMMETRIC
+
   ! populate the matrix
   do itri=1,numelms
 
-     call define_element_quadrature(itri,25,5)
+     call define_element_quadrature(itri,int_pts_main,int_tor)
      call define_fields(itri,0,1,0)
 
+     call get_boundary_mask(itri, ibound, imask)
      do i=1,dofs_per_element
-        do j=1,dofs_per_element
-           temp(i,j) = int3(ri_79,mu79(:,OP_1,i),nu79(:,OP_GS,j))
-        enddo
+        if(imask(i).eq.0) then
+           temp(i,:) = 0.
+        else
+           do j=1,dofs_per_element
+              temp(i,j) = int3(ri_79,mu79(:,OP_1,i),nu79(:,OP_GS,j))
+           enddo
+        endif
      enddo
 
-     call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp)
      call insert_block(gs_matrix, itri, 1, 1, temp, MAT_ADD)
   enddo
 
@@ -356,13 +367,12 @@ subroutine gradshafranov_solve
 
   if(myrank.eq.0) call write_profile
 
+  error2 = 0.
   !-------------------------------------------------------------------
   ! start of iteration loop on plasma current
   mainloop: do itnum=1, iabs(igs)
 
      if(myrank.eq.0) print *, "GS iteration = ", itnum, error2
-      if(myrank.eq.0 .and. iprint.ge.1) write(69,1069) itnum,pscale,bscale,gamma2,gamma3,gamma4
- 1069 format(i5,1p5e12.4)
      
      ! apply boundary conditions
      if(iread_eqdsk.ne.1 .or. itnum.gt.1) then
@@ -472,7 +482,7 @@ subroutine gradshafranov_solve
      endif
      call mult(b2vecini_vec, -1.)
      call matvecmult(mass_mat_rhs%mat, b2vecini_vec%vec, b1vecini_vec%vec)
-
+    
   end do mainloop
 
   if(myrank.eq.0 .and. iprint.ge.1) then
@@ -506,13 +516,16 @@ subroutine gradshafranov_solve
 
      if(myrank.eq.0 .and. iprint.ge.2) print *, '  populating'
      do itri=1,numelms
-        call define_element_quadrature(itri, int_pts_aux, int_pts_tor)
+        call define_element_quadrature(itri, int_pts_main, int_tor)
         call define_fields(itri, 0, 1, 0)
 
         call get_element_data(itri, d)
         call calcavector(itri, psi_vec, avec)
         call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
              npoints, ps079)
+
+!        if(maxval(ps079(:,OP_DPP)).gt.1e-2) &
+!             write(*,'(6e12.3)') ps079(:,OP_DPP)
 
         if(igs_method.eq.2) then 
            do i=1, npoints       
@@ -602,7 +615,7 @@ subroutine gradshafranov_solve
      if(myrank.eq.0 .and. iprint.ge.2) print *, 'calculating density...'
      b1vecini_vec = 0.
      do itri=1,numelms
-        call define_element_quadrature(itri, int_pts_aux, int_pts_tor)
+        call define_element_quadrature(itri, int_pts_main, int_tor)
         call define_fields(itri, 0, 1, 0)
         call get_element_data(itri, d)
         
@@ -627,6 +640,7 @@ subroutine gradshafranov_solve
      call newvar_solve(b1vecini_vec%vec,mass_mat_lhs)
      den_field(0) = b1vecini_vec
   endif
+
 
   psi_field(0) = psi_vec
   psi_field(1) = 0.
@@ -786,7 +800,7 @@ subroutine calculate_gamma(g2, g3, g4)
   numelms = local_elements()
 
   do itri=1,numelms
-     call define_element_quadrature(itri, 25, 5)
+     call define_element_quadrature(itri, int_pts_main, int_tor)
      call define_fields(itri, 0, 0, 0)
      call get_element_data(itri, d)
 
@@ -848,6 +862,7 @@ subroutine calculate_gamma(g2, g3, g4)
 !
  1079 format("dpsii,curr,gsint1,gsint2,gsint3,gsint4",1p6e12.4)
   if(myrank.eq.0 .and. iprint.ge.1) write(*,'(A,1p1e12.4)') ' current = ', curr
+
 end subroutine calculate_gamma
 
 
@@ -867,10 +882,10 @@ subroutine deltafun(x,z,val,jout)
 
   type(element_data) :: d
   real, intent(in) :: x, z, val
-  real :: val2, temp1(1),temp2(1)
+  real :: val2
   type(field_type), intent(out) :: jout
 
-  integer :: itri, i, k,in_domain,ier
+  integer :: itri, i, k,in_domain, in_domains, ier
   real :: x1, z1, si, zi, eta
   vectype, dimension(dofs_per_element) :: temp
   vectype, dimension(dofs_per_element,coeffs_per_element) :: c
@@ -880,16 +895,14 @@ subroutine deltafun(x,z,val,jout)
 
   val2 = val
   if(maxrank.gt.1) then
-    in_domain = 0
-    if(itri.gt.0) in_domain = 1
-    temp1(1) = in_domain
-    call mpi_allreduce(temp1,temp2,1,MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
-    in_domain = temp2(1)
-    val2 = val/in_domain
-  endif
+     in_domain = 0
+     if(itri.gt.0) in_domain = 1
+     call mpi_allreduce(in_domain,in_domains,1,MPI_INTEGER, &
+          MPI_SUM,MPI_COMM_WORLD,ier)
+     val2 = val/in_domains
+  end if
 
   if(itri.gt.0) then
-
      temp = 0.
 
      ! calculate local coordinates
@@ -1166,7 +1179,7 @@ subroutine fundef2(error)
 
   do itri=1,numelms
 
-     call define_element_quadrature(itri, int_pts_aux, int_pts_tor)
+     call define_element_quadrature(itri, int_pts_main, int_tor)
      call define_fields(itri, 0, 1, 0)
      call get_element_data(itri, d)
 
@@ -1688,7 +1701,7 @@ end subroutine alphaget
 
    nelms = local_elements()
    do itri=1, nelms
-      call define_element_quadrature(itri, int_pts_main, int_pts_tor)
+      call define_element_quadrature(itri, int_pts_diag, int_tor)
       call define_fields(itri, def_fields, 0, 1)
       
       temp79a = ps079(:,OP_GS)*(ps079(:,OP_DR)**2 + ps079(:,OP_DZ)**2)
@@ -1992,7 +2005,7 @@ subroutine boundary_gs(rhs, feedfac, mat)
   type(vector_type), intent(inout) :: rhs
   type(matrix_type), intent(inout), optional :: mat
     
-  integer :: i, izone, izonedim, index
+  integer :: i, izone, izonedim, index, j
   integer :: numnodes, ineg
   real :: normal(2), curv
   real :: x, z
@@ -2001,35 +2014,78 @@ subroutine boundary_gs(rhs, feedfac, mat)
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
 
+#ifdef USE3D
+  integer :: iplane, itri, nelms, nvals, itrip
+  integer, dimension(nodes_per_element) :: inode, inodep
+  integer, dimension(2) :: icol
+  vectype, dimension(2) :: val
+#endif
+
   if(iper.eq.1 .and. jper.eq.1) return
   if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_gs called"
 
   numnodes = owned_nodes()
   do i=1, numnodes
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
-     if(.not.is_boundary) cycle
 
      index = node_index(rhs, i, 1)
 
-     ! add feedback field
-     if(idevice .eq. 0 .and. ifixedb .eq. 0) then
-        xp(1) = x
-        zp(1) = z
-        xc(1) = 102.
-        zc(1) = 10.
-        call gvect(xp,zp,xc,zc,1,g,1,ineg)
-        temp(1:6) = g*feedfac
-        call add(psi_field(0), i, temp)
-     endif
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+     if(is_boundary) then
 
-     if(ifixedb.ge.1) then
-        temp = 0.
-     else
-        call get_node_data(psi_field(0), i, temp)
+        ! add feedback field
+        if(idevice .eq. 0 .and. ifixedb .eq. 0) then
+           xp(1) = x
+           zp(1) = z
+           xc(1) = 102.
+           zc(1) = 10.
+           call gvect(xp,zp,xc,zc,1,g,1,ineg)
+           temp(1:6) = g*feedfac
+           call add(psi_field(0), i, temp)
+        endif
+        
+        if(ifixedb.ge.1) then
+           temp = 0.
+        else
+           call get_node_data(psi_field(0), i, temp)
+        endif
+        
+        call set_dirichlet_bc(index,rhs,temp,normal,curv,izonedim,mat)
      endif
-
-     call set_dirichlet_bc(index,rhs,temp,normal,curv,izonedim,mat)
   end do
+
+
+#ifdef USE3D
+  ! enforce axisymmetry
+
+  call getplaneid(iplane)
+  nelms = local_elements()
+  nvals = 2
+  val(1) = -1.
+  val(2) =  1.
+
+  do itri=1, nelms
+     call get_element_nodes(itri, inode)
+     do i=1, nodes_per_element
+        index = node_index(rhs, inode(i), 1)
+
+        do j=1, 6
+           ! if the node is not on the first plane,
+           ! set its value to be the same as on the next plane
+           If(iplane.ne.1 .and. i.le.pol_nodes_per_element) then
+              icol(1) = index+j-1
+              icol(2) = node_index(rhs, inode(i+pol_nodes_per_element),1)+j-1
+              if(present(mat)) &
+                   call set_row_vals(mat, index+j-1, nvals, icol, val)
+              call insert(rhs, index+j-1, 0., VEC_SET)
+           endif
+           
+           ! set toroidal derivatives to zero
+           if(present(mat)) call identity_row(mat, index+j+5)
+           call insert(rhs, index+j+5, 0., VEC_SET)
+        end do
+     end do
+  end do
+#endif
 end subroutine boundary_gs
 
 

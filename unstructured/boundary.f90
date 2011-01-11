@@ -1,15 +1,23 @@
 module boundary_conditions
 
-  integer, parameter :: BOUNDARY_NONE = 0
-  integer, parameter :: BOUNDARY_DIRICHLET = 1
-  integer, parameter :: BOUNDARY_NEUMANN = 2
-  integer, parameter :: BOUNDARY_LAPLACIAN = 4
-  integer, parameter :: BOUNDARY_RESISTIVE_WALL = 8
-
+  integer, parameter :: BOUNDARY_NONE           =  0
+  integer, parameter :: BOUNDARY_DIRICHLET      =  1
+  integer, parameter :: BOUNDARY_NEUMANN        =  2
+  integer, parameter :: BOUNDARY_LAPLACIAN      =  4
+  integer, parameter :: BOUNDARY_RESISTIVE_WALL =  8
+  integer, parameter :: BOUNDARY_AXISYMMETRIC   = 16
 
 contains
 
 
+!======================================================================
+! get_boundary_mask
+! ~~~~~~~~~~~~~~~~~
+! returns a vector imask, such that 
+! imask(i) = 0 if the row associated with dof i of element itri
+!              will be overwritten by boundary condition ibound
+! imask(i) = 1 otherwise
+!======================================================================
 subroutine get_boundary_mask(itri, ibound, imask)
   use element
   use mesh_mod
@@ -23,16 +31,35 @@ subroutine get_boundary_mask(itri, ibound, imask)
   integer :: izone, izonedim
   logical :: is_boundary
   integer :: i, k
+#ifdef USE3D
+  integer :: iplane
+#endif
   
   imask = 1
   if(ibound.eq.BOUNDARY_NONE) return
   
   call get_element_nodes(itri, inode)
   do i=1, nodes_per_element
+     k = (i-1)*dofs_per_node + 1
+
+#ifdef USE3D
+     if(iand(ibound, BOUNDARY_AXISYMMETRIC).eq.BOUNDARY_AXISYMMETRIC) then
+        call getplaneid(iplane)
+           
+        ! in the axisymmetric case, the only elements not set by bcs
+        ! are those on associated with nodes on the first plane
+        ! that are not also associated with toroidal derivatives
+        if(iplane.eq.1 .and. i.le.pol_nodes_per_element) then
+           imask(k+6:k+11) = 0
+        else
+           imask(k:k+11) = 0
+        endif
+     endif
+#endif
+
      call boundary_node(inode(i),is_boundary,izone,izonedim,norm,curv,x,z)
      if(.not.is_boundary) cycle
 
-     k = (i-1)*dofs_per_node + 1
      if(iand(ibound, BOUNDARY_RESISTIVE_WALL).eq.BOUNDARY_RESISTIVE_WALL) then
         imask(k) = 0
      endif
@@ -148,20 +175,15 @@ subroutine set_dirichlet_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
   type(matrix_type), optional :: mat
   
   ! clamp value
-  if(present(mat)) then
-     call identity_row(mat, ibegin)
-  endif
+  if(present(mat)) call identity_row(mat, ibegin)
   call insert(rhs, ibegin, bv(1), VEC_SET)
+#ifdef USE3D
+  if(present(mat)) call identity_row(mat, ibegin+6)
+  call insert(rhs, ibegin+6, bv(7), VEC_SET)
+#endif
      
   ! clamp tangential derivative
   call set_tangent_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
-
-#ifdef USE3D
-  if(present(mat)) then
-     call identity_row(mat, ibegin+6)
-  endif
-  call insert(rhs, ibegin+6, bv(7), VEC_SET)
-#endif
 
 end subroutine set_dirichlet_bc
 
@@ -186,7 +208,7 @@ subroutine set_tangent_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
   vectype, dimension(dofs_per_node) :: bv_rotated
 
   call rotate_dofs(bv, bv_rotated, normal, curv, 1)
-     
+
   ! t
   if(present(mat)) call identity_row(mat, ibegin+2)
   call insert(rhs, ibegin+2, bv_rotated(3), VEC_SET)

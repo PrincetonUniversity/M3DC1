@@ -131,6 +131,7 @@ contains
    vectype, dimension(dofs_per_node) :: data
 
    numnodes = owned_nodes()
+   g = 0.
    do i=1,numnodes
      
       call get_node_pos(i,x,phi,z)
@@ -602,7 +603,8 @@ subroutine pane(curr, r1, r2, z1, z2, npts, r0, z0, ntor, fr, fphi, fz)
 end subroutine pane
 
 
-subroutine field_from_coils_2(xc, zc, ic, nc, ntor)
+subroutine field_from_coils_2(xc, zc, ic, nc, nt)
+  use basic
   use math
   use mesh_mod
   use sparse
@@ -618,7 +620,7 @@ subroutine field_from_coils_2(xc, zc, ic, nc, ntor)
   real, intent(in), dimension(nc) :: xc, zc
   complex, intent(in), dimension(nc) :: ic
   integer, intent(in) :: nc
-  integer, intent(in) :: ntor
+  integer, intent(in) :: nt                  ! toroidal mode number
 
   type(matrix_type) :: br_mat
   type(vector_type) :: psi_vec
@@ -644,7 +646,7 @@ subroutine field_from_coils_2(xc, zc, ic, nc, ntor)
   nelms = local_elements()
   do itri=1,nelms
         
-     call define_element_quadrature(itri,25,5)
+     call define_element_quadrature(itri,int_pts_main,5)
      call define_fields(itri,0,1,0)
 
      temp79a = 0.    ! B_R
@@ -652,7 +654,7 @@ subroutine field_from_coils_2(xc, zc, ic, nc, ntor)
      temp79c = 0.    ! B_Z
 
      do i=1, nc, 2
-        call pane(ic(i),xc(i),xc(i+1),zc(i),zc(i+1),npoints,x_79,z_79,ntor,&
+        call pane(ic(i),xc(i),xc(i+1),zc(i),zc(i+1),npoints,x_79,z_79,nt,&
              temp79a,temp79b,temp79c)
      end do
 

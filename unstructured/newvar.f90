@@ -248,7 +248,7 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs)
   numelms = local_elements()
   do itri=1,numelms
 
-     call define_element_quadrature(itri, 25, 5)
+     call define_element_quadrature(itri, int_pts_main, 5)
      call define_fields(itri,0,1,0)
 
      temp = 0.
