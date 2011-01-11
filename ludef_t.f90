@@ -1864,7 +1864,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
      do iedge=1,3
         if(.not.is_edge(iedge)) cycle
 
-        call define_boundary_quadrature(itri, iedge, 5, n, idim)
+        call define_boundary_quadrature(itri, iedge, 5, 5, n, idim)
         call define_fields(itri, def_fields, 1, linear)
 
         if(ivel_def.eq.1) call ludefvel_n(itri)

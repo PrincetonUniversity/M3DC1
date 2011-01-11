@@ -232,6 +232,9 @@ contains
     real, intent(in) :: val
     integer, intent(in) :: i, j, iop
 
+    if(val.eq.0.) then
+       if(i.ne.j) return
+    endif
     call insertval(mat%imatrix, val, 0, i, j, iop)
   end subroutine scorec_matrix_insert_real
 
@@ -249,6 +252,9 @@ contains
     complex, intent(in) :: val
     integer, intent(in) :: i, j, iop
 
+    if(val.eq.0.) then
+       if(i.ne.j) return
+    endif
     call insertval(mat%imatrix, val, 1, i, j, iop)
   end subroutine scorec_matrix_insert_complex
 #endif

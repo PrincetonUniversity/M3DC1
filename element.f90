@@ -461,7 +461,6 @@ contains
        do j=1,coeffs_per_tri
           icoeff = icoeff + 1
           idof = 0
-          it = 0
           do k=1,tor_nodes_per_element
              do l=1,pol_nodes_per_element
                 do m=1,tor_dofs_per_node
@@ -499,14 +498,12 @@ contains
     vectype, intent(out), dimension(coeffs_per_element) :: c
 
     vectype, dimension(dofs_per_element,coeffs_per_element) :: cl
-    integer :: i, j
+    integer :: j
 
     call local_coeff_vector(itri, cl, .true.)
     c = 0.
-    do i=1, coeffs_per_element
-       do j=1, dofs_per_element
-          c(i) = c(i) + cl(j,i)*dof(j)
-       end do
+    do j=1, dofs_per_element
+       c(:) = c(:) + cl(j,:)*dof(j)
     end do
   end subroutine local_coeffs
 

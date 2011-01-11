@@ -185,6 +185,19 @@ data area_weight_79 &
 contains
 
 !==================================================
+! check_npoints
+! ~~~~~~~~~~~~~
+!==================================================
+subroutine check_npoints()
+  implicit none
+  if(npoints .gt. MAX_PTS) then
+     print *, 'ERROR: npoints > MAX_PTS.  npoints, MAX_PTS = ', &
+          npoints, MAX_PTS
+     call safestop(13)
+  endif
+end subroutine check_npoints
+
+!==================================================
 ! quadrature_implemented
 ! ~~~~~~~~~~~~~~~~~~~~~~
 ! returns true if an i-point numerical integration
@@ -289,6 +302,13 @@ subroutine extrude_quadrature(d, npol, ntor)
   integer :: i, j
 
   select case(ntor)
+
+  ! if ntor==0, axisymmetry is assumed
+  case(0)
+     npoints = npol
+     zi_79(1:npol) = 0.
+     return
+
   case(2)
      phi = d*(delta_2 + 1.)/2.
      wt = d*line_weight_2/2.
@@ -338,14 +358,15 @@ end subroutine extrude_quadrature
 ! In 3D, this boundary is the same edge as in 2D, extruded in the 
 ! toroidal direction to form a rectangular surface.
 !======================================================================
-subroutine define_boundary_quadrature(ielm, iedge, ngauss, normal, idim)
+subroutine define_boundary_quadrature(ielm, iedge, npol, ntor, normal, idim)
   use mesh_mod
   
   implicit none
 
   integer, intent(in) :: ielm     ! which element
   integer, intent(in) :: iedge    ! which edge
-  integer, intent(in) :: ngauss   ! number of sampling points
+  integer, intent(in) :: npol     ! number of sampling points in poloidal dir
+  integer, intent(in) :: ntor     ! number of sampling points in toroidal dir
   integer, intent(in) :: idim(3)  ! dim of each node.
                                   ! 2=interior, 1=smooth bdry, 0=cusp
   real, intent(in), dimension(2,3) :: normal  ! outward normal vector at
@@ -377,29 +398,29 @@ subroutine define_boundary_quadrature(ielm, iedge, ngauss, normal, idim)
   if(idim(iedge).eq.0) n1 = n2
   if(idim(mod(iedge,3)+1).eq.0) n2 = n1
 
-  select case(ngauss)
+  select case(npol)
   case(2)
-     call edge_to_local(ngauss, delta_2, line_weight_2, &
+     call edge_to_local(npol, delta_2, line_weight_2, &
      si1, eta1, si2, eta2, xi_79, eta_79, weight_79, n1, n2, d%co, d%sn)
 
   case(3)
-     call edge_to_local(ngauss, delta_3, line_weight_3, &
+     call edge_to_local(npol, delta_3, line_weight_3, &
      si1, eta1, si2, eta2, xi_79, eta_79, weight_79, n1, n2, d%co, d%sn)
 
   case(5)
-     call edge_to_local(ngauss, delta_5, line_weight_5, &
+     call edge_to_local(npol, delta_5, line_weight_5, &
      si1, eta1, si2, eta2, xi_79, eta_79, weight_79, n1, n2, d%co, d%sn)
   case default 
-     print *, "Error: ", ngauss, &
+     print *, "Error: ", npol, &
           "-point quadrature not defined for line integration"
   end select
 
   surface_int = .true.
 
 #ifdef USE3D
-  call extrude_quadrature(d%d,ngauss,ngauss)
+  call extrude_quadrature(d%d,npol,ntor)
 #else
-  npoints = ngauss
+  npoints = npol
 #endif
 end subroutine define_boundary_quadrature
 

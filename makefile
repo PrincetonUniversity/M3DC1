@@ -52,6 +52,10 @@ else
   SCORECOPT =
 endif
 
+ifeq ($(TAU), 1)
+  BIN_POSTFIX := $(BIN_POSTFIX)-tau
+endif
+
 # Define the size of sampling point arrays.
 # This sets the upper limit for number of points used
 # in numerical integrations
@@ -66,6 +70,7 @@ export V_OBJ
 export USESCOREC
 export USECOMPLEX
 export USE3D
+export TAU
 
 include target.mk
 

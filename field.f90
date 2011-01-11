@@ -572,4 +572,41 @@ contains
   end subroutine matvecmult_vec_field
 
 
+
+  subroutine check_axisymmetry(fin, name)
+    use element
+    use mesh_mod
+    implicit none
+
+    type(field_type), intent(in) :: fin
+    character(len=*), intent(in) :: name
+
+    integer :: inode(nodes_per_element), nelm, itri, i
+    vectype, dimension(dofs_per_node) :: data1, data2
+    logical :: is_axisymmetric
+
+    is_axisymmetric = .true.
+#ifdef USE3D
+    nelm = local_elements()
+    do itri=1, nelm
+       call get_element_nodes(itri, inode)
+
+       do i=1, pol_nodes_per_element
+          call get_node_data(fin, inode(i), data1)
+          call get_node_data(fin, inode(i+pol_nodes_per_element), data2)
+          if(maxval(abs(data1(1:6) - data2(1:6))) .gt. 1e-8) then
+             print *, name, ' NOT AXISYMMETRIC AT ', itri, i, inode(i)
+             write(*, '(6e12.4)') data1(1:6), data2(1:6)
+             is_axisymmetric = .false.
+          endif
+       end do
+    end do
+#endif
+
+    if(is_axisymmetric) then
+       print *, name, ' IS AXISYMMETRIC'
+    endif
+
+  end subroutine check_axisymmetry
+
 end module field

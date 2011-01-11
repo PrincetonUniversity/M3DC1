@@ -2,10 +2,9 @@ module biharmonic
 
   implicit none
 
-  integer, parameter :: npts_biharmonic = 25
   real, parameter :: a = 1
   real, parameter :: a2 = a**2
-  real, dimension(npts_biharmonic) :: r, r2, phi
+  real, dimension(MAX_PTS) :: r, r2, phi
   integer :: biharmonic_operator
   integer, parameter :: solution_order = 3
 
@@ -101,7 +100,7 @@ contains
     do itri=1,numelms
        call get_element_nodes(itri,inode)
 
-       call define_element_quadrature(itri,25,5)
+       call define_element_quadrature(itri,int_pts_main,5)
        call define_fields(itri,0,1,0)
 
        call get_element_indices(1, itri, ind)
@@ -132,7 +131,7 @@ contains
        do ii=1,edges_per_element
           if(.not.is_edge(ii)) cycle
           
-          call define_boundary_quadrature(itri, ii, 5, n, idim)
+          call define_boundary_quadrature(itri, ii, 5, 5, n, idim)
           call define_fields(itri, 0, 1, 0)
           
           do i=1,dofs_per_element
@@ -214,7 +213,7 @@ contains
     sum = 0.
     sum2 = 0.
     do itri=1, numelms
-       call define_element_quadrature(itri,npts_biharmonic,5)
+       call define_element_quadrature(itri,int_pts_main,5)
        call define_fields(itri,0,0,0)
        call get_element_data(itri,d)
 
@@ -225,7 +224,7 @@ contains
 !!$       call biharmonic_solution(x_79,z_79,1.,soln)
 !!$       ps179(:,OP_1) = soln
 !!$       ps179(:,OP_1) = x_79**3 - 3.*x_79**2*z_79 - 3.*x_79*z_79**2 + z_79**3
-       do i=1, npts_biharmonic
+       do i=1, npoints
           call analytic_solution(solution_order,x_79(i),z_79(i), &
                soln(1:dofs_per_node))
           ps179(i,OP_1) = soln(1)
@@ -252,10 +251,10 @@ contains
   function biharmonic_integrand(eta)
     implicit none
 
-    real, dimension(npts_biharmonic) :: biharmonic_integrand
+    real, dimension(MAX_PTS) :: biharmonic_integrand
     real, intent(in) :: eta
 
-    real, dimension(npts_biharmonic) :: denom, co
+    real, dimension(MAX_PTS) :: denom, co
     real :: f, g
 
     f = (a2*cos(eta)*sin(eta))**3
@@ -277,9 +276,9 @@ contains
     
     implicit none
 
-    real, intent(in), dimension(npts_biharmonic) :: x, z
+    real, intent(in), dimension(MAX_PTS) :: x, z
     real, intent(in) :: a
-    real, intent(out), dimension(npts_biharmonic) :: w
+    real, intent(out), dimension(MAX_PTS) :: w
     real :: eta, deta
     integer :: i, n
 
