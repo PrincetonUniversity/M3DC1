@@ -1,7 +1,8 @@
 .SUFFIXES:
 
 ifndef ARCH
- ARCH = $(shell uname -s)-$(shell uname -p)
+  ARCH = $(HOST)
+# ARCH = $(shell uname -s)-$(shell uname -p)
 endif
 
 BIN_POSTFIX := $(ARCH)$(BIN_POSTFIX)

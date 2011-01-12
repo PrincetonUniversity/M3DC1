@@ -220,6 +220,10 @@ contains
     
     integer(HID_T) :: dspace_id, attr_id
     integer(HSIZE_T), dimension(1) :: dims
+#ifdef USETAU
+    integer :: dummy     ! this is necessary to prevent TAU from
+    dummy = 0            ! breaking formatting requirements
+#endif
 
     dims(1) = len
 
@@ -249,6 +253,11 @@ contains
     integer(HID_T) :: filespace, memspace, dset_id, plist_id
     integer(HSIZE_T), dimension(rank) :: local_dims, global_dims
     integer(HSSIZE_T), dimension(rank) :: off
+
+#ifdef USETAU
+    integer :: dummy     ! this is necessary to prevent TAU from
+    dummy = 0            ! breaking formatting requirements
+#endif
     
     local_dims(1) = ndofs
     local_dims(2) = nelms
@@ -302,8 +311,13 @@ contains
     integer(HSIZE_T) :: maxdims(1)
     integer(HSIZE_T) :: local_dims(1) = (/ 1 /)
     integer(HSIZE_T), dimension(1,1) :: coord
-    real :: values(1)
     integer(HID_T) :: memspace, filespace, dset_id, p_id
+    real :: values(1)
+
+#ifdef USETAU
+    integer :: dummy     ! this is necessary to prevent TAU from
+    dummy = 0            ! breaking formatting requirements
+#endif
 
     dims(1) = t+1
     maxdims(1) = H5S_UNLIMITED_F
