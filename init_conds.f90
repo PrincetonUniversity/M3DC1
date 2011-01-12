@@ -124,6 +124,8 @@ subroutine random_per(x,phi,z,seed,fac)
 
   call srand(seed)
 
+#define RANDOM_NUM drand(0)
+
   temp = 0.
 
   xx = x - xzero
@@ -1865,10 +1867,12 @@ subroutine eqdsk_init()
 !!$     write(*,1002) fpol
   end if
 
+  if(iflip_z.eq.1) zmaxis = -zmaxis
 
   numnodes = owned_nodes()
   do l=1, numnodes
      call get_node_pos(l, x, phi, z)
+     if(iflip_z.eq.1) z = -z
 
      call get_local_vals(l)
 

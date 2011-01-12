@@ -118,7 +118,6 @@ contains
   integer function global_node_id(inode)
     implicit none
     integer, intent(in) :: inode
-
     call entglobalid(inode, 0, global_node_id)
   end function global_node_id
 
@@ -447,7 +446,6 @@ contains
     end if
     
     call get_node_pos(inode,x,phi,z)
-    
   end subroutine boundary_node
 
 

@@ -126,6 +126,7 @@ subroutine set_defaults
   iflip = 0
   iflip_b = 0
   iflip_v = 0
+  iflip_z = 0
   icsym = 0
   bzero = 1.
   bx0 = 0.

@@ -7,12 +7,11 @@ FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) \
 CCOPTS  = -c
 
 ifeq ($(TAU), 1)
-  CC     = tau_cc.sh
-  F90    = tau_f90.sh
-  F77    = tau_f90.sh
-  LOADER = tau_f90.sh
-  TAU_OPTIONS = '-optCPPOpts=-DRANDOM_NUM="drand(0)" -optVerbose -optPreProcess -optMpi -optTauSelectFile=../select.tau'
-  export TAU_OPTIONS
+  TAU_OPTIONS = -optCPPOpts=-DUSETAU -optVerbose -optPreProcess -optMpi -optTauSelectFile=select.tau
+  CC     = tau_cc.sh $(TAU_OPTIONS)
+  F90    = tau_f90.sh $(TAU_OPTIONS)
+  F77    = tau_f90.sh $(TAU_OPTIONS)
+  LOADER = tau_f90.sh $(TAU_OPTIONS)
 else
   CC = mpicc -c
   F90 = mpif90
@@ -31,7 +30,7 @@ HYBRID_HOME = /p/swim/jchen/hybrid.test
 INCLUDE = -I$(MPIHOME)/include \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
 	-I$(HDF5_HOME)/include -I$(HDF5_HOME)/lib \
-	-I$(HYBRID_HOME)/include
+	-I$(HYBRID_HOME)/include -I$(SUPERLU_DIST_HOME)/include
 
 
 PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
@@ -75,13 +74,14 @@ LIBS = 	$(PETSC_LIBS) \
 
 ifeq ($(USESCOREC), 1)
 
-  ifeq ($(USE3D), 1)
+#  ifeq ($(USE3D), 1)
 
     # 3D libraries
     ifndef SCORECDIR
       SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/lib
     endif
-    INCLUDE := -I/p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/include $(INCLUDE)
+    INCLUDE := -I/p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/include \
+	$(INCLUDE)
 
     SCOREC_ARCH=x86_64_linux-icc
     SCOREC_LIBS = \
@@ -97,29 +97,29 @@ ifeq ($(USESCOREC), 1)
 	-lSolver-mpich2$(SCORECOPT) \
 	-lPPPL-mpich2$(SCORECOPT) \
 	-lipcomman-mpich2$(SCORECOPT)
-  else
-    # 2D Libraries
-
-    ifndef SCORECDIR
-      SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/092210
-    endif
-    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/092210 $(INCLUDE)
-
-    SCOREC_LIBS = \
-        -L$(SCORECDIR) \
-	-Wl,-rpath,$(SCORECDIR) \
-	-lFMDB-mpich2$(SCORECOPT) \
-	-lSCORECModel-mpich2$(SCORECOPT) \
-	-lSCORECUtil-mpich2$(SCORECOPT) \
-	-lField-mpich2$(SCORECOPT) \
-	-lCore-mpich2$(SCORECOPT) \
-	-lmeshAdapt-mpich2$(SCORECOPT) \
-	-ltemplateRefine-mpich2$(SCORECOPT) \
-	-lmeshTools-mpich2$(SCORECOPT) \
-	-lSolver-mpich2$(SCORECOPT) \
-	-lPPPL-mpich2$(SCORECOPT)
-
-  endif # on USE3D
+#  else
+#    # 2D Libraries
+#
+#    ifndef SCORECDIR
+#      SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/092210
+#    endif
+#    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/092210 $(INCLUDE)
+#
+#    SCOREC_LIBS = \
+#        -L$(SCORECDIR) \
+#	-Wl,-rpath,$(SCORECDIR) \
+#	-lFMDB-mpich2$(SCORECOPT) \
+#	-lSCORECModel-mpich2$(SCORECOPT) \
+#	-lSCORECUtil-mpich2$(SCORECOPT) \
+#	-lField-mpich2$(SCORECOPT) \
+#	-lCore-mpich2$(SCORECOPT) \
+#	-lmeshAdapt-mpich2$(SCORECOPT) \
+#	-ltemplateRefine-mpich2$(SCORECOPT) \
+#	-lmeshTools-mpich2$(SCORECOPT) \
+#	-lSolver-mpich2$(SCORECOPT) \
+#	-lPPPL-mpich2$(SCORECOPT)
+#
+#  endif # on USE3D
 
   LIBS := $(SCOREC_LIBS) $(AUTOPACK_LIBS) $(LIBS)
 

@@ -185,6 +185,7 @@ module basic
   integer :: iflip       ! 1 = flip handedness
   integer :: iflip_b     ! 1 = flip equilibrium toroidal field
   integer :: iflip_v     ! 1 = flip equilibrium toroidal velocity
+  integer :: iflip_z     ! 1 = flip equilibrium across z=0 plane
 
   ! numerical parameters
   integer :: ntimemax    ! number of timesteps
@@ -308,7 +309,7 @@ module basic
        idenfunc, den_edge, den0, denoff, dendelt,              &
        irot, alpha0, alpha1, alpha2,                           &
        icurv, iflip, iwrite_restart,                           &
-       eta_wall, delta_wall, iflip_b, iflip_v
+       eta_wall, delta_wall, iflip_b, iflip_v, iflip_z
 
 
   !     derived quantities
