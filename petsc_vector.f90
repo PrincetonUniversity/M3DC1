@@ -485,7 +485,7 @@ contains
     petsc_vector_is_nan = y(1).ne.y(1)
   end function petsc_vector_is_nan
 
-  subroutine petsc_vector_get_node_data_real(v, iplace, inode, data)
+  subroutine petsc_vector_get_node_data_real(v, iplace, inode, data, rotate)
     use element
     use mesh_mod
     implicit none
@@ -494,10 +494,22 @@ contains
     type(petsc_vector), intent(in) :: v
     integer, intent(in) :: inode, iplace
     real, intent(out), dimension(dofs_per_node) :: data
+    logical, intent(in), optional :: rotate
     
     PetscScalar, dimension(dofs_per_node) :: vals
     integer :: ind(dofs_per_node), i, ierr
+    logical :: is_boundary
+    integer :: izone, izonedim
+    real :: normal(2), curv, x, z
+    vectype, dimension(dofs_per_node) :: temp1, temp2
     Vec :: vl
+    logical :: r
+
+    if(present(rotate)) then 
+       r = rotate
+    else 
+       r = .true.
+    end if
 
     if(.not.v%is_finalized) then
        if(inode.gt.owned_nodes()) then
@@ -516,11 +528,21 @@ contains
     data = vals
     call VecGhostRestoreLocalForm(v%vec, vl, ierr)
 
+    if(r) then
+       ! if node is on boundary, rotate data from n,t to R,Z
+       call boundary_node(inode, is_boundary, izone, izonedim, &
+            normal, curv, x, z)
+       if(is_boundary) then
+          temp1 = data
+          call rotate_dofs(temp1, temp2, normal, curv, -1)
+          data = temp2
+       end if
+    endif
   end subroutine petsc_vector_get_node_data_real
 
 
 #ifdef USECOMPLEX
-  subroutine petsc_vector_get_node_data_complex(v, iplace, inode, data)
+  subroutine petsc_vector_get_node_data_complex(v, iplace, inode, data, rotate)
     use element
     use mesh_mod
     implicit none
@@ -528,11 +550,22 @@ contains
     type(petsc_vector), intent(in) :: v
     integer, intent(in) :: inode, iplace
     complex, intent(out), dimension(dofs_per_node) :: data
+    logical, intent(in), optional :: rotate
     
     PetscScalar, dimension(dofs_per_node) :: vals
     integer :: ind(dofs_per_node), i, ierr
-
+    logical :: is_boundary
+    integer :: izone, izonedim
+    real :: normal(2), curv, x, z
+    vectype, dimension(dofs_per_node) :: temp
     Vec :: vl
+    logical :: r
+
+    if(present(rotate)) then 
+       r = rotate
+    else 
+       r = .true.
+    end if
 
     if(.not.v%is_finalized) then
        if(inode.gt.owned_nodes()) then
@@ -550,6 +583,16 @@ contains
     call VecGetValues(vl, dofs_per_node, ind, vals, ierr)
     data = vals
     call VecGhostRestoreLocalForm(v%vec, vl, ierr)
+
+    if(r) then
+       ! if node is on boundary, rotate data from n,t to R,Z
+       call boundary_node(inode, is_boundary, izone, izonedim, &
+            normal, curv, x, z)
+       if(is_boundary) then
+          call rotate_dofs(data, temp, normal, curv, -1)
+          data = temp
+       end if
+    endif
   end subroutine petsc_vector_get_node_data_complex
 #endif
 
