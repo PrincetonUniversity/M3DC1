@@ -339,13 +339,8 @@ contains
 
     call h5screate_simple_f(1, local_dims, memspace, error)
     call h5dget_space_f(dset_id, filespace, error)
-#if H5_VERSION < 169
     call h5sselect_elements_f(filespace, H5S_SELECT_SET_F, 1, &
          local_dims(1), coord, error)
-#else
-    call h5sselect_elements_f(filespace, H5S_SELECT_SET_F, 1, &
-         1, coord, error)
-#endif
     call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, local_dims, error, &
          file_space_id = filespace, mem_space_id = memspace)
 

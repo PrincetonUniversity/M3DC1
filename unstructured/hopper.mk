@@ -1,9 +1,8 @@
-H5_VERSION = 169
+H5_VERSION = 183
 
-FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) \
+FOPTS = -c -Mr8 -Mpreprocess -fast -Minform=warn $(OPTS) \
 	-DH5_VERSION=$(H5_VERSION) 
-	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs -O #\
-#	-g -check all -check noarg_temp_created -debug all -ftrapuv
+	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs
 CCOPTS  = -c -O
 
 ifeq ($(TAU), 1)
@@ -13,13 +12,13 @@ ifeq ($(TAU), 1)
   F77    = tau_f90.sh $(TAU_OPTIONS)
   LOADER = tau_f90.sh $(TAU_OPTIONS)
 else
-  CC = mpicc
-  F90 = mpif90
-  F77 = mpif90
-  LOADER = mpif90
+  CC = cc
+  F90 = ftn
+  F77 = ftn
+  LOADER = ftn
   FOPTS := $(FOPTS)
 endif
-F90OPTS = $(F90FLAGS) $(FOPTS) -gen-interfaces
+F90OPTS = $(F90FLAGS) $(FOPTS)
 F77OPTS = $(F77FLAGS) $(FOPTS)
 
 
@@ -29,7 +28,7 @@ HYBRID_HOME = /p/swim/jchen/hybrid.test
 
 INCLUDE = -I$(MPIHOME)/include \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
-	-I$(HDF5_HOME)/include -I$(HDF5_HOME)/lib \
+	$(HDF5_INCLUDE_OPTS) \
 	-I$(HYBRID_HOME)/include -I$(SUPERLU_DIST_HOME)/include
 
 
@@ -56,27 +55,12 @@ AUTOPACK_LIBS = -L$(AUTOPACK_HOME)/lib \
 HYBRID_LIBS = $(HYBRID_HOME)/lib/libhsolver.a
 
 LIBS = 	$(PETSC_LIBS) \
-	$(SUPERLU_LIBS) \
-	$(MUMPS_LIBS) \
-	$(SCALAPACK_LIBS) \
-	$(BLACS_LIBS) \
-	$(PARMETIS_LIBS) \
-	$(HYBRID_LIBS) \
-	-L$(Zoltan_HOME)/lib -lzoltan \
-	-L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5 \
-	-L$(CCHOME)/lib/intel64 -lguide \
-	-L$(CCHOME)/mkl/lib/em64t -lmkl -lmkl_lapack -lmkl_ipr \
-	-L$(NCARG_ROOT)/lib -lncarg -lncarg_gks -lncarg_c \
-	-Wl,-rpath -Wl,$(HDF5_HOME)/lib \
-	-L$(ZLIB_HOME) -lz \
-        -L/usr/X11R6/lib -lX11
+	$(HDF5_POST_LINK_OPTS) -lhdf5_fortran -lhdf5 \
+	-ldl
 
 
 ifeq ($(USESCOREC), 1)
 
-#  ifeq ($(USE3D), 1)
-
-    # 3D libraries
     ifndef SCORECDIR
       SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/lib
     endif
@@ -97,29 +81,6 @@ ifeq ($(USESCOREC), 1)
 	-lSolver-mpich2$(SCORECOPT) \
 	-lPPPL-mpich2$(SCORECOPT) \
 	-lipcomman-mpich2$(SCORECOPT)
-#  else
-#    # 2D Libraries
-#
-#    ifndef SCORECDIR
-#      SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/092210
-#    endif
-#    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/092210 $(INCLUDE)
-#
-#    SCOREC_LIBS = \
-#        -L$(SCORECDIR) \
-#	-Wl,-rpath,$(SCORECDIR) \
-#	-lFMDB-mpich2$(SCORECOPT) \
-#	-lSCORECModel-mpich2$(SCORECOPT) \
-#	-lSCORECUtil-mpich2$(SCORECOPT) \
-#	-lField-mpich2$(SCORECOPT) \
-#	-lCore-mpich2$(SCORECOPT) \
-#	-lmeshAdapt-mpich2$(SCORECOPT) \
-#	-ltemplateRefine-mpich2$(SCORECOPT) \
-#	-lmeshTools-mpich2$(SCORECOPT) \
-#	-lSolver-mpich2$(SCORECOPT) \
-#	-lPPPL-mpich2$(SCORECOPT)
-#
-#  endif # on USE3D
 
   LIBS := $(SCOREC_LIBS) $(AUTOPACK_LIBS) $(LIBS)
 

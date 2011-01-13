@@ -120,11 +120,11 @@ subroutine random_per(x,phi,z,seed,fac)
   real :: alx, alz, kx, kp, kz, xx, zz
   vectype, dimension(dofs_per_node) :: temp
 
+  real, external :: random_num
+
   call get_bounding_box_size(alx, alz)
 
   call srand(seed)
-
-#define RANDOM_NUM drand(0)
 
   temp = 0.
 
@@ -139,10 +139,10 @@ subroutine random_per(x,phi,z,seed,fac)
      do j=1, maxn
         kz = j*pi/alz
         kp = j
-        call plane_wave2(temp,xx,phi,zz,kx,kp,kz,2.*eps*(RANDOM_NUM-.5), &
+        call plane_wave2(temp,xx,phi,zz,kx,kp,kz,2.*eps*(RANDOM_NUM()-.5), &
              0.,0.,0.)
         call add_product(psi1_l,fac,temp)
-        call plane_wave2(temp,xx,phi,zz,kx,kp,kz,2.*eps*(RANDOM_NUM-.5), &
+        call plane_wave2(temp,xx,phi,zz,kx,kp,kz,2.*eps*(RANDOM_NUM()-.5), &
              0.,0.,0.)
         call add_product(u1_l,fac,temp)
      end do
@@ -151,7 +151,7 @@ subroutine random_per(x,phi,z,seed,fac)
      do j=1, maxn/2
         kz = 2.*j*pi/alz
         kp = j
-        call plane_wave2(temp,xx,phi,zz,kx,kp,kz,2.*eps*(RANDOM_NUM-.5), &
+        call plane_wave2(temp,xx,phi,zz,kx,kp,kz,2.*eps*(RANDOM_NUM()-.5), &
              0.,0.,0.)
         call add_product(u1_l,fac,temp)
      end do
@@ -160,7 +160,7 @@ subroutine random_per(x,phi,z,seed,fac)
      do j=1, maxn/2
         kz = (2.*j-1)*pi/alz
         kp = j
-        call plane_wave2(temp,xx,phi,zz,kx,kp,kz,2.*eps*(RANDOM_NUM-.5), &
+        call plane_wave2(temp,xx,phi,zz,kx,kp,kz,2.*eps*(RANDOM_NUM()-.5), &
              0.,0.,0.)
         call add_product(u1_l,fac,temp)
      end do
