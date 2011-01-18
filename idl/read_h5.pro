@@ -1282,7 +1282,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        zzero = 0.
    endelse
    ilin = read_parameter('linear', filename=filename)
-   print, 'ilin = ', ilin
+   isubeq = read_parameter('eqsubtract', filename=filename)
 
    if(keyword_set(last)) then time = [nt-1,nt-1]
    if(ilin eq 1 and keyword_set(equilibrium)) then time=[-1,-1]
@@ -1301,7 +1301,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    endif
 
    data = fltarr(trange[1]-trange[0]+1, pts, pts)
-   if(ilin eq 1) then base = fltarr(pts,pts)
+   if(isubeq eq 1) then base = fltarr(pts,pts)
 
    d = dimensions()
    symbol=name
@@ -2675,7 +2675,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        file_id = h5f_open(filename)
 
        if((max(trange) ge 0) and $
-          (ilin eq 1) and (not keyword_set(linear)))  then begin
+          (isubeq eq 1) and (not keyword_set(linear)))  then begin
            print, 'Reading base field', trange
            base = read_field(name, x, y, t, slices=-1, mesh=mesh, $
                              filename=filename, points=pts, $
