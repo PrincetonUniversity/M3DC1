@@ -1,8 +1,7 @@
 H5_VERSION = 169
 
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) \
-	-DH5_VERSION=$(H5_VERSION) 
-	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs -O #\
+	-DH5_VERSION=$(H5_VERSION) -O #\
 #	-g -check all -check noarg_temp_created -debug all -ftrapuv
 CCOPTS  = -c -O
 
@@ -77,11 +76,15 @@ ifeq ($(USESCOREC), 1)
 #  ifeq ($(USE3D), 1)
 
     # 3D libraries
-    ifndef SCORECDIR
-      SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/lib
-    endif
-    INCLUDE := -I/p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/include \
+    ifeq ($(USERW), 1)
+      SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/libtest
+      INCLUDE := -I/p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/includetest \
 	$(INCLUDE)
+    else
+      SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/lib
+      INCLUDE := -I/p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/include \
+	$(INCLUDE)
+    endif
 
     SCOREC_ARCH=x86_64_linux-icc
     SCOREC_LIBS = \

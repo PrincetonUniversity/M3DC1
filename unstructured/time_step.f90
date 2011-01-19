@@ -55,6 +55,11 @@ contains
        call set_matrix_index(d1_mat, d1_mat_index)
        call create_mat(s1_mat, vecsize_vel, vecsize_vel, icomplex, .true.)
        call create_mat(d1_mat, vecsize_vel, vecsize_vel, icomplex, .false.)
+#ifdef USERW
+       if(eta_wall.ne.0.) then
+          call setmatrixrwb(d1_mat_index, 1)
+       endif
+#endif
 #ifdef CJ_MATRIX_DUMP
        print *, "create_mat time_step s1_mat", s1_mat%imatrix     
        print *, "create_mat time_step d1_mat", d1_mat%imatrix     
@@ -85,6 +90,7 @@ contains
        call create_mat(d1_mat, vecsize_vel, vecsize_vel, icomplex, .false.)
        call create_mat(q1_mat, vecsize_vel, vecsize_phi, icomplex, .false.)
        call create_mat(r14_mat, vecsize_vel, vecsize_n, icomplex, .false.)
+
 #ifdef CJ_MATRIX_DUMP
        print *, "create_mat time_step s1_mat", s1_mat%imatrix     
        print *, "create_mat time_step d1_mat", d1_mat%imatrix     
@@ -107,6 +113,13 @@ contains
        call create_mat(d2_mat, vecsize_phi, vecsize_phi, icomplex, .false.)
        call create_mat(r2_mat, vecsize_phi, vecsize_vel, icomplex, .false.)
        call create_mat(q2_mat, vecsize_phi, vecsize_vel, icomplex, .false.)
+
+#ifdef USERW
+       if(eta_wall.ne.0.) then
+          call setmatrixrwb(d2_mat_index, 1)
+       endif
+#endif
+
 #ifdef CJ_MATRIX_DUMP
        print *, "create_mat time_step s2_mat", s2_mat%imatrix     
        print *, "create_mat time_step d2_mat", d2_mat%imatrix     
@@ -1793,6 +1806,10 @@ end subroutine boundary_pres
        call create_mat(rw_rhs_mat, 2, 3, icomplex, .false.)
        call set_matrix_index(rw_lhs_mat, rw_lhs_mat_index)
        call create_mat(rw_lhs_mat, 2, 3, icomplex, .false.)
+#ifdef USERW
+       call setmatrixrwb(rw_rhs_mat_index, 1)
+       call setmatrixrwb(rw_lhs_mat_index, 1)
+#endif
 #ifdef CJ_MATRIX_DUMP
        print *, "create_mat time_step rw_rhs_mat", rw_rhs_mat%imatrix     
        print *, "create_mat time_step rw_lhs_mat", rw_lhs_mat%imatrix     
@@ -1835,9 +1852,8 @@ end subroutine boundary_pres
        dd = 0.
 
        do i=1, nodes
-          
           if(local_id(i).le.0) cycle
-          
+
           call boundary_node(local_id(i), is_boundary, izone, izonedim, normi,&
                curvi, xii, zii)
           if(itor.eq.0) xii = 1.
@@ -1845,7 +1861,7 @@ end subroutine boundary_pres
           ibegin = global_dof_ids_1(i)
 
           if(ibegin.le.0) then
-             print *, myrank, ': Error: ibegin <= 0'
+             print *, myrank, ': Error: ibegin <= 0', i, local_id(i), global_dof_ids_1(i)
              call safestop(0)
           endif
 
@@ -1864,7 +1880,6 @@ end subroutine boundary_pres
 
 
           do j=1, nodes
-             
              normj(1) = nxnode(j)
              normj(2) = nznode(j)
              xjj = xnode(j)
@@ -1935,7 +1950,7 @@ end subroutine boundary_pres
 !!$                ddi(1,1,1,1) = 1.
 !!$             endif
 !!$             ! ===========================
-               
+
              do ir=1, num_rows
                 ii = rows(ir)
                 ip = ibegin + ii - 1
@@ -1951,6 +1966,8 @@ end subroutine boundary_pres
                 ! insert values into the appropriate matrices
                 do jj=1, dofs_per_node
                    jp = jbegin + jj - 1
+                   
+!                   write(90+myrank,'(2I6,2f12.5)') i, j, ss(ii,jj,1,1)
 
                    if(present(mat)) then
                       call insert_global(mat,ss(ii,jj,1,1), &
@@ -1978,6 +1995,9 @@ end subroutine boundary_pres
        endif
        call finalize(rw_rhs_mat)
        call finalize(rw_lhs_mat)
+
+!       call write_matrix(rw_rhs_mat, 'rw_rhs_mat')
+!       call write_matrix(rw_lhs_mat, 'rw_lhs_mat')
 
        if(present(mat)) first_time = .false.
 

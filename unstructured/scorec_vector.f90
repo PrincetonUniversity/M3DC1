@@ -136,7 +136,7 @@ contains
 
   !========================================================
   ! get_global_node_index_scorec
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ! returns the index of node inode in field iplace
   ! of a vector of size isize
   !========================================================

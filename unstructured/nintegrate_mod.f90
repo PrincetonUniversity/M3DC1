@@ -292,6 +292,8 @@ end subroutine area_to_local
 ! by taking external product with ntor-point 1D quadrature
 !======================================================================
 subroutine extrude_quadrature(d, npol, ntor)
+  use math
+  use mesh_mod
   implicit none
 
   real, intent(in) :: d        ! toroidal extent of element
@@ -307,6 +309,7 @@ subroutine extrude_quadrature(d, npol, ntor)
   case(0)
      npoints = npol
      zi_79(1:npol) = 0.
+     weight_79(1:npol) = weight_79(1:npol)*d
      return
 
   case(2)
