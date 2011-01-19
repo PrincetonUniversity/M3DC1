@@ -65,6 +65,14 @@ Program Reducedquintic
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Reading input'
   call input
 
+#ifdef USERW
+     ! set resistive wall bc
+     if(eta_wall.ne.0.) then
+        if(myrank.eq.0) print *, "calling userwb"
+        call userwb()
+     end if
+#endif
+
   ! load mesh
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh'
   call load_mesh
@@ -1076,17 +1084,6 @@ subroutine space(ifirstcall)
         call createdofnumbering(vecsize_vel, iper, jper, &
              vecsize_vel*dofs_per_node, 0, 0, 0, maxdofsn)
      endif
-
-#ifdef USERW
-     ! set resistive wall bcs for relevant numberings
-     if(eta_wall.ne.0) then
-        call setresistivewallbcstate(1,3)
-        if(vecsize_phi .ne. 3) then
-           call setresistivewallbcstate(1,vecsize_phi)
-        endif
-     endif
-#endif
-
   endif ! on firstcall
 #endif
   

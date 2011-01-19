@@ -125,6 +125,7 @@ subroutine set_defaults
   itaylor = 0
   iflip = 0
   iflip_b = 0
+  iflip_j = 0
   iflip_v = 0
   iflip_z = 0
   icsym = 0

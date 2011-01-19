@@ -2684,6 +2684,7 @@ subroutine initial_conditions()
   if(irmp.ge.1) call rmp_per()
 
   if(iflip_b.eq.1) call mult(bz_field(0), -1.)
+  if(iflip_j.eq.1) call mult(psi_field(0), -1.)
   if(iflip_v.eq.1) call mult(vz_field(0), -1.)
   if(iflip_v.eq.-1) call mult(vz_field(0), 0.)
 end subroutine initial_conditions

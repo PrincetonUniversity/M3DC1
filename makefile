@@ -16,6 +16,13 @@ else
 	-Dvector_mod=scorec_vector_mod -Dmatrix_mod=scorec_matrix_mod \
 	-Dmatrix_type=scorec_matrix -Dvector_type=scorec_vector
   V_OBJ := scorec_mesh.o scorec_vector.o scorec_matrix.o PETScInterface.o
+  ifeq ($(RW), 1)
+    USERW = 1
+    OPTS := $(OPTS) -DUSERW
+    BIN_POSTFIX := $(BIN_POSTFIX)-rw
+  else
+    OPTS := $(OPTS) -Dglobalinsertval=insertval -Dglobalentdofs=entdofs
+  endif
 endif
 
 # determine whether 2d, 3d, or 2d-complex
@@ -69,6 +76,7 @@ export V_OBJ
 export USESCOREC
 export USECOMPLEX
 export USE3D
+export USERW
 export TAU
 
 include target.mk
