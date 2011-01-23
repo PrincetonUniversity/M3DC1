@@ -1,7 +1,4 @@
-H5_VERSION = 169
-
-FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) \
-	-DH5_VERSION=$(H5_VERSION) -O #\
+FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) -O #\
 #	-g -check all -check noarg_temp_created -debug all -ftrapuv
 CCOPTS  = -c -O
 

@@ -166,7 +166,8 @@ subroutine set_defaults
   pscale = 1.
   bscale = 1.
 
-  irot = 0.
+  irot = 0
+  iscale_rot_by_p = 1
   alpha0 = 0.
   alpha1 = 0.
   alpha2 = 0.

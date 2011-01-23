@@ -1,7 +1,4 @@
-H5_VERSION = 183
-
 FOPTS = -c -Mr8 -Mpreprocess -fast -Minform=warn $(OPTS) \
-	-DH5_VERSION=$(H5_VERSION) 
 	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs
 CCOPTS  = -c -O
 

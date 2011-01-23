@@ -8,8 +8,6 @@ ifndef SCORECDIR
   SCORECDIR = 
 endif
 
-H5_VERSION = 184
-
 MPIHOME = /opt/local/include/openmpi
 HDF5_HOME = /usr/local/hdf5-1.8.5/hdf5
 
@@ -19,7 +17,7 @@ INCLUDE = -I$(SCORECDIR)/mctk/Examples/PPPL/PPPL \
 	-I$(HDF5_HOME)/include
 
 FOPTS = -c -fdefault-real-8 -Wall $(INCLUDE) $(OPTS) \
-	-DH5_VERSION=$(H5_VERSION) -DPETSC_31 # -g -fbounds-check
+	-DPETSC_31 # -g -fbounds-check
 F90OPTS = $(F90FLAGS) $(FOPTS)
 F77OPTS = $(F77FLAGS) $(FOPTS)
 CCOPTS = -c $(INCLUDE)

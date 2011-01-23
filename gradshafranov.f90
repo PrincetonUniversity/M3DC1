@@ -1204,7 +1204,15 @@ subroutine fundef2(error)
               call cubic_interpolation(npsi,psinorm,pso,fbig0t,temp(5))
            endif
         else
-           temp = 0.
+           temp(1) = 0.
+           temp(2) = 0.
+           if(iscale_rot_by_p .eq. 1) then
+              temp(3) = 0.
+           else
+              temp(3) = alpha0/pedge
+           endif
+           temp(4) = 0.
+           temp(5) = pedge
         endif
         temp79a(i) = temp(1)
         temp79b(i) = temp(2)
@@ -1364,71 +1372,71 @@ subroutine calc_pressure(psi0,pres, x, z)
 
   logical :: inside_lcfs
 
+  psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
+  psii(2:6) = real(psi0(2:6))/(psilim - psimin)
+
   if(.not.inside_lcfs(psi0,x,z,.true.)) then
-     call constant_field(pres, 0.)
+     fbig0 = pedge
+     fbig = 0.
+     fbigp = 0.
+     fbigpp = 0.
   else
-     psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
-     psii(2:6) = real(psi0(2:6))/(psilim - psimin)
-     
      call fget(psii(1), fbig0, fbig, fbigp, fbigpp)
-
-     if(irot.eq.1) then
-
-        pspx = real(psi0(2))
-        pspy = real(psi0(3))
-        pspxx= real(psi0(4))
-        pspxy= real(psi0(5))
-        pspyy= real(psi0(6))
-        
-        r0m = 1./rzero**2
-        r1 = (x**2-rzero**2)/rzero**2
-        r1m= x**2/rzero**2
-        r2 = (x**2 - rzero**2)**2/rzero**4
-        r3 = (x**2 - rzero**2)**3/rzero**6
-        call alphaget(psii(1),alphap0,alphap,alphapp,alphappp)
-
-        !...convert all derivatives to wrt psi, not normalized psi
-        fbig = fbig*dpsii
-        fbigp = fbigp*dpsii**2
-        alphap = alphap*dpsii
-        alphapp = alphapp*dpsii**2
-        
-        ealpha = exp(alphap0*r1)
-        
-        pres(1) = ealpha*fbig0
-        
-        pres(2) = ealpha*(fbig0*alphap0*2*x*r0m                          &
-             + (fbig + fbig0*alphap*r1)*pspx)
-        
-        pres(3) = ealpha*(fbig + fbig0*alphap*r1)*pspy
-        
-        pres(4) = ealpha*(                                                  &
-             fbig0*alphap0*2*r0m + fbig0*alphap0*alphap0*4*r0m*r1m          &
-             +((2*fbig0*alphap + 2.*fbig*alphap0) + 2*fbig0*alphap0*alphap*r1)*2*x*r0m*pspx  &
-             +(fbigp + (2*fbig*alphap + fbig0*alphapp)*r1 + fbig0*alphap**2*r2)*pspx*pspx    &
-             +(fbig + fbig0*alphap*r1)*pspxx)
-        
-        pres(5) = ealpha*(                                               &
-             (fbig*alphap0 + fbig0*alphap +fbig0*alphap0*alphap*r1)*2*x*r0m*pspy       &
-             +(fbigp + (2.*fbig*alphap + fbig0*alphapp)*r1 + fbig0 *alphap**2*r2)*pspx*pspy  &
-             +(fbig + fbig0*alphap*r1)*pspxy)
-        
-        pres(6) = ealpha*(                                               &
-             +(fbigp + (2.*fbig*alphap + fbig0*alphapp)*r1 + fbig0 *alphap**2*r2)*pspy*pspy  &
-             +(fbig + fbig0*alphap*r1)*pspyy)
-        
-     else
-        
-        pres(1) = fbig0
-        pres(2) = psii(2)*fbig
-        pres(3) = psii(3)*fbig
-        pres(4) = (psii(4)*fbig + psii(2)**2*fbigp)
-        pres(5) = (psii(5)*fbig + psii(2)*psii(3)*fbigp)
-        pres(6) = (psii(6)*fbig + psii(3)**2*fbigp)
-     endif     !....end of branch on irot
   endif
 
-  pres(1) = pres(1) + pedge
+  if(irot.eq.1) then
+
+     pspx = real(psi0(2))
+     pspy = real(psi0(3))
+     pspxx= real(psi0(4))
+     pspxy= real(psi0(5))
+     pspyy= real(psi0(6))
+        
+     r0m = 1./rzero**2
+     r1 = (x**2-rzero**2)/rzero**2
+     r1m= x**2/rzero**2
+     r2 = (x**2 - rzero**2)**2/rzero**4
+     r3 = (x**2 - rzero**2)**3/rzero**6
+     call alphaget(psii(1),alphap0,alphap,alphapp,alphappp)
+
+     !...convert all derivatives to wrt psi, not normalized psi
+     fbig = fbig*dpsii
+     fbigp = fbigp*dpsii**2
+     alphap = alphap*dpsii
+     alphapp = alphapp*dpsii**2
+        
+     ealpha = exp(alphap0*r1)
+
+     pres(1) = ealpha*fbig0
+        
+     pres(2) = ealpha*(fbig0*alphap0*2*x*r0m                          &
+          + (fbig + fbig0*alphap*r1)*pspx)
+        
+     pres(3) = ealpha*(fbig + fbig0*alphap*r1)*pspy
+        
+     pres(4) = ealpha*(                                                  &
+          fbig0*alphap0*2*r0m + fbig0*alphap0*alphap0*4*r0m*r1m          &
+          +((2*fbig0*alphap + 2.*fbig*alphap0) + 2*fbig0*alphap0*alphap*r1)*2*x*r0m*pspx  &
+          +(fbigp + (2*fbig*alphap + fbig0*alphapp)*r1 + fbig0*alphap**2*r2)*pspx*pspx    &
+          +(fbig + fbig0*alphap*r1)*pspxx)
+        
+     pres(5) = ealpha*(                                               &
+          (fbig*alphap0 + fbig0*alphap +fbig0*alphap0*alphap*r1)*2*x*r0m*pspy       &
+          +(fbigp + (2.*fbig*alphap + fbig0*alphapp)*r1 + fbig0 *alphap**2*r2)*pspx*pspy  &
+          +(fbig + fbig0*alphap*r1)*pspxy)
+        
+     pres(6) = ealpha*(                                               &
+          +(fbigp + (2.*fbig*alphap + fbig0*alphapp)*r1 + fbig0 *alphap**2*r2)*pspy*pspy  &
+          +(fbig + fbig0*alphap*r1)*pspyy)
+        
+  else
+     pres(1) = fbig0
+     pres(2) = psii(2)*fbig
+     pres(3) = psii(3)*fbig
+     pres(4) = (psii(4)*fbig + psii(2)**2*fbigp)
+     pres(5) = (psii(5)*fbig + psii(2)*psii(3)*fbigp)
+     pres(6) = (psii(6)*fbig + psii(3)**2*fbigp)
+  endif     !....end of branch on irot
     
 end subroutine calc_pressure
 
@@ -1501,6 +1509,7 @@ subroutine g4get(pso, g4big0, g4big, g4bigp, g4bigpp)
 end subroutine g4get
 
 subroutine fget(pso, fbig0, fbig, fbigp, fbigpp)
+  use basic
   implicit none
 
   real, intent(in) :: pso
@@ -1510,20 +1519,42 @@ subroutine fget(pso, fbig0, fbig, fbigp, fbigpp)
   call cubic_interpolation(npsi,psinorm,pso,fbigt,fbig)
   call cubic_interpolation(npsi,psinorm,pso,fbigpt,fbigp)
   call cubic_interpolation(npsi,psinorm,pso,fbigppt,fbigpp)  
+
+  fbig0 = fbig0 + pedge
   return
 end subroutine fget
 
 subroutine alphaget(pso, alphap0, alphap, alphapp, alphappp)
+  use basic
   implicit none
 
   real, intent(in) :: pso
   real, intent(out) :: alphap0,alphap, alphapp, alphappp
 
+  real :: fbig0, fbig, fbigp, fbigpp
+
   call cubic_interpolation(npsi,psinorm,pso,alphap0t,alphap0)
   call cubic_interpolation(npsi,psinorm,pso,alphapt,alphap)
   call cubic_interpolation(npsi,psinorm,pso,alphappt,alphapp)
   call cubic_interpolation(npsi,psinorm,pso,alphapppt,alphappp)
-  return
+
+  ! if iscale_rot_by_p==0 then omega = alpha(psi) instead of
+  ! omega = alpha(psi) * p, so divide alpha by p
+  if(iscale_rot_by_p .eq. 0) then
+     call fget(pso, fbig0, fbig, fbigp, fbigpp)
+
+     alphap0 = alphap0/fbig0
+     alphap = alphap/fbig0 - alphap0*fbig/fbig0**2
+     alphapp = alphapp/fbig0 - 2.*alphap*fbig/fbig0**2 &
+          - alphap0*fbigp/fbig0**2 + 2.*alphap0*fbig**2/fbig0**3
+     alphapp = alphappp/fbig0 &
+          - 3.*alphapp*fbig/fbig0**2 &
+          - 3.*alphap*fbigp/fbig0**2 &
+          - alphap0*fbigpp/fbig0**2 &
+          + 2.*alphap*fbig**2/fbig0**3 &
+          - 2.*alphap0*fbig*fbigp/fbig0**3 &
+          + 6.*alphap0*fbig**3/fbig0**4
+  endif
 end subroutine alphaget
 
  subroutine default_profiles
@@ -1771,24 +1802,17 @@ subroutine calc_density(psi0,pres,dens, x, z)
   logical :: inside_lcfs
 
   if(irot.eq.1) then
+     psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
+     psii(2:6) = real(psi0(2:6))/(psilim - psimin)
+
      if(.not.inside_lcfs(psi0,x,z,.true.)) then
-        fbig0 = 0.
+        fbig0 = pedge
         fbig = 0.
         fbigp = 0.
         fbigpp = 0.
-     else
-        psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
-        psii(2:6) = real(psi0(2:6))/(psilim - psimin)
-        
+     else        
         call fget(psii(1), fbig0, fbig, fbigp, fbigpp)
-
-        ! for inumgs.ne.0 fbig is derivative wrt total psi, not normalized
-!!$        if(inumgs.ne.0) then
-!!$           fbig = fbig*(psilim-psimin)
-!!$           fbigp = fbigp*(psilim-psimin)
-!!$        endif
      endif
-     fbig0 = fbig0 + pedge
 
 !.....include toroidal rotation in equilibrium
 !...this section calculates density derivatives in presence of rotation
@@ -1901,24 +1925,17 @@ subroutine calc_rotation(psi0,omega, x, z)
      return
   endif
 
+  psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
+  psii(2:6) = real(psi0(2:6))/(psilim - psimin)
+
   if(.not.inside_lcfs(psi0,x,z,.true.)) then
-     fbig0 = 0.
+     fbig0 = pedge
      fbig = 0.
      fbigp = 0.
      fbigpp = 0.
   else
-     psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
-     psii(2:6) = real(psi0(2:6))/(psilim - psimin)
-     
      call fget(psii(1), fbig0, fbig, fbigp, fbigpp)
-     
-     ! for inumgs.ne.0 fbig is derivative wrt total psi, not normalized
-!!$     if(inumgs.ne.0) then
-!!$        fbig = fbig*(psilim-psimin)
-!!$        fbigp = fbigp*(psilim-psimin)
-!!$     endif
   endif
-  fbig0 = fbig0 + pedge
 
 !.....include toroidal rotation in equilibrium
 !...this section calculates rotation derivatives in presence of rotation
