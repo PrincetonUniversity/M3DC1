@@ -5424,13 +5424,10 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
   if(n_elements(power) ne 0.) then data = data^power
 
   xrange = [min(x), max(x)]
+  yrange = [min(phi), max(phi)]
   zrange = [min(z), max(z)]
   itor = read_parameter('itor', _EXTRA=extra)
-  if(itor eq 1) then begin
-      yrange = xrange
-  endif else begin
-      yrange = [min(phi), max(phi)]
-  endelse
+
 
   tmpdat = fltarr(2, 2)
   surface, tmpdat, xrange, yrange, charsize=2.5, $

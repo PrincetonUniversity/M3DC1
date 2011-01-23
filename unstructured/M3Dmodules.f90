@@ -157,6 +157,7 @@ module basic
   real :: denoff
 
   integer :: irot  !  if irot=1, include toroidal rotation in equilibrium
+  integer :: iscale_rot_by_p      ! if 0, don't scale rotation by pressure
   real :: alpha0, alpha1, alpha2  !  rotation profile is
 !                                   (alpha0 + alpha1*psin + alpha2*psin**2)*pressure
 
@@ -308,7 +309,7 @@ module basic
        adapt_factor, adapt_hmin, adapt_hmax,                   &
        b0_norm, n0_norm, l0_norm,                              &
        idenfunc, den_edge, den0, denoff, dendelt,              &
-       irot, alpha0, alpha1, alpha2,                           &
+       irot, iscale_rot_by_p, alpha0, alpha1, alpha2,          &
        icurv, iflip, iwrite_restart,                           &
        eta_wall, delta_wall,                                   &
        iflip_b, iflip_j, iflip_v, iflip_z

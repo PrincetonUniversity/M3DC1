@@ -15,9 +15,7 @@ INCLUDE = -I$(COMMONDIR) -I$(SCORECDIR) \
 	-I$(PETSC_DIR)/path-vsmp/include \
 	-I$(HDF5_HOME)/include -I$(HDF5_HOME)/lib
 
-H5_VERSION = 169
-
-FOPTS = -c -r8 -cpp -intrinsic=PGI -DH5_VERSION=$(H5_VERSION) $(INCLUDE) $(OPTS) # -check all -check noarg_temp_created
+FOPTS = -c -r8 -cpp -intrinsic=PGI $(INCLUDE) $(OPTS) # -check all -check noarg_temp_created
 F90OPTS = $(FOPTS)
 F77OPTS = $(FOPTS)
 CCOPTS = -c $(INCLUDE)

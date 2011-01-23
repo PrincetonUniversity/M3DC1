@@ -7,12 +7,8 @@ INCLUDE = -I$(NTCCHOME)/mod -I$(LIBDIR) \
 	-I$(SUPERLU_DIST_HOME) -I$(HDF5_HOME)/include \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
 
-H5_VERSION = 166
-
-FOPTS = -c -r8 -implicitnone -fpp -warn all $(INCLUDE) $(OPTS) \
-	-DH5_VERSION=$(H5_VERSION) -DRANDOM_NUM='rand()' # \
+FOPTS = -c -r8 -implicitnone -fpp -warn all $(INCLUDE) $(OPTS) -O #\
 #	-g -check all -check noarg_temp_created 
-#	-Dglobalentdofs=entdofs -Dglobalinsertval=insertval
 
 F90OPTS = $(FOPTS)
 F77OPTS = $(FOPTS)
