@@ -19,8 +19,7 @@ INCLUDE = -I$(SCORECDIR)/mctk/Examples/PPPL/PPPL \
 	-I$(HDF5_HOME)/include
 
 FOPTS = -c -fdefault-real-8 -Wall $(INCLUDE) $(OPTS) \
-	-DH5_VERSION=$(H5_VERSION) -DPETSC_31 \
-	-DRANDOM_NUM="rand(0)" # -g -fbounds-check
+	-DH5_VERSION=$(H5_VERSION) -DPETSC_31 # -g -fbounds-check
 F90OPTS = $(F90FLAGS) $(FOPTS)
 F77OPTS = $(F77FLAGS) $(FOPTS)
 CCOPTS = -c $(INCLUDE)
