@@ -275,7 +275,8 @@ contains
     ! Select local hyperslab within dataset
     call h5screate_simple_f(rank, local_dims, memspace, error)
     call h5dget_space_f(dset_id, filespace, error)
-    call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, off, local_dims, error)
+    call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, off, local_dims, &
+         error)
     call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, error)
     call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_COLLECTIVE_F, error)
   
@@ -309,8 +310,9 @@ contains
     integer(HSIZE_T) :: chunk_size(1) = (/ 100 /)
     integer(HSIZE_T) :: dims(1)
     integer(HSIZE_T) :: maxdims(1)
-    integer(HSIZE_T) :: local_dims(1) = (/ 1 /)
+    integer(HSIZE_T), parameter :: local_dims(1) = (/ 1 /)
     integer(HSIZE_T), dimension(1,1) :: coord
+    integer(SIZE_T), parameter :: num_elements = 1
     integer(HID_T) :: memspace, filespace, dset_id, p_id
     real :: values(1)
 
@@ -340,7 +342,7 @@ contains
     call h5screate_simple_f(1, local_dims, memspace, error)
     call h5dget_space_f(dset_id, filespace, error)
     call h5sselect_elements_f(filespace, H5S_SELECT_SET_F, 1, &
-         local_dims(1), coord, error)
+         num_elements, coord, error)
     call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, local_dims, error, &
          file_space_id = filespace, mem_space_id = memspace)
 
