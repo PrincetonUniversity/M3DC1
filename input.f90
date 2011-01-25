@@ -171,6 +171,7 @@ subroutine set_defaults
   alpha0 = 0.
   alpha1 = 0.
   alpha2 = 0.
+  alpha3 = 0.
 
   idenfunc = 0
   den_edge = 0.
