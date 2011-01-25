@@ -81,7 +81,7 @@ subroutine load_eqdsk
      write(*,'(A,1e12.4)') " Plasma current: ", current
      write(*,'(A,2e12.4)') " Poloidal flux at axis, boundary", simag, sibry
      write(*,'(A,4e12.4)') " Bounding box:", rleft, zmid-zdim/2., rdim, zdim
-     
+
 !  call read_out1(neqdsk)
   
      close(neqdsk)

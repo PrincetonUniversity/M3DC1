@@ -1209,7 +1209,7 @@ subroutine fundef2(error)
            if(iscale_rot_by_p .eq. 1) then
               temp(3) = 0.
            else
-              temp(3) = alpha0/pedge
+              temp(3) = (alpha0 + alpha1 + alpha2 + alpha3)/pedge
            endif
            temp(4) = 0.
            temp(5) = pedge
@@ -1480,10 +1480,10 @@ subroutine readpgfiles
      allocate(alphap0t(npsi),alphapt(npsi),alphappt(npsi),alphapppt(npsi))
      do j=1, npsi
         psii = (j-1.)/(npsi-1.)
-        alphap0t(j) = alpha0 + alpha1*psii + alpha2*psii**2
-        alphapt(j)  =          alpha1   + 2.*alpha2*psii
-        alphappt(j) =   2.*alpha2
-        alphapppt(j) = 0.
+        alphap0t(j) = alpha0 + alpha1*psii + alpha2*psii**2 + alpha3*psii**3
+        alphapt(j)  =          alpha1   + 2.*alpha2*psii + 3.*alpha3*psii**2
+        alphappt(j) =                     2.*alpha2      + 6.*alpha3*psii
+        alphapppt(j) =                                   + 6.*alpha3
      end do
   endif
 
@@ -1592,10 +1592,10 @@ end subroutine alphaget
            + 24.*(45.+20.*p1+6*p2)*psii - 60.*(36.+15*p1+4*p2)*psii**2      &
            + 120.*(10.+4.*p1+p2)*psii**3)
 
-      alphap0t(j) = alpha0 + alpha1*psii + alpha2*psii**2
-      alphapt(j)  =          alpha1   + 2.*alpha2*psii
-      alphappt(j) =   2.*alpha2
-      alphapppt(j) = 0.
+      alphap0t(j) = alpha0 + alpha1*psii + alpha2*psii**2 + alpha3*psii**3
+      alphapt(j)  =          alpha1   + 2.*alpha2*psii + 3.*alpha3*psii**2
+      alphappt(j) =                     2.*alpha2      + 6.*alpha3*psii
+      alphapppt(j) =                                   + 6.*alpha3
 
       g4big0t(j) = 1.- 20.*psii**3+  45.*psii**4-  36.*psii**5+  10.*psii**6
       g4bigt(j)  =   - 60.*psii**2+ 180.*psii**3- 180.*psii**4+  60.*psii**5
@@ -1660,10 +1660,12 @@ end subroutine alphaget
       g4bigppt(j) = 2.*a(3)/dp**2 - a(2)*dpp/dp**3  ! (f f')''
 
       if(irot.eq.1) then
-         alphap0t(j) =  alpha0 + alpha1*psinorm(j) + alpha2*psinorm(j)**2
-         alphapt(j)  =           alpha1         + 2.*alpha2*psinorm(j)
-         alphappt(j) = 2.*alpha2
-         alphapppt(j) = 0.
+         alphap0t(j) =  alpha0 + alpha1*psinorm(j) + alpha2*psinorm(j)**2 &
+              +    alpha3*psinorm(j)**3
+         alphapt(j)  =           alpha1         + 2.*alpha2*psinorm(j) &
+              + 3.*alpha3*psinorm(j)**2
+         alphappt(j) = 2.*alpha2 + 6.*alpha3*psinorm(j)
+         alphapppt(j) = 6.*alpha3
       endif
    end do
 
