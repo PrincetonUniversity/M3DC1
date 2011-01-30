@@ -517,7 +517,7 @@ module sparse
   type(matrix_type), target :: s8_mat, d8_mat, r8_mat, q8_mat
   type(matrix_type), target :: s9_mat, d9_mat, r9_mat, q9_mat
   type(matrix_type) :: rwpsi_mat, rwbf_mat, ecpsi_mat, ecbf_mat
-  type(matrix_type) :: rw_rhs_mat, rw_lhs_mat
+  type(matrix_type), save :: rw_rhs_mat, rw_lhs_mat
 
 contains
   subroutine delete_matrices
