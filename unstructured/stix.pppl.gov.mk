@@ -3,7 +3,7 @@ FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) -O #\
 CCOPTS  = -c -O
 
 ifeq ($(TAU), 1)
-  TAU_OPTIONS = -optCPPOpts=-DUSETAU -optVerbose -optPreProcess -optMpi -optTauSelectFile=select.tau
+  TAU_OPTIONS = -optCPPOpts=-DUSETAU -optVerbose -optPreProcess -optMpi -optTauSelectFile=../select.tau
   CC     = tau_cc.sh $(TAU_OPTIONS)
   F90    = tau_f90.sh $(TAU_OPTIONS)
   F77    = tau_f90.sh $(TAU_OPTIONS)
@@ -81,6 +81,8 @@ ifeq ($(USESCOREC), 1)
       SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/lib
       INCLUDE := -I/p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/include \
 	$(INCLUDE)
+#      SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/092210
+#      INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/092210 $(INCLUDE)
     endif
 
     SCOREC_ARCH=x86_64_linux-icc
@@ -95,7 +97,7 @@ ifeq ($(USESCOREC), 1)
 	-lmeshAdapt-mpich2$(SCORECOPT) \
 	-lmeshTools-mpich2$(SCORECOPT) \
 	-lSolver-mpich2$(SCORECOPT) \
-	-lPPPL-mpich2$(SCORECOPT) \
+	-lPPPLTEST-mpich2$(SCORECOPT) \
 	-lipcomman-mpich2$(SCORECOPT)
 #  else
 #    # 2D Libraries
