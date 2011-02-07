@@ -15,8 +15,11 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
 
    r = radius_matrix(x,z,t)
 
-   bt = sqrt(s_bracket(psi0,psi0,x,z))/r
-   jac = r^3*bt/abs(i0)
+   ; From Schaffer 2008
+   ; Br_mn = [(2*pi)^2/S] * [J Br]_mn
+   ; J = B_theta*q*R^3/(R_0*B_0)
+   bp = sqrt(s_bracket(psi0,psi0,x,z))/r
+   jac = r^3*bp/abs(i0)
 
    if(size(field, /type) eq 7) then begin
        field = read_field(field,x,z,t,/complex,_EXTRA=extra)
@@ -31,14 +34,14 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
                           area=area,nflux=nflux,tbins=bins,fbins=bins, $
                           /pest, _EXTRA=extra)
 
-    for i=0, n_elements(angle)-1 do begin
-        a_r[0,*,i] = a_r[0,*,i]*q/area
-        a_i[0,*,i] = a_i[0,*,i]*q/area
-    end
+   for i=0, n_elements(angle)-1 do begin
+       a_r[0,*,i] = (2.*!pi)^2*a_r[0,*,i]*q/area
+       a_i[0,*,i] = (2.*!pi)^2*a_i[0,*,i]*q/area
+   end 
 
    a = complex(a_r, a_i)
    b = transpose(a,[0,2,1])
-   c = sqrt(2.*!pi)*fft(b, -1, dimension=2)
+   c = fft(b, -1, dimension=2)
 
    ; shift frequency values so that most negative frequency comes first
    n = n_elements(angle)
@@ -52,7 +55,13 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
 
    if(n_elements(q_val) ne 0) then begin
        dum = min(q-q_val, i, /abs)
+       dum = min(m-q_val*ntor, j, /abs)
+       dum = min(m+q_val*ntor, k, /abs)
        print, 'Psi, q = ', nflux[i], q[0,i]
+       print, 'Resonant field: m = ', m[j], abs(d[0,j,i]), $
+         atan(imaginary(d[0,j,i]),real_part(d[0,j,i]))
+       print, 'Resonant field: m = ', m[k], abs(d[0,k,i]), $
+         atan(imaginary(d[0,k,i]),real_part(d[0,k,i]))
        plot, m[*], abs(d[0,*,i])
        return
    endif
@@ -108,7 +117,7 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
    get_normalizations, b0=b0_norm, n0=n0_norm, l0=l0_norm, _EXTRA=extra
    br = br*b0_norm
 
-   schaffer_plot, br, x, z, t, _EXTRA=extra, psi0=psi0,i0=i0, $
+   schaffer_plot, br, x, z, t, _EXTRA=extra, psi0=psi0,i0=i0, q_val=q_val, $
      label='!8B!Dn!N!6 (!8G!6)!X', points=points, bins=bins, ntor=ntor
 end
 

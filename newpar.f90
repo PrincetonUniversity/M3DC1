@@ -196,6 +196,7 @@ Program Reducedquintic
   case(2)
     call create_field(temporary_field)
     temporary_field = psi_field(0)
+    call straighten_field(temporary_field)
 
     print *, 'adapting mesh...', psimin, psibound
     call adapt(temporary_field%vec%data,psimin,psibound)
@@ -203,10 +204,14 @@ Program Reducedquintic
 
     call destroy_field(temporary_field)
 
+    print *, 'calling space...'
     call space(0)
+
+    print *, 'calling tridef...'
     call tridef
 
 !    call updatenormalcurvature
+    print *, 'calling write_normlcurv'
     call write_normlcurv
     call safestop(2)
 

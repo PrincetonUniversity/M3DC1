@@ -352,57 +352,83 @@ contains
   end subroutine scorec_vector_get_node_data_complex
 #endif
 
-  subroutine scorec_vector_set_node_data_real(v, iplace, inode, data)
+  subroutine scorec_vector_set_node_data_real(v, iplace, inode, data, rotate)
     use mesh_mod
     implicit none
     type(scorec_vector), intent(inout) :: v
     integer, intent(in) :: inode, iplace
     real, intent(in), dimension(dofs_per_node) :: data
+    logical, intent(in), optional :: rotate
 
     logical :: is_boundary
     integer :: izone, izonedim
     real :: normal(2), curv, x, z
     vectype, dimension(dofs_per_node) :: temp1, temp2
-    
     integer :: index
+    logical :: r
+
+    if(present(rotate)) then 
+       r = rotate
+    else 
+       r = .true.
+    end if
+
     call get_node_index(inode, iplace, v%isize, index)
 
     ! if node is on boundary, rotate data from R,Z to n,t
-    call boundary_node(inode, is_boundary, izone, izonedim, normal, curv, x, z)
-    if(is_boundary) then
-       temp1 = data
-       call rotate_dofs(temp1, temp2, normal, curv, 1)
-       v%data(index:index+dofs_per_node-1) = temp2
+    if(r) then
+       call boundary_node(inode, is_boundary, izone, izonedim, &
+            normal, curv, x, z)
+       if(is_boundary) then
+          temp1 = data
+          call rotate_dofs(temp1, temp2, normal, curv, 1)
+          v%data(index:index+dofs_per_node-1) = temp2
+       else
+          v%data(index:index+dofs_per_node-1) = data
+       endif
     else
        v%data(index:index+dofs_per_node-1) = data
     endif
   end subroutine scorec_vector_set_node_data_real
 
 #ifdef USECOMPLEX
-  subroutine scorec_vector_set_node_data_complex(v, iplace, inode, data)
+  subroutine scorec_vector_set_node_data_complex(v, iplace, inode, data, rotate)
     use mesh_mod
     implicit none
     type(scorec_vector), intent(inout) :: v
     integer, intent(in) :: inode, iplace
     complex, intent(in), dimension(dofs_per_node) :: data
+    logical, intent(in), optional :: rotate
 
     logical :: is_boundary
     integer :: izone, izonedim
     real :: normal(2), curv, x, z
-    vectype, dimension(dofs_per_node) :: temp1, temp2
-    
+    vectype, dimension(dofs_per_node) :: temp1, temp2    
     integer :: index
+    logical :: r
+
+    if(present(rotate)) then 
+       r = rotate
+    else 
+       r = .true.
+    end if
+
     call get_node_index(inode, iplace, v%isize, index)
 
-    ! if node is on boundary, rotate data from R,Z to n,t
-    call boundary_node(inode, is_boundary, izone, izonedim, normal, curv, x, z)
-    if(is_boundary) then
-       temp1 = data
-       call rotate_dofs(temp1, temp2, normal, curv, 1)
-       v%data(index:index+dofs_per_node-1) = temp2
+    if(r) then
+       ! if node is on boundary, rotate data from R,Z to n,t
+       call boundary_node(inode, is_boundary, izone, izonedim, &
+            normal, curv, x, z)
+       if(is_boundary) then
+          temp1 = data
+          call rotate_dofs(temp1, temp2, normal, curv, 1)
+          v%data(index:index+dofs_per_node-1) = temp2
+       else
+          v%data(index:index+dofs_per_node-1) = data
+       endif
     else
        v%data(index:index+dofs_per_node-1) = data
-    endif
+    end if
   end subroutine scorec_vector_set_node_data_complex
 #endif
 

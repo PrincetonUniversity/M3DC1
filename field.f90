@@ -144,27 +144,29 @@ contains
   ! ~~~~~~~~~~~~~
   ! copies array data into dofs of f associated with node inode
   !======================================================================
-  subroutine field_set_node_data_real(f, inode, data)
+  subroutine field_set_node_data_real(f, inode, data, rotate)
     use element
     implicit none
     
     type(field_type), intent(inout) :: f
     integer, intent(in) :: inode
     real, dimension(dofs_per_node), intent(in) :: data
+    logical, intent(in), optional :: rotate
 
-    call set_node_data(f%vec,f%index,inode,data)
+    call set_node_data(f%vec,f%index,inode,data,rotate)
   end subroutine field_set_node_data_real
 
 #ifdef USECOMPLEX
-  subroutine field_set_node_data_complex(f, inode, data)
+  subroutine field_set_node_data_complex(f, inode, data, rotate)
     use element
     implicit none
     
     type(field_type), intent(inout) :: f
     integer, intent(in) :: inode
     complex, dimension(dofs_per_node), intent(in) :: data
+    logical, intent(in), optional :: rotate
     
-    call set_node_data(f%vec,f%index,inode,data)
+    call set_node_data(f%vec,f%index,inode,data,rotate)
   end subroutine field_set_node_data_complex
 #endif
 
@@ -608,5 +610,29 @@ contains
     endif
 
   end subroutine check_axisymmetry
+
+
+  !======================================================================
+  ! straighten_field
+  ! ~~~~~~~~~~~~~~~~
+  ! rotates dofs at boundary nodes to (R,Z) coordinates
+  !======================================================================
+  subroutine straighten_field(f)
+    use mesh_mod
+    implicit none
+
+    type(field_type), intent(inout) :: f
+
+    integer :: inode, numnodes
+    vectype, dimension(dofs_per_node) :: data
+
+    numnodes = owned_nodes()
+    do inode=1,numnodes
+       call get_node_data(f, inode, data, .true.)   ! rotate to R,Z
+       call set_node_data(f, inode, data, .false.)  ! don't rotate back to n,t
+    enddo
+    call finalize(f%vec)
+  end subroutine straighten_field
+
 
 end module field
