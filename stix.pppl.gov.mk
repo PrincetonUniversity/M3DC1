@@ -30,7 +30,9 @@ INCLUDE = -I$(MPIHOME)/include \
 
 
 PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
-	-lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc
+	-lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc \
+        -L$(PETSC_DIR)/externalpackages/hypre-2.4.0b/src/lib \
+        -lHYPRE -lHYPRE_LSI 
 
 SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu \
 	-L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist
