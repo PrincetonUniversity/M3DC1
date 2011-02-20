@@ -94,7 +94,7 @@ contains
     call hdf5_flush(ier)
 
     if(myrank.eq.0) then
-       if(dt .eq. 0.) then 
+       if(dt.eq.0. .or. ekin.eq.0.) then 
           gamma = 0.
        else
           gamma = (ekin - ekino)/(2.*ekin*dt)

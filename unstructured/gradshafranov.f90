@@ -25,6 +25,8 @@ module gradshafranov
 
   integer, private :: int_tor = 0
 
+  logical, private :: use_norm_psi = .false.
+
 contains
 
 subroutine gradshafranov_init()
@@ -404,6 +406,8 @@ subroutine gradshafranov_solve
         endif
 #endif 
         call newsolve(gs_matrix,b1vecini_vec%vec,ier)
+        if(myrank.eq.0 .and. iprint.ge.2) print *, '  done solve'
+
 
 #ifdef CJ_MATRIX_DUMP
         if(itnum.le.1) then 
@@ -528,9 +532,6 @@ subroutine gradshafranov_solve
         call calcavector(itri, psi_vec, avec)
         call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
              npoints, ps079)
-
-!        if(maxval(ps079(:,OP_DPP)).gt.1e-2) &
-!             write(*,'(6e12.3)') ps079(:,OP_DPP)
 
         if(igs_method.eq.2) then 
            do i=1, npoints       
@@ -872,6 +873,10 @@ end subroutine calculate_gamma
 
 
 ! ===========================================================
+! deltafun
+! ~~~~~~~~
+! sets jout_i =  <mu_i | -val*delta(R-x)delta(Z-z)> 
+! ===========================================================
 subroutine deltafun(x,z,val,jout)
 
   use mesh_mod
@@ -920,6 +925,7 @@ subroutine deltafun(x,z,val,jout)
         do k=1, coeffs_per_tri
            temp(i) = temp(i) - val2*c(i,k)*si**mi(k)*eta**ni(k)
         end do
+        if(equilibrate) temp(i) = temp(i)*equil_fac(i, itri)
      end do
 
 #ifdef USE3D
@@ -932,6 +938,8 @@ subroutine deltafun(x,z,val,jout)
   call sum_shared(jout%vec)
 
 end subroutine deltafun
+
+
 !============================================================
 subroutine fundef
 
@@ -981,7 +989,7 @@ subroutine fundef
      
         call fget(pso, fbig0, fbig, fbigp, fbigpp)
 
-        if(inumgs.eq.0) then
+        if(.not.use_norm_psi) then
            fbig = fbig*dpsii
            fbigp = fbigp*dpsii
            fbigpp = fbigpp*dpsii
@@ -1092,7 +1100,7 @@ subroutine fundef
         
         call g4get(pso, g4big0, g4big, g4bigp, g4bigpp)
         
-        if(inumgs.eq.0) then
+        if(.not.use_norm_psi) then
            g4big = g4big*dpsii
            g4bigp = g4bigp*dpsii
            g4bigpp = g4bigpp*dpsii
@@ -1221,7 +1229,7 @@ subroutine fundef2(error)
         temp79e(i) = temp(5)
      end do
      
-     if(inumgs.eq.0) then
+     if(.not.use_norm_psi) then
         temp79a = temp79a*dpsii
         temp79b = temp79b*dpsii
         temp79d = temp79d*dpsii
@@ -1330,8 +1338,7 @@ subroutine calc_toroidal_field(psi0,tf,x,z)
      g2 = 2.*g2
      g3 = 2.*g3
      g4 = 2.*g4
-     
-!
+
      tf(1) = sqrt((bzero*rzero)**2 + &
           gamma2*g2(1) + gamma3*g3(1) + gamma4*g4(1))
      tf(2) = 0.5*(gamma2*g2(2) + gamma3*g3(2) + gamma4*g4(2)) / tf(1)
@@ -1488,6 +1495,7 @@ subroutine readpgfiles
   endif
 
   constraint = .true.
+  use_norm_psi = .true.
 
 return
   802 format(5x,5e18.9)
@@ -1602,6 +1610,8 @@ end subroutine alphaget
       g4bigpt(j) =   -120.*psii   + 540.*psii**2- 720.*psii**3+ 300.*psii**4
       g4bigppt(j)=   -120.        +1080.*psii   -2160.*psii**2+1200.*psii**3
    end do
+
+!   use_norm_psi = .true.
 
  end subroutine default_profiles
 
@@ -2028,7 +2038,7 @@ subroutine boundary_gs(rhs, feedfac, mat)
   type(vector_type), intent(inout) :: rhs
   type(matrix_type), intent(inout), optional :: mat
     
-  integer :: i, izone, izonedim, index, j
+  integer :: i, izone, izonedim, index
   integer :: numnodes, ineg
   real :: normal(2), curv
   real :: x, z
@@ -2038,7 +2048,7 @@ subroutine boundary_gs(rhs, feedfac, mat)
   vectype, dimension(dofs_per_node) :: temp
 
 #ifdef USE3D
-  integer :: iplane, itri, nelms, nvals, itrip
+  integer :: iplane, itri, nelms, nvals, itrip, j
   integer, dimension(nodes_per_element) :: inode, inodep
   integer, dimension(2) :: icol
   vectype, dimension(2) :: val

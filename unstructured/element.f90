@@ -61,7 +61,7 @@ module element
 
   real, allocatable :: gtri(:,:,:), gtri_old(:,:,:)
   real, allocatable :: htri(:,:,:)
-
+  real, allocatable :: equil_fac(:,:)
 contains
 
   

@@ -120,6 +120,7 @@ subroutine set_defaults
   int_pts_diag = 25
   int_pts_tor = 5
   max_ke = 1.
+  equilibrate = 0
 
   ! equilibrium options
   itaylor = 0

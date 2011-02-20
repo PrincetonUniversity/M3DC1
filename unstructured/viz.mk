@@ -1,11 +1,14 @@
-LOADER = ifort
+LOADER = ifort -Wl,--warn-unresolved-symbols
 F90    = ifort
 F77    = ifort
 CC     = icc
 
+HYBRID_HOME = /p/swim/jchen/hybrid.test
+
 INCLUDE = -I$(NTCCHOME)/mod -I$(LIBDIR) \
 	-I$(SUPERLU_DIST_HOME) -I$(HDF5_HOME)/include \
-	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
+	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
+	-I$(HYBRID_HOME)/include
 
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(INCLUDE) $(OPTS) -O #\
 #	-g -check all -check noarg_temp_created 
@@ -25,6 +28,8 @@ SUPERLU_LIBS = -L$(SUPERLU_HOME) -lsuperlu_3.0 \
 
 PARMETIS_LIBS = -L$(PARMETIS_HOME)/lib \
 	-Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis
+
+HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lhsolver
 
 LIBS = 	$(PETSC_LIBS) \
 	$(SUPERLU_LIBS) \

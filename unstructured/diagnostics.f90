@@ -893,6 +893,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
           xnew = x + bfac*h*(xtry-x)/rdiff
           znew = z + bfac*h*(ztry-z)/rdiff
         endif
+
         in_domain = 1
         if(iprint.ge.2) then
            write(*,'(A,4E12.4)') &

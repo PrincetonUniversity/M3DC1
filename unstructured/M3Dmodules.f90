@@ -206,6 +206,7 @@ module basic
   integer :: int_pts_diag! pol points in int. quad. for diagnostic calculations
   integer :: int_pts_tor ! tor points in int. quad.
   integer :: isurface    ! include surface terms
+  integer :: equilibrate ! 1 = scale trial functions so L2 norms = 1
   real :: dt             ! timestep
   real :: ddt            ! change in timestep per timestep
   real :: thimp          ! implicitness parameter (for Crank-Nicholson)
@@ -304,7 +305,7 @@ module basic
        icalc_scalars, ike_only, ifout, inertia, itwofluid,     &
        int_pts_main, int_pts_aux, int_pts_diag, int_pts_tor,   &
        iwave, bx0 , chiiner, ibootstrap, xnull, znull,         &
-       tiltangled, isurface,                                   &
+       tiltangled, isurface, equilibrate,                      &
        iread_eqdsk, iread_dskbal, iread_jsolver,               &
        adapt_factor, adapt_hmin, adapt_hmax,                   &
        b0_norm, n0_norm, l0_norm,                              &
