@@ -814,6 +814,12 @@ contains
 #endif
      end do
      nu79 = mu79
+
+     if(equilibrate.eq.1) then 
+        do i=1, dofs_per_element
+           mu79(:,:,i) = mu79(:,:,i)*equil_fac(i,itri)
+        end do
+     end if
   endif
 
 end subroutine define_fields

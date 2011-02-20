@@ -54,15 +54,59 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    ytitle='!9r!7W!X'
 
    if(n_elements(q_val) ne 0) then begin
-       dum = min(q-q_val, i, /abs)
-       dum = min(m-q_val*ntor, j, /abs)
-       dum = min(m+q_val*ntor, k, /abs)
-       print, 'Psi, q = ', nflux[i], q[0,i]
-       print, 'Resonant field: m = ', m[j], abs(d[0,j,i]), $
-         atan(imaginary(d[0,j,i]),real_part(d[0,j,i]))
-       print, 'Resonant field: m = ', m[k], abs(d[0,k,i]), $
-         atan(imaginary(d[0,k,i]),real_part(d[0,k,i]))
-       plot, m[*], abs(d[0,*,i])
+       indices = interpol(findgen(n_elements(q)), q, q_val)
+       print, q[fix(indices)]
+       print, q[fix(indices+1)]
+
+       b = complexarr(n_elements(angle), n_elements(indices))
+       for i=0, n_elements(angle)-1 do begin
+           b[i,*] = interpolate(reform(a[0,*,i]), indices)
+       end
+;       b = interpolate(reform(a[0,*,*]), indices)
+
+
+       
+       c = fft(b, -1, dimension=1)
+       dold = d
+       if(n_elements(indices) eq 1) then begin
+           d = shift(c,-(n/2+1))
+       endif else begin
+           d = shift(c,-(n/2+1),0)
+       endelse
+
+       col = colors()
+       for i=0, n_elements(q_val)-1 do begin
+           dum = min(m-q_val[i]*ntor, j, /abs)
+           dum = min(m+q_val[i]*ntor, k, /abs)
+
+           print, 'q, Psi = ', interpolate(q,indices[i]), $
+             interpolate(nflux, indices[i])
+           print, 'Resonant field: m = ', m[j], abs(d[j,i]), $
+             atan(imaginary(d[j,i]),real_part(d[j,i]))
+           print, 'Resonant field: m = ', m[k], abs(d[k,i]), $
+             atan(imaginary(d[k,i]),real_part(d[k,i]))
+
+           if(i eq 0) then begin
+               plot, m, abs(d[*,i]), xrange=[-20,20], yrange=[0, max(abs(d))]
+           endif else begin
+               oplot, m, abs(d[*,i]), color=col[i]
+           end
+       end
+       return
+       
+
+       for n=0, n_elements(q_val)-1 do begin
+           dum = min(q-q_val[n], i, /abs)
+           dum = min(m-q_val[n]*ntor, j, /abs)
+           dum = min(m+q_val[n]*ntor, k, /abs)
+           print, 'Psi, q = ', nflux[i], q[0,i]
+           print, 'Resonant field: m = ', m[j], abs(d[0,j,i]), $
+             atan(imaginary(d[0,j,i]),real_part(d[0,j,i]))
+           print, 'Resonant field: m = ', m[k], abs(d[0,k,i]), $
+             atan(imaginary(d[0,k,i]),real_part(d[0,k,i]))
+       end
+       dum = min(q-q_val[2], i, /abs)
+       oplot, m[*], abs(dold[0,*,i])
        return
    endif
 

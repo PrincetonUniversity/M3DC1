@@ -766,28 +766,32 @@ end subroutine rotation
   ! populates the *tri arrays
   !============================================================
   subroutine tridef
-
+    use basic
     use math
     use mesh_mod
 
     implicit none
+
+    include 'mpif.h'
   
     type(element_data) :: d
-    integer :: itri, i, j, k, ii, jj, numelms, numnodes, ndofs
+    integer :: itri, i, j, k, ii, jj, numelms, numnodes, ndofs, ierr
     real, dimension(coeffs_per_tri,coeffs_per_tri) :: ti 
     real, dimension(dofs_per_tri, dofs_per_tri) :: rot, newrot
-    real :: sum, theta
+    real :: sum, theta, mean_area, tot_area, mean_len
     real :: norm(2), curv, x, z
     integer :: inode(nodes_per_element)
     logical :: is_boundary
     integer :: izone, izonedim
+    integer :: tot_elms
+
+    tot_area = 0
 
     numelms = local_elements()
     numnodes = local_nodes()
     ndofs = numnodes*dofs_per_node
-    
-    ! start the loop over triangles within a rectangular region
 
+    ! start the loop over triangles within a rectangular region
     do itri=1,numelms
 
        ! define a,b,c and theta
@@ -836,7 +840,7 @@ end subroutine rotation
                 newrot(k+j-1,k+j-1) = 1.
              end do
           end if
-       end do
+       end do     
 
        ! form the matrix g by multiplying ti and rot
        do k=1, coeffs_per_tri
@@ -878,7 +882,47 @@ end subroutine rotation
        htri(3,4,itri) =-1./d%d
        htri(4,4,itri) = 1./d%d**2
 #endif
+
+       ! calculate equilibration factors
+       tot_area = tot_area + (d%c)*(d%a + d%b)/2.
     end do
+
+    if(equilibrate.eq.1) then
+       call mpi_allreduce(tot_area, mean_area, 1, MPI_DOUBLE_PRECISION, &
+            MPI_SUM, MPI_COMM_WORLD, ierr)
+       call mpi_allreduce(numelms, tot_elms, 1, MPI_INTEGER, &
+            MPI_SUM, MPI_COMM_WORLD, ierr)
+       if(nplanes.le.1) then 
+          mean_len = 1.
+       else
+          mean_len = 2.*pi/(nplanes-1)
+       endif
+    
+       if(myrank.eq.0 .and. iprint.ge.1) then 
+          print *, ' Total mesh area: ', mean_area
+          print *, ' Total elements: ', tot_elms
+       endif
+
+       mean_area = mean_area/tot_elms
+
+       if(myrank.eq.0 .and. iprint.ge.1) print *, ' Average area: ', mean_area
+
+       do i=1, pol_nodes_per_element
+          equil_fac(1+dofs_per_node*(i-1),:) = 1.
+          equil_fac(2+dofs_per_node*(i-1),:) = 1./mean_area
+          equil_fac(3+dofs_per_node*(i-1),:) = 1./mean_area
+          equil_fac(4+dofs_per_node*(i-1),:) = 1./mean_area**2
+          equil_fac(5+dofs_per_node*(i-1),:) = 1./mean_area**2
+          equil_fac(6+dofs_per_node*(i-1),:) = 1./mean_area**2
+#ifdef USE3D
+          do j=1, 6
+             equil_fac(j+6+dofs_per_node*(i-1),:) = &
+                  equil_fac(j+dofs_per_node*(i-1),:)/mean_len**2
+          end do
+#endif
+       end do
+    endif
+
   end subroutine tridef
 
 
@@ -1158,12 +1202,14 @@ subroutine space(ifirstcall)
   if(ifirstcall.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, ' deallocating...'
      deallocate(gtri,gtri_old,htri)
+     if(equilibrate.eq.1) deallocate(equil_fac)
   endif
   
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Allocating tri...'
   allocate(gtri(coeffs_per_tri,dofs_per_tri,numelms))
   allocate(gtri_old(coeffs_per_tri,dofs_per_tri,numelms))
   allocate(htri(coeffs_per_dphi,dofs_per_dphi,numelms))
+  if(equilibrate.eq.1) allocate(equil_fac(dofs_per_element,numelms))
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' associating...'
   call associate_field(u_field(1),   field_vec, u_g)

@@ -1,6 +1,12 @@
-FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) -O #\
-#	-g -check all -check noarg_temp_created -debug all -ftrapuv
+FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS)
 CCOPTS  = -c -O
+
+#ifeq ($(OPT), 1)
+  FOPTS  := $(FOPTS) -fast
+  CCOPTS := $(CCOPTS) -O
+#else
+#  FOPTS := $(FOPTS) -g -check all -check noarg_temp_created -debug all -ftrapuv
+#endif
 
 ifeq ($(TAU), 1)
   TAU_OPTIONS = -optCPPOpts=-DUSETAU -optVerbose -optPreProcess -optMpi -optTauSelectFile=../select.tau
@@ -31,17 +37,11 @@ INCLUDE = -I$(MPIHOME)/include \
 
 PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
 	-lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc \
-        -L$(PETSC_DIR)/externalpackages/hypre-2.4.0b/src/lib \
-        -lHYPRE -lHYPRE_LSI 
+        -L$(PETSC_DIR)/externalpackages/hypre-2.4.0b/src/lib # \
+#        -lHYPRE -lHYPRE_LSI 
 
 SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu \
 	-L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist
-
-MUMPS_LIBS = -L$(MUMPS_HOME)/lib -ldmumps -lmumps_common -lpord
-
-BLACS_LIBS = -L$(BLACS_HOME)/lib -lmpiblacs -lmpiblacsF77init -lmpiblacsCinit -lmpiblacs
-
-SCALAPACK_LIBS = -L$(SCALAPACK_HOME)/lib -lscalapack
 
 PARMETIS_LIBS = -L$(PARMETIS_HOME)/lib \
 	-Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis
@@ -55,15 +55,12 @@ HYBRID_LIBS = $(HYBRID_HOME)/lib/libhsolver.a
 
 LIBS = 	$(PETSC_LIBS) \
 	$(SUPERLU_LIBS) \
-	$(MUMPS_LIBS) \
-	$(SCALAPACK_LIBS) \
-	$(BLACS_LIBS) \
 	$(PARMETIS_LIBS) \
 	$(HYBRID_LIBS) \
 	-L$(Zoltan_HOME)/lib -lzoltan \
 	-L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5 \
 	-L$(CCHOME)/lib/intel64 -lguide \
-	-L$(CCHOME)/mkl/lib/em64t -lmkl -lmkl_lapack -lmkl_ipr \
+	-L$(CCHOME)/mkl/lib/em64t -lmkl -lmkl_lapack \
 	-L$(NCARG_ROOT)/lib -lncarg -lncarg_gks -lncarg_c \
 	-Wl,-rpath -Wl,$(HDF5_HOME)/lib \
 	-L$(ZLIB_HOME) -lz \
