@@ -57,8 +57,8 @@ contains
 #endif
 #include "finclude/petscis.h90"
 
-    integer, parameter :: m = 11
-    integer, parameter :: n = 11
+    integer, parameter :: m = 41
+    integer, parameter :: n = 41
 
     real :: dx, dphi, dz
     integer :: num_global_elements

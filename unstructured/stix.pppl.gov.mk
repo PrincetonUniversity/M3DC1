@@ -1,12 +1,12 @@
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS)
 CCOPTS  = -c -O
 
-#ifeq ($(OPT), 1)
+ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -fast
   CCOPTS := $(CCOPTS) -O
-#else
-#  FOPTS := $(FOPTS) -g -check all -check noarg_temp_created -debug all -ftrapuv
-#endif
+else
+  FOPTS := $(FOPTS) #-g -check all -check noarg_temp_created -debug all -ftrapuv
+endif
 
 ifeq ($(TAU), 1)
   TAU_OPTIONS = -optCPPOpts=-DUSETAU -optVerbose -optPreProcess -optMpi -optTauSelectFile=../select.tau

@@ -596,18 +596,44 @@ contains
   end subroutine petsc_vector_get_node_data_complex
 #endif
 
-  subroutine petsc_vector_set_node_data_real(v, iplace, inode, data)
+  subroutine petsc_vector_set_node_data_real(v, iplace, inode, data, rotate)
     use element
+    use mesh_mod
     implicit none
 #include "finclude/petscvec.h"
     type(petsc_vector), intent(inout) :: v
     integer, intent(in) :: inode, iplace
     real, intent(in), dimension(dofs_per_node) :: data
+    logical, intent(in), optional :: rotate
 
+    logical :: is_boundary
+    integer :: izone, izonedim
+    real :: normal(2), curv, x, z
     integer :: ind(dofs_per_node), i, ierr
     PetscScalar, dimension(dofs_per_node) :: vals
+    vectype, dimension(dofs_per_node) :: temp1, temp2
+    integer :: index
+    logical :: r
+
+    if(present(rotate)) then 
+       r = rotate
+    else 
+       r = .true.
+    end if
 
     vals = data
+
+    ! if node is on boundary, rotate data from R,Z to n,t
+    if(r) then
+       call boundary_node(inode, is_boundary, izone, izonedim, &
+            normal, curv, x, z)
+       if(is_boundary) then
+          temp1 = vals
+          call rotate_dofs(temp1, temp2, normal, curv, 1)
+          vals = temp2
+       endif
+    endif
+
     call get_node_index(inode, iplace, v%isize, ind(1))    
     do i=2, dofs_per_node
        ind(i) = ind(1) + i - 1
@@ -619,18 +645,44 @@ contains
   end subroutine petsc_vector_set_node_data_real
 
 #ifdef USECOMPLEX
-  subroutine petsc_vector_set_node_data_complex(v, iplace, inode, data)
+  subroutine petsc_vector_set_node_data_complex(v, iplace, inode, data, rotate)
     use element
+    use mesh_mod
     implicit none
 #include "finclude/petscvec.h"
     type(petsc_vector), intent(inout) :: v
     integer, intent(in) :: inode, iplace
     complex, intent(in), dimension(dofs_per_node) :: data
+    logical, intent(in), optional :: rotate
 
+    logical :: is_boundary
+    integer :: izone, izonedim
+    real :: normal(2), curv, x, z
     integer :: ind(dofs_per_node), i, ierr
     PetscScalar, dimension(dofs_per_node) :: vals
+    vectype, dimension(dofs_per_node) :: temp1, temp2
+    integer :: index
+    logical :: r
+
+    if(present(rotate)) then 
+       r = rotate
+    else 
+       r = .true.
+    end if
 
     vals = data
+
+    ! if node is on boundary, rotate data from R,Z to n,t
+    if(r) then
+       call boundary_node(inode, is_boundary, izone, izonedim, &
+            normal, curv, x, z)
+       if(is_boundary) then
+          temp1 = vals
+          call rotate_dofs(temp1, temp2, normal, curv, 1)
+          vals = temp2
+       endif
+    endif
+
     call get_node_index(inode, iplace, v%isize, ind(1))
     do i=2, dofs_per_node
        ind(i) = ind(1) + i - 1

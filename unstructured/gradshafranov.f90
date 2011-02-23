@@ -1214,11 +1214,8 @@ subroutine fundef2(error)
         else
            temp(1) = 0.
            temp(2) = 0.
-           if(iscale_rot_by_p .eq. 1) then
-              temp(3) = 0.
-           else
-              temp(3) = (alpha0 + alpha1 + alpha2 + alpha3)/pedge
-           endif
+           temp(3) = alpha0 + alpha1 + alpha2 + alpha3
+           if(iscale_rot_by_p.eq.0) temp(3) = temp(3)/pedge
            temp(4) = 0.
            temp(5) = pedge
         endif
@@ -1548,7 +1545,7 @@ subroutine alphaget(pso, alphap0, alphap, alphapp, alphappp)
 
   ! if iscale_rot_by_p==0 then omega = alpha(psi) instead of
   ! omega = alpha(psi) * p, so divide alpha by p
-  if(iscale_rot_by_p .eq. 0) then
+  if(iscale_rot_by_p.eq.0) then
      call fget(pso, fbig0, fbig, fbigp, fbigpp)
 
      alphap0 = alphap0/fbig0
@@ -1822,8 +1819,14 @@ subroutine calc_density(psi0,pres,dens, x, z)
         fbig = 0.
         fbigp = 0.
         fbigpp = 0.
+        alphap0  = alpha0 + alpha1 + alpha2 + alpha3
+        alphap   = 0.
+        alphapp  = 0.
+        alphappp = 0.
+        if(iscale_rot_by_p.eq.0) alphap0 = alphap0/pedge
      else        
         call fget(psii(1), fbig0, fbig, fbigp, fbigpp)
+        call alphaget(psii(1),alphap0,alphap,alphapp,alphappp)
      endif
 
 !.....include toroidal rotation in equilibrium
@@ -1844,7 +1847,6 @@ subroutine calc_density(psi0,pres,dens, x, z)
      r1m= x**2/rzero**2
      r2 = (x**2 - rzero**2)**2/rzero**4
      r3 = (x**2 - rzero**2)**3/rzero**6
-     call alphaget(psii(1),alphap0,alphap,alphapp,alphappp)
 
 !...convert all derivatives to wrt psi, not normalized psi
      fbig = fbig/(psilim-psimin)
@@ -1945,8 +1947,14 @@ subroutine calc_rotation(psi0,omega, x, z)
      fbig = 0.
      fbigp = 0.
      fbigpp = 0.
+     alphap0  = alpha0 + alpha1 + alpha2 + alpha3
+     alphap   = 0.
+     alphapp  = 0.
+     alphappp = 0.
+     if(iscale_rot_by_p.eq.0) alphap0 = alphap0/pedge
   else
      call fget(psii(1), fbig0, fbig, fbigp, fbigpp)
+     call alphaget(psii(1),alphap0,alphap,alphapp,alphappp)
   endif
 
 !.....include toroidal rotation in equilibrium
@@ -1967,7 +1975,6 @@ subroutine calc_rotation(psi0,omega, x, z)
   r1m= x**2/rzero**2
   r2 = (x**2 - rzero**2)**2/rzero**4
   r3 = (x**2 - rzero**2)**3/rzero**6
-  call alphaget(psii(1),alphap0,alphap,alphapp,alphappp)
 
 !...convert all derivatives to wrt psi, not normalized psi
   fbig = fbig/(psilim-psimin)

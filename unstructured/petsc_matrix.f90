@@ -240,6 +240,11 @@ contains
 
     PetscScalar :: data(1)
     integer :: im(1), in(1), ierr
+
+    if(val.eq.0) then
+       if(i.ne.j) return
+    end if
+
     data(1) = val
     im(1) = i - 1
     in(1) = j- 1
@@ -270,6 +275,11 @@ contains
 
     PetscScalar :: data(1)
     integer :: im(1), in(1), ierr
+
+    if(val.eq.0.) then
+       if(i.ne.j) return
+    endif
+
     data(1) = val
     im(1) = i - 1
     in(1) = j - 1
