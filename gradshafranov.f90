@@ -925,7 +925,7 @@ subroutine deltafun(x,z,val,jout)
         do k=1, coeffs_per_tri
            temp(i) = temp(i) - val2*c(i,k)*si**mi(k)*eta**ni(k)
         end do
-        if(equilibrate) temp(i) = temp(i)*equil_fac(i, itri)
+        if(equilibrate.eq.1) temp(i) = temp(i)*equil_fac(i, itri)
      end do
 
 #ifdef USE3D

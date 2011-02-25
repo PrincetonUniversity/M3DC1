@@ -161,6 +161,7 @@ contains
     implicit none
     
     type(scorec_matrix) :: mat
+    call clear_mat(mat)
     call deletematrix(mat%imatrix)
   end subroutine scorec_matrix_destroy
 
