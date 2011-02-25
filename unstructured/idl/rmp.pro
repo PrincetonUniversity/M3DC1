@@ -1,5 +1,6 @@
 pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
-                   ntor=ntor, label=label, psi0=psi0, i0=i0
+                   psi_val=psi_val, ntor=ntor, label=label, psi0=psi0, i0=i0, $
+                   m_val=m_val
 
    print, 'Drawing schaffer plot'
 
@@ -34,6 +35,9 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
                           area=area,nflux=nflux,tbins=bins,fbins=bins, $
                           /pest, _EXTRA=extra)
 
+;   plot, nflux, q, _EXTRA=extra
+;   return
+
    for i=0, n_elements(angle)-1 do begin
        a_r[0,*,i] = (2.*!pi)^2*a_r[0,*,i]*q/area
        a_i[0,*,i] = (2.*!pi)^2*a_i[0,*,i]*q/area
@@ -50,11 +54,39 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    m = shift(f,-(n/2+1))
    d = shift(c,0,-(n/2+1),0)
    
-   xtitle='!8m!X'
-   ytitle='!9r!7W!X'
+   if(n_elements(m_val) ne 0) then begin
 
-   if(n_elements(q_val) ne 0) then begin
-       indices = interpol(findgen(n_elements(q)), q, q_val)
+       q_val = abs(m_val/ntor)
+       indices = interpol(findgen(n_elements(q)), q, q_val)       
+
+       for i=0, n_elements(m_val)-1 do begin
+           dum = min(m-m_val[i], j, /abs)
+
+           c = colors()
+           if(i eq 0) then begin
+               plot, nflux, abs(d[0,j,*]), color=c[0], /nodata, _EXTRA=extra
+           endif
+
+           oplot, nflux, abs(d[0,j,*]), color=c[i+1]
+
+           fv = interpolate(nflux,indices[i])
+           oplot, [fv,fv], !y.crange, color=c[i+1], linestyle=1
+       end
+
+       if(n_elements(m_val) gt 1) then begin
+           plot_legend, m_val, color=c[1:n_elements(m_val)], _EXTRA=extra
+       endif
+
+       return
+   endif
+
+   if (n_elements(psi_val) ne 0) then begin
+       indices = interpol(findgen(n_elements(nflux)), nflux, psi_val)
+   endif else if(n_elements(q_val) ne 0) then begin
+       indices = interpol(findgen(n_elements(q)), q, q_val)       
+   endif
+
+   if(n_elements(indices) ne 0) then begin
        print, q[fix(indices)]
        print, q[fix(indices+1)]
 
@@ -75,7 +107,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        endelse
 
        col = colors()
-       for i=0, n_elements(q_val)-1 do begin
+       for i=0, n_elements(indices)-1 do begin
            dum = min(m-q_val[i]*ntor, j, /abs)
            dum = min(m+q_val[i]*ntor, k, /abs)
 
@@ -93,21 +125,6 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
            end
        end
        return
-       
-
-       for n=0, n_elements(q_val)-1 do begin
-           dum = min(q-q_val[n], i, /abs)
-           dum = min(m-q_val[n]*ntor, j, /abs)
-           dum = min(m+q_val[n]*ntor, k, /abs)
-           print, 'Psi, q = ', nflux[i], q[0,i]
-           print, 'Resonant field: m = ', m[j], abs(d[0,j,i]), $
-             atan(imaginary(d[0,j,i]),real_part(d[0,j,i]))
-           print, 'Resonant field: m = ', m[k], abs(d[0,k,i]), $
-             atan(imaginary(d[0,k,i]),real_part(d[0,k,i]))
-       end
-       dum = min(q-q_val[2], i, /abs)
-       oplot, m[*], abs(dold[0,*,i])
-       return
    endif
 
    if(1 eq strcmp(!d.name, 'PS', /fold_case)) then begin
@@ -115,6 +132,9 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    endif else begin
        xsize = 1.
    endelse
+
+   xtitle='!8m!X'
+   ytitle='!9r!7W!X'
 
    contour_and_legend, abs(d), m, sqrt(nflux),  $
      table=39, xtitle=xtitle, ytitle=ytitle, $
