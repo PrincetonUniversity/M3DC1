@@ -110,7 +110,11 @@ contains
 
 #include "finclude/petsc.h"
 
+#ifdef PetscDEV
+    PetscBool :: flg_petsc
+#else
     PetscTruth :: flg_petsc
+#endif
     integer :: ierr
 
     if(mat%imatrix .le. 0) then
@@ -318,7 +322,11 @@ contains
     real rms, grms
 #endif 
 
+#ifdef PetscDEV
+    PetscBool :: flg_petsc, flg_solve2, flg_pdslin
+#else
     PetscTruth :: flg_petsc, flg_solve2, flg_pdslin
+#endif
 
     call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc ,ierr)
     call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ierr)

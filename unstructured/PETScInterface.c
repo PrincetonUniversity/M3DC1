@@ -80,6 +80,47 @@ int setPETScKSP(int matrixid, KSP * ksp, Mat * A) {
 			  PETSC_DEFAULT, PETSC_DEFAULT);CHKERRQ(ierr);
   ierr = KSPSetFromOptions(*ksp);CHKERRQ(ierr);
   PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScKSP for %d\n", matrixid); 
+
+#ifdef CJ_MATRIX_DUMP
+  //test: A onex = oneb  onex=1
+  int i, flag, its;
+  int ldb, numglobaldofs;
+
+  checkMatrixStatus_(&matrixid, &flag);
+      if(flag==1) {
+         PetscScalar rms, normb, normr, minus=-1.;
+         Vec    oneb, onex, oner;
+         KSPConvergedReason reason;
+
+         getMatrixLocalDofNum_(&matrixid, &ldb);
+         getMatrixGlobalDofs_(&matrixid, &numglobaldofs);
+         ierr = VecCreateMPI(MPI_COMM_WORLD, ldb, PETSC_DECIDE, &onex);
+         ierr = VecDuplicate(onex, &oneb); CHKERRQ(ierr);
+         ierr = VecDuplicate(onex, &oner); CHKERRQ(ierr);
+         PetscPrintf(PETSC_COMM_WORLD, "\tipetsc_%d: numglobaldofs_%d ldb_%d \n",
+                 matrixid, numglobaldofs, ldb);
+
+         rms=1.;
+         ierr = VecSet(onex, rms); CHKERRQ(ierr);
+         ierr = MatMult(*A, onex, oneb) ; CHKERRQ(ierr);
+         ierr = KSPSolve(*ksp, oneb, onex); CHKERRQ(ierr);
+         ierr = KSPGetConvergedReason(*ksp,&reason);
+         ierr = KSPGetIterationNumber(*ksp, &its); CHKERRQ(ierr);
+         ierr = KSPMonitorTrueResidualNorm(*ksp, its, rms, PETSC_NULL); CHKERRQ(ierr);
+         ierr = KSPView(*ksp, PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
+
+         ierr = VecNorm(onex,NORM_1,&rms); CHKERRQ(ierr);
+         ierr = VecNorm(oneb,NORM_2,&normb); CHKERRQ(ierr);
+         ierr = VecScale(oneb,minus); CHKERRQ(ierr);
+         ierr = MatMultAdd(*A,onex,oneb,oner); CHKERRQ(ierr);
+         ierr = VecNorm(oner,NORM_2,&normr); CHKERRQ(ierr);
+         PetscPrintf(PETSC_COMM_WORLD, "\tipetsc_%d: its_%d one=%e sres_%e converged_reason_%d\n",
+                     matrixid, its, rms/(float)numglobaldofs, normr/normb, reason);
+         ierr = VecDestroy(oneb); CHKERRQ(ierr);
+         ierr = VecDestroy(onex); CHKERRQ(ierr);
+      }
+#endif
+
   return 0;
 }
 
@@ -136,7 +177,7 @@ int get_counter_(int *matrixId, int *counter)
    preconditioner is update every MAX_SAME_PC_COUNT times
    only for matrix with Id=5,1,6
 */
-#define MAX_SAME_PC_COUNT 10
+#define MAX_SAME_PC_COUNT 1
 #define MAX_LINEAR_SYSTEM 40
 #define SOLVE2_DEBUG 1
 
@@ -161,7 +202,11 @@ int solve2_(int *matrixId, double * rhs_sol, int * ier)
   int valType = 0;
   PetscScalar *values, rms, norm;
   PetscErrorCode ierr;
+#ifdef PetscDEV
+  PetscBool     flg;
+#else
   PetscTruth     flg;
+#endif
   PetscLogDouble  v1,v2; 
 
   // petsc structure
@@ -240,10 +285,12 @@ int solve2_(int *matrixId, double * rhs_sol, int * ier)
 
      /* Step 3: construct ksp */
      ierr=KSPCreate(PETSC_COMM_WORLD,&(ksp_array[whichMatrix].ksp));CHKERRQ(ierr);
+     /*
      if(*matrixId==5 || *matrixId==6)
      ierr=KSPAppendOptionsPrefix((ksp_array[whichMatrix].ksp), "solve2_");CHKERRQ(ierr); 
      if(*matrixId==4 || *matrixId==2)
      ierr=KSPAppendOptionsPrefix((ksp_array[whichMatrix].ksp), "solve1_");CHKERRQ(ierr); 
+     */
      if(SOLVE2_DEBUG)
      PetscPrintf(PETSC_COMM_WORLD, "\tsolve2_: create ksp_%d into ksp_array\n", *matrixId);
 
@@ -393,6 +440,7 @@ int hybridsolve_(int *matrixId, double *rhs_sol, int *ier)
   double *oneb_loc, *onex_loc, rms, grms, oneb, onex, goneb, gonex;
 
 
+#ifdef TODO
   /* at the very begining allocate space */
   if(!start) {
      for(i=0; i<MAX_LINEAR_SYSTEM; i++) {
@@ -672,5 +720,6 @@ dhybrid_solver( hs_array[whichMatrix].b_loc,
 
 exit(1);
 */
+#endif
   return 0;
 }

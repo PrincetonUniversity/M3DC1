@@ -1,5 +1,5 @@
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS)
-CCOPTS  = -c -O
+CCOPTS  = -c -O #-DPetscDEV -DCJ_MATRIX_DUMP
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -fast

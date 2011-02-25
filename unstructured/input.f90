@@ -301,7 +301,11 @@ subroutine validate_input
   implicit none
 
 #include "finclude/petsc.h"
+#ifdef PetscDEV
+  PetscBool :: flg_petsc, flg_solve2, flg_pdslin
+#else
   PetscTruth :: flg_petsc, flg_solve2, flg_pdslin
+#endif
   integer :: ier
 
   if(amuc.eq.0.) amuc = amu
