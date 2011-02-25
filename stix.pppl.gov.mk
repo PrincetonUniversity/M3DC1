@@ -96,8 +96,10 @@ ifeq ($(USESCOREC), 1)
 	-lmeshAdapt-mpich2$(SCORECOPT) \
 	-lmeshTools-mpich2$(SCORECOPT) \
 	-lSolver-mpich2$(SCORECOPT) \
-	-lPPPLTEST-mpich2$(SCORECOPT) \
+	-lPPPL-mpich2$(SCORECOPT) \
 	-lipcomman-mpich2$(SCORECOPT)
+#	-lPPPLTEST-mpich2$(SCORECOPT) \
+
 #  else
 #    # 2D Libraries
 #

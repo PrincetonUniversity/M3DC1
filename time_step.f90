@@ -588,6 +588,7 @@ subroutine split_step(calc_matrices)
 #endif
 
      call newsolve(s1_mat, b1_vel, jer)
+     if(linear.eq.0) call clear_mat(s1_mat)
 
 #ifdef CJ_MATRIX_DUMP
      if(counter.le.0) then 
@@ -677,6 +678,7 @@ subroutine split_step(calc_matrices)
 #endif 
 
      call newsolve(s8_mat, temp, jer)
+     if(linear.eq.0) call clear_mat(s8_mat)
 
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.2) then
@@ -766,6 +768,7 @@ subroutine split_step(calc_matrices)
 #endif 
 
      call newsolve(s9_mat, temp, jer)
+     if(linear.eq.0) call clear_mat(s9_mat)
 
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.2) then
@@ -872,6 +875,7 @@ subroutine split_step(calc_matrices)
 #endif 
 
      call newsolve(s2_mat, b1_phi, jer)
+     if(linear.eq.0 .and. iteratephi.eq.0) call clear_mat(s2_mat)
 
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.2) then
@@ -975,6 +979,7 @@ subroutine split_step(calc_matrices)
 #endif 
 
         call newsolve(s2_mat, b1_phi, jer)
+        if(linear.eq.0) call clear_mat(s2_mat)
         
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.2) then
@@ -1083,6 +1088,7 @@ subroutine unsplit_step(calc_matrices)
   endif
 #endif 
   call newsolve(s1_mat, b1_phi, jer)
+  if(linear.eq.0 .and. iteratephi.eq.0) call clear_mat(s1_mat)
 #ifdef CJ_MATRIX_DUMP
   if(counter.le.0) then 
      call write_vector(b1_phi, 's1_mat_sol.out')
@@ -1170,6 +1176,7 @@ subroutine unsplit_step(calc_matrices)
 #endif 
 
      call newsolve(s1_mat, b1_phi, jer)
+     if(linear.eq.0) call clear_mat(s1_mat)
 
 #ifdef CJ_MATRIX_DUMP
      if(counter.le.0) then
