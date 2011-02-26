@@ -267,10 +267,11 @@ subroutine hdf5_write_scalars(error)
      call h5gopen_f(root_id, "scalars", scalar_group_id, error)
   endif
 
-  call output_scalar(scalar_group_id, "time" , time  , ntime, error)
+  call output_scalar(scalar_group_id, "time" , time, ntime, error)
+  call output_scalar(scalar_group_id, "dt" ,     dt, ntime, error)
 
   call output_scalar(scalar_group_id, "loop_voltage"    , vloop , ntime, error)
-  call output_scalar(scalar_group_id, "psi_lcfs"        , psibound,ntime, error)
+  call output_scalar(scalar_group_id, "psi_lcfs"        , psibound,ntime,error)
 
   call output_scalar(scalar_group_id, "area"            , area  , ntime, error)
   call output_scalar(scalar_group_id, "toroidal_flux"   , tflux , ntime, error)
@@ -279,12 +280,12 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "angular_momentum", tmom  , ntime, error)
   call output_scalar(scalar_group_id, "circulation"     , tvor  , ntime, error)
 
-  call output_scalar(scalar_group_id, "area_p"            , parea, ntime, error)
-  call output_scalar(scalar_group_id, "toroidal_flux_p"   , pflux, ntime, error)
-  call output_scalar(scalar_group_id, "toroidal_current_p", pcur , ntime, error)
-  call output_scalar(scalar_group_id, "particle_number_p" , pden , ntime, error)
-  call output_scalar(scalar_group_id, "angular_momentum_p", pmom , ntime, error)
-  call output_scalar(scalar_group_id, "circulation_p"     , pvor , ntime, error)
+  call output_scalar(scalar_group_id, "area_p"            , parea,ntime, error)
+  call output_scalar(scalar_group_id, "toroidal_flux_p"   , pflux,ntime, error)
+  call output_scalar(scalar_group_id, "toroidal_current_p", pcur ,ntime, error)
+  call output_scalar(scalar_group_id, "particle_number_p" , pden ,ntime, error)
+  call output_scalar(scalar_group_id, "angular_momentum_p", pmom ,ntime, error)
+  call output_scalar(scalar_group_id, "circulation_p"     , pvor ,ntime, error)
   
   call output_scalar(scalar_group_id, "E_MP" , emagp , ntime, error)
   call output_scalar(scalar_group_id, "E_KP" , ekinp , ntime, error)
