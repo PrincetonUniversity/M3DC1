@@ -1051,17 +1051,21 @@ subroutine unsplit_step(calc_matrices)
   real :: tstart, tend
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Solving matrix equation..."
-  
-  ! vtemp = d1matrix_sm * phi(n)
-  call matvecmult(d1_mat,phi_vec,b1_phi)
-  call add(b1_phi, q4_vec)
 
-  ! Include linear f terms
-  if(numvar.ge.2 .and. i3d.eq.1) then
-     ! b2vector = r15 * bf(n)
-     call matvecmult(o1_mat,bf_field(1)%vec,b2_phi)
-     call add(b1_phi, b2_phi)
-  endif
+  if(itime_independent.eq.0) then
+     ! vtemp = d1matrix_sm * phi(n)
+     call matvecmult(d1_mat,phi_vec,b1_phi)
+     call add(b1_phi, q4_vec)
+
+     ! Include linear f terms
+     if(numvar.ge.2 .and. i3d.eq.1) then
+        ! b2vector = r15 * bf(n)
+        call matvecmult(o1_mat,bf_field(1)%vec,b2_phi)
+        call add(b1_phi, b2_phi)
+     endif
+  else
+     b1_phi = 0.
+  end if
    
   ! Insert boundary conditions
   if(calc_matrices.eq.1) then

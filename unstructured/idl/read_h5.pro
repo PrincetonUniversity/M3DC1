@@ -1201,7 +1201,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                      diff=diff, operation=op, complex=complex, $
                      linear=linear, last=last, average=average, $
                      dpsi=dpsi, symbol=symbol, units=units, cgs=cgs, mks=mks, $
-                     real=real, imaginary=imag, edge_val=edge_val, phi=phi0
+                     real=real, imaginary=imag, edge_val=edge_val, phi=phi0, $
+                     time=realtime
 
    if(n_elements(slices) ne 0) then time=slices else time=0
 
@@ -1286,6 +1287,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
    if(keyword_set(last)) then time = [nt-1,nt-1]
    if(ilin eq 1 and keyword_set(equilibrium)) then time=[-1,-1]
+
+   realtime = get_slice_time(filename=filename, slice=time[0])
 
    if(n_elements(time) eq 0) then begin
        trange = [0,nt-1]
@@ -2669,14 +2672,14 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                                units=units, cgs=cgs, mks=mks, $
                               equilibrium=equilibrium)
            return, complex(data_r, data_i)
-       endif else print, 'Reading real field'
+       endif else print, ' reading real field'
 
        t = fltarr(trange[1]-trange[0]+1)
        file_id = h5f_open(filename)
 
        if((max(trange) ge 0) and $
           (isubeq eq 1) and (not keyword_set(linear)))  then begin
-           print, 'Reading base field', trange
+           print, ' reading base field', trange
            base = read_field(name, x, y, t, slices=-1, mesh=mesh, $
                              filename=filename, points=pts, $
                              rrange=xrange, zrange=yrange, $
@@ -2690,7 +2693,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        for i=trange[0], trange[1] do begin
            
-           print, 'Time ', i
+           print, ' reading time slice ', i
 
            time_group_id = h5g_open(file_id, time_name(i))
            mesh = h5_parse(time_group_id, 'mesh', /read_data)   
@@ -2746,6 +2749,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    convert_units, data, d, b0, n0, l0, cgs=cgs, mks=mks
    convert_units, x, dimensions(/l0), b0, n0, l0, cgs=cgs, mks=mks
    convert_units, y, dimensions(/l0), b0, n0, l0, cgs=cgs, mks=mks
+   convert_units, realtime, dimensions(/t0), b0, n0, l0, cgs=cgs, mks=mks
    units = parse_units(d, cgs=cgs, mks=mks)
 
    if(not keyword_set(complex)) then begin
@@ -4654,11 +4658,10 @@ end
 
 pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                 mcolor=mc, lcfs=lcfs, title=title, units=units, $
-                maskrange=maskrange, maskfield=maskfield, range=range, $
-                rrange=rrange, zrange=zrange, linear=linear, $
+                range=range, rrange=rrange, zrange=zrange, linear=linear, $
                 xlim=xlim, cutx=cutx, cutz=cutz, mpeg=mpeg, $
                 mask_val=mask_val, boundary=boundary, q_contours=q_contours, $
-                overplot=overplot, phi=phi0, _EXTRA=ex
+                overplot=overplot, phi=phi0, time=realtime, _EXTRA=ex
 
    if(n_elements(time) eq 0) then time = 0
    if(n_elements(p) eq 0) then p = 50
@@ -4669,7 +4672,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
        field = read_field(name, x, y, t, slices=time, mesh=mesh, $
                           points=p, rrange=rrange, zrange=zrange, $
                           symbol=fieldname, units=u, linear=linear, $
-                          mask=mask, phi=phi0, _EXTRA=ex)
+                          mask=mask, phi=phi0, time=realtime, _EXTRA=ex)
        if(n_elements(field) le 1) then return
 
        if(n_elements(units) eq 0) then units=u
@@ -4678,24 +4681,13 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
        if(n_elements(field) le 1) then return
    endelse
 
+   print, 'time = ', realtime
+
    ; remove NaN's from result
    i = where(not float(finite(field)), count)
    if(count gt 0) then begin
        print, "removing NaN's"
        field[i] = 0.
-   endif
-
-   if(n_elements(maskrange) eq 2) then begin
-       if((strcmp(name, maskfield) eq 1) and $
-         (not keyword_set(linear))) then begin
-           psi = field
-       endif else begin
-           psi = read_field(maskfield, slices=time, mesh=mesh, $
-                            points=p, rrange=rrange, zrange=zrange, $
-                           /equilibrium, mask=mask, phi=phi0, _EXTRA=ex)
-       endelse
-       newmask = (psi ge maskrange[0]) and (psi le maskrange[1])
-       field = newmask*field + (1-newmask)*(min(field-newmask*field,/absolute))
    endif
 
    sz = size(field, /dimension)

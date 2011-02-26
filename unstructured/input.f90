@@ -102,6 +102,7 @@ subroutine set_defaults
   imp_mod = 1
   irecalc_eta = 0
   iconst_eta = 0
+  itime_independent = 0
   thimp = 0.5
   thimp_ohm = -1.
   thimpsm = 1.
