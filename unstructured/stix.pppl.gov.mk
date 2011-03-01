@@ -5,7 +5,7 @@ ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -fast
   CCOPTS := $(CCOPTS) -O
 else
-  FOPTS := $(FOPTS) #-g -check all -check noarg_temp_created -debug all -ftrapuv
+  FOPTS := $(FOPTS) -g -check all -check noarg_temp_created -debug all -ftrapuv
 endif
 
 ifeq ($(TAU), 1)

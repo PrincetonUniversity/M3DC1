@@ -573,7 +573,7 @@ end function b4ped
 !======================================================================
 ! Electrostatic Potential Equation
 !======================================================================
-subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, q_bf, r_e)
+subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e)
 
   use basic
   use arrays
@@ -585,7 +585,7 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, q_bf, r_e)
   vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: trial, lin 
   vectype, dimension(num_fields), intent(out) :: ssterm, ddterm
   vectype, intent(out) :: r_e
-  vectype, intent(out) :: q_ni, q_bf
+  vectype, intent(out) :: q_ni, q_bf, r_bf
   vectype :: temp
   real :: thimp_e, thimpb_e, thimpf_e
 
@@ -605,6 +605,7 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, q_bf, r_e)
   ssterm = 0.
   ddterm = 0.
   q_ni = 0.
+  r_bf = 0.
   q_bf = 0.
 
   r_e = b4e(trial,lin)

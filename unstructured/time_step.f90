@@ -19,6 +19,7 @@ module time_step
   type(field_type) :: den_v, deno_v
   type(field_type) ::   p_v,   po_v
   type(field_type) ::   e_v,   eo_v
+  type(field_type) ::  bf_v,  bfo_v
 
   ! the offset (relative to the node offset) of the named field within
   ! their respective vectors
@@ -246,8 +247,13 @@ contains
        chi_i = 3
        pe_i = 3
        den_i = 1
-       bf_i = 1
-       e_i = numvar + 1
+       if(imp_bf.eq.1) then
+          bf_i = numvar + 1
+          e_i = numvar + 2
+       else
+          bf_i = 1
+          e_i = numvar + 1
+       end if
        if(ipres.eq.1) then
           p_i = 1
        else
@@ -287,6 +293,11 @@ contains
           call associate_field(e_v, phi_vec, e_i)
        end if
 
+       if(imp_bf.eq.1) then
+          call associate_field(bf_v, phi_vec, bf_i)
+          call associate_field(bfo_v, phiold_vec, bf_i)
+       end if
+
     else
        u_i = 1
        psi_i = 2
@@ -300,8 +311,14 @@ contains
        else
           p_i = pe_i
        endif
-       bf_i = 1
-       e_i = 2*numvar+idens+ipres+1
+       if(imp_bf.eq.1) then
+          bf_i = 2*numvar+idens+ipres+1
+          e_i = 2*numvar+idens+ipres+2
+       else
+          bf_i = 1
+          e_i = 2*numvar+idens+ipres+1
+       end if
+
 
        call associate_field(u_v,    phi_vec,      u_i)
        call associate_field(uo_v,   phiold_vec,   u_i)
@@ -330,6 +347,11 @@ contains
        if(idens.eq.1) then
           call associate_field(den_v,  phi_vec,    den_i)
           call associate_field(deno_v, phiold_vec, den_i)
+       end if
+
+       if(imp_bf.eq.1) then
+          call associate_field(bf_v, phi_vec, bf_i)
+          call associate_field(bfo_v, phiold_vec, bf_i)
        end if
 
        if(jadv.eq.0 .and. i3d.eq.1) then
@@ -456,6 +478,7 @@ subroutine import_time_advance_vectors
   endif
   if(ipres.eq.1) p_v = p_field(1)
   if(idens.eq.1) den_v = den_field(1)
+  if(imp_bf.eq.1) bf_v = bf_field(1)
 
 end subroutine import_time_advance_vectors
 
@@ -483,6 +506,7 @@ subroutine export_time_advance_vectors
   endif
   if(ipres.eq.1) p_field(1) = p_v
   if(idens.eq.1) den_field(1) = den_v
+  if(imp_bf.eq.1) bf_field(1) = bf_v
 end subroutine export_time_advance_vectors
 
 !============================================================
@@ -1388,6 +1412,18 @@ subroutine get_p_mask(itri, imask)
   call get_boundary_mask(itri, ibound, imask)
 end subroutine get_p_mask
 
+subroutine get_bf_mask(itri, imask)
+  use element
+  use basic
+  use boundary_conditions
+  implicit none
+  integer, intent(in) :: itri
+  integer, intent(out), dimension(dofs_per_element) :: imask
+  integer :: ibound
+
+  ibound = BOUNDARY_DIRICHLET
+  call get_boundary_mask(itri, ibound, imask)
+end subroutine get_bf_mask
 
 subroutine get_vor_mask(itri, imask)
   use element
@@ -1549,7 +1585,7 @@ subroutine boundary_mag(rhs, mat)
   vectype, dimension(dofs_per_node) :: temp, temp2, temp3
   real :: normal(2), curv, x, z
   integer :: i, izone, izonedim,  numnodes
-  integer :: i_psi, i_bz, i_pe, i_e
+  integer :: i_psi, i_bz, i_pe, i_e, i_bf
   logical :: is_boundary
 
   if(iper.eq.1 .and. jper.eq.1) return
@@ -1565,6 +1601,8 @@ subroutine boundary_mag(rhs, mat)
      if(numvar.ge.2) i_bz = node_index(bz_v, i)
      if(numvar.ge.3) i_pe = node_index(pe_v, i)
      if(jadv.eq.0 .and. i3d.eq.1) i_e = node_index(e_v, i)
+     if(imp_bf.eq.1) i_bf = node_index(bf_v, i)
+
 
      if(eta_wall .eq. 0.) then
         ! clamp poloidal field
@@ -1639,6 +1677,11 @@ subroutine boundary_mag(rhs, mat)
         temp = 0.
         call set_dirichlet_bc(i_e,rhs,temp,normal,curv,izonedim,mat)
      endif
+
+     if(imp_bf.eq.1) then
+        temp = 0.
+        call set_dirichlet_bc(i_bf,rhs,temp,normal,curv,izonedim,mat)
+     end if
   end do
 
   if(eta_wall.ne.0.) call insert_resistive_wall(rhs,mat)

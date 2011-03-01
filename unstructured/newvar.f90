@@ -271,8 +271,7 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs)
               temp(i,j,1,1) = int2(mu79(:,OP_1,i),nu79(:,OP_GS,j))
               
            case(NV_BF_MATRIX)
-              temp(i,j,1,1) = int3(r2_79,mu79(:,OP_1,i),nu79(:,OP_LP,j))  &
-                   - regular*int3(r2_79,mu79(:,OP_1,i),nu79(:,OP_1,j))
+              temp(i,j,1,1) = int3(r2_79,mu79(:,OP_1,i),nu79(:,OP_LP,j))
 
            case(NV_SJ_MATRIX)
               if(is_lhs) then

@@ -87,6 +87,7 @@ subroutine set_defaults
   inertia = 1
   itwofluid = 1
   ibootstrap = 0
+  imp_bf = 0
   nosig = 0
   itor = 0
   gravr = 0.
