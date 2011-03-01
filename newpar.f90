@@ -578,16 +578,18 @@ subroutine derived_quantities(ilin)
   endif
 
   ! vector potential stream function
-  if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
-     if(myrank.eq.0 .and. iprint.ge.2) print *, "  f"
-     if(ilin.eq.0) then 
-        temp = bzero*rzero
-        call add(bz_field(ilin),-temp)
+  if(imp_bf.eq.0 .or. ilin.eq.0 .or. ntime.eq.0) then
+     if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
+        if(myrank.eq.0 .and. iprint.ge.2) print *, "  f"
+        if(ilin.eq.0) then 
+           temp = bzero*rzero
+           call add(bz_field(ilin),-temp)
+        endif
+        call solve_newvar1(bf_mat_lhs,bf_field(ilin),mass_mat_rhs_bf, &
+             bz_field(ilin), bf_field(ilin))
+        if(ilin.eq.0) call add(bz_field(ilin), temp)
      endif
-     call solve_newvar1(bf_mat_lhs,bf_field(ilin),mass_mat_rhs_bf, &
-          bz_field(ilin), bf_field(ilin))
-     if(ilin.eq.0) call add(bz_field(ilin), temp)
-  endif
+  end if
 
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
@@ -1149,8 +1151,12 @@ subroutine space(ifirstcall)
      vecsize_phi  = numvar*2 + idens + ipres
   endif
 
-! add electrostatic potential equation
+  ! add electrostatic potential equation
   if(jadv.eq.0 .and. i3d.eq.1) vecsize_phi = vecsize_phi + 1
+
+  ! add bf equation
+  if(imp_bf.eq.1) vecsize_phi = vecsize_phi + 1
+
 
   if(isplitstep.eq.0) then
      vecsize_vel  = vecsize_phi

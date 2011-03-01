@@ -167,6 +167,7 @@ module basic
   integer :: numvar      ! 1 = 2-field; 2 = reduced MHD; 3 = compressible MHD
   integer :: idens       ! evolve density
   integer :: ipres       ! evolve total and electron pressures separately
+  integer :: imp_bf      ! include bf implicitly
   integer :: gyro        ! include gyroviscosity
   integer :: jadv        ! 1 = use current density equation, not flux equation
   integer :: isources    ! 1 = include "source" terms in velocity advance
@@ -267,6 +268,7 @@ module basic
        itaylor,                                                &
        xzero,zzero,beta,rzero, libetap, xlim2, zlim2,          &
        numvar,idens,ipres,gyro,isources,nosig,itor,jadv,       &
+       imp_bf, &
        gam,db,gravr,gravz,                                     &
        p0,pi0,bzero,vzero,phizero, pscale,bscale,              &
        etar,eta0,iresfunc,etaoff,etadelt,lambdae,mass_ratio,   &
@@ -354,7 +356,6 @@ module arrays
 
   ! Arrays containing physical fields
   type(vector_type), target :: field_vec, field0_vec
-  type(field_type) :: bf_field(0:1)
 
   ! Arrays containing auxiliary variables
   type(field_type) :: jphi_field, vor_field, com_field
@@ -381,6 +382,7 @@ module arrays
   type(field_type) :: u_field(0:1), vz_field(0:1), chi_field(0:1)
   type(field_type) :: psi_field(0:1), bz_field(0:1), pe_field(0:1)
   type(field_type) :: den_field(0:1), p_field(0:1)
+  type(field_type) :: bf_field(0:1)
 
   ! the following pointers point to the locations of the named field within
   ! the respective vector.  set by assign_local_pointers()

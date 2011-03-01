@@ -6,17 +6,22 @@
 ! x, an array of dimension m x n,
 ! about index (i,j)
 !=====================================================
-subroutine bicubic_interpolation_coeffs(x,m,n,i,j,a)
+subroutine bicubic_interpolation_coeffs(x,m,n,i0,j0,a)
   implicit none
 
-  integer, intent(in) :: m, n, i, j
+  integer, intent(in) :: m, n, i0, j0
   real, intent(in), dimension(m,n) :: x
   real, intent(out), dimension(4,4) :: a
 
-  a = 0.
+  integer :: i, j
 
-  if(i.lt.1 .or. i.gt.m) return
-  if(j.lt.1 .or. j.gt.n) return
+  i = i0
+  j = j0
+
+  if(i.lt.2) i=2
+  if(j.lt.2) j=2
+  if(i.gt.m-2) i=m-2
+  if(j.gt.n-2) j=n-2
 
   a(1,1) = x(i,j)
   a(1,2) = (-2.*x(i,j-1)-3.*x(i,j)+6.*x(i,j+1)-x(i,j+2))/6.
@@ -71,15 +76,19 @@ end subroutine bicubic_interpolation_coeffs
 ! x, an array of dimension m,
 ! about index i
 !=====================================================
-subroutine cubic_interpolation_coeffs(x,m,i,a)
+subroutine cubic_interpolation_coeffs(x,m,i0,a)
 
   implicit none
 
-  integer, intent(in) :: m, i
+  integer, intent(in) :: m, i0
   real, intent(in), dimension(m) :: x
   real, intent(out), dimension(4) :: a
-  integer :: ihermite
+  integer :: ihermite, i
   real  :: xpi,xpip
+
+  i = i0
+  if(i.lt.1) i=1
+  if(i.gt.m) i=m
 
   ihermite = 0
   select case(ihermite)

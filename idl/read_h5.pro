@@ -3191,7 +3191,9 @@ pro plot_flux_contour, fval, _EXTRA=extra
 
    psi = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra)
 
-   contour, psi, x, z, closed=0, levels=fval(sort(fval)), _EXTRA=extra
+   loadct, 12
+   contour, psi, x, z, closed=0, levels=fval(sort(fval)), color=color(6,10), $
+     _EXTRA=extra
 end
 
 
@@ -4736,15 +4738,15 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                  thick=1, _EXTRA=ex
            endif
 
+           if(keyword_set(lcfs)) then begin
+               plot_lcfs, points=p, slice=time, $
+                 _EXTRA=ex
+           endif
+
            if(keyword_set(boundary)) then plotmesh=1
            if(keyword_set(plotmesh)) then begin
                plot_mesh, mesh=mesh, /oplot, $
                  boundary=boundary, _EXTRA=ex
-           endif
-
-           if(keyword_set(lcfs)) then begin
-               plot_lcfs, points=p, slice=time, $
-                 _EXTRA=ex
            endif
            
            if(n_elements(mpeg) ne 0) then begin
