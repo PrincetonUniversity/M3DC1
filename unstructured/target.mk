@@ -1,7 +1,7 @@
 .SUFFIXES:
 
 ifndef ARCH
-  ARCH = $(shell echo $(HOST) | gawk '{ sub(/[0-9]+/,""); print }')
+  ARCH = $(shell echo $(HOST) | awk '{ sub(/[0-9]+/,""); print }')
 # ARCH = $(shell uname -s)-$(shell uname -p)
 endif
 

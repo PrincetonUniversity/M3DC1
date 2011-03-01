@@ -148,7 +148,6 @@ contains
     call MatSeqBAIJSetPreallocation(mat%data,dofs_per_node, &
          neighbors*mat%n,PETSC_NULL_INTEGER,ierr)
 
-
 !    call MatSetOption(mat%data,MAT_KEEP_ZEROED_ROWS,PETSC_TRUE,ierr)
 
     if(lhs) then
@@ -396,6 +395,8 @@ contains
   subroutine petsc_matrix_insert_block(mat, itri, m, n, val, iop)
     use mesh_mod
     implicit none
+!#include "finclude/petscvec.h"
+
     type(matrix_type) :: mat
     integer, intent(in) :: itri, m, n, iop
     vectype, intent(in), dimension(dofs_per_element,dofs_per_element) :: val
@@ -404,6 +405,9 @@ contains
     integer, dimension(mat%n,dofs_per_element) :: icol
     integer :: i, j
 
+!    integer, dimension(1) :: im, in
+!    integer :: ierr
+
     call get_element_indices(mat, itri, irow, icol)
 
     do i=1, dofs_per_element
@@ -411,6 +415,16 @@ contains
           call insert(mat,val(i,j),irow(m,i),icol(n,j),iop)
        end do
     end do
+    
+!    im(1) = m-1
+!    in(1) = n-1
+!    select case(iop)
+!    case(MAT_ADD)
+!       call MatSetValuesBlocked(mat%data,1,im,1,in,val,ADD_VALUES,ierr)
+!    case(MAT_SET)
+!       call MatSetValuesBlocked(mat%data,1,im,1,in,val,INSERT_VALUES,ierr)
+!    end select
+
   end subroutine petsc_matrix_insert_block
 
   subroutine identity_row(mat, irow)
