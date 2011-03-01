@@ -398,7 +398,7 @@ subroutine onestep
   call import_time_advance_vectors
 
   ! advance time
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing times..."
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing time..."
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   if(isplitstep.eq.1) then
      call split_step(calc_matrices)

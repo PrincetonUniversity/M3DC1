@@ -43,6 +43,208 @@ module basic_mesh_mod
 
 contains
 
+  subroutine load_sms_mesh(nplanes, inodes, ielms, nodes, elms)
+    implicit none
+
+    integer, intent(in) :: nplanes
+    integer, intent(out) :: inodes, ielms
+    type(node_type), allocatable, intent(inout) :: nodes(:)
+    type(element_type), allocatable, intent(inout) :: elms(:)
+
+    integer :: i, j
+    integer, parameter :: ifile = 87
+    character(len=128) :: buffer
+    integer :: inodespp, ielmspp, iedges, dum
+    integer, allocatable :: edges(:,:)
+    integer, dimension(3) :: ed
+    
+    if(is_rectilinear) then
+       open(unit=ifile, file='struct-dmg.sms', status='old')
+    else
+       open(unit=ifile, file='struct-curveDomain.sms', status='old')
+    end if
+
+    read(ifile,*) buffer
+    read(ifile,*) dum, ielmspp, iedges, inodespp, dum
+    write(*,*) 'Reading file with '
+    write(*,*) ' elements = ', ielmspp
+    write(*,*) ' edges = ', iedges
+    write(*,*) ' nodes = ', inodespp
+    if(nplanes.gt.1) then
+       ielms = ielmspp*(nplanes-1)
+       inodes = inodespp*(nplanes-1)
+    else
+       ielms = ielmspp
+       inodes = inodespp
+    end if
+
+    allocate(nodes(inodes), elms(ielms), edges(iedges,2))
+
+    do i=1, inodespp
+       read(ifile,*) dum, nodes(i)%idim, dum
+       read(ifile,*) nodes(i)%R, nodes(i)%Z, nodes(i)%Phi
+    end do
+    do i=1, iedges
+       read(ifile,*) dum, dum, edges(i,1), edges(i,2), dum, dum
+    end do
+    do i=1, ielmspp
+       read(ifile,*) dum, dum, dum, ed(1), ed(2), ed(3), dum
+       do j=1, 3
+          if(ed(j).gt.0) then 
+             elms(i)%inode(j) = edges(ed(j),1)
+          else
+             elms(i)%inode(j) = edges(-ed(j),2)
+          end if
+       end do
+    end do
+
+    close(ifile)
+
+    deallocate(edges)
+
+    if(is_rectilinear) then
+       do i=1, inodes
+          nodes(i)%R = nodes(i)%R + xzero
+          nodes(i)%Z = nodes(i)%Z + zzero
+          if(nodes(i)%R.lt.bb(1) .or. i.eq.1) bb(1) = nodes(i)%R
+          if(nodes(i)%R.gt.bb(3) .or. i.eq.1) bb(3) = nodes(i)%R
+          if(nodes(i)%Z.lt.bb(2) .or. i.eq.1) bb(2) = nodes(i)%Z
+          if(nodes(i)%Z.gt.bb(4) .or. i.eq.1) bb(4) = nodes(i)%Z
+       end do
+       do i=1, inodes
+          if(nodes(i)%idim .ge.2) cycle
+          
+          nodes(i)%curv = 0
+          if(nodes(i)%R.eq.bb(1)) then
+             nodes(i)%normal(1) = -1.
+             nodes(i)%normal(2) = 0.
+          else if(nodes(i)%R.eq.bb(3)) then
+             nodes(i)%normal(1) = 1.
+             nodes(i)%normal(2) = 0.
+          else if(nodes(i)%Z.eq.bb(2)) then
+             nodes(i)%normal(1) = 0.
+             nodes(i)%normal(2) = -1.
+          else if(nodes(i)%Z.eq.bb(4)) then
+             nodes(i)%normal(1) = 0.
+             nodes(i)%normal(2) = 1.
+          else
+             print *, 'Error! boundary undetermined.'
+          end if
+       end do
+    else
+       ! Calculate curv and normal from modelfile
+       open(unit=ifile, file='AnalyticModel', status='old')
+       
+       close(ifile)
+    end if
+
+#ifdef USE3D
+    ! Create nodes in other planes
+    do i=2, nplanes-1
+       nodes((i-1)*inodespp+1:i*inodespp) = nodes(1:inodespp)
+    end do
+
+    ! Set "ghost" plane of elements in first plane
+    do j=1, ielmspp
+       elms(j)%node(4:6) = elms(j)%node(1:3) + (i-1)*inodespp
+    end do
+
+    ! Set nodes in other planes
+    do i=2, nplanes-1
+       do j=1, ielmspp
+          elms((i-1)*ielmspp+j)%node(:) = elms(j)%node(:)
+       end do
+    end do
+
+    ! Enforce periodic boundary conditions
+    do j=1, ielmspp
+       elms((nplanes-2)*ielmspp+j)%node(4:6) = elms(j)%node(1:3)
+    end do
+#endif
+
+  end subroutine load_sms_mesh
+
+  subroutine create_rectangular_mesh(m,n, nplanes,inodes, ielms, nodes, elms)
+    use math
+    implicit none
+
+    integer, intent(in) :: m, n, nplanes
+    integer, intent(out) :: inodes, ielms
+    type(node_type), allocatable, intent(inout) :: nodes(:)
+    type(element_type), allocatable, intent(inout) :: elms(:)
+
+    real :: dx, dz, dphi
+    integer :: i, j, k, l
+    
+    dx = (bb(3) - bb(1))/(m-1)
+    dz = (bb(4) - bb(2))/(n-1)
+    dphi = twopi/nplanes
+
+    inodes = m*n*nplanes
+    ielms  = 2*(m-1)*(n-1)*nplanes
+
+    print *, 'allocating', inodes, ielms
+    allocate(nodes(inodes), elms(ielms))
+
+    print *, 'initializing'
+    ! initialize nodes
+    ! ~~~~~~~~~~~~~~~~
+    k = 1
+    do l=1, nplanes
+       do i=1,m
+          do j=1,n
+             nodes(k)%R =   dx  *(j-1) + bb(1)
+             nodes(k)%Z =   dz  *(i-1) + bb(2)
+             nodes(k)%Phi = dphi*(l-1)
+             nodes(k)%idim = 2
+             if(j.eq.1 .or. j.eq.n) then
+                nodes(k)%idim = nodes(k)%idim - 1
+                nodes(k)%normal(2) = 0
+                nodes(k)%curv = 0
+                if(j.eq.1) nodes(k)%normal(1) = -1
+                if(j.eq.n) nodes(k)%normal(1) = 1
+             endif
+             if(i.eq.1 .or. i.eq.m) then
+                nodes(k)%idim = nodes(k)%idim - 1
+                nodes(k)%normal(1) = 0
+                nodes(k)%curv = 0
+                if(i.eq.1) nodes(k)%normal(2) = -1
+                if(i.eq.m) nodes(k)%normal(2) = 1
+             endif
+             k = k + 1
+          end do
+       end do
+    end do
+
+    ! initialize elements
+    ! ~~~~~~~~~~~~~~~~~~~
+    k = 1
+    do l=1, nplanes
+       do i=1,m-1
+          do j=1,n-1
+             elms(k)%inode(1) = (i-1)*n + (j  ) + (l-1)*n*m
+             elms(k)%inode(2) = (i  )*n + (j+1) + (l-1)*n*m
+             elms(k)%inode(3) = (i  )*n + (j  ) + (l-1)*n*m
+#ifdef USE3D
+             elms(k)%inode(4) = (i-1)*n + (j  ) + mod(l,nplanes)*n*m
+             elms(k)%inode(5) = (i  )*n + (j+1) + mod(l,nplanes)*n*m
+             elms(k)%inode(6) = (i  )*n + (j  ) + mod(l,nplanes)*n*m
+#endif
+             k = k + 1
+             elms(k)%inode(1) = (i-1)*n + (j  ) + (l-1)*n*m
+             elms(k)%inode(2) = (i-1)*n + (j+1) + (l-1)*n*m
+             elms(k)%inode(3) = (i  )*n + (j+1) + (l-1)*n*m
+#ifdef USE3D
+             elms(k)%inode(4) = (i-1)*n + (j  ) + mod(l,nplanes)*n*m
+             elms(k)%inode(5) = (i-1)*n + (j+1) + mod(l,nplanes)*n*m
+             elms(k)%inode(6) = (i  )*n + (j+1) + mod(l,nplanes)*n*m
+#endif
+             k = k + 1
+          end do
+       end do
+    end do
+  end subroutine create_rectangular_mesh
+
   subroutine load_mesh
 
     use math
@@ -57,16 +259,12 @@ contains
 #endif
 #include "finclude/petscis.h90"
 
-    integer, parameter :: m = 41
-    integer, parameter :: n = 41
-
-    real :: dx, dphi, dz
     integer :: num_global_elements
     type(node_type), allocatable :: global_node(:)
     type(element_type), allocatable :: global_elm(:)
     Mat :: connectivity, adjacency
     MatPartitioning :: partitioning
-    integer :: i, j, k, l, ierr, rank, size, itri
+    integer :: i, j, k, ierr, rank, size, itri
     integer :: min_node, max_node
     integer, allocatable :: local_id(:)
     logical, allocatable :: is_ghost(:)
@@ -75,88 +273,25 @@ contains
     integer :: new_id(1)
     IS :: global_numbering, node_distribution
     AO :: ordering
-
-
     PetscViewer :: pv
 
     bb(1) = 0.185
     bb(2) = -1.45
     bb(3) = 1.785
     bb(4) = 1.45
-
-    dx = (bb(3) - bb(1))/(m-1)
-    dz = (bb(4) - bb(2))/(n-1)
-    dphi = twopi/nplanes
-
-    nodes_per_plane = m*n
-    num_global_nodes = nodes_per_plane*nplanes
-    num_global_elements = 2*(m-1)*(n-1)*nplanes
-
-    allocate(global_node(num_global_nodes), global_elm(num_global_elements))
-
-    ! initialize nodes
-    ! ~~~~~~~~~~~~~~~~
-    k = 1
-    do l=1, nplanes
-       do i=1,m
-          do j=1,n
-             global_node(k)%R =   dx  *(j-1) + bb(1)
-             global_node(k)%Z =   dz  *(i-1) + bb(2)
-             global_node(k)%Phi = dphi*(l-1)
-             global_node(k)%idim = 2
-             if(j.eq.1 .or. j.eq.n) then
-                global_node(k)%idim = global_node(k)%idim - 1
-                global_node(k)%normal(2) = 0
-                global_node(k)%curv = 0
-                if(j.eq.1) global_node(k)%normal(1) = -1
-                if(j.eq.n) global_node(k)%normal(1) = 1
-             endif
-             if(i.eq.1 .or. i.eq.m) then
-                global_node(k)%idim = global_node(k)%idim - 1
-                global_node(k)%normal(1) = 0
-                global_node(k)%curv = 0
-                if(i.eq.1) global_node(k)%normal(2) = -1
-                if(i.eq.m) global_node(k)%normal(2) = 1
-             endif
-             k = k + 1
-          end do
-       end do
-    end do
-
-    ! initialize elements
-    ! ~~~~~~~~~~~~~~~~~~~
-    k = 1
-    do l=1, nplanes
-       do i=1,m-1
-          do j=1,n-1
-             global_elm(k)%inode(1) = (i-1)*n + (j  ) + (l-1)*n*m
-             global_elm(k)%inode(2) = (i  )*n + (j+1) + (l-1)*n*m
-             global_elm(k)%inode(3) = (i  )*n + (j  ) + (l-1)*n*m
-#ifdef USE3D
-             global_elm(k)%inode(4) = (i-1)*n + (j  ) + mod(l,nplanes)*n*m
-             global_elm(k)%inode(5) = (i  )*n + (j+1) + mod(l,nplanes)*n*m
-             global_elm(k)%inode(6) = (i  )*n + (j  ) + mod(l,nplanes)*n*m
-#endif
-             k = k + 1
-             global_elm(k)%inode(1) = (i-1)*n + (j  ) + (l-1)*n*m
-             global_elm(k)%inode(2) = (i-1)*n + (j+1) + (l-1)*n*m
-             global_elm(k)%inode(3) = (i  )*n + (j+1) + (l-1)*n*m
-#ifdef USE3D
-             global_elm(k)%inode(4) = (i-1)*n + (j  ) + mod(l,nplanes)*n*m
-             global_elm(k)%inode(5) = (i-1)*n + (j+1) + mod(l,nplanes)*n*m
-             global_elm(k)%inode(6) = (i  )*n + (j+1) + mod(l,nplanes)*n*m
-#endif
-             k = k + 1
-          end do
-       end do
-    end do
+    call create_rectangular_mesh(21,21,nplanes, &
+         num_global_nodes,num_global_elements, &
+         global_node, global_elm)
+!    call load_sms_mesh(nplanes, num_global_nodes, num_global_elements, &
+!         global_node, global_elm)
 
     call MPI_comm_size(PETSC_COMM_WORLD,size,ierr)
     call MPI_comm_rank(PETSC_COMM_WORLD,rank,ierr)
 
     ! Partition nodes
     ! ~~~~~~~~~~~~~~~
-    if(nplanes.ne.1) then
+    if(nplanes.gt.1) then
+       nodes_per_plane = num_global_nodes/(nplanes-1)
        min_node = (nplanes/size)*rank * nodes_per_plane + 1
        if(rank.eq.size-1) then
           max_node = num_global_nodes

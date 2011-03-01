@@ -422,6 +422,127 @@ having a single toroidal mode number are supported.
 
 
 
+\chapter{Finite Elements}
+\label{sec:c1_element}
+
+In two dimensions, each element is specified by 6 values: $a$, $b$,
+$c$, $\theta$, $R_0$, $Z_0$.  The coordinates of the three vertices of
+the element are
+\begin{itemize}
+\item $(R_0, Z_0)$
+\item $(R_0 + (a+b) \cos\theta, Z_0 + (a+b) \sin\theta)$
+\item $(R_0 + a \cos\theta - c \sin\theta, Z_0 + c \cos\theta +
+  a \sin(\theta))$
+\end{itemize}
+In three dimensions, the elements are extended in the $\tor$ direction
+to form wedges.  Two additional values are required to fully specify
+an element: $\tor_0$, the toroidal location of the first node, and
+$d$, the toroidal extent of the element.  Thus each wedge will have
+six vertices, the first three at $\tor = \tor_0$ and the last three at
+$\tor = \tor_0 + d$.
+
+The coordinates local to the element are
+\begin{eqnarray}
+  \begin{pmatrix}
+    \xi \\ \zeta \\ \eta
+  \end{pmatrix} = \begin{pmatrix}
+  (R - R_0) \cos \theta + (Z - Z_0) \sin \theta - b\\ 
+  \tor - \tor_0 \\
+  (Z - Z_0) \cos \theta - (R - R_0) \sin \theta
+  \end{pmatrix}
+\end{eqnarray}
+
+The basis is an exterior product of the two-dimensional reduced
+quintic basis, and Hermite elements in the toroidal direction.
+Expanding the basis in terms of $\xi$, $\zeta$, and $\eta$ within a
+given element gives
+\begin{equation}
+  U(\xi, \zeta, \eta) = \sum_{p=1}^4 \sum_{q=1}^{20} A_U(20 p + q) 
+  \xi^{m(q)} \eta^{n(q)} \zeta^{p-1}
+\end{equation}
+where
+\begin{eqnarray}
+  \vec{m} & = & ( 0, 1, 0, 2, 1, 0, 3, 2, 1, 0, 4, 3, 2, 1, 0, 5, 3, 2, 1, 0 )
+  \\
+  \vec{n} & = & ( 0, 0, 1, 0, 1, 2, 0, 1, 2, 3, 0, 1, 2, 3, 4, 0, 2, 3, 4, 5 )
+\end{eqnarray}
+In two dimensions, both the $\zeta$ factor and the sum over $p$ are
+omitted.  The vector $\vec{A}_U$ contains all of the discretized
+information about the field.  In two dimensions, $\vec{A}_U$ has 20
+elements; in three dimensions it has $80$.
+
+
+\chapter{Output}
+
+\section{HDF5 Output}
+
+\subsection{Simulation Parameters}
+
+The parameters of the simulation are attributes within the root group
+of \texttt{C1.h5}.
+
+\subsection{Time Slices}
+
+For each time slice output by \codename, there is subgroup created
+under the root group of \texttt{C1.h5}.  The equilibrium data is
+stored in a group named \texttt{EQUILIBRIUM} and each subsequent time
+slice is named \texttt{TIME\_\#\#\#} where \texttt{\#\#\#} is the three-digit
+number of the time-slice (padded with leading zeroes if necessary).
+Each time-slice has the contains the following
+
+\subsubsection{The \texttt{MESH} Subgroup}
+
+Contains information about the finite element mesh at the given time
+slice.  This subgroup contains\\
+\begin{tabular}{rl}
+\texttt{3D} &      Whether the elements are 3D elements (1) or 2D
+elements (0)\\
+\texttt{NELMS} &   The number of elements in the mesh\\
+\texttt{ELEMENTS}& An array containing data about the elements
+\end{tabular}
+
+For a 2D mesh, \texttt{ELEMENTS} has dimensions 7 $\times$
+\texttt{NELMS} where the 7 values for each element represent
+respectively:
+\begin{enumerate}
+\item $a$
+\item $b$
+\item $c$
+\item $\theta$
+\item $R_0$
+\item $Z_0$
+\item $B$
+\end{enumerate}
+Here $B$ specifies which edges of the element, if any, are on the
+domain boundary.  By default, $B=0$.  If the first edge (the edge
+between the first node and second node) lies on the boundary, 1 is
+added to $B$.  If the second edge or third edge lies on the boundary,
+$2$ or $4$ are added to $B$.  So for an element having both the first
+and third edges on the boundary, $B=5$, for example.
+
+For a 3D mesh, \texttt{ELEMENTS} has dimensions 9 $\times$
+\texttt{NELMS}.  In addition to the 7 values per element listed above,
+the following two values are stored for each element
+\begin{enumerate}
+\setcounter{enumi}{7}
+\item $d$, the toroidal extent of each element
+\item $\tor_0$, the toroidal coordinate of the first node in the element
+\end{enumerate}
+
+\subsubsection{The \texttt{FIELDS} Subgroup}
+
+Contains information about each field output at the timeslice.  For
+each field, there is an array within the \texttt{FIELDS} subgroup with
+the name of the field (for example, \texttt{PSI}).  Each array has
+dimensions $C \times$ \texttt{NELMS}, where \texttt{NELMS} is the
+number of elms in the mesh, obtained from the \texttt{MESH} subgroup
+of the current time slice group.  $C$ is the number of polynomial
+coefficients per element.  In 2D, $C=20$; in 3D, $C=80$.
+
+
+\subsection{Scalar Data}
+
+
 \chapter{Model}
 
 \section{Extended-MHD}
