@@ -118,6 +118,7 @@ int setPETScKSP(int matrixid, KSP * ksp, Mat * A) {
                      matrixid, its, rms/(float)numglobaldofs, normr/normb, reason);
          ierr = VecDestroy(oneb); CHKERRQ(ierr);
          ierr = VecDestroy(onex); CHKERRQ(ierr);
+         ierr = VecDestroy(oner); CHKERRQ(ierr);
       }
 #endif
 
