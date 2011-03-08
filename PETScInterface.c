@@ -1,14 +1,19 @@
 //#include "/p/tsc/m3dc1/lib/develop.newCompiler.constraint/mctk/Examples/PPPL/PPPL/Matrix.h"
 //#include "/p/tsc/m3dc1/lib/develop.newCompiler.constraint/mctk/Examples/PPPL/PPPL/MatrixInterface.h"
 //#include "/p/tsc/m3dc1/lib/develop.newCompiler.petscDev/mctk/Examples/PPPL/PPPL/MatrixInterface.h"
-#include "MatrixInterface.h"
-#include "petsc.h"
-#include "petscmat.h"
-#include "petscksp.h"
+#include <MatrixInterface.h>
+#include <petsc.h>
+#include <petscmat.h>
+#include <petscksp.h>
+#include <petscvec.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#ifdef USEHYBRID
 #include "dhybrid_solver.h"
 #include "hybrid_solver.h"
-#include "stdio.h"
-#include <stdlib.h>
+#endif
 
 /* the matrix id's need to correspond to the same id's in
    the sparse module of M3Dmodules.f90 */
@@ -405,6 +410,7 @@ int solve2_(int *matrixId, double * rhs_sol, int * ier)
 }
 
 
+#ifdef USEHYBRID
 /* dHybridMatrix: input matrix in distributed CSR format : 
 int_t n;  global matrix dimension 
 int_t nnz;  total number of nonzeros in the global matrix
@@ -724,3 +730,4 @@ exit(1);
 #endif
   return 0;
 }
+#endif 
