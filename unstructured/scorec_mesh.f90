@@ -33,9 +33,6 @@ contains
     ! initialize scorec solvers
     call initsolvers
 
-    ! initialize autopack
-    call AP_INIT()
-
     ! load mesh
 #ifdef USE3D 
 
@@ -71,6 +68,7 @@ contains
   subroutine unload_mesh
     call deletesearchstructure
     call clearscorecdata
+!    call scorecfinalize
     call finalizesolvers
   end subroutine unload_mesh
 

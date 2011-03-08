@@ -83,7 +83,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    if (n_elements(psi_val) ne 0) then begin
        indices = interpol(findgen(n_elements(nflux)), nflux, psi_val)
    endif else if(n_elements(q_val) ne 0) then begin
-       indices = interpol(findgen(n_elements(q)), q, q_val)       
+       indices = interpol(findgen(n_elements(q)), q, q_val)
    endif
 
    if(n_elements(indices) ne 0) then begin
@@ -156,6 +156,8 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
    if(n_elements(slice) eq 0) then last=1
 
    psi0 = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra)
+   psi0_r = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra,op=2)
+   psi0_z = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra,op=3)
    i0   = read_field('i'  ,x,z,t,/equilibrium,_EXTRA=extra)
 
    bx = read_field('bx',x,z,t,last=last,slice=slice, $
@@ -173,9 +175,7 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
    r = radius_matrix(x,z,t)
    y = z_matrix(x,z,t)
 
-   bt = sqrt(s_bracket(psi0,psi0,x,z))/r
-
-   br = -(bx*s_bracket(psi0,r,x,z) + by*s_bracket(psi0,y,x,z)) / (r*bt)
+   br = -(bx*psi0_r + by*psi0_z) / sqrt(psi0_r^2 + psi0_z^2)
 
    ; convert to cgs
    get_normalizations, b0=b0_norm, n0=n0_norm, l0=l0_norm, _EXTRA=extra

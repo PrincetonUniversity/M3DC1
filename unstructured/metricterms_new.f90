@@ -2917,7 +2917,10 @@ vectype function v2chibb(e,f,g,h)
      if(surface_int) then
         temp = 0.
      else
-        temp = 0.
+        temp = int5(ri4_79,e(:,OP_1),g(:,OP_1),h(:,OP_DR),f(:,OP_DRP)) &
+             + int5(ri4_79,e(:,OP_1),g(:,OP_1),h(:,OP_DZ),f(:,OP_DZP)) &
+             + int5(ri4_79,e(:,OP_1),g(:,OP_DP),h(:,OP_DR),f(:,OP_DR)) &
+             + int5(ri4_79,e(:,OP_1),g(:,OP_DP),h(:,OP_DZ),f(:,OP_DZ))
      end if
   end select
 #endif

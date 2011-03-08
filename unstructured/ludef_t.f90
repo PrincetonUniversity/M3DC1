@@ -1527,14 +1527,14 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
      ssterm(psi_g) = ssterm(psi_g) -     thimpb     *dt*temp
      ddterm(psi_g) = ddterm(psi_g) + (.5-thimpb*bdf)*dt*temp
 
-     temp = b2bu  (trial,bz179,lin)
-     ssterm(u_g) = ssterm(u_g) -     thimpb     *dt*temp
-     ddterm(u_g) = ddterm(u_g) + (.5-thimpb*bdf)*dt*temp
-
      temp = b2bu  (trial,lin,ph179)  &
           + b2bchi(trial,lin,ch179)
      ssterm(bz_g) = ssterm(bz_g) -     thimpb     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (.5-thimpb*bdf)*dt*temp
+
+     temp = b2bu  (trial,bz179,lin)
+     ssterm(u_g) = ssterm(u_g) -     thimpb     *dt*temp
+     ddterm(u_g) = ddterm(u_g) + (.5-thimpb*bdf)*dt*temp
 
      temp = b2psiv(trial,ps179,lin)
      ssterm(vz_g) = ssterm(vz_g) -     thimpb     *dt*temp
@@ -1552,14 +1552,14 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
      ssterm(psi_g) = ssterm(psi_g) -     thimpb     *dt*temp
      ddterm(psi_g) = ddterm(psi_g) + (1.-thimpb*bdf)*dt*temp
 
-     temp = b2bu  (trial,bz079,lin)
-     ssterm(u_g) = ssterm(u_g) -     thimpb     *dt*temp
-     ddterm(u_g) = ddterm(u_g) + (1.-thimpb*bdf)*dt*temp
-
      temp = b2bu  (trial,lin,ph079) &
           + b2bchi(trial,lin,ch079)
      ssterm(bz_g) = ssterm(bz_g) -     thimpb     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimpb*bdf)*dt*temp
+
+     temp = b2bu  (trial,bz079,lin)
+     ssterm(u_g) = ssterm(u_g) -     thimpb     *dt*temp
+     ddterm(u_g) = ddterm(u_g) + (1.-thimpb*bdf)*dt*temp
     
      temp = b2psiv(trial,ps079,lin)
      ssterm(vz_g) = ssterm(vz_g) -     thimpb     *dt*temp
