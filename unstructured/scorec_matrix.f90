@@ -334,8 +334,14 @@ contains
 
     if(flg_solve2.eq.PETSC_TRUE) then  ! use pppl petsc
        call solve2(mat%imatrix,v%data,ierr)
+
     else if(flg_pdslin.eq.PETSC_TRUE) then  ! use pdslin
+#ifdef USEHYBRID
        call hybridsolve(mat%imatrix,v%data,ierr)
+#else
+       print *, 'Error: not compiled with PDSLIN.  Using default solve.'
+       call solve(mat%imatrix,v%data,ierr)
+#endif
     else  ! use scorec superlu or petsc (-ipetsc)
        call solve(mat%imatrix,v%data,ierr)
     endif

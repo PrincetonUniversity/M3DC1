@@ -611,8 +611,8 @@ contains
     real :: normal(2), curv, x, z
     integer :: ind(dofs_per_node), i, ierr
     PetscScalar, dimension(dofs_per_node) :: vals
+
     vectype, dimension(dofs_per_node) :: temp1, temp2
-    integer :: index
     logical :: r
 
     if(present(rotate)) then 
@@ -639,7 +639,7 @@ contains
        ind(i) = ind(1) + i - 1
     end do
     ind = ind - 1
-
+       
     call VecSetValues(v%vec, dofs_per_node, ind, vals, INSERT_VALUES, ierr)
     v%is_finalized = .false.
   end subroutine petsc_vector_set_node_data_real
@@ -660,8 +660,8 @@ contains
     real :: normal(2), curv, x, z
     integer :: ind(dofs_per_node), i, ierr
     PetscScalar, dimension(dofs_per_node) :: vals
+
     vectype, dimension(dofs_per_node) :: temp1, temp2
-    integer :: index
     logical :: r
 
     if(present(rotate)) then 
