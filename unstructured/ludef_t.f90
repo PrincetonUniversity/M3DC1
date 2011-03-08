@@ -192,11 +192,13 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
         ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
      endif
 
-     temp = v1chipsipsi(trial,lin,pst79,pst79) &
-          + v1chipsib  (trial,lin,pst79,bzt79) &
-          + v1chibb    (trial,lin,bzt79,bzt79)
-     ssterm(chi_g) = ssterm(chi_g) - thimp*thimp*dt*dt*temp
-     ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
+     if(numvar.ge.3) then
+       temp = v1chipsipsi(trial,lin,pst79,pst79) &
+            + v1chipsib  (trial,lin,pst79,bzt79) &
+            + v1chibb    (trial,lin,bzt79,bzt79)
+       ssterm(chi_g) = ssterm(chi_g) - thimp*thimp*dt*dt*temp
+       ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
+     endif
   
   ! Unsplit time-step
   else
@@ -651,9 +653,11 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
         ssterm(vz_g) = ssterm(vz_g) - thimp*thimp*dt*dt*temp
         ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
 
-        temp = v2chip(trial,lin,pt79)
-        ssterm(chi_g) = ssterm(chi_g) - thimp*thimp*dt*dt*temp
-        ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
+        if(numvar.ge.3) then
+           temp = v2chip(trial,lin,pt79)
+           ssterm(chi_g) = ssterm(chi_g) - thimp*thimp*dt*dt*temp
+           ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
+        end if
 
 
      ! Unsplit time-step
@@ -2070,7 +2074,7 @@ subroutine electron_pressure_nolin(trial, r4term)
 
   ! source terms
   ! ~~~~~~~~~~~~
-  if(gam.ne.1.) then
+  if(gam.gt.1.) then
      ! hyper-ohmic heating
      if(dbf.ne.0.) then 
         r4term = r4term + dbf*dt*(gam-1.)* &
