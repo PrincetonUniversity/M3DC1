@@ -30,6 +30,10 @@ Program Reducedquintic
      call safestop(1)
   endif
 
+#ifdef USESCOREC
+!  call scorecinit
+#endif
+
   print *, 'initializing petsc...'
   call PetscInitialize(PETSC_NULL_CHARACTER, ier)
   call MPI_Comm_rank(MPI_COMM_WORLD, myrank, ier)

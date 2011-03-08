@@ -245,6 +245,7 @@ module basic
                            ! 2 = read geqdsk for psi, but use default profiles
   integer :: iread_dskbal  ! 1 = read dskbal input
   integer :: iread_jsolver
+  integer :: iread_omega   ! 2 = read omega from cerfit file
   integer :: iwrite_restart ! 0 = don't write restart files
 
   ! adaptation options
@@ -309,7 +310,7 @@ module basic
        int_pts_main, int_pts_aux, int_pts_diag, int_pts_tor,   &
        iwave, bx0 , chiiner, ibootstrap, xnull, znull,         &
        tiltangled, isurface, equilibrate, itime_independent,   &
-       iread_eqdsk, iread_dskbal, iread_jsolver,               &
+       iread_eqdsk, iread_dskbal, iread_jsolver, iread_omega,  &
        adapt_factor, adapt_hmin, adapt_hmax,                   &
        b0_norm, n0_norm, l0_norm,                              &
        idenfunc, den_edge, den0, denoff, dendelt,              &

@@ -865,7 +865,7 @@ subroutine split_step(calc_matrices)
 !     endif
 
      ! Include linear f terms
-     if(numvar.ge.2 .and. i3d.eq.1) then
+     if(numvar.ge.2 .and. i3d.eq.1 .and. imp_bf.eq.0) then
         ! b2vector = r15 * bf(n)
         call matvecmult(o2_mat,bf_field(1)%vec,b2_phi)
         call add(b1_phi, b2_phi)
@@ -970,7 +970,7 @@ subroutine split_step(calc_matrices)
         call add(b1_phi, b2_phi)
       
         ! Include linear f terms
-        if(numvar.ge.2 .and. i3d.eq.1) then
+        if(numvar.ge.2 .and. i3d.eq.1 .and. imp_bf.eq.0) then
            ! b2vector = r15 * bf(n)
            call matvecmult(o2_mat,bf_field(1)%vec,b2_phi)
            call add(b1_phi, b2_phi)
@@ -1082,7 +1082,7 @@ subroutine unsplit_step(calc_matrices)
      call add(b1_phi, q4_vec)
 
      ! Include linear f terms
-     if(numvar.ge.2 .and. i3d.eq.1) then
+     if(numvar.ge.2 .and. i3d.eq.1 .and. imp_bf.eq.0) then
         ! b2vector = r15 * bf(n)
         call matvecmult(o1_mat,bf_field(1)%vec,b2_phi)
         call add(b1_phi, b2_phi)

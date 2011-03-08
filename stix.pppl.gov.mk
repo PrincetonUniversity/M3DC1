@@ -28,6 +28,7 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 # define where you want to locate the mesh adapt libraries
 HYBRID_HOME = /p/swim/jchen/hybrid.test
 #HYBRID_HOME = /u/iyamazak/release/v2/hybrid.test
+HYBRID_LIBS = $(HYBRID_HOME)/lib/libhsolver.a
 
 INCLUDE = -I$(MPIHOME)/include \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
@@ -46,12 +47,6 @@ SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu \
 PARMETIS_LIBS = -L$(PARMETIS_HOME)/lib \
 	-Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis
 
-NAG_LIBS = -L$(NAG_ROOT)/lib -lnag
-
-AUTOPACK_LIBS = -L$(AUTOPACK_HOME)/lib \
-	-Wl,-rpath,$(AUTOPACK_HOME)/lib -lautopack-O
-
-HYBRID_LIBS = $(HYBRID_HOME)/lib/libhsolver.a
 
 LIBS = 	$(PETSC_LIBS) \
 	$(SUPERLU_LIBS) \
@@ -124,7 +119,7 @@ ifeq ($(USESCOREC), 1)
 #
 #  endif # on USE3D
 
-  LIBS := $(SCOREC_LIBS) $(AUTOPACK_LIBS) $(LIBS)
+  LIBS := $(SCOREC_LIBS) $(LIBS)
 
 endif   # on USESCOREC
 

@@ -42,6 +42,7 @@ subroutine set_defaults
   iread_eqdsk = 0
   iread_dskbal = 0
   iread_jsolver = 0
+  iread_omega = 0
 
   ! transport coefficients
   ivisfunc = 0
