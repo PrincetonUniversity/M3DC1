@@ -6835,7 +6835,7 @@ vectype function b3psipsieta(e,f,g,h)
   
   vectype :: temp
 
-  if(gam.eq.1. .or. surface_int) then
+  if(gam.le.1. .or. surface_int) then
      temp = 0.
   else
      temp = (gam-1.)* &
@@ -6862,7 +6862,7 @@ vectype function b3bbeta(e,f,g,h)
   
   vectype :: temp
 
-  if(gam.eq.1. .or. surface_int) then
+  if(gam.le.1. .or. surface_int) then
      temp = 0.
   else 
      temp = (gam-1.)* &
@@ -6986,7 +6986,7 @@ vectype function b3pedkappa(e,f,g,h,i)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i
   vectype :: temp
 
-  if(gam.eq.1.) then
+  if(gam.le.1.) then
      b3pedkappa = 0.
      return
   end if
@@ -7381,7 +7381,7 @@ vectype function p1psipsikappar(e,f,g,h,i,j,k)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j,k
   vectype :: temp
 
-  if(gam.eq.1.) then
+  if(gam.le.1.) then
      p1psipsikappar = 0.
      return
   end if
@@ -7420,7 +7420,7 @@ vectype function p1psibkappar(e,f,g,h,i,j,k)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j,k
   vectype :: temp
 
-  if(gam.eq.1.) then
+  if(gam.le.1.) then
      p1psibkappar = 0.
      return
   end if
@@ -7476,7 +7476,7 @@ vectype function p1bbkappar(e,f,g,h,i,j,k)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j,k
   vectype :: temp
 
-  if(gam.eq.1.) then
+  if(gam.le.1.) then
      p1bbkappar = 0.
      return
   end if
@@ -7520,7 +7520,7 @@ vectype function p1psifkappar(e,f,g,h,i,j,k)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j,k
   vectype :: temp
 
-  if(gam.eq.1.) then
+  if(gam.le.1.) then
      p1psifkappar = 0.
      return
   end if
@@ -7576,7 +7576,7 @@ vectype function p1bfkappar(e,f,g,h,i,j,k)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j,k
   vectype :: temp
 
-  if(gam.eq.1.) then
+  if(gam.le.1.) then
      p1bfkappar = 0.
      return
   end if
@@ -7632,7 +7632,7 @@ vectype function p1kappax(e,f,g,h,i)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i
   vectype :: temp
 
-  if(gam.eq.1.) then
+  if(gam.le.1.) then
      p1kappax = 0.
      return
   end if
@@ -7667,7 +7667,7 @@ vectype function p1uus(e,f,g,h)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-  if(idens.eq.0 .or. gam.eq.1. .or. surface_int) then
+  if(idens.eq.0 .or. gam.le.1. .or. surface_int) then
      p1uus = 0.
      return
   endif
@@ -7703,7 +7703,7 @@ vectype function p1vvs(e,f,g,h)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-  if(idens.eq.0 .or. gam.eq.1. .or. surface_int) then
+  if(idens.eq.0 .or. gam.le.1. .or. surface_int) then
      p1vvs = 0.
      return
   endif
@@ -7737,7 +7737,7 @@ vectype function p1chichis(e,f,g,h)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-  if(idens.eq.0 .or. gam.eq.1. .or. surface_int) then
+  if(idens.eq.0 .or. gam.le.1. .or. surface_int) then
      p1chichis = 0.
      return
   endif
@@ -7774,7 +7774,7 @@ vectype function p1uchis(e,f,g,h)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-  if(idens.eq.0 .or. gam.eq.1. .or. surface_int) then
+  if(idens.eq.0 .or. gam.le.1. .or. surface_int) then
      p1uchis = 0.
      return
   endif
@@ -9389,7 +9389,7 @@ real function energy_p()
 
   vectype :: temp
 
-  if(gam.eq.1.) then 
+  if(gam.le.1.) then 
      temp = 0.
   else
      if(linear.eq.1) then
@@ -9752,7 +9752,7 @@ real function flux_pressure()
 
   vectype :: temp
 
-  if(numvar.lt.3 .or. gam.eq.1.) then
+  if(numvar.lt.3 .or. gam.le.1.) then
      flux_pressure = 0.
      return
   endif
