@@ -447,7 +447,6 @@ int hybridsolve_(int *matrixId, double *rhs_sol, int *ier)
   double *oneb_loc, *onex_loc, rms, grms, oneb, onex, goneb, gonex;
 
 
-#ifdef TODO
   /* at the very begining allocate space */
   if(!start) {
      for(i=0; i<MAX_LINEAR_SYSTEM; i++) {
@@ -727,7 +726,6 @@ dhybrid_solver( hs_array[whichMatrix].b_loc,
 
 exit(1);
 */
-#endif
   return 0;
 }
 #endif 

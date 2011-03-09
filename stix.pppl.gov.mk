@@ -1,5 +1,5 @@
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS)
-CCOPTS  = -c -O -DUSEHYBRID #-DPetscDEV -DCJ_MATRIX_DUMP
+CCOPTS  = -c -O -DPetscDEV #-DCJ_MATRIX_DUMP -DUSEHYBRID 
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -fast
@@ -33,16 +33,25 @@ HYBRID_LIBS = $(HYBRID_HOME)/lib/libhsolver.a
 INCLUDE = -I$(MPIHOME)/include \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
 	-I$(HDF5_HOME)/include -I$(HDF5_HOME)/lib \
-	-I$(HYBRID_HOME)/include -I$(SUPERLU_DIST_HOME)/include
+	-I$(HYBRID_HOME)/include
+#-I$(SUPERLU_DIST_HOME)/include
 
 
 PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
-	-lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc \
-        -L$(PETSC_DIR)/externalpackages/hypre-2.4.0b/src/lib # \
+	-lpetsc \
+	-lHYPRE \
+	-lpromfei -lprometheus \
+	-lscalapack -lfblas -lflapack \
+	-L$(MUMPS_HOME)/lib -ldmumps -lmumps_common -lpord
+#	-lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc \
+#        -L$(PETSC_DIR)/externalpackages/hypre-2.4.0b/src/lib  \
 #        -lHYPRE -lHYPRE_LSI 
 
-SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu \
-	-L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist
+SUPERLU_HOME = $(PETSC_DIR)/$(PETSC_ARCH)
+SUPERLU_DIST_HOME = $(PETSC_DIR)/$(PETSC_ARCH)
+SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu_4.1 \
+	-L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist_2.5 \
+	-L$(BLACS_HOME)/lib -lmpiblacs -lmpiblacsF77init -lmpiblacsCinit -lmpiblacs
 
 PARMETIS_LIBS = -L$(PARMETIS_HOME)/lib \
 	-Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis
@@ -91,8 +100,9 @@ ifeq ($(USESCOREC), 1)
 	-lmeshAdapt-mpich2$(SCORECOPT) \
 	-lmeshTools-mpich2$(SCORECOPT) \
 	-lSolver-mpich2$(SCORECOPT) \
-	-lPPPL-mpich2$(SCORECOPT) \
+	-lPPPLPetscDEV-mpich2$(SCORECOPT) \
 	-lipcomman-mpich2$(SCORECOPT)
+#	-lPPPL-mpich2$(SCORECOPT) \
 #	-lPPPLTEST-mpich2$(SCORECOPT) \
 
 #  else
