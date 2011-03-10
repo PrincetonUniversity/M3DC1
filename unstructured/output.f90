@@ -366,15 +366,6 @@ subroutine hdf5_write_timings(error)
 
   if(ntime.eq.0) then
      call h5gcreate_f(root_id, "timings", timing_group_id, error)
-
-     ! for grad-shafranov equilibrium, output gs times
-     if(itor.eq.1 .and. itaylor.eq.1) then
-        call write_real_attr(timing_group_id, "t_gs", t_gs, error) 
-        call write_real_attr(timing_group_id, "t_gs_magaxis", t_gs_magaxis, error) 
-        call write_real_attr(timing_group_id, "t_gs_fundef", t_gs_fundef, error)
-        call write_real_attr(timing_group_id, "t_gs_solve", t_gs_solve, error) 
-        call write_real_attr(timing_group_id, "t_gs_init", t_gs_init, error) 
-     endif
   else
      call h5gopen_f(root_id, "timings", timing_group_id, error)
   endif

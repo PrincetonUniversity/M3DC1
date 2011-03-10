@@ -1224,7 +1224,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                         diff=diff, operation=op, $
                         linear=linear, last=last,symbol=symbol,units=units, $
-                       cgs=cgs, mks=mks, phi=phi0)
+                       cgs=cgs, mks=mks, phi=phi0, time=realtime)
        end
        data = data/n
        return, data
@@ -1247,7 +1247,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                         operation=op, complex=complex, $
                         linear=linear, last=last,symbol=symbol,units=units, $
-                       cgs=cgs, mks=mks, phi=phi0) $
+                       cgs=cgs, mks=mks, phi=phi0, time=realtime) $
              *((-1)^i)
        end
 
@@ -3995,6 +3995,7 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
           if(n_elements(ls) eq 0) then ls = replicate(0, nfiles)
           if(n_elements(co) eq 0) then co = colors(nfiles)
       endelse
+      if(n_elements(x) eq 1) then x = replicate(x, nfiles)
 
       for i=0, nfiles-1 do begin
           if(n_elements(x) eq 0) then begin
@@ -4007,7 +4008,7 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
           endif else begin
               plot_scalar, scalarname, x[i], filename=filename[i], $
                 overplot=((i gt 0) or keyword_set(overplot)), $
-                color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, $
+                color=co[i], _EXTRA=extra, ylog=ylog, xlog=xlog, $
                 power_spectrum=power_spectrum, per_length=per_length, $
                 growth_rate=growth_rate, nolegend=nolegend, $
                 absolute_value=absolute,cgs=cgs,mks=mks,difference=diff
@@ -4683,7 +4684,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
        if(n_elements(field) le 1) then return
    endelse
 
-   print, 'time = ', realtime
+   if(n_elements(realtime) ne 0) then print, 'time = ', realtime
 
    ; remove NaN's from result
    i = where(not float(finite(field)), count)

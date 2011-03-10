@@ -41,7 +41,7 @@ module diagnostics
   real :: t_ludefall, t_sources, t_smoother, t_aux, t_onestep
   real :: t_solve_v, t_solve_n, t_solve_p, t_solve_b, t_mvm
   real :: t_output_cgm, t_output_hdf5, t_output_reset
-  real :: t_gs, t_gs_magaxis, t_gs_fundef, t_gs_solve, t_gs_init
+  real :: t_gs
 
 contains
 
@@ -468,12 +468,7 @@ end subroutine evaluate
 ! ======================================================================
   subroutine second(tcpu)
     implicit none
-!    real*4 etime
-!    external etime
-!    dimension tarray(2)
-!    tcpu = etime(tarray) 
     real :: tcpu
-!    integer*8 nticks, tickspersec
     integer :: nticks, tickspersec
     intrinsic system_clock
     call system_clock(count=nticks, count_rate=tickspersec)
