@@ -1,10 +1,21 @@
 module gradshafranov
 
   use field
+  use spline
 
   implicit none
 
   integer, parameter :: numvargs = 1
+
+  type(spline1d), private :: omega_spline
+  type(spline1d), private :: alpha_spline
+  type(spline1d), private :: n0_spline
+  type(spline1d), private :: g0_spline
+  type(spline1d), private :: p0_spline
+  type(spline1d), private :: g2_spline, g3_spline
+
+  type(spline1d), private :: ffprime_spline
+  type(spline1d), private :: pprime_spline
 
   type(field_type), private :: psi_vec
   type(field_type), private :: fun1_vec, fun2_vec, fun3_vec, fun4_vec
@@ -15,13 +26,6 @@ module gradshafranov
   logical, private :: constraint = .false.
 
   real, private :: gnorm, libetapeff, fac2
-
-  integer, private :: npsi ! number of radial points in profile
-
-  real, private, allocatable :: psinorm(:)
-  real, private, allocatable :: g4big0t(:), g4bigt(:), g4bigpt(:), g4bigppt(:)
-  real, private, allocatable :: fbig0t(:), fbigt(:), fbigpt(:), fbigppt(:)
-  real, private, allocatable :: alphap0t(:), alphapt(:), alphappt(:), alphapppt(:)
 
   integer, private :: int_tor = 0
 
@@ -243,6 +247,96 @@ subroutine vacuum_field()
   call field_from_coils(xc,zc,ic,1,psi_field(0),0)
 end subroutine vacuum_field
 
+!======================================================================
+! define_profiles
+! ~~~~~~~~~~~~~~~
+! set up profile splines
+!======================================================================
+subroutine define_profiles
+  use math
+  use read_ascii
+  use basic
+  implicit none
+
+  real, allocatable :: xvals(:), yvals(:)
+  integer :: nvals
+
+  ! If p' and ff' profiles are not yet defined, define them
+  if(.not.allocated(p0_spline%x)) then
+     if(inumgs .eq. 1) then
+        ! read p' and ff' profiles
+        call readpgfiles
+     else
+        ! use analytic p' and ff' profiles
+        call default_profiles
+     end if
+  end if
+
+  ! ensure that derivatives in SOL are zero
+  pprime_spline%y(pprime_spline%n) = 0.
+  ffprime_spline%y(ffprime_spline%n) = 0.
+
+  ! scale profiles
+  p0_spline%y = p0_spline%y*pscale
+  g0_spline%y = g0_spline%y*sqrt(bscale)
+  bzero = bzero*bscale
+
+  ! add pedge to pressure
+  if(pedge.ge.0.) p0_spline%y = p0_spline%y - p0_spline%y(p0_spline%n) + pedge
+
+  ! define density profile
+  select case(iread_ne)
+     
+  case(1)
+        ! Read in 10^20/m^3
+        nvals = 0
+        call read_ascii_column('profile_ne', xvals, nvals, icol=1)
+        call read_ascii_column('profile_ne', yvals, nvals, icol=2)
+        yvals = yvals * 1e14 / n0_norm
+        call create_spline(n0_spline, nvals, xvals, yvals)
+        deallocate(xvals, yvals)
+     
+  case(2)
+
+  case default
+     call density_profile
+     
+  end select
+
+  ! define rotation profile
+  if(irot.eq.1) then
+     select case(iread_omega)
+
+     case(1)
+        ! Read in krad/sec
+        nvals = 0
+        call read_ascii_column('profile_omega', xvals, nvals, icol=1)
+        call read_ascii_column('profile_omega', yvals, nvals, icol=2)
+        yvals = 1000.* yvals / (b0_norm/sqrt(4.*pi*1.6726e-24*n0_norm)/l0_norm)
+        call create_spline(omega_spline, nvals, xvals, yvals)
+        deallocate(xvals, yvals)
+        
+     case(2)
+        ! Read in rad/sec
+        call read_ascii_column('dtrot', xvals, nvals, icol=1)
+        call read_ascii_column('dtrot', yvals, nvals, icol=2)
+        ! convert from m/s to v_A
+        yvals = yvals / (b0_norm/sqrt(4.*pi*1.6726e-24*n0_norm)/l0_norm)
+        call create_spline(omega_spline, nvals, xvals, yvals)
+        deallocate(xvals, yvals)
+
+     case default
+        call default_omega
+     end select
+
+    ! calculate alpha from omega
+     call calculate_alpha
+  end if
+
+  ! output profiles
+  if(myrank.eq.0) call write_profile
+
+end subroutine define_profiles
 
 !============================================================
 subroutine gradshafranov_solve
@@ -272,22 +366,15 @@ subroutine gradshafranov_solve
   real :: feedfac
 
   real :: x, phi, z, error, error2, error3 
-  real :: tstart, tend
 
   integer, dimension(dofs_per_element) :: imask
 
-  vectype, dimension(dofs_per_node) :: tf, tm
+  vectype, dimension(dofs_per_node) :: tf
   vectype, dimension(coeffs_per_element) :: avec
   vectype, dimension(dofs_per_element,dofs_per_element) :: temp
 
   if(myrank.eq.0 .and. iprint.gt.0) &
        print *, "Calculating Grad-Shafranov Equilibrium"
-
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart) ! t_gs_init
-
-  t_gs_magaxis = 0.
-  t_gs_solve = 0.
-  t_gs_fundef = 0.
 
   numnodes = owned_nodes()
   numelms = local_elements()
@@ -350,38 +437,7 @@ subroutine gradshafranov_solve
   call boundary_gs(b2vecini_vec%vec, feedfac, gs_matrix)
   call finalize(gs_matrix)
 
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_gs_init = tend - tstart
-  endif
-
-  ! read in numerical values for p and g functions for inumgs = 1
-  if(inumgs .eq. 1) then
-     call readpgfiles
-  else
-     if(.not.allocated(psinorm)) call default_profiles
-  endif
-
-  if(irot.eq.1) then
-     select case(iread_omega)
-     case(2)
-!        call read_cerfit_data
-     case default
-        call default_alpha
-     end select
-  end if
-
-  fbig0t = fbig0t*pscale
-  fbigt = fbigt*pscale
-  fbigpt = fbigpt*pscale
-  fbigppt = fbigppt*pscale
-  g4big0t = g4big0t*sqrt(bscale)
-  g4bigt = g4bigt*sqrt(bscale)
-  g4bigpt = g4bigpt*sqrt(bscale)
-  g4bigppt = g4bigppt*sqrt(bscale)
-  bzero = bzero*bscale
-
-  if(myrank.eq.0) call write_profile
+  call define_profiles
 
   error2 = 0.
   !-------------------------------------------------------------------
@@ -405,7 +461,6 @@ subroutine gradshafranov_solve
         call boundary_gs(b1vecini_vec%vec, feedfac)
         
         ! perform LU backsubstitution to get psi solution
-        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
         if(myrank.eq.0 .and. iprint.ge.2) print *, '  solving'
 
 #ifdef CJ_MATRIX_DUMP
@@ -432,10 +487,6 @@ subroutine gradshafranov_solve
            print *, 'Error: solution is NaN'
            call safestop(11)
         endif
-        if(myrank.eq.0 .and. itimer.eq.1) then
-           call second(tend)
-           t_gs_solve = t_gs_solve + tend - tstart
-        endif
 
         ! combine solve result with old solution to get new solution
         if(itnum.eq.1) then
@@ -454,16 +505,11 @@ subroutine gradshafranov_solve
 
      ! define the pressure and toroidal field functions
      if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating funs'
-     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      if(constraint .and. igs_method.ne.1) then
         call fundef2(error3)
      else
         call fundef
      end if
-     if(myrank.eq.0 .and. itimer.eq.1) then
-        call second(tend)
-        t_gs_fundef = t_gs_fundef + tend - tstart
-     endif
 
      ! Calculate error in new solution
      if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating error'
@@ -480,7 +526,7 @@ subroutine gradshafranov_solve
      ! calculate gammas to constrain current, etc.
      if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating gammas'
      call calculate_gamma(gamma2,gamma3,gamma4)
-     
+
      ! Define RHS vector
      b2vecini_vec = fun1_vec
      if(gamma2.ne.0.) then
@@ -548,8 +594,7 @@ subroutine gradshafranov_solve
               temp79b(i) = tf(1)
               call calc_pressure(ps079(i,:),tf,x_79(i),z_79(i))
               temp79a(i) = tf(1)
-              tm = tf
-              call calc_density(ps079(i,:),tm,tf,x_79(i),z_79(i))
+              call calc_density(ps079(i,:),tf,x_79(i),z_79(i))
               temp79c(i) = tf(1)
               if(irot.eq.1) then
                  call calc_rotation(ps079(i,:),tf,x_79(i),z_79(i))
@@ -637,12 +682,9 @@ subroutine gradshafranov_solve
         call calcavector(itri, psi_field(0), avec)
         call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, npoints, &
              ps079)
-        call calcavector(itri, p_field(0), avec)
-        call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, npoints, &
-             p079)
 
         do i=1, npoints       
-           call calc_density(ps079(i,:),p079(i,:),tf,x_79(i),z_79(i))
+           call calc_density(ps079(i,:),tf,x_79(i),z_79(i))
            temp79c(i) = tf(1)
         end do
 
@@ -666,7 +708,7 @@ subroutine gradshafranov_solve
         call get_local_vals(i)
         call calc_toroidal_field(psi0_l, bz0_l, x, z)
         call calc_pressure(psi0_l, p0_l, x, z)
-        call calc_density(psi0_l,p0_l,den0_l,x,z)
+        call calc_density(psi0_l,den0_l,x,z)
         call calc_rotation(psi0_l,vz0_l,x,z)
         call set_local_vals(i)
      end do
@@ -687,6 +729,20 @@ subroutine gradshafranov_solve
   call destroy_field(fun4_vec)
 
   call destroy_mat(gs_matrix)
+
+  call destroy_spline(p0_spline)
+  call destroy_spline(g0_spline)
+  call destroy_spline(n0_spline)
+  call destroy_spline(ffprime_spline)
+  call destroy_spline(pprime_spline)
+  if(.not.constraint) then
+     call destroy_spline(g2_spline)
+     call destroy_spline(g3_spline)
+  end if
+  if(irot.eq.1) then
+     call destroy_spline(alpha_spline)
+     call destroy_spline(omega_spline)
+  end if
 
   ! calculate final error
   call calculate_gs_error(error)
@@ -841,7 +897,8 @@ subroutine calculate_gamma(g2, g3, g4)
      gsint3 = gsint3 + int2(ri_79,fun3_n)
      gsint4 = gsint4 + int2(ri_79,fun4_n)
   enddo
-      if(iprint.ge.2) write(80+myrank,1080) myrank,curr,gsint1,gsint2,gsint3,gsint4
+
+  if(iprint.ge.2) write(80+myrank,1080) myrank,curr,gsint1,gsint2,gsint3,gsint4
  1080 format(i12,1p5e12.4)
      
   if(maxrank.gt.1) then
@@ -964,9 +1021,11 @@ subroutine fundef
   
   implicit none 
   integer :: inode, numnodes
-  real :: x, phi, z, pso, psox, psoy, psoxx, psoxy, psoyy, fbig, fbig0
-  real :: fbigp, fbigpp, g4big0, g4big, g4bigp, g4bigpp, g2big, g2bigp
-  real :: g2bigpp, g3big, g3bigp, g3bigpp
+  real :: x, phi, z, pso, psox, psoy, psoxx, psoxy, psoyy
+  real :: fbig0, fbig, fbigp, fbigpp
+  real :: g2big, g2bigp, g2bigpp
+  real :: g3big, g3bigp, g3bigpp
+  real :: g4big, g4bigp, g4bigpp
   real :: alphap0, alphap, alphapp, alphappp
   real :: r0m, r1, r1m, r2, r3, ealpha,  pspx, pspy, pspxx, pspxy, pspyy
   logical :: inside_lcfs
@@ -996,7 +1055,7 @@ subroutine fundef
         psoxy= temp(5)*dpsii
         psoyy= temp(6)*dpsii
      
-        call fget(pso, fbig0, fbig, fbigp, fbigpp)
+        call evaluate_spline(p0_spline,pso,fbig0,fbig,fbigp,fbigpp)
 
         if(.not.use_norm_psi) then
            fbig = fbig*dpsii
@@ -1012,26 +1071,19 @@ subroutine fundef
            ! assumes pressure of the form 
            ! p(x,psi) = p(psi) exp (alpha(psi)*r1)
            
-           ! spatial derivatives of psi, not normalized psi
-           pspx  = temp(2)
-           pspy  = temp(3)
-           pspxx = temp(4)
-           pspxy = temp(5)
-           pspyy = temp(6)
-
            r0m = 1./rzero**2
            r1 = (x**2-rzero**2)/rzero**2
            r1m= x**2/rzero**2
            r2 = (x**2 - rzero**2)**2/rzero**4
            r3 = (x**2 - rzero**2)**3/rzero**6
-           call alphaget(pso,alphap0,alphap,alphapp,alphappp)
+           call evaluate_spline(alpha_spline,pso, &
+                alphap0,alphap,alphapp,alphappp)
 
-           !...convert all derivatives to wrt psi, not normalized psi
-           fbigp = fbigp*dpsii
-           fbigpp= fbigpp*dpsii**2
-           alphap = alphap*dpsii
-           alphapp = alphapp*dpsii**2
-           alphappp = alphapp*dpsii**3
+           if(.not.use_norm_psi) then
+              alphap = alphap*dpsii
+              alphapp = alphapp*dpsii
+              alphappp = alphappp*dpsii
+           end if
 
            ealpha = exp(alphap0*r1)
 
@@ -1093,8 +1145,7 @@ subroutine fundef
                 + pspyy*(x*fbigp                                            &
                 + (2*fbig*alphap + fbig0*alphapp)*x*r1                      &
                 + p0*alphap**2*x*r2))
-        else
-         
+        else        
            ! no toroidal rotation in equilibrium
            temp(1) = x*fbig
            temp(2) = fbig + x*fbigp*psox
@@ -1104,11 +1155,11 @@ subroutine fundef
            temp(6) = x*(fbigpp*psoy**2 + fbigp*psoyy)
            
         endif   !...end of branch on irot
-        
+
         call set_node_data(fun1_vec, inode, temp)
         
-        call g4get(pso, g4big0, g4big, g4bigp, g4bigpp)
-        
+        call evaluate_spline(ffprime_spline, pso, g4big, g4bigp, g4bigpp)
+
         if(.not.use_norm_psi) then
            g4big = g4big*dpsii
            g4bigp = g4bigp*dpsii
@@ -1120,43 +1171,46 @@ subroutine fundef
         temp(3) = g4bigp*psoy/x
         temp(4) = (g4bigpp*psox**2 + g4bigp*psoxx)/x                  &
              - 2.*g4bigp*psox/x**2 + 2.*g4big/x**3
-        temp(5) = (g4bigpp*psox*psoy+g4bigp*psoxy)/x - g4bigp*psoy/x**2
+        temp(5) = (g4bigpp*psox*psoy+g4bigp*psoxy)/x                  &
+             - g4bigp*psoy/x**2
         temp(6) = (g4bigpp*psoy**2 + g4bigp*psoyy)/x
         call set_node_data(fun4_vec, inode, temp)
+
+        if(.not.constraint) then
+           call evaluate_spline(g2_spline, pso, g2big, g2bigp, g2bigpp)
+           call evaluate_spline(g3_spline, pso, g3big, g3bigp, g3bigpp)
+
+           if(.not.use_norm_psi) then
+              g2big = g2big*dpsii
+              g2bigp = g2bigp*dpsii
+              g2bigpp = g2bigpp*dpsii
+              g3big = g3big*dpsii
+              g3bigp = g3bigp*dpsii
+              g3bigpp = g3bigpp*dpsii
+           endif
         
-        g2big =  dpsii*(1. - 30.*pso**2 + 80.*pso**3                     &
-             - 75.*pso**4 + 24.*pso**5)
-        g2bigp =  dpsii*(-60.*pso + 240.*pso**2                         &
-             - 300.*pso**3 + 120.*pso**4)
-        g2bigpp =  dpsii*(-60. + 480.*pso                               &
-             - 900.*pso**2 + 480.*pso**3)
-        temp(1) =  g2big/x
-        temp(2) =  g2bigp*psox/x - g2big/x**2
-        temp(3) =  g2bigp*psoy/x
-        temp(4) =  (g2bigpp*psox**2 + g2bigp*psoxx)/x                 &
-             - 2.*g2bigp*psox/x**2 + 2.*g2big/x**3
-        temp(5) =(g2bigpp*psox*psoy+g2bigp*psoxy)/x                   &
-             - g2bigp*psoy/x**2
-        temp(6) = (g2bigpp*psoy**2 + g2bigp*psoyy)/x
-        call set_node_data(fun2_vec, inode, temp)
-        
-        g3big =  dpsii*(2.*pso - 12.*pso**2 + 24.*pso**3                &
-             - 20.*pso**4 + 6.*pso**5)
-        g3bigp =  dpsii*(2. - 24.*pso + 72.*pso**2                      &
-             - 80.*pso**3 + 30.*pso**4)
-        g3bigpp =  dpsii*(- 24. + 144.*pso                              &
-             - 240.*pso**2 + 120.*pso**3)
-        temp(1) = g3big/x
-        temp(2) = g3bigp*psox/x - g3big/x**2
-        temp(3) = g3bigp*psoy/x
-        temp(4) = (g3bigpp*psox**2 + g3bigp*psoxx)/x                  &
-             - 2.*g3bigp*psox/x**2 + 2.*g3big/x**3
-        temp(5) = (g3bigpp*psox*psoy+g3bigp*psoxy)/x                  &
-             - g3bigp*psoy/x**2
-        temp(6) =  (g3bigpp*psoy**2 + g3bigp*psoyy)/x
-        call set_node_data(fun3_vec, inode, temp)
-     endif
-  enddo
+           temp(1) = g2big/x
+           temp(2) = g2bigp*psox/x - g2big/x**2
+           temp(3) = g2bigp*psoy/x
+           temp(4) = (g2bigpp*psox**2 + g2bigp*psoxx)/x                  &
+                - 2.*g2bigp*psox/x**2 + 2.*g2big/x**3
+           temp(5) = (g2bigpp*psox*psoy+g2bigp*psoxy)/x                  &
+                - g2bigp*psoy/x**2
+           temp(6) = (g2bigpp*psoy**2 + g2bigp*psoyy)/x
+           call set_node_data(fun2_vec, inode, temp)
+           
+           temp(1) = g3big/x
+           temp(2) = g3bigp*psox/x - g3big/x**2
+           temp(3) = g3bigp*psoy/x
+           temp(4) = (g3bigpp*psox**2 + g3bigp*psoxx)/x                  &
+                - 2.*g3bigp*psox/x**2 + 2.*g3big/x**3
+           temp(5) = (g3bigpp*psox*psoy+g3bigp*psoxy)/x                  &
+                - g3bigp*psoy/x**2
+           temp(6) = (g3bigpp*psoy**2 + g3bigp*psoyy)/x
+           call set_node_data(fun3_vec, inode, temp)
+        end if
+     end if
+  end do
 
   call finalize(fun1_vec%vec)
   call finalize(fun2_vec%vec)
@@ -1212,22 +1266,17 @@ subroutine fundef2(error)
      do i=1, npoints
         
         pso = (ps079(i,OP_1)-psimin)*dpsii
-        if(inside_lcfs(ps079(i,:),x_79(i),z_79(i),.true.)) then
-           call cubic_interpolation(npsi,psinorm,pso,fbigt,temp(1))
-           call cubic_interpolation(npsi,psinorm,pso,g4bigt,temp(2))
-           if(irot.eq.1) then
-              call cubic_interpolation(npsi,psinorm,pso,alphap0t,temp(3))
-              call cubic_interpolation(npsi,psinorm,pso,alphapt,temp(4))
-              call cubic_interpolation(npsi,psinorm,pso,fbig0t,temp(5))
-           endif
+        if(.not.inside_lcfs(ps079(i,:),x_79(i),z_79(i),.true.)) pso = 1.
+
+        call evaluate_spline(pprime_spline,pso,temp(1))
+        call evaluate_spline(ffprime_spline,pso,temp(2))
+        if(irot.eq.1) then
+           call evaluate_spline(alpha_spline, pso, temp(3), temp(4))
+           call evaluate_spline(p0_spline,pso,temp(5))
         else
-           temp(1) = 0.
-           temp(2) = 0.
-           temp(3) = alpha0 + alpha1 + alpha2 + alpha3
-           if(iscale_rot_by_p.eq.0) temp(3) = temp(3)*pedge**(expn-1.)
+           temp(3) = 0.
            temp(4) = 0.
-           temp(5) = pedge
-        endif
+        end if
         temp79a(i) = temp(1)
         temp79b(i) = temp(2)
         temp79c(i) = temp(3)
@@ -1279,34 +1328,37 @@ subroutine readpgfiles
   implicit none
 
   integer :: j, n
-  real :: psii
+  real :: dum
+  real, allocatable :: psinorm(:), pres0(:), g0(:), ffn(:), ppn(:)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Reading profiles files"
 
   open(unit=76,file="profiles-p",status="old")
   read(76,803) n
-  allocate(psinorm(n))
-  allocate(fbig0t(n),fbigt(n),fbigpt(n),fbigppt(n))
+  allocate(psinorm(n), pres0(n), ppn(n))
+
   do j=1,n
-    read(76,802) psinorm(j),fbig0t(j),fbigt(j),fbigpt(j),fbigppt(j)
+     read(76,802) psinorm(j), pres0(j), ppn(j), dum, dum
   enddo
   close(76)
 
-  p0 = fbig0t(1)
+  call create_spline(p0_spline, n, psinorm, pres0)
+  call create_spline(pprime_spline, n, psinorm, ppn)
+  deallocate(psinorm, pres0, ppn)
+
+  p0 = pres0(1)
 
   open(unit=77,file="profiles-g",status="old")
   read(77,804) n
-  allocate(g4big0t(n),g4bigt(n),g4bigpt(n),g4bigppt(n))
+  allocate(psinorm(n), g0(n), ffn(n))
   do j=1,n
-    read(77,802) psinorm(j),g4big0t(j),g4bigt(j),g4bigpt(j),g4bigppt(j)
+    read(77,802) psinorm(j), g0(j), ffn(j), dum, dum
   enddo
   close(77)
 
-  do npsi=1, n
-     if (psinorm(npsi) .ge. psiscale) exit
-  end do
-
-  psinorm = psinorm/psinorm(npsi)
+  call create_spline(g0_spline, n, psinorm, g0)
+  call create_spline(ffprime_spline, n, psinorm, ffn)
+  deallocate(psinorm, g0, ffn)
 
   constraint = .true.
   use_norm_psi = .true.
@@ -1317,141 +1369,128 @@ return
   804 format(i5)
 end subroutine readpgfiles
 
-subroutine g4get(pso, g4big0, g4big, g4bigp, g4bigpp)
-  implicit none
-
-  real, intent(in) :: pso
-  real, intent(out) :: g4big0,g4big, g4bigp, g4bigpp
-
-  call cubic_interpolation(npsi,psinorm,pso,g4big0t,g4big0)
-  call cubic_interpolation(npsi,psinorm,pso,g4bigt,g4big)
-  call cubic_interpolation(npsi,psinorm,pso,g4bigpt,g4bigp)
-  call cubic_interpolation(npsi,psinorm,pso,g4bigppt,g4bigpp)
-  return
-end subroutine g4get
-
-subroutine fget(pso, fbig0, fbig, fbigp, fbigpp)
-  use basic
-  implicit none
-
-  real, intent(in) :: pso
-  real, intent(out) :: fbig0,fbig, fbigp, fbigpp
-
-  call cubic_interpolation(npsi,psinorm,pso,fbig0t,fbig0)
-  call cubic_interpolation(npsi,psinorm,pso,fbigt,fbig)
-  call cubic_interpolation(npsi,psinorm,pso,fbigpt,fbigp)
-  call cubic_interpolation(npsi,psinorm,pso,fbigppt,fbigpp)  
-
-  fbig0 = fbig0 + pedge
-  return
-end subroutine fget
-
-subroutine alphaget(pso, alphap0, alphap, alphapp, alphappp)
-  use basic
-  implicit none
-
-  real, intent(in) :: pso
-  real, intent(out) :: alphap0,alphap, alphapp, alphappp
-
-  real :: fbig0, fbig, fbigp, fbigpp, x
-
-  call cubic_interpolation(npsi,psinorm,pso,alphap0t,alphap0)
-  call cubic_interpolation(npsi,psinorm,pso,alphapt,alphap)
-  call cubic_interpolation(npsi,psinorm,pso,alphappt,alphapp)
-  call cubic_interpolation(npsi,psinorm,pso,alphapppt,alphappp)
-
-  ! if iscale_rot_by_p==0 then omega = alpha(psi) instead of
-  ! omega = alpha(psi) * p, so divide alpha by p
-  if(iscale_rot_by_p.eq.0) then
-     call fget(pso, fbig0, fbig, fbigp, fbigpp)
-
-     x = expn - 1.
-
-     alphap0 = alphap0 *fbig0**(x)
-     alphap  = alphap  *fbig0**(x)                               &
-          +    alphap0 *fbig0**(x-1.)*fbig      *x
-     alphapp = alphapp *fbig0**(x)                               &
-          +    alphap  *fbig0**(x-1.)*fbig      *x               &
-          +    alphap0 *fbig0**(x-2.)*fbig**2   *x*(x-1.)        &
-          +    alphap0 *fbig0**(x-1.)*fbigp     *x
-     alphappp= alphappp*fbig0**(x)                               &
-          +    alphapp *fbig0**(x-1.)*fbig      *x               &
-          +    alphap  *fbig0**(x-2.)*fbig**2   *x*(x-1.)        &
-          +    alphap  *fbig0**(x-1.)*fbigp     *x               &
-          +    alphap  *fbig0**(x-2.)*fbig**2   *x*(x-1.)        &
-          +    alphap0 *fbig0**(x-3.)*fbig**3   *x*(x-1.)*(x-2.) &
-          +    alphap0 *fbig0**(x-2.)*fbigp*fbig*x*(x-1.)*2.     &
-          +    alphapp *fbig0**(x-1.)*fbigp     *x               &
-          +    alphap0 *fbig0**(x-2.)*fbigp*fbig*x*(x-1.)        &
-          +    alphap0 *fbig0**(x-1.)*fbigpp    *x
-  endif
-end subroutine alphaget
 
  subroutine default_profiles
-   
    use basic
 
    implicit none
 
-   integer :: j
+   integer :: j, npsi
    real :: psii
+   real, allocatable :: psinorm(:), pres0(:)
+   real, allocatable :: g0(:), g2(:), g3(:), ffn(:), ppn(:)
 
    if(myrank.eq.0) print *, "Using analytic p' and FF' profiles"
 
-   npsi = 500
-   allocate(psinorm(npsi))
-   allocate(fbig0t(npsi),fbigt(npsi),fbigpt(npsi),fbigppt(npsi))
-   allocate(g4big0t(npsi),g4bigt(npsi),g4bigpt(npsi),g4bigppt(npsi))
+   npsi = 100
+   allocate(psinorm(npsi), pres0(npsi))
+   allocate(g0(npsi), g2(npsi), g3(npsi), ffn(npsi), ppn(npsi))
   
    do j=1, npsi
       psii = (j-1.)/(npsi-1.)
       psinorm(j) = psii
-      fbig0t(j) = p0*(1.+p1*psii+p2*psii**2 &
+      pres0(j) = p0*(1.+p1*psii+p2*psii**2 &
            - (20. + 10.*p1 + 4.*p2)*psii**3 &
            + (45. + 20.*p1 + 6.*p2)*psii**4 &
            - (36. + 15.*p1 + 4.*p2)*psii**5 &
            + (10. +  4.*p1 +    p2)*psii**6)
-      fbigt(j) = p0*(p1 + 2.*p2*psii - 3.*(20. + 10.*p1+4.*p2)*psii**2      &
-           + 4.*(45.+20.*p1+6.*p2)*psii**3 - 5.*(36.+15.*p1+4.*p2)*psii**4  &
-           + 6.*(10.+4.*p1+p2)*psii**5)
-      fbigpt(j) = p0*(2.*p2 - 6.*(20. + 10.*p1+4.*p2)*psii                  &
-           + 12.*(45.+20.*p1+6*p2)*psii**2 - 20.*(36.+15*p1+4*p2)*psii**3   &
-           + 30.*(10.+4.*p1+p2)*psii**4)
-      fbigppt(j) = p0*(- 6.*(20. + 10.*p1+4.*p2)                            &
-           + 24.*(45.+20.*p1+6*p2)*psii - 60.*(36.+15*p1+4*p2)*psii**2      &
-           + 120.*(10.+4.*p1+p2)*psii**3)
+      ppn(j) = p0*(p1+2.*p2*psii &
+           - 3.*(20. + 10.*p1 + 4.*p2)*psii**2 &
+           + 4.*(45. + 20.*p1 + 6.*p2)*psii**3 &
+           - 5.*(36. + 15.*p1 + 4.*p2)*psii**4 &
+           + 6.*(10. +  4.*p1 +    p2)*psii**5)
 
-      g4big0t(j) = 1.- 20.*psii**3+  45.*psii**4-  36.*psii**5+  10.*psii**6
-      g4bigt(j)  =   - 60.*psii**2+ 180.*psii**3- 180.*psii**4+  60.*psii**5
-      g4bigpt(j) =   -120.*psii   + 540.*psii**2- 720.*psii**3+ 300.*psii**4
-      g4bigppt(j)=   -120.        +1080.*psii   -2160.*psii**2+1200.*psii**3
+      g0(j)  = 1.      - 20.*psii**3 + 45.*psii**4 - 36.*psii**5 + 10.*psii**6
+      g2(j)  = 1.      - 30.*psii**2 + 80.*psii**3 - 75.*psii**4 + 24.*psii**5
+      g3(j)  = 2.*psii - 12.*psii**2 + 24.*psii**3 - 20.*psii**4 +  6.*psii**5
+      ffn(j) =         - 60.*psii**2 +180.*psii**3 -180.*psii**4 + 60.*psii**5
    end do
 
-!   use_norm_psi = .true.
+   call create_spline(p0_spline, npsi, psinorm, pres0)
+   call create_spline(g0_spline, npsi, psinorm, g0)
+   call create_spline(g2_spline, npsi, psinorm, g2)
+   call create_spline(g3_spline, npsi, psinorm, g3)
+   call create_spline(ffprime_spline, npsi, psinorm, ffn)
+   call create_spline(pprime_spline, npsi, psinorm, ppn)
 
+   deallocate(psinorm, pres0, g0, g2, g3, ffn, ppn)
  end subroutine default_profiles
 
- subroutine default_alpha
+ subroutine density_profile
+   use basic
+
+   call copy_spline(n0_spline, p0_spline)
+
+   if(expn.eq.0.) then
+      n0_spline%y = den0
+   else
+      n0_spline%y = den0*(p0_spline%y/p0)**expn
+   end if
+ end subroutine density_profile
+
+ !=======================================================================
+ ! default_omega
+ ! ~~~~~~~~~~~~~
+ ! use analytic omega profile
+ !=======================================================================
+ subroutine default_omega
+   use basic
+   implicit none
+
+   integer :: j, npsi
+   real :: psii, pres, dens, alpha
+   real, allocatable :: omega(:), psinorm(:)
+
+   if(myrank.eq.0) print *, "Using analytic alpha profile"
+
+   npsi = 100
+   allocate(omega(npsi), psinorm(npsi))
+
+   do j=1, npsi
+      psii = (j-1.)/(npsi-1.)
+      psinorm(j) = psii
+
+      alpha = alpha0 + alpha1*psii + alpha2*psii**2 + alpha3*psii**3 
+
+      call evaluate_spline(p0_spline, psii, pres)
+      call evaluate_spline(n0_spline, psii, dens)
+      if(iscale_rot_by_p.eq.0) alpha = alpha * dens/pres
+      
+      omega(j) = sqrt(2./rzero**2 * alpha * pres/dens)
+   end do
+
+   call create_spline(omega_spline, npsi, psinorm, omega)
+
+   deallocate(omega, psinorm)
+ end subroutine default_omega
+
+ !=======================================================================
+ ! calculate_alpha
+ ! ~~~~~~~~~~~~~~~
+ ! calculate alpha from omega profile
+ !=======================================================================
+ subroutine calculate_alpha
    use basic
    implicit none
 
    integer :: j
-   real :: psii
+   real :: psii, pres, dens
 
-   if(myrank.eq.0) print *, "Using analytic alpha profile"
+   if(myrank.eq.0) print *, "Calculating alpha"
 
-   allocate(alphap0t(npsi),alphapt(npsi),alphappt(npsi),alphapppt(npsi))
+   call copy_spline(alpha_spline, omega_spline)
 
-   do j=1, npsi
-      psii = (j-1.)/(npsi-1.)
+   do j=1, alpha_spline%n
+      psii = alpha_spline%x(j)
 
-      alphap0t(j) = alpha0 + alpha1*psii + alpha2*psii**2 + alpha3*psii**3
-      alphapt(j)  =          alpha1   + 2.*alpha2*psii + 3.*alpha3*psii**2
-      alphappt(j) =                     2.*alpha2      + 6.*alpha3*psii
-      alphapppt(j) =                                   + 6.*alpha3
+      call evaluate_spline(p0_spline, psii, pres)
+      call evaluate_spline(n0_spline, psii, dens)
+
+      alpha_spline%y(j) = 0.5*rzero**2*omega_spline%y(j)**2*dens/pres
    end do
    
- end subroutine default_alpha
+ end subroutine calculate_alpha
+
 
 !================================================================
 ! create_profile
@@ -1473,46 +1512,23 @@ end subroutine alphaget
    integer, intent(in) :: n
    real, dimension(n), intent(in) :: p, pp, f, ffp, flux
 
-   real, dimension(4) :: a
-   real :: dp,dpp
-   integer :: j
+   real, allocatable :: pres0(:), g0(:), psinorm(:), ffn(:), ppn(:)
 
-   do npsi=1, n
-      if ((flux(npsi) - flux(1)) / (flux(n) - flux(1)) .ge. psiscale) exit
-   end do
+   allocate(psinorm(n), pres0(n), g0(n), ffn(n), ppn(n))
 
-   allocate(psinorm(npsi))
-   allocate(fbig0t(npsi),fbigt(npsi),fbigpt(npsi),fbigppt(npsi))
-   allocate(g4big0t(npsi),g4bigt(npsi),g4bigpt(npsi),g4bigppt(npsi))
+   pres0 = p
+   g0    = 0.5*(f**2 - f(n)**2)
+   ffn   = ffp*(flux(n) - flux(1))  ! convert to derivative wrt normalized psi
+   ppn   = pp *(flux(n) - flux(1))  ! convert to derivative wrt normalized psi
+   psinorm = (flux - flux(1)) / (flux(n) - flux(1))
 
-   fbig0t(1:n) = p                              ! p
-   fbigt(1:n) = pp * (flux(n) - flux(1))        ! p' = dp/dPsi
-   g4big0t(1:n) = 0.5*(f**2 - f(n)**2)          ! g
-   g4bigt(1:n) = ffp * (flux(n) - flux(1))      ! f f' = f * df/dPsi
+   call create_spline(p0_spline, n, psinorm, pres0)
+   call create_spline(g0_spline, n, psinorm, g0)
+   call create_spline(ffprime_spline, n, psinorm, ffn)
+   call create_spline(pprime_spline, n, psinorm, ppn)
 
-   ! calculate normalized flux
-   ! and derivatives wrt acutal flux
-   do j=1,npsi
-      call cubic_interpolation_coeffs(flux,npsi,j,a)
-      psinorm(j) = (flux(j) - flux(1)) / (flux(npsi) - flux(1))
-      dp = a(2)      ! d psi/dn
-      dpp = 2.*a(3)  ! d^2 psi/dn^2
+   deallocate(psinorm, pres0, g0, ffn, ppn)
 
-      call cubic_interpolation_coeffs(fbigt,npsi,j,a)
-      fbigpt(j) =     a(2)/dp                       ! p''
-      fbigppt(j) = 2.*a(3)/dp**2 - a(2)*dpp/dp**3   ! p'''
-
-      call cubic_interpolation_coeffs(g4bigt,npsi,j,a)
-      g4bigpt(j)  =    a(2)/dp                      ! (f f')'
-      g4bigppt(j) = 2.*a(3)/dp**2 - a(2)*dpp/dp**3  ! (f f')''
-   end do
-
-   ! change derivatives from actual to normalized flux
-   fbigpt = fbigpt*(flux(npsi) - flux(1))
-   fbigppt = fbigppt*(flux(npsi) - flux(1))**2
-   g4bigpt = g4bigpt*(flux(npsi) - flux(1))
-   g4bigppt = g4bigppt*(flux(npsi) - flux(1))**2
-  
    constraint = .true.
  end subroutine create_profile
 
@@ -1526,20 +1542,23 @@ end subroutine alphaget
    implicit none
 
    integer :: j
+   real :: y, yp, ypp, yppp
 
    open(unit=76,file="profilesdb-p",status="unknown")
-   do j=1,npsi
-      write(76,802) j,psinorm(j),fbig0t(j),fbigt(j),fbigpt(j),fbigppt(j)
+   do j=1, p0_spline%n     
+      call evaluate_spline(p0_spline, p0_spline%x(j), y, yp, ypp, yppp)
+      write(76,802) j, p0_spline%x(j), y, yp, ypp, yppp
    enddo
    close(76)
    
    open(unit=77,file="profilesdb-g",status="unknown")
-   do j=1,npsi
-      write(77,802) j,psinorm(j),g4big0t(j),g4bigt(j),g4bigpt(j),g4bigppt(j)
+   do j=1, g0_spline%n
+      call evaluate_spline(g0_spline, p0_spline%x(j), y, yp, ypp, yppp)
+      write(77,802) j, g0_spline%x(j), y, yp, ypp, yppp
    enddo
-802 format(i5,1p6e18.9)
    close(77)
-   
+
+802 format(i5,1p6e18.9)   
  end subroutine write_profile
 
  !=============================================================
@@ -1630,7 +1649,7 @@ subroutine calc_toroidal_field(psi0,tf,x,z)
   
   vectype :: g0
   real, dimension(dofs_per_node) :: g2, g3, g4
-  real :: g4big0, g4big, g4bigp, g4bigpp
+  real :: g4big0, g4big, g4bigp
   real :: g2big, g2bigp, g3big, g3bigp
   real, dimension(dofs_per_node)  :: psii     ! normalized flux
 
@@ -1670,7 +1689,7 @@ subroutine calc_toroidal_field(psi0,tf,x,z)
         g3(6) = (psii(6)*g3big + psii(3)**2*g3bigp)
      end if
      
-     call g4get(psii(1), g4big0, g4big, g4bigp, g4bigpp)
+     call evaluate_spline(g0_spline, psii(1), g4big0, g4big, g4bigp)
      
      g4(1) = g4big0
      g4(2) = (psii(2))*g4big
@@ -1716,12 +1735,13 @@ subroutine calc_pressure(psi0, pres, x, z)
   implicit none
 
   vectype, intent(in), dimension(dofs_per_node)  :: psi0
-  real, intent(in) :: x, z
   vectype, intent(out), dimension(dofs_per_node) :: pres     ! pressure
+  real, intent(in) :: x, z
 
-  real :: fbig0, fbig, fbigp, fbigpp
-  real :: alphap0, alphap, alphapp, alphappp
-  real :: r0m, r1, r1m, r2, r3, ealpha,  pspx, pspy, pspxx, pspxy, pspyy
+  real :: fbig0, fbig, fbigp
+  real :: alphap0, alphap, alphapp
+  real :: ealpha, r0m, r1, r1m, r2, r3
+  real :: pspx, pspy, pspxx, pspxy, pspyy
   real, dimension(dofs_per_node) :: psii     ! normalized flux
 
   logical :: inside_lcfs
@@ -1729,152 +1749,118 @@ subroutine calc_pressure(psi0, pres, x, z)
   psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
   psii(2:6) = real(psi0(2:6))/(psilim - psimin)
 
-  if(.not.inside_lcfs(psi0,x,z,.true.)) then
-     fbig0 = pedge
-     fbig = 0.
-     fbigp = 0.
-     fbigpp = 0.
-  else
-     call fget(psii(1), fbig0, fbig, fbigp, fbigpp)
-  endif
+  if(.not.inside_lcfs(psi0,x,z,.true.)) psii(1) = 1.
+
+  pspx = real(psi0(2))
+  pspy = real(psi0(3))
+  pspxx= real(psi0(4))
+  pspxy= real(psi0(5))
+  pspyy= real(psi0(6))
+
+  call evaluate_spline(p0_spline, psii(1), fbig0, fbig, fbigp)
+  fbig = fbig*dpsii
+  fbigp = fbigp*dpsii**2
 
   if(irot.eq.1) then
-
-     pspx = real(psi0(2))
-     pspy = real(psi0(3))
-     pspxx= real(psi0(4))
-     pspxy= real(psi0(5))
-     pspyy= real(psi0(6))
-        
      r0m = 1./rzero**2
-     r1 = (x**2-rzero**2)/rzero**2
+     r1 = (x**2 - rzero**2)/rzero**2
      r1m= x**2/rzero**2
      r2 = (x**2 - rzero**2)**2/rzero**4
      r3 = (x**2 - rzero**2)**3/rzero**6
-     call alphaget(psii(1),alphap0,alphap,alphapp,alphappp)
+
+     call evaluate_spline(alpha_spline, psii(1), alphap0, alphap, alphapp)
 
      !...convert all derivatives to wrt psi, not normalized psi
-     fbig = fbig*dpsii
-     fbigp = fbigp*dpsii**2
      alphap = alphap*dpsii
      alphapp = alphapp*dpsii**2
-        
+
      ealpha = exp(alphap0*r1)
 
      pres(1) = fbig0
-        
-     pres(2) = fbig0*alphap0*2*x*r0m + (fbig + fbig0*alphap*r1)*pspx
-        
-     pres(3) = (fbig + fbig0*alphap*r1)*pspy
-        
+
+     pres(2) = fbig0*alphap0*2*x*r0m  + (fbig + fbig0*alphap*r1)*pspx
+
+     pres(3) =(fbig + fbig0*alphap*r1)*pspy
+
      pres(4) = fbig0*alphap0*2*r0m + fbig0*alphap0*alphap0*4*r0m*r1m &
-          + ((2*fbig0*alphap + 2.*fbig*alphap0)                      &
-          +   2*fbig0*alphap0*alphap*r1)*2*x*r0m*pspx                &
-          + (fbigp + (2*fbig*alphap + fbig0*alphapp)*r1              &
-          +  fbig0*alphap**2*r2)*pspx*pspx                           &
+          + (2*fbig0*alphap + 2.*fbig*alphap0           &
+          +  2*fbig0*alphap0*alphap*r1)*2*x*r0m*pspx    &
+          + (fbigp + (2*fbig*alphap + fbig0*alphapp)*r1 &
+          +  fbig0*alphap**2*r2)*pspx*pspx              &
           + (fbig + fbig0*alphap*r1)*pspxx
-        
-     pres(5) = (fbig*alphap0 + fbig0*alphap                 &
+
+     pres(5) = (fbig*alphap0 + fbig0*alphap &
           +     fbig0*alphap0*alphap*r1)*2*x*r0m*pspy       &
-          + (fbigp + (2.*fbig*alphap + fbig0*alphapp)*r1    &
-          +  fbig0 *alphap**2*r2)*pspx*pspy                 &
-          + (fbig + fbig0*alphap*r1)*pspxy
-        
+          +    (fbigp + (2.*fbig*alphap + fbig0*alphapp)*r1 &
+          +     fbig0 *alphap**2*r2)*pspx*pspy              &
+          +    (fbig + fbig0*alphap*r1)*pspxy
+
      pres(6) = (fbigp + (2.*fbig*alphap + fbig0*alphapp)*r1 &
           +     fbig0 *alphap**2*r2)*pspy*pspy              &
-          + (fbig + fbig0*alphap*r1)*pspyy
+          +    (fbig + fbig0*alphap*r1)*pspyy
 
      pres = pres*ealpha
-        
   else
      pres(1) = fbig0
-     pres(2) = psii(2)*fbig
-     pres(3) = psii(3)*fbig
-     pres(4) = (psii(4)*fbig + psii(2)**2*fbigp)
-     pres(5) = (psii(5)*fbig + psii(2)*psii(3)*fbigp)
-     pres(6) = (psii(6)*fbig + psii(3)**2*fbigp)
-  endif     !....end of branch on irot
-    
+     pres(2) = fbig*pspx
+     pres(3) = fbig*pspy
+     pres(4) = fbig*pspxx + fbigp*pspx**2
+     pres(5) = fbig*pspxy + fbigp*pspx*pspy
+     pres(6) = fbig*pspyy + fbigp*pspy**2
+  endif     !....end of branch on irot            
 end subroutine calc_pressure
 
 
 !======================================================================
 ! calc_density
-! ~~~~~~~~~~~~~
+! ~~~~~~~~~~~~
 !
 ! calculates the density as a function of the poloidal flux 
 ! (and major radius if rotation is present)
 !======================================================================
-subroutine calc_density(psi0,pres,dens, x, z)
+subroutine calc_density(psi0, dens, x, z)
   
   use basic
 
   implicit none
 
-  vectype, intent(in), dimension(dofs_per_node)  :: psi0, pres
+  vectype, intent(in), dimension(dofs_per_node)  :: psi0
   real, intent(in) :: x, z
   vectype, intent(out), dimension(dofs_per_node) :: dens     ! density
 
-  real :: fbig0, fbig, fbigp, fbigpp
-  real :: rbig0, rbig, rbigp, p0ni
-  real :: alphap0, alphap, alphapp, alphappp
-  real :: r0m, r1, r1m, r2, r3, ealpha,  pspx, pspy, pspxx, pspxy, pspyy
+  real :: rbig0, rbig, rbigp
+  real :: alphap0, alphap, alphapp
+  real :: r0m, r1, r1m, r2, r3
+  real :: ealpha, pspx, pspy, pspxx, pspxy, pspyy
   real, dimension(dofs_per_node) :: psii     ! normalized flux
 
   logical :: inside_lcfs
 
-  if(irot.eq.1) then
-     psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
-     psii(2:6) = real(psi0(2:6))/(psilim - psimin)
+  pspx = real(psi0(2))
+  pspy = real(psi0(3))
+  pspxx= real(psi0(4))
+  pspxy= real(psi0(5))
+  pspyy= real(psi0(6))
 
-     if(.not.inside_lcfs(psi0,x,z,.true.)) then
-        fbig0 = pedge
-        fbig = 0.
-        fbigp = 0.
-        fbigpp = 0.
-        alphap0  = alpha0 + alpha1 + alpha2 + alpha3
-        alphap   = 0.
-        alphapp  = 0.
-        alphappp = 0.
-        if(iscale_rot_by_p.eq.0) alphap0 = alphap0*pedge**(expn-1.)
-     else        
-        call fget(psii(1), fbig0, fbig, fbigp, fbigpp)
-        call alphaget(psii(1),alphap0,alphap,alphapp,alphappp)
-     endif
+  psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
+  psii(2:6) = real(psi0(2:6))/(psilim - psimin)
 
-!.....include toroidal rotation in equilibrium
-!...this section calculates density derivatives in presence of rotation
-!   scj   11/19/10
-!
-!....assumes density of the form p(x,psi) = p(psi) exp (alpha(psi)*r1)
-!
-!...spatial derivatives of psi, not normalized psi
-     pspx = real(psi0(2))
-     pspy = real(psi0(3))
-     pspxx= real(psi0(4))
-     pspxy= real(psi0(5))
-     pspyy= real(psi0(6))
+  if(.not.inside_lcfs(psi0,x,z,.true.)) psii(1) = 1.
+
+  call evaluate_spline(n0_spline, psii(1), rbig0, rbig, rbigp)
+  rbig = rbig/(psilim-psimin)
+  rbigp = rbigp/(psilim-psimin)**2
+
+  if(irot.eq.1) then     
+     call evaluate_spline(alpha_spline,psii(1),alphap0,alphap,alphapp)
+     alphap = alphap/(psilim-psimin)
+     alphapp = alphapp/(psilim-psimin)**2
 
      r0m = 1./rzero**2
      r1 = (x**2-rzero**2)/rzero**2
      r1m= x**2/rzero**2
      r2 = (x**2 - rzero**2)**2/rzero**4
      r3 = (x**2 - rzero**2)**3/rzero**6
-
-!...convert all derivatives to wrt psi, not normalized psi
-     fbig = fbig/(psilim-psimin)
-     fbigp = fbigp/(psilim-psimin)**2
-     alphap = alphap/(psilim-psimin)
-     alphapp = alphapp/(psilim-psimin)**2
-
-     p0ni = den0*(1./p0)**expn
-     rbig0 = p0ni*fbig0**expn
-     rbig = 0.
-     rbigp = 0.
-     if(fbig0.gt.0.) then
-        rbig = p0ni*expn*fbig0**(expn-1)*fbig
-        rbigp= p0ni*expn*((expn-1)*fbig0**(expn-2)*fbig**2 + fbig0**(expn-1.)*fbigp)
-     endif
 
      ealpha = exp(alphap0*r1)
 
@@ -1902,24 +1888,13 @@ subroutine calc_density(psi0,pres,dens, x, z)
           + (rbig + rbig0*alphap*r1)*pspyy
 
      dens = dens*ealpha
-
   else
-     if(expn .gt. 0.) then
-        dens(1) = pres(1)**expn
-        dens(2) = pres(1)**(expn-1.)*pres(2)*expn
-        dens(3) = pres(1)**(expn-1.)*pres(3)*expn
-        dens(4) = pres(1)**(expn-1.)*pres(4)*expn &
-             + pres(1)**(expn-2.)*pres(2)**2.*expn*(expn-1.)
-        dens(5) = pres(1)**(expn-1.)*pres(5)*expn &
-             + pres(1)**(expn-2.)*pres(2)*pres(3) &
-             * expn*(expn-1.)
-        dens(6) = pres(1)**(expn-1.)*pres(6)*expn &
-             + pres(1)**(expn-2.)*pres(3)**2.*expn*(expn-1.)
-        dens = den0*dens/p0**expn
-     else   ! expn.eq.0
-        dens(1) = den0
-        dens(2:6) = 0.
-     endif
+     dens(1) = rbig0
+     dens(2) = rbig*pspx
+     dens(3) = rbig*pspy
+     dens(4) = rbig*pspxx + rbigp*pspx**2
+     dens(5) = rbig*pspxy + rbigp*pspx*pspy
+     dens(6) = rbig*pspyy + rbigp*pspy**2
   endif     !....end of branch on irot
   
   return
@@ -1942,10 +1917,8 @@ subroutine calc_rotation(psi0,omega, x, z)
   real, intent(in) :: x, z
   vectype, intent(out), dimension(dofs_per_node) :: omega     ! rotation
 
-  real :: fbig0, fbig, fbigp, fbigpp
-  real :: alphap0, alphap, alphapp, alphappp
-  real :: tp0,tp,tpp,p0n,befoh,befomh,befom3h
-  real :: r0m, r1, r1m, r2, r3,  pspx, pspy, pspxx, pspxy, pspyy
+  real :: w0, wp, wpp
+  real :: pspx, pspy, pspxx, pspxy, pspyy
   real, dimension(dofs_per_node) :: psii     ! normalized flux
 
   logical :: inside_lcfs
@@ -1958,20 +1931,9 @@ subroutine calc_rotation(psi0,omega, x, z)
   psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
   psii(2:6) = real(psi0(2:6))/(psilim - psimin)
 
-  if(.not.inside_lcfs(psi0,x,z,.true.)) then
-     fbig0 = pedge
-     fbig = 0.
-     fbigp = 0.
-     fbigpp = 0.
-     alphap0  = alpha0 + alpha1 + alpha2 + alpha3
-     alphap   = 0.
-     alphapp  = 0.
-     alphappp = 0.
-     if(iscale_rot_by_p.eq.0) alphap0 = alphap0*pedge**(expn-1.)
-  else
-     call fget(psii(1), fbig0, fbig, fbigp, fbigpp)
-     call alphaget(psii(1),alphap0,alphap,alphapp,alphappp)
-  endif
+  if(.not.inside_lcfs(psi0,x,z,.true.)) psii(1) = 1.
+
+  call evaluate_spline(omega_spline, psii(1),w0,wp,wpp)
 
 !.....include toroidal rotation in equilibrium
 !...this section calculates rotation derivatives in presence of rotation
@@ -1986,50 +1948,16 @@ subroutine calc_rotation(psi0,omega, x, z)
   pspxy= real(psi0(5))
   pspyy= real(psi0(6))
   
-  r0m = 1./rzero**2
-  r1 = (x**2-rzero**2)/rzero**2
-  r1m= x**2/rzero**2
-  r2 = (x**2 - rzero**2)**2/rzero**4
-  r3 = (x**2 - rzero**2)**3/rzero**6
-
 !...convert all derivatives to wrt psi, not normalized psi
-  fbig = fbig/(psilim-psimin)
-  fbigp = fbigp/(psilim-psimin)**2
-  alphap = alphap/(psilim-psimin)
-  alphapp = alphapp/(psilim-psimin)**2
+  wp = wp/(psilim-psimin)
+  wpp = wpp/(psilim-psimin)**2
 
-!...define temperature and derivatives
-  p0n = p0**expn/den0
-  tp0 = p0n*fbig0**(1.-expn)
-  tp  = p0n*(1.-expn)*fbig0**(-expn)*fbig
-  tpp = p0n*(expn*(expn-1.)*fbig0**(-1.-expn)*fbig**2  &
-       + (1.-expn)*fbig0**(-expn)*fbigp)
-  
-  befoh   = (2.*alphap0*tp0/rzero**2)**0.5
-  befomh  = (2.*alphap0*tp0/rzero**2)**(-0.5)
-  befom3h = (2.*alphap0*tp0/rzero**2)**(-1.5)
-  
-  if(befomh.gt.0.) then      
-     omega(1) = befoh
-  
-     omega(2) = befomh*r0m*(alphap*tp0 + alphap0*tp)*pspx
-  
-     omega(3) = befomh*r0m*(alphap*tp0 + alphap0*tp)*pspy
-  
-     omega(4) = -befom3h*r0m**2*(alphap*tp0 + alphap0*tp)**2*pspx*pspx                   &
-              +   befomh*r0m*((alphapp*tp0 + 2.*alphap*tp + alphap0*tpp)*pspx*pspx       &
-                             +(alphap*tp0 + alphap0*tp)*pspxx)
-  
-     omega(5) =  -befom3h*r0m**2*(alphap*tp0 + alphap0*tp)**2*pspx*pspy                  &
-              +   befomh*r0m*((alphapp*tp0 + 2.*alphap*tp + alphap0*tpp)*pspx*pspy       &
-                                   +(alphap*tp0 + alphap0*tp)*pspxy)
-
-     omega(6) =  -befom3h*r0m**2*(alphap*tp0 + alphap0*tp)**2*pspy*pspy                  &
-              +   befomh*r0m*((alphapp*tp0 + 2.*alphap*tp + alphap0*tpp)*pspy*pspy       &
-                             +(alphap*tp0 + alphap0*tp)*pspyy)
-  else
-     omega = 0.
-  endif
+  omega(1) = w0
+  omega(2) = wp*pspx
+  omega(3) = wp*pspy
+  omega(4) = wpp*pspxx
+  omega(5) = wpp*pspxy
+  omega(6) = wpp*pspyy
 
   if(ivform.eq.0) then
      ! V = omega*r^2

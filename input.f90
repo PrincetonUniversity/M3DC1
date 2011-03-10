@@ -43,6 +43,7 @@ subroutine set_defaults
   iread_dskbal = 0
   iread_jsolver = 0
   iread_omega = 0
+  iread_ne = 0
 
   ! transport coefficients
   ivisfunc = 0
@@ -160,7 +161,7 @@ subroutine set_defaults
   p0 = 0.01      
   p1 = -1.
   p2 = -2.
-  pedge = 0.
+  pedge = -1.    ! If pedge < 0, don't use pedge
   expn = 0.
   q0 = 1.
   djdpsi = 0.0

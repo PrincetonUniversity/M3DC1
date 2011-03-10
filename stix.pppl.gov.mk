@@ -28,13 +28,12 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 # define where you want to locate the mesh adapt libraries
 HYBRID_HOME = /p/swim/jchen/hybrid.test
 #HYBRID_HOME = /u/iyamazak/release/v2/hybrid.test
-HYBRID_LIBS = $(HYBRID_HOME)/lib/libhsolver.a
+HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lhsolver
 
 INCLUDE = -I$(MPIHOME)/include \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
 	-I$(HDF5_HOME)/include -I$(HDF5_HOME)/lib \
 	-I$(HYBRID_HOME)/include
-#-I$(SUPERLU_DIST_HOME)/include
 
 
 PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
@@ -43,15 +42,12 @@ PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
 	-lpromfei -lprometheus \
 	-lscalapack -lfblas -lflapack \
 	-L$(MUMPS_HOME)/lib -ldmumps -lmumps_common -lpord
-#	-lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc \
-#        -L$(PETSC_DIR)/externalpackages/hypre-2.4.0b/src/lib  \
-#        -lHYPRE -lHYPRE_LSI 
 
 SUPERLU_HOME = $(PETSC_DIR)/$(PETSC_ARCH)
 SUPERLU_DIST_HOME = $(PETSC_DIR)/$(PETSC_ARCH)
 SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu_4.1 \
 	-L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist_2.5 \
-	-L$(BLACS_HOME)/lib -lmpiblacs -lmpiblacsF77init -lmpiblacsCinit -lmpiblacs
+	-L$(BLACS_HOME)/lib -lmpiblacsF77init -lmpiblacsCinit -lmpiblacs
 
 PARMETIS_LIBS = -L$(PARMETIS_HOME)/lib \
 	-Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis
@@ -60,7 +56,6 @@ PARMETIS_LIBS = -L$(PARMETIS_HOME)/lib \
 LIBS = 	$(PETSC_LIBS) \
 	$(SUPERLU_LIBS) \
 	$(PARMETIS_LIBS) \
-	$(HYBRID_LIBS) \
 	-L$(Zoltan_HOME)/lib -lzoltan \
 	-L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5 \
 	-L$(CCHOME)/lib/intel64 -lguide \
@@ -73,24 +68,19 @@ LIBS = 	$(PETSC_LIBS) \
 
 ifeq ($(USESCOREC), 1)
 
-#  ifeq ($(USE3D), 1)
-
-    # 3D libraries
-    ifeq ($(USERW), 1)
-      SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/libtest
-      INCLUDE := -I/p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/includetest \
+  ifeq ($(USERW), 1)
+    SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/libtest
+    INCLUDE := -I/p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/includetest \
 	$(INCLUDE)
-    else
-      SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/lib
-      INCLUDE := -I/p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/include \
+  else
+    SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/lib
+    INCLUDE := -I/p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/include \
 	$(INCLUDE)
-#      SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/092210
-#      INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/092210 $(INCLUDE)
-    endif
+  endif
 
-    SCOREC_ARCH=x86_64_linux-icc
-    SCOREC_LIBS = \
-        -L$(SCORECDIR) \
+  SCOREC_ARCH=x86_64_linux-icc
+  SCOREC_LIBS = \
+	-L$(SCORECDIR) \
 	-Wl,-rpath,$(SCORECDIR) \
 	-lFMDB-mpich2$(SCORECOPT) \
 	-lSCORECModel-mpich2$(SCORECOPT) \
@@ -102,32 +92,6 @@ ifeq ($(USESCOREC), 1)
 	-lSolver-mpich2$(SCORECOPT) \
 	-lPPPLPetscDEV-mpich2$(SCORECOPT) \
 	-lipcomman-mpich2$(SCORECOPT)
-#	-lPPPL-mpich2$(SCORECOPT) \
-#	-lPPPLTEST-mpich2$(SCORECOPT) \
-
-#  else
-#    # 2D Libraries
-#
-#    ifndef SCORECDIR
-#      SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/092210
-#    endif
-#    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/092210 $(INCLUDE)
-#
-#    SCOREC_LIBS = \
-#        -L$(SCORECDIR) \
-#	-Wl,-rpath,$(SCORECDIR) \
-#	-lFMDB-mpich2$(SCORECOPT) \
-#	-lSCORECModel-mpich2$(SCORECOPT) \
-#	-lSCORECUtil-mpich2$(SCORECOPT) \
-#	-lField-mpich2$(SCORECOPT) \
-#	-lCore-mpich2$(SCORECOPT) \
-#	-lmeshAdapt-mpich2$(SCORECOPT) \
-#	-ltemplateRefine-mpich2$(SCORECOPT) \
-#	-lmeshTools-mpich2$(SCORECOPT) \
-#	-lSolver-mpich2$(SCORECOPT) \
-#	-lPPPL-mpich2$(SCORECOPT)
-#
-#  endif # on USE3D
 
   LIBS := $(SCOREC_LIBS) $(LIBS)
 

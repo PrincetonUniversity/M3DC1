@@ -1850,28 +1850,15 @@ subroutine eqdsk_init()
 
   if(myrank.eq.0 .and. iprint.ge.1) then
      print *, 'normalized current ', current
-!!$     write(*,1001) nw
-!!$ 1001 format(" nw = ",i4)
-!!$
-!!$     write(*,*) "press"
-!!$     write(*,1002) press
-!!$ 1002 format(1p5e12.4)
-!!$
-!!$     write(*,*) "pprime"
-!!$     write(*,1002) pprime
-!!$
-!!$     write(*,*) "ffprim"
-!!$     write(*,1002) ffprim
-!!$
-!!$     write(*,*) "fpol"
-!!$     write(*,1002) fpol
   end if
 
   if(iflip_z.eq.1) zmaxis = -zmaxis
 
   numnodes = owned_nodes()
+
   do l=1, numnodes
      call get_node_pos(l, x, phi, z)
+
      if(iflip_z.eq.1) z = -z
 
      call get_local_vals(l)
@@ -1897,9 +1884,6 @@ subroutine eqdsk_init()
         
         do l=1,nw
            flux(l) = l*dpsi
-!!$           ll = nw-l
-!!$!          redefine fpol keeping ffprim fixed
-!!$           if(ll.gt.0) fpol(ll) = -sqrt(fpol(ll+1)**2 - dpsi*(ffprim(ll)+ffprim(ll+1)))
         end do
         call create_profile(nw,press,pprime,fpol,ffprim,flux)
 
@@ -2027,7 +2011,6 @@ subroutine eqdsk_equ(x, z)
         bz0_l(1) = bz0_l(1) + temp
      end do
 
-
      ! use pprime and ffprime to calculate derivatives
      call cubic_interpolation_coeffs(pprime,nw,i,b)
      call cubic_interpolation_coeffs(ffprim,nw,i,c)
@@ -2057,12 +2040,14 @@ subroutine eqdsk_equ(x, z)
      end do
   endif
 
-  p0_l = p0_l + pedge
+  if(pedge.ge.0.) p0_l = p0_l + pedge
+
+  where(real(p0_l).lt.0.) p0_l = 0.
 
   ! Set electron pressure and density
   pe0_l = (1. - ipres*pi0/p0)*p0_l
 
-  if(expn.eq.0) then
+  if(expn.eq.0.) then
      call constant_field(den0_l,1.)
   else
      den0_l = (p0_l/p0)**expn
@@ -2352,7 +2337,7 @@ subroutine jsolver_equ(x, z)
   vz0_l = 0.
   chi0_l = 0.
 
-  p0_l = p0_l + pedge
+  if(pedge.ge.0.) p0_l = p0_l + pedge
 
   ! Set electron pressure and density
   pe0_l = (1. - ipres*pi0/p0)*p0_l
