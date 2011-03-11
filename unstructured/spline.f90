@@ -34,10 +34,22 @@ contains
     integer, intent(in) :: n
     real, dimension(n), intent(in) :: x, y
 
+    integer :: i
+    logical :: increasing
+
     allocate(s%x(n), s%y(n))
     s%x = x
     s%y = y
     s%n = n
+
+    increasing = (s%x(2) .gt. s%x(1))
+
+    do i=2, n
+       if((increasing      .and. (s%x(i) .le. s%x(i-1))) .or. &
+          (.not.increasing .and. (s%x(i) .ge. s%x(i-1)))) then
+          print *, 'Warning: X not monotonic!'
+       end if
+    end do
   end subroutine create_spline
 
   subroutine destroy_spline(s)
@@ -58,7 +70,7 @@ contains
     real, intent(out), optional :: yp, ypp, yppp
 
     real, dimension(4) :: a
-    real :: dx, di, didx
+    real :: dx, dydx, dydx0, dydx1
     integer :: i
 
     ! If x is ouside domain, extrapolate using edge value only
@@ -94,36 +106,32 @@ contains
           if(x.gt.s%x(i+1)) exit
        end do
     end if
-    if(i.lt.1 .or. i.gt.s%n) print *, 'ERROR!!!'
+    if(i.lt.1 .or. i.ge.s%n) print *, 'ERROR!!!'
 
-    a(1) = s%y(i)
+    ! calculate polynomial coefficients using hermite interpolation
+    dx = s%x(i+1) - s%x(i)
+    dydx = (s%y(i+1) - s%y(i))/dx
     if(i.eq.1) then
-       a(2) = (-3.*s%y(i) + 4.*s%y(i+1) - s%y(i+2))/2.
-       a(3) = (    s%y(i) - 2.*s%y(i+1) + s%y(i+2))/2.
-       a(4) = 0.
+       dydx0 = dydx
+       dydx1 = (s%y(i+2) - s%y(i  ))/(s%x(i+2) - s%x(i  ))
     else if(i.eq.s%n-1) then
-       a(2) = (-2.*s%y(i-1) - 3.*s%y(i) + 5.*s%y(i+1))/6.
-       a(3) = (    s%y(i-1) - 2.*s%y(i)    + s%y(i+1))/2.
-       a(4) = (   -s%y(i-1) + 3.*s%y(i) - 2.*s%y(i+1))/6.
-    else if(i.eq.s%n) then
-       a(2) = (-s%y(i-1) + s%y(i))/3.
-       a(3) = ( s%y(i-1) - s%y(i))/2.
-       a(4) = (-s%y(i-1) + s%y(i))/6.
+       dydx0 = (s%y(i+1) - s%y(i-1))/(s%x(i+1) - s%x(i-1))
+       dydx1 = dydx
     else
-       a(2) = (-2.*s%y(i-1) - 3.*s%y(i) + 6.*s%y(i+1) - s%y(i+2))/6.
-       a(3) = (    s%y(i-1) - 2.*s%y(i)    + s%y(i+1)           )/2.
-       a(4) = (   -s%y(i-1) + 3.*s%y(i) - 3.*s%y(i+1) + s%y(i+2))/6.
+       dydx0 = (s%y(i+1) - s%y(i-1))/(s%x(i+1) - s%x(i-1))
+       dydx1 = (s%y(i+2) - s%y(i  ))/(s%x(i+2) - s%x(i  ))
     end if
+    a(1) = s%y(i)
+    a(2) = dydx0
+    a(3) = (3.*dydx - (2.*dydx0+dydx1))/dx
+    a(4) = (-2.*dydx + (dydx0+dydx1))/dx**2
 
+    ! calculate values and derivatives
     dx = x - s%x(i)
-    didx = 1./(s%x(2) - s%x(1))
-    di = dx*didx
-
-    y =              a(1) + a(2)*di +    a(3)*di**2 +    a(4)*di**3
-    if(present(yp)) yp   = (a(2)    + 2.*a(3)*di    + 3.*a(4)*di**2)*didx
-    if(present(ypp)) ypp = (          2.*a(3)       + 6.*a(4)*di   )*didx**2
-    if(present(yppp)) yppp =                          6.*a(4)       *didx**3
-
+    y =             a(1) + a(2)*dx +    a(3)*dx**2 +    a(4)*dx**3
+    if(present(yp)) yp   = a(2)    + 2.*a(3)*dx    + 3.*a(4)*dx**2
+    if(present(ypp)) ypp =           2.*a(3)       + 6.*a(4)*dx   
+    if(present(yppp)) yppp =                         6.*a(4)      
   end subroutine evaluate_spline
 
 end module spline
