@@ -9389,7 +9389,7 @@ real function energy_p()
 
   vectype :: temp
 
-  if(gam.le.1.) then 
+  if(gam.eq.1.) then 
      temp = 0.
   else
      if(linear.eq.1) then
@@ -9752,7 +9752,7 @@ real function flux_pressure()
 
   vectype :: temp
 
-  if(numvar.lt.3 .or. gam.le.1.) then
+  if(numvar.lt.3 .or. gam.ge.1. .or. gam.eq.0.) then
      flux_pressure = 0.
      return
   endif

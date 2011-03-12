@@ -691,7 +691,7 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e)
 
 
   if(numvar.ge.3) then 
-     temp = b4ped(trial,lin,ni79)*dbf*pefac
+     temp = b4ped(trial,lin,ni79)*dbf
      ssterm(pe_g) = ssterm(pe_g) -     thimpf_e     *dt*temp
      ddterm(pe_g) = ddterm(pe_g) + (1.-thimpf_e*bdf)*dt*temp
 

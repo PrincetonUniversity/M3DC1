@@ -539,19 +539,20 @@ subroutine calculate_scalars()
      if(numvar.ge.2) def_fields = def_fields + FIELD_V
      if(numvar.ge.3) def_fields = def_fields + FIELD_CHI
   else
-     def_fields = FIELD_PSI + FIELD_PHI + FIELD_J + FIELD_ETA + FIELD_MU &
+     def_fields = FIELD_PSI + FIELD_PHI + FIELD_ETA + FIELD_MU &
           + FIELD_N + FIELD_NI + FIELD_SIG
      if(numvar.ge.2) def_fields = def_fields + FIELD_I + FIELD_V
      if(numvar.ge.3) then
-        def_fields = def_fields + FIELD_CHI + &
-             FIELD_PE + FIELD_P + FIELD_KAP
+        def_fields = def_fields + FIELD_CHI + FIELD_P + FIELD_KAP
      endif
-     if((numvar.ge.3. .and. kappar.ne.0.) &
-          .or. amupar.ne.0.) def_fields = def_fields + FIELD_B2I
-   
-     if(hypc.ne.0.) then 
-        def_fields = def_fields + FIELD_VOR
-        if(numvar.ge.3) def_fields = def_fields + FIELD_COM
+
+     if(gyro.eq.1 .or. amupar.ne.0) then
+        def_fields = def_fields + FIELD_B2I
+     endif
+
+     if(numvar.ge.3 .or. ipres.eq.1) then
+        if(hyper.eq.0.) def_fields = def_fields + FIELD_J
+        if(hyperc.ne.0.) def_fields = def_fields + FIELD_VOR + FIELD_COM
      end if
   endif
 

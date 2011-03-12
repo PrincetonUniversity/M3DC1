@@ -707,54 +707,31 @@ subroutine output_fields(time_group_id, equilibrium, error)
   nfields = nfields + 1
 #endif
 
-  ! P and Pe
-  if(ipres.eq.1) then
-     do i=1, nelms
-        call calcavector(i, pe_field(ilin), dum(:,i))
-     end do
-     call output_field(group_id, "Pe", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
+  ! P
+  do i=1, nelms
+     call calcavector(i, pe_field(ilin), dum(:,i))
+  end do
+  call output_field(group_id, "Pe", real(dum), coeffs_per_element, &
+       nelms, error)
+  nfields = nfields + 1
 #ifdef USECOMPLEX
-     call output_field(group_id,"Pe_i",aimag(dum),coeffs_per_element, &
-          nelms,error)
-     nfields = nfields + 1
+  call output_field(group_id,"Pe_i",aimag(dum),coeffs_per_element, &
+       nelms,error)
+  nfields = nfields + 1
 #endif
 
-     do i=1, nelms
-        call calcavector(i, p_field(ilin), dum(:,i))
-     end do
-     call output_field(group_id, "P", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
+  ! Pe
+  do i=1, nelms
+     call calcavector(i, p_field(ilin), dum(:,i))
+  end do
+  call output_field(group_id, "P", real(dum), coeffs_per_element, &
+       nelms, error)
+  nfields = nfields + 1
 #ifdef USECOMPLEX
-     call output_field(group_id,"P_i",aimag(dum),coeffs_per_element, &
-          nelms,error)
-     nfields = nfields + 1
+  call output_field(group_id,"P_i",aimag(dum),coeffs_per_element, &
+       nelms,error)
+  nfields = nfields + 1
 #endif
-
-  else
-     do i=1, nelms
-        call calcavector(i, pe_field(ilin), dum(:,i))
-     end do
-     call output_field(group_id, "Pe", pefac*real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
-#ifdef USECOMPLEX
-     call output_field(group_id,"Pe_i",pefac*aimag(dum),coeffs_per_element,&
-          nelms,error)
-     nfields = nfields + 1
-#endif
-
-     call output_field(group_id, "P", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
-#ifdef USECOMPLEX
-     call output_field(group_id,"P_i",aimag(dum),coeffs_per_element, &
-          nelms,error)
-     nfields = nfields + 1
-#endif
-  endif
      
   ! chi
   do i=1, nelms
