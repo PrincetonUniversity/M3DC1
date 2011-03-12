@@ -108,7 +108,6 @@ subroutine set_defaults
   iconst_eta = 0
   itime_independent = 0
   thimp = 0.5
-  thimp_ohm = -1.
   thimpsm = 1.
   harned_mikic = 0.
   isources = 0
@@ -314,7 +313,6 @@ subroutine validate_input
   integer :: ier
 
   if(amuc.eq.0.) amuc = amu
-  if(thimp_ohm.lt.0) thimp_ohm = thimp
 
   if(linear.eq.1) then
      eqsubtract = 1
@@ -406,9 +404,9 @@ subroutine validate_input
      if(myrank.eq.0) print*, 'Warning: psiscale > 1 not supported'
      psiscale = 1.
   endif
+
   if(integrator.eq.1) then
      thimp = 1.
-     thimp_ohm = 1.
   endif
       
   if(iflip.eq.1) then
