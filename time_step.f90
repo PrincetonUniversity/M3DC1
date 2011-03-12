@@ -474,9 +474,18 @@ subroutine import_time_advance_vectors
   end if
   if(numvar.ge.3) then
      chi_v = chi_field(1)
-     pe_v = pe_field(1)
-  endif
-  if(ipres.eq.1) p_v = p_field(1)
+     if(ipres.eq.1) then
+        ! store electron pressure in pe_v
+        pe_v = pe_field(1)
+        p_v  = p_field(1)
+     else
+        ! store total pressure in pe_v
+        pe_v = p_field(1)
+     end if
+  else if(ipres.eq.1) then
+     p_v = p_field(1)
+  end if
+
   if(idens.eq.1) den_v = den_field(1)
   if(imp_bf.eq.1) bf_v = bf_field(1)
 
@@ -502,9 +511,20 @@ subroutine export_time_advance_vectors
   end if
   if(numvar.ge.3) then
      chi_field(1) = chi_v
-     pe_field(1) = pe_v
-  endif
-  if(ipres.eq.1) p_field(1) = p_v
+     if(ipres.eq.1) then
+        ! electron pressure is stored in pe_v
+        pe_field(1) = pe_v
+        p_field(1)  = p_v
+     else
+        ! total pressure is stored in pe_v
+        pe_field(1) = pe_v
+        call mult(pe_field(1), pefac)
+        p_field(1)  = pe_v
+     end if
+  else if(ipres.eq.1) then
+     p_field(1) = p_v
+  end if
+
   if(idens.eq.1) den_field(1) = den_v
   if(imp_bf.eq.1) bf_field(1) = bf_v
 end subroutine export_time_advance_vectors
@@ -1358,6 +1378,23 @@ subroutine get_den_mask(itri, imask)
   call get_boundary_mask(itri, ibound, imask)
 end subroutine get_den_mask
 
+subroutine get_pres_mask(itri, imask)
+  use element
+  use basic
+  use boundary_conditions
+  implicit none
+  integer, intent(in) :: itri
+  integer, intent(out), dimension(dofs_per_element) :: imask
+  integer :: ibound
+
+  ibound = 0
+  if(inograd_p.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
+  if(iconst_p.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
+  
+  call get_boundary_mask(itri, ibound, imask)
+end subroutine get_pres_mask
+
+
 subroutine get_flux_mask(itri, imask)
   use element
   use basic
@@ -1660,11 +1697,14 @@ subroutine boundary_mag(rhs, mat)
            temp = 0.
            call set_normal_bc(i_pe,rhs,temp,normal,curv,izonedim,mat)
         end if
-        if(iconst_p.eq.1) then
+        if(ipres.eq.1) then
            call get_node_data(pe_field(1), i, temp)
+        else
+           call get_node_data(p_field(1), i, temp)
+        end if
+        if(iconst_p.eq.1) then
            call set_dirichlet_bc(i_pe,rhs,temp,normal,curv,izonedim,mat)
         else if(iconst_t.eq.1) then
-           call get_node_data(pe_field(1), i, temp)
            call get_node_data(den_v, i, temp2)
            call get_node_data(den_field(1), i, temp3)
            temp = temp*temp2(1)/temp3(1)

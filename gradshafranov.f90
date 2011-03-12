@@ -13,6 +13,7 @@ module gradshafranov
   type(spline1d), private :: g0_spline
   type(spline1d), private :: p0_spline
   type(spline1d), private :: g2_spline, g3_spline
+  type(spline1d), private :: te_spline
 
   type(spline1d), private :: ffprime_spline
   type(spline1d), private :: pprime_spline
@@ -284,26 +285,58 @@ subroutine define_profiles
   ! add pedge to pressure
   if(pedge.ge.0.) p0_spline%y = p0_spline%y - p0_spline%y(p0_spline%n) + pedge
 
+  ! define Te profile
+  ! ~~~~~~~~~~~~~~~~~
+  select case(iread_te)
+     
+  case(1)
+     ! Read in keV
+     nvals = 0
+     call read_ascii_column('profile_te', xvals, nvals, icol=1)
+     call read_ascii_column('profile_te', yvals, nvals, icol=2)
+     yvals = yvals * 1.6022e-9 / (b0_norm**2/(4.*pi*n0_norm))
+  case(2)
+
+  case default
+     
+  end select
+
+  if(allocated(yvals)) then
+     call create_spline(te_spline, nvals, xvals, yvals)
+     deallocate(xvals, yvals)
+  end if
+
+
   ! define density profile
+  ! ~~~~~~~~~~~~~~~~~~~~~~
   select case(iread_ne)
      
   case(1)
-        ! Read in 10^20/m^3
-        nvals = 0
-        call read_ascii_column('profile_ne', xvals, nvals, icol=1)
-        call read_ascii_column('profile_ne', yvals, nvals, icol=2)
-        yvals = yvals * 1e14 / n0_norm
-        call create_spline(n0_spline, nvals, xvals, yvals)
-        deallocate(xvals, yvals)
+     ! Read in 10^20/m^3
+     nvals = 0
+     call read_ascii_column('profile_ne', xvals, nvals, icol=1)
+     call read_ascii_column('profile_ne', yvals, nvals, icol=2)
+     yvals = yvals * 1e14 / n0_norm
      
   case(2)
+     ! Read in 10^19/m^3
+     call read_ascii_column('dne.xy', xvals, nvals, skip=3, icol=1)
+     call read_ascii_column('dne.xy', yvals, nvals, skip=3, icol=7)
+     yvals = yvals * 1e13 / n0_norm
 
   case default
      call density_profile
      
   end select
 
+  if(allocated(yvals)) then
+     call create_spline(n0_spline, nvals, xvals, yvals)
+     deallocate(xvals, yvals)
+  end if
+
+
   ! define rotation profile
+  ! ~~~~~~~~~~~~~~~~~~~~~~~
   if(irot.eq.1) then
      select case(iread_omega)
 
@@ -313,21 +346,21 @@ subroutine define_profiles
         call read_ascii_column('profile_omega', xvals, nvals, icol=1)
         call read_ascii_column('profile_omega', yvals, nvals, icol=2)
         yvals = 1000.* yvals / (b0_norm/sqrt(4.*pi*1.6726e-24*n0_norm)/l0_norm)
-        call create_spline(omega_spline, nvals, xvals, yvals)
-        deallocate(xvals, yvals)
         
      case(2)
         ! Read in rad/sec
-        call read_ascii_column('dtrot', xvals, nvals, icol=1)
-        call read_ascii_column('dtrot', yvals, nvals, icol=2)
-        ! convert from m/s to v_A
+        call read_ascii_column('dtrot.xy', xvals, nvals, skip=3, icol=1)
+        call read_ascii_column('dtrot.xy', yvals, nvals, skip=3, icol=7)
         yvals = yvals / (b0_norm/sqrt(4.*pi*1.6726e-24*n0_norm)/l0_norm)
-        call create_spline(omega_spline, nvals, xvals, yvals)
-        deallocate(xvals, yvals)
 
      case default
         call default_omega
      end select
+
+     if(allocated(yvals)) then
+        call create_spline(omega_spline, nvals, xvals, yvals)
+        deallocate(xvals, yvals)
+     end if
 
     ! calculate alpha from omega
      call calculate_alpha
@@ -710,12 +743,43 @@ subroutine gradshafranov_solve
         call calc_pressure(psi0_l, p0_l, x, z)
         call calc_density(psi0_l,den0_l,x,z)
         call calc_rotation(psi0_l,vz0_l,x,z)
+        call calc_electron_pressure(psi0_l, pe0_l, x, z)
         call set_local_vals(i)
      end do
   end if
 
-  pe_field(0) = p_field(0)
-  call mult(pe_field(0), 1.-ipres*pi0/p0)
+  ! Define pe field
+  if(igs_method.ne.1) then
+     if(allocated(te_spline%y)) then
+        if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating Te...'
+        b1vecini_vec = 0.
+        do itri=1,numelms
+           call define_element_quadrature(itri, int_pts_main, int_tor)
+           call define_fields(itri, 0, 1, 0)
+           call get_element_data(itri, d)
+           
+           call calcavector(itri, psi_field(0), avec)
+           call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
+                npoints, ps079)
+
+           do i=1, npoints 
+              call calc_electron_pressure(ps079(i,:),tf,x_79(i),z_79(i))
+              temp79a(i) = tf(1)
+           end do
+
+           do i=1, dofs_per_element
+              temp(i,1) = int2(mu79(:,OP_1,i),temp79a)
+           end do
+           call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
+        end do
+
+        call newvar_solve(b1vecini_vec%vec,mass_mat_lhs)
+        pe_field(0) = b1vecini_vec
+     else
+        pe_field(0) = p_field(0)
+        call mult(pe_field(0), pefac)
+     end if
+  end if
 
   call finalize(field0_vec)
 
@@ -743,6 +807,7 @@ subroutine gradshafranov_solve
      call destroy_spline(alpha_spline)
      call destroy_spline(omega_spline)
   end if
+  call destroy_spline(te_spline)
 
   ! calculate final error
   call calculate_gs_error(error)
@@ -1902,6 +1967,52 @@ end subroutine calc_density
 
 
 !======================================================================
+! calc_electron_pressure
+! ~~~~~~~~~~~~~~~~~~~~~~
+!
+! calculates the electron pressure as a function of the poloidal flux
+!======================================================================
+subroutine calc_electron_pressure(psi0, pe, x, z)
+  use basic
+
+  implicit none
+
+  vectype, intent(in), dimension(dofs_per_node)  :: psi0
+  real, intent(in) :: x, z
+  vectype, intent(out), dimension(dofs_per_node) :: pe     ! rotation
+
+  vectype, dimension(dofs_per_node) :: pres0, n0
+  real, dimension(dofs_per_node) :: psii          ! normalized flux
+  real :: te0,tep,tepp
+
+  logical :: inside_lcfs
+
+  psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
+  psii(2:6) = real(psi0(2:6))/(psilim - psimin)
+
+  if(allocated(te_spline%y)) then
+     if(.not.inside_lcfs(psi0,x,z,.true.)) psii(1) = 1.
+
+     call evaluate_spline(te_spline, psii(1),te0,tep,tepp)
+     call calc_density(psi0, n0, x, z)
+
+     pe(1) = n0(1)*te0
+     pe(2) = n0(2)*te0 + n0(1)*tep*psii(2)
+     pe(3) = n0(3)*te0 + n0(1)*tep*psii(3)
+     pe(4) = n0(4)*tep + 2.*n0(2)*tep*psii(2) &
+          + n0(1)*tepp*psii(2)**2 + n0(1)*tep*psii(4)
+     pe(5) = n0(5)*tep + n0(2)*tep*psii(3) + n0(3)*tep*psii(2) &
+          + n0(1)*tepp*psii(2)*psii(3) + n0(1)*tep*psii(5)
+     pe(6) = n0(6)*tep + 2.*n0(3)*tep*psii(3) &
+          + n0(1)*tepp*psii(3)**2 + n0(1)*tep*psii(6)
+  else
+     call calc_pressure(psi0, pres0, x, z)
+     pe = pres0*(1.-pi0/p0)
+  end if
+end subroutine calc_electron_pressure
+
+
+!======================================================================
 ! calc_rotation
 ! ~~~~~~~~~~~~~
 !
@@ -1918,7 +2029,6 @@ subroutine calc_rotation(psi0,omega, x, z)
   vectype, intent(out), dimension(dofs_per_node) :: omega     ! rotation
 
   real :: w0, wp, wpp
-  real :: pspx, pspy, pspxx, pspxy, pspyy
   real, dimension(dofs_per_node) :: psii     ! normalized flux
 
   logical :: inside_lcfs
@@ -1935,29 +2045,12 @@ subroutine calc_rotation(psi0,omega, x, z)
 
   call evaluate_spline(omega_spline, psii(1),w0,wp,wpp)
 
-!.....include toroidal rotation in equilibrium
-!...this section calculates rotation derivatives in presence of rotation
-!   scj   11/19/10
-!
-!....assumes rotation of the form p(x,psi) = p(psi) exp (alpha(psi)*r1)
-!
-!...spatial derivatives of psi, not normalized psi
-  pspx = real(psi0(2))
-  pspy = real(psi0(3))
-  pspxx= real(psi0(4))
-  pspxy= real(psi0(5))
-  pspyy= real(psi0(6))
-  
-!...convert all derivatives to wrt psi, not normalized psi
-  wp = wp/(psilim-psimin)
-  wpp = wpp/(psilim-psimin)**2
-
   omega(1) = w0
-  omega(2) = wp*pspx
-  omega(3) = wp*pspy
-  omega(4) = wpp*pspxx
-  omega(5) = wpp*pspxy
-  omega(6) = wpp*pspyy
+  omega(2) = wp*psii(2)
+  omega(3) = wp*psii(3)
+  omega(4) = wpp*psii(2)**2 + wp*psii(4)
+  omega(5) = wpp*psii(2)*psii(3) + wp*psii(5)
+  omega(6) = wpp*psii(3)**2 + wp*psii(6)
 
   if(ivform.eq.0) then
      ! V = omega*r^2

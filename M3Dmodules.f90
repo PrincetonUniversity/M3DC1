@@ -247,6 +247,7 @@ module basic
   integer :: iread_jsolver
   integer :: iread_omega   ! 2 = read omega from cerfit file
   integer :: iread_ne      
+  integer :: iread_te
   integer :: iwrite_restart ! 0 = don't write restart files
 
   ! adaptation options
@@ -312,7 +313,7 @@ module basic
        iwave, bx0 , chiiner, ibootstrap, xnull, znull,         &
        tiltangled, isurface, equilibrate, itime_independent,   &
        iread_eqdsk, iread_dskbal, iread_jsolver, iread_omega,  &
-       iread_ne,                                               &
+       iread_ne, iread_te,                                     &
        adapt_factor, adapt_hmin, adapt_hmax,                   &
        b0_norm, n0_norm, l0_norm,                              &
        idenfunc, den_edge, den0, denoff, dendelt,              &

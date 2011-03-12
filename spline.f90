@@ -57,7 +57,8 @@ contains
 
     type(spline1d) :: s
     if(s%n.eq.0) return
-    deallocate(s%x, s%y)
+    if(allocated(s%x)) deallocate(s%x)
+    if(allocated(s%y)) deallocate(s%y)
     s%n = 0
   end subroutine destroy_spline
 

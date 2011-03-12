@@ -44,6 +44,7 @@ subroutine set_defaults
   iread_jsolver = 0
   iread_omega = 0
   iread_ne = 0
+  iread_te = 0
 
   ! transport coefficients
   ivisfunc = 0
@@ -324,16 +325,12 @@ subroutine validate_input
   endif
   
   ! calculate pfac (pe*pfac = electron pressure)
-  if(ipres.eq.1) then
-     pefac = 1.
+  if(p0.gt.0.) then
+     pefac = (p0-pi0)/p0
   else
-     if(p0.gt.0.) then
-        pefac = (p0-pi0)/p0
-     else
-        pefac = 0.
-     endif
-     if(myrank.eq.0 .and. iprint.ge.1) print *, "pefac = ", pefac
+     pefac = 0.
   endif
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "pefac = ", pefac
 
 #if defined(USE3D) || defined(USECOMPLEX)
   i3d = 1

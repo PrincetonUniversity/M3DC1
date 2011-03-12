@@ -551,7 +551,7 @@ subroutine cylinder_equ(x, z)
 
   if(rr.gt.1) then
      call constant_field(bz0_l, bzero   )
-     call constant_field(pe0_l, p0-pi0*ipres)
+     call constant_field(pe0_l, p0-pi0)
      call constant_field( p0_l, p0)
   else 
      if(numvar.ge.2) then
@@ -573,8 +573,8 @@ subroutine cylinder_equ(x, z)
      end if
 
      if(numvar.ge.3) then
-        kb = k**2*beta*(p0 - pi0*ipres)/p0
-        pe0_l(1) = 0.5*kb*psi0_l(1)**2 + p0 - pi0*ipres
+        kb = k**2*beta*pefac
+        pe0_l(1) = 0.5*kb*psi0_l(1)**2 + p0 - pi0
         pe0_l(2) = kb*psi0_l(1)*psi0_l(2)
         pe0_l(3) = kb*psi0_l(1)*psi0_l(3)
         pe0_l(4) = kb*(psi0_l(2)**2+psi0_l(1)*psi0_l(4))
@@ -589,7 +589,7 @@ subroutine cylinder_equ(x, z)
         p0_l(5) = kb*(psi0_l(2)*psi0_l(3)+psi0_l(1)*psi0_l(5))
         p0_l(6) = kb*(psi0_l(3)**2+psi0_l(1)*psi0_l(6))
      else
-        call constant_field(pe0_l, p0-pi0*ipres)
+        call constant_field(pe0_l, p0-pi0)
         call constant_field( p0_l, p0)
      end if
   endif
@@ -699,7 +699,7 @@ subroutine taylor_reconnection_equ(x, z)
   psi0_l(6) = -1.
 
   call constant_field( bz0_l, bzero)
-  call constant_field( pe0_l, p0-pi0*ipres)
+  call constant_field( pe0_l, p0-pi0)
   call constant_field(den0_l, 1.)
   
 end subroutine taylor_reconnection_equ
@@ -795,7 +795,7 @@ subroutine force_free_equ(x, z)
 
   bz0_l = alam*psi0_l
 
-  call constant_field( pe0_l, p0-pi0*ipres)
+  call constant_field( pe0_l, p0-pi0)
   call constant_field(  p0_l, p0)
   call constant_field(den0_l, 1.)
   
@@ -921,27 +921,16 @@ subroutine gem_reconnection_equ(x, z)
              *(bz0_l(3)*tanh(2.*z)/bz0_l(1)                          &
              - 2.*sech(2.*z)**2 + 4.*tanh(2.*z)**2)
      endif
-
-     pezero = p0 - pi0*ipres
-    
-     pe0_l(1) = pezero*(sech(2.*z)**2 + 0.2)
-     pe0_l(2) = 0.
-     pe0_l(3) = pezero*(-4.*sech(2.*z)**2*tanh(2.*z))
-     pe0_l(4) = 0.
-     pe0_l(5) = 0.
-     pe0_l(6) = pezero*(-8.*sech(2.*z)**2*(sech(2.*z)**2-2.*tanh(2.*z)**2))
   endif
 
-  if(ipres.eq.1) then
-     p0_l(1) = p0*(sech(2.*z)**2 + 0.2)
-     p0_l(2) = 0.
-     p0_l(3) = p0*(-4.*sech(2.*z)**2*tanh(2.*z))
-     p0_l(4) = 0.
-     p0_l(5) = 0.
-     p0_l(6) = p0*(-8.*sech(2.*z)**2*(sech(2.*z)**2-2.*tanh(2.*z)**2)) 
-  else 
-     call constant_field(p0_l, 1.)
-  endif
+  p0_l(1) = p0*(sech(2.*z)**2 + 0.2)
+  p0_l(2) = 0.
+  p0_l(3) = p0*(-4.*sech(2.*z)**2*tanh(2.*z))
+  p0_l(4) = 0.
+  p0_l(5) = 0.
+  p0_l(6) = p0*(-8.*sech(2.*z)**2*(sech(2.*z)**2-2.*tanh(2.*z)**2)) 
+
+  pe0_l = p0_l*pefac
 
   if(idens.eq.1) then
      den0_l(1) = sech(2*z)**2 + 0.2
@@ -1159,7 +1148,7 @@ subroutine wave_equ(x, z)
   psi0_l(6) = 0.0
 
   call constant_field( bz0_l, bzero)
-  call constant_field( pe0_l, p0-pi0*ipres)
+  call constant_field( pe0_l, p0-pi0)
   call constant_field(  p0_l, p0)
   call constant_field(den0_l, 1.)
 
@@ -1182,13 +1171,8 @@ subroutine wave_per(x, z)
   call plane_wave(psi1_l, x, z, akx, 0., psiper, pi/2.)
   call plane_wave( bz1_l, x, z, akx, 0., bzper, pi/2.)
 
-  if(ipres.eq.1) then 
-     call plane_wave(pe1_l, x, z, akx, 0., peper, pi/2.)
-     call plane_wave( p1_l, x, z, akx, 0.,  pper, pi/2.)
-  else
-     call plane_wave(pe1_l, x, z, akx, 0., pper, pi/2.)
-     call plane_wave( p1_l, x, z, akx, 0., pper, pi/2.)    
-  endif
+  call plane_wave(pe1_l, x, z, akx, 0., peper, pi/2.)
+  call plane_wave( p1_l, x, z, akx, 0.,  pper, pi/2.)
 
   if(idens.eq.1) then
      call plane_wave(den1_l, x, z, akx, 0., nper, pi/2.)    
@@ -1260,7 +1244,7 @@ subroutine grav_equ(x, z)
   bz0_l(6) = (fac1/bz0_l(1))*(pn0*bz0_l(3)/bz0_l(1) - ppn0)
 
   
-  fac1 = p0 - pi0*ipres
+  fac1 = p0 - pi0
   pe0_l(1) = fac1+gam*fac1*(n0-1.)
   pe0_l(2) = 0.
   pe0_l(3) = gam*fac1*pn0
@@ -1393,7 +1377,7 @@ subroutine strauss_equ(x, z)
   psi0_l(6) =  a0*cos(kx*x)*cos(kz*z)*kz**2
 
   call constant_field(bz0_l, bzero)
-  call constant_field(pe0_l, p0 - ipres*pi0)
+  call constant_field(pe0_l, p0 - pi0)
   call constant_field(den0_l, 1.)
   call constant_field(p0_l, p0)
 
@@ -1515,7 +1499,7 @@ subroutine circular_field_equ(x, z)
        ((z*bz0_l(3)/bz0_l(1) - 1.) * (1.-r2) + 2.*(z**2/l2)*(3.-2.*r2))
 
   call constant_field(p0_l, p0)
-  call constant_field(pe0_l, p0-pi0*ipres)
+  call constant_field(pe0_l, p0-pi0)
   call constant_field(den0_l, 1.)
 
 end subroutine circular_field_equ
@@ -1582,11 +1566,7 @@ subroutine circular_field_per(x, phi, z)
 !!$  vz1_l(6) = ((z/ss)**2 - 1.)*vz1_l(1)/ss**2
 !!$  p1_l = 0.
 
-  if(ipres.eq.1) then
-     pe1_l = pefac*p1_l
-  else
-     pe1_l = p1_l
-  endif
+  pe1_l = pefac*p1_l
 
   den1_l = 0.
 
@@ -1671,7 +1651,7 @@ subroutine mri_equ(x, z)
   end if
 
   if(numvar.ge.3) then
-     call constant_field( pe0_l,p0 - pi0*ipres)
+     call constant_field( pe0_l,p0 - pi0)
      call constant_field(chi0_l,0.)
   end if
 
@@ -1782,7 +1762,7 @@ subroutine rotate_equ(x, z)
   bz0_l(4) = 2.*bzero
   bz0_l(5) = 0.
   bz0_l(6) = 0.
-  pe0_l(1) = p0 - ipres*pi0
+  pe0_l(1) = p0 - pi0
   pe0_l(2:6) = 0.
   p0_l(1) = p0
   p0_l(2:6) = 0.
@@ -2045,7 +2025,7 @@ subroutine eqdsk_equ(x, z)
   where(real(p0_l).lt.0.) p0_l = 0.
 
   ! Set electron pressure and density
-  pe0_l = (1. - ipres*pi0/p0)*p0_l
+  pe0_l = pefac*p0_l
 
   if(expn.eq.0.) then
      call constant_field(den0_l,1.)
@@ -2340,7 +2320,7 @@ subroutine jsolver_equ(x, z)
   if(pedge.ge.0.) p0_l = p0_l + pedge
 
   ! Set electron pressure and density
-  pe0_l = (1. - ipres*pi0/p0)*p0_l
+  pe0_l = pefac*p0_l
 
 
 end subroutine jsolver_equ
@@ -2429,7 +2409,7 @@ subroutine threed_wave_test_equ(x, phi, z)
   call constant_field(bz0_l, bzero)
   call constant_field(den0_l, 1.)
   call constant_field(p0_l, p0)
-  call constant_field(pe0_l, p0-pi0*ipres)
+  call constant_field(pe0_l, p0-pi0)
 
 end subroutine threed_wave_test_equ
 
@@ -2531,7 +2511,7 @@ subroutine threed_diffusion_test_equ(x, phi, z)
   call constant_field(bz0_l, bzero)
   call constant_field(den0_l, 1.)
   call constant_field(p0_l, p0)
-  call constant_field(pe0_l, p0-pi0*ipres)
+  call constant_field(pe0_l, p0-pi0)
 
 end subroutine threed_diffusion_test_equ
 

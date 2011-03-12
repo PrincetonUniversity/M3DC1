@@ -470,19 +470,12 @@ contains
        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   P..."
        
        if(ilin.eq.0) then
-          if(ipres.eq.1) then
-             call calcavector(itri, p_field(1), avec)
-             call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-                  npoints, p179)
-             call calcavector(itri, pe_field(1), avec)
-             call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-                  npoints, pe179)
-          else
-             call calcavector(itri, pe_field(1), avec)
-             call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-                  npoints, p179)
-             pe179 = p179
-          endif
+          call calcavector(itri, p_field(1), avec)
+          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
+               npoints, p179)
+          call calcavector(itri, pe_field(1), avec)
+          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
+               npoints, pe179)
 #ifdef USECOMPLEX
           p179(:,OP_DP :OP_GSP ) = p179(:,OP_1:OP_GS)*rfac
           p179(:,OP_DPP:OP_GSPP) = p179(:,OP_1:OP_GS)*rfac**2
@@ -495,27 +488,20 @@ contains
        end if
        
        if(eqsubtract.eq.1) then
-          if(ipres.eq.1) then
-             call calcavector(itri, p_field(0), avec)
-             call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-                  npoints, p079)
-             call calcavector(itri, pe_field(0), avec)
-             call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-                  npoints, pe079)
-          else
-             call calcavector(itri, pe_field(0), avec)
-             call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-                  npoints, p079)
-             pe079 = p079
-          endif
+          call calcavector(itri, p_field(0), avec)
+          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
+               npoints, p079)
+          call calcavector(itri, pe_field(0), avec)
+          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
+               npoints, pe079)
+
           pet79 = pe079 + pe179
           pt79  =  p079 +  p179
        else
           pet79 = pe179
           pt79  =  p179
        endif
-       
-       pit79 = pt79 - pefac*pet79
+       pit79 = pt79 - pet79
     endif
     
     
@@ -693,37 +679,37 @@ contains
         end where
      else if(iresfunc.eq.4) then
         eta79 = 0.
-        temp79a = sqrt(pefac*pet79(:,OP_1)/nt79(:,OP_1))
+        temp79a = sqrt(pet79(:,OP_1)/nt79(:,OP_1))
         eta79(:,OP_1 ) = 1. / temp79a**3
-        eta79(:,OP_DR) = (-3./2.) * pefac / temp79a**5 * &
+        eta79(:,OP_DR) = (-3./2.) / temp79a**5 * &
              (pet79(:,OP_DR)/nt79(:,OP_1) &
              -pet79(:,OP_1)*nt79(:,OP_DR)/nt79(:,OP_1)**2)
-        eta79(:,OP_DZ) = (-3./2.) * pefac / temp79a**5 * &
+        eta79(:,OP_DZ) = (-3./2.) / temp79a**5 * &
              (pet79(:,OP_DZ)/nt79(:,OP_1) &
              -pet79(:,OP_1)*nt79(:,OP_DZ)/nt79(:,OP_1)**2)
-        eta79(:,OP_DRR) = (15./4.) * pefac**2 / temp79a**7 * &
+        eta79(:,OP_DRR) = (15./4.) / temp79a**7 * &
              (pet79(:,OP_DR)/nt79(:,OP_1) &
              -pet79(:,OP_1)*nt79(:,OP_DR)/nt79(:,OP_1)**2)**2 &
-             + (-3./2.) * pefac / temp79a**5 * &
+             + (-3./2.) / temp79a**5 * &
              (pet79(:,OP_DRR)/nt79(:,OP_1) &
              -2.*pet79(:,OP_DR)*nt79(:,OP_DR)/nt79(:,OP_1)**2 &
              -pet79(:,OP_1)*nt79(:,OP_DRR)/nt79(:,OP_1)**2 &
              +2.*pet79(:,OP_1)*nt79(:,OP_DR)**2/nt79(:,OP_1)**3)
-        eta79(:,OP_DRZ) = (15./4.) * pefac**2 / temp79a**7 * &
+        eta79(:,OP_DRZ) = (15./4.) / temp79a**7 * &
              (pet79(:,OP_DR)/nt79(:,OP_1) &
              -pet79(:,OP_1)*nt79(:,OP_DR)/nt79(:,OP_1)**2) &
              *(pet79(:,OP_DZ)/nt79(:,OP_1) &
              -pet79(:,OP_1)*nt79(:,OP_DZ)/nt79(:,OP_1)**2) &
-             + (-3./2.) * pefac / temp79a**5 * &
+             + (-3./2.) / temp79a**5 * &
              (pet79(:,OP_DRZ)/nt79(:,OP_1) &
              -pet79(:,OP_DR)*nt79(:,OP_DZ)/nt79(:,OP_1)**2 &
              -pet79(:,OP_DZ)*nt79(:,OP_DR)/nt79(:,OP_1)**2 &
              -pet79(:,OP_1)*nt79(:,OP_DRZ)/nt79(:,OP_1)**2 &
              +2.*pet79(:,OP_1)*nt79(:,OP_DR)*nt79(:,OP_DZ)/nt79(:,OP_1)**3)
-        eta79(:,OP_DZZ) = (15./4.) * pefac**2 / temp79a**7 * &
+        eta79(:,OP_DZZ) = (15./4.) / temp79a**7 * &
              (pet79(:,OP_DZ)/nt79(:,OP_1) &
              -pet79(:,OP_1)*nt79(:,OP_DZ)/nt79(:,OP_1)**2)**2 &
-             + (-3./2.) * pefac / temp79a**5 * &
+             + (-3./2.) / temp79a**5 * &
              (pet79(:,OP_DZZ)/nt79(:,OP_1) &
              -2.*pet79(:,OP_DZ)*nt79(:,OP_DZ)/nt79(:,OP_1)**2 &
              -pet79(:,OP_1)*nt79(:,OP_DZZ)/nt79(:,OP_1)**2 &
