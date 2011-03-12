@@ -9752,7 +9752,7 @@ real function flux_pressure()
 
   vectype :: temp
 
-  if(numvar.lt.3 .or. gam.ge.1. .or. gam.eq.0.) then
+  if((numvar.lt.3 .and. ipres.eq.0) .or. gam.eq.1. .or. gam.eq.0.) then
      flux_pressure = 0.
      return
   endif
@@ -9860,7 +9860,7 @@ real function flux_heat()
 
   vectype :: temp
 
-  if(numvar.lt.3) then
+  if(numvar.lt.3 .and. ipres.eq.0) then
      flux_heat = 0.
      return
   endif

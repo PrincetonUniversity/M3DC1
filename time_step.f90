@@ -164,15 +164,18 @@ contains
           call set_matrix_index(d9_mat, d9_mat_index)
           call set_matrix_index(r9_mat, r9_mat_index)
           call set_matrix_index(q9_mat, q9_mat_index)
+          call set_matrix_index(o9_mat, o9_mat_index)
           call create_mat(s9_mat, vecsize_p, vecsize_p, icomplex, .true.)
           call create_mat(d9_mat, vecsize_p, vecsize_p, icomplex, .false.)
           call create_mat(r9_mat, vecsize_p, vecsize_vel, icomplex, .false.)
           call create_mat(q9_mat, vecsize_p, vecsize_vel, icomplex, .false.)
+          call create_mat(o9_mat, vecsize_p, vecsize_phi, icomplex, .false.)
 #ifdef CJ_MATRIX_DUMP
-          print *, "create_mat time_step s9_mat", s9_mat%imatrix     
-          print *, "create_mat time_step d9_mat", d9_mat%imatrix     
-          print *, "create_mat time_step r9_mat", r9_mat%imatrix     
-          print *, "create_mat time_step q9_mat", q9_mat%imatrix     
+          print *, "create_mat time_step s9_mat", s9_mat%imatrix
+          print *, "create_mat time_step d9_mat", d9_mat%imatrix
+          print *, "create_mat time_step r9_mat", r9_mat%imatrix
+          print *, "create_mat time_step q9_mat", q9_mat%imatrix
+          print *, "create_mat time_step o9_mat", o9_mat%imatrix
 #endif 
        endif
     end select
@@ -221,6 +224,7 @@ contains
           call destroy_mat(d9_mat)
           call destroy_mat(r9_mat)
           call destroy_mat(q9_mat)
+          call destroy_mat(o9_mat)
        endif
     end select
   end subroutine finalize_timestep
@@ -779,6 +783,10 @@ subroutine split_step(calc_matrices)
      
      ! q9matrix_sm * vel(n)
      call matvecmult(q9_mat,veln_vec,temp2)
+     call add(temp, temp2)
+
+     ! o9matrix_sm * phi(n)
+     call matvecmult(o9_mat,phi_vec,temp2)
      call add(temp, temp2)
      
      ! temp = d8matrix_sm * pres(n)

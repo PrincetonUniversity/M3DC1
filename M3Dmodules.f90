@@ -212,7 +212,6 @@ module basic
   real :: dt             ! timestep
   real :: ddt            ! change in timestep per timestep
   real :: thimp          ! implicitness parameter (for Crank-Nicholson)
-  real :: thimp_ohm      ! implicitness parameter for ohmic heating
   real :: thimpsm        ! implicitness parameter for smoothers
   real :: regular        ! regularization constant in chi equation
   real :: max_ke         ! max KE before fields are re-scaled when linear==1
@@ -287,7 +286,7 @@ module basic
        ionization, ionization_rate, ionization_temp, ionization_depth, &
        isink, sink1_x, sink2_x, sink1_z, sink2_z,              &
        sink1_rate, sink2_rate, sink1_var, sink2_var,           &
-       ntimemax,dt,ddt,integrator,thimp,thimp_ohm,imp_mod,     &
+       ntimemax,dt,ddt,integrator,thimp,imp_mod,               &
        thimpsm,harned_mikic,                                   &
        igauge,                                                 &
        isplitstep,                                             &
@@ -517,13 +516,14 @@ module sparse
   integer, parameter :: ecbf_mat_index = 45
   integer, parameter :: rw_rhs_mat_index = 46
   integer, parameter :: rw_lhs_mat_index = 47
-  integer, parameter :: num_matrices = 47
+  integer, parameter :: o9_mat_index = 48
+  integer, parameter :: num_matrices = 48
 
   type(matrix_type), target :: s1_mat, d1_mat, q1_mat, r14_mat, o1_mat
   type(matrix_type), target :: q42_mat
   type(matrix_type), target :: s2_mat, d2_mat, r2_mat, q2_mat, o2_mat
   type(matrix_type), target :: s8_mat, d8_mat, r8_mat, q8_mat
-  type(matrix_type), target :: s9_mat, d9_mat, r9_mat, q9_mat
+  type(matrix_type), target :: s9_mat, d9_mat, r9_mat, q9_mat, o9_mat
   type(matrix_type) :: rwpsi_mat, rwbf_mat, ecpsi_mat, ecbf_mat
   type(matrix_type), save :: rw_rhs_mat, rw_lhs_mat
 
