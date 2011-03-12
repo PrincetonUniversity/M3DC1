@@ -29,9 +29,6 @@ module gradshafranov
   real, private :: gnorm, libetapeff, fac2
 
   integer, private :: int_tor = 0
-
-  logical, private :: use_norm_psi = .false.
-
 contains
 
 subroutine gradshafranov_init()
@@ -537,10 +534,11 @@ subroutine gradshafranov_solve
      call lcfs(psi_vec)
 
      ! define the pressure and toroidal field functions
-     if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating funs'
      if(constraint .and. igs_method.ne.1) then
+        if(myrank.eq.0 .and. iprint.ge.2) print *, '  calling fundef2'
         call fundef2(error3)
      else
+        if(myrank.eq.0 .and. iprint.ge.2) print *, '  calling fundef'
         call fundef
      end if
 
@@ -1067,7 +1065,6 @@ subroutine deltafun(x,z,val,jout)
   end if
 
   call sum_shared(jout%vec)
-
 end subroutine deltafun
 
 
@@ -1086,13 +1083,13 @@ subroutine fundef
   
   implicit none 
   integer :: inode, numnodes
-  real :: x, phi, z, pso, psox, psoy, psoxx, psoxy, psoyy
+  real :: x, phi, z, pso, pspx, pspy, pspxx, pspxy, pspyy
   real :: fbig0, fbig, fbigp, fbigpp
   real :: g2big, g2bigp, g2bigpp
   real :: g3big, g3bigp, g3bigpp
   real :: g4big, g4bigp, g4bigpp
   real :: alphap0, alphap, alphapp, alphappp
-  real :: r0m, r1, r1m, r2, r3, ealpha,  pspx, pspy, pspxx, pspxy, pspyy
+  real :: r0m, r1, r1m, r2, r3, ealpha
   logical :: inside_lcfs
 
   vectype, dimension(dofs_per_node) :: temp
@@ -1114,19 +1111,19 @@ subroutine fundef
         call set_node_data(fun3_vec, inode, temp)
         call set_node_data(fun4_vec, inode, temp)
      else
-        psox = temp(2)*dpsii
-        psoy = temp(3)*dpsii
-        psoxx= temp(4)*dpsii
-        psoxy= temp(5)*dpsii
-        psoyy= temp(6)*dpsii
+        ! derivatives of real flux
+        pspx  = temp(2)
+        pspy  = temp(3)
+        pspxx = temp(4)
+        pspxy = temp(5)
+        pspyy = temp(6)
      
-        call evaluate_spline(p0_spline,pso,fbig0,fbig,fbigp,fbigpp)
+        call evaluate_spline(pprime_spline,pso,fbig,fbigp,fbigpp)
+        ! convert from normalized to real flux
+        fbig = fbig*dpsii
+        fbigp = fbigp*dpsii**2
+        fbigpp = fbigpp*dpsii**3
 
-        if(.not.use_norm_psi) then
-           fbig = fbig*dpsii
-           fbigp = fbigp*dpsii
-           fbigpp = fbigpp*dpsii
-        endif
         if(irot.eq.1) then
            ! include toroidal rotation in equilibrium
            ! this section calculates pressure derivatives 
@@ -1137,32 +1134,32 @@ subroutine fundef
            ! p(x,psi) = p(psi) exp (alpha(psi)*r1)
            
            r0m = 1./rzero**2
-           r1 = (x**2-rzero**2)/rzero**2
+           r1 = (x**2 - rzero**2)/rzero**2
            r1m= x**2/rzero**2
            r2 = (x**2 - rzero**2)**2/rzero**4
            r3 = (x**2 - rzero**2)**3/rzero**6
+
+           call evaluate_spline(p0_spline,pso,fbig0)
            call evaluate_spline(alpha_spline,pso, &
                 alphap0,alphap,alphapp,alphappp)
-
-           if(.not.use_norm_psi) then
-              alphap = alphap*dpsii
-              alphapp = alphapp*dpsii
-              alphappp = alphappp*dpsii
-           end if
+           ! convert from normalized to real flux
+           alphap = alphap*dpsii
+           alphapp = alphapp*dpsii**2
+           alphappp = alphappp*dpsii**3
 
            ealpha = exp(alphap0*r1)
 
-           temp(1) = ealpha*( x *fbig + fbig0*alphap*x*r1)
+           temp(1) = ealpha*(x*fbig + fbig0*alphap*x*r1)
 
            temp(2) = ealpha*                                             &
-                (fbig + fbig0*alphap*x*r1                                &
+                (fbig + fbig0*alphap*r1                                  &
                 +fbig0*alphap0*alphap*2*r1m*r1                           &
                 + (alphap0*fbig + fbig0*alphap) * 2.*r1m                 &
                 + pspx*( x*fbigp + (2.*fbig*alphap + fbig0*alphapp)*x*r1 &
                 + fbig0 * alphap**2 * x*r2))
 
            temp(3) = ealpha*                                             &
-                pspx*( x*fbigp + (2.*fbig*alphap + fbig0*alphapp)*x*r1   &
+                pspy*(x*fbigp + (2.*fbig*alphap + fbig0*alphapp)*x*r1   &
                 + fbig0 * alphap**2 * x*r2)
 
            temp(4) = ealpha*                                                &
@@ -1213,65 +1210,60 @@ subroutine fundef
         else        
            ! no toroidal rotation in equilibrium
            temp(1) = x*fbig
-           temp(2) = fbig + x*fbigp*psox
-           temp(3) =        x*fbigp*psoy
-           temp(4) = 2.*fbigp*psox + x*(fbigpp*psox**2+fbigp*psoxx)
-           temp(5) = fbigp*psoy + x*(fbigpp*psox*psoy +fbigp*psoxy)
-           temp(6) = x*(fbigpp*psoy**2 + fbigp*psoyy)
-           
+           temp(2) = fbig + x*fbigp*pspx
+           temp(3) =        x*fbigp*pspy
+           temp(4) = 2.*fbigp*pspx + x*(fbigpp*pspx**2+fbigp*pspxx)
+           temp(5) = fbigp*pspy + x*(fbigpp*pspx*pspy +fbigp*pspxy)
+           temp(6) = x*(fbigpp*pspy**2 + fbigp*pspyy)
         endif   !...end of branch on irot
 
         call set_node_data(fun1_vec, inode, temp)
         
         call evaluate_spline(ffprime_spline, pso, g4big, g4bigp, g4bigpp)
-
-        if(.not.use_norm_psi) then
-           g4big = g4big*dpsii
-           g4bigp = g4bigp*dpsii
-           g4bigpp = g4bigpp*dpsii
-        endif
+        ! convert from normalized to real flux
+        g4big = g4big*dpsii
+        g4bigp = g4bigp*dpsii**2
+        g4bigpp = g4bigpp*dpsii**3
         
         temp(1) = g4big/x
-        temp(2) = g4bigp*psox/x - g4big/x**2
-        temp(3) = g4bigp*psoy/x
-        temp(4) = (g4bigpp*psox**2 + g4bigp*psoxx)/x                  &
-             - 2.*g4bigp*psox/x**2 + 2.*g4big/x**3
-        temp(5) = (g4bigpp*psox*psoy+g4bigp*psoxy)/x                  &
-             - g4bigp*psoy/x**2
-        temp(6) = (g4bigpp*psoy**2 + g4bigp*psoyy)/x
+        temp(2) = g4bigp*pspx/x - g4big/x**2
+        temp(3) = g4bigp*pspy/x
+        temp(4) = (g4bigpp*pspx**2 + g4bigp*pspxx)/x                  &
+             - 2.*g4bigp*pspx/x**2 + 2.*g4big/x**3
+        temp(5) = (g4bigpp*pspx*pspy+g4bigp*pspxy)/x                  &
+             - g4bigp*pspy/x**2
+        temp(6) = (g4bigpp*pspy**2 + g4bigp*pspyy)/x
         call set_node_data(fun4_vec, inode, temp)
 
         if(.not.constraint) then
            call evaluate_spline(g2_spline, pso, g2big, g2bigp, g2bigpp)
            call evaluate_spline(g3_spline, pso, g3big, g3bigp, g3bigpp)
-
-           if(.not.use_norm_psi) then
-              g2big = g2big*dpsii
-              g2bigp = g2bigp*dpsii
-              g2bigpp = g2bigpp*dpsii
-              g3big = g3big*dpsii
-              g3bigp = g3bigp*dpsii
-              g3bigpp = g3bigpp*dpsii
-           endif
+           ! convert from normalized to real flux
+           g2big = g2big*dpsii
+           g2bigp = g2bigp*dpsii**2
+           g2bigpp = g2bigpp*dpsii**3
+           g3big = g3big*dpsii
+           g3bigp = g3bigp*dpsii**2
+           g3bigpp = g3bigpp*dpsii**3
         
            temp(1) = g2big/x
-           temp(2) = g2bigp*psox/x - g2big/x**2
-           temp(3) = g2bigp*psoy/x
-           temp(4) = (g2bigpp*psox**2 + g2bigp*psoxx)/x                  &
-                - 2.*g2bigp*psox/x**2 + 2.*g2big/x**3
-           temp(5) = (g2bigpp*psox*psoy+g2bigp*psoxy)/x                  &
-                - g2bigp*psoy/x**2
-           temp(6) = (g2bigpp*psoy**2 + g2bigp*psoyy)/x
+           temp(2) = g2bigp*pspx/x - g2big/x**2
+           temp(3) = g2bigp*pspy/x
+           temp(4) = (g2bigpp*pspx**2 + g2bigp*pspxx)/x                  &
+                - 2.*g2bigp*pspx/x**2 + 2.*g2big/x**3
+           temp(5) = (g2bigpp*pspx*pspy+g2bigp*pspxy)/x                  &
+                - g2bigp*pspy/x**2
+           temp(6) = (g2bigpp*pspy**2 + g2bigp*pspyy)/x
            call set_node_data(fun2_vec, inode, temp)
            
            temp(1) = g3big/x
-           temp(2) = g3bigp*psox/x - g3big/x**2
-           temp(3) = g3bigp*psoy/x
-           temp(4) = (g3bigpp*psox**2 + g3bigp*psoxx)/x                  &
-                - 2.*g3bigp*psox/x**2 + 2.*g3big/x**3
-           temp(5) = (g3bigpp*psox*psoy+g3bigp*psoxy)/x                  &
-                - g3bigp*psoy/x**2
-           temp(6) = (g3bigpp*psoy**2 + g3bigp*psoyy)/x
+           temp(2) = g3bigp*pspx/x - g3big/x**2
+           temp(3) = g3bigp*pspy/x
+           temp(4) = (g3bigpp*pspx**2 + g3bigp*pspxx)/x                  &
+                - 2.*g3bigp*pspx/x**2 + 2.*g3big/x**3
+           temp(5) = (g3bigpp*pspx*pspy+g3bigp*pspxy)/x                  &
+                - g3bigp*pspy/x**2
+           temp(6) = (g3bigpp*pspy**2 + g3bigp*pspyy)/x
            call set_node_data(fun3_vec, inode, temp)
         end if
      end if
@@ -1349,11 +1341,10 @@ subroutine fundef2(error)
         temp79e(i) = temp(5)
      end do
      
-     if(.not.use_norm_psi) then
-        temp79a = temp79a*dpsii
-        temp79b = temp79b*dpsii
-        temp79d = temp79d*dpsii
-     endif
+     ! convert from normalized to real flux
+     temp79a = temp79a*dpsii
+     temp79b = temp79b*dpsii
+     temp79d = temp79d*dpsii
 
      if(irot.eq.1) then
         temp79a = exp(temp79c*(x_79**2 - rzero**2)/rzero**2)* &
@@ -1426,7 +1417,6 @@ subroutine readpgfiles
   deallocate(psinorm, g0, ffn)
 
   constraint = .true.
-  use_norm_psi = .true.
 
 return
   802 format(5x,5e18.9)
@@ -1609,8 +1599,17 @@ end subroutine readpgfiles
    integer :: j
    real :: y, yp, ypp, yppp
 
+   open(unit=75,file="testout",status="unknown")
+   do j=1, 1000
+      yppp = (j-1.)/(1000.-1.)
+      call evaluate_spline(p0_spline, yppp, y)
+      call evaluate_spline(pprime_spline, yppp, yp, ypp)
+      write(75,'(4e12.5)') yppp, y, yp, ypp
+   enddo
+   close(75)
+
    open(unit=76,file="profilesdb-p",status="unknown")
-   do j=1, p0_spline%n     
+   do j=1, p0_spline%n
       call evaluate_spline(p0_spline, p0_spline%x(j), y, yp, ypp, yppp)
       write(76,802) j, p0_spline%x(j), y, yp, ypp, yppp
    enddo
