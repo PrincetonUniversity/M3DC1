@@ -2169,7 +2169,7 @@ end module dskbal_eq
 ! Jsolver_eq
 ! ~~~~~~~~~~
 !
-! Loads eqdsk equilibrium
+! Loads jsolver equilibrium
 !==============================================================================
 module jsolver_eq
 
