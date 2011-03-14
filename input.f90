@@ -8,12 +8,12 @@ subroutine input
 
   implicit none
 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, " setting defaults"
+  if(myrank.eq.0) print *, " setting defaults"
   call set_defaults
 
   ! Read input file
   ! ~~~~~~~~~~~~~~~
-  if(myrank.eq.0 .and. iprint.ge.1) print *, " reading input"
+  if(myrank.eq.0) print *, " reading input"
   open(5,file='C1input',form='formatted',status='old')
   read(5,nml=inputnl)
   close(5)
