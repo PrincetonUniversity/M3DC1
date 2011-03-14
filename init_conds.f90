@@ -111,12 +111,10 @@ subroutine random_per(x,phi,z,seed,fac)
 
   implicit none
 
-  real :: drand, rand
-
   real, intent(in) :: x, phi, z
   vectype, intent(in), dimension(dofs_per_node) :: fac
   integer, intent(in) :: seed
-  integer :: i, j, k
+  integer :: i, j
   real :: alx, alz, kx, kp, kz, xx, zz
   vectype, dimension(dofs_per_node) :: temp
 
@@ -396,7 +394,7 @@ subroutine rmp_per
 
   logical :: is_boundary
   integer :: izone, izonedim, numnodes, l
-  real :: normal(2), curv, x, phi, z, r2, dx, dz
+  real :: normal(2), curv, x, z, r2, dx, dz
 #ifdef USECOMPLEX
   vectype :: ii
 #endif
@@ -874,8 +872,6 @@ subroutine gem_reconnection_equ(x, z)
   implicit none
 
   real, intent(in) :: x, z
-
-  real :: pezero
 
   call constant_field(  u0_l, 0.)
   if(numvar.ge.2) call constant_field( vz0_l, 0.)
@@ -1818,7 +1814,7 @@ subroutine eqdsk_init()
 
   implicit none
 
-  integer :: l, numnodes, ll
+  integer :: l, numnodes
   real :: x, phi, z , dpsi
 
   real, allocatable :: flux(:)

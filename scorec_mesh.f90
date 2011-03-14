@@ -72,6 +72,15 @@ contains
     call finalizesolvers
   end subroutine unload_mesh
 
+  !======================================================================
+  ! local_plane
+  ! ~~~~~~~~~~~
+  ! returns toroidal plane associated with current process
+  !======================================================================
+  integer function local_plane()
+    implicit none
+    call getplaneid(local_plane)
+  end function local_plane
 
   !==============================================================
   ! local_nodes

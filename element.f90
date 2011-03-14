@@ -427,7 +427,7 @@ contains
             print *, "percent error in determinant: ", percent
     endif
     
-    ! calculate the inverse of t using NAG library routines
+    ! calculate the inverse of t using lapack routines
     info1 = 0
     info2 = 0
     ti(1:20,1:20) = t

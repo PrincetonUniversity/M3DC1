@@ -267,59 +267,71 @@ module basic
 !.....input quantities---defined in subroutine input or in namelist
 !
   namelist / inputnl/                                          &
-       itaylor,                                                &
-       xzero,zzero,beta,rzero, libetap, xlim2, zlim2,          &
-       numvar,idens,ipres,gyro,isources,nosig,itor,jadv,       &
-       imp_bf, &
-       gam,db,gravr,gravz,                                     &
-       p0,pi0,bzero,vzero,phizero, pscale,bscale,              &
-       etar,eta0,iresfunc,etaoff,etadelt,lambdae,mass_ratio,   &
-       ivisfunc,amu,amuc,amupar,amue,amuoff,amudelt,denm,      &
-       amuoff2, amudelt2,                                      &
-       ikappafunc,kappat,kappa0,kappaoff,kappadelt,            &
-       kappar,kappax,kappah,                                   &
-       hyper,hyperi,hyperv,hyperc,hyperp,deex,                 &
-       iper,jper,amu_edge,com_bc,vor_bc,pedge,                 &
-       eps,ln,irmp,maxn,                                       &
-       vloop,control_p,control_i,control_d,tcur,               &
-       ipellet, pellet_x, pellet_z, pellet_rate, pellet_var,   &
-       ionization, ionization_rate, ionization_temp, ionization_depth, &
-       isink, sink1_x, sink2_x, sink1_z, sink2_z,              &
-       sink1_rate, sink2_rate, sink1_var, sink2_var,           &
-       ntimemax,dt,ddt,integrator,thimp,imp_mod,               &
-       thimpsm,harned_mikic,                                   &
-       igauge,                                                 &
-       isplitstep,                                             &
-       linear,nskip,eqsubtract,                                &
-       itimer,iprint,ntimepr,iglobalout,iglobalin,             &
-       irestart,                                               &
-       tcuro,djdpsi,xmag,zmag,xlim,zlim,                       &
-       expn,q0,divertors,xdiv,zdiv,divcur,th_gs,p1,p2,         &
-       idevice,igs,nv1equ,tol_gs,igs_method,psiscale,          &
-       iconstflux,regular,max_ke,                              &
-       ntor,mpol,iadapt,istatic,iestatic,ivform, ibform,       &
-       nplanes,                                                &
-       ihypeta,ihypamu,ihypkappa,ikapscale,                    &
-       iteratephi, icsym, inumgs, nonrect, ifixedb,            &
+       adapt_factor, adapt_hmax, adapt_hmin, &
+       alpha0, alpha1, alpha2, alpha3,  &
+       amu, amuc, amudelt, amudelt2, amue, amu_edge, amuoff, amuoff2, amupar, &
+       b0_norm, beta, bscale, bx0, bzero, &
+       chiiner, com_bc, &
+       control_d, control_i, control_p, &
+       db, ddt, &
+       deex, delta_wall,                                   &
+       den_edge, &
+       den0, dendelt, denm, denoff, &
+       divcur, divertors, &
+       djdpsi, &
+       dt, &
+       eps, eqsubtract, equilibrate, &
+       eta_wall, eta0, etadelt, etaoff, etar, &
+       expn, &
+       gam, gravr, gravz, gyro, &
+       harned_mikic,                                   &
+       hyper, hyperc, hyperi, hyperp, hyperv, &
+       iadapt, ibform, ibootstrap, icalc_scalars, &
+       iconst_bz, iconst_eta, iconst_n, iconst_p, iconst_t, iconstflux, &
+       icsym, icurv, &
+       idenfunc, idens, &
+       idevice, iestatic, ifbound, ifixedb, &
+       iflip_b, iflip_j, iflip_v, iflip_z, iflip, &
+       ifout, igauge,                                                 &
+       iglobalin, iglobalout, &
+       igs_method, igs, &
+       ihypamu, ihypdx, ihypeta, ihypkappa, &
+       ikappafunc, ikapscale, &
+       ike_only, imp_bf, imp_mod, inertia, &
+       inocurrent_norm, inocurrent_pol, inocurrent_tor, &
+       inograd_n, inograd_p, &
        inonormalflow, inoslip_pol, inoslip_tor, inostress_tor, &
-       iconst_p, inograd_p, iconst_n, inograd_n, iconst_t,     &
-       inocurrent_pol, inocurrent_tor, inocurrent_norm,        &
-       iconst_bz, ifbound,     &
-       irecalc_eta,ihypdx, iconst_eta,                         &
-       n_target, n_control_p, n_control_i, n_control_d,        &
-       icalc_scalars, ike_only, ifout, inertia, itwofluid,     &
-       int_pts_main, int_pts_aux, int_pts_diag, int_pts_tor,   &
-       iwave, bx0 , chiiner, ibootstrap, xnull, znull,         &
-       tiltangled, isurface, equilibrate, itime_independent,   &
-       iread_eqdsk, iread_dskbal, iread_jsolver, iread_omega,  &
-       iread_ne, iread_te,                                     &
-       adapt_factor, adapt_hmin, adapt_hmax,                   &
-       b0_norm, n0_norm, l0_norm,                              &
-       idenfunc, den_edge, den0, denoff, dendelt,              &
-       irot, iscale_rot_by_p, alpha0, alpha1, alpha2, alpha3,  &
-       icurv, iflip, iwrite_restart,                           &
-       eta_wall, delta_wall,                                   &
-       iflip_b, iflip_j, iflip_v, iflip_z
+       int_pts_aux, int_pts_diag, int_pts_main, int_pts_tor,   &
+       integrator, inumgs, &
+       ionization_depth, ionization_rate, ionization_temp, ionization, &
+       ipellet, iper, ipres, iprint, &
+       iread_dskbal, iread_eqdsk, iread_jsolver, &
+       iread_ne, iread_omega, iread_te,                                     &
+       irecalc_eta, iresfunc, irestart, irmp, irot, iscale_rot_by_p, &
+       isink, isources, isplitstep, istatic, isurface, itaylor, &
+       iteratephi, itime_independent, itimer, itor, itwofluid,     &
+       ivform, ivisfunc, iwave, iwrite_restart, &
+       jadv, jper, &
+       kappa0, kappadelt, kappah, kappaoff, kappar, kappat, kappax, &
+       l0_norm, lambdae, libetap, linear, ln, &
+       mass_ratio, max_ke, maxn, mpol, &
+       n_control_d, n_control_i, n_control_p, n_target, &
+       n0_norm, nonrect, nosig, nplanes, &
+       nskip, ntimemax, ntimepr, &
+       ntor, numvar, nv1equ, &
+       p0, p1, p2, pedge, &
+       pellet_rate, pellet_var, pellet_x, pellet_z, &
+       phizero, pi0, pscale, psiscale, &
+       q0, &
+       regular, rzero, &
+       sink1_rate, sink1_var, sink1_x, sink1_z, &
+       sink2_rate, sink2_var, sink2_x, sink2_z, &
+       tcur, tcuro, &
+       th_gs, thimp, thimpsm, &
+       tiltangled, tol_gs, &
+       vloop, vor_bc, vzero, &
+       xdiv, xlim, xlim2, xmag, xnull, xzero, &
+       zdiv, zlim, zlim2, zmag, znull, zzero
 
   !     derived quantities
   real :: dbf,bdf,hypv,hypc,hypf,hypi,hypp,   &
@@ -327,22 +339,19 @@ module basic
        gbound
 
   ! magnetic diagnostics
-  real :: psimin       ! flux value at magnetic axis
-  real :: psilim,psilim2       ! flux at the limiter
-  real :: psibound     ! flux at the lcfs
-  logical :: is_diverted ! whether plasma is diverted or not
-  real :: xnull, znull ! coordinates of the limiting x-point
+  real :: psimin            ! flux value at magnetic axis
+  real :: psilim,psilim2    ! flux at the limiter
+  real :: psibound          ! flux at the lcfs
+  logical :: is_diverted    ! whether plasma is diverted or not
+  real :: xnull, znull      ! coordinates of the limiting x-point
 
   ! PID controllers
   type(pid_control), save :: i_control, n_control
 
   integer :: ntime, ntime0
-  character*10 :: datec, timec
 
-! MPI variable(s)
+  ! MPI variable(s)
   integer myrank, maxrank
-
-  integer :: drop_zeroes ! whether to skip insertion of zeroes into matrix
 
 end module basic
 
