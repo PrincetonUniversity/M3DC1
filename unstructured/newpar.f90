@@ -24,10 +24,10 @@ Program Reducedquintic
   real :: tstart, tend
   character*10 :: datec, timec
 
-  print *, 'initializing mpi...'
+  print *, 'Initializing mpi...'
   call MPI_Init(ier)
   if (ier /= 0) then
-     print *,'Error initializing MPI:',ier
+     print *, 'Error in MPI_Init', ier
      call safestop(1)
   endif
 
@@ -35,8 +35,12 @@ Program Reducedquintic
 !  call scorecinit
 #endif
 
-  print *, 'initializing petsc...'
+  print *, 'Initializing PETSc...'
   call PetscInitialize(PETSC_NULL_CHARACTER, ier)
+  if (ier /= 0) then
+     print *,'Error in PetscInitialize:',ier
+     call safestop(1)
+  endif
   call MPI_Comm_rank(MPI_COMM_WORLD, myrank, ier)
   if (ier /= 0) then
      print *,'Error in MPI_Comm_rank:',ier
@@ -47,7 +51,6 @@ Program Reducedquintic
      print *,'Error in MPI_Comm_size:',ier
      call safestop(1)
   endif
-  
 
   if(myrank.eq.0) then
      call date_and_time( datec, timec)
@@ -67,15 +70,15 @@ Program Reducedquintic
   endif
 
   ! read input file
-  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Reading input'
+  if(myrank.eq.0) print *, ' Reading input'
   call input
 
 #ifdef USERW
-     ! set resistive wall bc
-     if(eta_wall.ne.0.) then
-        if(myrank.eq.0) print *, "calling userwb"
-        call userwb()
-     end if
+  ! set resistive wall bc
+  if(eta_wall.ne.0.) then
+     if(myrank.eq.0) print *, "calling userwb"
+     call userwb()
+  end if
 #endif
 
   ! load mesh

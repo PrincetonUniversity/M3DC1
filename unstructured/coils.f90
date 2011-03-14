@@ -240,7 +240,7 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
   do i=1,n
      if(xi(i) .lt. 100.) cycle
      rz = zi(i)
-     imult = ifix(xi(i) - 100.)
+     imult = int(xi(i) - 100.)
      if(imult .lt. 0 .or. imult.gt.10) then
         ! error
         ineg=39

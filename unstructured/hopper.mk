@@ -1,8 +1,3 @@
-FOPTS = -c -Mr8 -Mpreprocess -fastsse -Minform=warn -Mipa=fast,inline $(OPTS) \
-	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs \
-	-DPetscDEV
-CCOPTS  = -c -O -DPetscDEV
-
 ifeq ($(TAU), 1)
   TAU_OPTIONS = -optCPPOpts=-DUSETAU -optVerbose -optPreProcess -optMpi -optTauSelectFile=select.tau
   CC     = tau_cc.sh $(TAU_OPTIONS)
@@ -14,10 +9,7 @@ else
   F90 = ftn
   F77 = ftn
   LOADER = ftn
-  FOPTS := $(FOPTS)
 endif
-F90OPTS = $(F90FLAGS) $(FOPTS)
-F77OPTS = $(F77FLAGS) $(FOPTS)
 
 # define where you want to locate the mesh adapt libraries
 HYBRID_HOME = /p/swim/jchen/hybrid.test
@@ -27,46 +19,67 @@ ifeq ($(USESCOREC), 1)
       SCORECDIR = /project/projectdirs/mp288/lib/hopper2/install/03032011
     endif
 
-    SCOREC_LIBS = \
-        -L$(SCORECDIR)/lib \
-	-Wl,-rpath,$(SCORECDIR)/lib \
-        -lsuperlu_dist_2.5 \
-	-lFUSIONAPP$(SCORECOPT) \
-        -lSOLVER$(SCORECOPT) \
-        -lMESHADAPTMAP$(SCORECOPT) \
-        -lSOLTRANSFER$(SCORECOPT) \
-        -lSOLVER$(SCORECOPT) \
-        -lFEMANALYSIS$(SCORECOPT) \
-        -lASSEMBLER$(SCORECOPT) \
-        -lMeshAdapt$(SCORECOPT) \
-        -lDISCERRORESTIM$(SCORECOPT) \
-        -lASF$(SCORECOPT) \
-        -lSCORECModel$(SCORECOPT) \
-        -lmeshModel$(SCORECOPT) \
-        -lFMDB$(SCORECOPT) \
-        -lSCORECUtil$(SCORECOPT) \
-	-lipcomman$(SCORECOPT) \
-	-lzoltan \
-        -lSPARSKIT$(SCORECOPT) \
-        -lSCORECModel$(SCORECOPT) \
-        -lmeshModel$(SCORECOPT) \
-        -lSCORECUtil$(SCORECOPT) \
-	-lparmetis -lmetis \
-	-lsuperlu_dist_2.5 \
-	-lC -lstd
+SCOREC_LIBS = \
+        $(SCORECDIR)/lib/libFUSIONAPP.a \
+        $(SCORECDIR)/lib/libSOLVER.a \
+        $(SCORECDIR)/lib/libMESHADAPTMAP.a \
+        $(SCORECDIR)/lib/libSOLTRANSFER.a \
+        $(SCORECDIR)/lib/libSOLVER.a \
+        $(SCORECDIR)/lib/libFEMANALYSIS.a \
+        $(SCORECDIR)/lib/libASSEMBLER.a \
+        $(SCORECDIR)/lib/libMeshAdapt.a \
+        $(SCORECDIR)/lib/libDISCERRORESTIM.a \
+        $(SCORECDIR)/lib/libASF.a \
+        $(SCORECDIR)/lib/libSCORECModel.a \
+        $(SCORECDIR)/lib/libmeshModel.a \
+        $(SCORECDIR)/lib/libFMDB.a \
+        $(SCORECDIR)/lib/libSCORECUtil.a \
+        $(SCORECDIR)/lib/libipcomman.a \
+        $(SCORECDIR)/lib/libzoltan.a \
+        $(SCORECDIR)/lib/libSPARSKIT.a \
+        $(SCORECDIR)/lib/libSCORECModel.a \
+        $(SCORECDIR)/lib/libmeshModel.a \
+        $(SCORECDIR)/lib/libSCORECUtil.a
 
-  PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev
-  PETSC_ARCH = arch-cray-xt5-opt
+  PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev-SUPERLU-HYPRE-MUMPS/petsc-dev-031011
+  PETSC_ARCH = arch-cray-xt6-pkgs-opt
 
   INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
-  LIBS := $(LIBS) $(SCOREC_LIBS)
+  LIBS := $(LIBS) $(SCOREC_LIBS) -lC -lstd
 
+  SUPERLU_DIST = $(SCORECDIR)/lib/libsuperlu_dist_2.5.a
+
+  HYPRE = -lHYPRE
+  MUMPS = -ldmumps -lmumps_common -lpord
+  PARMETIS = -lparmetis -lmetis
+
+  OPTS := $(OPTS) -DPetscDEV
+else
+  OPTS := $(OPTS) -DPETSC_31
 endif   # on USESCOREC
 
 INCLUDE := $(INCLUDE) $(HDF5_INCLUDE_OPTS) \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
 LIBS := $(LIBS) $(HDF5_POST_LINK_OPTS) -lhdf5_fortran -lhdf5 \
-	-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
+	-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc \
+	$(SUPERLU_DIST) $(HYPRE) $(MUMPS) $(PARMETIS)
+
+FOPTS = -c -Mr8 -Mpreprocess -Minform=warn $(OPTS) \
+	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs
+CCOPTS  = -c -O $(OPTS)
+
+# Optimization flags
+ifeq ($(OPT), 1)
+  FOPTS  := $(FOPTS) -fastsse -Mipa=fast,inline
+  CCOPTS := $(CCOPTS) -O
+else
+  FOPTS := $(FOPTS)
+  CCOPTS := $(CCOPTS)
+endif
+
+
+F90OPTS = $(F90FLAGS) $(FOPTS)
+F77OPTS = $(F77FLAGS) $(FOPTS)
 
 
 %.o : %.c
