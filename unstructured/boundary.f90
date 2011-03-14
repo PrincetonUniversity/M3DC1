@@ -44,7 +44,7 @@ subroutine get_boundary_mask(itri, ibound, imask)
 
 #ifdef USE3D
      if(iand(ibound, BOUNDARY_AXISYMMETRIC).eq.BOUNDARY_AXISYMMETRIC) then
-        call getplaneid(iplane)
+        iplane = local_plane()
            
         ! in the axisymmetric case, the only elements not set by bcs
         ! are those on associated with nodes on the first plane

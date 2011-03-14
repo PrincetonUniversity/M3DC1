@@ -452,17 +452,6 @@ subroutine validate_input
      if(flg_pdslin.eq.PETSC_TRUE) print*, 'Using PDSLin.'
   endif
 
-  if(flg_petsc.eq.PETSC_TRUE .and. flg_solve2.eq.PETSC_TRUE) then 
-     drop_zeroes = 0 
-  else 
-     select case(nonrect)
-     case(0)
-        drop_zeroes = 1
-     case(1)
-        drop_zeroes = 0 
-     end select
-  endif
-
   is_rectilinear = (nonrect.eq.0)
 
   if(myrank.eq.0) write(*,nml=inputnl)

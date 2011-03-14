@@ -22,6 +22,7 @@ Program Reducedquintic
 
   integer :: ier
   real :: tstart, tend
+  character*10 :: datec, timec
 
   print *, 'initializing mpi...'
   call MPI_Init(ier)

@@ -41,9 +41,19 @@ module basic_mesh_mod
   integer, allocatable, private :: global_id(:)
   integer, allocatable :: num_adjacent(:)
 
+  integer, private :: myplane ! toroidal plane of current process
+
 contains
 
+  !======================================================================
+  ! load_sms_mesh
+  ! ~~~~~~~~~~~~~
+  ! load mesh from symmetrix mesh file
+  ! if nplanes > 1, create 3D mesh using nplanes copies of 2D mesh
+  !======================================================================
   subroutine load_sms_mesh(nplanes, inodes, ielms, nodes, elms)
+    use math
+
     implicit none
 
     integer, intent(in) :: nplanes
@@ -71,11 +81,8 @@ contains
     write(*,*) ' edges = ', iedges
     write(*,*) ' nodes = ', inodespp
     if(nplanes.gt.1) then
-       ielms = ielmspp*(nplanes-1)
-       inodes = inodespp*(nplanes-1)
-    else
-       ielms = ielmspp
-       inodes = inodespp
+       ielms = ielmspp*nplanes
+       inodes = inodespp*nplanes
     end if
 
     allocate(nodes(inodes), elms(ielms), edges(iedges,2))
@@ -140,30 +147,37 @@ contains
 
 #ifdef USE3D
     ! Create nodes in other planes
-    do i=2, nplanes-1
+    do i=2, nplanes
        nodes((i-1)*inodespp+1:i*inodespp) = nodes(1:inodespp)
+       nodes((i-1)*inodespp+1:i*inodespp)%Phi = (i-1.)*twopi/nplanes
     end do
 
     ! Set "ghost" plane of elements in first plane
-    do j=1, ielmspp
-       elms(j)%node(4:6) = elms(j)%node(1:3) + (i-1)*inodespp
+    do i=1, ielmspp
+       elms(i)%inode(4:6) = elms(i)%inode(1:3) + inodespp
     end do
 
     ! Set nodes in other planes
-    do i=2, nplanes-1
+    do i=2, nplanes
        do j=1, ielmspp
-          elms((i-1)*ielmspp+j)%node(:) = elms(j)%node(:)
+          elms((i-1)*ielmspp+j)%inode(:) = elms(j)%inode(:) + (i-1)*inodespp
        end do
     end do
 
     ! Enforce periodic boundary conditions
-    do j=1, ielmspp
-       elms((nplanes-2)*ielmspp+j)%node(4:6) = elms(j)%node(1:3)
+    do i=1, ielmspp
+       elms((nplanes-1)*ielmspp+i)%inode(4:6) = elms(i)%inode(1:3)
     end do
 #endif
 
   end subroutine load_sms_mesh
 
+  !======================================================================
+  ! create_rectangular_mesh
+  ! ~~~~~~~~~~~~~~~~~~~~~~~
+  ! creates a rectangular mesh with m x n nodes.
+  ! physical dimensions are set by bb array.
+  !======================================================================
   subroutine create_rectangular_mesh(m,n, nplanes,inodes, ielms, nodes, elms)
     use math
     implicit none
@@ -279,11 +293,11 @@ contains
     bb(2) = -1.45
     bb(3) = 1.785
     bb(4) = 1.45
-    call create_rectangular_mesh(21,21,nplanes, &
-         num_global_nodes,num_global_elements, &
-         global_node, global_elm)
-!    call load_sms_mesh(nplanes, num_global_nodes, num_global_elements, &
+!    call create_rectangular_mesh(21,21,nplanes, &
+!         num_global_nodes,num_global_elements, &
 !         global_node, global_elm)
+    call load_sms_mesh(nplanes, num_global_nodes, num_global_elements, &
+         global_node, global_elm)
 
     call MPI_comm_size(PETSC_COMM_WORLD,size,ierr)
     call MPI_comm_rank(PETSC_COMM_WORLD,rank,ierr)
@@ -291,7 +305,8 @@ contains
     ! Partition nodes
     ! ~~~~~~~~~~~~~~~
     if(nplanes.gt.1) then
-       nodes_per_plane = num_global_nodes/(nplanes-1)
+       nodes_per_plane = num_global_nodes/nplanes
+       myplane = (nplanes/size)*rank + 1
        min_node = (nplanes/size)*rank * nodes_per_plane + 1
        if(rank.eq.size-1) then
           max_node = num_global_nodes
@@ -299,6 +314,9 @@ contains
           max_node = min_node + (nplanes/size) * nodes_per_plane - 1
        endif
        num_local_nodes = max_node - min_node + 1
+       print *, 'nodes per plane = ', nodes_per_plane
+       print *, 'rank, myplane, min_node, max_node ', &
+            rank, myplane, min_node, max_node
     else
        min_node = (num_global_nodes/size) * rank + 1
        if(rank.eq.size-1) then
@@ -511,6 +529,16 @@ contains
     if(allocated(local_elm)) deallocate(local_elm)
     if(allocated(global_id)) deallocate(global_id)
   end subroutine unload_mesh
+
+  !======================================================================
+  ! local_plane
+  ! ~~~~~~~~~~~
+  ! returns toroidal plane associated with current process
+  !======================================================================
+  integer function local_plane()
+    implicit none
+    local_plane = myplane
+  end function local_plane
 
   !==============================================================
   ! global_node_id

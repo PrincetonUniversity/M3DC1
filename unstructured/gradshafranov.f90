@@ -2071,6 +2071,7 @@ end subroutine calc_rotation
 subroutine boundary_gs(rhs, feedfac, mat)
   use basic
   use arrays
+  use mesh_mod
   use coils
   use vector_mod
   use matrix_mod
@@ -2092,8 +2093,8 @@ subroutine boundary_gs(rhs, feedfac, mat)
   vectype, dimension(dofs_per_node) :: temp
 
 #ifdef USE3D
-  integer :: iplane, itri, nelms, nvals, itrip, j
-  integer, dimension(nodes_per_element) :: inode, inodep
+  integer :: iplane, itri, nelms, nvals, j
+  integer, dimension(nodes_per_element) :: inode
   integer, dimension(2) :: icol
   vectype, dimension(2) :: val
 #endif
@@ -2135,7 +2136,7 @@ subroutine boundary_gs(rhs, feedfac, mat)
   ! enforce axisymmetry
 
   if(int_tor.eq.0) then
-     call getplaneid(iplane)
+     iplane = local_plane()
      nelms = local_elements()
      nvals = 2
      val(1) = -1.

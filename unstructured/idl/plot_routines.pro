@@ -568,7 +568,7 @@ pro plot_slice, data, x, y, z, value=value, normal=normal, itor=itor
 
    if(n_elements(normal) gt 0) then begin
        n = n_elements(value)
-       for m=0, n-1 do begin
+       for m=long(0), n-1 do begin
            xdata = data
            for i=0, n_elements(x)-1 do begin
                for j=0, n_elements(y)-1 do begin
