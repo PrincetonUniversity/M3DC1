@@ -67,6 +67,8 @@ contains
     integer :: inodespp, ielmspp, iedges, dum
     integer, allocatable :: edges(:,:)
     integer, dimension(3) :: ed
+
+    real :: x0, x1, x2, z0, z1, co, sn, cs, ss, l0
     
     if(is_rectilinear) then
        open(unit=ifile, file='struct-dmg.sms', status='old')
@@ -141,8 +143,22 @@ contains
     else
        ! Calculate curv and normal from modelfile
        open(unit=ifile, file='AnalyticModel', status='old')
-       
+       read(ifile, *) x0, x1, x2, z0, z1
        close(ifile)
+
+       ! R(theta) = x0 + x1 cos(theta + x2 sin(theta))
+       ! Z(theta) = z0 + z1 sin(theta)
+       do i=1, inodespp
+          sn = (nodes(i)%Z - z0)/z1    ! sin(theta)
+          co = sqrt(1. - sn*sn)        ! cos(theta)
+          cs = (nodes(i)%R - x0)/x1    ! cos(theta + x2*sin(theta))
+          ss = sqrt(1. - cs*cs)        ! sin(theta + x2*sin(theta))
+
+          l0 = sqrt((z1*co)**2 + (x1*(1.+x2*co)*ss)**2)
+          nodes(i)%normal(1) = z1*co/l0
+          nodes(i)%normal(2) = x1*(1.+x2*co)*ss/l0
+          nodes(i)%curv = x1*z1*(co*(1.+x2*co)**2*cs + sn*ss)/l0**3
+       end do
     end if
 
 #ifdef USE3D

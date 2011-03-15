@@ -1,5 +1,5 @@
-FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV $(OPTS)
-CCOPTS  = -c -O -DPetscDEV #-DCJ_MATRIX_DUMP -DUSEHYBRID 
+FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DPETSC_31 $(OPTS)
+CCOPTS  = -c -O -DPetscDEV -DPETSC_31 #-DCJ_MATRIX_DUMP -DUSEHYBRID 
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -fast
@@ -18,7 +18,7 @@ else
   CC = mpicc
   F90 = mpif90
   F77 = mpif90
-  LOADER = mpif90
+  LOADER = mpif90 -cxxlib
   FOPTS := $(FOPTS)
 endif
 F90OPTS = $(F90FLAGS) $(FOPTS) -gen-interfaces
@@ -38,8 +38,8 @@ INCLUDE = -I$(MPIHOME)/include \
 
 PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
 	-lpetsc \
-	-lHYPRE \
 	-lpromfei -lprometheus \
+	-lHYPRE \
 	-lscalapack -lfblas -lflapack \
 	-L$(MUMPS_HOME)/lib -ldmumps -lmumps_common -lpord
 
@@ -58,13 +58,12 @@ LIBS = 	$(PETSC_LIBS) \
 	$(PARMETIS_LIBS) \
 	-L$(Zoltan_HOME)/lib -lzoltan \
 	-L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5 \
-	-L$(CCHOME)/lib/intel64 -lguide \
 	-L$(CCHOME)/mkl/lib/em64t -lmkl -lmkl_lapack \
+	-L$(CCHOME)/lib/intel64 -lguide \
 	-L$(NCARG_ROOT)/lib -lncarg -lncarg_gks -lncarg_c \
 	-Wl,-rpath -Wl,$(HDF5_HOME)/lib \
 	-L$(ZLIB_HOME) -lz \
-        -L/usr/X11R6/lib -lX11
-
+	-L/usr/X11R6/lib -lX11
 
 ifeq ($(USESCOREC), 1)
 
