@@ -1,5 +1,5 @@
 FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DPETSC_31 $(OPTS)
-CCOPTS  = -c -O -DPetscDEV -DPETSC_31 #-DCJ_MATRIX_DUMP -DUSEHYBRID 
+CCOPTS  = -c -O -DPetscDEV -DPETSC_31 -DCJ_MATRIX_DUMP #-DUSEHYBRID 
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -fast
@@ -89,8 +89,9 @@ ifeq ($(USESCOREC), 1)
 	-lmeshAdapt-mpich2$(SCORECOPT) \
 	-lmeshTools-mpich2$(SCORECOPT) \
 	-lSolver-mpich2$(SCORECOPT) \
-	-lPPPLPetscDEV-mpich2$(SCORECOPT) \
+	-lPPPLTestVec2-mpich2$(SCORECOPT) \
 	-lipcomman-mpich2$(SCORECOPT)
+#	-lPPPLPetscDEV-mpich2$(SCORECOPT) \
 
   LIBS := $(SCOREC_LIBS) $(LIBS)
 
