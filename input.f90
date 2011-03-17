@@ -128,6 +128,7 @@ subroutine set_defaults
 
   ! equilibrium options
   itaylor = 0
+  iupstream = 0
   iflip = 0
   iflip_b = 0
   iflip_j = 0
