@@ -7790,6 +7790,126 @@ vectype function p1uchis(e,f,g,h)
   return
 end function p1uchis
 
+!
+! Extra diffusion to model upstream differencing
+vectype function p1uspu(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+
+  vectype :: temp 
+
+  select case(ivform)
+  case(0)
+!
+!....needs to be defined
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = 0.
+     endif
+
+  case(1)
+     if(surface_int) then
+!....needs to be defined
+        temp = 0.
+     else
+        temp79a = abs(g(:,OP_DZ))
+        temp79b = abs(g(:,OP_DR))
+!
+        temp = - int4(r_79,e(:,OP_DR),f(:,OP_DR),temp79a)  &
+               - int4(r_79,e(:,OP_DZ),f(:,OP_DZ),temp79b)
+     end if
+  end select
+
+  p1uspu = temp
+
+  return
+end function p1uspu
+
+!
+! Extra diffusion to model upstream differencing
+vectype function p1uspchi(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+
+  vectype :: temp 
+
+  select case(ivform)
+  case(0)
+!
+!....needs to be defined
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = 0.
+     endif
+
+  case(1)
+     if(surface_int) then
+!....needs to be defined
+        temp = 0.
+     else
+        temp79a = abs(g(:,OP_DR))
+        temp79b = abs(g(:,OP_DZ))
+!
+        temp = - int4(ri2_79,e(:,OP_DR),f(:,OP_DR),temp79a)  &
+               - int4(ri2_79,e(:,OP_DZ),f(:,OP_DZ),temp79b)
+     end if
+  end select
+
+  p1uspchi = temp
+
+  return
+end function p1uspchi
+
+! Extra diffusion to model upstream differencing
+vectype function p1uspv(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+
+  vectype :: temp 
+
+  select case(ivform)
+  case(0)
+!
+!....needs to be defined
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = 0.
+     endif
+
+  case(1)
+     if(surface_int) then
+!....needs to be defined
+        temp = 0.
+     else
+        temp79a = abs(g(:,OP_1))
+!
+        temp =  int3(e(:,OP_1),f(:,OP_DPP),temp79a)  
+     end if
+  end select
+
+  p1uspv = temp
+
+  return
+end function p1uspv
+
 
 !======================================================================
 ! Parallel Viscous Terms

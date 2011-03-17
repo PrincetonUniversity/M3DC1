@@ -114,6 +114,7 @@ module basic
                       !  0 = generic
                       !  1 = CDX-U
                       !  2 = NSTX
+  integer :: iupstream  !  if 1, adds diffusion term to pressure like upstream differencing
   real :: bzero       ! guide field
   real :: bx0         ! initial field in x-direction
   real :: vzero       ! initial toroidal velocity
@@ -292,7 +293,7 @@ module basic
        idenfunc, idens, &
        idevice, iestatic, ifbound, ifixedb, &
        iflip_b, iflip_j, iflip_v, iflip_z, iflip, &
-       ifout, igauge,                                                 &
+       ifout, igauge, iupstream,                                         &
        iglobalin, iglobalout, &
        igs_method, igs, &
        ihypamu, ihypdx, ihypeta, ihypkappa, &

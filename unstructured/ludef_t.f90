@@ -1719,9 +1719,10 @@ end subroutine axial_field_nolin
 ! Pressure Equation
 !======================================================================
 subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
-     total_pressure, thimpf)
+     total_pressure, thimpf,itri)
   
   use basic
+  use math
   use arrays
   use m3dc1_nint
   use metricterms_new
@@ -1733,10 +1734,12 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   vectype, intent(out) :: q_ni(2), r_bf, q_bf
   logical, intent(in) :: total_pressure
   real, intent(in) :: thimpf
+  type(element_data) :: d
+  integer :: itri
 
   vectype, dimension(MAX_PTS, OP_NUM) :: hp, pp079, pp179
   vectype :: temp
-  real :: thimpb, thimp_bf, nv
+  real :: thimpb, thimp_bf, nv, h
   integer :: pp_g
 
   hp = hypp*sz79
@@ -1821,7 +1824,7 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      temp = p1pu(trial,pp179,lin)
      ssterm(u_g) = ssterm(u_g) -     thimpb     *dt*temp
      ddterm(u_g) = ddterm(u_g) + (.5-thimpb*bdf)*dt*temp
-     
+!
      if(numvar.ge.2) then
         temp = p1pv(trial,pp179,lin)
         ssterm(vz_g) = ssterm(vz_g) -     thimpb     *dt*temp
@@ -1839,6 +1842,18 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
           + p1pchi(trial,lin,ch179)
      ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
      ddterm(pp_g) = ddterm(pp_g) + (.5-thimp*bdf)*dt*temp
+!
+!....upstream differencing
+     if(iupstream.eq.1) then
+       call get_element_data(itri,d)
+       h = (d%a + d%b + d%c)/3.
+!
+       temp = .5*h*p1uspu(trial,lin,ph179) &
+            + .5*h*p1uspchi(trial,lin,ch179) &
+            + .5*(twopi/nplanes)*p1uspv(trial,lin,vz179)
+       ssterm(pe_g) = ssterm(pe_g) -     thimp     *dt*temp
+       ddterm(pe_g) = ddterm(pe_g) + (1.-thimp*bdf)*dt*temp
+     endif
   endif
   if(eqsubtract.eq.1) then
      temp = p1pu(trial,pp079,lin)
@@ -1862,6 +1877,18 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
           + p1pchi(trial,lin,ch079)
      ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
      ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
+!
+!....upstream differencing
+     if(iupstream.eq.1) then
+       call get_element_data(itri,d)
+       h = (d%a + d%b + d%c)/3.
+!
+       temp = .5*h*p1uspu(trial,lin,ph079) &
+            + .5*h*p1uspchi(trial,lin,ch079) &
+            + .5*(twopi/nplanes)*p1uspv(trial,lin,vz079)
+       ssterm(pe_g) = ssterm(pe_g) -     thimp     *dt*temp
+       ddterm(pe_g) = ddterm(pe_g) + (1.-thimp*bdf)*dt*temp
+     endif
   endif
 
   
@@ -2767,7 +2794,7 @@ subroutine ludefphi_n(itri)
            case(3)
               call pressure_lin(mu79(:,:,i),nu79(:,:,j), &
                    ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
-                   ipres.eq.0, thimp)
+                   ipres.eq.0, thimp,itri)
 
            case(4)
               if(imp_bf.eq.1) then
@@ -2927,7 +2954,7 @@ subroutine ludefpres_n(itri)
      do j=1,dofs_per_element
         call pressure_lin(mu79(:,:,i),nu79(:,:,j), &
              ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
-             .true., thimpf)
+             .true., thimpf,itri)
      end do
            
      call pressure_nolin(mu79(:,:,i),q4(i),.true.)
