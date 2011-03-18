@@ -7884,6 +7884,7 @@ vectype function p1uspv(e,f,g)
 
   vectype :: temp 
 
+#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
 !
@@ -7906,6 +7907,10 @@ vectype function p1uspv(e,f,g)
   end select
 
   p1uspv = temp
+#else
+
+  p1uspv = 0.
+#endif
 
   return
 end function p1uspv

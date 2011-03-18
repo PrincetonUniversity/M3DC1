@@ -29,6 +29,9 @@ module gradshafranov
   real, private :: gnorm, libetapeff, fac2
 
   integer, private :: int_tor = 0
+
+  ! if use_norm_psi==1, pprime and ffprime are derivs wrt normalized flux
+  integer, private :: use_norm_psi = 1
 contains
 
 subroutine gradshafranov_init()
@@ -257,6 +260,7 @@ subroutine define_profiles
   implicit none
 
   real, allocatable :: xvals(:), yvals(:)
+  real :: teold
   integer :: nvals
 
   ! If p' and ff' profiles are not yet defined, define them
@@ -329,6 +333,21 @@ subroutine define_profiles
   if(allocated(yvals)) then
      call create_spline(n0_spline, nvals, xvals, yvals)
      deallocate(xvals, yvals)
+  end if
+
+
+  ! add tedge to temperature
+  if(tedge.ge.0.) then
+     if(allocated(te_spline%y)) then
+        teold = te_spline%y(te_spline%n)
+        te_spline%y = te_spline%y - teold + tedge
+     else
+        teold = pefac*p0_spline%y(p0_spline%n)/n0_spline%y(n0_spline%n)
+     end if
+     ! add difference to pressure profile, so ion temp is not affected.
+     if(pedge.lt.0.) then
+        p0_spline%y = p0_spline%y + n0_spline%n*(tedge - teold)
+     end if
   end if
 
 
@@ -1120,9 +1139,9 @@ subroutine fundef
      
         call evaluate_spline(pprime_spline,pso,fbig,fbigp,fbigpp)
         ! convert from normalized to real flux
-        fbig = fbig*dpsii
-        fbigp = fbigp*dpsii**2
-        fbigpp = fbigpp*dpsii**3
+        fbig = fbig*dpsii**(use_norm_psi)
+        fbigp = fbigp*dpsii**(use_norm_psi+1)
+        fbigpp = fbigpp*dpsii**(use_norm_psi+2)
 
         if(irot.eq.1) then
            ! include toroidal rotation in equilibrium
@@ -1221,9 +1240,9 @@ subroutine fundef
         
         call evaluate_spline(ffprime_spline, pso, g4big, g4bigp, g4bigpp)
         ! convert from normalized to real flux
-        g4big = g4big*dpsii
-        g4bigp = g4bigp*dpsii**2
-        g4bigpp = g4bigpp*dpsii**3
+        g4big = g4big*dpsii**use_norm_psi
+        g4bigp = g4bigp*dpsii**(use_norm_psi+1)
+        g4bigpp = g4bigpp*dpsii**(use_norm_psi+2)
         
         temp(1) = g4big/x
         temp(2) = g4bigp*pspx/x - g4big/x**2
@@ -1239,12 +1258,12 @@ subroutine fundef
            call evaluate_spline(g2_spline, pso, g2big, g2bigp, g2bigpp)
            call evaluate_spline(g3_spline, pso, g3big, g3bigp, g3bigpp)
            ! convert from normalized to real flux
-           g2big = g2big*dpsii
-           g2bigp = g2bigp*dpsii**2
-           g2bigpp = g2bigpp*dpsii**3
-           g3big = g3big*dpsii
-           g3bigp = g3bigp*dpsii**2
-           g3bigpp = g3bigpp*dpsii**3
+           g2big = g2big*dpsii**use_norm_psi
+           g2bigp = g2bigp*dpsii**(use_norm_psi+1)
+           g2bigpp = g2bigpp*dpsii**(use_norm_psi+2)
+           g3big = g3big*dpsii**use_norm_psi
+           g3bigp = g3bigp*dpsii**(use_norm_psi+1)
+           g3bigpp = g3bigpp*dpsii**(use_norm_psi+2)
         
            temp(1) = g2big/x
            temp(2) = g2bigp*pspx/x - g2big/x**2
@@ -1342,8 +1361,8 @@ subroutine fundef2(error)
      end do
      
      ! convert from normalized to real flux
-     temp79a = temp79a*dpsii
-     temp79b = temp79b*dpsii
+     temp79a = temp79a*dpsii**use_norm_psi
+     temp79b = temp79b*dpsii**use_norm_psi
      temp79d = temp79d*dpsii
 
      if(irot.eq.1) then
@@ -1385,6 +1404,7 @@ subroutine readpgfiles
 
   integer :: j, n
   real :: dum
+  real :: dpdpsi
   real, allocatable :: psinorm(:), pres0(:), g0(:), ffn(:), ppn(:)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Reading profiles files"
@@ -1392,17 +1412,16 @@ subroutine readpgfiles
   open(unit=76,file="profiles-p",status="old")
   read(76,803) n
   allocate(psinorm(n), pres0(n), ppn(n))
-
   do j=1,n
      read(76,802) psinorm(j), pres0(j), ppn(j), dum, dum
   enddo
   close(76)
 
+  p0 = pres0(1)
+
   call create_spline(p0_spline, n, psinorm, pres0)
   call create_spline(pprime_spline, n, psinorm, ppn)
   deallocate(psinorm, pres0, ppn)
-
-  p0 = pres0(1)
 
   open(unit=77,file="profiles-g",status="old")
   read(77,804) n
@@ -1417,6 +1436,10 @@ subroutine readpgfiles
   deallocate(psinorm, g0, ffn)
 
   constraint = .true.
+
+  
+  ! in this case, ffprime and pprime are derivatives wrt actual flux
+  use_norm_psi = 0
 
 return
   802 format(5x,5e18.9)
@@ -2006,7 +2029,7 @@ subroutine calc_electron_pressure(psi0, pe, x, z)
           + n0(1)*tepp*psii(3)**2 + n0(1)*tep*psii(6)
   else
      call calc_pressure(psi0, pres0, x, z)
-     pe = pres0*(1.-pi0/p0)
+     pe = pres0*pefac
   end if
 end subroutine calc_electron_pressure
 

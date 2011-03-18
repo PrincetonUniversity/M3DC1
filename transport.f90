@@ -75,40 +75,37 @@ vectype function resistivity_func(i)
   implicit none
 
   integer, intent(in) :: i
-  vectype :: temp
 
-  temp = 0.
+  select case (iresfunc)
+  case(0)  ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)
+     if(linear.eq.1) then
+        temp79a = eta0*sqrt((n079(:,OP_1)/(pe079(:,OP_1)))**3)
+     else
+        temp79a = eta0*sqrt((nt79(:,OP_1)/(pet79(:,OP_1)))**3)
+     endif
 
-  if(eta0 .ne. 0.) then
-     select case (iresfunc)
-     case(0)  ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)
-        if(linear.eq.1) then
-           temp79a = eta0*sqrt((n079(:,OP_1)/(pe079(:,OP_1)))**3)
-        else
-           temp79a = eta0*sqrt((nt79(:,OP_1)/(pet79(:,OP_1)))**3)
-        endif
+  case(1)      ! added 08/05/08 for stability benchmarking
+     temp79a = eta0*.5* &
+          (1. + &
+          tanh((real(ps079(:,OP_1))-(psilim+etaoff*(psilim-psimin)))&
+          /(etadelt*(psilim-psimin))))
+     
+  case(2)
+     temp79b = (ps079(:,OP_1)-psimin)/(psibound-psimin)
+     temp79a = eta0*.5* &
+          (1. + tanh((real(temp79b) - etaoff)/etadelt))
 
-     case(1)      ! added 08/05/08 for stability benchmarking
-        temp79a = eta0*.5* &
-             (1. + &
-             tanh((real(ps079(:,OP_1))-(psilim+etaoff*(psilim-psimin)))&
-             /(etadelt*(psilim-psimin))))
+  case(3)
+     temp79a = eta79(:,OP_1) - etar
 
-     case(2)
-        temp79b = (ps079(:,OP_1)-psimin)/(psibound-psimin)
-        temp79a = eta0*.5* &
-             (1. + tanh((real(temp79b) - etaoff)/etadelt))
-     case(3)
-        temp79a = eta79(:,OP_1) - etar
-     case(4)
-        temp79a = eta79(:,OP_1) - etar
+  case(4)
+     temp79a = eta79(:,OP_1) - etar
 
-     end select
-     temp = temp + int2(mu79(:,OP_1,i),temp79a)
-  endif
+  case default
+     temp79a = 0.
+  end select
 
-  resistivity_func = temp
-  return
+  resistivity_func = int2(mu79(:,OP_1,i),temp79a)
 end function resistivity_func
 
 

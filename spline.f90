@@ -107,7 +107,7 @@ contains
           if(x.gt.s%x(i+1)) exit
        end do
     end if
-    if(i.lt.1 .or. i.ge.s%n) print *, 'ERROR!!!'
+    if(i.lt.1 .or. i.ge.s%n) print *, 'ERROR!!!', i, s%n
 
     ! calculate polynomial coefficients using hermite interpolation
     dx = s%x(i+1) - s%x(i)
