@@ -707,7 +707,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   nfields = nfields + 1
 #endif
 
-  ! P
+  ! Pe
   do i=1, nelms
      call calcavector(i, pe_field(ilin), dum(:,i))
   end do
@@ -720,7 +720,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   nfields = nfields + 1
 #endif
 
-  ! Pe
+  ! P
   do i=1, nelms
      call calcavector(i, p_field(ilin), dum(:,i))
   end do

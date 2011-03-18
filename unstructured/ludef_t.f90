@@ -1824,7 +1824,7 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      temp = p1pu(trial,pp179,lin)
      ssterm(u_g) = ssterm(u_g) -     thimpb     *dt*temp
      ddterm(u_g) = ddterm(u_g) + (.5-thimpb*bdf)*dt*temp
-!
+
      if(numvar.ge.2) then
         temp = p1pv(trial,pp179,lin)
         ssterm(vz_g) = ssterm(vz_g) -     thimpb     *dt*temp
@@ -1851,8 +1851,8 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
        temp = .5*h*p1uspu(trial,lin,ph179) &
             + .5*h*p1uspchi(trial,lin,ch179) &
             + .5*(twopi/nplanes)*p1uspv(trial,lin,vz179)
-       ssterm(pe_g) = ssterm(pe_g) -     thimp     *dt*temp
-       ddterm(pe_g) = ddterm(pe_g) + (1.-thimp*bdf)*dt*temp
+       ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
+       ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
      endif
   endif
   if(eqsubtract.eq.1) then
@@ -1886,8 +1886,8 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
        temp = .5*h*p1uspu(trial,lin,ph079) &
             + .5*h*p1uspchi(trial,lin,ch079) &
             + .5*(twopi/nplanes)*p1uspv(trial,lin,vz079)
-       ssterm(pe_g) = ssterm(pe_g) -     thimp     *dt*temp
-       ddterm(pe_g) = ddterm(pe_g) + (1.-thimp*bdf)*dt*temp
+       ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
+       ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
      endif
   endif
 
@@ -2831,7 +2831,7 @@ subroutine ludefphi_n(itri)
         end select
      end do
     
-     ! if ipres=0, the terms linear in pe will be multiplied by p
+     ! if ipres==0, the terms linear in pe will be multiplied by p
      ! so we must multiply these terms by pefac (pe = p*pefac)
      if(ipres.eq.0) then
         ss(:,:,pe_g) = ss(:,:,pe_g)*pefac
@@ -2849,6 +2849,7 @@ subroutine ludefphi_n(itri)
         call insert_block(bv0,itri,ieq(k), vz_i,dd(:,:,vz_g),MAT_ADD)
      endif
      if(numvar.ge.3) then
+        ! if ipres==0, total pressure equation is in pe_i slot
         if(ipres.eq.0) then
            call insert_block(bb1,itri,ieq(k), pe_i,ss(:,:,  p_g),MAT_ADD)
            call insert_block(bb0,itri,ieq(k), pe_i,dd(:,:,  p_g),MAT_ADD)

@@ -144,7 +144,9 @@ module basic
   real :: tcuro       ! initial toroidal current
   real :: divcur      ! current in divertor (as fraction of tcuro)
   real :: djdpsi
-  real :: p1, p2, pedge
+  real :: p1, p2
+  real :: pedge       ! pressure in SOL
+  real :: tedge       ! electron temperature in SOL
   real :: expn        ! density = pressure**expn
   real :: q0          ! safety factor at magnetic axis
   real :: th_gs       ! relaxation factor
@@ -328,6 +330,7 @@ module basic
        sink1_rate, sink1_var, sink1_x, sink1_z, &
        sink2_rate, sink2_var, sink2_x, sink2_z, &
        tcur, tcuro, &
+       tedge, &
        th_gs, thimp, thimpsm, &
        tiltangled, tol_gs, &
        vloop, vor_bc, vzero, &

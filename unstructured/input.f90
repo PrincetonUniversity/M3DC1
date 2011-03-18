@@ -163,6 +163,7 @@ subroutine set_defaults
   p1 = -1.
   p2 = -2.
   pedge = -1.    ! If pedge < 0, don't use pedge
+  tedge = -1.    ! ditto for tedge
   expn = 0.
   q0 = 1.
   djdpsi = 0.0
