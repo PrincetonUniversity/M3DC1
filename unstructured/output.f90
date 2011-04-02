@@ -99,7 +99,7 @@ contains
        else
           gamma = (ekin - ekino)/(2.*ekin*dt)
        endif
-       write(ke_file, '(I8, 1p3e14.6)') ntime, time, ekin, gamma
+       write(ke_file, '(I8, 1p3e12.4,2x,1p3e12.4,2x,1p3e12.4,2x,1pe13.5)') ntime, time, ekin, gamma, ekinp,ekint,ekin3, emagp, emagt, emag3, etot
     endif
 
     if(myrank.eq.0 .and. itimer.eq.1) then
