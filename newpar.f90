@@ -231,7 +231,7 @@ Program Reducedquintic
      totcur0 = totcur
 
      if(itaylor.ne.10 .and. itaylor.ne.11 .and. &
-          itaylor.ne.12 .and. itaylor.ne.13) then
+          itaylor.ne.12 .and. itaylor.ne.13 .and. eta_wall.ne.0) then
         external_psi_field = psi_field(1)
         external_bz_field = bz_field(1)
         external_bf_field = bf_field(1)

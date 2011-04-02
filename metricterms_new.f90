@@ -5924,8 +5924,13 @@ vectype function b1feta(e,f,g,h)
   if(jadv.eq.0) then
      temp = 0.
   else
-     temp = 0.
-     ! terms missing
+     if(surface_int) then
+        temp = 0.      ! terms missing
+     else
+        temp = -int4(ri3_79,e(:,OP_DRP),f(:,OP_DZPP),g(:,OP_1)) &
+             +  int4(ri3_79,e(:,OP_DZP),f(:,OP_DRPP),g(:,OP_1))
+
+     end if
   endif
 
   b1feta = temp
@@ -6839,7 +6844,12 @@ vectype function b3psipsieta(e,f,g,h)
      temp = 0.
   else
      temp = (gam-1.)* &
-          int5(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),h(:,OP_1))
+           int5(ri2_79,e(:,OP_1),f(:,OP_GS), g(:,OP_GS), h(:,OP_1))   
+#if defined(USE3D) || defined(USECOMPLEX)
+     temp = temp + (gam-1)*   &
+           (int5(ri4_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DRP),h(:,OP_1))   &
+         +  int5(ri4_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DZP),h(:,OP_1)))
+#endif
   end if
 
 
@@ -6847,6 +6857,66 @@ vectype function b3psipsieta(e,f,g,h)
   
   return
 end function b3psipsieta
+
+! B3psibeta
+! ===========
+vectype function b3psibeta(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  
+  vectype :: temp
+
+  if(gam.le.1. .or. surface_int) then
+     temp = 0.
+  else
+     temp = 0.
+#if defined(USE3D) || defined(USECOMPLEX)
+     temp = 2.*(gam-1.)* &
+          (int5(ri3_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DR),h(:,OP_1))  &
+          -int5(ri3_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DZ),h(:,OP_1)))
+#endif
+  end if
+
+
+  b3psibeta = temp
+  
+  return
+end function b3psibeta
+
+! B3psifeta
+! ===========
+vectype function b3psifeta(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  
+  vectype :: temp
+
+  if(gam.le.1. .or. surface_int) then
+     temp = 0.
+  else
+     temp = 0.
+#if defined(USE3D) || defined(USECOMPLEX)
+     temp = 2.*(gam-1.)* &
+          (int5(ri3_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DRPP),h(:,OP_1))  &
+          -int5(ri3_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DZPP),h(:,OP_1)))
+#endif
+  end if
+
+
+  b3psifeta = temp
+  
+  return
+end function b3psifeta
 
 
 ! B3bbeta
@@ -6874,6 +6944,64 @@ vectype function b3bbeta(e,f,g,h)
   
   return
 end function b3bbeta
+
+! B3bfeta
+! =======
+vectype function b3bfeta(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  
+  vectype :: temp
+
+  if(gam.le.1. .or. surface_int) then
+     temp = 0.
+  else 
+     temp = 0.
+#if defined(USE3D) || defined(USECOMPLEX)
+     temp = (gam-1.)* &
+          (int5(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZPP),h(:,OP_1)) &
+          +int5(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DRPP),h(:,OP_1)))
+#endif
+  end if
+
+  b3bfeta = temp
+  
+  return
+end function b3bfeta
+! B3ffeta
+! =======
+vectype function b3ffeta(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  
+  vectype :: temp
+
+  if(gam.le.1. .or. surface_int) then
+     temp = 0.
+  else 
+     temp = 0.
+#if defined(USE3D) || defined(USECOMPLEX)
+     temp = (gam-1.)* &
+          (int5(ri2_79,e(:,OP_1),f(:,OP_DZPP),g(:,OP_DZPP),h(:,OP_1)) &
+          +int5(ri2_79,e(:,OP_1),f(:,OP_DRPP),g(:,OP_DRPP),h(:,OP_1)))
+#endif
+  end if
+
+  b3ffeta = temp
+  
+  return
+end function b3ffeta
+
 
 
 ! B3pepsid
@@ -9462,9 +9590,22 @@ real function energy_mp()
           -int3(ri_79,CONJUGATE(ps179(:,OP_DR)),bf179(:,OP_DZP)))
 #endif
   else
+!    nonlinear:   subtract off equilibrium piece
      temp = .5* &
-          (int3(ri2_79,pst79(:,OP_DZ),CONJUGATE(pst79(:,OP_DZ))) &
-          +int3(ri2_79,pst79(:,OP_DR),CONJUGATE(pst79(:,OP_DR))))
+          (int3(ri2_79,pst79(:,OP_DZ),pst79(:,OP_DZ)) &
+          +int3(ri2_79,pst79(:,OP_DR),pst79(:,OP_DR))) &
+          - .5* &
+          (int3(ri2_79,ps079(:,OP_DZ),ps079(:,OP_DZ)) &
+          +int3(ri2_79,ps079(:,OP_DR),ps079(:,OP_DR)))
+#if defined(USE3D)
+     temp = temp   &
+          + .5* &
+          (int2(bft79(:,OP_DZP),bft79(:,OP_DZP)) &
+          +int2(bft79(:,OP_DRP),bft79(:,OP_DRP)) &
+          +2.*int3(ri_79,pst79(:,OP_DZ),bft79(:,OP_DRP)) &
+          -2.*int3(ri_79,pst79(:,OP_DR),bft79(:,OP_DRP)) )
+#endif
+
 #ifdef USECOMPLEX
      temp = temp + .5* &
           (int2(bft79(:,OP_DZP),CONJUGATE(bft79(:,OP_DZP))) &
@@ -9495,7 +9636,9 @@ real function energy_mt()
   if(linear.eq.1) then
      temp = .5*int3(ri2_79,bz179(:,OP_1),CONJUGATE(bz179(:,OP_1)))
   else
-     temp = .5*int3(ri2_79,bzt79(:,OP_1),CONJUGATE(bzt79(:,OP_1)))
+!....nonlinear:  subtract off equilibrium piece
+     temp = .5*int3(ri2_79,bzt79(:,OP_1),bzt79(:,OP_1))   &
+          - .5*int3(ri2_79,bz079(:,OP_1),bz079(:,OP_1))
   endif
 
   energy_mt = temp
@@ -9514,13 +9657,14 @@ real function energy_p()
 
   vectype :: temp
 
-  if(gam.eq.1.) then 
+  if(gam.le.1.) then 
      temp = 0.
   else
      if(linear.eq.1) then
         temp = int1(p179) / (gam - 1.)
      else
-        temp = int1(pt79) / (gam - 1.)
+!.......nonlinear: subtract off equilibrium piece
+        temp = (int1(pt79) - int1(p079))/ (gam - 1.)
      endif
   endif
 
@@ -9560,8 +9704,8 @@ real function energy_kp()
              +int4(r2_79,ph179(:,OP_DR),CONJUGATE(ph179(:,OP_DR)),n079(:,OP_1)))
      else
         temp = .5* &
-             (int4(r2_79,pht79(:,OP_DZ),CONJUGATE(pht79(:,OP_DZ)),nt79(:,OP_1)) &
-             +int4(r2_79,pht79(:,OP_DR),CONJUGATE(pht79(:,OP_DR)),nt79(:,OP_1)))
+             (int4(r2_79,pht79(:,OP_DZ),pht79(:,OP_DZ),nt79(:,OP_1)) &
+             +int4(r2_79,pht79(:,OP_DR),pht79(:,OP_DR),nt79(:,OP_1)))
      endif
   end select
 
@@ -9593,7 +9737,7 @@ real function energy_kt()
      if(linear.eq.1) then
         temp = .5*int4(r2_79,vz179(:,OP_1),CONJUGATE(vz179(:,OP_1)),n079(:,OP_1))
      else
-        temp = .5*int4(r2_79,vzt79(:,OP_1),CONJUGATE(vzt79(:,OP_1)),nt79(:,OP_1))
+        temp = .5*int4(r2_79,vzt79(:,OP_1),vzt79(:,OP_1),nt79(:,OP_1))
      endif
   end select
 
@@ -9644,12 +9788,12 @@ real function energy_k3()
           -int4(ri_79,CONJUGATE(ch179(:,OP_DR)),ph179(:,OP_DZ),n079(:,OP_1)))
      else
         temp = .5* &
-          (int4(ri4_79,cht79(:,OP_DZ),CONJUGATE(cht79(:,OP_DZ)),nt79(:,OP_1)) &
-          +int4(ri4_79,cht79(:,OP_DR),CONJUGATE(cht79(:,OP_DR)),nt79(:,OP_1)) &
-          +int4(ri_79,cht79(:,OP_DZ),CONJUGATE(pht79(:,OP_DR)),nt79(:,OP_1)) &
-          -int4(ri_79,cht79(:,OP_DR),CONJUGATE(pht79(:,OP_DZ)),nt79(:,OP_1)) &
-          +int4(ri_79,CONJUGATE(cht79(:,OP_DZ)),pht79(:,OP_DR),nt79(:,OP_1)) &
-          -int4(ri_79,CONJUGATE(cht79(:,OP_DR)),pht79(:,OP_DZ),nt79(:,OP_1)))
+          (int4(ri4_79,cht79(:,OP_DZ),cht79(:,OP_DZ),nt79(:,OP_1)) &
+          +int4(ri4_79,cht79(:,OP_DR),cht79(:,OP_DR),nt79(:,OP_1)) &
+          +int4(ri_79,cht79(:,OP_DZ),pht79(:,OP_DR),nt79(:,OP_1)) &
+          -int4(ri_79,cht79(:,OP_DR),pht79(:,OP_DZ),nt79(:,OP_1)) &
+          +int4(ri_79,cht79(:,OP_DZ),pht79(:,OP_DR),nt79(:,OP_1)) &
+          -int4(ri_79,cht79(:,OP_DR),pht79(:,OP_DZ),nt79(:,OP_1)))
      endif
   end select
 

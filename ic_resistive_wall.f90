@@ -89,7 +89,7 @@ subroutine resistive_wall_test_init()
        (eta_wall/delta_wall)*((mpol**2 + (k*a)**2)/(k*a)) * &
        ((Imp_ka*Km_ka - Im_ka*Kmp_ka)/(Imp_ka*Kmp_ka))/a
 
-  if(itaylor.eq.12) call analytic_response_matrix
+  if(itaylor.eq.12 .and. eta_wall .gt. 0) call analytic_response_matrix
 
   open(unit=97, file='response_poloidal', status='unknown')
   do i=1, nodes
@@ -271,7 +271,7 @@ contains
     real :: x, phi, z
     
     open(unit=97,file="response_matrix",status="unknown")
-    if(itaylor.eq.10) call analytic_response_matrix
+    if(itaylor.eq.10 .and. eta_wall .gt. 0) call analytic_response_matrix
     
     do i=1, nodes
        write(97,'(1p10e12.4)') (zgrbth(i,j),j=1,nodes+1)
