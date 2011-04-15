@@ -1667,20 +1667,14 @@ subroutine boundary_mag(rhs, mat)
         ! clamp poloidal field
         call get_node_data(psi_field(1), i, temp)
         ! add loop voltage
-        if(jadv.eq.0 .and. igauge.eq.0) temp(1) = temp(1) + dt*vloop/twopi
+        if(igauge.eq.0) temp(1) = temp(1) + dt*vloop/twopi
         call set_dirichlet_bc(i_psi,rhs,temp,normal,curv,izonedim,mat)
      endif
 
      ! no toroidal current
      if(inocurrent_tor.eq.1) then
         
-        if(jadv.eq.1 .and. igauge.eq.0) then
-           call get_node_data(resistivity_field, i, temp)
-           temp(1) = vloop/(twopi*temp(1))
-           temp(2:6) = 0.
-        else
-           temp = 0.
-        end if
+        temp = 0.
         call set_laplacian_bc(i_psi,rhs,temp,normal,curv,izonedim,-x,mat)
      end if
 
