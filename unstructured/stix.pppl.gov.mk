@@ -72,9 +72,11 @@ ifeq ($(USESCOREC), 1)
     INCLUDE := -I/p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/includetest \
 	$(INCLUDE)
   else
-    SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/lib
-    INCLUDE := -I/p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/include \
-	$(INCLUDE)
+#    SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/lib
+#    INCLUDE := -I/p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/include \
+#	$(INCLUDE)
+    SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/031611
+    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/031611 $(INCLUDE)
   endif
 
   SCOREC_ARCH=x86_64_linux-icc
@@ -89,7 +91,7 @@ ifeq ($(USESCOREC), 1)
 	-lmeshAdapt-mpich2$(SCORECOPT) \
 	-lmeshTools-mpich2$(SCORECOPT) \
 	-lSolver-mpich2$(SCORECOPT) \
-	-lPPPLTestVec2-mpich2$(SCORECOPT) \
+	-lPPPL-mpich2$(SCORECOPT) \
 	-lipcomman-mpich2$(SCORECOPT)
 #	-lPPPLPetscDEV-mpich2$(SCORECOPT) \
 

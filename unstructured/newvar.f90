@@ -129,25 +129,14 @@ contains
     endif
 
     if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
-       if(inocurrent_pol.eq.1) then
-          call create_newvar_matrix(bf_mat_lhs, &
-               NV_CYBOUND, NV_BF_MATRIX, .true.)
-          call create_newvar_matrix(mass_mat_rhs_bf, NV_CYBOUND, &
-               NV_I_MATRIX,  .false.)
+       call create_newvar_matrix(bf_mat_lhs, &
+            NV_DCBOUND, NV_BF_MATRIX, .true.)
+       call create_newvar_matrix(mass_mat_rhs_bf, NV_DCBOUND, &
+            NV_I_MATRIX,  .false.)
 #ifdef CJ_MATRIX_DUMP
-          print *, "create_mat newvar bf_mat_lhs", bf_mat_lhs%mat%imatrix     
-          print *, "create_mat newvar mass_mat_rhs_bf", mass_mat_rhs_bf%mat%imatrix     
+       print *, "create_mat newvar bf_mat_lhs", bf_mat_lhs%mat%imatrix     
+       print *, "create_mat newvar mass_mat_rhs_bf", mass_mat_rhs_bf%mat%imatrix     
 #endif 
-       else
-          call create_newvar_matrix(bf_mat_lhs, &
-               NV_DCBOUND, NV_BF_MATRIX, .true.)
-          call create_newvar_matrix(mass_mat_rhs_bf, NV_DCBOUND, &
-               NV_I_MATRIX,  .false.)
-#ifdef CJ_MATRIX_DUMP
-          print *, "create_mat newvar bf_mat_lhs", bf_mat_lhs%mat%imatrix     
-          print *, "create_mat newvar mass_mat_rhs_bf", mass_mat_rhs_bf%mat%imatrix     
-#endif 
-       end if
     endif
 
     if(jadv.eq.1 .and. hyper.ne.0.) then

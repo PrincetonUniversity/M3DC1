@@ -141,7 +141,7 @@ subroutine resistive_wall_test_equ(x, z)
 
   call constant_field(bz0_l , bzero*rzero)
   call constant_field(p0_l , p0)
-  call constant_field(pe0_l, p0-pi0*idens)
+  call constant_field(pe0_l, p0-pi0)
 
 end subroutine resistive_wall_test_equ
 
@@ -322,7 +322,7 @@ contains
     if(numvar.le.2) return
     chi0_l = 0.
     call constant_field(p0_l  , p0)
-    call constant_field(pe0_l , p0-pi0*idens)
+    call constant_field(pe0_l , p0-pi0)
     
   end subroutine circ_shell_only_equ
   

@@ -985,7 +985,8 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
         temp = v3bf  (trial,lin,bf079)
         ssterm(bz_g) = ssterm(bz_g) -     thimp_bf     *dt*temp
         ddterm(bz_g) = ddterm(bz_g) + (1.-thimp_bf*bdf)*dt*temp
-        
+
+        ! The following terms cause problems in isplitstep=0 for some reason
         temp = v3psif(trial,ps079,lin) &
              + v3bf  (trial,bz079,lin)
         r_bf = r_bf -     thimp_bf     *dt*temp
@@ -1189,8 +1190,8 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e)
   end if
 
 
-  ! Resistive and Terms
-  ! ~~~~~~~~~~~~~~~~~~~
+  ! Resistive Terms
+  ! ~~~~~~~~~~~~~~~
   temp = b1psieta(trial,lin,eta79,hf)
   ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
   ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
@@ -1198,11 +1199,12 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e)
      temp = b1beta(trial,lin,eta79,hf)
      ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
+
      if(i3d.eq.1) then
         temp = b1feta(trial,lin,eta79,hf)
         r_bf = r_bf -     thimp_bf     *dt*temp
         q_bf = q_bf + (1.-thimp_bf*bdf)*dt*temp
-     endif
+     end if
   endif
 
   ! VxB
@@ -2363,6 +2365,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
         call clear_mat(q1_mat)
         call clear_mat(r14_mat)
         if(i3d.eq.1) call clear_mat(o1_mat)
+        if(ipres.eq.1 .and. numvar.lt.3) call clear_mat(p1_mat)
         r4_vec = 0.
      end if
 
@@ -2469,7 +2472,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
         if(ivel_def.eq.1) call ludefvel_n(itri)
         if(ifield_def.eq.1) call ludefphi_n(itri)
         if(idens_def.eq.1) call ludefden_n(itri)
-!        if(ipres_def.eq.1) call ludefpres_n(itri)
+        if(ipres_def.eq.1) call ludefpres_n(itri)
      end do
   end do
 
@@ -2499,6 +2502,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
         call finalize(q1_mat)
         call finalize(r14_mat)
         if(i3d.eq.1) call finalize(o1_mat)
+        if(ipres.eq.1 .and. numvar.lt.3) call finalize(p1_mat)
         call sum_shared(r4_vec)
      end if
      
@@ -2573,7 +2577,7 @@ subroutine ludefvel_n(itri)
   vectype, dimension(dofs_per_element,dofs_per_element) :: r_bf, q_bf
   vectype, dimension(dofs_per_element) :: r4
 
-  type(matrix_type), pointer :: vv1, vv0, vb1, vb0, vn1, vn0, vf1, vf0
+  type(matrix_type), pointer :: vv1, vv0, vb1, vb0, vn1, vn0, vf1, vf0, vp0
   type(vector_type), pointer :: vsource
   integer :: advfield
   integer :: pp_i
@@ -2590,13 +2594,21 @@ subroutine ludefvel_n(itri)
      vsource => r4_vec
 
      ! In splitstep case, pe_i spot in phivec is occupied by total pressure
-     ! in velocity advance
-     pp_i = pe_i
+     ! in velocity advance for numvar==3
+     if(ipres.eq.1 .and. numvar.lt.3) then
+        vp0 => p1_mat
+        pp_i = 1
+     else
+        vp0 => q1_mat
+        pp_i = pe_i
+     end if    
+
   else
      vv1 => s1_mat
      vv0 => d1_mat
      vb1 => s1_mat
      vb0 => d1_mat
+     vp0 => d1_mat
      vn1 => s1_mat
      vn0 => d1_mat
      vsource => q4_vec
@@ -2680,12 +2692,14 @@ subroutine ludefvel_n(itri)
      if(numvar.ge.3) then
         call insert_block(vv1,itri,ieq(k),chi_i,ss(:,:,chi_g),MAT_ADD)
         call insert_block(vv0,itri,ieq(k),chi_i,dd(:,:,chi_g),MAT_ADD)
-        call insert_block(vb0,itri,ieq(k), pp_i,dd(:,:,  p_g),MAT_ADD)
      endif
+     if(numvar.ge.3 .or. ipres.eq.1) then
+        call insert_block(vp0,itri,ieq(k), pp_i,dd(:,:,  p_g),MAT_ADD)
+     end if
      if(idens.eq.1) then
         call insert_block(vn0,itri,ieq(k),den_i,dd(:,:,den_g),MAT_ADD)
      endif
-     if(i3d.eq.1) then
+     if(i3d.eq.1 .and. numvar.ge.2) then
         call insert_block(vf0,itri,ieq(k),bf_i,q_bf(:,:),MAT_ADD)
         if(imp_bf.eq.1) then
            call insert_block(vf1,itri,ieq(k),bf_i,r_bf(:,:),MAT_ADD)
@@ -2695,7 +2709,7 @@ subroutine ludefvel_n(itri)
         call insert_block(vb1,itri,ieq(k),psi_i,ss(:,:,psi_g),MAT_ADD)
         if(numvar.ge.2) &
              call insert_block(vb1,itri,ieq(k), bz_i,ss(:,:, bz_g),MAT_ADD)
-        if(numvar.ge.3) &
+        if(numvar.ge.3 .or. ipres.eq.1) &
              call insert_block(vb1,itri,ieq(k), pp_i,ss(:,:,  p_g),MAT_ADD)
         if(idens.eq.1) &
              call insert_block(vn1,itri,ieq(k),den_i,ss(:,:,den_g),MAT_ADD)
@@ -2765,23 +2779,22 @@ subroutine ludefphi_n(itri)
      bsource => q4_vec
   endif
 
-  if(jadv.eq.0 .and. i3d.eq.1) then
-     maxk = numvar + 1
-  else 
-     maxk = numvar
-  endif
-
+  maxk = numvar
   ieq(1) = psi_i
   ieq(2) =  bz_i
   ieq(3) =  pe_i
+
+  ! add bf equation
   if(imp_bf.eq.1) then
      maxk = maxk + 1
-     ieq(4) = bf_i
-     ieq(5) = e_i
-  else
-     ieq(4) = e_i
+     ieq(maxk) = bf_i
   end if
 
+  ! add electrostatic potential equation
+  if(jadv.eq.0 .and. i3d.eq.1) then
+     maxk = maxk + 1
+     ieq(maxk) = e_i
+  endif
 
   imask = 1
 
@@ -2795,22 +2808,17 @@ subroutine ludefphi_n(itri)
      q_e = 0.
      q4 = 0.
 
-     select case(k)
-     case(1)
+     if     (ieq(k).eq.psi_i) then
         call get_flux_mask(itri, imask)
-     case(2)
+     else if(ieq(k).eq.bz_i) then
         call get_bz_mask(itri, imask)
-     case(3)
+     else if(ieq(k).eq.pe_i) then
         call get_p_mask(itri, imask)
-     case(4)
-        if(imp_bf.eq.1) then
-           call get_bf_mask(itri, imask)
-        else
-           imask = 1
-        end if
-     case default
+     else if(ieq(k).eq.bf_i) then
+        call get_bf_mask(itri, imask)
+     else
         imask = 1
-     end select
+     end if
      
      do i=1,dofs_per_element
         if(imask(i).eq.0) then
@@ -2826,58 +2834,48 @@ subroutine ludefphi_n(itri)
         endif
 
         do j=1,dofs_per_element
-           select case(k)
-           case(1)
+           if     (ieq(k).eq.psi_i) then
               if(.not.surface_int) then
                  call flux_lin(mu79(:,:,i),nu79(:,:,j), &
                       ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
                       r_e(i,j),q_e(i,j))
               end if
-              
-           case(2)
+           else if(ieq(k).eq.bz_i) then
               if(.not.surface_int) then
                  call axial_field_lin(mu79(:,:,i),nu79(:,:,j), &
                       ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j))
               endif
 
-           case(3)
+           else if(ieq(k).eq.pe_i) then
               call pressure_lin(mu79(:,:,i),nu79(:,:,j), &
                    ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
                    ipres.eq.0, thimp,itri)
 
-           case(4)
-              if(imp_bf.eq.1) then
-                 call bf_equation_lin(mu79(:,:,i),nu79(:,:,j), &
-                      ss(i,j,:),dd(i,j,:),r_bf(i,j),q_bf(i,j))
-              else
-                 call potential_lin(mu79(:,:,i),nu79(:,:,j), &
-                      ss(i,j,:),dd(i,j,:),q_ni(i,j,1),r_bf(i,j),q_bf(i,j), &
-                      r_e(i,j))
-              end if
+           else if(ieq(k).eq.bf_i) then
+              call bf_equation_lin(mu79(:,:,i),nu79(:,:,j), &
+                   ss(i,j,:),dd(i,j,:),r_bf(i,j),q_bf(i,j))
 
-           case default
+           else if(ieq(k).eq.e_i) then
               call potential_lin(mu79(:,:,i),nu79(:,:,j), &
                    ss(i,j,:),dd(i,j,:),q_ni(i,j,1),r_bf(i,j),q_bf(i,j), &
                    r_e(i,j))
-           end select
+              
+           else
+              print *, 'error!'
+           end if
         end do
 
-        select case(k)
-        case(1)
+        if(ieq(k).eq.psi_i) then
            call flux_nolin(mu79(:,:,i),q4(i))
-        case(2)
+        else if(ieq(k).eq.bz_i) then
            call axial_field_nolin(mu79(:,:,i),q4(i))
-        case(3)
+        else if(ieq(k).eq.pe_i) then
            call pressure_nolin(mu79(:,:,i),q4(i),ipres.eq.0)
-        case(4)
-           if(imp_bf.eq.1) then
-              call bf_equation_nolin(mu79(:,:,i),q4(i))
-           else
-              q4(i) = 0.
-           end if
-        case default
+        else if(ieq(k).eq.bf_i) then
+           call bf_equation_nolin(mu79(:,:,i),q4(i))
+        else
            q4(i) = 0.
-        end select
+        end if
      end do
     
      ! if ipres==0, the terms linear in pe will be multiplied by p
@@ -3028,12 +3026,8 @@ subroutine ludefpres_n(itri)
 
   if(isplitstep.eq.0) then
      call insert_block(pb1,itri,p_i,psi_i,ss(:,:,psi_g),MAT_ADD)
-     if(numvar.ge.2) then
-        call insert_block(pb1,itri,p_i,bz_i,ss(:,:,bz_g),MAT_ADD)
-     endif
-     if(numvar.ge.3) then
-        call insert_block(pb1,itri,p_i,pe_i,ss(:,:,pe_g),MAT_ADD)
-     endif
+     if(numvar.ge.2) call insert_block(pb1,itri,p_i,bz_i,ss(:,:,bz_g),MAT_ADD)
+     if(numvar.ge.3) call insert_block(pb1,itri,p_i,pe_i,ss(:,:,pe_g),MAT_ADD)
   end if
 
   ! TODO:

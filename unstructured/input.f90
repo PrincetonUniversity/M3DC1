@@ -430,6 +430,11 @@ subroutine validate_input
 !     end if
 !  endif
 
+  if(numvar.eq.1 .and. imp_bf.eq.1) then
+     imp_bf = 0
+     if(myrank.eq.0) print *, 'WARNING: numvar==1; setting imp_bf = 0'
+  end if
+
   if(ntimepr.lt.1) ntimepr = 1
 
   if(nplanes.lt.1) nplanes = 1

@@ -5925,13 +5925,17 @@ vectype function b1feta(e,f,g,h)
      temp = 0.
   else
      if(surface_int) then
-        temp = 0.      ! terms missing
+        temp = 0.
      else
+#ifdef USECOMPLEX
+        temp = rfac*int4(ri3_79,e(:,OP_DR),f(:,OP_DZPP),g(:,OP_1)) &
+             - rfac*int4(ri3_79,e(:,OP_DZ),f(:,OP_DRPP),g(:,OP_1))
+#else
         temp = -int4(ri3_79,e(:,OP_DRP),f(:,OP_DZPP),g(:,OP_1)) &
              +  int4(ri3_79,e(:,OP_DZP),f(:,OP_DRPP),g(:,OP_1))
-
+#endif
      end if
-  endif
+  end if
 
   b1feta = temp
 #else
