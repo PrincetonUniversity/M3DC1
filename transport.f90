@@ -78,11 +78,15 @@ vectype function resistivity_func(i)
 
   select case (iresfunc)
   case(0)  ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)
-     if(linear.eq.1) then
-        temp79a = eta0*sqrt((n079(:,OP_1)/(pe079(:,OP_1)))**3)
+     if(eta0.ne.0.) then
+        if(linear.eq.1) then
+           temp79a = eta0*sqrt((n079(:,OP_1)/(pe079(:,OP_1)))**3)
+        else
+           temp79a = eta0*sqrt((nt79(:,OP_1)/(pet79(:,OP_1)))**3)
+        endif
      else
-        temp79a = eta0*sqrt((nt79(:,OP_1)/(pet79(:,OP_1)))**3)
-     endif
+        temp79a = 0.
+     end if
 
   case(1)      ! added 08/05/08 for stability benchmarking
      temp79a = eta0*.5* &

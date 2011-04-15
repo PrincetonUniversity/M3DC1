@@ -301,15 +301,21 @@ function get_slice_time, filename=filename, slice=slice
    if(n_elements(filename) eq 0) then filename='C1.h5'
    if(n_elements(slice) eq 0) then slice=0
 
-   file_id = h5f_open(filename)
-   time_group_id = h5g_open(file_id, time_name(slice))
-   time_id = h5a_open_name(time_group_id, "time")
+   n = n_elements(slice)
 
-   t = h5a_read(time_id)
+   t = fltarr(n)
 
-   h5a_close, time_id
-   h5g_close, time_group_id
-   h5f_close, file_id
+   for i=0, n-1 do begin
+       file_id = h5f_open(filename)
+       time_group_id = h5g_open(file_id, time_name(slice[i]))
+       time_id = h5a_open_name(time_group_id, "time")
+
+       t[i] = h5a_read(time_id)
+
+       h5a_close, time_id
+       h5g_close, time_group_id
+       h5f_close, file_id
+   end
 
    return, t
 end
@@ -783,7 +789,7 @@ end
 ;======================================================
 function is_in_tri, localp, a, b, c
 
-   small = (a+b+c)*1e-2
+   small = (a+b+c)*1e-3
 
    if(localp[1] lt 0. - small) then return, 0
    if(localp[1] gt c + small) then return, 0
@@ -827,12 +833,22 @@ function eval, field, localpos, theta, elm, operation=op
        temp = 0.
         case op1 of
         1: temp = localpos[0]^mi[p]*localpos[1]^ni[p]
-        2: temp = $
-          + co*mi[p]*localpos[0]^(mi[p]-1>0)*localpos[1]^ni[p] $
-          - sn*ni[p]*localpos[0]^mi[p]*localpos[1]^(ni[p]-1>0)
-        3: temp = $
-          + sn*mi[p]*localpos[0]^(mi[p]-1>0)*localpos[1]^ni[p] $
-          + co*ni[p]*localpos[0]^mi[p]*localpos[1]^(ni[p]-1>0)
+        2: begin
+            if(mi[p] ge 1) then $
+              temp = temp $
+              + co*mi[p]*localpos[0]^(mi[p]-1)*localpos[1]^ni[p]
+            if(ni[p] ge 1) then $
+              temp = temp $
+              - sn*ni[p]*localpos[0]^mi[p]*localpos[1]^(ni[p]-1)
+           end
+        3: begin
+            if(mi[p] ge 1) then $
+              temp = temp $
+              + sn*mi[p]*localpos[0]^(mi[p]-1)*localpos[1]^ni[p]
+            if(ni[p] ge 1) then $
+              temp = temp $
+              + co*ni[p]*localpos[0]^mi[p]*localpos[1]^(ni[p]-1)
+           end
         4:
         5:
         7: begin
@@ -1243,7 +1259,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            data = data + $
              read_field(name, x, y, t, slices=time[i], mesh=mesh, $
                         filename=filename[i], points=pts, $
-                        rrange=xrange, zrange=yrange, $
+                        rrange=xrange, zrange=yrange, mask=mask, $
                         h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                         operation=op, complex=complex, $
                         linear=linear, last=last,symbol=symbol,units=units, $
@@ -1779,14 +1795,21 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    ; (minor) radial current density
    ;===========================================
-   endif else if(strcmp('jr', name, /fold_case) eq 1) then begin
+   endif else if(strcmp('jn', name, /fold_case) eq 1) then begin
 
-       psi0 = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+       psi0_r = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, /equilibrium, $
-                        rrange=xrange, zrange=yrange, at_points=at_points)
-       i = read_field('i', x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, op=2)
+       psi0_z = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, /equilibrium, $
+                        rrange=xrange, zrange=yrange, op=3)
+       i_r = read_field('i', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, linear=linear, $
-                      rrange=xrange, zrange=yrange, at_points=at_points)
+                      rrange=xrange, zrange=yrange, complex=complex, op=2)
+       i_z = read_field('i', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, linear=linear, $
+                      rrange=xrange, zrange=yrange, complex=complex, op=3)
+
 
        if(itor eq 1) then begin
            if(n_elements(at_points) eq 0) then begin
@@ -1796,18 +1819,28 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            endelse
        endif else r = 1.
 
+       psipsi = sqrt(psi0_r^2 + psi0_z^2)
        
-       data = a_bracket(i,psi0,x,y)/(r*sqrt(s_bracket(psi0,psi0,x,y)))
-
-       help, i
+       data = (i_z*psi0_r - i_r*psi0_z)/(r*psipsi)
 
        if(ntor ne 0) then begin
 
-           psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+           psi_r = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                             filename=filename, points=pts, linear=linear, $
-                            rrange=xrange, zrange=yrange, at_points=at_points)
-           data = data - complex(0,ntor)*s_bracket(psi,psi0,x,y) $
-             /(r^2*s_bracket(psi0,psi0,x,y))
+                            rrange=xrange, zrange=yrange, complex=complex, op=2)
+           psi_z = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                            filename=filename, points=pts, linear=linear, $
+                            rrange=xrange, zrange=yrange, complex=complex, op=3)
+           f_r = read_field('f', x, y, t, slices=time, mesh=mesh, $
+                            filename=filename, points=pts, linear=linear, $
+                            rrange=xrange, zrange=yrange, complex=complex, op=2)
+           f_z = read_field('f', x, y, t, slices=time, mesh=mesh, $
+                            filename=filename, points=pts, linear=linear, $
+                            rrange=xrange, zrange=yrange, complex=complex, op=3)
+
+           data = data $
+             - complex(0,ntor)*(psi_r*psi0_r + psi_z*psi0_z)/(r^2*psipsi) $
+             - ntor^2*(f_z*psi0_r - f_r*psi0_z)/(r*psipsi)
        endif
 
        symbol = '!8J!Dr!N!X'
@@ -1884,7 +1917,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         rrange=xrange, zrange=yrange, /equilibrium)
        i = read_field('i', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, linear=linear,  $
-                      rrange=xrange, zrange=yrange)
+                      rrange=xrange, zrange=yrange, phi=phi0)
 
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
@@ -1914,7 +1947,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
           phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
                            filename=filename, points=pts, mask=mask, $
-                           rrange=xrange, zrange=yrange)
+                           rrange=xrange, zrange=yrange, phi=phi0)
 
           data = grad_shafranov(phi,x,y,tor=itor)
           symbol = translate('vor', units=d, itor=itor)
@@ -1926,7 +1959,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
          chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
                           filename=filename, points=pts, mask=mask, $
-                          rrange=xrange, zrange=yrange)
+                          rrange=xrange, zrange=yrange, phi=phi0)
 
          data = laplacian(chi,x,y,tor=itor)
          symbol = translate('com', units=d, itor=itor)
@@ -1938,7 +1971,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
          kappa = read_field('kappa', x, y, t, slices=time, mesh=mesh, $
                           filename=filename, points=pts, mask=mask, $
-                          rrange=xrange, zrange=yrange)
+                          rrange=xrange, zrange=yrange, phi=phi0)
          den = read_field('den', x, y, t, slices=time, mesh=mesh, $
                           filename=filename, points=pts, mask=mask, $
                           rrange=xrange, zrange=yrange, /equilibrium)
@@ -2190,29 +2223,40 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('bn', name, /fold_case) eq 1) then begin
 
-       psi0 = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+       psi0_r = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
                         filename=filename, points=pts, slices=time, $
-                        rrange=xrange, zrange=yrange)
-       psi = read_field('psi', x, y, t, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, mask=mask, op=2)
+       psi0_z = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
                         filename=filename, points=pts, slices=time, $
-                        rrange=xrange, zrange=yrange, $
-                       linear=linear, complex=complex)
-       
+                        rrange=xrange, zrange=yrange, mask=mask, op=3)
+       psi_r = read_field('psi', x, y, t, mesh=mesh, $
+                          filename=filename, points=pts, slices=time, $
+                          rrange=xrange, zrange=yrange, $
+                          linear=linear, complex=complex, op=2)
+       psi_z = read_field('psi', x, y, t, mesh=mesh, $
+                          filename=filename, points=pts, slices=time, $
+                          rrange=xrange, zrange=yrange, $
+                          linear=linear, complex=complex, op=3)
+
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
        endif else r = 1.
 
-       data = a_bracket(psi,psi0,x,y)/r
+       data = (psi_z*psi0_r - psi_r*psi0_z)/r
 
-       if(ntor ne 0) then begin
-           f = read_field('f', x, y, t, mesh=mesh, $
-                          filename=filename, points=pts, slices=time, $
-                          rrange=xrange, zrange=yrange, $
-                          linear=linear, complex=complex)
-           data = data + complex(0,ntor)*s_bracket(f,psi0,x,y)
-       endif
+        if(ntor ne 0) then begin
+            f_r = read_field('f', x, y, t, mesh=mesh, $
+                           filename=filename, points=pts, slices=time, $
+                           rrange=xrange, zrange=yrange, $
+                           linear=linear, complex=complex, op=2)
+            f_z = read_field('f', x, y, t, mesh=mesh, $
+                           filename=filename, points=pts, slices=time, $
+                           rrange=xrange, zrange=yrange, $
+                           linear=linear, complex=complex, op=3)
+            data = data + complex(0.,ntor)*(f_r*psi0_r + f_z*psi0_z)
+        endif
 
-       data = data / sqrt(s_bracket(psi0,psi0,x,y))
+       data = data / sqrt(psi0_r^2 + psi0_z^2)
        symbol = '!8B!Dr!N!X'
        d = dimensions(/b0, _EXTRA=extra)
 
@@ -2659,7 +2703,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                                filename=filename, points=pts, $
                                rrange=xrange, zrange=yrange, complex=0, $
                                h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
-                               diff=diff, operation=op, $
+                               diff=diff, operation=op, mask=mask, $
                                linear=linear, last=last,symbol=symbol, $
                                units=units, cgs=cgs, mks=mks, $
                               equilibrium=equilibrium)
@@ -2684,7 +2728,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                              filename=filename, points=pts, $
                              rrange=xrange, zrange=yrange, $
                              h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
-                             operation=op, $
+                             operation=op, mask=mask, $
                              last=0,symbol=symbol,units=units, $
                              cgs=cgs, mks=mks)
        endif else base = 0.
@@ -4052,7 +4096,10 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
   endif
   
   if(keyword_set(growth_rate)) then begin
-      data = deriv(tdata, alog(abs(data)))
+      n = min([n_elements(tdata), n_elements(data)])
+      if(n_elements(data) lt n) then print, 'truncating data'
+      if(n_elements(tdata) lt n) then print, 'truncating tdata'
+      data = deriv(tdata(1:n-1), alog(abs(data(1:n-1))))
 ;      ytitle = '!7c !6(!7s!D!8A!N!6!U-1!N)!X'
       ytitle = make_label('!7c!X', t0=-1, cgs=cgs, mks=mks, _EXTRA=extra)
   endif
@@ -4664,25 +4711,38 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                 range=range, rrange=rrange, zrange=zrange, linear=linear, $
                 xlim=xlim, cutx=cutx, cutz=cutz, mpeg=mpeg, $
                 mask_val=mask_val, boundary=boundary, q_contours=q_contours, $
-                overplot=overplot, phi=phi0, time=realtime, _EXTRA=ex
+                overplot=overplot, phi=phi0, time=realtime, $
+                phase=phase, abs=abs, _EXTRA=ex
 
    if(n_elements(time) eq 0) then time = 0
    if(n_elements(p) eq 0) then p = 50
    if(n_elements(title) eq 0) then notitle = 1 else notitle = 0
+
+   if(keyword_set(phase) or keyword_set(abs)) then complex=1
 
    if(size(name, /type) eq 7) then begin
        print, 'points = ', p
        field = read_field(name, x, y, t, slices=time, mesh=mesh, $
                           points=p, rrange=rrange, zrange=zrange, $
                           symbol=fieldname, units=u, linear=linear, $
-                          mask=mask, phi=phi0, time=realtime, _EXTRA=ex)
-       if(n_elements(field) le 1) then return
-
-       if(n_elements(units) eq 0) then units=u
+                          mask=mask, phi=phi0, time=realtime, $
+                          complex=complex, _EXTRA=ex)
+       if(n_elements(units) eq 0) then units=u       
    endif else begin
        field = name
-       if(n_elements(field) le 1) then return
    endelse
+
+   if(n_elements(field) le 1) then return
+
+
+   if(keyword_set(phase)) then begin
+       field = atan(imaginary(field), real_part(field))*180./!pi
+       units = '!6Degrees!X'
+       fieldname = '!6Phase(!X' + fieldname + '!6)!X'
+   endif else if(keyword_set(abs)) then begin
+       field = abs(field)
+   endif
+
 
    if(n_elements(realtime) ne 0) then print, 'time = ', realtime
 
@@ -4740,7 +4800,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
            endif
 
            if(keyword_set(lcfs)) then begin
-               plot_lcfs, points=p, slice=time, $
+               plot_lcfs, points=p, slice=time[k], $
                  _EXTRA=ex
            endif
 

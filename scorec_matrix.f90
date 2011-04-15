@@ -189,11 +189,13 @@ contains
     type(vector_type), target :: temp_in, temp_out
 
     if(mat%m .ne. vout%isize) then
-       print *, 'Error: sizes for matvacmult do not conform'
+       print *, 'Error: col sizes for matvecmult do not conform', &
+            mat%m, vout%isize
        return
     endif
     if(mat%n .ne. vin%isize) then
-       print *, 'Error: sizes for matvacmult do not conform'
+       print *, 'Error: row sizes for matvecmult do not conform', &
+            mat%n, vin%isize
        return
     endif
 

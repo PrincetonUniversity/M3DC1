@@ -530,9 +530,10 @@ module sparse
   integer, parameter :: rw_rhs_mat_index = 46
   integer, parameter :: rw_lhs_mat_index = 47
   integer, parameter :: o9_mat_index = 48
-  integer, parameter :: num_matrices = 48
+  integer, parameter :: p1_mat_index = 49
+  integer, parameter :: num_matrices = 49
 
-  type(matrix_type), target :: s1_mat, d1_mat, q1_mat, r14_mat, o1_mat
+  type(matrix_type), target :: s1_mat, d1_mat, q1_mat, r14_mat, o1_mat, p1_mat
   type(matrix_type), target :: q42_mat
   type(matrix_type), target :: s2_mat, d2_mat, r2_mat, q2_mat, o2_mat
   type(matrix_type), target :: s8_mat, d8_mat, r8_mat, q8_mat

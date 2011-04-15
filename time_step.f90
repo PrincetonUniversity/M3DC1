@@ -105,6 +105,10 @@ contains
           print *, "create_mat time_step o1_mat", o1_mat%imatrix     
 #endif 
        endif
+       if(ipres.eq.1 .and. numvar.lt.3) then
+          call set_matrix_index(p1_mat, p1_mat_index)
+          call create_mat(p1_mat, vecsize_vel, 1, icomplex, .false.)
+       end if
 
        call set_matrix_index(s2_mat, s2_mat_index)
        call set_matrix_index(d2_mat, d2_mat_index)
@@ -212,6 +216,7 @@ contains
        call destroy_mat(q2_mat)
        if(eqsubtract.eq.1) call destroy_mat(q42_mat)
        if(i3d.eq.1) call destroy_mat(o2_mat)
+       if(ipres.eq.1 .and. numvar.lt.3) call destroy_mat(p1_mat)
        
        if(idens.eq.1) then
           call destroy_mat(s8_mat)
@@ -526,6 +531,8 @@ subroutine export_time_advance_vectors
         p_field(1)  = pe_v
      end if
   else if(ipres.eq.1) then
+     pe_field(1) = p_v
+     call mult(pe_field(1), pefac)
      p_field(1) = p_v
   end if
 
@@ -593,6 +600,13 @@ subroutine split_step(calc_matrices)
         call matvecmult(q1_mat, phi_vec , b2_vel)
      endif
      call add(b1_vel, b2_vel)
+
+     ! If ipres==1 and numvar<3, need to add in pressure contribution
+     ! separately
+     if(ipres.eq.1 .and. numvar.lt.3) then
+        call matvecmult(p1_mat,pres_vec,b2_vel)
+        call add(b1_vel, b2_vel)
+     endif
   
      ! r14matrix_sm * den(n)
      if(idens.eq.1 .and. (gravr.ne.0 .or. gravz.ne.0)) then

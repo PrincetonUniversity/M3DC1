@@ -185,6 +185,12 @@ subroutine hdf5_write_parameters(error)
 #else
   call write_int_attr (root_id, "3d"         , 0,          error)
 #endif
+#ifdef USECOMPLEX
+  call write_int_attr (root_id, "icomplex"   , 1,          error)
+#else
+  call write_int_attr (root_id, "icomplex"   , 0,          error)
+#endif
+
   call write_int_attr (root_id, "nplanes"    , nplanes,    error)
 
   call write_int_attr (root_id, "version"    , version,    error)

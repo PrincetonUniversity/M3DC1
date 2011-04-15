@@ -1436,7 +1436,6 @@ subroutine readpgfiles
   deallocate(psinorm, g0, ffn)
 
   constraint = .true.
-
   
   ! in this case, ffprime and pprime are derivatives wrt actual flux
   use_norm_psi = 0
