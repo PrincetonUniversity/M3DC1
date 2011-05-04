@@ -10,10 +10,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef USEHYBRID
-#include "dhybrid_solver.h"
-#include "hybrid_solver.h"
-#endif
+#ifdef USECOMPLEX
+#include "zpdslin_solver.h"
+#include "zpdslin_util.h"
+#include "pdslin_solver.h"
+#else
+#include "dpdslin_solver.h"
+#include "dpdslin_util.h"
+#include "pdslin_solver.h"
+#endif 
 
 /* the matrix id's need to correspond to the same id's in
    the sparse module of M3Dmodules.f90 */
@@ -46,6 +51,15 @@ enum FortranMatrixID {
   q10matrix_sm = 26,
   r10matrix_sm = 27
 };
+
+/* 
+   below sets the Superlu_Dist Solver options May 02, 2011
+*/
+int setSuperluOptions(int matrixid, superlu_options_t * options) {
+    (*options).ConditionNumber=YES;
+    PetscPrintf(PETSC_COMM_WORLD, "\tsetSuperluOptions to ConditionNumber = YES\n");
+  return 0;
+}
 
 /* 
    below sets the PETSc matrix type for the matrix with id "matrixid"
