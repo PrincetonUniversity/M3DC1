@@ -56,8 +56,8 @@ enum FortranMatrixID {
    below sets the Superlu_Dist Solver options May 02, 2011
 */
 int setSuperluOptions(int matrixid, superlu_options_t * options) {
-    (*options).ConditionNumber=YES;
-    PetscPrintf(PETSC_COMM_WORLD, "\tsetSuperluOptions to ConditionNumber = YES\n");
+//    (*options).ConditionNumber=YES;
+//    PetscPrintf(PETSC_COMM_WORLD, "\tsetSuperluOptions to ConditionNumber = YES\n");
   return 0;
 }
 
