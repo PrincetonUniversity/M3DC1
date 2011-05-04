@@ -1,5 +1,5 @@
 FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DPETSC_31 $(OPTS)
-CCOPTS  = -c -O -DPetscDEV -DPETSC_31 #-DCJ_MATRIX_DUMP -DUSEHYBRID 
+CCOPTS  = -c -O -DPetscDEV #-DPETSC_31 #-DCJ_MATRIX_DUMP -DUSEHYBRID 
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -fast
@@ -26,7 +26,8 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 
 
 # define where you want to locate the mesh adapt libraries
-HYBRID_HOME = /p/swim/jchen/hybrid.test
+HYBRID_HOME = /p/swim/jchen/pdslin_0.0
+#HYBRID_HOME = /p/swim/jchen/hybrid.test
 #HYBRID_HOME = /u/iyamazak/release/v2/hybrid.test
 HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lhsolver
 
@@ -74,9 +75,14 @@ ifeq ($(USESCOREC), 1)
   else
 #    SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/lib
 #    INCLUDE := -I/p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/include \
-#	$(INCLUDE)
+
     SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/031611
-    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/031611 $(INCLUDE)
+    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/031611 \
+        $(INCLUDE)
+
+#    SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/libtest
+#    INCLUDE := -I/p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/include \
+
   endif
 
   SCOREC_ARCH=x86_64_linux-icc
