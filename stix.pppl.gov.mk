@@ -69,8 +69,8 @@ LIBS = 	$(PETSC_LIBS) \
 ifeq ($(USESCOREC), 1)
 
   ifeq ($(USERW), 1)
-    SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/libtest
-    INCLUDE := -I/p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/includetest \
+    SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/031611
+    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/031611 \
 	$(INCLUDE)
   else
 #    SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/lib

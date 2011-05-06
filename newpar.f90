@@ -274,8 +274,9 @@ Program Reducedquintic
      endif
 
      ! feedback control on toroidal current
-     if(myrank.eq.0 .and. iprint.ge.1) print *, " Applying feedback"
+     if(myrank.eq.0 .and. iprint.ge.1) print *, " Applying feedback", vloop, totcur, i_control%p, i_control%target_val, i_control%err_p_old
      call control(totcur, vloop,       i_control, dt)
+     if(myrank.eq.0 .and. iprint.ge.1) print *, " After    feedback", vloop, totcur, i_control%p, i_control%target_val, i_control%err_p_old
      call control(totden, pellet_rate, n_control, dt)
 
      ! Write output

@@ -4157,12 +4157,13 @@ pro plot_pol_velocity, time,  maxval=maxval, points=points, $
 
   if(itor eq 1) then r = radius_matrix(x,z,t) else r = 1.
 
-  vx = -dz(phi,z)/r
-  vz =  dx(phi,x)/r
+;....modified for new form of velocity
+  vx = -dz(phi,z)*r
+  vz =  dx(phi,x)*r
 
   chi = read_field('chi', x, z, t, points=points, _EXTRA=extra, slice=time)
-  vx = vx + dx(chi,x)
-  vz = vz + dz(chi,z)
+  vx = vx + dx(chi,x)/r^2
+  vz = vz + dz(chi,z)/r^2
 
   bigvel = max(sqrt(vx^2 + vz^2))
   print, "maximum velocity: ", bigvel
