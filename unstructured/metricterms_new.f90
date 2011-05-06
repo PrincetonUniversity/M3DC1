@@ -4129,10 +4129,11 @@ vectype function v3ubb(e,f,g,h)
 
         temp = int3(ri3_79,e(:,OP_GS),temp79a)
 
-        if(itor.eq.1) then
-           temp = temp - &
-                2.*int3(ri4_79,e(:,OP_DR),temp79a)
-        endif
+!  scj removed 4/1/2011
+!        if(itor.eq.1) then
+!           temp = temp - &
+!                2.*int3(ri4_79,e(:,OP_DR),temp79a)
+!        endif
 
 #if defined(USE3D) || defined(USECOMPLEX)
         temp79b = (e(:,OP_DZ)*f(:,OP_DR)-e(:,OP_DR)*f(:,OP_DZ))*g(:,OP_DPP) &
@@ -4258,11 +4259,12 @@ vectype function v3vpsib(e,f,g,h)
         temp79a = h(:,OP_1)*(g(:,OP_DZ)*f(:,OP_DR) - g(:,OP_DR)*f(:,OP_DZ))
 
         temp = int3(ri3_79,e(:,OP_GS),temp79a)
-        
-        if(itor.eq.1) then
-           temp = temp - &
-                2.*int3(ri4_79,e(:,OP_DR),temp79a)
-        endif
+
+!   scj removed 4/1/2011        
+!        if(itor.eq.1) then
+!           temp = temp - &
+!                2.*int3(ri4_79,e(:,OP_DR),temp79a)
+!        endif
 
 #if defined(USE3D) || defined(USECOMPLEX)
         temp79b = f(:,OP_DPP)*(e(:,OP_DZ)*g(:,OP_DR)-e(:,OP_DR)*g(:,OP_DZ)) &
@@ -4523,11 +4525,12 @@ vectype function v3chibb(e,f,g,h)
         end if
         
         temp = int4(ri6_79,e(:,OP_GS),temp79a,h(:,OP_1))
-        
-        if(itor.eq.1) then
-           temp = temp - &
-                2.*int4(ri7_79,e(:,OP_DR),temp79a,h(:,OP_1))
-        endif
+
+!    scj removed 4/2/2011        
+!        if(itor.eq.1) then
+!           temp = temp - &
+!                2.*int4(ri7_79,e(:,OP_DR),temp79a,h(:,OP_1))
+!        endif
         
 #if defined(USE3D) || defined(USECOMPLEX)
         temp79b = &
@@ -7750,6 +7753,50 @@ vectype function p1bfkappar(e,f,g,h,i,j,k)
   p1bfkappar = (gam - 1.) * temp
   return
 end function p1bfkappar
+
+
+! P1ffkappar
+! ============
+vectype function p1ffkappar(e,f,g,h,i,j,k)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j,k
+  vectype :: temp
+
+  if(gam.le.1.) then
+     p1ffkappar = 0.
+     return
+  end if
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  if(surface_int) then
+     temp79a =  k(:,OP_1)*e(:,OP_1)* &
+          (norm79(:,2)*f(:,OP_DZP) + norm79(:,1)*f(:,OP_DRP))*j(:,OP_1)
+
+     temp = int4(temp79a,g(:,OP_DZP),h(:,OP_DZ),i(:,OP_1 )) &
+          + int4(temp79a,g(:,OP_DRP),h(:,OP_DR),i(:,OP_1 )) &
+          + int4(temp79a,g(:,OP_DZP),h(:,OP_1 ),i(:,OP_DZ)) &
+          + int4(temp79a,g(:,OP_DRP),h(:,OP_1 ),i(:,OP_DR)) 
+  else
+     temp79a = - k(:,OP_1)*                                            &
+          (e(:,OP_DZ)*f(:,OP_DZP) + e(:,OP_DR)*f(:,OP_DRP))*j(:,OP_1)
+
+     temp = int4(temp79a,g(:,OP_DZP),h(:,OP_DZ),i(:,OP_1 )) &
+          + int4(temp79a,g(:,OP_DRP),h(:,OP_DR),i(:,OP_1 )) &
+          + int4(temp79a,g(:,OP_DZP),h(:,OP_1 ),i(:,OP_DZ)) &
+          + int4(temp79a,g(:,OP_DRP),h(:,OP_1 ),i(:,OP_DR)) 
+  end if
+#else
+  temp = 0.
+#endif
+
+  p1ffkappar = (gam - 1.) * temp
+  return
+end function p1ffkappar
 
 
 ! P1kappax
