@@ -90,8 +90,8 @@ bool geqdsk_source::eval(const double r, const double phi, const double z,
 
   double p = (r-rleft)/dx;
   double q = (z-zmid)/dz + (double)nh/2.;
-  int i = p;
-  int j = q;
+  int i = (int)p;
+  int j = (int)q;
 
   if(i < 1 || i > nw) return false;
   if(j < 1 || j > nh) return false;
