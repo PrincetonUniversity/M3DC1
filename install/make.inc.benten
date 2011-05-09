@@ -1,0 +1,13 @@
+CC = g++
+CFLAGS = -O3 -Wall
+
+F90 = gfortran
+F90FLAGS = -O3 -Wall
+
+DYLIB = $(CC) $(CFLAGS) -dynamiclib
+ARCH = ar cr
+
+HDF5_LIBS = -L/u/ferraro/hdf5-1.8.6-linux-x86_64-shared/lib -lhdf5 -lsz
+HDF5_INCLUDE = -I/u/ferraro/hdf5-1.8.6-linux-x86_64-shared/include
+
+INSTALL_DIR = /Users/ferraro/bin
