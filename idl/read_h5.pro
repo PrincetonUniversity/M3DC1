@@ -1965,6 +1965,33 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
          symbol = translate('com', units=d, itor=itor)
 
    ;===========================================
+   ; helicity
+   ;===========================================
+      endif else if(strcmp('helicity', name, /fold_case) eq 1) then begin
+
+          psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                           filename=filename, points=pts, mask=mask, $
+                           rrange=xrange, zrange=yrange, phi=phi0, $
+                            /complex, linear=linear)
+          i = read_field('i', x, y, t, slices=time, mesh=mesh, $
+                           filename=filename, points=pts, mask=mask, $
+                           rrange=xrange, zrange=yrange, phi=phi0, $
+                            /complex, linear=linear)
+          f = read_field('f', x, y, t, slices=time, mesh=mesh, $
+                           filename=filename, points=pts, mask=mask, $
+                           rrange=xrange, zrange=yrange, phi=phi0, $
+                            /complex, linear=linear)
+
+          r = radius_matrix(x,y,t)
+
+          data = (psi*conj(i) + conj(psi)*i)/r^4 $
+            - s_bracket(f, conj(psi), x, y)/r^2 $
+            - s_bracket(conj(f), psi, x, y)/r^2
+          d = dimensions(l0=4, b0=2)
+          symbol = translate('helicity', units=d, itor=itor)
+
+
+   ;===========================================
    ; chi_perp
    ;===========================================
      endif else if(strcmp('chi_perp', name, /fold_case) eq 1) then begin
@@ -2058,6 +2085,23 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
 
    ;===========================================
+   ; electron angular velocity
+   ;===========================================
+   endif else if(strcmp('omega_perp_e', name, /fold_case) eq 1) then begin
+
+       omega = read_field('omega', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       omega_star = read_field('omega_*', x, y, t, slices=time, mesh=mesh, $
+                       filename=filename, points=pts, $
+                       rrange=xrange, zrange=yrange)
+
+       data = omega - omega_star
+       symbol = '!7x!S!D!9x!N!S!U!8e!N!X'
+       d = dimensions(t0=-1, _EXTRA=extra)
+
+
+   ;===========================================
    ; cyclotron frequency
    ;===========================================
    endif else if(strcmp('omega_ci', name, /fold_case) eq 1) then begin
@@ -2082,27 +2126,27 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        d = dimensions(t0=-1, _EXTRA=extra)
 
    ;===========================================
-   ; diamegnetic frequency
+   ; diamagnetic frequency
    ;===========================================
    endif else if(strcmp('omega_*', name, /fold_case) eq 1) then begin
 
        db = read_parameter('db', filename=filename, _EXTRA=extra)
-       print, 'db = ', db
-       if(db eq 0.) then begin
-           print, 'Warning: Assuming d_i = 1.'
-           db = 1.
-       endif
+       print, 'db = ', filename, db
 
-       beta = read_field('beta', x, y, t, slices=time, mesh=mesh, $
+       p = read_field('p', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       den = read_field('den', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange)
 
-       if(itor eq 1) then begin
-           r = radius_matrix(x,y,t)
-       endif else r = 1.
 
-       data = B/db
-       symbol = '!7x!8!Dc!N!X'
+       data = db*s_bracket(p,psi,x,y)/s_bracket(psi,psi,x,y) / den
+
+       symbol = '!7x!6!D*!N!X'
        d = dimensions(t0=-1, _EXTRA=extra)
 
 
@@ -2408,6 +2452,19 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        data = v_star/r
        symbol = '!7x!6!D*!N!X'
        d = dimensions(t0=-1, _EXTRA=extra)
+
+   endif else if(strcmp('bp_over_b', name, /fold_case) eq 1) then begin
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, linear=linear,$
+                        filename=filename, points=pts, mask=mask, $
+                        rrange=xrange, zrange=yrange)
+       i = read_field('i', x, y, t, slices=time, mesh=mesh, linear=linear,$
+                        filename=filename, points=pts, mask=mask, $
+                        rrange=xrange, zrange=yrange)
+
+       bp = s_bracket(psi,psi,x,y)
+       data = sqrt(bp)/(sqrt(bp + i^2))
+       symbol = '!3|!5B!D!8p!N!3|/|!8B!3|!X'
+       d = dimensions(_EXTRA=extra)
 
    ;===========================================
    ; ideal_k
@@ -4437,9 +4494,9 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
            flux[k,p] = fval + dpsi/2.
 
            faf = field_at_flux(field[k,*,*], psi[k,*,*], $
-                               x, z, t, xp=xp, zp=zp, flux[k,p])
+                               x, z, t, xp=xp, zp=zp, flux[k,p], /contiguous)
            bpf = field_at_flux(bp[k,*,*], psi[k,*,*], $
-                               x, z, t, xp=xp, zp=zp, flux[k,p])
+                               x, z, t, xp=xp, zp=zp, flux[k,p], /contiguous)
            if(dpsi gt 0.) then bpf = -bpf
 
            if(n_elements(bpf) lt 3) then continue
