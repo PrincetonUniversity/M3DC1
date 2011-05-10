@@ -494,13 +494,17 @@ subroutine calculate_scalars()
   use sparse
   use metricterms_new
   use boundary_conditions
+  use math
 
   implicit none
  
   integer :: itri, numelms, def_fields
   logical :: is_edge(3)  ! is inode on boundary
-  real :: n(2,3)
+  real :: n(2,3),tpifac
   integer :: iedge, idim(3)
+
+  tpifac = 1.
+  if(nplanes.gt.1) tpifac = twopi
 
   ptoto = ptot
 
@@ -600,33 +604,33 @@ subroutine calculate_scalars()
      ! Calculate Scalars
      ! ~~~~~~~~~~~~~~~~~
      ! extra factor of 1/r comes from delta function in toroidal coordinate)
-     area   = area   + int1(ri_79)/nplanes
+     area   = area   + int1(ri_79)/tpifac
 
      ! toroidal current
-     totcur = totcur - int2(ri2_79,pst79(:,OP_GS))/nplanes
+     totcur = totcur - int2(ri2_79,pst79(:,OP_GS))/tpifac
 
      ! toroidal flux
-     tflux = tflux + int2(ri2_79,bzt79(:,OP_1 ))/nplanes
+     tflux = tflux + int2(ri2_79,bzt79(:,OP_1 ))/tpifac
      
      ! enstrophy
      select case(ivform)
      case(0)
-        tvor   = tvor   - int2(ri2_79,pht79(:,OP_GS))
+        tvor   = tvor   - int2(ri2_79,pht79(:,OP_GS))/tpifac
      case(1)
         tvor   = tvor &
-             -    int1(pht79(:,OP_LP)) &
-             - 2.*int2(ri4_79,cht79(:,OP_DZ))
+             -    (int1(pht79(:,OP_LP)) &
+             + 2.*int2(ri4_79,cht79(:,OP_DZ)))/tpifac
      end select
 
      ! volume
-     volume = volume + int0()
+     volume = volume + int0()/tpifac
 
      ! particle number
-     totden = totden + int1(nt79(:,OP_1))
+     totden = totden + int1(nt79(:,OP_1))/tpifac
 
      ! particle source
      if(idens.eq.1) then        
-        nsource = nsource - int1(sig79)
+        nsource = nsource - int1(sig79)/tpifac
      endif
 
      ! gravitational potential energy
@@ -747,8 +751,9 @@ subroutine calculate_scalars()
  
      print *, "Scalars:"
      print *, "  Area = ", area
-     print *, "  Volume = ", volume
      print *, "  Toroidal current = ", totcur
+     print *, "  Toroidal flux = ", tflux
+     print *, "  Volume = ", volume
      print *, "  Total particles = ", totden
   endif
 
