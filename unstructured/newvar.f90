@@ -35,6 +35,7 @@ module newvar_mod
   type(newvar_matrix) :: lp_mat_rhs
   type(newvar_matrix) :: lp_mat_rhs_dc
   type(newvar_matrix) :: gs_mat_rhs_dc
+  type(newvar_matrix) :: gs_mat_rhs
   type(newvar_matrix) :: bf_mat_rhs
   type(newvar_matrix) :: bf_mat_lhs
   type(newvar_matrix) :: mass_mat_rhs_bf
@@ -61,6 +62,7 @@ contains
     call set_matrix_index(lp_mat_rhs%mat,      lp_mat_rhs_index)
     call set_matrix_index(lp_mat_rhs_dc%mat,   lp_mat_rhs_dc_index)
     call set_matrix_index(gs_mat_rhs_dc%mat,   gs_mat_rhs_dc_index)
+    call set_matrix_index(gs_mat_rhs%mat,      gs_mat_rhs_index)
     call set_matrix_index(bf_mat_rhs%mat,      bf_mat_rhs_index)
     call set_matrix_index(bf_mat_lhs%mat,      bf_mat_lhs_dc_index)
     call set_matrix_index(mass_mat_rhs_bf%mat, mass_mat_rhs_dc_index)
@@ -89,10 +91,14 @@ contains
     call create_newvar_matrix(mass_mat_lhs,    NV_NOBOUND,NV_I_MATRIX, .true.)
     call create_newvar_matrix(gs_mat_rhs_dc,   NV_DCBOUND,NV_GS_MATRIX,.false.)
 #ifdef CJ_MATRIX_DUMP
-    print *, "create_mat newvar mass_mat_lhs_dc", mass_mat_lhs_dc%mat%imatrix     
+    print *, "create_mat newvar mass_mat_lhs_dc", mass_mat_lhs_dc%mat%imatrix
     print *, "create_mat newvar mass_mat_lhs",    mass_mat_lhs%mat%imatrix     
-    print *, "create_mat newvar gs_mat_rhs_dc",   gs_mat_rhs_dc%mat%imatrix     
+    print *, "create_mat newvar gs_mat_rhs_dc",   gs_mat_rhs_dc%mat%imatrix
 #endif 
+
+    if(inocurrent_tor.eq.0) then 
+       call create_newvar_matrix(gs_mat_rhs,  NV_NOBOUND,NV_GS_MATRIX,.false.)
+    endif
 
     if(irmp.gt.0) &
          call create_newvar_matrix(bf_mat_rhs,NV_NOBOUND,NV_BF_MATRIX,.false.)
