@@ -564,7 +564,13 @@ subroutine derived_quantities(ilin)
 
   !   toroidal current
   if(myrank.eq.0 .and. iprint.ge.2) print *, "  toroidal current"
-  call solve_newvar1(mass_mat_lhs_dc,jphi_field,gs_mat_rhs_dc,psi_field(ilin))
+  if(inocurrent_tor.eq.1) then
+     call solve_newvar1(mass_mat_lhs_dc,jphi_field,gs_mat_rhs_dc, &
+          psi_field(ilin))
+  else
+     call solve_newvar1(mass_mat_lhs,jphi_field,gs_mat_rhs, &
+          psi_field(ilin))
+  endif
 
   if(hyperc.ne.0.) then
      !   vorticity
