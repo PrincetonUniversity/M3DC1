@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef USEHYBRID
 #ifdef USECOMPLEX
 #include "zpdslin_solver.h"
 #include "zpdslin_util.h"
@@ -19,6 +20,10 @@
 #include "dpdslin_util.h"
 #include "pdslin_solver.h"
 #endif 
+
+#else
+#include "superlu_defs.h"
+#endif
 
 /* the matrix id's need to correspond to the same id's in
    the sparse module of M3Dmodules.f90 */

@@ -19,41 +19,39 @@ ifeq ($(USESCOREC), 1)
       SCORECDIR = /project/projectdirs/mp288/lib/hopper2/install/03032011
     endif
 
-SCOREC_LIBS = \
-        $(SCORECDIR)/lib/libFUSIONAPP.a \
-        $(SCORECDIR)/lib/libSOLVER.a \
-        $(SCORECDIR)/lib/libMESHADAPTMAP.a \
-        $(SCORECDIR)/lib/libSOLTRANSFER.a \
-        $(SCORECDIR)/lib/libSOLVER.a \
-        $(SCORECDIR)/lib/libFEMANALYSIS.a \
-        $(SCORECDIR)/lib/libASSEMBLER.a \
-        $(SCORECDIR)/lib/libMeshAdapt.a \
-        $(SCORECDIR)/lib/libDISCERRORESTIM.a \
-        $(SCORECDIR)/lib/libASF.a \
-        $(SCORECDIR)/lib/libSCORECModel.a \
-        $(SCORECDIR)/lib/libmeshModel.a \
-        $(SCORECDIR)/lib/libFMDB.a \
-        $(SCORECDIR)/lib/libSCORECUtil.a \
-        $(SCORECDIR)/lib/libipcomman.a \
-        $(SCORECDIR)/lib/libzoltan.a \
-        $(SCORECDIR)/lib/libSPARSKIT.a \
-        $(SCORECDIR)/lib/libSCORECModel.a \
-        $(SCORECDIR)/lib/libmeshModel.a \
-        $(SCORECDIR)/lib/libSCORECUtil.a
-
-  PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev-SUPERLU-HYPRE-MUMPS/petsc-dev-031011
-  PETSC_ARCH = arch-cray-xt6-pkgs-opt
+SCOREC_LIBS = -L$(SCORECDIR)/lib \
+        -lFUSIONAPP \
+        -lSOLVER \
+        -lMESHADAPTMAP \
+        -lSOLTRANSFER \
+        -lSOLVER \
+        -lFEMANALYSIS \
+        -lASSEMBLER \
+        -lMeshAdapt \
+        -lDISCERRORESTIM \
+        -lASF \
+        -lSCORECModel \
+        -lmeshModel \
+        -lFMDB \
+        -lSCORECUtil \
+        -lipcomman \
+        -lzoltan \
+        -lSPARSKIT \
+        -lSCORECModel \
+        -lmeshModel \
+        -lSCORECUtil
 
   INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
   LIBS := $(LIBS) $(SCOREC_LIBS) -lC -lstd
 
   SUPERLU_DIST = $(SCORECDIR)/lib/libsuperlu_dist_2.5.a
-
-  HYPRE = -lHYPRE
-  MUMPS = -ldmumps -lmumps_common -lpord
   PARMETIS = -lparmetis -lmetis
 
   OPTS := $(OPTS) -DPetscDEV
+  PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev-SUPERLU-HYPRE-MUMPS/petsc-dev-031011
+  PETSC_ARCH = arch-cray-xt6-pkgs-opt
+  HYPRE = -lHYPRE
+  MUMPS = -ldmumps -lmumps_common -lpord
 else
   OPTS := $(OPTS) -DPETSC_31
 endif   # on USESCOREC
@@ -62,7 +60,7 @@ INCLUDE := $(INCLUDE) $(HDF5_INCLUDE_OPTS) \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
 LIBS := $(LIBS) $(HDF5_POST_LINK_OPTS) -lhdf5_fortran -lhdf5 \
 	-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc \
-	$(SUPERLU_DIST) $(HYPRE) $(MUMPS) $(PARMETIS)
+	$(SUPERLU_DIST) $(HYPRE) $(MUMPS) $(PARMETIS) -ldl
 
 FOPTS = -c -Mr8 -Mpreprocess -Minform=warn $(OPTS) \
 	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs
@@ -73,7 +71,7 @@ ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -fastsse -Mipa=fast,inline
   CCOPTS := $(CCOPTS) -O
 else
-  FOPTS := $(FOPTS)
+  FOPTS := $(FOPTS) -g -Mbounds
   CCOPTS := $(CCOPTS)
 endif
 
