@@ -16,7 +16,7 @@ HYBRID_HOME = /p/swim/jchen/hybrid.test
 
 ifeq ($(USESCOREC), 1)
     ifndef SCORECDIR
-      SCORECDIR = /project/projectdirs/mp288/lib/hopper2/install/03032011
+      SCORECDIR = /project/projectdirs/mp288/lib/hopper2/scorec/install-Opt
     endif
 
 SCOREC_LIBS =  \
@@ -44,11 +44,11 @@ SCOREC_LIBS =  \
   INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
   LIBS := $(LIBS) $(SCOREC_LIBS) -lC -lstd
 
-  SUPERLU_DIST = $(SCORECDIR)/lib/libsuperlu_dist_2.5.a
+  SUPERLU_DIST = -lsuperlu_dist_2.5
   PARMETIS = -lparmetis -lmetis
 
   OPTS := $(OPTS) -DPetscDEV
-  PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev-SUPERLU-HYPRE-MUMPS/petsc-dev-031011
+  PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev-SUPERLU-HYPRE-MUMPS/petsc-dev-060711/petsc-dev
   PETSC_ARCH = arch-cray-xt6-pkgs-opt
   HYPRE = -lHYPRE
   MUMPS = -ldmumps -lmumps_common -lpord
@@ -57,7 +57,7 @@ else
 endif   # on USESCOREC
 
 INCLUDE := $(INCLUDE) $(HDF5_INCLUDE_OPTS) \
-	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include
+	-I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include
 LIBS := $(LIBS) $(HDF5_POST_LINK_OPTS) -lhdf5_fortran -lhdf5 \
 	-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc \
 	$(SUPERLU_DIST) $(HYPRE) $(MUMPS) $(PARMETIS) -ldl

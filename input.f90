@@ -14,12 +14,18 @@ subroutine input
   ! Read input file
   ! ~~~~~~~~~~~~~~~
   if(myrank.eq.0) print *, " reading input"
-  open(5,file='C1input',form='formatted',status='old')
+  open(5,file='C1input',form='formatted',status='old', err=100)
   read(5,nml=inputnl)
   close(5)
  
   if(myrank.eq.0 .and. iprint.ge.1) print *, " validating input"
   call validate_input
+  return
+ 
+  ! If there was an error opening C1input...
+100 continue
+  print *, 'Error opening C1input file.'
+  call safestop(3)
 end subroutine input
 
 
