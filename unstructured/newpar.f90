@@ -24,21 +24,10 @@ Program Reducedquintic
   real :: tstart, tend
   character*10 :: datec, timec
 
-  print *, 'Initializing mpi...'
+  ! Initialize MPI
   call MPI_Init(ier)
   if (ier /= 0) then
      print *, 'Error in MPI_Init', ier
-     call safestop(1)
-  endif
-
-#ifdef USESCOREC
-!  call scorecinit
-#endif
-
-  print *, 'Initializing PETSc...'
-  call PetscInitialize(PETSC_NULL_CHARACTER, ier)
-  if (ier /= 0) then
-     print *,'Error in PetscInitialize:',ier
      call safestop(1)
   endif
   call MPI_Comm_rank(MPI_COMM_WORLD, myrank, ier)
@@ -52,6 +41,7 @@ Program Reducedquintic
      call safestop(1)
   endif
 
+  ! Write version information
   if(myrank.eq.0) then
      call date_and_time( datec, timec)
      write(*,1001) datec(1:4),datec(5:6),datec(7:8), &
@@ -67,6 +57,18 @@ Program Reducedquintic
 #else
      print *, '2D VERSION'
 #endif
+  endif
+
+#ifdef USESCOREC
+!  call scorecinit
+#endif
+
+  ! Initialize PETSc
+  if(myrank.eq.0) print *, 'Initializing PETSc...'
+  call PetscInitialize(PETSC_NULL_CHARACTER, ier)
+  if (ier /= 0) then
+     print *,'Error in PetscInitialize:',ier
+     call safestop(1)
   endif
 
   ! read input file
