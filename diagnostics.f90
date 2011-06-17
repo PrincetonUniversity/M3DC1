@@ -466,14 +466,12 @@ end subroutine evaluate
 !
 ! returns the current time in seconds
 ! ======================================================================
+
   subroutine second(tcpu)
     implicit none
     real :: tcpu
-    integer :: nticks, tickspersec
-    intrinsic system_clock
-    call system_clock(count=nticks, count_rate=tickspersec)
-    tcpu = 0.
-    if(tickspersec .gt. 0) tcpu = nticks/(1.0*tickspersec)
+  intrinsic cpu_time
+    call cpu_time(tcpu)
     return
   end subroutine second
 
