@@ -313,7 +313,7 @@ contains
     integer(HSIZE_T), parameter :: local_dims(1) = (/ 1 /)
     integer(HSIZE_T), dimension(1,1) :: coord
     integer(SIZE_T), parameter :: num_elements = 1
-    integer(HID_T) :: memspace, filespace, dset_id, p_id
+    integer(HID_T) :: memspace, filespace, dset_id, p_id, plist_id
     real :: values(1)
 
 #ifdef USETAU
@@ -343,8 +343,11 @@ contains
     call h5dget_space_f(dset_id, filespace, error)
     call h5sselect_elements_f(filespace, H5S_SELECT_SET_F, 1, &
          num_elements, coord, error)
+    call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, error)
+    call h5pset_dxpl_mpio_f(plist_id,H5FD_MPIO_INDEPENDENT_F, error)
     call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, local_dims, error, &
-         file_space_id = filespace, mem_space_id = memspace)
+         file_space_id = filespace, mem_space_id = memspace,xfer_prp=plist_id)
+    call h5pclose_f(plist_id, error)
 
     ! Close HDF5 handles
     call h5sclose_f(filespace, error)

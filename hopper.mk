@@ -53,7 +53,7 @@ SCOREC_LIBS =  \
   HYPRE = -lHYPRE
   MUMPS = -ldmumps -lmumps_common -lpord
 else
-  OPTS := $(OPTS) -DPETSC_31
+  OPTS := $(OPTS) -DPetscDEV
 endif   # on USESCOREC
 
 INCLUDE := $(INCLUDE) $(HDF5_INCLUDE_OPTS) \

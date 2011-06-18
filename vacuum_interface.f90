@@ -210,9 +210,10 @@ contains
   end subroutine load_vacuum_data
 
   subroutine unload_vacuum_data
+  use basic
     implicit none
 
-    print *, 'unloading vacuum data'
+    if(myrank.eq.0 .and. iprint.ge.1) print *, 'unloading vacuum data'
     if(allocated(global_id)) deallocate(global_id)
     if(allocated(local_id)) deallocate(local_id)
     if(allocated(zgrbth)) deallocate(zgrbth)

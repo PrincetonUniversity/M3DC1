@@ -273,6 +273,8 @@ Program Reducedquintic
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_onestep = t_onestep + tend - tstart
+      write(*,1002) ntime, t_onestep, tend, tstart
+ 1002 format(" LOOP TIME", i5,1p3e16.8)
      endif
 
      ! feedback control on toroidal current
@@ -284,6 +286,8 @@ Program Reducedquintic
      ! Write output
      if(myrank.eq.0 .and. iprint.ge.1) print *, " Writing output."
      call output
+!
+
   enddo ! ntime
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done time loop."
@@ -352,7 +356,7 @@ subroutine print_info
   endif
 
   ! Output information about local dofs, nodes, etc.
-  if(iprint.ge.1) then
+  if(iprint.ge.0) then
 #ifdef USESCOREC
      if(myrank.eq.0) then
         call numglobaldofs(1, ndofs)
