@@ -54,16 +54,32 @@ contains
 
     integer :: ier,i
     real :: gamma
-    real :: tstart, tend
+    real :: tstart, tend, diff
 
     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-    if(myrank.eq.0 .and. iprint.ge.2) print *, "  writing scalars"
     call hdf5_write_scalars(ier)
+    if(myrank.eq.0 .and. itimer.eq.1) then
+      call second(tend)
+      diff = tend - tstart
+      t_output_hdf5 = t_output_hdf5 + diff
+      if(iprint.ge.1) write(*,1003) ntime,diff,t_output_hdf5
+  1003 format("OUTPUT: hdf5_write_scalars   ", I5, 1p2e16.8)
+    endif
+
     if(mod(ntime-ntime0,ntimepr).eq.0) then
        if(myrank.eq.0 .and. iprint.ge.2) print *, "  writing timeslice"
+       if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
        call hdf5_write_time_slice(0,ier)
+      if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        diff = tend - tstart
+        t_output_hdf5 = t_output_hdf5 + diff
+        if(iprint.ge.1) write(*,1004) ntime,diff,t_output_hdf5
+  1004 format("OUTPUT: hdf5_write_time_slice", I5, 1p2e16.8)
+      endif
        
        if(iwrite_restart.eq.1) then
+          if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
           if(myrank.eq.0 .and. iprint.ge.2) print *, "  writing restart files"
           if(iglobalout.eq.1) then
              call wrrestartglobal
@@ -75,37 +91,50 @@ contains
                call MPI_Barrier(MPI_COMM_WORLD,ier)
             enddo
           endif
+          if(myrank.eq.0 .and. itimer.eq.1) then
+            call second(tend)
+            diff = tend - tstart
+            if(iprint.ge.1) write(*,1006) ntime,diff,t_output_hdf5
+      1006 format("OUTPUT: wrrestart            ", I5, 1p2e16.8)
+          endif
        endif
     endif
-    if(myrank.eq.0 .and. itimer.eq.1) then
-       call second(tend)
-       t_output_hdf5 = t_output_hdf5 + tend - tstart
-    end if
     
     if(itimer.eq.1) then
        if(myrank.eq.0) call second(tstart)
        if(myrank.eq.0 .and. iprint.ge.2) print *, "  writing timings"
        call hdf5_write_timings(ier)
+       if(myrank.eq.0) then
+         call second(tend)
+         diff = tend - tstart
+         t_output_hdf5 = t_output_hdf5 + diff
+         if(iprint.ge.1) write(*,1005) ntime,diff,t_output_hdf5
+  1005 format("OUTPUT: hdf5_write_timings   ", I5, 1p2e16.8)
+       endif
        call reset_timings
     end if
     
     ! flush hdf5 data to disk
     if(myrank.eq.0 .and. iprint.ge.2) print *, "  flushing data to file"
+    if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
     call hdf5_flush(ier)
+    if(myrank.eq.0 .and. itimer.eq.1) then
+       call second(tend)
+       diff = tend - tstart
+       t_output_hdf5 = t_output_hdf5 + diff
+       if(iprint.ge.1) write(*,1002) ntime,diff,t_output_hdf5
+  1002 format("OUTPUT: hdf5_flush           ", I5, 1p2e16.8)
+    end if    
 
     if(myrank.eq.0) then
        if(dt.eq.0. .or. ekin.eq.0.) then 
           gamma = 0.
        else
-          gamma = (ekin - ekino)/(2.*ekin*dt)
+          gamma = (ekin - ekino)/((ekin+ekino)*dt)
        endif
        write(ke_file, '(I8, 1p3e12.4,2x,1p3e12.4,2x,1p3e12.4,2x,1pe13.5)') ntime, time, ekin, gamma, ekinp,ekint,ekin3, emagp, emagt, emag3, etot
     endif
 
-    if(myrank.eq.0 .and. itimer.eq.1) then
-       call second(tend)
-       t_output_hdf5 = t_output_hdf5 + tend - tstart
-    end if    
   end subroutine output
 
 
