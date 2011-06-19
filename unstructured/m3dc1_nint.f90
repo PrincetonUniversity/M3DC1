@@ -321,6 +321,7 @@ contains
           phs79 = ph079 + ph179/2.
           pht79 = ph079 + ph179
        else
+          ph079 = 0.
           pht79 = ph179
           phs79 = ph179/2.
        endif
@@ -350,6 +351,7 @@ contains
           pst79 = ps079 + ps179
           pss79 = ps079 + ps179/2.
        else
+          ps079 = 0.
           pst79 = ps179
           pss79 = ps179/2.
        endif
@@ -379,6 +381,7 @@ contains
           vzs79 = vz079 + vz179/2.
           vzt79 = vz079 + vz179
        else
+          vz079 = 0.
           vzt79 = vz179
           vzs79 = vz179/2.
        endif
@@ -423,10 +426,12 @@ contains
           bft79 = bf079 + bf179
 #endif
        else
+          bz079 = 0.
           bzt79 = bz179
           bzs79 = bz179/2.
           
 #ifdef USECOMPLEX
+          bf079 = 0.
           bft79 = bf179
 #endif
        endif
@@ -458,6 +463,7 @@ contains
           chs79 = ch079 + ch179/2.
           cht79 = ch079 + ch179
        else
+          ch079 = 0.
           cht79 = ch179
           chs79 = ch179/2.
        endif
@@ -498,6 +504,8 @@ contains
           pet79 = pe079 + pe179
           pt79  =  p079 +  p179
        else
+          pe079 = 0.
+          p079 = 0.
           pet79 = pe179
           pt79  =  p179
        endif
@@ -540,6 +548,7 @@ contains
           end if
           nt79 = n079 + n179
        else
+          n079 = 0.
           nt79 = n179
        endif
     endif
@@ -616,6 +625,8 @@ contains
   ! ~~~
   if(iand(fields, FIELD_B2I).eq.FIELD_B2I) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   B^-2..."
+
+     b2i79 = 0.
 
      temp79a = ri2_79* &
           (pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2 + bzt79(:,OP_1)**2)

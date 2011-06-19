@@ -70,6 +70,9 @@ BIN_POSTFIX := $(BIN_POSTFIX)-$(MAX_PTS)
 
 OPTS := $(OPTS) -DPETSC_FORTRAN_PETSCTRUTH_INT #-DCJ_MATRIX_DUMP
 
+# add date stamp
+OPTS := $(OPTS) -DDATE_BUILT="`date`"
+
 export OPT
 export OPTS
 export SCORECOPT
@@ -105,6 +108,7 @@ OBJS := $(AUX) subp.o random.o spline.o \
 	harned_mikic.o metricterms_new.o biharmonic.o \
 	electrostatic_potential.o newvar.o diagnostics.o \
 	coils.o coil_sets.o gradshafranov.o transport.o \
+	auxiliary_fields.o \
 	time_step.o hdf5_output.o output.o \
 	newpar.o input.o ludef_t.o \
 	restart.o readgeqdsk.o read_dskbal.o \

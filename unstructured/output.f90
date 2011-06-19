@@ -48,6 +48,8 @@ contains
     use basic
     use hdf5_output
     use diagnostics
+    use auxiliary_fields
+
     implicit none
 
 #include "mpif.h"
@@ -66,7 +68,11 @@ contains
   1003 format("OUTPUT: hdf5_write_scalars   ", I5, 1p2e16.8)
     endif
 
+    ! only write timeslice are restart files evey ntimepr timesteps
     if(mod(ntime-ntime0,ntimepr).eq.0) then
+       if(myrank.eq.0 .and. iprint.ge.2) print *, "  calculating aux fields"
+       call calculate_auxiliary_fields(eqsubtract)
+
        if(myrank.eq.0 .and. iprint.ge.2) print *, "  writing timeslice"
        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
        call hdf5_write_time_slice(0,ier)
@@ -596,6 +602,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   use basic
   use arrays
   use time_step
+  use auxiliary_fields
   
   implicit none
 
@@ -678,18 +685,32 @@ subroutine output_fields(time_group_id, equilibrium, error)
        nelms, error)
   nfields = nfields + 1
 
-  ! tempvar
+  ! bdotgradp
   do i=1, nelms
-     call calcavector(i, tempvar_field, dum(:,i))
+     call calcavector(i, bdotgradp, dum(:,i))
   end do
-  call output_field(group_id, "tempvar", real(dum), coeffs_per_element, &
+  call output_field(group_id, "bdotgradp", real(dum), coeffs_per_element, &
        nelms, error)
   nfields = nfields + 1
 #ifdef USECOMPLEX
-  call output_field(group_id, "tempvar_i", aimag(dum), coeffs_per_element, &
+  call output_field(group_id, "bdotgradp_i", aimag(dum), coeffs_per_element, &
        nelms, error)
   nfields = nfields + 1
 #endif
+
+  ! bdotgradt
+  do i=1, nelms
+     call calcavector(i, bdotgradt, dum(:,i))
+  end do
+  call output_field(group_id, "bdotgradt", real(dum), coeffs_per_element, &
+       nelms, error)
+  nfields = nfields + 1
+#ifdef USECOMPLEX
+  call output_field(group_id, "bdotgradt_i", aimag(dum), coeffs_per_element, &
+       nelms, error)
+  nfields = nfields + 1
+#endif
+
 
   ! electrostatic potential
   if(jadv.eq.0 .and. i3d.eq.1) then 

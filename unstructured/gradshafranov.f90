@@ -1327,8 +1327,8 @@ subroutine fundef2(error)
   norm = 0.
   error = 0.
 
+  if(myrank.eq.0 .and. iprint.ge.2) print *, '  poulating...'
   numelms = local_elements()
-
   do itri=1,numelms
 
      call define_element_quadrature(itri, int_pts_main, int_tor)
@@ -1383,10 +1383,12 @@ subroutine fundef2(error)
      error = error + abs(int2(ri_79,temp79c))
   end do
 
+  if(myrank.eq.0 .and. iprint.ge.2) print *, '   solving...'
   call newvar_solve(fun1_vec%vec, mass_mat_lhs)
   call newvar_solve(fun4_vec%vec, mass_mat_lhs)
 
   if(maxrank.gt.1) then
+     if(myrank.eq.0 .and. iprint.ge.2) print *, '   allreducing...'
      temp1(1) = norm
      temp1(2) = error
      call mpi_allreduce(temp1, temp2, 2, MPI_DOUBLE_PRECISION, &
@@ -1404,7 +1406,6 @@ subroutine readpgfiles
 
   integer :: j, n
   real :: dum
-  real :: dpdpsi
   real, allocatable :: psinorm(:), pres0(:), g0(:), ffn(:), ppn(:)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Reading profiles files"

@@ -125,6 +125,9 @@ contains
     integer, parameter :: neighbors = 7
 #endif
 
+    integer :: myrank
+    PetscInt :: mrange, nrange
+
     mat%m = m
     mat%n = n
     mat%lhs = lhs
@@ -134,19 +137,32 @@ contains
     local_m = m*owned_dofs()
     local_n = n*owned_dofs()
 
-    call MatCreate(PETSC_COMM_WORLD, mat%data, ierr)
-    call MatSetSizes(mat%data, local_m, local_n, global_m, global_n, ierr)
-    call MatSetFromOptions(mat%data,ierr)
-    call MatMPIAIJSetPreallocation(mat%data, &
+    call MatCreateMPIAIJ(PETSC_COMM_WORLD,local_m,local_n,global_m,global_n, &
          neighbors*dofs_per_node*mat%n, PETSC_NULL_INTEGER, &
-         0, PETSC_NULL_INTEGER, ierr)
-    call MatSeqAIJSetPreallocation(mat%data, &
-         neighbors*dofs_per_node*mat%n, PETSC_NULL_INTEGER, ierr)
-    call MatMPIBAIJSetPreallocation(mat%data,dofs_per_node, &
-         neighbors*mat%n,PETSC_NULL_INTEGER,&
-         0,PETSC_NULL_INTEGER,ierr)
-    call MatSeqBAIJSetPreallocation(mat%data,dofs_per_node, &
-         neighbors*mat%n,PETSC_NULL_INTEGER,ierr)
+         0, PETSC_NULL_INTEGER, mat%data, ierr)
+
+!!$    call MPI_COMM_RANK(MPI_COMM_WORLD, myrank, ierr)
+!!$    call MatGetOwnershipRange(mat%data, mrange, nrange, ierr)
+!!$    print *, 'owns ', myrank, mat%n, mrange, nrange
+
+!    call MatCreateMPIBAIJ(PETSC_COMM_WORLD, dofs_per_node, &
+!         local_m,local_n,global_m,global_n, &
+!         neighbors*mat%n, PETSC_NULL_INTEGER, &
+!         0, PETSC_NULL_INTEGER, mat%data, ierr)
+
+!    call MatCreate(PETSC_COMM_WORLD, mat%data, ierr)
+!    call MatSetSizes(mat%data, local_m, local_n, global_m, global_n, ierr)
+!    call MatSetFromOptions(mat%data,ierr)
+!    call MatMPIAIJSetPreallocation(mat%data, &
+!         neighbors*dofs_per_node*mat%n, PETSC_NULL_INTEGER, &
+!         0, PETSC_NULL_INTEGER, ierr)
+!    call MatSeqAIJSetPreallocation(mat%data, &
+!         neighbors*dofs_per_node*mat%n, PETSC_NULL_INTEGER, ierr)
+!    call MatMPIBAIJSetPreallocation(mat%data,dofs_per_node, &
+!         neighbors*mat%n,PETSC_NULL_INTEGER,&
+!         0,PETSC_NULL_INTEGER,ierr)
+!    call MatSeqBAIJSetPreallocation(mat%data,dofs_per_node, &
+!         neighbors*mat%n,PETSC_NULL_INTEGER,ierr)
 
 !    call MatSetOption(mat%data,MAT_KEEP_ZEROED_ROWS,PETSC_TRUE,ierr)
 

@@ -104,6 +104,7 @@ subroutine set_defaults
   istatic = 0
   iestatic = 0
   chiiner = 1.
+  ieq_bdotgradt = 1
   
   ! time-step options
   integrator = 0
@@ -448,6 +449,13 @@ subroutine validate_input
 #ifndef USE3D
   if(nplanes.ne.1) then
      print *, "Compile option '3D=1' must be set to use nplanes>1"
+     call safestop(1)
+  end if
+#endif
+
+#if defined(USE3D) && defined(USEPETSC)
+  if(maxrank.ne.nplanes) then 
+     print *, 'Must run with procs = nplanes'
      call safestop(1)
   end if
 #endif
