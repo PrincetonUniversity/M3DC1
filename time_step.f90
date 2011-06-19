@@ -65,13 +65,6 @@ contains
        print *, "create_mat time_step s1_mat", s1_mat%imatrix     
        print *, "create_mat time_step d1_mat", d1_mat%imatrix     
 #endif 
-       if(eqsubtract.eq.1) then
-          call set_matrix_index(q42_mat, q42_mat_index)
-          call create_mat(q42_mat, vecsize_vel, 2, icomplex, .false.)
-#ifdef CJ_MATRIX_DUMP
-          print *, "create_mat time_step q42_mat", q42_mat%imatrix     
-#endif 
-       endif
        if(i3d.eq.1) then
           call set_matrix_index(o1_mat, o1_mat_index)
           call create_mat(o1_mat, vecsize_vel, 1, icomplex, .false.)
@@ -131,11 +124,14 @@ contains
        print *, "create_mat time_step r2_mat", r2_mat%imatrix     
        print *, "create_mat time_step q2_mat", q2_mat%imatrix     
 #endif 
-       if(eqsubtract.eq.1) then
+       if(idens.eq.1) then
+          call set_matrix_index(r42_mat, r42_mat_index)
           call set_matrix_index(q42_mat, q42_mat_index)
-          call create_mat(q42_mat, vecsize_phi, 2, icomplex, .false.)
+          call create_mat(r42_mat, vecsize_phi, 1, icomplex, .false.)
+          call create_mat(q42_mat, vecsize_phi, 1, icomplex, .false.)
 #ifdef CJ_MATRIX_DUMP
-          print *, "create_mat time_step q42_mat", q42_mat%imatrix     
+          print *, "create_mat time_step r42_mat", r42_mat%imatrix
+          print *, "create_mat time_step q42_mat", q42_mat%imatrix
 #endif 
        endif
        if(i3d.eq.1) then
@@ -199,7 +195,6 @@ contains
     case(0)
        call destroy_mat(s1_mat)
        call destroy_mat(d1_mat)
-       if(eqsubtract.eq.1) call destroy_mat(q42_mat)
        if(i3d.eq.1) call destroy_mat(o1_mat)
 
     case(1)
@@ -214,7 +209,10 @@ contains
        call destroy_mat(d2_mat)
        call destroy_mat(r2_mat)
        call destroy_mat(q2_mat)
-       if(eqsubtract.eq.1) call destroy_mat(q42_mat)
+       if(idens.eq.1) then
+          call destroy_mat(r42_mat)
+          call destroy_mat(q42_mat)
+       end if
        if(i3d.eq.1) call destroy_mat(o2_mat)
        if(ipres.eq.1 .and. numvar.lt.3) call destroy_mat(p1_mat)
        
@@ -864,10 +862,8 @@ subroutine split_step(calc_matrices)
   endif
 
      
-  !
   ! Advance Fields
   ! ==============
-
   if(iestatic.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, " Advancing Fields"
 
@@ -891,20 +887,13 @@ subroutine split_step(calc_matrices)
      call matvecmult(d2_mat,phi_vec,b2_phi)
      call add(b1_phi, b2_phi)
 
-     ! Include linear n^-1 terms and B^-2 terms
-!     if(eqsubtract.eq.1) then
-!        call create_vector(temp, 2)
-!        call associate_field(temp_field_1, temp, 1)
-!        call associate_field(temp_field_2, temp, 2)
-!
-!        call calc_ni(temp_field_1, den0_field, den_field)
-!        call calc_b2i(temp_field_2, psi0_field, psi_field, &
-!             bz0_field, bz_field)
-!
-!        call matvecmult(q42_mat,temp,b2_phi)
-!        call add(b1_phi, b2_phi)
-!        call destroy_vector(temp)
-!     endif
+     ! Inculde density terms
+     if(idens.eq.1) then
+        call matvecmult(r42_mat,den_vec,b2_phi)
+        call add(b1_phi, b2_phi)
+        call matvecmult(q42_mat,denold_vec,b2_phi)
+        call add(b1_phi, b2_phi)
+     end if
 
      ! Include linear f terms
      if(numvar.ge.2 .and. i3d.eq.1 .and. imp_bf.eq.0) then
@@ -1011,6 +1000,14 @@ subroutine split_step(calc_matrices)
         call matvecmult(d2_mat,phi_vec,b2_phi)
         call add(b1_phi, b2_phi)
       
+        ! Inculde density terms
+        if(idens.eq.1) then
+           call matvecmult(r42_mat,den_vec,b2_phi)
+           call add(b1_phi, b2_phi)
+           call matvecmult(q42_mat,denold_vec,b2_phi)
+           call add(b1_phi, b2_phi)
+        end if
+
         ! Include linear f terms
         if(numvar.ge.2 .and. i3d.eq.1 .and. imp_bf.eq.0) then
            ! b2vector = r15 * bf(n)

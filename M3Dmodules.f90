@@ -192,6 +192,7 @@ module basic
   integer :: iflip_j     ! 1 = flip equilibrium toroidal current density
   integer :: iflip_v     ! 1 = flip equilibrium toroidal velocity
   integer :: iflip_z     ! 1 = flip equilibrium across z=0 plane
+  integer :: ieq_bdotgradt ! 1 = include equilibrium parallel T gradient term
 
   ! numerical parameters
   integer :: ntimemax    ! number of timesteps
@@ -293,7 +294,7 @@ module basic
        iconst_bz, iconst_eta, iconst_n, iconst_p, iconst_t, iconstflux, &
        icsym, icurv, &
        idenfunc, idens, &
-       idevice, iestatic, ifbound, ifixedb, &
+       idevice, ieq_bdotgradt, iestatic, ifbound, ifixedb, &
        iflip_b, iflip_j, iflip_v, iflip_z, iflip, &
        ifout, igauge, iupstream,                                         &
        iglobalin, iglobalout, &
@@ -532,10 +533,11 @@ module sparse
   integer, parameter :: o9_mat_index = 48
   integer, parameter :: p1_mat_index = 49
   integer, parameter :: gs_mat_rhs_index = 50
-  integer, parameter :: num_matrices = 50
+  integer, parameter :: r42_mat_index = 51
+  integer, parameter :: num_matrices = 51
 
   type(matrix_type), target :: s1_mat, d1_mat, q1_mat, r14_mat, o1_mat, p1_mat
-  type(matrix_type), target :: q42_mat
+  type(matrix_type), target :: q42_mat, r42_mat
   type(matrix_type), target :: s2_mat, d2_mat, r2_mat, q2_mat, o2_mat
   type(matrix_type), target :: s8_mat, d8_mat, r8_mat, q8_mat
   type(matrix_type), target :: s9_mat, d9_mat, r9_mat, q9_mat, o9_mat

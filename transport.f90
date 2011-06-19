@@ -258,36 +258,41 @@ subroutine define_transport_coefficients()
   logical, save :: first_time = .true.
   logical :: solve_sigma, solve_kappa, solve_visc, solve_resistivity, &
        solve_visc_e
+
   integer, dimension(5) :: temp, temp2
   vectype, dimension(dofs_per_element) :: dofs
 
+  ! transport coefficients are only calculated once in linear mode
   if((linear.eq.1).and.(.not.first_time)) return
   first_time = .false.
 
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, "Calculating auxiliary variables"
 
+  ! which transport coefficients need matrix solve
   solve_resistivity = .false.
   solve_visc = .false.
   solve_kappa = .false.
   solve_sigma = .false.
   solve_visc_e = .false.
 
+  ! clear variables
   resistivity_field = 0.
   kappa_field = 0.
   sigma_field = 0.
   visc_field = 0.
-  if(ibootstrap.gt.0) visc_e_field = 0.
+  if(ibootstrap.ne.0) visc_e_field = 0.
   tempvar_field = 0.
 
+  call finalize(field0_vec)
+  call finalize(field_vec)
+
+  ! specify which primitive fields are to be evalulated
   def_fields = FIELD_N + FIELD_PE + FIELD_P + FIELD_PSI + FIELD_I + FIELD_B2I
   if(iresfunc.eq.3 .or. iresfunc.eq.4) def_fields = def_fields + FIELD_ETA
   if(ivisfunc.eq.3) def_fields = def_fields + FIELD_MU
 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, ' defining...'
-
-  call finalize(field0_vec)
-  call finalize(field_vec)
+  if(myrank.eq.0 .and. iprint.ge.2) print *, '  defining...'
 
   ! Calculate RHS
   numelms = local_elements()
@@ -324,7 +329,7 @@ subroutine define_transport_coefficients()
      if(solve_visc) &
           call vector_insert_block(visc_field%vec,itri,1,dofs,VEC_ADD)
 
-     if(ibootstrap.gt.1) then
+     if(ibootstrap.ne.0) then
         do i=1, dofs_per_element
            dofs(i) = electron_viscosity_func(i)
            if(.not.solve_visc_e) solve_visc_e = dofs(i).ne.0.
@@ -332,16 +337,10 @@ subroutine define_transport_coefficients()
         if(solve_visc_e) &
              call vector_insert_block(visc_e_field%vec,itri,1,dofs,VEC_ADD)
      end if
-
-     do i=1, dofs_per_element
-#ifdef USE3D
-        dofs(i) = int2(mu79(:,OP_1,i),pst79(:,OP_DPP))
-#else
-        dofs(i) = int2(mu79(:,OP_1,i),b2i79(:,OP_1))
-#endif
-     end do
-     call vector_insert_block(tempvar_field%vec,itri,1,dofs,VEC_ADD)
   end do
+
+  ! Solve all the variables that have been defined
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   ! make sure all processes agree on what needs to be solved
   if(maxrank.gt.1) then 
@@ -386,12 +385,14 @@ subroutine define_transport_coefficients()
      call newvar_solve(visc_e_field%vec, mass_mat_lhs)
   endif
 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, '  tempvar field'
-  call newvar_solve(tempvar_field%vec, mass_mat_lhs)
 
+  ! the "compressible" viscosity is the same as the "incompressible"
+  ! viscosity up to a constant
   visc_c_field = visc_field
 
+  
   ! add in constant components
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
   call add(resistivity_field, etar)
   call add(visc_field, amu)
   call add(visc_c_field, amuc)

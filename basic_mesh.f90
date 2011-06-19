@@ -82,9 +82,13 @@ contains
     write(*,*) ' elements = ', ielmspp
     write(*,*) ' edges = ', iedges
     write(*,*) ' nodes = ', inodespp
+    write(*,*) ' nplanes = ', nplanes
     if(nplanes.gt.1) then
        ielms = ielmspp*nplanes
        inodes = inodespp*nplanes
+    else
+       ielms = ielmspp
+       inodes = inodespp
     end if
 
     allocate(nodes(inodes), elms(ielms), edges(iedges,2))

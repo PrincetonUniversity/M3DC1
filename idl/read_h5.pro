@@ -1218,7 +1218,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                      linear=linear, last=last, average=average, $
                      dpsi=dpsi, symbol=symbol, units=units, cgs=cgs, mks=mks, $
                      real=real, imaginary=imag, edge_val=edge_val, phi=phi0, $
-                     time=realtime
+                     time=realtime, abs=abs, phase=phase, dimensions=d
 
    if(n_elements(slices) ne 0) then time=slices else time=0
 
@@ -1278,12 +1278,11 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
    if(hdf5_file_test(filename) eq 0) then return, 0
 
-   print, 'reading field ', name, ' from file ', filename, $
-     ' linear=', keyword_set(linear), $
-     ' points=', pts, $
-     ' slices=', time, $
-     ' equilibrium=', keyword_set(equilibrium), $
-     ' mks=', keyword_set(mks)
+   print, 'reading field ', name, ' from file ', filename, ' with options:'
+   print, string(form='("  linear=",I0,"; pts=",I0,"; equilibrium=",I0,' + $
+                 '"; complex=",I0)', $
+                 keyword_set(linear), pts, keyword_set(equilibrium), $
+                 keyword_set(complex))
 
    nt = read_parameter("ntime", filename=filename)
    nv = read_parameter("numvar", filename=filename)
@@ -1518,7 +1517,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                       filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange, /equilibrium)
 
-       if(keyword_set(linear) and time ge 0) then begin
+       if(keyword_set(linear) and (ilin eq 1)) then begin
            Pe1 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
                             filename=filename, points=pts, $
                             rrange=xrange, zrange=yrange, linear=linear)
@@ -2174,6 +2173,94 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        d = dimensions(l0=1, _EXTRA=extra)
 
    ;===========================================
+   ; parallel thermal gradient
+   ;===========================================
+   endif else if(strcmp('xbdotgradt', name, /fold_case) eq 1) then begin
+
+       if(ilin eq 1) then begin
+           Te1 = read_field('Te', x, y, t, slices=time, mesh=mesh, $
+                            filename=filename, points=pts, linear=linear, $
+                            rrange=xrange, zrange=yrange)
+           Te0 = read_field('Te', x, y, t, slices=time, mesh=mesh, $
+                            filename=filename, points=pts, /equilibrium, $
+                            rrange=xrange, zrange=yrange)
+           psi1 = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                           filename=filename, points=pts, linear=linear, $
+                           rrange=xrange, zrange=yrange)
+           psi0 = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                           filename=filename, points=pts, /equilibrium, $
+                           rrange=xrange, zrange=yrange)
+           if(itor eq 1) then begin
+               r = radius_matrix(x,y,t)
+           endif else r = 1.
+       
+           data = a_bracket(Te1, psi0, x, y)/r + a_bracket(Te0, psi1, x, y)/r
+
+           if(ntor ne 0) then begin
+               i1 = read_field('i', x, y, t, slices=time, mesh=mesh, $
+                               filename=filename, points=pts, linear=linear, $
+                               rrange=xrange, zrange=yrange)
+               i0 = read_field('i', x, y, t, slices=time, mesh=mesh, $
+                               filename=filename, points=pts, /equilibrium, $
+                               rrange=xrange, zrange=yrange)
+               f1 = read_field('f', x, y, t, slices=time, mesh=mesh, $
+                               filename=filename, points=pts, linear=linear, $
+                               rrange=xrange, zrange=yrange)
+
+               data = data + complex(0.,ntor)* $
+                 (Te0*i1 + Te1*i0 - s_bracket(Te0, f1, x, y))
+           end
+       end
+
+;       data = te0
+
+       symbol = '!8B!9.G!8T!X'
+       d = dimensions(l0=1, _EXTRA=extra)
+
+   ;===========================================
+   ; parallel pressure
+   ;===========================================
+   endif else if(strcmp('xbdotgradp', name, /fold_case) eq 1) then begin
+
+       if(ilin eq 1) then begin
+           p1 = read_field('p', x, y, t, slices=time, mesh=mesh, $
+                            filename=filename, points=pts, linear=linear, $
+                            rrange=xrange, zrange=yrange, complex=complex)
+           p0 = read_field('p', x, y, t, slices=time, mesh=mesh, $
+                            filename=filename, points=pts, /equilibrium, $
+                            rrange=xrange, zrange=yrange, complex=complex)
+           psi1 = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                           filename=filename, points=pts, linear=linear, $
+                           rrange=xrange, zrange=yrange, complex=complex)
+           psi0 = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                           filename=filename, points=pts, /equilibrium, $
+                           rrange=xrange, zrange=yrange, complex=complex)
+           if(itor eq 1) then begin
+               r = radius_matrix(x,y,t)
+           endif else r = 1.
+       
+           data = a_bracket(p1, psi0, x, y)/r + a_bracket(p0, psi1, x, y)/r
+
+           if(ntor ne 0) then begin
+               i0 = read_field('i', x, y, t, slices=time, mesh=mesh, $
+                               filename=filename, points=pts, /equilibrium, $
+                               rrange=xrange, zrange=yrange, complex=complex)
+               f1 = read_field('f', x, y, t, slices=time, mesh=mesh, $
+                               filename=filename, points=pts, linear=linear, $
+                               rrange=xrange, zrange=yrange, complex=complex)
+
+               data = data + complex(0.,ntor)* $
+                 (p1*i0/r^2 - s_bracket(p0, f1, x, y))
+           end
+       end
+
+;       data = te0
+
+       symbol = '!8B!9.G!8p!X'
+       d = dimensions(p0=1, b0=1, l0=-1, _EXTRA=extra)
+
+
+   ;===========================================
    ; parallel flow
    ;===========================================
    endif else if(strcmp('vpar', name, /fold_case) eq 1) then begin
@@ -2612,9 +2699,52 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        d = dimensions(j0=1,b0=-1,_EXTRA=extra)
 
    ;===========================================
+   ; particle flux
+   ;===========================================
+   endif else if(strcmp('flux_nv2', name, /fold_case) eq 1) then begin
+
+       den=read_field('den', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange)
+       u = read_field('phi', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange)
+       chi=read_field('chi', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange)
+
+       psi0=read_field('psi', x, y, t, slices=time, mesh=mesh, linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, /equilibrium)
+
+       
+       r = radius_matrix(x,y,t)
+
+       data = -conj(den)*(r*a_bracket(psi0,u,x,y) + s_bracket(psi0,chi,x,y)/r)
+       data = data / sqrt(s_bracket(psi0,psi0,x,y))
+       d = dimensions(l0=-3,t0=-1)
+       symbol = '!6Particle Flux!X'
+
+   ;===========================================
    ; toroidal angular momentum flux
    ;===========================================
-   endif else if(strcmp('torque_b', name, /fold_case) eq 1) then begin
+   endif else if(strcmp('torque_b2', name, /fold_case) eq 1) then begin
+
+       bn = read_field('bn', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange)
+       i0 = read_field('i', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, /equilibrium)
+       
+       data = -bn*i0
+       d = dimensions(/p0, l0=1)
+       symbol = '!6Angular Momentum Flux!X'
+
+   ;===========================================
+   ; toroidal angular momentum flux
+   ;===========================================
+   endif else if(strcmp('torque_b2', name, /fold_case) eq 1) then begin
 
        bn = read_field('bn', x, y, t, slices=time, mesh=mesh, linear=linear,  $
                         filename=filename, points=pts, complex=complex, $
@@ -2669,9 +2799,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('torque_vv', name, /fold_case) eq 1) then begin
 
-       mu = read_field('visc', x, y, t, slices=time,mesh=mesh,linear=linear, $
-                        filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange,/equilibrium)
        psi0 = read_field('psi', x, y, t, slices=time,mesh=mesh,linear=linear, $
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange,/equilibrium)
@@ -2697,6 +2824,36 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        d = dimensions(/p0, l0=1)
        symbol = '!6Angular Momentum Flux!X'
 
+   ;===========================================
+   ; toroidal angular momentum flux
+   ;===========================================
+   endif else if(strcmp('torque_vv2', name, /fold_case) eq 1) then begin
+
+       psi0 = read_field('psi', x, y, t, slices=time,mesh=mesh,linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange,/equilibrium)
+       n0 = read_field('den', x, y, t, slices=time,mesh=mesh,linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, /equilibrium)
+
+
+       u = read_field('phi',x,y,t,slices=time, mesh=mesh, linear=linear, $
+                      filename=filename, points=pts, complex=complex, $
+                      rrange=xrange, zrange=yrange)
+       w = read_field('omega', x, y, t, slices=time,mesh=mesh,linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange)
+       chi = read_field('chi',x,y,t,slices=time, mesh=mesh, linear=linear,$
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange)
+
+       if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
+       
+       data = -n0*conj(w)* $
+         (r^3*a_bracket(psi0,u,x,y) + s_bracket(psi0,chi,x,y)) $
+         / sqrt(s_bracket(psi0,psi0,x,y))
+       d = dimensions(/p0, l0=1)
+       symbol = '!6Angular Momentum Flux!X'
 
 
    ;===========================================
@@ -2772,71 +2929,71 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                                linear=linear, last=last,symbol=symbol, $
                                units=units, cgs=cgs, mks=mks, $
                               equilibrium=equilibrium)
-           return, complex(data_r, data_i)
-       endif else print, ' reading real field'
+           data = complex(data_r, data_i)
+       endif else begin
+           print, ' reading real field'
 
-       t = fltarr(trange[1]-trange[0]+1)
-       file_id = h5f_open(filename)
+           t = fltarr(trange[1]-trange[0]+1)
+           file_id = h5f_open(filename)
 
-       if((max(trange) ge 0) and $
-          (isubeq eq 1) and (not keyword_set(linear)))  then begin
-           print, ' reading base field', trange
-           base = read_field(name, x, y, t, slices=-1, mesh=mesh, $
-                             filename=filename, points=pts, $
-                             rrange=xrange, zrange=yrange, $
-                             h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
-                             operation=op, mask=mask, $
-                             last=0,symbol=symbol,units=units, $
-                             cgs=cgs, mks=mks)
-       endif else base = 0.
+           if((max(trange) ge 0) and $
+              (isubeq eq 1) and (not keyword_set(linear)))  then begin
+               print, ' reading base field', trange
+               base = read_field(name, x, y, t, slices=-1, mesh=mesh, $
+                                 filename=filename, points=pts, $
+                                 rrange=xrange, zrange=yrange, $
+                                 h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
+                                 operation=op, mask=mask, $
+                                 last=0,symbol=symbol,units=units, $
+                                 cgs=cgs, mks=mks)
+           endif else base = 0.          
 
+           for i=trange[0], trange[1] do begin
            
+               print, ' reading time slice ', i
+               
+               time_group_id = h5g_open(file_id, time_name(i))
+               mesh = h5_parse(time_group_id, 'mesh', /read_data)   
 
-       for i=trange[0], trange[1] do begin
-           
-           print, ' reading time slice ', i
-
-           time_group_id = h5g_open(file_id, time_name(i))
-           mesh = h5_parse(time_group_id, 'mesh', /read_data)   
-
-           field_group_id = h5g_open(time_group_id, 'fields')
+               field_group_id = h5g_open(time_group_id, 'fields')
 
                                 ; check to see if "name" exists
-           nmembers = h5g_get_nmembers(time_group_id, 'fields')
-           match = 0
-           for m=0, nmembers-1 do begin
-               thisname = h5g_get_member_name(time_group_id, 'fields', m)
-               if(strcmp(thisname, name, /fold_case) eq 1) then begin
-                   name = thisname
-                   match = 1
-                   break
-               endif
-           end
-           if(match eq 0) then begin
-               print, "No field named ", name, " at time slice", i
-               continue
-           end
+               nmembers = h5g_get_nmembers(time_group_id, 'fields')
+               match = 0
+               for m=0, nmembers-1 do begin
+                   thisname = h5g_get_member_name(time_group_id, 'fields', m)
+                   if(strcmp(thisname, name, /fold_case) eq 1) then begin
+                       name = thisname
+                       match = 1
+                       break
+                   endif
+               end
+               if(match eq 0) then begin
+                   print, "No field named ", name, " at time slice", i
+                   continue
+               end
        
-           field = h5_parse(field_group_id, name, /read_data)
+               field = h5_parse(field_group_id, name, /read_data)
            
-           time_id = h5a_open_name(time_group_id, "time")
-           t[i-trange[0]] = h5a_read(time_id)
-           h5a_close, time_id
+               time_id = h5a_open_name(time_group_id, "time")
+               t[i-trange[0]] = h5a_read(time_id)
+               h5a_close, time_id
 
-           h5g_close, field_group_id
-           h5g_close, time_group_id
+               h5g_close, field_group_id
+               h5g_close, time_group_id
 
-           data[i-trange[0],*,*] = $
-             eval_field(field._data, mesh, points=pts, $
-                        r=x, z=y, op=op, filename=filename, $
-                        xrange=xrange, yrange=yrange, mask=mask, phi=phi0) $
-             + base*(i ne -1)
+               data[i-trange[0],*,*] = $
+                 eval_field(field._data, mesh, points=pts, $
+                            r=x, z=y, op=op, filename=filename, $
+                            xrange=xrange, yrange=yrange, mask=mask, phi=phi0)$
+                 + base*(i ne -1)
+           end
+
+           h5f_close, file_id
+
+           symbol = translate(name, units=d, itor=itor)
        end
-
-       h5f_close, file_id
-
-       symbol = translate(name, units=d, itor=itor)
-   end
+   endelse
 
    if(n_elements(h_symmetry) eq 1) then begin
        data = (data + h_symmetry*reverse(data, 2)) / 2.
@@ -2853,16 +3010,19 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    convert_units, realtime, dimensions(/t0), b0, n0, l0, cgs=cgs, mks=mks
    units = parse_units(d, cgs=cgs, mks=mks)
 
-   if(not keyword_set(complex)) then begin
-       data = real_part(data)
-   endif else begin
-       if(keyword_set(real)) then data=real_part(data)
-       if(keyword_set(imag)) then data=imaginary(data)
-   endelse
-
+   ; apply mask
    if(n_elements(mask) ne 0 and n_elements(edge_val) ne 0) then begin
        data = data * (1. - mask) + mask*edge_val
    end
+
+   if(keyword_set(abs)) then begin
+       print, 'Taking absolute value of data'
+       data = abs(data)
+   endif else if(keyword_set(phase)) then begin
+       print, 'Taking phase of data'
+       data = atan(imaginary(data),real_part(data))
+   endif
+   print, 'Done reading field'
 
    return, data
 end
@@ -4554,7 +4714,8 @@ end
 function flux_average, field, psi=psi, x=x, z=z, t=t, r0=r0, $
                        flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
                        points=points, name=name, symbol=symbol, units=units, $
-                       integrate=integrate, complex=complex, _EXTRA=extra
+                       integrate=integrate, complex=complex, abs=abs, $
+                       phase=phase, stotal=total, _EXTRA=extra
 
    type = size(field, /type)
 
@@ -4712,9 +4873,15 @@ function flux_average, field, psi=psi, x=x, z=z, t=t, r0=r0, $
 
        endif else begin
            field = read_field(field, x, z, t, points=points, complex=complex, $
-                              symbol=symbol, units=units, _EXTRA=extra)
+                              symbol=symbol, units=units, dimensions=d, $
+                              abs=abs, phase=phase, _EXTRA=extra)
            name = symbol
-           symbol = '!12<!X' + symbol + '!12>!X'
+           if(keyword_set(total)) then begin
+               d = d + dimensions(l0=2)
+               units = parse_units(d, _EXTRA=extra)
+           endif else begin
+             symbol = '!12<!X' + symbol + '!12>!X'
+         endelse
        endelse
    endif else begin
        name = ''
@@ -4722,9 +4889,15 @@ function flux_average, field, psi=psi, x=x, z=z, t=t, r0=r0, $
        units = make_units()
    endelse
 
-   return, flux_average_field(field, psi, x, z, t, r0=r0, flux=flux, $
-                              nflux=nflux, area=area, dV=dV, bins=bins, $
-                              integrate=integrate, _EXTRA=extra)
+   fa = flux_average_field(field, psi, x, z, t, r0=r0, flux=flux, $
+                           nflux=nflux, area=area, dV=dV, bins=bins, $
+                           integrate=integrate, _EXTRA=extra)
+
+   if(keyword_set(total)) then begin
+       fa = fa*area
+   end
+
+   return, fa
 end
 
 
@@ -4916,7 +5089,8 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
                        minor_radius=minor_radius, smooth=sm, t=t, rms=rms, $
                        bw=bw, srnorm=srnorm, last=last, mks=mks, cgs=cgs, $
                        q_contours=q_contours, rho=rho, integrate=integrate, $
-                       multiply_flux=multiply_flux, _EXTRA=extra
+                       multiply_flux=multiply_flux, abs=abs, phase=phase, $
+                       total=total, _EXTRA=extra
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
@@ -4948,7 +5122,8 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              normalized_flux=norm, minor_radius=minor_radius, smooth=sm, $
              rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, $
              linear=linear, multiply_flux=multiply_flux[i], mks=mks, cgs=cgs, $
-             integrate=integrate, complex=complex
+             integrate=integrate, complex=complex, abs=abs, phase=phase, $
+             total=total
        end
        if(n_elements(names) gt 0) then begin
            plot_legend, names, color=colors, ylog=ylog, xlog=xlog, $
@@ -4977,7 +5152,8 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              normalized_flux=norm, minor_radius=minor_radius, smooth=sm, $
              t=t, rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, $
              linear=linear, multiply_flux=multiply_flux, mks=mks, cgs=cgs, $
-             integrate=integrate, complex=complex
+             integrate=integrate, complex=complex, asb=aba, phase=phase, $
+             total=total
            names[i] = string(format='(%"!8t!6 = %d !7s!D!8A!N!X")', t)
        end
 
@@ -4996,7 +5172,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
                      name=title, symbol=symbol, units=units, bins=bins, $
                      psi=psi,x=x,z=z,t=t,nflux=nflux,linear=linear, $
                      mks=mks, cgs=cgs, area=area, integrate=integrate, $
-                    complex=complex)
+                    complex=complex, abs=abs, phase=phase, stotal=total)
 
    if(n_elements(fa) le 1) then begin
        print, 'Error in flux_average. returning.'
@@ -5009,7 +5185,8 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
    if(keyword_set(rms)) then begin
        fa2 = flux_average(field^2,flux=flux,nflux=nflux,points=pts,slice=time,$
                           filename=filename, t=t, linear=linear, $
-                         mks=mks, cgs=cgs, complex=complex)
+                         mks=mks, cgs=cgs, complex=complex, $
+                          abs=abs, phase=phase)
        fa = sqrt(1. - fa^2/fa2)
 
        ytitle = '!9S!6(1 - !12<' + symbol + '!12>!U2!n/!12<' + $

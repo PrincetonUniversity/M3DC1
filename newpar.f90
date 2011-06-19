@@ -15,6 +15,7 @@ Program Reducedquintic
   use boundary_conditions
   use time_step
   use m3dc1_output
+  use auxiliary_fields
 
   implicit none
 
@@ -43,6 +44,7 @@ Program Reducedquintic
 
   ! Write version information
   if(myrank.eq.0) then
+     print *, 'Code build date: ', 'DATE_BUILT'
      call date_and_time( datec, timec)
      write(*,1001) datec(1:4),datec(5:6),datec(7:8), &
           timec(1:2),timec(3:4),timec(5:8)
@@ -176,6 +178,8 @@ Program Reducedquintic
      if(eqsubtract.eq.1) then
         call derived_quantities(0)
      end if
+
+     call calculate_auxiliary_fields(0)
 
      ! Output the equilibrium
      if(myrank.eq.0 .and. iprint.ge.2) print *, ' Writing equilibrium'
@@ -395,13 +399,16 @@ subroutine safestop(iarg)
   use m3dc1_output
   use vacuum_interface
   use time_step
+  use auxiliary_fields
 
   implicit none
 #include "finclude/petsc.h"
       
   integer, intent(in) :: iarg
   integer :: ier
-      
+
+  call destroy_auxiliary_fields
+
   call finalize_timestep
 
   ! unload resistive wall response matrix
@@ -1150,6 +1157,7 @@ subroutine space(ifirstcall)
   use arrays
   use sparse
   use time_step
+  use auxiliary_fields
 
   implicit none
 
@@ -1270,6 +1278,8 @@ subroutine space(ifirstcall)
         call create_vector(b1_vel, vecsize_vel)
         call create_vector(b2_vel, vecsize_vel)
      endif
+
+     call create_auxiliary_fields
   endif
 
   ! arrays associated with the triangles

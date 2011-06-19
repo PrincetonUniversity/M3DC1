@@ -339,19 +339,23 @@ contains
        call h5dextend_f(dset_id, dims, error)
     endif
 
-    call h5screate_simple_f(1, local_dims, memspace, error)
-    call h5dget_space_f(dset_id, filespace, error)
-    call h5sselect_elements_f(filespace, H5S_SELECT_SET_F, 1, &
-         num_elements, coord, error)
-    call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, error)
-    call h5pset_dxpl_mpio_f(plist_id,H5FD_MPIO_INDEPENDENT_F, error)
-    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, local_dims, error, &
-         file_space_id = filespace, mem_space_id = memspace,xfer_prp=plist_id)
-    call h5pclose_f(plist_id, error)
+    if(myrank.eq.0) then
+       call h5screate_simple_f(1, local_dims, memspace, error)
+       call h5dget_space_f(dset_id, filespace, error)
+       call h5sselect_elements_f(filespace, H5S_SELECT_SET_F, 1, &
+            num_elements, coord, error)
+       
+       call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, error)
+       call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_INDEPENDENT_F, error)
 
-    ! Close HDF5 handles
-    call h5sclose_f(filespace, error)
-    call h5sclose_f(memspace, error)
+       call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, local_dims, error, &
+            file_space_id=filespace, mem_space_id=memspace, xfer_prp=plist_id)
+
+       ! Close HDF5 handles
+       call h5pclose_f(plist_id, error)
+       call h5sclose_f(filespace, error)
+       call h5sclose_f(memspace, error)
+    endif
     call h5dclose_f(dset_id, error)
 
   end subroutine output_scalar
