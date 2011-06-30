@@ -39,6 +39,11 @@ subroutine calculate_auxiliary_fields(ilin)
   vectype, dimension(dofs_per_element) :: dofs
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating auxiliary fields'
+#if defined(USE3D)
+!
+!....scj added return because this was failing on hopper and STIX    (06/21/11)
+      return
+#endif
 
   bdotgradp = 0.
   bdotgradt = 0.
