@@ -41,14 +41,14 @@ PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
 	-lpetsc \
 	-lpromfei -lprometheus \
 	-lHYPRE \
-	-lscalapack -lfblas -lflapack \
-	-L$(MUMPS_HOME)/lib -ldmumps -lmumps_common -lpord
+	-L$(MUMPS_HOME)/lib -ldmumps -lmumps_common -lpord \
+	-L$(SCALAPACK_HOME) -lscalapack \
+	-L$(BLACS_HOME)/lib -lmpiblacsF77init -lmpiblacs -lmpiblacsCinit -lmpiblacs
 
 SUPERLU_HOME = $(PETSC_DIR)/$(PETSC_ARCH)
 SUPERLU_DIST_HOME = $(PETSC_DIR)/$(PETSC_ARCH)
 SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu_4.1 \
 	-L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist_2.5 \
-	-L$(BLACS_HOME)/lib -lmpiblacsF77init -lmpiblacsCinit -lmpiblacs
 
 PARMETIS_LIBS = -L$(PARMETIS_HOME)/lib \
 	-Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis
