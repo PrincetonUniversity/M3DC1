@@ -103,7 +103,7 @@ subroutine add_product(x,a,b)
   x(6) = x(6) + a(1)*b(6) + a(6)*b(1) + 2.*a(3)*b(3)
 end subroutine add_product
 !=============================
-subroutine random_per(x,phi,z,seed,fac)
+subroutine random_per(x,phi,z,fac)
   use math
   use basic
   use arrays
@@ -113,16 +113,19 @@ subroutine random_per(x,phi,z,seed,fac)
 
   real, intent(in) :: x, phi, z
   vectype, intent(in), dimension(dofs_per_node) :: fac
-  integer, intent(in) :: seed
-  integer :: i, j
-  real :: alx, alz, kx, kp, kz, xx, zz
+  integer, allocatable :: seed(:)
+  integer :: i, j, n
+  real :: alx, alz, kx, kp, kz, xx, zz, random
   vectype, dimension(dofs_per_node) :: temp
 
-  real, external :: random_num
-
   call get_bounding_box_size(alx, alz)
-
-  call srand(seed)
+!
+! changed to be consistent with fortran95 7/12/2011 ... scj
+  call random_seed(SIZE = n)
+  allocate(seed(n))
+  seed = 23
+  call random_seed(PUT = seed)
+  deallocate(seed)
 
   temp = 0.
 
@@ -137,10 +140,12 @@ subroutine random_per(x,phi,z,seed,fac)
      do j=1, maxn
         kz = j*pi/alz
         kp = j
-        call plane_wave2(temp,xx,phi,zz,kx,kp,kz,2.*eps*(RANDOM_NUM()-.5), &
+        call random_number(random)
+        call plane_wave2(temp,xx,phi,zz,kx,kp,kz,2.*eps*(random-.5), &
              0.,0.,0.)
         call add_product(psi1_l,fac,temp)
-        call plane_wave2(temp,xx,phi,zz,kx,kp,kz,2.*eps*(RANDOM_NUM()-.5), &
+        call random_number(random)
+        call plane_wave2(temp,xx,phi,zz,kx,kp,kz,2.*eps*(random-.5), &
              0.,0.,0.)
         call add_product(u1_l,fac,temp)
      end do
@@ -149,7 +154,8 @@ subroutine random_per(x,phi,z,seed,fac)
      do j=1, maxn/2
         kz = 2.*j*pi/alz
         kp = j
-        call plane_wave2(temp,xx,phi,zz,kx,kp,kz,2.*eps*(RANDOM_NUM()-.5), &
+        call random_number(random)
+        call plane_wave2(temp,xx,phi,zz,kx,kp,kz,2.*eps*(random-.5), &
              0.,0.,0.)
         call add_product(u1_l,fac,temp)
      end do
@@ -158,7 +164,8 @@ subroutine random_per(x,phi,z,seed,fac)
      do j=1, maxn/2
         kz = (2.*j-1)*pi/alz
         kp = j
-        call plane_wave2(temp,xx,phi,zz,kx,kp,kz,2.*eps*(RANDOM_NUM()-.5), &
+        call random_number(random)
+        call plane_wave2(temp,xx,phi,zz,kx,kp,kz,2.*eps*(random-.5), &
              0.,0.,0.)
         call add_product(u1_l,fac,temp)
      end do
@@ -2711,7 +2718,7 @@ subroutine frs_per(x, phi, z)
         vmask(1) = 1.
         vmask(2:6) = 0.
      endif
-     call random_per(x,phi,z,23,vmask)
+     call random_per(x,phi,z,vmask)
 
 
   call finalize(field_vec)

@@ -108,7 +108,7 @@ subroutine gradshafranov_per()
         vmask(1) = 1.
         vmask(2:6) = 0.
      endif
-     call random_per(x,phi,z,23,vmask)
+     call random_per(x,phi,z,vmask)
 
      call set_local_vals(i)
   enddo

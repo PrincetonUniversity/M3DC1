@@ -345,6 +345,12 @@ subroutine validate_input
   i3d = 0
 #endif
 
+#if defined(USECOMPLEX)
+    if(iadapt.gt.0) then
+      if(myrank.eq.0) print *, "ERROR:  must use real version of code for iadapt.gt.0"
+      call safestop(1)
+    endif
+#endif
   if(ifout.eq.-1) ifout = i3d
   if(ibform.ne.-1) then
      if(myrank.eq.0) print *, 'WARNING: ibform input parameter deprecated'
