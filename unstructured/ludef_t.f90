@@ -3101,7 +3101,7 @@ subroutine ludefden_n(itri)
            qqterm(i,j,1) = qqterm(i,j,1) + (1.-thimpb*bdf)*dt*temp
         endif
 
-#ifdef USECOMPLEX
+#if defined(USECOMPLEX) || defined(USE3D)
         ! NUMVAR = 2
         ! ~~~~~~~~~~
         if(numvar.ge.2) then
