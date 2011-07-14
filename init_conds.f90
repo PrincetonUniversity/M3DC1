@@ -2698,7 +2698,7 @@ subroutine frs_per(x, phi, z)
         vmask(1) = 1.
         vmask(2:6) = 0.
      endif
-     call random_per(x,phi,z,23,vmask)
+     call random_per(x,phi,z,vmask)
 
 
   call finalize(field_vec)
@@ -2845,7 +2845,7 @@ subroutine ftz_per(x, phi, z)
         vmask(1) = 1.
         vmask(2:6) = 0.
      endif
-     call random_per(x,phi,z,23,vmask)
+     call random_per(x,phi,z,vmask)
 
 
   call finalize(field_vec)
@@ -2955,7 +2955,7 @@ subroutine eigen_per(x, phi, z)
         vmask(1) = 1.
         vmask(2:6) = 0.
      endif
-     call random_per(x,phi,z,23,vmask)
+     call random_per(x,phi,z,vmask)
 
 
   call finalize(field_vec)
@@ -2993,6 +2993,8 @@ subroutine initial_conditions()
   use threed_wave_test
   use threed_diffusion_test
   use frs
+  use ftz
+  use eigen
 
   implicit none
 
