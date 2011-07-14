@@ -211,7 +211,10 @@ Program Reducedquintic
     call create_field(temporary_field)
     temporary_field = psi_field(0)
     call straighten_field(temporary_field)
-
+    if (iprint.ge.2) then
+    write(25,1003) temporary_field%vec%data
+1003 format(1p10E12.4)
+    end if
     print *, 'adapting mesh...', psimin, psibound
     call adapt(temporary_field%vec%data,psimin,psibound)
     print *, 'done adapting.'

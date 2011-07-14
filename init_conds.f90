@@ -2548,6 +2548,7 @@ end subroutine threed_diffusion_test_per
 end module threed_diffusion_test
 
 
+
 !==============================================================================
 ! frs
 ! ~~~~~~~~~~~~
@@ -2571,16 +2572,6 @@ subroutine frs_init()
   integer :: l, numnodes,m
   real :: x, phi, z, alx, alz, Bp0,r0,rs,Bz_edge
 
-  Bp0=bzero     !0.035 ! Scale of poloidal field
-  r0=xlim ! Current channel with
-  rs=zlim! Position of singular surface
-!  beta0=p0      !0.001 !Beta0 (can be slightly different from beta, which is computed and output afterwards)
-!  p0=beta0/2.
-  m=mpol  
-  Bz_edge=sqrt((real(m)*rzero*Bp0/r0/(1.+(rs/r0)**2))**2+2*p0*(1.- rs**2)+2*Bp0**2*(-1./2.)*((1.+(rs/r0)**2)**(-2)-(1.+(1./r0)**2)**(-2)))
-  write(*,*) 'q0=',r0/rzero/Bp0*sqrt(Bz_edge**2-2.*p0-2.*Bp0**2*(-1./2.)*(1.-(1.+(1./r0)**2)**(-2)))
-  write(*,*) 'q_edge=',r0/Bp0/rzero*Bz_edge*(1.+(1./r0)**2)
-  write(*,*) 'Bz_edge=',Bz_edge
 
   numnodes = owned_nodes()
   do l=1, numnodes
@@ -2610,24 +2601,26 @@ subroutine frs_equ(x, z)
 
   real, intent(in) :: x, z
   real :: r,Bp0,dpsidr,d2psidr,integral,rs, Bz_edge,Bz,dBzdx,dBzdz,beta0,r0
-  integer :: m
+  integer :: m,n
 
-  Bp0=bzero     !0.035 ! Scale of poloidal field
+
   r0=xlim ! Current channel with
   rs=zlim! Position of singular surface
-!  beta0=p0      !0.001 !Beta0 (can be slightly different from beta, which is computed and output afterwards)
-!  p0=beta0/2.
-  m=mpol  
-!  write(*,*) 'psi_c =',-(-rzero*Bp0*r0/2.*log(1.+(rs/r0)**2)+rzero*Bp0*r0/2.*log(1.+(1./r0)**2))
-!  write(*,*) 'psi_c_norm =',(-(-rzero*Bp0*r0/2.*log(1.+(rs/r0)**2)+rzero*Bp0*r0/2.*log(1.+(1./r0)**2))+rzero*Bp0*r0/2.*log(1.+(1./r0)**2))/(rzero*Bp0*r0/2.*log(1.+(1./r0)**2))
+
+  m=mpol 
+  n=ntor
+  Bz_edge=1. 
+
+
+  Bp0=sqrt((Bz_edge**2 -2.*p0*(1.-rs**2))/((real(m)/real(n)*rzero*(rs/r0)/(1+(rs/r0)**2)/rs )**2+2.*(-1./2.)*((1.+(rs/r0)**2)**(-2)-(1.+(1./r0)**2)**(-2))))
+
   call constant_field(den0_l, 1.)
   
   
 
 
   r=sqrt(x**2 + z**2)
-!!$  dthetadx=(-z/x**2)/(1+(z/x)**2)
-!!$  dthetadz=(1./x)/(1+(z/x)**2)
+
   
   p0_l(1)=p0*(1.- r**2)
   p0_l(2)=p0*(- 2.*x)
@@ -2636,15 +2629,16 @@ subroutine frs_equ(x, z)
   p0_l(5)=0.
   p0_l(6)=p0*(- 2.)
 
-  pe0_l(1)=0.5*p0_l(1)
-  pe0_l(2)=0.5*p0_l(2)
-  pe0_l(3)=0.5*p0_l(3)
-  pe0_l(4)=0.5*p0_l(4)
-  pe0_l(5)=0.5*p0_l(5)
-  pe0_l(6)=0.5*p0_l(6)
 
-!!$  dpsidr=rzero*Bp0*(r/r0)/(1.+(r/r0)**2)
-!!$  d2psidr=rzero*Bp0/r0*(1-(r/r0)**2)/(1+(r/r0)**2)**2
+
+  pe0_l(1)=0.
+  pe0_l(2)=0.
+  pe0_l(3)=0.
+  pe0_l(4)=0.
+  pe0_l(5)=0.
+  pe0_l(6)=0.
+
+
   psi0_l(1) = (-rzero*Bp0*r0/2.*log(1.+(r/r0)**2)+rzero*Bp0*r0/2.*log(1.+(1./r0)**2))
   psi0_l(2) = -rzero*Bp0*(x/r0)/(1.+(r/r0)**2)
   psi0_l(3) = -rzero*Bp0*(z/r0)/(1.+(r/r0)**2)
@@ -2652,23 +2646,12 @@ subroutine frs_equ(x, z)
   psi0_l(5) = -rzero*Bp0*r0/2.*(-4.*z*x)/r0**4/(1+(r/r0)**2)**2
   psi0_l(6) = -rzero*Bp0*r0/2.*(-(2.*z/r0**2)**2/(1+(r/r0)**2)**2+2./r0**2/(1+(r/r0)**2))
   
-!!$  psi0_l(4) = d2psidr*(x/r)**2+dpsidr*(-z/r)*dthetadx
-!!$  psi0_l(5) = d2psidr*x*z/r**2+dpsidr*(-z/r)*dthetadz
-!!$  psi0_l(6) = d2psidr*(z/r)**2+dpsidr*(x/r)*dthetadz
 
-!!$  write(*,*) 'r=',r
-!!$  write(*,*) 'psi=',psi0_l(1)
-!!$  write(*,*) 'psi_x=',psi0_l(2)
-!!$  write(*,*) 'psi_z=',psi0_l(3)
-!!$  write(*,*) 'psi_xx=',psi0_l(4)
-!!$  write(*,*) 'psi_xz=',psi0_l(5)
-!!$  write(*,*) 'psi_zz=',psi0_l(6)
 
   integral=(-1./2.)*((1.+(r/r0)**2)**(-2)-(1.+(1./r0)**2)**(-2))
-  Bz_edge=sqrt((real(m)*rzero*Bp0/r0/(1.+(rs/r0)**2))**2+2*p0*(1.- rs**2)+2*Bp0**2*(-1./2.)*((1.+(rs/r0)**2)**(-2)-(1.+(1./r0)**2)**(-2)))
+
   Bz=sqrt(Bz_edge**2-2.*p0_l(1)-2.*Bp0**2*integral)
-!!$  dBzdr=(1./Bz)*(-Bp0**2*2.*r/r0**2/(1.+(r/r0)**2)**3-2.*p0*r)
-!!$  d2Bzdr=(-1./Bz)*dBzdr+(1./Bz)*(-Bp0**2*(2./r0**2/(1.+(r/r0)**2)**3+2.*r*(-3.)/r0**2/(1.+(r/r0)**2)**4*2.*r/r0**2)-2.*p0)
+
   dBzdx=(1./Bz)*(-Bp0**2*2.*x/r0**2/(1.+(r/r0)**2)**3+2.*p0*x)
   dBzdz=(1./Bz)*(-Bp0**2*2.*z/r0**2/(1.+(r/r0)**2)**3+2.*p0*z)
   bz0_l(1)=rzero*Bz
@@ -2698,12 +2681,156 @@ subroutine frs_per(x, phi, z)
   integer :: i, numnodes
   real :: x, phi, z
   vectype, dimension(dofs_per_node) :: vmask
+
+     vmask = 1.
+     vmask(1:6) = p0_l(1:6)/0.05
+
+     
+     ! initial parallel rotation
+     u1_l = phizero*vmask
+
+     ! allow for initial toroidal rotation
+     vz1_l = 0.
+!     if(vzero.ne.0) call add_angular_velocity(vz1_l, x+xzero, vzero*vmask)
+
+     ! add random perturbations
+     if(nonrect.eq.0) then
+        vmask(1) = 1.
+        vmask(2:6) = 0.
+     endif
+     call random_per(x,phi,z,23,vmask)
+
+
+  call finalize(field_vec)
+
+
+
+end subroutine frs_per
+
+end module frs
+
+!==============================================================================
+! ftz
+! ~~~~~~~~~~~~
+!==============================================================================
+module ftz
+
+!    real, private :: kx, kz
+
+contains
+
+!========================================================
+! init
+!========================================================
+subroutine ftz_init()
+  use basic
+  use arrays
+  use mesh_mod
+
+  implicit none
+
+  integer :: l, numnodes,m
+  real :: x, phi, z, alx, alz, Bp0,r0,rs,Bz_edge
+
+
+
+  numnodes = owned_nodes()
+  do l=1, numnodes
+     call get_node_pos(l, x, phi, z)
+
+!     z = z - alz*.5
+
+     call get_local_vals(l)
+
+     call ftz_equ(x-rzero, z)
+     call ftz_per(x-rzero, phi, z)
+
+     call set_local_vals(l)
+  enddo
+
+end subroutine ftz_init
+
+
+!========================================================
+! equ
+!========================================================
+subroutine ftz_equ(x, z)
+  use basic
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x, z
+  real :: r,Bp0,dpsidr,d2psidr,integral,rs, Bz_edge,Bz,dBzdx,dBzdz,beta0,r0,j0
+  integer :: m,n
+
+
+  call constant_field(den0_l, 1.)
+  
+  
+  j0=4./rzero/2.8
+
+  r=sqrt(x**2 + z**2)
+
+  
+  p0_l(1)=p0*(1.- r**2)
+  p0_l(2)=p0*(- 2.*x)
+  p0_l(3)=p0*(- 2.*z)
+  p0_l(4)=p0*(- 2.)
+  p0_l(5)=0.
+  p0_l(6)=p0*(- 2.)
+
+  pe0_l(1)=0.5*p0_l(1)
+  pe0_l(2)=0.5*p0_l(2)
+  pe0_l(3)=0.5*p0_l(3)
+  pe0_l(4)=0.5*p0_l(4)
+  pe0_l(5)=0.5*p0_l(5)
+  pe0_l(6)=0.5*p0_l(6)
+
+  psi0_l(1) = -rzero*j0*(r**2/4.-r**4/16.-3./16.)
+  psi0_l(2) = -rzero*j0*(1./2.-r**2/4.)*x
+  psi0_l(3) = -rzero*j0*(1./2.-r**2/4.)*z
+  psi0_l(4) = -rzero*j0*(-1./2.*x**2+1./2.-r**2/4.)
+  psi0_l(5) = 1./2.*rzero*j0*x*z
+  psi0_l(6) =  -rzero*j0*(-1./2.*z**2+1./2.-r**2/4.)
+  
+
+
+
+
+  bz0_l(1)=rzero
+  bz0_l(2)=0.
+  bz0_l(3)=0.
+  bz0_l(4)=0.
+  bz0_l(5)=0.
+  bz0_l(6)=0.
+
+  
+
+end subroutine ftz_equ
+
+
+!========================================================
+! per
+!========================================================
+subroutine ftz_per(x, phi, z)
+
+  use basic
+  use arrays
+  use diagnostics
+  use mesh_mod
+
+  implicit none
+
+  integer :: i, numnodes
+  real :: x, phi, z
+  vectype, dimension(dofs_per_node) :: vmask
 !!$
 !!$
 !!$
 !!$
      vmask = 1.
-     vmask(1:6) = p0_l(1:6)/0.05
+!     vmask(1:6) = /0.05
 !     vmask(1) = vmask(1) !- pedge/p0
      
      ! initial parallel rotation
@@ -2718,24 +2845,126 @@ subroutine frs_per(x, phi, z)
         vmask(1) = 1.
         vmask(2:6) = 0.
      endif
-     call random_per(x,phi,z,vmask)
+     call random_per(x,phi,z,23,vmask)
 
 
   call finalize(field_vec)
 
-!!$  u1_l = 0.
-!!$  vz1_l = 0.
-!!$  chi1_l = 0.
-!!$  psi1_l = 0.
-!!$  bz1_l = 0.
-!!$  pe1_l = 0.
-!!$  den1_l = 0.
-!!$  p1_l = 0.
 
-end subroutine frs_per
+end subroutine ftz_per
 
-end module frs
+end module ftz
 
+!==============================================================================
+! eigen
+! ~~~~~~~~~~~~
+!==============================================================================
+module eigen
+
+!    real, private :: kx, kz
+
+contains
+
+!========================================================
+! init
+!========================================================
+subroutine eigen_init()
+  use basic
+  use arrays
+  use mesh_mod
+
+  implicit none
+
+  integer :: l, numnodes,m
+  real :: x, phi, z, alx, alz, Bp0,r0,rs,Bz_edge
+
+
+  numnodes = owned_nodes()
+  do l=1, numnodes
+     call get_node_pos(l, x, phi, z)
+
+!     z = z - alz*.5
+
+     call get_local_vals(l)
+
+     call eigen_equ(x-rzero, z)
+     call eigen_per(x-rzero, phi, z)
+
+     call set_local_vals(l)
+  enddo
+
+end subroutine eigen_init
+
+
+!========================================================
+! equ
+!========================================================
+subroutine eigen_equ(x, z)
+  use basic
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x, z
+ 
+
+
+  call constant_field(den0_l, 1.)
+  call constant_field(p0_l, 0.1)
+  call constant_field(pe0_l, 0.05)
+  call constant_field(psi0_l, 0.)
+  call constant_field(bz0_l, rzero)
+  
+
+
+end subroutine eigen_equ
+
+
+!========================================================
+! per
+!========================================================
+subroutine eigen_per(x, phi, z)
+
+  use basic
+  use arrays
+  use diagnostics
+  use mesh_mod
+
+  implicit none
+
+  integer :: i, numnodes
+  real :: x, phi, z
+  vectype, dimension(dofs_per_node) :: vmask
+!!$
+!!$
+!!$
+!!$
+     vmask = 1.
+!     vmask(1:6) = /0.05
+!     vmask(1) = vmask(1) !- pedge/p0
+     
+     ! initial parallel rotation
+     u1_l = phizero*vmask
+
+     ! allow for initial toroidal rotation
+     vz1_l = 0.
+!     if(vzero.ne.0) call add_angular_velocity(vz1_l, x+xzero, vzero*vmask)
+
+     ! add random perturbations
+     if(nonrect.eq.0) then
+        vmask(1) = 1.
+        vmask(2:6) = 0.
+     endif
+     call random_per(x,phi,z,23,vmask)
+
+
+  call finalize(field_vec)
+
+
+
+end subroutine eigen_per
+
+end module eigen
 
 
 !=====================================
