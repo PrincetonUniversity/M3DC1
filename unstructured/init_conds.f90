@@ -3036,7 +3036,10 @@ subroutine initial_conditions()
            call threed_diffusion_test_init()
         case(16)
            call frs_init()
-
+        case(17)
+           call ftz_init()
+        case(18)
+           call eigen_init()
         end select
      else
         ! toroidal equilibria
@@ -3065,7 +3068,10 @@ subroutine initial_conditions()
            call threed_diffusion_test_init()
         case(16)
            call frs_init()
-
+        case(17)
+           call ftz_init()
+        case(18)
+           call eigen_init()
         end select
      endif
   end if
