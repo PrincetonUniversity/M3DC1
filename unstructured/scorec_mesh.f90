@@ -375,13 +375,6 @@ contains
        
        call getmodeltags(ibottom, iright, itop, ileft)
 
-#ifdef USE3D
-       ! compensate for bug in SCOREC software
-       ib = ibottom
-       ibottom = ileft
-       ileft = ib
-#endif
-       
        ! for periodic bc's
        ! skip if on a periodic boundary
        ! and convert corner to an edge when one edge is periodic

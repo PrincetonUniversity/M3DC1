@@ -53,9 +53,10 @@ contains
 
       s = 0
       do i=1, maxbundles
-         read(fcoil,'(6f12.4)',end=100) x, z, w, h, a1, a2
-         read(fcurr,'(2f12.4)',end=100) c, phase
-         print *, "current, phase = ", c, phase
+         read(fcoil,'(6F12.4)',end=100) x, z, w, h, a1, a2
+         write(*,'(A,2F12.4)') "x, z ", x, z
+         read(fcurr,'(2F12.4)',end=100) c, phase
+         write(*,'(A,2F12.4)') "current (kA), phase (deg): ", c, phase
          
          a1 = a1*pi/180.
          a2 = a2*pi/180.
@@ -63,8 +64,9 @@ contains
          a1 = tan(a1)
          a2 = tan(a2)
          
-         c = amu0 * 1000. * c / (subcoils**2) / (twopi)
+         c = amu0 * 1000. * c / (subcoils**2) / twopi
          
+         ! divide coils into sub-coils
          do j=1, subcoils
             do k=1, subcoils
                s = s + 1

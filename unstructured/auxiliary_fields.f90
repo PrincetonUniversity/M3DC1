@@ -54,7 +54,7 @@ subroutine calculate_auxiliary_fields(ilin)
   numelms = local_elements()
   do itri=1,numelms
      call define_element_quadrature(itri, int_pts_aux, 5)
-     call define_fields(itri, def_fields, 1, 1-ilin)
+     call define_fields(itri, def_fields, 1, 0)
 
      ! b dot grad p
      do i=1, dofs_per_element
@@ -80,7 +80,6 @@ subroutine calculate_auxiliary_fields(ilin)
                 - int3(mu79(:,OP_1,i),pt79(:,OP_DR),bft79(:,OP_DRP))
 #endif
         end if
-
      end do
      call vector_insert_block(bdotgradp%vec,itri,1,dofs,VEC_ADD)
 

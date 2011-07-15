@@ -1324,10 +1324,17 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    d = dimensions()
    symbol=name
  
+   if(strcmp('zero', name, /fold_case) eq 1) then begin
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+       data = 0.*psi
+       symbol = ''
+
    ;==========================================
    ; local_beta = 2*P/B^2
    ;==========================================
-   if(strcmp('beta', name, /fold_case) eq 1) then begin
+   endif else if(strcmp('beta', name, /fold_case) eq 1) then begin
        psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange)
@@ -1349,7 +1356,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        data = 2.*P/b2
        symbol = '!7b!X'
-
 
    ;===========================================
    ; normalized flux
@@ -2401,12 +2407,12 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        psi_z = read_field('psi', x, y, t, mesh=mesh, operation=3, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange, complex=complex, $
-                        linear=linear, mask=mask)
+                        linear=linear, mask=mask, phi=phi0)
        if(ntor ne 0) then begin
            f_r = read_field('f', x, y, t, mesh=mesh, operation=2, $
                             filename=filename, points=pts, slices=time, $
                             rrange=xrange, zrange=yrange, complex=complex, $
-                            linear=linear)
+                            linear=linear, phi=phi0)
            f_rp = complex(0.,ntor)*f_r
        endif else f_rp = 0.
        
@@ -2730,32 +2736,40 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('torque_b2', name, /fold_case) eq 1) then begin
 
-       bn = read_field('bn', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+       psi_r = read_field('psi', x, y, t, slices=time, mesh=mesh, linear=linear,  $
                         filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange)
-       i0 = read_field('i', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                        rrange=xrange, zrange=yrange, op=2)
+       psi_z = read_field('psi', x, y, t, slices=time, mesh=mesh, linear=linear,  $
                         filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange, /equilibrium)
+                        rrange=xrange, zrange=yrange, op=3)
+       i_r = read_field('i', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, op=2)
+       i_z = read_field('i', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, op=3)
+       f_r = read_field('f', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, op=2)
+       f_z = read_field('f', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, op=3)
        
-       data = -bn*i0
-       d = dimensions(/p0, l0=1)
-       symbol = '!6Angular Momentum Flux!X'
+       if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
+       rfac = complex(0., ntor)
 
-   ;===========================================
-   ; toroidal angular momentum flux
-   ;===========================================
-   endif else if(strcmp('torque_b2', name, /fold_case) eq 1) then begin
-
-       bn = read_field('bn', x, y, t, slices=time, mesh=mesh, linear=linear,  $
-                        filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange)
-       i = read_field('i', x, y, t, slices=time, mesh=mesh, linear=linear,  $
-                        filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange)
+       data = -(psi_r*conj(rfac*psi_r) + psi_z*conj(rfac*psi_z))/r^2 $
+         -     (conj(psi_r)*(rfac*psi_r) + conj(psi_z)*(rfac*psi_z))/r^2 $
+         + (conj(rfac*f_z)*(rfac*psi_r) - conj(rfac*f_r)*(rfac*psi_z))/r $
+         + ((rfac*f_z)*conj(rfac*psi_r) - (rfac*f_r)*conj(rfac*psi_z))/r $
+         + (conj(i_z+rfac^2*f_z)*psi_r - conj(i_r+rfac^2*f_r)*psi_z)/r $
+         + ((i_z+rfac^2*f_z)*conj(psi_r) - (i_r+rfac^2*f_r)*conj(psi_z))/r $
+         - (conj(i_r+rfac^2*f_r)*(rfac*f_r) + conj(i_z+rfac^2*f_z)*(rfac*f_z)) $
+         - ((i_r+rfac^2*f_r)*conj(rfac*f_r) + (i_z+rfac^2*f_z)*conj(rfac*f_z))
+       data = data / 2.
        
-       data = -bn*conj(i)
-       d = dimensions(/p0, l0=1)
-       symbol = '!6Angular Momentum Flux!X'
+       d = dimensions(/p0)
+       symbol = '!6Magnetic Torque!X'
 
    ;===========================================
    ; toroidal angular momentum flux
@@ -2930,6 +2944,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                                units=units, cgs=cgs, mks=mks, $
                               equilibrium=equilibrium)
            data = complex(data_r, data_i)
+
+           if(n_elements(phi0) ne 0) then begin
+               data = data*complex(cos(phi0*!pi/180.), -sin(phi0*!pi/180.))
+           end
        endif else begin
            print, ' reading real field'
 
@@ -2985,7 +3003,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                data[i-trange[0],*,*] = $
                  eval_field(field._data, mesh, points=pts, $
                             r=x, z=y, op=op, filename=filename, $
-                            xrange=xrange, yrange=yrange, mask=mask, phi=phi0)$
+                            xrange=xrange, yrange=yrange, mask=mask, phi=phi0) $
                  + base*(i ne -1)
            end
 
@@ -3015,13 +3033,15 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        data = data * (1. - mask) + mask*edge_val
    end
 
-   if(keyword_set(abs)) then begin
-       print, 'Taking absolute value of data'
-       data = abs(data)
-   endif else if(keyword_set(phase)) then begin
-       print, 'Taking phase of data'
-       data = atan(imaginary(data),real_part(data))
-   endif
+   if(keyword_set(complex)) then begin
+       if(keyword_set(abs)) then begin
+           print, 'Taking absolute value of data'
+           data = abs(data)
+       endif else if(keyword_set(phase)) then begin
+           print, 'Taking phase of data'
+           data = atan(imaginary(data),real_part(data))
+       endif
+   end
    print, 'Done reading field'
 
    return, data
@@ -3045,8 +3065,8 @@ end
 
 ; field_at_point
 function field_at_point, field, x, z, x0, z0
-   i = n_elements(x)*(x0-min(x)) / (max(x)-min(x))
-   j = n_elements(z)*(z0-min(z)) / (max(z)-min(z))
+   i = (n_elements(x)-1)*(x0-min(x)) / (max(x)-min(x))
+   j = (n_elements(z)-1)*(z0-min(z)) / (max(z)-min(z))
    return, interpolate(reform(field),i,j)
 end
 
@@ -4666,7 +4686,7 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
            dV[k,p] = 2.*!pi*total(dl*xp/bpf)
            area[k,p] = 2.*!pi*total(dl*xp)
            if(keyword_set(integrate)) then begin
-               result[k,p] = total(faf*xp*dl*(-dpsi)/bpf)
+               result[k,p] = 2.*!pi*total(faf*xp*dl*(-dpsi)/bpf)
            end else begin
 ;               result[k,p] = total(faf*xp*dl) / total(xp*dl)
                result[k,p] = total(faf*xp*dl/bpf)/total(xp*dl/bpf)
@@ -4793,7 +4813,7 @@ function flux_average, field, psi=psi, x=x, z=z, t=t, r0=r0, $
                           _EXTRA=extra)
 
            r = radius_matrix(x,z,t)
-           field = I/r^2
+           field = I/(2.*!pi*r^2)
 
            units = ''
            name = '!6Toroidal Flux!X'
@@ -4879,6 +4899,9 @@ function flux_average, field, psi=psi, x=x, z=z, t=t, r0=r0, $
            if(keyword_set(total)) then begin
                d = d + dimensions(l0=2)
                units = parse_units(d, _EXTRA=extra)
+           endif else if(keyword_set(integrate)) then begin
+               d = d + dimensions(l0=3)
+               units = parse_units(d, _EXTRA=extra)
            endif else begin
              symbol = '!12<!X' + symbol + '!12>!X'
          endelse
@@ -4905,6 +4928,7 @@ function flux_at_q, qval, normalized_flux=norm, $
                     q=q, flux=flux, _EXTRA=extra
    q = flux_average('q', flux=flux, nflux=nflux, /equilibrium, $
                     _EXTRA=extra)
+
    if(keyword_set(norm)) then flux=nflux
 
    dq_dpsi = deriv(flux,q)
@@ -5027,7 +5051,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
            if(n_elements(q_contours) ne 0) then begin
                fval = flux_at_q(q_contours,_EXTRA=ex)
                plot_flux_contour, fval, closed=0, /overplot, $
-                 thick=1, _EXTRA=ex
+                 thick=!p.thick/2., _EXTRA=ex
            endif
 
            if(keyword_set(lcfs)) then begin
@@ -5090,7 +5114,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
                        bw=bw, srnorm=srnorm, last=last, mks=mks, cgs=cgs, $
                        q_contours=q_contours, rho=rho, integrate=integrate, $
                        multiply_flux=multiply_flux, abs=abs, phase=phase, $
-                       total=total, _EXTRA=extra
+                       stotal=total, _EXTRA=extra
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
@@ -5123,7 +5147,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, $
              linear=linear, multiply_flux=multiply_flux[i], mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, abs=abs, phase=phase, $
-             total=total
+             stotal=total
        end
        if(n_elements(names) gt 0) then begin
            plot_legend, names, color=colors, ylog=ylog, xlog=xlog, $
@@ -5153,7 +5177,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              t=t, rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, $
              linear=linear, multiply_flux=multiply_flux, mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, asb=aba, phase=phase, $
-             total=total
+             stotal=total
            names[i] = string(format='(%"!8t!6 = %d !7s!D!8A!N!X")', t)
        end
 
