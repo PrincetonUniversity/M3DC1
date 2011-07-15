@@ -814,6 +814,14 @@ contains
      end do
      nu79 = mu79
 
+     if(equilibrate.eq.2) then
+        if(itri.eq.1 .and. myrank.eq.0) then 
+           print *, 1./int2(mu79(:,OP_1,i),mu79(:,OP_1,i)), &
+                equil_fac(i,itri)
+        end if
+!        mu79(:,:,i) = mu79(:,:,i) / int2(mu79(:,OP_1,i),mu79(:,OP_1,i))
+     endif
+
      if(equilibrate.ne.0) then 
         do i=1, dofs_per_element
            mu79(:,:,i) = mu79(:,:,i)*equil_fac(i,itri)

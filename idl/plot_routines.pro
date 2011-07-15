@@ -377,17 +377,11 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
         minval = abs(min(zed, /absolute))
     endif
 
-    fracdiff = abs(maxval-minval)/abs(max([maxval,minval],/absolute))
+    fracdiff = abs(maxval-minval)
+    val = abs(max([maxval,minval],/absolute))
+    if(val gt 0.) then fracdiff = fracdiff/val
     print, "maxval, minval, fracdiff = ", maxval, minval, fracdiff
-    if(maxval le minval) then begin
-        print, "Error in contour_and_legend: maxval <= minval."
-        return
-    endif
-    if(fracdiff le 1e-5) then begin
-        print, "Error in contour_and_legend: maxval ~ minval."
-        return
-    endif
-
+    if(fracdiff le 1e-5) then nolegend = 1
 
     if(keyword_set(zlog)) then begin
         levels = 10^(alog10(maxval/minval)*findgen(nlevels+1)/(float(nlevels))$
@@ -445,10 +439,16 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     !p.position = [region[0]+lgap,       region[1]+bgap, $
                    region[0]+lgap+width, region[1]+bgap+top]
 
-    contour, zed > minval < maxval, x, y, $
-      fill=fill, levels=levels, nlevels=nlevels, $
-      xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, _EXTRA=ex, $
-      isotropic=iso, charsize=charsize, color=color
+    if(fracdiff le 1e-5) then begin
+        plot, x, y, /nodata, isotropic=iso, charsize=charsize, $
+          color=color, xrange=xrange, yrange=yrange, $
+          xstyle=1, ystyle=1, _EXTRA=ex
+    endif else begin
+        contour, zed > minval < maxval, x, y, $
+          fill=fill, levels=levels, nlevels=nlevels, $
+          xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, _EXTRA=ex, $
+          isotropic=iso, charsize=charsize, color=color
+    endelse
 
     if(keyword_set(lines) and fill eq 1) then begin
         if(keyword_set(zlog)) then begin

@@ -254,7 +254,7 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs)
               
            case(NV_I_MATRIX)
               temp(i,j,1,1) = int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
-              
+             
            case(NV_LP_MATRIX)
               temp(i,j,1,1) = int2(mu79(:,OP_1,i),nu79(:,OP_LP,j))
               if(ibound.eq.NV_NMBOUND) then
@@ -522,6 +522,7 @@ end subroutine solve_newvar1
        bptr => bvec
     end if
     call sum_shared(rhs)
+
     call apply_bc(rhs,mat%ibound,bptr)
 
 #ifdef CJ_MATRIX_DUMP

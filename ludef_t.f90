@@ -2081,19 +2081,60 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   if(kappar.ne.0.) then
         
     if(linear.eq.0) then
-!......scj added 4/11/2011 because of instabilities in nonlinear runs
-        temp = p1psipsikappar(trial,pst79,pst79,lin,ni79,b2i79,kar79) &
-             + p1psibkappar  (trial,pst79,bzt79,lin,ni79,b2i79,kar79) &
-             + p1bbkappar    (trial,bzt79,bzt79,lin,ni79,b2i79,kar79)
-        ssterm(pp_g) = ssterm(pp_g) -          thimp     *dt*temp
-        ddterm(pp_g) = ddterm(pp_g) + (1.    - thimp*bdf)*dt*temp
-        if(i3d.eq.1 .and. numvar.ge.2) then
-           temp = p1psifkappar(trial,pst79,bf179,lin,ni79,b2i79,kar79) &
-                + p1bfkappar  (trial,bzt79,bf179,lin,ni79,b2i79,kar79) &
-                + p1ffkappar  (trial,bf179,bf179,lin,ni79,b2i79,kar79)
-           ssterm(pp_g) = ssterm(pp_g) -          thimp     *dt*temp
-           ddterm(pp_g) = ddterm(pp_g) + (1.    - thimp*bdf)*dt*temp
-        endif
+
+       temp = p1psipsikappar(trial,pst79,pst79,lin,ni79,b2i79,kar79) &
+            + p1psibkappar  (trial,pst79,bzt79,lin,ni79,b2i79,kar79) &
+            + p1bbkappar    (trial,bzt79,bzt79,lin,ni79,b2i79,kar79)
+       ssterm(pp_g) = ssterm(pp_g) -          thimp     *dt*temp
+       ddterm(pp_g) = ddterm(pp_g) + (1.    - thimp*bdf)*dt*temp
+       if(i3d.eq.1 .and. numvar.ge.2) then
+          temp = p1psifkappar(trial,pst79,bf179,lin,ni79,b2i79,kar79) &
+               + p1bfkappar  (trial,bzt79,bf179,lin,ni79,b2i79,kar79) &
+               + p1ffkappar  (trial,bf179,bf179,lin,ni79,b2i79,kar79)
+          ssterm(pp_g) = ssterm(pp_g) -          thimp     *dt*temp
+          ddterm(pp_g) = ddterm(pp_g) + (1.    - thimp*bdf)*dt*temp
+       endif
+
+       if(eqsubtract.eq.1) then
+          temp = p1psipsikappar(trial,lin,ps179,pp079,ni79,b2i79,kar79) &
+               + p1psipsikappar(trial,ps179,lin,pp079,ni79,b2i79,kar79) &
+               + p1psibkappar  (trial,lin,bz179,pp079,ni79,b2i79,kar79)
+          ssterm(psi_g) = ssterm(psi_g) -          thimp     *dt*temp
+          ddterm(psi_g) = ddterm(psi_g) + (1. - .5*thimp*bdf)*dt*temp
+
+          temp = p1psibkappar  (trial,ps179,lin,pp079,ni79,b2i79,kar79) &
+               + p1bbkappar    (trial,lin,bz179,pp079,ni79,b2i79,kar79) &
+               + p1bbkappar    (trial,bz179,lin,pp079,ni79,b2i79,kar79)
+          ssterm(bz_g) = ssterm(bz_g) -          thimp     *dt*temp
+          ddterm(bz_g) = ddterm(bz_g) + (1. - .5*thimp*bdf)*dt*temp
+
+          temp = p1psipsikappar(trial,lin,ps079,pp079,ni79,b2i79,kar79) &
+               + p1psipsikappar(trial,ps079,lin,pp079,ni79,b2i79,kar79) &
+               + p1psibkappar  (trial,lin,bz079,pp079,ni79,b2i79,kar79)
+          ssterm(psi_g) = ssterm(psi_g) -       thimp     *dt*temp
+          ddterm(psi_g) = ddterm(psi_g) + (1. - thimp*bdf)*dt*temp
+
+          temp = p1psibkappar  (trial,ps079,lin,pp079,ni79,b2i79,kar79) &
+               + p1bbkappar    (trial,lin,bz079,pp079,ni79,b2i79,kar79) &
+               + p1bbkappar    (trial,bz079,lin,pp079,ni79,b2i79,kar79)
+          ssterm(bz_g) = ssterm(bz_g) -       thimp     *dt*temp
+          ddterm(bz_g) = ddterm(bz_g) + (1. - thimp*bdf)*dt*temp
+       end if
+          
+       if(i3d.eq.1 .and. numvar.ge.2) then
+          temp = p1psifkappar(trial,lin,bf179,pp079,ni79,b2i79,kar79)
+          ssterm(psi_g) = ssterm(psi_g) -          thimp     *dt*temp
+          ddterm(psi_g) = ddterm(psi_g) + (1. - .5*thimp*bdf)*dt*temp
+
+          temp = p1bfkappar(trial,lin,bf179,pp079,ni79,b2i79,kar79)
+          ssterm(bz_g) = ssterm(bz_g) -          thimp     *dt*temp
+          ddterm(bz_g) = ddterm(bz_g) + (1. - .5*thimp*bdf)*dt*temp
+
+          temp = p1ffkappar(trial,lin,bf179,pp079,ni79,b2i79,kar79) &
+               + p1ffkappar(trial,bf179,lin,pp079,ni79,b2i79,kar79)
+          r_bf = r_bf -          thimp_bf     *dt*temp
+          q_bf = q_bf + (1. - .5*thimp_bf*bdf)*dt*temp
+       endif
 
      else  ! on linear.eq.0 .and. eqsubtract.eq.0
         ! Assumes no contribution from equilibrium f

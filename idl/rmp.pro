@@ -238,6 +238,31 @@ pro plot_jpar, _EXTRA=extra, bins=bins, q_val=q_val, $
      label='!8J!d!9#!N!6 (A/m!U2!N!N)!X', points=points, bins=bins, ntor=ntor
 end
 
+pro b_at_point, R0, Phi0, Z0, _EXTRA=extra, slice=slice
+
+   ntor = read_parameter('ntor', _EXTRA=extra)
+
+   psi_r = read_field('psi',x,z,t,slice=slice, $
+                       /linear,_EXTRA=extra,/complex,op=2)
+   psi_z = read_field('psi',x,z,t,slice=slice, $
+                       /linear,_EXTRA=extra,/complex,op=3)
+   i = read_field('i',x,z,t,slice=slice, /linear,_EXTRA=extra,/complex)
+   f_r = read_field('f',x,z,t,slice=slice, /linear,_EXTRA=extra,/complex,op=2)
+   f_z = read_field('f',x,z,t,slice=slice, /linear,_EXTRA=extra,/complex,op=3)
+
+   r = radius_matrix(x,z,t)
+
+   br = field_at_point(-psi_z/r - complex(0.,ntor)*f_r, x, z, R0, Z0)
+   bz = field_at_point( psi_r/r - complex(0.,ntor)*f_z, x, z, R0, Z0)
+   bphi = field_at_point(i/r, x, z, R0, Z0)
+
+   help, br, bz, bphi
+
+   print, 'BR: ', real_part(br)*cos(Phi0) + imaginary(br)*sin(Phi0)
+   print, 'BZ: ', real_part(bz)*cos(Phi0) + imaginary(bz)*sin(Phi0)
+   print, 'BPhi: ', real_part(bphi)*cos(Phi0) + imaginary(bphi)*sin(Phi0)
+end
+
 
 pro plot_vpar, _EXTRA=extra, bins=bins, q_val=q_val, $
              ntor=ntor, slice=slice

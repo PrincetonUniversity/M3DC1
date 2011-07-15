@@ -914,10 +914,6 @@ end subroutine rotation
        htri(3,4,itri) =-1./d%d
        htri(4,4,itri) = 1./d%d**2
 #endif
-
-       ! calculate equilibration factors
-       if(equilibrate.eq.2) then
-       end if
     end do
 
     select case(equilibrate)
@@ -967,6 +963,7 @@ end subroutine rotation
        end do
        
     case(2)
+
        temp_vec = 0.
        do itri=1, numelms
           call get_element_data(itri,d)
@@ -975,32 +972,18 @@ end subroutine rotation
              sum = 0.
              do i=1, coeffs_per_tri
                 do j=1, coeffs_per_tri
-                   m = mi(i) + mi(j)
-                   n = ni(i) + ni(j)
+                   m = mi(i)+mi(j)
+                   n = ni(i)+ni(j)
                    temp = d%c**(n+1) * (d%a**(m+1) - (-d%b)**(m+1)) * &
                         factorial(m)*factorial(n) / &
                         factorial(m+n+2)
                    sum = sum + gtri(i,ii,itri)*gtri(j,ii,itri)*temp
                 end do
              end do
-             temp_vec(ii) = temp_vec(ii) + 1./sum
+
+             equil_fac(ii,itri) = 1./sum
           end do
-       end do
-       
-       call mpi_allreduce(numelms, tot_elms, 1, MPI_INTEGER, &
-            MPI_SUM, MPI_COMM_WORLD, ierr)
-       call mpi_allreduce(temp_vec, temp_vec2, dofs_per_tri, &
-            MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
-       
-       temp_vec2 = temp_vec2/tot_elms
-
-       if(myrank.eq.0 .and. iprint.ge.1) then
-          print *, ' Avg. A2'
-          write(*, '(6e12.4)') temp_vec2
-       end if
-
-       do itri=1, numelms
-          equil_fac(1:dofs_per_tri,itri) = temp_vec2
+          if(myrank.eq.0 .and. itri.eq.1) print *, equil_fac(:,itri)
        end do
     end select
   end subroutine tridef
