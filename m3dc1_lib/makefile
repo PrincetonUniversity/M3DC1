@@ -1,4 +1,4 @@
-include $(ROOT_DIR)/make.inc
+include $(M3DC1_ROOT)/install/make.inc.$(M3DC1_ARCH)
 
 LIBS := $(HDF5_LIBS) $(LIBS)
 INCLUDE := $(HDF5_INCLUDE) $(INCLUDE)
@@ -10,7 +10,7 @@ libm3dc1.a : $(OBJS)
 #	$(DYLIB) $(LIBS) $(OBJS) -o $@
 
 clean : 
-	rm -f *.o *.so *.a *~
+	rm -fr *.o *.so *.a *~ _$(M3DC1_ARCH)
 
 %.o : %.c
 	$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@

@@ -1,7 +1,8 @@
-include $(ROOT_DIR)/make.inc
+include $(M3DC1_ROOT)/install/make.inc.$(M3DC1_ARCH)
 
-LIBS :=  -L$(ROOT_DIR)/m3dc1_lib -lm3dc1 \
-	$(HDF5_LIBS) $(LIBS)
+LIBS := -L$(M3DC1_ROOT)/m3dc1_lib/_$(M3DC1_ARCH) -lm3dc1 \
+	$(HDF5_LIBS) $(LIBS) 
+
 INCLUDE := -I$(ROOT_DIR)/m3dc1_lib \
 	$(HDF5_INCLUDE) $(INCLUDE)
 
@@ -20,7 +21,7 @@ install : trace
 	cp trace $(INSTALL_DIR)/
 
 clean : 
-	rm -f trace *.o *.so *.a *~
+	rm -fr *.o *.so *.a *~ _$(M3DC1_ARCH)
 
 %.o : %.c
 	$(CC) $< -c $(CFLAGS) $(INCLUDE) -o $@
