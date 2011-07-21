@@ -4969,6 +4969,35 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                 overplot=overplot, phi=phi0, time=realtime, $
                 phase=phase, abs=abs, _EXTRA=ex
 
+   ; open mpeg object
+   if(n_elements(mpeg) ne 0) then begin
+       mpegid = mpeg_open([640,480],bitrate=104857200, iframe_gap=4)
+
+       for i=time[0],time[1] do begin
+           plot_field, name, i, x, y, points=p, mesh=plotmesh, $
+             mcolor=mc, lcfs=lcfs, title=title, units=units, $
+             range=range, rrange=rrange, zrange=zrange, linear=linear, $
+             xlim=xlim, cutx=cutx, cutz=cutz, $
+             mask_val=mask_val, boundary=boundary, q_contours=q_contours, $
+             overplot=overplot, phi=phi0, time=realtime, $
+             phase=phase, abs=abs, _EXTRA=ex
+
+           image = tvrd(true=1)
+               
+           image[0,*,*] = rotate(reform(image[0,*,*]), 7)
+           image[1,*,*] = rotate(reform(image[1,*,*]), 7)
+           image[2,*,*] = rotate(reform(image[2,*,*]), 7)
+               
+           mpeg_put, mpegid, image=image, frame=(i-time[0])
+       end
+
+       print, 'Writing mpeg...'
+       mpeg_save, mpegid, filename=mpeg
+       mpeg_close, mpegid
+       return
+   end
+
+
    if(n_elements(time) eq 0) then time = 0
    if(n_elements(p) eq 0) then p = 50
    if(n_elements(title) eq 0) then notitle = 1 else notitle = 0
@@ -5010,11 +5039,6 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
 
    sz = size(field, /dimension)
    nt = sz[0]
-
-   ; open mpeg object
-   if(n_elements(mpeg) ne 0) then begin
-       mpegid = mpeg_open([640,480],bitrate=104857200, iframe_gap=4)
-   end
 
    if(n_elements(range) eq 0) then range = [min(field),max(field)]
 
@@ -5064,26 +5088,9 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                plot_mesh, mesh=mesh, /oplot, $
                  boundary=boundary, _EXTRA=ex
            endif
-           
-           if(n_elements(mpeg) ne 0) then begin
-               image = tvrd(true=1)
-               
-               image[0,*,*] = rotate(reform(image[0,*,*]), 7)
-               image[1,*,*] = rotate(reform(image[1,*,*]), 7)
-               image[2,*,*] = rotate(reform(image[2,*,*]), 7)
-               
-               mpeg_put, mpegid, image=image, frame=5*k
-           end
        end
    endelse
-
-   if(n_elements(mpeg) ne 0) then begin
-       print, 'Writing mpeg...'
-       mpeg_save, mpegid, filename=mpeg
-       mpeg_close, mpegid
-   end
 end
-
 
 pro plot_3d, name, xslice=xslice, yslice=yslice, zslice=zslice, $
              _EXTRA=extra

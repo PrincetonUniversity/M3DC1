@@ -11,6 +11,11 @@ else
   LOADER = ftn
 endif
 
+ifeq ($(HPCTK), 1)
+  OPTS := $(OPTS) -gopt
+  LOADER := hpclink $(LOADER)
+endif
+
 # define where you want to locate the mesh adapt libraries
 HYBRID_HOME = /p/swim/jchen/hybrid.test
 
@@ -44,17 +49,18 @@ SCOREC_LIBS =  \
   INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
   LIBS := $(LIBS) $(SCOREC_LIBS) -lC -lstd
 
-  SUPERLU_DIST = -lsuperlu_dist_2.5
   PARMETIS = -lparmetis -lmetis
 
-  OPTS := $(OPTS) -DPetscDEV
-  PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev-SUPERLU-HYPRE-MUMPS/petsc-dev-060711/petsc-dev
-  PETSC_ARCH = arch-cray-xt6-pkgs-opt
-  HYPRE = -lHYPRE
-  MUMPS = -ldmumps -lmumps_common -lpord
 else
-  OPTS := $(OPTS) -DPetscDEV
+#  OPTS := $(OPTS) -DPetscDEV
 endif   # on USESCOREC
+
+OPTS := $(OPTS) -DPetscDEV
+PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev-SUPERLU-HYPRE-MUMPS/petsc-dev-060711/petsc-dev
+PETSC_ARCH = arch-cray-xt6-pkgs-opt
+SUPERLU_DIST = -lsuperlu_dist_2.5
+HYPRE = -lHYPRE
+MUMPS = -ldmumps -lmumps_common -lpord
 
 INCLUDE := $(INCLUDE) $(HDF5_INCLUDE_OPTS) \
 	-I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include
@@ -68,6 +74,7 @@ CCOPTS  = -c -O $(OPTS)
 
 # Optimization flags
 ifeq ($(OPT), 1)
+  LDOPTS := $(LDOPTS) -fastsse -Mipa=fast,inline
   FOPTS  := $(FOPTS) -fastsse -Mipa=fast,inline
   CCOPTS := $(CCOPTS) -O
 else

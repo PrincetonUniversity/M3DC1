@@ -108,31 +108,54 @@ contains
     integer :: i,j,k,p,op
     real, dimension(OP_NUM) :: val
     real :: co2, sn2, cosn, temp
+    real :: xpow(-3:5), ypow(-3:5)
+#ifdef USE3D
+    real :: zpow(-2:3)
+#endif
 
     co2 = co*co
     sn2 = sn*sn
     cosn = co*sn
 
     outarr = 0.
+
+    xpow(-3:-1) = 0.
+    ypow(-3:-1) = 0.
+    xpow(0) = 1.
+    ypow(0) = 1.
+
+#ifdef USE3D
+    zpow(-2:-1) = 0.
+    zpow(0) = 1.
+#endif
  
     ! calculate the answer at each sampling point
     do k=1,ngauss
+       do p=1, 5
+          xpow(p) = xpow(p-1)*xi(k)
+          ypow(p) = ypow(p-1)*eta(k)
+       end do
+#ifdef USE3D
+       do p=1, 3
+          zpow(p) = zpow(p-1)*zi(k)
+       end do
+#endif
        
        do p=1, coeffs_per_tri
           
           val = 0.
           
-          val(OP_1) = xi(k)**mi(p)*eta(k)**ni(p)
+          val(OP_1) = xpow(mi(p))*ypow(ni(p))
           
           if(mi(p).ge.1) then
              ! d_si terms
-             temp = mi(p)*xi(k)**(mi(p)-1) * eta(k)**ni(p)
+             temp = mi(p)*xpow(mi(p)-1) * ypow(ni(p))
              val(OP_DR) = val(OP_DR) + co*temp
              val(OP_DZ) = val(OP_DZ) + sn*temp           
              
              if(mi(p).ge.2) then
                 ! d_si^2 terms
-                temp = xi(k)**(mi(p)-2)*(mi(p)-1)*mi(p) * eta(k)**ni(p)
+                temp = xpow(mi(p)-2)*(mi(p)-1)*mi(p) * ypow(ni(p))
                 val(OP_DRR) = val(OP_DRR) + co2*temp
                 val(OP_DZZ) = val(OP_DZZ) + sn2*temp
                 val(OP_DRZ) = val(OP_DRZ) + cosn*temp
@@ -141,13 +164,13 @@ contains
           endif
           if(ni(p).ge.1) then
              ! d_eta terms
-             temp = xi(k)**mi(p) * eta(k)**(ni(p)-1)*ni(p)
+             temp = xpow(mi(p)) * ypow(ni(p)-1)*ni(p)
              val(OP_DR) = val(OP_DR) - sn*temp
              val(OP_DZ) = val(OP_DZ) + co*temp
              
              if(ni(p).ge.2) then
                 ! d_eta^2 terms
-                temp = xi(k)**mi(p) * eta(k)**(ni(p)-2)*(ni(p)-1)*ni(p)
+                temp = xpow(mi(p)) * ypow(ni(p)-2)*(ni(p)-1)*ni(p)
                 val(OP_DRR) = val(OP_DRR) + sn2*temp
                 val(OP_DZZ) = val(OP_DZZ) + co2*temp
                 val(OP_DRZ) = val(OP_DRZ) - cosn*temp
@@ -156,7 +179,7 @@ contains
              
              if(mi(p).ge.1) then
                 ! d_eta_si terms
-                temp = xi(k)**(mi(p)-1)*mi(p) * eta(k)**(ni(p)-1)*ni(p)
+                temp = xpow(mi(p)-1)*mi(p) * ypow(ni(p)-1)*ni(p)
                 
                 val(OP_DRR) = val(OP_DRR) - 2.*cosn*temp
                 val(OP_DZZ) = val(OP_DZZ) + 2.*cosn*temp
@@ -169,8 +192,7 @@ contains
              if(mi(p).ge.2) then
                 if(ni(p).ge.1) then
                    ! d_si^2 d_eta terms
-                   temp = xi(k)**(mi(p)-2) * eta(k)**(ni(p)-1) * &
-                        (mi(p)-1)*mi(p)*ni(p)
+                   temp = xpow(mi(p)-2) * ypow(ni(p)-1) * (mi(p)-1)*mi(p)*ni(p)
                    val(OP_LPR) = val(OP_LPR) - sn*temp
                    val(OP_LPZ) = val(OP_LPZ) + co*temp
                 endif
@@ -178,8 +200,7 @@ contains
              if(ni(p).ge.2) then
                 if(mi(p).ge.1) then
                    ! d_eta^2 d_si terms
-                   temp = xi(k)**(mi(p)-1) * eta(k)**(ni(p)-2) * &
-                        mi(p)*(ni(p)-1)*ni(p)
+                   temp = xpow(mi(p)-1) * ypow(ni(p)-2) * mi(p)*(ni(p)-1)*ni(p)
                    val(OP_LPR) = val(OP_LPR) + co*temp
                    val(OP_LPZ) = val(OP_LPZ) + sn*temp
                 endif
@@ -187,13 +208,13 @@ contains
              
              if(mi(p).ge.3) then
                 ! d_si^3 terms
-                temp = xi(k)**(mi(p)-3) * eta(k)**ni(p)*(mi(p)-2)*(mi(p)-1)*mi(p)
+                temp = xpow(mi(p)-3) * ypow(ni(p))*(mi(p)-2)*(mi(p)-1)*mi(p)
                 val(OP_LPR) = val(OP_LPR) + co*temp
                 val(OP_LPZ) = val(OP_LPZ) + sn*temp
              endif
              if(ni(p).ge.3) then
                 ! d_eta^3 terms
-                temp = xi(k)**mi(p) * eta(k)**(ni(p)-3)*(ni(p)-2)*(ni(p)-1)*ni(p)
+                temp = xpow(mi(p)) * ypow(ni(p)-3)*(ni(p)-2)*(ni(p)-1)*ni(p)
                 val(OP_LPR) = val(OP_LPR) - sn*temp
                 val(OP_LPZ) = val(OP_LPZ) + co*temp
              endif
@@ -217,17 +238,17 @@ contains
 #ifdef USE3D
              j = p
              do i=1, coeffs_per_dphi
-                outarr(k, op) = outarr(k, op) + avector(j)*val(op)*zi(k)**li(i)
+                outarr(k, op) = outarr(k, op) + avector(j)*val(op)*zpow(li(i))
                 
                 ! first toroidal derivative
                 if(li(i).ge.1) then
                    outarr(k, op+OP_NUM_POL) = outarr(k, op+OP_NUM_POL) &
-                        + avector(j)*val(op)*zi(k)**(li(i)-1)*li(i)
+                        + avector(j)*val(op)*zpow(li(i)-1)*li(i)
                 endif
                 ! second toroidal derivative
                 if(li(i).ge.2) then
                    outarr(k, op+2*OP_NUM_POL) = outarr(k, op+2*OP_NUM_POL) &
-                        + avector(j)*val(op)*zi(k)**(li(i)-2)*(li(i)-1)*li(i)
+                        + avector(j)*val(op)*zpow(li(i)-2)*(li(i)-1)*li(i)
                 endif
                 
                 j = j + coeffs_per_tri

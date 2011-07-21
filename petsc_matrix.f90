@@ -108,9 +108,9 @@ contains
     use vector_mod
     implicit none
 #include "finclude/petsc.h"
-#ifndef PETSC_31
-#include "finclude/petscmat.h"
-#endif
+!#ifndef PETSC_31
+!#include "finclude/petscmat.h"
+!#endif
 
     type(petsc_matrix) :: mat
     integer, intent(in) :: m, n, icomplex

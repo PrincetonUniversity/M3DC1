@@ -27,7 +27,7 @@ contains
 #ifdef USE3D
     include 'mpif.h'
     real :: minphi, maxphi
-    integer :: procs_per_plane, maxrank, ier
+    integer :: procs_per_plane, myrank, maxrank, ier
 #endif
 
     ! initialize scorec solvers
@@ -35,30 +35,32 @@ contains
 
     ! load mesh
 #ifdef USE3D 
-
-    print *, 'setting number of planes = ', nplanes
-    call setTotNbPlane(nplanes)
-    
     call MPI_Comm_size(MPI_COMM_WORLD,maxrank,ier)
+    call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ier)
+
+    if(myrank.eq.0) print *, 'setting number of planes = ', nplanes
+    call setTotNbPlane(nplanes)
+
     procs_per_plane = maxrank/nplanes
-    print *, 'setting number of processes per plane = ', procs_per_plane
+    if(myrank.eq.0) &
+         print *, 'setting number of processes per plane = ', procs_per_plane
     call setNbProcPlane(procs_per_plane)
 
     minphi = 0.
     maxphi = twopi/nplanes * (nplanes-1)
-    print *, 'setting phi range', minphi, maxphi
+    if(myrank.eq.0) print *, 'setting phi range', minphi, maxphi
     call setPhiRange(minphi, maxphi)
 
-    print *, 'loading partitioned mesh...'
+    if(myrank.eq.0) print *, 'loading partitioned mesh...'
     if(is_rectilinear) then
-       print *, 'loading rectilinear mesh model...'
+       if(myrank.eq.0) print *, 'loading rectilinear mesh model...'
        call loadPtnMesh('struct.dmg')
     else
-       print *, 'loading curved mesh model...'
+       if(myrank.eq.0) print *, 'loading curved mesh model...'
        call loadPtnMesh('AnalyticModel')
     endif
 
-    print *, 'setting up 3D mesh...'
+    if(myrank.eq.0) print *, 'setting up 3D mesh...'
     call threeDMeshSetup(0)
 #else 
     call loadmesh("struct.dmg", "struct-dmg.sms")
