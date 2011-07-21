@@ -153,15 +153,21 @@ contains
        ! R(theta) = x0 + x1 cos(theta + x2 sin(theta))
        ! Z(theta) = z0 + z1 sin(theta)
        do i=1, inodespp
+          if(nodes(i)%idim .ge.2) cycle
+
           sn = (nodes(i)%Z - z0)/z1    ! sin(theta)
           co = sqrt(1. - sn*sn)        ! cos(theta)
+          if(nodes(i)%R .lt. x0) co = -co
           cs = (nodes(i)%R - x0)/x1    ! cos(theta + x2*sin(theta))
           ss = sqrt(1. - cs*cs)        ! sin(theta + x2*sin(theta))
+          if(nodes(i)%Z .lt. z0) ss = -ss
 
           l0 = sqrt((z1*co)**2 + (x1*(1.+x2*co)*ss)**2)
           nodes(i)%normal(1) = z1*co/l0
           nodes(i)%normal(2) = x1*(1.+x2*co)*ss/l0
           nodes(i)%curv = x1*z1*(co*(1.+x2*co)**2*cs + sn*ss)/l0**3
+!          write(*,'(6f12.4)') (nodes(i)%R-x0)/x1, (nodes(i)%Z-z0)/z1, &
+!               nodes(i)%normal(1), nodes(i)%normal(2), nodes(i)%curv
        end do
     end if
 
@@ -286,11 +292,11 @@ contains
     implicit none
 
 #include "finclude/petsc.h"
-#ifndef PETSC_31
-#include "finclude/petscvec.h"
-#include "finclude/petscmat.h"
-#include "finclude/petscis.h"
-#endif
+!#ifndef PETSC_31
+!#include "finclude/petscvec.h"
+!#include "finclude/petscmat.h"
+!#include "finclude/petscis.h"
+!#endif
 #include "finclude/petscis.h90"
 
     integer :: num_global_elements

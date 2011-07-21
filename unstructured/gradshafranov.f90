@@ -551,6 +551,10 @@ subroutine gradshafranov_solve
 
      ! Find new magnetic axis and lcfs
      call lcfs(psi_vec)
+     if(psilim.eq.psimin) then
+        if(myrank.eq.0) print *, 'ERROR: psimin = psilim = ', psilim
+        call safestop(4)
+     end if
 
      ! define the pressure and toroidal field functions
      if(constraint .and. igs_method.ne.1) then
@@ -1079,11 +1083,12 @@ subroutine deltafun(x,z,val,jout)
 #ifdef USE3D
      temp = temp*twopi
 #endif
-
-     call vector_insert_block(jout%vec, itri, jout%index, temp, VEC_SET)
+!     call vector_insert_block(jout%vec, itri, jout%index, temp, VEC_SET)
+     call vector_insert_block(jout%vec, itri, jout%index, temp, VEC_ADD)
   end if
 
   call sum_shared(jout%vec)
+
 end subroutine deltafun
 
 

@@ -179,7 +179,7 @@ Program Reducedquintic
         call derived_quantities(0)
      end if
 
-     call calculate_auxiliary_fields(0)
+!     call calculate_auxiliary_fields(0)
 
      ! Output the equilibrium
      if(myrank.eq.0 .and. iprint.ge.2) print *, ' Writing equilibrium'
@@ -352,10 +352,6 @@ subroutine print_info
 
   implicit none
 
-#ifdef USESCOREC
-  integer :: ndofs, numelms, numnodes, j
-#endif
-
   ! velocity form
   if(myrank.eq.0) then
      select case(ivform)
@@ -364,23 +360,6 @@ subroutine print_info
      case(1)
         print*, "V = R^2 grad(U)xgrad(phi) + R^2 V grad(phi) + grad(chi)/R^2"
      end select
-  endif
-
-  ! Output information about local dofs, nodes, etc.
-  if(iprint.ge.0) then
-#ifdef USESCOREC
-     if(myrank.eq.0) then
-        call numglobaldofs(1, ndofs)
-        print *, 'global dofs = ', ndofs
-     end if
-
-     numelms = local_elements()
-     numnodes = owned_nodes()
-     call numprocdofs(1, j)
-     call numdofs(1, ndofs)
-     print *, 'proc, owned dofs, needed dofs',myrank, j, ndofs
-     print *, 'proc, numnodes, numfaces', myrank, numnodes,numelms
-#endif
   endif
 
   ! check time-integration options
@@ -439,7 +418,7 @@ subroutine safestop(iarg)
   call MPI_Finalize(ier)
   if (ier.ne.0) print *, 'Error finalizing MPI:', ier
   
-  print *, "Stopped at", iarg
+  if(myrank.eq.0) print *, "Stopped at", iarg
   stop
 end subroutine safestop
 

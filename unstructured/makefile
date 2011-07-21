@@ -82,6 +82,7 @@ export USECOMPLEX
 export USE3D
 export USERW
 export TAU
+export HPCTK
 
 include target.mk
 
@@ -121,7 +122,7 @@ S2V_OBJS = math.o element.o scorec_mesh.o struct2vac.o
 all : $(BIN)
 
 $(BIN): $(OBJS)
-	$(LOADER) $(OBJS) $(LIBS) -o $@
+	$(LOADER) $(LDOPTS) $(OBJS) $(LIBS) -o $@
 
 make_polar : make_polar.c
 	$(CC) $< -lm -o $@
