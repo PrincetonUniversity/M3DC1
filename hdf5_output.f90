@@ -87,7 +87,6 @@ contains
     call h5pclose_f(plist_id, error)
 
     initialized = .true.
-
   end subroutine hdf5_initialize
 
 
@@ -100,6 +99,8 @@ contains
     
     integer, intent(out) :: error
     
+    error = 0
+
     if(.not. initialized) return
 
     ! Close the file.

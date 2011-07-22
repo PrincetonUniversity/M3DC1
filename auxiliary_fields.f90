@@ -6,6 +6,8 @@ module auxiliary_fields
   type(field_type) :: bdotgradp
   type(field_type) :: bdotgradt
 
+  logical, private :: initialized = .false.
+
 contains
 
 subroutine create_auxiliary_fields
@@ -13,11 +15,13 @@ subroutine create_auxiliary_fields
 
   call create_field(bdotgradp)
   call create_field(bdotgradt)
+  initialized = .true.
 end subroutine create_auxiliary_fields
 
 subroutine destroy_auxiliary_fields
   implicit none
 
+  if(.not.initialized) return
   call destroy_field(bdotgradp)
   call destroy_field(bdotgradt)
 end subroutine destroy_auxiliary_fields

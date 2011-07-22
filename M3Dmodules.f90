@@ -267,77 +267,6 @@ module basic
   integer :: mpol     ! poloidal mode number for certain test problems
   complex :: rfac
 
-!
-!.....input quantities---defined in subroutine input or in namelist
-!
-  namelist / inputnl/                                          &
-       adapt_factor, adapt_hmax, adapt_hmin, &
-       alpha0, alpha1, alpha2, alpha3,  &
-       amu, amuc, amudelt, amudelt2, amue, amu_edge, amuoff, amuoff2, amupar, &
-       b0_norm, beta, bscale, bx0, bzero, &
-       chiiner, com_bc, &
-       control_d, control_i, control_p, &
-       db, ddt, &
-       deex, delta_wall,                                   &
-       den_edge, &
-       den0, dendelt, denm, denoff, &
-       divcur, divertors, &
-       djdpsi, &
-       dt, &
-       eps, eqsubtract, equilibrate, &
-       eta_wall, eta0, etadelt, etaoff, etar, &
-       expn, &
-       gam, gravr, gravz, gyro, &
-       harned_mikic,                                   &
-       hyper, hyperc, hyperi, hyperp, hyperv, &
-       iadapt, ibform, ibootstrap, icalc_scalars, &
-       iconst_bz, iconst_eta, iconst_n, iconst_p, iconst_t, iconstflux, &
-       icsym, icurv, &
-       idenfunc, idens, &
-       idevice, ieq_bdotgradt, iestatic, ifbound, ifixedb, &
-       iflip_b, iflip_j, iflip_v, iflip_z, iflip, &
-       ifout, igauge, iupstream,                                         &
-       iglobalin, iglobalout, &
-       igs_method, igs, &
-       ihypamu, ihypdx, ihypeta, ihypkappa, &
-       ikappafunc, ikapscale, &
-       ike_only, imp_bf, imp_mod, inertia, &
-       inocurrent_norm, inocurrent_pol, inocurrent_tor, &
-       inograd_n, inograd_p, &
-       inonormalflow, inoslip_pol, inoslip_tor, inostress_tor, &
-       int_pts_aux, int_pts_diag, int_pts_main, int_pts_tor,   &
-       integrator, inumgs, &
-       ionization_depth, ionization_rate, ionization_temp, ionization, &
-       ipellet, iper, ipres, iprint, &
-       iread_dskbal, iread_eqdsk, iread_jsolver, &
-       iread_ne, iread_omega, iread_te,                                     &
-       irecalc_eta, iresfunc, irestart, irmp, irot, iscale_rot_by_p, &
-       isink, isources, isplitstep, istatic, isurface, itaylor, &
-       iteratephi, itime_independent, itimer, itor, itwofluid,     &
-       ivform, ivisfunc, iwave, iwrite_restart, &
-       jadv, jper, &
-       kappa0, kappadelt, kappah, kappaoff, kappar, kappat, kappax, &
-       l0_norm, lambdae, libetap, linear, ln, &
-       mass_ratio, max_ke, maxn, mpol, &
-       n_control_d, n_control_i, n_control_p, n_target, &
-       n0_norm, nonrect, nosig, nplanes, &
-       nskip, ntimemax, ntimepr, &
-       ntor, numvar, nv1equ, &
-       p0, p1, p2, pedge, &
-       pellet_rate, pellet_var, pellet_x, pellet_z, &
-       phizero, pi0, pscale, psiscale, &
-       q0, &
-       regular, rzero, &
-       sink1_rate, sink1_var, sink1_x, sink1_z, &
-       sink2_rate, sink2_var, sink2_x, sink2_z, &
-       tcur, tcuro, &
-       tedge, &
-       th_gs, thimp, thimpsm, &
-       tiltangled, tol_gs, &
-       vloop, vor_bc, vzero, &
-       xdiv, xlim, xlim2, xmag, xnull, xzero, &
-       zdiv, zlim, zlim2, zmag, znull, zzero
-
   !     derived quantities
   real :: dbf,bdf,hypv,hypc,hypf,hypi,hypp,   &
        time,                                     &
@@ -544,12 +473,16 @@ module sparse
   type(matrix_type) :: rwpsi_mat, rwbf_mat, ecpsi_mat, ecbf_mat
   type(matrix_type), save :: rw_rhs_mat, rw_lhs_mat
 
+  logical :: sparse_initialized = .false.
+
 contains
   subroutine delete_matrices
     implicit none
 
 #ifdef USESCOREC
     integer :: i
+
+    if(.not. sparse_initialized) return
 
     do i=1, num_matrices
        call deletematrix(i)
