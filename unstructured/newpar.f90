@@ -93,6 +93,8 @@ Program Reducedquintic
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Allocating arrays'
   call space(1)
 
+  sparse_initialized = .true.
+
   ! initialize variables
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Initializing variables'
   call init

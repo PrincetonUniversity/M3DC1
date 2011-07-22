@@ -11,11 +11,13 @@ endif
 ifeq ($(TAU), 1)
   TAU_OPTIONS = -optCPPOpts=-DUSETAU -optVerbose -optPreProcess -optMpi -optTauSelectFile=../select.tau
   CC     = tau_cc.sh $(TAU_OPTIONS)
+  CPP    = tau_cxx.sh $(TAU_OPTIONS)
   F90    = tau_f90.sh $(TAU_OPTIONS)
   F77    = tau_f90.sh $(TAU_OPTIONS)
   LOADER = tau_f90.sh $(TAU_OPTIONS)
 else
   CC = mpicc
+  CPP = mpicxx
   F90 = mpif90
   F77 = mpif90
   LOADER = mpif90 -cxxlib
@@ -105,9 +107,11 @@ ifeq ($(USESCOREC), 1)
 
 endif   # on USESCOREC
 
-
 %.o : %.c
 	$(CC)  $(CCOPTS) $(INCLUDE) $< -o $@
+
+%.o : %.cpp
+	$(CPP)  $(CCOPTS) $(INCLUDE) $< -o $@
 
 %.o: %.f
 	$(F77) $(F77OPTS) $(INCLUDE) $< -o $@

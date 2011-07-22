@@ -17,6 +17,7 @@ module scorec_mesh_mod
   real, private :: bb(4)
 
   logical, parameter :: IGNORE_PHI = .true.
+  logical, private :: initialized = .false.
 
 contains
 
@@ -65,9 +66,13 @@ contains
 #else 
     call loadmesh("struct.dmg", "struct-dmg.sms")
 #endif
+
+    initialized = .true.
   end subroutine load_mesh
 
   subroutine unload_mesh
+    if(.not. initialized) return
+
     call deletesearchstructure
     call clearscorecdata
 !    call scorecfinalize

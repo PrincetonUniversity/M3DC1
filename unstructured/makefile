@@ -101,7 +101,7 @@ BIN = m3dc1
 READGATO_OBJS = polar.o readgato.o
 READJSOLVER_OBJS = polar.o read_jsolver_exec.o
 
-OBJS := $(AUX) subp.o random.o spline.o \
+OBJS := $(AUX) read_namelist.o subp.o random.o spline.o \
 	math.o read_ascii.o interpolate.o control.o \
 	element.o $(V_OBJ) field.o nintegrate_mod.o \
 	M3Dmodules.o \
