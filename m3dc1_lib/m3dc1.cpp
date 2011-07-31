@@ -9,84 +9,6 @@ double pow(double x, int p)
   return r;
 }
 
-
-m3dc1_mesh::m3dc1_mesh(int n)
-{
-  a = new double[n];
-  b = new double[n];
-  c = new double[n];
-  co = new double[n];
-  sn = new double[n];
-  x = new double[n];
-  z = new double[n];
-  bound = new int[n];
-  nelms = n;
-}
-
-m3dc1_mesh::~m3dc1_mesh()
-{
-  delete[] a;
-  delete[] b;
-  delete[] c;
-  delete[] co;
-  delete[] sn;
-  delete[] x;
-  delete[] z;
-  delete[] bound;
-}
-
-void m3dc1_mesh::extent(double* X0, double* X1,
-			double* Phi0, double* Phi1,
-			double* Z0, double* Z1) const
-{
-  if(nelms==0) {
-    *X0 = *X1 = *Phi0 = *Phi1 = *Z0 = *Z1 = 0.;
-    return;
-  }
-
-  double R[3], Z[3];
-
-  *X0 = x[0];
-  *X1 = x[0];
-  *Z0 = z[0];
-  *Z1 = z[0];
-
-  for(int i=0; i<nelms; i++) {
-    R[0] = x[i];
-    R[1] = x[i] + (a[i]+b[i])*co[i];
-    R[2] = x[i] + b[i]*co[i] - c[i]*sn[i];
-    Z[0] = z[i];
-    Z[1] = z[i] + (a[i]+b[i])*sn[i];
-    Z[2] = z[i] + c[i]*co[i] + b[i]*sn[i];
-
-    for(int j=0; j<3; j++) {
-      if(R[j] < *X0) *X0 = R[j];
-      if(R[j] > *X1) *X1 = R[j];
-      if(Z[j] < *Z0) *Z0 = Z[j];
-      if(Z[j] > *Z1) *Z1 = Z[j];
-    }
-  }
-
-  *Phi0 = 0.;
-  *Phi1 = 0.;
-}
-
-m3dc1_3d_mesh::m3dc1_3d_mesh(int n)
-  : m3dc1_mesh(n)
-{
-  d = new double[n];
-  phi = new double[n];
-}
-
-m3dc1_3d_mesh::~m3dc1_3d_mesh()
-{
-  delete[] d;
-  delete[] phi;
-}
-
-
-
-
 const int m3dc1_field::mi[m3dc1_field::nbasis] = 
   { 0,1,0,2,1,0,3,2,1,0,4,3,2,1,0,5,3,2,1,0 };
 const int m3dc1_field::ni[m3dc1_field::nbasis] = 
@@ -106,13 +28,12 @@ m3dc1_field::~m3dc1_field()
 }
 
 bool m3dc1_field::eval(const double r, const double phi, const double z,
-		       const m3dc1_get_op op, double* val, int* element=0,
-		       int* guess=0, const int num_guesses=0)
+		       const m3dc1_get_op op, double* val, int* element)
 {
   double xi, eta, temp, co2, sn2, cosn;
   int e;
 
-  e = mesh->in_element(r, phi, z, &xi, 0, &eta, guess, num_guesses);
+  e = mesh->in_element(r, phi, z, &xi, 0, &eta);
   
   if(element) *element = e;
 
@@ -176,8 +97,7 @@ m3dc1_complex_field::~m3dc1_complex_field()
 bool m3dc1_complex_field::eval(const double r, const double phi, 
 			       const double z,
 			       const m3dc1_get_op op, double* val,
-			       int* element=0, 
-			       int* guess=0, const int num_guesses=0)
+			       int* element)
 {
   m3dc1_get_op new_op = (m3dc1_get_op)(op - (op & GET_PVAL) 
 				       - (op & GET_PPVAL));
@@ -188,14 +108,14 @@ bool m3dc1_complex_field::eval(const double r, const double phi,
   double co, sn;
 
   // get real values
-  if(!m3dc1_field::eval(r,phi,z,new_op,val_r,element,guess,num_guesses))
+  if(!m3dc1_field::eval(r,phi,z,new_op,val_r,element))
     return false;
 
   // get imaginary values
   temp = data;
   data = data_i;
   bool result = 
-    m3dc1_field::eval(r,phi,z,new_op,val_i,element,guess,num_guesses);
+    m3dc1_field::eval(r,phi,z,new_op,val_i,element);
   data = temp;
 
   if(!result) 
@@ -225,14 +145,13 @@ m3dc1_3d_field::m3dc1_3d_field(m3dc1_mesh* m)
 }
 
 bool m3dc1_3d_field::eval(const double r, const double phi, const double z,
-			  const m3dc1_get_op op, double* val, int* element=0,
-			  int* guess=0, const int num_guesses=0)
+			  const m3dc1_get_op op, double* val, int* element)
 {
   double xi, zi, eta, temp, co2, sn2, cosn;
   double v[6];
   int e;
 
-  e = mesh->in_element(r, phi, z, &xi, &zi, &eta, guess, num_guesses);
+  e = mesh->in_element(r, phi, z, &xi, &zi, &eta);
   
   if(element) *element = e;
 

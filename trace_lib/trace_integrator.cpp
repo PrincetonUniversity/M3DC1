@@ -189,7 +189,7 @@ double trace_integrator::find_min_bn(const double r, const double z)
 
     theta2 = atan2(bpar, bnorm);
 
-    std::cout << r << " " << dphi*i << " " << theta2 << std::endl;
+    //    std::cout << r << " " << dphi*i << " " << theta2 << std::endl;
 
     theta2 *= theta2;
     if(i==0 || theta2 < min_theta2) {

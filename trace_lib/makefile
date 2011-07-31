@@ -3,7 +3,7 @@ include $(M3DC1_ROOT)/install/make.inc.$(M3DC1_ARCH)
 LIBS := -L$(M3DC1_ROOT)/m3dc1_lib/_$(M3DC1_ARCH) -lm3dc1 \
 	$(HDF5_LIBS) $(LIBS) 
 
-INCLUDE := -I$(ROOT_DIR)/m3dc1_lib \
+INCLUDE := -I$(M3DC1_ROOT)/m3dc1_lib \
 	$(HDF5_INCLUDE) $(INCLUDE)
 
 OBJS = interpolate.o trace_source.o interpolation_source.o \
@@ -11,9 +11,9 @@ OBJS = interpolate.o trace_source.o interpolation_source.o \
 	diiid_coils.o trace_integrator.o
 
 trace : main.o libtrace.a
-	$(LD) $(LDFLAGS) $(CFLAGS) main.o -L. -ltrace $(LIBS) -o $@
+	$(LD) $(LDFLAGS) main.o -L. -ltrace $(LIBS) -o $@
 
-libtrace.a : $(OBJS) $(HEADERS)
+libtrace.a : $(OBJS)
 	$(ARCH) $@ $(OBJS) 
 #	$(DYLIB) $(LIBS) $(OBJS) -o $@
 

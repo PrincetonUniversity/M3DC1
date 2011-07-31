@@ -146,6 +146,9 @@ m3dc1_mesh* m3dc1_file::read_mesh(const int t)
   if(is_3d) mesh = new m3dc1_3d_mesh(nelms);
   else mesh = new m3dc1_mesh(nelms);
 
+  // set default mesh memory depth for searching
+  mesh->set_memory_depth(3);
+
   for(int i=0; i<nelms; i++) {
     mesh->a[i]     =      data[i*nfields  ];
     mesh->b[i]     =      data[i*nfields+1];

@@ -7,12 +7,6 @@
 #include <string>
 
 class m3dc1_source : public trace_field_source {
-  static const int memory_depth = 2;
-  int last_elm;
-  int** next_elm;
-
-  int hits, misses, evals, lost_shifts;
-
   m3dc1_file file;
   m3dc1_field *psi, *f, *g;
 
