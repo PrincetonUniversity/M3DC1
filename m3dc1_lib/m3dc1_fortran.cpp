@@ -13,7 +13,7 @@ struct field_data {
   m3dc1_field *field, *field0;
 };
 
-static typedef std::deque<field_data> handle_list;
+typedef std::deque<field_data> handle_list;
 static handle_list handles;
 
 
@@ -54,6 +54,17 @@ extern "C" void m3dc1_open_file_(const char* filename, int* ierr)
 extern "C" void m3dc1_close_file_()
 {
   file.close();
+}
+
+extern "C" void m3dc1_extent_(int *time, 
+			      double* r0, double* r1, 
+			      double* phi0, double* phi1,
+			      double* z0, double* z1, 
+			      int* ierr)
+{
+  *ierr = 0;
+  if(!file.extent(*time, r0, r1, phi0, phi1, z0, z1)) 
+    *ierr = 1;
 }
 
 extern "C" void m3dc1_load_field_(const char* n, int* time, int* h, int* ierr)

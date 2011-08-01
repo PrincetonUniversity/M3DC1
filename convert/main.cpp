@@ -4,14 +4,21 @@
 #include <iomanip>
 #include <math.h>
 
+double factor = 1;
+int NR, NZ, NPHI;
+double rmin, rmax, phimin, phimax, zmin, zmax;
+const int precision = 5;              // Precision of output
+const int width = precision + 8;
+
+std::ostream& write_header(std::ostream&);
+
 int main(int argc, const char* argv[])
 {
   const int MAX_SIZE = 100000000;       // Maximum allowed number of points
-  const int precision = 5;              // Precision of output
   const char filename_in[] = "C1.h5";   // Input file
-  const char filename_out[] = "B.out";  // Output file
-
-  int NR, NZ, NPHI;
+  const char filename_bout[] = "B.out"; // Magnetic field output file
+  const char filename_pout[] = "p.out"; // Pressure output file
+  const char filename_nout[] = "ne.out"; // Electron density output file
 
   if(argc < 4) {
     std::cout 
@@ -43,6 +50,7 @@ int main(int argc, const char* argv[])
   NR = atoi(argv[1]);
   NZ = atoi(argv[2]);
   NPHI = atoi(argv[3]);
+  if(argc>=5) factor = atof(argv[4]); 
 
   if(NR < 2 || NZ < 2 || NPHI < 2) {
     std::cerr << "Error: invalid number of points" << std::endl;
@@ -57,6 +65,7 @@ int main(int argc, const char* argv[])
 
   m3dc1_source source0(filename_in, -1);
   m3dc1_source source1(filename_in,  1);
+  source1.factor = factor;
 
   std::cerr << "loading ..." << std::endl;
   if(!source0.load()) {
@@ -65,10 +74,10 @@ int main(int argc, const char* argv[])
   if(!source1.load()) {
     return 1;
   }
-
   std::cerr << "done." << std::endl;
 
-  double rmin, rmax, phimin, phimax, zmin, zmax;
+  std::cout << "NR, NZ, PHI = " << NR << " " << NZ << " " << NPHI << std::endl;
+  std::cout << "factor = " << source1.factor << std::endl;
 
   // Read extent of domain
   source0.extent(&rmin, &rmax, &zmin, &zmax);
@@ -80,24 +89,14 @@ int main(int argc, const char* argv[])
   double dz   = (zmax - zmin)/(double)(NZ-1);
 
   // Open file for output
-  std::fstream file_out;
-  file_out.open(filename_out, std::fstream::out | std::fstream::trunc);
-  file_out.setf(std::ios::scientific,std::ios::floatfield);
-  file_out.precision(precision);
+  std::fstream file_bout, file_pout, file_nout;
+  file_bout.open(filename_bout, std::fstream::out | std::fstream::trunc);
+  file_pout.open(filename_pout, std::fstream::out | std::fstream::trunc);
+  file_nout.open(filename_nout, std::fstream::out | std::fstream::trunc);
 
-  // Write array dimensions
-  file_out << std::setw(5) << NR  
-	   << std::setw(5) << NZ 
-	   << std::setw(5) << NPHI << std::endl;
-  
-  // Write physical dimensions
-  const int width = precision + 8;
-  file_out << std::setw(width) << rmin 
-	   << std::setw(width) << rmax
-	   << std::setw(width) << zmin 
-	   << std::setw(width) << zmax 
-	   << std::setw(width) << phimin 
-	   << std::setw(width) << phimax << std::endl;
+  write_header(file_bout);
+  write_header(file_pout);
+  write_header(file_nout);
 
   // Write field data
   for(int i=0; i<NPHI; i++) {
@@ -110,18 +109,50 @@ int main(int argc, const char* argv[])
 	double Br = 0;
 	double Bz = 0;
 	double Bphi = 0;
+	double p = 0;
+	double n = 0;
 	source0.eval(R, Phi, Z, &Br, &Bphi, &Bz);
 	source1.eval(R, Phi, Z, &Br, &Bphi, &Bz);
-	file_out << std::setw(width) << Br 
-		 << std::setw(width) << Bz 
-		 << std::setw(width) << Bphi << '\n';
+	file_bout << std::setw(width) << Br 
+		  << std::setw(width) << Bz 
+		  << std::setw(width) << Bphi << '\n';
+	source0.eval_pn(R, Phi, Z, &p, &n);
+	source1.eval_pn(R, Phi, Z, &p, &n);
+	file_pout << std::setw(width) << p << '\n';
+	file_nout << std::setw(width) << n << '\n';
       }
     }
   }
 
-  file_out.close();
+  file_bout.close();
+  file_pout.close();
+  file_nout.close();
 
-  std::cout << "Done.  Field data output to " << filename_out << std::endl;
+  std::cout << "Done.\n" 
+	    << "Field data output to " << filename_bout << "\n"
+	    << "Pressure data output to " << filename_pout << "\n"
+	    << "Density data output to " << filename_nout << std::endl;
 
   return 0;
+}
+
+std::ostream& write_header(std::ostream& os)
+{
+  os.setf(std::ios::scientific,std::ios::floatfield);
+  os.precision(precision);
+
+  // Write array dimensions
+  os << std::setw(5) << NR  
+     << std::setw(5) << NZ 
+     << std::setw(5) << NPHI << std::endl;
+  
+  // Write physical dimensions
+  os << std::setw(width) << rmin 
+     << std::setw(width) << rmax
+     << std::setw(width) << zmin 
+     << std::setw(width) << zmax 
+     << std::setw(width) << phimin 
+     << std::setw(width) << phimax << std::endl;
+
+  return os;
 }

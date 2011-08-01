@@ -7,7 +7,7 @@ F90FLAGS = -O3 -Wall
 DYLIB = $(CC) $(CFLAGS) -dynamiclib
 ARCH = ar cr
 
-LD = openmpic++
+LD = openmpif90 -lmpi_cxx -lstdc++
 LDFLAGS = 
 
 HDF5_LIBS =  -L/usr/local/hdf5-1.8.5/hdf5/lib -lhdf5 -lz

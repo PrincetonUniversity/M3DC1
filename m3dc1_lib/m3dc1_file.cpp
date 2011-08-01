@@ -347,3 +347,16 @@ bool m3dc1_file::unload_field(const char* n, int t)
   return true;
 }
 
+bool m3dc1_file::extent(const int t, double* r0, double* r1, 
+			double* phi0, double* phi1, 
+			double* z0, double* z1)
+{
+  m3dc1_timeslice* ts = load_timeslice(t);
+
+  if(!ts) return false;
+
+  ts->mesh->extent(r0, r1, phi0, phi1, z0, z1); 
+  return true;
+}
+
+

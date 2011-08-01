@@ -14,7 +14,7 @@ libm3dc1_fortran.a : m3dc1_fortran.o
 	$(ARCH) $@ $<
 
 m3dc1_fortran_test : test.o libm3dc1_fortran.a libm3dc1.a
-	$(F90) $< -L. -lm3dc1_fortran -lm3dc1 $(LIBS) -lmpi_cxx -lstdc++ -o $@
+	$(LD) $< -L. -lm3dc1_fortran -lm3dc1 $(LIBS) -o $@
 
 install : m3dc1_fortran_test
 	cp m3dc1_fortran_test $(M3DC1_INSTALL_DIR)
