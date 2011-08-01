@@ -11,11 +11,10 @@ OBJS = interpolate.o trace_source.o interpolation_source.o \
 	diiid_coils.o trace_integrator.o
 
 trace : main.o libtrace.a
-	$(LD) $(LDFLAGS) main.o -L. -ltrace $(LIBS) -o $@
+	$(LD) $(LDFLAGS) $< -L. -ltrace $(LIBS) -o $@
 
 libtrace.a : $(OBJS)
 	$(ARCH) $@ $(OBJS) 
-#	$(DYLIB) $(LIBS) $(OBJS) -o $@
 
 install : trace
 	cp trace $(M3DC1_INSTALL_DIR)

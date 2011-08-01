@@ -105,12 +105,13 @@ class m3dc1_3d_mesh : public m3dc1_mesh {
   double *d;
 
   virtual int in_element(double X, double Phi, double Z, 
-			 double* xi=0, double* zi=0, double* eta=0)
+			 double* xi=0, double* zi=0, double* eta=0, 
+			 int guess=-1)
   {
     while(Phi < 0       ) Phi += 2.*M_PI;
     while(Phi >= 2.*M_PI) Phi -= 2.*M_PI;
 
-    return m3dc1_mesh::in_element(X, Phi, Z, xi, zi, eta);
+    return m3dc1_mesh::in_element(X, Phi, Z, xi, zi, eta, guess);
   }
 
 

@@ -29,4 +29,4 @@ clean :
 	$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
 
 %.o : %.f90
-	$(F90) $(F90FLAGS) -fdefault-real-8 -c $< -o $@
+	$(F90) $(F90FLAGS) -c $< -o $@

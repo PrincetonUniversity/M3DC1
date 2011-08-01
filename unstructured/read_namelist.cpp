@@ -148,7 +148,7 @@ extern "C" {
 	  }
 
 	  std::cout << "Warning: variable not recognized: " 
-		    << op1 << std::endl;
+		    << "|" << op1 << "|" << std::endl;
 	  ierr = 1;
 	}
       }

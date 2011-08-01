@@ -16,7 +16,7 @@ m3dc1_convert : $(OBJS)
 	$(LD) $(LDFLAGS) $+ $(LIBS) -o $@
 
 install : m3dc1_convert
-	cp m3dc1_convert $(M3DC1_INSTALL_DIR)/
+	cp m3dc1_convert $(M3DC1_INSTALL_DIR)
 
 clean : 
 	rm -fr *.o *.so *.a *~ _$(M3DC1_ARCH)
@@ -28,4 +28,4 @@ clean :
 	$(CC) $< -c $(CFLAGS) $(INCLUDE) -o $@
 
 %.o : %.f90
-	$(F90) -fdefault-real-8 $< -c $(F90FLAGS) -o $@
+	$(F90) $< -c $(F90FLAGS) -o $@
