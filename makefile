@@ -4,10 +4,7 @@ dirs = m3dc1_lib trace_lib convert
 
 all : $(dirs)
 
-install :
-	cd m3dc1_lib ; make install
-	cd trace_lib ; make install
-	cd convert ; make install
+install : $(dirs)
 
 clean : 
 	cd m3dc1_lib ; make clean

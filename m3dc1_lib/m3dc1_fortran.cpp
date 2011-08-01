@@ -10,7 +10,7 @@ static int eqsubtract;
 struct field_data {
   std::string name;
   int time;
-  m3dc1_field* field;
+  m3dc1_field *field, *field0;
 };
 
 static typedef std::deque<field_data> handle_list;
@@ -58,19 +58,26 @@ extern "C" void m3dc1_close_file_()
 
 extern "C" void m3dc1_load_field_(const char* n, int* time, int* h, int* ierr)
 {
-  *ierr = 0;
-  m3dc1_field* field = file.load_field(n, *time);
+  field_data fd;
 
-  if(!field) {
+  *ierr = 0;
+  fd.field = file.load_field(n, *time);
+  if(!fd.field) {
     *ierr = 1;
     return;
   }
+
+  if(eqsubtract==1) {
+    fd.field0 = file.load_field(n, -1);
+    if(!fd.field0) {
+      *ierr = 2;
+      return;
+    }
+  }
  
   *h = handles.size();
-  field_data fd;
   fd.name = n;
   fd.time = *time;
-  fd.field = field;
   handles.push_back(fd);
 }
 
@@ -99,9 +106,22 @@ extern "C" void m3dc1_eval_field_(const int* h,
 
   handle_list::const_reference i = handles.at(*h);
 
-  if(!i.field->eval(*r, *phi, *z, op, v)) {
+  double val[m3dc1_field::OP_NUM];
+
+  if(!i.field->eval(*r, *phi, *z, op, val)) {
     *ierr = 1;
     return;
+  }
+
+  *v = val[m3dc1_field::OP_1];
+
+  if(eqsubtract==1) {
+    if(!i.field0->eval(*r, *phi, *z, op, val)) {
+      *ierr = 2;
+      return;
+    }
+
+    *v += val[m3dc1_field::OP_1];
   }
 }
 
@@ -184,13 +204,13 @@ extern "C" void m3dc1_eval_magnetic_field_(const double* r,
   *b_z += val[m3dc1_field::OP_DR] / *r;
 
   if(!g->eval(*r, *phi, *z, gget, val)) {
-    *ierr = 1;
+    *ierr = 2;
     return;
   }
   *b_phi = val[m3dc1_field::OP_1] / *r;
 
   if(!f->eval(*r, *phi, *z, fget, val)) {
-    *ierr = 1;
+    *ierr = 3;
     return;
   }
   *b_r -= val[m3dc1_field::OP_DRP];
@@ -198,14 +218,14 @@ extern "C" void m3dc1_eval_magnetic_field_(const double* r,
 
   if(eqsubtract==1) {
     if(!psi0->eval(*r, *phi, *z, psiget, val)) {
-      *ierr = 1;
+      *ierr = 4;
       return;
     }
     *b_r -= val[m3dc1_field::OP_DZ] / *r;
     *b_z += val[m3dc1_field::OP_DR] / *r;
 
     if(!g0->eval(*r, *phi, *z, gget, val)) {
-      *ierr = 1;
+      *ierr = 5;
       return;
     }
     *b_phi = val[m3dc1_field::OP_1] / *r;

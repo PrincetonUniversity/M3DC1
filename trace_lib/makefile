@@ -18,7 +18,7 @@ libtrace.a : $(OBJS)
 #	$(DYLIB) $(LIBS) $(OBJS) -o $@
 
 install : trace
-	cp trace $(INSTALL_DIR)/
+	cp trace $(M3DC1_INSTALL_DIR)
 
 clean : 
 	rm -fr *.o *.so *.a *~ _$(M3DC1_ARCH)

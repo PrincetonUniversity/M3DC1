@@ -41,9 +41,9 @@ bool m3dc1_source::load()
   Z_axis = zmag->at(0);
 
   std::cerr << "reading fields" << std::endl;
-  psi = file.read_field("psi", time);
-  g = file.read_field("I", time);
-  f = file.read_field("f", time);
+  psi = file.load_field("psi", time);
+  g = file.load_field("I", time);
+  f = file.load_field("f", time);
 
   if(!psi || !g || !f)
     return false;

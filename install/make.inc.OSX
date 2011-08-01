@@ -1,7 +1,7 @@
 CC = openmpic++
 CFLAGS = -fast -Wall
 
-F90 = gfortran-mp-4.3
+F90 = openmpif90
 F90FLAGS = -O3 -Wall
 
 DYLIB = $(CC) $(CFLAGS) -dynamiclib
