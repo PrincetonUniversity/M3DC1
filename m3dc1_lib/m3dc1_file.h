@@ -20,7 +20,7 @@ class m3dc1_file {
   bool time_name(int time, char* name);
   hid_t open_timeslice(int time);
   m3dc1_mesh* read_mesh(int time);
-  m3dc1_timeslice* read_timeslice(const int time);
+  m3dc1_timeslice* load_timeslice(const int time);
 
  public:
   m3dc1_file();
@@ -30,7 +30,8 @@ class m3dc1_file {
   bool close();
 
   m3dc1_scalar_list* read_scalar(const char*);
-  m3dc1_field* read_field(const char* name, const int time);
+  m3dc1_field* load_field(const char* name, const int time);
+  bool unload_field(const char* name, const int time);
   bool read_parameter(const char*, int*); 
   bool read_parameter(const char*, double*); 
 

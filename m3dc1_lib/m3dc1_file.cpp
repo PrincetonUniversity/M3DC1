@@ -53,7 +53,7 @@ hid_t m3dc1_file::open_timeslice(int t)
   return time_group;
 }
 
-m3dc1_timeslice* m3dc1_file::read_timeslice(const int t)
+m3dc1_timeslice* m3dc1_file::load_timeslice(const int t)
 {
   char name[256];
   m3dc1_timeslice_map::iterator i;
@@ -235,14 +235,14 @@ m3dc1_scalar_list* m3dc1_file::read_scalar(const char* name)
   return s;
 }
 
-m3dc1_field* m3dc1_file::read_field(const char* n, const int t)
+m3dc1_field* m3dc1_file::load_field(const char* n, const int t)
 {
   hid_t fields_group, field_dataset, fieldi_dataset;
   std::map<std::string, m3dc1_field*>::iterator i;
   std::string name = n;
   std::string name_i = name + "_i";
 
-  m3dc1_timeslice* ts = read_timeslice(t);
+  m3dc1_timeslice* ts = load_timeslice(t);
   if(!ts) {
     std::cerr << "Error reading timeslice" << std::endl;
     return 0;
@@ -319,5 +319,31 @@ m3dc1_field* m3dc1_file::read_field(const char* n, const int t)
     m3dc1_timeslice::m3dc1_field_map::value_type(name, field));
 
   return field;
+}
+
+bool m3dc1_file::unload_field(const char* n, int t)
+{
+  m3dc1_timeslice_map::iterator its;
+
+  // Check if timeslice is loaded
+  its = timeslice_map.find(t);
+  if(its == timeslice_map.end()) {
+    std::cerr << "Timeslice " << t << " is not loaded."  << std::endl;
+    return false;
+  }
+  m3dc1_timeslice* ts = &its->second;
+
+  // Check if field is loaded
+  std::string name = n;
+  std::map<std::string, m3dc1_field*>::iterator i;
+  i = ts->field_map.find(name);
+  if(i == ts->field_map.end()) {
+    std::cerr << "Field " << name << " is not loaded." << std::endl;
+    return false;
+  }
+  
+  // Unload field
+  ts->field_map.erase(i);
+  return true;
 }
 
