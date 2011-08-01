@@ -3,7 +3,7 @@ include $(M3DC1_ROOT)/install/make.inc.$(M3DC1_ARCH)
 LIBS := $(HDF5_LIBS) $(LIBS)
 INCLUDE := $(HDF5_INCLUDE) $(INCLUDE)
 
-OBJS = m3dc1_mesh.o m3dc1.o m3dc1_file.o
+OBJS = m3dc1_mesh.o m3dc1_field.o m3dc1_file.o
 
 all : libm3dc1.a
 

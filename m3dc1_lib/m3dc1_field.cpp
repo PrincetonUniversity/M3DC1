@@ -1,4 +1,4 @@
-#include "m3dc1.h"
+#include "m3dc1_field.h"
 #include <math.h>
 
 double pow(double x, int p)

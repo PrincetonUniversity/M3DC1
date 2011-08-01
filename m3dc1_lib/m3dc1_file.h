@@ -1,7 +1,7 @@
 #ifndef M3DC1_FILE_H
 #define M3DC1_FILE_H
 
-#include "m3dc1.h"
+#include "m3dc1_field.h"
 #include <map>
 #include <string>
 #include <vector>
