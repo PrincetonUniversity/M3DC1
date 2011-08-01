@@ -68,7 +68,6 @@ bool m3dc1_source::eval(const double r, const double phi, const double z,
     (m3dc1_field::m3dc1_get_op) 
     (m3dc1_field::GET_DVAL | m3dc1_field::GET_PVAL);
 
-
   double val[m3dc1_field::OP_NUM];
 
   // B_R   = -(dpsi/dZ)/R - (d2f/dRdphi)

@@ -32,8 +32,10 @@ bool m3dc1_field::eval(const double r, const double phi, const double z,
 {
   double xi, eta, temp, co2, sn2, cosn;
   int e;
+  
+  int guess = (element ? *element : -1);
 
-  e = mesh->in_element(r, phi, z, &xi, 0, &eta);
+  e = mesh->in_element(r, phi, z, &xi, 0, &eta, guess);
   
   if(element) *element = e;
 

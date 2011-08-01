@@ -1,6 +1,5 @@
 #include "m3dc1_file.h"
 
-#include <iostream>
 #include <deque>
 
 static m3dc1_file file;
@@ -48,7 +47,6 @@ extern "C" void m3dc1_open_file_(const char* filename, int* ierr)
     *ierr = 2;
     return;
   }
-
 }
 
 extern "C" void m3dc1_close_file_()
@@ -117,9 +115,10 @@ extern "C" void m3dc1_eval_field_(const int* h,
 
   handle_list::const_reference i = handles.at(*h);
 
+  int guess = -1;
   double val[m3dc1_field::OP_NUM];
 
-  if(!i.field->eval(*r, *phi, *z, op, val)) {
+  if(!i.field->eval(*r, *phi, *z, op, val, &guess)) {
     *ierr = 1;
     return;
   }
@@ -127,7 +126,7 @@ extern "C" void m3dc1_eval_field_(const int* h,
   *v = val[m3dc1_field::OP_1];
 
   if(eqsubtract==1) {
-    if(!i.field0->eval(*r, *phi, *z, op, val)) {
+    if(!i.field0->eval(*r, *phi, *z, op, val, &guess)) {
       *ierr = 2;
       return;
     }
@@ -203,24 +202,26 @@ extern "C" void m3dc1_eval_magnetic_field_(const double* r,
   // B_Z   =  (dpsi/dR)/R - (d2f/dZdphi)
   // B_Phi =  F/R
 
+  int guess = -1;
+
   *b_r = 0;
   *b_z = 0;
   *b_phi = 0;
 
-  if(!psi->eval(*r, *phi, *z, psiget, val)) {
+  if(!psi->eval(*r, *phi, *z, psiget, val, &guess)) {
     *ierr = 1;
     return;
   }
   *b_r -= val[m3dc1_field::OP_DZ] / *r;
   *b_z += val[m3dc1_field::OP_DR] / *r;
 
-  if(!g->eval(*r, *phi, *z, gget, val)) {
+  if(!g->eval(*r, *phi, *z, gget, val, &guess)) {
     *ierr = 2;
     return;
   }
   *b_phi = val[m3dc1_field::OP_1] / *r;
 
-  if(!f->eval(*r, *phi, *z, fget, val)) {
+  if(!f->eval(*r, *phi, *z, fget, val, &guess)) {
     *ierr = 3;
     return;
   }
@@ -228,14 +229,14 @@ extern "C" void m3dc1_eval_magnetic_field_(const double* r,
   *b_z -= val[m3dc1_field::OP_DZP];
 
   if(eqsubtract==1) {
-    if(!psi0->eval(*r, *phi, *z, psiget, val)) {
+    if(!psi0->eval(*r, *phi, *z, psiget, val, &guess)) {
       *ierr = 4;
       return;
     }
     *b_r -= val[m3dc1_field::OP_DZ] / *r;
     *b_z += val[m3dc1_field::OP_DR] / *r;
 
-    if(!g0->eval(*r, *phi, *z, gget, val)) {
+    if(!g0->eval(*r, *phi, *z, gget, val, &guess)) {
       *ierr = 5;
       return;
     }
@@ -244,3 +245,25 @@ extern "C" void m3dc1_eval_magnetic_field_(const double* r,
 
   *ierr = 0;
 }
+
+// the following are provided for backward compatibility
+extern "C" void m3dc1_load_file_(int* time,  int* ierr)
+{
+  m3dc1_open_file_("C1.h5", ierr);
+  if(*ierr != 0) return;
+
+  m3dc1_load_magnetic_field_(time, ierr);
+}
+
+extern "C" void m3dc1_unload_file_()
+{
+  m3dc1_close_file_();
+}
+
+extern "C" void m3dc1_get_field_(const double* R, const double* Phi, const double* Z, 
+				 double* Br, double* Bphi, double* Bz)
+{
+  int ierr;
+  m3dc1_eval_magnetic_field_(R, Phi, Z, Br, Bphi, Bz, &ierr);
+}
+

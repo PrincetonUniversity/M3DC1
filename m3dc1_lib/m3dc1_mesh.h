@@ -71,7 +71,8 @@ class m3dc1_mesh {
     return false;
   }
   virtual int in_element(double X, double Phi, double Z, 
-			 double* xi=0, double* zi=0, double* eta=0);
+			 double* xi=0, double* zi=0, double* eta=0, 
+			 int guess=-1);
 
   virtual void extent(double *X0, double* X1,
 		      double *Phi0, double* Phi1,

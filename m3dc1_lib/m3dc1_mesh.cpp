@@ -109,8 +109,18 @@ bool m3dc1_mesh::set_memory_depth(const int d)
 }
 
 int m3dc1_mesh::in_element(double X, double Phi, double Z, 
-		 double* xi, double* zi, double* eta)
+			   double* xi, double* zi, double* eta,
+			   int guess)
 {
+  // if a guess is provided, test it
+  if(guess >= 0) {
+    if(is_in_element(guess,X,Phi,Z,xi,zi,eta)) {
+      hits++;
+      last_elm = guess;
+      return guess;
+    }
+  }
+
   if(last_elm >= 0) {
     // first, check last elm
     if(is_in_element(last_elm,X,Phi,Z,xi,zi,eta)) {

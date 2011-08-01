@@ -1,5 +1,4 @@
 program m3dc1_fortran_test
-
   implicit none
 
   integer :: i, j, k, ierr
@@ -9,9 +8,9 @@ program m3dc1_fortran_test
   integer :: nr, nz, nphi
   integer, parameter :: MAX_SIZE = 100000000
 
-  integer, parameter :: bout = 5
-  integer, parameter :: pout = 6
-  integer, parameter :: nout = 7
+  integer, parameter :: bout = 51
+  integer, parameter :: pout = 52
+  integer, parameter :: nout = 53
   
   real :: rmin, rmax, zmin, zmax, phimin, phimax
   real :: dr, dphi, dz
@@ -75,7 +74,7 @@ program m3dc1_fortran_test
   end if
 
   write(*,'(A,3I6)') "NR, NZ, NPHI = ", NR, NZ, NPHI
-  write(*,'(A,1G17.10)') "Factor = ", factor
+  write(*,'(A,1E13.5)') "Factor = ", factor
 
   call m3dc1_extent(timeslice, rmin, rmax, phimin, phimax, zmin, zmax, ierr)
 
@@ -95,6 +94,7 @@ program m3dc1_fortran_test
 
   do i=1, nphi
      phi = dphi*(i-1) + phimin
+     write(*, '("Plane ",I5,";  Phi = ",E13.5)') i, phi
      do j=1, nz
         z = dz*(j-1) + zmin
         do k=1, nr
@@ -107,13 +107,13 @@ program m3dc1_fortran_test
            bz = 0
 
            call m3dc1_eval_magnetic_field(r, phi, z, br, bphi, bz, ierr)
-           write(bout, '(3G17.10)') br, bphi, bz
+           write(bout, '(3E13.5)') br, bz, bphi
 
            call m3dc1_eval_field(n_handle, r, phi, z, n, ierr)
-           write(nout, '(1G17.10)') n
+           write(nout, '(1E13.5)') n
 
            call m3dc1_eval_field(p_handle, r, phi, z, p, ierr)
-           write(nout, '(1G17.10)') p
+           write(nout, '(1E13.5)') p
         end do
      end do
   end do
@@ -136,7 +136,7 @@ subroutine write_header(ifile)
   common nr, nz, nphi, rmin, rmax, zmin, zmax, phimin, phimax
 
   write(ifile,'(3I5)')   nr, nz, nphi
-  write(ifile,'(6G17.10)') rmin, rmax, zmin, zmax, phimin, phimax
+  write(ifile,'(6E13.5)') rmin, rmax, zmin, zmax, phimin, phimax
 end subroutine write_header
 
 subroutine print_usage
