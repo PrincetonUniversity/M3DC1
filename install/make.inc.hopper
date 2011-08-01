@@ -1,0 +1,17 @@
+CC = h5c++
+CFLAGS = -fast
+
+F90 = h5fc
+F90FLAGS = -O3 -Mr8 -Minform=warn
+
+DYLIB = $(CC) $(CFLAGS) -dynamiclib
+ARCH = ar cr
+
+LD = ftn
+LDFLAGS = -Mnomain
+
+LIBS = -lstd -lC
+
+HDF5_LIBS = -lhdf5 -lz
+HDF5_INCLUDE = 
+
