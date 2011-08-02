@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <math.h>
 #include <time.h>
+#include <mpi.h>
 
 trace_integrator tracer;
 int transits = 100;
@@ -33,13 +34,22 @@ double phase_set = false;
 
 void print_help();
 void print_parameters();
-bool process_command_line(int argc, const char* argv[]);
+bool process_command_line(int argc, char* argv[]);
 bool process_line(const std::string& opt, const int argc, 
 		  const std::string argv[]);
 void delete_sources();
 
-int main(int argc, const char* argv[])
+int my_offset(const int rank, const int size);
+int my_size(const int rank, const int size);
+
+int main(int argc, char* argv[])
 {
+  int size, rank;
+
+  MPI_Init(&argc, &argv);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
   if(!process_command_line(argc, argv)) {
     print_help();
     return 1;
@@ -82,37 +92,45 @@ int main(int argc, const char* argv[])
 	     << "set ylabel 'Z'" << '\n'
 	     << "set pointsize 0.1" << '\n'
 	     << "plot ";
+
+    for(int j=0; j<surfaces; j++) {
+      sprintf(outfile, "out%d", j);     
+      if(j>0) plotfile << ",\\\n";
+      plotfile << "'" << outfile << "'" << " title ''";
+    }
+    plotfile << std::endl;
+    plotfile.flush();
   }
 
-  std::fstream qfile;
-  std::fstream phile;
-  if(qout) {
-    qfile.open("q.out", std::fstream::out | std::fstream::trunc);
-    phile.open("phase.out", std::fstream::out | std::fstream::trunc);
+  int* offsets = new int[size];
+  int* local_surfaces = new int[size];
+
+  for(int i=0; i<size; i++) {
+    offsets[i] = my_offset(i, size);
+    local_surfaces[i] = my_size(i, size);
   }
 
-  std::fstream dfile;
-  dfile.open("distance.out", std::fstream::out | std::fstream::trunc);
+  double *my_q_min, *my_q_max, *my_q_mean, *my_r, *my_phase;
+  my_r = new double[local_surfaces[rank]];
+  my_q_min = new double[local_surfaces[rank]];
+  my_q_max = new double[local_surfaces[rank]];
+  my_q_mean = new double[local_surfaces[rank]];
+  my_phase = new double[local_surfaces[rank]];
 
   time_t t1 = time(0);
-  for(int j=0; j<surfaces; j++) {
-    double R = R0 + dR0 + dR*j;
-    double Z = Z0 + dZ0 + dZ*j;
+  for(int j=0; j<local_surfaces[rank]; j++) {
+    int s = j + offsets[rank];
+    double R = R0 + dR0 + dR*s;
+    double Z = Z0 + dZ0 + dZ*s;
     double *rr, *zz;
     bool result;
 
     int n;
 
     if(pout)  {
-      sprintf(outfile, "out%d", j);
+      sprintf(outfile, "out%d", s);
       tracer.open_file(outfile);
-
-      if(j>0) plotfile << ",\\\n";
-      plotfile << "'" << outfile << "'" << " title ''";
-      plotfile.flush();
     }
-
-    double r = sqrt((R - R_axis)*(R - R_axis) + (Z - Z_axis)*(Z - Z_axis));
 
     if(ds==0.) {
       n = 1;
@@ -130,13 +148,18 @@ int main(int argc, const char* argv[])
       }
     }
 
-    std::cerr << "Surface " << j+1 << " of " << surfaces
+    my_r[j] = sqrt((R - R_axis)*(R - R_axis) + (Z - Z_axis)*(Z - Z_axis));
+    my_phase[j] = Phi;
+
+    std::cerr << "Surface " << s+1 << " of " << surfaces
 	      << " (" << n << " pts at this surface)" << std::endl;
     std::cerr << "(" << R << "," << Phi <<  ", "  << Z << ") ... ";
 
     // Cycle through surface points
     trace_integrator::integrator_data data;
-    double mean_q = 0., max_q = 0., min_q = 0.;
+    my_q_mean[j] = 0.;
+    my_q_max[j] = 0.;
+    my_q_min[j] = 0.;
     int tt = 0;
     result = false;
     for(int k=0; k<n; k++) {   
@@ -144,7 +167,7 @@ int main(int argc, const char* argv[])
       else Phi = tracer.find_min_bn(rr[k],zz[k]);
 
       std::cerr << atan2(zz[k] - Z_axis, rr[k] - R_axis) << "\t";
-      dfile << rr[k] << '\t' <<  zz[k] << '\t';
+      //      dfile << rr[k] << '\t' <<  zz[k] << '\t';
       tracer.set_pos(rr[k],Phi,zz[k]);
 
       // perform integration
@@ -154,23 +177,19 @@ int main(int argc, const char* argv[])
       //      if(result)
       //	dfile << 0. << std::endl;
       //      else
-      dfile << data.distance << '\t' << log10(data.distance) << std::endl;
+      //      dfile << data.distance << '\t' << log10(data.distance) << std::endl;
 
-      if(k==0 || data.q < min_q) min_q = data.q;
-      if(k==0 || data.q > max_q) max_q = data.q;
+      if(k==0 || data.q < my_q_min[j]) my_q_min[j] = data.q;
+      if(k==0 || data.q > my_q_max[j]) my_q_max[j] = data.q;
 				   
-      mean_q += data.q*data.toroidal_transits;
+      my_q_mean[j] += data.q*data.toroidal_transits;
       tt += data.toroidal_transits;
     }
-    mean_q /= (double)tt;
+    my_q_mean[j] /= (double)tt;
     
-    std::cerr << tt << " tor. transits, " << "q = " << mean_q << std::endl;
+    std::cerr << my_r[j] << " tor. transits, q = " << my_q_mean[j] << std::endl;
 
-    if(result && qout) {
-      qfile << r << '\t' << mean_q << "\t" << min_q << "\t" << max_q 
-	    << std::endl;
-      phile << r << " " << Phi << std::endl;
-    }
+    tracer.close_file();
 
     delete[] rr;
     delete[] zz;
@@ -178,17 +197,74 @@ int main(int argc, const char* argv[])
   time_t t2 = time(0);
   std::cerr << "Computation completed in " << t2 - t1 << " s." << std::endl;
 
-  dfile.close();
+  
+  // assemble and write data
+  // ~~~~~~~~~~~~~~~~~~~~~~~
 
+  // allocate global data
+  double *total_r, *total_q_min, *total_q_max, *total_q_mean, *total_phase;
+
+  if(rank==0) {
+    total_r = new double[surfaces];
+    if(qout) {
+      total_q_min = new double[surfaces];
+      total_q_max = new double[surfaces];
+      total_q_mean = new double[surfaces];
+      total_phase = new double[surfaces];
+    }
+  }
+  
+  MPI_Gatherv(my_r, local_surfaces[rank], MPI_DOUBLE, 
+	      total_r, local_surfaces, offsets, MPI_DOUBLE, 
+	      0, MPI_COMM_WORLD);
   if(qout) {
-    phile.close();
-    qfile.close();
+    MPI_Gatherv(my_q_min, local_surfaces[rank], MPI_DOUBLE, 
+		total_q_min, local_surfaces, offsets, MPI_DOUBLE, 
+		0, MPI_COMM_WORLD);
+    MPI_Gatherv(my_q_max, local_surfaces[rank], MPI_DOUBLE, 
+		total_q_max, local_surfaces, offsets, MPI_DOUBLE, 
+		0, MPI_COMM_WORLD);
+    MPI_Gatherv(my_q_mean, local_surfaces[rank], MPI_DOUBLE, 
+		total_q_mean, local_surfaces, offsets, MPI_DOUBLE, 
+		0, MPI_COMM_WORLD);
+    MPI_Gatherv(my_phase, local_surfaces[rank], MPI_DOUBLE, 
+		total_phase, local_surfaces, offsets, MPI_DOUBLE, 
+		0, MPI_COMM_WORLD);
   }
 
-  if(pout) {
-    plotfile << std::endl;
-    plotfile.close();
+  if(rank==0) {
+    // write data
+    if(qout) {
+      std::fstream qfile;     
+      qfile.open("q.out", std::fstream::out | std::fstream::trunc);
+      for(int i=0; i<surfaces; i++) {
+	qfile << total_r[i] << '\t' 
+	      << total_q_mean[i] << '\t'
+	      << total_q_min[i] << '\t'
+	      << total_q_max[i] << '\n';
+      }
+      qfile.close();
+    }
+    
+    // delete global data
+    delete[] total_r;
+    if(qout) {
+      delete[] total_q_min;
+      delete[] total_q_max;
+      delete[] total_q_mean;
+      delete[] total_phase;
+    }
   }
+
+  // delete local data
+  delete[] my_r;
+  delete[] my_q_min;
+  delete[] my_q_max;
+  delete[] my_q_mean;
+  delete[] my_phase;
+
+  delete[] offsets;
+  delete[] local_surfaces;
 
   std::cerr << "Deleting sources." << std::endl;
   delete_sources();
@@ -196,6 +272,8 @@ int main(int argc, const char* argv[])
   std::cerr << "===============================\n" 
 	    << "Poincare computation complete.\n"
 	    << "To view Poincare plot, use 'gnuplot gplot'" << std::endl;
+
+  MPI_Finalize();
 
   return 0;
 }
@@ -211,7 +289,7 @@ void delete_sources()
   }
 }
 
-bool process_command_line(int argc, const char* argv[])
+bool process_command_line(int argc, char* argv[])
 {
   const int max_args = 3;
   const int num_opts = 15;
@@ -258,6 +336,19 @@ bool process_command_line(int argc, const char* argv[])
   return true;
 
 }
+
+int my_offset(const int rank, const int size)
+{
+  return rank*(surfaces/size);
+}
+
+int my_size(const int rank, const int size)
+{
+  int min = my_offset(rank, size);
+  int max = (rank==size-1) ? surfaces : my_offset(rank+1, size);
+  return max-min;
+}
+
 
 bool process_line(const std::string& opt, const int argc, const std::string argv[])
 {
