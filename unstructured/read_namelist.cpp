@@ -1,99 +1,161 @@
-#include <map>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <string>
-#include "mpi.h"
+#include <map>
+#include <mpi.h>
 
-typedef std::map<std::string, double*> double_variable_list;
-typedef std::map<std::string, int*> int_variable_list;
+#define INT_TYPE    0
+#define DOUBLE_TYPE 1
 
-static double_variable_list double_variables;
-static int_variable_list int_variables;
+struct variable {
+  std::string name;
+  std::string description;
+  int group;
+  void* data;
 
-static void communicate_ints()
-{
-  int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  
-  int n = int_variables.size();
-  int* vals = new int[n];
-
-  if(rank==0) {
-    int j=0;
-    int_variable_list::iterator i = int_variables.begin();
-    while(i != int_variables.end()) {
-      vals[j] = *(i->second);
-      i++;
-      j++; 
-    }
+  variable(std::string n, void* var, std::string desc, int g)
+  { 
+    name = n;
+    description = desc;
+    data = var;
+    group = g;
   }
-  
-  MPI_Bcast(vals, n, MPI_INTEGER, 0, MPI_COMM_WORLD);
-  
-  if(rank != 0) {
-    int j=0;
-    int_variable_list::iterator i = int_variables.begin();
-    while(i != int_variables.end()) {
-      *(i->second) = vals[j];
-      i++;
-      j++; 
-    }
-  }
-}
-  
-static void communicate_doubles()
-{
-  int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  
-  int n = double_variables.size();
-  double* vals = new double[n];
-  
-  if(rank==0) {
-    int j=0;
-    double_variable_list::iterator i = double_variables.begin();
-    while(i != double_variables.end()) {
-      vals[j] = *(i->second);
-      i++;
-      j++; 
-    }
-  }
-  
-  MPI_Bcast(vals, n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-  
-  if(rank != 0) {
-    int j=0;
-    double_variable_list::iterator i = double_variables.begin();
-    while(i != double_variables.end()) {
-      *(i->second) = vals[j];
-      i++;
-      j++; 
-    }
-  }
-  
-  delete[] vals;
-}
-
-extern "C" {
-  void add_variable_int_(const char* name, int* v, int* def)
+  int get_group() const { return group; }
+  virtual int get_type() const = 0;
+  virtual bool read(const std::string) = 0;
+  virtual void printval() const = 0;
+  virtual void print(bool print_desc) const
   {
-    std::string s(name);
-    *v = *def;
-    int_variables[s] = v;
+    std::cout << std::setw(20) << std::left << name << " = ";
+    printval();
+    if(print_desc && description.length()) {
+      size_t pos = -1;
+      size_t oldpos = 0;
+      do {
+	oldpos = pos+1;
+	pos = description.find_first_of("|", oldpos);
+	if(pos==std::string::npos) pos=description.length();
+	if(oldpos != 0) std::cout << std::setw(25) << "";
+	std::cout << "\t! " << description.substr(oldpos, pos) << '\n';
+      } while(pos != description.length());
+    } else {
+      std::cout << '\n';
+    }
   }
- 
-  void add_variable_double_(const char* name, double* v, double* def)
+};
+
+struct int_variable : public variable {
+  int_variable(std::string n, int* var, int val, std::string desc, int g)
+    : variable(n, (void*)var, desc, g)
+  { *((int*)var) = val;  }
+  virtual int get_type() const 
+  { return INT_TYPE; }
+  virtual bool read(const std::string s)
   {
-    std::string s(name);
-    *v = *def;
-    double_variables[s] = v;
+    *((int*)data) = atoi(s.c_str());
+    return true;
+  }
+  virtual void printval() const
+  { std::cout << *((int*)data); }
+};
+
+struct double_variable : public variable {
+  double_variable(std::string n, double* var, double val, std::string desc, 
+		  int g)
+    : variable(n, (void*)var, desc, g)
+  { *((double*)var) = val;  }
+  virtual int get_type() const 
+  { return DOUBLE_TYPE; }
+  virtual bool read(const std::string s)
+  { 
+    *((double*)data) = atof(s.c_str());
+    return true;
+  }
+  virtual void printval() const
+  { std::cout << *((double*)data); }
+};
+
+class variable_list {
+  typedef std::map<std::string, variable*> variable_map;
+  typedef std::map<int, std::string> group_map;
+  typedef std::map<int, int> type_map;
+  variable_map variables;
+  group_map groups;
+  type_map type_num;
+
+public:
+  ~variable_list() 
+  {
+    variable_map::iterator i = variables.begin();
+    while(i != variables.end()) {
+      delete(i->second);
+      i++;
+    }
   }
 
-  // ierr = 0: success
-  // ierr = 1: unknown variable
-  // ierr = 2: can't open file
-  void read_namelist_(const char* filename, int* ierr_out)
-  {
+  bool create_group(int g, std::string n) {
+    if(groups.find(g) != groups.end()) {
+      std::cerr << "Warning: group with id " << g << " already created."
+		<< std::endl;
+      return false;
+    }
+    groups[g] = n;
+    return true;
+  }
+
+  bool create_variable(variable* v) {
+    if(variables.find(v->name) != variables.end()) {
+      std::cerr << "Warning: variable " << v->name << " already created."
+		<< std::endl;
+      delete v;
+      return false;
+    }
+    if(groups.find(v->get_group()) == groups.end()) {
+      std::cerr << "Warning: group " << v->get_group() << " not created."
+		<< std::endl;
+      delete v;
+      return false;
+    }
+
+    variables[v->name] = v;
+
+    if(type_num.find(v->get_type()) == type_num.end())
+      type_num[v->get_type()] = 1;
+    else
+      type_num[v->get_type()]++;
+    return true;
+  }
+
+  void print_group(int g, bool print_desc) {
+    std::cout << "! " << groups[g] << '\n'
+	      << "! ------------------------------\n";
+    variable_map::iterator i = variables.begin();
+    while(i != variables.end()) {
+      if(i->second->get_group() == g) 
+	i->second->print(print_desc);
+      i++;
+    }
+  }
+
+  void print_all_groups(bool print_desc) {
+    group_map::iterator g = groups.begin();
+    while(g != groups.end()) {
+      std::cout << '\n';
+      print_group(g->first, print_desc);
+      g++;
+    }
+  }
+
+  void print_all(bool print_desc) {
+    variable_map::iterator i = variables.begin();
+    while(i != variables.end()) {
+      i->second->print(print_desc);
+      i++;
+    }   
+  }
+
+  int read_namelist(std::string filename) {
     int ierr = 0;
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -102,7 +164,7 @@ extern "C" {
       std::string op1, op2, op3;
       std::fstream file;
       char buffer[256];
-      file.open(filename, std::ios_base::in);
+      file.open(filename.c_str(), std::ios_base::in);
       if(file.fail()) {
 	std::cout << "Error opening file " << filename << " for input" 
 		  << std::endl;
@@ -135,79 +197,191 @@ extern "C" {
 	  op1 = str.substr(p1,p2-p1);
 	  op2 = str.substr(p3,p4-p3);
 	  
-	  double_variable_list::iterator di = double_variables.find(op1);
-	  if(di != double_variables.end()) {
-	    *(di->second) = atof(op2.c_str());
-	    continue;
-	  }
+	  variable_map::iterator i = variables.find(op1);
 
-	  int_variable_list::iterator ii = int_variables.find(op1);
-	  if(ii != int_variables.end()) {
-	    *(ii->second) = atoi(op2.c_str());
-	    continue;
+	  if(i == variables.end()) {
+	    std::cout << "Warning: variable not recognized: " 
+		      << "|" << op1 << "|" << std::endl;
+	    ierr = 1;
+	  } else {
+	    i->second->read(op2);
 	  }
-
-	  std::cout << "Warning: variable not recognized: " 
-		    << "|" << op1 << "|" << std::endl;
-	  ierr = 1;
 	}
       }
 	
       file.close();
     }
 
-    MPI_Allreduce(&ierr, ierr_out, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD);
+    int ierr_out;
+    MPI_Allreduce(&ierr, &ierr_out, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD);
       
-    if(*ierr_out==2) return;
+    if(ierr_out==2) return ierr_out;
 
-    communicate_doubles();
-    communicate_ints();
+    communicate();
+    return ierr_out;
   }
 
-  void print_namelist_() 
-  {
-    int_variable_list::iterator ii = int_variables.begin();
-    while(ii != int_variables.end()) {
-      std::cout << ii->first << " = " << *(ii->second) << '\n';
-      ii++;
+  void communicate() {
+    variable_map::iterator i;
+    int rank, k;
+
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    // Communicate doubles
+    if(type_num[DOUBLE_TYPE] > 0) {
+      double* doubles = new double[type_num[DOUBLE_TYPE]];
+      if(rank==0) {
+	i = variables.begin();
+	k = 0;
+	while(i != variables.end()) {
+	  if(i->second->get_type() == DOUBLE_TYPE)
+	    doubles[k++] = *((double*)(i->second->data));
+	  i++;
+	}
+	if(k != type_num[DOUBLE_TYPE])
+	  std::cerr << "Error: incorrect number of doubles (rank == 0)"
+		    << std::endl;
+      }
+      
+      MPI_Bcast(doubles, type_num[DOUBLE_TYPE], MPI_DOUBLE, 0, MPI_COMM_WORLD);
+      
+      if(rank!=0) {
+	i = variables.begin();
+	k = 0;
+	while(i != variables.end()) {
+	  if(i->second->get_type() == DOUBLE_TYPE)
+	    *((double*)(i->second->data)) = doubles[k++];
+	  i++;
+	}
+	if(k != type_num[DOUBLE_TYPE])
+	  std::cerr << "Error: incorrect number of doubles (rank != 0)"
+		    << std::endl;
+      }     
+      delete[] doubles;
     }
 
-    double_variable_list::iterator di = double_variables.begin();
-    while(di != double_variables.end()) {
-      std::cout << di->first << " = " << *(di->second) << '\n';
-      di++;
+    // Communicate integers
+    if(type_num[INT_TYPE] > 0) {
+      int* ints = new int[type_num[INT_TYPE]];
+      if(rank==0) {
+	i = variables.begin();
+	k = 0;
+	while(i != variables.end()) {
+	  if(i->second->get_type() == INT_TYPE)
+	    ints[k++] = *((int*)(i->second->data));
+	  i++;
+	}
+	if(k != type_num[INT_TYPE])
+	  std::cerr << "Error: incorrect number of ints (rank == 0)"
+		    << std::endl;
+      }
+      
+      MPI_Bcast(ints, type_num[INT_TYPE], MPI_INTEGER, 0, MPI_COMM_WORLD);
+      
+      if(rank!=0) {
+	i = variables.begin();
+	k = 0;
+	while(i != variables.end()) {
+	  if(i->second->get_type() == INT_TYPE)
+	    *((int*)(i->second->data)) = ints[k++];
+	  i++;
+	}
+	if(k != type_num[INT_TYPE])
+	  std::cerr << "Error: incorrect number of ints (rank != 0)"
+		    << std::endl;
+      }
+      delete[] ints;
     }
+  }
+};
+
+static variable_list variables;
+
+extern "C" void create_group_(int* id, const char* name)
+{
+  variables.create_group(*id, name);
+}
+
+extern "C" void add_variable_int_(const char* name, int* v, int* def, 
+				  const char* description, const int* group)
+{
+  variables.create_variable(new int_variable(name, v, *def, 
+					     description, *group));
+}
+ 
+extern "C" void add_variable_double_(const char* name, double* v, double* def, 
+				     const char* description, const int* group)
+{
+  variables.create_variable(new double_variable(name, v, *def, 
+						description, *group));
+}
+
+// ierr = 0: success
+// ierr = 1: unknown variable
+// ierr = 2: can't open file
+extern "C" void read_namelist_(const char* filename, int* ierr)
+{
+  *ierr = variables.read_namelist(filename);
+}
+
+// style = 0: ungrouped, without descriptions
+// style = 1: ungrouped, with desctiptions
+// style = 2: grouped, without descriptions
+// style = 3: grouped, with descriptions
+extern "C" void print_variables_(int* style)
+{
+  switch(*style) {
+  case(1): variables.print_all(true); break;
+  case(2): variables.print_all_groups(false); break;
+  case(3): variables.print_all_groups(true); break;
+  default: variables.print_all(false); break;
   }
 }
 
 /*
 int main(int argc, char** argv) {
+
+  int ierr;
+
+  int transport_group = 2;
+  int model_group = 1;
+  int misc_group = 0;
+
   double kappat, amu, nowhere, etar;
   int numvar, gyro, eqsubtract;
   double def = 3.;
   int idef = 5;
-
+  
   MPI_Init(&argc, &argv);
 
-  add_variable_double_("etar", &etar, &def);
-  add_variable_double_("kappat", &kappat, &def);
-  add_variable_double_("amu", &amu, &def);
-  add_variable_double_("nowhere", &nowhere, &def);
-  add_variable_int_("numvar", &numvar, &idef);
-  add_variable_int_("gyro", &gyro, &idef);
-  add_variable_int_("eqsubtract", &eqsubtract, &idef);
+  create_group_(&transport_group, "Transport Parameters");
+  create_group_(&model_group, "Model Options");
+  create_group_(&misc_group, "Miscellaneous");
 
-  read_namelist_("C1input");
+  add_variable_double_("etar", &etar, &def, 
+		       "Resistivity", &transport_group);
+  add_variable_double_("kappat", &kappat, &def,
+		       "Thermal conductivity", &transport_group);
+  add_variable_double_("amu", &amu, &def, 
+		       "Viscosity", &transport_group);
+  add_variable_double_("nowhere", &nowhere, &def, 
+		       "Nothing", &misc_group);
+  add_variable_int_("numvar", &numvar, &idef, 
+		    "Model", &model_group);
+  add_variable_int_("gyro", &gyro, &idef, 
+		    "Gyroviscosity", &model_group);
+  add_variable_int_("eqsubtract", &eqsubtract, &idef, 
+		    "1 = subtract equilibrium quantites", &transport_group);
+
+  read_namelist_("C1input", &ierr);
 
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  if(rank == 1) print_variables_();
+  if(rank == 1) print_variables_(3);
 
   MPI_Finalize();
 
   return 0;
 }
 */
-
-
