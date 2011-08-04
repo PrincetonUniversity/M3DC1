@@ -2,6 +2,7 @@ LOADER = openmpif90
 F90    = openmpif90
 F77    = openmpif77
 CC     = openmpicc
+CPP    = openmpic++
 
 # define where you want to locate the mesh adapt libraries
 ifndef SCORECDIR
@@ -94,9 +95,13 @@ LIBS = 	-L/opt/local/lib \
 	$(PETSC_LIBS) \
 	$(SUPERLU_LIBS) \
 	$(HDF5_LIBS) \
-	-L/usr/X11R6/lib -lX11
+	-L/usr/X11R6/lib -lX11 \
+	-lmpi_cxx -lstdc++
 
 AUX = i1mach.o r1mach.o d1mach.o
+
+%.o : %.cpp
+	$(CPP) $(CCOPTS) $< -o $@
 
 %.o : %.c
 	$(CC)  $(CCOPTS) $< -o $@

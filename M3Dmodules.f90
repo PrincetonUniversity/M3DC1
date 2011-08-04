@@ -20,6 +20,8 @@ module basic
 
   real, parameter :: me_mi = 1./1836.2
 
+  logical :: print_help
+
   ! normalizations
   real :: b0_norm     ! magnetic field normalization (in Gauss)
   real :: l0_norm     ! length normalization (in centimeters)

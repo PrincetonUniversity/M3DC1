@@ -745,7 +745,6 @@ contains
     PetscViewer :: pv
     integer :: ierr
     
-    call finalize(v)
     call PetscViewerASCIIOpen(PETSC_COMM_WORLD, file, pv, ierr)
     call VecView(v%vec, pv, ierr)
     call PetscViewerDestroy(pv, ierr)

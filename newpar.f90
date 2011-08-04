@@ -21,9 +21,10 @@ Program Reducedquintic
 
 #include "finclude/petsc.h"
 
-  integer :: ier
+  integer :: ier, i
   real :: tstart, tend
   character*10 :: datec, timec
+  character*256 :: arg
 
   ! Initialize MPI
   call MPI_Init(ier)
@@ -41,6 +42,12 @@ Program Reducedquintic
      print *,'Error in MPI_Comm_size:',ier
      call safestop(1)
   endif
+
+  print_help = .false.
+  do i=1, command_argument_count()
+     call get_command_argument(i, arg)
+     if(trim(arg) == '--help') print_help = .true.
+  end do
 
   ! Write version information
   if(myrank.eq.0) then
