@@ -3,6 +3,7 @@
 #include <fstream>
 #include <string>
 #include <map>
+#include <deque>
 #include <mpi.h>
 
 #define INT_TYPE    0
@@ -30,14 +31,14 @@ struct variable {
     std::cout << std::setw(20) << std::left << name << " = ";
     printval();
     if(print_desc && description.length()) {
-      size_t pos = -1;
+      size_t pos = 0;
       size_t oldpos = 0;
       do {
-	oldpos = pos+1;
 	pos = description.find_first_of("|", oldpos);
 	if(pos==std::string::npos) pos=description.length();
 	if(oldpos != 0) std::cout << std::setw(25) << "";
 	std::cout << "\t! " << description.substr(oldpos, pos) << '\n';
+	oldpos = pos+1;
       } while(pos != description.length());
     } else {
       std::cout << '\n';
@@ -78,10 +79,10 @@ struct double_variable : public variable {
 
 class variable_list {
   typedef std::map<std::string, variable*> variable_map;
-  typedef std::map<int, std::string> group_map;
+  typedef std::deque<std::string> group_deque;
   typedef std::map<int, int> type_map;
   variable_map variables;
-  group_map groups;
+  group_deque groups;
   type_map type_num;
 
 public:
@@ -94,14 +95,10 @@ public:
     }
   }
 
-  bool create_group(int g, std::string n) {
-    if(groups.find(g) != groups.end()) {
-      std::cerr << "Warning: group with id " << g << " already created."
-		<< std::endl;
-      return false;
-    }
-    groups[g] = n;
-    return true;
+  int create_group(std::string n) {
+    int g = groups.size();
+    groups.push_back(n);
+    return g;
   }
 
   bool create_variable(variable* v) {
@@ -111,8 +108,8 @@ public:
       delete v;
       return false;
     }
-    if(groups.find(v->get_group()) == groups.end()) {
-      std::cerr << "Warning: group " << v->get_group() << " not created."
+    if(v->get_group() < 0 || v->get_group() >= groups.size()) {
+      std::cerr << "Warning: invalid group " << v->get_group()
 		<< std::endl;
       delete v;
       return false;
@@ -139,11 +136,9 @@ public:
   }
 
   void print_all_groups(bool print_desc) {
-    group_map::iterator g = groups.begin();
-    while(g != groups.end()) {
+    for(int g=0; g<groups.size(); g++) {
       std::cout << '\n';
-      print_group(g->first, print_desc);
-      g++;
+      print_group(g, print_desc);
     }
   }
 
@@ -297,9 +292,9 @@ public:
 
 static variable_list variables;
 
-extern "C" void create_group_(int* id, const char* name)
+extern "C" void create_group_(const char* name, int* id)
 {
-  variables.create_group(*id, name);
+  *id = variables.create_group(name);
 }
 
 extern "C" void add_variable_int_(const char* name, int* v, int* def, 

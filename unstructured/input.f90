@@ -23,9 +23,9 @@ end subroutine add_var_int
 subroutine add_group(name, handle)
   implicit none
   character*(*), intent(in) :: name
-  integer, intent(in) :: handle
+  integer, intent(out) :: handle
 
-  call create_group(handle, name//char(0))
+  call create_group(name//char(0), handle)
 end subroutine add_group
 
 
@@ -71,44 +71,53 @@ end subroutine input
 !==========================
 subroutine set_defaults
   use basic
+  use m3dc1_output
 
   implicit none
 
-  integer, parameter :: model_grp  = 1
-  integer, parameter :: eq_grp = 2
-  integer, parameter :: transp_grp = 3
-  integer, parameter :: bc_grp     = 5
-  integer, parameter :: norm_grp   = 10
-  integer, parameter :: gs_grp     = 20
-  integer, parameter :: num_grp    = 30
-  integer, parameter :: hyper_grp  = 31
-  integer, parameter :: time_grp   = 40
-  integer, parameter :: mesh_grp   = 55
-  integer, parameter :: adapt_grp  = 56
+  integer :: model_grp
+  integer :: eq_grp 
+  integer :: transp_grp
+  integer :: bc_grp
+  integer :: norm_grp
+  integer :: gs_grp
+  integer :: num_grp
+  integer :: hyper_grp
+  integer :: time_grp
+  integer :: mesh_grp
+  integer :: adapt_grp
+  integer :: input_grp
+  integer :: output_grp
+  integer :: misc_grp
+  integer :: deprec_grp
 
-  integer, parameter :: input_grp  = 80
-  integer, parameter :: output_grp = 90
 
-  integer, parameter :: misc_grp   = 99
-
-  integer, parameter :: deprec_grp = 999
-
+  call add_group("Model Options", model_grp)
+  call add_group("Equilibrium", eq_grp)
+  call add_group("Grad-Shafranov Solver", gs_grp)
+  call add_group("Transport Coefficients", transp_grp)
+  call add_group("Hyper Diffusivity", hyper_grp)
+  call add_group("Normalizations", norm_grp)
+  call add_group("Boundary Conditions", bc_grp)
+  call add_group("Time Step", time_grp)
+  call add_group("Mesh", mesh_grp)
+  call add_group("Mesh Adaptation", adapt_grp)
+  call add_group("Numerical Options", num_grp)
+  call add_group("Input", input_grp)
+  call add_group("Output", output_grp)
   call add_group("Miscellaneous", misc_grp)
   call add_group("Deprecated", deprec_grp)
 
 
-  call add_group("Normalizations", norm_grp)
-
+  ! Normalizations
   call add_var_double("b0_norm", b0_norm, 1.e4, &
        "Normalization magnetic field (in G)", norm_grp)
   call add_var_double("n0_norm", n0_norm, 1.e14, &
        "Normalization density (in e-/cm3)", norm_grp)
   call add_var_double("l0_norm", l0_norm, 100.,  &
        "Normalization length (in cm)", norm_grp)
-  
-
-  call add_group("Input", input_grp)
-
+ 
+  ! Input
   call add_var_int("iread_eqdsk", iread_eqdsk, 0, "", input_grp)
   call add_var_int("iread_dskbal", iread_dskbal, 0, "", input_grp)
   call add_var_int("iread_jsolver", iread_jsolver, 0, "", input_grp)
@@ -116,9 +125,7 @@ subroutine set_defaults
   call add_var_int("iread_ne", iread_ne, 0, "", input_grp)
   call add_var_int("iread_te", iread_te, 0, "", input_grp)
 
-
-  call add_group("Transport Coefficients", transp_grp)
-
+  ! Transport parameters
   call add_var_int("ivisfunc", ivisfunc, 0, "", transp_grp)
   call add_var_double("amuoff", amuoff, 0., "", transp_grp)
   call add_var_double("amudelt", amudelt, 0., "", transp_grp)
@@ -156,15 +163,14 @@ subroutine set_defaults
        "Density hyperdiffusion coefficient", transp_grp)
   
   call add_var_double("gam", gam, 5./3., &
-       "Ratio of specific heats", 99)
+       "Ratio of specific heats", misc_grp)
   call add_var_double("db", db, 0., &
-       "Collisionless ion skin depth", 99)
-  call add_var_double("mass_ratio", mass_ratio, 0., "", 99)
-  call add_var_double("lambdae", lambdae, 0., "", 99)
+       "Collisionless ion skin depth", misc_grp)
+  call add_var_double("mass_ratio", mass_ratio, 0., "", misc_grp)
+  call add_var_double("lambdae", lambdae, 0., "", misc_grp)
 
 
-  call add_group("Model Options", model_grp)
-
+  ! Model options
   call add_var_int("numvar", numvar, 3, &
        "1: 2-Field;  2: 4-Field;  3: 6-Field", model_grp)
   call add_var_int("linear", linear, 0, &
@@ -199,8 +205,7 @@ subroutine set_defaults
   call add_var_int("ieq_bdotgradt", ieq_bdotgradt, 1, "", model_grp)
     
 
-  call add_group("Time Step", time_grp)
-
+  ! Time step options
   call add_var_int("ntimemax", ntimemax, 20, &
        "Total number of timesteps", time_grp)
   call add_var_int("integrator", integrator, 0, "", time_grp)
@@ -223,8 +228,7 @@ subroutine set_defaults
   call add_var_double("ddt", ddt, 0., "", time_grp)
   
 
-  call add_group("Numerical Options", num_grp)
-
+  ! Numerical methods
   call add_var_int("jadv", jadv, 0, &
        "Use Del*(psi) eqn. instead of psi eqn.", num_grp)
   call add_var_int("ivform", ivform, 0, &
@@ -240,8 +244,7 @@ subroutine set_defaults
   call add_var_double("regular", regular, 0., "", num_grp)
 
   
-  call add_group("Equilibrium", eq_grp)
-
+  ! Equilibrium 
   call add_var_int("itaylor", itaylor, 0, "", eq_grp)
   call add_var_int("iupstream", iupstream, 0, "", eq_grp)
   call add_var_int("iflip", iflip, 0, "", eq_grp)
@@ -268,9 +271,8 @@ subroutine set_defaults
   call add_var_double("beta", beta, 0., "", eq_grp)
   call add_var_double("ln", ln, 0., "", eq_grp)
 
-
-  call add_group("Grad-Shafranov Solver", gs_grp)
-
+  
+  ! Grad-Shafranov
   call add_var_int("inumgs", inumgs, 0, "", gs_grp)
   call add_var_int("igs", igs, 80, "", gs_grp)
   call add_var_int("igs_method", igs_method, 2, "", gs_grp)
@@ -299,24 +301,32 @@ subroutine set_defaults
        "Pressure outside separatrix (ignore if < 0)", gs_grp)
   call add_var_double("tedge", tedge, -1., &
        "Temperature outside separatrix (ignore if < 0)", gs_grp)
-  call add_var_double("expn", expn, 0., "", gs_grp)
+  call add_var_double("expn", expn, 0., &
+       "Density profile = p^expn", gs_grp)
   call add_var_double("q0", q0, 1., "", gs_grp)
   call add_var_double("djdpsi", djdpsi, 0., "", gs_grp)
-  call add_var_double("th_gs", th_gs, 0.8, "", gs_grp)
+  call add_var_double("th_gs", th_gs, 0.8, &
+       "Implicitness of GS Picard iterations", gs_grp)
   call add_var_double("tol_gs", tol_gs, 1.e-8, "", gs_grp)
   call add_var_double("psiscale", psiscale, 1., "", gs_grp)
-  call add_var_double("pscale", pscale, 1., "", gs_grp)
-  call add_var_double("bscale", bscale, 1., "", gs_grp)
+  call add_var_double("pscale", pscale, 1., &
+       "Factor multiplying pressure profile", gs_grp)
+  call add_var_double("bscale", bscale, 1., &
+       "Factor multiplying toroidal field profile", gs_grp)
 
   call add_var_int("irot", irot, 0, &
        "Include toroidal rotation", gs_grp)
   call add_var_int("iscale_rot_by_p", iscale_rot_by_p, 1, &
-       "0: omega = 2.*p0*(alphai * Psi**i)/n0|&
-       &1: omega = 2.*(alphai * Psi**i)/n0", gs_grp)
-  call add_var_double("alpha0", alpha0, 0., "", gs_grp)
-  call add_var_double("alpha1", alpha1, 0., "", gs_grp)
-  call add_var_double("alpha2", alpha2, 0., "", gs_grp)
-  call add_var_double("alpha3", alpha3, 0., "", gs_grp)
+       "0: omega^2 = 2.*p0*(alphai * Psi^i)/n0|&
+       &1: omega^2 = 2.*(alphai * Psi^i)/n0", gs_grp)
+  call add_var_double("alpha0", alpha0, 0., &
+       "Constant term in analytic rotation profile", gs_grp)
+  call add_var_double("alpha1", alpha1, 0., &
+       "Linear term in analytic rotation profile", gs_grp)
+  call add_var_double("alpha2", alpha2, 0., &
+       "Quadratic term in analytic rotation profile", gs_grp)
+  call add_var_double("alpha3", alpha3, 0., &
+       "Cubic term in analytic rotation profile", gs_grp)
   
   call add_var_int("idenfunc", idenfunc, 0, "", gs_grp)
   call add_var_double("den_edge", den_edge, 0., "", gs_grp)
@@ -335,8 +345,7 @@ subroutine set_defaults
        "Guess for Z-coordinate of axtive x-point", gs_grp)
 
 
-  call add_group("Hyper Diffusivity", hyper_grp)
-
+  ! Hyper diffusion
   call add_var_double("deex", deex, 1., "", hyper_grp)
   call add_var_double("hyper", hyper, 0., "", hyper_grp)
   call add_var_double("hyperc", hyperc, 0., "", hyper_grp)
@@ -349,8 +358,7 @@ subroutine set_defaults
   call add_var_int("ihypkappa", ihypkappa, 1, "", hyper_grp)
 
 
-  call add_group("Boundary Conditions", bc_grp)
-
+  ! Boundary conditions
   call add_var_int("isurface", isurface, 1, "", bc_grp)
   call add_var_int("icurv", icurv, 2, "", bc_grp)
   call add_var_int("nonrect", nonrect, 0, "", bc_grp)
@@ -387,83 +395,90 @@ subroutine set_defaults
 
   
   ! resistive wall
-  call add_var_double("eta_wall", eta_wall, 0., "", 99)
-  call add_var_double("delta_wall", delta_wall, 1., "", 99)
+  call add_var_double("eta_wall", eta_wall, 0., "", misc_grp)
+  call add_var_double("delta_wall", delta_wall, 1., "", misc_grp)
+
 
   ! loop voltage
-  call add_var_double("vloop", vloop, 0., "", 99)
-  call add_var_double("tcur", tcur, 0., "", 99)
-  call add_var_double("control_p", control_p, 0., "", 99)
-  call add_var_double("control_i", control_i, 0., "", 99)
-  call add_var_double("control_d", control_d, 0., "", 99)
+  call add_var_double("vloop", vloop, 0., "", misc_grp)
+  call add_var_double("tcur", tcur, 0., "", misc_grp)
+  call add_var_double("control_p", control_p, 0., "", misc_grp)
+  call add_var_double("control_i", control_i, 0., "", misc_grp)
+  call add_var_double("control_d", control_d, 0., "", misc_grp)
+
   
   ! density source
-  call add_var_int("ipellet", ipellet, 0, "", 99)
-  call add_var_double("pellet_x", pellet_x, 0., "", 99)
-  call add_var_double("pellet_z", pellet_z, 0., "", 99)
-  call add_var_double("pellet_rate", pellet_rate, 0., "", 99)
-  call add_var_double("pellet_var", pellet_var, 1., "", 99)
+  call add_var_int("ipellet", ipellet, 0, "", misc_grp)
+  call add_var_double("pellet_x", pellet_x, 0., "", misc_grp)
+  call add_var_double("pellet_z", pellet_z, 0., "", misc_grp)
+  call add_var_double("pellet_rate", pellet_rate, 0., "", misc_grp)
+  call add_var_double("pellet_var", pellet_var, 1., "", misc_grp)
 
-  call add_var_int("ionization", ionization, 0, "", 99)
-  call add_var_double("ionization_rate", ionization_rate, 0., "", 99)
-  call add_var_double("ionization_temp", ionization_temp, 0.01, "", 99)
-  call add_var_double("ionization_depth", ionization_depth, 0.01, "", 99)
+  call add_var_int("ionization", ionization, 0, "", misc_grp)
+  call add_var_double("ionization_rate", ionization_rate, 0., "", misc_grp)
+  call add_var_double("ionization_temp", ionization_temp, 0.01, "", misc_grp)
+  call add_var_double("ionization_depth", ionization_depth, 0.01, "", misc_grp)
   
-  call add_var_int("isink", isink, 0, "", 99)
-  call add_var_double("sink1_x", sink1_x, 0., "", 99)
-  call add_var_double("sink1_z", sink1_z, 0., "", 99)
-  call add_var_double("sink1_rate", sink1_rate, 0., "", 99)
-  call add_var_double("sink1_var", sink1_var, 1., "", 99)
-  call add_var_double("sink2_x", sink2_x, 0., "", 99)
-  call add_var_double("sink2_z", sink2_z, 0., "", 99)
-  call add_var_double("sink2_rate", sink2_rate, 0., "", 99)
-  call add_var_double("sink2_var", sink2_var, 1., "", 99)
+  call add_var_int("isink", isink, 0, "", misc_grp)
+  call add_var_double("sink1_x", sink1_x, 0., "", misc_grp)
+  call add_var_double("sink1_z", sink1_z, 0., "", misc_grp)
+  call add_var_double("sink1_rate", sink1_rate, 0., "", misc_grp)
+  call add_var_double("sink1_var", sink1_var, 1., "", misc_grp)
+  call add_var_double("sink2_x", sink2_x, 0., "", misc_grp)
+  call add_var_double("sink2_z", sink2_z, 0., "", misc_grp)
+  call add_var_double("sink2_rate", sink2_rate, 0., "", misc_grp)
+  call add_var_double("sink2_var", sink2_var, 1., "", misc_grp)
 
-  call add_var_double("n_target", n_target, 1., "", 99)
-  call add_var_double("n_control_p", n_control_p, 0., "", 99)
-  call add_var_double("n_control_i", n_control_i, 0., "", 99)
-  call add_var_double("n_control_d", n_control_d, 0., "", 99)
+  call add_var_double("n_target", n_target, 1., "", misc_grp)
+  call add_var_double("n_control_p", n_control_p, 0., "", misc_grp)
+  call add_var_double("n_control_i", n_control_i, 0., "", misc_grp)
+  call add_var_double("n_control_d", n_control_d, 0., "", misc_grp)
   
 
-  call add_group("Output", output_grp)
-
+  ! Output
   call add_var_int("iprint", iprint, 0, "", output_grp)
   call add_var_int("ntimepr", ntimepr, 5, &
        "Number of time steps per field/restart output", output_grp)
   call add_var_int("iglobalout", iglobalout, 0, "", output_grp)
   call add_var_int("iglobalin", iglobalin, 0, "", output_grp)
   call add_var_int("iwrite_restart", iwrite_restart, 1, &
-       "1: Write restart files every ntimepr time steps", output_grp)
+       "1: Write restart files", output_grp)
   call add_var_int("ifout",  ifout, -1, "", output_grp)
-  call add_var_int("icalc_scalrs", icalc_scalars, 1, &
+  call add_var_int("icalc_scalars", icalc_scalars, 1, &
        "1: Calculate scalar diagnostics", output_grp)
   call add_var_int("ike_only", ike_only, 0, &
        "1: Only calculate ke scalar diagnostic", output_grp)
   call add_var_int("irestart", irestart, 0, "", output_grp)
-  call add_var_int("itimer", itimer, 0, "", output_grp)
+  call add_var_int("itimer", itimer, 0, &
+       "1: Output internal timer data", output_grp)
+  call add_var_int("iwrite_transport_coeffs", iwrite_transport_coeffs, 1, &
+       "1: Output transport coefficient fields", output_grp)
+  call add_var_int("iwrite_aux_vars", iwrite_aux_vars, 1, &
+       "1: Output auxiliary variable fields", output_grp)
+
 
   ! 3-D options
   call add_var_int("ntor", ntor, 0, &
-       "Toroidal mode number", 99)
-  call add_var_int("mpol", mpol, 0, "", 99)
+       "Toroidal mode number", misc_grp)
+  call add_var_int("mpol", mpol, 0, "", misc_grp)
 
 
-  call add_group("Mesh Adaptation", adapt_grp)
-
+  ! Mesh adaptation
   call add_var_int("iadapt", iadapt, 0, "", adapt_grp)
   call add_var_double("adapt_factor", adapt_factor, 1., "", adapt_grp)
   call add_var_double("adapt_hmin", adapt_hmin, 0.001, "", adapt_grp)
   call add_var_double("adapt_hmax", adapt_hmax, 0.1, "", adapt_grp)
 
-  call add_group("Mesh", mesh_grp)
 
+  ! Mesh
   call add_var_int("nplanes", nplanes, 1, &
        "Number of toroidal planes", mesh_grp)
   call add_var_double("xzero", xzero, 0., "", mesh_grp)
   call add_var_double("zzero", zzero, 0., "", mesh_grp)
   call add_var_double("tiltangled", tiltangled, 0., "", mesh_grp)
 
-
+  
+  ! Deprecated
   call add_var_int("ibform", ibform, -1, "", deprec_grp)
 end subroutine set_defaults
 

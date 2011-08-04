@@ -1275,14 +1275,15 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    if(n_elements(filename) eq 0) then filename='C1.h5'
    if(n_elements(filename) gt 1) then filename=filename[0]
    if(n_elements(pts) eq 0) then pts = 50
+   if(n_elements(op) eq 0) then op = 1
 
    if(hdf5_file_test(filename) eq 0) then return, 0
 
    print, 'reading field ', name, ' from file ', filename, ' with options:'
    print, string(form='("  linear=",I0,"; pts=",I0,"; equilibrium=",I0,' + $
-                 '"; complex=",I0)', $
+                 '"; complex=",I0,"; op=",I0)', $
                  keyword_set(linear), pts, keyword_set(equilibrium), $
-                 keyword_set(complex))
+                 keyword_set(complex), op)
 
    nt = read_parameter("ntime", filename=filename)
    nv = read_parameter("numvar", filename=filename)
@@ -1382,7 +1383,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        
        I = read_field('I',x,y,t,slices=time, mesh=mesh, filename=filename, $
                       points=pts, rrange=xrange, zrange=yrange, $
-                      linear=linear)
+                      linear=linear, complex=complex, phi=phi0)
 
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
@@ -2434,12 +2435,12 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        psi_r = read_field('psi', x, y, t, mesh=mesh, operation=2, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange, complex=complex, $
-                        linear=linear, mask=mask)
+                        linear=linear, mask=mask, phi=phi0)
        if(ntor ne 0) then begin
            f_z = read_field('f', x, y, t, mesh=mesh, operation=3, $
                             filename=filename, points=pts, slices=time, $
                             rrange=xrange, zrange=yrange, complex=complex, $
-                            linear=linear)
+                            linear=linear, phi=phi0)
            f_zp = complex(0.,ntor)*f_z
        endif else f_zp = 0.
        
@@ -2946,7 +2947,9 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            data = complex(data_r, data_i)
 
            if(n_elements(phi0) ne 0) then begin
-               data = data*complex(cos(phi0*!pi/180.), -sin(phi0*!pi/180.))
+               print, 'ntor = ', ntor
+               data = data*complex( cos(ntor*phi0*!pi/180.), $
+                                   -sin(ntor*phi0*!pi/180.))
            end
        endif else begin
            print, ' reading real field'
@@ -3003,7 +3006,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                data[i-trange[0],*,*] = $
                  eval_field(field._data, mesh, points=pts, $
                             r=x, z=y, op=op, filename=filename, $
-                            xrange=xrange, yrange=yrange, mask=mask, phi=phi0) $
+                            xrange=xrange, yrange=yrange, mask=mask, $
+                            phi=phi0) $
                  + base*(i ne -1)
            end
 
@@ -4967,7 +4971,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                 xlim=xlim, cutx=cutx, cutz=cutz, mpeg=mpeg, $
                 mask_val=mask_val, boundary=boundary, q_contours=q_contours, $
                 overplot=overplot, phi=phi0, time=realtime, $
-                phase=phase, abs=abs, _EXTRA=ex
+                phase=phase, abs=abs, operation=op, _EXTRA=ex
 
    ; open mpeg object
    if(n_elements(mpeg) ne 0) then begin
@@ -4980,7 +4984,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
              xlim=xlim, cutx=cutx, cutz=cutz, $
              mask_val=mask_val, boundary=boundary, q_contours=q_contours, $
              overplot=overplot, phi=phi0, time=realtime, $
-             phase=phase, abs=abs, _EXTRA=ex
+             phase=phase, abs=abs, operation=op, _EXTRA=ex
 
            image = tvrd(true=1)
                
@@ -5005,19 +5009,17 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
    if(keyword_set(phase) or keyword_set(abs)) then complex=1
 
    if(size(name, /type) eq 7) then begin
-       print, 'points = ', p
        field = read_field(name, x, y, t, slices=time, mesh=mesh, $
                           points=p, rrange=rrange, zrange=zrange, $
                           symbol=fieldname, units=u, linear=linear, $
                           mask=mask, phi=phi0, time=realtime, $
-                          complex=complex, _EXTRA=ex)
+                          complex=complex, operation=op, _EXTRA=ex)
        if(n_elements(units) eq 0) then units=u       
    endif else begin
        field = name
    endelse
 
    if(n_elements(field) le 1) then return
-
 
    if(keyword_set(phase)) then begin
        field = atan(imaginary(field), real_part(field))*180./!pi
@@ -5037,9 +5039,6 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
        field[i] = 0.
    endif
 
-   sz = size(field, /dimension)
-   nt = sz[0]
-
    if(n_elements(range) eq 0) then range = [min(field),max(field)]
 
    if(n_elements(mask_val) ne 0) then begin
@@ -5054,41 +5053,39 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
        dum = min(x-cutx,i,/absolute)
        if(keyword_set(overplot)) then begin
            oplot, y, field[0,i,*], _EXTRA=ex
-       endif else plot, y, field[0,i,*], _EXTRA=ex
+       endif else plot, y, field[0,i,*], title=title, _EXTRA=ex
    endif else if(n_elements(cutz) gt 0) then begin
        dum = min(y-cutz,i,/absolute)
        if(keyword_set(overplot)) then begin
            oplot, x, field[0,*,i], _EXTRA=ex
-       endif else plot, x, field[0,*,i], _EXTRA=ex
+       endif else plot, x, field[0,*,i], title=title, _EXTRA=ex
    endif else begin
-       for k=0, nt-1 do begin
-           if((notitle eq 1) and (n_elements(t) ne 0)) then begin
-               title = fieldname
-           end
-           
-           contour_and_legend, field[k,*,*], x, y, title=title, $
-             label=units, $
-             xtitle=make_label('!8R!X', /l0, _EXTRA=ex), $
-             ytitle=make_label('!8Z!X', /l0, _EXTRA=ex), $
-             range=range, _EXTRA=ex
-
-           if(n_elements(q_contours) ne 0) then begin
-               fval = flux_at_q(q_contours,_EXTRA=ex)
-               plot_flux_contour, fval, closed=0, /overplot, $
-                 thick=!p.thick/2., _EXTRA=ex
-           endif
-
-           if(keyword_set(lcfs)) then begin
-               plot_lcfs, points=p, slice=time[k], $
-                 _EXTRA=ex
-           endif
-
-           if(keyword_set(boundary)) then plotmesh=1
-           if(keyword_set(plotmesh)) then begin
-               plot_mesh, mesh=mesh, /oplot, $
-                 boundary=boundary, _EXTRA=ex
-           endif
+       if((notitle eq 1) and (n_elements(t) ne 0)) then begin
+           title = fieldname
        end
+           
+       contour_and_legend, field[0,*,*], x, y, title=title, $
+         label=units, $
+         xtitle=make_label('!8R!X', /l0, _EXTRA=ex), $
+         ytitle=make_label('!8Z!X', /l0, _EXTRA=ex), $
+         range=range, _EXTRA=ex
+
+       if(n_elements(q_contours) ne 0) then begin
+           fval = flux_at_q(q_contours,_EXTRA=ex)
+           plot_flux_contour, fval, closed=0, /overplot, $
+             thick=!p.thick/2., _EXTRA=ex
+       endif
+
+       if(keyword_set(lcfs)) then begin
+           plot_lcfs, points=p, slice=time[0], $
+             _EXTRA=ex
+       endif
+
+       if(keyword_set(boundary)) then plotmesh=1
+       if(keyword_set(plotmesh)) then begin
+           plot_mesh, mesh=mesh, /oplot, $
+             boundary=boundary, _EXTRA=ex
+       endif
    endelse
 end
 
