@@ -3,6 +3,9 @@ module m3dc1_output
   integer, parameter, private :: ke_file = 11
   character*(*), parameter, private :: ke_filename = 'C1ke'
 
+  integer :: iwrite_transport_coeffs
+  integer :: iwrite_aux_vars
+
 contains
 
   subroutine initialize_output
@@ -653,65 +656,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
   nfields = nfields + 1
 #endif
 
-  ! jphi
-  do i=1, nelms
-     call calcavector(i, jphi_field, dum(:,i))
-  end do
-  call output_field(group_id, "jphi", real(dum), coeffs_per_element, &
-       nelms, error)
-  nfields = nfields + 1
-
-  ! vor
-  do i=1, nelms
-     call calcavector(i, vor_field, dum(:,i))
-  end do
-  call output_field(group_id, "vor", real(dum), coeffs_per_element, &
-       nelms, error)
-  nfields = nfields + 1
-
-  ! eta
-  do i=1, nelms
-     call calcavector(i, resistivity_field, dum(:,i))
-  end do
-  call output_field(group_id, "eta", real(dum), coeffs_per_element, &
-       nelms, error)
-  nfields = nfields + 1
-
-  ! visc
-  do i=1, nelms
-     call calcavector(i, visc_field, dum(:,i))
-  end do
-  call output_field(group_id, "visc", real(dum), coeffs_per_element, &
-       nelms, error)
-  nfields = nfields + 1
-
-  ! bdotgradp
-  do i=1, nelms
-     call calcavector(i, bdotgradp, dum(:,i))
-  end do
-  call output_field(group_id, "bdotgradp", real(dum), coeffs_per_element, &
-       nelms, error)
-  nfields = nfields + 1
-#ifdef USECOMPLEX
-  call output_field(group_id, "bdotgradp_i", aimag(dum), coeffs_per_element, &
-       nelms, error)
-  nfields = nfields + 1
-#endif
-
-  ! bdotgradt
-  do i=1, nelms
-     call calcavector(i, bdotgradt, dum(:,i))
-  end do
-  call output_field(group_id, "bdotgradt", real(dum), coeffs_per_element, &
-       nelms, error)
-  nfields = nfields + 1
-#ifdef USECOMPLEX
-  call output_field(group_id, "bdotgradt_i", aimag(dum), coeffs_per_element, &
-       nelms, error)
-  nfields = nfields + 1
-#endif
-
-
   ! electrostatic potential
   if(jadv.eq.0 .and. i3d.eq.1) then 
      do i=1, nelms
@@ -801,40 +745,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
   nfields = nfields + 1
 #endif
 
-  ! com
-  do i=1, nelms
-     call calcavector(i, com_field, dum(:,i))
-  end do
-  call output_field(group_id, "com", real(dum), coeffs_per_element, &
-       nelms, error)
-  nfields = nfields + 1
-
-  ! kappa
-  do i=1, nelms
-     call calcavector(i, kappa_field, dum(:,i))
-  end do
-  call output_field(group_id, "kappa", real(dum), coeffs_per_element, &
-       nelms, error)
-  nfields = nfields + 1
-
-  ! visc_c
-  do i=1, nelms
-     call calcavector(i, visc_c_field, dum(:,i))
-  end do
-  call output_field(group_id, "visc_c", real(dum), coeffs_per_element, &
-       nelms, error)
-  nfields = nfields + 1
-
-  if(ibootstrap.gt.0) then
-     ! visc_e
-     do i=1, nelms
-        call calcavector(i, visc_e_field, dum(:,i))
-     end do
-     call output_field(group_id, "visc_e", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
-  endif
-
   ! den
   do i=1, nelms
      call calcavector(i, den_field(ilin), dum(:,i))
@@ -847,23 +757,122 @@ subroutine output_fields(time_group_id, equilibrium, error)
   nfields = nfields + 1
 #endif
 
-  
-  if(ipellet.eq.1 .or. ionization.eq.1 .or. isink.gt.0) then
+  if(iwrite_transport_coeffs.eq.1) then
+     ! eta
      do i=1, nelms
-        call calcavector(i, sigma_field, dum(:,i))
+        call calcavector(i, resistivity_field, dum(:,i))
      end do
-     call output_field(group_id, "sigma", real(dum), coeffs_per_element, &
+     call output_field(group_id, "eta", real(dum), coeffs_per_element, &
           nelms, error)
      nfields = nfields + 1
+
+     ! visc
+     do i=1, nelms
+        call calcavector(i, visc_field, dum(:,i))
+     end do
+     call output_field(group_id, "visc", real(dum), coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+
+     ! kappa
+     do i=1, nelms
+        call calcavector(i, kappa_field, dum(:,i))
+     end do
+     call output_field(group_id, "kappa", real(dum), coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+
+     ! visc_c
+     do i=1, nelms
+        call calcavector(i, visc_c_field, dum(:,i))
+     end do
+     call output_field(group_id, "visc_c", real(dum), coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+     
+     if(ibootstrap.gt.0) then
+        ! visc_e
+        do i=1, nelms
+           call calcavector(i, visc_e_field, dum(:,i))
+        end do
+        call output_field(group_id, "visc_e", real(dum), coeffs_per_element, &
+             nelms, error)
+        nfields = nfields + 1
+     endif
+  end if
+
+  if(iwrite_aux_vars.eq.1) then 
+     ! jphi
+     do i=1, nelms
+        call calcavector(i, jphi_field, dum(:,i))
+     end do
+     call output_field(group_id, "jphi", real(dum), coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+
+     ! vor
+     do i=1, nelms
+        call calcavector(i, vor_field, dum(:,i))
+     end do
+     call output_field(group_id, "vor", real(dum), coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+
+     ! com
+     do i=1, nelms
+        call calcavector(i, com_field, dum(:,i))
+     end do
+     call output_field(group_id, "com", real(dum), coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+
+     ! bdotgradp
+     do i=1, nelms
+        call calcavector(i, bdotgradp, dum(:,i))
+     end do
+     call output_field(group_id, "bdotgradp", real(dum), coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id, "bdotgradp_i",aimag(dum),coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+#endif
+
+     ! bdotgradt
+     do i=1, nelms
+        call calcavector(i, bdotgradt, dum(:,i))
+     end do
+     call output_field(group_id, "bdotgradt", real(dum), coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id, "bdotgradt_i",aimag(dum),coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+#endif
+
+     ! sigma
+     if(ipellet.eq.1 .or. ionization.eq.1 .or. isink.gt.0) then
+        do i=1, nelms
+           call calcavector(i, sigma_field, dum(:,i))
+        end do
+        call output_field(group_id, "sigma", real(dum), coeffs_per_element, &
+             nelms, error)
+        nfields = nfields + 1
+     endif
   endif
 
-  ! partition
-  dum = 0
-  dum(1,:) = myrank
-  call output_field(group_id, "part", real(dum), coeffs_per_element, &
-       nelms, error)
-  nfields = nfields + 1
 
+  if(equilibrium.eq.1) then
+     ! partition
+     dum = 0
+     dum(1,:) = myrank
+     call output_field(group_id, "part", real(dum), coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+  end if
+     
   call write_int_attr(group_id, "nfields", nfields, error)
 
   ! Close the mesh group
