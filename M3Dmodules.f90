@@ -465,7 +465,8 @@ module sparse
   integer, parameter :: p1_mat_index = 49
   integer, parameter :: gs_mat_rhs_index = 50
   integer, parameter :: r42_mat_index = 51
-  integer, parameter :: num_matrices = 51
+  integer, parameter :: bf_mat_index = 52
+  integer, parameter :: num_matrices = 52
 
   type(matrix_type), target :: s1_mat, d1_mat, q1_mat, r14_mat, o1_mat, p1_mat
   type(matrix_type), target :: q42_mat, r42_mat

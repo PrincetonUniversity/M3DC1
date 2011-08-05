@@ -2963,7 +2963,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                base = read_field(name, x, y, t, slices=-1, mesh=mesh, $
                                  filename=filename, points=pts, $
                                  rrange=xrange, zrange=yrange, $
-                                 h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
+                                 h_symmetry=h_symmetry, v_symmetry=v_symmetry,$
                                  operation=op, mask=mask, $
                                  last=0,symbol=symbol,units=units, $
                                  cgs=cgs, mks=mks)
@@ -3003,11 +3003,14 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                h5g_close, field_group_id
                h5g_close, time_group_id
 
+               if(n_elements(phi0) eq 0) then phi_rad=0. $
+               else phi0_rad = phi0*!pi/180.
+
                data[i-trange[0],*,*] = $
                  eval_field(field._data, mesh, points=pts, $
                             r=x, z=y, op=op, filename=filename, $
                             xrange=xrange, yrange=yrange, mask=mask, $
-                            phi=phi0) $
+                            phi=phi0_rad) $
                  + base*(i ne -1)
            end
 

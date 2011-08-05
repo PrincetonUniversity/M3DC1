@@ -11,6 +11,8 @@ module nintegrate
 implicit none
 
   integer :: npoints        ! number of points in Gaussian quadrature
+  integer :: npoints_pol
+  integer :: npoints_tor
   logical :: surface_int
 
   real, dimension(MAX_PTS) :: x_79, phi_79, z_79
@@ -307,6 +309,8 @@ subroutine extrude_quadrature(d, npol, ntor)
 
   ! if ntor==0, axisymmetry is assumed
   case(0)
+     npoints_pol = npol
+     npoints_tor = 1
      npoints = npol
      zi_79(1:npol) = 0.
      weight_79(1:npol) = weight_79(1:npol)*d
@@ -349,6 +353,8 @@ subroutine extrude_quadrature(d, npol, ntor)
      j = j + npol
   end do
 
+  npoints_pol = npol
+  npoints_tor = ntor
   npoints = npol*ntor
 end subroutine extrude_quadrature
 
@@ -423,6 +429,8 @@ subroutine define_boundary_quadrature(ielm, iedge, npol, ntor, normal, idim)
 #ifdef USE3D
   call extrude_quadrature(d%d,npol,ntor)
 #else
+  npoints_pol = npol
+  npoints_tor = 1
   npoints = npol
 #endif
 end subroutine define_boundary_quadrature
@@ -461,6 +469,8 @@ subroutine define_element_quadrature(ielm, pol_gauss, tor_gauss)
 #ifdef USE3D
   call extrude_quadrature(d%d,pol_gauss,tor_gauss)
 #else
+  npoints_pol = pol_gauss
+  npoints_tor = 1
   npoints = pol_gauss
 #endif
 end subroutine define_element_quadrature

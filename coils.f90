@@ -34,7 +34,7 @@ contains
    integer :: fcoil, fcurr, i, j, k, s, ier, ibuff, rank
    real :: dx, dz
 
-  call MPI_Comm_rank(MPI_COMM_WORLD, rank, ier)
+   call MPI_Comm_rank(MPI_COMM_WORLD, rank, ier)
 
    xc = 0.
    zc = 0.
@@ -494,7 +494,7 @@ subroutine coil(curr, r1, z1, npts, r0, z0, ntor, fr, fphi, fz)
   real, intent(in) :: r1, z1
   integer, intent(in) :: ntor, npts
   real, intent(in), dimension(npts) :: r0, z0
-  vectype, intent(inout), dimension(npts) :: fr, fphi, fz
+  complex, intent(inout), dimension(npts) :: fr, fphi, fz
 
   real, dimension(npts) :: dr2, k2, temp, co
   complex, dimension(npts) :: fac
@@ -523,7 +523,7 @@ subroutine surface(r, z, dldR, dldZ, npts, r0, z0, ntor, fr, fphi, fz)
   real, intent(in) :: r, z, dldZ, dldR
   integer, intent(in) :: npts, ntor
   real, intent(in), dimension(npts) :: r0, z0
-  vectype, intent(out), dimension(npts) :: fr, fphi, fz
+  complex, intent(out), dimension(npts) :: fr, fphi, fz
   
   real, dimension(npts) :: dr2, fac, k2, temp1, temp2
 
@@ -556,11 +556,11 @@ subroutine pane(curr, r1, r2, z1, z2, npts, r0, z0, ntor, fr, fphi, fz)
   real, intent(in) :: r1, r2, z1, z2
   integer, intent(in) :: ntor, npts
   real, intent(in), dimension(npts) :: r0, z0
-  vectype, intent(inout), dimension(npts) :: fr, fphi, fz
+  complex, intent(inout), dimension(npts) :: fr, fphi, fz
 
-  vectype, dimension(npts) :: fr0, fphi0, fz0
-  vectype, dimension(npts) :: fr1, fphi1, fz1
-  vectype, dimension(npts) :: fr2, fphi2, fz2
+  complex, dimension(npts) :: fr0, fphi0, fz0
+  complex, dimension(npts) :: fr1, fphi1, fz1
+  complex, dimension(npts) :: fr2, fphi2, fz2
   real :: l, dl, lmax, dldZ, dldR, r, z, dl2
   integer :: il
   integer, parameter :: ilmax = 100
@@ -624,23 +624,35 @@ subroutine field_from_coils_2(xc, zc, ic, nc, nt)
   integer, intent(in) :: nc
   integer, intent(in) :: nt                  ! toroidal mode number
 
-  type(matrix_type) :: br_mat
-  type(vector_type) :: psi_vec
+  type(matrix_type) :: br_mat, bf_mat
+  type(vector_type) :: psi_vec, bz_vec
   integer :: i, j, itri, nelms, ier
 
-  vectype :: temp(dofs_per_element,dofs_per_element,2,2)
-  vectype :: temp2(dofs_per_element,2)
+  complex, dimension(int_pts_main) :: fr, fphi, fz
 
-  integer, parameter :: inumb = 2
+  vectype, dimension(dofs_per_element,dofs_per_element) :: temp, temp_bf
+  vectype, dimension(dofs_per_element) :: temp2, temp3
 
-  type(field_type) :: psi_f, bf_f
+  type(field_type) :: psi_f, bz_f
 
-  call create_vector(psi_vec,inumb)
+#ifndef USECOMPLEX
+  real, dimension(int_pts_main) :: co, sn
+#endif
+
+  call create_vector(psi_vec,1)
   call associate_field(psi_f,psi_vec,1)
-  call associate_field(bf_f,psi_vec,2)
+
+  call create_vector(bz_vec,1)
+  call associate_field(bz_f,bz_vec,1)
 
   call set_matrix_index(br_mat, br_mat_index)
-  call create_mat(br_mat, inumb, inumb, 1, .true.)
+  call create_mat(br_mat, 1, 1, icomplex, .true.)
+#ifdef CJ_MATRIX_DUMP
+  print *, "create_mat coils br_mat", br_mat%imatrix 
+#endif
+
+  call set_matrix_index(bf_mat, bf_mat_index)
+  call create_mat(bf_mat, 1, 1, icomplex, .false.)
 #ifdef CJ_MATRIX_DUMP
   print *, "create_mat coils br_mat", br_mat%imatrix 
 #endif
@@ -651,133 +663,87 @@ subroutine field_from_coils_2(xc, zc, ic, nc, nt)
      call define_element_quadrature(itri,int_pts_main,5)
      call define_fields(itri,0,1,0)
 
-     temp79a = 0.    ! B_R
-     temp79b = 0.    ! B_phi
-     temp79c = 0.    ! B_Z
+     fr   = 0.    ! B_R
+     fphi = 0.    ! B_phi
+     fz   = 0.    ! B_Z
 
      do i=1, nc, 2
-        call pane(ic(i),xc(i),xc(i+1),zc(i),zc(i+1),npoints,x_79,z_79,nt,&
-             temp79a,temp79b,temp79c)
+        call pane(ic(i),xc(i),xc(i+1),zc(i),zc(i+1),npoints_pol,x_79,z_79, &
+             nt,fr,fphi,fz)
      end do
 
-     temp79a = -temp79a*2.*pi
-     temp79b = -temp79b*2.*pi
-     temp79c = -temp79c*2.*pi
-
 #ifdef USECOMPLEX
+     temp79a = fr
+     temp79b = fphi
+     temp79c = fz
+#else
+     do i=1, npoints_tor
+        co = cos(ntor*phi_79((i-1)*npoints_pol+1:i*npoints_pol))
+        sn = sin(ntor*phi_79((i-1)*npoints_pol+1:i*npoints_pol))
+        temp79a((i-1)*npoints_pol+1:i*npoints_pol) = &
+             real(fr(1:npoints_pol))*co + aimag(fr(1:npoints_pol))*sn
+        temp79b((i-1)*npoints_pol+1:i*npoints_pol) = &
+             real(fphi(1:npoints_pol))*co + aimag(fphi(1:npoints_pol))*sn
+        temp79c((i-1)*npoints_pol+1:i*npoints_pol) = &
+             real(fz(1:npoints_pol))*co + aimag(fz(1:npoints_pol))*sn
+     end do
+#endif
+
+     temp79a = -2.*pi*temp79a
+     temp79b = -2.*pi*temp79b
+     temp79c = -2.*pi*temp79c
+
      ! assemble matrix
      do i=1,dofs_per_element
         do j=1,dofs_per_element
-
-           temp(i,j,1,1) = int3(ri2_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j)) &
-                +      int3(ri2_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j)) 
-           temp(i,j,1,2) = int3(ri_79, mu79(:,OP_DZ,i),nu79(:,OP_DRP,j)) &
-                -      int3(ri_79, mu79(:,OP_DR,i),nu79(:,OP_DZP,j))
-           temp(i,j,2,1) = int3(ri_79, mu79(:,OP_DRP,i),nu79(:,OP_DZ,j)) &
-                -      int3(ri_79, mu79(:,OP_DZP,i),nu79(:,OP_DR,j))
-           temp(i,j,2,2) = int2(mu79(:,OP_DRP,i),nu79(:,OP_DRP,j)) &
-                +      int2(mu79(:,OP_DZP,i),nu79(:,OP_DZP,j)) &
-                +      int3(r2_79,mu79(:,OP_LP,i),nu79(:,OP_LP,j))
+           temp(i,j) = int3(ri2_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j)) &
+                +      int3(ri2_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j))
+           temp_bf(i,j) = &
+             + int3(ri_79,mu79(:,OP_DR,i),nu79(:,OP_DZP,j)) &
+             - int3(ri_79,mu79(:,OP_DZ,i),nu79(:,OP_DRP,j))
         end do
 
         ! assemble RHS
-        temp2(i,1) = &
+        temp2(i) = &
              + int3(ri_79,mu79(:,OP_DR,i),temp79c) &
              - int3(ri_79,mu79(:,OP_DZ,i),temp79a)
-        temp2(i,2) = &
-             - int2(mu79(:,OP_DRP,i),temp79a) &
-             - int2(mu79(:,OP_DZP,i),temp79c) &
-             + int3(r_79,mu79(:,OP_LP,i),temp79b)
+
+        temp3(i) = int3(r_79,mu79(:,OP_1,i),temp79b)
      end do
-#endif
-     call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,2,1))
-     call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,2,2))
 
-     call insert_block(br_mat, itri, 1, 1, temp(:,:,1,1), MAT_ADD)
-     call insert_block(br_mat, itri, 1, 2, temp(:,:,1,2), MAT_ADD)
-     call insert_block(br_mat, itri, 2, 1, temp(:,:,2,1), MAT_ADD)
-     call insert_block(br_mat, itri, 2, 2, temp(:,:,2,2), MAT_ADD)
+     call insert_block(br_mat, itri, 1, 1, temp(:,:), MAT_ADD)
+     call insert_block(bf_mat, itri, 1, 1, temp_bf(:,:), MAT_ADD)
 
-     call vector_insert_block(psi_vec, itri, 1, temp2(:,1), MAT_ADD)
-     call vector_insert_block(psi_vec, itri, 2, temp2(:,2), MAT_ADD)
+     call vector_insert_block(psi_vec, itri, 1, temp2(:), MAT_ADD)
+     call vector_insert_block(bz_vec, itri, 1, temp3(:), MAT_ADD)
   end do
-
-  call sum_shared(psi_vec)
-
-  ! insert boundary conditions
-  call boundary_bf(psi_vec, br_mat)
-
   call finalize(br_mat)
+  call finalize(bf_mat)
+  call sum_shared(psi_vec)
+  call sum_shared(bz_vec)
 
-  ! solve matrix equation
+  ! solve bz
+  call newsolve(mass_mat_lhs%mat,bz_vec,ier)
+  bz_field(1) = bz_f
 
-#ifdef CJ_MATRIX_DUMP
-!!$  if(ntime.eq.2) then 
-     call write_matrix(br_mat,'br_mat')
-     call write_vector(psi_vec, 'br_mat_rhs.out')
-!!$  endif
-#endif 
+  ! set bf to zero so that solves use homogeneous boundary conditions
+  bf_field(1) = 0.
+  ! solve bf from bz
+  call solve_newvar1(bf_mat_lhs,bf_field(1),mass_mat_rhs_bf, &
+             bz_field(1), bf_field(1))
 
-  call newsolve(br_mat,psi_vec,ier)
-  
-#ifdef CJ_MATRIX_DUMP
-!!$  if(ntime.eq.2) then
-     call write_vector(psi_vec, 'br_mat_sol.out')
-!!$  endif
-#endif 
+  ! add Grad_perp(f') to RHS
+  call matvecmult(bf_mat, bf_field(1), bz_vec)
+  call add(psi_vec,bz_vec)
 
-  ! copy solution
+  ! do least-squares solve for Grad(psi)xGrad(phi) = B + Grad_perp(f')
+  call newsolve(br_mat,psi_vec, ier)
   psi_field(1) = psi_f
-  bf_field(1) = bf_f
-
-  ! calculate bz from bf
-  call solve_newvar1(mass_mat_lhs,bz_field(1),bf_mat_rhs,bf_f)
 
   call destroy_vector(psi_vec)
-
-  ! set bf to zero so that future solves use homogeneous boundary conditions
-  bf_field(0) = 0.
-  bf_field(1) = 0.
+  call destroy_vector(bz_vec)
+  call destroy_mat(br_mat)
+  call destroy_mat(bf_mat)
 end subroutine field_from_coils_2
-
-
-!=======================================================
-! boundary_bf
-! ~~~~~~~~~~~
-!=======================================================
-subroutine boundary_bf(rhs, mat)
-  use vector_mod
-  use matrix_mod
-  use mesh_mod
-  use boundary_conditions
-
-  implicit none
-
-  type(vector_type) :: rhs
-  type(matrix_type), optional :: mat
-  
-  integer, parameter :: numvarbf = 2
-  integer :: i, izone, izonedim
-  integer :: ibegin, numnodes
-  real :: normal(2), curv
-  real :: x, z
-  logical :: is_boundary
-  vectype, dimension(dofs_per_node) :: temp
-
-  numnodes = owned_nodes()
-  do i=1, numnodes
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
-     if(.not.is_boundary) cycle
-
-     ibegin = node_index(rhs, i, 2)
-
-     temp = 0.
-     call set_dirichlet_bc(ibegin,rhs,temp,normal,curv,izonedim,mat)
-  end do
-
-  call finalize(rhs)
-
-end subroutine boundary_bf
-
 
 end module coils
