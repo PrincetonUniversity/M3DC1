@@ -188,7 +188,7 @@ Program Reducedquintic
         call derived_quantities(0)
      end if
 
-!     call calculate_auxiliary_fields(0)
+     call calculate_auxiliary_fields(0)
 
      ! Output the equilibrium
      if(myrank.eq.0 .and. iprint.ge.2) print *, ' Writing equilibrium'
