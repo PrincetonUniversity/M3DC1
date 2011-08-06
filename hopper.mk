@@ -64,10 +64,11 @@ SUPERLU_DIST = -lsuperlu_dist_2.5
 HYPRE = -lHYPRE
 MUMPS = -ldmumps -lmumps_common -lpord
 
-INCLUDE := $(INCLUDE) $(HDF5_INCLUDE_OPTS) \
+INCLUDE := $(INCLUDE) $(HDF5_INCLUDE_OPTS) $(FFTW_INCLUDE_OPTS) \
 	-I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include
 LIBS := $(LIBS) $(HDF5_POST_LINK_OPTS) -lhdf5_fortran -lhdf5 \
 	-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc \
+	$(FFTW_POST_LINK_OPTS) -lfftw3 \
 	$(SUPERLU_DIST) $(HYPRE) $(MUMPS) $(PARMETIS) -ldl
 
 FOPTS = -c -Mr8 -Mpreprocess -Minform=warn $(OPTS) \
