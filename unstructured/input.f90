@@ -268,6 +268,8 @@ subroutine set_defaults
   call add_var_int("irmp", irmp, 0, &
        "1: Apply nonaxisym. fields throughout plasma|&
        &2: Apply nonaxisym. fields only at boundaries", eq_grp)
+  call add_var_int("iread_ext_field", iread_ext_field, 0, &
+       "1: Read external field", eq_grp)
   call add_var_double("beta", beta, 0., "", eq_grp)
   call add_var_double("ln", ln, 0., "", eq_grp)
 

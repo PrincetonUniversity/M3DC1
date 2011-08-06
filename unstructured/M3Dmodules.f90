@@ -128,6 +128,7 @@ module basic
   real :: eps         ! size of initial perturbation
   integer :: iwave    ! which wave to initialize in wave prop. equilibrium
   integer :: irmp     ! 1 = read rmp coil/currents from rmp_coil.dat, rmp_current.dat
+  integer :: iread_ext_field
   integer :: maxn     ! maximum frequency in random initial conditions
 
 

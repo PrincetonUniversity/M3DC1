@@ -396,11 +396,12 @@ subroutine rmp_per
   use arrays
   use coils
   use boundary_conditions
+  use read_schaffer_field
 
   implicit none
 
   logical :: is_boundary
-  integer :: izone, izonedim, numnodes, l
+  integer :: izone, izonedim, numnodes, l, ierr
   real :: normal(2), curv, x, z, r2, dx, dz
 #ifdef USECOMPLEX
   vectype :: ii
@@ -450,7 +451,17 @@ subroutine rmp_per
      return
   endif
 
-  call load_field_from_coils('rmp_coil.dat', 'rmp_current.dat', ntor)
+  ! load external field data from schaffer file
+  if(iread_ext_field.eq.1) then
+     call load_schaffer_field('error_field', ierr)
+     if(ierr.ne.0) call safestop(6)
+  end if
+
+  ! calculate external fields from non-axisymmetric coils and external field
+  call calculate_external_fields
+
+  ! unload data
+  if(iread_ext_field.eq.1) call unload_schaffer_field
 
   ! leave perturbation only on the boundary
   if(irmp.eq.2) then
