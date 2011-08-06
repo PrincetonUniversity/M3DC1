@@ -101,13 +101,14 @@ BIN = m3dc1
 READGATO_OBJS = polar.o readgato.o
 READJSOLVER_OBJS = polar.o read_jsolver_exec.o
 
-OBJS := $(AUX) read_namelist.o subp.o random.o spline.o \
+OBJS := $(AUX) fftw_fortran.o read_namelist.o subp.o random.o spline.o \
 	math.o read_ascii.o interpolate.o control.o \
 	element.o $(V_OBJ) field.o nintegrate_mod.o \
 	M3Dmodules.o \
 	m3dc1_nint.o vacuum_interface.o boundary.o \
 	harned_mikic.o metricterms_new.o biharmonic.o \
 	electrostatic_potential.o newvar.o diagnostics.o \
+	read_schaffer_field.o \
 	coils.o coil_sets.o gradshafranov.o transport.o \
 	auxiliary_fields.o \
 	time_step.o hdf5_output.o output.o \

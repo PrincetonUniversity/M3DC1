@@ -154,23 +154,6 @@ contains
 
  end subroutine field_from_coils
 
-
- subroutine load_field_from_coils(coil_filename, current_filename, ntor)
-   use vector_mod
-   implicit none
-
-   character*(*) :: coil_filename, current_filename
-   integer, intent(in) :: ntor
-
-   real, dimension(maxcoils) :: xc, zc
-   complex, dimension(maxcoils) :: ic
-   integer :: nc
-
-   call load_coils(xc, zc, ic, nc, coil_filename, current_filename, ntor)
-   call field_from_coils_2(xc, zc, ic, nc, ntor)
-
- end subroutine load_field_from_coils
-
 !============================================================
 subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
   ! calculates derivatives wrt first argument
@@ -604,8 +587,7 @@ subroutine pane(curr, r1, r2, z1, z2, npts, r0, z0, ntor, fr, fphi, fz)
   
 end subroutine pane
 
-
-subroutine field_from_coils_2(xc, zc, ic, nc, nt)
+subroutine calculate_external_fields()
   use basic
   use math
   use mesh_mod
@@ -614,21 +596,21 @@ subroutine field_from_coils_2(xc, zc, ic, nc, nt)
   use m3dc1_nint
   use newvar_mod
   use boundary_conditions
+  use read_schaffer_field
 
   implicit none
 
   include 'mpif.h'
-
-  real, intent(in), dimension(nc) :: xc, zc
-  complex, intent(in), dimension(nc) :: ic
-  integer, intent(in) :: nc
-  integer, intent(in) :: nt                  ! toroidal mode number
 
   type(matrix_type) :: br_mat, bf_mat
   type(vector_type) :: psi_vec, bz_vec
   integer :: i, j, itri, nelms, ier
 
   complex, dimension(int_pts_main) :: fr, fphi, fz
+
+  real, dimension(maxcoils) :: xc_na, zc_na
+  complex, dimension(maxcoils) :: ic_na
+  integer :: nc_na
 
   vectype, dimension(dofs_per_element,dofs_per_element) :: temp, temp_bf
   vectype, dimension(dofs_per_element) :: temp2, temp3
@@ -638,6 +620,11 @@ subroutine field_from_coils_2(xc, zc, ic, nc, nt)
 #ifndef USECOMPLEX
   real, dimension(int_pts_main) :: co, sn
 #endif
+
+  if(irmp .ne. 0) then
+     call load_coils(xc_na, zc_na, ic_na, nc_na, &
+          'rmp_coil.dat', 'rmp_current.dat', ntor)
+  end if
 
   call create_vector(psi_vec,1)
   call associate_field(psi_f,psi_vec,1)
@@ -667,9 +654,9 @@ subroutine field_from_coils_2(xc, zc, ic, nc, nt)
      fphi = 0.    ! B_phi
      fz   = 0.    ! B_Z
 
-     do i=1, nc, 2
-        call pane(ic(i),xc(i),xc(i+1),zc(i),zc(i+1),npoints_pol,x_79,z_79, &
-             nt,fr,fphi,fz)
+     do i=1, nc_na, 2
+        call pane(ic_na(i),xc_na(i),xc_na(i+1),zc_na(i),zc_na(i+1), &
+             npoints_pol,x_79,z_79,ntor,fr,fphi,fz)
      end do
 
 #ifdef USECOMPLEX
@@ -698,9 +685,11 @@ subroutine field_from_coils_2(xc, zc, ic, nc, nt)
         do j=1,dofs_per_element
            temp(i,j) = int3(ri2_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j)) &
                 +      int3(ri2_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j))
+#if defined(USECOMPLEX) || defined(USE3D)
            temp_bf(i,j) = &
              + int3(ri_79,mu79(:,OP_DR,i),nu79(:,OP_DZP,j)) &
              - int3(ri_79,mu79(:,OP_DZ,i),nu79(:,OP_DRP,j))
+#endif
         end do
 
         ! assemble RHS
@@ -726,6 +715,7 @@ subroutine field_from_coils_2(xc, zc, ic, nc, nt)
   call newsolve(mass_mat_lhs%mat,bz_vec,ier)
   bz_field(1) = bz_f
 
+#if defined(USECOMPLEX) || defined(USE3D)
   ! set bf to zero so that solves use homogeneous boundary conditions
   bf_field(1) = 0.
   ! solve bf from bz
@@ -735,6 +725,7 @@ subroutine field_from_coils_2(xc, zc, ic, nc, nt)
   ! add Grad_perp(f') to RHS
   call matvecmult(bf_mat, bf_field(1), bz_vec)
   call add(psi_vec,bz_vec)
+#endif
 
   ! do least-squares solve for Grad(psi)xGrad(phi) = B + Grad_perp(f')
   call newsolve(br_mat,psi_vec, ier)
@@ -744,6 +735,6 @@ subroutine field_from_coils_2(xc, zc, ic, nc, nt)
   call destroy_vector(bz_vec)
   call destroy_mat(br_mat)
   call destroy_mat(bf_mat)
-end subroutine field_from_coils_2
+end subroutine calculate_external_fields
 
 end module coils
