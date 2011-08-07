@@ -339,11 +339,16 @@ contains
 
     else if(flg_pdslin.eq.PETSC_TRUE) then  ! use pdslin
 #ifdef USEHYBRID
+       if(mat%imatrix .eq. 6) then
+       print *, 'OK: Using pdslin solve,', mat%imatrix
        call hybridsolve(mat%imatrix,v%data,ierr)
-#else
-       print *, 'Error: not compiled with PDSLIN.  Using default solve.'
+!#else
+       else
+       print *, 'Er: Using default solve,', mat%imatrix
        call solve(mat%imatrix,v%data,ierr)
+       endif
 #endif
+
     else  ! use scorec superlu or petsc (-ipetsc)
        call solve(mat%imatrix,v%data,ierr)
     endif

@@ -1,0 +1,55 @@
+adios_groupsize = 0
+adios_totalsize = 0
+call adios_group_size (adios_handle, adios_groupsize, adios_totalsize, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "numnodes", inumnodes, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "numelms", inumelms, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "mmnn18", immnn18, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "numvar", inumvar, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "iper", iiper, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "jper", ijper, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "myrank", imyrank, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "maxrank", imaxrank, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "eqsubtract", ieqsubtract, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "linear", ilinear, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "icomplex", icomp, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "ntime", ntime, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "time", time, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "totcur0", totcur0, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "tflux0", tflux0, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "gbound", gbound, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "ptot", ptot, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "vloop", vloop, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "psimin", psimin, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "psilim", psilim, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "xnull", xnull, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "znull", znull, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "xmag", xmag, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "zmag", zmag, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "ndofs_1", ndofs_1, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "ndofs_2", ndofs_2, adios_buf_size, adios_err)

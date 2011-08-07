@@ -413,3 +413,163 @@ subroutine rdrestartglobal
 #endif
 end subroutine rdrestartglobal
 
+
+
+subroutine wrrestart_adios
+  use p_data
+  use mesh_mod
+  use basic
+  use arrays
+  use diagnostics
+  use time_step
+
+  implicit none
+
+   include 'mpif.h'
+
+!cj aug05-2011 #ifdef USESCOREC 
+#ifdef USEADIOS
+  integer :: mmnn18, j1, numnodes, numelms
+  integer :: ndofs_1, ndofs_2, i, j
+  integer, save :: ifirstrs = 1
+  character (len=30) :: fname, oldfname
+
+  ! ADIOS variables declarations for matching gwrite_restart_c1.fh 
+  integer             :: comm, ierr
+  integer                 :: adios_err
+  integer*8               :: adios_groupsize, adios_totalsize
+  integer*8               :: adios_handle 
+  real, allocatable :: tmp_field_vec(:), tmp_field0_vec(:), tmp_bf_field_1(:), tmp_bf_field_0(:)
+
+
+  if(ntime.lt.2) return
+  fname="restart.bp"
+  oldfname="restarto.bp"
+  numnodes = local_nodes()
+  numelms = local_elements()
+  call numdofs(vecsize_phi, mmnn18)
+
+  if(ifirstrs .ne. 1) call rename(fname, oldfname)
+  ifirstrs = 0
+
+  call numdofs(num_fields, ndofs_1)
+  allocate(tmp_field_vec(ndofs_1))
+  allocate(tmp_field0_vec(ndofs_1))
+  tmp_field_vec(1:ndofs_1) = field_vec%data(1:ndofs_1)
+  tmp_field0_vec(1:ndofs_1) = field0_vec%data(1:ndofs_1)
+
+  call numdofs(1, ndofs_2)
+  allocate(tmp_bf_field_1(ndofs_2))
+  allocate(tmp_bf_field_0(ndofs_2))
+  tmp_bf_field_1(1:ndofs_2)= bf_field(1)%vec%data(1:ndofs_2)
+  tmp_bf_field_0(1:ndofs_2) = bf_field(0)%vec%data(1:ndofs_2)
+
+    call MPI_Comm_dup (MPI_COMM_WORLD, comm, ierr) 
+    call adios_init ("m3dc1.xml", adios_err)
+    call adios_open (adios_handle, "restart", fname, "w", comm, adios_err)
+#include "gwrite_restart_c1.fh" 
+    call adios_close (adios_handle, adios_err)
+    call MPI_Barrier (comm, ierr)
+    call adios_finalize (myrank, adios_err)
+
+  if(myrank.eq.0) &
+      write(*,*) "OUTPUT: wrrestart_adios groupsize totalsize", &
+                  adios_groupsize, adios_totalsize
+
+  deallocate(tmp_field_vec, tmp_field0_vec, tmp_bf_field_1, tmp_bf_field_0)
+
+#endif
+end subroutine wrrestart_adios
+
+!============================================================
+subroutine rdrestart_adios
+  use p_data
+  use mesh_mod
+  use basic
+  use arrays
+  use diagnostics
+  use time_step
+  implicit none
+  
+   include 'mpif.h'
+
+!cj aug05-2011 #ifdef USESCOREC
+#ifdef USEADIOS
+
+  integer :: mmnn18, j1, numnodes, inumnodes
+  integer :: inumelms, immnn18, inumvar, iiper, ijper, imyrank
+  integer :: imaxrank, numelms, ieqsubtract, ilinear, icomp
+  character (len=30) :: fname, oldfname
+  integer :: ndofs1, ndofs2, ndofs_1, ndofs_2
+
+  ! ADIOS variables declarations for matching gread_restart_c11.fh &  gread_restart_c12.fh
+  integer             :: comm, ierr
+  integer                 :: adios_err
+  integer*8               :: adios_groupsize, adios_totalsize
+  integer*8               :: adios_handle, adios_buf_size
+  real, allocatable :: tmp_field_vec(:), tmp_field0_vec(:), tmp_bf_field_1(:), tmp_bf_field_0(:)
+
+
+  fname="restart.bp"
+  oldfname="restarto.bp"
+  numnodes = local_nodes()
+  numelms = local_elements() 
+  call numdofs(vecsize_phi, mmnn18)
+  call numdofs(num_fields, ndofs1)
+  call numdofs(1, ndofs2)
+
+    call MPI_Comm_dup (MPI_COMM_WORLD, comm, ierr)
+    call adios_init ("m3dc1.xml", adios_err)
+    call adios_open (adios_handle, "restart", fname, "r", comm, adios_err)
+#include "gread_restart_c11.fh" 
+    call adios_close (adios_handle, adios_err)
+    ! Note, we have to close to perform the reading of the variables above
+
+  if(inumnodes .ne. numnodes .or. inumelms .ne. numelms .or. &
+     mmnn18 .ne. immnn18 .or. numvar .ne. inumvar .or. &
+     iiper .ne. iper .or. ijper .ne. jper .or. &
+     imyrank .ne. myrank .or. imaxrank .ne. maxrank .or. &
+     ndofs1 .ne. ndofs_1 .or. ndofs2.ne. ndofs_2) then
+     write(*,*) 'Restart file information does not match!'
+
+     if(inumnodes .ne. numnodes) write(*,*) 'numnodes ',inumnodes, numnodes, myrank 
+     if(inumelms .ne. numelms) write(*,*) 'numelms ',inumnodes, numnodes, myrank 
+     if(iiper .ne. iper) write(*,*) 'iper',iiper, iper, myrank
+     if(ijper .ne. jper) write(*,*) 'jper',ijper, jper, myrank
+     if(imyrank .ne. myrank) write(*,*) 'myrank',imyrank,myrank
+     if(ndofs1 .ne. ndofs_1) write(*,*) 'ndofs 1',myrank, ndofs1, ndofs_1
+     if(ndofs2 .ne. ndofs_2) write(*,*) 'ndofs 2',myrank, ndofs2, ndofs_2
+     call safestop(2)
+  endif
+
+    ! Allocate space for the arrays tmp_
+  allocate(tmp_field_vec(ndofs_1))
+  allocate(tmp_field0_vec(ndofs_1)) 
+  allocate(tmp_bf_field_1(ndofs_2))
+  allocate(tmp_bf_field_0(ndofs_2)) 
+
+    call adios_open (adios_handle, "restart", fname, "r", comm, adios_err)
+#include "gread_restart_c12.fh" 
+    call adios_close (adios_handle, adios_err) 
+    call MPI_Barrier (comm, ierr) 
+    call adios_finalize (myrank, adios_err)
+
+      field_vec%data(1:ndofs_1) = tmp_field_vec(1:ndofs_1)
+      field0_vec%data(1:ndofs_1) = tmp_field0_vec(1:ndofs_1)
+
+  ! If we are running a linear simulation, but the restart file was
+  ! a nonlinear simulation, make the restart data be the equilibrium
+  if(linear.eq.1 .and. ilinear.eq.0) then
+     field0_vec%data = field0_vec%data + field_vec%data
+     field_vec%data = 0.
+  endif 
+      bf_field(1)%vec%data(1:ndofs_2) = tmp_bf_field_1(ndofs_2)
+      bf_field(0)%vec%data(1:ndofs_2) = tmp_bf_field_0(1:ndofs_2) 
+
+  if(myrank.eq.0) &
+      write(*,*) "INPUT: rdrestart_adios buf_size groupsize totalsize", &
+                 adios_buf_size, adios_groupsize, adios_totalsize
+
+  deallocate(tmp_field_vec, tmp_field0_vec, tmp_bf_field_1, tmp_bf_field_0) 
+#endif
+end subroutine rdrestart_adios

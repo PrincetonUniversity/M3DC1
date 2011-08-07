@@ -166,7 +166,11 @@ Program Reducedquintic
      if(iglobalin.eq.1) then
         call rdrestartglobal
      else
+#ifdef USEADIOS
+        call rdrestart_adios
+#else
         call rdrestart
+#endif
      endif
   end select                     !  end of the branch on restart/no restart
 
