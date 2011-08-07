@@ -19,7 +19,8 @@ ifeq ($(HPCTK), 1)
 endif
 
 # define where you want to locate the mesh adapt libraries
-HYBRID_HOME = /p/swim/jchen/hybrid.test
+HYBRID_HOME =  /scratch2/scratchdirs/xyuan/Software_Hopper/pdslin_0.0
+HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lpdslin
 
 ifeq ($(USESCOREC), 1)
     ifndef SCORECDIR
@@ -52,24 +53,34 @@ SCOREC_LIBS =  \
   LIBS := $(LIBS) $(SCOREC_LIBS) -lC -lstd
 
   PARMETIS = -lparmetis -lmetis
+#ichi  PARMETIS = -L/global/u2/y/yamazaki/libs/scotch_5.1/lib -lptscotchparmetis -lptscotch -lptscotcherr -lptscotcherrexit \
+             -L/global/u2/y/yamazaki/libs/metis_5.0/lib -lmetis
 
 else
 #  OPTS := $(OPTS) -DPetscDEV
 endif   # on USESCOREC
 
-OPTS := $(OPTS) -DPetscDEV
+OPTS := $(OPTS) -DPetscDEV -DUSEADIOS -DUSEHYBRID #-DCJ_MATRIX_DUMP
 PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev-SUPERLU-HYPRE-MUMPS/petsc-dev-060711/petsc-dev
 PETSC_ARCH = arch-cray-xt6-pkgs-opt
 SUPERLU_DIST = -lsuperlu_dist_2.5
 HYPRE = -lHYPRE
 MUMPS = -ldmumps -lmumps_common -lpord
 
+#only define them if adios-1.3 is used; otherwise use hopper default
+ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
+ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf -L/global/homes/p/pnorbert/mxml/mxml.hopper/lib -lm -lmxml -pgcpplibs
+
 INCLUDE := $(INCLUDE) $(HDF5_INCLUDE_OPTS) $(FFTW_INCLUDE_OPTS) \
-	-I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include
+	-I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
+        -I$(HYBRID_HOME)/include
+
 LIBS := $(LIBS) $(HDF5_POST_LINK_OPTS) -lhdf5_fortran -lhdf5 \
 	-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc \
 	$(FFTW_POST_LINK_OPTS) -lfftw3 \
-	$(SUPERLU_DIST) $(HYPRE) $(MUMPS) $(PARMETIS) -ldl
+	$(SUPERLU_DIST) $(HYPRE) $(MUMPS) $(PARMETIS) -ldl \
+        $(HYBRID_LIBS) \
+        $(ADIOS_FLIB)
 
 FOPTS = -c -Mr8 -Mpreprocess -Minform=warn $(OPTS) \
 	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs
@@ -82,7 +93,7 @@ ifeq ($(OPT), 1)
   CCOPTS := $(CCOPTS) -O
 else
   FOPTS := $(FOPTS) -g -Mbounds
-  CCOPTS := $(CCOPTS)
+  CCOPTS := $(CCOPTS)  
 endif
 
 

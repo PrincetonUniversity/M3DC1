@@ -93,12 +93,16 @@ contains
           if(iglobalout.eq.1) then
              call wrrestartglobal
           else
+#ifdef USEADIOS
+               call wrrestart_adios
+#else
 !            call wrrestart
 !...........sequential restart writing
             do i=0,maxrank-1
                if(myrank.eq.i) call wrrestart
                call MPI_Barrier(MPI_COMM_WORLD,ier)
             enddo
+#endif
           endif
           if(myrank.eq.0 .and. itimer.eq.1) then
             call second(tend)

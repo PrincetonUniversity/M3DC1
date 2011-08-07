@@ -445,8 +445,10 @@ typedef struct
 {
   int matrixId;
   int init; // count when a pc needs to be refreshed
-  dHybridMatrix A;
-  hybrid_param  input;
+  dPDSLinMatrix A;
+  pdslin_param  input;
+  pdslin_stat  stat;
+  int  info;
   double *x_loc, *b_loc; 
   int lnnz;
 } HYBRIDSOLVER_ARRAY; 
@@ -454,7 +456,7 @@ typedef struct
 HYBRIDSOLVER_ARRAY hs_array[MAX_LINEAR_SYSTEM];
 int hybridsolve_(int *matrixId, double *rhs_sol, int *ier)
 { // local variables
-  static int start=0, myrank;
+  static int start=0, myrank, size;
   int rowSize, rowId, colSize, *colId;
   int valType = 0;
   double *values;
@@ -464,6 +466,11 @@ int hybridsolve_(int *matrixId, double *rhs_sol, int *ier)
   int *lrowptr, *lcolind;
   double *lnzval;
   double *oneb_loc, *onex_loc, rms, grms, oneb, onex, goneb, gonex;
+
+#ifdef CJ_MATRIX_DUMP
+                        FILE* fp;
+                        char filename[256];
+#endif
 
 
   /* at the very begining allocate space */
@@ -506,20 +513,33 @@ int hybridsolve_(int *matrixId, double *rhs_sol, int *ier)
   PetscPrintf(PETSC_COMM_WORLD, "\thybrid_: matrixId_%d status_%d\n", *matrixId, flag); 
 
   /* Step 8: hybrid solve */
-      /* 8.0 hybrid solve: clean solver content */
+      /* 8.0 hybrid solve: clean solver content 
+dpdslin_solver.h:int  dpdslin_solver( double *b0, double *x, dPDSLinMatrix *matrix, pdslin_param *input, pdslin_stat *stat, int *info );
+       */
         if(hs_array[whichMatrix].init >= 1 && flag==1) {
-      hs_array[whichMatrix].input.job = HYBRID_CLEAN;
-      dhybrid_solver( hs_array[whichMatrix].b_loc, 
+      hs_array[whichMatrix].input.job =  PDSLin_CLEAN;
+      dpdslin_solver( hs_array[whichMatrix].b_loc, 
                       hs_array[whichMatrix].x_loc, 
                       &(hs_array[whichMatrix].A), 
-                      &(hs_array[whichMatrix].input) );
+                      &(hs_array[whichMatrix].input),
+                      &(hs_array[whichMatrix].stat),
+                      &(hs_array[whichMatrix].info) );
         } //if(hs_array[whichMatrix].init && flag==1) {
 
         if(hs_array[whichMatrix].init==0) {
-      /* 8.1 hybrid solve: initialize MPI and hybrid solver */
-      dhybrid_init( &(hs_array[whichMatrix].input), &(hs_array[whichMatrix].A), PETSC_COMM_WORLD, 0, NULL );
-      hs_array[whichMatrix].input.verbose = HYBRID_YES;
-      myrank=hs_array[whichMatrix].input.proc_id;
+      /* 8.1 hybrid solve: initialize MPI and hybrid solver 
+dpdslin_init( &input, &matrix, &stat, pdslin_comm, argc, argv );
+       */
+      dpdslin_init( &(hs_array[whichMatrix].input),
+                    &(hs_array[whichMatrix].A),
+                    &(hs_array[whichMatrix].stat),
+                    PETSC_COMM_WORLD,
+                    0,
+                    NULL );
+      hs_array[whichMatrix].input.verbose = PDSLin_YES;
+      //myrank=hs_array[whichMatrix].input.proc_id;
+      MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+      MPI_Comm_size(MPI_COMM_WORLD, &size);
         } //if(hs_array[whichMatrix].init==0) {
 
       /* 8.2 hybrid solve: set up coefficient matrix in distributed CSR format  *
@@ -578,8 +598,8 @@ int hybridsolve_(int *matrixId, double *rhs_sol, int *ier)
 #ifdef CJ_MATRIX_DUMP
   if(flag==1) { //only check the interface when matrix is updated
      getMatrixNNZRowSize_(matrixId, &valType, &rowSize);
-     oneb_loc = hybrid_dmalloc( hs_array[whichMatrix].A.mloc );  //for rhs
-     onex_loc = hybrid_dmalloc( hs_array[whichMatrix].A.mloc );  //for sol
+     oneb_loc = pdslin_dmalloc( hs_array[whichMatrix].A.mloc );  //for rhs
+     onex_loc = pdslin_dmalloc( hs_array[whichMatrix].A.mloc );  //for sol
      for(i=0; i<rowSize; i++) oneb_loc[i]=0.;
      oneb = 0.;
      onex = 0.;
@@ -597,9 +617,14 @@ int hybridsolve_(int *matrixId, double *rhs_sol, int *ier)
   hs_array[whichMatrix].A.lcolind = (int *)malloc((unsigned) ((lnnz)*sizeof(int)));
      if(!(hs_array[whichMatrix].A.lcolind)) PetscPrintf(PETSC_COMM_WORLD, "Malloc failed hs_array[].A.colind.\n");
 
+#ifdef CJ_MATRIX_DUMP
+                        sprintf(filename,"matrix_%d_%d_%dp.txt", *matrixId, myrank, size);
+                        fp = fopen(filename, "w");
+#endif
+
   // Step 6: put the computed values to the nzval array
+  //getMatrixNNZRowSize_(matrixId, &valType, &rowSize);
   counter = 0;
-  getMatrixNNZRowSize_(matrixId, &valType, &rowSize);
   for(i=1; i<=rowSize; i++) {
      getMatrixNNZRowId_(matrixId, &valType, &i, &rowId);
      getMatrixNNZColSize_(matrixId, &valType, &rowId, &colSize);
@@ -616,6 +641,8 @@ int hybridsolve_(int *matrixId, double *rhs_sol, int *ier)
         //      myrank, *matrixId, rowId, colSize, colId[j], lnzval[counter+j]); 
 #ifdef CJ_MATRIX_DUMP
         oneb_loc[i-1] +=values[j];
+                        fprintf(fp, "%d   %d   %d   %d   %e\n",
+                        myrank, *matrixId, rowId, colId[j], values[j]);
 #endif
      }
      counter += colSize;
@@ -624,31 +651,55 @@ int hybridsolve_(int *matrixId, double *rhs_sol, int *ier)
   }
   if(counter != hs_array[whichMatrix].lnnz)
      printf( "The nnz count has difference in %d %d %d ", myrank, counter, hs_array[whichMatrix].lnnz);
+  else
+     PetscPrintf(PETSC_COMM_WORLD, "\thybrid_: matrixId_%d fill colind\n", *matrixId, counter); 
   for(i=0; i<hs_array[whichMatrix].lnnz; i++) hs_array[whichMatrix].A.lnzval[i]=lnzval[i];
   for(i=0; i<hs_array[whichMatrix].lnnz; i++) hs_array[whichMatrix].A.lcolind[i]=lcolind[i]-1; // shift one from fortran index
   free(lnzval);
   free(lcolind); 
         } //if(flag==1) {
 
+#ifdef CJ_MATRIX_DUMP
+                        fclose(fp);
+                        exit(1);
+#endif
+
 
   /* Step 8: hybrid solve */
         if(hs_array[whichMatrix].init==0) {
       /* 8.3 hybrid solve: allocate right-hand-side and solution vectors */
-      hs_array[whichMatrix].x_loc = hybrid_dmalloc( hs_array[whichMatrix].A.mloc );
-      hs_array[whichMatrix].b_loc = hybrid_dmalloc( hs_array[whichMatrix].A.mloc );
+      hs_array[whichMatrix].x_loc = pdslin_dmalloc( hs_array[whichMatrix].A.mloc );
+      hs_array[whichMatrix].b_loc = pdslin_dmalloc( hs_array[whichMatrix].A.mloc );
+  PetscPrintf(PETSC_COMM_WORLD, "\thybrid_: matrixId_%d allocate x_loc b_loc (%d)\n", *matrixId, mloc); 
         } //if(hs_array[whichMatrix].init==0) {
 
         if(flag==1) {
       /* 8.4 hybrid solve: call hybrid solver to compute preconditioner */
-      hs_array[whichMatrix].input.job = HYBRID_FACTO;
-      if(*matrixId==5) hs_array[whichMatrix].input.tol0 = 1.e-8;
-      dhybrid_solver( hs_array[whichMatrix].b_loc, 
+      /*hs_array[whichMatrix].input.num_doms = 0;   1: superlu_dist
+                                                    0: petsc
+                                                    default: pdslin
+                                                 */
+      hs_array[whichMatrix].input.perm_dom = NATURAL; /* NATURAL: use the natural ordering 
+                                                         MMD_ATA: use minimum degree ordering on structure of A'*A
+                                                         MMD_AT_PLUS_A: use minimum degree ordering on structure of A'+A
+                                                         COLAMD: use approximate minimum degree column ordering
+                                                         MY_PERMC: use the ordering specified by the user
+                                                        */
+      hs_array[whichMatrix].input.verbose = PDSLin_YES;
+      hs_array[whichMatrix].input.job = PDSLin_PRECO;
+      //if(*matrixId==5) hs_array[whichMatrix].input.drop_tau0 = 1.e-8;
+      dpdslin_solver( hs_array[whichMatrix].b_loc, 
                       hs_array[whichMatrix].x_loc, 
                       &(hs_array[whichMatrix].A), 
-                      &(hs_array[whichMatrix].input) ); 
+                      &(hs_array[whichMatrix].input),
+                      &(hs_array[whichMatrix].stat),
+                      &(hs_array[whichMatrix].info) ); 
       /* wait for all the processors to finish factorizing */
       MPI_Barrier( MPI_COMM_WORLD ); 
+  PetscPrintf(PETSC_COMM_WORLD, "\thybrid_: matrixId_%d calculate preconditioner and subdomain info_%d\n", 
+                                *matrixId, hs_array[whichMatrix].info); 
         } //if(flag==1) {
+//exit(1);
 
       /* 8.5 hybrid solve: setup the right-hand-side */
       rms=0.;
@@ -662,11 +713,13 @@ int hybridsolve_(int *matrixId, double *rhs_sol, int *ier)
                   *matrixId, hs_array[whichMatrix].A.n, grms, sqrt(grms)/(float)hs_array[whichMatrix].A.n);
 
       /* 8.6 hybrid solve: call hybrid solver to compute solution */
-      hs_array[whichMatrix].input.job = HYBRID_SOLVE;
-      dhybrid_solver( hs_array[whichMatrix].b_loc, 
+      hs_array[whichMatrix].input.job = PDSLin_SOLVE;
+      dpdslin_solver( hs_array[whichMatrix].b_loc, 
                       hs_array[whichMatrix].x_loc, 
                       &(hs_array[whichMatrix].A), 
-                      &(hs_array[whichMatrix].input) );
+                      &(hs_array[whichMatrix].input),
+                      &(hs_array[whichMatrix].stat),
+                      &(hs_array[whichMatrix].info) );
       rms=0.;
       grms=0.;
       for( i=0; i<hs_array[whichMatrix].A.mloc; i++ ) {
@@ -682,7 +735,12 @@ int hybridsolve_(int *matrixId, double *rhs_sol, int *ier)
       /* debug sove A onex_loc = oneb_loc */
       if(flag == 1) {
          hs_array[whichMatrix].input.job = HYBRID_SOLVE;
-         dhybrid_solver( oneb_loc, onex_loc, &(hs_array[whichMatrix].A), &(hs_array[whichMatrix].input) );
+         dpdslin_solver( oneb_loc,
+                         onex_loc,
+                        &(hs_array[whichMatrix].A),
+                        &(hs_array[whichMatrix].input),
+                        &(hs_array[whichMatrix].stat),
+                        &(hs_array[whichMatrix].info) );
          for( i=0; i<hs_array[whichMatrix].A.mloc; i++ ) {
             onex += onex_loc[i];
             oneb += oneb_loc[i];   //check the matrix A one2=sum of a_ij
@@ -712,7 +770,6 @@ int hybridsolve_(int *matrixId, double *rhs_sol, int *ier)
   setMatrixSoln_(matrixId, &valType, rhs_sol);
 
   /* Step 11: clean the stored data */
-  hs_array[whichMatrix].input.verbose = HYBRID_NO;
   cleanMatrixValues_(matrixId); 
 /*free(hs_array[whichMatrix].A.lrowptr);
   free(hs_array[whichMatrix].A.lnzval);
