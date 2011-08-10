@@ -319,10 +319,6 @@ contains
     type(scorec_matrix), intent(in) :: mat
     type(vector_type), intent(inout) :: v
     integer, intent(out) :: ierr
-#ifdef CJ_MATRIX_DUMP
-    integer :: ndof, gndof, i
-    real rms, grms
-#endif 
 
 #ifdef PetscDEV
     PetscBool :: flg_petsc, flg_solve2, flg_pdslin
@@ -353,20 +349,6 @@ contains
        call solve(mat%imatrix,v%data,ierr)
     endif
 
-#ifdef CJ_MATRIX_DUMP
-    call numdofs(v%isize, ndof) 
-    call mpi_allreduce(ndof, gndof, 1, MPI_INTEGER, &
-         MPI_SUM, MPI_COMM_WORLD, ierr) 
-    rms=0.
-    do i=1, ndof
-       rms = rms + v%data(i) * v%data(i)
-       !print *, "scorec_matrix_solve sol=", mat%imatrix, i, v%data(i)
-    enddo
-    call mpi_allreduce(rms, grms, 1, MPI_DOUBLE_PRECISION, &
-         MPI_SUM, MPI_COMM_WORLD, ierr) 
-    write(*,'(a,2i7,2e20.10)') "scorec_matrix_solve sol_rms=", &
-                          mat%imatrix, ndof, grms, sqrt(grms)/real(gndof) 
-#endif 
   end subroutine scorec_matrix_solve
 
   !====================================================================

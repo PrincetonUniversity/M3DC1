@@ -465,9 +465,17 @@ subroutine wrrestart_adios
   tmp_bf_field_0(1:ndofs_2) = bf_field(0)%vec%data(1:ndofs_2)
 
     call MPI_Comm_dup (MPI_COMM_WORLD, comm, ierr) 
+#ifdef USECOMPLEX
+    call adios_init ("m3dc1_cplx.xml", adios_err)
+#else
     call adios_init ("m3dc1.xml", adios_err)
+#endif
     call adios_open (adios_handle, "restart", fname, "w", comm, adios_err)
+#ifdef USECOMPLEX
+#include "gwrite_restart_c1_cplx.fh" 
+#else
 #include "gwrite_restart_c1.fh" 
+#endif
     call adios_close (adios_handle, adios_err)
     call MPI_Barrier (comm, ierr)
     call adios_finalize (myrank, adios_err)
@@ -519,7 +527,11 @@ subroutine rdrestart_adios
   call numdofs(1, ndofs2)
 
     call MPI_Comm_dup (MPI_COMM_WORLD, comm, ierr)
+#ifdef USECOMPLEX
+    call adios_init ("m3dc1_cplx.xml", adios_err)
+#else
     call adios_init ("m3dc1.xml", adios_err)
+#endif
     call adios_open (adios_handle, "restart", fname, "r", comm, adios_err)
 #include "gread_restart_c11.fh" 
     call adios_close (adios_handle, adios_err)
@@ -549,7 +561,11 @@ subroutine rdrestart_adios
   allocate(tmp_bf_field_0(ndofs_2)) 
 
     call adios_open (adios_handle, "restart", fname, "r", comm, adios_err)
+#ifdef USECOMPLEX
+#include "gread_restart_c12_cplx.fh" 
+#else
 #include "gread_restart_c12.fh" 
+#endif
     call adios_close (adios_handle, adios_err) 
     call MPI_Barrier (comm, ierr) 
     call adios_finalize (myrank, adios_err)

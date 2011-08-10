@@ -105,47 +105,6 @@ int setPETScKSP(int matrixid, KSP * ksp, Mat * A) {
   ierr = KSPSetFromOptions(*ksp);CHKERRQ(ierr);
   PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScKSP for %d\n", matrixid); 
 
-#ifdef CJ_MATRIX_DUMP
-  //test: A onex = oneb  onex=1
-  int i, flag, its;
-  int ldb, numglobaldofs;
-
-  checkMatrixStatus_(&matrixid, &flag);
-      if(flag==1) {
-         PetscScalar rms, normb, normr, minus=-1.;
-         Vec    oneb, onex, oner;
-         KSPConvergedReason reason;
-
-         getMatrixLocalDofNum_(&matrixid, &ldb);
-         getMatrixGlobalDofs_(&matrixid, &numglobaldofs);
-         ierr = VecCreateMPI(MPI_COMM_WORLD, ldb, PETSC_DECIDE, &onex);
-         ierr = VecDuplicate(onex, &oneb); CHKERRQ(ierr);
-         ierr = VecDuplicate(onex, &oner); CHKERRQ(ierr);
-         PetscPrintf(PETSC_COMM_WORLD, "\tipetsc_%d: numglobaldofs_%d ldb_%d \n",
-                 matrixid, numglobaldofs, ldb);
-
-         rms=1.;
-         ierr = VecSet(onex, rms); CHKERRQ(ierr);
-         ierr = MatMult(*A, onex, oneb) ; CHKERRQ(ierr);
-         ierr = KSPSolve(*ksp, oneb, onex); CHKERRQ(ierr);
-         ierr = KSPGetConvergedReason(*ksp,&reason);
-         ierr = KSPGetIterationNumber(*ksp, &its); CHKERRQ(ierr);
-         ierr = KSPMonitorTrueResidualNorm(*ksp, its, rms, PETSC_NULL); CHKERRQ(ierr);
-         ierr = KSPView(*ksp, PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
-
-         ierr = VecNorm(onex,NORM_1,&rms); CHKERRQ(ierr);
-         ierr = VecNorm(oneb,NORM_2,&normb); CHKERRQ(ierr);
-         ierr = VecScale(oneb,minus); CHKERRQ(ierr);
-         ierr = MatMultAdd(*A,onex,oneb,oner); CHKERRQ(ierr);
-         ierr = VecNorm(oner,NORM_2,&normr); CHKERRQ(ierr);
-         PetscPrintf(PETSC_COMM_WORLD, "\tipetsc_%d: its_%d one=%e sres_%e converged_reason_%d\n",
-                     matrixid, its, rms/(float)numglobaldofs, normr/normb, reason);
-         ierr = VecDestroy(oneb); CHKERRQ(ierr);
-         ierr = VecDestroy(onex); CHKERRQ(ierr);
-         ierr = VecDestroy(oner); CHKERRQ(ierr);
-      }
-#endif
-
   return 0;
 }
 
@@ -333,11 +292,6 @@ int solve2_(int *matrixId, double * rhs_sol, int * ier)
      ierr = PetscGetTime(&v2); CHKERRQ(ierr);
   } // only if flag=1 we update matrix
 
-//    if( ksp_array[whichMatrix].same_pc_count > 0 && flag==1 && *matrixId == 5) { 
-//        ierr = MatView(ksp_array[whichMatrix].A, PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
-//        exit(1);
-//     }
-
   /* Step 6: construct the rhs vec
      ierr = PetscMalloc(ldb*sizeof(PetscScalar),&tmp);CHKERRQ(ierr); 
      ierr = PetscMemcpy((void *)tmp,rhs_sol,ldb*sizeof(PetscScalar));CHKERRQ(ierr);
@@ -383,33 +337,6 @@ int solve2_(int *matrixId, double * rhs_sol, int * ier)
   PetscPrintf(PETSC_COMM_WORLD, "\tsolve2_: %d its_%d rms = %e matnorm = %e\n",
               *matrixId, its, rms/(float)ksp_array[whichMatrix].numglobaldofs, norm);
 
-#ifdef CJ_MATRIX_DUMP
-      /* debug: A onex = oneb  onex=1*/
-      //if(flag==1 && (*matrixId==5 || *matrixId==6)) { 
-      //if(*matrixId==5 || *matrixId==6) { 
-      if(flag==1) {
-         Vec    oneb, onex;
-         ierr = VecDuplicate(b, &onex); CHKERRQ(ierr);
-         ierr = VecDuplicate(b, &oneb); CHKERRQ(ierr);
-         rms=1.;
-         ierr = VecSet(onex, rms); CHKERRQ(ierr);
-         ierr = MatMult(ksp_array[whichMatrix].A, onex, oneb) ; CHKERRQ(ierr);
-         ierr = KSPSolve((ksp_array[whichMatrix].ksp), oneb, onex); CHKERRQ(ierr); 
-         ierr = VecNorm(onex,NORM_1,&rms); CHKERRQ(ierr); 
-         KSPConvergedReason reason; 
-         ierr = KSPGetConvergedReason(ksp_array[whichMatrix].ksp,&reason); 
-         ierr = KSPGetIterationNumber(ksp_array[whichMatrix].ksp, &its); CHKERRQ(ierr);
-         if(*matrixId==5) {
-         ierr = KSPMonitorTrueResidualNorm(ksp_array[whichMatrix].ksp, its, rms, PETSC_NULL); CHKERRQ(ierr);
-         ierr=KSPView(ksp_array[whichMatrix].ksp, PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
-         }
-         PetscPrintf(PETSC_COMM_WORLD, "\tsolve2_: %d its_%d one=%e matnorm=%e converged_reason_%d\n", 
-                     *matrixId, its, rms/(float)ksp_array[whichMatrix].numglobaldofs, norm, reason);
-         ierr = VecDestroy(oneb); CHKERRQ(ierr); 
-         ierr = VecDestroy(onex); CHKERRQ(ierr); 
-      }
-#endif
-
   // Step 9: put solution back to rhs_sol
   PetscScalar *value;
   ierr = VecGetArray(u, &value); CHKERRQ(ierr);
@@ -430,17 +357,6 @@ int solve2_(int *matrixId, double * rhs_sol, int * ier)
 
 
 #ifdef USEHYBRID
-/* dHybridMatrix: input matrix in distributed CSR format : 
-int_t n;  global matrix dimension 
-int_t nnz;  total number of nonzeros in the global matrix
-int_t frow;  the index of the first row of the local matrix 
-int_t mloc;  the number of rows in the local matrix 
-double *lnzval;  pointer to array of nonzero values, packed by row 
-int_t *lcolind;  pointer to array of columns indices of the nonzeros 
-int_t * lrowptr;  pointer to array of beginning of rows in lnzval[] & lcolind[] 
-
-...   the rest of member variables used internally by the hybrid solver
-*/
 typedef struct
 {
   int matrixId;
@@ -466,11 +382,6 @@ int hybridsolve_(int *matrixId, double *rhs_sol, int *ier)
   int *lrowptr, *lcolind;
   double *lnzval;
   double *oneb_loc, *onex_loc, rms, grms, oneb, onex, goneb, gonex;
-
-#ifdef CJ_MATRIX_DUMP
-                        FILE* fp;
-                        char filename[256];
-#endif
 
 
   /* at the very begining allocate space */
@@ -514,7 +425,7 @@ int hybridsolve_(int *matrixId, double *rhs_sol, int *ier)
 
   /* Step 8: hybrid solve */
       /* 8.0 hybrid solve: clean solver content 
-dpdslin_solver.h:int  dpdslin_solver( double *b0, double *x, dPDSLinMatrix *matrix, pdslin_param *input, pdslin_stat *stat, int *info );
+         dpdslin_solver( double *b0, double *x, dPDSLinMatrix *matrix, pdslin_param *input, pdslin_stat *stat, int *info );
        */
         if(hs_array[whichMatrix].init >= 1 && flag==1) {
       hs_array[whichMatrix].input.job =  PDSLin_CLEAN;
@@ -528,7 +439,7 @@ dpdslin_solver.h:int  dpdslin_solver( double *b0, double *x, dPDSLinMatrix *matr
 
         if(hs_array[whichMatrix].init==0) {
       /* 8.1 hybrid solve: initialize MPI and hybrid solver 
-dpdslin_init( &input, &matrix, &stat, pdslin_comm, argc, argv );
+         dpdslin_init( &input, &matrix, &stat, pdslin_comm, argc, argv );
        */
       dpdslin_init( &(hs_array[whichMatrix].input),
                     &(hs_array[whichMatrix].A),
@@ -595,17 +506,6 @@ dpdslin_init( &input, &matrix, &stat, pdslin_comm, argc, argv );
         } //if(flag==1) {
 
 
-#ifdef CJ_MATRIX_DUMP
-  if(flag==1) { //only check the interface when matrix is updated
-     getMatrixNNZRowSize_(matrixId, &valType, &rowSize);
-     oneb_loc = pdslin_dmalloc( hs_array[whichMatrix].A.mloc );  //for rhs
-     onex_loc = pdslin_dmalloc( hs_array[whichMatrix].A.mloc );  //for sol
-     for(i=0; i<rowSize; i++) oneb_loc[i]=0.;
-     oneb = 0.;
-     onex = 0.;
-  }
-#endif
-
         if(flag==1) {
   // Step 5: allocate memory for lnnz
   lnzval = (double *)malloc((unsigned) (hs_array[whichMatrix].lnnz)*sizeof(double));
@@ -617,10 +517,6 @@ dpdslin_init( &input, &matrix, &stat, pdslin_comm, argc, argv );
   hs_array[whichMatrix].A.lcolind = (int *)malloc((unsigned) ((lnnz)*sizeof(int)));
      if(!(hs_array[whichMatrix].A.lcolind)) PetscPrintf(PETSC_COMM_WORLD, "Malloc failed hs_array[].A.colind.\n");
 
-#ifdef CJ_MATRIX_DUMP
-                        sprintf(filename,"matrix_%d_%d_%dp.txt", *matrixId, myrank, size);
-                        fp = fopen(filename, "w");
-#endif
 
   // Step 6: put the computed values to the nzval array
   //getMatrixNNZRowSize_(matrixId, &valType, &rowSize);
@@ -639,11 +535,6 @@ dpdslin_init( &input, &matrix, &stat, pdslin_comm, argc, argv );
         //if(hs_array[whichMatrix].init==0 && *matrixId == 5)
         //printf("\thybrid_: %d_matrixId_%d row_%d col_%d_%d lnzval_%e\n", 
         //      myrank, *matrixId, rowId, colSize, colId[j], lnzval[counter+j]); 
-#ifdef CJ_MATRIX_DUMP
-        oneb_loc[i-1] +=values[j];
-                        fprintf(fp, "%d   %d   %d   %d   %e\n",
-                        myrank, *matrixId, rowId, colId[j], values[j]);
-#endif
      }
      counter += colSize;
      free(colId);
@@ -658,11 +549,6 @@ dpdslin_init( &input, &matrix, &stat, pdslin_comm, argc, argv );
   free(lnzval);
   free(lcolind); 
         } //if(flag==1) {
-
-#ifdef CJ_MATRIX_DUMP
-                        fclose(fp);
-                        exit(1);
-#endif
 
 
   /* Step 8: hybrid solve */
@@ -679,13 +565,14 @@ dpdslin_init( &input, &matrix, &stat, pdslin_comm, argc, argv );
                                                     0: petsc
                                                     default: pdslin
                                                  */
-      hs_array[whichMatrix].input.perm_dom = NATURAL; /* NATURAL: use the natural ordering 
+      /*hs_array[whichMatrix].input.perm_dom = NATURAL;  NATURAL: use the natural ordering 
                                                          MMD_ATA: use minimum degree ordering on structure of A'*A
                                                          MMD_AT_PLUS_A: use minimum degree ordering on structure of A'+A
                                                          COLAMD: use approximate minimum degree column ordering
                                                          MY_PERMC: use the ordering specified by the user
                                                         */
-      hs_array[whichMatrix].input.verbose = PDSLin_YES;
+      hs_array[whichMatrix].input.verbose = PDSLin_VALL;
+      hs_array[whichMatrix].input.remove_zero = PDSLin_NO;
       hs_array[whichMatrix].input.job = PDSLin_PRECO;
       //if(*matrixId==5) hs_array[whichMatrix].input.drop_tau0 = 1.e-8;
       dpdslin_solver( hs_array[whichMatrix].b_loc, 
@@ -699,7 +586,6 @@ dpdslin_init( &input, &matrix, &stat, pdslin_comm, argc, argv );
   PetscPrintf(PETSC_COMM_WORLD, "\thybrid_: matrixId_%d calculate preconditioner and subdomain info_%d\n", 
                                 *matrixId, hs_array[whichMatrix].info); 
         } //if(flag==1) {
-//exit(1);
 
       /* 8.5 hybrid solve: setup the right-hand-side */
       rms=0.;
@@ -730,29 +616,6 @@ dpdslin_init( &input, &matrix, &stat, pdslin_comm, argc, argv );
       MPI_Allreduce(&rms, &grms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
       PetscPrintf(PETSC_COMM_WORLD, "\thybrid_: sol_rms = %d %d %e %e\n", 
                   *matrixId, hs_array[whichMatrix].A.n, grms, sqrt(grms)/(float)hs_array[whichMatrix].A.n);
-
-#ifdef CJ_MATRIX_DUMP
-      /* debug sove A onex_loc = oneb_loc */
-      if(flag == 1) {
-         hs_array[whichMatrix].input.job = HYBRID_SOLVE;
-         dpdslin_solver( oneb_loc,
-                         onex_loc,
-                        &(hs_array[whichMatrix].A),
-                        &(hs_array[whichMatrix].input),
-                        &(hs_array[whichMatrix].stat),
-                        &(hs_array[whichMatrix].info) );
-         for( i=0; i<hs_array[whichMatrix].A.mloc; i++ ) {
-            onex += onex_loc[i];
-            oneb += oneb_loc[i];   //check the matrix A one2=sum of a_ij
-         }
-         MPI_Allreduce(&onex, &gonex, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-         MPI_Allreduce(&oneb, &goneb, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-         PetscPrintf(PETSC_COMM_WORLD, "\thybrid_: matrixId_%d_one=%e matnorm=%e\n", 
-                     *matrixId, gonex/(float)hs_array[whichMatrix].A.n, goneb/(float)hs_array[whichMatrix].A.n );
-         free(oneb_loc); 
-         free(onex_loc); 
-      }
-#endif
   
       /* 8.7 hybrid solve: free right-hand-side and solution
       hybrid_free(hs_array[whichMatrix].x_loc);
@@ -760,7 +623,7 @@ dpdslin_init( &input, &matrix, &stat, pdslin_comm, argc, argv );
       */
   
       /* 8.8 hybrid solve: print out statistics */
-      //pdslin_print_stat( &stat, input.pdslin_comm );
+      pdslin_print_stat( &(hs_array[whichMatrix].stat), PETSC_COMM_WORLD );
 
       /* 8.9 hybrid solve: terminate MPI and hybrid solver 
       dhybrid_finalize(&(hs_array[whichMatrix].input), &(hs_array[whichMatrix].A));
@@ -778,30 +641,6 @@ dpdslin_init( &input, &matrix, &stat, pdslin_comm, argc, argv );
   hs_array[whichMatrix].init ++;
   PetscPrintf(PETSC_COMM_WORLD, "\thybrid_: matrixId_%d called %d times.\n", *matrixId, hs_array[whichMatrix].init); 
 
-/*
-hs_array[whichMatrix].input.job = HYBRID_CLEAN;
-dhybrid_solver( hs_array[whichMatrix].b_loc, 
-                hs_array[whichMatrix].x_loc, 
-                &(hs_array[whichMatrix].A), 
-                &(hs_array[whichMatrix].input) );
-
-     PetscPrintf(PETSC_COMM_WORLD, "\thybrid_: matrixId_%d dim %d %d %d %d\n", 
-     *matrixId, 
-     hs_array[whichMatrix].A.n,
-     hs_array[whichMatrix].A.mloc,
-     hs_array[whichMatrix].A.frow,
-     hs_array[whichMatrix].A.nnz);
-
-  for(i=0; i<=rowSize; i++) 
-     PetscPrintf(PETSC_COMM_WORLD, "\thybrid_: matrixId_%d_lowptr_%d = %d\n", 
-                 *matrixId, i, hs_array[whichMatrix].A.lrowptr[i]);
-
-  for(i=0; i<lnnz; i++) 
-     PetscPrintf(PETSC_COMM_WORLD, "\thybrid_: matrixId_%d_lcolin_%d lnzval_%e\n", 
-     i, hs_array[whichMatrix].A.lnzval[i], hs_array[whichMatrix].A.lcolind[i]);
-
-exit(1);
-*/
   return 0;
 }
 #endif 
