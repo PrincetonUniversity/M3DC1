@@ -136,13 +136,16 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    xtitle='!8m!X'
    ytitle='!9r!7W!X'
 
-   contour_and_legend, abs(d), m, sqrt(nflux),  $
+   y = sqrt(nflux)
+;   y = nflux
+
+   contour_and_legend, abs(d), m, y,  $
      table=39, xtitle=xtitle, ytitle=ytitle, $
      xrange=[-20,20], yrange=[0,1], /lines, c_thick=1, $
      ccolor=!d.table_size-1, label=label, $
      _EXTRA=extra, xsize=xsize
 
-   oplot, -ntor*q, sqrt(nflux), linestyle=2, color=!d.table_size-1
+   oplot, -ntor*q, y, linestyle=2, color=!d.table_size-1
 end
 
 pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $

@@ -680,6 +680,15 @@ subroutine calculate_external_fields()
      temp79b = -2.*pi*temp79b
      temp79c = -2.*pi*temp79c
 
+     if(iread_ext_field.ne.0) then
+#ifdef USECOMPLEX
+        call get_external_field_ft(x_79, z_79, fr, fphi, fz, npoints)
+#endif
+        temp79a = temp79a + (1e4/b0_norm)*fr
+        temp79b = temp79b + (1e4/b0_norm)*fphi
+        temp79c = temp79c + (1e4/b0_norm)*fz
+     end if
+
      ! assemble matrix
      do i=1,dofs_per_element
         do j=1,dofs_per_element

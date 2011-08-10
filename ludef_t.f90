@@ -984,7 +984,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
         
         temp = v3bf  (trial,lin,bf079)
         ssterm(bz_g) = ssterm(bz_g) -     thimp_bf     *dt*temp
-        ddterm(bz_g) = ddterm(bz_g) + (1.-thimp_bf*bdf)*dt*temp
+        ddterm(bz_g) = ddterm(bz_g) + (1.-thimp_bf*bdf)*dt*temp        
 
         ! The following terms cause problems in isplitstep=0 for some reason
         temp = v3psif(trial,ps079,lin) &
@@ -1808,11 +1808,11 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
              + b3bbeta(trial,bz179,lin,eta79)
         ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
         ddterm(bz_g) = ddterm(bz_g) + (.5-thimpf*bdf)*dt*temp
-!
+
         temp = b3psibeta(trial,lin,bz179,eta79) 
         ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (.5-thimpf*bdf)*dt*temp
-!
+
         temp = b3psibeta(trial,ps179,lin,eta79)
         ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
         ddterm(bz_g) = ddterm(bz_g) + (.5-thimpf*bdf)*dt*temp
@@ -1820,26 +1820,25 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
            temp = b3psifeta(trial,lin,bf179,eta79)
            ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
            ddterm(psi_g) = ddterm(psi_g) + (.5-thimpf*bdf)*dt*temp
-!
+
            temp = b3psifeta(trial,ps179,lin,eta79)
            r_bf = r_bf -     thimp_bf     *dt*temp
            q_bf = q_bf + (.5-thimp_bf*bdf)*dt*temp
-!
+
            temp = b3bfeta(trial,lin,bf179,eta79)
            ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (.5-thimpf*bdf)*dt*temp
-!
+
            temp = b3bfeta(trial,bz179,lin,eta79)
            r_bf = r_bf -     thimp_bf     *dt*temp
            q_bf = q_bf + (.5-thimp_bf*bdf)*dt*temp
-!
+
            temp = b3ffeta(trial,lin,bf179,eta79)      &
                 + b3ffeta(trial,bf179,lin,eta79)
            r_bf = r_bf -     thimp_bf     *dt*temp
            q_bf = q_bf + (.5-thimp_bf*bdf)*dt*temp
-!
         endif
-!
+
      end if
   end if
   if(eqsubtract.eq.1) then
@@ -1853,17 +1852,15 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
              + b3bbeta(trial,bz079,lin,eta79)
         ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
         ddterm(bz_g) = ddterm(bz_g) + (1.-thimpf*bdf)*dt*temp
-!
+
         temp = b3psibeta(trial,lin,bz079,eta79)
         ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (1.-thimpf*bdf)*dt*temp
-!
+
         if(i3d .eq. 1) then
-!
            temp = b3bfeta(trial,bz079,lin,eta79)
            r_bf = r_bf -     thimp_bf     *dt*temp
            q_bf = q_bf + (1.-thimp_bf*bdf)*dt*temp
-!
         endif
      end if
   endif
