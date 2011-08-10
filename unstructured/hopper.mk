@@ -52,15 +52,15 @@ SCOREC_LIBS =  \
   INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
   LIBS := $(LIBS) $(SCOREC_LIBS) -lC -lstd
 
-  PARMETIS = -lparmetis -lmetis
-#ichi  PARMETIS = -L/global/u2/y/yamazaki/libs/scotch_5.1/lib -lptscotchparmetis -lptscotch -lptscotcherr -lptscotcherrexit \
-             -L/global/u2/y/yamazaki/libs/metis_5.0/lib -lmetis
+#ichi  PARMETIS = -lparmetis -lmetis
+  PARMETIS = -L/global/u2/y/yamazaki/libs/scotch_5.1/lib -lptscotchparmetis -lptscotch -lptscotcherr -lptscotcherrexit \
+             -lparmetis -lmetis
 
 else
 #  OPTS := $(OPTS) -DPetscDEV
 endif   # on USESCOREC
 
-OPTS := $(OPTS) -DPetscDEV -DUSEADIOS -DUSEHYBRID #-DCJ_MATRIX_DUMP
+OPTS := $(OPTS) -DPetscDEV -DUSEADIOS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev-SUPERLU-HYPRE-MUMPS/petsc-dev-060711/petsc-dev
 PETSC_ARCH = arch-cray-xt6-pkgs-opt
 SUPERLU_DIST = -lsuperlu_dist_2.5

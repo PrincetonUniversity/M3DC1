@@ -1,0 +1,61 @@
+adios_groupsize = 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 16 * (ndofs_1) &
+                + 16 * (ndofs_1) &
+                + 16 * (ndofs_2) &
+                + 16 * (ndofs_2)
+call adios_group_size (adios_handle, adios_groupsize, adios_totalsize, adios_err)
+call adios_write (adios_handle, "numnodes", numnodes, adios_err)
+call adios_write (adios_handle, "numelms", numelms, adios_err)
+call adios_write (adios_handle, "mmnn18", mmnn18, adios_err)
+call adios_write (adios_handle, "numvar", numvar, adios_err)
+call adios_write (adios_handle, "iper", iper, adios_err)
+call adios_write (adios_handle, "jper", jper, adios_err)
+call adios_write (adios_handle, "myrank", myrank, adios_err)
+call adios_write (adios_handle, "maxrank", maxrank, adios_err)
+call adios_write (adios_handle, "eqsubtract", eqsubtract, adios_err)
+call adios_write (adios_handle, "linear", linear, adios_err)
+call adios_write (adios_handle, "icomplex", icomplex, adios_err)
+call adios_write (adios_handle, "ntime", ntime, adios_err)
+call adios_write (adios_handle, "time", time, adios_err)
+call adios_write (adios_handle, "totcur0", totcur0, adios_err)
+call adios_write (adios_handle, "tflux0", tflux0, adios_err)
+call adios_write (adios_handle, "gbound", gbound, adios_err)
+call adios_write (adios_handle, "ptot", ptot, adios_err)
+call adios_write (adios_handle, "vloop", vloop, adios_err)
+call adios_write (adios_handle, "psimin", psimin, adios_err)
+call adios_write (adios_handle, "psilim", psilim, adios_err)
+call adios_write (adios_handle, "xnull", xnull, adios_err)
+call adios_write (adios_handle, "znull", znull, adios_err)
+call adios_write (adios_handle, "xmag", xmag, adios_err)
+call adios_write (adios_handle, "zmag", zmag, adios_err)
+call adios_write (adios_handle, "ndofs_1", ndofs_1, adios_err)
+call adios_write (adios_handle, "ndofs_2", ndofs_2, adios_err)
+call adios_write (adios_handle, "tmp_field_vec", tmp_field_vec, adios_err)
+call adios_write (adios_handle, "tmp_field0_vec", tmp_field0_vec, adios_err)
+call adios_write (adios_handle, "tmp_bf_field_1", tmp_bf_field_1, adios_err)
+call adios_write (adios_handle, "tmp_bf_field_0", tmp_bf_field_0, adios_err)
