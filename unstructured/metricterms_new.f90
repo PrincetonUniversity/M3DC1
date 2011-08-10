@@ -3860,11 +3860,10 @@ vectype function v3bf(e,f,g)
      end if
   end select
 #else
-  temp = 0
+  temp = 0.
 #endif
 
   v3bf = temp
-  return
 end function v3bf
 
 

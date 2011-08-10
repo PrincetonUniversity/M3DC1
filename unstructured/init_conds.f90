@@ -455,6 +455,9 @@ subroutine rmp_per
   if(iread_ext_field.eq.1) then
      call load_schaffer_field('error_field', ierr)
      if(ierr.ne.0) call safestop(6)
+#ifdef USECOMPLEX
+     call calculate_external_field_ft(ntor)
+#endif
   end if
 
   ! calculate external fields from non-axisymmetric coils and external field
@@ -2370,7 +2373,7 @@ end module jsolver_eq
 !==============================================================================
 module threed_wave_test
 
-  real, private :: kx, kz, kphi, omega
+  real, private :: kx, kz, kphi, omega, k2, kp2, kB, b2
 
 contains
 
@@ -2389,10 +2392,75 @@ subroutine threed_wave_test_init()
   kx = pi/(x2-x1)
   kz = pi/(z2-z1)
   kphi = ntor/rzero
+  kp2 = kx**2 + kz**2
+  k2 = kp2 + kphi**2
+  kB = kx*Bx0 + kphi*bzero
+  b2 = bzero**2 + Bx0**2
 
-  omega = (rzero*bzero)*kphi
-  if(myrank.eq.0) print *, 'kphi = ', kphi
-  if(myrank.eq.0) print *, 'omega = ', omega
+  if(numvar.eq.3) then
+     select case(iwave)
+     case(0)
+        if(myrank.eq.0) print *, 'Shear Alfven wave'
+        omega = bzero*kphi
+
+     case(1)
+        if(myrank.eq.0) print *, 'Fast magnetosonic wave'
+        omega = 0.5*k2*(bzero**2 + gam*p0) &
+             + 0.5*sqrt((k2*(bzero**2 + gam*p0))**2 &
+             -4.*(bzero*kphi)**2*k2*gam*p0)
+        omega = sqrt(omega)
+
+     case(2)
+        if(myrank.eq.0) print *, 'Slow magnetosonic wave'
+        omega = 0.5*k2*(bzero**2 + gam*p0) &
+             - 0.5*sqrt((k2*(bzero**2 + gam*p0))**2 &
+             -4.*(bzero*kphi)**2*k2*gam*p0)
+        omega = sqrt(omega)
+
+     case default
+        if(myrank.eq.0) then
+           print *, 'Error: iwave must be one of the following:'
+           print *, ' iwave = 0: Shear Alfven wave'
+           print *, ' iwave = 1: Fast wave'
+           print *, ' iwave = 2: Slow wave'
+        end if
+        call safestop(4)
+     end select
+  else
+     select case(iwave)
+     case(0)
+        if(myrank.eq.0) print *, 'Shear Alfven wave'
+        omega = bx0*kx*kB + 0.5*b2*kphi**2 &
+             + 0.5*sqrt((2.*bx0*kx*kB + B2*kphi**2)**2 &
+                       -4.*(bx0*kx*kB)**2*k2/kp2)
+        omega = sqrt(omega)
+
+     case(1)
+        if(myrank.eq.0) print *, 'Fast magnetosonic wave'
+        omega = bx0*kx*kB + 0.5*b2*kphi**2 &
+             - 0.5*sqrt((2.*bx0*kx*kB + B2*kphi**2)**2 &
+                       -4.*(bx0*kx*kB)**2*k2/kp2)
+        omega = sqrt(omega)
+
+     case default
+        if(myrank.eq.0) then
+           print *, 'Error: iwave must be one of the following:'
+           print *, ' iwave = 0: Shear Alfven wave'
+           print *, ' iwave = 1: Fast wave'
+        end if
+        call safestop(4)
+     end select
+  end if
+
+  if(myrank.eq.0) then
+     print *, ' kphi = ', myrank, kphi
+     print *, ' k2 = ', myrank, k2
+     print *, ' kp2 = ', myrank, kp2
+     print *, ' omega = ', myrank, omega
+     print *, ' rzero = ', myrank, rzero
+     print *, ' bzero = ', myrank, bzero
+     print *, ' p0 = ', myrank, p0
+  end if
 
   numnodes = owned_nodes()
   do l=1, numnodes
@@ -2425,6 +2493,10 @@ subroutine threed_wave_test_equ(x, phi, z)
   call constant_field(p0_l, p0)
   call constant_field(pe0_l, p0-pi0)
 
+  psi0_l(:) = 0.
+  psi0_l(1) = -Bx0*z
+  psi0_l(3) = -Bx0
+
 end subroutine threed_wave_test_equ
 
 
@@ -2435,23 +2507,50 @@ subroutine threed_wave_test_per(x, phi, z)
   implicit none
 
   real, intent(in) :: x, phi, z
+  vectype, dimension(dofs_per_node) :: val
 
-  psi1_l(1) = eps*sin(kx*x)*sin(kz*z)*cos(kphi*phi)
-  psi1_l(2) = eps*cos(kx*x)*sin(kz*z)*cos(kphi*phi)*kx
-  psi1_l(3) = eps*sin(kx*x)*cos(kz*z)*cos(kphi*phi)*kz
-  psi1_l(4) =-eps*sin(kx*x)*sin(kz*z)*cos(kphi*phi)*kx**2
-  psi1_l(5) = eps*cos(kx*x)*cos(kz*z)*cos(kphi*phi)*kx*kz
-  psi1_l(6) =-eps*sin(kx*x)*sin(kz*z)*cos(kphi*phi)*kz**2
+  val(1) = eps*sin(kx*x)*sin(kz*z)*cos(kphi*phi)
+  val(2) = eps*cos(kx*x)*sin(kz*z)*cos(kphi*phi)*kx
+  val(3) = eps*sin(kx*x)*cos(kz*z)*cos(kphi*phi)*kz
+  val(4) =-eps*sin(kx*x)*sin(kz*z)*cos(kphi*phi)*kx**2
+  val(5) = eps*cos(kx*x)*cos(kz*z)*cos(kphi*phi)*kx*kz
+  val(6) =-eps*sin(kx*x)*sin(kz*z)*cos(kphi*phi)*kz**2
 #ifdef USE3D
-  psi1_l(7)  =-eps*sin(kx*x)*sin(kz*z)*sin(kphi*phi)*kphi
-  psi1_l(8)  =-eps*cos(kx*x)*sin(kz*z)*sin(kphi*phi)*kphi*kx
-  psi1_l(9)  =-eps*sin(kx*x)*cos(kz*z)*sin(kphi*phi)*kphi*kz
-  psi1_l(10) = eps*sin(kx*x)*sin(kz*z)*sin(kphi*phi)*kphi*kx**2
-  psi1_l(11) =-eps*cos(kx*x)*cos(kz*z)*sin(kphi*phi)*kphi*kx*kz
-  psi1_l(12) = eps*sin(kx*x)*sin(kz*z)*sin(kphi*phi)*kphi*kz**2
+  val(7)  =-eps*sin(kx*x)*sin(kz*z)*sin(kphi*phi)*kphi
+  val(8)  =-eps*cos(kx*x)*sin(kz*z)*sin(kphi*phi)*kphi*kx
+  val(9)  =-eps*sin(kx*x)*cos(kz*z)*sin(kphi*phi)*kphi*kz
+  val(10) = eps*sin(kx*x)*sin(kz*z)*sin(kphi*phi)*kphi*kx**2
+  val(11) =-eps*cos(kx*x)*cos(kz*z)*sin(kphi*phi)*kphi*kx*kz
+  val(12) = eps*sin(kx*x)*sin(kz*z)*sin(kphi*phi)*kphi*kz**2
 #endif
 
-  u1_l = -psi1_l*omega*(bzero*rzero)*kphi/omega
+  if(numvar.eq.3) then  
+     if(iwave.eq.0) then
+        psi1_l = val
+        u1_l = -val*bzero*kphi/omega
+     else
+        bz1_l =-val*kp2
+        vz1_l = val*bzero*kphi*kp2*k2*p0*gam / &
+             (omega*(k2*p0*gam - omega**2))
+#if defined(USE3D)
+        ! unlike other fields, chi has -sin(phi) dependence
+        ! toroidal derivative has -cos(phi) dependence
+#elif defined(USECOMPLEX)
+        chi1_l = val*(0,1)*bzero*k2*(kphi**2*p0*gam - omega**2) / &
+             (omega*(k2*p0*gam - omega**2))
+#endif
+        p1_l = val*bzero*kp2*k2*p0*gam / &
+             (k2*p0*gam - omega**2)
+     endif
+  else
+     u1_l = val
+     psi1_l = -val*kB*((Bx0*kx)**2*k2 - kp2*omega**2) &
+          / (kp2*omega*(Bx0**2*(kx**2 + kphi**2) - omega**2))
+     vz1_l = -val*(0,1)*Bx0*kz*kphi*kB &
+          / (Bx0**2*(kx**2 + kphi**2) - omega**2)
+     bz1_l = (-kp2)* (-val*(0,1)*Bx0**2*kx*kz*kphi*kB) &
+          / (kp2*omega*(Bx0**2*(kx**2 + kphi**2) - omega**2))
+  endif
 
 end subroutine threed_wave_test_per
 

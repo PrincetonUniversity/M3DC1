@@ -421,10 +421,14 @@ contains
 #ifdef USECOMPLEX
           bz179(:,OP_DP :OP_GSP ) = bz179(:,OP_1:OP_GS)*rfac
           bz179(:,OP_DPP:OP_GSPP) = bz179(:,OP_1:OP_GS)*rfac**2
-          
+#endif
+      
+#if defined(USECOMPLEX) || defined(USE3D)    
           call calcavector(itri, bf_field(1), avec)
           call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
                npoints, bf179)
+#endif
+#ifdef USECOMPLEX
           bf179(:,OP_DP :OP_GSP ) = bf179(:,OP_1:OP_GS)*rfac
           bf179(:,OP_DPP:OP_GSPP) = bf179(:,OP_1:OP_GS)*rfac**2
 #endif
@@ -440,7 +444,7 @@ contains
           bzt79 = bz079 + bz179
           bzs79 = bz079 + bz179/2.
           
-#ifdef USECOMPLEX
+#if defined(USECOMPLEX) || defined(USE3D)
           call calcavector(itri, bf_field(0), avec)
           call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
                npoints, bf079)
