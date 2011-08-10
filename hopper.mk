@@ -52,8 +52,8 @@ SCOREC_LIBS =  \
   INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
   LIBS := $(LIBS) $(SCOREC_LIBS) -lC -lstd
 
-#ichi  PARMETIS = -lparmetis -lmetis
-  PARMETIS = -L/global/u2/y/yamazaki/libs/scotch_5.1/lib -lptscotchparmetis -lptscotch -lptscotcherr -lptscotcherrexit \
+  PARMETIS = -lparmetis -lmetis
+#ichi  PARMETIS = -L/global/u2/y/yamazaki/libs/scotch_5.1/lib -lptscotchparmetis -lptscotch -lptscotcherr -lptscotcherrexit \
              -lparmetis -lmetis
 
 else
