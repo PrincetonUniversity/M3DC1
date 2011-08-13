@@ -5085,7 +5085,19 @@ vectype function b1psiu(e,f,g)
         if(jadv.eq.0) then
            temp = 0.
         else
-           temp = 0.
+           temp79a = f(:,OP_DR)*g(:,OP_DZ) - f(:,OP_DZ)*g(:,OP_DR)
+           temp79b = f(:,OP_DRR)*g(:,OP_DZ ) - f(:,OP_DRZ)*g(:,OP_DR ) &
+                +    f(:,OP_DR )*g(:,OP_DRZ) - f(:,OP_DZ )*g(:,OP_DRR)
+           temp79c = f(:,OP_DRZ)*g(:,OP_DZ ) - f(:,OP_DZZ)*g(:,OP_DR ) &
+                +    f(:,OP_DR )*g(:,OP_DZZ) - f(:,OP_DZ )*g(:,OP_DRZ)
+
+           temp = int4(ri_79,e(:,OP_1 ),norm79(:,1),temp79b) &
+                + int4(ri_79,e(:,OP_1 ),norm79(:,2),temp79c) &
+                - int4(ri_79,e(:,OP_DR),norm79(:,1),temp79a) &
+                - int4(ri_79,e(:,OP_DZ),norm79(:,2),temp79a)
+           if(itor.eq.1) then
+              temp = temp + 2.*int4(ri2_79,e(:,OP_1),norm79(:,1),temp79a)
+           end if
         endif
 
      ! volume terms
