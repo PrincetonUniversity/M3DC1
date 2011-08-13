@@ -2397,7 +2397,53 @@ subroutine threed_wave_test_init()
   kB = kx*Bx0 + kphi*bzero
   b2 = bzero**2 + Bx0**2
 
-  if(numvar.eq.3) then
+  select case(numvar)
+  case(1)
+     select case(iwave)
+     case(0)
+        omega = kB
+
+     case default
+        if(myrank.eq.0) then
+           print *, 'Error: iwave must be one of the following:'
+           print *, ' iwave = 0: Shear Alfven wave'
+        end if
+        call safestop(4)
+     end select
+     
+  case(2)
+     select case(iwave)
+     case(0)
+        if(myrank.eq.0) print *, 'Shear Alfven wave'
+        
+        omega = bx0*kx*kB + 0.5*b2*kphi**2 &
+             + 0.5*sqrt((2.*bx0*kx*kB + B2*kphi**2)**2 &
+             -4.*(bx0*kx*kB)**2*k2/kp2)
+        omega = sqrt(omega)
+
+     case(1)
+        if(myrank.eq.0) print *, 'Fast magnetosonic wave'
+
+        omega = bx0*kx*kB + 0.5*b2*kphi**2 &
+             - 0.5*sqrt((2.*bx0*kx*kB + B2*kphi**2)**2 &
+             -4.*(bx0*kx*kB)**2*k2/kp2)
+        omega = sqrt(omega)
+
+     case default
+        if(myrank.eq.0) then
+           print *, 'Error: iwave must be one of the following:'
+           print *, ' iwave = 0: Shear Alfven wave'
+           print *, ' iwave = 1: Fast wave'
+        end if
+        call safestop(4)
+     end select
+
+  case(3)
+     if(bx0 .ne. 0.) then
+        if(myrank.eq.0) print *, 'Only Bx0=0 supported for numvar=3'
+        call safestop(4)
+     endif
+
      select case(iwave)
      case(0)
         if(myrank.eq.0) print *, 'Shear Alfven wave'
@@ -2426,31 +2472,7 @@ subroutine threed_wave_test_init()
         end if
         call safestop(4)
      end select
-  else
-     select case(iwave)
-     case(0)
-        if(myrank.eq.0) print *, 'Shear Alfven wave'
-        omega = bx0*kx*kB + 0.5*b2*kphi**2 &
-             + 0.5*sqrt((2.*bx0*kx*kB + B2*kphi**2)**2 &
-                       -4.*(bx0*kx*kB)**2*k2/kp2)
-        omega = sqrt(omega)
-
-     case(1)
-        if(myrank.eq.0) print *, 'Fast magnetosonic wave'
-        omega = bx0*kx*kB + 0.5*b2*kphi**2 &
-             - 0.5*sqrt((2.*bx0*kx*kB + B2*kphi**2)**2 &
-                       -4.*(bx0*kx*kB)**2*k2/kp2)
-        omega = sqrt(omega)
-
-     case default
-        if(myrank.eq.0) then
-           print *, 'Error: iwave must be one of the following:'
-           print *, ' iwave = 0: Shear Alfven wave'
-           print *, ' iwave = 1: Fast wave'
-        end if
-        call safestop(4)
-     end select
-  end if
+  end select
 
   if(myrank.eq.0) then
      print *, ' kphi = ', myrank, kphi
@@ -2524,7 +2546,20 @@ subroutine threed_wave_test_per(x, phi, z)
   val(12) = eps*sin(kx*x)*sin(kz*z)*sin(kphi*phi)*kphi*kz**2
 #endif
 
-  if(numvar.eq.3) then  
+  select case(numvar)
+  case(1)
+     psi1_l = val
+     u1_l = -val*kB/omega
+
+  case(2)
+     psi1_l = val
+     u1_l = -val*kB/omega
+     vz1_l = -val*(0,1)*Bx0*kz*kphi*kp2 &
+          / (k2*(Bx0*kx)**2 - kp2*omega**2)
+     bz1_l = (-kp2)* (val*(0,1)*Bx0**2*kx*kz*kphi) &
+          / (k2*(Bx0*kx)**2 - kp2*omega**2)
+     
+  case(3)
      if(iwave.eq.0) then
         psi1_l = val
         u1_l = -val*bzero*kphi/omega
@@ -2534,7 +2569,13 @@ subroutine threed_wave_test_per(x, phi, z)
              (omega*(k2*p0*gam - omega**2))
 #if defined(USE3D)
         ! unlike other fields, chi has -sin(phi) dependence
+        chi1_l(1:6) = (val(7:12)/kphi)* &
+             (0,1)*bzero*k2*(kphi**2*p0*gam - omega**2) / &
+             (omega*(k2*p0*gam - omega**2))
         ! toroidal derivative has -cos(phi) dependence
+        chi1_l(7:12) = (-val(1:6)*kphi)* &
+             (0,1)*bzero*k2*(kphi**2*p0*gam - omega**2) / &
+             (omega*(k2*p0*gam - omega**2))
 #elif defined(USECOMPLEX)
         chi1_l = val*(0,1)*bzero*k2*(kphi**2*p0*gam - omega**2) / &
              (omega*(k2*p0*gam - omega**2))
@@ -2542,15 +2583,7 @@ subroutine threed_wave_test_per(x, phi, z)
         p1_l = val*bzero*kp2*k2*p0*gam / &
              (k2*p0*gam - omega**2)
      endif
-  else
-     u1_l = val
-     psi1_l = -val*kB*((Bx0*kx)**2*k2 - kp2*omega**2) &
-          / (kp2*omega*(Bx0**2*(kx**2 + kphi**2) - omega**2))
-     vz1_l = -val*(0,1)*Bx0*kz*kphi*kB &
-          / (Bx0**2*(kx**2 + kphi**2) - omega**2)
-     bz1_l = (-kp2)* (-val*(0,1)*Bx0**2*kx*kz*kphi*kB) &
-          / (kp2*omega*(Bx0**2*(kx**2 + kphi**2) - omega**2))
-  endif
+  end select
 
 end subroutine threed_wave_test_per
 

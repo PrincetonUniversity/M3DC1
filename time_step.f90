@@ -1669,8 +1669,7 @@ subroutine boundary_mag(rhs, mat)
      endif
 
      ! no toroidal current
-     if(inocurrent_tor.eq.1) then
-        
+     if(inocurrent_tor.eq.1) then       
         temp = 0.
         call set_laplacian_bc(i_psi,rhs,temp,normal,curv,izonedim,-x,mat)
      end if

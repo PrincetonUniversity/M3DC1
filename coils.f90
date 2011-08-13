@@ -607,6 +607,9 @@ subroutine calculate_external_fields()
   integer :: i, j, itri, nelms, ier
 
   complex, dimension(int_pts_main) :: fr, fphi, fz
+#ifdef USE3D
+  real, dimension(MAX_PTS) :: gr, gphi, gz
+#endif
 
   real, dimension(maxcoils) :: xc_na, zc_na
   complex, dimension(maxcoils) :: ic_na
@@ -681,13 +684,19 @@ subroutine calculate_external_fields()
      temp79c = -2.*pi*temp79c
 
      if(iread_ext_field.ne.0) then
-#ifdef USECOMPLEX
+#if defined(USECOMPLEX)
         call get_external_field_ft(x_79, z_79, fr, fphi, fz, npoints)
-#endif
         temp79a = temp79a + (1e4/b0_norm)*fr
         temp79b = temp79b + (1e4/b0_norm)*fphi
         temp79c = temp79c + (1e4/b0_norm)*fz
+#elif defined(USE3D)
+        call get_external_field(x_79, phi_79, z_79, gr, gphi, gz, npoints)
+        temp79a = temp79a + (1e4/b0_norm)*gr
+        temp79b = temp79b + (1e4/b0_norm)*gphi
+        temp79c = temp79c + (1e4/b0_norm)*gz
+#endif
      end if
+
 
      ! assemble matrix
      do i=1,dofs_per_element

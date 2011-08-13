@@ -251,4 +251,84 @@ contains
     end do
   end subroutine get_external_field_ft
 
+  subroutine get_external_field(r1, phi1, z1, br_out, bphi_out, bz_out, npts)
+    implicit none
+
+    include 'mpif.h'
+
+    integer, intent(in) :: npts
+    real, intent(in), dimension(npts) :: r1, phi1, z1
+    real, intent(out), dimension(npts) :: br_out, bphi_out, bz_out
+
+    integer :: j, k, l, m, n, ierr, rank
+    integer :: i(3)
+    real :: x(3), dx(3)
+    real :: f(3,4), g(3,4), h(3,4)
+
+    logical :: out_of_bounds = .false.
+
+    do k=1, npts
+       x(1) = (nr   - 1)*(r1(k) - r(1))/(r(nr) - r(1)) + 1
+       x(2) = (nphi - 1)*(phi1(k) - phi(1))/(phi(nphi) - phi(1)) + 1
+       x(3) = (nz   - 1)*(z1(k) - z(1))/(z(nz) - z(1)) + 1
+    
+       ! choose the indicies 
+       i(:) = x(:)
+
+       ! if the index is out of bounds, set flag
+       if(i(1).lt.1 .or. i(1).gt.nr .or. i(3).lt.1 .or. i(3).gt.nz) then
+          out_of_bounds = .true.
+       end if
+
+       ! if the index is out of bounds, extrapolate
+       if(i(1).lt.2) i(1) = 2
+       if(i(1).gt.nr-2) i(1) = nr - 2
+       if(i(3).lt.2) i(3) = 2
+       if(i(3).gt.nz-2) i(3) = nz - 2
+
+       dx(:) = x(:) - i(:)
+
+       ! do tri-cubic interpolation
+       do l=1, 4
+          do m=1, 4
+             j = i(2)+m-2
+             if(j.lt.1) j = j+nphi
+             if(j.gt.nphi) j = j-nphi
+
+             do n=1, 4
+                if(j.lt.1 .or. j.gt.nphi) print *, 'Error! j=', j
+                if(i(1)+n-2.lt.1 .or. i(1)+n-2.gt.nr) &
+                     print *, 'Error! i(1)=', i(1)
+                if(i(3)+l-2.lt.1 .or. i(3)+l-2.gt.nz) &
+                     print *, 'Error! i(3)=', i(3)
+                f(1,n) = br  (j,i(1)+n-2,i(3)+l-2)
+                f(2,n) = bphi(j,i(1)+n-2,i(3)+l-2)
+                f(3,n) = bz  (j,i(1)+n-2,i(3)+l-2)
+             end do
+             g(:,m) = f(:,1) &
+                  + dx(3)*((-2.*f(:,1) - 3.*f(:,2) + 6.*f(:,3) - f(:,4))/6. &
+                  + dx(3)*((f(:,1) - 2.*f(:,2) + f(:,3))/2. &
+                  + dx(3)*(-f(:,1) + 3.*f(:,2) - 3.*f(:,3) + f(:,4))/6.))
+          end do
+          h(:,l) = g(:,1) &
+               + dx(2)*((-2.*g(:,1) - 3.*g(:,2) + 6.*g(:,3) - g(:,4))/6. &
+               + dx(2)*((g(:,1) - 2.*g(:,2) + g(:,3))/2. &
+               + dx(2)*(-g(:,1) + 3.*g(:,2) - 3.*g(:,3) + g(:,4))/6.))
+       end do
+       f(:,1) = h(:,1) &
+            + dx(1)*((-2.*h(:,1) - 3.*h(:,2) + 6.*h(:,3) - h(:,4))/6. &
+            + dx(1)*((h(:,1) - 2.*h(:,2) + h(:,3))/2. &
+            + dx(1)*(-h(:,1) + 3.*h(:,2) - 3.*h(:,3) + h(:,4))/6.))
+       br_out(k)   = f(1,1)
+       bphi_out(k) = f(2,1)
+       bz_out(k)   = f(3,1)
+    end do
+
+    if(out_of_bounds) then
+       call mpi_comm_rank(MPI_COMM_WORLD, rank, ierr)
+       if(rank.eq.0) &
+            print *, 'Warning: some external field values extrapolated.'
+    endif
+  end subroutine get_external_field
+
 end module read_schaffer_field
