@@ -564,7 +564,7 @@ pro end_capture, wait=w
 end
 
 
-pro plot_slice, data, x, y, z, value=value, normal=normal, itor=itor
+pro plot_slice, data, x, y, z, value=value, normal=normal, itor=itor, range=range
 
    if(n_elements(normal) gt 0) then begin
        n = n_elements(value)
@@ -601,6 +601,10 @@ pro plot_slice, data, x, y, z, value=value, normal=normal, itor=itor
 
        aout = interpolate(data, reform(v[0,*]), reform(v[1,*]), reform(v[2,*]))
        set_shading, reject=0
+
+       if(n_elements(range) eq 2) then begin
+           aout = (aout > range[0]) < range[1]
+       end
        shades = bytscl(aout)
    endif else begin
        isosurface, data, max(data)*value, v, p
