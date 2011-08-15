@@ -1291,6 +1291,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ntor = read_parameter("ntor", filename=filename)
    version = read_parameter('version', filename=filename)
    ivform = read_parameter('ivform', filename=filename)
+   icomplex = read_parameter('icomplex', filename=filename)
+   i3d = read_parameter('3d', filename=filename)
    if(version eq 0) then begin
        xzero = read_parameter("xzero", filename=filename)
        zzero = read_parameter("zzero", filename=filename)
@@ -2409,7 +2411,13 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange, complex=complex, $
                         linear=linear, mask=mask, phi=phi0)
-       if(ntor ne 0) then begin
+
+       if(i3d eq 1) then begin
+           f_rp = read_field('f', x, y, t, mesh=mesh, operation=12, $
+                            filename=filename, points=pts, slices=time, $
+                            rrange=xrange, zrange=yrange, complex=complex, $
+                            linear=linear, phi=phi0)
+       endif else if(icomplex eq 1) then begin
            f_r = read_field('f', x, y, t, mesh=mesh, operation=2, $
                             filename=filename, points=pts, slices=time, $
                             rrange=xrange, zrange=yrange, complex=complex, $
@@ -2436,7 +2444,12 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange, complex=complex, $
                         linear=linear, mask=mask, phi=phi0)
-       if(ntor ne 0) then begin
+       if(i3d eq 1) then begin
+           f_zp = read_field('f', x, y, t, mesh=mesh, operation=13, $
+                            filename=filename, points=pts, slices=time, $
+                            rrange=xrange, zrange=yrange, complex=complex, $
+                            linear=linear, phi=phi0)
+       endif else if(icomplex eq 1) then begin
            f_z = read_field('f', x, y, t, mesh=mesh, operation=3, $
                             filename=filename, points=pts, slices=time, $
                             rrange=xrange, zrange=yrange, complex=complex, $
@@ -5685,7 +5698,7 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
                    solid=solid, positive_only=positive_only, $
                    power=power, angle=angle, ax=ax, az=az, $
                    xslice=xslice, zslice=zslice, phislice=phislice, $
-                   absolute_value=absolute, _EXTRA=extra
+                   absolute_value=absolute, range=range, _EXTRA=extra
 
 
   if(n_elements(points) eq 0) then points = 50
@@ -5713,7 +5726,7 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
   phi = fltarr(shown_angles)
   if(threed eq 1) then begin
       for i=0, shown_angles-1 do begin
-          phi[i] = 2.*!pi*i/(angles-1.)
+          phi[i] = 360.*i/(angles-1.)
           if(i eq angles-1) then pp = 0 else pp = phi[i]
           data[*,i,*] = $
             read_field(fieldname,x,z,t,_EXTRA=extra,edge_val=0.,phi=pp, $
@@ -5727,7 +5740,7 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
       field = read_field(fieldname,x,z,t,/complex,_EXTRA=extra,edge_val=0., $
                         points=points)
       for i = 0, shown_angles-1 do begin
-          phi[i] = 2.*!pi*i/(angles-1.)
+          phi[i] = 360.*i/(angles-1.)
           data[*,i,*] = real_part(field[0,*,*]* $
                                   (cos(ntor*phi[i]) + $
                                    complex(0.,1.)*sin(ntor*phi[i])))
@@ -5785,7 +5798,7 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
           else normal = [[normal], [0,1,0]]
       endif
       if(n_elements(value) eq 0) then value=0.9
-      plot_slice, data, x, phi, z, value=value, normal=normal
+      plot_slice, data, x, phi, z, value=value, normal=normal, range=range
       surface, tmpdat, xrange, yrange, xstyle=1, ystyle=1, zstyle=1, $
         /nodata, /noerase, ax=ax, az=az, charsize=2.5, $
         xrange=xrange, yrange=yrange, zrange=zrange, $

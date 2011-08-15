@@ -697,7 +697,6 @@ subroutine calculate_external_fields()
 #endif
      end if
 
-
      ! assemble matrix
      do i=1,dofs_per_element
         do j=1,dofs_per_element
