@@ -5696,9 +5696,12 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
                    light_brightness=light_brightness, points=points, $
                    brightness=brightness, specular=specular, $
                    solid=solid, positive_only=positive_only, $
-                   power=power, angle=angle, ax=ax, az=az, $
+                   power=power, angle=angle, ax=ax, az=az, value=value, $
                    xslice=xslice, zslice=zslice, phislice=phislice, $
-                   absolute_value=absolute, range=range, _EXTRA=extra
+                   absolute_value=absolute, range=range, $
+                   noaxes=noaxes, reject=reject, $
+                   xrange=xrange, yrange=yrange, zrange=zrange, $
+                   _EXTRA=extra
 
 
   if(n_elements(points) eq 0) then points = 50
@@ -5757,18 +5760,27 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
 
   if(n_elements(power) ne 0.) then data = data^power
 
-  xrange = [min(x), max(x)]
-  yrange = [min(phi), max(phi)]
-  zrange = [min(z), max(z)]
   itor = read_parameter('itor', _EXTRA=extra)
-
+  if(itor eq 1) then begin
+      if(n_elements(xrange) ne 2) then xrange = [-max(x), max(x)]
+      if(n_elements(yrange) ne 2) then yrange = xrange
+      if(n_elements(zrange) ne 2) then zrange = [min(z), max(z)]
+      xtitle='x'
+      ytitle='y'
+  endif else begin
+      if(n_elements(xrange) ne 2) then xrange = [min(x), max(x)]
+      if(n_elements(yrange) ne 2) then yrange = [min(phi), max(phi)]
+      if(n_elements(zrange) ne 2) then zrange = [min(z), max(z)]
+      xtitle='R'
+      ytitle='!9P!X'
+  endelse
 
   tmpdat = fltarr(2, 2)
   surface, tmpdat, xrange, yrange, charsize=2.5, $
     /nodata, /save, ax=ax, az=az, xstyle=1, ystyle=1, zstyle=1, $
     xrange=xrange, yrange=yrange, zrange=zrange, $
-    xtitle='R', ytitle='!9P!X', ztitle='Z'
-  
+    xtitle=xtitle, ytitle=ytitle, ztitle='Z'
+ 
 
   if(keyword_set(solid)) then begin
       print, 'calling interval_volume'
@@ -5798,11 +5810,14 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
           else normal = [[normal], [0,1,0]]
       endif
       if(n_elements(value) eq 0) then value=0.9
-      plot_slice, data, x, phi, z, value=value, normal=normal, range=range
-      surface, tmpdat, xrange, yrange, xstyle=1, ystyle=1, zstyle=1, $
-        /nodata, /noerase, ax=ax, az=az, charsize=2.5, $
-        xrange=xrange, yrange=yrange, zrange=zrange, $
-        xtitle='R', ytitle='!9P!X', ztitle='Z'
+      plot_slice, data, x, phi, z, value=value, normal=normal, range=range, $
+        itor=itor, reject=reject
+      if(not keyword_set(noaxes)) then begin
+          surface, tmpdat, xrange, yrange, xstyle=1, ystyle=1, zstyle=1, $
+            /nodata, /noerase, ax=ax, az=az, charsize=2.5, $
+            xrange=xrange, yrange=yrange, zrange=zrange, $
+            xtitle=xtitle, ytitle=ytitle, ztitle='Z'
+      end
       return
   endelse
    

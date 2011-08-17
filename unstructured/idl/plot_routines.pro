@@ -564,7 +564,10 @@ pro end_capture, wait=w
 end
 
 
-pro plot_slice, data, x, y, z, value=value, normal=normal, itor=itor, range=range
+pro plot_slice, data, x, y, z, value=value, normal=normal, itor=itor, $
+                range=range, reject=reject
+
+   if(n_elements(reject) eq 0) then reject = 1
 
    if(n_elements(normal) gt 0) then begin
        n = n_elements(value)
@@ -607,8 +610,10 @@ pro plot_slice, data, x, y, z, value=value, normal=normal, itor=itor, range=rang
        end
        shades = bytscl(aout)
    endif else begin
-       isosurface, data, max(data)*value, v, p
-       set_shading, reject=1
+       val = max(data)*value
+       isosurface, data, val, v, p
+       print, 'reject = ', reject
+       set_shading, reject=reject
    endelse
        
    if(n_elements(v) le 3) then begin
@@ -621,10 +626,10 @@ pro plot_slice, data, x, y, z, value=value, normal=normal, itor=itor, range=rang
    zz = (max(z) - min(z))*v[2,*]/(n_elements(z)-1.) + min(z)
 
    q = v
-  
+
    if(keyword_set(itor)) then begin
-       q[0,*] = rr*cos(yy)
-       q[1,*] = rr*sin(yy)
+       q[0,*] = rr*cos(yy*!pi/180.)
+       q[1,*] = rr*sin(yy*!pi/180.)
        q[2,*] = zz
    endif else begin
        q[0,*] = rr
