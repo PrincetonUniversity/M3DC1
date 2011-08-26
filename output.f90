@@ -868,14 +868,14 @@ subroutine output_fields(time_group_id, equilibrium, error)
   endif
 
 
-  if(equilibrium.eq.1) then
-     ! partition
-     dum = 0
-     dum(1,:) = myrank
-     call output_field(group_id, "part", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
-  end if
+!!$  if(equilibrium.eq.1) then
+!!$     ! partition
+!!$     dum = 0
+!!$     dum(1,:) = myrank
+!!$     call output_field(group_id, "part", real(dum), coeffs_per_element, &
+!!$          nelms, error)
+!!$     nfields = nfields + 1
+!!$  end if
      
   call write_int_attr(group_id, "nfields", nfields, error)
 
