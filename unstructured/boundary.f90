@@ -7,6 +7,12 @@ module boundary_conditions
   integer, parameter :: BOUNDARY_RESISTIVE_WALL =  8
   integer, parameter :: BOUNDARY_AXISYMMETRIC   = 16
 
+!!$  integer, parameter :: BOUND_DN  = 0
+!!$  integer, parameter :: BOUND_DT  = 1
+!!$#if defined(USE3D) || defined(USECOMPLEX)
+!!$  integer, parameter :: BOUND_DNP = 2
+!!$  integer, parameter :: BOUND_DTP = 3
+!!$#endif
 contains
 
 
@@ -293,9 +299,50 @@ subroutine set_normal_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
      call insert(rhs, ibegin+8, bv_rotated(9), VEC_SET)
 #endif
   endif
-     
 end subroutine set_normal_bc
-   
+
+
+!======================================================================
+! set_normalp_bc
+!======================================================================
+subroutine set_normalp_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
+  use basic
+  use vector_mod
+  use matrix_mod
+
+  implicit none
+  
+  integer, intent(in) :: ibegin               ! first dof of field
+  real, intent(in) :: normal(2), curv
+  type(vector_type), intent(inout) :: rhs     ! right-hand-side of equation
+  vectype, intent(in), dimension(dofs_per_node) :: bv     ! boundary values
+  integer, intent(in) :: izonedim             ! dimension of boundary
+  type(matrix_type), optional :: mat
+
+  vectype, dimension(dofs_per_node) :: bv_rotated
+
+#if defined(USECOMPLEX)
+  call set_normal_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
+
+#elif defined(USE3D)
+  call rotate_dofs(bv, bv_rotated, normal, curv, 1)
+     
+  ! n
+  if(present(mat)) call identity_row(mat, ibegin+7)
+  call insert(rhs, ibegin+7, bv_rotated(8), VEC_SET)
+
+  ! nt
+  if(present(mat)) call identity_row(mat, ibegin+10)
+  call insert(rhs, ibegin+10, bv_rotated(11), VEC_SET)
+
+  if(izonedim.eq.0) then
+     ! t
+     if(present(mat)) call identity_row(mat, ibegin+8)
+     call insert(rhs, ibegin+8, bv_rotated(9), VEC_SET)
+  endif
+#endif    
+end subroutine set_normalp_bc
+ 
    
 !======================================================================
 ! set_laplacian_bc
@@ -349,6 +396,101 @@ subroutine set_laplacian_bc(ibegin,rhs,bv,normal,curv,izonedim,radius,mat)
   
 end subroutine set_laplacian_bc
 
+
+!!$subroutine set_multi_bc(n,ibegin,ibc,fac,rhs,bv, &
+!!$     normal,curv,izonedim,radius,mat)
+!!$  implicit none
+!!$
+!!$  use basic
+!!$  use vector_mod
+!!$  use matrix_mod
+!!$
+!!$  implicit none
+!!$  
+!!$  integer, intent(in) :: n               ! number of fields
+!!$  integer, intent(in) :: ibegin(n)       ! first dof of each field
+!!$  integer, intent(in) :: ibc(n)          ! type of bc for each field
+!!$  vectype, intent(in) :: fac             ! factor for each field
+!!$  real, intent(in) :: normal(2), curv
+!!$  type(vector_type), intent(inout) :: rhs ! right-hand-side of equation
+!!$  vectype, intent(in), dimension(dofs_per_node) :: bv     ! boundary values
+!!$  integer, intent(in) :: izonedim             ! dimension of boundary
+!!$  type(matrix_type), optional :: mat
+!!$
+!!$  vectype, dimension(dofs_per_node) :: bv_rotated
+!!$
+!!$  integer :: i, j, numvals
+!!$  vectype, dimension(dofs_per_node, dofs_per_node*n) :: val
+!!$  vectype, dimension(dofs_per_node*n) :: v
+!!$  integer, dimension(dofs_per_node*n) :: col
+!!$
+!!$  call rotate_dofs(bv, bv_rotated, normal, curv, 1)
+!!$
+!!$  numvals = 0
+!!$
+!!$  do i=1, n
+!!$     j = (n-1)*dofs_per_node
+!!$
+!!$     select case(ibc(n))
+!!$     case(BOUND_DT)
+!!$        val(3,j+3) = fac(i)
+!!$        val(6,j+6) = fac(i)
+!!$        if(izonedim.eq.0) then
+!!$           val(2,j+2) = fac(i)
+!!$           val(4,j+4) = fac(i)
+!!$        endif
+!!$#if defined(USE3D) || defined(USECOMPLEX)
+!!$        val(9,j+9) = fac(i)
+!!$        val(12,j+12) = fac(i)
+!!$        if(izonedim.eq.0) then
+!!$           val(8,j+8) = fac(i)
+!!$           val(10,j+10) = fac(i)
+!!$        endif
+!!$
+!!$     case(BOUND_DTP)
+!!$        val(9,j+9) = fac(i)
+!!$        val(12,j+12) = fac(i)
+!!$        if(izonedim.eq.0) then
+!!$           val(8,j+8) = fac(i)
+!!$           val(10,j+10) = fac(i)
+!!$        endif
+!!$#endif
+!!$
+!!$     case(BOUND_DN)
+!!$        val(2,j+2) = fac(i)
+!!$        val(5,j+5) = fac(i)
+!!$        if(izonedim.eq.0) val(3,j+3) = fac(i)
+!!$#if defined(USE3D) || defined(USECOMPLEX)
+!!$        val(8,j+8) = fac(i)
+!!$        val(11,j+11) = fac(i)
+!!$        if(izonedim.eq.0) val(9,j+9) = fac(i)
+!!$
+!!$     case(BOUND_DNP)
+!!$        val(8,j+8) = fac(i)
+!!$        val(11,j+11) = fac(i)
+!!$        if(izonedim.eq.0) val(9,j+9) = fac(i)
+!!$#endif
+!!$     end select
+!!$  end do
+!!$
+!!$  do i=1, dofs_per_node
+!!$     numvals = 0
+!!$     do j=1, dofs_per_node*n
+!!$        if(val(i,j) .ne. 0) then
+!!$           numvals = numvals + 1
+!!$           v(numvals) = val(i,j)
+!!$           col(numvals) = j
+!!$        end if
+!!$     end do
+!!$     if(numvals.eq.0) cycle
+!!$
+!!$     irow = ibegin(1) + i - 1
+!!$     if(present(mat)) &
+!!$          call set_row_vals(mat, irow, numvals, col, v)
+!!$     call insert(rhs, irow, bv_rotated(i), VEC_SET)
+!!$  end do
+!!$ 
+!!$end subroutine set_multi_bc
 
 !=======================================================
 ! boundary_dc

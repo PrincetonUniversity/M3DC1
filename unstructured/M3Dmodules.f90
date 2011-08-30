@@ -79,6 +79,7 @@ module basic
   integer :: iconst_t        ! 1 = pressure held constant
   integer :: iconst_n        ! 1 = density held constant
   integer :: iconst_bz       ! 1 = toroidal field held constant
+  integer :: iconst_bn       ! 1 = normal magnetic field held constant
   integer :: inograd_p       ! 1 = no normal pressure gradient
   integer :: inograd_n       ! 1 = no normal density gradient
   integer :: com_bc          ! 1 = forces del^2(chi) = 0 on boundary

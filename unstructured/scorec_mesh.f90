@@ -19,6 +19,7 @@ module scorec_mesh_mod
   logical, parameter :: IGNORE_PHI = .true.
   logical, private :: initialized = .false.
 
+  integer :: plane_comm
 contains
 
   subroutine load_mesh
@@ -28,7 +29,8 @@ contains
 #ifdef USE3D
     include 'mpif.h'
     real :: minphi, maxphi
-    integer :: procs_per_plane, myrank, maxrank, ier
+    integer :: i,procs_per_plane, myrank, maxrank, ier, full_group, plane_group
+    integer, allocatable :: ranks(:)
 #endif
 
     ! initialize scorec solvers
@@ -63,6 +65,17 @@ contains
 
     if(myrank.eq.0) print *, 'setting up 3D mesh...'
     call threeDMeshSetup(0)
+
+    ! set up communications groups
+    allocate(ranks(procs_per_plane))
+    call MPI_Comm_group(MPI_COMM_WORLD, full_group, ier)
+    do i=1, procs_per_plane
+       ranks(i) = local_plane()*procs_per_plane + i-1
+    end do
+    call MPI_Group_incl(full_group, procs_per_plane, ranks, &
+         plane_group, ier)
+    call MPI_Comm_create(MPI_COMM_WORLD, plane_group, plane_comm, ier)
+    deallocate(ranks)
 #else 
     call loadmesh("struct.dmg", "struct-dmg.sms")
 #endif

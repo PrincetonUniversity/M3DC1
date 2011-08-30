@@ -1659,28 +1659,27 @@ subroutine boundary_mag(rhs, mat)
      if(jadv.eq.0 .and. i3d.eq.1) i_e = node_index(e_v, i)
      if(imp_bf.eq.1) i_bf = node_index(bf_v, i)
 
-
-     if(eta_wall .eq. 0.) then
-        ! clamp poloidal field
+     ! constant normal field = -n.grad(psi)/R - n.grad(f')
+     if(iconst_bn.eq.1) then
         call get_node_data(psi_field(1), i, temp)
         ! add loop voltage
         if(igauge.eq.0) temp(1) = temp(1) + dt*vloop/twopi
         call set_dirichlet_bc(i_psi,rhs,temp,normal,curv,izonedim,mat)
-     endif
+     end if
 
-     ! no toroidal current
+     ! no toroidal current = -Delta*(psi)/R
      if(inocurrent_tor.eq.1) then       
         temp = 0.
         call set_laplacian_bc(i_psi,rhs,temp,normal,curv,izonedim,-x,mat)
      end if
 
-     ! no tangential current
+     ! no tangential current = n.Grad(F)/R + t.Grad(psi')/R^2
      if(inocurrent_pol.eq.1 .and. numvar.ge.2) then
         call get_node_data(bz_field(1), i, temp)
         call set_normal_bc(i_bz,rhs,temp,normal,curv,izonedim,mat)
      end if
 
-     ! no normal current
+     ! no normal current = n.Grad(psi')/R^2 - t.Grad(F)/R
      if(inocurrent_norm.eq.1) then
         if(i3d.eq.1) then
 !        if(numvar.ge.2) then
@@ -1689,17 +1688,14 @@ subroutine boundary_mag(rhs, mat)
 !           temp2 = 0.
 !        endif
            call get_node_data(psi_field(1), i, temp)
-           call set_normal_bc(i_psi,rhs,temp,normal,curv,izonedim,mat)
-        else
-           if(numvar.ge.2) then
-              call get_node_data(bz_field(1), i, temp)
-              call set_dirichlet_bc(i_bz,rhs,temp,normal,curv,izonedim,mat)
-           endif
+           call set_normalp_bc(i_psi,rhs,temp,normal,curv,izonedim,mat)
         endif
-     end if
 
-     ! clamp toroidal field
-     if(iconst_bz.eq.1 .and. numvar.ge.2) then
+        if(numvar.ge.2) then
+           call get_node_data(bz_field(1), i, temp)
+           call set_dirichlet_bc(i_bz,rhs,temp,normal,curv,izonedim,mat)
+        endif
+     else if(iconst_bz.eq.1 .and. numvar.ge.2) then
         call get_node_data(bz_field(1), i, temp)
         call set_dirichlet_bc(i_bz,rhs,temp,normal,curv,izonedim,mat)
      endif

@@ -2772,14 +2772,21 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
        rfac = complex(0., ntor)
 
-       data = -(psi_r*conj(rfac*psi_r) + psi_z*conj(rfac*psi_z))/r^2 $
-         -     (conj(psi_r)*(rfac*psi_r) + conj(psi_z)*(rfac*psi_z))/r^2 $
-         + (conj(rfac*f_z)*(rfac*psi_r) - conj(rfac*f_r)*(rfac*psi_z))/r $
-         + ((rfac*f_z)*conj(rfac*psi_r) - (rfac*f_r)*conj(rfac*psi_z))/r $
-         + (conj(i_z+rfac^2*f_z)*psi_r - conj(i_r+rfac^2*f_r)*psi_z)/r $
-         + ((i_z+rfac^2*f_z)*conj(psi_r) - (i_r+rfac^2*f_r)*conj(psi_z))/r $
-         - (conj(i_r+rfac^2*f_r)*(rfac*f_r) + conj(i_z+rfac^2*f_z)*(rfac*f_z)) $
-         - ((i_r+rfac^2*f_r)*conj(rfac*f_r) + (i_z+rfac^2*f_z)*conj(rfac*f_z))
+        data = -(psi_r*conj(rfac*psi_r) + psi_z*conj(rfac*psi_z))/r^2 $
+          -     (conj(psi_r)*(rfac*psi_r) + conj(psi_z)*(rfac*psi_z))/r^2 $
+          + (conj(rfac*f_z)*(rfac*psi_r) - conj(rfac*f_r)*(rfac*psi_z))/r $
+          + ((rfac*f_z)*conj(rfac*psi_r) - (rfac*f_r)*conj(rfac*psi_z))/r $
+          + (conj(i_z+rfac^2*f_z)*psi_r - conj(i_r+rfac^2*f_r)*psi_z)/r $
+          + ((i_z+rfac^2*f_z)*conj(psi_r) - (i_r+rfac^2*f_r)*conj(psi_z))/r $
+          - (conj(i_r+rfac^2*f_r)*(rfac*f_r) + conj(i_z+rfac^2*f_z)*(rfac*f_z)) $
+          - ((i_r+rfac^2*f_r)*conj(rfac*f_r) + $
+            (i_z+rfac^2*f_z)*conj(rfac*f_z))
+
+;       data = (conj(i_z)*psi_r - conj(i_r)*psi_z)/r $
+;          - (conj(i_r)*(rfac*f_r) + conj(i_z)*(rfac*f_z)) $
+;          + (i_z*conj(psi_r) - i_r*conj(psi_z))/r $
+;          - (i_r*conj(rfac*f_r) + i_z*conj(rfac*f_z))
+
        data = data / 2.
        
        d = dimensions(/p0)
@@ -5740,15 +5747,20 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
       print, 'ntor = ', ntor
       
       field = read_field(fieldname,x,z,t,/complex,_EXTRA=extra,edge_val=0., $
-                        points=points)
+                        points=points, /linear)
+      field0 = read_field(fieldname,x,z,t,_EXTRA=extra,edge_val=0., $
+                        points=points, /equilibrium)
+
       for i = 0, shown_angles-1 do begin
-          phi[i] = 360.*i/(angles-1.)
+          phi[i] = 2.*!pi*i/(angles-1.)
           data[*,i,*] = real_part(field[0,*,*]* $
                                   (cos(ntor*phi[i]) + $
-                                   complex(0.,1.)*sin(ntor*phi[i])))
+                                   complex(0.,1.)*sin(ntor*phi[i]))) $
+            + field0[0,*,*]
           
           if(keyword_set(solid)) then psi[*,i,*] = psi0[0,*,*]
       end
+      phi = phi*180./!pi
   endelse
 
   if(keyword_set(positive_only)) then begin

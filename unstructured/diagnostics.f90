@@ -496,6 +496,8 @@ subroutine calculate_scalars()
 
   implicit none
  
+  include 'mpif.h'
+
   integer :: itri, numelms, def_fields
   logical :: is_edge(3)  ! is inode on boundary
   real :: n(2,3),tpifac
@@ -1131,6 +1133,5 @@ subroutine lcfs(psi)
 
      
 end subroutine lcfs
-
 
 end module diagnostics

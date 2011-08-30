@@ -374,6 +374,8 @@ subroutine set_defaults
        "1: Hold density constant on boundary", bc_grp)
   call add_var_int("iconst_t", iconst_t, 0, &
        "1: Hold temperature constant on boundary", bc_grp)
+  call add_var_int("iconst_bn", iconst_bn, 1, &
+       "1: Hold normal field constant on boundary", bc_grp)
   call add_var_int("iconst_bz", iconst_bz, 1, &
        "1: Hold toroidal field constant on boundary", bc_grp)
   call add_var_int("inograd_p", inograd_p, 0, "", bc_grp)
@@ -614,6 +616,12 @@ subroutine validate_input
      call safestop(1)
   endif
 #endif
+
+  if(eta_wall.ne.0 .and. iconst_bn.eq.1) then
+     if(myrank.eq.0) &
+          print *, 'Error: eta_wall!=0 is incompatible with iconst_bn==1'
+     call safestop(1)
+  endif
 
 !  if(eta_wall.ne.0.) then
 !     if(maxrank.gt.1) then

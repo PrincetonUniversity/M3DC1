@@ -5,6 +5,7 @@ module auxiliary_fields
 
   type(field_type) :: bdotgradp
   type(field_type) :: bdotgradt
+  type(field_type) :: torque_em
 
   logical, private :: initialized = .false.
 
@@ -15,6 +16,7 @@ subroutine create_auxiliary_fields
 
   call create_field(bdotgradp)
   call create_field(bdotgradt)
+  call create_field(torque_em)
   initialized = .true.
 end subroutine create_auxiliary_fields
 
@@ -24,6 +26,7 @@ subroutine destroy_auxiliary_fields
   if(.not.initialized) return
   call destroy_field(bdotgradp)
   call destroy_field(bdotgradt)
+  call destroy_field(torque_em)
 end subroutine destroy_auxiliary_fields
 
   
@@ -51,6 +54,7 @@ subroutine calculate_auxiliary_fields(ilin)
 
   bdotgradp = 0.
   bdotgradt = 0.
+  torque_em = 0.
 
   ! specify which primitive fields are to be evalulated
   def_fields = FIELD_N + FIELD_NI + FIELD_P + FIELD_PSI + FIELD_I
@@ -60,8 +64,37 @@ subroutine calculate_auxiliary_fields(ilin)
      call define_element_quadrature(itri, int_pts_aux, 5)
      call define_fields(itri, def_fields, 1, 0)
 
+     ! magnetic torque (ignoring toroidal magnetic pressure gradient)
+#ifdef USECOMPLEX
+     do i=1, dofs_per_element
+        dofs(i) = &
+             + int4(ri_79,mu79(:,OP_1,i),ps179(:,OP_DR),conjg(bz179(:,OP_DZ)))&
+             - int4(ri_79,mu79(:,OP_1,i),ps179(:,OP_DZ),conjg(bz179(:,OP_DR)))&
+             - int3(mu79(:,OP_1,i),bf179(:,OP_DRP),conjg(bz179(:,OP_DR))) &
+             - int3(mu79(:,OP_1,i),bf179(:,OP_DZP),conjg(bz179(:,OP_DZ))) &
+             + int4(ri_79,mu79(:,OP_1,i),conjg(ps179(:,OP_DR)),bz179(:,OP_DZ))&
+             - int4(ri_79,mu79(:,OP_1,i),conjg(ps179(:,OP_DZ)),bz179(:,OP_DR))&
+             - int3(mu79(:,OP_1,i),conjg(bf179(:,OP_DRP)),bz179(:,OP_DR)) &
+             - int3(mu79(:,OP_1,i),conjg(bf179(:,OP_DZP)),bz179(:,OP_DZ))
+     end do
+     dofs = dofs / 2.
+#else
+     do i=1, dofs_per_element
+        dofs(i) = &
+             + int4(ri_79,mu79(:,OP_1,i),pst79(:,OP_DR),bzt79(:,OP_DZ)) &
+             - int4(ri_79,mu79(:,OP_1,i),pst79(:,OP_DZ),bzt79(:,OP_DR))
+#ifdef USE3D
+        dofs(i) = dofs(i) &
+             - int3(mu79(:,OP_1,i),bft79(:,OP_DRP),bzt79(:,OP_DR)) &
+             - int3(mu79(:,OP_1,i),bft79(:,OP_DZP),bzt79(:,OP_DZ))
+#endif
+     end do
+#endif
+     call vector_insert_block(torque_em%vec,itri,1,dofs,VEC_ADD)
+
      ! b dot grad p
      do i=1, dofs_per_element
+
 
         if(ilin.eq.1) then 
            dofs(i) = int4(ri_79,mu79(:,OP_1,i),p179(:,OP_DZ),ps079(:,OP_DR)) &
@@ -134,6 +167,7 @@ subroutine calculate_auxiliary_fields(ilin)
 
   call newvar_solve(bdotgradp%vec, mass_mat_lhs)
   call newvar_solve(bdotgradt%vec, mass_mat_lhs)
+  call newvar_solve(torque_em%vec, mass_mat_lhs)
   
   end subroutine calculate_auxiliary_fields
 
