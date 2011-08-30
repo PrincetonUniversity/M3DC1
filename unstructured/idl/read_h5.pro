@@ -2978,8 +2978,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                                  rrange=xrange, zrange=yrange, $
                                  h_symmetry=h_symmetry, v_symmetry=v_symmetry,$
                                  operation=op, mask=mask, $
-                                 last=0,symbol=symbol,units=units, $
-                                 cgs=cgs, mks=mks)
+                                 last=0)
            endif else base = 0.          
 
            for i=trange[0], trange[1] do begin
