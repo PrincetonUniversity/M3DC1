@@ -517,6 +517,19 @@ subroutine rdrestart_adios
   integer*8               :: adios_handle, adios_buf_size
   real, allocatable :: tmp_field_vec(:), tmp_field0_vec(:), tmp_bf_field_1(:), tmp_bf_field_0(:)
 
+  !!! ADIOS variables for reading 
+  integer*8                    :: fh, gh          ! file handler and group handler
+  character(10), dimension(1)  :: gnamelist       ! expect 1 group only in restart file
+  character(30), dimension(50) :: vnamelist, adios_varlist   ! list of all vars 
+  character(30), dimension(10) :: anamelist, adios_attrlist  ! list of all attributes 
+  integer                      :: tstart, ntsteps ! timesteps available
+  integer*8                    :: start, vstart(2), readsize, vreadsize(2)
+  integer                      :: i, gcnt, vcnt, acnt, ts, lastts
+  integer*8                    :: read_bytes ! bytes read by adios_read_var()
+  integer                      :: vartype, ndim, timedim ! adios_inq_var()
+  integer*8, dimension(2)      :: dims                   ! adios_inq_var()
+  integer                      :: elemsize               ! double complex or double
+
 
   fname="restart.bp"
   oldfname="restarto.bp"
@@ -527,15 +540,77 @@ subroutine rdrestart_adios
   call numdofs(1, ndofs2)
 
     call MPI_Comm_dup (MPI_COMM_WORLD, comm, ierr)
-#ifdef USECOMPLEX
-    call adios_init ("m3dc1_cplx.xml", adios_err)
-#else
-    call adios_init ("m3dc1.xml", adios_err)
-#endif
-    call adios_open (adios_handle, "restart", fname, "r", comm, adios_err)
-#include "gread_restart_c11.fh" 
-    call adios_close (adios_handle, adios_err)
-    ! Note, we have to close to perform the reading of the variables above
+!#ifdef USECOMPLEX
+!    call adios_init ("m3dc1_cplx.xml", adios_err)
+!#else
+!    call adios_init ("m3dc1.xml", adios_err)
+!#endif
+!    call adios_open (adios_handle, "restart", fname, "r", comm, adios_err)
+!#include "gread_restart_c11.fh" 
+!    call adios_close (adios_handle, adios_err)
+!    ! Note, we have to close to perform the reading of the variables above
+
+    !! set read method, default=0 the BP reader, 1=BP subfiles with better performance
+    call adios_set_read_method (0, adios_err);
+    call adios_fopen (fh,fname,MPI_COMM_WORLD,gcnt,adios_err)
+    if (adios_err .ne. 0) call safestop(2)
+    call adios_inq_file (fh,vcnt,acnt,tstart,ntsteps,gnamelist,adios_err)
+
+    write (*,'("Number of timesteps : ",i0," starting from ",i0)') ntsteps, tstart
+    write (*,'("Number of groups : ",i0)') gcnt
+
+    do i=1,gcnt
+        write (*,"(i5, a, a)") i,")  ", trim(gnamelist(i))
+    enddo
+
+    !! Have to open a group from the file to read anything
+    call adios_gopen (fh, gh, gnamelist(1), vcnt, acnt, ierr)
+    ! not necessary to inquire if you know what to read
+    call adios_inq_group(gh, vnamelist, anamelist, ts, lastts, ierr)
+
+    write (*,'("Number of variables in group ",a,": ",i0)') trim(gnamelist(1)), vcnt
+    do i=1,vcnt
+        write (*,"(i5, a, a)") i,")  ", trim(vnamelist(i))
+    enddo
+
+    write (*,'("Number of attributes in group ",a,": ",i0)') trim(gnamelist(1)), acnt
+    do i=1,acnt
+        write (*,"(i5, a, a)") i,")  ", trim(anamelist(i))
+    enddo
+
+    ! Read in scalars (offset = 0, read size = 1 "in all dimensions")
+    start = 0
+    readsize = 1 ! number of elements of a type, not bytes!
+
+    ! These scalars are varying over processors so we use adios_read_local_var() to 
+    !  read the myrank'th value of the scalar from the file
+    call adios_read_local_var (gh, "numnodes",   myrank, start, readsize, inumnodes, read_bytes)
+    call adios_read_local_var (gh, "numelms",    myrank, start, readsize, inumelms, read_bytes)
+    call adios_read_local_var (gh, "mmnn18",     myrank, start, readsize, immnn18, read_bytes)
+    call adios_read_local_var (gh, "numvar",     myrank, start, readsize, inumvar, read_bytes)
+    call adios_read_local_var (gh, "iper",       myrank, start, readsize, iiper, read_bytes)
+    call adios_read_local_var (gh, "jper",       myrank, start, readsize, ijper, read_bytes)
+    call adios_read_local_var (gh, "myrank",     myrank, start, readsize, imyrank, read_bytes)
+    call adios_read_local_var (gh, "maxrank",    myrank, start, readsize, imaxrank, read_bytes)
+    call adios_read_local_var (gh, "eqsubtract", myrank, start, readsize, ieqsubtract, read_bytes)
+    call adios_read_local_var (gh, "linear",     myrank, start, readsize, ilinear, read_bytes)
+    call adios_read_local_var (gh, "icomplex",   myrank, start, readsize, icomp, read_bytes)
+    call adios_read_local_var (gh, "ntime",      myrank, start, readsize, ntime, read_bytes)
+    call adios_read_local_var (gh, "time",       myrank, start, readsize, time, read_bytes)
+    call adios_read_local_var (gh, "totcur0",    myrank, start, readsize, totcur0, read_bytes)
+    call adios_read_local_var (gh, "tflux0",     myrank, start, readsize, tflux0, read_bytes)
+    call adios_read_local_var (gh, "gbound",     myrank, start, readsize, gbound, read_bytes)
+    call adios_read_local_var (gh, "ptot",       myrank, start, readsize, ptot, read_bytes)
+    call adios_read_local_var (gh, "vloop",      myrank, start, readsize, vloop, read_bytes)
+    call adios_read_local_var (gh, "psimin",     myrank, start, readsize, psimin, read_bytes)
+    call adios_read_local_var (gh, "psilim",     myrank, start, readsize, psilim, read_bytes)
+    call adios_read_local_var (gh, "xnull",      myrank, start, readsize, xnull, read_bytes)
+    call adios_read_local_var (gh, "znull",      myrank, start, readsize, znull, read_bytes)
+    call adios_read_local_var (gh, "xmag",       myrank, start, readsize, xmag, read_bytes)
+    call adios_read_local_var (gh, "zmag",       myrank, start, readsize, zmag, read_bytes)
+    call adios_read_local_var (gh, "ndofs_1",    myrank, start, readsize, ndofs_1, read_bytes)
+    call adios_read_local_var (gh, "ndofs_2",    myrank, start, readsize, ndofs_2, read_bytes)
+
 
   if(inumnodes .ne. numnodes .or. inumelms .ne. numelms .or. &
      mmnn18 .ne. immnn18 .or. numvar .ne. inumvar .or. &
@@ -560,15 +635,68 @@ subroutine rdrestart_adios
   allocate(tmp_bf_field_1(ndofs_2))
   allocate(tmp_bf_field_0(ndofs_2)) 
 
-    call adios_open (adios_handle, "restart", fname, "r", comm, adios_err)
-#ifdef USECOMPLEX
-#include "gread_restart_c12_cplx.fh" 
+    ! Check types of the array variables
+    call adios_inq_var (gh, "tmp_field_vec", vartype, ndim, dims, timedim, adios_err)
+#ifdef USECOMPLEX 
+    elemsize = 16 ! sizeof double complex
+    if (vartype .ne. 11) then  ! 11 = double complex in adios
 #else
-#include "gread_restart_c12.fh" 
+    elemsize = 8 ! sizeof double
+    if (vartype .ne. 6) then  ! 6 = double in adios
 #endif
-    call adios_close (adios_handle, adios_err) 
-    call MPI_Barrier (comm, ierr) 
-    call adios_finalize (myrank, adios_err)
+         write(*,*) 'Type mismatch (complex vs real) of variable tmp_field_vec in restart file!'
+         call safestop(2)
+    endif
+
+    
+
+    ! Read in arrays organized as a global array: offset = (0, rank), read size = (*,1)
+    start    = 0
+!   vstart(2)    = myrank
+    readsize = ndofs_1 ! number of elements of a type, not bytes!
+!   vreadsize(2) = 1
+    
+    call adios_read_local_var (gh, "tmp_field_vec", myrank, start, readsize, tmp_field_vec, read_bytes)
+    if (read_bytes .ne. elemsize*ndofs_1) then
+         write(*,*) 'Size mismatch at reading tmp_field_vec!', read_bytes, elemsize*ndofs_1
+         call safestop(2)
+    endif
+    
+    call adios_read_local_var (gh, "tmp_field0_vec", myrank, start, readsize, tmp_field0_vec, read_bytes)
+    if (read_bytes .ne. elemsize*ndofs_1) then 
+         write(*,*) 'Size mismatch at reading tmp_field0_vec!', read_bytes, elemsize*ndofs_1
+         call safestop(2)
+    endif
+    
+    readsize = ndofs_2 ! number of elements of a type, not bytes!
+    
+    call adios_read_local_var (gh, "tmp_bf_field_1", myrank, start, readsize, tmp_bf_field_1, read_bytes)
+    if (read_bytes .ne. elemsize*ndofs_2) then  
+         write(*,*) 'Size mismatch at reading tmp_bf_field_1!', read_bytes, elemsize*ndofs_2
+         call safestop(2)
+    endif
+    
+    call adios_read_local_var (gh, "tmp_bf_field_0", myrank, start, readsize, tmp_bf_field_0, read_bytes)
+    if (read_bytes .ne. elemsize*ndofs_2) then 
+         write(*,*) 'Size mismatch at reading tmp_bf_field_1!', read_bytes, elemsize*ndofs_2
+         call safestop(2)
+    endif
+    
+    !! Close group and file
+    call MPI_Barrier (comm, ierr)
+    call adios_gclose(gh, ierr)
+    call adios_fclose(fh, ierr)
+
+!    call adios_open (adios_handle, "restart", fname, "r", comm, adios_err)
+
+!#ifdef USECOMPLEX
+!#include "gread_restart_c12_cplx.fh" 
+!#else
+!#include "gread_restart_c12.fh" 
+!#endif
+!    call adios_close (adios_handle, adios_err) 
+!    call MPI_Barrier (comm, ierr) 
+!    call adios_finalize (myrank, adios_err)
 
       field_vec%data(1:ndofs_1) = tmp_field_vec(1:ndofs_1)
       field0_vec%data(1:ndofs_1) = tmp_field0_vec(1:ndofs_1)
@@ -582,9 +710,9 @@ subroutine rdrestart_adios
       bf_field(1)%vec%data(1:ndofs_2) = tmp_bf_field_1(ndofs_2)
       bf_field(0)%vec%data(1:ndofs_2) = tmp_bf_field_0(1:ndofs_2) 
 
-  if(myrank.eq.0) &
-      write(*,*) "INPUT: rdrestart_adios buf_size groupsize totalsize", &
-                 adios_buf_size, adios_groupsize, adios_totalsize
+!  if(myrank.eq.0) &
+!      write(*,*) "INPUT: rdrestart_adios buf_size groupsize totalsize", &
+!                 adios_buf_size, adios_groupsize, adios_totalsize
 
   deallocate(tmp_field_vec, tmp_field0_vec, tmp_bf_field_1, tmp_bf_field_0) 
 #endif
