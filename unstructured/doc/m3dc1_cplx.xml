@@ -38,6 +38,6 @@
        <var name="tmp_bf_field_0"  type="double complex" dimensions="ndofs_2"/>
    </adios-group>
 
-<method group="restart"  method="MPI"/>
+<method group="restart"  method="MPI_AMR"/>
 <buffer size-MB="55" allocate-time="now"/>
 </adios-config>
