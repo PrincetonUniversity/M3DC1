@@ -378,7 +378,10 @@ subroutine define_profiles
         deallocate(xvals, yvals)
      end if
 
-    ! calculate alpha from omega
+     ! scale rotation
+     omega_spline%y = omega_spline%y*vscale
+
+     ! calculate alpha from omega
      call calculate_alpha
   end if
 

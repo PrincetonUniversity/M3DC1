@@ -612,6 +612,9 @@ function translate, name, units=units, itor=itor
    endif else if(strcmp(name, 'com', /fold_case) eq 1) then begin
        units = dimensions(/v0, l0=-1)
        return, "!9G.!17v!X"
+   endif else if(strcmp(name, 'torque_em', /fold_case) eq 1) then begin
+       units = dimensions(/p0)
+       return, "!7s!D!8EM!N!X"
    endif  
 
    return, '!8' + name + '!X'
@@ -2772,20 +2775,20 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
        rfac = complex(0., ntor)
 
-        data = -(psi_r*conj(rfac*psi_r) + psi_z*conj(rfac*psi_z))/r^2 $
-          -     (conj(psi_r)*(rfac*psi_r) + conj(psi_z)*(rfac*psi_z))/r^2 $
-          + (conj(rfac*f_z)*(rfac*psi_r) - conj(rfac*f_r)*(rfac*psi_z))/r $
-          + ((rfac*f_z)*conj(rfac*psi_r) - (rfac*f_r)*conj(rfac*psi_z))/r $
-          + (conj(i_z+rfac^2*f_z)*psi_r - conj(i_r+rfac^2*f_r)*psi_z)/r $
-          + ((i_z+rfac^2*f_z)*conj(psi_r) - (i_r+rfac^2*f_r)*conj(psi_z))/r $
-          - (conj(i_r+rfac^2*f_r)*(rfac*f_r) + conj(i_z+rfac^2*f_z)*(rfac*f_z)) $
-          - ((i_r+rfac^2*f_r)*conj(rfac*f_r) + $
-            (i_z+rfac^2*f_z)*conj(rfac*f_z))
+;         data = -(psi_r*conj(rfac*psi_r) + psi_z*conj(rfac*psi_z))/r^2 $
+;           -     (conj(psi_r)*(rfac*psi_r) + conj(psi_z)*(rfac*psi_z))/r^2 $
+;           + (conj(rfac*f_z)*(rfac*psi_r) - conj(rfac*f_r)*(rfac*psi_z))/r $
+;           + ((rfac*f_z)*conj(rfac*psi_r) - (rfac*f_r)*conj(rfac*psi_z))/r $
+;           + (conj(i_z+rfac^2*f_z)*psi_r - conj(i_r+rfac^2*f_r)*psi_z)/r $
+;           + ((i_z+rfac^2*f_z)*conj(psi_r) - (i_r+rfac^2*f_r)*conj(psi_z))/r $
+;           - (conj(i_r+rfac^2*f_r)*(rfac*f_r) + conj(i_z+rfac^2*f_z)*(rfac*f_z)) $
+;           - ((i_r+rfac^2*f_r)*conj(rfac*f_r) + $
+;             (i_z+rfac^2*f_z)*conj(rfac*f_z))
 
-;       data = (conj(i_z)*psi_r - conj(i_r)*psi_z)/r $
-;          - (conj(i_r)*(rfac*f_r) + conj(i_z)*(rfac*f_z)) $
-;          + (i_z*conj(psi_r) - i_r*conj(psi_z))/r $
-;          - (i_r*conj(rfac*f_r) + i_z*conj(rfac*f_z))
+       data = (conj(i_z)*psi_r - conj(i_r)*psi_z)/r $
+          - (conj(i_r)*(rfac*f_r) + conj(i_z)*(rfac*f_z)) $
+          + (i_z*conj(psi_r) - i_r*conj(psi_z))/r $
+          - (i_r*conj(rfac*f_r) + i_z*conj(rfac*f_z))
 
        data = data / 2.
        

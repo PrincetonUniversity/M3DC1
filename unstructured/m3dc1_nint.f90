@@ -76,14 +76,15 @@ module m3dc1_nint
        ph179, vz179, ch179, p179
   vectype, dimension(MAX_PTS, OP_NUM) :: pst79, bzt79, pet79, nt79, &
        pht79, vzt79, cht79, pt79
+  vectype, dimension(MAX_PTS, OP_NUM) :: bzx79, bzi79, psx79, psi79
   vectype, dimension(MAX_PTS, OP_NUM) :: vis79, vic79, vip79
   vectype, dimension(MAX_PTS, OP_NUM) :: jt79, cot79, vot79, pit79, &
        eta79, sig79
-  vectype, dimension(MAX_PTS, OP_NUM) :: bf079, bf179, bft79
+  vectype, dimension(MAX_PTS, OP_NUM) :: bf079, bf179, bft79, bfx79, bfi79
   vectype, dimension(MAX_PTS, OP_NUM) :: kap79, kar79, kax79
   vectype, dimension(MAX_PTS, OP_NUM) :: ps079, bz079, pe079, n079, &
        ph079, vz079, ch079, p079
-  vectype, dimension(MAX_PTS, OP_NUM) :: pss79, bzs79, phs79, vzs79, chs79
+  vectype, dimension(MAX_PTS, OP_NUM) :: pss79, bzs79
   
 contains
 
@@ -339,12 +340,10 @@ contains
           call calcavector(itri, u_field(0), avec)
           call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
                npoints, ph079)
-          phs79 = ph079 + ph179/2.
           pht79 = ph079 + ph179
        else
           ph079 = 0.
           pht79 = ph179
-          phs79 = ph179/2.
        endif
     endif
 
@@ -352,18 +351,31 @@ contains
     ! ~~~
     if(iand(fields, FIELD_PSI).eq.FIELD_PSI) then
        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   psi..."
+
+       if(use_external_fields) then 
+          call calcavector(itri, psi_ext, avec)
+          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
+               npoints, psx79)
+#ifdef USECOMPLEX
+          psx79(:,OP_DP :OP_GSP ) = psx79(:,OP_1:OP_GS)*rfac
+          psx79(:,OP_DPP:OP_GSPP) = psx79(:,OP_1:OP_GS)*rfac**2
+#endif
+       else
+          psx79 = 0.
+       end if
        
        if(ilin.eq.0) then
           call calcavector(itri, psi_field(1), avec)
           call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, ps179)
+               npoints, psi79)
 #ifdef USECOMPLEX
-          ps179(:,OP_DP :OP_GSP ) = ps179(:,OP_1:OP_GS)*rfac
-          ps179(:,OP_DPP:OP_GSPP) = ps179(:,OP_1:OP_GS)*rfac**2
+          psi79(:,OP_DP :OP_GSP ) = psi79(:,OP_1:OP_GS)*rfac
+          psi79(:,OP_DPP:OP_GSPP) = psi79(:,OP_1:OP_GS)*rfac**2
 #endif
        else
-          ps179 = 0.
+          psi79 = 0.
        end if
+       ps179 = psi79 + psx79
        
        if(eqsubtract.eq.1) then
           call calcavector(itri, psi_field(0), avec)
@@ -399,12 +411,10 @@ contains
           call calcavector(itri, vz_field(0), avec)
           call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
                npoints, vz079)
-          vzs79 = vz079 + vz179/2.
           vzt79 = vz079 + vz179
        else
           vz079 = 0.
           vzt79 = vz179
-          vzs79 = vz179/2.
        endif
     endif
 
@@ -413,29 +423,54 @@ contains
     if(iand(fields, FIELD_I).eq.FIELD_I) then
        
        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   I..."
-       
+      
+       if(use_external_fields) then
+          call calcavector(itri, bz_ext, avec)
+          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
+               npoints, bzx79)
+#ifdef USECOMPLEX
+          bzx79(:,OP_DP :OP_GSP ) = bzx79(:,OP_1:OP_GS)*rfac
+          bzx79(:,OP_DPP:OP_GSPP) = bzx79(:,OP_1:OP_GS)*rfac**2
+#endif
+      
+#if defined(USECOMPLEX) || defined(USE3D)    
+          call calcavector(itri, bf_ext, avec)
+          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
+               npoints, bfx79)
+#endif
+#ifdef USECOMPLEX
+          bfx79(:,OP_DP :OP_GSP ) = bfx79(:,OP_1:OP_GS)*rfac
+          bfx79(:,OP_DPP:OP_GSPP) = bfx79(:,OP_1:OP_GS)*rfac**2
+#endif
+       else
+          bzx79 = 0.
+          bfx79 = 0.
+       endif
+ 
        if(ilin.eq.0) then
           call calcavector(itri, bz_field(1), avec)
           call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, bz179)
+               npoints, bzi79)
 #ifdef USECOMPLEX
-          bz179(:,OP_DP :OP_GSP ) = bz179(:,OP_1:OP_GS)*rfac
-          bz179(:,OP_DPP:OP_GSPP) = bz179(:,OP_1:OP_GS)*rfac**2
+          bzi79(:,OP_DP :OP_GSP ) = bzi79(:,OP_1:OP_GS)*rfac
+          bzi79(:,OP_DPP:OP_GSPP) = bzi79(:,OP_1:OP_GS)*rfac**2
 #endif
       
 #if defined(USECOMPLEX) || defined(USE3D)    
           call calcavector(itri, bf_field(1), avec)
           call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, bf179)
+               npoints, bfi79)
 #endif
 #ifdef USECOMPLEX
-          bf179(:,OP_DP :OP_GSP ) = bf179(:,OP_1:OP_GS)*rfac
-          bf179(:,OP_DPP:OP_GSPP) = bf179(:,OP_1:OP_GS)*rfac**2
+          bfi79(:,OP_DP :OP_GSP ) = bfi79(:,OP_1:OP_GS)*rfac
+          bfi79(:,OP_DPP:OP_GSPP) = bfi79(:,OP_1:OP_GS)*rfac**2
 #endif
        else
-          bz179 = 0.
-          bf179 = 0.
+          bzi79 = 0.
+          bfi79 = 0.
        endif
+       bz179 = bzi79 + bzx79
+       bf179 = bfi79 + bfx79
        
        if(eqsubtract.eq.1) then
           call calcavector(itri, bz_field(0), avec)
@@ -485,12 +520,10 @@ contains
           call calcavector(itri, chi_field(0), avec)
           call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
                npoints, ch079)
-          chs79 = ch079 + ch179/2.
           cht79 = ch079 + ch179
        else
           ch079 = 0.
           cht79 = ch179
-          chs79 = ch179/2.
        endif
     endif
     

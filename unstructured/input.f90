@@ -177,6 +177,8 @@ subroutine set_defaults
        "1: Use linearized equations", model_grp)
   call add_var_int("eqsubtract", eqsubtract, 0, &
        "1: Subtract equilibrium fields", model_grp)
+  call add_var_int("extsubtract", extsubtract, 0, &
+       "1: Subtract external fields", model_grp)
   call add_var_int("idens", idens, 1, &
        "1: Include density equation", model_grp)
   call add_var_int("ipres", ipres, 0, &
@@ -315,6 +317,8 @@ subroutine set_defaults
        "Factor multiplying pressure profile", gs_grp)
   call add_var_double("bscale", bscale, 1., &
        "Factor multiplying toroidal field profile", gs_grp)
+  call add_var_double("vscale", vscale, 1., &
+       "Factor multiplying toroidal rotation profile", gs_grp)
 
   call add_var_int("irot", irot, 0, &
        "Include toroidal rotation", gs_grp)
@@ -604,6 +608,10 @@ subroutine validate_input
   if(integrator.eq.1) then
      thimp = 1.
   endif
+
+  if(itime_independent.eq.1) then
+     thimp = 1.
+  end if
       
   if(iflip.eq.1) then
      vloop = -vloop

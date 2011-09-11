@@ -125,6 +125,7 @@ module basic
   real :: p0, pi0     ! total, ion pressures
   real :: pscale      ! factor by which to scale equilibrium pressure
   real :: bscale      ! factor by which to scale equilibrium toroidal field
+  real :: vscale      ! factor by which to scale equilibrium toroidal rotation
   real :: ln          ! length of equilibrium gradient
   real :: eps         ! size of initial perturbation
   integer :: iwave    ! which wave to initialize in wave prop. equilibrium
@@ -171,6 +172,7 @@ module basic
   ! model options
   integer :: linear      ! 1 = linear simulation; 0 = nonlinear simulation
   integer :: eqsubtract  ! 1 = subtract equilibrium in noninear simulations
+  integer :: extsubtract ! 1 = subtract external fields from solutions
   integer :: numvar      ! 1 = 2-field; 2 = reduced MHD; 3 = compressible MHD
   integer :: idens       ! evolve density
   integer :: ipres       ! evolve total and electron pressures separately
@@ -276,6 +278,8 @@ module basic
        time,                                     &
        gbound
 
+  logical :: use_external_fields = .false.
+
   ! magnetic diagnostics
   real :: psimin            ! flux value at magnetic axis
   real :: psilim,psilim2    ! flux at the limiter
@@ -306,6 +310,9 @@ module arrays
 
   ! Arrays containing physical fields
   type(vector_type), target :: field_vec, field0_vec
+
+  ! Arrays containing external fields
+  type(field_type) :: psi_ext, bz_ext, bf_ext
 
   ! Arrays containing auxiliary variables
   type(field_type) :: jphi_field, vor_field, com_field
