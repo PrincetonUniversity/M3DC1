@@ -85,8 +85,174 @@ module m3dc1_nint
   vectype, dimension(MAX_PTS, OP_NUM) :: ps079, bz079, pe079, n079, &
        ph079, vz079, ch079, p079
   vectype, dimension(MAX_PTS, OP_NUM) :: pss79, bzs79
+
+  ! precalculated terms
+   real, private :: fterm(MAX_PTS, coeffs_per_element, OP_NUM)
   
 contains
+
+  !==================================================
+  ! precalculate_terms
+  ! ~~~~~~~~~~~~~~~~~~
+  ! precalculates the values of each term in the
+  ! finite element expansion at each sampling point
+  !==================================================
+  subroutine precalculate_terms(xi,zi,eta,co,sn,ri,npoints)
+    use basic
+
+    implicit none
+      
+    integer, intent(in) :: npoints
+    real, dimension(npoints), intent(in) :: xi, zi, eta
+    real, intent(in) :: co, sn
+    vectype, dimension(npoints), intent(in) :: ri
+
+    integer :: p
+    real, dimension(npoints) :: temp
+    real :: co2, sn2, cosn
+    real :: xpow(npoints,-3:5), ypow(npoints,-3:5)
+#ifdef USE3D
+    integer :: i, j, op
+    real :: zpow(npoints,-2:3)
+#endif
+
+    co2 = co*co
+    sn2 = sn*sn
+    cosn = co*sn
+
+    xpow(:,-3:-1) = 0.
+    ypow(:,-3:-1) = 0.
+    xpow(:,0) = 1.
+    ypow(:,0) = 1.
+
+#ifdef USE3D
+    zpow(:,-2:-1) = 0.
+    zpow(:,0) = 1.
+#endif
+ 
+    do p=1, 5
+       xpow(:,p) = xpow(:,p-1)*xi(:)
+       ypow(:,p) = ypow(:,p-1)*eta(:)
+    end do
+#ifdef USE3D
+    do p=1, 3
+       zpow(:,p) = zpow(:,p-1)*zi(:)
+    end do
+#endif
+    
+    fterm = 0.
+    do p=1, coeffs_per_tri
+       fterm(:,p,OP_1) = xpow(:,mi(p))*ypow(:,ni(p))
+          
+       if(mi(p).ge.1) then
+          ! d_si terms
+          temp = mi(p)*xpow(:,mi(p)-1) * ypow(:,ni(p))
+          fterm(:,p,OP_DR) = fterm(:,p,OP_DR) + co*temp
+          fterm(:,p,OP_DZ) = fterm(:,p,OP_DZ) + sn*temp           
+             
+          if(mi(p).ge.2) then
+             ! d_si^2 terms
+             temp = xpow(:,mi(p)-2)*(mi(p)-1)*mi(p) * ypow(:,ni(p))
+             fterm(:,p,OP_DRR) = fterm(:,p,OP_DRR) + co2*temp
+             fterm(:,p,OP_DZZ) = fterm(:,p,OP_DZZ) + sn2*temp
+             fterm(:,p,OP_DRZ) = fterm(:,p,OP_DRZ) + cosn*temp
+             fterm(:,p,OP_LP) = fterm(:,p,OP_LP) + temp
+          endif
+       endif
+       if(ni(p).ge.1) then
+          ! d_eta terms
+          temp = xpow(:,mi(p)) * ypow(:,ni(p)-1)*ni(p)
+          fterm(:,p,OP_DR) = fterm(:,p,OP_DR) - sn*temp
+          fterm(:,p,OP_DZ) = fterm(:,p,OP_DZ) + co*temp
+          
+          if(ni(p).ge.2) then
+             ! d_eta^2 terms
+             temp = xpow(:,mi(p)) * ypow(:,ni(p)-2)*(ni(p)-1)*ni(p)
+             fterm(:,p,OP_DRR) = fterm(:,p,OP_DRR) + sn2*temp
+             fterm(:,p,OP_DZZ) = fterm(:,p,OP_DZZ) + co2*temp
+             fterm(:,p,OP_DRZ) = fterm(:,p,OP_DRZ) - cosn*temp
+             fterm(:,p,OP_LP) = fterm(:,p,OP_LP) + temp
+          endif
+          
+          if(mi(p).ge.1) then
+             ! d_eta_si terms
+             temp = xpow(:,mi(p)-1)*mi(p) * ypow(:,ni(p)-1)*ni(p)
+             
+             fterm(:,p,OP_DRR) = fterm(:,p,OP_DRR) - 2.*cosn*temp
+             fterm(:,p,OP_DZZ) = fterm(:,p,OP_DZZ) + 2.*cosn*temp
+             fterm(:,p,OP_DRZ) = fterm(:,p,OP_DRZ) + (co2-sn2)*temp
+          endif
+       endif
+       
+       ! for surface terms, higher derivatives may be taken
+       if(surface_int) then
+          if(mi(p).ge.2) then
+             if(ni(p).ge.1) then
+                ! d_si^2 d_eta terms
+                temp = xpow(:,mi(p)-2)*ypow(:,ni(p)-1)*(mi(p)-1)*mi(p)*ni(p)
+                fterm(:,p,OP_LPR) = fterm(:,p,OP_LPR) - sn*temp
+                fterm(:,p,OP_LPZ) = fterm(:,p,OP_LPZ) + co*temp
+             endif
+          endif
+          if(ni(p).ge.2) then
+             if(mi(p).ge.1) then
+                ! d_eta^2 d_si terms
+                temp = xpow(:,mi(p)-1)*ypow(:,ni(p)-2)*mi(p)*(ni(p)-1)*ni(p)
+                fterm(:,p,OP_LPR) = fterm(:,p,OP_LPR) + co*temp
+                fterm(:,p,OP_LPZ) = fterm(:,p,OP_LPZ) + sn*temp
+             endif
+          endif
+          
+          if(mi(p).ge.3) then
+             ! d_si^3 terms
+             temp = xpow(:,mi(p)-3)*ypow(:,ni(p))*(mi(p)-2)*(mi(p)-1)*mi(p)
+             fterm(:,p,OP_LPR) = fterm(:,p,OP_LPR) + co*temp
+             fterm(:,p,OP_LPZ) = fterm(:,p,OP_LPZ) + sn*temp
+          endif
+          if(ni(p).ge.3) then
+             ! d_eta^3 terms
+             temp = xpow(:,mi(p))*ypow(:,ni(p)-3)*(ni(p)-2)*(ni(p)-1)*ni(p)
+             fterm(:,p,OP_LPR) = fterm(:,p,OP_LPR) - sn*temp
+             fterm(:,p,OP_LPZ) = fterm(:,p,OP_LPZ) + co*temp
+          endif
+       endif
+       
+       ! Grad-Shafranov operator, and
+       ! cylindrical correction to Laplacian
+       fterm(:,p,OP_GS) = fterm(:,p,OP_LP)
+       if(itor.eq.1) then
+          fterm(:,p,OP_GS) = fterm(:,p,OP_GS) - fterm(:,p,OP_DR)*ri(:)
+          fterm(:,p,OP_LP) = fterm(:,p,OP_LP) + fterm(:,p,OP_DR)*ri(:)
+          
+          if(surface_int) then
+             fterm(:,p,OP_LPR) = fterm(:,p,OP_LPR) + fterm(:,p,OP_DRR)*ri(:) &
+                  - fterm(:,p,OP_DR)*ri(:)*ri(:)
+             fterm(:,p,OP_LPZ) = fterm(:,p,OP_LPZ) + fterm(:,p,OP_DRZ)*ri(:)
+          endif
+       endif
+       
+
+#ifdef USE3D
+       do op=1, OP_NUM_POL
+          do i=1, coeffs_per_dphi
+             j = p + (i-1)*coeffs_per_tri
+             fterm(:,j,op) = fterm(:,p,op)*zpow(:,li(i))
+             
+             ! first toroidal derivative
+             if(li(i).ge.1) then
+                fterm(:,j,op+OP_NUM_POL) = fterm(:,p,op) &
+                     *zpow(:,li(i)-1)*li(i)
+             endif
+             ! second toroidal derivative
+             if(li(i).ge.2) then
+                fterm(:,j,op+2*OP_NUM_POL) = fterm(:,p,op) &
+                     *zpow(:,li(i)-2)*(li(i)-1)*li(i)
+             endif
+          end do
+       end do
+#endif
+    end do
+  end subroutine precalculate_terms
 
   !===============================================
   ! eval_ops
@@ -94,175 +260,21 @@ contains
   !
   ! evaluates linear unitary operators
   !===============================================
-  subroutine eval_ops(avector,xi,zi,eta,co,sn,ri,ngauss,outarr)
-    use basic
-
+  subroutine eval_ops(avector, npoints, outarr)
     implicit none
-      
-    integer, intent(in) :: ngauss
+    
+    integer, intent(in) :: npoints
     vectype, dimension(coeffs_per_element), intent(in) :: avector
-    real, dimension(ngauss), intent(in) :: xi, zi, eta
-    real, intent(in) :: co, sn
-    vectype, dimension(ngauss), intent(in) :: ri
-    vectype, dimension(MAX_PTS, OP_NUM), intent(out) :: outarr
+    vectype, dimension(npoints, OP_NUM), intent(out) :: outarr
 
-    integer :: i,j,k,p,op
-    real, dimension(OP_NUM) :: val
-    real :: co2, sn2, cosn, temp
-    real :: xpow(-3:5), ypow(-3:5)
-#ifdef USE3D
-    real :: zpow(-2:3)
-#endif
-
-    co2 = co*co
-    sn2 = sn*sn
-    cosn = co*sn
-
+    integer :: p, i
+    
     outarr = 0.
-
-    xpow(-3:-1) = 0.
-    ypow(-3:-1) = 0.
-    xpow(0) = 1.
-    ypow(0) = 1.
-
-#ifdef USE3D
-    zpow(-2:-1) = 0.
-    zpow(0) = 1.
-#endif
- 
-    ! calculate the answer at each sampling point
-    do k=1,ngauss
-       do p=1, 5
-          xpow(p) = xpow(p-1)*xi(k)
-          ypow(p) = ypow(p-1)*eta(k)
-       end do
-#ifdef USE3D
-       do p=1, 3
-          zpow(p) = zpow(p-1)*zi(k)
-       end do
-#endif
-       
-       do p=1, coeffs_per_tri
-          
-          val = 0.
-          
-          val(OP_1) = xpow(mi(p))*ypow(ni(p))
-          
-          if(mi(p).ge.1) then
-             ! d_si terms
-             temp = mi(p)*xpow(mi(p)-1) * ypow(ni(p))
-             val(OP_DR) = val(OP_DR) + co*temp
-             val(OP_DZ) = val(OP_DZ) + sn*temp           
-             
-             if(mi(p).ge.2) then
-                ! d_si^2 terms
-                temp = xpow(mi(p)-2)*(mi(p)-1)*mi(p) * ypow(ni(p))
-                val(OP_DRR) = val(OP_DRR) + co2*temp
-                val(OP_DZZ) = val(OP_DZZ) + sn2*temp
-                val(OP_DRZ) = val(OP_DRZ) + cosn*temp
-                val(OP_LP) = val(OP_LP) + temp
-             endif
-          endif
-          if(ni(p).ge.1) then
-             ! d_eta terms
-             temp = xpow(mi(p)) * ypow(ni(p)-1)*ni(p)
-             val(OP_DR) = val(OP_DR) - sn*temp
-             val(OP_DZ) = val(OP_DZ) + co*temp
-             
-             if(ni(p).ge.2) then
-                ! d_eta^2 terms
-                temp = xpow(mi(p)) * ypow(ni(p)-2)*(ni(p)-1)*ni(p)
-                val(OP_DRR) = val(OP_DRR) + sn2*temp
-                val(OP_DZZ) = val(OP_DZZ) + co2*temp
-                val(OP_DRZ) = val(OP_DRZ) - cosn*temp
-                val(OP_LP) = val(OP_LP) + temp
-             endif
-             
-             if(mi(p).ge.1) then
-                ! d_eta_si terms
-                temp = xpow(mi(p)-1)*mi(p) * ypow(ni(p)-1)*ni(p)
-                
-                val(OP_DRR) = val(OP_DRR) - 2.*cosn*temp
-                val(OP_DZZ) = val(OP_DZZ) + 2.*cosn*temp
-                val(OP_DRZ) = val(OP_DRZ) + (co2-sn2)*temp
-             endif
-          endif
-          
-          ! for surface terms, higher derivatives may be taken
-          if(surface_int) then
-             if(mi(p).ge.2) then
-                if(ni(p).ge.1) then
-                   ! d_si^2 d_eta terms
-                   temp = xpow(mi(p)-2) * ypow(ni(p)-1) * (mi(p)-1)*mi(p)*ni(p)
-                   val(OP_LPR) = val(OP_LPR) - sn*temp
-                   val(OP_LPZ) = val(OP_LPZ) + co*temp
-                endif
-             endif
-             if(ni(p).ge.2) then
-                if(mi(p).ge.1) then
-                   ! d_eta^2 d_si terms
-                   temp = xpow(mi(p)-1) * ypow(ni(p)-2) * mi(p)*(ni(p)-1)*ni(p)
-                   val(OP_LPR) = val(OP_LPR) + co*temp
-                   val(OP_LPZ) = val(OP_LPZ) + sn*temp
-                endif
-             endif
-             
-             if(mi(p).ge.3) then
-                ! d_si^3 terms
-                temp = xpow(mi(p)-3) * ypow(ni(p))*(mi(p)-2)*(mi(p)-1)*mi(p)
-                val(OP_LPR) = val(OP_LPR) + co*temp
-                val(OP_LPZ) = val(OP_LPZ) + sn*temp
-             endif
-             if(ni(p).ge.3) then
-                ! d_eta^3 terms
-                temp = xpow(mi(p)) * ypow(ni(p)-3)*(ni(p)-2)*(ni(p)-1)*ni(p)
-                val(OP_LPR) = val(OP_LPR) - sn*temp
-                val(OP_LPZ) = val(OP_LPZ) + co*temp
-             endif
-          endif
-          
-          ! Grad-Shafranov operator, and
-          ! cylindrical correction to Laplacian
-          val(OP_GS) = val(OP_LP)
-          if(itor.eq.1) then
-             val(OP_GS) = val(OP_GS) - val(OP_DR)*ri(k)
-             val(OP_LP) = val(OP_LP) + val(OP_DR)*ri(k)
-             
-             if(surface_int) then
-                val(OP_LPR) = val(OP_LPR) + val(OP_DRR)*ri(k) &
-                     - val(OP_DR)*ri(k)*ri(k)
-                val(OP_LPZ) = val(OP_LPZ) + val(OP_DRZ)*ri(k)
-             endif
-          endif
-          
-          do op=1, OP_NUM_POL
-#ifdef USE3D
-             j = p
-             do i=1, coeffs_per_dphi
-                outarr(k, op) = outarr(k, op) + avector(j)*val(op)*zpow(li(i))
-                
-                ! first toroidal derivative
-                if(li(i).ge.1) then
-                   outarr(k, op+OP_NUM_POL) = outarr(k, op+OP_NUM_POL) &
-                        + avector(j)*val(op)*zpow(li(i)-1)*li(i)
-                endif
-                ! second toroidal derivative
-                if(li(i).ge.2) then
-                   outarr(k, op+2*OP_NUM_POL) = outarr(k, op+2*OP_NUM_POL) &
-                        + avector(j)*val(op)*zpow(li(i)-2)*(li(i)-1)*li(i)
-                endif
-                
-                j = j + coeffs_per_tri
-             end do
-             
-#else
-             outarr(k, op) = outarr(k, op) + avector(p)*val(op)
-#endif
-          end do
-          
+    do i=1, OP_NUM
+       do p=1, coeffs_per_element
+          outarr(:,i) = outarr(:,i) + avector(p)*fterm(:,p,i)
        end do
     end do
-    
   end subroutine eval_ops
 
   !=====================================================
@@ -319,6 +331,8 @@ contains
     
     if(ijacobian.eq.1) weight_79 = weight_79 * r_79
 
+    call precalculate_terms(xi_79,zi_79,eta_79,d%co,d%sn,ri_79,npoints)
+
     ! PHI
     ! ~~~
     if(iand(fields, FIELD_PHI).eq.FIELD_PHI) then
@@ -326,8 +340,7 @@ contains
        
        if(ilin.eq.0) then
           call calcavector(itri, u_field(1), avec)
-          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, ph179)
+          call eval_ops(avec, npoints, ph179)
 #ifdef USECOMPLEX
           ph179(:,OP_DP :OP_GSP ) = ph179(:,OP_1:OP_GS)*rfac
           ph179(:,OP_DPP:OP_GSPP) = ph179(:,OP_1:OP_GS)*rfac**2
@@ -338,8 +351,7 @@ contains
        
        if(eqsubtract.eq.1) then
           call calcavector(itri, u_field(0), avec)
-          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, ph079)
+          call eval_ops(avec, npoints, ph079)
           pht79 = ph079 + ph179
        else
           ph079 = 0.
@@ -354,8 +366,7 @@ contains
 
        if(use_external_fields) then 
           call calcavector(itri, psi_ext, avec)
-          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, psx79)
+          call eval_ops(avec, npoints, psx79)
 #ifdef USECOMPLEX
           psx79(:,OP_DP :OP_GSP ) = psx79(:,OP_1:OP_GS)*rfac
           psx79(:,OP_DPP:OP_GSPP) = psx79(:,OP_1:OP_GS)*rfac**2
@@ -366,8 +377,7 @@ contains
        
        if(ilin.eq.0) then
           call calcavector(itri, psi_field(1), avec)
-          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, psi79)
+          call eval_ops(avec, npoints, psi79)
 #ifdef USECOMPLEX
           psi79(:,OP_DP :OP_GSP ) = psi79(:,OP_1:OP_GS)*rfac
           psi79(:,OP_DPP:OP_GSPP) = psi79(:,OP_1:OP_GS)*rfac**2
@@ -379,8 +389,7 @@ contains
        
        if(eqsubtract.eq.1) then
           call calcavector(itri, psi_field(0), avec)
-          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, ps079)
+          call eval_ops(avec, npoints, ps079)
           pst79 = ps079 + ps179
           pss79 = ps079 + ps179/2.
        else
@@ -397,8 +406,7 @@ contains
        
        if(ilin.eq.0) then
           call calcavector(itri, vz_field(1), avec)
-          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, vz179)
+          call eval_ops(avec, npoints, vz179)
 #ifdef USECOMPLEX
           vz179(:,OP_DP :OP_GSP ) = vz179(:,OP_1:OP_GS)*rfac
           vz179(:,OP_DPP:OP_GSPP) = vz179(:,OP_1:OP_GS)*rfac**2
@@ -409,8 +417,7 @@ contains
        
        if(eqsubtract.eq.1) then
           call calcavector(itri, vz_field(0), avec)
-          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, vz079)
+          call eval_ops(avec, npoints, vz079)
           vzt79 = vz079 + vz179
        else
           vz079 = 0.
@@ -426,8 +433,7 @@ contains
       
        if(use_external_fields) then
           call calcavector(itri, bz_ext, avec)
-          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, bzx79)
+          call eval_ops(avec, npoints, bzx79)
 #ifdef USECOMPLEX
           bzx79(:,OP_DP :OP_GSP ) = bzx79(:,OP_1:OP_GS)*rfac
           bzx79(:,OP_DPP:OP_GSPP) = bzx79(:,OP_1:OP_GS)*rfac**2
@@ -435,8 +441,7 @@ contains
       
 #if defined(USECOMPLEX) || defined(USE3D)    
           call calcavector(itri, bf_ext, avec)
-          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, bfx79)
+          call eval_ops(avec, npoints, bfx79)
 #endif
 #ifdef USECOMPLEX
           bfx79(:,OP_DP :OP_GSP ) = bfx79(:,OP_1:OP_GS)*rfac
@@ -449,8 +454,7 @@ contains
  
        if(ilin.eq.0) then
           call calcavector(itri, bz_field(1), avec)
-          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, bzi79)
+          call eval_ops(avec, npoints, bzi79)
 #ifdef USECOMPLEX
           bzi79(:,OP_DP :OP_GSP ) = bzi79(:,OP_1:OP_GS)*rfac
           bzi79(:,OP_DPP:OP_GSPP) = bzi79(:,OP_1:OP_GS)*rfac**2
@@ -458,8 +462,7 @@ contains
       
 #if defined(USECOMPLEX) || defined(USE3D)    
           call calcavector(itri, bf_field(1), avec)
-          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, bfi79)
+          call eval_ops(avec, npoints, bfi79)
 #endif
 #ifdef USECOMPLEX
           bfi79(:,OP_DP :OP_GSP ) = bfi79(:,OP_1:OP_GS)*rfac
@@ -474,15 +477,13 @@ contains
        
        if(eqsubtract.eq.1) then
           call calcavector(itri, bz_field(0), avec)
-          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, bz079)
+          call eval_ops(avec, npoints, bz079)
           bzt79 = bz079 + bz179
           bzs79 = bz079 + bz179/2.
           
 #if defined(USECOMPLEX) || defined(USE3D)
           call calcavector(itri, bf_field(0), avec)
-          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, bf079)
+          call eval_ops(avec, npoints, bf079)
           bft79 = bf079 + bf179
 #endif
        else
@@ -506,8 +507,7 @@ contains
        
        if(ilin.eq.0) then
           call calcavector(itri, chi_field(1), avec)
-          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, ch179)
+          call eval_ops(avec, npoints, ch179)
 #ifdef USECOMPLEX
           ch179(:,OP_DP :OP_GSP ) = ch179(:,OP_1:OP_GS)*rfac
           ch179(:,OP_DPP:OP_GSPP) = ch179(:,OP_1:OP_GS)*rfac**2
@@ -518,8 +518,7 @@ contains
        
        if(eqsubtract.eq.1) then
           call calcavector(itri, chi_field(0), avec)
-          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, ch079)
+          call eval_ops(avec, npoints, ch079)
           cht79 = ch079 + ch179
        else
           ch079 = 0.
@@ -535,11 +534,9 @@ contains
        
        if(ilin.eq.0) then
           call calcavector(itri, p_field(1), avec)
-          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, p179)
+          call eval_ops(avec, npoints, p179)
           call calcavector(itri, pe_field(1), avec)
-          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, pe179)
+          call eval_ops(avec, npoints, pe179)
 #ifdef USECOMPLEX
           p179(:,OP_DP :OP_GSP ) = p179(:,OP_1:OP_GS)*rfac
           p179(:,OP_DPP:OP_GSPP) = p179(:,OP_1:OP_GS)*rfac**2
@@ -553,11 +550,9 @@ contains
        
        if(eqsubtract.eq.1) then
           call calcavector(itri, p_field(0), avec)
-          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, p079)
+          call eval_ops(avec, npoints, p079)
           call calcavector(itri, pe_field(0), avec)
-          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, pe079)
+          call eval_ops(avec, npoints, pe079)
 
           pet79 = pe079 + pe179
           pt79  =  p079 +  p179
@@ -578,8 +573,7 @@ contains
        
        if(ilin.eq.0) then
           call calcavector(itri, den_field(1), avec)
-          call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-               npoints, n179)
+          call eval_ops(avec, npoints, n179)
 #ifdef USECOMPLEX
           n179(:,OP_DP :OP_GSP ) = n179(:,OP_1:OP_GS)*rfac
           n179(:,OP_DPP:OP_GSPP) = n179(:,OP_1:OP_GS)*rfac**2
@@ -601,8 +595,7 @@ contains
              end where
           else
              call calcavector(itri, den_field(0), avec)
-             call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-                  npoints, n079)
+             call eval_ops(avec, npoints, n079)
           end if
           nt79 = n079 + n179
        else
@@ -643,8 +636,7 @@ contains
 
      if(ilin.eq.0) then
         call calcavector(itri, jphi_field, avec)
-        call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-             npoints, jt79)
+        call eval_ops(avec, npoints, jt79)
      else
         jt79 = 0.
      end if
@@ -657,8 +649,7 @@ contains
 
      if(ilin.eq.0) then
         call calcavector(itri, vor_field, avec)
-        call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-             npoints, vot79)
+        call eval_ops(avec, npoints, vot79)
      else
         vot79 = 0.
      end if
@@ -671,8 +662,7 @@ contains
 
      if(ilin.eq.0) then
         call calcavector(itri, com_field, avec)
-        call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-             npoints, cot79)
+        call eval_ops(avec, npoints, cot79)
      else
         cot79 = 0.
      end if
@@ -789,8 +779,7 @@ contains
         eta79 = eta79 * 3.4e-22*n0_norm**2/(b0_norm**4*l0_norm)*17.
      else
         call calcavector(itri, resistivity_field, avec)
-        call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-             npoints, eta79)
+        call eval_ops(avec, npoints, eta79)
      end if
   end if
 
@@ -800,8 +789,7 @@ contains
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   kappa..."
 
      call calcavector(itri, kappa_field, avec)
-     call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-          npoints, kap79)
+     call eval_ops(avec, npoints, kap79)
 
      if(ikapscale.eq.1) then
         kar79 = kappar*kap79
@@ -819,8 +807,7 @@ contains
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   sigma..."
 
      call calcavector(itri, sigma_field, avec)
-     call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-          npoints, sig79)
+     call eval_ops(avec, npoints, sig79)
   else
      sig79 = 0.
   end if
@@ -845,13 +832,11 @@ contains
         end where
      else
         call calcavector(itri, visc_field, avec)
-        call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-             npoints, vis79)
+        call eval_ops(avec, npoints, vis79)
 
         if(numvar.ge.3) then
            call calcavector(itri, visc_c_field, avec)
-           call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-                npoints, vic79)
+           call eval_ops(avec, npoints, vic79)
         endif
      endif
 
@@ -863,8 +848,7 @@ contains
      call local_coeff_vector(itri, cl, .false.)
      do i=1, dofs_per_element
         avec = cl(i,:)
-        call eval_ops(avec, xi_79, zi_79, eta_79, &
-             d%co, d%sn, ri_79, npoints, mu79(:,:,i))
+        call eval_ops(avec, npoints, mu79(:,:,i))
 #ifdef USECOMPLEX
         mu79(:,OP_DP :OP_GSP, i) = mu79(:,OP_1:OP_GS,i)*rfac
         mu79(:,OP_DPP:OP_GSPP,i) = mu79(:,OP_1:OP_GS,i)*rfac**2

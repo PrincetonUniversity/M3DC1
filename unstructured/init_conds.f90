@@ -361,8 +361,7 @@ subroutine read_density_profile
      call get_element_data(itri, d)
 
      call calcavector(itri, psi_field(0), avec)
-     call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-          npoints, ps079)
+     call eval_ops(avec, npoints, ps079)
                      
      do i=1,dofs_per_element
         do k=1, npoints
