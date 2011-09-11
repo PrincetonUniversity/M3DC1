@@ -642,8 +642,7 @@ subroutine gradshafranov_solve
 
         call get_element_data(itri, d)
         call calcavector(itri, psi_vec, avec)
-        call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-             npoints, ps079)
+        call eval_ops(avec, npoints, ps079)
 
         if(igs_method.eq.2) then 
            do i=1, npoints       
@@ -674,11 +673,9 @@ subroutine gradshafranov_solve
         else if(igs_method.eq.3) then
 
            call calcavector(itri, fun1_vec, avec)
-           call eval_ops(avec,xi_79,zi_79,eta_79, d%co, d%sn, ri_79, &
-                npoints,ph079)
+           call eval_ops(avec,npoints,ph079)
            call calcavector(itri, fun4_vec, avec)
-           call eval_ops(avec,xi_79,zi_79,eta_79, d%co, d%sn, ri_79, &
-                npoints,vz079)
+           call eval_ops(avec,npoints,vz079)
 
            do i=1, dofs_per_element
               temp(i,1) = &
@@ -737,8 +734,7 @@ subroutine gradshafranov_solve
         call get_element_data(itri, d)
         
         call calcavector(itri, psi_field(0), avec)
-        call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, npoints, &
-             ps079)
+        call eval_ops(avec, npoints, ps079)
 
         do i=1, npoints       
            call calc_density(ps079(i,:),tf,x_79(i),z_79(i))
@@ -783,8 +779,7 @@ subroutine gradshafranov_solve
            call get_element_data(itri, d)
            
            call calcavector(itri, psi_field(0), avec)
-           call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-                npoints, ps079)
+           call eval_ops(avec, npoints, ps079)
 
            do i=1, npoints 
               call calc_electron_pressure(ps079(i,:),tf,x_79(i),z_79(i))
@@ -965,20 +960,15 @@ subroutine calculate_gamma(g2, g3, g4)
      call get_element_data(itri, d)
 
      call calcavector(itri, psi_vec, avec)
-     call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-          npoints, psi_n)
+     call eval_ops(avec, npoints, psi_n)
      call calcavector(itri, fun1_vec, avec)
-     call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-          npoints, fun1_n)
+     call eval_ops(avec, npoints, fun1_n)
      call calcavector(itri, fun2_vec, avec)
-     call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-          npoints, fun2_n)
+     call eval_ops(avec, npoints, fun2_n)
      call calcavector(itri, fun3_vec, avec)
-     call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-          npoints, fun3_n)
+     call eval_ops(avec, npoints, fun3_n)
      call calcavector(itri, fun4_vec, avec)
-     call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-          npoints, fun4_n)
+     call eval_ops(avec, npoints, fun4_n)
 
      curr = curr - int2(ri2_79,psi_n(:,OP_GS))
      gsint1 = gsint1 + int2(ri_79,fun1_n)
@@ -1344,8 +1334,7 @@ subroutine fundef2(error)
      call get_element_data(itri, d)
 
      call calcavector(itri, psi_vec, avec)
-     call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-          npoints, ps079)
+     call eval_ops(avec, npoints, ps079)
 
      do i=1, npoints
         

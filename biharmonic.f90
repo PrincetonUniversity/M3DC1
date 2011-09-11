@@ -218,8 +218,7 @@ contains
        call get_element_data(itri,d)
 
        call calcavector(itri, rhs, avec)
-       call eval_ops(avec, xi_79, zi_79, eta_79, d%co, d%sn, ri_79, &
-            npoints, ps079)
+       call eval_ops(avec, npoints, ps079)
 
 !!$       call biharmonic_solution(x_79,z_79,1.,soln)
 !!$       ps179(:,OP_1) = soln
