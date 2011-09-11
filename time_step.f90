@@ -1115,10 +1115,12 @@ subroutine unsplit_step(calc_matrices)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Solving matrix equation..."
 
+  b1_phi = q4_vec
+
   if(itime_independent.eq.0) then
      ! vtemp = d1matrix_sm * phi(n)
-     call matvecmult(d1_mat,phi_vec,b1_phi)
-     call add(b1_phi, q4_vec)
+     call matvecmult(d1_mat,phi_vec,b2_phi)
+     call add(b1_phi, b2_phi)
 
      ! Include linear f terms
      if(numvar.ge.2 .and. i3d.eq.1 .and. imp_bf.eq.0) then
@@ -1126,8 +1128,6 @@ subroutine unsplit_step(calc_matrices)
         call matvecmult(o1_mat,bf_field(1)%vec,b2_phi)
         call add(b1_phi, b2_phi)
      endif
-  else
-     b1_phi = 0.
   end if
    
   ! Insert boundary conditions

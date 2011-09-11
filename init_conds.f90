@@ -390,6 +390,197 @@ subroutine read_density_profile
   deallocate(spsi, density)
 end subroutine read_density_profile
 
+!=========================================================================
+subroutine calculate_external_fields()
+  use basic
+  use math
+  use mesh_mod
+  use sparse
+  use arrays
+  use coils
+  use m3dc1_nint
+  use newvar_mod
+  use boundary_conditions
+  use read_schaffer_field
+
+  implicit none
+
+  include 'mpif.h'
+
+  type(matrix_type) :: br_mat, bf_mat
+  type(vector_type) :: psi_vec, bz_vec
+  integer :: i, j, itri, nelms, ier
+
+  complex, dimension(int_pts_main) :: fr, fphi, fz
+#ifdef USE3D
+  real, dimension(MAX_PTS) :: gr, gphi, gz
+#endif
+
+  real, dimension(maxcoils) :: xc_na, zc_na
+  complex, dimension(maxcoils) :: ic_na
+  integer :: nc_na
+
+  vectype, dimension(dofs_per_element,dofs_per_element) :: temp, temp_bf
+  vectype, dimension(dofs_per_element) :: temp2, temp3
+
+  type(field_type) :: psi_f, bz_f
+
+#ifndef USECOMPLEX
+  real, dimension(int_pts_main) :: co, sn
+#endif
+
+  if(irmp .ne. 0) then
+     call load_coils(xc_na, zc_na, ic_na, nc_na, &
+          'rmp_coil.dat', 'rmp_current.dat', ntor)
+  end if
+
+  call create_vector(psi_vec,1)
+  call associate_field(psi_f,psi_vec,1)
+
+  call create_vector(bz_vec,1)
+  call associate_field(bz_f,bz_vec,1)
+
+  call set_matrix_index(br_mat, br_mat_index)
+  call create_mat(br_mat, 1, 1, icomplex, .true.)
+#ifdef CJ_MATRIX_DUMP
+  print *, "create_mat coils br_mat", br_mat%imatrix 
+#endif
+
+  call set_matrix_index(bf_mat, bf_mat_index)
+  call create_mat(bf_mat, 1, 1, icomplex, .false.)
+#ifdef CJ_MATRIX_DUMP
+  print *, "create_mat coils br_mat", br_mat%imatrix 
+#endif
+
+  nelms = local_elements()
+  do itri=1,nelms
+        
+     call define_element_quadrature(itri,int_pts_main,5)
+     call define_fields(itri,0,1,0)
+
+     fr   = 0.    ! B_R
+     fphi = 0.    ! B_phi
+     fz   = 0.    ! B_Z
+
+     do i=1, nc_na, 2
+        call pane(ic_na(i),xc_na(i),xc_na(i+1),zc_na(i),zc_na(i+1), &
+             npoints_pol,x_79,z_79,ntor,fr,fphi,fz)
+     end do
+
+#ifdef USECOMPLEX
+     temp79a = fr
+     temp79b = fphi
+     temp79c = fz
+#else
+     do i=1, npoints_tor
+        co = cos(ntor*phi_79((i-1)*npoints_pol+1:i*npoints_pol))
+        sn = sin(ntor*phi_79((i-1)*npoints_pol+1:i*npoints_pol))
+        temp79a((i-1)*npoints_pol+1:i*npoints_pol) = &
+             real(fr(1:npoints_pol))*co + aimag(fr(1:npoints_pol))*sn
+        temp79b((i-1)*npoints_pol+1:i*npoints_pol) = &
+             real(fphi(1:npoints_pol))*co + aimag(fphi(1:npoints_pol))*sn
+        temp79c((i-1)*npoints_pol+1:i*npoints_pol) = &
+             real(fz(1:npoints_pol))*co + aimag(fz(1:npoints_pol))*sn
+     end do
+#endif
+
+     temp79a = -2.*pi*temp79a
+     temp79b = -2.*pi*temp79b
+     temp79c = -2.*pi*temp79c
+
+     if(iread_ext_field.ne.0) then
+#if defined(USECOMPLEX)
+        call get_external_field_ft(x_79, z_79, fr, fphi, fz, npoints)
+        temp79a = temp79a + (1e4/b0_norm)*fr
+        temp79b = temp79b + (1e4/b0_norm)*fphi
+        temp79c = temp79c + (1e4/b0_norm)*fz
+#elif defined(USE3D)
+        call get_external_field(x_79, phi_79, z_79, gr, gphi, gz, npoints)
+        temp79a = temp79a + (1e4/b0_norm)*gr
+        temp79b = temp79b + (1e4/b0_norm)*gphi
+        temp79c = temp79c + (1e4/b0_norm)*gz
+#endif
+     end if
+
+     ! assemble matrix
+     do i=1,dofs_per_element
+        do j=1,dofs_per_element
+           temp(i,j) = int3(ri2_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j)) &
+                +      int3(ri2_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j))
+#if defined(USECOMPLEX) || defined(USE3D)
+           temp_bf(i,j) = &
+             + int3(ri_79,mu79(:,OP_DR,i),nu79(:,OP_DZP,j)) &
+             - int3(ri_79,mu79(:,OP_DZ,i),nu79(:,OP_DRP,j))
+#endif
+        end do
+
+        ! assemble RHS
+        temp2(i) = &
+             + int3(ri_79,mu79(:,OP_DR,i),temp79c) &
+             - int3(ri_79,mu79(:,OP_DZ,i),temp79a)
+
+        temp3(i) = int3(r_79,mu79(:,OP_1,i),temp79b)
+     end do
+
+     call insert_block(br_mat, itri, 1, 1, temp(:,:), MAT_ADD)
+     call insert_block(bf_mat, itri, 1, 1, temp_bf(:,:), MAT_ADD)
+
+     call vector_insert_block(psi_vec, itri, 1, temp2(:), MAT_ADD)
+     call vector_insert_block(bz_vec, itri, 1, temp3(:), MAT_ADD)
+  end do
+  call finalize(br_mat)
+  call finalize(bf_mat)
+  call sum_shared(psi_vec)
+  call sum_shared(bz_vec)
+
+  ! create external fields
+  if(extsubtract.eq.1) then
+     call create_field(psi_ext)
+     call create_field(bz_ext)
+     call create_field(bf_ext)
+     use_external_fields = .true.
+  end if
+
+  ! solve bz
+  call newsolve(mass_mat_lhs%mat,bz_vec,ier)
+  if(extsubtract.eq.1) then
+     bz_ext = bz_f     
+  else
+     bz_field(1) = bz_f
+  end if
+
+#if defined(USECOMPLEX) || defined(USE3D)
+  ! calculate f and add Grad_perp(f') to RHS
+  if(extsubtract.eq.1) then
+     bf_ext = 0.
+     call solve_newvar1(bf_mat_lhs,bf_ext,mass_mat_rhs_bf, &
+          bz_ext, bf_ext)
+     call matvecmult(bf_mat, bf_ext, bz_vec)
+  else
+     bf_field(1) = 0.
+     call solve_newvar1(bf_mat_lhs,bf_field(1),mass_mat_rhs_bf, &
+          bz_field(1), bf_field(1))
+     call matvecmult(bf_mat, bf_field(1), bz_vec)
+  end if
+
+  call add(psi_vec,bz_vec)
+#endif
+
+  ! do least-squares solve for Grad(psi)xGrad(phi) = B + Grad_perp(f')
+  call newsolve(br_mat,psi_vec, ier)
+  if(extsubtract.eq.1) then
+     psi_ext = psi_f
+  else
+     psi_field(1) = psi_f
+  end if
+
+  call destroy_vector(psi_vec)
+  call destroy_vector(bz_vec)
+  call destroy_mat(br_mat)
+  call destroy_mat(bf_mat)
+end subroutine calculate_external_fields
+
+
 !==============================================================================
 subroutine rmp_per
   use basic
