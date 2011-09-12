@@ -28,7 +28,7 @@ module gradshafranov
 
   real, private :: gnorm, libetapeff, fac2
 
-  integer, private :: int_tor = 0
+  integer, private, parameter :: int_tor = 0
 
   ! if use_norm_psi==1, pprime and ffprime are derivs wrt normalized flux
   integer, private :: use_norm_psi = 1
