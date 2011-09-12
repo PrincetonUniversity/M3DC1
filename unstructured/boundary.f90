@@ -50,16 +50,7 @@ subroutine get_boundary_mask(itri, ibound, imask)
 
 #ifdef USE3D
      if(iand(ibound, BOUNDARY_AXISYMMETRIC).eq.BOUNDARY_AXISYMMETRIC) then
-        iplane = local_plane()
-           
-        ! in the axisymmetric case, the only elements not set by bcs
-        ! are those on associated with nodes on the first plane
-        ! that are not also associated with toroidal derivatives
-        if(iplane.eq.1 .and. i.le.pol_nodes_per_element) then
-           imask(k+6:k+11) = 0
-        else
-           imask(k:k+11) = 0
-        endif
+        imask(k+6:k+11) = 0 
      endif
 #endif
 
