@@ -2149,43 +2149,35 @@ subroutine boundary_gs(rhs, feedfac, mat)
        
         call set_dirichlet_bc(index,rhs,temp,normal,curv,izonedim,mat)
      endif
-  end do
-
 
 #ifdef USE3D
-  ! enforce axisymmetry
-
-  if(int_tor.eq.0) then
-     iplane = local_plane()
-     nelms = local_elements()
-     nvals = 2
-     val(1) = -1.
-     val(2) =  1.
-     
-     do itri=1, nelms
-        call get_element_nodes(itri, inode)
-        do i=1, nodes_per_element
-           index = node_index(rhs, inode(i), 1)
-           
-           do j=1, 6
-              ! if the node is not on the first plane,
-              ! set its value to be the same as on the next plane
-              If(iplane.ne.1 .and. i.le.pol_nodes_per_element) then
-                 icol(1) = index+j-1
-                 icol(2) = node_index(rhs,inode(i+pol_nodes_per_element),1)+j-1
-                 if(present(mat)) &
-                      call set_row_vals(mat, index+j-1, nvals, icol, val)
-                 call insert(rhs, index+j-1, 0., VEC_SET)
-              endif
-              
-              ! set toroidal derivatives to zero
-              if(present(mat)) call identity_row(mat, index+j+5)
-              call insert(rhs, index+j+5, 0., VEC_SET)
-           end do
+     if(int_tor.eq.0) then
+        do j=1, 6
+           ! set toroidal derivatives to zero
+           if(present(mat)) call identity_row(mat, index+j+5)
+           call insert(rhs, index+j+5, 0., VEC_SET)
         end do
-     end do
-  endif
+     end if
 #endif
+  end do
+
+!!$#ifdef USE3D
+!!$  ! enforce axisymmetry
+!!$  if(int_tor.eq.0) then
+!!$     do itri=1, nelms
+!!$        call get_element_nodes(itri, inode)
+!!$        do i=1, nodes_per_element
+!!$           index = node_index(rhs, inode(i), 1)
+!!$           
+!!$           do j=1, 6
+!!$              ! set toroidal derivatives to zero
+!!$              if(present(mat)) call identity_row(mat, index+j+5)
+!!$              call insert(rhs, index+j+5, 0., VEC_SET)
+!!$           end do
+!!$        end do
+!!$     end do
+!!$  end if
+!!$#endif
 end subroutine boundary_gs
 
 
