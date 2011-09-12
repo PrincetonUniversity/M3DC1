@@ -103,17 +103,17 @@ contains
     implicit none
       
     integer, intent(in) :: npoints
-    real, dimension(npoints), intent(in) :: xi, zi, eta
+    real, dimension(MAX_PTS), intent(in) :: xi, zi, eta
     real, intent(in) :: co, sn
-    vectype, dimension(npoints), intent(in) :: ri
+    vectype, dimension(MAX_PTS), intent(in) :: ri
 
     integer :: p
-    real, dimension(npoints) :: temp
+    real, dimension(MAX_PTS) :: temp
     real :: co2, sn2, cosn
-    real :: xpow(npoints,-3:5), ypow(npoints,-3:5)
+    real :: xpow(MAX_PTS,-3:5), ypow(MAX_PTS,-3:5)
 #ifdef USE3D
     integer :: i, j, op
-    real :: zpow(npoints,-2:3)
+    real :: zpow(MAX_PTS,-2:3)
 #endif
 
     co2 = co*co
@@ -229,23 +229,25 @@ contains
                   - fterm(:,p,OP_DR)*ri(:)*ri(:)
              fterm(:,p,OP_LPZ) = fterm(:,p,OP_LPZ) + fterm(:,p,OP_DRZ)*ri(:)
           endif
-       endif
-       
+       endif      
 
 #ifdef USE3D
        do op=1, OP_NUM_POL
+          temp(:) = fterm(:,p,op)
+
           do i=1, coeffs_per_dphi
              j = p + (i-1)*coeffs_per_tri
-             fterm(:,j,op) = fterm(:,p,op)*zpow(:,li(i))
-             
+
+             fterm(:,j,op) = temp(:)*zpow(:,li(i))
+
              ! first toroidal derivative
              if(li(i).ge.1) then
-                fterm(:,j,op+OP_NUM_POL) = fterm(:,p,op) &
+                fterm(:,j,op+OP_NUM_POL) = temp(:) &
                      *zpow(:,li(i)-1)*li(i)
              endif
              ! second toroidal derivative
              if(li(i).ge.2) then
-                fterm(:,j,op+2*OP_NUM_POL) = fterm(:,p,op) &
+                fterm(:,j,op+2*OP_NUM_POL) = temp(:) &
                      *zpow(:,li(i)-2)*(li(i)-1)*li(i)
              endif
           end do
@@ -265,7 +267,7 @@ contains
     
     integer, intent(in) :: npoints
     vectype, dimension(coeffs_per_element), intent(in) :: avector
-    vectype, dimension(npoints, OP_NUM), intent(out) :: outarr
+    vectype, dimension(MAX_PTS, OP_NUM), intent(out) :: outarr
 
     integer :: p, i
     
