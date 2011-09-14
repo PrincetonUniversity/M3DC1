@@ -2335,13 +2335,38 @@ subroutine pressure_nolin(trial, r4term, total_pressure)
   vectype, intent(in), dimension(MAX_PTS, OP_NUM)  :: trial
   vectype, intent(out) :: r4term
 
-  vectype, dimension(MAX_PTS, OP_NUM) :: hv, hc
+  vectype, dimension(MAX_PTS, OP_NUM) :: hv, hc, pp079
   logical, intent(in) :: total_pressure
 
   hv = hypv*sz79
   hc = hypc*sz79
+
+  if(total_pressure) then
+     pp079 = p079
+  else
+     pp079 = pe079
+  end if
   
   r4term = 0.
+
+  ! Contribution from external fields
+  if(use_external_fields .and. eqsubtract.eq.1) then
+     if(kappar.ne.0.) then
+        r4term = r4term + dt* &
+             (p1psipsipnkappar(trial,psx79,ps079,pp079,n079,ieq_bdotgradt) &
+             +p1psipsipnkappar(trial,ps079,psx79,pp079,n079,1) &
+             +p1psibpnkappar  (trial,psx79,bz079,pp079,n079,ieq_bdotgradt,1) &
+             +p1psibpnkappar  (trial,ps079,psx79,pp079,n079,1,ieq_bdotgradt) &
+             +p1bbpnkappar    (trial,bzx79,bz079,pp079,n079,ieq_bdotgradt) &
+             +p1bbpnkappar    (trial,bz079,bzx79,pp079,n079,1))
+
+        if(i3d.eq.1 .and. numvar.ge.2) then
+           r4term = r4term + dt* &
+                (p1psifpnkappar(trial,ps079,bfx79,pp079,n079,1,ieq_bdotgradt) &
+                +p1bfpnkappar  (trial,bz079,bfx79,pp079,n079,1,ieq_bdotgradt))
+        endif
+     endif  ! on linear.eq.0 .and. eqsubtract.eq.0
+  endif  ! on kappar.ne.0
 
   if(linear.eq.1) return
 
