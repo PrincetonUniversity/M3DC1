@@ -358,10 +358,8 @@ subroutine read_density_profile
   do itri=1,numelms
      call define_element_quadrature(itri, int_pts_main, 5)
      call define_fields(itri, 0, 1, 0)
-     call get_element_data(itri, d)
 
-     call calcavector(itri, psi_field(0), avec)
-     call eval_ops(avec, npoints, ps079)
+     call eval_ops(itri, psi_field(0), ps079)
                      
      do i=1,dofs_per_element
         do k=1, npoints

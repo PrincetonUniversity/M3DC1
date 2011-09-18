@@ -254,7 +254,38 @@ contains
        end do
 #endif
     end do
+
   end subroutine precalculate_terms
+
+  subroutine define_basis(itri)
+    use basic
+    implicit none
+
+    integer, intent(in) :: itri
+    real, dimension(dofs_per_element,coeffs_per_element) :: cl
+
+    integer :: i, p, op
+
+    mu79 = 0.
+    call local_coeff_vector(itri, cl, .false.)
+    do op=1, OP_NUM
+       do i=1, dofs_per_element
+          do p=1, coeffs_per_element
+             mu79(:,op,i) = mu79(:,op,i) + fterm(:,p,op)*cl(i,p)
+          end do
+       end do
+    end do
+
+#ifdef USECOMPLEX
+    do i=1, dofs_per_element
+       mu79(:,OP_DP :OP_GSP, i) = mu79(:,OP_1:OP_GS,i)*rfac
+       mu79(:,OP_DPP:OP_GSPP,i) = mu79(:,OP_1:OP_GS,i)*rfac**2
+    end do
+#endif
+
+    nu79 = mu79
+  end subroutine define_basis
+
 
   !===============================================
   ! eval_ops
@@ -262,21 +293,39 @@ contains
   !
   ! evaluates linear unitary operators
   !===============================================
-  subroutine eval_ops(avector, npoints, outarr)
+  subroutine eval_ops(itri,fin,outarr,rfac)
+    use field
     implicit none
-    
-    integer, intent(in) :: npoints
-    vectype, dimension(coeffs_per_element), intent(in) :: avector
-    vectype, dimension(MAX_PTS, OP_NUM), intent(out) :: outarr
 
-    integer :: p, i
-    
+    integer, intent(in) :: itri
+    type(field_type), intent(in) :: fin
+    vectype, dimension(MAX_PTS, OP_NUM), intent(out) :: outarr
+    complex, optional :: rfac
+
+    integer :: i, op
+    vectype, dimension(dofs_per_element) :: dofs
+
+    call get_element_dofs(fin, itri, dofs)
+
     outarr = 0.
-    do i=1, OP_NUM
-       do p=1, coeffs_per_element
-          outarr(:,i) = outarr(:,i) + avector(p)*fterm(:,p,i)
+#ifdef USECOMPLEX
+    do op=1, OP_NUM_POL
+       do i=1, dofs_per_element
+          outarr(:,op) = outarr(:,op) + dofs(i)*nu79(:,op,i)
        end do
     end do
+    if(present(rfac)) then
+       outarr(:,OP_DP :OP_GSP ) = outarr(:,OP_1 :OP_GS)*rfac
+       outarr(:,OP_DPP:OP_GSPP) = outarr(:,OP_1 :OP_GS)*rfac**2
+    end if
+#else
+    do op=1, OP_NUM
+       do i=1, dofs_per_element
+          outarr(:,op) = outarr(:,op) + dofs(i)*nu79(:,op,i)
+       end do
+    end do
+#endif
+
   end subroutine eval_ops
 
   !=====================================================
@@ -294,7 +343,6 @@ contains
     real :: fac
     integer :: i
     type(element_data) :: d
-    vectype, dimension(coeffs_per_element) :: avec
     vectype, dimension(dofs_per_element,coeffs_per_element) :: cl
 
     ! calculate the hyperviscosity coefficients and
@@ -334,6 +382,7 @@ contains
     if(ijacobian.eq.1) weight_79 = weight_79 * r_79
 
     call precalculate_terms(xi_79,zi_79,eta_79,d%co,d%sn,ri_79,npoints)
+    call define_basis(itri)
 
     ! PHI
     ! ~~~
@@ -341,19 +390,13 @@ contains
        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   U..."
        
        if(ilin.eq.0) then
-          call calcavector(itri, u_field(1), avec)
-          call eval_ops(avec, npoints, ph179)
-#ifdef USECOMPLEX
-          ph179(:,OP_DP :OP_GSP ) = ph179(:,OP_1:OP_GS)*rfac
-          ph179(:,OP_DPP:OP_GSPP) = ph179(:,OP_1:OP_GS)*rfac**2
-#endif
+          call eval_ops(itri, u_field(1), ph179, rfac)
        else
           ph179 = 0.
        endif
        
        if(eqsubtract.eq.1) then
-          call calcavector(itri, u_field(0), avec)
-          call eval_ops(avec, npoints, ph079)
+          call eval_ops(itri, u_field(0), ph079)
           pht79 = ph079 + ph179
        else
           ph079 = 0.
@@ -367,31 +410,20 @@ contains
        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   psi..."
 
        if(use_external_fields) then 
-          call calcavector(itri, psi_ext, avec)
-          call eval_ops(avec, npoints, psx79)
-#ifdef USECOMPLEX
-          psx79(:,OP_DP :OP_GSP ) = psx79(:,OP_1:OP_GS)*rfac
-          psx79(:,OP_DPP:OP_GSPP) = psx79(:,OP_1:OP_GS)*rfac**2
-#endif
+          call eval_ops(itri, psi_ext, psx79, rfac)
        else
           psx79 = 0.
        end if
        
        if(ilin.eq.0) then
-          call calcavector(itri, psi_field(1), avec)
-          call eval_ops(avec, npoints, psi79)
-#ifdef USECOMPLEX
-          psi79(:,OP_DP :OP_GSP ) = psi79(:,OP_1:OP_GS)*rfac
-          psi79(:,OP_DPP:OP_GSPP) = psi79(:,OP_1:OP_GS)*rfac**2
-#endif
+          call eval_ops(itri, psi_field(1), psi79, rfac)
        else
           psi79 = 0.
        end if
        ps179 = psi79 + psx79
        
        if(eqsubtract.eq.1) then
-          call calcavector(itri, psi_field(0), avec)
-          call eval_ops(avec, npoints, ps079)
+          call eval_ops(itri, psi_field(0), ps079)
           pst79 = ps079 + ps179
           pss79 = ps079 + ps179/2.
        else
@@ -407,19 +439,13 @@ contains
        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   V..."
        
        if(ilin.eq.0) then
-          call calcavector(itri, vz_field(1), avec)
-          call eval_ops(avec, npoints, vz179)
-#ifdef USECOMPLEX
-          vz179(:,OP_DP :OP_GSP ) = vz179(:,OP_1:OP_GS)*rfac
-          vz179(:,OP_DPP:OP_GSPP) = vz179(:,OP_1:OP_GS)*rfac**2
-#endif
+          call eval_ops(itri, vz_field(1), vz179, rfac)
        else
           vz179 = 0.
        end if
        
        if(eqsubtract.eq.1) then
-          call calcavector(itri, vz_field(0), avec)
-          call eval_ops(avec, npoints, vz079)
+          call eval_ops(itri, vz_field(0), vz079)
           vzt79 = vz079 + vz179
        else
           vz079 = 0.
@@ -434,20 +460,9 @@ contains
        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   I..."
       
        if(use_external_fields) then
-          call calcavector(itri, bz_ext, avec)
-          call eval_ops(avec, npoints, bzx79)
-#ifdef USECOMPLEX
-          bzx79(:,OP_DP :OP_GSP ) = bzx79(:,OP_1:OP_GS)*rfac
-          bzx79(:,OP_DPP:OP_GSPP) = bzx79(:,OP_1:OP_GS)*rfac**2
-#endif
-      
+          call eval_ops(itri, bz_ext, bzx79, rfac)
 #if defined(USECOMPLEX) || defined(USE3D)    
-          call calcavector(itri, bf_ext, avec)
-          call eval_ops(avec, npoints, bfx79)
-#endif
-#ifdef USECOMPLEX
-          bfx79(:,OP_DP :OP_GSP ) = bfx79(:,OP_1:OP_GS)*rfac
-          bfx79(:,OP_DPP:OP_GSPP) = bfx79(:,OP_1:OP_GS)*rfac**2
+          call eval_ops(itri, bf_ext, bfx79, rfac)
 #endif
        else
           bzx79 = 0.
@@ -455,20 +470,9 @@ contains
        endif
  
        if(ilin.eq.0) then
-          call calcavector(itri, bz_field(1), avec)
-          call eval_ops(avec, npoints, bzi79)
-#ifdef USECOMPLEX
-          bzi79(:,OP_DP :OP_GSP ) = bzi79(:,OP_1:OP_GS)*rfac
-          bzi79(:,OP_DPP:OP_GSPP) = bzi79(:,OP_1:OP_GS)*rfac**2
-#endif
-      
+          call eval_ops(itri, bz_field(1), bzi79, rfac)
 #if defined(USECOMPLEX) || defined(USE3D)    
-          call calcavector(itri, bf_field(1), avec)
-          call eval_ops(avec, npoints, bfi79)
-#endif
-#ifdef USECOMPLEX
-          bfi79(:,OP_DP :OP_GSP ) = bfi79(:,OP_1:OP_GS)*rfac
-          bfi79(:,OP_DPP:OP_GSPP) = bfi79(:,OP_1:OP_GS)*rfac**2
+          call eval_ops(itri, bf_field(1), bfi79, rfac)
 #endif
        else
           bzi79 = 0.
@@ -478,14 +482,12 @@ contains
        bf179 = bfi79 + bfx79
        
        if(eqsubtract.eq.1) then
-          call calcavector(itri, bz_field(0), avec)
-          call eval_ops(avec, npoints, bz079)
+          call eval_ops(itri, bz_field(0), bz079)
           bzt79 = bz079 + bz179
           bzs79 = bz079 + bz179/2.
           
 #if defined(USECOMPLEX) || defined(USE3D)
-          call calcavector(itri, bf_field(0), avec)
-          call eval_ops(avec, npoints, bf079)
+          call eval_ops(itri, bf_field(0), bf079)
           bft79 = bf079 + bf179
 #endif
        else
@@ -493,7 +495,7 @@ contains
           bzt79 = bz179
           bzs79 = bz179/2.
           
-#ifdef USECOMPLEX
+#if defined(USECOMPLEX) || defined(USE3D)
           bf079 = 0.
           bft79 = bf179
 #endif
@@ -508,19 +510,13 @@ contains
        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   chi..."
        
        if(ilin.eq.0) then
-          call calcavector(itri, chi_field(1), avec)
-          call eval_ops(avec, npoints, ch179)
-#ifdef USECOMPLEX
-          ch179(:,OP_DP :OP_GSP ) = ch179(:,OP_1:OP_GS)*rfac
-          ch179(:,OP_DPP:OP_GSPP) = ch179(:,OP_1:OP_GS)*rfac**2
-#endif
+          call eval_ops(itri, chi_field(1), ch179, rfac)
        else
           ch179 = 0.
        end if
        
        if(eqsubtract.eq.1) then
-          call calcavector(itri, chi_field(0), avec)
-          call eval_ops(avec, npoints, ch079)
+          call eval_ops(itri, chi_field(0), ch079)
           cht79 = ch079 + ch179
        else
           ch079 = 0.
@@ -535,26 +531,16 @@ contains
        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   P..."
        
        if(ilin.eq.0) then
-          call calcavector(itri, p_field(1), avec)
-          call eval_ops(avec, npoints, p179)
-          call calcavector(itri, pe_field(1), avec)
-          call eval_ops(avec, npoints, pe179)
-#ifdef USECOMPLEX
-          p179(:,OP_DP :OP_GSP ) = p179(:,OP_1:OP_GS)*rfac
-          p179(:,OP_DPP:OP_GSPP) = p179(:,OP_1:OP_GS)*rfac**2
-          pe179(:,OP_DP :OP_GSP ) = pe179(:,OP_1:OP_GS)*rfac
-          pe179(:,OP_DPP:OP_GSPP) = pe179(:,OP_1:OP_GS)*rfac**2
-#endif
+          call eval_ops(itri, p_field(1), p179, rfac)
+          call eval_ops(itri, pe_field(1), pe179, rfac)
        else
           p179 = 0.
           pe179 = 0.
        end if
        
        if(eqsubtract.eq.1) then
-          call calcavector(itri, p_field(0), avec)
-          call eval_ops(avec, npoints, p079)
-          call calcavector(itri, pe_field(0), avec)
-          call eval_ops(avec, npoints, pe079)
+          call eval_ops(itri, p_field(0), p079)
+          call eval_ops(itri, pe_field(0), pe079)
 
           pet79 = pe079 + pe179
           pt79  =  p079 +  p179
@@ -574,12 +560,7 @@ contains
        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   n..."
        
        if(ilin.eq.0) then
-          call calcavector(itri, den_field(1), avec)
-          call eval_ops(avec, npoints, n179)
-#ifdef USECOMPLEX
-          n179(:,OP_DP :OP_GSP ) = n179(:,OP_1:OP_GS)*rfac
-          n179(:,OP_DPP:OP_GSPP) = n179(:,OP_1:OP_GS)*rfac**2
-#endif    
+          call eval_ops(itri, den_field(1), n179, rfac)
        else
           n179 = 0.
        end if
@@ -596,8 +577,7 @@ contains
                 n079(:,OP_1) = den_edge
              end where
           else
-             call calcavector(itri, den_field(0), avec)
-             call eval_ops(avec, npoints, n079)
+             call eval_ops(itri, den_field(0), n079)
           end if
           nt79 = n079 + n179
        else
@@ -637,8 +617,7 @@ contains
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   j..."
 
      if(ilin.eq.0) then
-        call calcavector(itri, jphi_field, avec)
-        call eval_ops(avec, npoints, jt79)
+        call eval_ops(itri, jphi_field, jt79)
      else
         jt79 = 0.
      end if
@@ -650,8 +629,7 @@ contains
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   vor..."
 
      if(ilin.eq.0) then
-        call calcavector(itri, vor_field, avec)
-        call eval_ops(avec, npoints, vot79)
+        call eval_ops(itri, vor_field, vot79)
      else
         vot79 = 0.
      end if
@@ -663,8 +641,7 @@ contains
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   com..."
 
      if(ilin.eq.0) then
-        call calcavector(itri, com_field, avec)
-        call eval_ops(avec, npoints, cot79)
+        call eval_ops(itri, com_field, cot79)
      else
         cot79 = 0.
      end if
@@ -780,8 +757,7 @@ contains
 
         eta79 = eta79 * 3.4e-22*n0_norm**2/(b0_norm**4*l0_norm)*17.
      else
-        call calcavector(itri, resistivity_field, avec)
-        call eval_ops(avec, npoints, eta79)
+        call eval_ops(itri, resistivity_field, eta79)
      end if
   end if
 
@@ -790,8 +766,7 @@ contains
   if(iand(fields, FIELD_KAP).eq.FIELD_KAP) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   kappa..."
 
-     call calcavector(itri, kappa_field, avec)
-     call eval_ops(avec, npoints, kap79)
+     call eval_ops(itri, kappa_field, kap79)
 
      if(ikapscale.eq.1) then
         kar79 = kappar*kap79
@@ -808,8 +783,7 @@ contains
   if((iand(fields, FIELD_SIG).eq.FIELD_SIG) .and. idens.eq.1) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   sigma..."
 
-     call calcavector(itri, sigma_field, avec)
-     call eval_ops(avec, npoints, sig79)
+     call eval_ops(itri, sigma_field, sig79)
   else
      sig79 = 0.
   end if
@@ -833,46 +807,16 @@ contains
            vic79(:,OP_1) = amu_edge
         end where
      else
-        call calcavector(itri, visc_field, avec)
-        call eval_ops(avec, npoints, vis79)
+        call eval_ops(itri, visc_field, vis79)
 
         if(numvar.ge.3) then
-           call calcavector(itri, visc_c_field, avec)
-           call eval_ops(avec, npoints, vic79)
+           call eval_ops(itri, visc_c_field, vic79)
         endif
      endif
 
 !     if(amupar.ne.0.) vip79 = amupar*pit79/2.
      if(amupar.ne.0.) vip79 = amupar
   end if
-
-  if(gdef.eq.1) then
-     call local_coeff_vector(itri, cl, .false.)
-     do i=1, dofs_per_element
-        avec = cl(i,:)
-        call eval_ops(avec, npoints, mu79(:,:,i))
-#ifdef USECOMPLEX
-        mu79(:,OP_DP :OP_GSP, i) = mu79(:,OP_1:OP_GS,i)*rfac
-        mu79(:,OP_DPP:OP_GSPP,i) = mu79(:,OP_1:OP_GS,i)*rfac**2
-#endif
-     end do
-     nu79 = mu79
-
-     if(equilibrate.eq.2) then
-        if(itri.eq.1 .and. myrank.eq.0) then 
-           print *, 1./int2(mu79(:,OP_1,i),mu79(:,OP_1,i)), &
-                equil_fac(i,itri)
-        end if
-!        mu79(:,:,i) = mu79(:,:,i) / int2(mu79(:,OP_1,i),mu79(:,OP_1,i))
-     endif
-
-     if(equilibrate.ne.0) then 
-        do i=1, dofs_per_element
-           mu79(:,:,i) = mu79(:,:,i)*equil_fac(i,itri)
-        end do
-     end if
-  endif
-
 end subroutine define_fields
 
 subroutine interpolate_size_field(itri)

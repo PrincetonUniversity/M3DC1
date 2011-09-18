@@ -448,7 +448,7 @@ contains
     implicit none
 
     integer, intent(in) :: itri
-    vectype, intent(out), dimension(dofs_per_element,coeffs_per_element) :: c
+    real, intent(out), dimension(dofs_per_element,coeffs_per_element) :: c
     logical, intent(in) :: iold
 
     integer :: i, j, k, l, m, n
@@ -497,7 +497,7 @@ contains
     vectype, intent(in), dimension(dofs_per_element) :: dof
     vectype, intent(out), dimension(coeffs_per_element) :: c
 
-    vectype, dimension(dofs_per_element,coeffs_per_element) :: cl
+    real, dimension(dofs_per_element,coeffs_per_element) :: cl
     integer :: j
 
     call local_coeff_vector(itri, cl, .true.)

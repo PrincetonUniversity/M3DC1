@@ -422,7 +422,6 @@ subroutine gradshafranov_solve
   integer, dimension(dofs_per_element) :: imask
 
   vectype, dimension(dofs_per_node) :: tf
-  vectype, dimension(coeffs_per_element) :: avec
   vectype, dimension(dofs_per_element,dofs_per_element) :: temp
 
   if(myrank.eq.0 .and. iprint.gt.0) &
@@ -640,9 +639,7 @@ subroutine gradshafranov_solve
         call define_element_quadrature(itri, int_pts_main, int_tor)
         call define_fields(itri, 0, 1, 0)
 
-        call get_element_data(itri, d)
-        call calcavector(itri, psi_vec, avec)
-        call eval_ops(avec, npoints, ps079)
+        call eval_ops(itri, psi_vec, ps079)
 
         if(igs_method.eq.2) then 
            do i=1, npoints       
@@ -672,10 +669,8 @@ subroutine gradshafranov_solve
            endif
         else if(igs_method.eq.3) then
 
-           call calcavector(itri, fun1_vec, avec)
-           call eval_ops(avec,npoints,ph079)
-           call calcavector(itri, fun4_vec, avec)
-           call eval_ops(avec,npoints,vz079)
+           call eval_ops(itri, fun1_vec, ph079)
+           call eval_ops(itri, fun4_vec, vz079)
 
            do i=1, dofs_per_element
               temp(i,1) = &
@@ -731,10 +726,8 @@ subroutine gradshafranov_solve
      do itri=1,numelms
         call define_element_quadrature(itri, int_pts_main, int_tor)
         call define_fields(itri, 0, 1, 0)
-        call get_element_data(itri, d)
         
-        call calcavector(itri, psi_field(0), avec)
-        call eval_ops(avec, npoints, ps079)
+        call eval_ops(itri, psi_field(0), ps079)
 
         do i=1, npoints       
            call calc_density(ps079(i,:),tf,x_79(i),z_79(i))
@@ -776,10 +769,8 @@ subroutine gradshafranov_solve
         do itri=1,numelms
            call define_element_quadrature(itri, int_pts_main, int_tor)
            call define_fields(itri, 0, 1, 0)
-           call get_element_data(itri, d)
            
-           call calcavector(itri, psi_field(0), avec)
-           call eval_ops(avec, npoints, ps079)
+           call eval_ops(itri, psi_field(0), ps079)
 
            do i=1, npoints 
               call calc_electron_pressure(ps079(i,:),tf,x_79(i),z_79(i))
@@ -919,14 +910,12 @@ subroutine calculate_gamma(g2, g3, g4)
 
   real, intent(out) :: g2, g3, g4
 
-  type(element_data) :: d
   integer :: itri, numelms, ier
 
   real :: gsint1, gsint2, gsint3, gsint4, curr, g0
   real, dimension(5) :: temp1, temp2
 
   vectype, dimension(MAX_PTS,OP_NUM) :: psi_n, fun1_n, fun2_n, fun3_n, fun4_n
-  vectype, dimension(coeffs_per_element) :: avec
 
   ! start of loop over triangles to compute integrals needed to keep
   !     total current and q_0 constant using gamma4, gamma2, gamma3
@@ -957,18 +946,12 @@ subroutine calculate_gamma(g2, g3, g4)
   do itri=1,numelms
      call define_element_quadrature(itri, int_pts_main, int_tor)
      call define_fields(itri, 0, 0, 0)
-     call get_element_data(itri, d)
 
-     call calcavector(itri, psi_vec, avec)
-     call eval_ops(avec, npoints, psi_n)
-     call calcavector(itri, fun1_vec, avec)
-     call eval_ops(avec, npoints, fun1_n)
-     call calcavector(itri, fun2_vec, avec)
-     call eval_ops(avec, npoints, fun2_n)
-     call calcavector(itri, fun3_vec, avec)
-     call eval_ops(avec, npoints, fun3_n)
-     call calcavector(itri, fun4_vec, avec)
-     call eval_ops(avec, npoints, fun4_n)
+     call eval_ops(itri, psi_vec, psi_n)
+     call eval_ops(itri, fun1_vec, fun1_n)
+     call eval_ops(itri, fun2_vec, fun2_n)
+     call eval_ops(itri, fun3_vec, fun3_n)
+     call eval_ops(itri, fun4_vec, fun4_n)
 
      curr = curr - int2(ri2_79,psi_n(:,OP_GS))
      gsint1 = gsint1 + int2(ri_79,fun1_n)
@@ -1043,7 +1026,7 @@ subroutine deltafun(x,z,val,jout)
   integer :: itri, i, k,in_domain, in_domains, ier
   real :: x1, z1, si, zi, eta
   vectype, dimension(dofs_per_element) :: temp
-  vectype, dimension(dofs_per_element,coeffs_per_element) :: c
+  real, dimension(dofs_per_element,coeffs_per_element) :: c
 
   itri = 0
   call whattri(x, 0., z, itri, x1, z1, IGNORE_PHI)
@@ -1308,10 +1291,8 @@ subroutine fundef2(error)
 
   real, intent(out) :: error
 
-  type(element_data) :: d
   integer :: i, itri, numelms, ier
   real :: pso, dpsii, norm, temp1(2), temp2(2)
-  vectype, dimension(coeffs_per_element) :: avec
   vectype, dimension(dofs_per_element) :: temp3, temp4
       
   logical :: inside_lcfs
@@ -1331,10 +1312,8 @@ subroutine fundef2(error)
 
      call define_element_quadrature(itri, int_pts_main, int_tor)
      call define_fields(itri, 0, 1, 0)
-     call get_element_data(itri, d)
 
-     call calcavector(itri, psi_vec, avec)
-     call eval_ops(avec, npoints, ps079)
+     call eval_ops(itri, psi_vec, ps079)
 
      do i=1, npoints
         
