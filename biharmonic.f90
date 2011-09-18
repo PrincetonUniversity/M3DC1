@@ -74,9 +74,7 @@ contains
     integer :: idim(3), izone, izonedim
     logical :: is_boundary
     real :: normal(2), curv
-    vectype, dimension(coeffs_per_element) :: avec
 
-    type(element_data) :: d
     type(field_type) :: rhs, bcs
     real :: soln(MAX_PTS)
 
@@ -215,10 +213,8 @@ contains
     do itri=1, numelms
        call define_element_quadrature(itri,int_pts_main,5)
        call define_fields(itri,0,0,0)
-       call get_element_data(itri,d)
 
-       call calcavector(itri, rhs, avec)
-       call eval_ops(avec, npoints, ps079)
+       call eval_ops(itri, rhs, ps079)
 
 !!$       call biharmonic_solution(x_79,z_79,1.,soln)
 !!$       ps179(:,OP_1) = soln
