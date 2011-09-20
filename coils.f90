@@ -587,5 +587,4 @@ subroutine pane(curr, r1, r2, z1, z2, npts, r0, z0, ntor, fr, fphi, fz)
   
 end subroutine pane
 
-
 end module coils
