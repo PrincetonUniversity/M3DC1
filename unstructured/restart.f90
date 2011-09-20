@@ -556,27 +556,27 @@ subroutine rdrestart_adios
     if (adios_err .ne. 0) call safestop(2)
     call adios_inq_file (fh,vcnt,acnt,tstart,ntsteps,gnamelist,adios_err)
 
-    write (*,'("Number of timesteps : ",i0," starting from ",i0)') ntsteps, tstart
-    write (*,'("Number of groups : ",i0)') gcnt
+!cj    write (*,'("Number of timesteps : ",i0," starting from ",i0)') ntsteps, tstart
+!cj    write (*,'("Number of groups : ",i0)') gcnt
 
-    do i=1,gcnt
-        write (*,"(i5, a, a)") i,")  ", trim(gnamelist(i))
-    enddo
+!cj    do i=1,gcnt
+!cj        write (*,"(i5, a, a)") i,")  ", trim(gnamelist(i))
+!cj    enddo
 
     !! Have to open a group from the file to read anything
     call adios_gopen (fh, gh, gnamelist(1), vcnt, acnt, ierr)
     ! not necessary to inquire if you know what to read
     call adios_inq_group(gh, vnamelist, anamelist, ts, lastts, ierr)
 
-    write (*,'("Number of variables in group ",a,": ",i0)') trim(gnamelist(1)), vcnt
-    do i=1,vcnt
-        write (*,"(i5, a, a)") i,")  ", trim(vnamelist(i))
-    enddo
+!cj    write (*,'("Number of variables in group ",a,": ",i0)') trim(gnamelist(1)), vcnt
+!cj    do i=1,vcnt
+!cj        write (*,"(i5, a, a)") i,")  ", trim(vnamelist(i))
+!cj    enddo
 
-    write (*,'("Number of attributes in group ",a,": ",i0)') trim(gnamelist(1)), acnt
-    do i=1,acnt
-        write (*,"(i5, a, a)") i,")  ", trim(anamelist(i))
-    enddo
+!cj    write (*,'("Number of attributes in group ",a,": ",i0)') trim(gnamelist(1)), acnt
+!cj    do i=1,acnt
+!cj        write (*,"(i5, a, a)") i,")  ", trim(anamelist(i))
+!cj    enddo
 
     ! Read in scalars (offset = 0, read size = 1 "in all dimensions")
     start = 0
