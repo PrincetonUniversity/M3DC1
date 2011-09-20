@@ -503,7 +503,8 @@ subroutine calculate_external_fields()
      do i=1,dofs_per_element
         do j=1,dofs_per_element
            temp(i,j) = int3(ri2_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j)) &
-                +      int3(ri2_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j))
+                +      int3(ri2_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j)) &
+                + regular*int3(ri4_79,mu79(:,OP_1,i),nu79(:,OP_1,j))
 #if defined(USECOMPLEX) || defined(USE3D)
            temp_bf(i,j) = &
              + int3(ri_79,mu79(:,OP_DR,i),nu79(:,OP_DZP,j)) &
