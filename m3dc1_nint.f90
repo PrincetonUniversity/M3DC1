@@ -267,7 +267,7 @@ contains
     integer :: i, p, op
 
     mu79 = 0.
-    call local_coeff_vector(itri, cl, .false.)
+    call local_coeff_vector(itri, cl)
     do op=1, OP_NUM
        do i=1, dofs_per_element
           do p=1, coeffs_per_element

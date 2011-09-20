@@ -88,6 +88,7 @@ subroutine set_defaults
   integer :: adapt_grp
   integer :: input_grp
   integer :: output_grp
+  integer :: diagnostic_grp
   integer :: misc_grp
   integer :: deprec_grp
 
@@ -105,6 +106,7 @@ subroutine set_defaults
   call add_group("Numerical Options", num_grp)
   call add_group("Input", input_grp)
   call add_group("Output", output_grp)
+  call add_group("Diagnostics", diagnostic_grp)
   call add_group("Miscellaneous", misc_grp)
   call add_group("Deprecated", deprec_grp)
 
@@ -464,6 +466,19 @@ subroutine set_defaults
   call add_var_int("iwrite_aux_vars", iwrite_aux_vars, 1, &
        "1: Output auxiliary variable fields", output_grp)
 
+  ! diagnostics
+  call add_var_int("xray_detector_enabled", xray_detector_enabled, 0, &
+       "1: enable xray detector", diagnostic_grp)
+  call add_var_double("xray_r0", xray_r0, 0., &
+       "R coordinate of xray detector", diagnostic_grp)
+  call add_var_double("xray_phi0", xray_phi0, 0., &
+       "Phi coordinate of xray detector", diagnostic_grp)
+  call add_var_double("xray_z0", xray_z0, 0., &
+       "Z coordinate of xray detector", diagnostic_grp)
+  call add_var_double("xray_theta", xray_theta, 0., &
+       "Angle of xray detector chord (degrees)", diagnostic_grp)
+  call add_var_double("xray_sigma", xray_sigma, 1., &
+       "Spread of xray detector chord (degrees)", diagnostic_grp)
 
   ! 3-D options
   call add_var_int("ntor", ntor, 0, &

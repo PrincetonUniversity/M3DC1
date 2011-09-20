@@ -875,12 +875,6 @@ end subroutine rotation
           do j=1, dofs_per_tri
              sum = 0.
              do ii = 1, dofs_per_tri
-                sum = sum + ti(k,ii)*rot(ii,j)
-             enddo
-             gtri_old(k,j,itri) = sum
-
-             sum = 0.
-             do ii = 1, dofs_per_tri
                 do jj=1, dofs_per_tri
                    sum = sum + newrot(j,jj)*ti(k,ii)*rot(ii,jj)
                 end do
@@ -1220,7 +1214,6 @@ subroutine space(ifirstcall)
      call create_field(visc_field)
      call create_field(visc_c_field)
      call create_field(sigma_field)
-     call create_field(tempvar_field)
      call create_field(bf_field(0))
      call create_field(bf_field(1))
      if(ibootstrap.gt.0) call create_field(visc_e_field)
@@ -1267,13 +1260,12 @@ subroutine space(ifirstcall)
   ! arrays associated with the triangles
   if(ifirstcall.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, ' deallocating...'
-     deallocate(gtri,gtri_old,htri)
+     deallocate(gtri,htri)
      if(equilibrate.ne.0) deallocate(equil_fac)
   endif
   
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Allocating tri...'
   allocate(gtri(coeffs_per_tri,dofs_per_tri,numelms))
-  allocate(gtri_old(coeffs_per_tri,dofs_per_tri,numelms))
   allocate(htri(coeffs_per_dphi,dofs_per_dphi,numelms))
   if(equilibrate.ne.0) allocate(equil_fac(dofs_per_element,numelms))
 
@@ -1397,17 +1389,7 @@ subroutine arrayresizevec(vec, ivecsize)
      call updateids(vec, resistivity_field%vec%data)
      return
   endif
-  
-  call checksameppplvec(tempvar_field%vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "tempvar"
-     if(allocated(tempvar_field%vec%data)) deallocate(tempvar_field%vec%data, STAT=i)
-     allocate(tempvar_field%vec%data(ivecsize))
-     tempvar_field%vec%data = 0.
-     call updateids(vec, tempvar_field%vec%data)
-     return
-  endif
-  
+   
   call checksameppplvec(kappa_field%vec%data, vec, i)
   if(i .eq. 1) then
      print *, "kappa_field%vec%data"

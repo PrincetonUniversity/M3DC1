@@ -384,6 +384,11 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "zmag"    ,zmag    ,ntime,error)
   call output_scalar(scalar_group_id, "psimin"  ,psimin  ,ntime,error)
 
+  if(xray_detector_enabled) then
+     call output_scalar(scalar_group_id,"xray_signal",xray_signal,ntime,error)
+  end if
+
+
   if(itaylor.eq.3) then
      temp = reconnected_flux()
      call output_scalar(scalar_group_id, "Reconnected_Flux", temp, ntime, error)
@@ -920,6 +925,15 @@ subroutine output_fields(time_group_id, equilibrium, error)
 #endif
      endif
 
+     if(xray_detector_enabled) then 
+        ! chord_mask
+        do i=1, nelms
+           call calcavector(i, chord_mask, dum(:,i))
+        end do
+        call output_field(group_id,"chord_mask",real(dum),coeffs_per_element,&
+             nelms, error)
+        nfields = nfields + 1
+     end if
   endif
 
 

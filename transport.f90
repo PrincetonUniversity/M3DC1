@@ -323,7 +323,6 @@ subroutine define_transport_coefficients()
   sigma_field = 0.
   visc_field = 0.
   if(ibootstrap.ne.0) visc_e_field = 0.
-  tempvar_field = 0.
 
   call finalize(field0_vec)
   call finalize(field_vec)

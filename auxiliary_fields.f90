@@ -6,6 +6,7 @@ module auxiliary_fields
   type(field_type) :: bdotgradp
   type(field_type) :: bdotgradt
   type(field_type) :: torque_em
+  type(field_type) :: chord_mask
 
   logical, private :: initialized = .false.
 
@@ -17,6 +18,7 @@ subroutine create_auxiliary_fields
   call create_field(bdotgradp)
   call create_field(bdotgradt)
   call create_field(torque_em)
+  call create_field(chord_mask)
   initialized = .true.
 end subroutine create_auxiliary_fields
 
@@ -27,13 +29,16 @@ subroutine destroy_auxiliary_fields
   call destroy_field(bdotgradp)
   call destroy_field(bdotgradt)
   call destroy_field(torque_em)
+  call destroy_field(chord_mask)
 end subroutine destroy_auxiliary_fields
 
   
 subroutine calculate_auxiliary_fields(ilin)
+  use math
   use basic
   use m3dc1_nint
   use newvar_mod
+  use diagnostics
 
   implicit none
 
@@ -46,15 +51,11 @@ subroutine calculate_auxiliary_fields(ilin)
   vectype, dimension(dofs_per_element) :: dofs
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating auxiliary fields'
-#if defined(USE3D)
-!
-!....scj added return because this was failing on hopper and STIX    (06/21/11)
-      return
-#endif
 
   bdotgradp = 0.
   bdotgradt = 0.
   torque_em = 0.
+  chord_mask = 0.
 
   ! specify which primitive fields are to be evalulated
   def_fields = FIELD_N + FIELD_NI + FIELD_P + FIELD_PSI + FIELD_I
@@ -163,11 +164,26 @@ subroutine calculate_auxiliary_fields(ilin)
         end if
      end do
      call vector_insert_block(bdotgradt%vec,itri,1,dofs,VEC_ADD)
+
+     if(xray_detector_enabled.eq.1) then
+        do i=1, dofs_per_element
+           call get_chord_mask(xray_r0, xray_phi0*pi/180., xray_z0, &
+                x_79, phi_79, z_79, npoints, &
+                xray_theta*pi/180., xray_sigma*pi/180., temp79a)
+           dofs(i) = int2(mu79(:,OP_1,i),temp79a)
+        end do
+        call vector_insert_block(chord_mask%vec,itri,1,dofs,VEC_ADD)
+     end if
+
   end do
 
   call newvar_solve(bdotgradp%vec, mass_mat_lhs)
   call newvar_solve(bdotgradt%vec, mass_mat_lhs)
   call newvar_solve(torque_em%vec, mass_mat_lhs)
+
+  if(xray_detector_enabled.eq.1) then
+     call newvar_solve(chord_mask%vec, mass_mat_lhs)
+  end if
   
   end subroutine calculate_auxiliary_fields
 

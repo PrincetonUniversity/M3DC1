@@ -228,6 +228,13 @@ module basic
   real :: chiiner        ! factor to multiply chi inertial terms
   real :: harned_mikic   ! coefficient of harned-mikic 2f stabilization term
 
+  ! xray diagnostic parameters
+  integer :: xray_detector_enabled ! 1 = enable xray diagnostic
+  real :: xray_r0        ! R coordinate of xray detector
+  real :: xray_phi0      ! Phi coordinate of xray detector
+  real :: xray_z0        ! Z coordinate of xray detector
+  real :: xray_theta     ! angle of xray detector chord (degrees)
+  real :: xray_sigma     ! spread of xray detector chord (degrees)
 
   ! current controller parameters
   real :: tcur           ! target toroidal current
@@ -318,7 +325,6 @@ module arrays
   type(field_type) :: jphi_field, vor_field, com_field
   type(field_type) :: resistivity_field, kappa_field, sigma_field
   type(field_type) :: visc_field, visc_c_field, visc_e_field
-  type(field_type) :: tempvar_field
 
   type(field_type) :: temporary_field
   
