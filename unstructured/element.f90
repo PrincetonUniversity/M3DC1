@@ -59,7 +59,7 @@ module element
   data li /0,1,2,3/
 #endif
 
-  real, allocatable :: gtri(:,:,:), gtri_old(:,:,:)
+  real, allocatable :: gtri(:,:,:)
   real, allocatable :: htri(:,:,:)
   real, allocatable :: equil_fac(:,:)
 contains
@@ -444,12 +444,11 @@ contains
   ! calculates the coefficients of the polynomial expansion of the
   ! field in the element domain
   !======================================================================
-  subroutine local_coeff_vector(itri, c, iold)
+  subroutine local_coeff_vector(itri, c)
     implicit none
 
     integer, intent(in) :: itri
     real, intent(out), dimension(dofs_per_element,coeffs_per_element) :: c
-    logical, intent(in) :: iold
 
     integer :: i, j, k, l, m, n
     integer :: idof, icoeff, ip, it
@@ -468,13 +467,8 @@ contains
                       idof = idof + 1
                       ip = n + (l-1)*pol_dofs_per_node
                       it = m + (k-1)*tor_dofs_per_node
-                      if(iold) then
-                         c(idof,icoeff) = c(idof,icoeff) &
-                              + htri(i,it,itri)*gtri_old(j,ip,itri)
-                      else
-                         c(idof,icoeff) = c(idof,icoeff) &
-                              + htri(i,it,itri)*gtri(j,ip,itri)
-                      endif
+                      c(idof,icoeff) = c(idof,icoeff) &
+                           + htri(i,it,itri)*gtri(j,ip,itri)
                    end do
                 end do
              end do
@@ -500,7 +494,7 @@ contains
     real, dimension(dofs_per_element,coeffs_per_element) :: cl
     integer :: j
 
-    call local_coeff_vector(itri, cl, .true.)
+    call local_coeff_vector(itri, cl)
     c = 0.
     do j=1, dofs_per_element
        c(:) = c(:) + cl(j,:)*dof(j)

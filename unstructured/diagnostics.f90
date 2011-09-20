@@ -37,6 +37,9 @@ module diagnostics
 
   logical :: ifirsttime = .true.
 
+  ! xray diagnostic
+  real :: xray_signal
+
   ! timing diagnostics
   real :: t_ludefall, t_sources, t_smoother, t_aux, t_onestep
   real :: t_solve_v, t_solve_n, t_solve_p, t_solve_b, t_mvm
@@ -177,6 +180,7 @@ contains
 
     bwb2 = 0.
 
+    xray_signal = 0.
   end subroutine reset_scalars
 
 
@@ -192,7 +196,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 46
+    integer, parameter :: num_scalars = 47
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -244,7 +248,8 @@ contains
        temp(44) = tau_parvisc
        temp(45) = bwb2
        temp(46) = volume
-         
+       temp(47) = xray_signal
+
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
             MPI_SUM, MPI_COMM_WORLD, ier) 
@@ -295,6 +300,7 @@ contains
        tau_parvisc=temp2(44)
        bwb2    =temp2(45)
        volume  =temp2(46)
+       xray_signal=temp2(47)
 
     endif !if maxrank .gt. 1
 
@@ -727,6 +733,13 @@ subroutine calculate_scalars()
               endif
            end select
         end if
+
+        ! xray signal
+        temp79b = bremsstrahlung(nt79(:,OP_1), pet79(:,OP_1))
+        call get_chord_mask(xray_r0, xray_phi0*pi/180., xray_z0, &
+             x_79, phi_79, z_79, npoints, &
+             xray_theta*pi/180., xray_sigma*pi/180., temp79a)
+        xray_signal = xray_signal + int2(temp79a, temp79b)
      end do
   end do
 
@@ -1133,5 +1146,57 @@ subroutine lcfs(psi)
 
      
 end subroutine lcfs
+
+!======================================================================
+! get_chord_mask
+! ~~~~~~~~~~~~~~
+! calculates the transfer function
+! exp(-t^2/(2*sigma)^2) / |r - r0|^2
+! where cos(t) = d.(r - r0) and 
+! d is the unit vector in the director of the chord
+!======================================================================
+subroutine get_chord_mask(r0, phi0, z0, r, phi, z, npts, theta, sigma, mask)
+  implicit none
+
+  integer, intent(in) :: npts      ! number of source points
+  real, intent(in) :: r0, phi0, z0 ! location of detector
+  real, intent(in), dimension(npts) :: r, phi, z    ! location of source
+  real, intent(in) :: theta        ! angle of chord w.r.t. horizontal (radians)
+  real, intent(in) :: sigma        ! variance of chord (radians)
+  vectype, intent(out), dimension(npts) :: mask
+
+  real, dimension(npts) :: l, t
+
+  ! distance of source to detector
+  l = sqrt(r**2 + r0**2 - 2.*r*r0*cos(phi-phi0) + (z-z0)**2)
+
+  ! angle of source to detector relative to angle of chord
+  t = acos(((r*cos(phi-phi0) - r0)*cos(theta) + (z-z0)*sin(theta))/l)
+
+  ! assume that signal falls off as l**2
+  ! and shape function is guassian in angle from chord
+  mask = exp(-t**2/(2.*sigma**2))/l**2
+end subroutine get_chord_mask
+
+!======================================================================
+! bremsstrahlung
+! ~~~~~~~~~~~~~~
+! calculates the power per volume of bremsstrahlung given a local
+! density n and electron pressure p
+!======================================================================
+elemental vectype function bremsstrahlung(n, p)
+  implicit none
+  vectype, intent(in) :: n, p
+
+#ifdef USECOMPLEX
+  bremsstrahlung = sqrt(p/n)
+#else
+  if(p.le.0. .or. n.le.0.) then
+     bremsstrahlung = 0.
+  else
+     bremsstrahlung = sqrt(n*p)
+  end if
+#endif
+end function bremsstrahlung
 
 end module diagnostics

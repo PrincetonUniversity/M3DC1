@@ -613,7 +613,7 @@ pro plot_slice, data, x, y, z, value=value, normal=normal, itor=itor, $
                v = v1
                p = p1
            endif else begin
-               for i=0, n_elements(p1)-1, 4 do begin
+               for i=long(0), n_elements(p1)-1, 4 do begin
                    p1[i+1] = p1[i+1] + n_elements(v[0,*])
                    p1[i+2] = p1[i+2] + n_elements(v[0,*])
                    p1[i+3] = p1[i+3] + n_elements(v[0,*])
@@ -634,7 +634,7 @@ pro plot_slice, data, x, y, z, value=value, normal=normal, itor=itor, $
        nx = lonarr(n_elements(value))
        for i=0, n_elements(value)-1 do begin
            val = max(data)*value[i]
-;           shade_volume, data, val, v0, p0
+
            isosurface, data, val, v0, p0
            nx[i] = n_elements(v0[0,*])
            if(i eq 0) then begin
@@ -675,41 +675,46 @@ pro plot_slice, data, x, y, z, value=value, normal=normal, itor=itor, $
        q[2,*] = zz
    endelse
 
-   ; reverse polygons
-   pr = p
-   e = n_elements(p)/4
-   for i=long(0), e-1 do begin
-       pr[i*4+1:i*4+3] = reverse(p[i*4+1:i*4+3])
-   end
-
-   if(n_elements(brightness) eq 0) then brightness=0.2
-   if(n_elements(contrast) eq 0) then contrast=1.
-   if(n_elements(light_brightness) eq 0) then light_brightness=0.8
-   if(n_elements(specular) eq 0) then specular=0.1
-
-   light_dir = [0., 1., -1.]/sqrt(2.)
-   normals = compute_mesh_normals(q, p)
-   for i=long(0), n_elements(q[0,*])-1 do begin
-       g = transpose(!p.t) # [normals[*,i], 0]
-       if(g[2] lt 0) then normals[*,i] = -normals[*,i]
-   end
-   reflect = -(light_dir[0]*normals[0,*] + $
-               light_dir[1]*normals[1,*] + $
-               light_dir[2]*normals[2,*]) > 0
-
-   shades = reform(bytscl(aout) * contrast + brightness*255 $
-     + light_brightness*reflect*255 $
-     + specular*exp((reflect-1.)*5.)*255< 255)
-
-   if(n_elements(nx) ne 0) then begin
-       shades = shades / n_elements(nx)
-       e = n_elements(shades)-1
-       j = nx[0]
-       for i=1, n_elements(nx)-1 do begin
-           shades[j:e] = shades[j:e] + 255/n_elements(nx)
-           j = j + nx[i]
+   if(n_elements(normal) eq 0) then begin
+                                ; reverse polygons
+       pr = p
+       e = n_elements(p)/4
+       for i=long(0), e-1 do begin
+           pr[i*4+1:i*4+3] = reverse(p[i*4+1:i*4+3])
        end
-   end
+       
+       if(n_elements(brightness) eq 0) then brightness=0.2
+       if(n_elements(contrast) eq 0) then contrast=1.
+       if(n_elements(light_brightness) eq 0) then light_brightness=0.8
+       if(n_elements(specular) eq 0) then specular=0.1
+       
+       light_dir = [0., 1., -1.]/sqrt(2.)
+       normals = compute_mesh_normals(q, p)
+       for i=long(0), n_elements(q[0,*])-1 do begin
+           g = transpose(!p.t) # [normals[*,i], 0]
+           if(g[2] lt 0) then normals[*,i] = -normals[*,i]
+       end
+       reflect = -(light_dir[0]*normals[0,*] + $
+                   light_dir[1]*normals[1,*] + $
+                   light_dir[2]*normals[2,*]) > 0
+       
+       shades = reform(bytscl(aout) * contrast + brightness*255 $
+                       + light_brightness*reflect*255 $
+                       + specular*exp((reflect-1.)*5.)*255< 255)
+       
+       if(n_elements(nx) ne 0) then begin
+           shades = shades / n_elements(nx)
+           e = n_elements(shades)-1
+           j = nx[0]
+           for i=1, n_elements(nx)-1 do begin
+               shades[j:e] = shades[j:e] + 255/n_elements(nx)
+               j = j + nx[i]
+           end
+       end
+       ppp = [pr, p]
+   endif else begin
+       ppp = p
+   endelse
 
-   tv, polyshade(q, [pr,p], /t3d, shades=reform(shades))
+   tv, polyshade(q, ppp, /t3d, shades=reform(shades))
 end
