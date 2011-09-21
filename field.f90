@@ -500,23 +500,10 @@ contains
     integer :: i, iii
     integer, dimension(nodes_per_element) :: inode
 
-    logical :: is_boundary
-    integer :: izone, izonedim
-    real :: normal(2), curv, x, z
-    vectype, dimension(dofs_per_element) :: temp
-
     call get_element_nodes(itri, inode)
     i = 1
     do iii=1, nodes_per_element
-       call get_node_data(fin, inode(iii), dofs(i:i+dofs_per_node-1))
-
-       ! transform dofs to (n,t) coordinates
-       call boundary_node(inode(iii), is_boundary, izone, izonedim, &
-            normal, curv, x, z)
-       if(is_boundary) then
-          temp = dofs(i:i+dofs_per_node-1)
-          call rotate_dofs(temp, dofs(i:i+dofs_per_node-1), normal, curv, 1)
-       endif
+       call get_node_data(fin, inode(iii), dofs(i:i+dofs_per_node-1), .false.)
 
        i = i + dofs_per_node
     enddo
