@@ -707,7 +707,7 @@ subroutine rdrestart_adios
      field0_vec%data = field0_vec%data + field_vec%data
      field_vec%data = 0.
   endif 
-      bf_field(1)%vec%data(1:ndofs_2) = tmp_bf_field_1(ndofs_2)
+      bf_field(1)%vec%data(1:ndofs_2) = tmp_bf_field_1(1:ndofs_2)
       bf_field(0)%vec%data(1:ndofs_2) = tmp_bf_field_0(1:ndofs_2) 
 
 !  if(myrank.eq.0) &
