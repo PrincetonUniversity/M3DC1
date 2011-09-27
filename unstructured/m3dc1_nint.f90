@@ -76,15 +76,16 @@ module m3dc1_nint
        ph179, vz179, ch179, p179
   vectype, dimension(MAX_PTS, OP_NUM) :: pst79, bzt79, pet79, nt79, &
        pht79, vzt79, cht79, pt79
-  vectype, dimension(MAX_PTS, OP_NUM) :: bzx79, bzi79, psx79, psi79
   vectype, dimension(MAX_PTS, OP_NUM) :: vis79, vic79, vip79
   vectype, dimension(MAX_PTS, OP_NUM) :: jt79, cot79, vot79, pit79, &
        eta79, sig79
-  vectype, dimension(MAX_PTS, OP_NUM) :: bf079, bf179, bft79, bfx79, bfi79
+  vectype, dimension(MAX_PTS, OP_NUM) :: bf079, bf179, bft79
   vectype, dimension(MAX_PTS, OP_NUM) :: kap79, kar79, kax79
   vectype, dimension(MAX_PTS, OP_NUM) :: ps079, bz079, pe079, n079, &
        ph079, vz079, ch079, p079
   vectype, dimension(MAX_PTS, OP_NUM) :: pss79, bzs79
+  vectype, dimension(MAX_PTS, OP_NUM) :: bzx79, psx79, bfx79
+  vectype, dimension(MAX_PTS, OP_NUM) :: pstx79, bztx79, bftx79
 
   ! precalculated terms
    real, private :: fterm(MAX_PTS, coeffs_per_element, OP_NUM)
@@ -416,11 +417,10 @@ contains
        end if
        
        if(ilin.eq.0) then
-          call eval_ops(itri, psi_field(1), psi79, rfac)
+          call eval_ops(itri, psi_field(1), ps179, rfac)
        else
-          psi79 = 0.
+          ps179 = 0.
        end if
-       ps179 = psi79 + psx79
        
        if(eqsubtract.eq.1) then
           call eval_ops(itri, psi_field(0), ps079)
@@ -431,6 +431,8 @@ contains
           pst79 = ps179
           pss79 = ps179/2.
        endif
+
+       pstx79 = pst79 + psx79
     endif
 
     ! V
@@ -470,16 +472,14 @@ contains
        endif
  
        if(ilin.eq.0) then
-          call eval_ops(itri, bz_field(1), bzi79, rfac)
+          call eval_ops(itri, bz_field(1), bz179, rfac)
 #if defined(USECOMPLEX) || defined(USE3D)    
-          call eval_ops(itri, bf_field(1), bfi79, rfac)
+          call eval_ops(itri, bf_field(1), bf179, rfac)
 #endif
        else
-          bzi79 = 0.
-          bfi79 = 0.
+          bz179 = 0.
+          bf179 = 0.
        endif
-       bz179 = bzi79 + bzx79
-       bf179 = bfi79 + bfx79
        
        if(eqsubtract.eq.1) then
           call eval_ops(itri, bz_field(0), bz079)
@@ -500,6 +500,11 @@ contains
           bft79 = bf179
 #endif
        endif
+
+       bztx79 = bzt79 + bzx79
+#if defined(USECOMPLEX) || defined(USE3D)
+       bftx79 = bft79 + bfx79
+#endif
 
        if(numvar.eq.1) bzs79 = bzt79
     endif
@@ -656,24 +661,24 @@ contains
      b2i79 = 0.
 
      temp79a = ri2_79* &
-          (pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2 + bzt79(:,OP_1)**2)
+          (pstx79(:,OP_DR)**2 + pstx79(:,OP_DZ)**2 + bztx79(:,OP_1)**2)
 
 #if defined(USECOMPLEX) || defined(USE3D)
      temp79b = &
-          (bft79(:,OP_DRP)**2 + bft79(:,OP_DZP)**2) &
+          (bftx79(:,OP_DRP)**2 + bftx79(:,OP_DZP)**2) &
           + 2.*ri_79* &
-          (pst79(:,OP_DZ)*bft79(:,OP_DRP) - pst79(:,OP_DR)*bft79(:,OP_DZP))
+          (pstx79(:,OP_DZ)*bftx79(:,OP_DRP) - pstx79(:,OP_DR)*bftx79(:,OP_DZP))
 
      b2i79(1:npoints,OP_1 ) = 1./(temp79a(1:npoints) + temp79b(1:npoints))
 #else
      b2i79(1:npoints,OP_1 ) = 1./temp79a(1:npoints)
 #endif
      b2i79(:,OP_DR) = ri2_79 * &
-          (pst79(:,OP_DR)*pst79(:,OP_DRR) + pst79(:,OP_DZ)*pst79(:,OP_DRZ) &
-          +bzt79(:,OP_1 )*bzt79(:,OP_DR ))
+          (pstx79(:,OP_DR)*pstx79(:,OP_DRR)+pstx79(:,OP_DZ)*pstx79(:,OP_DRZ) &
+          +bztx79(:,OP_1 )*bztx79(:,OP_DR ))
      b2i79(:,OP_DZ) = ri2_79 * &
-          (pst79(:,OP_DR)*pst79(:,OP_DRZ) + pst79(:,OP_DZ)*pst79(:,OP_DZZ) &
-          +bzt79(:,OP_1 )*bzt79(:,OP_DZ ))
+          (pstx79(:,OP_DR)*pstx79(:,OP_DRZ)+pstx79(:,OP_DZ)*pstx79(:,OP_DZZ) &
+          +bztx79(:,OP_1 )*bztx79(:,OP_DZ ))
 
      if(itor.eq.1) then 
         b2i79(:,OP_DR) = b2i79(:,OP_DR) - ri_79*temp79a
@@ -681,17 +686,23 @@ contains
 
 #if defined(USECOMPLEX) || defined(USE3D)
      b2i79(:,OP_DR) = b2i79(:,OP_DR) + ri_79* &
-          (pst79(:,OP_DZ )*bft79(:,OP_DRRP)-pst79(:,OP_DR )*bft79(:,OP_DRZP) &
-          +pst79(:,OP_DRZ)*bft79(:,OP_DRP )-pst79(:,OP_DRR)*bft79(:,OP_DZP ))&
-          +bft79(:,OP_DRRP)*bft79(:,OP_DRP)+bft79(:,OP_DRZP)*bft79(:,OP_DZP)
+          (pstx79(:,OP_DZ )*bftx79(:,OP_DRRP) &
+          -pstx79(:,OP_DR )*bftx79(:,OP_DRZP) &
+          +pstx79(:,OP_DRZ)*bftx79(:,OP_DRP ) &
+          -pstx79(:,OP_DRR)*bftx79(:,OP_DZP ))&
+          +bftx79(:,OP_DRRP)*bftx79(:,OP_DRP) &
+          +bftx79(:,OP_DRZP)*bftx79(:,OP_DZP)
      b2i79(:,OP_DZ) = b2i79(:,OP_DZ) + ri_79* &
-          (pst79(:,OP_DZ )*bft79(:,OP_DRZP)-pst79(:,OP_DR )*bft79(:,OP_DZZP) &
-          +pst79(:,OP_DZZ)*bft79(:,OP_DRP )-pst79(:,OP_DRZ)*bft79(:,OP_DZP ))&
-          +bft79(:,OP_DRZP)*bft79(:,OP_DRP)+bft79(:,OP_DZZP)*bft79(:,OP_DZP)
+          (pstx79(:,OP_DZ )*bftx79(:,OP_DRZP) &
+          -pstx79(:,OP_DR )*bftx79(:,OP_DZZP) &
+          +pstx79(:,OP_DZZ)*bftx79(:,OP_DRP ) &
+          -pstx79(:,OP_DRZ)*bftx79(:,OP_DZP ))&
+          +bftx79(:,OP_DRZP)*bftx79(:,OP_DRP) &
+          +bftx79(:,OP_DZZP)*bftx79(:,OP_DZP)
 
      if(itor.eq.1) then
         b2i79(:,OP_DR) = b2i79(:,OP_DR) - ri2_79* &
-          (pst79(:,OP_DZ)*bft79(:,OP_DRP) - pst79(:,OP_DR)*bft79(:,OP_DZP))
+          (pstx79(:,OP_DZ)*bftx79(:,OP_DRP) - pstx79(:,OP_DR)*bftx79(:,OP_DZP))
      endif
 #endif
 
