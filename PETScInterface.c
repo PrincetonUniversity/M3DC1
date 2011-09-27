@@ -184,7 +184,8 @@ int solve2_(int *matrixId, double * rhs_sol, int * ier)
   int rowSize, rowId;
   int colSize, *colId;
   int valType = 0;
-  PetscScalar *values, rms, norm;
+  PetscScalar *values;
+  PetscReal rms, norm;
   PetscErrorCode ierr;
 #ifdef PetscDEV
   PetscBool     flg;

@@ -60,10 +60,17 @@ else
 #  OPTS := $(OPTS) -DPetscDEV
 endif   # on USESCOREC
 
-OPTS := $(OPTS) -DPetscDEV -DUSEADIOS #-DUSEHYBRID -DCJ_MATRIX_DUMP
+OPTS := $(OPTS) -DUSEADIOS #-DUSEHYBRID -DCJ_MATRIX_DUMP
+
+ifeq ($(USECOMPLEX), 1)
+INCLUDE := $(INCLUDE) -I$(SUPERLU_DIST_SRC)
+else
 PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev-SUPERLU-HYPRE-MUMPS/petsc-dev-060711/petsc-dev
 PETSC_ARCH = arch-cray-xt5-opt-fab
+OPTS := $(OPTS) -DPetscDEV
 SUPERLU_DIST = -lsuperlu_dist_2.5
+endif
+
 HYPRE = -lHYPRE
 MUMPS = -ldmumps -lmumps_common -lpord
 
