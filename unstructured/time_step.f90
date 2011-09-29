@@ -1431,7 +1431,7 @@ subroutine get_flux_mask(itri, imask)
   if(inocurrent_tor.eq.1) ibound = ior(ibound, BOUNDARY_LAPLACIAN)
   if(inocurrent_norm.eq.1) then
      if(i3d.eq.1) then
-        ibound = ior(ibound, BOUNDARY_NEUMANN)
+        ibound = ior(ibound, BOUNDARY_NEUMANNP)
      endif
   endif
 
