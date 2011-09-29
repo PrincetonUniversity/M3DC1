@@ -6,6 +6,7 @@ module boundary_conditions
   integer, parameter :: BOUNDARY_LAPLACIAN      =  4
   integer, parameter :: BOUNDARY_RESISTIVE_WALL =  8
   integer, parameter :: BOUNDARY_AXISYMMETRIC   = 16
+  integer, parameter :: BOUNDARY_NEUMANNP       = 32
 
 !!$  integer, parameter :: BOUND_DN  = 0
 !!$  integer, parameter :: BOUND_DT  = 1
@@ -84,6 +85,15 @@ subroutine get_boundary_mask(itri, ibound, imask)
         if(izonedim.eq.0) then
            imask(k+2) = 0
         endif
+#ifdef USE3D
+        imask(k+7) = 0
+        imask(k+10) = 0
+        if(izonedim.eq.0) then
+           imask(k+8) = 0
+        endif
+#endif
+     endif
+     if(iand(ibound, BOUNDARY_NEUMANNP).eq.BOUNDARY_NEUMANNP) then
 #ifdef USE3D
         imask(k+7) = 0
         imask(k+10) = 0
