@@ -216,7 +216,7 @@ end
 ; _extra: passed to contour_and_legend_single
 ; ======================================================================
 
-pro contour_and_legend, z, x, y, label=label, range=range, $
+pro contour_and_legend, z, x, y, label=label, range=range, levels=levels, $
                           title=title, _EXTRA=ex, jpeg=jpeg, lines=lines, $
                         nlevels=nlevels, zlog=zlog, xsize=xsize, ysize=ysize
 
@@ -277,9 +277,9 @@ pro contour_and_legend, z, x, y, label=label, range=range, $
             if(n_elements(nlevels) eq 0) then begin
                 contour_and_legend_single, z[k,*,*], x, y, $
                   label=label[k], title=title[k], range=range[*,k], $
-                  lines=lines[k], zlog=zlog[k], _EXTRA=ex
+                  lines=lines[k], zlog=zlog[k], levels=levels, _EXTRA=ex
             endif else begin
-                contour_and_legend_single, z[k,*,*], x, y, $
+                contour_and_legend_single, z[k,*,*], x, y, levels=levels, $
                   label=label[k], title=title[k], range=range[*,k], $
                   lines=lines[k], nlevels=nlevels[k], zlog=zlog[k], _EXTRA=ex
             endelse
@@ -326,8 +326,9 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
                                isotropic=iso, lines=lines, range=range, $
                                table=ct, zlog=zlog, csym=csym, $
                                nofill=nofill, noautoct=noautoct, $
-                               nolegend=nolegend, color=color, $
-                               clevels=clevels, ccolor=ccolor, _EXTRA = ex
+                               nolegend=nolegend, color=color, levels=levels, $
+                               clevels=clevels, ccolor=ccolor, $
+                               _EXTRA = ex
 
     zed = reform(z)
    
@@ -336,8 +337,9 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     endif
     if(keyword_set(nofill)) then fill=0 else fill=1
 
-    if keyword_set(lines) then begin
-        if(n_elements(clevels) eq 0) then clevels = 10
+    if(keyword_set(lines))then begin
+        if(n_elements(clevels) eq 0 and n_elements(levels) eq 0) then $
+          clevels = 10
     endif else lines = 0
 
     if n_elements(nlevels) eq 0 then nlevels=100
@@ -405,7 +407,7 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     if(fracdiff le 1e-5) then nolegend = 1
 
     if(keyword_set(zlog)) then begin
-        levels = 10^(alog10(maxval/minval)*findgen(nlevels+1)/(float(nlevels))$
+        lev = 10^(alog10(maxval/minval)*findgen(nlevels+1)/(float(nlevels))$
                      + alog10(minval))
     endif else begin
         if(keyword_set(csym)) then begin
@@ -414,7 +416,7 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
             maxval = absmax
             minval = -absmax
         end
-        levels = (maxval-minval)*findgen(nlevels+1)/(float(nlevels)) + minval
+        lev = (maxval-minval)*findgen(nlevels+1)/(float(nlevels)) + minval
     endelse
 
     if(n_elements(ct) eq 0) then begin
@@ -434,7 +436,7 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
                    region[0]+width+lgap+cgap+width1, region[1]+bgap+top]
     
     xx = indgen(2)
-    yy = levels
+    yy = lev
     zz = fltarr(2,nlevels+1)
     zz[0,*] = yy
     zz[1,*] = yy
@@ -443,7 +445,7 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
 
     contour, zz, xx, yy, nlevels=nlevels, fill=fill, $
       ytitle=label, xtitle='', charsize=charsize, $
-      xticks=1, xtickname=[' ',' '], levels=levels, title='', $
+      xticks=1, xtickname=[' ',' '], levels=lev, title='', $
       xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, ylog=zlog, $
       color=color    
 ;    contour, zz, xx, yy, /overplot, nlevels=nlevels, levels=levels
@@ -466,19 +468,29 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
           xstyle=1, ystyle=1, _EXTRA=ex
     endif else begin
         contour, zed > minval < maxval, x, y, $
-          fill=fill, levels=levels, nlevels=nlevels, $
+          fill=fill, levels=lev, nlevels=nlevels, $
           xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, _EXTRA=ex, $
           isotropic=iso, charsize=charsize, color=color
     endelse
 
+    print, 'lines = ', lines
     if(keyword_set(lines) and fill eq 1) then begin
-        if(keyword_set(zlog)) then begin
-            levels = 10^(alog10(maxval/minval)* $
-                         findgen(clevels+1)/(float(clevels)) + alog10(minval))
-        endif else begin
-            levels = (maxval-minval)*findgen(clevels+1)/(float(clevels)) $
-              + minval
-        endelse
+        if(n_elements(levels) eq 0) then begin 
+            if(keyword_set(zlog)) then begin
+                levels = 10^(alog10(maxval/minval)* $
+                          findgen(clevels+1)/(float(clevels)) $
+                          + alog10(minval))
+            endif else begin
+                levels = (maxval-minval)*findgen(clevels+1)/(float(clevels)) $
+                  + minval
+            endelse
+        end
+        print, 'levels = ', levels
+        if(n_elements(clevels) ne 0) then print, 'clevels= ', clevels
+
+        if(n_elements(ccolor) ne 0) then begin
+            loadct,12
+        endif
 
         contour, zed, x, y, /overplot, levels=levels, nlevels=clevels, $
           xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, $

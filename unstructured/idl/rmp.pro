@@ -150,11 +150,14 @@ end
 
 pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
              subtract_vacuum=subtract_vacuum, ntor=ntor, $
-             plotbn=plotbn, slice=slice
+             plotbn=plotbn, slice=slice, extsubtract=extsubtract
 
    if(n_elements(ntor) eq 0) then begin
        ntor = read_parameter('ntor', _EXTRA=extra)
    endif
+   if(n_elements(extsubtract) eq 0) then begin
+       extsubtract = read_parameter('extsubtract' ,_EXTRA=extra)
+   end
    print, 'ntor = ', ntor
    if(n_elements(slice) eq 0) then last=1
 
@@ -169,11 +172,27 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
                    /linear,_EXTRA=extra,/complex)
 
    if(keyword_set(subtract_vacuum)) then begin
-       bx0 = read_field('bx',x,z,t,slice=0,/linear,_EXTRA=extra)
-       by0 = read_field('by',x,z,t,slice=0,/linear,_EXTRA=extra)
-       bx = bx - bx0
-       by = by - by0
-   endif   
+       if(extsubtract eq 0) then begin
+           bx0 = read_field('bx',x,z,t,slice=0,/linear,_EXTRA=extra)
+           by0 = read_field('by',x,z,t,slice=0,/linear,_EXTRA=extra)
+           bx = bx - bx0
+           by = by - by0
+       end
+   endif else begin
+       if(extsubtract eq 1) then begin
+           psi1_r = read_field('psi_ext',x,z,t,slice=slice, $
+                               /linear,/complex,_EXTRA=extra,op=2)
+           psi1_z = read_field('psi_ext',x,z,t,slice=slice, $
+                               /linear,/complex,_EXTRA=extra,op=3)
+           f1_r = read_field('bf_ext',x,z,t,slice=slice, $
+                             /linear,/complex,_EXTRA=extra,op=2)
+           f1_z = read_field('bf_ext',x,z,t,slice=slice, $
+                             /linear,/complex,_EXTRA=extra,op=3)
+           r = radius_matrix(x,z,t)
+           bx = bx - psi1_z/r - complex(0,ntor)*f1_r
+           by = by + psi1_r/r - complex(0,ntor)*f1_z
+       end
+   endelse
 
    r = radius_matrix(x,z,t)
    y = z_matrix(x,z,t)
