@@ -1212,13 +1212,31 @@ function read_raw_field, name, time, mesh=mesh, filename=filename, time=t
    return, field._data
 end
 
+function read_lcfs, axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra
+   s = read_scalars(_EXTRA=extra)
+
+   t0 = get_slice_time(_EXTRA=extra)
+
+   dum = min(s.time._data - t0, i, /abs)
+
+   xpoint = fltarr(2)
+   axis = fltarr(2)
+   xpoint[0] = s.xnull._data[i]
+   xpoint[1] = s.znull._data[i]
+   axis[0] = s.xmag._data[i]
+   axis[1] = s.zmag._data[i]
+   
+   flux0 = s.psimin._data[i]
+
+   return, s.psi_lcfs._data[i]
+end
 
 function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                      filename=filename, points=pts, mask=mask, $
                      rrange=xrange, zrange=yrange,equilibrium=equilibrium, $
                      h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                      diff=diff, operation=op, complex=complex, $
-                     linear=linear, last=last, average=average, $
+                     linear=linear, last=last, average=average, linfac=linfac,$
                      dpsi=dpsi, symbol=symbol, units=units, cgs=cgs, mks=mks, $
                      real=real, imaginary=imag, edge_val=edge_val, phi=phi0, $
                      time=realtime, abs=abs, phase=phase, dimensions=d
@@ -1521,27 +1539,62 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    endif else if(strcmp('electron temperature', name, /fold_case) eq 1) or $
      (strcmp('te', name, /fold_case) eq 1) then begin
 
-       Pe0 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
-                      filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange, /equilibrium)
+       Pe1 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, linfac=linfac, $
+                        rrange=xrange, zrange=yrange, linear=linear)
+       
+       n1 = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                       filename=filename, points=pts, linfac=linfac, $
+                       rrange=xrange, zrange=yrange, linear=linear)
 
-       n0 = read_field('den', x, y, t, slices=time, mesh=mesh, $
-                      filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange, /equilibrium)
-
-       if(keyword_set(linear) and (ilin eq 1)) then begin
-           Pe1 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
+       if(keyword_set(linear) and (ilin eq 1) and (time ge 0)) then begin
+           Pe0 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
                             filename=filename, points=pts, $
-                            rrange=xrange, zrange=yrange, linear=linear)
+                            rrange=xrange, zrange=yrange, /equilibrium)
 
-           n1 = read_field('den', x, y, t, slices=time, mesh=mesh, $
-                           filename=filename, points=pts, $
-                           rrange=xrange, zrange=yrange, linear=linear)
+           n0 = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                           filename=filename, points=pts,  $
+                           rrange=xrange, zrange=yrange, /equilibrium)
+
            data = pe1/n0 - pe0*n1/n0^2
-       endif else data = pe0/n0
+       endif else data = pe1/n1
   
        symbol = '!8T!De!N!X'
        d = dimensions(/temperature, _EXTRA=extra)
+
+   ;===========================================
+   ; displacement
+   ;===========================================
+   endif else if(strcmp('displacement', name, /fold_case) eq 1) then begin
+
+       Te1 = read_field('Te', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, linfac=linfac, $
+                        rrange=xrange, zrange=yrange, linear=linear)
+       
+
+       Te0 = read_field('Te', x, y, t, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, slice=-1)
+
+       psi0 = read_field('psi', x, y, t, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, slice=-1)
+
+       psis = read_lcfs(filename=filename, flux0=flux0, _EXTRA=extra)
+       
+       tprime = s_bracket(Te0,psi0,x,y)
+
+       data = -Te1/tprime*sqrt(s_bracket(psi0,psi0,x,y))
+
+       if(psis lt flux0) then begin
+           data(where(tprime lt 1e-3 or psi0 lt psis)) = 0.
+       endif else begin
+           data(where(tprime lt 1e-3 or psi0 gt psis)) = 0.
+       endelse
+  
+       symbol = '!7n!N!X'
+       d = dimensions(/l0, _EXTRA=extra)
+
 
    ;===========================================
    ; ion temperature
@@ -3032,8 +3085,14 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                  eval_field(field._data, mesh, points=pts, $
                             r=x, z=y, op=op, filename=filename, $
                             xrange=xrange, yrange=yrange, mask=mask, $
-                            phi=phi0_rad) $
-                 + base*(i ne -1)
+                            phi=phi0_rad)
+
+               print, max(trange), isubeq, keyword_set(linear)
+               if((max(trange) ge 0) and $
+                  (isubeq eq 1) and (not keyword_set(linear)))  then begin
+                   if(n_elements(linfac) eq 0) then linfac=1.
+                   data[i-trange[0],*,*] = linfac*data[i-trange[0],*,*] + base
+               end
            end
 
            h5f_close, file_id
@@ -3443,26 +3502,6 @@ function find_lcfs, psi, x, z, axis=axis, xpoint=xpoint, $
    end
    
    return, psilim
-end
-
-
-function read_lcfs, axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra
-   s = read_scalars(_EXTRA=extra)
-
-   t0 = get_slice_time(_EXTRA=extra)
-
-   dum = min(s.time._data - t0, i, /abs)
-
-   xpoint = fltarr(2)
-   axis = fltarr(2)
-   xpoint[0] = s.xnull._data[i]
-   xpoint[1] = s.znull._data[i]
-   axis[0] = s.xmag._data[i]
-   axis[1] = s.zmag._data[i]
-   
-   flux0 = s.psimin._data[i]
-
-   return, s.psi_lcfs._data[i]
 end
 
 
@@ -4993,9 +5032,9 @@ end
 pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                 mcolor=mc, lcfs=lcfs, title=title, units=units, $
                 range=range, rrange=rrange, zrange=zrange, linear=linear, $
-                xlim=xlim, cutx=cutx, cutz=cutz, mpeg=mpeg, $
+                xlim=xlim, cutx=cutx, cutz=cutz, mpeg=mpeg, linfac=linfac, $
                 mask_val=mask_val, boundary=boundary, q_contours=q_contours, $
-                overplot=overplot, phi=phi0, time=realtime, $
+                overplot=overplot, phi=phi0, time=realtime, levels=levels, $
                 phase=phase, abs=abs, operation=op, _EXTRA=ex
 
    ; open mpeg object
@@ -5006,7 +5045,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
            plot_field, name, i, x, y, points=p, mesh=plotmesh, $
              mcolor=mc, lcfs=lcfs, title=title, units=units, $
              range=range, rrange=rrange, zrange=zrange, linear=linear, $
-             xlim=xlim, cutx=cutx, cutz=cutz, $
+             xlim=xlim, cutx=cutx, cutz=cutz, linfac=linfac, levels=levels, $
              mask_val=mask_val, boundary=boundary, q_contours=q_contours, $
              overplot=overplot, phi=phi0, time=realtime, $
              phase=phase, abs=abs, operation=op, _EXTRA=ex
@@ -5038,7 +5077,8 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                           points=p, rrange=rrange, zrange=zrange, $
                           symbol=fieldname, units=u, linear=linear, $
                           mask=mask, phi=phi0, time=realtime, $
-                          complex=complex, operation=op, _EXTRA=ex)
+                          complex=complex, operation=op, $
+                          linfac=linfac, _EXTRA=ex)
        if(n_elements(units) eq 0) then units=u       
    endif else begin
        field = name
@@ -5090,7 +5130,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
        end
            
        contour_and_legend, field[0,*,*], x, y, title=title, $
-         label=units, $
+         label=units, levels=levels, $
          xtitle=make_label('!8R!X', /l0, _EXTRA=ex), $
          ytitle=make_label('!8Z!X', /l0, _EXTRA=ex), $
          range=range, _EXTRA=ex
@@ -5368,7 +5408,7 @@ pro animate, name, nslices=nslices, slice=slice, _EXTRA=extra
        title = symbol + ' !6(' + title + '!6)!X'
        print, 'plotting...'
        plot_field, f[i,*,*],-1,x,z, title=title, range=range, $
-        _EXTRA=extra
+         _EXTRA=extra
        print, 'reading...'
        image = tvrd(/true)
        
@@ -5950,4 +5990,54 @@ pro test_mesh, filename, nplanes=nplanes, _EXTRA=extra
      print, 'wrong ', j, ' = ', wrong[j]
   end
   print, 'correct = ', correct/6
+end
+
+pro plot_perturbed_surface, q, scalefac=scalefac, $
+                            filename=filename, _EXTRA=extra
+   if(n_elements(scalefac) eq 0) then scalefac=1.
+   if(n_elements(scalefac) eq 1) then $
+     scalefac=replicate(scalefac, n_elements(q))
+
+   psi0 = read_field('psi',x,z,t,filename=filename, slice=-1, $
+                     _EXTRA=extra)
+   psi0_r = read_field('psi',x,z,t,filename=filename, slice=-1, $
+                       _EXTRA=extra, op=2)
+   psi0_z = read_field('psi',x,z,t,slice=-1, filename=filename, $
+                       _EXTRA=extra, op=3)
+   zi = read_field('displacement',x,z,t,filename=filename, /linear, $
+                   _EXTRA=extra)
+   
+;   contour_and_legend, zi
+;   return
+
+   if(n_elements(bins) eq 0) then bins = n_elements(x)
+   fvals = flux_at_q(q, points=pts, filename=filename, $
+                     slice=time, normalized_flux=norm, bins=bins)
+   print, fvals
+
+   xhat = psi0_r/sqrt(psi0_r^2 + psi0_z^2)
+   zhat = psi0_z/sqrt(psi0_r^2 + psi0_z^2)
+
+   plot, x, z, /nodata, /iso, _EXTRA=extra
+   c = colors()
+   for k=0, n_elements(fvals)-1 do begin
+       xy = path_at_flux(psi0, x, z, t, fvals[k], /contiguous)
+       xy_new = xy
+
+       for j=0, n_elements(xy[0,*])-1 do begin
+           dx = field_at_point(xhat, x, z, xy[0,j], xy[1,j])
+           dz = field_at_point(zhat, x, z, xy[0,j], xy[1,j])
+           dr = field_at_point(zi, x, z, xy[0,j], xy[1,j])
+           xy_new[0,j] = xy[0,j] + dr*dx*scalefac[k]
+           xy_new[1,j] = xy[1,j] + dr*dz*scalefac[k]
+       end
+
+       oplot, xy[0,*], xy[1,*], linestyle=1, color=c[k+1]
+       oplot, [xy[0,n_elements(xy[0,*])-1], xy[0,0]],  $
+         [xy[1,n_elements(xy[0,*])-1], xy[1,0]], linestyle=1, color=c[k+1]
+
+       oplot, xy_new[0,*], xy_new[1,*], color=c[k+1]
+       oplot, [xy_new[0,n_elements(xy[0,*])-1], xy_new[0,0]], $
+         [xy_new[1,n_elements(xy[0,*])-1], xy_new[1,0]], color=c[k+1]
+   end
 end
