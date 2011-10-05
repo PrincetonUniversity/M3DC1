@@ -203,6 +203,7 @@ module basic
   ! numerical parameters
   integer :: ntimemax    ! number of timesteps
   integer :: nskip       ! number of timesteps per matrix recalculation
+  integer :: iskippc     ! number of times preconditioner is reused
   integer :: iconstflux  ! 1 = conserve toroidal flux
   integer :: integrator  ! 0 = Crank-Nicholson, 1 = BDF2
   integer :: isplitstep  ! 1 = do timestep splitting

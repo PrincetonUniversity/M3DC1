@@ -116,7 +116,8 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o subp.o random.o spline.o \
 	restart.o readgeqdsk.o read_dskbal.o \
 	read_jsolver.o \
 	ic_resistive_wall.o \
-	init_conds.o
+	init_conds.o \
+	get_pc_skip_count.o
 
 S2V_OBJS = math.o element.o scorec_mesh.o struct2vac.o
 
