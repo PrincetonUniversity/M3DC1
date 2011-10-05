@@ -79,8 +79,11 @@ ifeq ($(USESCOREC), 1)
 #    SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/lib
 #    INCLUDE := -I/p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/include \
 
-    SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/031611
-    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/031611 \
+#   SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/031611
+#   INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/031611 \
+
+    SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/093011
+    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/093011 \
         $(INCLUDE)
 
 #    SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/libtest

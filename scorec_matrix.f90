@@ -111,9 +111,9 @@ contains
 #include "finclude/petsc.h"
 
 #ifdef PetscDEV
-    PetscBool :: flg_petsc
+    PetscBool :: flg_petsc, flg_solve2, flg_pdslin
 #else
-    PetscTruth :: flg_petsc
+    PetscBool :: flg_petsc, flg_solve2, flg_pdslin
 #endif
     integer :: ierr
 
@@ -130,6 +130,8 @@ contains
 
     if(lhs) then
        call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc',flg_petsc,ierr)
+       call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ierr)
+       if(flg_solve2 ) flg_petsc=PETSC_TRUE
 
        if(flg_petsc.eq.PETSC_TRUE) then
           call zeropetscmatrix(mat%imatrix, mat%icomplex, mat%isize)
@@ -311,6 +313,9 @@ contains
   !====================================================================
   subroutine scorec_matrix_solve(mat, v, ierr)
     use vector_mod
+!#ifdef CJ_MATRIX_DUMP
+    use basic, ONLY : myrank
+!#endif
     
     implicit none
 
@@ -319,6 +324,10 @@ contains
     type(scorec_matrix), intent(in) :: mat
     type(vector_type), intent(inout) :: v
     integer, intent(out) :: ierr
+!#ifdef CJ_MATRIX_DUMP
+    integer :: ndof, gndof, i
+    real rms, grms
+!#endif
 
 #ifdef PetscDEV
     PetscBool :: flg_petsc, flg_solve2, flg_pdslin
@@ -330,14 +339,14 @@ contains
     call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ierr)
     call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-pdslin', flg_pdslin,ierr)
 
-    if(flg_solve2.eq.PETSC_TRUE) then  ! use pppl petsc
-       call solve2(mat%imatrix,v%data,ierr)
+    if(flg_solve2.eq.PETSC_TRUE .and. mat%imatrix.eq.5) then  ! use pppl petsc
+       call solve2(mat%imatrix,v%data,mat%icomplex,ierr)
 
     else if(flg_pdslin.eq.PETSC_TRUE) then  ! use pdslin
 #ifdef USEHYBRID
        if(mat%imatrix .eq. 6) then
        print *, 'OK: Using pdslin solve,', mat%imatrix
-       call hybridsolve(mat%imatrix,v%data,ierr)
+       call hybridsolve(mat%imatrix,v%data,mat%icomplex,ierr)
 !#else
        else
        print *, 'Er: Using default solve,', mat%imatrix
@@ -348,6 +357,30 @@ contains
     else  ! use scorec superlu or petsc (-ipetsc)
        call solve(mat%imatrix,v%data,ierr)
     endif
+
+!#ifdef CJ_MATRIX_DUMP
+    call numdofs(v%isize, ndof)
+    call mpi_allreduce(ndof, gndof, 1, MPI_INTEGER, &
+         MPI_SUM, MPI_COMM_WORLD, ierr)
+    rms=0.
+    do i=1, ndof
+       rms = rms + v%data(i) * v%data(i)
+       !print *, "scorec_matrix_solve sol=", mat%imatrix, i, v%data(i)
+    enddo
+    call mpi_allreduce(rms, grms, 1, MPI_DOUBLE_PRECISION, &
+         MPI_SUM, MPI_COMM_WORLD, ierr)
+    if(myrank.eq.0) &
+    write(*,'(a,2i7,2e20.10)') "scorec_matrix_solve sol_rms=", &
+                          mat%imatrix, ndof, grms, sqrt(grms)/real(gndof)
+!#endif
+!>> int writematrixdiagblocktofile_( int * matrixid, int* fileid)
+!>>
+!>> for example:
+!>> call writematrixdiagblocktofile(s1_mat%imatrix,s1_mat%imatrix);
+!>>
+!>> Use the following lib and include path:
+!>> SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/093011
+!>> INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/093011
 
   end subroutine scorec_matrix_solve
 

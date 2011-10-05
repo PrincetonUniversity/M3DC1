@@ -160,10 +160,11 @@ int get_counter_(int *matrixId, int *counter)
    src/ksp/ksp/examples/tutorials/ex6f.F
    preconditioner is update every MAX_SAME_PC_COUNT times
    only for matrix with Id=5,1,6
+#define MAX_SAME_PC_COUNT 10
 */
-#define MAX_SAME_PC_COUNT 1
 #define MAX_LINEAR_SYSTEM 40
 #define SOLVE2_DEBUG 1
+int MAX_SAME_PC_COUNT;
 
 typedef struct
 {
@@ -177,13 +178,13 @@ typedef struct
 // global container
 KSP_ARRAY ksp_array[MAX_LINEAR_SYSTEM];
 
-int solve2_(int *matrixId, double * rhs_sol, int * ier)
+int solve2_(int *matrixId, double * rhs_sol, int * valType, int * ier)
 { // local variables
   static int start=0;
   int i, whichMatrix, flag, its;
   int rowSize, rowId;
   int colSize, *colId;
-  int valType = 0;
+//int valType = 0;
   PetscScalar *values;
   PetscReal rms, norm;
   PetscErrorCode ierr;
@@ -201,6 +202,7 @@ int solve2_(int *matrixId, double * rhs_sol, int * ier)
 
   /* at the very begining allocate space */
   if(!start) {
+     get_pc_skip_count_(&MAX_SAME_PC_COUNT);
      for(i=0; i<MAX_LINEAR_SYSTEM; i++) {
         ksp_array[i].matrixId= -1;
         ksp_array[i].same_pc_count=0 ;
@@ -213,7 +215,7 @@ int solve2_(int *matrixId, double * rhs_sol, int * ier)
      if(ksp_array[i].matrixId == *matrixId ) { // found it
         whichMatrix=i;
         if(SOLVE2_DEBUG)
-        PetscPrintf(PETSC_COMM_WORLD, "\tsolve2_: found matrixId_%d in ksp_array[%d] \n",
+        PetscPrintf(PETSC_COMM_WORLD, "\tsolve2_%d: found matrixId in ksp_array[%d] \n",
                                        *matrixId, whichMatrix);
         break;
      }else{
@@ -222,7 +224,7 @@ int solve2_(int *matrixId, double * rhs_sol, int * ier)
         else if(ksp_array[i].matrixId == -1 )  { // this is an empty slot; then take it
            whichMatrix=i;
            ksp_array[i].matrixId = *matrixId;
-           PetscPrintf(PETSC_COMM_WORLD, "\tsolve2_: add matrixId_%d into ksp_array[%d]\n",
+           PetscPrintf(PETSC_COMM_WORLD, "\tsolve2_%d: add matrixId in ksp_array[%d]\n",
                                           *matrixId, whichMatrix);
            
            break;
@@ -242,28 +244,39 @@ int solve2_(int *matrixId, double * rhs_sol, int * ier)
      /* Step 1: number of local rows; number of global rows */
      getMatrixLocalDofNum_(matrixId, &(ksp_array[whichMatrix].ldb)); 
      getMatrixGlobalDofs_(matrixId, &(ksp_array[whichMatrix].numglobaldofs)); 
-     PetscPrintf(PETSC_COMM_WORLD, "\tsolve2_%d: numglobaldofs_%d ldb_%d \n",
+     PetscPrintf(PETSC_COMM_WORLD, "\tsolve2_%d: numglobaldofs_%d ldb_%d\n",
                  *matrixId, ksp_array[whichMatrix].numglobaldofs, ksp_array[whichMatrix].ldb);
 
      /* Step 2: construct matrix */
      int *d_nnz, *o_nnz;
      d_nnz = (int*)calloc(ksp_array[whichMatrix].ldb, sizeof(int));
      o_nnz = (int*)calloc(ksp_array[whichMatrix].ldb, sizeof(int)); 
-     getMatrixPetscDnnzOnnz_(matrixId, &valType, d_nnz, o_nnz); 
+     getMatrixPetscDnnzOnnz_(matrixId, valType, d_nnz, o_nnz); 
      /*for(i=0; i<ksp_array[whichMatrix].ldb; i++)
      PetscPrintf(PETSC_COMM_WORLD, "\tsolve2_%d_%d: d_nnz_%d o_nnz_%d \n", 
                                    *matrixId, i+1, d_nnz[i], o_nnz[i]);*/
     
+#ifdef TODO
      ierr = MatCreateMPIAIJ(MPI_COMM_WORLD, 
                             ksp_array[whichMatrix].ldb, ksp_array[whichMatrix].ldb,
                             PETSC_DECIDE, PETSC_DECIDE,
                             PETSC_NULL, d_nnz, PETSC_NULL, o_nnz,
                             &(ksp_array[whichMatrix].A));
      CHKERRQ(ierr);
+#else
+     ierr = MatCreate(MPI_COMM_WORLD, &(ksp_array[whichMatrix].A));
+     CHKERRQ(ierr);
+     ierr = MatSetSizes((ksp_array[whichMatrix].A), ksp_array[whichMatrix].ldb, ksp_array[whichMatrix].ldb,
+               PETSC_DETERMINE, PETSC_DETERMINE);
+     CHKERRQ(ierr);
+     ierr = MatSetType((ksp_array[whichMatrix].A), MATMPIAIJ);CHKERRQ(ierr);
+     ierr = MatMPIAIJSetPreallocation((ksp_array[whichMatrix].A), 0, &(d_nnz[0]), 0, &(o_nnz[0]));
+     CHKERRQ(ierr);
+#endif
      ierr=MatSetFromOptions((ksp_array[whichMatrix].A)/*, MATSUPERLU_DIST MATMPIAIJ*/);CHKERRQ(ierr); 
      //ierr=MatSetType((ksp_array[whichMatrix].A), MATSUPERLU_DIST /*MATMPIAIJ*/);CHKERRQ(ierr);
      if(SOLVE2_DEBUG)
-     PetscPrintf(PETSC_COMM_WORLD, "\tsolve2_: create A%d into ksp_array\n", *matrixId);
+     PetscPrintf(PETSC_COMM_WORLD, "\tsolve2_%d: create A in ksp_array\n", *matrixId);
   
      free(d_nnz);
      free(o_nnz);
@@ -277,7 +290,7 @@ int solve2_(int *matrixId, double * rhs_sol, int * ier)
      ierr=KSPAppendOptionsPrefix((ksp_array[whichMatrix].ksp), "solve1_");CHKERRQ(ierr); 
      */
      if(SOLVE2_DEBUG)
-     PetscPrintf(PETSC_COMM_WORLD, "\tsolve2_: create ksp_%d into ksp_array\n", *matrixId);
+     PetscPrintf(PETSC_COMM_WORLD, "\tsolve2_%d: create ksp in ksp_array\n", *matrixId);
 
      /* Step 4 */
      ierr = KSPGetPC((ksp_array[whichMatrix].ksp),&pc); CHKERRQ(ierr);
@@ -287,7 +300,34 @@ int solve2_(int *matrixId, double * rhs_sol, int * ier)
   if(flag==1) {
      /* Step 5 */
      ierr = PetscGetTime(&v1); CHKERRQ(ierr); 
-     assemblePetscMatrixNNZs_(matrixId, &valType, &(ksp_array[whichMatrix].A)); 
+#ifdef TODO
+     assemblePetscMatrixNNZs_(matrixId, valType, &(ksp_array[whichMatrix].A)); 
+#else
+      int myrank, size, counter, j;
+      MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+      MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+  // Step 6: put the computed values to the nzval array
+  getMatrixNNZRowSize_(matrixId, valType, &rowSize);
+  counter = 0;
+  for(i=1; i<=rowSize; i++) {
+     getMatrixNNZRowId_(matrixId, valType, &i, &rowId);
+     getMatrixNNZColSize_(matrixId, valType, &rowId, &colSize);
+     colId = malloc(colSize*sizeof(int));
+     values = malloc(colSize*sizeof(double));
+     getMatrixNNZValues_(matrixId, valType, &rowId, colId, values);
+     rowId--;
+        for(j=0; j<colSize; j++) colId[j]--;
+        //if(myrank==0)
+        //for(j=0; j<colSize; j++)
+        //printf("\tsolve2_: %d_matrixId_%d row_%d col_%d\n", myrank, *matrixId, rowId, colId[j]);
+     ierr = MatSetValues((ksp_array[whichMatrix].A),1,&rowId,colSize,&(colId[0]),&(values[0]),INSERT_VALUES);
+     CHKERRQ(ierr);
+     counter += colSize;
+     free(colId);
+     free(values);
+  }
+#endif
      ierr = MatAssemblyBegin((ksp_array[whichMatrix].A),MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
      ierr = MatAssemblyEnd((ksp_array[whichMatrix].A),MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
      ierr = PetscGetTime(&v2); CHKERRQ(ierr);
@@ -314,14 +354,14 @@ int solve2_(int *matrixId, double * rhs_sol, int * ier)
                          (ksp_array[whichMatrix].A),
                          (ksp_array[whichMatrix].A),SAME_NONZERO_PATTERN); CHKERRQ(ierr);
      if(SOLVE2_DEBUG)
-     PetscPrintf(PETSC_COMM_WORLD, "\tsolve2_: new preconditioner for %d at %d\n",
+     PetscPrintf(PETSC_COMM_WORLD, "\tsolve2_%d: new preconditioner at %d\n",
                                *matrixId, ksp_array[whichMatrix].same_pc_count); 
      }else{
      ierr = KSPSetOperators((ksp_array[whichMatrix].ksp),
                          (ksp_array[whichMatrix].A),
                          (ksp_array[whichMatrix].A),SAME_PRECONDITIONER); CHKERRQ(ierr);
      if(SOLVE2_DEBUG)
-     PetscPrintf(PETSC_COMM_WORLD, "\tsolve2_: old preconditioner for %d at %d\n",
+     PetscPrintf(PETSC_COMM_WORLD, "\tsolve2_%d: old preconditioner at %d\n",
                                *matrixId, ksp_array[whichMatrix].same_pc_count); 
      }
   ierr = KSPSetInitialGuessNonzero((ksp_array[whichMatrix].ksp),PETSC_FALSE /*PETSC_TRUE*/);
@@ -335,8 +375,11 @@ int solve2_(int *matrixId, double * rhs_sol, int * ier)
   ierr = KSPGetIterationNumber(ksp_array[whichMatrix].ksp, &its); CHKERRQ(ierr);
   ierr = MatNorm(ksp_array[whichMatrix].A,NORM_1,&norm); CHKERRQ(ierr); 
   ierr = VecNorm(u,NORM_2,&rms); CHKERRQ(ierr); 
-  PetscPrintf(PETSC_COMM_WORLD, "\tsolve2_: %d its_%d rms = %e matnorm = %e\n",
-              *matrixId, its, rms/(float)ksp_array[whichMatrix].numglobaldofs, norm);
+  PetscPrintf(PETSC_COMM_WORLD, "\tsolve2_%d: reuse PC %d times, now %d times, its=%d rms=%e MatStatus_%d\n",
+              *matrixId, MAX_SAME_PC_COUNT,
+              (ksp_array[whichMatrix].same_pc_count)%(MAX_SAME_PC_COUNT),
+              its, rms/(float)ksp_array[whichMatrix].numglobaldofs,
+              flag);
 
   // Step 9: put solution back to rhs_sol
   PetscScalar *value;
@@ -345,12 +388,12 @@ int solve2_(int *matrixId, double * rhs_sol, int * ier)
   ierr = VecRestoreArray(u, &value); CHKERRQ(ierr); 
   
   // Step 10: set back the matrix solution to mesh
-  setMatrixSoln_(matrixId, &valType, rhs_sol);
+  setMatrixSoln_(matrixId, valType, rhs_sol);
   
   /* Step 11: clean the stored data */
   cleanMatrixValues_(matrixId); 
-  ierr = VecDestroy(u); CHKERRQ(ierr);
-  ierr = VecDestroy(b); CHKERRQ(ierr); 
+  ierr = VecDestroy(&u); CHKERRQ(ierr);
+  ierr = VecDestroy(&b); CHKERRQ(ierr); 
   (ksp_array[whichMatrix].same_pc_count)++;
 
   return 0;
@@ -371,11 +414,11 @@ typedef struct
 } HYBRIDSOLVER_ARRAY; 
 // global container
 HYBRIDSOLVER_ARRAY hs_array[MAX_LINEAR_SYSTEM];
-int hybridsolve_(int *matrixId, double *rhs_sol, int *ier)
+int hybridsolve_(int *matrixId, double *rhs_sol, int *valType, int *ier)
 { // local variables
   static int start=0, myrank, size;
   int rowSize, rowId, colSize, *colId;
-  int valType = 0;
+//int valType = 0;
   double *values;
   int i, j, flag, counter, whichMatrix;
 
@@ -485,11 +528,11 @@ int hybridsolve_(int *matrixId, double *rhs_sol, int *ier)
   lrowptr[0] = 1;
   counter = 1;
   lnnz = 0;
-  getMatrixNNZRowSize_(matrixId, &valType, &rowSize);
+  getMatrixNNZRowSize_(matrixId, valType, &rowSize);
   printf("\thybrid_: %d_matrixId_%d rowSize_%d\n", myrank, *matrixId, rowSize);
   for(i=1; i<=rowSize; i++) {
-     getMatrixNNZRowId_(matrixId, &valType, &i, &rowId);
-     getMatrixNNZColSize_(matrixId, &valType, &rowId, &colSize);
+     getMatrixNNZRowId_(matrixId, valType, &i, &rowId);
+     getMatrixNNZColSize_(matrixId, valType, &rowId, &colSize);
      lrowptr[counter] = colSize + lrowptr[counter-1];
      lnnz += colSize;
      //printf("\thybrid_: %d_matrixId_%d row_%d col_%d lrowptr_%d lnnz_%d\n", 
@@ -520,14 +563,14 @@ int hybridsolve_(int *matrixId, double *rhs_sol, int *ier)
 
 
   // Step 6: put the computed values to the nzval array
-  //getMatrixNNZRowSize_(matrixId, &valType, &rowSize);
+  //getMatrixNNZRowSize_(matrixId, valType, &rowSize);
   counter = 0;
   for(i=1; i<=rowSize; i++) {
-     getMatrixNNZRowId_(matrixId, &valType, &i, &rowId);
-     getMatrixNNZColSize_(matrixId, &valType, &rowId, &colSize);
+     getMatrixNNZRowId_(matrixId, valType, &i, &rowId);
+     getMatrixNNZColSize_(matrixId, valType, &rowId, &colSize);
      colId = malloc(colSize*sizeof(int));
      values = malloc(colSize*sizeof(double));
-     getMatrixNNZValues_(matrixId, &valType, &rowId, colId, values);
+     getMatrixNNZValues_(matrixId, valType, &rowId, colId, values);
      //memcpy(lnzval+counter, values, colSize); // copy the nonzeros to the nzval
      //memcpy(lcolind+counter, colId, colSize); // copy the colId to the lcolind
      for(j=0; j<colSize; j++) {
@@ -631,7 +674,7 @@ int hybridsolve_(int *matrixId, double *rhs_sol, int *ier)
       */
   
   // Step 10: set back the matrix solution to mesh
-  setMatrixSoln_(matrixId, &valType, rhs_sol);
+  setMatrixSoln_(matrixId, valType, rhs_sol);
 
   /* Step 11: clean the stored data */
   cleanMatrixValues_(matrixId); 
@@ -645,3 +688,101 @@ int hybridsolve_(int *matrixId, double *rhs_sol, int *ier)
   return 0;
 }
 #endif 
+
+
+
+
+int cjprint_(int *matrixId)
+{ // local variables
+  static int start=0, myrank, mysize;
+  int rowSize, rowId, colSize, *colId;
+  int valType = 0;
+  double *values;
+  int i, j, flag, counter;
+  int n, m, mloc, frow, nnz, lnnz;
+  int *lrowptr, *lcolind;
+  double *lnzval;
+
+                        FILE* fp;
+                        char filename[256];
+
+
+  MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+  MPI_Comm_size(MPI_COMM_WORLD, &mysize);
+                        sprintf(filename,"matrix_%d_%d_%dp.txt", *matrixId, myrank, mysize);
+                        fp = fopen(filename, "w");
+
+  /* Step 1: check the matrix status */
+  checkMatrixStatus_(matrixId, &flag);
+  if(flag==0) return 0; // the matrix does not need to besolved
+  PetscPrintf(PETSC_COMM_WORLD, "\tcjprint_: matrixId_%d status_%d\n", *matrixId, flag); 
+
+  /* Step 2: get the local dofs */
+  getMatrixLocalDofNum_(matrixId, &mloc);
+  getMatrixGlobalDofs_(matrixId, &n );
+  getMatrixGlobalDofs_(matrixId, &m);
+  getMatrixFirstDof_(matrixId, &frow);
+  printf("\tcjprint_: %d_matrixId_%d dim_%d %d %d\n", myrank, *matrixId, n, mloc, frow); 
+
+  // Step 3: allocate memory for rowptr
+  lrowptr = (int *)malloc((unsigned)(mloc+1)*sizeof(int));
+     if(!lrowptr) PetscPrintf(PETSC_COMM_WORLD, "Malloc failed lrowptr.\n");
+
+  // Step 4: set up lrowptr and lnnz, global nnz
+  lrowptr[0] = 1;
+  counter = 1;
+  lnnz = 0;
+  getMatrixNNZRowSize_(matrixId, &valType, &rowSize);
+  printf("\tcjprint_: %d_matrixId_%d rowSize_%d\n", myrank, *matrixId, rowSize);
+  for(i=1; i<=rowSize; i++) {
+     getMatrixNNZRowId_(matrixId, &valType, &i, &rowId);
+     getMatrixNNZColSize_(matrixId, &valType, &rowId, &colSize);
+     lrowptr[counter] = colSize + lrowptr[counter-1];
+     lnnz += colSize;
+     //printf("\tcjprint_: %d_matrixId_%d row_%d col_%d lrowptr_%d lnnz_%d\n", 
+     //       myrank, *matrixId, rowId, colSize, lrowptr[counter], lnnz); 
+     counter++;
+  }
+  /* Combines values from all processes and 
+     distributes the result back to all processes */
+  MPI_Allreduce(&lnnz, &nnz, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  free(lrowptr);
+  PetscPrintf(PETSC_COMM_WORLD, "\tcjprint_: matrixId_%d nnz_%d\n", *matrixId, nnz); 
+
+
+  // Step 5: allocate memory for lnnz
+  lnzval = (double *)malloc((unsigned) (lnnz)*sizeof(double));
+     if(!lnzval) PetscPrintf(PETSC_COMM_WORLD, "Malloc failed nzval.\n");
+  lcolind = (int *)malloc((unsigned) ((lnnz)*sizeof(int)));
+     if(!lcolind) PetscPrintf(PETSC_COMM_WORLD, "Malloc failed colind.\n");
+
+  // Step 6: put the computed values to the nzval array
+  counter = 0;
+  getMatrixNNZRowSize_(matrixId, &valType, &rowSize);
+  for(i=1; i<=rowSize; i++) {
+     getMatrixNNZRowId_(matrixId, &valType, &i, &rowId);
+     getMatrixNNZColSize_(matrixId, &valType, &rowId, &colSize);
+     colId = malloc(colSize*sizeof(int));
+     values = malloc(colSize*sizeof(double));
+     getMatrixNNZValues_(matrixId, &valType, &rowId, colId, values);
+     for(j=0; j<colSize; j++) {
+        lnzval[counter+j]=values[j];
+        lcolind[counter+j]=colId[j];
+        //printf("rank_%d matrixId_%d row_%d col_%d_%d lnzval_%e\n", 
+        //      myrank, *matrixId, rowId, colId[j], lnzval[counter+j]); 
+                        fprintf(fp, "%d   %d   %d   %d   %e\n",
+                        myrank, *matrixId, rowId, colId[j], values[j]);
+     }
+     counter += colSize;
+     free(colId);
+     free(values);
+  }
+  if(counter != lnnz)
+     printf( "The nnz count has difference in %d %d %d ", myrank, counter, lnnz);
+  free(lnzval);
+  free(lcolind); 
+
+                        fclose(fp);
+                        exit(1);
+  return 0;
+}
