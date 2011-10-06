@@ -392,8 +392,8 @@ int solve2_(int *matrixId, double * rhs_sol, int * valType, int * ier)
   
   /* Step 11: clean the stored data */
   cleanMatrixValues_(matrixId); 
-  ierr = VecDestroy(&u); CHKERRQ(ierr);
-  ierr = VecDestroy(&b); CHKERRQ(ierr); 
+  ierr = VecDestroy(u); CHKERRQ(ierr);
+  ierr = VecDestroy(b); CHKERRQ(ierr); 
   (ksp_array[whichMatrix].same_pc_count)++;
 
   return 0;

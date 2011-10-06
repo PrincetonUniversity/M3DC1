@@ -332,7 +332,7 @@ contains
     call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ierr)
     call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-pdslin', flg_pdslin,ierr)
 
-    if(flg_solve2.eq.PETSC_TRUE .and. 
+    if(flg_solve2.eq.PETSC_TRUE .and. &
        (mat%imatrix.eq.5 .or. mat%imatrix.eq.6)) then  ! use pppl petsc
        call solve2(mat%imatrix,v%data,mat%icomplex,ierr)
 
