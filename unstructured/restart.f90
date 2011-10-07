@@ -439,8 +439,11 @@ subroutine wrrestart_adios
   integer                 :: adios_err
   integer*8               :: adios_groupsize, adios_totalsize
   integer*8               :: adios_handle 
-  real, allocatable :: tmp_field_vec(:), tmp_field0_vec(:), tmp_bf_field_1(:), tmp_bf_field_0(:)
+  real, allocatable :: tmp_field_vec(:), tmp_field0_vec(:)
+  real, allocatable :: tmp_bf_field_1(:), tmp_bf_field_0(:)
+  real, allocatable :: tmp_psi_ext(:), tmp_bz_ext(:), tmp_bf_ext(:)
 
+  integer :: useext
 
   if(ntime.lt.2) return
   fname="restart.bp"
@@ -464,6 +467,19 @@ subroutine wrrestart_adios
   tmp_bf_field_1(1:ndofs_2)= bf_field(1)%vec%data(1:ndofs_2)
   tmp_bf_field_0(1:ndofs_2) = bf_field(0)%vec%data(1:ndofs_2)
 
+  allocate(tmp_psi_ext(ndofs_2))
+  allocate(tmp_bz_ext(ndofs_2))
+  allocate(tmp_bf_ext(ndofs_2))
+  if(use_external_fields) then
+     tmp_psi_ext(1:ndofs_2)= psi_ext%vec%data(1:ndofs_2)
+     tmp_bz_ext(1:ndofs_2) = bz_ext%vec%data(1:ndofs_2)
+     tmp_bf_ext(1:ndofs_2) = bf_ext%vec%data(1:ndofs_2)
+     useext = 1
+  else
+     useext = 0
+  end if
+
+
     call MPI_Comm_dup (MPI_COMM_WORLD, comm, ierr) 
 #ifdef USECOMPLEX
     call adios_init ("m3dc1_cplx.xml", adios_err)
@@ -484,7 +500,8 @@ subroutine wrrestart_adios
       write(*,*) "OUTPUT: wrrestart_adios groupsize totalsize", &
                   adios_groupsize, adios_totalsize
 
-  deallocate(tmp_field_vec, tmp_field0_vec, tmp_bf_field_1, tmp_bf_field_0)
+  deallocate(tmp_field_vec, tmp_field0_vec, tmp_bf_field_1, tmp_bf_field_0, &
+       tmp_psi_ext, tmp_bz_ext, tmp_bf_ext)
 
 #endif
 end subroutine wrrestart_adios
@@ -515,7 +532,9 @@ subroutine rdrestart_adios
   integer                 :: adios_err
   integer*8               :: adios_groupsize, adios_totalsize
   integer*8               :: adios_handle, adios_buf_size
-  real, allocatable :: tmp_field_vec(:), tmp_field0_vec(:), tmp_bf_field_1(:), tmp_bf_field_0(:)
+  real, allocatable :: tmp_field_vec(:), tmp_field0_vec(:)
+  real, allocatable :: tmp_bf_field_1(:), tmp_bf_field_0(:)
+  real, allocatable :: tmp_psi_ext(:), tmp_bz_ext(:), tmp_bf_ext(:)
 
   !!! ADIOS variables for reading 
   integer*8                    :: fh, gh          ! file handler and group handler
@@ -529,6 +548,7 @@ subroutine rdrestart_adios
   integer                      :: vartype, ndim, timedim ! adios_inq_var()
   integer*8, dimension(2)      :: dims                   ! adios_inq_var()
   integer                      :: elemsize               ! double complex or double
+  integer :: iuseext
 
 
   fname="restart.bp"
@@ -593,6 +613,7 @@ subroutine rdrestart_adios
     call adios_read_local_var (gh, "myrank",     myrank, start, readsize, imyrank, read_bytes)
     call adios_read_local_var (gh, "maxrank",    myrank, start, readsize, imaxrank, read_bytes)
     call adios_read_local_var (gh, "eqsubtract", myrank, start, readsize, ieqsubtract, read_bytes)
+    call adios_read_local_var (gh, "useext",     myrank, start, readsize, iuseext, read_bytes)
     call adios_read_local_var (gh, "linear",     myrank, start, readsize, ilinear, read_bytes)
     call adios_read_local_var (gh, "icomplex",   myrank, start, readsize, icomp, read_bytes)
     call adios_read_local_var (gh, "ntime",      myrank, start, readsize, ntime, read_bytes)
@@ -634,6 +655,9 @@ subroutine rdrestart_adios
   allocate(tmp_field0_vec(ndofs_1)) 
   allocate(tmp_bf_field_1(ndofs_2))
   allocate(tmp_bf_field_0(ndofs_2)) 
+  allocate(tmp_psi_ext(ndofs_2))
+  allocate(tmp_bz_ext(ndofs_2))
+  allocate(tmp_bf_ext(ndofs_2))
 
     ! Check types of the array variables
     call adios_inq_var (gh, "tmp_field_vec", vartype, ndim, dims, timedim, adios_err)
@@ -681,6 +705,24 @@ subroutine rdrestart_adios
          write(*,*) 'Size mismatch at reading tmp_bf_field_1!', read_bytes, elemsize*ndofs_2
          call safestop(2)
     endif
+
+    call adios_read_local_var (gh, "tmp_psi_ext", myrank, start, readsize, tmp_psi_ext, read_bytes)
+    if (read_bytes .ne. elemsize*ndofs_2) then 
+         write(*,*) 'Size mismatch at reading tmp_psi_ext!', read_bytes, elemsize*ndofs_2
+         call safestop(2)
+    endif
+
+    call adios_read_local_var (gh, "tmp_bz_ext", myrank, start, readsize, tmp_bz_ext, read_bytes)
+    if (read_bytes .ne. elemsize*ndofs_2) then 
+         write(*,*) 'Size mismatch at reading tmp_bz_ext!', read_bytes, elemsize*ndofs_2
+         call safestop(2)
+    endif
+
+    call adios_read_local_var (gh, "tmp_bf_ext", myrank, start, readsize, tmp_bf_ext, read_bytes)
+    if (read_bytes .ne. elemsize*ndofs_2) then 
+         write(*,*) 'Size mismatch at reading tmp_bf_ext!', read_bytes, elemsize*ndofs_2
+         call safestop(2)
+    endif
     
     !! Close group and file
     call MPI_Barrier (comm, ierr)
@@ -707,13 +749,26 @@ subroutine rdrestart_adios
      field0_vec%data = field0_vec%data + field_vec%data
      field_vec%data = 0.
   endif 
-      bf_field(1)%vec%data(1:ndofs_2) = tmp_bf_field_1(1:ndofs_2)
-      bf_field(0)%vec%data(1:ndofs_2) = tmp_bf_field_0(1:ndofs_2) 
+
+  bf_field(1)%vec%data(1:ndofs_2) = tmp_bf_field_1(1:ndofs_2)
+  bf_field(0)%vec%data(1:ndofs_2) = tmp_bf_field_0(1:ndofs_2) 
+
+  if(iuseext.eq.1) then 
+     use_external_fields = .true.
+     call create_field(psi_ext)
+     call create_field(bz_ext)
+     call create_field(bf_ext)
+     psi_ext%vec%data(1:ndofs_2) = tmp_psi_ext(1:ndofs_2)
+     bz_ext%vec%data(1:ndofs_2) = tmp_bz_ext(1:ndofs_2)
+     bf_ext%vec%data(1:ndofs_2) = tmp_bf_ext(1:ndofs_2)
+  end if
+
 
 !  if(myrank.eq.0) &
 !      write(*,*) "INPUT: rdrestart_adios buf_size groupsize totalsize", &
 !                 adios_buf_size, adios_groupsize, adios_totalsize
 
-  deallocate(tmp_field_vec, tmp_field0_vec, tmp_bf_field_1, tmp_bf_field_0) 
+  deallocate(tmp_field_vec, tmp_field0_vec, tmp_bf_field_1, tmp_bf_field_0, &
+       tmp_psi_ext, tmp_bz_ext, tmp_bf_ext) 
 #endif
 end subroutine rdrestart_adios

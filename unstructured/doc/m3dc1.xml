@@ -11,6 +11,7 @@
        <var name="myrank" gread="imyrank" type="integer"/>
        <var name="maxrank" gread="imaxrank" type="integer"/>
        <var name="eqsubtract" gread="ieqsubtract" type="integer"/>
+       <var name="useext" gread="iuseext" type="integer"/>
        <var name="linear" gread="ilinear" type="integer"/>
        <var name="icomplex" gread="icomp" type="integer"/>
 
@@ -36,6 +37,15 @@
 
        <var name="tmp_bf_field_1"  type="double" dimensions="ndofs_2"/>
        <var name="tmp_bf_field_0"  type="double" dimensions="ndofs_2"/>
+
+       <var name="tmp_psi_ext"  type="double" dimensions="ndofs_2"/>
+       <var name="tmp_psi_ext"  type="double" dimensions="ndofs_2"/>
+
+       <var name="tmp_bz_ext"  type="double" dimensions="ndofs_2"/>
+       <var name="tmp_bz_ext"  type="double" dimensions="ndofs_2"/>
+
+       <var name="tmp_bf_ext"  type="double" dimensions="ndofs_2"/>
+       <var name="tmp_bf_ext"  type="double" dimensions="ndofs_2"/>
    </adios-group>
 
 <method group="restart"  method="MPI_AMR"/>
