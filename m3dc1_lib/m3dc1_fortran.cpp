@@ -1,6 +1,7 @@
 #include "m3dc1_file.h"
 
 #include <deque>
+#include <iostream>
 
 static m3dc1_file file;
 static m3dc1_field *psi, *g, *f, *psi0, *g0;
@@ -265,5 +266,37 @@ extern "C" void m3dc1_get_field_(const double* R, const double* Phi, const doubl
 {
   int ierr;
   m3dc1_eval_magnetic_field_(R, Phi, Z, Br, Bphi, Bz, &ierr);
+}
+
+extern "C" void m3dc1_get_num_timesteps_(int* n, int* ierr)
+{
+  m3dc1_scalar_list* scalar_list = file.read_scalar("time");
+
+  if(!scalar_list) {
+    *ierr = 1;
+    return;
+  }
+
+  *n = scalar_list->size();
+  *ierr = 0;
+}
+
+extern "C" void m3dc1_read_scalar_(const char* name, double* scalar, 
+				   const int* n, int* ierr)
+{
+  m3dc1_scalar_list* scalar_list = file.read_scalar(name);
+
+  *ierr = 0;
+
+  if(!scalar_list) {
+    *ierr = 1;
+    return;
+  }
+
+  int sz = scalar_list->size();
+  if(sz > *n) sz = *n;
+
+  for(int i=0; i<sz; i++)
+    scalar[i] = scalar_list->at(i);
 }
 

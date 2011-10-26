@@ -11,7 +11,7 @@ OBJS = interpolate.o trace_source.o interpolation_source.o \
 	diiid_coils.o trace_integrator.o
 
 trace : main.o libtrace.a
-	$(LD) $(LDFLAGS) $< -L. -ltrace $(LIBS) -o $@
+	$(F90) $(LDFLAGS) $< -L. -ltrace $(LIBS) -o $@
 
 libtrace.a : $(OBJS)
 	$(ARCH) $@ $(OBJS) 
