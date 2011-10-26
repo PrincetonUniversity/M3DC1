@@ -730,3 +730,89 @@ pro plot_slice, data, x, y, z, value=value, normal=normal, itor=itor, $
 
    tv, polyshade(q, ppp, /t3d, shades=reform(shades))
 end
+
+pro split_plot, x, y, xrange=xrange, yrange=yrange, xlog=xlog, xtitle=xtitle, $
+                linestyle=linestyle,  _EXTRA=extra
+   sz = size(x)
+
+   if(n_elements(xtitle) ne 0) then begin
+       xtp = xtitle
+       xtn = '!6-!X' + xtitle
+   endif else begin
+       xtp = ''
+       xtn = ''
+   endelse
+
+   if(n_elements(yrange) eq 0) then begin
+       yrange = [min(y), max(y)]
+   end
+
+   if(keyword_set(xlog)) then begin
+       !p.multi = [0,2,1]
+       if(n_elements(xrange) eq 0) then begin
+           xrange = [min(abs(x)), max(abs(x))]
+       end
+
+       if(sz[0] eq 1) then begin
+           j = where(x lt 0, count)
+           if(count gt 0) then begin
+               plot, -x[j], y[j], xrange=reverse(xrange), yrange=yrange, $
+                 /xlog, xtitle=xtn, _EXTRA=extra
+           end
+           j = where(x gt 0, count)
+           if(count gt 0) then begin
+               plot, x[j], y[j], xrange=xrange, yrange=yrange, $
+                 /xlog, xtitle=xtp, _EXTRA=extra
+           end      
+       endif else begin
+           if(n_elements(linestyle) eq 0) then begin
+               linestyle = replicate(0, sz[2])
+           end
+           c = shift(colors(),-1)
+           plot, [0,0], [0,0], /nodata, xrange=reverse(xrange), yrange=yrange, $
+             /xlog, xtitle=xtn, _EXTRA=extra
+           for i=0, sz[2]-1 do begin
+               j = where(x[*,i] lt 0, count)
+               print, 'j = ', j
+               if(count gt 0) then begin
+                   oplot, -x[j,i], y[j,i], color=c[i], linestyle=linestyle[i], $
+                     _EXTRA=extra
+               end
+           end
+           plot, [0,0], [0,0], /nodata, xrange=xrange, yrange=yrange, $
+             /xlog, xtitle=xtp, _EXTRA=extra
+           for i=0, sz[2]-1 do begin
+               j = where(x[*,i] gt 0, count)
+               if(count gt 0) then begin
+                   oplot, x[j,i], y[j,i], color=c[i], linestyle=linestyle[i], $
+                     _EXTRA=extra
+               end
+           end
+       endelse
+       
+   endif else begin
+
+       if(n_elements(xrange) eq 0) then begin
+           xrange = [min(x), max(x)]
+       end
+
+       if(sz[0] eq 1) then begin
+           plot, x, y, xrange=xrange, yrange=yrange, $
+             xtitle=xtp, _EXTRA=extra
+       endif else begin
+           if(n_elements(linestyle) eq 0) then begin
+               linestyle = replicate(0, sz[2])
+           end
+           c = shift(colors(),-1)
+
+           plot, [0,0], [0,0], /nodata, xrange=xrange, yrange=yrange, $
+             xtitle=xtp, _EXTRA=extra
+           for i=0, sz[2]-1 do begin
+               oplot, x[*,i], y[*,i], color=c[i], linestyle=linestyle[i], $
+                 _EXTRA=extra
+           end
+       endelse
+   endelse
+
+   !p.multi = 0
+end
