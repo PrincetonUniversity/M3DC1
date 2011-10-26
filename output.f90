@@ -767,6 +767,47 @@ subroutine output_fields(time_group_id, equilibrium, error)
   nfields = nfields + 1
 #endif
 
+  if(use_external_fields) then 
+     ! psi_ext
+     do i=1, nelms
+        call calcavector(i, psi_ext, dum(:,i))
+     end do
+     call output_field(group_id, "psi_ext", real(dum), coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id, "psi_ext_i",aimag(dum),coeffs_per_element,&
+          nelms, error)
+     nfields = nfields + 1
+#endif
+     
+     ! bz_ext
+     do i=1, nelms
+        call calcavector(i, bz_ext, dum(:,i))
+     end do
+     call output_field(group_id, "i_ext", real(dum), coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id, "i_ext_i",aimag(dum),coeffs_per_element,&
+          nelms, error)
+     nfields = nfields + 1
+#endif
+     
+     ! bf_ext
+     do i=1, nelms
+        call calcavector(i, bf_ext, dum(:,i))
+     end do
+     call output_field(group_id, "f_ext", real(dum), coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id, "f_ext_i",aimag(dum),coeffs_per_element,&
+          nelms, error)
+     nfields = nfields + 1
+#endif
+  endif
+
   if(iwrite_transport_coeffs.eq.1) then
      ! eta
      do i=1, nelms
@@ -885,47 +926,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
         nfields = nfields + 1
      endif
 
-     if(use_external_fields) then 
-        ! psi_ext
-        do i=1, nelms
-           call calcavector(i, psi_ext, dum(:,i))
-        end do
-        call output_field(group_id, "psi_ext", real(dum), coeffs_per_element, &
-             nelms, error)
-        nfields = nfields + 1
-#ifdef USECOMPLEX
-        call output_field(group_id, "psi_ext_i",aimag(dum),coeffs_per_element,&
-             nelms, error)
-        nfields = nfields + 1
-#endif
-
-        ! bz_ext
-        do i=1, nelms
-           call calcavector(i, bz_ext, dum(:,i))
-        end do
-        call output_field(group_id, "i_ext", real(dum), coeffs_per_element, &
-             nelms, error)
-        nfields = nfields + 1
-#ifdef USECOMPLEX
-        call output_field(group_id, "i_ext_i",aimag(dum),coeffs_per_element,&
-             nelms, error)
-        nfields = nfields + 1
-#endif
-
-        ! bf_ext
-        do i=1, nelms
-           call calcavector(i, bf_ext, dum(:,i))
-        end do
-        call output_field(group_id, "f_ext", real(dum), coeffs_per_element, &
-             nelms, error)
-        nfields = nfields + 1
-#ifdef USECOMPLEX
-        call output_field(group_id, "f_ext_i",aimag(dum),coeffs_per_element,&
-             nelms, error)
-        nfields = nfields + 1
-#endif
-     endif
-
      if(xray_detector_enabled) then 
         ! chord_mask
         do i=1, nelms
@@ -936,7 +936,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
         nfields = nfields + 1
      end if
   endif
-
 
 !!$  if(equilibrium.eq.1) then
 !!$     ! partition
