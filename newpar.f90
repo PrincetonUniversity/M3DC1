@@ -96,6 +96,9 @@ Program Reducedquintic
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh'
   call load_mesh
 
+!  call print_node_data
+!  call safestop(1)
+
   ! allocate arrays
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Allocating arrays'
   call space(1)

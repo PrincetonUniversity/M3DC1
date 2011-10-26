@@ -852,8 +852,28 @@ function eval, field, localpos, theta, elm, operation=op
               temp = temp $
               + co*ni[p]*localpos[0]^mi[p]*localpos[1]^(ni[p]-1)
            end
-        4:
-        5:
+        4: begin
+            if(mi[p] ge 2) then $
+              temp = temp $
+              + co*co*mi[p]*(mi[p]-1)*localpos[0]^(mi[p]-2)*localpos[1]^ni[p]
+            if(ni[p] ge 2) then $
+              temp = temp $
+              + sn*sn*ni[p]*(ni[p]-1)*localpos[0]^mi[p]*localpos[1]^(ni[p]-2)
+            if(mi[p] ge 1 and ni[p] ge 1) then $
+              temp = temp $
+              -2.*co*sn*ni[p]*mi[p]*localpos[0]^(mi[p]-1)*localpos[1]^(ni[p]-1)
+           end
+        6: begin
+            if(mi[p] ge 2) then $
+              temp = temp $
+              + sn*sn*mi[p]*(mi[p]-1)*localpos[0]^(mi[p]-2)*localpos[1]^ni[p]
+            if(ni[p] ge 2) then $
+              temp = temp $
+              + co*co*ni[p]*(ni[p]-1)*localpos[0]^mi[p]*localpos[1]^(ni[p]-2)
+            if(mi[p] ge 1 and ni[p] ge 1) then $
+              temp = temp $
+              +2.*co*sn*ni[p]*mi[p]*localpos[0]^(mi[p]-1)*localpos[1]^(ni[p]-1)
+           end
         7: begin
             if(mi[p] ge 2) then $
               temp = temp + $
@@ -1382,23 +1402,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        symbol = '!7b!X'
 
    ;===========================================
-   ; normalized flux
-   ;===========================================
-;    endif else if(strcmp('normalized flux', name, /fold_case) eq 1) or $
-;      (strcmp('npsi', name, /fold_case) eq 1) then begin
-       
-;        psi = read_field('psi',x,y,t,slices=time, mesh=mesh, filename=filename,$
-;                       points=pts, rrange=xrange, zrange=yrange, $
-;                       /equilibrium)
-
-;        psilim = lcfs(psi, x, z, flux0=flux0)
-   
-;        data = (psi - flux0)/(psilim - flux0)
-;        symbol = '!7W!X'
-;        d = dimensions(_EXTRA=extra)
-
-
-   ;===========================================
    ; toroidal field
    ;===========================================
    endif else if(strcmp('toroidal field', name, /fold_case) eq 1) or $
@@ -1423,7 +1426,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
      (strcmp('vz', name, /fold_case) eq 1) then begin
        
        v = read_field('V',x,y,t,slices=time, mesh=mesh, filename=filename, $
-                        points=pts,rrange=xrange,zrange=yrange)
+                        points=pts,rrange=xrange,zrange=yrange, $
+                     linear=linear,complex=complex,phi=phi0)
 
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
@@ -1661,10 +1665,12 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        lp = read_field('psi', x, y, t, slices=time, mesh=mesh, op=7, $
                          filename=filename, points=pts, mask=mask, $
-                         rrange=xrange, zrange=yrange, linear=linear)
+                         rrange=xrange, zrange=yrange, linear=linear, $
+                      complex=complex,phi=phi0)
        psir = read_field('psi', x, y, t, slices=time, mesh=mesh, op=2, $
                          filename=filename, points=pts, mask=mask, $
-                         rrange=xrange, zrange=yrange, linear=linear)
+                         rrange=xrange, zrange=yrange, linear=linear, $
+                        complex=complex,phi=phi0)
 
 
        if(itor eq 1) then begin
@@ -2011,7 +2017,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
           phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
                            filename=filename, points=pts, mask=mask, $
-                           rrange=xrange, zrange=yrange, phi=phi0)
+                           rrange=xrange, zrange=yrange, $
+                           complex=complex,phi=phi0)
 
           data = grad_shafranov(phi,x,y,tor=itor)
           symbol = translate('vor', units=d, itor=itor)
@@ -2023,7 +2030,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
          chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
                           filename=filename, points=pts, mask=mask, $
-                          rrange=xrange, zrange=yrange, phi=phi0)
+                          rrange=xrange, zrange=yrange, complex=complex, $
+                          phi=phi0)
 
          data = laplacian(chi,x,y,tor=itor)
          symbol = translate('com', units=d, itor=itor)
@@ -2036,15 +2044,15 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
           psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                            filename=filename, points=pts, mask=mask, $
                            rrange=xrange, zrange=yrange, phi=phi0, $
-                            /complex, linear=linear)
+                            complex=complex, linear=linear)
           i = read_field('i', x, y, t, slices=time, mesh=mesh, $
                            filename=filename, points=pts, mask=mask, $
                            rrange=xrange, zrange=yrange, phi=phi0, $
-                            /complex, linear=linear)
+                            complex=complex, linear=linear)
           f = read_field('f', x, y, t, slices=time, mesh=mesh, $
                            filename=filename, points=pts, mask=mask, $
                            rrange=xrange, zrange=yrange, phi=phi0, $
-                            /complex, linear=linear)
+                            complex=complex, linear=linear)
 
           r = radius_matrix(x,y,t)
 
@@ -2103,13 +2111,16 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        v = read_field('v', x, y, t, slices=time, mesh=mesh, complex=complex, $
                       filename=filename, points=pts, linear=linear, $
-                      rrange=xrange, zrange=yrange)
+                      rrange=xrange, zrange=yrange, op=op, phi=phi0)
 
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
        endif else r = 1.
 
        if(ivform eq 0) then begin
+           if(n_elements(op) ne 0) then begin
+               print, 'Warning: using op on omega'
+           end
            data = v/r^2
        endif else if(ivform eq 1) then begin
            data = v
@@ -2461,8 +2472,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('bx', name, /fold_case) eq 1) then begin
 
-       ntor = read_parameter('ntor', filename=filename)
-
        psi_z = read_field('psi', x, y, t, mesh=mesh, operation=3, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange, complex=complex, $
@@ -2493,8 +2502,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ; Vertical field
    ;===========================================
    endif else if(strcmp('by', name, /fold_case) eq 1) then begin
-
-       ntor = read_parameter('ntor', filename=filename)
 
        psi_r = read_field('psi', x, y, t, mesh=mesh, operation=2, $
                         filename=filename, points=pts, slices=time, $
@@ -2769,7 +2776,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        
        r = radius_matrix(x,y,t)
        b0 = s_bracket(psi,psi,x,y)/r^2 + i0^2/r^2
-       data = abs((s_bracket(i,i0,x,y)/r^2 - jphi*i0/r^2)/b0)
+       data = (s_bracket(i,psi,x,y)/r^2 - jphi*i0/r^2)/b0
 
        symbol = '!3|!8J!D!3||!6!N/!8B!3|!X'
        d = dimensions(j0=1,b0=-1,_EXTRA=extra)
@@ -2802,6 +2809,129 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        symbol = '!6Particle Flux!X'
 
    ;===========================================
+   ; dbndt
+   ;===========================================
+   endif else if(strcmp('dbndt', name, /fold_case) eq 1) then begin
+
+;        psi0 = read_field('psi',x,y,t,slices=time,mesh=mesh, linear=linear,  $
+;                          filename=filename, points=pts, /equilibrium, $
+;                          rrange=xrange, zrange=yrange)
+       psi0_r = read_field('psi',x,y,t,slices=time,mesh=mesh,linear=linear,  $
+                           filename=filename, points=pts, /equilibrium, $
+                           rrange=xrange, zrange=yrange,op=2)
+       psi0_z = read_field('psi',x,y,t,slices=time,mesh=mesh,linear=linear,  $
+                           filename=filename, points=pts, /equilibrium, $
+                           rrange=xrange, zrange=yrange,op=3)
+       i0 = read_field('i', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                       filename=filename, points=pts, /equilibrium, $
+                       rrange=xrange, zrange=yrange)
+       i0_r = read_field('i',x,y,t, slices=time, mesh=mesh, linear=linear,  $
+                         filename=filename, points=pts, /equilibrium, $
+                         rrange=xrange, zrange=yrange,op=2)
+       i0_z = read_field('i', x,y,t, slices=time, mesh=mesh, linear=linear,  $
+                         filename=filename, points=pts, /equilibrium, $
+                         rrange=xrange, zrange=yrange,op=3)
+       w0 = read_field('omega',x,y,t,slices=time, mesh=mesh, linear=linear,  $
+                       filename=filename, points=pts, /equilibrium, $
+                       rrange=xrange, zrange=yrange)
+
+       psi = read_field('psi',x,y,t, slices=time, mesh=mesh, linear=linear,  $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange)
+       i = read_field('i', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                      filename=filename, points=pts, complex=complex, $
+                      rrange=xrange, zrange=yrange)
+       f = read_field('f', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                      filename=filename, points=pts, complex=complex, $
+                      rrange=xrange, zrange=yrange)
+       u = read_field('phi', x,y,t, slices=time, mesh=mesh, linear=linear,  $
+                      filename=filename, points=pts, complex=complex, $
+                      rrange=xrange, zrange=yrange)
+;        w = read_field('omega', x,y,t, slices=time, mesh=mesh, linear=linear,$
+;                       filename=filename, points=pts, complex=complex, $
+;                       rrange=xrange, zrange=yrange)
+;        chi = read_field('chi',x,y,t, slices=time, mesh=mesh, linear=linear,$
+;                         filename=filename, points=pts, complex=complex, $
+;                         rrange=xrange, zrange=yrange)
+       w_r = read_field('omega', x,y,t,slices=time, mesh=mesh, linear=linear,$
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange,op=2)
+       w_z = read_field('omega', x,y,t,slices=time, mesh=mesh, linear=linear,$
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange,op=3)
+       chi_lp = read_field('chi',x,y,t,slices=time, mesh=mesh, linear=linear,$
+                           filename=filename, points=pts, complex=complex, $
+                           rrange=xrange, zrange=yrange,op=7)
+       chi_r = read_field('chi',x,y,t, slices=time, mesh=mesh, linear=linear,$
+                          filename=filename, points=pts, complex=complex, $
+                          rrange=xrange, zrange=yrange,op=2)
+       chi_z = read_field('chi',x,y,t, slices=time, mesh=mesh, linear=linear,$
+                          filename=filename, points=pts, complex=complex, $
+                          rrange=xrange, zrange=yrange,op=3)
+
+       
+       if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
+       rfac = complex(0., ntor)
+
+        data = -(i0*(chi_lp - chi_r/r)/r^2 $
+                 + (i0_r*chi_r + i0_z*chi_z)/r^2 - 2.*i0*chi_r/r^3 $
+                 + r^2*w0*grad_shafranov(rfac*f,x,y,tor=itor) $
+                 + s_bracket(w0*r^2,rfac*f,x,y))/r $
+          - a_bracket(i0,u,x,y) $
+          + a_bracket(w0,psi,x,y) $
+          + (w_z*psi0_r - w_r*psi0_z)
+
+;         data = -(i0*grad_shafranov(chi,x,y,tor=itor)/r^2 $
+;                  + s_bracket(i0/r^2,chi,x,y) $
+;                  + r^2*w0*grad_shafranov(rfac*f,x,y,tor=itor) $
+;                  + s_bracket(w0*r^2,rfac*f,x,y))/r $
+;           - a_bracket(i0,u,x,y) $
+;           + a_bracket(w0,psi,x,y) $
+;           + a_bracket(w,psi0,x,y)
+
+
+;       data = a_bracket(psi0, r*a_bracket(u, psi0, x, y) $
+;                        - s_bracket(chi, psi0, x, y)/r^2, x, y)/r $
+;         - w0*a_bracket(psi0, rfac*psi, x, y)/r $
+;         + i0*a_bracket(psi0, rfac*u, x, y)/r $
+;         + w0*s_bracket(psi0, rfac^2*f, x, y) $
+;         + i0*s_bracket(psi0, rfac*chi, x, y)/r^4
+;       data = data / sqrt(s_bracket(psi0,psi0,x,y))
+       d = dimensions(/b0, t0=-1)
+       symbol = '!6Curl[VxB]!X'
+
+   ;===========================================
+   ; curletaj
+   ;===========================================
+   endif else if(strcmp('curletaj', name, /fold_case) eq 1) then begin
+
+       eta = read_field('eta',x,y,t,slices=time, mesh=mesh, linear=linear,  $
+                        filename=filename, points=pts, /equilibrium, $
+                        rrange=xrange, zrange=yrange)
+
+       psi = read_field('psi',x,y,t, slices=time, mesh=mesh, linear=linear,  $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange)
+       i = read_field('i', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                      filename=filename, points=pts, complex=complex, $
+                      rrange=xrange, zrange=yrange)
+       f = read_field('f', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                      filename=filename, points=pts, complex=complex, $
+                      rrange=xrange, zrange=yrange)
+       
+       if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
+       rfac = complex(0., ntor)
+       
+
+       data = - s_bracket(eta, i + rfac^2*f, x, y)/r $
+         - eta*grad_shafranov(i + rfac^2*f, x, y, tor=itor)/r $
+         + a_bracket(eta/r^2, rfac*psi, x, y)
+
+       d = dimensions(/b0, t0=-1)
+       symbol = '!6Curl[eta J]!X'
+
+
+   ;===========================================
    ; toroidal angular momentum flux
    ;===========================================
    endif else if(strcmp('torque_b2', name, /fold_case) eq 1) then begin
@@ -2828,25 +2958,90 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
        rfac = complex(0., ntor)
 
-;         data = -(psi_r*conj(rfac*psi_r) + psi_z*conj(rfac*psi_z))/r^2 $
-;           -     (conj(psi_r)*(rfac*psi_r) + conj(psi_z)*(rfac*psi_z))/r^2 $
-;           + (conj(rfac*f_z)*(rfac*psi_r) - conj(rfac*f_r)*(rfac*psi_z))/r $
-;           + ((rfac*f_z)*conj(rfac*psi_r) - (rfac*f_r)*conj(rfac*psi_z))/r $
-;           + (conj(i_z+rfac^2*f_z)*psi_r - conj(i_r+rfac^2*f_r)*psi_z)/r $
-;           + ((i_z+rfac^2*f_z)*conj(psi_r) - (i_r+rfac^2*f_r)*conj(psi_z))/r $
-;           - (conj(i_r+rfac^2*f_r)*(rfac*f_r) + conj(i_z+rfac^2*f_z)*(rfac*f_z)) $
-;           - ((i_r+rfac^2*f_r)*conj(rfac*f_r) + $
-;             (i_z+rfac^2*f_z)*conj(rfac*f_z))
+         data = -(psi_r*conj(rfac*psi_r) + psi_z*conj(rfac*psi_z))/r^2 $
+           -     (conj(psi_r)*(rfac*psi_r) + conj(psi_z)*(rfac*psi_z))/r^2 $
+           + (conj(rfac*f_z)*(rfac*psi_r) - conj(rfac*f_r)*(rfac*psi_z))/r $
+           + ((rfac*f_z)*conj(rfac*psi_r) - (rfac*f_r)*conj(rfac*psi_z))/r $
+           + (conj(i_z+rfac^2*f_z)*psi_r - conj(i_r+rfac^2*f_r)*psi_z)/r $
+           + ((i_z+rfac^2*f_z)*conj(psi_r) - (i_r+rfac^2*f_r)*conj(psi_z))/r $
+           - (conj(i_r+rfac^2*f_r)*(rfac*f_r) + conj(i_z+rfac^2*f_z)*(rfac*f_z)) $
+           - ((i_r+rfac^2*f_r)*conj(rfac*f_r) + $
+             (i_z+rfac^2*f_z)*conj(rfac*f_z))
 
-       data = (conj(i_z)*psi_r - conj(i_r)*psi_z)/r $
-          - (conj(i_r)*(rfac*f_r) + conj(i_z)*(rfac*f_z)) $
-          + (i_z*conj(psi_r) - i_r*conj(psi_z))/r $
-          - (i_r*conj(rfac*f_r) + i_z*conj(rfac*f_z))
+;        data = (conj(i_z)*psi_r - conj(i_r)*psi_z)/r $
+;           - (conj(i_r)*(rfac*f_r) + conj(i_z)*(rfac*f_z)) $
+;           + (i_z*conj(psi_r) - i_r*conj(psi_z))/r $
+;           - (i_r*conj(rfac*f_r) + i_z*conj(rfac*f_z))
 
        data = data / 2.
        
        d = dimensions(/p0)
        symbol = '!6Magnetic Torque!X'
+
+
+   ;===========================================
+   ; toroidal angular momentum flux
+   ;===========================================
+   endif else if(strcmp('torque_b1', name, /fold_case) eq 1) then begin
+
+        psi0_r = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange, op=2)
+        psi0_z = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange, op=3)
+        i0_r = read_field('i', x, y, t, /equilibrium, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange, op=2)
+        i0_z = read_field('i', x, y, t, /equilibrium, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange, op=3)
+        psi_r = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                           linear=linear,  $
+                         filename=filename, points=pts, complex=complex, $
+                         rrange=xrange, zrange=yrange, op=2)
+        psi_z = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                           linear=linear,  $
+                           filename=filename, points=pts, complex=complex, $
+                           rrange=xrange, zrange=yrange, op=3)
+        i_r = read_field('i', x, y, t, slices=time, mesh=mesh, $
+                           linear=linear,  $
+                         filename=filename, points=pts, complex=complex, $
+                         rrange=xrange, zrange=yrange, op=2)
+        i_z = read_field('i', x, y, t, slices=time, mesh=mesh, $
+                           linear=linear,  $
+                           filename=filename, points=pts, complex=complex, $
+                           rrange=xrange, zrange=yrange, op=3)
+        f_r = read_field('f', x, y, t, slices=time, mesh=mesh, linear=linear, $
+                         filename=filename, points=pts, complex=complex, $
+                         rrange=xrange, zrange=yrange, op=2)
+        f_z = read_field('f', x, y, t, slices=time, mesh=mesh, linear=linear, $
+                         filename=filename, points=pts, complex=complex, $
+                         rrange=xrange, zrange=yrange, op=3)
+
+       if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
+       rfac = complex(0., ntor)
+ 
+       data = -(psi0_r*(rfac*psi_r) + psi0_z*(rfac*psi_z))/r^2 $
+         + ((i_z + rfac^2*f_z)*psi0_r - (i_r + rfac^2*f_r)*psi0_z)/r $
+         + (i0_z*psi_r - i0_r*psi_z)/r $
+         - (i0_r*rfac*f_r + i0_z*rfac*f_z)
+       
+       d = dimensions(/p0)
+       symbol = '!7s!X'
+
+   endif else if(strcmp('torque_p', name, /fold_case) eq 1) then begin
+
+       p = read_field('p', x, y, t, slices=time, mesh=mesh, linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange)
+       
+       rfac = complex(0., ntor)
+
+       data = -rfac*p
+       
+       d = dimensions(/p0)
+       symbol = '!7s!X'
 
    ;===========================================
    ; toroidal angular momentum flux
@@ -2854,10 +3049,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    endif else if(strcmp('torque_mu', name, /fold_case) eq 1) then begin
 
        mu = read_field('visc', x, y, t, slices=time,mesh=mesh,linear=linear, $
-                        filename=filename, points=pts, complex=complex, $
+                        filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange,/equilibrium)
-       psi0 = read_field('psi', x, y, t, slices=time,mesh=mesh,linear=linear, $
-                        filename=filename, points=pts, complex=complex, $
+       mu_c = read_field('visc_c',x,y,t, slices=time,mesh=mesh,linear=linear, $
+                        filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange,/equilibrium)
 
        w = read_field('omega', x, y, t, slices=time,mesh=mesh,linear=linear, $
@@ -2866,7 +3061,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
 
-       data = r^2*s_bracket(psi0,w,x,y)
+       data = mu*grad_shafranov(r^2*w,x,y,tor=itor) $
+         + r^2*s_bracket(mu,w,x,y)
 
        if(ntor ne 0) then begin
            u = read_field('phi',x,y,t,slices=time, mesh=mesh, linear=linear, $
@@ -2875,45 +3071,43 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            chi = read_field('chi',x,y,t,slices=time, mesh=mesh, linear=linear,$
                             filename=filename, points=pts, complex=complex, $
                             rrange=xrange, zrange=yrange)
-           ddphi = complex(0.,1.)*ntor
-           
-           data = data + r*a_bracket(psi0,ddphi*u,x,y) $
-             + s_bracket(psi0,ddphi*chi,x,y)/r^2
+           rfac = complex(0.,1.)*ntor
+
+           data = data + 2.*mu_c*rfac^2*w $
+             - 4.*rfac*(mu_c*dz(u, y)) $
+             - 2.*rfac*(mu-mu_c)*grad_shafranov(chi,x,y,tor=itor) $
+             + mu*rfac*laplacian(chi,x,y,tor=itor)/r^2 $
+             + a_bracket(mu, rfac*chi, x, y)/r^2
        endif
        
-       data = data * mu/sqrt(s_bracket(psi0,psi0,x,y))
-       d = dimensions(/p0, l0=1)
-       symbol = '!6Angular Momentum Flux!X'
+       d = dimensions(/p0)
+       symbol = '!7s!X'
 
    ;===========================================
    ; toroidal angular momentum flux
    ;===========================================
-   endif else if(strcmp('torque_vv', name, /fold_case) eq 1) then begin
+   endif else if(strcmp('torque_v1', name, /fold_case) eq 1) then begin
 
-       psi0 = read_field('psi', x, y, t, slices=time,mesh=mesh,linear=linear, $
-                        filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange,/equilibrium)
        w0 = read_field('omega', x, y, t, slices=time,mesh=mesh,linear=linear, $
-                        filename=filename, points=pts, complex=complex, $
+                        filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, /equilibrium)
        n0 = read_field('den', x, y, t, slices=time,mesh=mesh,linear=linear, $
-                        filename=filename, points=pts, complex=complex, $
+                        filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, /equilibrium)
-
 
        u = read_field('phi',x,y,t,slices=time, mesh=mesh, linear=linear, $
                       filename=filename, points=pts, complex=complex, $
                       rrange=xrange, zrange=yrange)
-       chi = read_field('chi',x,y,t,slices=time, mesh=mesh, linear=linear,$
+       w = read_field('omega',x,y,t,slices=time, mesh=mesh, linear=linear,$
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange)
 
        if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
+       rfac = complex(0.,1.)*ntor
        
-       data = -n0*w0*(r^3*a_bracket(psi0,u,x,y) + s_bracket(psi0,chi,x,y)) $
-         / sqrt(s_bracket(psi0,psi0,x,y))
-       d = dimensions(/p0, l0=1)
-       symbol = '!6Angular Momentum Flux!X'
+       data = -a_bracket(r^4*n0*w0,u,x,y)/r - 2.*r^2*n0*w0*rfac*w
+       d = dimensions(/p0)
+       symbol = '!7s!X'
 
    ;===========================================
    ; toroidal angular momentum flux
@@ -3242,13 +3436,20 @@ function path_at_flux, psi,x,z,t,flux,breaks=breaks,refine=refine,$
    endif
   
    ; find breaks
-   dx = sqrt(deriv(xy[0,*])^2 + deriv(xy[1,*])^2)
-   minforbreak = 2.*median(dx)
+   n = n_elements(xy[0,*])
+   dx = fltarr(n)
+   for i=0, n-2 do begin
+       dx[i] = sqrt((xy[0,i+1]-xy[0,i])^2 + (xy[1,i+1]-xy[1,i])^2)
+   end
+   dx[n-1] = sqrt((xy[0,0]-xy[0,n-1])^2 + (xy[1,0]-xy[1,n-1])^2)
+   minforbreak = 5.*median(dx)
 
    breaks = where(dx gt minforbreak,count)
 
-   if(breaks[0] ge 0 and keyword_set(contiguous)) then begin
-       xy = xy[*,0:breaks[0]-1]
+   if(count gt 0) then begin
+       if(breaks[0] ge 0 and keyword_set(contiguous)) then begin
+           xy = xy[*,0:breaks[0]-1]
+       end
    end
 
    if(n_elements(interval) ne 0) then begin
@@ -3999,7 +4200,17 @@ pro plot_lcfs, psi, x, z, psival=psival,_EXTRA=extra
 ;      thick=!p.charthick*2., color=color(6,10)
     xy = path_at_flux(psi, x, z, t, psival, breaks=breaks)
 
-    oplot, xy[0,*], xy[1,*], thick=!p.thick, color=color(6,10)
+    if(n_elements(breaks) eq 0) then begin
+        oplot, xy[0,*], xy[1,*], thick=!p.thick, color=color(6,10)
+    endif else begin
+        n = n_elements(breaks)
+        breaks = [0,breaks]
+        for i=0, n-1, 2 do begin
+            oplot, xy[0,breaks[i]:breaks[i+1]], $
+              xy[1,breaks[i]:breaks[i+1]], $
+              thick=!p.thick, color=color(6,10)
+        end
+    endelse
 end
 
 
@@ -4694,7 +4905,12 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
 
    print, 'flux averaging with ', bins, ' bins'
 
-   result = fltarr(sz[1], bins)
+   type = size(field, /type)
+   if(type eq 6) then begin
+       result = complexarr(sz[1], bins)
+   endif else begin
+       result = fltarr(sz[1], bins)
+   endelse
    flux = fltarr(sz[1], bins)
    dV = fltarr(sz[1], bins)
    area = fltarr(sz[1], bins)
@@ -5136,8 +5352,8 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
          range=range, _EXTRA=ex
 
        if(n_elements(q_contours) ne 0) then begin
-           fval = flux_at_q(q_contours,_EXTRA=ex)
-           plot_flux_contour, fval, closed=0, /overplot, $
+           fval = flux_at_q(q_contours,points=p,_EXTRA=ex)
+           plot_flux_contour, fval, points=p, closed=0, /overplot, $
              thick=!p.thick/2., _EXTRA=ex
        endif
 
@@ -5193,6 +5409,32 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
 
    if(n_elements(multiply_flux) eq 0) then multiply_flux = 0.
 
+   if(n_elements(field) gt 1) then begin
+       if(keyword_set(bw)) then begin
+           ls = indgen(nfiles)
+           colors = replicate(color(0,1), n_elements(field))
+       endif else begin
+           if(n_elements(colors) eq 0) then col = colors()
+           ls = replicate(0,n_elements(field))
+       endelse
+       for i=0, n_elements(field)-1 do begin
+           if((n_elements(q_contours) ne 0) and (i eq n_elements(field)-1)) $
+             then qcon = q_contours
+           plot_flux_average, field[i], time, filename=filename, $
+             overplot=((i gt 0) or keyword_set(overplot)), points=pts, $
+             color=col[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
+             normalized_flux=norm, minor_radius=minor_radius, smooth=sm, $
+             rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, $
+             linear=linear, multiply_flux=multiply_flux, mks=mks, cgs=cgs, $
+             integrate=integrate, complex=complex, abs=abs, phase=phase, $
+             stotal=total, q_contours=qcon
+       end
+       if(n_elements(names) ne 0) then begin
+           plot_legend, names, colors=col, linestyle=ls, _EXTRA=extra
+       end
+       return
+   end
+
    nfiles = n_elements(filename)
    if(nfiles gt 1) then begin
        if(n_elements(names) eq 0) then names=filename
@@ -5235,8 +5477,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
        endif else begin
            if(n_elements(colors) eq 0) then colors = colors(nt)
            ls = replicate(0,nt)
-       endelse
-       
+       endelse       
        for i=0, n_elements(time)-1 do begin
            newfield = field
            plot_flux_average, newfield, time[i], filename=filename, $
@@ -5998,11 +6239,11 @@ pro plot_perturbed_surface, q, scalefac=scalefac, $
    if(n_elements(scalefac) eq 1) then $
      scalefac=replicate(scalefac, n_elements(q))
 
-   psi0 = read_field('psi',x,z,t,filename=filename, slice=-1, $
+   psi0 = read_field('psi',x,z,t,filename=filename, /equilibrium, $
                      _EXTRA=extra)
-   psi0_r = read_field('psi',x,z,t,filename=filename, slice=-1, $
+   psi0_r = read_field('psi',x,z,t,filename=filename, /equilibrium, $
                        _EXTRA=extra, op=2)
-   psi0_z = read_field('psi',x,z,t,slice=-1, filename=filename, $
+   psi0_z = read_field('psi',x,z,t, filename=filename, /equilibrium,$
                        _EXTRA=extra, op=3)
    zi = read_field('displacement',x,z,t,filename=filename, /linear, $
                    _EXTRA=extra)

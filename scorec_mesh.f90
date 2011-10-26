@@ -92,6 +92,22 @@ contains
     call finalizesolvers
   end subroutine unload_mesh
 
+  subroutine print_node_data()
+    implicit none
+    integer :: i,numnodes
+    logical :: is_boundary
+    integer :: izone, izonedim
+    real :: normal(2), curv, x, z
+
+    numnodes = local_nodes()
+
+    do i=1, numnodes
+       call boundary_node(i, is_boundary, izone, izonedim, normal, curv, x, z)
+       if(.not.is_boundary) cycle
+       write(*,'(5f12.4)') x, z, normal(1), normal(2), curv
+    end do
+  end subroutine print_node_data
+
   !======================================================================
   ! local_plane
   ! ~~~~~~~~~~~

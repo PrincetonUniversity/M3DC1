@@ -6362,25 +6362,27 @@ vectype function b2psieta(e,f,g,h)
      temp = int4(ri3_79,e(:,OP_DZ),f(:,OP_DRP),g(:,OP_1)) &
           - int4(ri3_79,e(:,OP_DR),f(:,OP_DZP),g(:,OP_1))
 
-     if(ihypeta.eq.0) then
-        temp79a = e(:,OP_DZZ) - e(:,OP_DRR)
-        if(itor.eq.1) temp79a = temp79a +    ri_79*e(:,OP_DR)
-        temp79b = e(:,OP_DRZ)
-        if(itor.eq.1) temp79b = temp79b +    ri_79*e(:,OP_DZ)
-        temp79c = e(:,OP_DRZ)
-        if(itor.eq.1) temp79c = temp79c - 2.*ri_79*e(:,OP_DZ)
-
-        temp = temp + 2.*&
-             (int4(ri3_79,temp79a,f(:,OP_DRZP),h(:,OP_1)) &
-             -int4(ri3_79,temp79b,f(:,OP_DZZP),h(:,OP_1)) &
-             +int4(ri3_79,temp79c,f(:,OP_DRRP),h(:,OP_1)))
-
-        if(itor.eq.1) then
-           temp = temp - 2.* &
-                (   int4(ri4_79,temp79a,f(:,OP_DZP),h(:,OP_1)) &
-                +2.*int4(ri4_79,temp79c,f(:,OP_DRP),h(:,OP_1)))
+     if(hypi.ne.0) then 
+        if(ihypeta.eq.0) then
+           temp79a = e(:,OP_DZZ) - e(:,OP_DRR)
+           if(itor.eq.1) temp79a = temp79a +    ri_79*e(:,OP_DR)
+           temp79b = e(:,OP_DRZ)
+           if(itor.eq.1) temp79b = temp79b +    ri_79*e(:,OP_DZ)
+           temp79c = e(:,OP_DRZ)
+           if(itor.eq.1) temp79c = temp79c - 2.*ri_79*e(:,OP_DZ)
+           
+           temp = temp + 2.*&
+                (int4(ri3_79,temp79a,f(:,OP_DRZP),h(:,OP_1)) &
+                -int4(ri3_79,temp79b,f(:,OP_DZZP),h(:,OP_1)) &
+                +int4(ri3_79,temp79c,f(:,OP_DRRP),h(:,OP_1)))
+           
+           if(itor.eq.1) then
+              temp = temp - 2.* &
+                   (   int4(ri4_79,temp79a,f(:,OP_DZP),h(:,OP_1)) &
+                   +2.*int4(ri4_79,temp79c,f(:,OP_DRP),h(:,OP_1)))
+           endif
         endif
-     endif
+     end if
   end if
 #else
   temp = 0.
