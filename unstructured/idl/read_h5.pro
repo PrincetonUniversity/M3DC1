@@ -1547,7 +1547,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                        filename=filename, points=pts, linfac=linfac, $
                        rrange=xrange, zrange=yrange, linear=linear)
 
-       if(keyword_set(linear) and (ilin eq 1) and (time ge 0)) then begin
+       if(keyword_set(linear) and (isubeq eq 1) and (time ge 0)) then begin
            Pe0 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
                             filename=filename, points=pts, $
                             rrange=xrange, zrange=yrange, /equilibrium)

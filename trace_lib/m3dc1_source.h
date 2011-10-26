@@ -9,7 +9,10 @@
 class m3dc1_source : public trace_field_source {
   m3dc1_file file;
   m3dc1_field *psi, *f, *g;
+  m3dc1_field *psi_x, *f_x, *g_x;
 
+  bool use_f;
+  int extsubtract;
   double bzero, rzero;
   double R_axis, Z_axis;
 

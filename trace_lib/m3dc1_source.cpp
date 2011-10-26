@@ -2,7 +2,7 @@
 #include <iostream>
 
 m3dc1_source::m3dc1_source()
-  : psi(0), f(0), g(0)
+  : psi(0), f(0), g(0), psi_x(0), f_x(0), g_x(0)
 {
   filename = "C1.h5";
   time = -1;
@@ -10,7 +10,7 @@ m3dc1_source::m3dc1_source()
 }
 
 m3dc1_source::m3dc1_source(std::string f, int t)
-  : psi(0), f(0), g(0)
+  : psi(0), f(0), g(0), psi_x(0), f_x(0), g_x(0)
 {
   filename = f;
   time = t;
@@ -23,14 +23,24 @@ m3dc1_source::~m3dc1_source()
 
 bool m3dc1_source::load()
 {
+  int icomplex, i3d;
+
   if(!file.open(filename.data()))
     return false;
 
   file.read_parameter("bzero", &bzero);
   file.read_parameter("rzero", &rzero);
+  file.read_parameter("extsubtract", &extsubtract);
+  file.read_parameter("icomplex", &icomplex);
+  file.read_parameter("3d", &i3d);
+
+  use_f = ((icomplex==1) || (i3d==1));
 
   std::cerr << "bzero = " << bzero << std::endl;
   std::cerr << "rzero = " << rzero << std::endl;
+  std::cerr << "extsubtract = " << extsubtract << std::endl;
+  std::cerr << "icomplex = " << icomplex << std::endl;
+  std::cerr << "i3d = " << i3d << std::endl;
 
   m3dc1_scalar_list* xmag = file.read_scalar("xmag");
   m3dc1_scalar_list* zmag = file.read_scalar("zmag");
@@ -42,12 +52,29 @@ bool m3dc1_source::load()
 
   std::cerr << "reading fields" << std::endl;
   psi = file.load_field("psi", time);
+  if(!psi) return false;
+
   g = file.load_field("I", time);
-  f = file.load_field("f", time);
+  if(!g) return false;
 
-  if(!psi || !g || !f)
-    return false;
+  if(use_f) {
+    f = file.load_field("f", time);
+    if(!f) return false;
+  }
 
+  if(time >= 0 && extsubtract==1) {
+    psi_x = file.load_field("psi_ext", time);
+    if(!psi_x) return false;
+
+    g_x = file.load_field("i_ext", time);
+    if(!g_x) return false;
+
+    if(use_f) {
+      f_x = file.load_field("f_ext", time);
+      if(!f_x) return false;
+    }
+  } else extsubtract = 0;
+  
   if(!file.close())
     return false;
 
@@ -84,11 +111,33 @@ bool m3dc1_source::eval(const double r, const double phi, const double z,
     return false;
   *b_phi += factor*val[m3dc1_field::OP_1]/r;
 
-  if(!f->eval(r, phi, z, fget, val))
-    return false;
+  if(use_f) {
+    if(!f->eval(r, phi, z, fget, val))
+      return false;
 
-  *b_r -= factor*val[m3dc1_field::OP_DRP];
-  *b_z -= factor*val[m3dc1_field::OP_DZP];
+    *b_r -= factor*val[m3dc1_field::OP_DRP];
+    *b_z -= factor*val[m3dc1_field::OP_DZP];
+  }
+
+  if(extsubtract==1) {
+    if(!psi_x->eval(r, phi, z, psiget, val))
+      return false;
+
+    *b_r -= factor*val[m3dc1_field::OP_DZ]/r;
+    *b_z += factor*val[m3dc1_field::OP_DR]/r;
+
+    if(!g_x->eval(r, phi, z, gget, val))
+      return false;
+    *b_phi += factor*val[m3dc1_field::OP_1]/r;
+
+    if(use_f) {
+      if(!f_x->eval(r, phi, z, fget, val))
+	return false;
+
+      *b_r -= factor*val[m3dc1_field::OP_DRP];
+      *b_z -= factor*val[m3dc1_field::OP_DZP];
+    }
+  }
 
   return true;
 }

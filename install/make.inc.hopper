@@ -1,17 +1,18 @@
-CC = h5c++
-CFLAGS = -fast
+export HDF5_CC='CC'
 
-F90 = h5fc
-F90FLAGS = -O3 -Mr8 -Minform=warn
+CC = h5pcc
+CFLAGS = -fastsse -Mipa=fast,inline
 
-DYLIB = $(CC) $(CFLAGS) -dynamiclib
+F90 = h5pfc
+F90FLAGS = -fastsse -Mipa=fast,inline -Mr8 -Minform=warn
+
 ARCH = ar cr
 
-LD = ftn
-LDFLAGS = -Mnomain
+LD = $(F90)
+LDFLAGS = -fastsse -Mipa=fast,inline -Mnomain
 
 LIBS = -lstd -lC
 
-HDF5_LIBS = -lhdf5 -lz
+HDF5_LIBS = 
 HDF5_INCLUDE = 
 

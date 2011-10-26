@@ -4,11 +4,10 @@ CFLAGS = -fast -Wall
 F90 = openmpif90
 F90FLAGS = -O3 -Wall -fdefault-real-8
 
-DYLIB = $(CC) $(CFLAGS) -dynamiclib
 ARCH = ar cr
 
-LD = openmpif90 -lmpi_cxx -lstdc++
-LDFLAGS = 
+LD = openmpif90
+LDFLAGS = -lmpi_cxx -lstdc++
 
 HDF5_LIBS =  -L/usr/local/hdf5-1.8.5/hdf5/lib -lhdf5 -lz
 HDF5_INCLUDE = -I/usr/local/hdf5-1.8.5/hdf5/include
