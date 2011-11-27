@@ -2816,7 +2816,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ifield_def)
   end if
 
   if(idens_def.eq.1) then
-     if(ipellet.eq.1 .or. ionization.eq.1 .or. isink.gt.0) &
+     if(ipellet.ge.1 .or. ionization.ge.1 .or. isink.gt.0) &
           def_fields = def_fields + FIELD_SIG
   endif
 

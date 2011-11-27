@@ -440,7 +440,7 @@ subroutine onestep
   end if
 
   time = time + dt
-  dt = dt + ddt
+  if(ntime.gt.1 .and. linear.eq.0) call variable_timestep
 
   ! copy time advance vectors to field data
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Exporting time advance vectors.."
@@ -1732,6 +1732,7 @@ subroutine boundary_mag(rhs, mat)
      end if
   end do
 
+
   if(eta_wall.ne.0.) call insert_resistive_wall(rhs,mat)
 end subroutine boundary_mag
 
@@ -2329,3 +2330,39 @@ end subroutine scaleback
 
 
 end module time_step
+subroutine variable_timestep
+
+  use basic
+  use arrays
+  use diagnostics
+
+  implicit none
+  include 'mpif.h'
+  integer :: ierr
+!
+! increase or decrease timestep based on kinetic energy and gamma_gr,
+! but limit change to fraction dtfrac and bound by dtmin and demax
+!
+  dtold = dt
+  if(dtkecrit.eq.0 .or. dtgamma.eq.0) return
+  if(myrank.eq.0) then
+!
+!
+    if(ekin.lt.dtkecrit) then
+       if(gamma_gr.gt.0) then
+          if(dt .gt.dtgamma/gamma_gr) then
+            dt = dtold/(1. + dtfrac)
+          endif
+       else
+            dt = dtold*(1. + dtfrac)
+       endif
+    else
+            dt = dtold/(1. + dtfrac)
+    endif
+    dt = max(dt,dtmin)
+    dt = min(dt,dtmax)
+  endif
+  if(iprint.ge.1) print *,"dtold,dt,gamma_gr,ekin",dtold,dt,gamma_gr,ekin
+  call MPI_bcast(dt,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+  
+end subroutine variable_timestep

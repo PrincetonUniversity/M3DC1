@@ -26,6 +26,12 @@ vectype function sigma_func(i)
      temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
 
+!......distributed source added 11/23/2011   (scj)
+  if(ipellet.eq.2) then
+     temp79a = pellet_rate*den0*(pt79(:,OP_1)/p0)**expn
+     temp = temp + int2(mu79(:,OP_1,i),temp79a)
+  endif
+
   ! Ionization model
   if(ionization.eq.1) then
      temp79d = pt79(:,OP_1) / nt79(:,OP_1)
@@ -234,6 +240,12 @@ vectype function kappa_func(i)
           temp79a = kappa0*.5* &
              (1. + tanh((real(temp79b) - kappaoff)/kappadelt))
         endif
+!
+!.....added 11/26/2011     scj
+     case(3)
+        ! kappa = sqrt(1./ (p*n))
+        temp79a = kappa0*sqrt(1./(nt79(:,OP_1)*pt79(:,OP_1)))
+        
      end select
      temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif

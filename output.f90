@@ -58,7 +58,6 @@ contains
 #include "mpif.h"
 
     integer :: ier,i
-    real :: gamma
     real :: tstart, tend, diff
 
     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -121,8 +120,8 @@ contains
          call second(tend)
          diff = tend - tstart
          t_output_hdf5 = t_output_hdf5 + diff
-         if(iprint.ge.1) write(*,1005) ntime,diff,t_output_hdf5
-  1005 format("OUTPUT: hdf5_write_timings   ", I5, 1p2e16.8)
+         if(iprint.ge.1) write(*,1005) ntime,diff,t_output_hdf5,ier
+  1005 format("OUTPUT: hdf5_write_timings   ", I5, 1p2e16.8,i5)
        endif
        call reset_timings
     end if
@@ -135,17 +134,17 @@ contains
        call second(tend)
        diff = tend - tstart
        t_output_hdf5 = t_output_hdf5 + diff
-       if(iprint.ge.1) write(*,1002) ntime,diff,t_output_hdf5
-  1002 format("OUTPUT: hdf5_flush           ", I5, 1p2e16.8)
+       if(iprint.ge.1) write(*,1002) ntime,diff,t_output_hdf5,ier
+  1002 format("OUTPUT: hdf5_flush           ", I5, 1p2e16.8,i5)
     end if    
 
     if(myrank.eq.0) then
-       if(dt.eq.0. .or. ekin.eq.0.) then 
-          gamma = 0.
+       if(dtold.eq.0. .or. ekin.eq.0.) then
+          gamma_gr = 0.
        else
-          gamma = (ekin - ekino)/((ekin+ekino)*dt)
+          gamma_gr = (ekin - ekino)/((ekin+ekino)*dtold)
        endif
-       write(ke_file, '(I8, 1p3e12.4,2x,1p3e12.4,2x,1p3e12.4,2x,1pe13.5)') ntime, time, ekin, gamma, ekinp,ekint,ekin3, emagp, emagt, emag3, etot
+       write(ke_file, '(I8, 1p3e12.4,2x,1p3e12.4,2x,1p3e12.4,2x,1pe13.5)') ntime, time, ekin, gamma_gr, ekinp,ekint,ekin3, emagp, emagt, emag3, etot
     endif
 
   end subroutine output
@@ -328,6 +327,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "particle_number" , totden, ntime, error)
   call output_scalar(scalar_group_id, "angular_momentum", tmom  , ntime, error)
   call output_scalar(scalar_group_id, "circulation"     , tvor  , ntime, error)
+  call output_scalar(scalar_group_id, "volume"          , volume, ntime, error)
 
   call output_scalar(scalar_group_id, "area_p"            , parea,ntime, error)
   call output_scalar(scalar_group_id, "toroidal_flux_p"   , pflux,ntime, error)
@@ -351,6 +351,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "E_KTH", ekinth, ntime, error)
 
   call output_scalar(scalar_group_id, "E_P" , emag3, ntime, error)
+  call output_scalar(scalar_group_id, "Ave_P" , avep, ntime, error)
   call output_scalar(scalar_group_id, "E_K3", ekin3, ntime, error)
   call output_scalar(scalar_group_id, "E_PD", emag3d, ntime, error)
   call output_scalar(scalar_group_id, "E_K3D", ekin3d, ntime, error)
@@ -917,7 +918,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
 #endif
 
      ! sigma
-     if(ipellet.eq.1 .or. ionization.eq.1 .or. isink.gt.0) then
+     if(ipellet.ge.1 .or. ionization.ge.1 .or. isink.gt.0) then
         do i=1, nelms
            call calcavector(i, sigma_field, dum(:,i))
         end do

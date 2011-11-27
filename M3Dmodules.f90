@@ -92,6 +92,7 @@ module basic
 
   ! density sources
   integer :: ipellet  ! 1 = include pellet injection density source
+                      ! 2 = distributed density source
   real :: pellet_x    ! x coordinate of pellet injection
   real :: pellet_z    ! z coordinate of pellet injection
   real :: pellet_rate ! amplitude of pellet density source
@@ -220,7 +221,8 @@ module basic
   integer :: isurface    ! include surface terms
   integer :: equilibrate ! 1 = scale trial functions so L2 norms = 1
   integer :: itime_independent ! 1 = exclude d/dt terms
-  real :: dt             ! timestep
+  real :: dt, dtold      ! timestep (present and previous)
+  real :: dtmin,dtmax,dtkecrit,dtfrac,dtgamma  ! quantities used in variable_timestep option
   real :: ddt            ! change in timestep per timestep
   real :: thimp          ! implicitness parameter (for Crank-Nicholson)
   real :: thimpsm        ! implicitness parameter for smoothers
@@ -228,6 +230,7 @@ module basic
   real :: max_ke         ! max KE before fields are re-scaled when linear==1
   real :: chiiner        ! factor to multiply chi inertial terms
   real :: harned_mikic   ! coefficient of harned-mikic 2f stabilization term
+  real :: gamma_gr       ! growth rate based on kinetic energy -- used in variable_timestep
 
   ! xray diagnostic parameters
   integer :: xray_detector_enabled ! 1 = enable xray diagnostic
