@@ -45,9 +45,9 @@ subroutine wrrestart
      write(56) field0_vec%data(j1)
   enddo
 
-  write(56) ntime,time
+  write(56) ntime,time,dt
   write(56) totcur0,tflux0,gbound,ptot,vloop
-  write(56) psimin, psilim
+  write(56) psimin,psilim,psibound
   write(56) xnull, znull
   write(56) xmag, zmag
   call numdofs(1, ndofs)
@@ -142,9 +142,9 @@ subroutine rdrestart
      field_vec%data = 0.
   endif
 
-  read(56) ntime,time
+  read(56) ntime,time,dt
   read(56) totcur0,tflux0,gbound,ptot,vloop
-  read(56,END=1199) psimin,psilim
+  read(56,END=1199) psimin,psilim,psibound
   read(56,END=1199) xnull,znull
   read(56,END=1199) xmag,zmag
 
@@ -270,7 +270,7 @@ subroutine wrrestartglobal
      write(56) numvar
      write(56) iper
      write(56) jper   
-     write(56) ntime,time
+     write(56) ntime,time,dt
      write(56) totcur0,tflux0,gbound,ptot,vloop
      write(56) icomplex
   endif
@@ -304,7 +304,7 @@ subroutine wrrestartglobal
   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
   if(myrank.eq.0) then
-     write(56) psimin,psilim,xnull,znull
+     write(56) psimin,psilim,psibound,xnull,znull
      write(56) xmag,zmag
   endif
   close(56)
@@ -354,10 +354,10 @@ subroutine rdrestartglobal
   read(56) numvar
   read(56) iper
   read(56) jper   
-  read(56) ntime,time
+  read(56) ntime,time,dt
   read(56) totcur0,tflux0,gbound,ptot,vloop
   read(56) icomp
-  write(*,*) 'in restartglobal times are ', ntime, time
+  write(*,*) 'in restartglobal time, dts are ', ntime, time, dt
   numnodes = local_nodes()
   read(56) globalid
   do while(globalid .ne. -1)
@@ -401,8 +401,8 @@ subroutine rdrestartglobal
      read(56) globalid
   enddo
   
-  read(56,END=1199) psimin,psilim
-  write(*,*) 'psimin,psilim',psimin,psilim
+  read(56,END=1199) psimin,psilim,psibound
+  write(*,*) 'psimin,psilim,psibound',psimin,psilim,psibound
   read(56,END=1199) xnull,znull
   read(56,END=1199) xmag,zmag
   goto 1200
@@ -618,6 +618,7 @@ subroutine rdrestart_adios
     call adios_read_local_var (gh, "icomplex",   myrank, start, readsize, icomp, read_bytes)
     call adios_read_local_var (gh, "ntime",      myrank, start, readsize, ntime, read_bytes)
     call adios_read_local_var (gh, "time",       myrank, start, readsize, time, read_bytes)
+    call adios_read_local_var (gh, "dt",       myrank, start, readsize, dt, read_bytes)
     call adios_read_local_var (gh, "totcur0",    myrank, start, readsize, totcur0, read_bytes)
     call adios_read_local_var (gh, "tflux0",     myrank, start, readsize, tflux0, read_bytes)
     call adios_read_local_var (gh, "gbound",     myrank, start, readsize, gbound, read_bytes)
@@ -625,6 +626,7 @@ subroutine rdrestart_adios
     call adios_read_local_var (gh, "vloop",      myrank, start, readsize, vloop, read_bytes)
     call adios_read_local_var (gh, "psimin",     myrank, start, readsize, psimin, read_bytes)
     call adios_read_local_var (gh, "psilim",     myrank, start, readsize, psilim, read_bytes)
+    call adios_read_local_var (gh, "psibound",     myrank, start, readsize, psibound, read_bytes)
     call adios_read_local_var (gh, "xnull",      myrank, start, readsize, xnull, read_bytes)
     call adios_read_local_var (gh, "znull",      myrank, start, readsize, znull, read_bytes)
     call adios_read_local_var (gh, "xmag",       myrank, start, readsize, xmag, read_bytes)

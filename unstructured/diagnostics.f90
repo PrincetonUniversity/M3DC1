@@ -28,7 +28,7 @@ module diagnostics
        ekinp,emagp,ekinpd,emagpd,ekinpo,emagpo,ekinpdo,emagpdo,        &
        ekinph,ekinth,emagph,emagth,ekinpho,ekintho,emagpho,emagtho,    &
        ekin3,ekin3d,ekin3h,emag3,ekin3o,ekin3do,ekin3ho,emag3o,        &
-       emag3h,emag3d,emag3ho,emag3do
+       emag3h,emag3d,emag3ho,emag3do, avep
   real :: efluxp,efluxk,efluxs,efluxt,epotg,etot,ptot,eerr,ptoto
 
 
@@ -757,6 +757,9 @@ subroutine calculate_scalars()
   ! total energy, including energy lost through boundary flux and
   ! internal dissipation
   etot = ekin + emag - ptoto
+!
+!   volume averaged pressure for beta calculation
+    avep = (gam - 1.)*(emag3 / (volume*tpifac))
 
   if(myrank.eq.0 .and. iprint.ge.1) then 
      print *, "Total energy = ", etot
@@ -1019,7 +1022,7 @@ subroutine lcfs(psi)
      end if
   endif
 
-  if(ifixedb.eq.1) then
+  if(ifixedb.eq.1 .and. ntime.le.0) then
      psilim = 0.
      psilim2 = 0.
      psibound = 0.
