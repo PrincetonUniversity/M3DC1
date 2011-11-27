@@ -4329,7 +4329,7 @@ print, 'filename = ', filename
    
    s = read_scalars(filename=filename)
 
-   beta_t = 2.*(gamma-1.)*s.E_P._data/bt0^2
+   beta_t = 2.*s.Ave_P._data/bt0^2
    
    print, 'bt0 =', bt0
    print, 'rzero = ', rzero
@@ -4357,7 +4357,7 @@ function beta_normal, filename=filename
    s = read_scalars(filename=filename)
    ip = s.toroidal_current._data
 
-   beta_t = 2.*(gamma-1.)*s.E_P._data/bt0^2
+   beta_t = 2.*s.Ave_P._data/bt0^2
    beta_n = beta_t * abs(bt0*a/ip)
 
    print, 'ip', ip
@@ -4412,6 +4412,26 @@ function read_scalar, scalarname, filename=filename, title=title, $
        title = 'Reconnected Flux'
        symbol = translate('psi')
        d = dimensions(/b0, l0=1+itor, _EXTRA=extra)
+   endif else $
+     if (strcmp("time step", scalarname, /fold_case) eq 1) or $
+        (strcmp("dt",scalarname, /fold_case) eq 1) then begin
+       data = abs(s.dt._data)
+       title = 'Time Step'
+       symbol = translate('dt')
+       d = dimensions(t0=1, _EXTRA=extra)
+   endif else $
+     if (strcmp("psimin", scalarname, /fold_case) eq 1) then begin
+       data = s.psimin._data
+       title = 'Psimin'
+       symbol = translate('psim')
+       d = dimensions(/b0, l0=2, _EXTRA=extra)
+   endif else $
+     if (strcmp("psibound", scalarname, /fold_case) eq 1) or $
+        (strcmp("psilim",scalarname, /fold_case) eq 1) then begin
+       data = s.psi_lcfs._data
+       title = 'Psilim'
+       symbol = translate('psil')
+       d = dimensions(/b0, l0=2, _EXTRA=extra)
    endif else $
      if (strcmp("loop voltage", scalarname, /fold_case) eq 1) or $
      (strcmp("vl", scalarname, /fold_case) eq 1) then begin
