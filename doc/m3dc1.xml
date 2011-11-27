@@ -17,6 +17,7 @@
 
        <var name="ntime" type="integer"/>
        <var name="time" type="double"/>
+       <var name="dt" type="double"/>
        <var name="totcur0" type="double"/>
        <var name="tflux0" type="double"/>
        <var name="gbound" type="double"/>
@@ -24,6 +25,7 @@
        <var name="vloop" type="double"/>
        <var name="psimin" type="double"/>
        <var name="psilim" type="double"/>
+       <var name="psibound" type="double"/>
        <var name="xnull" type="double"/>
        <var name="znull" type="double"/>
        <var name="xmag" type="double"/>
