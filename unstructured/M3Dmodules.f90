@@ -275,6 +275,7 @@ module basic
   real :: adapt_factor
   real :: adapt_hmin
   real :: adapt_hmax  
+  real :: adapt_smooth  ! value which controls smoothing of size field
 
   real :: beta
   real :: pefac

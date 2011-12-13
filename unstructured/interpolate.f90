@@ -69,6 +69,77 @@ subroutine bicubic_interpolation_coeffs(x,m,n,i0,j0,a)
 end subroutine bicubic_interpolation_coeffs
 
 !=====================================================
+! bicubic_interpolation_coeffs
+! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+!
+! calculates bicubic polynomial coefficients a of
+! x, an array of dimension m x n,
+! about index (i,j)
+!=====================================================
+subroutine bicubic_interpolation_coeffs_complex(x,m,n,i0,j0,a)
+  implicit none
+
+  integer, intent(in) :: m, n, i0, j0
+  complex, intent(in), dimension(m,n) :: x
+  complex, intent(out), dimension(4,4) :: a
+
+  integer :: i, j
+
+  i = i0
+  j = j0
+
+  if(i.lt.2) i=2
+  if(j.lt.2) j=2
+  if(i.gt.m-2) i=m-2
+  if(j.gt.n-2) j=n-2
+
+  a(1,1) = x(i,j)
+  a(1,2) = (-2.*x(i,j-1)-3.*x(i,j)+6.*x(i,j+1)-x(i,j+2))/6.
+  a(1,3) = (    x(i,j-1)-2.*x(i,j)+   x(i,j+1)         )/2.
+  a(1,4) = (   -x(i,j-1)+3.*x(i,j)-3.*x(i,j+1)+x(i,j+2))/6.
+  
+  a(2,1) = (-2.*x(i-1,j)- 3.*x(i,j)+6.*x(i+1,j)-x(i+2,j))/6.
+  a(2,2) = ( 4.*x(i-1,j-1) +6.*x(i-1,j)-12.*x(i-1,j+1)+2.*x(i-1,j+2) &
+            +6.*x(i  ,j-1) +9.*x(i  ,j)-18.*x(i  ,j+1)+3.*x(i  ,j+2) &
+           -12.*x(i+1,j-1)-18.*x(i+1,j)+36.*x(i+1,j+1)-6.*x(i+1,j+2) &
+            +2.*x(i+2,j-1) +3.*x(i+2,j) -6.*x(i+2,j+1)   +x(i+2,j+2))/36.
+  a(2,3) = (-2.*x(i-1,j-1) +4.*x(i-1,j) -2.*x(i-1,j+1) &
+            -3.*x(i  ,j-1) +6.*x(i  ,j) -3.*x(i  ,j+1) &
+            +6.*x(i+1,j-1)-12.*x(i+1,j) +6.*x(i+1,j+1) &
+               -x(i+2,j-1)+ 2.*x(i+2,j)    -x(i+2,j+1))/12.
+  a(2,4) = (2.*x(i-1,j-1) -6.*x(i-1,j) +6.*x(i-1,j+1)-2.*x(i-1,j+2) &
+           +3.*x(i  ,j-1) -9.*x(i  ,j) +9.*x(i  ,j+1)-3.*x(i  ,j+2) &
+           -6.*x(i+1,j-1)+18.*x(i+1,j)-18.*x(i+1,j+1)+6.*x(i+1,j+2) &
+              +x(i+2,j-1) -3.*x(i+2,j) +3.*x(i+2,j+1)   -x(i+2,j+2))/36.
+  
+  a(3,1) = (x(i-1,j)-2.*x(i,j)+x(i+1,j))/2.
+  a(3,2) = (-2.*x(i-1,j-1)-3.*x(i-1,j) +6.*x(i-1,j+1)   -x(i-1,j+2) &
+            +4.*x(i  ,j-1)+6.*x(i  ,j)-12.*x(i  ,j+1)+2.*x(i  ,j+2) &
+            -2.*x(i+1,j-1)-3.*x(i+1,j) +6.*x(i+1,j+1)   -x(i+1,j+2))/12.
+  a(3,3) = (   x(i-1,j-1)-2.*x(i-1,j)   +x(i-1,j+1) &
+           -2.*x(i  ,j-1)+4.*x(i  ,j)-2.*x(i  ,j+1) &
+              +x(i+1,j-1)-2.*x(i+1,j)   +x(i+1,j+1))/4.
+  a(3,4) = (  -x(i-1,j-1)+3.*x(i-1,j)-3.*x(i-1,j+1)+   x(i-1,j+2) &
+           +2.*x(i  ,j-1)-6.*x(i  ,j)+6.*x(i  ,j+1)-2.*x(i  ,j+2) &
+              -x(i+1,j-1)+3.*x(i+1,j)-3.*x(i+1,j+1)+   x(i+1,j+2))/12.
+
+  a(4,1) = (-x(i-1,j)+3.*x(i,j)-3.*x(i+1,j)+x(i+2,j))/6.
+  a(4,2) = (2.*x(i-1,j-1)+3.*x(i-1,j) -6.*x(i-1,j+1)   +x(i-1,j+2) &
+           -6.*x(i  ,j-1)-9.*x(i  ,j)+18.*x(i  ,j+1)-3.*x(i  ,j+2) &
+           +6.*x(i+1,j-1)+9.*x(i+1,j)-18.*x(i+1,j+1)+3.*x(i+1,j+2) &
+           -2.*x(i+2,j-1)-3.*x(i+2,j) +6.*x(i+2,j+1)   -x(i+2,j+2))/36.
+  a(4,3) = (  -x(i-1,j-1)+2.*x(i-1,j)   -x(i-1,j+1) &
+           +3.*x(i  ,j-1)-6.*x(i  ,j)+3.*x(i  ,j+1) &
+           -3.*x(i+1,j-1)+6.*x(i+1,j)-3.*x(i+1,j+1) &
+              +x(i+2,j-1)-2.*x(i+2,j)   +x(i+2,j+1))/12.
+  a(4,4) = (   x(i-1,j-1)-3.*x(i-1,j)+3.*x(i-1,j+1)   -x(i-1,j+2) &
+           -3.*x(i  ,j-1)+9.*x(i  ,j)-9.*x(i  ,j+1)+3.*x(i  ,j+2) &
+           +3.*x(i+1,j-1)-9.*x(i+1,j)+9.*x(i+1,j+1)-3.*x(i+1,j+2) &
+              -x(i+2,j-1)+3.*x(i+2,j)-3.*x(i+2,j+1)   +x(i+2,j+2))/36.  
+end subroutine bicubic_interpolation_coeffs_complex
+
+
+!=====================================================
 ! cubic_interpolation_coeffs
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
 !

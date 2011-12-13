@@ -146,6 +146,8 @@ contains
     call MPI_Bcast(br,   nr*nz*nphi, MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
     call MPI_Bcast(bz,   nr*nz*nphi, MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
     call MPI_Bcast(bphi, nr*nz*nphi, MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
+
+    if(rank.eq.0) print *, 'Done reading fields.'
   end subroutine load_schaffer_field
 
 
@@ -223,27 +225,31 @@ contains
        di = ai - i0
        dj = aj - j0
 
-       call bicubic_interpolation_coeffs(real(br_ft),nr,nz,i0,j0,are)
-       call bicubic_interpolation_coeffs(aimag(br_ft),nr,nz,i0,j0,aim)
-       a = cmplx(are, aim)
+!       call bicubic_interpolation_coeffs(real(br_ft),nr,nz,i0,j0,are)
+!       call bicubic_interpolation_coeffs(aimag(br_ft),nr,nz,i0,j0,aim)
+!       a = cmplx(are, aim)
+       call bicubic_interpolation_coeffs_complex(br_ft,nr,nz,i0,j0,a)
+
        
        br_out(p) = (a(1,1) + a(1,2)*dj + a(1,3)*dj**2 + a(1,4)*dj**3)       &
             +      (a(2,1) + a(2,2)*dj + a(2,3)*dj**2 + a(2,4)*dj**3)*di    &
             +      (a(3,1) + a(3,2)*dj + a(3,3)*dj**2 + a(3,4)*dj**3)*di**2 &
             +      (a(4,1) + a(4,2)*dj + a(4,3)*dj**2 + a(4,4)*dj**3)*di**3
 
-       call bicubic_interpolation_coeffs(real(bz_ft),nr,nz,i0,j0,are)
-       call bicubic_interpolation_coeffs(aimag(bz_ft),nr,nz,i0,j0,aim)
-       a = cmplx(are, aim)
+!       call bicubic_interpolation_coeffs(real(bz_ft),nr,nz,i0,j0,are)
+!       call bicubic_interpolation_coeffs(aimag(bz_ft),nr,nz,i0,j0,aim)
+!       a = cmplx(are, aim)
+       call bicubic_interpolation_coeffs_complex(bz_ft,nr,nz,i0,j0,a)
        
        bz_out(p) = (a(1,1) + a(1,2)*dj + a(1,3)*dj**2 + a(1,4)*dj**3)       &
             +      (a(2,1) + a(2,2)*dj + a(2,3)*dj**2 + a(2,4)*dj**3)*di    &
             +      (a(3,1) + a(3,2)*dj + a(3,3)*dj**2 + a(3,4)*dj**3)*di**2 &
             +      (a(4,1) + a(4,2)*dj + a(4,3)*dj**2 + a(4,4)*dj**3)*di**3
 
-       call bicubic_interpolation_coeffs(real(bphi_ft),nr,nz,i0,j0,are)
-       call bicubic_interpolation_coeffs(aimag(bphi_ft),nr,nz,i0,j0,aim)
-       a = cmplx(are, aim)
+!       call bicubic_interpolation_coeffs(real(bphi_ft),nr,nz,i0,j0,are)
+!       call bicubic_interpolation_coeffs(aimag(bphi_ft),nr,nz,i0,j0,aim)
+!       a = cmplx(are, aim)
+       call bicubic_interpolation_coeffs_complex(bphi_ft,nr,nz,i0,j0,a)
        
        bphi_out(p) = (a(1,1) + a(1,2)*dj + a(1,3)*dj**2 + a(1,4)*dj**3)       &
             +        (a(2,1) + a(2,2)*dj + a(2,3)*dj**2 + a(2,4)*dj**3)*di    &

@@ -1,6 +1,7 @@
 pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
                    psi_val=psi_val, ntor=ntor, label=label, psi0=psi0, i0=i0, $
-                   m_val=m_val
+                   m_val=m_val, phase=phase, overplot=overplot, $
+                   linestyle=linestyle
 
    print, 'Drawing schaffer plot'
 
@@ -35,9 +36,6 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
                           area=area,nflux=nflux,tbins=bins,fbins=bins, $
                           /pest, _EXTRA=extra)
 
-;   plot, nflux, q, _EXTRA=extra
-;   return
-
    for i=0, n_elements(angle)-1 do begin
        a_r[0,*,i] = (2.*!pi)^2*a_r[0,*,i]*q/area
        a_i[0,*,i] = (2.*!pi)^2*a_i[0,*,i]*q/area
@@ -56,25 +54,37 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    
    if(n_elements(m_val) ne 0) then begin
 
-       q_val = abs(m_val/ntor)
-       indices = interpol(findgen(n_elements(q)), q, q_val)       
+       q_val = abs(m_val/float(ntor))
+       indices = interpol(findgen(n_elements(q)), q, q_val)
+
+       if(n_elements(linestyle) eq 0) then linestyle=0
 
        for i=0, n_elements(m_val)-1 do begin
            dum = min(m-m_val[i], j, /abs)
 
            c = colors()
-           if(i eq 0) then begin
-               plot, nflux, abs(d[0,j,*]), color=c[0], /nodata, _EXTRA=extra
+
+           if(keyword_set(phase)) then begin
+               data = atan(imaginary(d[0,j,*]), real_part(d[0,j,*]))
+               ytitle='!6Phase!X'
+           endif else begin
+               data = abs(d[0,j,*])
+               ytitle=label
+           endelse
+           if(i eq 0 and not keyword_set(overplot)) then begin
+               plot, nflux, data, color=c[0], $
+                 /nodata, _EXTRA=extra, xtitle='!7W!X', ytitle=ytitle
            endif
 
-           oplot, nflux, abs(d[0,j,*]), color=c[i+1]
+           oplot, nflux, data, color=c[i+1], linestyle=linestyle
 
            fv = interpolate(nflux,indices[i])
            oplot, [fv,fv], !y.crange, color=c[i+1], linestyle=1
        end
 
        if(n_elements(m_val) gt 1) then begin
-           plot_legend, m_val, color=c[1:n_elements(m_val)], _EXTRA=extra
+           names = string(format='("!8m!6 = ",I0,"!X")', m_val)
+           plot_legend, names, color=c[1:n_elements(m_val)], _EXTRA=extra
        endif
 
        return
@@ -113,10 +123,14 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
 
            print, 'q, Psi = ', interpolate(q,indices[i]), $
              interpolate(nflux, indices[i])
-           print, 'Resonant field: m = ', m[j], abs(d[j,i]), $
+           print, 'Resonant field: m (mag, phase) = ', m[j], abs(d[j,i]), $
              atan(imaginary(d[j,i]),real_part(d[j,i]))
-           print, 'Resonant field: m = ', m[k], abs(d[k,i]), $
+           print, 'Resonant field: m (mag, phase) = ', m[k], abs(d[k,i]), $
              atan(imaginary(d[k,i]),real_part(d[k,i]))
+           print, 'Resonant field: m (re, im) = ', m[j], real_part(d[j,i]), $
+             imaginary(d[j,i])
+           print, 'Resonant field: m (re, im) = ', m[k], real_part(d[k,i]), $
+             imaginary(d[k,i])
 
            if(i eq 0) then begin
                plot, m, abs(d[*,i]), xrange=[-20,20], yrange=[0, max(abs(d))]
@@ -150,7 +164,8 @@ end
 
 pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
              subtract_vacuum=subtract_vacuum, ntor=ntor, $
-             plotbn=plotbn, slice=slice, extsubtract=extsubtract
+             plotbn=plotbn, slice=slice, extsubtract=extsubtract, $
+             overplot=overplot
 
    if(n_elements(ntor) eq 0) then begin
        ntor = read_parameter('ntor', _EXTRA=extra)
@@ -204,7 +219,8 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
    br = br*b0_norm
 
    schaffer_plot, br, x, z, t, _EXTRA=extra, psi0=psi0,i0=i0, q_val=q_val, $
-     label='!8B!Dn!N!6 (!8G!6)!X', points=points, bins=bins, ntor=ntor
+     label='!8B!Dn!N!6 (G)!X', points=points, bins=bins, ntor=ntor, $
+     overplot=overplot
 end
 
 pro plot_jpar, _EXTRA=extra, bins=bins, q_val=q_val, $
