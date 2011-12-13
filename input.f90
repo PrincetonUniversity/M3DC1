@@ -500,7 +500,7 @@ subroutine set_defaults
   call add_var_double("adapt_factor", adapt_factor, 1., "", adapt_grp)
   call add_var_double("adapt_hmin", adapt_hmin, 0.001, "", adapt_grp)
   call add_var_double("adapt_hmax", adapt_hmax, 0.1, "", adapt_grp)
-
+  call add_var_double("adapt_smooth", adapt_smooth, 2./3., "", adapt_grp)
 
   ! Mesh
   call add_var_int("nplanes", nplanes, 1, &

@@ -1255,7 +1255,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                      filename=filename, points=pts, mask=mask, $
                      rrange=xrange, zrange=yrange,equilibrium=equilibrium, $
                      h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
-                     diff=diff, operation=op, complex=complex, $
+                     diff=diff, operation=op, complex=complex, fac=fac, $
                      linear=linear, last=last, average=average, linfac=linfac,$
                      dpsi=dpsi, symbol=symbol, units=units, cgs=cgs, mks=mks, $
                      real=real, imaginary=imag, edge_val=edge_val, phi=phi0, $
@@ -1545,11 +1545,13 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        Pe1 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, linfac=linfac, $
-                        rrange=xrange, zrange=yrange, linear=linear)
+                        rrange=xrange, zrange=yrange, linear=linear, $
+                       complex=complex)
        
        n1 = read_field('den', x, y, t, slices=time, mesh=mesh, $
                        filename=filename, points=pts, linfac=linfac, $
-                       rrange=xrange, zrange=yrange, linear=linear)
+                       rrange=xrange, zrange=yrange, linear=linear, $
+                      complex=complex)
 
        if(keyword_set(linear) and (isubeq eq 1) and (time ge 0)) then begin
            Pe0 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
@@ -1573,7 +1575,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        Te1 = read_field('Te', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, linfac=linfac, $
-                        rrange=xrange, zrange=yrange, linear=linear)
+                        rrange=xrange, zrange=yrange, linear=linear, $
+                       complex=complex)
        
 
        Te0 = read_field('Te', x, y, t, mesh=mesh, $
@@ -1742,8 +1745,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    endif else if( (strcmp('field strength', name, /fold_case) eq 1) $
                   or (strcmp('b', name, /fold_case) eq 1)) $
      then begin
-
-       if(ntor > 0) then complex = 1
 
        psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, linear=linear, $
@@ -2127,6 +2128,24 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        endif
        symbol = '!7x!X'
        d = dimensions(t0=-1, _EXTRA=extra)
+
+   ;===========================================
+   ; pprime
+   ;===========================================
+   endif else if(strcmp('pprime', name, /fold_case) eq 1) then begin
+
+       p = read_field('p', x, y, t, slices=time, mesh=mesh, complex=complex, $
+                      filename=filename, points=pts, linear=linear, $
+                      rrange=xrange, zrange=yrange, op=op, phi=phi0)
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, /equilibrium, $
+                      filename=filename, points=pts, linear=linear, $
+                      rrange=xrange, zrange=yrange, op=op, phi=phi0)
+
+       data = s_bracket(p,psi,x,y)/s_bracket(psi,psi,x,y)
+
+       symbol = "!8p'!X"
+       d = dimensions(p0=1, b0=1, l0=1+itor,_EXTRA=extra)
+
 
    ;===========================================
    ; electron angular velocity
@@ -2777,6 +2796,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        r = radius_matrix(x,y,t)
        b0 = s_bracket(psi,psi,x,y)/r^2 + i0^2/r^2
        data = (s_bracket(i,psi,x,y)/r^2 - jphi*i0/r^2)/b0
+       data = abs(data)
 
        symbol = '!3|!8J!D!3||!6!N/!8B!3|!X'
        d = dimensions(j0=1,b0=-1,_EXTRA=extra)
@@ -3196,62 +3216,51 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        ; Field is not a composite field defined above;
        ; try to read it directly from C1.h5 file
 
+       
+       print, ' reading real field'
+
+       t = fltarr(trange[1]-trange[0]+1)
+       file_id = h5f_open(filename)
+
        if(keyword_set(complex)) then begin
            print, 'Reading complex field'
-           data_r = read_field(name, x, y, t, slices=time, mesh=mesh, $
+           data_r = read_field(name,x,y,t, slices=time, mesh=mesh, $
                                filename=filename, points=pts, $
                                rrange=xrange, zrange=yrange, complex=0, $
                                h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                                diff=diff, operation=op, mask=mask, $
-                               linear=linear, last=last,symbol=symbol, $
-                               units=units, cgs=cgs, mks=mks, $
-                              equilibrium=equilibrium)
-           data_i = read_field(name + '_i', x, y, t, slices=time, mesh=mesh, $
+                               /linear, last=last,symbol=symbol, $
+                               units=units, $
+                               equilibrium=equilibrium)
+           data_i = read_field(name+'_i',x,y,t, slices=time, mesh=mesh, $
                                filename=filename, points=pts, $
                                rrange=xrange, zrange=yrange, complex=0, $
                                h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                                diff=diff, operation=op, $
-                               linear=linear, last=last,symbol=symbol, $
-                               units=units, cgs=cgs, mks=mks, $
-                              equilibrium=equilibrium)
+                               /linear, last=last,symbol=symbol, $
+                               units=units, $
+                               equilibrium=equilibrium)
            data = complex(data_r, data_i)
-
+           
            if(n_elements(phi0) ne 0) then begin
                print, 'ntor = ', ntor
                data = data*complex( cos(ntor*phi0*!pi/180.), $
-                                   -sin(ntor*phi0*!pi/180.))
+                                    -sin(ntor*phi0*!pi/180.))
            end
        endif else begin
-           print, ' reading real field'
-
-           t = fltarr(trange[1]-trange[0]+1)
-           file_id = h5f_open(filename)
-
-           if((max(trange) ge 0) and $
-              (isubeq eq 1) and (not keyword_set(linear)))  then begin
-               print, ' reading base field', trange
-               base = read_field(name, x, y, t, slices=-1, mesh=mesh, $
-                                 filename=filename, points=pts, $
-                                 rrange=xrange, zrange=yrange, $
-                                 h_symmetry=h_symmetry, v_symmetry=v_symmetry,$
-                                 operation=op, mask=mask, $
-                                 last=0)
-           endif else base = 0.          
-
            for i=trange[0], trange[1] do begin
-           
                print, ' reading time slice ', i
                
                time_group_id = h5g_open(file_id, time_name(i))
                mesh = h5_parse(time_group_id, 'mesh', /read_data)   
-
+               
                field_group_id = h5g_open(time_group_id, 'fields')
-
+               
                                 ; check to see if "name" exists
                nmembers = h5g_get_nmembers(time_group_id, 'fields')
                match = 0
                for m=0, nmembers-1 do begin
-                   thisname = h5g_get_member_name(time_group_id, 'fields', m)
+                   thisname = h5g_get_member_name(time_group_id,'fields',m)
                    if(strcmp(thisname, name, /fold_case) eq 1) then begin
                        name = thisname
                        match = 1
@@ -3262,38 +3271,51 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                    print, "No field named ", name, " at time slice", i
                    continue
                end
-       
+               
                field = h5_parse(field_group_id, name, /read_data)
-           
+               
                time_id = h5a_open_name(time_group_id, "time")
                t[i-trange[0]] = h5a_read(time_id)
                h5a_close, time_id
-
+               
                h5g_close, field_group_id
                h5g_close, time_group_id
-
+               
                if(n_elements(phi0) eq 0) then phi_rad=0. $
                else phi0_rad = phi0*!pi/180.
-
+               
                data[i-trange[0],*,*] = $
                  eval_field(field._data, mesh, points=pts, $
                             r=x, z=y, op=op, filename=filename, $
                             xrange=xrange, yrange=yrange, mask=mask, $
                             phi=phi0_rad)
-
+               
                print, max(trange), isubeq, keyword_set(linear)
-               if((max(trange) ge 0) and $
-                  (isubeq eq 1) and (not keyword_set(linear)))  then begin
-                   if(n_elements(linfac) eq 0) then linfac=1.
-                   data[i-trange[0],*,*] = linfac*data[i-trange[0],*,*] + base
-               end
-           end
-
+           endfor
+                      
            h5f_close, file_id
+       endelse
 
-           symbol = translate(name, units=d, itor=itor)
+       ; for eqsubtract=1 fields with linear option not set,
+       ; add in base field
+       if((max(trange) ge 0) and $
+          (isubeq eq 1) and (not keyword_set(linear)))  then begin
+           print, ' reading base field', trange
+           base = read_field(name, x, y, t, slices=-1, mesh=mesh, $
+                             filename=filename, points=pts, $
+                             rrange=xrange, zrange=yrange, $
+                             h_symmetry=h_symmetry,v_symmetry=v_symmetry,$
+                             operation=op, mask=mask, $
+                             last=0)
+               
+           if(n_elements(linfac) eq 0) then linfac=1.
+           for i=trange[0], trange[1] do begin
+               data[i-trange[0],*,*] = linfac*data[i-trange[0],*,*] + base
+           end
        end
-   endelse
+
+       symbol = translate(name, units=d, itor=itor)
+   end
 
    if(n_elements(h_symmetry) eq 1) then begin
        data = (data + h_symmetry*reverse(data, 2)) / 2.
@@ -3324,6 +3346,9 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            data = atan(imaginary(data),real_part(data))
        endif
    end
+
+   if(n_elements(fac) ne 0) then data = data*fac
+
    print, 'Done reading field'
 
    return, data
@@ -4203,12 +4228,18 @@ pro plot_lcfs, psi, x, z, psival=psival,_EXTRA=extra
     if(n_elements(breaks) eq 0) then begin
         oplot, xy[0,*], xy[1,*], thick=!p.thick, color=color(6,10)
     endif else begin
-        n = n_elements(breaks)
-        breaks = [0,breaks]
-        for i=0, n-1, 2 do begin
-            oplot, xy[0,breaks[i]:breaks[i+1]], $
-              xy[1,breaks[i]:breaks[i+1]], $
-              thick=!p.thick, color=color(6,10)
+        j = where(breaks ge 0, count)
+        if(count eq 0) then begin
+            oplot, xy[0,*], xy[1,*], thick=!p.thick, color=color(6,10)
+        endif else begin
+            breaks = breaks[j]
+            n = n_elements(breaks)
+            breaks = [0,breaks]
+            for i=0, n-1, 2 do begin
+                oplot, xy[0,breaks[i]:breaks[i+1]], $
+                  xy[1,breaks[i]:breaks[i+1]], $
+                  thick=!p.thick, color=color(6,10)
+            end
         end
     endelse
 end
@@ -5039,7 +5070,7 @@ function flux_average, field, psi=psi, x=x, z=z, t=t, r0=r0, $
                        flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
                        points=points, name=name, symbol=symbol, units=units, $
                        integrate=integrate, complex=complex, abs=abs, $
-                       phase=phase, stotal=total, _EXTRA=extra
+                       phase=phase, stotal=total, fac=fac, _EXTRA=extra
 
    type = size(field, /type)
 
@@ -5197,7 +5228,7 @@ function flux_average, field, psi=psi, x=x, z=z, t=t, r0=r0, $
 
        endif else begin
            field = read_field(field, x, z, t, points=points, complex=complex, $
-                              symbol=symbol, units=units, dimensions=d, $
+                              symbol=symbol, units=units, dimensions=d, fac=fac, $
                               abs=abs, phase=phase, _EXTRA=extra)
            name = symbol
            if(keyword_set(total)) then begin
@@ -5228,9 +5259,9 @@ function flux_average, field, psi=psi, x=x, z=z, t=t, r0=r0, $
 end
 
 
-function flux_at_q, qval, normalized_flux=norm, $
+function flux_at_q, qval, normalized_flux=norm, points=pts, $
                     q=q, flux=flux, _EXTRA=extra
-   q = flux_average('q', flux=flux, nflux=nflux, /equilibrium, $
+   q = flux_average('q', flux=flux, nflux=nflux, /equilibrium, points=pts, $
                     _EXTRA=extra)
 
    if(keyword_set(norm)) then flux=nflux
@@ -5413,7 +5444,7 @@ end
 ;======================================================
 pro plot_flux_average, field, time, filename=filename, complex=complex, $
                        color=colors, names=names, bins=bins, linear=linear, $
-                       xlog=xlog, ylog=ylog, overplot=overplot, $
+                       xlog=xlog, ylog=ylog, overplot=overplot, fac=fac, $
                        lcfs=lcfs, normalized_flux=norm, points=pts, $
                        minor_radius=minor_radius, smooth=sm, t=t, rms=rms, $
                        bw=bw, srnorm=srnorm, last=last, mks=mks, cgs=cgs, $
@@ -5438,13 +5469,14 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
            ls = replicate(0,n_elements(field))
        endelse
        for i=0, n_elements(field)-1 do begin
-           if((n_elements(q_contours) ne 0) and (i eq n_elements(field)-1)) $
-             then qcon = q_contours
+           if((n_elements(q_contours) ne 0) and (i eq 0)) then begin
+               qcon = q_contours
+           end
            plot_flux_average, field[i], time, filename=filename, $
              overplot=((i gt 0) or keyword_set(overplot)), points=pts, $
              color=col[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
              normalized_flux=norm, minor_radius=minor_radius, smooth=sm, $
-             rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, $
+             rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, fac=fac, $
              linear=linear, multiply_flux=multiply_flux, mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, abs=abs, phase=phase, $
              stotal=total, q_contours=qcon
@@ -5475,10 +5507,10 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              overplot=((i gt 0) or keyword_set(overplot)), points=pts, $
              color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
              normalized_flux=norm, minor_radius=minor_radius, smooth=sm, $
-             rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, $
+             rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, fac=fac, $
              linear=linear, multiply_flux=multiply_flux[i], mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, abs=abs, phase=phase, $
-             stotal=total
+             stotal=total, q_contours=q_contours
        end
        if(n_elements(names) gt 0) then begin
            plot_legend, names, color=colors, ylog=ylog, xlog=xlog, $
@@ -5504,7 +5536,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              overplot=((i gt 0) or keyword_set(overplot)), points=pts, $
              color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
              normalized_flux=norm, minor_radius=minor_radius, smooth=sm, $
-             t=t, rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, $
+             t=t, rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, fac=fac,$
              linear=linear, multiply_flux=multiply_flux, mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, asb=aba, phase=phase, $
              stotal=total
@@ -5524,7 +5556,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
 
    fa = flux_average(field,slice=time,flux=flux,points=pts,filename=filename, $
                      name=title, symbol=symbol, units=units, bins=bins, $
-                     psi=psi,x=x,z=z,t=t,nflux=nflux,linear=linear, $
+                     psi=psi,x=x,z=z,t=t,nflux=nflux,linear=linear, fac=fac, $
                      mks=mks, cgs=cgs, area=area, integrate=integrate, $
                     complex=complex, abs=abs, phase=phase, stotal=total)
 
@@ -5538,7 +5570,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
 
    if(keyword_set(rms)) then begin
        fa2 = flux_average(field^2,flux=flux,nflux=nflux,points=pts,slice=time,$
-                          filename=filename, t=t, linear=linear, $
+                          filename=filename, t=t, linear=linear, fac=fac, $
                          mks=mks, cgs=cgs, complex=complex, $
                           abs=abs, phase=phase)
        fa = sqrt(1. - fa^2/fa2)
@@ -5567,11 +5599,11 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
    end else if(keyword_set(minor_radius)) then begin
        flux = flux_average('r',points=pts,file=filename,t=t,linear=linear,$
                     name=xtitle,bins=bins,units=units,slice=time, $
-                          mks=mks, cgs=cgs)
+                          mks=mks, cgs=cgs, fac=fac)
        xtitle = '!12<' + xtitle + '!12> !6 ('+units+')!X'
    endif else if(keyword_set(rho)) then begin
        flux = flux_average('flux_t',points=pts,file=filename,/equilibrium,$
-                           bins=bins,slice=time)
+                           bins=bins,slice=time, fac=fac)
        flux = sqrt((flux - flux[0])/(flux[n_elements(flux)-1] - flux[0]))
        lcfs_psi = 1.
        xtitle = '!7q!X'
@@ -5604,8 +5636,11 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
        fvals = flux_at_q(q_contours, points=pts, filename=filename, $
                          slice=time, normalized_flux=norm, bins=bins)
        for k=0, n_elements(fvals)-1 do begin
-           oplot, [fvals[k], fvals[k]], !y.crange, linestyle=1
+           oplot, [fvals[k], fvals[k]], !y.crange, linestyle=1, color=colors
        end
+       result = interpol(fa, flux, fvals)
+       print, 'filename = ', filename
+       print, "values at q's =  ", result
    endif
 end
 
@@ -6253,24 +6288,21 @@ pro test_mesh, filename, nplanes=nplanes, _EXTRA=extra
   print, 'correct = ', correct/6
 end
 
-pro plot_perturbed_surface, q, scalefac=scalefac, $
+pro plot_perturbed_surface, q, scalefac=scalefac, points=pts, $
                             filename=filename, _EXTRA=extra
    if(n_elements(scalefac) eq 0) then scalefac=1.
    if(n_elements(scalefac) eq 1) then $
      scalefac=replicate(scalefac, n_elements(q))
 
    psi0 = read_field('psi',x,z,t,filename=filename, /equilibrium, $
-                     _EXTRA=extra)
+                     points=pts, _EXTRA=extra)
    psi0_r = read_field('psi',x,z,t,filename=filename, /equilibrium, $
-                       _EXTRA=extra, op=2)
+                       points=pts, _EXTRA=extra, op=2)
    psi0_z = read_field('psi',x,z,t, filename=filename, /equilibrium,$
-                       _EXTRA=extra, op=3)
+                       points=pts, _EXTRA=extra, op=3)
    zi = read_field('displacement',x,z,t,filename=filename, /linear, $
-                   _EXTRA=extra)
+                   points=pts, _EXTRA=extra)
    
-;   contour_and_legend, zi
-;   return
-
    if(n_elements(bins) eq 0) then bins = n_elements(x)
    fvals = flux_at_q(q, points=pts, filename=filename, $
                      slice=time, normalized_flux=norm, bins=bins)

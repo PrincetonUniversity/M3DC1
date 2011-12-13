@@ -426,6 +426,8 @@ subroutine calculate_external_fields()
   real, dimension(int_pts_main) :: co, sn
 #endif
 
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "Calculating error fields"
+
   if(irmp .ne. 0) then
      call load_coils(xc_na, zc_na, ic_na, nc_na, &
           'rmp_coil.dat', 'rmp_current.dat', ntor)
@@ -449,6 +451,7 @@ subroutine calculate_external_fields()
   print *, "create_mat coils br_mat", br_mat%imatrix 
 #endif
 
+  if(myrank.eq.0 .and. iprint.ge.2) print *, 'calculating field values...'
   nelms = local_elements()
   do itri=1,nelms
         
@@ -459,31 +462,37 @@ subroutine calculate_external_fields()
      fphi = 0.    ! B_phi
      fz   = 0.    ! B_Z
 
-     do i=1, nc_na, 2
-        call pane(ic_na(i),xc_na(i),xc_na(i+1),zc_na(i),zc_na(i+1), &
-             npoints_pol,x_79,z_79,ntor,fr,fphi,fz)
-     end do
+     if(irmp.eq.0) then
+        temp79a = 0.
+        temp79b = 0.
+        temp79c = 0.
+     else
+        do i=1, nc_na, 2
+           call pane(ic_na(i),xc_na(i),xc_na(i+1),zc_na(i),zc_na(i+1), &
+                npoints_pol,x_79,z_79,ntor,fr,fphi,fz)
+        end do
 
 #ifdef USECOMPLEX
-     temp79a = fr
-     temp79b = fphi
-     temp79c = fz
+        temp79a = fr
+        temp79b = fphi
+        temp79c = fz
 #else
-     do i=1, npoints_tor
-        co = cos(ntor*phi_79((i-1)*npoints_pol+1:i*npoints_pol))
-        sn = sin(ntor*phi_79((i-1)*npoints_pol+1:i*npoints_pol))
-        temp79a((i-1)*npoints_pol+1:i*npoints_pol) = &
-             real(fr(1:npoints_pol))*co + aimag(fr(1:npoints_pol))*sn
-        temp79b((i-1)*npoints_pol+1:i*npoints_pol) = &
-             real(fphi(1:npoints_pol))*co + aimag(fphi(1:npoints_pol))*sn
-        temp79c((i-1)*npoints_pol+1:i*npoints_pol) = &
-             real(fz(1:npoints_pol))*co + aimag(fz(1:npoints_pol))*sn
-     end do
+        do i=1, npoints_tor
+           co = cos(ntor*phi_79((i-1)*npoints_pol+1:i*npoints_pol))
+           sn = sin(ntor*phi_79((i-1)*npoints_pol+1:i*npoints_pol))
+           temp79a((i-1)*npoints_pol+1:i*npoints_pol) = &
+                real(fr(1:npoints_pol))*co + aimag(fr(1:npoints_pol))*sn
+           temp79b((i-1)*npoints_pol+1:i*npoints_pol) = &
+                real(fphi(1:npoints_pol))*co + aimag(fphi(1:npoints_pol))*sn
+           temp79c((i-1)*npoints_pol+1:i*npoints_pol) = &
+                real(fz(1:npoints_pol))*co + aimag(fz(1:npoints_pol))*sn
+        end do
 #endif
 
-     temp79a = -2.*pi*temp79a
-     temp79b = -2.*pi*temp79b
-     temp79c = -2.*pi*temp79c
+        temp79a = -2.*pi*temp79a
+        temp79b = -2.*pi*temp79b
+        temp79c = -2.*pi*temp79c
+     end if
 
      if(iread_ext_field.ne.0) then
 #if defined(USECOMPLEX)
@@ -539,7 +548,9 @@ subroutine calculate_external_fields()
      use_external_fields = .true.
   end if
 
+
   ! solve bz
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving bz..."
   call newsolve(mass_mat_lhs%mat,bz_vec,ier)
   if(extsubtract.eq.1) then
      bz_ext = bz_f     
@@ -549,6 +560,7 @@ subroutine calculate_external_fields()
 
 #if defined(USECOMPLEX) || defined(USE3D)
   ! calculate f and add Grad_perp(f') to RHS
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving f..."
   if(extsubtract.eq.1) then
      bf_ext = 0.
      call solve_newvar1(bf_mat_lhs,bf_ext,mass_mat_rhs_bf, &
@@ -565,6 +577,7 @@ subroutine calculate_external_fields()
 #endif
 
   ! do least-squares solve for Grad(psi)xGrad(phi) = B + Grad_perp(f')
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving psi..."
   call newsolve(br_mat,psi_vec, ier)
   if(extsubtract.eq.1) then
      psi_ext = psi_f
@@ -576,6 +589,8 @@ subroutine calculate_external_fields()
   call destroy_vector(bz_vec)
   call destroy_mat(br_mat)
   call destroy_mat(bf_mat)
+
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "Done calculating error fields"
 end subroutine calculate_external_fields
 
 
@@ -3420,7 +3435,7 @@ subroutine initial_conditions()
      
   call den_eq()
 
-  if(irmp.ge.1) call rmp_per()
+  if(irmp.ge.1 .or. iread_ext_field.ge.1) call rmp_per()
 
   if(iflip_b.eq.1) call mult(bz_field(0), -1.)
   if(iflip_j.eq.1) call mult(psi_field(0), -1.)

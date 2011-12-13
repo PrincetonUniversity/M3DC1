@@ -232,6 +232,7 @@ Program Reducedquintic
 1003 format(1p10E12.4)
     end if
     print *, 'adapting mesh...', psimin, psibound
+    call setsmoothfact(adapt_smooth)
     call adapt(temporary_field%vec%data,psimin,psibound)
     print *, 'done adapting.'
 

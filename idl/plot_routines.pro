@@ -150,7 +150,7 @@ function color, c, maxcolors
 end
 
 pro plot_legend, names, linestyles=ls, colors=cs, left=l, top=t, psyms=p, $
-                 ylog=ylog, xlog=xlog, charsize=charsize
+                 ylog=ylog, xlog=xlog, charsize=charsize, box=box
     
     N = n_elements(names)
 
@@ -173,6 +173,14 @@ pro plot_legend, names, linestyles=ls, colors=cs, left=l, top=t, psyms=p, $
 
     x = !x.crange(0) + dx * (1. + l * 20.)
     y = !y.crange(1) - dy * (1. + t * 15.)
+
+    if(n_elements(box) ne 0) then begin
+        bb = [x, y+dy, x+dx*box*20., y-N*dy]
+        oplot, [bb[0], bb[0]], [bb[1], bb[3]]
+        oplot, [bb[2], bb[2]], [bb[1], bb[3]]
+        oplot, [bb[0], bb[2]], [bb[1], bb[1]]
+        oplot, [bb[0], bb[2]], [bb[3], bb[3]]
+    end
 
     for i=0, N-1 do begin
         d = [x, x+0.75*dx, x+1.5*dx, x+2.*dx]
@@ -226,7 +234,11 @@ pro contour_and_legend, z, x, y, label=label, range=range, levels=levels, $
     end
 
     sz = size(z, /dim)
-    n = sz[0]
+    if(n_elements(sz) gt 2) then begin
+        n = sz[0]
+    endif else begin
+        n = 1
+    endelse
 
     if(n_elements(label) eq 0) then begin
         label = strarr(n)
@@ -273,13 +285,14 @@ pro contour_and_legend, z, x, y, label=label, range=range, levels=levels, $
         for j=0, cols-1 do begin
             !p.region = [xsize*float(i)/rows,  ysize*float(j)/cols, $
                          xsize*float(i+1)/rows,ysize*float(j+1)/cols]
+            if(n_elements(sz) gt 2) then zz = z[k,*,*] else zz = z
 
             if(n_elements(nlevels) eq 0) then begin
-                contour_and_legend_single, z[k,*,*], x, y, $
+                contour_and_legend_single, zz, x, y, $
                   label=label[k], title=title[k], range=range[*,k], $
                   lines=lines[k], zlog=zlog[k], levels=levels, _EXTRA=ex
             endif else begin
-                contour_and_legend_single, z[k,*,*], x, y, levels=levels, $
+                contour_and_legend_single, zz, x, y, levels=levels, $
                   label=label[k], title=title[k], range=range[*,k], $
                   lines=lines[k], nlevels=nlevels[k], zlog=zlog[k], _EXTRA=ex
             endelse

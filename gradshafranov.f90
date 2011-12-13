@@ -297,6 +297,11 @@ subroutine define_profiles
      call read_ascii_column('profile_te', yvals, nvals, icol=2)
      yvals = yvals * 1.6022e-9 / (b0_norm**2/(4.*pi*n0_norm))
   case(2)
+     ! Read in eV
+     nvals = 0
+     call read_ascii_column('profile_te', xvals, nvals, icol=1)
+     call read_ascii_column('profile_te', yvals, nvals, icol=2)
+     yvals = yvals * 1.6022e-12 / (b0_norm**2/(4.*pi*n0_norm))
 
   case default
      
@@ -368,6 +373,14 @@ subroutine define_profiles
         call read_ascii_column('dtrot.xy', xvals, nvals, skip=3, icol=1)
         call read_ascii_column('dtrot.xy', yvals, nvals, skip=3, icol=7)
         yvals = yvals / (b0_norm/sqrt(4.*pi*1.6726e-24*n0_norm)/l0_norm)
+
+     case(3)
+        ! Read in m/sec
+        nvals = 0
+        call read_ascii_column('profile_vphi', xvals, nvals, icol=1)
+        call read_ascii_column('profile_vphi', yvals, nvals, icol=2)
+        yvals = yvals / (b0_norm/sqrt(4.*pi*1.6726e-24*n0_norm)/l0_norm) &
+             / rzero
 
      case default
         call default_omega
