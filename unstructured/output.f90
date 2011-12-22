@@ -144,7 +144,9 @@ contains
        else
           gamma_gr = (ekin - ekino)/((ekin+ekino)*dtold)
        endif
-       write(ke_file, '(I8, 1p3e12.4,2x,1p3e12.4,2x,1p3e12.4,2x,1pe13.5)') ntime, time, ekin, gamma_gr, ekinp,ekint,ekin3, emagp, emagt, emag3, etot
+       write(ke_file, '(I8, 1p3e12.4,2x,1p3e12.4,2x,1p3e12.4,2x,1pe13.5)') &
+            ntime, time, ekin, gamma_gr, &
+            ekinp,ekint,ekin3, emagp, emagt, emag3, etot
     endif
 
   end subroutine output
@@ -386,7 +388,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "zmag"    ,zmag    ,ntime,error)
   call output_scalar(scalar_group_id, "psimin"  ,psimin  ,ntime,error)
 
-  if(xray_detector_enabled) then
+  if(xray_detector_enabled.eq.1) then
      call output_scalar(scalar_group_id,"xray_signal",xray_signal,ntime,error)
   end if
 
@@ -927,7 +929,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
         nfields = nfields + 1
      endif
 
-     if(xray_detector_enabled) then 
+     if(xray_detector_enabled.eq.1) then 
         ! chord_mask
         do i=1, nelms
            call calcavector(i, chord_mask, dum(:,i))

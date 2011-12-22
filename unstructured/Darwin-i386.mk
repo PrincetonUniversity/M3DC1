@@ -44,6 +44,8 @@ PARMETIS_LIBS = -lmetis -lparmetis
 HDF5_LIBS = -L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5 \
 	-lhdf5hl_fortran -lhdf5_hl -lz
 
+FFTW_LIBS = -lfftw3
+
 ifeq ($(USESCOREC), 1)
 AUTOPACK_LIBS = -L$(AUTOPACK_HOME)/lib \
 	-Wl,-rpath,$(AUTOPACK_HOME)/lib -lautopack-O
@@ -95,6 +97,7 @@ LIBS = 	-L/opt/local/lib \
 	$(PETSC_LIBS) \
 	$(SUPERLU_LIBS) \
 	$(HDF5_LIBS) \
+	$(FFTW_LIBS) \
 	-L/usr/X11R6/lib -lX11 \
 	-lmpi_cxx -lstdc++
 

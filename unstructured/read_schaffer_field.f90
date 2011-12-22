@@ -32,7 +32,7 @@ contains
     ! First, let rank zero parse the file to determine the size of the data
     ierr = 0
     if(rank.eq.0) then 
-       open(ifile, name=filename, status='old', action='read', err=200)
+       open(ifile, file=filename, status='old', action='read', err=200)
 
        do i=1, header_lines
           read(ifile,*) dummy
