@@ -48,7 +48,7 @@ subroutine input
   ! Read input file
   ! ~~~~~~~~~~~~~~~
   if(.not.print_help) then
-     call read_namelist("C1input", ierr)
+     call read_namelist("C1input"//char(0), ierr)
      if(ierr.ne.0) call safestop(3)
   end if
 
