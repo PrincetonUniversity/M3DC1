@@ -322,13 +322,13 @@ subroutine define_profiles
      nvals = 0
      call read_ascii_column('profile_ne', xvals, nvals, icol=1)
      call read_ascii_column('profile_ne', yvals, nvals, icol=2)
-     yvals = yvals * 1e14 / n0_norm
+     yvals = yvals * 1e14 / n0_norm / zeff
      
   case(2)
      ! Read in 10^19/m^3
      call read_ascii_column('dne.xy', xvals, nvals, skip=3, icol=1)
      call read_ascii_column('dne.xy', yvals, nvals, skip=3, icol=7)
-     yvals = yvals * 1e13 / n0_norm
+     yvals = yvals * 1e13 / n0_norm / zeff
 
   case default
      call density_profile
@@ -347,11 +347,11 @@ subroutine define_profiles
         teold = te_spline%y(te_spline%n)
         te_spline%y = te_spline%y - teold + tedge
      else
-        teold = pefac*p0_spline%y(p0_spline%n)/n0_spline%y(n0_spline%n)
+        teold = pefac*p0_spline%y(p0_spline%n)/n0_spline%y(n0_spline%n)/zeff
      end if
      ! add difference to pressure profile, so ion temp is not affected.
      if(pedge.lt.0.) then
-        p0_spline%y = p0_spline%y + n0_spline%n*(tedge - teold)
+        p0_spline%y = p0_spline%y + n0_spline%n*(tedge - teold)*zeff
      end if
   end if
 
@@ -366,20 +366,23 @@ subroutine define_profiles
         nvals = 0
         call read_ascii_column('profile_omega', xvals, nvals, icol=1)
         call read_ascii_column('profile_omega', yvals, nvals, icol=2)
-        yvals = 1000.* yvals / (b0_norm/sqrt(4.*pi*1.6726e-24*n0_norm)/l0_norm)
+        yvals = 1000.* yvals / &
+             (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm)
         
      case(2)
         ! Read in rad/sec
         call read_ascii_column('dtrot.xy', xvals, nvals, skip=3, icol=1)
         call read_ascii_column('dtrot.xy', yvals, nvals, skip=3, icol=7)
-        yvals = yvals / (b0_norm/sqrt(4.*pi*1.6726e-24*n0_norm)/l0_norm)
+        yvals = yvals / &
+             (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm)
 
      case(3)
         ! Read in m/sec
         nvals = 0
         call read_ascii_column('profile_vphi', xvals, nvals, icol=1)
         call read_ascii_column('profile_vphi', yvals, nvals, icol=2)
-        yvals = yvals / (b0_norm/sqrt(4.*pi*1.6726e-24*n0_norm)/l0_norm) &
+        yvals = yvals / &
+             (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm) &
              / rzero
 
      case default
@@ -2152,24 +2155,6 @@ subroutine boundary_gs(rhs, feedfac, mat)
      end if
 #endif
   end do
-
-!!$#ifdef USE3D
-!!$  ! enforce axisymmetry
-!!$  if(int_tor.eq.0) then
-!!$     do itri=1, nelms
-!!$        call get_element_nodes(itri, inode)
-!!$        do i=1, nodes_per_element
-!!$           index = node_index(rhs, inode(i), 1)
-!!$           
-!!$           do j=1, 6
-!!$              ! set toroidal derivatives to zero
-!!$              if(present(mat)) call identity_row(mat, index+j+5)
-!!$              call insert(rhs, index+j+5, 0., VEC_SET)
-!!$           end do
-!!$        end do
-!!$     end do
-!!$  end if
-!!$#endif
 end subroutine boundary_gs
 
 

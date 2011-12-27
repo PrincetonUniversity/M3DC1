@@ -73,16 +73,16 @@ module m3dc1_nint
   vectype, dimension(MAX_PTS, OP_NUM) :: sz79
   vectype, dimension(MAX_PTS, OP_NUM) :: tm79, ni79, b2i79
   vectype, dimension(MAX_PTS, OP_NUM) :: ps179, bz179, pe179, n179, & 
-       ph179, vz179, ch179, p179
+       ph179, vz179, ch179, p179, ne179
   vectype, dimension(MAX_PTS, OP_NUM) :: pst79, bzt79, pet79, nt79, &
-       pht79, vzt79, cht79, pt79
+       pht79, vzt79, cht79, pt79, net79
   vectype, dimension(MAX_PTS, OP_NUM) :: vis79, vic79, vip79
   vectype, dimension(MAX_PTS, OP_NUM) :: jt79, cot79, vot79, pit79, &
        eta79, sig79
   vectype, dimension(MAX_PTS, OP_NUM) :: bf079, bf179, bft79
   vectype, dimension(MAX_PTS, OP_NUM) :: kap79, kar79, kax79
   vectype, dimension(MAX_PTS, OP_NUM) :: ps079, bz079, pe079, n079, &
-       ph079, vz079, ch079, p079
+       ph079, vz079, ch079, p079, ne079
   vectype, dimension(MAX_PTS, OP_NUM) :: pss79, bzs79
   vectype, dimension(MAX_PTS, OP_NUM) :: bzx79, psx79, bfx79
   vectype, dimension(MAX_PTS, OP_NUM) :: pstx79, bztx79, bftx79
@@ -589,6 +589,10 @@ contains
           n079 = 0.
           nt79 = n179
        endif
+
+       ne079 = zeff*n079
+       ne179 = zeff*n179
+       net79 = zeff*nt79
     endif
 
   ! NI
@@ -727,46 +731,49 @@ contains
         end where
      else if(iresfunc.eq.4) then
         eta79 = 0.
-        temp79b = pet79(:,OP_1)/nt79(:,OP_1)
+        temp79b = pet79(:,OP_1)/net79(:,OP_1)
         where(real(temp79b).gt.0.) 
            temp79a = sqrt(temp79b)
            eta79(:,OP_1 ) = 1. / temp79a**3
            eta79(:,OP_DR) = (-3./2.) / temp79a**5 * &
-                (pet79(:,OP_DR)/nt79(:,OP_1) &
-                -pet79(:,OP_1)*nt79(:,OP_DR)/nt79(:,OP_1)**2)
+                (pet79(:,OP_DR)/net79(:,OP_1) &
+                -pet79(:,OP_1)*net79(:,OP_DR)/net79(:,OP_1)**2)
            eta79(:,OP_DZ) = (-3./2.) / temp79a**5 * &
-                (pet79(:,OP_DZ)/nt79(:,OP_1) &
-                -pet79(:,OP_1)*nt79(:,OP_DZ)/nt79(:,OP_1)**2)
+                (pet79(:,OP_DZ)/net79(:,OP_1) &
+                -pet79(:,OP_1)*net79(:,OP_DZ)/net79(:,OP_1)**2)
            eta79(:,OP_DRR) = (15./4.) / temp79a**7 * &
-                (pet79(:,OP_DR)/nt79(:,OP_1) &
-                -pet79(:,OP_1)*nt79(:,OP_DR)/nt79(:,OP_1)**2)**2 &
+                (pet79(:,OP_DR)/net79(:,OP_1) &
+                -pet79(:,OP_1)*net79(:,OP_DR)/net79(:,OP_1)**2)**2 &
                 + (-3./2.) / temp79a**5 * &
-                (pet79(:,OP_DRR)/nt79(:,OP_1) &
-                -2.*pet79(:,OP_DR)*nt79(:,OP_DR)/nt79(:,OP_1)**2 &
-                -pet79(:,OP_1)*nt79(:,OP_DRR)/nt79(:,OP_1)**2 &
-                +2.*pet79(:,OP_1)*nt79(:,OP_DR)**2/nt79(:,OP_1)**3)
+                (pet79(:,OP_DRR)/net79(:,OP_1) &
+                -2.*pet79(:,OP_DR)*net79(:,OP_DR)/net79(:,OP_1)**2 &
+                -pet79(:,OP_1)*net79(:,OP_DRR)/net79(:,OP_1)**2 &
+                +2.*pet79(:,OP_1)*net79(:,OP_DR)**2/net79(:,OP_1)**3)
            eta79(:,OP_DRZ) = (15./4.) / temp79a**7 * &
-                (pet79(:,OP_DR)/nt79(:,OP_1) &
-                -pet79(:,OP_1)*nt79(:,OP_DR)/nt79(:,OP_1)**2) &
-                *(pet79(:,OP_DZ)/nt79(:,OP_1) &
-                -pet79(:,OP_1)*nt79(:,OP_DZ)/nt79(:,OP_1)**2) &
+                (pet79(:,OP_DR)/net79(:,OP_1) &
+                -pet79(:,OP_1)*net79(:,OP_DR)/net79(:,OP_1)**2) &
+                *(pet79(:,OP_DZ)/net79(:,OP_1) &
+                -pet79(:,OP_1)*net79(:,OP_DZ)/net79(:,OP_1)**2) &
                 + (-3./2.) / temp79a**5 * &
-                (pet79(:,OP_DRZ)/nt79(:,OP_1) &
-                -pet79(:,OP_DR)*nt79(:,OP_DZ)/nt79(:,OP_1)**2 &
-                -pet79(:,OP_DZ)*nt79(:,OP_DR)/nt79(:,OP_1)**2 &
-                -pet79(:,OP_1)*nt79(:,OP_DRZ)/nt79(:,OP_1)**2 &
-                +2.*pet79(:,OP_1)*nt79(:,OP_DR)*nt79(:,OP_DZ)/nt79(:,OP_1)**3)
+                (pet79(:,OP_DRZ)/net79(:,OP_1) &
+                -pet79(:,OP_DR)*net79(:,OP_DZ)/net79(:,OP_1)**2 &
+                -pet79(:,OP_DZ)*net79(:,OP_DR)/net79(:,OP_1)**2 &
+                -pet79(:,OP_1)*net79(:,OP_DRZ)/net79(:,OP_1)**2 &
+                +2.*pet79(:,OP_1)*net79(:,OP_DR)*net79(:,OP_DZ) &
+                /net79(:,OP_1)**3)
            eta79(:,OP_DZZ) = (15./4.) / temp79a**7 * &
-                (pet79(:,OP_DZ)/nt79(:,OP_1) &
-                -pet79(:,OP_1)*nt79(:,OP_DZ)/nt79(:,OP_1)**2)**2 &
+                (pet79(:,OP_DZ)/net79(:,OP_1) &
+                -pet79(:,OP_1)*net79(:,OP_DZ)/net79(:,OP_1)**2)**2 &
                 + (-3./2.) / temp79a**5 * &
-                (pet79(:,OP_DZZ)/nt79(:,OP_1) &
-                -2.*pet79(:,OP_DZ)*nt79(:,OP_DZ)/nt79(:,OP_1)**2 &
-                -pet79(:,OP_1)*nt79(:,OP_DZZ)/nt79(:,OP_1)**2 &
-                +2.*pet79(:,OP_1)*nt79(:,OP_DZ)**2/nt79(:,OP_1)**3)
+                (pet79(:,OP_DZZ)/net79(:,OP_1) &
+                -2.*pet79(:,OP_DZ)*net79(:,OP_DZ)/net79(:,OP_1)**2 &
+                -pet79(:,OP_1)*net79(:,OP_DZZ)/net79(:,OP_1)**2 &
+                +2.*pet79(:,OP_1)*net79(:,OP_DZ)**2/net79(:,OP_1)**3)
         end where
 
-        eta79 = eta79 * 3.4e-22*n0_norm**2/(b0_norm**4*l0_norm)*17.
+        eta79 = eta79 * &
+             3.4e-22*n0_norm**2/(b0_norm**4*l0_norm) &
+             *zeff*lambda_coulomb*sqrt(ion_mass)
      else
         call eval_ops(itri, resistivity_field, eta79)
      end if

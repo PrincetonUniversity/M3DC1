@@ -170,6 +170,11 @@ subroutine set_defaults
        "Collisionless ion skin depth", misc_grp)
   call add_var_double("mass_ratio", mass_ratio, 0., "", misc_grp)
   call add_var_double("lambdae", lambdae, 0., "", misc_grp)
+  call add_var_double("zeff", zeff, 1., "Z effective", misc_grp)
+  call add_var_double("ion_mass", ion_mass, 1., &
+       "Ion mass (in units of m_p)", misc_grp)
+  call add_var_double("lambda_coulomb", lambda_coulomb, 17., &
+       "Coulomb logarithm", misc_grp)
 
 
   ! Model options
