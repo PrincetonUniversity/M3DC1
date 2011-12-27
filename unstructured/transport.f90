@@ -86,9 +86,9 @@ vectype function resistivity_func(i)
   case(0)  ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)
      if(eta0.ne.0.) then
         if(linear.eq.1) then
-           temp79a = eta0*sqrt((n079(:,OP_1)/(pe079(:,OP_1)))**3)
+           temp79a = eta0*sqrt((ne079(:,OP_1)/(pe079(:,OP_1)))**3)
         else
-           temp79a = eta0*sqrt((nt79(:,OP_1)/(pet79(:,OP_1)))**3)
+           temp79a = eta0*sqrt((net79(:,OP_1)/(pet79(:,OP_1)))**3)
         endif
      else
         temp79a = 0.

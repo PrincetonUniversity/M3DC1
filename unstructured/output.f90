@@ -286,9 +286,11 @@ subroutine hdf5_write_parameters(error)
   call write_real_attr(root_id, "hyperp"     , hyperp,     error)
   call write_real_attr(root_id, "b0_norm"    , b0_norm,    error)
   call write_real_attr(root_id, "n0_norm"    , n0_norm,    error)
-  call write_real_attr(root_id, "l0_norm"    , l0_norm,    error)
+  call write_real_attr(root_id, "l0_norm"    , l0_norm,    error)  
   call write_real_attr(root_id, "eta_wall"   , eta_wall,   error)
   call write_real_attr(root_id, "delta_wall" , delta_wall, error)
+  call write_real_attr(root_id, "zeff"       , zeff,       error)
+  call write_real_attr(root_id, "ion_mass"   , ion_mass,   error)
 
   call h5gclose_f(root_id, error)
 

@@ -345,10 +345,15 @@ function read_mesh, filename=filename, slice=t
 end
 
 
-pro get_normalizations, b0=b0_norm, n0=n0_norm, l0=l0_norm, _EXTRA=extra
+pro get_normalizations, b0=b0_norm, n0=n0_norm, l0=l0_norm, $
+                        zeff=zeff, ion_mass=ion_mass, _EXTRA=extra
    b0_norm = read_parameter('b0_norm', _EXTRA=extra)
    n0_norm = read_parameter('n0_norm', _EXTRA=extra)
    l0_norm = read_parameter('l0_norm', _EXTRA=extra)
+   zeff = read_parameter("zeff", _EXTRA=extra)
+   ion_mass = read_parameter("ion_mass", _EXTRA=extra)
+   if(zeff eq 0) then zeff = 1.
+   if(ion_mass eq 0) then ion_mas = 1.
 end
 
 ;===============================================================
@@ -358,24 +363,26 @@ end
 ; converts x having dimensions d to cgs units
 ; where b0, n0, and l0 are the normalizations (in cgs units)
 ;===============================================================
-pro convert_units, x, d, b0, n0, l0, cgs=cgs, mks=mks
+pro convert_units, x, d, b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
    if(n_elements(x) eq 0) then return
 
    if(not (keyword_set(cgs) or keyword_set(mks))) then return
 
-   if(b0 eq 0 or n0 eq 0 or l0 eq 0) then begin
+   if(b0 eq 0 or n0 eq 0 or l0 eq 0 or zeff eq 0 or mi eq 0) then begin
        print, "Warning: unknown conversion factors."
        print, "Using l0=100, B0=1e4, n0=1e14."
        l0 = 100.
        b0 = 1.e4
        n0 = 1.e14
+       zeff = 1.
+       mi = 1.
    endif
 
    val = 1.
    if(keyword_set(cgs)) then begin
        fp = (4.*!pi)
        c0 = 3.e10
-       v0 = 2.18e11*b0/sqrt(n0)
+       v0 = 2.18e11*b0/sqrt(mi*n0)
        t0 = l0/v0
        temp0 = b0^2/(fp*n0) * 1./(1.6022e-12)
        i0 = c0*b0*l0/fp
@@ -393,7 +400,7 @@ pro convert_units, x, d, b0, n0, l0, cgs=cgs, mks=mks
          * e0^d[7]
        
    endif else if(keyword_set(mks)) then begin
-       convert_units, x, d, b0, n0, l0, /cgs
+       convert_units, x, d, b0, n0, l0, zeff, mi, /cgs
 
        val = (1.e-2)^d[1] $
          * (1.e6)^d[2] $
@@ -587,7 +594,7 @@ function translate, name, units=units, itor=itor
        return, "!7g!X"
    endif else if(strcmp(name, 'den', /fold_case) eq 1) then begin
        units = dimensions(/n0)
-       return, "!8n!X"
+       return, "!8n!Di!N!X"
    endif else if(strcmp(name, 'p', /fold_case) eq 1) then begin
        units = dimensions(/p0)
        return, "!8p!X"
@@ -644,9 +651,9 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
          mesh.elements._data[5,*], psym = 3, _EXTRA=ex, /nodata
    endif  
 
-   get_normalizations, b0=b0, n0=n0, l0=l0, _EXTRA=ex
+   get_normalizations, b0=b0, n0=n0, l0=l0, zeff=zeff, ion_mass=mi, _EXTRA=ex
    fac = 1.
-   convert_units, fac, dimensions(/l0), b0, n0, l0, _EXTRA=ex
+   convert_units, fac, dimensions(/l0), b0, n0, l0, zeff, mi, _EXTRA=ex
 
    loadct, 12
    col = color(1,10)
@@ -792,7 +799,7 @@ end
 ;======================================================
 function is_in_tri, localp, a, b, c
 
-   small = (a+b+c)*1e-3
+   small = (a+b+c)*1e-4
 
    if(localp[1] lt 0. - small) then return, 0
    if(localp[1] gt c + small) then return, 0
@@ -1548,17 +1555,17 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         rrange=xrange, zrange=yrange, linear=linear, $
                        complex=complex)
        
-       n1 = read_field('den', x, y, t, slices=time, mesh=mesh, $
+       n1 = read_field('ne', x, y, t, slices=time, mesh=mesh, $
                        filename=filename, points=pts, linfac=linfac, $
                        rrange=xrange, zrange=yrange, linear=linear, $
-                      complex=complex)
+                       complex=complex)
 
        if(keyword_set(linear) and (isubeq eq 1) and (time ge 0)) then begin
            Pe0 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
                             filename=filename, points=pts, $
                             rrange=xrange, zrange=yrange, /equilibrium)
 
-           n0 = read_field('den', x, y, t, slices=time, mesh=mesh, $
+           n0 = read_field('ne', x, y, t, slices=time, mesh=mesh, $
                            filename=filename, points=pts,  $
                            rrange=xrange, zrange=yrange, /equilibrium)
 
@@ -1567,6 +1574,23 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
   
        symbol = '!8T!De!N!X'
        d = dimensions(/temperature, _EXTRA=extra)
+
+   ;===========================================
+   ; electron density
+   ;===========================================
+   endif else if(strcmp('electron density', name, /fold_case) eq 1) or $
+     (strcmp('ne', name, /fold_case) eq 1) then begin
+
+       n = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                       filename=filename, points=pts, linfac=linfac, $
+                       rrange=xrange, zrange=yrange, linear=linear, $
+                      complex=complex)
+       zeff = read_parameter("zeff", filename=filename)
+       if(zeff eq 0) then zeff = 1.
+       data = zeff*n
+  
+       symbol = '!8n!De!N!X'
+       d = dimensions(/n0, _EXTRA=extra)
 
    ;===========================================
    ; displacement
@@ -3325,11 +3349,12 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        data = (data + v_symmetry*reverse(data, 3)) / 2.
    endif
 
-   get_normalizations, filename=filename,b0=b0,n0=n0,l0=l0
-   convert_units, data, d, b0, n0, l0, cgs=cgs, mks=mks
-   convert_units, x, dimensions(/l0), b0, n0, l0, cgs=cgs, mks=mks
-   convert_units, y, dimensions(/l0), b0, n0, l0, cgs=cgs, mks=mks
-   convert_units, realtime, dimensions(/t0), b0, n0, l0, cgs=cgs, mks=mks
+   get_normalizations, filename=filename,b0=b0,n0=n0,l0=l0,zeff=zeff,ion=mi
+   convert_units, data, d, b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
+   convert_units, x, dimensions(/l0), b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
+   convert_units, y, dimensions(/l0), b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
+   convert_units, realtime, dimensions(/t0), $
+     b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
    units = parse_units(d, cgs=cgs, mks=mks)
 
    ; apply mask
@@ -4578,9 +4603,10 @@ function read_scalar, scalarname, filename=filename, title=title, $
        data = data[n_elements(data)-1]
    endif
 
-   get_normalizations, b0=b0,n0=n0,l0=l0, filename=filename, _EXTRA=extra
-   convert_units, data, d, b0, n0, l0, _EXTRA=extra
-   convert_units, time, dimensions(/t0), b0, n0, l0, _EXTRA=extra
+   get_normalizations, b0=b0,n0=n0,l0=l0, zeff=zeff, ion_mass=mi, $
+     filename=filename, _EXTRA=extra
+   convert_units, data, d, b0, n0, l0, zeff, mi, _EXTRA=extra
+   convert_units, time, dimensions(/t0), b0, n0, l0, zeff, mi, _EXTRA=extra
    units = parse_units(d, _EXTRA=extra)
 
    return, data

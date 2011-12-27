@@ -58,6 +58,9 @@ module basic
   real :: gravr,gravz ! gravitational acceleration
   real :: vloop       ! loop voltage
   real :: mass_ratio  ! me/mi (in units of me/mp)
+  real :: zeff        ! Effective Z of ion fluid
+  real :: ion_mass    ! Effective mass of ions (in proton mass/particle)
+  real :: lambda_coulomb ! coulomb logarithm
 
   ! domain parameters
   real :: rzero    ! nominal major radius of the device

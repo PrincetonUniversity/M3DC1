@@ -496,33 +496,52 @@ contains
     integer :: inode(nodes_per_element), izone, i, j
     real :: x, z, c(3)
     logical :: is_bound(3)
-    
-    call get_element_nodes(itri,inode)
+
+    integer :: iedge(4), izonedim
+
+    call nodfac(itri,inode)
+    call edgfac(itri,iedge)
     
     do i=1,3
+       call zonedg(iedge(i),izone,izonedim)
+
+       if(izonedim.gt.1) then 
+          is_edge(i) = .false.
+          cycle
+       end if
+
+       is_edge(i) = .true.
        call boundary_node(inode(i),is_bound(i),izone,idim(i), &
             normal(:,i),c(i),x,z)
     end do
     
-    do i=1,3
-       j = mod(i,3) + 1
-       is_edge(i) = .false.
-       
-       ! skip edges not having both points on a boundary
-       if((.not.is_bound(i)).or.(.not.is_bound(j))) cycle
-       
-       ! skip edges cutting across corners
-       if(is_bound(1) .and. is_bound(2) .and. is_bound(3)) then
-          if(idim(i).ne.0 .and. idim(j).ne.0) cycle
-       endif
-       
-       ! skip suspicious edges (edges w/o corner point where normal changes
-       ! dramatically)
-       if(idim(i).eq.1 .and. idim(j).eq.1 .and. idim(mod(i+1,3)+1).eq.2) then
-          if(normal(1,i)*normal(1,j) + normal(2,i)*normal(2,j) .lt. .5) cycle
-       end if
-       
-       is_edge(i) = .true.
-    end do
+    
+!    call get_element_nodes(itri,inode)
+!    
+!    do i=1,3
+!       call boundary_node(inode(i),is_bound(i),izone,idim(i), &
+!            normal(:,i),c(i),x,z)
+!    end do
+!    
+!    do i=1,3
+!       j = mod(i,3) + 1
+!       is_edge(i) = .false.
+!       
+!       ! skip edges not having both points on a boundary
+!       if((.not.is_bound(i)).or.(.not.is_bound(j))) cycle
+!       
+!       ! skip edges cutting across corners
+!       if(is_bound(1) .and. is_bound(2) .and. is_bound(3)) then
+!          if(idim(i).ne.0 .and. idim(j).ne.0) cycle
+!       endif
+!       
+!       ! skip suspicious edges (edges w/o corner point where normal changes
+!       ! dramatically)
+!       if(idim(i).eq.1 .and. idim(j).eq.1 .and. idim(mod(i+1,3)+1).eq.2) then
+!          if(normal(1,i)*normal(1,j) + normal(2,i)*normal(2,j) .lt. .5) cycle
+!       end if
+!       
+!       is_edge(i) = .true.
+!    end do
   end subroutine boundary_edge
 end module scorec_mesh_mod
