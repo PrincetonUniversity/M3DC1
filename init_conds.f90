@@ -1999,7 +1999,7 @@ subroutine eqdsk_init()
         dpsi = (sibry-simag)/(nw-1.)
         
         do l=1,nw
-           flux(l) = l*dpsi
+           flux(l) = (l-1)*dpsi
         end do
         call create_profile(nw,press,pprime,fpol,ffprim,flux)
 
@@ -2039,6 +2039,9 @@ subroutine eqdsk_init()
   psibound = -psibound
   psimin = -psimin
   psilim = -psilim
+!
+      if(iprint.ge.1 .and. myrank.eq.0) write(*,2012) sibry,simag,psimin,psilim,psibound
+ 2012 format(" sibry, simag, psimin, psilim,psibound =",1p5e12.4)
 
 end subroutine eqdsk_init
 

@@ -323,6 +323,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "dt" ,     dt, ntime, error)
 
   call output_scalar(scalar_group_id, "loop_voltage"    , vloop , ntime, error)
+  call output_scalar(scalar_group_id, "pellet_rate", pellet_rate, ntime, error)
   call output_scalar(scalar_group_id, "psi_lcfs"        , psibound,ntime,error)
 
   call output_scalar(scalar_group_id, "area"            , area  , ntime, error)

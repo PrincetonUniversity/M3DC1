@@ -22,7 +22,7 @@ Program Reducedquintic
 #include "finclude/petsc.h"
 
   integer :: ier, i
-  real :: tstart, tend
+  real :: tstart, tend, dtsave
   character*10 :: datec, timec
   character*256 :: arg
 
@@ -163,6 +163,9 @@ Program Reducedquintic
      endif
 
   case(1)
+!
+!....save timestep from input file (needed if not a variable timestep run)
+     dtsave = dt
      ! Read restart file(s)
 
      if(myrank.eq.0 .and. iprint.ge.1) print *, ' Reading restart file(s)'
@@ -175,6 +178,10 @@ Program Reducedquintic
         call rdrestart
 #endif
      endif
+!
+!....use timestep from input file if not a variable timestep run
+    if(dtkecrit.eq.0 .or. dtgamma.eq.0) dt = dtsave
+!
   end select                     !  end of the branch on restart/no restart
 
   ntime0 = ntime
