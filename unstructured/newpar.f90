@@ -700,36 +700,34 @@ end subroutine flip_handedness
 
 
 !======================================================================
-! inside_lcfs
-! ~~~~~~~~~~~
-! Flips coordinate system handedness by flipping sign of
-! psi, u, vz, and bz
+! magnetic_region
+! ~~~~~~~~~~~~~~~
+! determines what magnetic region the point x, z is in
+! 0: inside plasma
+! 1: scrape-off layer
+! 2: private flux
 !======================================================================
-logical function inside_lcfs(psi, x, z, exclude_pf)
+integer function magnetic_region(psi, x, z)
   use basic
 
   vectype, intent(in), dimension(dofs_per_node) :: psi
   real, intent(in) :: x, z 
-  logical :: exclude_pf    ! if true, count private flux region as outside
   real :: dpsii
+
+  magnetic_region = 0
 
   dpsii = psibound - psimin
 
   if((real(psi(1)) - psimin)/dpsii .gt. 1.) then
-     inside_lcfs = .false.
-     return
-  endif
-
-  if(exclude_pf) then
+     ! if Psi > 1, we are in scrape-off layer
+     magnetic_region = 1
+  else
+     ! if Psi < 1, but flux is increasing, we are in private flux region
      if((real(psi(2))*(x-xmag) + real(psi(3))*(z-zmag))*dpsii .lt. 0.) then
-        inside_lcfs = .false.
-        return
+        magnetic_region = 2
      endif
   endif
-
-  inside_lcfs = .true.
-  return
-end function inside_lcfs
+end function magnetic_region
 
 
 !============================================================

@@ -1106,7 +1106,7 @@ subroutine fundef
   real :: g4big, g4bigp, g4bigpp
   real :: alphap0, alphap, alphapp, alphappp
   real :: r0m, r1, r1m, r2, r3, ealpha
-  logical :: inside_lcfs
+  integer :: magnetic_region
 
   vectype, dimension(dofs_per_node) :: temp
 
@@ -1120,7 +1120,7 @@ subroutine fundef
      call get_node_data(psi_vec, inode, temp)
      pso =  (temp(1) - psimin)*dpsii
      
-     if(.not.inside_lcfs(temp,x,z,.true.)) then
+     if(magnetic_region(temp,x,z).ne.0) then
         temp = 0.
         call set_node_data(fun1_vec, inode, temp)
         call set_node_data(fun2_vec, inode, temp)
@@ -1311,7 +1311,7 @@ subroutine fundef2(error)
   real :: pso, dpsii, norm, temp1(2), temp2(2)
   vectype, dimension(dofs_per_element) :: temp3, temp4
       
-  logical :: inside_lcfs
+  integer :: magnetic_region
   real :: temp(5)
 
   dpsii = 1./(psilim - psimin)
@@ -1334,7 +1334,7 @@ subroutine fundef2(error)
      do i=1, npoints
         
         pso = (ps079(i,OP_1)-psimin)*dpsii
-        if(.not.inside_lcfs(ps079(i,:),x_79(i),z_79(i),.true.)) pso = 1.
+        if(magnetic_region(ps079(i,:),x_79(i),z_79(i)).ne.0) pso = 1.
 
         call evaluate_spline(pprime_spline,pso,temp(1))
         call evaluate_spline(ffprime_spline,pso,temp(2))
@@ -1732,9 +1732,9 @@ subroutine calc_toroidal_field(psi0,tf,x,z)
   real :: g2big, g2bigp, g3big, g3bigp
   real, dimension(dofs_per_node)  :: psii     ! normalized flux
 
-  logical :: inside_lcfs
+  integer :: magnetic_region
   
-  if(.not.inside_lcfs(psi0,x,z,.true.)) then
+  if(magnetic_region(psi0,x,z).ne.0) then
      g0 = bzero*rzero
      call constant_field(tf,real(g0))
   else
@@ -1823,12 +1823,12 @@ subroutine calc_pressure(psi0, pres, x, z)
   real :: pspx, pspy, pspxx, pspxy, pspyy
   real, dimension(dofs_per_node) :: psii     ! normalized flux
 
-  logical :: inside_lcfs
+  integer :: magnetic_region
 
   psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
   psii(2:6) = real(psi0(2:6))/(psilim - psimin)
 
-  if(.not.inside_lcfs(psi0,x,z,.true.)) psii(1) = 1.
+  if(magnetic_region(psi0,x,z).ne.0) psii(1) = 1.
 
   pspx = real(psi0(2))
   pspy = real(psi0(3))
@@ -1913,7 +1913,7 @@ subroutine calc_density(psi0, dens, x, z)
   real :: ealpha, pspx, pspy, pspxx, pspxy, pspyy
   real, dimension(dofs_per_node) :: psii     ! normalized flux
 
-  logical :: inside_lcfs
+  integer :: magnetic_region
 
   pspx = real(psi0(2))
   pspy = real(psi0(3))
@@ -1924,7 +1924,8 @@ subroutine calc_density(psi0, dens, x, z)
   psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
   psii(2:6) = real(psi0(2:6))/(psilim - psimin)
 
-  if(.not.inside_lcfs(psi0,x,z,.true.)) psii(1) = 1.
+  ! if we are in private flux region, make sure Psi > 1
+  if(magnetic_region(psi0,x,z).eq.2) psii(1) = 2. - psii(1)
 
   call evaluate_spline(n0_spline, psii(1), rbig0, rbig, rbigp)
   rbig = rbig/(psilim-psimin)
@@ -1999,13 +2000,13 @@ subroutine calc_electron_pressure(psi0, pe, x, z)
   real, dimension(dofs_per_node) :: psii          ! normalized flux
   real :: te0,tep,tepp
 
-  logical :: inside_lcfs
+  integer :: magnetic_region
 
   psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
   psii(2:6) = real(psi0(2:6))/(psilim - psimin)
 
   if(allocated(te_spline%y)) then
-     if(.not.inside_lcfs(psi0,x,z,.true.)) psii(1) = 1.
+     if(magnetic_region(psi0,x,z).ne.0) psii(1) = 1.
 
      call evaluate_spline(te_spline, psii(1),te0,tep,tepp)
      call calc_density(psi0, n0, x, z)
@@ -2045,7 +2046,7 @@ subroutine calc_rotation(psi0,omega, x, z)
   real :: w0, wp, wpp
   real, dimension(dofs_per_node) :: psii     ! normalized flux
 
-  logical :: inside_lcfs
+  integer :: magnetic_region
 
   if(irot.eq.0) then
      omega = 0.
@@ -2055,7 +2056,7 @@ subroutine calc_rotation(psi0,omega, x, z)
   psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
   psii(2:6) = real(psi0(2:6))/(psilim - psimin)
 
-  if(.not.inside_lcfs(psi0,x,z,.true.)) psii(1) = 1.
+  if(magnetic_region(psi0,x,z).ne.0) psii(1) = 1.
 
   call evaluate_spline(omega_spline, psii(1),w0,wp,wpp)
 
