@@ -1,4 +1,8 @@
 module transport_coefficients
+  use spline
+
+  type(spline1d), private :: kappa_spline
+
 
 contains
 
@@ -196,6 +200,8 @@ end function viscosity_func
 ! Kappa
 ! ~~~~~
 vectype function kappa_func(i)
+  use math
+  use read_ascii
   use basic
   use m3dc1_nint
   use diagnostics
@@ -203,6 +209,10 @@ vectype function kappa_func(i)
   implicit none
   
   integer, intent(in) :: i
+  integer :: nvals, j
+  real :: val, valp, valpp, pso
+  real, allocatable :: xvals(:), yvals(:)
+  integer :: magnetic_region
   vectype :: temp
 
   if(numvar.lt.3) then
@@ -212,43 +222,66 @@ vectype function kappa_func(i)
 
   temp = 0.
 
-  if(kappa0.ne.0.) then
-     select case (ikappafunc)
-     case(0)
-        ! kappa = p/T**(3/2) = sqrt(n**3/p)
-        temp79a = kappa0*sqrt(nt79(:,OP_1)**3/pt79(:,OP_1))
+  select case (ikappafunc)
+  case(0)
+     ! kappa = p/T**(3/2) = sqrt(n**3/p)
+     temp79a = kappa0*sqrt(nt79(:,OP_1)**3/pt79(:,OP_1))
         
-     case(1)
-        if(linear.eq.1) then
-          temp79a = kappa0*.5* &
+  case(1)
+     if(linear.eq.1) then
+        temp79a = kappa0*.5* &
              (1. + &
              tanh((real(ps079(:,OP_1))-(psilim+kappaoff*(psilim-psimin)))&
              /(kappadelt*(psilim-psimin))))
-        else
-          temp79a = kappa0*.5* &
+     else
+        temp79a = kappa0*.5* &
              (1. + &
              tanh((real(pst79(:,OP_1))-(psilim+kappaoff*(psilim-psimin)))&
              /(kappadelt*(psilim-psimin)))) 
-        endif       
-     case(2)
-        if(linear.eq.1) then
-          temp79b = (ps079(:,OP_1)-psimin)/(psibound-psimin)
-          temp79a = kappa0*.5* &
+     endif
+  case(2)
+     if(linear.eq.1) then
+        temp79b = (ps079(:,OP_1)-psimin)/(psibound-psimin)
+        temp79a = kappa0*.5* &
              (1. + tanh((real(temp79b) - kappaoff)/kappadelt))
+     else
+        temp79b = (pst79(:,OP_1)-psimin)/(psibound-psimin)
+        temp79a = kappa0*.5* &
+             (1. + tanh((real(temp79b) - kappaoff)/kappadelt))
+     endif
+     !
+     !.....added 11/26/2011     scj
+  case(3)
+     ! kappa = sqrt(1./ (p*n))
+     temp79a = kappa0*sqrt(1./(nt79(:,OP_1)*pt79(:,OP_1)))      
+     
+  case(10)
+     if(.not.allocated(kappa_spline%x)) then
+        ! Read in m^2/s
+        nvals = 0
+        call read_ascii_column('profile_kappa', xvals, nvals, icol=1)
+        call read_ascii_column('profile_kappa', yvals, nvals, icol=2)
+        yvals = yvals / &
+             (l0_norm * b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm))
+        call create_spline(kappa_spline, nvals, xvals, yvals)
+        deallocate(xvals, yvals)
+     end if
+     
+     do j=0, npoints
+        if(magnetic_region(pst79(j,OP_1:OP_DZZ),x_79(j),z_79(j)).ne.0) &
+             then
+           pso = 1.
         else
-          temp79b = (pst79(:,OP_1)-psimin)/(psibound-psimin)
-          temp79a = kappa0*.5* &
-             (1. + tanh((real(temp79b) - kappaoff)/kappadelt))
-        endif
-!
-!.....added 11/26/2011     scj
-     case(3)
-        ! kappa = sqrt(1./ (p*n))
-        temp79a = kappa0*sqrt(1./(nt79(:,OP_1)*pt79(:,OP_1)))
-        
-     end select
-     temp = temp + int2(mu79(:,OP_1,i),temp79a)
-  endif
+           pso = (real(pst79(j,OP_1)) - psimin)/(psilim-psimin)
+        end if
+        call evaluate_spline(kappa_spline,pso,val,valp,valpp)
+        temp79a(j) = val
+     end do
+     
+  case default
+     temp79a = 0.
+  end select
+  temp = temp + int2(mu79(:,OP_1,i),temp79a)
 
   if(kappah.ne.0.) then
      temp79b = (pst79(:,OP_1) - psimin)/(psibound - psimin)

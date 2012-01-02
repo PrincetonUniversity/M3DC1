@@ -294,98 +294,13 @@ subroutine den_eq
         call set_local_vals(inode)
      end do
      
-  case(4)
-     call read_density_profile
+  case default
+     if(myrank.eq.0) print *, "idenfunc = ", idenfunc, "not supported."
+     call safestop(12)
+     
   end select
   
 end subroutine den_eq
-
-!======================================================================
-subroutine read_density_profile
-  use basic
-  use mesh_mod
-  use arrays
-  use sparse
-  use m3dc1_nint
-  use newvar_mod
-
-  implicit none
-
-  include 'mpif.h'
-
-  type(element_data) :: d
-  integer, parameter :: ifile = 123
-  integer :: npsi, itype, numelms, itri, i, k, ier
-  real :: psii, temp
-  real, allocatable :: spsi(:), density(:)
-  type(field_type) :: temp_field
-  vectype, dimension(coeffs_per_element) :: avec
-  vectype, dimension(dofs_per_element) :: dofs
-
-  logical :: inside_lcfs
-
-  if(myrank.eq.0) then
-     if(iprint.ge.1) print *, 'Reading density profile...'
-
-     open(unit=ifile,file='PROFDEN.txt',status='unknown')
-     read(ifile,'(I5,I8)') npsi, itype
-
-     print *, "NPSI = ", npsi
-     
-     allocate(spsi(npsi), density(npsi))
-     
-     do i=1, npsi
-        read(ifile,*) spsi(i), density(i)
-     end do
-
-     close(ifile)
-  endif
-
-  if(maxrank.gt.0) then
-     call mpi_bcast(npsi,1,MPI_INTEGER,0,MPI_COMM_WORLD, ier)
-
-     if(myrank.ne.0) allocate(spsi(npsi), density(npsi))
-
-     call mpi_bcast(spsi,npsi,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD, ier)
-     call mpi_bcast(density,npsi,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD, ier)
-  endif
-
-  if(myrank.eq.0 .and. iprint.ge.1) print *, 'Solving density profile...'
-
-  call create_field(temp_field)
-
-  numelms = local_elements()
-  do itri=1,numelms
-     call define_element_quadrature(itri, int_pts_main, 5)
-     call define_fields(itri, 0, 1, 0)
-
-     call eval_ops(itri, psi_field(0), ps079)
-                     
-     do i=1,dofs_per_element
-        do k=1, npoints
-           psii = (real(ps079(k,OP_1)) - psimin)/(psibound - psimin)
-           if(inside_lcfs(ps079(k,:), x_79(k), z_79(k), .true.)) then
-              call cubic_interpolation(npsi,spsi,sqrt(psii), &
-                   density,temp)
-              temp79a(k) = temp
-           else
-              temp79a = density(npsi)
-           endif
-        end do
-        temp79a = temp79a / (n0_norm*1.e6)
-
-        dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-     end do
-     call vector_insert_block(temp_field%vec,itri,1,dofs,VEC_ADD)
-  end do
-  
-  call newvar_solve(temp_field%vec,mass_mat_lhs)
-  
-  den_field(0) = temp_field
-  
-  call destroy_field(temp_field)
-  deallocate(spsi, density)
-end subroutine read_density_profile
 
 !=========================================================================
 subroutine calculate_external_fields()
