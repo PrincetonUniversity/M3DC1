@@ -4496,6 +4496,13 @@ function read_scalar, scalarname, filename=filename, title=title, $
        symbol = '!8V!DL!N!X'
        d = dimensions(/e0,/l0, _EXTRA=extra)
    endif else $
+     if (strcmp("pellet rate", scalarname, /fold_case) eq 1) or $
+     (strcmp("pelr", scalarname, /fold_case) eq 1) then begin
+       data = s.pellet_rate._data
+       title = 'Pellet Rate'
+       symbol = '!8V!DL!N!X'
+       d = dimensions(/n0, t0=-1, _EXTRA=extra)
+   endif else $
      if (strcmp("beta", scalarname, /fold_case) eq 1) then begin
        data = beta(filename=filename)
        title = 'Average Beta'
