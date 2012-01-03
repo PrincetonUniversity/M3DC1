@@ -41,12 +41,9 @@
        <var name="tmp_bf_field_0"  type="double" dimensions="ndofs_2"/>
 
        <var name="tmp_psi_ext"  type="double" dimensions="ndofs_2"/>
-       <var name="tmp_psi_ext"  type="double" dimensions="ndofs_2"/>
 
        <var name="tmp_bz_ext"  type="double" dimensions="ndofs_2"/>
-       <var name="tmp_bz_ext"  type="double" dimensions="ndofs_2"/>
 
-       <var name="tmp_bf_ext"  type="double" dimensions="ndofs_2"/>
        <var name="tmp_bf_ext"  type="double" dimensions="ndofs_2"/>
    </adios-group>
 
