@@ -28,6 +28,8 @@ call adios_read (adios_handle, "ntime", ntime, adios_buf_size, adios_err)
 adios_buf_size = 8
 call adios_read (adios_handle, "time", time, adios_buf_size, adios_err)
 adios_buf_size = 8
+call adios_read (adios_handle, "dt", dt, adios_buf_size, adios_err)
+adios_buf_size = 8
 call adios_read (adios_handle, "totcur0", totcur0, adios_buf_size, adios_err)
 adios_buf_size = 8
 call adios_read (adios_handle, "tflux0", tflux0, adios_buf_size, adios_err)
@@ -41,6 +43,8 @@ adios_buf_size = 8
 call adios_read (adios_handle, "psimin", psimin, adios_buf_size, adios_err)
 adios_buf_size = 8
 call adios_read (adios_handle, "psilim", psilim, adios_buf_size, adios_err)
+adios_buf_size = 8
+call adios_read (adios_handle, "psibound", psibound, adios_buf_size, adios_err)
 adios_buf_size = 8
 call adios_read (adios_handle, "xnull", xnull, adios_buf_size, adios_err)
 adios_buf_size = 8
