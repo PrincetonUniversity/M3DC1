@@ -6,6 +6,7 @@ module time_step
   type(vector_type) :: vel_vec, velold_vec, veln_vec, veloldn_vec
   type(vector_type) :: pres_vec, presold_vec
   type(vector_type) :: den_vec, denold_vec
+  type(vector_type) :: te_vec, teold_vec, ti_vec, tiold_vec
   type(vector_type), target :: q4_vec, r4_vec, qp4_vec, qn4_vec
 
   ! the following pointers point to the vector containing the named field.
@@ -20,6 +21,8 @@ module time_step
   type(field_type) ::   p_v,   po_v
   type(field_type) ::   e_v,   eo_v
   type(field_type) ::  bf_v,  bfo_v
+  type(field_type) :: te_v, teo_v
+  type(field_type) :: ti_v, tio_v
 
   ! the offset (relative to the node offset) of the named field within
   ! their respective vectors
@@ -27,7 +30,7 @@ module time_step
   integer :: psi_off, bz_off, pe_off
   integer :: den_off, p_off
   integer :: bf_off, e_off
-  integer :: vecsize_vel, vecsize_phi, vecsize_n, vecsize_p
+  integer :: vecsize_vel, vecsize_phi, vecsize_n, vecsize_p, vecsize_t
 
   ! temporary vectors
   type(vector_type) :: b1_vel, b2_vel, b1_phi, b2_phi
@@ -36,6 +39,7 @@ module time_step
   integer :: psi_i, bz_i, pe_i
   integer :: den_i, p_i
   integer :: bf_i, e_i
+  integer :: te_i, ti_i
 
   logical, private :: initialized = .false.
 
@@ -266,6 +270,8 @@ contains
        else
           p_i = 3
        end if
+       te_i = 1
+       ti_i = 1
 
        call associate_field(u_v,    vel_vec,      u_i)
        call associate_field(uo_v,   velold_vec,   u_i)
@@ -304,6 +310,10 @@ contains
           call associate_field(bf_v, phi_vec, bf_i)
           call associate_field(bfo_v, phiold_vec, bf_i)
        end if
+       call associate_field(te_v,  te_vec,    te_i)
+       call associate_field(teo_v, teold_vec, te_i)
+       call associate_field(ti_v,  ti_vec,    ti_i)
+       call associate_field(tio_v, tiold_vec, ti_i)
 
     else
        u_i = 1
@@ -496,6 +506,9 @@ subroutine import_time_advance_vectors
   if(idens.eq.1) den_v = den_field(1)
   if(imp_bf.eq.1) bf_v = bf_field(1)
 
+  te_v = te_field(1)
+  ti_v = ti_field(1)
+
 end subroutine import_time_advance_vectors
 
 
@@ -536,6 +549,9 @@ subroutine export_time_advance_vectors
 
   if(idens.eq.1) den_field(1) = den_v
   if(imp_bf.eq.1) bf_field(1) = bf_v
+
+  te_field(1) = te_v
+  ti_field(1) = ti_v
 end subroutine export_time_advance_vectors
 
 !============================================================
@@ -1065,15 +1081,19 @@ subroutine split_step(calc_matrices)
            b1_phi%data = (2.*b1_phi%data - phiold_vec%data)/3.
         endif
 #endif
-     end if
+
+     end if     !...on iteratephi
 
      phiold_vec = phi_vec
      phi_vec = b1_phi
+!
+!......compute the electron and ion temperatures from the pressures and density
+      call get_temperatures
 
      ! apply smoothing operators
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~
      call smooth_fields(psi_v) 
-  end if
+  end if       !...on iestatic
 
 
   if(myrank.eq.0 .and. iprint.ge.1 .and. itimer.eq.1) then
@@ -2329,7 +2349,6 @@ subroutine scaleback
 end subroutine scaleback
 
 
-end module time_step
 subroutine variable_timestep
 
   use basic
@@ -2366,3 +2385,207 @@ subroutine variable_timestep
   call MPI_bcast(dt,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
   
 end subroutine variable_timestep
+ subroutine get_temperatures
+
+  use basic
+  use arrays
+  use field
+  use mesh_mod
+  implicit none
+  integer :: i, numnodes
+   if(numvar.lt.3 .and. ipres.eq.0) return
+
+   numnodes = owned_nodes()
+   do i=1,numnodes
+
+     if(idens.eq.1) then
+        call get_node_data(den_v,i,den1_l)
+        call get_node_data(den_field(0),i,den0_l)
+     else
+        if(eqsubtract.eq.1) then
+           den1_l = 0.
+           den0_l(1) = 1.
+           den0_l(2:dofs_per_node) = 0.
+        else
+           den0_l = 0.
+           den1_l(1) = 1.
+           den1_l(2:dofs_per_node) = 0.
+        endif
+     endif
+
+     if(numvar.eq.3) then
+       if(ipres.eq.1) then
+         call get_node_data(p_v,i,p1_l)
+         call get_node_data(pe_v,i,pe1_l)
+         call get_node_data(p_field(0),i,p0_l)
+         call get_node_data(pe_field(0),i,pe0_l)
+       else
+         call get_node_data(pe_v,i,p1_l)
+         pe1_l = pefac*p1_l
+         call get_node_data(pe_field(0),i,p0_l)
+         pe0_l = pefac*p0_l
+       endif
+     else
+       if(ipres.eq.1) then
+         call get_node_data(p_v,i,p1_l)
+         pe1_l = pefac*p1_l
+         call get_node_data(p_field(0),i,p0_l)
+         pe0_l = pefac*p0_l
+       endif
+     endif
+
+     if(linear.eq.1 .or. eqsubtract.eq.1) then
+        call calc_lin_electron_temperature(te1_l, pe0_l, den0_l, pe1_l, den1_l)
+        call calc_lin_ion_temperature(ti1_l, p0_l, pe0_l, den0_l, p1_l, pe1_l, den1_l)
+     else
+        call calc_electron_temperature(te1_l,pe1_l,den1_l)
+        call calc_ion_temperature(ti1_l, p1_l, pe1_l, den1_l)
+     endif
+
+     call set_node_data(te_v,i,te1_l)
+     call set_node_data(ti_v,i,ti1_l)
+
+   enddo
+
+
+   return
+ end subroutine get_temperatures
+end module time_step
+! calc_electron_temperature
+! ~~~~~~~~~~~~~~~~~~~~~~
+!
+! calculates the electron temperature
+!======================================================================
+subroutine calc_electron_temperature(te, pe0, n0)
+  use basic
+
+  implicit none
+
+  vectype, intent(out), dimension(dofs_per_node) :: te
+  vectype, intent(in), dimension(dofs_per_node) :: pe0, n0
+
+     te(1) = pe0(1)/n0(1)
+     te(2) = pe0(2)/n0(1) - pe0(1)*n0(2)/n0(1)**2
+     te(3) = pe0(3)/n0(1) - pe0(1)*n0(3)/n0(1)**2
+     te(4) = pe0(4)/n0(1) - 2.*pe0(2)*n0(2)/n0(1)**2                       &
+           - pe0(1)*n0(4)/n0(1)**2 + 2*pe0(1)*n0(2)*n0(2)/n0(1)**3
+     te(5) = pe0(5)/n0(1) - pe0(3)*n0(2)/n0(1)**2  - pe0(2)*n0(3)/n0(1)**2  &
+           - pe0(1)*n0(5)/n0(1)**2 + 2*pe0(1)*n0(3)*n0(2)/n0(1)**3
+     te(6) = pe0(6)/n0(1) - 2.*pe0(3)*n0(3)/n0(1)**2                       &
+           - pe0(1)*n0(6)/n0(1)**2 + 2*pe0(1)*n0(3)*n0(3)/n0(1)**3
+     return
+
+end subroutine calc_electron_temperature
+! calc_ion_temperature
+! ~~~~~~~~~~~~~~~~~~~~~~
+!
+! calculates the ion temperature
+!======================================================================
+subroutine calc_ion_temperature(ti, pres0, pe0, n0)
+  use basic
+
+  implicit none
+
+  vectype, intent(in), dimension(dofs_per_node)  :: pres0, pe0, n0
+  vectype, intent(out), dimension(dofs_per_node) :: ti
+  vectype, dimension(dofs_per_node) :: pion0
+
+     pion0 = pres0 - pe0
+
+     ti(1) = pion0(1)/n0(1)
+     ti(2) = pion0(2)/n0(1) - pion0(1)*n0(2)/n0(1)**2
+     ti(3) = pion0(3)/n0(1) - pion0(1)*n0(3)/n0(1)**2
+     ti(4) = pion0(4)/n0(1) - 2.*pion0(2)*n0(2)/n0(1)**2                       &
+           - pion0(1)*n0(4)/n0(1)**2 + 2*pion0(1)*n0(2)*n0(2)/n0(1)**3
+     ti(5) = pion0(5)/n0(1) - pion0(3)*n0(2)/n0(1)**2  - pion0(2)*n0(3)/n0(1)**2  &
+           - pion0(1)*n0(5)/n0(1)**2 + 2*pion0(1)*n0(3)*n0(2)/n0(1)**3
+     ti(6) = pion0(6)/n0(1) - 2.*pion0(3)*n0(3)/n0(1)**2                       &
+           - pion0(1)*n0(6)/n0(1)**2 + 2*pion0(1)*n0(3)*n0(3)/n0(1)**3
+     return
+
+end subroutine calc_ion_temperature
+! calc_lin_electron_temperature
+! ~~~~~~~~~~~~~~~~~~~~~~
+!
+! calculates the linearized electron temperature
+!======================================================================
+subroutine calc_lin_electron_temperature(te, pe0, n0, pe1, n1)
+  use basic
+
+  implicit none
+
+  vectype, intent(out), dimension(dofs_per_node) :: te
+  vectype, intent(in), dimension(dofs_per_node) :: pe0, n0, pe1, n1
+
+     te(1) = (pe0(1)+pe1(1))/(n0(1)+n1(1))  &
+             -pe0(1)/n0(1)
+     te(2) = (pe0(2)+pe1(2))/(n0(1)+n1(1)) - (pe0(1)+pe1(1))*(n0(2)+n1(2))/(n0(1)+n1(1))**2  &
+             -pe0(2)/n0(1) + pe0(1)*n0(2)/n0(1)**2
+     te(3) = (pe0(3)+pe1(3))/(n0(1)+n1(1)) - (pe0(1)+pe1(1))*(n0(3)+n1(3))/(n0(1)+n1(1))**2  &
+             -pe0(3)/n0(1) + pe0(1)*n0(3)/n0(1)**2
+     te(4) = (pe0(4)+pe1(4))/(n0(1)+n1(1)) - 2.*(pe0(2)+pe1(2))*(n0(2)+n1(2))/(n0(1)+n1(1))**2    &
+           - (pe0(1)+pe1(1))*(n0(4)+n1(4))/(n0(1)+n1(1))**2  &
+           + 2*(pe0(1)+pe1(1))*(n0(2)+n1(2))*(n0(2)+n1(2))/(n0(1)+n1(1))**3   &
+            - pe0(4)/n0(1) + 2.*pe0(2)*n0(2)/n0(1)**2                         &
+           +  pe0(1)*n0(4)/n0(1)**2 - 2*pe0(1)*n0(2)*n0(2)/n0(1)**3
+     te(5) = (pe0(5)+pe1(5))/(n0(1)+n1(1)) - (pe0(3)+pe1(3))*(n0(2)+n1(2))/(n0(1)+n1(1))**2  &
+           - (pe0(2)+pe1(2))*(n0(3)+n1(3))/(n0(1)+n1(1))**2  &
+           - (pe0(1)+pe1(1))*(n0(5)+n1(5))/(n0(1)+n1(1))**2 &
+           + 2*(pe0(1)+pe1(1))*(n0(3)+n1(3))*(n0(2)+n1(2))/(n0(1)+n1(1))**3  &
+            - pe0(5)/n0(1) + pe0(3)*n0(2)/n0(1)**2  + pe0(2)*n0(3)/n0(1)**2  &
+           +  pe0(1)*n0(5)/n0(1)**2 - 2*pe0(1)*n0(3)*n0(2)/n0(1)**3
+     te(6) = (pe0(6)+pe1(6))/(n0(1)+n1(1)) - 2.*(pe0(3)+pe1(3))*(n0(3)+n1(3))/(n0(1)+n1(1))**2  &
+           - (pe0(1)+pe1(1))*(n0(6)+n1(6))/(n0(1)+n1(1))**2   &
+           + 2*(pe0(1)+pe1(1))*(n0(3)+n1(3))*(n0(3)+n1(3))/(n0(1)+n1(1))**3   &
+           -  pe0(6)/n0(1) + 2.*pe0(3)*n0(3)/n0(1)**2                         &
+           +  pe0(1)*n0(6)/n0(1)**2 - 2*pe0(1)*n0(3)*n0(3)/n0(1)**3
+     return
+
+end subroutine calc_lin_electron_temperature
+! calc_lin_ion_temperature
+! ~~~~~~~~~~~~~~~~~~~~~~
+!
+! calculates the linearized ion temperature
+!======================================================================
+subroutine calc_lin_ion_temperature(ti, pres0, pe0, n0, pres1, pe1, n1)
+  use basic
+
+  implicit none
+
+  vectype, intent(in), dimension(dofs_per_node)  :: pres0, pe0, n0, pres1, pe1, n1
+  vectype, intent(out), dimension(dofs_per_node) :: ti
+  vectype, dimension(dofs_per_node) :: pion0, pion1
+
+     pion0 = pres0 - pe0
+     pion1 = pres1 - pe1
+
+     ti(1) = (pion0(1)+pion1(1))/(n0(1)+n1(1))  &
+           -pion0(1)/n0(1)
+     ti(2) = (pion0(2)+pion1(2))/(n0(1)+n1(1)) - (pion0(1)+pion1(1))*(n0(2)+n1(2))/(n0(1)+n1(1))**2   &
+            -pion0(2)/n0(1) + pion0(1)*n0(2)/n0(1)**2
+     ti(3) = (pion0(3)+pion1(3))/(n0(1)+n1(1)) - (pion0(1)+pion1(1))*(n0(3)+n1(3))/(n0(1)+n1(1))**2   &
+             -pion0(3)/n0(1) + pion0(1)*n0(3)/n0(1)**2
+     ti(4) = (pion0(4)+pion1(4))/(n0(1)+n1(1)) - 2.*(pion0(2)+pion1(2))*(n0(2)+n1(2))/(n0(1)+n1(1))**2   &
+           - (pion0(1)+pion1(1))*(n0(4)+n1(4))/(n0(1)+n1(1))**2 &
+           + 2*(pion0(1)+pion1(1))*(n0(2)+n1(2))*(n0(2)+n1(2))/(n0(1)+n1(1))**3   &
+           - pion0(4)/n0(1) + 2.*pion0(2)*n0(2)/n0(1)**2       &              
+           + pion0(1)*n0(4)/n0(1)**2 - 2*pion0(1)*n0(2)*n0(2)/n0(1)**3
+
+     ti(5) = (pion0(5)+pion1(5))/(n0(1)+n1(1)) - (pion0(3)+pion1(3))*(n0(2)+n1(2))/(n0(1)+n1(1))**2  &
+           - (pion0(2)+pion1(2))*(n0(3)+n1(3))/(n0(1)+n1(1))**2  &
+           - (pion0(1)+pion1(1))*(n0(5)+n1(5))/(n0(1)+n1(1))**2  &
+         + 2*(pion0(1)+pion1(1))*(n0(3)+n1(3))*(n0(2)+n1(2))/(n0(1)+n1(1))**3   &
+            - pion0(5)/n0(1) + pion0(3)*n0(2)/n0(1)**2  + pion0(2)*n0(3)/n0(1)**2  &
+            + pion0(1)*n0(5)/n0(1)**2 - 2*pion0(1)*n0(3)*n0(2)/n0(1)**3
+
+     ti(6) = (pion0(6)+pion1(6))/(n0(1)+n1(1)) &
+           - 2.*(pion0(3)+pion1(3))*(n0(3)+n1(3))/(n0(1)+n1(1))**2   &
+           - (pion0(1)+pion1(1))*(n0(6)+n1(6))/(n0(1)+n1(1))**2 &
+           + 2*(pion0(1)+pion1(1))*(n0(3)+n1(3))*(n0(3)+n1(3))/(n0(1)+n1(1))**3  &
+           -  pion0(6)/n0(1) + 2.*pion0(3)*n0(3)/n0(1)**2                       &
+           +  pion0(1)*n0(6)/n0(1)**2 - 2*pion0(1)*n0(3)*n0(3)/n0(1)**3
+    
+     return
+
+end subroutine calc_lin_ion_temperature
+

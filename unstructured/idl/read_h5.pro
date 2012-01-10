@@ -601,6 +601,12 @@ function translate, name, units=units, itor=itor
    endif else if(strcmp(name, 'pe', /fold_case) eq 1) then begin
        units = dimensions(/p0)
        return, "!8p!De!N!X"
+   endif else if(strcmp(name, 'te', /fold_case) eq 1) then begin
+       units = dimensions(/temperature)
+       return, "!8T!De!N!X"
+   endif else if(strcmp(name, 'ti', /fold_case) eq 1) then begin
+       units = dimensions(/temperature)
+       return, "!8T!Di!N!X"
    endif else if(strcmp(name, 'sigma', /fold_case) eq 1) then begin
        units = dimensions(/n0,t0=-1)
        return, "!7r!X"
@@ -1547,31 +1553,45 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    ; electron temperature
    ;===========================================
-   endif else if(strcmp('electron temperature', name, /fold_case) eq 1) or $
-     (strcmp('te', name, /fold_case) eq 1) then begin
+;  endif else if(strcmp('electron temperature', name, /fold_case) eq 1) or $
+;    (strcmp('te', name, /fold_case) eq 1) then begin
 
-       Pe1 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
-                        filename=filename, points=pts, linfac=linfac, $
-                        rrange=xrange, zrange=yrange, linear=linear, $
-                       complex=complex)
+;      Pe1 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
+;                       filename=filename, points=pts, linfac=linfac, $
+;                       rrange=xrange, zrange=yrange, linear=linear, $
+;                      complex=complex)
+;
+;      n1 = read_field('ne', x, y, t, slices=time, mesh=mesh, $
+;                      filename=filename, points=pts, linfac=linfac, $
+;                      rrange=xrange, zrange=yrange, linear=linear, $
+;                      complex=complex)
+
+;      if(keyword_set(linear) and (isubeq eq 1) and (time ge 0)) then begin
+;          Pe0 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
+;                           filename=filename, points=pts, $
+;                           rrange=xrange, zrange=yrange, /equilibrium)
+
+;          n0 = read_field('ne', x, y, t, slices=time, mesh=mesh, $
+;                          filename=filename, points=pts,  $
+;                          rrange=xrange, zrange=yrange, /equilibrium)
+
+;          data = pe1/n0 - pe0*n1/n0^2
+;      endif else data = pe1/n1
+;
+;      symbol = '!8T!De!N!X'
+;      d = dimensions(/temperature, _EXTRA=extra)
+
+   ;===========================================
+   ; new electron temperature (as written by m3dc1 since 1/6/2012)
+   ;===========================================
+   endif else if(strcmp('electron temperature', name, /fold_case) eq 1) then begin
        
-       n1 = read_field('ne', x, y, t, slices=time, mesh=mesh, $
+       te = read_field('te', x, y, t, slices=time, mesh=mesh, $
                        filename=filename, points=pts, linfac=linfac, $
                        rrange=xrange, zrange=yrange, linear=linear, $
                        complex=complex)
 
-       if(keyword_set(linear) and (isubeq eq 1) and (time ge 0)) then begin
-           Pe0 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
-                            filename=filename, points=pts, $
-                            rrange=xrange, zrange=yrange, /equilibrium)
-
-           n0 = read_field('ne', x, y, t, slices=time, mesh=mesh, $
-                           filename=filename, points=pts,  $
-                           rrange=xrange, zrange=yrange, /equilibrium)
-
-           data = pe1/n0 - pe0*n1/n0^2
-       endif else data = pe1/n1
-  
+       data = te
        symbol = '!8T!De!N!X'
        d = dimensions(/temperature, _EXTRA=extra)
 
@@ -1630,22 +1650,35 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    ; ion temperature
    ;===========================================
-   endif else if(strcmp('ion temperature', name, /fold_case) eq 1) or $
-     (strcmp('ti', name, /fold_case) eq 1) then begin
+;  endif else if(strcmp('ion temperature', name, /fold_case) eq 1) or $
+;    (strcmp('ti', name, /fold_case) eq 1) then begin
 
-       P = read_field('P', x, y, t, slices=time, mesh=mesh, $
-                      filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange)
+;      P = read_field('P', x, y, t, slices=time, mesh=mesh, $
+;                     filename=filename, points=pts, $
+;                     rrange=xrange, zrange=yrange)
 
-       Pe = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
-                      filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange)
+;      Pe = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
+;                     filename=filename, points=pts, $
+;                     rrange=xrange, zrange=yrange)
 
-       n = read_field('den', x, y, t, slices=time, mesh=mesh, $
+;      n = read_field('den', x, y, t, slices=time, mesh=mesh, $
+;                     filename=filename, points=pts, $
+;                     rrange=xrange, zrange=yrange)
+;
+;      data = (p-pe)/n
+;      symbol = '!8T!Di!N!X'
+;      d = dimensions(/temperature, _EXTRA=extra)
+
+   ;===========================================
+   ; new ion temperature (as written by m3dc1 since 1/6/2011)
+   ;===========================================
+   endif else if(strcmp('ion temperature', name, /fold_case) eq 1) then begin
+
+       ti = read_field('ti', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange)
   
-       data = (p-pe)/n
+       data = ti
        symbol = '!8T!Di!N!X'
        d = dimensions(/temperature, _EXTRA=extra)
 

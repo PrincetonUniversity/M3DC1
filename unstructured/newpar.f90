@@ -205,8 +205,14 @@ Program Reducedquintic
      call calculate_auxiliary_fields(0)
 
      ! Output the equilibrium
-     if(myrank.eq.0 .and. iprint.ge.2) print *, ' Writing equilibrium'
-     call hdf5_write_time_slice(1,ier)
+     if(myrank.eq.0 .and. iprint.ge.1) print *, ' Writing equilibrium'
+! do i=0,maxrank-1
+!    if(myrank.eq.0) call hdf5_write_time_slice(1,ier)
+!   call MPI_Barrier(MPI_COMM_WORLD,ier)
+! enddo
+    call hdf5_write_time_slice(1,ier)
+
+     if(myrank.eq.0 .and. iprint.ge.1) print *, ' Done Writing equilibrium'
   end if
 
   ! Calculate all quantities derived from basic fields
@@ -1164,6 +1170,7 @@ subroutine space(ifirstcall)
   else
      vecsize_phi  = numvar*2 + idens + ipres
   endif
+  vecsize_t = 1
 
   ! add electrostatic potential equation
   if(jadv.eq.0 .and. i3d.eq.1) vecsize_phi = vecsize_phi + 1
@@ -1263,6 +1270,11 @@ subroutine space(ifirstcall)
         call create_vector(b2_vel, vecsize_vel)
      endif
 
+     call create_vector(te_vec,    vecsize_t)
+     call create_vector(teold_vec, vecsize_t)
+     call create_vector(ti_vec,    vecsize_t)
+     call create_vector(tiold_vec, vecsize_t)
+
      call create_auxiliary_fields
   endif
 
@@ -1287,6 +1299,9 @@ subroutine space(ifirstcall)
   call associate_field(pe_field(1),  field_vec, pe_g)
   call associate_field(den_field(1), field_vec, den_g)
   call associate_field(p_field(1),   field_vec, p_g)
+  call associate_field(te_field(1),  field_vec, te_g)
+  call associate_field(ti_field(1),  field_vec, ti_g)
+
   call associate_field(u_field(0),   field0_vec, u_g)
   call associate_field(vz_field(0),  field0_vec, vz_g)
   call associate_field(chi_field(0), field0_vec, chi_g)
@@ -1295,6 +1310,8 @@ subroutine space(ifirstcall)
   call associate_field(pe_field(0),  field0_vec, pe_g)
   call associate_field(den_field(0), field0_vec, den_g)
   call associate_field(p_field(0),   field0_vec, p_g)
+  call associate_field(te_field(0),  field0_vec, te_g)
+  call associate_field(ti_field(0),  field0_vec, ti_g)
 
 
   ! assign pointers to proper vectors
@@ -1518,6 +1535,46 @@ subroutine arrayresizevec(vec, ivecsize)
      allocate(denold_vec%data(ivecsize))
      denold_vec%data = 0.
      call updateids(vec, denold_vec%data)
+     return
+  endif
+     
+  call checksameppplvec(te_vec%data, vec, i)
+  if(i .eq. 1) then
+     print *, "te"
+     if(allocated(te_vec%data)) deallocate(te_vec%data, STAT=i)
+     allocate(te_vec%data(ivecsize))
+     te_vec%data = 0.
+     call updateids(vec, te_vec%data)
+     return
+  endif
+  
+  call checksameppplvec(teold_vec%data, vec, i)
+  if(i .eq. 1) then
+     print *, "teold"
+     if(allocated(teold_vec%data)) deallocate(teold_vec%data, STAT=i)
+     allocate(teold_vec%data(ivecsize))
+     teold_vec%data = 0.
+     call updateids(vec, teold_vec%data)
+     return
+  endif
+     
+  call checksameppplvec(ti_vec%data, vec, i)
+  if(i .eq. 1) then
+     print *, "ti"
+     if(allocated(ti_vec%data)) deallocate(ti_vec%data, STAT=i)
+     allocate(ti_vec%data(ivecsize))
+     ti_vec%data = 0.
+     call updateids(vec, ti_vec%data)
+     return
+  endif
+  
+  call checksameppplvec(tiold_vec%data, vec, i)
+  if(i .eq. 1) then
+     print *, "tiold"
+     if(allocated(tiold_vec%data)) deallocate(tiold_vec%data, STAT=i)
+     allocate(tiold_vec%data(ivecsize))
+     tiold_vec%data = 0.
+     call updateids(vec, tiold_vec%data)
      return
   endif
   

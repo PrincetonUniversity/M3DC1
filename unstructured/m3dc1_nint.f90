@@ -64,6 +64,8 @@ module m3dc1_nint
   integer, parameter :: FIELD_KAP = 16384
   integer, parameter :: FIELD_SIG = 32768
   integer, parameter :: FIELD_MU  = 65536
+  integer, parameter :: FIELD_TE  =131072
+  integer, parameter :: FIELD_TI  =262144
 
   vectype, dimension(MAX_PTS, OP_NUM, dofs_per_element) :: mu79, nu79
   vectype, dimension(MAX_PTS) :: r_79, r2_79, r3_79, &
@@ -86,6 +88,8 @@ module m3dc1_nint
   vectype, dimension(MAX_PTS, OP_NUM) :: pss79, bzs79
   vectype, dimension(MAX_PTS, OP_NUM) :: bzx79, psx79, bfx79
   vectype, dimension(MAX_PTS, OP_NUM) :: pstx79, bztx79, bftx79
+  vectype, dimension(MAX_PTS, OP_NUM) :: te179, te079, tet79
+  vectype, dimension(MAX_PTS, OP_NUM) :: ti179, ti079, tit79
 
   ! precalculated terms
    real, private :: fterm(MAX_PTS, coeffs_per_element, OP_NUM)
@@ -835,6 +839,46 @@ contains
 !     if(amupar.ne.0.) vip79 = amupar*pit79/2.
      if(amupar.ne.0.) vip79 = amupar
   end if
+
+    ! TE
+    ! ~~~
+    if(iand(fields, FIELD_TE).eq.FIELD_TE) then
+       if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   TE..."
+       
+       if(ilin.eq.0) then
+          call eval_ops(itri, te_field(1), te179, rfac)
+       else
+          te179 = 0.
+       endif
+       
+       if(eqsubtract.eq.1) then
+          call eval_ops(itri, te_field(0), te079)
+          tet79 = te079 + te179
+       else
+          te079 = 0.
+          tet79 = te179
+       endif
+    endif
+
+    ! TI
+    ! ~~~
+    if(iand(fields, FIELD_TI).eq.FIELD_TI) then
+       if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   TI..."
+       
+       if(ilin.eq.0) then
+          call eval_ops(itri, ti_field(1), ti179, rfac)
+       else
+          ti179 = 0.
+       endif
+       
+       if(eqsubtract.eq.1) then
+          call eval_ops(itri, ti_field(0), ti079)
+          tit79 = ti079 + ti179
+       else
+          ti079 = 0.
+          tit79 = ti179
+       endif
+    endif
 end subroutine define_fields
 
 subroutine interpolate_size_field(itri)
