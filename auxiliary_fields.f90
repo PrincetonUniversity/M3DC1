@@ -184,6 +184,8 @@ subroutine calculate_auxiliary_fields(ilin)
   if(xray_detector_enabled.eq.1) then
      call newvar_solve(chord_mask%vec, mass_mat_lhs)
   end if
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Done Calculating auxiliary fields'
   
   end subroutine calculate_auxiliary_fields
 

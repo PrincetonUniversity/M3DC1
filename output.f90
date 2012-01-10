@@ -77,7 +77,13 @@ contains
 
        if(myrank.eq.0 .and. iprint.ge.2) print *, "  writing timeslice"
        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-       call hdf5_write_time_slice(0,ier)
+!
+!.......sequential hdf5
+!     do i=0,maxrank-1
+!             if(myrank.eq.i) call hdf5_write_time_slice(0,ier)
+!             call MPI_Barrier(MPI_COMM_WORLD,ier)
+!     enddo
+      call hdf5_write_time_slice(0,ier)
       if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         diff = tend - tstart
@@ -88,7 +94,7 @@ contains
        
        if(iwrite_restart.eq.1) then
           if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-          if(myrank.eq.0 .and. iprint.ge.2) print *, "  writing restart files"
+          if(myrank.eq.0 .and. iprint.ge.1) print *, "  writing restart files"
           if(iglobalout.eq.1) then
              call wrrestartglobal
           else
@@ -506,27 +512,31 @@ subroutine hdf5_write_time_slice(equilibrium, error)
 
   ! Write attributes
   ! ~~~~~~~~~~~~~~~~
+  if(myrank.eq.0 .and. iprint.ge.1) print *, '  Writing attr '
   call write_real_attr(time_group_id, "time", time, error)
   call write_int_attr(time_group_id, "nspace", 2, error)
 
   ! Output the mesh data
-  if(myrank.eq.0 .and. iprint.ge.2) print *, '  Writing mesh '
+  if(myrank.eq.0 .and. iprint.ge.1) print *, '  Writing mesh '
   call output_mesh(time_group_id, nelms, error)
 
   ! Output the field data 
-  if(myrank.eq.0 .and. iprint.ge.2) print *, '  Writing fields '
+  if(myrank.eq.0 .and. iprint.ge.1) print *, '  Writing fields '
   call output_fields(time_group_id, equilibrium, error)
+  if(myrank.eq.0 .and. iprint.ge.1) print *, '  Done writing fields ', error
 
 
   ! Close the time group
   ! ~~~~~~~~~~~~~~~~~~~~
   call h5gclose_f(time_group_id, error)  
+  if(myrank.eq.0 .and. iprint.ge.1) print *, '  after h5gclose_f ', error
 
   if(equilibrium.eq.0) times_output = times_output + 1
   call h5gopen_f(file_id, "/", root_id, error)
   call update_int_attr(root_id, "ntime", times_output, error)
   call h5gclose_f(root_id, error)
 
+  if(myrank.eq.0 .and. iprint.ge.1) print *, '  End of hdf5_write_time_slice '
 
 end subroutine hdf5_write_time_slice
 
@@ -637,11 +647,14 @@ subroutine output_fields(time_group_id, equilibrium, error)
 
   nfields = 0
   nelms = local_elements()
+  error = 0
   
   allocate(dum(coeffs_per_element,nelms))
 
   ! Create the fields group
+      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'before h5gcreate_f in output_fields'
   call h5gcreate_f(time_group_id, "fields", group_id, error)
+      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after h5gcreate_f in output_fields', error
 
   ! Output the fields
   ! ~~~~~~~~~~~~~~~~~
@@ -659,6 +672,8 @@ subroutine output_fields(time_group_id, equilibrium, error)
      nfields = nfields + 1
 #endif
 
+      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after psi in output_fields'
+
   ! u
   do i=1, nelms
      call calcavector(i, u_field(ilin), dum(:,i))
@@ -671,6 +686,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
        nelms,error)
   nfields = nfields + 1
 #endif
+      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after u in output_fields'
 
   ! electrostatic potential
   if(jadv.eq.0 .and. i3d.eq.1) then 
@@ -694,6 +710,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
        nelms,error)
   nfields = nfields + 1
 #endif
+      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after i in output_fields'
 
   ! BF
   if(ifout.eq.1) then
@@ -709,6 +726,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
      nfields = nfields + 1
 #endif
   endif
+      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after bf in output_fields'
 
   ! V
   do i=1, nelms
@@ -722,6 +740,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
        nelms,error)
   nfields = nfields + 1
 #endif
+      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after v in output_fields'
 
   ! Pe
   do i=1, nelms
@@ -735,6 +754,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
        nelms,error)
   nfields = nfields + 1
 #endif
+      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after pe in output_fields'
 
   ! P
   do i=1, nelms
@@ -748,6 +768,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
        nelms,error)
   nfields = nfields + 1
 #endif
+      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after p  in output_fields'
      
   ! chi
   do i=1, nelms
@@ -760,6 +781,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   call output_field(group_id,"chi_i",aimag(dum),coeffs_per_element,nelms,error)
   nfields = nfields + 1
 #endif
+      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after chi in output_fields'
 
   ! den
   do i=1, nelms
@@ -772,6 +794,33 @@ subroutine output_fields(time_group_id, equilibrium, error)
   call output_field(group_id,"den_i",aimag(dum),coeffs_per_element,nelms,error)
   nfields = nfields + 1
 #endif
+      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after den in output_fields'
+
+  ! te
+  do i=1, nelms
+     call calcavector(i, te_field(ilin), dum(:,i))
+  end do
+  call output_field(group_id, "te", real(dum), coeffs_per_element, &
+       nelms, error)
+  nfields = nfields + 1
+#ifdef USECOMPLEX
+  call output_field(group_id,"te_i",aimag(dum),coeffs_per_element,nelms,error)
+  nfields = nfields + 1
+#endif
+      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after te in output_fields'
+
+  ! ti
+  do i=1, nelms
+     call calcavector(i, ti_field(ilin), dum(:,i))
+  end do
+  call output_field(group_id, "ti", real(dum), coeffs_per_element, &
+       nelms, error)
+  nfields = nfields + 1
+#ifdef USECOMPLEX
+  call output_field(group_id,"ti_i",aimag(dum),coeffs_per_element,nelms,error)
+  nfields = nfields + 1
+#endif
+      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after ti in output_fields'
 
   if(use_external_fields) then 
      ! psi_ext
@@ -857,6 +906,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
         nfields = nfields + 1
      endif
   end if
+      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after write_transport_coefsin output_fields'
 
   if(iwrite_aux_vars.eq.1) then 
      ! jphi
@@ -952,7 +1002,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
 !!$     nfields = nfields + 1
 !!$  end if
      
+      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'before write_int_attr in output_fields'
   call write_int_attr(group_id, "nfields", nfields, error)
+      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after write_int_attr in output_fields'
 
   ! Close the mesh group
   call h5gclose_f(group_id, error)

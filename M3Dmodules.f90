@@ -348,12 +348,15 @@ module arrays
   integer, parameter :: pe_g = 6
   integer, parameter :: den_g = 7
   integer, parameter :: p_g = 8
-  integer, parameter :: num_fields = 8
+  integer, parameter :: te_g = 9
+  integer, parameter :: ti_g = 10
+  integer, parameter :: num_fields = 10
 
   type(field_type) :: u_field(0:1), vz_field(0:1), chi_field(0:1)
   type(field_type) :: psi_field(0:1), bz_field(0:1), pe_field(0:1)
   type(field_type) :: den_field(0:1), p_field(0:1)
   type(field_type) :: bf_field(0:1)
+  type(field_type) :: te_field(0:1), ti_field(0:1)
 
   ! the following pointers point to the locations of the named field within
   ! the respective vector.  set by assign_local_pointers()
@@ -365,6 +368,8 @@ module arrays
   vectype, dimension(dofs_per_node) ::  pe1_l,  pe0_l
   vectype, dimension(dofs_per_node) :: den1_l, den0_l
   vectype, dimension(dofs_per_node) ::   p1_l,   p0_l
+  vectype, dimension(dofs_per_node) ::  te1_l,  te0_l
+  vectype, dimension(dofs_per_node) ::  ti1_l,  ti0_l
 
 
 contains
@@ -389,6 +394,8 @@ contains
     call get_node_data( pe_field(0), inode,  pe0_l)
     call get_node_data(  p_field(0), inode,   p0_l)
     call get_node_data(den_field(0), inode, den0_l)
+    call get_node_data( te_field(0), inode,  te0_l)
+    call get_node_data( ti_field(0), inode,  ti0_l)
     call get_node_data(  u_field(1), inode,   u1_l)
     call get_node_data( vz_field(1), inode,  vz1_l)
     call get_node_data(chi_field(1), inode, chi1_l)
@@ -397,6 +404,8 @@ contains
     call get_node_data( pe_field(1), inode,  pe1_l)
     call get_node_data(  p_field(1), inode,   p1_l)
     call get_node_data(den_field(1), inode, den1_l)
+    call get_node_data( te_field(1), inode,  te1_l)
+    call get_node_data( ti_field(1), inode,  ti1_l)
 
   end subroutine get_local_vals
 
@@ -414,6 +423,8 @@ contains
     call set_node_data( pe_field(0), inode,  pe0_l)
     call set_node_data(  p_field(0), inode,   p0_l)
     call set_node_data(den_field(0), inode, den0_l)
+    call set_node_data( te_field(0), inode,  te0_l)
+    call set_node_data( ti_field(0), inode,  ti0_l)
     call set_node_data(  u_field(1), inode,   u1_l)
     call set_node_data( vz_field(1), inode,  vz1_l)
     call set_node_data(chi_field(1), inode, chi1_l)
@@ -422,6 +433,8 @@ contains
     call set_node_data( pe_field(1), inode,  pe1_l)
     call set_node_data(  p_field(1), inode,   p1_l)
     call set_node_data(den_field(1), inode, den1_l)
+    call set_node_data( te_field(1), inode,  te1_l)
+    call set_node_data( ti_field(1), inode,  ti1_l)
 
   end subroutine set_local_vals
 end module arrays

@@ -113,6 +113,7 @@ subroutine gradshafranov_per()
      call set_local_vals(i)
   enddo
 
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'end of gradshafranov_per'
   call finalize(field_vec)
 
 end subroutine gradshafranov_per
@@ -773,14 +774,16 @@ subroutine gradshafranov_solve
         call calc_density(psi0_l,den0_l,x,z)
         call calc_rotation(psi0_l,vz0_l,x,z)
         call calc_electron_pressure(psi0_l, pe0_l, x, z)
+        call calc_electron_temperature(te0_l, pe0_l, den0_l)
+        call calc_ion_temperature(ti0_l, p0_l, pe0_l, den0_l)
         call set_local_vals(i)
      end do
   end if
 
-  ! Define pe field
   if(igs_method.ne.1) then
+  ! Define pe field
      if(allocated(te_spline%y)) then
-        if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating Te...'
+        if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating pe...'
         b1vecini_vec = 0.
         do itri=1,numelms
            call define_element_quadrature(itri, int_pts_main, int_tor)
@@ -805,6 +808,55 @@ subroutine gradshafranov_solve
         pe_field(0) = p_field(0)
         call mult(pe_field(0), pefac)
      end if
+
+  ! Define te field
+        if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating Te...'
+        b1vecini_vec = 0.
+        do itri=1,numelms
+           call define_element_quadrature(itri, int_pts_main, int_tor)
+           call define_fields(itri, 0, 1, 0)
+           
+           call eval_ops(itri, pe_field(0), pe079)
+           call eval_ops(itri, den_field(0), n079)
+
+           do i=1, npoints 
+              call calc_electron_temperature(tf,pe079(i,:), n079(i,:))
+              temp79a(i) = tf(1)
+           end do
+
+           do i=1, dofs_per_element
+              temp(i,1) = int2(mu79(:,OP_1,i),temp79a)
+           end do
+           call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
+        end do
+
+        call newvar_solve(b1vecini_vec%vec,mass_mat_lhs)
+        te_field(0) = b1vecini_vec
+
+  ! Define ti field
+        if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating Ti...'
+        b1vecini_vec = 0.
+        do itri=1,numelms
+           call define_element_quadrature(itri, int_pts_main, int_tor)
+           call define_fields(itri, 0, 1, 0)
+           
+           call eval_ops(itri, p_field(0), p079)
+           call eval_ops(itri, pe_field(0), pe079)
+           call eval_ops(itri, den_field(0), n079)
+
+           do i=1, npoints 
+              call calc_ion_temperature(tf,p079(i,:),pe079(i,:),n079(i,:))
+              temp79a(i) = tf(1)
+           end do
+
+           do i=1, dofs_per_element
+              temp(i,1) = int2(mu79(:,OP_1,i),temp79a)
+           end do
+           call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
+        end do
+
+        call newvar_solve(b1vecini_vec%vec,mass_mat_lhs)
+        ti_field(0) = b1vecini_vec
   end if
 
   call finalize(field0_vec)
@@ -2024,8 +2076,8 @@ subroutine calc_electron_pressure(psi0, pe, x, z)
      call calc_pressure(psi0, pres0, x, z)
      pe = pres0*pefac
   end if
+  return
 end subroutine calc_electron_pressure
-
 
 !======================================================================
 ! calc_rotation
