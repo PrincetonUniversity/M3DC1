@@ -5,7 +5,8 @@ module auxiliary_fields
 
   type(field_type) :: bdotgradp
   type(field_type) :: bdotgradt
-  type(field_type) :: torque_em
+  type(field_type) :: torque_density_em
+  type(field_type) :: torque_density_ntv
   type(field_type) :: chord_mask
 
   logical, private :: initialized = .false.
@@ -17,7 +18,8 @@ subroutine create_auxiliary_fields
 
   call create_field(bdotgradp)
   call create_field(bdotgradt)
-  call create_field(torque_em)
+  call create_field(torque_density_em)
+  call create_field(torque_density_ntv)
   call create_field(chord_mask)
   initialized = .true.
 end subroutine create_auxiliary_fields
@@ -28,10 +30,10 @@ subroutine destroy_auxiliary_fields
   if(.not.initialized) return
   call destroy_field(bdotgradp)
   call destroy_field(bdotgradt)
-  call destroy_field(torque_em)
+  call destroy_field(torque_density_em)
+  call destroy_field(torque_density_ntv)
   call destroy_field(chord_mask)
 end subroutine destroy_auxiliary_fields
-
   
 subroutine calculate_auxiliary_fields(ilin)
   use math
@@ -39,6 +41,7 @@ subroutine calculate_auxiliary_fields(ilin)
   use m3dc1_nint
   use newvar_mod
   use diagnostics
+  use metricterms_new
 
   implicit none
 
@@ -54,18 +57,23 @@ subroutine calculate_auxiliary_fields(ilin)
 
   bdotgradp = 0.
   bdotgradt = 0.
-  torque_em = 0.
+  torque_density_em = 0.
+  torque_density_ntv = 0.
   chord_mask = 0.
 
   ! specify which primitive fields are to be evalulated
   def_fields = FIELD_N + FIELD_NI + FIELD_P + FIELD_PSI + FIELD_I
+  if(amupar.ne.0) then
+     def_fields = def_fields + FIELD_MU
+     def_fields = def_fields + FIELD_PHI + FIELD_V + FIELD_CHI
+  end if
 
   numelms = local_elements()
   do itri=1,numelms
      call define_element_quadrature(itri, int_pts_aux, 5)
      call define_fields(itri, def_fields, 1, 0)
 
-     ! magnetic torque (ignoring toroidal magnetic pressure gradient)
+     ! magnetic torque_density (ignoring toroidal magnetic pressure gradient)
 #ifdef USECOMPLEX
      do i=1, dofs_per_element
         dofs(i) = &
@@ -91,7 +99,34 @@ subroutine calculate_auxiliary_fields(ilin)
 #endif
      end do
 #endif
-     call vector_insert_block(torque_em%vec,itri,1,dofs,VEC_ADD)
+     call vector_insert_block(torque_density_em%vec,itri,1,dofs,VEC_ADD)
+
+!!$     ! NTV torque_density
+!!$     if(amupar.ne.0.) then
+!!$        do i=1, dofs_per_element
+!!$           call PVV2(mu79(:,:,i),temp79b)
+!!$
+!!$           dofs(i) = int2(vip79(:,OP_1),temp79b)
+!!$
+!!$           dofs(i) = 0.
+!!$           call PVS1(pht79,temp79c)
+!!$           dofs(i) = int3(vip79(:,OP_1),temp79b,temp79c)
+!!$
+!!$           if(numvar.ge.2) then
+!!$              call PVS2(vzt79,temp79c)
+!!$              dofs(i) = dofs(i) + int3(vip79(:,OP_1),temp79b,temp79c)
+!!$           endif
+!!$
+!!$           if(numvar.ge.3) then
+!!$              call PVS3(cht79,temp79c)
+!!$              dofs(i) = dofs(i) + int3(vip79(:,OP_1),temp79b,temp79c)
+!!$           endif
+!!$        end do
+!!$     else
+!!$        dofs = 0.
+!!$     endif
+!!$     call vector_insert_block(torque_density_ntv%vec,itri,1,dofs,VEC_ADD)
+
 
      ! b dot grad p
      do i=1, dofs_per_element
@@ -165,6 +200,8 @@ subroutine calculate_auxiliary_fields(ilin)
      end do
      call vector_insert_block(bdotgradt%vec,itri,1,dofs,VEC_ADD)
 
+
+     ! x-ray detector signal
      if(xray_detector_enabled.eq.1) then
         do i=1, dofs_per_element
            call get_chord_mask(xray_r0, xray_phi0*pi/180., xray_z0, &
@@ -179,7 +216,8 @@ subroutine calculate_auxiliary_fields(ilin)
 
   call newvar_solve(bdotgradp%vec, mass_mat_lhs)
   call newvar_solve(bdotgradt%vec, mass_mat_lhs)
-  call newvar_solve(torque_em%vec, mass_mat_lhs)
+  call newvar_solve(torque_density_em%vec, mass_mat_lhs)
+!!$  call newvar_solve(torque_density_ntv%vec, mass_mat_lhs)
 
   if(xray_detector_enabled.eq.1) then
      call newvar_solve(chord_mask%vec, mass_mat_lhs)
