@@ -485,118 +485,118 @@ contains
   end subroutine boundary_node
 
 
-!!$  subroutine boundary_edge(itrin, is_edge, normal, idim)
-!!$
-!!$    implicit none
-!!$    integer, intent(in) :: itrin
-!!$    logical, intent(out) :: is_edge(3)
-!!$    real, intent(out) :: normal(2,3)
-!!$    integer, intent(out) :: idim(3)
-!!$    
-!!$    integer :: inode(nodes_per_element), izone, i, j, jj
-!!$    integer :: in(2)
-!!$    real :: x, z, c(3)
-!!$    logical :: is_bound(3), found_edge
-!!$
-!!$    integer :: iedge(3), izonedim, itri
-!!$
-!!$#ifdef USE3D
-!!$    integer :: ifac(5), iplane
-!!$    call facregion(itrin,ifac)
-!!$    itri = 0
-!!$    do i=1, 5
-!!$       call locationplane(ifac(i), 2, iplane)
-!!$       if(iplane.eq.1) then
-!!$          itri = ifac(i)
-!!$          if(i.ne.1) print *, 'first face is not on plane.'
-!!$          exit
-!!$       end if
-!!$    end do
-!!$    if(itri.eq.0) print *, 'Error: no face found on plane!!!'
-!!$#else
-!!$    itri = itrin
-!!$#endif
-!!$
-!!$    call nodfac(itri,inode)
-!!$    call edgfac(itri,iedge)
-!!$
-!!$    do i=1,3
-!!$       call boundary_node(inode(i),is_bound(i),izone,idim(i), &
-!!$            normal(:,i),c(i),x,z)
-!!$    end do
-!!$
-!!$    is_edge = .false.
-!!$    do i=1,3
-!!$       call zonedg(iedge(i),izone,izonedim)
-!!$       if(izonedim.gt.1) cycle
-!!$
-!!$       call nodedg(iedge(i), in)
-!!$
-!!$       ! check nodes to see which one is the first node of iedge(i)
-!!$       found_edge = .false.
-!!$       do j=1, 3
-!!$          jj = mod(j,3)+1
-!!$          if(in(1).eq.inode(j) .and. in(2).eq.inode(jj)) then
-!!$             found_edge = .true.
-!!$             exit
-!!$          else if(in(2).eq.inode(j) .and. in(1).eq.inode(jj)) then
-!!$!             print *, 'Error: clockwise edge!'
-!!$             found_edge = .true.
-!!$             exit
-!!$          end if
-!!$       end do
-!!$       if(found_edge) then
-!!$          if(is_edge(j)) print *, 'Warning: edge counted twice'
-!!$          is_edge(j) = .true.
-!!$!          call boundary_node(inode(j),is_bound(j),izone,idim(j), &
-!!$!               normal(:,j),c(j),x,z)
-!!$!          write(*, '(6F10.4)') x, z, normal(:,j)
-!!$       else
-!!$          print *, 'Error: phantom edge!'
-!!$       end if
-!!$    end do
-!!$  end subroutine boundary_edge
-
-  subroutine boundary_edge(itri, is_edge, normal, idim)
+  subroutine boundary_edge(itrin, is_edge, normal, idim)
 
     implicit none
-    integer, intent(in) :: itri
+    integer, intent(in) :: itrin
     logical, intent(out) :: is_edge(3)
     real, intent(out) :: normal(2,3)
     integer, intent(out) :: idim(3)
     
-    integer :: inode(nodes_per_element), izone, i, j
-     real :: x, z, c(3)
-    logical :: is_bound(3)
-    
-    call get_element_nodes(itri,inode)
-   
+    integer :: inode(nodes_per_element), izone, i, j, jj
+    integer :: in(2)
+    real :: x, z, c(3)
+    logical :: is_bound(3), found_edge
+
+    integer :: iedge(3), izonedim, itri
+
+#ifdef USE3D
+    integer :: ifac(5), iplane
+    call facregion(itrin,ifac)
+    itri = 0
+    do i=1, 5
+       call locationplane(ifac(i), 2, iplane)
+       if(iplane.eq.1) then
+          itri = ifac(i)
+          if(i.ne.1) print *, 'first face is not on plane.'
+          exit
+       end if
+    end do
+    if(itri.eq.0) print *, 'Error: no face found on plane!!!'
+#else
+    itri = itrin
+#endif
+
+    call nodfac(itri,inode)
+    call edgfac(itri,iedge)
+
     do i=1,3
        call boundary_node(inode(i),is_bound(i),izone,idim(i), &
             normal(:,i),c(i),x,z)
     end do
-    
+
+    is_edge = .false.
     do i=1,3
-       j = mod(i,3) + 1
-       is_edge(i) = .false.
-       
-       ! skip edges not having both points on a boundary
-       if((.not.is_bound(i)).or.(.not.is_bound(j))) cycle
-       
-       ! skip edges cutting across corners
-       if(is_bound(1) .and. is_bound(2) .and. is_bound(3)) then
-          if(idim(i).ne.0 .and. idim(j).ne.0) cycle
-       endif
-       
-       ! skip suspicious edges (edges w/o corner point where normal changes
-       ! dramatically)
-       if(idim(i).eq.1 .and. idim(j).eq.1 .and. idim(mod(i+1,3)+1).eq.2) then
-          if(normal(1,i)*normal(1,j) + normal(2,i)*normal(2,j) .lt. .5) cycle
+       call zonedg(iedge(i),izone,izonedim)
+       if(izonedim.gt.1) cycle
+
+       call nodedg(iedge(i), in)
+
+       ! check nodes to see which one is the first node of iedge(i)
+       found_edge = .false.
+       do j=1, 3
+          jj = mod(j,3)+1
+          if(in(1).eq.inode(j) .and. in(2).eq.inode(jj)) then
+             found_edge = .true.
+             exit
+          else if(in(2).eq.inode(j) .and. in(1).eq.inode(jj)) then
+!             print *, 'Error: clockwise edge!'
+             found_edge = .true.
+             exit
+          end if
+       end do
+       if(found_edge) then
+          if(is_edge(j)) print *, 'Warning: edge counted twice'
+          is_edge(j) = .true.
+!          call boundary_node(inode(j),is_bound(j),izone,idim(j), &
+!               normal(:,j),c(j),x,z)
+!          write(*, '(6F10.4)') x, z, normal(:,j)
+       else
+          print *, 'Error: phantom edge!'
        end if
-       
-       is_edge(i) = .true.
     end do
   end subroutine boundary_edge
+
+!!$  subroutine boundary_edge(itri, is_edge, normal, idim)
+!!$
+!!$    implicit none
+!!$    integer, intent(in) :: itri
+!!$    logical, intent(out) :: is_edge(3)
+!!$    real, intent(out) :: normal(2,3)
+!!$    integer, intent(out) :: idim(3)
+!!$    
+!!$    integer :: inode(nodes_per_element), izone, i, j
+!!$     real :: x, z, c(3)
+!!$    logical :: is_bound(3)
+!!$    
+!!$    call get_element_nodes(itri,inode)
+!!$   
+!!$    do i=1,3
+!!$       call boundary_node(inode(i),is_bound(i),izone,idim(i), &
+!!$            normal(:,i),c(i),x,z)
+!!$    end do
+!!$    
+!!$    do i=1,3
+!!$       j = mod(i,3) + 1
+!!$       is_edge(i) = .false.
+!!$       
+!!$       ! skip edges not having both points on a boundary
+!!$       if((.not.is_bound(i)).or.(.not.is_bound(j))) cycle
+!!$       
+!!$       ! skip edges cutting across corners
+!!$       if(is_bound(1) .and. is_bound(2) .and. is_bound(3)) then
+!!$          if(idim(i).ne.0 .and. idim(j).ne.0) cycle
+!!$       endif
+!!$       
+!!$       ! skip suspicious edges (edges w/o corner point where normal changes
+!!$       ! dramatically)
+!!$       if(idim(i).eq.1 .and. idim(j).eq.1 .and. idim(mod(i+1,3)+1).eq.2) then
+!!$          if(normal(1,i)*normal(1,j) + normal(2,i)*normal(2,j) .lt. .5) cycle
+!!$       end if
+!!$       
+!!$       is_edge(i) = .true.
+!!$    end do
+!!$  end subroutine boundary_edge
 
 
 end module scorec_mesh_mod
