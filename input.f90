@@ -190,6 +190,8 @@ subroutine set_defaults
        "1: Include density equation", model_grp)
   call add_var_int("ipres", ipres, 0, &
        "1: Include total pressure equation", model_grp)
+  call add_var_int("itemp", itemp, 0, &
+       "1: Include e and i temperature equation", model_grp)
   call add_var_int("gyro", gyro, 0, &
        "1: Include Braginskii gyroviscosity", model_grp)
   call add_var_int("igauge", igauge, 0, "", model_grp)
@@ -392,13 +394,14 @@ subroutine set_defaults
        "1: Hold pressure constant on boundary", bc_grp)
   call add_var_int("iconst_n", iconst_n, 1, &
        "1: Hold density constant on boundary", bc_grp)
-  call add_var_int("iconst_t", iconst_t, 0, &
+  call add_var_int("iconst_t", iconst_t, 1, &
        "1: Hold temperature constant on boundary", bc_grp)
   call add_var_int("iconst_bn", iconst_bn, 1, &
        "1: Hold normal field constant on boundary", bc_grp)
   call add_var_int("iconst_bz", iconst_bz, 1, &
        "1: Hold toroidal field constant on boundary", bc_grp)
   call add_var_int("inograd_p", inograd_p, 0, "", bc_grp)
+  call add_var_int("inograd_t", inograd_t, 0, "", bc_grp)
   call add_var_int("inograd_n", inograd_n, 0, "", bc_grp)
   call add_var_int("inonormalflow", inonormalflow, 1, &
        "1: No-normal-flow boundary condition", bc_grp)

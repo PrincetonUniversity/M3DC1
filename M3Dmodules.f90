@@ -79,11 +79,12 @@ module basic
   integer :: inocurrent_tor  ! 1 = no toroidal current
   integer :: inocurrent_norm ! 1 = no toroidal current
   integer :: iconst_p        ! 1 = pressure held constant
-  integer :: iconst_t        ! 1 = pressure held constant
+  integer :: iconst_t        ! 1 = temperature held constant
   integer :: iconst_n        ! 1 = density held constant
   integer :: iconst_bz       ! 1 = toroidal field held constant
   integer :: iconst_bn       ! 1 = normal magnetic field held constant
   integer :: inograd_p       ! 1 = no normal pressure gradient
+  integer :: inograd_t       ! 1 = no normal temperature gradient
   integer :: inograd_n       ! 1 = no normal density gradient
   integer :: com_bc          ! 1 = forces del^2(chi) = 0 on boundary
   integer :: vor_bc          ! 1 = forces del*(phi) = 0 on boundary
@@ -180,6 +181,7 @@ module basic
   integer :: numvar      ! 1 = 2-field; 2 = reduced MHD; 3 = compressible MHD
   integer :: idens       ! evolve density
   integer :: ipres       ! evolve total and electron pressures separately
+  integer :: itemp       ! solve separate equation for electron and ion temperatures
   integer :: imp_bf      ! include bf implicitly
   integer :: gyro        ! include gyroviscosity
   integer :: jadv        ! 1 = use current density equation, not flux equation
@@ -502,13 +504,18 @@ module sparse
   integer, parameter :: gs_mat_rhs_index = 50
   integer, parameter :: r42_mat_index = 51
   integer, parameter :: bf_mat_index = 52
-  integer, parameter :: num_matrices = 52
+  integer, parameter :: s11_mat_index = 53
+  integer, parameter :: s12_mat_index = 54
+  integer, parameter :: d11_mat_index = 55
+  integer, parameter :: d12_mat_index = 56
+  integer, parameter :: num_matrices = 56
 
   type(matrix_type), target :: s1_mat, d1_mat, q1_mat, r14_mat, o1_mat, p1_mat
   type(matrix_type), target :: q42_mat, r42_mat
   type(matrix_type), target :: s2_mat, d2_mat, r2_mat, q2_mat, o2_mat
   type(matrix_type), target :: s8_mat, d8_mat, r8_mat, q8_mat
   type(matrix_type), target :: s9_mat, d9_mat, r9_mat, q9_mat, o9_mat
+  type(matrix_type), target :: s11_mat, d11_mat, s12_mat, d12_mat
   type(matrix_type) :: rwpsi_mat, rwbf_mat, ecpsi_mat, ecbf_mat
   type(matrix_type), save :: rw_rhs_mat, rw_lhs_mat
 

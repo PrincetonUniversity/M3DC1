@@ -722,17 +722,17 @@ contains
     use mesh_mod
     implicit none
     integer, intent(in) :: isize, idof_local
-    integer :: itemp, inode
+    integer :: itempl, inode
 
-    itemp = isize*dofs_per_node*owned_nodes()
+    itempl = isize*dofs_per_node*owned_nodes()
 
-    if(idof_local.le.itemp) then
+    if(idof_local.le.itempl) then
        global_dof_id = (global_node_id(1)-1)*isize*dofs_per_node + idof_local
     else
-       inode = (idof_local - itemp - 1) / (isize*dofs_per_node) + 1
-       itemp = idof_local - itemp - (inode-1)*(isize*dofs_per_node)
-       print *, 'inode, itemp', owned_nodes(), idof_local, inode, itemp
-       global_dof_id = (global_node_id(inode)-1)*isize*dofs_per_node + itemp
+       inode = (idof_local - itempl - 1) / (isize*dofs_per_node) + 1
+       itempl = idof_local - itempl - (inode-1)*(isize*dofs_per_node)
+       print *, 'inode, itempl', owned_nodes(), idof_local, inode, itempl
+       global_dof_id = (global_node_id(inode)-1)*isize*dofs_per_node + itempl
     endif
   end function global_dof_id
 
