@@ -935,7 +935,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
 
      ! torque_em
      do i=1, nelms
-        call calcavector(i, torque_em, dum(:,i))
+        call calcavector(i, torque_density_em, dum(:,i))
      end do
      call output_field(group_id, "torque_em", real(dum), coeffs_per_element, &
           nelms, error)
@@ -945,6 +945,19 @@ subroutine output_fields(time_group_id, equilibrium, error)
           nelms, error)
      nfields = nfields + 1
 #endif
+
+!!$     ! torque_ntv
+!!$     do i=1, nelms
+!!$        call calcavector(i, torque_density_ntv, dum(:,i))
+!!$     end do
+!!$     call output_field(group_id,"torque_ntv", real(dum), coeffs_per_element, &
+!!$          nelms, error)
+!!$     nfields = nfields + 1
+!!$#ifdef USECOMPLEX
+!!$     call output_field(group_id,"torque_ntv_i",aimag(dum),coeffs_per_element, &
+!!$          nelms, error)
+!!$     nfields = nfields + 1
+!!$#endif
 
      ! bdotgradp
      do i=1, nelms

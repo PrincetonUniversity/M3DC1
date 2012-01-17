@@ -256,7 +256,7 @@ subroutine edge_to_local(ngauss, delta, line_weight, &
   ! if actual normal vector is opposite sign of expected vector,
   ! flip integration limits (i.e. flip sign of Jacobian)
   if(m1(1)*m2(1) + m1(2)*m2(2) .lt. 0.) then
-     write(*,'(A,6f10.4)') 'Flipping edge.', m1,m2
+     write(*,'(A,6f10.4)') 'Flipping edge.', m1,n1,n2
      local_weight = -local_weight
   endif
  
@@ -404,8 +404,14 @@ subroutine define_boundary_quadrature(ielm, iedge, npol, ntor, normal, idim)
 
   ! Set normal vector of corner nodes
   ! equal to the the normal vector of its adjacent node on this edge.
-  if(idim(iedge).eq.0) n1 = n2
-  if(idim(mod(iedge,3)+1).eq.0) n2 = n1
+  if(idim(iedge).eq.0 .and. idim(mod(iedge,3)+1).eq.0) then
+     print *, 'Dropping double cusp'
+     n1 = 0.
+     n2 = 0.
+  else
+     if(idim(iedge).eq.0) n1 = n2
+     if(idim(mod(iedge,3)+1).eq.0) n2 = n1
+  end if
 
   select case(npol)
   case(2)

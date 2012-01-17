@@ -1589,7 +1589,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        te = read_field('te', x, y, t, slices=time, mesh=mesh, $
                        filename=filename, points=pts, linfac=linfac, $
                        rrange=xrange, zrange=yrange, linear=linear, $
-                       complex=complex)
+                       complex=complex, phi=phi0)
 
        data = te
        symbol = '!8T!De!N!X'
@@ -1604,7 +1604,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        n = read_field('den', x, y, t, slices=time, mesh=mesh, $
                        filename=filename, points=pts, linfac=linfac, $
                        rrange=xrange, zrange=yrange, linear=linear, $
-                      complex=complex)
+                      complex=complex, phi=phi0)
        zeff = read_parameter("zeff", filename=filename)
        if(zeff eq 0) then zeff = 1.
        data = zeff*n
@@ -1620,7 +1620,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        Te1 = read_field('Te', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, linfac=linfac, $
                         rrange=xrange, zrange=yrange, linear=linear, $
-                       complex=complex)
+                       complex=complex, phi=phi0)
        
 
        Te0 = read_field('Te', x, y, t, mesh=mesh, $
@@ -3273,14 +3273,12 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        ; Field is not a composite field defined above;
        ; try to read it directly from C1.h5 file
 
-       
-       print, ' reading real field'
-
        t = fltarr(trange[1]-trange[0]+1)
        file_id = h5f_open(filename)
 
        if(keyword_set(complex)) then begin
-           print, 'Reading complex field'
+           print, 'Reading complex field.', ntor
+
            data_r = read_field(name,x,y,t, slices=time, mesh=mesh, $
                                filename=filename, points=pts, $
                                rrange=xrange, zrange=yrange, complex=0, $
@@ -3298,13 +3296,18 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                                units=units, $
                                equilibrium=equilibrium)
            data = complex(data_r, data_i)
-           
+
+
+           ; evaluate at phi0
+           ; it is okay to do this here since complex cases are always linear
            if(n_elements(phi0) ne 0) then begin
-               print, 'ntor = ', ntor
-               data = data*complex( cos(ntor*phi0*!pi/180.), $
-                                    -sin(ntor*phi0*!pi/180.))
+               print, 'evaluating at angle ', phi0, ' with ntor = ', ntor
+               data = data* $
+                 complex(cos(ntor*phi0*!pi/180.), -sin(ntor*phi0*!pi/180.))
            end
+
        endif else begin
+           print, ' reading real field'
            for i=trange[0], trange[1] do begin
                print, ' reading time slice ', i
                
@@ -3352,7 +3355,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                       
            h5f_close, file_id
        endelse
-
+       
        ; for eqsubtract=1 fields with linear option not set,
        ; add in base field
        if((max(trange) ge 0) and $
@@ -3366,7 +3369,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                              last=0)
                
            if(n_elements(linfac) eq 0) then linfac=1.
-           for i=trange[0], trange[1] do begin
+           for i=trange[0], trange[1] do begin              
                data[i-trange[0],*,*] = linfac*data[i-trange[0],*,*] + base
            end
        end

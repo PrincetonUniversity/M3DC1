@@ -335,7 +335,8 @@ contains
           bf_i = 1
           e_i = 2*numvar+idens+ipres+1
        end if
-
+       te_i = 1
+       ti_i = 1
 
        call associate_field(u_v,    phi_vec,      u_i)
        call associate_field(uo_v,   phiold_vec,   u_i)
@@ -374,6 +375,11 @@ contains
        if(jadv.eq.0 .and. i3d.eq.1) then
           call associate_field(e_v, phi_vec, e_i)
        end if
+
+       call associate_field(te_v,  te_vec,    te_i)
+       call associate_field(teo_v, teold_vec, te_i)
+       call associate_field(ti_v,  ti_vec,    ti_i)
+       call associate_field(tio_v, tiold_vec, ti_i)
     endif
       
     u_off = (u_i-1)*dofs_per_node

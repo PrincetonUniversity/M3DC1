@@ -14,7 +14,8 @@ module gradshafranov
   type(spline1d), private :: p0_spline
   type(spline1d), private :: g2_spline, g3_spline
   type(spline1d), private :: te_spline
-
+  
+  type(spline1d), private :: psi_spline ! (Psi as a function of rho)
   type(spline1d), private :: ffprime_spline
   type(spline1d), private :: pprime_spline
 
@@ -261,8 +262,8 @@ subroutine define_profiles
   implicit none
 
   real, allocatable :: xvals(:), yvals(:)
-  real :: teold
-  integer :: nvals
+  real :: teold, pval
+  integer :: nvals, i
 
   ! If p' and ff' profiles are not yet defined, define them
   if(.not.allocated(p0_spline%x)) then
@@ -292,17 +293,26 @@ subroutine define_profiles
   select case(iread_te)
      
   case(1)
-     ! Read in keV
+     ! Read in keV vs Psi
      nvals = 0
      call read_ascii_column('profile_te', xvals, nvals, icol=1)
      call read_ascii_column('profile_te', yvals, nvals, icol=2)
      yvals = yvals * 1.6022e-9 / (b0_norm**2/(4.*pi*n0_norm))
   case(2)
-     ! Read in eV
+     ! Read in eV vs Psi
      nvals = 0
      call read_ascii_column('profile_te', xvals, nvals, icol=1)
      call read_ascii_column('profile_te', yvals, nvals, icol=2)
      yvals = yvals * 1.6022e-12 / (b0_norm**2/(4.*pi*n0_norm))
+
+  case(4)
+     ! Read in keV vs Rho (sqrt Phi)
+     nvals = 0
+     call read_ascii_column('profile_te_rho_3', xvals, nvals, icol=1)
+     call read_ascii_column('profile_te_rho_3', yvals, nvals, icol=2)
+     yvals = yvals * 1.6022e-9 / (b0_norm**2/(4.*pi*n0_norm))
+     xvals = xvals / xvals(nvals) ! normalize rho
+     call rho_to_psi(nvals, xvals, xvals)
 
   case default
      
@@ -316,31 +326,61 @@ subroutine define_profiles
 
   ! define density profile
   ! ~~~~~~~~~~~~~~~~~~~~~~
-  select case(iread_ne)
-     
-  case(1)
-     ! Read in 10^20/m^3
-     nvals = 0
-     call read_ascii_column('profile_ne', xvals, nvals, icol=1)
-     call read_ascii_column('profile_ne', yvals, nvals, icol=2)
-     yvals = yvals * 1e14 / n0_norm / zeff
-     
-  case(2)
-     ! Read in 10^19/m^3
-     call read_ascii_column('dne.xy', xvals, nvals, skip=3, icol=1)
-     call read_ascii_column('dne.xy', yvals, nvals, skip=3, icol=7)
-     yvals = yvals * 1e13 / n0_norm / zeff
 
-  case default
-     call density_profile
-     
-  end select
+  ! If Te is specified but pe equation is not included
+  ! then define density based on p and Te
+  if(ipres.eq.0 .and. allocated(te_spline%y)) then
+     if(iread_ne.ne.0) then
+        if(myrank.eq.0) &
+             print *, 'ERROR: cannot read both ne and Te profiles with ipres=0'
+        call safestop(17)
+     end if
 
-  if(allocated(yvals)) then
-     call create_spline(n0_spline, nvals, xvals, yvals)
-     deallocate(xvals, yvals)
+     call copy_spline(n0_spline, te_spline)
+     do i=1, te_spline%n
+        call evaluate_spline(p0_spline, n0_spline%x(i), pval)
+        n0_spline%y(i) = pefac*pval/(zeff*te_spline%y(i))
+     end do
+     call destroy_spline(te_spline)
+
+  else
+
+     ! Otherwise, read ne profile directly
+     select case(iread_ne)
+     
+     case(1)
+        ! Read in 10^20/m^3 vs Psi
+        nvals = 0
+        call read_ascii_column('profile_ne', xvals, nvals, icol=1)
+        call read_ascii_column('profile_ne', yvals, nvals, icol=2)
+        yvals = yvals * 1e14 / n0_norm / zeff
+        
+     case(2)
+        ! Read in 10^19/m^3 vs Psi
+        call read_ascii_column('dne.xy', xvals, nvals, skip=3, icol=1)
+        call read_ascii_column('dne.xy', yvals, nvals, skip=3, icol=7)
+        yvals = yvals * 1e13 / n0_norm / zeff
+        
+     case(4)
+        ! Read in cm^-3 vs Rho (sqrt Phi)
+        nvals = 0
+        call read_ascii_column('profile_ne_rho_0', xvals, nvals, icol=1)
+        call read_ascii_column('profile_ne_rho_0', yvals, nvals, icol=2)
+        yvals = yvals / n0_norm / zeff
+        xvals = xvals / xvals(nvals) ! normalize rho
+        call rho_to_psi(nvals, xvals, xvals)
+        
+     case default
+        call density_profile
+        
+     end select
+     
+     if(allocated(yvals)) then
+        call create_spline(n0_spline, nvals, xvals, yvals)
+        deallocate(xvals, yvals)
+     end if
   end if
-
+     
 
   ! add tedge to temperature
   if(tedge.ge.0.) then
@@ -385,6 +425,16 @@ subroutine define_profiles
         yvals = yvals / &
              (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm) &
              / rzero
+
+     case(4)
+        ! Read in rad/sec vs Rho (sqrt Phi)
+        nvals = 0
+        call read_ascii_column('profile_omega_rho_0', xvals, nvals, icol=1)
+        call read_ascii_column('profile_omega_rho_0', yvals, nvals, icol=2)
+        yvals = yvals / &
+             (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm)
+        xvals = xvals / xvals(nvals) ! normalize rho
+        call rho_to_psi(nvals, xvals, xvals)
 
      case default
         call default_omega
@@ -506,6 +556,8 @@ subroutine gradshafranov_solve
   call finalize(gs_matrix)
 
   call define_profiles
+
+  if(igs.ne.0) call lcfs(psi_vec)
 
   error2 = 0.
   !-------------------------------------------------------------------
@@ -2210,5 +2262,51 @@ subroutine boundary_gs(rhs, feedfac, mat)
   end do
 end subroutine boundary_gs
 
+subroutine create_rho_from_q(npsi, psi, q)
+  use basic
+  use math
+  implicit none
+
+  integer, intent(in) :: npsi
+  real, intent(in), dimension(npsi) :: psi, q
+
+  integer :: i
+  real :: x(npsi), y(npsi)
+
+  x(1) = 0.
+  y(1) = 0.
+  do i=2, npsi
+     x(i) = x(i-1) + 2.*pi*q(i) * (psi(i) - psi(i-1))   ! Phi
+     y(i) = (psi(i) - psi(1))/(psi(npsi)-psi(1))  ! Psi
+  end do
+
+  ! convert from phi to rho
+  x = sqrt(abs(x))
+
+  ! normalize rho
+  x = x/x(npsi)
+
+  call create_spline(psi_spline, npsi, x, y)
+end subroutine create_rho_from_q
+
+subroutine rho_to_psi(n, rho, psi)
+  use basic
+  implicit none
+
+  integer, intent(in) :: n
+  real, intent(in) :: rho(n)
+  real, intent(out) :: psi(n)
+
+  integer :: i
+
+  if(.not.allocated(psi_spline%y)) then
+     if(myrank.eq.0) print *, 'Error: no rho data found'
+     call safestop(16)
+  end if
+
+  do i=1, n
+     call evaluate_spline(psi_spline, rho(i), psi(i))
+  end do
+end subroutine rho_to_psi
 
 end module gradshafranov
