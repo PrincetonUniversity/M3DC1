@@ -453,7 +453,6 @@ subroutine wrrestart_adios
   call numdofs(vecsize_phi, mmnn18)
 
   if(ifirstrs .ne. 1) call rename(fname, oldfname)
-  ifirstrs = 0
 
   call numdofs(num_fields, ndofs_1)
   allocate(tmp_field_vec(ndofs_1))
@@ -481,11 +480,13 @@ subroutine wrrestart_adios
 
 
     call MPI_Comm_dup (MPI_COMM_WORLD, comm, ierr) 
+    if( ifirstrs .eq. 1 ) then
 #ifdef USECOMPLEX
     call adios_init ("m3dc1_cplx.xml", adios_err)
 #else
     call adios_init ("m3dc1.xml", adios_err)
 #endif
+    endif
     call adios_open (adios_handle, "restart", fname, "w", comm, adios_err)
 #ifdef USECOMPLEX
 #include "gwrite_restart_c1_cplx.fh" 
@@ -494,7 +495,9 @@ subroutine wrrestart_adios
 #endif
     call adios_close (adios_handle, adios_err)
     call MPI_Barrier (comm, ierr)
+    if( (ntimemax-(ntime-ntime0)) .lt. ntimepr ) then
     call adios_finalize (myrank, adios_err)
+    endif
 
   if(myrank.eq.0) &
       write(*,*) "OUTPUT: wrrestart_adios groupsize totalsize", &
@@ -504,6 +507,7 @@ subroutine wrrestart_adios
        tmp_psi_ext, tmp_bz_ext, tmp_bf_ext)
 
 #endif
+  ifirstrs = 0
 end subroutine wrrestart_adios
 
 !============================================================

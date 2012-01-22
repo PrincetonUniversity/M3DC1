@@ -68,8 +68,9 @@ HYPRE = -lHYPRE
 MUMPS = -ldmumps -lmumps_common -lpord
 
 #only define them if adios-1.3 is used; otherwise use hopper default
-ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
-ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf -L/global/homes/p/pnorbert/mxml/mxml.hopper/lib -lm -lmxml -pgcpplibs
+#ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
+ADIOS_DIR=/global/homes/p/pnorbert/adios/1.3.1/hopper/pgi/
+ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf -L/global/homes/p/pnorbert/mxml/mxml.hopper/lib -lm -lmxml -llustreapi -pgcpplibs
 
 INCLUDE := $(INCLUDE) $(HDF5_INCLUDE_OPTS) $(FFTW_INCLUDE_OPTS) \
 	-I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
