@@ -1333,12 +1333,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
    if(hdf5_file_test(filename) eq 0) then return, 0
 
-   print, 'reading field ', name, ' from file ', filename, ' with options:'
-   print, string(form='("  linear=",I0,"; pts=",I0,"; equilibrium=",I0,' + $
-                 '"; complex=",I0,"; op=",I0)', $
-                 keyword_set(linear), pts, keyword_set(equilibrium), $
-                 keyword_set(complex), op)
-
    nt = read_parameter("ntime", filename=filename)
    nv = read_parameter("numvar", filename=filename)
    itor = read_parameter("itor", filename=filename)
@@ -1381,6 +1375,95 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    d = dimensions()
    symbol=name
  
+   print, 'Reading field ', name, ' at timeslice ', trange[0]
+   print, string(form='(" linear=",I0,"; pts=",I0,";' + $
+                 'equilibrium=",I0,"; complex=",I0,"; op=",I0)', $
+                 keyword_set(linear), pts, keyword_set(equilibrium), $
+                 keyword_set(complex), op)
+
+
+   ; check if this is a primitive field
+   file_id = h5f_open(filename)
+   time_group_id = h5g_open(file_id, time_name(trange[0]))
+   mesh = h5_parse(time_group_id, 'mesh', /read_data)
+               
+   field_group_id = h5g_open(time_group_id, 'fields')             
+   nmembers = h5g_get_nmembers(time_group_id, 'fields')
+   match = 0
+   for m=0, nmembers-1 do begin
+       thisname = h5g_get_member_name(time_group_id,'fields',m)
+       if(strcmp(thisname, name, /fold_case) eq 1) then begin
+           name = thisname
+           match = 1
+           break
+       endif
+   end
+   
+   if(match eq 1) then begin
+
+       if(keyword_set(complex)) then begin
+           h5g_close, field_group_id
+           h5g_close, time_group_id
+           h5f_close, file_id
+           print, '  reading complex field.', ntor
+
+           data_r = read_field(name,x,y,t, slices=time, mesh=mesh, $
+                               filename=filename, points=pts, $
+                               rrange=xrange, zrange=yrange, complex=0, $
+                               h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
+                               diff=diff, operation=op, mask=mask, $
+                               /linear, last=last,symbol=symbol, $
+                               units=units, $
+                               equilibrium=equilibrium)
+           data_i = read_field(name+'_i',x,y,t, slices=time, mesh=mesh, $
+                               filename=filename, points=pts, $
+                               rrange=xrange, zrange=yrange, complex=0, $
+                               h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
+                               diff=diff, operation=op, $
+                               /linear, last=last,symbol=symbol, $
+                               units=units, $
+                               equilibrium=equilibrium)
+           data = complex(data_r, data_i)
+
+
+           ; evaluate at phi0
+           ; it is okay to do this here since complex cases are always linear
+           if(n_elements(phi0) ne 0) then begin
+               print, 'evaluating at angle ', phi0, ' with ntor = ', ntor
+               data = data* $
+                 complex(cos(ntor*phi0*!pi/180.), -sin(ntor*phi0*!pi/180.))
+           end
+       endif else begin
+           print, '  reading real field'
+
+           field = h5_parse(field_group_id, name, /read_data)
+               
+           time_id = h5a_open_name(time_group_id, "time")
+           t = h5a_read(time_id)
+           h5a_close, time_id
+           h5g_close, field_group_id
+           h5g_close, time_group_id
+           h5f_close, file_id
+               
+           if(n_elements(phi0) eq 0) then phi_rad=0. $
+           else phi0_rad = phi0*!pi/180.
+  
+           data[0,*,*] = $
+             eval_field(field._data, mesh, points=pts, $
+                        r=x, z=y, op=op, filename=filename, $
+                        xrange=xrange, yrange=yrange, mask=mask, $
+                        phi=phi0_rad)
+           symbol = translate(name, units=d, itor=itor)
+       endelse
+
+       
+   endif else begin
+       h5g_close, field_group_id
+       h5g_close, time_group_id
+       h5f_close, file_id
+
+       print, '  reading composite field'
+
    if(strcmp('zero', name, /fold_case) eq 1) then begin
        psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
@@ -1553,47 +1636,33 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    ; electron temperature
    ;===========================================
-;  endif else if(strcmp('electron temperature', name, /fold_case) eq 1) or $
-;    (strcmp('te', name, /fold_case) eq 1) then begin
+  endif else if(strcmp('electron temperature', name, /fold_case) eq 1) or $
+    (strcmp('te', name, /fold_case) eq 1) then begin
 
-;      Pe1 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
-;                       filename=filename, points=pts, linfac=linfac, $
-;                       rrange=xrange, zrange=yrange, linear=linear, $
-;                      complex=complex)
-;
-;      n1 = read_field('ne', x, y, t, slices=time, mesh=mesh, $
-;                      filename=filename, points=pts, linfac=linfac, $
-;                      rrange=xrange, zrange=yrange, linear=linear, $
-;                      complex=complex)
-
-;      if(keyword_set(linear) and (isubeq eq 1) and (time ge 0)) then begin
-;          Pe0 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
-;                           filename=filename, points=pts, $
-;                           rrange=xrange, zrange=yrange, /equilibrium)
-
-;          n0 = read_field('ne', x, y, t, slices=time, mesh=mesh, $
-;                          filename=filename, points=pts,  $
-;                          rrange=xrange, zrange=yrange, /equilibrium)
-
-;          data = pe1/n0 - pe0*n1/n0^2
-;      endif else data = pe1/n1
-;
-;      symbol = '!8T!De!N!X'
-;      d = dimensions(/temperature, _EXTRA=extra)
-
-   ;===========================================
-   ; new electron temperature (as written by m3dc1 since 1/6/2012)
-   ;===========================================
-   endif else if(strcmp('electron temperature', name, /fold_case) eq 1) then begin
-       
-       te = read_field('te', x, y, t, slices=time, mesh=mesh, $
+      Pe1 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
                        filename=filename, points=pts, linfac=linfac, $
                        rrange=xrange, zrange=yrange, linear=linear, $
-                       complex=complex, phi=phi0)
+                      complex=complex)
 
-       data = te
-       symbol = '!8T!De!N!X'
-       d = dimensions(/temperature, _EXTRA=extra)
+      n1 = read_field('ne', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, linfac=linfac, $
+                      rrange=xrange, zrange=yrange, linear=linear, $
+                      complex=complex)
+
+      if(keyword_set(linear) and (isubeq eq 1) and (time ge 0)) then begin
+          Pe0 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
+                           filename=filename, points=pts, $
+                           rrange=xrange, zrange=yrange, /equilibrium)
+
+          n0 = read_field('ne', x, y, t, slices=time, mesh=mesh, $
+                          filename=filename, points=pts,  $
+                          rrange=xrange, zrange=yrange, /equilibrium)
+
+          data = pe1/n0 - pe0*n1/n0^2
+      endif else data = pe1/n1
+
+      symbol = '!8T!De!N!X'
+      d = dimensions(/temperature, _EXTRA=extra)
 
    ;===========================================
    ; electron density
@@ -3270,111 +3339,27 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        
    endif else begin
-       ; Field is not a composite field defined above;
-       ; try to read it directly from C1.h5 file
+       print, 'composite field ', name, ' not found'
+   endelse
 
-       t = fltarr(trange[1]-trange[0]+1)
-       file_id = h5f_open(filename)
-
-       if(keyword_set(complex)) then begin
-           print, 'Reading complex field.', ntor
-
-           data_r = read_field(name,x,y,t, slices=time, mesh=mesh, $
-                               filename=filename, points=pts, $
-                               rrange=xrange, zrange=yrange, complex=0, $
-                               h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
-                               diff=diff, operation=op, mask=mask, $
-                               /linear, last=last,symbol=symbol, $
-                               units=units, $
-                               equilibrium=equilibrium)
-           data_i = read_field(name+'_i',x,y,t, slices=time, mesh=mesh, $
-                               filename=filename, points=pts, $
-                               rrange=xrange, zrange=yrange, complex=0, $
-                               h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
-                               diff=diff, operation=op, $
-                               /linear, last=last,symbol=symbol, $
-                               units=units, $
-                               equilibrium=equilibrium)
-           data = complex(data_r, data_i)
-
-
-           ; evaluate at phi0
-           ; it is okay to do this here since complex cases are always linear
-           if(n_elements(phi0) ne 0) then begin
-               print, 'evaluating at angle ', phi0, ' with ntor = ', ntor
-               data = data* $
-                 complex(cos(ntor*phi0*!pi/180.), -sin(ntor*phi0*!pi/180.))
-           end
-
-       endif else begin
-           print, ' reading real field'
-           for i=trange[0], trange[1] do begin
-               print, ' reading time slice ', i
+   endelse
+  
+   ; for eqsubtract=1 fields with linear option not set,
+   ; add in base field
+   if((max(trange) ge 0) and $
+      (isubeq eq 1) and (not keyword_set(linear)))  then begin
+       print, ' reading base field', trange
+       base = read_field(name, x, y, t, slices=-1, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange, $
+                         h_symmetry=h_symmetry,v_symmetry=v_symmetry,$
+                         operation=op, mask=mask, $
+                         last=0)
                
-               time_group_id = h5g_open(file_id, time_name(i))
-               mesh = h5_parse(time_group_id, 'mesh', /read_data)   
-               
-               field_group_id = h5g_open(time_group_id, 'fields')
-               
-                                ; check to see if "name" exists
-               nmembers = h5g_get_nmembers(time_group_id, 'fields')
-               match = 0
-               for m=0, nmembers-1 do begin
-                   thisname = h5g_get_member_name(time_group_id,'fields',m)
-                   if(strcmp(thisname, name, /fold_case) eq 1) then begin
-                       name = thisname
-                       match = 1
-                       break
-                   endif
-               end
-               if(match eq 0) then begin
-                   print, "No field named ", name, " at time slice", i
-                   continue
-               end
-               
-               field = h5_parse(field_group_id, name, /read_data)
-               
-               time_id = h5a_open_name(time_group_id, "time")
-               t[i-trange[0]] = h5a_read(time_id)
-               h5a_close, time_id
-               
-               h5g_close, field_group_id
-               h5g_close, time_group_id
-               
-               if(n_elements(phi0) eq 0) then phi_rad=0. $
-               else phi0_rad = phi0*!pi/180.
-               
-               data[i-trange[0],*,*] = $
-                 eval_field(field._data, mesh, points=pts, $
-                            r=x, z=y, op=op, filename=filename, $
-                            xrange=xrange, yrange=yrange, mask=mask, $
-                            phi=phi0_rad)
-               
-               print, max(trange), isubeq, keyword_set(linear)
-           endfor
-                      
-           h5f_close, file_id
-       endelse
-       
-       ; for eqsubtract=1 fields with linear option not set,
-       ; add in base field
-       if((max(trange) ge 0) and $
-          (isubeq eq 1) and (not keyword_set(linear)))  then begin
-           print, ' reading base field', trange
-           base = read_field(name, x, y, t, slices=-1, mesh=mesh, $
-                             filename=filename, points=pts, $
-                             rrange=xrange, zrange=yrange, $
-                             h_symmetry=h_symmetry,v_symmetry=v_symmetry,$
-                             operation=op, mask=mask, $
-                             last=0)
-               
-           if(n_elements(linfac) eq 0) then linfac=1.
-           for i=trange[0], trange[1] do begin              
-               data[i-trange[0],*,*] = linfac*data[i-trange[0],*,*] + base
-           end
+       if(n_elements(linfac) eq 0) then linfac=1.
+       for i=trange[0], trange[1] do begin              
+           data[i-trange[0],*,*] = linfac*data[i-trange[0],*,*] + base
        end
-
-       symbol = translate(name, units=d, itor=itor)
    end
 
    if(n_elements(h_symmetry) eq 1) then begin
@@ -6358,7 +6343,7 @@ pro test_mesh, filename, nplanes=nplanes, _EXTRA=extra
 end
 
 pro plot_perturbed_surface, q, scalefac=scalefac, points=pts, $
-                            filename=filename, _EXTRA=extra
+                            filename=filename, slice=slice, _EXTRA=extra
    if(n_elements(scalefac) eq 0) then scalefac=1.
    if(n_elements(scalefac) eq 1) then $
      scalefac=replicate(scalefac, n_elements(q))
@@ -6370,11 +6355,11 @@ pro plot_perturbed_surface, q, scalefac=scalefac, points=pts, $
    psi0_z = read_field('psi',x,z,t, filename=filename, /equilibrium,$
                        points=pts, _EXTRA=extra, op=3)
    zi = read_field('displacement',x,z,t,filename=filename, /linear, $
-                   points=pts, _EXTRA=extra)
+                   points=pts, slice=slice,_EXTRA=extra)
    
    if(n_elements(bins) eq 0) then bins = n_elements(x)
    fvals = flux_at_q(q, points=pts, filename=filename, $
-                     slice=time, normalized_flux=norm, bins=bins)
+                     slice=slice, normalized_flux=norm, bins=bins)
    print, fvals
 
    xhat = psi0_r/sqrt(psi0_r^2 + psi0_z^2)
