@@ -1301,6 +1301,8 @@ subroutine unsplit_step(calc_matrices)
   phiold_vec = phi_vec
   phi_vec = b1_phi
 
+  call get_temperatures
+
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done solving matrix equation."
 end subroutine unsplit_step
 

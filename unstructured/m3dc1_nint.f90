@@ -73,7 +73,7 @@ module m3dc1_nint
   vectype, dimension(MAX_PTS) :: temp79a, temp79b, temp79c, &
        temp79d, temp79e, temp79f
   vectype, dimension(MAX_PTS, OP_NUM) :: sz79
-  vectype, dimension(MAX_PTS, OP_NUM) :: tm79, ni79, b2i79
+  vectype, dimension(MAX_PTS, OP_NUM) :: tm79, ni79, nei79, b2i79
   vectype, dimension(MAX_PTS, OP_NUM) :: ps179, bz179, pe179, n179, & 
        ph179, vz179, ch179, p179, ne179
   vectype, dimension(MAX_PTS, OP_NUM) :: pst79, bzt79, pet79, nt79, &
@@ -621,7 +621,8 @@ contains
 #ifdef USECOMPLEX
      ni79(:,OP_DP :OP_GSP ) = 0.
      ni79(:,OP_DPP:OP_GSPP) = 0.
-#endif    
+#endif   
+     nei79 = ni79/zeff
   endif
   
   ! J

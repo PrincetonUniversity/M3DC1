@@ -35,6 +35,76 @@ subroutine destroy_auxiliary_fields
   call destroy_field(chord_mask)
 end subroutine destroy_auxiliary_fields
   
+subroutine calculate_temperatures(ilin, te, ti)
+  use math
+  use basic
+  use m3dc1_nint
+  use newvar_mod
+  use diagnostics
+  use metricterms_new
+
+  implicit none
+
+  type(field_type) :: te, ti
+  integer, intent(in) :: ilin
+
+  integer :: def_fields
+  integer :: numelms
+  integer :: i, itri
+
+  vectype, dimension(dofs_per_element) :: dofs
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating temperatures'
+
+  te = 0.
+  ti = 0.
+
+  ! specify which primitive fields are to be evalulated
+  def_fields = FIELD_N + FIELD_NI + FIELD_P + FIELD_PE
+
+  numelms = local_elements()
+  do itri=1,numelms
+     call define_element_quadrature(itri, int_pts_aux, 5)
+     call define_fields(itri, def_fields, 1, 0)
+
+     ! electron temperature
+     if(ilin.eq.1) then
+        do i=1, dofs_per_element
+           dofs(i) = int3(mu79(:,OP_1,i),pe179(:,OP_1),nei79(:,OP_1)) &
+                - int5(mu79(:,OP_1,i),ne179(:,OP_1),pe079(:,OP_1),nei79(:,OP_1),nei79(:,OP_1))
+        end do
+     else
+        do i=1, dofs_per_element
+           dofs(i) = int3(mu79(:,OP_1,i),pet79(:,OP_1),nei79(:,OP_1))
+        end do
+     end if
+     call vector_insert_block(te%vec,itri,1,dofs,VEC_ADD)
+
+     ! ion temperature
+     if(ilin.eq.1) then 
+        temp79a = p179(:,OP_1) - pe179(:,OP_1)
+        temp79b = p079(:,OP_1) - pe079(:,OP_1)
+        do i=1, dofs_per_element
+           dofs(i) = int3(mu79(:,OP_1,i),temp79a,ni79(:,OP_1)) &
+                - int5(mu79(:,OP_1,i),n179(:,OP_1),temp79b,ni79(:,OP_1),ni79(:,OP_1))
+        end do
+     else
+        temp79a = pt79(:,OP_1) - pet79(:,OP_1)
+        do i=1, dofs_per_element
+           dofs(i) = int3(mu79(:,OP_1,i),temp79a,nei79(:,OP_1))
+        end do
+     end if
+     call vector_insert_block(ti%vec,itri,1,dofs,VEC_ADD)
+  end do
+
+  call newvar_solve(te%vec, mass_mat_lhs)
+  call newvar_solve(ti%vec, mass_mat_lhs)
+
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, ' Done calculating temperatures'
+  
+  end subroutine calculate_temperatures
+
 subroutine calculate_auxiliary_fields(ilin)
   use math
   use basic
@@ -53,7 +123,7 @@ subroutine calculate_auxiliary_fields(ilin)
 
   vectype, dimension(dofs_per_element) :: dofs
 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating auxiliary fields'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating diagnostic fields'
 
   bdotgradp = 0.
   bdotgradt = 0.
@@ -223,8 +293,9 @@ subroutine calculate_auxiliary_fields(ilin)
      call newvar_solve(chord_mask%vec, mass_mat_lhs)
   end if
 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Done Calculating auxiliary fields'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Done calculating diagnostic fields'
   
   end subroutine calculate_auxiliary_fields
+
 
 end module auxiliary_fields

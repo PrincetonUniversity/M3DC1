@@ -314,6 +314,12 @@ subroutine define_profiles
      xvals = xvals / xvals(nvals) ! normalize rho
      call rho_to_psi(nvals, xvals, xvals)
 
+  case(10)
+     ! Read from Corsica file (keV vs Psi)
+     nvals = 0
+     call read_ascii_column('corsica', xvals, nvals, skip=26, icol=4)
+     call read_ascii_column('corsica', yvals, nvals, skip=26, icol=6)
+     yvals = yvals * 1.6022e-9 / (b0_norm**2/(4.*pi*n0_norm))
   case default
      
   end select
@@ -329,10 +335,11 @@ subroutine define_profiles
 
   ! If Te is specified but pe equation is not included
   ! then define density based on p and Te
-  if(ipres.eq.0 .and. allocated(te_spline%y)) then
+  if(ipres.eq.0 .and. allocated(te_spline%y) .and. eqsubtract.eq.0) then
      if(iread_ne.ne.0) then
         if(myrank.eq.0) &
-             print *, 'ERROR: cannot read both ne and Te profiles with ipres=0'
+             print *, 'ERROR: cannot read both ne and Te profiles with&
+        \ ipres=0 and eqsubtract=0'
         call safestop(17)
      end if
 
@@ -369,6 +376,13 @@ subroutine define_profiles
         yvals = yvals / n0_norm / zeff
         xvals = xvals / xvals(nvals) ! normalize rho
         call rho_to_psi(nvals, xvals, xvals)
+
+     case(10)
+        ! Read in corsica (10^20 m^-3 vs Psi)
+        nvals = 0
+        call read_ascii_column('corsica', xvals, nvals, skip=26, icol=4)
+        call read_ascii_column('corsica', yvals, nvals, skip=26, icol=8)
+        yvals = yvals * 1e14 / n0_norm / zeff
         
      case default
         call density_profile
