@@ -182,6 +182,25 @@ contains
           print *, "create_mat time_step o9_mat", o9_mat%imatrix
 #endif 
        endif
+       
+!      if(itemp.eq.1) then
+!         call set_matrix_index(s11_mat, s11_mat_index)
+!         call set_matrix_index(d11_mat, d11_mat_index)
+!         call create_mat(s11_mat, vecsize_n, vecsize_n, icomplex, .true.)
+!         call create_mat(d11_mat, vecsize_n, vecsize_n, icomplex, .false.)
+#ifdef CJ_MATRIX_DUMP
+!         print *, "create_mat time_step s11_mat", s11_mat%imatrix
+!         print *, "create_mat time_step d11_mat", d11_mat%imatrix
+#endif 
+!         call set_matrix_index(s12_mat, s12_mat_index)
+!         call set_matrix_index(d12_mat, d12_mat_index)
+!         call create_mat(s12_mat, vecsize_n, vecsize_n, icomplex, .true.)
+!         call create_mat(d12_mat, vecsize_n, vecsize_n, icomplex, .false.)
+#ifdef CJ_MATRIX_DUMP
+!         print *, "create_mat time_step s12_mat", s12_mat%imatrix
+!         print *, "create_mat time_step d12_mat", d12_mat%imatrix
+#endif 
+!      endif
     end select
 
     initialized = .true.
@@ -226,6 +245,7 @@ contains
           call destroy_mat(r8_mat)
           call destroy_mat(q8_mat)
        endif
+
        if(ipres.eq.1) then
           call destroy_mat(s9_mat)
           call destroy_mat(d9_mat)
@@ -233,6 +253,13 @@ contains
           call destroy_mat(q9_mat)
           call destroy_mat(o9_mat)
        endif
+       
+!      if(itemp.eq.1) then
+!         call destroy_mat(s11_mat)
+!         call destroy_mat(d11_mat)
+!         call destroy_mat(s12_mat)
+!         call destroy_mat(d12_mat)
+!      endif
     end select
   end subroutine finalize_timestep
 
@@ -429,7 +456,7 @@ subroutine onestep
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
      ! in linear case, eliminate second-order terms from matrix
-     call ludefall(1-istatic, idens, ipres, 1-iestatic)
+     call ludefall(1-istatic, idens, ipres, itemp, 1-iestatic)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_ludefall = t_ludefall + tend - tstart
@@ -585,7 +612,7 @@ subroutine split_step(calc_matrices)
 
   integer, intent(in) :: calc_matrices
   real :: tstart, tend, t_bound
-  integer :: jer
+  integer :: jer, i, numnodes
   type(vector_type) :: temp, temp2
 
   type(field_type) :: phip_1, phip_2, phip_3, temp_field_1, temp_field_2
@@ -793,7 +820,7 @@ subroutine split_step(calc_matrices)
         call export_time_advance_vectors
         call define_transport_coefficients
      end if
-  endif
+  endif    ! on idens=1
      
   !
   ! Advance Pressure
@@ -986,6 +1013,7 @@ subroutine split_step(calc_matrices)
         ! temporarily advance fields to new values
         b2_phi = phi_vec
         phi_vec = b1_phi
+!
         call export_time_advance_vectors
         ! redefine transport coefficients with new den/pe values
         call lcfs(psi_field(1))
@@ -996,7 +1024,7 @@ subroutine split_step(calc_matrices)
         ! recalculate field advance matrix
         ! (advanced velocity variables will be used in defining matrix)
         if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-        call ludefall(0, 0, 0, 1)
+        call ludefall(0, 0, 0, 0, 1)
         if(myrank.eq.0 .and. itimer.eq.1) then
            call second(tend)
            t_ludefall = t_ludefall + tend - tstart
@@ -1022,7 +1050,7 @@ subroutine split_step(calc_matrices)
         call matvecmult(d2_mat,phi_vec,b2_phi)
         call add(b1_phi, b2_phi)
       
-        ! Inculde density terms
+        ! Include density terms
         if(idens.eq.1) then
            call matvecmult(r42_mat,den_vec,b2_phi)
            call add(b1_phi, b2_phi)
@@ -1092,13 +1120,11 @@ subroutine split_step(calc_matrices)
 
      phiold_vec = phi_vec
      phi_vec = b1_phi
-!
-!......compute the electron and ion temperatures from the pressures and density
-      call get_temperatures
 
      ! apply smoothing operators
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~
      call smooth_fields(psi_v) 
+     call get_temperatures
   end if       !...on iestatic
 
 
@@ -1224,7 +1250,7 @@ subroutine unsplit_step(calc_matrices)
      ! recalculate field advance matrix
      ! (advanced velocity variables will be used in defining matrix)
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     call ludefall(1-istatic, idens, ipres, 1-iestatic)
+     call ludefall(1-istatic, idens, ipres, itemp, 1-iestatic)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_ludefall = t_ludefall + tend - tstart
@@ -1301,7 +1327,6 @@ subroutine unsplit_step(calc_matrices)
   phiold_vec = phi_vec
   phi_vec = b1_phi
 
-  call get_temperatures
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done solving matrix equation."
 end subroutine unsplit_step
@@ -1424,6 +1449,22 @@ subroutine get_den_mask(itri, imask)
   
   call get_boundary_mask(itri, ibound, imask)
 end subroutine get_den_mask
+
+subroutine get_temp_mask(itri, imask)
+  use element
+  use basic
+  use boundary_conditions
+  implicit none
+  integer, intent(in) :: itri
+  integer, intent(out), dimension(dofs_per_element) :: imask
+  integer :: ibound
+
+  ibound = 0
+  if(inograd_t.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
+  if(iconst_t.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
+  
+  call get_boundary_mask(itri, ibound, imask)
+end subroutine get_temp_mask
 
 subroutine get_pres_mask(itri, imask)
   use element
@@ -1810,6 +1851,91 @@ subroutine boundary_den(rhs, mat)
   end do
 
 end subroutine boundary_den
+
+!=======================================================
+! boundary_te
+! ~~~~~~~~~~~~
+!
+! sets boundary conditions for electron temperature
+!=======================================================
+subroutine boundary_te(rhs, mat)
+  use basic
+  use arrays
+  use matrix_mod
+  use boundary_conditions
+  implicit none
+  
+  type(vector_type) :: rhs
+  type(matrix_type), optional :: mat
+  
+  integer :: i, izone, izonedim, numnodes
+  real :: normal(2), curv, x,z
+  logical :: is_boundary
+  vectype, dimension(dofs_per_node) :: temp
+
+  integer :: i_n
+
+  if(iper.eq.1 .and. jper.eq.1) return
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_te called"
+
+  numnodes = owned_nodes()
+  do i=1, numnodes
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+     if(.not.is_boundary) cycle
+
+     i_n = node_index(te_v, i)
+
+     if(inograd_t.eq.1) then
+        temp = 0.
+        call set_normal_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
+     end if
+     if(iconst_t.eq.1) then
+        call get_node_data(te_field(1), i, temp)
+        call set_dirichlet_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
+     end if
+
+  end do
+
+end subroutine boundary_te
+subroutine boundary_ti(rhs, mat)
+  use basic
+  use arrays
+  use matrix_mod
+  use boundary_conditions
+  implicit none
+  
+  type(vector_type) :: rhs
+  type(matrix_type), optional :: mat
+  
+  integer :: i, izone, izonedim, numnodes
+  real :: normal(2), curv, x,z
+  logical :: is_boundary
+  vectype, dimension(dofs_per_node) :: temp
+
+  integer :: i_n
+
+  if(iper.eq.1 .and. jper.eq.1) return
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_ti called"
+
+  numnodes = owned_nodes()
+  do i=1, numnodes
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+     if(.not.is_boundary) cycle
+
+     i_n = node_index(ti_v, i)
+
+     if(inograd_t.eq.1) then
+        temp = 0.
+        call set_normal_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
+     end if
+     if(iconst_t.eq.1) then
+        call get_node_data(ti_field(1), i, temp)
+        call set_dirichlet_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
+     end if
+
+  end do
+
+end subroutine boundary_ti
 
 
 !=======================================================
@@ -2527,22 +2653,27 @@ subroutine calc_lin_electron_temperature(te, pe0, n0, pe1, n1)
 
      te(1) = (pe0(1)+pe1(1))/(n0(1)+n1(1))  &
              -pe0(1)/n0(1)
-     te(2) = (pe0(2)+pe1(2))/(n0(1)+n1(1)) - (pe0(1)+pe1(1))*(n0(2)+n1(2))/(n0(1)+n1(1))**2  &
+     te(2) = (pe0(2)+pe1(2))/(n0(1)+n1(1)) &
+           - (pe0(1)+pe1(1))*(n0(2)+n1(2))/(n0(1)+n1(1))**2  &
              -pe0(2)/n0(1) + pe0(1)*n0(2)/n0(1)**2
-     te(3) = (pe0(3)+pe1(3))/(n0(1)+n1(1)) - (pe0(1)+pe1(1))*(n0(3)+n1(3))/(n0(1)+n1(1))**2  &
+     te(3) = (pe0(3)+pe1(3))/(n0(1)+n1(1)) &
+           - (pe0(1)+pe1(1))*(n0(3)+n1(3))/(n0(1)+n1(1))**2  &
              -pe0(3)/n0(1) + pe0(1)*n0(3)/n0(1)**2
-     te(4) = (pe0(4)+pe1(4))/(n0(1)+n1(1)) - 2.*(pe0(2)+pe1(2))*(n0(2)+n1(2))/(n0(1)+n1(1))**2    &
+     te(4) = (pe0(4)+pe1(4))/(n0(1)+n1(1)) &
+        - 2.*(pe0(2)+pe1(2))*(n0(2)+n1(2))/(n0(1)+n1(1))**2    &
            - (pe0(1)+pe1(1))*(n0(4)+n1(4))/(n0(1)+n1(1))**2  &
            + 2*(pe0(1)+pe1(1))*(n0(2)+n1(2))*(n0(2)+n1(2))/(n0(1)+n1(1))**3   &
             - pe0(4)/n0(1) + 2.*pe0(2)*n0(2)/n0(1)**2                         &
            +  pe0(1)*n0(4)/n0(1)**2 - 2*pe0(1)*n0(2)*n0(2)/n0(1)**3
-     te(5) = (pe0(5)+pe1(5))/(n0(1)+n1(1)) - (pe0(3)+pe1(3))*(n0(2)+n1(2))/(n0(1)+n1(1))**2  &
+     te(5) = (pe0(5)+pe1(5))/(n0(1)+n1(1)) &
+           - (pe0(3)+pe1(3))*(n0(2)+n1(2))/(n0(1)+n1(1))**2  &
            - (pe0(2)+pe1(2))*(n0(3)+n1(3))/(n0(1)+n1(1))**2  &
            - (pe0(1)+pe1(1))*(n0(5)+n1(5))/(n0(1)+n1(1))**2 &
            + 2*(pe0(1)+pe1(1))*(n0(3)+n1(3))*(n0(2)+n1(2))/(n0(1)+n1(1))**3  &
             - pe0(5)/n0(1) + pe0(3)*n0(2)/n0(1)**2  + pe0(2)*n0(3)/n0(1)**2  &
            +  pe0(1)*n0(5)/n0(1)**2 - 2*pe0(1)*n0(3)*n0(2)/n0(1)**3
-     te(6) = (pe0(6)+pe1(6))/(n0(1)+n1(1)) - 2.*(pe0(3)+pe1(3))*(n0(3)+n1(3))/(n0(1)+n1(1))**2  &
+     te(6) = (pe0(6)+pe1(6))/(n0(1)+n1(1)) &
+        - 2.*(pe0(3)+pe1(3))*(n0(3)+n1(3))/(n0(1)+n1(1))**2  &
            - (pe0(1)+pe1(1))*(n0(6)+n1(6))/(n0(1)+n1(1))**2   &
            + 2*(pe0(1)+pe1(1))*(n0(3)+n1(3))*(n0(3)+n1(3))/(n0(1)+n1(1))**3   &
            -  pe0(6)/n0(1) + 2.*pe0(3)*n0(3)/n0(1)**2                         &
@@ -2569,21 +2700,26 @@ subroutine calc_lin_ion_temperature(ti, pres0, pe0, n0, pres1, pe1, n1)
 
      ti(1) = (pion0(1)+pion1(1))/(n0(1)+n1(1))  &
            -pion0(1)/n0(1)
-     ti(2) = (pion0(2)+pion1(2))/(n0(1)+n1(1)) - (pion0(1)+pion1(1))*(n0(2)+n1(2))/(n0(1)+n1(1))**2   &
+     ti(2) = (pion0(2)+pion1(2))/(n0(1)+n1(1)) &
+           - (pion0(1)+pion1(1))*(n0(2)+n1(2))/(n0(1)+n1(1))**2   &
             -pion0(2)/n0(1) + pion0(1)*n0(2)/n0(1)**2
-     ti(3) = (pion0(3)+pion1(3))/(n0(1)+n1(1)) - (pion0(1)+pion1(1))*(n0(3)+n1(3))/(n0(1)+n1(1))**2   &
+     ti(3) = (pion0(3)+pion1(3))/(n0(1)+n1(1)) &
+           - (pion0(1)+pion1(1))*(n0(3)+n1(3))/(n0(1)+n1(1))**2   &
              -pion0(3)/n0(1) + pion0(1)*n0(3)/n0(1)**2
-     ti(4) = (pion0(4)+pion1(4))/(n0(1)+n1(1)) - 2.*(pion0(2)+pion1(2))*(n0(2)+n1(2))/(n0(1)+n1(1))**2   &
+     ti(4) = (pion0(4)+pion1(4))/(n0(1)+n1(1)) &
+           - 2.*(pion0(2)+pion1(2))*(n0(2)+n1(2))/(n0(1)+n1(1))**2   &
            - (pion0(1)+pion1(1))*(n0(4)+n1(4))/(n0(1)+n1(1))**2 &
            + 2*(pion0(1)+pion1(1))*(n0(2)+n1(2))*(n0(2)+n1(2))/(n0(1)+n1(1))**3   &
            - pion0(4)/n0(1) + 2.*pion0(2)*n0(2)/n0(1)**2       &              
            + pion0(1)*n0(4)/n0(1)**2 - 2*pion0(1)*n0(2)*n0(2)/n0(1)**3
 
-     ti(5) = (pion0(5)+pion1(5))/(n0(1)+n1(1)) - (pion0(3)+pion1(3))*(n0(2)+n1(2))/(n0(1)+n1(1))**2  &
+     ti(5) = (pion0(5)+pion1(5))/(n0(1)+n1(1)) &
+           - (pion0(3)+pion1(3))*(n0(2)+n1(2))/(n0(1)+n1(1))**2  &
            - (pion0(2)+pion1(2))*(n0(3)+n1(3))/(n0(1)+n1(1))**2  &
            - (pion0(1)+pion1(1))*(n0(5)+n1(5))/(n0(1)+n1(1))**2  &
          + 2*(pion0(1)+pion1(1))*(n0(3)+n1(3))*(n0(2)+n1(2))/(n0(1)+n1(1))**3   &
-            - pion0(5)/n0(1) + pion0(3)*n0(2)/n0(1)**2  + pion0(2)*n0(3)/n0(1)**2  &
+            - pion0(5)/n0(1) + pion0(3)*n0(2)/n0(1)**2  &
+            + pion0(2)*n0(3)/n0(1)**2  &
             + pion0(1)*n0(5)/n0(1)**2 - 2*pion0(1)*n0(3)*n0(2)/n0(1)**3
 
      ti(6) = (pion0(6)+pion1(6))/(n0(1)+n1(1)) &
@@ -2596,4 +2732,3 @@ subroutine calc_lin_ion_temperature(ti, pres0, pe0, n0, pres1, pe1, n1)
      return
 
 end subroutine calc_lin_ion_temperature
-
