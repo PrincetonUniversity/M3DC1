@@ -506,8 +506,8 @@ subroutine wrrestart_adios
   deallocate(tmp_field_vec, tmp_field0_vec, tmp_bf_field_1, tmp_bf_field_0, &
        tmp_psi_ext, tmp_bz_ext, tmp_bf_ext)
 
-#endif
   ifirstrs = 0
+#endif
 end subroutine wrrestart_adios
 
 !============================================================

@@ -2082,8 +2082,9 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
   vectype, dimension(MAX_PTS, OP_NUM) :: hp, pp079, pp179
   vectype :: temp
-  real :: thimpb, thimp_bf, nv, h
+  real :: thimpb, thimp_bf, nv, h, coefeq
   integer :: pp_g
+  coefeq = 5780.*n0_norm     ! 5780 = 3 *mu_0*e^2*[1.e20}/M_i   MKS units
 
   hp = hypp*sz79
 
@@ -2201,6 +2202,20 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      end if
   endif
 
+  ! Equipartition
+  ! ~~~~~~~~~~~
+!   ==>  Nate needs to look at this.   I don't think the hooks are in for ssterm(p_g) and ddterm(p_g) to
+!                                      multiply the total pressure vector and the new and old times.
+
+! if(.not. total_pressure .and. ipres.eq.1 .and. numvar.ge.3) then
+!    if(linear.eq.0 .and. eqsubtract.eq.0) then
+!       temp = dt*coefeq*b3peeta(trial,lin,eta79)
+!       ssterm(pp_g) = ssterm(pp_g) + 2.*thimpf*temp
+!       ddterm(pp_g) = ddterm(pp_g) - 2.*(1.-thimpf)*temp
+!       ssterm(p_g)  = ssterm(p_g)  -   thimpf*temp
+!       ddterm(p_g)  = ddterm(p_g)  +    (1.-thimpf)*temp
+!    endif
+! endif
 
   ! Pressure Advection
   ! ~~~~~~~~~~~~~~~~~~
@@ -2397,159 +2412,164 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   end if
 
 
-  ! Perpendicular Heat Flux
-  ! ~~~~~~~~~~~~~~~~~~~~~~~
-  temp = b3pedkappa(trial,lin,ni79,kap79,hp)
-  ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
-  ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
-  if(eqsubtract.eq.1) then
-     if(idens.eq.1) then
-        q_ni(1) = q_ni(1) + dt* &
-             (b3pedkappa(trial,pp079,lin,kap79,hp))
+! if(itemp.eq.0) then
+     ! Perpendicular Heat Flux
+     ! ~~~~~~~~~~~~~~~~~~~~~~~
+     temp = b3pedkappa(trial,lin,ni79,kap79,hp)
+     ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
+     ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
+     if(eqsubtract.eq.1) then
+        if(idens.eq.1) then
+           q_ni(1) = q_ni(1) + dt* &
+                (b3pedkappa(trial,pp079,lin,kap79,hp))
+        end if
      end if
-  end if
+! endif
 
   ! Parallel Heat Flux
   ! ~~~~~~~~~~~~~~~~~~
   if(kappar.ne.0.) then
         
     if(linear.eq.0) then
+!
+!....note:  the metric calls have been changed from p1.... to te.... and ,ni79 has
+!           been removed from the calls due to numerical instability for linear.eq.0  (1/25/2012 scj)
 
-      if(itemp.eq.0) then
-          temp = p1psipsikappar(trial,pstx79,pstx79,lin,ni79,b2i79,kar79) &
-               + p1psibkappar  (trial,pstx79,bztx79,lin,ni79,b2i79,kar79) &
-               + p1bbkappar    (trial,bztx79,bztx79,lin,ni79,b2i79,kar79)
+!     if(itemp.eq.0) then
+          temp = tepsipsikappar(trial,pstx79,pstx79,lin,b2i79,kar79) &
+               + tepsibkappar  (trial,pstx79,bztx79,lin,b2i79,kar79) &
+               + tebbkappar    (trial,bztx79,bztx79,lin,b2i79,kar79)
           ssterm(pp_g) = ssterm(pp_g) -          thimp     *dt*temp
           ddterm(pp_g) = ddterm(pp_g) + (1.    - thimp*bdf)*dt*temp
           if(i3d.eq.1 .and. numvar.ge.2) then
-             temp = p1psifkappar(trial,pstx79,bftx79,lin,ni79,b2i79,kar79) &
-                  + p1bfkappar  (trial,bztx79,bftx79,lin,ni79,b2i79,kar79) &
-                  + p1ffkappar  (trial,bftx79,bftx79,lin,ni79,b2i79,kar79)
+             temp = tepsifkappar(trial,pstx79,bftx79,lin,b2i79,kar79) &
+                  + tebfkappar  (trial,bztx79,bftx79,lin,b2i79,kar79) &
+                  + teffkappar  (trial,bftx79,bftx79,lin,b2i79,kar79)
              ssterm(pp_g) = ssterm(pp_g) -          thimp     *dt*temp
              ddterm(pp_g) = ddterm(pp_g) + (1.    - thimp*bdf)*dt*temp
           endif
-      endif
+!     endif
 
        if(eqsubtract.eq.1) then
-          temp = p1psipsikappar(trial,lin,ps179,pp079,ni79,b2i79,kar79) &
-               + p1psipsikappar(trial,ps179,lin,pp079,ni79,b2i79,kar79) &
-               + p1psibkappar  (trial,lin,bz179,pp079,ni79,b2i79,kar79)
+          temp = tepsipsikappar(trial,lin,ps179,pp079,b2i79,kar79) &
+               + tepsipsikappar(trial,ps179,lin,pp079,b2i79,kar79) &
+               + tepsibkappar  (trial,lin,bz179,pp079,b2i79,kar79)
           ssterm(psi_g) = ssterm(psi_g) -          thimp     *dt*temp
           ddterm(psi_g) = ddterm(psi_g) + (1. - .5*thimp*bdf)*dt*temp
 
-          temp = p1psibkappar  (trial,ps179,lin,pp079,ni79,b2i79,kar79) &
-               + p1bbkappar    (trial,lin,bz179,pp079,ni79,b2i79,kar79) &
-               + p1bbkappar    (trial,bz179,lin,pp079,ni79,b2i79,kar79)
+          temp = tepsibkappar  (trial,ps179,lin,pp079,b2i79,kar79) &
+               + tebbkappar    (trial,lin,bz179,pp079,b2i79,kar79) &
+               + tebbkappar    (trial,bz179,lin,pp079,b2i79,kar79)
           ssterm(bz_g) = ssterm(bz_g) -          thimp     *dt*temp
           ddterm(bz_g) = ddterm(bz_g) + (1. - .5*thimp*bdf)*dt*temp
 
-          temp = p1psipsikappar(trial,lin,ps079,pp079,ni79,b2i79,kar79) &
-               + p1psipsikappar(trial,ps079,lin,pp079,ni79,b2i79,kar79) &
-               + p1psibkappar  (trial,lin,bz079,pp079,ni79,b2i79,kar79)
+          temp = tepsipsikappar(trial,lin,ps079,pp079,b2i79,kar79) &
+               + tepsipsikappar(trial,ps079,lin,pp079,b2i79,kar79) &
+               + tepsibkappar  (trial,lin,bz079,pp079,b2i79,kar79)
           ssterm(psi_g) = ssterm(psi_g) -       thimp     *dt*temp
           ddterm(psi_g) = ddterm(psi_g) + (1. - thimp*bdf)*dt*temp
 
-          temp = p1psibkappar  (trial,ps079,lin,pp079,ni79,b2i79,kar79) &
-               + p1bbkappar    (trial,lin,bz079,pp079,ni79,b2i79,kar79) &
-               + p1bbkappar    (trial,bz079,lin,pp079,ni79,b2i79,kar79)
+          temp = tepsibkappar  (trial,ps079,lin,pp079,b2i79,kar79) &
+               + tebbkappar    (trial,lin,bz079,pp079,b2i79,kar79) &
+               + tebbkappar    (trial,bz079,lin,pp079,b2i79,kar79)
           ssterm(bz_g) = ssterm(bz_g) -       thimp     *dt*temp
           ddterm(bz_g) = ddterm(bz_g) + (1. - thimp*bdf)*dt*temp
         
           if(i3d.eq.1 .and. numvar.ge.2) then
-             temp = p1psifkappar(trial,lin,bf179,pp079,ni79,b2i79,kar79)
+             temp = tepsifkappar(trial,lin,bf179,pp079,b2i79,kar79)
              ssterm(psi_g) = ssterm(psi_g) -          thimp     *dt*temp
              ddterm(psi_g) = ddterm(psi_g) + (1. - .5*thimp*bdf)*dt*temp
 
-             temp = p1bfkappar(trial,lin,bf179,pp079,ni79,b2i79,kar79)
+             temp = tebfkappar(trial,lin,bf179,pp079,b2i79,kar79)
              ssterm(bz_g) = ssterm(bz_g) -          thimp     *dt*temp
              ddterm(bz_g) = ddterm(bz_g) + (1. - .5*thimp*bdf)*dt*temp
 
-             temp = p1ffkappar(trial,lin,bf179,pp079,ni79,b2i79,kar79) &
-                  + p1ffkappar(trial,bf179,lin,pp079,ni79,b2i79,kar79)
+             temp = teffkappar(trial,lin,bf179,pp079,b2i79,kar79) &
+                  + teffkappar(trial,bf179,lin,pp079,b2i79,kar79)
              r_bf = r_bf -          thimp_bf     *dt*temp
              q_bf = q_bf + (1. - .5*thimp_bf*bdf)*dt*temp
 
-             temp = p1psifkappar(trial,lin,bf079,pp079,ni79,b2i79,kar79)
+             temp = tepsifkappar(trial,lin,bf079,pp079,b2i79,kar79)
              ssterm(psi_g) = ssterm(psi_g) -       thimp     *dt*temp
              ddterm(psi_g) = ddterm(psi_g) + (1. - thimp*bdf)*dt*temp
              
-             temp = p1bfkappar(trial,lin,bf079,pp079,ni79,b2i79,kar79)
+             temp = tebfkappar(trial,lin,bf079,pp079,b2i79,kar79)
              ssterm(bz_g) = ssterm(bz_g) -       thimp     *dt*temp
              ddterm(bz_g) = ddterm(bz_g) + (1. - thimp*bdf)*dt*temp
 
-             temp = p1ffkappar(trial,lin,bf079,pp079,ni79,b2i79,kar79) &
-                  + p1ffkappar(trial,bf079,lin,pp079,ni79,b2i79,kar79)
+             temp = teffkappar(trial,lin,bf079,pp079,b2i79,kar79) &
+                  + teffkappar(trial,bf079,lin,pp079,b2i79,kar79)
              r_bf = r_bf -       thimp_bf     *dt*temp
              q_bf = q_bf + (1. - thimp_bf*bdf)*dt*temp
           end if
        endif
 
        if(use_external_fields) then
-          temp = p1psipsikappar(trial,lin,psx79,pp079,ni79,b2i79,kar79) &
-               + p1psipsikappar(trial,psx79,lin,pp079,ni79,b2i79,kar79) &
-               + p1psibkappar  (trial,lin,bzx79,pp079,ni79,b2i79,kar79)
+          temp = tepsipsikappar(trial,lin,psx79,pp079,b2i79,kar79) &
+               + tepsipsikappar(trial,psx79,lin,pp079,b2i79,kar79) &
+               + tepsibkappar  (trial,lin,bzx79,pp079,b2i79,kar79)
           ssterm(psi_g) = ssterm(psi_g) -       thimp     *dt*temp
           ddterm(psi_g) = ddterm(psi_g) + (1. - thimp*bdf)*dt*temp
 
-          temp = p1psibkappar  (trial,psx79,lin,pp079,ni79,b2i79,kar79) &
-               + p1bbkappar    (trial,lin,bzx79,pp079,ni79,b2i79,kar79) &
-               + p1bbkappar    (trial,bzx79,lin,pp079,ni79,b2i79,kar79)
+          temp = tepsibkappar  (trial,psx79,lin,pp079,b2i79,kar79) &
+               + tebbkappar    (trial,lin,bzx79,pp079,b2i79,kar79) &
+               + tebbkappar    (trial,bzx79,lin,pp079,b2i79,kar79)
           ssterm(bz_g) = ssterm(bz_g) -       thimp     *dt*temp
           ddterm(bz_g) = ddterm(bz_g) + (1. - thimp*bdf)*dt*temp
 
-          temp = p1psifkappar(trial,lin,bfx79,pp079,ni79,b2i79,kar79)
+          temp = tepsifkappar(trial,lin,bfx79,pp079,b2i79,kar79)
           ssterm(psi_g) = ssterm(psi_g) -       thimp     *dt*temp
           ddterm(psi_g) = ddterm(psi_g) + (1. - thimp*bdf)*dt*temp
              
-          temp = p1bfkappar(trial,lin,bfx79,pp079,ni79,b2i79,kar79)
+          temp = tebfkappar(trial,lin,bfx79,pp079,b2i79,kar79)
           ssterm(bz_g) = ssterm(bz_g) -       thimp     *dt*temp
           ddterm(bz_g) = ddterm(bz_g) + (1. - thimp*bdf)*dt*temp
 
-          temp = p1ffkappar(trial,lin,bfx79,pp079,ni79,b2i79,kar79) &
-               + p1ffkappar(trial,bfx79,lin,pp079,ni79,b2i79,kar79)
+          temp = teffkappar(trial,lin,bfx79,pp079,b2i79,kar79) &
+               + teffkappar(trial,bfx79,lin,pp079,b2i79,kar79)
           r_bf = r_bf -       thimp_bf     *dt*temp
           q_bf = q_bf + (1. - thimp_bf*bdf)*dt*temp
        end if
 
-     else  ! on linear.eq.0 .and. eqsubtract.eq.0
-        ! Assumes no contribution from equilibrium f
+    else  ! on linear.eq.0
+       ! Assumes no contribution from equilibrium f
 
-        temp = p1psipsipnkappar(trial,lin,ps079,pp079,n079,ieq_bdotgradt) &
-             + p1psipsipnkappar(trial,ps079,lin,pp079,n079,1) &
-             + p1psibpnkappar  (trial,lin,bz079,pp079,n079,ieq_bdotgradt,1)
-        ssterm(psi_g) = ssterm(psi_g) -       thimpf     *dt*temp
-        ddterm(psi_g) = ddterm(psi_g) + (1. - thimpf*bdf)*dt*temp
+       temp = p1psipsipnkappar(trial,lin,ps079,pp079,n079,ieq_bdotgradt) &
+            + p1psipsipnkappar(trial,ps079,lin,pp079,n079,1) &
+            + p1psibpnkappar  (trial,lin,bz079,pp079,n079,ieq_bdotgradt,1)
+       ssterm(psi_g) = ssterm(psi_g) -       thimpf     *dt*temp
+       ddterm(psi_g) = ddterm(psi_g) + (1. - thimpf*bdf)*dt*temp
 
-        if(numvar.ge.2) then
-           temp = p1psibpnkappar(trial,ps079,lin,pp079,n079,1,ieq_bdotgradt) &
-                + p1bbpnkappar  (trial,lin,bz079,pp079,n079,ieq_bdotgradt) &
-                + p1bbpnkappar  (trial,bz079,lin,pp079,n079,1)
-           ssterm(bz_g) = ssterm(bz_g) -       thimpf     *dt*temp
-           ddterm(bz_g) = ddterm(bz_g) + (1. - thimpf*bdf)*dt*temp
-        end if
+       if(numvar.ge.2) then
+          temp = p1psibpnkappar(trial,ps079,lin,pp079,n079,1,ieq_bdotgradt) &
+               + p1bbpnkappar  (trial,lin,bz079,pp079,n079,ieq_bdotgradt) &
+               + p1bbpnkappar  (trial,bz079,lin,pp079,n079,1)
+          ssterm(bz_g) = ssterm(bz_g) -       thimpf     *dt*temp
+          ddterm(bz_g) = ddterm(bz_g) + (1. - thimpf*bdf)*dt*temp
+       end if
 
-        temp = p1psipsipnkappar(trial,ps079,ps079,lin,n079,1) &
-             + p1psibpnkappar  (trial,ps079,bz079,lin,n079,1,1) &
-             + p1bbpnkappar    (trial,bz079,bz079,lin,n079,1)
-        ssterm(pp_g) = ssterm(pp_g) -       thimp     *dt*temp
-        ddterm(pp_g) = ddterm(pp_g) + (1. - thimp*bdf)*dt*temp
+       temp = p1psipsipnkappar(trial,ps079,ps079,lin,n079,1) &
+            + p1psibpnkappar  (trial,ps079,bz079,lin,n079,1,1) &
+            + p1bbpnkappar    (trial,bz079,bz079,lin,n079,1)
+       ssterm(pp_g) = ssterm(pp_g) -       thimp     *dt*temp
+       ddterm(pp_g) = ddterm(pp_g) + (1. - thimp*bdf)*dt*temp
 
-        ! this term has the opposite sign because n comes in with -1 power
-        if(idens.eq.1) then
-           temp = p1psipsipnkappar(trial,ps079,ps079,p079,lin,1) &
-                + p1psibpnkappar  (trial,ps079,bz079,p079,lin,1,1) &
-                + p1bbpnkappar    (trial,bz079,bz079,p079,lin,1)
-           ssterm(den_g) = ssterm(den_g) +       thimpf     *dt*temp
-           ddterm(den_g) = ddterm(den_g) - (1. - thimpf*bdf)*dt*temp
-        end if
+       ! this term has the opposite sign because n comes in with -1 power
+       if(idens.eq.1) then
+          temp = p1psipsipnkappar(trial,ps079,ps079,p079,lin,1) &
+               + p1psibpnkappar  (trial,ps079,bz079,p079,lin,1,1) &
+               + p1bbpnkappar    (trial,bz079,bz079,p079,lin,1)
+          ssterm(den_g) = ssterm(den_g) +       thimpf     *dt*temp
+          ddterm(den_g) = ddterm(den_g) - (1. - thimpf*bdf)*dt*temp
+       end if
 
-        if(i3d.eq.1 .and. numvar.ge.2) then
-           temp = p1psifpnkappar(trial,ps079,lin,pp079,n079,1,ieq_bdotgradt) &
-                + p1bfpnkappar  (trial,bz079,lin,pp079,n079,1,ieq_bdotgradt)
-           r_bf = r_bf -       thimp_bf     *dt*temp
-           q_bf = q_bf + (1. - thimp_bf*bdf)*dt*temp
-        endif
-     endif  ! on linear.eq.0 .and. eqsubtract.eq.0
+       if(i3d.eq.1 .and. numvar.ge.2) then
+          temp = p1psifpnkappar(trial,ps079,lin,pp079,n079,1,ieq_bdotgradt) &
+               + p1bfpnkappar  (trial,bz079,lin,pp079,n079,1,ieq_bdotgradt)
+          r_bf = r_bf -       thimp_bf     *dt*temp
+          q_bf = q_bf + (1. - thimp_bf*bdf)*dt*temp
+       endif
+    endif  ! on linear.eq.0
   endif  ! on kappar.ne.0
 
   ! Cross-field Heat Flux
@@ -2607,7 +2627,7 @@ subroutine pressure_nolin(trial, r4term, total_pressure)
                 (p1psifpnkappar(trial,ps079,bfx79,pp079,n079,1,ieq_bdotgradt) &
                 +p1bfpnkappar  (trial,bz079,bfx79,pp079,n079,1,ieq_bdotgradt))
         endif
-     endif  ! on linear.eq.0 .and. eqsubtract.eq.0
+     endif
   endif  ! on kappar.ne.0
 
   if(linear.eq.1) return
@@ -2798,12 +2818,12 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, itemp_def, ifield_def)
         qp4_vec = 0.
      endif
 
-     if(itemp_def.eq.1) then
-        call clear_mat(s11_mat)
-        call clear_mat(d11_mat)
-        call clear_mat(s12_mat)
-        call clear_mat(d12_mat)
-     endif
+!    if(itemp_def.eq.1) then
+!       call clear_mat(s11_mat)
+!       call clear_mat(d11_mat)
+!       call clear_mat(s12_mat)
+!       call clear_mat(d12_mat)
+!    endif
   end select
 
   if(myrank.eq.0 .and. iprint.ge.1) &
@@ -2861,8 +2881,8 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, itemp_def, ifield_def)
      if(ifield_def.eq.1) call ludefphi_n(itri)
      if(idens_def.eq.1) call ludefden_n(itri)
      if(ipres_def.eq.1) call ludefpres_n(itri)
-     if(itemp_def.eq.1) call ludef_te_n(itri)
-     if(itemp_def.eq.1) call ludef_ti_n(itri)
+!    if(itemp_def.eq.1) call ludef_te_n(itri)
+!    if(itemp_def.eq.1) call ludef_ti_n(itri)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         telm = telm + tend - tstart
@@ -2884,8 +2904,8 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, itemp_def, ifield_def)
         if(ifield_def.eq.1) call ludefphi_n(itri)
         if(idens_def.eq.1) call ludefden_n(itri)
         if(ipres_def.eq.1) call ludefpres_n(itri)
-        if(itemp_def.eq.1) call ludef_te_n(itri)
-        if(itemp_def.eq.1) call ludef_ti_n(itri)
+!       if(itemp_def.eq.1) call ludef_te_n(itri)
+!       if(itemp_def.eq.1) call ludef_ti_n(itri)
      end do
   end do
 
@@ -2949,12 +2969,12 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, itemp_def, ifield_def)
         call sum_shared(qp4_vec)
      endif ! on ipres_def.eq.1
      
-     if(itemp_def.eq.1) then
-        call flush(s11_mat)
-        call finalize(d11_mat)
-        call flush(s12_mat)
-        call finalize(d12_mat)
-     endif ! on itemp_def.eq.1
+!    if(itemp_def.eq.1) then
+!       call flush(s11_mat)
+!       call finalize(d11_mat)
+!       call flush(s12_mat)
+!       call finalize(d12_mat)
+!    endif ! on itemp_def.eq.1
   end select
 
   if(myrank.eq.0 .and. itimer.eq.1) then
@@ -3638,159 +3658,3 @@ end subroutine ludefden_n
 !
 ! itri: index of finite element
 !======================================================================
-subroutine ludef_te_n(itri)
-
-  use basic
-  use m3dc1_nint
-  use arrays
-  use sparse
-  use metricterms_new
-  use time_step
-
-  implicit none
-
-  integer, intent(in) :: itri
-
-  integer :: i, j
-  vectype, dimension(dofs_per_element, dofs_per_element) :: ssterm, ddterm
-  vectype, dimension(dofs_per_element, dofs_per_element, 3) :: rrterm, qqterm
-
-  vectype :: temp
-
-  type(matrix_type), pointer :: nn1, nn0, nv1, nv0
-  real :: thimpb
-  integer :: imask(dofs_per_element)
-
-
-  if(imp_mod.eq.0) then
-     thimpb = thimp
-  else
-     thimpb = 1.
-  endif
-
-     nn1 => s11_mat
-     nn0 => d11_mat
-
-  ssterm = 0.
-  ddterm = 0.
-
-  call get_temp_mask(itri, imask)
-
-  do i=1,dofs_per_element
-     if(imask(i).eq.0) then
-        ssterm(i,:) = 0.
-        ddterm(i,:) = 0.
-        cycle
-     endif
-
-     do j=1,dofs_per_element
-
-           temp = n1n(mu79(:,:,i),nu79(:,:,j))
-           ssterm(i,j) = ssterm(i,j) + temp    
-           ddterm(i,j) = ddterm(i,j) + temp
-        
-        if(kappar.ne.0) then
-          temp = tepsipsikappar(mu79(:,:,i),pstx79,pstx79,nu79(:,:,j),b2i79,kar79) &
-               + tepsibkappar  (mu79(:,:,i),pstx79,bztx79,nu79(:,:,j),b2i79,kar79) &
-               + tebbkappar    (mu79(:,:,i),bztx79,bztx79,nu79(:,:,j),b2i79,kar79)
-          ssterm(i,j) = ssterm(i,j) -          thimp     *dt*temp
-          ddterm(i,j) = ddterm(i,j) + (1.    - thimp*bdf)*dt*temp
-          if(i3d.eq.1) then
-             temp = tepsifkappar(mu79(:,:,i),pstx79,bftx79,nu79(:,:,j),b2i79,kar79) &
-                  + tebfkappar  (mu79(:,:,i),bztx79,bftx79,nu79(:,:,j),b2i79,kar79) &
-                  + teffkappar  (mu79(:,:,i),bftx79,bftx79,nu79(:,:,j),b2i79,kar79)
-             ssterm(i,j) = ssterm(i,j) -          thimp     *dt*temp
-             ddterm(i,j) = ddterm(i,j) + (1.    - thimp*bdf)*dt*temp
-          endif
-        endif
-
-
-     enddo                     ! on j
-     
-  enddo                     ! on i
-     
-
-  call insert_block(nn1,itri,te_i,te_i,ssterm,MAT_ADD)
-  call insert_block(nn0,itri,te_i,te_i,ddterm,MAT_ADD)
-end subroutine ludef_te_n
-! ludef_ti_n
-! ----------
-!
-! populates the matrices for implicit ion temperature advance
-!
-! itri: index of finite element
-!======================================================================
-subroutine ludef_ti_n(itri)
-
-  use basic
-  use m3dc1_nint
-  use arrays
-  use sparse
-  use metricterms_new
-  use time_step
-
-  implicit none
-
-  integer, intent(in) :: itri
-
-  integer :: i, j
-  vectype, dimension(dofs_per_element, dofs_per_element) :: ssterm, ddterm
-
-  vectype :: temp
-
-  type(matrix_type), pointer :: nn1, nn0, nv1, nv0
-  real :: thimpb, kapparti
-  integer :: imask(dofs_per_element)
-
-      kapparti = 0.
-
-  if(imp_mod.eq.0) then
-     thimpb = thimp
-  else
-     thimpb = 1.
-  endif
-
-     nn1 => s12_mat
-     nn0 => d12_mat
-
-  ssterm = 0.
-  ddterm = 0.
-
-  call get_temp_mask(itri, imask)
-
-  do i=1,dofs_per_element
-     if(imask(i).eq.0) then
-        ssterm(i,:) = 0.
-        ddterm(i,:) = 0.
-        cycle
-     endif
-
-     do j=1,dofs_per_element
-
-           temp = n1n(mu79(:,:,i),nu79(:,:,j))
-           ssterm(i,j) = ssterm(i,j) + temp    
-           ddterm(i,j) = ddterm(i,j) + temp
-        
-        if(kappar.ne.0) then
-          temp = tepsipsikappar(mu79(:,:,i),pstx79,pstx79,nu79(:,:,j),b2i79,kar79) &
-               + tepsibkappar  (mu79(:,:,i),pstx79,bztx79,nu79(:,:,j),b2i79,kar79) &
-               + tebbkappar    (mu79(:,:,i),bztx79,bztx79,nu79(:,:,j),b2i79,kar79)
-          ssterm(i,j) = ssterm(i,j) -          thimp     *dt*temp
-          ddterm(i,j) = ddterm(i,j) + (1.    - thimp*bdf)*dt*temp
-          if(i3d.eq.1) then
-             temp = tepsifkappar(mu79(:,:,i),pstx79,bftx79,nu79(:,:,j),b2i79,kar79) &
-                  + tebfkappar  (mu79(:,:,i),bztx79,bftx79,nu79(:,:,j),b2i79,kar79) &
-                  + teffkappar  (mu79(:,:,i),bftx79,bftx79,nu79(:,:,j),b2i79,kar79)
-             ssterm(i,j) = ssterm(i,j) -          thimp     *dt*temp
-             ddterm(i,j) = ddterm(i,j) + (1.    - thimp*bdf)*dt*temp
-          endif
-        endif
-
-     enddo                     ! on j
-     
-  enddo                     ! on i
-     
-
-  call insert_block(nn1,itri,ti_i,ti_i,ssterm,MAT_ADD)
-  call insert_block(nn0,itri,ti_i,ti_i,ddterm,MAT_ADD)
-end subroutine ludef_ti_n
