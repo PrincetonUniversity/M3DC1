@@ -475,6 +475,10 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   integer(HID_T) :: time_group_id, root_id
   integer :: nelms
 
+  character(LEN=19) :: time_file_name
+  integer(HID_T) :: time_file_id, time_root_id, plist_id
+  integer :: info
+
 !  integer :: global_nodes, global_edges, global_regions
    
   nelms = local_elements()
@@ -490,53 +494,85 @@ subroutine hdf5_write_time_slice(equilibrium, error)
        MPI_SUM, MPI_COMM_WORLD, error)
 
 
-  ! Create the time group
-  ! ~~~~~~~~~~~~~~~~~~~~~
-  
   ! create the name of the group
   if(equilibrium.eq.1) then
      time_group_name = "equilibrium"
+     time_file_name = "equilibrium.h5"
   else
      write(time_group_name, '("time_",I3.3)') times_output
-     ! remove the time group if it already exists
+     write(time_file_name, '("time_",I3.3,".h5")') times_output
+     ! remove the time group link if it already exists
      ! (from before a restart, for example)
      if(ntime.ne.0 .and. ntime.eq.ntime0) then
         call h5gunlink_f(file_id, time_group_name, error)
      endif
   endif
 
-  if(myrank.eq.0 .and. iprint.ge.1) &
-       print *, ' Writing time slice ', time_group_name
 
-  ! create the group
-  call h5gcreate_f(file_id, time_group_name, time_group_id, error)
+  ! Create new file for timeslice
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  ! Set up the file access property list with parallel I/O
+  call h5pcreate_f(H5P_FILE_ACCESS_F, plist_id, error)
+  info = MPI_INFO_NULL
+  call h5pset_fapl_mpio_f(plist_id, MPI_COMM_WORLD, info, error)
+
+  ! Open the new file
+  call h5fcreate_f(time_file_name, H5F_ACC_TRUNC_F, time_file_id, error, &
+       access_prp = plist_id)
+  if(error.lt.0) then
+     print *, "Error: could not open ", time_file_name, &
+          " for HDF5 output.  error = ", error
+     return
+  endif
+
+  ! open the root group
+  call h5gopen_f(time_file_id, "/", time_root_id, error)
+
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, ' Writing time slice file ', time_file_name
 
   ! Write attributes
-  ! ~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. iprint.ge.1) print *, '  Writing attr '
-  call write_real_attr(time_group_id, "time", time, error)
-  call write_int_attr(time_group_id, "nspace", 2, error)
+  call write_real_attr(time_root_id, "time", time, error)
+#ifdef USE3D
+  call write_int_attr(time_root_id, "nspace", 3, error)
+#else
+  call write_int_attr(time_root_id, "nspace", 2, error)
+#endif
 
   ! Output the mesh data
   if(myrank.eq.0 .and. iprint.ge.1) print *, '  Writing mesh '
-  call output_mesh(time_group_id, nelms, error)
+  call output_mesh(time_root_id, nelms, error)
 
   ! Output the field data 
   if(myrank.eq.0 .and. iprint.ge.1) print *, '  Writing fields '
-  call output_fields(time_group_id, equilibrium, error)
+  call output_fields(time_root_id, equilibrium, error)
   if(myrank.eq.0 .and. iprint.ge.1) print *, '  Done writing fields ', error
 
 
-  ! Close the time group
-  ! ~~~~~~~~~~~~~~~~~~~~
-  call h5gclose_f(time_group_id, error)  
-  if(myrank.eq.0 .and. iprint.ge.1) print *, '  after h5gclose_f ', error
+  ! Close the file
+  call h5gclose_f(time_root_id, error)
+  call h5fclose_f(time_file_id, error)  
+  call h5pclose_f(plist_id, error)
 
-  if(equilibrium.eq.0) times_output = times_output + 1
+
+  ! Add timeslice link in main file
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  ! create a link to the file
+  if(myrank.eq.0) print *, 'linking ', time_file_name
   call h5gopen_f(file_id, "/", root_id, error)
+  call h5lcreate_external_f(time_file_name, "/", root_id, time_group_name, &
+       error)
+  
+  ! update number of tile slices
+  if(equilibrium.eq.0) times_output = times_output + 1
   call update_int_attr(root_id, "ntime", times_output, error)
-  call h5gclose_f(root_id, error)
 
+  ! close root group
+  call h5gclose_f(root_id, error)
+  
   if(myrank.eq.0 .and. iprint.ge.1) print *, '  End of hdf5_write_time_slice '
 
 end subroutine hdf5_write_time_slice
