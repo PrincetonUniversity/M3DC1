@@ -574,58 +574,77 @@ end
 function translate, name, units=units, itor=itor
    units = dimensions()
 
-   if(strcmp(name, 'psi', /fold_case) eq 1) then begin
+   if(strcmp(name, 'psi', /fold_case) eq 1 or $
+      strcmp(name, 'psi_i', /fold_case) eq 1) then begin
        units = dimensions(/b0, l0=1+itor)
        return, "!7w!X"
-   endif else if(strcmp(name, 'I', /fold_case) eq 1) then begin
+   endif else if(strcmp(name, 'I', /fold_case) eq 1 or $
+                 strcmp(name, 'I_i', /fold_case) eq 1) then begin
        units = dimensions(/b0, l0=itor)
        return, "!8I!X"
-   endif else if(strcmp(name, 'phi', /fold_case) eq 1) then begin
+   endif else if(strcmp(name, 'phi', /fold_case) eq 1 or $
+                 strcmp(name, 'phi_i', /fold_case) eq 1) then begin
        units = dimensions(/v0, l0=1+itor)
        return, "!8U!X"
-   endif else if(strcmp(name, 'V', /fold_case) eq 1) then begin
+   endif else if(strcmp(name, 'V', /fold_case) eq 1 or $
+                 strcmp(name, 'V_i', /fold_case) eq 1) then begin
        units = dimensions(/v0, l0=itor)
        return, "!8V!X"
-   endif else if(strcmp(name, 'chi', /fold_case) eq 1) then begin
+   endif else if(strcmp(name, 'chi', /fold_case) eq 1 or $
+                 strcmp(name, 'chi_i', /fold_case) eq 1) then begin
        units = dimensions(/v0, l0=1)
        return, "!7v!X"
-   endif else if(strcmp(name, 'eta', /fold_case) eq 1) then begin
+   endif else if(strcmp(name, 'eta', /fold_case) eq 1 or $
+                 strcmp(name, 'eta_i', /fold_case) eq 1) then begin
        units = dimensions(/eta)
        return, "!7g!X"
-   endif else if(strcmp(name, 'den', /fold_case) eq 1) then begin
+   endif else if(strcmp(name, 'den', /fold_case) eq 1 or $
+                 strcmp(name, 'den_i', /fold_case) eq 1) then begin
        units = dimensions(/n0)
        return, "!8n!Di!N!X"
-   endif else if(strcmp(name, 'p', /fold_case) eq 1) then begin
+   endif else if(strcmp(name, 'p', /fold_case) eq 1 or $
+                 strcmp(name, 'p_i', /fold_case) eq 1) then begin
        units = dimensions(/p0)
        return, "!8p!X"
-   endif else if(strcmp(name, 'pe', /fold_case) eq 1) then begin
+   endif else if(strcmp(name, 'pe', /fold_case) eq 1 or $
+                 strcmp(name, 'pe_i', /fold_case) eq 1) then begin
        units = dimensions(/p0)
        return, "!8p!De!N!X"
-   endif else if(strcmp(name, 'te', /fold_case) eq 1) then begin
+   endif else if(strcmp(name, 'te', /fold_case) eq 1 or $
+                 strcmp(name, 'te_i', /fold_case) eq 1) then begin
        units = dimensions(/temperature)
        return, "!8T!De!N!X"
-   endif else if(strcmp(name, 'ti', /fold_case) eq 1) then begin
+   endif else if(strcmp(name, 'ti', /fold_case) eq 1 or $
+                 strcmp(name, 'ti_i', /fold_case) eq 1) then begin
        units = dimensions(/temperature)
        return, "!8T!Di!N!X"
-   endif else if(strcmp(name, 'sigma', /fold_case) eq 1) then begin
+   endif else if(strcmp(name, 'sigma', /fold_case) eq 1 or $
+                 strcmp(name, 'sigma_i', /fold_case) eq 1) then begin
        units = dimensions(/n0,t0=-1)
        return, "!7r!X"
-   endif else if(strcmp(name, 'kappa', /fold_case) eq 1) then begin
+   endif else if(strcmp(name, 'kappa', /fold_case) eq 1 or $
+                 strcmp(name, 'kappa_i', /fold_case) eq 1) then begin
        units = dimensions(/n0, l0=2, t0=-1)
        return, "!7j!X"
    endif else if((strcmp(name, 'visc', /fold_case) eq 1) or $
-     (strcmp(name, 'visc_c', /fold_case) eq 1)) then begin
+     (strcmp(name, 'visc_c', /fold_case) eq 1) or $
+                 strcmp(name, 'visc_i', /fold_case) eq 1 or $
+                 strcmp(name, 'visc_c_i', /fold_case) eq 1) then begin
        return, "!7l!X"
-   endif else if(strcmp(name, 'jphi', /fold_case) eq 1) then begin
+   endif else if(strcmp(name, 'jphi', /fold_case) eq 1  or $
+                 strcmp(name, 'jphi_i', /fold_case) eq 1) then begin
        units = dimensions(/b0, l0=itor-1)
        return, "!7D!6!U*!N!7w!X"
-   endif else if(strcmp(name, 'vor', /fold_case) eq 1) then begin
+   endif else if(strcmp(name, 'vor', /fold_case) eq 1 or $
+                 strcmp(name, 'vor_i', /fold_case) eq 1) then begin
        units = dimensions(/v0, l0=itor-1)
        return, "!7D!6!U*!N!8U!X"
-   endif else if(strcmp(name, 'com', /fold_case) eq 1) then begin
+   endif else if(strcmp(name, 'com', /fold_case) eq 1 or $
+                 strcmp(name, 'com_i', /fold_case) eq 1) then begin
        units = dimensions(/v0, l0=-1)
        return, "!9G.!17v!X"
-   endif else if(strcmp(name, 'torque_em', /fold_case) eq 1) then begin
+   endif else if(strcmp(name, 'torque_em', /fold_case) eq 1  or $
+                 strcmp(name, 'kappa_em_i', /fold_case) eq 1) then begin
        units = dimensions(/p0)
        return, "!7s!D!8EM!N!X"
    endif  
@@ -1292,7 +1311,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         filename=filename[i], points=pts, $
                         rrange=xrange, zrange=yrange, complex=complex, $
                         h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
-                        diff=diff, operation=op, $
+                        diff=diff, operation=op, dimensions=d, $
                         linear=linear, last=last,symbol=symbol,units=units, $
                        cgs=cgs, mks=mks, phi=phi0, time=realtime)
        end
@@ -1315,7 +1334,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         filename=filename[i], points=pts, $
                         rrange=xrange, zrange=yrange, mask=mask, $
                         h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
-                        operation=op, complex=complex, $
+                        operation=op, complex=complex, dimensions=d, $
                         linear=linear, last=last,symbol=symbol,units=units, $
                        cgs=cgs, mks=mks, phi=phi0, time=realtime) $
              *((-1)^i)
@@ -1413,7 +1432,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                                h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                                diff=diff, operation=op, mask=mask, $
                                /linear, last=last,symbol=symbol, $
-                               units=units, $
+                               units=units, dimensions=d, $
                                equilibrium=equilibrium)
            data_i = read_field(name+'_i',x,y,t, slices=time, mesh=mesh, $
                                filename=filename, points=pts, $
@@ -1421,7 +1440,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                                h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                                diff=diff, operation=op, $
                                /linear, last=last,symbol=symbol, $
-                               units=units, $
+                               units=units, dimensions=d, $
                                equilibrium=equilibrium)
            data = complex(data_r, data_i)
 
@@ -1715,6 +1734,21 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        symbol = '!7n!N!X'
        d = dimensions(/l0, _EXTRA=extra)
 
+   ;===========================================
+   ; psi_norm
+   ;===========================================
+   endif else if(strcmp('psi_norm', name, /fold_case) eq 1) then begin
+
+       psi = read_field('psi', x, y, t, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, slice=time)
+
+       psis = read_lcfs(filename=filename, flux0=flux0, _EXTRA=extra)
+       
+       data = (psi-flux0)/(psis-flux0)
+ 
+       symbol = '!7W!X'
+       d = dimensions(_EXTRA=extra)
 
    ;===========================================
    ; ion temperature
@@ -2317,9 +2351,9 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                        rrange=xrange, zrange=yrange)
 
        data = omega - omega_star
-       symbol = '!7x!S!D!9x!N!S!U!8e!N!X'
+;       symbol = '!7x!S!D!9x!N!S!U!8e!N!X'
+       symbol = '!7x!D!8e!N!X'
        d = dimensions(t0=-1, _EXTRA=extra)
-
 
    ;===========================================
    ; cyclotron frequency
@@ -2367,6 +2401,37 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        data = db*s_bracket(p,psi,x,y)/s_bracket(psi,psi,x,y) / den
 
        symbol = '!7x!6!D*!N!X'
+       d = dimensions(t0=-1, _EXTRA=extra)
+
+   ;===========================================
+   ; diamagnetic frequency
+   ;===========================================
+   endif else if(strcmp('omega_ExB', name, /fold_case) eq 1) then begin
+
+       db = read_parameter('db', filename=filename, _EXTRA=extra)
+       print, 'db = ', filename, db
+
+       omega = read_field('omega', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       p = read_field('p', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       pe = read_field('pe', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       den = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+
+       pi = p - pe
+
+       data = omega - db*s_bracket(pi,psi,x,y)/s_bracket(psi,psi,x,y) / den
+
+       symbol = '!7x!6!DE!9X!6B!N!X'
        d = dimensions(t0=-1, _EXTRA=extra)
 
 
@@ -3343,7 +3408,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    endelse
 
    endelse
-  
+ 
    ; for eqsubtract=1 fields with linear option not set,
    ; add in base field
    if((max(trange) ge 0) and $
@@ -3362,6 +3427,18 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        end
    end
 
+   print, 'converting units, mks, cgs=', keyword_set(mks), keyword_set(cgs)
+
+   ; convert to appropriate units
+   d0 = d
+   get_normalizations, filename=filename,b0=b0,n0=n0,l0=l0,zeff=zeff,ion=mi
+   convert_units, data, d0, b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
+   convert_units, x, dimensions(/l0), b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
+   convert_units, y, dimensions(/l0), b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
+   convert_units, realtime, dimensions(/t0), $
+     b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
+   units = parse_units(d0, cgs=cgs, mks=mks)
+
    if(n_elements(h_symmetry) eq 1) then begin
        data = (data + h_symmetry*reverse(data, 2)) / 2.
    endif
@@ -3369,14 +3446,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        print, "v symmetry = ", v_symmetry
        data = (data + v_symmetry*reverse(data, 3)) / 2.
    endif
-
-   get_normalizations, filename=filename,b0=b0,n0=n0,l0=l0,zeff=zeff,ion=mi
-   convert_units, data, d, b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
-   convert_units, x, dimensions(/l0), b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
-   convert_units, y, dimensions(/l0), b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
-   convert_units, realtime, dimensions(/t0), $
-     b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
-   units = parse_units(d, cgs=cgs, mks=mks)
 
    ; apply mask
    if(n_elements(mask) ne 0 and n_elements(edge_val) ne 0) then begin
@@ -6343,7 +6412,7 @@ pro test_mesh, filename, nplanes=nplanes, _EXTRA=extra
 end
 
 pro plot_perturbed_surface, q, scalefac=scalefac, points=pts, $
-                            filename=filename, slice=slice, _EXTRA=extra
+                            filename=filename, _EXTRA=extra
    if(n_elements(scalefac) eq 0) then scalefac=1.
    if(n_elements(scalefac) eq 1) then $
      scalefac=replicate(scalefac, n_elements(q))
@@ -6359,7 +6428,7 @@ pro plot_perturbed_surface, q, scalefac=scalefac, points=pts, $
    
    if(n_elements(bins) eq 0) then bins = n_elements(x)
    fvals = flux_at_q(q, points=pts, filename=filename, $
-                     slice=slice, normalized_flux=norm, bins=bins)
+                     normalized_flux=norm, bins=bins)
    print, fvals
 
    xhat = psi0_r/sqrt(psi0_r^2 + psi0_z^2)
