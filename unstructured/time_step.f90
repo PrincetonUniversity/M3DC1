@@ -6,7 +6,7 @@ module time_step
   type(vector_type) :: vel_vec, velold_vec, veln_vec, veloldn_vec
   type(vector_type) :: pres_vec, presold_vec
   type(vector_type) :: den_vec, denold_vec
-  type(vector_type) :: te_vec, teold_vec, ti_vec, tiold_vec
+  type(vector_type) :: pret_vec, pretold_vec
   type(vector_type), target :: q4_vec, r4_vec, qp4_vec, qn4_vec
 
   ! the following pointers point to the vector containing the named field.
@@ -102,9 +102,9 @@ contains
           print *, "create_mat time_step o1_mat", o1_mat%imatrix     
 #endif 
        endif
-       if(ipres.eq.1 .and. numvar.lt.3) then
+       if((ipres.eq.1 .and. numvar.lt.3) .or. ipressplit.gt.0) then
           call set_matrix_index(p1_mat, p1_mat_index)
-          call create_mat(p1_mat, vecsize_vel, 1, icomplex, .false.)
+          call create_mat(p1_mat, vecsize_vel, vecsize_p, icomplex, .false.)
        end if
 
        call set_matrix_index(s2_mat, s2_mat_index)
@@ -163,7 +163,7 @@ contains
 #endif 
        endif
           
-       if(ipres.eq.1) then
+       if(ipres.eq.1 .or. ipressplit.eq.1) then
           call set_matrix_index(s9_mat, s9_mat_index)
           call set_matrix_index(d9_mat, d9_mat_index)
           call set_matrix_index(r9_mat, r9_mat_index)
@@ -183,7 +183,7 @@ contains
 #endif 
        endif
        
-!      if(itemp.eq.1) then
+!      if(ipressplit.eq.1) then
 !         call set_matrix_index(s11_mat, s11_mat_index)
 !         call set_matrix_index(d11_mat, d11_mat_index)
 !         call create_mat(s11_mat, vecsize_n, vecsize_n, icomplex, .true.)
@@ -237,7 +237,7 @@ contains
           call destroy_mat(q42_mat)
        end if
        if(i3d.eq.1) call destroy_mat(o2_mat)
-       if(ipres.eq.1 .and. numvar.lt.3) call destroy_mat(p1_mat)
+       if((ipres.eq.1 .and. numvar.lt.3) .or. ipressplit.gt.0) call destroy_mat(p1_mat)
        
        if(idens.eq.1) then
           call destroy_mat(s8_mat)
@@ -254,7 +254,7 @@ contains
           call destroy_mat(o9_mat)
        endif
        
-!      if(itemp.eq.1) then
+!      if(ipressplit.eq.1) then
 !         call destroy_mat(s11_mat)
 !         call destroy_mat(d11_mat)
 !         call destroy_mat(s12_mat)
@@ -283,22 +283,29 @@ contains
        vz_i = 2
        bz_i = 2
        chi_i = 3
-       pe_i = 3
        den_i = 1
        if(imp_bf.eq.1) then
-          bf_i = numvar + 1
-          e_i = numvar + 2
+          bf_i = numvar - ipressplit + 1
+          e_i = numvar - ipressplit + 2
        else
           bf_i = 1
-          e_i = numvar + 1
+          e_i = numvar - ipressplit + 1
        end if
-       if(ipres.eq.1) then
-          p_i = 1
-       else
-          p_i = 3
-       end if
-       te_i = 1
-       ti_i = 1
+       if(ipressplit.eq.1) then
+            p_i  = 1
+            te_i = 1
+            if(ipres.eq.1) then
+               pe_i = 2
+               ti_i = 2
+            endif
+       else  ! ipresssplit.eq.0
+          pe_i = 3
+          if(ipres.eq.1) then
+             p_i = 1
+          end if
+          te_i = 1
+       endif
+
 
        call associate_field(u_v,    vel_vec,      u_i)
        call associate_field(uo_v,   velold_vec,   u_i)
@@ -315,14 +322,32 @@ contains
        if(numvar.ge.3) then
           call associate_field(chi_v,  vel_vec,    chi_i)
           call associate_field(chio_v, velold_vec, chi_i)
-          call associate_field(pe_v,   phi_vec,     pe_i)
-          call associate_field(peo_v,  phiold_vec,  pe_i)
+       endif
+       
+       if(numvar.ge.3 .or. ipres.eq.1) then
+          call associate_field(te_v, pret_vec, te_i)
+          call associate_field(teo_v, pretold_vec, te_i)
        endif
 
-       if(ipres.eq.1) then
-          call associate_field(p_v,  pres_vec,    p_i)
+       if(ipressplit.eq.1) then
+          call associate_field(p_v, pres_vec, p_i)
           call associate_field(po_v, presold_vec, p_i)
-       end if
+          if(ipres.eq.1) then
+             call associate_field(pe_v, pres_vec, pe_i)
+             call associate_field(peo_v, presold_vec, pe_i)
+             call associate_field(ti_v, pret_vec, ti_i)
+             call associate_field(tio_v, pretold_vec, ti_i)
+          endif
+       else   !  on ipressplit.eq.1
+          if(numvar.ge.3) then
+             call associate_field(pe_v,   phi_vec,     pe_i)
+             call associate_field(peo_v,  phiold_vec,  pe_i)
+          endif
+          if(ipres.eq.1) then
+             call associate_field(p_v,  pres_vec,    p_i)
+             call associate_field(po_v, presold_vec, p_i)
+          end if
+       endif  !  on ipressplit.eq.1
 
        if(idens.eq.1) then
           call associate_field(den_v,  den_vec,    den_i)
@@ -337,12 +362,8 @@ contains
           call associate_field(bf_v, phi_vec, bf_i)
           call associate_field(bfo_v, phiold_vec, bf_i)
        end if
-       call associate_field(te_v,  te_vec,    te_i)
-       call associate_field(teo_v, teold_vec, te_i)
-       call associate_field(ti_v,  ti_vec,    ti_i)
-       call associate_field(tio_v, tiold_vec, ti_i)
 
-    else
+    else  !  ... on isplitstep.eq.1
        u_i = 1
        psi_i = 2
        vz_i = 3
@@ -363,7 +384,7 @@ contains
           e_i = 2*numvar+idens+ipres+1
        end if
        te_i = 1
-       ti_i = 1
+       ti_i = 2
 
        call associate_field(u_v,    phi_vec,      u_i)
        call associate_field(uo_v,   phiold_vec,   u_i)
@@ -403,11 +424,7 @@ contains
           call associate_field(e_v, phi_vec, e_i)
        end if
 
-       call associate_field(te_v,  te_vec,    te_i)
-       call associate_field(teo_v, teold_vec, te_i)
-       call associate_field(ti_v,  ti_vec,    ti_i)
-       call associate_field(tio_v, tiold_vec, ti_i)
-    endif
+    endif !  ... on isplitstep.eq.1
       
     u_off = (u_i-1)*dofs_per_node
     psi_off = (psi_i-1)*dofs_per_node
@@ -456,7 +473,7 @@ subroutine onestep
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
      ! in linear case, eliminate second-order terms from matrix
-     call ludefall(1-istatic, idens, ipres, itemp, 1-iestatic)
+     call ludefall(1-istatic, idens, ipres, ipressplit, 1-iestatic)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_ludefall = t_ludefall + tend - tstart
@@ -488,6 +505,7 @@ subroutine onestep
   ! copy time advance vectors to field data
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Exporting time advance vectors.."
   call export_time_advance_vectors
+!
 
   ! Calculate all quantities derived from basic fields
   call derived_quantities(1)
@@ -522,25 +540,38 @@ subroutine import_time_advance_vectors
      vz_v = vz_field(1)
      bz_v = bz_field(1)
   end if
-  if(numvar.ge.3) then
+  if(numvar.ge.3) then 
      chi_v = chi_field(1)
-     if(ipres.eq.1) then
+  endif
+
+  if(ipressplit.eq.0) then
+     if(numvar.ge.3) then
+        if(ipres.eq.1) then
         ! store electron pressure in pe_v
-        pe_v = pe_field(1)
-        p_v  = p_field(1)
-     else
+           pe_v = pe_field(1)
+           p_v  = p_field(1)
+        else
         ! store total pressure in pe_v
-        pe_v = p_field(1)
+           pe_v = p_field(1)
+        end if
+     else 
+        if(ipres.eq.1) then
+           p_v = p_field(1)
+        endif
      end if
-  else if(ipres.eq.1) then
-     p_v = p_field(1)
-  end if
+  else    ! on ipressplit.eq.0
+     p_v  = p_field(1)
+     te_v = te_field(1)
+     if(ipres.eq.1) then
+        pe_v = pe_field(1)
+        ti_v = ti_field(1)
+     endif
+  endif   ! on ipressplit.eq.0
+
 
   if(idens.eq.1) den_v = den_field(1)
   if(imp_bf.eq.1) bf_v = bf_field(1)
 
-  te_v = te_field(1)
-  ti_v = ti_field(1)
 
 end subroutine import_time_advance_vectors
 
@@ -564,27 +595,47 @@ subroutine export_time_advance_vectors
   end if
   if(numvar.ge.3) then
      chi_field(1) = chi_v
-     if(ipres.eq.1) then
+  endif
+ 
+  if(ipressplit.eq.0) then
+     te_field(1) = te_v
+     if(numvar.ge.3) then
+
+        if(ipres.eq.1) then
         ! electron pressure is stored in pe_v
-        pe_field(1) = pe_v
-        p_field(1)  = p_v
-     else
+           pe_field(1) = pe_v
+           p_field(1)  = p_v
+        else
         ! total pressure is stored in pe_v
-        pe_field(1) = pe_v
-        call mult(pe_field(1), pefac)
-        p_field(1)  = pe_v
-     end if
-  else if(ipres.eq.1) then
-     pe_field(1) = p_v
-     call mult(pe_field(1), pefac)
-     p_field(1) = p_v
-  end if
+           pe_field(1) = pe_v
+           call mult(pe_field(1), pefac)
+           p_field(1)  = pe_v
+        end if
+     else 
+        if(ipres.eq.1) then
+           pe_field(1) = p_v
+           call mult(pe_field(1), pefac)
+           p_field(1) = p_v
+        endif
+     endif
+  else    ! on ipressplit.eq.0
+      p_field(1) = p_v 
+      te_field(1) = te_v
+      if(ipres.eq.0) then
+         pe_field(1) = p_v
+         call mult(pe_field(1), pefac)
+         ti_field(1) = te_v
+         call mult(ti_field(1), (1.-pefac)/pefac)
+      else
+         pe_field(1) = pe_v
+         ti_field(1) = ti_v 
+      endif
+
+  endif   ! on ipressplit.eq.0
 
   if(idens.eq.1) den_field(1) = den_v
   if(imp_bf.eq.1) bf_field(1) = bf_v
 
-  te_field(1) = te_v
-  ti_field(1) = ti_v
 end subroutine export_time_advance_vectors
 
 !============================================================
@@ -618,7 +669,7 @@ subroutine split_step(calc_matrices)
   type(field_type) :: phip_1, phip_2, phip_3, temp_field_1, temp_field_2
   call associate_field(phip_1, phip_vec, 1)
   if(numvar.ge.2) call associate_field(phip_2, phip_vec, 2)
-  if(numvar.ge.3) call associate_field(phip_3, phip_vec, 3)
+  if(numvar.ge.3 .and. ipressplit.eq.0) call associate_field(phip_3, phip_vec, 3)
 
   t_bound = 0.
 
@@ -637,7 +688,7 @@ subroutine split_step(calc_matrices)
      call matvecmult(d1_mat,vel_vec,b1_vel)
   
      ! q1matrix_sm * phi(n)
-     if(ipres.eq.1 .and. numvar.ge.3) then
+     if(ipres.eq.1 .and. numvar.ge.3 .and. ipressplit.eq.0) then
         ! replace electron pressure with total pressure
 
         phip_vec = phi_vec
@@ -648,9 +699,9 @@ subroutine split_step(calc_matrices)
      endif
      call add(b1_vel, b2_vel)
 
-     ! If ipres==1 and numvar<3, need to add in pressure contribution
+     ! If ipres==1 and numvar<3 or ipressplit==1, need to add in pressure contribution
      ! separately
-     if(ipres.eq.1 .and. numvar.lt.3) then
+     if((ipres.eq.1 .and. numvar.lt.3) .or. ipressplit.gt.0) then
         call matvecmult(p1_mat,pres_vec,b2_vel)
         call add(b1_vel, b2_vel)
      endif
@@ -825,7 +876,7 @@ subroutine split_step(calc_matrices)
   !
   ! Advance Pressure
   ! ================
-  if(ipres.eq.1) then
+  if((ipressplit.eq.0 .and. ipres.eq.1) .or. (ipressplit.eq.1 .and. itemp.eq.0)) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Pressure"
 
      call create_vector(temp, vecsize_p)
@@ -845,16 +896,18 @@ subroutine split_step(calc_matrices)
      ! q9matrix_sm * vel(n)
      call matvecmult(q9_mat,veln_vec,temp2)
      call add(temp, temp2)
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Pressure -- before o9matrix"
 
      ! o9matrix_sm * phi(n)
      call matvecmult(o9_mat,phi_vec,temp2)
      call add(temp, temp2)
      
-     ! temp = d8matrix_sm * pres(n)
+     ! temp = d9matrix_sm * pres(n)
      call matvecmult(d9_mat,pres_vec,temp2)
      call add(temp, temp2)
      
      call add(temp, qp4_vec)
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Pressure -- before boundary_pres"
      
      ! Insert boundary conditions
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -880,6 +933,7 @@ subroutine split_step(calc_matrices)
   endif
 #endif 
 
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Pressure--before newsolve"
      call newsolve(s9_mat, temp, jer)
      if(linear.eq.0) call clear_mat(s9_mat)
 
@@ -908,6 +962,101 @@ subroutine split_step(calc_matrices)
      pres_vec = temp
      call destroy_vector(temp)
      call destroy_vector(temp2)
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Pressure--before get_temperatures"
+     call get_temperatures
+  endif
+
+  ! Advance Temperature
+  ! ================
+  if(ipressplit.eq.1 .and. itemp.eq.1) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Temperature"
+
+     call create_vector(temp, vecsize_p)
+     call create_vector(temp2, vecsize_p)
+     
+     ! r9matrix_sm * vel(n+1)
+     call matvecmult(r9_mat,vel_vec,temp)
+        
+     ! r9matrix_sm * vel(n-1)
+     if(integrator.eq.1 .and. ntime.gt.1) then
+        call matvecmult(r9_mat,veloldn_vec,temp2)
+        call mult(temp, 1.5)
+        call mult(temp2, 0.5)
+        call add(temp, temp2)
+     endif
+     
+     ! q9matrix_sm * vel(n)
+     call matvecmult(q9_mat,veln_vec,temp2)
+     call add(temp, temp2)
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Temperature -- before o9matrix"
+
+     ! o9matrix_sm * phi(n)
+     call matvecmult(o9_mat,phi_vec,temp2)
+     call add(temp, temp2)
+     
+     ! temp = d9matrix_sm * temp(n)
+     call matvecmult(d9_mat,pret_vec,temp2)
+     call add(temp, temp2)
+     
+     call add(temp, qp4_vec)
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Temperature -- before boundary_temp"
+     
+     ! Insert boundary conditions
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     if(calc_matrices.eq.1) then
+        call boundary_temp(temp, s9_mat)
+        call finalize(s9_mat)
+     else
+        call boundary_temp(temp)
+     endif
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_bound = t_bound + tend - tstart
+     end if
+
+     
+     ! solve linear system...LU decomposition done first time
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+
+#ifdef CJ_MATRIX_DUMP
+  if(ntime.eq.2) then 
+     call write_matrix(s9_mat,'s9_mat')
+     call write_vector(temp, 's9_mat_rhs.out')
+  endif
+#endif 
+
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Temperature--before newsolve"
+     call newsolve(s9_mat, temp, jer)
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Temperature--after newsolve"
+     if(linear.eq.0) call clear_mat(s9_mat)
+
+#ifdef CJ_MATRIX_DUMP
+  if(ntime.eq.2) then
+     call write_vector(temp, 's9_mat_sol.out')
+  endif
+#endif 
+
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_solve_p = t_solve_p + tend - tstart
+     endif
+     if(jer.ne.0) then
+        write(*,*) 'Error in pressure solve', jer
+        call safestop(29)
+     endif
+     
+     ! new field solution at time n+1 (or n* for second order advance)
+#ifdef USESCOREC
+     if(integrator.eq.1 .and. ntime.gt.1) then
+        temp%data = (2.*temp%data - pretold_vec%data)/3.
+     endif
+#endif
+     pretold_vec = pret_vec
+     pret_vec = temp
+     call destroy_vector(temp)
+     call destroy_vector(temp2)
+     call get_pressures
+     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Temperature--end"
   endif
 
      
@@ -1124,7 +1273,9 @@ subroutine split_step(calc_matrices)
      ! apply smoothing operators
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~
      call smooth_fields(psi_v) 
-     call get_temperatures
+
+     if(ipressplit.eq.0 .and. numvar.ge.3) call get_temperatures
+
   end if       !...on iestatic
 
 
@@ -1250,7 +1401,7 @@ subroutine unsplit_step(calc_matrices)
      ! recalculate field advance matrix
      ! (advanced velocity variables will be used in defining matrix)
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     call ludefall(1-istatic, idens, ipres, itemp, 1-iestatic)
+     call ludefall(1-istatic, idens, ipres, ipressplit, 1-iestatic)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_ludefall = t_ludefall + tend - tstart
@@ -1524,7 +1675,7 @@ subroutine get_bz_mask(itri, imask)
   call get_boundary_mask(itri, ibound, imask)
 end subroutine get_bz_mask
 
-subroutine get_p_mask(itri, imask)
+subroutine get_q_mask(itri, imask)
   use element
   use basic
   use boundary_conditions
@@ -1535,7 +1686,7 @@ subroutine get_p_mask(itri, imask)
 
   ibound = BOUNDARY_DIRICHLET
   call get_boundary_mask(itri, ibound, imask)
-end subroutine get_p_mask
+end subroutine get_q_mask
 
 subroutine get_bf_mask(itri, imask)
   use element
@@ -1724,7 +1875,7 @@ subroutine boundary_mag(rhs, mat)
 
      i_psi = node_index(psi_v, i)
      if(numvar.ge.2) i_bz = node_index(bz_v, i)
-     if(numvar.ge.3) i_pe = node_index(pe_v, i)
+     if(numvar.ge.3 .and. ipressplit.eq.0) i_pe = node_index(pe_v, i)
      if(jadv.eq.0 .and. i3d.eq.1) i_e = node_index(e_v, i)
      if(imp_bf.eq.1) i_bf = node_index(bf_v, i)
 
@@ -1769,7 +1920,7 @@ subroutine boundary_mag(rhs, mat)
         call set_dirichlet_bc(i_bz,rhs,temp,normal,curv,izonedim,mat)
      endif
 
-     if(numvar.ge.3) then 
+     if(numvar.ge.3 .and. ipressplit.eq.0) then
         if(inograd_p.eq.1) then
            temp = 0.
            call set_normal_bc(i_pe,rhs,temp,normal,curv,izonedim,mat)
@@ -1942,7 +2093,7 @@ end subroutine boundary_ti
 ! boundary_pres
 ! ~~~~~~~~~~~~~
 !
-! sets boundary conditions for total pressure
+! sets boundary conditions for pressure
 !=======================================================
 subroutine boundary_pres(rhs, mat)
   use basic
@@ -1959,7 +2110,7 @@ subroutine boundary_pres(rhs, mat)
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
 
-  integer :: i_p
+  integer :: i_p, i_pe
 
   if(iper.eq.1 .and. jper.eq.1) return
   if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_pres called"
@@ -1979,9 +2130,73 @@ subroutine boundary_pres(rhs, mat)
         call get_node_data(p_field(1), i, temp)
         call set_dirichlet_bc(i_p,rhs,temp,normal,curv,izonedim,mat)
      end if
+ 
+     if(ipressplit.eq.1 .and. ipres.eq.1) then
+        i_pe = node_index(pe_v, i)
+        if(inograd_p.eq.1) then
+           temp = 0.
+           call set_normal_bc(i_pe,rhs,temp,normal,curv,izonedim,mat)
+        end if
+        if(iconst_p.eq.1) then
+           call get_node_data(pe_field(1), i, temp)
+           call set_dirichlet_bc(i_pe,rhs,temp,normal,curv,izonedim,mat)
+        end if
+     endif
+
   end do
 
 end subroutine boundary_pres
+subroutine boundary_temp(rhs, mat)
+  use basic
+  use arrays
+  use matrix_mod
+  use boundary_conditions
+  implicit none
+  
+  type(vector_type) :: rhs
+  type(matrix_type), optional :: mat
+  
+  integer :: i, izone, izonedim, numnodes
+  real :: normal(2), curv, x, z
+  logical :: is_boundary
+  vectype, dimension(dofs_per_node) :: temp
+
+  integer :: i_te, i_ti
+
+  if(iper.eq.1 .and. jper.eq.1) return
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "boundary_temp called"
+
+  numnodes = owned_nodes()
+  do i=1, numnodes
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+     if(.not.is_boundary) cycle
+
+     i_te = node_index(te_v, i)
+
+     if(inograd_p.eq.1) then
+        temp = 0.
+        call set_normal_bc(i_te,rhs,temp,normal,curv,izonedim,mat)
+     end if
+     if(iconst_p.eq.1) then
+        call get_node_data(te_field(1), i, temp)
+        call set_dirichlet_bc(i_te,rhs,temp,normal,curv,izonedim,mat)
+     end if
+ 
+     if(ipressplit.eq.1 .and. ipres.eq.1) then
+        i_ti = node_index(ti_v, i)
+        if(inograd_p.eq.1) then
+           temp = 0.
+           call set_normal_bc(i_ti,rhs,temp,normal,curv,izonedim,mat)
+        end if
+        if(iconst_p.eq.1) then
+           call get_node_data(ti_field(1), i, temp)
+           call set_dirichlet_bc(i_ti,rhs,temp,normal,curv,izonedim,mat)
+        end if
+     endif
+
+  end do
+
+end subroutine boundary_temp
 
   subroutine insert_resistive_wall(rhs,mat)
     use basic
@@ -2554,9 +2769,14 @@ end subroutine variable_timestep
          call get_node_data(p_field(0),i,p0_l)
          call get_node_data(pe_field(0),i,pe0_l)
        else
-         call get_node_data(pe_v,i,p1_l)
+         if(ipressplit.eq.0) then
+            call get_node_data(pe_v,i,p1_l)
+            call get_node_data(pe_field(0),i,p0_l)
+         else
+            call get_node_data(p_v,i,p1_l)
+            call get_node_data(p_field(0),i,p0_l)
+         endif
          pe1_l = pefac*p1_l
-         call get_node_data(pe_field(0),i,p0_l)
          pe0_l = pefac*p0_l
        endif
      else
@@ -2577,13 +2797,75 @@ end subroutine variable_timestep
      endif
 
      call set_node_data(te_v,i,te1_l)
-     call set_node_data(ti_v,i,ti1_l)
+     if(ipres.eq.1) then
+        if(ipressplit.eq.1) then
+           call set_node_data(ti_v,i,ti1_l)
+        else
+           call set_node_data(ti_field(1),i,ti1_l)
+        endif
+     endif
 
    enddo
 
 
    return
  end subroutine get_temperatures
+ subroutine get_pressures
+
+  use basic
+  use arrays
+  use field
+  use mesh_mod
+  implicit none
+  integer :: i, numnodes
+   if(numvar.lt.3 .and. ipres.eq.0) return
+
+   numnodes = owned_nodes()
+   do i=1,numnodes
+
+     if(idens.eq.1) then
+        call get_node_data(den_v,i,den1_l)
+        call get_node_data(den_field(0),i,den0_l)
+     else
+        if(eqsubtract.eq.1) then
+           den1_l = 0.
+           den0_l(1) = 1.
+           den0_l(2:dofs_per_node) = 0.
+        else
+           den0_l = 0.
+           den1_l(1) = 1.
+           den1_l(2:dofs_per_node) = 0.
+        endif
+     endif
+
+     call get_node_data(te_v,i,te1_l)
+     call get_node_data(te_field(0),i,te0_l)
+     call get_node_data(ti_field(0),i,ti0_l)
+     if(ipressplit.eq.1 .and. ipres.eq.1) then
+        call get_node_data(ti_v,i,ti1_l)
+     else
+        ti1_l = te1_l*(1.-pefac)/pefac
+     endif
+
+     if(linear.eq.1 .or. eqsubtract.eq.1) then
+        call calc_lin_electron_pressure(pe1_l, te0_l, den0_l, te1_l, den1_l)
+        call calc_lin_pressure(p1_l, te0_l, ti0_l, den0_l, te1_l, ti1_l, den1_l)
+     else
+        call calc_tot_electron_pressure(pe1_l,te1_l,den1_l)
+        call calc_tot_pressure(p1_l, te1_l, ti1_l, den1_l)
+     endif
+
+     call set_node_data(p_v,i,p1_l)
+     if(ipres.ge.1) then
+        call set_node_data(pe_v,i,pe1_l)
+     endif
+
+
+   enddo
+
+
+   return
+ end subroutine get_pressures
 end module time_step
 ! calc_electron_temperature
 ! ~~~~~~~~~~~~~~~~~~~~~~
@@ -2732,3 +3014,129 @@ subroutine calc_lin_ion_temperature(ti, pres0, pe0, n0, pres1, pe1, n1)
      return
 
 end subroutine calc_lin_ion_temperature
+! ~~~~~~~~~~~~~~~~~~~~~~
+!
+!======================================================================
+subroutine calc_tot_electron_pressure(pe, te0, n0)
+  use basic
+
+  implicit none
+
+  vectype, intent(out), dimension(dofs_per_node) :: pe
+  vectype, intent(in), dimension(dofs_per_node) :: te0, n0
+
+     pe(1) = te0(1)*n0(1)
+     pe(2) = te0(2)*n0(1) + te0(1)*n0(2)
+     pe(3) = te0(3)*n0(1) + te0(1)*n0(3)
+     pe(4) = te0(4)*n0(1) + 2.*te0(2)*n0(2) + te0(1)*n0(4) 
+     pe(5) = te0(5)*n0(1) + te0(3)*n0(2)  &
+           + te0(2)*n0(3) + te0(1)*n0(5)
+     pe(6) = te0(6)*n0(1) + 2.*te0(3)*n0(3) + te0(1)*n0(6)
+
+     return
+
+end subroutine calc_tot_electron_pressure
+! calc_tot_pressure
+! ~~~~~~~~~~~~~~~~~~~~~~
+!
+! calculates the total pressure
+!======================================================================
+subroutine calc_tot_pressure(pres0, te0, ti0, n0)
+  use basic
+
+  implicit none
+
+  vectype, intent(in), dimension(dofs_per_node)  :: te0, ti0, n0
+  vectype, intent(out), dimension(dofs_per_node) :: pres0
+  vectype, dimension(dofs_per_node) :: tepti
+
+     tepti = te0 + ti0
+
+     pres0(1) = tepti(1)*n0(1)
+     pres0(2) = tepti(2)*n0(1) + tepti(1)*n0(2)
+     pres0(3) = tepti(3)*n0(1) + tepti(1)*n0(3)
+     pres0(4) = tepti(4)*n0(1) + 2.*tepti(2)*n0(2) + tepti(1)*n0(4) 
+     pres0(5) = tepti(5)*n0(1) + tepti(3)*n0(2)  &
+              + tepti(2)*n0(3) + tepti(1)*n0(5)
+     pres0(6) = tepti(6)*n0(1) + 2.*tepti(3)*n0(3) + tepti(1)*n0(6)
+
+     return
+
+end subroutine calc_tot_pressure
+subroutine calc_lin_electron_pressure(pe, te0, n0, te1, n1)
+  use basic
+
+  implicit none
+
+  vectype, intent(out), dimension(dofs_per_node) :: pe
+  vectype, intent(in), dimension(dofs_per_node) :: te0, n0, te1, n1
+
+     pe(1) = (te0(1)+te1(1))*(n0(1)+n1(1)) &
+           -  te0(1)*n0(1)
+
+     pe(2) = (te0(2)+te1(2))*(n0(1)+n1(1)) &
+           + (te0(1)+te1(1))*(n0(2)+n1(2)) &
+           -  te0(2)*n0(1) - te0(1)*n0(2)
+ 
+
+     pe(3) = (te0(3)+te1(3))*(n0(1)+n1(1)) &
+           + (te0(1)+te1(1))*(n0(3)+n1(3)) &
+           -  te0(3)*n0(1) - te0(1)*n0(3)
+
+     pe(4) = (te0(4)+te1(4))*(n0(1)+n1(1)) &
+           + 2.*(te0(2)+te1(2))*(n0(2)+n1(2)) &
+           + (te0(1)+te1(1))*(n0(4)+n1(4))    &
+           - te0(4)*n0(1) - 2.*te0(2)*n0(2) - te0(1)*n0(4)
+
+     pe(5) = (te0(5)+te1(5))*(n0(1)+n1(1)) &
+           + (te0(3)+te1(3))*(n0(2)+n1(2)) &
+           + (te0(2)+te1(2))*(n0(3)+n1(3)) &
+           + (te0(1)+te1(1))*(n0(5)+n1(5)) &
+           - te0(5)*n0(1) - te0(3)*n0(2) -  te0(2)*n0(3) - te0(1)*n0(5)
+
+     pe(6) = (te0(6)+te1(6))*(n0(1)+n1(1)) &
+           + 2.*(te0(3)+te1(3))*(n0(3)+n1(3)) &
+           + (te0(1)+te1(1))*(n0(6)+n1(6)) &
+           - te0(6)*n0(1) - 2.*te0(3)*n0(3) - te0(1)*n0(6)
+
+     return
+
+end subroutine calc_lin_electron_pressure
+! calc_linearized pressure
+! ~~~~~~~~~~~~~~~~~~~~~~
+!
+! calculates the linearized pressure
+!======================================================================
+subroutine calc_lin_pressure(pres1, te0, ti0, n0, te1, ti1, n1)
+  use basic
+
+  implicit none
+
+  vectype, intent(in), dimension(dofs_per_node)  :: te0, ti0, n0, te1, ti1, n1
+  vectype, intent(out), dimension(dofs_per_node) :: pres1
+  vectype, dimension(dofs_per_node) :: tepti, tepti0, nt
+
+     tepti0 = te0 + ti0
+     tepti  = te0 + te1 + ti0 + ti1
+     nt = n0 + n1
+
+     pres1(1) = tepti(1)*nt(1) - tepti0(1)*n0(1)
+     pres1(2) = tepti(2)*nt(1) + tepti(1)*nt(2) &
+             -  tepti0(2)*n0(1)- tepti0(1)*n0(2)
+     pres1(3) = tepti(3)*nt(1) + tepti(1)*nt(3) &
+              - tepti0(3)*n0(1)- tepti0(1)*n0(3)
+     pres1(4) = tepti(4)*nt(1) + 2.*tepti(2)*nt(2) + tepti(1)*nt(4) &
+              - tepti0(4)*n0(1)- 2.*tepti0(2)*n0(2)- tepti0(1)*n0(4)
+     pres1(5) = tepti(5)*nt(1) + tepti(3)*nt(2)  &
+              + tepti(2)*nt(3) + tepti(1)*nt(5)  &
+              - tepti0(5)*n0(1)- tepti0(3)*n0(2) &
+              - tepti0(2)*n0(3)- tepti0(1)*n0(5)
+     pres1(6) = tepti(6)*nt(1) + 2.*tepti(3)*nt(3) + tepti(1)*nt(6) &
+              - tepti0(6)*n0(1)- 2.*tepti0(3)*n0(3)- tepti0(1)*n0(6)
+
+
+
+
+     return
+
+end subroutine calc_lin_pressure

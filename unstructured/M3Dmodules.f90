@@ -182,7 +182,9 @@ module basic
   integer :: numvar      ! 1 = 2-field; 2 = reduced MHD; 3 = compressible MHD
   integer :: idens       ! evolve density
   integer :: ipres       ! evolve total and electron pressures separately
-  integer :: itemp       ! solve separate equation for electron and ion temperatures
+  integer :: ipressplit  ! separate the pressure (or temperature) solves from the field solves
+  integer :: itemp       ! advance pressures for itemp=0, Temperatures for itemp=1
+  integer :: imode       ! specifies which of the 4 modes of treating pressure (and temperature) for ipressplit=1
   integer :: imp_bf      ! include bf implicitly
   integer :: gyro        ! include gyroviscosity
   integer :: jadv        ! 1 = use current density equation, not flux equation
@@ -373,6 +375,8 @@ module arrays
   vectype, dimension(dofs_per_node) ::   p1_l,   p0_l
   vectype, dimension(dofs_per_node) ::  te1_l,  te0_l
   vectype, dimension(dofs_per_node) ::  ti1_l,  ti0_l
+  vectype, dimension(dofs_per_node) ::  qe1_l,  qe0_l
+  vectype, dimension(dofs_per_node) ::  qi1_l,  qi0_l
 
 
 contains
