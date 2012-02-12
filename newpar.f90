@@ -159,7 +159,7 @@ Program Reducedquintic
      if(isplitstep.eq.1) then
         velold_vec = vel_vec
         if(idens.eq.1) denold_vec = den_vec
-        if(ipres.eq.1) presold_vec = pres_vec
+        if(ipres.eq.1 .or. ipressplit.eq.1) presold_vec = pres_vec
      endif
 
   case(1)
@@ -1167,10 +1167,32 @@ subroutine space(ifirstcall)
      vecsize_vel = numvar
      vecsize_n = 1
      vecsize_p = 1
+    if(ipressplit.eq.1 .and. numvar.eq.3 .and. linear.eq.0 .and. eqsubtract.eq.0) then
+        if(ipres.eq.0 .and. itemp.eq.0) then  !split pressure solve from field solve
+           imode = 1
+           vecsize_phi = 2
+           vecsize_p   = 1
+        endif
+        if(ipres.eq.0 .and. itemp.eq.1) then  !Solve for Temperature instead of Pressure
+           imode = 2
+           vecsize_phi = 2
+           vecsize_p   = 1
+        endif
+        if(ipres.eq.1 .and. itemp.eq.0) then  !electron and total pressures solved together
+           imode = 3
+           vecsize_phi = 2
+           vecsize_p   = 2
+        endif
+        if(ipres.eq.1 .and. itemp.eq.1) then  !electron and ion Temperatures solved together
+           imode = 4
+           vecsize_phi = 2
+           vecsize_p   = 2
+        endif
+    endif
   else
      vecsize_phi  = numvar*2 + idens + ipres
   endif
-  vecsize_t = 1
+  vecsize_t = vecsize_p
 
   ! add electrostatic potential equation
   if(jadv.eq.0 .and. i3d.eq.1) vecsize_phi = vecsize_phi + 1
@@ -1206,6 +1228,10 @@ subroutine space(ifirstcall)
      if(vecsize_vel.gt.3 .and. vecsize_vel.ne.vecsize_phi) then
         call createdofnumbering(vecsize_vel, iper, jper, &
              vecsize_vel*dofs_per_node, 0, 0, 0, maxdofsn)
+     endif
+     if(vecsize_p.gt.3 .and. vecsize_p.ne.vecsize_phi) then
+        call createdofnumbering(vecsize_p, iper, jper, &
+             vecsize_p*dofs_per_node, 0, 0, 0, maxdofsn)
      endif
   endif ! on firstcall
 #endif
@@ -1256,7 +1282,7 @@ subroutine space(ifirstcall)
         call create_vector(veloldn_vec,  vecsize_vel)
         call create_vector(r4_vec,       vecsize_vel)
 
-        if(ipres.eq.1) then
+        if(ipres.eq.1 .or. ipressplit.eq.1) then
            call create_vector(pres_vec,    vecsize_p)
            call create_vector(presold_vec, vecsize_p)
            call create_vector(qp4_vec,     vecsize_p)
@@ -1270,10 +1296,8 @@ subroutine space(ifirstcall)
         call create_vector(b2_vel, vecsize_vel)
      endif
 
-     call create_vector(te_vec,    vecsize_t)
-     call create_vector(teold_vec, vecsize_t)
-     call create_vector(ti_vec,    vecsize_t)
-     call create_vector(tiold_vec, vecsize_t)
+     call create_vector(pret_vec,    vecsize_t)
+     call create_vector(pretold_vec, vecsize_t)
 
      call create_auxiliary_fields
   endif
@@ -1315,7 +1339,7 @@ subroutine space(ifirstcall)
 
 
   ! assign pointers to proper vectors
-  if(myrank.eq.0 .and. iprint.ge.1) print *, ' assinging...'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' assigning...'
   call assign_variables
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, " Exiting space."
@@ -1538,43 +1562,23 @@ subroutine arrayresizevec(vec, ivecsize)
      return
   endif
      
-  call checksameppplvec(te_vec%data, vec, i)
+  call checksameppplvec(pret_vec%data, vec, i)
   if(i .eq. 1) then
-     print *, "te"
-     if(allocated(te_vec%data)) deallocate(te_vec%data, STAT=i)
-     allocate(te_vec%data(ivecsize))
-     te_vec%data = 0.
-     call updateids(vec, te_vec%data)
+     print *, "temp"
+     if(allocated(pret_vec%data)) deallocate(pret_vec%data, STAT=i)
+     allocate(pret_vec%data(ivecsize))
+     pret_vec%data = 0.
+     call updateids(vec, pret_vec%data)
      return
   endif
   
-  call checksameppplvec(teold_vec%data, vec, i)
+  call checksameppplvec(pretold_vec%data, vec, i)
   if(i .eq. 1) then
-     print *, "teold"
-     if(allocated(teold_vec%data)) deallocate(teold_vec%data, STAT=i)
-     allocate(teold_vec%data(ivecsize))
-     teold_vec%data = 0.
-     call updateids(vec, teold_vec%data)
-     return
-  endif
-     
-  call checksameppplvec(ti_vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "ti"
-     if(allocated(ti_vec%data)) deallocate(ti_vec%data, STAT=i)
-     allocate(ti_vec%data(ivecsize))
-     ti_vec%data = 0.
-     call updateids(vec, ti_vec%data)
-     return
-  endif
-  
-  call checksameppplvec(tiold_vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "tiold"
-     if(allocated(tiold_vec%data)) deallocate(tiold_vec%data, STAT=i)
-     allocate(tiold_vec%data(ivecsize))
-     tiold_vec%data = 0.
-     call updateids(vec, tiold_vec%data)
+     print *, "tempold"
+     if(allocated(pretold_vec%data)) deallocate(pretold_vec%data, STAT=i)
+     allocate(pretold_vec%data(ivecsize))
+     pretold_vec%data = 0.
+     call updateids(vec, pretold_vec%data)
      return
   endif
   

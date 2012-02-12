@@ -284,8 +284,11 @@ subroutine calculate_auxiliary_fields(ilin)
 
   end do
 
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' before bdotgradp solve'
   call newvar_solve(bdotgradp%vec, mass_mat_lhs)
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' before bdotgradt solve'
   call newvar_solve(bdotgradt%vec, mass_mat_lhs)
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' before torque_density solve'
   call newvar_solve(torque_density_em%vec, mass_mat_lhs)
 !!$  call newvar_solve(torque_density_ntv%vec, mass_mat_lhs)
 

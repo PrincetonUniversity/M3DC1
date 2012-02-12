@@ -73,7 +73,7 @@ module m3dc1_nint
   vectype, dimension(MAX_PTS) :: temp79a, temp79b, temp79c, &
        temp79d, temp79e, temp79f
   vectype, dimension(MAX_PTS, OP_NUM) :: sz79
-  vectype, dimension(MAX_PTS, OP_NUM) :: tm79, ni79, nei79, b2i79
+  vectype, dimension(MAX_PTS, OP_NUM) :: tm79, ni79, nei79, b2i79, bi79
   vectype, dimension(MAX_PTS, OP_NUM) :: ps179, bz179, pe179, n179, & 
        ph179, vz179, ch179, p179, ne179
   vectype, dimension(MAX_PTS, OP_NUM) :: pst79, bzt79, pet79, nt79, &
@@ -90,6 +90,7 @@ module m3dc1_nint
   vectype, dimension(MAX_PTS, OP_NUM) :: pstx79, bztx79, bftx79
   vectype, dimension(MAX_PTS, OP_NUM) :: te179, te079, tet79
   vectype, dimension(MAX_PTS, OP_NUM) :: ti179, ti079, tit79
+  vectype, dimension(MAX_PTS, OP_NUM) :: q179, q079, qt79, qe179, qe079, qet79
 
   ! precalculated terms
    real, private :: fterm(MAX_PTS, coeffs_per_element, OP_NUM)
@@ -682,6 +683,7 @@ contains
 #else
      b2i79(1:npoints,OP_1 ) = 1./temp79a(1:npoints)
 #endif
+     bi79(1:npoints,OP_1)  = sqrt(b2i79(1:npoints,OP_1))
      b2i79(:,OP_DR) = ri2_79 * &
           (pstx79(:,OP_DR)*pstx79(:,OP_DRR)+pstx79(:,OP_DZ)*pstx79(:,OP_DRZ) &
           +bztx79(:,OP_1 )*bztx79(:,OP_DR ))

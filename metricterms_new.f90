@@ -8064,7 +8064,35 @@ vectype function p1psifpnkappar(e,f,g,h,i,fac1,fac2)
   return
 end function p1psifpnkappar
 
+! P1qpsikappar
+! ==============
+vectype function p1qpsikappar(e,f,g,i,k)
 
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,i,k
+  vectype :: temp
+
+  if(gam.le.1.) then
+     p1qpsikappar = 0.
+     return
+  end if
+
+  temp79a = ri_79*k(:,OP_1)*i(:,OP_1)
+  
+  if(surface_int) then
+     temp = 0.
+  else
+     temp = int4(temp79a,g(:,OP_DZ),e(:,OP_DR),f(:,OP_1)) &
+          - int4(temp79a,g(:,OP_DR),e(:,OP_DZ),f(:,OP_1)) 
+  end if
+
+  p1qpsikappar = (gam - 1.) * temp
+  return
+end function p1qpsikappar
 
 ! P1bfkappar
 ! ==========
@@ -8122,7 +8150,40 @@ vectype function p1bfkappar(e,f,g,h,i,j,k)
 end function p1bfkappar
 
 
-! P1bfkappar
+! P1qbkappar
+! ==========
+vectype function p1qbkappar(e,f,g,i,j)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,i,j
+  vectype :: temp
+
+  if(gam.le.1.) then
+     p1qbkappar = 0.
+     return
+  end if
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  if(surface_int) then
+     temp79a = 0.
+  else
+     temp79a =  ri2_79*i(:,OP_1)*j(:,OP_1)*g(:,OP_1)
+
+
+     temp = -int3(temp79a,e(:,OP_DP),f(:,OP_1 )) 
+  end if
+#else
+  temp = 0.
+#endif
+
+  p1qbkappar = (gam - 1.) * temp
+  return
+end function p1qbkappar
+
 ! ==========
 vectype function p1bfpnkappar(e,f,g,h,i,fac1,fac2)
   use basic
@@ -8291,17 +8352,50 @@ vectype function p1ffpnkappar(e,f,g,h,i)
 end function p1ffpnkappar
 
 
-
-! P1kappax
-! ========
-vectype function p1kappax(e,f,g,h,i)
-
+! P1qfkappar
+! ============
+vectype function p1qfkappar(e,f,g,h,i)
   use basic
   use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i
+  vectype :: temp
+
+  if(gam.le.1.) then
+     p1qfkappar = 0.
+     return
+  end if
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  if(surface_int) then
+     temp = 0.
+  else
+     temp79a = i(:,OP_1)*h(:,OP_1)
+
+
+     temp = int4(temp79a,e(:,OP_DR),g(:,OP_DRP),f(:,OP_1)) &
+          + int4(temp79a,e(:,OP_DZ),g(:,OP_DZP),f(:,OP_1))
+  end if
+#else
+  temp = 0.
+#endif
+
+  p1qfkappar = (gam - 1.) * temp
+  return
+end function p1qfkappar
+
+! P1kappax
+! ========
+vectype function p1kappax(e,f,g,i,j)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,i,j
   vectype :: temp
 
   if(gam.le.1.) then
@@ -8314,11 +8408,7 @@ vectype function p1kappax(e,f,g,h,i)
   else
      temp79a = ri_79*i(:,OP_1)*(e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))
 
-     temp79b = ri_79*i(:,OP_1)*(e(:,OP_DZ)*h(:,OP_DR) - e(:,OP_DR)*h(:,OP_DZ))
-
-     temp = &
-          (int3(g(:,OP_1),h(:,OP_1),temp79a)  &
-          +int3(f(:,OP_1),g(:,OP_1),temp79b))
+     temp = int3(g(:,OP_1),i(:,OP_1),temp79a) 
   endif
 
   p1kappax = (gam - 1.) * temp
@@ -11184,4 +11274,255 @@ vectype function teffkappar(e,f,g,h,j,k)
   teffkappar = (gam - 1.) * temp
   return
 end function teffkappar
+vectype function b3peeta(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype :: temp
+
+  if(surface_int) then
+     temp = 0.
+  else
+     temp = int3(e(:,OP_1),f(:,OP_1),g(:,OP_1))
+  end if
+
+  b3peeta = temp
+  return
+end function b3peeta
+
+vectype function q1ppsi(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype :: temp
+
+
+  if(surface_int) then
+     temp = 0.
+  else
+     temp = int5(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1)) &
+          - int5(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1))
+  end if
+
+  q1ppsi =   temp
+  return
+end function q1ppsi
+
+vectype function q1pb(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype :: temp
+
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  if(surface_int) then
+     temp = 0.
+  else
+     temp = int5(ri2_79,e(:,OP_1),f(:,OP_DP),g(:,OP_1),h(:,OP_1))
+  end if
+#else
+  temp = 0.
+#endif
+
+  q1pb =   temp
+  return
+end function q1pb
+
+vectype function q1pf(e,f,g,h)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype :: temp
+
+
+#if defined(USE3D) || defined(USECOMPLEX)
+
+  if(surface_int) then
+     temp = 0.
+  else
+
+     temp = - int4(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1)) &
+            - int4(e(:,OP_1),f(:,OP_DR),g(:,OP_DRP),h(:,OP_1))
+  end if
+#else
+  temp = 0.
+#endif
+
+  q1pf =   temp
+  return
+end function q1pf
+vectype function t3tneta(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype :: temp
+
+  if(surface_int) then
+     temp = 0.
+  else
+     temp = int3(e(:,OP_1),f(:,OP_1),g(:,OP_1))
+  end if
+
+  t3tneta = temp
+  return
+end function t3tneta
+vectype function t3tn(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype :: temp
+
+  if(surface_int) then
+     temp = 0.
+  else
+     temp = int2(e(:,OP_1),f(:,OP_1))
+  end if
+
+  t3tn = temp
+  return
+end function t3tn
+vectype function t3tnu(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+  vectype :: temp
+
+  select case(ivform)
+  case(0)
+!==> This needs to be redone
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = int4(ri_79,e(:,OP_1),f(:,OP_DR),h(:,OP_DZ)) &
+             - int4(ri_79,e(:,OP_1),f(:,OP_DZ),h(:,OP_DR))
+     end if
+
+  case(1)
+     if(surface_int) then
+!!$        temp = int5(r_79,e(:,OP_1),f(:,OP_1),norm79(:,1),h(:,OP_DZ)) &
+!!$             - int5(r_79,e(:,OP_1),f(:,OP_1),norm79(:,2),h(:,OP_DR))
+        temp = 0.
+     else
+        temp = int5(r_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),h(:,OP_DZ)) &
+             - int5(r_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_1),h(:,OP_DR))
+
+        if(itor.eq.1) then
+           temp = temp + &
+                2.*(gam-1.)*int4(e(:,OP_1),f(:,OP_1),g(:,OP_1),h(:,OP_DZ))
+        endif
+     end if
+  end select
+
+  t3tnu = temp
+
+  return
+end function t3tnu
+vectype function t3tnv(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+  vectype :: temp
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  select case(ivform)
+  case(0)
+     if(surface_int) then
+        temp = 0.
+     else
+!==> This needs to be checked
+        temp = - int4(ri2_79,e(:,OP_1),f(:,OP_DP),h(:,OP_1)) &
+             - gam*int4(ri2_79,e(:,OP_1),f(:,OP_1),h(:,OP_DP))
+     endif
+  case(1)
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = - int4(e(:,OP_1),f(:,OP_DP),g(:,OP_1),h(:,OP_1)) &
+             - (gam-1.)*int4(e(:,OP_1),f(:,OP_1),g(:,OP_1),h(:,OP_DP))
+     endif
+  end select
+#else
+  temp = 0.
+#endif
+
+  t3tnv = temp
+
+  return
+end function t3tnv
+vectype function t3tnchi(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+  vectype :: temp
+
+  select case(ivform)
+  case(0)
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = gam* &
+             (int3(e(:,OP_DZ),f(:,OP_1),h(:,OP_DZ))  &
+             +int3(e(:,OP_DR),f(:,OP_1),h(:,OP_DR))) &
+             +(gam-1.)* &
+             (int3(e(:,OP_1),f(:,OP_DZ),h(:,OP_DZ))  &
+             +int3(e(:,OP_1),f(:,OP_DR),h(:,OP_DR)))
+     end if
+     
+  case(1)
+     if(surface_int) then
+!!$        temp = &
+!!$             - int5(ri2_79,e(:,OP_1),f(:,OP_1),norm79(:,1),h(:,OP_DR)) &
+!!$             - int5(ri2_79,e(:,OP_1),f(:,OP_1),norm79(:,2),h(:,OP_DZ))
+        temp = 0.
+     else
+        temp79a = -(f(:,OP_DR)*h(:,OP_DR) + f(:,OP_DZ)*h(:,OP_DZ))  &
+                  - (gam-1.)*f(:,OP_1)*h(:,OP_GS)
+     
+        temp = int4(ri2_79,temp79a,e(:,OP_1),g(:,OP_1))
+     endif
+  end select
+
+  t3tnchi = temp
+
+  return
+end function t3tnchi
 end module metricterms_new

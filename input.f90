@@ -192,8 +192,10 @@ subroutine set_defaults
        "1: Include density equation", model_grp)
   call add_var_int("ipres", ipres, 0, &
        "1: Include total pressure equation", model_grp)
+  call add_var_int("ipressplit", ipressplit, 0, &
+       "1: Separate pressure solves from field solves", model_grp)
   call add_var_int("itemp", itemp, 0, &
-       "1: Include e and i temperature equation", model_grp)
+       "1: Advance Temperatures rather than Pressures", model_grp)
   call add_var_int("gyro", gyro, 0, &
        "1: Include Braginskii gyroviscosity", model_grp)
   call add_var_int("igauge", igauge, 0, "", model_grp)
