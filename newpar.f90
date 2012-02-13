@@ -1256,6 +1256,7 @@ subroutine space(ifirstcall)
      call create_field(visc_field)
      call create_field(visc_c_field)
      call create_field(sigma_field)
+     call create_field(q_field)
      call create_field(bf_field(0))
      call create_field(bf_field(1))
      if(ibootstrap.gt.0) call create_field(visc_e_field)
@@ -1294,10 +1295,10 @@ subroutine space(ifirstcall)
         
         call create_vector(b1_vel, vecsize_vel)
         call create_vector(b2_vel, vecsize_vel)
-     endif
 
-     call create_vector(pret_vec,    vecsize_t)
-     call create_vector(pretold_vec, vecsize_t)
+        call create_vector(pret_vec,    vecsize_t)
+        call create_vector(pretold_vec, vecsize_t)
+     endif
 
      call create_auxiliary_fields
   endif

@@ -445,6 +445,18 @@ subroutine set_defaults
   call add_var_double("pellet_rate", pellet_rate, 0., "", misc_grp)
   call add_var_double("pellet_var", pellet_var, 1., "", misc_grp)
 
+  ! gaussian heat source
+  call add_var_int("igaussian_heat_source", igaussian_heat_source, 0, &
+       "Include gaussian heat source", misc_grp)
+  call add_var_double("ghs_x", ghs_x, 0., &
+       "R coordinate of gaussian heat source", misc_grp)
+  call add_var_double("ghs_z", ghs_z, 0., &
+       "Z coordinate of gaussian heat source", misc_grp)
+  call add_var_double("ghs_rate", ghs_rate, 0., &
+       "Amplitude of gaussian heat source", misc_grp)
+  call add_var_double("ghs_var", ghs_var, 1., &
+       "Variance of gaussian heat source", misc_grp)
+
   call add_var_int("ionization", ionization, 0, "", misc_grp)
   call add_var_double("ionization_rate", ionization_rate, 0., "", misc_grp)
   call add_var_double("ionization_temp", ionization_temp, 0.01, "", misc_grp)
@@ -551,6 +563,11 @@ subroutine validate_input
         call safestop(1)
      endif
   endif
+
+  if(amupar.ne.0 .and. ivform.eq.0) then
+     if(myrank.eq.0) print *, "Parallel viscosity not implemented for ivform=0"
+     call safestop(1)
+  end if
   
   ! calculate pfac (pe*pfac = electron pressure)
   if(p0.gt.0.) then

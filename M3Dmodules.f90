@@ -114,6 +114,8 @@ module basic
   real :: sink1_rate, sink2_rate ! rate of sinks
   real :: sink1_var, sink2_var   ! spatial dispersion of sinks
 
+  integer :: igaussian_heat_source
+  real :: ghs_x, ghs_z, ghs_rate, ghs_var
 
   ! general equilibrium parameters
   integer :: irestart ! 1 = reads restart file as initial condition
@@ -336,7 +338,8 @@ module arrays
 
   ! Arrays containing auxiliary variables
   type(field_type) :: jphi_field, vor_field, com_field
-  type(field_type) :: resistivity_field, kappa_field, sigma_field
+  type(field_type) :: resistivity_field, kappa_field
+  type(field_type) :: sigma_field, Q_field
   type(field_type) :: visc_field, visc_c_field, visc_e_field
 
   type(field_type) :: temporary_field

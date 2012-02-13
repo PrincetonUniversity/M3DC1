@@ -1400,7 +1400,26 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                  keyword_set(linear), pts, keyword_set(equilibrium), $
                  keyword_set(complex), op)
 
-
+   if(isubeq eq 1 and (not keyword_set(linear)) and (trange[0] ge 0)) $
+     then begin
+       data0 = read_field(name,x,y,t, slices=-1, mesh=mesh, $
+                          filename=filename, points=pts, $
+                          rrange=xrange, zrange=yrange, complex=0, $
+                          h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
+                          diff=diff, operation=op, mask=mask, $
+                          symbol=symbol, mks=mks, cgs=cgs, $
+                          units=units, dimensions=d)
+       data1 = read_field(name,x,y,t, slices=time, mesh=mesh, $
+                          filename=filename, points=pts, mks=mks, cgs=cgs, $
+                          rrange=xrange, zrange=yrange, complex=complex, $
+                          h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
+                          diff=diff, operation=op, linfac=linfac, $
+                          /linear, last=last,symbol=symbol, $
+                          units=units, dimensions=d, phi=phi0)
+       data = data0 + data1
+       return, data
+   endif
+   
    ; check if this is a primitive field
    file_id = h5f_open(filename)
    time_group_id = h5g_open(file_id, time_name(trange[0]))
@@ -1450,7 +1469,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            if(n_elements(phi0) ne 0) then begin
                print, 'evaluating at angle ', phi0, ' with ntor = ', ntor
                data = data* $
-                 complex(cos(ntor*phi0*!pi/180.), -sin(ntor*phi0*!pi/180.))
+                 complex(cos(ntor*phi0*!pi/180.), sin(ntor*phi0*!pi/180.))
            end
        endif else begin
            print, '  reading real field'
@@ -1658,27 +1677,44 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
   endif else if(strcmp('electron temperature', name, /fold_case) eq 1) or $
     (strcmp('te', name, /fold_case) eq 1) then begin
 
-      Pe1 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
-                       filename=filename, points=pts, linfac=linfac, $
+      Pe0 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
+                       filename=filename, points=pts, $
                        rrange=xrange, zrange=yrange, linear=linear, $
-                      complex=complex)
+                       /equilibrium)
 
-      n1 = read_field('ne', x, y, t, slices=time, mesh=mesh, $
-                      filename=filename, points=pts, linfac=linfac, $
+      n0 = read_field('ne', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange, linear=linear, $
-                      complex=complex)
+                      /equilibrium)
 
-      if(keyword_set(linear) and (isubeq eq 1) and (time ge 0)) then begin
-          Pe0 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
+
+      if(keyword_set(isubeq eq 1) and keyword_set(linear) and time ge 0) $
+        then begin
+          Pe1 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
                            filename=filename, points=pts, $
-                           rrange=xrange, zrange=yrange, /equilibrium)
-
-          n0 = read_field('ne', x, y, t, slices=time, mesh=mesh, $
-                          filename=filename, points=pts,  $
-                          rrange=xrange, zrange=yrange, /equilibrium)
-
+                           rrange=xrange, zrange=yrange, /linear, $
+                           complex=complex, phi=phi0)
+          
+          n1 = read_field('ne', x, y, t, slices=time, mesh=mesh, $
+                          filename=filename, points=pts, $
+                          rrange=xrange, zrange=yrange, /linear, $
+                          complex=complex, phi=phi0)
           data = pe1/n0 - pe0*n1/n0^2
-      endif else data = pe1/n1
+      endif else begin
+          data = pe0/n0
+      endelse
+
+;       if(keyword_set(linear) and (isubeq eq 1) and (time ge 0)) then begin
+;           Pe0 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
+;                            filename=filename, points=pts, $
+;                            rrange=xrange, zrange=yrange, /equilibrium)
+
+;           n0 = read_field('ne', x, y, t, slices=time, mesh=mesh, $
+;                           filename=filename, points=pts,  $
+;                           rrange=xrange, zrange=yrange, /equilibrium)
+
+;           data = pe1/n0 - pe0*n1/n0^2
+;       endif else data = pe1/n1
 
       symbol = '!8T!De!N!X'
       d = dimensions(/temperature, _EXTRA=extra)
@@ -1690,7 +1726,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
      (strcmp('ne', name, /fold_case) eq 1) then begin
 
        n = read_field('den', x, y, t, slices=time, mesh=mesh, $
-                       filename=filename, points=pts, linfac=linfac, $
+                       filename=filename, points=pts, $
                        rrange=xrange, zrange=yrange, linear=linear, $
                       complex=complex, phi=phi0)
        zeff = read_parameter("zeff", filename=filename)
@@ -1706,7 +1742,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    endif else if(strcmp('displacement', name, /fold_case) eq 1) then begin
 
        Te1 = read_field('Te', x, y, t, slices=time, mesh=mesh, $
-                        filename=filename, points=pts, linfac=linfac, $
+                        filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, linear=linear, $
                        complex=complex, phi=phi0)
        
@@ -3408,24 +3444,30 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    endelse
 
    endelse
- 
-   ; for eqsubtract=1 fields with linear option not set,
-   ; add in base field
-   if((max(trange) ge 0) and $
-      (isubeq eq 1) and (not keyword_set(linear)))  then begin
-       print, ' reading base field', trange
-       base = read_field(name, x, y, t, slices=-1, mesh=mesh, $
-                         filename=filename, points=pts, $
-                         rrange=xrange, zrange=yrange, $
-                         h_symmetry=h_symmetry,v_symmetry=v_symmetry,$
-                         operation=op, mask=mask, $
-                         last=0)
-               
-       if(n_elements(linfac) eq 0) then linfac=1.
-       for i=trange[0], trange[1] do begin              
-           data[i-trange[0],*,*] = linfac*data[i-trange[0],*,*] + base
-       end
+
+   ; scale by linfac
+   if((ilin eq 1) and (n_elements(linfac) ne 0) and keyword_set(linear)) $
+     then begin
+       data = data*linfac
    end
+   
+ 
+   ; for eqsubtract=1 fields with linear option not set add in base field
+;    if((max(trange) ge 0) and $
+;       (isubeq eq 1) and (not keyword_set(linear)))  then begin
+;        print, ' reading base field', trange
+;        base = read_field(name, x, y, t, slices=-1, mesh=mesh, $
+;                          filename=filename, points=pts, $
+;                          rrange=xrange, zrange=yrange, $
+;                          h_symmetry=h_symmetry,v_symmetry=v_symmetry,$
+;                          operation=op, mask=mask, $
+;                          last=0)
+               
+;        if(n_elements(linfac) eq 0) then linfac=1.
+;        for i=trange[0], trange[1] do begin              
+;            data[i-trange[0],*,*] = linfac*data[i-trange[0],*,*] + base
+;        end
+;    end
 
    print, 'converting units, mks, cgs=', keyword_set(mks), keyword_set(cgs)
 
@@ -5469,12 +5511,11 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                           mask=mask, phi=phi0, time=realtime, $
                           complex=complex, operation=op, $
                           linfac=linfac, _EXTRA=ex)
+       if(n_elements(field) le 1) then return
        if(n_elements(units) eq 0) then units=u       
    endif else begin
        field = name
    endelse
-
-   if(n_elements(field) le 1) then return
 
    if(keyword_set(phase)) then begin
        field = atan(imaginary(field), real_part(field))*180./!pi
@@ -5494,8 +5535,6 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
        field[i] = 0.
    endif
 
-   if(n_elements(range) eq 0) then range = [min(field),max(field)]
-
    if(n_elements(mask_val) ne 0) then begin
        for k=0, nt-1 do begin
            field[k,*,*] = field[k,*,*] - mask*(field[k,*,*] - mask_val)
@@ -5503,6 +5542,8 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
    endif
 
    field = real_part(field)
+
+   if(n_elements(range) eq 0) then range = [min(field),max(field)]
 
    if(n_elements(cutx) gt 0) then begin
        dum = min(x-cutx,i,/absolute)

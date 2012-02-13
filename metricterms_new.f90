@@ -6973,6 +6973,27 @@ vectype function b3pe(e,f)
   return
 end function b3pe
 
+! B3q
+! ===
+vectype function b3q(e,f)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
+  vectype :: temp
+
+  if(surface_int) then
+     temp = 0.
+  else
+     temp = int2(e(:,OP_1),f(:,OP_1))
+  end if
+
+  b3q = temp
+  return
+end function b3q
 
 ! B3psipsieta
 ! ===========
@@ -8694,33 +8715,82 @@ subroutine PVS1(i,o)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: i
   vectype, intent(out), dimension(MAX_PTS) :: o
 
+  select case(ivform)
+  case(0)
+     o = 0.
+
+  case(1)
+
+     o = 0.
+     if(itor.eq.1) then
+        o = o - (1./3.)*i(:,OP_DZ)
+     endif
+  end select
+
+end subroutine PVS1
+
+
+! PVS1psipsi
+! ==========
+subroutine PVS1psipsi(i,j,k,o)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: i,j,k
+  vectype, intent(out), dimension(MAX_PTS) :: o
+
 
   select case(ivform)
   case(0)
      o = ri_79* &
-          (i(:,OP_DRZ) * (pst79(:,OP_DR)**2 - pst79(:,OP_DZ)**2) &
-          +pst79(:,OP_DR)*pst79(:,OP_DZ)*(i(:,OP_DZZ) - i(:,OP_DRR)))
+          (i(:,OP_DRZ) * (j(:,OP_DR)*k(:,OP_DR) - j(:,OP_DZ)*k(:,OP_DZ)) &
+          +j(:,OP_DR)*k(:,OP_DZ)*(i(:,OP_DZZ) - i(:,OP_DRR)))
         
      if(itor.eq.1) then
-        o = o + ri2_79*(pst79(:,OP_DZ) * &
-             (i(:,OP_DZ)*pst79(:,OP_DZ) + i(:,OP_DR)*pst79(:,OP_DR)) &
-             - i(:,OP_DZ)*bzt79(:,OP_1)**2)
+        o = o + ri2_79*(j(:,OP_DZ) * &
+             (i(:,OP_DZ)*k(:,OP_DZ) + i(:,OP_DR)*k(:,OP_DR)))
      end if
         
      o = o * ri2_79*b2i79(:,OP_1)
 
   case(1)
      o = r_79* &
-          (pst79(:,OP_DR)*pst79(:,OP_DZ)*(i(:,OP_DZZ) - i(:,OP_DRR)) &
-          -(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*i(:,OP_DRZ))
+          (j(:,OP_DR)*k(:,OP_DZ)*(i(:,OP_DZZ) - i(:,OP_DRR)) &
+          -(j(:,OP_DZ)*k(:,OP_DZ) - j(:,OP_DR)*k(:,OP_DR))*i(:,OP_DRZ))
      if(itor.eq.1) then
-        o = o + pst79(:,OP_DR)* &
-             (i(:,OP_DZ)*pst79(:,OP_DR) - i(:,OP_DR)*pst79(:,OP_DZ))
+        o = o + j(:,OP_DR)* &
+             (i(:,OP_DZ)*k(:,OP_DR) - i(:,OP_DR)*k(:,OP_DZ))
      endif
 
+     o = o * ri2_79*b2i79(:,OP_1)
+  end select
+
+end subroutine PVS1psipsi
+
+! PVS1psib
+! ========
+subroutine PVS1psib(i,j,k,o)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: i,j,k
+  vectype, intent(out), dimension(MAX_PTS) :: o
+
+  select case(ivform)
+  case(0)
+     o = 0.
+
+  case(1)
+
 #if defined(USE3D) || defined(USECOMPLEX)
-     o = o + bzt79(:,OP_1)* &
-          (pst79(:,OP_DZ)*i(:,OP_DZP) + pst79(:,OP_DR)*i(:,OP_DRP))
+     o = o + k(:,OP_1)* &
+          (j(:,OP_DZ)*i(:,OP_DZP) + j(:,OP_DR)*i(:,OP_DRP))
 #endif
 
      o = o * ri2_79*b2i79(:,OP_1)
@@ -8731,7 +8801,38 @@ subroutine PVS1(i,o)
      
   end select
 
-end subroutine PVS1
+end subroutine PVS1psib
+
+
+! PVS1bb
+! ======
+subroutine PVS1bb(i,j,k,o)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: i, j, k 
+  vectype, intent(out), dimension(MAX_PTS) :: o
+
+
+  select case(ivform)
+  case(0)
+     o = 0.
+     if(itor.eq.1) then
+        o = o - ri2_79*(i(:,OP_DZ)*j(:,OP_1)*k(:,OP_1))
+     end if
+        
+     o = o * ri2_79*b2i79(:,OP_1)
+
+  case(1)
+     o = 0.
+
+  end select
+
+end subroutine PVS1bb
+
 
 ! PVS2
 ! ====
@@ -8747,31 +8848,96 @@ subroutine PVS2(i,o)
 
   select case(ivform)
   case(0)
-     o = ri_79*bzt79(:,OP_1)* &
-          (i(:,OP_DZ)*pst79(:,OP_DR) - i(:,OP_DR)*pst79(:,OP_DZ))
+     o = 0.
+
+  case(1)
+
+#if defined(USE3D) || defined(USECOMPLEX)
+     o = -i(:,OP_DP)/3.
+#else
+     o = 0.
+#endif
+  end select
+
+end subroutine PVS2
+
+
+! PVS2psipsi
+! ==========
+subroutine PVS2psipsi(i,j,k,o)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: i,j,k
+  vectype, intent(out), dimension(MAX_PTS) :: o
+
+  o = 0.
+end subroutine PVS2psipsi
+
+
+! PVS2psib
+! ========
+subroutine PVS2psib(i,j,k,o)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: i, j, k
+  vectype, intent(out), dimension(MAX_PTS) :: o
+
+  select case(ivform)
+  case(0)
+     o = ri_79*k(:,OP_1)* &
+          (i(:,OP_DZ)*j(:,OP_DR) - i(:,OP_DR)*j(:,OP_DZ))
         
      if(itor.eq.1) then
-        o = o + 2.*ri2_79*bzt79(:,OP_1)*pst79(:,OP_DZ)*i(:,OP_1)
+        o = o + 2.*ri2_79*k(:,OP_1)*j(:,OP_DZ)*i(:,OP_1)
      endif
 
      o = o * ri2_79*b2i79(:,OP_1)
 
   case(1)
-     o = r_79*bzt79(:,OP_1)* &
-          (i(:,OP_DZ)*pst79(:,OP_DR) - i(:,OP_DR)*pst79(:,OP_DZ))
+     o = r_79*k(:,OP_1)* &
+          (i(:,OP_DZ)*j(:,OP_DR) - i(:,OP_DR)*j(:,OP_DZ))
 
+     o = o * ri2_79*b2i79(:,OP_1)
+  end select
+
+end subroutine PVS2psib
+
+! PVS2bb
+! ======
+subroutine PVS2bb(i,j,k,o)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: i, j, k
+  vectype, intent(out), dimension(MAX_PTS) :: o
+
+  select case(ivform)
+  case(0)
+     o = 0.
+
+  case(1)
 #if defined(USE3D) || defined(USECOMPLEX)
-     o = o + bzt79(:,OP_1)**2 * i(:,OP_DP)
+     o = j(:,OP_1)*k(:,OP_1)*i(:,OP_DP)
+#else
+     o = 0.
 #endif
 
      o = o * ri2_79*b2i79(:,OP_1)
-
-#if defined(USE3D) || defined(USECOMPLEX)
-     o = o - i(:,OP_DP)/3.
-#endif
   end select
 
-end subroutine PVS2
+end subroutine PVS2bb
+
 
 ! PVS3
 ! ====
@@ -8787,33 +8953,10 @@ subroutine PVS3(i,o)
 
   select case(ivform)
   case(0)
-     o = i(:,OP_DZZ)*pst79(:,OP_DR)**2 + i(:,OP_DRR)*pst79(:,OP_DZ)**2 &
-          - 2.*i(:,OP_DRZ)*pst79(:,OP_DR)*pst79(:,OP_DZ)
-  
-     if(itor.eq.1) then
-        o = o + ri_79*i(:,OP_DR)*bzt79(:,OP_1)**2
-     endif
-
-     o = o * ri2_79*b2i79(:,OP_1) - (1./3.)*i(:,OP_LP)
+     o = -(1./3.)*i(:,OP_LP)
 
   case(1)
-     o = -ri2_79* &
-          (pst79(:,OP_DZ)**2*i(:,OP_DZZ) + pst79(:,OP_DR)**2*i(:,OP_DRR) &
-          +2.*pst79(:,OP_DZ)*pst79(:,OP_DR)*i(:,OP_DRZ) &
-          -i(:,OP_GS)*(pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2)) 
-  
-     if(itor.eq.1) then
-        o = o + 2.*ri3_79*pst79(:,OP_DZ) * &
-             (i(:,OP_DZ)*pst79(:,OP_DR) - i(:,OP_DR)*pst79(:,OP_DZ))
-        
-     endif
-
-#if defined(USE3D) || defined(USECOMPLEX)
-     o = o + ri3_79*bzt79(:,OP_1) * &
-          (i(:,OP_DZP)*pst79(:,OP_DR) - i(:,OP_DRP)*pst79(:,OP_DZ))
-#endif
-
-     o = o * ri2_79*b2i79(:,OP_1) - (1./3.)*ri2_79*i(:,OP_GS)
+     o = -(1./3.)*ri2_79*i(:,OP_GS)
 
      if(itor.eq.1) then
         o = o + (1./3.)*ri3_79*i(:,OP_DR)
@@ -8821,6 +8964,102 @@ subroutine PVS3(i,o)
   end select
  
 end subroutine PVS3
+
+
+! PVS3psipsi
+! ==========
+subroutine PVS3psipsi(i,j,k,o)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: i,j,k
+  vectype, intent(out), dimension(MAX_PTS) :: o
+
+  select case(ivform)
+  case(0)
+     o = i(:,OP_DZZ)*j(:,OP_DR)*k(:,OP_DR) &
+       + i(:,OP_DRR)*j(:,OP_DZ)*k(:,OP_DZ) &
+          - 2.*i(:,OP_DRZ)*j(:,OP_DR)*k(:,OP_DZ)
+  
+     o = o * ri2_79*b2i79(:,OP_1)
+
+  case(1)
+     o = -ri2_79* &
+          (j(:,OP_DZ)*k(:,OP_DZ)*i(:,OP_DZZ) &
+          +j(:,OP_DR)*k(:,OP_DR)*i(:,OP_DRR) &
+          +2.*j(:,OP_DZ)*k(:,OP_DR)*i(:,OP_DRZ) &
+          -i(:,OP_GS)*(j(:,OP_DZ)*k(:,OP_DZ) + j(:,OP_DR)*k(:,OP_DR))) 
+  
+     if(itor.eq.1) then
+        o = o + 2.*ri3_79*j(:,OP_DZ) * &
+             (i(:,OP_DZ)*k(:,OP_DR) - i(:,OP_DR)*k(:,OP_DZ))
+        
+     endif
+
+     o = o * ri2_79*b2i79(:,OP_1)
+  end select
+ 
+end subroutine PVS3psipsi
+
+
+! PVS3psib
+! ========
+subroutine PVS3psib(i,j,k,o)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: i,j,k
+  vectype, intent(out), dimension(MAX_PTS) :: o
+
+  select case(ivform)
+  case(0)
+     o = 0.
+
+  case(1)
+#if defined(USE3D) || defined(USECOMPLEX)
+     o = ri3_79*k(:,OP_1) * &
+          (i(:,OP_DZP)*j(:,OP_DR) - i(:,OP_DRP)*j(:,OP_DZ))
+#endif
+
+     o = o * ri2_79*b2i79(:,OP_1)
+  end select
+ 
+end subroutine PVS3psib
+
+
+! PVS3bb
+! ======
+subroutine PVS3bb(i,j,k,o)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: i,j,k
+  vectype, intent(out), dimension(MAX_PTS) :: o
+
+  select case(ivform)
+  case(0)
+     o = 0.
+     if(itor.eq.1) then
+        o = o + ri_79*i(:,OP_DR)*j(:,OP_1)*k(:,OP_1)
+     endif
+
+     o = o * ri2_79*b2i79(:,OP_1)
+
+  case(1)
+     o = 0.
+  end select
+ 
+end subroutine PVS3bb
+
 
 
 ! PVV1
@@ -8910,19 +9149,23 @@ subroutine PVV2(e,o)
 !!$          (norm79(:,1)*pst79(:,OP_DZ) - norm79(:,2)*pst79(:,OP_DR))
         o = 0.
      else
-        o = 3.*ri_79*b2i79(:,OP_1)*bzt79(:,OP_1)* &
-             (e(:,OP_DZ)*pst79(:,OP_DR) - e(:,OP_DR)*pst79(:,OP_DZ))
+        o = ri_79*(e(:,OP_DZ)*pst79(:,OP_DR) - e(:,OP_DR)*pst79(:,OP_DZ))
 
-#if defined(USE3D) || defined(USECOMPLEX)
-!!$     o = o + 3.*ri2_79*bzt79(:,OP_1)*e(:,OP_1)* &
-!!$          (b2i79(:,OP_1)*bzt79(:,OP_DP) + 2.*b2i79(:,OP_1)*bzt79(:,OP_DP))
-!!$
-     o = o + rfac*e(:,OP_1) * &
-          (1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)
+!!$#if defined(USE3D) || defined(USECOMPLEX)
+!!$        o = o - (e(:,OP_DR)*bft(:,OP_DRP) + e(:,OP_DZ)*bft(:,OP_DZP))
+!!$#endif
+
+        o = o*3.*b2i79(:,OP_1)*bzt79(:,OP_1)
+
+#if defined(USECOMPLEX)
+        ! This term is a total derivative in phi
+        ! and therefore integrates out of the 3D case
+
+        o = o - rfac*e(:,OP_1) * &
+             (1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)
 #endif
      end if
   end select
-     
 end subroutine  PVV2
 
 
@@ -9003,16 +9246,26 @@ vectype function P1vip(e)
      return
   endif
 
-  call PVS1(pht79,temp79a)
+  call PVS1      (pht79,temp79b)
+  call PVS1psipsi(pht79,pst79,pst79,temp79c)
+  call PVS1psib  (pht79,pst79,bzt79,temp79d)
+  call PVS1bb    (pht79,bzt79,bzt79,temp79e)
+  temp79a = temp79b + temp79c + temp79d + temp79e
 
   if(numvar.ge.2) then
-     call PVS2(vzt79,temp79b)
-     temp79a = temp79a + temp79b
+     call PVS2      (vzt79,temp79b)
+     call PVS2psipsi(vzt79,pst79,pst79,temp79c)
+     call PVS2psib  (vzt79,pst79,bzt79,temp79d)
+     call PVS2bb    (vzt79,bzt79,bzt79,temp79e)
+     temp79a = temp79a + temp79b + temp79c + temp79d + temp79e
   endif
 
   if(numvar.ge.3) then
-     call PVS3(cht79,temp79c)
-     temp79a = temp79a + temp79c
+     call PVS3      (cht79,temp79b)
+     call PVS3psipsi(cht79,pst79,pst79,temp79c)
+     call PVS3psib  (cht79,pst79,bzt79,temp79d)
+     call PVS3bb    (cht79,bzt79,bzt79,temp79e)
+     temp79a = temp79a + temp79b + temp79c + temp79d + temp79e
   endif
 
   P1vip = 3.*int4(e(:,OP_1),vip79(:,OP_1),temp79a,temp79a)

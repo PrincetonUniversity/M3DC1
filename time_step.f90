@@ -598,7 +598,9 @@ subroutine export_time_advance_vectors
   endif
  
   if(ipressplit.eq.0) then
-     te_field(1) = te_v
+     if((numvar.ge.3 .or. ipres.eq.1) .and. isplitstep.eq.1) then
+        te_field(1) = te_v
+     endif
      if(numvar.ge.3) then
 
         if(ipres.eq.1) then
@@ -2796,13 +2798,18 @@ end subroutine variable_timestep
         call calc_ion_temperature(ti1_l, p1_l, pe1_l, den1_l)
      endif
 
-     call set_node_data(te_v,i,te1_l)
-     if(ipres.eq.1) then
-        if(ipressplit.eq.1) then
-           call set_node_data(ti_v,i,ti1_l)
-        else
-           call set_node_data(ti_field(1),i,ti1_l)
+     if(isplitstep.eq.1) then 
+        call set_node_data(te_v,i,te1_l)
+        if(ipres.eq.1) then
+           if(ipressplit.eq.1) then
+              call set_node_data(ti_v,i,ti1_l)
+           else
+              call set_node_data(ti_field(1),i,ti1_l)
+           endif
         endif
+
+     else
+        call set_node_data(te_field(1),i,te1_l)
      endif
 
    enddo

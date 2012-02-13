@@ -362,23 +362,38 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
   ! Parallel Viscosity
   ! ~~~~~~~~~~~~~~~~~~
   if(amupar.ne.0.) then
-     call PVV1(trial,temp79b)
+     call PVV1(trial,temp79f)
 
-     call PVS1(lin,temp79c)
-     temp = int3(vip79(:,OP_1),temp79b,temp79c)
+     call PVS1      (lin,temp79b)
+     call PVS1psipsi(lin,pst79,pst79,temp79c)
+     call PVS1psib  (lin,pst79,bzt79,temp79d)
+     call PVS1bb    (lin,bzt79,bzt79,temp79e)
+     temp79a = temp79b + temp79c + temp79d + temp79e
+
+     temp = int3(vip79(:,OP_1),temp79a,temp79f)
      ssterm(u_g) = ssterm(u_g) +     thimp     *dt*temp
      ddterm(u_g) = ddterm(u_g) - (1.-thimp*bdf)*dt*temp
 
-     if(numvar.ge.2) then
-        call PVS2(lin,temp79c)
-        temp = int3(vip79(:,OP_1),temp79b,temp79c)
+     if(numvar.ge.2) then      
+        call PVS2      (lin,temp79b)
+        call PVS2psipsi(lin,pst79,pst79,temp79c)
+        call PVS2psib  (lin,pst79,bzt79,temp79d)
+        call PVS2bb    (lin,bzt79,bzt79,temp79e)
+        temp79a = temp79b + temp79c + temp79d + temp79e
+
+        temp = int3(vip79(:,OP_1),temp79a,temp79f)
         ssterm(vz_g) = ssterm(vz_g) +     thimp     *dt*temp
         ddterm(vz_g) = ddterm(vz_g) - (1.-thimp*bdf)*dt*temp
      endif
 
      if(numvar.ge.3) then
-        call PVS3(lin,temp79c)
-        temp = int3(vip79(:,OP_1),temp79b,temp79c)
+        call PVS3      (lin,temp79b)
+        call PVS3psipsi(lin,pst79,pst79,temp79c)
+        call PVS3psib  (lin,pst79,bzt79,temp79d)
+        call PVS3bb    (lin,bzt79,bzt79,temp79e)
+        temp79a = temp79b + temp79c + temp79d + temp79e
+
+        temp = int3(vip79(:,OP_1),temp79a,temp79f)
         ssterm(chi_g) = ssterm(chi_g) +     thimp     *dt*temp
         ddterm(chi_g) = ddterm(chi_g) - (1.-thimp*bdf)*dt*temp
      endif
@@ -786,21 +801,36 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
   if(amupar.ne.0.) then
      call PVV2(trial,temp79b)
 
-     call PVS1(lin,temp79c)
-     temp = int3(vip79(:,OP_1),temp79b,temp79c)
+     call PVS1      (lin,temp79b)
+     call PVS1psipsi(lin,pst79,pst79,temp79c)
+     call PVS1psib  (lin,pst79,bzt79,temp79d)
+     call PVS1bb    (lin,bzt79,bzt79,temp79e)
+     temp79a = temp79b + temp79c + temp79d + temp79e
+
+     temp = int3(vip79(:,OP_1),temp79a,temp79f)
      ssterm(u_g) = ssterm(u_g) +     thimp     *dt*temp
      ddterm(u_g) = ddterm(u_g) - (1.-thimp*bdf)*dt*temp
 
-     if(numvar.ge.2) then
-        call PVS2(lin,temp79c)
-        temp = int3(vip79(:,OP_1),temp79b,temp79c)
+     if(numvar.ge.2) then      
+        call PVS2      (lin,temp79b)
+        call PVS2psipsi(lin,pst79,pst79,temp79c)
+        call PVS2psib  (lin,pst79,bzt79,temp79d)
+        call PVS2bb    (lin,bzt79,bzt79,temp79e)
+        temp79a = temp79b + temp79c + temp79d + temp79e
+
+        temp = int3(vip79(:,OP_1),temp79a,temp79f)
         ssterm(vz_g) = ssterm(vz_g) +     thimp     *dt*temp
         ddterm(vz_g) = ddterm(vz_g) - (1.-thimp*bdf)*dt*temp
      endif
 
      if(numvar.ge.3) then
-        call PVS3(lin,temp79c)
-        temp = int3(vip79(:,OP_1),temp79b,temp79c)
+        call PVS3      (lin,temp79b)
+        call PVS3psipsi(lin,pst79,pst79,temp79c)
+        call PVS3psib  (lin,pst79,bzt79,temp79d)
+        call PVS3bb    (lin,bzt79,bzt79,temp79e)
+        temp79a = temp79b + temp79c + temp79d + temp79e
+
+        temp = int3(vip79(:,OP_1),temp79a,temp79f)
         ssterm(chi_g) = ssterm(chi_g) +     thimp     *dt*temp
         ddterm(chi_g) = ddterm(chi_g) - (1.-thimp*bdf)*dt*temp
      endif
@@ -1178,21 +1208,36 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
   if(amupar.ne.0.) then
      call PVV3(trial,temp79b)
 
-     call PVS1(lin,temp79c)
-     temp = int3(vip79(:,OP_1),temp79b,temp79c)
+     call PVS1      (lin,temp79b)
+     call PVS1psipsi(lin,pst79,pst79,temp79c)
+     call PVS1psib  (lin,pst79,bzt79,temp79d)
+     call PVS1bb    (lin,bzt79,bzt79,temp79e)
+     temp79a = temp79b + temp79c + temp79d + temp79e
+
+     temp = int3(vip79(:,OP_1),temp79a,temp79f)
      ssterm(u_g) = ssterm(u_g) +     thimp     *dt*temp
      ddterm(u_g) = ddterm(u_g) - (1.-thimp*bdf)*dt*temp
 
-     if(numvar.ge.2) then
-        call PVS2(lin,temp79c)
-        temp = int3(vip79(:,OP_1),temp79b,temp79c)
+     if(numvar.ge.2) then      
+        call PVS2      (lin,temp79b)
+        call PVS2psipsi(lin,pst79,pst79,temp79c)
+        call PVS2psib  (lin,pst79,bzt79,temp79d)
+        call PVS2bb    (lin,bzt79,bzt79,temp79e)
+        temp79a = temp79b + temp79c + temp79d + temp79e
+
+        temp = int3(vip79(:,OP_1),temp79a,temp79f)
         ssterm(vz_g) = ssterm(vz_g) +     thimp     *dt*temp
         ddterm(vz_g) = ddterm(vz_g) - (1.-thimp*bdf)*dt*temp
      endif
 
      if(numvar.ge.3) then
-        call PVS3(lin,temp79c)
-        temp = int3(vip79(:,OP_1),temp79b,temp79c)
+        call PVS3      (lin,temp79b)
+        call PVS3psipsi(lin,pst79,pst79,temp79c)
+        call PVS3psib  (lin,pst79,bzt79,temp79d)
+        call PVS3bb    (lin,bzt79,bzt79,temp79e)
+        temp79a = temp79b + temp79c + temp79d + temp79e
+
+        temp = int3(vip79(:,OP_1),temp79a,temp79f)
         ssterm(chi_g) = ssterm(chi_g) +     thimp     *dt*temp
         ddterm(chi_g) = ddterm(chi_g) - (1.-thimp*bdf)*dt*temp
      endif
@@ -3207,6 +3252,8 @@ subroutine pressure_nolin(trial, r4term, total_pressure)
   ! source terms
   ! ~~~~~~~~~~~~
   if(gam.ne.1.) then
+     r4term = r4term + dt*(gam-1.)*b3q(trial,q79)
+
      ! hyper-ohmic heating
      if(dbf.ne.0.) then 
         r4term = r4term + dbf*dt*(gam-1.)* &
@@ -3428,6 +3475,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   if(numvar.ge.3 .or. ipres.eq.1) then
      if(hyper.eq.0.) def_fields = def_fields + FIELD_J
      if(hyperc.ne.0.) def_fields = def_fields + FIELD_VOR + FIELD_COM
+     if(igaussian_heat_source.ne.0) def_fields = def_fields + FIELD_Q
   end if
 
   if(integrator.eq.1 .and. ntime.gt.1) then
