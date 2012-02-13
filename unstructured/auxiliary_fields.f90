@@ -1,3 +1,9 @@
+#ifdef USECOMPLEX
+#define CONJUGATE(x) (conjg(x))
+#else
+#define CONJUGATE(x) (x)
+#endif
+
 module auxiliary_fields
   use field
 
@@ -134,11 +140,13 @@ subroutine calculate_auxiliary_fields(ilin)
   ! specify which primitive fields are to be evalulated
   def_fields = FIELD_N + FIELD_NI + FIELD_P + FIELD_PSI + FIELD_I
   if(amupar.ne.0) then
-     def_fields = def_fields + FIELD_MU
+     def_fields = def_fields + FIELD_MU + FIELD_B2I
      def_fields = def_fields + FIELD_PHI + FIELD_V + FIELD_CHI
   end if
 
   numelms = local_elements()
+
+  ! EM Torque density
   do itri=1,numelms
      call define_element_quadrature(itri, int_pts_aux, 5)
      call define_fields(itri, def_fields, 1, 0)
@@ -171,31 +179,96 @@ subroutine calculate_auxiliary_fields(ilin)
 #endif
      call vector_insert_block(torque_density_em%vec,itri,1,dofs,VEC_ADD)
 
-!!$     ! NTV torque_density
-!!$     if(amupar.ne.0.) then
-!!$        do i=1, dofs_per_element
-!!$           call PVV2(mu79(:,:,i),temp79b)
-!!$
-!!$           dofs(i) = int2(vip79(:,OP_1),temp79b)
-!!$
-!!$           dofs(i) = 0.
-!!$           call PVS1(pht79,temp79c)
-!!$           dofs(i) = int3(vip79(:,OP_1),temp79b,temp79c)
-!!$
-!!$           if(numvar.ge.2) then
-!!$              call PVS2(vzt79,temp79c)
-!!$              dofs(i) = dofs(i) + int3(vip79(:,OP_1),temp79b,temp79c)
-!!$           endif
-!!$
-!!$           if(numvar.ge.3) then
-!!$              call PVS3(cht79,temp79c)
-!!$              dofs(i) = dofs(i) + int3(vip79(:,OP_1),temp79b,temp79c)
-!!$           endif
-!!$        end do
-!!$     else
-!!$        dofs = 0.
-!!$     endif
-!!$     call vector_insert_block(torque_density_ntv%vec,itri,1,dofs,VEC_ADD)
+     ! NTV torque_density
+     if(amupar.ne.0.) then
+        do i=1, dofs_per_element
+           call PVV2(mu79(:,:,i),temp79f)
+!           dofs(i) = int1(temp79f)
+           dofs(i) = 0.
+
+           if(ilin.eq.1) then
+              call PVS1psipsi(CONJUGATE(ph179),ps179,ps079,temp79c)
+              call PVS1psib  (CONJUGATE(ph179),ps179,bz079,temp79d)
+              call PVS1bb    (CONJUGATE(ph179),bz179,bz079,temp79e)
+              temp79a = temp79b + temp79c + temp79d + temp79e
+              dofs(i) = int3(vip79(:,OP_1),temp79a,temp79f)
+              call PVS1psipsi(CONJUGATE(ph179),ps079,ps179,temp79c)
+              call PVS1psib  (CONJUGATE(ph179),ps079,bz179,temp79d)
+              call PVS1bb    (CONJUGATE(ph179),bz079,bz179,temp79e)
+              temp79a = temp79b + temp79c + temp79d + temp79e
+              dofs(i) = int3(vip79(:,OP_1),temp79a,temp79f)
+              call PVS1psipsi(ph079,CONJUGATE(ps179),ps179,temp79c)
+              call PVS1psib  (ph079,CONJUGATE(ps179),bz179,temp79d)
+              call PVS1bb    (ph079,CONJUGATE(bz179),bz179,temp79e)
+              temp79a = temp79b + temp79c + temp79d + temp79e
+              dofs(i) = dofs(i) + int3(vip79(:,OP_1),temp79a,temp79f)
+
+              if(numvar.ge.2) then
+                 call PVS2psipsi(CONJUGATE(vz179),ps179,ps079,temp79c)
+                 call PVS2psib  (CONJUGATE(vz179),ps179,bz079,temp79d)
+                 call PVS2bb    (CONJUGATE(vz179),bz179,bz079,temp79e)
+                 temp79a = temp79b + temp79c + temp79d + temp79e
+                 dofs(i) = dofs(i) + int3(vip79(:,OP_1),temp79a,temp79f)
+                 call PVS2psipsi(CONJUGATE(vz179),ps079,ps179,temp79c)
+                 call PVS2psib  (CONJUGATE(vz179),ps079,bz179,temp79d)
+                 call PVS2bb    (CONJUGATE(vz179),bz079,bz179,temp79e)
+                 temp79a = temp79b + temp79c + temp79d + temp79e
+                 dofs(i) = dofs(i) + int3(vip79(:,OP_1),temp79a,temp79f)
+                 call PVS2psipsi(vz079,CONJUGATE(ps179),ps179,temp79c)
+                 call PVS2psib  (vz079,CONJUGATE(ps179),bz179,temp79d)
+                 call PVS2bb    (vz079,CONJUGATE(bz179),bz179,temp79e)
+                 temp79a = temp79b + temp79c + temp79d + temp79e
+                 dofs(i) = dofs(i) + int3(vip79(:,OP_1),temp79a,temp79f)
+              endif
+              
+              if(numvar.ge.3) then
+                 call PVS3psipsi(CONJUGATE(ch179),ps179,ps079,temp79c)
+                 call PVS3psib  (CONJUGATE(ch179),ps179,bz079,temp79d)
+                 call PVS3bb    (CONJUGATE(ch179),bz179,bz079,temp79e)
+                 temp79a = temp79b + temp79c + temp79d + temp79e
+                 dofs(i) = dofs(i) + int3(vip79(:,OP_1),temp79a,temp79f)
+                 call PVS3psipsi(CONJUGATE(ch179),ps079,ps179,temp79c)
+                 call PVS3psib  (CONJUGATE(ch179),ps079,bz179,temp79d)
+                 call PVS3bb    (CONJUGATE(ch179),bz079,bz179,temp79e)
+                 temp79a = temp79b + temp79c + temp79d + temp79e
+                 dofs(i) = dofs(i) + int3(vip79(:,OP_1),temp79a,temp79f)
+                 call PVS3psipsi(ch079,CONJUGATE(ps179),ps179,temp79c)
+                 call PVS3psib  (ch079,CONJUGATE(ps179),bz179,temp79d)
+                 call PVS3bb    (ch079,CONJUGATE(bz179),bz179,temp79e)
+                 temp79a = temp79b + temp79c + temp79d + temp79e
+                 dofs(i) = dofs(i) + int3(vip79(:,OP_1),temp79a,temp79f)
+              endif
+           else
+              call PVS1      (pht79,temp79b)
+              call PVS1psipsi(pht79,pst79,pst79,temp79c)
+              call PVS1psib  (pht79,pst79,bzt79,temp79d)
+              call PVS1bb    (pht79,bzt79,bzt79,temp79e)
+              temp79a = temp79b + temp79c + temp79d + temp79e
+              dofs(i) = int3(vip79(:,OP_1),temp79a,temp79f)
+
+              if(numvar.ge.2) then
+                 call PVS2      (vzt79,temp79b)
+                 call PVS2psipsi(vzt79,pst79,pst79,temp79c)
+                 call PVS2psib  (vzt79,pst79,bzt79,temp79d)
+                 call PVS2bb    (vzt79,bzt79,bzt79,temp79e)
+                 temp79a = temp79b + temp79c + temp79d + temp79e
+                 dofs(i) = dofs(i) + int3(vip79(:,OP_1),temp79a,temp79f)
+              endif
+              
+              if(numvar.ge.3) then
+                 call PVS3      (cht79,temp79b)
+                 call PVS3psipsi(cht79,pst79,pst79,temp79c)
+                 call PVS3psib  (cht79,pst79,bzt79,temp79d)
+                 call PVS3bb    (cht79,bzt79,bzt79,temp79e)
+                 temp79a = temp79b + temp79c + temp79d + temp79e
+                 dofs(i) = dofs(i) + int3(vip79(:,OP_1),temp79a,temp79f)
+              endif
+           endif
+        end do
+     else
+        dofs = 0.
+     endif
+     call vector_insert_block(torque_density_ntv%vec,itri,1,dofs,VEC_ADD)
 
 
      ! b dot grad p
@@ -290,7 +363,7 @@ subroutine calculate_auxiliary_fields(ilin)
   call newvar_solve(bdotgradt%vec, mass_mat_lhs)
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' before torque_density solve'
   call newvar_solve(torque_density_em%vec, mass_mat_lhs)
-!!$  call newvar_solve(torque_density_ntv%vec, mass_mat_lhs)
+  call newvar_solve(torque_density_ntv%vec, mass_mat_lhs)
 
   if(xray_detector_enabled.eq.1) then
      call newvar_solve(chord_mask%vec, mass_mat_lhs)

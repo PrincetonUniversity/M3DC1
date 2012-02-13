@@ -254,13 +254,7 @@ pro contour_and_legend, z, x, y, label=label, range=range, levels=levels, $
         zlog = replicate(0, n)
     endif
     if(n_elements(range) eq 0) then begin
-        range = fltarr(2,n)
-        for i=0, n-1 do range[*,i] = [min(z[i,*,*]), max(z[i,*,*])]
-    endif
-    if(n_elements(range) eq 2) then begin
-        oldrange = range
-        range = fltarr(2,n)
-        for i=0, n-1 do range[*,i] = oldrange
+        range = [min(z), max(z)]
     endif
     if(n_elements(lines) eq 0) then lines=0
     if(n_elements(lines) lt n) then lines = intarr(n) + lines
@@ -289,11 +283,11 @@ pro contour_and_legend, z, x, y, label=label, range=range, levels=levels, $
 
             if(n_elements(nlevels) eq 0) then begin
                 contour_and_legend_single, zz, x, y, $
-                  label=label[k], title=title[k], range=range[*,k], $
+                  label=label[k], title=title[k], range=range, $
                   lines=lines[k], zlog=zlog[k], levels=levels, _EXTRA=ex
             endif else begin
                 contour_and_legend_single, zz, x, y, levels=levels, $
-                  label=label[k], title=title[k], range=range[*,k], $
+                  label=label[k], title=title[k], range=range, $
                   lines=lines[k], nlevels=nlevels[k], zlog=zlog[k], _EXTRA=ex
             endelse
             !p.noerase = 1

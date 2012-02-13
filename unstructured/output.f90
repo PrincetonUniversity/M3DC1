@@ -984,18 +984,18 @@ subroutine output_fields(time_group_id, equilibrium, error)
      nfields = nfields + 1
 #endif
 
-!!$     ! torque_ntv
-!!$     do i=1, nelms
-!!$        call calcavector(i, torque_density_ntv, dum(:,i))
-!!$     end do
-!!$     call output_field(group_id,"torque_ntv", real(dum), coeffs_per_element, &
-!!$          nelms, error)
-!!$     nfields = nfields + 1
-!!$#ifdef USECOMPLEX
-!!$     call output_field(group_id,"torque_ntv_i",aimag(dum),coeffs_per_element, &
-!!$          nelms, error)
-!!$     nfields = nfields + 1
-!!$#endif
+     ! torque_ntv
+     do i=1, nelms
+        call calcavector(i, torque_density_ntv, dum(:,i))
+     end do
+     call output_field(group_id,"torque_ntv", real(dum), coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id,"torque_ntv_i",aimag(dum),coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+#endif
 
      ! bdotgradp
      do i=1, nelms
@@ -1032,6 +1032,17 @@ subroutine output_fields(time_group_id, equilibrium, error)
              nelms, error)
         nfields = nfields + 1
      endif
+
+     ! heat source
+     if(igaussian_heat_source.eq.1) then
+        do i=1, nelms
+           call calcavector(i, Q_field, dum(:,i))
+        end do
+        call output_field(group_id, "heat_source", real(dum), &
+             coeffs_per_element, nelms, error)
+        nfields = nfields + 1
+     endif
+
 
      if(xray_detector_enabled.eq.1) then 
         ! chord_mask
