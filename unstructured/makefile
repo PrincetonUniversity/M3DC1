@@ -109,8 +109,10 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o subp.o random.o spline.o \
 	harned_mikic.o metricterms_new.o biharmonic.o \
 	electrostatic_potential.o newvar.o diagnostics.o \
 	read_schaffer_field.o \
-	coils.o coil_sets.o gradshafranov.o transport.o \
-	auxiliary_fields.o \
+	coils.o coil_sets.o model.o \
+	gradshafranov.o transport.o \
+	auxiliary_fields.o  \
+	time_step_split.o time_step_unsplit.o \
 	time_step.o hdf5_output.o output.o \
 	newpar.o input.o ludef_t.o \
 	restart.o readgeqdsk.o read_dskbal.o \

@@ -484,6 +484,7 @@ subroutine gradshafranov_solve
   use m3dc1_nint
   use matrix_mod
   use boundary_conditions
+  use model
 
   implicit none
 

@@ -360,6 +360,8 @@ module arrays
   integer, parameter :: ti_g = 10
   integer, parameter :: num_fields = 10
 
+  integer, parameter :: bf_g = 11
+
   type(field_type) :: u_field(0:1), vz_field(0:1), chi_field(0:1)
   type(field_type) :: psi_field(0:1), bz_field(0:1), pe_field(0:1)
   type(field_type) :: den_field(0:1), p_field(0:1)
@@ -518,12 +520,6 @@ module sparse
   integer, parameter :: d12_mat_index = 56
   integer, parameter :: num_matrices = 56
 
-  type(matrix_type), target :: s1_mat, d1_mat, q1_mat, r14_mat, o1_mat, p1_mat
-  type(matrix_type), target :: q42_mat, r42_mat
-  type(matrix_type), target :: s2_mat, d2_mat, r2_mat, q2_mat, o2_mat
-  type(matrix_type), target :: s8_mat, d8_mat, r8_mat, q8_mat
-  type(matrix_type), target :: s9_mat, d9_mat, r9_mat, q9_mat, o9_mat
-  type(matrix_type), target :: s11_mat, d11_mat, s12_mat, d12_mat
   type(matrix_type) :: rwpsi_mat, rwbf_mat, ecpsi_mat, ecbf_mat
   type(matrix_type), save :: rw_rhs_mat, rw_lhs_mat
 

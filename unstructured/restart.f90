@@ -18,7 +18,7 @@ subroutine wrrestart
   call createfilename(fname, oldfname)
   numnodes = local_nodes()
   numelms = local_elements()
-  call numdofs(vecsize_phi, mmnn18)
+!  call numdofs(vecsize_phi, mmnn18)
   call numdofs(num_fields, ndofs)
   
   if(ifirstrs .ne. 1) call rename(fname, oldfname)
@@ -84,7 +84,7 @@ subroutine rdrestart
   integer :: ndofs
 
   call createfilename(fname, oldfname)
-  call numdofs(vecsize_phi, mmnn18)
+!  call numdofs(vecsize_phi, mmnn18)
   call numdofs(num_fields, ndofs)
   numnodes = local_nodes()
   numelms = local_elements()
@@ -450,7 +450,7 @@ subroutine wrrestart_adios
   oldfname="restarto.bp"
   numnodes = local_nodes()
   numelms = local_elements()
-  call numdofs(vecsize_phi, mmnn18)
+!  call numdofs(vecsize_phi, mmnn18)
 
   if(ifirstrs .ne. 1) call rename(fname, oldfname)
 
@@ -559,7 +559,7 @@ subroutine rdrestart_adios
   oldfname="restarto.bp"
   numnodes = local_nodes()
   numelms = local_elements() 
-  call numdofs(vecsize_phi, mmnn18)
+!  call numdofs(vecsize_phi, mmnn18)
   call numdofs(num_fields, ndofs1)
   call numdofs(1, ndofs2)
 
@@ -640,7 +640,7 @@ subroutine rdrestart_adios
 
 
   if(inumnodes .ne. numnodes .or. inumelms .ne. numelms .or. &
-     mmnn18 .ne. immnn18 .or. numvar .ne. inumvar .or. &
+     numvar .ne. inumvar .or. &
      iiper .ne. iper .or. ijper .ne. jper .or. &
      imyrank .ne. myrank .or. imaxrank .ne. maxrank .or. &
      ndofs1 .ne. ndofs_1 .or. ndofs2.ne. ndofs_2) then

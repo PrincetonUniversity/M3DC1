@@ -3387,57 +3387,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, " initializing matrices..."
 
-  ! Clear matrices
-  select case(isplitstep)
-  case(0)
-     call clear_mat(s1_mat)
-     call clear_mat(d1_mat)
-     if(i3d.eq.1) call clear_mat(o1_mat)
-     q4_vec = 0.
-
-  case(1)
-
-     if(ivel_def.eq.1) then
-        call clear_mat(s1_mat)
-        call clear_mat(d1_mat)
-        call clear_mat(q1_mat)
-        call clear_mat(r14_mat)
-        if(i3d.eq.1) call clear_mat(o1_mat)
-        if((ipres.eq.1 .and. numvar.lt.3) .or. ipressplit.eq.1) call clear_mat(p1_mat)
-        r4_vec = 0.
-     end if
-
-     if(ifield_def.eq.1) then
-        call clear_mat(s2_mat)
-        call clear_mat(d2_mat)
-        call clear_mat(r2_mat)
-        call clear_mat(q2_mat)
-        if(idens.eq.1) then
-           call clear_mat(r42_mat)
-           call clear_mat(q42_mat)
-        end if
-        if(i3d.eq.1) call clear_mat(o2_mat)
-        q4_vec = 0.
-     end if
-
-     if(idens_def.eq.1) then
-        call clear_mat(s8_mat)
-        call clear_mat(d8_mat)
-        call clear_mat(r8_mat)
-        call clear_mat(q8_mat)
-        qn4_vec = 0.
-     endif
-
-     if(ipres_def.eq.1 .or. ipressplit_def.eq.1) then
-        call clear_mat(s9_mat)
-        call clear_mat(d9_mat)
-        call clear_mat(r9_mat)
-        call clear_mat(q9_mat)
-        call clear_mat(o9_mat)
-        qp4_vec = 0.
-     endif
-
-  end select
+  call clear_matrices
 
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, " populating matrices..."
@@ -3527,7 +3477,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   end do
 
   if(myrank.eq.0 .and. iprint.ge.1) &
-       print *, " finalizing matrices...", vecsize_vel, vecsize_p, vecsize_phi
+       print *, " finalizing matrices..."
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
@@ -3536,66 +3486,10 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   ! get summed up for all values shared by multiple procs
   ! and then update these values
 
-  ! Finalize matrices for multiplication
-  select case(isplitstep)
-  case(0)
-     call flush(s1_mat)
-     call finalize(d1_mat)
-     if(i3d.eq.1) call finalize(o1_mat)
-     call sum_shared(q4_vec)
+  call finalize_matrices
 
-  case(1)
-     if(ivel_def.eq.1) then
-        call flush(s1_mat)
-        call finalize(d1_mat)
-        call finalize(q1_mat)
-        call finalize(r14_mat)
-        if(i3d.eq.1) call finalize(o1_mat)
-        if((ipres.eq.1 .and. numvar.lt.3) .or. ipressplit.eq.1) call finalize(p1_mat)
-        call sum_shared(r4_vec)
-     end if
   if(myrank.eq.0 .and. iprint.ge.1) &
-       print *, " before field finalize..."
-     
-     if(ifield_def.eq.1) then
-        call flush(s2_mat)
-        call finalize(d2_mat)
-        call finalize(r2_mat)
-        call finalize(q2_mat)
-        if(i3d.eq.1) call finalize(o2_mat)
-        if(idens.eq.1) then
-           call finalize(r42_mat)
-           call finalize(q42_mat)
-        end if
-        call sum_shared(q4_vec)
-     end if
-     
-     if(idens_def.eq.1) then
-        call flush(s8_mat)
-        call finalize(d8_mat)
-        call finalize(q8_mat)
-        call finalize(r8_mat)
-        call sum_shared(qn4_vec)
-     endif ! on idens_def.eq.1
-     
-  if(myrank.eq.0 .and. iprint.ge.1) &
-       print *, " before pressure finalize...", vecsize_vel, vecsize_p, vecsize_phi
-
-     
-     if(ipres_def.eq.1 .or. ipressplit_def.eq.1) then
-        call flush(s9_mat)
-        call finalize(d9_mat)
-        call finalize(q9_mat)
-        call finalize(r9_mat)
-     if(myrank.eq.0 .and. iprint.ge.1) print *, 'before call to finalize(o9_mat)'
-        call finalize(o9_mat)
-     if(myrank.eq.0 .and. iprint.ge.1) print *, 'before call to sum_shared'
-        call sum_shared(qp4_vec)
-     endif ! on ipres_def.eq.1 .or. ipressplit_def.eq.1
-     
-  end select
-  if(myrank.eq.0 .and. iprint.ge.1) &
-       print *, " done finalizing matrices...", vecsize_vel, vecsize_p, vecsize_phi
+       print *, " done finalizing matrices."
 
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
@@ -3628,6 +3522,7 @@ subroutine ludefvel_n(itri)
   use arrays
   use sparse
   use time_step
+  use model
 
   implicit none
 
@@ -3639,13 +3534,15 @@ subroutine ludefvel_n(itri)
   vectype, dimension(dofs_per_element,dofs_per_element) :: r_bf, q_bf
   vectype, dimension(dofs_per_element) :: r4
 
-  type(matrix_type), pointer :: vv1, vv0, vb1, vb0, vn1, vn0, vf1, vf0, vp0
+  type(matrix_type), pointer :: vv1, vb1, vn1, vf1, vp1
+  type(matrix_type), pointer :: vv0, vb0, vn0, vf0, vp0
   type(vector_type), pointer :: vsource
   integer :: advfield
   integer :: pp_i
   integer, dimension(3) :: ieq
   integer :: k
   integer, dimension(dofs_per_element) :: imask
+
 
   if(isplitstep.eq.1) then
      vv1 => s1_mat
@@ -3664,12 +3561,12 @@ subroutine ludefvel_n(itri)
         vp0 => q1_mat
         pp_i = pe_i
      end if    
-
   else
      vv1 => s1_mat
      vv0 => d1_mat
      vb1 => s1_mat
      vb0 => d1_mat
+     vp1 => s1_mat
      vp0 => d1_mat
      vn1 => s1_mat
      vn0 => d1_mat
@@ -3772,7 +3669,7 @@ subroutine ludefvel_n(itri)
         if(numvar.ge.2) &
              call insert_block(vb1,itri,ieq(k), bz_i,ss(:,:, bz_g),MAT_ADD)
         if(numvar.ge.3 .or. ipres.eq.1) &
-             call insert_block(vb1,itri,ieq(k), pp_i,ss(:,:,  p_g),MAT_ADD)
+             call insert_block(vp1,itri,ieq(k), pp_i,ss(:,:,  p_g),MAT_ADD)
         if(idens.eq.1) &
              call insert_block(vn1,itri,ieq(k),den_i,ss(:,:,den_g),MAT_ADD)
      endif
@@ -3800,6 +3697,7 @@ subroutine ludefphi_n(itri)
   use electrostatic_potential
   use vacuum_interface
   use time_step
+  use model
 
   implicit none
 
@@ -4004,6 +3902,7 @@ subroutine ludefpres_n(itri)
   use electrostatic_potential
   use vacuum_interface
   use time_step
+  use model
 
   implicit none
 
@@ -4207,6 +4106,7 @@ subroutine ludefden_n(itri)
   use sparse
   use metricterms_new
   use time_step
+  use model
 
   implicit none
 

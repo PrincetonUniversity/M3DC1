@@ -153,15 +153,6 @@ Program Reducedquintic
         field0_vec = 0.
      endif
 
-     ! initialize t(n-1) values
-     phiold_vec = phi_vec
-
-     if(isplitstep.eq.1) then
-        velold_vec = vel_vec
-        if(idens.eq.1) denold_vec = den_vec
-        if(ipres.eq.1 .or. ipressplit.eq.1) presold_vec = pres_vec
-     endif
-
   case(1)
 !
 !....save timestep from input file (needed if not a variable timestep run)
@@ -1157,82 +1148,18 @@ subroutine space(ifirstcall)
   integer :: numelms
 
 #ifdef USESCOREC
-  integer :: maxdofs1, maxdofs2, maxdofs3, maxdofsn
+  integer :: i, maxdofs
 #endif
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, " Entering space..."
 
-  if(isplitstep.eq.1) then
-     vecsize_phi = numvar
-     vecsize_vel = numvar
-     vecsize_n = 1
-     vecsize_p = 1
-    if(ipressplit.eq.1 .and. numvar.eq.3 .and. linear.eq.0 .and. eqsubtract.eq.0) then
-        if(ipres.eq.0 .and. itemp.eq.0) then  !split pressure solve from field solve
-           imode = 1
-           vecsize_phi = 2
-           vecsize_p   = 1
-        endif
-        if(ipres.eq.0 .and. itemp.eq.1) then  !Solve for Temperature instead of Pressure
-           imode = 2
-           vecsize_phi = 2
-           vecsize_p   = 1
-        endif
-        if(ipres.eq.1 .and. itemp.eq.0) then  !electron and total pressures solved together
-           imode = 3
-           vecsize_phi = 2
-           vecsize_p   = 2
-        endif
-        if(ipres.eq.1 .and. itemp.eq.1) then  !electron and ion Temperatures solved together
-           imode = 4
-           vecsize_phi = 2
-           vecsize_p   = 2
-        endif
-    endif
-  else
-     vecsize_phi  = numvar*2 + idens + ipres
-  endif
-  vecsize_t = vecsize_p
-
-  ! add electrostatic potential equation
-  if(jadv.eq.0 .and. i3d.eq.1) vecsize_phi = vecsize_phi + 1
-
-  ! add bf equation
-  if(imp_bf.eq.1) vecsize_phi = vecsize_phi + 1
-
-
-  if(isplitstep.eq.0) then
-     vecsize_vel  = vecsize_phi
-     vecsize_n    = vecsize_phi
-     vecsize_p    = vecsize_phi
-  endif
-
-!
 !.....create numberings
 #ifdef USESCOREC
   if(ifirstcall .eq. 1) then
-     call createdofnumbering(numvar1_numbering, iper, jper, &
-          dofs_per_node, 0, 0, 0, maxdofs1)
-     call createdofnumbering(numvar2_numbering, iper, jper, &
-          2*dofs_per_node, 0, 0, 0, maxdofs2)
-     call createdofnumbering(numvar3_numbering, iper, jper, &
-          3*dofs_per_node, 0, 0, 0, maxdofs3)
-     if(num_fields.gt.3) then
-        call createdofnumbering(num_fields, iper, jper, &
-             num_fields*dofs_per_node, 0, 0, 0, maxdofsn)
-     endif
-     if(vecsize_phi.gt.3 .and. vecsize_phi.ne.num_fields) then
-        call createdofnumbering(vecsize_phi, iper, jper, &
-             vecsize_phi*dofs_per_node, 0, 0, 0, maxdofsn)
-     endif
-     if(vecsize_vel.gt.3 .and. vecsize_vel.ne.vecsize_phi) then
-        call createdofnumbering(vecsize_vel, iper, jper, &
-             vecsize_vel*dofs_per_node, 0, 0, 0, maxdofsn)
-     endif
-     if(vecsize_p.gt.3 .and. vecsize_p.ne.vecsize_phi) then
-        call createdofnumbering(vecsize_p, iper, jper, &
-             vecsize_p*dofs_per_node, 0, 0, 0, maxdofsn)
-     endif
+     do i=1, num_fields
+        call createdofnumbering(i, iper, jper, i*dofs_per_node, &
+             0, 0, 0, maxdofs)
+     end do
   endif ! on firstcall
 #endif
   
@@ -1266,39 +1193,6 @@ subroutine space(ifirstcall)
      call associate_field(external_psi_field, external_field, 1)
      call associate_field(external_bz_field,  external_field, 2)
      call associate_field(external_bf_field,  external_field, 3)
-
-     ! Arrays for implicit time advance
-     call create_vector(phi_vec,      vecsize_phi)
-     call create_vector(phiold_vec,   vecsize_phi)
-     call create_vector(phip_vec,     vecsize_phi)
-     call create_vector(q4_vec,       vecsize_phi)
-     
-     call create_vector(b1_phi, vecsize_phi)
-     call create_vector(b2_phi, vecsize_phi)
-
-     if(isplitstep.eq.1) then
-        call create_vector(vel_vec,      vecsize_vel)
-        call create_vector(velold_vec,   vecsize_vel)
-        call create_vector(veln_vec,     vecsize_vel)
-        call create_vector(veloldn_vec,  vecsize_vel)
-        call create_vector(r4_vec,       vecsize_vel)
-
-        if(ipres.eq.1 .or. ipressplit.eq.1) then
-           call create_vector(pres_vec,    vecsize_p)
-           call create_vector(presold_vec, vecsize_p)
-           call create_vector(qp4_vec,     vecsize_p)
-        endif
-        
-        call create_vector(den_vec,    vecsize_n)        
-        call create_vector(denold_vec, vecsize_n)
-        call create_vector(qn4_vec,    vecsize_n)
-        
-        call create_vector(b1_vel, vecsize_vel)
-        call create_vector(b2_vel, vecsize_vel)
-
-        call create_vector(pret_vec,    vecsize_t)
-        call create_vector(pretold_vec, vecsize_t)
-     endif
 
      call create_auxiliary_fields
   endif
@@ -1338,11 +1232,6 @@ subroutine space(ifirstcall)
   call associate_field(te_field(0),  field0_vec, te_g)
   call associate_field(ti_field(0),  field0_vec, ti_g)
 
-
-  ! assign pointers to proper vectors
-  if(myrank.eq.0 .and. iprint.ge.1) print *, ' assigning...'
-  call assign_variables
-
   if(myrank.eq.0 .and. iprint.ge.1) print *, " Exiting space."
 
   return
@@ -1357,373 +1246,322 @@ subroutine resizevec(vec, ivecsize)
   integer :: ivecsize
   double precision :: vec
 
-  call arrayresizevec(vec, ivecsize)
+!!$  call arrayresizevec(vec, ivecsize)
 
   return
 end subroutine resizevec
 
-subroutine arrayresizevec(vec, ivecsize)
-  use arrays
-  use time_step
-
-  implicit none
-  integer :: ivecsize, i
-  double precision :: vec
-
-  print *, "In arrayresizevec!", ivecsize
-
-  call checkppplveccreated(vec, i)
-  if(i .eq. 0) then
-     write(*,*) 'trying to resize a vector that has not been created'
-     call printfpointer(vec)
-     call safestop(8844)
-  endif
-
-
-  call checksameppplvec(field_vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "field"
-     if(allocated(field_vec%data)) deallocate(field_vec%data, STAT=i)
-     allocate(field_vec%data(ivecsize))
-     field_vec%data = 0.
-     call updateids(vec, field_vec%data)
-     print *, 'done'
-     return
-  endif
-
-  call checksameppplvec(field0_vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "field0"
-     if(allocated(field0_vec%data)) deallocate(field0_vec%data, STAT=i)
-     allocate(field0_vec%data(ivecsize))
-     field0_vec%data = 0.
-     call updateids(vec, field0_vec%data)
-     return
-  endif
-
-  call checksameppplvec(jphi_field%vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "jphi"
-     if(allocated(jphi_field%vec%data)) deallocate(jphi_field%vec%data, STAT=i)
-     allocate(jphi_field%vec%data(ivecsize))
-     jphi_field%vec%data = 0.
-     call updateids(vec, jphi_field%vec%data)
-     return
-  endif
-  
-  call checksameppplvec(vor_field%vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "vor"
-     if(allocated(vor_field%vec%data)) deallocate(vor_field%vec%data, STAT=i)
-     allocate(vor_field%vec%data(ivecsize))
-     vor_field%vec%data = 0.
-     call updateids(vec, vor_field%vec%data)
-     return
-  endif
-  
-  call checksameppplvec(com_field%vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "com"
-     if(allocated(com_field%vec%data)) deallocate(com_field%vec%data, STAT=i)
-     allocate(com_field%vec%data(ivecsize))
-     com_field%vec%data = 0.
-     call updateids(vec, com_field%vec%data)
-     return
-  endif
-  
-  call checksameppplvec(resistivity_field%vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "resistivity_field%vec%data"
-     if(allocated(resistivity_field%vec%data)) deallocate(resistivity_field%vec%data, STAT=i)
-     allocate(resistivity_field%vec%data(ivecsize))
-     resistivity_field%vec%data = 0.
-     call updateids(vec, resistivity_field%vec%data)
-     return
-  endif
-   
-  call checksameppplvec(kappa_field%vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "kappa_field%vec%data"
-     if(allocated(kappa_field%vec%data)) deallocate(kappa_field%vec%data, STAT=i)
-     allocate(kappa_field%vec%data(ivecsize))
-     kappa_field%vec%data = 0.
-     call updateids(vec, kappa_field%vec%data)
-     return
-  endif
-
-  call checksameppplvec(sigma_field%vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "sigma_field%vec%data"
-     if(allocated(sigma_field%vec%data)) deallocate(sigma_field%vec%data, STAT=i)
-     allocate(sigma_field%vec%data(ivecsize))
-     sigma_field%vec%data = 0.
-     call updateids(vec, sigma_field%vec%data)
-     return
-  endif
-        
-  call checksameppplvec(visc_field%vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "visc_field%vec%data"
-     if(allocated(visc_field%vec%data)) deallocate(visc_field%vec%data, STAT=i)
-     allocate(visc_field%vec%data(ivecsize))
-     visc_field%vec%data = 0.
-     call updateids(vec, visc_field%vec%data)
-     return
-  endif
-  
-  call checksameppplvec(visc_c_field%vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "visc_c"
-     if(allocated(visc_c_field%vec%data)) deallocate(visc_c_field%vec%data, STAT=i)
-     allocate(visc_c_field%vec%data(ivecsize))
-     visc_c_field%vec%data = 0.
-     call updateids(vec, visc_c_field%vec%data)
-     return
-  endif
-
-  call checksameppplvec(bf_field(1)%vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "bf"
-     if(allocated(bf_field(1)%vec%data)) deallocate(bf_field(1)%vec%data, STAT=i)
-     allocate(bf_field(1)%vec%data(ivecsize))
-     bf_field(1)%vec%data = 0.
-     call updateids(vec, bf_field(1)%vec%data)
-     return
-  endif
-
-  call checksameppplvec(bf_field(0)%vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "bf"
-     if(allocated(bf_field(0)%vec%data)) deallocate(bf_field(0)%vec%data, STAT=i)
-     allocate(bf_field(0)%vec%data(ivecsize))
-     bf_field(0)%vec%data = 0.
-     call updateids(vec, bf_field(0)%vec%data)
-     return
-  endif
-
-
-  call checksameppplvec(phi_vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "phi"
-     if(allocated(phi_vec%data)) deallocate(phi_vec%data, STAT=i)
-     allocate(phi_vec%data(ivecsize))
-     phi_vec%data = 0.
-     call updateids(vec, phi_vec%data)
-     return
-  endif
-     
-  call checksameppplvec(phiold_vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "phiold"
-     if(allocated(phiold_vec%data)) deallocate(phiold_vec%data, STAT=i)
-     allocate(phiold_vec%data(ivecsize))
-     phiold_vec%data = 0.
-     call updateids(vec, phiold_vec%data)
-     return
-  endif
-
-  call checksameppplvec(vel_vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "vel"
-     if(allocated(vel_vec%data)) deallocate(vel_vec%data, STAT=i)
-     allocate(vel_vec%data(ivecsize))
-     vel_vec%data = 0.
-     call updateids(vec, vel_vec%data)
-     return
-  endif
-      
-  call checksameppplvec(velold_vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "velold"
-     if(allocated(velold_vec%data)) deallocate(velold_vec%data, STAT=i)
-     allocate(velold_vec%data(ivecsize))
-     velold_vec%data = 0.
-     call updateids(vec, velold_vec%data)
-     return
-  endif
-   
-     
-  call checksameppplvec(den_vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "den"
-     if(allocated(den_vec%data)) deallocate(den_vec%data, STAT=i)
-     allocate(den_vec%data(ivecsize))
-     den_vec%data = 0.
-     call updateids(vec, den_vec%data)
-     return
-  endif
-  
-  call checksameppplvec(denold_vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "denold"
-     if(allocated(denold_vec%data)) deallocate(denold_vec%data, STAT=i)
-     allocate(denold_vec%data(ivecsize))
-     denold_vec%data = 0.
-     call updateids(vec, denold_vec%data)
-     return
-  endif
-     
-  call checksameppplvec(pret_vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "temp"
-     if(allocated(pret_vec%data)) deallocate(pret_vec%data, STAT=i)
-     allocate(pret_vec%data(ivecsize))
-     pret_vec%data = 0.
-     call updateids(vec, pret_vec%data)
-     return
-  endif
-  
-  call checksameppplvec(pretold_vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "tempold"
-     if(allocated(pretold_vec%data)) deallocate(pretold_vec%data, STAT=i)
-     allocate(pretold_vec%data(ivecsize))
-     pretold_vec%data = 0.
-     call updateids(vec, pretold_vec%data)
-     return
-  endif
-  
-  call checksameppplvec(pres_vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "pres"
-     if(allocated(pres_vec%data)) deallocate(pres_vec%data, STAT=i)
-     allocate(pres_vec%data(ivecsize))
-     pres_vec%data = 0.
-     call updateids(vec, pres_vec%data)
-     return
-  endif
-  
-  call checksameppplvec(presold_vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "presold"
-     if(allocated(presold_vec%data)) deallocate(presold_vec%data, STAT=i)
-     allocate(presold_vec%data(ivecsize))
-     presold_vec%data = 0.
-     call updateids(vec, presold_vec%data)
-     return
-  endif
-     
-  call checksameppplvec(q4_vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "q4"
-     if(allocated(q4_vec%data)) deallocate(q4_vec%data, STAT=i)
-     allocate(q4_vec%data(ivecsize))
-     q4_vec%data = 0.
-     call updateids(vec, q4_vec%data)
-     return
-  endif
-
-  call checksameppplvec(r4_vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "r4"
-     if(allocated(r4_vec%data)) deallocate(r4_vec%data, STAT=i)
-     allocate(r4_vec%data(ivecsize))
-     r4_vec%data = 0.
-     call updateids(vec, r4_vec%data)
-     return
-  endif
-
-  call checksameppplvec(qn4_vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "qn4"
-     if(allocated(qn4_vec%data)) deallocate(qn4_vec%data, STAT=i)
-     allocate(qn4_vec%data(ivecsize))
-     qn4_vec%data = 0.
-     call updateids(vec, qn4_vec%data)
-     return
-  endif
-  
-  call checksameppplvec(qp4_vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "qp4"
-     if(allocated(qp4_vec%data)) deallocate(qp4_vec%data, STAT=i)
-     allocate(qp4_vec%data(ivecsize))
-     qp4_vec%data = 0.
-     call updateids(vec, qp4_vec%data)
-     return
-  endif
-
-  call checksameppplvec(veln_vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "veln"
-     if(allocated(veln_vec%data)) deallocate(veln_vec%data, STAT=i)
-     allocate(veln_vec%data(ivecsize))
-     veln_vec%data = 0.
-     call updateids(vec, veln_vec%data)
-     return
-  endif
-      
-  call checksameppplvec(veloldn_vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "veloldn"
-     if(allocated(veloldn_vec%data)) deallocate(veloldn_vec%data, STAT=i)
-     allocate(veloldn_vec%data(ivecsize))
-     veloldn_vec%data = 0.
-     call updateids(vec, veloldn_vec%data)
-     return
-  endif
-
-  call checksameppplvec(phip_vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "phip"
-     if(allocated(phip_vec%data)) deallocate(phip_vec%data, STAT=i)
-     allocate(phip_vec%data(ivecsize))
-     phip_vec%data = 0.
-     call updateids(vec, phip_vec%data)
-     return
-  endif
-  
-  call checksameppplvec(b1_phi%data, vec, i)
-  if(i .eq. 1) then
-     print *, "b1_phi"
-     if(allocated(b1_phi%data)) deallocate(b1_phi%data, STAT=i)
-     allocate(b1_phi%data(ivecsize))
-     b1_phi%data = 0.
-     call updateids(vec, b1_phi%data)
-     return
-  endif
-  
-  call checksameppplvec(b2_phi%data, vec, i)
-  if(i .eq. 1) then
-     print *, "b2_phi"
-     if(allocated(b2_phi%data)) deallocate(b2_phi%data, STAT=i)
-     allocate(b2_phi%data(ivecsize))
-     b2_phi%data = 0.
-     call updateids(vec, b2_phi%data)
-     return
-  endif
-  
-  call checksameppplvec(b1_vel%data, vec, i)
-  if(i .eq. 1) then
-     print *, "b1_vel"
-     if(allocated(b1_vel%data)) deallocate(b1_vel%data, STAT=i)
-     allocate(b1_vel%data(ivecsize))
-     b1_vel%data = 0.
-     call updateids(vec, b1_vel%data)
-     return
-  endif
-  
-  call checksameppplvec(b2_vel%data, vec, i)
-  if(i .eq. 1) then
-     print *, "b2_vel"
-     if(allocated(b2_vel%data)) deallocate(b2_vel%data, STAT=i)
-     allocate(b2_vel%data(ivecsize))
-     b2_vel%data = 0.
-     call updateids(vec, b2_vel%data)
-     return
-  endif
-    
-  call checksameppplvec(temporary_field%vec%data, vec, i)
-  if(i .eq. 1) then
-     print *, "temporary_vector"
-     if(allocated(temporary_field%vec%data)) deallocate(temporary_field%vec%data, STAT=i)
-     allocate(temporary_field%vec%data(ivecsize))
-     temporary_field%vec%data = 0.
-     call updateids(vec, temporary_field%vec%data)
-     return
-  endif
-
-  print *, "Error: unknown vector"
-
-end subroutine arrayresizevec
+!!$subroutine arrayresizevec(vec, ivecsize)
+!!$  use arrays
+!!$  use time_step
+!!$
+!!$  implicit none
+!!$  integer :: ivecsize, i
+!!$  double precision :: vec
+!!$
+!!$  print *, "In arrayresizevec!", ivecsize
+!!$
+!!$  call checkppplveccreated(vec, i)
+!!$  if(i .eq. 0) then
+!!$     write(*,*) 'trying to resize a vector that has not been created'
+!!$     call printfpointer(vec)
+!!$     call safestop(8844)
+!!$  endif
+!!$
+!!$
+!!$  call checksameppplvec(field_vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "field"
+!!$     if(allocated(field_vec%data)) deallocate(field_vec%data, STAT=i)
+!!$     allocate(field_vec%data(ivecsize))
+!!$     field_vec%data = 0.
+!!$     call updateids(vec, field_vec%data)
+!!$     print *, 'done'
+!!$     return
+!!$  endif
+!!$
+!!$  call checksameppplvec(field0_vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "field0"
+!!$     if(allocated(field0_vec%data)) deallocate(field0_vec%data, STAT=i)
+!!$     allocate(field0_vec%data(ivecsize))
+!!$     field0_vec%data = 0.
+!!$     call updateids(vec, field0_vec%data)
+!!$     return
+!!$  endif
+!!$
+!!$  call checksameppplvec(jphi_field%vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "jphi"
+!!$     if(allocated(jphi_field%vec%data)) deallocate(jphi_field%vec%data, STAT=i)
+!!$     allocate(jphi_field%vec%data(ivecsize))
+!!$     jphi_field%vec%data = 0.
+!!$     call updateids(vec, jphi_field%vec%data)
+!!$     return
+!!$  endif
+!!$  
+!!$  call checksameppplvec(vor_field%vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "vor"
+!!$     if(allocated(vor_field%vec%data)) deallocate(vor_field%vec%data, STAT=i)
+!!$     allocate(vor_field%vec%data(ivecsize))
+!!$     vor_field%vec%data = 0.
+!!$     call updateids(vec, vor_field%vec%data)
+!!$     return
+!!$  endif
+!!$  
+!!$  call checksameppplvec(com_field%vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "com"
+!!$     if(allocated(com_field%vec%data)) deallocate(com_field%vec%data, STAT=i)
+!!$     allocate(com_field%vec%data(ivecsize))
+!!$     com_field%vec%data = 0.
+!!$     call updateids(vec, com_field%vec%data)
+!!$     return
+!!$  endif
+!!$  
+!!$  call checksameppplvec(resistivity_field%vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "resistivity_field%vec%data"
+!!$     if(allocated(resistivity_field%vec%data)) deallocate(resistivity_field%vec%data, STAT=i)
+!!$     allocate(resistivity_field%vec%data(ivecsize))
+!!$     resistivity_field%vec%data = 0.
+!!$     call updateids(vec, resistivity_field%vec%data)
+!!$     return
+!!$  endif
+!!$   
+!!$  call checksameppplvec(kappa_field%vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "kappa_field%vec%data"
+!!$     if(allocated(kappa_field%vec%data)) deallocate(kappa_field%vec%data, STAT=i)
+!!$     allocate(kappa_field%vec%data(ivecsize))
+!!$     kappa_field%vec%data = 0.
+!!$     call updateids(vec, kappa_field%vec%data)
+!!$     return
+!!$  endif
+!!$
+!!$  call checksameppplvec(sigma_field%vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "sigma_field%vec%data"
+!!$     if(allocated(sigma_field%vec%data)) deallocate(sigma_field%vec%data, STAT=i)
+!!$     allocate(sigma_field%vec%data(ivecsize))
+!!$     sigma_field%vec%data = 0.
+!!$     call updateids(vec, sigma_field%vec%data)
+!!$     return
+!!$  endif
+!!$        
+!!$  call checksameppplvec(visc_field%vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "visc_field%vec%data"
+!!$     if(allocated(visc_field%vec%data)) deallocate(visc_field%vec%data, STAT=i)
+!!$     allocate(visc_field%vec%data(ivecsize))
+!!$     visc_field%vec%data = 0.
+!!$     call updateids(vec, visc_field%vec%data)
+!!$     return
+!!$  endif
+!!$  
+!!$  call checksameppplvec(visc_c_field%vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "visc_c"
+!!$     if(allocated(visc_c_field%vec%data)) deallocate(visc_c_field%vec%data, STAT=i)
+!!$     allocate(visc_c_field%vec%data(ivecsize))
+!!$     visc_c_field%vec%data = 0.
+!!$     call updateids(vec, visc_c_field%vec%data)
+!!$     return
+!!$  endif
+!!$
+!!$  call checksameppplvec(bf_field(1)%vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "bf"
+!!$     if(allocated(bf_field(1)%vec%data)) deallocate(bf_field(1)%vec%data, STAT=i)
+!!$     allocate(bf_field(1)%vec%data(ivecsize))
+!!$     bf_field(1)%vec%data = 0.
+!!$     call updateids(vec, bf_field(1)%vec%data)
+!!$     return
+!!$  endif
+!!$
+!!$  call checksameppplvec(bf_field(0)%vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "bf"
+!!$     if(allocated(bf_field(0)%vec%data)) deallocate(bf_field(0)%vec%data, STAT=i)
+!!$     allocate(bf_field(0)%vec%data(ivecsize))
+!!$     bf_field(0)%vec%data = 0.
+!!$     call updateids(vec, bf_field(0)%vec%data)
+!!$     return
+!!$  endif
+!!$
+!!$
+!!$  call checksameppplvec(phi_vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "phi"
+!!$     if(allocated(phi_vec%data)) deallocate(phi_vec%data, STAT=i)
+!!$     allocate(phi_vec%data(ivecsize))
+!!$     phi_vec%data = 0.
+!!$     call updateids(vec, phi_vec%data)
+!!$     return
+!!$  endif
+!!$     
+!!$  call checksameppplvec(vel_vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "vel"
+!!$     if(allocated(vel_vec%data)) deallocate(vel_vec%data, STAT=i)
+!!$     allocate(vel_vec%data(ivecsize))
+!!$     vel_vec%data = 0.
+!!$     call updateids(vec, vel_vec%data)
+!!$     return
+!!$  endif  
+!!$     
+!!$  call checksameppplvec(den_vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "den"
+!!$     if(allocated(den_vec%data)) deallocate(den_vec%data, STAT=i)
+!!$     allocate(den_vec%data(ivecsize))
+!!$     den_vec%data = 0.
+!!$     call updateids(vec, den_vec%data)
+!!$     return
+!!$  endif
+!!$       
+!!$  call checksameppplvec(pret_vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "temp"
+!!$     if(allocated(pret_vec%data)) deallocate(pret_vec%data, STAT=i)
+!!$     allocate(pret_vec%data(ivecsize))
+!!$     pret_vec%data = 0.
+!!$     call updateids(vec, pret_vec%data)
+!!$     return
+!!$  endif
+!!$    
+!!$  call checksameppplvec(pres_vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "pres"
+!!$     if(allocated(pres_vec%data)) deallocate(pres_vec%data, STAT=i)
+!!$     allocate(pres_vec%data(ivecsize))
+!!$     pres_vec%data = 0.
+!!$     call updateids(vec, pres_vec%data)
+!!$     return
+!!$  endif
+!!$       
+!!$  call checksameppplvec(q4_vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "q4"
+!!$     if(allocated(q4_vec%data)) deallocate(q4_vec%data, STAT=i)
+!!$     allocate(q4_vec%data(ivecsize))
+!!$     q4_vec%data = 0.
+!!$     call updateids(vec, q4_vec%data)
+!!$     return
+!!$  endif
+!!$
+!!$  call checksameppplvec(r4_vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "r4"
+!!$     if(allocated(r4_vec%data)) deallocate(r4_vec%data, STAT=i)
+!!$     allocate(r4_vec%data(ivecsize))
+!!$     r4_vec%data = 0.
+!!$     call updateids(vec, r4_vec%data)
+!!$     return
+!!$  endif
+!!$
+!!$  call checksameppplvec(qn4_vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "qn4"
+!!$     if(allocated(qn4_vec%data)) deallocate(qn4_vec%data, STAT=i)
+!!$     allocate(qn4_vec%data(ivecsize))
+!!$     qn4_vec%data = 0.
+!!$     call updateids(vec, qn4_vec%data)
+!!$     return
+!!$  endif
+!!$  
+!!$  call checksameppplvec(qp4_vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "qp4"
+!!$     if(allocated(qp4_vec%data)) deallocate(qp4_vec%data, STAT=i)
+!!$     allocate(qp4_vec%data(ivecsize))
+!!$     qp4_vec%data = 0.
+!!$     call updateids(vec, qp4_vec%data)
+!!$     return
+!!$  endif
+!!$
+!!$  call checksameppplvec(veln_vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "veln"
+!!$     if(allocated(veln_vec%data)) deallocate(veln_vec%data, STAT=i)
+!!$     allocate(veln_vec%data(ivecsize))
+!!$     veln_vec%data = 0.
+!!$     call updateids(vec, veln_vec%data)
+!!$     return
+!!$  endif
+!!$      
+!!$  call checksameppplvec(veloldn_vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "veloldn"
+!!$     if(allocated(veloldn_vec%data)) deallocate(veloldn_vec%data, STAT=i)
+!!$     allocate(veloldn_vec%data(ivecsize))
+!!$     veloldn_vec%data = 0.
+!!$     call updateids(vec, veloldn_vec%data)
+!!$     return
+!!$  endif
+!!$
+!!$  call checksameppplvec(phip_vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "phip"
+!!$     if(allocated(phip_vec%data)) deallocate(phip_vec%data, STAT=i)
+!!$     allocate(phip_vec%data(ivecsize))
+!!$     phip_vec%data = 0.
+!!$     call updateids(vec, phip_vec%data)
+!!$     return
+!!$  endif
+!!$  
+!!$  call checksameppplvec(b1_phi%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "b1_phi"
+!!$     if(allocated(b1_phi%data)) deallocate(b1_phi%data, STAT=i)
+!!$     allocate(b1_phi%data(ivecsize))
+!!$     b1_phi%data = 0.
+!!$     call updateids(vec, b1_phi%data)
+!!$     return
+!!$  endif
+!!$  
+!!$  call checksameppplvec(b2_phi%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "b2_phi"
+!!$     if(allocated(b2_phi%data)) deallocate(b2_phi%data, STAT=i)
+!!$     allocate(b2_phi%data(ivecsize))
+!!$     b2_phi%data = 0.
+!!$     call updateids(vec, b2_phi%data)
+!!$     return
+!!$  endif
+!!$  
+!!$  call checksameppplvec(b1_vel%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "b1_vel"
+!!$     if(allocated(b1_vel%data)) deallocate(b1_vel%data, STAT=i)
+!!$     allocate(b1_vel%data(ivecsize))
+!!$     b1_vel%data = 0.
+!!$     call updateids(vec, b1_vel%data)
+!!$     return
+!!$  endif
+!!$  
+!!$  call checksameppplvec(b2_vel%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "b2_vel"
+!!$     if(allocated(b2_vel%data)) deallocate(b2_vel%data, STAT=i)
+!!$     allocate(b2_vel%data(ivecsize))
+!!$     b2_vel%data = 0.
+!!$     call updateids(vec, b2_vel%data)
+!!$     return
+!!$  endif
+!!$    
+!!$  call checksameppplvec(temporary_field%vec%data, vec, i)
+!!$  if(i .eq. 1) then
+!!$     print *, "temporary_vector"
+!!$     if(allocated(temporary_field%vec%data)) deallocate(temporary_field%vec%data, STAT=i)
+!!$     allocate(temporary_field%vec%data(ivecsize))
+!!$     temporary_field%vec%data = 0.
+!!$     call updateids(vec, temporary_field%vec%data)
+!!$     return
+!!$  endif
+!!$
+!!$  print *, "Error: unknown vector"
+!!$
+!!$end subroutine arrayresizevec
 #endif
