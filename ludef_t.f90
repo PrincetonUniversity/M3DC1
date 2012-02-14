@@ -3713,7 +3713,7 @@ subroutine ludefphi_n(itri)
   type(matrix_type), pointer :: bb1, bb0, bv1, bv0, bf0, bf1, bn1, bn0
   type(vector_type), pointer :: bsource
   integer :: ieq(5)
-  integer :: maxk
+  integer :: maxk, pp_i, ppe_i
   integer :: imask(dofs_per_element)
 
   if(isplitstep.eq.1) then
@@ -3725,6 +3725,8 @@ subroutine ludefphi_n(itri)
      bn0 => q42_mat
      bf0 => o2_mat
      bsource => q4_vec
+     pp_i = pe_i
+     ppe_i = pe_i
   else
      bb1 => s1_mat
      bb0 => d1_mat
@@ -3739,12 +3741,20 @@ subroutine ludefphi_n(itri)
         bf0 => o1_mat
      end if
      bsource => q4_vec
+     pp_i = p_i
+     if(ipres.eq.1) then
+        ppe_i = pe_i
+     else
+        ppe_i = p_i
+     end if
   endif
 
   maxk = numvar - ipressplit
   ieq(1) = psi_i
   ieq(2) =  bz_i
-  if(ipressplit.eq.0) ieq(3) =  pe_i
+  if(ipressplit.eq.0) then
+     ieq(3) = ppe_i
+  end if
 
   ! add bf equation
   if(imp_bf.eq.1) then
@@ -3774,11 +3784,13 @@ subroutine ludefphi_n(itri)
         call get_flux_mask(itri, imask)
      else if(ieq(k).eq.bz_i) then
         call get_bz_mask(itri, imask)
-     else if(ieq(k).eq.pe_i .and. ipressplit.eq.0) then
+     else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0) then
         call get_pres_mask(itri, imask)
      else if(ieq(k).eq.bf_i) then
         call get_bf_mask(itri, imask)
      else
+        print *, 'error'
+        call safestop(31)
         imask = 1
      end if
      
@@ -3808,7 +3820,7 @@ subroutine ludefphi_n(itri)
                       ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j))
               endif
 
-           else if(ieq(k).eq.pe_i .and. ipressplit.eq.0) then
+           else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0) then
               call pressure_lin(mu79(:,:,i),nu79(:,:,j), &
                    ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
                    ipres.eq.0, thimp,itri)
@@ -3824,6 +3836,7 @@ subroutine ludefphi_n(itri)
               
            else
               print *, 'error!'
+              call safestop(32)
            end if
         end do
 
@@ -3859,14 +3872,14 @@ subroutine ludefphi_n(itri)
      endif
      if(numvar.ge.3) then
         ! if ipres==0, total pressure equation is in pe_i slot
-        if(ipres.eq.0 .and. ipressplit.eq.0) then
-           call insert_block(bb1,itri,ieq(k), pe_i,ss(:,:,  p_g),MAT_ADD)
-           call insert_block(bb0,itri,ieq(k), pe_i,dd(:,:,  p_g),MAT_ADD)
-        end if
         if(ipressplit.eq.0) then
-           call insert_block(bb1,itri,ieq(k), pe_i,ss(:,:, pe_g),MAT_ADD)
-           call insert_block(bb0,itri,ieq(k), pe_i,dd(:,:, pe_g),MAT_ADD)
-        endif
+           if(ipres.eq.0) then
+              call insert_block(bb1,itri,ieq(k), pp_i,ss(:,:,  p_g),MAT_ADD)
+              call insert_block(bb0,itri,ieq(k), pp_i,dd(:,:,  p_g),MAT_ADD)
+           end if
+           call insert_block(bb1,itri,ieq(k), ppe_i,ss(:,:, pe_g),MAT_ADD)
+           call insert_block(bb0,itri,ieq(k), ppe_i,dd(:,:, pe_g),MAT_ADD)
+        end if
         call insert_block(bv1,itri,ieq(k),chi_i,ss(:,:,chi_g),MAT_ADD)
         call insert_block(bv0,itri,ieq(k),chi_i,dd(:,:,chi_g),MAT_ADD)
      endif
