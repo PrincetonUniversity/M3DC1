@@ -6,6 +6,7 @@
 static m3dc1_file file;
 static m3dc1_field *psi, *g, *f, *psi0, *g0;
 static int eqsubtract;
+static double scale_factor = 1;
 
 struct field_data {
   std::string name;
@@ -213,21 +214,21 @@ extern "C" void m3dc1_eval_magnetic_field_(const double* r,
     *ierr = 1;
     return;
   }
-  *b_r -= val[m3dc1_field::OP_DZ] / *r;
-  *b_z += val[m3dc1_field::OP_DR] / *r;
+  *b_r -= scale_factor*val[m3dc1_field::OP_DZ] / *r;
+  *b_z += scale_factor*val[m3dc1_field::OP_DR] / *r;
 
   if(!g->eval(*r, *phi, *z, gget, val, &guess)) {
     *ierr = 2;
     return;
   }
-  *b_phi = val[m3dc1_field::OP_1] / *r;
+  *b_phi += scale_factor*val[m3dc1_field::OP_1] / *r;
 
   if(!f->eval(*r, *phi, *z, fget, val, &guess)) {
     *ierr = 3;
     return;
   }
-  *b_r -= val[m3dc1_field::OP_DRP];
-  *b_z -= val[m3dc1_field::OP_DZP];
+  *b_r -= scale_factor*val[m3dc1_field::OP_DRP];
+  *b_z -= scale_factor*val[m3dc1_field::OP_DZP];
 
   if(eqsubtract==1) {
     if(!psi0->eval(*r, *phi, *z, psiget, val, &guess)) {
@@ -241,11 +242,112 @@ extern "C" void m3dc1_eval_magnetic_field_(const double* r,
       *ierr = 5;
       return;
     }
-    *b_phi = val[m3dc1_field::OP_1] / *r;
+    *b_phi += val[m3dc1_field::OP_1] / *r;
   }
 
   *ierr = 0;
 }
+
+extern "C" void m3dc1_eval_equilibrium_magnetic_field_(const double* r,
+						       const double* phi,
+						       const double* z,
+						       double* b_r, 
+						       double* b_phi, 
+						       double* b_z, 
+						       int* ierr)
+{
+  const m3dc1_field::m3dc1_get_op psiget = (m3dc1_field::m3dc1_get_op)
+    (m3dc1_field::GET_DVAL);
+
+  const m3dc1_field::m3dc1_get_op gget = 
+    (m3dc1_field::m3dc1_get_op) 
+    (m3dc1_field::GET_VAL);
+
+  double val[m3dc1_field::OP_NUM];
+
+  // B_R   = -(dpsi/dZ)/R - (d2f/dRdphi)
+  // B_Z   =  (dpsi/dR)/R - (d2f/dZdphi)
+  // B_Phi =  F/R
+
+  int guess = -1;
+
+  *b_r = 0;
+  *b_z = 0;
+  *b_phi = 0;
+
+  if(eqsubtract==1) {
+    if(!psi0->eval(*r, *phi, *z, psiget, val, &guess)) {
+      *ierr = 4;
+      return;
+    }
+    *b_r -= val[m3dc1_field::OP_DZ] / *r;
+    *b_z += val[m3dc1_field::OP_DR] / *r;
+
+    if(!g0->eval(*r, *phi, *z, gget, val, &guess)) {
+      *ierr = 5;
+      return;
+    }
+    *b_phi += val[m3dc1_field::OP_1] / *r;
+  }
+
+  *ierr = 0;
+}
+
+
+extern "C" void m3dc1_eval_perturbed_magnetic_field_(const double* r,
+						     const double* phi,
+						     const double* z,
+						     double* b_r, 
+						     double* b_phi, 
+						     double* b_z, 
+						     int* ierr)
+{
+  const m3dc1_field::m3dc1_get_op psiget = (m3dc1_field::m3dc1_get_op)
+    (m3dc1_field::GET_DVAL);
+
+  const m3dc1_field::m3dc1_get_op gget = 
+    (m3dc1_field::m3dc1_get_op) 
+    (m3dc1_field::GET_VAL);
+
+  const m3dc1_field::m3dc1_get_op fget = 
+    (m3dc1_field::m3dc1_get_op) 
+    (m3dc1_field::GET_DVAL | m3dc1_field::GET_PVAL);
+
+  double val[m3dc1_field::OP_NUM];
+
+  // B_R   = -(dpsi/dZ)/R - (d2f/dRdphi)
+  // B_Z   =  (dpsi/dR)/R - (d2f/dZdphi)
+  // B_Phi =  F/R
+
+  int guess = -1;
+
+  *b_r = 0;
+  *b_z = 0;
+  *b_phi = 0;
+
+  if(!psi->eval(*r, *phi, *z, psiget, val, &guess)) {
+    *ierr = 1;
+    return;
+  }
+  *b_r -= scale_factor*val[m3dc1_field::OP_DZ] / *r;
+  *b_z += scale_factor*val[m3dc1_field::OP_DR] / *r;
+
+  if(!g->eval(*r, *phi, *z, gget, val, &guess)) {
+    *ierr = 2;
+    return;
+  }
+  *b_phi += scale_factor*val[m3dc1_field::OP_1] / *r;
+
+  if(!f->eval(*r, *phi, *z, fget, val, &guess)) {
+    *ierr = 3;
+    return;
+  }
+  *b_r -= scale_factor*val[m3dc1_field::OP_DRP];
+  *b_z -= scale_factor*val[m3dc1_field::OP_DZP];
+
+  *ierr = 0;
+}
+
 
 // the following are provided for backward compatibility
 extern "C" void m3dc1_load_file_(int* time,  int* ierr)
@@ -267,6 +369,21 @@ extern "C" void m3dc1_get_field_(const double* R, const double* Phi, const doubl
   int ierr;
   m3dc1_eval_magnetic_field_(R, Phi, Z, Br, Bphi, Bz, &ierr);
 }
+
+extern "C" void m3dc1_get_field0_(const double* R, const double* Phi, const double* Z, 
+				 double* Br, double* Bphi, double* Bz)
+{
+  int ierr;
+  m3dc1_eval_equilibrium_magnetic_field_(R, Phi, Z, Br, Bphi, Bz, &ierr);
+}
+
+extern "C" void m3dc1_get_field1_(const double* R, const double* Phi, const double* Z, 
+				 double* Br, double* Bphi, double* Bz)
+{
+  int ierr;
+  m3dc1_eval_perturbed_magnetic_field_(R, Phi, Z, Br, Bphi, Bz, &ierr);
+}
+
 
 extern "C" void m3dc1_get_num_timesteps_(int* n, int* ierr)
 {
@@ -299,4 +416,10 @@ extern "C" void m3dc1_read_scalar_(const char* name, double* scalar,
   for(int i=0; i<sz; i++)
     scalar[i] = scalar_list->at(i);
 }
+
+extern "C" void m3dc1_set_scale_factor_(const double* d)
+{
+  scale_factor = *d;
+}
+
 

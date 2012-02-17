@@ -31,6 +31,8 @@ bool m3dc1_field::eval(const double r, const double phi, const double z,
 		       const m3dc1_get_op op, double* val, int* element)
 {
   double xi, eta, temp, co2, sn2, cosn;
+  double xipow[10], etapow[10];
+  double *xip, *etap;
   int e;
   
   int guess = (element ? *element : -1);
@@ -41,6 +43,18 @@ bool m3dc1_field::eval(const double r, const double phi, const double z,
 
   if(e < 0) return false;
   
+  // create array of powers (xip[i] = xi^i, etc..)
+  xip = &(xipow[2]);
+  etap = &(etapow[2]);
+  for(int i=-2; i<=0; i++) {
+    xip[i] = 1.;
+    etap[i] = 1.;
+  }
+  for(int i=1; i<=5; i++) {
+    xip[i] = xip[i-1]*xi;
+    etap[i] = etap[i-1]*eta;
+  }
+
   for(int i=0; i<OP_NUM; i++) val[i] = 0.;
   
   co2  = mesh->co[e]*mesh->co[e];
@@ -50,31 +64,31 @@ bool m3dc1_field::eval(const double r, const double phi, const double z,
   for(int p=0, j=e*nbasis; p<nbasis; p++, j++) {
       
     if((op & GET_VAL) == GET_VAL) {
-      val[OP_1] = val[OP_1] + data[j]*pow(xi,mi[p])*pow(eta,ni[p]);
+      val[OP_1] = val[OP_1] + data[j]*xip[mi[p]]*etap[ni[p]];
     }
       
     if((op & GET_DVAL) == GET_DVAL) {
-      temp = data[j]*mi[p]*pow(xi,mi[p]-1)*pow(eta,ni[p]);
+      temp = data[j]*mi[p]*xip[mi[p]-1]*etap[ni[p]];
       val[OP_DR] += mesh->co[e]*temp;
       val[OP_DZ] += mesh->sn[e]*temp;
       
-      temp = data[j]*ni[p]*pow(xi,mi[p])*pow(eta,ni[p]-1);
+      temp = data[j]*ni[p]*xip[mi[p]]*etap[ni[p]-1];
       val[OP_DR] -= mesh->sn[e]*temp;
       val[OP_DZ] += mesh->co[e]*temp;	
     }
 
     if((op & GET_DDVAL) == GET_DDVAL) {
-      temp = data[j]*(mi[p]-1)*mi[p]*pow(xi,mi[p]-2)*pow(eta,ni[p]);
+      temp = data[j]*(mi[p]-1)*mi[p]*xip[mi[p]-2]*etap[ni[p]];
       val[OP_DRR] +=  co2*temp;
       val[OP_DRZ] += cosn*temp;
       val[OP_DZZ] +=  sn2*temp;
 
-      temp = data[j]*mi[p]*ni[p]*pow(xi,mi[p]-1)*pow(eta,ni[p]-1);
+      temp = data[j]*mi[p]*ni[p]*xip[mi[p]-1]*etap[ni[p]-1];
       val[OP_DRR] -=     2.*cosn*temp;
       val[OP_DRZ] += (co2 - sn2)*temp;
       val[OP_DZZ] +=     2.*cosn*temp;
 
-      temp = data[j]*(ni[p]-1)*ni[p]*pow(xi,mi[p])*pow(eta,ni[p]-2);
+      temp = data[j]*(ni[p]-1)*ni[p]*xip[mi[p]]*etap[ni[p]-2];
       val[OP_DRR] +=  sn2*temp;
       val[OP_DRZ] -= cosn*temp;
       val[OP_DZZ] +=  co2*temp;
