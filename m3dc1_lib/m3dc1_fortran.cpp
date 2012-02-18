@@ -248,6 +248,63 @@ extern "C" void m3dc1_eval_magnetic_field_(const double* r,
   *ierr = 0;
 }
 
+extern "C" void m3dc1_eval_alpha_(const double* r,
+				  const double* phi,
+				  const double* z,
+				  double* alpha, 
+				  int* ierr)
+{
+  const m3dc1_field::m3dc1_get_op getdval = (m3dc1_field::m3dc1_get_op)
+    (m3dc1_field::GET_DVAL);
+
+  const m3dc1_field::m3dc1_get_op getval = (m3dc1_field::m3dc1_get_op)
+    (m3dc1_field::GET_VAL);
+
+  double psi0_val[m3dc1_field::OP_NUM], g0_val[m3dc1_field::OP_NUM];
+  double psi1_val[m3dc1_field::OP_NUM], f1_val[m3dc1_field::OP_NUM];
+  double b2, ab, r2;
+
+  int guess = -1;
+
+  if(eqsubtract != 1) {
+    std::cerr << "Calculation of alpha only supported for eqsubtract=1" 
+	 << std::endl;
+    *ierr = 1;
+    return;
+  }
+    
+  if(!psi0->eval(*r, *phi, *z, getdval, psi0_val, &guess)) {
+    *ierr = 2;
+    return;
+  }
+  if(!g0->eval(*r, *phi, *z, getval, g0_val, &guess)) {
+    *ierr = 3;
+    return;
+  }
+  if(!psi->eval(*r, *phi, *z, getval, psi1_val, &guess)) {
+    *ierr = 4;
+    return;
+  }
+  if(!f->eval(*r, *phi, *z, getdval, f1_val, &guess)) {
+    *ierr = 5;
+    return;
+  }
+
+  // alpha = B0.A1 / B0.B0
+
+  r2 = (*r)*(*r);
+  ab = g0_val[m3dc1_field::OP_1]*psi1_val[m3dc1_field::OP_1] / r2
+    - psi0_val[m3dc1_field::OP_DR]*f1_val[m3dc1_field::OP_DR]
+    - psi0_val[m3dc1_field::OP_DZ]*f1_val[m3dc1_field::OP_DZ];
+  b2 = (psi0_val[m3dc1_field::OP_DR]*psi0_val[m3dc1_field::OP_DR] +
+	psi0_val[m3dc1_field::OP_DZ]*psi0_val[m3dc1_field::OP_DZ] + 
+	g0_val[m3dc1_field::OP_1]*g0_val[m3dc1_field::OP_1])/r2;
+  
+  *alpha = ab/b2;
+    
+  *ierr = 0;
+}
+
 extern "C" void m3dc1_eval_equilibrium_magnetic_field_(const double* r,
 						       const double* phi,
 						       const double* z,

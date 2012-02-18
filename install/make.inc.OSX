@@ -11,3 +11,6 @@ LDFLAGS = -lmpi_cxx -lstdc++
 
 HDF5_LIBS =  -L/usr/local/hdf5-1.8.5/hdf5/lib -lhdf5 -lz
 HDF5_INCLUDE = -I/usr/local/hdf5-1.8.5/hdf5/include
+
+PYTHON_LIBS = -lpython2.5
+PYTHON_INCLUDE = -L/usr/include/python2.5

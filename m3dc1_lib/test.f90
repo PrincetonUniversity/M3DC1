@@ -3,7 +3,7 @@ program m3dc1_fortran_test
   implicit none
 
   integer :: i, ierr
-  real :: r, phi, z, br, bphi, bz, n, p
+  real :: r, phi, z, br, bphi, bz, n, p, alpha
   integer :: n_handle, p_handle
   integer :: timeslice = 1
 
@@ -53,7 +53,14 @@ program m3dc1_fortran_test
         print *, 'Error evaluating pressure field.'
      end if
 
-     write(*, '(5f12.6)') br, bphi, bz, n, p
+     call m3dc1_eval_alpha(r, phi, z, alpha, ierr)
+     if(ierr .ne. 0) then
+        print *, 'Error evaluating magnetic field.', ierr
+     end if
+
+     write(*, '("Magnetic field: ",3f12.6)') br, bphi, bz
+     write(*, '("Density, Pressure: ",2f12.6)') n, p
+     write(*, '("Alpha = A1.B0/B0.B0: ",1f12.6)') alpha
   end do
   
 100 continue
