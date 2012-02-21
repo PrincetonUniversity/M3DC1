@@ -121,7 +121,7 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o subp.o random.o spline.o \
 	init_conds.o \
 	get_pc_skip_count.o
 
-S2V_OBJS = math.o element.o scorec_mesh.o struct2vac.o
+S2V_OBJS = subp.o math.o element.o scorec_mesh.o struct2vac.o
 
 all : $(BIN)
 
