@@ -2,7 +2,7 @@ FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DPETSC_31 $(OPTS)
 CCOPTS  = -c -O -DPetscDEV -DPETSC_31 #-DCJ_MATRIX_DUMP -DUSEHYBRID 
 
 ifeq ($(OPT), 1)
-  FOPTS  := $(FOPTS) # -fast
+  FOPTS  := $(FOPTS) -fast
   CCOPTS := $(CCOPTS) -O
 else
   FOPTS := $(FOPTS) -g -check all -check noarg_temp_created -debug all -ftrapuv
@@ -69,20 +69,8 @@ LIBS = 	$(PETSC_LIBS) \
 	-L/usr/X11R6/lib64 -lX11
 
 ifeq ($(USESCOREC), 1)
-
-  ifeq ($(USERW), 1)
-    SCORECDIR = /p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/libtest
-    INCLUDE := -I/p/tsc/m3dc1/lib/develop.petsc3.Fan/develop.test/includetest \
-	$(INCLUDE)
-  else
-#    SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/031611
-#    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/031611 $(INCLUDE)
-
-#    SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/093011
-    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/latest $(INCLUDE)
-    SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/112111
-#    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/112111 $(INCLUDE)
-  endif
+  INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/latest $(INCLUDE)
+  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/112111
 
   SCOREC_ARCH=x86_64_linux-icc
   SCOREC_LIBS = \

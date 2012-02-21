@@ -619,7 +619,7 @@ subroutine validate_input
      print *, 'WARNING: rzero <= 0'
   endif
 
-  if(pefac.eq.0. .and. eta0.ne.0) then
+  if(pefac.eq.0. .and. eta0.ne.0 .and. iresfunc.eq.0) then
      if(myrank.eq.0) print *, 'ERROR: Te = 0, but eta0 != 0.'
      call safestop(1)
   endif

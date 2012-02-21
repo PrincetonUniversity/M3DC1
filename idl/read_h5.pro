@@ -1370,37 +1370,29 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ilin = read_parameter('linear', filename=filename)
    isubeq = read_parameter('eqsubtract', filename=filename)
 
-   if(keyword_set(last)) then time = [nt-1,nt-1]
-   if(ilin eq 1 and keyword_set(equilibrium)) then time=[-1,-1]
+   if(keyword_set(last)) then time = nt-1
+   if(ilin eq 1 and keyword_set(equilibrium)) then time=-1
 
-   realtime = get_slice_time(filename=filename, slice=time[0])
+   realtime = get_slice_time(filename=filename, slice=time)
 
-   if(n_elements(time) eq 0) then begin
-       trange = [0,nt-1]
-   endif else if(n_elements(time) eq 1) then begin
-       trange = [time, time]
-   endif else begin
-       trange = time
-   endelse
-
-   if((trange[0] ge nt) or (trange[1] ge nt)) then begin
+   if(time ge nt) then begin
        print, "Error: there are only ", nt-1, " time slices."
        return, 0
    endif
 
-   data = fltarr(trange[1]-trange[0]+1, pts, pts)
+   data = fltarr(1, pts, pts)
    if(isubeq eq 1) then base = fltarr(pts,pts)
 
    d = dimensions()
    symbol=name
  
-   print, 'Reading field ', name, ' at timeslice ', trange[0]
+   print, 'Reading field ', name, ' at timeslice ', time
    print, string(form='(" linear=",I0,"; pts=",I0,";' + $
                  'equilibrium=",I0,"; complex=",I0,"; op=",I0)', $
                  keyword_set(linear), pts, keyword_set(equilibrium), $
                  keyword_set(complex), op)
 
-   if(isubeq eq 1 and (not keyword_set(linear)) and (trange[0] ge 0)) $
+   if(isubeq eq 1 and (not keyword_set(linear)) and (time ge 0)) $
      then begin
        data0 = read_field(name,x,y,t, slices=-1, mesh=mesh, $
                           filename=filename, points=pts, $
@@ -1422,7 +1414,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    
    ; check if this is a primitive field
    file_id = h5f_open(filename)
-   time_group_id = h5g_open(file_id, time_name(trange[0]))
+   time_group_id = h5g_open(file_id, time_name(time))
    mesh = h5_parse(time_group_id, 'mesh', /read_data)
                
    field_group_id = h5g_open(time_group_id, 'fields')             
@@ -2670,6 +2662,27 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        symbol = '!8u!DR!N!X'
        d = dimensions(/v0, _EXTRA=extra)
 
+   endif else if(strcmp('vy', name, /fold_case) eq 1) then begin
+
+       chi_z = read_field('chi', x, y, t, slices=time,mesh=mesh,linear=linear,$
+                        filename=filename, points=pts, mask=mask, op=3, $
+                        rrange=xrange, zrange=yrange)
+       phi_r = read_field('psi', x, y, t, slices=time,mesh=mesh,linear=linear,$
+                        filename=filename, points=pts, mask=mask, op=2, $
+                        rrange=xrange, zrange=yrange)
+       
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+
+       if(ivform eq 0) then begin
+           data = phi_r/r + chi_z
+       endif else if (ivform eq 1) then begin
+           data = r*phi_r + chi_z/r^2
+       endif
+       symbol = '!8u!DZ!N!X'
+       d = dimensions(/v0, _EXTRA=extra)
+
 
    ;===========================================
    ; radial field
@@ -3451,24 +3464,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        data = data*linfac
    end
    
- 
-   ; for eqsubtract=1 fields with linear option not set add in base field
-;    if((max(trange) ge 0) and $
-;       (isubeq eq 1) and (not keyword_set(linear)))  then begin
-;        print, ' reading base field', trange
-;        base = read_field(name, x, y, t, slices=-1, mesh=mesh, $
-;                          filename=filename, points=pts, $
-;                          rrange=xrange, zrange=yrange, $
-;                          h_symmetry=h_symmetry,v_symmetry=v_symmetry,$
-;                          operation=op, mask=mask, $
-;                          last=0)
-               
-;        if(n_elements(linfac) eq 0) then linfac=1.
-;        for i=trange[0], trange[1] do begin              
-;            data[i-trange[0],*,*] = linfac*data[i-trange[0],*,*] + base
-;        end
-;    end
-
    print, 'converting units, mks, cgs=', keyword_set(mks), keyword_set(cgs)
 
    ; convert to appropriate units
@@ -4982,10 +4977,10 @@ end
 ; flux_coord_field
 ; ~~~~~~~~~~~~~~~~
 ;==================================================================
-function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, $
+function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
                            fbins=fbins,  tbins=tbins, flux=flux, angle=angle, $
-                           psirange=frange, nflux=nflux, pest=pest,q=q, $
-                           dV=dV, volume=volume, _EXTRA=extra
+                           psirange=frange, nflux=nflux, pest=pest,qval=q, $
+                           dV=dV, volume=volume, _EXTRA=extra, qflux=qflux
 
    if(n_elements(psi) eq 0) then begin
        linear = read_parameter('linear',_EXTRA=extra)
@@ -5025,13 +5020,16 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, $
 
    if(keyword_set(pest)) then begin
        linear = read_parameter('linear',_EXTRA=extra)
-       if(linear eq 1) then begin
-           i = read_field('i',x,z,t,slice=-1,_EXTRA=extra)
-       endif else begin
-           i = read_field('i',x,z,t,slice=slice,_EXTRA=extra)
-       endelse
+       if(n_elements(i0) le 1) then begin
+           print, 'DBG: flux_coord_field reading field'
+           if(linear eq 1) then begin
+               i0 = read_field('i',x,z,t,slice=-1,_EXTRA=extra)
+           endif else begin
+               i0 = read_field('i',x,z,t,slice=slice,_EXTRA=extra)
+           endelse
+       endif
        bp = sqrt(s_bracket(psi,psi,x,z)/r^2)
-       bt = i/r
+       bt = i0/r
        db = bt/(r*bp)
    endif
 
@@ -5072,7 +5070,11 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, $
                ; calculate dt
                dt = ds*g
 
-               pest_angle = total(dt,/cum)
+               pest_angle = fltarr(n_elements(dt))
+               pest_angle[0] = 0.
+               for j=1, n_elements(dt)-1 do begin
+                   pest_angle[j] = pest_angle[j-1] + (dt[j]+dt[j-1])/2.
+               end
              
                ; center pest_angle to change sign where a changes sign
                pest_angle = pest_angle - interpolate(pest_angle,index)
@@ -5080,6 +5082,8 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, $
                ; rescale pest_angle
                q[k,p] = (max(pest_angle)-min(pest_angle))/(2.*!pi)
                pest_angle = pest_angle/q[k,p]
+;               qval = interpol(q, qflux, flux[k,p])
+;               pest_angle = pest_angle/qval
 
                result[k,p,*] = interpol(f,pest_angle,angle[k,*])
            endif else begin
@@ -5186,13 +5190,20 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
            dV[k,p] = 2.*!pi*total(dl*xp/bpf)
            area[k,p] = 2.*!pi*total(dl*xp)
            if(keyword_set(integrate)) then begin
-               result[k,p] = 2.*!pi*total(faf*xp*dl*(-dpsi)/bpf)
+;               result[k,p] = 2.*!pi*total(faf*xp*dl*(-dpsi)/bpf)
+               result[k,p] = 2.*!pi*int_tabulated(findgen(n_elements(dl)), $
+                                                  faf*xp*dl*(-dpsi)/bpf)
            end else begin
 ;               result[k,p] = total(faf*xp*dl) / total(xp*dl)
                result[k,p] = total(faf*xp*dl/bpf)/total(xp*dl/bpf)
            endelse
        endfor
        if(keyword_set(integrate)) then begin
+;           val = reform(result[k,*])
+;           result[k,0] = 0.
+;           for i=1, n_elements(val)-1 do begin
+;               result[k,i] = result[k,i-1] + (val[i]+val[i-1])/2.
+;           end
            result[k,*] = total(result[k,*], /cumulative)
        endif
    endfor
@@ -5231,7 +5242,7 @@ end
 ; symbol:  the formatted symbol of the field
 ;  units:  the formatted units of the field
 ;==================================================================
-function flux_average, field, psi=psi, x=x, z=z, t=t, r0=r0, $
+function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
                        flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
                        points=points, name=name, symbol=symbol, units=units, $
                        integrate=integrate, complex=complex, abs=abs, $
@@ -5249,6 +5260,7 @@ function flux_average, field, psi=psi, x=x, z=z, t=t, r0=r0, $
       or (n_elements(x) eq 0) or (n_elements(z) eq 0) $
       or (n_elements(t) eq 0)) then begin
 
+       print, 'DBG: flux average reading field'
        psi = read_field('psi', x, z, t, points=points, $
                         mask=mask, /equilibrium, _EXTRA=extra)
 
@@ -5260,7 +5272,7 @@ function flux_average, field, psi=psi, x=x, z=z, t=t, r0=r0, $
        if (strcmp(field, 'Safety Factor', /fold_case) eq 1) or $
          (strcmp(field, 'q', /fold_case) eq 1) then begin
 
-           flux_t = flux_average('flux_t', psi=psi, x=x, z=z, t=t, $
+           flux_t = flux_average('flux_t', psi=psi, i0=i0, x=x, z=z, t=t, $
              r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
              points=points, last=last, _EXTRA=extra)
            
@@ -5309,11 +5321,15 @@ function flux_average, field, psi=psi, x=x, z=z, t=t, r0=r0, $
 
        endif else $
          if(strcmp(field, 'flux_t', /fold_case) eq 1) then begin
-           I = read_field('I', x, z, t, points=points, $
-                          _EXTRA=extra)
+           print, 'DBG: flux_t reading field'
+
+           if(n_elements(i0) le 1) then begin
+               i0 = read_field('I', x, z, t, points=points, $
+                              _EXTRA=extra)
+           endif
 
            r = radius_matrix(x,z,t)
-           field = I/(2.*!pi*r^2)
+           field = i0/(2.*!pi*r^2)
 
            units = ''
            name = '!6Toroidal Flux!X'

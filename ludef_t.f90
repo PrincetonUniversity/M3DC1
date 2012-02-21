@@ -799,7 +799,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
   ! Parallel Viscosity
   ! ~~~~~~~~~~~~~~~~~~
   if(amupar.ne.0.) then
-     call PVV2(trial,temp79b)
+     call PVV2(trial,temp79f)
 
      call PVS1      (lin,temp79b)
      call PVS1psipsi(lin,pst79,pst79,temp79c)
@@ -1206,7 +1206,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
   ! Parallel Viscosity
   ! ~~~~~~~~~~~~~~~~~~
   if(amupar.ne.0.) then
-     call PVV3(trial,temp79b)
+     call PVV3(trial,temp79f)
 
      call PVS1      (lin,temp79b)
      call PVS1psipsi(lin,pst79,pst79,temp79c)

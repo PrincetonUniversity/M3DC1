@@ -9095,11 +9095,11 @@ subroutine PVV1(e,o)
 
   case(1)
      if(surface_int) then
-!!$     o = 3.*ri_79*b2i79(:,OP_1)* &
-!!$          (e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR))* &
-!!$          (norm79(:,1)*pst79(:,OP_DZ) - norm79(:,2)*pst79(:,OP_DR)) &
-!!$          - r_79*(norm79(:,1)*e(:,OP_DZ) - norm79(:,2)*e(:,OP_DR))
-        o = 0.
+        o = 3.*ri_79*b2i79(:,OP_1)* &
+             (e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR))* &
+             (norm79(:,1)*pst79(:,OP_DZ) - norm79(:,2)*pst79(:,OP_DR)) &
+             - r_79*(norm79(:,1)*e(:,OP_DZ) - norm79(:,2)*e(:,OP_DR))
+!        o = 0.
      else
         o =   (e(:,OP_DZZ) - e(:,OP_DRR))*pst79(:,OP_DR)*pst79(:,OP_DZ) &
              + e(:,OP_DRZ)*(pst79(:,OP_DR)**2 - pst79(:,OP_DZ)**2)
@@ -9129,6 +9129,8 @@ subroutine PVV1(e,o)
 #endif
      end if
   end select
+
+  o = -o
 end subroutine  PVV1
 
 ! PVV2

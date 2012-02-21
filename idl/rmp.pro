@@ -27,14 +27,19 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        field = read_field(field,x,z,t,/complex,_EXTRA=extra)
    endif
 
+;   q = flux_average('q',flux=qflux,psi=psi0,x=x,z=z,t=t,bins=bins, $
+;                    i0=i0, _EXTRA=extra)
+
    a_r = flux_coord_field(real_part(field)*jac,psi0,x,z,t, $
-                          flux=flux,angle=angle,q=q, $
+                          flux=flux,angle=angle,qval=q, $
                           area=area,nflux=nflux,tbins=bins,fbins=bins, $
-                          /pest, _EXTRA=extra)
+                          /pest, i0=i0, _EXTRA=extra)
    a_i = flux_coord_field(imaginary(field)*jac,psi0,x,z,t, $
-                          flux=flux,angle=angle, q=q,$
+                          flux=flux,angle=angle, qval=q, $
                           area=area,nflux=nflux,tbins=bins,fbins=bins, $
-                          /pest, _EXTRA=extra)
+                          /pest, i0=i0, _EXTRA=extra)
+;   plot, nflux, q, xrange=[0.94, 0.96], yrange=[11./3., 4.], /ystyle
+;   return
 
    for i=0, n_elements(angle)-1 do begin
        a_r[0,*,i] = (2.*!pi)^2*a_r[0,*,i]*q/area
