@@ -1,0 +1,19 @@
+SHELL 	= /bin/bash
+CCOMP	= pathcc
+FCOMP	= pathf95
+FCOPTS 	= -default64 -O 
+INCDIR 	= /usr/ntcc/lff95/mod
+LDFLAGS = -L${NCARG_ROOT}/lib \
+-L${ACML_HOME}/pathscale64/lib \
+-L${NETCDFHOME}/lib     \
+-L${NAG_ROOT}           \
+-L/usr/X11R6/lib64 	\
+-lacml                  \
+-lnetcdf		\
+-lnag			\
+-lncarg			\
+-lncarg_gks		\
+-lncarg_c		\
+-lX11
+#-L${TV80HOME}/lib       \
+#-ltv80lib                \
