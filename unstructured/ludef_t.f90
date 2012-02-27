@@ -371,8 +371,8 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      temp79a = temp79b + temp79c + temp79d + temp79e
 
      temp = int3(vip79(:,OP_1),temp79a,temp79f)
-     ssterm(u_g) = ssterm(u_g) +     thimp     *dt*temp
-     ddterm(u_g) = ddterm(u_g) - (1.-thimp*bdf)*dt*temp
+     ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
+     ddterm(u_g) = ddterm(u_g) + (1.-thimp*bdf)*dt*temp
 
      if(numvar.ge.2) then      
         call PVS2      (lin,temp79b)
@@ -382,8 +382,8 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
         temp79a = temp79b + temp79c + temp79d + temp79e
 
         temp = int3(vip79(:,OP_1),temp79a,temp79f)
-        ssterm(vz_g) = ssterm(vz_g) +     thimp     *dt*temp
-        ddterm(vz_g) = ddterm(vz_g) - (1.-thimp*bdf)*dt*temp
+        ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
+        ddterm(vz_g) = ddterm(vz_g) + (1.-thimp*bdf)*dt*temp
      endif
 
      if(numvar.ge.3) then
@@ -394,8 +394,8 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
         temp79a = temp79b + temp79c + temp79d + temp79e
 
         temp = int3(vip79(:,OP_1),temp79a,temp79f)
-        ssterm(chi_g) = ssterm(chi_g) +     thimp     *dt*temp
-        ddterm(chi_g) = ddterm(chi_g) - (1.-thimp*bdf)*dt*temp
+        ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
+        ddterm(chi_g) = ddterm(chi_g) + (1.-thimp*bdf)*dt*temp
      endif
   endif
 
@@ -808,8 +808,8 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      temp79a = temp79b + temp79c + temp79d + temp79e
 
      temp = int3(vip79(:,OP_1),temp79a,temp79f)
-     ssterm(u_g) = ssterm(u_g) +     thimp     *dt*temp
-     ddterm(u_g) = ddterm(u_g) - (1.-thimp*bdf)*dt*temp
+     ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
+     ddterm(u_g) = ddterm(u_g) + (1.-thimp*bdf)*dt*temp
 
      if(numvar.ge.2) then      
         call PVS2      (lin,temp79b)
@@ -819,8 +819,8 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
         temp79a = temp79b + temp79c + temp79d + temp79e
 
         temp = int3(vip79(:,OP_1),temp79a,temp79f)
-        ssterm(vz_g) = ssterm(vz_g) +     thimp     *dt*temp
-        ddterm(vz_g) = ddterm(vz_g) - (1.-thimp*bdf)*dt*temp
+        ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
+        ddterm(vz_g) = ddterm(vz_g) + (1.-thimp*bdf)*dt*temp
      endif
 
      if(numvar.ge.3) then
@@ -831,8 +831,8 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
         temp79a = temp79b + temp79c + temp79d + temp79e
 
         temp = int3(vip79(:,OP_1),temp79a,temp79f)
-        ssterm(chi_g) = ssterm(chi_g) +     thimp     *dt*temp
-        ddterm(chi_g) = ddterm(chi_g) - (1.-thimp*bdf)*dt*temp
+        ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
+        ddterm(chi_g) = ddterm(chi_g) + (1.-thimp*bdf)*dt*temp
      endif
   endif
 
@@ -1215,8 +1215,8 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      temp79a = temp79b + temp79c + temp79d + temp79e
 
      temp = int3(vip79(:,OP_1),temp79a,temp79f)
-     ssterm(u_g) = ssterm(u_g) +     thimp     *dt*temp
-     ddterm(u_g) = ddterm(u_g) - (1.-thimp*bdf)*dt*temp
+     ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
+     ddterm(u_g) = ddterm(u_g) + (1.-thimp*bdf)*dt*temp
 
      if(numvar.ge.2) then      
         call PVS2      (lin,temp79b)
@@ -1226,8 +1226,8 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
         temp79a = temp79b + temp79c + temp79d + temp79e
 
         temp = int3(vip79(:,OP_1),temp79a,temp79f)
-        ssterm(vz_g) = ssterm(vz_g) +     thimp     *dt*temp
-        ddterm(vz_g) = ddterm(vz_g) - (1.-thimp*bdf)*dt*temp
+        ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
+        ddterm(vz_g) = ddterm(vz_g) + (1.-thimp*bdf)*dt*temp
      endif
 
      if(numvar.ge.3) then
@@ -1238,8 +1238,8 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
         temp79a = temp79b + temp79c + temp79d + temp79e
 
         temp = int3(vip79(:,OP_1),temp79a,temp79f)
-        ssterm(chi_g) = ssterm(chi_g) +     thimp     *dt*temp
-        ddterm(chi_g) = ddterm(chi_g) - (1.-thimp*bdf)*dt*temp
+        ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
+        ddterm(chi_g) = ddterm(chi_g) + (1.-thimp*bdf)*dt*temp
      endif
   endif
 
