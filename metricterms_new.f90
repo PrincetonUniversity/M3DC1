@@ -8788,17 +8788,12 @@ subroutine PVS1psib(i,j,k,o)
 
   case(1)
 
+     o = 0.
 #if defined(USE3D) || defined(USECOMPLEX)
      o = o + k(:,OP_1)* &
           (j(:,OP_DZ)*i(:,OP_DZP) + j(:,OP_DR)*i(:,OP_DRP))
-#endif
-
      o = o * ri2_79*b2i79(:,OP_1)
-
-     if(itor.eq.1) then
-        o = o - (1./3.)*i(:,OP_DZ)
-     endif
-     
+#endif     
   end select
 
 end subroutine PVS1psib
@@ -8929,11 +8924,10 @@ subroutine PVS2bb(i,j,k,o)
   case(1)
 #if defined(USE3D) || defined(USECOMPLEX)
      o = j(:,OP_1)*k(:,OP_1)*i(:,OP_DP)
+     o = o * ri2_79*b2i79(:,OP_1)
 #else
      o = 0.
 #endif
-
-     o = o * ri2_79*b2i79(:,OP_1)
   end select
 
 end subroutine PVS2bb
@@ -9022,12 +9016,15 @@ subroutine PVS3psib(i,j,k,o)
      o = 0.
 
   case(1)
+     
 #if defined(USE3D) || defined(USECOMPLEX)
      o = ri3_79*k(:,OP_1) * &
           (i(:,OP_DZP)*j(:,OP_DR) - i(:,OP_DRP)*j(:,OP_DZ))
+     o = o * ri2_79*b2i79(:,OP_1)
+#else
+     o = 0.
 #endif
 
-     o = o * ri2_79*b2i79(:,OP_1)
   end select
  
 end subroutine PVS3psib
@@ -9117,14 +9114,8 @@ subroutine PVV1(e,o)
            o = o + 2.*e(:,OP_DZ)
         endif
         
-#if defined(USE3D) || defined(USECOMPLEX)
-!!$     o = o - 3.*ri2_79* &
-!!$          ((b2i79(:,OP_DP)*bzt79(:,OP_1) + b2i79(:,OP_1)*bzt79(:,OP_DP))* &
-!!$          (e(:,OP_DZ)*pst79(:,OP_DZ ) + e(:,OP_DR)*pst79(:,OP_DR )) &
-!!$          + b2i79(:,OP_1 )*bzt79(:,OP_1) * &
-!!$          (e(:,OP_DZ)*pst79(:,OP_DZP) + e(:,OP_DR)*pst79(:,OP_DRP)))
-
-     o = o - rfac*3.*ri2_79*bzt79(:,OP_1) * &
+#if defined(USECOMPLEX)
+     o = o - rfac*3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1) * &
           (e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR))
 #endif
      end if
@@ -9153,11 +9144,7 @@ subroutine PVV2(e,o)
      else
         o = ri_79*(e(:,OP_DZ)*pst79(:,OP_DR) - e(:,OP_DR)*pst79(:,OP_DZ))
 
-!!$#if defined(USE3D) || defined(USECOMPLEX)
-!!$        o = o - (e(:,OP_DR)*bft(:,OP_DRP) + e(:,OP_DZ)*bft(:,OP_DZP))
-!!$#endif
-
-        o = o*3.*b2i79(:,OP_1)*bzt79(:,OP_1)
+        o = -3.*b2i79(:,OP_1)*bzt79(:,OP_1)*o
 
 #if defined(USECOMPLEX)
         ! This term is a total derivative in phi
@@ -9214,16 +9201,10 @@ subroutine PVV3(e,o)
                 + ri_79*e(:,OP_DR)*bzt79(:,OP_1)**2
         endif
         
-        o = -3.*ri4_79*b2i79(:,OP_1)*o + ri2_79*e(:,OP_GS)
+        o = 3.*ri4_79*b2i79(:,OP_1)*o - ri2_79*e(:,OP_GS)
         
-#if defined(USE3D) || defined(USECOMPLEX)
-!!$     o = o - 3.*ri5_79* &
-!!$          ((b2i79(:,OP_DP)*bzt79(:,OP_1) + b2i79(:,OP_1)*bzt79(:,OP_DP))* &
-!!$          (e(:,OP_DZ)*pst79(:,OP_DR ) - e(:,OP_DR )*pst79(:,OP_DZ )) &
-!!$          + b2i79(:,OP_1 )*bzt79(:,OP_1) * &
-!!$          (e(:,OP_DZ)*pst79(:,OP_DRP) - e(:,OP_DR )*pst79(:,OP_DZP)))
-!!$
-     o = o + rfac*3.*ri5_79*bzt79(:,OP_1) * &
+#if defined(USECOMPLEX)
+     o = o - rfac*3.*ri5_79*b2i79(:,OP_1)*bzt79(:,OP_1) * &
           (e(:,OP_DZ)*pst79(:,OP_DR) - e(:,OP_DR)*pst79(:,OP_DZ))
 #endif
      end if

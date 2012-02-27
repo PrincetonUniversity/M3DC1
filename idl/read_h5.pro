@@ -1291,7 +1291,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                      linear=linear, last=last, average=average, linfac=linfac,$
                      dpsi=dpsi, symbol=symbol, units=units, cgs=cgs, mks=mks, $
                      real=real, imaginary=imag, edge_val=edge_val, phi=phi0, $
-                     time=realtime, abs=abs, phase=phase, dimensions=d
+                     time=realtime, abs=abs, phase=phase, dimensions=d, $
+                     flux_average=flux_av
 
    if(n_elements(slices) ne 0) then time=slices else time=0
 
@@ -3400,6 +3401,37 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        d = dimensions(/p0, l0=1)
        symbol = '!6Angular Momentum Flux!X'
 
+   ;===========================================
+   ; Cole NTV
+   ;===========================================
+   endif else if(strcmp('cole_ntv', name, /fold_case) eq 1) then begin
+
+       psi0 = read_field('psi', x, y, t, slices=time,mesh=mesh,linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange,/equilibrium)
+       n0 = read_field('den', x, y, t, slices=time,mesh=mesh,linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, /equilibrium)
+
+
+       u = read_field('phi',x,y,t,slices=time, mesh=mesh, linear=linear, $
+                      filename=filename, points=pts, complex=complex, $
+                      rrange=xrange, zrange=yrange)
+       w = read_field('omega', x, y, t, slices=time,mesh=mesh,linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange)
+       chi = read_field('chi',x,y,t,slices=time, mesh=mesh, linear=linear,$
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange)
+
+       if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
+       
+       data = -n0*conj(w)* $
+         (r^3*a_bracket(psi0,u,x,y) + s_bracket(psi0,chi,x,y)) $
+         / sqrt(s_bracket(psi0,psi0,x,y))
+       d = dimensions(/p0, l0=1)
+       symbol = '!6Angular Momentum Flux!X'
+
 
    ;===========================================
    ; radial electric field
@@ -3500,6 +3532,15 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    end
 
    if(n_elements(fac) ne 0) then data = data*fac
+
+
+   ; perform flux-average
+   if(keyword_set(flux_av)) then begin
+       forward_function flux_average
+       fa = flux_average(data, psi=psi, x=x, z=z, t=t, flux=flux, $
+                         filename=filename, _EXTRA=extra)
+       data = interpol(fa, flux, psi)
+   end
 
    print, 'Done reading field'
 
