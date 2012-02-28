@@ -259,11 +259,13 @@ subroutine define_profiles
   use math
   use read_ascii
   use basic
+  use iterdb
   implicit none
 
   real, allocatable :: xvals(:), yvals(:)
   real :: teold, pval
-  integer :: nvals, i
+  integer :: nvals, i, ierr
+  logical :: read_iterdb
 
   ! If p' and ff' profiles are not yet defined, define them
   if(.not.allocated(p0_spline%x)) then
@@ -274,6 +276,10 @@ subroutine define_profiles
         ! use analytic p' and ff' profiles
         call default_profiles
      end if
+  end if
+
+  if(iread_te.eq.20 .or. iread_ne.eq.20 .or. iread_omega.eq.20) then
+     call load_iterdb('iterdb', ierr)
   end if
 
   ! ensure that derivatives in SOL are zero
@@ -320,6 +326,16 @@ subroutine define_profiles
      call read_ascii_column('corsica', xvals, nvals, skip=26, icol=4)
      call read_ascii_column('corsica', yvals, nvals, skip=26, icol=6)
      yvals = yvals * 1.6022e-9 / (b0_norm**2/(4.*pi*n0_norm))
+
+  case(20)
+     ! Read from iterdb text file (keV vs Psi)
+     nvals = idb_nj
+     allocate(xvals(nvals), yvals(nvals))
+     xvals = idb_profile_data(:,1)
+     xvals = (xvals(:) - xvals(1)) / (xvals(nvals) - xvals(1))
+     yvals = idb_profile_data(:,6)
+     yvals = yvals * 1.6022e-9 / (b0_norm**2/(4.*pi*n0_norm))
+
   case default
      
   end select
@@ -383,6 +399,15 @@ subroutine define_profiles
         call read_ascii_column('corsica', xvals, nvals, skip=26, icol=4)
         call read_ascii_column('corsica', yvals, nvals, skip=26, icol=8)
         yvals = yvals * 1e14 / n0_norm / zeff
+
+     case(20)
+        ! Read from iterdb text file (m^-3 vs Psi)
+        nvals = idb_nj
+        allocate(xvals(nvals), yvals(nvals))
+        xvals = idb_profile_data(:,1)
+        xvals = (xvals(:) - xvals(1)) / (xvals(nvals) - xvals(1))
+        yvals = idb_profile_data(:,9)
+        yvals = yvals / 1e6 / n0_norm / zeff
         
      case default
         call density_profile
@@ -450,6 +475,16 @@ subroutine define_profiles
         xvals = xvals / xvals(nvals) ! normalize rho
         call rho_to_psi(nvals, xvals, xvals)
 
+     case(20)
+        ! Read from iterdb text file (rad/s vs Psi)
+        nvals = idb_nj
+        allocate(xvals(nvals), yvals(nvals))
+        xvals = idb_profile_data(:,1)
+        xvals = (xvals(:) - xvals(1)) / (xvals(nvals) - xvals(1))
+        yvals = idb_profile_data(:,32)
+        yvals = yvals / &
+             (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm)
+
      case default
         call default_omega
      end select
@@ -465,6 +500,8 @@ subroutine define_profiles
      ! calculate alpha from omega
      call calculate_alpha
   end if
+
+  call unload_iterdb
 
   ! output profiles
   if(myrank.eq.0) call write_profile
