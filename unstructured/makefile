@@ -103,6 +103,7 @@ READJSOLVER_OBJS = polar.o read_jsolver_exec.o
 
 OBJS := $(AUX) fftw_fortran.o read_namelist.o subp.o random.o spline.o \
 	math.o read_ascii.o interpolate.o control.o \
+	iterdb.o \
 	element.o $(V_OBJ) field.o nintegrate_mod.o \
 	M3Dmodules.o \
 	m3dc1_nint.o vacuum_interface.o boundary.o \

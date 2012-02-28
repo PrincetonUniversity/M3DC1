@@ -2647,7 +2647,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        chi_r = read_field('chi', x, y, t, slices=time,mesh=mesh,linear=linear,$
                         filename=filename, points=pts, mask=mask, op=2, $
                         rrange=xrange, zrange=yrange)
-       phi_z = read_field('psi', x, y, t, slices=time,mesh=mesh,linear=linear,$
+       phi_z = read_field('phi', x, y, t, slices=time,mesh=mesh,linear=linear,$
                         filename=filename, points=pts, mask=mask, op=3, $
                         rrange=xrange, zrange=yrange)
        
@@ -2668,7 +2668,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        chi_z = read_field('chi', x, y, t, slices=time,mesh=mesh,linear=linear,$
                         filename=filename, points=pts, mask=mask, op=3, $
                         rrange=xrange, zrange=yrange)
-       phi_r = read_field('psi', x, y, t, slices=time,mesh=mesh,linear=linear,$
+       phi_r = read_field('phi', x, y, t, slices=time,mesh=mesh,linear=linear,$
                         filename=filename, points=pts, mask=mask, op=2, $
                         rrange=xrange, zrange=yrange)
        
