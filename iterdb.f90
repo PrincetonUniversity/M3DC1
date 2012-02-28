@@ -21,7 +21,7 @@ module iterdb
 
   real, allocatable :: idb_plasbdry(:,:)
 
-  logical, private :: initialized = .true.
+  logical, private :: initialized = .false.
 
 contains
 
