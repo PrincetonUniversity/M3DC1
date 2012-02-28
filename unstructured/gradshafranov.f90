@@ -267,6 +267,8 @@ subroutine define_profiles
   integer :: nvals, i, ierr
   logical :: read_iterdb
 
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining profiles'
+
   ! If p' and ff' profiles are not yet defined, define them
   if(.not.allocated(p0_spline%x)) then
      if(inumgs .eq. 1) then
@@ -505,6 +507,8 @@ subroutine define_profiles
 
   ! output profiles
   if(myrank.eq.0) call write_profile
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'Done defining profiles'
 
 end subroutine define_profiles
 
