@@ -126,6 +126,8 @@ subroutine set_defaults
   call add_var_int("iread_omega", iread_omega, 0, "", input_grp)
   call add_var_int("iread_ne", iread_ne, 0, "", input_grp)
   call add_var_int("iread_te", iread_te, 0, "", input_grp)
+  call add_var_int("iomega_is_ExB", iomega_is_ExB, 0, &
+       "0: input is omega_i;  1: input is omega_ExB", input_grp)
 
   ! Transport parameters
   call add_var_int("ivisfunc", ivisfunc, 0, "", transp_grp)

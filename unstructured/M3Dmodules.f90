@@ -279,6 +279,7 @@ module basic
   integer :: iread_ne      
   integer :: iread_te
   integer :: iwrite_restart ! 0 = don't write restart files
+  integer :: iomega_is_ExB ! if 1, omega input is ExB frequency
 
   ! adaptation options
   integer :: iadapt     ! 1,2 = adapts mesh after initialization
