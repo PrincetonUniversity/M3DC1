@@ -22,7 +22,7 @@ module gradshafranov
   type(field_type), private :: psi_vec
   type(field_type), private :: fun1_vec, fun2_vec, fun3_vec, fun4_vec
 
-  real, private :: dpsii
+  real, private :: dpsii = 0.
   real, private :: gamma2, gamma3, gamma4  
 
   logical, private :: constraint = .false.
@@ -263,9 +263,8 @@ subroutine define_profiles
   implicit none
 
   real, allocatable :: xvals(:), yvals(:)
-  real :: teold, pval
+  real :: teold, pval, ppval, nval
   integer :: nvals, i, ierr
-  logical :: read_iterdb
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining profiles'
 
@@ -498,6 +497,27 @@ subroutine define_profiles
 
      ! scale rotation
      omega_spline%y = omega_spline%y*vscale
+
+     ! If we've read in ExB frequency,
+     ! add in diamagnetic term to get toroidal ion rotation
+     if(iomega_is_ExB.eq.1 .and. db.ne.0.) then 
+        if(use_norm_psi.eq.1 .and. dpsii.eq.0.) then
+           if(myrank.eq.0) then
+              print *, 'Error: psi bounds are required when reading omega_ExB'
+           end if
+           call safestop(14)
+        endif
+
+        do i=1, omega_spline%n
+           call evaluate_spline(pprime_spline, omega_spline%x(i), ppval)
+           call evaluate_spline(n0_spline, omega_spline%x(i), nval)
+           if(use_norm_psi.eq.1) then 
+              omega_spline%y(i) = omega_spline%y(i) + dpsii*db*ppval/nval
+           else
+              omega_spline%y(i) = omega_spline%y(i) + db*ppval/nval
+           endif
+        end do
+     end if
 
      ! calculate alpha from omega
      call calculate_alpha
@@ -1750,7 +1770,8 @@ end subroutine readpgfiles
    g0    = 0.5*(f**2 - f(n)**2)
    ffn   = ffp*(flux(n) - flux(1))  ! convert to derivative wrt normalized psi
    ppn   = pp *(flux(n) - flux(1))  ! convert to derivative wrt normalized psi
-   psinorm = (flux - flux(1)) / (flux(n) - flux(1))
+   dpsii = 1./(flux(n) - flux(1))
+   psinorm = (flux - flux(1)) * dpsii
 
    call create_spline(p0_spline, n, psinorm, pres0)
    call create_spline(g0_spline, n, psinorm, g0)
@@ -2170,6 +2191,7 @@ subroutine calc_electron_pressure(psi0, pe, x, z)
 
      call evaluate_spline(te_spline, psii(1),te0,tep,tepp)
      call calc_density(psi0, n0, x, z)
+     n0 = n0*zeff ! convert ion density to electron density
 
      pe(1) = n0(1)*te0
      pe(2) = n0(2)*te0 + n0(1)*tep*psii(2)
