@@ -3,7 +3,6 @@
 
 #include <iostream>
 
-
 m3dc1_file::m3dc1_file()
 {
   file = -1;
@@ -60,7 +59,7 @@ m3dc1_timeslice* m3dc1_file::load_timeslice(const int t)
 
   i = timeslice_map.find(t);
   if(i != timeslice_map.end()) {
-    std::cerr << "Timeslice " << t << " has already been read."  << std::endl;
+    //std::cerr << "Timeslice " << t << " has already been read." << std::endl;
     return &i->second;
   }
 
@@ -82,10 +81,10 @@ m3dc1_timeslice* m3dc1_file::load_timeslice(const int t)
 
   if(t >= 0) read_parameter("ntor", &ts->ntor);
   else ts->ntor = 0;
-  std::cerr << "ntor = " << ts->ntor << std::endl;
+  //  std::cerr << "ntor = " << ts->ntor << std::endl;
 
   read_parameter("3d", &ts->is_3d);
-  std::cerr << "3d = " << ts->is_3d << std::endl;
+  //  std::cerr << "3d = " << ts->is_3d << std::endl;
 
   hid_t attr_id = H5Aopen(time_group, "time", H5P_DEFAULT);
   H5Aread(attr_id, H5T_NATIVE_DOUBLE, (void*)(&ts->time));
@@ -128,7 +127,7 @@ m3dc1_mesh* m3dc1_file::read_mesh(const int t)
 
   int is_3d = 0;
   read_parameter("3d", &is_3d);
-  std::cerr << "is_3d = " << is_3d << std::endl;
+  //  std::cerr << "is_3d = " << is_3d << std::endl;
 
   int nfields;
 
@@ -195,7 +194,7 @@ m3dc1_scalar_list* m3dc1_file::read_scalar(const char* name)
   m3dc1_scalar_map::iterator i;
   i = scalar_map.find(name);
   if(i != scalar_map.end()) {
-    std::cerr << "Scalar " << name << " has already been read" << std::endl;
+    // std::cerr << "Scalar " << name << " has already been read" << std::endl;
     return &i->second;
   }
 
@@ -251,7 +250,7 @@ m3dc1_field* m3dc1_file::load_field(const char* n, const int t)
   // Check if field has already been read
   i = ts->field_map.find(name);
   if(i != ts->field_map.end()) {
-    std::cerr << "Field " << name << " has already been read" << std::endl;
+    // std::cerr << "Field " << name << " has already been read" << std::endl;
     return i->second;
   }
 

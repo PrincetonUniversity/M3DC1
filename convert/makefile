@@ -13,7 +13,7 @@ OBJS = convert.o
 all : m3dc1_convert
 
 m3dc1_convert : $(OBJS)
-	$(LD) $(LDFLAGS) $+ $(LIBS) -o $@
+	$(F90) $(LDFLAGS) $+ $(LIBS) -o $@
 
 install : m3dc1_convert
 	cp m3dc1_convert $(M3DC1_INSTALL_DIR)

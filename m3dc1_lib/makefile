@@ -16,8 +16,10 @@ libm3dc1_fortran.a : m3dc1_fortran.o
 m3dc1_fortran_test : test.o libm3dc1_fortran.a libm3dc1.a
 	$(F90) $< -L. -lm3dc1_fortran -lm3dc1 $(LDFLAGS) $(LIBS) -o $@
 
-install : m3dc1_fortran_test
-	cp m3dc1_fortran_test $(M3DC1_INSTALL_DIR)
+install : libm3dc1.a libm3dc1_fortran.a
+	mkdir -p $(M3DC1_INSTALL_DIR)/bin/_$(M3DC1_ARCH)
+	mkdir -p $(M3DC1_INSTALL_DIR)/lib/_$(M3DC1_ARCH)
+	cp libm3dc1.a libm3dc1_fortran.a $(M3DC1_INSTALL_DIR)/lib/_$(M3DC1_ARCH)
 
 clean : 
 	rm -fr *.o *.so *.a *~ _$(M3DC1_ARCH)

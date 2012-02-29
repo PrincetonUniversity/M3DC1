@@ -305,6 +305,102 @@ extern "C" void m3dc1_eval_alpha_(const double* r,
   *ierr = 0;
 }
 
+extern "C" void m3dc1_eval_grad_alpha_(const double* r,
+				       const double* phi,
+				       const double* z,
+				       double* dadR,
+				       double* dadPhi,
+				       double* dadZ,
+				       int* ierr)
+{
+  const m3dc1_field::m3dc1_get_op getdpval = (m3dc1_field::m3dc1_get_op)
+    (m3dc1_field::GET_DVAL | m3dc1_field::GET_DDVAL | m3dc1_field::GET_PVAL);
+
+  const m3dc1_field::m3dc1_get_op getpval = (m3dc1_field::m3dc1_get_op)
+    (m3dc1_field::GET_DVAL | m3dc1_field::GET_PVAL);
+
+  const m3dc1_field::m3dc1_get_op getdval = (m3dc1_field::m3dc1_get_op)
+    (m3dc1_field::GET_DVAL | m3dc1_field::GET_DDVAL);
+
+  const m3dc1_field::m3dc1_get_op getval = (m3dc1_field::m3dc1_get_op)
+    (m3dc1_field::GET_VAL | m3dc1_field::GET_DVAL);
+
+  double psi0_val[m3dc1_field::OP_NUM], g0_val[m3dc1_field::OP_NUM];
+  double psi1_val[m3dc1_field::OP_NUM], f1_val[m3dc1_field::OP_NUM];
+  double b2, ab, r2, dabdR, dabdPhi, dabdZ, db2dR, db2dZ;
+
+  int guess = -1;
+
+  if(eqsubtract != 1) {
+    std::cerr << "Calculation of alpha only supported for eqsubtract=1" 
+	 << std::endl;
+    *ierr = 1;
+    return;
+  }
+    
+  if(!psi0->eval(*r, *phi, *z, getdval, psi0_val, &guess)) {
+    *ierr = 2;
+    return;
+  }
+  if(!g0->eval(*r, *phi, *z, getval, g0_val, &guess)) {
+    *ierr = 3;
+    return;
+  }
+  if(!psi->eval(*r, *phi, *z, getpval, psi1_val, &guess)) {
+    *ierr = 4;
+    return;
+  }
+  if(!f->eval(*r, *phi, *z, getdpval, f1_val, &guess)) {
+    *ierr = 5;
+    return;
+  }
+
+  // alpha = B0.A1 / B0.B0
+
+  r2 = (*r)*(*r);
+  ab = g0_val[m3dc1_field::OP_1]*psi1_val[m3dc1_field::OP_1] / r2
+    - psi0_val[m3dc1_field::OP_DR]*f1_val[m3dc1_field::OP_DR]
+    - psi0_val[m3dc1_field::OP_DZ]*f1_val[m3dc1_field::OP_DZ];
+  b2 = (psi0_val[m3dc1_field::OP_DR]*psi0_val[m3dc1_field::OP_DR] +
+	psi0_val[m3dc1_field::OP_DZ]*psi0_val[m3dc1_field::OP_DZ] + 
+	g0_val[m3dc1_field::OP_1]*g0_val[m3dc1_field::OP_1])/r2;
+
+  dabdR = g0_val[m3dc1_field::OP_DR]*psi1_val[m3dc1_field::OP_1] / r2
+    - psi0_val[m3dc1_field::OP_DRR]*f1_val[m3dc1_field::OP_DR]
+    - psi0_val[m3dc1_field::OP_DRZ]*f1_val[m3dc1_field::OP_DZ]
+    + g0_val[m3dc1_field::OP_1]*psi1_val[m3dc1_field::OP_DR] / r2
+    - psi0_val[m3dc1_field::OP_DR]*f1_val[m3dc1_field::OP_DRR]
+    - psi0_val[m3dc1_field::OP_DZ]*f1_val[m3dc1_field::OP_DRZ] -
+    2.*g0_val[m3dc1_field::OP_1]*psi1_val[m3dc1_field::OP_1] / ((*r)*r2);
+
+  dabdPhi = g0_val[m3dc1_field::OP_1]*psi1_val[m3dc1_field::OP_DP] / r2
+    - psi0_val[m3dc1_field::OP_DR]*f1_val[m3dc1_field::OP_DRP]
+    - psi0_val[m3dc1_field::OP_DZ]*f1_val[m3dc1_field::OP_DZP];
+
+  dabdZ = g0_val[m3dc1_field::OP_DZ]*psi1_val[m3dc1_field::OP_1] / r2
+    - psi0_val[m3dc1_field::OP_DRZ]*f1_val[m3dc1_field::OP_DR]
+    - psi0_val[m3dc1_field::OP_DZZ]*f1_val[m3dc1_field::OP_DZ] 
+    + g0_val[m3dc1_field::OP_1]*psi1_val[m3dc1_field::OP_DZ] / r2
+    - psi0_val[m3dc1_field::OP_DR]*f1_val[m3dc1_field::OP_DRZ]
+    - psi0_val[m3dc1_field::OP_DZ]*f1_val[m3dc1_field::OP_DZZ];
+
+  db2dR = 2.*(psi0_val[m3dc1_field::OP_DRR]*psi0_val[m3dc1_field::OP_DR] +
+	      psi0_val[m3dc1_field::OP_DRZ]*psi0_val[m3dc1_field::OP_DZ] + 
+	      g0_val[m3dc1_field::OP_DR]*g0_val[m3dc1_field::OP_1])/r2  
+    - 2.*b2/(*r);
+
+  db2dZ = 2.*(psi0_val[m3dc1_field::OP_DRZ]*psi0_val[m3dc1_field::OP_DR] +
+	      psi0_val[m3dc1_field::OP_DZZ]*psi0_val[m3dc1_field::OP_DZ] + 
+	      g0_val[m3dc1_field::OP_DZ]*g0_val[m3dc1_field::OP_1])/r2;
+  
+  *dadR = dabdR/b2 - ab*db2dR/(b2*b2);
+  *dadPhi = dabdPhi/b2;
+  *dadZ = dabdZ/b2 - ab*db2dZ/(b2*b2);
+    
+  *ierr = 0;
+}
+
+
 extern "C" void m3dc1_eval_equilibrium_magnetic_field_(const double* r,
 						       const double* phi,
 						       const double* z,

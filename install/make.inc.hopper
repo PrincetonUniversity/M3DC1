@@ -1,18 +1,17 @@
-export HDF5_CC='CC'
+CC = CC
 
-CC = h5pcc
 CFLAGS = -fastsse -Mipa=fast,inline
 
-F90 = h5pfc
+F90 = ftn
 F90FLAGS = -fastsse -Mipa=fast,inline -Mr8 -Minform=warn
 
 ARCH = ar cr
 
-LD = $(F90)
-LDFLAGS = -fastsse -Mipa=fast,inline -Mnomain
+LD = $(F90) -Mnomain
+LDFLAGS = -fastsse -Mipa=fast,inline
 
 LIBS = -lstd -lC
 
-HDF5_LIBS = 
-HDF5_INCLUDE = 
+HDF5_LIBS = -L${HDF5_DIR}/lib -lhdf5
+HDF5_INCLUDE = -I${HDF5_DIR}/include
 
