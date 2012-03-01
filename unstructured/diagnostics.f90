@@ -416,7 +416,17 @@ subroutine evaluate(x,phi,z,ans,ans2,fin,itri)
      ! Determine number of processes whose domains contain this point
      call mpi_allreduce(hasval, tothasval, 1, MPI_INTEGER, MPI_SUM, &
           MPI_COMM_WORLD, ier)
+  else
+     tothasval = hasval
+  end if
 
+  if(tothasval.eq.0) then
+     if(myrank.eq.0 .and. iprint.ge.1) &
+          write(*,'(A,3f12.4)') 'Point not found in domain: ', x, phi, z
+     return
+  end if
+
+  if(maxrank.gt.1) then
      ! Find the average value at this point over all processes containing
      ! the point.  (Each value should be identical.)
      temp1(1) = ans
@@ -1004,7 +1014,6 @@ subroutine lcfs(psi)
   real :: curv
   vectype, dimension(dofs_per_node) :: data
 
-
   ! Find magnetic axis
   ! ~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Finding magnetic axis'
@@ -1106,11 +1115,13 @@ subroutine lcfs(psi)
   else
      itri = 0
      call evaluate(xlim,0.,zlim,psilim,ajlim,psi,itri)
+     if(itri.le.0) psilim = psibound
      
      ! calculate psi at a second limiter point as a diagnostic
      if(xlim2.gt.0) then
         itri = 0
         call evaluate(xlim2,0.,zlim2,psilim2,ajlim,psi,itri)
+        if(itri.le.0) psilim = psibound
      else
         psilim2 = psilim
      endif
