@@ -5700,7 +5700,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, fac=fac, $
              linear=linear, multiply_flux=multiply_flux, mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, abs=abs, phase=phase, $
-             stotal=total, q_contours=qcon
+             stotal=total, q_contours=qcon, rho=rho
        end
        if(n_elements(names) ne 0) then begin
            plot_legend, names, colors=col, linestyle=ls, _EXTRA=extra
@@ -5731,7 +5731,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, fac=fac, $
              linear=linear, multiply_flux=multiply_flux[i], mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, abs=abs, phase=phase, $
-             stotal=total, q_contours=q_contours
+             stotal=total, q_contours=q_contours, rho=rho
        end
        if(n_elements(names) gt 0) then begin
            plot_legend, names, color=colors, ylog=ylog, xlog=xlog, $
@@ -5760,7 +5760,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              t=t, rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, fac=fac,$
              linear=linear, multiply_flux=multiply_flux, mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, asb=aba, phase=phase, $
-             stotal=total
+             stotal=total, rho=rho
            names[i] = string(format='(%"!8t!6 = %d !7s!D!8A!N!X")', t)
        end
 

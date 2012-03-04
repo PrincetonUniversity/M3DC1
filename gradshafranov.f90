@@ -498,12 +498,12 @@ subroutine define_profiles
      ! scale rotation
      omega_spline%y = omega_spline%y*vscale
 
-     ! If we've read in ExB frequency,
-     ! add in diamagnetic term to get toroidal ion rotation
-     if(iomega_is_ExB.eq.1 .and. db.ne.0.) then 
+     ! If we've read in electron rotation,
+     ! add in diamagnetic term to get ion rotation
+     if(iread_omega_e.ne.0 .and. db.ne.0.) then 
         if(use_norm_psi.eq.1 .and. dpsii.eq.0.) then
            if(myrank.eq.0) then
-              print *, 'Error: psi bounds are required when reading omega_ExB'
+              print *, 'Error: psi bounds are required when reading omega_e'
            end if
            call safestop(14)
         endif
@@ -512,9 +512,9 @@ subroutine define_profiles
            call evaluate_spline(pprime_spline, omega_spline%x(i), ppval)
            call evaluate_spline(n0_spline, omega_spline%x(i), nval)
            if(use_norm_psi.eq.1) then 
-              omega_spline%y(i) = omega_spline%y(i) + dpsii*db*ppval/nval
+              omega_spline%y(i) = omega_spline%y(i) - dpsii*db*ppval/nval
            else
-              omega_spline%y(i) = omega_spline%y(i) + db*ppval/nval
+              omega_spline%y(i) = omega_spline%y(i) - db*ppval/nval
            endif
         end do
      end if
