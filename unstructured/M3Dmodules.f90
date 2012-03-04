@@ -275,11 +275,11 @@ module basic
                            ! 2 = read geqdsk for psi, but use default profiles
   integer :: iread_dskbal  ! 1 = read dskbal input
   integer :: iread_jsolver
-  integer :: iread_omega   ! 2 = read omega from cerfit file
+  integer :: iread_omega
+  integer :: iread_omega_e
   integer :: iread_ne      
   integer :: iread_te
   integer :: iwrite_restart ! 0 = don't write restart files
-  integer :: iomega_is_ExB ! if 1, omega input is ExB frequency
 
   ! adaptation options
   integer :: iadapt     ! 1,2 = adapts mesh after initialization

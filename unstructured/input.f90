@@ -124,10 +124,10 @@ subroutine set_defaults
   call add_var_int("iread_dskbal", iread_dskbal, 0, "", input_grp)
   call add_var_int("iread_jsolver", iread_jsolver, 0, "", input_grp)
   call add_var_int("iread_omega", iread_omega, 0, "", input_grp)
+  call add_var_int("iread_omega_e", iread_omega_e, 0, &
+       "Read electron rotation (same options as iread_omega)", input_grp)
   call add_var_int("iread_ne", iread_ne, 0, "", input_grp)
   call add_var_int("iread_te", iread_te, 0, "", input_grp)
-  call add_var_int("iomega_is_ExB", iomega_is_ExB, 0, &
-       "0: input is omega_i;  1: input is omega_ExB", input_grp)
 
   ! Transport parameters
   call add_var_int("ivisfunc", ivisfunc, 0, "", transp_grp)
@@ -608,6 +608,12 @@ subroutine validate_input
      if(jadv.eq.1 .and. hyper.ne.0) &
           print *, 'WARNING: poloidal flux smoothing not available with isplitstep=0 and jadv=1'
   end if
+  
+  if(isplitstep.eq.1 .and. imp_bf.eq.1) then
+     print *, 'Error: imp_bf=1 is not implemented with isplitstep=1'
+     call safestop(1)
+  end if
+
 
   if(rzero.eq.-1) then
      if(itor.eq.1) then 
@@ -715,6 +721,14 @@ subroutine validate_input
      call safestop(1)
   end if
 #endif
+
+  if(iread_omega_e .ne. 0) then
+     if(iread_omega .ne. 0) then
+        if(myrank.eq.0) print *, "Error, can't read both omega and omega_e"
+        call safestop(1)
+     end if
+     iread_omega = iread_omega_e
+  end if
 
   ! Read PETSc options
   call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
