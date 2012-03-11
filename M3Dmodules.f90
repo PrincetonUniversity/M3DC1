@@ -279,6 +279,7 @@ module basic
   integer :: iread_omega_e
   integer :: iread_ne      
   integer :: iread_te
+  integer :: iread_neo      ! 1 = read velocity profiles from NEO output
   integer :: iwrite_restart ! 0 = don't write restart files
 
   ! adaptation options

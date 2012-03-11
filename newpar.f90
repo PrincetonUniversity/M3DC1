@@ -119,6 +119,7 @@ Program Reducedquintic
   ! output info about simulation to be run
   call print_info
 
+
   ! create the newvar matrices
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Generating newvar matrices'
