@@ -260,8 +260,10 @@ subroutine export_time_advance_vectors_unsplit
   if(ipres.eq.1) then
      pe_field(1) = pe_v
   else
-     pe_field(1) = p_v
-     call mult(pe_field(1), pefac)
+     if(numvar.ge.3) then
+        pe_field(1) = p_v
+        call mult(pe_field(1), pefac)
+     end if
   end if
 
   if(idens.eq.1) den_field(1) = den_v

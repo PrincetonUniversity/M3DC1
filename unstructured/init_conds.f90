@@ -3233,12 +3233,73 @@ subroutine eigen_per(x, phi, z)
 
 
   call finalize(field_vec)
-
-
-
 end subroutine eigen_per
 
 end module eigen
+
+!=========================================
+! set_neo_vel
+!=========================================
+subroutine set_neo_vel
+  use basic
+  use arrays
+  use m3dc1_nint
+  use newvar_mod
+  use neo
+  use math
+
+  implicit none
+
+  integer :: i, j, itri, nelms, ier
+
+  type(field_type) :: vz_vec
+  vectype, dimension(dofs_per_element) :: temp2
+
+  real, dimension(MAX_PTS) :: theta, vtor, vpol, psival
+  vectype, dimension(MAX_PTS) :: val 
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Setting velocity from NEO data"
+
+  call create_field(vz_vec)
+
+  nelms = local_elements()
+  do itri=1,nelms
+        
+     call define_element_quadrature(itri,int_pts_main,5)
+     call define_fields(itri,0,1,0)
+     call eval_ops(itri, psi_field(0), ps079)
+
+     theta = atan2(z_79-zmag,x_79-xmag)
+     psival = -(ps079(:,OP_1) - psimin)
+     call neo_eval_vel(int_pts_main, psival, theta, vpol, vtor)
+
+     val = vtor / (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm)
+
+!     print *, ps079(1,OP_1),psival(1), val(1)
+
+     do i=1,dofs_per_element
+        ! assemble RHS
+        select case(ivform)
+        case(0)
+           temp2(i) = int3(r_79,mu79(:,OP_1,i),val)
+        case(1)
+           temp2(i) = int3(ri_79,mu79(:,OP_1,i),val)
+        end select
+     end do
+
+     call vector_insert_block(vz_vec%vec, itri, 1, temp2(:), MAT_ADD)
+  end do
+  call sum_shared(vz_vec%vec)
+
+  ! solve vz
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving vz..."
+  call newsolve(mass_mat_lhs%mat,vz_vec%vec,ier)
+  vz_field(0) = vz_vec
+
+  call destroy_field(vz_vec)
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, " Done calculating velocity"
+end subroutine set_neo_vel
 
 
 !=====================================
@@ -3269,8 +3330,16 @@ subroutine initial_conditions()
   use frs
   use ftz
   use eigen
+  use neo
 
   implicit none
+
+  integer :: ierr
+
+  if(iread_neo.eq.1) then
+     call read_neo(ierr)
+     if(ierr.ne.0) return
+  end if
 
   if(iread_eqdsk.ge.1) then
      call eqdsk_init()
@@ -3350,6 +3419,11 @@ subroutine initial_conditions()
            call eigen_init()
         end select
      endif
+  end if
+
+  if(iread_neo.eq.1) then
+     call set_neo_vel
+     call unload_neo
   end if
      
   call den_eq()

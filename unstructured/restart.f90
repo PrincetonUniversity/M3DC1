@@ -18,7 +18,7 @@ subroutine wrrestart
   call createfilename(fname, oldfname)
   numnodes = local_nodes()
   numelms = local_elements()
-!  call numdofs(vecsize_phi, mmnn18)
+  mmnn18 = 0
   call numdofs(num_fields, ndofs)
   
   if(ifirstrs .ne. 1) call rename(fname, oldfname)
@@ -77,14 +77,13 @@ subroutine rdrestart
   
 #ifdef USESCOREC
 
-  integer :: mmnn18, j1, numnodes, inumnodes
+  integer :: j1, numnodes, inumnodes
   integer :: inumelms, immnn18, inumvar, iiper, ijper, imyrank
   integer :: imaxrank, numelms, ieqsubtract, ilinear, icomp
   character (len=30) :: fname, oldfname
   integer :: ndofs
 
   call createfilename(fname, oldfname)
-!  call numdofs(vecsize_phi, mmnn18)
   call numdofs(num_fields, ndofs)
   numnodes = local_nodes()
   numelms = local_elements()
@@ -429,7 +428,7 @@ subroutine wrrestart_adios
 
 !cj aug05-2011 #ifdef USESCOREC 
 #ifdef USEADIOS
-  integer :: mmnn18, j1, numnodes, numelms
+  integer :: j1, numnodes, numelms
   integer :: ndofs_1, ndofs_2, i, j
   integer, save :: ifirstrs = 1
   character (len=30) :: fname, oldfname
@@ -450,7 +449,6 @@ subroutine wrrestart_adios
   oldfname="restarto.bp"
   numnodes = local_nodes()
   numelms = local_elements()
-!  call numdofs(vecsize_phi, mmnn18)
 
   if(ifirstrs .ne. 1) call rename(fname, oldfname)
 
@@ -525,7 +523,7 @@ subroutine rdrestart_adios
 !cj aug05-2011 #ifdef USESCOREC
 #ifdef USEADIOS
 
-  integer :: mmnn18, j1, numnodes, inumnodes
+  integer :: j1, numnodes, inumnodes
   integer :: inumelms, immnn18, inumvar, iiper, ijper, imyrank
   integer :: imaxrank, numelms, ieqsubtract, ilinear, icomp
   character (len=30) :: fname, oldfname
@@ -559,7 +557,6 @@ subroutine rdrestart_adios
   oldfname="restarto.bp"
   numnodes = local_nodes()
   numelms = local_elements() 
-!  call numdofs(vecsize_phi, mmnn18)
   call numdofs(num_fields, ndofs1)
   call numdofs(1, ndofs2)
 
