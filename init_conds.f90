@@ -3247,20 +3247,36 @@ subroutine set_neo_vel
   use newvar_mod
   use neo
   use math
+  use sparse
+  use model
 
   implicit none
 
   integer :: i, j, itri, nelms, ier
 
-  type(field_type) :: vz_vec
+  type(field_type) :: vz_vec, u_f, chi_f
+  type(vector_type) :: vp_vec
+  type(matrix_type) :: vpol_mat
+  vectype, dimension(dofs_per_element, dofs_per_element, 2, 2) :: temp
   vectype, dimension(dofs_per_element) :: temp2
+  vectype, dimension(dofs_per_element, 2) :: temp3
 
   real, dimension(MAX_PTS) :: theta, vtor, vpol, psival
-  vectype, dimension(MAX_PTS) :: val 
+  vectype, dimension(MAX_PTS) :: vz, vp 
+
+  integer, dimension(dofs_per_element) :: imask_vor, imask_chi
+  integer :: imag, magnetic_region
+
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Setting velocity from NEO data"
 
   call create_field(vz_vec)
+  call create_vector(vp_vec, 2)
+  call associate_field(u_f, vp_vec, 1)
+  call associate_field(chi_f, vp_vec, 2)
+
+  call set_matrix_index(vpol_mat, vpol_mat_index)
+  call create_mat(vpol_mat, 2, 2, icomplex, .true.)
 
   nelms = local_elements()
   do itri=1,nelms
@@ -3272,31 +3288,91 @@ subroutine set_neo_vel
      theta = atan2(z_79-zmag,x_79-xmag)
      psival = -(ps079(:,OP_1) - psimin)
      call neo_eval_vel(int_pts_main, psival, theta, vpol, vtor)
+     vz = vtor / (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm)
+     vp = vpol / (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm)
 
-     val = vtor / (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm)
-
-!     print *, ps079(1,OP_1),psival(1), val(1)
-
-     do i=1,dofs_per_element
-        ! assemble RHS
-        select case(ivform)
-        case(0)
-           temp2(i) = int3(r_79,mu79(:,OP_1,i),val)
-        case(1)
-           temp2(i) = int3(ri_79,mu79(:,OP_1,i),val)
-        end select
+     do i=1, int_pts_main
+        imag = magnetic_region(ps079(i,1:6), x_79(i), z_79(i))
+        if(imag.ne.0) then
+           vz(i) = 0.
+           vp(i) = 0.
+        end if
      end do
 
+     temp79e = sqrt((ps079(:,OP_DR)**2 + ps079(:,OP_DZ)**2)*ri2_79)
+
+!!$     imask_vor = 1.
+!!$     imask_chi = 1.
+     call get_vor_mask(itri, imask_vor)
+     call get_chi_mask(itri, imask_chi)
+
+     do i=1,dofs_per_element          
+        ! assemble matrix
+        do j=1, dofs_per_element
+           temp79c = nu79(:,OP_DR,j)*ps079(:,OP_DR) &
+                +    nu79(:,OP_DZ,j)*ps079(:,OP_DZ)
+           temp79d = (nu79(:,OP_DZ,j)*ps079(:,OP_DR) &
+                -     nu79(:,OP_DR,j)*ps079(:,OP_DZ))/ri_79
+
+           if(imask_vor(i).eq.0) then
+              temp(i,j,1,:) = 0.
+           else
+              temp(i,j,1,1) = int2(mu79(:,OP_1,i), temp79c)
+              temp(i,j,1,2) = int3(ri2_79, mu79(:,OP_1,i), temp79d)
+           end if
+           if(imask_chi(i).eq.0) then
+              temp(i,j,2,:) = 0.
+           else
+              temp(i,j,2,1) = -int3(r2_79, mu79(:,OP_1,i), temp79d)
+              temp(i,j,2,2) = int3(ri2_79, mu79(:,OP_1,i), temp79c)
+           end if
+        end do
+
+        ! assemble RHS
+        ! toroidal rotation
+        select case(ivform)
+        case(0)
+           temp2(i) = int3(r_79,mu79(:,OP_1,i),vz)
+        case(1)
+           temp2(i) = int3(ri_79,mu79(:,OP_1,i),vz)
+        end select
+        ! poloidal rotation
+        if(imask_vor(i).eq.0) then
+           temp3(i,1) = 0.
+        else
+           temp3(i,1) = int3(mu79(:,OP_1,i), temp79e, vp)
+        endif
+        ! radial velocity
+        temp3(i,2) = 0.
+     end do
+
+     call insert_block(vpol_mat, itri, 1, 1, temp(:,:,1,1), MAT_ADD)
+     call insert_block(vpol_mat, itri, 1, 2, temp(:,:,1,2), MAT_ADD)
+     call insert_block(vpol_mat, itri, 2, 1, temp(:,:,2,1), MAT_ADD)
+     call insert_block(vpol_mat, itri, 2, 2, temp(:,:,2,2), MAT_ADD)
+     call vector_insert_block(vp_vec, itri, 1, temp3(:,1), MAT_ADD)
+!     call vector_insert_block(vp_vec, itri, 2, temp3(:,2), MAT_ADD)
      call vector_insert_block(vz_vec%vec, itri, 1, temp2(:), MAT_ADD)
   end do
   call sum_shared(vz_vec%vec)
+  call sum_shared(vp_vec)
 
   ! solve vz
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving vz..."
   call newsolve(mass_mat_lhs%mat,vz_vec%vec,ier)
   vz_field(0) = vz_vec
 
+  ! solve vpol
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving vpol..."
+  call boundary_vpol(vp_vec, u_f, chi_f, vpol_mat)
+  call finalize(vpol_mat)
+  call newsolve(vpol_mat, vp_vec, ier)
+  u_field(0) = u_f
+  chi_field(0) = chi_f
+
   call destroy_field(vz_vec)
+  call destroy_vector(vp_vec)
+  call destroy_mat(vpol_mat)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, " Done calculating velocity"
 end subroutine set_neo_vel

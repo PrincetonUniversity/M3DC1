@@ -243,15 +243,18 @@ contains
     type(spline1d) :: r_vs_psi
 
     integer :: i
-    real, allocatable :: ind(:)
+    real, allocatable :: ind(:), rtmp(:)
     real :: rx
 
-    allocate(ind(nr))
-    do i=1, nr
+    ! the +1 is for an extra point at the separatrix
+    allocate(ind(nr+1), rtmp(nr+1))
+    do i=1, nr+1
        ind(i) = i
     end do
-    call create_spline(index_vs_r, nr, r, ind)
-    deallocate(ind)
+    rtmp(1:nr) = r
+    rtmp(nr+1) = gyro_profile(gyro_nexp, gyro_rmin)
+    call create_spline(index_vs_r, nr+1, rtmp, ind)
+    deallocate(ind, rtmp)
 
     call create_spline(r_vs_psi, gyro_nexp, &
          gyro_profile(:,gyro_polflux), gyro_profile(:,gyro_rmin))
@@ -287,12 +290,11 @@ contains
        ! determine the appropriate index and offset for given psi value
        call evaluate_spline(index_vs_psi, psi(i), xind)
        i1 = xind
+       if(i1.lt.1) i1 = 1
+       if(i1.gt.nr) i1 = nr
        di = xind - i1
-       if(i1.lt.nr) then
-          i2 = i1+1
-       else
-          i2 = i1
-       endif
+       if(di.gt.1.) di = 1.
+       i2 = i1 + 1
 
        vp1 = 0.
        vp2 = 0.
@@ -305,15 +307,17 @@ contains
           vp1 = vp1 &
                + vpol_c(j,i1,1)*co &
                + vpol_s(j,i1,1)*sn
-          vp2 = vp2 &
-               + vpol_c(j,i2,1)*co &
-               + vpol_s(j,i2,1)*sn
           vt1 = vt1 &
                + vtor_c(j,i1,1)*co &
                + vtor_s(j,i1,1)*sn
-          vt2 = vt2 &
-               + vtor_c(j,i2,1)*co &
-               + vtor_s(j,i2,1)*sn
+          if(i2.le.nr) then
+             vp2 = vp2 &
+                  + vpol_c(j,i2,1)*co &
+                  + vpol_s(j,i2,1)*sn
+             vt2 = vt2 &
+                  + vtor_c(j,i2,1)*co &
+                  + vtor_s(j,i2,1)*sn
+          end if
        end do
 
        ! do linear interpolation between surfaces

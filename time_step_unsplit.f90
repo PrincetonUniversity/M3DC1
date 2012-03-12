@@ -287,6 +287,7 @@ subroutine step_unsplit(calc_matrices)
   use diagnostics
   use matrix_mod
   use model
+  use auxiliary_fields
 
   implicit none
 
@@ -370,6 +371,12 @@ subroutine step_unsplit(calc_matrices)
 
   ! new field solution at time n+1     
   phi_vec = b1_phi
+
+  ! populate temperature fields
+  if(ipres.eq.1 .or. numvar.ge.3) then
+     call get_temperatures(den_v, p_v, p_v, te_field(1), ti_field(1))
+!     call calculate_temperatures(linear, te_field(1), ti_field(1))
+  end if
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done solving matrix equation."
 end subroutine step_unsplit
