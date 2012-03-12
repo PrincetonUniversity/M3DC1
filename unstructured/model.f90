@@ -392,6 +392,81 @@ end subroutine boundary_vel
 
 
 !=======================================================
+! boundary_vpol
+! ~~~~~~~~~~~~~
+!
+! sets boundary conditions for poloidal velocity fields
+!=======================================================
+subroutine boundary_vpol(rhs, u_v, chi_v, mat)
+  use basic
+  use field
+  use arrays
+  use matrix_mod
+  use boundary_conditions
+
+  implicit none
+  
+  type(vector_type), intent(inout) :: rhs
+  type(field_type), intent(in) :: u_v, chi_v
+  type(matrix_type), optional :: mat
+
+  vectype, dimension(dofs_per_node) :: temp 
+  real :: normal(2), curv, x, z
+  integer :: i, izone, izonedim, numnodes
+  integer :: i_u, i_chi
+  logical :: is_boundary
+
+  if(iper.eq.1 .and. jper.eq.1) return
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_vpol called"
+
+  numnodes = owned_nodes()
+  do i=1, numnodes
+
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+     if(.not.is_boundary) cycle
+
+     i_u = node_index(u_v, i)
+     if(numvar.ge.3) i_chi = node_index(chi_v, i)
+       
+     ! no normal flow
+     if(inonormalflow.eq.1) then
+        temp = 0.
+        call set_dirichlet_bc(i_u,rhs,temp,normal,curv,izonedim,mat)
+        if(numvar.ge.3) then
+           call set_normal_bc(i_chi,rhs,temp,normal,curv,izonedim,mat)
+        endif
+     end if
+     
+     ! no poloidal slip
+     if(inoslip_pol.eq.1) then
+        temp = 0.
+        call set_normal_bc(i_u,rhs,temp,normal,curv,izonedim,mat)
+        if(numvar.ge.3) then
+           call set_dirichlet_bc(i_chi,rhs,temp,normal,curv,izonedim,mat)
+        endif
+     end if
+      
+     ! no vorticity
+     if(vor_bc.eq.1) then
+        temp = 0.
+        call set_laplacian_bc(i_u,rhs,temp,normal,curv,izonedim,-x,mat)
+     endif
+
+     ! no compression
+     if(com_bc.eq.1 .and. numvar.ge.3) then
+        select case(ivform)
+        case(0)
+           call set_laplacian_bc(i_chi,rhs,temp,normal,curv,izonedim,x,mat)
+        case(1)
+           call set_laplacian_bc(i_chi,rhs,temp,normal,curv,izonedim,-x,mat)
+        end select
+     endif
+  end do
+end subroutine boundary_vpol
+
+
+
+!=======================================================
 ! boundary_mag
 ! ~~~~~~~~~~~~
 !
@@ -1224,7 +1299,8 @@ end subroutine boundary_pe
   use mesh_mod
   implicit none
   integer :: i, numnodes
-  type(field_type) :: den_v, p_v, pe_v, te_v, ti_v
+  type(field_type) :: den_v, p_v, pe_v
+  type(field_type), optional :: te_v, ti_v
    if(numvar.lt.3 .and. ipres.eq.0) return
 
    numnodes = owned_nodes()
@@ -1232,46 +1308,43 @@ end subroutine boundary_pe
 
      if(idens.eq.1) then
         call get_node_data(den_v,i,den1_l)
-        call get_node_data(den_field(0),i,den0_l)
      else
         if(eqsubtract.eq.1) then
            den1_l = 0.
-           den0_l(1) = 1.
-           den0_l(2:dofs_per_node) = 0.
         else
-           den0_l = 0.
            den1_l(1) = 1.
            den1_l(2:dofs_per_node) = 0.
         endif
      endif
 
      if(numvar.eq.3) then
-       if(ipres.eq.1) then
-         call get_node_data(p_v,i,p1_l)
-         call get_node_data(pe_v,i,pe1_l)
-         call get_node_data(p_field(0),i,p0_l)
-         call get_node_data(pe_field(0),i,pe0_l)
-       else
-         if(ipressplit.eq.0) then
-            call get_node_data(pe_v,i,p1_l)
-            call get_node_data(pe_field(0),i,p0_l)
-         else
-            call get_node_data(p_v,i,p1_l)
-            call get_node_data(p_field(0),i,p0_l)
-         endif
-         pe1_l = pefac*p1_l
-         pe0_l = pefac*p0_l
-       endif
+        if(ipres.eq.1) then
+           call get_node_data(p_v,i,p1_l)
+           call get_node_data(pe_v,i,pe1_l)
+        else
+           if(ipressplit.eq.0) then
+              call get_node_data(pe_v,i,p1_l)
+           else
+              call get_node_data(p_v,i,p1_l)
+           endif
+           pe1_l = pefac*p1_l
+        endif
      else
-       if(ipres.eq.1) then
-         call get_node_data(p_v,i,p1_l)
-         pe1_l = pefac*p1_l
-         call get_node_data(p_field(0),i,p0_l)
-         pe0_l = pefac*p0_l
-       endif
+        if(ipres.eq.1) then
+           call get_node_data(p_v,i,p1_l)
+           pe1_l = pefac*p1_l
+           call get_node_data(p_field(0),i,p0_l)
+           pe0_l = pefac*p0_l
+        endif
      endif
 
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
+     if(eqsubtract.eq.1) then
+        call get_node_data(p_field(0),i,p0_l)
+        call get_node_data(pe_field(0),i,pe0_l)
+        call get_node_data(den_field(0),i,den0_l)
+     end if
+
+     if(eqsubtract.eq.1) then
         call calc_lin_electron_temperature(te1_l, pe0_l, den0_l, pe1_l, den1_l)
         call calc_lin_ion_temperature(ti1_l, p0_l, pe0_l, den0_l, p1_l, pe1_l, den1_l)
      else
@@ -1279,11 +1352,13 @@ end subroutine boundary_pe
         call calc_ion_temperature(ti1_l, p1_l, pe1_l, den1_l)
      endif
 
-     call set_node_data(te_v,i,te1_l)
-     if(ipressplit.eq.1 .and. ipres.eq.1) call set_node_data(ti_v,i,ti1_l)
-   enddo
+     te1_l = te1_l/zeff
 
-   return
+     if(present(te_v)) call set_node_data(te_v,i,te1_l)
+     if(present(ti_v)) then
+        if(ipressplit.eq.1 .and. ipres.eq.1) call set_node_data(ti_v,i,ti1_l)
+     end if
+   enddo
  end subroutine get_temperatures
 
  subroutine get_pressures(den_v, te_v, ti_v, p_v, pe_v)
@@ -1434,7 +1509,6 @@ subroutine calc_lin_electron_temperature(te, pe0, n0, pe1, n1)
            + 2*(pe0(1)+pe1(1))*(n0(3)+n1(3))*(n0(3)+n1(3))/(n0(1)+n1(1))**3   &
            -  pe0(6)/n0(1) + 2.*pe0(3)*n0(3)/n0(1)**2                         &
            +  pe0(1)*n0(6)/n0(1)**2 - 2*pe0(1)*n0(3)*n0(3)/n0(1)**3
-     return
 
 end subroutine calc_lin_electron_temperature
 ! calc_lin_ion_temperature

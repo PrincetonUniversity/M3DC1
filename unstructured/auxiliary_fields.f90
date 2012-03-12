@@ -48,6 +48,7 @@ subroutine calculate_temperatures(ilin, te, ti)
   use newvar_mod
   use diagnostics
   use metricterms_new
+  use field
 
   implicit none
 
@@ -58,12 +59,17 @@ subroutine calculate_temperatures(ilin, te, ti)
   integer :: numelms
   integer :: i, itri
 
+  type(field_type) :: te_f, ti_f
+
   vectype, dimension(dofs_per_element) :: dofs
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating temperatures'
 
-  te = 0.
-  ti = 0.
+  call create_field(te_f)
+  call create_field(ti_f)
+
+  te_f = 0.
+  ti_f = 0.
 
   ! specify which primitive fields are to be evalulated
   def_fields = FIELD_N + FIELD_NI + FIELD_P + FIELD_PE
@@ -84,7 +90,7 @@ subroutine calculate_temperatures(ilin, te, ti)
            dofs(i) = int3(mu79(:,OP_1,i),pet79(:,OP_1),nei79(:,OP_1))
         end do
      end if
-     call vector_insert_block(te%vec,itri,1,dofs,VEC_ADD)
+     call vector_insert_block(te_f%vec,itri,1,dofs,VEC_ADD)
 
      ! ion temperature
      if(ilin.eq.1) then 
@@ -100,11 +106,17 @@ subroutine calculate_temperatures(ilin, te, ti)
            dofs(i) = int3(mu79(:,OP_1,i),temp79a,nei79(:,OP_1))
         end do
      end if
-     call vector_insert_block(ti%vec,itri,1,dofs,VEC_ADD)
+     call vector_insert_block(ti_f%vec,itri,1,dofs,VEC_ADD)
   end do
 
-  call newvar_solve(te%vec, mass_mat_lhs)
-  call newvar_solve(ti%vec, mass_mat_lhs)
+  call newvar_solve(te_f%vec, mass_mat_lhs)
+  call newvar_solve(ti_f%vec, mass_mat_lhs)
+
+  te = te_f
+  ti = ti_f
+
+  call destroy_field(te_f)
+  call destroy_field(ti_f)
 
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, ' Done calculating temperatures'
