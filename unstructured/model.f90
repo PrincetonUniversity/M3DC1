@@ -1352,8 +1352,6 @@ end subroutine boundary_pe
         call calc_ion_temperature(ti1_l, p1_l, pe1_l, den1_l)
      endif
 
-     te1_l = te1_l/zeff
-
      if(present(te_v)) call set_node_data(te_v,i,te1_l)
      if(present(ti_v)) then
         if(ipressplit.eq.1 .and. ipres.eq.1) call set_node_data(ti_v,i,ti1_l)
@@ -1438,8 +1436,9 @@ subroutine calc_electron_temperature(te, pe0, n0)
            - pe0(1)*n0(5)/n0(1)**2 + 2*pe0(1)*n0(3)*n0(2)/n0(1)**3
      te(6) = pe0(6)/n0(1) - 2.*pe0(3)*n0(3)/n0(1)**2                       &
            - pe0(1)*n0(6)/n0(1)**2 + 2*pe0(1)*n0(3)*n0(3)/n0(1)**3
-     return
 
+     ! account for fact that n0 is ion (not electron) density
+     te = te/zeff
 end subroutine calc_electron_temperature
 ! calc_ion_temperature
 ! ~~~~~~~~~~~~~~~~~~~~~~
@@ -1466,8 +1465,6 @@ subroutine calc_ion_temperature(ti, pres0, pe0, n0)
            - pion0(1)*n0(5)/n0(1)**2 + 2*pion0(1)*n0(3)*n0(2)/n0(1)**3
      ti(6) = pion0(6)/n0(1) - 2.*pion0(3)*n0(3)/n0(1)**2                       &
            - pion0(1)*n0(6)/n0(1)**2 + 2*pion0(1)*n0(3)*n0(3)/n0(1)**3
-     return
-
 end subroutine calc_ion_temperature
 ! calc_lin_electron_temperature
 ! ~~~~~~~~~~~~~~~~~~~~~~
