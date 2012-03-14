@@ -3265,6 +3265,8 @@ subroutine set_neo_vel
   vectype, dimension(MAX_PTS) :: vz, vp 
 
   integer, dimension(dofs_per_element) :: imask_vor, imask_chi
+  integer, dimension(MAX_PTS) :: iout
+  vectype, dimension(MAX_PTS) :: mask_in, mask_out
   integer :: imag, magnetic_region
 
 
@@ -3287,22 +3289,25 @@ subroutine set_neo_vel
 
      theta = atan2(z_79-zmag,x_79-xmag)
      psival = -(ps079(:,OP_1) - psimin)
-     call neo_eval_vel(int_pts_main, psival, theta, vpol, vtor)
+     call neo_eval_vel(int_pts_main, psival, theta, vpol, vtor, iout)
      vz = vtor / (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm)
      vp = vpol / (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm)
+
+     temp79e = sqrt((ps079(:,OP_DR)**2 + ps079(:,OP_DZ)**2)*ri2_79)
 
      do i=1, int_pts_main
         imag = magnetic_region(ps079(i,1:6), x_79(i), z_79(i))
         if(imag.ne.0) then
            vz(i) = 0.
            vp(i) = 0.
+           iout(i) = 1
         end if
      end do
 
-     temp79e = sqrt((ps079(:,OP_DR)**2 + ps079(:,OP_DZ)**2)*ri2_79)
+     mask_in = 1
+!!$     mask_in = 1-iout
+!!$     mask_out = iout
 
-!!$     imask_vor = 1.
-!!$     imask_chi = 1.
      call get_vor_mask(itri, imask_vor)
      call get_chi_mask(itri, imask_chi)
 
@@ -3312,19 +3317,28 @@ subroutine set_neo_vel
            temp79c = nu79(:,OP_DR,j)*ps079(:,OP_DR) &
                 +    nu79(:,OP_DZ,j)*ps079(:,OP_DZ)
            temp79d = (nu79(:,OP_DZ,j)*ps079(:,OP_DR) &
-                -     nu79(:,OP_DR,j)*ps079(:,OP_DZ))/ri_79
+                -     nu79(:,OP_DR,j)*ps079(:,OP_DZ))*ri_79
 
            if(imask_vor(i).eq.0) then
               temp(i,j,1,:) = 0.
            else
-              temp(i,j,1,1) = int2(mu79(:,OP_1,i), temp79c)
-              temp(i,j,1,2) = int3(ri2_79, mu79(:,OP_1,i), temp79d)
+              temp(i,j,1,1) = int3(mu79(:,OP_1,i), temp79c, mask_in) &
+                   + int4(r2_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j),mask_out) &
+                   + int4(r2_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j),mask_out)
+              temp(i,j,1,2) = int4(ri2_79, mu79(:,OP_1,i), temp79d, mask_in)
+!!$              temp(i,j,1,1) = -int4(r_79,mu79(:,OP_1,i),nu79(:,OP_DZ,j),temp79e)
+!!$              temp(i,j,1,2) = int4(ri2_79,mu79(:,OP_1,i),nu79(:,OP_DR,j),temp79e)
            end if
            if(imask_chi(i).eq.0) then
               temp(i,j,2,:) = 0.
            else
-              temp(i,j,2,1) = -int3(r2_79, mu79(:,OP_1,i), temp79d)
-              temp(i,j,2,2) = int3(ri2_79, mu79(:,OP_1,i), temp79c)
+              temp(i,j,2,1) = -int4(r2_79, mu79(:,OP_1,i), temp79d, mask_in)
+              temp(i,j,2,2) = int4(ri2_79, mu79(:,OP_1,i), temp79c, mask_in) &
+                   + int4(ri4_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j),mask_out) &
+                   + int4(ri4_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j),mask_out) &
+                   + regular*int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
+!!$              temp(i,j,2,1) = int4(r_79,mu79(:,OP_1,i),nu79(:,OP_DR,j),temp79e)
+!!$              temp(i,j,2,2) = int4(ri2_79,mu79(:,OP_1,i),nu79(:,OP_DZ,j),temp79e)
            end if
         end do
 
@@ -3340,10 +3354,16 @@ subroutine set_neo_vel
         if(imask_vor(i).eq.0) then
            temp3(i,1) = 0.
         else
-           temp3(i,1) = int3(mu79(:,OP_1,i), temp79e, vp)
+           temp3(i,1) = int4(mu79(:,OP_1,i), temp79e, vp, mask_in)
+!!$           temp3(i,1) = -int5(ri_79,mu79(:,OP_1,i),ps079(:,OP_DZ),vp,mask_in)
         endif
         ! radial velocity
-        temp3(i,2) = 0.
+        if(imask_vor(i).eq.0) then
+           temp3(i,2) = 0.
+        else
+           temp3(i,2) = 0.
+!!$           temp3(i,2) =  int5(ri_79,mu79(:,OP_1,i),ps079(:,OP_DR),vp,mask_in)
+        endif
      end do
 
      call insert_block(vpol_mat, itri, 1, 1, temp(:,:,1,1), MAT_ADD)
@@ -3351,7 +3371,7 @@ subroutine set_neo_vel
      call insert_block(vpol_mat, itri, 2, 1, temp(:,:,2,1), MAT_ADD)
      call insert_block(vpol_mat, itri, 2, 2, temp(:,:,2,2), MAT_ADD)
      call vector_insert_block(vp_vec, itri, 1, temp3(:,1), MAT_ADD)
-!     call vector_insert_block(vp_vec, itri, 2, temp3(:,2), MAT_ADD)
+     call vector_insert_block(vp_vec, itri, 2, temp3(:,2), MAT_ADD)
      call vector_insert_block(vz_vec%vec, itri, 1, temp2(:), MAT_ADD)
   end do
   call sum_shared(vz_vec%vec)

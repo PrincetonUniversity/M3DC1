@@ -252,7 +252,7 @@ contains
        ind(i) = i
     end do
     rtmp(1:nr) = r
-    rtmp(nr+1) = gyro_profile(gyro_nexp, gyro_rmin)
+    rtmp(nr+1) = (gyro_profile(gyro_nexp, gyro_rmin) + r(nr))/2.
     call create_spline(index_vs_r, nr+1, rtmp, ind)
     deallocate(ind, rtmp)
 
@@ -270,29 +270,41 @@ contains
          gyro_profile(:,gyro_polflux), ind)
     deallocate(ind)
 
+    ! shift bottom index to give vpol = 0 at axis
+!    index_vs_psi%x(1) = index_vs_psi%x(2)/2.
+
     call destroy_spline(index_vs_r)
     call destroy_spline(r_vs_psi)
   end subroutine neo_setup_spline
 
 
-  subroutine neo_eval_vel(n, psi, theta, vpol, vtor)
+  subroutine neo_eval_vel(n, psi, theta, vpol, vtor, iout)
     implicit none
 
     integer, intent(in) :: n
     real, dimension(n), intent(in) :: psi, theta
     real, dimension(n), intent(out) :: vpol, vtor
+    integer, dimension(n), intent(out) :: iout
 
+    integer, parameter :: species = 2
     integer :: i, j, i1, i2
     real :: xind, di, co, sn
     real :: vp1, vp2, vt1, vt2
 
+    iout = 0
     do i=1, n
        ! determine the appropriate index and offset for given psi value
        call evaluate_spline(index_vs_psi, psi(i), xind)
        i1 = xind
+       if(i1.ge.nr+1 .or. i1.lt.0) then
+          iout(i) = 1
+          vtor(i) = 0.
+          vpol(i) = 0.
+          cycle
+       end if
        if(i1.lt.1) i1 = 1
-       if(i1.gt.nr) i1 = nr
        di = xind - i1
+       if(i1.gt.nr) i1 = nr
        if(di.gt.1.) di = 1.
        i2 = i1 + 1
 
@@ -304,29 +316,32 @@ contains
           co = cos(theta(i)*(j-1))
           sn = sin(theta(i)*(j-1))
 
-          vp1 = vp1 &
-               + vpol_c(j,i1,1)*co &
-               + vpol_s(j,i1,1)*sn
-          vt1 = vt1 &
-               + vtor_c(j,i1,1)*co &
-               + vtor_s(j,i1,1)*sn
+          if(i1.gt.1) then
+             vp1 = vp1 &
+                  + vpol_c(j,i1,species)*co &
+                  + vpol_s(j,i1,species)*sn
+             vt1 = vt1 &
+                  + vtor_c(j,i1,species)*co &
+                  + vtor_s(j,i1,species)*sn
+          else
+             vt1 = vt1 &
+                  + vtor_c(j,1,species)*co &
+                  + vtor_s(j,1,species)*sn
+          end if
+             
           if(i2.le.nr) then
              vp2 = vp2 &
-                  + vpol_c(j,i2,1)*co &
-                  + vpol_s(j,i2,1)*sn
+                  + vpol_c(j,i2,species)*co &
+                  + vpol_s(j,i2,species)*sn
              vt2 = vt2 &
-                  + vtor_c(j,i2,1)*co &
-                  + vtor_s(j,i2,1)*sn
+                  + vtor_c(j,i2,species)*co &
+                  + vtor_s(j,i2,species)*sn
           end if
        end do
 
        ! do linear interpolation between surfaces
        vpol(i) = vp1*(1.-di) + vp2*di
        vtor(i) = vt1*(1.-di) + vt2*di
-
-!!$       if(i.eq.1) then
-!!$          print *, i1, i2, di
-!!$       end if
     end do
 
   end subroutine neo_eval_vel
