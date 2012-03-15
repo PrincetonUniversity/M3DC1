@@ -2129,7 +2129,7 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   vectype :: temp
   real :: thimpb, thimp_bf, nv, h, coefeq
   integer :: pp_g
-  coefeq =  5780.*(n0_norm/1.e14)     ! 5780 = 3 *mu_0*e^2*[1.e20}/M_i   MKS units
+  coefeq =  3853.*(n0_norm/1.e14)*(l0_norm/100.)**2     ! 3853 = (gam-1)*3 *mu_0*e^2*[1.e20]/M_i   MKS units
 
   hp = hypp*sz79
 
@@ -2750,7 +2750,7 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   vectype :: temp
   real :: thimpb, thimp_bf, nv, h, coefeq, ohfac
   integer :: pp_g
-  coefeq =  5780.*(n0_norm/1.e14)     ! 5780 = 3 *mu_0*e^2*[1.e20}/M_i   MKS units
+  coefeq =  3853.*(n0_norm/1.e14)*(l0_norm/100.)**2     ! 3853 = (gam-1)*3 *mu_0*e^2*[1.e20]/M_i   MKS units
 
   hp = hypp*sz79
 
