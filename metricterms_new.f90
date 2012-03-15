@@ -11616,7 +11616,7 @@ vectype function t3tneta(e,f,g,h)
   if(surface_int) then
      temp = 0.
   else
-     temp = int3(e(:,OP_1),f(:,OP_1),g(:,OP_1))
+     temp = int4(e(:,OP_1),f(:,OP_1),g(:,OP_1),h(:,OP_1))
   end if
 
   t3tneta = temp
