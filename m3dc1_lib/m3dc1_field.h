@@ -3,6 +3,7 @@
 
 #include <hdf5.h>
 #include <map>
+#include <vector>
 #include <string>
 
 #include "m3dc1_mesh.h"
@@ -82,6 +83,17 @@ class m3dc1_3d_field : public m3dc1_field {
 
   virtual bool eval(const double r, const double phi, const double z, 
 		    const m3dc1_field::m3dc1_get_op op, double* val, 
+		    int* element=0);
+};
+
+class m3dc1_compound_field : public m3dc1_field {
+ public:
+  typedef std::vector<m3dc1_field*> subfield_list;
+  subfield_list subfield;
+
+ public:
+  virtual bool eval(const double r, const double phi, const double z,
+		    const m3dc1_field::m3dc1_get_op op, double* val,
 		    int* element=0);
 };
 

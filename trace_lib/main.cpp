@@ -77,7 +77,6 @@ int main(int argc, char* argv[])
   if(!R0_set) R0 = R_axis;
   if(!Z0_set) Z0 = Z_axis;
 
-  if(dR==0.) dR = R_axis/(2.*surfaces);
   if(dR0<=0.) dR0 = dR;
 
   print_parameters();
@@ -172,6 +171,11 @@ int main(int argc, char* argv[])
 
       // perform integration
       result = tracer.integrate(transits, steps_per_transit, &data);
+      if(!result) {
+	double RR, PP, ZZ;
+	tracer.get_pos(&RR, &PP, &ZZ);
+	std::cerr << "lost at (" << RR << ", " << ZZ <<  ")" << std::endl;
+      }
 
       // write connection length
       //      if(result)
@@ -187,7 +191,7 @@ int main(int argc, char* argv[])
     }
     my_q_mean[j] /= (double)tt;
     
-    std::cerr << my_r[j] << " tor. transits, q = " << my_q_mean[j] << std::endl;
+    std::cerr << tt << " tor. transits, q = " << my_q_mean[j] << std::endl;
 
     tracer.close_file();
 
@@ -433,13 +437,14 @@ void print_help()
   std::cout 
     << "Usage:\n"
     << "\ttrace <sources> -dR <dR> -dZ <dZ> -dR0 <dR0> -dZ0 <dZ0> /\n"
-    << "\t   -p <pts> -t <trans> -s <steps> -a <angle>\n"
+    << "\t   -p <pts> -t <trans> -s <steps> -a <angle> -phi0 <phi0> \n"
     << "\t   -pplot <pplot> -qplot <qplot>\n\n"
     << " <angle>   The toroidal angle of the plane (default = 0)\n"
     << " <dR>      R-spacing of seed points (default = major radius/(2*pts))\n"
     << " <dR0>     R-distance of first seed point from axis (default = dR)\n"
     << " <dZ>      Z-spacing of seed points (default = 0)\n"
     << " <dZ0>     Z-distance of first seed point from axis (default = dZ)\n"
+    << " <phi0>    Toroidal angle of all seed points\n"
     << " <pts>     Number of seed points (default = 11)\n"
     << " <steps>   Integration steps per toroidal transit (default = 100)\n"
     << " <pplot>   If 1, Generate poincare plot data (default = 1)\n"

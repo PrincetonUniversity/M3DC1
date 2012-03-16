@@ -234,12 +234,15 @@ m3dc1_scalar_list* m3dc1_file::read_scalar(const char* name)
   return s;
 }
 
-m3dc1_field* m3dc1_file::load_field(const char* n, const int t)
+m3dc1_field* m3dc1_file::load_field(const char* n, const int t, 
+				    int options)
 {
   hid_t fields_group, field_dataset, fieldi_dataset;
   std::map<std::string, m3dc1_field*>::iterator i;
   std::string name = n;
   std::string name_i = name + "_i";
+
+  std::cerr << "Reading field " << n << " at timelice " << t << std::endl;
 
   m3dc1_timeslice* ts = load_timeslice(t);
   if(!ts) {
@@ -254,6 +257,48 @@ m3dc1_field* m3dc1_file::load_field(const char* n, const int t)
     return i->second;
   }
 
+  m3dc1_compound_field* cfield = 0;
+
+  std::cerr << "options = " << options << std::endl;
+
+  // Check if this will be a compund field
+  // Are we adding in the equilibrium?
+  if((options & M3DC1_ADD_EQUILIBRIUM)==M3DC1_ADD_EQUILIBRIUM) {
+    int eqsubtract;
+    read_parameter("eqsubtract", &eqsubtract);
+    std::cerr << "eqsubtract = " << eqsubtract << std::endl;
+    if(eqsubtract==1 && t !=-1) {
+      std::cerr << "Adding equilibrium to compound field" << std::endl;
+      cfield = new m3dc1_compound_field;
+      m3dc1_field* temp_field = load_field(n, -1);
+      if(!temp_field) {
+	std::cerr << "Error reading equilibrium field" << std::endl;
+	delete(cfield);
+	return 0;
+      }
+      cfield->subfield.push_back(temp_field);
+    }
+  }
+  // Are we adding in external fields?
+  if((options & M3DC1_ADD_EXTERNAL)==M3DC1_ADD_EXTERNAL) {
+    int extsubtract;
+    read_parameter("extsubtract", &extsubtract);
+    if(extsubtract==1) {
+      if(name=="psi" || name=="f" || name=="I") {
+	std::cerr << "Adding external field to compound field" << std::endl;
+	std::string name_ext = name + "_ext";
+	if(!cfield) cfield = new m3dc1_compound_field;
+	m3dc1_field* temp_field = load_field(name_ext.c_str(), t);
+	if(!temp_field) {
+	  std::cerr << "Error reading external field" << std::endl;
+	  delete(cfield);
+	  return 0;
+	}
+	cfield->subfield.push_back(temp_field);
+      }
+    }
+  }
+ 
   bool is_3d = (ts->is_3d==1);
   bool is_complex = (ts->ntor!=0 && !is_3d);
 
@@ -313,11 +358,20 @@ m3dc1_field* m3dc1_file::load_field(const char* n, const int t)
 
   field->time = ts->time;
 
-  // Add field to list of fields that have been read
-  ts->field_map.insert(
-    m3dc1_timeslice::m3dc1_field_map::value_type(name, field));
-
-  return field;
+  if(cfield) {
+    cfield->subfield.push_back(field);
+    // Add field to list of fields that have been read
+    std::string name_new = name + "_base";
+    ts->field_map.insert(
+      m3dc1_timeslice::m3dc1_field_map::value_type(name_new, field));
+    ts->field_map.insert(
+      m3dc1_timeslice::m3dc1_field_map::value_type(name, cfield));
+    return cfield;
+  } else {
+    ts->field_map.insert(
+      m3dc1_timeslice::m3dc1_field_map::value_type(name, field));
+    return field;
+  }
 }
 
 bool m3dc1_file::unload_field(const char* n, int t)

@@ -23,6 +23,11 @@ class m3dc1_file {
   m3dc1_mesh* read_mesh(int time);
 
  public:
+  const static int M3DC1_ADD_EQUILIBRIUM = 1;
+  const static int M3DC1_ADD_EXTERNAL    = 2;
+  const static int M3DC1_TOTAL           = 3;
+
+ public:
   m3dc1_file();
   ~m3dc1_file();
 
@@ -30,7 +35,8 @@ class m3dc1_file {
   bool close();
 
   m3dc1_scalar_list* read_scalar(const char*);
-  m3dc1_field* load_field(const char* name, const int time);
+  m3dc1_field* load_field(const char* name, const int time, 
+			  const int options=0);
   bool unload_field(const char* name, const int time);
   bool read_parameter(const char*, int*); 
   bool read_parameter(const char*, double*);

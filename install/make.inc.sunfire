@@ -1,16 +1,21 @@
-CC = mpicxx
+CC = mpicc
+CXX = mpicxx
 CFLAGS = -O3 -Wall
 
 F90 = mpif90
 F90FLAGS = -O3 -Wall
 
 LD = $(CC)
-LDFLAGS = -lifcore
+LDFLAGS = 
 
 DYLIB = $(CC) $(CFLAGS) -dynamiclib
 ARCH = ar cr
+
+LAPACK = -L$(ACML_HOME)/ifort64/lib -lacml
 
 HDF5_LIBS = -L$(HDF5_HOME)/lib -lhdf5 -lz
 HDF5_INCLUDE = -I$(HDF5_HOME)/include
 
 INSTALL_DIR = .
+
+LIBS = -lstdc++

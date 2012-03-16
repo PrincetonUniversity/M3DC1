@@ -5,7 +5,7 @@ INCLUDE := $(HDF5_INCLUDE) $(INCLUDE)
 
 OBJS = m3dc1_mesh.o m3dc1_field.o m3dc1_file.o
 
-all : libm3dc1.a libm3dc1_fortran.a m3dc1_fortran_test
+all : libm3dc1.a libm3dc1_fortran.a
 
 libm3dc1.a : $(OBJS)
 	$(ARCH) $@ $(OBJS)
@@ -28,7 +28,7 @@ clean :
 	$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
 
 %.o : %.cpp
-	$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
+	$(CXX) $(CFLAGS) $(INCLUDE) -c $< -o $@
 
 %.o : %.f90
 	$(F90) $(F90FLAGS) -c $< -o $@

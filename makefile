@@ -6,6 +6,9 @@ all : $(dirs)
 
 install : $(dirs)
 
+examples :
+	cd examples ; make
+
 clean : 
 	cd m3dc1_lib ; make clean
 	cd trace_lib ; make clean

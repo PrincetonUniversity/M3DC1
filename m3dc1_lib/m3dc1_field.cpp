@@ -267,6 +267,24 @@ bool m3dc1_3d_field::eval(const double r, const double phi, const double z,
   return true;
 }
 
+bool m3dc1_compound_field::eval(const double r,const double phi,const double z,
+				const m3dc1_get_op op,double* val,int* element)
+{
+  double temp[OP_NUM];
+
+  for(int i=0; i<OP_NUM; i++) val[i] = 0.;
+
+  subfield_list::iterator j = subfield.begin();
+
+  while(j != subfield.end()) {
+    if(!(*j)->eval(r,phi,z,op,temp,element)) return false;
+    for(int i=0; i<OP_NUM; i++) val[i] += temp[i];
+    j++;
+  }
+
+  return true;
+}
+
 
 
 m3dc1_timeslice::m3dc1_timeslice()
