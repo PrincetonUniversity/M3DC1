@@ -5,7 +5,7 @@
 #include <math.h>
 
 const int nsplines = 100;
-const int nout = nsplines*5;
+const int nout = 500;
 
 static void find_center(const int n, const double* x, const double* z, 
 			double* x0, double* z0);

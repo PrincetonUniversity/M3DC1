@@ -50,7 +50,7 @@ bool m3dc1_source::load()
   R_axis = xmag->at(0);
   Z_axis = zmag->at(0);
 
-  std::cerr << "reading fields" << std::endl;
+  std::cerr << "reading fields at time " << time << std::endl;
   psi = file.load_field("psi", time);
   if(!psi) return false;
 
@@ -63,6 +63,7 @@ bool m3dc1_source::load()
   }
 
   if(time >= 0 && extsubtract==1) {
+    std::cerr << "reading external fields" << std::endl;
     psi_x = file.load_field("psi_ext", time);
     if(!psi_x) return false;
 

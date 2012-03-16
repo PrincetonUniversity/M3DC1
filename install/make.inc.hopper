@@ -1,4 +1,5 @@
-CC = CC
+CC = cc
+CXX = CC
 
 CFLAGS = -fastsse -Mipa=fast,inline
 

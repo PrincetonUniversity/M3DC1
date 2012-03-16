@@ -242,7 +242,7 @@ m3dc1_field* m3dc1_file::load_field(const char* n, const int t,
   std::string name = n;
   std::string name_i = name + "_i";
 
-  std::cerr << "Reading field " << n << " at timelice " << t << std::endl;
+  //  std::cerr << "Reading field " << n << " at timelice " << t << std::endl;
 
   m3dc1_timeslice* ts = load_timeslice(t);
   if(!ts) {
@@ -259,7 +259,7 @@ m3dc1_field* m3dc1_file::load_field(const char* n, const int t,
 
   m3dc1_compound_field* cfield = 0;
 
-  std::cerr << "options = " << options << std::endl;
+  //  std::cerr << "options = " << options << std::endl;
 
   // Check if this will be a compund field
   // Are we adding in the equilibrium?
