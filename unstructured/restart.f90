@@ -428,7 +428,7 @@ subroutine wrrestart_adios
 
 !cj aug05-2011 #ifdef USESCOREC 
 #ifdef USEADIOS
-  integer :: j1, numnodes, numelms
+  integer :: mmnn18, j1, numnodes, numelms
   integer :: ndofs_1, ndofs_2, i, j
   integer, save :: ifirstrs = 1
   character (len=30) :: fname, oldfname
