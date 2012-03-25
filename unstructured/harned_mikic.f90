@@ -6,6 +6,7 @@ contains
 subroutine b1harnedmikic(trial,lin,psiterm,bterm)
   use basic
   use m3dc1_nint
+  use metricterms_new
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: trial, lin
   vectype, intent(out) :: psiterm, bterm
@@ -13,10 +14,15 @@ subroutine b1harnedmikic(trial,lin,psiterm,bterm)
   bterm = 0.
   psiterm = 0.
 
-  if(itwofluid.eq.0 .or. surface_int .or. jadv.eq.1 .or. &
+  if(itwofluid.eq.0 .or. surface_int .or. &
        dbf.eq.0. .or. harned_mikic.eq.0.) then
      return
   end if
+  if(jadv.eq.1) then
+    bterm = 0.
+    psiterm = -dbf**2*harned_mikic*b1hm(trial,lin,ni79,bzt79,bzt79)
+    return
+  endif    
 
   temp79a = trial(:,OP_DZ )*pst79(:,OP_DR ) - trial(:,OP_DR )*pst79(:,OP_DZ )
   temp79b = trial(:,OP_DZZ)*pst79(:,OP_DR ) - trial(:,OP_DRZ)*pst79(:,OP_DZ ) &
@@ -90,6 +96,7 @@ subroutine b2harnedmikic(trial,lin,psiterm,bterm)
 
   use basic
   use m3dc1_nint
+  use metricterms_new
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: trial, lin
   vectype, intent(out) :: psiterm, bterm
@@ -101,6 +108,11 @@ subroutine b2harnedmikic(trial,lin,psiterm,bterm)
        dbf.eq.0. .or. harned_mikic.eq.0.) then
      return
   end if
+  if(jadv.eq.1) then
+    psiterm = 0.
+    bterm = -dbf**2*harned_mikic*b2hm(trial,lin,ni79,bzt79,bzt79)
+    return
+  endif
 
   temp79e = ni79(:,OP_1)**2
 
