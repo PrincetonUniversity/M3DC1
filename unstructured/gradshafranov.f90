@@ -548,6 +548,7 @@ subroutine gradshafranov_solve
   use model
 
   implicit none
+  include 'mpif.h'
 
   type(element_data) :: d
   type(field_type) :: b1vecini_vec, b2vecini_vec
@@ -748,6 +749,7 @@ subroutine gradshafranov_solve
      call mult(b2vecini_vec, -1.)
      call matvecmult(mass_mat_rhs%mat, b2vecini_vec%vec, b1vecini_vec%vec)
     
+  call MPI_Barrier(MPI_COMM_WORLD,ier)
   end do mainloop
 
   if(myrank.eq.0 .and. iprint.ge.1) then
