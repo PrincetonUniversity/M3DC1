@@ -4,8 +4,9 @@
 #include <iostream>
 
 static m3dc1_file file;
-static m3dc1_field *psi, *g, *f, *psi0, *g0;
+static m3dc1_field *psi, *g, *f, *psi0, *g0, *psi_ext, *g_ext, *f_ext;
 static int eqsubtract;
+static int extsubtract;
 static double scale_factor = 1;
 
 struct field_data {
@@ -48,6 +49,11 @@ extern "C" void m3dc1_open_file_(const char* filename, int* ierr)
   if(!file.read_parameter("eqsubtract", &eqsubtract)) {
     *ierr = 2;
     return;
+  }
+
+  // determine if extsubtract==1
+  if(!file.read_parameter("extsubtract", &extsubtract)) {
+    extsubtract = 0;
   }
 }
 
@@ -161,6 +167,18 @@ extern "C" void m3dc1_load_magnetic_field_(int* time, int* ierr)
       return;
     }
   }
+
+  // read external fields
+  if(extsubtract==1) {
+    psi_ext = g_ext = f_ext = 0;
+    psi_ext = file.load_field("psi_ext", *time);
+    g_ext = file.load_field("I_ext", *time);
+    f_ext = file.load_field("f_ext", *time);
+    if(!psi_ext || !g_ext || !f_ext) {
+      *ierr = 3;
+      return;
+    }
+  }
 }
 
 extern "C" void m3dc1_unload_magnetic_field_(int* time, int* ierr)
@@ -176,6 +194,12 @@ extern "C" void m3dc1_unload_magnetic_field_(int* time, int* ierr)
   if(eqsubtract==1) {
     if(!file.unload_field("psi", -1)) *ierr=1;
     if(!file.unload_field("I", -1)) *ierr=1;
+  }
+
+  if(extsubtract==1) {
+    if(!file.unload_field("psi_ext", *time)) *ierr=1;
+    if(!file.unload_field("I_ext", *time)) *ierr=1;
+    if(!file.unload_field("f_ext", *time)) *ierr=1;
   }
 }
 
@@ -245,6 +269,28 @@ extern "C" void m3dc1_eval_magnetic_field_(const double* r,
     *b_phi += val[m3dc1_field::OP_1] / *r;
   }
 
+  if(extsubtract==1) {
+    if(!psi_ext->eval(*r, *phi, *z, psiget, val, &guess)) {
+      *ierr = 6;
+      return;
+    }
+    *b_r -= scale_factor*val[m3dc1_field::OP_DZ] / *r;
+    *b_z += scale_factor*val[m3dc1_field::OP_DR] / *r;
+    
+    if(!g_ext->eval(*r, *phi, *z, gget, val, &guess)) {
+      *ierr = 7;
+      return;
+    }
+    *b_phi += scale_factor*val[m3dc1_field::OP_1] / *r;
+    
+    if(!f_ext->eval(*r, *phi, *z, fget, val, &guess)) {
+      *ierr = 8;
+      return;
+    }
+    *b_r -= scale_factor*val[m3dc1_field::OP_DRP];
+    *b_z -= scale_factor*val[m3dc1_field::OP_DZP];
+  }
+
   *ierr = 0;
 }
 
@@ -262,8 +308,10 @@ extern "C" void m3dc1_eval_alpha_(const double* r,
 
   double psi0_val[m3dc1_field::OP_NUM], g0_val[m3dc1_field::OP_NUM];
   double psi1_val[m3dc1_field::OP_NUM], f1_val[m3dc1_field::OP_NUM];
+  double temp[m3dc1_field::OP_NUM];
   double b2, ab, r2;
 
+  int i;
   int guess = -1;
 
   if(eqsubtract != 1) {
@@ -288,6 +336,19 @@ extern "C" void m3dc1_eval_alpha_(const double* r,
   if(!f->eval(*r, *phi, *z, getdval, f1_val, &guess)) {
     *ierr = 5;
     return;
+  }
+  if(extsubtract==1) {
+    if(!psi_ext->eval(*r, *phi, *z, getval, temp, &guess)) {
+      *ierr = 6;
+      return;
+    }
+    for(i=0; i<m3dc1_field::OP_NUM; i++) psi1_val[i] += temp[i];
+
+    if(!f_ext->eval(*r, *phi, *z, getdval, temp, &guess)) {
+      *ierr = 7;
+      return;
+    }
+    for(i=0; i<m3dc1_field::OP_NUM; i++) f1_val[i] += temp[i];
   }
 
   // alpha = B0.A1 / B0.B0
@@ -327,8 +388,10 @@ extern "C" void m3dc1_eval_grad_alpha_(const double* r,
 
   double psi0_val[m3dc1_field::OP_NUM], g0_val[m3dc1_field::OP_NUM];
   double psi1_val[m3dc1_field::OP_NUM], f1_val[m3dc1_field::OP_NUM];
+  double temp[m3dc1_field::OP_NUM];
   double b2, ab, r2, dabdR, dabdPhi, dabdZ, db2dR, db2dZ;
 
+  int i;
   int guess = -1;
 
   if(eqsubtract != 1) {
@@ -353,6 +416,19 @@ extern "C" void m3dc1_eval_grad_alpha_(const double* r,
   if(!f->eval(*r, *phi, *z, getdpval, f1_val, &guess)) {
     *ierr = 5;
     return;
+  }
+  if(extsubtract==1) {
+    if(!psi_ext->eval(*r, *phi, *z, getpval, temp, &guess)) {
+      *ierr = 6;
+      return;
+    }
+    for(i=0; i<m3dc1_field::OP_NUM; i++) psi1_val[i] += temp[i];
+
+    if(!f_ext->eval(*r, *phi, *z, getdpval, temp, &guess)) {
+      *ierr = 7;
+      return;
+    }
+    for(i=0; i<m3dc1_field::OP_NUM; i++) f1_val[i] += temp[i];
   }
 
   // alpha = B0.A1 / B0.B0
@@ -497,6 +573,28 @@ extern "C" void m3dc1_eval_perturbed_magnetic_field_(const double* r,
   }
   *b_r -= scale_factor*val[m3dc1_field::OP_DRP];
   *b_z -= scale_factor*val[m3dc1_field::OP_DZP];
+
+  if(extsubtract==1) {
+    if(!psi_ext->eval(*r, *phi, *z, psiget, val, &guess)) {
+      *ierr = 4;
+      return;
+    }
+    *b_r -= scale_factor*val[m3dc1_field::OP_DZ] / *r;
+    *b_z += scale_factor*val[m3dc1_field::OP_DR] / *r;
+    
+    if(!g_ext->eval(*r, *phi, *z, gget, val, &guess)) {
+    *ierr = 5;
+    return;
+    }
+    *b_phi += scale_factor*val[m3dc1_field::OP_1] / *r;
+
+    if(!f_ext->eval(*r, *phi, *z, fget, val, &guess)) {
+    *ierr = 6;
+    return;
+    }
+    *b_r -= scale_factor*val[m3dc1_field::OP_DRP];
+    *b_z -= scale_factor*val[m3dc1_field::OP_DZP];
+  }
 
   *ierr = 0;
 }

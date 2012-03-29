@@ -4,8 +4,8 @@
 #include <string.h>
 #include <math.h>
 
-const int nsplines = 100;
-const int nout = 500;
+const int nsplines = 20;
+const int nout = 100;
 
 static void find_center(const int n, const double* x, const double* z, 
 			double* x0, double* z0);
