@@ -644,7 +644,7 @@ function translate, name, units=units, itor=itor
        units = dimensions(/v0, l0=-1)
        return, "!9G.!17v!X"
    endif else if(strcmp(name, 'torque_em', /fold_case) eq 1  or $
-                 strcmp(name, 'kappa_em_i', /fold_case) eq 1) then begin
+                 strcmp(name, 'torque_em_i', /fold_case) eq 1) then begin
        units = dimensions(/p0)
        return, "!7s!D!8EM!N!X"
    endif  
@@ -1747,21 +1747,46 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        psi0 = read_field('psi', x, y, t, mesh=mesh, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, slice=-1)
-
-       psis = read_lcfs(filename=filename, flux0=flux0, _EXTRA=extra)
-       
+      
        tprime = s_bracket(Te0,psi0,x,y)
 
        data = -Te1/tprime*sqrt(s_bracket(psi0,psi0,x,y))
 
+       psis = read_lcfs(filename=filename, flux0=flux0, _EXTRA=extra)
        if(psis lt flux0) then begin
-           data(where(tprime lt 1e-3 or psi0 lt psis)) = 0.
+           data(where(abs(tprime) lt 1e-6 or psi0 lt psis)) = 0.
        endif else begin
-           data(where(tprime lt 1e-3 or psi0 gt psis)) = 0.
+           data(where(abs(tprime) lt 1e-6 or psi0 gt psis)) = 0.
        endelse
   
        symbol = '!7n!N!X'
        d = dimensions(/l0, _EXTRA=extra)
+
+   ;===========================================
+   ; overlap
+   ;===========================================
+   endif else if(strcmp('overlap', name, /fold_case) eq 1) then begin
+
+       xi = read_field('displacement', x, y, t, slices=time, mesh=mesh, $
+                       filename=filename, points=pts, $
+                       rrange=xrange, zrange=yrange, linear=linear, $
+                       complex=complex, phi=phi0)
+
+       psi0 = read_field('psi', x, y, t, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, slice=-1)
+
+       psis = read_lcfs(filename=filename, flux0=flux0, _EXTRA=extra)
+       if(psis lt flux0) then jac = -1 else jac = 1
+
+       ; d(xi)/dr = d(xi)/dpsi * |grad(psi)|
+       ;          = (<xi,psi>/<psi,psi>)*sqrt(<psi,psi>)
+       ;          = <xi,psi>/sqrt(<psi,psi>)
+       data = abs(s_bracket(xi,psi0,x,y)/sqrt(s_bracket(psi0,psi0,x,y)))
+  
+       symbol = '!3|!6d!7n!6/dr!3|!X'
+       d = dimensions(_EXTRA=extra)
+
 
    ;===========================================
    ; psi_norm
@@ -2433,7 +2458,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        d = dimensions(t0=-1, _EXTRA=extra)
 
    ;===========================================
-   ; diamagnetic frequency
+   ; ExB frequency
    ;===========================================
    endif else if(strcmp('omega_ExB', name, /fold_case) eq 1) then begin
 
@@ -2486,6 +2511,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        data = db*sqrt(2.*Ti)/B
        symbol = '!7q!8!Di!N!X'
        d = dimensions(l0=1, _EXTRA=extra)
+
 
    ;===========================================
    ; parallel thermal gradient
@@ -3219,20 +3245,20 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
        rfac = complex(0., ntor)
 
-         data = -(psi_r*conj(rfac*psi_r) + psi_z*conj(rfac*psi_z))/r^2 $
-           -     (conj(psi_r)*(rfac*psi_r) + conj(psi_z)*(rfac*psi_z))/r^2 $
-           + (conj(rfac*f_z)*(rfac*psi_r) - conj(rfac*f_r)*(rfac*psi_z))/r $
-           + ((rfac*f_z)*conj(rfac*psi_r) - (rfac*f_r)*conj(rfac*psi_z))/r $
-           + (conj(i_z+rfac^2*f_z)*psi_r - conj(i_r+rfac^2*f_r)*psi_z)/r $
-           + ((i_z+rfac^2*f_z)*conj(psi_r) - (i_r+rfac^2*f_r)*conj(psi_z))/r $
-           - (conj(i_r+rfac^2*f_r)*(rfac*f_r) + conj(i_z+rfac^2*f_z)*(rfac*f_z)) $
-           - ((i_r+rfac^2*f_r)*conj(rfac*f_r) + $
-             (i_z+rfac^2*f_z)*conj(rfac*f_z))
+;          data = -(psi_r*conj(rfac*psi_r) + psi_z*conj(rfac*psi_z))/r^2 $
+;            -     (conj(psi_r)*(rfac*psi_r) + conj(psi_z)*(rfac*psi_z))/r^2 $
+;            + (conj(rfac*f_z)*(rfac*psi_r) - conj(rfac*f_r)*(rfac*psi_z))/r $
+;            + ((rfac*f_z)*conj(rfac*psi_r) - (rfac*f_r)*conj(rfac*psi_z))/r $
+;            + (conj(i_z+rfac^2*f_z)*psi_r - conj(i_r+rfac^2*f_r)*psi_z)/r $
+;            + ((i_z+rfac^2*f_z)*conj(psi_r) - (i_r+rfac^2*f_r)*conj(psi_z))/r $
+;            - (conj(i_r+rfac^2*f_r)*(rfac*f_r) + conj(i_z+rfac^2*f_z)*(rfac*f_z)) $
+;            - ((i_r+rfac^2*f_r)*conj(rfac*f_r) + $
+;              (i_z+rfac^2*f_z)*conj(rfac*f_z))
 
-;        data = (conj(i_z)*psi_r - conj(i_r)*psi_z)/r $
-;           - (conj(i_r)*(rfac*f_r) + conj(i_z)*(rfac*f_z)) $
-;           + (i_z*conj(psi_r) - i_r*conj(psi_z))/r $
-;           - (i_r*conj(rfac*f_r) + i_z*conj(rfac*f_z))
+       data = (conj(i_z)*psi_r - conj(i_r)*psi_z)/r $
+         - (conj(i_r)*(rfac*f_r) + conj(i_z)*(rfac*f_z)) $
+         + (i_z*conj(psi_r) - i_r*conj(psi_z))/r $
+         - (i_r*conj(rfac*f_r) + i_z*conj(rfac*f_z))
 
        data = data / 2.
        
@@ -4426,7 +4452,8 @@ pro plot_lcfs, psi, x, z, psival=psival,_EXTRA=extra
             oplot, xy[0,*], xy[1,*], thick=!p.thick, color=color(6,10)
         endif else begin
             breaks = breaks[j]
-            n = n_elements(breaks)
+;            n = n_elements(breaks)
+            n = 1
             breaks = [0,breaks]
             for i=0, n-1, 2 do begin
                 oplot, xy[0,breaks[i]:breaks[i+1]], $
@@ -5231,9 +5258,9 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
            dV[k,p] = 2.*!pi*total(dl*xp/bpf)
            area[k,p] = 2.*!pi*total(dl*xp)
            if(keyword_set(integrate)) then begin
-;               result[k,p] = 2.*!pi*total(faf*xp*dl*(-dpsi)/bpf)
-               result[k,p] = 2.*!pi*int_tabulated(findgen(n_elements(dl)), $
-                                                  faf*xp*dl*(-dpsi)/bpf)
+               result[k,p] = 2.*!pi*total(faf*xp*dl*(-dpsi)/bpf)
+;               result[k,p] = 2.*!pi*int_tabulated(findgen(n_elements(dl)), $
+;                                                  faf*xp*dl*(-dpsi)/bpf)
            end else begin
 ;               result[k,p] = total(faf*xp*dl) / total(xp*dl)
                result[k,p] = total(faf*xp*dl/bpf)/total(xp*dl/bpf)

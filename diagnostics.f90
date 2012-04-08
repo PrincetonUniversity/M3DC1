@@ -314,7 +314,7 @@ contains
 ! (x,z).  itri is the element containing (x,z).  (If this
 ! element does not reside on this process, itri=-1).
 !============================================================
-subroutine evaluate(x,phi,z,ans,ans2,fin,itri)
+subroutine evaluate(x,phi,z,ans,ans2,fin,itri,ierr)
   
   use p_data
   use mesh_mod
@@ -329,6 +329,7 @@ subroutine evaluate(x,phi,z,ans,ans2,fin,itri)
   integer, intent(inout) :: itri
   real, intent(in) :: x, phi, z
   type(field_type), intent(in) :: fin
+  integer, intent(out) :: ierr ! = 0 on success
 
   real, intent(out) :: ans, ans2
 
@@ -423,6 +424,7 @@ subroutine evaluate(x,phi,z,ans,ans2,fin,itri)
   if(tothasval.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) &
           write(*,'(A,3f12.4)') 'Point not found in domain: ', x, phi, z
+     ierr = 1
      return
   end if
 
@@ -436,6 +438,8 @@ subroutine evaluate(x,phi,z,ans,ans2,fin,itri)
      ans = temp2(1)/tothasval
      ans2 = temp2(2)/tothasval
   endif
+
+  ierr = 0
 
 end subroutine evaluate
 
@@ -457,7 +461,7 @@ end subroutine evaluate
 
     real :: alx, alz, xrel, zrel
     real, dimension(2) :: temp, temp2
-    integer :: itri
+    integer :: itri, ierr
 
     call get_bounding_box_size(alx,alz)
 
@@ -465,12 +469,12 @@ end subroutine evaluate
     itri = 0
     xrel = xzero
     zrel = alz/2. + zzero
-    call evaluate(xrel,0.,zrel,temp(1),temp2(1),psi_field(1),itri)
+    call evaluate(xrel,0.,zrel,temp(1),temp2(1),psi_field(1),itri,ierr)
 
     itri = 0
     xrel = alx/2. + xzero
     zrel = alz/2. + zzero
-    call evaluate(xrel,0.,zrel,temp(2),temp2(2),psi_field(1),itri)
+    call evaluate(xrel,0.,zrel,temp(2),temp2(2),psi_field(1),itri,ierr)
 
     reconnected_flux = 0.5*(temp(2)-temp(1))
 
@@ -1114,14 +1118,14 @@ subroutine lcfs(psi)
      psilim2 = psilim
   else
      itri = 0
-     call evaluate(xlim,0.,zlim,psilim,ajlim,psi,itri)
-     if(itri.le.0) psilim = psibound
+     call evaluate(xlim,0.,zlim,psilim,ajlim,psi,itri,ier)
+     if(ier.ne.0) psilim = psibound
      
      ! calculate psi at a second limiter point as a diagnostic
      if(xlim2.gt.0) then
         itri = 0
-        call evaluate(xlim2,0.,zlim2,psilim2,ajlim,psi,itri)
-        if(itri.le.0) psilim = psibound
+        call evaluate(xlim2,0.,zlim2,psilim2,ajlim,psi,itri,ier)
+        if(ier.ne.0) psilim = psibound
      else
         psilim2 = psilim
      endif
