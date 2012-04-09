@@ -3266,7 +3266,6 @@ subroutine set_neo_vel
 
   integer, dimension(dofs_per_element) :: imask_vor, imask_chi
   integer, dimension(MAX_PTS) :: iout
-  vectype, dimension(MAX_PTS) :: mask_in, mask_out
   integer :: imag, magnetic_region
 
 
@@ -3304,9 +3303,11 @@ subroutine set_neo_vel
         end if
      end do
 
-     mask_in = 1
-!!$     mask_in = 1-iout
-!!$     mask_out = iout
+     where(iout.eq.1 .or. abs(temp79e).lt.1e-2)
+        temp79f = 0.
+     elsewhere
+        temp79f = 1./temp79e
+     end where
 
      call get_vor_mask(itri, imask_vor)
      call get_chi_mask(itri, imask_chi)
@@ -3319,26 +3320,28 @@ subroutine set_neo_vel
            temp79d = (nu79(:,OP_DZ,j)*ps079(:,OP_DR) &
                 -     nu79(:,OP_DR,j)*ps079(:,OP_DZ))*ri_79
 
+           ! vorticity equation
            if(imask_vor(i).eq.0) then
               temp(i,j,1,:) = 0.
            else
-              temp(i,j,1,1) = int3(mu79(:,OP_1,i), temp79c, mask_in) &
-                   + int4(r2_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j),mask_out) &
-                   + int4(r2_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j),mask_out)
-              temp(i,j,1,2) = int4(ri2_79, mu79(:,OP_1,i), temp79d, mask_in)
-!!$              temp(i,j,1,1) = -int4(r_79,mu79(:,OP_1,i),nu79(:,OP_DZ,j),temp79e)
-!!$              temp(i,j,1,2) = int4(ri2_79,mu79(:,OP_1,i),nu79(:,OP_DR,j),temp79e)
+              temp(i,j,1,1) = &
+                   int3(r2_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j)) + &
+                   int3(r2_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j))
+              temp(i,j,1,2) = &
+                   int3(ri_79,mu79(:,OP_DR,i),nu79(:,OP_DZ,j)) - &
+                   int3(ri_79,mu79(:,OP_DZ,i),nu79(:,OP_DR,j))
            end if
+           
+           ! compression equation
            if(imask_chi(i).eq.0) then
               temp(i,j,2,:) = 0.
            else
-              temp(i,j,2,1) = -int4(r2_79, mu79(:,OP_1,i), temp79d, mask_in)
-              temp(i,j,2,2) = int4(ri2_79, mu79(:,OP_1,i), temp79c, mask_in) &
-                   + int4(ri4_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j),mask_out) &
-                   + int4(ri4_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j),mask_out) &
-                   + regular*int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
-!!$              temp(i,j,2,1) = int4(r_79,mu79(:,OP_1,i),nu79(:,OP_DR,j),temp79e)
-!!$              temp(i,j,2,2) = int4(ri2_79,mu79(:,OP_1,i),nu79(:,OP_DZ,j),temp79e)
+              temp(i,j,2,1) = &
+                   int3(ri_79,mu79(:,OP_DZ,i),nu79(:,OP_DR,j)) - &
+                   int3(ri_79,mu79(:,OP_DR,i),nu79(:,OP_DZ,j))
+              temp(i,j,2,2) = &
+                   int3(ri4_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j)) + &
+                   int3(ri4_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j))
            end if
         end do
 
@@ -3350,19 +3353,23 @@ subroutine set_neo_vel
         case(1)
            temp2(i) = int3(ri_79,mu79(:,OP_1,i),vz)
         end select
-        ! poloidal rotation
+
+        ! vorticity
         if(imask_vor(i).eq.0) then
            temp3(i,1) = 0.
         else
-           temp3(i,1) = int4(mu79(:,OP_1,i), temp79e, vp, mask_in)
-!!$           temp3(i,1) = -int5(ri_79,mu79(:,OP_1,i),ps079(:,OP_DZ),vp,mask_in)
+           temp3(i,1) = &
+                int4(temp79f,vp,mu79(:,OP_DR,i),ps079(:,OP_DR)) + &
+                int4(temp79f,vp,mu79(:,OP_DZ,i),ps079(:,OP_DZ))
         endif
-        ! radial velocity
+
+        ! compression
         if(imask_vor(i).eq.0) then
            temp3(i,2) = 0.
         else
-           temp3(i,2) = 0.
-!!$           temp3(i,2) =  int5(ri_79,mu79(:,OP_1,i),ps079(:,OP_DR),vp,mask_in)
+           temp3(i,2) = &
+                int5(ri3_79,temp79f,vp,mu79(:,OP_DZ,i),ps079(:,OP_DR)) - &
+                int5(ri3_79,temp79f,vp,mu79(:,OP_DR,i),ps079(:,OP_DZ))
         endif
      end do
 
