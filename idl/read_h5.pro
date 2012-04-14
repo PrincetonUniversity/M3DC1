@@ -3431,32 +3431,72 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ; Cole NTV
    ;===========================================
    endif else if(strcmp('cole_ntv', name, /fold_case) eq 1) then begin
+       psi0 = read_field('psi',x,y,t,filename=filename,points=pts,$
+                         /equilibrium,_EXTRA=extra)
+       i0 = read_field('I',x,y,t,filename=filename,points=pts,$
+                         /equilibrium,_EXTRA=extra)
+       w0 = read_field('omega',x,y,t,filename=filename,points=pts,$
+                       /equilibrium,_EXTRA=extra)
+       p0 = read_field('p',x,y,t,filename=filename,points=pts,$
+                       /equilibrium,_EXTRA=extra)
+       pe0 = read_field('pe',x,y,t,filename=filename,points=pts,$
+                        /equilibrium,_EXTRA=extra)
+       n0 = read_field('den',x,y,t,filename=filename,points=pts,$
+                       /equilibrium,_EXTRA=extra)
+       psi = read_field('psi',x,y,t,filename=filename,points=pts,$
+                       slice=time,/linear,complex=icomplex,_EXTRA=extra)
+       i = read_field('I',x,y,t,filename=filename,points=pts,$
+                       slice=time,/linear,complex=icomplex,_EXTRA=extra)
+       f = read_field('f',x,y,t,filename=filename,points=pts,$
+                       slice=time,/linear,complex=icomplex,_EXTRA=extra)
 
-       psi0 = read_field('psi', x, y, t, slices=time,mesh=mesh,linear=linear, $
-                        filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange,/equilibrium)
-       n0 = read_field('den', x, y, t, slices=time,mesh=mesh,linear=linear, $
-                        filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange, /equilibrium)
+       db = read_parameter('db',filename=filename)
+       zeff = read_parameter('zeff',filename=filename)
+       ntor = read_parameter('ntor',filename=filename)
+       n0_norm = read_parameter('n0_norm',filename=filename)
+       B0_norm = read_parameter('B0_norm',filename=filename)
+       L0_norm = read_parameter('l0_norm',filename=filename)
+       lambda = 16              ; coulomb logarithm
 
+       gradpsi = sqrt(s_bracket(psi0,psi0,x,y))
 
-       u = read_field('phi',x,y,t,slices=time, mesh=mesh, linear=linear, $
-                      filename=filename, points=pts, complex=complex, $
-                      rrange=xrange, zrange=yrange)
-       w = read_field('omega', x, y, t, slices=time,mesh=mesh,linear=linear, $
-                        filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange)
-       chi = read_field('chi',x,y,t,slices=time, mesh=mesh, linear=linear,$
-                        filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange)
+       pi0 = p0-pe0
+       Ti = pi0/n0 > 0.01
 
-       if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
+       r = radius_matrix(x,y,t)
+       forward_function flux_average_field
+       fa = flux_average_field(r^2,psi0,x,y,t,r0=r0,flux=flux,_EXTRA=extra)
+       r2_av = interpol(fa, flux, psi0)
        
-       data = -n0*conj(w)* $
-         (r^3*a_bracket(psi0,u,x,y) + s_bracket(psi0,chi,x,y)) $
-         / sqrt(s_bracket(psi0,psi0,x,y))
-       d = dimensions(/p0, l0=1)
-       symbol = '!6Angular Momentum Flux!X'
+       epsilon = read_field('minor radius',x,y,t,filename=filename,points=pts,$
+                            /equilibrium,_EXTRA=extra)/r0
+
+       w_B = abs(db*Ti * s_bracket(epsilon,psi0,x,y)/gradpsi^2)
+       w_E = abs(w0 - db*s_bracket(pi0,psi0,x,y)/gradpsi^2 / n0)
+       vti = sqrt(2.*Ti)
+       
+       nu_i = (64.*!pi^(5/2)/3.)*(zeff*4.8032e-10*n0_norm)^4*lambda $
+         * l0_norm/(n0_norm*B0_norm^4) * n0/Ti^1.5
+       nu_eff = nu_i / (ntor*epsilon)
+       
+       mu_p = 0.21*ntor*vti^2*sqrt(epsilon*nu_eff) / $
+         (r2_av*(w_E^1.5 + 0.3*w_B*sqrt(nu_eff) + 0.04*nu_eff^1.5))
+
+       b02 = gradpsi^2/r^2 + i0^2/r^2
+
+       if(icomplex eq 1) then begin
+           b2 = s_bracket(psi,conj(psi),x,y)/r^2 $
+             + i*conj(i)/r^2 $
+             + ntor^2*s_bracket(f,conj(f),x,y)
+       end
+
+       fa = flux_average_field(b2/b02,psi0,x,y,t,r0=r0,flux=flux,_EXTRA=extra)
+       b2_av = interpol(fa, flux, psi0)
+ 
+       data = -mu_p*b2_av*n0*r^2*w0
+       
+       d = dimensions(/p0)
+       symbol = '!6NTV!X'
 
 
    ;===========================================
@@ -5086,6 +5126,8 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
 
    r = radius_matrix(x,z,t)
 
+   bp = sqrt(s_bracket(psi,psi,x,z)/r^2)
+
    if(keyword_set(pest)) then begin
        linear = read_parameter('linear',_EXTRA=extra)
        if(n_elements(i0) le 1) then begin
@@ -5096,7 +5138,6 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
                i0 = read_field('i',x,z,t,slice=slice,_EXTRA=extra)
            endelse
        endif
-       bp = sqrt(s_bracket(psi,psi,x,z)/r^2)
        bt = i0/r
        db = bt/(r*bp)
    endif
@@ -5189,7 +5230,7 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
 
    points = sqrt(sz[2]*sz[3])
 
-   if(n_elements(bins) eq 0) then bins = fix(points/4)
+   if(n_elements(bins) eq 0) then bins = fix(points)
 
    print, 'flux averaging with ', bins, ' bins'
 
@@ -5551,7 +5592,8 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                 xlim=xlim, cutx=cutx, cutz=cutz, mpeg=mpeg, linfac=linfac, $
                 mask_val=mask_val, boundary=boundary, q_contours=q_contours, $
                 overplot=overplot, phi=phi0, time=realtime, levels=levels, $
-                phase=phase, abs=abs, operation=op, _EXTRA=ex
+                phase=phase, abs=abs, operation=op, magcoord=magcoord, $
+                _EXTRA=ex
 
    ; open mpeg object
    if(n_elements(mpeg) ne 0) then begin
@@ -5629,6 +5671,10 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
 
    if(n_elements(range) eq 0) then range = [min(field),max(field)]
 
+   if((notitle eq 1) and (n_elements(t) ne 0)) then begin
+       title = fieldname
+   end
+
    if(n_elements(cutx) gt 0) then begin
        dum = min(x-cutx,i,/absolute)
        if(keyword_set(overplot)) then begin
@@ -5639,11 +5685,21 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
        if(keyword_set(overplot)) then begin
            oplot, x, field[0,*,i], _EXTRA=ex
        endif else plot, x, field[0,*,i], title=title, _EXTRA=ex
-   endif else begin
-       if((notitle eq 1) and (n_elements(t) ne 0)) then begin
-           title = fieldname
-       end
-           
+   endif else if(keyword_set(magcoord)) then begin
+
+       psi = read_field('psi',x,y,t,points=p,/equilibrium,_EXTRA=ex)
+       field = flux_coord_field(field, psi, x, y, t, fbins=p, tbins=p, $
+                                nflux=nflux, angle=angle, bins=p)
+       
+       contour_and_legend, transpose(field[0,*,*], [0,2,1]),$
+         angle*180./!pi, nflux, title=title, $
+         label=units, levels=levels, $
+         xtitle='!6Angle (Degrees)!X', $
+         ytitle='!7W!X', $
+         range=range, _EXTRA=ex
+
+       
+   endif else begin          
        contour_and_legend, field[0,*,*], x, y, title=title, $
          label=units, levels=levels, $
          xtitle=make_label('!8R!X', /l0, _EXTRA=ex), $
