@@ -3268,7 +3268,6 @@ subroutine set_neo_vel
   integer, dimension(MAX_PTS) :: iout
   integer :: imag, magnetic_region
 
-
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Setting velocity from NEO data"
 
   call create_field(vz_vec)
@@ -3291,6 +3290,10 @@ subroutine set_neo_vel
      call neo_eval_vel(int_pts_main, psival, theta, vpol, vtor, iout)
      vz = vtor / (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm)
      vp = vpol / (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm)
+
+     ! NEO coordinates are (r, theta, phi) --> theta = -grad(r)xgrad(phi)
+     ! if grad(psi).grad(r) > 0 then vpol is opposite direction to Bpol
+     if(psimin.lt.psibound) vp = -vp
 
      temp79e = sqrt((ps079(:,OP_DR)**2 + ps079(:,OP_DZ)**2)*ri2_79)
 
@@ -3315,10 +3318,6 @@ subroutine set_neo_vel
      do i=1,dofs_per_element          
         ! assemble matrix
         do j=1, dofs_per_element
-           temp79c = nu79(:,OP_DR,j)*ps079(:,OP_DR) &
-                +    nu79(:,OP_DZ,j)*ps079(:,OP_DZ)
-           temp79d = (nu79(:,OP_DZ,j)*ps079(:,OP_DR) &
-                -     nu79(:,OP_DR,j)*ps079(:,OP_DZ))*ri_79
 
            ! vorticity equation
            if(imask_vor(i).eq.0) then
