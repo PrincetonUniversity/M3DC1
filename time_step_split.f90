@@ -620,7 +620,7 @@ subroutine step_split(calc_matrices)
   ! Store current-time velocity matrices for use in field advance
   veln_vec = vel_vec
 
-  if(istatic.eq.0) then
+  if(istatic.ne.1) then
 
      ! Advance Velocity
      ! ================

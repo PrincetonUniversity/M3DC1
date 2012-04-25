@@ -192,6 +192,7 @@ module basic
   integer :: jadv        ! 1 = use current density equation, not flux equation
   integer :: isources    ! 1 = include "source" terms in velocity advance
   integer :: istatic     ! 1 = do not advance velocity
+                         ! 3 = zero out chi only
   integer :: iestatic    ! 1 = do not advance fields
   integer :: igauge
   integer :: ivform      ! 0: V = v grad(phi).  1: V = R^2 v grad(phi)

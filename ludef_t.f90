@@ -942,6 +942,14 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      ddterm(chi_g) = ddterm(chi_g) + temp*bdf
   end if
          
+  if(istatic.eq.3) then    !   zero out chi only
+     if(.not.surface_int) then
+        temp = int2(trial,lin)
+        ssterm(chi_g) = temp
+        ddterm(chi_g) = 0.
+     endif
+     return
+  endif
 
   ! Time Derivatives
   ! ~~~~~~~~~~~~~~~~
