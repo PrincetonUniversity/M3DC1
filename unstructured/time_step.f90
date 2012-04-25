@@ -69,7 +69,7 @@ subroutine onestep
 
   implicit none
 
-  integer :: calc_matrices
+  integer :: calc_matrices, ivel_def
   logical, save :: first_time = .true.
 
   real :: tstart, tend
@@ -89,7 +89,9 @@ subroutine onestep
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
      ! in linear case, eliminate second-order terms from matrix
-     call ludefall(1-istatic, idens, ipres, ipressplit, 1-iestatic)
+     ivel_def = 1
+     if(istatic.eq.1) ivel_def = 0
+     call ludefall(ivel_def, idens, ipres, ipressplit, 1-iestatic)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_ludefall = t_ludefall + tend - tstart
