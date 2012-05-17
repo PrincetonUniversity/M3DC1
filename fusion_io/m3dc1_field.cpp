@@ -1,0 +1,168 @@
+#include "m3dc1_field.h"
+#include "fusion_io.h"
+
+int m3dc1_fio_field::load(m3dc1_file* file, const fio_option_list* opt)
+{
+  int extsubtract, icomplex, i3d, eqsubtract;
+
+  file->read_parameter("extsubtract", &extsubtract);
+  file->read_parameter("icomplex", &icomplex);
+  file->read_parameter("3d", &i3d);
+  file->read_parameter("eqsubtract", &eqsubtract);
+
+  extsub = (extsubtract==1);
+  eqsub = (eqsubtract==1);
+  use_f = (i3d==1 || icomplex==1);
+
+  return FIO_SUCCESS;
+}
+
+
+int m3dc1_scalar_field::load(m3dc1_file* file, const fio_option_list* opt)
+{
+  m3dc1_fio_field::load(file, opt);
+  int time = 0;
+
+  f1 = file->load_field(name.c_str(), time);
+  if(!f1) return 1;
+
+  if(eqsub) {
+    f0 = file->load_field(name.c_str(), -1);
+    if(!f0) return 1;
+  }
+
+  return FIO_SUCCESS;
+}
+
+
+int m3dc1_scalar_field::eval(const double* x, double* v)
+{
+  const m3dc1_field::m3dc1_get_op get = (m3dc1_field::m3dc1_get_op)
+    (m3dc1_field::GET_VAL);
+
+  double val[m3dc1_field::OP_NUM];
+
+  if(!f1->eval(x[0], x[1], x[2], get, val)) {
+    return FIO_OUT_OF_BOUNDS;
+  }
+  *v = val[m3dc1_field::OP_1];
+
+  if(eqsub) {
+    if(!f0->eval(x[0], x[1], x[2], get, val)) {
+      return FIO_OUT_OF_BOUNDS;
+    }
+    *v += val[m3dc1_field::OP_1];
+  }
+
+  return FIO_SUCCESS;
+}
+
+int m3dc1_magnetic_field::load(m3dc1_file* file, const fio_option_list* opt)
+{
+  m3dc1_fio_field::load(file, opt);
+  int time = 0;
+
+  psi1 = file->load_field("psi", time);
+  if(!psi1) return 1;
+  i1 = file->load_field("I", time);
+  if(!i1) return 1;
+  if(use_f) {
+    f1 = file->load_field("f", time);
+    if(!f1) return 1;
+  }
+
+  if(eqsub) {
+    psi0 = file->load_field("psi", -1);
+    if(!psi0) return 1;
+    i0 = file->load_field("I", -1);
+    if(!i0) return 1;
+  }
+
+  if(extsub) {
+    psix = file->load_field("psi_ext", time);
+    if(!psix) return 1;
+    ix = file->load_field("I_ext", time);
+    if(!ix) return 1;
+    if(use_f) {
+      fx = file->load_field("f_ext", time);
+      if(!fx) return 1;
+    }
+  }
+
+  return FIO_SUCCESS;
+}
+
+
+int m3dc1_magnetic_field::eval(const double* x, double* v)
+{
+  const m3dc1_field::m3dc1_get_op psiget = (m3dc1_field::m3dc1_get_op)
+    (m3dc1_field::GET_DVAL);
+
+  const m3dc1_field::m3dc1_get_op gget =
+    (m3dc1_field::m3dc1_get_op)
+    (m3dc1_field::GET_VAL);
+
+  const m3dc1_field::m3dc1_get_op fget =
+    (m3dc1_field::m3dc1_get_op)
+    (m3dc1_field::GET_DVAL | m3dc1_field::GET_PVAL);
+
+  double val[m3dc1_field::OP_NUM];
+  double factor = 1;
+
+  // B_R   = -(dpsi/dZ)/R - (d2f/dRdphi)                                        
+  // B_Z   =  (dpsi/dR)/R - (d2f/dZdphi)                                        
+  // B_Phi =  F/R                                                               
+
+  if(!psi1->eval(x[0], x[1], x[2], psiget, val))
+    return FIO_OUT_OF_BOUNDS;
+
+  v[0] = -factor*val[m3dc1_field::OP_DZ]/x[0];
+  v[2] =  factor*val[m3dc1_field::OP_DR]/x[0];
+
+  if(!i1->eval(x[0], x[1], x[2], gget, val))
+    return FIO_OUT_OF_BOUNDS;
+  v[1] =  factor*val[m3dc1_field::OP_1]/x[0];
+
+  if(use_f) {
+    if(!f1->eval(x[0], x[1], x[2], fget, val))
+      return FIO_OUT_OF_BOUNDS;
+
+    v[0] -= factor*val[m3dc1_field::OP_DRP];
+    v[2] -= factor*val[m3dc1_field::OP_DZP];
+  }
+
+  if(eqsub) {
+    if(!psi0->eval(x[0], x[1], x[2], psiget, val))
+      return FIO_OUT_OF_BOUNDS;
+
+    v[0] -= val[m3dc1_field::OP_DZ]/x[0];
+    v[2] += val[m3dc1_field::OP_DR]/x[0];
+
+    if(!i0->eval(x[0], x[1], x[2], gget, val))
+      return FIO_OUT_OF_BOUNDS;
+    v[1] += val[m3dc1_field::OP_1]/x[0];
+  }
+
+  if(extsub) {
+    if(!psix->eval(x[0], x[1], x[2], psiget, val))
+      return FIO_OUT_OF_BOUNDS;
+
+    v[0] -= factor*val[m3dc1_field::OP_DZ]/x[0];
+    v[2] += factor*val[m3dc1_field::OP_DR]/x[0];
+
+    if(!ix->eval(x[0], x[1], x[2], gget, val))
+      return FIO_OUT_OF_BOUNDS;
+    v[1] += factor*val[m3dc1_field::OP_1]/x[0];
+
+    if(use_f) {
+      if(!fx->eval(x[0], x[1], x[2], fget, val))
+        return FIO_OUT_OF_BOUNDS;
+
+      v[0] -= factor*val[m3dc1_field::OP_DRP];
+      v[1] -= factor*val[m3dc1_field::OP_DZP];
+    }
+  }
+  
+  return FIO_SUCCESS;
+}
+
