@@ -4,40 +4,22 @@
 #include <map>
 #include <string>
 
-struct fio_option {
-  std::string name;
-};
-
-struct fio_int_option : public fio_option {
-  int data;
-  fio_int_option(const char* n, int d)
-    : data(d)
-  { name = n; }
-};
-
-struct fio_real_option : public fio_option {
-  double data;
-  fio_real_option(const char* n, double d)
-    : data(d)
-  { name = n; }
-};
-
-struct fio_str_option : public fio_option {
-  std::string data;
-  fio_str_option(const char* n, const char* d)
-    : data(d)
-  { name = n; }
-};
-
-struct fio_option_list {
-  std::map<int, fio_option*> opts;
-
+struct fio_option_list : public std::map<int, void*> {
   fio_option_list();
   ~fio_option_list();
   int clear();
-  int set_option(const int, const int);
-  int set_option(const int, const double);
-  int set_option(const int, const char*);
+
+  template<typename T>
+  int add_option(const int, const T&);
+
+  template<typename T>
+  int set_option(const int, const T&);
+
+  template<typename T>
+  int get_option(const int, T*) const;
+
+  template<typename T>
+  static bool is_type(const int);
 };
 
 

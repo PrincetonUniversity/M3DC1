@@ -45,19 +45,27 @@ INCLUDE := -I$(M3DC1_ROOT)/m3dc1_lib \
 OBJS = options.o \
 	compound_field.o \
 	m3dc1_field.o \
-	m3dc1_source.o 
+	m3dc1_source.o \
+	fortran_interface.o \
+	fusion_io.o
 
 LIB = libfusionio.a
 EXAMPLE_BIN = example
 EXAMPLE_OBJS = example.o
+EXAMPLE_FORTRAN_BIN = example_fortran
+EXAMPLE_FORTRAN_OBJS = example_fortran.o
 
-all : $(LIB) $(EXAMPLE_BIN)
+
+all : $(LIB) $(EXAMPLE_BIN) $(EXAMPLE_FORTRAN_BIN)
 
 $(LIB) : $(OBJS)
 	$(ARCH) $@ $(OBJS)
 
 $(EXAMPLE_BIN) : $(EXAMPLE_OBJS) $(LIB)
 	$(LD) $(LDFLAGS) $< -L. -lfusionio $(LIBS) -o $@
+$(EXAMPLE_FORTRAN_BIN) : $(EXAMPLE_FORTRAN_OBJS) $(LIB)
+	$(LD) $(LDFLAGS) $< -L. -lfusionio $(LIBS) -o $@
+
 
 .PHONY: install
 install : $(LIB) $(EXAMPLE_BIN)
@@ -74,5 +82,9 @@ install : $(LIB) $(EXAMPLE_BIN)
 
 %.o : %.f90
 	$(F90) $< -c $(F90FLAGS) -o $@
+
+%.o : %.F90
+	$(F90) $< -c $(F90FLAGS) -o $@
+
 
 endif

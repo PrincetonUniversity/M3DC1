@@ -9,7 +9,9 @@
 
 class m3dc1_fio_field : public fio_field {
  protected:
-  bool eqsub, extsub, use_f;
+  int time;
+  double factor;
+  bool eqsub, extsub, use_f, linear;
  public:
   virtual int load(m3dc1_file*, const fio_option_list*) = 0;
 };

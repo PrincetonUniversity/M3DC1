@@ -1,4 +1,5 @@
 #include "options.h"
+#include "fusion_io.h"
 #include <iostream>
 
 fio_option_list::fio_option_list()
@@ -10,73 +11,115 @@ fio_option_list::~fio_option_list()
   clear();
 }
 
+template<> bool fio_option_list::is_type<int>(const int i)
+{
+  return FIO_IS_INT_OPT(i);
+}
+template<> bool fio_option_list::is_type<double>(const int i)
+{
+  return FIO_IS_REAL_OPT(i);
+}
+template<> bool fio_option_list::is_type<std::string>(const int i)
+{
+  return FIO_IS_STR_OPT(i);
+}
+
+
 int fio_option_list::clear()
 {
-  std::map<int, fio_option*>::iterator i = opts.begin();
+  iterator i = begin();
 
-  while(i != opts.end()) {
-    delete(i->second);
+  while(i != end()) {
+    if(FIO_IS_INT_OPT(i->first)) {
+      delete((int*)i->second);
+    } else if(FIO_IS_REAL_OPT(i->first)) {
+      delete((double*)i->second);
+    } else if(FIO_IS_STR_OPT(i->first)) {
+      delete((std::string*)i->second);
+    } else {
+      std::cerr << "Error: encountered option of unknown type" << std::endl;
+    }
     i++;
   }
 
-  opts.clear();
-  return 0;
+  std::map<int, void*>::clear();
+  return FIO_SUCCESS;
 }
 
-
-int fio_option_list::set_option(const int i, const int v)
+template<typename T>
+int fio_option_list::add_option(const int i, const T& v)
 {
-  std::map<int, fio_option*>::iterator o = opts.find(i);
+  iterator o = find(i);
 
-  if(o==opts.end()) {
-    std::cerr << "Error: option " << i << " not supported in this context" << std::endl;
+  if(o!=end()) {
+    std::cerr << "Error: option " << i << " already present" << std::endl;
     return 1;
   }
   
-  if(typeid(*(o->second)) != typeid(fio_int_option)) {
-    std::cerr << "Error: option " << i << " is not integer-valued" << std::endl;
+  if(!is_type<T>(i)) {
+    std::cerr << "Error: option " << i << " is not of type" 
+	      << typeid(T).name() << std::endl;
     return 2;
   }
 
-  ((fio_int_option*)o->second)->data = v;
+  (*this)[i] = new T(v);
 
-  return 0;
+  return FIO_SUCCESS;
 }
 
-int fio_option_list::set_option(const int i, const double v)
+template<typename T>
+int fio_option_list::set_option(const int i, const T& v)
 {
-  std::map<int, fio_option*>::iterator o = opts.find(i);
+  iterator o = find(i);
 
-  if(o==opts.end()) {
-    std::cerr << "Error: option " << i << " not supported in this context" << std::endl;
+  if(o==end()) {
+    std::cerr << "Error: option " << i 
+	      << " not supported in this context" << std::endl;
     return 1;
   }
   
-  if(typeid(*(o->second)) != typeid(fio_real_option)) {
-    std::cerr << "Error: option " << i << " is not real-valued" << std::endl;
+  if(!is_type<T>(i)) {
+    std::cerr << "Error: option " << i << " is not of type"
+	      << typeid(T).name() << std::endl;
     return 2;
   }
 
-  ((fio_real_option*)o->second)->data = v;
+  *((T*)(o->second)) = v;
 
-  return 0;
+  return FIO_SUCCESS;
 }
 
-int fio_option_list::set_option(const int i, const char* v)
+template<typename T>
+int fio_option_list::get_option(const int i, T* v) const
 {
-  std::map<int, fio_option*>::iterator o = opts.find(i);
+  const_iterator o = find(i);
 
-  if(o==opts.end()) {
-    std::cerr << "Error: option " << i << " not supported in this context" << std::endl;
+  if(o==end()) {
+    std::cerr << "Error: option " << i 
+	      << " not supported in this context" << std::endl;
     return 1;
   }
   
-  if(typeid(*(o->second)) != typeid(fio_str_option)) {
-    std::cerr << "Error: option " << i << " is not string-valued" << std::endl;
+  if(!is_type<T>(i)) {
+    std::cerr << "Error: option " << i << " is not of type "
+	      << typeid(T).name() << std::endl;
     return 2;
   }
 
-  ((fio_str_option*)o->second)->data = v;
+  *v = *((T*)(o->second));
 
-  return 0;
+  return FIO_SUCCESS;
 }
+
+template int fio_option_list::get_option<int>(const int, int*) const;
+template int fio_option_list::get_option<double>(const int, double*) const;
+template int fio_option_list::get_option<std::string>(const int, 
+						      std::string*) const;
+template int fio_option_list::set_option<int>(const int, const int&);
+template int fio_option_list::set_option<double>(const int, const double&);
+template int fio_option_list::set_option<std::string>(const int, 
+						      const std::string&);
+template int fio_option_list::add_option<int>(const int, const int&);
+template int fio_option_list::add_option<double>(const int, const double&);
+template int fio_option_list::add_option<std::string>(const int, 
+						      const std::string&);

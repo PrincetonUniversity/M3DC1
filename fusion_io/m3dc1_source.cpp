@@ -5,22 +5,26 @@
 int m3dc1_source::open(const char* filename)
 {
   if(!file.open(filename))
-    return 1;
-  return 0;
+    return FIO_FILE_ERROR;
+  return FIO_SUCCESS;
 }
 
 int m3dc1_source::close()
 {
   if(!file.close())
-    return 1;
-  return 0;
+    return FIO_FILE_ERROR;
+  return FIO_SUCCESS;
 }
 
 int m3dc1_source::get_field_options(fio_option_list* opt) const
 {
   opt->clear();
 
-  return 0;
+  opt->add_option(FIO_TIMESLICE, 0);
+  opt->add_option(FIO_LINEAR_SCALE, 1.);
+  opt->add_option(FIO_PERTURBED_ONLY, 0);
+
+  return FIO_SUCCESS;
 }
 
 int m3dc1_source::get_field(const field_type t,fio_field** f,const fio_option_list* opt)

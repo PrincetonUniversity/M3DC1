@@ -1,6 +1,7 @@
 #include "m3dc1_source.h"
 #include "m3dc1_field.h"
 #include "fusion_io.h"
+#include "options.h"
 
 #include <iostream>
 
@@ -9,6 +10,7 @@ int main()
   int result;
   fio_source* src = new m3dc1_source();
   fio_field *pressure, *density, *magnetic_field;
+  fio_option_list opt;
 
   result = src->open("C1.h5");
   if(result != FIO_SUCCESS) {
@@ -17,21 +19,26 @@ int main()
     return result;
   };
 
-  result = src->get_field(FIO_PRESSURE, &pressure, 0);
+  src->get_field_options(&opt);
+  opt.set_option(FIO_TIMESLICE, 1);
+  opt.set_option(FIO_PERTURBED_ONLY, 1);
+  opt.set_option(FIO_LINEAR_SCALE, 10.);
+
+  result = src->get_field(FIO_PRESSURE, &pressure, &opt);
   if(result != FIO_SUCCESS) {
     std::cerr << "Error opening pressure field" << std::endl;
     delete(src);
     return result;
   };
 
-  result = src->get_field(FIO_DENSITY, &density, 0);
+  result = src->get_field(FIO_DENSITY, &density, &opt);
   if(result != FIO_SUCCESS) {
     std::cerr << "Error opening density field" << std::endl;
     delete(src);
     return result;
   };
 
-  result = src->get_field(FIO_MAGNETIC_FIELD, &magnetic_field, 0);
+  result = src->get_field(FIO_MAGNETIC_FIELD, &magnetic_field, &opt);
   if(result != FIO_SUCCESS) {
     std::cerr << "Error opening magnetic field" << std::endl;
     delete(src);
@@ -70,6 +77,7 @@ int main()
   src->close();
   delete(pressure);
   delete(density);
+  delete(magnetic_field);
   delete(src);
 
   return 0;

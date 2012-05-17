@@ -3,16 +3,39 @@
 
 int m3dc1_fio_field::load(m3dc1_file* file, const fio_option_list* opt)
 {
-  int extsubtract, icomplex, i3d, eqsubtract;
+  int extsubtract, icomplex, i3d, eqsubtract, linear, ilin;
+
+  opt->get_option(FIO_TIMESLICE, &time);
+  opt->get_option(FIO_LINEAR_SCALE, &factor);
+  opt->get_option(FIO_PERTURBED_ONLY, &ilin);
 
   file->read_parameter("extsubtract", &extsubtract);
   file->read_parameter("icomplex", &icomplex);
   file->read_parameter("3d", &i3d);
   file->read_parameter("eqsubtract", &eqsubtract);
+  file->read_parameter("linear", &linear);
 
   extsub = (extsubtract==1);
-  eqsub = (eqsubtract==1);
+  eqsub = (eqsubtract==1) && (ilin==0);
   use_f = (i3d==1 || icomplex==1);
+
+  if(time==-1) {
+    eqsub = false;   // equilibrium fields need not be added in
+    use_f = false;   // equilibrium is assumed axisymmetric
+  }
+
+  if(factor != 1.) {
+    if(linear == 0) {
+      std::cerr << "Linear scale factor is ignored for nonlinear data."
+		<< std::endl;
+      factor = 1.;
+    }
+    if(time==-1) {
+      std::cerr << "Linear scale factor is ignored for equilibrium data." 
+		<< std::endl;
+      factor = 1.;
+    }
+  }
 
   return FIO_SUCCESS;
 }
@@ -21,7 +44,6 @@ int m3dc1_fio_field::load(m3dc1_file* file, const fio_option_list* opt)
 int m3dc1_scalar_field::load(m3dc1_file* file, const fio_option_list* opt)
 {
   m3dc1_fio_field::load(file, opt);
-  int time = 0;
 
   f1 = file->load_field(name.c_str(), time);
   if(!f1) return 1;
@@ -45,7 +67,7 @@ int m3dc1_scalar_field::eval(const double* x, double* v)
   if(!f1->eval(x[0], x[1], x[2], get, val)) {
     return FIO_OUT_OF_BOUNDS;
   }
-  *v = val[m3dc1_field::OP_1];
+  *v = factor*val[m3dc1_field::OP_1];
 
   if(eqsub) {
     if(!f0->eval(x[0], x[1], x[2], get, val)) {
@@ -60,7 +82,6 @@ int m3dc1_scalar_field::eval(const double* x, double* v)
 int m3dc1_magnetic_field::load(m3dc1_file* file, const fio_option_list* opt)
 {
   m3dc1_fio_field::load(file, opt);
-  int time = 0;
 
   psi1 = file->load_field("psi", time);
   if(!psi1) return 1;
@@ -107,7 +128,6 @@ int m3dc1_magnetic_field::eval(const double* x, double* v)
     (m3dc1_field::GET_DVAL | m3dc1_field::GET_PVAL);
 
   double val[m3dc1_field::OP_NUM];
-  double factor = 1;
 
   // B_R   = -(dpsi/dZ)/R - (d2f/dRdphi)                                        
   // B_Z   =  (dpsi/dR)/R - (d2f/dZdphi)                                        
