@@ -25,7 +25,7 @@ class m3dc1_scalar_field : public m3dc1_fio_field {
  public:
   m3dc1_scalar_field(const char* n) { name = n; }
   int load(m3dc1_file*, const fio_option_list*);
-  int get_dimensions() const { return 1; }
+  int dimension() const { return 1; }
   int eval(const double*, double*);
 };
 
@@ -36,7 +36,7 @@ class m3dc1_alpha_field : public m3dc1_fio_field {
   m3dc1_field *f0, *f1, *fx;
  public:
   int load(m3dc1_file*, const fio_option_list*);
-  int get_dimensions() const { return 1; }
+  int dimension() const { return 1; }
   virtual int eval(const double*, double*);
 };
 
@@ -47,7 +47,7 @@ class m3dc1_magnetic_field : public m3dc1_fio_field {
   m3dc1_field *f0, *f1, *fx;
  public:
   int load(m3dc1_file*, const fio_option_list*);
-  int get_dimensions() const { return 3; }
+  int dimension() const { return 3; }
   int eval(const double*, double*);
 };
 
@@ -58,7 +58,7 @@ class m3dc1_velocity_field : public m3dc1_fio_field {
   m3dc1_field *x0, *x1;
  public:
   int load(m3dc1_file*, const fio_option_list*);
-  int get_dimensions() const { return 3; }
+  int dimension() const { return 3; }
   int eval(const double*, double*);
 };
 

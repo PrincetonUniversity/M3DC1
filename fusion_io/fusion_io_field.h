@@ -6,7 +6,7 @@ class fio_field {
   virtual ~fio_field()
     { }
 
-  virtual int get_dimensions() const = 0;
+  virtual int dimension() const = 0;
   virtual int eval(const double*, double*) = 0;
 };
 
