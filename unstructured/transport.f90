@@ -174,6 +174,9 @@ vectype function viscosity_func(i)
 
   integer, intent(in) :: i
   vectype :: temp
+  integer :: iregion, j
+  integer :: magnetic_region
+  vectype, dimension(MAX_PTS,OP_NUM) :: psi
 
   temp = 0.
 
@@ -198,24 +201,25 @@ vectype function viscosity_func(i)
 
      case(2)
         if(linear.eq.0) then
-          temp79b = (ps079(:,OP_1)-psimin)/(psibound-psimin)
-          temp79a = amu_edge*.5* &
-             (1. + tanh((real(temp79b) - amuoff)/amudelt))
-          if(amuoff2.ne.0. .and. amudelt2.ne.0.) then
-            temp79a = temp79a + amu_edge*.5* &
-                (1. + tanh((real(temp79b) - amuoff2)/amudelt2))
-            temp79a = temp79a / 2.
-          endif
+           psi = ps079
         else
-          temp79b = (pst79(:,OP_1)-psimin)/(psibound-psimin)
-          temp79a = amu_edge*.5* &
+           psi = pst79
+        end if
+        temp79b = (psi(:,OP_1)-psimin)/(psibound - psimin)
+
+        do j=1, npoints
+           iregion = magnetic_region(psi(j,:), x_79(j), z_79(j))
+           if(iregion.eq.2) temp79b(j) = 2. - temp79b(j)
+        end do
+
+        temp79a = amu_edge*.5* &
              (1. + tanh((real(temp79b) - amuoff)/amudelt))
-          if(amuoff2.ne.0. .and. amudelt2.ne.0.) then
-            temp79a = temp79a + amu_edge*.5* &
+        if(amuoff2.ne.0. .and. amudelt2.ne.0.) then
+           temp79a = temp79a + amu_edge*.5* &
                 (1. + tanh((real(temp79b) - amuoff2)/amudelt2))
-            temp79a = temp79a / 2.
-          endif
+           temp79a = temp79a / 2.
         endif
+
      case(3)
         temp79a = vis79(:,OP_1) - amu
      end select

@@ -4155,10 +4155,10 @@ vectype function v3ubb(e,f,g,h)
         temp = int3(ri3_79,e(:,OP_GS),temp79a)
 
 !  scj removed 4/1/2011
-!        if(itor.eq.1) then
-!           temp = temp - &
-!                2.*int3(ri4_79,e(:,OP_DR),temp79a)
-!        endif
+        if(itor.eq.1) then
+           temp = temp - &
+                2.*int3(ri4_79,e(:,OP_DR),temp79a)
+        endif
 
 #if defined(USE3D) || defined(USECOMPLEX)
         temp79b = (e(:,OP_DZ)*f(:,OP_DR)-e(:,OP_DR)*f(:,OP_DZ))*g(:,OP_DPP) &
@@ -4286,10 +4286,10 @@ vectype function v3vpsib(e,f,g,h)
         temp = int3(ri3_79,e(:,OP_GS),temp79a)
 
 !   scj removed 4/1/2011        
-!        if(itor.eq.1) then
-!           temp = temp - &
-!                2.*int3(ri4_79,e(:,OP_DR),temp79a)
-!        endif
+        if(itor.eq.1) then
+           temp = temp - &
+                2.*int3(ri4_79,e(:,OP_DR),temp79a)
+        endif
 
 #if defined(USE3D) || defined(USECOMPLEX)
         temp79b = f(:,OP_DPP)*(e(:,OP_DZ)*g(:,OP_DR)-e(:,OP_DR)*g(:,OP_DZ)) &
@@ -4552,10 +4552,10 @@ vectype function v3chibb(e,f,g,h)
         temp = int4(ri6_79,e(:,OP_GS),temp79a,h(:,OP_1))
 
 !    scj removed 4/2/2011        
-!        if(itor.eq.1) then
-!           temp = temp - &
-!                2.*int4(ri7_79,e(:,OP_DR),temp79a,h(:,OP_1))
-!        endif
+        if(itor.eq.1) then
+           temp = temp - &
+                2.*int4(ri7_79,e(:,OP_DR),temp79a,h(:,OP_1))
+        endif
         
 #if defined(USE3D) || defined(USECOMPLEX)
         temp79b = &
