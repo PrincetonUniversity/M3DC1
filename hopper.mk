@@ -52,7 +52,7 @@ SCOREC_LIBS =  \
   INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
   LIBS := $(LIBS) $(SCOREC_LIBS) -lC -lstd
 
-  PARMETIS = -lparmetis -lmetis
+#  PARMETIS = -lparmetis -lmetis
 #ichi  PARMETIS = -L/global/u2/y/yamazaki/libs/scotch_5.1/lib -lptscotchparmetis -lptscotch -lptscotcherr -lptscotcherrexit \
              -lparmetis -lmetis
 
@@ -61,11 +61,11 @@ else
 endif   # on USESCOREC
 
 OPTS := $(OPTS) -DPetscDEV -DUSEADIOS #-DUSEHYBRID -DCJ_MATRIX_DUMP
-PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev-SUPERLU-HYPRE-MUMPS/petsc-dev-060711/petsc-dev
-PETSC_ARCH = arch-cray-xt6-pkgs-opt
-SUPERLU_DIST = -lsuperlu_dist_2.5
-HYPRE = -lHYPRE
-MUMPS = -ldmumps -lmumps_common -lpord
+#PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev-SUPERLU-HYPRE-MUMPS/petsc-dev-060711/petsc-dev
+#PETSC_ARCH = arch-cray-xt6-pkgs-opt
+#SUPERLU_DIST = -lsuperlu_dist_2.5
+#HYPRE = -lHYPRE
+#MUMPS = -ldmumps -lmumps_common -lpord
 
 #only define them if adios-1.3 is used; otherwise use hopper default
 #ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
@@ -77,9 +77,8 @@ INCLUDE := $(INCLUDE) $(HDF5_INCLUDE_OPTS) $(FFTW_INCLUDE_OPTS) \
         -I$(HYBRID_HOME)/include
 
 LIBS := $(LIBS) $(HDF5_POST_LINK_OPTS) -lhdf5_fortran -lhdf5 \
-	-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc \
 	$(FFTW_POST_LINK_OPTS) -lfftw3 \
-	$(SUPERLU_DIST) $(HYPRE) $(MUMPS) $(PARMETIS) -ldl \
+	$(HYPRE) $(MUMPS) $(PARMETIS) -ldl \
         $(HYBRID_LIBS) \
         $(ADIOS_FLIB)
 

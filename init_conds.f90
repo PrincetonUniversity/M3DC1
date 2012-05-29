@@ -491,7 +491,7 @@ subroutine calculate_external_fields()
   call add(psi_vec,bz_vec)
 #endif
 
-  ! do least-squares solve for Grad(psi)xGrad(phi) = B + Grad_perp(f')
+  ! solve -Del*(psi)/R^2 = Curl(B).Grad(phi)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving psi..."
   call newsolve(br_mat,psi_vec, ier)
   if(extsubtract.eq.1) then
