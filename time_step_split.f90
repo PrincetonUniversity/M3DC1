@@ -84,7 +84,7 @@ contains
     call create_vector(b1_phi, vecsize_phi)
     call create_vector(b2_phi, vecsize_phi)
 
-    if(isplitstep.eq.1) then
+    if(isplitstep.ge.1) then
        call create_vector(vel_vec,      vecsize_vel)
        call create_vector(veln_vec,     vecsize_vel)
        call create_vector(r4_vec,       vecsize_vel)
@@ -538,7 +538,7 @@ subroutine export_time_advance_vectors_split
   endif
  
   if(ipressplit.eq.0) then
-     if((numvar.ge.3 .or. ipres.eq.1) .and. isplitstep.eq.1) then
+     if((numvar.ge.3 .or. ipres.eq.1) .and. isplitstep.ge.1) then
         te_field(1) = te_v
      endif
      if(numvar.ge.3) then

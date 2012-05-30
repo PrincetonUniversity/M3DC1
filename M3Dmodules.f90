@@ -219,6 +219,7 @@ module basic
   integer :: iconstflux  ! 1 = conserve toroidal flux
   integer :: integrator  ! 0 = Crank-Nicholson, 1 = BDF2
   integer :: isplitstep  ! 1 = do timestep splitting
+                         ! 2 = do timestep splitting and include 2F corrections in operator
   integer :: imp_mod
   integer :: iteratephi  ! 1 = iterate field solve
   integer :: icsym  ! symmetry of initial conditions (0) no; (1) even in U: (2) odd in U

@@ -84,6 +84,7 @@ ifeq ($(USESCOREC), 1)
 
 #    SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/093011
     SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/112111
+#   SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/pbc_r_1p/
     INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/093011 \
         $(INCLUDE)
 

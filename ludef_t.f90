@@ -7,6 +7,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
   use arrays
   use m3dc1_nint
   use metricterms_new
+  use two_fluid
 
   implicit none
 
@@ -198,11 +199,29 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      ssterm(u_g) = ssterm(u_g) - thimp*thimp*dt*dt*temp
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
+     ! two-fluid contribution
+     if(dbf .gt. 0 .and. isplitstep.eq.2) then
+        temp = v1hupsi(trial,lin,pst79) & 
+             + v1hub  (trial,lin,bzt79)
+        if(i3d.eq.1) temp = temp + v1huf(trial,lin,bf179)
+        ssterm(u_g) = ssterm(u_g) + dbf*thimp*dt*temp
+        ddterm(u_g) = ddterm(u_g) + dbf*thimp*dt*temp
+     endif
+
      if(numvar.ge.2) then
         temp = v1vpsipsi(trial,lin,pst79,pst79) &
              + v1vpsib  (trial,lin,pst79,bzt79)
         ssterm(vz_g) = ssterm(vz_g) - thimp*thimp*dt*dt*temp
         ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
+
+       ! two-fluid contribution
+       if(dbf .gt. 0 .and. isplitstep.eq.2) then
+          temp = v1hvpsi(trial,lin,pst79) & 
+               + v1hvb  (trial,lin,bzt79)
+          if(i3d.eq.1) temp = temp + v1hvf(trial,lin,bf179)
+          ssterm(vz_g) = ssterm(vz_g) + dbf*thimp*dt*temp
+          ddterm(vz_g) = ddterm(vz_g) + dbf*thimp*dt*temp
+       endif
      endif
 
      if(numvar.ge.3) then
@@ -211,6 +230,16 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
             + v1chibb    (trial,lin,bzt79,bzt79)
        ssterm(chi_g) = ssterm(chi_g) - thimp*thimp*dt*dt*temp
        ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
+
+       ! two-fluid contribution
+       if(dbf .gt. 0 .and. isplitstep.eq.2) then
+          temp = v1hchipsi(trial,lin,pst79) & 
+               + v1hchib  (trial,lin,bzt79)
+          if(i3d.eq.1) temp = temp + v1hchif(trial,lin,bf179)
+          ssterm(chi_g) = ssterm(chi_g) + dbf*thimp*dt*temp
+          ddterm(chi_g) = ddterm(chi_g) + dbf*thimp*dt*temp
+       endif
+
      endif
   
   ! Unsplit time-step
@@ -486,6 +515,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
   use arrays
   use m3dc1_nint
   use metricterms_new
+  use two_fluid
 
   implicit none
 
@@ -631,17 +661,35 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
              (v2psib(trial,psx79,lin))
      end if
 
-     ! parbolization terms
+     ! parabolization terms
      temp = v2upsipsi(trial,lin,pst79,pst79) &
           + v2upsib  (trial,lin,pst79,bzt79) &
           + v2ubb    (trial,lin,bzt79,bzt79)
      ssterm(u_g) = ssterm(u_g) - thimp*thimp*dt*dt*temp
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
+     ! two-fluid contribution
+     if(dbf .gt. 0 .and. isplitstep.eq.2) then
+        temp = v2hupsi(trial,lin,pst79) & 
+             + v2hub  (trial,lin,bzt79)
+        if(i3d.eq.1) temp = temp + v2huf(trial,lin,bf179)
+        ssterm(u_g) = ssterm(u_g) + dbf*thimp*dt*temp
+        ddterm(u_g) = ddterm(u_g) + dbf*thimp*dt*temp
+     endif
+
      temp = v2vpsipsi(trial,lin,pst79,pst79) &
           + v2vpsib  (trial,lin,pst79,bzt79)
      ssterm(vz_g) = ssterm(vz_g) - thimp*thimp*dt*dt*temp
      ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
+
+     ! two-fluid contribution
+     if(dbf .gt. 0 .and. isplitstep.eq.2) then
+        temp = v2hvpsi(trial,lin,pst79) & 
+             + v2hvb  (trial,lin,bzt79)
+        if(i3d.eq.1) temp = temp + v2hvf(trial,lin,bf179)
+        ssterm(vz_g) = ssterm(vz_g) + dbf*thimp*dt*temp
+        ddterm(vz_g) = ddterm(vz_g) + dbf*thimp*dt*temp
+     endif
 
      if(numvar.ge.3) then
         temp = v2chipsipsi(trial,lin,pst79,pst79) &
@@ -649,6 +697,15 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
              + v2chibb    (trial,lin,bzt79,bzt79)
         ssterm(chi_g) = ssterm(chi_g) - thimp*thimp*dt*dt*temp
         ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
+        ! two-fluid contribution
+        if(dbf .gt. 0 .and. isplitstep.eq.2) then
+           temp = v2hchipsi(trial,lin,pst79) & 
+                + v2hchib  (trial,lin,bzt79)
+           if(i3d.eq.1) temp = temp + v2hchif(trial,lin,bf179)
+           ssterm(chi_g) = ssterm(chi_g) + dbf*thimp*dt*temp
+           ddterm(chi_g) = ddterm(chi_g) + dbf*thimp*dt*temp
+        endif
+
      end if
 
   ! Unsplit time-step
@@ -889,6 +946,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
   use arrays
   use m3dc1_nint
   use metricterms_new
+  use two_fluid
 
   implicit none
 
@@ -1071,11 +1129,30 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      ssterm(u_g) = ssterm(u_g) - thimp*thimp*dt*dt*temp
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
+     ! two-fluid contribution
+     if(dbf .gt. 0 .and. isplitstep.eq.2) then
+        temp = v3hupsi(trial,lin,pst79) & 
+             + v3hub  (trial,lin,bzt79)
+        if(i3d.eq.1) temp = temp + v3huf(trial,lin,bf179)
+        ssterm(u_g) = ssterm(u_g) + dbf*thimp*dt*temp
+        ddterm(u_g) = ddterm(u_g) + dbf*thimp*dt*temp
+     endif
+
      temp = v3vpsipsi(trial,lin,pst79,pst79) &
           + v3vpsib  (trial,lin,pst79,bzt79) &
           + v3vbb    (trial,lin,bzt79,bzt79)
      ssterm(vz_g) = ssterm(vz_g) - thimp*thimp*dt*dt*temp
      ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
+
+     ! two-fluid contribution
+     if(dbf .gt. 0 .and. isplitstep.eq.2) then
+        temp = v3hvpsi(trial,lin,pst79) & 
+             + v3hvb  (trial,lin,bzt79)
+        if(i3d.eq.1) temp = temp + v3hvf(trial,lin,bf179)
+        ssterm(vz_g) = ssterm(vz_g) + dbf*thimp*dt*temp
+        ddterm(vz_g) = ddterm(vz_g) + dbf*thimp*dt*temp
+     endif
+
 
      temp = v3chipsipsi(trial,lin,pst79,pst79) &
           + v3chipsib  (trial,lin,pst79,bzt79) &
@@ -1083,6 +1160,17 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
           + v3chingrav (trial,lin,nt79)
      ssterm(chi_g) = ssterm(chi_g) - thimp*thimp*dt*dt*temp
      ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
+
+     ! two-fluid contribution
+     if(dbf .gt. 0 .and. isplitstep.eq.2) then
+        temp = v3hchipsi(trial,lin,pst79) & 
+             + v3hchib  (trial,lin,bzt79)
+        if(i3d.eq.1) temp = temp + v3hchif(trial,lin,bf179)
+        ssterm(chi_g) = ssterm(chi_g) + dbf*thimp*dt*temp
+        ddterm(chi_g) = ddterm(chi_g) + dbf*thimp*dt*temp
+     endif
+
+
 
   ! Unsplit time-step
   else
@@ -3552,7 +3640,7 @@ subroutine ludefvel_n(itri)
   integer, dimension(dofs_per_element) :: imask
 
 
-  if(isplitstep.eq.1) then
+  if(isplitstep.ge.1) then
      vv1 => s1_mat
      vv0 => d1_mat
      vb0 => q1_mat
@@ -3588,7 +3676,7 @@ subroutine ludefvel_n(itri)
      end if
   endif
 
-  if(isplitstep.eq.1 .and. iestatic.eq.0) then
+  if(isplitstep.ge.1 .and. iestatic.eq.0) then
      advfield = 1 
   else 
      advfield = 0
@@ -3724,7 +3812,7 @@ subroutine ludefphi_n(itri)
   integer :: maxk, pp_i, ppe_i
   integer :: imask(dofs_per_element)
 
-  if(isplitstep.eq.1) then
+  if(isplitstep.ge.1) then
      bb1 => s2_mat
      bb0 => d2_mat
      bv1 => r2_mat
@@ -3943,7 +4031,7 @@ subroutine ludefpres_n(itri)
   integer :: maxk
   real :: thimpf
 
-  if(isplitstep.eq.1) then
+  if(isplitstep.ge.1) then
      pp1 => s9_mat
      pp0 => d9_mat
      pv1 => r9_mat
@@ -4154,7 +4242,7 @@ subroutine ludefden_n(itri)
      thimpb = 1.
   endif
 
-  if(isplitstep.eq.1) then
+  if(isplitstep.ge.1) then
      nn1 => s8_mat
      nn0 => d8_mat
      nv1 => r8_mat
