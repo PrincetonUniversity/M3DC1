@@ -13,7 +13,7 @@ contains
     case(0)
        call initialize_timestep_unsplit
        call assign_variables_unsplit
-    case(1)
+    case(1:2)
        call initialize_timestep_split
        call assign_variables_split
     end select
@@ -26,7 +26,7 @@ contains
     select case(isplitstep)
     case(0)
        call finalize_timestep_unsplit
-    case(1)
+    case(1:2)
        call finalize_timestep_split
     end select
   end subroutine finalize_timestep
@@ -38,7 +38,7 @@ contains
     select case(isplitstep)
     case(0)
        call clear_matrices_unsplit
-    case(1)
+    case(1:2)
        call clear_matrices_split
     end select
   end subroutine clear_matrices
@@ -50,7 +50,7 @@ contains
     select case(isplitstep)
     case(0)
        call finalize_matrices_unsplit
-    case(1)
+    case(1:2)
        call finalize_matrices_split
     end select
   end subroutine finalize_matrices
@@ -107,7 +107,7 @@ subroutine onestep
   ! advance time
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing time..."
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  if(isplitstep.eq.1) then
+  if(isplitstep.ge.1) then
      call step_split(calc_matrices)
   else
      call step_unsplit(calc_matrices)
@@ -152,7 +152,7 @@ subroutine import_time_advance_vectors
   select case(isplitstep)
   case(0)
      call import_time_advance_vectors_unsplit
-  case(1)
+  case(1:2)
      call import_time_advance_vectors_split
   end select
 
@@ -171,7 +171,7 @@ subroutine export_time_advance_vectors
   select case(isplitstep)
   case(0)
      call export_time_advance_vectors_unsplit
-  case(1)
+  case(1:2)
      call export_time_advance_vectors_split
   end select
 end subroutine export_time_advance_vectors

@@ -611,8 +611,8 @@ subroutine validate_input
           print *, 'WARNING: poloidal flux smoothing not available with isplitstep=0 and jadv=1'
   end if
   
-  if(isplitstep.eq.1 .and. imp_bf.eq.1) then
-     print *, 'Error: imp_bf=1 is not implemented with isplitstep=1'
+  if(isplitstep.ge.1 .and. imp_bf.ge.1) then
+     print *, 'Error: imp_bf.ge.1 is not implemented with isplitstep.ge.1'
      call safestop(1)
   end if
 
