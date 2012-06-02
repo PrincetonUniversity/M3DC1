@@ -1,7 +1,7 @@
 #include "m3dc1_field.h"
 #include "fusion_io_defs.h"
 
-int m3dc1_fio_field::load(m3dc1_file* file, const fio_option_list* opt)
+int m3dc1_fio_field::load(const fio_option_list* opt)
 {
   int extsubtract, icomplex, i3d, eqsubtract, linear, ilin;
 
@@ -9,11 +9,11 @@ int m3dc1_fio_field::load(m3dc1_file* file, const fio_option_list* opt)
   opt->get_option(FIO_LINEAR_SCALE, &factor);
   opt->get_option(FIO_PERTURBED_ONLY, &ilin);
 
-  file->read_parameter("extsubtract", &extsubtract);
-  file->read_parameter("icomplex", &icomplex);
-  file->read_parameter("3d", &i3d);
-  file->read_parameter("eqsubtract", &eqsubtract);
-  file->read_parameter("linear", &linear);
+  source->file.read_parameter("extsubtract", &extsubtract);
+  source->file.read_parameter("icomplex", &icomplex);
+  source->file.read_parameter("3d", &i3d);
+  source->file.read_parameter("eqsubtract", &eqsubtract);
+  source->file.read_parameter("linear", &linear);
 
   extsub = (extsubtract==1);
   eqsub = (eqsubtract==1) && (ilin==0);
@@ -41,15 +41,15 @@ int m3dc1_fio_field::load(m3dc1_file* file, const fio_option_list* opt)
 }
 
 
-int m3dc1_scalar_field::load(m3dc1_file* file, const fio_option_list* opt)
+int m3dc1_scalar_field::load(const fio_option_list* opt)
 {
-  m3dc1_fio_field::load(file, opt);
+  m3dc1_fio_field::load(opt);
 
-  f1 = file->load_field(name.c_str(), time);
+  f1 = source->file.load_field(name.c_str(), time);
   if(!f1) return 1;
 
   if(eqsub) {
-    f0 = file->load_field(name.c_str(), -1);
+    f0 = source->file.load_field(name.c_str(), -1);
     if(!f0) return 1;
   }
 
@@ -79,33 +79,33 @@ int m3dc1_scalar_field::eval(const double* x, double* v)
   return FIO_SUCCESS;
 }
 
-int m3dc1_magnetic_field::load(m3dc1_file* file, const fio_option_list* opt)
+int m3dc1_magnetic_field::load(const fio_option_list* opt)
 {
-  m3dc1_fio_field::load(file, opt);
+  m3dc1_fio_field::load(opt);
 
-  psi1 = file->load_field("psi", time);
+  psi1 = source->file.load_field("psi", time);
   if(!psi1) return 1;
-  i1 = file->load_field("I", time);
+  i1 = source->file.load_field("I", time);
   if(!i1) return 1;
   if(use_f) {
-    f1 = file->load_field("f", time);
+    f1 = source->file.load_field("f", time);
     if(!f1) return 1;
   }
 
   if(eqsub) {
-    psi0 = file->load_field("psi", -1);
+    psi0 = source->file.load_field("psi", -1);
     if(!psi0) return 1;
-    i0 = file->load_field("I", -1);
+    i0 = source->file.load_field("I", -1);
     if(!i0) return 1;
   }
 
   if(extsub) {
-    psix = file->load_field("psi_ext", time);
+    psix = source->file.load_field("psi_ext", time);
     if(!psix) return 1;
-    ix = file->load_field("I_ext", time);
+    ix = source->file.load_field("I_ext", time);
     if(!ix) return 1;
     if(use_f) {
-      fx = file->load_field("f_ext", time);
+      fx = source->file.load_field("f_ext", time);
       if(!fx) return 1;
     }
   }
@@ -129,9 +129,9 @@ int m3dc1_magnetic_field::eval(const double* x, double* v)
 
   double val[m3dc1_field::OP_NUM];
 
-  // B_R   = -(dpsi/dZ)/R - (d2f/dRdphi)                                        
-  // B_Z   =  (dpsi/dR)/R - (d2f/dZdphi)                                        
-  // B_Phi =  F/R                                                               
+  // B_R   = -(dpsi/dZ)/R - (d2f/dRdphi)
+  // B_Z   =  (dpsi/dR)/R - (d2f/dZdphi)
+  // B_Phi =  F/R
 
   if(!psi1->eval(x[0], x[1], x[2], psiget, val))
     return FIO_OUT_OF_BOUNDS;

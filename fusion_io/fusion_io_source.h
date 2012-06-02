@@ -1,5 +1,5 @@
-#ifndef FUSION_IO_SOURCE
-#define FUSION_IO_SOURCE
+#ifndef FUSION_IO_SOURCE_H
+#define FUSION_IO_SOURCE_H
 
 #include "fusion_io_field.h"
 #include "options.h"

@@ -19,9 +19,10 @@ class fio_compound_field : public fio_field {
 
  public:
   fio_compound_field();
+  fio_compound_field* clone() const { return new fio_compound_field(*this); }
   int dimension() const;
   int eval(const double*, double*);
-  int add_field(fio_field*, const int op=FIO_ADD, const double d=1.);
+  int add_field(fio_field*, const int, const double);
 };
 
 #endif

@@ -6,6 +6,7 @@
 #include "fusion_io_source.h"
 
 class m3dc1_source : public fio_source {
+ public:
   m3dc1_file file;
 
  public:

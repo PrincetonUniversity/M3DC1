@@ -9,12 +9,12 @@
 int main()
 {
   int result;
-  fio_source* src = new m3dc1_source();
+  fio_source* src;
   fio_field *pressure, *density, *magnetic_field;
   fio_option_list opt;
 
   // Open an m3dc1 source
-  result = src->open("C1.h5");
+  result = fio_open_source(&src, FIO_M3DC1_SOURCE, "C1.h5");
   if(result != FIO_SUCCESS) {
     std::cerr << "Error opening file" << std::endl;
     delete(src);
@@ -75,9 +75,11 @@ int main()
 
   // create compound field
   fio_compound_field total_field;
-  total_field.add_field(magnetic_field,  FIO_ADD);
+  total_field.add_field(magnetic_field,  FIO_ADD,  1.);
   total_field.add_field(magnetic_field2, FIO_ADD, -1.);
 
+  fio_field* test = &((*pressure + *density) * (*pressure + *density));
+  
   int npts = 10;
   double R0 = 1.6;
   double R1 = 2.1;
@@ -109,15 +111,18 @@ int main()
 
     result = total_field.eval(x, b);
     std::cout << "\tB = (" << b[0] << ", " << b[1] << ", " << b[2] << "):\n";
+
+    result = test->eval(x, &p);
+    std::cout << "\tp+n = (" << p << "):\n";
   }
 
-  src->close();
-  delete(pressure);
-  delete(density);
-  delete(magnetic_field);
-  delete(magnetic_field2);
-  delete(src);
-  delete(src2);
+  fio_close_field(&test);
+  fio_close_field(&pressure);
+  fio_close_field(&density);
+  fio_close_field(&magnetic_field);
+  fio_close_field(&magnetic_field2);
+  fio_close_source(&src);
+  fio_close_source(&src2);
 
   return 0;
 }

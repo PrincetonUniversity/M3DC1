@@ -42,12 +42,19 @@ LIBS := -L$(M3DC1_ROOT)/m3dc1_lib/_$(M3DC1_ARCH) -lm3dc1 \
 INCLUDE := -I$(M3DC1_ROOT)/m3dc1_lib \
 	$(HDF5_INCLUDE) $(INCLUDE)
 
-OBJS = options.o \
+OBJS = 	interpolate.o \
+	options.o \
+	fusion_io_field.o \
+	fio_operations.o \
 	compound_field.o \
-	m3dc1_field.o \
 	m3dc1_source.o \
+	m3dc1_field.o \
+	geqdsk_source.o \
+	geqdsk_field.o \
+	fusion_io.o \
+	c_interface.o \
 	fortran_interface.o \
-	fusion_io.o
+	fusion_io_fortran.o
 
 LIB = libfusionio.a
 EXAMPLE_BIN = example

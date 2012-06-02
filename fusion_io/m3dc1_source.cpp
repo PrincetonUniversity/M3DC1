@@ -34,22 +34,22 @@ int m3dc1_source::get_field(const field_type t,fio_field** f,const fio_option_li
 
   switch(t) {
   case(FIO_MAGNETIC_FIELD):
-    mf = new m3dc1_magnetic_field();
+    mf = new m3dc1_magnetic_field(this);
     break;
 
   case(FIO_PRESSURE):
-    mf = new m3dc1_scalar_field("P");
+    mf = new m3dc1_scalar_field(this,"P");
     break;
 
   case(FIO_DENSITY):
-    mf = new m3dc1_scalar_field("den");
+    mf = new m3dc1_scalar_field(this,"den");
     break;
 
   default:
     return FIO_UNSUPPORTED;
   };
 
-  int result = mf->load(&file, opt);
+  int result = mf->load(opt);
   if(result == FIO_SUCCESS) {
     *f = mf;
   } else {

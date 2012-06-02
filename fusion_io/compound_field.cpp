@@ -55,15 +55,14 @@ int fio_compound_field::eval(const double* x, double* v)
   field_list::iterator i = fields.begin();
   while(i != fields.end()) {
     int result = i->field->eval(x, z);
+    if(result != FIO_SUCCESS) return result;
+
     for(int j=0; j<dimension(); j++)
       switch(i->op) {
       case(FIO_ADD):       v[j] += i->factor*z[j]; break;
       case(FIO_MULTIPLY):  v[j] *= i->factor*z[j]; break;
       case(FIO_DIVIDE):    v[j] /= i->factor*z[j]; break;
-      }
-      
-    if(result != FIO_SUCCESS) return result;
-
+      }     
     i++;
   }
 
