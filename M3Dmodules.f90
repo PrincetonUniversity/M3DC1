@@ -1,13 +1,8 @@
-module p_data
-  implicit none
- 
-  integer, parameter :: ijacobian = 1
-end module p_data
-
 module basic
-  use p_data
   use mesh_mod
   use pid_controller
+
+  integer, parameter :: ijacobian = 1
 
   integer, parameter :: version = 4
 
@@ -279,6 +274,7 @@ module basic
   integer :: iread_jsolver
   integer :: iread_omega
   integer :: iread_omega_e
+  integer :: iread_omega_ExB
   integer :: iread_ne      
   integer :: iread_te
   integer :: iread_neo      ! 1 = read velocity profiles from NEO output
@@ -324,7 +320,6 @@ module basic
 end module basic
 
 module arrays
-  use p_data
   use field
   use element
 

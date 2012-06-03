@@ -1,7 +1,7 @@
 pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
                    psi_val=psi_val, ntor=ntor, label=label, psi0=psi0, i0=i0, $
                    m_val=m_val, phase=phase, overplot=overplot, $
-                   linestyle=linestyle
+                   linestyle=linestyle, outfile=outfile
 
    print, 'Drawing schaffer plot'
 
@@ -110,8 +110,6 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
            b[i,*] = interpolate(reform(a[0,*,i]), indices)
        end
 ;       b = interpolate(reform(a[0,*,*]), indices)
-
-
        
        c = fft(b, -1, dimension=1)
        dold = d
@@ -121,7 +119,15 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
            d = shift(c,-(n/2+1),0)
        endelse
 
-       col = colors()
+       col = fltarr(n_elements(indices))
+       c = colors()
+       for i=0, n_elements(col)-1 do begin
+           col[i] = c[i mod n_elements(c)]
+       end
+       if(n_elements(outfile) ne 0) then begin
+           openw, ifile, outfile, /get_lun
+       end
+
        for i=0, n_elements(indices)-1 do begin
            dum = min(m-q_val[i]*ntor, j, /abs)
            dum = min(m+q_val[i]*ntor, k, /abs)
@@ -132,16 +138,25 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
              atan(imaginary(d[j,i]),real_part(d[j,i]))
            print, 'Resonant field: m (mag, phase) = ', m[k], abs(d[k,i]), $
              atan(imaginary(d[k,i]),real_part(d[k,i]))
-           print, 'Resonant field: m (re, im) = ', m[j], real_part(d[j,i]), $
-             imaginary(d[j,i])
-           print, 'Resonant field: m (re, im) = ', m[k], real_part(d[k,i]), $
-             imaginary(d[k,i])
 
            if(i eq 0) then begin
                plot, m, abs(d[*,i]), xrange=[-20,20], yrange=[0, max(abs(d))]
            endif else begin
                oplot, m, abs(d[*,i]), color=col[i]
            end
+           
+           if(n_elements(outfile) ne 0) then begin
+               printf, ifile, format='(I5,7F12.6)', m[k], abs(d[k,i]), $
+                 atan(imaginary(d[k,i]),real_part(d[k,i])), $
+                 interpolate(nflux, indices[i]), $
+                 interpolate(q, indices[i]), $
+                 interpolate(deriv(nflux, q), indices[i]), $
+                 interpolate(area, indices[i]), $
+                 interpolate(deriv(nflux, flux), indices[i])
+           end
+       end
+       if(n_elements(outfile) ne 0) then begin
+           free_lun, ifile
        end
        return
    endif

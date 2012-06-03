@@ -280,7 +280,6 @@ end subroutine export_time_advance_vectors_unsplit
 subroutine step_unsplit(calc_matrices)
 
   use boundary_conditions
-  use p_data
   use basic
   use arrays
   use sparse

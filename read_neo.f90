@@ -286,7 +286,7 @@ contains
     real, dimension(n), intent(out) :: vpol, vtor
     integer, dimension(n), intent(out) :: iout
 
-    integer, parameter :: species = 2
+    integer, parameter :: species = 1
     integer :: i, j, i1, i2
     real :: xind, di, co, sn
     real :: vp1, vp2, vt1, vt2

@@ -137,7 +137,7 @@ subroutine vacuum_field()
   real, dimension(maxcoils) :: xp, zp, xc, zc
   complex, dimension(maxcoils) :: ic
   real :: aminor, bv, rnorm, fac
-  integer :: ineg, ipole, numcoils
+  integer :: ierr, ipole, numcoils
   
 
   if(myrank.eq.0 .and. iprint.gt.0) &
@@ -167,10 +167,10 @@ subroutine vacuum_field()
      zc(1) = rnorm
      xp = xlim
      zp = zlim
-     call gvect(xp,zp,xc,zc,1,g1,1,ineg)
+     call gvect(xp,zp,xc,zc,1,g1,1,ierr)
      xp = xlim2
      zp = zlim2
-     call gvect(xp,zp,xc,zc,1,g2,1,ineg)
+     call gvect(xp,zp,xc,zc,1,g2,1,ierr)
      gnorm = g1(1) - g2(1)
   endif
 
@@ -228,7 +228,8 @@ subroutine vacuum_field()
   ! Field due to coil currents
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, "Calculating fields due to coils"
-  call field_from_coils(xc,zc,ic,numcoils,psi_field(0),ipole)
+  call field_from_coils(xc,zc,ic,numcoils,psi_field(0),ipole,ierr)
+  if(ierr.ne.0) call safestop(5)
  
   ! Field due to extra divertor currents
   if(myrank.eq.0 .and. iprint.ge.1) &
@@ -238,7 +239,8 @@ subroutine vacuum_field()
      zc(1) = zdiv
      if(divertors.eq.2) zc(2) = -zdiv
      ic(1:2) = fac*divcur
-     call field_from_coils(xc,zc,ic,divertors,psi_field(0),0)
+     call field_from_coils(xc,zc,ic,divertors,psi_field(0),0,ierr)
+     if(ierr.ne.0) call safestop(5)
   endif
 
   ! Field due to plasma current
@@ -247,7 +249,11 @@ subroutine vacuum_field()
   xc(1) = xmag
   zc(1) = zmag
   ic(1) = tcuro/(2.*pi)
-  call field_from_coils(xc,zc,ic,1,psi_field(0),0)
+  call field_from_coils(xc,zc,ic,1,psi_field(0),0,ierr)
+  if(ierr.ne.0) call safestop(5)
+
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, "Done calculating fields"
 end subroutine vacuum_field
 
 !======================================================================
@@ -263,7 +269,7 @@ subroutine define_profiles
   implicit none
 
   real, allocatable :: xvals(:), yvals(:)
-  real :: teold, pval, ppval, nval
+  real :: teold, pval, ppval, nval, te0, tep, np, dia
   integer :: nvals, i, ierr
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining profiles'
@@ -439,7 +445,7 @@ subroutine define_profiles
 
   ! define rotation profile
   ! ~~~~~~~~~~~~~~~~~~~~~~~
-  if(irot.eq.1) then
+  if(irot.ne.0) then
      select case(iread_omega)
 
      case(1)
@@ -500,7 +506,7 @@ subroutine define_profiles
 
      ! If we've read in electron rotation,
      ! add in diamagnetic term to get ion rotation
-     if(iread_omega_e.ne.0 .and. db.ne.0.) then 
+     if((iread_omega_e.ne.0 .or. iread_omega_ExB.ne.0) .and. db.ne.0.) then 
         if(use_norm_psi.eq.1 .and. dpsii.eq.0.) then
            if(myrank.eq.0) then
               print *, 'Error: psi bounds are required when reading omega_e'
@@ -510,11 +516,26 @@ subroutine define_profiles
 
         do i=1, omega_spline%n
            call evaluate_spline(pprime_spline, omega_spline%x(i), ppval)
-           call evaluate_spline(n0_spline, omega_spline%x(i), nval)
+           call evaluate_spline(n0_spline, omega_spline%x(i), nval, np)
+           if(iread_omega_e.ne.0) then 
+              ! we're reading in electron rotation; 
+              ! add full diamagnetic term
+              dia = db*ppval/nval
+              
+           else if(iread_omega_ExB.ne.0) then 
+              ! we're reading in ExB rotation; add ion diamagnetic term
+              if(allocated(te_spline%y)) then
+                 call evaluate_spline(te_spline, omega_spline%x(i),te0,tep)
+                 dia = db*(ppval/nval - zeff*tep - zeff*te0*np/nval)
+              else
+                 dia = db*(1.-pefac)*ppval/nval
+              endif
+           endif
+
            if(use_norm_psi.eq.1) then 
-              omega_spline%y(i) = omega_spline%y(i) - dpsii*db*ppval/nval
+              omega_spline%y(i) = omega_spline%y(i) - dpsii*dia
            else
-              omega_spline%y(i) = omega_spline%y(i) - db*ppval/nval
+              omega_spline%y(i) = omega_spline%y(i) - db*dia
            endif
         end do
      end if
@@ -549,7 +570,6 @@ subroutine gradshafranov_solve
 
   implicit none
 
-  type(element_data) :: d
   type(field_type) :: b1vecini_vec, b2vecini_vec
   type(field_type) :: b3vecini_vec, b4vecini_vec
 
@@ -777,7 +797,7 @@ subroutine gradshafranov_solve
      b2vecini_vec = 0.
 
      call create_field(b3vecini_vec)
-     if(irot.eq.1) call create_field(b4vecini_vec)
+     if(irot.ne.0) call create_field(b4vecini_vec)
 
      if(myrank.eq.0 .and. iprint.ge.2) print *, '  populating'
      do itri=1,numelms
@@ -794,7 +814,7 @@ subroutine gradshafranov_solve
               temp79a(i) = tf(1)
               call calc_density(ps079(i,:),tf,x_79(i),z_79(i))
               temp79c(i) = tf(1)
-              if(irot.eq.1) then
+              if(irot.ne.0) then
                  call calc_rotation(ps079(i,:),tf,x_79(i),z_79(i))
                  temp79d(i) = tf(1)
               endif
@@ -804,12 +824,12 @@ subroutine gradshafranov_solve
               temp(i,1) = int2(mu79(:,OP_1,i),temp79a)
               temp(i,2) = int2(mu79(:,OP_1,i),temp79b)
               temp(i,3) = int2(mu79(:,OP_1,i),temp79c)
-              if(irot.eq.1) temp(i,4) = int2(mu79(:,OP_1,i),temp79d)
+              if(irot.ne.0) temp(i,4) = int2(mu79(:,OP_1,i),temp79d)
            end do
            call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
            call vector_insert_block(b2vecini_vec%vec,itri,1,temp(:,2),VEC_ADD)
            call vector_insert_block(b3vecini_vec%vec,itri,1,temp(:,3),VEC_ADD)
-           if(irot.eq.1) then
+           if(irot.ne.0) then
               call vector_insert_block(b4vecini_vec%vec,itri,1,temp(:,4),VEC_ADD)
            endif
         else if(igs_method.eq.3) then
@@ -841,7 +861,7 @@ subroutine gradshafranov_solve
         call newvar_solve(b3vecini_vec%vec,mass_mat_lhs)
         den_field(0) = b3vecini_vec
 
-        if(irot.eq.1) then
+        if(irot.ne.0) then
            call newvar_solve(b4vecini_vec%vec,mass_mat_lhs)
            vz_field(0) = b4vecini_vec
         endif
@@ -860,7 +880,7 @@ subroutine gradshafranov_solve
      endif
 
      call destroy_field(b3vecini_vec)
-     if(irot.eq.1) call destroy_field(b4vecini_vec)
+     if(irot.ne.0) call destroy_field(b4vecini_vec)
   endif
   if(igs_method.eq.3) call destroy_mat(dp_mat_lhs%mat)
      
@@ -1009,7 +1029,7 @@ subroutine gradshafranov_solve
      call destroy_spline(g2_spline)
      call destroy_spline(g3_spline)
   end if
-  if(irot.eq.1) then
+  if(irot.ne.0) then
      call destroy_spline(alpha_spline)
      call destroy_spline(omega_spline)
   end if
@@ -1233,6 +1253,11 @@ subroutine deltafun(x,z,val,jout)
      if(itri.gt.0) in_domain = 1
      call mpi_allreduce(in_domain,in_domains,1,MPI_INTEGER, &
           MPI_SUM,MPI_COMM_WORLD,ier)
+     call mpi_barrier(MPI_COMM_WORLD, ier)
+     if(in_domains.eq.0) then
+        if(myrank.eq.0) print *, 'Error: point not found:', x, z
+        call safestop(4)
+     end if
      val2 = val/in_domains
   end if
 
@@ -1258,7 +1283,6 @@ subroutine deltafun(x,z,val,jout)
 !     call vector_insert_block(jout%vec, itri, jout%index, temp, VEC_SET)
      call vector_insert_block(jout%vec, itri, jout%index, temp, VEC_ADD)
   end if
-
   call sum_shared(jout%vec)
 
 end subroutine deltafun

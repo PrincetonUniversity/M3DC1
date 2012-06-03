@@ -316,7 +316,6 @@ contains
 !============================================================
 subroutine evaluate(x,phi,z,ans,ans2,fin,itri,ierr)
   
-  use p_data
   use mesh_mod
   use basic
   use m3dc1_nint
@@ -904,8 +903,13 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
            pt2 = 2.*(sum1*sum4 + sum2*sum5)
 
            denom = pt1**2 + pt2**2
-           sinew = si - pt*pt1/denom
-           etanew = eta - pt*pt2/denom
+           if(denom.ne.0.) then
+              sinew = si - pt*pt1/denom
+              etanew = eta - pt*pt2/denom
+           else
+              sinew = si
+              etanew = eta
+           end if
         case default
            print *, 'Error: unknown null-finding method: ', imethod
            sinew = si

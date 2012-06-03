@@ -114,19 +114,22 @@ contains
  end subroutine load_coils
 
 
- subroutine field_from_coils(xc, zc, ic, nc, f, ipole)
+ subroutine field_from_coils(xc, zc, ic, nc, f, ipole, ierr)
    use field
    use mesh_mod
 
    implicit none
+
+   include 'mpif.h'
 
    real, intent(in), dimension(nc) :: xc, zc   ! array of coil positions
    complex, intent(in), dimension(nc) :: ic    ! array of coil currents
    integer, intent(in) :: nc                   ! number of coils
    type(field_type), intent(inout) :: f        ! poloidal flux field
    integer, intent(in) :: ipole                ! type of field to add
+   integer, intent(out) :: ierr
 
-   integer :: i, numnodes, ineg, k
+   integer :: i, numnodes, k, ier, itmp
    real :: x, phi, z
    real, dimension(nc) :: xp, zp
    real, dimension(dofs_per_node,maxcoils) :: g
@@ -141,7 +144,8 @@ contains
       zp = z
      
       ! Field due to coil currents
-      call gvect(xp,zp,xc,zc,nc,g(1:6,:),ipole,ineg)
+      call gvect(xp,zp,xc,zc,nc,g(1:6,:),ipole,ierr)
+      if(ierr.ne.0) exit
 
       call get_node_data(f, i, data)
       do k=1,nc
@@ -150,19 +154,24 @@ contains
       call set_node_data(f, i, data)      
    end do
 
+   call mpi_allreduce(ierr, itmp, 1, &
+        MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ier)
+   ierr = itmp
+   if(ierr.ne.0) return
+
    call finalize(f%vec)
 
  end subroutine field_from_coils
 
 !============================================================
-subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
+subroutine gvect(r,z,xi,zi,n,g,nmult,ierr)
   ! calculates derivatives wrt first argument
   use math
 
   implicit none
 
   integer, intent(in) :: n, nmult
-  integer, intent(out) :: ineg
+  integer, intent(out) :: ierr
   real, dimension(n), intent(in) :: r, z, xi, zi
   real, dimension(6,n), intent(out) :: g
   
@@ -184,7 +193,8 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
        4.757383546e-2,1.736506451e-2/
   data d1,d2,d3,d4/.24998368310,9.200180037e-2,                     &
        4.069697526e-2,5.26449639e-3/
-  
+
+  ierr = 0
   if(nmult.le.0) then
      do i=1,n
         rpxi=r(i)+xi(i)
@@ -194,11 +204,17 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
         rk=sqrt(rksq)
         sqrxi=sqrt(rxi)
         x=1.-rksq
+        if(x.eq.0) then
+           print *, 'Error: current is precisely on node'
+           ierr = 1
+           return
+        end if
+
         ce=1.+x*(c1+x*(c2+x*(c3+x*c4)))+                                  &
              x*(d1+x*(d2+x*(d3+x*d4)))*(-alog(x))
         ck=a0+x*(a1+x*(a2+x*(a3+x*a4)))+                                  &
              (b0+x*(b1+x*(b2+x*(b3+x*b4))))*(-alog(x))
-        
+
         term1=2.*ck-2.*ce-ce*rksq/x
         term2=2.*xi(i)-rksq*rpxi
         
@@ -228,7 +244,7 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ineg)
      imult = int(xi(i) - 100.)
      if(imult .lt. 0 .or. imult.gt.10) then
         ! error
-        ineg=39
+        ierr=39
         return
      endif
         

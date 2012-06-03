@@ -4,7 +4,6 @@ Program Reducedquintic
 !         [2] G.R. Cowper, et al, AIAA Journal, Vol 7, no. 10 page 19
 !         [3] JCP Vol 147 p 318-336 (1998)
 
-  use p_data
   use basic
   use arrays
   use newvar_mod
@@ -230,7 +229,11 @@ Program Reducedquintic
      
   case(2)
     call create_field(temporary_field)
-    temporary_field = psi_field(0)
+    if(eqsubtract.eq.1) then
+       temporary_field = psi_field(0)
+    else
+       temporary_field = psi_field(1)
+    end if
     call straighten_field(temporary_field)
     if (iprint.ge.2) then
     write(25,1003) temporary_field%vec%data
@@ -822,6 +825,9 @@ end subroutine rotation
     integer :: tot_elms
     real, dimension(dofs_per_tri) :: temp_vec, temp_vec2
 
+    real, dimension(nodes_per_element) :: node_sz
+
+
     numelms = local_elements()
     numnodes = local_nodes()
     ndofs = numnodes*dofs_per_node
@@ -945,9 +951,9 @@ end subroutine rotation
        end if
        
        do i=1, pol_nodes_per_element
-          equil_fac(1+dofs_per_node*(i-1),:) = 1.
-          equil_fac(2+dofs_per_node*(i-1),:) = 1./mean_area
-          equil_fac(3+dofs_per_node*(i-1),:) = 1./mean_area
+          equil_fac(1+dofs_per_node*(i-1),:) = 1./mean_area
+          equil_fac(2+dofs_per_node*(i-1),:) = 1./sqrt(mean_area**3)
+          equil_fac(3+dofs_per_node*(i-1),:) = 1./sqrt(mean_area**3)
           equil_fac(4+dofs_per_node*(i-1),:) = 1./mean_area**2
           equil_fac(5+dofs_per_node*(i-1),:) = 1./mean_area**2
           equil_fac(6+dofs_per_node*(i-1),:) = 1./mean_area**2
@@ -963,22 +969,16 @@ end subroutine rotation
 
        temp_vec = 0.
        do itri=1, numelms
-          call get_element_data(itri,d)
-          
-          do ii=1, dofs_per_tri
-             sum = 0.
-             do i=1, coeffs_per_tri
-                do j=1, coeffs_per_tri
-                   m = mi(i)+mi(j)
-                   n = ni(i)+ni(j)
-                   temp = d%c**(n+1) * (d%a**(m+1) - (-d%b)**(m+1)) * &
-                        factorial(m)*factorial(n) / &
-                        factorial(m+n+2)
-                   sum = sum + gtri(i,ii,itri)*gtri(j,ii,itri)*temp
-                end do
-             end do
+          call getelmsizes(itri, node_sz)
+          if(myrank.eq.0 .and. itri.eq.1) print *, 'node_sz = ', node_sz
 
-             equil_fac(ii,itri) = 1./sum
+          do i=1, nodes_per_element
+             equil_fac(1+dofs_per_node*(i-1),:) = 1./node_sz(i)**2
+             equil_fac(2+dofs_per_node*(i-1),:) = 1./node_sz(i)**3
+             equil_fac(3+dofs_per_node*(i-1),:) = 1./node_sz(i)**3
+             equil_fac(4+dofs_per_node*(i-1),:) = 1./node_sz(i)**4
+             equil_fac(5+dofs_per_node*(i-1),:) = 1./node_sz(i)**4
+             equil_fac(6+dofs_per_node*(i-1),:) = 1./node_sz(i)**4
           end do
           if(myrank.eq.0 .and. itri.eq.1) print *, equil_fac(:,itri)
        end do
@@ -1134,7 +1134,6 @@ end subroutine write_normlcurv
 subroutine space(ifirstcall)
 
   use element
-  use p_data
   use mesh_mod
   use basic
   use arrays
