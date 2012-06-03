@@ -1,5 +1,4 @@
 subroutine wrrestart
-  use p_data
   use mesh_mod
   use basic
   use arrays
@@ -67,7 +66,6 @@ end subroutine wrrestart
 
 !============================================================
 subroutine rdrestart
-  use p_data
   use mesh_mod
   use basic
   use arrays
@@ -211,7 +209,6 @@ subroutine createfilename(filename, oldfilename)
 end subroutine createfilename
 !============================================================
 subroutine wrrestartglobal
-  use p_data
   use mesh_mod
   use basic
   use arrays
@@ -314,7 +311,6 @@ subroutine wrrestartglobal
 end subroutine wrrestartglobal
 !============================================================
 subroutine rdrestartglobal
-  use p_data
   use mesh_mod
   use basic
   use arrays
@@ -415,7 +411,6 @@ end subroutine rdrestartglobal
 
 
 subroutine wrrestart_adios
-  use p_data
   use mesh_mod
   use basic
   use arrays
@@ -510,7 +505,6 @@ end subroutine wrrestart_adios
 
 !============================================================
 subroutine rdrestart_adios
-  use p_data
   use mesh_mod
   use basic
   use arrays

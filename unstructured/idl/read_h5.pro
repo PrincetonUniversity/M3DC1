@@ -1978,7 +1978,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                           filename=filename, points=pts, linear=linear, $
                           rrange=xrange, zrange=yrange, complex=complex)
            fp = complex(0., ntor)*f
-           help, fp
            b2 = b2 + s_bracket(fp,conj(fp),x,y) $
              - a_bracket(fp, conj(psi),x,y)/r $
              - a_bracket(conj(fp), psi,x,y)/r
@@ -2392,12 +2391,151 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        d = dimensions(t0=-1, _EXTRA=extra)
 
 
+   ;==========================================================
+   ; v_omega (the omega in v = r^2 omega grad(phi) + (K/n) B
+   ;==========================================================
+   endif else if(strcmp('v_omega', name, /fold_case) eq 1) then begin
+
+       omega = read_field('omega', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       u = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       i = read_field('I', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+       
+       data = omega - i/(r^2*sqrt(s_bracket(psi,psi,x,y))) * $
+         (r^2*s_bracket(u,psi,x,y) + a_bracket(chi,psi,x,y)/r)
+
+       symbol = '!7x!X'
+       d = dimensions(t0=-1, _EXTRA=extra)
+
+   ;==========================================================
+   ; v_K (the K in v = r^2 omega grad(phi) + (K/n) B)
+   ;==========================================================
+   endif else if(strcmp('v_K', name, /fold_case) eq 1) then begin
+
+       omega = read_field('omega', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       u = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       i = read_field('I', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       den = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+
+       data = den/sqrt(s_bracket(psi,psi,x,y)) * $
+         (r^2*s_bracket(u,psi,x,y) + a_bracket(chi,psi,x,y)/r)
+
+       symbol = '!8K!X'
+       d = dimensions(/v0, /n0, b0=-1, _EXTRA=extra)
+
+   ;==========================================================
+   ; ve_omega (the omega in v = r^2 omega grad(phi) + (K/n) B)
+   ;==========================================================
+   endif else if(strcmp('ve_omega', name, /fold_case) eq 1) then begin
+
+       di = read_parameter('db', filename=filename)
+       print, 'di = ', di
+       omega = read_field('omega', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       u = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       psi_lp = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange, op=7)
+       i = read_field('I', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       den = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+       
+       data = omega - i/(r^2*sqrt(s_bracket(psi,psi,x,y))) * $
+         (r^2*s_bracket(u,psi,x,y) + a_bracket(chi,psi,x,y)/r $
+          - (di/den)*s_bracket(i,psi,x,y)) $
+         + (di/den)*(psi_lp - itor*dx(psi,x)/r)/r^2
+
+       symbol = '!7x!D!8e!N!X'
+       d = dimensions(t0=-1, _EXTRA=extra)
+
+   ;==========================================================
+   ; ve_K (the K in v = r^2 omega grad(phi) + (K/n) B)
+   ;==========================================================
+   endif else if(strcmp('ve_K', name, /fold_case) eq 1) then begin
+
+       di = read_parameter('db', filename=filename)
+       omega = read_field('omega', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       u = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       i = read_field('I', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       den = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+
+       data = 1/sqrt(s_bracket(psi,psi,x,y)) * $
+         (den*(r^2*s_bracket(u,psi,x,y) + a_bracket(chi,psi,x,y)/r) $
+          - di*s_bracket(i,psi,x,y))
+
+       symbol = '!8K!D!8e!N!X'
+       d = dimensions(/v0, /n0, b0=-1, _EXTRA=extra)
+
+
    ;===========================================
    ; electron angular velocity
    ;===========================================
    endif else if(strcmp('omega_perp_e', name, /fold_case) eq 1) then begin
 
-       omega = read_field('omega', x, y, t, slices=time, mesh=mesh, $
+       omega = read_field('ve_omega', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange)
        omega_star = read_field('omega_*', x, y, t, slices=time, mesh=mesh, $
@@ -2609,7 +2747,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, linear=linear, $
                         rrange=xrange, zrange=yrange)
-       v = read_field('v', x, y, t, slices=time, mesh=mesh, $
+       w = read_field('omega', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, linear=linear, $
                       rrange=xrange, zrange=yrange)
        chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
@@ -2629,14 +2767,83 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        
        b2 = (s_bracket(psi,psi,x,y) + I^2)/r^2
        if(ivform eq 0) then begin
-           data = ((s_bracket(phi,psi,x,y) + v*I)/r^2 $
+           data = ((s_bracket(phi,psi,x,y) + w*I)/r^2 $
                    + a_bracket(chi,psi,x,y)/r)/sqrt(b2)
        endif else begin
-           data = (s_bracket(phi,psi,x,y) + v*I $
+           data = (s_bracket(phi,psi,x,y) + w*I $
                    + a_bracket(chi,psi,x,y)/r^3)/sqrt(b2)
        endelse
        symbol = '!8u!D!9#!N!X'
        d = dimensions(/v0, _EXTRA=extra)
+
+   ;===========================================
+   ; poloidal flow
+   ;===========================================
+   endif else if(strcmp('vpol', name, /fold_case) eq 1) then begin
+
+       phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, linear=linear, $
+                        rrange=xrange, zrange=yrange)
+       chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, linear=linear, $
+                        rrange=xrange, zrange=yrange)
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, /equilibrium)
+         
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+
+       
+       if(ivform eq 0) then begin
+           data = 0.
+       endif else begin
+           data = r*(s_bracket(phi,psi,x,y) $
+                   + a_bracket(chi,psi,x,y)/r^3) $
+             / sqrt(s_bracket(psi,psi,x,y))
+       endelse
+       symbol = '!8u!D!7h!N!X'
+       d = dimensions(/v0, _EXTRA=extra)
+
+
+   ;===========================================
+   ; perpendicular flow v.(B x grad(psi))
+   ;===========================================
+   endif else if(strcmp('vperp', name, /fold_case) eq 1) then begin
+
+       phi = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, linear=linear, $
+                        rrange=xrange, zrange=yrange)
+       w = read_field('omega', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, linear=linear, $
+                      rrange=xrange, zrange=yrange)
+       chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, linear=linear, $
+                        rrange=xrange, zrange=yrange)
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, /equilibrium)
+       I = read_field('I', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange, /equilibrium)
+         
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+
+       
+       pp = s_bracket(psi,psi,x,y)
+       b2 = (pp + I^2)/r^2
+       if(ivform eq 0) then begin
+           data = 0.
+       endif else begin
+           data = (-I*s_bracket(phi,psi,x,y) + w*s_bracket(psi,psi,x,y) $
+                   -I*a_bracket(chi,psi,x,y)/r^3)/sqrt(b2*pp)
+       endelse
+       symbol = '!8u!D!9x!N!X'
+       d = dimensions(/v0, _EXTRA=extra)
+
          
    ;===========================================
    ; radial flow
@@ -3465,7 +3672,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        r = radius_matrix(x,y,t)
        forward_function flux_average_field
-       fa = flux_average_field(r^2,psi0,x,y,t,r0=r0,flux=flux,_EXTRA=extra)
+       fa = flux_average_field(r^2,psi0,x,y,t,r0=r0,flux=flux,$
+                               filename=filename, _EXTRA=extra)
        r2_av = interpol(fa, flux, psi0)
        
        epsilon = read_field('minor radius',x,y,t,filename=filename,points=pts,$
@@ -3490,11 +3698,12 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
              + ntor^2*s_bracket(f,conj(f),x,y)
        end
 
-       fa = flux_average_field(b2/b02,psi0,x,y,t,r0=r0,flux=flux,_EXTRA=extra)
+       fa = flux_average_field(b2/b02,psi0,x,y,t,r0=r0,flux=flux,$
+                               filename=filename,_EXTRA=extra)
        b2_av = interpol(fa, flux, psi0)
  
        data = -mu_p*b2_av*n0*r^2*w0
-       
+      
        d = dimensions(/p0)
        symbol = '!6NTV!X'
 
@@ -5300,20 +5509,16 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
            area[k,p] = 2.*!pi*total(dl*xp)
            if(keyword_set(integrate)) then begin
                result[k,p] = 2.*!pi*total(faf*xp*dl*(-dpsi)/bpf)
-;               result[k,p] = 2.*!pi*int_tabulated(findgen(n_elements(dl)), $
-;                                                  faf*xp*dl*(-dpsi)/bpf)
            end else begin
-;               result[k,p] = total(faf*xp*dl) / total(xp*dl)
                result[k,p] = total(faf*xp*dl/bpf)/total(xp*dl/bpf)
            endelse
        endfor
        if(keyword_set(integrate)) then begin
-;           val = reform(result[k,*])
-;           result[k,0] = 0.
-;           for i=1, n_elements(val)-1 do begin
-;               result[k,i] = result[k,i-1] + (val[i]+val[i-1])/2.
-;           end
-           result[k,*] = total(result[k,*], /cumulative)
+           val = reform(result[k,*])
+           result[k,0] = val[0]/2.
+           for i=1, n_elements(val)-1 do begin
+               result[k,i] = result[k,i-1] + (val[i]+val[i-1])/2.
+           end
        endif
    endfor
 
@@ -5420,21 +5625,20 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
            for i=1, n_elements(flux)-1 do $
              V[i] = V[i-1] + (dV[i]+dV[i-1])/2. * (flux[i] - flux[i-1])
            
-           dqdV= deriv(V, q)
+           dqdV = deriv(V, q)
 
            units = ''
            name = '!6Magnetic Shear!X'
            symbol = '!8s!X'
 
-           return, smooth(2.*V*dqdV, bins/20)
+           return, 2.*V*dqdV
 
        endif else $
          if(strcmp(field, 'flux_t', /fold_case) eq 1) then begin
            print, 'DBG: flux_t reading field'
 
            if(n_elements(i0) le 1) then begin
-               i0 = read_field('I', x, z, t, points=points, $
-                              _EXTRA=extra)
+               i0 = read_field('I', x, z, t, points=points, _EXTRA=extra)
            endif
 
            r = radius_matrix(x,z,t)
@@ -5448,8 +5652,7 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
 
        endif else $
          if(strcmp(field, 'beta_pol', /fold_case) eq 1) then begin
-           I = read_field('I', x, z, t, points=points, $
-                          _EXTRA=extra)
+           I = read_field('I', x, z, t, points=points, _EXTRA=extra)
            
            bzero = read_parameter('bzero',_EXTRA=extra)
            rzero = read_parameter('rzero',_EXTRA=extra)
@@ -5473,28 +5676,6 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
 
            return, 1.+0.5*ii/(bb*rr^2)
            
-       endif else if (strcmp(field, 'gam', /fold_case) eq 1) then begin
-           minor_r = read_field('r', x, z, t, points=points, $
-                                _EXTRA=extra)
-           I = read_field('I', x, z, t, points=points, $
-                          _EXTRA=extra)
-           P = read_field('P', x, z, t, points=points, $
-                          _EXTRA=extra)
-           den = read_field('den', x, z, t, points=points, $
-                            _EXTRA=extra)
-           gam = read_parameter('gam', _EXTRA=extra)
-
-           r = radius_matrix(x,z,t)
-           bt = sqrt(I^2/r^2)
-           bp = sqrt(s_bracket(psi,psi,x,z)/r^2)
-           q = minor_r * bt / (r * bp)
-           
-           field = 2.*gam*p/(den*r^2)*(1.+2./q^2)
-           field = sqrt(field)
-           name = '!6GAM Frequency!X'
-           symbol = '!4x!D!6GAM!N!X'
-           units = make_units(t0=-1)
-
        endif else $
          if(strcmp(field, 'alpha', /fold_case) eq 1) then begin
            q = flux_average('q',psi=psi,x=x,z=z,nflux=nflux, $
@@ -5518,7 +5699,7 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
 
        endif else begin
            field = read_field(field, x, z, t, points=points, complex=complex, $
-                              symbol=symbol, units=units, dimensions=d, fac=fac, $
+                              symbol=symbol, units=units,dimensions=d,fac=fac,$
                               abs=abs, phase=phase, _EXTRA=extra)
            name = symbol
            if(keyword_set(total)) then begin
@@ -5528,8 +5709,8 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
                d = d + dimensions(l0=3)
                units = parse_units(d, _EXTRA=extra)
            endif else begin
-             symbol = '!12<!X' + symbol + '!12>!X'
-         endelse
+               symbol = '!12<!X' + symbol + '!12>!X'
+           endelse
        endelse
    endif else begin
        name = ''
@@ -5593,7 +5774,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                 mask_val=mask_val, boundary=boundary, q_contours=q_contours, $
                 overplot=overplot, phi=phi0, time=realtime, levels=levels, $
                 phase=phase, abs=abs, operation=op, magcoord=magcoord, $
-                _EXTRA=ex
+                outfile=outfile, _EXTRA=ex
 
    ; open mpeg object
    if(n_elements(mpeg) ne 0) then begin
@@ -5677,14 +5858,26 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
 
    if(n_elements(cutx) gt 0) then begin
        dum = min(x-cutx,i,/absolute)
+       data = reform(field[0,i,*])
        if(keyword_set(overplot)) then begin
-           oplot, y, field[0,i,*], _EXTRA=ex
+           oplot, y, data, _EXTRA=ex
        endif else plot, y, field[0,i,*], title=title, _EXTRA=ex
+       if(n_elements(outfile) eq 1) then begin
+           openw, ifile, outfile, /get_lun
+           printf, ifile, format='(2E16.6)', transpose([[y], [data]])
+           free_lun, ifile
+       endif
    endif else if(n_elements(cutz) gt 0) then begin
        dum = min(y-cutz,i,/absolute)
+       data = reform(field[0,*,i])
        if(keyword_set(overplot)) then begin
-           oplot, x, field[0,*,i], _EXTRA=ex
-       endif else plot, x, field[0,*,i], title=title, _EXTRA=ex
+           oplot, x, data, _EXTRA=ex
+       endif else plot, x, data, title=title, _EXTRA=ex
+       if(n_elements(outfile) eq 1) then begin
+           openw, ifile, outfile, /get_lun
+           printf, ifile, format='(2E16.6)', transpose([[x], [data]])
+           free_lun, ifile
+       endif
    endif else if(keyword_set(magcoord)) then begin
 
        psi = read_field('psi',x,y,t,points=p,/equilibrium,_EXTRA=ex)
@@ -5754,7 +5947,8 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
                        bw=bw, srnorm=srnorm, last=last, mks=mks, cgs=cgs, $
                        q_contours=q_contours, rho=rho, integrate=integrate, $
                        multiply_flux=multiply_flux, abs=abs, phase=phase, $
-                       stotal=total, _EXTRA=extra
+                       stotal=total, nolegend=nolegend, $
+                       val_at_q=val_at_q, flux_at_q=flux_at_q, _EXTRA=extra
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
@@ -5783,7 +5977,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, fac=fac, $
              linear=linear, multiply_flux=multiply_flux, mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, abs=abs, phase=phase, $
-             stotal=total, q_contours=qcon, rho=rho
+             stotal=total, q_contours=qcon, rho=rho, nolegend=nolegend
        end
        if(n_elements(names) ne 0) then begin
            plot_legend, names, colors=col, linestyle=ls, _EXTRA=extra
@@ -5814,9 +6008,9 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, fac=fac, $
              linear=linear, multiply_flux=multiply_flux[i], mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, abs=abs, phase=phase, $
-             stotal=total, q_contours=q_contours, rho=rho
+             stotal=total, q_contours=q_contours, rho=rho, nolegend=nolegend
        end
-       if(n_elements(names) gt 0) then begin
+       if(n_elements(names) gt 0 and not keyword_set(nolegend)) then begin
            plot_legend, names, color=colors, ylog=ylog, xlog=xlog, $
              linestyle=ls, _EXTRA=extra
        endif    
@@ -5843,7 +6037,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              t=t, rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, fac=fac,$
              linear=linear, multiply_flux=multiply_flux, mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, asb=aba, phase=phase, $
-             stotal=total, rho=rho
+             stotal=total, rho=rho, nolegend=nolegend
            names[i] = string(format='(%"!8t!6 = %d !7s!D!8A!N!X")', t)
        end
 
@@ -5944,7 +6138,10 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
        end
        result = interpol(fa, flux, fvals)
        print, 'filename = ', filename
-       print, "values at q's =  ", result
+       val_at_q = result
+       flux_at_q = fvals
+       print, "flux at q's =  ", flux_at_q
+       print, "values at q's =  ", val_at_q
    endif
 end
 

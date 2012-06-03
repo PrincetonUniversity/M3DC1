@@ -824,7 +824,6 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
            ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
         end if
 
-
      ! Unsplit time-step
      else
         temp = v2p(trial,lin)
@@ -1124,8 +1123,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      ! parabolization terms
      temp = v3upsipsi(trial,lin,pst79,pst79) &
           + v3upsib  (trial,lin,pst79,bzt79) &
-          + v3ubb    (trial,lin,bzt79,bzt79) & 
-          + v3ungrav (trial,lin,nt79)
+          + v3ubb    (trial,lin,bzt79,bzt79)
      ssterm(u_g) = ssterm(u_g) - thimp*thimp*dt*dt*temp
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
@@ -1156,8 +1154,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
 
      temp = v3chipsipsi(trial,lin,pst79,pst79) &
           + v3chipsib  (trial,lin,pst79,bzt79) &
-          + v3chibb    (trial,lin,bzt79,bzt79) &
-          + v3chingrav (trial,lin,nt79)
+          + v3chibb    (trial,lin,bzt79,bzt79)
      ssterm(chi_g) = ssterm(chi_g) - thimp*thimp*dt*dt*temp
      ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
 
@@ -1364,7 +1361,6 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
         ddterm(den_g) = ddterm(den_g) + (1.-thimp*bdf)*dt*temp
      endif
   endif
-
 end subroutine compression_lin
 
 subroutine compression_nolin(trial, r4term)
@@ -3445,7 +3441,6 @@ end subroutine bf_equation_nolin
 !======================================================================
 subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
 
-  use p_data
   use mesh_mod
   use basic
   use arrays

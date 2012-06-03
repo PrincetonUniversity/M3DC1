@@ -90,7 +90,7 @@ contains
     do i=1, s%n-1
        if(x.lt.s%x(i+1)) exit
     end do
-    if(i.lt.1 .or. i.ge.s%n) print *, 'ERROR!!!', i, s%n, x, s%x(1), s%x(s%n)
+!    if(i.lt.1 .or. i.ge.s%n) print *, 'ERROR!!!', i, s%n, x, s%x(1), s%x(s%n)
     dx = x - s%x(i)
   end subroutine which_domain
 

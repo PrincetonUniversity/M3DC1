@@ -126,6 +126,8 @@ subroutine set_defaults
   call add_var_int("iread_omega", iread_omega, 0, "", input_grp)
   call add_var_int("iread_omega_e", iread_omega_e, 0, &
        "Read electron rotation (same options as iread_omega)", input_grp)
+  call add_var_int("iread_omega_ExB", iread_omega_ExB, 0, &
+       "Read ExB rotation (same options as iread_omega)", input_grp)
   call add_var_int("iread_ne", iread_ne, 0, "", input_grp)
   call add_var_int("iread_te", iread_te, 0, "", input_grp)
   call add_var_int("iread_neo", iread_neo, 0, &
@@ -726,10 +728,17 @@ subroutine validate_input
 
   if(iread_omega_e .ne. 0) then
      if(iread_omega .ne. 0) then
-        if(myrank.eq.0) print *, "Error, can't read both omega and omega_e"
+        if(myrank.eq.0) print *, "Error, can't read multiple rotation profiles"
         call safestop(1)
      end if
      iread_omega = iread_omega_e
+  end if
+  if(iread_omega_ExB .ne. 0) then
+     if(iread_omega .ne. 0) then
+        if(myrank.eq.0) print *, "Error, can't read multiple rotation profiles"
+        call safestop(1)
+     end if
+     iread_omega = iread_omega_ExB
   end if
 
   ! Read PETSc options

@@ -588,7 +588,6 @@ end subroutine export_time_advance_vectors_split
 !============================================================
 subroutine step_split(calc_matrices)
 
-  use p_data
   use basic
   use arrays
   use sparse
