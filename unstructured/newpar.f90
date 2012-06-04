@@ -969,7 +969,11 @@ end subroutine rotation
 
        temp_vec = 0.
        do itri=1, numelms
+#ifdef USESCOREC
           call getelmsizes(itri, node_sz)
+#else
+          node_sz = 1.
+#endif
           if(myrank.eq.0 .and. itri.eq.1) print *, 'node_sz = ', node_sz
 
           do i=1, nodes_per_element
