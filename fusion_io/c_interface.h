@@ -8,7 +8,7 @@ extern "C" {
   int fio_create_compound_field(int*);
   int fio_eval_field(const int, const double*, double*);
   int fio_get_options(const int);
-  int fio_get_field(const int, const int, int*);
+  int fio_get_field(const int, const int, const int, int*);
   int fio_open_source(const int, const char*, int*);
   int fio_set_int_option(const int, const int);
   int fio_set_str_option(const int, const char*);

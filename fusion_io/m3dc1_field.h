@@ -11,8 +11,8 @@
 class m3dc1_fio_field : public fio_field {
  protected:
   int time;
-  double factor;
-  bool eqsub, extsub, use_f, linear;
+  double linfac;
+  bool eqsub, extsub, use_f;
   m3dc1_source* source;
  public:
   m3dc1_fio_field(m3dc1_source* s) 
@@ -24,11 +24,12 @@ class m3dc1_fio_field : public fio_field {
 // Scalar (explicitly named field)
 class m3dc1_scalar_field : public m3dc1_fio_field {
   m3dc1_field *f0, *f1, *fx;
+  double factor;
   std::string name;
 
  public:
-  m3dc1_scalar_field(m3dc1_source* s, const char* n) 
-    : m3dc1_fio_field(s) { name = n; }
+ m3dc1_scalar_field(m3dc1_source* s, const char* n, const double f) 
+   : m3dc1_fio_field(s) { name = n; factor = f; }
   m3dc1_scalar_field* clone() const { return new m3dc1_scalar_field(*this); }
   int load(const fio_option_list*);
   int dimension() const { return 1; }

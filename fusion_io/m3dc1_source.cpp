@@ -6,6 +6,25 @@ int m3dc1_source::open(const char* filename)
 {
   if(!file.open(filename))
     return FIO_FILE_ERROR;
+
+  // read some relevant data from the file
+  file.read_parameter("extsubtract", &extsubtract);
+  file.read_parameter("icomplex", &icomplex);
+  file.read_parameter("3d", &i3d);
+  file.read_parameter("eqsubtract", &eqsubtract);
+  file.read_parameter("linear", &linear);
+  file.read_parameter("zeff", &zeff);
+  file.read_parameter("ion_mass", &ion_mass);
+  file.read_parameter("n0_norm", &n0);
+  file.read_parameter("l0_norm", &L0);
+  file.read_parameter("b0_norm", &B0);
+
+  // define some normalization quantities
+  p0 = B0*B0/(4.*M_PI);
+
+  // determine ion species
+  ion_species = fio_species(ion_mass, ion_mass, 1);
+
   return FIO_SUCCESS;
 }
 
@@ -27,22 +46,43 @@ int m3dc1_source::get_field_options(fio_option_list* opt) const
   return FIO_SUCCESS;
 }
 
-int m3dc1_source::get_field(const field_type t,fio_field** f,const fio_option_list* opt)
+int m3dc1_source::get_field(const field_type t,fio_field** f,
+			    const fio_option_list* opt, 
+			    const fio_species* s)
 {
   *f = 0;
   m3dc1_fio_field* mf;
+  bool unneeded_species = false;
 
   switch(t) {
   case(FIO_MAGNETIC_FIELD):
     mf = new m3dc1_magnetic_field(this);
+    if(s) unneeded_species = true;
+    break;
+
+  case(FIO_TOTAL_PRESSURE):
+    mf = new m3dc1_scalar_field(this, "P", p0);
+    if(s) unneeded_species = true;
     break;
 
   case(FIO_PRESSURE):
-    mf = new m3dc1_scalar_field(this,"P");
+    if(*s==fio_electron) {
+      mf = new m3dc1_scalar_field(this, "Pe", p0);
+    } else if(*s==ion_species) {
+      mf = new m3dc1_scalar_field(this, "P", p0);
+    } else {
+      return FIO_BAD_SPECIES;
+    }
     break;
 
   case(FIO_DENSITY):
-    mf = new m3dc1_scalar_field(this,"den");
+    if(*s==fio_electron) {
+      mf = new m3dc1_scalar_field(this, "den", n0*zeff);
+    } else if(*s==ion_species) {
+      mf = new m3dc1_scalar_field(this, "den", n0);
+    } else {
+      return FIO_BAD_SPECIES;
+    }
     break;
 
   default:

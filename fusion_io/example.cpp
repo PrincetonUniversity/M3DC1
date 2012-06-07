@@ -28,21 +28,21 @@ int main()
   opt.set_option(FIO_LINEAR_SCALE, 10.);
 
   // open fields
-  result = src->get_field(FIO_PRESSURE, &pressure, &opt);
+  result = src->get_field(FIO_TOTAL_PRESSURE, &pressure, &opt, 0);
   if(result != FIO_SUCCESS) {
     std::cerr << "Error opening pressure field" << std::endl;
     delete(src);
     return result;
   };
 
-  result = src->get_field(FIO_DENSITY, &density, &opt);
+  result = src->get_field(FIO_DENSITY, &density, &opt, &fio_electron);
   if(result != FIO_SUCCESS) {
     std::cerr << "Error opening density field" << std::endl;
     delete(src);
     return result;
   };
 
-  result = src->get_field(FIO_MAGNETIC_FIELD, &magnetic_field, &opt);
+  result = src->get_field(FIO_MAGNETIC_FIELD, &magnetic_field, &opt, 0);
   if(result != FIO_SUCCESS) {
     std::cerr << "Error opening magnetic field" << std::endl;
     delete(src);
@@ -66,7 +66,7 @@ int main()
   opt.set_option(FIO_LINEAR_SCALE, 10.);
 
   // open field
-  result = src2->get_field(FIO_MAGNETIC_FIELD, &magnetic_field2, &opt);
+  result = src2->get_field(FIO_MAGNETIC_FIELD, &magnetic_field2, &opt, 0);
   if(result != FIO_SUCCESS) {
     std::cerr << "Error opening magnetic field" << std::endl;
     delete(src2);

@@ -44,6 +44,7 @@ INCLUDE := -I$(M3DC1_ROOT)/m3dc1_lib \
 
 OBJS = 	interpolate.o \
 	options.o \
+	fusion_io_species.o \
 	fusion_io_field.o \
 	fio_operations.o \
 	compound_field.o \

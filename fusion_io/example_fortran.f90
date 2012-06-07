@@ -39,9 +39,9 @@ program fio_example
      if(i.gt.1) call fio_set_int_option_f(FIO_PERTURBED_ONLY, 1, ierr)
 
      ! read fields
-     call fio_get_field_f(isrc(i), FIO_PRESSURE, ipres(i), ierr);
-     call fio_get_field_f(isrc(i), FIO_DENSITY, idens(i), ierr);
-     call fio_get_field_f(isrc(i), FIO_MAGNETIC_FIELD, imag(i), ierr);
+     call fio_get_field_f(isrc(i), FIO_TOTAL_PRESSURE, 0, ipres(i), ierr);
+     call fio_get_field_f(isrc(i), FIO_DENSITY, FIO_ELECTRON, idens(i),ierr);
+     call fio_get_field_f(isrc(i), FIO_MAGNETIC_FIELD, 0, imag(i), ierr);
   end do
  
   R0 = 1.6;
@@ -64,7 +64,6 @@ program fio_example
 
      do j=1, nfiles
         call fio_eval_field_f(ipres(j), x, t1, ierr)
-        print *, t1
         p = p + t1
         call fio_eval_field_f(idens(j), x, t1, ierr)
         n = n + t1

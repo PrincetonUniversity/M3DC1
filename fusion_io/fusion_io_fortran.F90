@@ -40,10 +40,10 @@ contains
     call fio_eval_field(ifield, x, v, ierr)
   end subroutine fio_eval_field_f
 
-  subroutine fio_get_field_f(isrc, itype, ifield, ierr)
-    integer, intent(in) :: isrc, itype
+  subroutine fio_get_field_f(isrc, itype, ispec, ifield, ierr)
+    integer, intent(in) :: isrc, itype, ispec
     integer, intent(out) :: ifield, ierr
-    call fio_get_field(isrc, itype, ifield, ierr)
+    call fio_get_field(isrc, itype, ispec, ifield, ierr)
   end subroutine fio_get_field_f
 
   subroutine fio_get_options_f(isrc, ierr)

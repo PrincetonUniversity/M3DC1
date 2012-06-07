@@ -3,37 +3,31 @@
 
 int m3dc1_fio_field::load(const fio_option_list* opt)
 {
-  int extsubtract, icomplex, i3d, eqsubtract, linear, ilin;
+  int ilin;
 
   opt->get_option(FIO_TIMESLICE, &time);
-  opt->get_option(FIO_LINEAR_SCALE, &factor);
+  opt->get_option(FIO_LINEAR_SCALE, &linfac);
   opt->get_option(FIO_PERTURBED_ONLY, &ilin);
 
-  source->file.read_parameter("extsubtract", &extsubtract);
-  source->file.read_parameter("icomplex", &icomplex);
-  source->file.read_parameter("3d", &i3d);
-  source->file.read_parameter("eqsubtract", &eqsubtract);
-  source->file.read_parameter("linear", &linear);
-
-  extsub = (extsubtract==1);
-  eqsub = (eqsubtract==1) && (ilin==0);
-  use_f = (i3d==1 || icomplex==1);
+  extsub = (source->extsubtract==1);
+  eqsub = (source->eqsubtract==1) && (ilin==0);
+  use_f = (source->i3d==1 || source->icomplex==1);
 
   if(time==-1) {
     eqsub = false;   // equilibrium fields need not be added in
     use_f = false;   // equilibrium is assumed axisymmetric
   }
 
-  if(factor != 1.) {
-    if(linear == 0) {
-      std::cerr << "Linear scale factor is ignored for nonlinear data."
+  if(linfac != 1.) {
+    if(source->linear == 0) {
+      std::cerr << "Linear scale linfac is ignored for nonlinear data."
 		<< std::endl;
-      factor = 1.;
+      linfac = 1.;
     }
     if(time==-1) {
-      std::cerr << "Linear scale factor is ignored for equilibrium data." 
+      std::cerr << "Linear scale linfac is ignored for equilibrium data." 
 		<< std::endl;
-      factor = 1.;
+      linfac = 1.;
     }
   }
 
@@ -67,7 +61,7 @@ int m3dc1_scalar_field::eval(const double* x, double* v)
   if(!f1->eval(x[0], x[1], x[2], get, val)) {
     return FIO_OUT_OF_BOUNDS;
   }
-  *v = factor*val[m3dc1_field::OP_1];
+  *v = linfac*val[m3dc1_field::OP_1];
 
   if(eqsub) {
     if(!f0->eval(x[0], x[1], x[2], get, val)) {
@@ -75,6 +69,8 @@ int m3dc1_scalar_field::eval(const double* x, double* v)
     }
     *v += val[m3dc1_field::OP_1];
   }
+
+  *v *= factor;
 
   return FIO_SUCCESS;
 }
@@ -136,19 +132,19 @@ int m3dc1_magnetic_field::eval(const double* x, double* v)
   if(!psi1->eval(x[0], x[1], x[2], psiget, val))
     return FIO_OUT_OF_BOUNDS;
 
-  v[0] = -factor*val[m3dc1_field::OP_DZ]/x[0];
-  v[2] =  factor*val[m3dc1_field::OP_DR]/x[0];
+  v[0] = -linfac*val[m3dc1_field::OP_DZ]/x[0];
+  v[2] =  linfac*val[m3dc1_field::OP_DR]/x[0];
 
   if(!i1->eval(x[0], x[1], x[2], gget, val))
     return FIO_OUT_OF_BOUNDS;
-  v[1] =  factor*val[m3dc1_field::OP_1]/x[0];
+  v[1] =  linfac*val[m3dc1_field::OP_1]/x[0];
 
   if(use_f) {
     if(!f1->eval(x[0], x[1], x[2], fget, val))
       return FIO_OUT_OF_BOUNDS;
 
-    v[0] -= factor*val[m3dc1_field::OP_DRP];
-    v[2] -= factor*val[m3dc1_field::OP_DZP];
+    v[0] -= linfac*val[m3dc1_field::OP_DRP];
+    v[2] -= linfac*val[m3dc1_field::OP_DZP];
   }
 
   if(eqsub) {
@@ -167,21 +163,25 @@ int m3dc1_magnetic_field::eval(const double* x, double* v)
     if(!psix->eval(x[0], x[1], x[2], psiget, val))
       return FIO_OUT_OF_BOUNDS;
 
-    v[0] -= factor*val[m3dc1_field::OP_DZ]/x[0];
-    v[2] += factor*val[m3dc1_field::OP_DR]/x[0];
+    v[0] -= linfac*val[m3dc1_field::OP_DZ]/x[0];
+    v[2] += linfac*val[m3dc1_field::OP_DR]/x[0];
 
     if(!ix->eval(x[0], x[1], x[2], gget, val))
       return FIO_OUT_OF_BOUNDS;
-    v[1] += factor*val[m3dc1_field::OP_1]/x[0];
+    v[1] += linfac*val[m3dc1_field::OP_1]/x[0];
 
     if(use_f) {
       if(!fx->eval(x[0], x[1], x[2], fget, val))
         return FIO_OUT_OF_BOUNDS;
 
-      v[0] -= factor*val[m3dc1_field::OP_DRP];
-      v[1] -= factor*val[m3dc1_field::OP_DZP];
+      v[0] -= linfac*val[m3dc1_field::OP_DRP];
+      v[1] -= linfac*val[m3dc1_field::OP_DZP];
     }
   }
+
+  v[0] *= source->B0;
+  v[1] *= source->B0;
+  v[2] *= source->B0;
   
   return FIO_SUCCESS;
 }
