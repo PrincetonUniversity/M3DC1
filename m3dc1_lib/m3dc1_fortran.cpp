@@ -361,7 +361,7 @@ extern "C" void m3dc1_eval_alpha_(const double* r,
 	psi0_val[m3dc1_field::OP_DZ]*psi0_val[m3dc1_field::OP_DZ] + 
 	g0_val[m3dc1_field::OP_1]*g0_val[m3dc1_field::OP_1])/r2;
   
-  *alpha = ab/b2;
+  *alpha = scale_factor*ab/b2;
     
   *ierr = 0;
 }
@@ -469,9 +469,9 @@ extern "C" void m3dc1_eval_grad_alpha_(const double* r,
 	      psi0_val[m3dc1_field::OP_DZZ]*psi0_val[m3dc1_field::OP_DZ] + 
 	      g0_val[m3dc1_field::OP_DZ]*g0_val[m3dc1_field::OP_1])/r2;
   
-  *dadR = dabdR/b2 - ab*db2dR/(b2*b2);
-  *dadPhi = dabdPhi/b2;
-  *dadZ = dabdZ/b2 - ab*db2dZ/(b2*b2);
+  *dadR = scale_factor*(dabdR/b2 - ab*db2dR/(b2*b2));
+  *dadPhi = scale_factor*(dabdPhi/b2);
+  *dadZ = scale_factor*(dabdZ/b2 - ab*db2dZ/(b2*b2));
     
   *ierr = 0;
 }
