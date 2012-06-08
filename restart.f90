@@ -524,7 +524,7 @@ subroutine rdrestart_adios
   integer :: ndofs1, ndofs2, ndofs_1, ndofs_2
 
   ! ADIOS variables declarations for matching gread_restart_c11.fh &  gread_restart_c12.fh
-  integer             :: comm, ierr
+  integer             :: comm, ierr, ier, itmp
   integer                 :: adios_err
   integer*8               :: adios_groupsize, adios_totalsize
   integer*8               :: adios_handle, adios_buf_size
@@ -637,15 +637,21 @@ subroutine rdrestart_adios
      ndofs1 .ne. ndofs_1 .or. ndofs2.ne. ndofs_2) then
      write(*,*) 'Restart file information does not match!'
 
-     if(inumnodes .ne. numnodes) write(*,*) 'numnodes ',inumnodes, numnodes, myrank 
-     if(inumelms .ne. numelms) write(*,*) 'numelms ',inumnodes, numnodes, myrank 
+     if(inumnodes.ne.numnodes) print *, 'numnodes ',inumnodes,numnodes,myrank 
+     if(inumelms .ne. numelms) print *, 'numelms ',inumelms,numelms,myrank 
      if(iiper .ne. iper) write(*,*) 'iper',iiper, iper, myrank
      if(ijper .ne. jper) write(*,*) 'jper',ijper, jper, myrank
      if(imyrank .ne. myrank) write(*,*) 'myrank',imyrank,myrank
      if(ndofs1 .ne. ndofs_1) write(*,*) 'ndofs 1',myrank, ndofs1, ndofs_1
      if(ndofs2 .ne. ndofs_2) write(*,*) 'ndofs 2',myrank, ndofs2, ndofs_2
-     call safestop(2)
-  endif
+     ierr = 1
+  else
+     ierr = 0
+  end if
+
+  ! check for errors
+  call mpi_allreduce(ierr,itmp,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ier)
+  if(itemp.ne.0) call safestop(6)
 
     ! Allocate space for the arrays tmp_
   allocate(tmp_field_vec(ndofs_1))
