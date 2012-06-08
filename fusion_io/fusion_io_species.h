@@ -10,11 +10,14 @@ class fio_species {
  public:
   fio_species();
   fio_species(const fio_species&);
+  fio_species(const int);
   fio_species(const int, const int, const int);
   int charge() const;
   int mass() const;
   std::string name() const;
   bool operator==(const fio_species&) const;
+
+  int to_int() const;
 };
 
 static fio_species fio_electron(0, 0, 1);

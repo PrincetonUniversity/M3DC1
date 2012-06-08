@@ -13,6 +13,14 @@ fio_species::fio_species(const fio_species& s)
   electrons = s.electrons;
 }
 
+fio_species::fio_species(const int i)
+{
+  int n = (i & 16711680);
+  protons = i & 65280;
+  electrons = i & 255;
+  nucleons = protons + n;
+}
+
 fio_species::fio_species(const int m, const int p, const int e)
 {
   nucleons = m;
@@ -35,6 +43,11 @@ bool fio_species::operator==(const fio_species& s) const
   return (s.nucleons == nucleons) &&
     (s.protons == protons) && 
     (s.electrons == electrons);
+}
+
+int fio_species::to_int() const
+{
+  return electrons + protons*256 + (nucleons-protons)*65536;
 }
 
 std::string fio_species::name() const
