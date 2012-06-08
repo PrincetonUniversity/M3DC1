@@ -7,7 +7,7 @@ extern "C" {
   void fio_create_compound_field_(int*, int*);
   void fio_eval_field_(const int*, const double*, double*, int*);
   void fio_get_options_(const int*, int*);
-  void fio_get_field_(const int*, const int*, const int*, int*, int*);
+  void fio_get_field_(const int*, const int*, int*, int*);
   void fio_open_source_(const int*, const char*, int*, int*);
   void fio_set_int_option_(const int*, const int*, int*);
   void fio_set_str_option_(const int*, const char*, int*);
@@ -40,10 +40,10 @@ void fio_eval_field_(const int* ifield, const double* x, double* v, int* ierr)
   *ierr = fio_eval_field(*ifield, x, v);
 }
 
-void fio_get_field_(const int* isrc, const int* itype, const int* ispec,
+void fio_get_field_(const int* isrc, const int* itype,
 		    int* handle, int* ierr)
 {
-  *ierr = fio_get_field(*isrc, *itype, *ispec, handle);
+  *ierr = fio_get_field(*isrc, *itype, handle);
 }
 
 void fio_get_options_(const int* isrc, int* ierr)

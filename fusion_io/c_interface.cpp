@@ -48,17 +48,12 @@ int fio_eval_field(const int ifield, const double* x, double* v)
   return field_list[ifield]->eval(x, v);
 }
 
-int fio_get_field(const int isrc, const int type, const int ispec, int* handle)
+int fio_get_field(const int isrc, const int type, int* handle)
 {
   fio_field* f;
   int ierr;
 
-  if(ispec == 0) {
-    ierr = source_list[isrc]->get_field(type, &f, &options, 0);
-  } else {
-    fio_species s(FIO_GET_M(ispec), FIO_GET_P(ispec), FIO_GET_E(ispec));
-    ierr = source_list[isrc]->get_field(type, &f, &options, &s);
-  } 
+  ierr = source_list[isrc]->get_field(type, &f, &options);
 
   if(ierr == FIO_SUCCESS) {
     *handle = field_list.size();

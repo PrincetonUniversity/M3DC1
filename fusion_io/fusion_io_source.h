@@ -15,7 +15,8 @@ class fio_source {
   virtual int close() = 0;
 
   virtual int get_field_options(fio_option_list*) const = 0;
-  virtual int get_field(const field_type, fio_field**, const fio_option_list*, const fio_species*) = 0;
+  virtual int get_field(const field_type, fio_field**, const fio_option_list*)
+    = 0;
 };
 
 #endif 

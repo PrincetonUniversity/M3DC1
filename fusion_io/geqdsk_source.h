@@ -23,9 +23,8 @@ class geqdsk_source : public fio_source {
   geqdsk_source();
   virtual ~geqdsk_source();
 
-  virtual int get_field_options(fio_option_list*) const;
-  virtual int get_field(const field_type, fio_field**, const fio_option_list*,
-			const fio_species*);
+  int get_field_options(fio_option_list*) const;
+  int get_field(const field_type, fio_field**, const fio_option_list*);
 
   int open(const char*);
   int close();

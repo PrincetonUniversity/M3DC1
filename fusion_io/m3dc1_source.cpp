@@ -22,8 +22,8 @@ int m3dc1_source::open(const char* filename)
   // define some normalization quantities
   p0 = B0*B0/(4.*M_PI);
 
-  // determine ion species
-  ion_species = fio_species(ion_mass, ion_mass, 1);
+  // determine ion species (assume one proton and no electrons)
+  ion_species = fio_species(ion_mass, 1, 0);
 
   return FIO_SUCCESS;
 }
@@ -42,46 +42,50 @@ int m3dc1_source::get_field_options(fio_option_list* opt) const
   opt->add_option(FIO_TIMESLICE, 0);
   opt->add_option(FIO_LINEAR_SCALE, 1.);
   opt->add_option(FIO_PERTURBED_ONLY, 0);
+  opt->add_option(FIO_SPECIES, 0);
 
   return FIO_SUCCESS;
 }
 
 int m3dc1_source::get_field(const field_type t,fio_field** f,
-			    const fio_option_list* opt, 
-			    const fio_species* s)
+			    const fio_option_list* opt)
 {
   *f = 0;
   m3dc1_fio_field* mf;
   bool unneeded_species = false;
+  int s, result;
+
+  opt->get_option(FIO_SPECIES, &s);
+  if(s==FIO_MAIN_ION) s = ion_species;
 
   switch(t) {
   case(FIO_MAGNETIC_FIELD):
     mf = new m3dc1_magnetic_field(this);
-    if(s) unneeded_species = true;
+    if(s!=0) unneeded_species = true;
     break;
 
   case(FIO_TOTAL_PRESSURE):
     mf = new m3dc1_scalar_field(this, "P", p0);
-    if(s) unneeded_species = true;
+    if(s!=0) unneeded_species = true;
     break;
 
   case(FIO_PRESSURE):
-    if(*s==fio_electron) {
+    if(s==fio_electron) {
       mf = new m3dc1_scalar_field(this, "Pe", p0);
-    } else if(*s==ion_species) {
+    } else if(s==ion_species) {
       mf = new m3dc1_scalar_field(this, "P", p0);
     } else {
-      return FIO_BAD_SPECIES;
+      result = FIO_BAD_SPECIES;
     }
     break;
 
   case(FIO_DENSITY):
-    if(*s==fio_electron) {
+    if(s==fio_electron) {
       mf = new m3dc1_scalar_field(this, "den", n0*zeff);
-    } else if(*s==ion_species) {
+    } else if(s==ion_species) {
       mf = new m3dc1_scalar_field(this, "den", n0);
     } else {
-      return FIO_BAD_SPECIES;
+      result = FIO_BAD_SPECIES;
     }
     break;
 
@@ -89,7 +93,13 @@ int m3dc1_source::get_field(const field_type t,fio_field** f,
     return FIO_UNSUPPORTED;
   };
 
-  int result = mf->load(opt);
+  if(result==FIO_BAD_SPECIES) {
+    std::cerr << "Unsupported species: " << fio_species(s).name() << std::endl;
+    std::cerr << "Main ions: " << ion_species.name() << std::endl;
+    return result;
+  }
+
+  result = mf->load(opt);
   if(result == FIO_SUCCESS) {
     *f = mf;
   } else {

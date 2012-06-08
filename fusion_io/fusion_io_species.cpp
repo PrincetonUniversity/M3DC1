@@ -13,19 +13,24 @@ fio_species::fio_species(const fio_species& s)
   electrons = s.electrons;
 }
 
-fio_species::fio_species(const int i)
-{
-  int n = (i & 16711680);
-  protons = i & 65280;
-  electrons = i & 255;
-  nucleons = protons + n;
-}
-
 fio_species::fio_species(const int m, const int p, const int e)
 {
   nucleons = m;
   protons = p;
   electrons = e;
+}
+
+fio_species::fio_species(const int i)
+{
+  int n = i / 65536; 
+  protons = (i-n*65536) / 256;
+  electrons = (i-n*65536-protons*256);
+  nucleons = protons + n;
+}
+
+fio_species::operator int() const
+{
+  return electrons + protons*256 + (nucleons-protons)*65536;
 }
 
 int fio_species::charge() const
@@ -45,11 +50,6 @@ bool fio_species::operator==(const fio_species& s) const
     (s.electrons == electrons);
 }
 
-int fio_species::to_int() const
-{
-  return electrons + protons*256 + (nucleons-protons)*65536;
-}
-
 std::string fio_species::name() const
 {
   std::ostringstream ss;
@@ -63,11 +63,15 @@ std::string fio_species::name() const
     case(3): ss << "T"; break;
     }
   } else {
-    ss << species_name[protons];
+    if(protons >= 0 && protons < 19) {
+      ss << species_name[protons];
+    } else {
+      ss << protons << "?";
+    }
   }
 
   // append charge state
-  ss << charge();
+  ss << nucleons << "_" << charge();
 
   return ss.str();
 }

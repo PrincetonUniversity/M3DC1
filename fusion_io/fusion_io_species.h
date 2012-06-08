@@ -17,7 +17,7 @@ class fio_species {
   std::string name() const;
   bool operator==(const fio_species&) const;
 
-  int to_int() const;
+  operator int() const;
 };
 
 static fio_species fio_electron(0, 0, 1);
