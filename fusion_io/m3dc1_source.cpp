@@ -1,6 +1,5 @@
-#include "m3dc1_source.h"
-#include "m3dc1_field.h"
-#include "fusion_io_defs.h"
+#include "fusion_io.h"
+#include <iostream>
 
 int m3dc1_source::open(const char* filename)
 {
@@ -21,6 +20,12 @@ int m3dc1_source::open(const char* filename)
 
   // define some normalization quantities
   p0 = B0*B0/(4.*M_PI);
+
+  // convert normalization quantities to mks
+  n0 /= 1.e-6;
+  B0 /= 1e4;
+  L0 /= 100.;
+  p0 /= 10.;
 
   // determine ion species (assume one proton and no electrons)
   ion_species = fio_species(ion_mass, 1, 0);

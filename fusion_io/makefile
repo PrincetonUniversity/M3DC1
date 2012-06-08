@@ -60,7 +60,7 @@ install : $(LIB) $(EXAMPLE_BIN)
 	mkdir -p $(M3DC1_INSTALL_DIR)/lib/_$(M3DC1_ARCH)
 	cp $(LIB) $(M3DC1_INSTALL_DIR)/lib/_$(M3DC1_ARCH)
 	mkdir -p $(M3DC1_INSTALL_DIR)/include/
-	cp fusion_io.h fusion_io.mod $(M3DC1_INSTALL_DIR)/include/
+	cp $(SRCDIR)/fusion_io.h fusion_io.mod $(M3DC1_INSTALL_DIR)/include/
 
 include $(M3DC1_ROOT)/install/common_footer.mk
 
