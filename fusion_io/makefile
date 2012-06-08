@@ -3,27 +3,7 @@
 #######################################################
 ifeq (,$(filter _%,$(notdir $(CURDIR))))
 
-.SUFFIXES:
-
-OBJDIR := _$(M3DC1_ARCH)
-
-MAKETARGET = $(MAKE) --no-print-directory -C $@ -f $(CURDIR)/makefile \
-	SRCDIR=$(CURDIR) $(MAKECMDGOALS) 
-
-.PHONY: $(OBJDIR)
-$(OBJDIR):
-	+@[ -d $@ ] || mkdir -p $@
-	+@$(MAKETARGET)
-
-makefile : ;
-%.mk :: ;
-
-% :: $(OBJDIR) ; :
-
-.PHONY: clean
-clean : 
-	rm -fr *~ $(OBJDIR)
-
+include $(M3DC1_ROOT)/install/common_header.mk
 
 #######################################################
 # if we are in the build directory, do normal build
@@ -83,17 +63,6 @@ install : $(LIB) $(EXAMPLE_BIN)
 	mkdir -p $(M3DC1_INSTALL_DIR)/include/
 	cp fusion_io.h fusion_io.mod $(M3DC1_INSTALL_DIR)/include/
 
-%.o : %.c
-	$(CC) $< -c $(CFLAGS) $(INCLUDE) -o $@
-
-%.o : %.cpp
-	$(CXX) $< -c $(CFLAGS) $(INCLUDE) -o $@
-
-%.o : %.f90
-	$(F90) $< -c $(F90FLAGS) -o $@
-
-%.o : %.F90
-	$(F90) $< -c $(F90FLAGS) -o $@
-
+include $(M3DC1_ROOT)/install/common_footer.mk
 
 endif

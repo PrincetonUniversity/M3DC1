@@ -1,3 +1,19 @@
+#######################################################
+# if we're not in the build directory, build it
+#######################################################
+ifeq (,$(filter _%,$(notdir $(CURDIR))))
+
+include $(M3DC1_ROOT)/install/common_header.mk
+
+#######################################################
+# if we are in the build directory, do normal build
+#######################################################
+else
+
+# set source directory
+VPATH=$(SRCDIR)
+
+# include platform-specific options
 include $(M3DC1_ROOT)/install/make.inc.$(M3DC1_ARCH)
 
 LIBS := $(HDF5_LIBS) $(LIBS)
@@ -16,19 +32,12 @@ libm3dc1_fortran.a : m3dc1_fortran.o
 m3dc1_fortran_test : test.o libm3dc1_fortran.a libm3dc1.a
 	$(F90) $< -L. -lm3dc1_fortran -lm3dc1 $(LDFLAGS) $(LIBS) -o $@
 
+.PHONY: install
 install : libm3dc1.a libm3dc1_fortran.a
 	mkdir -p $(M3DC1_INSTALL_DIR)/bin/_$(M3DC1_ARCH)
 	mkdir -p $(M3DC1_INSTALL_DIR)/lib/_$(M3DC1_ARCH)
 	cp libm3dc1.a libm3dc1_fortran.a $(M3DC1_INSTALL_DIR)/lib/_$(M3DC1_ARCH)
 
-clean : 
-	rm -fr *.o *.so *.a *~ _$(M3DC1_ARCH)
+include $(M3DC1_ROOT)/install/common_footer.mk
 
-%.o : %.c
-	$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
-
-%.o : %.cpp
-	$(CXX) $(CFLAGS) $(INCLUDE) -c $< -o $@
-
-%.o : %.f90
-	$(F90) $(F90FLAGS) -c $< -o $@
+endif

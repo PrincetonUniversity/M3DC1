@@ -67,7 +67,7 @@ bool m3dc1_source::load()
     psi_x = file.load_field("psi_ext", time);
     if(!psi_x) return false;
 
-    g_x = file.load_field("i_ext", time);
+    g_x = file.load_field("I_ext", time);
     if(!g_x) return false;
 
     if(use_f) {

@@ -1,32 +1,38 @@
+!==========================================================================
+! fio_example
+! ~~~~~~~~~~~
+! In this example, several files from linear calculations are loaded.
+! The fields are evaluated at several points, and the results are summed.
+!==========================================================================
 program fio_example
   use fusion_io
 
-  ! Open namelist
-  integer, parameter :: max_files = 20
-  character(len=64) :: filename(max_files)
-  integer :: file_type(max_files)
-  real :: factor
-  integer :: timeslice, nfiles
+  ! factor by which to multiply perturbed (linear) part of solution
+  real, parameter :: factor = 1.
 
-  integer, dimension(max_files) :: isrc, ipres, idens, imag
+  ! time slice to read
+  integer, parameter :: timeslice = 1
+
+  integer, parameter :: nfiles = 4
+  character(len=64) :: filename(nfiles)
+  integer, dimension(nfiles) :: isrc, ipres, idens, imag
+
   real :: p(1), n(1), b(3), x(3)
   real :: t1(1), t3(3)
 
   integer, parameter ::  npts = 10
   real :: R0, R1, Z0, Z1, phi0, phi1
   integer :: i, j, ierr
-  
-  namelist /fio_example_data/ filename, timeslice, nfiles, factor, file_type
 
-  ! Read namelist
-  open(unit=10, file='example_fortran.input')
-  read(10,nml=fio_example_data)
-  close(10)
+  filename(1) = '/Users/ferraro/data/DIII-D/126006/mesh21a_kap6_amu6_n=1/C1.h5'
+  filename(2) = '/Users/ferraro/data/DIII-D/126006/mesh21a_kap6_amu6_n=2/C1.h5'
+  filename(3) = '/Users/ferraro/data/DIII-D/126006/mesh21a_kap6_amu6_n=3/C1.h5'
+  filename(4) = '/Users/ferraro/data/DIII-D/126006/mesh21a_kap6_amu6_n=4/C1.h5'
 
   ! read files and fields
   do i=1, nfiles
      print *, 'Reading ', filename(i)
-     call fio_open_source_f(file_type(i), trim(filename(i)), isrc(i), ierr)
+     call fio_open_source_f(FIO_M3DC1_SOURCE, trim(filename(i)), isrc(i), ierr)
      if(ierr.ne.0) return
 
      ! Set options appropriate to this source

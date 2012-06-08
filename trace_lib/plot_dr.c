@@ -61,14 +61,14 @@ int main(int argc, char* argv[])
   printf("Scalefac = %g\n", (float)scalefac);
 
   // find approximate equilibrium surface as r(theta)
-  coeffs = malloc(2*nsplines*sizeof(double));
+  coeffs = (double*)malloc(2*nsplines*sizeof(double));
   solve_spline_coeffs(n0, x0, z0, xmag, zmag, nsplines, coeffs);
   free(x0);
   free(z0);
 
   // output approximate equilibrium surface
-  t0 = malloc(nout*sizeof(double));
-  r0 = malloc(nout*sizeof(double));
+  t0 = (double*)malloc(nout*sizeof(double));
+  r0 = (double*)malloc(nout*sizeof(double));
   for(i=0; i<nout; i++) t0[i] = 2.*M_PI*(double)i/(double)nout;
   get_spline_values(nout, t0, r0, nsplines, coeffs, 0);
   printf("Writing...\n");
@@ -86,8 +86,8 @@ int main(int argc, char* argv[])
 
   // scale the difference between the perturbed and equilibrium surface
   printf("Scaling data.\n");
-  t = calloc(n1, sizeof(double));
-  r = calloc(n1, sizeof(double));
+  t = (double*)calloc(n1, sizeof(double));
+  r = (double*)calloc(n1, sizeof(double));
   scale_dn(n1, x1, z1, xmag, zmag, nsplines, coeffs, t, r, scalefac);
 
   // output scaled perturbed surface
@@ -132,8 +132,8 @@ int parse_file(const char* filename, double** x, double** z)
   while((read = getline(&line, &len, file)) != -1) n++;
   if(line) free(line);
 
-  *x = malloc(sizeof(double)*n);
-  *z = malloc(sizeof(double)*n);
+  *x = (double*)malloc(sizeof(double)*n);
+  *z = (double*)malloc(sizeof(double)*n);
 
   rewind(file);
   for(i=0; i<n; i++) {
@@ -210,8 +210,8 @@ static void solve_spline_coeffs(const int ndata,
   double* cmat, *rhs;
   int i;
   
-  cmat= malloc(ndata*nspl*2*sizeof(double));
-  rhs = malloc(ndata*sizeof(double));
+  cmat= (double*)malloc(ndata*nspl*2*sizeof(double));
+  rhs = (double*)malloc(ndata*sizeof(double));
   
   for(i=0; i<ndata; i++) {
     dx = x[i]-x0;
@@ -236,7 +236,7 @@ static void get_spline_values(const int nvals, const double* t, double* r,
   int i, j;
   double* terms;
   
-  terms = malloc(2*nspl*sizeof(double));
+  terms = (double*)malloc(2*nspl*sizeof(double));
 
   for(i=0; i<nvals; i++) {
     hermite_spline_terms(t[i], nspl, terms, nder);
@@ -353,7 +353,7 @@ void write_gnuplot(const char* filename, const char*f0, const char*f1,
 void transpose(const int m, const int n, double* a)
 {
   int i, j;
-  double* d = malloc(m*n*sizeof(double));
+  double* d = (double*)malloc(m*n*sizeof(double));
 
   for(i=0; i<m; i++) {
     for(j=0; j<n; j++) {
@@ -386,7 +386,7 @@ int least_squares(const int m, const int n, double* a, double* b, double* x)
   dgels_(&trans, &m, &n, &nrhs, a, &lda, b, &ldb, &opt, &lwork, &info);
   lwork = (int)opt;
   printf("optimal size of work = %d\n", lwork);
-  work = malloc(lwork*sizeof(double));
+  work = (double*)malloc(lwork*sizeof(double));
   // solve least squares problem
   dgels_(&trans, &m, &n, &nrhs, a, &lda, b, &ldb, work, &lwork, &info);
   free(work);
@@ -406,8 +406,8 @@ int test_data(const double x0, const double z0,
   int i;
   double r,t;
 
-  (*x) = malloc(ntheta*sizeof(double));
-  (*z) = malloc(ntheta*sizeof(double));
+  (*x) = (double*)malloc(ntheta*sizeof(double));
+  (*z) = (double*)malloc(ntheta*sizeof(double));
 
   for(i=0; i<ntheta; i++) {
     t = 2.*M_PI*(double)i/(double)ntheta;
