@@ -44,7 +44,6 @@ EXAMPLE_FORTRAN_BIN = example_fortran
 EXAMPLE_FORTRAN_OBJS = example_fortran.o
 F90FLAGS := $(F90FLAGS) -DFORTRAN
 
-
 all : $(LIB) $(EXAMPLE_BIN) $(EXAMPLE_FORTRAN_BIN)
 
 $(LIB) : $(OBJS)

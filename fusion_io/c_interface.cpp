@@ -1,5 +1,5 @@
 #include "fusion_io.h"
-
+#include <iostream>
 #include <deque>
 
 static std::deque<fio_source*> source_list;

@@ -9,7 +9,8 @@
 subroutine bicubic_interpolation_coeffs(x,m,n,i0,j0,a,ierr)
   implicit none
 
-  integer, intent(in) :: m, n, i0, j0
+  integer, intent(in) :: m, n
+  real, intent(in) :: i0, j0
   real, intent(in), dimension(m,n) :: x
   real, intent(out), dimension(4,4) :: a
   integer, intent(out) :: ierr

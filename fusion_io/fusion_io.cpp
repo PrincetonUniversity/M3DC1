@@ -1,4 +1,5 @@
 #include "fusion_io.h"
+#include <iostream>
 
 int fio_open_source(fio_source** src, const int type, const char* filename)
 {

@@ -6,7 +6,7 @@
 
 struct fio_option_list : public std::map<int, void*> {
   fio_option_list();
-  ~fio_option_list();
+  virtual ~fio_option_list();
   int clear();
 
   template<typename T>

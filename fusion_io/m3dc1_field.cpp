@@ -1,5 +1,5 @@
-#include "m3dc1_field.h"
-#include "fusion_io_defs.h"
+#include "fusion_io.h"
+#include <iostream>
 
 int m3dc1_fio_field::load(const fio_option_list* opt)
 {

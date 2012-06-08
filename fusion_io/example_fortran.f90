@@ -33,7 +33,7 @@ program fio_example
   do i=1, nfiles
      print *, 'Reading ', filename(i)
      call fio_open_source_f(FIO_M3DC1_SOURCE, trim(filename(i)), isrc(i), ierr)
-     if(ierr.ne.0) return
+     if(ierr.ne.0) stop
 
      ! Set options appropriate to this source
      call fio_get_options_f(isrc(i), ierr)
