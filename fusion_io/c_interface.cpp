@@ -1,6 +1,7 @@
 #include "fusion_io.h"
 #include <iostream>
 #include <deque>
+#include <typeinfo>
 
 static std::deque<fio_source*> source_list;
 static std::deque<fio_field*> field_list;

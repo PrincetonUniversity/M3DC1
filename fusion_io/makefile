@@ -52,7 +52,7 @@ $(LIB) : $(OBJS)
 $(EXAMPLE_BIN) : $(EXAMPLE_OBJS) $(LIB)
 	$(LD) $(LDFLAGS) $< -L. -lfusionio $(LIBS) -o $@
 $(EXAMPLE_FORTRAN_BIN) : $(EXAMPLE_FORTRAN_OBJS) $(LIB)
-	$(LD) $(LDFLAGS) $< -L. -lfusionio $(LIBS) -o $@
+	$(F90) $(LDFLAGS) $< -L. -lfusionio $(LIBS) -o $@
 
 
 .PHONY: install

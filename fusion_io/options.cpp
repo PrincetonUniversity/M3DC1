@@ -1,6 +1,6 @@
-#include "options.h"
 #include "fusion_io.h"
 #include <iostream>
+#include <typeinfo>
 
 fio_option_list::fio_option_list()
 {
