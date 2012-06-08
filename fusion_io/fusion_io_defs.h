@@ -1,0 +1,94 @@
+#ifndef FUSION_IO_DEFS_H
+#define FUSION_IO_DEFS_H
+
+#ifdef FORTRAN
+#define FIO_DEFINE_INT(x, y) integer, parameter :: x = y
+#else
+#define FIO_DEFINE_INT(x, y) const int x = y;
+#define FIO_IS_STR_OPT(x)    ((x)>FIO_STR_OPT_START && (x)<FIO_STR_OPT_END)
+#define FIO_IS_INT_OPT(x)    ((x)>FIO_INT_OPT_START && (x)<FIO_INT_OPT_END)
+#define FIO_IS_REAL_OPT(x)   ((x)>FIO_REAL_OPT_START && (x)<FIO_REAL_OPT_END)
+#endif
+
+/* sources */
+FIO_DEFINE_INT(FIO_GEQDSK_SOURCE,     1)
+FIO_DEFINE_INT(FIO_M3DC1_SOURCE,      2)
+
+/* scalar fields */
+FIO_DEFINE_INT(FIO_ALPHA,             1)
+FIO_DEFINE_INT(FIO_TOTAL_PRESSURE,    2)
+
+/* species-dependent scalar fields */
+FIO_DEFINE_INT(FIO_PRESSURE,          3)
+FIO_DEFINE_INT(FIO_DENSITY,           4)
+
+/* vector fields */
+FIO_DEFINE_INT(FIO_MAGNETIC_FIELD,    101)
+FIO_DEFINE_INT(FIO_CURRENT_DENSITY,   102)
+FIO_DEFINE_INT(FIO_ELECTRIC_FIELD,    103)
+FIO_DEFINE_INT(FIO_FLUID_VELOCITY,    104)
+
+/* species-dependent vector fields */
+FIO_DEFINE_INT(FIO_VELOCITY,          105)
+
+/* field options (integers) */
+FIO_DEFINE_INT(FIO_INT_OPT_START,     0)
+FIO_DEFINE_INT(FIO_TIMESLICE,         1)
+FIO_DEFINE_INT(FIO_PERTURBED_ONLY,    2)
+FIO_DEFINE_INT(FIO_INT_OPT_END,       3)
+
+/* field options (reals) */
+FIO_DEFINE_INT(FIO_REAL_OPT_START,    100)
+FIO_DEFINE_INT(FIO_LINEAR_SCALE,      101)
+FIO_DEFINE_INT(FIO_REAL_OPT_END,      102)
+
+/* field options (strings) */
+FIO_DEFINE_INT(FIO_STR_OPT_START,     10000)
+FIO_DEFINE_INT(FIO_STR_OPT_END,       10000)
+
+/* field operations */
+FIO_DEFINE_INT(FIO_ADD,               1)
+FIO_DEFINE_INT(FIO_MULTIPLY,          2)
+FIO_DEFINE_INT(FIO_DIVIDE,            3)
+FIO_DEFINE_INT(FIO_DOT_PRODUCT,       4)
+
+/* error messages */
+FIO_DEFINE_INT(FIO_SUCCESS,           0)
+FIO_DEFINE_INT(FIO_UNSUPPORTED,       10001)
+FIO_DEFINE_INT(FIO_OUT_OF_BOUNDS,     10002)
+FIO_DEFINE_INT(FIO_FILE_ERROR,        10003)
+FIO_DEFINE_INT(FIO_BAD_DIMENSIONS,    10004)
+FIO_DEFINE_INT(FIO_BAD_SPECIES,       10005)
+
+/* species */
+#define FIO_MAKE_SPECIES(m, p, e)     e + p*256 + (m-p)*65536
+#ifdef FORTRAN
+#define FIO_GET_N(x)                 iand(x, 16711680)
+#define FIO_GET_P(x)                 iand(x, 65280)
+#define FIO_GET_E(x)                 iand(x, 255)
+#else
+#define FIO_GET_N(x)                 x & 16711680
+#define FIO_GET_P(x)                 x & 65280
+#define FIO_GET_E(x)                 x & 255
+#endif
+#define FIO_GET_M(x)                 FIO_GET_N(x) + FIO_GET_P(x)
+FIO_DEFINE_INT(FIO_ELECTRON, FIO_MAKE_SPECIES(0, 0, 1))
+FIO_DEFINE_INT(FIO_H_0,      FIO_MAKE_SPECIES(1, 1, 1))
+FIO_DEFINE_INT(FIO_H_1,      FIO_MAKE_SPECIES(1, 1, 0))
+FIO_DEFINE_INT(FIO_D_0,      FIO_MAKE_SPECIES(2, 1, 1))
+FIO_DEFINE_INT(FIO_D_1,      FIO_MAKE_SPECIES(2, 1, 0))
+FIO_DEFINE_INT(FIO_T_0,      FIO_MAKE_SPECIES(3, 1, 1))
+FIO_DEFINE_INT(FIO_T_1,      FIO_MAKE_SPECIES(3, 1, 0))
+FIO_DEFINE_INT(FIO_He3_0,    FIO_MAKE_SPECIES(3, 2, 2))
+FIO_DEFINE_INT(FIO_He3_1,    FIO_MAKE_SPECIES(3, 2, 1))
+FIO_DEFINE_INT(FIO_He3_2,    FIO_MAKE_SPECIES(3, 2, 0))
+FIO_DEFINE_INT(FIO_He4_0,    FIO_MAKE_SPECIES(4, 2, 2))
+FIO_DEFINE_INT(FIO_He4_1,    FIO_MAKE_SPECIES(4, 2, 1))
+FIO_DEFINE_INT(FIO_He4_2,    FIO_MAKE_SPECIES(4, 2, 0))
+FIO_DEFINE_INT(FIO_Li7_0,    FIO_MAKE_SPECIES(7, 3, 3))
+FIO_DEFINE_INT(FIO_Li7_1,    FIO_MAKE_SPECIES(7, 3, 2))
+FIO_DEFINE_INT(FIO_Li7_2,    FIO_MAKE_SPECIES(7, 3, 1))
+FIO_DEFINE_INT(FIO_Li7_3,    FIO_MAKE_SPECIES(7, 3, 0))
+
+
+#endif
