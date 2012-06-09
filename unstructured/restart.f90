@@ -651,7 +651,7 @@ subroutine rdrestart_adios
 
   ! check for errors
   call mpi_allreduce(ierr,itmp,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ier)
-  if(itemp.ne.0) call safestop(6)
+  if(itmp.ne.0) call safestop(6)
 
     ! Allocate space for the arrays tmp_
   allocate(tmp_field_vec(ndofs_1))

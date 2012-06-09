@@ -32,7 +32,8 @@ vectype function sigma_func(i)
 
 !......distributed source added 11/23/2011   (scj)
   if(ipellet.eq.2) then
-     temp79a = pellet_rate*den0*(pt79(:,OP_1)/p0)**expn
+     temp79b = max(pedge,pt79(:,OP_1))
+     temp79a = pellet_rate*den0*(temp79b/p0)**expn
      temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
 
@@ -114,18 +115,22 @@ vectype function resistivity_func(i)
   implicit none
 
   integer, intent(in) :: i
+  integer :: ii
 
   select case (iresfunc)
   case(0)  ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)
      if(eta0.ne.0.) then
         if(linear.eq.1) then
-           temp79a = eta0*sqrt((ne079(:,OP_1)/(pe079(:,OP_1)))**3)
+           temp79b = max(pedge*pefac,pe079(:,OP_1))
+           temp79a = eta0*sqrt((ne079(:,OP_1)/(temp79b))**3)
         else
-           temp79a = eta0*sqrt((net79(:,OP_1)/(pet79(:,OP_1)))**3)
+           temp79b = max(pedge*pefac,pet79(:,OP_1))
+           temp79a = eta0*sqrt((net79(:,OP_1)/(temp79b))**3)
         endif
      else
         temp79a = 0.
      end if
+
 
   case(1)      ! added 08/05/08 for stability benchmarking
      if(linear.eq.1) then
@@ -257,8 +262,9 @@ vectype function kappa_func(i)
 
   select case (ikappafunc)
   case(0)
+     temp79b = max(pedge,pt79(:,OP_1))
      ! kappa = p/T**(3/2) = sqrt(n**3/p)
-     temp79a = kappa0*sqrt(nt79(:,OP_1)**3/pt79(:,OP_1))
+     temp79a = kappa0*sqrt(nt79(:,OP_1)**3/temp79b)
         
   case(1)
      if(linear.eq.1) then
