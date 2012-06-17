@@ -64,13 +64,28 @@ int m3dc1_source::get_field(const field_type t,fio_field** f,
   if(s==FIO_MAIN_ION) s = ion_species;
 
   switch(t) {
-  case(FIO_MAGNETIC_FIELD):
-    mf = new m3dc1_magnetic_field(this);
+  case(FIO_DENSITY):
+    if(s==fio_electron) {
+      mf = new m3dc1_scalar_field(this, "den", n0*zeff);
+    } else if(s==ion_species) {
+      mf = new m3dc1_scalar_field(this, "den", n0);
+    } else {
+      result = FIO_BAD_SPECIES;
+    }
+    break;
+
+  case(FIO_ELECTRIC_FIELD):
+    mf = new m3dc1_electric_field(this);
     if(s!=0) unneeded_species = true;
     break;
 
-  case(FIO_TOTAL_PRESSURE):
-    mf = new m3dc1_scalar_field(this, "P", p0);
+  case(FIO_GRAD_VECTOR_POTENTIAL):
+    mf = new m3dc1_grad_vector_potential(this);
+    if(s!=0) unneeded_species = true;
+    break;
+
+  case(FIO_MAGNETIC_FIELD):
+    mf = new m3dc1_magnetic_field(this);
     if(s!=0) unneeded_species = true;
     break;
 
@@ -84,14 +99,19 @@ int m3dc1_source::get_field(const field_type t,fio_field** f,
     }
     break;
 
-  case(FIO_DENSITY):
-    if(s==fio_electron) {
-      mf = new m3dc1_scalar_field(this, "den", n0*zeff);
-    } else if(s==ion_species) {
-      mf = new m3dc1_scalar_field(this, "den", n0);
-    } else {
-      result = FIO_BAD_SPECIES;
-    }
+  case(FIO_SCALAR_POTENTIAL):
+    mf = new m3dc1_phi_field(this);
+    if(s!=0) unneeded_species = true;
+    break;
+
+  case(FIO_TOTAL_PRESSURE):
+    mf = new m3dc1_scalar_field(this, "P", p0);
+    if(s!=0) unneeded_species = true;
+    break;
+
+  case(FIO_VECTOR_POTENTIAL):
+    mf = new m3dc1_vector_potential(this);
+    if(s!=0) unneeded_species = true;
     break;
 
   default:

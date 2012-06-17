@@ -51,6 +51,46 @@ class m3dc1_alpha_field : public m3dc1_fio_field {
   virtual int eval(const double*, double*);
 };
 
+// SCALAR POTENTIAL
+class m3dc1_phi_field : public m3dc1_fio_field {
+ public:
+  m3dc1_phi_field(m3dc1_source* s) 
+    : m3dc1_fio_field(s) { }
+  m3dc1_phi_field* clone() const { return new m3dc1_phi_field(*this); }
+  int load(const fio_option_list*);
+  int dimension() const { return 1; }
+  virtual int eval(const double*, double*);
+};
+
+// ELECTRIC FIELD
+class m3dc1_electric_field : public m3dc1_fio_field {
+ public:
+  m3dc1_electric_field(m3dc1_source* s) 
+    : m3dc1_fio_field(s) { }
+  m3dc1_electric_field* clone() const 
+  { return new m3dc1_electric_field(*this); }
+  int load(const fio_option_list*);
+  int dimension() const { return 1; }
+  virtual int eval(const double*, double*);
+};
+
+
+// A
+class m3dc1_vector_potential : public m3dc1_fio_field {
+  m3dc1_field *psi0, *psi1, *psix;
+  m3dc1_field *i0, *i1, *ix;
+  m3dc1_field *f0, *f1, *fx;
+ public:
+  m3dc1_vector_potential(m3dc1_source* s) 
+    : m3dc1_fio_field(s) { }
+  m3dc1_vector_potential* clone() const 
+  { return new m3dc1_vector_potential(*this); }
+  int load(const fio_option_list*);
+  int dimension() const { return 3; }
+  int eval(const double*, double*);
+};
+
+
 // B
 class m3dc1_magnetic_field : public m3dc1_fio_field {
   m3dc1_field *psi0, *psi1, *psix;
@@ -78,6 +118,21 @@ class m3dc1_velocity_field : public m3dc1_fio_field {
   { return new m3dc1_velocity_field(*this); }
   int load(const fio_option_list*);
   int dimension() const { return 3; }
+  int eval(const double*, double*);
+};
+
+// Grad(A)
+class m3dc1_grad_vector_potential : public m3dc1_fio_field {
+  m3dc1_field *psi0, *psi1, *psix;
+  m3dc1_field *i0, *i1, *ix;
+  m3dc1_field *f0, *f1, *fx;
+ public:
+  m3dc1_grad_vector_potential(m3dc1_source* s) 
+    : m3dc1_fio_field(s) { }
+  m3dc1_grad_vector_potential* clone() const 
+  { return new m3dc1_grad_vector_potential(*this); }
+  int load(const fio_option_list*);
+  int dimension() const { return 9; }
   int eval(const double*, double*);
 };
 
