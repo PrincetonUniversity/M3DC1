@@ -3355,12 +3355,27 @@ subroutine pressure_nolin(trial, r4term, total_pressure)
 
      ! viscous heating
      if(total_pressure) then
-        r4term = r4term - dt*(gam-1.)* &
-             (quumu    (trial,pht79,pht79,vis79,      hc) &
-             +qvvmu    (trial,vzt79,vzt79,vis79,      hv) &
-             +quchimu  (trial,pht79,cht79,vis79,vic79,hc) &
-             +qchichimu(trial,cht79,cht79,      vic79,hc) &
-             +p1vip    (trial))
+        if(eqsubtract.eq.1) then
+           r4term = r4term - dt*(gam-1.)* &
+                (quumu    (trial,ph079,ph179,vis79,      hc) &
+                +qvvmu    (trial,vz079,vz179,vis79,      hv) &
+                +quchimu  (trial,ph079,ch179,vis79,vic79,hc) &
+                +qchichimu(trial,ch079,ch179,      vic79,hc))
+           r4term = r4term - dt*(gam-1.)* &
+                (quumu    (trial,ph179,ph079,vis79,      hc) &
+                +qvvmu    (trial,vz179,vz079,vis79,      hv) &
+                +quchimu  (trial,ph179,ch079,vis79,vic79,hc) &
+                +qchichimu(trial,ch179,ch079,      vic79,hc))
+           r4term = r4term - dt*(gam-1.)* &
+                (p1vip    (trial))
+        else
+           r4term = r4term - dt*(gam-1.)* &
+                (quumu    (trial,pht79,pht79,vis79,      hc) &
+                +qvvmu    (trial,vzt79,vzt79,vis79,      hv) &
+                +quchimu  (trial,pht79,cht79,vis79,vic79,hc) &
+                +qchichimu(trial,cht79,cht79,      vic79,hc) &
+                +p1vip    (trial))
+        end if
      endif
   end if
 
