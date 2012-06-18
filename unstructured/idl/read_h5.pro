@@ -630,6 +630,7 @@ function translate, name, units=units, itor=itor
      (strcmp(name, 'visc_c', /fold_case) eq 1) or $
                  strcmp(name, 'visc_i', /fold_case) eq 1 or $
                  strcmp(name, 'visc_c_i', /fold_case) eq 1) then begin
+       units = dimensions(l0=2,t0=-1)
        return, "!7l!X"
    endif else if(strcmp(name, 'jphi', /fold_case) eq 1  or $
                  strcmp(name, 'jphi_i', /fold_case) eq 1) then begin
@@ -1801,8 +1802,27 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        
        data = (psi-flux0)/(psis-flux0)
  
-       symbol = '!7W!X'
+       symbol = '!7W!D!8N!N!X'
        d = dimensions(_EXTRA=extra)
+
+   ;===========================================
+   ; grad_psi_norm
+   ;===========================================
+   endif else if(strcmp('grad_psi_norm', name, /fold_case) eq 1) then begin
+
+       psi_r = read_field('psi', x, y, t, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, slice=time, op=2)
+       psi_z = read_field('psi', x, y, t, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, slice=time, op=3)
+
+       psis = read_lcfs(filename=filename, flux0=flux0, _EXTRA=extra)
+       
+       data = sqrt(psi_r^2 + psi_z^2)/abs(psis-flux0)
+ 
+       symbol = '!3|!9G!7W!3|!X'
+       d = dimensions(l0=-1, _EXTRA=extra)
 
    ;===========================================
    ; ion temperature
@@ -3254,7 +3274,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        psi = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
                         filename=filename, points=pts, slices=time, $
-                        rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange,op=2)
        jphi = read_field('jphi', x, y, t, linear=linear, mesh=mesh, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange)
@@ -3269,11 +3289,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        
        r = radius_matrix(x,y,t)
        b0 = s_bracket(psi,psi,x,y)/r^2 + i0^2/r^2
-       data = (s_bracket(i,psi,x,y)/r^2 - jphi*i0/r^2)/b0
-       data = abs(data)
+       data = (s_bracket(i,psi,x,y)/r^2 - jphi*i0/r^2)/sqrt(b0)
 
-       symbol = '!3|!8J!D!3||!6!N/!8B!3|!X'
-       d = dimensions(j0=1,b0=-1,_EXTRA=extra)
+       symbol = '!8J!D!3||!6!N!X'
+       d = dimensions(j0=1,_EXTRA=extra)
 
    ;===========================================
    ; particle flux
@@ -5632,6 +5651,37 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
            symbol = '!8s!X'
 
            return, 2.*V*dqdV
+
+       endif else $
+         if(strcmp(field, 'dqdrho', /fold_case) eq 1) then begin
+
+           q = flux_average('q', psi=psi, x=x, z=z, t=t, $
+             r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
+             points=points, last=last, _EXTRA=extra)
+           rho = flux_average('rho', psi=psi, x=x, z=z, t=t, $
+             r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
+             points=points, last=last, _EXTRA=extra)
+           
+           units = make_units(l0=-1, _EXTRA=extra)
+           name = '!8dq!3/!8d!7q!X'
+           symbol = name
+
+           return, deriv(rho, q)
+
+       endif else $
+         if(strcmp(field, 'rho', /fold_case) eq 1) then begin
+
+           flux_t = flux_average('flux_t', psi=psi, x=x, z=z, t=t, $
+             r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
+             points=points, last=last, _EXTRA=extra)
+           bzero = read_parameter('bzero', _EXTRA=extra)
+           print, 'bzero = ', bzero
+
+           units = make_units(/l0, _EXTRA=extra)
+           name = '!7q!X'
+           symbol = name
+
+           return, sqrt(flux_t/(!pi*bzero))
 
        endif else $
          if(strcmp(field, 'flux_t', /fold_case) eq 1) then begin

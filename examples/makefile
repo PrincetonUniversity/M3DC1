@@ -41,7 +41,7 @@ $(EXAMPLE_BIN) : $(EXAMPLE_OBJS)
 $(EXAMPLE_FORTRAN_BIN) : $(EXAMPLE_FORTRAN_OBJS)
 	$(F90) $(LDFLAGS) $< $(LIBS) -o $@
 $(EXAMPLE_PUSH_BIN) : $(EXAMPLE_PUSH_OBJS)
-	$(F90) $(LDFLAGS) $< $(LIBS) -lfio_push -o $@
+	$(F90) $(LDFLAGS) $< -lfio_push $(LIBS) -o $@
 
 include $(M3DC1_ROOT)/install/common_footer.mk
 
