@@ -8,7 +8,7 @@
 class m3dc1_source : public fio_source {
  public:
   m3dc1_file file;
-  double zeff, ion_mass, n0, L0, B0, p0, t0, v0;
+  double bzero, rzero, zeff, ion_mass, n0, L0, B0, p0, t0, v0;
   int linear, eqsubtract, extsubtract, icomplex, i3d;
   fio_species ion_species;
 

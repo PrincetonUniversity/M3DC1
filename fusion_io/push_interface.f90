@@ -95,5 +95,7 @@ contains
      ! gradient of metric tensor
      field%gmat1 = 0.
      field%gmat1(1,2,2) = 2.*q(1)    
+
+     field%grada = transpose(field%grada)
    end subroutine fio_push_field_eval
 end module fio_push

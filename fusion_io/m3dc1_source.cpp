@@ -14,6 +14,8 @@ int m3dc1_source::open(const char* filename)
   file.read_parameter("linear", &linear);
   file.read_parameter("zeff", &zeff);
   file.read_parameter("ion_mass", &ion_mass);
+  file.read_parameter("bzero", &zeff);
+  file.read_parameter("rzero", &ion_mass);
   file.read_parameter("n0_norm", &n0);
   file.read_parameter("l0_norm", &L0);
   file.read_parameter("b0_norm", &B0);
