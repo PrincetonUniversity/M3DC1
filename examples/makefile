@@ -1,25 +1,48 @@
-CPP = mpicxx
-CC = mpicc
-F90 = mpif90
+#######################################################
+# if we're not in the build directory, build it
+#######################################################
+ifeq (,$(filter _%,$(notdir $(CURDIR))))
 
-INCLUDE = -I/u/nferraro/include -I$(HDF5_HOME)/include
-LIBS = -L/u/nferraro/lib/_sunfire -lm3dc1 -L$(HDF5_HOME)/lib -lhdf5 -lz
+include $(M3DC1_ROOT)/install/common_header.mk
 
-EXAMPLES = cpp_example
+#######################################################
+# if we are in the build directory, do normal build
+#######################################################
+else
 
-all : $(EXAMPLES)
+# set source directory
+VPATH=$(SRCDIR)
 
-cpp_example : cpp_example.o
-	$(CPP) $< $(LIBS) -o $@
+# include platform-specific options
+include $(M3DC1_ROOT)/install/make.inc.$(M3DC1_ARCH)
 
-clean :
-	rm -fr *.o *.a *~ $(EXAMPLES)
+LIBS := -L$(M3DC1_ROOT)/fusion_io/_$(M3DC1_ARCH) -lfusionio \
+	-L$(M3DC1_ROOT)/m3dc1_lib/_$(M3DC1_ARCH) -lm3dc1 \
+	$(HDF5_LIBS) $(LIBS) 
 
-%.o : %.c
-	$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
+INCLUDE := -I$(M3DC1_ROOT)/fusion_io -I$(M3DC1_ROOT)/fusion_io/_$(M3DC1_ARCH) \
+	-I$(M3DC1_ROOT)/m3dc1_lib \
+	$(HDF5_INCLUDE) $(INCLUDE)
 
-%.o : %.cpp
-	$(CPP) $(CFLAGS) $(INCLUDE) -c $< -o $@
+EXAMPLE_BIN = example
+EXAMPLE_OBJS = example.o
+EXAMPLE_FORTRAN_BIN = example_fortran
+EXAMPLE_FORTRAN_OBJS = example_fortran.o
+EXAMPLE_PUSH_BIN = example_push
+EXAMPLE_PUSH_OBJS = example_push.o
+F90FLAGS := $(F90FLAGS) -DFORTRAN
 
-%.o : %.f90
-	$(F90) $(F90FLAGS) -c $< -o $@
+all : examples
+
+examples: $(EXAMPLE_BIN) $(EXAMPLE_FORTRAN_BIN) $(EXAMPLE_PUSH_BIN)
+
+$(EXAMPLE_BIN) : $(EXAMPLE_OBJS)
+	$(LD) $(LDFLAGS) $< $(LIBS) -o $@
+$(EXAMPLE_FORTRAN_BIN) : $(EXAMPLE_FORTRAN_OBJS)
+	$(F90) $(LDFLAGS) $< $(LIBS) -o $@
+$(EXAMPLE_PUSH_BIN) : $(EXAMPLE_PUSH_OBJS)
+	$(F90) $(LDFLAGS) $< $(LIBS) -lfio_push -o $@
+
+include $(M3DC1_ROOT)/install/common_footer.mk
+
+endif

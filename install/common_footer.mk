@@ -5,7 +5,7 @@
 	$(CXX) $< -c $(CFLAGS) $(INCLUDE) -o $@
 
 %.o : %.f90
-	$(F90) $< -c $(F90FLAGS) -o $@
+	$(F90) $< -c $(F90FLAGS) $(INCLUDE) -o $@
 
 %.o : %.F90
-	$(F90) $< -c $(F90FLAGS) -o $@
+	$(F90) $< -c $(F90FLAGS) $(INCLUDE) -o $@

@@ -41,16 +41,9 @@ OBJS = 	interpolate.o \
 PUSH_LIB = libfio_push.a
 PUSH_OBJS = push_interface.o
 
-EXAMPLE_BIN = example
-EXAMPLE_OBJS = example.o
-EXAMPLE_FORTRAN_BIN = example_fortran
-EXAMPLE_FORTRAN_OBJS = example_fortran.o
-EXAMPLE_PUSH_BIN = example_push
-EXAMPLE_PUSH_OBJS = example_push.o
 F90FLAGS := $(F90FLAGS) -DFORTRAN
 
-all : $(LIB) $(PUSH_LIB) \
-	$(EXAMPLE_BIN) $(EXAMPLE_FORTRAN_BIN) $(EXAMPLE_PUSH_BIN)
+all : $(LIB) $(PUSH_LIB)
 
 $(LIB) : $(OBJS)
 	$(ARCH) $@ $(OBJS)
@@ -58,20 +51,12 @@ $(LIB) : $(OBJS)
 $(PUSH_LIB) : $(PUSH_OBJS)
 	$(ARCH) $@ $(PUSH_OBJS)
 
-$(EXAMPLE_BIN) : $(EXAMPLE_OBJS) $(LIB)
-	$(LD) $(LDFLAGS) $< -L. -lfusionio $(LIBS) -o $@
-$(EXAMPLE_FORTRAN_BIN) : $(EXAMPLE_FORTRAN_OBJS) $(LIB)
-	$(F90) $(LDFLAGS) $< -L. -lfusionio $(LIBS) -o $@
-$(EXAMPLE_PUSH_BIN) : $(EXAMPLE_PUSH_OBJS) $(LIB) $(PUSH_LIB)
-	$(F90) $(LDFLAGS) $< -L. -lfusionio -lfio_push $(LIBS) -o $@
-
-
 .PHONY: install
 install : $(LIB) $(EXAMPLE_BIN)
 	mkdir -p $(M3DC1_INSTALL_DIR)/lib/_$(M3DC1_ARCH)
 	cp $(LIB) $(M3DC1_INSTALL_DIR)/lib/_$(M3DC1_ARCH)
 	mkdir -p $(M3DC1_INSTALL_DIR)/include/
-	cp $(SRCDIR)/fusion_io.h fusion_io.mod $(M3DC1_INSTALL_DIR)/include/
+	cp $(SRCDIR)/fusion_io.h fusion_io.mod fio_push.mod $(M3DC1_INSTALL_DIR)/include/
 
 include $(M3DC1_ROOT)/install/common_footer.mk
 
