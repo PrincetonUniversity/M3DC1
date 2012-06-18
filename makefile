@@ -8,6 +8,7 @@ all : $(dirs)
 install : $(dirs)
 
 clean : $(alldirs)
+	rm -f *~
 
 $(alldirs) : 
 	cd $@ ; $(MAKE) $(MAKECMDGOALS)
