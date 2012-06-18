@@ -307,7 +307,7 @@ vectype function kappa_func(i)
      end if
      
      do j=0, npoints
-        if(magnetic_region(pst79(j,OP_1:OP_DZZ),x_79(j),z_79(j)).ne.0) &
+        if(magnetic_region(pst79(j,:),x_79(j),z_79(j)).ne.0) &
              then
            pso = 1.
         else
