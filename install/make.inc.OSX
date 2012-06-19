@@ -8,7 +8,7 @@ F90FLAGS = -O3 -Wall -fdefault-real-8
 ARCH = ar cr
 
 LD = openmpif90
-LDFLAGS = 
+LDFLAGS =
 
 PYTHON = python
 PYFLAGS = 
