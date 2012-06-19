@@ -6,6 +6,7 @@
 static std::deque<fio_source*> source_list;
 static std::deque<fio_field*> field_list;
 static fio_option_list options;
+static fio_source::fio_field_list fields;
 
 int fio_add_field(const int icfield, const int ifield, 
 		const int op, const double fac)
@@ -46,6 +47,18 @@ int fio_create_compound_field(int* ifield)
 int fio_eval_field(const int ifield, const double* x, double* v)
 {
   return field_list[ifield]->eval(x, v);
+}
+
+int fio_get_available_fields(const int isrc, int* n, field_type** f)
+{
+  int ierr = source_list[isrc]->get_available_fields(&fields);
+  if(ierr != FIO_SUCCESS)
+    return ierr;
+
+  *n = fields.size();
+  *f = &(fields[0]);
+
+  return FIO_SUCCESS;
 }
 
 int fio_get_field(const int isrc, const int type, int* handle)

@@ -1,12 +1,16 @@
-CC = mpicc
-CXX = mpicxx
-CFLAGS = -O3 -Minform=warn
+CC = cc
+CXX = c++
+#CFLAGS = -O3 -Minform=warn
+CFLAGS = -O3 -fPIC
 
 F90 = mpif90
 F90FLAGS = -r8 -O3 -Minform=warn
 
 LD = $(F90) -Mnomain
 LDFLAGS = 
+
+PYTHON = /u/meneghini/bin/python2.7
+PYFLAGS = --compiler=unix
 
 ARCH = ar cr
 

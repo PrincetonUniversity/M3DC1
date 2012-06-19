@@ -54,6 +54,17 @@ int m3dc1_source::get_field_options(fio_option_list* opt) const
   return FIO_SUCCESS;
 }
 
+int m3dc1_source::get_available_fields(fio_field_list* fields) const
+{
+  fields->clear();
+  fields->push_back(FIO_DENSITY);
+  fields->push_back(FIO_MAGNETIC_FIELD);
+  fields->push_back(FIO_PRESSURE);
+  fields->push_back(FIO_TOTAL_PRESSURE);
+
+  return FIO_SUCCESS;
+}
+
 int m3dc1_source::get_field(const field_type t,fio_field** f,
 			    const fio_option_list* opt)
 {
@@ -61,6 +72,8 @@ int m3dc1_source::get_field(const field_type t,fio_field** f,
   m3dc1_fio_field* mf;
   bool unneeded_species = false;
   int s, result;
+
+  result = FIO_SUCCESS;
 
   opt->get_option(FIO_SPECIES, &s);
   if(s==FIO_MAIN_ION) s = ion_species;

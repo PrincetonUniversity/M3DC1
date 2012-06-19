@@ -10,6 +10,9 @@ ARCH = ar cr
 LD = openmpif90
 LDFLAGS = 
 
+PYTHON = python
+PYFLAGS = 
+
 LIBS = -L/usr/lib -lmpi_cxx -lstdc++
 
 HDF5_LIBS =  -L/usr/local/hdf5-1.8.5/hdf5/lib -lhdf5 -lz

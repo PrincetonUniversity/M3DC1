@@ -13,8 +13,11 @@
 #include "geqdsk_field.h"
 #include "c_interface.h"
 
-int fio_open_source(fio_source** src, const int type, const char* filename);
+#include <string>
+
 int fio_close_source(fio_source** source);
 int fio_close_field(fio_field** field);
+int fio_get_field_name(field_type, std::string*);
+int fio_open_source(fio_source** src, const int type, const char* filename);
 
 #endif

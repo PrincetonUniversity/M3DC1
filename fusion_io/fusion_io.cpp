@@ -43,3 +43,25 @@ int fio_close_field(fio_field** field)
     return FIO_SUCCESS;
   } else return 1;
 }
+
+int fio_get_field_name(const field_type f, std::string* s)
+{
+  switch(f) {
+  case(FIO_ALPHA):             *s = "alpha";            break;
+  case(FIO_SCALAR_POTENTIAL):  *s = "scalar potential"; break;
+  case(FIO_TOTAL_PRESSURE):    *s = "total pressure";   break;
+  case(FIO_PRESSURE):          *s = "pressure";         break;
+  case(FIO_DENSITY):           *s = "density";          break;
+  case(FIO_ELECTRIC_FIELD):    *s = "electric field";   break;
+  case(FIO_VECTOR_POTENTIAL):  *s = "vector potential"; break;
+  case(FIO_MAGNETIC_FIELD):    *s = "magnetic field";   break;
+  case(FIO_CURRENT_DENSITY):   *s = "current density";  break;
+  case(FIO_FLUID_VELOCITY):    *s = "fluid velocity";   break; 
+  case(FIO_VELOCITY):          *s = "velocity";         break; 
+  default:
+    *s = "Unnamed field";
+    return 1;
+  }
+
+  return FIO_SUCCESS; 
+}

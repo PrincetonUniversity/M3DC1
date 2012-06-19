@@ -8,8 +8,10 @@ extern "C" {
   static PyObject* fio_create_compound_field_py(PyObject*, PyObject*);
   static PyObject* fio_eval_scalar_field_py(PyObject*, PyObject*);
   static PyObject* fio_eval_vector_field_py(PyObject*, PyObject*);
-  static PyObject* fio_get_options_py(PyObject*, PyObject*);
+  static PyObject* fio_get_available_fields_py(PyObject*, PyObject*);
   static PyObject* fio_get_field_py(PyObject*, PyObject*);
+  static PyObject* fio_get_field_name_py(PyObject*, PyObject*);
+  static PyObject* fio_get_options_py(PyObject*, PyObject*);
   static PyObject* fio_open_source_py(PyObject*, PyObject*);
   static PyObject* fio_set_int_option_py(PyObject*, PyObject*);
   static PyObject* fio_set_str_option_py(PyObject*, PyObject*);
@@ -22,8 +24,10 @@ extern "C" {
     {"create_compound_field", fio_create_compound_field_py, METH_VARARGS, ""},
     {"eval_scalar_field", fio_eval_scalar_field_py, METH_VARARGS, ""},
     {"eval_vector_field", fio_eval_vector_field_py, METH_VARARGS, ""},
+    {"get_available_fields", fio_get_available_fields_py, METH_VARARGS, ""},
     {"get_options", fio_get_options_py, METH_VARARGS, ""},
     {"get_field", fio_get_field_py, METH_VARARGS, ""},
+    {"get_field_name", fio_get_field_name_py, METH_VARARGS, ""},
     {"open_source", fio_open_source_py, METH_VARARGS, ""},
     {"set_int_option", fio_set_int_option_py, METH_VARARGS, ""},
     {"set_str_option", fio_set_str_option_py, METH_VARARGS, ""},
@@ -137,6 +141,26 @@ PyObject* fio_eval_vector_field_py(PyObject* self, PyObject *args)
   return Py_BuildValue("(ddd)", v[0], v[1], v[2]);
 }
 
+PyObject* fio_get_available_fields_py(PyObject* self, PyObject *args)
+{
+  int isrc;
+
+  if(!PyArg_ParseTuple(args, "i", &isrc))
+    return NULL;
+
+  field_type* f;
+  int n;
+  int ierr = fio_get_available_fields(isrc, &n, &f);
+  if(ierr != FIO_SUCCESS)
+    return NULL;
+
+  PyObject* list = PyList_New(n);
+  for(int i=0; i<n; i++) 
+    PyList_SET_ITEM(list, i, PyInt_FromLong(f[i]));
+
+  return list;
+}
+
 PyObject* fio_get_field_py(PyObject* self, PyObject *args)
 {
   int isrc;
@@ -151,6 +175,22 @@ PyObject* fio_get_field_py(PyObject* self, PyObject *args)
     return NULL;
   return Py_BuildValue("i", handle);
 }
+
+PyObject* fio_get_field_name_py(PyObject* self, PyObject *args)
+{
+  int itype;
+
+  if(!PyArg_ParseTuple(args, "i", &itype))
+    return NULL;
+
+  std::string name;
+  int ierr = fio_get_field_name(itype, &name);
+  if(ierr != FIO_SUCCESS)
+    return NULL;
+
+  return Py_BuildValue("s", name.c_str());
+}
+
 
 PyObject* fio_get_options_py(PyObject* self, PyObject *args)
 {
