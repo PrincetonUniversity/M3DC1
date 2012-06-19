@@ -3,6 +3,9 @@
 
 #ifdef FORTRAN
 #define FIO_DEFINE_INT(x, y) integer, parameter :: x = y
+#elif defined(PYTHON)
+#undef FIO_DEFINE_INT
+#define FIO_DEFINE_INT(x, y) PyDict_SetItemString(PYTHON_DICT, #x, PyInt_FromLong(y));
 #else
 #define FIO_DEFINE_INT(x, y) const int x = y;
 #define FIO_IS_STR_OPT(x)    ((x)>FIO_STR_OPT_START && (x)<FIO_STR_OPT_END)

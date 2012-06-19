@@ -30,6 +30,8 @@ EXAMPLE_FORTRAN_BIN = example_fortran
 EXAMPLE_FORTRAN_OBJS = example_fortran.o
 EXAMPLE_PUSH_BIN = example_push
 EXAMPLE_PUSH_OBJS = example_push.o
+EXAMPLE_PYTHON_BIN = example_python
+EXAMPLE_PYTHON_OBJS = example_python.o
 F90FLAGS := $(F90FLAGS) -DFORTRAN
 
 all : examples
@@ -38,10 +40,15 @@ examples: $(EXAMPLE_BIN) $(EXAMPLE_FORTRAN_BIN) $(EXAMPLE_PUSH_BIN)
 
 $(EXAMPLE_BIN) : $(EXAMPLE_OBJS)
 	$(LD) $(LDFLAGS) $< $(LIBS) -o $@
+
 $(EXAMPLE_FORTRAN_BIN) : $(EXAMPLE_FORTRAN_OBJS)
 	$(F90) $(LDFLAGS) $< $(LIBS) -o $@
+
 $(EXAMPLE_PUSH_BIN) : $(EXAMPLE_PUSH_OBJS)
 	$(F90) $(LDFLAGS) $< -lfio_push $(LIBS) -o $@
+
+$(EXAMPLE_PYTHON_BIN) : $(EXAMPLE_PYTHON_OBJS)
+	$(PYTHON) $(LDFLAGS) $< -lfio_py $(LIBS) -o $@
 
 include $(M3DC1_ROOT)/install/common_footer.mk
 

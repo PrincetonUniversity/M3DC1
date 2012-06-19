@@ -51,12 +51,18 @@ $(LIB) : $(OBJS)
 $(PUSH_LIB) : $(PUSH_OBJS)
 	$(ARCH) $@ $(PUSH_OBJS)
 
+python : fio_setup.py python_interface.cpp
+	ARCHFLAGS='$(LIBS)' ARCH='$(CXX)' CXX='$(CXX)' CC='$(CXX)' \
+	CFLAGS='$(CFLAGS) $(INCLUDE)' python $< build
+
 .PHONY: install
-install : $(LIB) $(EXAMPLE_BIN)
+install : $(LIB) $(EXAMPLE_BIN) python
 	mkdir -p $(M3DC1_INSTALL_DIR)/lib/_$(M3DC1_ARCH)
 	cp $(LIB) $(M3DC1_INSTALL_DIR)/lib/_$(M3DC1_ARCH)
 	mkdir -p $(M3DC1_INSTALL_DIR)/include/
-	cp $(SRCDIR)/fusion_io.h fusion_io.mod fio_push.mod $(M3DC1_INSTALL_DIR)/include/
+	cp $(SRCDIR)/fusion_io.h fusion_io.mod fio_push.mod \
+	$(M3DC1_INSTALL_DIR)/include/
+	CFLAGS='$(CFLAGS)' python $(SRCDIR)/fio_setup.py install
 
 include $(M3DC1_ROOT)/install/common_footer.mk
 
