@@ -16,8 +16,9 @@ program fio_example
   integer, parameter :: timeslice = 1
 
   integer, parameter :: nfiles = 4
-  character(len=64) :: filename(nfiles)
+  character(len=64) :: filename(nfiles), filename_efit
   integer, dimension(nfiles) :: isrc, ipres, ine, ini, imag
+  integer :: isrc_efit, imag_efit, ipres_efit
 
   real :: p(1), ne(1), ni(1), b(3), x(3)
   real :: t1(1), t3(3)
@@ -31,11 +32,14 @@ program fio_example
   filename(3) = '/Users/ferraro/data/DIII-D/126006/mesh21a_kap6_amu6_n=3/C1.h5'
   filename(4) = '/Users/ferraro/data/DIII-D/126006/mesh21a_kap6_amu6_n=4/C1.h5'
 
+  filename_efit = &
+       '/Users/ferraro/data/DIII-D/126006/mesh21a_kap6_amu6_n=3/geqdsk'
+
   ! read files and fields
   do i=1, nfiles
      print *, 'Reading ', filename(i)
      call fio_open_source_f(FIO_M3DC1_SOURCE, trim(filename(i)), isrc(i), ierr)
-     if(ierr.ne.0) stop
+     if(ierr.ne.0) goto 100
 
      ! Set options appropriate to this source
      call fio_get_options_f(isrc(i), ierr)
@@ -58,11 +62,19 @@ program fio_example
      call fio_set_int_option_f(FIO_SPECIES, FIO_MAIN_ION, ierr)
      call fio_get_field_f(isrc(i), FIO_DENSITY, ini(i),ierr);
   end do
+
+  ! open efit file
+  call fio_open_source_f(FIO_GEQDSK_SOURCE,trim(filename_efit),isrc_efit,ierr)
+  if(ierr.ne.0) goto 100
+
+  call fio_get_options_f(isrc_efit, ierr)
+  call fio_get_field_f(isrc_efit, FIO_MAGNETIC_FIELD, imag_efit, ierr);
+!  call fio_get_field_f(isrc_efit, FIO_TOTAL_PRESSURE, ipres_efit, ierr);
  
   R0 = 1.6;
   R1 = 2.1;
-  Z0 = 0.0;
-  Z1 = 0.0;
+  Z0 = 0.4;
+  Z1 = 0.4;
   phi0 = 0.;
   phi1 = 0.;
 
@@ -93,8 +105,13 @@ program fio_example
      write(*, '("        electron density = ",1pE12.4)') ne
      write(*, '("        ion density = ",1pE12.4)') ni
      write(*, '("        final field = ",1p3E12.4)') b
+
+     b = 0
+     call fio_eval_field_f(imag_efit, x, b, ierr)
+     write(*, '("        efit field = ", 1p3E12.4)') b
   end do
 
+100 continue 
   do i=1, nfiles
      call fio_close_field_f(ine(i), ierr)
      call fio_close_field_f(ini(i), ierr)
@@ -102,4 +119,7 @@ program fio_example
      call fio_close_field_f(imag(i), ierr)
      call fio_close_source_f(isrc(i), ierr)
   end do
+  call fio_close_field_f(imag_efit, ierr)
+!  call fio_close_field_f(ipres_efit, ierr)
+  call fio_close_source_f(isrc_efit, ierr)
 end program fio_example

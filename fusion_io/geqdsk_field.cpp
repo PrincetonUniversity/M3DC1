@@ -4,7 +4,7 @@ extern "C" {
   void bicubic_interpolation_(const int*, const int*, const double*, const double*, 
 			      const double*, const double*, const double*, 
 			      double*, double*, double*, int*);
-  void bicubic_interpolation_coeffs_(const double*, const int*, const int*, const int*, const int*, 
+  void bicubic_interpolation_coeffs_(const double*, const int*, const int*, const double*, const double*, 
 				     double*, int*);
   void cubic_interpolation_(const int*, const double*, const double*, const double*, double*);
 }
@@ -27,15 +27,20 @@ int geqdsk_magnetic_field::eval(const double* x, double* b)
   int j = (int)q;
   int ierr;
 
-  if(i < 1 || i > source->nw) return false;
-  if(j < 1 || j > source->nh) return false;
+  if(i < 1 || i > source->nw) return FIO_OUT_OF_BOUNDS;
+  if(j < 1 || j > source->nh) return FIO_OUT_OF_BOUNDS;
 
   // convert i, j to fortran indices
   i++; j++; p++; q++;
-  bicubic_interpolation_coeffs_(source->psirz,&source->nw,&source->nh,&i,&j,a,&ierr);
-  if(ierr!=0) return ierr;
+  std::cerr << i << ", " << j << std::endl;
+  bicubic_interpolation_coeffs_(source->psirz,&source->nw,&source->nh,&p,&q,a,&ierr);
+  if(ierr!=0) {
+    std::cerr << "Interpolation error" << std::endl;
+    return ierr;
+  }
+  std::cerr << a[0] << ", " << a[1] << std::endl;
 
-  b[0] = b[2] = 0;
+  b[0] = b[2] = 0.;
 
   double temp;
   double si = 0.;

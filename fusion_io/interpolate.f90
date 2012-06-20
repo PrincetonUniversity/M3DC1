@@ -25,7 +25,10 @@ subroutine bicubic_interpolation_coeffs(x,m,n,i0,j0,a,ierr)
   if(j.lt.2) ierr = 1
   if(i.gt.m-2) ierr = 1
   if(j.gt.n-2) ierr = 1
-  if(ierr.ne.0) return
+  if(ierr.ne.0) then
+     print *, 'Out of bounds ', i, j, m, n
+     return
+  end if
 
   a(1,1) = x(i,j)
   a(1,2) = (-2.*x(i,j-1)-3.*x(i,j)+6.*x(i,j+1)-x(i,j+2))/6.

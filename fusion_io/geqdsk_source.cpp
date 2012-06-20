@@ -90,3 +90,49 @@ int geqdsk_source::extent(double* r0, double* r1, double* z0, double* z1)
 
   return FIO_SUCCESS;
 }
+
+int geqdsk_source::get_field_options(fio_option_list* opt) const
+{
+  opt->clear();
+
+  return FIO_SUCCESS;
+}
+
+int geqdsk_source::get_available_fields(fio_field_list* fields) const
+{
+  fields->clear();
+  fields->push_back(FIO_MAGNETIC_FIELD);
+
+  return FIO_SUCCESS;
+}
+
+int geqdsk_source::get_field(const field_type t,fio_field** f,
+			     const fio_option_list* opt)
+{
+  *f = 0;
+  fio_field* mf;
+  bool unneeded_species = false;
+  int s, result;
+
+  result = FIO_SUCCESS;
+
+  opt->get_option(FIO_SPECIES, &s);
+
+  switch(t) {
+  case(FIO_MAGNETIC_FIELD):
+    mf = new geqdsk_magnetic_field(this);
+    if(s!=0) unneeded_species = true;
+    break;
+
+  default:
+    return FIO_UNSUPPORTED;
+  };
+
+  if(result==FIO_BAD_SPECIES) {
+    std::cerr << "Unsupported species: " << fio_species(s).name() << std::endl;
+    return result;
+  }
+  
+  *f = mf;
+  return result;
+}

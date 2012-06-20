@@ -7,6 +7,11 @@ int fio_open_source(fio_source** src, const int type, const char* filename)
   *src = 0;
 
   switch(type) {
+  case(FIO_GEQDSK_SOURCE):
+    *src = new geqdsk_source();
+    ierr = (*src)->open(filename);
+    break;
+
   case(FIO_M3DC1_SOURCE):
     *src = new m3dc1_source();
     ierr = (*src)->open(filename);
