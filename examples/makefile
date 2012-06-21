@@ -29,7 +29,7 @@ EXAMPLE_OBJS = example.o
 EXAMPLE_FORTRAN_BIN = example_fortran
 EXAMPLE_FORTRAN_OBJS = example_fortran.o
 EXAMPLE_PUSH_BIN = example_push
-EXAMPLE_PUSH_OBJS = example_push.o
+EXAMPLE_PUSH_OBJS = example_push.o 
 F90FLAGS := $(F90FLAGS) -DFORTRAN
 
 all : examples

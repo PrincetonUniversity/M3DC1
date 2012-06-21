@@ -105,6 +105,22 @@ class m3dc1_magnetic_field : public m3dc1_fio_field {
   int eval(const double*, double*);
 };
 
+// J
+class m3dc1_current_density : public m3dc1_fio_field {
+  m3dc1_field *psi0, *psi1, *psix;
+  m3dc1_field *i0, *i1, *ix;
+  m3dc1_field *f0, *f1, *fx;
+ public:
+  m3dc1_current_density(m3dc1_source* s) 
+    : m3dc1_fio_field(s) { }
+  m3dc1_current_density* clone() const 
+  { return new m3dc1_current_density(*this); }
+  int load(const fio_option_list*);
+  int dimension() const { return 3; }
+  int eval(const double*, double*);
+};
+
+
 // V
 class m3dc1_velocity_field : public m3dc1_fio_field {
   m3dc1_field *u0, *u1;

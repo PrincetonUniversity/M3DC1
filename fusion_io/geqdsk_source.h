@@ -15,7 +15,9 @@ class geqdsk_source : public fio_source {
 
   double* psi;
   double* psirz;
-  double* fpol; 
+  double* fpol;
+  double* ffprime;
+  double* press;
 
  public:
   std::string filename;
@@ -32,6 +34,9 @@ class geqdsk_source : public fio_source {
 
   int center(double* r0, double* z0) const;
   int extent(double* r0, double* r1, double* z0, double* z1) const;
+
+  int interpolate_psi(const double r0, const double z0, 
+		      double* psi) const;
 };
 
 #endif

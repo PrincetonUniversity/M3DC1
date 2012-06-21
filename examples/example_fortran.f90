@@ -17,10 +17,10 @@ program fio_example
 
   integer, parameter :: nfiles = 4
   character(len=64) :: filename(nfiles), filename_efit
-  integer, dimension(nfiles) :: isrc, ipres, ine, ini, imag
-  integer :: isrc_efit, imag_efit, ipres_efit
+  integer, dimension(nfiles) :: isrc, ipres, ine, ini, imag, ij
+  integer :: isrc_efit, imag_efit, ipres_efit, ij_efit
 
-  real :: p(1), ne(1), ni(1), b(3), x(3)
+  real :: p(1), ne(1), ni(1), b(3), x(3), curr(3)
   real :: t1(1), t3(3)
 
   integer, parameter ::  npts = 10
@@ -54,6 +54,7 @@ program fio_example
      ! magnetic field and total pressure are species-independent
      call fio_get_field_f(isrc(i), FIO_TOTAL_PRESSURE, ipres(i), ierr);
      call fio_get_field_f(isrc(i), FIO_MAGNETIC_FIELD, imag(i), ierr);
+     call fio_get_field_f(isrc(i), FIO_CURRENT_DENSITY, ij(i), ierr);
 
      ! density is species dependent; specify electrons
      call fio_set_int_option_f(FIO_SPECIES, FIO_ELECTRON, ierr)
@@ -69,7 +70,8 @@ program fio_example
 
   call fio_get_options_f(isrc_efit, ierr)
   call fio_get_field_f(isrc_efit, FIO_MAGNETIC_FIELD, imag_efit, ierr);
-!  call fio_get_field_f(isrc_efit, FIO_TOTAL_PRESSURE, ipres_efit, ierr);
+  call fio_get_field_f(isrc_efit, FIO_TOTAL_PRESSURE, ipres_efit, ierr);
+  call fio_get_field_f(isrc_efit, FIO_CURRENT_DENSITY, ij_efit, ierr);
  
   R0 = 1.6;
   R1 = 2.1;
@@ -89,6 +91,7 @@ program fio_example
      ne = 0.
      ni = 0.
      b = 0.
+     curr = 0.
 
      do j=1, nfiles
         call fio_eval_field_f(ipres(j), x, t1, ierr)
@@ -99,16 +102,25 @@ program fio_example
         ni = ni + t1
         call fio_eval_field_f(imag(j), x, t3, ierr)
         b = b + t3
+        call fio_eval_field_f(ij(j), x, t3, ierr)
+        curr = curr + t3
      end do
 
      write(*, '("        pressure = ",1pE12.4)') p
      write(*, '("        electron density = ",1pE12.4)') ne
      write(*, '("        ion density = ",1pE12.4)') ni
-     write(*, '("        final field = ",1p3E12.4)') b
+     write(*, '("        total b = ",1p3E12.4)') b
+     write(*, '("        total j = ",1p3E12.4)') curr
 
-     b = 0
+     b = 0.
+     p = 0.
+     curr = 0.
+     call fio_eval_field_f(ipres_efit, x, p, ierr)
      call fio_eval_field_f(imag_efit, x, b, ierr)
-     write(*, '("        efit field = ", 1p3E12.4)') b
+     call fio_eval_field_f(ij_efit, x, curr, ierr)
+     write(*, '("        efit press = ", 1pE12.4)') p
+     write(*, '("        efit b = ", 1p3E12.4)') b
+     write(*, '("        efit j = ", 1p3E12.4)') curr
   end do
 
 100 continue 
@@ -117,9 +129,11 @@ program fio_example
      call fio_close_field_f(ini(i), ierr)
      call fio_close_field_f(ipres(i), ierr)
      call fio_close_field_f(imag(i), ierr)
+     call fio_close_field_f(ij(i), ierr)
      call fio_close_source_f(isrc(i), ierr)
   end do
   call fio_close_field_f(imag_efit, ierr)
-!  call fio_close_field_f(ipres_efit, ierr)
+  call fio_close_field_f(ipres_efit, ierr)
+  call fio_close_field_f(ij_efit, ierr)
   call fio_close_source_f(isrc_efit, ierr)
 end program fio_example

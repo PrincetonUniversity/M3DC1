@@ -1,67 +1,61 @@
 #include "fusion_io.h"
+#include "interpolate.h"
 
-extern "C" {
-  void bicubic_interpolation_(const int*, const int*, const double*, const double*, 
-			      const double*, const double*, const double*, 
-			      double*, double*, double*, int*);
-  void bicubic_interpolation_coeffs_(const double*, const int*, const int*, const double*, const double*, 
-				     double*, int*);
-  void cubic_interpolation_(const int*, const double*, const double*, const double*, double*);
-}
 
-static double pow(double x, int p)
+int geqdsk_current_density::eval(const double* x, double* j)
 {
-  double r = 1.;
-  if(p < 0) return 0.;
-  for(int i=0; i<p; i++) r = r*x;
-  return r;
+  double psi[6];
+  int ierr;
+
+  ierr = source->interpolate_psi(x[0], x[2], psi);
+  if(ierr != FIO_SUCCESS) return ierr;
+
+  j[1] =  (psi[3] + psi[5] - psi[1]/x[0])/x[0];
+
+  double f, ffp;
+  cubic_interpolation_(&(source->nw),source->psi,&(psi[0]),source->fpol,
+		       &f  );
+  cubic_interpolation_(&(source->nw),source->psi,&(psi[0]),source->ffprime, 
+		       &ffp);
+
+  double fp = ffp/f;
+  j[0] = -fp*psi[2]/x[0];
+  j[2] =  fp*psi[1]/x[0]; 
+
+  j[0] /= M_PI*4e-7;
+  j[1] /= M_PI*4e-7;
+  j[2] /= M_PI*4e-7;
+
+  return FIO_SUCCESS;
 }
 
 int geqdsk_magnetic_field::eval(const double* x, double* b)
 {
-  double a[16];
-
-  double p = (x[0]-source->rleft)/source->dx;
-  double q = (x[2]-source->zmid)/source->dz + (double)source->nh/2.;
-  int i = (int)p;
-  int j = (int)q;
+  double psi[6];
   int ierr;
 
-  if(i < 1 || i > source->nw) return FIO_OUT_OF_BOUNDS;
-  if(j < 1 || j > source->nh) return FIO_OUT_OF_BOUNDS;
+  ierr = source->interpolate_psi(x[0], x[2], psi);
+  if(ierr != FIO_SUCCESS) return ierr;
 
-  // convert i, j to fortran indices
-  i++; j++; p++; q++;
-  std::cerr << i << ", " << j << std::endl;
-  bicubic_interpolation_coeffs_(source->psirz,&source->nw,&source->nh,&p,&q,a,&ierr);
-  if(ierr!=0) {
-    std::cerr << "Interpolation error" << std::endl;
-    return ierr;
-  }
-  std::cerr << a[0] << ", " << a[1] << std::endl;
-
-  b[0] = b[2] = 0.;
-
-  double temp;
-  double si = 0.;
-  for(int n=0; n<4; n++) {
-    for(int m=0; m<4; m++) {
-      int index = m*4 + n;
-
-      si += a[index]*pow(p-i,n)*pow(q-j,m);
-      
-      temp = a[index]*n*pow(p-i,n-1)*pow(q-j,m  );
-      b[2] -= temp/(x[0]*source->dx);
-
-      temp = a[index]*m*pow(p-i,n  )*pow(q-j,m-1);
-      b[0] += temp/(x[0]*source->dz);
-    }
-  }
+  b[0] =  psi[2]/x[0];
+  b[2] = -psi[1]/x[0];
 
   double f;
-  cubic_interpolation_(&source->nw, source->psi, &si, source->fpol, &f);
-
-  b[1] = f/x[0];
+  cubic_interpolation_(&source->nw, source->psi, &psi[0], source->fpol, &f);
+  b[1] =  f/x[0];
   
   return FIO_SUCCESS;
 }
+
+int geqdsk_pressure_field::eval(const double* x, double* p)
+{
+  double psi[6];
+  int ierr;
+
+  ierr = source->interpolate_psi(x[0], x[2], psi);
+  if(ierr != FIO_SUCCESS) return ierr;
+
+  cubic_interpolation_(&source->nw, source->psi, &psi[0], source->press, p);
+  return FIO_SUCCESS;
+}
+

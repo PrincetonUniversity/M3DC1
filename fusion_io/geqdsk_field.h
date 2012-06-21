@@ -17,6 +17,15 @@ class geqdsk_field : public fio_field {
   virtual int eval(const double*, double*) = 0;
 };
 
+class geqdsk_current_density : public geqdsk_field {
+ public:
+  geqdsk_current_density(geqdsk_source* s)
+    : geqdsk_field(s) { }
+  geqdsk_current_density* clone() const 
+  { return new geqdsk_current_density(*this); }
+  int dimension() const { return 3; }
+  int eval(const double*, double*);
+};
 
 class geqdsk_magnetic_field : public geqdsk_field {
  public:
@@ -27,5 +36,16 @@ class geqdsk_magnetic_field : public geqdsk_field {
   int dimension() const { return 3; }
   int eval(const double*, double*);
 };
+
+class geqdsk_pressure_field : public geqdsk_field {
+ public:
+  geqdsk_pressure_field(geqdsk_source* s)
+    : geqdsk_field(s) { }
+  geqdsk_pressure_field* clone() const 
+  { return new geqdsk_pressure_field(*this); }
+  int dimension() const { return 1; }
+  int eval(const double*, double*);
+};
+
 
 #endif

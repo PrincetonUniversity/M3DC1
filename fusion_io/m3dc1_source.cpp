@@ -20,14 +20,18 @@ int m3dc1_source::open(const char* filename)
   file.read_parameter("l0_norm", &L0);
   file.read_parameter("b0_norm", &B0);
 
+  const double c = 3.e10;
+
   // define some normalization quantities
   p0 = B0*B0/(4.*M_PI);
+  J0 = B0*c/(4.*M_PI*L0);
 
   // convert normalization quantities to mks
   n0 /= 1.e-6;
   B0 /= 1e4;
   L0 /= 100.;
   p0 /= 10.;
+  J0 /= (c*1e-5);
 
   // determine ion species (assume one proton and no electrons)
   ion_species = fio_species(ion_mass, 1, 0);
@@ -58,6 +62,7 @@ int m3dc1_source::get_available_fields(fio_field_list* fields) const
 {
   fields->clear();
   fields->push_back(FIO_DENSITY);
+  fields->push_back(FIO_CURRENT_DENSITY);
   fields->push_back(FIO_MAGNETIC_FIELD);
   fields->push_back(FIO_PRESSURE);
   fields->push_back(FIO_TOTAL_PRESSURE);
@@ -87,6 +92,11 @@ int m3dc1_source::get_field(const field_type t,fio_field** f,
     } else {
       result = FIO_BAD_SPECIES;
     }
+    break;
+
+  case(FIO_CURRENT_DENSITY):
+    mf = new m3dc1_current_density(this);
+    if(s!=0) unneeded_species = true;
     break;
 
   case(FIO_ELECTRIC_FIELD):
