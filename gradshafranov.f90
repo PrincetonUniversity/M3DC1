@@ -685,8 +685,9 @@ subroutine gradshafranov_solve
            call write_vector(b1vecini_vec%vec, 'gs_matrix_rhs.out')
         endif
 #endif 
+        if(myrank.eq.0 .and. iprint.ge.1) print *, 'before solve'
         call newsolve(gs_matrix,b1vecini_vec%vec,ier)
-        if(myrank.eq.0 .and. iprint.ge.2) print *, '  done solve'
+        if(myrank.eq.0 .and. iprint.ge.1) print *, ' after solve'
 
 
 #ifdef CJ_MATRIX_DUMP
@@ -725,10 +726,10 @@ subroutine gradshafranov_solve
 
      ! define the pressure and toroidal field functions
      if(constraint .and. igs_method.ne.1) then
-        if(myrank.eq.0 .and. iprint.ge.2) print *, '  calling fundef2'
+        if(myrank.eq.0 .and. iprint.ge.1) print *, '  calling fundef2'
         call fundef2(error3)
      else
-        if(myrank.eq.0 .and. iprint.ge.2) print *, '  calling fundef'
+        if(myrank.eq.0 .and. iprint.ge.1) print *, '  calling fundef'
         call fundef
      end if
 
