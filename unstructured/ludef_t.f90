@@ -3541,6 +3541,8 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   endif
 
   ! Loop over elements
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, " begin loop over elements"
   do itri=1,numelms
 
      ! calculate the field values and derivatives at the sampling points
@@ -3655,7 +3657,12 @@ subroutine ludefvel_n(itri)
      vv0 => d1_mat
      vb0 => q1_mat
      vn0 => r14_mat
-     vf0 => o1_mat
+     if(imp_bf.eq.1) then
+        vf1 => s1_mat
+        vf0 => d1_mat
+     else
+        vf0 => o1_mat
+     end if
      vsource => r4_vec
 
      ! In splitstep case, pe_i spot in phivec is occupied by total pressure
@@ -3829,7 +3836,12 @@ subroutine ludefphi_n(itri)
      bv0 => q2_mat
      bn1 => r42_mat
      bn0 => q42_mat
-     bf0 => o2_mat
+     if(imp_bf.eq.1) then
+        bf1 => s2_mat
+        bf0 => d2_mat
+     else
+        bf0 => o2_mat
+     end if
      bsource => q4_vec
      pp_i = pe_i
      ppe_i = pe_i

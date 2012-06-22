@@ -84,25 +84,23 @@ contains
     call create_vector(b1_phi, vecsize_phi)
     call create_vector(b2_phi, vecsize_phi)
 
-    if(isplitstep.ge.1) then
-       call create_vector(vel_vec,      vecsize_vel)
-       call create_vector(veln_vec,     vecsize_vel)
-       call create_vector(r4_vec,       vecsize_vel)
-       
-       if(ipres.eq.1 .or. ipressplit.eq.1) then
-          call create_vector(pres_vec,    vecsize_p)
-          call create_vector(qp4_vec,     vecsize_p)
-       endif
-        
-       call create_vector(den_vec,    vecsize_n)        
-       call create_vector(denold_vec, vecsize_n)
-       call create_vector(qn4_vec,    vecsize_n)
-       
-       call create_vector(b1_vel, vecsize_vel)
-       call create_vector(b2_vel, vecsize_vel)
-       
-       call create_vector(pret_vec,    vecsize_t)
+    call create_vector(vel_vec,      vecsize_vel)
+    call create_vector(veln_vec,     vecsize_vel)
+    call create_vector(r4_vec,       vecsize_vel)
+
+    if(ipres.eq.1 .or. ipressplit.eq.1) then
+       call create_vector(pres_vec,    vecsize_p)
+       call create_vector(qp4_vec,     vecsize_p)
     endif
+
+    call create_vector(den_vec,    vecsize_n)
+    call create_vector(denold_vec, vecsize_n)
+    call create_vector(qn4_vec,    vecsize_n)
+
+    call create_vector(b1_vel, vecsize_vel)
+    call create_vector(b2_vel, vecsize_vel)
+
+    call create_vector(pret_vec,    vecsize_t)
 
     ! Matrices
     call set_matrix_index(s1_mat, s1_mat_index)
@@ -292,11 +290,21 @@ contains
     chi_i = 3
     den_i = 1
     if(imp_bf.eq.1) then
-       bf_i = numvar - ipressplit + 1
-       e_i = numvar - ipressplit + 2
+       if(jadv.eq.0 .and. i3d.eq.1) then
+         bf_i = vecsize_phi - 1
+         e_i =  vecsize_phi
+       else
+         bf_i = vecsize_phi
+         e_i = 1
+       endif
     else
-       bf_i = 1
-       e_i = numvar - ipressplit + 1
+       if(jadv.eq.0 .and. i3d.eq.1) then
+         bf_i = 1
+         e_i = vecsize_phi
+       else
+         bf_i = 1
+         e_i = 1
+       endif
     end if
     if(ipressplit.eq.1) then
        p_i  = 1
