@@ -662,7 +662,7 @@ subroutine step_split(calc_matrices)
      endif
 
      ! o1matrix_sm * bf(n)
-     if(numvar.ge.2 .and. i3d.eq.1) then
+     if(numvar.ge.2 .and. i3d.eq.1 .and. imp_bf .eq. 0) then
         call matvecmult(o1_mat,bf_field(1)%vec,b2_vel)
         call add(b1_vel, b2_vel)
      endif

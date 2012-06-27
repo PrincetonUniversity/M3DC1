@@ -3658,8 +3658,8 @@ subroutine ludefvel_n(itri)
      vb0 => q1_mat
      vn0 => r14_mat
      if(imp_bf.eq.1) then
-        vf1 => s1_mat
-        vf0 => d1_mat
+        vf1 => q1_mat
+        vf0 => q1_mat
      else
         vf0 => o1_mat
      end if
@@ -3774,6 +3774,7 @@ subroutine ludefvel_n(itri)
      if(i3d.eq.1 .and. numvar.ge.2) then
         call insert_block(vf0,itri,ieq(k),bf_i,q_bf(:,:),MAT_ADD)
         if(imp_bf.eq.1) then
+           if(isplitstep.ge.1) r_bf = -r_bf
            call insert_block(vf1,itri,ieq(k),bf_i,r_bf(:,:),MAT_ADD)
         end if
      endif
@@ -3867,23 +3868,25 @@ subroutine ludefphi_n(itri)
      end if
   endif
 
-  maxk = numvar - ipressplit
+  maxk = vecsize_phi
   ieq(1) = psi_i
   ieq(2) =  bz_i
-  if(ipressplit.eq.0) then
+  if(ipressplit.eq.0 .and. numvar.ge.3) then
      ieq(3) = ppe_i
   end if
 
-  ! add bf equation
+  ! add bf equation and e equations
   if(imp_bf.eq.1) then
-     maxk = maxk + 1
+    if(jadv.eq.0 .and. i3d.eq.1) then
+     ieq(maxk-1) = bf_i
+     ieq(maxk)   = e_i
+    else
      ieq(maxk) = bf_i
-  end if
-
-  ! add electrostatic potential equation
-  if(jadv.eq.0 .and. i3d.eq.1) then
-     maxk = maxk + 1
+    endif
+  else
+    if(jadv.eq.0 .and. i3d.eq.1) then
      ieq(maxk) = e_i
+    endif
   endif
 
   imask = 1
@@ -3902,7 +3905,7 @@ subroutine ludefphi_n(itri)
         call get_flux_mask(itri, imask)
      else if(ieq(k).eq.bz_i) then
         call get_bz_mask(itri, imask)
-     else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0) then
+     else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
         call get_pres_mask(itri, imask)
      else if(ieq(k).eq.bf_i) then
         call get_bf_mask(itri, imask)
@@ -3938,7 +3941,7 @@ subroutine ludefphi_n(itri)
                       ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j))
               endif
 
-           else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0) then
+           else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
               call pressure_lin(mu79(:,:,i),nu79(:,:,j), &
                    ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
                    ipres.eq.0, thimp,itri)
@@ -3962,7 +3965,7 @@ subroutine ludefphi_n(itri)
            call flux_nolin(mu79(:,:,i),q4(i))
         else if(ieq(k).eq.bz_i) then
            call axial_field_nolin(mu79(:,:,i),q4(i))
-        else if(ieq(k).eq.pe_i .and. ipressplit.eq.0) then
+        else if(ieq(k).eq.pe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
            call pressure_nolin(mu79(:,:,i),q4(i),ipres.eq.0)
         else if(ieq(k).eq.bf_i) then
            call bf_equation_nolin(mu79(:,:,i),q4(i))
@@ -3973,7 +3976,7 @@ subroutine ludefphi_n(itri)
     
      ! if ipres==0, the terms linear in pe will be multiplied by p
      ! so we must multiply these terms by pefac (pe = p*pefac)
-     if(ipres.eq.0 .and. ipressplit.eq.0) then
+     if(ipres.eq.0 .and. ipressplit.eq.0 .and. numvar.ge.3) then
         ss(:,:,pe_g) = ss(:,:,pe_g)*pefac
         dd(:,:,pe_g) = dd(:,:,pe_g)*pefac
      end if
