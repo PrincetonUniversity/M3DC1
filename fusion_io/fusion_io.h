@@ -11,6 +11,7 @@
 #include "m3dc1_field.h"
 #include "geqdsk_source.h"
 #include "geqdsk_field.h"
+#include "gato_source.h"
 #include "c_interface.h"
 
 #include <string>

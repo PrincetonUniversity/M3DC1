@@ -7,6 +7,11 @@ int fio_open_source(fio_source** src, const int type, const char* filename)
   *src = 0;
 
   switch(type) {
+  case(FIO_GATO_SOURCE):
+    *src = new gato_source();
+    ierr = (*src)->open(filename);
+    break;
+
   case(FIO_GEQDSK_SOURCE):
     *src = new geqdsk_source();
     ierr = (*src)->open(filename);
@@ -49,6 +54,21 @@ int fio_close_field(fio_field** field)
   } else return 1;
 }
 
+int fio_get_source_name(const int i, std::string* s)
+{
+  switch(i) {
+  case(FIO_GATO_SOURCE):       *s = "GATO";             break;
+  case(FIO_GEQDSK_SOURCE):     *s = "GEQDSK";           break;
+  case(FIO_M3DC1_SOURCE):      *s = "M3D-C1";           break;
+  case(FIO_NIMROD_SOURCE):     *s = "NIMROD";           break;
+  default:
+    *s = "Unknown source";
+    return FIO_UNSUPPORTED;
+  }
+
+  return FIO_SUCCESS;
+}
+
 int fio_get_field_name(const field_type f, std::string* s)
 {
   switch(f) {
@@ -65,7 +85,7 @@ int fio_get_field_name(const field_type f, std::string* s)
   case(FIO_VELOCITY):          *s = "velocity";         break; 
   default:
     *s = "Unnamed field";
-    return 1;
+    return FIO_UNSUPPORTED;
   }
 
   return FIO_SUCCESS; 

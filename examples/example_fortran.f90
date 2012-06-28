@@ -16,16 +16,27 @@ program fio_example
   integer, parameter :: timeslice = 1
 
   integer, parameter :: nfiles = 4
-  character(len=64) :: filename(nfiles), filename_efit
+  character(len=64) :: filename(nfiles), filename_efit, filename_gato
   integer, dimension(nfiles) :: isrc, ipres, ine, ini, imag, ij
   integer :: isrc_efit, imag_efit, ipres_efit, ij_efit
+  integer :: isrc_gato
 
-  real :: p(1), ne(1), ni(1), b(3), x(3), curr(3)
+  real :: p(1), ne(1), ni(1), b(3), x(3), curr(3), curr2(3)
   real :: t1(1), t3(3)
 
   integer, parameter ::  npts = 10
   real :: R0, R1, Z0, Z1, phi0, phi1
   integer :: i, j, ierr
+
+  ! open efit file
+  filename_gato = '/Users/ferraro/data/GATO/diagnostics.dat'
+  call fio_open_source_f(FIO_GATO_SOURCE,trim(filename_gato),isrc_gato,ierr)
+  if(ierr.ne.0) goto 10
+  
+10 continue
+  call fio_close_source_f(isrc_gato, ierr)
+  stop
+
 
   filename(1) = '/Users/ferraro/data/DIII-D/126006/mesh21a_kap6_amu6_n=1/C1.h5'
   filename(2) = '/Users/ferraro/data/DIII-D/126006/mesh21a_kap6_amu6_n=2/C1.h5'
@@ -114,13 +125,13 @@ program fio_example
 
      b = 0.
      p = 0.
-     curr = 0.
+     curr2 = 0.
      call fio_eval_field_f(ipres_efit, x, p, ierr)
      call fio_eval_field_f(imag_efit, x, b, ierr)
-     call fio_eval_field_f(ij_efit, x, curr, ierr)
+     call fio_eval_field_f(ij_efit, x, curr2, ierr)
      write(*, '("        efit press = ", 1pE12.4)') p
      write(*, '("        efit b = ", 1p3E12.4)') b
-     write(*, '("        efit j = ", 1p3E12.4)') curr
+     write(*, '("        efit j = ", 1p3E12.4)') curr2
   end do
 
 100 continue 

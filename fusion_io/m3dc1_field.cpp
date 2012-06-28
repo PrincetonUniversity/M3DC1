@@ -360,7 +360,7 @@ int m3dc1_current_density::eval(const double* x, double* v)
 
   // J_R   = -(d(F+f'')/dZ)/R + (d(psi')/dR)/R^2
   // J_Z   =  (d(F+f'')/dR)/R + (d(psi')/dZ)/R^2
-  // B_Phi = -Del*[psi]/R
+  // J_Phi = -Del*[psi]/R
 
   if(!psi1->eval(x[0], x[1], x[2], psiget, val))
     return FIO_OUT_OF_BOUNDS;

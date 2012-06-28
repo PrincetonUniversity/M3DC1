@@ -33,6 +33,7 @@ OBJS = 	interpolate.o \
 	m3dc1_field.o \
 	geqdsk_source.o \
 	geqdsk_field.o \
+	gato_source.o \
 	fusion_io.o \
 	c_interface.o \
 	fortran_interface.o \

@@ -20,6 +20,8 @@ m3dc1_field::m3dc1_field(m3dc1_mesh* m)
 {
   mesh = m;
   data = new double[mesh->nelms*nbasis];
+  if(!data)
+    std::cerr << "ERROR WITH M3D-C1 FIELD MALLOC" << std::endl;
 }
 
 m3dc1_field::~m3dc1_field()
