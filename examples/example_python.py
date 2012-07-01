@@ -5,7 +5,7 @@ filename = "C1.h5"
 isrc = fio_py.open_source(fio_py.FIO_M3DC1_SOURCE,filename)
 
 fio_py.get_options(isrc)
-imag = fio_py.get_field(isrc, fio_py.FIO_MAGNETIC_FIELD)
+imag = fio_py.get_field(isrc, fio_py.FIO_VECTOR_POTENTIAL)
 ipres = fio_py.get_field(isrc, fio_py.FIO_TOTAL_PRESSURE)
 
 

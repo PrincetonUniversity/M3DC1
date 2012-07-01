@@ -54,7 +54,7 @@ $(PUSH_LIB) : $(PUSH_OBJS)
 
 python : fio_setup.py python_interface.cpp
 	ARCHFLAGS='$(LIBS)' CXX='$(CXX)' CC='$(CXX)' \
-	CFLAGS='$(CFLAGS) $(INCLUDE) $(HDF5_LIBS)' \
+	CFLAGS='$(CFLAGS) $(INCLUDE) $(LIBS)' \
 	$(PYTHON) $< build $(PYFLAGS)
 
 .PHONY: install

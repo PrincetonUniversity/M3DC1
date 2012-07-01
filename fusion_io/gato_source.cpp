@@ -1,4 +1,5 @@
 #include "fusion_io.h"
+#include <iostream>
 #include <iomanip>
 
 gato_source::gato_source()

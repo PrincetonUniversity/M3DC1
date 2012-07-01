@@ -1,5 +1,6 @@
 #include "m3dc1_field.h"
 #include <math.h>
+#include <iostream>
 
 double pow(double x, int p)
 {

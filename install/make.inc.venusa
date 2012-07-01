@@ -3,8 +3,10 @@ CXX = c++
 #CFLAGS = -O3 -Minform=warn
 CFLAGS = -O3 -fPIC
 
-F90 = mpif90
-F90FLAGS = -r8 -O3 -Minform=warn
+#F90 = mpif90
+#F90FLAGS = -r8 -O3 -Minform=warn -fPIC
+F90 = gfortran
+F90FLAGS = -O2 -fdefault-real-8 -fPIC
 
 LD = $(F90) -Mnomain
 LDFLAGS = 
@@ -20,4 +22,9 @@ HDF5_INCLUDE = -I/u/ferraro/hdf5-1.8.6-linux-x86_64-shared/include
 
 INSTALL_DIR = /u/ferraro/bin
 
-LIBS = -lstdc++ -lgcc_eh -lstd -lC
+LIBS = -lgfortran
+
+#LIBS = -L/opt/pgi/linux86-64/2010/lib \
+#	-Wl,-rpath,/opt/pgi/linux86-64/2010/lib \
+#	-lstdc++ -lgcc_eh -lstd -lC \
+#	 -lpgc -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl 

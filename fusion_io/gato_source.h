@@ -15,7 +15,7 @@ class gato_source : public fio_source {
   double *psival, *pressure, *ftor, *pprime, *ffprime;
   double *rcc, *zcc;
 
-  static int gato_source::scan_until(std::ifstream&, const char*);
+  static int scan_until(std::ifstream&, const char*);
 
  public:
   gato_source();
