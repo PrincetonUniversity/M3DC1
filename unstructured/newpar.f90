@@ -197,12 +197,7 @@ Program Reducedquintic
 
      ! Output the equilibrium
      if(myrank.eq.0 .and. iprint.ge.1) print *, ' Writing equilibrium'
-! do i=0,maxrank-1
-!    if(myrank.eq.0) call hdf5_write_time_slice(1,ier)
-!   call MPI_Barrier(MPI_COMM_WORLD,ier)
-! enddo
     call hdf5_write_time_slice(1,ier)
-
      if(myrank.eq.0 .and. iprint.ge.1) print *, ' Done Writing equilibrium'
   end if
 
@@ -276,7 +271,7 @@ Program Reducedquintic
   call output
 
   ! if there are no timesteps to calculate, then skip time loop
-  if(ntimemax.le.ntime) go to 101
+  if(ntimemax.le.ntime) call safestop(0)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Initializing timestep'
   call initialize_timestep
@@ -327,8 +322,6 @@ Program Reducedquintic
   enddo ! ntime
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done time loop."
-
-101 continue
 
   call safestop(2)
 
