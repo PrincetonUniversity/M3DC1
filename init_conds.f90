@@ -393,14 +393,19 @@ subroutine calculate_external_fields()
         temp79c = fz
 #else
         do i=1, npoints_tor
-           co = cos(ntor*phi_79((i-1)*npoints_pol+1:i*npoints_pol))
-           sn = sin(ntor*phi_79((i-1)*npoints_pol+1:i*npoints_pol))
+           co(1:npoints_pol) = &
+                cos(ntor*phi_79((i-1)*npoints_pol+1:i*npoints_pol))
+           sn(1:npoints_pol) = &
+                sin(ntor*phi_79((i-1)*npoints_pol+1:i*npoints_pol))
            temp79a((i-1)*npoints_pol+1:i*npoints_pol) = &
-                real(fr(1:npoints_pol))*co + aimag(fr(1:npoints_pol))*sn
+                real(fr(1:npoints_pol))*co(1:npoints_pol) + &
+                aimag(fr(1:npoints_pol))*sn(1:npoints_pol)
            temp79b((i-1)*npoints_pol+1:i*npoints_pol) = &
-                real(fphi(1:npoints_pol))*co + aimag(fphi(1:npoints_pol))*sn
+                real(fphi(1:npoints_pol))*co(1:npoints_pol) + &
+                aimag(fphi(1:npoints_pol))*sn(1:npoints_pol)
            temp79c((i-1)*npoints_pol+1:i*npoints_pol) = &
-                real(fz(1:npoints_pol))*co + aimag(fz(1:npoints_pol))*sn
+                real(fz(1:npoints_pol))*co(1:npoints_pol) + &
+                aimag(fz(1:npoints_pol))*sn(1:npoints_pol)
         end do
 #endif
 

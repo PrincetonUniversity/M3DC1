@@ -77,14 +77,8 @@ contains
 
        if(myrank.eq.0 .and. iprint.ge.2) print *, "  writing timeslice"
        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-!
-!.......sequential hdf5
-!     do i=0,maxrank-1
-!             if(myrank.eq.i) call hdf5_write_time_slice(0,ier)
-!             call MPI_Barrier(MPI_COMM_WORLD,ier)
-!     enddo
-      call hdf5_write_time_slice(0,ier)
-      if(myrank.eq.0 .and. itimer.eq.1) then
+       call hdf5_write_time_slice(0,ier)
+       if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         diff = tend - tstart
         t_output_hdf5 = t_output_hdf5 + diff

@@ -4371,10 +4371,6 @@ subroutine ludefden_n(itri)
      enddo                     ! on j
      
      oterm(i) = dt*n1s(mu79(:,:,i),sig79)
-
-     if(eqsubtract.eq.1) then
-        oterm(i) = oterm(i) + dt*n1ndenm(mu79(:,:,i),n079,denm,hp)
-     endif
   enddo                     ! on i
      
   if(isplitstep.eq.0) rrterm = -rrterm
