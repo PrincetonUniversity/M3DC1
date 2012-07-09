@@ -1,9 +1,11 @@
 CC = openmpicc
 CXX = openmpic++
-CFLAGS = -fast -Wall
+#CFLAGS = -fast -Wall
+CFLAGS = -Wall
 
 F90 = openmpif90
-F90FLAGS = -O3 -Wall -fdefault-real-8
+F90FLAGS = -Wall -fdefault-real-8 -g -ffpe-trap=zero -fbounds-check \
+	 -fimplicit-none
 
 ARCH = ar cr
 

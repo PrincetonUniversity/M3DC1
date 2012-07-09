@@ -7,10 +7,18 @@ int m3dc1_fio_field::load(const fio_option_list* opt)
 
   opt->get_option(FIO_TIMESLICE, &time);
   opt->get_option(FIO_LINEAR_SCALE, &linfac);
-  opt->get_option(FIO_PERTURBED_ONLY, &ilin);
+  opt->get_option(FIO_PART, &ilin);
+
+  if(ilin==FIO_EQUILIBRIUM_ONLY) {
+    if(source->eqsubtract==1) 
+      time = -1;
+    else
+      std::cerr << "Equilibrium Only is ignored when eqsubtract==0" 
+		<< std::endl;
+  }
 
   extsub = (source->extsubtract==1);
-  eqsub = (source->eqsubtract==1) && (ilin==0);
+  eqsub = (source->eqsubtract==1) && (ilin != FIO_PERTURBED_ONLY);
   use_f = (source->i3d==1 || source->icomplex==1);
 
   if(time==-1) {

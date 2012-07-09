@@ -12,11 +12,21 @@ class gato_source : public fio_source {
   double dnaxe, pfaxe, dnnorm, pfnorm;
   double psilim, fpli, qlim, psisep, xsep, zsep;
   double btor, totcur, omega0;
+  double *r_bound, *t_bound;
+
+ public:
   double *psival, *pressure, *ftor, *pprime, *ffprime;
-  double *rcc, *zcc;
+  double *rcc, *zcc, *psimesh, *dpsidr, *dpsidz;
 
   static int scan_until(std::ifstream&, const char*);
 
+  int set_element_bounds();
+  int get_element(const double*, int*);
+
+ public:
+  int interpolate_psi(const double*, double*, int* e=0);
+  int interpolate_flux_function(const double*, const double, double*) const;
+  
  public:
   gato_source();
   virtual ~gato_source();

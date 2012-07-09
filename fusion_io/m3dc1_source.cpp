@@ -52,7 +52,7 @@ int m3dc1_source::get_field_options(fio_option_list* opt) const
 
   opt->add_option(FIO_TIMESLICE, 0);
   opt->add_option(FIO_LINEAR_SCALE, 1.);
-  opt->add_option(FIO_PERTURBED_ONLY, 0);
+  opt->add_option(FIO_PART, FIO_TOTAL);
   opt->add_option(FIO_SPECIES, 0);
 
   return FIO_SUCCESS;

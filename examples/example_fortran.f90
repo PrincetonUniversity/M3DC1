@@ -19,7 +19,7 @@ program fio_example
   character(len=64) :: filename(nfiles), filename_efit, filename_gato
   integer, dimension(nfiles) :: isrc, ipres, ine, ini, imag, ij
   integer :: isrc_efit, imag_efit, ipres_efit, ij_efit
-  integer :: isrc_gato
+  integer :: isrc_gato, imag_gato, ipres_gato
 
   real :: p(1), ne(1), ni(1), b(3), x(3), curr(3), curr2(3)
   real :: t1(1), t3(3)
@@ -27,16 +27,6 @@ program fio_example
   integer, parameter ::  npts = 10
   real :: R0, R1, Z0, Z1, phi0, phi1
   integer :: i, j, ierr
-
-  ! open efit file
-  filename_gato = '/Users/ferraro/data/GATO/diagnostics.dat'
-  call fio_open_source_f(FIO_GATO_SOURCE,trim(filename_gato),isrc_gato,ierr)
-  if(ierr.ne.0) goto 10
-  
-10 continue
-  call fio_close_source_f(isrc_gato, ierr)
-  stop
-
 
   filename(1) = '/Users/ferraro/data/DIII-D/126006/mesh21a_kap6_amu6_n=1/C1.h5'
   filename(2) = '/Users/ferraro/data/DIII-D/126006/mesh21a_kap6_amu6_n=2/C1.h5'
@@ -83,6 +73,15 @@ program fio_example
   call fio_get_field_f(isrc_efit, FIO_MAGNETIC_FIELD, imag_efit, ierr);
   call fio_get_field_f(isrc_efit, FIO_TOTAL_PRESSURE, ipres_efit, ierr);
   call fio_get_field_f(isrc_efit, FIO_CURRENT_DENSITY, ij_efit, ierr);
+
+
+  ! open gato file
+  filename_gato = '/Users/ferraro/data/GATO/diagnostics.dat'
+  call fio_open_source_f(FIO_GATO_SOURCE,trim(filename_gato),isrc_gato,ierr)
+  if(ierr.ne.0) goto 100
+  call fio_get_options_f(isrc_gato, ierr)
+  call fio_get_field_f(isrc_gato, FIO_MAGNETIC_FIELD, imag_gato, ierr);
+  call fio_get_field_f(isrc_gato, FIO_TOTAL_PRESSURE, ipres_gato, ierr);
  
   R0 = 1.6;
   R1 = 2.1;
@@ -132,6 +131,11 @@ program fio_example
      write(*, '("        efit press = ", 1pE12.4)') p
      write(*, '("        efit b = ", 1p3E12.4)') b
      write(*, '("        efit j = ", 1p3E12.4)') curr2
+
+     call fio_eval_field_f(ipres_gato, x, p, ierr)
+     call fio_eval_field_f(imag_gato, x, b, ierr)
+     write(*, '("        gato press = ", 1pE12.4)') p
+     write(*, '("        gato b = ", 1p3E12.4)') b
   end do
 
 100 continue 
@@ -143,8 +147,13 @@ program fio_example
      call fio_close_field_f(ij(i), ierr)
      call fio_close_source_f(isrc(i), ierr)
   end do
+
   call fio_close_field_f(imag_efit, ierr)
   call fio_close_field_f(ipres_efit, ierr)
   call fio_close_field_f(ij_efit, ierr)
   call fio_close_source_f(isrc_efit, ierr)
+
+  call fio_close_field_f(imag_gato, ierr)
+  call fio_close_field_f(ipres_gato, ierr)
+  call fio_close_source_f(isrc_gato, ierr)
 end program fio_example

@@ -1,5 +1,5 @@
 #ifndef GEQDSK_FIELD_H
-#define GEQDKS_FIELD_H
+#define GEQDSK_FIELD_H
 
 #include "geqdsk_source.h"
 
