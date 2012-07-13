@@ -196,9 +196,7 @@ Program Reducedquintic
      call calculate_auxiliary_fields(0)
 
      ! Output the equilibrium
-     if(myrank.eq.0 .and. iprint.ge.1) print *, ' Writing equilibrium'
-    call hdf5_write_time_slice(1,ier)
-     if(myrank.eq.0 .and. iprint.ge.1) print *, ' Done Writing equilibrium'
+     call hdf5_write_time_slice(1,ier)
   end if
 
   ! Calculate all quantities derived from basic fields

@@ -3272,9 +3272,9 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
    endif else if(strcmp('jpar', name, /fold_case) eq 1) then begin
 
-       psi = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+       psi0 = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
                         filename=filename, points=pts, slices=time, $
-                        rrange=xrange, zrange=yrange,op=2)
+                        rrange=xrange, zrange=yrange)
        jphi = read_field('jphi', x, y, t, linear=linear, mesh=mesh, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange)
@@ -3288,11 +3288,35 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                       complex=complex)
        
        r = radius_matrix(x,y,t)
-       b0 = s_bracket(psi,psi,x,y)/r^2 + i0^2/r^2
-       data = (s_bracket(i,psi,x,y)/r^2 - jphi*i0/r^2)/sqrt(b0)
+       b0 = s_bracket(psi0,psi0,x,y)/r^2 + i0^2/r^2
+       data = (s_bracket(i,psi0,x,y)/r^2 - jphi*i0/r^2)/sqrt(b0)
 
        symbol = '!8J!D!3||!6!N!X'
        d = dimensions(j0=1,_EXTRA=extra)
+
+   endif else if(strcmp('jpar_B', name, /fold_case) eq 1) then begin
+
+       psi0 = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+                        filename=filename, points=pts, slices=time, $
+                        rrange=xrange, zrange=yrange)
+       jphi = read_field('jphi', x, y, t, linear=linear, mesh=mesh, $
+                        filename=filename, points=pts, slices=time, $
+                        rrange=xrange, zrange=yrange)
+       i = read_field('i', x, y, t, mesh=mesh, $
+                      filename=filename, points=pts, slices=time, $
+                      rrange=xrange, zrange=yrange, $
+                      linear=linear, complex=complex)
+       i0 = read_field('i', x, y, t, mesh=mesh, $
+                      filename=filename, points=pts, slices=time, $
+                      rrange=xrange, zrange=yrange, /equilibrium, $
+                      complex=complex)
+       
+       r = radius_matrix(x,y,t)
+       b0 = s_bracket(psi0,psi0,x,y)/r^2 + i0^2/r^2
+       data = (s_bracket(i,psi0,x,y)/r^2 - jphi*i0/r^2)/b0
+
+       symbol = '!8J!D!9#!N!3/!8B!X'
+       d = dimensions(j0=1,b0=-1,_EXTRA=extra)
 
    ;===========================================
    ; particle flux
@@ -3675,24 +3699,42 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                        slice=time,/linear,complex=icomplex,_EXTRA=extra)
        f = read_field('f',x,y,t,filename=filename,points=pts,$
                        slice=time,/linear,complex=icomplex,_EXTRA=extra)
+       Te1 = read_field('Te',x,y,t,filename=filename,points=pts,$
+                       slice=time,/linear,complex=icomplex,_EXTRA=extra)
+
 
        db = read_parameter('db',filename=filename)
        zeff = read_parameter('zeff',filename=filename)
        ntor = read_parameter('ntor',filename=filename)
+       ion_mass = read_parameter('ion_mass',filename=filename)
        n0_norm = read_parameter('n0_norm',filename=filename)
        B0_norm = read_parameter('B0_norm',filename=filename)
        L0_norm = read_parameter('l0_norm',filename=filename)
-       lambda = 16              ; coulomb logarithm
+       v0_norm = B0_norm/sqrt(4.*!pi*n0_norm*ion_mass*1.6726e-24)
+       t0_norm = L0_norm/v0_norm
+       lambda = 16.              ; coulomb logarithm
 
+       print, 'n0, B0, L0, v0, t0 = ', n0_norm, B0_norm, L0_norm, v0_norm, t0_norm
+
+       r = radius_matrix(x,y,t)
        gradpsi = sqrt(s_bracket(psi0,psi0,x,y))
 
        pi0 = p0-pe0
        Ti = pi0/n0 > 0.01
+       Te = pe0/(zeff*n0) > 0.01
 
-       r = radius_matrix(x,y,t)
+       tprime = abs(s_bracket(Te,psi0,x,y)) 
+       xi = -Te1/tprime*gradpsi
+       psis = read_lcfs(filename=filename, flux0=flux0, _EXTRA=extra)
+       if(psis lt flux0) then begin
+           xi(where(abs(tprime) lt 1e-6 or psi0 lt psis)) = 0.
+       endif else begin
+           xi(where(abs(tprime) lt 1e-6 or psi0 gt psis)) = 0.
+       endelse
+
        forward_function flux_average_field
        fa = flux_average_field(r^2,psi0,x,y,t,r0=r0,flux=flux,$
-                               filename=filename, _EXTRA=extra)
+                               filename=filename,integrate=0,_EXTRA=extra)
        r2_av = interpol(fa, flux, psi0)
        
        epsilon = read_field('minor radius',x,y,t,filename=filename,points=pts,$
@@ -3702,29 +3744,93 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        w_E = abs(w0 - db*s_bracket(pi0,psi0,x,y)/gradpsi^2 / n0)
        vti = sqrt(2.*Ti)
        
-       nu_i = (64.*!pi^(5/2)/3.)*(zeff*4.8032e-10*n0_norm)^4*lambda $
-         * l0_norm/(n0_norm*B0_norm^4) * n0/Ti^1.5
+;        nu_i = (64.*!pi^(5/2)/3.)*(zeff*4.8032e-10*n0_norm)^4*lambda $
+;          * l0_norm/(n0_norm*B0_norm^4) * n0/Ti^1.5
+       nu_i = 1.988e-35*(n0/Ti^1.5)*lambda*zeff^4*n0_norm^3*l0_norm/B0_norm^4
+       print, 'min, max(nu_i)', min(nu_i/t0_norm), max(nu_i/t0_norm)
+       print, 'min, max(w_B)', min(w_B/t0_norm), max(w_B/t0_norm)
+       print, 'min, max(w_E)', min(w_E/t0_norm), max(w_E/t0_norm)
        nu_eff = nu_i / (ntor*epsilon)
        
        mu_p = 0.21*ntor*vti^2*sqrt(epsilon*nu_eff) / $
          (r2_av*(w_E^1.5 + 0.3*w_B*sqrt(nu_eff) + 0.04*nu_eff^1.5))
-
+       
        b02 = gradpsi^2/r^2 + i0^2/r^2
-
+       
        if(icomplex eq 1) then begin
-           b2 = s_bracket(psi,conj(psi),x,y)/r^2 $
-             + i*conj(i)/r^2 $
-             + ntor^2*s_bracket(f,conj(f),x,y)
+           b1b0 = (s_bracket(psi,psi0,x,y)/r^2 $
+             + i*i0/r^2 $
+             - complex(0.,ntor)*a_bracket(f,psi0,x,y)/r) / sqrt(b02)
+           b1 = b1b0 + xi*s_bracket(sqrt(b02),psi0,x,y)/gradpsi
+           b2 = b1*conj(b1) 
+;            b2 = s_bracket(psi,conj(psi),x,y)/r^2 $
+;              + i*conj(i)/r^2 $
+;              + ntor^2*s_bracket(f,conj(f),x,y) $
+;              - 0.5*complex(0.,ntor)*a_bracket(f,conj(psi),x,y)/r $
+;              + 0.5*complex(0.,ntor)*a_bracket(conj(f),psi,x,y)/r
        end
-
+       
        fa = flux_average_field(b2/b02,psi0,x,y,t,r0=r0,flux=flux,$
-                               filename=filename,_EXTRA=extra)
+                               filename=filename,integrate=0,_EXTRA=extra)
        b2_av = interpol(fa, flux, psi0)
- 
+       
        data = -mu_p*b2_av*n0*r^2*w0
-      
        d = dimensions(/p0)
        symbol = '!6NTV!X'
+       
+       
+;        data = nu_i
+;        data = w_E
+;       data = w_E^1.5 + 0.3*w_B*sqrt(nu_eff) + 0.04*nu_eff^1.5
+;       d = dimensions(t0=-1)
+
+   ;===========================================
+   ; delta_B / B
+   ;===========================================
+
+   endif else if(strcmp('dB_B', name, /fold_case) eq 1) then begin
+       psi0 = read_field('psi',x,y,t,filename=filename,points=pts,$
+                         /equilibrium,_EXTRA=extra)
+       i0 = read_field('I',x,y,t,filename=filename,points=pts,$
+                         /equilibrium,_EXTRA=extra)
+       Te0 = read_field('Te',x,y,t,filename=filename,points=pts,$
+                       /equilibrium,_EXTRA=extra)
+       psi = read_field('psi',x,y,t,filename=filename,points=pts,$
+                       slice=time,/linear,complex=icomplex,_EXTRA=extra)
+       i = read_field('I',x,y,t,filename=filename,points=pts,$
+                       slice=time,/linear,complex=icomplex,_EXTRA=extra)
+       f = read_field('f',x,y,t,filename=filename,points=pts,$
+                       slice=time,/linear,complex=icomplex,_EXTRA=extra)
+       Te1 = read_field('Te',x,y,t,filename=filename,points=pts,$
+                       slice=time,/linear,complex=icomplex,_EXTRA=extra)
+
+       ntor = read_parameter('ntor',filename=filename)
+
+       r = radius_matrix(x,y,t)
+ 
+       gradpsi = sqrt(s_bracket(psi0,psi0,x,y))
+
+       tprime = abs(s_bracket(Te0,psi0,x,y)) 
+       xi = -Te1/tprime*gradpsi
+       psis = read_lcfs(filename=filename, flux0=flux0, _EXTRA=extra)
+       if(psis lt flux0) then begin
+           xi(where(abs(tprime) lt 1e-6 or psi0 lt psis)) = 0.
+       endif else begin
+           xi(where(abs(tprime) lt 1e-6 or psi0 gt psis)) = 0.
+       endelse
+
+       b0 = sqrt(gradpsi^2 + i0^2)/r
+       if(icomplex eq 1) then begin
+           b1b0 = complex(0.,ntor)*(s_bracket(psi,psi0,x,y)/r^2 $
+                   + i*i0/r^2 $
+                   - complex(0.,ntor)*a_bracket(f,psi0,x,y)/r) / b0
+           b1 = b1b0 + xi*s_bracket(b0,psi0,x,y)/gradpsi
+           b2 = b1*conj(b1) 
+       end
+       data = b2/b0^2
+       
+       d = dimensions()
+       symbol = '!7d!8B!6!U2!N!3/!8B!6!U2!N!X'
 
 
    ;===========================================
@@ -5669,6 +5775,48 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
            return, deriv(rho, q)
 
        endif else $
+         if(strcmp(field, 'lambda', /fold_case) eq 1) then begin
+           ; this is m*lambda from Hegna, Callen Phys. Plasmas 1 (1994) p.2308
+
+           I = read_field('I', x, z, t, points=points, /equilibrium, $
+                          units=units, _EXTRA=extra)
+           sigma = read_field('jpar_B', x, z, t, points=points, /equilibrium, $
+                              units=units, _EXTRA=extra)
+           sp = s_bracket(psi,sigma,x,z)/s_bracket(psi,psi,x,z)
+           r = radius_matrix(x,z,t)
+
+           q = flux_average('q', psi=psi, i0=i, x=x, z=z, t=t, $
+             r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
+             points=points, /equilibrium, _EXTRA=extra)
+
+           qp = deriv(flux,q)
+           qrz = interpol(q, flux, psi)
+           qprz = interpol(qp, flux, psi)
+           jac = r^2*qrz/I
+
+           dpsi = sqrt(s_bracket(psi,psi,x,z))
+           dtheta = I/(r*qrz*dpsi)
+
+           gpsi = flux_average(dpsi/jac, psi=psi, i0=i, x=x, z=z, t=t, $
+             r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
+             points=points, _EXTRA=extra)
+           gchi = flux_average(dtheta/jac, psi=psi, i0=i, x=x, z=z, t=t, $
+             r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
+             points=points, _EXTRA=extra)
+           gsp = flux_average(sp/jac, psi=psi, i0=i, x=x, z=z, t=t, $
+             r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
+             points=points, _EXTRA=extra)
+           gi = flux_average(I, psi=psi, i0=i, x=x, z=z, t=t, $
+             r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
+             points=points, _EXTRA=extra)
+           
+           units = ''
+           name = '!8m!7k!X'
+           symbol = name          
+
+           return, -gi*q*gsp/(2.*qp)*(1./(gpsi*gchi))
+
+       endif else $
          if(strcmp(field, 'rho', /fold_case) eq 1) then begin
 
            flux_t = flux_average('flux_t', psi=psi, x=x, z=z, t=t, $
@@ -5997,7 +6145,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
                        bw=bw, srnorm=srnorm, last=last, mks=mks, cgs=cgs, $
                        q_contours=q_contours, rho=rho, integrate=integrate, $
                        multiply_flux=multiply_flux, abs=abs, phase=phase, $
-                       stotal=total, nolegend=nolegend, $
+                       stotal=total, nolegend=nolegend, outfile=outfile, $
                        val_at_q=val_at_q, flux_at_q=flux_at_q, _EXTRA=extra
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
@@ -6192,6 +6340,20 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
        flux_at_q = fvals
        print, "flux at q's =  ", flux_at_q
        print, "values at q's =  ", val_at_q
+   endif
+
+   if(n_elements(outfile) eq 1) then begin
+       openw, ifile, outfile, /get_lun
+       if(keyword_set(complex)) then begin
+           printf, ifile, format='(3E16.6)', $
+             transpose([[reform(flux[0,*])], $
+                        [reform(real_part(fa[0,*]))], $
+                        [reform(imaginary(fa[0,*]))]])
+       endif else begin
+           printf, ifile, format='(2E16.6)', $
+             transpose([[reform(flux[0,*])], [reform(fa[0,*])]])
+       endelse
+       free_lun, ifile
    endif
 end
 
@@ -6864,6 +7026,13 @@ pro plot_perturbed_surface, q, scalefac=scalefac, points=pts, $
 
    plot, x, z, /nodata, /iso, _EXTRA=extra
    c = colors()
+   c0 = c
+   if(n_elements(fvals) eq 1) then begin
+       l0 = 0
+       c[1] = c0[3]
+   endif else begin
+       l0 = 1
+   endelse
    for k=0, n_elements(fvals)-1 do begin
        xy = path_at_flux(psi0, x, z, t, fvals[k], /contiguous)
        xy_new = xy
@@ -6876,9 +7045,9 @@ pro plot_perturbed_surface, q, scalefac=scalefac, points=pts, $
            xy_new[1,j] = xy[1,j] + dr*dz*scalefac[k]
        end
 
-       oplot, xy[0,*], xy[1,*], linestyle=1, color=c[k+1]
+       oplot, xy[0,*], xy[1,*], linestyle=l0, color=c0[k+1]
        oplot, [xy[0,n_elements(xy[0,*])-1], xy[0,0]],  $
-         [xy[1,n_elements(xy[0,*])-1], xy[1,0]], linestyle=1, color=c[k+1]
+         [xy[1,n_elements(xy[0,*])-1], xy[1,0]], linestyle=l0, color=c0[k+1]
 
        oplot, xy_new[0,*], xy_new[1,*], color=c[k+1]
        oplot, [xy_new[0,n_elements(xy[0,*])-1], xy_new[0,0]], $
