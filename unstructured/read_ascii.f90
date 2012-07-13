@@ -11,7 +11,7 @@ contains
   ! skip = number of header rows to skip (default = 0)
   ! xrow = column to read (default = 1)
   !======================================================================
-  subroutine read_ascii_column(filename, x, n, skip, icol)
+  subroutine read_ascii_column(filename, x, n, skip, icol, read_until)
     implicit none
 
     include 'mpif.h'
@@ -20,10 +20,12 @@ contains
     real, allocatable :: x(:)
     integer, intent(inout) :: n
     integer, optional :: skip, icol
+    character(len=*), intent(in), optional :: read_until
 
-    integer :: i, ix, ierr, myrank
+    integer :: i, ix, myrank, ierr
     integer, parameter :: ifile = 112
     real, allocatable :: val(:)
+    character(len=256) :: buff
 
     call MPI_Comm_rank(MPI_COMM_WORLD, myrank, ierr)
 
@@ -41,7 +43,15 @@ contains
     ! if we don't know how many rows there are, count them
     if(n.le.0) then
        if(myrank.eq.0) then
-          open(unit=ifile, file=filename, status='old', action='read')
+          open(unit=ifile, file=filename, status='old', action='read', err=101)
+
+          ! read until
+          if(present(read_until)) then
+             do 
+                read(ifile, '(A)', err=100) buff
+                if(buff(1:len(read_until)) .eq. read_until) exit
+             end do
+          end if
 
           ! skip header rows
           if(present(skip)) then
@@ -58,8 +68,9 @@ contains
           end do
 
 100       close(ifile)
-
-          print *, ' Read ', n, ' lines'
+          goto 102
+101       n = 0
+102       print *, ' Read ', n, ' lines'
        end if
        
        call MPI_bcast(n, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
@@ -78,7 +89,15 @@ contains
     if(myrank.eq.0) then
        open(unit=ifile, file=filename, status='old', action='read')
 
-       ! skip headers
+       ! read until
+       if(present(read_until)) then
+          do 
+             read(ifile, '(A)') buff
+             if(buff(1:len(read_until)) .eq. read_until) exit
+          end do
+       end if
+       
+       ! skip header rows
        if(present(skip)) then
           do i=1, skip
              read(ifile, *)
@@ -99,5 +118,4 @@ contains
     ! Share data with other processes
     call MPI_bcast(x, n, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierr)
   end subroutine read_ascii_column
-
 end module read_ascii

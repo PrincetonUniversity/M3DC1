@@ -345,6 +345,8 @@ subroutine set_defaults
        "Factor multiplying pressure profile", gs_grp)
   call add_var_double("bscale", bscale, 1., &
        "Factor multiplying toroidal field profile", gs_grp)
+  call add_var_double("bpscale", bpscale, 1., &
+       "Factor multiplying F' (keeping F0 constant)", gs_grp)
   call add_var_double("vscale", vscale, 1., &
        "Factor multiplying toroidal rotation profile", gs_grp)
 

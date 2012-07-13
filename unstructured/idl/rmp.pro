@@ -1,7 +1,8 @@
 pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
                    psi_val=psi_val, ntor=ntor, label=label, psi0=psi0, i0=i0, $
                    m_val=m_val, phase=phase, overplot=overplot, $
-                   linestyle=linestyle, outfile=outfile
+                   linestyle=linestyle, outfile=outfile, bmnfile=bmnfile, $
+                   bmncdf=bmncdf
 
    print, 'Drawing schaffer plot'
 
@@ -56,6 +57,39 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    f[n/2+1] = n/2 + 1 - n + findgen((n-1)/2)
    m = shift(f,-(n/2+1))
    d = shift(c,0,-(n/2+1),0)
+
+   if(n_elements(bmnfile) ne 0) then begin
+       openw, ifile, /get_lun, bmnfile
+
+       printf, ifile, format='(3I5)', ntor, n_elements(nflux), n_elements(m)
+       printf, ifile, format='(1F13.6)', nflux
+       printf, ifile, format='(1I5)', transpose(m)
+       for i=0, n_elements(nflux)-1 do begin
+           printf, ifile, format='(2F13.6)', $
+             real_part(reform(d[0,*,i])), $
+             imaginary(reform(d[0,*,i]))
+       end
+
+       free_lun, ifile
+   end
+
+   if(n_elements(bmncdf) ne 0) then begin
+       id = ncdf_create(bmncdf, /clobber)
+       ncdf_attput, id, 'ntor', ntor, /short, /global
+       n_id = ncdf_dimdef(id, 'npsi', n_elements(nflux))
+       m_id = ncdf_dimdef(id, 'mpol', n_elements(m))
+       psi_var = ncdf_vardef(id, 'psi', [n_id], /float)
+       m_var = ncdf_vardef(id, 'm', [m_id], /short)
+       bmn_real_var = ncdf_vardef(id, 'bmn_real', [m_id,n_id], /float)
+       bmn_imag_var = ncdf_vardef(id, 'bmn_imag', [m_id,n_id], /float)
+       ncdf_control, id, /endef
+       ncdf_varput, id, 'psi', reform(nflux[0,*])
+       ncdf_varput, id, 'm', m
+       ncdf_varput, id, 'bmn_real', real_part(reform(d[0,*,*]))
+       ncdf_varput, id, 'bmn_imag', imaginary(reform(d[0,*,*]))
+       ncdf_close, id
+   end
+
    
    if(n_elements(m_val) ne 0) then begin
 
@@ -480,4 +514,67 @@ pro integrate_j, df=df, _EXTRA=extra
 
    plot_legend, string(format='("m = ",I)', fix(q0*ntor)), $
      color=colors(n_elements(fq))
+end
+
+pro plot_lambda, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
+                 psi_val=psi_val, ntor=ntor, label=label, $
+                 m_val=m_val, phase=phase, overplot=overplot, $
+                 linestyle=linestyle, outfile=outfile
+
+   psi0 = read_field('psi', x,z,t,/equilibrium,_EXTRA=extra)
+   jphi = read_field('jphi',x,z,t,/equilibrium,_EXTRA=extra)
+   i0   = read_field('i'  , x,z,t,/equilibrium,_EXTRA=extra)
+   ntor = read_parameter('ntor', _EXTRA=extra)
+
+   rr = radius_matrix(x,z,t)
+   zz = z_matrix(x,z,t)
+
+   sigma = (s_bracket(i0,psi0,x,z)/rr^2 - jphi*i0/rr^2) $
+     / (s_bracket(psi0,psi0,x,z)/rr^2 + i0^2/rr^2)
+
+   rf = flux_coord_field(rr,psi0,x,z,t, $
+                         flux=flux,angle=angle,qval=q, $
+                         area=area,nflux=nflux,tbins=bins,fbins=bins, $
+                         /pest, i0=i0, _EXTRA=extra)
+   zf = flux_coord_field(zz,psi0,x,z,t, $
+                         flux=flux,angle=angle,qval=q, $
+                         area=area,nflux=nflux,tbins=bins,fbins=bins, $
+                         /pest, i0=i0, _EXTRA=extra) 
+   i0f = flux_coord_field(i0,psi0,x,z,t, $
+                         flux=flux,angle=angle,qval=q, $
+                         area=area,nflux=nflux,tbins=bins,fbins=bins, $
+                         /pest, i0=i0, _EXTRA=extra) 
+   dpsi = flux_coord_field(sqrt(s_bracket(psi0,psi0,x,z)),psi0,x,z,t, $
+                         flux=flux,angle=angle,qval=q, $
+                         area=area,nflux=nflux,tbins=bins,fbins=bins, $
+                         /pest, i0=i0, _EXTRA=extra) 
+
+   rf = reform(rf)
+   zf = reform(zf)
+   r_psi = rf
+   z_psi = zf
+   dtheta = rf
+   for i=0, n_elements(angle)-1 do begin
+       r_psi[*,i] = deriv(flux,rf[*,i])
+       z_psi[*,i] = deriv(flux,zf[*,i])
+       dtheta[*,i] = rf[*,i]*sqrt(r_psi[*,i]^2+z_psi[*,i]^2)/q[i]
+   end
+
+   contour_and_legend, dtheta^2, flux, angle, yrange=[0,10]
+   return
+
+   bp = sqrt(s_bracket(psi0,psi0,x,z))/r
+   jac = r^3*bp/abs(i0)
+   b0 = s_bracket(psi0,psi0,x,z)/r^2 + i0^2/r^2
+
+   sigma = read_field('jpar_B', x, z, t, points=points, /equilibrium, $
+                      units=units, _EXTRA=extra)
+   sp = s_bracket(psi,sigma,x,z)/s_bracket(psi,psi,x,z)
+   qp = deriv(flux,q)
+   qrz = interpol(q, flux, psi)
+   qprz = interpol(qp, flux, psi)
+   jac = rr^2*qrz/I
+ 
+   
+
 end

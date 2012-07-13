@@ -287,6 +287,7 @@ subroutine define_profiles
 
   if(iread_te.eq.20 .or. iread_ne.eq.20 .or. iread_omega.eq.20) then
      call load_iterdb('iterdb', ierr)
+     if(ierr.ne.0) call safestop(5)
   end if
 
   ! ensure that derivatives in SOL are zero
@@ -295,14 +296,37 @@ subroutine define_profiles
 
   ! scale profiles
   p0_spline%y = p0_spline%y*pscale
-  g0_spline%y = g0_spline%y*sqrt(bscale)
+  g0_spline%y = g0_spline%y*bscale**2
+  ffprime_spline%y = ffprime_spline%y*bscale**2
   bzero = bzero*bscale
+
+  if(bzero.gt.0) then 
+     ffprime_spline%y(:) = ffprime_spline%y(:)* &
+          (bpscale**2 + &
+          (1.-bpscale)*bpscale*bzero*rzero / &
+          sqrt(2.*g0_spline%y(:)+(bzero*rzero)**2))
+     g0_spline%y(:) = &
+          .5*bpscale*(sqrt(2.*g0_spline%y(:)+(bzero*rzero)**2)-(bzero*rzero)) &
+          *(2.*bzero*rzero &
+          + (sqrt(2.*g0_spline%y(:)+(bzero*rzero)**2)-(bzero*rzero))*bpscale)
+  else
+     ffprime_spline%y(:) = ffprime_spline%y(:)* &
+          (bpscale**2 - &
+          (1.-bpscale)*bpscale*bzero*rzero / &
+          sqrt(2.*g0_spline%y(:)+(bzero*rzero)**2))
+     g0_spline%y(:) = &
+          .5*bpscale*(-sqrt(2.*g0_spline%y(:)+(bzero*rzero)**2)-(bzero*rzero))&
+          *(2.*bzero*rzero &
+          + (-sqrt(2.*g0_spline%y(:)+(bzero*rzero)**2)-(bzero*rzero))*bpscale)
+  endif
+
 
   ! add pedge to pressure
   if(pedge.ge.0.) p0_spline%y = p0_spline%y - p0_spline%y(p0_spline%n) + pedge
 
   ! define Te profile
   ! ~~~~~~~~~~~~~~~~~
+  ierr = 0
   select case(iread_te)
      
   case(1)
@@ -310,12 +334,14 @@ subroutine define_profiles
      nvals = 0
      call read_ascii_column('profile_te', xvals, nvals, icol=1)
      call read_ascii_column('profile_te', yvals, nvals, icol=2)
+     if(nvals.eq.0) call safestop(5)
      yvals = yvals * 1.6022e-9 / (b0_norm**2/(4.*pi*n0_norm))
   case(2)
      ! Read in eV vs Psi
      nvals = 0
      call read_ascii_column('profile_te', xvals, nvals, icol=1)
      call read_ascii_column('profile_te', yvals, nvals, icol=2)
+     if(nvals.eq.0) call safestop(5)
      yvals = yvals * 1.6022e-12 / (b0_norm**2/(4.*pi*n0_norm))
 
   case(4)
@@ -323,6 +349,7 @@ subroutine define_profiles
      nvals = 0
      call read_ascii_column('profile_te_rho_3', xvals, nvals, icol=1)
      call read_ascii_column('profile_te_rho_3', yvals, nvals, icol=2)
+     if(nvals.eq.0) call safestop(5)
      yvals = yvals * 1.6022e-9 / (b0_norm**2/(4.*pi*n0_norm))
      xvals = xvals / xvals(nvals) ! normalize rho
      call rho_to_psi(nvals, xvals, xvals)
@@ -330,8 +357,11 @@ subroutine define_profiles
   case(10)
      ! Read from Corsica file (keV vs Psi)
      nvals = 0
-     call read_ascii_column('corsica', xvals, nvals, skip=26, icol=4)
-     call read_ascii_column('corsica', yvals, nvals, skip=26, icol=6)
+     call read_ascii_column('corsica', xvals, nvals, icol=4, &
+          read_until='profile data:', skip=2)
+     call read_ascii_column('corsica', yvals, nvals, icol=6, &
+          read_until='profile data:', skip=2)
+     if(nvals.eq.0) call safestop(5)
      yvals = yvals * 1.6022e-9 / (b0_norm**2/(4.*pi*n0_norm))
 
   case(20)
@@ -346,6 +376,8 @@ subroutine define_profiles
   case default
      
   end select
+
+  if(ierr.ne.0) call safestop(5)
 
   if(allocated(yvals)) then
      call create_spline(te_spline, nvals, xvals, yvals)
@@ -376,6 +408,7 @@ subroutine define_profiles
   else
 
      ! Otherwise, read ne profile directly
+     ierr = 0
      select case(iread_ne)
      
      case(1)
@@ -383,12 +416,14 @@ subroutine define_profiles
         nvals = 0
         call read_ascii_column('profile_ne', xvals, nvals, icol=1)
         call read_ascii_column('profile_ne', yvals, nvals, icol=2)
+        if(nvals.eq.0) call safestop(5)
         yvals = yvals * 1e14 / n0_norm / zeff
         
      case(2)
         ! Read in 10^19/m^3 vs Psi
         call read_ascii_column('dne.xy', xvals, nvals, skip=3, icol=1)
         call read_ascii_column('dne.xy', yvals, nvals, skip=3, icol=7)
+        if(nvals.eq.0) call safestop(5)
         yvals = yvals * 1e13 / n0_norm / zeff
         
      case(4)
@@ -396,6 +431,7 @@ subroutine define_profiles
         nvals = 0
         call read_ascii_column('profile_ne_rho_0', xvals, nvals, icol=1)
         call read_ascii_column('profile_ne_rho_0', yvals, nvals, icol=2)
+        if(nvals.eq.0) call safestop(5)
         yvals = yvals / n0_norm / zeff
         xvals = xvals / xvals(nvals) ! normalize rho
         call rho_to_psi(nvals, xvals, xvals)
@@ -403,8 +439,11 @@ subroutine define_profiles
      case(10)
         ! Read in corsica (10^20 m^-3 vs Psi)
         nvals = 0
-        call read_ascii_column('corsica', xvals, nvals, skip=26, icol=4)
-        call read_ascii_column('corsica', yvals, nvals, skip=26, icol=8)
+        call read_ascii_column('corsica', xvals, nvals, icol=4, &
+          read_until='profile data:', skip=2)
+        call read_ascii_column('corsica', yvals, nvals, icol=8, &
+          read_until='profile data:', skip=2)
+        if(nvals.eq.0) call safestop(5)
         yvals = yvals * 1e14 / n0_norm / zeff
 
      case(20)
@@ -446,6 +485,7 @@ subroutine define_profiles
   ! define rotation profile
   ! ~~~~~~~~~~~~~~~~~~~~~~~
   if(irot.ne.0) then
+     ierr = 0
      select case(iread_omega)
 
      case(1)
@@ -453,6 +493,7 @@ subroutine define_profiles
         nvals = 0
         call read_ascii_column('profile_omega', xvals, nvals, icol=1)
         call read_ascii_column('profile_omega', yvals, nvals, icol=2)
+        if(nvals.eq.0) call safestop(5)
         yvals = 1000.* yvals / &
              (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm)
         
@@ -460,6 +501,7 @@ subroutine define_profiles
         ! Read in rad/sec
         call read_ascii_column('dtrot.xy', xvals, nvals, skip=3, icol=1)
         call read_ascii_column('dtrot.xy', yvals, nvals, skip=3, icol=7)
+        if(nvals.eq.0) call safestop(5)
         yvals = yvals / &
              (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm)
 
@@ -468,6 +510,7 @@ subroutine define_profiles
         nvals = 0
         call read_ascii_column('profile_vphi', xvals, nvals, icol=1)
         call read_ascii_column('profile_vphi', yvals, nvals, icol=2)
+        if(nvals.eq.0) call safestop(5)
         yvals = yvals / &
              (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm) &
              / rzero
@@ -475,8 +518,9 @@ subroutine define_profiles
      case(4)
         ! Read in rad/sec vs Rho (sqrt Phi)
         nvals = 0
-        call read_ascii_column('profile_omega_rho_0', xvals, nvals, icol=1)
-        call read_ascii_column('profile_omega_rho_0', yvals, nvals, icol=2)
+        call read_ascii_column('profile_omega_rho_0',xvals,nvals,icol=1)
+        call read_ascii_column('profile_omega_rho_0',yvals,nvals,icol=2)
+        if(nvals.eq.0) call safestop(5)
         yvals = yvals / &
              (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm)
         xvals = xvals / xvals(nvals) ! normalize rho
