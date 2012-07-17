@@ -5193,7 +5193,7 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
                  ylog=ylog, xlog=xlog, absolute_value=absolute, $
                  power_spectrum=power_spectrum, per_length=per_length, $
                  growth_rate=growth_rate, bw=bw, nolegend=nolegend, $
-                 cgs=cgs,mks=mks,linestyle=ls, color=co
+                 cgs=cgs,mks=mks,linestyle=ls, color=co, outfile=outfile
 
   if(n_elements(filename) eq 0) then filename='C1.h5'
 
@@ -5303,6 +5303,16 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
             linstyle=ls
       endelse
   endelse
+      if(n_elements(outfile) eq 1) then begin
+         openw,ifile,outfile,/get_lun
+        if(keyword_set(growth_rate)) then begin
+         n = min([n_elements(tdata), n_elements(data)])
+         printf,ifile,format='(2E16.6)',transpose([[tdata(1:n-1)],[data(1:n-1)]])
+        endif else begin
+         printf,ifile,format='(2E16.6)',transpose([[tdata],[data]])
+        endelse
+         free_lun, ifile
+      endif
 end
 
 
