@@ -3846,6 +3846,7 @@ subroutine ludefphi_n(itri)
      bsource => q4_vec
      pp_i = pe_i
      ppe_i = pe_i
+     maxk = vecsize_phi
   else
      bb1 => s1_mat
      bb0 => d1_mat
@@ -3866,9 +3867,12 @@ subroutine ludefphi_n(itri)
      else
         ppe_i = p_i
      end if
+     maxk = numvar
+     if(imp_bf.eq.1 .and. numvar.ge.2) maxk = maxk + 1
+     if(ipressplit.ne.0 .and. numvar.ge.3) maxk = maxk - 1
+     if(jadv.eq.0 .and. i3d.eq.1) maxk = maxk + 1
   endif
 
-  maxk = vecsize_phi
   ieq(1) = psi_i
   ieq(2) =  bz_i
   if(ipressplit.eq.0 .and. numvar.ge.3) then
@@ -3877,16 +3881,16 @@ subroutine ludefphi_n(itri)
 
   ! add bf equation and e equations
   if(imp_bf.eq.1) then
-    if(jadv.eq.0 .and. i3d.eq.1) then
-     ieq(maxk-1) = bf_i
-     ieq(maxk)   = e_i
-    else
-     ieq(maxk) = bf_i
-    endif
+     if(jadv.eq.0 .and. i3d.eq.1) then
+        ieq(maxk-1) = bf_i
+        ieq(maxk)   = e_i
+     else
+        ieq(maxk) = bf_i
+     endif
   else
-    if(jadv.eq.0 .and. i3d.eq.1) then
-     ieq(maxk) = e_i
-    endif
+     if(jadv.eq.0 .and. i3d.eq.1) then
+        ieq(maxk) = e_i
+     endif
   endif
 
   imask = 1

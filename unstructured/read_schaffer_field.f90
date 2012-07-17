@@ -34,15 +34,23 @@ contains
     if(rank.eq.0) then 
        open(ifile, file=filename, status='old', action='read', err=200)
 
-       do i=1, header_lines
+       do
+          read(ifile, '(A)', err=200, end=200) dummy
+          if(dummy.eq.' %PROBE_G:') goto 90
+       end do
+       goto 200
+90     continue
+       do i=1, header_lines-1
           read(ifile,*) dummy
        end do
+       print *, 'last line = ', dummy
 
        ! determine number of R's, Z's, and Phi's
        nz = 1
        nr = 1
        nphi = 1
        read(ifile,'(3F20.11)') phi0, r0, z0 
+       print *, 'phi0, r0, z0: ', phi0, r0, z0
        do
           ! read line
           read(ifile,'(3F20.11)',end=100) phi1, r1, z1 
@@ -99,9 +107,16 @@ contains
        ! position read at start of file again
        rewind(ifile,err=2000)
 
-       do i=1, header_lines 
+       do
+          read(ifile, '(A)', err=2000, end=2000) dummy
+          if(dummy.eq.' %PROBE_G:') goto 900
+       end do
+       goto 2000
+900    continue
+       do i=1, header_lines-1
           read(ifile,*) dummy
        end do
+       print *, 'last line = ', dummy
 
        do k=1, nphi
           do j=1, nz
