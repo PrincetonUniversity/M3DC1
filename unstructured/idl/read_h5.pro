@@ -2868,6 +2868,28 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        symbol = '!8u!D!7h!N!X'
        d = dimensions(/v0, _EXTRA=extra)
 
+   endif else if(strcmp('omtest', name, /fold_case) eq 1) then begin
+
+       v_omega = read_field('v_omega', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, linear=linear, $
+                        rrange=xrange, zrange=yrange)
+       v_k_n = read_field('v_k_n', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, linear=linear, $
+                        rrange=xrange, zrange=yrange)
+       i = read_field('i', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, linear=linear, $
+                        rrange=xrange, zrange=yrange)
+
+         
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+
+       data = v_omega + i*v_k_n/r^2
+       
+       symbol = '!7X!D!6test!N!X'
+       d = dimensions(t0=-1, _EXTRA=extra)
+
 
    ;===========================================
    ; perpendicular flow v.(B x grad(psi))
