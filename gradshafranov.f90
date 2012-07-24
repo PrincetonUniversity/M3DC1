@@ -2256,7 +2256,8 @@ subroutine calc_electron_pressure(psi0, pe, x, z)
   psii(2:6) = real(psi0(2:6))/(psilim - psimin)
 
   if(allocated(te_spline%y)) then
-     if(magnetic_region(psi0,x,z).ne.0) psii(1) = 1.
+!     if(magnetic_region(psi0,x,z).ne.0) psii(1) = 1.
+     if(magnetic_region(psi0,x,z).eq.2) psii(1) = 2. - psii(1)
 
      call evaluate_spline(te_spline, psii(1),te0,tep,tepp)
      call calc_density(psi0, n0, x, z)

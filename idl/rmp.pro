@@ -2,7 +2,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
                    psi_val=psi_val, ntor=ntor, label=label, psi0=psi0, i0=i0, $
                    m_val=m_val, phase=phase, overplot=overplot, $
                    linestyle=linestyle, outfile=outfile, bmnfile=bmnfile, $
-                   bmncdf=bmncdf
+                   bmncdf=bmncdf, rhs=rhs
 
    print, 'Drawing schaffer plot'
 
@@ -180,8 +180,8 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
            end
            
            if(n_elements(outfile) ne 0) then begin
-               printf, ifile, format='(I5,7F12.6)', m[k], abs(d[k,i]), $
-                 atan(imaginary(d[k,i]),real_part(d[k,i])), $
+               printf, ifile, format='(I5,7F12.6)', m[j], abs(d[j,i]), $
+                 atan(imaginary(d[j,i]),real_part(d[j,i])), $
                  interpolate(nflux, indices[i]), $
                  interpolate(q, indices[i]), $
                  interpolate(deriv(nflux, q), indices[i]), $
@@ -213,7 +213,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
      ccolor=!d.table_size-1, label=label, $
      _EXTRA=extra, xsize=xsize
 
-   oplot, -ntor*q, y, linestyle=2, color=!d.table_size-1
+   oplot, ntor*q, y, linestyle=2, color=!d.table_size-1
 end
 
 pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $

@@ -1265,12 +1265,15 @@ function read_raw_field, name, time, mesh=mesh, filename=filename, time=t
    return, field._data
 end
 
-function read_lcfs, axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra
-   s = read_scalars(_EXTRA=extra)
+function read_lcfs, axis=axis, xpoint=xpoint, flux0=flux0, $
+                    filename=filename, slice=slice
 
-   t0 = get_slice_time(_EXTRA=extra)
+   s = read_scalars(filename=filename)
 
-   dum = min(s.time._data - t0, i, /abs)
+   t0 = get_slice_time(filename=filename, slice=slice)
+
+   tmp = s.time._data[*] - t0[0]
+   dum = min(tmp, i, /abs)
 
    xpoint = fltarr(2)
    axis = fltarr(2)
@@ -1354,6 +1357,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
    if(hdf5_file_test(filename) eq 0) then return, 0
 
+   version = read_parameter("version", filename=filename)
    nt = read_parameter("ntime", filename=filename)
    nv = read_parameter("numvar", filename=filename)
    itor = read_parameter("itor", filename=filename)
@@ -1486,6 +1490,14 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         xrange=xrange, yrange=yrange, mask=mask, $
                         phi=phi0_rad)
            symbol = translate(name, units=d, itor=itor)
+
+           if(version lt 5 and isubeq eq 1 and $
+              ((strcmp('te', name, /fold_case) eq 1) or $
+               (strcmp('te_i', name, /fold_case) eq 1))) then begin
+               zeff = read_parameter('zeff',filename=filename)
+               data = data / zeff
+               print, 'Correcting bug in linear Te for version < 4'
+           end
        endelse
 
        
@@ -2473,6 +2485,36 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        symbol = '!8K!X'
        d = dimensions(/v0, /n0, b0=-1, _EXTRA=extra)
+
+   ;==========================================================
+   ; v_K (the K in v = r^2 omega grad(phi) + (K/n) B)
+   ;==========================================================
+   endif else if(strcmp('v_K_n', name, /fold_case) eq 1) then begin
+
+       omega = read_field('omega', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       u = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       i = read_field('I', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+
+       data = 1./sqrt(s_bracket(psi,psi,x,y)) * $
+         (r^2*s_bracket(u,psi,x,y) + a_bracket(chi,psi,x,y)/r)
+
+       symbol = '!8K!6/!8n!X'
+       d = dimensions(/v0, b0=-1, _EXTRA=extra)
 
    ;==========================================================
    ; ve_omega (the omega in v = r^2 omega grad(phi) + (K/n) B)
@@ -3792,15 +3834,15 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        psi0 = read_field('psi',x,y,t,filename=filename,points=pts,$
                          /equilibrium,_EXTRA=extra)
        i0 = read_field('I',x,y,t,filename=filename,points=pts,$
-                         /equilibrium,_EXTRA=extra)
-       Te0 = read_field('Te',x,y,t,filename=filename,points=pts,$
                        /equilibrium,_EXTRA=extra)
+       Te0 = read_field('Te',x,y,t,filename=filename,points=pts,$
+                        /equilibrium,_EXTRA=extra)
        psi = read_field('psi',x,y,t,filename=filename,points=pts,$
-                       slice=time,/linear,complex=icomplex,_EXTRA=extra)
+                        slice=time,/linear,complex=icomplex,_EXTRA=extra)
        i = read_field('I',x,y,t,filename=filename,points=pts,$
-                       slice=time,/linear,complex=icomplex,_EXTRA=extra)
+                      slice=time,/linear,complex=icomplex,_EXTRA=extra)
        f = read_field('f',x,y,t,filename=filename,points=pts,$
-                       slice=time,/linear,complex=icomplex,_EXTRA=extra)
+                      slice=time,/linear,complex=icomplex,_EXTRA=extra)
        Te1 = read_field('Te',x,y,t,filename=filename,points=pts,$
                        slice=time,/linear,complex=icomplex,_EXTRA=extra)
 
@@ -3821,8 +3863,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        b0 = sqrt(gradpsi^2 + i0^2)/r
        if(icomplex eq 1) then begin
-           b1b0 = complex(0.,ntor)*(s_bracket(psi,psi0,x,y)/r^2 $
-                   + i*i0/r^2 $
+ ;            b1b0 = complex(0.,ntor)*(s_bracket(psi,psi0,x,y)/r^2 $
+ ;                    + i*i0/r^2 $
+ ;                    - complex(0.,ntor)*a_bracket(f,psi0,x,y)/r) / b0
+           b1b0 = (s_bracket(psi0,psi,x,y)/r^2 + i0*i/r^2 $
                    - complex(0.,ntor)*a_bracket(f,psi0,x,y)/r) / b0
            b1 = b1b0 + xi*s_bracket(b0,psi0,x,y)/gradpsi
            b2 = b1*conj(b1) 
@@ -4050,6 +4094,9 @@ function path_at_flux, psi,x,z,t,flux,breaks=breaks,refine=refine,$
            xy = xy_new
        endif else begin
            print, 'excluding all points!'
+           print, 'axis = ', axis
+           print, 'psilim = ', psilim
+           stop
        endelse
    endif
   
@@ -4810,7 +4857,8 @@ pro plot_lcfs, psi, x, z, psival=psival,_EXTRA=extra
     end
 
     ; if psival not passed, choose limiter value
-    if(n_elements(psival) eq 0) then psival = lcfs(psi,x,z,_EXTRA=extra)
+    if(n_elements(psival) eq 0) then $
+      psival = lcfs(psi,x,z,_EXTRA=extra)
 
     ; plot contour
     loadct, 12
@@ -5369,7 +5417,7 @@ pro plot_pol_velocity, time,  maxval=maxval, points=points, $
     ytitle=make_label('!8Z!X', /l0, _EXTRA=extra), $
     title=title, subtitle=maxstr
 
-  if(keyword_set(lcfs)) then plot_lcfs, points=200, _EXTRA=extra
+  if(keyword_set(lcfs)) then plot_lcfs, points=200, slice=time, _EXTRA=extra
 end
 
 
@@ -5461,7 +5509,7 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
    if(n_elements(range) eq 0) then begin
        ; if range not provided, use all flux within lcfs
        range = fltarr(sz[1],2)
-       for k=0, sz[1]-1 do range[k,*] = [psival, max(psi[k,*,*])]
+       for k=0, sz[1]-1 do range[k,*] = [psival, flux0]
    endif else if(n_elements(range) eq 2) then begin
        oldrange = range
        range = fltarr(sz[1],2)
@@ -5522,6 +5570,7 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
 
                ; calculate dt
                dt = ds*g
+               if(dpsi lt 0) then dt = -dt
 
                pest_angle = fltarr(n_elements(dt))
                pest_angle[0] = 0.
@@ -5533,7 +5582,8 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
                pest_angle = pest_angle - interpolate(pest_angle,index)
 
                ; rescale pest_angle
-               q[k,p] = (max(pest_angle)-min(pest_angle))/(2.*!pi)
+               q[k,p] = (pest_angle[n_elements(pest_angle)-1]-pest_angle[0]) $
+                 /(2.*!pi)
                pest_angle = pest_angle/q[k,p]
 ;               qval = interpol(q, qflux, flux[k,p])
 ;               pest_angle = pest_angle/qval
@@ -5544,7 +5594,9 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
            endelse
        end
 
-       if(dpsi gt 0) then dV[k,*] = -dV[k,*]
+       if(dpsi gt 0) then begin
+           dV[k,*] = -dV[k,*]
+       end
 
        for i=1, n_elements(flux)-1 do $
          volume[k,i] = volume[k,i-1] $
@@ -6114,6 +6166,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
        endif
 
        if(keyword_set(lcfs)) then begin
+           print, 'passing slice = ', time[0]
            plot_lcfs, points=p, slice=time[0], $
              _EXTRA=ex
        endif
@@ -6151,6 +6204,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
                        color=colors, names=names, bins=bins, linear=linear, $
                        xlog=xlog, ylog=ylog, overplot=overplot, fac=fac, $
                        lcfs=lcfs, normalized_flux=norm, points=pts, $
+                       linestyle=ls, $
                        minor_radius=minor_radius, smooth=sm, t=t, rms=rms, $
                        bw=bw, srnorm=srnorm, last=last, mks=mks, cgs=cgs, $
                        q_contours=q_contours, rho=rho, integrate=integrate, $
@@ -6197,11 +6251,11 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
    if(nfiles gt 1) then begin
        if(n_elements(names) eq 0) then names=filename
        if(keyword_set(bw)) then begin
-           ls = indgen(nfiles)
+           if(n_elements(ls) eq 0) then ls = indgen(nfiles)
            colors = replicate(color(0,1), nfiles)
        endif else begin
            if(n_elements(colors) eq 0) then colors = colors(nfiles)
-           ls = replicate(0,nfiles)
+           if(n_elements(ls) eq 0) then ls = replicate(0,nfiles)
        endelse
        if(n_elements(time) eq 1) then time = replicate(time,nfiles)
        if(n_elements(multiply_flux) eq 1) then $
@@ -6320,17 +6374,17 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
    end
 
    if(keyword_set(overplot)) then begin
-       oplot, flux, fa, color=colors, _EXTRA=extra
+       oplot, flux, fa, color=colors, linestyle=ls, _EXTRA=extra
    endif else begin
        if(n_elements(colors) eq 0) then begin
-           plot, flux, fa, xtitle=xtitle, $
+           plot, flux, fa, xtitle=xtitle, linestyle=ls, $
              ytitle=ytitle, title=title, xlog=xlog, ylog=ylog, $
              _EXTRA=extra
        endif else begin
-           plot, flux, fa, xtitle=xtitle, $
+           plot, flux, fa, xtitle=xtitle, linestyle=ls, $
              ytitle=ytitle, title=title, xlog=xlog, ylog=ylog, /nodata, $
              _EXTRA=extra
-           oplot, flux, fa, color=colors, _EXTRA=extra
+           oplot, flux, fa, color=colors, linestyle=ls, _EXTRA=extra
        endelse
    endelse
 

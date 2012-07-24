@@ -85,7 +85,7 @@ module m3dc1_nint
   vectype, dimension(MAX_PTS, OP_NUM) :: bf079, bf179, bft79
   vectype, dimension(MAX_PTS, OP_NUM) :: kap79, kar79, kax79
   vectype, dimension(MAX_PTS, OP_NUM) :: ps079, bz079, pe079, n079, &
-       ph079, vz079, ch079, p079, ne079
+       ph079, vz079, ch079, p079, ne079, pi079
   vectype, dimension(MAX_PTS, OP_NUM) :: pss79, bzs79
   vectype, dimension(MAX_PTS, OP_NUM) :: bzx79, psx79, bfx79
   vectype, dimension(MAX_PTS, OP_NUM) :: pstx79, bztx79, bftx79
@@ -567,6 +567,7 @@ contains
           pet79 = pe179
           pt79  =  p179
        endif
+       pi079 = p079 - pe079
        pit79 = pt79 - pet79
     endif
     
