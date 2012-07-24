@@ -218,7 +218,7 @@ Program Reducedquintic
      
 !     call updatenormalcurvature
      call write_normlcurv
-     call safestop(2)
+     call safestop(0)
      
   case(2)
     call create_field(temporary_field)
@@ -248,7 +248,7 @@ Program Reducedquintic
 !    call updatenormalcurvature
     print *, 'calling write_normlcurv'
     call write_normlcurv
-    call safestop(2)
+    call safestop(0)
 
   end select
 #endif
@@ -321,7 +321,7 @@ Program Reducedquintic
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done time loop."
 
-  call safestop(2)
+  call safestop(0)
 
 end Program Reducedquintic
 
@@ -554,6 +554,7 @@ subroutine derived_quantities(ilin)
 
   implicit none
 
+  type(field_type) :: psi_temp
   integer, intent(in) :: ilin    ! 0 for equilibrium fields, 1 for perturbed
 
   real :: tstart, tend
@@ -564,7 +565,15 @@ subroutine derived_quantities(ilin)
   ! ~~~~~~~~~
   if(myrank.eq.0 .and. iprint.ge.2) print *, "  finding lcfs"
   if(eqsubtract.eq.1) then
-     if(ntime.eq.ntime0) call lcfs(psi_field(0))
+     if(linear.eq.1) then 
+        if(ntime.eq.ntime0) call lcfs(psi_field(0))
+     else
+        call create_field(psi_temp)
+        psi_temp = psi_field(0)
+        call add_field_to_field(psi_temp, psi_field(1))
+        call lcfs(psi_temp)
+        call destroy_field(psi_temp)
+     endif
   else
      call lcfs(psi_field(1))
   endif

@@ -4,7 +4,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 4
+  integer, parameter :: version = 5
 
   integer :: i3d
 #ifdef USECOMPLEX
@@ -279,6 +279,7 @@ module basic
   integer :: iread_ne      
   integer :: iread_te
   integer :: iread_neo      ! 1 = read velocity profiles from NEO output
+  integer :: ineo_subtract_diamag ! 1 = subtract v* from input v profile
   integer :: iwrite_restart ! 0 = don't write restart files
 
   ! adaptation options

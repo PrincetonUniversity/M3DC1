@@ -132,6 +132,9 @@ subroutine set_defaults
   call add_var_int("iread_te", iread_te, 0, "", input_grp)
   call add_var_int("iread_neo", iread_neo, 0, &
        "Read velocity data from NEO output", input_grp)
+  call add_var_int("ineo_subtract_diamag", ineo_subtract_diamag, 0, &
+       "Subtract diamag. term from input vel. when reading NEO vel.", &
+       input_grp)
 
   ! Transport parameters
   call add_var_int("ivisfunc", ivisfunc, 0, "", transp_grp)

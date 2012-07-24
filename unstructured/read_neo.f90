@@ -93,7 +93,8 @@ contains
        open(ifile, file='out.neo.expnorm',action='read',status='old',err=100)
        
        do i=1, nr
-          read(ifile, '(7E16.8)') dum, anorm, dum, dum, dum, vnorm(i), dum
+          read(ifile, '(7E16.8)', err=100, end=100) &
+               dum, anorm, dum, dum, dum, vnorm(i), dum
        end do
 
        goto 101
@@ -129,27 +130,27 @@ contains
     ntheta = 0
 
     if(rank.eq.0) then
-       print *, 'Reading neo input'
+       print *, 'Reading neo grid'
 
        open(ifile, file='out.neo.grid', action='read', status='old', err=100)
 
-       read(ifile, *) nspecies
-       read(ifile, *) ! n_energy
-       read(ifile, *) ! n_xi
-       read(ifile, *) ntheta
+       read(ifile, *, err=100, end=100) nspecies
+       read(ifile, *, err=100, end=100) ! n_energy
+       read(ifile, *, err=100, end=100) ! n_xi
+       read(ifile, *, err=100, end=100) ntheta
        
        allocate(theta(ntheta))
 
        do i=1, ntheta
-          read(ifile, *) theta(i)
+          read(ifile, *, err=100, end=100) theta(i)
        end do
          
-       read(ifile, *) nr
+       read(ifile, *, err=100, end=100) nr
        
        allocate(r(nr))
 
        do i=1, nr
-          read(ifile, *) r(i)
+          read(ifile, *, err=100, end=100) r(i)
        end do
 
        goto 101
@@ -207,7 +208,7 @@ contains
        allocate(buffer(6*mtheta*nspecies))
 
        do i=1, nr
-          read(ifile, *) buffer
+          read(ifile, *, err=100, end=100) buffer
           do j=1, nspecies
              pos = 6*mtheta*(j-1)+1
              vpol_c(:,i,j) = buffer(pos+mtheta*2:pos+mtheta*3-1)

@@ -3259,15 +3259,15 @@ subroutine set_neo_vel
 
   integer :: i, j, itri, nelms, ier
 
-  type(field_type) :: vz_vec, u_f, chi_f
+  type(field_type) :: vz_vec, u_f, chi_f, diamag
   type(vector_type) :: vp_vec
   type(matrix_type) :: vpol_mat
   vectype, dimension(dofs_per_element, dofs_per_element, 2, 2) :: temp
-  vectype, dimension(dofs_per_element) :: temp2
+  vectype, dimension(dofs_per_element) :: temp2, temp4
   vectype, dimension(dofs_per_element, 2) :: temp3
 
   real, dimension(MAX_PTS) :: theta, vtor, vpol, psival
-  vectype, dimension(MAX_PTS) :: vz, vp 
+  vectype, dimension(MAX_PTS) :: vz, vp, dia
 
   integer, dimension(dofs_per_element) :: imask_vor, imask_chi
   integer, dimension(MAX_PTS) :: iout
@@ -3275,6 +3275,7 @@ subroutine set_neo_vel
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Setting velocity from NEO data"
 
+     if(db.ne.0. .and. ineo_subtract_diamag.eq.1) call create_field(diamag)
   call create_field(vz_vec)
   call create_vector(vp_vec, 2)
   call associate_field(u_f, vp_vec, 1)
@@ -3289,6 +3290,15 @@ subroutine set_neo_vel
      call define_element_quadrature(itri,int_pts_main,5)
      call define_fields(itri,0,1,0)
      call eval_ops(itri, psi_field(0), ps079)
+     if(db.ne.0. .and. ineo_subtract_diamag.eq.1) then 
+        call eval_ops(itri, den_field(0), n079)
+        call eval_ops(itri, p_field(0), p079)
+        call eval_ops(itri, pe_field(0), pe079)
+        pi079 = p079 - pe079
+
+        dia = db*(pi079(:,OP_DR)*ps079(:,OP_DR)+pi079(:,OP_DZ)*ps079(:,OP_DZ))&
+             / n079(:,OP_1)
+     end if
 
      theta = atan2(z_79-zmag,x_79-xmag)
      psival = -(ps079(:,OP_1) - psimin)
@@ -3296,9 +3306,12 @@ subroutine set_neo_vel
      vz = vtor / (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm)
      vp = vpol / (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm)
 
-     ! NEO coordinates are (r, theta, phi) --> theta = -grad(r)xgrad(phi)
-     ! if grad(psi).grad(r) > 0 then vpol is opposite direction to Bpol
-     if(psimin.lt.psibound) vp = -vp
+     ! NEO coordinates are (r, theta, phi_neo) = (r, phi, theta)
+     ! --> theta = grad(r)xgrad(phi)
+     ! if grad(psi).grad(r) < 0 then vpol is opposite direction to Bpol
+     if(psimin.gt.psibound) vp = -vp
+     ! phi_neo = -phi
+     vz = -vz
 
      temp79e = sqrt((ps079(:,OP_DR)**2 + ps079(:,OP_DZ)**2)*ri2_79)
 
@@ -3308,13 +3321,16 @@ subroutine set_neo_vel
            vz(i) = 0.
            vp(i) = 0.
            iout(i) = 1
-        end if
+        endif
      end do
 
      where(iout.eq.1 .or. abs(temp79e).lt.1e-2)
         temp79f = 0.
+        dia = 0.
      elsewhere
         temp79f = 1./temp79e
+        dia = dia / &
+             (ps079(:,OP_DR)*ps079(:,OP_DR) + ps079(:,OP_DZ)*ps079(:,OP_DZ))
      end where
 
      call get_vor_mask(itri, imask_vor)
@@ -3375,23 +3391,43 @@ subroutine set_neo_vel
                 int5(ri3_79,temp79f,vp,mu79(:,OP_DZ,i),ps079(:,OP_DR)) - &
                 int5(ri3_79,temp79f,vp,mu79(:,OP_DR,i),ps079(:,OP_DZ))
         endif
+
+        ! diamagnetic term
+        if(db.ne.0. .and. ineo_subtract_diamag.eq.1) then
+           temp4(i) = int2(mu79(:,OP_1,i), dia)
+        end if
      end do
 
      call insert_block(vpol_mat, itri, 1, 1, temp(:,:,1,1), MAT_ADD)
      call insert_block(vpol_mat, itri, 1, 2, temp(:,:,1,2), MAT_ADD)
      call insert_block(vpol_mat, itri, 2, 1, temp(:,:,2,1), MAT_ADD)
      call insert_block(vpol_mat, itri, 2, 2, temp(:,:,2,2), MAT_ADD)
-     call vector_insert_block(vp_vec, itri, 1, temp3(:,1), MAT_ADD)
-     call vector_insert_block(vp_vec, itri, 2, temp3(:,2), MAT_ADD)
-     call vector_insert_block(vz_vec%vec, itri, 1, temp2(:), MAT_ADD)
+     call vector_insert_block(vp_vec, itri, 1, temp3(:,1), VEC_ADD)
+     call vector_insert_block(vp_vec, itri, 2, temp3(:,2), VEC_ADD)
+     call vector_insert_block(vz_vec%vec, itri, 1, temp2(:), VEC_ADD)
+
+     if(db.ne.0. .and. ineo_subtract_diamag.eq.1) then
+        call vector_insert_block(diamag%vec, itri, 1, temp4(:), VEC_ADD)
+     end if
   end do
   call sum_shared(vz_vec%vec)
   call sum_shared(vp_vec)
+  if(db.ne.0. .and. ineo_subtract_diamag.eq.1) call sum_shared(diamag%vec)
 
   ! solve vz
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving vz..."
   call newsolve(mass_mat_lhs%mat,vz_vec%vec,ier)
-  vz_field(0) = vz_vec
+
+  ! add neoclassical rotation to base rotation
+  call add_field_to_field(vz_field(0), vz_vec)
+
+  ! subtract diamagnetic term from rotation (because neo is adding this in)
+  if(db.ne.0. .and. ineo_subtract_diamag.eq.1) then
+     ! solve diamagnetic term
+     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving diamag..."
+     call newsolve(mass_mat_lhs%mat,diamag%vec,ier)
+     call add_field_to_field(vz_field(0), diamag, -1.)
+  end if
 
   ! solve vpol
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving vpol..."
@@ -3404,6 +3440,7 @@ subroutine set_neo_vel
   call destroy_field(vz_vec)
   call destroy_vector(vp_vec)
   call destroy_mat(vpol_mat)
+  if(db.ne.0. .and. ineo_subtract_diamag.eq.1) call destroy_field(diamag)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, " Done calculating velocity"
 end subroutine set_neo_vel
