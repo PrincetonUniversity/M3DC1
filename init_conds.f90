@@ -3296,6 +3296,7 @@ subroutine set_neo_vel
         call eval_ops(itri, pe_field(0), pe079)
         pi079 = p079 - pe079
 
+        ! zeff does not appear here because db includes zeff
         dia = db*(pi079(:,OP_DR)*ps079(:,OP_DR)+pi079(:,OP_DZ)*ps079(:,OP_DZ))&
              / n079(:,OP_1)
      end if
