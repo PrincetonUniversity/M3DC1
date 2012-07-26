@@ -2371,7 +2371,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        endif else if(ivform eq 1) then begin
            data = v
        endif
-       symbol = '!7x!X'
+       symbol = '!7X!X'
        d = dimensions(t0=-1, _EXTRA=extra)
 
    ;===========================================
@@ -2658,32 +2658,44 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        d = dimensions(t0=-1, _EXTRA=extra)
 
    ;===========================================
-   ; ExB frequency
+   ; diamagnetic frequency
    ;===========================================
-   endif else if(strcmp('omega_ExB', name, /fold_case) eq 1) then begin
+   endif else if(strcmp('omega_*i', name, /fold_case) eq 1) then begin
 
        db = read_parameter('db', filename=filename, _EXTRA=extra)
        print, 'db = ', filename, db
 
-       omega = read_field('omega', x, y, t, slices=time, mesh=mesh, $
-                      filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange)
        p = read_field('p', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange)
        pe = read_field('pe', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange)
-       den = read_field('den', x, y, t, slices=time, mesh=mesh, $
-                      filename=filename, points=pts, $
-                      rrange=xrange, zrange=yrange)
        psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange)
+       den = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
 
-       pi = p - pe
+       data = db*s_bracket(p-pe,psi,x,y)/s_bracket(psi,psi,x,y) / den
 
-       data = omega - db*s_bracket(pi,psi,x,y)/s_bracket(psi,psi,x,y) / den
+       symbol = '!7x!6!D*!N!X'
+       d = dimensions(t0=-1, _EXTRA=extra)
+
+   ;===========================================
+   ; ExB frequency
+   ;===========================================
+   endif else if(strcmp('omega_ExB', name, /fold_case) eq 1) then begin
+
+       omega = read_field('v_omega', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       w_star_i =  read_field('omega_*i', x, y, t, slices=time, mesh=mesh, $
+                              filename=filename, points=pts, $
+                              rrange=xrange, zrange=yrange)
+       
+       data = omega - w_star_i
 
        symbol = '!7x!6!DE!9X!6B!N!X'
        d = dimensions(t0=-1, _EXTRA=extra)
@@ -5606,7 +5618,7 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
                ; rescale pest_angle
                q[k,p] = (pest_angle[n_elements(pest_angle)-1]-pest_angle[0]) $
                  /(2.*!pi)
-               pest_angle = pest_angle/q[k,p]
+               pest_angle = pest_angle/abs(q[k,p])
 ;               qval = interpol(q, qflux, flux[k,p])
 ;               pest_angle = pest_angle/qval
 

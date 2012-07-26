@@ -79,12 +79,14 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        n_id = ncdf_dimdef(id, 'npsi', n_elements(nflux))
        m_id = ncdf_dimdef(id, 'mpol', n_elements(m))
        psi_var = ncdf_vardef(id, 'psi', [n_id], /float)
+       q_var = ncdf_vardef(id, 'q', [n_id], /float)
        m_var = ncdf_vardef(id, 'm', [m_id], /short)
        bmn_real_var = ncdf_vardef(id, 'bmn_real', [m_id,n_id], /float)
        bmn_imag_var = ncdf_vardef(id, 'bmn_imag', [m_id,n_id], /float)
        ncdf_control, id, /endef
        ncdf_varput, id, 'psi', reform(nflux[0,*])
        ncdf_varput, id, 'm', m
+       ncdf_varput, id, 'q', abs(reform(q))
        ncdf_varput, id, 'bmn_real', real_part(reform(d[0,*,*]))
        ncdf_varput, id, 'bmn_imag', imaginary(reform(d[0,*,*]))
        ncdf_close, id
@@ -132,12 +134,12 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    if (n_elements(psi_val) ne 0) then begin
        indices = interpol(findgen(n_elements(nflux)), nflux, psi_val)
    endif else if(n_elements(q_val) ne 0) then begin
-       indices = interpol(findgen(n_elements(q)), q, q_val)
+       indices = interpol(findgen(n_elements(q)), abs(q), q_val)
    endif
 
    if(n_elements(indices) ne 0) then begin
-       print, q[fix(indices)]
-       print, q[fix(indices+1)]
+       print, abs(q[fix(indices)])
+       print, abs(q[fix(indices+1)])
 
        b = complexarr(n_elements(angle), n_elements(indices))
        for i=0, n_elements(angle)-1 do begin
@@ -166,7 +168,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
            dum = min(m-q_val[i]*ntor, j, /abs)
            dum = min(m+q_val[i]*ntor, k, /abs)
 
-           print, 'q, Psi = ', interpolate(q,indices[i]), $
+           print, 'q, Psi = ', interpolate(abs(q),indices[i]), $
              interpolate(nflux, indices[i])
            print, 'Resonant field: m (mag, phase) = ', m[j], abs(d[j,i]), $
              atan(imaginary(d[j,i]),real_part(d[j,i]))
@@ -183,8 +185,8 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
                printf, ifile, format='(I5,7F12.6)', m[j], abs(d[j,i]), $
                  atan(imaginary(d[j,i]),real_part(d[j,i])), $
                  interpolate(nflux, indices[i]), $
-                 interpolate(q, indices[i]), $
-                 interpolate(deriv(nflux, q), indices[i]), $
+                 interpolate(abs(q), indices[i]), $
+                 interpolate(deriv(nflux, abs(q)), indices[i]), $
                  interpolate(area, indices[i]), $
                  interpolate(deriv(nflux, flux), indices[i])
            end
