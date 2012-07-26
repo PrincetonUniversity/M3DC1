@@ -253,12 +253,12 @@ subroutine set_defaults
   call add_var_double("ddt", ddt, 0., "", time_grp)
 
   ! variable_timestep parameters
-  dtmin = 4.0
-  dtmax = 40.
-  dtkecrit = 0.      !lower timestep if ekin above this (1.e-6 typical)
-  dtgamma = 0.0      !lower timestep if dt*gamma above this (.02 typical)
-  dtfrac = .10       !max fractional change of timestep in 1 cycle
 
+  call add_var_double("dtmin",dtmin,4.0,"minimum time step",time_grp)
+  call add_var_double("dtmax",dtmax,40.,"maximum time step",time_grp)
+  call add_var_double("dtkecrit",dtkecrit,0.0,"ekin limit on timestep",time_grp)
+  call add_var_double("dtgamma",dtgamma,0.0,"dt*gamma limit on time step",time_grp)
+  call add_var_double("dtfrac",dtfrac,0.1,"fractional change of time step",time_grp)
   
 
   ! Numerical methods
