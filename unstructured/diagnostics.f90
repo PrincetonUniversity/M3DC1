@@ -1146,7 +1146,7 @@ subroutine lcfs(psi)
 
   ! daignostic output
   if(myrank.eq.0 .and. iprint.ge.1) then
-     if(iprint.ge.2) then
+     if(iprint.ge.1) then
         write(*,'(1A10,6A11)') 'psi at:', &
              'axis', 'wall', 'divertor', 'lim1', 'lim2', 'lcfs'
         write(*,'(1A10,1p6e11.3)') '',  &

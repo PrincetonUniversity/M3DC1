@@ -213,7 +213,7 @@ subroutine variable_timestep
   integer :: ierr
 !
 ! increase or decrease timestep based on kinetic energy and gamma_gr,
-! but limit change to fraction dtfrac and bound by dtmin and demax
+! but limit change to fraction dtfrac and bound by dtmin and dtmax
 !
   dtold = dt
   if(dtkecrit.eq.0 .or. dtgamma.eq.0) return
@@ -222,8 +222,10 @@ subroutine variable_timestep
 !
     if(ekin.lt.dtkecrit) then
        if(gamma_gr.gt.0) then
-          if(dt .gt.dtgamma/gamma_gr) then
+          if(dt .gt.dtgamma/abs(gamma_gr)) then
             dt = dtold/(1. + dtfrac)
+          else
+            dt = dtold*(1. + dtfrac)
           endif
        else
             dt = dtold*(1. + dtfrac)
@@ -233,10 +235,11 @@ subroutine variable_timestep
     endif
     dt = max(dt,dtmin)
     dt = min(dt,dtmax)
+    if(iprint.ge.1) write(*,1001) dtold,dt,gamma_gr,ekin
   endif
-  if(iprint.ge.1) print *,"dtold,dt,gamma_gr,ekin",dtold,dt,gamma_gr,ekin
   call MPI_bcast(dt,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
   
+ 1001 format("dtold,dt,gamma_gr,ekin",1p4e12.4)
 end subroutine variable_timestep
 
 
