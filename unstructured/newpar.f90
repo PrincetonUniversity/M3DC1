@@ -551,6 +551,7 @@ subroutine derived_quantities(ilin)
   use newvar_mod
   use diagnostics
   use sparse
+  use transport_coefficients
 
   implicit none
 
@@ -1144,6 +1145,7 @@ subroutine space(ifirstcall)
   use sparse
   use time_step
   use auxiliary_fields
+  use transport_coefficients
 
   implicit none
 
@@ -1186,8 +1188,9 @@ subroutine space(ifirstcall)
      call create_field(kappa_field)
      call create_field(visc_field)
      call create_field(visc_c_field)
-     call create_field(sigma_field)
-     call create_field(q_field)
+     if(density_source) call create_field(sigma_field)
+     if(momentum_source) call create_field(Fphi_field)
+     if(heat_source) call create_field(Q_field)
      call create_field(bf_field(0))
      call create_field(bf_field(1))
      if(ibootstrap.gt.0) call create_field(visc_e_field)

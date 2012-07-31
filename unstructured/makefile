@@ -109,7 +109,7 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o subp.o random.o spline.o \
 	m3dc1_nint.o vacuum_interface.o boundary.o \
 	metricterms_new.o two_fluid.o harned_mikic.o biharmonic.o \
 	electrostatic_potential.o newvar.o diagnostics.o \
-	read_schaffer_field.o \
+	read_schaffer_field.o neutral_beam.o \
 	coils.o coil_sets.o model.o \
 	gradshafranov.o transport.o \
 	auxiliary_fields.o  \

@@ -667,6 +667,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   use arrays
   use time_step
   use auxiliary_fields
+  use transport_coefficients
   
   implicit none
 
@@ -1021,7 +1022,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
 #endif
 
      ! sigma
-     if(ipellet.ge.1 .or. ionization.ge.1 .or. isink.gt.0) then
+     if(density_source) then
         do i=1, nelms
            call calcavector(i, sigma_field, dum(:,i))
         end do
@@ -1031,7 +1032,17 @@ subroutine output_fields(time_group_id, equilibrium, error)
      endif
 
      ! heat source
-     if(igaussian_heat_source.eq.1) then
+     if(momentum_source) then
+        do i=1, nelms
+           call calcavector(i, Fphi_field, dum(:,i))
+        end do
+        call output_field(group_id, "force_phi", real(dum), &
+             coeffs_per_element, nelms, error)
+        nfields = nfields + 1
+     endif
+
+     ! heat source
+     if(heat_source) then
         do i=1, nelms
            call calcavector(i, Q_field, dum(:,i))
         end do
