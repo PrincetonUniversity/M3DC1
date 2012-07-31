@@ -13,6 +13,9 @@ module basic
   integer, parameter :: icomplex = 0
 #endif
 
+  real, parameter :: c_light = 2.9979e10
+  real, parameter :: e_c = 4.8032e-10
+  real, parameter :: m_p = 1.6726e-24
   real, parameter :: me_mi = 1./1836.2
 
   logical :: print_help
@@ -21,6 +24,10 @@ module basic
   real :: b0_norm     ! magnetic field normalization (in Gauss)
   real :: l0_norm     ! length normalization (in centimeters)
   real :: n0_norm     ! density normalization (in cm^-3)
+  real :: v0_norm
+  real :: t0_norm
+  real :: p0_norm
+  real :: e0_norm
 
   ! transport coefficients
   real :: amu         ! incompressible viscosity
@@ -340,7 +347,7 @@ module arrays
   ! Arrays containing auxiliary variables
   type(field_type) :: jphi_field, vor_field, com_field
   type(field_type) :: resistivity_field, kappa_field
-  type(field_type) :: sigma_field, Q_field
+  type(field_type) :: sigma_field, Fphi_field, Q_field
   type(field_type) :: visc_field, visc_c_field, visc_e_field
 
   type(field_type) :: temporary_field

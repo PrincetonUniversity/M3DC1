@@ -899,6 +899,7 @@ subroutine axial_vel_nolin(trial, r4term)
   use basic
   use m3dc1_nint
   use metricterms_new
+  use transport_coefficients
 
   implicit none
 
@@ -932,6 +933,10 @@ subroutine axial_vel_nolin(trial, r4term)
           (v2vun(trial,vz079,ph079,n179) &
           +v2vs (trial,vz079,sig79))
   endif
+
+  if(momentum_source) then
+     r4term = r4term + dt*int3(r_79,trial(:,OP_1),fy79(:,OP_1))
+  end if
 
 end subroutine axial_vel_nolin
 
@@ -3465,6 +3470,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   use boundary_conditions
   use time_step
   use matrix_mod
+  use transport_coefficients
 
   implicit none
 
@@ -3520,9 +3526,10 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   endif
 
   if(idens_def.eq.1) then
-     if(ipellet.ge.1 .or. ionization.ge.1 .or. isink.gt.0) &
-          def_fields = def_fields + FIELD_SIG
+     if(density_source) def_fields = def_fields + FIELD_SIG
   endif
+  if(momentum_source) def_fields = def_fields + FIELD_F
+  if(heat_source) def_fields = def_fields + FIELD_Q
 
   if(gyro.eq.1 .or. amupar.ne.0 .or. kappar.ne.0) then
      def_fields = def_fields + FIELD_B2I
@@ -3531,7 +3538,6 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   if(numvar.ge.3 .or. ipres.eq.1) then
      if(hyper.eq.0.) def_fields = def_fields + FIELD_J
      if(hyperc.ne.0.) def_fields = def_fields + FIELD_VOR + FIELD_COM
-     if(igaussian_heat_source.ne.0) def_fields = def_fields + FIELD_Q
   end if
 
   if(integrator.eq.1 .and. ntime.gt.1) then

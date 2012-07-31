@@ -622,6 +622,14 @@ function translate, name, units=units, itor=itor
                  strcmp(name, 'sigma_i', /fold_case) eq 1) then begin
        units = dimensions(/n0,t0=-1)
        return, "!7r!X"
+   endif else if(strcmp(name, 'force_phi', /fold_case) eq 1 or $
+                 strcmp(name, 'force_phi_i', /fold_case) eq 1) then begin
+       units = dimensions(/p0, l0=-1)
+       return, "!8F!D!9p!N!X"
+   endif else if(strcmp(name, 'heat_source', /fold_case) eq 1 or $
+                 strcmp(name, 'heat_source_i', /fold_case) eq 1) then begin
+       units = dimensions(/p0, t0=-1)
+       return, "!8Q!X"
    endif else if(strcmp(name, 'kappa', /fold_case) eq 1 or $
                  strcmp(name, 'kappa_i', /fold_case) eq 1) then begin
        units = dimensions(/n0, l0=2, t0=-1)
@@ -1491,7 +1499,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         phi=phi0_rad)
            symbol = translate(name, units=d, itor=itor)
 
-           if(version lt 5 and isubeq eq 1 and $
+           if(version lt 5 and isubeq eq 1 and time ge 0 and $
               ((strcmp('te', name, /fold_case) eq 1) or $
                (strcmp('te_i', name, /fold_case) eq 1))) then begin
                zeff = read_parameter('zeff',filename=filename)

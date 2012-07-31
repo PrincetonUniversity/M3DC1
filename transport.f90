@@ -3,6 +3,9 @@ module transport_coefficients
 
   type(spline1d), private :: kappa_spline
 
+  logical :: density_source
+  logical :: momentum_source
+  logical :: heat_source
 
 contains
 
@@ -13,6 +16,7 @@ vectype function sigma_func(i)
   use basic
   use m3dc1_nint
   use diagnostics
+  use neutral_beam
 
   implicit none
 
@@ -55,6 +59,11 @@ vectype function sigma_func(i)
      temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
 
+  if(ibeam.eq.1) then 
+     temp79a = neutral_beam_deposition(x_79,z_79)
+     temp = temp + int2(mu79(:,OP_1,i),temp79a)
+  end if
+
   ! Localized sink(s)
   if(isink.ge.1) then
      temp79a = &
@@ -76,6 +85,39 @@ vectype function sigma_func(i)
 end function sigma_func
 
 
+! Momentum Sources/Sinks
+! ~~~~~~~~~~~~~~~~~~~~~~
+vectype function force_func(i)
+  use math
+  use basic
+  use m3dc1_nint
+  use diagnostics
+  use neutral_beam
+
+  implicit none
+
+  integer, intent(in) :: i
+  integer :: j
+  vectype :: temp
+
+  temp = 0.
+
+  ! Beam source
+  if(ibeam.eq.1) then
+     temp79a = neutral_beam_deposition(x_79,z_79)
+     temp = temp + nb_v*int2(mu79(:,OP_1,i),temp79a)
+     if(ivform.eq.0) then
+        temp = temp - int4(ri_79,mu79(:,OP_1,i),temp79a,vzt79(:,OP_1))
+     else
+        temp = temp - int4(r_79,mu79(:,OP_1,i),temp79a,vzt79(:,OP_1))
+     endif
+  endif
+
+  force_func = temp
+  return
+end function force_func
+
+
 ! Heat Sources/Sinks
 ! ~~~~~~~~~~~~~~~~~~
 vectype function q_func(i)
@@ -83,6 +125,7 @@ vectype function q_func(i)
   use basic
   use m3dc1_nint
   use diagnostics
+  use neutral_beam
 
   implicit none
 
@@ -98,6 +141,21 @@ vectype function q_func(i)
           *exp(-((x_79 - ghs_x)**2 + (z_79 - ghs_z)**2) &
           /(2.*ghs_var**2))
      temp = temp + int2(mu79(:,OP_1,i),temp79a)
+  endif
+
+  ! Beam source
+  if(ibeam.eq.1) then
+     temp79a = 0.5*neutral_beam_deposition(x_79,z_79)
+     temp = temp + (nb_v**2 + nb_dv**2)*int2(mu79(:,OP_1,i),temp79a)
+     if(ivform.eq.0) then
+        temp = temp &
+             - 2.*nb_v*int4(ri_79,mu79(:,OP_1,i),temp79a,vzt79(:,OP_1)) &
+             + int5(ri_79,mu79(:,OP_1,i),temp79a,vzt79(:,OP_1),vzt79(:,OP_1))
+     else
+        temp = temp &
+             - 2.*nb_v*int4(r_79,mu79(:,OP_1,i),temp79a,vzt79(:,OP_1)) &
+             + int5(r_79,mu79(:,OP_1,i),temp79a,vzt79(:,OP_1),vzt79(:,OP_1))
+     endif
   endif
 
   q_func = temp
@@ -358,9 +416,6 @@ vectype function electron_viscosity_func(i)
   return
 end function electron_viscosity_func
 
-end module transport_coefficients
-
-
 
 ! define_transport_coefficients
 ! =============================
@@ -371,7 +426,7 @@ subroutine define_transport_coefficients()
   use m3dc1_nint
   use newvar_mod
   use sparse
-  use transport_coefficients
+  use neutral_beam
 
   implicit none
 
@@ -382,9 +437,9 @@ subroutine define_transport_coefficients()
 
   logical, save :: first_time = .true.
   logical :: solve_sigma, solve_kappa, solve_visc, solve_resistivity, &
-       solve_visc_e, solve_q
+       solve_visc_e, solve_q, solve_f
 
-  integer, dimension(6) :: temp, temp2
+  integer, dimension(7) :: temp, temp2
   vectype, dimension(dofs_per_element) :: dofs
 
   ! transport coefficients are only calculated once in linear mode
@@ -400,14 +455,17 @@ subroutine define_transport_coefficients()
   solve_kappa = .false.
   solve_sigma = .false.
   solve_visc_e = .false.
+  solve_f = .false.
   solve_q = .false.
 
   ! clear variables
   resistivity_field = 0.
   kappa_field = 0.
-  sigma_field = 0.
+
   visc_field = 0.
-  q_field = 0.
+  if(density_source) sigma_field = 0.  
+  if(momentum_source) fphi_field = 0.
+  if(heat_source) q_field = 0.
   if(ibootstrap.ne.0) visc_e_field = 0.
 
   call finalize(field0_vec)
@@ -417,6 +475,7 @@ subroutine define_transport_coefficients()
   def_fields = FIELD_N + FIELD_PE + FIELD_P + FIELD_PSI + FIELD_I + FIELD_B2I
   if(iresfunc.eq.3 .or. iresfunc.eq.4) def_fields = def_fields + FIELD_ETA
   if(ivisfunc.eq.3) def_fields = def_fields + FIELD_MU
+  if(ibeam.eq.1) def_fields = def_fields + FIELD_V
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, '  defining...'
 
@@ -441,12 +500,14 @@ subroutine define_transport_coefficients()
      if(solve_kappa) &
           call vector_insert_block(kappa_field%vec,itri,1,dofs,VEC_ADD)
 
-     do i=1, dofs_per_element
-        dofs(i) = sigma_func(i)
-        if(.not.solve_sigma) solve_sigma = dofs(i).ne.0.
-     end do
-     if(solve_sigma) &
-          call vector_insert_block(sigma_field%vec,itri,1,dofs,VEC_ADD)
+     if(density_source) then
+        do i=1, dofs_per_element
+           dofs(i) = sigma_func(i)
+           if(.not.solve_sigma) solve_sigma = dofs(i).ne.0.
+        end do
+        if(solve_sigma) &
+             call vector_insert_block(sigma_field%vec,itri,1,dofs,VEC_ADD)
+     end if
 
      do i=1, dofs_per_element
         dofs(i) = viscosity_func(i)
@@ -455,12 +516,23 @@ subroutine define_transport_coefficients()
      if(solve_visc) &
           call vector_insert_block(visc_field%vec,itri,1,dofs,VEC_ADD)
 
-     do i=1, dofs_per_element
-        dofs(i) = q_func(i)
-        if(.not.solve_q) solve_q = dofs(i).ne.0.
-     end do
-     if(solve_q) &
-          call vector_insert_block(q_field%vec,itri,1,dofs,VEC_ADD)
+     if(momentum_source) then 
+        do i=1, dofs_per_element
+           dofs(i) = force_func(i)
+           if(.not.solve_f) solve_f = dofs(i).ne.0.
+        end do
+        if(solve_f) &
+             call vector_insert_block(fphi_field%vec,itri,1,dofs,VEC_ADD)
+     end if
+
+     if(heat_source) then
+        do i=1, dofs_per_element
+           dofs(i) = q_func(i)
+           if(.not.solve_q) solve_q = dofs(i).ne.0.
+        end do
+        if(solve_q) &
+             call vector_insert_block(q_field%vec,itri,1,dofs,VEC_ADD)
+     end if
 
      if(ibootstrap.ne.0) then
         do i=1, dofs_per_element
@@ -483,14 +555,16 @@ subroutine define_transport_coefficients()
      if(solve_sigma)       temp(3) = 1
      if(solve_visc)        temp(4) = 1
      if(solve_visc_e)      temp(5) = 1
-     if(solve_q)           temp(6) = 1
-     call mpi_allreduce(temp,temp2,6,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ier)
+     if(solve_f)           temp(6) = 1
+     if(solve_q)           temp(7) = 1
+     call mpi_allreduce(temp,temp2,7,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ier)
      solve_resistivity = temp2(1).eq.1
      solve_kappa       = temp2(2).eq.1
      solve_sigma       = temp2(3).eq.1
      solve_visc        = temp2(4).eq.1
      solve_visc_e      = temp2(5).eq.1
-     solve_q           = temp2(6).eq.1
+     solve_f           = temp2(6).eq.1
+     solve_q           = temp2(7).eq.1
   end if
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' solving...'
@@ -520,6 +594,11 @@ subroutine define_transport_coefficients()
      call newvar_solve(visc_e_field%vec, mass_mat_lhs)
   endif
 
+  if(solve_f) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  Fphi'
+     call newvar_solve(Fphi_field%vec, mass_mat_lhs)
+  endif
+
   if(solve_q) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  Q'
      call newvar_solve(q_field%vec, mass_mat_lhs)
@@ -541,3 +620,5 @@ subroutine define_transport_coefficients()
        print *, 'done define_transport_coefficients'
 
 end subroutine define_transport_coefficients
+
+end module transport_coefficients

@@ -604,6 +604,7 @@ subroutine step_split(calc_matrices)
   use boundary_conditions
   use mesh_mod 
   use model
+  use transport_coefficients
 
   implicit none
 

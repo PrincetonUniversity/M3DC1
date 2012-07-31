@@ -72,6 +72,7 @@ end subroutine input
 subroutine set_defaults
   use basic
   use m3dc1_output
+  use neutral_beam
 
   implicit none
 
@@ -89,6 +90,7 @@ subroutine set_defaults
   integer :: input_grp
   integer :: output_grp
   integer :: diagnostic_grp
+  integer :: source_grp
   integer :: misc_grp
   integer :: deprec_grp
 
@@ -107,6 +109,7 @@ subroutine set_defaults
   call add_group("Input", input_grp)
   call add_group("Output", output_grp)
   call add_group("Diagnostics", diagnostic_grp)
+  call add_group("Sources/Sinks", source_grp)
   call add_group("Miscellaneous", misc_grp)
   call add_group("Deprecated", deprec_grp)
 
@@ -442,51 +445,68 @@ subroutine set_defaults
 
 
   ! loop voltage
-  call add_var_double("vloop", vloop, 0., "", misc_grp)
-  call add_var_double("tcur", tcur, 0., "", misc_grp)
-  call add_var_double("control_p", control_p, 0., "", misc_grp)
-  call add_var_double("control_i", control_i, 0., "", misc_grp)
-  call add_var_double("control_d", control_d, 0., "", misc_grp)
+  call add_var_double("vloop", vloop, 0., "", source_grp)
+  call add_var_double("tcur", tcur, 0., "", source_grp)
+  call add_var_double("control_p", control_p, 0., "", source_grp)
+  call add_var_double("control_i", control_i, 0., "", source_grp)
+  call add_var_double("control_d", control_d, 0., "", source_grp)
 
   
   ! density source
-  call add_var_int("ipellet", ipellet, 0, "", misc_grp)
-  call add_var_double("pellet_x", pellet_x, 0., "", misc_grp)
-  call add_var_double("pellet_z", pellet_z, 0., "", misc_grp)
-  call add_var_double("pellet_rate", pellet_rate, 0., "", misc_grp)
-  call add_var_double("pellet_var", pellet_var, 1., "", misc_grp)
+  call add_var_int("ipellet", ipellet, 0, "", source_grp)
+  call add_var_double("pellet_x", pellet_x, 0., "", source_grp)
+  call add_var_double("pellet_z", pellet_z, 0., "", source_grp)
+  call add_var_double("pellet_rate", pellet_rate, 0., "", source_grp)
+  call add_var_double("pellet_var", pellet_var, 1., "", source_grp)
+
+  ! beam source
+  call add_var_int("ibeam", ibeam, 0, &
+       "1: Include neutral beam source", source_grp)
+  call add_var_double("beam_x", beam_x, 0., &
+       "R-coordinate of beam center", source_grp)
+  call add_var_double("beam_z", beam_z, 0., &
+       "Z-coordinate of beam center", source_grp)
+  call add_var_double("beam_v", beam_v, 1.e4, &
+       "Beam voltage (in volts)", source_grp)
+  call add_var_double("beam_rate", beam_rate, 0., &
+       "Ions/second deposited by beam", source_grp)
+  call add_var_double("beam_dr", beam_dr, 0.1, &
+       "Dispersion of beam deposition", source_grp)
+  call add_var_double("beam_dv", beam_dv, 100., &
+       "Dispersion of beam voltage (in volts)", source_grp)
+
 
   ! gaussian heat source
   call add_var_int("igaussian_heat_source", igaussian_heat_source, 0, &
-       "Include gaussian heat source", misc_grp)
+       "Include gaussian heat source", source_grp)
   call add_var_double("ghs_x", ghs_x, 0., &
-       "R coordinate of gaussian heat source", misc_grp)
+       "R coordinate of gaussian heat source", source_grp)
   call add_var_double("ghs_z", ghs_z, 0., &
-       "Z coordinate of gaussian heat source", misc_grp)
+       "Z coordinate of gaussian heat source", source_grp)
   call add_var_double("ghs_rate", ghs_rate, 0., &
-       "Amplitude of gaussian heat source", misc_grp)
+       "Amplitude of gaussian heat source", source_grp)
   call add_var_double("ghs_var", ghs_var, 1., &
-       "Variance of gaussian heat source", misc_grp)
+       "Variance of gaussian heat source", source_grp)
 
-  call add_var_int("ionization", ionization, 0, "", misc_grp)
-  call add_var_double("ionization_rate", ionization_rate, 0., "", misc_grp)
-  call add_var_double("ionization_temp", ionization_temp, 0.01, "", misc_grp)
-  call add_var_double("ionization_depth", ionization_depth, 0.01, "", misc_grp)
+  call add_var_int("ionization", ionization, 0, "", source_grp)
+  call add_var_double("ionization_rate", ionization_rate, 0., "", source_grp)
+  call add_var_double("ionization_temp", ionization_temp, 0.01, "", source_grp)
+  call add_var_double("ionization_depth", ionization_depth, 0.01, "", source_grp)
   
-  call add_var_int("isink", isink, 0, "", misc_grp)
-  call add_var_double("sink1_x", sink1_x, 0., "", misc_grp)
-  call add_var_double("sink1_z", sink1_z, 0., "", misc_grp)
-  call add_var_double("sink1_rate", sink1_rate, 0., "", misc_grp)
-  call add_var_double("sink1_var", sink1_var, 1., "", misc_grp)
-  call add_var_double("sink2_x", sink2_x, 0., "", misc_grp)
-  call add_var_double("sink2_z", sink2_z, 0., "", misc_grp)
-  call add_var_double("sink2_rate", sink2_rate, 0., "", misc_grp)
-  call add_var_double("sink2_var", sink2_var, 1., "", misc_grp)
+  call add_var_int("isink", isink, 0, "", source_grp)
+  call add_var_double("sink1_x", sink1_x, 0., "", source_grp)
+  call add_var_double("sink1_z", sink1_z, 0., "", source_grp)
+  call add_var_double("sink1_rate", sink1_rate, 0., "", source_grp)
+  call add_var_double("sink1_var", sink1_var, 1., "", source_grp)
+  call add_var_double("sink2_x", sink2_x, 0., "", source_grp)
+  call add_var_double("sink2_z", sink2_z, 0., "", source_grp)
+  call add_var_double("sink2_rate", sink2_rate, 0., "", source_grp)
+  call add_var_double("sink2_var", sink2_var, 1., "", source_grp)
 
-  call add_var_double("n_target", n_target, 1., "", misc_grp)
-  call add_var_double("n_control_p", n_control_p, 0., "", misc_grp)
-  call add_var_double("n_control_i", n_control_i, 0., "", misc_grp)
-  call add_var_double("n_control_d", n_control_d, 0., "", misc_grp)
+  call add_var_double("n_target", n_target, 1., "", source_grp)
+  call add_var_double("n_control_p", n_control_p, 0., "", source_grp)
+  call add_var_double("n_control_i", n_control_i, 0., "", source_grp)
+  call add_var_double("n_control_d", n_control_d, 0., "", source_grp)
   
 
   ! Output
@@ -554,6 +574,9 @@ subroutine validate_input
   use basic
   use mesh_mod
   use m3dc1_nint
+  use transport_coefficients
+  use neutral_beam
+  use math
 
   implicit none
 
@@ -760,6 +783,25 @@ subroutine validate_input
   endif
 
   is_rectilinear = (nonrect.eq.0)
+
+  density_source = idens.eq.1 .and. &
+       (ipellet.ge.1 .or. ionization.ge.1 .or. isink.gt.0 .or. ibeam.ge.1)
+  momentum_source = ibeam.ge.1
+  heat_source = (numvar.ge.3 .or. ipres.eq.1) .and. &
+       (igaussian_heat_source.eq.1 .or. ibeam.ge.1)
+
+  if(myrank.eq.0 .and. iprint.ge.1) then 
+     print *, 'Density source: ', density_source
+     print *, 'Momentum source: ', momentum_source
+     print *, 'Heat source: ', heat_source
+  end if
+
+  v0_norm = b0_norm / sqrt(4.*pi*ion_mass*m_p*n0_norm)
+  t0_norm = l0_norm / v0_norm
+  p0_norm = b0_norm**2/(4.*pi)
+  e0_norm = v0_norm*b0_norm / c_light
+  
+  if(ibeam.eq.1) call neutral_beam_init
 
 end subroutine validate_input
 
