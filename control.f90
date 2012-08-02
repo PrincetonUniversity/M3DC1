@@ -2,9 +2,10 @@ module pid_controller
 
   type :: pid_control
      real :: p, i, d
-     real :: err_p_old = 0.
-     real :: err_i = 0.
+     real :: err_p_old
+     real :: err_i
      real :: target_val
+     integer :: icontrol_type
   end type pid_control
   
 contains
@@ -20,18 +21,27 @@ contains
     real :: err_p, err_d
 
     if(dt.eq.0.) return
+      err_p = val - pid%target_val
+      pid%err_i = pid%err_i + err_p*dt
+      err_d = (err_p - pid%err_p_old)/dt
 
-    err_p = val - pid%target_val
-    pid%err_i = pid%err_i + err_p*dt
-    err_d = (err_p - pid%err_p_old)/dt
+    select case (pid%icontrol_type)
+    case(0)   ! this was the original coding and is the default
+      if(pid%target_val.gt.0) then
+        control_param = control_param - control_param*dt* &
+            (err_p*pid%p + pid%err_i*pid%i + err_d*pid%d)
+      else
+        control_param = control_param + control_param*dt* &
+            (err_p*pid%p + pid%err_i*pid%i + err_d*pid%d)
+      endif
+!
+!
+    case(1)   ! this is the "standard" PID controller
 
-    if(pid%target_val.gt.0) then 
-       control_param = control_param - control_param*dt* &
-            (err_p*pid%p + pid%err_i*pid%i + err_d*pid%d)
-    else
-       control_param = control_param + control_param*dt* &
-            (err_p*pid%p + pid%err_i*pid%i + err_d*pid%d)
-    endif
+      control_param = - (err_p*pid%p + pid%err_i*pid%i + err_d*pid%d)
+    end select
+
+
     
     pid%err_p_old = err_p
 

@@ -261,11 +261,13 @@ module basic
   real :: control_p      ! proportionality constant
   real :: control_i      ! integral control inverse time-scale
   real :: control_d      ! derivative control time-scale
+  integer :: control_type  ! type of current control  0:orig  1:standard
   ! density controller parameters
   real :: n_target       ! target toroidal current
   real :: n_control_p    ! proportionality constant
   real :: n_control_i    ! integral control inverse time-scale
   real :: n_control_d    ! derivative control time-scale
+  integer :: n_control_type  ! type of density control  0:orig 1:standard
 
 
   ! input/output parameters

@@ -45,7 +45,8 @@ subroutine wrrestart
   enddo
 
   write(56) ntime,time,dt
-  write(56) totcur0,tflux0,gbound,ptot,vloop
+  write(56) totcur0,tflux0,gbound,ptot,vloop,   &
+          i_control%err_i, i_control%err_p_old, n_control%err_i, n_control%err_p_old
   write(56) psimin,psilim,psibound
   write(56) xnull, znull
   write(56) xmag, zmag
@@ -140,7 +141,8 @@ subroutine rdrestart
   endif
 
   read(56) ntime,time,dt
-  read(56) totcur0,tflux0,gbound,ptot,vloop
+  read(56) totcur0,tflux0,gbound,ptot,vloop,   &
+          i_control%err_i, i_control%err_p_old, n_control%err_i, n_control%err_p_old
   read(56,END=1199) psimin,psilim,psibound
   read(56,END=1199) xnull,znull
   read(56,END=1199) xmag,zmag
@@ -267,7 +269,8 @@ subroutine wrrestartglobal
      write(56) iper
      write(56) jper   
      write(56) ntime,time,dt
-     write(56) totcur0,tflux0,gbound,ptot,vloop
+     write(56) totcur0,tflux0,gbound,ptot,vloop,   &
+          i_control%err_i, i_control%err_p_old, n_control%err_i, n_control%err_p_old
      write(56) icomplex
   endif
 
@@ -350,7 +353,8 @@ subroutine rdrestartglobal
   read(56) iper
   read(56) jper   
   read(56) ntime,time,dt
-  read(56) totcur0,tflux0,gbound,ptot,vloop
+  read(56) totcur0,tflux0,gbound,ptot,vloop,   &
+          i_control%err_i, i_control%err_p_old, n_control%err_i, n_control%err_p_old
   read(56) icomp
   write(*,*) 'in restartglobal time, dts are ', ntime, time, dt
   numnodes = local_nodes()

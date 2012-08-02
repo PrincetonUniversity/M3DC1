@@ -452,6 +452,7 @@ subroutine set_defaults
   call add_var_double("control_p", control_p, 0., "", source_grp)
   call add_var_double("control_i", control_i, 0., "", source_grp)
   call add_var_double("control_d", control_d, 0., "", source_grp)
+  call add_var_int("control_type", control_type, 0, "", source_grp)
 
   
   ! density source
@@ -509,6 +510,7 @@ subroutine set_defaults
   call add_var_double("n_control_p", n_control_p, 0., "", source_grp)
   call add_var_double("n_control_i", n_control_i, 0., "", source_grp)
   call add_var_double("n_control_d", n_control_d, 0., "", source_grp)
+  call add_var_int("n_control_type", n_control_type, 0, "", source_grp)
   
 
   ! Output
