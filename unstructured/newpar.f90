@@ -153,6 +153,12 @@ Program Reducedquintic
         field0_vec = 0.
      endif
 
+     ! initialize feedback systems
+     i_control%err_i = 0.
+     i_control%err_p_old = 0.
+     n_control%err_i = 0.
+     n_control%err_p_old = 0.
+
   case(1)
 !
 !....save timestep from input file (needed if not a variable timestep run)
@@ -350,11 +356,13 @@ subroutine init
   i_control%i = control_i
   i_control%d = control_d
   i_control%target_val = tcur
+  i_control%icontrol_type = control_type
 
   n_control%p = n_control_p
   n_control%i = n_control_i
   n_control%d = n_control_d
   n_control%target_val = n_target
+  n_control%icontrol_type = n_control_type
 end subroutine init
 
 

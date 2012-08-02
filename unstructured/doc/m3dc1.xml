@@ -23,6 +23,10 @@
        <var name="gbound" type="double"/>
        <var name="ptot" type="double"/>
        <var name="vloop" type="double"/>
+       <var name="i_control%err_i" type="double"/>
+       <var name="i_control%err_p_old" type="double"/>
+       <var name="n_control%err_i" type="double"/>
+       <var name="n_control%err_p_old" type="double"/>
        <var name="psimin" type="double"/>
        <var name="psilim" type="double"/>
        <var name="psibound" type="double"/>
