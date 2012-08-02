@@ -137,6 +137,7 @@ module basic
   real :: bscale      ! factor by which to scale equilibrium toroidal field
   real :: vscale      ! factor by which to scale equilibrium toroidal rotation
   real :: bpscale     ! factor by which to scale F'
+  integer :: iread_bscale
   real :: ln          ! length of equilibrium gradient
   real :: eps         ! size of initial perturbation
   integer :: iwave    ! which wave to initialize in wave prop. equilibrium

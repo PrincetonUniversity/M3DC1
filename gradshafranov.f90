@@ -271,6 +271,8 @@ subroutine define_profiles
   real, allocatable :: xvals(:), yvals(:)
   real :: teold, pval, ppval, nval, te0, tep, np, dia
   integer :: nvals, i, ierr
+  type(spline1d) :: fpol_spline, bscale_spline
+  real :: fval, fpval
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining profiles'
 
@@ -319,6 +321,33 @@ subroutine define_profiles
           *(2.*bzero*rzero &
           + (-sqrt(2.*g0_spline%y(:)+(bzero*rzero)**2)-(bzero*rzero))*bpscale)
   endif
+
+  if(iread_bscale.eq.1) then
+     nvals = 0
+     call read_ascii_column('profile_bscale', xvals, nvals, icol=1)
+     call read_ascii_column('profile_bscale', yvals, nvals, icol=2)
+     if(nvals.eq.0) call safestop(5)
+
+     call create_spline(bscale_spline, nvals, xvals, yvals)
+     deallocate(xvals, yvals)
+
+     call copy_spline(fpol_spline, g0_spline)
+     fpol_spline%y(:) = sqrt(2.*g0_spline%y(:)+(bzero*rzero)**2)
+     if(bzero.lt.0) fpol_spline%y(:) = -fpol_spline%y(:)
+        
+     do i=1, fpol_spline%n
+        call evaluate_spline(bscale_spline, fpol_spline%x(i), fval)
+        fpol_spline%y(i) = fpol_spline%y(i)*fval
+     end do
+     do i=1, g0_spline%n
+        call evaluate_spline(fpol_spline, g0_spline%x(i), fval, fpval)
+        g0_spline%y(i) = 0.5*(fval**2 - (bzero*rzero)**2)
+        ffprime_spline%y(i) = fval*fpval
+     end do
+
+     call destroy_spline(fpol_spline)
+     call destroy_spline(bscale_spline)
+  end if
 
 
   ! add pedge to pressure

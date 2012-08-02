@@ -1409,13 +1409,13 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    if(isubeq eq 1 and (not keyword_set(linear)) and (time ge 0)) $
      then begin
        data0 = read_field(name,x,y,t, slices=-1, mesh=mesh, $
-                          filename=filename, points=pts, $
+                          filename=filename, points=pts, fac=fac, $
                           rrange=xrange, zrange=yrange, complex=0, $
                           h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                           diff=diff, operation=op, mask=mask, $
                           symbol=symbol, mks=mks, cgs=cgs, $
                           units=units, dimensions=d)
-       data1 = read_field(name,x,y,t, slices=time, mesh=mesh, $
+       data1 = read_field(name,x,y,t, slices=time, mesh=mesh, fac=fac, $
                           filename=filename, points=pts, mks=mks, cgs=cgs, $
                           rrange=xrange, zrange=yrange, complex=complex, $
                           h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
@@ -2430,7 +2430,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        symbol = '!7x!D!8e!N!X'
        d = dimensions(t0=-1, _EXTRA=extra)
 
-
    ;==========================================================
    ; v_omega (the omega in v = r^2 omega grad(phi) + (K/n) B
    ;==========================================================
@@ -2455,7 +2454,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            r = radius_matrix(x,y,t)
        endif else r = 1.
        
-       data = omega - i/(r^2*sqrt(s_bracket(psi,psi,x,y))) * $
+       data = omega - i/(r^2*s_bracket(psi,psi,x,y)) * $
          (r^2*s_bracket(u,psi,x,y) + a_bracket(chi,psi,x,y)/r)
 
        symbol = '!7x!X'
@@ -2488,7 +2487,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            r = radius_matrix(x,y,t)
        endif else r = 1.
 
-       data = den/sqrt(s_bracket(psi,psi,x,y)) * $
+       data = den/s_bracket(psi,psi,x,y) * $
          (r^2*s_bracket(u,psi,x,y) + a_bracket(chi,psi,x,y)/r)
 
        symbol = '!8K!X'
@@ -2518,7 +2517,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            r = radius_matrix(x,y,t)
        endif else r = 1.
 
-       data = 1./sqrt(s_bracket(psi,psi,x,y)) * $
+       data = 1./s_bracket(psi,psi,x,y) * $
          (r^2*s_bracket(u,psi,x,y) + a_bracket(chi,psi,x,y)/r)
 
        symbol = '!8K!6/!8n!X'
@@ -2556,7 +2555,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            r = radius_matrix(x,y,t)
        endif else r = 1.
        
-       data = omega - i/(r^2*sqrt(s_bracket(psi,psi,x,y))) * $
+       data = omega - i/(r^2*s_bracket(psi,psi,x,y)) * $
          (r^2*s_bracket(u,psi,x,y) + a_bracket(chi,psi,x,y)/r $
           - (di/den)*s_bracket(i,psi,x,y)) $
          + (di/den)*(psi_lp - itor*dx(psi,x)/r)/r^2
@@ -2592,7 +2591,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            r = radius_matrix(x,y,t)
        endif else r = 1.
 
-       data = 1/sqrt(s_bracket(psi,psi,x,y)) * $
+       data = 1./s_bracket(psi,psi,x,y) * $
          (den*(r^2*s_bracket(u,psi,x,y) + a_bracket(chi,psi,x,y)/r) $
           - di*s_bracket(i,psi,x,y))
 
@@ -2605,7 +2604,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('omega_perp_e', name, /fold_case) eq 1) then begin
 
-       omega = read_field('ve_omega', x, y, t, slices=time, mesh=mesh, $
+       omega = read_field('v_omega', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange)
        omega_star = read_field('omega_*', x, y, t, slices=time, mesh=mesh, $
@@ -2688,7 +2687,30 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        data = db*s_bracket(p-pe,psi,x,y)/s_bracket(psi,psi,x,y) / den
 
-       symbol = '!7x!6!D*!N!X'
+       symbol = '!7x!6!D*i!N!X'
+       d = dimensions(t0=-1, _EXTRA=extra)
+
+   ;===========================================
+   ; diamagnetic frequency
+   ;===========================================
+   endif else if(strcmp('omega_*e', name, /fold_case) eq 1) then begin
+
+       db = read_parameter('db', filename=filename, _EXTRA=extra)
+       print, 'db = ', filename, db
+
+       pe = read_field('pe', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       den = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+
+       data = -db*s_bracket(pe,psi,x,y)/s_bracket(psi,psi,x,y) / den
+
+       symbol = '!7x!6!D*e!N!X'
        d = dimensions(t0=-1, _EXTRA=extra)
 
    ;===========================================
@@ -3553,6 +3575,23 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
 
    ;===========================================
+   ; torque
+   ;===========================================
+   endif else if(strcmp('torque', name, /fold_case) eq 1) then begin
+
+       force_phi = read_field('force_phi', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                              filename=filename, points=pts, complex=complex, $
+                              rrange=xrange, zrange=yrange)
+       
+       if(itor eq 1) then r = radius_matrix(x,y,t) else r = 1.
+       
+       data = force_phi*r
+
+       d = dimensions(/p0)
+       symbol = '!6Beam Torque!X'
+
+
+   ;===========================================
    ; toroidal angular momentum flux
    ;===========================================
    endif else if(strcmp('torque_b2', name, /fold_case) eq 1) then begin
@@ -4017,7 +4056,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        endif
    end
 
-   if(n_elements(fac) ne 0) then data = data*fac
+   if(n_elements(fac) ne 0) then begin
+       print, 'applying factor = ', fac
+       data = data*fac
+   end
 
 
    ; perform flux-average
@@ -5358,7 +5400,7 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
       n = min([n_elements(tdata), n_elements(data)])
       if(n_elements(data) lt n) then print, 'truncating data'
       if(n_elements(tdata) lt n) then print, 'truncating tdata'
-      data = deriv(tdata(1:n-1), alog(abs(data(1:n-1))))
+      data = deriv(tdata(0:n-1), alog(abs(data(0:n-1))))
 ;      ytitle = '!7c !6(!7s!D!8A!N!6!U-1!N)!X'
       ytitle = make_label('!7c!X', t0=-1, cgs=cgs, mks=mks, _EXTRA=extra)
   endif
