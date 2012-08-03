@@ -3,10 +3,6 @@ module transport_coefficients
 
   type(spline1d), private :: kappa_spline
 
-  logical :: density_source
-  logical :: momentum_source
-  logical :: heat_source
-
 contains
 
 ! Density Sources/Sinks

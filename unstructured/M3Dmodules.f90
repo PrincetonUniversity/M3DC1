@@ -20,6 +20,10 @@ module basic
 
   logical :: print_help
 
+  logical :: density_source
+  logical :: momentum_source
+  logical :: heat_source
+
   ! normalizations
   real :: b0_norm     ! magnetic field normalization (in Gauss)
   real :: l0_norm     ! length normalization (in centimeters)

@@ -67,7 +67,7 @@ pro plot_omega, filename=filename, slice=time, points=pts, $
   oplot, nflux, w_star_i_fa, color=color(3)
   oplot, !x.crange, [0,0], linestyle=1
 
-  names = ['!7x!6!DE!9X!6B!N!X', '!7x!X', '!7x!D!8e!N!X', '!7x!6!D*i!N!X']
+  names = ['!7x!6!DE!9X!6B!N!X', '!7x!X', '!7x!D!8e!N!X', '!7x!6!D*!8i!N!X']
 
   plot_legend, names, color=colors(), _EXTRA=extra
 end
