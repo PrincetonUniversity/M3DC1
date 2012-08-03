@@ -814,7 +814,8 @@ contains
 
   ! SIG
   ! ~~~
-  if((iand(fields, FIELD_SIG).eq.FIELD_SIG) .and. idens.eq.1) then
+  if((iand(fields, FIELD_SIG).eq.FIELD_SIG) .and. idens.eq.1 &
+       .and. density_source) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   sigma..."
 
      call eval_ops(itri, sigma_field, sig79)
@@ -824,7 +825,8 @@ contains
 
   ! F
   ! ~
-  if((iand(fields, FIELD_F).eq.FIELD_F)) then
+  if((iand(fields, FIELD_F).eq.FIELD_F) &
+       .and. momentum_source) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   F..."
 
      call eval_ops(itri, Fphi_field, Fy79)
@@ -834,7 +836,8 @@ contains
 
   ! Q
   ! ~
-  if((iand(fields, FIELD_Q).eq.FIELD_Q)) then
+  if((iand(fields, FIELD_Q).eq.FIELD_Q) &
+       .and. heat_source) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   Q..."
 
      call eval_ops(itri, Q_field, q79)
