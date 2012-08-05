@@ -1973,6 +1973,16 @@ subroutine eqdsk_init()
      print *, 'normalized current ', current
   end if
 
+  if(current.lt.0 .and. iflip_j.eq.1) then
+     if(myrank.eq.0) then 
+        print *, 'WARNING: iflip_j = 1 for case with negative current.'
+        print *, 'Default behavior has been changed to take negative current'
+        print *, 'into account automatically.  To override this, set'
+        print *, 'iflip_j = 2.'
+     end if
+     call safestop(1)
+  end if
+
   if(iflip_z.eq.1) zmaxis = -zmaxis
 
   numnodes = owned_nodes()
@@ -3576,7 +3586,7 @@ subroutine initial_conditions()
   if(irmp.ge.1 .or. iread_ext_field.ge.1) call rmp_per()
 
   if(iflip_b.eq.1) call mult(bz_field(0), -1.)
-  if(iflip_j.eq.1) call mult(psi_field(0), -1.)
+  if(iflip_j.gt.0) call mult(psi_field(0), -1.)
   if(iflip_v.eq.1) call mult(vz_field(0), -1.)
   if(iflip_v.eq.-1) call mult(vz_field(0), 0.)
 end subroutine initial_conditions

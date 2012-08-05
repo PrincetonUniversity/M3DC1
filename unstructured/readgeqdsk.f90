@@ -83,8 +83,19 @@ subroutine load_eqdsk
      write(*,'(A,4e12.4)') " Bounding box:", rleft, zmid-zdim/2., rdim, zdim
 
 !  call read_out1(neqdsk)
-  
+ 
      close(neqdsk)
+
+     if(current.lt.0) then
+        print *, 'Current is negative; flipping flux'
+        simag = -simag
+        sibry = -sibry
+        psirz = -psirz
+        pprime = -pprime
+        ffprim = -ffprim
+     end if
+
+
   endif
 
   rbuff(1)  = rdim
