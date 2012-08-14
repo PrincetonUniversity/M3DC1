@@ -24,6 +24,10 @@ adios_groupsize = 8 &
                 + 8 &
                 + 8 &
                 + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
+                + 8 &
 		+ 8 &
                 + 8 * (ndofs_1) &
                 + 8 * (ndofs_1) &
@@ -53,6 +57,10 @@ call adios_write (adios_handle, "tflux0", tflux0, adios_err)
 call adios_write (adios_handle, "gbound", gbound, adios_err)
 call adios_write (adios_handle, "ptot", ptot, adios_err)
 call adios_write (adios_handle, "vloop", vloop, adios_err)
+call adios_write (adios_handle, "i_control%err_i", i_control%err_i, adios_err)
+call adios_write (adios_handle, "i_control%err_p_old", i_control%err_p_old, adios_err)
+call adios_write (adios_handle, "n_control%err_i", n_control%err_i, adios_err)
+call adios_write (adios_handle, "n_control%err_p_old", n_control%err_p_old, adios_err)
 call adios_write (adios_handle, "psimin", psimin, adios_err)
 call adios_write (adios_handle, "psilim", psilim, adios_err)
 call adios_write (adios_handle, "psibound", psibound, adios_err)
