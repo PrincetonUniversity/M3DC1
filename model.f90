@@ -34,6 +34,9 @@ module model
 contains
 
 subroutine calc_ni(ni_field, n0_field, n1_field)
+!
+!....not sure what this routine is supposed to do, but as far as I can see, it is not called.
+!
 
   use field
   use mesh_mod
@@ -72,6 +75,10 @@ subroutine calc_ni(ni_field, n0_field, n1_field)
           +2.*(2.*n1(3)*n0(3) &
           +   n1(1)*n0(6))/n0(1)**3 &
           -6.*n1(1)*n0(3)**2/n0(1)**4
+
+#if defined(USE3D)
+!   need coding for 7-12
+#endif
 
      call set_node_data(ni_field, inode, ninv)
   end do
@@ -1436,6 +1443,46 @@ subroutine calc_electron_temperature(te, pe0, n0)
            - pe0(1)*n0(5)/n0(1)**2 + 2*pe0(1)*n0(3)*n0(2)/n0(1)**3
      te(6) = pe0(6)/n0(1) - 2.*pe0(3)*n0(3)/n0(1)**2                       &
            - pe0(1)*n0(6)/n0(1)**2 + 2*pe0(1)*n0(3)*n0(3)/n0(1)**3
+#if defined(USE3D)
+!    added 08/22/2012
+     te(7) = pe0(7)/n0(1) - pe0(1)*n0(7)/n0(1)**2
+     te(8) = pe0(8)/n0(1)         - pe0(7)*n0(2)/n0(1)**2   &
+           - pe0(2)*n0(7)/n0(1)**2 - pe0(1)*n0(8)/n0(1)**2   &
+                                + 2*pe0(1)*n0(2)*n0(7)/n0(1)**3
+     te(9) = pe0(9)/n0(1)         - pe0(7)*n0(3)/n0(1)**2   &
+           - pe0(2)*n0(7)/n0(1)**2 - pe0(1)*n0(9)/n0(1)**2   &
+                                + 2*pe0(1)*n0(3)*n0(7)/n0(1)**3
+     te(10) = pe0(10)/n0(1)          - pe0(8)*n0(2)/n0(1)**2   &
+            - pe0(8)*n0(2)/n0(1)**2  - pe0(7)*n0(4)/n0(1)**2   &
+                                     +2.*pe0(7)*n0(2)*n0(2)/n0(1)**3   &
+            - pe0(4)*n0(7)/n0(1)**2         - pe0(2)*n0(8)/n0(1)**2   &
+            - pe0(2)*n0(8)/n0(1)**2         - pe0(1)*n0(10)/n0(1)**2   &
+            +2.*pe0(2)*n0(7)*n0(2)/n0(1)**3 +2.*pe0(1)*n0(8)*n0(2)/n0(1)**2   &
+                                + 2*pe0(2)*n0(2)*n0(7)/n0(1)**3  &
+                                + 2*pe0(1)*n0(4)*n0(7)/n0(1)**3  &
+                                + 2*pe0(1)*n0(2)*n0(8)/n0(1)**3  &
+                                - 6*pe0(1)*n0(2)*n0(7)*n0(2)/n0(1)**4
+     te(11) = pe0(11)/n0(1)          - pe0(9)*n0(2)/n0(1)**2   &
+            - pe0(8)*n0(3)/n0(1)**2  - pe0(7)*n0(5)/n0(1)**2   &
+                                     +2.*pe0(7)*n0(3)*n0(2)/n0(1)**3   &
+            - pe0(5)*n0(7)/n0(1)**2         - pe0(2)*n0(9)/n0(1)**2   &
+            - pe0(3)*n0(8)/n0(1)**2         - pe0(1)*n0(11)/n0(1)**2   &
+            +2.*pe0(2)*n0(7)*n0(3)/n0(1)**3 +2.*pe0(1)*n0(9)*n0(2)/n0(1)**2   &
+                                + 2*pe0(3)*n0(2)*n0(7)/n0(1)**3  &
+                                + 2*pe0(1)*n0(5)*n0(7)/n0(1)**3  &
+                                + 2*pe0(1)*n0(3)*n0(8)/n0(1)**3  &
+                                - 6*pe0(1)*n0(3)*n0(7)*n0(2)/n0(1)**4
+     te(12) = pe0(12)/n0(1)          - pe0(9)*n0(3)/n0(1)**2   &
+            - pe0(9)*n0(3)/n0(1)**2  - pe0(7)*n0(6)/n0(1)**2   &
+                                     +2.*pe0(7)*n0(3)*n0(3)/n0(1)**3   &
+            - pe0(6)*n0(7)/n0(1)**2         - pe0(3)*n0(9)/n0(1)**2   &
+            - pe0(2)*n0(9)/n0(1)**2         - pe0(1)*n0(12)/n0(1)**2   &
+            +2.*pe0(3)*n0(7)*n0(3)/n0(1)**3 +2.*pe0(1)*n0(9)*n0(3)/n0(1)**2   &
+                                + 2*pe0(3)*n0(3)*n0(7)/n0(1)**3  &
+                                + 2*pe0(1)*n0(6)*n0(7)/n0(1)**3  &
+                                + 2*pe0(1)*n0(3)*n0(9)/n0(1)**3  &
+                                - 6*pe0(1)*n0(3)*n0(7)*n0(3)/n0(1)**4
+#endif
 
      ! account for fact that n0 is ion (not electron) density
      te = te/zeff
@@ -1465,6 +1512,47 @@ subroutine calc_ion_temperature(ti, pres0, pe0, n0)
            - pion0(1)*n0(5)/n0(1)**2 + 2*pion0(1)*n0(3)*n0(2)/n0(1)**3
      ti(6) = pion0(6)/n0(1) - 2.*pion0(3)*n0(3)/n0(1)**2                       &
            - pion0(1)*n0(6)/n0(1)**2 + 2*pion0(1)*n0(3)*n0(3)/n0(1)**3
+#if defined(USE3D)
+!    added 08/22/2012
+     ti(7) = pion0(7)/n0(1) - pion0(1)*n0(7)/n0(1)**2
+     ti(8) = pion0(8)/n0(1)         - pion0(7)*n0(2)/n0(1)**2   &
+           - pion0(2)*n0(7)/n0(1)**2 - pion0(1)*n0(8)/n0(1)**2   &
+                                + 2*pion0(1)*n0(2)*n0(7)/n0(1)**3
+     ti(9) = pion0(9)/n0(1)         - pion0(7)*n0(3)/n0(1)**2   &
+           - pion0(2)*n0(7)/n0(1)**2 - pion0(1)*n0(9)/n0(1)**2   &
+                                + 2*pion0(1)*n0(3)*n0(7)/n0(1)**3
+     ti(10) = pion0(10)/n0(1)          - pion0(8)*n0(2)/n0(1)**2   &
+            - pion0(8)*n0(2)/n0(1)**2  - pion0(7)*n0(4)/n0(1)**2   &
+                                     +2.*pion0(7)*n0(2)*n0(2)/n0(1)**3   &
+            - pion0(4)*n0(7)/n0(1)**2         - pion0(2)*n0(8)/n0(1)**2   &
+            - pion0(2)*n0(8)/n0(1)**2         - pion0(1)*n0(10)/n0(1)**2   &
+            +2.*pion0(2)*n0(7)*n0(2)/n0(1)**3 +2.*pion0(1)*n0(8)*n0(2)/n0(1)**2   &
+                                + 2*pion0(2)*n0(2)*n0(7)/n0(1)**3  &
+                                + 2*pion0(1)*n0(4)*n0(7)/n0(1)**3  &
+                                + 2*pion0(1)*n0(2)*n0(8)/n0(1)**3  &
+                                - 6*pion0(1)*n0(2)*n0(7)*n0(2)/n0(1)**4
+     ti(11) = pion0(11)/n0(1)          - pion0(9)*n0(2)/n0(1)**2   &
+            - pion0(8)*n0(3)/n0(1)**2  - pion0(7)*n0(5)/n0(1)**2   &
+                                     +2.*pion0(7)*n0(3)*n0(2)/n0(1)**3   &
+            - pion0(5)*n0(7)/n0(1)**2         - pion0(2)*n0(9)/n0(1)**2   &
+            - pion0(3)*n0(8)/n0(1)**2         - pion0(1)*n0(11)/n0(1)**2   &
+            +2.*pion0(2)*n0(7)*n0(3)/n0(1)**3 +2.*pion0(1)*n0(9)*n0(2)/n0(1)**2   &
+                                + 2*pion0(3)*n0(2)*n0(7)/n0(1)**3  &
+                                + 2*pion0(1)*n0(5)*n0(7)/n0(1)**3  &
+                                + 2*pion0(1)*n0(3)*n0(8)/n0(1)**3  &
+                                - 6*pion0(1)*n0(3)*n0(7)*n0(2)/n0(1)**4
+     ti(12) = pion0(12)/n0(1)          - pion0(9)*n0(3)/n0(1)**2   &
+            - pion0(9)*n0(3)/n0(1)**2  - pion0(7)*n0(6)/n0(1)**2   &
+                                     +2.*pion0(7)*n0(3)*n0(3)/n0(1)**3   &
+            - pion0(6)*n0(7)/n0(1)**2         - pion0(3)*n0(9)/n0(1)**2   &
+            - pion0(2)*n0(9)/n0(1)**2         - pion0(1)*n0(12)/n0(1)**2   &
+            +2.*pion0(3)*n0(7)*n0(3)/n0(1)**3 +2.*pion0(1)*n0(9)*n0(3)/n0(1)**2   &
+                                + 2*pion0(3)*n0(3)*n0(7)/n0(1)**3  &
+                                + 2*pion0(1)*n0(6)*n0(7)/n0(1)**3  &
+                                + 2*pion0(1)*n0(3)*n0(9)/n0(1)**3  &
+                                - 6*pion0(1)*n0(3)*n0(7)*n0(3)/n0(1)**4
+#endif
+
 end subroutine calc_ion_temperature
 ! calc_lin_electron_temperature
 ! ~~~~~~~~~~~~~~~~~~~~~~
@@ -1478,34 +1566,77 @@ subroutine calc_lin_electron_temperature(te, pe0, n0, pe1, n1)
 
   vectype, intent(out), dimension(dofs_per_node) :: te
   vectype, intent(in), dimension(dofs_per_node) :: pe0, n0, pe1, n1
+  vectype, dimension(dofs_per_node) :: petot, ntot
 
-  te(1) = (pe0(1)+pe1(1))/(n0(1)+n1(1))  &
+  petot = pe0 + pe1
+  ntot = n0 + n1
+  te(1) = petot(1)/ntot(1)  &
        -pe0(1)/n0(1)
-  te(2) = (pe0(2)+pe1(2))/(n0(1)+n1(1)) &
-       - (pe0(1)+pe1(1))*(n0(2)+n1(2))/(n0(1)+n1(1))**2  &
+  te(2) = petot(2)/ntot(1) &
+       - petot(1)*ntot(2)/ntot(1)**2  &
        -pe0(2)/n0(1) + pe0(1)*n0(2)/n0(1)**2
-  te(3) = (pe0(3)+pe1(3))/(n0(1)+n1(1)) &
-       - (pe0(1)+pe1(1))*(n0(3)+n1(3))/(n0(1)+n1(1))**2  &
+  te(3) = petot(3)/ntot(1) &
+       - petot(1)*ntot(3)/ntot(1)**2  &
        -pe0(3)/n0(1) + pe0(1)*n0(3)/n0(1)**2
-  te(4) = (pe0(4)+pe1(4))/(n0(1)+n1(1)) &
-       - 2.*(pe0(2)+pe1(2))*(n0(2)+n1(2))/(n0(1)+n1(1))**2    &
-       - (pe0(1)+pe1(1))*(n0(4)+n1(4))/(n0(1)+n1(1))**2  &
-       + 2*(pe0(1)+pe1(1))*(n0(2)+n1(2))*(n0(2)+n1(2))/(n0(1)+n1(1))**3   &
+  te(4) = petot(4)/ntot(1) &
+       - 2.*petot(2)*ntot(2)/ntot(1)**2    &
+       - petot(1)*ntot(4)/ntot(1)**2  &
+       + 2*petot(1)*ntot(2)*ntot(2)/ntot(1)**3   &
        - pe0(4)/n0(1) + 2.*pe0(2)*n0(2)/n0(1)**2                         &
        +  pe0(1)*n0(4)/n0(1)**2 - 2*pe0(1)*n0(2)*n0(2)/n0(1)**3
-  te(5) = (pe0(5)+pe1(5))/(n0(1)+n1(1)) &
-       - (pe0(3)+pe1(3))*(n0(2)+n1(2))/(n0(1)+n1(1))**2  &
-       - (pe0(2)+pe1(2))*(n0(3)+n1(3))/(n0(1)+n1(1))**2  &
-       - (pe0(1)+pe1(1))*(n0(5)+n1(5))/(n0(1)+n1(1))**2 &
-       + 2*(pe0(1)+pe1(1))*(n0(3)+n1(3))*(n0(2)+n1(2))/(n0(1)+n1(1))**3  &
+  te(5) = petot(5)/ntot(1) &
+       - petot(3)*ntot(2)/ntot(1)**2  &
+       - petot(2)*ntot(3)/ntot(1)**2  &
+       - petot(1)*ntot(5)/ntot(1)**2 &
+       + 2*petot(1)*ntot(3)*ntot(2)/ntot(1)**3  &
        - pe0(5)/n0(1) + pe0(3)*n0(2)/n0(1)**2  + pe0(2)*n0(3)/n0(1)**2  &
        +  pe0(1)*n0(5)/n0(1)**2 - 2*pe0(1)*n0(3)*n0(2)/n0(1)**3
-  te(6) = (pe0(6)+pe1(6))/(n0(1)+n1(1)) &
-       - 2.*(pe0(3)+pe1(3))*(n0(3)+n1(3))/(n0(1)+n1(1))**2  &
-       - (pe0(1)+pe1(1))*(n0(6)+n1(6))/(n0(1)+n1(1))**2   &
-       + 2*(pe0(1)+pe1(1))*(n0(3)+n1(3))*(n0(3)+n1(3))/(n0(1)+n1(1))**3   &
+  te(6) = petot(6)/ntot(1) &
+       - 2.*petot(3)*ntot(3)/ntot(1)**2  &
+       - petot(1)*ntot(6)/ntot(1)**2   &
+       + 2*petot(1)*ntot(3)*ntot(3)/ntot(1)**3   &
        -  pe0(6)/n0(1) + 2.*pe0(3)*n0(3)/n0(1)**2                         &
        +  pe0(1)*n0(6)/n0(1)**2 - 2*pe0(1)*n0(3)*n0(3)/n0(1)**3
+#if defined(USE3D)
+!    added 08/22/2012
+     te(7) = petot(7)/ntot(1) - petot(1)*ntot(7)/ntot(1)**2
+     te(8) = petot(8)/ntot(1)         - petot(7)*ntot(2)/ntot(1)**2   &
+           - petot(2)*ntot(7)/ntot(1)**2 - petot(1)*ntot(8)/ntot(1)**2   &
+                                + 2*petot(1)*ntot(2)*ntot(7)/ntot(1)**3
+     te(9) = petot(9)/ntot(1)         - petot(7)*ntot(3)/ntot(1)**2   &
+           - petot(2)*ntot(7)/ntot(1)**2 - petot(1)*ntot(9)/ntot(1)**2   &
+                                + 2*petot(1)*ntot(3)*ntot(7)/ntot(1)**3
+     te(10) = petot(10)/ntot(1)          - petot(8)*ntot(2)/ntot(1)**2   &
+            - petot(8)*ntot(2)/ntot(1)**2  - petot(7)*ntot(4)/ntot(1)**2   &
+                                     +2.*petot(7)*ntot(2)*ntot(2)/ntot(1)**3   &
+            - petot(4)*ntot(7)/ntot(1)**2         - petot(2)*ntot(8)/ntot(1)**2   &
+            - petot(2)*ntot(8)/ntot(1)**2         - petot(1)*ntot(10)/ntot(1)**2   &
+          +2.*petot(2)*ntot(7)*ntot(2)/ntot(1)**3 +2.*petot(1)*ntot(8)*ntot(2)/ntot(1)**2 &
+                                + 2*petot(2)*ntot(2)*ntot(7)/ntot(1)**3  &
+                                + 2*petot(1)*ntot(4)*ntot(7)/ntot(1)**3  &
+                                + 2*petot(1)*ntot(2)*ntot(8)/ntot(1)**3  &
+                                - 6*petot(1)*ntot(2)*ntot(7)*ntot(2)/ntot(1)**4
+     te(11) = petot(11)/ntot(1)          - petot(9)*ntot(2)/ntot(1)**2   &
+            - petot(8)*ntot(3)/ntot(1)**2  - petot(7)*ntot(5)/ntot(1)**2   &
+                                     +2.*petot(7)*ntot(3)*ntot(2)/ntot(1)**3   &
+            - petot(5)*ntot(7)/ntot(1)**2         - petot(2)*ntot(9)/ntot(1)**2   &
+            - petot(3)*ntot(8)/ntot(1)**2         - petot(1)*ntot(11)/ntot(1)**2   &
+          +2.*petot(2)*ntot(7)*ntot(3)/ntot(1)**3 +2.*petot(1)*ntot(9)*ntot(2)/ntot(1)**2 &
+                                + 2*petot(3)*ntot(2)*ntot(7)/ntot(1)**3  &
+                                + 2*petot(1)*ntot(5)*ntot(7)/ntot(1)**3  &
+                                + 2*petot(1)*ntot(3)*ntot(8)/ntot(1)**3  &
+                                - 6*petot(1)*ntot(3)*ntot(7)*ntot(2)/ntot(1)**4
+     te(12) = petot(12)/ntot(1)          - petot(9)*ntot(3)/ntot(1)**2   &
+            - petot(9)*ntot(3)/ntot(1)**2  - petot(7)*ntot(6)/ntot(1)**2   &
+                                     +2.*petot(7)*ntot(3)*ntot(3)/ntot(1)**3   &
+            - petot(6)*ntot(7)/ntot(1)**2         - petot(3)*ntot(9)/ntot(1)**2   &
+            - petot(2)*ntot(9)/ntot(1)**2         - petot(1)*ntot(12)/ntot(1)**2   &
+          +2.*petot(3)*ntot(7)*ntot(3)/ntot(1)**3 +2.*petot(1)*ntot(9)*ntot(3)/ntot(1)**2 &
+                                + 2*petot(3)*ntot(3)*ntot(7)/ntot(1)**3  &
+                                + 2*petot(1)*ntot(6)*ntot(7)/ntot(1)**3  &
+                                + 2*petot(1)*ntot(3)*ntot(9)/ntot(1)**3  &
+                                - 6*petot(1)*ntot(3)*ntot(7)*ntot(3)/ntot(1)**4
+#endif
 
   ! account for fact that n0 is ion (not electron) density
   te = te/zeff
@@ -1522,41 +1653,83 @@ subroutine calc_lin_ion_temperature(ti, pres0, pe0, n0, pres1, pe1, n1)
 
   vectype, intent(in), dimension(dofs_per_node)  :: pres0, pe0, n0, pres1, pe1, n1
   vectype, intent(out), dimension(dofs_per_node) :: ti
-  vectype, dimension(dofs_per_node) :: pion0, pion1
+  vectype, dimension(dofs_per_node) :: pion0, pion1, ptot, ntot
 
      pion0 = pres0 - pe0
      pion1 = pres1 - pe1
+     ptot = pion0 + pion1
+     ntot = n0 + n1
 
-     ti(1) = (pion0(1)+pion1(1))/(n0(1)+n1(1))  &
+     ti(1) = ptot(1)/ntot(1)  &
            -pion0(1)/n0(1)
-     ti(2) = (pion0(2)+pion1(2))/(n0(1)+n1(1)) &
-           - (pion0(1)+pion1(1))*(n0(2)+n1(2))/(n0(1)+n1(1))**2   &
+     ti(2) = ptot(2)/ntot(1) &
+           - ptot(1)*ntot(2)/ntot(1)**2   &
             -pion0(2)/n0(1) + pion0(1)*n0(2)/n0(1)**2
-     ti(3) = (pion0(3)+pion1(3))/(n0(1)+n1(1)) &
-           - (pion0(1)+pion1(1))*(n0(3)+n1(3))/(n0(1)+n1(1))**2   &
+     ti(3) = ptot(3)/ntot(1) &
+           - ptot(1)*ntot(3)/ntot(1)**2   &
              -pion0(3)/n0(1) + pion0(1)*n0(3)/n0(1)**2
-     ti(4) = (pion0(4)+pion1(4))/(n0(1)+n1(1)) &
-           - 2.*(pion0(2)+pion1(2))*(n0(2)+n1(2))/(n0(1)+n1(1))**2   &
-           - (pion0(1)+pion1(1))*(n0(4)+n1(4))/(n0(1)+n1(1))**2 &
-           + 2*(pion0(1)+pion1(1))*(n0(2)+n1(2))*(n0(2)+n1(2))/(n0(1)+n1(1))**3   &
+     ti(4) = ptot(4)/ntot(1) &
+           - 2.*ptot(2)*ntot(2)/ntot(1)**2   &
+           - ptot(1)*ntot(4)/ntot(1)**2 &
+           + 2*ptot(1)*ntot(2)*ntot(2)/ntot(1)**3   &
            - pion0(4)/n0(1) + 2.*pion0(2)*n0(2)/n0(1)**2       &              
            + pion0(1)*n0(4)/n0(1)**2 - 2*pion0(1)*n0(2)*n0(2)/n0(1)**3
 
-     ti(5) = (pion0(5)+pion1(5))/(n0(1)+n1(1)) &
-           - (pion0(3)+pion1(3))*(n0(2)+n1(2))/(n0(1)+n1(1))**2  &
-           - (pion0(2)+pion1(2))*(n0(3)+n1(3))/(n0(1)+n1(1))**2  &
-           - (pion0(1)+pion1(1))*(n0(5)+n1(5))/(n0(1)+n1(1))**2  &
-         + 2*(pion0(1)+pion1(1))*(n0(3)+n1(3))*(n0(2)+n1(2))/(n0(1)+n1(1))**3   &
+     ti(5) = ptot(5)/ntot(1) &
+           - ptot(3)*ntot(2)/ntot(1)**2  &
+           - ptot(2)*ntot(3)/ntot(1)**2  &
+           - ptot(1)*ntot(5)/ntot(1)**2  &
+         + 2*ptot(1)*ntot(3)*ntot(2)/ntot(1)**3   &
             - pion0(5)/n0(1) + pion0(3)*n0(2)/n0(1)**2  &
             + pion0(2)*n0(3)/n0(1)**2  &
             + pion0(1)*n0(5)/n0(1)**2 - 2*pion0(1)*n0(3)*n0(2)/n0(1)**3
 
-     ti(6) = (pion0(6)+pion1(6))/(n0(1)+n1(1)) &
-           - 2.*(pion0(3)+pion1(3))*(n0(3)+n1(3))/(n0(1)+n1(1))**2   &
-           - (pion0(1)+pion1(1))*(n0(6)+n1(6))/(n0(1)+n1(1))**2 &
-           + 2*(pion0(1)+pion1(1))*(n0(3)+n1(3))*(n0(3)+n1(3))/(n0(1)+n1(1))**3  &
+     ti(6) = ptot(6)/ntot(1) &
+           - 2.*ptot(3)*ntot(3)/ntot(1)**2   &
+           - ptot(1)*ntot(6)/ntot(1)**2 &
+           + 2*ptot(1)*ntot(3)*ntot(3)/ntot(1)**3  &
            -  pion0(6)/n0(1) + 2.*pion0(3)*n0(3)/n0(1)**2                       &
            +  pion0(1)*n0(6)/n0(1)**2 - 2*pion0(1)*n0(3)*n0(3)/n0(1)**3
+#if defined(USE3D)
+!    added 08/22/2012
+     ti(7) = ptot(7)/ntot(1) - ptot(1)*ntot(7)/ntot(1)**2
+     ti(8) = ptot(8)/ntot(1)         - ptot(7)*ntot(2)/ntot(1)**2   &
+           - ptot(2)*ntot(7)/ntot(1)**2 - ptot(1)*ntot(8)/ntot(1)**2   &
+                                + 2*ptot(1)*ntot(2)*ntot(7)/ntot(1)**3
+     ti(9) = ptot(9)/ntot(1)         - ptot(7)*ntot(3)/ntot(1)**2   &
+           - ptot(2)*ntot(7)/ntot(1)**2 - ptot(1)*ntot(9)/ntot(1)**2   &
+                                + 2*ptot(1)*ntot(3)*ntot(7)/ntot(1)**3
+     ti(10) = ptot(10)/ntot(1)          - ptot(8)*ntot(2)/ntot(1)**2   &
+            - ptot(8)*ntot(2)/ntot(1)**2  - ptot(7)*ntot(4)/ntot(1)**2   &
+                                     +2.*ptot(7)*ntot(2)*ntot(2)/ntot(1)**3   &
+            - ptot(4)*ntot(7)/ntot(1)**2         - ptot(2)*ntot(8)/ntot(1)**2   &
+            - ptot(2)*ntot(8)/ntot(1)**2         - ptot(1)*ntot(10)/ntot(1)**2   &
+          +2.*ptot(2)*ntot(7)*ntot(2)/ntot(1)**3 +2.*ptot(1)*ntot(8)*ntot(2)/ntot(1)**2 &
+                                + 2*ptot(2)*ntot(2)*ntot(7)/ntot(1)**3  &
+                                + 2*ptot(1)*ntot(4)*ntot(7)/ntot(1)**3  &
+                                + 2*ptot(1)*ntot(2)*ntot(8)/ntot(1)**3  &
+                                - 6*ptot(1)*ntot(2)*ntot(7)*ntot(2)/ntot(1)**4
+     ti(11) = ptot(11)/ntot(1)          - ptot(9)*ntot(2)/ntot(1)**2   &
+            - ptot(8)*ntot(3)/ntot(1)**2  - ptot(7)*ntot(5)/ntot(1)**2   &
+                                     +2.*ptot(7)*ntot(3)*ntot(2)/ntot(1)**3   &
+            - ptot(5)*ntot(7)/ntot(1)**2         - ptot(2)*ntot(9)/ntot(1)**2   &
+            - ptot(3)*ntot(8)/ntot(1)**2         - ptot(1)*ntot(11)/ntot(1)**2   &
+          +2.*ptot(2)*ntot(7)*ntot(3)/ntot(1)**3 +2.*ptot(1)*ntot(9)*ntot(2)/ntot(1)**2 &
+                                + 2*ptot(3)*ntot(2)*ntot(7)/ntot(1)**3  &
+                                + 2*ptot(1)*ntot(5)*ntot(7)/ntot(1)**3  &
+                                + 2*ptot(1)*ntot(3)*ntot(8)/ntot(1)**3  &
+                                - 6*ptot(1)*ntot(3)*ntot(7)*ntot(2)/ntot(1)**4
+     ti(12) = ptot(12)/ntot(1)          - ptot(9)*ntot(3)/ntot(1)**2   &
+            - ptot(9)*ntot(3)/ntot(1)**2  - ptot(7)*ntot(6)/ntot(1)**2   &
+                                     +2.*ptot(7)*ntot(3)*ntot(3)/ntot(1)**3   &
+            - ptot(6)*ntot(7)/ntot(1)**2         - ptot(3)*ntot(9)/ntot(1)**2   &
+            - ptot(2)*ntot(9)/ntot(1)**2         - ptot(1)*ntot(12)/ntot(1)**2   &
+          +2.*ptot(3)*ntot(7)*ntot(3)/ntot(1)**3 +2.*ptot(1)*ntot(9)*ntot(3)/ntot(1)**2 &
+                                + 2*ptot(3)*ntot(3)*ntot(7)/ntot(1)**3  &
+                                + 2*ptot(1)*ntot(6)*ntot(7)/ntot(1)**3  &
+                                + 2*ptot(1)*ntot(3)*ntot(9)/ntot(1)**3  &
+                                - 6*ptot(1)*ntot(3)*ntot(7)*ntot(3)/ntot(1)**4
+#endif
     
      return
 
@@ -1579,6 +1752,23 @@ subroutine calc_tot_electron_pressure(pe, te0, n0)
      pe(5) = te0(5)*n0(1) + te0(3)*n0(2)  &
            + te0(2)*n0(3) + te0(1)*n0(5)
      pe(6) = te0(6)*n0(1) + 2.*te0(3)*n0(3) + te0(1)*n0(6)
+
+#if defined(USE3D)
+!   added 8/21/2012
+     pe(7) = te0(7)*n0(1) &
+          +  te0(1)*n0(7)
+     pe(8) = te0(8)*n0(1) + te0(7)*n0(2) &
+           + te0(1)*n0(8) +  te0(2)*n0(7) 
+     pe(9) = te0(9)*n0(1) + te0(3)*n0(7) &
+           + te0(1)*n0(9) + te0(7)*n0(3)
+     pe(10)= te0(10)*n0(1) + 2.*te0(8)*n0(2) + te0(7)*n0(4) &
+           + te0(1)*n0(10) + 2.*te0(2)*n0(8) + te0(4)*n0(7) 
+     pe(11)= te0(11)*n0(1) + te0(9)*n0(2)  + te0(8)*n0(3) + te0(7)*n0(5) &
+           + te0(1)*n0(11) + te0(2)*n0(9)  + te0(3)*n0(8) + te0(5)*n0(7) 
+         
+     pe(12)= te0(12)*n0(1) + 2.*te0(9)*n0(3) + te0(7)*n0(6) &
+           + te0(1)*n0(12) + 2.*te0(3)*n0(9) + te0(6)*n0(7)
+#endif
 
      return
 
@@ -1607,6 +1797,23 @@ subroutine calc_tot_pressure(pres0, te0, ti0, n0)
               + tepti(2)*n0(3) + tepti(1)*n0(5)
      pres0(6) = tepti(6)*n0(1) + 2.*tepti(3)*n0(3) + tepti(1)*n0(6)
 
+#if defined(USE3D)
+!   added 8/21/2012
+     pres0(7) = tepti(7)*n0(1) &
+             +  tepti(1)*n0(7)
+     pres0(8) = tepti(8)*n0(1) + tepti(7)*n0(2) &
+              + tepti(1)*n0(8) +  tepti(2)*n0(7) 
+     pres0(9) = tepti(9)*n0(1) + tepti(3)*n0(7) &
+              + tepti(1)*n0(9) + tepti(7)*n0(3)
+     pres0(10)= tepti(10)*n0(1) + 2.*tepti(8)*n0(2) + tepti(7)*n0(4) &
+              + tepti(1)*n0(10) + 2.*tepti(2)*n0(8) + tepti(4)*n0(7) 
+     pres0(11)= tepti(11)*n0(1) + tepti(9)*n0(2)  + tepti(8)*n0(3) + tepti(7)*n0(5) &
+              + tepti(1)*n0(11) + tepti(2)*n0(9)  + tepti(3)*n0(8) + tepti(5)*n0(7) 
+         
+     pres0(12)= tepti(12)*n0(1) + 2.*tepti(9)*n0(3) + tepti(7)*n0(6) &
+              + tepti(1)*n0(12) + 2.*tepti(3)*n0(9) + tepti(6)*n0(7)
+#endif
+
      return
 
 end subroutine calc_tot_pressure
@@ -1617,34 +1824,52 @@ subroutine calc_lin_electron_pressure(pe, te0, n0, te1, n1)
 
   vectype, intent(out), dimension(dofs_per_node) :: pe
   vectype, intent(in), dimension(dofs_per_node) :: te0, n0, te1, n1
+  vectype, dimension(dofs_per_node) :: ttot, ntot
 
-     pe(1) = (te0(1)+te1(1))*(n0(1)+n1(1)) &
+     ttot = te0 + te1
+     ntot = n0 + n1
+     pe(1) = ttot(1)*ntot(1) &
            -  te0(1)*n0(1)
 
-     pe(2) = (te0(2)+te1(2))*(n0(1)+n1(1)) &
-           + (te0(1)+te1(1))*(n0(2)+n1(2)) &
+     pe(2) = ttot(2)*ntot(1) &
+           + ttot(1)*ntot(2) &
            -  te0(2)*n0(1) - te0(1)*n0(2)
  
 
-     pe(3) = (te0(3)+te1(3))*(n0(1)+n1(1)) &
-           + (te0(1)+te1(1))*(n0(3)+n1(3)) &
+     pe(3) = ttot(3)*ntot(1) &
+           + ttot(1)*ntot(3) &
            -  te0(3)*n0(1) - te0(1)*n0(3)
 
-     pe(4) = (te0(4)+te1(4))*(n0(1)+n1(1)) &
-           + 2.*(te0(2)+te1(2))*(n0(2)+n1(2)) &
-           + (te0(1)+te1(1))*(n0(4)+n1(4))    &
+     pe(4) = ttot(4)*ntot(1) &
+           + 2.*ttot(2)*ntot(2) &
+           + ttot(1)*ntot(4)    &
            - te0(4)*n0(1) - 2.*te0(2)*n0(2) - te0(1)*n0(4)
 
-     pe(5) = (te0(5)+te1(5))*(n0(1)+n1(1)) &
-           + (te0(3)+te1(3))*(n0(2)+n1(2)) &
-           + (te0(2)+te1(2))*(n0(3)+n1(3)) &
-           + (te0(1)+te1(1))*(n0(5)+n1(5)) &
+     pe(5) = ttot(5)*ntot(1) &
+           + ttot(3)*ntot(2) &
+           + ttot(2)*ntot(3) &
+           + ttot(1)*ntot(5) &
            - te0(5)*n0(1) - te0(3)*n0(2) -  te0(2)*n0(3) - te0(1)*n0(5)
 
-     pe(6) = (te0(6)+te1(6))*(n0(1)+n1(1)) &
-           + 2.*(te0(3)+te1(3))*(n0(3)+n1(3)) &
-           + (te0(1)+te1(1))*(n0(6)+n1(6)) &
+     pe(6) = ttot(6)*ntot(1) &
+           + 2.*ttot(3)*ntot(3) &
+           + ttot(1)*ntot(6) &
            - te0(6)*n0(1) - 2.*te0(3)*n0(3) - te0(1)*n0(6)
+#if defined(USE3D)
+!   added 8/21/2012
+     pe(7) = te1(7)*ntot(1) &
+          +  ttot(1)*n1(7)
+     pe(8) = te1(8)*ntot(1) + te1(7)*ntot(2) &
+           + ttot(1)*n1(8) +  ttot(2)*n1(7)
+     pe(9) = te1(9)*ntot(1) + ttot(3)*n1(7) &
+           + ttot(1)*n1(9) + te1(7)*ntot(3)
+     pe(10)= te1(10)*ntot(1) + 2.*te1(8)*ntot(2) + te1(7)*ntot(4) &
+           + ttot(1)*n1(10) + 2.*ttot(2)*n1(8) + ttot(4)*n1(7)
+     pe(11)= te1(11)*ntot(1) + te1(9)*ntot(2)  + te1(8)*ntot(3) + te1(7)*ntot(5) &
+           + ttot(1)*n1(11) + ttot(2)*n1(9)  + ttot(3)*n1(8) + ttot(5)*n1(7)
+     pe(12)= te1(12)*ntot(1) + 2.*te1(9)*ntot(3) + te1(7)*ntot(6) &
+           + ttot(1)*n1(12) + 2.*ttot(3)*n1(9) + ttot(6)*n1(7)
+#endif
 
      return
 
@@ -1680,6 +1905,23 @@ subroutine calc_lin_pressure(pres1, te0, ti0, n0, te1, ti1, n1)
               - tepti0(2)*n0(3)- tepti0(1)*n0(5)
      pres1(6) = tepti(6)*nt(1) + 2.*tepti(3)*nt(3) + tepti(1)*nt(6) &
               - tepti0(6)*n0(1)- 2.*tepti0(3)*n0(3)- tepti0(1)*n0(6)
+
+#if defined(USE3D)
+!   added 8/21/2012
+     pres1(7) = tepti(7)*nt(1) &
+             +  tepti(1)*nt(7)
+     pres1(8) = tepti(8)*nt(1) + tepti(7)*nt(2) &
+              + tepti(1)*nt(8) +  tepti(2)*nt(7) 
+     pres1(9) = tepti(9)*nt(1) + tepti(3)*nt(7) &
+              + tepti(1)*nt(9) + tepti(7)*nt(3)
+     pres1(10)= tepti(10)*nt(1) + 2.*tepti(8)*nt(2) + tepti(7)*nt(4) &
+              + tepti(1)*nt(10) + 2.*tepti(2)*nt(8) + tepti(4)*nt(7) 
+     pres1(11)= tepti(11)*nt(1) + tepti(9)*nt(2)  + tepti(8)*nt(3) + tepti(7)*nt(5) &
+              + tepti(1)*nt(11) + tepti(2)*nt(9)  + tepti(3)*nt(8) + tepti(5)*nt(7) 
+         
+     pres1(12)= tepti(12)*nt(1) + 2.*tepti(9)*nt(3) + tepti(7)*nt(6) &
+              + tepti(1)*nt(12) + 2.*tepti(3)*nt(9) + tepti(6)*nt(7)
+#endif
 
 
 
