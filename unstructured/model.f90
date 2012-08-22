@@ -1526,7 +1526,7 @@ subroutine calc_ion_temperature(ti, pres0, pe0, n0)
                                      +2.*pion0(7)*n0(2)*n0(2)/n0(1)**3   &
             - pion0(4)*n0(7)/n0(1)**2         - pion0(2)*n0(8)/n0(1)**2   &
             - pion0(2)*n0(8)/n0(1)**2         - pion0(1)*n0(10)/n0(1)**2   &
-            +2.*pion0(2)*n0(7)*n0(2)/n0(1)**3 +2.*pion0(1)*n0(8)*n0(2)/n0(1)**2   &
+            +2.*pion0(2)*n0(7)*n0(2)/n0(1)**3 +2.*pion0(1)*n0(8)*n0(2)/n0(1)**3   &
                                 + 2*pion0(2)*n0(2)*n0(7)/n0(1)**3  &
                                 + 2*pion0(1)*n0(4)*n0(7)/n0(1)**3  &
                                 + 2*pion0(1)*n0(2)*n0(8)/n0(1)**3  &
@@ -1536,7 +1536,7 @@ subroutine calc_ion_temperature(ti, pres0, pe0, n0)
                                      +2.*pion0(7)*n0(3)*n0(2)/n0(1)**3   &
             - pion0(5)*n0(7)/n0(1)**2         - pion0(2)*n0(9)/n0(1)**2   &
             - pion0(3)*n0(8)/n0(1)**2         - pion0(1)*n0(11)/n0(1)**2   &
-            +2.*pion0(2)*n0(7)*n0(3)/n0(1)**3 +2.*pion0(1)*n0(9)*n0(2)/n0(1)**2   &
+            +2.*pion0(2)*n0(7)*n0(3)/n0(1)**3 +2.*pion0(1)*n0(9)*n0(2)/n0(1)**3   &
                                 + 2*pion0(3)*n0(2)*n0(7)/n0(1)**3  &
                                 + 2*pion0(1)*n0(5)*n0(7)/n0(1)**3  &
                                 + 2*pion0(1)*n0(3)*n0(8)/n0(1)**3  &
@@ -1545,8 +1545,8 @@ subroutine calc_ion_temperature(ti, pres0, pe0, n0)
             - pion0(9)*n0(3)/n0(1)**2  - pion0(7)*n0(6)/n0(1)**2   &
                                      +2.*pion0(7)*n0(3)*n0(3)/n0(1)**3   &
             - pion0(6)*n0(7)/n0(1)**2         - pion0(3)*n0(9)/n0(1)**2   &
-            - pion0(2)*n0(9)/n0(1)**2         - pion0(1)*n0(12)/n0(1)**2   &
-            +2.*pion0(3)*n0(7)*n0(3)/n0(1)**3 +2.*pion0(1)*n0(9)*n0(3)/n0(1)**2   &
+            - pion0(3)*n0(9)/n0(1)**2         - pion0(1)*n0(12)/n0(1)**2   &
+            +2.*pion0(3)*n0(7)*n0(3)/n0(1)**3 +2.*pion0(1)*n0(9)*n0(3)/n0(1)**3   &
                                 + 2*pion0(3)*n0(3)*n0(7)/n0(1)**3  &
                                 + 2*pion0(1)*n0(6)*n0(7)/n0(1)**3  &
                                 + 2*pion0(1)*n0(3)*n0(9)/n0(1)**3  &
@@ -1611,7 +1611,7 @@ subroutine calc_lin_electron_temperature(te, pe0, n0, pe1, n1)
                                      +2.*petot(7)*ntot(2)*ntot(2)/ntot(1)**3   &
             - petot(4)*ntot(7)/ntot(1)**2         - petot(2)*ntot(8)/ntot(1)**2   &
             - petot(2)*ntot(8)/ntot(1)**2         - petot(1)*ntot(10)/ntot(1)**2   &
-          +2.*petot(2)*ntot(7)*ntot(2)/ntot(1)**3 +2.*petot(1)*ntot(8)*ntot(2)/ntot(1)**2 &
+          +2.*petot(2)*ntot(7)*ntot(2)/ntot(1)**3 +2.*petot(1)*ntot(8)*ntot(2)/ntot(1)**3 &
                                 + 2*petot(2)*ntot(2)*ntot(7)/ntot(1)**3  &
                                 + 2*petot(1)*ntot(4)*ntot(7)/ntot(1)**3  &
                                 + 2*petot(1)*ntot(2)*ntot(8)/ntot(1)**3  &
@@ -1621,7 +1621,7 @@ subroutine calc_lin_electron_temperature(te, pe0, n0, pe1, n1)
                                      +2.*petot(7)*ntot(3)*ntot(2)/ntot(1)**3   &
             - petot(5)*ntot(7)/ntot(1)**2         - petot(2)*ntot(9)/ntot(1)**2   &
             - petot(3)*ntot(8)/ntot(1)**2         - petot(1)*ntot(11)/ntot(1)**2   &
-          +2.*petot(2)*ntot(7)*ntot(3)/ntot(1)**3 +2.*petot(1)*ntot(9)*ntot(2)/ntot(1)**2 &
+          +2.*petot(2)*ntot(7)*ntot(3)/ntot(1)**3 +2.*petot(1)*ntot(9)*ntot(2)/ntot(1)**3 &
                                 + 2*petot(3)*ntot(2)*ntot(7)/ntot(1)**3  &
                                 + 2*petot(1)*ntot(5)*ntot(7)/ntot(1)**3  &
                                 + 2*petot(1)*ntot(3)*ntot(8)/ntot(1)**3  &
@@ -1630,8 +1630,8 @@ subroutine calc_lin_electron_temperature(te, pe0, n0, pe1, n1)
             - petot(9)*ntot(3)/ntot(1)**2  - petot(7)*ntot(6)/ntot(1)**2   &
                                      +2.*petot(7)*ntot(3)*ntot(3)/ntot(1)**3   &
             - petot(6)*ntot(7)/ntot(1)**2         - petot(3)*ntot(9)/ntot(1)**2   &
-            - petot(2)*ntot(9)/ntot(1)**2         - petot(1)*ntot(12)/ntot(1)**2   &
-          +2.*petot(3)*ntot(7)*ntot(3)/ntot(1)**3 +2.*petot(1)*ntot(9)*ntot(3)/ntot(1)**2 &
+            - petot(3)*ntot(9)/ntot(1)**2         - petot(1)*ntot(12)/ntot(1)**2   &
+          +2.*petot(3)*ntot(7)*ntot(3)/ntot(1)**3 +2.*petot(1)*ntot(9)*ntot(3)/ntot(1)**3 &
                                 + 2*petot(3)*ntot(3)*ntot(7)/ntot(1)**3  &
                                 + 2*petot(1)*ntot(6)*ntot(7)/ntot(1)**3  &
                                 + 2*petot(1)*ntot(3)*ntot(9)/ntot(1)**3  &
@@ -1704,7 +1704,7 @@ subroutine calc_lin_ion_temperature(ti, pres0, pe0, n0, pres1, pe1, n1)
                                      +2.*ptot(7)*ntot(2)*ntot(2)/ntot(1)**3   &
             - ptot(4)*ntot(7)/ntot(1)**2         - ptot(2)*ntot(8)/ntot(1)**2   &
             - ptot(2)*ntot(8)/ntot(1)**2         - ptot(1)*ntot(10)/ntot(1)**2   &
-          +2.*ptot(2)*ntot(7)*ntot(2)/ntot(1)**3 +2.*ptot(1)*ntot(8)*ntot(2)/ntot(1)**2 &
+          +2.*ptot(2)*ntot(7)*ntot(2)/ntot(1)**3 +2.*ptot(1)*ntot(8)*ntot(2)/ntot(1)**3 &
                                 + 2*ptot(2)*ntot(2)*ntot(7)/ntot(1)**3  &
                                 + 2*ptot(1)*ntot(4)*ntot(7)/ntot(1)**3  &
                                 + 2*ptot(1)*ntot(2)*ntot(8)/ntot(1)**3  &
@@ -1714,7 +1714,7 @@ subroutine calc_lin_ion_temperature(ti, pres0, pe0, n0, pres1, pe1, n1)
                                      +2.*ptot(7)*ntot(3)*ntot(2)/ntot(1)**3   &
             - ptot(5)*ntot(7)/ntot(1)**2         - ptot(2)*ntot(9)/ntot(1)**2   &
             - ptot(3)*ntot(8)/ntot(1)**2         - ptot(1)*ntot(11)/ntot(1)**2   &
-          +2.*ptot(2)*ntot(7)*ntot(3)/ntot(1)**3 +2.*ptot(1)*ntot(9)*ntot(2)/ntot(1)**2 &
+          +2.*ptot(2)*ntot(7)*ntot(3)/ntot(1)**3 +2.*ptot(1)*ntot(9)*ntot(2)/ntot(1)**3 &
                                 + 2*ptot(3)*ntot(2)*ntot(7)/ntot(1)**3  &
                                 + 2*ptot(1)*ntot(5)*ntot(7)/ntot(1)**3  &
                                 + 2*ptot(1)*ntot(3)*ntot(8)/ntot(1)**3  &
@@ -1723,8 +1723,8 @@ subroutine calc_lin_ion_temperature(ti, pres0, pe0, n0, pres1, pe1, n1)
             - ptot(9)*ntot(3)/ntot(1)**2  - ptot(7)*ntot(6)/ntot(1)**2   &
                                      +2.*ptot(7)*ntot(3)*ntot(3)/ntot(1)**3   &
             - ptot(6)*ntot(7)/ntot(1)**2         - ptot(3)*ntot(9)/ntot(1)**2   &
-            - ptot(2)*ntot(9)/ntot(1)**2         - ptot(1)*ntot(12)/ntot(1)**2   &
-          +2.*ptot(3)*ntot(7)*ntot(3)/ntot(1)**3 +2.*ptot(1)*ntot(9)*ntot(3)/ntot(1)**2 &
+            - ptot(3)*ntot(9)/ntot(1)**2         - ptot(1)*ntot(12)/ntot(1)**2   &
+          +2.*ptot(3)*ntot(7)*ntot(3)/ntot(1)**3 +2.*ptot(1)*ntot(9)*ntot(3)/ntot(1)**3 &
                                 + 2*ptot(3)*ntot(3)*ntot(7)/ntot(1)**3  &
                                 + 2*ptot(1)*ntot(6)*ntot(7)/ntot(1)**3  &
                                 + 2*ptot(1)*ntot(3)*ntot(9)/ntot(1)**3  &
