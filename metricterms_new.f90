@@ -5156,8 +5156,7 @@ vectype function b1psiv(e,f,g)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-! This term is an exact differential in phi -> vanishes for USE3D
-#if defined(USECOMPLEX)
+#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
     temp = 0.
   else
@@ -5236,8 +5235,7 @@ vectype function b1bu(e,f,g)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-! This term is an exact differential in phi -> vanishes for USE3D
-#if defined(USECOMPLEX)
+#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      temp = 0.
   else
@@ -5382,8 +5380,7 @@ vectype function b1bchi(e,f,g)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-! This term is an exact differential in phi -> vanishes for USE3D
-#if defined(USECOMPLEX)
+#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      temp = 0.
   else
@@ -5481,8 +5478,7 @@ vectype function b1psieta(e,f,g,h)
                 - int5(ri2_79,g(:,OP_1),f(:,OP_GS),norm79(:,2),e(:,OP_DZ))
         endif
 
-! This term is an exact differential in phi -> vanishes for USE3D
-#if defined(USECOMPLEX)
+#if defined(USE3D) || defined(USECOMPLEX)
         if(inocurrent_norm.eq.1) then
            temp = temp
         else
@@ -5494,8 +5490,7 @@ vectype function b1psieta(e,f,g,h)
      else
         temp = int4(ri2_79,g(:,OP_1),e(:,OP_GS),f(:,OP_GS))
 
-! This term is an exact differential in phi -> vanishes for USE3D
-#if defined(USECOMPLEX)
+#if defined(USE3D) || defined(USECOMPLEX)
         temp = temp - &
              (int4(ri4_79,e(:,OP_DZ),f(:,OP_DZPP),g(:,OP_1)) &
              +int4(ri4_79,e(:,OP_DR),f(:,OP_DRPP),g(:,OP_1)))
@@ -5520,8 +5515,7 @@ vectype function b1beta(e,f,g,h)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-! This term is an exact differential in phi -> vanishes for USE3D
-#if defined(USECOMPLEX)
+#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      temp = 0.
   else 
@@ -5568,8 +5562,7 @@ vectype function b1psipsid(e,f,g,h)
      return
   end if
 
-! This term is an exact differential in phi -> vanishes for USE3D
-#if defined(USECOMPLEX)
+#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      if(surface_int) then
         temp = 0.
@@ -5697,8 +5690,7 @@ vectype function b1psibd2(e,f,g,h)
      return
   end if
 
-! This term is an exact differential in phi -> vanishes for USE3D
-#if defined(USECOMPLEX)
+#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      temp = 0.
   else
@@ -5749,8 +5741,7 @@ vectype function b1psifd1(e,f,g,h)
      return
   end if
 
-! This term is an exact differential in phi -> vanishes for USE3D
-#if defined(USECOMPLEX)
+#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      if(surface_int) then
         temp = 0.
@@ -5864,8 +5855,7 @@ vectype function b1bbd(e,f,g,h)
      return
   end if
 
-! This term is an exact differential in phi -> vanishes for USE3D
-#if defined(USECOMPLEX)
+#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      if(surface_int) then
         temp = 0.
@@ -5974,8 +5964,7 @@ vectype function b1bfd2(e,f,g,h)
      return
   end if
 
-! This term is an exact differential in phi -> vanishes for USE3D
-#if defined(USECOMPLEX)
+#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      temp = 0.
   else
@@ -5994,10 +5983,12 @@ vectype function b1bfd2(e,f,g,h)
              + int5(ri4_79,e(:,OP_DZ),g(:,OP_DZPP),f(:,OP_1 ),h(:,OP_DP))  &
              + int5(ri4_79,e(:,OP_DR),g(:,OP_DRPP),f(:,OP_1 ),h(:,OP_DP))
 
+#ifdef USECOMPLEX
         ! f''' term hack
         temp = temp + rfac* &
              (int5(ri4_79,e(:,OP_DZ),g(:,OP_DZPP),f(:,OP_1),h(:,OP_1))  &
              +int5(ri4_79,e(:,OP_DR),g(:,OP_DRPP),f(:,OP_1),h(:,OP_1)))
+#endif
      endif
   endif
   b1bfd2 = temp
@@ -6025,8 +6016,7 @@ vectype function b1ped(e,f,g)
      return
   end if
 
-! This term is an exact differential in phi -> vanishes for USE3D
-#if defined(USECOMPLEX)
+#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      if(surface_int) then
         temp = 0.
@@ -6070,8 +6060,7 @@ vectype function b1feta(e,f,g,h)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-! This term is an exact differential in phi -> vanishes for USE3D
-#if defined(USECOMPLEX)
+#if defined(USE3D) || defined(USECOMPLEX)
 
   if(jadv.eq.0) then
      temp = 0.
@@ -6079,8 +6068,13 @@ vectype function b1feta(e,f,g,h)
      if(surface_int) then
         temp = 0.
      else
+#ifdef USECOMPLEX
         temp = rfac*int4(ri3_79,e(:,OP_DR),f(:,OP_DZPP),g(:,OP_1)) &
              - rfac*int4(ri3_79,e(:,OP_DZ),f(:,OP_DRPP),g(:,OP_1))
+#else
+        temp = -int4(ri3_79,e(:,OP_DRP),f(:,OP_DZPP),g(:,OP_1)) &
+             +  int4(ri3_79,e(:,OP_DZP),f(:,OP_DRPP),g(:,OP_1))
+#endif
      end if
   end if
 
@@ -6178,8 +6172,7 @@ vectype function b1fv(e,f,g)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-! This term is an exact differential in phi -> vanishes for USE3D
-#if defined(USECOMPLEX)
+#if defined(USE3D) || defined(USECOMPLEX)
 
   select case(ivform)
   case(0)

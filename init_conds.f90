@@ -668,9 +668,9 @@ subroutine cylinder_equ(x, z)
   if(rr.ne.0) ri = 1./rr
   arg = k*rr
   if(rr.le.1) then
-     befo = 2./dbesj0(k)
-     j0 = dbesj0(arg)
-     j1 = dbesj1(arg)
+     befo = 2./dbesj0(dble(k))
+     j0 = dbesj0(dble(arg))
+     j1 = dbesj1(dble(arg))
      ff = .5*befo
      fp = 0.
      fpp = -.125*k**2*befo

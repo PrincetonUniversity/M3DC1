@@ -5,6 +5,7 @@
 #include <map>
 #include <deque>
 #include <mpi.h>
+#include <stdlib.h>
 
 #define INT_TYPE    0
 #define DOUBLE_TYPE 1

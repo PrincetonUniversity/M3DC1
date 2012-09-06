@@ -317,7 +317,12 @@ vectype function kappa_func(i)
   case(0)
      temp79b = max(pedge,real(pt79(:,OP_1)))
      ! kappa = p/T**(3/2) = sqrt(n**3/p)
-     temp79a = kappa0*sqrt(nt79(:,OP_1)**3/temp79b)
+
+     if(kappa0.eq.0) then
+        temp79a = 0.
+     else
+        temp79a = kappa0*sqrt(nt79(:,OP_1)**3/pt79(:,OP_1))
+     end if
         
   case(1)
      if(linear.eq.1) then
@@ -345,7 +350,11 @@ vectype function kappa_func(i)
      !.....added 11/26/2011     scj
   case(3)
      ! kappa = sqrt(1./ (p*n))
-     temp79a = kappa0*sqrt(1./(nt79(:,OP_1)*pt79(:,OP_1)))      
+     if(kappa0.eq.0) then
+        temp79a = 0.
+     else
+        temp79a = kappa0*sqrt(1./(nt79(:,OP_1)*pt79(:,OP_1)))      
+     end if
      
   case(10)
      if(.not.allocated(kappa_spline%x)) then
