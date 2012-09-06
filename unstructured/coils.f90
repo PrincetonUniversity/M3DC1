@@ -75,8 +75,8 @@ contains
                xc(s) = x + dx - dz*a2
                zc(s) = z + dz + dx*a1
                
-               ic(s) = c*(cos(ntor*pi*phase/180.) &
-                    + (0.,1.)*sin(ntor*pi*phase/180.))
+               ic(s) = c*(cos(pi*phase/180.) &
+                    - (0.,1.)*sin(pi*phase/180.))
             end do
          end do
       end do

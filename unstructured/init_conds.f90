@@ -577,7 +577,7 @@ subroutine rmp_per
 
   ! load external field data from schaffer file
   if(iread_ext_field.eq.1) then
-     call load_schaffer_field('error_field', ierr)
+     call load_schaffer_field('error_field', isample_ext_field, ierr)
      if(ierr.ne.0) call safestop(6)
 #ifdef USECOMPLEX
      call calculate_external_field_ft(ntor)

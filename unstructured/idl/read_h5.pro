@@ -1360,7 +1360,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
    if(n_elements(filename) gt 1) then filename=filename[0]
-   if(n_elements(pts) eq 0) then pts = 50
+   if(n_elements(pts) eq 0) then pts = 200
    if(n_elements(op) eq 0) then op = 1
 
    if(hdf5_file_test(filename) eq 0) then return, 0
@@ -3900,7 +3900,9 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        data = -mu_p*b2_av*n0*r^2*w0
        d = dimensions(/p0)
        symbol = '!6NTV!X'
-       
+
+;       data = mu_p
+;       d = dimensions(t0=-1)
        
 ;        data = nu_i
 ;        data = w_E
@@ -4016,8 +4018,9 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    endelse
 
    ; scale by linfac
-   if((ilin eq 1) and (n_elements(linfac) ne 0) and keyword_set(linear)) $
+   if((ilin eq 1) and (n_elements(linfac) ne 0) and (time ne -1) and keyword_set(linear)) $
      then begin
+       print, 'scaling data by ', linfac
        data = data*linfac
    end
    
@@ -4938,6 +4941,7 @@ pro plot_lcfs, psi, x, z, psival=psival,_EXTRA=extra
     if(n_elements(psi) eq 0 or n_elements(x) eq 0 or n_elements(z) eq 0) then begin
         print, 'reading psi, plot_lcfs'
         psi = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra)
+        print, min(psi), max(psi)
     end
 
     ; if psival not passed, choose limiter value
@@ -5577,8 +5581,8 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
 
    sz = size(field)
 
-   if(n_elements(fbins) eq 0) then fbins = 10
-   if(n_elements(tbins) eq 0) then tbins = 10
+   if(n_elements(fbins) eq 0) then fbins = sqrt(sz[2]*sz[3])
+   if(n_elements(tbins) eq 0) then tbins = sqrt(sz[2]*sz[3])
 
    result = fltarr(sz[1], fbins, tbins)
    flux = fltarr(sz[1], fbins)
@@ -5838,7 +5842,7 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
    sz = size(field)
 
    if(n_elements(points) eq 0) then begin
-       if(type ne 7) then points = sz[2] else points=50
+       if(type ne 7) then points = sz[2] else points=200
    endif
 
    if((n_elements(psi) le 1) $
@@ -6118,7 +6122,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                 mask_val=mask_val, boundary=boundary, q_contours=q_contours, $
                 overplot=overplot, phi=phi0, time=realtime, levels=levels, $
                 phase=phase, abs=abs, operation=op, magcoord=magcoord, $
-                outfile=outfile, _EXTRA=ex
+                outfile=outfile, fac=fac, _EXTRA=ex
 
    ; open mpeg object
    if(n_elements(mpeg) ne 0) then begin
@@ -6150,7 +6154,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
 
 
    if(n_elements(time) eq 0) then time = 0
-   if(n_elements(p) eq 0) then p = 50
+   if(n_elements(p) eq 0) then p = 200
    if(n_elements(title) eq 0) then notitle = 1 else notitle = 0
 
    if(keyword_set(phase) or keyword_set(abs)) then complex=1
@@ -6161,7 +6165,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                           symbol=fieldname, units=u, linear=linear, $
                           mask=mask, phi=phi0, time=realtime, $
                           complex=complex, operation=op, $
-                          linfac=linfac, _EXTRA=ex)
+                          linfac=linfac, fac=fac,_EXTRA=ex)
        if(n_elements(field) le 1) then return
        if(n_elements(units) eq 0) then units=u       
    endif else begin
@@ -6288,7 +6292,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
                        color=colors, names=names, bins=bins, linear=linear, $
                        xlog=xlog, ylog=ylog, overplot=overplot, fac=fac, $
                        lcfs=lcfs, normalized_flux=norm, points=pts, $
-                       linestyle=ls, $
+                       linestyle=ls, linfac=linfac, $
                        minor_radius=minor_radius, smooth=sm, t=t, rms=rms, $
                        bw=bw, srnorm=srnorm, last=last, mks=mks, cgs=cgs, $
                        q_contours=q_contours, rho=rho, integrate=integrate, $
@@ -6297,6 +6301,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
                        val_at_q=val_at_q, flux_at_q=flux_at_q, _EXTRA=extra
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
+   if(n_elements(linfac) eq 0) then linfac = 1.
 
    if(n_elements(time) eq 0) then time=0
    if(keyword_set(last)) then $
@@ -6312,6 +6317,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
            if(n_elements(colors) eq 0) then col = colors()
            ls = replicate(0,n_elements(field))
        endelse
+       if(n_elements(linfac) eq 1) then linfac=replicate(linfac, n_elements(field))
        for i=0, n_elements(field)-1 do begin
            if((n_elements(q_contours) ne 0) and (i eq 0)) then begin
                qcon = q_contours
@@ -6323,7 +6329,8 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, fac=fac, $
              linear=linear, multiply_flux=multiply_flux, mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, abs=abs, phase=phase, $
-             stotal=total, q_contours=qcon, rho=rho, nolegend=nolegend
+             stotal=total, q_contours=qcon, rho=rho, nolegend=nolegend, $
+             linfac=linfac[i]
        end
        if(n_elements(names) ne 0) then begin
            plot_legend, names, colors=col, linestyle=ls, _EXTRA=extra
@@ -6342,6 +6349,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
            if(n_elements(ls) eq 0) then ls = replicate(0,nfiles)
        endelse
        if(n_elements(time) eq 1) then time = replicate(time,nfiles)
+       if(n_elements(linfac) eq 1) then linfac=replicate(linfac, nfiles)
        if(n_elements(multiply_flux) eq 1) then $
          multiply_flux = replicate(multiply_flux,nfiles)
 
@@ -6354,7 +6362,8 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, fac=fac, $
              linear=linear, multiply_flux=multiply_flux[i], mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, abs=abs, phase=phase, $
-             stotal=total, q_contours=q_contours, rho=rho, nolegend=nolegend
+             stotal=total, q_contours=q_contours, rho=rho, nolegend=nolegend, $
+             linfac=linfac[i]
        end
        if(n_elements(names) gt 0 and not keyword_set(nolegend)) then begin
            plot_legend, names, color=colors, ylog=ylog, xlog=xlog, $
@@ -6374,6 +6383,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
            if(n_elements(colors) eq 0) then colors = colors(nt)
            ls = replicate(0,nt)
        endelse       
+       if(n_elements(linfac) eq 1) then linfac=replicate(linfac, nt)
        for i=0, n_elements(time)-1 do begin
            newfield = field
            plot_flux_average, newfield, time[i], filename=filename, $
@@ -6383,7 +6393,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              t=t, rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, fac=fac,$
              linear=linear, multiply_flux=multiply_flux, mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, asb=aba, phase=phase, $
-             stotal=total, rho=rho, nolegend=nolegend
+             stotal=total, rho=rho, nolegend=nolegend, linfac=linfac[i]
            names[i] = string(format='(%"!8t!6 = %d !7s!D!8A!N!X")', t)
        end
 
@@ -6401,7 +6411,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
    fa = flux_average(field,slice=time,flux=flux,points=pts,filename=filename, $
                      name=title, symbol=symbol, units=units, bins=bins, $
                      psi=psi,x=x,z=z,t=t,nflux=nflux,linear=linear, fac=fac, $
-                     mks=mks, cgs=cgs, area=area, integrate=integrate, $
+                     mks=mks, cgs=cgs, area=area, integrate=integrate, linfac=linfac, $
                     complex=complex, abs=abs, phase=phase, stotal=total)
 
    if(n_elements(fa) le 1) then begin
@@ -6910,7 +6920,7 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
                    _EXTRA=extra
 
 
-  if(n_elements(points) eq 0) then points = 50
+  if(n_elements(points) eq 0) then points = 20
   angles = points
 
   if(keyword_set(solid)) then begin
@@ -7176,7 +7186,7 @@ pro plot_perturbed_surface, q, scalefac=scalefac, points=pts, $
    c = colors()
    c0 = c
    if(n_elements(fvals) eq 1) then begin
-       l0 = 0
+       l0 = 1
        c[1] = c0[3]
    endif else begin
        l0 = 1
