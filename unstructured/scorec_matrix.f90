@@ -131,7 +131,7 @@ contains
     if(lhs) then
        call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc',flg_petsc,ierr)
        call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ierr)
-       if(flg_solve2 ) flg_petsc=PETSC_TRUE
+       if(flg_solve2.eq.PETSC_TRUE) flg_petsc=PETSC_TRUE
 
        if(flg_petsc.eq.PETSC_TRUE) then
           call zeropetscmatrix(mat%imatrix, mat%icomplex, mat%isize)
