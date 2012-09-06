@@ -608,7 +608,7 @@ subroutine define_profiles
            if(use_norm_psi.eq.1) then 
               omega_spline%y(i) = omega_spline%y(i) - dpsii*dia
            else
-              omega_spline%y(i) = omega_spline%y(i) - db*dia
+              omega_spline%y(i) = omega_spline%y(i) - dia
            endif
         end do
      end if

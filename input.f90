@@ -306,6 +306,8 @@ subroutine set_defaults
        &2: Apply nonaxisym. fields only at boundaries", eq_grp)
   call add_var_int("iread_ext_field", iread_ext_field, 0, &
        "1: Read external field", eq_grp)
+  call add_var_int("isample_ext_field", isample_ext_field, 1, &
+       "Factor to down-sample external field data", eq_grp)
   call add_var_double("beta", beta, 0., "", eq_grp)
   call add_var_double("ln", ln, 0., "", eq_grp)
 

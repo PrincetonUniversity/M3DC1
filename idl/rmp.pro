@@ -2,7 +2,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
                    psi_val=psi_val, ntor=ntor, label=label, psi0=psi0, i0=i0, $
                    m_val=m_val, phase=phase, overplot=overplot, $
                    linestyle=linestyle, outfile=outfile, bmnfile=bmnfile, $
-                   bmncdf=bmncdf, rhs=rhs
+                   bmncdf=bmncdf, rhs=rhs, reverse_q=reverse_q
 
    print, 'Drawing schaffer plot'
 
@@ -42,6 +42,8 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
 ;   plot, nflux, q, xrange=[0.94, 0.96], yrange=[11./3., 4.], /ystyle
 ;   return
 
+   if(keyword_set(reverse_q)) then q = -q
+
    for i=0, n_elements(angle)-1 do begin
        a_r[0,*,i] = (2.*!pi)^2*a_r[0,*,i]*q/area
        a_i[0,*,i] = (2.*!pi)^2*a_i[0,*,i]*q/area
@@ -74,12 +76,16 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    end
 
    if(n_elements(bmncdf) ne 0) then begin
+       omega_e = flux_average('ve_omega',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+                              bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
+
        id = ncdf_create(bmncdf, /clobber)
        ncdf_attput, id, 'ntor', ntor, /short, /global
        n_id = ncdf_dimdef(id, 'npsi', n_elements(nflux))
        m_id = ncdf_dimdef(id, 'mpol', n_elements(m))
        psi_var = ncdf_vardef(id, 'psi', [n_id], /float)
        q_var = ncdf_vardef(id, 'q', [n_id], /float)
+       omega_e_var = ncdf_vardef(id, 'omega_e', [n_id], /float)
        m_var = ncdf_vardef(id, 'm', [m_id], /short)
        bmn_real_var = ncdf_vardef(id, 'bmn_real', [m_id,n_id], /float)
        bmn_imag_var = ncdf_vardef(id, 'bmn_imag', [m_id,n_id], /float)
@@ -87,6 +93,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        ncdf_varput, id, 'psi', reform(nflux[0,*])
        ncdf_varput, id, 'm', m
        ncdf_varput, id, 'q', abs(reform(q))
+       ncdf_varput, id, 'omega_e', reform(omega_e)
        ncdf_varput, id, 'bmn_real', real_part(reform(d[0,*,*]))
        ncdf_varput, id, 'bmn_imag', imaginary(reform(d[0,*,*]))
        ncdf_close, id
@@ -96,7 +103,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    if(n_elements(m_val) ne 0) then begin
 
        q_val = abs(m_val/float(ntor))
-       indices = interpol(findgen(n_elements(q)), q, q_val)
+       indices = interpol(findgen(n_elements(q)), abs(q), q_val)
 
        if(n_elements(linestyle) eq 0) then linestyle=0
 
@@ -182,8 +189,11 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
            end
            
            if(n_elements(outfile) ne 0) then begin
-               printf, ifile, format='(I5,7F12.6)', m[j], abs(d[j,i]), $
-                 atan(imaginary(d[j,i]),real_part(d[j,i])), $
+               print, 'q[0] = ', q[0]
+               if(q[0] gt 0) then mi = j else mi = k
+               print, 'm[mi] = ', m[mi]
+               printf, ifile, format='(I5,7F12.6)', m[mi], abs(d[mi,i]), $
+                 atan(imaginary(d[mi,i]),real_part(d[mi,i])), $
                  interpolate(nflux, indices[i]), $
                  interpolate(abs(q), indices[i]), $
                  interpolate(deriv(nflux, abs(q)), indices[i]), $

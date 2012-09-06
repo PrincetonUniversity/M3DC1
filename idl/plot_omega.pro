@@ -1,11 +1,11 @@
 pro plot_omega, filename=filename, slice=time, points=pts, $
-                yrange=yrange, _EXTRA=extra
+                yrange=yrange, q_val=q_val, _EXTRA=extra
 
   if(n_elements(pts) eq 0) then pts=200
 
   db = read_parameter('db', filename=filename)
   itor = read_parameter('itor', filename=filename)
-  print, 'db = ', filename, db
+  print, 'db = ', db
 
   omega = read_field('omega', x, y,t,slices=time,filename=filename,points=pts)
   p = read_field('p', x, y, t, slices=time, filename=filename, points=pts)
@@ -65,9 +65,26 @@ pro plot_omega, filename=filename, slice=time, points=pts, $
   oplot, nflux, v_omega_fa, color=color(1)
   oplot, nflux, ve_omega_fa, color=color(2)
   oplot, nflux, w_star_i_fa, color=color(3)
-  oplot, !x.crange, [0,0], linestyle=1
+  oplot, !x.crange, [0,0], linestyle=2
 
   names = ['!7x!6!DE!9X!6B!N!X', '!7x!X', '!7x!D!8e!N!X', '!7x!6!D*!8i!N!X']
 
   plot_legend, names, color=colors(), _EXTRA=extra
+
+  if(n_elements(q_val) ne 0) then begin
+      ntor = read_parameter('ntor', filename=filename)
+      m = fix(q_val*ntor+0.001)
+      psin = flux_at_q(q_val,slice=slice,filename=filename,$
+                       points=pts,bins=bins,/norm,_EXTRA=extra)
+      print, psin
+      top = (!y.crange[1] - !y.crange[0])*$
+        (n_elements(q_val) - findgen(n_elements(q_val)))/30. $
+        + !y.crange[0]
+      m_str = string(format='(I2)', m)
+      m_str[0] = 'm = ' + m_str[0]
+      for i=0, n_elements(psin)-1 do begin
+          oplot, [psin[i],psin[i]], !y.crange, linestyle=1
+          xyouts, psin[i], top[i], m_str[i], charsize=!p.charsize/2.
+      end
+  end
 end

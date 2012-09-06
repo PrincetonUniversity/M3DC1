@@ -9,22 +9,24 @@ module read_schaffer_field
 
 contains
 
-  subroutine load_schaffer_field(filename, ierr)
+  subroutine load_schaffer_field(filename, isamp, ierr)
     use math
     implicit none
 
     include 'mpif.h'
 
     character(len=*), intent(in) :: filename
+    integer, intent(in) :: isamp
     integer, intent(out) :: ierr
 
-    integer, parameter :: header_lines = 5
+    integer, parameter :: header_lines = 0
     integer, parameter :: ifile = 37
-    integer :: i, j, k, ier
+    integer :: i, j, k, l, ier
     integer :: rank
     real :: phi1, r1, z1, br1, bz1, bphi1
     real :: phi0, r0, z0
-    character(len=10) :: dummy
+    integer, parameter :: catch = 100
+    character(len=20) :: dummy
     
 
     call MPI_Comm_rank(MPI_COMM_WORLD, rank, ier)
@@ -33,10 +35,10 @@ contains
     ierr = 0
     if(rank.eq.0) then 
        open(ifile, file=filename, status='old', action='read', err=200)
-
-       do
+       do i=1, catch
           read(ifile, '(A)', err=200, end=200) dummy
-          if(dummy.eq.' %PROBE_G:') goto 90
+          if(dummy.eq.'             phi_tor') goto 90
+          if(dummy.eq.'            %phi_tor') goto 90
        end do
        goto 200
 90     continue
@@ -92,6 +94,8 @@ contains
     ! Tell all processors whether rank 0 had an error
     call MPI_Bcast(ierr,1,MPI_INTEGER,0,MPI_COMM_WORLD,ier)
     if(ierr.ne.0) return
+
+    nphi = nphi / isamp
        
     ! Send size data to all processors
     call MPI_Bcast(nr,  1,MPI_INTEGER,0,MPI_COMM_WORLD,ier)
@@ -109,7 +113,8 @@ contains
 
        do
           read(ifile, '(A)', err=2000, end=2000) dummy
-          if(dummy.eq.' %PROBE_G:') goto 900
+          if(dummy.eq.'             phi_tor') goto 900
+          if(dummy.eq.'            %phi_tor') goto 900
        end do
        goto 2000
 900    continue
@@ -118,7 +123,7 @@ contains
        end do
        print *, 'last line = ', dummy
 
-       do k=1, nphi
+       do k=1, nphi*isamp
           do j=1, nz
              do i=1, nr
                 ! read line
@@ -127,15 +132,22 @@ contains
                 ! skip empty lines
                 if(phi1.eq.0. .and. r1.eq.0. .and. z1.eq.0.) goto 999
 
-                ! put data in arrays
-                br(k,i,j) = br1
-                bphi(k,i,j) = bphi1
-                bz(k,i,j) = bz1
-                r(i) = r1
+                if(mod(k-1,isamp).eq.0) then 
+                   l = (k-1)/isamp + 1
+
+                   ! put data in arrays
+                   br(l,i,j) = br1
+                   bphi(l,i,j) = bphi1
+                   bz(l,i,j) = bz1
+                   r(i) = r1
+                end if
              end do
              z(j) = z1
           end do
-          phi(k) = phi1*pi/180.
+          if(mod(k-1,isamp).eq.0) then 
+             l = (k-1)/isamp + 1
+             phi(l) = phi1*pi/180.
+          end if
        end do
 
        goto 1100
@@ -225,7 +237,6 @@ contains
 
     integer :: i0, j0, p
     real :: ai, aj, di, dj, didr, djdz
-    real, dimension(4,4) :: are, aim
     complex, dimension(4,4) :: a
 
     didr = (nr-1)/(r(nr) - r(1))
@@ -240,9 +251,6 @@ contains
        di = ai - i0
        dj = aj - j0
 
-!       call bicubic_interpolation_coeffs(real(br_ft),nr,nz,i0,j0,are)
-!       call bicubic_interpolation_coeffs(aimag(br_ft),nr,nz,i0,j0,aim)
-!       a = cmplx(are, aim)
        call bicubic_interpolation_coeffs_complex(br_ft,nr,nz,i0,j0,a)
 
        
@@ -251,9 +259,6 @@ contains
             +      (a(3,1) + a(3,2)*dj + a(3,3)*dj**2 + a(3,4)*dj**3)*di**2 &
             +      (a(4,1) + a(4,2)*dj + a(4,3)*dj**2 + a(4,4)*dj**3)*di**3
 
-!       call bicubic_interpolation_coeffs(real(bz_ft),nr,nz,i0,j0,are)
-!       call bicubic_interpolation_coeffs(aimag(bz_ft),nr,nz,i0,j0,aim)
-!       a = cmplx(are, aim)
        call bicubic_interpolation_coeffs_complex(bz_ft,nr,nz,i0,j0,a)
        
        bz_out(p) = (a(1,1) + a(1,2)*dj + a(1,3)*dj**2 + a(1,4)*dj**3)       &
@@ -261,9 +266,6 @@ contains
             +      (a(3,1) + a(3,2)*dj + a(3,3)*dj**2 + a(3,4)*dj**3)*di**2 &
             +      (a(4,1) + a(4,2)*dj + a(4,3)*dj**2 + a(4,4)*dj**3)*di**3
 
-!       call bicubic_interpolation_coeffs(real(bphi_ft),nr,nz,i0,j0,are)
-!       call bicubic_interpolation_coeffs(aimag(bphi_ft),nr,nz,i0,j0,aim)
-!       a = cmplx(are, aim)
        call bicubic_interpolation_coeffs_complex(bphi_ft,nr,nz,i0,j0,a)
        
        bphi_out(p) = (a(1,1) + a(1,2)*dj + a(1,3)*dj**2 + a(1,4)*dj**3)       &
