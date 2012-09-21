@@ -773,6 +773,10 @@ subroutine calculate_scalars()
 !
 !   volume averaged pressure for beta calculation
     avep = (gam - 1.)*(emag3 / (volume*tpifac))
+!
+#ifdef USE3D
+  call calculate_ke()
+#endif
 
   if(myrank.eq.0 .and. iprint.ge.1) then 
      print *, "Total energy = ", etot
@@ -1221,4 +1225,509 @@ elemental vectype function bremsstrahlung(n, p)
 #endif
 end function bremsstrahlung
 
+subroutine calculate_ke()
+
+  use basic
+  use mesh_mod
+  use arrays
+  use m3dc1_nint
+  use newvar_mod
+  use sparse
+  use metricterms_new
+  use boundary_conditions
+  use math
+  implicit none
+  include 'mpif.h'
+  integer :: itri, numelms
+  real:: ke_N, fac
+  real, allocatable:: keharmonic(:)
+  integer :: ier, k, l, NMAX, numnodes, N
+  vectype, dimension(dofs_per_node) :: vec_l
+
+  real, allocatable :: i1ck(:,:), i1sk(:,:)
+  real, allocatable :: i2ck(:,:), i2sk(:,:)
+
+!  type(vector_type) :: transform_field
+  type(field_type) :: u_transformc, vz_transformc, chi_transformc
+  type(field_type) :: u_transforms, vz_transforms, chi_transforms
+
+
+     !Just for now
+     NMAX = 2
+     numnodes = owned_nodes()
+     allocate(keharmonic(0:NMAX))
+     allocate(i1ck(nplanes,0:NMAX))
+     allocate(i1sk(nplanes,0:NMAX))
+     allocate(i2ck(nplanes,0:NMAX))
+     allocate(i2sk(nplanes,0:NMAX))
+
+    if(myrank.eq.0 .and. iprint.eq.1) then
+       write(*,900) ntime
+       900 format("calculate_ke called-1,   ntime=",i6)
+     endif
+
+!     call create_vector(transform_field,6)
+!   
+     call create_field(  u_transformc)
+     call create_field(  u_transforms)
+     call create_field( vz_transformc)
+     call create_field( vz_transforms)
+     call create_field(chi_transformc)
+     call create_field(chi_transforms)
+
+!     call associate_field(  u_transformc,transform_field,1)
+!     call associate_field(  u_transforms,transform_field,2)
+!     call associate_field( vz_transformc,transform_field,3)
+!     call associate_field( vz_transforms,transform_field,4)
+!     call associate_field(chi_transformc,transform_field,5)
+!     call associate_field(chi_transforms,transform_field,6)
+
+     if(myrank.eq.0 .and. iprint.eq.1) then
+       write(*,901) ntime
+       901 format("calculate_ke called-2,   ntime=",i6)
+     endif
+
+!    create the sin and cos arrays
+     do N = 1, NMAX
+        do k = 1, nplanes
+       call ke_I1(nplanes, NMAX, k, N, i1ck(k,N), i1sk(k,N))
+       call ke_I2(nplanes, NMAX, k, N, i2ck(k,N), i2sk(k,N))
+        enddo
+     enddo
+
+
+     if(myrank.eq.0 .and. iprint.eq.1) then
+       write(*,903) ntime
+       903 format("calculate_ke called-3,   ntime=",i6)
+     endif
+! for each Fourier mode
+  do N=0,NMAX
+
+
+  fac = 2.
+  If (N.eq.0) fac = 1.
+
+        k = local_plane() + 1
+
+        !eq 11: U cos
+        do l =1,numnodes
+           call get_node_data(u_field(1), l , u1_l ) ! u1_l is “U” (dimension 12)
+
+           vec_l(1)= fac*(u1_l(1) * i1ck(k,N) + u1_l( 7)*i2ck(k,N))
+           vec_l(2)= fac*(u1_l(2) * i1ck(k,N) + u1_l( 8)*i2ck(k,N))
+           vec_l(3)= fac*(u1_l(3) * i1ck(k,N) + u1_l( 9)*i2ck(k,N))
+           vec_l(4)= fac*(u1_l(4) * i1ck(k,N) + u1_l(10)*i2ck(k,N))
+           vec_l(5)= fac*(u1_l(5) * i1ck(k,N) + u1_l(11)*i2ck(k,N))
+           vec_l(6)= fac*(u1_l(6) * i1ck(k,N) + u1_l(12)*i2ck(k,N))
+           vec_l(7:12) = 0. ! pad with zeros
+
+           call set_node_data(u_transformc,l,vec_l)
+        enddo
+        call finalize(u_transformc%vec)
+
+    if(myrank.eq.0 .and. iprint.eq.1) then
+       write(*,905) ntime
+       905 format("calculate_ke called-5,   ntime=",i6)
+     endif
+
+        call sum_vec_planes(u_transformc%vec%data) ! sum vec%datator at each (R,Z) node over k
+
+    if(myrank.eq.0 .and. iprint.eq.1) then
+       write(*,906) ntime
+       906 format("calculate_ke called-6,   ntime=",i6)
+     endif
+!
+        !eq 11: U sin
+        do l =1,numnodes
+           call get_node_data(u_field(1), l , u1_l ) ! u1_l is “U” (dimension 12)
+
+           fac = 2.
+           If (N.eq.0) fac = 1.
+           vec_l(1)= fac*(u1_l(1) * i1sk(k,N) + u1_l( 7)*i2sk(k,N))
+           vec_l(2)= fac*(u1_l(2) * i1sk(k,N) + u1_l( 8)*i2sk(k,N))
+           vec_l(3)= fac*(u1_l(3) * i1sk(k,N) + u1_l( 9)*i2sk(k,N))
+           vec_l(4)= fac*(u1_l(4) * i1sk(k,N) + u1_l(10)*i2sk(k,N))
+           vec_l(5)= fac*(u1_l(5) * i1sk(k,N) + u1_l(11)*i2sk(k,N))
+           vec_l(6)= fac*(u1_l(6) * i1sk(k,N) + u1_l(12)*i2sk(k,N))
+           vec_l(7:12) = 0. ! pad with zeros
+           call set_node_data(u_transforms,l,vec_l)
+        enddo
+        call finalize(u_transforms%vec)
+        call sum_vec_planes(u_transforms%vec%data) ! sum vec%datator at each (R,Z) node over k
+
+
+        !eq 11: omega cos
+        do l =1,numnodes
+           call get_node_data(vz_field(1), l , vz1_l) ! vz1_l is “ω” ( dimension 12)
+
+           vec_l(1)= fac*(vz1_l(1) * i1ck(k,N) + vz1_l( 7)*i2ck(k,N))
+           vec_l(2)= fac*(vz1_l(2) * i1ck(k,N) + vz1_l( 8)*i2ck(k,N))
+           vec_l(3)= fac*(vz1_l(3) * i1ck(k,N) + vz1_l( 9)*i2ck(k,N))
+           vec_l(4)= fac*(vz1_l(4) * i1ck(k,N) + vz1_l(10)*i2ck(k,N))
+           vec_l(5)= fac*(vz1_l(5) * i1ck(k,N) + vz1_l(11)*i2ck(k,N))
+           vec_l(6)= fac*(vz1_l(6) * i1ck(k,N) + vz1_l(12)*i2ck(k,N))
+           vec_l(7:12) = 0. ! pad with zeros
+          call set_node_data(vz_transformc,l,vec_l)
+        enddo
+        call finalize(vz_transformc%vec)
+        call sum_vec_planes(vz_transformc%vec%data) ! sum vec%datator at each (R,Z) node over k
+
+        !eq 11: omega sin
+        do l =1,numnodes
+           call get_node_data(vz_field(1), l , vz1_l) ! vz1_l is “ω” ( dimension 12)
+           vec_l(1)= fac*(vz1_l(1) * i1sk(k,N) + vz1_l( 7)*i2sk(k,N))
+           vec_l(2)= fac*(vz1_l(2) * i1sk(k,N) + vz1_l( 8)*i2sk(k,N))
+           vec_l(3)= fac*(vz1_l(3) * i1sk(k,N) + vz1_l( 9)*i2sk(k,N))
+           vec_l(4)= fac*(vz1_l(4) * i1sk(k,N) + vz1_l(10)*i2sk(k,N))
+           vec_l(5)= fac*(vz1_l(5) * i1sk(k,N) + vz1_l(11)*i2sk(k,N))
+           vec_l(6)= fac*(vz1_l(6) * i1sk(k,N) + vz1_l(12)*i2sk(k,N))
+           vec_l(7:12) = 0. ! pad with zeros
+           call set_node_data(vz_transforms,l,vec_l)
+        enddo
+        call finalize(vz_transforms%vec)
+        call sum_vec_planes(vz_transforms%vec%data) ! sum vec%datator at each (R,Z) node over k
+
+        !eq 11: chi cos
+        do l =1,numnodes
+           call get_node_data(chi_field(1), l , chi1_l ) ! chi1_l is “χ” (dimension 12)
+
+           fac = 2.
+           If (N.eq.0) fac = 1.
+           vec_l(1)= fac*(chi1_l(1) * i1ck(k,N) + chi1_l( 7)*i2ck(k,N))
+           vec_l(2)= fac*(chi1_l(2) * i1ck(k,N) + chi1_l( 8)*i2ck(k,N))
+           vec_l(3)= fac*(chi1_l(3) * i1ck(k,N) + chi1_l( 9)*i2ck(k,N))
+           vec_l(4)= fac*(chi1_l(4) * i1ck(k,N) + chi1_l(10)*i2ck(k,N))
+           vec_l(5)= fac*(chi1_l(5) * i1ck(k,N) + chi1_l(11)*i2ck(k,N))
+           vec_l(6)= fac*(chi1_l(6) * i1ck(k,N) + chi1_l(12)*i2ck(k,N))
+           vec_l(7:12) = 0. ! pad with zeros
+           call set_node_data(chi_transformc,l,vec_l)
+        enddo
+        call finalize(chi_transformc%vec)
+        call sum_vec_planes(chi_transformc%vec%data) ! sum vec%datator of size 6 at each (R,Z) node over k
+
+        ! eq 11: chi sin
+        do l =1,numnodes
+           call get_node_data(chi_field(1), l , chi1_l ) ! chi1_l is “χ” (dimension 12)
+           vec_l(1)= fac*(chi1_l(1) * i1sk(k,N) + chi1_l( 7)*i2sk(k,N))
+           vec_l(2)= fac*(chi1_l(2) * i1sk(k,N) + chi1_l( 8)*i2sk(k,N))
+           vec_l(3)= fac*(chi1_l(3) * i1sk(k,N) + chi1_l( 9)*i2sk(k,N))
+           vec_l(4)= fac*(chi1_l(4) * i1sk(k,N) + chi1_l(10)*i2sk(k,N))
+           vec_l(5)= fac*(chi1_l(5) * i1sk(k,N) + chi1_l(11)*i2sk(k,N))
+           vec_l(6)= fac*(chi1_l(6) * i1sk(k,N) + chi1_l(12)*i2sk(k,N))
+           vec_l(7:12) = 0. ! pad with zeros
+           call set_node_data(chi_transforms,l,vec_l)
+        enddo
+        call finalize(chi_transforms%vec)
+        call sum_vec_planes(chi_transforms%vec%data) ! sum vec%datator at each (R,Z) node over k
+!    enddo
+!    call finalize(transform_field)
+    if(myrank.eq.0 .and. iprint.eq.1) then
+       write(*,907) ntime
+       907 format("calculate_ke called-7,   ntime=",i6)
+     endif
+
+!eq 4b: Calculate energy for each Fourier Harminics N
+   
+!
+  ke_N = 0.
+
+     numelms = local_elements()
+     do itri=1,numelms
+
+        call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
+!
+!       cosine harmonics
+        call eval_ops(itri,  u_transformc,pht79)
+        call eval_ops(itri, vz_transformc,vzt79)
+        call eval_ops(itri,chi_transformc,cht79)
+!
+        ke_N = ke_N + int3(r2_79,  pht79(:,OP_DR), pht79(:,OP_DR))   &
+                    + int3(r2_79,  pht79(:,OP_DZ), pht79(:,OP_DZ))
+
+        ke_N = ke_N + int3(r2_79,  vzt79(:,OP_1), vzt79(:,OP_1))
+
+        ke_N = ke_N + int3(r2_79,  cht79(:,OP_DR), cht79(:,OP_DR))   &
+                    + int3(r2_79,  cht79(:,OP_DZ), cht79(:,OP_DZ))
+!
+!       cosine harmonics
+        call eval_ops(itri,  u_transforms,pht79)
+        call eval_ops(itri, vz_transforms,vzt79)
+        call eval_ops(itri,chi_transforms,cht79)
+!
+        ke_N = ke_N + int3(r2_79,  pht79(:,OP_DR), pht79(:,OP_DR))   &
+                    + int3(r2_79,  pht79(:,OP_DZ), pht79(:,OP_DZ))
+
+        ke_N = ke_N + int3(r2_79,  vzt79(:,OP_1), vzt79(:,OP_1))
+
+        ke_N = ke_N + int3(r2_79,  cht79(:,OP_DR), cht79(:,OP_DR))   &
+                    + int3(r2_79,  cht79(:,OP_DZ), cht79(:,OP_DZ))
+     end do
+
+     call mpi_allreduce(ke_N, keharmonic(N), 1, MPI_DOUBLE_PRECISION, &
+                        MPI_SUM, MPI_COMM_WORLD, ier)
+
+     keharmonic(N) = keharmonic(N) / 4.
+
+  end do
+
+!!!!!....we need to save keharmonic for output <===
+  if(myrank.eq.0 .and. iprint.ge.1) then
+      write(*,1001) ntime
+      write(*,1002) (keharmonic(N),N=0,NMAX)
+ 1001 format(" keharmonics at cycle",i6)
+ 1002 format(1p5e12.4)
+  endif
+
+  deallocate(keharmonic)
+  deallocate(i1ck, i1sk, i2ck, i2sk)
+!   
+     call destroy_field(  u_transformc)
+     call destroy_field(  u_transforms)
+     call destroy_field( vz_transformc)
+     call destroy_field( vz_transforms)
+     call destroy_field(chi_transformc)
+     call destroy_field(chi_transforms)
+!    call destroy_vector(transform_field)
+
+end subroutine calculate_ke
+
+
+
+!...........................................................
+! input: k, N
+! output: i1ck, i1sk
+! eq 10
+  subroutine ke_I1(nplanes, NMAX, k, N, i1ck, i1sk)
+    use math
+    implicit none
+    integer:: k, N, nplanes, NMAX
+    real:: delta_phi, I1_cNk_minus, I1_cNk_plus, I1_sNk_minus, I1_sNk_plus
+    real:: Phi_1_plus, Phi_1_zero, Phi_1_minus, &
+           Phi_1p_plus, Phi_1p_zero, Phi_1p_minus, &
+           Phi_1pp_plus, Phi_1pp_zero, Phi_1pp_minus, &
+           Phi_1ppp_plus, Phi_1ppp_zero_up, Phi_1ppp_zero_dn, Phi_1ppp_minus
+    real:: sin_plus, sin_zero, sin_minus, &
+           cos_plus, cos_zero, cos_minus 
+    real:: i1ck, i1sk
+
+
+!$ \Phi_1(x) = ( |x|-1)^2( 2|x|+1), |x| \leq 1 $
+
+   Phi_1_plus  =0. ! x=1 \\
+   Phi_1_zero  =1. ! x=0 \\
+   Phi_1_minus =0. ! x=-1
+
+   Phi_1p_plus  =0. ! x=1 \\
+   Phi_1p_zero  =0. ! x=0 \\
+   Phi_1p_minus =0. ! x=-1
+
+   Phi_1pp_plus  = 6.  ! x=1 \\
+   Phi_1pp_zero  =-6.  ! x=0 \\
+   Phi_1pp_minus = 6.  ! x=-1
+
+   Phi_1ppp_plus    = 12.  ! x=1 \\
+   Phi_1ppp_zero_up = 12.  ! x=0 \mbox{  in interval } [0,1]\\
+   Phi_1ppp_zero_dn =-12.  ! x=0 \mbox{  in interval } [-1,0]\\
+   Phi_1ppp_minus   =-12.  ! x=-1
+
+   delta_phi = 2. * pi / NMAX
+
+   sin_plus  = N*( 1 + k-1) * delta_phi
+   sin_zero  = N*( 0 + k-1) * delta_phi
+   sin_minus = N*(-1 + k-1) * delta_phi
+   cos_plus  = N*( 1 + k-1) * delta_phi
+   cos_zero  = N*( 0 + k-1) * delta_phi
+   cos_minus = N*(-1 + k-1) * delta_phi
+
+   I1_cNk_minus =                                                                    &
+     (                                                                               &
+     + delta_phi * 1./(N*delta_phi)**1 * Phi_1_zero * sin_zero                       &
+     + delta_phi * 1./(N*delta_phi)**2 * Phi_1p_zero * cos_zero                      &
+     - delta_phi * 1./(N*delta_phi)**3 * Phi_1pp_zero * sin_zero                     &
+     - delta_phi * 1./(N*delta_phi)**4 * Phi_1ppp_zero_dn * cos_zero                 &
+     )                                                                               &
+     -                                                                               &
+     (                                                                               &
+     + delta_phi * 1./(N*delta_phi)**1 * Phi_1_minus * sin_minus                     &
+     + delta_phi * 1./(N*delta_phi)**2 * Phi_1p_minus * cos_minus                    &
+     - delta_phi * 1./(N*delta_phi)**3 * Phi_1pp_minus * sin_minus                   &
+     - delta_phi * 1./(N*delta_phi)**4 * Phi_1ppp_minus * cos_minus                  &
+     )
+
+   I1_cNk_plus =                                                                     &
+     (                                                                               &
+     + delta_phi * 1./(N*delta_phi)**1 * Phi_1_plus * sin_plus                       &
+     + delta_phi * 1./(N*delta_phi)**2 * Phi_1p_plus * cos_plus                      &
+     - delta_phi * 1./(N*delta_phi)**3 * Phi_1pp_plus * sin_plus                     &
+     - delta_phi * 1./(N*delta_phi)**4 * Phi_1ppp_plus * cos_plus                    &
+     )                                                                               &
+     -                                                                               &
+     (                                                                               &
+      + delta_phi * 1./(N*delta_phi)**1 * Phi_1ppp_zero_up * sin_zero                &
+!     + delta_phi * 1./(N*delta_phi)**1 * Phi_1_zero_up * sin_zero                    &   <==
+     + delta_phi * 1./(N*delta_phi)**2 * Phi_1p_zero * cos_zero                      &
+     - delta_phi * 1./(N*delta_phi)**3 * Phi_1pp_zero * sin_zero                     &
+!     - delta_phi * 1./(N*delta_phi)**4 * Phi_1ppp_zero * cos_zero                    &   <==
+     - delta_phi * 1./(N*delta_phi)**4 * Phi_1ppp_zero_dn * cos_zero                 &
+     )
+
+   i1ck =  I1_cNk_minus + I1_cNk_plus
+
+
+   I1_sNk_minus  =                                                                   &
+     (                                                                               &
+     - delta_phi * 1./(N*delta_phi)**1 * Phi_1_zero * cos_zero                       &
+     + delta_phi * 1./(N*delta_phi)**2 * Phi_1p_zero * sin_zero                      &
+     + delta_phi * 1./(N*delta_phi)**3 * Phi_1pp_zero * cos_zero                     &
+     - delta_phi * 1./(N*delta_phi)**4 * Phi_1ppp_zero_dn * sin_zero                 &
+     )                                                                               &
+    -                                                                                &
+     (                                                                               &
+     - delta_phi * 1./(N*delta_phi)**1 * Phi_1_minus * cos_minus                     &
+     + delta_phi * 1./(N*delta_phi)**2 * Phi_1p_minus * sin_minus                    &
+     + delta_phi * 1./(N*delta_phi)**3 * Phi_1pp_minus * cos_minus                   &
+     - delta_phi * 1./(N*delta_phi)**4 * Phi_1ppp_minus * sin_minus                  &
+     )
+
+   I1_sNk_plus =                                                                     &
+     (                                                                               &
+     - delta_phi * 1./(N*delta_phi)**1 * Phi_1_plus * cos_plus                       &
+     + delta_phi * 1./(N*delta_phi)**2 * Phi_1p_plus * sin_plus                      &
+     + delta_phi * 1./(N*delta_phi)**3 * Phi_1pp_plus * cos_plus                     &
+     - delta_phi * 1./(N*delta_phi)**4 * Phi_1ppp_plus * sin_plus                    &
+     )                                                                               &
+     -                                                                               &
+     (                                                                               &
+     - delta_phi * 1./(N*delta_phi)**1 * Phi_1_zero * cos_zero                       &
+     + delta_phi * 1./(N*delta_phi)**2 * Phi_1p_zero * sin_zero                      &
+     + delta_phi * 1./(N*delta_phi)**3 * Phi_1pp_zero * cos_zero                     &
+     - delta_phi * 1./(N*delta_phi)**4 * Phi_1ppp_zero_up * sin_zero                 &
+     )
+
+   i1sk =  I1_sNk_minus + I1_sNk_plus
+
+
+end subroutine ke_I1
+
+
+!...........................................................
+! input: N, k, delta_phi
+! output: i2ck, i2sk
+! eq 10
+  subroutine ke_I2(nplanes, NMAX, k, N, i2ck, i2sk)
+    use math
+    implicit none
+    integer:: k, N, nplanes, NMAX
+    real:: delta_phi, I2_cNk_minus, I2_cNk_plus, I2_sNk_minus, I2_sNk_plus
+    real:: Phi_2_plus, Phi_2_zero, Phi_2_minus, &
+           Phi_2p_plus, Phi_2p_zero, Phi_2p_minus, &
+           Phi_2pp_plus, Phi_2pp_zero_up, Phi_2pp_zero_dn, Phi_2pp_minus, &
+           Phi_2ppp_plus, Phi_2ppp_zero, Phi_2ppp_minus
+    real:: sin_plus, sin_zero, sin_minus, &
+           cos_plus, cos_zero, cos_minus
+    real:: i2ck, i2sk
+
+
+!  $ \Phi_2(x) = x ( |x|-1)^2, |x| \leq 1 $
+
+   Phi_2_plus  =0. ! x=1 \\
+   Phi_2_zero  =0. ! x=0 \\
+   Phi_2_minus =0. ! x=-1 
+
+   Phi_2p_plus  =0. ! x=1 \\
+   Phi_2p_zero  =1. ! x=0 \\
+   Phi_2p_minus =0. ! x=-1 
+   Phi_2pp_plus    =  2. ! x=1 \\
+   Phi_2pp_zero_up = -4. ! x=0 \mbox{  in interval  } [0, 1]\\
+   Phi_2pp_zero_dn =  4. ! x=-1 \mbox{  in interval  } [-1, 0] \\
+   Phi_2pp_minus   = -2. ! x=-1
+
+   Phi_2ppp_plus  = 6.  ! x=1 \\
+   Phi_2ppp_zero  = 6.  ! x=0 \\
+   Phi_2ppp_minus = 6.  ! x=-1 \\
+
+   delta_phi = 2. * pi / NMAX
+
+   sin_plus  = N*( 1 + k-1) * delta_phi
+   sin_zero  = N*( 0 + k-1) * delta_phi
+   sin_minus = N*(-1 + k-1) * delta_phi
+   cos_plus  = N*( 1 + k-1) * delta_phi
+   cos_zero  = N*( 0 + k-1) * delta_phi
+   cos_minus = N*(-1 + k-1) * delta_phi
+
+   I2_cNk_minus =                                                            &
+     (                                                                       &
+     + delta_phi * 1./(N*delta_phi)**1 * Phi_2_zero * sin_zero               &
+     + delta_phi * 1./(N*delta_phi)**2 * Phi_2p_zero * cos_zero              &
+!     - delta_phi * 1./(N*delta_phi)**3 * Phi_2pp_zero * sin_zero             &  <==
+     - delta_phi * 1./(N*delta_phi)**3 * Phi_2pp_zero_up * sin_zero          &
+!    - delta_phi * 1./(N*delta_phi)**4 * Phi_2ppp_zero_dn * cos_zero          &
+     - delta_phi * 1./(N*delta_phi)**4 * Phi_2pp_zero_dn * cos_zero          &
+     )                                                                       &
+     -                                                                       &
+     (                                                                       &
+     + delta_phi * 1./(N*delta_phi)**1 * Phi_2_minus * sin_minus             &
+     + delta_phi * 1./(N*delta_phi)**2 * Phi_2p_minus * cos_minus            &
+     - delta_phi * 1./(N*delta_phi)**3 * Phi_2pp_minus * sin_minus           &
+     - delta_phi * 1./(N*delta_phi)**4 * Phi_2ppp_minus * cos_minus          &
+     )          
+
+   I2_cNk_plus =                                                             & 
+     (                                                                       &
+     + delta_phi * 1./(N*delta_phi)**1 * Phi_2_plus * sin_plus               &
+     + delta_phi * 1./(N*delta_phi)**2 * Phi_2p_plus * cos_plus              &
+     - delta_phi * 1./(N*delta_phi)**3 * Phi_2pp_plus * sin_plus             &
+     - delta_phi * 1./(N*delta_phi)**4 * Phi_2ppp_plus * cos_plus            &
+     )                                                                       &
+     -                                                                       &
+     (                                                                       &
+!     + delta_phi * 1./(N*delta_phi)**1 * Phi_2_zero_up * sin_zero            &   <==
+     + delta_phi * 1./(N*delta_phi)**1 * Phi_2pp_zero_up * sin_zero          &
+     + delta_phi * 1./(N*delta_phi)**2 * Phi_2p_zero * cos_zero              &
+!     - delta_phi * 1./(N*delta_phi)**3 * Phi_2pp_zero * sin_zero             &   <==
+     - delta_phi * 1./(N*delta_phi)**3 * Phi_2pp_zero_dn * sin_zero          &  
+     - delta_phi * 1./(N*delta_phi)**4 * Phi_2ppp_zero * cos_zero            &
+     )
+
+   i2ck =  I2_cNk_minus + I2_cNk_plus
+
+
+   I2_sNk_minus  =                                                           &
+     (                                                                       &
+     - delta_phi * 1./(N*delta_phi)**1 * Phi_2_zero * cos_zero               &
+     + delta_phi * 1./(N*delta_phi)**2 * Phi_2p_zero * sin_zero              &
+!     + delta_phi * 1./(N*delta_phi)**3 * Phi_2pp_zero * cos_zero             &  <==
+     + delta_phi * 1./(N*delta_phi)**3 * Phi_2pp_zero_up * cos_zero             &
+!     - delta_phi * 1./(N*delta_phi)**4 * Phi_2ppp_zero_dn * sin_zero         &  <==
+     - delta_phi * 1./(N*delta_phi)**4 * Phi_2pp_zero_dn * sin_zero          &
+     )                                                                       &
+    -                                                                        &
+     (                                                                       &
+     - delta_phi * 1./(N*delta_phi)**1 * Phi_2_minus * cos_minus             &
+     + delta_phi * 1./(N*delta_phi)**2 * Phi_2p_minus * sin_minus            &
+     + delta_phi * 1./(N*delta_phi)**3 * Phi_2pp_minus * cos_minus           &
+     - delta_phi * 1./(N*delta_phi)**4 * Phi_2ppp_minus * sin_minus          &
+     )
+
+   I2_sNk_plus =                                                             &
+     (                                                                       &
+     - delta_phi * 1./(N*delta_phi)**1 * Phi_2_plus * cos_plus               &
+     + delta_phi * 1./(N*delta_phi)**2 * Phi_2p_plus * sin_plus              &
+     + delta_phi * 1./(N*delta_phi)**3 * Phi_2pp_plus * cos_plus             &
+     - delta_phi * 1./(N*delta_phi)**4 * Phi_2ppp_plus * sin_plus            &
+     )                                                                       &
+     -                                                                       &
+     (                                                                       &
+     - delta_phi * 1./(N*delta_phi)**1 * Phi_2_zero * cos_zero               &
+     + delta_phi * 1./(N*delta_phi)**2 * Phi_2p_zero * sin_zero              &
+!     + delta_phi * 1./(N*delta_phi)**3 * Phi_2pp_zero * cos_zero             &  <==
+     + delta_phi * 1./(N*delta_phi)**3 * Phi_2pp_zero_dn * cos_zero          &
+!     - delta_phi * 1./(N*delta_phi)**4 * Phi_2ppp_zero_up * sin_zero         &  <==
+     - delta_phi * 1./(N*delta_phi)**4 * Phi_2pp_zero_up * sin_zero         &
+     )
+
+   i2sk =  I2_sNk_minus + I2_sNk_plus
+
+
+end subroutine ke_I2
 end module diagnostics
