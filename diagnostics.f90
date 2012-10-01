@@ -775,7 +775,7 @@ subroutine calculate_scalars()
     avep = (gam - 1.)*(emag3 / (volume*tpifac))
 !
 #ifdef USE3D
-  call calculate_ke()
+! call calculate_ke()
 #endif
 
   if(myrank.eq.0 .and. iprint.ge.1) then 
