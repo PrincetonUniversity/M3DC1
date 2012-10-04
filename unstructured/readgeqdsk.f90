@@ -94,8 +94,6 @@ subroutine load_eqdsk
         pprime = -pprime
         ffprim = -ffprim
      end if
-
-
   endif
 
   rbuff(1)  = rdim

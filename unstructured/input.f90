@@ -316,6 +316,8 @@ subroutine set_defaults
   call add_var_int("inumgs", inumgs, 0, "", gs_grp)
   call add_var_int("igs", igs, 80, "", gs_grp)
   call add_var_int("igs_method", igs_method, 2, "", gs_grp)
+  call add_var_int("igs_pp_ffp_rescale", igs_pp_ffp_rescale, 0, &
+       "Rescale p' and FF' to match p and F", gs_grp)
   call add_var_int("nv1equ", nv1equ, 0, "", gs_grp)
   call add_var_double("tcuro", tcuro, 1., &
        "Total current in initial current filament", gs_grp)
@@ -662,7 +664,7 @@ subroutine validate_input
   endif
 
   if(rzero.le.0) then
-     print *, 'WARNING: rzero <= 0'
+     if(myrank.eq.0) print *, 'WARNING: rzero <= 0'
   endif
 
   if(pefac.eq.0. .and. eta0.ne.0 .and. iresfunc.eq.0) then
@@ -681,15 +683,18 @@ subroutine validate_input
         call safestop(1)
      endif
   endif
-  if(int_pts_main .gt. MAX_PTS) then
+#ifndef USE3D
+  int_pts_tor = 1
+#endif
+  if(int_pts_main*int_pts_tor .gt. MAX_PTS) then
      if(myrank.eq.0) print*, 'ERROR: int_pts_max > MAX_PTS = ', MAX_PTS
      call safestop(1)
   endif
-  if(int_pts_aux .gt. MAX_PTS) then
+  if(int_pts_aux*int_pts_tor .gt. MAX_PTS) then
      if(myrank.eq.0) print*, 'ERROR: int_pts_aux > MAX_PTS = ', MAX_PTS
      call safestop(1)
   endif
-  if(int_pts_diag .gt. MAX_PTS) then
+  if(int_pts_diag*int_pts_tor .gt. MAX_PTS) then
      if(myrank.eq.0) print*, 'ERROR: int_pts_diag > MAX_PTS = ', MAX_PTS
      call safestop(1)
   endif

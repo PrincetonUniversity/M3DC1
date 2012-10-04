@@ -154,6 +154,7 @@ module basic
   ! grad-shafranov options
   integer :: divertors! number of divertors
   integer :: igs      ! number of grad-shafranov iterations
+  integer :: igs_pp_ffp_rescale ! rescale p' and FF' based on p and F
   integer :: nv1equ   ! if set to 1, use numvar equilibrium for numvar > 1
   integer :: igs_method  ! 1 = use node-based method (fastest, least accurate)
                          ! 2 = use element-based method, and calculate p from
