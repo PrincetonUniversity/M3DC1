@@ -427,6 +427,7 @@ subroutine define_profiles
         call safestop(17)
      end if
 
+     print *, 'Defining ne = pe/Te'
      call copy_spline(n0_spline, te_spline)
      do i=1, te_spline%n
         call evaluate_spline(p0_spline, n0_spline%x(i), pval)
@@ -604,6 +605,7 @@ subroutine define_profiles
                  dia = db*(1.-pefac)*ppval/nval
               endif
            endif
+           if(iflip_j.eq.1) dia = -dia
 
            if(use_norm_psi.eq.1) then 
               omega_spline%y(i) = omega_spline%y(i) - dpsii*dia
@@ -814,6 +816,8 @@ subroutine gradshafranov_solve
      if(myrank.eq.0 .and. iprint.ge.1) then
         write(*,'(A,1p2e12.4)') ' Error in GS solution: ', error, error2
      endif
+     ! if error is NaN, quit
+     if(error.ne.error) call safestop(11)
 
      ! if error is sufficiently small, stop iterating
      if(itnum .gt. 1 .and. error2 .lt. tol_gs) exit mainloop
@@ -1112,7 +1116,6 @@ subroutine gradshafranov_solve
   ! calculate final error
   call calculate_gs_error(error)
   if(myrank.eq.0) print *, 'Final error in GS solution: ', error
-
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, 'done gradshafranov_solve.'
 
@@ -1600,7 +1603,8 @@ subroutine fundef2(error)
   norm = 0.
   error = 0.
 
-  if(myrank.eq.0 .and. iprint.ge.2) print *, '  poulating...'
+  if(myrank.eq.0 .and. iprint.ge.2) print *, '  In fundef2'
+  if(myrank.eq.0 .and. iprint.ge.2) print *, '   populating...'
   numelms = local_elements()
   do itri=1,numelms
 
@@ -1653,12 +1657,11 @@ subroutine fundef2(error)
      error = error + abs(int2(ri_79,temp79c))
   end do
 
-  if(myrank.eq.0 .and. iprint.ge.2) print *, '   solving...'
+  if(myrank.eq.0 .and. iprint.ge.2) print *, '    solving...'
   call newvar_solve(fun1_vec%vec, mass_mat_lhs)
   call newvar_solve(fun4_vec%vec, mass_mat_lhs)
 
   if(maxrank.gt.1) then
-     if(myrank.eq.0 .and. iprint.ge.2) print *, '   allreducing...'
      temp1(1) = norm
      temp1(2) = error
      call mpi_allreduce(temp1, temp2, 2, MPI_DOUBLE_PRECISION, &
@@ -1667,6 +1670,8 @@ subroutine fundef2(error)
      error    = temp2(2)
   end if
   error = error / norm
+
+  if(myrank.eq.0 .and. iprint.ge.2) print *, '   Done fundef2'
 end subroutine fundef2
 
 subroutine readpgfiles
@@ -1854,6 +1859,7 @@ end subroutine readpgfiles
 !================================================================
  subroutine create_profile(n, p, pp, f, ffp, flux)
    use basic
+   use math
 
    implicit none
 
@@ -1861,6 +1867,9 @@ end subroutine readpgfiles
    real, dimension(n), intent(in) :: p, pp, f, ffp, flux
 
    real, allocatable :: pres0(:), g0(:), psinorm(:), ffn(:), ppn(:)
+
+   integer :: i
+   real :: temp, scale
 
    allocate(psinorm(n), pres0(n), g0(n), ffn(n), ppn(n))
 
@@ -1870,6 +1879,27 @@ end subroutine readpgfiles
    ppn   = pp *(flux(n) - flux(1))  ! convert to derivative wrt normalized psi
    dpsii = 1./(flux(n) - flux(1))
    psinorm = (flux - flux(1)) * dpsii
+
+   if(igs_pp_ffp_rescale.eq.1) then
+      ! do sanity check on pprime, ffprime
+     temp = 0.
+     do i=1, n-1
+        temp = temp - pp(i)*(flux(i+1)-flux(i))
+     end do
+     if(myrank.eq.0) print *, "int(p'), p = ", temp, p(1)
+     scale = p(1)/temp
+     if(myrank.eq.0) print *, "Scaling p' by", scale
+     ppn = ppn*scale
+
+     temp = (bzero*rzero)**2/2.
+     do i=1, n-1
+        temp = temp - ffp(i)*(flux(i+1)-flux(i))
+     end do
+     if(myrank.eq.0) print *, "int(ff'), ff/2 = ", temp, f(1)**2/2.
+     scale = (f(1)**2/2.-f(n)**2/2.) / (temp-f(n)**2/2.)
+     if(myrank.eq.0) print *, "Scaling FF' by", scale
+     ffn = ffn*scale
+   end if
 
    call create_spline(p0_spline, n, psinorm, pres0)
    call create_spline(g0_spline, n, psinorm, g0)

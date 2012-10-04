@@ -351,7 +351,6 @@ contains
     else  ! use scorec superlu or petsc (-ipetsc)
        call solve(mat%imatrix,v%data,ierr)
     endif
-
   end subroutine scorec_matrix_solve
 
   !====================================================================

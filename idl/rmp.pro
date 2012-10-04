@@ -78,24 +78,49 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    if(n_elements(bmncdf) ne 0) then begin
        omega_e = flux_average('ve_omega',flux=qflux,psi=psi0,x=x,z=z,t=t,$
                               bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
+       F = flux_average('I',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+                              bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
+       p = flux_average('p',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+                              bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
 
+       rpath = fltarr(n_elements(m), n_elements(nflux))
+       zpath = fltarr(n_elements(m), n_elements(nflux))
+       for i=0, n_elements(nflux)-1 do begin
+           xy = path_at_flux(psi0,x,z,t,flux[i],/contiguous,$
+                             path_points=n_elements(m))
+           rpath[i,*] = xy[0,*]
+           zpath[i,*] = xy[1,*]
+       end
+       bpval = fltarr(n_elements(m), n_elements(nflux))
+       bpval = field_at_point(bp, x, z, rpath, zpath)
+       
        id = ncdf_create(bmncdf, /clobber)
        ncdf_attput, id, 'ntor', ntor, /short, /global
        n_id = ncdf_dimdef(id, 'npsi', n_elements(nflux))
        m_id = ncdf_dimdef(id, 'mpol', n_elements(m))
        psi_var = ncdf_vardef(id, 'psi', [n_id], /float)
        q_var = ncdf_vardef(id, 'q', [n_id], /float)
+       p_var = ncdf_vardef(id, 'p', [n_id], /float)
+       F_var = ncdf_vardef(id, 'F', [n_id], /float)
        omega_e_var = ncdf_vardef(id, 'omega_e', [n_id], /float)
        m_var = ncdf_vardef(id, 'm', [m_id], /short)
        bmn_real_var = ncdf_vardef(id, 'bmn_real', [m_id,n_id], /float)
        bmn_imag_var = ncdf_vardef(id, 'bmn_imag', [m_id,n_id], /float)
+       rpath_var = ncdf_vardef(id, 'rpath', [m_id,n_id], /float)
+       zpath_var = ncdf_vardef(id, 'zpath', [m_id,n_id], /float)
+       bp_var = ncdf_vardef(id, 'Bp', [m_id,n_id], /float)
        ncdf_control, id, /endef
        ncdf_varput, id, 'psi', reform(nflux[0,*])
        ncdf_varput, id, 'm', m
        ncdf_varput, id, 'q', abs(reform(q))
+       ncdf_varput, id, 'p', reform(p)
+       ncdf_varput, id, 'F', reform(F)
        ncdf_varput, id, 'omega_e', reform(omega_e)
        ncdf_varput, id, 'bmn_real', real_part(reform(d[0,*,*]))
        ncdf_varput, id, 'bmn_imag', imaginary(reform(d[0,*,*]))
+       ncdf_varput, id, 'rpath', rpath
+       ncdf_varput, id, 'zpath', zpath
+       ncdf_varput, id, 'Bp', bpval
        ncdf_close, id
    end
 

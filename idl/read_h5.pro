@@ -4138,10 +4138,9 @@ function in_plasma, xy, psi, x, z, axis, psilim
    return, ((psinx*dx + psinz*dz) gt 0.)
 end
 
-
 function path_at_flux, psi,x,z,t,flux,breaks=breaks,refine=refine,$
                        interval=interval, axis=axis, psilim=psilim, $
-                       contiguous=contiguous
+                       contiguous=contiguous, path_points=pts
 
    contour, psi[0,*,*], x, z, levels=flux, closed=0, $
      path_xy=xy, path_info=info, /path_data_coords, /overplot
@@ -4212,6 +4211,14 @@ function path_at_flux, psi,x,z,t,flux,breaks=breaks,refine=refine,$
        endelse
        xy = transpose([[xp_new],[zp_new]])
    endif
+
+   if(n_elements(pts) ne 0) then begin
+       ind = findgen(pts)*n_elements(xy[0,*])/pts
+       oldxy = xy
+       xy = fltarr(2,pts)
+       xy[0,*] = interpolate(oldxy[0,*], ind)
+       xy[1,*] = interpolate(oldxy[1,*], ind)
+   end
 
    return, xy
 end
