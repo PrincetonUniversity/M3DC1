@@ -62,6 +62,7 @@ contains
 
     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
     call hdf5_write_scalars(ier)
+    call hdf5_write_keharmonics(ier)
     if(myrank.eq.0 .and. itimer.eq.1) then
       call second(tend)
       diff = tend - tstart
@@ -547,6 +548,11 @@ subroutine hdf5_write_time_slice(equilibrium, error)
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  Writing fields '
      call output_fields(time_root_id, equilibrium, error)
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  Done writing fields ', error
+
+!    ! Output the keharmonics
+!    if(myrank.eq.0 .and. iprint.ge.1) print *, '  Writing keharmonics '
+!    call output_keharmonics(time_root_id, equilibrium, error)
+!    if(myrank.eq.0 .and. iprint.ge.1) print *, '  Done writing keharmonics ', error
      
      
      ! Close the file
@@ -1082,5 +1088,96 @@ subroutine output_fields(time_group_id, equilibrium, error)
   deallocate(dum)
 
 end subroutine output_fields
+
+
+! output_keharmonics
+! =============
+subroutine output_keharmonics(time_group_id, equilibrium, error)
+  use hdf5
+  use hdf5_output
+  use basic
+  use time_step
+    use diagnostics
+  
+  implicit none
+
+  integer(HID_T), intent(in) :: time_group_id
+  integer, intent(out) :: error
+  integer, intent(in) :: equilibrium
+  
+  integer(HID_T) :: group_id
+  integer :: i, nelms, nfields, ilin
+  real, allocatable :: dum(:)
+
+  nfields = 0
+  error = 0
+  
+  allocate(dum(NMAX+1))
+
+  ! Create the keharmonic group
+      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'before h5gcreate_f in output_keharmonics'
+  call h5gcreate_f(time_group_id, "keharmonics", group_id, error)
+      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after h5gcreate_f in output_keharmonics', error
+
+  ! Output the keharmonic(NMAX)
+  ! ~~~~~~~~~~~~~~~~~
+
+  ! keharmonic
+  do i = 0, NMAX
+  dum(i+1) = keharmonic(i)
+  enddo
+  call output_1darr(group_id, "keharmonic", dum, NMAX+1, ntime, error)
+  nfields = nfields + 1
+
+      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after keharmonic in output_keharmonics'
+
+  ! Close the keharmonics group
+  call h5gclose_f(group_id, error)
+
+  deallocate(dum)
+
+end subroutine output_keharmonics
+
+
+! hdf5_write_keharmonics
+! ==================
+subroutine hdf5_write_keharmonics(error)
+  use basic
+  use diagnostics
+  use hdf5_output
+
+  implicit none
+
+  integer, intent(out) :: error
+
+  integer(HID_T) :: root_id, keharmonics_group_id
+  real, allocatable :: dum(:)
+  integer :: i
+
+  allocate(dum(NMAX+1))
+  call h5gopen_f(file_id, "/", root_id, error)
+
+  if(ntime.eq.0) then
+     call h5gcreate_f(root_id, "keharmonics", keharmonics_group_id, error)
+  else
+     call h5gopen_f(root_id, "keharmonics", keharmonics_group_id, error)
+  endif
+
+  ! keharmonic
+      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'before output_1dextendarr'
+  do i = 0, NMAX
+  dum(i+1) = keharmonic(i)
+  enddo
+  call output_1dextendarr(keharmonics_group_id, "keharmonics" , dum, NMAX+1, ntime, error)
+      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after output_1dextendarr', error
+
+  call h5gclose_f(keharmonics_group_id, error)
+  call h5gclose_f(root_id, error)
+
+  deallocate(dum)
+
+end subroutine hdf5_write_keharmonics
+
+
 
 end module m3dc1_output
