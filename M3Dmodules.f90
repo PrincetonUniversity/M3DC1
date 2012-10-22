@@ -284,6 +284,7 @@ module basic
   integer :: iglobalin     ! 1 = read global restart files
   integer :: icalc_scalars ! 1 = calculate scalars
   integer :: ike_only      ! 1 = only calculate kinetic energy
+  integer :: ike_harmonics  ! number of Fourier harmonics of ke to be calculated and output
   integer :: ifout         ! 1 = output f field
   integer :: iread_eqdsk   ! 1 = read geqdsk input
                            ! 2 = read geqdsk for psi, but use default profiles
