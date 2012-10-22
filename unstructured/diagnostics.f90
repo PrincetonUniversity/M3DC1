@@ -778,7 +778,7 @@ subroutine calculate_scalars()
     avep = (gam - 1.)*(emag3 / (volume*tpifac))
 !
 #ifdef USE3D
-! call calculate_ke()
+  if(ike_harmonics .gt. 0) call calculate_ke()
 #endif
 
   if(myrank.eq.0 .and. iprint.ge.1) then 
@@ -1259,8 +1259,7 @@ subroutine calculate_ke()
   type(field_type) :: u_transforms, vz_transforms, chi_transforms
 
 
-     !Just for now
-     NMAX = 2
+     NMAX = ike_harmonics
      numnodes = owned_nodes()
      if(.not.allocated(keharmonic)) allocate(keharmonic(0:NMAX))
      allocate(i1ck(nplanes,0:NMAX))
