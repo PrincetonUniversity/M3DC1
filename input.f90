@@ -214,7 +214,7 @@ subroutine set_defaults
   call add_var_int("inertia", inertia, 1, &
        "1: Include V.Grad(V) terms", model_grp)
   call add_var_int("itwofluid", itwofluid, 1, &
-       "1: Include two-fluid terms", model_grp)
+       "1: -electron 2F,  2: ion 2F", model_grp)
   call add_var_int("ibootstrap", ibootstrap, 0, "", model_grp)
   call add_var_int("imp_bf", imp_bf, 0, &
        "1: Include implicit equation for f", model_grp)

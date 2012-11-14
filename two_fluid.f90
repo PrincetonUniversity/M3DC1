@@ -170,6 +170,8 @@ vectype function v1hchipsi(e,f,g)
      else
         temp = -int4(ri3_79,f(:,OP_GSP),e(:,OP_DZ),g(:,OP_DR )) &
                +int4(ri3_79,f(:,OP_GSP),e(:,OP_DR),g(:,OP_DZ )) &
+            +2.*int4(ri4_79,e(:,OP_DZ),g(:,OP_DR),f(:,OP_DRP))  &
+            -2.*int4(ri4_79,e(:,OP_DR),g(:,OP_DZ),f(:,OP_DRP))  &
                -int4(ri3_79,g(:,OP_GS) ,e(:,OP_DZ),f(:,OP_DRP)) &
                +int4(ri3_79,g(:,OP_GS) ,e(:,OP_DR),f(:,OP_DZP)) &
             + 2.*int4(ri4_79,f(:,OP_DZ) ,e(:,OP_DR),g(:,OP_DRP))  &
@@ -224,7 +226,9 @@ vectype function v1hchif(e,f,g)
         temp = 2.*int4(ri3_79,f(:,OP_DZ),e(:,OP_DZ),g(:,OP_DRPP))  &
               -2.*int4(ri3_79,f(:,OP_DZ),e(:,OP_DR),g(:,OP_DZPP))  &
                  +int4(ri2_79,f(:,OP_GSP),e(:,OP_DR),g(:,OP_DRP))  &
-                 +int4(ri2_79,f(:,OP_GSP),e(:,OP_DZ),g(:,OP_DZP))
+                 +int4(ri2_79,f(:,OP_GSP),e(:,OP_DZ),g(:,OP_DZP))  &
+              -2.*int4(ri4_79,e(:,OP_DZ),g(:,OP_DR),f(:,OP_DRP))  &
+              +2.*int4(ri4_79,e(:,OP_DR),g(:,OP_DZ),f(:,OP_DRP))  &
      end if
 #endif
 
@@ -357,7 +361,7 @@ vectype function v2hvb(e,f,g)
      else
         temp = int4(e(:,OP_1),r_79,g(:,OP_DZ),f(:,OP_DR))  &
               -int4(e(:,OP_1),r_79,g(:,OP_DR),f(:,OP_DZ))
-        if(itor.eq.1) temp = temp - 2.*int3(e(:,OP_1),f(:,OP_1),g(:,OP_DZ))
+        if(itor.eq.1) temp = temp + 2.*int3(e(:,OP_1),f(:,OP_1),g(:,OP_DZ))
      end if
 
   v2hvb = temp
@@ -381,10 +385,10 @@ vectype function v2hvf(e,f,g)
      else
         temp = int4(e(:,OP_1),r_79,g(:,OP_DZPP),f(:,OP_DR))  &
               -int4(e(:,OP_1),r_79,g(:,OP_DRPP),f(:,OP_DZ))  &
-           -2.*int3(e(:,OP_1),f(:,OP_1),g(:,OP_DZPP))        &
+           +2.*int3(e(:,OP_1),f(:,OP_1),g(:,OP_DZPP))        &
              + int4(e(:,OP_1),r_79,g(:,OP_DZP),f(:,OP_DRP))  &
               -int4(e(:,OP_1),r_79,g(:,OP_DRP),f(:,OP_DZP))  &
-           -2.*int3(e(:,OP_1),f(:,OP_DP),g(:,OP_DZP))
+           +2.*int3(e(:,OP_1),f(:,OP_DP),g(:,OP_DZP))
      end if
 #endif
   v2hvf = temp
@@ -728,4 +732,206 @@ vectype function v3hchif(e,f,g)
   v3hchif = temp
   return
 end function v3hchif
+
+vectype function b1vphi(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype :: temp
+     temp = 0.
+
+     if(surface_int) then 
+        temp = 0.
+     else
+        temp = int4(r_79,f(:,OP_DZ),e(:,OP_DR),g(:,OP_DRR))   &
+            +  int4(r_79,f(:,OP_DZ),e(:,OP_DZ),g(:,OP_DRZ))   &
+            +  int4(r_79,g(:,OP_DR),e(:,OP_DR),f(:,OP_DRZ))   &
+            +  int4(r_79,g(:,OP_DR),e(:,OP_DZ),f(:,OP_DZZ))   &
+            -  int4(r_79,f(:,OP_DR),e(:,OP_DR),g(:,OP_DRZ))   &
+            -  int4(r_79,f(:,OP_DR),e(:,OP_DZ),g(:,OP_DZZ))   &
+            -  int4(r_79,g(:,OP_DZ),e(:,OP_DR),f(:,OP_DRR))   &
+            -  int4(r_79,g(:,OP_DZ),e(:,OP_DZ),f(:,OP_DRZ))   
+        if(itor.eq.1) then
+          temp = temp + 3.*int3(e(:,OP_DR),f(:,OP_DZ),g(:,OP_DR)) &
+                      - 3.*int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_DZ)) &
+                      - 2.*int3(f(:,OP_1),e(:,OP_DR),g(:,OP_DRZ)) &
+                      - 2.*int3(f(:,OP_1),e(:,OP_DZ),g(:,OP_DZZ)) &
+                      - 2.*int3(g(:,OP_DZ),e(:,OP_DR),f(:,OP_DR)) &
+                      - 2.*int3(g(:,OP_DZ),e(:,OP_DZ),f(:,OP_DZ)) &
+                      - 4.*int4(ri_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DZ))
+        endif
+     end if
+
+  b1vphi = temp
+  return
+end function b1vphi
+
+vectype function b1vchi(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype :: temp
+     temp = 0.
+
+     if(surface_int) then 
+        temp = 0.
+     else
+        temp = +int4(ri2_79,e(:,OP_DR),f(:,OP_DRR),g(:,OP_DR))  &
+               +int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_DRR))  &
+               +int4(ri2_79,e(:,OP_DZ),f(:,OP_DRZ),g(:,OP_DR))  &
+               +int4(ri2_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_DRZ))  &
+               +int4(ri2_79,e(:,OP_DR),f(:,OP_DRZ),g(:,OP_DZ))  &
+               +int4(ri2_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_DRZ))  &
+               +int4(ri2_79,e(:,OP_DZ),f(:,OP_DZZ),g(:,OP_DZ))  &
+               +int4(ri2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DZZ))  
+
+        if(itor.eq.1) then
+           temp = temp + 2.*int4(ri3_79,f(:,OP_1),e(:,OP_DR),g(:,OP_DRR))  &
+                       + 2.*int4(ri3_79,f(:,OP_1),e(:,OP_DZ),g(:,OP_DRZ))  &
+                       + 2.*int4(ri3_79,g(:,OP_DR),e(:,OP_DR),f(:,OP_DR))  &
+                       + 2.*int4(ri3_79,g(:,OP_DR),e(:,OP_DZ),f(:,OP_DZ))  &
+                       - 2.*int4(ri4_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DR))
+
+        endif
+     end if
+
+  b1vchi = temp
+  return
+end function b1vchi
+
+vectype function b1vmun(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype :: temp
+     temp = 0.
+!DEBUG
+  b1vmun = temp
+  return
+
+     if(surface_int) then 
+        temp = 0.
+     else
+        temp = int4(g(:,OP_1),h(:,OP_1),e(:,OP_LP),f(:,OP_LP))
+
+        if(itor.eq.1) then
+
+        endif
+     end if
+
+  b1vmun = temp
+  return
+end function b1vmun
+
+vectype function b2uu(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype :: temp
+     temp = 0.
+
+     if(surface_int) then 
+        temp = 0.
+     else
+        temp = -int4(r_79,f(:,OP_LP),e(:,OP_DZ),g(:,OP_DR))  &
+               +int4(r_79,f(:,OP_LP),e(:,OP_DR),g(:,OP_DZ))
+     end if
+
+  b2uu = temp
+  return
+end function b2uu
+
+vectype function b2uchi(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype :: temp
+     temp = 0.
+
+     if(surface_int) then 
+        temp = 0.
+     else
+        temp = -int4(ri2_79,f(:,OP_LP),e(:,OP_DR),g(:,OP_DR))  &
+               -int4(ri2_79,f(:,OP_LP),e(:,OP_DZ),g(:,OP_DZ))
+     end if
+
+  b2uchi = temp
+  return
+end function b2uchi
+
+vectype function b2phimun(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype :: temp
+     temp = 0.
+!DEBUG
+  b2phimun = temp
+  return
+
+     if(surface_int) then 
+        temp = 0.
+     else
+        temp = -int4(g(:,OP_1),f(:,OP_LP),e(:,OP_DR),h(:,OP_DR)) &
+               -int4(g(:,OP_1),f(:,OP_LP),e(:,OP_DZ),h(:,OP_DZ)) &
+               -int4(g(:,OP_1),f(:,OP_LP),e(:,OP_LP),h(:,OP_1)) 
+
+        if(itor.eq.1) then
+
+        endif
+     end if
+
+  b2phimun = temp
+  return
+end function b2phimun
+
+vectype function b2chimun(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype :: temp
+     temp = 0.
+
+     if(surface_int) then 
+        temp = 0.
+     else
+        temp = -2*int5(ri3_79,g(:,OP_1),f(:,OP_LP),h(:,OP_DZ),e(:,OP_DR)) &
+               +2*int5(ri3_79,g(:,OP_1),f(:,OP_LP),h(:,OP_DR),e(:,OP_DZ)) 
+
+        if(itor.eq.1) then
+        endif
+     end if
+
+  b2chimun = temp
+  return
+end function b2chimun
+
 end module two_fluid
