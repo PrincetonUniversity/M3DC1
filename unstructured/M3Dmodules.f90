@@ -213,7 +213,8 @@ module basic
   integer :: ihypdx      ! scale hyper-resistivity with dx**ihypdx
   integer :: ikapscale   ! 1 = scale kappar with kappa
   integer :: inertia     ! 1 = include ion inertial terms (v.grad(v))
-  integer :: itwofluid   ! 1 = include two-fluid terms in ohm's law
+  integer :: itwofluid   ! 1 = include two-fluid terms in ohm's law (electron form)
+                         ! 2 = ion form of 2F equations
   integer :: ibootstrap  ! bootstrap current model
   integer :: iflip       ! 1 = flip handedness
   integer :: iflip_b     ! 1 = flip equilibrium toroidal field
@@ -229,7 +230,6 @@ module basic
   integer :: iconstflux  ! 1 = conserve toroidal flux
   integer :: integrator  ! 0 = Crank-Nicholson, 1 = BDF2
   integer :: isplitstep  ! 1 = do timestep splitting
-                         ! 2 = do timestep splitting and include 2F corrections in operator
   integer :: imp_mod
   integer :: iteratephi  ! 1 = iterate field solve
   integer :: icsym  ! symmetry of initial conditions (0) no; (1) even in U: (2) odd in U

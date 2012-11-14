@@ -118,6 +118,7 @@ subroutine onestep
   end if
 
   time = time + dt
+  dtold = dt
   if(ntime.gt.1 .and. linear.eq.0) call variable_timestep
 
   ! copy time advance vectors to field data
@@ -215,7 +216,6 @@ subroutine variable_timestep
 ! increase or decrease timestep based on kinetic energy and gamma_gr,
 ! but limit change to fraction dtfrac and bound by dtmin and dtmax
 !
-  dtold = dt
   if(dtkecrit.eq.0 .or. dtgamma.eq.0) return
   if(myrank.eq.0) then
 !

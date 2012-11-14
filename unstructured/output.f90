@@ -62,7 +62,9 @@ contains
 
     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
     call hdf5_write_scalars(ier)
+#ifdef USE3D
     call hdf5_write_keharmonics(ier)
+#endif
     if(myrank.eq.0 .and. itimer.eq.1) then
       call second(tend)
       diff = tend - tstart

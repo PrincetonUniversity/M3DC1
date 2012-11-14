@@ -200,7 +200,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
      ! two-fluid contribution
-     if(dbf .gt. 0 .and. isplitstep.eq.2) then
+     if(dbf .gt. 0 .and. itwofluid.ge.1) then
         temp = v1hupsi(trial,lin,pst79) & 
              + v1hub  (trial,lin,bzt79)
         if(i3d.eq.1) temp = temp + v1huf(trial,lin,bf179)
@@ -215,7 +215,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
         ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
 
        ! two-fluid contribution
-       if(dbf .gt. 0 .and. isplitstep.eq.2) then
+       if(dbf .gt. 0 .and. itwofluid.ge.1) then
           temp = v1hvpsi(trial,lin,pst79) & 
                + v1hvb  (trial,lin,bzt79)
           if(i3d.eq.1) temp = temp + v1hvf(trial,lin,bf179)
@@ -232,7 +232,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
        ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
 
        ! two-fluid contribution
-       if(dbf .gt. 0 .and. isplitstep.eq.2) then
+       if(dbf .gt. 0 .and. itwofluid.ge.1) then
           temp = v1hchipsi(trial,lin,pst79) & 
                + v1hchib  (trial,lin,bzt79)
           if(i3d.eq.1) temp = temp + v1hchif(trial,lin,bf179)
@@ -669,7 +669,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
      ! two-fluid contribution
-     if(dbf .gt. 0 .and. isplitstep.eq.2) then
+     if(dbf .gt. 0 .and. itwofluid.ge.1) then
         temp = v2hupsi(trial,lin,pst79) & 
              + v2hub  (trial,lin,bzt79)
         if(i3d.eq.1) temp = temp + v2huf(trial,lin,bf179)
@@ -683,7 +683,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
 
      ! two-fluid contribution
-     if(dbf .gt. 0 .and. isplitstep.eq.2) then
+     if(dbf .gt. 0 .and. itwofluid.ge.1) then
         temp = v2hvpsi(trial,lin,pst79) & 
              + v2hvb  (trial,lin,bzt79)
         if(i3d.eq.1) temp = temp + v2hvf(trial,lin,bf179)
@@ -698,7 +698,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
         ssterm(chi_g) = ssterm(chi_g) - thimp*thimp*dt*dt*temp
         ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
         ! two-fluid contribution
-        if(dbf .gt. 0 .and. isplitstep.eq.2) then
+        if(dbf .gt. 0 .and. itwofluid.ge.1) then
            temp = v2hchipsi(trial,lin,pst79) & 
                 + v2hchib  (trial,lin,bzt79)
            if(i3d.eq.1) temp = temp + v2hchif(trial,lin,bf179)
@@ -1133,7 +1133,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
      ! two-fluid contribution
-     if(dbf .gt. 0 .and. isplitstep.eq.2) then
+     if(dbf .gt. 0 .and. itwofluid.ge.1) then
         temp = v3hupsi(trial,lin,pst79) & 
              + v3hub  (trial,lin,bzt79)
         if(i3d.eq.1) temp = temp + v3huf(trial,lin,bf179)
@@ -1148,7 +1148,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
 
      ! two-fluid contribution
-     if(dbf .gt. 0 .and. isplitstep.eq.2) then
+     if(dbf .gt. 0 .and. itwofluid.ge.1) then
         temp = v3hvpsi(trial,lin,pst79) & 
              + v3hvb  (trial,lin,bzt79)
         if(i3d.eq.1) temp = temp + v3hvf(trial,lin,bf179)
@@ -1164,7 +1164,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
 
      ! two-fluid contribution
-     if(dbf .gt. 0 .and. isplitstep.eq.2) then
+     if(dbf .gt. 0 .and. itwofluid.ge.1) then
         temp = v3hchipsi(trial,lin,pst79) & 
              + v3hchib  (trial,lin,bzt79)
         if(i3d.eq.1) temp = temp + v3hchif(trial,lin,bf179)
@@ -1420,6 +1420,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e)
   use arrays
   use m3dc1_nint
   use metricterms_new
+  use two_fluid
   use harned_mikic_mod
 
   implicit none
@@ -1651,7 +1652,9 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e)
      end if
   end if
 
-  
+  select case (itwofluid)
+
+  case(1)     ! electron form
   ! JxB
   ! ~~~
   if(dbf.ne.0.) then
@@ -1800,7 +1803,76 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e)
   temp = b1e(trial,lin)
   r_e = r_e       - thimpe     *dt*temp
   q_e = q_e + (1. - thimpe*bdf)*dt*temp
-        
+
+  case(2,3,4)  ! ion form
+!
+
+  if(itwofluid.eq.4) return
+  !  velocity time derivatives
+  !  ~~~~~~~~~~~~~~~~~~~~~~~~
+  if(dbf.ne.0.) then
+     temp = b1vzdot(trial,lin)
+     ssterm(vz_g) = ssterm(vz_g) + dbf*temp
+     ddterm(vz_g) = ddterm(vz_g) + dbf*temp*bdf
+
+     if(numvar.ge.3) then
+        temp = b1chidot(trial,lin)
+        ssterm(chi_g) = ssterm(chi_g) + dbf*temp
+        ddterm(chi_g) = ddterm(chi_g) + dbf*temp*bdf
+     endif
+ 
+  endif
+  if(itwofluid.eq.3) return
+
+  ! -Grad(p_i)
+  ! ~~~~~~~~~
+  if(dbf.ne.0.) then
+     if(numvar.ge.3) then
+        temp = b1ped(trial,lin,ni79)*dbf
+        ssterm(p_g)  = ssterm(p_g)  +     thimpf     *dt*temp
+        ddterm(p_g)  = ddterm(p_g)  - (1.-thimpf*bdf)*dt*temp
+        ssterm(pe_g) = ssterm(pe_g) -     thimpf     *dt*temp
+        ddterm(pe_g) = ddterm(pe_g) + (1.-thimpf*bdf)*dt*temp
+     end if
+
+     if(idens.eq.1 .and. eqsubtract.eq.1) then
+        q_ni(1) = q_ni(1) - dbf*dt* &
+             (b1ped(trial,p079,lin) - b1ped(trial,pe079,lin))
+     endif
+  end if  
+
+  ! Convective derivative terms
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(dbf.ne.0) then
+     temp = .5*b1vphi(trial,lin,pht79)*dbf
+     ssterm(vz_g) = ssterm(vz_g) -     thimpf     *dt*temp
+     ddterm(vz_g) = ddterm(vz_g) + (1.-thimpf*bdf)*dt*temp
+
+     temp = .5*b1vphi(trial,vzt79,lin)*dbf
+     ssterm(u_g) = ssterm(u_g) -     thimpf     *dt*temp
+     ddterm(u_g) = ddterm(u_g) + (1.-thimpf*bdf)*dt*temp
+
+     if(numvar.ge.3) then
+        temp = .5*b1vchi(trial,lin,cht79)*dbf
+        ssterm(vz_g) = ssterm(vz_g) -     thimpf     *dt*temp
+        ddterm(vz_g) = ddterm(vz_g) + (1.-thimpf*bdf)*dt*temp
+
+        temp = .5*b1vchi(trial,vzt79,lin)*dbf
+        ssterm(chi_g) = ssterm(chi_g) -     thimpf     *dt*temp
+        ddterm(chi_g) = ddterm(chi_g) + (1.-thimpf*bdf)*dt*temp
+     endif
+  endif
+
+! Viscosity terms
+! ~~~~~~~~~~~~~~~
+  if(dbf.ne.0) then
+     temp = b1vmun(trial,lin,vis79,ni79)*dbf
+     ssterm(vz_g) = ssterm(vz_g) -     thimpf     *dt*temp
+     ddterm(vz_g) = ddterm(vz_g) + (1.-thimpf*bdf)*dt*temp
+  endif
+!
+
+  end select        
 end subroutine flux_lin
 
 
@@ -1873,6 +1945,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
   use arrays
   use m3dc1_nint
   use metricterms_new
+  use two_fluid
   use harned_mikic_mod
 
   implicit none
@@ -2037,6 +2110,10 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
      end if
   end if
 
+  select case(itwofluid)
+
+
+  case(1)  ! electron form
   ! JxB
   ! ~~~
   if(dbf.ne.0.) then
@@ -2151,6 +2228,76 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
   ssterm(bz_g) = ssterm(bz_g) - thimpf**2*dt*dt*temp2
   ddterm(bz_g) = ddterm(bz_g) - thimpf**2*dt*dt*temp2
 
+  case(2,3,4)  ! ion form
+
+!
+  if(itwofluid.eq.4) return
+
+  !  velocity time derivatives
+  !  ~~~~~~~~~~~~~~~~~~~~~~~~
+  if(dbf.ne.0.) then
+     temp = b2phidot(trial,lin)
+     ssterm(u_g) = ssterm(u_g) + dbf*temp
+     ddterm(u_g) = ddterm(u_g) + dbf*temp*bdf
+
+     if(numvar.ge.3) then
+        temp = b2chidot(trial,lin)
+        ssterm(chi_g) = ssterm(chi_g) + dbf*temp
+        ddterm(chi_g) = ddterm(chi_g) + dbf*temp*bdf
+     endif
+ 
+  endif
+  if(itwofluid.eq.3) return
+
+  ! -Grad(pi)
+  ! ~~~~~~~~
+  if(dbf.ne.0 .and. numvar.ge.3) then
+     temp = b2ped(trial,lin,ni79)*dbf
+     ssterm(p_g)  = ssterm(p_g)  +     thimpf     *dt*temp
+     ddterm(p_g)  = ddterm(p_g)  - (1.-thimpf*bdf)*dt*temp
+     ssterm(pe_g) = ssterm(pe_g) -     thimpf     *dt*temp
+     ddterm(pe_g) = ddterm(pe_g) + (1.-thimpf*bdf)*dt*temp
+
+     if(idens.eq.1 .and. eqsubtract.eq.1) then
+        q_ni(1) = q_ni(1) - dbf*dt* &
+             (b2ped(trial,p079,lin) - b2ped(trial,pe079,lin))
+     end if
+  endif
+
+  ! convective derivative terms
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(dbf.ne.0) then
+     temp = 0.5*(b2uu(trial,lin,pht79) + b2uu(trial,pht79,lin))*dbf
+     ssterm(u_g) = ssterm(u_g) - thimpf*dt*temp
+     ddterm(u_g) = ddterm(u_g) + (1.-thimpf*bdf)*dt*temp
+     if(numvar.ge.3) then
+        temp = b2uchi(trial,lin,cht79)*dbf
+        ssterm(u_g) = ssterm(u_g) - thimpf*dt*temp
+        ddterm(u_g) = ddterm(u_g) + (1.-thimpf*bdf)*dt*temp
+
+        temp = b2uchi(trial,pht79,lin)*dbf
+        ssterm(chi_g) = ssterm(chi_g) - thimpf*dt*temp
+        ddterm(chi_g) = ddterm(chi_g) + (1.-thimpf*bdf)*dt*temp
+
+     endif
+  endif
+
+  ! Viscosity terms
+  ! ~~~~~~~~~~~~~~~
+  if(dbf.ne.0) then
+
+     temp = b2phimun(trial,lin,vis79,ni79)*dbf
+     ssterm(u_g) = ssterm(u_g) - thimpf*dt*temp
+     ddterm(u_g) = ddterm(u_g) + (1.-thimpf*bdf)*dt*temp
+     if(numvar.ge.3) then
+        temp = b2chimun(trial,lin,vis79,ni79)*dbf
+        ssterm(chi_g) = ssterm(chi_g) - thimpf*dt*temp
+        ddterm(chi_g) = ddterm(chi_g) + (1.-thimpf*bdf)*dt*temp
+     endif
+
+  endif
+
+  end select
 end subroutine axial_field_lin
 
 

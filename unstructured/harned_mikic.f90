@@ -14,7 +14,7 @@ subroutine b1harnedmikic(trial,lin,psiterm,bterm)
   bterm = 0.
   psiterm = 0.
 
-  if(itwofluid.eq.0 .or. surface_int .or. &
+  if(itwofluid.ne.1 .or. surface_int .or. &
        dbf.eq.0. .or. harned_mikic.eq.0.) then
      return
   end if
@@ -104,7 +104,7 @@ subroutine b2harnedmikic(trial,lin,psiterm,bterm)
   bterm = 0.
   psiterm = 0.
 
-  if(itwofluid.eq.0 .or. surface_int .or. &
+  if(itwofluid.ne.1 .or. surface_int .or. &
        dbf.eq.0. .or. harned_mikic.eq.0.) then
      return
   end if
