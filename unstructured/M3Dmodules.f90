@@ -223,6 +223,7 @@ module basic
   integer :: iflip_z     ! 1 = flip equilibrium across z=0 plane
   integer :: ieq_bdotgradt ! 1 = include equilibrium parallel T gradient term
 
+
   ! numerical parameters
   integer :: ntimemax    ! number of timesteps
   integer :: nskip       ! number of timesteps per matrix recalculation
@@ -253,6 +254,13 @@ module basic
   real :: chiiner        ! factor to multiply chi inertial terms
   real :: harned_mikic   ! coefficient of harned-mikic 2f stabilization term
   real :: gamma_gr       ! growth rate based on kinetic energy -- used in variable_timestep
+
+  ! poloidal force parameters
+  integer :: ipforce     ! 1 = include poloidal momentum source
+  integer :: nforce         !  exponent
+  real :: dforce         !  half width
+  real :: xforce         !  location of peak (0 to 1(edge))
+  real :: aforce         !  magnitude
 
   ! xray diagnostic parameters
   integer :: xray_detector_enabled ! 1 = enable xray diagnostic
@@ -358,7 +366,7 @@ module arrays
   type(field_type) :: jphi_field, vor_field, com_field
   type(field_type) :: resistivity_field, kappa_field
   type(field_type) :: sigma_field, Fphi_field, Q_field
-  type(field_type) :: visc_field, visc_c_field, visc_e_field
+  type(field_type) :: visc_field, visc_c_field, visc_e_field, pforce_field
 
   type(field_type) :: temporary_field
   

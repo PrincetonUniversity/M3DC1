@@ -482,6 +482,18 @@ subroutine set_defaults
   call add_var_double("beam_dv", beam_dv, 100., &
        "Dispersion of beam voltage (in volts)", source_grp)
 
+  ! poloidal momentum source
+  call add_var_int("ipforce", ipforce, 0, &
+       "1: Include Poloidal momentum source", source_grp)
+  call add_var_double("dforce", dforce, 0., &
+       "half-width of poloidal momentum source", source_grp)
+  call add_var_double("xforce", xforce, 0., &
+       "location [0,1] of poloidal momentum source", source_grp) 
+  call add_var_int("nforce", nforce, 0, &
+       "exponent of (1-x) multiplying poloidal mom. source", source_grp) 
+  call add_var_double("aforce", aforce, 0., &
+       "magnitude of poloidal momentum source", source_grp)
+
 
   ! gaussian heat source
   call add_var_int("igaussian_heat_source", igaussian_heat_source, 0, &

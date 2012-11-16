@@ -1974,7 +1974,30 @@ vectype function v1p(e,f)
   return
 end function v1p
 
+! V1psiforce
+! ===
+vectype function v1psiforce(e,f,g)
+  use basic
+  use arrays
+  use m3dc1_nint
 
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = int3(g(:,OP_1),e(:,OP_DR),f(:,OP_DR)) &
+             + int3(g(:,OP_1),e(:,OP_DZ),f(:,OP_DZ))
+     end if
+
+
+  v1psiforce = temp
+  return
+end function v1psiforce
 
 !============================================================================
 ! V2 TERMS
@@ -5015,6 +5038,30 @@ vectype function v3chis(e,f,g)
   return
 end function v3chis
 
+! V3psiforce
+! ===
+vectype function v3psiforce(e,f,g)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = -int4(ri3_79,g(:,OP_1),e(:,OP_DZ),f(:,OP_DR)) &
+              + int4(ri3_79,g(:,OP_1),e(:,OP_DR),f(:,OP_DZ))
+     end if
+
+
+  v3psiforce = temp
+  return
+end function v3psiforce
 
 !==============================================================================
 ! B1 TERMS

@@ -626,6 +626,10 @@ function translate, name, units=units, itor=itor
                  strcmp(name, 'force_phi_i', /fold_case) eq 1) then begin
        units = dimensions(/p0, l0=-1)
        return, "!8F!D!9p!N!X"
+   endif else if(strcmp(name, 'pforce', /fold_case) eq 1 or $
+                 strcmp(name, 'pforce_i', /fold_case) eq 1) then begin
+       units = dimensions(/p0, l0=-1)
+       return, "!8F!D!9p!N!X"
    endif else if(strcmp(name, 'heat_source', /fold_case) eq 1 or $
                  strcmp(name, 'heat_source_i', /fold_case) eq 1) then begin
        units = dimensions(/p0, t0=-1)

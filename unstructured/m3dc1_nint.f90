@@ -68,6 +68,7 @@ module m3dc1_nint
   integer, parameter :: FIELD_TI  =262144
   integer, parameter :: FIELD_Q   =524288
   integer, parameter :: FIELD_F   =1048576
+  integer, parameter :: FIELD_PF =2097152
 
   vectype, dimension(MAX_PTS, OP_NUM, dofs_per_element) :: mu79, nu79
   vectype, dimension(MAX_PTS) :: r_79, r2_79, r3_79, &
@@ -80,9 +81,9 @@ module m3dc1_nint
        ph179, vz179, ch179, p179, ne179
   vectype, dimension(MAX_PTS, OP_NUM) :: pst79, bzt79, pet79, nt79, &
        pht79, vzt79, cht79, pt79, net79
-  vectype, dimension(MAX_PTS, OP_NUM) :: vis79, vic79, vip79
+  vectype, dimension(MAX_PTS, OP_NUM) :: vis79, vic79, vip79, for79
   vectype, dimension(MAX_PTS, OP_NUM) :: jt79, cot79, vot79, pit79, &
-       eta79, sig79, Fy79, q79
+       eta79, sig79, fy79, q79
   vectype, dimension(MAX_PTS, OP_NUM) :: bf079, bf179, bft79
   vectype, dimension(MAX_PTS, OP_NUM) :: kap79, kar79, kax79
   vectype, dimension(MAX_PTS, OP_NUM) :: ps079, bz079, pe079, n079, &
@@ -829,7 +830,7 @@ contains
        .and. momentum_source) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   F..."
 
-     call eval_ops(itri, Fphi_field, Fy79)
+     call eval_ops(itri, Fphi_field, fy79)
   else
      q79 = 0.
   end if
@@ -875,6 +876,16 @@ contains
 !     if(amupar.ne.0.) vip79 = amupar*pit79/2.
      if(amupar.ne.0.) vip79 = amupar
   end if
+
+
+    ! Poloidal Momentum Force
+    ! ~~~
+    if((iand(fields, FIELD_PF).eq.FIELD_PF)   &
+        .and. ipforce .gt. 0) then
+       if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   PFORCE..."
+       
+        call eval_ops(itri, pforce_field, for79)
+    endif
 
     ! TE
     ! ~~~

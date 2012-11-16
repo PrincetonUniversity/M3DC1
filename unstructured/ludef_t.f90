@@ -454,6 +454,12 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
         ddterm(den_g) = ddterm(den_g) + (1.-thimp*bdf)*dt*temp
      end if
   end if
+
+  ! Poloidal force term (Lucca)
+  if(ipforce.ge.1) then
+     temp = v1psiforce(trial,lin,for79)
+     ddterm(psi_g) = ddterm(psi_g) + dt*temp
+  endif
 end subroutine vorticity_lin 
 
 
@@ -1365,6 +1371,13 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
         ssterm(den_g) = ssterm(den_g) -     thimp     *dt*temp
         ddterm(den_g) = ddterm(den_g) + (1.-thimp*bdf)*dt*temp
      endif
+  endif
+
+  ! Poloidal force term (Lucca)
+  ! ~~~~~~~~~~~~~~~~~
+  if(ipforce.ge.1) then
+     temp = v3psiforce(trial,lin,for79)
+     ddterm(psi_g) = ddterm(psi_g) + dt*temp
   endif
 end subroutine compression_lin
 
@@ -3676,6 +3689,8 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
      if(density_source) def_fields = def_fields + FIELD_SIG
   endif
   if(momentum_source) def_fields = def_fields + FIELD_F
+!...poloidal momentum source
+  if(ipforce.gt.0) def_fields = def_fields + FIELD_PF
   if(heat_source) def_fields = def_fields + FIELD_Q
 
   if(gyro.eq.1 .or. amupar.ne.0 .or. kappar.ne.0) then
