@@ -113,6 +113,42 @@ vectype function force_func(i)
   return
 end function force_func
 
+! Poloidal Momentum Sources/Sinks
+! ~~~~~~~~~~~~~~~~~~~~~~
+vectype function pforce_func(i)
+  use math
+  use basic
+  use m3dc1_nint
+  use diagnostics
+  use neutral_beam
+
+  implicit none
+
+  integer, intent(in) :: i
+  integer :: iregion, j, magnetic_region
+  vectype, dimension(MAX_PTS,OP_NUM) :: psi
+
+  if(linear.eq.1) then
+      psi = ps079
+  else
+      psi = pst79
+  end if
+  temp79a = (psi(:,OP_1)-psimin)/(psibound - psimin)
+
+  do j=1, npoints
+    iregion = magnetic_region(psi(j,:), x_79(j), z_79(j))
+    if(iregion.ge.1) temp79a(j) = 1.
+  end do
+
+  temp79b = aforce*(1.-temp79a)**nforce  &
+          * dforce**2/((temp79a - xforce)**2 + dforce**2)
+
+  pforce_func = int2(mu79(:,OP_1,i),temp79b)
+
+
+  return
+end function pforce_func
+
 
 ! Heat Sources/Sinks
 ! ~~~~~~~~~~~~~~~~~~
@@ -258,7 +294,7 @@ vectype function viscosity_func(i)
         endif
 
      case(2)
-        if(linear.eq.0) then
+        if(linear.eq.1) then
            psi = ps079
         else
            psi = pst79
@@ -442,9 +478,9 @@ subroutine define_transport_coefficients()
 
   logical, save :: first_time = .true.
   logical :: solve_sigma, solve_kappa, solve_visc, solve_resistivity, &
-       solve_visc_e, solve_q, solve_f
+       solve_visc_e, solve_q, solve_f, solve_fp
 
-  integer, dimension(7) :: temp, temp2
+  integer, dimension(8) :: temp, temp2
   vectype, dimension(dofs_per_element) :: dofs
 
   ! transport coefficients are only calculated once in linear mode
@@ -462,6 +498,7 @@ subroutine define_transport_coefficients()
   solve_visc_e = .false.
   solve_f = .false.
   solve_q = .false.
+  solve_fp = .false.
 
   ! clear variables
   resistivity_field = 0.
@@ -469,9 +506,10 @@ subroutine define_transport_coefficients()
 
   visc_field = 0.
   if(density_source) sigma_field = 0.  
-  if(momentum_source) fphi_field = 0.
+  if(momentum_source) Fphi_field = 0.
   if(heat_source) q_field = 0.
   if(ibootstrap.ne.0) visc_e_field = 0.
+  if(ipforce.gt.0) pforce_field = 0.
 
   call finalize(field0_vec)
   call finalize(field_vec)
@@ -527,7 +565,16 @@ subroutine define_transport_coefficients()
            if(.not.solve_f) solve_f = dofs(i).ne.0.
         end do
         if(solve_f) &
-             call vector_insert_block(fphi_field%vec,itri,1,dofs,VEC_ADD)
+             call vector_insert_block(Fphi_field%vec,itri,1,dofs,VEC_ADD)
+     end if
+
+     if(ipforce.gt.0) then
+        do i=1, dofs_per_element
+           dofs(i) = pforce_func(i)
+           if(.not.solve_fp) solve_fp = dofs(i).ne.0.
+        end do
+        if(solve_fp) &
+             call vector_insert_block(pforce_field%vec,itri,1,dofs,VEC_ADD)
      end if
 
      if(heat_source) then
@@ -562,7 +609,8 @@ subroutine define_transport_coefficients()
      if(solve_visc_e)      temp(5) = 1
      if(solve_f)           temp(6) = 1
      if(solve_q)           temp(7) = 1
-     call mpi_allreduce(temp,temp2,7,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ier)
+     if(solve_fp)          temp(8) = 1
+     call mpi_allreduce(temp,temp2,8,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ier)
      solve_resistivity = temp2(1).eq.1
      solve_kappa       = temp2(2).eq.1
      solve_sigma       = temp2(3).eq.1
@@ -570,6 +618,7 @@ subroutine define_transport_coefficients()
      solve_visc_e      = temp2(5).eq.1
      solve_f           = temp2(6).eq.1
      solve_q           = temp2(7).eq.1
+     solve_fp          = temp2(8).eq.1
   end if
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' solving...'
@@ -600,13 +649,18 @@ subroutine define_transport_coefficients()
   endif
 
   if(solve_f) then
-     if(myrank.eq.0 .and. iprint.ge.1) print *, '  Fphi'
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  fphi'
      call newvar_solve(Fphi_field%vec, mass_mat_lhs)
   endif
 
   if(solve_q) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  Q'
      call newvar_solve(q_field%vec, mass_mat_lhs)
+  endif
+
+  if(solve_fp) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  pforce'
+     call newvar_solve(pforce_field%vec, mass_mat_lhs)
   endif
 
   ! the "compressible" viscosity is the same as the "incompressible"

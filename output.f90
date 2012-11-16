@@ -924,6 +924,16 @@ subroutine output_fields(time_group_id, equilibrium, error)
           nelms, error)
      nfields = nfields + 1
 
+     ! poloidal force
+     if(ipforce.gt.0) then
+        do i=1, nelms
+           call calcavector(i, pforce_field, dum(:,i))
+        end do
+        call output_field(group_id, "pforce", real(dum), coeffs_per_element, &
+             nelms, error)
+        nfields = nfields + 1
+     endif
+
      ! kappa
      do i=1, nelms
         call calcavector(i, kappa_field, dum(:,i))
@@ -1039,7 +1049,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
         nfields = nfields + 1
      endif
 
-     ! heat source
+     ! momentum source
      if(momentum_source) then
         do i=1, nelms
            call calcavector(i, Fphi_field, dum(:,i))
