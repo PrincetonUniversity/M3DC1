@@ -228,7 +228,7 @@ vectype function v1hchif(e,f,g)
                  +int4(ri2_79,f(:,OP_GSP),e(:,OP_DR),g(:,OP_DRP))  &
                  +int4(ri2_79,f(:,OP_GSP),e(:,OP_DZ),g(:,OP_DZP))  &
               -2.*int4(ri4_79,e(:,OP_DZ),g(:,OP_DR),f(:,OP_DRP))  &
-              +2.*int4(ri4_79,e(:,OP_DR),g(:,OP_DZ),f(:,OP_DRP))  &
+              +2.*int4(ri4_79,e(:,OP_DR),g(:,OP_DZ),f(:,OP_DRP))
      end if
 #endif
 
