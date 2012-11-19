@@ -136,12 +136,12 @@ vectype function pforce_func(i)
   temp79a = (psi(:,OP_1)-psimin)/(psibound - psimin)
 
   do j=1, npoints
+    temp79b(j) = aforce*(1.-temp79a(j))**nforce  &
+          * dforce**2/((temp79a(j) - xforce)**2 + dforce**2)
     iregion = magnetic_region(psi(j,:), x_79(j), z_79(j))
-    if(iregion.ge.1) temp79a(j) = 1.
+    if(iregion.ge.1) temp79b(j) = 0.
   end do
 
-  temp79b = aforce*(1.-temp79a)**nforce  &
-          * dforce**2/((temp79a - xforce)**2 + dforce**2)
 
   pforce_func = int2(mu79(:,OP_1,i),temp79b)
 
@@ -213,8 +213,12 @@ vectype function resistivity_func(i)
         if(linear.eq.1) then
            temp79a = eta0*sqrt((ne079(:,OP_1)/pe079(:,OP_1))**3)
         else
-           temp79b = max(pedge*pefac,real(pet79(:,OP_1)))
-           temp79a = eta0*sqrt((net79(:,OP_1)/temp79b)**3)
+           if(itemp.eq.1) then
+              temp79a = eta0*tet79(:,OP_1)**(-1.5)
+           else
+              temp79b = max(pedge*pefac,real(pet79(:,OP_1)))
+              temp79a = eta0*sqrt((net79(:,OP_1)/temp79b)**3)
+           endif
         endif
      else
         temp79a = 0.
@@ -516,6 +520,7 @@ subroutine define_transport_coefficients()
 
   ! specify which primitive fields are to be evalulated
   def_fields = FIELD_N + FIELD_PE + FIELD_P + FIELD_PSI + FIELD_I + FIELD_B2I
+  if(itemp.ge.1) def_fields = def_fields + FIELD_TE
   if(iresfunc.eq.3 .or. iresfunc.eq.4) def_fields = def_fields + FIELD_ETA
   if(ivisfunc.eq.3) def_fields = def_fields + FIELD_MU
   if(ibeam.eq.1) def_fields = def_fields + FIELD_V
