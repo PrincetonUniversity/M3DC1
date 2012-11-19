@@ -63,7 +63,7 @@ contains
     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
     call hdf5_write_scalars(ier)
 #ifdef USE3D
-    call hdf5_write_keharmonics(ier)
+    if(ike_harmonics .gt. 0) call hdf5_write_keharmonics(ier)
 #endif
     if(myrank.eq.0 .and. itimer.eq.1) then
       call second(tend)
