@@ -6,7 +6,7 @@ module neutral_beam
   real :: beam_x    ! x coordinate of pellet injection
   real :: beam_z    ! z coordinate of pellet injection
   real :: beam_v    ! beam voltage (in volts)
-  real :: beam_rate ! amplitude of pellet density source
+  real :: beam_rate ! amplitude of beam density source
   real :: beam_dr   ! spatial dispersion of beam source
   real :: beam_dv   ! voltage dispersion of beam source (in volts)
   real, parameter :: beam_zeff = 1
