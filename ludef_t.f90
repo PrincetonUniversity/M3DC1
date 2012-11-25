@@ -4329,8 +4329,10 @@ subroutine ludefpres_n(itri)
            call pressure_nolin(mu79(:,:,i),q4(i),.true.)
         endif
         if(ipressplit.eq.1) then
-          if(imode.eq.1 .and. k.eq.1) call pressure_nolin(mu79(:,:,i),q4(i),.false.)
-          if(imode.eq.3 .and. (k.eq.1 .or. k.eq.2))  call pressure_nolin(mu79(:,:,i),q4(i),.false.)
+          if((imode.eq.1 .or. imode.eq.2) .and. k.eq.1)  &
+                 call pressure_nolin(mu79(:,:,i),q4(i),.false.)
+          if((imode.eq.3 .or. imode.eq.4) .and. (k.eq.1 .or. k.eq.2))  &
+                 call pressure_nolin(mu79(:,:,i),q4(i),.false.)
         endif  ! ipressplit
      end do  ! on i
 
