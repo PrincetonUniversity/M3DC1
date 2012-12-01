@@ -1,4 +1,4 @@
-module transport_coefficients
+ module transport_coefficients
   use spline
 
   type(spline1d), private :: kappa_spline
@@ -126,7 +126,11 @@ vectype function pforce_func(i)
 
   integer, intent(in) :: i
   integer :: iregion, j, magnetic_region
+  real :: psimaxl, psiminl
   vectype, dimension(MAX_PTS,OP_NUM) :: psi
+
+  select case(ipforce)
+  case(1)
 
   if(linear.eq.1) then
       psi = ps079
@@ -144,10 +148,61 @@ vectype function pforce_func(i)
 
 
   pforce_func = int2(mu79(:,OP_1,i),temp79b)
+  case(2)
+
+  if(linear.eq.1) then
+      psi = ps079
+  else
+      psi = pst79
+  end if
+  temp79a = (psi(:,OP_1)-psibound)/(psimin - psibound)
+  psimaxl = 0.6
+  psiminl = 1.e-3
+  temp79b = 1. - (temp79a - psiminl)/(psimaxl - psiminl)
+  temp79c = atan2(z_79-zmag,x_79-xmag)
+  temp79d = sqrt(max(real((pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2)*ri2_79),1.e-6))
+  temp79e =  aforce*temp79b**2*nt79(:,OP_1)*cos(temp79c/2.)/temp79d 
+  do j=1,npoints
+    if(real(temp79a(j)) .lt. psiminl .or. real(temp79a(j)) .gt. psimaxl) temp79e(j) = 0.
+  enddo
+  
+   pforce_func = int2(mu79(:,OP_1,i),temp79e)
+  end select
+  return
+end function pforce_func
+vectype function pmach_func(i)
+  use math
+  use basic
+  use m3dc1_nint
+  use diagnostics
+  use neutral_beam
+
+  implicit none
+
+  integer, intent(in) :: i
+  integer :: j
+
+! calculate the poloidal mach number
+!  do j=1,npoints
+!    temp79a(j) = max(real((pst79(j,OP_DR)**2 + pst79(j,OP_DZ)**2)*ri2_79(j)),1.e-6)
+!    temp79b(j) = temp79a(j) + bzt79(j,OP_1)**2*ri2_79(j)
+!    temp79c(j) = max(real(gam*pt79(j,OP_1)*ni79(j,OP_1)*temp79a(j)/temp79b(j)),1.e-6)
+!  enddo
+  temp79a = max(real((pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2)*ri2_79),1.e-6)
+  temp79b = temp79a + bzt79(:,OP_1)**2*ri2_79
+  temp79c = max(real(gam*pt79(:,OP_1)*ni79(:,OP_1)*temp79a/temp79b),1.e-6)
+! note: temp79c can vanish at x-point and magnetic axis
+
+  temp79d = max(real(r2_79*(pht79(:,OP_DR)**2 + pht79(:,OP_DZ)**2)   &
+         + ri4_79*(cht79(:,OP_DR)**2 + cht79(:,OP_DZ)**2)  &
+         + 2.*ri_79*(cht79(:,OP_DZ)*pht79(:,OP_DR)-cht79(:,OP_DR)*pht79(:,OP_DZ))),1.e-9)
+  temp79e = sqrt(temp79d/temp79c)
+
+  pmach_func = int2(mu79(:,OP_1,i),temp79e)
 
 
   return
-end function pforce_func
+end function pmach_func
 
 
 ! Heat Sources/Sinks
@@ -514,6 +569,7 @@ subroutine define_transport_coefficients()
   if(heat_source) q_field = 0.
   if(ibootstrap.ne.0) visc_e_field = 0.
   if(ipforce.gt.0) pforce_field = 0.
+  if(ipforce.gt.0) pmach_field = 0.
 
   call finalize(field0_vec)
   call finalize(field_vec)
@@ -524,6 +580,7 @@ subroutine define_transport_coefficients()
   if(iresfunc.eq.3 .or. iresfunc.eq.4) def_fields = def_fields + FIELD_ETA
   if(ivisfunc.eq.3) def_fields = def_fields + FIELD_MU
   if(ibeam.eq.1) def_fields = def_fields + FIELD_V
+  if(ipforce.gt.0) def_fields = def_fields + FIELD_PHI + FIELD_CHI + FIELD_NI
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, '  defining...'
 
@@ -580,6 +637,13 @@ subroutine define_transport_coefficients()
         end do
         if(solve_fp) &
              call vector_insert_block(pforce_field%vec,itri,1,dofs,VEC_ADD)
+
+        do i=1, dofs_per_element
+           dofs(i) = pmach_func(i)
+        end do
+        if(solve_fp) &
+             call vector_insert_block(pmach_field%vec,itri,1,dofs,VEC_ADD)
+
      end if
 
      if(heat_source) then
@@ -666,6 +730,10 @@ subroutine define_transport_coefficients()
   if(solve_fp) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  pforce'
      call newvar_solve(pforce_field%vec, mass_mat_lhs)
+
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  pmach'
+     call newvar_solve(pmach_field%vec, mass_mat_lhs)
+
   endif
 
   ! the "compressible" viscosity is the same as the "incompressible"
