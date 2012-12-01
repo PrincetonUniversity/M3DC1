@@ -924,12 +924,19 @@ subroutine output_fields(time_group_id, equilibrium, error)
           nelms, error)
      nfields = nfields + 1
 
-     ! poloidal force
+     ! poloidal force and mach number
      if(ipforce.gt.0) then
         do i=1, nelms
            call calcavector(i, pforce_field, dum(:,i))
         end do
         call output_field(group_id, "pforce", real(dum), coeffs_per_element, &
+             nelms, error)
+        nfields = nfields + 1
+
+        do i=1, nelms
+           call calcavector(i, pmach_field, dum(:,i))
+        end do
+        call output_field(group_id, "pmach", real(dum), coeffs_per_element, &
              nelms, error)
         nfields = nfields + 1
      endif

@@ -366,7 +366,7 @@ module arrays
   type(field_type) :: jphi_field, vor_field, com_field
   type(field_type) :: resistivity_field, kappa_field
   type(field_type) :: sigma_field, Fphi_field, Q_field
-  type(field_type) :: visc_field, visc_c_field, visc_e_field, pforce_field
+  type(field_type) :: visc_field, visc_c_field, visc_e_field, pforce_field, pmach_field
 
   type(field_type) :: temporary_field
   
