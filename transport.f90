@@ -17,8 +17,8 @@ vectype function sigma_func(i)
   implicit none
 
   integer, intent(in) :: i
-  integer :: j
   vectype :: temp
+  integer :: iregion, j, magnetic_region
 
   temp = 0.
 
@@ -75,6 +75,18 @@ vectype function sigma_func(i)
           /(2.*sink2_var**2))
      temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
+
+  ! Enforce density floor
+  if(idenfloor.ge.1) then
+
+  endif
+
+  do j=1, npoints
+     temp79a(j) = 0.
+     iregion = magnetic_region(pst79(j,:), x_79(j), z_79(j))
+     if(iregion.ge.1) temp79a(j) = alphadenfloor*( den_edge - nt79(j,OP_1))
+  end do
+  temp = temp + int2(mu79(:,OP_1,i),temp79a)
 
   sigma_func = temp
   return

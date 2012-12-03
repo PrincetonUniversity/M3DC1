@@ -522,6 +522,9 @@ subroutine set_defaults
   call add_var_double("sink2_rate", sink2_rate, 0., "", source_grp)
   call add_var_double("sink2_var", sink2_var, 1., "", source_grp)
 
+  call add_var_int("idenfloor", idenfloor, 0, "", source_grp)
+  call add_var_double("alphadenfloor", alphadenfloor, 0., "", source_grp)
+
   call add_var_double("n_target", n_target, 1., "", source_grp)
   call add_var_double("n_control_p", n_control_p, 0., "", source_grp)
   call add_var_double("n_control_i", n_control_i, 0., "", source_grp)
@@ -810,7 +813,7 @@ subroutine validate_input
   is_rectilinear = (nonrect.eq.0)
 
   density_source = idens.eq.1 .and. &
-       (ipellet.ge.1 .or. ionization.ge.1 .or. isink.gt.0 .or. ibeam.ge.1)
+       (ipellet.ge.1 .or. ionization.ge.1 .or. isink.gt.0 .or. idenfloor.gt.0 .or. ibeam.ge.1)
   momentum_source = ibeam.ge.1
   heat_source = (numvar.ge.3 .or. ipres.eq.1) .and. &
        (igaussian_heat_source.eq.1 .or. ibeam.ge.1)
@@ -820,6 +823,8 @@ subroutine validate_input
      print *, 'Momentum source: ', momentum_source
      print *, 'Heat source: ', heat_source
   end if
+
+  if(den_edge .eq.0) den_edge = den0*(pedge/p0)**expn
 
   v0_norm = b0_norm / sqrt(4.*pi*ion_mass*m_p*n0_norm)
   t0_norm = l0_norm / v0_norm
