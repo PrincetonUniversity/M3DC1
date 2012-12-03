@@ -120,6 +120,9 @@ module basic
   real :: sink1_rate, sink2_rate ! rate of sinks
   real :: sink1_var, sink2_var   ! spatial dispersion of sinks
 
+  integer :: idenfloor    ! defines sources/sinks to keep density constant in vacuum region
+  real :: alphadenfloor  ! proportionality constant for setting density constant
+
   integer :: igaussian_heat_source
   real :: ghs_x, ghs_z, ghs_rate, ghs_var
 
