@@ -1173,6 +1173,8 @@ subroutine hdf5_write_keharmonics(error)
   real, allocatable :: dum(:)
   integer :: i
 
+  if(.not.allocated(keharmonic)) return
+
   allocate(dum(NMAX+1))
   call h5gopen_f(file_id, "/", root_id, error)
 
