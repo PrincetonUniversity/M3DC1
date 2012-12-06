@@ -627,6 +627,11 @@ subroutine validate_input
      if(myrank.eq.0) print *, "Parallel viscosity not implemented for ivform=0"
      call safestop(1)
   end if
+
+  if(ipressplit.eq.0 .and. itemp.eq.1) then
+     if(myrank.eq.0) print *, "itemp=1 not allowed with ipressplit=0"
+     call safestop(1)
+  endif
   
   ! calculate pfac (pe*pfac = electron pressure)
   if(p0.gt.0.) then
@@ -671,6 +676,9 @@ subroutine validate_input
 !    call safestop(1)
 ! end if
 
+  if(i3d.eq.0 .and. imp_bf.ne.0) then
+     imp_bf = 0
+  endif
 
   if(rzero.eq.-1) then
      if(itor.eq.1) then 
