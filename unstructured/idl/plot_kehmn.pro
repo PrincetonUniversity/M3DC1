@@ -1,55 +1,3 @@
-pro plot_kehmn, filename=filename
-
-   if(n_elements(filename) eq 0) then filename = 'C1.h5'
-
-   if(hdf5_file_test(filename) eq 0) then return
-
-   file_id = h5f_open(filename)
-   root_id = h5g_open(file_id, "/")
-   data = h5_parse(root_id, "keharmonics", /read_data)
-   h5g_close, root_id
-   h5f_close, file_id
-
-;   print, data
-;   help, data.KEHARMONICS._DATA, /structure
-
-   kehmn = data.KEHARMONICS._DATA
-   print, 'kehmn = ', kehmn
-
-   kehmn_minmax = minmax(kehmn)
-   print, 'kehmn_minmax = ', kehmn_minmax[0], kehmn_minmax[1]
-
-   dimn = size(kehmn, /dim)
-   print, 'dimn = ', dimn
-
-   NMAX = dimn[0]
-   ntimes = dimn[1]
-   print, 'NMAX, ntimes = ', NMAX, ntimes
-   
-   x = fltarr(ntimes)
-   tmp = fltarr(ntimes)
-   
-   for n=0, NMAX-1 do begin
-      for t=0, ntimes-1 do begin
-         ind = n + t*NMAX
-         tmp[t] = kehmn[ind]
-         x[t] = t
-;        print, ind, x[t], tmp[t]
-      endfor
-      if(n lt 1) then begin
-   print, 'plot n=0', n
-         plot, x, tmp, TITLE='Kinetic Energy Harmonics', linestyle=0
-      endif else begin
-   print, 'plot n>0', n
-         oplot, x, tmp, linestyle=0
-      endelse
-      numberAsString = STRTRIM(n, 2)
-      xyouts, n, kehmn[n], numberAsString
-   endfor
-
-end
-
-
 function minmax,array,NAN=nan, DIMEN=dimen, $
 	SUBSCRIPT_MAX = subscript_max, SUBSCRIPT_MIN = subscript_min
 ;+
@@ -125,4 +73,57 @@ function minmax,array,NAN=nan, DIMEN=dimen, $
    return, [ amin, amax ]
  endelse
  end
+
+
+pro plot_kehmn, filename=filename
+
+   if(n_elements(filename) eq 0) then filename = 'C1.h5'
+
+   if(hdf5_file_test(filename) eq 0) then return
+
+   file_id = h5f_open(filename)
+   root_id = h5g_open(file_id, "/")
+   data = h5_parse(root_id, "keharmonics", /read_data)
+   h5g_close, root_id
+   h5f_close, file_id
+
+;   print, data
+;   help, data.KEHARMONICS._DATA, /structure
+
+   kehmn = data.KEHARMONICS._DATA
+   print, 'kehmn = ', kehmn
+
+   kehmn_minmax = minmax(kehmn)
+   print, 'kehmn_minmax = ', kehmn_minmax[0], kehmn_minmax[1]
+
+   dimn = size(kehmn, /dim)
+   print, 'dimn = ', dimn
+
+   NMAX = dimn[0]
+   ntimes = dimn[1]
+   print, 'NMAX, ntimes = ', NMAX, ntimes
+   
+   x = fltarr(ntimes)
+   tmp = fltarr(ntimes)
+   
+   for n=0, NMAX-1 do begin
+      for t=0, ntimes-1 do begin
+         ind = n + t*NMAX
+         tmp[t] = kehmn[ind]
+         x[t] = t
+;        print, ind, x[t], tmp[t]
+      endfor
+      if(n lt 1) then begin
+   print, 'plot n=0', n
+         plot, x, tmp, TITLE='Kinetic Energy Harmonics', linestyle=0
+      endif else begin
+   print, 'plot n>0', n
+         oplot, x, tmp, linestyle=0
+      endelse
+      numberAsString = STRTRIM(n, 2)
+      xyouts, n, kehmn[n], numberAsString
+   endfor
+
+end
+
 
