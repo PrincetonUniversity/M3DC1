@@ -200,7 +200,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
      ! two-fluid contribution
-     if(dbf .gt. 0 .and. itwofluid.ge.1) then
+     if(dbf .gt. 0 .and. itwofluid.gt.1) then
         temp = v1hupsi(trial,lin,pst79) & 
              + v1hub  (trial,lin,bzt79)
         if(i3d.eq.1) temp = temp + v1huf(trial,lin,bf179)
@@ -215,7 +215,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
         ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
 
        ! two-fluid contribution
-       if(dbf .gt. 0 .and. itwofluid.ge.1) then
+       if(dbf .gt. 0 .and. itwofluid.gt.1) then
           temp = v1hvpsi(trial,lin,pst79) & 
                + v1hvb  (trial,lin,bzt79)
           if(i3d.eq.1) temp = temp + v1hvf(trial,lin,bf179)
@@ -232,7 +232,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
        ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
 
        ! two-fluid contribution
-       if(dbf .gt. 0 .and. itwofluid.ge.1) then
+       if(dbf .gt. 0 .and. itwofluid.gt.1) then
           temp = v1hchipsi(trial,lin,pst79) & 
                + v1hchib  (trial,lin,bzt79)
           if(i3d.eq.1) temp = temp + v1hchif(trial,lin,bf179)
@@ -675,7 +675,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
      ! two-fluid contribution
-     if(dbf .gt. 0 .and. itwofluid.ge.1) then
+     if(dbf .gt. 0 .and. itwofluid.gt.1) then
         temp = v2hupsi(trial,lin,pst79) & 
              + v2hub  (trial,lin,bzt79)
         if(i3d.eq.1) temp = temp + v2huf(trial,lin,bf179)
@@ -689,7 +689,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
 
      ! two-fluid contribution
-     if(dbf .gt. 0 .and. itwofluid.ge.1) then
+     if(dbf .gt. 0 .and. itwofluid.gt.1) then
         temp = v2hvpsi(trial,lin,pst79) & 
              + v2hvb  (trial,lin,bzt79)
         if(i3d.eq.1) temp = temp + v2hvf(trial,lin,bf179)
@@ -704,7 +704,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
         ssterm(chi_g) = ssterm(chi_g) - thimp*thimp*dt*dt*temp
         ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
         ! two-fluid contribution
-        if(dbf .gt. 0 .and. itwofluid.ge.1) then
+        if(dbf .gt. 0 .and. itwofluid.gt.1) then
            temp = v2hchipsi(trial,lin,pst79) & 
                 + v2hchib  (trial,lin,bzt79)
            if(i3d.eq.1) temp = temp + v2hchif(trial,lin,bf179)
@@ -1139,7 +1139,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
      ! two-fluid contribution
-     if(dbf .gt. 0 .and. itwofluid.ge.1) then
+     if(dbf .gt. 0 .and. itwofluid.gt.1) then
         temp = v3hupsi(trial,lin,pst79) & 
              + v3hub  (trial,lin,bzt79)
         if(i3d.eq.1) temp = temp + v3huf(trial,lin,bf179)
@@ -1154,7 +1154,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
 
      ! two-fluid contribution
-     if(dbf .gt. 0 .and. itwofluid.ge.1) then
+     if(dbf .gt. 0 .and. itwofluid.gt.1) then
         temp = v3hvpsi(trial,lin,pst79) & 
              + v3hvb  (trial,lin,bzt79)
         if(i3d.eq.1) temp = temp + v3hvf(trial,lin,bf179)
@@ -1170,7 +1170,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
 
      ! two-fluid contribution
-     if(dbf .gt. 0 .and. itwofluid.ge.1) then
+     if(dbf .gt. 0 .and. itwofluid.gt.1) then
         temp = v3hchipsi(trial,lin,pst79) & 
              + v3hchib  (trial,lin,bzt79)
         if(i3d.eq.1) temp = temp + v3hchif(trial,lin,bf179)
@@ -1718,7 +1718,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e)
 
         if(numvar.ge.2) then
            temp = b1psibd1(trial,psx79,lin,ni79)*dbf &
-                + b1bbd   (trial,bzx79,lin,ni79)*dbf
+                + b1bbd   (trial,lin,bzx79,ni79)*dbf
            ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (1.-thimpf*bdf)*dt*temp
         end if
@@ -1766,12 +1766,12 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e)
            ssterm(psi_g) = ssterm(psi_g) -     thimp_bf     *dt*temp
            ddterm(psi_g) = ddterm(psi_g) + (1.-thimp_bf*bdf)*dt*temp
 
-           temp = b1bfd2  (trial,lin,bfx79,ni79)*dbf
+           temp = b1bfd1  (trial,lin,bfx79,ni79)*dbf
            ssterm(bz_g) = ssterm(bz_g) -     thimp_bf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (1.-thimp_bf*bdf)*dt*temp
 
            temp = b1psifd2(trial,psx79,lin,ni79)*dbf &
-                + b1bfd1  (trial,bzx79,lin,ni79)*dbf
+                + b1bfd2  (trial,bzx79,lin,ni79)*dbf
            r_bf = r_bf -     thimp_bf     *dt*temp
            q_bf = q_bf + (1.-thimp_bf*bdf)*dt*temp
         end if
@@ -1939,8 +1939,8 @@ subroutine flux_nolin(trial, r4term)
            r4term = r4term + dbf*dt* &
                 (b1psifd1(trial,ps079,bfx79,ni79) &
                 +b1psifd2(trial,psx79,bf079,ni79) &
-                +b1bfd1  (trial,bzx79,bf079,ni79) &
-                +b1bfd2  (trial,bz079,bfx79,ni79))
+                +b1bfd1  (trial,bz079,bfx79,ni79) &
+                +b1bfd2  (trial,bzx79,bf079,ni79))
         end if
      end if
   end if
@@ -3501,8 +3501,8 @@ subroutine pressure_nolin(trial, r4term, total_pressure)
                 (p1psifpnkappar(trial,ps079,bfx79,pp079,n079,1,ieq_bdotgradt) &
                 +p1bfpnkappar  (trial,bz079,bfx79,pp079,n079,1,ieq_bdotgradt))
         endif
-     endif
-  endif  ! on kappar.ne.0
+     endif ! on kappar.ne.0
+  endif  
 
   if(linear.eq.1) return
 

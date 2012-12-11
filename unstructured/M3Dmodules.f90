@@ -247,6 +247,7 @@ module basic
   integer :: isurface    ! include surface terms
   integer :: equilibrate ! 1 = scale trial functions so L2 norms = 1
   integer :: itime_independent ! 1 = exclude d/dt terms
+  integer :: iset_pe_floor
   real :: dt, dtold      ! timestep (present and previous)
   real :: dtmin,dtmax,dtkecrit,dtfrac,dtgamma  ! quantities used in variable_timestep option
   real :: ddt            ! change in timestep per timestep
@@ -257,6 +258,7 @@ module basic
   real :: chiiner        ! factor to multiply chi inertial terms
   real :: harned_mikic   ! coefficient of harned-mikic 2f stabilization term
   real :: gamma_gr       ! growth rate based on kinetic energy -- used in variable_timestep
+  real :: pe_floor
 
   ! poloidal force parameters
   integer :: ipforce     ! 1 = include poloidal momentum source

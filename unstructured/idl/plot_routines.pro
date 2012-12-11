@@ -64,7 +64,6 @@ pro ct2
     tvlct, r, g, b
 end
 
-
 pro ct3
     n = 10
     rgb = bytarr(n,3)
@@ -335,7 +334,7 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
                                nofill=nofill, noautoct=noautoct, $
                                nolegend=nolegend, color=color, levels=levels, $
                                clevels=clevels, ccolor=ccolor, $
-                               _EXTRA = ex
+                               reverse_ct=reverse_ct, _EXTRA = ex
 
     zed = reform(z)
    
@@ -434,7 +433,13 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     endif else if(ct eq -1) then begin
         ct2
     endif else loadct, ct
-        
+
+    if(keyword_set(reverse_ct)) then begin
+        tvlct, v, /get
+        v = reverse(v)
+        !p.color=255
+        tvlct, v
+    end
 
     if(not keyword_set(nolegend)) then begin
     ; plot the color scale

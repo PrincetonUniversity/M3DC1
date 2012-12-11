@@ -5983,8 +5983,9 @@ vectype function b1bfd1(e,f,g,h)
                 - 2.*int5(ri5_79,e(:,OP_1),temp79a,norm79(:,1),h(:,OP_1))
         endif
      else
-        temp = int5(ri2_79,e(:,OP_GS),f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1)) &
-             + int5(ri2_79,e(:,OP_GS),f(:,OP_DR),g(:,OP_DRP),h(:,OP_1))
+        temp = - &
+             (int5(ri2_79,e(:,OP_GS),f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1)) &
+             +int5(ri2_79,e(:,OP_GS),f(:,OP_DR),g(:,OP_DRP),h(:,OP_1)))
      endif
   endif
   b1bfd1 = temp

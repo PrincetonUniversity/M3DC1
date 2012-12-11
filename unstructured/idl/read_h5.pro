@@ -1405,6 +1405,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    symbol=name
  
    print, 'Reading field ', name, ' at timeslice ', time
+   print, 'Eqsubtract? ', isubeq
    print, string(form='(" linear=",I0,"; pts=",I0,";' + $
                  'equilibrium=",I0,"; complex=",I0,"; op=",I0)', $
                  keyword_set(linear), pts, keyword_set(equilibrium), $
@@ -1809,7 +1810,36 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        ;          = <xi,psi>/sqrt(<psi,psi>)
        data = abs(s_bracket(xi,psi0,x,y)/sqrt(s_bracket(psi0,psi0,x,y)))
   
-       symbol = '!3|!6d!7n!6/dr!3|!X'
+       symbol = '!3|!6d!7n!D!8r!N!6/dr!3|!X'
+       d = dimensions(_EXTRA=extra)
+
+   ;===========================================
+   ; linearity
+   ;===========================================
+   endif else if(strcmp('linearity', name, /fold_case) eq 1) then begin
+
+       xi = read_field('displacement', x, y, t, slices=time, mesh=mesh, $
+                       filename=filename, points=pts, $
+                       rrange=xrange, zrange=yrange, linear=linear, $
+                       complex=complex, phi=phi0)
+       psi0 = read_field('psi', x, y, t, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, slice=-1)
+       p0 = read_field('p', x, y, t, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, slice=-1)
+
+
+       psis = read_lcfs(filename=filename, flux0=flux0, _EXTRA=extra)
+       if(psis lt flux0) then jac = -1 else jac = 1
+
+       ; d(xi)/dr = d(xi)/dpsi * |grad(psi)|
+       ;          = (<xi,psi>/<psi,psi>)*sqrt(<psi,psi>)
+       ;          = <xi,psi>/sqrt(<psi,psi>)
+       l = p0/s_bracket(p0,psi0,x,y)*sqrt(s_bracket(psi0,psi0,x,y))
+       data = xi/l
+  
+       symbol = '!3|!7n!D!8r!N!3|!6/!8L!Dp!N!X'
        d = dimensions(_EXTRA=extra)
 
 
@@ -5846,7 +5876,8 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
                        flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
                        points=points, name=name, symbol=symbol, units=units, $
                        integrate=integrate, complex=complex, abs=abs, $
-                       phase=phase, stotal=total, fac=fac, _EXTRA=extra
+                       phase=phase, stotal=total, fac=fac, $
+                       _EXTRA=extra
 
    type = size(field, /type)
 
@@ -6055,6 +6086,26 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
            name = '!7a!X'
 
            return, -q^2*r0*alpha
+
+       endif else $
+         if(strcmp(field, 'kappa_implied', /fold_case) eq 1) then begin
+           Q =  flux_average('heat_source', psi=psi, i0=i, x=x, z=z, t=t, $
+             r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
+             points=points, _EXTRA=extra, /integrate)
+           p = read_field('p',x,z,t,points=points,last=last,_EXTRA=extra)
+           n = read_field('den',x,z,t,points=points,last=last,_EXTRA=extra)
+           temp = p/n
+
+           pprime = s_bracket(temp,psi,x,z)/sqrt(s_bracket(psi,psi,x,z))
+           GradP = flux_average_field(pprime, psi, x, z, t, r0=r0, flux=flux, $
+                                      nflux=nflux, area=area, dV=dV, $
+                                      bins=bins, _EXTRA=extra)
+           symbol = '!7j!X'
+           d = dimensions(l0=2, t0=-1, n0=1)
+           units = parse_units(d,_EXTRA=extra)
+           name = '!7j!X'
+
+           return, -Q/(area*GradP)
 
        endif else begin
            field = read_field(field, x, z, t, points=points, complex=complex, $
@@ -7193,11 +7244,12 @@ pro plot_perturbed_surface, q, scalefac=scalefac, points=pts, $
    xhat = psi0_r/sqrt(psi0_r^2 + psi0_z^2)
    zhat = psi0_z/sqrt(psi0_r^2 + psi0_z^2)
 
-   plot, x, z, /nodata, /iso, _EXTRA=extra
+   plot, x, z, /nodata, /iso, _EXTRA=extra, $
+     xtitle='!8R!6 (m)!X', ytitle='!8Z!6 (m)!X'
    c = colors()
    c0 = c
    if(n_elements(fvals) eq 1) then begin
-       l0 = 1
+       l0 = 0
        c[1] = c0[3]
    endif else begin
        l0 = 1

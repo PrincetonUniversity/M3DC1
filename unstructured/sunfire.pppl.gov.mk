@@ -69,8 +69,12 @@ LIBS = 	$(PETSC_LIBS) \
 	-L/usr/X11R6/lib64 -lX11
 
 ifeq ($(USESCOREC), 1)
-  INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/latest $(INCLUDE)
-  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/112111
+#  INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/latest $(INCLUDE)
+#  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/112111
+  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/latest/
+  INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/093011 \
+        $(INCLUDE)
+
 
   SCOREC_ARCH=x86_64_linux-icc
   SCOREC_LIBS = \
