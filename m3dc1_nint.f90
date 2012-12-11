@@ -571,6 +571,23 @@ contains
        endif
        pi079 = p079 - pe079
        pit79 = pt79 - pet79
+
+       if(iset_pe_floor.eq.1) then
+          where(real(pet79(:,OP_1)).lt.pe_floor)
+             pet79(:,OP_1) = pe_floor
+          end where
+          where(real(pt79(:,OP_1)).lt.pe_floor)
+             pt79(:,OP_1) = pe_floor
+          end where
+          if(ilin.eq.0) then 
+             where(real(pet79(:,OP_1)).lt.pe_floor)
+                pe179(:,OP_1) = pe_floor - pe079(:,OP_1)
+             end where
+             where(real(pt79(:,OP_1)).lt.pe_floor)
+                p179(:,OP_1) = pe_floor - p079(:,OP_1)
+             end where
+          end if
+       end if
     endif
     
     

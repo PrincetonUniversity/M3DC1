@@ -463,15 +463,17 @@ vectype function kappa_func(i)
         temp79a = kappa0*sqrt(1./(nt79(:,OP_1)*pt79(:,OP_1)))      
      end if
      
-  case(10)
+  case(10,11)
      if(.not.allocated(kappa_spline%x)) then
-        ! Read in m^2/s
+        ! Read in m^2/s (10) or normalized units (11)
         nvals = 0
         call read_ascii_column('profile_kappa', xvals, nvals, icol=1)
         call read_ascii_column('profile_kappa', yvals, nvals, icol=2)
         if(nvals.eq.0) call safestop(6)
-        yvals = yvals / &
-             (l0_norm * b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm))
+        if(ikappafunc.eq.10) then
+           yvals = yvals / &
+                (l0_norm * b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm))
+        end if
         call create_spline(kappa_spline, nvals, xvals, yvals)
         deallocate(xvals, yvals)
      end if

@@ -497,8 +497,9 @@ subroutine coil(curr, r1, z1, npts, r0, z0, ntor, fr, fphi, fz)
 
   real, dimension(npts) :: dr2, k2, temp, co
   complex, dimension(npts) :: fac
+  real, parameter :: dr2_fac = 1e-4
 
-  dr2 = (r0 - r1)**2 + (z0 - z1)**2
+  dr2 = (r0 - r1)**2 + (z0 - z1)**2 + dr2_fac
   k2 = 4.*r1*r0/dr2
 
   fac = curr*r1/sqrt(dr2**3)
@@ -518,15 +519,16 @@ end subroutine coil
 
 subroutine surface(r, z, dldR, dldZ, npts, r0, z0, ntor, fr, fphi, fz)
   implicit none
-  
+
   real, intent(in) :: r, z, dldZ, dldR
   integer, intent(in) :: npts, ntor
   real, intent(in), dimension(npts) :: r0, z0
   complex, intent(out), dimension(npts) :: fr, fphi, fz
   
   real, dimension(npts) :: dr2, fac, k2, temp1, temp2
+  real, parameter :: dr2_fac = 1e-4
 
-  dr2 = (r - r0)**2 + (z - z0)**2
+  dr2 = (r - r0)**2 + (z - z0)**2 + dr2_fac
   k2 = 4.*r*r0/dr2
   fac = -ntor/sqrt(dr2**3)
 

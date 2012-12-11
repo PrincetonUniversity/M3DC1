@@ -606,6 +606,7 @@ subroutine define_profiles
               endif
            endif
            if(iflip_j.eq.1) dia = -dia
+           if(iflip_v.eq.1) dia = -dia
 
            if(use_norm_psi.eq.1) then 
               omega_spline%y(i) = omega_spline%y(i) - dpsii*dia

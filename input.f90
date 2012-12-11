@@ -278,7 +278,10 @@ subroutine set_defaults
        "Value of ke at which linear sims are rescaled|(ignore if 0)", num_grp)
   call add_var_int("equilibrate", equilibrate, 0, "", num_grp)
   call add_var_double("regular", regular, 0., "", num_grp)
-
+  call add_var_int("iset_pe_floor", iset_pe_floor, 0, &
+       "1: Do not let pe drop below pe_floor", num_grp)
+  call add_var_double("pe_floor", pe_floor, 0., &
+       "Minimum allowed value for pe when iset_pe_floor=1", num_grp)
   
   ! Equilibrium 
   call add_var_int("itaylor", itaylor, 0, "", eq_grp)
