@@ -74,8 +74,7 @@ function minmax,array,NAN=nan, DIMEN=dimen, $
  endelse
  end
 
-
-pro plot_kehmn, filename=filename
+pro plot_kehmn, filename=filename, yrange=yrange, maxn=maxn
 
    if(n_elements(filename) eq 0) then filename = 'C1.h5'
 
@@ -91,37 +90,43 @@ pro plot_kehmn, filename=filename
 ;   help, data.KEHARMONICS._DATA, /structure
 
    kehmn = data.KEHARMONICS._DATA
-   print, 'kehmn = ', kehmn
+;   print, 'kehmn = ', kehmn
 
+   if(n_elements(yrange) eq 0) then begin
    kehmn_minmax = minmax(kehmn)
-   print, 'kehmn_minmax = ', kehmn_minmax[0], kehmn_minmax[1]
+   yrange=[kehmn_minmax[0], kehmn_minmax[1]]
+   end
+   print, 'plot range = ', yrange[0], yrange[1]
 
    dimn = size(kehmn, /dim)
-   print, 'dimn = ', dimn
+   print, 'total number of Fourier harmonics and timesteps = ', dimn
 
-   NMAX = dimn[0]
+   if(n_elements(maxn) eq 0) then begin
+   maxn = dimn[0]
+   end
    ntimes = dimn[1]
-   print, 'NMAX, ntimes = ', NMAX, ntimes
+   print, 'max number of Fourier harmonics to be plotted = ', maxn
    
    x = fltarr(ntimes)
    tmp = fltarr(ntimes)
    
-   for n=0, NMAX-1 do begin
+   for n=0, maxn-1 do begin
       for t=0, ntimes-1 do begin
-         ind = n + t*NMAX
+         ind = n + t*maxn
          tmp[t] = kehmn[ind]
          x[t] = t
 ;        print, ind, x[t], tmp[t]
       endfor
       if(n lt 1) then begin
-   print, 'plot n=0', n
-         plot, x, tmp, TITLE='Kinetic Energy Harmonics', linestyle=0
+;   print, 'plot n=0', n
+         plot, x, tmp, yrange=yrange, TITLE='Kinetic Energy Harmonics', linestyle=0
       endif else begin
-   print, 'plot n>0', n
+;   print, 'plot n>0', n
          oplot, x, tmp, linestyle=0
       endelse
+
       numberAsString = STRTRIM(n, 2)
-      xyouts, n, kehmn[n], numberAsString
+      xyouts, ntimes/2, kehmn[ntimes/2], numberAsString
    endfor
 
 end
