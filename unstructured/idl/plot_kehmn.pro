@@ -112,7 +112,7 @@ pro plot_kehmn, filename=filename, yrange=yrange, maxn=maxn
    
    for n=0, maxn-1 do begin
       for t=0, ntimes-1 do begin
-         ind = n + t*maxn
+         ind = n + t*dimn[0]
          tmp[t] = kehmn[ind]
          x[t] = t
 ;        print, ind, x[t], tmp[t]
@@ -126,7 +126,7 @@ pro plot_kehmn, filename=filename, yrange=yrange, maxn=maxn
       endelse
 
       numberAsString = STRTRIM(n, 2)
-      xyouts, ntimes/2, kehmn[ntimes/2], numberAsString
+      xyouts, x[ntimes/2], tmp[ntimes/2], numberAsString
    endfor
 
 end
