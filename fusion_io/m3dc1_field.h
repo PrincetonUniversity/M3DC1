@@ -62,6 +62,20 @@ class m3dc1_phi_field : public m3dc1_fio_field {
   virtual int eval(const double*, double*);
 };
 
+// ION_PRESSURE
+class m3dc1_pi_field : public m3dc1_fio_field {
+  m3dc1_scalar_field *p, *pe;
+ public:
+  m3dc1_pi_field(m3dc1_source* s)
+    : m3dc1_fio_field(s) { }
+  virtual ~m3dc1_pi_field();
+  m3dc1_pi_field* clone() const { return new m3dc1_pi_field(*this); }
+  int load(const fio_option_list*);
+  int dimension() const { return 1; }
+  virtual int eval(const double*, double*);
+};
+
+
 // ELECTRIC FIELD
 class m3dc1_electric_field : public m3dc1_fio_field {
  public:
@@ -72,6 +86,21 @@ class m3dc1_electric_field : public m3dc1_fio_field {
   int load(const fio_option_list*);
   int dimension() const { return 1; }
   virtual int eval(const double*, double*);
+};
+
+// V
+class m3dc1_fluid_velocity : public m3dc1_fio_field {
+  m3dc1_field *phi0, *phi1;
+  m3dc1_field *w0, *w1;
+  m3dc1_field *chi0, *chi1;
+ public:
+  m3dc1_fluid_velocity(m3dc1_source* s) 
+    : m3dc1_fio_field(s) { }
+  m3dc1_fluid_velocity* clone() const 
+  { return new m3dc1_fluid_velocity(*this); }
+  int load(const fio_option_list*);
+  int dimension() const { return 3; }
+  int eval(const double*, double*);
 };
 
 

@@ -83,6 +83,47 @@ int m3dc1_scalar_field::eval(const double* x, double* v)
   return FIO_SUCCESS;
 }
 
+int m3dc1_pi_field::load(const fio_option_list* opt)
+{
+  m3dc1_fio_field::load(opt);
+  
+  pe = new m3dc1_scalar_field(source, "Pe", source->p0);
+  int result = pe->load(opt);
+  if(result != FIO_SUCCESS) return result;
+
+  p = new m3dc1_scalar_field(source, "P", source->p0);  
+  result = p->load(opt);
+  if(result != FIO_SUCCESS) return result;
+
+  return FIO_SUCCESS;
+}
+
+
+int m3dc1_pi_field::eval(const double* x, double* v)
+{
+  const m3dc1_field::m3dc1_get_op get = (m3dc1_field::m3dc1_get_op)
+    (m3dc1_field::GET_VAL);
+
+  double val;
+  int result;
+
+  result = p->eval(x, v);
+  if(result != FIO_SUCCESS) return result;
+
+  result = pe->eval(x, &val);
+  if(result != FIO_SUCCESS) return result;
+  
+  *v = *v - val;
+
+  return FIO_SUCCESS;
+}
+
+m3dc1_pi_field::~m3dc1_pi_field()
+{
+  if(p) delete(p);
+  if(pe) delete(pe);
+}
+
 
 int m3dc1_phi_field::load(const fio_option_list* opt)
 {
@@ -111,6 +152,86 @@ int m3dc1_electric_field::eval(const double* x, double* v)
   v[1] = 0.;
   v[2] = 0.;
 
+  return FIO_SUCCESS;
+}
+
+int m3dc1_fluid_velocity::load(const fio_option_list* opt)
+{
+  m3dc1_fio_field::load(opt);
+
+  phi1 = source->file.load_field("phi", time);
+  if(!phi1) return 1;
+  w1 = source->file.load_field("V", time);
+  if(!w1) return 1;
+  chi1 = source->file.load_field("chi", time);
+  if(!chi1) return 1;
+
+  if(eqsub) {
+    phi0 = source->file.load_field("phi", -1);
+    if(!phi0) return 1;
+    w0 = source->file.load_field("V", -1);
+    if(!w0) return 1;
+    chi0 = source->file.load_field("chi", -1);
+    if(!chi0) return 1;
+  }
+
+  return FIO_SUCCESS;
+}
+
+
+int m3dc1_fluid_velocity::eval(const double* x, double* v)
+{
+  const m3dc1_field::m3dc1_get_op phiget = (m3dc1_field::m3dc1_get_op)
+    (m3dc1_field::GET_DVAL);
+
+  const m3dc1_field::m3dc1_get_op vget =
+    (m3dc1_field::m3dc1_get_op)
+    (m3dc1_field::GET_VAL);
+
+  const m3dc1_field::m3dc1_get_op chiget =
+    (m3dc1_field::m3dc1_get_op)
+    (m3dc1_field::GET_DVAL);
+
+  double val[m3dc1_field::OP_NUM];
+
+  // V_R   = -(dphi/dZ)*R + dchi/dR 
+  // V_Z   =  (dphi/dR)*R + dchi/dZ
+  // V_Phi =  V*R
+
+  if(!phi1->eval(x[0], x[1], x[2], phiget, val))
+    return FIO_OUT_OF_BOUNDS;
+  v[0] = -linfac*val[m3dc1_field::OP_DZ]*x[0];
+  v[2] =  linfac*val[m3dc1_field::OP_DR]*x[0];
+
+  if(!w1->eval(x[0], x[1], x[2], vget, val))
+    return FIO_OUT_OF_BOUNDS;
+  v[1] =  linfac*val[m3dc1_field::OP_1]*x[0];
+
+  if(!chi1->eval(x[0], x[1], x[2], chiget, val))
+    return FIO_OUT_OF_BOUNDS;
+  v[0] += linfac*val[m3dc1_field::OP_DR]/(x[0]*x[0]);
+  v[2] += linfac*val[m3dc1_field::OP_DZ]/(x[0]*x[0]);
+
+  if(eqsub) {
+    if(!phi0->eval(x[0], x[1], x[2], phiget, val))
+      return FIO_OUT_OF_BOUNDS;
+    v[0] = -val[m3dc1_field::OP_DZ]*x[0];
+    v[2] =  val[m3dc1_field::OP_DR]*x[0];
+    
+    if(!w0->eval(x[0], x[1], x[2], vget, val))
+      return FIO_OUT_OF_BOUNDS;
+    v[1] =  val[m3dc1_field::OP_1]*x[0];
+
+    if(!chi0->eval(x[0], x[1], x[2], chiget, val))
+      return FIO_OUT_OF_BOUNDS;
+    v[0] += val[m3dc1_field::OP_DR]/(x[0]*x[0]);
+    v[2] += val[m3dc1_field::OP_DZ]/(x[0]*x[0]);
+  }
+
+  v[0] *= source->v0;
+  v[1] *= source->v0;
+  v[2] *= source->v0;
+  
   return FIO_SUCCESS;
 }
 

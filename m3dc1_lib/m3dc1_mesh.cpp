@@ -22,6 +22,7 @@ m3dc1_mesh::m3dc1_mesh(int n)
 
 m3dc1_mesh::~m3dc1_mesh()
 {
+  /*
   int evals = hits+misses;
   std::cerr << "hits = " << hits
 	    << " (" << 100.*(double)hits/(double)evals << "%)\n"
@@ -29,7 +30,7 @@ m3dc1_mesh::~m3dc1_mesh()
 	    << " (" << 100.*(double)misses/(double)evals << "%)\n"
 	    << "hits+misses = " << evals
 	    << std::endl;
-
+  */
   delete[] a;
   delete[] b;
   delete[] c;
