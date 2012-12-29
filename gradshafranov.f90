@@ -397,9 +397,11 @@ subroutine define_profiles
      ! Read from iterdb text file (keV vs Psi)
      nvals = idb_nj
      allocate(xvals(nvals), yvals(nvals))
-     xvals = idb_profile_data(:,1)
+!!$     xvals = idb_profile_data(:,1)
+     xvals = idb_psi
      xvals = (xvals(:) - xvals(1)) / (xvals(nvals) - xvals(1))
-     yvals = idb_profile_data(:,6)
+!!$     yvals = idb_profile_data(:,6)
+     yvals = idb_Te
      yvals = yvals * 1.6022e-9 / (b0_norm**2/(4.*pi*n0_norm))
 
   case default
@@ -480,9 +482,11 @@ subroutine define_profiles
         ! Read from iterdb text file (m^-3 vs Psi)
         nvals = idb_nj
         allocate(xvals(nvals), yvals(nvals))
-        xvals = idb_profile_data(:,1)
+!!$        xvals = idb_profile_data(:,1)
+        xvals = idb_psi
         xvals = (xvals(:) - xvals(1)) / (xvals(nvals) - xvals(1))
-        yvals = idb_profile_data(:,9)
+!!$        yvals = idb_profile_data(:,9)
+        yvals = idb_ne
         yvals = yvals / 1e6 / n0_norm / zeff
         
      case default
@@ -560,9 +564,11 @@ subroutine define_profiles
         ! Read from iterdb text file (rad/s vs Psi)
         nvals = idb_nj
         allocate(xvals(nvals), yvals(nvals))
-        xvals = idb_profile_data(:,1)
+!!$        xvals = idb_profile_data(:,1)
+        xvals = idb_psi
         xvals = (xvals(:) - xvals(1)) / (xvals(nvals) - xvals(1))
-        yvals = idb_profile_data(:,32)
+!!$        yvals = idb_profile_data(:,32)
+        yvals = idb_omega
         yvals = yvals / &
              (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm)
 
