@@ -1820,7 +1820,6 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e)
   case(2,3,4)  ! ion form
 !
 
-  if(itwofluid.eq.4) return
   !  velocity time derivatives
   !  ~~~~~~~~~~~~~~~~~~~~~~~~
   if(dbf.ne.0.) then
@@ -1835,7 +1834,6 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e)
      endif
  
   endif
-  if(itwofluid.eq.3) return
 
   ! -Grad(p_i)
   ! ~~~~~~~~~
@@ -1854,6 +1852,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e)
      endif
   end if  
 
+  if(itwofluid.eq.4) return
   ! Convective derivative terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(dbf.ne.0) then
@@ -1875,6 +1874,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e)
         ddterm(chi_g) = ddterm(chi_g) + (1.-thimpf*bdf)*dt*temp
      endif
   endif
+  if(itwofluid.eq.3) return
 
 ! Viscosity terms
 ! ~~~~~~~~~~~~~~~
@@ -2244,7 +2244,6 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
   case(2,3,4)  ! ion form
 
 !
-  if(itwofluid.eq.4) return
 
   !  velocity time derivatives
   !  ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2260,7 +2259,6 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
      endif
  
   endif
-  if(itwofluid.eq.3) return
 
   ! -Grad(pi)
   ! ~~~~~~~~
@@ -2277,6 +2275,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
      end if
   endif
 
+  if(itwofluid.eq.4) return
   ! convective derivative terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(dbf.ne.0) then
@@ -2294,6 +2293,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
 
      endif
   endif
+  if(itwofluid.eq.3) return
 
   ! Viscosity terms
   ! ~~~~~~~~~~~~~~~
@@ -4082,7 +4082,7 @@ subroutine ludefphi_n(itri)
      else if(ieq(k).eq.bf_i) then
         call get_bf_mask(itri, imask)
      else
-        print *, 'error'
+        print *, 'error in ludefphi_n', k, ieq(k)
         call safestop(31)
         imask = 1
      end if
