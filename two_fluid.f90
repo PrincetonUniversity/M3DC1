@@ -817,9 +817,6 @@ vectype function b1vmun(e,f,g,h)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
      temp = 0.
-!DEBUG
-  b1vmun = temp
-  return
 
      if(surface_int) then 
         temp = 0.
@@ -889,9 +886,6 @@ vectype function b2phimun(e,f,g,h)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
      temp = 0.
-!DEBUG
-  b2phimun = temp
-  return
 
      if(surface_int) then 
         temp = 0.

@@ -42,7 +42,8 @@ contains
     vecsize_vel = numvar
     vecsize_n = 1
     vecsize_p = 1
-    if(ipressplit.eq.1 .and. numvar.eq.3 .and. linear.eq.0 .and. eqsubtract.eq.0) then
+!   if(ipressplit.eq.1 .and. numvar.eq.3 .and. linear.eq.0 .and. eqsubtract.eq.0) then
+    if(ipressplit.eq.1 .and. numvar.eq.3) then
        !split pressure solve from field solve
        if(ipres.eq.0 .and. itemp.eq.0) then  
           imode = 1
@@ -812,6 +813,7 @@ subroutine step_split(calc_matrices)
      
      ! r9matrix_sm * vel(n+1)
      call matvecmult(r9_mat,vel_vec,temp)
+     call mult(temp, -1.)     ! added 1/1/2013   SCJ
             
      ! q9matrix_sm * vel(n)
      call matvecmult(q9_mat,veln_vec,temp2)
@@ -894,6 +896,7 @@ subroutine step_split(calc_matrices)
      
      ! r9matrix_sm * vel(n+1)
      call matvecmult(r9_mat,vel_vec,temp)
+     call mult(temp, -1.)    ! added 1/1/2013   SCJ
             
      ! q9matrix_sm * vel(n)
      call matvecmult(q9_mat,veln_vec,temp2)
@@ -973,9 +976,9 @@ subroutine step_split(calc_matrices)
 
      ! r2matrix_sm * vel(n+1)
      call matvecmult(r2_mat,vel_vec,b1_phi)
+     call mult(b1_phi, -1.)
 
      ! q2matrix_sm * vel(n)
-     call mult(b1_phi, -1.)
      call matvecmult(q2_mat,veln_vec,b2_phi)
      call add(b1_phi, b2_phi)
 
@@ -1086,9 +1089,9 @@ subroutine step_split(calc_matrices)
 
         ! r2matrix_sm * vel(n+1)
         call matvecmult(r2_mat,vel_vec,b1_phi)
+        call mult(b1_phi, -1.)
    
         ! q2matrix_sm * vel(n)
-        call mult(b1_phi, -1.)
         call matvecmult(q2_mat,veln_vec,b2_phi)
         call add(b1_phi, b2_phi)
 
