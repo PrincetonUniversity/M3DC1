@@ -2052,12 +2052,14 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange,_EXTRA=extra)
 
+       forward_function find_lcfs
        psilim = find_lcfs(psi, x, y,axis=axis, xpoint=xpoint, flux0=flux0, $
                           _EXTRA=extra, filename=filename)
 
        rr = radius_matrix(x,y,t)
        zz = z_matrix(x,y,t)
 
+       forward_function flux_coord_field
        rrfc = flux_coord_field(rr, psi, x, y, t, slice=time, $
                                  flux=flux, angle=angle, /pest, $
                                  filename=filename, points=pts, $
