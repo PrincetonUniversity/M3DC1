@@ -34,11 +34,11 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    a_r = flux_coord_field(real_part(field)*jac,psi0,x,z,t, $
                           flux=flux,angle=angle,qval=q, $
                           area=area,nflux=nflux,tbins=bins,fbins=bins, $
-                          /pest, i0=i0, _EXTRA=extra)
+                          /pest,i0=i0, _EXTRA=extra)
    a_i = flux_coord_field(imaginary(field)*jac,psi0,x,z,t, $
                           flux=flux,angle=angle, qval=q, $
                           area=area,nflux=nflux,tbins=bins,fbins=bins, $
-                          /pest, i0=i0, _EXTRA=extra)
+                          /pest,i0=i0, _EXTRA=extra)
 ;   plot, nflux, q, xrange=[0.94, 0.96], yrange=[11./3., 4.], /ystyle
 ;   return
 
@@ -572,19 +572,19 @@ pro plot_lambda, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    rf = flux_coord_field(rr,psi0,x,z,t, $
                          flux=flux,angle=angle,qval=q, $
                          area=area,nflux=nflux,tbins=bins,fbins=bins, $
-                         /pest, i0=i0, _EXTRA=extra)
+                         /pest,i0=i0, _EXTRA=extra)
    zf = flux_coord_field(zz,psi0,x,z,t, $
                          flux=flux,angle=angle,qval=q, $
                          area=area,nflux=nflux,tbins=bins,fbins=bins, $
-                         /pest, i0=i0, _EXTRA=extra) 
+                         /pest,i0=i0, _EXTRA=extra) 
    i0f = flux_coord_field(i0,psi0,x,z,t, $
                          flux=flux,angle=angle,qval=q, $
                          area=area,nflux=nflux,tbins=bins,fbins=bins, $
-                         /pest, i0=i0, _EXTRA=extra) 
+                         /pest,i0=i0, _EXTRA=extra) 
    dpsi = flux_coord_field(sqrt(s_bracket(psi0,psi0,x,z)),psi0,x,z,t, $
                          flux=flux,angle=angle,qval=q, $
                          area=area,nflux=nflux,tbins=bins,fbins=bins, $
-                         /pest, i0=i0, _EXTRA=extra) 
+                         /pest,i0=i0, _EXTRA=extra) 
 
    rf = reform(rf)
    zf = reform(zf)

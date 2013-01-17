@@ -6040,7 +6040,7 @@ vectype function b1bfd2(e,f,g,h)
         temp = temp + rfac* &
              (int5(ri4_79,e(:,OP_DZ),g(:,OP_DZPP),f(:,OP_1),h(:,OP_1))  &
              +int5(ri4_79,e(:,OP_DR),g(:,OP_DRPP),f(:,OP_1),h(:,OP_1)))
-#elseif defined(USE3D)
+#elif defined(USE3D)
         ! here, we can integrate by parts
         temp = temp - &
              (int5(ri4_79,e(:,OP_DZP),g(:,OP_DZPP),f(:,OP_1),h(:,OP_1))  &

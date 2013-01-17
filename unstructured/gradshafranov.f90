@@ -564,10 +564,8 @@ subroutine define_profiles
         ! Read from iterdb text file (rad/s vs Psi)
         nvals = idb_nj
         allocate(xvals(nvals), yvals(nvals))
-!!$        xvals = idb_profile_data(:,1)
         xvals = idb_psi
         xvals = (xvals(:) - xvals(1)) / (xvals(nvals) - xvals(1))
-!!$        yvals = idb_profile_data(:,32)
         yvals = idb_omega
         yvals = yvals / &
              (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm)
@@ -1623,8 +1621,14 @@ subroutine fundef2(error)
      do i=1, npoints
         
         pso = (ps079(i,OP_1)-psimin)*dpsii
-        if(magnetic_region(ps079(i,:),x_79(i),z_79(i)).ne.0) pso = 1.
-
+!        if(magnetic_region(ps079(i,:),x_79(i),z_79(i)).ne.0) pso = 1.
+        if(magnetic_region(ps079(i,:),x_79(i),z_79(i)).ne.0) then
+           temp79a(i) = 0.
+           temp79b(i) = 0.
+           temp79c(i) = 0.
+           temp79d(i) = 0.
+           temp79e(i) = 0.
+        else
         call evaluate_spline(pprime_spline,pso,temp(1))
         call evaluate_spline(ffprime_spline,pso,temp(2))
         if(irot.eq.1) then
@@ -1639,6 +1643,7 @@ subroutine fundef2(error)
         temp79c(i) = temp(3)
         temp79d(i) = temp(4)
         temp79e(i) = temp(5)
+        endif
      end do
      
      ! convert from normalized to real flux
