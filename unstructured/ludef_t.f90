@@ -4082,7 +4082,7 @@ subroutine ludefphi_n(itri)
      else if(ieq(k).eq.bf_i) then
         call get_bf_mask(itri, imask)
      else
-        print *, 'error in ludefphi_n', k, ieq(k)
+        if(myrank.eq.0) print *, 'error in ludefphi_n', k, ieq(k)
         call safestop(31)
         imask = 1
      end if

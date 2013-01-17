@@ -5540,7 +5540,9 @@ vectype function b1psieta(e,f,g,h)
 #if defined(USE3D) || defined(USECOMPLEX)
         temp = temp - &
              (int4(ri4_79,e(:,OP_DZ),f(:,OP_DZPP),g(:,OP_1)) &
-             +int4(ri4_79,e(:,OP_DR),f(:,OP_DRPP),g(:,OP_1)))
+             +int4(ri4_79,e(:,OP_DR),f(:,OP_DRPP),g(:,OP_1)) &
+             +int4(ri4_79,e(:,OP_DZ),f(:,OP_DZP),g(:,OP_DP)) &
+             +int4(ri4_79,e(:,OP_DR),f(:,OP_DRP),g(:,OP_DP)))
 #endif
      end if
   endif
@@ -5574,8 +5576,10 @@ vectype function b1beta(e,f,g,h)
                 - int5(ri3_79,e(:,OP_1),g(:,OP_1),norm79(:,1),f(:,OP_DZP))
         endif
      else
-        temp = int4(ri3_79,e(:,OP_DR),f(:,OP_DZP),g(:,OP_1)) &
-             - int4(ri3_79,e(:,OP_DZ),f(:,OP_DRP),g(:,OP_1))
+        temp = int4(ri3_79,e(:,OP_DR),f(:,OP_DZP),g(:,OP_1 )) &
+             - int4(ri3_79,e(:,OP_DZ),f(:,OP_DRP),g(:,OP_1 )) &
+             + int4(ri3_79,e(:,OP_DR),f(:,OP_DZ ),g(:,OP_DP)) &
+             - int4(ri3_79,e(:,OP_DZ),f(:,OP_DR ),g(:,OP_DP))
 
         if(ihypeta.eq.0) then
            temp = temp - 2.*int4(ri2_79,e(:,OP_1),f(:,OP_DZP),h(:,OP_1))
@@ -6026,16 +6030,21 @@ vectype function b1bfd2(e,f,g,h)
              - int5(ri4_79,temp79c,f(:,OP_1 ),norm79(:,2),g(:,OP_DZPP))
 
      else
+#ifdef USECOMPLEX
         temp = int5(ri4_79,e(:,OP_DZ),g(:,OP_DZPP),f(:,OP_DP),h(:,OP_1 ))  &
              + int5(ri4_79,e(:,OP_DR),g(:,OP_DRPP),f(:,OP_DP),h(:,OP_1 ))  &
              + int5(ri4_79,e(:,OP_DZ),g(:,OP_DZPP),f(:,OP_1 ),h(:,OP_DP))  &
              + int5(ri4_79,e(:,OP_DR),g(:,OP_DRPP),f(:,OP_1 ),h(:,OP_DP))
 
-#ifdef USECOMPLEX
         ! f''' term hack
         temp = temp + rfac* &
              (int5(ri4_79,e(:,OP_DZ),g(:,OP_DZPP),f(:,OP_1),h(:,OP_1))  &
              +int5(ri4_79,e(:,OP_DR),g(:,OP_DRPP),f(:,OP_1),h(:,OP_1)))
+#elseif defined(USE3D)
+        ! here, we can integrate by parts
+        temp = temp - &
+             (int5(ri4_79,e(:,OP_DZP),g(:,OP_DZPP),f(:,OP_1),h(:,OP_1))  &
+             +int5(ri4_79,e(:,OP_DRP),g(:,OP_DRPP),f(:,OP_1),h(:,OP_1)))
 #endif
      endif
   endif

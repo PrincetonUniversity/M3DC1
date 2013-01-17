@@ -7,6 +7,8 @@ module read_schaffer_field
   real, private, allocatable :: r(:), phi(:), z(:)
   complex, private, allocatable :: br_ft(:,:), bphi_ft(:,:), bz_ft(:,:)
 
+  logical, private :: initialized = .false.
+
 contains
 
   subroutine load_schaffer_field(filename, isamp, ierr)
@@ -27,13 +29,14 @@ contains
     real :: phi0, r0, z0
     integer, parameter :: catch = 100
     character(len=20) :: dummy
-    
+
 
     call MPI_Comm_rank(MPI_COMM_WORLD, rank, ier)
 
     ! First, let rank zero parse the file to determine the size of the data
     ierr = 0
     if(rank.eq.0) then 
+       print *, 'Reading ASCII probe_g file ', filename
        open(ifile, file=filename, status='old', action='read', err=200)
        do i=1, catch
           read(ifile, '(A)', err=200, end=200) dummy
@@ -55,7 +58,7 @@ contains
        print *, 'phi0, r0, z0: ', phi0, r0, z0
        do
           ! read line
-          read(ifile,'(3F20.11)',end=100) phi1, r1, z1 
+          read(ifile,'(3F20.11)',err=100,end=100) phi1, r1, z1 
           
           ! skip empty lines
           if(phi1.eq.0. .and. r1.eq.0. .and. z1.eq.0.) cycle
@@ -103,8 +106,13 @@ contains
     call MPI_Bcast(nphi,1,MPI_INTEGER,0,MPI_COMM_WORLD,ier)
 
     ! Allocate space for data
-    allocate(br(nphi,nr,nz),bphi(nphi,nr,nz),bz(nphi,nr,nz))
-    allocate(r(nr),phi(nphi),z(nz))
+    if(.not. initialized) then
+       allocate(r(nr),phi(nphi),z(nz))
+       allocate(br(nphi,nr,nz),bphi(nphi,nr,nz),bz(nphi,nr,nz))
+       br = 0.
+       bphi = 0.
+       bz = 0.
+    endif
 
     ! Now read in the data
     if(rank.eq.0) then
@@ -127,7 +135,8 @@ contains
           do j=1, nz
              do i=1, nr
                 ! read line
-999             read(ifile,'(6F20.11)',end=1000) phi1, r1, z1, bphi1, br1, bz1
+999             read(ifile,'(6F20.11)',err=1000,end=1000) &
+                     phi1, r1, z1, bphi1, br1, bz1
 
                 ! skip empty lines
                 if(phi1.eq.0. .and. r1.eq.0. .and. z1.eq.0.) goto 999
@@ -136,9 +145,9 @@ contains
                    l = (k-1)/isamp + 1
 
                    ! put data in arrays
-                   br(l,i,j) = br1
-                   bphi(l,i,j) = bphi1
-                   bz(l,i,j) = bz1
+                   br(l,i,j) = br(l,i,j) + br1
+                   bphi(l,i,j) = bphi(l,i,j) + bphi1
+                   bz(l,i,j) = bz(l,i,j) + bz1
                    r(i) = r1
                 end if
              end do
@@ -174,6 +183,7 @@ contains
     call MPI_Bcast(bz,   nr*nz*nphi, MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
     call MPI_Bcast(bphi, nr*nz*nphi, MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
 
+    initialized = .true.
     if(rank.eq.0) print *, 'Done reading fields.'
   end subroutine load_schaffer_field
 
@@ -186,6 +196,8 @@ contains
     if(allocated(br_ft)) deallocate(br_ft)
     if(allocated(bz_ft)) deallocate(bz_ft)
     if(allocated(bphi_ft)) deallocate(bphi_ft)
+
+    initialized = .false.
   end subroutine unload_schaffer_field
 
 
