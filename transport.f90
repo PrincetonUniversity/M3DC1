@@ -1,4 +1,4 @@
- module transport_coefficients
+module transport_coefficients
   use spline
 
   type(spline1d), private :: kappa_spline

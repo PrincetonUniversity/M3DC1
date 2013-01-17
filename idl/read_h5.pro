@@ -171,6 +171,22 @@ function z_matrix, x, z, t
     return, zz
 end
 
+function clamp_and_shift, vec, shift=n
+  ; clamp
+  new = vec
+  n = 0
+  for i=0, n_elements(vec)-1 do begin
+      if(new[i] lt -!pi) then new[i] = new[i] + 2.*!pi
+      if(new[i] ge !pi) then new[i] = new[i] - 2.*!pi
+      if(i gt 0) then begin
+          if(abs(last - new[i]) gt !pi) then n = i
+      endif
+      last = new[i]
+  end
+  new = shift(new, -n)
+  return, new
+end
+
 ;==================================================================
 ; Functions for reading the C1 hdf5 output
 ;==================================================================
@@ -2026,6 +2042,45 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        data = atan(zz-z0,xx-x0)
 
        symbol = '!7h!X'
+
+   ;===========================================
+   ; pest angle
+   ;===========================================
+   endif else if(strcmp('pest angle', name, /fold_case) eq 1) then begin
+
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange,_EXTRA=extra)
+
+       psilim = find_lcfs(psi, x, y,axis=axis, xpoint=xpoint, flux0=flux0, $
+                          _EXTRA=extra, filename=filename)
+
+       rr = radius_matrix(x,y,t)
+       zz = z_matrix(x,y,t)
+
+       rrfc = flux_coord_field(rr, psi, x, y, t, slice=time, $
+                                 flux=flux, angle=angle, /pest, $
+                                 filename=filename, points=pts, $
+                                 _EXTRA=extra)
+       zzfc = flux_coord_field(zz, psi, x, y, t, slice=time, $
+                                 flux=flux, angle=angle, /pest, $
+                                 filename=filename, points=pts, $
+                                 _EXTRA=extra)
+
+       psinorm = (psi - flux0) / (psilim - flux0)
+       data = psi*0.
+       for i=0, n_elements(data)-1 do begin
+           if(psinorm[i] gt 1.) then continue
+
+           dist = (rrfc-rr[i])^2 + (zzfc-zz[i])^2
+           dum = min(dist, j)
+           n_guess = j/n_elements(angle)
+           m_guess = j - n_guess*n_elements(angle)
+           data[i] = angle(n_guess)
+       end
+
+       symbol = '!7h!D!6PEST!N!X'
+       d = dimensions()
 
    ;===========================================
    ; Field strength
@@ -5608,7 +5663,7 @@ end
 ;==================================================================
 function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
                            fbins=fbins,  tbins=tbins, flux=flux, angle=angle, $
-                           psirange=frange, nflux=nflux, pest=pest,qval=q, $
+                           psirange=frange, nflux=nflux, qval=q, pest=pest, $
                            dV=dV, volume=volume, _EXTRA=extra, qflux=qflux
 
    if(n_elements(psi) eq 0) then begin
@@ -5665,6 +5720,9 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
 
    print, 'binning with fbins, tbins=', fbins, tbins
    printed = 0
+   left_handed = (flux0-psival)*mean(i0) lt 0 
+   print, 'left_handed = ', left_handed
+
 
    q = fltarr(sz[1], fbins)
 
@@ -5695,7 +5753,7 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
                ; determine position where angle changes sign
                dum = min(a, i, /abs)
                da = deriv(a)
-               index = i - a(i)/da(i)
+               index = i - a[i]/da[i]
 
                ; calculate dt
                dt = ds*g
@@ -5711,16 +5769,21 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
                pest_angle = pest_angle - interpolate(pest_angle,index)
 
                ; rescale pest_angle
-               q[k,p] = (pest_angle[n_elements(pest_angle)-1]-pest_angle[0]) $
+               q[k,p] = (max(pest_angle)-min(pest_angle)) $
                  /(2.*!pi)
+               if(left_handed) then q[k,p] = -q[k,p]
                pest_angle = pest_angle/abs(q[k,p])
 ;               qval = interpol(q, qflux, flux[k,p])
 ;               pest_angle = pest_angle/qval
+               ; constrain pest angle to +/- pi
+               pest_angle = clamp_and_shift(pest_angle, shift=count)
+               f = shift(f,-count)
 
                result[k,p,*] = interpol(f,pest_angle,angle[k,*])
+
            endif else begin
                result[k,p,*] = interpol(f,a,angle[k,*])
-           endelse
+           endelse 
        end
 
        if(dpsi gt 0) then begin
