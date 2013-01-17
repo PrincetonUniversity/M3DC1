@@ -291,7 +291,6 @@ vectype function resistivity_func(i)
         temp79a = 0.
      end if
 
-
   case(1)      ! added 08/05/08 for stability benchmarking
      if(linear.eq.1) then
        temp79a = eta0*.5* &
@@ -407,11 +406,13 @@ vectype function kappa_func(i)
   implicit none
   
   integer, intent(in) :: i
-  integer :: nvals, j, ierr
+  integer :: nvals, j, ierr, iregion
   real :: val, valp, valpp, pso
   real, allocatable :: xvals(:), yvals(:)
-  integer :: magnetic_region
   vectype :: temp
+  integer :: magnetic_region
+  vectype, dimension(MAX_PTS,OP_NUM) :: psi
+
 
   if(numvar.lt.3) then
      kappa_func = 0.
@@ -445,14 +446,20 @@ vectype function kappa_func(i)
      endif
   case(2)
      if(linear.eq.1) then
-        temp79b = (ps079(:,OP_1)-psimin)/(psibound-psimin)
-        temp79a = kappa0*.5* &
-             (1. + tanh((real(temp79b) - kappaoff)/kappadelt))
+        psi = ps079
      else
-        temp79b = (pst79(:,OP_1)-psimin)/(psibound-psimin)
-        temp79a = kappa0*.5* &
-             (1. + tanh((real(temp79b) - kappaoff)/kappadelt))
-     endif
+        psi = pst79
+     end if
+     temp79b = (psi(:,OP_1)-psimin)/(psibound - psimin)
+     
+     do j=1, npoints
+        iregion = magnetic_region(psi(j,:), x_79(j), z_79(j))
+        if(iregion.eq.2) temp79b(j) = 2. - temp79b(j)
+     end do
+
+     temp79a = kappa0*.5* &
+          (1. + tanh((real(temp79b) - kappaoff)/kappadelt))
+
      !
      !.....added 11/26/2011     scj
   case(3)

@@ -1143,13 +1143,13 @@ subroutine output_keharmonics(time_group_id, equilibrium, error)
 
   ! keharmonic
   do i = 0, NMAX
-  dum(i+1) = keharmonic(i)
+     dum(i+1) = keharmonic(i)
   enddo
   call output_1darr(group_id, "keharmonic", dum, NMAX+1, ntime, error)
   nfields = nfields + 1
 
-      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after keharmonic in output_keharmonics'
-
+  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after keharmonic in output_keharmonics'
+  
   ! Close the keharmonics group
   call h5gclose_f(group_id, error)
 
@@ -1185,13 +1185,14 @@ subroutine hdf5_write_keharmonics(error)
   endif
 
   ! keharmonic
-      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'before output_1dextendarr'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'before output_1dextendarr'
   do i = 0, NMAX
-  dum(i+1) = keharmonic(i)
+     dum(i+1) = keharmonic(i)
   enddo
+  
   call output_1dextendarr(keharmonics_group_id, "keharmonics" , dum, NMAX+1, ntime, error)
-      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after output_1dextendarr', error
-
+  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after output_1dextendarr', error
+  
   call h5gclose_f(keharmonics_group_id, error)
   call h5gclose_f(root_id, error)
 

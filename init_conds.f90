@@ -527,6 +527,7 @@ subroutine rmp_per
   logical :: is_boundary
   integer :: izone, izonedim, numnodes, l, ierr
   real :: normal(2), curv, x, z, r2, dx, dz
+  character(len=13) :: ext_field_name
 #ifdef USECOMPLEX
   vectype :: ii
 #endif
@@ -576,9 +577,16 @@ subroutine rmp_per
   endif
 
   ! load external field data from schaffer file
-  if(iread_ext_field.eq.1) then
-     call load_schaffer_field('error_field', isample_ext_field, ierr)
-     if(ierr.ne.0) call safestop(6)
+  if(iread_ext_field.ge.1) then
+     do l=1, iread_ext_field
+        if(iread_ext_field.eq.1) then
+           ext_field_name = 'error_field'
+        else
+           write(ext_field_name, '("error_field",I2.2)') l
+        end if
+        call load_schaffer_field(ext_field_name, isample_ext_field, ierr)
+        if(ierr.ne.0) call safestop(6)
+     end do
 #ifdef USECOMPLEX
      call calculate_external_field_ft(ntor)
 #endif
@@ -588,7 +596,7 @@ subroutine rmp_per
   call calculate_external_fields
 
   ! unload data
-  if(iread_ext_field.eq.1) call unload_schaffer_field
+  if(iread_ext_field.ge.1) call unload_schaffer_field
 
   ! leave perturbation only on the boundary
   if(irmp.eq.2) then

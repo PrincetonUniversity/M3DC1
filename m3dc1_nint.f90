@@ -763,9 +763,14 @@ contains
         elsewhere
            eta79(:,OP_1) = eta0
         end where
+!     else if(iresfunc.eq.0 .or. iresfunc.eq.4) then
      else if(iresfunc.eq.4) then
         eta79 = 0.
         temp79b = pet79(:,OP_1)/net79(:,OP_1)
+#ifdef USE3D
+        temp79c = pet79(:,OP_DP)/net79(:,OP_1) - &
+             pet79(:,OP_1)*net79(:,OP_DP)/net79(:,OP_1)**2
+#endif
         where(real(temp79b).gt.0.) 
            temp79a = sqrt(temp79b)
            eta79(:,OP_1 ) = 1. / temp79a**3
@@ -803,11 +808,18 @@ contains
                 -2.*pet79(:,OP_DZ)*net79(:,OP_DZ)/net79(:,OP_1)**2 &
                 -pet79(:,OP_1)*net79(:,OP_DZZ)/net79(:,OP_1)**2 &
                 +2.*pet79(:,OP_1)*net79(:,OP_DZ)**2/net79(:,OP_1)**3)
+#ifdef USE3D
+           eta79(:,OP_DP) = -(3./2.)*temp79c / temp79a**5
+#endif
         end where
 
-        eta79 = eta79 * &
-             3.4e-22*n0_norm**2/(b0_norm**4*l0_norm) &
-             *zeff*lambda_coulomb*sqrt(ion_mass)
+!!$        if(iresfunc.eq.0) then 
+!!$           eta79 = eta0*eta79
+!!$        else if(iresfunc.eq.4) then
+           eta79 = eta79 * &
+                3.4e-22*n0_norm**2/(b0_norm**4*l0_norm) &
+                *zeff*lambda_coulomb*sqrt(ion_mass)
+!!$        end if
      else
         call eval_ops(itri, resistivity_field, eta79)
      end if
