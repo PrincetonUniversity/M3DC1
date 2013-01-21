@@ -14,6 +14,9 @@ module scorec_matrix_mod
   integer, parameter :: MAT_SET = 0
   integer, parameter :: MAT_ADD = 1
 
+  integer, parameter :: maxnumofsolves = 4
+  real, allocatable:: kspits(:)
+
   interface clear_mat
      module procedure scorec_matrix_clear
   end interface
@@ -78,6 +81,10 @@ module scorec_matrix_mod
 
   interface write_matrix
      module procedure scorec_matrix_write
+  end interface
+
+  interface allocate_kspits
+     module procedure scorec_allocate_kspits
   end interface
 
 contains
@@ -321,6 +328,7 @@ contains
     type(scorec_matrix), intent(in) :: mat
     type(vector_type), intent(inout) :: v
     integer, intent(out) :: ierr
+    integer :: num_iter
 
 #ifdef PetscDEV
     PetscBool :: flg_petsc, flg_solve2, flg_pdslin
@@ -350,6 +358,18 @@ contains
 
     else  ! use scorec superlu or petsc (-ipetsc)
        call solve(mat%imatrix,v%data,ierr)
+
+#ifdef KSPITS
+       !2013-jan-17 only for hopper
+       call get_iter_num( num_iter )
+#else
+       !2013-jan-17 fake numbers on other systems
+       num_iter=mat%imatrix
+#endif
+       if(mat%imatrix== 5) kspits(1)=num_iter
+       if(mat%imatrix== 1) kspits(2)=num_iter
+       if(mat%imatrix==17) kspits(3)=num_iter
+       if(mat%imatrix== 6) kspits(4)=num_iter
     endif
   end subroutine scorec_matrix_solve
 
@@ -512,5 +532,9 @@ contains
     call writematrixtofile(mat%imatrix, mat%imatrix)
   end subroutine scorec_matrix_write
 
+  subroutine scorec_allocate_kspits
+    implicit none
+  if(.not.allocated(kspits)) allocate(kspits(1:maxnumofsolves))
+  end subroutine scorec_allocate_kspits
 
 end module scorec_matrix_mod
