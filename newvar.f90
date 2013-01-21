@@ -263,15 +263,14 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs)
 
            case(NV_SJ_MATRIX)
               if(is_lhs) then
-                 temp(i,j,1,1) =  int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
-                 temp(i,j,1,2) = -int2(mu79(:,OP_1,i),nu79(:,OP_GS,j))
-                 temp(i,j,2,1) = dt*hypf*thimpsm* &
-                      int2(mu79(:,OP_GS,i),nu79(:,OP_GS,j))
-                 temp(i,j,2,2) = -temp(i,j,1,2)
+                 temp(i,j,1,1) = int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
+                 temp(i,j,1,2) = -thimpsm*int2(mu79(:,OP_1,i),nu79(:,OP_GS,j))
+                 temp(i,j,2,1) = dt*hypf*int2(mu79(:,OP_1,i),nu79(:,OP_GS,j))
+                 temp(i,j,2,2) = temp(i,j,1,1)
               else
-                 temp(i,j,2,2) = int2(mu79(:,OP_1,i),nu79(:,OP_1,j)) &
-                      -dt*hypf*(1.-thimpsm)* &
-                      int2(mu79(:,OP_GS,i),nu79(:,OP_GS,j))
+                 temp(i,j,1,2) = (1.-thimpsm)*&
+                      int2(mu79(:,OP_1,i),nu79(:,OP_GS,j))
+                 temp(i,j,2,2) = int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
               end if
 
            case(NV_SV_MATRIX)

@@ -362,6 +362,8 @@ subroutine set_defaults
        "Factor multiplying F' (keeping F0 constant)", gs_grp)
   call add_var_int("iread_bscale", iread_bscale, 0, &
        "1: read profile_bscale for factor to scale F", gs_grp)
+  call add_var_int("iread_pscale", iread_pscale, 0, &
+       "1: read profile_pscale for factor to scale p and p'", gs_grp)
   call add_var_double("vscale", vscale, 1., &
        "Factor multiplying toroidal rotation profile", gs_grp)
 

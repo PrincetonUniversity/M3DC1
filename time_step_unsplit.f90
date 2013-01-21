@@ -364,12 +364,12 @@ subroutine step_unsplit(calc_matrices)
   endif
   if(myrank.eq.0 .and. iprint.ge.1) print *, "done solve."
   
+  ! new field solution at time n+1     
+  phi_vec = b1_phi
+
   ! apply smoothing operators
   call smooth_velocity(u_v, chi_v)
   call smooth_fields(psi_v)
-
-  ! new field solution at time n+1     
-  phi_vec = b1_phi
 
   ! populate temperature fields
   if(ipres.eq.1 .or. numvar.ge.3) then

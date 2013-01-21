@@ -309,13 +309,19 @@ Program Reducedquintic
      endif
 
      ! feedback control on toroidal current
-     if(myrank.eq.0 .and. iprint.ge.1) &
-          print *, " Applying feedback", &
-          vloop, totcur, i_control%p, i_control%target_val, i_control%err_p_old, i_control%err_i
-     call control(totcur, vloop,       i_control, dt)
-     if(myrank.eq.0 .and. iprint.ge.1) &
-          print *, " After    feedback", &
-          vloop, totcur, i_control%p, i_control%target_val, i_control%err_p_old, i_control%err_i
+     if(vloop.ne.0) then
+        if(myrank.eq.0 .and. iprint.ge.1) &
+             print *, " Applying feedback", &
+             vloop, totcur, i_control%p, &
+             i_control%target_val, i_control%err_p_old, i_control%err_i
+        call control(totcur, vloop,       i_control, dt)
+        if(myrank.eq.0 .and. iprint.ge.1) &
+             print *, " After    feedback", &
+             vloop, totcur, i_control%p, &
+             i_control%target_val, i_control%err_p_old, i_control%err_i
+     endif
+
+     ! feedback control on density source
      call control(totden, pellet_rate, n_control, dt)
 
      ! Write output
@@ -469,6 +475,7 @@ subroutine smooth_velocity(uin, chiin)
 
   if(hyperc.eq.0) return
 
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' smoothing velocity...'
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
   call create_vector(temp_vec,2)
@@ -520,22 +527,23 @@ subroutine smooth_fields(psiin)
   type(field_type), intent(inout) :: psiin
 
   type(vector_type) :: temp_vec
-  type(field_type) :: j_new
+  type(field_type) :: j_new, psi_new
   real :: tstart, tend
 
   if(jadv.eq.0 .or. hyper.eq.0.) return
 
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' smoothing fields...'
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
   ! smooth current density
-  call solve_newvar1(mass_mat_lhs_dc, jphi_field, gs_mat_rhs_dc, psiin)
-
   call create_vector(temp_vec,2)
-  call associate_field(j_new, temp_vec, 2)
+  call associate_field(j_new, temp_vec, 1)
+  call associate_field(psi_new, temp_vec, 2)
 
-  j_new = jphi_field
+  j_new = 0.
+  psi_new = psiin
   call solve_newvar_axby(s10_mat,temp_vec,d10_mat,temp_vec)
-  psiin = j_new
+  psiin = psi_new
 
   call destroy_vector(temp_vec)
 
