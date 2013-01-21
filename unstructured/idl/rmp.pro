@@ -28,9 +28,6 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        field = read_field(field,x,z,t,/complex,_EXTRA=extra)
    endif
 
-;   q = flux_average('q',flux=qflux,psi=psi0,x=x,z=z,t=t,bins=bins, $
-;                    i0=i0, _EXTRA=extra)
-
    a_r = flux_coord_field(real_part(field)*jac,psi0,x,z,t, $
                           flux=flux,angle=angle,qval=q, $
                           area=area,nflux=nflux,tbins=bins,fbins=bins, $
@@ -39,8 +36,6 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
                           flux=flux,angle=angle, qval=q, $
                           area=area,nflux=nflux,tbins=bins,fbins=bins, $
                           /pest,i0=i0, _EXTRA=extra)
-;   plot, nflux, q, xrange=[0.94, 0.96], yrange=[11./3., 4.], /ystyle
-;   return
 
    if(keyword_set(reverse_q)) then q = -q
 

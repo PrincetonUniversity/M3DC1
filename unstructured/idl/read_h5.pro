@@ -5744,6 +5744,8 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
            dz = deriv(zp)
            ds = sqrt(dx^2 + dz^2)
            area[k,p] = 2.*!pi*int_tabulated(findgen(n_elements(ds)),ds*xp)
+           if(min(x) eq max(x)) then print, 'X ERROR!'
+           if(min(z) eq max(z)) then print, 'Z ERROR!'
            ix = n_elements(x)*(xp - min(x))/(max(x) - min(x))
            iz = n_elements(z)*(zp - min(z))/(max(z) - min(z))
            h = interpolate(reform(bp[k,*,*]),ix,iz)
@@ -5756,6 +5758,7 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
                dum = min(a, i, /abs)
                da = deriv(a)
                index = i - a[i]/da[i]
+               if(da[i] eq 0) then print, 'DA ERROR!'
 
                ; calculate dt
                dt = ds*g
@@ -5781,7 +5784,26 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
                pest_angle = clamp_and_shift(pest_angle, shift=count)
                f = shift(f,-count)
 
+               if(abs(pest_angle[0]-pest_angle[1]) lt 0.01) then begin
+                   pest_angle = pest_angle[1:n_elements(pest_angle)-1]
+                   f = f[1:n_elements(f)-1]
+               endif
+               if(abs(pest_angle[n_elements(pest_angle)-2] - $
+                      pest_angle[n_elements(pest_angle)-1]) lt 0.01) then begin
+                   pest_angle = pest_angle[0:n_elements(pest_angle)-2]
+                   f = f[0:n_elements(f)-2]
+               end
+
                result[k,p,*] = interpol(f,pest_angle,angle[k,*])
+
+;                problems = where(result[k,p,*] eq 1./0., count)
+;                if(count gt 0) then begin
+;                    print, "result = ", reform(result[k,p,*])
+;                    print, "f = ", reform(f)
+;                    print, "pest_angle = ", reform(pest_angle)
+;                    stop
+;                end
+               
 
            endif else begin
                result[k,p,*] = interpol(f,a,angle[k,*])

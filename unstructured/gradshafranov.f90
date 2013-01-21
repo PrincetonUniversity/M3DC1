@@ -271,7 +271,7 @@ subroutine define_profiles
   real, allocatable :: xvals(:), yvals(:)
   real :: teold, pval, ppval, nval, te0, tep, np, dia
   integer :: nvals, i, ierr
-  type(spline1d) :: fpol_spline, bscale_spline
+  type(spline1d) :: fpol_spline, bscale_spline, pscale_spline
   real :: fval, fpval
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining profiles'
@@ -293,14 +293,38 @@ subroutine define_profiles
   end if
 
   ! ensure that derivatives in SOL are zero
-  pprime_spline%y(pprime_spline%n) = 0.
-  ffprime_spline%y(ffprime_spline%n) = 0.
+!  pprime_spline%y(pprime_spline%n) = 0.
+!  ffprime_spline%y(ffprime_spline%n) = 0.
 
   ! scale profiles
   p0_spline%y = p0_spline%y*pscale
+  pprime_spline%y = pprime_spline%y*pscale
   g0_spline%y = g0_spline%y*bscale**2
   ffprime_spline%y = ffprime_spline%y*bscale**2
   bzero = bzero*bscale
+
+  if(iread_pscale.eq.1) then
+     nvals = 0
+     call read_ascii_column('profile_pscale', xvals, nvals, icol=1)
+     call read_ascii_column('profile_pscale', yvals, nvals, icol=2)
+     if(nvals.eq.0) call safestop(5)
+
+     call create_spline(pscale_spline, nvals, xvals, yvals)
+     deallocate(xvals, yvals)
+
+     do i=1, pprime_spline%n
+        call evaluate_spline(pscale_spline, pprime_spline%x(i), fval, fpval)
+        call evaluate_spline(p0_spline, pprime_spline%x(i), pval)
+        pprime_spline%y(i) = pprime_spline%y(i)*fval + pval*fpval
+     end do
+     do i=1, p0_spline%n
+        call evaluate_spline(pscale_spline, p0_spline%x(i), fval)
+        p0_spline%y(i) = p0_spline%y(i)*fval
+     end do
+
+     call destroy_spline(pscale_spline)
+  end if
+
 
   if(bzero.gt.0) then 
      ffprime_spline%y(:) = ffprime_spline%y(:)* &
@@ -397,10 +421,8 @@ subroutine define_profiles
      ! Read from iterdb text file (keV vs Psi)
      nvals = idb_nj
      allocate(xvals(nvals), yvals(nvals))
-!!$     xvals = idb_profile_data(:,1)
      xvals = idb_psi
      xvals = (xvals(:) - xvals(1)) / (xvals(nvals) - xvals(1))
-!!$     yvals = idb_profile_data(:,6)
      yvals = idb_Te
      yvals = yvals * 1.6022e-9 / (b0_norm**2/(4.*pi*n0_norm))
 
@@ -482,10 +504,8 @@ subroutine define_profiles
         ! Read from iterdb text file (m^-3 vs Psi)
         nvals = idb_nj
         allocate(xvals(nvals), yvals(nvals))
-!!$        xvals = idb_profile_data(:,1)
         xvals = idb_psi
         xvals = (xvals(:) - xvals(1)) / (xvals(nvals) - xvals(1))
-!!$        yvals = idb_profile_data(:,9)
         yvals = idb_ne
         yvals = yvals / 1e6 / n0_norm / zeff
         
@@ -1629,20 +1649,20 @@ subroutine fundef2(error)
            temp79d(i) = 0.
            temp79e(i) = 0.
         else
-        call evaluate_spline(pprime_spline,pso,temp(1))
-        call evaluate_spline(ffprime_spline,pso,temp(2))
-        if(irot.eq.1) then
-           call evaluate_spline(alpha_spline, pso, temp(3), temp(4))
-           call evaluate_spline(p0_spline,pso,temp(5))
-        else
-           temp(3) = 0.
-           temp(4) = 0.
-        end if
-        temp79a(i) = temp(1)
-        temp79b(i) = temp(2)
-        temp79c(i) = temp(3)
-        temp79d(i) = temp(4)
-        temp79e(i) = temp(5)
+           call evaluate_spline(pprime_spline,pso,temp(1))
+           call evaluate_spline(ffprime_spline,pso,temp(2))
+           if(irot.eq.1) then
+              call evaluate_spline(alpha_spline, pso, temp(3), temp(4))
+              call evaluate_spline(p0_spline,pso,temp(5))
+           else
+              temp(3) = 0.
+              temp(4) = 0.
+           end if
+           temp79a(i) = temp(1)
+           temp79b(i) = temp(2)
+           temp79c(i) = temp(3)
+           temp79d(i) = temp(4)
+           temp79e(i) = temp(5)
         endif
      end do
      
