@@ -64,6 +64,7 @@ contains
     call hdf5_write_scalars(ier)
 #ifdef USE3D
     if(ike_harmonics .gt. 0) call hdf5_write_keharmonics(ier)
+    call hdf5_write_kspits(ier)
 #endif
     if(myrank.eq.0 .and. itimer.eq.1) then
       call second(tend)
@@ -1183,9 +1184,9 @@ subroutine hdf5_write_keharmonics(error)
   else
      call h5gopen_f(root_id, "keharmonics", keharmonics_group_id, error)
   endif
+  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'before output_1dextendarr'
 
   ! keharmonic
-  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'before output_1dextendarr'
   do i = 0, NMAX
      dum(i+1) = keharmonic(i)
   enddo
@@ -1199,6 +1200,49 @@ subroutine hdf5_write_keharmonics(error)
   deallocate(dum)
 
 end subroutine hdf5_write_keharmonics
+
+
+! hdf5_write_kspits
+! ==================
+subroutine hdf5_write_kspits(error)
+  use basic
+  use diagnostics
+  use hdf5_output
+  use matrix_mod, ONLY : maxnumofsolves, kspits
+
+  implicit none
+
+  integer :: i !, maxnumofsolves
+!  real, allocatable:: kspits(:)
+  integer, intent(out) :: error
+  integer(HID_T) :: root_id, kspits_group_id
+
+
+!  maxnumofsolves=3
+!  if(.not.allocated(kspits)) allocate(kspits(1:maxnumofsolves))
+!  do i=1,maxnumofsolves
+!  kspits(i)=i
+!  enddo
+
+  call h5gopen_f(file_id, "/", root_id, error)
+  if(ntime.eq.0) then
+     call h5gcreate_f(root_id, "kspits", kspits_group_id, error)
+  else
+     call h5gopen_f(root_id, "kspits", kspits_group_id, error)
+  endif
+  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'before output_1dextendarr'
+
+  ! ksp iteration number for solve #5(velocity) #17(pressure) #6(field) stored in array kspits(3)
+  ! kspits(1) : #5(velocity)
+  ! kspits(2) : #1(pressure)
+  ! kspits(3) : #17(pressure)
+  ! kspits(4) : #6(field)
+  call output_1dextendarr(kspits_group_id, "kspits" , kspits, maxnumofsolves, ntime, error)
+  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after output_1dextendarr', error
+
+  call h5gclose_f(kspits_group_id, error)
+  call h5gclose_f(root_id, error)
+end subroutine hdf5_write_kspits
 
 
 

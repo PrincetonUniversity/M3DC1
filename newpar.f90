@@ -1249,6 +1249,8 @@ subroutine space(ifirstcall)
   call associate_field(te_field(0),  field0_vec, te_g)
   call associate_field(ti_field(0),  field0_vec, ti_g)
 
+  call allocate_kspits
+
   if(myrank.eq.0 .and. iprint.ge.1) print *, " Exiting space."
 
   return
