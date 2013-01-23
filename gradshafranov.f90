@@ -613,6 +613,8 @@ subroutine define_profiles
         endif
 
         do i=1, omega_spline%n
+           if(omega_spline%x(i) .ge. 1.) cycle
+
            call evaluate_spline(pprime_spline, omega_spline%x(i), ppval)
            call evaluate_spline(n0_spline, omega_spline%x(i), nval, np)
            if(iread_omega_e.ne.0) then 
@@ -1664,6 +1666,7 @@ subroutine fundef2(error)
            temp79d(i) = temp(4)
            temp79e(i) = temp(5)
         endif
+
      end do
      
      ! convert from normalized to real flux
