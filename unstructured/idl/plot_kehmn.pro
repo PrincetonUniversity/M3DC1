@@ -119,10 +119,10 @@ pro plot_kehmn, filename=filename, yrange=yrange, maxn=maxn
       endfor
       if(n lt 1) then begin
 ;   print, 'plot n=0', n
-         plot, x, tmp, yrange=yrange, TITLE='Kinetic Energy Harmonics', linestyle=0
+         plot, x, tmp, yrange=yrange, /ylog, TITLE='Kinetic Energy Harmonics', linestyle=0
       endif else begin
 ;   print, 'plot n>0', n
-         oplot, x, tmp, linestyle=0
+         oplot, x, tmp, /ylog, linestyle=0
       endelse
 
       numberAsString = STRTRIM(n, 2)
