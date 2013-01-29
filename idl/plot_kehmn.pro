@@ -74,7 +74,7 @@ function minmax,array,NAN=nan, DIMEN=dimen, $
  endelse
  end
 
-pro plot_kehmn, filename=filename, yrange=yrange, maxn=maxn
+pro plot_kehmn, filename=filename, yrange=yrange, maxn=maxn, ylog=ylog, growth=growth
 
    if(n_elements(filename) eq 0) then filename = 'C1.h5'
 
@@ -90,7 +90,6 @@ pro plot_kehmn, filename=filename, yrange=yrange, maxn=maxn
 ;   help, data.KEHARMONICS._DATA, /structure
 
    kehmn = data.KEHARMONICS._DATA
-;   print, 'kehmn = ', kehmn
 
    if(n_elements(yrange) eq 0) then begin
    kehmn_minmax = minmax(kehmn)
@@ -109,24 +108,53 @@ pro plot_kehmn, filename=filename, yrange=yrange, maxn=maxn
    
    x = fltarr(ntimes)
    tmp = fltarr(ntimes)
+   y = fltarr(ntimes-1)
+   tmpgr = fltarr(ntimes-1)
    
+; plot 2 figures in one page
+!P.MULTI = [0, 2, 1] 
+
+; figure 1 kinetic energy Fourier Harmonics for each N
    for n=0, maxn-1 do begin
       for t=0, ntimes-1 do begin
          ind = n + t*dimn[0]
          tmp[t] = kehmn[ind]
          x[t] = t
-;        print, ind, x[t], tmp[t]
       endfor
+
       if(n lt 1) then begin
-;   print, 'plot n=0', n
+         if(keyword_set(ylog)) then begin
          plot, x, tmp, yrange=yrange, /ylog, TITLE='Kinetic Energy Harmonics', linestyle=0
+         endif else begin
+         plot, x, tmp, yrange=yrange, TITLE='Kinetic Energy Harmonics', linestyle=0
+         endelse
       endif else begin
-;   print, 'plot n>0', n
-         oplot, x, tmp, /ylog, linestyle=0
+         oplot, x, tmp, linestyle=0
       endelse
 
       numberAsString = STRTRIM(n, 2)
       xyouts, x[ntimes/2], tmp[ntimes/2], numberAsString
+   endfor
+
+; figure 2 growth rate for each N
+   for n=0, maxn-1 do begin
+      for t=0, ntimes-1 do begin
+         ind = n + t*dimn[0]
+         if(t gt 0) then begin
+         y[t-1] = t
+         tmpgr[t-1] = alog( kehmn[ind] ) / (2. * t)
+         ;print, ind, y[t-1], tmpgr[t-1]
+         endif
+      endfor
+
+      if(n lt 1) then begin
+         plot, y, tmpgr, TITLE='Growth Rate for Each Harmonics', linestyle=0
+      endif else begin
+         oplot, y, tmpgr, linestyle=0
+      endelse
+
+      numberAsString = STRTRIM(n, 2)
+      xyouts, y[ntimes/2], tmpgr[ntimes/2], numberAsString
    endfor
 
 end
@@ -143,11 +171,7 @@ pro plot_kspits, filename=filename, yrange=yrange
    h5g_close, root_id
    h5f_close, file_id
 
-;   print, data
-;   help, data.KEHARMONICS._DATA, /structure
-
    kspits = data.KSPITS._DATA
-;   print, 'kspits = ', kspits
 
    if(n_elements(yrange) eq 0) then begin
    kspits_minmax = minmax(kspits)
@@ -172,13 +196,10 @@ pro plot_kspits, filename=filename, yrange=yrange
          ind = n + t*dimn[0]
          tmp[t] = kspits[ind]
          x[t] = t
-;        print, ind, x[t], tmp[t]
       endfor
       if(n lt 1) then begin
-;   print, 'plot n=0', n
          plot, x, tmp, yrange=yrange, TITLE='KSPSolve iteration numbers for 5, 1, 17, 6', linestyle=0
       endif else begin
-;   print, 'plot n>0', n
          oplot, x, tmp, linestyle=0
       endelse
 
