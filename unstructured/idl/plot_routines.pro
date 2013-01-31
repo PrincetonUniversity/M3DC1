@@ -637,13 +637,15 @@ pro plot_slice, data, x, y, z, value=value, normal=normal, itor=itor, $
                v = v1
                p = p1
            endif else begin
-               for i=long(0), n_elements(p1)-1, 4 do begin
-                   p1[i+1] = p1[i+1] + n_elements(v[0,*])
-                   p1[i+2] = p1[i+2] + n_elements(v[0,*])
-                   p1[i+3] = p1[i+3] + n_elements(v[0,*])
-               end
-               p = [p, p1]
-               v = [[v], [v1]]
+              help, p1
+              print, n_elements(p1)-1
+              ind = lindgen(n_elements(p1)/4)*4
+              help, ind
+              p1[ind+1] = p1[ind+1] + n_elements(v[0,*])
+              p1[ind+2] = p1[ind+2] + n_elements(v[0,*])
+              p1[ind+3] = p1[ind+3] + n_elements(v[0,*])
+              p = [p, p1]
+              v = [[v], [v1]]
            end
        end
 

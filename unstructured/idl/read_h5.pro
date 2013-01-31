@@ -1324,7 +1324,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                      dpsi=dpsi, symbol=symbol, units=units, cgs=cgs, mks=mks, $
                      real=real, imaginary=imag, edge_val=edge_val, phi=phi0, $
                      time=realtime, abs=abs, phase=phase, dimensions=d, $
-                     flux_average=flux_av
+                     flux_average=flux_av, rvector=rvector, zvector=zvector
 
    if(n_elements(slices) ne 0) then time=slices else time=0
 
@@ -3541,6 +3541,95 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        data = data / sqrt(s_bracket(psi0,psi0,x,y))
        d = dimensions(l0=-3,t0=-1)
        symbol = '!6Particle Flux!X'
+
+   ;===========================================
+   ; parallel power flux
+   ;===========================================
+    endif else if((strcmp('parallel heat flux', name, /fold_case) eq 1) or $
+       (strcmp('qpar', name, /fold_case) eq 1)) then begin
+
+       p=read_field('p', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange)
+       den=read_field('den', x, y, t, slices=time, mesh=mesh,  $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange)
+       p_p = read_field('p', x, y, t, slices=time, mesh=mesh,  $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, op=11)
+       den_p = read_field('den', x, y, t, slices=time, mesh=mesh,  $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, op=11)
+       psi=read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, /equilibrium)
+       i=read_field('i', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, /equilibrium)
+       f_p=read_field('f', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, /equilibrium, op=11)
+       kappar = read_parameter(filename=filename, 'kappar')
+
+       r = radius_matrix(x,y,t)
+
+       te = p / den
+       tep = p_p / den - p*den_p / den^2
+       b2 = s_bracket(psi,psi,x,y)/r^2 + i^2/r^2 + 2.*a_bracket(psi,f_p,x,y)/r
+       bdotgradte = a_bracket(te, psi, x, y)/r + i*tep/r^2 - s_bracket(f_p, te, x, y)
+
+       if(keyword_set(rvector)) then begin
+          b = -dz(psi,y)/r - dx(f_p,x)
+          symbol = '!6q!D!9#!N.G!8R!X'
+       endif else if(keyword_set(zvector)) then begin
+          b =  dx(psi,y)/r - dz(f_p,y)
+          symbol = '!6q!D!9#!N.G!8Z!X'
+       endif else begin
+          b =  sqrt(b2)
+          bdotgradte = abs(bdotgradte)
+          symbol = '!3|!6q!D!9#!N!3|!X'
+       endelse
+       
+       data = -kappar*bdotgradte * b / b2
+       d = dimensions(/p0,/v0)
+
+   ;===========================================
+   ; parallel power flux
+   ;===========================================
+    endif else if((strcmp('convective heat flux', name, /fold_case) eq 1) or $
+       (strcmp('qcon', name, /fold_case) eq 1)) then begin
+
+       p=read_field('p', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange)
+       phi = read_field('phi', x, y, t, slices=time, mesh=mesh,  $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange)
+       chi = read_field('chi', x, y, t, slices=time, mesh=mesh,  $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange)
+       gamma = read_parameter(filename=filename, 'gam')
+
+       r = radius_matrix(x,y,t)
+
+       if(keyword_set(rvector)) then begin
+          v = -r*dz(phi,y) + dx(chi,x)/r^2
+          symbol = '!6q!D!8V!N!9.G!8R!X'
+       endif else if(keyword_set(zvector)) then begin
+          v =  r*dx(phi,y) + dz(chi,y)/r^2
+          symbol = '!6q!D!8V!N!9.G!8Z!X'
+       endif else begin
+          omega = read_field('omega', x, y, t, slices=time, mesh=mesh,  $
+                             filename=filename, points=pts, complex=complex, $
+                             rrange=xrange, zrange=yrange)
+          v =  sqrt(r^2*s_bracket(phi,phi,x,y) + r^2*omega^2 + s_bracket(chi,chi,x,y)/r^4 $
+            + 2.*a_bracket(chi,phi,x,y)/r)
+          symbol = '!3|!6q!D!9#!N!3|!X'
+       endelse
+       
+       data = -gamma/(gamma-1.) * p * v
+       d = dimensions(/p0,/v0)
+
 
    ;===========================================
    ; dbndt
@@ -7064,13 +7153,14 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
                    power=power, angle=angle, ax=ax, az=az, value=value, $
                    xslice=xslice, zslice=zslice, phislice=phislice, $
                    absolute_value=absolute, range=range, $
-                   noaxes=noaxes, reject=reject, $
+                   noaxes=noaxes, reject=reject, tpoints=tpoints, $
                    xrange=xrange, yrange=yrange, zrange=zrange, $
                    _EXTRA=extra
 
 
-  if(n_elements(points) eq 0) then points = 20
-  angles = points
+  if(n_elements(points) eq 0) then points = 200
+  if(n_elements(tpoints) eq 0) then tpoints = 16
+  angles = tpoints
 
   if(keyword_set(solid)) then begin
       if(n_elements(flux) eq 0) then flux = 1.
@@ -7173,12 +7263,14 @@ pro plot_field_3d, fieldname, contrast=contrast, flux=flux, $
           if(n_elements(normal) eq 0) then normal = [0,0,1] $
           else normal = [[normal], [0,0,1]]
       endif
-      if(n_elements(phislice) eq 1) then begin
-          if(n_elements(value) eq 0) then value = phislice $
-          else value = [value,phislice]
-          if(n_elements(normal) eq 0) then normal = [0,1,0] $
-          else normal = [[normal], [0,1,0]]
-      endif
+      for i=0, n_elements(phislice)-1 do begin
+         if(n_elements(value) eq 0) then value = phislice[i] $
+         else value = [value,phislice[i]]
+         if(n_elements(normal) eq 0) then normal = [0,1,0] $
+         else normal = [[normal], [0,1,0]]
+      end
+      print, value
+      print, normal
       if(n_elements(value) eq 0) then value=0.9
       plot_slice, data, x, phi, z, value=value, normal=normal, range=range, $
         itor=itor, reject=reject
