@@ -1346,7 +1346,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                         diff=diff, operation=op, dimensions=d, $
                         linear=linear, last=last,symbol=symbol,units=units, $
-                       cgs=cgs, mks=mks, phi=phi0, time=realtime)
+                       cgs=cgs, mks=mks, phi=phi0, time=realtime, $
+                       rvector=rvector, zvector=zvector)
        end
        data = data/n
        return, data
@@ -1369,7 +1370,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                         operation=op, complex=complex, dimensions=d, $
                         linear=linear, last=last,symbol=symbol,units=units, $
-                       cgs=cgs, mks=mks, phi=phi0, time=realtime) $
+                       cgs=cgs, mks=mks, phi=phi0, time=realtime, $
+                       rvector=rvector, zvector=zvector) $
              *((-1)^i)
        end
 
@@ -1435,14 +1437,16 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                           h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                           diff=diff, operation=op, mask=mask, $
                           symbol=symbol, mks=mks, cgs=cgs, $
-                          units=units, dimensions=d)
+                          units=units, dimensions=d, $
+                         rvector=rvector, zvector=zvector)
        data1 = read_field(name,x,y,t, slices=time, mesh=mesh, fac=fac, $
                           filename=filename, points=pts, mks=mks, cgs=cgs, $
                           rrange=xrange, zrange=yrange, complex=complex, $
                           h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                           diff=diff, operation=op, linfac=linfac, $
                           /linear, last=last,symbol=symbol, $
-                          units=units, dimensions=d, phi=phi0)
+                          units=units, dimensions=d, phi=phi0, $
+                         rvector=rvector, zvector=zvector)
        data = data0 + data1
        return, data
    endif
@@ -3582,7 +3586,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
           b = -dz(psi,y)/r - dx(f_p,x)
           symbol = '!6q!D!9#!N.G!8R!X'
        endif else if(keyword_set(zvector)) then begin
-          b =  dx(psi,y)/r - dz(f_p,y)
+          b =  dx(psi,x)/r - dz(f_p,y)
           symbol = '!6q!D!9#!N.G!8Z!X'
        endif else begin
           b =  sqrt(b2)
@@ -3616,7 +3620,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
           v = -r*dz(phi,y) + dx(chi,x)/r^2
           symbol = '!6q!D!8V!N!9.G!8R!X'
        endif else if(keyword_set(zvector)) then begin
-          v =  r*dx(phi,y) + dz(chi,y)/r^2
+          v =  r*dx(phi,x) + dz(chi,y)/r^2
           symbol = '!6q!D!8V!N!9.G!8Z!X'
        endif else begin
           omega = read_field('omega', x, y, t, slices=time, mesh=mesh,  $
