@@ -658,7 +658,7 @@ function translate, name, units=units, itor=itor
      (strcmp(name, 'visc_c', /fold_case) eq 1) or $
                  strcmp(name, 'visc_i', /fold_case) eq 1 or $
                  strcmp(name, 'visc_c_i', /fold_case) eq 1) then begin
-       units = dimensions(l0=2,t0=-1)
+       units = dimensions(/p0, /t0)
        return, "!7l!X"
    endif else if(strcmp(name, 'jphi', /fold_case) eq 1  or $
                  strcmp(name, 'jphi_i', /fold_case) eq 1) then begin
@@ -1294,15 +1294,24 @@ function read_raw_field, name, time, mesh=mesh, filename=filename, time=t
 end
 
 function read_lcfs, axis=axis, xpoint=xpoint, flux0=flux0, $
-                    filename=filename, slice=slice
+                    filename=filename, slice=time, last=last
 
    s = read_scalars(filename=filename)
+   if(n_elements(time) eq 0) then begin
+       slice = 0
+   endif else slice = time
+   if(keyword_set(last)) then begin
+       slice = read_parameter("ntime", filename=filename)-1
+   endif
 
    t0 = get_slice_time(filename=filename, slice=slice)
 
    tmp = s.time._data[*] - t0[0]
    dum = min(tmp, i, /abs)
-
+   print, 'slice time = ', t0
+   print, 'time step time: ', s.time._data[i]
+   print, 'time slice: ', i
+   
    xpoint = fltarr(2)
    axis = fltarr(2)
    xpoint[0] = s.xnull._data[i]
@@ -2348,16 +2357,24 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        
    ;===========================================
-   ; toroidal current density
+   ; del*(psi)
    ;===========================================
-;      endif else if(strcmp('jphi', name, /fold_case) eq 1) then begin
+   endif else if(strcmp('jphi', name, /fold_case) eq 1) then begin
 
-;          psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
-;                           filename=filename, points=pts, $
-;                           rrange=xrange, zrange=yrange)
+       psi_lp = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, op=7)
+       data = psi_lp
+       if(itor eq 1) then begin
+           psi_r = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                              filename=filename, points=pts, $
+                              rrange=xrange, zrange=yrange, op=2)
+           r = radius_matrix(x,y,t)
+           data = data - psi_r / r
+       end
 
-;          data = -grad_shafranov(psi,x,y,tor=itor)
-;          symbol = translate('jphi', units=d, itor=itor)
+       symbol = translate('jphi', units=d, itor=itor)
+       d = dimensions(/j0,l0=itor,_EXTRA=extra)
 
    ;===========================================
    ; vorticity
@@ -2427,6 +2444,22 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
          data = kappa/den
          d = dimensions(l0=2, t0=-1, _EXTRA=extra)
          symbol = '!7v!X'
+
+   ;===========================================
+   ; mu_perp
+   ;===========================================
+     endif else if(strcmp('mu_perp', name, /fold_case) eq 1) then begin
+
+         visc = read_field('visc', x, y, t, slices=time, mesh=mesh, $
+                          filename=filename, points=pts, mask=mask, $
+                          rrange=xrange, zrange=yrange, phi=phi0)
+         den = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                          filename=filename, points=pts, mask=mask, $
+                          rrange=xrange, zrange=yrange, /equilibrium)
+
+         data = visc/den
+         d = dimensions(l0=2, t0=-1, _EXTRA=extra)
+         symbol = '!7l!D!9x!N!X'
 
    ;===========================================
    ; rotational transform
@@ -4366,7 +4399,6 @@ function path_at_flux, psi,x,z,t,flux,breaks=breaks,refine=refine,$
            print, 'excluding all points!'
            print, 'axis = ', axis
            print, 'psilim = ', psilim
-           stop
        endelse
    endif
   
@@ -5127,7 +5159,7 @@ end
 ;
 ; plots the last closed flux surface
 ; ========================================================
-pro plot_lcfs, psi, x, z, psival=psival,_EXTRA=extra
+pro plot_lcfs, psi, x, z, psival=psival, _EXTRA=extra
 
     if(n_elements(psi) eq 0 or n_elements(x) eq 0 or n_elements(z) eq 0) then begin
         print, 'reading psi, plot_lcfs'
@@ -5148,19 +5180,11 @@ pro plot_lcfs, psi, x, z, psival=psival,_EXTRA=extra
     if(n_elements(breaks) eq 0) then begin
         oplot, xy[0,*], xy[1,*], thick=!p.thick, color=color(6,10)
     endif else begin
-        j = where(breaks ge 0, count)
-        if(count eq 0) then begin
-            oplot, xy[0,*], xy[1,*], thick=!p.thick, color=color(6,10)
-        endif else begin
-            breaks = breaks[j]
-;            n = n_elements(breaks)
-            n = 1
-            breaks = [0,breaks]
-            for i=0, n-1, 2 do begin
-                oplot, xy[0,breaks[i]:breaks[i+1]], $
-                  xy[1,breaks[i]:breaks[i+1]], $
-                  thick=!p.thick, color=color(6,10)
-            end
+        breaks = [-1,breaks]
+
+        for i=0, n_elements(breaks)-2 do begin
+            oplot, xy[0,breaks[i]+1:breaks[i+1]], xy[1,breaks[i]+1:breaks[i+1]], $
+              thick=!p.thick, color=color(6,10)
         end
     endelse
 end
@@ -5533,7 +5557,7 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
           if(n_elements(co) eq 0) then co = replicate(color(0,1),nfiles)
       endif else begin
           if(n_elements(ls) eq 0) then ls = replicate(0, nfiles)
-          if(n_elements(co) eq 0) then co = colors(nfiles)
+          if(n_elements(co) eq 0) then co = shift(colors(),-1)
       endelse
       if(n_elements(x) eq 1) then x = replicate(x, nfiles)
 
@@ -5607,13 +5631,12 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
   if(keyword_set(absolute)) then data = abs(data)
 
   if(n_elements(x) eq 0) then begin   
-      if(keyword_set(overplot)) then begin
-          oplot, tdata, data, color=co, linestyle=ls, _EXTRA=extra
-      endif else begin
+      if(not keyword_set(overplot)) then begin
           plot, tdata, data, xtitle=xtitle, ytitle=ytitle, $
             title=title, _EXTRA=extra, ylog=ylog, xlog=xlog, $
-            color=co, linestyle=ls
-      endelse
+            /nodata
+      end     
+      oplot, tdata, data, color=co, linestyle=ls, _EXTRA=extra
   endif else begin
       xi = x
       x = fltarr(1)
@@ -5621,14 +5644,12 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
       x[0] = xi
       z[0] = data[n_elements(data)-1]
 
-      if(keyword_set(overplot)) then begin
-          oplot, x, z, color=co, linestyle=ls, _EXTRA=extra
-      endif else begin
-          plot, x, z, $
+      if(not keyword_set(overplot)) then begin
+          plot, x, z, /nodata, $
             title=title, xtitle=xtitle, ytitle=ytitle, $
-            _EXTRA=extra, ylog=ylog, xlog=xlog, color=co, $
-            linstyle=ls
-      endelse
+            _EXTRA=extra, ylog=ylog, xlog=xlog
+      end
+      oplot, x, z, color=co, linestyle=ls, _EXTRA=extra
   endelse
       if(n_elements(outfile) eq 1) then begin
          openw,ifile,outfile,/get_lun
@@ -5928,7 +5949,7 @@ end
 ;==================================================================
 function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
                              area=area, volume=volume, dV=dV, psirange=range, $
-                             integrate=integrate, r0=r0, $
+                             integrate=integrate, r0=r0, denominator=denominator, $
                              nflux=nflux, _EXTRA=extra
 
    sz = size(field)
@@ -6276,16 +6297,17 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
            n = read_field('den',x,z,t,points=points,last=last,_EXTRA=extra)
            temp = p/n
 
-           pprime = s_bracket(temp,psi,x,z)/sqrt(s_bracket(psi,psi,x,z))
+           pprime = s_bracket(temp,psi,x,z)
            GradP = flux_average_field(pprime, psi, x, z, t, r0=r0, flux=flux, $
                                       nflux=nflux, area=area, dV=dV, $
                                       bins=bins, _EXTRA=extra)
+
            symbol = '!7j!X'
            d = dimensions(l0=2, t0=-1, n0=1)
            units = parse_units(d,_EXTRA=extra)
            name = '!7j!X'
 
-           return, -Q/(area*GradP)
+           return, -Q/(dV*GradP)
 
        endif else begin
            field = read_field(field, x, z, t, points=points, complex=complex, $
@@ -6498,7 +6520,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
        if(keyword_set(lcfs)) then begin
            print, 'passing slice = ', time[0]
            plot_lcfs, points=p, slice=time[0], $
-             _EXTRA=ex
+             last=last, _EXTRA=ex
        endif
 
        if(keyword_set(boundary)) then plotmesh=1
@@ -6556,7 +6578,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
            ls = indgen(nfiles)
            colors = replicate(color(0,1), n_elements(field))
        endif else begin
-           if(n_elements(colors) eq 0) then col = colors()
+           if(n_elements(colors) eq 0) then col = shift(colors(),-1)
            ls = replicate(0,n_elements(field))
        endelse
        if(n_elements(linfac) eq 1) then linfac=replicate(linfac, n_elements(field))
@@ -6587,7 +6609,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
            if(n_elements(ls) eq 0) then ls = indgen(nfiles)
            colors = replicate(color(0,1), nfiles)
        endif else begin
-           if(n_elements(colors) eq 0) then colors = colors(nfiles)
+           if(n_elements(colors) eq 0) then colors = shift(colors(),-1)
            if(n_elements(ls) eq 0) then ls = replicate(0,nfiles)
        endelse
        if(n_elements(time) eq 1) then time = replicate(time,nfiles)
@@ -6622,7 +6644,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
            ls = indgen(nt)
            colors = replicate(color(0,1), nt)
        endif else begin
-           if(n_elements(colors) eq 0) then colors = colors(nt)
+           if(n_elements(colors) eq 0) then colors = shift(colors(nt),-1)
            ls = replicate(0,nt)
        endelse       
        if(n_elements(linfac) eq 1) then linfac=replicate(linfac, nt)
@@ -6636,7 +6658,11 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              linear=linear, multiply_flux=multiply_flux, mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, asb=aba, phase=phase, $
              stotal=total, rho=rho, nolegend=nolegend, linfac=linfac[i]
-           names[i] = string(format='(%"!8t!6 = %d !7s!D!8A!N!X")', t)
+           lab = parse_units(dimensions(/t0), cgs=cgs, mks=mks)
+           get_normalizations, b0=b0, n0=n0, l0=l0, $
+                        zeff=zeff, ion_mass=mi, filename=filename
+           convert_units, t, dimensions(/t0), b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
+           names[i] = string(format='(%"!8t!6 = %g ",A,"!X")', t, lab)
        end
 
        if(n_elements(names) gt 0) then begin
@@ -6719,7 +6745,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
        endif else begin
            plot, flux, fa, xtitle=xtitle, linestyle=ls, $
              ytitle=ytitle, title=title, xlog=xlog, ylog=ylog, /nodata, $
-             _EXTRA=extra
+             color=color(0), _EXTRA=extra
            oplot, flux, fa, color=colors, linestyle=ls, _EXTRA=extra
        endelse
    endelse
