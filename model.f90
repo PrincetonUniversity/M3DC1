@@ -12,7 +12,7 @@ module model
   type(matrix_type), target :: s1_mat, d1_mat, q1_mat, r14_mat
   type(matrix_type), target :: o1_mat, p1_mat
   type(matrix_type), target :: q42_mat, r42_mat
-  type(matrix_type), target :: s2_mat, d2_mat, r2_mat, q2_mat, o2_mat
+  type(matrix_type), target :: s2_mat, d2_mat, r2_mat, q2_mat, o2_mat, o3_mat
   type(matrix_type), target :: s8_mat, d8_mat, r8_mat, q8_mat
   type(matrix_type), target :: s9_mat, d9_mat, r9_mat, q9_mat, o9_mat
   type(matrix_type), target :: s11_mat, d11_mat, s12_mat, d12_mat
@@ -1929,5 +1929,34 @@ subroutine calc_lin_pressure(pres1, te0, ti0, n0, te1, ti1, n1)
      return
 
 end subroutine calc_lin_pressure
+
+subroutine calcnorm(temp, nsize, l2norm)
+  use basic
+  use arrays
+  use field
+  use mesh_mod
+  implicit none
+  integer :: nsize, numnodes, i,ii
+  real :: l2norm, sum
+  type(vector_type), intent(in) :: temp
+
+  numnodes = owned_nodes()
+
+  sum = 0.
+  do i = 1,numnodes*nsize
+    ii = 1 + (i-1)*dofs_per_node
+#ifdef USECOMPLEX
+    sum = sum + temp%data(ii)*conjg(temp%data(ii))
+#else
+    sum = sum + temp%data(ii)**2
+#endif
+  enddo
+  l2norm = sqrt(sum)
+  return
+  
+
+end subroutine calcnorm
+
+
 
 end module model

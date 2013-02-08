@@ -168,6 +168,11 @@ contains
     if(i3d.eq.1) then
        call set_matrix_index(o2_mat, o2_mat_index)
        call create_mat(o2_mat, vecsize_phi, 1, icomplex, .false.)
+       if(ipressplit.eq.1 .or. ipres.eq.1) then
+          call set_matrix_index(o3_mat, o3_mat_index)
+          call create_mat(o3_mat, vecsize_p, 1, icomplex, .false.)
+       endif
+         
 #ifdef CJ_MATRIX_DUMP
        print *, "create_mat time_step o2_mat", o2_mat%imatrix     
 #endif 
@@ -252,7 +257,10 @@ contains
        call destroy_mat(r42_mat)
        call destroy_mat(q42_mat)
     end if
-    if(i3d.eq.1) call destroy_mat(o2_mat)
+    if(i3d.eq.1) then
+      call destroy_mat(o2_mat)
+      if(ipres.eq.1 .or. ipressplit.gt.0) call destroy_mat(o3_mat)
+    endif
     if((ipres.eq.1 .and. numvar.lt.3) .or. ipressplit.gt.0) call destroy_mat(p1_mat)
        
     if(idens.eq.1) then
@@ -400,7 +408,10 @@ contains
        call clear_mat(r42_mat)
        call clear_mat(q42_mat)
     end if
-    if(i3d.eq.1) call clear_mat(o2_mat)
+    if(i3d.eq.1) then
+       call clear_mat(o2_mat)
+       if(ipres.eq.1 .or. ipressplit.eq.1) call clear_mat(o3_mat)
+    endif
     q4_vec = 0.
     
     if(idens.eq.1) then
@@ -441,7 +452,10 @@ contains
     call finalize(d2_mat)
     call finalize(r2_mat)
     call finalize(q2_mat)
-    if(i3d.eq.1) call finalize(o2_mat)
+    if(i3d.eq.1) then
+      call finalize(o2_mat)
+      if(ipres.eq.1 .or. ipressplit.eq.1) call finalize(o3_mat)
+    endif
     if(idens.eq.1) then
        call finalize(r42_mat)
        call finalize(q42_mat)
@@ -616,6 +630,7 @@ subroutine step_split(calc_matrices)
 
   integer, intent(in) :: calc_matrices
   real :: tstart, tend, t_bound
+  real :: ans
   integer :: jer, i, numnodes
   type(vector_type) :: temp, temp2
 
@@ -823,13 +838,14 @@ subroutine step_split(calc_matrices)
      ! o9matrix_sm * phi(n)
      call matvecmult(o9_mat,phi_vec,temp2)
      call add(temp, temp2)
-     
+
      ! temp = d9matrix_sm * pres(n)
      call matvecmult(d9_mat,pres_vec,temp2)
      call add(temp, temp2)
-     
+
      call add(temp, qp4_vec)
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Pressure -- before boundary_pres"
+
      
      ! Insert boundary conditions
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -862,6 +878,7 @@ subroutine step_split(calc_matrices)
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Pressure--before newsolve"
      call newsolve(s9_mat, temp, jer)
      if(linear.eq.0) call clear_mat(s9_mat)
+
 
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.2) then
@@ -897,7 +914,7 @@ subroutine step_split(calc_matrices)
      ! r9matrix_sm * vel(n+1)
      call matvecmult(r9_mat,vel_vec,temp)
      call mult(temp, -1.)    ! added 1/1/2013   SCJ
-            
+
      ! q9matrix_sm * vel(n)
      call matvecmult(q9_mat,veln_vec,temp2)
      call add(temp, temp2)
@@ -906,11 +923,20 @@ subroutine step_split(calc_matrices)
      ! o9matrix_sm * phi(n)
      call matvecmult(o9_mat,phi_vec,temp2)
      call add(temp, temp2)
+
      
      ! temp = d9matrix_sm * temp(n)
      call matvecmult(d9_mat,pret_vec,temp2)
      call add(temp, temp2)
-     
+
+ 
+     ! Include linear f terms
+     if(i3d.eq.1 .and. (ipres.eq.1 .or. ipressplit.eq.1)) then
+        call matvecmult(o3_mat,bf_field(1)%vec,temp2)
+        call add(temp, temp2)
+     endif
+
+    
      call add(temp, qp4_vec)
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Temperature -- before boundary_temp"
      
@@ -939,6 +965,7 @@ subroutine step_split(calc_matrices)
      call write_vector(temp, 's9_mat_rhs.out')
   endif
 #endif 
+
 
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Temperature--before newsolve"
      call newsolve(s9_mat, temp, jer)
@@ -983,6 +1010,7 @@ subroutine step_split(calc_matrices)
      call add(b1_phi, b2_phi)
 
      ! d2matrix_sm * phi(n)
+
      call matvecmult(d2_mat,phi_vec,b2_phi)
      call add(b1_phi, b2_phi)
 

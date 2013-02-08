@@ -308,21 +308,24 @@ Program Reducedquintic
  1002 format(" LOOP TIME", i5,1p3e16.8)
      endif
 
+
+     if(linear.eq.0 .and. eqsubtract.eq.0) then
      ! feedback control on toroidal current
-     if(vloop.ne.0) then
-        if(myrank.eq.0 .and. iprint.ge.1) &
+       if(vloop.ne.0) then
+          if(myrank.eq.0 .and. iprint.ge.1) &
              print *, " Applying feedback", &
              vloop, totcur, i_control%p, &
              i_control%target_val, i_control%err_p_old, i_control%err_i
-        call control(totcur, vloop,       i_control, dt)
-        if(myrank.eq.0 .and. iprint.ge.1) &
+          call control(totcur, vloop,       i_control, dt)
+          if(myrank.eq.0 .and. iprint.ge.1) &
              print *, " After    feedback", &
              vloop, totcur, i_control%p, &
              i_control%target_val, i_control%err_p_old, i_control%err_i
-     endif
+       endif
 
      ! feedback control on density source
-     call control(totden, pellet_rate, n_control, dt)
+       call control(totden, pellet_rate, n_control, dt)
+     endif
 
      ! Write output
      if(myrank.eq.0 .and. iprint.ge.1) print *, " Writing output."
