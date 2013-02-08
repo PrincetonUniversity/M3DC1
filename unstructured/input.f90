@@ -618,6 +618,31 @@ subroutine validate_input
 #endif
   integer :: ier
 
+!...check if correct code version is being used
+#if defined(USE3D)
+    if(linear.eq.1 .or. nplanes.le.1) then
+      if(myrank.eq.0) print *, "must have linear=0 and nplanes>1 for 3D version"
+      call safestop(1)
+    endif
+#endif
+
+#if defined(USECOMPLEX)
+    if(linear.eq.0 .or. nplanes.gt.1) then
+      if(myrank.eq.0) print *, "must have linear=1 and nplanes=1 for complex version"
+      call safestop(1)
+    endif
+#endif
+    if(linear.eq.0 .and. nplanes.eq.1) then
+      ier = 0
+#if defined(USECOMPLEX) || (USE3D)
+      ier = 1
+#endif
+      if(ier.ne.0) then
+        if(myrank.eq.0) print *,"must use RL version for linear.eq.0 .and. nplanes.eq.1"
+        call safestop(1)
+      endif
+    endif
+
   if(amuc.eq.0.) amuc = amu
 
   if(linear.eq.1) then
