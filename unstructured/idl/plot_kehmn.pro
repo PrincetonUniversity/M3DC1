@@ -74,7 +74,7 @@ function minmax,array,NAN=nan, DIMEN=dimen, $
  endelse
  end
 
-pro plot_kehmn, filename=filename, yrange=yrange, maxn=maxn, ylog=ylog, growth=growth
+pro plot_kehmn, filename=filename, yrange=yrange, maxn=maxn, ylog=ylog, growth=growth, outfile=outfile
 
    if(n_elements(filename) eq 0) then filename = 'C1.h5'
 
@@ -91,6 +91,10 @@ pro plot_kehmn, filename=filename, yrange=yrange, maxn=maxn, ylog=ylog, growth=g
 
    kehmn = data.KEHARMONICS._DATA
 
+   s = read_scalars(filename=filename)
+   time = s.time._data
+   dt = s.dt._data
+
    if(n_elements(yrange) eq 0) then begin
    kehmn_minmax = minmax(kehmn)
    yrange=[kehmn_minmax[0], kehmn_minmax[1]]
@@ -100,21 +104,27 @@ pro plot_kehmn, filename=filename, yrange=yrange, maxn=maxn, ylog=ylog, growth=g
    dimn = size(kehmn, /dim)
    print, 'total number of Fourier harmonics and timesteps = ', dimn
 
+      if(keyword_set(outfile)) then begin
+         ;format=string(39B)+'(' + STRTRIM(1+dimn[0], 2) + 'E16.6)'+string(39B)
+         format='(' + STRTRIM(1+dimn[0], 2) + 'E16.6)'
+         print, format
+         openw,ifile,'kehmn.txt',/get_lun
+         printf,ifile,format=format,[transpose(time),kehmn]
+         free_lun, ifile
+      endif
+
    if(n_elements(maxn) eq 0) then begin
    maxn = dimn[0]
    end
    ntimes = dimn[1]
-   print, 'max number of Fourier harmonics to be plotted = ', maxn
-   
-   x = fltarr(ntimes)
-   tmp = fltarr(ntimes)
-   y = fltarr(ntimes-1)
-   tmpgr = fltarr(ntimes-1)
+   print, 'max number of Fourier harmonics to be plotted = ', maxn, ntimes
    
 ; plot 2 figures in one page
 !P.MULTI = [0, 2, 1] 
-
+   
 ; figure 1 kinetic energy Fourier Harmonics for each N
+   x = fltarr(ntimes)
+   tmp = fltarr(ntimes)
    for n=0, maxn-1 do begin
       for t=0, ntimes-1 do begin
          ind = n + t*dimn[0]
@@ -137,14 +147,16 @@ pro plot_kehmn, filename=filename, yrange=yrange, maxn=maxn, ylog=ylog, growth=g
    endfor
 
 ; figure 2 growth rate for each N
+   y = fltarr(ntimes-1)
+   tmpgr = fltarr(ntimes-1)
    for n=0, maxn-1 do begin
       for t=0, ntimes-1 do begin
          ind = n + t*dimn[0]
-         if(t gt 0) then begin
-         y[t-1] = t
-         tmpgr[t-1] = alog( kehmn[ind] ) / (2. * t)
-         ;print, ind, y[t-1], tmpgr[t-1]
-         endif
+         tmp[t] = kehmn[ind]
+      endfor
+      for t=0, ntimes-2 do begin
+         tmpgr[t] = 2. / (tmp[t+1] + tmp[t]) * ( tmp[t+1] - tmp[t] ) / dt[t+1]
+         y[t] = time[t+1]
       endfor
 
       if(n lt 1) then begin
