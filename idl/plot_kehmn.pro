@@ -74,69 +74,93 @@ function minmax,array,NAN=nan, DIMEN=dimen, $
  endelse
  end
 
-pro plot_kehmn, filename=filename, yrange=yrange, maxn=maxn, ylog=ylog, growth=growth, outfile=outfile
-
+pro plot_kehmn, filename=filename, xrange=xrange, yrange=yrange, maxn=maxn, ylog=ylog, growth=growth, outfile=outfile
    if(n_elements(filename) eq 0) then filename = 'C1.h5'
-
    if(hdf5_file_test(filename) eq 0) then return
 
+   ; read harmonics [N, ntimes]
    file_id = h5f_open(filename)
    root_id = h5g_open(file_id, "/")
    data = h5_parse(root_id, "keharmonics", /read_data)
    h5g_close, root_id
    h5f_close, file_id
-
-;   print, data
-;   help, data.KEHARMONICS._DATA, /structure
-
    kehmn = data.KEHARMONICS._DATA
+   dimn = size(kehmn, /dim)
+   print, 'total number of Fourier harmonics and timesteps = ', dimn
 
+   ; read times, timestep [ntimes]
    s = read_scalars(filename=filename)
    time = s.time._data
    dt = s.dt._data
 
-   if(n_elements(yrange) eq 0) then begin
-   kehmn_minmax = minmax(kehmn)
-   yrange=[kehmn_minmax[0], kehmn_minmax[1]]
-   end
-   print, 'plot range = ', yrange[0], yrange[1]
-
-   dimn = size(kehmn, /dim)
-   print, 'total number of Fourier harmonics and timesteps = ', dimn
-
+   ; write harmonics [N, ntimes] into "outfile"
       if(keyword_set(outfile)) then begin
          ;format=string(39B)+'(' + STRTRIM(1+dimn[0], 2) + 'E16.6)'+string(39B)
          format='(' + STRTRIM(1+dimn[0], 2) + 'E16.6)'
          print, format
-         openw,ifile,'kehmn.txt',/get_lun
+         openw,ifile,outfile,/get_lun
          printf,ifile,format=format,[transpose(time),kehmn]
          free_lun, ifile
       endif
 
+   ; get the maximum number of fourier harmonics to be plotted, default to dim[0]
    if(n_elements(maxn) eq 0) then begin
    maxn = dimn[0]
    end
    ntimes = dimn[1]
    print, 'max number of Fourier harmonics to be plotted = ', maxn, ntimes
    
-; plot 2 figures in one page
-!P.MULTI = [0, 2, 1] 
-   
-; figure 1 kinetic energy Fourier Harmonics for each N
-   x = fltarr(ntimes)
-   tmp = fltarr(ntimes)
+   ; if growth rate to be plotted
+   grate=fltarr( maxn , (ntimes-1) )
    for n=0, maxn-1 do begin
-      for t=0, ntimes-1 do begin
+      for t=0, ntimes-2 do begin
          ind = n + t*dimn[0]
-         tmp[t] = kehmn[ind]
-         x[t] = t
+         ind1 = n + (t+1)*dimn[0]
+         ;print, n, t, ind, ind1, kehmn[ind] , kehmn[ind1]
+         grate[n,t] = 2. / (kehmn[ind1] + kehmn[ind]) * (kehmn[ind1] - kehmn[ind]) / dt[t+1]
+      endfor
+   endfor
+
+   ; get plot's yrange, default to minmax(...)
+   if(n_elements(yrange) eq 0) then begin
+      if(keyword_set(growth)) then begin
+         grate_minmax = minmax(grate)
+         yrange=[grate_minmax[0], grate_minmax[1]]
+      endif else begin
+         kehmn_minmax = minmax(kehmn)
+         yrange=[kehmn_minmax[0], kehmn_minmax[1]]
+      endelse
+   end
+   print, 'plot yrange = ', yrange[0], yrange[1]
+   ; get plot's xrange, default to [time[1],time[ntimes]]
+   if(n_elements(xrange) eq 0) then begin
+         xrange=[time[1], time[dimn[1]-1]]
+   end
+   print, 'plot xrange = ', xrange[0], xrange[1]
+
+   ; plot range 1:ntimes
+   x = fltarr(ntimes-1)
+   tmp = fltarr(ntimes-1)
+
+   for n=0, maxn-1 do begin
+      for t=0, ntimes-2 do begin
+         if(keyword_set(growth)) then begin
+            ind = n + t*dimn[0]
+            tmp[t] = grate[ind]
+            title='growth rate for each harmonics'
+         endif else begin
+            ind = n + (t+1)*dimn[0]
+            tmp[t] = kehmn[ind]
+            title='kinetic energy for each harmonics'
+         endelse
+            x[t] = time[t+1]
       endfor
 
       if(n lt 1) then begin
          if(keyword_set(ylog)) then begin
-         plot, x, tmp, yrange=yrange, /ylog, TITLE='Kinetic Energy Harmonics', linestyle=0
+         plot, x, tmp, xrange=xrange, yrange=yrange, /ylog, TITLE=title, linestyle=0
          endif else begin
-         plot, x, tmp, yrange=yrange, TITLE='Kinetic Energy Harmonics', linestyle=0
+         plot, x, tmp, xrange=xrange, yrange=yrange, TITLE=title, linestyle=0
          endelse
       endif else begin
          oplot, x, tmp, linestyle=0
@@ -146,35 +170,10 @@ pro plot_kehmn, filename=filename, yrange=yrange, maxn=maxn, ylog=ylog, growth=g
       xyouts, x[ntimes/2], tmp[ntimes/2], numberAsString
    endfor
 
-; figure 2 growth rate for each N
-   y = fltarr(ntimes-1)
-   tmpgr = fltarr(ntimes-1)
-   for n=0, maxn-1 do begin
-      for t=0, ntimes-1 do begin
-         ind = n + t*dimn[0]
-         tmp[t] = kehmn[ind]
-      endfor
-      for t=0, ntimes-2 do begin
-         tmpgr[t] = 2. / (tmp[t+1] + tmp[t]) * ( tmp[t+1] - tmp[t] ) / dt[t+1]
-         y[t] = time[t+1]
-      endfor
-
-      if(n lt 1) then begin
-         plot, y, tmpgr, TITLE='Growth Rate for Each Harmonics', linestyle=0
-      endif else begin
-         oplot, y, tmpgr, linestyle=0
-      endelse
-
-      numberAsString = STRTRIM(n, 2)
-      xyouts, y[ntimes/2], tmpgr[ntimes/2], numberAsString
-   endfor
-
 end
 
 pro plot_kspits, filename=filename, yrange=yrange
-
    if(n_elements(filename) eq 0) then filename = 'C1.h5'
-
    if(hdf5_file_test(filename) eq 0) then return
 
    file_id = h5f_open(filename)
@@ -182,7 +181,6 @@ pro plot_kspits, filename=filename, yrange=yrange
    data = h5_parse(root_id, "kspits", /read_data)
    h5g_close, root_id
    h5f_close, file_id
-
    kspits = data.KSPITS._DATA
 
    if(n_elements(yrange) eq 0) then begin
