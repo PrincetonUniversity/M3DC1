@@ -116,7 +116,7 @@ pro plot_kehmn, filename=filename, xrange=xrange, yrange=yrange, maxn=maxn, ylog
       for t=0, ntimes-2 do begin
          ind = n + t*dimn[0]
          ind1 = n + (t+1)*dimn[0]
-         ;print, n, t, ind, ind1, kehmn[ind] , kehmn[ind1]
+         print, n, t, ind, ind1, kehmn[ind] , kehmn[ind1]
          grate[n,t] = 2. / (kehmn[ind1] + kehmn[ind]) * (kehmn[ind1] - kehmn[ind]) / dt[t+1]
       endfor
    endfor
@@ -145,7 +145,7 @@ pro plot_kehmn, filename=filename, xrange=xrange, yrange=yrange, maxn=maxn, ylog
    for n=0, maxn-1 do begin
       for t=0, ntimes-2 do begin
          if(keyword_set(growth)) then begin
-            ind = n + t*dimn[0]
+            ind = n + t*maxn
             tmp[t] = grate[ind]
             title='growth rate for each harmonics'
          endif else begin
