@@ -116,7 +116,7 @@ pro plot_kehmn, filename=filename, xrange=xrange, yrange=yrange, maxn=maxn, ylog
       for t=0, ntimes-2 do begin
          ind = n + t*dimn[0]
          ind1 = n + (t+1)*dimn[0]
-         print, n, t, ind, ind1, kehmn[ind] , kehmn[ind1]
+         ;print, n, t, ind, ind1, kehmn[ind] , kehmn[ind1]
          grate[n,t] = 2. / (kehmn[ind1] + kehmn[ind]) * (kehmn[ind1] - kehmn[ind]) / dt[t+1]
       endfor
    endfor
@@ -131,12 +131,12 @@ pro plot_kehmn, filename=filename, xrange=xrange, yrange=yrange, maxn=maxn, ylog
          yrange=[kehmn_minmax[0], kehmn_minmax[1]]
       endelse
    end
-   print, 'plot yrange = ', yrange[0], yrange[1]
+   ;print, 'plot yrange = ', yrange[0], yrange[1]
    ; get plot's xrange, default to [time[1],time[ntimes]]
    if(n_elements(xrange) eq 0) then begin
          xrange=[time[1], time[dimn[1]-1]]
    end
-   print, 'plot xrange = ', xrange[0], xrange[1]
+   ;print, 'plot xrange = ', xrange[0], xrange[1]
 
    ; plot range 1:ntimes
    x = fltarr(ntimes-1)
