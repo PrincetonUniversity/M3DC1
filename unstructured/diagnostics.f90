@@ -1460,8 +1460,8 @@ subroutine calculate_ke()
 
         ke_N = ke_N + int3(r2_79,  vzt79(:,OP_1), vzt79(:,OP_1))
 
-        ke_N = ke_N + int3(r2_79,  cht79(:,OP_DR), cht79(:,OP_DR))   &
-                    + int3(r2_79,  cht79(:,OP_DZ), cht79(:,OP_DZ))
+        ke_N = ke_N + int3(ri4_79,  cht79(:,OP_DR), cht79(:,OP_DR))   &
+                    + int3(ri4_79,  cht79(:,OP_DZ), cht79(:,OP_DZ))
 !
 !       sine harmonics
         call eval_ops(itri,  u_transforms,pht79)
@@ -1473,8 +1473,8 @@ subroutine calculate_ke()
 
         ke_N = ke_N + int3(r2_79,  vzt79(:,OP_1), vzt79(:,OP_1))
 
-        ke_N = ke_N + int3(r2_79,  cht79(:,OP_DR), cht79(:,OP_DR))   &
-                    + int3(r2_79,  cht79(:,OP_DZ), cht79(:,OP_DZ))
+        ke_N = ke_N + int3(ri4_79,  cht79(:,OP_DR), cht79(:,OP_DR))   &
+                    + int3(ri4_79,  cht79(:,OP_DZ), cht79(:,OP_DZ))
      end do
 
      call mpi_allreduce(ke_N, ketotal, 1, MPI_DOUBLE_PRECISION, &
@@ -1530,6 +1530,7 @@ end subroutine calculate_ke
 #else
 !  use 3/8 Simpson's rule
     real:: hh, x1, x2, x3, x4, f1, f2, f3, f4
+    real:: phi1, phi2, phi3, phi4
 #endif
 
 
@@ -1602,14 +1603,18 @@ end subroutine calculate_ke
 #else
 !  use 3/8 Simpson's rule
    hh = 2. / 3.
-   x1 = - 1.
-   x2 = x1 + hh
-   x3 = x4 - hh
-   x4 =   1.
-   f1 = cos(N*(x1+k-1)*delta_phi) * sin(1*(x1+k-1)*delta_phi)
-   f2 = cos(N*(x2+k-1)*delta_phi) * sin(1*(x2+k-1)*delta_phi)
-   f3 = cos(N*(x3+k-1)*delta_phi) * sin(1*(x3+k-1)*delta_phi)
-   f4 = cos(N*(x4+k-1)*delta_phi) * sin(1*(x4+k-1)*delta_phi)
+   x1 = -1.
+   x2 = -1. + hh
+   x3 =  1. - hh
+   x4 =  1.
+   phi1 = ( abs(x1) - 1. ) * ( abs(x1) - 1. ) * ( 2. * abs(x1) + 1. )
+   phi2 = ( abs(x2) - 1. ) * ( abs(x2) - 1. ) * ( 2. * abs(x2) + 1. )
+   phi3 = ( abs(x3) - 1. ) * ( abs(x3) - 1. ) * ( 2. * abs(x3) + 1. )
+   phi4 = ( abs(x4) - 1. ) * ( abs(x4) - 1. ) * ( 2. * abs(x4) + 1. )
+   f1 = cos(N*(x1+k-1)*delta_phi) * phi1
+   f2 = cos(N*(x2+k-1)*delta_phi) * phi2
+   f3 = cos(N*(x3+k-1)*delta_phi) * phi3
+   f4 = cos(N*(x4+k-1)*delta_phi) * phi4
    i1ck =  hh*3./8. * ( f1 + 3.*f2 + 3.*f3 + f4)
    i1ck =  i1ck * delta_phi
 #endif
@@ -1650,10 +1655,10 @@ end subroutine calculate_ke
 
 #else
 !  use 3/8 Simpson's rule
-   f1 = sin(N*(x1+k-1)*delta_phi) * sin(1*(x1+k-1)*delta_phi)
-   f2 = sin(N*(x2+k-1)*delta_phi) * sin(1*(x2+k-1)*delta_phi)
-   f3 = sin(N*(x3+k-1)*delta_phi) * sin(1*(x3+k-1)*delta_phi)
-   f4 = sin(N*(x4+k-1)*delta_phi) * sin(1*(x4+k-1)*delta_phi)
+   f1 = sin(N*(x1+k-1)*delta_phi) * phi1
+   f2 = sin(N*(x2+k-1)*delta_phi) * phi2
+   f3 = sin(N*(x3+k-1)*delta_phi) * phi3
+   f4 = sin(N*(x4+k-1)*delta_phi) * phi4
    i1sk =  hh*3./8. * ( f1 + 3.*f2 + 3.*f3 + f4)
    i1sk =  i1sk * delta_phi
 #endif
@@ -1686,6 +1691,7 @@ end subroutine ke_I1
 #else
 !  use 3/8 Simpson's rule
     real:: hh, x1, x2, x3, x4, f1, f2, f3, f4
+    real:: phi1, phi2, phi3, phi4
 #endif
 
    delta_phi = 2. * pi / nplanes
@@ -1757,14 +1763,18 @@ end subroutine ke_I1
 #else
 !  use 3/8 Simpson's rule
    hh = 2. / 3.
-   x1 = - 1.
-   x2 = x1 + hh
-   x3 = x4 - hh
-   x4 =   1.
-   f1 = cos(N*(x1+k-1)*delta_phi) * sin(1*(x1+k-1)*delta_phi)
-   f2 = cos(N*(x2+k-1)*delta_phi) * sin(1*(x2+k-1)*delta_phi)
-   f3 = cos(N*(x3+k-1)*delta_phi) * sin(1*(x3+k-1)*delta_phi)
-   f4 = cos(N*(x4+k-1)*delta_phi) * sin(1*(x4+k-1)*delta_phi)
+   x1 = -1.
+   x2 = -1. + hh
+   x3 =  1. - hh
+   x4 =  1.
+   phi1 = x1 * ( abs(x1) - 1. ) * ( abs(x1) - 1. )
+   phi2 = x2 * ( abs(x2) - 1. ) * ( abs(x2) - 1. )
+   phi3 = x3 * ( abs(x3) - 1. ) * ( abs(x3) - 1. )
+   phi4 = x4 * ( abs(x4) - 1. ) * ( abs(x4) - 1. )
+   f1 = cos(N*(x1+k-1)*delta_phi) * phi1
+   f2 = cos(N*(x2+k-1)*delta_phi) * phi2
+   f3 = cos(N*(x3+k-1)*delta_phi) * phi3
+   f4 = cos(N*(x4+k-1)*delta_phi) * phi4
    i2ck =  hh*3./8. * ( f1 + 3.*f2 + 3.*f3 + f4)
    i2ck =  i2ck * delta_phi
 #endif
@@ -1805,16 +1815,15 @@ end subroutine ke_I1
 
 #else
 !  use 3/8 Simpson's rule
-   f1 = sin(N*(x1+k-1)*delta_phi) * sin(1*(x1+k-1)*delta_phi)
-   f2 = sin(N*(x2+k-1)*delta_phi) * sin(1*(x2+k-1)*delta_phi)
-   f3 = sin(N*(x3+k-1)*delta_phi) * sin(1*(x3+k-1)*delta_phi)
-   f4 = sin(N*(x4+k-1)*delta_phi) * sin(1*(x4+k-1)*delta_phi)
+   f1 = sin(N*(x1+k-1)*delta_phi) * phi1
+   f2 = sin(N*(x2+k-1)*delta_phi) * phi2
+   f3 = sin(N*(x3+k-1)*delta_phi) * phi3
+   f4 = sin(N*(x4+k-1)*delta_phi) * phi4
    i2sk =  hh*3./8. * ( f1 + 3.*f2 + 3.*f3 + f4)
    i2sk =  i2sk * delta_phi
 #endif
 
 
 end subroutine ke_I2
-
 
 end module diagnostics
