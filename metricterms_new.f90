@@ -11580,6 +11580,53 @@ vectype function tepsibkappar(e,f,g,h,j,k)
   tepsibkappar = (gam - 1.) * temp
   return
 end function tepsibkappar
+vectype function tepsibkapparl(e,f,g,h,i,j)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
+  vectype :: temp
+
+  if(gam.le.1.) then
+     tepsibkapparl = 0.
+     return
+  end if
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  temp79a = i(:,OP_1)*j(:,OP_1)* g(:,OP_1)
+
+  if(surface_int) then
+     temp = int5(ri3_79,temp79a,h(:,OP_DP),norm79(:,2),f(:,OP_DR)) &
+          - int5(ri3_79,temp79a,h(:,OP_DP),norm79(:,1),f(:,OP_DZ))
+  else
+     ! d(temp79a)/dphi
+     temp79b = i(:,OP_DP)*j(:,OP_1 )*g(:,OP_1 ) &
+          +    i(:,OP_1 )*j(:,OP_DP)*g(:,OP_1 ) &
+          +    i(:,OP_1 )*j(:,OP_1 )*g(:,OP_DP)
+
+     ! [T,psi]
+     temp79c = (h(:,OP_DZ)*f(:,OP_DR)-h(:,OP_DR)*f(:,OP_DZ))
+
+     ! d(temp79c)/dphi
+     temp79d =      &
+          (h(:,OP_DZ)*f(:,OP_DRP)-h(:,OP_DR)*f(:,OP_DZP)) &
+        + (h(:,OP_DZP)*f(:,OP_DR)-h(:,OP_DRP)*f(:,OP_DZ))
+
+     temp = int4(ri3_79,e(:,OP_1),temp79a,temp79d) &
+          + int4(ri3_79,e(:,OP_1),temp79b,temp79c) &
+          + int5(ri3_79,e(:,OP_DR),temp79a,f(:,OP_DZ),h(:,OP_DP)) &
+          - int5(ri3_79,e(:,OP_DZ),temp79a,f(:,OP_DR),h(:,OP_DP))
+  end if
+#else
+  temp = 0.
+#endif
+
+  tepsibkapparl = (gam - 1.) * temp
+  return
+end function tepsibkapparl
 vectype function tebbkappar(e,f,g,h,j,k)
 
   use basic
@@ -11612,6 +11659,41 @@ vectype function tebbkappar(e,f,g,h,j,k)
   tebbkappar = (gam - 1.) * temp
   return
 end function tebbkappar
+!
+!...the following function must replace tebbkappar for linear runs.
+vectype function tebbkapparl(e,f,g,h,i,j)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
+  vectype :: temp
+  
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  if(surface_int) then
+     temp = 0.
+  else
+     temp79a = i(:,OP_1)*j(:,OP_1)*f(:,OP_1)*g(:,OP_1)
+
+     ! d(temp79a)/dphi
+     temp79b = i(:,OP_DP)*j(:,OP_1)*f(:,OP_1)*g(:,OP_1) &
+          +    i(:,OP_1)*j(:,OP_DP)*f(:,OP_1)*g(:,OP_1) &
+          +    i(:,OP_1)*j(:,OP_1)*f(:,OP_DP)*g(:,OP_1) &
+          +    i(:,OP_1)*j(:,OP_1)*f(:,OP_1)*g(:,OP_DP)
+
+     temp = int4(ri4_79,e(:,OP_1),temp79a,h(:,OP_DPP)) &
+          + int4(ri4_79,e(:,OP_1),temp79b,h(:,OP_DP))
+  end if
+#else
+  temp = 0.
+#endif
+
+  tebbkapparl = (gam - 1.) * temp
+  return
+end function tebbkapparl
 vectype function tepsifkappar(e,f,g,h,j,k)
 
   use basic
@@ -11696,6 +11778,55 @@ vectype function tebfkappar(e,f,g,h,j,k)
   tebfkappar = (gam - 1.) * temp
   return
 end function tebfkappar
+vectype function tebfkapparl(e,f,g,h,i,j)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
+  vectype :: temp
+
+  if(gam.le.1.) then
+     tebfkapparl = 0.
+     return
+  end if
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  temp79a = ri2_79*j(:,OP_1)*i(:,OP_1)* f(:,OP_1)
+
+
+  if(surface_int) then
+     temp = -int5(temp79a,h(:,OP_DP),e(:,OP_1),norm79(:,1),g(:,OP_DRP)) &
+          -  int5(temp79a,h(:,OP_DP),e(:,OP_1),norm79(:,2),g(:,OP_DZP))
+  else
+     ! d(temp79a)/dphi
+     temp79b = ri2_79 * &
+          (j(:,OP_DP)*i(:,OP_1)* f(:,OP_1) &
+          +j(:,OP_1)*i(:,OP_DP)* f(:,OP_1) &
+          +j(:,OP_1)*i(:,OP_1)* f(:,OP_DP))
+
+     !  <T, f'> 
+     temp79c =  (h(:,OP_DR)*g(:,OP_DRP) + h(:,OP_DZ)*g(:,OP_DZP)) 
+    
+
+     ! d(temp79c)/dphi
+     temp79d =  &
+         +(h(:,OP_DR)*g(:,OP_DRPP) + h(:,OP_DZ)*g(:,OP_DZPP)) &
+         +(h(:,OP_DRP)*g(:,OP_DRP) + h(:,OP_DZP)*g(:,OP_DZP)) 
+
+     temp = int4(temp79a,e(:,OP_DR),g(:,OP_DRP),h(:,OP_DP)) &
+          + int4(temp79a,e(:,OP_DZ),g(:,OP_DZP),h(:,OP_DP)) &
+          - int3(e(:,OP_1),temp79a,temp79d) &
+          - int3(e(:,OP_1),temp79b,temp79c)
+  end if
+#else
+  temp = 0.
+#endif
+
+  tebfkapparl = (gam - 1.) * temp
+  return
+end function tebfkapparl
 vectype function teffkappar(e,f,g,h,j,k)
 
   use basic
@@ -11983,4 +12114,5 @@ vectype function t3tnchi(e,f,g,h)
 
   return
 end function t3tnchi
+! ===========
 end module metricterms_new

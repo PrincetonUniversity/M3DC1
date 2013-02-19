@@ -3437,35 +3437,37 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
     else  ! on linear.eq.0
        ! Assumes no contribution from equilibrium f
 
-       temp = tepsipsikappar(trial,lin,ps079,pp079,b2i79,kar79) &
+        temp = tepsipsikappar(trial,lin,ps079,pp079,b2i79,kar79) &
             + tepsipsikappar(trial,ps079,lin,pp079,b2i79,kar79) &
-            + tepsibkappar  (trial,lin,bz079,pp079,b2i79,kar79)
-       ssterm(psi_g) = ssterm(psi_g) -       thimpf     *dt*temp
-       ddterm(psi_g) = ddterm(psi_g) + (1. - thimpf*bdf)*dt*temp
+             + tepsibkapparl  (trial,lin,bz079,pp079,b2i79,kar79)
+        ssterm(psi_g) = ssterm(psi_g) -       thimpf     *dt*temp
+        ddterm(psi_g) = ddterm(psi_g) + (1. - thimpf*bdf)*dt*temp
 
        if(numvar.ge.2) then
-          temp = tepsibkappar(trial,ps079,lin,pp079,b2i79,kar79) &
-               + tebbkappar  (trial,lin,bz079,pp079,b2i79,kar79) &
-               + tebbkappar  (trial,bz079,lin,pp079,b2i79,kar79)
+          temp = tepsibkapparl(trial,ps079,lin,pp079,b2i79,kar79) &
+               + tebbkapparl  (trial,lin,bz079,pp079,b2i79,kar79) &
+               + tebbkapparl  (trial,bz079,lin,pp079,b2i79,kar79)
           ssterm(bz_g) = ssterm(bz_g) -       thimpf     *dt*temp
           ddterm(bz_g) = ddterm(bz_g) + (1. - thimpf*bdf)*dt*temp
        end if
 
-       temp = tepsipsikappar(trial,ps079,ps079,lin,b2i79,kar79) &
-            + tepsibkappar  (trial,ps079,bz079,lin,b2i79,kar79) &
-            + tebbkappar    (trial,bz079,bz079,lin,b2i79,kar79)
-       ssterm(pp_g) = ssterm(pp_g) -       thimp     *dt*temp
-       ddterm(pp_g) = ddterm(pp_g) + (1. - thimp*bdf)*dt*temp
-
+        temp = tepsipsikappar(trial,ps079,ps079,lin,b2i79,kar79) &
+             + tepsibkapparl  (trial,ps079,bz079,lin,b2i79,kar79) &
+             + tebbkapparl    (trial,bz079,bz079,lin,b2i79,kar79)
+        ssterm(pp_g) = ssterm(pp_g) -       thimp     *dt*temp
+        ddterm(pp_g) = ddterm(pp_g) + (1. - thimp*bdf)*dt*temp
+ !
 
        if(i3d.eq.1 .and. numvar.ge.2) then
           temp = tepsifkappar(trial,ps079,lin,pp079,b2i79,kar79) &
-               + tebfkappar  (trial,bz079,lin,pp079,b2i79,kar79)
+               + tebfkapparl (trial,bz079,lin,pp079,b2i79,kar79)
           r_bf = r_bf -       thimp_bf     *dt*temp
           q_bf = q_bf + (1. - thimp_bf*bdf)*dt*temp
        endif
+
     endif  ! on linear.eq.0
   endif  ! on kappar.ne.0
+ 
 
   ! Cross-field Heat Flux
   ! ~~~~~~~~~~~~~~~~~~~~~
