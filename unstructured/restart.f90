@@ -249,7 +249,8 @@ subroutine wrrestartglobal
      print *, "must use wrrestart on ibm instead of wrrestartglobal"
      call safestop(9229)
 #else
-     open(56,file='C1restart',form='unformatted',status='old', ACCESS='append')
+     open(56,file='C1restart',form='unformatted',status='old',&
+          position='append')
 #endif
      endfile 56
   else

@@ -1536,7 +1536,7 @@ end subroutine calculate_ke
 
    delta_phi = 2. * pi / nplanes
 
-!$ \Phi_1(x) = ( |x|-1)^2( 2|x|+1), |x| \leq 1 $
+! $ \Phi_1(x) = ( |x|-1)^2( 2|x|+1), |x| \leq 1 $
    if(N .le. 0) then
       i1ck = delta_phi
       i1sk = 0.
