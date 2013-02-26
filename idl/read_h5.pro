@@ -3587,23 +3587,23 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        p=read_field('p', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange, phi=phi0)
        den=read_field('den', x, y, t, slices=time, mesh=mesh,  $
                         filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange, phi=phi0)
        p_p = read_field('p', x, y, t, slices=time, mesh=mesh,  $
                         filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange, op=11)
+                        rrange=xrange, zrange=yrange, phi=phi0, op=11)
        den_p = read_field('den', x, y, t, slices=time, mesh=mesh,  $
                         filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange, op=11)
-       psi=read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        rrange=xrange, zrange=yrange, phi=phi0, op=11)
+       psi=read_field('psi', x, y, t, slices=time, mesh=mesh, phi=phi0, $
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange, /equilibrium)
-       i=read_field('i', x, y, t, slices=time, mesh=mesh, $
+       i=read_field('i', x, y, t, slices=time, mesh=mesh, phi=phi0, $
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange, /equilibrium)
-       f_p=read_field('f', x, y, t, slices=time, mesh=mesh, $
+       f_p=read_field('f', x, y, t, slices=time, mesh=mesh, phi=phi0, $
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange, /equilibrium, op=11)
        kappar = read_parameter(filename=filename, 'kappar')
@@ -3631,20 +3631,20 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        d = dimensions(/p0,/v0)
 
    ;===========================================
-   ; parallel power flux
+   ; convective power flux
    ;===========================================
     endif else if((strcmp('convective heat flux', name, /fold_case) eq 1) or $
        (strcmp('qcon', name, /fold_case) eq 1)) then begin
 
        p=read_field('p', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange, phi=phi0)
        phi = read_field('phi', x, y, t, slices=time, mesh=mesh,  $
                         filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange, phi=phi0)
        chi = read_field('chi', x, y, t, slices=time, mesh=mesh,  $
                         filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange, phi=phi0)
        gamma = read_parameter(filename=filename, 'gam')
 
        r = radius_matrix(x,y,t)

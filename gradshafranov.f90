@@ -447,7 +447,7 @@ subroutine define_profiles
      if(iread_ne.ne.0) then
         if(myrank.eq.0) &
              print *, 'ERROR: cannot read both ne and Te profiles with&
-        \ ipres=0 and eqsubtract=0'
+        & ipres=0 and eqsubtract=0'
         call safestop(17)
      end if
 
