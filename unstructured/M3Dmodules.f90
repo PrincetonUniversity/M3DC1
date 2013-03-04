@@ -144,6 +144,7 @@ module basic
   real :: bscale      ! factor by which to scale equilibrium toroidal field
   real :: vscale      ! factor by which to scale equilibrium toroidal rotation
   real :: bpscale     ! factor by which to scale F'
+  real :: batemanscale! Bateman scaling of toroidal field, keeping current density fixed
   integer :: iread_bscale
   integer :: iread_pscale
   real :: ln          ! length of equilibrium gradient
@@ -249,6 +250,9 @@ module basic
   integer :: equilibrate ! 1 = scale trial functions so L2 norms = 1
   integer :: itime_independent ! 1 = exclude d/dt terms
   integer :: iset_pe_floor
+  integer :: idiff       ! 1 = solve for difference in solution from n to n+1
+  integer :: petsc_it_max! if.gt.0  max number of petsc iterations before time step is reduced
+  integer :: repeat_timestep! if .gt.0 max number of iterations before time step is repeated
   real :: dt, dtold      ! timestep (present and previous)
   real :: dtmin,dtmax,dtkecrit,dtfrac,dtgamma  ! quantities used in variable_timestep option
   real :: ddt            ! change in timestep per timestep

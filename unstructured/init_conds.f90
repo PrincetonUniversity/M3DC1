@@ -1967,7 +1967,7 @@ subroutine eqdsk_init()
 
   implicit none
 
-  integer :: l, numnodes
+  integer :: l, ll, numnodes
   real :: x, phi, z , dpsi
 
   real, allocatable :: flux(:)
@@ -2012,6 +2012,10 @@ subroutine eqdsk_init()
   xmag = rmaxis
   zmag = zmaxis
   rzero = rmaxis
+!
+! Bateman scaling parameter reintroduced
+  fpol(nw) = fpol(nw)*batemanscale
+!
   bzero = fpol(nw)/rzero
 
   if(igs.gt.0) then
@@ -2023,6 +2027,10 @@ subroutine eqdsk_init()
         
         do l=1,nw
            flux(l) = (l-1)*dpsi
+           ll = nw - l
+           if(batemanscale.eq.1.0) cycle
+! ...Apply Bateman scaling --- redefine fpol keeping ffprim fixed
+           if(ll.gt.0) fpol(ll) = sign(1.0,fpol(nw))*sqrt(fpol(ll+1)**2 - dpsi*(ffprim(ll)+ffprim(ll+1)))
         end do
         call create_profile(nw,press,pprime,fpol,ffprim,flux)
         call create_rho_from_q(nw,flux,qpsi)
