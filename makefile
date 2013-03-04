@@ -129,9 +129,6 @@ all : $(BIN)
 $(BIN): $(OBJS)
 	$(LOADER) $(LDOPTS) $(OBJS) $(LIBS) -o $@
 
-make_polar : make_polar.c
-	$(CC) $< -lm -o $@
-
 readgato :  $(READGATO_OBJS)
 	$(F90) $(READGATO_OBJS) -L$(NTCCHOME)/lib -lpspline -o $@
 

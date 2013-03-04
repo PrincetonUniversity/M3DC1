@@ -6042,7 +6042,7 @@ vectype function b1bfd2(e,f,g,h)
              +int5(ri4_79,e(:,OP_DR),g(:,OP_DRPP),f(:,OP_1),h(:,OP_1)))
 #elif defined(USE3D)
         ! here, we can integrate by parts
-        temp = temp - &
+        temp = - &
              (int5(ri4_79,e(:,OP_DZP),g(:,OP_DZPP),f(:,OP_1),h(:,OP_1))  &
              +int5(ri4_79,e(:,OP_DRP),g(:,OP_DRPP),f(:,OP_1),h(:,OP_1)))
 #endif
