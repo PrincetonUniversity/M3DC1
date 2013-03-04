@@ -71,7 +71,7 @@ int setSuperluOptions(int matrixid, superlu_options_t * options) {
    PETSc documentation is available at 
    http://www-unix.mcs.anl.gov/petsc/petsc-as/documentation/index.html
 */
-int setPETScMat(int matrixid, Mat * A) {
+extern "C" int setPETScMat(int matrixid, Mat * A) {
   PetscErrorCode ierr;
 //PetscInt ipetscmpiaij =1;
 //PetscInt ipetscsuperlu=0;
@@ -96,7 +96,7 @@ int setPETScMat(int matrixid, Mat * A) {
    PETSc documentation is available at 
    http://www-unix.mcs.anl.gov/petsc/petsc-as/documentation/index.html
 */
-int setPETScKSP(int matrixid, KSP * ksp, Mat * A) {
+extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A) {
   PetscErrorCode ierr;
   ierr = KSPCreate(MPI_COMM_WORLD, ksp);CHKERRQ(ierr);
   ierr = KSPSetOperators(*ksp, *A, *A, SAME_PRECONDITIONER /*DIFFERENT_NONZERO_PATTERN*/);CHKERRQ(ierr);
@@ -178,6 +178,14 @@ typedef struct
 // global container
 KSP_ARRAY ksp_array[MAX_LINEAR_SYSTEM];
 
+#ifndef USE_SOLVE2
+extern "C" int solve2_(int *matrixId, double * rhs_sol, int * valType, int * ier)
+{ 
+  printf(" not defined solve2, use -DUSE_SOLVE2 to compile m3dc1 \n");
+  throw 1;
+  return 0;
+}
+#else
 int solve2_(int *matrixId, double * rhs_sol, int * valType, int * ier)
 { // local variables
   static int start=0;
@@ -398,7 +406,7 @@ int solve2_(int *matrixId, double * rhs_sol, int * valType, int * ier)
 
   return 0;
 }
-
+#endif
 
 #ifdef USEHYBRID
 typedef struct
@@ -762,8 +770,8 @@ int cjprint_(int *matrixId)
   for(i=1; i<=rowSize; i++) {
      getMatrixNNZRowId_(matrixId, &valType, &i, &rowId);
      getMatrixNNZColSize_(matrixId, &valType, &rowId, &colSize);
-     colId = malloc(colSize*sizeof(int));
-     values = malloc(colSize*sizeof(double));
+     colId = (int*)malloc(colSize*sizeof(int));
+     values =(double*) malloc(colSize*sizeof(double));
      getMatrixNNZValues_(matrixId, &valType, &rowId, colId, values);
      for(j=0; j<colSize; j++) {
         lnzval[counter+j]=values[j];
