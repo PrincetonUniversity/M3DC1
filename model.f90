@@ -519,6 +519,7 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
      if(iconst_bn.eq.1) then
         call get_node_data(psi_field(1), i, temp)
         ! add loop voltage
+        if(idiff .gt. 0) temp = 0.
         if(igauge.eq.0) temp(1) = temp(1) + dt*vloop/twopi
         call set_dirichlet_bc(i_psi,rhs,temp,normal,curv,izonedim,mat)
      end if
@@ -532,6 +533,7 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
      ! no tangential current = n.Grad(F)/R + t.Grad(psi')/R^2
      if(inocurrent_pol.eq.1 .and. numvar.ge.2) then
         call get_node_data(bz_field(1), i, temp)
+        if(idiff .gt. 0) temp = 0
         call set_normal_bc(i_bz,rhs,temp,normal,curv,izonedim,mat)
      end if
 
@@ -544,15 +546,18 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
 !           temp2 = 0.
 !        endif
            call get_node_data(psi_field(1), i, temp)
+           if(idiff .gt. 0) temp = 0
            call set_normalp_bc(i_psi,rhs,temp,normal,curv,izonedim,mat)
         endif
 
         if(numvar.ge.2) then
            call get_node_data(bz_field(1), i, temp)
+           if(idiff .gt. 0) temp = 0
            call set_dirichlet_bc(i_bz,rhs,temp,normal,curv,izonedim,mat)
         endif
      else if(iconst_bz.eq.1 .and. numvar.ge.2) then
         call get_node_data(bz_field(1), i, temp)
+        if(idiff .gt. 0) temp = 0
         call set_dirichlet_bc(i_bz,rhs,temp,normal,curv,izonedim,mat)
      endif
 
@@ -634,6 +639,7 @@ subroutine boundary_den(rhs, den_v, mat)
      end if
      if(iconst_n.eq.1) then
         call get_node_data(den_field(1), i, temp)
+        if(idiff .gt. 0) temp = 0.   ! this is for change in density from n to n+1
         call set_dirichlet_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
      end if
 
@@ -682,6 +688,9 @@ subroutine boundary_te(rhs, te_v, mat)
      end if
      if(iconst_t.eq.1) then
         call get_node_data(te_field(1), i, temp)
+
+        if(idiff .gt. 0) temp = 0.
+
         call set_dirichlet_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
      end if
 
@@ -725,6 +734,9 @@ subroutine boundary_ti(rhs, ti_v, mat)
      end if
      if(iconst_t.eq.1) then
         call get_node_data(ti_field(1), i, temp)
+
+        if(idiff .gt. 0) temp = 0.
+
         call set_dirichlet_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
      end if
 
@@ -774,6 +786,9 @@ subroutine boundary_p(rhs, p_v, mat)
      end if
      if(iconst_p.eq.1) then
         call get_node_data(p_field(1), i, temp)
+       
+        if(idiff .gt. 0) temp = 0.
+
         call set_dirichlet_bc(i_p,rhs,temp,normal,curv,izonedim,mat)
      end if
    end do
@@ -820,6 +835,9 @@ subroutine boundary_pe(rhs, pe_v, mat)
      end if
      if(iconst_p.eq.1) then
         call get_node_data(pe_field(1), i, temp)
+
+        if(idiff .gt. 0) temp = 0.
+
         call set_dirichlet_bc(i_pe,rhs,temp,normal,curv,izonedim,mat)
      end if
   end do

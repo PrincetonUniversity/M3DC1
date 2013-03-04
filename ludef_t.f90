@@ -306,7 +306,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
         temp = v1psif(trial,ps179,lin) &
              + v1bf  (trial,bz179,lin)
         r_bf = r_bf -     thimp_bf     *dt*temp
-        q_bf = q_bf + (1.-thimp_bf*bdf)*dt*temp
+        q_bf = q_bf + (.5-thimp_bf*bdf)*dt*temp
      end if
      if(eqsubtract.eq.1) then
         temp = v1psif(trial,lin,bf079)
@@ -4175,12 +4175,14 @@ subroutine ludefphi_n(itri)
         ss(:,:,pe_g) = ss(:,:,pe_g)*pefac
         dd(:,:,pe_g) = dd(:,:,pe_g)*pefac
      end if
-
+     
+     if(idiff .gt. 0) dd(:,:,psi_g) = dd(:,:,psi_g) - ss(:,:,psi_g)
      call insert_block(bb1,itri,ieq(k),psi_i,ss(:,:,psi_g),MAT_ADD)
      call insert_block(bb0,itri,ieq(k),psi_i,dd(:,:,psi_g),MAT_ADD)
      call insert_block(bv1,itri,ieq(k),  u_i,ss(:,:,  u_g),MAT_ADD)
      call insert_block(bv0,itri,ieq(k),  u_i,dd(:,:,  u_g),MAT_ADD)
      if(numvar.ge.2) then
+        if(idiff .gt. 0) dd(:,:,bz_g) = dd(:,:,bz_g) - ss(:,:,bz_g)
         call insert_block(bb1,itri,ieq(k), bz_i,ss(:,:,bz_g),MAT_ADD)
         call insert_block(bb0,itri,ieq(k), bz_i,dd(:,:,bz_g),MAT_ADD)
         call insert_block(bv1,itri,ieq(k), vz_i,ss(:,:,vz_g),MAT_ADD)
@@ -4190,9 +4192,11 @@ subroutine ludefphi_n(itri)
         ! if ipres==0, total pressure equation is in pe_i slot
         if(ipressplit.eq.0) then
            if(ipres.eq.0) then
+              if(idiff .gt. 0) dd(:,:,p_g) = dd(:,:,p_g) - ss(:,:,p_g)
               call insert_block(bb1,itri,ieq(k), pp_i,ss(:,:,  p_g),MAT_ADD)
               call insert_block(bb0,itri,ieq(k), pp_i,dd(:,:,  p_g),MAT_ADD)
            end if
+           if(idiff .gt. 0) dd(:,:,pe_g) = dd(:,:,pe_g) - ss(:,:,pe_g)
            call insert_block(bb1,itri,ieq(k), ppe_i,ss(:,:, pe_g),MAT_ADD)
            call insert_block(bb0,itri,ieq(k), ppe_i,dd(:,:, pe_g),MAT_ADD)
         end if
@@ -4204,8 +4208,9 @@ subroutine ludefphi_n(itri)
         call insert_block(bn0,itri,ieq(k),den_i,dd(:,:,den_g),MAT_ADD)
      endif
      if(i3d.eq.1 .and. numvar.ge.2) then
+        if(imp_bf.eq.1 .and. idiff .gt. 0) q_bf(:,:) = q_bf(:,:) - r_bf(:,:)
         call insert_block(bf0,itri,ieq(k),bf_i,q_bf(:,:),MAT_ADD)
-        if(imp_bf.eq.1) then
+        if(imp_bf.eq.1) then  
            call insert_block(bf1,itri,ieq(k),bf_i,r_bf(:,:),MAT_ADD)
         end if
      endif
@@ -4364,7 +4369,9 @@ subroutine ludefpres_n(itri)
         endif  ! ipressplit
      end do  ! on i
 
+
      if(ipressplit.eq.0) then
+        if(idiff .gt. 0) dd(:,:, p_g) = dd(:,:, p_g) - ss(:,:, p_g)
         call insert_block(pp1,itri,ieq(k),  p_i,ss(:,:,  p_g),MAT_ADD)
         call insert_block(pp0,itri,ieq(k),  p_i,dd(:,:,  p_g),MAT_ADD)
         call insert_block(pv1,itri,ieq(k),  u_i,ss(:,:,  u_g),MAT_ADD)
@@ -4390,17 +4397,27 @@ subroutine ludefpres_n(itri)
 
         select case(imode)
         case(1)
+           if(idiff .gt. 0) dd(:,:, p_g) = dd(:,:, p_g) - ss(:,:, p_g)
            call insert_block(pp1,itri,ieq(k),  p_i,ss(:,:,  p_g),MAT_ADD)
            call insert_block(pp0,itri,ieq(k),  p_i,dd(:,:,  p_g),MAT_ADD)
         case(2)
+           if(idiff .gt. 0) dd(:,:, te_g) = dd(:,:, te_g) - ss(:,:, te_g)
            call insert_block(pp1,itri,ieq(k),  te_i,ss(:,:,  te_g),MAT_ADD)
            call insert_block(pp0,itri,ieq(k),  te_i,dd(:,:,  te_g),MAT_ADD)
         case(3)
+           if(idiff .gt. 0) then
+                                                 dd(:,:, p_g) = dd(:,:, p_g) - ss(:,:, p_g)
+                                                 dd(:,:, pe_g) = dd(:,:, pe_g) - ss(:,:, pe_g)
+                                                 endif
            call insert_block(pp1,itri,ieq(k),  p_i,ss(:,:,  p_g),MAT_ADD)
            call insert_block(pp0,itri,ieq(k),  p_i,dd(:,:,  p_g),MAT_ADD)
            call insert_block(pp1,itri,ieq(k), pe_i,ss(:,:, pe_g),MAT_ADD)
            call insert_block(pp0,itri,ieq(k), pe_i,dd(:,:, pe_g),MAT_ADD)
         case(4)
+        if(idiff .gt. 0) then
+                                              dd(:,:, te_g) = dd(:,:, te_g) - ss(:,:, te_g)
+                                              dd(:,:, ti_g) = dd(:,:, ti_g) - ss(:,:, ti_g)
+                                              endif
            call insert_block(pp1,itri,ieq(k), te_i,ss(:,:, te_g),MAT_ADD)
            call insert_block(pp0,itri,ieq(k), te_i,dd(:,:, te_g),MAT_ADD)
            call insert_block(pp1,itri,ieq(k), ti_i,ss(:,:, ti_g),MAT_ADD)
@@ -4585,6 +4602,7 @@ subroutine ludefden_n(itri)
   enddo                     ! on i
      
   if(isplitstep.eq.0) rrterm = -rrterm
+  if(idiff .gt. 0) ddterm = ddterm - ssterm
 
   call insert_block(nn1,itri,den_i,den_i,ssterm,MAT_ADD)
   call insert_block(nn0,itri,den_i,den_i,ddterm,MAT_ADD)

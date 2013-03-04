@@ -123,6 +123,8 @@ subroutine onestep
 
   ! copy time advance vectors to field data
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Exporting time advance vectors.."
+
+! if(eqsubtract.eq.0) call subtract_axi    !DEBUG
   call export_time_advance_vectors
 
 

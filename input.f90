@@ -241,6 +241,7 @@ subroutine set_defaults
   call add_var_int("iteratephi", iteratephi, 0, "", time_grp)
   call add_var_int("imp_mod", imp_mod, 1, &
        "Type of split step.  0: Standard;  1: Caramana", time_grp)
+  call add_var_int("idiff", idiff, 0, "only solve for difference", time_grp)
   call add_var_int("irecalc_eta", irecalc_eta, 0, "", time_grp)
   call add_var_int("iconst_eta", iconst_eta, 0, "", time_grp)
   call add_var_int("itime_independent", itime_independent, 0, "", time_grp)
@@ -262,7 +263,10 @@ subroutine set_defaults
   call add_var_double("dtkecrit",dtkecrit,0.0,"ekin limit on timestep",time_grp)
   call add_var_double("dtgamma",dtgamma,0.0,"dt*gamma limit on time step",time_grp)
   call add_var_double("dtfrac",dtfrac,0.1,"fractional change of time step",time_grp)
-  
+  call add_var_int("petsc_it_max", petsc_it_max, 0, &
+       "if.gt.0, max petsc iterations before ts reduced", time_grp)
+  call add_var_int("repeat_timestep", repeat_timestep, 0, &
+       "if.gt.0, max petsc iterations before ts repeated", time_grp)
 
   ! Numerical methods
   call add_var_int("jadv", jadv, 0, &
@@ -358,6 +362,8 @@ subroutine set_defaults
        "Factor multiplying pressure profile", gs_grp)
   call add_var_double("bscale", bscale, 1., &
        "Factor multiplying toroidal field profile", gs_grp)
+  call add_var_double("batemanscale", batemanscale, 1., &
+       "Bateman scaling factor for TF (keeping current density fixed)", gs_grp)
   call add_var_double("bpscale", bpscale, 1., &
        "Factor multiplying F' (keeping F0 constant)", gs_grp)
   call add_var_int("iread_bscale", iread_bscale, 0, &

@@ -787,6 +787,11 @@ subroutine step_split(calc_matrices)
 #endif 
 
      call newsolve(s8_mat, temp, jer)
+
+     if(idiff .gt. 0) then
+         call add(temp,den_vec)  ! add time n density to increment to get time n+1 value
+     endif
+
      if(linear.eq.0) call clear_mat(s8_mat)
 
 #ifdef CJ_MATRIX_DUMP
@@ -879,6 +884,10 @@ subroutine step_split(calc_matrices)
      call newsolve(s9_mat, temp, jer)
      if(linear.eq.0) call clear_mat(s9_mat)
 
+    if(idiff .gt. 0) then
+         call add(temp,pres_vec)
+     endif
+
 
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.2) then
@@ -966,7 +975,6 @@ subroutine step_split(calc_matrices)
   endif
 #endif 
 
-
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Temperature--before newsolve"
      call newsolve(s9_mat, temp, jer)
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Temperature--after newsolve"
@@ -977,6 +985,10 @@ subroutine step_split(calc_matrices)
      call write_vector(temp, 's9_mat_sol.out')
   endif
 #endif 
+
+     if(idiff .gt. 0) then
+         call add(temp,pret_vec)
+     endif
 
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
@@ -1072,6 +1084,11 @@ subroutine step_split(calc_matrices)
 
      call newsolve(s2_mat, b1_phi, jer)
      if(linear.eq.0 .and. iteratephi.eq.0) call clear_mat(s2_mat)
+
+
+   if(idiff .gt. 0) then
+         call add(b1_phi,phi_vec)
+   endif
 
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.2) then
@@ -1223,4 +1240,66 @@ subroutine step_split(calc_matrices)
 end subroutine step_split
 
 
+subroutine subtract_axi
+
+    use basic
+    use mesh_mod
+    use arrays
+    implicit none
+    integer:: l,numnodes
+    vectype, dimension (dofs_per_node) :: vec_l, axi_l
+    type(field_type) :: axi
+
+    call create_field(axi)
+    numnodes = owned_nodes()
+
+    do l=1,numnodes
+        call get_node_data(u_v,l,vec_l)
+        call set_node_data(axi,l,vec_l)
+    enddo
+
+    call finalize(axi%vec)
+    call sum_vec_planes(axi%vec%data)
+
+    do l=1,numnodes
+        call get_node_data(axi,l,axi_l)
+        call get_node_data(u_v,l,vec_l)
+        vec_l = vec_l - axi_l/nplanes
+        call set_node_data(u_v,l,vec_l)
+    enddo
+    call finalize(u_v%vec)
+    
+    do l=1,numnodes
+        call get_node_data(vz_v,l,vec_l)
+        call set_node_data(axi,l,vec_l)
+    enddo
+
+    call finalize(axi%vec)
+    call sum_vec_planes(axi%vec%data)
+
+    do l=1,numnodes
+        call get_node_data(axi,l,axi_l)
+        call get_node_data(vz_v,l,vec_l)
+        vec_l = vec_l - axi_l/nplanes
+        call set_node_data(vz_v,l,vec_l)
+    enddo
+    call finalize(vz_v%vec)
+
+    do l=1,numnodes
+        call get_node_data(chi_v,l,vec_l)
+        call set_node_data(axi,l,vec_l)
+    enddo
+
+    call finalize(axi%vec)
+    call sum_vec_planes(axi%vec%data)
+
+    do l=1,numnodes
+        call get_node_data(axi,l,axi_l)
+        call get_node_data(chi_v,l,vec_l)
+        vec_l = vec_l - axi_l/nplanes
+        call set_node_data(chi_v,l,vec_l)
+    enddo
+    call finalize(chi_v%vec)
+
+end subroutine subtract_axi
 end module time_step_split
