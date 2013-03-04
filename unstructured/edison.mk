@@ -24,7 +24,7 @@ endif
 
 ifeq ($(USESCOREC), 1)
     ifndef SCORECDIR
-      SCORECDIR = /project/projectdirs/mp288/lib/hopper2/scorec/install-Opt
+      SCORECDIR = /global/project/projectdirs/mp288/edison/scorec/install-Opt/
     endif
 
 SCOREC_LIBS =  \
@@ -50,17 +50,24 @@ SCOREC_LIBS =  \
         $(SCORECDIR)/lib/libSCORECUtil.a
 
   INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
-  LIBS := $(LIBS) $(SCOREC_LIBS) -lC -lstd
+  LIBS := $(LIBS) \
+        -L$(SCORECDIR)/lib $(SCOREC_LIBS) \
+	-L/opt/cray/cce/8.1.4/CC/x86-64/lib/x86-64 -lcray-c++-rts -lcraystdc++\
+	-lmpichcxx_cray
 
-#  PARMETIS = -lparmetis -lmetis
-#ichi  PARMETIS = -L/global/u2/y/yamazaki/libs/scotch_5.1/lib -lptscotchparmetis -lptscotch -lptscotcherr -lptscotcherrexit \
-             -lparmetis -lmetis
+#PARMETIS = -lparmetis_cray -lmetis_cray
+
+#PARMETIS = -L/global/project/projectdirs/mp288/edison/scorec/parmetis/ParMetis-3.1.1/lib -lparmetis -lmetis
+
+PARMETIS = -lparmetis -lmetis
 
 else
 #  OPTS := $(OPTS) -DPetscDEV
 endif   # on USESCOREC
 
-OPTS := $(OPTS) -DPetscDEV -DUSEADIOS -DKSPITS #-DUSEHYBRID -DCJ_MATRIX_DUMP
+AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
+
+OPTS := $(OPTS) -DPetscDEV -DKSPITS #-DUSEADIOS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 #PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev-SUPERLU-HYPRE-MUMPS/petsc-dev-060711/petsc-dev
 #PETSC_ARCH = arch-cray-xt6-pkgs-opt
 #SUPERLU_DIST = -lsuperlu_dist_2.5
@@ -69,8 +76,8 @@ OPTS := $(OPTS) -DPetscDEV -DUSEADIOS -DKSPITS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 
 #only define them if adios-1.3 is used; otherwise use hopper default
 #ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
-ADIOS_DIR=/global/homes/p/pnorbert/adios/1.3.1/hopper/pgi/
-ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf -L/global/homes/p/pnorbert/mxml/mxml.hopper/lib -lm -lmxml -llustreapi -pgcpplibs
+#ADIOS_DIR=/global/homes/p/pnorbert/adios/1.3.1/hopper/pgi/
+#ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf -L/global/homes/p/pnorbert/mxml/mxml.hopper/lib -lm -lmxml -llustreapi -pgcpplibs
 
 INCLUDE := $(INCLUDE) $(HDF5_INCLUDE_OPTS) $(FFTW_INCLUDE_OPTS) \
 	-I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
@@ -80,7 +87,7 @@ LIBS := $(LIBS) $(HDF5_POST_LINK_OPTS) -lhdf5_fortran -lhdf5 \
 	$(FFTW_POST_LINK_OPTS) -lfftw3 \
 	$(HYPRE) $(MUMPS) $(PARMETIS) -ldl \
         $(HYBRID_LIBS) \
-        $(ADIOS_FLIB)
+	$(ADIOS_LIB) $(ADIOS_FLIB)
 
 FOPTS = -c -s real64 -e Z $(OPTS) \
 	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs

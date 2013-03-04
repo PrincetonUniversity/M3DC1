@@ -1341,7 +1341,7 @@ subroutine deltafun(x,z,val,jout)
   type(element_data) :: d
   real, intent(in) :: x, z, val
   real :: val2
-  type(field_type), intent(out) :: jout
+  type(field_type), intent(inout) :: jout
 
   integer :: itri, i, k,in_domain, in_domains, ier
   real :: x1, z1, si, zi, eta
