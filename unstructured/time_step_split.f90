@@ -1268,6 +1268,7 @@ subroutine subtract_axi
         call set_node_data(u_v,l,vec_l)
     enddo
     call finalize(u_v%vec)
+    if(numvar.lt.2) return
     
     do l=1,numnodes
         call get_node_data(vz_v,l,vec_l)
@@ -1284,6 +1285,7 @@ subroutine subtract_axi
         call set_node_data(vz_v,l,vec_l)
     enddo
     call finalize(vz_v%vec)
+    if(numvar.lt.3) return
 
     do l=1,numnodes
         call get_node_data(chi_v,l,vec_l)
