@@ -249,11 +249,11 @@ vectype function q_func(i)
      if(ivform.eq.0) then
         temp = temp &
              - 2.*nb_v*int4(ri_79,mu79(:,OP_1,i),temp79a,vzt79(:,OP_1)) &
-             + int5(ri_79,mu79(:,OP_1,i),temp79a,vzt79(:,OP_1),vzt79(:,OP_1))
+             + int5(ri2_79,mu79(:,OP_1,i),temp79a,vzt79(:,OP_1),vzt79(:,OP_1))
      else
         temp = temp &
              - 2.*nb_v*int4(r_79,mu79(:,OP_1,i),temp79a,vzt79(:,OP_1)) &
-             + int5(r_79,mu79(:,OP_1,i),temp79a,vzt79(:,OP_1),vzt79(:,OP_1))
+             + int5(r2_79,mu79(:,OP_1,i),temp79a,vzt79(:,OP_1),vzt79(:,OP_1))
      endif
   endif
 

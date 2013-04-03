@@ -25,7 +25,8 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      nv = .5
   end if
 
-  if(imp_bf.eq.1) then
+
+  if(imp_bf.eq.1 .and. isplitstep.eq.0) then
      thimp_bf = thimp
   else
      thimp_bf = 0.
@@ -547,7 +548,8 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      ththm = (1.-thimp*bdf)*thimp
   end select
 
-  if(imp_bf.eq.1) then
+
+  if(imp_bf.eq.1 .and. isplitstep.eq.0) then
      thimp_bf = thimp
   else
      thimp_bf = 0.
@@ -979,7 +981,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      ththm = (1.-thimp*bdf)*thimp
   end select
 
-  if(imp_bf.eq.1) then
+  if(imp_bf.eq.1 .and. isplitstep.eq.0) then
      thimp_bf = thimp
   else
      thimp_bf = 0.
@@ -3943,16 +3945,18 @@ subroutine ludefvel_n(itri)
            call compression_nolin(mu79(:,:,i),r4(i))
         end select
      end do
-
+     if(idifv .gt. 0) dd(:,:,  u_g) = dd(:,:,  u_g) - ss(:,:,  u_g)
      call insert_block(vv1,itri,ieq(k),  u_i,ss(:,:,  u_g),MAT_ADD)
      call insert_block(vv0,itri,ieq(k),  u_i,dd(:,:,  u_g),MAT_ADD)
      call insert_block(vb0,itri,ieq(k),psi_i,dd(:,:,psi_g),MAT_ADD)
      if(numvar.ge.2) then
+        if(idifv .gt. 0) dd(:,:,  vz_g) = dd(:,:,  vz_g) - ss(:,:,  vz_g)
         call insert_block(vv1,itri,ieq(k), vz_i,ss(:,:,vz_g),MAT_ADD)
         call insert_block(vv0,itri,ieq(k), vz_i,dd(:,:,vz_g),MAT_ADD)
         call insert_block(vb0,itri,ieq(k), bz_i,dd(:,:,bz_g),MAT_ADD)
      endif
      if(numvar.ge.3) then
+        if(idifv .gt. 0) dd(:,:,  chi_g) = dd(:,:,  chi_g) - ss(:,:,  chi_g)
         call insert_block(vv1,itri,ieq(k),chi_i,ss(:,:,chi_g),MAT_ADD)
         call insert_block(vv0,itri,ieq(k),chi_i,dd(:,:,chi_g),MAT_ADD)
      endif

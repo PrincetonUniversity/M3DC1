@@ -716,6 +716,10 @@ subroutine step_split(calc_matrices)
      call newsolve(s1_mat, b1_vel, jer)
      if(linear.eq.0) call clear_mat(s1_mat)
 
+     if(idifv .gt.0) then
+        call add(b1_vel,vel_vec)
+     endif
+
 #ifdef CJ_MATRIX_DUMP
      if(counter.le.0) then 
         call write_vector(b1_vel, 's1_mat_sol.out')

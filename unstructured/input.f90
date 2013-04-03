@@ -241,7 +241,8 @@ subroutine set_defaults
   call add_var_int("iteratephi", iteratephi, 0, "", time_grp)
   call add_var_int("imp_mod", imp_mod, 1, &
        "Type of split step.  0: Standard;  1: Caramana", time_grp)
-  call add_var_int("idiff", idiff, 0, "only solve for difference", time_grp)
+  call add_var_int("idiff", idiff, 0, "only solve for difference in B,p", time_grp)
+  call add_var_int("idifv", idifv, 0, "only solve for difference in v", time_grp)
   call add_var_int("irecalc_eta", irecalc_eta, 0, "", time_grp)
   call add_var_int("iconst_eta", iconst_eta, 0, "", time_grp)
   call add_var_int("itime_independent", itime_independent, 0, "", time_grp)

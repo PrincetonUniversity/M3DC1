@@ -250,7 +250,8 @@ module basic
   integer :: equilibrate ! 1 = scale trial functions so L2 norms = 1
   integer :: itime_independent ! 1 = exclude d/dt terms
   integer :: iset_pe_floor
-  integer :: idiff       ! 1 = solve for difference in solution from n to n+1
+  integer :: idiff       ! 1 = solve for difference in solution in B,p from n to n+1
+  integer :: idifv       ! 1 = solve for difference in solution in v from n to n+1
   integer :: petsc_it_max! if.gt.0  max number of petsc iterations before time step is reduced
   integer :: repeat_timestep! if .gt.0 max number of iterations before time step is repeated
   real :: dt, dtold      ! timestep (present and previous)
