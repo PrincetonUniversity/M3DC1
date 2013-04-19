@@ -67,7 +67,7 @@ endif   # on USESCOREC
 
 AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
 
-OPTS := $(OPTS) -DPetscDEV -DKSPITS #-DUSEADIOS #-DUSEHYBRID -DCJ_MATRIX_DUMP
+OPTS := $(OPTS) -DPetscDEV -DKSPITS # -DUSEADIOS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 #PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev-SUPERLU-HYPRE-MUMPS/petsc-dev-060711/petsc-dev
 #PETSC_ARCH = arch-cray-xt6-pkgs-opt
 #SUPERLU_DIST = -lsuperlu_dist_2.5
@@ -80,14 +80,15 @@ OPTS := $(OPTS) -DPetscDEV -DKSPITS #-DUSEADIOS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 #ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf -L/global/homes/p/pnorbert/mxml/mxml.hopper/lib -lm -lmxml -llustreapi -pgcpplibs
 
 INCLUDE := $(INCLUDE) $(HDF5_INCLUDE_OPTS) $(FFTW_INCLUDE_OPTS) \
-	-I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
-        -I$(HYBRID_HOME)/include
+	-I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include # \
+#        -I$(HYBRID_HOME)/include
 
 LIBS := $(LIBS) $(HDF5_POST_LINK_OPTS) -lhdf5_fortran -lhdf5 \
 	$(FFTW_POST_LINK_OPTS) -lfftw3 \
-	$(HYPRE) $(MUMPS) $(PARMETIS) -ldl \
-        $(HYBRID_LIBS) \
-	$(ADIOS_LIB) $(ADIOS_FLIB)
+	$(HYPRE) $(MUMPS) $(PARMETIS) -ldl # \
+#	$(ADIOSREAD_LIB) $(ADIOS_LIB) -ladiosf_v1 -lxml
+#        $(HYBRID_LIBS) \
+
 
 FOPTS = -c -s real64 -e Z $(OPTS) \
 	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs
@@ -96,7 +97,7 @@ CCOPTS  = -c -O $(OPTS)
 # Optimization flags
 ifeq ($(OPT), 1)
   LDOPTS := $(LDOPTS)
-  FOPTS  := $(FOPTS) 
+  FOPTS  := $(FOPTS)  -O0
   CCOPTS := $(CCOPTS)
 else
   FOPTS := $(FOPTS) -g -Mbounds
@@ -120,4 +121,4 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 	$(F77) $(F77OPTS) $(INCLUDE) $< -o $@
 
 %.o: %.f90
-	$(F90) $(F90OPTS) $(INCLUDE) -fpic $< -o $@
+	$(F90) $(F90OPTS) $(INCLUDE) $< -o $@
