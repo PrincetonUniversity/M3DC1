@@ -1,7 +1,7 @@
 subroutine add_var_double(name, var, default, desc, grp)
   implicit none
 
-  character*(*), intent(in) :: name, desc
+  character(len=*), intent(in) :: name, desc
   real :: var
   real, intent(in) :: default
   integer, intent(in) :: grp
@@ -12,7 +12,7 @@ end subroutine add_var_double
 subroutine add_var_int(name, var, default, desc, grp)
   implicit none
 
-  character*(*), intent(in) :: name, desc
+  character(len=*), intent(in) :: name, desc
   integer :: var
   integer, intent(in) :: default
   integer, intent(in) :: grp
@@ -22,7 +22,7 @@ end subroutine add_var_int
 
 subroutine add_group(name, handle)
   implicit none
-  character*(*), intent(in) :: name
+  character(len=*), intent(in) :: name
   integer, intent(out) :: handle
 
   call create_group(name//char(0), handle)
@@ -275,6 +275,7 @@ subroutine set_defaults
   call add_var_int("ivform", ivform, 0, &
        "V = R^J Grad(U)XGrad(phi) + R^K V Grad(phi) + R^L Grad(chi) |&
        &0: J=0, K=0, L=0;  1: J=2, K=2, L=-2", num_grp)
+
   call add_var_int("int_pts_main", int_pts_main, 25, "", num_grp)
   call add_var_int("int_pts_aux", int_pts_aux, 25, "", num_grp)
   call add_var_int("int_pts_diag", int_pts_diag, 25, "", num_grp)
@@ -312,6 +313,7 @@ subroutine set_defaults
   call add_var_int("irmp", irmp, 0, &
        "1: Apply nonaxisym. fields throughout plasma|&
        &2: Apply nonaxisym. fields only at boundaries", eq_grp)
+
   call add_var_int("iread_ext_field", iread_ext_field, 0, &
        "1: Read external field", eq_grp)
   call add_var_int("isample_ext_field", isample_ext_field, 1, &
