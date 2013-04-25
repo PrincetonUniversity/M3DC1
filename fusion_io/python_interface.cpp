@@ -11,6 +11,7 @@ extern "C" {
   static PyObject* fio_get_available_fields_py(PyObject*, PyObject*);
   static PyObject* fio_get_field_py(PyObject*, PyObject*);
   static PyObject* fio_get_field_name_py(PyObject*, PyObject*);
+  static PyObject* fio_get_option_name_py(PyObject*, PyObject*);
   static PyObject* fio_get_options_py(PyObject*, PyObject*);
   static PyObject* fio_open_source_py(PyObject*, PyObject*);
   static PyObject* fio_set_int_option_py(PyObject*, PyObject*);
@@ -28,6 +29,7 @@ extern "C" {
     {"get_options", fio_get_options_py, METH_VARARGS, ""},
     {"get_field", fio_get_field_py, METH_VARARGS, ""},
     {"get_field_name", fio_get_field_name_py, METH_VARARGS, ""},
+    {"get_option_name", fio_get_option_name_py, METH_VARARGS, ""},
     {"open_source", fio_open_source_py, METH_VARARGS, ""},
     {"set_int_option", fio_set_int_option_py, METH_VARARGS, ""},
     {"set_str_option", fio_set_str_option_py, METH_VARARGS, ""},
@@ -190,6 +192,22 @@ PyObject* fio_get_field_name_py(PyObject* self, PyObject *args)
 
   return Py_BuildValue("s", name.c_str());
 }
+
+PyObject* fio_get_option_name_py(PyObject* self, PyObject *args)
+{
+  int iopt;
+
+  if(!PyArg_ParseTuple(args, "i", &iopt))
+    return NULL;
+
+  std::string name;
+  int ierr = fio_get_option_name(iopt, &name);
+  if(ierr != FIO_SUCCESS)
+    return NULL;
+
+  return Py_BuildValue("s", name.c_str());
+}
+
 
 
 PyObject* fio_get_options_py(PyObject* self, PyObject *args)

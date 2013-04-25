@@ -24,7 +24,7 @@ OBJS = m3dc1_mesh.o m3dc1_field.o m3dc1_file.o
 all : libm3dc1.a libm3dc1_fortran.a libm3dc1.so
 
 libm3dc1.so : $(OBJS)
-	$(LDD) $(OBJS) -o $@
+	$(LDD) $(LDOPTS) $(OBJS) $(LIBS) -o $@
 
 libm3dc1.a : $(OBJS)
 	$(ARCH) $@ $(OBJS)

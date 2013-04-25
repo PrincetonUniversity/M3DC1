@@ -1,5 +1,6 @@
 #include "fusion_io.h"
 #include <iostream>
+#include <stdlib.h>
 
 gato_source::gato_source()
   : r_bound(0), t_bound(0), 

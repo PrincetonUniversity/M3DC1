@@ -1,0 +1,32 @@
+1. Set the following environment variables
+
+* M3DC1_ROOT should be set to the directory containing this README
+  file
+
+* M3DC1_ARCH should be set to a string describing the build
+  environment (for example "OSX")
+
+* M3DC1_INSTALL_DIR should be set to the location where files will be
+  installed.  Files will be installed under
+  $M3DC1_INSTALL_DIR/include, $M3DC1_INSTALL_DIR/lib, and
+  $M3DC1_INSTALL_DIR/bin.
+
+
+2. Create and edit the file $M3DC1_ROOT/install/make.inc.$M3DC1_ARCH
+   to specify the proper compilers and library paths.  An example
+   using the gnu compilers can be found in
+   $M3DC1_ROOT/install/make.inc.OSX .
+
+   You will need an installation of HDF5.
+   You do not need an installation of MPI.
+
+
+3. Run "make" from $M3DC1_ROOT
+
+
+4. Run "make install" from $M3DC1_ROOT.  This will install:
+   
+   Executables in     $M3DC1_INSTALL_DIR/bin/_$M3DC1_ARCH/
+   Libraries in       $M3DC1_INSTALL_DIR/lib/_$M3DC1_ARCH/
+   Headers in         $M3DC1_INSTALL_DIR/include/
+   Fortran modules in $M3DC1_INSTALL_DIR/include/_$M3DC1_ARCH/

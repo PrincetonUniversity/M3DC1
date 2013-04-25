@@ -11,7 +11,7 @@
 class m3dc1_fio_field : public fio_field {
  protected:
   int time;
-  double linfac;
+  double linfac, phase;
   bool eqsub, extsub, use_f;
   m3dc1_source* source;
  public:

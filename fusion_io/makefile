@@ -49,7 +49,7 @@ F90FLAGS := $(F90FLAGS) -DFORTRAN
 all : $(LIB) $(DLIB) $(PUSH_LIB)
 
 $(DLIB) : $(OBJS)
-	$(LDD) -G $(OBJS) -o $@
+	$(LDD) $(LDOPTS) $(OBJS) $(LIBS) -o $@
 
 $(LIB) : $(OBJS)
 	$(ARCH) $@ $(OBJS)

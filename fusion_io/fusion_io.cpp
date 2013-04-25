@@ -90,3 +90,19 @@ int fio_get_field_name(const field_type f, std::string* s)
 
   return FIO_SUCCESS; 
 }
+
+int fio_get_option_name(const int opt, std::string* s)
+{
+  switch(opt) {
+  case(FIO_TIMESLICE):    *s = "Time slice";   break;
+  case(FIO_PART):         *s = "Part";         break;
+  case(FIO_SPECIES):      *s = "Species";      break;
+  case(FIO_LINEAR_SCALE): *s = "Linear Scale"; break;
+  case(FIO_PHASE):        *s = "Phase";        break;
+  default:
+    *s = "Unknown Option";
+    return FIO_UNSUPPORTED;
+  }
+
+  return FIO_SUCCESS; 
+}

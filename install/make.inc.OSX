@@ -1,23 +1,18 @@
-CC = openmpicc
-CXX = openmpic++
-#CFLAGS = -fast -Wall
-CFLAGS = -Wall
+CC = mpicc
+CXX = mpic++
+CFLAGS = -Wall -fPIC
 
-F90 = openmpif90
-F90FLAGS = -Wall -fdefault-real-8 -g -ffpe-trap=zero -fbounds-check \
-	 -fimplicit-none
+F90 = mpif90
+F90FLAGS = -Wall -fdefault-real-8 -fimplicit-none -fPIC
 
 ARCH = ar cr
 
-LD = openmpif90
-LDFLAGS =
+LDD = $(CXX) -shared
+LD = $(CXX)
+LDFLAGS = -fPIC
 
-PYTHON = python
-PYFLAGS = 
+INCLUDE = -I/usr/local/include
 
-LIBS = -L/usr/lib -lmpi_cxx -lstdc++
+LIBS = -L/usr/lib -lgfortran
 
-HDF5_LIBS =  -L/usr/local/hdf5-1.8.5/hdf5/lib -lhdf5 -lz
-HDF5_INCLUDE = -I/usr/local/hdf5-1.8.5/hdf5/include
-
-INCLUDE := $(INCLUDE) -I/usr/include/python2.5
+HDF5_LIBS = -lhdf5 -lz
