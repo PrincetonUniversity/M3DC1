@@ -55,7 +55,7 @@ vectype function sigma_func(i)
      temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
 
-  if(ibeam.eq.1) then 
+  if(ibeam.ge.1) then
      temp79a = neutral_beam_deposition(x_79,z_79)
      temp = temp + int2(mu79(:,OP_1,i),temp79a)
   end if
@@ -243,7 +243,7 @@ vectype function q_func(i)
   endif
 
   ! Beam source
-  if(ibeam.eq.1) then
+  if(ibeam.ge.1) then
      temp79a = 0.5*neutral_beam_deposition(x_79,z_79)
      temp = temp + (nb_v**2 + nb_dv**2)*int2(mu79(:,OP_1,i),temp79a)
      if(ivform.eq.0) then
@@ -600,7 +600,7 @@ subroutine define_transport_coefficients()
   if(itemp.ge.1) def_fields = def_fields + FIELD_TE
   if(iresfunc.eq.3 .or. iresfunc.eq.4) def_fields = def_fields + FIELD_ETA
   if(ivisfunc.eq.3) def_fields = def_fields + FIELD_MU
-  if(ibeam.eq.1) def_fields = def_fields + FIELD_V
+  if(ibeam.ge.1) def_fields = def_fields + FIELD_V
   if(ipforce.gt.0) def_fields = def_fields + FIELD_PHI + FIELD_CHI + FIELD_NI
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, '  defining...'

@@ -861,7 +861,7 @@ subroutine validate_input
 
   density_source = idens.eq.1 .and. &
        (ipellet.ge.1 .or. ionization.ge.1 .or. isink.gt.0 .or. idenfloor.gt.0 .or. ibeam.ge.1)
-  momentum_source = ibeam.ge.1
+  momentum_source = ibeam.eq.1
   heat_source = (numvar.ge.3 .or. ipres.eq.1) .and. &
        (igaussian_heat_source.eq.1 .or. ibeam.ge.1)
 
@@ -878,7 +878,7 @@ subroutine validate_input
   p0_norm = b0_norm**2/(4.*pi)
   e0_norm = v0_norm*b0_norm / c_light
   
-  if(ibeam.eq.1) call neutral_beam_init
+  if(ibeam.ge.1) call neutral_beam_init
 
 end subroutine validate_input
 
