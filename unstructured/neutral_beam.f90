@@ -2,7 +2,8 @@ module neutral_beam
 
   implicit none
 
-  integer :: ibeam  ! 1 = include neutral beam source
+  integer :: ibeam  ! 1 = include neutral beam source with torque
+                    ! 2 = include beam source but no torque
   real :: beam_x    ! x coordinate of pellet injection
   real :: beam_z    ! z coordinate of pellet injection
   real :: beam_v    ! beam voltage (in volts)
