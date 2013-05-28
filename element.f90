@@ -47,6 +47,8 @@ module element
   integer, parameter :: dofs_per_element = nodes_per_element*dofs_per_node
   integer, parameter :: coeffs_per_element = coeffs_per_tri*coeffs_per_dphi
 
+  integer :: iprecompute_metric
+
   type element_data
      real :: R, Phi, Z, a, b, c, d, co, sn, itri
   end type element_data
@@ -61,6 +63,7 @@ module element
 
   real, allocatable :: gtri(:,:,:)
   real, allocatable :: htri(:,:,:)
+  real, allocatable :: ctri(:,:,:)
   real, allocatable :: equil_fac(:,:)
 contains
 
@@ -494,11 +497,18 @@ contains
     real, dimension(dofs_per_element,coeffs_per_element) :: cl
     integer :: j
 
-    call local_coeff_vector(itri, cl)
     c = 0.
-    do j=1, dofs_per_element
-       c(:) = c(:) + cl(j,:)*dof(j)
-    end do
+    if(iprecompute_metric.eq.1) then 
+       do j=1, dofs_per_element
+          c(:) = c(:) + ctri(j,:,itri)*dof(j)
+       end do       
+    else
+       call local_coeff_vector(itri, cl)
+       
+       do j=1, dofs_per_element
+          c(:) = c(:) + cl(j,:)*dof(j)
+       end do
+    end if
   end subroutine local_coeffs
 
 

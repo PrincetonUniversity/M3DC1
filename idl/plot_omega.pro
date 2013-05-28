@@ -1,5 +1,6 @@
 pro plot_omega, filename=filename, slice=time, points=pts, $
-                yrange=yrange, q_val=q_val, _EXTRA=extra
+                yrange=yrange, q_val=q_val, $
+                mtop=mtop, mslope=mslope, _EXTRA=extra
 
   if(n_elements(pts) eq 0) then pts=200
 
@@ -77,8 +78,11 @@ pro plot_omega, filename=filename, slice=time, points=pts, $
       psin = flux_at_q(q_val,slice=slice,filename=filename,$
                        points=pts,bins=bins,/norm,_EXTRA=extra)
       print, psin
-      top = (!y.crange[1] - !y.crange[0])*$
-        (n_elements(q_val) - findgen(n_elements(q_val)))/30. $
+      if(n_elements(mtop) eq 0) then mtop = 0.05
+      if(n_elements(mslope) eq 0) then mslope = 0.
+      top =  $
+        (!y.crange[1] - !y.crange[0])*mslope*findgen(n_elements(q_val)) $
+        +(!y.crange[1] - !y.crange[0])*(1.-mtop) $
         + !y.crange[0]
       m_str = string(format='(I2)', m)
       m_str[0] = 'm = ' + m_str[0]
