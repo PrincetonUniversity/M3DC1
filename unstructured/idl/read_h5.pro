@@ -3211,7 +3211,49 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
         endif
 
        data = data / sqrt(psi0_r^2 + psi0_z^2)
-       symbol = '!8B!Dr!N!X'
+       symbol = '!8B!Dn!N!X'
+       d = dimensions(/b0, _EXTRA=extra)
+
+   ;===========================================
+   ; poloidal field
+   ;===========================================
+   endif else if(strcmp('bpol', name, /fold_case) eq 1) then begin
+
+       psi0_r = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+                        filename=filename, points=pts, slices=time, $
+                        rrange=xrange, zrange=yrange, mask=mask, op=2)
+       psi0_z = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+                        filename=filename, points=pts, slices=time, $
+                        rrange=xrange, zrange=yrange, mask=mask, op=3)
+       psi_r = read_field('psi', x, y, t, mesh=mesh, $
+                          filename=filename, points=pts, slices=time, $
+                          rrange=xrange, zrange=yrange, $
+                          linear=linear, complex=complex, op=2)
+       psi_z = read_field('psi', x, y, t, mesh=mesh, $
+                          filename=filename, points=pts, slices=time, $
+                          rrange=xrange, zrange=yrange, $
+                          linear=linear, complex=complex, op=3)
+
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+
+       data = (psi_z*psi0_z + psi_r*psi0_r)/r
+
+        if(ntor ne 0) then begin
+            f_r = read_field('f', x, y, t, mesh=mesh, $
+                           filename=filename, points=pts, slices=time, $
+                           rrange=xrange, zrange=yrange, $
+                           linear=linear, complex=complex, op=2)
+            f_z = read_field('f', x, y, t, mesh=mesh, $
+                           filename=filename, points=pts, slices=time, $
+                           rrange=xrange, zrange=yrange, $
+                           linear=linear, complex=complex, op=3)
+            data = data + complex(0.,ntor)*(f_z*psi0_r - f_r*psi0_z)
+        endif
+
+       data = data / sqrt(psi0_r^2 + psi0_z^2)
+       symbol = '!8B!D!7h!N!X'
        d = dimensions(/b0, _EXTRA=extra)
 
    ;===========================================
@@ -5854,6 +5896,8 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
                              angle=a, xp=xp, zp=zp, axis=axis, $
                              psilim=psival, /contiguous)
 
+           if(n_elements(xp) le 2) then print, 'Too few points!'
+
            dx = deriv(xp)
            dz = deriv(zp)
            ds = sqrt(dx^2 + dz^2)
@@ -5898,12 +5942,13 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
                pest_angle = clamp_and_shift(pest_angle, shift=count)
                f = shift(f,-count)
 
-               if(abs(pest_angle[0]-pest_angle[1]) lt 0.01) then begin
+               tol = 0.0001
+               while(abs(pest_angle[0]-pest_angle[1]) lt tol) do begin
                    pest_angle = pest_angle[1:n_elements(pest_angle)-1]
                    f = f[1:n_elements(f)-1]
-               endif
-               if(abs(pest_angle[n_elements(pest_angle)-2] - $
-                      pest_angle[n_elements(pest_angle)-1]) lt 0.01) then begin
+               end
+               while(abs(pest_angle[n_elements(pest_angle)-2] - $
+                      pest_angle[n_elements(pest_angle)-1]) lt tol) do begin
                    pest_angle = pest_angle[0:n_elements(pest_angle)-2]
                    f = f[0:n_elements(f)-2]
                end
@@ -5917,7 +5962,6 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
 ;                    print, "pest_angle = ", reform(pest_angle)
 ;                    stop
 ;                end
-               
 
            endif else begin
                result[k,p,*] = interpol(f,a,angle[k,*])
@@ -6862,15 +6906,14 @@ end
 
 
 
-pro write_geqdsk, eqfile=eqfile, b0=b0, l0=l0, $
-                  psilim=psilim, _EXTRA=extra
+pro write_geqdsk, eqfile=eqfile, $
+                  psilim=psilim, points=pts, _EXTRA=extra
   
   if(n_elements(slice) eq 0) then begin
       slice = read_parameter('ntime', _EXTRA=extra) - 1
   end
-  if(n_elements(b0) eq 0) then b0 = 10000.
-  if(n_elements(l0) eq 0) then l0 = 100.
   if(n_elements(eqfile) eq 0) then eqfile = 'geqdsk.out'
+  get_normalizations, b0=b0, n0=n0, l0=l0, _EXTRA=extra
 
   bzero = read_parameter('bzero', _EXTRA=extra)
   rzero = read_parameter('rzero', _EXTRA=extra)
@@ -6879,7 +6922,7 @@ pro write_geqdsk, eqfile=eqfile, b0=b0, l0=l0, $
   psi = read_field('psi',x,z,t,mesh=mesh,/equilibrium,_EXTRA=extra)
   psi_r = read_field('psi',x,z,t,mesh=mesh,/equilibrium,op=2,_EXTRA=extra)
   psi_z = read_field('psi',x,z,t,mesh=mesh,/equilibrium,op=3,_EXTRA=extra)
-  jphi= read_field('jphi',x,z,t,/equilibrium,_EXTRA=extra)
+  psi_lp= read_field('psi',x,z,t,/equilibrium,op=7,_EXTRA=extra)
   p0 = read_field('p',x,z,t,/equilibrium,_EXTRA=extra)
   p0_r = read_field('p',x,z,t,/equilibrium,op=2,_EXTRA=extra)
   p0_z = read_field('p',x,z,t,/equilibrium,op=3,_EXTRA=extra)
@@ -6890,9 +6933,10 @@ pro write_geqdsk, eqfile=eqfile, b0=b0, l0=l0, $
   beta = r^2*2.*p0/(s_bracket(psi,psi,x,z) + I0^2)
   beta0 = mean(2.*p0*r^2/(bzero*rzero)^2)
   b2 = (s_bracket(psi,psi,x,z) + I0^2)/r^2
-  dx = mean(deriv(x))
-  dz = mean(deriv(z))
-  tcur = abs(total(jphi*dx*dz/r))
+  dx = (max(x)-min(x))/(n_elements(x) - 1.)
+  dz = (max(z)-min(z))/(n_elements(z) - 1.)
+  jphi = psi_lp - psi_r/r
+  tcur = total(jphi*dx*dz/r)
   print, 'current = ', tcur
 
   ; calculate magnetic axis and xpoint
@@ -6982,21 +7026,22 @@ pro write_geqdsk, eqfile=eqfile, b0=b0, l0=l0, $
   end
       
   oplot, rlim, zlim, psym=4
+  oplot, rwall, zwall, psym=6
  
   r2bp = psi_r^2 + psi_z^2
 
   ; calculate flux averages
-  p = flux_average_field(p0,psi,x,z,flux=flux,_EXTRA=extra)
+  p = flux_average_field(p0,psi,x,z,flux=flux,nflux=nflux,_EXTRA=extra)
   pp = (p0_r*psi_r + p0_z*psi_z)/r2bp
-  pprime = flux_average_field(pp,psi,x,z,flux=flux,_EXTRA=extra)
-  I = flux_average_field(I0,psi,x,z,flux=flux,_EXTRA=extra)
+  pprime = flux_average_field(pp,psi,x,z,nflux=nflux,flux=flux,_EXTRA=extra)
+  I = flux_average_field(I0,psi,x,z,flux=flux,nflux=nflux,_EXTRA=extra)
   ffp = I0*(I0_r*psi_r + I0_z*psi_z)/r2bp
-  ffprim = flux_average_field(ffp,psi,x,z,flux=flux,_EXTRA=extra)
-  q = flux_average('q',slice=time,psi=psi,x=x,z=z,t=t,flux=flux,_EXTRA=extra)
+  ffprim = flux_average_field(ffp,psi,x,z,flux=flux,nflux=nflux,_EXTRA=extra)
+  q = flux_average('q',slice=time,psi=psi,x=x,z=z,t=t,flux=flux,nflux=nflux,_EXTRA=extra)
 ;  q = smooth(q,5,/edge)
   jb = (I0_z*psi_r - I0_r*psi_z - jphi*I0)/r^2
-  jdotb = flux_average_field(jb,psi,x,z,t,flux=flux,_EXTRA=extra)
-  r2i = flux_average_field(1./r^2,psi,x,z,flux=flux,_EXTRA=extra)
+  jdotb = flux_average_field(jb,psi,x,z,t,flux=flux,nflux=nflux,_EXTRA=extra)
+  r2i = flux_average_field(1./r^2,psi,x,z,flux=flux,nflux=nflux,_EXTRA=extra)
 
   betacent = field_at_point(beta[0,*,*], x, z, axis[0], axis[1])
 
@@ -7028,19 +7073,20 @@ pro write_geqdsk, eqfile=eqfile, b0=b0, l0=l0, $
   nr = n_elements(flux)
   print, 'nr = ', nr
 
-  psi = -psi
-  I = -I
-  psilim = -psilim
-  psimin = -flux0
-  flux = -flux
-  pprime = -pprime
-  ffprim = -ffprim
+  psimin = flux0
 
-  nflux = (flux - min(flux))/(max(flux)-min(flux))
+  if(psimin gt psilim) then begin
+      psi = -psi
+      psilim = -psilim
+      psimin = -psimin
+      flux = -flux
+      pprime = -pprime
+      ffprim = -ffprim
+  end
 
-  name = ['name0001', 'name0002', 'name0003', $
-          'name0004', 'name0005', 'name0006']
-  idum = 13
+  name = ['M3DC1', '03/17/', '2013    ', $
+          '#000000', '0000', '']
+  idum = 3
   nr = n_elements(flux)
   nz = n_elements(z)
   rdim = max(x) - min(x)
@@ -7431,7 +7477,8 @@ pro test_mesh, filename, nplanes=nplanes, _EXTRA=extra
 end
 
 pro plot_perturbed_surface, q, scalefac=scalefac, points=pts, $
-                            filename=filename, _EXTRA=extra
+                            filename=filename, phi=phi0, _EXTRA=extra
+   icomp =read_parameter('icomplex', filename=filename)
    if(n_elements(scalefac) eq 0) then scalefac=1.
    if(n_elements(scalefac) eq 1) then $
      scalefac=replicate(scalefac, n_elements(q))
@@ -7443,7 +7490,8 @@ pro plot_perturbed_surface, q, scalefac=scalefac, points=pts, $
    psi0_z = read_field('psi',x,z,t, filename=filename, /equilibrium,$
                        points=pts, _EXTRA=extra, op=3)
    zi = read_field('displacement',x,z,t,filename=filename, /linear, $
-                   points=pts, slice=slice,_EXTRA=extra)
+                   points=pts, slice=slice, complex=icomp, $
+                   phi=phi0, _EXTRA=extra)
    
    if(n_elements(bins) eq 0) then bins = n_elements(x)
    fvals = flux_at_q(q, points=pts, filename=filename, $

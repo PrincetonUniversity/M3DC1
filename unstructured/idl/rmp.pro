@@ -71,12 +71,19 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    end
 
    if(n_elements(bmncdf) ne 0) then begin
+       omega_i = flux_average('v_omega',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+                              bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
        omega_e = flux_average('ve_omega',flux=qflux,psi=psi0,x=x,z=z,t=t,$
                               bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
        F = flux_average('I',flux=qflux,psi=psi0,x=x,z=z,t=t,$
                               bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
        p = flux_average('p',flux=qflux,psi=psi0,x=x,z=z,t=t,$
                               bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
+       pe = flux_average('pe',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+                              bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
+       den_e = flux_average('ne',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+                            bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
+
 
        rpath = fltarr(n_elements(m), n_elements(nflux))
        zpath = fltarr(n_elements(m), n_elements(nflux))
@@ -97,6 +104,9 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        q_var = ncdf_vardef(id, 'q', [n_id], /float)
        p_var = ncdf_vardef(id, 'p', [n_id], /float)
        F_var = ncdf_vardef(id, 'F', [n_id], /float)
+       pe_var = ncdf_vardef(id, 'pe', [n_id], /float)
+       ne_var = ncdf_vardef(id, 'ne', [n_id], /float)
+       omega_i_var = ncdf_vardef(id, 'omega_i', [n_id], /float)
        omega_e_var = ncdf_vardef(id, 'omega_e', [n_id], /float)
        m_var = ncdf_vardef(id, 'm', [m_id], /short)
        bmn_real_var = ncdf_vardef(id, 'bmn_real', [m_id,n_id], /float)
@@ -110,7 +120,10 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        ncdf_varput, id, 'q', abs(reform(q))
        ncdf_varput, id, 'p', reform(p)
        ncdf_varput, id, 'F', reform(F)
+       ncdf_varput, id, 'pe', reform(pe)
+       ncdf_varput, id, 'ne', reform(den_e)
        ncdf_varput, id, 'omega_e', reform(omega_e)
+       ncdf_varput, id, 'omega_i', reform(omega_i)
        ncdf_varput, id, 'bmn_real', real_part(reform(d[0,*,*]))
        ncdf_varput, id, 'bmn_imag', imaginary(reform(d[0,*,*]))
        ncdf_varput, id, 'rpath', rpath
@@ -285,9 +298,9 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
                                /linear,/complex,_EXTRA=extra,op=2)
            psi1_z = read_field('psi_ext',x,z,t,slice=slice, $
                                /linear,/complex,_EXTRA=extra,op=3)
-           f1_r = read_field('bf_ext',x,z,t,slice=slice, $
+           f1_r = read_field('f_ext',x,z,t,slice=slice, $
                              /linear,/complex,_EXTRA=extra,op=2)
-           f1_z = read_field('bf_ext',x,z,t,slice=slice, $
+           f1_z = read_field('f_ext',x,z,t,slice=slice, $
                              /linear,/complex,_EXTRA=extra,op=3)
            r = radius_matrix(x,z,t)
            bx = bx - psi1_z/r - complex(0,ntor)*f1_r

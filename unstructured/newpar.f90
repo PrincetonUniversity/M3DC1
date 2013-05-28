@@ -935,6 +935,10 @@ end subroutine rotation
        htri(3,4,itri) =-1./d%d
        htri(4,4,itri) = 1./d%d**2
 #endif
+       if(iprecompute_metric.eq.1) then
+          call local_coeff_vector(itri,ctri(:,:,itri))
+       end if
+
     end do
 
     select case(equilibrate)
@@ -1227,12 +1231,15 @@ subroutine space(ifirstcall)
   if(ifirstcall.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, ' deallocating...'
      deallocate(gtri,htri)
+     if(iprecompute_metric.eq.1) deallocate(ctri)
      if(equilibrate.ne.0) deallocate(equil_fac)
   endif
   
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Allocating tri...'
   allocate(gtri(coeffs_per_tri,dofs_per_tri,numelms))
   allocate(htri(coeffs_per_dphi,dofs_per_dphi,numelms))
+  if(iprecompute_metric.eq.1) &
+       allocate(ctri(dofs_per_element,coeffs_per_element,numelms))
   if(equilibrate.ne.0) allocate(equil_fac(dofs_per_element,numelms))
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' associating...'

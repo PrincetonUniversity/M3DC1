@@ -73,6 +73,7 @@ subroutine set_defaults
   use basic
   use m3dc1_output
   use neutral_beam
+  use element
 
   implicit none
 
@@ -288,6 +289,8 @@ subroutine set_defaults
        "1: Do not let pe drop below pe_floor", num_grp)
   call add_var_double("pe_floor", pe_floor, 0., &
        "Minimum allowed value for pe when iset_pe_floor=1", num_grp)
+  call add_var_int("iprecompute_metric", iprecompute_metric, 0, &
+       "1: precompute full metric tensor", num_grp)
   
   ! Equilibrium 
   call add_var_int("itaylor", itaylor, 0, "", eq_grp)
