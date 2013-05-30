@@ -10,7 +10,6 @@ Program Reducedquintic
   use sparse
   use hdf5_output
   use diagnostics
-  use vacuum_interface
   use boundary_conditions
   use time_step
   use m3dc1_output
@@ -83,14 +82,6 @@ Program Reducedquintic
   if(myrank.eq.0) print *, ' Reading input'
   call input
 
-#ifdef USERW
-  ! set resistive wall bc
-  if(eta_wall.ne.0.) then
-     if(myrank.eq.0) print *, "calling userwb"
-     call userwb()
-  end if
-#endif
-
   ! load mesh
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh'
   call load_mesh
@@ -107,13 +98,6 @@ Program Reducedquintic
   ! initialize variables
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Initializing variables'
   call init
-
-  ! load resistive wall response matrix
-  if(eta_wall.ne.0. .and. itaylor.ne.10 .and. itaylor.ne.12) then
-     if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading VACUUM data'
-     call load_vacuum_data(ntor, ier)
-     if(ier.ne.0) call safestop(7)
-  end if
 
   ! output info about simulation to be run
   call print_info
@@ -219,11 +203,6 @@ Program Reducedquintic
      call hessianadapt(resistivity_field%vec%data,1, 0, ntime, &
           adapt_factor, adapt_hmin, adapt_hmax)
      print *, 'done adapting.'
-     call space(0)
-     call tridef
-     
-!     call updatenormalcurvature
-     call write_normlcurv
      call safestop(0)
      
   case(2)
@@ -242,18 +221,7 @@ Program Reducedquintic
     call setsmoothfact(adapt_smooth)
     call adapt(temporary_field%vec%data,psimin,psibound)
     print *, 'done adapting.'
-
     call destroy_field(temporary_field)
-
-    print *, 'calling space...'
-    call space(0)
-
-    print *, 'calling tridef...'
-    call tridef
-
-!    call updatenormalcurvature
-    print *, 'calling write_normlcurv'
-    call write_normlcurv
     call safestop(0)
 
   end select
@@ -263,12 +231,12 @@ Program Reducedquintic
      tflux0 = tflux
      totcur0 = totcur
 
-     if(itaylor.ne.10 .and. itaylor.ne.11 .and. &
-          itaylor.ne.12 .and. itaylor.ne.13 .and. eta_wall.ne.0) then
-        external_psi_field = psi_field(1)
-        external_bz_field = bz_field(1)
-        external_bf_field = bf_field(1)
-     endif
+!!$     if(itaylor.ne.10 .and. itaylor.ne.11 .and. &
+!!$          itaylor.ne.12 .and. itaylor.ne.13 .and. eta_wall.ne.0) then
+!!$        external_psi_field = psi_field(1)
+!!$        external_bz_field = bz_field(1)
+!!$        external_bf_field = bf_field(1)
+!!$     endif
   endif
 
   ! output initial conditions
@@ -414,7 +382,6 @@ subroutine safestop(iarg)
   use basic
   use sparse
   use m3dc1_output
-  use vacuum_interface
   use time_step
   use auxiliary_fields
 
@@ -427,9 +394,6 @@ subroutine safestop(iarg)
   call destroy_auxiliary_fields
 
   call finalize_timestep
-
-  ! unload resistive wall response matrix
-  call unload_vacuum_data
 
   ! close hdf5 file
   if(myrank.eq.0 .and. iprint.ge.2) print *, "  finalizing output..."
@@ -1010,145 +974,6 @@ end subroutine rotation
        end do
     end select
   end subroutine tridef
-
-
-! write_normlcurv
-subroutine write_normlcurv
-
-  use basic
-  use mesh_mod
-  
-  implicit none
-  
-  integer, dimension(nodes_per_element) :: inode
-  integer :: numnodes, i, j, nbound, numelms, itri
-  integer :: i1, i2
-  real :: dx1, dx2, dz1, dz2, norm1(2), norm2(2), l, dl1, dl2, dl
-  real :: vx1, vx2, vz1, vz2, ax, az, dum
-  integer, allocatable :: id(:), adjacent(:,:), nn(:)
-  real, allocatable :: x(:), z(:), norm(:,:), curv(:), curv_new(:)
-
-  if(maxrank.gt.1) then
-     if(myrank.eq.0) print *, 'write_normlcurv can only be called in serial.'
-     return
-  end if
-     
-  numnodes = local_nodes()
-  numelms = local_elements()
-
-  ! calculate number of boundary nodes
-  nbound = 0
-  do i=1, numnodes
-     if(is_boundary_node(i)) nbound = nbound + 1
-  end do
-  
-  ! allocate memory
-  allocate(x(nbound), z(nbound), adjacent(2,nbound), norm(2,nbound), &
-       id(nbound), nn(numnodes), curv(nbound), curv_new(nbound))
-
-  nbound = 0
-  nn = 0
-  do i=1, numnodes
-     if(.not.is_boundary_node(i)) cycle
-     nbound = nbound + 1
-     
-     call get_node_pos(i,x(nbound),dum,z(nbound))
-     id(nbound) = i
-     nn(i) = nbound
-  end do
-  
-  ! determine adjacent nodes
-  adjacent = 0
-  do itri=1, numelms
-
-     call get_element_nodes(itri,inode)
-
-     do i=1,nodes_per_element
-        j = mod(i,nodes_per_element) + 1
-     
-        if((nn(inode(i)).eq.0).or.(nn(inode(j)).eq.0)) cycle
-        
-        if(adjacent(1,nn(inode(i))).eq.0) then
-           adjacent(1,nn(inode(i))) = nn(inode(j))
-        else if(adjacent(2,nn(inode(i))).eq.0) then
-           adjacent(2,nn(inode(i))) = nn(inode(j))
-        else
-           print *, "Error in write_normlcurv", 1
-        endif
-        if(adjacent(1,nn(inode(j))).eq.0) then
-           adjacent(1,nn(inode(j))) = nn(inode(i))
-        else if(adjacent(2,nn(inode(j))).eq.0) then
-           adjacent(2,nn(inode(j))) = nn(inode(i))
-        else
-           print *, "Error in write_normlcurv", 1
-        endif
-     end do
-  end do
-
-  ! calculate normals
-  do i=1, nbound
-     i1 = adjacent(1,i)
-     i2 = adjacent(2,i)
-
-     if(i1.eq.0 .or. i2.eq.0) then
-        print *, 'Error in write_normlcurv', 3
-        cycle
-     endif
-
-     dx1 = x(i) - x(i1)
-     dx2 = x(i2) - x(i)
-     dz1 = z(i) - z(i1)
-     dz2 = z(i2) - z(i)
-
-     dl1 = sqrt(dx1**2 + dz1**2)
-     dl2 = sqrt(dx2**2 + dz2**2)
-     norm1(1) =  dz1/dl1
-     norm1(2) = -dx1/dl1
-     norm2(1) =  dz2/dl2
-     norm2(2) = -dx2/dl2
-
-     ! perform weigted average of adjacent edge normals
-     norm(:,i) = (norm1/dl1 + norm2/dl2) / (1./dl1 + 1./dl2)
-
-     ! normalize normal
-     l = sqrt(norm(1,i)**2 + norm(2,i)**2)
-     norm(:,i) = norm(:,i)/l
-
-     ! calculate curvature
-     vx1 = dx1/dl1
-     vx2 = dx2/dl2
-     vz1 = dz1/dl1
-     vz2 = dz2/dl2
-
-     dl = .5*(dl1 + dl2)
-
-     ax = (vx2 - vx1) / dl
-     az = (vz2 - vz1) / dl
-
-     curv(i) = sqrt(ax**2 + az**2)
-
-     ! make sure normal is pointing outward
-     if(norm(1,i)*(x(i)-xmag) + norm(2,i)*(z(i)-zmag) .lt. 0) then
-        norm(:,i) = -norm(:,i)
-     endif
-  end do
-
-  ! write normlcurv
-  open(unit=23, file='normlcurv_new', status='unknown')
-
-  do j=1,numnodes
-     i = nn(j)
-     if(i.eq.0) cycle
-     write(23,'(I5,5F10.6)') j, x(i), z(i), norm(1,i), norm(2,i), curv(i)
-  end do
-
-  close(23)
-  
-  ! free memory
-  deallocate(x,z,adjacent,id,nn,norm,curv,curv_new)
-
-end subroutine write_normlcurv
-
 
 !============================================================
 ! space

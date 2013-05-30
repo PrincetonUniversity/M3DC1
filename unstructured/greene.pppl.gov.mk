@@ -72,16 +72,9 @@ LIBS = 	$(PETSC_LIBS) \
 
 ifeq ($(USESCOREC), 1)
 
-  ifeq ($(USERW), 1)
-    SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/031611
-    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/031611 \
-	$(INCLUDE)
-  else
-    SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Greene/latest
-    INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Greene/120711/ \
+  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Greene/latest
+  INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Greene/120711/ \
         $(INCLUDE)
-
-  endif
 
   SCOREC_ARCH=x86_64_linux-icc
   SCOREC_LIBS = \

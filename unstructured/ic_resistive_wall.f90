@@ -5,73 +5,73 @@ module resistive_wall_test
   real, parameter, private :: a = .1
   real, private :: k, Im_ka
 
-  private :: analytic_response_matrix
+!!$  private :: analytic_response_matrix
 contains
 
-  subroutine analytic_response_matrix
-    use math
-    use basic
-    use vacuum_interface
-
-    implicit none
-
-    real :: ka, bessk, besskp
-    real, allocatable :: theta(:)
-    integer :: ierr, i, j, m
-    complex :: fac, fac1, fac2, expimth
-
-    print *, 'Using analytic response matrix.'
-
-    call load_boundary_nodes(ierr)
-    if(ierr.ne.0) return
-
-    allocate(theta(nodes+1))
-    do i=1, nodes+1
-       theta(i) = atan2(znode(i)-zzero,xnode(i)-xzero)
-    end do
-
-    !...  define matrices with analytic formula
-    ka = a*ntor/rzero
-
-    zgrbth = 0.
-    zgrbph = 0.
-    zgrbphp = 0.
-    m = mpol
-    do m=mpol,mpol
-       fac =  (1./(nodes))*bessk(m,ka)/besskp(m,ka)
-       fac1 =  (0.,1.)*m/ka * fac
-       fac2 = +(0.,1.) * fac
-!      fac2 = -(0.,1.) * fac
-       do i=1,nodes+1
-          do j=1,nodes+1
-             expimth = cos(m*(theta(i) - theta(j))) + (0.,1.)*sin(m*(theta(i) - theta(j)))
-             zgrbth(i,j) = zgrbth(i,j) + fac1*expimth
-             zgrbph(i,j) = zgrbph(i,j) + fac2*expimth
-          enddo
-       enddo
-    end do
-
-    ! calculate derivatives (wrt i)
-    zgrbthp(1,:) = (zgrbth(2,:) - zgrbth(nodes+1,:)) &
-         /(theta(2) - theta(nodes+1))/a
-    zgrbphp(1,:) = (zgrbph(2,:) - zgrbph(nodes+1,:)) &
-         /(theta(2) - theta(nodes+1))/a
-    do i=2,nodes
-       zgrbthp(i,:) = (zgrbth(i+1,:) - zgrbth(i-1,:)) &
-            /(theta(i+1) - theta(i-1))/a 
-       zgrbphp(i,:) = (zgrbph(i+1,:) - zgrbph(i-1,:)) &
-            /(theta(i+1) - theta(i-1))/a
-    end do
-
-    deallocate(theta)
-
-  end subroutine analytic_response_matrix
+!!$  subroutine analytic_response_matrix
+!!$    use math
+!!$    use basic
+!!$    use vacuum_interface
+!!$
+!!$    implicit none
+!!$
+!!$    real :: ka, bessk, besskp
+!!$    real, allocatable :: theta(:)
+!!$    integer :: ierr, i, j, m
+!!$    complex :: fac, fac1, fac2, expimth
+!!$
+!!$    print *, 'Using analytic response matrix.'
+!!$
+!!$    call load_boundary_nodes(ierr)
+!!$    if(ierr.ne.0) return
+!!$
+!!$    allocate(theta(nodes+1))
+!!$    do i=1, nodes+1
+!!$       theta(i) = atan2(znode(i)-zzero,xnode(i)-xzero)
+!!$    end do
+!!$
+!!$    !...  define matrices with analytic formula
+!!$    ka = a*ntor/rzero
+!!$
+!!$    zgrbth = 0.
+!!$    zgrbph = 0.
+!!$    zgrbphp = 0.
+!!$    m = mpol
+!!$    do m=mpol,mpol
+!!$       fac =  (1./(nodes))*bessk(m,ka)/besskp(m,ka)
+!!$       fac1 =  (0.,1.)*m/ka * fac
+!!$       fac2 = +(0.,1.) * fac
+!!$!      fac2 = -(0.,1.) * fac
+!!$       do i=1,nodes+1
+!!$          do j=1,nodes+1
+!!$             expimth = cos(m*(theta(i) - theta(j))) + (0.,1.)*sin(m*(theta(i) - theta(j)))
+!!$             zgrbth(i,j) = zgrbth(i,j) + fac1*expimth
+!!$             zgrbph(i,j) = zgrbph(i,j) + fac2*expimth
+!!$          enddo
+!!$       enddo
+!!$    end do
+!!$
+!!$    ! calculate derivatives (wrt i)
+!!$    zgrbthp(1,:) = (zgrbth(2,:) - zgrbth(nodes+1,:)) &
+!!$         /(theta(2) - theta(nodes+1))/a
+!!$    zgrbphp(1,:) = (zgrbph(2,:) - zgrbph(nodes+1,:)) &
+!!$         /(theta(2) - theta(nodes+1))/a
+!!$    do i=2,nodes
+!!$       zgrbthp(i,:) = (zgrbth(i+1,:) - zgrbth(i-1,:)) &
+!!$            /(theta(i+1) - theta(i-1))/a 
+!!$       zgrbphp(i,:) = (zgrbph(i+1,:) - zgrbph(i-1,:)) &
+!!$            /(theta(i+1) - theta(i-1))/a
+!!$    end do
+!!$
+!!$    deallocate(theta)
+!!$
+!!$  end subroutine analytic_response_matrix
 
 
 subroutine resistive_wall_test_init()
   use basic
   use arrays
-  use vacuum_interface
+!!$  use vacuum_interface
 
   implicit none
 
@@ -89,18 +89,18 @@ subroutine resistive_wall_test_init()
        (eta_wall/delta_wall)*((mpol**2 + (k*a)**2)/(k*a)) * &
        ((Imp_ka*Km_ka - Im_ka*Kmp_ka)/(Imp_ka*Kmp_ka))/a
 
-  if(itaylor.eq.12 .and. eta_wall .gt. 0) call analytic_response_matrix
-
-  open(unit=97, file='response_poloidal', status='unknown')
-  do i=1, nodes
-     write(97,'(1p10e12.4)') (zgrbth(i,j),j=1,nodes+1)
-  end do
-  close(97)
-  open(unit=98, file='response_toroidal', status='unknown')
-  do i=1, nodes
-     write(98,'(1p10e12.4)') (zgrbph(i,j),j=1,nodes+1)
-  end do
-  close(98)
+!!$  if(itaylor.eq.12 .and. eta_wall .gt. 0) call analytic_response_matrix
+!!$
+!!$  open(unit=97, file='response_poloidal', status='unknown')
+!!$  do i=1, nodes
+!!$     write(97,'(1p10e12.4)') (zgrbth(i,j),j=1,nodes+1)
+!!$  end do
+!!$  close(97)
+!!$  open(unit=98, file='response_toroidal', status='unknown')
+!!$  do i=1, nodes
+!!$     write(98,'(1p10e12.4)') (zgrbph(i,j),j=1,nodes+1)
+!!$  end do
+!!$  close(98)
 
 
 
@@ -210,73 +210,73 @@ module circ_shell_only
   private :: analytic_response_matrix
 contains
 
-  subroutine analytic_response_matrix
-    use basic
-    use vacuum_interface
-
-    implicit none
-
-    real, allocatable :: theta(:)
-    real :: ka,  bessk, besskp, grate, a
-    integer :: ierr, i, j, m
-  complex :: fac
-
-    print *, 'Using analytic response matrix.'
-
-    call load_boundary_nodes(ierr)
-    allocate(theta(nodes+1))
-    do i=1, nodes+1
-       theta(i) = atan2(znode(i)-zzero,xnode(i)-xzero)
-    end do
-    if(ierr.ne.0) return
-
-    !...  define matrices with analytic formula
-    a = .1
-    ka = a*ntor/rzero
-
-    zgrbth = 0.
-    do m=mpol,mpol
-       fac = (0.,1.)*m/(nodes*ka)*bessk(m,ka)/besskp(m,ka)
-       do i=1,nodes+1
-          do j=1,nodes+1
-             zgrbth(i,j) = zgrbth(i,j) + fac*(cos(m*(theta(i) - theta(j)))  &
-                                   + (0.,1.)* sin(m*(theta(i) - theta(j))))
-          enddo
-       enddo
-    end do
-    ! calculate derivatives (wrt i)
-    zgrbthp(1,:) = (zgrbth(2,:) - zgrbth(nodes+1,:)) &
-         /(theta(2) - theta(nodes+1))/a
-    do i=2,nodes
-       zgrbthp(i,:) = (zgrbth(i+1,:) - zgrbth(i-1,:)) &
-            /(theta(i+1) - theta(i-1))/a
-    end do
-    grate = (eta_wall/delta_wall)*(mpol/a)* &
-         (1. - (mpol/ka)*bessk(mpol,ka)/besskp(mpol,ka))
-    write(*,'(A,1pe12.4)') " Analytic decay rate",  grate
-    write(97,'(A,1pe12.4)') " Analytic decay rate",  grate
-    deallocate(theta)
-
-  end subroutine analytic_response_matrix
+!!$  subroutine analytic_response_matrix
+!!$    use basic
+!!$    use vacuum_interface
+!!$
+!!$    implicit none
+!!$
+!!$    real, allocatable :: theta(:)
+!!$    real :: ka,  bessk, besskp, grate, a
+!!$    integer :: ierr, i, j, m
+!!$  complex :: fac
+!!$
+!!$    print *, 'Using analytic response matrix.'
+!!$
+!!$    call load_boundary_nodes(ierr)
+!!$    allocate(theta(nodes+1))
+!!$    do i=1, nodes+1
+!!$       theta(i) = atan2(znode(i)-zzero,xnode(i)-xzero)
+!!$    end do
+!!$    if(ierr.ne.0) return
+!!$
+!!$    !...  define matrices with analytic formula
+!!$    a = .1
+!!$    ka = a*ntor/rzero
+!!$
+!!$    zgrbth = 0.
+!!$    do m=mpol,mpol
+!!$       fac = (0.,1.)*m/(nodes*ka)*bessk(m,ka)/besskp(m,ka)
+!!$       do i=1,nodes+1
+!!$          do j=1,nodes+1
+!!$             zgrbth(i,j) = zgrbth(i,j) + fac*(cos(m*(theta(i) - theta(j)))  &
+!!$                                   + (0.,1.)* sin(m*(theta(i) - theta(j))))
+!!$          enddo
+!!$       enddo
+!!$    end do
+!!$    ! calculate derivatives (wrt i)
+!!$    zgrbthp(1,:) = (zgrbth(2,:) - zgrbth(nodes+1,:)) &
+!!$         /(theta(2) - theta(nodes+1))/a
+!!$    do i=2,nodes
+!!$       zgrbthp(i,:) = (zgrbth(i+1,:) - zgrbth(i-1,:)) &
+!!$            /(theta(i+1) - theta(i-1))/a
+!!$    end do
+!!$    grate = (eta_wall/delta_wall)*(mpol/a)* &
+!!$         (1. - (mpol/ka)*bessk(mpol,ka)/besskp(mpol,ka))
+!!$    write(*,'(A,1pe12.4)') " Analytic decay rate",  grate
+!!$    write(97,'(A,1pe12.4)') " Analytic decay rate",  grate
+!!$    deallocate(theta)
+!!$
+!!$  end subroutine analytic_response_matrix
 
 
   subroutine circ_shell_only_init()
     use basic
     use arrays
-    use vacuum_interface
+!!$    use vacuum_interface
     
     implicit none
     
     integer :: i,j, numnodes
     real :: x, phi, z
     
-    open(unit=97,file="response_matrix",status="unknown")
-    if(itaylor.eq.10 .and. eta_wall .gt. 0) call analytic_response_matrix
-    
-    do i=1, nodes
-       write(97,'(1p10e12.4)') (zgrbth(i,j),j=1,nodes+1)
-    end do
-    close(97)
+!!$    open(unit=97,file="response_matrix",status="unknown")
+!!$    if(itaylor.eq.10 .and. eta_wall .gt. 0) call analytic_response_matrix
+!!$    
+!!$    do i=1, nodes
+!!$       write(97,'(1p10e12.4)') (zgrbth(i,j),j=1,nodes+1)
+!!$    end do
+!!$    close(97)
     
     numnodes = owned_nodes()
     do i=1, numnodes

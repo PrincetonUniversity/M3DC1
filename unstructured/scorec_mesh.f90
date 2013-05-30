@@ -20,9 +20,15 @@ module scorec_mesh_mod
   logical, private :: initialized = .false.
 
   integer :: plane_comm
+
+  character(len=256) mesh_model
+  character(len=256) mesh_filename
+  
+  integer :: imulti_region
+
 contains
 
-  subroutine load_mesh
+  subroutine load_mesh()
     use math
     implicit none
 
@@ -35,6 +41,25 @@ contains
 
     ! initialize scorec solvers
     call initsolvers
+
+    if(imulti_region.eq.1) then
+       call create_tag_list(inner_wall, 2)
+       inner_wall%tags(1) = 1
+       inner_wall%tags(2) = 2
+       call create_tag_list(outer_wall, 2)
+       outer_wall%tags(1) = 3
+       outer_wall%tags(2) = 4
+       call create_tag_list(domain_boundary, 2)
+       domain_boundary%tags(1) = 5
+       domain_boundary%tags(2) = 6      
+    else
+       call create_tag_list(inner_wall, 1)
+       inner_wall%tags(1) = 1
+       call create_tag_list(outer_wall, 1)
+       outer_wall%tags(1) = 1
+       call create_tag_list(domain_boundary, 1)
+       domain_boundary%tags(1) = 1
+    end if
 
     ! load mesh
 #ifdef USE3D 
@@ -77,7 +102,11 @@ contains
     call MPI_Comm_create(MPI_COMM_WORLD, plane_group, plane_comm, ier)
     deallocate(ranks)
 #else 
-    call loadmesh("struct.dmg", "struct-dmg.sms")
+    print *, 'loading mesh!', trim(mesh_model), " ", trim(mesh_filename)
+!    call loadmesh("struct.dmg", "struct-dmg.sms")
+!    call loadmesh("iter0.10.txt", "mesh0.015.sms")
+    call loadmesh(trim(mesh_model), trim(mesh_filename))
+    print *, 'loaded mesh!'
 #endif
 
     initialized = .true.
@@ -366,14 +395,15 @@ contains
   ! ~~~~~~~~~~~~~~~~
   ! returns true if node lies on boundary
   !=========================================
-  logical function is_boundary_node(inode)
+  logical function is_boundary_node(inode, tags)
     implicit none
     integer, intent(in) :: inode
+    type(tag_list), intent(in), optional :: tags
     logical :: is_boundary
     integer :: izone, izonedim
     real :: normal(2), curv, x, z
 
-    call boundary_node(inode, is_boundary, izone, izonedim, normal, curv, x, z)
+    call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z,tags)
     is_boundary_node = is_boundary
   end function is_boundary_node
 
@@ -383,7 +413,8 @@ contains
   ! determines if node is on boundary, and returns relevant info
   ! about boundary surface
   !======================================================================
-  subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
+  subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z, &
+       tags)
 
     use math
     
@@ -394,16 +425,17 @@ contains
     real, intent(out) :: normal(2), curv
     real, intent(out) :: x,z                  ! coordinates of inode
     logical, intent(out) :: is_boundary       ! is inode on boundary
+    type(tag_list), intent(in), optional :: tags
     
     integer :: ibottom, iright, ileft, itop, ib
     real :: angler, phi
     real, dimension(3) :: norm
-    
+
     curv = 0.
 
+    call zonenod(inode,izone,izonedim)
+
     if(is_rectilinear) then
-       call zonenod(inode,izone,izonedim)
-       
        if(izonedim.ge.2) then
           is_boundary = .false.
           return
@@ -466,30 +498,31 @@ contains
        call nodNormalVec(inode, norm, ib)
        normal = norm(1:2)
        is_boundary = ib.eq.1
-
        if(.not.is_boundary) return
-       izonedim = 1
-       izone = 1
-      
+
        if(icurv.eq.0) then
           curv = 0.
        else
           call nodcurvature2(inode, curv, ib)
           is_boundary = ib.eq.1
+          if(.not.is_boundary) return
        end if
 
-       if(.not.is_boundary) return
+       if(present(tags)) then
+          is_boundary = in_tag_list(tags, izone)         
+       else
+          is_boundary = in_tag_list(domain_boundary, izone)
+       end if
     end if
-    
+
     call get_node_pos(inode,x,phi,z)
   end subroutine boundary_node
-
 
   subroutine boundary_edge(itrin, is_edge, normal, idim)
 
     implicit none
     integer, intent(in) :: itrin
-    logical, intent(out) :: is_edge(3)
+    integer, intent(out) :: is_edge(3)
     real, intent(out) :: normal(2,3)
     integer, intent(out) :: idim(3)
     
@@ -525,7 +558,7 @@ contains
             normal(:,i),c(i),x,z)
     end do
 
-    is_edge = .false.
+    is_edge = 0
     do i=1,3
        call zonedg(iedge(i),izone,izonedim)
        if(izonedim.gt.1) cycle
@@ -546,8 +579,8 @@ contains
           end if
        end do
        if(found_edge) then
-          if(is_edge(j)) print *, 'Warning: edge counted twice'
-          is_edge(j) = .true.
+          if(is_edge(j).ne.0) print *, 'Warning: edge counted twice'
+          is_edge(j) = izone
 !          call boundary_node(inode(j),is_bound(j),izone,idim(j), &
 !               normal(:,j),c(j),x,z)
 !          write(*, '(6F10.4)') x, z, normal(:,j)
@@ -557,46 +590,12 @@ contains
     end do
   end subroutine boundary_edge
 
-!!$  subroutine boundary_edge(itri, is_edge, normal, idim)
-!!$
-!!$    implicit none
-!!$    integer, intent(in) :: itri
-!!$    logical, intent(out) :: is_edge(3)
-!!$    real, intent(out) :: normal(2,3)
-!!$    integer, intent(out) :: idim(3)
-!!$    
-!!$    integer :: inode(nodes_per_element), izone, i, j
-!!$     real :: x, z, c(3)
-!!$    logical :: is_bound(3)
-!!$    
-!!$    call get_element_nodes(itri,inode)
-!!$   
-!!$    do i=1,3
-!!$       call boundary_node(inode(i),is_bound(i),izone,idim(i), &
-!!$            normal(:,i),c(i),x,z)
-!!$    end do
-!!$    
-!!$    do i=1,3
-!!$       j = mod(i,3) + 1
-!!$       is_edge(i) = .false.
-!!$       
-!!$       ! skip edges not having both points on a boundary
-!!$       if((.not.is_bound(i)).or.(.not.is_bound(j))) cycle
-!!$       
-!!$       ! skip edges cutting across corners
-!!$       if(is_bound(1) .and. is_bound(2) .and. is_bound(3)) then
-!!$          if(idim(i).ne.0 .and. idim(j).ne.0) cycle
-!!$       endif
-!!$       
-!!$       ! skip suspicious edges (edges w/o corner point where normal changes
-!!$       ! dramatically)
-!!$       if(idim(i).eq.1 .and. idim(j).eq.1 .and. idim(mod(i+1,3)+1).eq.2) then
-!!$          if(normal(1,i)*normal(1,j) + normal(2,i)*normal(2,j) .lt. .5) cycle
-!!$       end if
-!!$       
-!!$       is_edge(i) = .true.
-!!$    end do
-!!$  end subroutine boundary_edge
+  subroutine get_zone(itri, izone)
+    integer, intent(in) :: itri
+    integer, intent(out) :: izone
+    integer :: izonedim
 
+    call zonfac(itri, izone, izonedim)
+  end subroutine get_zone
 
 end module scorec_mesh_mod

@@ -247,18 +247,18 @@ subroutine edge_to_local(ngauss, delta, line_weight, &
   norm79(1:ngauss,1) = 0.5*(n2(1)*(1.+delta) + n1(1)*(1.-delta))
   norm79(1:ngauss,2) = 0.5*(n2(2)*(1.+delta) + n1(2)*(1.-delta))
 
-  ! calculate expected normal vector (in global coordinates)
-  m1(1) = (eta2 - eta1)*co - (si1 - si2)*sn
-  m1(2) = (eta2 - eta1)*sn + (si1 - si2)*co
-  ! calculate actual normal vector
-  m2 = 0.5*(n1 + n2)
-
-  ! if actual normal vector is opposite sign of expected vector,
-  ! flip integration limits (i.e. flip sign of Jacobian)
-  if(m1(1)*m2(1) + m1(2)*m2(2) .lt. 0.) then
-     write(*,'(A,6f10.4)') 'Flipping edge.', m1,n1,n2
-     local_weight = -local_weight
-  endif
+!!$  ! calculate expected normal vector (in global coordinates)
+!!$  m1(1) = (eta2 - eta1)*co + (si2 - si1)*sn
+!!$  m1(2) = (eta2 - eta1)*sn - (si2 - si1)*co
+!!$  ! calculate actual normal vector
+!!$  m2 = 0.5*(n1 + n2)
+!!$
+!!$  ! if actual normal vector is opposite sign of expected vector,
+!!$  ! flip integration limits (i.e. flip sign of Jacobian)
+!!$  if(m1(1)*m2(1) + m1(2)*m2(2) .lt. 0.) then
+!!$     write(*,'(A,6f10.4)') 'Flipping edge.', m1,n1,n2
+!!$     local_weight = -local_weight
+!!$  endif
  
 end subroutine edge_to_local
 

@@ -22,27 +22,12 @@ module time_step_unsplit
   type(field_type), private ::   e_v
   type(field_type), private ::  bf_v
 
-!!$  ! the offset (relative to the node offset) of the named field within
-!!$  ! their respective vectors
-!!$  integer, private :: u_off, vz_off, chi_off
-!!$  integer, private :: psi_off, bz_off, pe_off
-!!$  integer, private :: den_off, p_off
-!!$  integer, private :: bf_off, e_off
-
   integer, private :: vecsize_phi
 
   ! temporary vectors
   type(vector_type), private :: b1_vel, b2_vel, b1_phi, b2_phi
 
   logical, private :: initialized
-
-!!$  ! matrices
-!!$  type(matrix_type), target, private :: s1_mat, d1_mat, o1_mat
-!!$
-!!$  integer, private :: u_i, vz_i, chi_i
-!!$  integer, private :: psi_i, bz_i, pe_i
-!!$  integer, private :: den_i, p_i
-!!$  integer, private :: bf_i, e_i
 
 contains
 
@@ -72,11 +57,6 @@ contains
     call set_matrix_index(d1_mat, d1_mat_index)
     call create_mat(s1_mat, vecsize_phi, vecsize_phi, icomplex, .true.)
     call create_mat(d1_mat, vecsize_phi, vecsize_phi, icomplex, .false.)
-#ifdef USERW
-    if(eta_wall.ne.0.) then
-       call setmatrixrwb(d1_mat_index, 1)
-    endif
-#endif
 #ifdef CJ_MATRIX_DUMP
     print *, "create_mat time_step s1_mat", s1_mat%imatrix     
     print *, "create_mat time_step d1_mat", d1_mat%imatrix     

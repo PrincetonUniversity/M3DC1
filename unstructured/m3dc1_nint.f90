@@ -356,7 +356,7 @@ contains
     integer, intent(in) :: itri, fields, gdef, ilin
 
     real :: fac
-    integer :: i
+    integer :: i, izone
     type(element_data) :: d
     vectype, dimension(dofs_per_element,coeffs_per_element) :: cl
 
@@ -374,6 +374,8 @@ contains
     hypp = hyperp*fac
 
     call interpolate_size_field(itri)
+
+    call get_zone(itri, izone)
 
     ! calculate the major radius, and useful powers
     call get_element_data(itri, d)
@@ -753,65 +755,72 @@ contains
   if(iand(fields, FIELD_ETA).eq.FIELD_ETA) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   eta..."
 
-     if(iresfunc.eq.3) then
-        temp79a = (pst79(:,OP_1) - psimin)/(psibound - psimin)
-        temp79b = (pst79(:,OP_DR)*(x_79 - xmag) &
-             +     pst79(:,OP_DZ)*(z_79 - zmag))*(psibound-psimin)
+     if(izone.eq.3) then 
         eta79 = 0.
-        where(real(temp79a).lt.etaoff .and. real(temp79b).gt.0.)
-           eta79(:,OP_1) = etar
-        elsewhere
-           eta79(:,OP_1) = eta0
-        end where
-!     else if(iresfunc.eq.0 .or. iresfunc.eq.4) then
-     else if(iresfunc.eq.4) then
+        eta79(:,OP_1) = 1.
+     else if(izone.eq.2) then
         eta79 = 0.
-        temp79b = pet79(:,OP_1)/net79(:,OP_1)
+        eta79(:,OP_1) = 1.e-3
+     else 
+        if(iresfunc.eq.3) then
+           temp79a = (pst79(:,OP_1) - psimin)/(psibound - psimin)
+           temp79b = (pst79(:,OP_DR)*(x_79 - xmag) &
+                +     pst79(:,OP_DZ)*(z_79 - zmag))*(psibound-psimin)
+           eta79 = 0.
+           where(real(temp79a).lt.etaoff .and. real(temp79b).gt.0.)
+              eta79(:,OP_1) = etar
+           elsewhere
+              eta79(:,OP_1) = eta0
+           end where
+           !     else if(iresfunc.eq.0 .or. iresfunc.eq.4) then
+        else if(iresfunc.eq.4) then
+           eta79 = 0.
+           temp79b = pet79(:,OP_1)/net79(:,OP_1)
 #ifdef USE3D
-        temp79c = pet79(:,OP_DP)/net79(:,OP_1) - &
-             pet79(:,OP_1)*net79(:,OP_DP)/net79(:,OP_1)**2
+           temp79c = pet79(:,OP_DP)/net79(:,OP_1) - &
+                pet79(:,OP_1)*net79(:,OP_DP)/net79(:,OP_1)**2
 #endif
-        where(real(temp79b).gt.0.) 
-           temp79a = sqrt(temp79b)
-           eta79(:,OP_1 ) = 1. / temp79a**3
-           eta79(:,OP_DR) = (-3./2.) / temp79a**5 * &
-                (pet79(:,OP_DR)/net79(:,OP_1) &
-                -pet79(:,OP_1)*net79(:,OP_DR)/net79(:,OP_1)**2)
-           eta79(:,OP_DZ) = (-3./2.) / temp79a**5 * &
-                (pet79(:,OP_DZ)/net79(:,OP_1) &
-                -pet79(:,OP_1)*net79(:,OP_DZ)/net79(:,OP_1)**2)
-           eta79(:,OP_DRR) = (15./4.) / temp79a**7 * &
-                (pet79(:,OP_DR)/net79(:,OP_1) &
-                -pet79(:,OP_1)*net79(:,OP_DR)/net79(:,OP_1)**2)**2 &
-                + (-3./2.) / temp79a**5 * &
-                (pet79(:,OP_DRR)/net79(:,OP_1) &
-                -2.*pet79(:,OP_DR)*net79(:,OP_DR)/net79(:,OP_1)**2 &
-                -pet79(:,OP_1)*net79(:,OP_DRR)/net79(:,OP_1)**2 &
-                +2.*pet79(:,OP_1)*net79(:,OP_DR)**2/net79(:,OP_1)**3)
-           eta79(:,OP_DRZ) = (15./4.) / temp79a**7 * &
-                (pet79(:,OP_DR)/net79(:,OP_1) &
-                -pet79(:,OP_1)*net79(:,OP_DR)/net79(:,OP_1)**2) &
-                *(pet79(:,OP_DZ)/net79(:,OP_1) &
-                -pet79(:,OP_1)*net79(:,OP_DZ)/net79(:,OP_1)**2) &
-                + (-3./2.) / temp79a**5 * &
-                (pet79(:,OP_DRZ)/net79(:,OP_1) &
-                -pet79(:,OP_DR)*net79(:,OP_DZ)/net79(:,OP_1)**2 &
-                -pet79(:,OP_DZ)*net79(:,OP_DR)/net79(:,OP_1)**2 &
-                -pet79(:,OP_1)*net79(:,OP_DRZ)/net79(:,OP_1)**2 &
-                +2.*pet79(:,OP_1)*net79(:,OP_DR)*net79(:,OP_DZ) &
-                /net79(:,OP_1)**3)
-           eta79(:,OP_DZZ) = (15./4.) / temp79a**7 * &
-                (pet79(:,OP_DZ)/net79(:,OP_1) &
-                -pet79(:,OP_1)*net79(:,OP_DZ)/net79(:,OP_1)**2)**2 &
-                + (-3./2.) / temp79a**5 * &
-                (pet79(:,OP_DZZ)/net79(:,OP_1) &
-                -2.*pet79(:,OP_DZ)*net79(:,OP_DZ)/net79(:,OP_1)**2 &
-                -pet79(:,OP_1)*net79(:,OP_DZZ)/net79(:,OP_1)**2 &
-                +2.*pet79(:,OP_1)*net79(:,OP_DZ)**2/net79(:,OP_1)**3)
+           where(real(temp79b).gt.0.) 
+              temp79a = sqrt(temp79b)
+              eta79(:,OP_1 ) = 1. / temp79a**3
+              eta79(:,OP_DR) = (-3./2.) / temp79a**5 * &
+                   (pet79(:,OP_DR)/net79(:,OP_1) &
+                   -pet79(:,OP_1)*net79(:,OP_DR)/net79(:,OP_1)**2)
+              eta79(:,OP_DZ) = (-3./2.) / temp79a**5 * &
+                   (pet79(:,OP_DZ)/net79(:,OP_1) &
+                   -pet79(:,OP_1)*net79(:,OP_DZ)/net79(:,OP_1)**2)
+              eta79(:,OP_DRR) = (15./4.) / temp79a**7 * &
+                   (pet79(:,OP_DR)/net79(:,OP_1) &
+                   -pet79(:,OP_1)*net79(:,OP_DR)/net79(:,OP_1)**2)**2 &
+                   + (-3./2.) / temp79a**5 * &
+                   (pet79(:,OP_DRR)/net79(:,OP_1) &
+                   -2.*pet79(:,OP_DR)*net79(:,OP_DR)/net79(:,OP_1)**2 &
+                   -pet79(:,OP_1)*net79(:,OP_DRR)/net79(:,OP_1)**2 &
+                   +2.*pet79(:,OP_1)*net79(:,OP_DR)**2/net79(:,OP_1)**3)
+              eta79(:,OP_DRZ) = (15./4.) / temp79a**7 * &
+                   (pet79(:,OP_DR)/net79(:,OP_1) &
+                   -pet79(:,OP_1)*net79(:,OP_DR)/net79(:,OP_1)**2) &
+                   *(pet79(:,OP_DZ)/net79(:,OP_1) &
+                   -pet79(:,OP_1)*net79(:,OP_DZ)/net79(:,OP_1)**2) &
+                   + (-3./2.) / temp79a**5 * &
+                   (pet79(:,OP_DRZ)/net79(:,OP_1) &
+                   -pet79(:,OP_DR)*net79(:,OP_DZ)/net79(:,OP_1)**2 &
+                   -pet79(:,OP_DZ)*net79(:,OP_DR)/net79(:,OP_1)**2 &
+                   -pet79(:,OP_1)*net79(:,OP_DRZ)/net79(:,OP_1)**2 &
+                   +2.*pet79(:,OP_1)*net79(:,OP_DR)*net79(:,OP_DZ) &
+                   /net79(:,OP_1)**3)
+              eta79(:,OP_DZZ) = (15./4.) / temp79a**7 * &
+                   (pet79(:,OP_DZ)/net79(:,OP_1) &
+                   -pet79(:,OP_1)*net79(:,OP_DZ)/net79(:,OP_1)**2)**2 &
+                   + (-3./2.) / temp79a**5 * &
+                   (pet79(:,OP_DZZ)/net79(:,OP_1) &
+                   -2.*pet79(:,OP_DZ)*net79(:,OP_DZ)/net79(:,OP_1)**2 &
+                   -pet79(:,OP_1)*net79(:,OP_DZZ)/net79(:,OP_1)**2 &
+                   +2.*pet79(:,OP_1)*net79(:,OP_DZ)**2/net79(:,OP_1)**3)
 #ifdef USE3D
-           eta79(:,OP_DP) = -(3./2.)*temp79c / temp79a**5
+              eta79(:,OP_DP) = -(3./2.)*temp79c / temp79a**5
 #endif
-        end where
+           end where
 
 !!$        if(iresfunc.eq.0) then 
 !!$           eta79 = eta0*eta79
@@ -820,8 +829,9 @@ contains
                 3.4e-22*n0_norm**2/(b0_norm**4*l0_norm) &
                 *zeff*lambda_coulomb*sqrt(ion_mass)
 !!$        end if
-     else
-        call eval_ops(itri, resistivity_field, eta79)
+        else
+           call eval_ops(itri, resistivity_field, eta79)
+        end if
      end if
   end if
 

@@ -106,7 +106,7 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o subp.o random.o spline.o \
 	iterdb.o read_gyro.o read_neo.o \
 	element.o $(V_OBJ) field.o nintegrate_mod.o \
 	M3Dmodules.o \
-	m3dc1_nint.o vacuum_interface.o boundary.o \
+	m3dc1_nint.o boundary.o \
 	metricterms_new.o two_fluid.o harned_mikic.o biharmonic.o \
 	electrostatic_potential.o newvar.o diagnostics.o \
 	read_schaffer_field.o neutral_beam.o \
