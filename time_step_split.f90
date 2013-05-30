@@ -141,12 +141,6 @@ contains
     call create_mat(r2_mat, vecsize_phi, vecsize_vel, icomplex, .false.)
     call create_mat(q2_mat, vecsize_phi, vecsize_vel, icomplex, .false.)
 
-#ifdef USERW
-    if(eta_wall.ne.0.) then
-       call setmatrixrwb(d2_mat_index, 1)
-    endif
-#endif
-
 #ifdef CJ_MATRIX_DUMP
     print *, "create_mat time_step s2_mat", s2_mat%imatrix     
     print *, "create_mat time_step d2_mat", d2_mat%imatrix     

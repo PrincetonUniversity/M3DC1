@@ -69,7 +69,7 @@ contains
     
     integer, intent(in) :: bi
     integer :: itri, i, ii, j, numnodes, numelms, ier
-    logical :: is_edge(3)  ! is inode on boundary
+    integer :: is_edge(3)  ! is inode on boundary
     real :: n(2,3), sum, sum2, x, z
     integer :: idim(3), izone, izonedim
     logical :: is_boundary
@@ -127,7 +127,7 @@ contains
        call boundary_edge(itri, is_edge, n, idim)
        
        do ii=1,edges_per_element
-          if(.not.is_edge(ii)) cycle
+          if(is_edge(ii).eq.0) cycle
           
           call define_boundary_quadrature(itri, ii, 5, 5, n, idim)
           call define_fields(itri, 0, 1, 0)

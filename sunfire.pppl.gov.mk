@@ -71,25 +71,28 @@ LIBS = 	$(PETSC_LIBS) \
 ifeq ($(USESCOREC), 1)
 #  INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/latest $(INCLUDE)
 #  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/112111
-  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/latest/
+#  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/latest/
   INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/093011 \
         $(INCLUDE)
-
+  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/04082013/
 
   SCOREC_ARCH=x86_64_linux-icc
   SCOREC_LIBS = \
 	-L$(SCORECDIR) \
 	-Wl,-rpath,$(SCORECDIR) \
-	-lFMDB-mpich2$(SCORECOPT) \
-	-lSCORECModel-mpich2$(SCORECOPT) \
-	-lSCORECUtil-mpich2$(SCORECOPT) \
-	-lField-mpich2$(SCORECOPT) \
-	-lCore-mpich2$(SCORECOPT) \
-	-lmeshAdapt-mpich2$(SCORECOPT) \
-	-lmeshTools-mpich2$(SCORECOPT) \
-	-lSolver-mpich2$(SCORECOPT) \
-	-lPPPL-mpich2$(SCORECOPT) \
-	-lipcomman-mpich2$(SCORECOPT)
+        -lPPPLFusion \
+        -lMeshAdapt -lFMDB -lGMI -lGMIMeshModel -lSCORECUtil -lipcomman   
+
+#	-lFMDB-mpich2$(SCORECOPT) \
+#	-lSCORECModel-mpich2$(SCORECOPT) \
+#	-lSCORECUtil-mpich2$(SCORECOPT) \
+#	-lField-mpich2$(SCORECOPT) \
+#	-lCore-mpich2$(SCORECOPT) \
+#	-lmeshAdapt-mpich2$(SCORECOPT) \
+#	-lmeshTools-mpich2$(SCORECOPT) \
+#	-lSolver-mpich2$(SCORECOPT) \
+#	-lPPPL-mpich2$(SCORECOPT) \
+#	-lipcomman-mpich2$(SCORECOPT)
 
 
   LIBS := $(SCOREC_LIBS) $(LIBS)

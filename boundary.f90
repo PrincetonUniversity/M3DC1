@@ -4,7 +4,7 @@ module boundary_conditions
   integer, parameter :: BOUNDARY_DIRICHLET      =  1
   integer, parameter :: BOUNDARY_NEUMANN        =  2
   integer, parameter :: BOUNDARY_LAPLACIAN      =  4
-  integer, parameter :: BOUNDARY_RESISTIVE_WALL =  8
+  integer, parameter :: BOUNDARY_CLAMP          =  8
   integer, parameter :: BOUNDARY_AXISYMMETRIC   = 16
   integer, parameter :: BOUNDARY_NEUMANNP       = 32
 
@@ -16,7 +16,6 @@ module boundary_conditions
 !!$#endif
 contains
 
-
 !======================================================================
 ! get_boundary_mask
 ! ~~~~~~~~~~~~~~~~~
@@ -25,13 +24,14 @@ contains
 !              will be overwritten by boundary condition ibound
 ! imask(i) = 1 otherwise
 !======================================================================
-subroutine get_boundary_mask(itri, ibound, imask)
+subroutine get_boundary_mask(itri, ibound, imask, tags)
   use element
   use mesh_mod
   implicit none
 
   integer, intent(in) :: itri, ibound
   integer, intent(out), dimension(dofs_per_element) :: imask
+  type(tag_list), optional, intent(in) :: tags
 
   integer :: inode(nodes_per_element)
   real :: norm(2), curv, x, z
@@ -55,10 +55,10 @@ subroutine get_boundary_mask(itri, ibound, imask)
      endif
 #endif
 
-     call boundary_node(inode(i),is_boundary,izone,izonedim,norm,curv,x,z)
+     call boundary_node(inode(i),is_boundary,izone,izonedim,norm,curv,x,z,tags)
      if(.not.is_boundary) cycle
 
-     if(iand(ibound, BOUNDARY_RESISTIVE_WALL).eq.BOUNDARY_RESISTIVE_WALL) then
+     if(iand(ibound, BOUNDARY_CLAMP).eq.BOUNDARY_CLAMP) then
         imask(k) = 0
      endif
      if(iand(ibound, BOUNDARY_DIRICHLET).eq.BOUNDARY_DIRICHLET) then
@@ -109,11 +109,12 @@ subroutine get_boundary_mask(itri, ibound, imask)
 end subroutine get_boundary_mask
 
 
-subroutine apply_boundary_mask(itri, ibound, vals, imaskin)
+subroutine apply_boundary_mask(itri, ibound, vals, imaskin, tags)
   use element
   integer, intent(in) :: itri, ibound
   vectype, intent(inout), dimension(dofs_per_element,dofs_per_element) :: vals
   integer, dimension(dofs_per_element), optional :: imaskin
+  type(tag_list), intent(in), optional :: tags
 
   integer, dimension(dofs_per_element) :: imask
   integer :: i
@@ -121,7 +122,7 @@ subroutine apply_boundary_mask(itri, ibound, vals, imaskin)
   if(present(imaskin)) then
      imask = imaskin
   else
-     call get_boundary_mask(itri, ibound, imask)
+     call get_boundary_mask(itri, ibound, imask, tags)
   end if
   do i=1, dofs_per_element
      vals(i,:) = vals(i,:)*imask(i)
@@ -163,6 +164,27 @@ subroutine set_total_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
 end subroutine set_total_bc
 
 
+!======================================================================
+! set_clamp_bc
+!======================================================================
+subroutine set_clamp_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
+  use basic
+  use vector_mod
+  use matrix_mod
+  implicit none
+
+  integer, intent(in) :: ibegin               ! first dof of field
+  type(vector_type) :: rhs                    ! right-hand-side of equation
+  vectype, intent(in), dimension(dofs_per_node) :: bv  ! boundary values
+  real, intent(in) :: normal(2), curv
+  integer, intent(in) :: izonedim             ! dimension of boundary
+  type(matrix_type), optional :: mat
+  
+  ! clamp value
+  if(present(mat)) call identity_row(mat, ibegin)
+  call insert(rhs, ibegin, bv(1), VEC_SET)
+
+end subroutine set_clamp_bc
 
 
 !======================================================================

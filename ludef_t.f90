@@ -1,7 +1,8 @@
 !======================================================================
 ! Vorticity Equation
 !======================================================================
-subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
+subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
+     izone)
   
   use basic
   use arrays
@@ -16,6 +17,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
   vectype, intent(out) :: r_bf, q_bf
   integer, intent(in) :: advfield   ! if advfield = 1, eliminate rrterm by
                                     ! using analytic form of advanced field
+  integer, intent(in) :: izone
   vectype :: temp
   real :: ththm, nv, thimp_bf
 
@@ -24,7 +26,6 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
   else
      nv = .5
   end if
-
 
   if(imp_bf.eq.1 .and. isplitstep.eq.0) then
      thimp_bf = thimp
@@ -57,7 +58,6 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      return
   endif
 
-
   ! Time Derivative
   ! ~~~~~~~~~~~~~~~
   if(itime_independent.eq.0) then
@@ -70,6 +70,8 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
         ddterm(chi_g) = ddterm(chi_g) + temp*bdf
      end if
   end if
+
+  if(izone.ne.1) return
 
   ! Viscosity
   ! ~~~~~~~~~
@@ -516,7 +518,8 @@ end subroutine vorticity_nolin
 !======================================================================
 ! Axial Velocity Equation
 !======================================================================
-subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
+subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
+     izone)
   
   use basic
   use arrays
@@ -531,6 +534,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
   vectype, intent(out) :: r_bf, q_bf
 
   integer, intent(in) :: advfield
+  integer, intent(in) :: izone
   vectype :: temp
   real :: ththm, thimp_bf
 
@@ -547,7 +551,6 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
   case default
      ththm = (1.-thimp*bdf)*thimp
   end select
-
 
   if(imp_bf.eq.1 .and. isplitstep.eq.0) then
      thimp_bf = thimp
@@ -579,6 +582,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      ddterm(vz_g) = ddterm(vz_g) + temp*bdf
   end if
 
+  if(izone.ne.1) return
 
   ! Viscosity
   ! ~~~~~~~~~
@@ -952,7 +956,8 @@ end subroutine axial_vel_nolin
 !======================================================================
 ! Compression Equation
 !======================================================================
-subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
+subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
+     izone)
   
   use basic
   use arrays
@@ -966,6 +971,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
   vectype, dimension(num_fields), intent(out) :: ssterm, ddterm
   vectype, intent(out) :: r_bf, q_bf
   integer, intent(in) :: advfield
+  integer, intent(in) :: izone
 
   vectype :: temp
   real :: ththm, thimp_bf
@@ -1033,6 +1039,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield)
      ddterm(chi_g) = ddterm(chi_g) + temp*bdf
   end if
 
+  if(izone.ne.1) return
 
   ! Viscosity
   ! ~~~~~~~~~
@@ -1429,7 +1436,8 @@ end subroutine compression_nolin
 !======================================================================
 ! Flux Equation
 !======================================================================
-subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e)
+subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e, &
+     izone)
   
   use basic
   use arrays
@@ -1443,6 +1451,8 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e)
   vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: trial, lin 
   vectype, dimension(num_fields), intent(out) :: ssterm, ddterm
   vectype, intent(out) :: q_ni(2), r_bf, q_bf, r_e, q_e
+  integer, intent(in) :: izone
+
   vectype :: temp, temp2
   real :: thimpb, thimpf, thimpe, thimp_bf, nv
 
@@ -1487,16 +1497,6 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e)
      return
   end if
 
-  ! Time Derivatives
-  ! ~~~~~~~~~~~~~~~~
-  if(itime_independent.eq.0) then
-     temp = b1psi (trial,lin) &
-          - b1psid(trial,lin,ni79)   ! electron mass term
-     ssterm(psi_g) = ssterm(psi_g) + temp
-     ddterm(psi_g) = ddterm(psi_g) + temp*bdf
-  end if
-
-
   ! Resistive Terms
   ! ~~~~~~~~~~~~~~~
   temp = b1psieta(trial,lin,eta79,hf)
@@ -1513,6 +1513,19 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e)
         q_bf = q_bf + (1.-thimp_bf*bdf)*dt*temp
      end if
   endif
+
+  if(izone.eq.3) return
+
+  ! Time Derivatives
+  ! ~~~~~~~~~~~~~~~~
+  if(itime_independent.eq.0) then
+     temp = b1psi (trial,lin) &
+          - b1psid(trial,lin,ni79)   ! electron mass term
+     ssterm(psi_g) = ssterm(psi_g) + temp
+     ddterm(psi_g) = ddterm(psi_g) + temp*bdf
+  end if
+
+  if(izone.ne.1) return
 
   ! VxB
   ! ~~~
@@ -1954,7 +1967,8 @@ end subroutine flux_nolin
 !======================================================================
 ! Axial Field Equation
 !======================================================================
-subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
+subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
+     izone)
   
   use basic
   use arrays
@@ -1968,6 +1982,8 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
   vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: trial, lin 
   vectype, dimension(num_fields), intent(out) :: ssterm, ddterm
   vectype, intent(out) :: q_ni(2), r_bf, q_bf
+  integer, intent(in) :: izone
+
   vectype :: temp, temp2
   real :: thimpb, thimpf, thimp_bf
 
@@ -2003,17 +2019,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
      return
   end if
 
-  if(numvar.lt.2) return          
-
-  ! Time Derivative
-  ! ~~~~~~~~~~~~~~~
-  if(itime_independent.eq.0) then
-     temp = b2b (trial,lin) &
-          - b2bd(trial,lin,ni79)   ! electron mass term
-     ssterm(bz_g) = ssterm(bz_g) + temp
-     ddterm(bz_g) = ddterm(bz_g) + temp*bdf
-  end if
-
+  if(numvar.lt.2) return
 
   ! Resistive Terms
   ! ~~~~~~~~~~~~~~~
@@ -2030,6 +2036,19 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
      r_bf = r_bf -     thimp_bf     *dt*temp
      q_bf = q_bf + (1.-thimp_bf*bdf)*dt*temp
   end if
+
+  if(izone.eq.3) return
+
+  ! Time Derivative
+  ! ~~~~~~~~~~~~~~~
+  if(itime_independent.eq.0) then
+     temp = b2b (trial,lin) &
+          - b2bd(trial,lin,ni79)   ! electron mass term
+     ssterm(bz_g) = ssterm(bz_g) + temp
+     ddterm(bz_g) = ddterm(bz_g) + temp*bdf
+  end if
+
+  if(izone.ne.1) return
 
   ! VxB
   ! ~~~
@@ -2366,7 +2385,7 @@ end subroutine axial_field_nolin
 ! Pressure Equation
 !======================================================================
 subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
-     total_pressure, thimpf,itri)
+     total_pressure, thimpf,itri, izone)
   
   use basic
   use math
@@ -2380,6 +2399,7 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   vectype, dimension(num_fields), intent(out) :: ssterm, ddterm
   vectype, intent(out) :: q_ni(2), r_bf, q_bf
   logical, intent(in) :: total_pressure
+  integer, intent(in) :: izone
   real, intent(in) :: thimpf
   type(element_data) :: d
   integer :: itri
@@ -2437,6 +2457,7 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      ddterm(pp_g) = ddterm(pp_g) + temp*bdf
   end if
 
+  if(izone.ne.1) return
 
   ! Ohmic Heating
   ! ~~~~~~~~~~~~~
@@ -3012,7 +3033,7 @@ end subroutine pressure_lin
 ! Temperature Equation
 !======================================================================
 subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
-     electron_temperature, thimpf,itri)
+     electron_temperature, thimpf,itri, izone)
   
   use basic
   use math
@@ -3026,6 +3047,7 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   vectype, dimension(num_fields), intent(out) :: ssterm, ddterm
   vectype, intent(out) :: q_ni(2), r_bf, q_bf
   logical, intent(in) :: electron_temperature
+  integer, intent(in) :: izone
   real, intent(in) :: thimpf
   type(element_data) :: d
   integer :: itri
@@ -3080,6 +3102,8 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      ssterm(pp_g) = ssterm(pp_g) + temp
      ddterm(pp_g) = ddterm(pp_g) + temp*bdf
   end if
+
+  if(izone.ne.1) return
 
 !
   ohfac = 1.
@@ -3665,11 +3689,11 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   integer, intent(in) :: ipressplit_def  ! also populate pressure advance matrices
   integer, intent(in) :: ifield_def ! populate field advance matrices 
 
-  integer :: itri, numelms
+  integer :: itri, numelms, izone
   integer :: def_fields
 
   real :: tstart, tend, tfield, telm, tsizefield, tfinalize
-  logical :: is_edge(3)  ! is inode on boundary
+  integer :: is_edge(3)  ! is inode on boundary
   real :: n(2,3)
   integer :: iedge, idim(3)
 
@@ -3738,6 +3762,8 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
        print *, " begin loop over elements"
   do itri=1,numelms
 
+     call get_zone(itri, izone)
+
      ! calculate the field values and derivatives at the sampling points
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call define_element_quadrature(itri, int_pts_main, int_pts_tor)
@@ -3765,7 +3791,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
      call boundary_edge(itri, is_edge, n, idim)
      
      do iedge=1,3
-        if(.not.is_edge(iedge)) cycle
+        if(is_edge(iedge).eq.0) cycle
 
         call define_boundary_quadrature(itri, iedge, 5, 5, n, idim)
         call define_fields(itri, def_fields, 1, linear)
@@ -3841,9 +3867,10 @@ subroutine ludefvel_n(itri)
   integer :: advfield
   integer :: pp_i
   integer, dimension(3) :: ieq
-  integer :: k
+  integer :: k, izone
   integer, dimension(dofs_per_element) :: imask
 
+  call get_zone(itri, izone)
 
   if(isplitstep.ge.1) then
      vv1 => s1_mat
@@ -3926,24 +3953,26 @@ subroutine ludefvel_n(itri)
            select case(k)
            case(1)
               call vorticity_lin(mu79(:,:,i),nu79(:,:,j), &
-                   ss(i,j,:),dd(i,j,:),r_bf(i,j),q_bf(i,j),advfield)
+                   ss(i,j,:),dd(i,j,:),r_bf(i,j),q_bf(i,j),advfield,izone)
            case(2)
               call axial_vel_lin(mu79(:,:,i),nu79(:,:,j), &
-                   ss(i,j,:),dd(i,j,:),r_bf(i,j),q_bf(i,j),advfield)
+                   ss(i,j,:),dd(i,j,:),r_bf(i,j),q_bf(i,j),advfield,izone)
            case(3)
               call compression_lin(mu79(:,:,i),nu79(:,:,j), &
-                   ss(i,j,:),dd(i,j,:),r_bf(i,j),q_bf(i,j),advfield)
+                   ss(i,j,:),dd(i,j,:),r_bf(i,j),q_bf(i,j),advfield,izone)
            end select
         end do
 
-        select case(k)
-        case(1)
-           call vorticity_nolin(mu79(:,:,i),r4(i))
-        case(2)
-           call axial_vel_nolin(mu79(:,:,i),r4(i))
-        case(3)
-           call compression_nolin(mu79(:,:,i),r4(i))
-        end select
+        if(izone.eq.1) then 
+           select case(k)
+           case(1)
+              call vorticity_nolin(mu79(:,:,i),r4(i))
+           case(2)
+              call axial_vel_nolin(mu79(:,:,i),r4(i))
+           case(3)
+              call compression_nolin(mu79(:,:,i),r4(i))
+           end select
+        end if
      end do
      if(idifv .gt. 0) dd(:,:,  u_g) = dd(:,:,  u_g) - ss(:,:,  u_g)
      call insert_block(vv1,itri,ieq(k),  u_i,ss(:,:,  u_g),MAT_ADD)
@@ -4004,7 +4033,6 @@ subroutine ludefphi_n(itri)
   use arrays
   use sparse
   use electrostatic_potential
-  use vacuum_interface
   use time_step
   use model
 
@@ -4012,7 +4040,7 @@ subroutine ludefphi_n(itri)
 
   integer, intent(in) :: itri
 
-  integer :: i, j, k
+  integer :: i, j, k, izone
   
   vectype, dimension(dofs_per_element,dofs_per_element,num_fields) :: ss, dd
   vectype, dimension(dofs_per_element,dofs_per_element) :: r_bf, q_bf, r_e, q_e
@@ -4024,6 +4052,8 @@ subroutine ludefphi_n(itri)
   integer :: ieq(5)
   integer :: maxk, pp_i, ppe_i
   integer :: imask(dofs_per_element)
+
+  call get_zone(itri, izone)
 
   if(isplitstep.ge.1) then
      bb1 => s2_mat
@@ -4132,18 +4162,19 @@ subroutine ludefphi_n(itri)
               if(.not.surface_int) then
                  call flux_lin(mu79(:,:,i),nu79(:,:,j), &
                       ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
-                      r_e(i,j),q_e(i,j))
+                      r_e(i,j),q_e(i,j),izone)
               end if
            else if(ieq(k).eq.bz_i) then
               if(.not.surface_int) then
                  call axial_field_lin(mu79(:,:,i),nu79(:,:,j), &
-                      ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j))
+                      ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
+                      izone)
               endif
 
            else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
               call pressure_lin(mu79(:,:,i),nu79(:,:,j), &
                    ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
-                   ipres.eq.0, thimp,itri)
+                   ipres.eq.0, thimp,itri, izone)
 
            else if(ieq(k).eq.bf_i) then
               call bf_equation_lin(mu79(:,:,i),nu79(:,:,j), &
@@ -4160,16 +4191,17 @@ subroutine ludefphi_n(itri)
            end if
         end do
 
-        if(ieq(k).eq.psi_i) then
-           call flux_nolin(mu79(:,:,i),q4(i))
-        else if(ieq(k).eq.bz_i) then
-           call axial_field_nolin(mu79(:,:,i),q4(i))
-        else if(ieq(k).eq.pe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
-           call pressure_nolin(mu79(:,:,i),q4(i),ipres.eq.0)
-        else if(ieq(k).eq.bf_i) then
-           call bf_equation_nolin(mu79(:,:,i),q4(i))
-        else
-           q4(i) = 0.
+        q4(i) = 0.
+        if(izone.eq.1) then
+           if(ieq(k).eq.psi_i) then
+              call flux_nolin(mu79(:,:,i),q4(i))
+           else if(ieq(k).eq.bz_i) then
+              call axial_field_nolin(mu79(:,:,i),q4(i))
+           else if(ieq(k).eq.pe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
+              call pressure_nolin(mu79(:,:,i),q4(i),ipres.eq.0)
+           else if(ieq(k).eq.bf_i) then
+              call bf_equation_nolin(mu79(:,:,i),q4(i))
+           end if
         end if
      end do
     
@@ -4238,7 +4270,6 @@ subroutine ludefpres_n(itri)
   use arrays
   use sparse
   use electrostatic_potential
-  use vacuum_interface
   use time_step
   use model
 
@@ -4246,7 +4277,7 @@ subroutine ludefpres_n(itri)
 
   integer, intent(in) :: itri
 
-  integer :: i, j, k
+  integer :: i, j, k, izone
   
   vectype, dimension(dofs_per_element,dofs_per_element,num_fields) :: ss, dd
   vectype, dimension(dofs_per_element,dofs_per_element) :: r_bf, q_bf, r_e, q_e
@@ -4259,6 +4290,8 @@ subroutine ludefpres_n(itri)
   integer :: ieq(2)
   integer :: maxk
   real :: thimpf
+
+  call get_zone(itri, izone)
 
   if(isplitstep.ge.1) then
      pp1 => s9_mat
@@ -4334,42 +4367,44 @@ subroutine ludefpres_n(itri)
           if(ipressplit.eq.0) then
              call pressure_lin(mu79(:,:,i),nu79(:,:,j), &
                    ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
-                   .true., thimpf,itri)
+                   .true., thimpf,itri,izone)
           else ! ipressplit=1
                 select case(imode)
                 case(1)
                 call pressure_lin(mu79(:,:,i),nu79(:,:,j), &
                       ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
-                      .true., thimpf,itri)
+                      .true., thimpf,itri,izone)
                 case(2)
                 call temperature_lin(mu79(:,:,i),nu79(:,:,j), &
                       ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
-                      .true., thimpf,itri)
+                      .true., thimpf,itri,izone)
                 case(3)
                    if(k.eq.1)call pressure_lin(mu79(:,:,i),nu79(:,:,j), &
                       ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
-                      .true., thimpf,itri)
+                      .true., thimpf,itri,izone)
                    if(k.eq.2) call pressure_lin(mu79(:,:,i),nu79(:,:,j), &
                       ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
-                      .false., thimpf,itri)
+                      .false., thimpf,itri,izone)
                 case(4)
                    if(k.eq.1)call temperature_lin(mu79(:,:,i),nu79(:,:,j), &
                       ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
-                      .true., thimpf,itri)
+                      .true., thimpf,itri,izone)
                    if(k.eq.2) call temperature_lin(mu79(:,:,i),nu79(:,:,j), &
                       ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
-                      .false., thimpf,itri)
+                      .false., thimpf,itri,izone)
                 end select
           endif ! on ipressplit
         end do  ! on j
-        if(ipressplit.eq.0) then
-           call pressure_nolin(mu79(:,:,i),q4(i),.true.)
-        endif
-        if(ipressplit.eq.1) then
-          if((imode.eq.1 .or. imode.eq.2) .and. k.eq.1)  &
-                 call pressure_nolin(mu79(:,:,i),q4(i),.false.)
-          if((imode.eq.3 .or. imode.eq.4) .and. (k.eq.1 .or. k.eq.2))  &
-                 call pressure_nolin(mu79(:,:,i),q4(i),.false.)
+        if(izone.eq.1) then
+           if(ipressplit.eq.0) then
+              call pressure_nolin(mu79(:,:,i),q4(i),.true.)
+           endif
+           if(ipressplit.eq.1) then
+              if((imode.eq.1 .or. imode.eq.2) .and. k.eq.1)  &
+                   call pressure_nolin(mu79(:,:,i),q4(i),.false.)
+              if((imode.eq.3 .or. imode.eq.4) .and. (k.eq.1 .or. k.eq.2))  &
+                   call pressure_nolin(mu79(:,:,i),q4(i),.false.)
+           end if
         endif  ! ipressplit
      end do  ! on i
 
@@ -4478,7 +4513,7 @@ subroutine ludefden_n(itri)
 
   integer, intent(in) :: itri
 
-  integer :: i, j
+  integer :: i, j, izone
   vectype, dimension(dofs_per_element, dofs_per_element) :: ssterm, ddterm
   vectype, dimension(dofs_per_element, dofs_per_element, 3) :: rrterm, qqterm
   vectype, dimension(dofs_per_element) :: oterm
@@ -4492,6 +4527,8 @@ subroutine ludefden_n(itri)
 
   vectype, dimension(MAX_PTS,OP_NUM) :: hp
   hp = hypp*sz79
+
+  call get_zone(itri, izone)
 
   if(imp_mod.eq.0) then
      thimpb = thimp
@@ -4540,6 +4577,8 @@ subroutine ludefden_n(itri)
            ssterm(i,j) = ssterm(i,j) + temp    
            ddterm(i,j) = ddterm(i,j) + temp*bdf
         end if
+
+        if(izone.ne.1) cycle
         
         temp = n1ndenm(mu79(:,:,i),nu79(:,:,j),denm,hp) &
              + n1nu   (mu79(:,:,i),nu79(:,:,j),pht79)

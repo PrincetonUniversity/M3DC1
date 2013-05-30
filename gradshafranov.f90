@@ -678,7 +678,7 @@ subroutine gradshafranov_solve
   type(matrix_type) :: gs_matrix
   type(newvar_matrix) :: dp_mat_lhs
 
-  integer :: itri,i,j,ier, itnum, ibound
+  integer :: itri,i,j,ier, itnum, ibound, izone
   integer :: numelms, numnodes
   real :: feedfac
 
@@ -731,7 +731,7 @@ subroutine gradshafranov_solve
      call define_element_quadrature(itri,int_pts_main,int_tor)
      call define_fields(itri,0,1,0)
 
-     call get_boundary_mask(itri, ibound, imask)
+     call get_boundary_mask(itri, ibound, imask, domain_boundary)
      do i=1,dofs_per_element
         if(imask(i).eq.0) then
            temp(i,:) = 0.
@@ -911,6 +911,9 @@ subroutine gradshafranov_solve
 
         call eval_ops(itri, psi_vec, ps079)
 
+        call get_zone(itri, izone)
+
+
         if(igs_method.eq.2) then 
            do i=1, npoints       
               call calc_toroidal_field(ps079(i,:),tf,x_79(i),z_79(i))
@@ -924,7 +927,7 @@ subroutine gradshafranov_solve
                  temp79d(i) = tf(1)
               endif
            end do
-
+              
            do i=1,dofs_per_element
               temp(i,1) = int2(mu79(:,OP_1,i),temp79a)
               temp(i,2) = int2(mu79(:,OP_1,i),temp79b)
@@ -1175,7 +1178,8 @@ subroutine calculate_error(error, error2, psinew)
   numnodes = owned_nodes()
   do i=1,numnodes
 
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z,&
+          domain_boundary)
      if(is_boundary) cycle
 
      call get_node_pos(i,x,phi,z)
@@ -2469,7 +2473,8 @@ subroutine boundary_gs(rhs, feedfac, mat)
 
      index = node_index(rhs, i, 1)
 
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
+          domain_boundary)
      if(is_boundary) then
 
         ! add feedback field

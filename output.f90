@@ -157,62 +157,6 @@ contains
   end subroutine output
 
 
-  subroutine write_boundary_bn
-    use basic
-    use arrays
-    use vacuum_interface
-    implicit none
-
-#include "mpif.h"
-
-    integer :: i, ierr
-    complex :: bn(nodes), buff(nodes)
-    real :: xbuff(nodes), zbuff(nodes)
-    vectype, dimension(dofs_per_node) :: psi_data, f_data
-    logical :: is_boundary
-    integer :: izone, izonedim
-    real ::  normal(2), curv, x(nodes), z(nodes)
-    integer, parameter :: bnout=77
-    character(len=*), parameter :: bnfilename = "bn.out"
-
-    bn = 0
-    do i=1, nodes
-       if(local_id(i).le.0) cycle
-
-       call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x(i),z(i))
-
-       call get_node_data(psi_field(1), i, psi_data)
-       
-       bn(i) = (normal(1)*psi_data(3) - normal(2)*psi_data(2))/x(i)
-#ifdef USECOMPLEX
-       call get_node_data(bf_field(1), i, f_data)
-       bn(i) = bn(i) - rfac*(normal(1)*f_data(2) + normal(2)*f_data(3))
-#elif defined(USE3D)
-       call get_node_data(bf_field(1), i, f_data)
-       bn(i) = bn(i) - (normal(1)*f_data(8) + normal(2)*f_data(9))
-#endif
-    end do
-
-    call mpi_reduce(bn, buff, 2*nodes, MPI_DOUBLE_PRECISION, MPI_SUM, &
-         0, MPI_COMM_WORLD, ierr)
-    call mpi_reduce(x, xbuff, nodes, MPI_DOUBLE_PRECISION, MPI_SUM, &
-         0, MPI_COMM_WORLD, ierr)
-    call mpi_reduce(z, zbuff, nodes, MPI_DOUBLE_PRECISION, MPI_SUM, &
-         0, MPI_COMM_WORLD, ierr)
-
-    if(myrank.eq.0) then
-       open(unit=bnout, file=bnfilename, status='unknown') 
-       write(bnout, '(I5)') nodes
-       do i=1, nodes
-          write(bnout, '(4f12.6)') xbuff(i), zbuff(i), buff
-       end do
-       close(bnout)
-    endif
-
-  end subroutine write_boundary_bn
-
-
-
 ! hdf5_write_parameters
 ! =====================
 subroutine hdf5_write_parameters(error)
@@ -612,7 +556,7 @@ subroutine output_mesh(time_group_id, nelms, error)
   integer, dimension(nodes_per_element) :: nodeids
   real :: alx, alz
 
-  logical :: is_edge(3)
+  integer :: is_edge(3)
   real :: normal(2,3)
   integer :: idim(3)
   real :: bound
@@ -641,9 +585,9 @@ subroutine output_mesh(time_group_id, nelms, error)
      if(iadapt.eq.0) call boundary_edge(i, is_edge, normal, idim)
 
      bound = 0.
-     if(is_edge(1)) bound = bound + 1.
-     if(is_edge(2)) bound = bound + 2.
-     if(is_edge(3)) bound = bound + 4.
+     if(is_edge(1).ne.0) bound = bound + 1. + (is_edge(1)-1)*2**3
+     if(is_edge(2).ne.0) bound = bound + 2. + (is_edge(2)-1)*2**7
+     if(is_edge(3).ne.0) bound = bound + 4. + (is_edge(3)-1)*2**11
 
      call get_element_data(i, d)
 

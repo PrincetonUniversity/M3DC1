@@ -709,7 +709,7 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
    fac = 1.
    convert_units, fac, dimensions(/l0), b0, n0, l0, zeff, mi, _EXTRA=ex
 
-   loadct, 12
+   ct3
    col = color(1,10)
  
    version = read_parameter('version', _EXTRA=ex)
@@ -741,20 +741,46 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
        p2 = p1 + [(b+a) * cos(t), (b+a) * sin(t)]
        p3 = p1 + [b * cos(t) - c * sin(t), $
                   b * sin(t) + c * cos(t)]
+       delta = 0.0
+       q1 = (1.-2.*delta)*p1 + delta*p2 + delta*p3
+       q2 = delta*p1 + (1.-2.*delta)*p2 + delta*p3
+       q3 = delta*p1 + delta*p2 + (1.-2.*delta)*p3
       
        if(boundary) then pp=bound else pp=7
  
        if((pp and 1) eq 1) then begin
-           if((bound and 1) eq 1) then th=!p.thick*3 else th=!p.thick/2.
-           oplot, [p1[0],p2[0]]+xzero, [p1[1],p2[1]]+zzero, color=col, thick=th
+           if((bound and 1) eq 1) then begin
+               izone = (bound and 120)/2^3 + 1
+               c = color(izone+1)
+               oplot, [q1[0],q2[0]]+xzero, [q1[1],q2[1]]+zzero, $
+                 color=c, thick=!p.thick*3
+           end else begin
+               oplot, [p1[0],p2[0]]+xzero, [p1[1],p2[1]]+zzero, $
+                 color=col, thick=!p.thick/2.
+           end
        end
        if((pp and 2) eq 2) then begin
-           if((bound and 2) eq 2) then th=!p.thick*3 else th=!p.thick/2.
-           oplot, [p2[0],p3[0]]+xzero, [p2[1],p3[1]]+zzero, color=col, thick=th
+           if((bound and 2) eq 2) then begin
+               izone = (bound and 1920)/2^7 + 1
+               c = color(izone+1)
+               oplot, [q2[0],q3[0]]+xzero, [q2[1],q3[1]]+zzero, $
+                 color=c, thick=!p.thick*3
+           end else begin
+               oplot, [p2[0],p3[0]]+xzero, [p2[1],p3[1]]+zzero, $
+                 color=col, thick=!p.thick/2.
+           end
+
        end
        if((pp and 4) eq 4) then begin
-           if((bound and 4) eq 4) then th=!p.thick*3 else th=!p.thick/2.
-           oplot, [p3[0],p1[0]]+xzero, [p3[1],p1[1]]+zzero, color=col, thick=th
+           if((bound and 4) eq 4) then begin
+               izone = (bound and 30720)/2^11 + 1
+               c = color(izone+1)
+               oplot, [q3[0],q1[0]]+xzero, [q3[1],q1[1]]+zzero, $
+                 color=c, thick=!p.thick*3
+           end else begin
+               oplot, [p3[0],p1[0]]+xzero, [p3[1],p1[1]]+zzero, $
+                 color=col, thick=!p.thick/2.
+           end
        end
 
        maxr[0] = max([maxr[0], p1[0], p2[0], p3[0]])
@@ -6499,7 +6525,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
    endif
 
    if(n_elements(mask_val) ne 0) then begin
-       for k=0, nt-1 do begin
+       for k=0, n_elements(field[*,0,0])-1 do begin
            field[k,*,*] = field[k,*,*] - mask*(field[k,*,*] - mask_val)
        end
    endif

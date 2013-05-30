@@ -9,6 +9,9 @@
 
 #define INT_TYPE    0
 #define DOUBLE_TYPE 1
+#define STRING_TYPE 2
+
+#define MAX_STRING_LENGTH 256;
 
 struct variable {
   std::string name;
@@ -46,6 +49,48 @@ struct variable {
     }
   }
 };
+
+struct string_variable : public variable {
+  int size;
+  char pad;
+
+  string_variable(std::string n, char* var, const int s, const char* val, 
+		  std::string desc, int g, const char p='\0')
+    : variable(n, (void*)var, desc, g)
+  { size = s; pad=p; strncpy(var, val, size); do_padding(); }
+  virtual int get_type() const 
+  { return STRING_TYPE; }
+  virtual bool read(const std::string s)
+  {
+    strncpy((char*)data, s.c_str(), size);
+    do_padding();
+    return true;
+  }
+  virtual void printval() const
+  { 
+    int l = 0;
+    if(pad != '\0') {
+      for(int i=0; i<size; i++) {
+	if(((char*)data)[i] != pad) l = i;
+      }
+      ((char*)data)[l+1] = '\0';
+    }
+    std::cout << (char*)data; 
+    if(pad != '\0') {
+      ((char*)data)[l+1] = pad;
+    }
+  }
+
+private:
+  void do_padding() {
+    if(pad=='\0') return;
+    for(int i=0; i<size; i++) {
+      if(((char*)data)[i] == '\0') 
+	((char*)data)[i] = pad;
+    }
+  }
+};
+
 
 struct int_variable : public variable {
   int_variable(std::string n, int* var, int val, std::string desc, int g)
@@ -175,23 +220,23 @@ public:
 	  
 	  size_t peq = str.find_first_of("=");
 	  if(peq==std::string::npos) continue;
+
+	  size_t pc = str.find_first_of("!");
 	
 	  size_t p1 = str.find_first_not_of(" \n\t=");
 	  if(p1 == std::string::npos) continue;
-	  size_t p2 = str.find_first_of(" \n\t=",p1);
+	  size_t p2 = str.find_last_not_of(" \n\t=",peq);
 	  if(p2 == std::string::npos) continue;
 
-	  size_t p3 = str.find_first_not_of(" \n\t=",peq);
+	  size_t p3 = str.find_first_not_of(" \n\t='\"",peq);
 	  if(p3 == std::string::npos) continue;
-	  size_t p4 = str.find_first_of(" \n\t=!",p3);
+	  size_t p4 = str.find_last_not_of(" \n\t='\"",pc);
 	  if(p4 == std::string::npos) p4 = str.size();
 
-	  // remove comments
-	  size_t pc = str.find_first_of("!");
 	  if(pc < p4) continue;
 	  
-	  op1 = str.substr(p1,p2-p1);
-	  op2 = str.substr(p3,p4-p3);
+	  op1 = str.substr(p1,p2-p1+1);
+	  op2 = str.substr(p3,p4-p3+1);
 	  
 	  variable_map::iterator i = variables.find(op1);
 
@@ -288,6 +333,27 @@ public:
       }
       delete[] ints;
     }
+
+    // Communicate strings
+    if(type_num[STRING_TYPE] > 0) {
+      int len;
+
+      i = variables.begin();
+
+      k = 0;
+      while(i != variables.end()) {
+	if(i->second->get_type() == STRING_TYPE) {
+	  MPI_Bcast(i->second->data, ((string_variable*)i->second)->size, 
+	    MPI_CHAR, 0, MPI_COMM_WORLD);
+	  k++;
+	}
+	i++;
+      }
+      if(k != type_num[STRING_TYPE])
+	std::cerr << "Error: incorrect number of strings"
+		  << " " << k << " vs " << type_num[STRING_TYPE] 
+		  << std::endl;
+    }
   }
 };
 
@@ -310,6 +376,14 @@ extern "C" void add_variable_double_(const char* name, double* v, double* def,
 {
   variables.create_variable(new double_variable(name, v, *def, 
 						description, *group));
+}
+
+extern "C" void add_variable_string_(const char* name, char* v, const int* sz,
+				     const char* def, const char* description,
+				     const int* group, const char* pad)
+{
+  variables.create_variable(new string_variable(name, v, *sz, def,
+						description, *group, *pad));
 }
 
 // ierr = 0: success

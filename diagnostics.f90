@@ -521,7 +521,7 @@ subroutine calculate_scalars()
   include 'mpif.h'
 
   integer :: itri, numelms, def_fields
-  logical :: is_edge(3)  ! is inode on boundary
+  integer :: is_edge(3)  ! is inode on boundary
   real :: n(2,3),tpifac
   integer :: iedge, idim(3)
 
@@ -696,7 +696,7 @@ subroutine calculate_scalars()
      call boundary_edge(itri, is_edge, n, idim)
 
      do iedge=1,3
-        if(.not.is_edge(iedge)) cycle
+        if(is_edge(iedge).eq.0) cycle
 
         call define_boundary_quadrature(itri, iedge, 5, 5, n, idim)
         call define_fields(itri, def_fields, 1, 0)
@@ -1024,7 +1024,7 @@ subroutine lcfs(psi)
   real :: psix, psib, psim
   real :: x, z, temp1, temp2, temp_min, temp_max, ajlim
   integer :: ier, numnodes, inode, izone, izonedim, itri
-  logical :: is_boundary, first_point
+  logical :: is_boundary, first_point, is_interface
   real, dimension(2) :: normal
   real :: curv
   vectype, dimension(dofs_per_node) :: data
@@ -1059,7 +1059,8 @@ subroutine lcfs(psi)
   first_point = .true.
   numnodes = owned_nodes()
   do inode=1, numnodes
-     call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
+     call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z, &
+          inner_wall)
      if(.not.is_boundary) cycle
 
      call get_node_data(psi,inode,data)

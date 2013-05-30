@@ -20,6 +20,19 @@ subroutine add_var_int(name, var, default, desc, grp)
   call add_variable_int(name//char(0), var, default, desc//char(0), grp)
 end subroutine add_var_int
 
+subroutine add_var_string(name, var, len, default, desc, grp)
+  implicit none
+
+  character(len=*), intent(in) :: name, desc
+  character(len=*) :: var
+  character(len=*), intent(in) :: default
+  integer, intent(in) :: len
+  integer, intent(in) :: grp
+
+  call add_variable_string(name//char(0), var, len, default//char(0), &
+       desc//char(0), grp, ' ')
+end subroutine add_var_string
+
 subroutine add_group(name, handle)
   implicit none
   character(len=*), intent(in) :: name
@@ -74,6 +87,7 @@ subroutine set_defaults
   use m3dc1_output
   use neutral_beam
   use element
+  use mesh_mod
 
   implicit none
 
@@ -409,7 +423,6 @@ subroutine set_defaults
   call add_var_double("znull", znull, 0., &
        "Guess for Z-coordinate of axtive x-point", gs_grp)
 
-
   ! Hyper diffusion
   call add_var_double("deex", deex, 1., "", hyper_grp)
   call add_var_double("hyper", hyper, 0., "", hyper_grp)
@@ -463,7 +476,8 @@ subroutine set_defaults
 
   
   ! resistive wall
-  call add_var_double("eta_wall", eta_wall, 0., "", misc_grp)
+  call add_var_double("eta_wall", eta_wall, 1e-3, &
+       "Resistivity of conducting wall region", misc_grp)
   call add_var_double("delta_wall", delta_wall, 1., "", misc_grp)
 
 
@@ -605,7 +619,12 @@ subroutine set_defaults
   call add_var_double("xzero", xzero, 0., "", mesh_grp)
   call add_var_double("zzero", zzero, 0., "", mesh_grp)
   call add_var_double("tiltangled", tiltangled, 0., "", mesh_grp)
-
+  call add_var_string("mesh_filename", mesh_filename, 256, "struct-dmg.sms", &
+       "", mesh_grp)
+  call add_var_string("mesh_model", mesh_model, 256, "struct.dmg", &
+       "", mesh_grp)
+  call add_var_int("imulti_region", imulti_region, 0, &
+       "1 = Mesh has multiple physical regions", mesh_grp)
   
   ! Deprecated
   call add_var_int("ibform", ibform, -1, "", deprec_grp)
@@ -789,19 +808,12 @@ subroutine validate_input
      tcur = -tcur
   endif
 
-#ifdef USE3D
-  if(gyro.eq.1) then
-     print *, 'Error: gyroviscosity not yet implemented in 3D'
-     call safestop(1)
-  endif
-#endif
-
-  if(eta_wall.ne.0 .and. iconst_bn.eq.1) then
-     if(myrank.eq.0) &
-          print *, 'Error: eta_wall!=0 is incompatible with iconst_bn==1'
-     call safestop(1)
-  endif
-
+!!$  if(eta_wall.ne.0 .and. iconst_bn.eq.1) then
+!!$     if(myrank.eq.0) &
+!!$          print *, 'Error: eta_wall!=0 is incompatible with iconst_bn==1'
+!!$     call safestop(1)
+!!$  endif
+!!$
 !  if(eta_wall.ne.0.) then
 !     if(maxrank.gt.1) then
 !        print *, 'Error: resistive wall only supported for single-process runs'

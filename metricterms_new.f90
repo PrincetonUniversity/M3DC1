@@ -9491,11 +9491,19 @@ vectype function g1u(e,f)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
+  vectype, dimension(MAX_PTS) :: psir, psiz
 
   if(surface_int) then
      g1u = 0.
      return
   end if
+  
+  psir = pst79(:,OP_DR)
+  psiz = pst79(:,OP_DZ)
+#ifdef USE3D
+  psir = psir - r_79*f(:,OP_DZP)
+  psiz = psiz + r_79*f(:,OP_DRP)
+#endif
 
   select case(ivform)
   case(0)

@@ -866,7 +866,7 @@ contains
 
     implicit none
     integer, intent(in) :: itri
-    logical, intent(out) :: is_edge(3)
+    integer, intent(out) :: is_edge(3)
     real, intent(out) :: normal(2,3)
     integer, intent(out) :: idim(3)
     
@@ -883,7 +883,7 @@ contains
     
     do i=1,3
        j = mod(i,3) + 1
-       is_edge(i) = .false.
+       is_edge(i) = 0
        
        ! skip edges not having both points on a boundary
        if((.not.is_bound(i)).or.(.not.is_bound(j))) cycle
@@ -899,7 +899,7 @@ contains
           if(normal(1,i)*normal(1,j) + normal(2,i)*normal(2,j) .lt. .5) cycle
        end if
        
-       is_edge(i) = .true.
+       is_edge(i) = 1
     end do
   end subroutine boundary_edge
   
