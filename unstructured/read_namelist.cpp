@@ -222,6 +222,7 @@ public:
 	  if(peq==std::string::npos) continue;
 
 	  size_t pc = str.find_first_of("!");
+	  if(pc < peq) continue;
 	
 	  size_t p1 = str.find_first_not_of(" \n\t=");
 	  if(p1 == std::string::npos) continue;
