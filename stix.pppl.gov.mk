@@ -82,17 +82,23 @@ ifeq ($(USESCOREC), 1)
   SCOREC_LIBS = \
 	-L$(SCORECDIR) \
 	-Wl,-rpath,$(SCORECDIR) \
-	-lFMDB-mpich2$(SCORECOPT) \
-	-lSCORECModel-mpich2$(SCORECOPT) \
-	-lSCORECUtil-mpich2$(SCORECOPT) \
-	-lField-mpich2$(SCORECOPT) \
-	-lCore-mpich2$(SCORECOPT) \
-	-lmeshAdapt-mpich2$(SCORECOPT) \
-	-lmeshTools-mpich2$(SCORECOPT) \
-	-lSolver-mpich2$(SCORECOPT) \
-	-lPPPL-mpich2$(SCORECOPT) \
-	-lipcomman-mpich2$(SCORECOPT)
-#	-lPPPLPetscDEV-mpich2$(SCORECOPT) \
+        -lPPPLFusion \
+        -lMeshAdapt -lFMDB -lGMI -lGMIMeshModel -lSCORECUtil -lipcomman   
+
+#  SCOREC_LIBS = \
+#	-L$(SCORECDIR) \
+#	-Wl,-rpath,$(SCORECDIR) \
+#	-lFMDB-mpich2$(SCORECOPT) \
+#	-lSCORECModel-mpich2$(SCORECOPT) \
+#	-lSCORECUtil-mpich2$(SCORECOPT) \
+#	-lField-mpich2$(SCORECOPT) \
+#	-lCore-mpich2$(SCORECOPT) \
+#	-lmeshAdapt-mpich2$(SCORECOPT) \
+#	-lmeshTools-mpich2$(SCORECOPT) \
+#	-lSolver-mpich2$(SCORECOPT) \
+#	-lPPPL-mpich2$(SCORECOPT) \
+#	-lipcomman-mpich2$(SCORECOPT)
+##	-lPPPLPetscDEV-mpich2$(SCORECOPT) \
 
   LIBS := $(SCOREC_LIBS) $(LIBS)
 
