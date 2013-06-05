@@ -346,6 +346,7 @@ module basic
   real :: psibound          ! flux at the lcfs
   logical :: is_diverted    ! whether plasma is diverted or not
   real :: xnull, znull      ! coordinates of the limiting x-point
+  real :: temax            ! maximum temperature
 
   ! PID controllers
   type(pid_control), save :: i_control, n_control

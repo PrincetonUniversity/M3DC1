@@ -536,9 +536,9 @@ subroutine derived_quantities(ilin)
 
   implicit none
 
-  type(field_type) :: psi_temp
+  type(field_type) :: psi_temp, te_temp
   integer, intent(in) :: ilin    ! 0 for equilibrium fields, 1 for perturbed
-
+  integer :: ier
   real :: tstart, tend
 
   vectype :: temp
@@ -559,6 +559,35 @@ subroutine derived_quantities(ilin)
   else
      call lcfs(psi_field(1))
   endif
+
+
+  ! Find maximum temperature:  te_max
+  ! ~~~~~~~~~
+  ier = 0
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "  finding temax"
+  if(eqsubtract.eq.1) then
+     if(linear.eq.1) then 
+        if(ntime.eq.ntime0) call te_max(xmag,zmag,te_field(0),temax,0,ier)
+     else
+        call create_field(te_temp)
+        te_temp = te_field(0)
+        call add_field_to_field(te_temp, te_field(1))
+        call te_max(xmag,zmag,te_temp,temax,0,ier)
+        call destroy_field(te_temp)
+     endif
+  else
+     call te_max(xmag,zmag,te_field(1),temax,0,ier)
+  endif
+  if(ier.eq.0) then
+    if(myrank.eq.0 .and. iprint.ge.1) then
+      write(*,'(A, E12.4)') 'max te', temax
+    endif
+  else
+    if(myrank.eq.0 .and. iprint.ge.1) then
+      write(*,'(A,2e12.4)') ' no temperatue maximum found near ',xmag,zmag
+    endif
+  endif
+
 
   ! Define auxiliary fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~
