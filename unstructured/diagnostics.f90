@@ -1001,6 +1001,210 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
   
 end subroutine magaxis
 
+! te_max
+! ~~~~~~~
+! locates the extreemum in te and the value of te there
+! imethod = 0 finds the local maximum
+! imethod = 1 finds the local zero of <te,te>
+!=====================================================
+subroutine te_max(xguess,zguess,te,tem,imethod,ier)
+  use basic
+  use mesh_mod
+  use m3dc1_nint
+  use field
+
+  implicit none
+
+  include 'mpif.h'
+
+  real, intent(inout) :: xguess, zguess
+  type(field_type), intent(in) :: te
+  integer, intent(in) :: imethod
+  real, intent(out) :: tem
+
+  integer, parameter :: iterations = 20  !  max number of Newton iterations
+  real, parameter :: bfac = 0.1  !max zone fraction for movement each iteration
+  real, parameter :: tol = 1e-3   ! convergence tolorance (fraction of h)
+
+  type(element_data) :: d
+  integer :: inews
+  integer :: i, ier, in_domain, converged
+  real :: x1, z1, x, z, si, zi, eta, h
+  real :: sum, sum1, sum2, sum3, sum4, sum5
+  real :: term1, term2, term3, term4, term5
+  real :: pt, pt1, pt2, p11, p22, p12
+  real :: xnew, znew, denom, sinew, etanew
+  real :: xtry, ztry, rdiff
+  vectype, dimension(coeffs_per_element) :: avector
+  real, dimension(5) :: temp1, temp2
+  integer, save :: itri = 0
+
+  if(myrank.eq.0 .and. iprint.ge.2) &
+       write(*,'(A,2E12.4)') '  te_max: guess = ', xguess, zguess
+
+  converged = 0
+
+  x = xguess
+  z = zguess
+  
+  newton :  do inews=1, iterations
+
+     call whattri(x,0.,z,itri,x1,z1)
+
+     ! calculate position of maximum
+     if(itri.gt.0) then
+        call calcavector(itri, te, avector)
+        call get_element_data(itri, d)
+
+        ! calculate local coordinates
+        call global_to_local(d, x, 0., z, si, zi, eta)
+
+        ! calculate mesh size
+        h = sqrt((d%a+d%b)*d%c)
+
+        ! evaluate the polynomial and second derivative
+        sum = 0.
+        sum1 = 0.
+        sum2 = 0.
+        sum3 = 0.
+        sum4 = 0.
+        sum5 = 0.
+        do i=1, coeffs_per_tri
+           sum = sum + avector(i)*si**mi(i)*eta**ni(i)
+           term1 = 0.
+           if(mi(i).ge.1) term1 = mi(i)*si**(mi(i)-1)*eta**ni(i)
+           term2 = 0.
+           if(ni(i).ge.1) term2 = ni(i)*si**mi(i)*eta**(ni(i)-1)
+           term3 = 0.
+           if(mi(i).ge.2) term3 = mi(i)*(mi(i)-1)*si**(mi(i)-2)*eta**ni(i)
+           term4 = 0.
+           if(ni(i)*mi(i) .ge. 1)                                          &
+                term4 = mi(i)*ni(i)*si**(mi(i)-1)*eta**(ni(i)-1)
+           term5 = 0.
+           if(ni(i).ge.2) term5 = ni(i)*(ni(i)-1)*si**mi(i)*eta**(ni(i)-2)
+           
+           sum1 = sum1 + avector(i)*term1
+           sum2 = sum2 + avector(i)*term2
+           sum3 = sum3 + avector(i)*term3
+           sum4 = sum4 + avector(i)*term4
+           sum5 = sum5 + avector(i)*term5
+        enddo
+
+        select case(imethod)
+        case(0)  ! find local maximum of te
+           pt  = sum
+           pt1 = sum1
+           pt2 = sum2
+           p11 = sum3
+           p12 = sum4
+           p22 = sum5
+
+           denom = p22*p11 - p12**2
+           if(denom.ne.0.) then
+              sinew = si -  ( p22*pt1 - p12*pt2)/denom
+              etanew= eta - (-p12*pt1 + p11*pt2)/denom
+           else
+              sinew = si
+              etanew= eta
+           endif
+
+        case(1)  ! find local zero of <te,te>
+           pt = sum1**2 + sum2**2
+           pt1 = 2.*(sum1*sum3 + sum2*sum4)
+           pt2 = 2.*(sum1*sum4 + sum2*sum5)
+
+           denom = pt1**2 + pt2**2
+           if(denom.ne.0.) then
+              sinew = si - pt*pt1/denom
+              etanew = eta - pt*pt2/denom
+           else
+              sinew = si
+              etanew = eta
+           end if
+        case default
+           print *, 'Error: unknown null-finding method: ', imethod
+           sinew = si
+           etanew = eta
+        end select
+
+        xtry = x1 + d%co*(d%b+sinew) - d%sn*etanew
+        ztry = z1 + d%sn*(d%b+sinew) + d%co*etanew
+
+!....limit movement to bfac times zone spacing per iteration
+        rdiff = sqrt((x-xtry)**2 + (z-ztry)**2)
+        if(rdiff .lt. bfac*h) then
+          xnew = xtry
+          znew = ztry
+        else
+          xnew = x + bfac*h*(xtry-x)/rdiff
+          znew = z + bfac*h*(ztry-z)/rdiff
+        endif
+
+        in_domain = 1
+        if(iprint.ge.2) then
+           write(*,'(A,4E12.4)') &
+                '  te_max: rdiff/h, tol, xnew,znew', rdiff/h, tol, xnew, znew
+        end if
+        if(rdiff/h .lt. tol) converged = 1
+     else
+        xnew = 0.
+        znew = 0.
+        sum   = 0.
+        rdiff = 0.
+        in_domain = 0
+        converged = 0
+     endif  ! on itri.gt.0
+     
+     ! communicate new maximum to all processors
+     if(maxrank.gt.1) then
+        temp1(1) = xnew
+        temp1(2) = znew
+        temp1(3) = sum
+        temp1(4) = in_domain
+        temp1(5) = converged
+        call mpi_allreduce(temp1, temp2, 5, &
+             MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
+        xnew  = temp2(1)
+        znew  = temp2(2)
+        sum   = temp2(3)
+        in_domain = temp2(4)
+        converged = temp2(5)
+
+        if(in_domain .gt. 1) then
+           if(myrank.eq.0 .and. iprint.ge.1) &
+                print *, "In multiple domains.", in_domain
+
+           xnew = xnew / in_domain
+           znew = znew / in_domain
+           sum = sum / in_domain
+        end if
+     endif
+     ! check to see whether the new maximum is outside the simulation domain
+     if(in_domain.eq.0) then
+        ! if not within the domain, safestop.
+        if(myrank.eq.0 .and. iprint.ge.1)   &
+             write(*,'(A,2E12.4)') '  te_max: guess outside domain ', &
+             xnew, znew
+        ier = 1
+        return
+     else
+        x = xnew
+        z = znew
+     endif
+
+     if(converged.ge.1) exit newton
+  end do newton
+
+ ! xguess = x
+ ! zguess = z
+  tem = sum
+  ier = 0
+
+  if(myrank.eq.0 .and. iprint.ge.2) &
+       write(*,'(A,I12,2E12.4)') '  te_max: iterations, x, z = ', inews, x, z
+  
+end subroutine te_max
+
 
 
 !=====================================================

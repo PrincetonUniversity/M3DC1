@@ -341,6 +341,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "xmag"    ,xmag    ,ntime,error)
   call output_scalar(scalar_group_id, "zmag"    ,zmag    ,ntime,error)
   call output_scalar(scalar_group_id, "psimin"  ,psimin  ,ntime,error)
+  call output_scalar(scalar_group_id, "temax"  ,temax  ,ntime,error)
 
   if(xray_detector_enabled.eq.1) then
      call output_scalar(scalar_group_id,"xray_signal",xray_signal,ntime,error)
