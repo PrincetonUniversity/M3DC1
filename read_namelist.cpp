@@ -6,6 +6,7 @@
 #include <deque>
 #include <mpi.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define INT_TYPE    0
 #define DOUBLE_TYPE 1
