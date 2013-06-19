@@ -1,0 +1,21 @@
+To run the regression tests on 8 processors, run the following command:
+
+make N=8
+
+If the test is successful, the word "Success!" will be printed at the
+end of each test, and the make command will return successfully.
+
+If one of the tests fails, the make command will return with an error
+before proceeding to subsequent tests.
+
+To clear the results of the tests, run:
+
+make clean
+
+A brief description of each test follows.
+
+nstx1: Real, 2D NSTX case in a rectangular domain, with numvar=1
+nstx2: Same, but with numvar=2
+nstx3: Same, but with numvar=3
+nstx4: Same, with numvar=3 and ipressplit=1
+kink1: Complex, 2D kink mode case in a curved domain

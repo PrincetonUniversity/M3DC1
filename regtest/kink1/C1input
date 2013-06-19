@@ -1,0 +1,123 @@
+&inputnl
+!
+!
+! OUTPUT OPTIONS
+! ==============
+	ntimepr = 50	! number of time steps per output
+	iprint = 0	! 1 = print detailed debug info
+	itimer = 0	! 1 = print timing info
+
+	iwrite_restart = 0
+!
+! NUMERICAL METHOD OPTIONS
+! ========================
+	integrator = 0	! 0 = Crank-Nicholson, 1 = BDF2
+	thimp = 0.6	! implicitness parameter for CN
+	isplitstep = 0
+
+	jadv = 1
+	ivform = 1
+
+	deex = 1.0
+	hyper  = 0.0    ! hyper-resistivity (applied to psi)
+	hyperi = 0.0    ! hyper-resistivity (applied to Bz )
+	hyperv = 0.0    ! hyper-viscosity   (applied to vz )
+	hyperc = 0.0    ! hyper-viscosity   (applied to chi)
+	hyperp = 0.0    ! hyper-pressure-diffusion
+
+	dt = 2.		! time step
+	ntimemax = 50	! number of time steps
+
+	int_pts_diag = 25
+	int_pts_main = 25
+	int_pts_aux = 25
+
+	isurface = 1
+
+
+! MODEL OPTIONS
+! =============
+	linear = 1	! 0 = nonlinear; 1 = linear
+	eqsubtract = 1	! 1 = subtract equilibrium in nonlinear simulations
+      	numvar = 3	! 1 = 2-field; 2 = 4-field; 3 = 6-field
+      	idens = 1	! 1 = advance density
+	ipres = 0       ! 1 = include electron pressure equation
+	gyro = 0
+
+	iconstflux = 0  ! 1 = conserve toroidal flux
+
+	regular = 1e-7
+
+
+! PHYSICAL PARAMETERS
+! ===================
+	bzero = 2.	! toroidal field strength
+	rzero = 3.
+	vzero = 0.
+	p0 = 2e-2	! total pressure
+	pi0 = 1e-2	! ion pressure
+
+	etar = 0.	! resistivity = etar + eta0/T^(3/2)
+	eta0 = 1e-8
+      	amu = 1e-7	! kinematic viscosity 
+	amuc = 0.
+	denm = 0.	! density diffusion
+	kappat = 0.	! isotropic thermal conductivity
+	kappa0 = 0.	!   kappa = kappat + kappa0*p/T^(3/2)
+	kappar = 0.	! field-aligned thermal conductivity
+
+	gam = 1.66666666666667	! adiabatic constant
+
+	db = 0.01	! ion skin depth
+
+	iper = 0	! 1 = periodic in r
+        jper = 0	! 1 = periodic in z
+
+	vloop = 0.
+
+
+! EQUILIBRIUM OPTIONS
+! ===================
+
+      	itaylor = 1	! determines initial conditions
+			! 0: Tilting Cylinder
+			! 1: Taylor reconnection
+			! 2: Force-free Taylor state
+			! 3: GEM-reconnection
+			! 4: Wave propagation
+
+	eps = 1e-10	! size of initial perturbation
+	maxn = 10
+
+	beta = 1.0
+	ln = 0.2        ! equilibrium gradient scale length
+
+	irestart = 0	! 1 = read restart
+
+
+! TOROIDAL GEOMETRY OPTIONS
+! =========================
+	itor = 1	! 1 = toroidal geometry, 0 = slab geometry
+ 	xzero = 0.	! x coordinate of lower-left corner of box
+	zzero = 0.	! y coordinate of lower-left corner of box
+	xlim = 1.5	! limiting value of x
+	zlim = 0.	! limiting value of z
+	xlim2 = 4.5
+	zlim2 = 0.
+	xmag = 3.00001	! x-ccordinate of magnetic axis
+	zmag =  1e-5	! z-coordinate of magnetic axis
+	tcuro = 2.	! initial toroidal current
+	igs = 80
+	igs_method = 2
+	q0 = 0.8
+	p1 = 0.
+	p2 = 0.
+	pedge = 1e-4
+	expn = 0.
+	divertors = 0
+
+	nonrect = 1
+
+	ntor = 1
+	
+ /
