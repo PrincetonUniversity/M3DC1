@@ -90,7 +90,7 @@ LIBS := $(LIBS) $(HDF5_POST_LINK_OPTS) -lhdf5_fortran -lhdf5 \
 #        $(HYBRID_LIBS) \
 
 
-FOPTS = -c -s real64 -e Z $(OPTS) \
+FOPTS = -c -s real64 -e F -e m -rm $(OPTS) \
 	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs
 CCOPTS  = -c -O $(OPTS)
 
