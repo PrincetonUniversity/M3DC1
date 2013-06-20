@@ -80,17 +80,8 @@ ifeq ($(USESCOREC), 1)
   SCOREC_LIBS = \
 	-L$(SCORECDIR) \
 	-Wl,-rpath,$(SCORECDIR) \
-	-lFMDB-openmpi$(SCORECOPT) \
-	-lSCORECModel-openmpi$(SCORECOPT) \
-	-lSCORECUtil-openmpi$(SCORECOPT) \
-	-lField-openmpi$(SCORECOPT) \
-	-lCore-openmpi$(SCORECOPT) \
-	-lmeshAdapt-openmpi$(SCORECOPT) \
-	-lmeshTools-openmpi$(SCORECOPT) \
-	-lSolver-openmpi$(SCORECOPT) \
-	-lPPPL-openmpi$(SCORECOPT) \
-	-lipcomman-openmpi$(SCORECOPT)
-#	-lPPPLPetscDEV-openmpi$(SCORECOPT) \
+        -lPPPLFusion \
+        -lMeshAdapt -lFMDB -lGMI -lGMIMeshModel -lSCORECUtil -lipcomman
 
   LIBS := $(SCOREC_LIBS) $(LIBS)
 
