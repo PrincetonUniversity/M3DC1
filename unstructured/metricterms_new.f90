@@ -9487,24 +9487,17 @@ vectype function g1u(e,f)
 
   use basic
   use m3dc1_nint
+  use gyroviscosity
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
-  vectype, dimension(MAX_PTS) :: psir, psiz
 
   if(surface_int) then
      g1u = 0.
      return
   end if
   
-  psir = pst79(:,OP_DR)
-  psiz = pst79(:,OP_DZ)
-#ifdef USE3D
-  psir = psir - r_79*f(:,OP_DZP)
-  psiz = psiz + r_79*f(:,OP_DRP)
-#endif
-
   select case(ivform)
   case(0)
      temp79b = e(:,OP_DZZ) - e(:,OP_DRR)
@@ -9533,68 +9526,7 @@ vectype function g1u(e,f)
      g1u = int2(pit79(:,OP_1),temp79a)
 
   case(1)
-
-     temp79b = e(:,OP_DZZ) - e(:,OP_DRR)
-     if(itor.eq.1) temp79b = temp79b - ri_79*e(:,OP_DR)
-     temp79c = f(:,OP_DZZ) - f(:,OP_DRR)
-     if(itor.eq.1) temp79c = temp79c - ri_79*f(:,OP_DR)
-     temp79d = e(:,OP_DRZ)
-     if(itor.eq.1) temp79d = temp79d + ri_79*e(:,OP_DZ)
-
-     temp79a = 2.*r_79*(5. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
-          * bzt79(:,OP_1)*(temp79b*f(:,OP_DRZ) - e(:,OP_DRZ)*temp79c) &
-          - 12.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)*pst79(:,OP_DZ) &
-          * bzt79(:,OP_1)*(e(:,OP_DRZ)*f(:,OP_DZ) - e(:,OP_DZ)*f(:,OP_DRZ))
-
-     if(itor.eq.1) then
-        temp79a = temp79a &
-             + 2.*(1. + 3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
-             *bzt79(:,OP_1)*(temp79b*f(:,OP_DZ) - e(:,OP_DZ)*temp79c)
-     end if
-
-#if defined(USE3D) || defined(USECOMPLEX)
-     temp79a = temp79a &
-          + (1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
-          * (temp79b*(pst79(:,OP_DZ)*f(:,OP_DZP)-pst79(:,OP_DR)*f(:,OP_DRP)) &
-            + 2.*(pst79(:,OP_DZ)*f(:,OP_DRP)*e(:,OP_DRZ) &
-                 +pst79(:,OP_DR)*f(:,OP_DZP)*temp79d)) &
-          + 3.*ri2_79*b2i79(:,OP_1)* &
-            (pst79(:,OP_DZ)*f(:,OP_DZP) + pst79(:,OP_DR)*f(:,OP_DRP))* &
-            (temp79b*(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2) &
-            +2.*pst79(:,OP_DZ)*pst79(:,OP_DR)*(e(:,OP_DRZ)+temp79d))
-
-     if(itor.eq.1) then
-        temp79a = temp79a + 2.*ri_79*e(:,OP_DZ)* &
-             (pst79(:,OP_DZ)*f(:,OP_DRP) - pst79(:,OP_DR)*f(:,OP_DZP))
-     end if
-
-     temp79c = f(:,OP_DZZP) - f(:,OP_DRRP)
-     if(itor.eq.1) temp79c = temp79c - ri_79*f(:,OP_DRP)
-     temp79d = f(:,OP_DRZP)
-     if(itor.eq.1) temp79d = temp79d + ri_79*f(:,OP_DZP)
-
-     temp79a = temp79a + 2.* &
-          (temp79c* &
-          ((1.-3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
-          *e(:,OP_DR)*pst79(:,OP_DR) &
-          +(1.-3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)**2) &
-          *e(:,OP_DZ)*pst79(:,OP_DZ)) &
-          +(1.+3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
-          *e(:,OP_DR)*pst79(:,OP_DZ)*temp79d &
-          +(1.+3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)**2) &
-          *e(:,OP_DZ)*pst79(:,OP_DR)*f(:,OP_DRZP) &
-          -3.*ri2_79*b2i79(:,OP_1) &
-          *((bzt79(:,OP_1)**2 - pst79(:,OP_DZ)**2) &
-          * e(:,OP_DZ)*pst79(:,OP_DR)*temp79d &
-          + (bzt79(:,OP_1)**2 - pst79(:,OP_DR)**2) &
-          * e(:,OP_DR)*pst79(:,OP_DZ)*f(:,OP_DRZP)) &
-          +(1.-3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)*bzt79(:,OP_1) &
-          *ri_79*(e(:,OP_DZ)*f(:,OP_DRPP) - e(:,OP_DR)*f(:,OP_DZPP)))
-     
-#endif
-
-     g1u = 0.25*int3(temp79a,pit79(:,OP_1),b2i79(:,OP_1))
-
+     g1u = gyro_vor_u(e,f)
   end select
   
   return
@@ -9606,6 +9538,7 @@ vectype function g1v(e,f)
 
   use basic
   use m3dc1_nint
+  use gyroviscosity
 
   implicit none
 
@@ -9658,42 +9591,7 @@ vectype function g1v(e,f)
      g1v = int2(pit79(:,OP_1),temp79a)
 
   case(1)
-
-     temp79b = e(:,OP_DZZ) - e(:,OP_DRR)
-     if(itor.eq.1) temp79b = temp79b - ri_79*e(:,OP_DR)
-     temp79c = e(:,OP_DRZ)
-     if(itor.eq.1) temp79c = temp79c + ri_79*e(:,OP_DZ)
-     temp79d = r_79*(f(:,OP_DZ)*pst79(:,OP_DR) - f(:,OP_DR)*pst79(:,OP_DZ))
-#if defined(USE3D) || defined(USECOMPLEX)
-     temp79d = temp79d + 2.*bzt79(:,OP_1)*f(:,OP_DP)
-#endif
-
-     temp79a = -r_79*(1.-3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
-          * (2.*e(:,OP_DRZ)* &
-             (pst79(:,OP_DR)*f(:,OP_DR) - pst79(:,OP_DZ)*f(:,OP_DZ)) &
-            +temp79b* &
-             (pst79(:,OP_DZ)*f(:,OP_DR) + pst79(:,OP_DR)*f(:,OP_DZ))) &
-          + 3.*ri2_79*b2i79(:,OP_1)*temp79d &
-          * ((pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*temp79b &
-            +2.*pst79(:,OP_DZ)*pst79(:,OP_DR)*(e(:,OP_DRZ)+temp79c))
-
-     if(itor.eq.1) then
-        temp79a = temp79a + 2.*e(:,OP_DZ)* &
-             (pst79(:,OP_DZ)*f(:,OP_DZ) &
-             +3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2 &
-             *pst79(:,OP_DR)*f(:,OP_DR))
-     endif
-
-#if defined(USE3D) || defined(USECOMPLEX)
-     temp79a = temp79a + 2.* &
-          ((1.-3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
-          *bzt79(:,OP_1)*(e(:,OP_DZ)*f(:,OP_DZP) + e(:,OP_DR)*f(:,OP_DRP)) &
-          +(1.+3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
-          *ri_79*f(:,OP_DPP) &
-          *(e(:,OP_DZ)*pst79(:,OP_DR) - e(:,OP_DR)*pst79(:,OP_DZ)))
-#endif
-
-     g1v = 0.25*int3(temp79a,pit79(:,OP_1),b2i79(:,OP_1))
+     g1v = gyro_vor_v(e,f)
   end select
        
   return
@@ -9705,6 +9603,7 @@ vectype function g1chi(e,f)
 
   use basic
   use m3dc1_nint
+  use gyroviscosity
 
   implicit none
 
@@ -9742,70 +9641,7 @@ vectype function g1chi(e,f)
      g1chi = int2(pit79(:,OP_1),temp79a)
 
   case(1)
-
-     temp79b = e(:,OP_DZZ) - e(:,OP_DRR)
-     if(itor.eq.1) temp79b = temp79b - ri_79*e(:,OP_DR)
-     temp79c = e(:,OP_DRZ)
-     if(itor.eq.1) temp79c = temp79c + ri_79*e(:,OP_DZ)
-     temp79d = f(:,OP_DZZ)
-     if(itor.eq.1) temp79d = temp79d - ri_79*f(:,OP_DR)
-     temp79e = f(:,OP_DRR)
-     if(itor.eq.1) temp79e = temp79e - 3.*ri_79*f(:,OP_DR)
-     temp79f = f(:,OP_DRZ)
-     if(itor.eq.1) temp79f = temp79f - ri_79*f(:,OP_DZ)
-
-     temp79a = 2.*ri2_79*bzt79(:,OP_1) * &
-          (temp79b*(temp79d - temp79e) + 2.*temp79f*(e(:,OP_DRZ) + temp79c)) &
-          + 12.*ri4_79*b2i79(:,OP_1)*bzt79(:,OP_1) * &
-          (temp79f*(pst79(:,OP_DZ)**2*e(:,OP_DRZ)+pst79(:,OP_DR)**2*temp79c) &
-          -pst79(:,OP_DZ)*pst79(:,OP_DR)* &
-          (temp79e*temp79c + temp79d*e(:,OP_DRZ))) &
-          + 6.*ri4_79*b2i79(:,OP_1)*bzt79(:,OP_1)*temp79b* &
-          (pst79(:,OP_DR)**2*temp79d - pst79(:,OP_DZ)**2*temp79e)
-
-#if defined(USE3D) || defined(USECOMPLEX)
-     temp79a = temp79a &
-          + ri3_79*(1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) * &
-          (2.*(pst79(:,OP_DZ)*f(:,OP_DZP)*e(:,OP_DRZ) &
-              -pst79(:,OP_DR)*f(:,OP_DRP)*temp79c) &
-          -temp79b*(pst79(:,OP_DZ)*f(:,OP_DRP) + pst79(:,OP_DR)*f(:,OP_DZP))) &
-          + 3.*ri5_79*b2i79(:,OP_1) * &
-          (f(:,OP_DZP)*pst79(:,OP_DR) - f(:,OP_DRP)*pst79(:,OP_DZ)) * &
-          (temp79b*(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2) &
-          +2.*pst79(:,OP_DZ)*pst79(:,OP_DR)*(e(:,OP_DRZ) + temp79c))
-
-     if(itor.eq.1) then
-        temp79a = temp79a + 2.*ri4_79*e(:,OP_DZ) * &
-             (pst79(:,OP_DZ)*f(:,OP_DZP) + pst79(:,OP_DR)*f(:,OP_DRP))
-     endif
-
-     temp79d = f(:,OP_DZZP)
-     if(itor.eq.1) temp79d = temp79d - ri_79*f(:,OP_DRP)
-     temp79e = f(:,OP_DRRP)
-     if(itor.eq.1) temp79e = temp79e - 3.*ri_79*f(:,OP_DRP)
-     temp79f = f(:,OP_DRZP)
-     if(itor.eq.1) temp79f = temp79f - ri_79*f(:,OP_DZP)
-
-     temp79a = temp79a + 2.* &
-          (-ri3_79*(1.+3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)**2) &
-          *e(:,OP_DZ)*pst79(:,OP_DR)*temp79e &
-          + ri3_79*(1.+3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
-          *e(:,OP_DR)*pst79(:,OP_DZ)*temp79d &
-          + 2.*ri3_79*temp79f &
-          *((1.-3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)**2) &
-          * e(:,OP_DZ)*pst79(:,OP_DZ) &
-          - (1.-3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
-          * e(:,OP_DR)*pst79(:,OP_DR)) &
-          +3.*ri5_79*b2i79(:,OP_1) &
-          *((bzt79(:,OP_1)**2 - pst79(:,OP_DR)**2) &
-          * e(:,OP_DR)*pst79(:,OP_DZ)*temp79e &
-          - (bzt79(:,OP_1)**2 - pst79(:,OP_DZ)**2) &
-          * e(:,OP_DZ)*pst79(:,OP_DR)*temp79d) &
-          +ri4_79*(1.-3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
-          *bzt79(:,OP_1)*(e(:,OP_DZ)*f(:,OP_DZPP) + e(:,OP_DR)*f(:,OP_DRPP)))
-#endif
-
-     g1chi = 0.25*int3(temp79a,pit79(:,OP_1),b2i79(:,OP_1))
+     g1chi = gyro_vor_x(e,f)
   end select
 
   return
@@ -9818,6 +9654,7 @@ vectype function g2u(e,f)
 
   use basic
   use m3dc1_nint
+  use gyroviscosity
 
   implicit none
 
@@ -9859,49 +9696,7 @@ vectype function g2u(e,f)
      g2u = int2(pit79(:,OP_1),temp79a)
 
   case(1)
-
-
-     temp79b = f(:,OP_DZZ) - f(:,OP_DRR)
-     if(itor.eq.1) temp79b = temp79b - ri_79*f(:,OP_DR)
-     temp79c = f(:,OP_DRZ)
-     if(itor.eq.1) temp79c = temp79c + ri_79*f(:,OP_DZ)
-     
-     temp79a = 2.*r_79*temp79b* &
-          ((1.-3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)**2) &
-          *pst79(:,OP_DZ)*e(:,OP_DR) &
-          +(1.-3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
-          *pst79(:,OP_DR)*e(:,OP_DZ)) &
-          + 2.*r_79* &
-          ((1.+3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
-          *e(:,OP_DZ)*pst79(:,OP_DZ)*temp79c &
-          -(1.+3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)**2) &
-          *e(:,OP_DR)*pst79(:,OP_DR)*f(:,OP_DRZ)) &
-          + 6.*ri_79*b2i79(:,OP_1)* &
-          ((bzt79(:,OP_1)**2 - pst79(:,OP_DZ)**2) &
-          *e(:,OP_DR)*pst79(:,OP_DR)*temp79c &
-          -(bzt79(:,OP_1)**2 - pst79(:,OP_DR)**2) &
-          *e(:,OP_DZ)*pst79(:,OP_DZ)*f(:,OP_DRZ))
-
-#if defined(USE3D) || defined(USECOMPLEX)
-     temp79a = temp79a &
-          - 2.*(1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
-          *bzt79(:,OP_1)*(e(:,OP_DZ)*f(:,OP_DZP) + e(:,OP_DR)*f(:,OP_DRP))
-
-     temp79b = f(:,OP_DZZP) - f(:,OP_DRRP)
-     if(itor.eq.1) temp79b = temp79b - ri_79*f(:,OP_DRP)
-     temp79c = f(:,OP_DRZP)
-     if(itor.eq.1) temp79c = temp79c + ri_79*f(:,OP_DZP)
-
-     temp79a = temp79a - 2.*e(:,OP_1)* &
-          (3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1) &
-          *(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*temp79b &
-          +2.*pst79(:,OP_DR)*pst79(:,OP_DZ)*(f(:,OP_DRZP) + temp79c) &
-          -(1.+3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
-          *ri_79*(f(:,OP_DZPP)*pst79(:,OP_DR) - f(:,OP_DRPP)*pst79(:,OP_DZ)))
-
-#endif
-
-     g2u = -0.25*int3(temp79a,pit79(:,OP_1),b2i79(:,OP_1))
+     g2u = gyro_tor_u(e,f)
   end select
 
   return
@@ -9914,6 +9709,7 @@ vectype function g2v(e,f)
 
   use basic
   use m3dc1_nint
+  use gyroviscosity
 
   implicit none
 
@@ -9936,23 +9732,9 @@ vectype function g2v(e,f)
      temp79a = ri_79*b2i79(:,OP_1)*bzt79(:,OP_1)*temp79b* &
           (1. - 1.5*ri2_79*b2i79(:,OP_1)*(pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2))
      g2v = int2(pit79(:,OP_1),temp79a)
+
   case(1)
-
-     temp79a = 2.*r_79*(1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
-          *bzt79(:,OP_1)*(e(:,OP_DZ)*f(:,OP_DR)-e(:,OP_DR)*f(:,OP_DZ))
-
-#if defined(USE3D) || defined(USECOMPLEX)
-     temp79a = temp79a &
-          - 2.*(1. + 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
-          *(e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR)) &
-          *f(:,OP_DP)
-
-     temp79a = temp79a - 2.*e(:,OP_1)* &
-          (1.+3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
-          *(pst79(:,OP_DZ)*f(:,OP_DZP) + pst79(:,OP_DR)*f(:,OP_DRP))
-#endif
-
-     g2v = -0.25*int3(temp79a,pit79(:,OP_1),b2i79(:,OP_1))
+     g2v = gyro_tor_v(e,f)
   end select
 
   return
@@ -9965,6 +9747,7 @@ vectype function g2chi(e,f)
 
   use basic
   use m3dc1_nint
+  use gyroviscosity
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
 
@@ -9996,50 +9779,9 @@ vectype function g2chi(e,f)
                          e(:,OP_DZ)*pst79(:,OP_DR)))
 
      g2chi = int2(pit79(:,OP_1),temp79a)
+
   case(1)
-
-     temp79b = f(:,OP_DRR)
-     if(itor.eq.1) temp79b = temp79b - 3.*ri_79*f(:,OP_DR)
-     temp79c = f(:,OP_DZZ)
-     if(itor.eq.1) temp79c = temp79c -    ri_79*f(:,OP_DR)
-     temp79d = f(:,OP_DRZ)
-     if(itor.eq.1) temp79d = temp79d -    ri_79*f(:,OP_DZ)
-
-     temp79a = 2.*ri2_79* &
-          ((1. + 3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)**2) &
-          *e(:,OP_DR)*pst79(:,OP_DR)*temp79b  &
-          +(1. + 3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
-          *e(:,OP_DZ)*pst79(:,OP_DZ)*temp79c) &
-          - 4.*ri2_79*temp79d* &
-          ((1. - 3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)**2) &
-          *e(:,OP_DR)*pst79(:,OP_DZ) &
-          +(1. - 3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
-          *e(:,OP_DZ)*pst79(:,OP_DR)) &
-          + 6.*ri4_79*b2i79(:,OP_1)* &
-          ((bzt79(:,OP_1)**2 - pst79(:,OP_DZ)**2) &
-          *e(:,OP_DR)*pst79(:,OP_DR)*temp79c &
-          +(bzt79(:,OP_1)**2 - pst79(:,OP_DR)**2) &
-          *e(:,OP_DZ)*pst79(:,OP_DZ)*temp79b)
-
-#if defined(USE3D) || defined(USECOMPLEX)
-     temp79a = temp79a &
-          + 2.*ri3_79*(1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
-          *bzt79(:,OP_1)*(e(:,OP_DZ)*f(:,OP_DRP) - e(:,OP_DR)*f(:,OP_DZP))
-
-     temp79b = f(:,OP_DZZP) - f(:,OP_DRRP)
-     if(itor.eq.1) temp79b = temp79b + 2.*ri_79*f(:,OP_DRP)
-     temp79c = f(:,OP_DRZP)
-     if(itor.eq.1) temp79c = temp79c -    ri_79*f(:,OP_DZP)
-
-     temp79a = temp79a - 2.*e(:,OP_1)* &
-          (6.*ri5_79*b2i79(:,OP_1)*bzt79(:,OP_1) &
-          *(pst79(:,OP_DR)*pst79(:,OP_DZ)*temp79b &
-          + (pst79(:,OP_DR)**2 - pst79(:,OP_DZ)**2)*temp79c) &
-          +ri4_79*(1.+3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
-          *(pst79(:,OP_DZ)*f(:,OP_DZPP) + pst79(:,OP_DR)*f(:,OP_DRPP)))
-#endif
-
-     g2chi = -0.25*int3(temp79a,pit79(:,OP_1),b2i79(:,OP_1))          
+     g2chi = gyro_tor_x(e,f)
   end select
      
   return
@@ -10052,6 +9794,7 @@ vectype function g3u(e,f)
 
   use basic
   use m3dc1_nint
+  use gyroviscosity
 
   implicit none
 
@@ -10091,76 +9834,9 @@ vectype function g3u(e,f)
                 + temp79e               *(e(:,OP_DRR) - e(:,OP_DZZ)))))
      
      g3u = int2(pit79(:,OP_1),temp79a)
+
   case(1)
-          
-     temp79b = e(:,OP_DRR)
-     if(itor.eq.1) temp79b = temp79b - 2.*ri_79*e(:,OP_DR)
-     temp79c = e(:,OP_DRZ)
-     if(itor.eq.1) temp79c = temp79c -    ri_79*e(:,OP_DZ)
-     temp79d = f(:,OP_DZZ) - f(:,OP_DRR)
-     if(itor.eq.1) temp79d = temp79d -    ri_79*f(:,OP_DR)
-     temp79e = f(:,OP_DRZ)
-     if(itor.eq.1) temp79e = temp79e +    ri_79*f(:,OP_DZ)
-
-     temp79a = bzt79(:,OP_1) * &
-          ((1. + 3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
-          *(2.*temp79c*temp79e     + e(:,OP_DZZ)*temp79d) & 
-          +(1. + 3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)**2) &
-          *(2.*temp79c*f(:,OP_DRZ) - temp79b    *temp79d) &
-          -6.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)*pst79(:,OP_DZ) &
-          *(e(:,OP_DZZ)*f(:,OP_DRZ) + temp79b*temp79e))
-
-     if(itor.eq.1) then
-        temp79a = temp79a + 3.*ri3_79*b2i79(:,OP_1)*bzt79(:,OP_1)*e(:,OP_DR)* &
-             ((pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*temp79d &
-             +2.*pst79(:,OP_DZ)*pst79(:,OP_DR)*(f(:,OP_DRZ) + temp79e))
-     endif
-
-#if defined(USE3D) || defined(USECOMPLEX)
-     temp79a = temp79a + 3.*ri3_79*b2i79(:,OP_1)* &
-          (pst79(:,OP_DZ)*f(:,OP_DZP) + pst79(:,OP_DR)*f(:,OP_DRP)) * &
-          ((pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*temp79c &
-          +pst79(:,OP_DZ)*pst79(:,OP_DR)*(temp79b - e(:,OP_DZZ))) &
-          + ri_79*(1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)*temp79c* &
-          (pst79(:,OP_DZ)*f(:,OP_DZP) - pst79(:,OP_DR)*f(:,OP_DRP)) &
-          + 3.*ri3_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2*(e(:,OP_DZZ)-temp79b)* &
-          (pst79(:,OP_DR)*f(:,OP_DZP) + pst79(:,OP_DZ)*f(:,OP_DRP)) &
-          - ri_79*(1. + 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)* &
-          (pst79(:,OP_DZ)*f(:,OP_DRP)*e(:,OP_DZZ) &
-          -pst79(:,OP_DR)*f(:,OP_DZP)*temp79b)
-
-     if(itor.eq.1) then
-        temp79a = temp79a + ri2_79*e(:,OP_DR)* &
-             (1. + 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)* &
-             (pst79(:,OP_DZ)*f(:,OP_DRP) - pst79(:,OP_DR)*f(:,OP_DZP))
-     endif
-
-     temp79d = f(:,OP_DZZP) - f(:,OP_DRRP)
-     if(itor.eq.1) temp79d = temp79d -    ri_79*f(:,OP_DRP)
-     temp79e = f(:,OP_DRZP)
-     if(itor.eq.1) temp79e = temp79e +    ri_79*f(:,OP_DZP)
-
-     temp79a = temp79a - ri_79* &
-          (temp79d &
-          *((1.-3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)**2) &
-          * e(:,OP_DR)*pst79(:,OP_DZ) &
-          + (1.-3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
-          * e(:,OP_DZ)*pst79(:,OP_DR)) &
-          +(1.+3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
-          *e(:,OP_DZ)*pst79(:,OP_DZ)*temp79e &
-          -(1.+3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)**2) &
-          *e(:,OP_DR)*pst79(:,OP_DR)*f(:,OP_DRZP) &
-          +3.*ri2_79*b2i79(:,OP_1) &
-          *((bzt79(:,OP_1)**2 - pst79(:,OP_DZ)**2) &
-          * e(:,OP_DR)*pst79(:,OP_DR)*temp79e &
-          - (bzt79(:,OP_1)**2 - pst79(:,OP_DR)**2) &
-          * e(:,OP_DZ)*pst79(:,OP_DZ)*f(:,OP_DRZP)) &
-          -ri_79*(1.-3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
-          *bzt79(:,OP_1)*(e(:,OP_DZ)*f(:,OP_DZPP) + e(:,OP_DR)*f(:,OP_DRPP)))
-#endif
-     
-     g3u = 0.5*int4(ri2_79,temp79a,pit79(:,OP_1),b2i79(:,OP_1))
-
+     g3u = gyro_com_u(e,f)
   end select
 
   return
@@ -10173,6 +9849,7 @@ vectype function g3v(e,f)
 
   use basic
   use m3dc1_nint
+  use gyroviscosity
 
   implicit none
 
@@ -10211,43 +9888,10 @@ vectype function g3v(e,f)
           -(e(:,OP_DRR) - temp79b)* f(:,OP_DZ)            *pst79(:,OP_DZ))
 
      g3v = int2(pit79(:,OP_1),temp79a)     
+
   case(1)
+     g3v = gyro_com_v(e,f)
         
-     temp79b = e(:,OP_DRZ)
-     if(itor.eq.1) temp79b = temp79b - ri_79*e(:,OP_DZ)
-     temp79c = e(:,OP_DRR)
-     if(itor.eq.1) temp79c = temp79c - 2.*ri_79*e(:,OP_DR)
-     temp79d = ri2_79*(f(:,OP_DZ)*pst79(:,OP_DR) - f(:,OP_DR)*pst79(:,OP_DZ))
-#if defined(USE3D) || defined(USECOMPLEX)
-     temp79d = temp79d + 2.*ri3_79*bzt79(:,OP_1)*f(:,OP_DP)
-#endif
-
-     temp79a = &
-          (1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)* &
-          (pst79(:,OP_DR)*f(:,OP_DR)*e(:,OP_DZZ) &
-          +pst79(:,OP_DZ)*f(:,OP_DZ)*temp79c &
-          -(pst79(:,OP_DZ)*f(:,OP_DR) + pst79(:,OP_DR)*f(:,OP_DZ))*temp79b) &
-          + 3.*b2i79(:,OP_1)*temp79d* &
-          ((pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*temp79b &
-          +pst79(:,OP_DZ)*pst79(:,OP_DR)*(temp79c - e(:,OP_DZZ))) &
-          - (e(:,OP_DZZ) + temp79c) * &
-          (pst79(:,OP_DZ)*f(:,OP_DZ) + pst79(:,OP_DR)*f(:,OP_DR))
-
-     if(itor.eq.1) then
-        temp79a = temp79a + ri_79*e(:,OP_DR)* &
-             (1. + 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)* &
-             (pst79(:,OP_DZ)*f(:,OP_DZ) + pst79(:,OP_DR)*f(:,OP_DR))
-     endif
-
-#if defined(USE3D) || defined(USECOMPLEX)
-     temp79a = temp79a - ri_79* &
-          ((1.-3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) &
-          *bzt79(:,OP_1)*(e(:,OP_DZ)*f(:,OP_DRP) - e(:,OP_DR)*f(:,OP_DZP)) &
-          -(1.+3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)*ri_79 &
-          *f(:,OP_DPP)*(e(:,OP_DZ)*pst79(:,OP_DZ) + e(:,OP_DR)*pst79(:,OP_DR)))
-#endif
-
-     g3v = 0.5*int4(ri2_79,temp79a,pit79(:,OP_1),b2i79(:,OP_1))
   end select
 
   return
@@ -10260,6 +9904,7 @@ vectype function g3chi(e,f)
 
   use basic
   use m3dc1_nint
+  use gyroviscosity
 
   implicit none
 
@@ -10298,79 +9943,7 @@ vectype function g3chi(e,f)
      g3chi = int2(pit79(:,OP_1),temp79a)     
   case(1)
 
-     temp79b = e(:,OP_DRR)
-     if(itor.eq.1) temp79b = temp79b - 2.*ri_79*e(:,OP_DR)
-     temp79c = e(:,OP_DRZ)
-     if(itor.eq.1) temp79c = temp79c -    ri_79*e(:,OP_DZ)
-     temp79d = f(:,OP_DZZ)
-     if(itor.eq.1) temp79d = temp79d -    ri_79*f(:,OP_DR)
-     temp79e = f(:,OP_DRZ)
-     if(itor.eq.1) temp79e = temp79e -    ri_79*f(:,OP_DZ)
-     temp79f = f(:,OP_DRR)
-     if(itor.eq.1) temp79f = temp79f - 3.*ri_79*f(:,OP_DR)
-
-     temp79a = 2.*ri3_79*bzt79(:,OP_1) * &
-          ((1. + 3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
-          *(temp79c*temp79d - e(:,OP_DZZ)*temp79e) &
-          +(1. + 3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)**2) &
-          *(temp79b*temp79e - temp79c*temp79f)) &
-          + 6.*ri5_79*b2i79(:,OP_1)*bzt79(:,OP_1) * &
-          pst79(:,OP_DR)*pst79(:,OP_DZ)*(e(:,OP_DZZ)*temp79f - temp79b*temp79d)
-
-     if(itor.eq.1) then
-        temp79a = temp79a + 6.*ri6_79*b2i79(:,OP_1)*bzt79(:,OP_1)*e(:,OP_DR)* &
-             (pst79(:,OP_DZ)*pst79(:,OP_DR)*(temp79d-temp79f) &
-             -(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*temp79e)
-     endif
-
-#if defined(USE3D) || defined(USECOMPLEX)
-     temp79a = temp79a &
-          + ri4_79*(1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)* &
-          (pst79(:,OP_DR)*f(:,OP_DRP)*e(:,OP_DZZ) &
-          +pst79(:,OP_DZ)*f(:,OP_DZP)*temp79b &
-          -(pst79(:,OP_DZ)*f(:,OP_DRP) + pst79(:,OP_DR)*f(:,OP_DZP))*temp79c) &
-          - ri4_79*(temp79b + e(:,OP_DZZ)) * &
-          (pst79(:,OP_DZ)*f(:,OP_DZP) + pst79(:,OP_DR)*f(:,OP_DRP)) &
-          + 3.*ri6_79*b2i79(:,OP_1) * &
-          (pst79(:,OP_DZ)*pst79(:,OP_DR)*(temp79b - e(:,OP_DZZ)) &
-          +(pst79(:,OP_DZ)**2 - pst79(:,OP_DR)**2)*temp79c)* &
-          (f(:,OP_DZP)*pst79(:,OP_DR) - f(:,OP_DRP)*pst79(:,OP_DZ))
-
-     if(itor.eq.1) then
-        temp79a = temp79a + ri5_79*e(:,OP_DR) * &
-             (1. + 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2) * &
-             (pst79(:,OP_DZ)*f(:,OP_DZP) + pst79(:,OP_DR)*f(:,OP_DRP))
-     end if
-
-     temp79d = f(:,OP_DZZP)
-     if(itor.eq.1) temp79d = temp79d -    ri_79*f(:,OP_DRP)
-     temp79e = f(:,OP_DRZP)
-     if(itor.eq.1) temp79e = temp79e -    ri_79*f(:,OP_DZP)
-     temp79f = f(:,OP_DRRP)
-     if(itor.eq.1) temp79f = temp79f - 3.*ri_79*f(:,OP_DRP)
-
-     temp79a = temp79a - ri_79* &
-          (ri3_79* &
-          ((1.+3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)**2) &
-          * e(:,OP_DR)*pst79(:,OP_DR)*temp79f &
-          +(1.+3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
-          * e(:,OP_DZ)*pst79(:,OP_DZ)*temp79d) &
-          -2.*ri3_79*temp79e* &
-          ((1.-3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DZ)**2) &
-          * e(:,OP_DR)*pst79(:,OP_DZ) &
-          +(1.-3.*ri2_79*b2i79(:,OP_1)*pst79(:,OP_DR)**2) &
-          * e(:,OP_DZ)*pst79(:,OP_DR)) &
-          +3.*ri5_79*b2i79(:,OP_1)* &
-          ((bzt79(:,OP_1)**2 - pst79(:,OP_DZ)**2) &
-          * e(:,OP_DR)*pst79(:,OP_DR)*temp79d &
-          +(bzt79(:,OP_1)**2 - pst79(:,OP_DR)**2) &
-          * e(:,OP_DZ)*pst79(:,OP_DZ)*temp79f) &
-          +(1.-3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)*ri4_79*bzt79(:,OP_1) &
-          *(e(:,OP_DZ)*f(:,OP_DRPP) - e(:,OP_DR)*f(:,OP_DZPP)))
-          
-#endif
-
-     g3chi = 0.5*int4(ri2_79,temp79a,pit79(:,OP_1),b2i79(:,OP_1))
+     g3chi = gyro_com_x(e,f)
   end select
 
   return

@@ -295,7 +295,7 @@ contains
 
        ! if node is on boundary, rotate data from n,t to R,Z
        call boundary_node(inode, is_boundary, izone, izonedim, &
-            normal, curv, x, z)
+            normal, curv, x, z, all_boundaries)
        if(is_boundary) then
           call rotate_dofs(temp1, temp2, normal, curv, -1)
           data = temp2
@@ -339,7 +339,7 @@ contains
 
        ! if node is on boundary, rotate data from n,t to R,Z
        call boundary_node(inode, is_boundary, izone, izonedim, &
-            normal, curv, x, z)
+            normal, curv, x, z, all_boundaries)
        if(is_boundary) then
           call rotate_dofs(temp1, temp2, normal, curv, -1)
           data = temp2
@@ -378,7 +378,7 @@ contains
     ! if node is on boundary, rotate data from R,Z to n,t
     if(r) then
        call boundary_node(inode, is_boundary, izone, izonedim, &
-            normal, curv, x, z)
+            normal, curv, x, z, all_boundaries)
        if(is_boundary) then
           temp1 = data
           call rotate_dofs(temp1, temp2, normal, curv, 1)
@@ -418,7 +418,7 @@ contains
     if(r) then
        ! if node is on boundary, rotate data from R,Z to n,t
        call boundary_node(inode, is_boundary, izone, izonedim, &
-            normal, curv, x, z)
+            normal, curv, x, z, all_boundaries)
        if(is_boundary) then
           temp1 = data
           call rotate_dofs(temp1, temp2, normal, curv, 1)

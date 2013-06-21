@@ -14,6 +14,7 @@ Program Reducedquintic
   use time_step
   use m3dc1_output
   use auxiliary_fields
+  use pellet
 
   implicit none
 
@@ -212,13 +213,18 @@ Program Reducedquintic
     else
        temporary_field = psi_field(1)
     end if
+    if(icsubtract.eq.1) call add(temporary_field, psi_coil_field)
     call straighten_field(temporary_field)
     if (iprint.ge.2) then
     write(25,1003) temporary_field%vec%data
 1003 format(1p10E12.4)
     end if
-    print *, 'adapting mesh...', psimin, psibound
+
+    print *, 'initializing solution transfer...'
+    call initsolutiontransfer(0)
+    print *, 'setting smoothing factor...', adapt_smooth
     call setsmoothfact(adapt_smooth)
+    print *, 'adapting mesh...', psimin, psibound
     call adapt(temporary_field%vec%data,psimin,psibound)
     print *, 'done adapting.'
     call destroy_field(temporary_field)
@@ -230,13 +236,6 @@ Program Reducedquintic
   if(irestart.eq.0  .or. iadapt.gt.0) then
      tflux0 = tflux
      totcur0 = totcur
-
-!!$     if(itaylor.ne.10 .and. itaylor.ne.11 .and. &
-!!$          itaylor.ne.12 .and. itaylor.ne.13 .and. eta_wall.ne.0) then
-!!$        external_psi_field = psi_field(1)
-!!$        external_bz_field = bz_field(1)
-!!$        external_bf_field = bf_field(1)
-!!$     endif
   endif
 
   ! output initial conditions
@@ -709,6 +708,7 @@ subroutine flip_handedness
      call mult(bz_field(ilin),  temp)
      call mult(u_field(ilin),   temp)
      call mult(vz_field(ilin),  temp)
+     if(icsubtract.eq.1) call mult(psi_coil_field, temp)
   end do
 
   psimin = -psimin
@@ -863,7 +863,8 @@ end subroutine rotation
 
        do i=1, 3
           call boundary_node(inode(i), &
-               is_boundary, izone, izonedim, norm, curv, x, z)
+               is_boundary, izone, izonedim, norm, curv, x, z, &
+               all_boundaries)
 
           k = (i-1)*6 + 1
           if(is_boundary) then
@@ -1077,6 +1078,8 @@ subroutine space(ifirstcall)
      call associate_field(external_psi_field, external_field, 1)
      call associate_field(external_bz_field,  external_field, 2)
      call associate_field(external_bf_field,  external_field, 3)
+
+     call create_field(psi_coil_field)
 
      call create_auxiliary_fields
   endif

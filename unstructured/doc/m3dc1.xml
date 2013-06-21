@@ -35,6 +35,14 @@
        <var name="xmag" type="double"/>
        <var name="zmag" type="double"/>
 
+       <var name="pellet_x" type="double"/>
+       <var name="pellet_phi" type="double"/>
+       <var name="pellet_z" type="double"/>
+       <var name="pellet_velx" type="double"/>
+       <var name="pellet_velphi" type="double"/>
+       <var name="pellet_velz" type="double"/>
+       <var name="pellet_var" type="double"/>
+
        <var name="ndofs_1" type="integer"/>
        <var name="ndofs_2" type="integer"/> 
 

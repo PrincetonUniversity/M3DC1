@@ -4,6 +4,7 @@ subroutine wrrestart
   use arrays
   use diagnostics
   use time_step
+  use pellet
 
   implicit none
 
@@ -57,7 +58,8 @@ subroutine wrrestart
   do j1=1,ndofs 
      write(56) bf_field(0)%vec%data(j1)
   enddo
-
+  write(56) pellet_x, pellet_phi, pellet_z, &
+       pellet_velx, pellet_velphi, pellet_velz, pellet_var
 
   close(56)
 
@@ -72,6 +74,8 @@ subroutine rdrestart
   use arrays
   use diagnostics
   use time_step
+  use pellet
+
   implicit none
   
 #ifdef USESCOREC
@@ -154,6 +158,9 @@ subroutine rdrestart
   do j1=1,ndofs 
      read(56,END=1199) bf_field(0)%vec%data(j1)
   enddo
+
+  read(56, END=1199) pellet_x, pellet_phi, pellet_z, &
+       pellet_velx, pellet_velphi, pellet_velz, pellet_var
 
   goto 1200
 1199 if(myrank.eq.0) &
@@ -515,6 +522,7 @@ subroutine rdrestart_adios
   use arrays
   use diagnostics
   use time_step
+  use pellet
   implicit none
   
    include 'mpif.h'
@@ -637,7 +645,13 @@ subroutine rdrestart_adios
     call adios_read_local_var (gh, "zmag",       myrank, start, readsize, zmag, read_bytes)
     call adios_read_local_var (gh, "ndofs_1",    myrank, start, readsize, ndofs_1, read_bytes)
     call adios_read_local_var (gh, "ndofs_2",    myrank, start, readsize, ndofs_2, read_bytes)
-
+    call adios_read_local_var (gh, "pellet_x",    myrank, start, readsize, pellet_x, read_bytes)
+    call adios_read_local_var (gh, "pellet_phi",    myrank, start, readsize, pellet_phi, read_bytes)
+    call adios_read_local_var (gh, "pellet_z",    myrank, start, readsize, pellet_z, read_bytes)
+    call adios_read_local_var (gh, "pellet_velx",    myrank, start, readsize, pellet_velx, read_bytes)
+    call adios_read_local_var (gh, "pellet_velphi",    myrank, start, readsize, pellet_velphi, read_bytes)
+    call adios_read_local_var (gh, "pellet_velz",    myrank, start, readsize, pellet_velz, read_bytes)
+    call adios_read_local_var (gh, "pellet_var",    myrank, start, readsize, pellet_var, read_bytes)
 
   if(inumnodes .ne. numnodes .or. inumelms .ne. numelms .or. &
      numvar .ne. inumvar .or. &

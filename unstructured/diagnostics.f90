@@ -1213,6 +1213,7 @@ end subroutine te_max
 ! locates the magnetic axis and the value of psi there
 !=====================================================
 subroutine lcfs(psi)
+  use arrays
   use basic
   use mesh_mod
   use m3dc1_nint
@@ -1225,18 +1226,23 @@ subroutine lcfs(psi)
 
   type(field_type), intent(in) :: psi
 
+  type(field_type) :: temp_field
   real :: psix, psib, psim
   real :: x, z, temp1, temp2, temp_min, temp_max, ajlim
   integer :: ier, numnodes, inode, izone, izonedim, itri
-  logical :: is_boundary, first_point, is_interface
+  logical :: is_boundary, first_point
   real, dimension(2) :: normal
   real :: curv
   vectype, dimension(dofs_per_node) :: data
 
+  call create_field(temp_field)
+  temp_field = psi
+  if(icsubtract.eq.1) call add(temp_field, psi_coil_field)
+
   ! Find magnetic axis
   ! ~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Finding magnetic axis'
-  call magaxis(xmag,zmag,psi,psim,0,ier)
+  call magaxis(xmag,zmag,temp_field,psim,0,ier)
   if(ier.eq.0) then
      psimin = psim
      
@@ -1254,6 +1260,7 @@ subroutine lcfs(psi)
      psilim = 0.
      psilim2 = 0.
      psibound = 0.
+     call destroy_field(temp_field)     
      return
   endif
 
@@ -1267,7 +1274,7 @@ subroutine lcfs(psi)
           inner_wall)
      if(.not.is_boundary) cycle
 
-     call get_node_data(psi,inode,data)
+     call get_node_data(temp_field,inode,data)
 
      if(((x-xmag)*real(data(2)) + (z-zmag)*real(data(3))) &
           *(real(data(1))-psimin).lt.0.) cycle
@@ -1302,7 +1309,7 @@ subroutine lcfs(psi)
   ! Calculate psi at the x-point
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Finding X-point'
-  call magaxis(xnull,znull,psi,psix,1,ier)
+  call magaxis(xnull,znull,temp_field,psix,1,ier)
   if(ier.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) then
         write(*,'(A,2E12.4)') '  X-point found at ', xnull, znull
@@ -1334,13 +1341,13 @@ subroutine lcfs(psi)
      psilim2 = psilim
   else
      itri = 0
-     call evaluate(xlim,0.,zlim,psilim,ajlim,psi,itri,ier)
+     call evaluate(xlim,0.,zlim,psilim,ajlim,temp_field,itri,ier)
      if(ier.ne.0) psilim = psibound
      
      ! calculate psi at a second limiter point as a diagnostic
      if(xlim2.gt.0) then
         itri = 0
-        call evaluate(xlim2,0.,zlim2,psilim2,ajlim,psi,itri,ier)
+        call evaluate(xlim2,0.,zlim2,psilim2,ajlim,temp_field,itri,ier)
         if(ier.ne.0) psilim = psibound
      else
         psilim2 = psilim
@@ -1378,6 +1385,7 @@ subroutine lcfs(psi)
      end if
   end if
 
+  call destroy_field(temp_field)
      
 end subroutine lcfs
 

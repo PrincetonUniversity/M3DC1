@@ -51,7 +51,17 @@ contains
        outer_wall%tags(2) = 4
        call create_tag_list(domain_boundary, 2)
        domain_boundary%tags(1) = 5
-       domain_boundary%tags(2) = 6      
+       domain_boundary%tags(2) = 6
+       call create_tag_list(all_boundaries, 2)
+       all_boundaries%tags(1) = 5
+       all_boundaries%tags(2) = 6
+!!$       call create_tag_list(all_boundaries, 6)
+!!$       all_boundaries%tags(1) = 1
+!!$       all_boundaries%tags(2) = 2
+!!$       all_boundaries%tags(3) = 3
+!!$       all_boundaries%tags(4) = 4
+!!$       all_boundaries%tags(5) = 5
+!!$       all_boundaries%tags(6) = 6
     else
        call create_tag_list(inner_wall, 1)
        inner_wall%tags(1) = 1
@@ -59,6 +69,8 @@ contains
        outer_wall%tags(1) = 1
        call create_tag_list(domain_boundary, 1)
        domain_boundary%tags(1) = 1
+       call create_tag_list(all_boundaries, 1)
+       all_boundaries%tags(1) = 1
     end if
 
     ! load mesh
@@ -531,7 +543,7 @@ contains
     real :: x, z, c(3)
     logical :: is_bound(3), found_edge
 
-    integer :: iedge(3), izonedim, itri
+    integer :: iedge(3), izonedim, itri, ifaczone,ifaczonedim
 
 #ifdef USE3D
     integer :: ifac(5), iplane
@@ -552,10 +564,11 @@ contains
 
     call nodfac(itri,inode)
     call edgfac(itri,iedge)
+    call zonfac(itri,ifaczone,ifaczonedim)
 
     do i=1,3
        call boundary_node(inode(i),is_bound(i),izone,idim(i), &
-            normal(:,i),c(i),x,z)
+            normal(:,i),c(i),x,z,all_boundaries)
     end do
 
     is_edge = 0
@@ -586,6 +599,11 @@ contains
 !          write(*, '(6F10.4)') x, z, normal(:,j)
        else
           print *, 'Error: phantom edge!'
+       end if
+
+       if(imulti_region.eq.1) then
+          if(ifaczone.eq.2 .and. (izone.eq.1 .or. izone.eq.2)) normal=-normal
+          if(ifaczone.eq.3 .and. (izone.eq.3 .or. izone.eq.4)) normal=-normal
        end if
     end do
   end subroutine boundary_edge

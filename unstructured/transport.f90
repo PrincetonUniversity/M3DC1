@@ -13,6 +13,7 @@ vectype function sigma_func(i)
   use m3dc1_nint
   use diagnostics
   use neutral_beam
+  use pellet
 
   implicit none
 
@@ -23,17 +24,9 @@ vectype function sigma_func(i)
   temp = 0.
 
   ! Pellet injection model
-  if(ipellet.eq.1) then
-     temp79a = ri_79*pellet_rate/(2.*pi*pellet_var**2) & 
-          *exp(-((x_79 - pellet_x)**2 + (z_79 - pellet_z)**2) &
-          /(2.*pellet_var**2))
-     temp = temp + int2(mu79(:,OP_1,i),temp79a)
-  endif
-
-!......distributed source added 11/23/2011   (scj)
-  if(ipellet.eq.2) then
-     temp79b = max(pedge,real(pt79(:,OP_1)))
-     temp79a = pellet_rate*den0*(temp79b/p0)**expn
+  if(ipellet.gt.0) then
+     temp79a = pellet_deposition(x_79, phi_79, z_79, &
+          real(pt79(:,OP_1)), real(nt79(:,OP_1)))
      temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
 
