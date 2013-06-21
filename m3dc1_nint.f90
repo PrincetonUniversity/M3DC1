@@ -89,7 +89,7 @@ module m3dc1_nint
   vectype, dimension(MAX_PTS, OP_NUM) :: ps079, bz079, pe079, n079, &
        ph079, vz079, ch079, p079, ne079, pi079
   vectype, dimension(MAX_PTS, OP_NUM) :: pss79, bzs79
-  vectype, dimension(MAX_PTS, OP_NUM) :: bzx79, psx79, bfx79
+  vectype, dimension(MAX_PTS, OP_NUM) :: bzx79, psx79, bfx79, psc79
   vectype, dimension(MAX_PTS, OP_NUM) :: pstx79, bztx79, bftx79
   vectype, dimension(MAX_PTS, OP_NUM) :: te179, te079, tet79
   vectype, dimension(MAX_PTS, OP_NUM) :: ti179, ti079, tit79
@@ -431,6 +431,12 @@ contains
        else
           psx79 = 0.
        end if
+
+       if(icsubtract.eq.1) then 
+          call eval_ops(itri, psi_coil_field, psc79)
+       else
+          psc79 = 0.
+       end if
        
        if(ilin.eq.0) then
           call eval_ops(itri, psi_field(1), ps179, rfac)
@@ -440,9 +446,11 @@ contains
        
        if(eqsubtract.eq.1) then
           call eval_ops(itri, psi_field(0), ps079)
+          ps079 = ps079 + psc79
           pst79 = ps079 + ps179
           pss79 = ps079 + ps179/2.
        else
+          ps179 = ps179 + psc79
           ps079 = 0.
           pst79 = ps179
           pss79 = ps179/2.
@@ -758,9 +766,10 @@ contains
      if(izone.eq.3) then 
         eta79 = 0.
         eta79(:,OP_1) = 1.
+!        eta79(:,OP_1) = eta_wall
      else if(izone.eq.2) then
         eta79 = 0.
-        eta79(:,OP_1) = 1.e-3
+        eta79(:,OP_1) = eta_wall
      else 
         if(iresfunc.eq.3) then
            temp79a = (pst79(:,OP_1) - psimin)/(psibound - psimin)

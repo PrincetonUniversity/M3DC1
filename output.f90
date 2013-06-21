@@ -163,6 +163,7 @@ subroutine hdf5_write_parameters(error)
   use hdf5
   use hdf5_output
   use basic
+  use pellet
 
   implicit none
 
@@ -196,6 +197,7 @@ subroutine hdf5_write_parameters(error)
   call write_int_attr (root_id, "linear"     , linear,     error)
   call write_int_attr (root_id, "eqsubtract" , eqsubtract, error)
   call write_int_attr (root_id, "extsubtract", extsubtract,error)
+  call write_int_attr (root_id, "icsubract"  , icsubtract, error)
   call write_int_attr (root_id, "iper"       , iper,       error)
   call write_int_attr (root_id, "jper"       , jper,       error)
   call write_int_attr (root_id, "integrator" , integrator, error)
@@ -225,10 +227,10 @@ subroutine hdf5_write_parameters(error)
   call write_real_attr(root_id, "kappa0"     , kappa0,     error)
   call write_real_attr(root_id, "kappat"     , kappat,     error)
   call write_real_attr(root_id, "denm"       , denm,       error)
-  call write_real_attr(root_id, "pellet_rate", pellet_rate,error)
   call write_real_attr(root_id, "pellet_var" , pellet_var, error)
-  call write_real_attr(root_id, "pellet_x"   , pellet_x,   error)
-  call write_real_attr(root_id, "pellet_z"   , pellet_z,   error)
+  call write_real_attr(root_id, "pellet_velx", pellet_velx,error)
+  call write_real_attr(root_id, "pellet_velphi", pellet_velphi, error)
+  call write_real_attr(root_id, "pellet_velz", pellet_velz,error)
   call write_real_attr(root_id, "ln"         , ln,         error)
   call write_real_attr(root_id, "hyper"      , hyper,      error)
   call write_real_attr(root_id, "hyperi"     , hyperi,     error)
@@ -253,6 +255,7 @@ subroutine hdf5_write_scalars(error)
   use basic
   use diagnostics
   use hdf5_output
+  use pellet
 
   implicit none
 
@@ -342,6 +345,10 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "zmag"    ,zmag    ,ntime,error)
   call output_scalar(scalar_group_id, "psimin"  ,psimin  ,ntime,error)
   call output_scalar(scalar_group_id, "temax"  ,temax  ,ntime,error)
+
+  call output_scalar(scalar_group_id, "pellet_x",   pellet_x,   ntime, error)
+  call output_scalar(scalar_group_id, "pellet_phi", pellet_phi, ntime, error)
+  call output_scalar(scalar_group_id, "pellet_z",   pellet_z,   ntime, error)
 
   if(xray_detector_enabled.eq.1) then
      call output_scalar(scalar_group_id,"xray_signal",xray_signal,ntime,error)
@@ -631,7 +638,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   
   integer(HID_T) :: group_id
   integer :: i, nelms, nfields, ilin
-  vectype, allocatable :: dum(:,:)
+  vectype, allocatable :: dum(:,:), dum2(:,:)
 
   ilin = 1 - equilibrium
 
@@ -649,20 +656,33 @@ subroutine output_fields(time_group_id, equilibrium, error)
   ! Output the fields
   ! ~~~~~~~~~~~~~~~~~
 
-  ! psi
+  ! psi_plasma
   do i=1, nelms
      call calcavector(i, psi_field(ilin), dum(:,i))
   end do
-  call output_field(group_id, "psi", real(dum), coeffs_per_element, &
+  call output_field(group_id, "psi_plasma", real(dum), coeffs_per_element, &
        nelms, error)
   nfields = nfields + 1
 #ifdef USECOMPLEX
-     call output_field(group_id,"psi_i",aimag(dum),coeffs_per_element, &
-          nelms,error)
-     nfields = nfields + 1
+  call output_field(group_id,"psi_plasma_i",aimag(dum),coeffs_per_element, &
+       nelms,error)
+  nfields = nfields + 1
 #endif
 
-      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after psi in output_fields'
+  ! psi     
+  if(icsubtract.eq.1) then
+     allocate(dum2(coeffs_per_element,nelms))
+     do i=1, nelms
+        call calcavector(i, psi_coil_field, dum2(:,i))
+     end do
+     dum = dum + dum2
+     deallocate(dum2)
+  end if
+  call output_field(group_id, "psi", real(dum), coeffs_per_element, &
+       nelms, error)
+  nfields = nfields + 1
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after psi in output_fields'
 
   ! u
   do i=1, nelms
@@ -810,7 +830,17 @@ subroutine output_fields(time_group_id, equilibrium, error)
   call output_field(group_id,"ti_i",aimag(dum),coeffs_per_element,nelms,error)
   nfields = nfields + 1
 #endif
-      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after ti in output_fields'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after ti in output_fields'
+
+  if(icsubtract.eq.1) then
+     ! psi_coil
+     do i=1, nelms
+        call calcavector(i, psi_coil_field, dum(:,i))
+     end do
+     call output_field(group_id, "psi_coil", real(dum), coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+  end if
 
   if(use_external_fields) then 
      ! psi_ext

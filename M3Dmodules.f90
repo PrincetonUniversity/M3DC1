@@ -102,12 +102,6 @@ module basic
   real :: delta_wall  ! thickness of boundary
 
   ! density sources
-  integer :: ipellet  ! 1 = include pellet injection density source
-                      ! 2 = distributed density source
-  real :: pellet_x    ! x coordinate of pellet injection
-  real :: pellet_z    ! z coordinate of pellet injection
-  real :: pellet_rate ! amplitude of pellet density source
-  real :: pellet_var  ! spatial dispersion of density source 
   integer :: ionization     ! 1 = include edge reionization
   real :: ionization_rate   ! rate of ionization
   real :: ionization_temp   ! temperature above which ionization occurs
@@ -227,7 +221,7 @@ module basic
   integer :: iflip_v     ! 1 = flip equilibrium toroidal velocity
   integer :: iflip_z     ! 1 = flip equilibrium across z=0 plane
   integer :: ieq_bdotgradt ! 1 = include equilibrium parallel T gradient term
-
+  integer :: icsubtract  ! 1 = subtract fields from poloidal field coils
 
   ! numerical parameters
   integer :: ntimemax    ! number of timesteps
@@ -384,6 +378,8 @@ module arrays
   
   type(vector_type) :: external_field
   type(field_type) :: external_psi_field, external_bf_field, external_bz_field
+
+  type(field_type) :: psi_coil_field
 
   ! the indicies of the named fields within the field vector
   integer, parameter :: u_g = 1

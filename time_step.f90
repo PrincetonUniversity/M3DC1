@@ -66,6 +66,7 @@ subroutine onestep
   use basic
   use diagnostics
   use arrays
+  use pellet
 
   implicit none
 
@@ -120,6 +121,8 @@ subroutine onestep
   time = time + dt
   dtold = dt
   if(ntime.gt.1 .and. linear.eq.0) call variable_timestep
+
+  call pellet_advance
 
   ! copy time advance vectors to field data
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Exporting time advance vectors.."

@@ -82,7 +82,6 @@ subroutine gradshafranov_per()
   real :: x, phi, z
   vectype, dimension(dofs_per_node) :: vmask
 
-
   if(myrank.eq.0 .and. iprint.ge.1) print *, 'in gradshafranov_per'
 
   numnodes = owned_nodes()
@@ -139,7 +138,6 @@ subroutine vacuum_field()
   real :: aminor, bv, rnorm, fac
   integer :: ierr, ipole, numcoils
   
-
   if(myrank.eq.0 .and. iprint.gt.0) &
        print *, " calculating vacuum field..."
 
@@ -228,7 +226,7 @@ subroutine vacuum_field()
   ! Field due to coil currents
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, "Calculating fields due to coils"
-  call field_from_coils(xc,zc,ic,numcoils,psi_field(0),ipole,ierr)
+  call field_from_coils(xc,zc,ic,numcoils,psi_coil_field,ipole,ierr)
   if(ierr.ne.0) call safestop(5)
  
   ! Field due to extra divertor currents
@@ -239,7 +237,7 @@ subroutine vacuum_field()
      zc(1) = zdiv
      if(divertors.eq.2) zc(2) = -zdiv
      ic(1:2) = fac*divcur
-     call field_from_coils(xc,zc,ic,divertors,psi_field(0),0,ierr)
+     call field_from_coils(xc,zc,ic,divertors,psi_coil_field,0,ierr)
      if(ierr.ne.0) call safestop(5)
   endif
 
@@ -251,6 +249,8 @@ subroutine vacuum_field()
   ic(1) = tcuro/(2.*pi)
   call field_from_coils(xc,zc,ic,1,psi_field(0),0,ierr)
   if(ierr.ne.0) call safestop(5)
+
+  if(icsubtract.eq.0) call add(psi_field(0),psi_coil_field)
 
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, "Done calculating fields"
@@ -689,6 +689,10 @@ subroutine gradshafranov_solve
   vectype, dimension(dofs_per_node) :: tf
   vectype, dimension(dofs_per_element,dofs_per_element) :: temp
 
+  integer :: is_edge(3)  ! is inode on boundary
+  real :: n(2,3)
+  integer :: iedge, idim(3)
+
   if(myrank.eq.0 .and. iprint.gt.0) &
        print *, "Calculating Grad-Shafranov Equilibrium"
 
@@ -738,9 +742,38 @@ subroutine gradshafranov_solve
         else
            do j=1,dofs_per_element
               temp(i,j) = int3(ri_79,mu79(:,OP_1,i),nu79(:,OP_GS,j))
+!!$              temp(i,j) = &
+!!$                   -int3(ri_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j)) &
+!!$                   -int3(ri_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j))
+!!$              if(itor.eq.1) then 
+!!$                 temp(i,j) = temp(i,j) &
+!!$                      -int3(ri2_79,mu79(:,OP_1,i),nu79(:,OP_DR,j))
+!!$              endif
            enddo
         endif
      enddo
+
+!!$     ! add surface terms
+!!$     call boundary_edge(itri, is_edge, n, idim)
+!!$     
+!!$     do iedge=1,3
+!!$        if(is_edge(iedge).eq.0) cycle
+!!$
+!!$        call define_boundary_quadrature(itri, iedge, 5, 5, n, idim)
+!!$        call define_fields(itri, 0, 1, 0)
+!!$
+!!$        do i=1,dofs_per_element
+!!$           if(imask(i).eq.0) then
+!!$              temp(i,:) = 0.
+!!$           else
+!!$              do j=1,dofs_per_element
+!!$                 temp(i,j) = temp(i,j) &
+!!$                      +int4(ri_79,mu79(:,OP_1,i),norm79(:,1),nu79(:,OP_DR,j)) &
+!!$                      +int4(ri_79,mu79(:,OP_1,i),norm79(:,2),nu79(:,OP_DZ,j))
+!!$              end do
+!!$           end if
+!!$        end do
+!!$     end do
 
      call insert_block(gs_matrix, itri, 1, 1, temp, MAT_ADD)
   enddo
@@ -910,20 +943,23 @@ subroutine gradshafranov_solve
         call define_fields(itri, 0, 1, 0)
 
         call eval_ops(itri, psi_vec, ps079)
+        if(icsubtract.eq.1) then 
+           call eval_ops(itri, psi_coil_field, psc79)
+           ps079 = ps079 + psc79
+        end if
 
         call get_zone(itri, izone)
 
-
         if(igs_method.eq.2) then 
            do i=1, npoints       
-              call calc_toroidal_field(ps079(i,:),tf,x_79(i),z_79(i))
+              call calc_toroidal_field(ps079(i,:),tf,x_79(i),z_79(i),izone)
               temp79b(i) = tf(1)
-              call calc_pressure(ps079(i,:),tf,x_79(i),z_79(i))
+              call calc_pressure(ps079(i,:),tf,x_79(i),z_79(i),izone)
               temp79a(i) = tf(1)
-              call calc_density(ps079(i,:),tf,x_79(i),z_79(i))
+              call calc_density(ps079(i,:),tf,x_79(i),z_79(i),izone)
               temp79c(i) = tf(1)
               if(irot.ne.0) then
-                 call calc_rotation(ps079(i,:),tf,x_79(i),z_79(i))
+                 call calc_rotation(ps079(i,:),tf,x_79(i),z_79(i),izone)
                  temp79d(i) = tf(1)
               endif
            end do
@@ -1001,9 +1037,15 @@ subroutine gradshafranov_solve
         call define_fields(itri, 0, 1, 0)
         
         call eval_ops(itri, psi_field(0), ps079)
+        if(icsubtract.eq.1) then 
+           call eval_ops(itri, psi_coil_field, psc79)
+           ps079 = ps079 + psc79
+        end if
+
+        call get_zone(itri, izone)
 
         do i=1, npoints       
-           call calc_density(ps079(i,:),tf,x_79(i),z_79(i))
+           call calc_density(ps079(i,:),tf,x_79(i),z_79(i),izone)
            temp79c(i) = tf(1)
         end do
 
@@ -1025,11 +1067,11 @@ subroutine gradshafranov_solve
      do i=1,numnodes
         call get_node_pos(i, x, phi, z)
         call get_local_vals(i)
-        call calc_toroidal_field(psi0_l, bz0_l, x, z)
-        call calc_pressure(psi0_l, p0_l, x, z)
-        call calc_density(psi0_l,den0_l,x,z)
-        call calc_rotation(psi0_l,vz0_l,x,z)
-        call calc_electron_pressure(psi0_l, pe0_l, x, z)
+        call calc_toroidal_field(psi0_l, bz0_l, x, z, 1)
+        call calc_pressure(psi0_l, p0_l, x, z, 1)
+        call calc_density(psi0_l,den0_l,x,z, 1)
+        call calc_rotation(psi0_l,vz0_l,x,z, 1)
+        call calc_electron_pressure(psi0_l, pe0_l, x, z, 1)
         call calc_electron_temperature(te0_l, pe0_l, den0_l)
         call calc_ion_temperature(ti0_l, p0_l, pe0_l, den0_l)
         call set_local_vals(i)
@@ -1046,9 +1088,15 @@ subroutine gradshafranov_solve
            call define_fields(itri, 0, 1, 0)
            
            call eval_ops(itri, psi_field(0), ps079)
+           if(icsubtract.eq.1) then 
+              call eval_ops(itri, psi_coil_field, psc79)
+              ps079 = ps079 + psc79
+           end if
+
+           call get_zone(itri, izone)
 
            do i=1, npoints 
-              call calc_electron_pressure(ps079(i,:),tf,x_79(i),z_79(i))
+              call calc_electron_pressure(ps079(i,:),tf,x_79(i),z_79(i),izone)
               temp79a(i) = tf(1)
            end do
 
@@ -1239,7 +1287,8 @@ subroutine calculate_gamma(g2, g3, g4)
   real :: gsint1, gsint2, gsint3, gsint4, curr, g0
   real, dimension(5) :: temp1, temp2
 
-  vectype, dimension(MAX_PTS,OP_NUM) :: psi_n, fun1_n, fun2_n, fun3_n, fun4_n
+  vectype, dimension(MAX_PTS,OP_NUM) :: psi_n, psic_n, &
+       fun1_n, fun2_n, fun3_n, fun4_n
 
   ! start of loop over triangles to compute integrals needed to keep
   !     total current and q_0 constant using gamma4, gamma2, gamma3
@@ -1272,6 +1321,10 @@ subroutine calculate_gamma(g2, g3, g4)
      call define_fields(itri, 0, 0, 0)
 
      call eval_ops(itri, psi_vec, psi_n)
+     if(icsubtract.eq.1) then
+        call eval_ops(itri, psi_vec, psic_n)
+        psi_n = psi_n + psic_n
+     end if
      call eval_ops(itri, fun1_vec, fun1_n)
      call eval_ops(itri, fun2_vec, fun2_n)
      call eval_ops(itri, fun3_vec, fun3_n)
@@ -1405,6 +1458,7 @@ subroutine fundef
   ! fun2 = G2'/r
   ! fun3 = G3'/r
 
+  use arrays
   use basic
   use diagnostics
   use mesh_mod
@@ -1418,9 +1472,9 @@ subroutine fundef
   real :: g4big, g4bigp, g4bigpp
   real :: alphap0, alphap, alphapp, alphappp
   real :: r0m, r1, r1m, r2, r3, ealpha
-  integer :: magnetic_region
+  integer :: magnetic_region, izone, izonedim
 
-  vectype, dimension(dofs_per_node) :: temp
+  vectype, dimension(dofs_per_node) :: temp, temp2
 
   dpsii = 1./(psilim - psimin)
 
@@ -1430,9 +1484,15 @@ subroutine fundef
      call get_node_pos(inode, x, phi, z)
      
      call get_node_data(psi_vec, inode, temp)
+     if(icsubtract.eq.1) then
+        call get_node_data(psi_coil_field, inode, temp2)
+        temp = temp + temp2
+     end if
      pso =  (temp(1) - psimin)*dpsii
+
+     call zonenod(inode, izone, izonedim)
      
-     if(magnetic_region(temp,x,z).ne.0) then
+     if(magnetic_region(temp,x,z).ne.0 .or. izone.ne.1) then
         temp = 0.
         call set_node_data(fun1_vec, inode, temp)
         call set_node_data(fun2_vec, inode, temp)
@@ -1623,7 +1683,7 @@ subroutine fundef2(error)
   real :: pso, dpsii, norm, temp1(2), temp2(2)
   vectype, dimension(dofs_per_element) :: temp3, temp4
       
-  integer :: magnetic_region
+  integer :: magnetic_region, izone
   real :: temp(5)
 
   dpsii = 1./(psilim - psimin)
@@ -1643,12 +1703,19 @@ subroutine fundef2(error)
      call define_fields(itri, 0, 1, 0)
 
      call eval_ops(itri, psi_vec, ps079)
+     if(icsubtract.eq.1) then 
+        call eval_ops(itri, psi_coil_field, psc79)
+        ps079 = ps079 + psc79
+     end if
+
+     call get_zone(itri, izone)
 
      do i=1, npoints
         
         pso = (ps079(i,OP_1)-psimin)*dpsii
 !        if(magnetic_region(ps079(i,:),x_79(i),z_79(i)).ne.0) pso = 1.
-        if(magnetic_region(ps079(i,:),x_79(i),z_79(i)).ne.0) then
+        if(magnetic_region(ps079(i,:),x_79(i),z_79(i)).ne.0 &
+           .or. izone.ne.1) then
            temp79a(i) = 0.
            temp79b(i) = 0.
            temp79c(i) = 0.
@@ -1670,7 +1737,6 @@ subroutine fundef2(error)
            temp79d(i) = temp(4)
            temp79e(i) = temp(5)
         endif
-
      end do
      
      ! convert from normalized to real flux
@@ -2004,7 +2070,7 @@ end subroutine readpgfiles
    real, intent(out) :: error
    
    real :: norm, temp1(2), temp2(2)
-   integer :: itri, nelms, def_fields, ier, ieqs_temp
+   integer :: itri, nelms, def_fields, ier, ieqs_temp, izone
    
    norm = 0.
    error = 0.
@@ -2023,6 +2089,10 @@ end subroutine readpgfiles
       call define_element_quadrature(itri, int_pts_diag, int_tor)
       call define_fields(itri, def_fields, 0, 1)
       
+      call get_zone(itri, izone)
+
+      if(izone.ne.1) cycle
+
       temp79a = ps079(:,OP_GS)*(ps079(:,OP_DR)**2 + ps079(:,OP_DZ)**2)
       temp79b = -r2_79* &
            (p079(:,OP_DR)*ps079(:,OP_DR) + p079(:,OP_DZ)*ps079(:,OP_DZ))
@@ -2067,12 +2137,13 @@ end subroutine readpgfiles
 ! calculates the toroidal field (I) as a function of the 
 ! normalized flux
 !======================================================================
-subroutine calc_toroidal_field(psi0,tf,x,z)
+subroutine calc_toroidal_field(psi0,tf,x,z,izone)
   use basic
 
   vectype, intent(in), dimension(dofs_per_node)  :: psi0
   vectype, intent(out), dimension(dofs_per_node) :: tf    ! toroidal field (I)
   real, intent(in) :: x, z
+  integer, intent(in) :: izone
   
   vectype :: g0
   real, dimension(dofs_per_node) :: g2, g3, g4
@@ -2082,7 +2153,7 @@ subroutine calc_toroidal_field(psi0,tf,x,z)
 
   integer :: magnetic_region
   
-  if(magnetic_region(psi0,x,z).ne.0) then
+  if(magnetic_region(psi0,x,z).ne.0 .or. izone.ne.1) then
      g0 = bzero*rzero
      call constant_field(tf,real(g0))
   else
@@ -2155,7 +2226,7 @@ end subroutine calc_toroidal_field
 ! calculates the pressure as a function of the poloidal flux 
 ! (and major radius if rotation is present)
 !======================================================================
-subroutine calc_pressure(psi0, pres, x, z)
+subroutine calc_pressure(psi0, pres, x, z, izone)
   
   use basic
 
@@ -2164,6 +2235,7 @@ subroutine calc_pressure(psi0, pres, x, z)
   vectype, intent(in), dimension(dofs_per_node)  :: psi0
   vectype, intent(out), dimension(dofs_per_node) :: pres     ! pressure
   real, intent(in) :: x, z
+  integer, intent(in) :: izone
 
   real :: fbig0, fbig, fbigp
   real :: alphap0, alphap, alphapp
@@ -2176,7 +2248,7 @@ subroutine calc_pressure(psi0, pres, x, z)
   psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
   psii(2:6) = real(psi0(2:6))/(psilim - psimin)
 
-  if(magnetic_region(psi0,x,z).ne.0) psii(1) = 1.
+  if(magnetic_region(psi0,x,z).ne.0 .or. izone.ne.1) psii(1) = 1.
 
   pspx = real(psi0(2))
   pspy = real(psi0(3))
@@ -2245,7 +2317,7 @@ end subroutine calc_pressure
 ! calculates the density as a function of the poloidal flux 
 ! (and major radius if rotation is present)
 !======================================================================
-subroutine calc_density(psi0, dens, x, z)
+subroutine calc_density(psi0, dens, x, z, izone)
   
   use basic
 
@@ -2254,6 +2326,7 @@ subroutine calc_density(psi0, dens, x, z)
   vectype, intent(in), dimension(dofs_per_node)  :: psi0
   real, intent(in) :: x, z
   vectype, intent(out), dimension(dofs_per_node) :: dens     ! density
+  integer, intent(in) :: izone
 
   real :: rbig0, rbig, rbigp
   real :: alphap0, alphap, alphapp
@@ -2274,6 +2347,7 @@ subroutine calc_density(psi0, dens, x, z)
 
   ! if we are in private flux region, make sure Psi > 1
   if(magnetic_region(psi0,x,z).eq.2) psii(1) = 2. - psii(1)
+  if(izone.ne.1) psii(1) = 1.
 
   call evaluate_spline(n0_spline, psii(1), rbig0, rbig, rbigp)
   rbig = rbig/(psilim-psimin)
@@ -2335,7 +2409,7 @@ end subroutine calc_density
 !
 ! calculates the electron pressure as a function of the poloidal flux
 !======================================================================
-subroutine calc_electron_pressure(psi0, pe, x, z)
+subroutine calc_electron_pressure(psi0, pe, x, z, izone)
   use basic
 
   implicit none
@@ -2343,6 +2417,7 @@ subroutine calc_electron_pressure(psi0, pe, x, z)
   vectype, intent(in), dimension(dofs_per_node)  :: psi0
   real, intent(in) :: x, z
   vectype, intent(out), dimension(dofs_per_node) :: pe     ! rotation
+  integer, intent(in) :: izone
 
   vectype, dimension(dofs_per_node) :: pres0, n0
   real, dimension(dofs_per_node) :: psii          ! normalized flux
@@ -2358,7 +2433,7 @@ subroutine calc_electron_pressure(psi0, pe, x, z)
      if(magnetic_region(psi0,x,z).eq.2) psii(1) = 2. - psii(1)
 
      call evaluate_spline(te_spline, psii(1),te0,tep,tepp)
-     call calc_density(psi0, n0, x, z)
+     call calc_density(psi0, n0, x, z, izone)
      n0 = n0*zeff ! convert ion density to electron density
 
      pe(1) = n0(1)*te0
@@ -2371,7 +2446,7 @@ subroutine calc_electron_pressure(psi0, pe, x, z)
      pe(6) = n0(6)*tep + 2.*n0(3)*tep*psii(3) &
           + n0(1)*tepp*psii(3)**2 + n0(1)*tep*psii(6)
   else
-     call calc_pressure(psi0, pres0, x, z)
+     call calc_pressure(psi0, pres0, x, z, izone)
      pe = pres0*pefac
   end if
   return
@@ -2383,7 +2458,7 @@ end subroutine calc_electron_pressure
 !
 ! calculates the rotation as a function of the poloidal flux
 !======================================================================
-subroutine calc_rotation(psi0,omega, x, z)
+subroutine calc_rotation(psi0,omega, x, z, izone)
   
   use basic
 
@@ -2392,6 +2467,7 @@ subroutine calc_rotation(psi0,omega, x, z)
   vectype, intent(in), dimension(dofs_per_node)  :: psi0
   real, intent(in) :: x, z
   vectype, intent(out), dimension(dofs_per_node) :: omega     ! rotation
+  integer, intent(in) :: izone
 
   real :: w0, wp, wpp
   real, dimension(dofs_per_node) :: psii     ! normalized flux
@@ -2406,7 +2482,7 @@ subroutine calc_rotation(psi0,omega, x, z)
   psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
   psii(2:6) = real(psi0(2:6))/(psilim - psimin)
 
-  if(magnetic_region(psi0,x,z).ne.0) psii(1) = 1.
+  if(magnetic_region(psi0,x,z).ne.0 .or. izone.ne.1) psii(1) = 1.
 
   call evaluate_spline(omega_spline, psii(1),w0,wp,wpp)
 

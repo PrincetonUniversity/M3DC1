@@ -87,6 +87,7 @@ subroutine set_defaults
   use m3dc1_output
   use neutral_beam
   use element
+  use pellet
   use mesh_mod
 
   implicit none
@@ -214,7 +215,9 @@ subroutine set_defaults
   call add_var_int("eqsubtract", eqsubtract, 0, &
        "1: Subtract equilibrium fields", model_grp)
   call add_var_int("extsubtract", extsubtract, 0, &
-       "1: Subtract external fields", model_grp)
+       "1: Subtract fields from non-axisymmetric coils", model_grp)
+  call add_var_int("icsubtract", icsubtract, 0, &
+       "1: Subtract fields from poloidal field coils", model_grp)
   call add_var_int("idens", idens, 1, &
        "1: Include density equation", model_grp)
   call add_var_int("ipres", ipres, 0, &
@@ -491,11 +494,22 @@ subroutine set_defaults
 
   
   ! density source
-  call add_var_int("ipellet", ipellet, 0, "", source_grp)
-  call add_var_double("pellet_x", pellet_x, 0., "", source_grp)
-  call add_var_double("pellet_z", pellet_z, 0., "", source_grp)
+  call add_var_int("ipellet", ipellet, 0, &
+       "1 = include a gaussian pellet source", source_grp)
+  call add_var_double("pellet_x", pellet_x, 0., &
+       "Initial radial position of the pellet", source_grp)
+  call add_var_double("pellet_phi", pellet_phi, 0., &
+       "Initial toroidal position of the pellet", source_grp)
+  call add_var_double("pellet_z", pellet_z, 0., &
+       "Initial vertical position of the pellet", source_grp)
   call add_var_double("pellet_rate", pellet_rate, 0., "", source_grp)
   call add_var_double("pellet_var", pellet_var, 1., "", source_grp)
+  call add_var_double("pellet_velx", pellet_velx, 0., &
+       "Radial velocity of the pellet", source_grp)
+  call add_var_double("pellet_velphi", pellet_velphi, 0., &
+       "Toroidal velocity of the pellet", source_grp)
+  call add_var_double("pellet_velz", pellet_velz, 0., &
+       "Vertical velocity of the pellet", source_grp)
 
   ! beam source
   call add_var_int("ibeam", ibeam, 0, &
@@ -637,6 +651,7 @@ subroutine validate_input
   use m3dc1_nint
   use transport_coefficients
   use neutral_beam
+  use pellet
   use math
 
   implicit none
@@ -894,6 +909,7 @@ subroutine validate_input
   e0_norm = v0_norm*b0_norm / c_light
   
   if(ibeam.ge.1) call neutral_beam_init
+  if(ipellet.ge.1) call pellet_init
 
 end subroutine validate_input
 

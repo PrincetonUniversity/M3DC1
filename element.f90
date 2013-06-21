@@ -74,6 +74,7 @@ module element
   type(tag_list) :: inner_wall
   type(tag_list) :: outer_wall
   type(tag_list) :: domain_boundary
+  type(tag_list) :: all_boundaries
   interface assignment (=)
      module procedure copy_tag_list
   end interface

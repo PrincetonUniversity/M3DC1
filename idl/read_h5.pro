@@ -368,8 +368,10 @@ pro get_normalizations, b0=b0_norm, n0=n0_norm, l0=l0_norm, $
    l0_norm = read_parameter('l0_norm', _EXTRA=extra)
    zeff = read_parameter("zeff", _EXTRA=extra)
    ion_mass = read_parameter("ion_mass", _EXTRA=extra)
-   if(zeff eq 0) then zeff = 1.
-   if(ion_mass eq 0) then ion_mas = 1.
+   i = where(zeff eq 0, count)
+   if(count gt 0) then zeff[i] = 1.
+   i = where(ion_mass eq 0, count)
+   if(count gt 0) then ion_mass[i] = 1.
 end
 
 ;===============================================================
@@ -1442,7 +1444,11 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    isubeq = read_parameter('eqsubtract', filename=filename)
 
    if(keyword_set(last)) then time = nt-1
-   if(ilin eq 1 and keyword_set(equilibrium)) then time=-1
+   if(keyword_set(equilibrium)) then begin
+       if(ilin eq 1) then time=-1
+       if(isubeq eq 1) then linear = 0
+   end
+   
 
    realtime = get_slice_time(filename=filename, slice=time)
 
@@ -2427,6 +2433,24 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
          data = laplacian(chi,x,y,tor=itor)
          symbol = translate('com', units=d, itor=itor)
+
+   ;===========================================
+   ; R^2 vorticity
+   ;===========================================
+      endif else if(strcmp('r2vor', name, /fold_case) eq 1) then begin
+
+          phi_lp = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                           filename=filename, points=pts, mask=mask, $
+                           rrange=xrange, zrange=yrange, $
+                           complex=complex,phi=phi0,op=7)
+          phi_r = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                           filename=filename, points=pts, mask=mask, $
+                           rrange=xrange, zrange=yrange, $
+                           complex=complex,phi=phi0,op=2)
+          r = radius_matrix(x,y,t)
+
+          data = r^2*phi_lp + 2.*r*phi_r
+          symbol = translate('vor', units=d, itor=itor)
 
    ;===========================================
    ; helicity
@@ -3620,6 +3644,29 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        symbol = '!8J!D!9#!N!3/!8B!X'
        d = dimensions(j0=1,b0=-1,_EXTRA=extra)
 
+   endif else if(strcmp('jb', name, /fold_case) eq 1) then begin
+
+       psi0 = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+                        filename=filename, points=pts, slices=time, $
+                        rrange=xrange, zrange=yrange)
+       jy = read_field('jy', x, y, t, linear=linear, mesh=mesh, $
+                        filename=filename, points=pts, slices=time, $
+                        rrange=xrange, zrange=yrange)
+       i = read_field('i', x, y, t, mesh=mesh, $
+                      filename=filename, points=pts, slices=time, $
+                      rrange=xrange, zrange=yrange, $
+                      linear=linear, complex=complex)
+       i0 = read_field('i', x, y, t, mesh=mesh, $
+                      filename=filename, points=pts, slices=time, $
+                      rrange=xrange, zrange=yrange, /equilibrium, $
+                      complex=complex)
+       
+       r = radius_matrix(x,y,t)
+       data = s_bracket(i,psi0,x,y)/r^2 + jy*i0/r
+
+       symbol = '!8J!D!9#!N!8B!X'
+       d = dimensions(j0=1,b0=1,_EXTRA=extra)
+
    ;===========================================
    ; particle flux
    ;===========================================
@@ -3653,49 +3700,82 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
     endif else if((strcmp('parallel heat flux', name, /fold_case) eq 1) or $
        (strcmp('qpar', name, /fold_case) eq 1)) then begin
 
-       p=read_field('p', x, y, t, slices=time, mesh=mesh, $
+       p = read_field('p', x, y, t, slices=time, mesh=mesh, linear=linear, $
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange, phi=phi0)
-       den=read_field('den', x, y, t, slices=time, mesh=mesh,  $
+       den = read_field('den', x, y, t, slices=time, mesh=mesh, linear=linear,$
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange, phi=phi0)
-       p_p = read_field('p', x, y, t, slices=time, mesh=mesh,  $
+       p_p = read_field('p', x, y, t, slices=time, mesh=mesh, linear=linear, $
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange, phi=phi0, op=11)
-       den_p = read_field('den', x, y, t, slices=time, mesh=mesh,  $
+       den_p = read_field('den', x, y, t, slices=time,mesh=mesh,linear=linear,$
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange, phi=phi0, op=11)
-       psi=read_field('psi', x, y, t, slices=time, mesh=mesh, phi=phi0, $
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, phi=phi0, $
                         filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange, /equilibrium)
-       i=read_field('i', x, y, t, slices=time, mesh=mesh, phi=phi0, $
+                        rrange=xrange, zrange=yrange, linear=linear)
+       i = read_field('i', x, y, t, slices=time, mesh=mesh, phi=phi0, $
                         filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange, /equilibrium)
-       f_p=read_field('f', x, y, t, slices=time, mesh=mesh, phi=phi0, $
+                        rrange=xrange, zrange=yrange, linear=linear)
+       f_p = read_field('f', x, y, t, slices=time, mesh=mesh, phi=phi0, $
                         filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange, /equilibrium, op=11)
+                        rrange=xrange, zrange=yrange, linear=linear, op=11)
        kappar = read_parameter(filename=filename, 'kappar')
 
        r = radius_matrix(x,y,t)
+
+       if(keyword_set(linear)) then begin
+           p0 = read_field('p', x, y, t, slice=-1, mesh=mesh, $
+                           filename=filename, points=pts, $
+                           rrange=xrange, zrange=yrange, phi=phi0)
+           den0 = read_field('den', x, y, t, slice=-1, mesh=mesh,  $
+                             filename=filename, points=pts, $
+                             rrange=xrange, zrange=yrange, phi=phi0)
+           psi0 = read_field('psi', x, y, t, slices=-1, mesh=mesh, phi=phi0, $
+                             filename=filename, points=pts, $
+                             rrange=xrange, zrange=yrange)
+           i0 = read_field('i', x, y, t, slices=-1, mesh=mesh, phi=phi0, $
+                           filename=filename, points=pts, $
+                           rrange=xrange, zrange=yrange)
+
+           p = p + p0
+           den = den + den0
+           psi = psi + psi0
+           i = i + i0
+
+           te0 = p0 / den0
+           b20 = s_bracket(psi0,psi0,x,y)/r^2 + i0^2/r^2
+           bdotgradte0 = a_bracket(te0, psi0, x, y)/r
+       end
 
        te = p / den
        tep = p_p / den - p*den_p / den^2
        b2 = s_bracket(psi,psi,x,y)/r^2 + i^2/r^2 + 2.*a_bracket(psi,f_p,x,y)/r
        bdotgradte = a_bracket(te, psi, x, y)/r + i*tep/r^2 - s_bracket(f_p, te, x, y)
 
+       br = -dz(psi,y)/r - dx(f_p,x)
+       bbter = br*bdotgradte/b2
+       bz =  dx(psi,x)/r - dz(f_p,y)
+       bbtez = bz*bdotgradte/b2
+       if(keyword_set(linear)) then begin
+           br0 = -dz(psi0,y)/r
+           bz0 =  dx(psi0,x)/r
+           bbter = bbter - br0*bdotgradte0/b20
+           bbtez = bbtez - bz0*bdotgradte0/b20
+       endif
+
        if(keyword_set(rvector)) then begin
-          b = -dz(psi,y)/r - dx(f_p,x)
-          symbol = '!6q!D!9#!N.G!8R!X'
+           data = -kappar*bbter
+           symbol = '!6q!D!9#!N.G!8R!X'
        endif else if(keyword_set(zvector)) then begin
-          b =  dx(psi,x)/r - dz(f_p,y)
-          symbol = '!6q!D!9#!N.G!8Z!X'
+           data = -kappar*bbtez
+           symbol = '!6q!D!9#!N.G!8Z!X'
        endif else begin
-          b =  sqrt(b2)
-          bdotgradte = abs(bdotgradte)
+           data = -kappar*sqrt(abs(bbtez)^2 + abs(bbter)^2)
           symbol = '!3|!6q!D!9#!N!3|!X'
        endelse
        
-       data = -kappar*bdotgradte * b / b2
        d = dimensions(/p0,/v0)
 
    ;===========================================
@@ -5864,7 +5944,12 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
    if(n_elements(fbins) eq 0) then fbins = sqrt(sz[2]*sz[3])
    if(n_elements(tbins) eq 0) then tbins = sqrt(sz[2]*sz[3])
 
-   result = fltarr(sz[1], fbins, tbins)
+   type = size(field, /type)
+   if(type eq 6) then begin
+       result = complexarr(sz[1], fbins, tbins)
+   endif else begin
+       result = fltarr(sz[1], fbins, tbins)
+   endelse
    flux = fltarr(sz[1], fbins)
    angle = fltarr(sz[1], tbins)
    area = fltarr(sz[1], fbins)
