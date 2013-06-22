@@ -3680,6 +3680,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   use time_step
   use matrix_mod
   use transport_coefficients
+  use gyroviscosity
 
   implicit none
 
@@ -3768,6 +3769,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call define_element_quadrature(itri, int_pts_main, int_pts_tor)
      call define_fields(itri, def_fields, 1, linear)
+     if(gyro.eq.1) call gyro_common
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         tfield = tfield + tend - tstart
@@ -3795,6 +3797,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
 
         call define_boundary_quadrature(itri, iedge, 5, 5, n, idim)
         call define_fields(itri, def_fields, 1, linear)
+        if(gyro.eq.1) call gyro_common
 
         if(ivel_def.eq.1) call ludefvel_n(itri)
         if(ifield_def.eq.1) call ludefphi_n(itri)

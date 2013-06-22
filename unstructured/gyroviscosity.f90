@@ -20,7 +20,7 @@ contains
 
     psir = pst79(:,OP_DR)
     psiz = pst79(:,OP_DZ)
-#ifdef USE3D
+#if defined(USE3D) || defined(USECOMPLEX)
     psir = psir - r_79*f(:,OP_DZP)
     psiz = psiz + r_79*f(:,OP_DRP)
 #endif
