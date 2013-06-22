@@ -9523,7 +9523,7 @@ vectype function g1u(e,f)
               (e(:,OP_DZ)*temp79c - f(:,OP_DZ)*temp79e))
      endif
 
-     g1u = int2(pit79(:,OP_1),temp79a)
+     g1u = -int2(pit79(:,OP_1),temp79a)
 
   case(1)
      g1u = gyro_vor_u(e,f)
@@ -9588,7 +9588,7 @@ vectype function g1v(e,f)
              -2.*ri_79*f(:,OP_1)*pst79(:,OP_DR))
      endif
 
-     g1v = int2(pit79(:,OP_1),temp79a)
+     g1v = -int2(pit79(:,OP_1),temp79a)
 
   case(1)
      g1v = gyro_vor_v(e,f)
@@ -9638,7 +9638,7 @@ vectype function g1chi(e,f)
                -pst79(:,OP_DR)*pst79(:,OP_DZ)* &
                 (e(:,OP_DRZ)*temp79d + temp79b*temp79e)))
        
-     g1chi = int2(pit79(:,OP_1),temp79a)
+     g1chi = -int2(pit79(:,OP_1),temp79a)
 
   case(1)
      g1chi = gyro_vor_x(e,f)
@@ -9693,7 +9693,7 @@ vectype function g2u(e,f)
                           e(:,OP_DR)*pst79(:,OP_DR))
      endif
 
-     g2u = int2(pit79(:,OP_1),temp79a)
+     g2u = -int2(pit79(:,OP_1),temp79a)
 
   case(1)
      g2u = gyro_tor_u(e,f)
@@ -9731,7 +9731,7 @@ vectype function g2v(e,f)
 
      temp79a = ri_79*b2i79(:,OP_1)*bzt79(:,OP_1)*temp79b* &
           (1. - 1.5*ri2_79*b2i79(:,OP_1)*(pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2))
-     g2v = int2(pit79(:,OP_1),temp79a)
+     g2v = -int2(pit79(:,OP_1),temp79a)
 
   case(1)
      g2v = gyro_tor_v(e,f)
@@ -9778,7 +9778,7 @@ vectype function g2chi(e,f)
            -f(:,OP_DRZ)*(e(:,OP_DR)*pst79(:,OP_DZ) + &
                          e(:,OP_DZ)*pst79(:,OP_DR)))
 
-     g2chi = int2(pit79(:,OP_1),temp79a)
+     g2chi = -int2(pit79(:,OP_1),temp79a)
 
   case(1)
      g2chi = gyro_tor_x(e,f)
@@ -9833,7 +9833,7 @@ vectype function g3u(e,f)
                 +(f(:,OP_DRZ) - temp79e)*(e(:,OP_DZZ) - temp79b    ) &
                 + temp79e               *(e(:,OP_DRR) - e(:,OP_DZZ)))))
      
-     g3u = int2(pit79(:,OP_1),temp79a)
+     g3u = -int2(pit79(:,OP_1),temp79a)
 
   case(1)
      g3u = gyro_com_u(e,f)
@@ -9887,7 +9887,7 @@ vectype function g3v(e,f)
           -(e(:,OP_DZZ) - temp79b)*(f(:,OP_DR)-2.*temp79c)*pst79(:,OP_DR) &
           -(e(:,OP_DRR) - temp79b)* f(:,OP_DZ)            *pst79(:,OP_DZ))
 
-     g3v = int2(pit79(:,OP_1),temp79a)     
+     g3v = -int2(pit79(:,OP_1),temp79a)     
 
   case(1)
      g3v = gyro_com_v(e,f)
@@ -9940,7 +9940,7 @@ vectype function g3chi(e,f)
             ((e(:,OP_DRR) - temp79b)*(f(:,OP_DZZ) - temp79c) &
             -(e(:,OP_DZZ) - temp79b)*(f(:,OP_DRR) - temp79c)))
 
-     g3chi = int2(pit79(:,OP_1),temp79a)     
+     g3chi = -int2(pit79(:,OP_1),temp79a)     
   case(1)
 
      g3chi = gyro_com_x(e,f)
