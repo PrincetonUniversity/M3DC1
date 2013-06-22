@@ -351,7 +351,7 @@ contains
     temp79b = f(:,OP_DRZ)
     if(itor.eq.1) temp79b = temp79b + ri_79*f(:,OP_DZ)
 
-    o = -(1.+gzz)*bzt79(:,OP_1)*temp79a - grz*2.*temp79b
+    o = -(1.+gzz)*bzt79(:,OP_1)*temp79a - grz*2.*bzt79(:,OP_1)*temp79b
 
 #if defined(USE3D) || defined(USECOMPLEX)
     o = o + ri_79*psir*f(:,OP_DZP) &
@@ -561,7 +561,7 @@ contains
          + (gzz-grr)*(psir*f(:,OP_DZ) - psiz*f(:,OP_DR))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-    o = o + (gzz-grr)*2.*ri_79*f(:,OP_DP)
+    o = o + (gzz-grr)*2.*ri_79*bzt79(:,OP_1)*f(:,OP_DP)
 #endif
     o = o*mucross
   end subroutine gyro_RZ_v
@@ -587,11 +587,11 @@ contains
     temp79c = f(:,OP_DRR)
     if(itor.eq.1) temp79c = temp79c - 3.*ri_79*f(:,OP_DR)
 
-    o = (1+grr)*2.*ri3_79*bzt79(:,OP_1)* &
+    o = 2.*ri3_79*bzt79(:,OP_1)* &
          ((1+grr)*temp79b - (1+gzz)*temp79c)
 
 #if defined(USE3D) || defined(USECOMPLEX)
-    o = o - ri4_79*(1-gbb)*(psiz*f(:,OP_DRP) + psir*f(:,OP_DZP)) &
+    o = o - ri4_79*(1.-gbb)*(psiz*f(:,OP_DRP) + psir*f(:,OP_DZP)) &
          + ri4_79*(gzz-grr)*(psir*f(:,OP_DZP) - psiz*f(:,OP_DRP))
 #endif
     o = o*mucross
@@ -618,8 +618,8 @@ contains
     temp79a = f(:,OP_DZZ) - f(:,OP_DRR)
     if(itor.eq.1) temp79a = temp79a - ri_79*f(:,OP_DR)
 
-    ! u_RZ + u_Z / R
-    temp79b = f(:,OP_DRZ)
+    ! 2*u_RZ + u_Z / R
+    temp79b = 2.*f(:,OP_DRZ)
     if(itor.eq.1) temp79b = temp79b + ri_79*f(:,OP_DZ)
 
     o = (gzz-grr)*bzt79(:,OP_1)*temp79a + grz*2.*bzt79(:,OP_1)*temp79b
@@ -674,7 +674,7 @@ contains
     temp79c = f(:,OP_DRR)
     if(itor.eq.1) temp79c = temp79c - 3.*ri_79*f(:,OP_DR)
 
-    o = 2.*ri3_79*bzt79(:,OP_1)*((gzz-grr)*temp79a + grz*(temp79b-temp79c))
+    o = 2.*ri3_79*bzt79(:,OP_1)*(-(gzz-grr)*temp79a + grz*(temp79b-temp79c))
 
 #if defined(USE3D) || defined(USECOMPLEX)
     o = o + (1.+gbb)*ri4_79*(psir*f(:,OP_DRP) + psiz*f(:,OP_DZP))
@@ -802,7 +802,7 @@ contains
     temp79b = f(:,OP_DRZ)
     if(itor.eq.1) temp79b = temp79b + ri_79*f(:,OP_DZ)
 
-    o = (1.-grr)*bzt79(:,OP_1)*temp79a &
+    o = (1.+grr)*bzt79(:,OP_1)*temp79a &
          - grz*2.*bzt79(:,OP_1)*f(:,OP_DRZ)
 
 #if defined(USE3D) || defined(USECOMPLEX)
@@ -862,7 +862,7 @@ contains
 
 #if defined(USE3D) || defined(USECOMPLEX)
     o = o - ri4_79*psiz*f(:,OP_DZP) &
-         - ri4_79*grz*(psir*f(:,OP_DZP) - psir*f(:,OP_DRP)) &
+         - ri4_79*grz*(psir*f(:,OP_DZP) - psiz*f(:,OP_DRP)) &
          - ri4_79*gbb*psir*f(:,OP_DRP)
 #endif
 

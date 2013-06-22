@@ -65,41 +65,41 @@ subroutine get_boundary_mask(itri, ibound, imask, tags)
         imask(k  ) = 0
         imask(k+2) = 0
         imask(k+5) = 0
-!!$        if(izonedim.eq.0) then
-!!$           imask(k+1) = 0
-!!$           imask(k+3) = 0
-!!$        end if
+        if(izonedim.eq.0 .and. is_rectilinear) then
+           imask(k+1) = 0
+           imask(k+3) = 0
+        end if
 #ifdef USE3D
         imask(k+6 ) = 0
         imask(k+8 ) = 0
         imask(k+11) = 0
-!!$        if(izonedim.eq.0) then
-!!$           imask(k+7 ) = 0
-!!$           imask(k+9 ) = 0
-!!$        end if
+        if(izonedim.eq.0 .and. is_rectilinear) then
+           imask(k+7 ) = 0
+           imask(k+9 ) = 0
+        end if
 #endif
      endif
      if(iand(ibound, BOUNDARY_NEUMANN).eq.BOUNDARY_NEUMANN) then
         imask(k+1) = 0
         imask(k+4) = 0
-!!$        if(izonedim.eq.0) then
-!!$           imask(k+2) = 0
-!!$        endif
+        if(izonedim.eq.0 .and. is_rectilinear) then
+           imask(k+2) = 0
+        endif
 #ifdef USE3D
         imask(k+7) = 0
         imask(k+10) = 0
-!!$        if(izonedim.eq.0) then
-!!$           imask(k+8) = 0
-!!$        endif
+        if(izonedim.eq.0 .and. is_rectilinear) then
+           imask(k+8) = 0
+        endif
 #endif
      endif
      if(iand(ibound, BOUNDARY_NEUMANNP).eq.BOUNDARY_NEUMANNP) then
 #ifdef USE3D
         imask(k+7) = 0
         imask(k+10) = 0
-!!$        if(izonedim.eq.0) then
-!!$           imask(k+8) = 0
-!!$        endif
+        if(izonedim.eq.0 .and. is_rectilinear) then
+           imask(k+8) = 0
+        endif
 #endif
      endif
      if(iand(ibound, BOUNDARY_LAPLACIAN).eq.BOUNDARY_LAPLACIAN) then
@@ -255,23 +255,23 @@ subroutine set_tangent_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
   call insert(rhs, ibegin+11, bv_rotated(12), VEC_SET)
 #endif
 
-!!$  if(izonedim.eq.0) then
-!!$     ! n
-!!$     if(present(mat)) call identity_row(mat, ibegin+1)
-!!$     call insert(rhs, ibegin+1, bv_rotated(2), VEC_SET)
-!!$#ifdef USE3D
-!!$     if(present(mat)) call identity_row(mat, ibegin+7)
-!!$     call insert(rhs, ibegin+7, bv_rotated(8), VEC_SET)
-!!$#endif
-!!$
-!!$     ! nn
-!!$     if(present(mat)) call identity_row(mat, ibegin+3)
-!!$     call insert(rhs, ibegin+3, bv_rotated(4), VEC_SET)
-!!$#ifdef USE3D
-!!$     if(present(mat)) call identity_row(mat, ibegin+9)
-!!$     call insert(rhs, ibegin+9, bv_rotated(10), VEC_SET)
-!!$#endif
-!!$  endif
+  if(izonedim.eq.0 .and. is_rectilinear) then
+     ! n
+     if(present(mat)) call identity_row(mat, ibegin+1)
+     call insert(rhs, ibegin+1, bv_rotated(2), VEC_SET)
+#ifdef USE3D
+     if(present(mat)) call identity_row(mat, ibegin+7)
+     call insert(rhs, ibegin+7, bv_rotated(8), VEC_SET)
+#endif
+
+     ! nn
+     if(present(mat)) call identity_row(mat, ibegin+3)
+     call insert(rhs, ibegin+3, bv_rotated(4), VEC_SET)
+#ifdef USE3D
+     if(present(mat)) call identity_row(mat, ibegin+9)
+     call insert(rhs, ibegin+9, bv_rotated(10), VEC_SET)
+#endif
+  endif
 
 end subroutine set_tangent_bc
 
@@ -313,15 +313,15 @@ subroutine set_normal_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
      call insert(rhs, ibegin+10, bv_rotated(11), VEC_SET)
 #endif
 
-!!$  if(izonedim.eq.0) then
-!!$     ! t
-!!$     if(present(mat)) call identity_row(mat, ibegin+2)
-!!$     call insert(rhs, ibegin+2, bv_rotated(3), VEC_SET)
-!!$#ifdef USE3D
-!!$     if(present(mat)) call identity_row(mat, ibegin+8)
-!!$     call insert(rhs, ibegin+8, bv_rotated(9), VEC_SET)
-!!$#endif
-!!$  endif
+  if(izonedim.eq.0 .and. is_rectilinear) then
+     ! t
+     if(present(mat)) call identity_row(mat, ibegin+2)
+     call insert(rhs, ibegin+2, bv_rotated(3), VEC_SET)
+#ifdef USE3D
+     if(present(mat)) call identity_row(mat, ibegin+8)
+     call insert(rhs, ibegin+8, bv_rotated(9), VEC_SET)
+#endif
+  endif
 end subroutine set_normal_bc
 
 
@@ -358,11 +358,11 @@ subroutine set_normalp_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
   if(present(mat)) call identity_row(mat, ibegin+10)
   call insert(rhs, ibegin+10, bv_rotated(11), VEC_SET)
 
-!!$  if(izonedim.eq.0) then
-!!$     ! t
-!!$     if(present(mat)) call identity_row(mat, ibegin+8)
-!!$     call insert(rhs, ibegin+8, bv_rotated(9), VEC_SET)
-!!$  endif
+  if(izonedim.eq.0 .and. is_rectilinear) then
+     ! t
+     if(present(mat)) call identity_row(mat, ibegin+8)
+     call insert(rhs, ibegin+8, bv_rotated(9), VEC_SET)
+  endif
 #endif    
 end subroutine set_normalp_bc
  
