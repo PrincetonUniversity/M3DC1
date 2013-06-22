@@ -375,19 +375,19 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   ! ~~~~~~~~~~~~~
   if(gyro.eq.1 .and. dbf.ne.0.) then
      temp = g1u(trial,lin)*dbf
-     ssterm(u_g) = ssterm(u_g) +     thimp     *dt*temp
-     ddterm(u_g) = ddterm(u_g) - (1.-thimp*bdf)*dt*temp
+     ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
+     ddterm(u_g) = ddterm(u_g) + (1.-thimp*bdf)*dt*temp
 
      if(numvar.ge.2) then
         temp = g1v(trial,lin)*dbf
-        ssterm(vz_g) = ssterm(vz_g) +     thimp     *dt*temp
-        ddterm(vz_g) = ddterm(vz_g) - (1.-thimp*bdf)*dt*temp
+        ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
+        ddterm(vz_g) = ddterm(vz_g) + (1.-thimp*bdf)*dt*temp
      end if
 
      if(numvar.ge.3) then
         temp = g1chi(trial,lin)*dbf
-        ssterm(chi_g) = ssterm(chi_g) +     thimp     *dt*temp
-        ddterm(chi_g) = ddterm(chi_g) - (1.-thimp*bdf)*dt*temp
+        ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
+        ddterm(chi_g) = ddterm(chi_g) + (1.-thimp*bdf)*dt*temp
      end if
   end if
 
@@ -849,17 +849,17 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   ! ~~~~~~~~~~~~~
   if(gyro.eq.1) then
      temp = g2u(trial,lin)*dbf
-     ssterm(u_g) = ssterm(u_g) +     thimp     *dt*temp
-     ddterm(u_g) = ddterm(u_g) - (1.-thimp*bdf)*dt*temp
+     ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
+     ddterm(u_g) = ddterm(u_g) + (1.-thimp*bdf)*dt*temp
      
      temp = g2v(trial,lin)*dbf
-     ssterm(vz_g) = ssterm(vz_g) +     thimp     *dt*temp
-     ddterm(vz_g) = ddterm(vz_g) - (1.-thimp*bdf)*dt*temp
+     ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
+     ddterm(vz_g) = ddterm(vz_g) + (1.-thimp*bdf)*dt*temp
 
      if(numvar.ge.3) then
         temp = g2chi(trial,lin)*dbf
-        ssterm(chi_g) = ssterm(chi_g) +     thimp     *dt*temp
-        ddterm(chi_g) = ddterm(chi_g) - (1.-thimp*bdf)*dt*temp
+        ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
+        ddterm(chi_g) = ddterm(chi_g) + (1.-thimp*bdf)*dt*temp
      end if
   end if
 
@@ -1303,16 +1303,16 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   ! ~~~~~~~~~~~~~
   if(gyro.eq.1 .and. dbf.ne.0.) then    
      temp = g3u(trial,lin)*dbf
-     ssterm(u_g) = ssterm(u_g) +     thimp     *dt*temp
-     ddterm(u_g) = ddterm(u_g) - (1.-thimp*bdf)*dt*temp
+     ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
+     ddterm(u_g) = ddterm(u_g) + (1.-thimp*bdf)*dt*temp
      
      temp = g3v(trial,lin)*dbf
-     ssterm(vz_g) = ssterm(vz_g) +     thimp     *dt*temp
-     ddterm(vz_g) = ddterm(vz_g) - (1.-thimp*bdf)*dt*temp
+     ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
+     ddterm(vz_g) = ddterm(vz_g) + (1.-thimp*bdf)*dt*temp
      
      temp = g3chi(trial,lin)*dbf
-     ssterm(chi_g) = ssterm(chi_g) +     thimp     *dt*temp
-     ddterm(chi_g) = ddterm(chi_g) - (1.-thimp*bdf)*dt*temp
+     ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
+     ddterm(chi_g) = ddterm(chi_g) + (1.-thimp*bdf)*dt*temp
   endif
     
 
