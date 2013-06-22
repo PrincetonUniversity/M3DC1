@@ -163,7 +163,7 @@ contains
 
     vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
 
-    call gyro_RZ_u(f,temp79f)
+    call gyro_RP_u(f,temp79f)
     gyro_tor_u = int3(r_79,e(:,OP_DR),temp79f)
     call gyro_ZP_u(f,temp79f)
     gyro_tor_u = gyro_tor_u + int3(r_79,e(:,OP_DZ),temp79f)
@@ -184,7 +184,7 @@ contains
 
     vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
 
-    call gyro_RZ_v(f,temp79f)
+    call gyro_RP_v(f,temp79f)
     gyro_tor_v = int3(r_79,e(:,OP_DR),temp79f)
     call gyro_ZP_v(f,temp79f)
     gyro_tor_v = gyro_tor_v + int3(r_79,e(:,OP_DZ),temp79f)
@@ -205,7 +205,7 @@ contains
 
     vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
 
-    call gyro_RZ_x(f,temp79f)
+    call gyro_RP_x(f,temp79f)
     gyro_tor_x = int3(r_79,e(:,OP_DR),temp79f)
     call gyro_ZP_x(f,temp79f)
     gyro_tor_x = gyro_tor_x + int3(r_79,e(:,OP_DZ),temp79f)
@@ -359,7 +359,7 @@ contains
          - gbb*ri_79*psiz*f(:,OP_DRP)
 #endif
 
-    o = 2.*o
+    o = 2.*mucross*o
   end subroutine gyro_RR_u
 
   subroutine gyro_RR_v(f,o)
@@ -382,7 +382,7 @@ contains
     o = o + grz*2.*ri_79*bzt79(:,OP_1)*f(:,OP_DP)
 #endif
 
-    o = 2.*o
+    o = 2.*mucross*o
   end subroutine gyro_RR_v
 
   subroutine gyro_RR_x(f,o)
@@ -414,7 +414,7 @@ contains
          - gbb*ri4_79*psiz*f(:,OP_DZP)
 #endif
 
-    o = 2.*o
+    o = 2.*mucross*o
   end subroutine gyro_RR_x
 
 
@@ -451,7 +451,7 @@ contains
     o = o - ri_79*(1.-gbb)*bzt79(:,OP_1)*f(:,OP_DRP)
 #endif
 
-    o = 2.*o
+    o = 2.*mucross*o
   end subroutine gyro_RP_u
 
   subroutine gyro_RP_v(f,o)
@@ -473,7 +473,7 @@ contains
     o = o - (1.+gbb)*ri_79*psir*f(:,OP_DP)
 #endif
 
-    o = 2.*o
+    o = 2.*mucross*o
   end subroutine gyro_RP_v
 
   subroutine gyro_RP_x(f,o)
@@ -509,7 +509,7 @@ contains
     o = o - ri4_79*(1.-gbb)*bzt79(:,OP_1)*f(:,OP_DZP)
 #endif
 
-    o = 2.*o
+    o = 2.*mucross*o
   end subroutine gyro_RP_x
 
 
@@ -540,6 +540,8 @@ contains
     o = o + (1.-gbb)*ri_79*(psiz*f(:,OP_DZP) - psir*f(:,OP_DRP)) &
          + (gzz-grr)*ri_79*(psir*f(:,OP_DRP) + psiz*f(:,OP_DZP))
 #endif
+    
+    o = o*mucross
   end subroutine gyro_RZ_u
 
   subroutine gyro_RZ_v(f,o)
@@ -561,6 +563,7 @@ contains
 #if defined(USE3D) || defined(USECOMPLEX)
     o = o + (gzz-grr)*2.*ri_79*f(:,OP_DP)
 #endif
+    o = o*mucross
   end subroutine gyro_RZ_v
 
   subroutine gyro_RZ_x(f,o)
@@ -591,6 +594,7 @@ contains
     o = o - ri4_79*(1-gbb)*(psiz*f(:,OP_DRP) + psir*f(:,OP_DZP)) &
          + ri4_79*(gzz-grr)*(psir*f(:,OP_DZP) - psiz*f(:,OP_DRP))
 #endif
+    o = o*mucross
   end subroutine gyro_RZ_x
 
   !======================================================================
@@ -624,7 +628,7 @@ contains
     o = o - (1.+gbb)*ri_79*(psir*f(:,OP_DZP) - psiz*f(:,OP_DRP))
 #endif
 
-    o = 2.*o
+    o = 2.*mucross*o
   end subroutine gyro_PP_u
 
   subroutine gyro_PP_v(f,o)
@@ -642,7 +646,7 @@ contains
 
     o = (1.+gbb)*(psir*f(:,OP_DR) + psiz*f(:,OP_DZ))
 
-    o = 2.*o
+    o = 2.*mucross*o
   end subroutine gyro_PP_v
 
   subroutine gyro_PP_x(f,o)
@@ -676,7 +680,7 @@ contains
     o = o + (1.+gbb)*ri4_79*(psir*f(:,OP_DRP) + psiz*f(:,OP_DZP))
 #endif
 
-    o = 2.*o
+    o = 2.*mucross*o
   end subroutine gyro_PP_x
 
 
@@ -712,7 +716,7 @@ contains
     o = o - (1.-gbb)*ri_79*bzt79(:,OP_1)*f(:,OP_DZP)
 #endif
 
-    o = 2.*o
+    o = 2.*mucross*o
   end subroutine gyro_ZP_u
 
   subroutine gyro_ZP_v(f,o)
@@ -734,7 +738,7 @@ contains
     o = o - (1+gbb)*ri_79*psiz*f(:,OP_DP)
 #endif
 
-    o = 2.*o
+    o = 2.*mucross*o
   end subroutine gyro_ZP_v
 
   subroutine gyro_ZP_x(f,o)
@@ -769,7 +773,7 @@ contains
     o = o + (1.-gbb)*ri4_79*bzt79(:,OP_1)*f(:,OP_DRP)
 #endif
 
-    o = 2.*o
+    o = 2.*mucross*o
   end subroutine gyro_ZP_x
 
 
@@ -807,7 +811,7 @@ contains
          + gbb*ri_79*psir*f(:,OP_DZP)
 #endif
 
-    o = 2.*o
+    o = 2.*mucross*o
   end subroutine gyro_ZZ_u
 
   subroutine gyro_ZZ_v(f,o)
@@ -830,7 +834,7 @@ contains
     o = o - 2.*ri_79*grz*bzt79(:,OP_1)*f(:,OP_DP)
 #endif
 
-    o = 2.*o
+    o = 2.*mucross*o
   end subroutine gyro_ZZ_v
 
   subroutine gyro_ZZ_x(f,o)
@@ -862,7 +866,7 @@ contains
          - ri4_79*gbb*psir*f(:,OP_DRP)
 #endif
 
-    o = 2.*o
+    o = 2.*mucross*o
   end subroutine gyro_ZZ_x
 
 end module gyroviscosity
