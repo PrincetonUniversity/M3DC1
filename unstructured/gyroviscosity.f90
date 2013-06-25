@@ -21,8 +21,8 @@ contains
     psir = pst79(:,OP_DR)
     psiz = pst79(:,OP_DZ)
 #if defined(USE3D) || defined(USECOMPLEX)
-    psir = psir - r_79*f(:,OP_DZP)
-    psiz = psiz + r_79*f(:,OP_DRP)
+    psir = psir - r_79*bft79(:,OP_DZP)
+    psiz = psiz + r_79*bft79(:,OP_DRP)
 #endif
 
     gbb = 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2

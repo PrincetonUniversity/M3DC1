@@ -37,7 +37,7 @@ contains
     case(1)
 #ifdef USE3D
        pellet_deposition = pellet_rate/(sqrt(2.*pi)*pellet_var)**3 & 
-            *exp(-(r**2 + pellet_x**2 -2.*x*pellet_x*cos(phi-pellet_phi) &
+            *exp(-(r**2 + pellet_x**2 -2.*r*pellet_x*cos(phi-pellet_phi) &
             + (z - pellet_z)**2) / (2.*pellet_var**2))
 #else
        pellet_deposition = pellet_rate/(r*2.*pi*pellet_var**2) & 
@@ -53,7 +53,7 @@ contains
     case(3)
 #ifdef USE3D
        pellet_deposition = pres*pellet_rate/(sqrt(2.*pi)*pellet_var)**3 & 
-            *exp(-(r**2 + pellet_x**2 -2.*x*pellet_x*cos(phi-pellet_phi) &
+            *exp(-(r**2 + pellet_x**2 -2.*r*pellet_x*cos(phi-pellet_phi) &
             + (z - pellet_z)**2) / (2.*pellet_var**2))
 #else
        pellet_deposition = pres*pellet_rate/(r*2.*pi*pellet_var**2) & 
