@@ -2,7 +2,7 @@ green='\e[0;32m'
 NC='\e[0m'
 
 all : C1ke
-	@diff C1ke C1ke.base; test "$$?" -eq 0
+	@$(PY) ../compare.py; test "$$?" -eq 0
 	@echo -e ${green}Success!${NC}
 
 reset : C1ke
