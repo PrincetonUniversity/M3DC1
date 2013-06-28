@@ -101,11 +101,13 @@ contains
     vz_i = 3
     bz_i = 4
     chi_i = 5
-    p_i = 6    
     den_i = 2*numvar+1
-    if(ipres.eq.1) then
-       pe_i = 2*numvar+idens+1
-    endif
+    if(numvar.ge.3) then
+       p_i = 6
+       if(ipres.eq.1) pe_i = 2*numvar+idens+1
+    else
+       if(ipres.eq.1) p_i = 2*numvar+idens+1
+    end if
     if(imp_bf.eq.1) then
        bf_i = 2*numvar+idens+ipres+1
        e_i = 2*numvar+idens+ipres+2
@@ -124,11 +126,13 @@ contains
     
     if(numvar.ge.3) then
        call associate_field(chi_v,  phi_vec,    chi_i)
-       call associate_field(p_v,   phi_vec,     p_i)
     endif
     
-    if(ipres.eq.1) then
+    if(ipres.eq.1 .and. numvar.ge.3) then
        call associate_field(pe_v,  phi_vec,    pe_i)
+    end if
+    if(ipres.eq.1 .or. numvar.ge.3) then 
+       call associate_field(p_v,  phi_vec,    p_i)
     end if
     
     if(idens.eq.1) then
@@ -203,7 +207,7 @@ subroutine import_time_advance_vectors_unsplit
      p_v = p_field(1)
   end if
 
-  if(ipres.eq.1) then
+  if(ipres.eq.1 .and. numvar.ge.3) then
      pe_v = pe_field(1)
   end if
 
@@ -237,10 +241,10 @@ subroutine export_time_advance_vectors_unsplit
      p_field(1) = p_v
   end if
 
-  if(ipres.eq.1) then
+  if(ipres.eq.1 .and. numvar.ge.3) then
      pe_field(1) = pe_v
   else
-     if(numvar.ge.3) then
+     if(ipres.eq.1 .or. numvar.ge.3) then
         pe_field(1) = p_v
         call mult(pe_field(1), pefac)
      end if
@@ -248,7 +252,6 @@ subroutine export_time_advance_vectors_unsplit
 
   if(idens.eq.1) den_field(1) = den_v
   if(imp_bf.eq.1) bf_field(1) = bf_v
-
 end subroutine export_time_advance_vectors_unsplit
 
 
@@ -302,19 +305,15 @@ subroutine step_unsplit(calc_matrices)
      call boundary_mag(b1_phi, psi_v, bz_v, bf_v, e_v, s1_mat)
      call boundary_vel(b1_phi, u_v, vz_v, chi_v, s1_mat)
      if(idens.eq.1) call boundary_den(b1_phi, den_v, s1_mat)
-     if(ipres.eq.1) call boundary_pe(b1_phi, pe_v, s1_mat)
-     if(ipres.eq.1 .or. numvar.ge.3) then
-        call boundary_p(b1_phi, p_v, s1_mat)
-     endif
+     if(ipres.eq.1 .and. numvar.ge.3) call boundary_pe(b1_phi, pe_v, s1_mat)
+     if(ipres.eq.1 .or. numvar.ge.3) call boundary_p(b1_phi, p_v, s1_mat)
      call finalize(s1_mat)
   else
      call boundary_mag(b1_phi, psi_v, bz_v, bf_v, e_v)
      call boundary_vel(b1_phi, u_v, vz_v, chi_v)
      if(idens.eq.1) call boundary_den(b1_phi, den_v)
-     if(ipres.eq.1) call boundary_pe(b1_phi, pe_v)
-     if(ipres.eq.1 .or. numvar.ge.3) then
-        call boundary_p(b1_phi, p_v)
-     endif
+     if(ipres.eq.1 .and. numvar.ge.3) call boundary_pe(b1_phi, pe_v)
+     if(ipres.eq.1 .or. numvar.ge.3)  call boundary_p(b1_phi, p_v)
   endif
 
   ! solve linear system...LU decomposition done first time
@@ -352,10 +351,9 @@ subroutine step_unsplit(calc_matrices)
   call smooth_fields(psi_v)
 
   ! populate temperature fields
-  if(ipres.eq.1 .or. numvar.ge.3) then
-     call get_temperatures(den_v, p_v, p_v, te_field(1), ti_field(1))
-!     call calculate_temperatures(linear, te_field(1), ti_field(1))
-  end if
+!!$  if(ipres.eq.1 .or. numvar.ge.3) then
+!!$     call get_temperatures(den_v, p_v, p_v, te_field(1), ti_field(1))
+!!$  end if
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done solving matrix equation."
 end subroutine step_unsplit

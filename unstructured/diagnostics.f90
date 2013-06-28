@@ -156,6 +156,8 @@ contains
     efluxt = 0.
     epotg = 0.
 
+    ptot = 0.
+
     area = 0.
     volume = 0.
     totcur = 0.
@@ -515,6 +517,7 @@ subroutine calculate_scalars()
   use metricterms_new
   use boundary_conditions
   use math
+  use gyroviscosity
 
   implicit none
  
@@ -524,10 +527,12 @@ subroutine calculate_scalars()
   integer :: is_edge(3)  ! is inode on boundary
   real :: n(2,3),tpifac
   integer :: iedge, idim(3)
+  real :: delta_t
 
   tpifac = 1.
   if(nplanes.gt.1) tpifac = twopi
 
+  print *, 'Setting ptoto!', ptot
   ptoto = ptot
 
   ekino = ekin
@@ -595,6 +600,7 @@ subroutine calculate_scalars()
 
      call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
      call define_fields(itri, def_fields, 0, 0)
+     if(gyro.eq.1) call gyro_common
 
      ! Calculate energy
      ! ~~~~~~~~~~~~~~~~
@@ -700,6 +706,7 @@ subroutine calculate_scalars()
 
         call define_boundary_quadrature(itri, iedge, 5, 5, n, idim)
         call define_fields(itri, def_fields, 1, 0)
+        if(gyro.eq.1) call gyro_common
 
         ! Energy fluxes
         ! ~~~~~~~~~~~~~

@@ -72,7 +72,7 @@ subroutine calculate_temperatures(ilin, te, ti)
   ti_f = 0.
 
   ! specify which primitive fields are to be evalulated
-  def_fields = FIELD_N + FIELD_NI + FIELD_P + FIELD_PE
+  def_fields = FIELD_N + FIELD_P + FIELD_PE
 
   numelms = local_elements()
   do itri=1,numelms
@@ -80,32 +80,33 @@ subroutine calculate_temperatures(ilin, te, ti)
      call define_fields(itri, def_fields, 1, 0)
 
      ! electron temperature
-     if(ilin.eq.1) then
-        do i=1, dofs_per_element
-           dofs(i) = int3(mu79(:,OP_1,i),pe179(:,OP_1),nei79(:,OP_1)) &
-                - int5(mu79(:,OP_1,i),ne179(:,OP_1),pe079(:,OP_1),nei79(:,OP_1),nei79(:,OP_1))
-        end do
-     else
-        do i=1, dofs_per_element
-           dofs(i) = int3(mu79(:,OP_1,i),pet79(:,OP_1),nei79(:,OP_1))
-        end do
-     end if
+     do i=1, dofs_per_element
+        if(linear.eq.1 .and. ilin.eq.1) then
+           temp79a = pe179(:,OP_1)/ne079(:,OP_1) &
+                - ne179(:,OP_1)*pe079(:,OP_1)/ne079(:,OP_1)**2
+        else
+           temp79a = pet79(:,OP_1)/net79(:,OP_1)
+           if(eqsubtract.eq.1 .and. ilin.eq.1) then
+              temp79a = temp79a - pe079(:,OP_1)/ne079(:,OP_1)
+           end if
+        end if
+        dofs(i) = int2(mu79(:,OP_1,i),temp79a)
+     end do
      call vector_insert_block(te_f%vec,itri,1,dofs,VEC_ADD)
 
-     ! ion temperature
-     if(ilin.eq.1) then 
-        temp79a = p179(:,OP_1) - pe179(:,OP_1)
-        temp79b = p079(:,OP_1) - pe079(:,OP_1)
-        do i=1, dofs_per_element
-           dofs(i) = int3(mu79(:,OP_1,i),temp79a,ni79(:,OP_1)) &
-                - int5(mu79(:,OP_1,i),n179(:,OP_1),temp79b,ni79(:,OP_1),ni79(:,OP_1))
-        end do
-     else
-        temp79a = pt79(:,OP_1) - pet79(:,OP_1)
-        do i=1, dofs_per_element
-           dofs(i) = int3(mu79(:,OP_1,i),temp79a,nei79(:,OP_1))
-        end do
-     end if
+     ! electron temperature
+     do i=1, dofs_per_element
+        if(linear.eq.1 .and. ilin.eq.1) then
+           temp79a = pi179(:,OP_1)/n079(:,OP_1) &
+                - n179(:,OP_1)*pi079(:,OP_1)/n079(:,OP_1)**2
+        else
+           temp79a = pit79(:,OP_1)/nt79(:,OP_1)
+           if(eqsubtract.eq.1 .and. ilin.eq.1) then
+              temp79a = temp79a - pi079(:,OP_1)/n079(:,OP_1)
+           end if
+        end if
+        dofs(i) = int2(mu79(:,OP_1,i),temp79a)
+     end do
      call vector_insert_block(ti_f%vec,itri,1,dofs,VEC_ADD)
   end do
 

@@ -2015,11 +2015,11 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('jy', name, /fold_case) eq 1) then begin
 
-       lp = read_field('psi', x, y, t, slices=time, mesh=mesh, op=7, $
+       lp = read_field('psi_plasma', x, y, t, slices=time, mesh=mesh, op=7, $
                          filename=filename, points=pts, mask=mask, $
                          rrange=xrange, zrange=yrange, linear=linear, $
                       complex=complex,phi=phi0)
-       psir = read_field('psi', x, y, t, slices=time, mesh=mesh, op=2, $
+       psir = read_field('psi_plasma', x, y, t, slices=time, mesh=mesh, op=2, $
                          filename=filename, points=pts, mask=mask, $
                          rrange=xrange, zrange=yrange, linear=linear, $
                         complex=complex,phi=phi0)
@@ -5945,7 +5945,7 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
    if(n_elements(tbins) eq 0) then tbins = sqrt(sz[2]*sz[3])
 
    type = size(field, /type)
-   if(type eq 6) then begin
+   if((type eq 6) or (type eq 9)) then begin
        result = complexarr(sz[1], fbins, tbins)
    endif else begin
        result = fltarr(sz[1], fbins, tbins)

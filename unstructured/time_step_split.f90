@@ -525,10 +525,8 @@ subroutine import_time_advance_vectors_split
      endif
   endif   ! on ipressplit.eq.0
 
-
   if(idens.eq.1) den_v = den_field(1)
   if(imp_bf.eq.1) bf_v = bf_field(1)
-
 
 end subroutine import_time_advance_vectors_split
 
@@ -1223,9 +1221,8 @@ subroutine step_split(calc_matrices)
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~
      call smooth_fields(psi_v) 
 
-     if(ipressplit.eq.0 .and. (numvar.ge.3 .or. ipres.eq.1)) &
-          call get_temperatures(den_v, p_v, pe_v, te_v, ti_v)
-
+!!$     if(ipressplit.eq.0 .and. (numvar.ge.3 .or. ipres.eq.1)) &
+!!$          call get_temperatures(den_v, p_v, pe_v, te_v, ti_v)
   end if       !...on iestatic
 
 
