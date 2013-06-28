@@ -171,6 +171,9 @@ Program Reducedquintic
   ! initialize output
   call initialize_output
 
+  ! zero-out scalar data
+  call reset_scalars
+
   if(itimer.eq.1) call reset_timings
 
   ! output simulation parameters and equilibrium
@@ -532,6 +535,7 @@ subroutine derived_quantities(ilin)
   use diagnostics
   use sparse
   use transport_coefficients
+  use auxiliary_fields
 
   implicit none
 
@@ -592,9 +596,13 @@ subroutine derived_quantities(ilin)
   ! ~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
-  if(myrank.eq.0 .and. iprint.ge.2) &
-       print *, "  transport coefficients"
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
   call define_transport_coefficients
+
+  if(itemp.eq.0) then
+     if(myrank.eq.0 .and. iprint.ge.2) print *, "  temperatures"
+     call calculate_temperatures(ilin, te_field(ilin), ti_field(ilin))
+  end if
 
   !   toroidal current
   if(myrank.eq.0 .and. iprint.ge.2) print *, "  toroidal current"
@@ -647,7 +655,7 @@ subroutine derived_quantities(ilin)
 
   ! calculate scalars
   ! ~~~~~~~~~~~~~~~~~
-  if(icalc_scalars.eq.1) then
+  if(icalc_scalars.eq.1 .and. ilin.eq.1) then
      if(myrank.eq.0 .and. iprint.ge.2) print *, "  scalars"
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call calculate_scalars

@@ -91,7 +91,7 @@ subroutine onestep
 
      ! in linear case, eliminate second-order terms from matrix
      ivel_def = 1
-     if(istatic.eq.1) ivel_def = 0
+     if(istatic.eq.1 .and. isplitstep.eq.1) ivel_def = 0
      call ludefall(ivel_def, idens, ipres, ipressplit, 1-iestatic)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)

@@ -656,20 +656,26 @@ subroutine output_fields(time_group_id, equilibrium, error)
   ! Output the fields
   ! ~~~~~~~~~~~~~~~~~
 
+
   ! psi_plasma
+  if(icsubtract.eq.1) then
+     do i=1, nelms
+        call calcavector(i, psi_field(ilin), dum(:,i))
+     end do
+     call output_field(group_id, "psi_plasma", real(dum), coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id,"psi_plasma_i",aimag(dum),coeffs_per_element, &
+          nelms,error)
+     nfields = nfields + 1
+#endif
+  end if
+
+  ! psi
   do i=1, nelms
      call calcavector(i, psi_field(ilin), dum(:,i))
   end do
-  call output_field(group_id, "psi_plasma", real(dum), coeffs_per_element, &
-       nelms, error)
-  nfields = nfields + 1
-#ifdef USECOMPLEX
-  call output_field(group_id,"psi_plasma_i",aimag(dum),coeffs_per_element, &
-       nelms,error)
-  nfields = nfields + 1
-#endif
-
-  ! psi     
   if(icsubtract.eq.1) then
      allocate(dum2(coeffs_per_element,nelms))
      do i=1, nelms
@@ -677,10 +683,15 @@ subroutine output_fields(time_group_id, equilibrium, error)
      end do
      dum = dum + dum2
      deallocate(dum2)
-  end if
+  endif
   call output_field(group_id, "psi", real(dum), coeffs_per_element, &
        nelms, error)
   nfields = nfields + 1
+#ifdef USECOMPLEX
+  call output_field(group_id,"psi_i",aimag(dum),coeffs_per_element, &
+       nelms,error)
+  nfields = nfields + 1
+#endif
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after psi in output_fields'
 

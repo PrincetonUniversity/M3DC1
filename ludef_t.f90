@@ -4090,9 +4090,12 @@ subroutine ludefphi_n(itri)
      end if
      bsource => q4_vec
      pp_i = p_i
-     if(ipres.eq.1) then
+     if(ipres.eq.1 .and. numvar.ge.3) then
         ppe_i = pe_i
      else
+        ! If electron pressure equation is not included,
+        ! terms that should multiply pe will instead multiply p
+        ! (we add a fector of pefac to these terms below)
         ppe_i = p_i
      end if
      maxk = numvar
@@ -4208,9 +4211,10 @@ subroutine ludefphi_n(itri)
         end if
      end do
     
-     ! if ipres==0, the terms linear in pe will be multiplied by p
-     ! so we must multiply these terms by pefac (pe = p*pefac)
-     if(ipres.eq.0 .and. ipressplit.eq.0 .and. numvar.ge.3) then
+     ! If electron pressure equation is not included,
+     ! terms that should multiply pe will instead multiply p
+     ! so we multiply these terms my pefac
+     if(.not.(ipres.eq.1 .and. numvar.ge.3) .and. ipressplit.eq.0) then
         ss(:,:,pe_g) = ss(:,:,pe_g)*pefac
         dd(:,:,pe_g) = dd(:,:,pe_g)*pefac
      end if
