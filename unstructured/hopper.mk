@@ -24,30 +24,11 @@ endif
 
 ifeq ($(USESCOREC), 1)
     ifndef SCORECDIR
-      SCORECDIR = /project/projectdirs/mp288/lib/hopper2/scorec/install-Opt
+      #SCORECDIR = /project/projectdirs/mp288/lib/hopper2/scorec/install-Opt
+      SCORECDIR = /global/project/projectdirs/mp288/hopper/install
     endif
 
-SCOREC_LIBS =  \
-        $(SCORECDIR)/lib/libFUSIONAPP.a \
-        $(SCORECDIR)/lib/libSOLVER.a \
-        $(SCORECDIR)/lib/libMESHADAPTMAP.a \
-        $(SCORECDIR)/lib/libSOLTRANSFER.a \
-        $(SCORECDIR)/lib/libSOLVER.a \
-        $(SCORECDIR)/lib/libFEMANALYSIS.a \
-        $(SCORECDIR)/lib/libASSEMBLER.a \
-        $(SCORECDIR)/lib/libMeshAdapt.a \
-        $(SCORECDIR)/lib/libDISCERRORESTIM.a \
-        $(SCORECDIR)/lib/libASF.a \
-        $(SCORECDIR)/lib/libSCORECModel.a \
-        $(SCORECDIR)/lib/libmeshModel.a \
-        $(SCORECDIR)/lib/libFMDB.a \
-        $(SCORECDIR)/lib/libSCORECUtil.a \
-        $(SCORECDIR)/lib/libipcomman.a \
-        $(SCORECDIR)/lib/libzoltan.a \
-        $(SCORECDIR)/lib/libSPARSKIT.a \
-        $(SCORECDIR)/lib/libSCORECModel.a \
-        $(SCORECDIR)/lib/libmeshModel.a \
-        $(SCORECDIR)/lib/libSCORECUtil.a
+SCOREC_LIBS =-L$(SCORECDIR)/lib -Wl,--start-group -lPPPLFusion -lMeshAdapt -lFMDB -lGMI -lGMIMeshModel -lSCORECUtil -lipcomman -Wl,--end-group -lzoltan 
 
   INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
   LIBS := $(LIBS) $(SCOREC_LIBS) -lC -lstd
