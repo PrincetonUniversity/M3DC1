@@ -338,8 +338,6 @@ public:
 
     // Communicate strings
     if(type_num[STRING_TYPE] > 0) {
-      int len;
-
       i = variables.begin();
 
       k = 0;
