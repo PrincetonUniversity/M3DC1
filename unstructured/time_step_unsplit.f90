@@ -158,6 +158,17 @@ contains
     bf_off = (bf_i-1)*dofs_per_node
     e_off = (e_i-1)*dofs_per_node
 
+    if(myrank.eq.0 .and. iprint.ge.1) then
+       print *, 'Index of U: ', u_i
+       print *, 'Index of V: ', vz_i
+       print *, 'Index of Chi: ', chi_i
+       print *, 'Index of Psi: ', psi_i
+       print *, 'Index of Bz: ', bz_i
+       print *, 'Index of P: ', p_i
+       print *, 'Index of n: ', den_i
+       print *, 'Index of Pe: ', pe_i
+    end if
+       
   end subroutine assign_variables_unsplit
 
   subroutine clear_matrices_unsplit

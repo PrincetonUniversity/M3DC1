@@ -276,9 +276,17 @@ end
 ; the "scalars" group of "filename"
 ;=====================================================
 function read_scalars, filename=filename
+;   on_error, 2
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
    if(hdf5_file_test(filename) eq 0) then return, 0
+
+;     catch, Error_status
+;     if Error_status ne 0 then begin
+;         print, 'Error reading: ', filename
+;         catch, /cancel
+;         return, 0
+;     end
 
    file_id = h5f_open(filename)
    root_id = h5g_open(file_id, "/")
@@ -2014,6 +2022,29 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ; toroidal current
    ;===========================================
    endif else if(strcmp('jy', name, /fold_case) eq 1) then begin
+
+       lp = read_field('psi', x, y, t, slices=time, mesh=mesh, op=7, $
+                         filename=filename, points=pts, mask=mask, $
+                         rrange=xrange, zrange=yrange, linear=linear, $
+                      complex=complex,phi=phi0)
+       psir = read_field('psi', x, y, t, slices=time, mesh=mesh, op=2, $
+                         filename=filename, points=pts, mask=mask, $
+                         rrange=xrange, zrange=yrange, linear=linear, $
+                        complex=complex,phi=phi0)
+
+
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+           data = -(lp - psir/r)/r
+       endif else data = -lp
+
+       symbol = '!8J!D!9P!N!X'
+       d = dimensions(/j0,_EXTRA=extra)
+
+   ;===========================================
+   ; toroidal current
+   ;===========================================
+   endif else if(strcmp('jy_plasma', name, /fold_case) eq 1) then begin
 
        lp = read_field('psi_plasma', x, y, t, slices=time, mesh=mesh, op=7, $
                          filename=filename, points=pts, mask=mask, $

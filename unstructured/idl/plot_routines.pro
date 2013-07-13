@@ -146,7 +146,7 @@ end
 
 function color, c, maxcolors
     col = colors(maxcolors)
-    return, col[c] 
+    return, col[c mod n_elements(col)] 
 end
 
 pro plot_legend, names, linestyles=ls, colors=cs, left=l, top=t, psyms=p, $

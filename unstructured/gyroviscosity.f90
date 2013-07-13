@@ -20,7 +20,8 @@ contains
 
     psir = pst79(:,OP_DR)
     psiz = pst79(:,OP_DZ)
-#if defined(USE3D) || defined(USECOMPLEX)
+#ifdef USE3D
+    ! f' = 0 in complex case, so this is only needed for USE3D
     psir = psir - r_79*bft79(:,OP_DZP)
     psiz = psiz + r_79*bft79(:,OP_DRP)
 #endif
@@ -51,7 +52,7 @@ contains
     call gyro_RR_u(f,temp79f)
     gyro_vor_u = gyro_vor_u + int3(r_79,e(:,OP_DRZ),temp79f)
     if(itor.eq.1) gyro_vor_u = gyro_vor_u + int2(e(:,OP_DZ),temp79f)
-     
+
     call gyro_ZZ_u(f,temp79f)
     gyro_vor_u = gyro_vor_u - int3(r_79,e(:,OP_DRZ),temp79f)
 
@@ -503,7 +504,7 @@ contains
 
     o = ri3_79*(1.+gzz)*psir*temp79c &
          - 2.*ri3_79*(1.-gzz)*psiz*temp79a &
-         + 3.*ri3_79*(gbb-gzz)*psir*temp79b
+         + ri3_79*(gbb-gzz)*psir*temp79b
 
 #if defined(USE3D) || defined(USECOMPLEX)
     o = o - ri4_79*(1.-gbb)*bzt79(:,OP_1)*f(:,OP_DZP)
@@ -530,11 +531,11 @@ contains
        return
     end if
 
-    o = (5.-gbb)*2.*bzt79(:,OP_1)*f(:,OP_DRZ)
+    ! u_RZ + u_Z / R
+    temp79b = f(:,OP_DRZ)
+    if(itor.eq.1) temp79b = temp79b + ri_79*f(:,OP_DZ)
 
-    if(itor.eq.1) then 
-       o = o + (1.+grr)*2.*ri_79*bzt79(:,OP_1)*f(:,OP_DZ)
-    end if
+    o = 2.*bzt79(:,OP_1)*((1.+gzz)*f(:,OP_DRZ) + (1.+grr)*temp79b)
 
 #if defined(USE3D) || defined(USECOMPLEX)
     o = o + (1.-gbb)*ri_79*(psiz*f(:,OP_DZP) - psir*f(:,OP_DRP)) &
@@ -557,7 +558,7 @@ contains
        return
     end if
 
-    o = -(1-gbb)*(psiz*f(:,OP_DR) + psir*f(:,OP_DZ)) &
+    o = -(1.-gbb)*(psiz*f(:,OP_DR) + psir*f(:,OP_DZ)) &
          + (gzz-grr)*(psir*f(:,OP_DZ) - psiz*f(:,OP_DR))
 
 #if defined(USE3D) || defined(USECOMPLEX)
@@ -588,7 +589,7 @@ contains
     if(itor.eq.1) temp79c = temp79c - 3.*ri_79*f(:,OP_DR)
 
     o = 2.*ri3_79*bzt79(:,OP_1)* &
-         ((1+grr)*temp79b - (1+gzz)*temp79c)
+         ((1.+grr)*temp79b - (1.+gzz)*temp79c)
 
 #if defined(USE3D) || defined(USECOMPLEX)
     o = o - ri4_79*(1.-gbb)*(psiz*f(:,OP_DRP) + psir*f(:,OP_DZP)) &
@@ -735,7 +736,7 @@ contains
     o = (1.-gbb)*bzt79(:,OP_1)*f(:,OP_DR)
 
 #if defined(USE3D) || defined(USECOMPLEX)
-    o = o - (1+gbb)*ri_79*psiz*f(:,OP_DP)
+    o = o - (1.+gbb)*ri_79*psiz*f(:,OP_DP)
 #endif
 
     o = 2.*mucross*o
@@ -797,10 +798,6 @@ contains
     ! u_ZZ - u_RR - u_R / R
     temp79a = f(:,OP_DZZ) - f(:,OP_DRR)
     if(itor.eq.1) temp79a = temp79a - ri_79*f(:,OP_DR)
-
-    ! u_RZ + u_Z / R
-    temp79b = f(:,OP_DRZ)
-    if(itor.eq.1) temp79b = temp79b + ri_79*f(:,OP_DZ)
 
     o = (1.+grr)*bzt79(:,OP_1)*temp79a &
          - grz*2.*bzt79(:,OP_1)*f(:,OP_DRZ)

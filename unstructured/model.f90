@@ -339,7 +339,8 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
   numnodes = owned_nodes()
   do i=1, numnodes
 
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
+          all_boundaries)
      if(.not.is_boundary) cycle
 
      i_u = node_index(u_v, i)
@@ -561,26 +562,6 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
         call set_dirichlet_bc(i_bz,rhs,temp,normal,curv,izonedim,mat)
      endif
 
-!!$     if(numvar.ge.3 .and. ipressplit.eq.0) then
-!!$        if(inograd_p.eq.1) then
-!!$           temp = 0.
-!!$           call set_normal_bc(i_pe,rhs,temp,normal,curv,izonedim,mat)
-!!$        end if
-!!$        if(ipres.eq.1) then
-!!$           call get_node_data(pe_field(1), i, temp)
-!!$        else
-!!$           call get_node_data(p_field(1), i, temp)
-!!$        end if
-!!$        if(iconst_p.eq.1) then
-!!$           call set_dirichlet_bc(i_pe,rhs,temp,normal,curv,izonedim,mat)
-!!$        else if(iconst_t.eq.1) then
-!!$           call get_node_data(den_v, i, temp2)
-!!$           call get_node_data(den_field(1), i, temp3)
-!!$           temp = temp*temp2(1)/temp3(1)
-!!$           call set_dirichlet_bc(i_pe,rhs,temp,normal,curv,izonedim,mat)
-!!$        end if
-!!$     endif
-
      if(jadv.eq.0 .and. i3d.eq.1) then
         ! electrostatic potential
         temp = 0.
@@ -626,7 +607,8 @@ subroutine boundary_den(rhs, den_v, mat)
 
   numnodes = owned_nodes()
   do i=1, numnodes
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
+          all_boundaries)
      if(.not.is_boundary) cycle
 
      i_n = node_index(den_v, i)
@@ -773,7 +755,8 @@ subroutine boundary_p(rhs, p_v, mat)
 
   numnodes = owned_nodes()
   do i=1, numnodes
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
+          all_boundaries)
      if(.not.is_boundary) cycle
 
      i_p = node_index(p_v, i)

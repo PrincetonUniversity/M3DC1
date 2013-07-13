@@ -532,7 +532,6 @@ subroutine calculate_scalars()
   tpifac = 1.
   if(nplanes.gt.1) tpifac = twopi
 
-  print *, 'Setting ptoto!', ptot
   ptoto = ptot
 
   ekino = ekin

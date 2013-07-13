@@ -128,5 +128,18 @@ subroutine cubic_roots(coef, root, error)
       
 end subroutine cubic_roots
 
+!======================================================================
+! bessel functions
+! ~~~~~~~~~~~~~~~~
+! Courtesy of Gnu Scientific Library
+!======================================================================
+real function bessel_I(n, x)
+  implicit none
+  integer, intent(in) :: n
+  real, intent(in) :: x
+  
+  call gsl_bessel_i(n,x,bessel_I)
+end function bessel_I
+
   
 end module math

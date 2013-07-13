@@ -52,16 +52,16 @@ contains
        call create_tag_list(domain_boundary, 2)
        domain_boundary%tags(1) = 5
        domain_boundary%tags(2) = 6
-       call create_tag_list(all_boundaries, 2)
-       all_boundaries%tags(1) = 5
-       all_boundaries%tags(2) = 6
-!!$       call create_tag_list(all_boundaries, 6)
-!!$       all_boundaries%tags(1) = 1
-!!$       all_boundaries%tags(2) = 2
-!!$       all_boundaries%tags(3) = 3
-!!$       all_boundaries%tags(4) = 4
-!!$       all_boundaries%tags(5) = 5
-!!$       all_boundaries%tags(6) = 6
+!!$       call create_tag_list(all_boundaries, 2)
+!!$       all_boundaries%tags(1) = 5
+!!$       all_boundaries%tags(2) = 6
+       call create_tag_list(all_boundaries, 6)
+       all_boundaries%tags(1) = 1
+       all_boundaries%tags(2) = 2
+       all_boundaries%tags(3) = 3
+       all_boundaries%tags(4) = 4
+       all_boundaries%tags(5) = 5
+       all_boundaries%tags(6) = 6
     else
        call create_tag_list(inner_wall, 1)
        inner_wall%tags(1) = 1
