@@ -55,13 +55,14 @@ ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf -L/global/homes/p/pnorbert/mxml/mxml.ho
 
 INCLUDE := $(INCLUDE) $(HDF5_INCLUDE_OPTS) $(FFTW_INCLUDE_OPTS) \
 	-I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
-        -I$(HYBRID_HOME)/include
+        -I$(HYBRID_HOME)/include -I$(GSL_DIR)/include
 
 LIBS := $(LIBS) $(HDF5_POST_LINK_OPTS) -lhdf5_fortran -lhdf5 \
 	$(FFTW_POST_LINK_OPTS) -lfftw3 \
 	$(HYPRE) $(MUMPS) $(PARMETIS) -ldl \
         $(HYBRID_LIBS) \
-        $(ADIOS_FLIB)
+        $(ADIOS_FLIB) \
+	-L$(GSL_DIR)/lib -lgsl
 
 FOPTS = -c -Mr8 -Mpreprocess -Minform=warn $(OPTS) \
 	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs
