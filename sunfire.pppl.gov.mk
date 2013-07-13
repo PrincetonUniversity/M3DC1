@@ -35,8 +35,8 @@ HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lhsolver
 INCLUDE = -I$(MPIHOME)/include \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
 	-I$(HDF5_HOME)/include -I$(HDF5_HOME)/lib \
-	-I$(HYBRID_HOME)/include
-
+	-I$(HYBRID_HOME)/include \
+	-I$(GSLHOME)/include
 
 PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
 	-lpetsc \
@@ -66,6 +66,7 @@ LIBS = 	$(PETSC_LIBS) \
 	-L$(NCARG_ROOT)/lib -lncarg -lncarg_gks -lncarg_c \
 	-Wl,-rpath -Wl,$(HDF5_HOME)/lib \
 	-L$(ZLIB_HOME) -lz \
+	-L$(GSLHOME)/lib -lgsl \
 	-L/usr/X11R6/lib64 -lX11
 
 ifeq ($(USESCOREC), 1)

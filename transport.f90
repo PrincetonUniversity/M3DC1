@@ -406,12 +406,6 @@ vectype function kappa_func(i)
   integer :: magnetic_region
   vectype, dimension(MAX_PTS,OP_NUM) :: psi
 
-
-  if(numvar.lt.3) then
-     kappa_func = 0.
-     return
-  endif
-
   temp = 0.
 
   select case (ikappafunc)

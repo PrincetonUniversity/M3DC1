@@ -58,6 +58,15 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      return
   endif
 
+  ! Regularization term
+  ! ~~~~~~~~~~~~~~~~~~~
+  if(inonormalflow.eq.0 .and. (.not.surface_int)) then
+     temp = -regular*int2(trial(:,OP_1),lin(:,OP_1))
+     ssterm(u_g) = ssterm(u_g) + temp
+     ddterm(u_g) = ddterm(u_g) + temp*bdf
+  end if
+
+
   ! Time Derivative
   ! ~~~~~~~~~~~~~~~
   if(itime_independent.eq.0) then
@@ -709,6 +718,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
              + v2chibb    (trial,lin,bzt79,bzt79)
         ssterm(chi_g) = ssterm(chi_g) - thimp*thimp*dt*dt*temp
         ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
+
         ! two-fluid contribution
         if(dbf .gt. 0 .and. itwofluid.gt.1) then
            temp = v2hchipsi(trial,lin,pst79) & 
@@ -717,7 +727,6 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
            ssterm(chi_g) = ssterm(chi_g) + dbf*thimp*dt*temp
            ddterm(chi_g) = ddterm(chi_g) + dbf*thimp*dt*temp
         endif
-
      end if
 
   ! Unsplit time-step
@@ -847,7 +856,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   ! Gyroviscosity
   ! ~~~~~~~~~~~~~
-  if(gyro.eq.1) then
+  if(gyro.eq.1 .and. dbf.ne.0.) then
      temp = g2u(trial,lin)*dbf
      ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
      ddterm(u_g) = ddterm(u_g) + (1.-thimp*bdf)*dt*temp
@@ -1514,6 +1523,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e, &
      end if
   endif
 
+  ! Zone 3: eta J = 0.
   if(izone.eq.3) return
 
   ! Time Derivatives
@@ -1525,6 +1535,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e, &
      ddterm(psi_g) = ddterm(psi_g) + temp*bdf
   end if
 
+  ! Zone 2: E = eta J
   if(izone.ne.1) return
 
   ! VxB
@@ -3787,7 +3798,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
      endif
 
      if(isurface.eq.0) cycle
-     if(.not.(ifixedb.eq.1 .and. ivform.eq.1)) cycle
+     if(.not.(nonrect.eq.1 .and. ivform.eq.1)) cycle
 
      ! add surface terms
      call boundary_edge(itri, is_edge, n, idim)
@@ -4171,11 +4182,9 @@ subroutine ludefphi_n(itri)
                       r_e(i,j),q_e(i,j),izone)
               end if
            else if(ieq(k).eq.bz_i) then
-              if(.not.surface_int) then
-                 call axial_field_lin(mu79(:,:,i),nu79(:,:,j), &
-                      ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
-                      izone)
-              endif
+              call axial_field_lin(mu79(:,:,i),nu79(:,:,j), &
+                   ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
+                   izone)
 
            else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
               call pressure_lin(mu79(:,:,i),nu79(:,:,j), &
@@ -4599,7 +4608,7 @@ subroutine ludefden_n(itri)
         endif
 
         if(eqsubtract.eq.1) then
-           temp = n1nu  (mu79(:,:,i),n079,nu79(:,:,j))
+           temp = n1nu(mu79(:,:,i),n079,nu79(:,:,j))
            rrterm(i,j,1) = rrterm(i,j,1) +     thimpb     *dt*temp
            qqterm(i,j,1) = qqterm(i,j,1) + (1.-thimpb*bdf)*dt*temp
         endif
