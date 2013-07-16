@@ -40,6 +40,7 @@ SUPERLU_DIST_HOME = /p/tsc/m3dc1/lib/SCORECLib/superlu_dist
 INCLUDE = -I$(MPIHOME)/include \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(SUPERLU_DIST_HOME)/include \
 	-I$(HDF5_HOME)/include -I$(HDF5_HOME)/lib \
+	-I$(GSLHOME)/include \
 	-I$(HYBRID_HOME)/include
 
 
@@ -68,6 +69,7 @@ LIBS = 	$(PETSC_LIBS) \
 	-L$(NCARG_ROOT)/lib -lncarg -lncarg_gks -lncarg_c \
 	-Wl,-rpath -Wl,$(HDF5_HOME)/lib \
 	-L$(ZLIB_HOME) -lz \
+	-L$(GSLHOME)/lib -lgsl \
 	-L/usr/X11R6/lib -lX11
 
 ifeq ($(USESCOREC), 1)
