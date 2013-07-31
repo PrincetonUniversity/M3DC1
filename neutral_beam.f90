@@ -10,6 +10,7 @@ module neutral_beam
   real :: beam_rate ! amplitude of beam density source
   real :: beam_dr   ! spatial dispersion of beam source
   real :: beam_dv   ! voltage dispersion of beam source (in volts)
+  real :: beam_fracpar ! fraction of beam that is parallel to grad phi  [0 --> 1]
   real, parameter :: beam_zeff = 1
 
   real :: nb_r, nb_z, nb_v, nb_dr, nb_dz, nb_dv, nb_n

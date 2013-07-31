@@ -526,6 +526,8 @@ subroutine set_defaults
        "Dispersion of beam deposition", source_grp)
   call add_var_double("beam_dv", beam_dv, 100., &
        "Dispersion of beam voltage (in volts)", source_grp)
+  call add_var_double("beam_fracpar", beam_fracpar, 1.0, &
+       "Cosine of beam angle relative to parallel", source_grp)
 
   ! poloidal momentum source
   call add_var_int("ipforce", ipforce, 0, &
