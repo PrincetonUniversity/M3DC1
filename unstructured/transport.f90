@@ -106,7 +106,7 @@ vectype function force_func(i)
   ! Beam source
   if(ibeam.eq.1) then
      temp79a = neutral_beam_deposition(x_79,z_79)
-     temp = temp + nb_v*int2(mu79(:,OP_1,i),temp79a)
+     temp = temp + nb_v*beam_fracpar*int2(mu79(:,OP_1,i),temp79a)
      if(ivform.eq.0) then
         temp = temp - int4(ri_79,mu79(:,OP_1,i),temp79a,vzt79(:,OP_1))
      else
