@@ -41,7 +41,7 @@ else
 #  OPTS := $(OPTS) -DPetscDEV
 endif   # on USESCOREC
 
-OPTS := $(OPTS) -DPetscDEV -DUSEADIOS -DKSPITS #-DUSEHYBRID -DCJ_MATRIX_DUMP
+OPTS := $(OPTS) -DPetscDEV -DUSEADIOS -DKSPITS -DNO_STOP_MESSAGE=1 #-DUSEHYBRID -DCJ_MATRIX_DUMP
 #PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev-SUPERLU-HYPRE-MUMPS/petsc-dev-060711/petsc-dev
 #PETSC_ARCH = arch-cray-xt6-pkgs-opt
 #SUPERLU_DIST = -lsuperlu_dist_2.5
@@ -53,7 +53,7 @@ OPTS := $(OPTS) -DPetscDEV -DUSEADIOS -DKSPITS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 ADIOS_DIR=/global/homes/p/pnorbert/adios/1.3.1/hopper/pgi/
 ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf -L/global/homes/p/pnorbert/mxml/mxml.hopper/lib -lm -lmxml -llustreapi -pgcpplibs
 
-INCLUDE := $(INCLUDE) $(HDF5_INCLUDE_OPTS) $(FFTW_INCLUDE_OPTS) \
+INCLUDE := $(INCLUDE) -I$(HDF5_INCLUDE_OPTS) $(FFTW_INCLUDE_OPTS) \
 	-I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
         -I$(HYBRID_HOME)/include -I$(GSL_DIR)/include
 

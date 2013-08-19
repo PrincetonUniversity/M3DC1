@@ -417,14 +417,14 @@ subroutine calculate_external_fields()
      if(iread_ext_field.ne.0) then
 #if defined(USECOMPLEX)
         call get_external_field_ft(x_79, z_79, fr, fphi, fz, npoints)
-        temp79a = temp79a + (1e4/b0_norm)*fr
-        temp79b = temp79b + (1e4/b0_norm)*fphi
-        temp79c = temp79c + (1e4/b0_norm)*fz
+        temp79a = temp79a + (1e4/b0_norm)*fr  *scale_ext_field
+        temp79b = temp79b + (1e4/b0_norm)*fphi*scale_ext_field
+        temp79c = temp79c + (1e4/b0_norm)*fz  *scale_ext_field
 #elif defined(USE3D)
         call get_external_field(x_79, phi_79, z_79, gr, gphi, gz, npoints)
-        temp79a = temp79a + (1e4/b0_norm)*gr
-        temp79b = temp79b + (1e4/b0_norm)*gphi
-        temp79c = temp79c + (1e4/b0_norm)*gz
+        temp79a = temp79a + (1e4/b0_norm)*gr  *scale_ext_field
+        temp79b = temp79b + (1e4/b0_norm)*gphi*scale_ext_field
+        temp79c = temp79c + (1e4/b0_norm)*gz  *scale_ext_field
 #endif
      end if
 
@@ -468,33 +468,34 @@ subroutine calculate_external_fields()
      use_external_fields = .true.
   end if
 
-
   ! solve bz
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving bz..."
-  call newsolve(mass_mat_lhs%mat,bz_vec,ier)
-  if(extsubtract.eq.1) then
-     bz_ext = bz_f     
-  else
-     bz_field(1) = bz_f
-  end if
+  if(numvar.ge.2) then
+     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving bz..."
+     call newsolve(mass_mat_lhs%mat,bz_vec,ier)
+     if(extsubtract.eq.1) then
+        bz_ext = bz_f     
+     else
+        bz_field(1) = bz_f
+     end if
 
 #if defined(USECOMPLEX) || defined(USE3D)
-  ! calculate f and add Grad_perp(f') to RHS
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving f..."
-  if(extsubtract.eq.1) then
-     bf_ext = 0.
-     call solve_newvar1(bf_mat_lhs,bf_ext,mass_mat_rhs_bf, &
-          bz_ext, bf_ext)
-     call matvecmult(bf_mat, bf_ext, bz_vec)
-  else
-     bf_field(1) = 0.
-     call solve_newvar1(bf_mat_lhs,bf_field(1),mass_mat_rhs_bf, &
-          bz_field(1), bf_field(1))
-     call matvecmult(bf_mat, bf_field(1), bz_vec)
-  end if
+     ! calculate f and add Grad_perp(f') to RHS
+     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving f..."
+     if(extsubtract.eq.1) then
+        bf_ext = 0.
+        call solve_newvar1(bf_mat_lhs,bf_ext,mass_mat_rhs_bf, &
+             bz_ext, bf_ext)
+        call matvecmult(bf_mat, bf_ext, bz_vec)
+     else
+        bf_field(1) = 0.
+        call solve_newvar1(bf_mat_lhs,bf_field(1),mass_mat_rhs_bf, &
+             bz_field(1), bf_field(1))
+        call matvecmult(bf_mat, bf_field(1), bz_vec)
+     end if
 
-  call add(psi_vec,bz_vec)
+     call add(psi_vec,bz_vec)
 #endif
+  end if
 
   ! solve -Del*(psi)/R^2 = Curl(B).Grad(phi)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving psi..."

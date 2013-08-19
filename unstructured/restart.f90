@@ -60,6 +60,7 @@ subroutine wrrestart
   enddo
   write(56) pellet_x, pellet_phi, pellet_z, &
        pellet_velx, pellet_velphi, pellet_velz, pellet_var
+  write(56) version
 
   close(56)
 
@@ -85,6 +86,7 @@ subroutine rdrestart
   integer :: imaxrank, numelms, ieqsubtract, ilinear, icomp
   character (len=30) :: fname, oldfname
   integer :: ndofs
+  integer :: iversion
 
   call createfilename(fname, oldfname)
   call numdofs(num_fields, ndofs)
@@ -161,6 +163,8 @@ subroutine rdrestart
 
   read(56, END=1199) pellet_x, pellet_phi, pellet_z, &
        pellet_velx, pellet_velphi, pellet_velz, pellet_var
+
+  read(56, END=1199) iversion
 
   goto 1200
 1199 if(myrank.eq.0) &
@@ -428,6 +432,7 @@ subroutine wrrestart_adios
   use arrays
   use diagnostics
   use time_step
+  use pellet
 
   implicit none
 
@@ -558,6 +563,7 @@ subroutine rdrestart_adios
   integer*8, dimension(2)      :: dims                   ! adios_inq_var()
   integer                      :: elemsize               ! double complex or double
   integer :: iuseext
+  integer :: iversion
 
 
   fname="restart.bp"
@@ -652,6 +658,7 @@ subroutine rdrestart_adios
     call adios_read_local_var (gh, "pellet_velphi",    myrank, start, readsize, pellet_velphi, read_bytes)
     call adios_read_local_var (gh, "pellet_velz",    myrank, start, readsize, pellet_velz, read_bytes)
     call adios_read_local_var (gh, "pellet_var",    myrank, start, readsize, pellet_var, read_bytes)
+    call adios_read_local_var (gh, "version",    myrank, start, readsize, iversion, read_bytes)
 
   if(inumnodes .ne. numnodes .or. inumelms .ne. numelms .or. &
      numvar .ne. inumvar .or. &

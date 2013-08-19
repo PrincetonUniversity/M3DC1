@@ -338,6 +338,8 @@ subroutine set_defaults
        "1: Read external field", eq_grp)
   call add_var_int("isample_ext_field", isample_ext_field, 1, &
        "Factor to down-sample external field data", eq_grp)
+  call add_var_double("scale_ext_field", scale_ext_field, 1., &
+       "Factor to scale external field", eq_grp)
   call add_var_double("beta", beta, 0., "", eq_grp)
   call add_var_double("ln", ln, 0., "", eq_grp)
 
