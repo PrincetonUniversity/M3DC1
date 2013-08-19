@@ -1456,7 +1456,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        if(ilin eq 1) then time=-1
        if(isubeq eq 1) then linear = 0
    end
-   
 
    realtime = get_slice_time(filename=filename, slice=time)
 
@@ -3732,8 +3731,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        (strcmp('qpar', name, /fold_case) eq 1)) then begin
 
        p = read_field('p', x, y, t, slices=time, mesh=mesh, linear=linear, $
-                        filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange, phi=phi0)
+                      filename=filename, points=pts, complex=complex, $
+                      rrange=xrange, zrange=yrange, phi=phi0)
        den = read_field('den', x, y, t, slices=time, mesh=mesh, linear=linear,$
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange, phi=phi0)
@@ -3757,53 +3756,54 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        r = radius_matrix(x,y,t)
 
        if(keyword_set(linear)) then begin
-           p0 = read_field('p', x, y, t, slice=-1, mesh=mesh, $
-                           filename=filename, points=pts, $
-                           rrange=xrange, zrange=yrange, phi=phi0)
-           den0 = read_field('den', x, y, t, slice=-1, mesh=mesh,  $
-                             filename=filename, points=pts, $
-                             rrange=xrange, zrange=yrange, phi=phi0)
-           psi0 = read_field('psi', x, y, t, slices=-1, mesh=mesh, phi=phi0, $
-                             filename=filename, points=pts, $
-                             rrange=xrange, zrange=yrange)
-           i0 = read_field('i', x, y, t, slices=-1, mesh=mesh, phi=phi0, $
-                           filename=filename, points=pts, $
-                           rrange=xrange, zrange=yrange)
-
-           p = p + p0
-           den = den + den0
-           psi = psi + psi0
-           i = i + i0
-
-           te0 = p0 / den0
-           b20 = s_bracket(psi0,psi0,x,y)/r^2 + i0^2/r^2
-           bdotgradte0 = a_bracket(te0, psi0, x, y)/r
+          p0 = read_field('p', x, y, t, slice=-1, mesh=mesh, $
+                          filename=filename, points=pts, $
+                          rrange=xrange, zrange=yrange, phi=phi0)
+          den0 = read_field('den', x, y, t, slice=-1, mesh=mesh,  $
+                            filename=filename, points=pts, $
+                            rrange=xrange, zrange=yrange, phi=phi0)
+          psi0 = read_field('psi', x, y, t, slices=-1, mesh=mesh, phi=phi0, $
+                            filename=filename, points=pts, $
+                            rrange=xrange, zrange=yrange)
+          i0 = read_field('i', x, y, t, slices=-1, mesh=mesh, phi=phi0, $
+                          filename=filename, points=pts, $
+                          rrange=xrange, zrange=yrange)
+          
+          p = p + p0
+          den = den + den0
+          psi = psi + psi0
+          i = i + i0
+          
+          te0 = p0 / den0
+          b20 = s_bracket(psi0,psi0,x,y)/r^2 + i0^2/r^2
+          bdotgradte0 = a_bracket(te0, psi0, x, y)/r
        end
-
+       
        te = p / den
        tep = p_p / den - p*den_p / den^2
        b2 = s_bracket(psi,psi,x,y)/r^2 + i^2/r^2 + 2.*a_bracket(psi,f_p,x,y)/r
-       bdotgradte = a_bracket(te, psi, x, y)/r + i*tep/r^2 - s_bracket(f_p, te, x, y)
+       bdotgradte = a_bracket(te, psi, x, y)/r $
+                    + i*tep/r^2 - s_bracket(f_p, te, x, y)
 
        br = -dz(psi,y)/r - dx(f_p,x)
        bbter = br*bdotgradte/b2
        bz =  dx(psi,x)/r - dz(f_p,y)
        bbtez = bz*bdotgradte/b2
        if(keyword_set(linear)) then begin
-           br0 = -dz(psi0,y)/r
-           bz0 =  dx(psi0,x)/r
-           bbter = bbter - br0*bdotgradte0/b20
-           bbtez = bbtez - bz0*bdotgradte0/b20
+          br0 = -dz(psi0,y)/r
+          bz0 =  dx(psi0,x)/r
+          bbter = bbter - br0*bdotgradte0/b20
+          bbtez = bbtez - bz0*bdotgradte0/b20
        endif
-
+       
        if(keyword_set(rvector)) then begin
-           data = -kappar*bbter
-           symbol = '!6q!D!9#!N.G!8R!X'
+          data = -kappar*bbter
+          symbol = '!6q!D!9#!N.G!8R!X'
        endif else if(keyword_set(zvector)) then begin
-           data = -kappar*bbtez
-           symbol = '!6q!D!9#!N.G!8Z!X'
+          data = -kappar*bbtez
+          symbol = '!6q!D!9#!N.G!8Z!X'
        endif else begin
-           data = -kappar*sqrt(abs(bbtez)^2 + abs(bbter)^2)
+          data = kappar*sqrt(abs(bbtez)^2 + abs(bbter)^2)
           symbol = '!3|!6q!D!9#!N!3|!X'
        endelse
        
@@ -4474,19 +4474,34 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    return, data
 end
 
-function read_field_3d, name, phi, x, z, t, points=points, _EXTRA=extra
-   field = fltarr(points, points, points)
+function read_field_3d, name, phi, x, z, t, points=points, tpoints=tpoints, ntor=ntor, _EXTRA=extra
 
-   phi = fltarr(points)
+  if(n_elements(points) eq 0) then points=200
+  if(n_elements(tpoints) eq 0) then tpoints=12
 
-   for i=0, points-1 do begin
-       phi[i] = 2.*!pi*i/points
-       print, phi[i]
-       field[i,*,*] = reform(read_field(name,x,z,t,phi=phi[i],points=points,$
-                                        _EXTRA=extra))
-   end
+  field = fltarr(tpoints, points, points)
 
-   return, field
+  phi = fltarr(tpoints)
+
+  for i=0, tpoints-1 do begin
+     phi[i] = 360.*i/tpoints
+     field[i,*,*] = reform(read_field(name,x,z,t,phi=phi[i],points=points,$
+                                      _EXTRA=extra))
+  end
+
+  if(n_elements(ntor) eq 0) then begin
+     return, field
+  endif else begin
+     fftfield = complexarr(tpoints,points,points)
+     for i=0, points-1 do begin
+        for j=0, points-1 do begin
+           fftfield[*,i,j] = fft(field[*,i,j])
+        end
+     end
+     lastfield = complexarr(1,points,points)
+     lastfield = fftfield[ntor, *, *]
+     return, lastfield
+  end
 end
 
 
@@ -6280,7 +6295,8 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
 
        print, 'DBG: flux average reading field'
        psi = read_field('psi', x, z, t, points=points, $
-                        mask=mask, /equilibrium, _EXTRA=extra)
+                        mask=mask, /equilibrium, _EXTRA=extra, $
+                       linear=0)
 
        sz = size(psi)
        if(n_elements(psi) le 1) then return, 0

@@ -2,6 +2,7 @@
 <adios-config host-language="Fortran">
 
    <adios-group name="restart" coordination-communicator="comm">
+       <var name="version" type="integer"/>
        <var name="numnodes" gread="inumnodes" type="integer"/>
        <var name="numelms" gread="inumelms" type="integer"/>
        <var name="mmnn18" gread="immnn18" type="integer"/>

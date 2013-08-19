@@ -7,10 +7,12 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    print, 'Drawing schaffer plot'
 
    if(n_elements(psi0) eq 0) then begin
-       psi0 = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra)
+;       psi0 = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra)
+       psi0 = read_field('psi',x,z,t,slice=-1,_EXTRA=extra)
    endif
    if(n_elements(i0) eq 0) then begin
-       i0   = read_field('i'  ,x,z,t,/equilibrium,_EXTRA=extra)
+;       i0   = read_field('i'  ,x,z,t,/equilibrium,_EXTRA=extra)
+       i0   = read_field('i'  ,x,z,t,slice=-1,_EXTRA=extra)
    endif
    if(n_elements(ntor) eq 0) then begin
        ntor = read_parameter('ntor',_EXTRA=extra)
@@ -275,15 +277,30 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
    print, 'ntor = ', ntor
    if(n_elements(slice) eq 0) then last=1
 
-   psi0 = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra)
-   psi0_r = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra,op=2)
-   psi0_z = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra,op=3)
-   i0   = read_field('i'  ,x,z,t,/equilibrium,_EXTRA=extra)
+;   psi0 = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra)
+;   psi0_r = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra,op=2)
+;   psi0_z = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra,op=3)
+;   i0   = read_field('i'  ,x,z,t,/equilibrium,_EXTRA=extra)
 
-   bx = read_field('bx',x,z,t,last=last,slice=slice, $
-                   /linear,_EXTRA=extra,/complex)
-   by = read_field('by',x,z,t,last=last,slice=slice, $
-                   /linear,_EXTRA=extra,/complex)
+   threed = read_parameter('3d', _EXTRA=extra)
+   print, '3D = ', threed
+
+   psi0 = read_field('psi',x,z,t,slice=-1,_EXTRA=extra)
+   psi0_r = read_field('psi',x,z,t,slice=-1,_EXTRA=extra,op=2)
+   psi0_z = read_field('psi',x,z,t,slice=-1,_EXTRA=extra,op=3)
+   i0   = read_field('i'  ,x,z,t,slice=-1,_EXTRA=extra)
+
+   if(threed eq 1) then begin
+      bx = read_field_3d('bx',phi,x,z,t,last=last,slice=slice, $
+                      /linear,_EXTRA=extra, ntor=ntor)
+      by = read_field_3d('by',phi,x,z,t,last=last,slice=slice, $
+                      /linear,_EXTRA=extra, ntor=ntor)
+   endif else begin
+      bx = read_field('bx',x,z,t,last=last,slice=slice, $
+                      /linear,_EXTRA=extra,/complex)
+      by = read_field('by',x,z,t,last=last,slice=slice, $
+                      /linear,_EXTRA=extra,/complex)
+   endelse
 
    if(keyword_set(subtract_vacuum)) then begin
        if(extsubtract eq 0) then begin
