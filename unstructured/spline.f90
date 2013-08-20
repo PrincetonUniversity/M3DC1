@@ -44,7 +44,7 @@ contains
        s%x = x
        s%y = y
     else
-       print *, 'REVERSING'
+       print *, 'REVERSING', x(1), x(n)
        s%x = x(n:1:-1)
        s%y = y(n:1:-1)
     end if

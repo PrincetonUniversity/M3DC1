@@ -1,22 +1,25 @@
 module read_schaffer_field
   implicit none
 
-  integer, private :: nr, nz, nphi
+  type schaffer_field
+     integer :: nr, nz, nphi
 
-  real, private, allocatable :: br(:,:,:), bphi(:,:,:), bz(:,:,:)
-  real, private, allocatable :: r(:), phi(:), z(:)
-  complex, private, allocatable :: br_ft(:,:), bphi_ft(:,:), bz_ft(:,:)
+     real, allocatable :: br(:,:,:), bphi(:,:,:), bz(:,:,:)
+     real, allocatable :: r(:), phi(:), z(:)
+     complex, allocatable :: br_ft(:,:), bphi_ft(:,:), bz_ft(:,:)
 
-  logical, private :: initialized = .false.
+     logical :: initialized = .false.
+  end type schaffer_field
 
 contains
 
-  subroutine load_schaffer_field(filename, isamp, ierr)
+  subroutine load_schaffer_field(sf, filename, isamp, ierr)
     use math
     implicit none
 
     include 'mpif.h'
 
+    type(schaffer_field), intent(inout) :: sf
     character(len=*), intent(in) :: filename
     integer, intent(in) :: isamp
     integer, intent(out) :: ierr
@@ -51,9 +54,9 @@ contains
        print *, 'last line = ', dummy
 
        ! determine number of R's, Z's, and Phi's
-       nz = 1
-       nr = 1
-       nphi = 1
+       sf%nz = 1
+       sf%nr = 1
+       sf%nphi = 1
        read(ifile,'(3F20.11)') phi0, r0, z0 
        print *, 'phi0, r0, z0: ', phi0, r0, z0
        do
@@ -66,26 +69,27 @@ contains
           ! if phi has changed, we have another plane
           if(phi1 .ne. phi0) then
              phi0 = phi1
-             nphi = nphi + 1
-             nz = 1
-             nr = 1
+             sf%nphi = sf%nphi + 1
+             sf%nz = 1
+             sf%nr = 1
           end if
           
           ! if z has changed, we have another row
           if(z1 .ne. z0) then
              z0 = z1
-             nz = nz + 1
-             nr = 1
+             sf%nz = sf%nz + 1
+             sf%nr = 1
           end if
-          nr = nr + 1
+          sf%nr = sf%nr + 1
        end do
 
 100    continue
-       nr = nr-1
-       nz = nz-1
+       sf%nr = sf%nr-1
+       sf%nz = sf%nz-1
 
        write(*, '(A,3I5)') &
-            'Reading external fields with nr, nz, nphi =', nr, nz, nphi
+            'Reading external fields with nr, nz, nphi =', &
+            sf%nr, sf%nz, sf%nphi
     end if
 
     goto 300
@@ -98,20 +102,21 @@ contains
     call MPI_Bcast(ierr,1,MPI_INTEGER,0,MPI_COMM_WORLD,ier)
     if(ierr.ne.0) return
 
-    nphi = nphi / isamp
+    sf%nphi = sf%nphi / isamp
        
     ! Send size data to all processors
-    call MPI_Bcast(nr,  1,MPI_INTEGER,0,MPI_COMM_WORLD,ier)
-    call MPI_Bcast(nz,  1,MPI_INTEGER,0,MPI_COMM_WORLD,ier)
-    call MPI_Bcast(nphi,1,MPI_INTEGER,0,MPI_COMM_WORLD,ier)
+    call MPI_Bcast(sf%nr,  1,MPI_INTEGER,0,MPI_COMM_WORLD,ier)
+    call MPI_Bcast(sf%nz,  1,MPI_INTEGER,0,MPI_COMM_WORLD,ier)
+    call MPI_Bcast(sf%nphi,1,MPI_INTEGER,0,MPI_COMM_WORLD,ier)
 
     ! Allocate space for data
-    if(.not. initialized) then
-       allocate(r(nr),phi(nphi),z(nz))
-       allocate(br(nphi,nr,nz),bphi(nphi,nr,nz),bz(nphi,nr,nz))
-       br = 0.
-       bphi = 0.
-       bz = 0.
+    if(.not. sf%initialized) then
+       allocate(sf%r(sf%nr),sf%phi(sf%nphi),sf%z(sf%nz))
+       allocate(sf%br(sf%nphi,sf%nr,sf%nz), &
+            sf%bphi(sf%nphi,sf%nr,sf%nz),sf%bz(sf%nphi,sf%nr,sf%nz))
+       sf%br = 0.
+       sf%bphi = 0.
+       sf%bz = 0.
     endif
 
     ! Now read in the data
@@ -131,9 +136,9 @@ contains
        end do
        print *, 'last line = ', dummy
 
-       do k=1, nphi*isamp
-          do j=1, nz
-             do i=1, nr
+       do k=1, sf%nphi*isamp
+          do j=1, sf%nz
+             do i=1, sf%nr
                 ! read line
 999             read(ifile,'(6F20.11)',err=1000,end=1000) &
                      phi1, r1, z1, bphi1, br1, bz1
@@ -145,17 +150,17 @@ contains
                    l = (k-1)/isamp + 1
 
                    ! put data in arrays
-                   br(l,i,j) = br(l,i,j) + br1
-                   bphi(l,i,j) = bphi(l,i,j) + bphi1
-                   bz(l,i,j) = bz(l,i,j) + bz1
-                   r(i) = r1
+                   sf%br(l,i,j) = sf%br(l,i,j) + br1
+                   sf%bphi(l,i,j) = sf%bphi(l,i,j) + bphi1
+                   sf%bz(l,i,j) = sf%bz(l,i,j) + bz1
+                   sf%r(i) = r1
                 end if
              end do
-             z(j) = z1
+             sf%z(j) = z1
           end do
           if(mod(k-1,isamp).eq.0) then 
              l = (k-1)/isamp + 1
-             phi(l) = phi1*pi/180.
+             sf%phi(l) = phi1*pi/180.
           end if
        end do
 
@@ -176,73 +181,80 @@ contains
     if(ierr.ne.0) return
 
     ! Send data to all processes
-    call MPI_Bcast(r,   nr,   MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
-    call MPI_Bcast(z,   nz,   MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
-    call MPI_Bcast(phi, nphi, MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
-    call MPI_Bcast(br,   nr*nz*nphi, MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
-    call MPI_Bcast(bz,   nr*nz*nphi, MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
-    call MPI_Bcast(bphi, nr*nz*nphi, MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
+    call MPI_Bcast(sf%r,   sf%nr,   MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
+    call MPI_Bcast(sf%z,   sf%nz,   MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
+    call MPI_Bcast(sf%phi, sf%nphi, MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
+    call MPI_Bcast(sf%br,   sf%nr*sf%nz*sf%nphi, &
+         MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
+    call MPI_Bcast(sf%bz,   sf%nr*sf%nz*sf%nphi, &
+         MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
+    call MPI_Bcast(sf%bphi, sf%nr*sf%nz*sf%nphi, &
+         MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
 
-    initialized = .true.
+    sf%initialized = .true.
     if(rank.eq.0) print *, 'Done reading fields.'
   end subroutine load_schaffer_field
 
 
 
-  subroutine unload_schaffer_field
+  subroutine unload_schaffer_field(sf)
     implicit none
 
-    deallocate(br,bz,bphi,r,phi,z)
-    if(allocated(br_ft)) deallocate(br_ft)
-    if(allocated(bz_ft)) deallocate(bz_ft)
-    if(allocated(bphi_ft)) deallocate(bphi_ft)
+    type(schaffer_field) :: sf
 
-    initialized = .false.
+    deallocate(sf%br,sf%bz,sf%bphi,sf%r,sf%phi,sf%z)
+    if(allocated(sf%br_ft)) deallocate(sf%br_ft)
+    if(allocated(sf%bz_ft)) deallocate(sf%bz_ft)
+    if(allocated(sf%bphi_ft)) deallocate(sf%bphi_ft)
+
+    sf%initialized = .false.
   end subroutine unload_schaffer_field
 
 
-  subroutine calculate_external_field_ft(ntor)
+  subroutine calculate_external_field_ft(sf, ntor)
     implicit none
 
+    type(schaffer_field) :: sf
     integer, intent(in) :: ntor
 
     integer :: i, j
-    real, dimension(nphi) :: in
-    complex, dimension(nphi/2+1) :: out
+    real, dimension(sf%nphi) :: in
+    complex, dimension(sf%nphi/2+1) :: out
 
-    if(ntor .ge. nphi/2+1) then
+    if(ntor .ge. sf%nphi/2+1) then
        print *, 'Not enough toroidal data for ntor = ', ntor
        return
     end if
 
-    allocate(br_ft(nr,nz))
-    allocate(bz_ft(nr,nz))
-    allocate(bphi_ft(nr,nz))
+    allocate(sf%br_ft(sf%nr,sf%nz))
+    allocate(sf%bz_ft(sf%nr,sf%nz))
+    allocate(sf%bphi_ft(sf%nr,sf%nz))
 
-    do i=1, nr
-       do j=1, nz
-          in = br(:,i,j)
-          call fftw(in, out, nphi)
-          br_ft(i,j) = out(abs(ntor)+1)/nphi
-          in = bz(:,i,j)
-          call fftw(in, out, nphi)
-          bz_ft(i,j) = out(abs(ntor)+1)/nphi
-          in = bphi(:,i,j)
-          call fftw(in, out, nphi)
-          bphi_ft(i,j) = out(abs(ntor)+1)/nphi
+    do i=1, sf%nr
+       do j=1, sf%nz
+          in = sf%br(:,i,j)
+          call fftw(in, out, sf%nphi)
+          sf%br_ft(i,j) = out(abs(ntor)+1)/sf%nphi
+          in = sf%bz(:,i,j)
+          call fftw(in, out, sf%nphi)
+          sf%bz_ft(i,j) = out(abs(ntor)+1)/sf%nphi
+          in = sf%bphi(:,i,j)
+          call fftw(in, out, sf%nphi)
+          sf%bphi_ft(i,j) = out(abs(ntor)+1)/sf%nphi
        end do
     end do
 
     if(ntor .lt. 0) then
-       br_ft = conjg(br_ft)
-       bz_ft = conjg(bz_ft)
-       bphi_ft = conjg(bphi_ft)
+       sf%br_ft = conjg(sf%br_ft)
+       sf%bz_ft = conjg(sf%bz_ft)
+       sf%bphi_ft = conjg(sf%bphi_ft)
     end if
   end subroutine calculate_external_field_ft
 
-  subroutine get_external_field_ft(r1, z1, br_out, bphi_out, bz_out, npts)
+  subroutine get_external_field_ft(sf, r1, z1, br_out, bphi_out, bz_out, npts)
     implicit none
 
+    type(schaffer_field), intent(in) :: sf
     integer, intent(in) :: npts
     real, intent(in), dimension(npts) :: r1, z1
     complex, intent(out), dimension(npts) :: br_out, bphi_out, bz_out
@@ -251,19 +263,19 @@ contains
     real :: ai, aj, di, dj, didr, djdz
     complex, dimension(4,4) :: a
 
-    didr = (nr-1)/(r(nr) - r(1))
-    djdz = (nz-1)/(z(nz) - z(1))
+    didr = (sf%nr-1)/(sf%r(sf%nr) - sf%r(1))
+    djdz = (sf%nz-1)/(sf%z(sf%nz) - sf%z(1))
 
     do p=1,npts
-       ai = (nr-1)*(r1(p) - r(1))/(r(nr) - r(1)) + 1
-       aj = (nz-1)*(z1(p) - z(1))/(z(nz) - z(1)) + 1
+       ai = (sf%nr-1)*(r1(p) - sf%r(1))/(sf%r(sf%nr) - sf%r(1)) + 1
+       aj = (sf%nz-1)*(z1(p) - sf%z(1))/(sf%z(sf%nz) - sf%z(1)) + 1
        i0 = ai
        j0 = aj
 
        di = ai - i0
        dj = aj - j0
 
-       call bicubic_interpolation_coeffs_complex(br_ft,nr,nz,i0,j0,a)
+       call bicubic_interpolation_coeffs_complex(sf%br_ft,sf%nr,sf%nz,i0,j0,a)
 
        
        br_out(p) = (a(1,1) + a(1,2)*dj + a(1,3)*dj**2 + a(1,4)*dj**3)       &
@@ -271,14 +283,14 @@ contains
             +      (a(3,1) + a(3,2)*dj + a(3,3)*dj**2 + a(3,4)*dj**3)*di**2 &
             +      (a(4,1) + a(4,2)*dj + a(4,3)*dj**2 + a(4,4)*dj**3)*di**3
 
-       call bicubic_interpolation_coeffs_complex(bz_ft,nr,nz,i0,j0,a)
+       call bicubic_interpolation_coeffs_complex(sf%bz_ft,sf%nr,sf%nz,i0,j0,a)
        
        bz_out(p) = (a(1,1) + a(1,2)*dj + a(1,3)*dj**2 + a(1,4)*dj**3)       &
             +      (a(2,1) + a(2,2)*dj + a(2,3)*dj**2 + a(2,4)*dj**3)*di    &
             +      (a(3,1) + a(3,2)*dj + a(3,3)*dj**2 + a(3,4)*dj**3)*di**2 &
             +      (a(4,1) + a(4,2)*dj + a(4,3)*dj**2 + a(4,4)*dj**3)*di**3
 
-       call bicubic_interpolation_coeffs_complex(bphi_ft,nr,nz,i0,j0,a)
+       call bicubic_interpolation_coeffs_complex(sf%bphi_ft,sf%nr,sf%nz,i0,j0,a)
        
        bphi_out(p) = (a(1,1) + a(1,2)*dj + a(1,3)*dj**2 + a(1,4)*dj**3)       &
             +        (a(2,1) + a(2,2)*dj + a(2,3)*dj**2 + a(2,4)*dj**3)*di    &
@@ -287,11 +299,12 @@ contains
     end do
   end subroutine get_external_field_ft
 
-  subroutine get_external_field(r1, phi1, z1, br_out, bphi_out, bz_out, npts)
+  subroutine get_external_field(sf,r1,phi1,z1, br_out, bphi_out, bz_out, npts)
     implicit none
 
     include 'mpif.h'
 
+    type(schaffer_field), intent(in) :: sf
     integer, intent(in) :: npts
     real, intent(in), dimension(npts) :: r1, phi1, z1
     real, intent(out), dimension(npts) :: br_out, bphi_out, bz_out
@@ -304,23 +317,24 @@ contains
     logical :: out_of_bounds = .false.
 
     do k=1, npts
-       x(1) = (nr   - 1)*(r1(k) - r(1))/(r(nr) - r(1)) + 1
-       x(2) = (nphi - 1)*(phi1(k) - phi(1))/(phi(nphi) - phi(1)) + 1
-       x(3) = (nz   - 1)*(z1(k) - z(1))/(z(nz) - z(1)) + 1
+       x(1) = (sf%nr   - 1)*(r1(k) - sf%r(1))/(sf%r(sf%nr) - sf%r(1)) + 1
+       x(2) = (sf%nphi - 1)*(phi1(k) - sf%phi(1)) &
+            /(sf%phi(sf%nphi) - sf%phi(1)) + 1
+       x(3) = (sf%nz   - 1)*(z1(k) - sf%z(1))/(sf%z(sf%nz) - sf%z(1)) + 1
 
        ! choose the indicies 
        i(:) = x(:)
 
        ! if the index is out of bounds, set flag
-       if(i(1).lt.1 .or. i(1).gt.nr .or. i(3).lt.1 .or. i(3).gt.nz) then
+       if(i(1).lt.1 .or. i(1).gt.sf%nr .or. i(3).lt.1 .or. i(3).gt.sf%nz) then
           out_of_bounds = .true.
        end if
 
        ! if the index is out of bounds, extrapolate
        if(i(1).lt.2) i(1) = 2
-       if(i(1).gt.nr-2) i(1) = nr - 2
+       if(i(1).gt.sf%nr-2) i(1) = sf%nr - 2
        if(i(3).lt.2) i(3) = 2
-       if(i(3).gt.nz-2) i(3) = nz - 2
+       if(i(3).gt.sf%nz-2) i(3) = sf%nz - 2
 
        dx(:) = x(:) - i(:)
 
@@ -328,18 +342,18 @@ contains
        do l=1, 4
           do m=1, 4
              j = i(2)+m-2
-             if(j.lt.1) j = j+nphi
-             if(j.gt.nphi) j = j-nphi
+             if(j.lt.1) j = j+sf%nphi
+             if(j.gt.sf%nphi) j = j-sf%nphi
 
              do n=1, 4
-                if(j.lt.1 .or. j.gt.nphi) print *, 'Error! j=', j
-                if(i(1)+n-2.lt.1 .or. i(1)+n-2.gt.nr) &
+                if(j.lt.1 .or. j.gt.sf%nphi) print *, 'Error! j=', j
+                if(i(1)+n-2.lt.1 .or. i(1)+n-2.gt.sf%nr) &
                      print *, 'Error! i(1)=', i(1)
-                if(i(3)+l-2.lt.1 .or. i(3)+l-2.gt.nz) &
+                if(i(3)+l-2.lt.1 .or. i(3)+l-2.gt.sf%nz) &
                      print *, 'Error! i(3)=', i(3)
-                f(1,n) = br  (j,i(1)+n-2,i(3)+l-2)
-                f(2,n) = bphi(j,i(1)+n-2,i(3)+l-2)
-                f(3,n) = bz  (j,i(1)+n-2,i(3)+l-2)
+                f(1,n) = sf%br  (j,i(1)+n-2,i(3)+l-2)
+                f(2,n) = sf%bphi(j,i(1)+n-2,i(3)+l-2)
+                f(3,n) = sf%bz  (j,i(1)+n-2,i(3)+l-2)
              end do
 !             g(:,m) = (1.-dx(1))*f(:,2) + dx(1)*f(:,3)
              g(:,m) = f(:,2) &

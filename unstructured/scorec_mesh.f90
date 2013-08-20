@@ -114,11 +114,7 @@ contains
     call MPI_Comm_create(MPI_COMM_WORLD, plane_group, plane_comm, ier)
     deallocate(ranks)
 #else 
-    print *, 'loading mesh!', trim(mesh_model), " ", trim(mesh_filename)
-!    call loadmesh("struct.dmg", "struct-dmg.sms")
-!    call loadmesh("iter0.10.txt", "mesh0.015.sms")
     call loadmesh(trim(mesh_model), trim(mesh_filename))
-    print *, 'loaded mesh!'
 #endif
 
     initialized = .true.

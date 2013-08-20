@@ -9,6 +9,19 @@ subroutine add_var_double(name, var, default, desc, grp)
   call add_variable_double(name//char(0), var, default, desc//char(0), grp)
 end subroutine add_var_double
 
+subroutine add_var_double_array(name, var, size, default, desc, grp)
+  implicit none
+
+  character(len=*), intent(in) :: name, desc
+  integer, intent(in) :: size
+  real, dimension(*) :: var
+  real, intent(in) :: default
+  integer, intent(in) :: grp
+
+  call add_variable_double_array(name//char(0), var, size, default, &
+       desc//char(0), grp)
+end subroutine add_var_double_array
+
 subroutine add_var_int(name, var, default, desc, grp)
   implicit none
 
@@ -340,6 +353,8 @@ subroutine set_defaults
        "Factor to down-sample external field data", eq_grp)
   call add_var_double("scale_ext_field", scale_ext_field, 1., &
        "Factor to scale external field", eq_grp)
+  call add_var_double_array("shift_ext_field", shift_ext_field, 8, 0., &
+       "Toroidal shift (in deg) of external fields", eq_grp)
   call add_var_double("beta", beta, 0., "", eq_grp)
   call add_var_double("ln", ln, 0., "", eq_grp)
 
