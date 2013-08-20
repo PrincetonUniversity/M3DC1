@@ -147,6 +147,7 @@ module basic
   integer :: irmp     ! 1 = read rmp coil/currents from rmp_coil.dat, rmp_current.dat
   integer :: iread_ext_field
   integer :: isample_ext_field
+  integer :: isample_ext_field_pol
   real :: scale_ext_field
   real, dimension(8) :: shift_ext_field
   integer :: maxn     ! maximum frequency in random initial conditions

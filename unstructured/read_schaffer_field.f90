@@ -13,7 +13,7 @@ module read_schaffer_field
 
 contains
 
-  subroutine load_schaffer_field(sf, filename, isamp, ierr)
+  subroutine load_schaffer_field(sf, filename, isamp, isamp_pol, ierr)
     use math
     implicit none
 
@@ -21,17 +21,18 @@ contains
 
     type(schaffer_field), intent(inout) :: sf
     character(len=*), intent(in) :: filename
-    integer, intent(in) :: isamp
+    integer, intent(in) :: isamp, isamp_pol
     integer, intent(out) :: ierr
 
     integer, parameter :: header_lines = 0
     integer, parameter :: ifile = 37
-    integer :: i, j, k, l, ier
+    integer :: i, j, k, l, m, n, ier
     integer :: rank
     real :: phi1, r1, z1, br1, bz1, bphi1
     real :: phi0, r0, z0
     integer, parameter :: catch = 100
     character(len=20) :: dummy
+    integer :: file_nr, file_nz, file_nphi
 
 
     call MPI_Comm_rank(MPI_COMM_WORLD, rank, ier)
@@ -54,9 +55,9 @@ contains
        print *, 'last line = ', dummy
 
        ! determine number of R's, Z's, and Phi's
-       sf%nz = 1
-       sf%nr = 1
-       sf%nphi = 1
+       file_nz = 1
+       file_nr = 1
+       file_nphi = 1
        read(ifile,'(3F20.11)') phi0, r0, z0 
        print *, 'phi0, r0, z0: ', phi0, r0, z0
        do
@@ -69,27 +70,27 @@ contains
           ! if phi has changed, we have another plane
           if(phi1 .ne. phi0) then
              phi0 = phi1
-             sf%nphi = sf%nphi + 1
-             sf%nz = 1
-             sf%nr = 1
+             file_nphi = file_nphi + 1
+             file_nz = 1
+             file_nr = 1
           end if
           
           ! if z has changed, we have another row
           if(z1 .ne. z0) then
              z0 = z1
-             sf%nz = sf%nz + 1
-             sf%nr = 1
+             file_nz = file_nz + 1
+             file_nr = 1
           end if
-          sf%nr = sf%nr + 1
+          file_nr = file_nr + 1
        end do
 
 100    continue
-       sf%nr = sf%nr-1
-       sf%nz = sf%nz-1
+       file_nr = file_nr-1
+       file_nz = file_nz-1
 
        write(*, '(A,3I5)') &
             'Reading external fields with nr, nz, nphi =', &
-            sf%nr, sf%nz, sf%nphi
+            file_nr, file_nz, file_nphi
     end if
 
     goto 300
@@ -101,8 +102,14 @@ contains
     ! Tell all processors whether rank 0 had an error
     call MPI_Bcast(ierr,1,MPI_INTEGER,0,MPI_COMM_WORLD,ier)
     if(ierr.ne.0) return
-
-    sf%nphi = sf%nphi / isamp
+    
+    if(rank.eq.0) then 
+       sf%nphi = (file_nphi-1) / isamp + 1
+       sf%nr = (file_nr-1) / isamp_pol + 1
+       sf%nz = (file_nz-1) / isamp_pol + 1
+       write(*, '(A,3I5)') &
+            'Downsampling to ', sf%nr, sf%nz, sf%nphi
+    end if
        
     ! Send size data to all processors
     call MPI_Bcast(sf%nr,  1,MPI_INTEGER,0,MPI_COMM_WORLD,ier)
@@ -136,9 +143,9 @@ contains
        end do
        print *, 'last line = ', dummy
 
-       do k=1, sf%nphi*isamp
-          do j=1, sf%nz
-             do i=1, sf%nr
+       do k=1, file_nphi
+          do j=1, file_nz
+             do i=1, file_nr
                 ! read line
 999             read(ifile,'(6F20.11)',err=1000,end=1000) &
                      phi1, r1, z1, bphi1, br1, bz1
@@ -146,17 +153,24 @@ contains
                 ! skip empty lines
                 if(phi1.eq.0. .and. r1.eq.0. .and. z1.eq.0.) goto 999
 
-                if(mod(k-1,isamp).eq.0) then 
+                if(mod(k-1,isamp).eq.0 .and. &
+                     mod(j-1,isamp_pol).eq.0 .and. &
+                     mod(i-1,isamp_pol).eq.0) then 
                    l = (k-1)/isamp + 1
+                   m = (i-1)/isamp_pol + 1
+                   n = (j-1)/isamp_pol + 1
 
                    ! put data in arrays
-                   sf%br(l,i,j) = sf%br(l,i,j) + br1
-                   sf%bphi(l,i,j) = sf%bphi(l,i,j) + bphi1
-                   sf%bz(l,i,j) = sf%bz(l,i,j) + bz1
-                   sf%r(i) = r1
+                   sf%br(l,m,n) = sf%br(l,m,n) + br1
+                   sf%bphi(l,m,n) = sf%bphi(l,m,n) + bphi1
+                   sf%bz(l,m,n) = sf%bz(l,m,n) + bz1
+                   sf%r(m) = r1
                 end if
              end do
-             sf%z(j) = z1
+             if(mod(j-1,isamp_pol).eq.0) then 
+                n = (j-1)/isamp_pol + 1
+                sf%z(n) = z1
+             end if
           end do
           if(mod(k-1,isamp).eq.0) then 
              l = (k-1)/isamp + 1
