@@ -2279,7 +2279,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                        filename=filename, points=pts, $
                        rrange=xrange, zrange=yrange)
        data = b/sqrt(den)
-       symbol = '!8v!DA!N'
+       symbol = '!8v!DA!N!X'
        d = dimensions(/v0, _EXTRA=extra)
 
    ;===========================================
@@ -6018,6 +6018,8 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
    r = radius_matrix(x,z,t)
 
    bp = sqrt(s_bracket(psi,psi,x,z)/r^2)
+   dpsidr = dx(psi,x)
+   dpsidz = dz(psi,z)
 
    if(keyword_set(pest)) then begin
        linear = read_parameter('linear',_EXTRA=extra)
@@ -6037,7 +6039,6 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
    printed = 0
    left_handed = (flux0-psival)*mean(i0) lt 0 
    print, 'left_handed = ', left_handed
-
 
    q = fltarr(sz[1], fbins)
 
@@ -6066,15 +6067,51 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
            h = interpolate(reform(bp[k,*,*]),ix,iz)
            dV[k,p] = 2.*!pi*int_tabulated(findgen(n_elements(ds)),ds/h)
 
+           thimp = 0.
            if(keyword_set(pest)) then begin
                g = interpolate(reform(db[k,*,*]),ix,iz)
 
                ; determine position where angle changes sign
-               dum = min(a, i, /abs)
-               da = deriv(a)
-               index = i - a[i]/da[i]
+               if(p eq 0) then begin
+                   ; if this is the first point, 
+                   ; minimize the geometric angle
+                   func = a
+                   dum = min(func, i, /abs)
+               endif else begin
+                   ; otherwise, minimize the distance to the
+                   ; point normal to the last surface
+                   dp = [interpolate(reform(dpsidr[k,*,*]),ix,iz), $
+                         interpolate(reform(dpsidz[k,*,*]),ix,iz)] $
+                     / (xp*h) * (-dpsi*thimp)
+                   func = (xp-dp[0]-p1[0])^2 + (zp-dp[1]-p1[1])^2
+                   dum = min(func, i, /abs)
+                   func = deriv(func)
+               endelse
+               da = deriv(func)
                if(da[i] eq 0) then print, 'DA ERROR!'
+               index = i
+               di = func[i]/da[i]
+               if(abs(di) lt 0.5) then begin
+                   index = index - di
+               endif else begin
+                   print, 'index correction too large: ', di, func[i], da[i]
+               endelse
+                   
+               if(index lt 0 or index ge n_elements(xp)) then begin
+                   print, 'Interpolation error ', index, p
+                   index = i
+               end
 
+               p0 = [interpolate(xp,index), interpolate(zp,index)]
+               ix0 = n_elements(x)*(p0[0] - min(x))/(max(x) - min(x))
+               iz0 = n_elements(z)*(p0[1] - min(z))/(max(z) - min(z))
+
+               dp = [interpolate(reform(dpsidr[k,*,*]),ix0,iz0), $
+                     interpolate(reform(dpsidz[k,*,*]),ix0,iz0)] $
+                 / (p0[0]*interpolate(reform(bp[k,*,*]),ix0,iz0))
+               p1 = p0 + (-dpsi*(1.-thimp))*dp
+;               print, 'p0, p1', p0, p1
+                             
                ; calculate dt
                dt = ds*g
                if(dpsi lt 0) then dt = -dt
@@ -6150,7 +6187,7 @@ end
 ;==================================================================
 function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
                              area=area, volume=volume, dV=dV, psirange=range, $
-                             integrate=integrate, r0=r0, denominator=denominator, $
+                             integrate=integrate, r0=r0, surface_weight=sw, $
                              nflux=nflux, _EXTRA=extra
 
    sz = size(field)
@@ -6228,7 +6265,13 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
            if(keyword_set(integrate)) then begin
                result[k,p] = 2.*!pi*total(faf*xp*dl*(-dpsi)/bpf)
            end else begin
-               result[k,p] = total(faf*xp*dl/bpf)/total(xp*dl/bpf)
+               if(keyword_set(sw)) then begin
+                   ; weight by differential surface area
+                   result[k,p] = total(faf*xp*dl)/total(xp*dl)
+               endif else begin
+                   ; weight by differential volume (standard definition)
+                   result[k,p] = total(faf*xp*dl/bpf)/total(xp*dl/bpf)
+               end
            endelse
        endfor
        if(keyword_set(integrate)) then begin
@@ -6534,7 +6577,8 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
 
    fa = flux_average_field(field, psi, x, z, t, r0=r0, flux=flux, $
                            nflux=nflux, area=area, dV=dV, bins=bins, $
-                           integrate=integrate, _EXTRA=extra)
+                           integrate=integrate, surface_weight=total, $
+                           _EXTRA=extra)
 
    if(keyword_set(total)) then begin
        fa = fa*area

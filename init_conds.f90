@@ -303,7 +303,7 @@ subroutine den_eq
 end subroutine den_eq
 
 !=========================================================================
-subroutine calculate_external_fields()
+subroutine calculate_external_fields(sf)
   use basic
   use math
   use mesh_mod
@@ -319,6 +319,7 @@ subroutine calculate_external_fields()
 
   include 'mpif.h'
 
+  type(schaffer_field), dimension(*) :: sf
   type(matrix_type) :: br_mat, bf_mat
   type(vector_type) :: psi_vec, bz_vec
   integer :: i, j, itri, nelms, ier
@@ -337,7 +338,9 @@ subroutine calculate_external_fields()
 
   type(field_type) :: psi_f, bz_f
 
-#ifndef USECOMPLEX
+#ifdef USECOMPLEX
+  complex :: sfac
+#else
   real, dimension(int_pts_main) :: co, sn
 #endif
 
@@ -415,17 +418,22 @@ subroutine calculate_external_fields()
      end if
 
      if(iread_ext_field.ne.0) then
+        do i=1, iread_ext_field 
 #if defined(USECOMPLEX)
-        call get_external_field_ft(x_79, z_79, fr, fphi, fz, npoints)
-        temp79a = temp79a + (1e4/b0_norm)*fr  *scale_ext_field
-        temp79b = temp79b + (1e4/b0_norm)*fphi*scale_ext_field
-        temp79c = temp79c + (1e4/b0_norm)*fz  *scale_ext_field
+           sfac = exp(-cmplx(0.,1.)*ntor*shift_ext_field(i)*pi/180.)
+           call get_external_field_ft(sf(i),x_79,z_79,fr,fphi,fz,npoints)
+           temp79a = temp79a + (1e4/b0_norm)*fr  *scale_ext_field*sfac
+           temp79b = temp79b + (1e4/b0_norm)*fphi*scale_ext_field*sfac
+           temp79c = temp79c + (1e4/b0_norm)*fz  *scale_ext_field*sfac
 #elif defined(USE3D)
-        call get_external_field(x_79, phi_79, z_79, gr, gphi, gz, npoints)
-        temp79a = temp79a + (1e4/b0_norm)*gr  *scale_ext_field
-        temp79b = temp79b + (1e4/b0_norm)*gphi*scale_ext_field
-        temp79c = temp79c + (1e4/b0_norm)*gz  *scale_ext_field
+           call get_external_field(sf(i),&
+                x_79,phi_79-shift_ext_field(i)*pi/180.,z_79,&
+                gr,gphi,gz,npoints)
+           temp79a = temp79a + (1e4/b0_norm)*gr  *scale_ext_field
+           temp79b = temp79b + (1e4/b0_norm)*gphi*scale_ext_field
+           temp79c = temp79c + (1e4/b0_norm)*gz  *scale_ext_field
 #endif
+        end do
      end if
 
      ! assemble matrix
@@ -529,6 +537,7 @@ subroutine rmp_per
   integer :: izone, izonedim, numnodes, l, ierr
   real :: normal(2), curv, x, z, r2, dx, dz
   character(len=13) :: ext_field_name
+  type(schaffer_field), allocatable :: sf(:)
 #ifdef USECOMPLEX
   vectype :: ii
 #endif
@@ -579,25 +588,32 @@ subroutine rmp_per
 
   ! load external field data from schaffer file
   if(iread_ext_field.ge.1) then
+     allocate(sf(iread_ext_field))
      do l=1, iread_ext_field
         if(iread_ext_field.eq.1) then
            ext_field_name = 'error_field'
         else
            write(ext_field_name, '("error_field",I2.2)') l
         end if
-        call load_schaffer_field(ext_field_name, isample_ext_field, ierr)
+        call load_schaffer_field(sf(l),ext_field_name,isample_ext_field,ierr)
         if(ierr.ne.0) call safestop(6)
-     end do
+
 #ifdef USECOMPLEX
-     call calculate_external_field_ft(ntor)
+        call calculate_external_field_ft(sf(l), ntor)
 #endif
+     end do
   end if
 
   ! calculate external fields from non-axisymmetric coils and external field
-  call calculate_external_fields
+  call calculate_external_fields(sf)
 
   ! unload data
-  if(iread_ext_field.ge.1) call unload_schaffer_field
+  if(iread_ext_field.ge.1) then
+     do l=1, iread_ext_field
+        call unload_schaffer_field(sf(l))
+     end do
+     deallocate(sf)
+  end if
 
   ! leave perturbation only on the boundary
   if(irmp.eq.2) then

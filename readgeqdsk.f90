@@ -54,8 +54,8 @@ subroutine load_eqdsk
   if(rank.eq.0) then
      read (neqdsk,2020) rdim,zdim,rcentr,rleft,zmid
      read (neqdsk,2020) rmaxis,zmaxis,simag,sibry,bcentr
-     read (neqdsk,2020) current,simag,xdum,rmaxis,xdum
-     read (neqdsk,2020) zmaxis,xdum,sibry,xdum,xdum
+     read (neqdsk,2020) current,xdum,xdum,xdum,xdum
+     read (neqdsk,2020) xdum,xdum,xdum,xdum,xdum
      print *, 'reading fpol'
      read (neqdsk,2020) (fpol(i),i=1,nw)
      print *, 'reading press'

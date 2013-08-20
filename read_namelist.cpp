@@ -18,18 +18,21 @@ struct variable {
   std::string name;
   std::string description;
   int group;
+  int array_size;
   void* data;
 
   variable(std::string n, void* var, std::string desc, int g)
   { 
+    array_size = 1;
     name = n;
     description = desc;
     data = var;
     group = g;
   }
+  int get_size() const { return array_size; }
   int get_group() const { return group; }
   virtual int get_type() const = 0;
-  virtual bool read(const std::string) = 0;
+  virtual bool read(const std::string, const int i) = 0;
   virtual void printval() const = 0;
   virtual void print(bool print_desc) const
   {
@@ -61,8 +64,12 @@ struct string_variable : public variable {
   { size = s; pad=p; strncpy(var, val, size); do_padding(); }
   virtual int get_type() const 
   { return STRING_TYPE; }
-  virtual bool read(const std::string s)
+  virtual bool read(const std::string s, int i)
   {
+    if(i != 0) {
+      std::cerr << "Error: string arrays not supported" << std::endl;
+      return false;
+    }
     strncpy((char*)data, s.c_str(), size);
     do_padding();
     return true;
@@ -94,34 +101,65 @@ private:
 
 
 struct int_variable : public variable {
+  int_variable(std::string n, int* var, int sz, int val,
+	       std::string desc, int g)
+    : variable(n, (void*)var, desc, g)
+  { 
+    array_size = sz;
+    for(int i=0; i<array_size; i++) 
+      ((int*)var)[i] = val;  
+  }
   int_variable(std::string n, int* var, int val, std::string desc, int g)
     : variable(n, (void*)var, desc, g)
   { *((int*)var) = val;  }
   virtual int get_type() const 
   { return INT_TYPE; }
-  virtual bool read(const std::string s)
+  virtual bool read(const std::string s, const int i)
   {
-    *((int*)data) = atoi(s.c_str());
+    if(i<0 || i>=array_size) {
+      std::cerr << "Error: index out of bounds: " 
+		<< name << " " << i << std::endl;
+      return false;
+    }
+    ((int*)data)[i] = atoi(s.c_str());
     return true;
   }
   virtual void printval() const
-  { std::cout << *((int*)data); }
+  { 
+    for(int i=0; i<array_size; i++)
+      std::cout << ((int*)data)[i] << " "; }
 };
 
 struct double_variable : public variable {
+  double_variable(std::string n, double* var, int sz, double val, 
+		  std::string desc, int g)
+    : variable(n, (void*)var, desc, g)
+  { 
+    array_size = sz;
+    for(int i=0; i<array_size; i++) 
+      ((int*)var)[i] = val;  
+  }
   double_variable(std::string n, double* var, double val, std::string desc, 
 		  int g)
     : variable(n, (void*)var, desc, g)
   { *((double*)var) = val;  }
   virtual int get_type() const 
   { return DOUBLE_TYPE; }
-  virtual bool read(const std::string s)
+  virtual bool read(const std::string s, const int i)
   { 
-    *((double*)data) = atof(s.c_str());
+    if(i<0 || i>=array_size) {
+      std::cerr << "Error: index out of bounds: " 
+		<< name << " " << i << std::endl;
+      return false;
+    }
+    ((double*)data)[i] = atof(s.c_str());
     return true;
   }
   virtual void printval() const
-  { std::cout << *((double*)data); }
+  { 
+    for(int i=0; i<array_size; i++)
+      std::cout << ((double*)data)[i] << " "; 
+  }
 };
 
 class variable_list {
@@ -167,7 +205,7 @@ public:
     if(type_num.find(v->get_type()) == type_num.end())
       type_num[v->get_type()] = 1;
     else
-      type_num[v->get_type()]++;
+      type_num[v->get_type()] += v->get_size();
     return true;
   }
 
@@ -239,7 +277,18 @@ public:
 	  
 	  op1 = str.substr(p1,p2-p1+1);
 	  op2 = str.substr(p3,p4-p3+1);
-	  
+
+	  // check for index value
+	  int index = 0;
+	  size_t ppo = op1.find_first_of("(");
+	  size_t ppc = op1.find_first_of(")",ppo);
+	  if(ppo!=std::string::npos && ppc!=std::string::npos &&
+	     ppc-ppo-1 >= 1) {
+	    std::string ind = op1.substr(ppo+1, ppc-ppo-1);
+	    index = atoi(ind.c_str()) - 1; // use FORTRAN-style base 1 indicies
+	    op1 = op1.substr(0, ppo);
+	  }
+
 	  variable_map::iterator i = variables.find(op1);
 
 	  if(i == variables.end()) {
@@ -247,8 +296,11 @@ public:
 		      << "|" << op1 << "|" << std::endl;
 	    ierr = 1;
 	  } else {
-	    i->second->read(op2);
+	    ierr = i->second->read(op2, index) ? 0 : 1;
 	  }
+
+	  if(ierr != 0) 
+	    break;
 	}
       }
 	
@@ -278,7 +330,9 @@ public:
 	k = 0;
 	while(i != variables.end()) {
 	  if(i->second->get_type() == DOUBLE_TYPE)
-	    doubles[k++] = *((double*)(i->second->data));
+	    for(int j=0; j<i->second->get_size(); j++) {
+	      doubles[k++] = ((double*)(i->second->data))[j];
+	    }
 	  i++;
 	}
 	if(k != type_num[DOUBLE_TYPE])
@@ -293,7 +347,9 @@ public:
 	k = 0;
 	while(i != variables.end()) {
 	  if(i->second->get_type() == DOUBLE_TYPE)
-	    *((double*)(i->second->data)) = doubles[k++];
+	    for(int j=0; j<i->second->get_size(); j++) {
+	      ((double*)(i->second->data))[j] = doubles[k++];
+	    }
 	  i++;
 	}
 	if(k != type_num[DOUBLE_TYPE])
@@ -311,7 +367,9 @@ public:
 	k = 0;
 	while(i != variables.end()) {
 	  if(i->second->get_type() == INT_TYPE)
-	    ints[k++] = *((int*)(i->second->data));
+	    for(int j=0; j<i->second->get_size(); j++) {
+	      ints[k++] = ((int*)(i->second->data))[j];
+	    }
 	  i++;
 	}
 	if(k != type_num[INT_TYPE])
@@ -326,7 +384,9 @@ public:
 	k = 0;
 	while(i != variables.end()) {
 	  if(i->second->get_type() == INT_TYPE)
-	    *((int*)(i->second->data)) = ints[k++];
+	    for(int j=0; j<i->second->get_size(); j++) {
+	      ((int*)(i->second->data))[j] = ints[k++];
+	    }
 	  i++;
 	}
 	if(k != type_num[INT_TYPE])
@@ -370,11 +430,27 @@ extern "C" void add_variable_int_(const char* name, int* v, int* def,
   variables.create_variable(new int_variable(name, v, *def, 
 					     description, *group));
 }
+
+extern "C" void add_variable_int_array_(const char* name, int* v, int* sz,
+					int* def, const char* description, 
+					const int* group)
+{
+  variables.create_variable(new int_variable(name, v, *sz, *def, 
+					     description, *group));
+}
  
 extern "C" void add_variable_double_(const char* name, double* v, double* def, 
 				     const char* description, const int* group)
 {
   variables.create_variable(new double_variable(name, v, *def, 
+						description, *group));
+}
+
+extern "C" void add_variable_double_array_(const char*name, double*v, int*sz,
+					   double*def, const char*description, 
+					   const int* group)
+{
+  variables.create_variable(new double_variable(name, v, *sz, *def, 
 						description, *group));
 }
 
