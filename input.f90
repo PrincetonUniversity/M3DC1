@@ -350,7 +350,9 @@ subroutine set_defaults
   call add_var_int("iread_ext_field", iread_ext_field, 0, &
        "1: Read external field", eq_grp)
   call add_var_int("isample_ext_field", isample_ext_field, 1, &
-       "Factor to down-sample external field data", eq_grp)
+       "Factor to down-sample external field data toroidally", eq_grp)
+  call add_var_int("isample_ext_field_pol", isample_ext_field_pol, 1, &
+       "Factor to down-sample external field data poloidally", eq_grp)
   call add_var_double("scale_ext_field", scale_ext_field, 1., &
        "Factor to scale external field", eq_grp)
   call add_var_double_array("shift_ext_field", shift_ext_field, 8, 0., &

@@ -595,7 +595,8 @@ subroutine rmp_per
         else
            write(ext_field_name, '("error_field",I2.2)') l
         end if
-        call load_schaffer_field(sf(l),ext_field_name,isample_ext_field,ierr)
+        call load_schaffer_field(sf(l),ext_field_name,isample_ext_field, &
+             isample_ext_field_pol,ierr)
         if(ierr.ne.0) call safestop(6)
 
 #ifdef USECOMPLEX
