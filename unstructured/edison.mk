@@ -79,13 +79,15 @@ OPTS := $(OPTS) -DPetscDEV -DKSPITS # -DUSEADIOS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 #ADIOS_DIR=/global/homes/p/pnorbert/adios/1.3.1/hopper/pgi/
 #ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf -L/global/homes/p/pnorbert/mxml/mxml.hopper/lib -lm -lmxml -llustreapi -pgcpplibs
 
-INCLUDE := $(INCLUDE) $(HDF5_INCLUDE_OPTS) $(FFTW_INCLUDE_OPTS) \
-	-I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include # \
+INCLUDE := $(INCLUDE) -I$(HDF5_DIR)/include $(FFTW_INCLUDE_OPTS) \
+	-I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
+	-I$(GSL_DIR)/include # \
 #        -I$(HYBRID_HOME)/include
 
-LIBS := $(LIBS) $(HDF5_POST_LINK_OPTS) -lhdf5_fortran -lhdf5 \
+LIBS := $(LIBS) -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5 \
 	$(FFTW_POST_LINK_OPTS) -lfftw3 \
-	$(HYPRE) $(MUMPS) $(PARMETIS) -ldl # \
+	$(HYPRE) $(MUMPS) $(PARMETIS) -ldl \
+	-L$(GSL_DIR)/lib -lgsl # \
 #	$(ADIOSREAD_LIB) $(ADIOS_LIB) -ladiosf_v1 -lxml
 #        $(HYBRID_LIBS) \
 
