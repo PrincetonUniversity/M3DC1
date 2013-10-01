@@ -3286,6 +3286,106 @@ end subroutine eigen_per
 
 end module eigen
 
+!==============================================================================
+! int_kink
+! ~~~~~~~~~~~~
+!==============================================================================
+module int_kink
+
+
+contains
+
+!========================================================
+! init
+!========================================================
+subroutine int_kink_init()
+  use basic
+  use arrays
+  use mesh_mod
+
+  implicit none
+
+  integer :: l, numnodes,m
+  real :: x, phi, z, alx, alz, Bp0,r0,rs,Bz_edge
+
+
+  numnodes = owned_nodes()
+  do l=1, numnodes
+     call get_node_pos(l, x, phi, z)
+
+     call get_local_vals(l)
+
+     call int_kink_equ(x-rzero, z)
+     call int_kink_per(x-rzero, phi, z)
+
+     call set_local_vals(l)
+  enddo
+
+end subroutine int_kink_init
+
+
+!========================================================
+! equ
+!========================================================
+subroutine int_kink_equ(x, z)
+  use basic
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x, z
+  real :: r
+  real, parameter :: alpha=0.6579, rmin=1.
+
+  call constant_field(den0_l, 1.)
+  call constant_field(bz0_l,bzero)
+  call constant_field(p0_l,p0)
+  call constant_field(pe0_l,p0/2.)
+  
+  r=sqrt(x**2 + z**2)
+
+  psi0_l(1) = alpha * ( r**2/4. - r**4/(8. * rmin**2)               + r**6/(36. * rmin**4)    )
+  psi0_l(2) = alpha * ( x/2.    - r**2 * x/(2. * rmin**2)           + r**4 * x/(6. * rmin**4) )
+  psi0_l(3) = alpha * ( z/2.    - r**2 * z/(2. * rmin**2)           + r**4 * z/(6. * rmin**4) )
+  psi0_l(4) = alpha * ( 1./2.   - (3. * x**2 + z**2)/(2. * rmin**2) + (5. * x**4 + 6. * x**2 * z**2 + z**4)/(6. * rmin**4) )
+  psi0_l(5) = alpha * (         - x * z / rmin**2                   + (x**3 * z + x * z**3) * 2./(3. * rmin**4) )
+  psi0_l(6) = alpha * ( 1./2.   - (x**2 + 3. * z**2)/(2. * rmin**2) + (x**4 + 6. * x**2 * z**2 + 5. * z**4)/(6. * rmin**4) )
+ 
+
+end subroutine int_kink_equ
+
+
+!========================================================
+! per
+!========================================================
+subroutine int_kink_per(x, phi, z)
+
+  use basic
+  use arrays
+  use diagnostics
+  use mesh_mod
+
+  implicit none
+
+  integer :: i, numnodes
+  real :: x, phi, z
+  vectype, dimension(dofs_per_node) :: vmask
+
+     ! add random perturbations
+        vmask(1) = 1.
+        vmask(2:dofs_per_node) = 0.
+     call random_per(x,phi,z,vmask)
+
+
+  call finalize(field_vec)
+
+
+
+end subroutine int_kink_per
+
+end module int_kink
+
+
 !=========================================
 ! set_neo_vel
 !=========================================
@@ -3520,6 +3620,7 @@ subroutine initial_conditions()
   use ftz
   use eigen
   use neo
+  use int_kink
 
   implicit none
 
@@ -3574,6 +3675,8 @@ subroutine initial_conditions()
            call ftz_init()
         case(18)
            call eigen_init()
+        case(19)
+           call int_kink_init()
         end select
      else
         ! toroidal equilibria
