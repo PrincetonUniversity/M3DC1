@@ -195,7 +195,7 @@ vectype function pmach_func(i)
 !  enddo
   temp79a = max(real((pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2)*ri2_79),1.e-6)
   temp79b = temp79a + bzt79(:,OP_1)**2*ri2_79
-  temp79c = max(real(gam*pt79(:,OP_1)*ni79(:,OP_1)*temp79a/temp79b),1.e-6)
+  temp79c = max(real(gam*pt79(:,OP_1)*ni79(:,OP_1)*temp79a/temp79b),1.e-7)
 ! note: temp79c can vanish at x-point and magnetic axis
 
   temp79d = max(real(r2_79*(pht79(:,OP_DR)**2 + pht79(:,OP_DZ)**2)   &

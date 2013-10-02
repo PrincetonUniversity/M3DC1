@@ -11067,13 +11067,15 @@ real function energy_mp()
           (int3(ri2_79,ps179(:,OP_DZ),CONJUGATE(ps179(:,OP_DZ))) &
           +int3(ri2_79,ps179(:,OP_DR),CONJUGATE(ps179(:,OP_DR))))
 #ifdef USECOMPLEX
-     temp = temp + .5* &
-          (int2(bf179(:,OP_DZP),CONJUGATE(bf179(:,OP_DZP))) &
-          +int2(bf179(:,OP_DRP),CONJUGATE(bf179(:,OP_DRP))) &
-          +int3(ri_79,ps179(:,OP_DZ),CONJUGATE(bf179(:,OP_DRP))) &
-          -int3(ri_79,ps179(:,OP_DR),CONJUGATE(bf179(:,OP_DZP))) &
-          +int3(ri_79,CONJUGATE(ps179(:,OP_DZ)),bf179(:,OP_DRP)) &
-          -int3(ri_79,CONJUGATE(ps179(:,OP_DR)),bf179(:,OP_DZP)))
+     if(numvar.gt.1) then
+        temp = temp + .5* &
+             (int2(bf179(:,OP_DZP),CONJUGATE(bf179(:,OP_DZP))) &
+             +int2(bf179(:,OP_DRP),CONJUGATE(bf179(:,OP_DRP))) &
+             +int3(ri_79,ps179(:,OP_DZ),CONJUGATE(bf179(:,OP_DRP))) &
+             -int3(ri_79,ps179(:,OP_DR),CONJUGATE(bf179(:,OP_DZP))) &
+             +int3(ri_79,CONJUGATE(ps179(:,OP_DZ)),bf179(:,OP_DRP)) &
+             -int3(ri_79,CONJUGATE(ps179(:,OP_DR)),bf179(:,OP_DZP)))
+     endif
 #endif
   else
 !    nonlinear:   subtract off equilibrium piece
@@ -11084,22 +11086,26 @@ real function energy_mp()
           (int3(ri2_79,ps079(:,OP_DZ),ps079(:,OP_DZ)) &
           +int3(ri2_79,ps079(:,OP_DR),ps079(:,OP_DR)))
 #if defined(USE3D)
-     temp = temp   &
-          + .5* &
-          (int2(bft79(:,OP_DZP),bft79(:,OP_DZP)) &
-          +int2(bft79(:,OP_DRP),bft79(:,OP_DRP)) &
-          +2.*int3(ri_79,pst79(:,OP_DZ),bft79(:,OP_DRP)) &
-          -2.*int3(ri_79,pst79(:,OP_DR),bft79(:,OP_DRP)) )
+     if(numvar.gt.1) then
+        temp = temp   &
+             + .5* &
+             (int2(bft79(:,OP_DZP),bft79(:,OP_DZP)) &
+             +int2(bft79(:,OP_DRP),bft79(:,OP_DRP)) &
+             +2.*int3(ri_79,pst79(:,OP_DZ),bft79(:,OP_DRP)) &
+             -2.*int3(ri_79,pst79(:,OP_DR),bft79(:,OP_DRP)) )
+     endif
 #endif
 
 #ifdef USECOMPLEX
-     temp = temp + .5* &
-          (int2(bft79(:,OP_DZP),CONJUGATE(bft79(:,OP_DZP))) &
-          +int2(bft79(:,OP_DRP),CONJUGATE(bft79(:,OP_DRP))) &
-          +int3(ri_79,pst79(:,OP_DZ),CONJUGATE(bft79(:,OP_DRP))) &
-          -int3(ri_79,pst79(:,OP_DR),CONJUGATE(bft79(:,OP_DRP))) &
-          +int3(ri_79,CONJUGATE(pst79(:,OP_DZ)),bft79(:,OP_DRP)) &
-          -int3(ri_79,CONJUGATE(pst79(:,OP_DR)),bft79(:,OP_DZP)))
+     if(numvar.gt.1) then
+        temp = temp + .5* &
+             (int2(bft79(:,OP_DZP),CONJUGATE(bft79(:,OP_DZP))) &
+             +int2(bft79(:,OP_DRP),CONJUGATE(bft79(:,OP_DRP))) &
+             +int3(ri_79,pst79(:,OP_DZ),CONJUGATE(bft79(:,OP_DRP))) &
+             -int3(ri_79,pst79(:,OP_DR),CONJUGATE(bft79(:,OP_DRP))) &
+             +int3(ri_79,CONJUGATE(pst79(:,OP_DZ)),bft79(:,OP_DRP)) &
+             -int3(ri_79,CONJUGATE(pst79(:,OP_DR)),bft79(:,OP_DZP)))
+     endif
 #endif
   endif
 

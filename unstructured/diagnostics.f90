@@ -2046,4 +2046,187 @@ end subroutine ke_I1
 end subroutine ke_I2
 
 
+! te_max
+! ~~~~~~~
+! searches each cell for the extreemum in te and the value of te there
+!  finds the local global maximum of te
+!=====================================================
+subroutine te_max_dev(xguess,zguess,te,tem,imethod,ier)
+  use basic
+  use mesh_mod
+  use m3dc1_nint
+  use field
+
+  implicit none
+
+  include 'mpif.h'
+
+  real, intent(inout) :: xguess, zguess
+  type(field_type), intent(in) :: te
+  real, intent(out) :: tem
+
+  integer, parameter :: iterations = 20  !  max number of Newton iterations
+  real, parameter :: bfac = 0.1  !max zone fraction for movement each iteration
+  real, parameter :: tol = 1e-3   ! convergence tolorance (fraction of h)
+
+  type(element_data) :: d
+  integer :: inews
+  integer :: i, ier, in_domain, converged
+  real :: x1, z1, x, z, si, zi, eta, h, phi, nophi
+  real :: sum, sum1, sum2, sum3, sum4, sum5
+  real :: term1, term2, term3, term4, term5
+  real :: pt, pt1, pt2, p11, p22, p12
+  real :: xnew, znew, denom, sinew, etanew
+  real :: xtry, ztry, rdiff
+  vectype, dimension(coeffs_per_element) :: avector
+  real :: temp1, temp2
+  real, dimension(nodes_per_element) :: xnode , phinode, znode
+  real :: xsum, zsum, psum, summax
+  integer :: itri, itri1, numelms, inode, imethod
+  integer :: nodeids(nodes_per_element)
+
+! search over all triangles local to this processor
+!
+  numelms = local_elements()
+  summax = 0.
+  sum = 0.
+   if(myrank.eq.0 .and. iprint.ge.2) &
+     write(*,'(A,5i5)') 'parameters',iterations,coeffs_per_element,nodes_per_element, &
+                         numelms      !,coeffs_per_tri
+  triangles : do itri = 1,numelms
+
+    call get_element_nodes(itri,nodeids)
+
+!   calculate the triangle center
+      xsum = 0
+      zsum = 0
+      psum = 0
+      do inode=1,3
+         call get_node_pos(nodeids(inode),xnode(inode),phinode(inode),znode(inode))
+         xsum = xsum + xnode(inode)
+         zsum = zsum + znode(inode)
+         psum = psum + phinode(inode)
+      enddo
+      x = xsum/3.
+      z = zsum/3.
+      phi = psum/3.
+
+                 if(myrank.eq.0 .and. iprint.ge.2) &
+                   write(*,'(A,i5,1p3e12.4)') '  itri ,x,z,phi = ', itri, x, z,phi
+
+      converged = 0
+  
+    newton :  do inews=1, iterations
+
+
+
+       call whattri(x,phi,z,itri1,x1,z1)
+       if(myrank.eq.0 .and. iprint.ge.2) &
+         write(*,'(A,2i5,1p2e12.4)') 'itri,itri1,x1,z1',itri,itri1,x1,z1
+
+     ! calculate position of maximum
+       if(itri1.eq.itri) then
+        call calcavector(itri, te, avector)
+        call get_element_data(itri, d)
+
+        ! calculate local coordinates
+        call global_to_local(d, x, phi , z, si, zi, eta)
+
+        ! calculate mesh size
+        h = sqrt((d%a+d%b)*d%c)
+
+       if(myrank.eq.0) write(*,'(A,1p6e12.4)') 'triangle data',d%a,d%b,d%c,si,zi,eta
+
+        ! evaluate the polynomial and second derivative
+        sum = 0.
+        sum1 = 0.
+        sum2 = 0.
+        sum3 = 0.
+        sum4 = 0.
+        sum5 = 0.
+!DEBUG
+    exit newton
+        do i=1, coeffs_per_tri
+           sum = sum + avector(i)*si**mi(i)*eta**ni(i)
+           term1 = 0.
+           if(mi(i).ge.1) term1 = mi(i)*si**(mi(i)-1)*eta**ni(i)
+           term2 = 0.
+           if(ni(i).ge.1) term2 = ni(i)*si**mi(i)*eta**(ni(i)-1)
+           term3 = 0.
+           if(mi(i).ge.2) term3 = mi(i)*(mi(i)-1)*si**(mi(i)-2)*eta**ni(i)
+           term4 = 0.
+           if(ni(i)*mi(i) .ge. 1)                                          &
+                term4 = mi(i)*ni(i)*si**(mi(i)-1)*eta**(ni(i)-1)
+           term5 = 0.
+           if(ni(i).ge.2) term5 = ni(i)*(ni(i)-1)*si**mi(i)*eta**(ni(i)-2)
+           
+           sum1 = sum1 + avector(i)*term1
+           sum2 = sum2 + avector(i)*term2
+           sum3 = sum3 + avector(i)*term3
+           sum4 = sum4 + avector(i)*term4
+           sum5 = sum5 + avector(i)*term5
+        enddo
+
+
+          ! find local maximum of te
+           pt  = sum
+           pt1 = sum1
+           pt2 = sum2
+           p11 = sum3
+           p12 = sum4
+           p22 = sum5
+
+           denom = p22*p11 - p12**2
+           if(denom.ne.0.) then
+              sinew = si -  ( p22*pt1 - p12*pt2)/denom
+              etanew= eta - (-p12*pt1 + p11*pt2)/denom
+           else
+              sinew = si
+              etanew= eta
+           endif
+
+
+        xtry = x1 + d%co*(d%b+sinew) - d%sn*etanew
+        ztry = z1 + d%sn*(d%b+sinew) + d%co*etanew
+        rdiff = sqrt((x-xtry)**2 + (z-ztry)**2)
+
+        if(myrank.eq.0 .and. iprint.ge.2) then
+           write(*,'(A,4E12.4)') &
+                '  te_max_dev: rdiff/h, tol, xnew,znew', rdiff/h, tol, xnew, znew
+        end if
+        if(rdiff/h .lt. tol) converged = 1
+        x = xtry
+        z = ztry
+     else ! on itri.eq.itri1
+        xnew = 0.
+        znew = 0.
+        sum   = 0.
+        rdiff = 0.
+        in_domain = 0
+        converged = 0
+        exit newton
+     endif  ! on itri.eq.itri1
+  
+
+     if(converged.ge.1) exit newton
+    end do newton
+!
+    summax = max(sum,summax)
+  end do triangles
+
+     ! select maximum over all processors
+     if(maxrank.gt.1) then
+        temp1 = summax
+        call mpi_allreduce(temp1, temp2, 1, &
+             MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ier)
+        summax   = temp2
+     endif
+
+  tem = summax
+  ier = 0
+
+  if(myrank.eq.0 .and. iprint.ge.2) &
+       write(*,'(A,E12.4)') '  te_max_dev: summax', summax
+  
+end subroutine te_max_dev
 end module diagnostics

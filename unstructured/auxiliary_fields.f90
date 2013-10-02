@@ -158,7 +158,7 @@ subroutine calculate_auxiliary_fields(ilin)
   end if
 
   numelms = local_elements()
-
+if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
   ! EM Torque density
   do itri=1,numelms
      call define_element_quadrature(itri, int_pts_aux, 5)
@@ -166,17 +166,19 @@ subroutine calculate_auxiliary_fields(ilin)
 
      ! magnetic torque_density (ignoring toroidal magnetic pressure gradient)
 #ifdef USECOMPLEX
-     do i=1, dofs_per_element
-        dofs(i) = &
-             + int4(ri_79,mu79(:,OP_1,i),ps179(:,OP_DR),conjg(bz179(:,OP_DZ)))&
-             - int4(ri_79,mu79(:,OP_1,i),ps179(:,OP_DZ),conjg(bz179(:,OP_DR)))&
-             - int3(mu79(:,OP_1,i),bf179(:,OP_DRP),conjg(bz179(:,OP_DR))) &
-             - int3(mu79(:,OP_1,i),bf179(:,OP_DZP),conjg(bz179(:,OP_DZ))) &
-             + int4(ri_79,mu79(:,OP_1,i),conjg(ps179(:,OP_DR)),bz179(:,OP_DZ))&
-             - int4(ri_79,mu79(:,OP_1,i),conjg(ps179(:,OP_DZ)),bz179(:,OP_DR))&
-             - int3(mu79(:,OP_1,i),conjg(bf179(:,OP_DRP)),bz179(:,OP_DR)) &
-             - int3(mu79(:,OP_1,i),conjg(bf179(:,OP_DZP)),bz179(:,OP_DZ))
-     end do
+     if(numvar.gt.1) then
+        do i=1, dofs_per_element
+           dofs(i) = &
+                + int4(ri_79,mu79(:,OP_1,i),ps179(:,OP_DR),conjg(bz179(:,OP_DZ)))&
+                - int4(ri_79,mu79(:,OP_1,i),ps179(:,OP_DZ),conjg(bz179(:,OP_DR)))&
+                - int3(mu79(:,OP_1,i),bf179(:,OP_DRP),conjg(bz179(:,OP_DR))) &
+                - int3(mu79(:,OP_1,i),bf179(:,OP_DZP),conjg(bz179(:,OP_DZ))) &
+                + int4(ri_79,mu79(:,OP_1,i),conjg(ps179(:,OP_DR)),bz179(:,OP_DZ))&
+                - int4(ri_79,mu79(:,OP_1,i),conjg(ps179(:,OP_DZ)),bz179(:,OP_DR))&
+                - int3(mu79(:,OP_1,i),conjg(bf179(:,OP_DRP)),bz179(:,OP_DR)) &
+                - int3(mu79(:,OP_1,i),conjg(bf179(:,OP_DZP)),bz179(:,OP_DZ))
+        end do
+     endif
      dofs = dofs / 2.
 #else
      do i=1, dofs_per_element
@@ -184,9 +186,11 @@ subroutine calculate_auxiliary_fields(ilin)
              + int4(ri_79,mu79(:,OP_1,i),pst79(:,OP_DR),bzt79(:,OP_DZ)) &
              - int4(ri_79,mu79(:,OP_1,i),pst79(:,OP_DZ),bzt79(:,OP_DR))
 #ifdef USE3D
-        dofs(i) = dofs(i) &
-             - int3(mu79(:,OP_1,i),bft79(:,OP_DRP),bzt79(:,OP_DR)) &
-             - int3(mu79(:,OP_1,i),bft79(:,OP_DZP),bzt79(:,OP_DZ))
+        if(numvar.gt.1) then
+           dofs(i) = dofs(i) &
+                - int3(mu79(:,OP_1,i),bft79(:,OP_DRP),bzt79(:,OP_DR)) &
+                - int3(mu79(:,OP_1,i),bft79(:,OP_DZP),bzt79(:,OP_DZ))
+        endif
 #endif
      end do
 #endif
@@ -283,7 +287,6 @@ subroutine calculate_auxiliary_fields(ilin)
      endif
      call vector_insert_block(torque_density_ntv%vec,itri,1,dofs,VEC_ADD)
 
-
      ! b dot grad p
      do i=1, dofs_per_element
 
@@ -294,24 +297,27 @@ subroutine calculate_auxiliary_fields(ilin)
                 +    int4(ri_79,mu79(:,OP_1,i),p079(:,OP_DZ),ps179(:,OP_DR)) &
                 -    int4(ri_79,mu79(:,OP_1,i),p079(:,OP_DR),ps179(:,OP_DZ))
 #if defined(USECOMPLEX) || defined(USE3D)
-           dofs(i) = dofs(i) &
-                + int4(ri2_79,mu79(:,OP_1,i),p179(:,OP_DP),bz079(:,OP_1)) &
-                - int3(mu79(:,OP_1,i),p079(:,OP_DZ),bf179(:,OP_DZP)) &
-                - int3(mu79(:,OP_1,i),p079(:,OP_DR),bf179(:,OP_DRP))
+           if(numvar.gt.1) then
+              dofs(i) = dofs(i) &
+                   + int4(ri2_79,mu79(:,OP_1,i),p179(:,OP_DP),bz079(:,OP_1)) &
+                   - int3(mu79(:,OP_1,i),p079(:,OP_DZ),bf179(:,OP_DZP)) &
+                   - int3(mu79(:,OP_1,i),p079(:,OP_DR),bf179(:,OP_DRP))
+           endif
 #endif
         else
            dofs(i) = int4(ri_79,mu79(:,OP_1,i),pt79(:,OP_DZ),pst79(:,OP_DR)) &
                 -    int4(ri_79,mu79(:,OP_1,i),pt79(:,OP_DR),pst79(:,OP_DZ))
 #if defined(USECOMPLEX) || defined(USE3D)
-           dofs(i) = dofs(i) &
-                + int4(ri2_79,mu79(:,OP_1,i),pt79(:,OP_DP),bzt79(:,OP_1)) &
-                - int3(mu79(:,OP_1,i),pt79(:,OP_DZ),bft79(:,OP_DZP)) &
-                - int3(mu79(:,OP_1,i),pt79(:,OP_DR),bft79(:,OP_DRP))
+           if(numvar.gt.1) then
+              dofs(i) = dofs(i) &
+                   + int4(ri2_79,mu79(:,OP_1,i),pt79(:,OP_DP),bzt79(:,OP_1)) &
+                   - int3(mu79(:,OP_1,i),pt79(:,OP_DZ),bft79(:,OP_DZP)) &
+                   - int3(mu79(:,OP_1,i),pt79(:,OP_DR),bft79(:,OP_DRP))
+           endif
 #endif
         end if
      end do
      call vector_insert_block(bdotgradp%vec,itri,1,dofs,VEC_ADD)
-
      ! b dot grad T
      do i=1, dofs_per_element
         temp79a = mu79(:,OP_1,i)*ni79(:,OP_1)
@@ -329,13 +335,15 @@ subroutine calculate_auxiliary_fields(ilin)
                 -int5(ri_79,temp79a,n079(:,OP_DZ),ps079(:,OP_DR),p179(:,OP_1))&
                 +int5(ri_79,temp79a,n079(:,OP_DR),ps079(:,OP_DZ),p179(:,OP_1))
 #if defined(USECOMPLEX) || defined(USE3D)
-           dofs(i) = dofs(i) &
-                +int4(ri2_79,mu79(:,OP_1,i),p179(:,OP_DP),bz079(:,OP_1)) &
-                -int3(mu79(:,OP_1,i),p079(:,OP_DZ),bf179(:,OP_DZP)) &
-                -int3(mu79(:,OP_1,i),p079(:,OP_DR),bf179(:,OP_DRP)) &
-                -int5(ri2_79,temp79a,n179(:,OP_DP),bz079(:,OP_1),p079(:,OP_1))&
-                +int4(temp79a,n079(:,OP_DZ),bf179(:,OP_DZP),p079(:,OP_1)) &
-                +int4(temp79a,n079(:,OP_DR),bf179(:,OP_DRP),p079(:,OP_1))
+           if(numvar.gt.1) then
+              dofs(i) = dofs(i) &
+                   +int4(ri2_79,mu79(:,OP_1,i),p179(:,OP_DP),bz079(:,OP_1)) &
+                   -int3(mu79(:,OP_1,i),p079(:,OP_DZ),bf179(:,OP_DZP)) &
+                   -int3(mu79(:,OP_1,i),p079(:,OP_DR),bf179(:,OP_DRP)) &
+                   -int5(ri2_79,temp79a,n179(:,OP_DP),bz079(:,OP_1),p079(:,OP_1))&
+                   +int4(temp79a,n079(:,OP_DZ),bf179(:,OP_DZP),p079(:,OP_1)) &
+                   +int4(temp79a,n079(:,OP_DR),bf179(:,OP_DRP),p079(:,OP_1))
+           endif
 #endif
         else
            dofs(i) = &
@@ -344,13 +352,15 @@ subroutine calculate_auxiliary_fields(ilin)
                 -int5(ri_79,temp79a,nt79(:,OP_DZ),pst79(:,OP_DR),pt79(:,OP_1))&
                 +int5(ri_79,temp79a,nt79(:,OP_DR),pst79(:,OP_DZ),pt79(:,OP_1))
 #if defined(USECOMPLEX) || defined(USE3D)
-           dofs(i) = dofs(i) &
-                +int4(ri2_79,mu79(:,OP_1,i),pt79(:,OP_DP),bzt79(:,OP_1)) &
-                -int3(mu79(:,OP_1,i),pt79(:,OP_DZ),bft79(:,OP_DZP)) &
-                -int3(mu79(:,OP_1,i),pt79(:,OP_DR),bft79(:,OP_DRP)) &
-                -int5(ri2_79,temp79a,nt79(:,OP_DP),bzt79(:,OP_1),pt79(:,OP_1))&
-                +int4(temp79a,n079(:,OP_DZ),bft79(:,OP_DZP),pt79(:,OP_1)) &
-                +int4(temp79a,n079(:,OP_DR),bft79(:,OP_DRP),pt79(:,OP_1))
+           if(numvar.gt.1) then
+              dofs(i) = dofs(i) &
+                   +int4(ri2_79,mu79(:,OP_1,i),pt79(:,OP_DP),bzt79(:,OP_1)) &
+                   -int3(mu79(:,OP_1,i),pt79(:,OP_DZ),bft79(:,OP_DZP)) &
+                   -int3(mu79(:,OP_1,i),pt79(:,OP_DR),bft79(:,OP_DRP)) &
+                   -int5(ri2_79,temp79a,nt79(:,OP_DP),bzt79(:,OP_1),pt79(:,OP_1))&
+                   +int4(temp79a,n079(:,OP_DZ),bft79(:,OP_DZP),pt79(:,OP_1)) &
+                   +int4(temp79a,n079(:,OP_DR),bft79(:,OP_DRP),pt79(:,OP_1))
+           endif
 #endif
         end if
      end do

@@ -3315,8 +3315,8 @@ subroutine int_kink_init()
 
      call get_local_vals(l)
 
-     call int_kink_equ(x-rzero, z)
-     call int_kink_per(x-rzero, phi, z)
+     call int_kink_equ(x, z)
+     call int_kink_per(x, phi, z)
 
      call set_local_vals(l)
   enddo
