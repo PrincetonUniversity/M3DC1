@@ -27,6 +27,8 @@ ifeq ($(USESCOREC), 1)
       SCORECDIR = /global/project/projectdirs/mp288/edison/scorec/install-Opt/
     endif
 
+#SCOREC_LIBS =-L$(SCORECDIR)/lib -Wl,--start-group -lPPPLFusion -lMeshAdapt -lFMDB -lGMI -lGMIMeshModel -lSCORECUtil -lipcomman -Wl,--end-group -lzoltan 
+
 SCOREC_LIBS =  \
         $(SCORECDIR)/lib/libFUSIONAPP.a \
         $(SCORECDIR)/lib/libSOLVER.a \

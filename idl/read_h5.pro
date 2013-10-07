@@ -1369,9 +1369,30 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                      dpsi=dpsi, symbol=symbol, units=units, cgs=cgs, mks=mks, $
                      real=real, imaginary=imag, edge_val=edge_val, phi=phi0, $
                      time=realtime, abs=abs, phase=phase, dimensions=d, $
-                     flux_average=flux_av, rvector=rvector, zvector=zvector
+                     flux_average=flux_av, rvector=rvector, zvector=zvector, $
+                     taverage=taverage, is_nonlinear=is_nonlinear
 
    if(n_elements(slices) ne 0) then time=slices else time=0
+   is_nonlinear = 0
+
+   if(keyword_set(taverage)) then begin
+       data = 0
+       if(taverage eq 1) then taverage=16
+       phi = 360.*findgen(taverage) / (taverage - 1.)
+       for i=0, taverage-1 do begin
+           data = data + $
+             read_field(name, x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, complex=complex, $
+                        h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
+                        diff=diff, operation=op, dimensions=d, $
+                        linear=linear, last=last,symbol=symbol,units=units, $
+                       cgs=cgs, mks=mks, time=realtime, $
+                       rvector=rvector, zvector=zvector, phi=phi[i])
+       end
+       data = data/taverage
+       return, data
+   end
 
    if(keyword_set(average)) then begin
        if(n_elements(filename) gt 1) then begin
@@ -1479,14 +1500,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
    if(isubeq eq 1 and (not keyword_set(linear)) and (time ge 0)) $
      then begin
-       data0 = read_field(name,x,y,t, slices=-1, mesh=mesh, $
-                          filename=filename, points=pts, fac=fac, $
-                          rrange=xrange, zrange=yrange, complex=0, $
-                          h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
-                          diff=diff, operation=op, mask=mask, $
-                          symbol=symbol, mks=mks, cgs=cgs, $
-                          units=units, dimensions=d, $
-                         rvector=rvector, zvector=zvector)
        data1 = read_field(name,x,y,t, slices=time, mesh=mesh, fac=fac, $
                           filename=filename, points=pts, mks=mks, cgs=cgs, $
                           rrange=xrange, zrange=yrange, complex=complex, $
@@ -1494,8 +1507,20 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                           diff=diff, operation=op, linfac=linfac, $
                           /linear, last=last,symbol=symbol, $
                           units=units, dimensions=d, phi=phi0, $
-                         rvector=rvector, zvector=zvector)
-       data = data0 + data1
+                         rvector=rvector, zvector=zvector, is_nonlinear=isnl)
+       if(isnl eq 1) then begin
+          data = data1
+       endif else begin
+          data0 = read_field(name,x,y,t, slices=-1, mesh=mesh, $
+                             filename=filename, points=pts, fac=fac, $
+                             rrange=xrange, zrange=yrange, complex=0, $
+                             h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
+                             diff=diff, operation=op, mask=mask, $
+                             symbol=symbol, mks=mks, cgs=cgs, $
+                             units=units, dimensions=d, $
+                             rvector=rvector, zvector=zvector)
+          data = data0 + data1
+       endelse
        return, data
    endif
    
@@ -3730,57 +3755,65 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
     endif else if((strcmp('parallel heat flux', name, /fold_case) eq 1) or $
        (strcmp('qpar', name, /fold_case) eq 1)) then begin
 
-       p = read_field('p', x, y, t, slices=time, mesh=mesh, linear=linear, $
+       p = read_field('p', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, complex=complex, $
                       rrange=xrange, zrange=yrange, phi=phi0)
-       den = read_field('den', x, y, t, slices=time, mesh=mesh, linear=linear,$
+       den = read_field('den', x, y, t, slices=time, mesh=mesh,$
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange, phi=phi0)
-       p_p = read_field('p', x, y, t, slices=time, mesh=mesh, linear=linear, $
+       p_p = read_field('p', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange, phi=phi0, op=11)
-       den_p = read_field('den', x, y, t, slices=time,mesh=mesh,linear=linear,$
+       den_p = read_field('den', x, y, t, slices=time,mesh=mesh,$
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange, phi=phi0, op=11)
        psi = read_field('psi', x, y, t, slices=time, mesh=mesh, phi=phi0, $
                         filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange, linear=linear)
+                        rrange=xrange, zrange=yrange)
        i = read_field('i', x, y, t, slices=time, mesh=mesh, phi=phi0, $
                         filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange, linear=linear)
+                        rrange=xrange, zrange=yrange)
        f_p = read_field('f', x, y, t, slices=time, mesh=mesh, phi=phi0, $
                         filename=filename, points=pts, complex=complex, $
-                        rrange=xrange, zrange=yrange, linear=linear, op=11)
+                        rrange=xrange, zrange=yrange, op=11)
        kappar = read_parameter(filename=filename, 'kappar')
+       zeff = read_parameter(filename=filename, 'zeff')
 
        r = radius_matrix(x,y,t)
 
-       if(keyword_set(linear)) then begin
-          p0 = read_field('p', x, y, t, slice=-1, mesh=mesh, $
-                          filename=filename, points=pts, $
-                          rrange=xrange, zrange=yrange, phi=phi0)
-          den0 = read_field('den', x, y, t, slice=-1, mesh=mesh,  $
-                            filename=filename, points=pts, $
-                            rrange=xrange, zrange=yrange, phi=phi0)
-          psi0 = read_field('psi', x, y, t, slices=-1, mesh=mesh, phi=phi0, $
-                            filename=filename, points=pts, $
-                            rrange=xrange, zrange=yrange)
-          i0 = read_field('i', x, y, t, slices=-1, mesh=mesh, phi=phi0, $
-                          filename=filename, points=pts, $
-                          rrange=xrange, zrange=yrange)
+;       den = 1.
+
+;;        if(keyword_set(linear)) then begin
+;;           print, "LINEAR IS SET"
+
+;;           p0 = read_field('p', x, y, t, slice=-1, mesh=mesh, $
+;;                           filename=filename, points=pts, $
+;;                           rrange=xrange, zrange=yrange, phi=phi0)
+;;           den0 = read_field('den', x, y, t, slice=-1, mesh=mesh,  $
+;;                             filename=filename, points=pts, $
+;;                             rrange=xrange, zrange=yrange, phi=phi0)
+;;           psi0 = read_field('psi', x, y, t, slices=-1, mesh=mesh, phi=phi0, $
+;;                             filename=filename, points=pts, $
+;;                             rrange=xrange, zrange=yrange)
+;;           i0 = read_field('i', x, y, t, slices=-1, mesh=mesh, phi=phi0, $
+;;                           filename=filename, points=pts, $
+;;                           rrange=xrange, zrange=yrange)
           
-          p = p + p0
-          den = den + den0
-          psi = psi + psi0
-          i = i + i0
+;;           p = p + p0
+;;           den = den + den0
+;;           psi = psi + psi0
+;;           i = i + i0
           
-          te0 = p0 / den0
-          b20 = s_bracket(psi0,psi0,x,y)/r^2 + i0^2/r^2
-          bdotgradte0 = a_bracket(te0, psi0, x, y)/r
-       end
+;;           te0 = p0 / den0
+;;           b20 = s_bracket(psi0,psi0,x,y)/r^2 + i0^2/r^2
+;;           bdotgradte0 = a_bracket(te0, psi0, x, y)/r
+;;        end
+
+;       den = den*zeff
+;       den_p = den_p*zeff
        
        te = p / den
-       tep = p_p / den - p*den_p / den^2
+       tep = p_p / den ;- p*den_p / den^2
        b2 = s_bracket(psi,psi,x,y)/r^2 + i^2/r^2 + 2.*a_bracket(psi,f_p,x,y)/r
        bdotgradte = a_bracket(te, psi, x, y)/r $
                     + i*tep/r^2 - s_bracket(f_p, te, x, y)
@@ -3789,12 +3822,12 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        bbter = br*bdotgradte/b2
        bz =  dx(psi,x)/r - dz(f_p,y)
        bbtez = bz*bdotgradte/b2
-       if(keyword_set(linear)) then begin
-          br0 = -dz(psi0,y)/r
-          bz0 =  dx(psi0,x)/r
-          bbter = bbter - br0*bdotgradte0/b20
-          bbtez = bbtez - bz0*bdotgradte0/b20
-       endif
+;;        if(keyword_set(linear)) then begin
+;;           br0 = -dz(psi0,y)/r
+;;           bz0 =  dx(psi0,x)/r
+;;           bbter = 0.*bbter - br0*bdotgradte0/b20
+;;           bbtez = 0.*bbtez - bz0*bdotgradte0/b20
+;;        endif
        
        if(keyword_set(rvector)) then begin
           data = -kappar*bbter
@@ -3808,6 +3841,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        endelse
        
        d = dimensions(/p0,/v0)
+       is_nonlinear = 1
 
    ;===========================================
    ; convective power flux

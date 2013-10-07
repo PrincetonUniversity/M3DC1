@@ -657,10 +657,33 @@ contains
         ni79(:,OP_LP) = ni79(:,OP_LP) + ri_79*ni79(:,OP_DR)
         ni79(:,OP_GS) = ni79(:,OP_GS) - ri_79*ni79(:,OP_DR)
      endif
-#ifdef USECOMPLEX
-     ni79(:,OP_DP :OP_GSP ) = 0.
-     ni79(:,OP_DPP:OP_GSPP) = 0.
-#endif   
+#if defined(USECOMPLEX) || defined(USE3D)
+     ni79(:,OP_DP) = -nt79(:,OP_DP)*ni79(:,OP_1)**2
+     ni79(:,OP_DRP) = -nt79(:,OP_DRP)*ni79(:,OP_1)**2
+     ni79(:,OP_DZP) = -nt79(:,OP_DZP)*ni79(:,OP_1)**2
+     ni79(:,OP_DRRP) = -nt79(:,OP_DRRP)*ni79(:,OP_1)**2
+     ni79(:,OP_DRZP) = -nt79(:,OP_DRZP)*ni79(:,OP_1)**2
+     ni79(:,OP_DZZP) = -nt79(:,OP_DZZP)*ni79(:,OP_1)**2
+     ni79(:,OP_LPP) = -nt79(:,OP_LPP)*ni79(:,OP_1)**2
+     ni79(:,OP_GSP) = -nt79(:,OP_GSP)*ni79(:,OP_1)**2
+
+     ni79(:,OP_DPP) = -nt79(:,OP_DPP)*ni79(:,OP_1)**2 &
+          - 2.*nt79(:,OP_DP)*ni79(:,OP_1)*ni79(:,OP_DP)
+     ni79(:,OP_DRPP) = -nt79(:,OP_DRPP)*ni79(:,OP_1)**2 &
+          - 2.*nt79(:,OP_DRP)*ni79(:,OP_1)*ni79(:,OP_DP)
+     ni79(:,OP_DZPP) = -nt79(:,OP_DZPP)*ni79(:,OP_1)**2 &
+          - 2.*nt79(:,OP_DZP)*ni79(:,OP_1)*ni79(:,OP_DP)
+     ni79(:,OP_DRRPP) = -nt79(:,OP_DRRPP)*ni79(:,OP_1)**2 &
+          - 2.*nt79(:,OP_DRRP)*ni79(:,OP_1)*ni79(:,OP_DP)
+     ni79(:,OP_DRZPP) = -nt79(:,OP_DRZPP)*ni79(:,OP_1)**2 &
+          - 2.*nt79(:,OP_DRZP)*ni79(:,OP_1)*ni79(:,OP_DP)
+     ni79(:,OP_DZZPP) = -nt79(:,OP_DZZPP)*ni79(:,OP_1)**2 &
+          - 2.*nt79(:,OP_DZZP)*ni79(:,OP_1)*ni79(:,OP_DP)
+     ni79(:,OP_LPPP) = -nt79(:,OP_LPPP)*ni79(:,OP_1)**2 &
+          - 2.*nt79(:,OP_LPP)*ni79(:,OP_1)*ni79(:,OP_DP)
+     ni79(:,OP_GSPP) = -nt79(:,OP_GSPP)*ni79(:,OP_1)**2 &
+          - 2.*nt79(:,OP_GSP)*ni79(:,OP_1)*ni79(:,OP_DP)
+#endif
      nei79 = ni79/zeff
   endif
   

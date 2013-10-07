@@ -335,12 +335,13 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
                 -int5(ri_79,temp79a,n079(:,OP_DZ),ps079(:,OP_DR),p179(:,OP_1))&
                 +int5(ri_79,temp79a,n079(:,OP_DR),ps079(:,OP_DZ),p179(:,OP_1))
 #if defined(USECOMPLEX) || defined(USE3D)
+           dofs(i) = dofs(i) &
+                +int4(ri2_79,mu79(:,OP_1,i),p179(:,OP_DP),bz079(:,OP_1)) &
+                -int5(ri2_79,temp79a,n179(:,OP_DP),bz079(:,OP_1),p079(:,OP_1))
            if(numvar.gt.1) then
-              dofs(i) = dofs(i) &
-                   +int4(ri2_79,mu79(:,OP_1,i),p179(:,OP_DP),bz079(:,OP_1)) &
+	        dofs(i) = dofs(i) &
                    -int3(mu79(:,OP_1,i),p079(:,OP_DZ),bf179(:,OP_DZP)) &
                    -int3(mu79(:,OP_1,i),p079(:,OP_DR),bf179(:,OP_DRP)) &
-                   -int5(ri2_79,temp79a,n179(:,OP_DP),bz079(:,OP_1),p079(:,OP_1))&
                    +int4(temp79a,n079(:,OP_DZ),bf179(:,OP_DZP),p079(:,OP_1)) &
                    +int4(temp79a,n079(:,OP_DR),bf179(:,OP_DRP),p079(:,OP_1))
            endif
@@ -352,14 +353,15 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
                 -int5(ri_79,temp79a,nt79(:,OP_DZ),pst79(:,OP_DR),pt79(:,OP_1))&
                 +int5(ri_79,temp79a,nt79(:,OP_DR),pst79(:,OP_DZ),pt79(:,OP_1))
 #if defined(USECOMPLEX) || defined(USE3D)
+           dofs(i) = dofs(i) &
+                +int4(ri2_79,mu79(:,OP_1,i),pt79(:,OP_DP),bzt79(:,OP_1)) &
+                -int5(ri2_79,temp79a,nt79(:,OP_DP),bzt79(:,OP_1),pt79(:,OP_1))
            if(numvar.gt.1) then
-              dofs(i) = dofs(i) &
-                   +int4(ri2_79,mu79(:,OP_1,i),pt79(:,OP_DP),bzt79(:,OP_1)) &
+	        dofs(i) = dofs(i) &
                    -int3(mu79(:,OP_1,i),pt79(:,OP_DZ),bft79(:,OP_DZP)) &
                    -int3(mu79(:,OP_1,i),pt79(:,OP_DR),bft79(:,OP_DRP)) &
-                   -int5(ri2_79,temp79a,nt79(:,OP_DP),bzt79(:,OP_1),pt79(:,OP_1))&
-                   +int4(temp79a,n079(:,OP_DZ),bft79(:,OP_DZP),pt79(:,OP_1)) &
-                   +int4(temp79a,n079(:,OP_DR),bft79(:,OP_DRP),pt79(:,OP_1))
+                   +int4(temp79a,nt79(:,OP_DZ),bft79(:,OP_DZP),pt79(:,OP_1)) &
+                   +int4(temp79a,nt79(:,OP_DR),bft79(:,OP_DRP),pt79(:,OP_1))
            endif
 #endif
         end if
