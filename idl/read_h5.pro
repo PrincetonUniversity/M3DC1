@@ -3767,6 +3767,12 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        den_p = read_field('den', x, y, t, slices=time,mesh=mesh,$
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange, phi=phi0, op=11)
+;;        te = read_field('te', x, y, t, slices=time, mesh=mesh, $
+;;                         filename=filename, points=pts, complex=complex, $
+;;                         rrange=xrange, zrange=yrange, phi=phi0)
+;;        te_p = read_field('te', x, y, t, slices=time,mesh=mesh,$
+;;                         filename=filename, points=pts, complex=complex, $
+;;                         rrange=xrange, zrange=yrange, phi=phi0, op=11)
        psi = read_field('psi', x, y, t, slices=time, mesh=mesh, phi=phi0, $
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange)
@@ -3813,10 +3819,11 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 ;       den_p = den_p*zeff
        
        te = p / den
-       tep = p_p / den ;- p*den_p / den^2
-       b2 = s_bracket(psi,psi,x,y)/r^2 + i^2/r^2 + 2.*a_bracket(psi,f_p,x,y)/r
+       te_p = p_p / den ;- p*den_p / den^2
+       bp2 = s_bracket(psi,psi,x,y)/r^2 + 2.*a_bracket(psi,f_p,x,y)/r
+       b2 = bp2 + i^2/r^2
        bdotgradte = a_bracket(te, psi, x, y)/r $
-                    + i*tep/r^2 - s_bracket(f_p, te, x, y)
+                    + i*te_p/r^2 - s_bracket(f_p, te, x, y)
 
        br = -dz(psi,y)/r - dx(f_p,x)
        bbter = br*bdotgradte/b2
@@ -3836,8 +3843,12 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
           data = -kappar*bbtez
           symbol = '!6q!D!9#!N.G!8Z!X'
        endif else begin
-          data = kappar*sqrt(abs(bbtez)^2 + abs(bbter)^2)
-          symbol = '!3|!6q!D!9#!N!3|!X'
+;          data = kappar*sqrt(abs(bbtez)^2 + abs(bbter)^2)
+;          symbol = '!3|!6q!D!9#!N!3|!X'
+;          data = -kappar*bdotgradte/sqrt(b2)
+;          data = -kappar*bdotgradte*bp2/b2
+          data = -kappar*bdotgradte*sqrt(bp2)/b2
+          symbol = '!6q!D!9#!N!X'
        endelse
        
        d = dimensions(/p0,/v0)
@@ -4508,20 +4519,23 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    return, data
 end
 
-function read_field_3d, name, phi, x, z, t, points=points, tpoints=tpoints, ntor=ntor, _EXTRA=extra
+function read_field_3d, name, phi, x, z, t, points=points, tpoints=tpoints, $
+                        symbol=symbol, units=u, ntor=ntor, _EXTRA=extra
 
   if(n_elements(points) eq 0) then points=200
-  if(n_elements(tpoints) eq 0) then tpoints=12
+  if(n_elements(tpoints) eq 0) then tpoints=16
 
   field = fltarr(tpoints, points, points)
 
   phi = fltarr(tpoints)
 
-  for i=0, tpoints-1 do begin
-     phi[i] = 360.*i/tpoints
+  for i=0, tpoints-2 do begin
+     phi[i] = 360.*i/(tpoints-1)
      field[i,*,*] = reform(read_field(name,x,z,t,phi=phi[i],points=points,$
-                                      _EXTRA=extra))
+                                      symbol=symbol, units=u, _EXTRA=extra))
   end
+  phi[tpoints-1] = 360.
+  field[tpoints-1,*,*] = field[0,*,*]
 
   if(n_elements(ntor) eq 0) then begin
      return, field
