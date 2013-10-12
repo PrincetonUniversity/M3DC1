@@ -249,10 +249,12 @@ module basic
   integer :: iset_pe_floor
   integer :: idiff       ! 1 = solve for difference in solution in B,p from n to n+1
   integer :: idifv       ! 1 = solve for difference in solution in v from n to n+1
-  integer :: petsc_it_max! if.gt.0  max number of petsc iterations before time step is reduced
-  integer :: repeat_timestep! if .gt.0 max number of iterations before time step is repeated
+  integer :: ksp_max     ! if.gt.0  max number of petsc iterations before time step is repeated
+  integer :: max_repeat  ! max number of times time-step is repeated
+  integer :: ksp_warn    ! time step is  reduced  if max Petsc iterations > ksp_warn
+  integer :: ksp_min     ! time step is increased if max Petsc iterations < ksp_min
   real :: dt, dtold      ! timestep (present and previous)
-  real :: dtmin,dtmax,dtkecrit,dtfrac,dtgamma  ! quantities used in variable_timestep option
+  real :: dtmin,dtmax,dtkecrit,dtfrac  ! quantities used in variable_timestep option
   real :: ddt            ! change in timestep per timestep
   real :: thimp          ! implicitness parameter (for Crank-Nicholson)
   real :: thimpsm        ! implicitness parameter for smoothers

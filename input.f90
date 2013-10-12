@@ -293,17 +293,20 @@ subroutine set_defaults
   call add_var_double("dtmin",dtmin,4.0,"minimum time step",time_grp)
   call add_var_double("dtmax",dtmax,40.,"maximum time step",time_grp)
   call add_var_double("dtkecrit",dtkecrit,0.0,"ekin limit on timestep",time_grp)
-  call add_var_double("dtgamma",dtgamma,0.0,"dt*gamma limit on time step",time_grp)
   call add_var_double("dtfrac",dtfrac,0.1,"fractional change of time step",time_grp)
-  call add_var_int("petsc_it_max", petsc_it_max, 0, &
-       "if.gt.0, max petsc iterations before ts reduced", time_grp)
-  call add_var_int("repeat_timestep", repeat_timestep, 0, &
-       "if.gt.0, max petsc iterations before ts repeated", time_grp)
+  call add_var_int("max_repeat", max_repeat, 3, &
+       "maximum number of times a time step can be attempted", time_grp)
+  call add_var_int("ksp_max", ksp_max, 10000, &
+       "maximum number of ksp iterations without repeating time step", time_grp)
+  call add_var_int("ksp_min", ksp_min, 500, &
+       "time step is increased if max ksp iterations is less than this", time_grp)
+  call add_var_int("ksp_warn", ksp_warn, 1000, &
+       "time step is reduced if max ksp iterations exceeds this", time_grp)
 
   ! Numerical methods
-  call add_var_int("jadv", jadv, 0, &
+  call add_var_int("jadv", jadv, 1, &
        "Use Del*(psi) eqn. instead of psi eqn.", num_grp)
-  call add_var_int("ivform", ivform, 0, &
+  call add_var_int("ivform", ivform, 1, &
        "V = R^J Grad(U)XGrad(phi) + R^K V Grad(phi) + R^L Grad(chi) |&
        &0: J=0, K=0, L=0;  1: J=2, K=2, L=-2", num_grp)
 
@@ -321,7 +324,7 @@ subroutine set_defaults
        "Minimum allowed value for pe when iset_pe_floor=1", num_grp)
   call add_var_int("iprecompute_metric", iprecompute_metric, 0, &
        "1: precompute full metric tensor", num_grp)
-  
+
   ! Equilibrium 
   call add_var_int("itaylor", itaylor, 0, "", eq_grp)
   call add_var_int("iupstream", iupstream, 0, "", eq_grp)

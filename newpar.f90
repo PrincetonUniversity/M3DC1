@@ -162,7 +162,7 @@ Program Reducedquintic
      endif
 !
 !....use timestep from input file if not a variable timestep run
-    if(dtkecrit.eq.0 .or. dtgamma.eq.0) dt = dtsave
+    if(dtkecrit.eq.0) dt = dtsave
 !
   end select                     !  end of the branch on restart/no restart
 

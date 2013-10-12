@@ -70,7 +70,7 @@ subroutine onestep
 
   implicit none
 
-  integer :: calc_matrices, ivel_def
+  integer :: calc_matrices, ivel_def, icount, irepeat, maxiter
   logical, save :: first_time = .true.
 
   real :: tstart, tend
@@ -84,39 +84,61 @@ subroutine onestep
      calc_matrices = 0
   endif
 
-  ! calculate matrices for time advance
-  if(calc_matrices.eq.1) then
-     if(myrank.eq.0 .and. iprint.ge.1) print *, "Defining matrices"
-     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+  ! start of loop to repeat timestep if max iterations exceeded in 3D
+  do irepeat = 1, max_repeat
 
-     ! in linear case, eliminate second-order terms from matrix
-     ivel_def = 1
-     if(istatic.eq.1 .and. isplitstep.eq.1) ivel_def = 0
-     call ludefall(ivel_def, idens, ipres, ipressplit, 1-iestatic)
-     if(myrank.eq.0 .and. itimer.eq.1) then
-        call second(tend)
-        t_ludefall = t_ludefall + tend - tstart
-     endif
-     if(myrank.eq.0 .and. iprint.ge.1) print *, "Done defining matrices."
-  endif
+    ! calculate matrices for time advance
+    if(calc_matrices.eq.1) then
+       if(myrank.eq.0 .and. iprint.ge.1) print *, "Defining matrices"
+       if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+
+       ! in linear case, eliminate second-order terms from matrix
+       ivel_def = 1
+       if(istatic.eq.1 .and. isplitstep.eq.1) ivel_def = 0
+       call ludefall(ivel_def, idens, ipres, ipressplit, 1-iestatic)
+       if(myrank.eq.0 .and. itimer.eq.1) then
+          call second(tend)
+          t_ludefall = t_ludefall + tend - tstart
+       endif
+       if(myrank.eq.0 .and. iprint.ge.1) print *, "Done defining matrices."
+    endif
 
 
-  ! copy field data to time-advance vectors
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "Importing time advance vectors.."
-  call import_time_advance_vectors
+    ! copy field data to time-advance vectors
+    if(myrank.eq.0 .and. iprint.ge.2) print *,"Importing time advance vectors.."
+    call import_time_advance_vectors
 
-  ! advance time
-  if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing time..."
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  if(isplitstep.ge.1) then
-     call step_split(calc_matrices)
-  else
-     call step_unsplit(calc_matrices)
-  end if
-  if(myrank.eq.0 .and. itimer.eq.1) then 
-     call second(tend)
-     if(iprint.ge.1) print *, "Time spent in *_step: ", tend-tstart
-  end if
+    ! advance time
+    if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing time..."
+    if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+    if(isplitstep.ge.1) then
+       call step_split(calc_matrices)
+    else
+       call step_unsplit(calc_matrices)
+    end if
+    if(myrank.eq.0 .and. itimer.eq.1) then 
+       call second(tend)
+       if(iprint.ge.1) print *, "Time spent in *_step: ", tend-tstart
+    end if
+
+    if(nplanes.le.1) exit
+    ! check if time step should be repeated
+
+#ifdef USE3D
+    maxiter = 0
+    do icount=1,maxnumofsolves
+       maxiter = max(maxiter,int(kspits(icount)))
+    enddo
+    if(myrank.eq.0) write(*,'(A,2i5)') 'ksp_max, maxiter =', ksp_max, maxiter
+    if(maxiter .lt. ksp_max) exit
+
+    dt = dt/2.
+    if(myrank.eq.0) write(*,'(A,e12.4)') 'Time step reduced by 2:  dt =', dt
+#else
+    exit
+#endif
+  enddo
+
 
   time = time + dt
   dtold = dt
@@ -216,35 +238,41 @@ subroutine variable_timestep
 
   implicit none
   include 'mpif.h'
-  integer :: ierr
-!
-! increase or decrease timestep based on kinetic energy and gamma_gr,
-! but limit change to fraction dtfrac and bound by dtmin and dtmax
-!
-  if(dtkecrit.eq.0 .or. dtgamma.eq.0) return
+  integer :: ierr, maxiter, icount
+
   if(myrank.eq.0) then
 !
+! decrease timestep based on kinetic energy or ksp iterations
+! but limit change to fraction dtfrac and bound by dtmin and dtmax
 !
-    if(ekin.lt.dtkecrit) then
-       if(gamma_gr.gt.0) then
-          if(dt .gt.dtgamma/abs(gamma_gr)) then
-            dt = dtold/(1. + dtfrac)
-          else
-            dt = dtold*(1. + dtfrac)
-          endif
-       else
-            dt = dtold*(1. + dtfrac)
-       endif
+!   
+    if(dtkecrit.gt.0 .and. ekin.gt.dtkecrit) then
+       dt = dtold/(1. + dtfrac)
     else
-            dt = dtold/(1. + dtfrac)
+
+#ifdef USE3D
+       maxiter = 0
+       do icount=1,maxnumofsolves
+         maxiter = max(maxiter,int(kspits(icount)))
+       enddo
+
+       if(maxiter .gt. ksp_warn) dt = dtold/(1. + dtfrac)
+       if(maxiter .lt. ksp_min)  dt = dtold*(1. + dtfrac)
+       if(iprint.ge.1) write(*,'("maxiter, ksp_warn, ksp_min",3i5)') maxiter, ksp_warn, ksp_min
+#endif
+
     endif
-    dt = max(dt,dtmin)
-    dt = min(dt,dtmax)
-    if(iprint.ge.1) write(*,1001) dtold,dt,gamma_gr,ekin
-  endif
+
+
+
+      dt = max(dt,dtmin)
+      dt = min(dt,dtmax)
+
+      if(iprint.ge.1) write(*,'("dtold,dt,dtkecrit,ekin",1p4e12.4)') dtold,dt,dtkecrit,ekin
+
+  endif ! on myrank.eq.0
   call MPI_bcast(dt,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
   
- 1001 format("dtold,dt,gamma_gr,ekin",1p4e12.4)
 end subroutine variable_timestep
 
 
