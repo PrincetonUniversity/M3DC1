@@ -1298,37 +1298,6 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
    return, result
 end
 
-function read_raw_field, name, time, mesh=mesh, filename=filename, time=t
-   if(n_elements(filename) eq 0) then filename='C1.h5'
-
-   if(hdf5_file_test(filename) eq 0) then return, 0
-
-   nt = read_parameter("ntime", filename=filename)
-
-   if(time ge nt) then begin
-       print, "Error: there are only ", nt-1, " time slices."
-       return, 0
-   endif
-
-   file_id = h5f_open(filename)
-
-   time_group_id = h5g_open(file_id, time_name(time))
-   mesh = h5_parse(time_group_id, 'mesh', /read_data)   
-
-   field_group_id = h5g_open(time_group_id, 'fields')
-   field = h5_parse(field_group_id, name, /read_data)
-
-   time_id = h5a_open_name(time_group_id, "time")
-   t = h5a_read(time_id)
-   h5a_close, time_id
-
-   h5g_close, field_group_id
-   h5g_close, time_group_id
-   h5f_close, file_id
-
-   return, field._data
-end
-
 function read_lcfs, axis=axis, xpoint=xpoint, flux0=flux0, $
                     filename=filename, slice=time, last=last
 
@@ -1424,6 +1393,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            if(n_elements(time) eq 1) then time=replicate(time,n)
        endif else if(n_elements(time) gt 1) then begin
            n = n_elements(time)
+           if(n_elements(filename) eq 0) then filename='C1.h5'
            if(n_elements(filename) eq 1) then filename=replicate(filename,n)
        endif else n = 1
 
@@ -1478,12 +1448,12 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        if(isubeq eq 1) then linear = 0
    end
 
-   realtime = get_slice_time(filename=filename, slice=time)
-
    if(time ge nt) then begin
        print, "Error: there are only ", nt-1, " time slices."
        return, 0
    endif
+
+   realtime = get_slice_time(filename=filename, slice=time)
 
    data = fltarr(1, pts, pts)
    if(isubeq eq 1) then base = fltarr(pts,pts)

@@ -73,28 +73,62 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    end
 
    if(n_elements(bmncdf) ne 0) then begin
-       omega_i = flux_average('v_omega',flux=qflux,psi=psi0,x=x,z=z,t=t,$
-                              bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
-       omega_e = flux_average('ve_omega',flux=qflux,psi=psi0,x=x,z=z,t=t,$
-                              bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
-       F = flux_average('I',flux=qflux,psi=psi0,x=x,z=z,t=t,$
-                              bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
-       p = flux_average('p',flux=qflux,psi=psi0,x=x,z=z,t=t,$
-                              bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
-       pe = flux_average('pe',flux=qflux,psi=psi0,x=x,z=z,t=t,$
-                              bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
-       den_e = flux_average('ne',flux=qflux,psi=psi0,x=x,z=z,t=t,$
-                            bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
-
+        omega_i = flux_average('v_omega',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+                               bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
+        omega_e = flux_average('ve_omega',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+                               bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
+        F = flux_average('I',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+                               bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
+        p = flux_average('p',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+                               bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
+        pe = flux_average('pe',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+                               bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
+        den_e = flux_average('ne',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+                             bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
 
        rpath = fltarr(n_elements(m), n_elements(nflux))
        zpath = fltarr(n_elements(m), n_elements(nflux))
+       read_nulls, axis=axis, _EXTRA=extra
+
        for i=0, n_elements(nflux)-1 do begin
            xy = path_at_flux(psi0,x,z,t,flux[i],/contiguous,$
                              path_points=n_elements(m))
            rpath[i,*] = xy[0,*]
            zpath[i,*] = xy[1,*]
+
+                                ; do 3 Newton iterations
+           for j=0, 3 do begin
+               theta_geom = reform(atan(zpath[i,*]-axis[1],rpath[i,*]-axis[0]))
+               dum = min(theta_geom, ind, /abs)
+               if(dum eq 0 and ind eq 0) then break
+               im = ind-1 mod n_elements(m)
+               ip = ind+1 mod n_elements(m)
+               if((dum lt 0 and theta_geom(ip) gt 0) or $
+                  (dum gt 0 and theta_geom(ip) lt 0)) then begin
+                   dtheta = theta_geom(ip) - dum
+               endif else if((dum lt 0 and theta_geom(im) gt 0) or $
+                             (dum gt 0 and theta_geom(im) lt 0)) then begin
+                   dtheta = dum - theta_geom(im)
+               endif else begin
+                   print, 'Error!', theta_geom(im), dum, theta_geom(ip)
+               endelse
+               dind = -dum/dtheta
+               index = findgen(n_elements(m)) + ind + dind
+               wg = where(index ge n_elements(m), c)
+               if(c gt 0) then index[wg] = index[wg] - n_elements(m)
+               wg = where(index lt 0, c)
+               if(c gt 0) then index[wg] = index[wg] + n_elements(m)
+               rpath[i,*] = interpolate(rpath[i,*], index)
+               zpath[i,*] = interpolate(zpath[i,*], index)
+           end
        end
+       
+       plot, [1.0, 2.3], [-1.5, 1.5], /nodata
+       for i=0, n_elements(nflux) - 1, 10 do begin
+           oplot, rpath[*, i], zpath[*,i]
+       end
+;       stop
+
        bpval = fltarr(n_elements(m), n_elements(nflux))
        bpval = field_at_point(bp, x, z, rpath, zpath)
        
@@ -103,6 +137,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        n_id = ncdf_dimdef(id, 'npsi', n_elements(nflux))
        m_id = ncdf_dimdef(id, 'mpol', n_elements(m))
        psi_var = ncdf_vardef(id, 'psi', [n_id], /float)
+       flux_pol_var = ncdf_vardef(id, 'flux_pol', [n_id], /float)
        q_var = ncdf_vardef(id, 'q', [n_id], /float)
        p_var = ncdf_vardef(id, 'p', [n_id], /float)
        F_var = ncdf_vardef(id, 'F', [n_id], /float)
@@ -118,6 +153,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        bp_var = ncdf_vardef(id, 'Bp', [m_id,n_id], /float)
        ncdf_control, id, /endef
        ncdf_varput, id, 'psi', reform(nflux[0,*])
+       ncdf_varput, id, 'flux_pol', reform(flux[0,*])
        ncdf_varput, id, 'm', m
        ncdf_varput, id, 'q', abs(reform(q))
        ncdf_varput, id, 'p', reform(p)
@@ -639,4 +675,30 @@ pro plot_lambda, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
  
    
 
+end
+
+
+pro read_bmncdf, file=filename, _EXTRA=extra
+       id = ncdf_open(filename)
+       bmnr_id = ncdf_varid(id, "bmn_real")
+       bmni_id = ncdf_varid(id, "bmn_imag")
+       psi_id = ncdf_varid(id, "psi")
+       m_id = ncdf_varid(id, "m")
+       q_id = ncdf_varid(id, "q")
+       
+       ncdf_attget, id, "ntor", ntor, /global
+       ncdf_varget, id, bmnr_id, bmnr
+       ncdf_varget, id, bmni_id, bmni
+       ncdf_varget, id, psi_id, psi
+       ncdf_varget, id, m_id, m
+       ncdf_varget, id, q_id, q
+
+       ncdf_close, id
+
+       bmn = fltarr(1, n_elements(m), n_elements(psi))
+       bmn[0,*,*] = sqrt(bmnr^2 + bmni^2)
+
+       contour_and_legend, bmn, m, psi, _EXTRA=extra, table=39
+       ct3
+       oplot, -ntor*q, psi, color=color(5)
 end

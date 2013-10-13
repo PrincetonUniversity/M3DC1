@@ -380,13 +380,21 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     ; dimensions of plotting region
     width = region[2]-region[0] - width1 - lgap - cgap - rgap
     top = region[3]-region[1] - bgap - tgap
+    region_aspect = top/width
     charsize = !p.charsize*sqrt((region[2]-region[0])*(region[3]-region[1]))
 
     if keyword_set(iso) then begin
         aspect_ratio = (max(y)-min(y))/(max(x)-min(x))
-        if(aspect_ratio le 1) then top = width*aspect_ratio/screen_aspect $
-        else width = screen_aspect*top/aspect_ratio
-    endif else aspect_ratio = top/width
+        print, 'data ar, screen ar = ', aspect_ratio, screen_aspect
+        fac = aspect_ratio / screen_aspect
+        if(fac gt 1.) then begin
+            width = width/fac * region_aspect
+            top = width*aspect_ratio / screen_aspect
+        endif else begin
+            width = width*fac * region_aspect
+            top = width*aspect_ratio / screen_aspect 
+        endelse
+    endif
       
     if n_elements(label) eq 0 then label = ''
 
