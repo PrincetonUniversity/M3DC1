@@ -240,39 +240,41 @@ subroutine variable_timestep
   include 'mpif.h'
   integer :: ierr, maxiter, icount
 
+if(dtkecrit.gt.0) then
   if(myrank.eq.0) then
 !
 ! decrease timestep based on kinetic energy or ksp iterations
 ! but limit change to fraction dtfrac and bound by dtmin and dtmax
 !
 !   
-    if(dtkecrit.gt.0 .and. ekin.gt.dtkecrit) then
-       dt = dtold/(1. + dtfrac)
-    else
+       if(ekin.gt.dtkecrit) then
+         dt = dtold/(1. + dtfrac)
+       else
 
 #ifdef USE3D
-       maxiter = 0
-       do icount=1,maxnumofsolves
-         maxiter = max(maxiter,int(kspits(icount)))
-       enddo
+         maxiter = 0
+         do icount=1,maxnumofsolves
+           maxiter = max(maxiter,int(kspits(icount)))
+         enddo
 
-       if(maxiter .gt. ksp_warn) dt = dtold/(1. + dtfrac)
-       if(maxiter .lt. ksp_min)  dt = dtold*(1. + dtfrac)
-       if(iprint.ge.1) write(*,'("maxiter, ksp_warn, ksp_min",3i5)') maxiter, ksp_warn, ksp_min
+         if(maxiter .gt. ksp_warn) dt = dtold/(1. + dtfrac)
+         if(maxiter .lt. ksp_min)  dt = dtold*(1. + dtfrac)
+         if(iprint.ge.1) write(*,'("maxiter, ksp_warn, ksp_min",3i5)') maxiter, ksp_warn, ksp_min
 #endif
 
-    endif
+         dt = max(dt,dtmin)
+         dt = min(dt,dtmax)
+
+         if(iprint.ge.1) write(*,'("dtold,dt,dtkecrit,ekin",1p4e12.4)') dtold,dt,dtkecrit,ekin
+       endif
 
 
-
-      dt = max(dt,dtmin)
-      dt = min(dt,dtmax)
-
-      if(iprint.ge.1) write(*,'("dtold,dt,dtkecrit,ekin",1p4e12.4)') dtold,dt,dtkecrit,ekin
 
   endif ! on myrank.eq.0
   call MPI_bcast(dt,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-  
+
+endif   ! on dtkecrit
+
 end subroutine variable_timestep
 
 
