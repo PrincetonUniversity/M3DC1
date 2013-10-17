@@ -719,360 +719,366 @@ subroutine output_fields(time_group_id, equilibrium, error)
 !!$     nfields = nfields + 1
 !!$  endif
 
-  ! I
-  do i=1, nelms
-     call calcavector(i, bz_field(ilin), dum(:,i))
-  end do
-  call output_field(group_id, "I", real(dum), coeffs_per_element, &
-       nelms, error)
-  nfields = nfields + 1
+  ! skip for NUMVAR=1
+  if (NUMVAR .gt. 1) then
+    ! I
+    do i=1, nelms
+       call calcavector(i, bz_field(ilin), dum(:,i))
+    end do
+    call output_field(group_id, "I", real(dum), coeffs_per_element, &
+         nelms, error)
+    nfields = nfields + 1
 #ifdef USECOMPLEX
-  call output_field(group_id,"I_i",aimag(dum),coeffs_per_element, &
-       nelms,error)
-  nfields = nfields + 1
+    call output_field(group_id,"I_i",aimag(dum),coeffs_per_element, &
+         nelms,error)
+    nfields = nfields + 1
 #endif
-      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after i in output_fields'
-
-  ! BF
-  if(ifout.eq.1) then
-     do i=1, nelms
-        call calcavector(i, bf_field(ilin), dum(:,i))
-     end do
-     call output_field(group_id, "f", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
+        if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after i in output_fields'
+    
+    ! BF
+    if(ifout.eq.1) then
+       do i=1, nelms
+          call calcavector(i, bf_field(ilin), dum(:,i))
+       end do
+       call output_field(group_id, "f", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
 #ifdef USECOMPLEX
-     call output_field(group_id,"f_i",aimag(dum),coeffs_per_element, &
-          nelms,error)
-     nfields = nfields + 1
+      call output_field(group_id,"f_i",aimag(dum),coeffs_per_element, &
+            nelms,error)
+       nfields = nfields + 1
 #endif
-  endif
-      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after bf in output_fields'
-
-  ! V
-  do i=1, nelms
-     call calcavector(i, vz_field(ilin), dum(:,i))
-  end do
-  call output_field(group_id, "V", real(dum), coeffs_per_element, &
-       nelms, error)
-  nfields = nfields + 1
+    endif
+        if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after bf in output_fields'
+    
+    ! V
+    do i=1, nelms
+       call calcavector(i, vz_field(ilin), dum(:,i))
+    end do
+    call output_field(group_id, "V", real(dum), coeffs_per_element, &
+         nelms, error)
+    nfields = nfields + 1
 #ifdef USECOMPLEX
-  call output_field(group_id,"V_i",aimag(dum),coeffs_per_element, &
-       nelms,error)
-  nfields = nfields + 1
+    call output_field(group_id,"V_i",aimag(dum),coeffs_per_element, &
+         nelms,error)
+    nfields = nfields + 1
 #endif
-      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after v in output_fields'
-
-  ! Pe
-  do i=1, nelms
-     call calcavector(i, pe_field(ilin), dum(:,i))
-  end do
-  call output_field(group_id, "Pe", real(dum), coeffs_per_element, &
-       nelms, error)
-  nfields = nfields + 1
+        if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after v in output_fields'
+    
+    ! Pe
+    do i=1, nelms
+       call calcavector(i, pe_field(ilin), dum(:,i))
+    end do
+    call output_field(group_id, "Pe", real(dum), coeffs_per_element, &
+         nelms, error)
+    nfields = nfields + 1
 #ifdef USECOMPLEX
-  call output_field(group_id,"Pe_i",aimag(dum),coeffs_per_element, &
-       nelms,error)
-  nfields = nfields + 1
+    call output_field(group_id,"Pe_i",aimag(dum),coeffs_per_element, &
+         nelms,error)
+    nfields = nfields + 1
 #endif
-      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after pe in output_fields'
-
-  ! P
-  do i=1, nelms
-     call calcavector(i, p_field(ilin), dum(:,i))
-  end do
-  call output_field(group_id, "P", real(dum), coeffs_per_element, &
-       nelms, error)
-  nfields = nfields + 1
+        if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after pe in output_fields'
+    
+    ! P
+    do i=1, nelms
+       call calcavector(i, p_field(ilin), dum(:,i))
+    end do
+    call output_field(group_id, "P", real(dum), coeffs_per_element, &
+         nelms, error)
+    nfields = nfields + 1
 #ifdef USECOMPLEX
-  call output_field(group_id,"P_i",aimag(dum),coeffs_per_element, &
-       nelms,error)
-  nfields = nfields + 1
+    call output_field(group_id,"P_i",aimag(dum),coeffs_per_element, &
+         nelms,error)
+    nfields = nfields + 1
 #endif
-      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after p  in output_fields'
+        if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after p  in output_fields'
      
-  ! chi
-  do i=1, nelms
-     call calcavector(i, chi_field(ilin), dum(:,i))
-  end do
-  call output_field(group_id,"chi",real(dum),coeffs_per_element,nelms,error)
-  nfields = nfields + 1
-
+    ! chi
+    do i=1, nelms
+       call calcavector(i, chi_field(ilin), dum(:,i))
+    end do
+    call output_field(group_id,"chi",real(dum),coeffs_per_element,nelms,error)
+    nfields = nfields + 1
+    
 #ifdef USECOMPLEX
-  call output_field(group_id,"chi_i",aimag(dum),coeffs_per_element,nelms,error)
-  nfields = nfields + 1
+    call output_field(group_id,"chi_i",aimag(dum),coeffs_per_element,nelms,error)
+    nfields = nfields + 1
 #endif
-      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after chi in output_fields'
-
-  ! den
-  do i=1, nelms
-     call calcavector(i, den_field(ilin), dum(:,i))
-  end do
-  call output_field(group_id, "den", real(dum), coeffs_per_element, &
-       nelms, error)
-  nfields = nfields + 1
+        if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after chi in output_fields'
+    
+    ! den
+    do i=1, nelms
+       call calcavector(i, den_field(ilin), dum(:,i))
+    end do
+    call output_field(group_id, "den", real(dum), coeffs_per_element, &
+         nelms, error)
+    nfields = nfields + 1
 #ifdef USECOMPLEX
-  call output_field(group_id,"den_i",aimag(dum),coeffs_per_element,nelms,error)
-  nfields = nfields + 1
+    call output_field(group_id,"den_i",aimag(dum),coeffs_per_element,nelms,error)
+    nfields = nfields + 1
 #endif
-      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after den in output_fields'
-
-  ! te
-  do i=1, nelms
-     call calcavector(i, te_field(ilin), dum(:,i))
-  end do
-  call output_field(group_id, "te", real(dum), coeffs_per_element, &
-       nelms, error)
-  nfields = nfields + 1
+        if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after den in output_fields'
+    
+    ! te
+    do i=1, nelms
+       call calcavector(i, te_field(ilin), dum(:,i))
+    end do
+    call output_field(group_id, "te", real(dum), coeffs_per_element, &
+         nelms, error)
+    nfields = nfields + 1
 #ifdef USECOMPLEX
-  call output_field(group_id,"te_i",aimag(dum),coeffs_per_element,nelms,error)
-  nfields = nfields + 1
+    call output_field(group_id,"te_i",aimag(dum),coeffs_per_element,nelms,error)
+    nfields = nfields + 1
 #endif
-      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after te in output_fields'
-
-  ! ti
-  do i=1, nelms
-     call calcavector(i, ti_field(ilin), dum(:,i))
-  end do
-  call output_field(group_id, "ti", real(dum), coeffs_per_element, &
-       nelms, error)
-  nfields = nfields + 1
+        if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after te in output_fields'
+    
+    ! ti
+    do i=1, nelms
+       call calcavector(i, ti_field(ilin), dum(:,i))
+    end do
+    call output_field(group_id, "ti", real(dum), coeffs_per_element, &
+         nelms, error)
+    nfields = nfields + 1
 #ifdef USECOMPLEX
-  call output_field(group_id,"ti_i",aimag(dum),coeffs_per_element,nelms,error)
-  nfields = nfields + 1
+    call output_field(group_id,"ti_i",aimag(dum),coeffs_per_element,nelms,error)
+    nfields = nfields + 1
 #endif
-  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after ti in output_fields'
+    if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after ti in output_fields'
 
-  if(icsubtract.eq.1) then
-     ! psi_coil
-     do i=1, nelms
-        call calcavector(i, psi_coil_field, dum(:,i))
-     end do
-     call output_field(group_id, "psi_coil", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
-  end if
-
-  if(use_external_fields) then 
-     ! psi_ext
-     do i=1, nelms
-        call calcavector(i, psi_ext, dum(:,i))
-     end do
-     call output_field(group_id, "psi_ext", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
+    if(icsubtract.eq.1) then
+       ! psi_coil
+       do i=1, nelms
+          call calcavector(i, psi_coil_field, dum(:,i))
+       end do
+       call output_field(group_id, "psi_coil", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
+    end if
+    
+    if(use_external_fields) then 
+       ! psi_ext
+       do i=1, nelms
+          call calcavector(i, psi_ext, dum(:,i))
+       end do
+       call output_field(group_id, "psi_ext", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
 #ifdef USECOMPLEX
-     call output_field(group_id, "psi_ext_i",aimag(dum),coeffs_per_element,&
-          nelms, error)
-     nfields = nfields + 1
-#endif
-     
-     ! bz_ext
-     do i=1, nelms
-        call calcavector(i, bz_ext, dum(:,i))
-     end do
-     call output_field(group_id, "I_ext", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
-#ifdef USECOMPLEX
-     call output_field(group_id, "I_ext_i",aimag(dum),coeffs_per_element,&
-          nelms, error)
-     nfields = nfields + 1
+       call output_field(group_id, "psi_ext_i",aimag(dum),coeffs_per_element,&
+            nelms, error)
+       nfields = nfields + 1
 #endif
      
-     ! bf_ext
-     do i=1, nelms
-        call calcavector(i, bf_ext, dum(:,i))
-     end do
-     call output_field(group_id, "f_ext", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
+       ! bz_ext
+       do i=1, nelms
+          call calcavector(i, bz_ext, dum(:,i))
+       end do
+       call output_field(group_id, "I_ext", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
 #ifdef USECOMPLEX
-     call output_field(group_id, "f_ext_i",aimag(dum),coeffs_per_element,&
-          nelms, error)
-     nfields = nfields + 1
+       call output_field(group_id, "I_ext_i",aimag(dum),coeffs_per_element,&
+            nelms, error)
+       nfields = nfields + 1
 #endif
-  endif
-
-  if(iwrite_transport_coeffs.eq.1) then
-     ! eta
-     do i=1, nelms
-        call calcavector(i, resistivity_field, dum(:,i))
-     end do
-     call output_field(group_id, "eta", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
-
-     ! visc
-     do i=1, nelms
-        call calcavector(i, visc_field, dum(:,i))
-     end do
-     call output_field(group_id, "visc", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
-
-     ! poloidal force and mach number
-     if(ipforce.gt.0) then
-        do i=1, nelms
-           call calcavector(i, pforce_field, dum(:,i))
-        end do
-        call output_field(group_id, "pforce", real(dum), coeffs_per_element, &
-             nelms, error)
-        nfields = nfields + 1
-
-        do i=1, nelms
-           call calcavector(i, pmach_field, dum(:,i))
-        end do
-        call output_field(group_id, "pmach", real(dum), coeffs_per_element, &
-             nelms, error)
-        nfields = nfields + 1
-     endif
-
-     ! kappa
-     do i=1, nelms
-        call calcavector(i, kappa_field, dum(:,i))
-     end do
-     call output_field(group_id, "kappa", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
-
-     ! visc_c
-     do i=1, nelms
-        call calcavector(i, visc_c_field, dum(:,i))
-     end do
-     call output_field(group_id, "visc_c", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
      
-     if(ibootstrap.gt.0) then
-        ! visc_e
-        do i=1, nelms
-           call calcavector(i, visc_e_field, dum(:,i))
-        end do
-        call output_field(group_id, "visc_e", real(dum), coeffs_per_element, &
-             nelms, error)
-        nfields = nfields + 1
-     endif
-  end if
-      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after write_transport_coefsin output_fields'
+       ! bf_ext
+       do i=1, nelms
+          call calcavector(i, bf_ext, dum(:,i))
+       end do
+       call output_field(group_id, "f_ext", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
+#ifdef USECOMPLEX
+       call output_field(group_id, "f_ext_i",aimag(dum),coeffs_per_element,&
+            nelms, error)
+       nfields = nfields + 1
+#endif
+    endif
+    
+    if(iwrite_transport_coeffs.eq.1) then
+       ! eta
+       do i=1, nelms
+          call calcavector(i, resistivity_field, dum(:,i))
+       end do
+       call output_field(group_id, "eta", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
+    
+       ! visc
+       do i=1, nelms
+          call calcavector(i, visc_field, dum(:,i))
+       end do
+       call output_field(group_id, "visc", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
+    
+       ! poloidal force and mach number
+       if(ipforce.gt.0) then
+          do i=1, nelms
+             call calcavector(i, pforce_field, dum(:,i))
+          end do
+          call output_field(group_id, "pforce", real(dum), coeffs_per_element, &
+               nelms, error)
+          nfields = nfields + 1
+    
+          do i=1, nelms
+             call calcavector(i, pmach_field, dum(:,i))
+          end do
+          call output_field(group_id, "pmach", real(dum), coeffs_per_element, &
+               nelms, error)
+          nfields = nfields + 1
+       endif
+    
+       ! kappa
+       do i=1, nelms
+          call calcavector(i, kappa_field, dum(:,i))
+       end do
+       call output_field(group_id, "kappa", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
+    
+       ! visc_c
+       do i=1, nelms
+          call calcavector(i, visc_c_field, dum(:,i))
+       end do
+       call output_field(group_id, "visc_c", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
+       
+       if(ibootstrap.gt.0) then
+          ! visc_e
+          do i=1, nelms
+             call calcavector(i, visc_e_field, dum(:,i))
+          end do
+          call output_field(group_id, "visc_e", real(dum), coeffs_per_element, &
+               nelms, error)
+          nfields = nfields + 1
+       endif
+    end if
+        if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after write_transport_coefsin output_fields'
+  endif ! on NUMVAR .gt. 1
 
   if(iwrite_aux_vars.eq.1) then 
-     ! jphi
-     do i=1, nelms
-        call calcavector(i, jphi_field, dum(:,i))
-     end do
-     call output_field(group_id, "jphi", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
+    ! jphi
+    do i=1, nelms
+       call calcavector(i, jphi_field, dum(:,i))
+    end do
+    call output_field(group_id, "jphi", real(dum), coeffs_per_element, &
+         nelms, error)
+    nfields = nfields + 1
+  
+    ! skip for NUMVAR=1
+    if (NUMVAR .gt. 1) then
+      ! vor
+      do i=1, nelms
+         call calcavector(i, vor_field, dum(:,i))
+      end do
+      call output_field(group_id, "vor", real(dum), coeffs_per_element, &
+           nelms, error)
+      nfields = nfields + 1 
 
-     ! vor
-     do i=1, nelms
-        call calcavector(i, vor_field, dum(:,i))
-     end do
-     call output_field(group_id, "vor", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
-
-     ! com
-     do i=1, nelms
-        call calcavector(i, com_field, dum(:,i))
-     end do
-     call output_field(group_id, "com", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
-
-     ! torque_em
-     do i=1, nelms
-        call calcavector(i, torque_density_em, dum(:,i))
-     end do
-     call output_field(group_id, "torque_em", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
+      ! com
+      do i=1, nelms
+         call calcavector(i, com_field, dum(:,i))
+      end do
+      call output_field(group_id, "com", real(dum), coeffs_per_element, &
+           nelms, error)
+      nfields = nfields + 1
+ 
+      ! torque_em
+      do i=1, nelms
+         call calcavector(i, torque_density_em, dum(:,i))
+      end do
+      call output_field(group_id, "torque_em", real(dum), coeffs_per_element, &
+           nelms, error)
+      nfields = nfields + 1
 #ifdef USECOMPLEX
-     call output_field(group_id, "torque_em_i",aimag(dum),coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
+      call output_field(group_id, "torque_em_i",aimag(dum),coeffs_per_element, &
+           nelms, error)
+      nfields = nfields + 1
 #endif
 
-     ! torque_ntv
-     do i=1, nelms
-        call calcavector(i, torque_density_ntv, dum(:,i))
-     end do
-     call output_field(group_id,"torque_ntv", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
+      ! torque_ntv
+      do i=1, nelms
+         call calcavector(i, torque_density_ntv, dum(:,i))
+      end do
+      call output_field(group_id,"torque_ntv", real(dum), coeffs_per_element, &
+           nelms, error)
+      nfields = nfields + 1
 #ifdef USECOMPLEX
-     call output_field(group_id,"torque_ntv_i",aimag(dum),coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
+      call output_field(group_id,"torque_ntv_i",aimag(dum),coeffs_per_element, &
+           nelms, error)
+      nfields = nfields + 1
 #endif
 
-     ! bdotgradp
-     do i=1, nelms
-        call calcavector(i, bdotgradp, dum(:,i))
-     end do
-     call output_field(group_id, "bdotgradp", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
+      ! bdotgradp
+      do i=1, nelms
+         call calcavector(i, bdotgradp, dum(:,i))
+      end do
+      call output_field(group_id, "bdotgradp", real(dum), coeffs_per_element, &
+           nelms, error)
+      nfields = nfields + 1
 #ifdef USECOMPLEX
-     call output_field(group_id, "bdotgradp_i",aimag(dum),coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
+      call output_field(group_id, "bdotgradp_i",aimag(dum),coeffs_per_element, &
+           nelms, error)
+      nfields = nfields + 1
 #endif
 
-     ! bdotgradt
-     do i=1, nelms
-        call calcavector(i, bdotgradt, dum(:,i))
-     end do
-     call output_field(group_id, "bdotgradt", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
+      ! bdotgradt
+      do i=1, nelms
+         call calcavector(i, bdotgradt, dum(:,i))
+      end do
+      call output_field(group_id, "bdotgradt", real(dum), coeffs_per_element, &
+           nelms, error)
+      nfields = nfields + 1
 #ifdef USECOMPLEX
-     call output_field(group_id, "bdotgradt_i",aimag(dum),coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
+      call output_field(group_id, "bdotgradt_i",aimag(dum),coeffs_per_element, &
+           nelms, error)
+      nfields = nfields + 1
 #endif
 
-     ! sigma
-     if(density_source) then
-        do i=1, nelms
-           call calcavector(i, sigma_field, dum(:,i))
-        end do
-        call output_field(group_id, "sigma", real(dum), coeffs_per_element, &
-             nelms, error)
-        nfields = nfields + 1
-     endif
+      ! sigma
+      if(density_source) then
+         do i=1, nelms
+            call calcavector(i, sigma_field, dum(:,i))
+         end do
+         call output_field(group_id, "sigma", real(dum), coeffs_per_element, &
+              nelms, error)
+         nfields = nfields + 1
+      endif
 
-     ! momentum source
-     if(momentum_source) then
-        do i=1, nelms
-           call calcavector(i, Fphi_field, dum(:,i))
-        end do
-        call output_field(group_id, "force_phi", real(dum), &
-             coeffs_per_element, nelms, error)
-        nfields = nfields + 1
-     endif
+      ! momentum source
+      if(momentum_source) then
+         do i=1, nelms
+            call calcavector(i, Fphi_field, dum(:,i))
+         end do
+         call output_field(group_id, "force_phi", real(dum), &
+              coeffs_per_element, nelms, error)
+         nfields = nfields + 1
+      endif
 
-     ! heat source
-     if(heat_source) then
-        do i=1, nelms
-           call calcavector(i, Q_field, dum(:,i))
-        end do
-        call output_field(group_id, "heat_source", real(dum), &
-             coeffs_per_element, nelms, error)
-        nfields = nfields + 1
-     endif
+      ! heat source
+      if(heat_source) then
+         do i=1, nelms
+            call calcavector(i, Q_field, dum(:,i))
+         end do
+         call output_field(group_id, "heat_source", real(dum), &
+              coeffs_per_element, nelms, error)
+         nfields = nfields + 1
+      endif
 
 
-     if(xray_detector_enabled.eq.1) then 
-        ! chord_mask
-        do i=1, nelms
-           call calcavector(i, chord_mask, dum(:,i))
-        end do
-        call output_field(group_id,"chord_mask",real(dum),coeffs_per_element,&
-             nelms, error)
-        nfields = nfields + 1
-     end if
+      if(xray_detector_enabled.eq.1) then 
+         ! chord_mask
+         do i=1, nelms
+            call calcavector(i, chord_mask, dum(:,i))
+         end do
+         call output_field(group_id,"chord_mask",real(dum),coeffs_per_element,&
+              nelms, error)
+         nfields = nfields + 1
+      end if
+    endif ! on NUMVAR .gt. 1
   endif
 
 !!$  if(equilibrium.eq.1) then
