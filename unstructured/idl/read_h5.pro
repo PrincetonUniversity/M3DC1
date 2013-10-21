@@ -3695,6 +3695,37 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    ; particle flux
    ;===========================================
+   endif else if(strcmp('flux_nv', name, /fold_case) eq 1) then begin
+
+       den = read_field('den', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       u = read_field('phi', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       chi = read_field('chi', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       f_p = read_field('f', x, y, t, slices=time, mesh=mesh, phi=phi0, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, op=11)
+       
+       r = radius_matrix(x,y,t)
+
+       bp2 = s_bracket(psi,psi,x,y)/r^2 + 2.*a_bracket(psi,f_p,x,y)/r + s_bracket(f_p,f_p,x,y)
+       bpdotv = (r*s_bracket(phi,psi,x,y) + a_bracket(chi,psi,x,y)/r^3 $
+                 + a_bracket(f_p,psi,x,y)/r - s_bracket(chi,f_p,x,y)/r^2)/sqrt(bp2)
+       data = den*bpdotv
+       d = dimensions(/n0, /v0)
+       symbol = '!6Parallel Particle Flux!X'
+
+   ;===========================================
+   ; particle flux
+   ;===========================================
    endif else if(strcmp('flux_nv2', name, /fold_case) eq 1) then begin
 
        den=read_field('den', x, y, t, slices=time, mesh=mesh, linear=linear,  $
@@ -3790,7 +3821,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        
        te = p / den
        te_p = p_p / den ;- p*den_p / den^2
-       bp2 = s_bracket(psi,psi,x,y)/r^2 + 2.*a_bracket(psi,f_p,x,y)/r
+       bp2 = s_bracket(psi,psi,x,y)/r^2 + 2.*a_bracket(psi,f_p,x,y)/r + s_bracket(f_p,f_p,x,y)
        b2 = bp2 + i^2/r^2
        bdotgradte = a_bracket(te, psi, x, y)/r $
                     + i*te_p/r^2 - s_bracket(f_p, te, x, y)
