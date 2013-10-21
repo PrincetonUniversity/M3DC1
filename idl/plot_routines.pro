@@ -385,14 +385,11 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
 
     if keyword_set(iso) then begin
         aspect_ratio = (max(y)-min(y))/(max(x)-min(x))
-        print, 'data ar, screen ar = ', aspect_ratio, screen_aspect
-        fac = aspect_ratio / screen_aspect
+        fac = aspect_ratio/(screen_aspect*region_aspect)
         if(fac gt 1.) then begin
-            width = width/fac * region_aspect
-            top = width*aspect_ratio / screen_aspect
+           width = width/fac
         endif else begin
-            width = width*fac * region_aspect
-            top = width*aspect_ratio / screen_aspect 
+           top = top*fac
         endelse
     endif
       
@@ -455,6 +452,7 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     ; ***
     !p.position = [region[0]+width+lgap+cgap,        region[1]+bgap, $
                    region[0]+width+lgap+cgap+width1, region[1]+bgap+top]
+    print, '!p.position = ', !p.position
     
     xx = indgen(2)
     yy = lev
@@ -484,14 +482,14 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
                    region[0]+lgap+width, region[1]+bgap+top]
 
     if(fracdiff le 1e-5) then begin
-        plot, x, y, /nodata, isotropic=iso, charsize=charsize, $
+        plot, x, y, /nodata, charsize=charsize, $
           color=color, xrange=xrange, yrange=yrange, $
           xstyle=1, ystyle=1, _EXTRA=ex
     endif else begin
         contour, zed > minval < maxval, x, y, $
           fill=fill, levels=lev, nlevels=nlevels, $
           xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, _EXTRA=ex, $
-          isotropic=iso, charsize=charsize, color=color
+          charsize=charsize, color=color
     endelse
 
     print, 'lines = ', lines
