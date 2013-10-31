@@ -355,9 +355,7 @@ contains
        end if
     endif  !  on ipressplit.eq.1
     
-    if(idens.eq.1) then
-       call associate_field(den_v,  den_vec,    den_i)
-    end if
+    call associate_field(den_v,  den_vec,    den_i)
     
     if(jadv.eq.0 .and. i3d.eq.1) then
        call associate_field(e_v, phi_vec, e_i)
@@ -525,7 +523,7 @@ subroutine import_time_advance_vectors_split
      endif
   endif   ! on ipressplit.eq.0
 
-  if(idens.eq.1) den_v = den_field(1)
+  den_v = den_field(1)
   if(imp_bf.eq.1) bf_v = bf_field(1)
 
 end subroutine import_time_advance_vectors_split
