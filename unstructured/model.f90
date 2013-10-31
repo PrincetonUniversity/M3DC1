@@ -910,20 +910,8 @@ end subroutine boundary_pe
    numnodes = owned_nodes()
    do i=1,numnodes
 
-     if(idens.eq.1) then
-        call get_node_data(den_v,i,den1_l)
-        call get_node_data(den_field(0),i,den0_l)
-     else
-        if(eqsubtract.eq.1) then
-           den1_l = 0.
-           den0_l(1) = 1.
-           den0_l(2:dofs_per_node) = 0.
-        else
-           den0_l = 0.
-           den1_l(1) = 1.
-           den1_l(2:dofs_per_node) = 0.
-        endif
-     endif
+     call get_node_data(den_v,i,den1_l)
+     call get_node_data(den_field(0),i,den0_l)
 
      call get_node_data(te_v,i,te1_l)
      call get_node_data(te_field(0),i,te0_l)
