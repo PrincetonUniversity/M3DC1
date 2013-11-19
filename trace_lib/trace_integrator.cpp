@@ -119,6 +119,14 @@ bool trace_integrator::center(double* R0, double* Z0) const
   return sources[0]->center(R0, Z0);
 }
 
+bool trace_integrator::psibound(double* psi0, double* psi1) const
+{
+  if(sources.size()==0)
+    return false;
+
+  return sources[0]->psibound(psi0, psi1);
+}
+
 bool trace_integrator::get_surface(const double r0, const double phi0, 
 				   const double z0, const double ds, 
 				   double** r, double** z, int* n)
@@ -224,6 +232,9 @@ bool trace_integrator::integrate(int transits, int steps_per_transit,
   double R0, Z0;
   center(&R0,&Z0);
 
+  double psi_axis, psi_lcfs;
+  bool use_psinorm = psibound(&psi_axis, &psi_lcfs);
+
   for(i=0; i<steps; i++) {
     dphi = 2.*M_PI/(double)steps_per_transit;
     double next_Phi = Phi + dphi;
@@ -288,8 +299,17 @@ bool trace_integrator::integrate(int transits, int steps_per_transit,
 
       double R_plot = R*f + last_R*(1.-f);
       double Z_plot = Z*f + last_Z*(1.-f);
+      double theta_plot = atan2(Z_plot - Z0, R_plot - R0)*180./M_PI;
+      double psi_plot;
+      if(!sources[0]->eval_psi(R_plot, Z_plot, &psi_plot))
+	psi_plot = 0;
+      else {
+	if(use_psinorm)
+	  psi_plot = (psi_plot - psi_axis) / (psi_lcfs - psi_axis);
+      }
 
-      file << R_plot << "\t" << Z_plot << std::endl;
+      file << R_plot << "\t" << Z_plot << "\t" 
+	   << theta_plot << "\t" << psi_plot << std::endl;
     }
   }
 

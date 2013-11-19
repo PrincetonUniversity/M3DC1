@@ -14,6 +14,10 @@ class trace_field_source {
 
   virtual bool eval(const double r, const double phi, const double z, 
 		    double* b_r, double* b_phi, double* b_z) = 0;
+  virtual bool eval_psi(const double r, const double z, double* psi)
+  { return false; }
+  virtual bool psibound(double* psi_axis, double* psi_lcfs) const
+  { return false; }
 
   virtual bool center(double* r0, double* z0) const = 0;
   virtual bool extent(double* r0, double* r1, double* z0, double* z1) 

@@ -33,6 +33,7 @@ class trace_integrator : private trace_field_source {
   virtual bool eval(const double r, const double phi, const double z,
 		    double* b_r, double* b_phi, double* b_z);
   virtual bool center(double* r0, double* z0) const;
+  virtual bool psibound(double* psi0, double* psi1) const;
   virtual bool extent(double* r0, double* r1, double* z0, double* z1) const;
   virtual bool get_surface(const double r0, const double phi0, const double z0,
 			   const double ds, double** r, double** z, int* n);

@@ -7,6 +7,7 @@ m3dc1_source::m3dc1_source()
   filename = "C1.h5";
   time = -1;
   factor = 1.;
+  shift = 0.;
 }
 
 m3dc1_source::m3dc1_source(std::string f, int t)
@@ -15,6 +16,7 @@ m3dc1_source::m3dc1_source(std::string f, int t)
   filename = f;
   time = t;
   factor = 1.;
+  shift = 0.;
 }
 
 m3dc1_source::~m3dc1_source()
@@ -44,11 +46,20 @@ bool m3dc1_source::load()
 
   m3dc1_scalar_list* xmag = file.read_scalar("xmag");
   m3dc1_scalar_list* zmag = file.read_scalar("zmag");
-  if(!xmag || !zmag)
+  m3dc1_scalar_list* psi0 = file.read_scalar("psimin");
+  m3dc1_scalar_list* psi1 = file.read_scalar("psi_lcfs");
+  if(!xmag || !zmag || !psi0 || !psi1)
     return false;
 
   R_axis = xmag->at(0);
   Z_axis = zmag->at(0);
+  psi_axis = psi0->at(0);
+  psi_lcfs = psi1->at(0);
+
+  std::cerr << "Magnetic axis = ( " << R_axis << ", " << Z_axis << " )"
+	    << std::endl;
+  std::cerr << "Psi at axis, lcfs = " << psi_axis << ", " << psi_lcfs
+	    << std::endl;
 
   std::cerr << "reading fields at time " << time << std::endl;
   psi = file.load_field("psi", time);
@@ -82,7 +93,30 @@ bool m3dc1_source::load()
   return true;
 }
 
-bool m3dc1_source::eval(const double r, const double phi, const double z,
+bool m3dc1_source::psibound(double* psi0, double* psi1) const
+{
+  *psi0 = psi_axis;
+  *psi1 = psi_lcfs;
+  return true;
+}
+
+bool m3dc1_source::eval_psi(const double r, const double z, double* p)
+{
+  const m3dc1_field::m3dc1_get_op psiget = (m3dc1_field::m3dc1_get_op)
+    (m3dc1_field::GET_VAL);
+
+  double val[m3dc1_field::OP_NUM];
+
+  double phi = 0.;
+
+  if(!psi->eval(r, phi, z, psiget, val))
+    return false;
+
+  *p = factor*val[m3dc1_field::OP_1];
+  return true;
+}
+
+bool m3dc1_source::eval(const double r, const double phi0, const double z,
 			double* b_r, double* b_phi, double* b_z)
 {
   const m3dc1_field::m3dc1_get_op psiget = (m3dc1_field::m3dc1_get_op)
@@ -97,6 +131,8 @@ bool m3dc1_source::eval(const double r, const double phi, const double z,
     (m3dc1_field::GET_DVAL | m3dc1_field::GET_PVAL);
 
   double val[m3dc1_field::OP_NUM];
+
+  double phi = phi0 - shift;
 
   // B_R   = -(dpsi/dZ)/R - (d2f/dRdphi)
   // B_Z   =  (dpsi/dR)/R - (d2f/dZdphi)

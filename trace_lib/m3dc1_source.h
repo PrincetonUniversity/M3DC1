@@ -15,11 +15,13 @@ class m3dc1_source : public trace_field_source {
   int extsubtract;
   double bzero, rzero;
   double R_axis, Z_axis;
+  double psi_axis, psi_lcfs;
 
  public:
   std::string filename;
   int time;
   double factor;
+  double shift;
 
   m3dc1_source();
   m3dc1_source(std::string f, int t);
@@ -28,6 +30,8 @@ class m3dc1_source : public trace_field_source {
   bool load();
   bool eval(const double r, const double phi, const double z,
 	    double* b_r, double* b_phi, double* b_z);
+  bool eval_psi(const double r, const double z, double* p);
+  bool psibound(double* psi0, double* psi1) const;
   virtual bool center(double* r0, double* z0) const;
   virtual bool extent(double* r0, double* r1, double* z0, double* z1) const;
 };

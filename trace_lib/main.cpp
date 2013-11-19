@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
 
   print_parameters();
 
-  std::fstream plotfile;
+  std::fstream plotfile, plotfile2;
   char outfile[256];
 
   if(pout) {
@@ -98,7 +98,22 @@ int main(int argc, char* argv[])
       plotfile << "'" << outfile << "'" << " title ''";
     }
     plotfile << std::endl;
-    plotfile.flush();
+    plotfile.close();
+
+    plotfile2.open("gplotpsi", std::fstream::out | std::fstream::trunc);
+    plotfile2 << "set size ratio 1" << '\n'
+	      << "set xlabel 'theta'" << '\n'
+	      << "set ylabel 'psi'" << '\n'
+	      << "set pointsize 0.1" << '\n'
+	      << "plot [-180:180] ";
+
+    for(int j=0; j<surfaces; j++) {
+      sprintf(outfile, "out%d", j);     
+      if(j>0) plotfile2 << ",\\\n";
+      plotfile2 << "'" << outfile << "'" << " using 3:4 title ''";
+    }
+    plotfile2 << std::endl;
+    plotfile2.close();
   }
 
   int* offsets = new int[size];
@@ -295,7 +310,7 @@ void delete_sources()
 
 bool process_command_line(int argc, char* argv[])
 {
-  const int max_args = 3;
+  const int max_args = 4;
   const int num_opts = 15;
   std::string arg_list[num_opts] = 
     { "-geqdsk", "-m3dc1", "-diiid-i",
@@ -363,6 +378,7 @@ bool process_line(const std::string& opt, const int argc, const std::string argv
     if(argc>=1) s->filename = argv[0];
     if(argc>=2) s->time = atoi(argv[1].c_str());
     if(argc>=3) s->factor = atof(argv[2].c_str());
+    if(argc>=4) s->shift = atof(argv[3].c_str())*M_PI/180.;
     tracer.sources.push_back(s);
   } else if(opt=="-geqdsk") {
     geqdsk_source* s = new geqdsk_source();
@@ -403,11 +419,11 @@ bool process_line(const std::string& opt, const int argc, const std::string argv
     if(argc==1) steps_per_transit = atoi(argv[0].c_str());
     else argc_err = true;
   } else if(opt=="-a") {
-    if(argc==1) angle = atof(argv[0].c_str());
+    if(argc==1) angle = atof(argv[0].c_str())*M_PI/180.;
     else argc_err = true;
   } else if(opt=="-phi0") {
     if(argc==1) {
-      Phi0 = atof(argv[0].c_str());
+      Phi0 = atof(argv[0].c_str())*M_PI/180.;
       phase_set = true;
     } else argc_err = true;
   } else if(opt=="-pout") {
@@ -439,23 +455,24 @@ void print_help()
     << "\ttrace <sources> -dR <dR> -dZ <dZ> -dR0 <dR0> -dZ0 <dZ0> /\n"
     << "\t   -p <pts> -t <trans> -s <steps> -a <angle> -phi0 <phi0> \n"
     << "\t   -pplot <pplot> -qplot <qplot>\n\n"
-    << " <angle>   The toroidal angle of the plane (default = 0)\n"
+    << " <angle>   The toroidal angle of the plane in degrees (default = 0)\n"
     << " <dR>      R-spacing of seed points (default = major radius/(2*pts))\n"
     << " <dR0>     R-distance of first seed point from axis (default = dR)\n"
     << " <dZ>      Z-spacing of seed points (default = 0)\n"
     << " <dZ0>     Z-distance of first seed point from axis (default = dZ)\n"
-    << " <phi0>    Toroidal angle of all seed points\n"
+    << " <phi0>    Toroidal angle of all seed points in degrees\n"
     << " <pts>     Number of seed points (default = 11)\n"
     << " <steps>   Integration steps per toroidal transit (default = 100)\n"
     << " <pplot>   If 1, Generate poincare plot data (default = 1)\n"
     << " <qplot>   If 1, Generate q-profile data (default = 1)\n"
     << " <trans>   Toroidal transits per seed point (default = 100)\n"
     << " <sources> May be one or more of the following:\n"
-    << "\n  -m3dc1 <c1_file> <ts> <factor>\n"
+    << "\n  -m3dc1 <c1_file> <ts> <factor> <shift>\n"
     << "   * Loads field information from M3D-C1 data file\n"
     << "   <c1_file> filename of M3D-C1 hdf5 file (default = C1.h5)\n" 
     << "   <ts>      timeslice of M3D-C1 hdf5 file (default = -1)\n"
     << "   <factor>  factor by which to multiply field (default = 1)\n"
+    << "   <shift>   toroidal phase shift of field, in degrees (default = 0)\n"
     << "\n  -geqdsk <gfile>\n"
     << "   * Loads field information from EFIT g-file\n"
     << "   <gfile>   filename of EFIT g-file\n"
