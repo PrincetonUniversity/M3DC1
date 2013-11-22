@@ -526,7 +526,7 @@ subroutine calculate_scalars()
   integer :: itri, numelms, def_fields
   integer :: is_edge(3)  ! is inode on boundary
   real :: n(2,3),tpifac
-  integer :: iedge, idim(3)
+  integer :: iedge, idim(3), izone, izonedim
   real :: delta_t
 
   tpifac = 1.
@@ -596,6 +596,9 @@ subroutine calculate_scalars()
   do itri=1,numelms
 
      dbf = db
+     
+     call zonfac(itri, izone, izonedim)
+     if(izone.ne.1) continue
 
      call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
      call define_fields(itri, def_fields, 0, 0)

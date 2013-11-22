@@ -431,12 +431,6 @@ contains
        else
           psx79 = 0.
        end if
-
-       if(icsubtract.eq.1) then 
-          call eval_ops(itri, psi_coil_field, psc79)
-       else
-          psc79 = 0.
-       end if
        
        if(ilin.eq.0) then
           call eval_ops(itri, psi_field(1), ps179, rfac)
@@ -446,16 +440,20 @@ contains
        
        if(eqsubtract.eq.1) then
           call eval_ops(itri, psi_field(0), ps079)
-          ps079 = ps079 + psc79
-          pst79 = ps079 + ps179
-          pss79 = ps079 + ps179/2.
+          ps079 = ps079
        else
-          ps179 = ps179 + psc79
           ps079 = 0.
-          pst79 = ps179
-          pss79 = ps179/2.
        endif
 
+       if(icsubtract.eq.1) then 
+          call eval_ops(itri, psi_coil_field, psc79)
+          ps079 = ps079 + psc79
+       else
+          psc79 = 0.
+       end if
+
+       pst79 = ps079 + ps179
+       pss79 = ps079 + ps179/2.
        pstx79 = pst79 + psx79
     endif
 

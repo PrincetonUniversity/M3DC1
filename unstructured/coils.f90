@@ -1,9 +1,7 @@
 module coils
   implicit none
 
-  integer, parameter :: maxbundles = 200
-  integer, parameter :: subcoils = 1
-  integer, parameter :: maxcoils = maxbundles*subcoils**2
+  integer, parameter :: maxcoils = 10000
 
 contains
 
@@ -28,10 +26,8 @@ contains
    integer, intent(in) :: ntor                       ! toroidal mode number
 
    real :: x, z, w, h, a1, a2, c, phase
-   real, dimension(maxcoils) :: vbuff
-   complex, dimension(maxcoils) :: cbuff
 
-   integer :: fcoil, fcurr, i, j, k, s, ier, ibuff, rank
+   integer :: fcoil, fcurr, i, j, k, s, ier, rank, subx, suby, ierr
    real :: dx, dz
 
    call MPI_Comm_rank(MPI_COMM_WORLD, rank, ier)
@@ -40,6 +36,7 @@ contains
    zc = 0.
    ic = 0.
    numcoils = 0
+   ierr = 0
 
    if(rank.eq.0) then
       ! Read coil data
@@ -52,9 +49,12 @@ contains
 
 
       s = 0
-      do i=1, maxbundles
-         read(fcoil,'(6F12.4)',end=100) x, z, w, h, a1, a2
-         write(*,'(A,2F12.4)') "x, z ", x, z
+      i = 0
+      do
+         read(fcoil,'(6F12.4,2I5)',end=100) x, z, w, h, a1, a2, subx, suby
+         if(subx.lt.1) subx = 1
+         if(suby.lt.1) suby = 1
+         write(*,'(6F12.4,2I5)') x, z, w, h, a1, a2, subx, suby
          read(fcurr,'(2F12.4)',end=100) c, phase
          write(*,'(A,2F12.4)') "current (kA), phase (deg): ", c, phase
          
@@ -63,15 +63,30 @@ contains
          if(a2.ne.0.) a2 = a2 + pi/2.
          a1 = tan(a1)
          a2 = tan(a2)
-         
-         c = amu0 * 1000. * c / (subcoils**2) / twopi
+
+         c = amu0 * 1000. * c / (subx*suby) / twopi
+!         c = amu0 * 1000. * c / (subx*suby)
          
          ! divide coils into sub-coils
-         do j=1, subcoils
-            do k=1, subcoils
+         do j=1, subx
+            do k=1, suby
                s = s + 1
-               dx = w*(2.*j/subcoils - 1.)/2.
-               dz = h*(2.*k/subcoils - 1.)/2.
+               if(s.gt.maxcoils) then
+                  print *, 'Too many coils.', s, maxcoils
+                  ierr = 1
+                  goto 300
+               end if
+               if(subx.eq.1) then 
+                  dx = 0.
+               else
+                  dx = w*(j-1.)/(subx-1.) - w/2.
+               end if
+               if(suby.eq.1) then 
+                  dz = 0.
+               else
+                  dz = h*(k-1.)/(suby-1.) - h/2.
+               end if
+
                xc(s) = x + dx - dz*a2
                zc(s) = z + dz + dx*a1
                
@@ -79,38 +94,32 @@ contains
                     - (0.,1.)*sin(pi*phase/180.))
             end do
          end do
+         i = i + 1
       end do
 
-      print *, "Error: too many coils!"
 
-100   print *, "Read ", i-1, " coils."
-
-      ! divide coils into sub-coils
-      numcoils = (i-1)*subcoils**2
-   
+100   numcoils = s
+      print *, "Read ", i, " coil groups; ", numcoils, " total coils."   
       goto 300
 
 200   if(rank.eq.0) print *, "Error reading ", coil_filename
+      ierr = 1
       goto 300
 201   if(rank.eq.0) print *, "Error reading ", current_filename
+      ierr = 1
       
 300   close(fcoil)
       close(fcurr)
    end if
 
+   call mpi_bcast(ierr, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ier)
+   if(ierr.ne.0) call safestop(301)
+
    ! share coil data
-   call mpi_allreduce(xc, vbuff, maxcoils, MPI_DOUBLE_PRECISION, &
-        MPI_SUM, MPI_COMM_WORLD, ier)
-   xc = vbuff
-   call mpi_allreduce(zc, vbuff, maxcoils, MPI_DOUBLE_PRECISION, &
-        MPI_SUM, MPI_COMM_WORLD, ier)
-   zc = vbuff
-   call mpi_allreduce(ic, cbuff, 2*maxcoils, MPI_DOUBLE_PRECISION, &
-        MPI_SUM, MPI_COMM_WORLD, ier)
-   ic = cbuff
-   call mpi_allreduce(numcoils, ibuff, 1, MPI_INTEGER, &
-        MPI_SUM, MPI_COMM_WORLD, ier)
-   numcoils = ibuff
+   call mpi_bcast(numcoils, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ier)
+   call mpi_bcast(xc, numcoils, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ier)
+   call mpi_bcast(zc, numcoils, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ier)
+   call mpi_bcast(ic, numcoils, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD, ier)
  end subroutine load_coils
 
 

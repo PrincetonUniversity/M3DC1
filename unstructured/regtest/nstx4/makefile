@@ -1,7 +1,9 @@
 green='\e[0;32m'
 NC='\e[0m'
 
-all : C1ke
+all : nstx4
+
+nstx4 : C1ke
 	@$(PY) ../compare.py; test "$$?" -eq 0
 	@echo -e ${green}Success!${NC}
 

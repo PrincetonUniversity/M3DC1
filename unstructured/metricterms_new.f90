@@ -2,7 +2,7 @@ module metricterms_new
 
 implicit none
 
-contains      
+contains
 
 !============================================================================
 ! V1 TERMS
@@ -8390,7 +8390,6 @@ vectype function n1ndenm(e,f,g,h)
   n1ndenm = temp
   return
 end function n1ndenm
-
 
 
 ! N1nu
