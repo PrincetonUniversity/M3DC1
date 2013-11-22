@@ -412,9 +412,9 @@ subroutine calculate_external_fields(sf)
         end do
 #endif
 
-        temp79a = -2.*pi*temp79a
-        temp79b = -2.*pi*temp79b
-        temp79c = -2.*pi*temp79c
+        temp79a = -twopi*temp79a
+        temp79b = -twopi*temp79b
+        temp79c = -twopi*temp79c
      end if
 
      if(iread_ext_field.ne.0) then
@@ -1987,8 +1987,11 @@ subroutine eqdsk_init()
 
   integer :: l, ll, numnodes
   real :: x, phi, z , dpsi
+  vectype, parameter ::  negone = -1
 
   real, allocatable :: flux(:)
+
+  numnodes = owned_nodes()
 
   call load_eqdsk
   press = press*amu0
@@ -2011,25 +2014,31 @@ subroutine eqdsk_init()
 
   if(iflip_z.eq.1) zmaxis = -zmaxis
 
-  numnodes = owned_nodes()
-
-  do l=1, numnodes
-     call get_node_pos(l, x, phi, z)
-
-     if(iflip_z.eq.1) z = -z
-
-     call get_local_vals(l)
-
-     call eqdsk_equ(x, z)
-     call eqdsk_per(x, z)
-
-     call set_local_vals(l)
-  enddo
-
   tcuro = current
   xmag = rmaxis
   zmag = zmaxis
   rzero = rmaxis
+
+  if(iread_eqdsk.eq.3) then 
+     if(ifixedb.eq.0) call vacuum_field
+     
+     ! define initial field associated with delta-function source
+     !     corresponding to current tcuro at location (xmag,zmag)
+     call deltafun(xmag,zmag,tcuro,jphi_field)
+  else
+     do l=1, numnodes
+        call get_node_pos(l, x, phi, z)
+        
+        if(iflip_z.eq.1) z = -z
+        
+        call get_local_vals(l)
+        
+        call eqdsk_equ(x, z)
+        call eqdsk_per(x, z)
+        
+        call set_local_vals(l)
+     enddo
+  end if
 !
 ! Bateman scaling parameter reintroduced
   fpol(nw) = fpol(nw)*batemanscale
@@ -2048,7 +2057,8 @@ subroutine eqdsk_init()
            ll = nw - l
            if(batemanscale.eq.1.0) cycle
 ! ...Apply Bateman scaling --- redefine fpol keeping ffprim fixed
-           if(ll.gt.0) fpol(ll) = sign(1.0,fpol(nw))*sqrt(fpol(ll+1)**2 - dpsi*(ffprim(ll)+ffprim(ll+1)))
+           if(ll.gt.0) fpol(ll) = sign(1.0,fpol(nw)) &
+                *sqrt(fpol(ll+1)**2 - dpsi*(ffprim(ll)+ffprim(ll+1)))
         end do
         call create_profile(nw,press,pprime,fpol,ffprim,flux)
         call create_rho_from_q(nw,flux,qpsi)
@@ -2080,18 +2090,25 @@ subroutine eqdsk_init()
   call unload_eqdsk
 
   ! flip psi sign convention
-  do l=1, numnodes
-     call get_local_vals(l)
-     psi0_l = -psi0_l
-     psi1_l = -psi1_l
-     call set_local_vals(l)
-  end do
-  psibound = -psibound
-  psimin = -psimin
-  psilim = -psilim
-!
-      if(iprint.ge.1 .and. myrank.eq.0) write(*,2012) sibry,simag,psimin,psilim,psibound
- 2012 format(" sibry, simag, psimin, psilim,psibound =",1p5e12.4)
+  ! (iread_eqdsk==3 does not use the eqdsk psi)
+  if(iread_eqdsk.eq.1 .or. iread_eqdsk.eq.2) then
+!!$     do l=1, numnodes
+!!$        call get_local_vals(l)
+!!$        psi0_l = -psi0_l
+!!$        psi1_l = -psi1_l
+!!$        call set_local_vals(l)
+!!$     end do
+     call mult(psi_field(0), negone)
+     call mult(psi_field(1), negone)
+     if(icsubtract.eq.1) call mult(psi_coil_field, negone)
+     psibound = -psibound
+     psimin = -psimin
+     psilim = -psilim
+  end if
+
+  if(iprint.ge.1 .and. myrank.eq.0) &
+       write(*,2012) sibry,simag,psimin,psilim,psibound
+2012 format(" sibry, simag, psimin, psilim,psibound =",1p5e12.4)
 
 end subroutine eqdsk_init
 

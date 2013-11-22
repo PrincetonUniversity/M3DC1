@@ -430,7 +430,8 @@ subroutine boundary_vpol(rhs, u_v, chi_v, mat)
   numnodes = owned_nodes()
   do i=1, numnodes
 
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
+          all_boundaries)
      if(.not.is_boundary) cycle
 
      i_u = node_index(u_v, i)
@@ -657,7 +658,8 @@ subroutine boundary_te(rhs, te_v, mat)
 
   numnodes = owned_nodes()
   do i=1, numnodes
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
+          all_boundaries)
      if(.not.is_boundary) cycle
 
      i_n = node_index(te_v, i)
@@ -703,7 +705,8 @@ subroutine boundary_ti(rhs, ti_v, mat)
 
   numnodes = owned_nodes()
   do i=1, numnodes
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
+          all_boundaries)
      if(.not.is_boundary) cycle
 
      i_n = node_index(ti_v, i)
@@ -806,7 +809,8 @@ subroutine boundary_pe(rhs, pe_v, mat)
 
   numnodes = owned_nodes()
   do i=1, numnodes
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
+          all_boundaries)
      if(.not.is_boundary) cycle
 
      i_pe = node_index(pe_v, i)

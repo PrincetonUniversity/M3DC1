@@ -74,7 +74,7 @@ contains
 1003  format("OUTPUT: hdf5_write_scalars   ", I5, 1p2e16.8)
     endif
 
-    ! only write timeslice are restart files evey ntimepr timesteps
+    ! only write timeslice and restart files evey ntimepr timesteps
     if(mod(ntime-ntime0,ntimepr).eq.0) then
        if(myrank.eq.0 .and. iprint.ge.2) print *, "  calculating aux fields"
        call calculate_auxiliary_fields(eqsubtract)
