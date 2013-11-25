@@ -348,9 +348,10 @@ bool trace_integrator::step_rk4(double dphi)
     return false;
 
   Phi += dphi/2.;
+
   double k1_R = R*dphi*b_r/b_phi;
   double k1_Z = R*dphi*b_z/b_phi;
-
+   
   if(!eval(R + k1_R/2.,Phi,Z + k1_Z/2.,&b_r,&b_phi,&b_z))
     return false;
 
@@ -397,7 +398,7 @@ bool trace_integrator::step_predcorr(double dphi)
   // Derivative evaulation
   if(!eval(R+dR,Phi,Z+dZ,&b_r,&b_phi,&b_z))
     return false;
-  
+
   dr[0] = (R+dR)*b_r/b_phi;
   dz[0] = (R+dR)*b_z/b_phi;
 

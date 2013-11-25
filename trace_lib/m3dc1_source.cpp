@@ -8,6 +8,7 @@ m3dc1_source::m3dc1_source()
   time = -1;
   factor = 1.;
   shift = 0.;
+  use_g = true;
 }
 
 m3dc1_source::m3dc1_source(std::string f, int t)
@@ -17,6 +18,7 @@ m3dc1_source::m3dc1_source(std::string f, int t)
   time = t;
   factor = 1.;
   shift = 0.;
+  use_g = true;
 }
 
 m3dc1_source::~m3dc1_source()
@@ -33,14 +35,18 @@ bool m3dc1_source::load()
   file.read_parameter("bzero", &bzero);
   file.read_parameter("rzero", &rzero);
   file.read_parameter("extsubtract", &extsubtract);
+  file.read_parameter("eqsubtract", &eqsubtract);
   file.read_parameter("icomplex", &icomplex);
   file.read_parameter("3d", &i3d);
 
   use_f = ((icomplex==1) || (i3d==1));
 
+  if(time >= 0 && eqsubtract==1) bzero = 0.;
+
   std::cerr << "bzero = " << bzero << std::endl;
   std::cerr << "rzero = " << rzero << std::endl;
   std::cerr << "extsubtract = " << extsubtract << std::endl;
+  std::cerr << "extsubtract = " << eqsubtract << std::endl;
   std::cerr << "icomplex = " << icomplex << std::endl;
   std::cerr << "i3d = " << i3d << std::endl;
 
@@ -66,7 +72,13 @@ bool m3dc1_source::load()
   if(!psi) return false;
 
   g = file.load_field("I", time);
-  if(!g) return false;
+  if(!g) {
+    std::cerr << 
+      "WARNING: Field 'I' not found.  Using bzero for toroidal field"
+	      << std::endl;
+    use_g = false;
+    use_f = false;
+  }
 
   if(use_f) {
     f = file.load_field("f", time);
@@ -78,8 +90,10 @@ bool m3dc1_source::load()
     psi_x = file.load_field("psi_ext", time);
     if(!psi_x) return false;
 
-    g_x = file.load_field("I_ext", time);
-    if(!g_x) return false;
+    if(use_g) {
+      g_x = file.load_field("I_ext", time);
+      if(!g_x) return false;
+    }
 
     if(use_f) {
       f_x = file.load_field("f_ext", time);
@@ -144,9 +158,13 @@ bool m3dc1_source::eval(const double r, const double phi0, const double z,
   *b_r -= factor*val[m3dc1_field::OP_DZ]/r;
   *b_z += factor*val[m3dc1_field::OP_DR]/r;
 
-  if(!g->eval(r, phi, z, gget, val))
-    return false;
-  *b_phi += factor*val[m3dc1_field::OP_1]/r;
+  if(use_g) {
+    if(!g->eval(r, phi, z, gget, val))
+      return false;
+    *b_phi += factor*val[m3dc1_field::OP_1]/r;
+  } else {
+    *b_phi += factor*bzero;
+  }
 
   if(use_f) {
     if(!f->eval(r, phi, z, fget, val))
@@ -163,9 +181,11 @@ bool m3dc1_source::eval(const double r, const double phi0, const double z,
     *b_r -= factor*val[m3dc1_field::OP_DZ]/r;
     *b_z += factor*val[m3dc1_field::OP_DR]/r;
 
-    if(!g_x->eval(r, phi, z, gget, val))
-      return false;
-    *b_phi += factor*val[m3dc1_field::OP_1]/r;
+    if(use_g) {
+      if(!g_x->eval(r, phi, z, gget, val))
+	return false;
+      *b_phi += factor*val[m3dc1_field::OP_1]/r;
+    }
 
     if(use_f) {
       if(!f_x->eval(r, phi, z, fget, val))

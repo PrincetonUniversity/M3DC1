@@ -316,7 +316,7 @@ bool process_command_line(int argc, char* argv[])
     { "-geqdsk", "-m3dc1", "-diiid-i",
       "-dR", "-dZ", "-dR0", "-dZ0", 
       "-ds", "-p", "-t", "-s", "-a",
-      "-pout", "-qout", "-phi0"};
+      "-pout", "-qout", "-phi0" };
   std::string opt = "";
   std::string arg[max_args];
   int args = 0;
