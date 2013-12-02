@@ -1,6 +1,7 @@
 #include "trace_integrator.h"
 
 #include <iostream>
+#include <iomanip>
 #include <math.h>
 
 trace_integrator::trace_integrator()
@@ -257,9 +258,10 @@ bool trace_integrator::integrate(int transits, int steps_per_transit,
     }
 
     // take timestep
-    //    result = step_euler(dphi);
+    //result = step_euler(dphi);
     result = step_rk4(dphi);
-    //    result = (i < 4) ? step_rk4(dphi) : step_predcorr(dphi);
+    //    result = step_rk3(dphi);
+    //result = (i < 4) ? step_rk4(dphi) : step_predcorr(dphi);
 
     if(!result) return false;
 
@@ -299,7 +301,7 @@ bool trace_integrator::integrate(int transits, int steps_per_transit,
 
       double R_plot = R*f + last_R*(1.-f);
       double Z_plot = Z*f + last_Z*(1.-f);
-      double theta_plot = atan2(Z_plot - Z0, R_plot - R0)*180./M_PI;
+      double phi_plot = atan2(Z_plot - Z0, R_plot - R0)*180./M_PI;
       double psi_plot;
       if(!sources[0]->eval_psi(R_plot, Z_plot, &psi_plot))
 	psi_plot = 0;
@@ -308,8 +310,18 @@ bool trace_integrator::integrate(int transits, int steps_per_transit,
 	  psi_plot = (psi_plot - psi_axis) / (psi_lcfs - psi_axis);
       }
 
-      file << R_plot << "\t" << Z_plot << "\t" 
-	   << theta_plot << "\t" << psi_plot << std::endl;
+      file << std::setiosflags(std::ios::scientific)
+	   << std::setw(20) << std::setprecision(12) 
+	   << R_plot 
+	   << std::setiosflags(std::ios::scientific) 
+	   << std::setw(20) << std::setprecision(12)
+	   << Z_plot
+	   << std::setiosflags(std::ios::scientific)
+	   << std::setw(20) << std::setprecision(12)
+	   << phi_plot
+	   << std::setiosflags(std::ios::scientific) 
+	   << std::setw(20) << std::setprecision(12)
+	   << psi_plot << std::endl;
     }
   }
 
@@ -335,6 +347,44 @@ bool trace_integrator::step_euler(double dphi)
 
   R += dphi*dr[0];
   Z += dphi*dz[0];
+
+  return true;
+}
+
+bool trace_integrator::step_rk3(double dphi)
+{
+  double b_r, b_phi, b_z, dR, dZ;
+
+  if(!eval(R,Phi,Z,&b_r,&b_phi,&b_z))
+    return false;
+
+  Phi += dphi/2.;
+  double k1_R = R*dphi*b_r/b_phi;
+  double k1_Z = R*dphi*b_z/b_phi;
+   
+  if(!eval(R + k1_R/2.,Phi,Z + k1_Z/2.,&b_r,&b_phi,&b_z))
+    return false;
+
+  Phi += dphi/2.;
+  double k2_R = (R+k1_R/2.)*dphi*b_r/b_phi;
+  double k2_Z = (R+k1_R/2.)*dphi*b_z/b_phi;
+  
+  if(!eval(R - k1_R + 2.*k2_R,Phi,Z - k1_Z + 2.*k2_Z,&b_r,&b_phi,&b_z))
+    return false;
+
+  double k3_R = (R-k1_R+2.*k2_R)*dphi*b_r/b_phi;
+  double k3_Z = (R-k1_R+2.*k2_R)*dphi*b_z/b_phi;
+
+  dR = k1_R/6. + 2.*k2_R/3. + k3_R/6.;
+  dZ = k1_Z/6. + 2.*k2_Z/3. + k3_Z/6.;
+
+  R += dR;
+  Z += dZ;
+
+  // store the derivative at the current step
+  // for use with predictor-corrector methods
+  dr[0] = dR/dphi;
+  dz[0] = dZ/dphi;
 
   return true;
 }

@@ -45,6 +45,7 @@ class trace_integrator : private trace_field_source {
   void get_pos(double *r, double* phi, double* z) const
   { *r = R; *phi = Phi; *z = Z; }
   bool step_euler(double dphi);
+  bool step_rk3(double dphi);
   bool step_rk4(double dphi);
   bool step_predcorr(double dphi);
   bool integrate(int transits, int steps_per_transit, 

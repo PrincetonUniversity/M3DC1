@@ -119,7 +119,7 @@ int parse_file(const char* filename, double** x, double** z)
   ssize_t read;
   int n = 0;
   int i;
-  float dx, dz;
+  float dx, dz, dum1, dum2;
 
   file = fopen(filename, "r");
 
@@ -137,7 +137,7 @@ int parse_file(const char* filename, double** x, double** z)
 
   rewind(file);
   for(i=0; i<n; i++) {
-    fscanf(file, "%f\t%f\n", &dx, &dz);
+    fscanf(file, "%f\t%f\t%f\t%f\n", &dx, &dz, &dum1, &dum2);
     (*x)[i] = dx;
     (*z)[i] = dz;
   }

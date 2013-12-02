@@ -46,7 +46,11 @@ PUSH_OBJS = push_interface.o
 
 F90FLAGS := $(F90FLAGS) -DFORTRAN
 
-all : $(LIB) $(DLIB) $(PUSH_LIB)
+all : $(LIB)
+
+shared : $(DLIB)
+
+push : $(PUSH_LIB)
 
 $(DLIB) : $(OBJS)
 	$(LDD) $(LDOPTS) $(OBJS) $(LIBS) -o $@
@@ -63,15 +67,15 @@ python : fio_setup.py python_interface.cpp
 	$(PYTHON) $< build $(PYFLAGS)
 
 .PHONY: install
-install : $(LIB) $(DLIB) $(EXAMPLE_BIN)
+install :
 	mkdir -p $(M3DC1_INSTALL_DIR)/lib/_$(M3DC1_ARCH)
 	cp $(LIB) $(DLIB) $(M3DC1_INSTALL_DIR)/lib/_$(M3DC1_ARCH)
 	mkdir -p $(M3DC1_INSTALL_DIR)/include/
-	cp $(SRCDIR)/fusion_io.h $(M3DC1_INSTALL_DIR)/include/
+	cp $(SRCDIR)/fusion_io.h $(SRCDIR)/fusion_io_defs.h $(M3DC1_INSTALL_DIR)/include/
 	mkdir -p $(M3DC1_INSTALL_DIR)/include/_$(M3DC1_ARCH)
 	cp fusion_io.mod fio_push.mod $(M3DC1_INSTALL_DIR)/include/_$(M3DC1_ARCH)
-	CFLAGS='$(CFLAGS)' ARCHFLAGS='$(LIBS)' \
-	$(PYTHON) $(SRCDIR)/fio_setup.py install
+#	CFLAGS='$(CFLAGS)' ARCHFLAGS='$(LIBS)' \
+#	$(PYTHON) $(SRCDIR)/fio_setup.py install
 
 include $(M3DC1_ROOT)/install/common_footer.mk
 

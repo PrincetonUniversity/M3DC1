@@ -21,7 +21,9 @@ INCLUDE := $(HDF5_INCLUDE) $(INCLUDE)
 
 OBJS = m3dc1_mesh.o m3dc1_field.o m3dc1_file.o
 
-all : libm3dc1.a libm3dc1_fortran.a libm3dc1.so
+all : libm3dc1.a libm3dc1_fortran.a
+
+shared : libm3dc1.so
 
 libm3dc1.so : $(OBJS)
 	$(LDD) $(LDOPTS) $(OBJS) $(LIBS) -o $@
@@ -36,7 +38,7 @@ m3dc1_fortran_test : test.o libm3dc1_fortran.a libm3dc1.a
 	$(F90) $< -L. -lm3dc1_fortran -lm3dc1 $(LDFLAGS) $(LIBS) -o $@
 
 .PHONY: install
-install : libm3dc1.a libm3dc1.so libm3dc1_fortran.a
+install : 
 	mkdir -p $(M3DC1_INSTALL_DIR)/bin/_$(M3DC1_ARCH)
 	mkdir -p $(M3DC1_INSTALL_DIR)/lib/_$(M3DC1_ARCH)
 	cp libm3dc1.a libm3dc1.so libm3dc1_fortran.a \
