@@ -279,7 +279,7 @@ Program Reducedquintic
      endif
 
 
-     if(linear.eq.0 .and. eqsubtract.eq.0) then
+     if(linear.eq.0 .and. eqsubtract.eq.0 .and. i_control%icontrol_type .ge. 0) then
      ! feedback control on toroidal current
           if(myrank.eq.0 .and. iprint.ge.1) &
              print *, " Applying feedback", &
