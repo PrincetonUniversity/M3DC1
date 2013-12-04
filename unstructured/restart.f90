@@ -87,6 +87,7 @@ subroutine rdrestart
   character (len=30) :: fname, oldfname
   integer :: ndofs
   integer :: iversion
+  real :: vloopsave
 
   call createfilename(fname, oldfname)
   call numdofs(num_fields, ndofs)
@@ -146,12 +147,14 @@ subroutine rdrestart
      field_vec%data = 0.
   endif
 
+  vloopsave = vloop
   read(56) ntime,time,dt
   read(56) totcur0,tflux0,gbound,ptot,vloop,   &
           i_control%err_i, i_control%err_p_old, n_control%err_i, n_control%err_p_old
   read(56,END=1199) psimin,psilim,psibound
   read(56,END=1199) xnull,znull
   read(56,END=1199) xmag,zmag
+  if(control_type .eq. -1) vloop = vloopsave  ! use vloop from input if no control on I
 
   call numdofs(1, ndofs)
   do j1=1,ndofs 
@@ -342,6 +345,7 @@ subroutine rdrestartglobal
   integer :: icomp
   vectype :: tempvariable
   real :: realtemp
+  real :: vloopsave
 
   open(56,file='C1restart',form='unformatted',status='old')
       
@@ -360,6 +364,7 @@ subroutine rdrestartglobal
           numentsglobal(1), numentsglobal(2), numentsglobal(3)
      call safestop(567)
   endif
+  vloopsave = vloop
   read(56) numdofsglobal
   read(56) numvar
   read(56) iper
@@ -368,6 +373,7 @@ subroutine rdrestartglobal
   read(56) totcur0,tflux0,gbound,ptot,vloop,   &
           i_control%err_i, i_control%err_p_old, n_control%err_i, n_control%err_p_old
   read(56) icomp
+  if(control_type .eq. -1) vloop = vloopsave  ! vloop from input if no I control
   write(*,*) 'in restartglobal time, dts are ', ntime, time, dt
   numnodes = local_nodes()
   read(56) globalid
@@ -540,6 +546,7 @@ subroutine rdrestart_adios
   integer :: imaxrank, numelms, ieqsubtract, ilinear, icomp
   character (len=30) :: fname, oldfname
   integer :: ndofs1, ndofs2, ndofs_1, ndofs_2
+  real :: vloopsave
 
   ! ADIOS variables declarations for matching gread_restart_c11.fh &  gread_restart_c12.fh
   integer             :: comm, ierr, ier, itmp
@@ -615,6 +622,7 @@ subroutine rdrestart_adios
     ! Read in scalars (offset = 0, read size = 1 "in all dimensions")
     start = 0
     readsize = 1 ! number of elements of a type, not bytes!
+    vloopsave = vloop
 
     ! These scalars are varying over processors so we use adios_read_local_var() to 
     !  read the myrank'th value of the scalar from the file
@@ -659,6 +667,7 @@ subroutine rdrestart_adios
     call adios_read_local_var (gh, "pellet_velz",    myrank, start, readsize, pellet_velz, read_bytes)
     call adios_read_local_var (gh, "pellet_var",    myrank, start, readsize, pellet_var, read_bytes)
     call adios_read_local_var (gh, "version",    myrank, start, readsize, iversion, read_bytes)
+    if(control_type .eq. -1) vloop = vloopsave  !  vloop from input if no I control
 
   if(inumnodes .ne. numnodes .or. inumelms .ne. numelms .or. &
      numvar .ne. inumvar .or. &
