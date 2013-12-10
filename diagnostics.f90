@@ -1221,7 +1221,7 @@ end subroutine te_max
 !
 ! locates the magnetic axis and the value of psi there
 !=====================================================
-subroutine lcfs(psi)
+subroutine lcfs(psi, test_wall)
   use arrays
   use basic
   use mesh_mod
@@ -1234,6 +1234,7 @@ subroutine lcfs(psi)
   include 'mpif.h'
 
   type(field_type), intent(in) :: psi
+  logical, intent(in), optional :: test_wall
 
   type(field_type) :: temp_field
   real :: psix, psib, psim
@@ -1242,7 +1243,14 @@ subroutine lcfs(psi)
   logical :: is_boundary, first_point
   real, dimension(2) :: normal
   real :: curv
+  logical :: tw
   vectype, dimension(dofs_per_node) :: data
+
+  if(present(test_wall)) then 
+     tw = test_wall
+  else
+     tw = .true.
+  endif
 
   call create_field(temp_field)
   temp_field = psi
@@ -1278,24 +1286,26 @@ subroutine lcfs(psi)
   ! (as in a private flux region)
   first_point = .true.
   numnodes = owned_nodes()
-  do inode=1, numnodes
-     call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z, &
-          inner_wall)
-     if(.not.is_boundary) cycle
-
-     call get_node_data(temp_field,inode,data)
-
-     if(((x-xmag)*real(data(2)) + (z-zmag)*real(data(3))) &
-          *(real(data(1))-psimin).lt.0.) cycle
-
-     if(first_point) then
-        psib = real(data(1))
-        first_point =.false.
-     else
-        if(abs(real(data(1)) - psimin).lt.abs(psib - psimin)) &
-             psib = real(data(1))
-     endif
-  end do
+  if(tw) then
+     do inode=1, numnodes
+        call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z, &
+             inner_wall)
+        if(.not.is_boundary) cycle
+        
+        call get_node_data(temp_field,inode,data)
+        
+        if(((x-xmag)*real(data(2)) + (z-zmag)*real(data(3))) &
+             *(real(data(1))-psimin).lt.0.) cycle
+        
+        if(first_point) then
+           psib = real(data(1))
+           first_point =.false.
+        else
+           if(abs(real(data(1)) - psimin).lt.abs(psib - psimin)) &
+                psib = real(data(1))
+        endif
+     end do
+  end if
 
   if(first_point) then
      temp1 = -1e10

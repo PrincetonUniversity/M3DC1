@@ -788,7 +788,7 @@ subroutine gradshafranov_solve
 
   call define_profiles
 
-  if(igs.ne.0) call lcfs(psi_vec)
+  if(igs.ne.0) call lcfs(psi_vec, imulti_region.eq.0)
 
   error2 = 0.
   !-------------------------------------------------------------------
@@ -853,7 +853,7 @@ subroutine gradshafranov_solve
      endif
 
      ! Find new magnetic axis and lcfs
-     call lcfs(psi_vec)
+     call lcfs(psi_vec,imulti_region.eq.0)
      if(psilim.eq.psimin) then
         if(myrank.eq.0) print *, 'ERROR: psimin = psilim = ', psilim
         call safestop(4)
