@@ -69,7 +69,7 @@ endif   # on USESCOREC
 
 AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
 
-OPTS := $(OPTS) -DPetscDEV -DKSPITS # -DUSEADIOS #-DUSEHYBRID -DCJ_MATRIX_DUMP
+OPTS := $(OPTS) -DPetscDEV -DKSPITS -DUSEADIOS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 #PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev-SUPERLU-HYPRE-MUMPS/petsc-dev-060711/petsc-dev
 #PETSC_ARCH = arch-cray-xt6-pkgs-opt
 #SUPERLU_DIST = -lsuperlu_dist_2.5
@@ -80,6 +80,10 @@ OPTS := $(OPTS) -DPetscDEV -DKSPITS # -DUSEADIOS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 #ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
 #ADIOS_DIR=/global/homes/p/pnorbert/adios/1.3.1/hopper/pgi/
 #ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf -L/global/homes/p/pnorbert/mxml/mxml.hopper/lib -lm -lmxml -llustreapi -pgcpplibs
+ADIOS_DIR=/usr/common/usg/adios/1.4.1
+ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
+             -L/usr/common/usg/minixml/2.7/lib -lm -lmxml \
+             -L/usr/lib64/ -llustreapi -pgcpplibs
 
 INCLUDE := $(INCLUDE) -I$(HDF5_DIR)/include $(FFTW_INCLUDE_OPTS) \
 	-I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
@@ -89,8 +93,8 @@ INCLUDE := $(INCLUDE) -I$(HDF5_DIR)/include $(FFTW_INCLUDE_OPTS) \
 LIBS := $(LIBS) -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5 \
 	$(FFTW_POST_LINK_OPTS) -lfftw3 \
 	$(HYPRE) $(MUMPS) $(PARMETIS) -ldl \
-	-L$(GSL_DIR)/lib -lgsl # \
-#	$(ADIOSREAD_LIB) $(ADIOS_LIB) -ladiosf_v1 -lxml
+	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
+	$(ADIOS_FLIB)
 #        $(HYBRID_LIBS) \
 
 
