@@ -213,6 +213,7 @@ module basic
   integer :: ihypamu     ! 1 = scale hyper-viscosity with visc
   integer :: ihypkappa   ! 1 = scale hyper-diffusivity with kappa
   integer :: ihypdx      ! scale hyper-resistivity with dx**ihypdx
+  integer :: imp_hyper   ! 1 = include hyper-resistivity implicitly in psi equation
   integer :: ikapscale   ! 1 = scale kappar with kappa
   integer :: inertia     ! 1 = include ion inertial terms (v.grad(v))
   integer :: itwofluid   ! 1 = include two-fluid terms in ohm's law (electron form)
@@ -397,9 +398,9 @@ module arrays
   integer, parameter :: p_g = 8
   integer, parameter :: te_g = 9
   integer, parameter :: ti_g = 10
-  integer, parameter :: num_fields = 10
+  integer, parameter :: e_g = 11
+  integer, parameter :: num_fields = 11
 
-  integer, parameter :: bf_g = 11
 
   type(field_type) :: u_field(0:1), vz_field(0:1), chi_field(0:1)
   type(field_type) :: psi_field(0:1), bz_field(0:1), pe_field(0:1)

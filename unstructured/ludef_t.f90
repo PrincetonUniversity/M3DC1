@@ -1445,8 +1445,7 @@ end subroutine compression_nolin
 !======================================================================
 ! Flux Equation
 !======================================================================
-subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e, &
-     izone)
+subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
   
   use basic
   use arrays
@@ -1459,7 +1458,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e, &
 
   vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: trial, lin 
   vectype, dimension(num_fields), intent(out) :: ssterm, ddterm
-  vectype, intent(out) :: q_ni(2), r_bf, q_bf, r_e, q_e
+  vectype, intent(out) :: q_ni(2), r_bf, q_bf 
   integer, intent(in) :: izone
 
   vectype :: temp, temp2
@@ -1494,8 +1493,6 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e, &
   q_ni = 0.
   r_bf = 0.
   q_bf = 0.
-  r_e = 0.
-  q_e = 0.
 
   if(iestatic.eq.1) then
      if(.not.surface_int) then
@@ -1511,6 +1508,14 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e, &
   temp = b1psieta(trial,lin,eta79,hf)
   ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
   ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
+
+  ! implicit hyperresistivity
+  if(jadv.eq.1 .and. imp_hyper.eq.1) then
+     temp = b1jeta(trial,lin,eta79,hf)
+     ssterm(e_g) = ssterm(e_g) -       thimp     *dt*temp
+     ddterm(e_g) = ddterm(e_g) +   (1.-thimp*bdf)*dt*temp
+  endif
+
   if(numvar.ge.2) then
      temp = b1beta(trial,lin,eta79,hf)
      ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
@@ -1691,6 +1696,12 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e, &
      end if
   end if
 
+
+  ! electrostatic potential
+  ! ~~~~~~~~~~~~~~~~~~~~~~~
+  temp = b1e(trial,lin)
+  ssterm(e_g) = ssterm(e_g)       - thimpe     *dt*temp
+  ddterm(e_g) = ddterm(e_g) + (1. - thimpe*bdf)*dt*temp
   select case (itwofluid)
 
   case(-1)
@@ -2002,12 +2013,6 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e, q_e, &
      ssterm(bz_g) = ssterm(bz_g) - thimpf**2*dt*dt*temp2
      ddterm(bz_g) = ddterm(bz_g) - thimpf**2*dt*dt*temp2
   endif
-
-  ! electrostatic potential
-  ! ~~~~~~~~~~~~~~~~~~~~~~~
-  temp = b1e(trial,lin)
-  r_e = r_e       - thimpe     *dt*temp
-  q_e = q_e + (1. - thimpe*bdf)*dt*temp
 
   case(2,3,4)  ! ion form
 !
@@ -3969,6 +3974,29 @@ subroutine bf_equation_nolin(trial, r4term)
 end subroutine bf_equation_nolin
 
 
+!======================================================================
+! j_equation
+!======================================================================
+subroutine j_equation_lin(trial, lin, ssterm, ddterm)
+  
+  use basic
+  use arrays
+  use m3dc1_nint
+  use metricterms_new
+
+  implicit none
+
+  vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: trial, lin 
+  vectype, dimension(num_fields), intent(out) :: ssterm, ddterm
+
+  ssterm = 0.
+  ddterm = 0.
+
+  ssterm(e_g) =     int2(trial(:,OP_1),lin(:,OP_1 ))
+  ssterm(psi_g) =  -int2(trial(:,OP_1),lin(:,OP_GS))
+end subroutine j_equation_lin
+
+
 
 !======================================================================
 ! ludefall
@@ -4357,7 +4385,7 @@ subroutine ludefphi_n(itri)
   integer :: i, j, k, izone
   
   vectype, dimension(dofs_per_element,dofs_per_element,num_fields) :: ss, dd
-  vectype, dimension(dofs_per_element,dofs_per_element) :: r_bf, q_bf, r_e, q_e
+  vectype, dimension(dofs_per_element,dofs_per_element) :: r_bf, q_bf
   vectype, dimension(dofs_per_element) :: q4
   vectype, dimension(dofs_per_element,dofs_per_element,2) :: q_ni
 
@@ -4411,8 +4439,9 @@ subroutine ludefphi_n(itri)
      end if
      maxk = numvar
      if(imp_bf.eq.1 .and. numvar.ge.2) maxk = maxk + 1
-     if(ipressplit.ne.0 .and. numvar.ge.3) maxk = maxk - 1
-     if(jadv.eq.0 .and. i3d.eq.1) maxk = maxk + 1
+     if(ipressplit.ne.0 .and. numvar.ge.3) maxk = maxk - 1   !  is this generally valid?
+     if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.eq.1)) &
+                                           maxk = maxk + 1
   endif
 
   ieq(1) = psi_i
@@ -4421,16 +4450,17 @@ subroutine ludefphi_n(itri)
      ieq(3) = ppe_i
   end if
 
-  ! add bf equation and e equations
+  ! add bf equation and e equations:
+  ! NOTE:  e=electrostatic potential for jadv=0, del_star_psi for jadv=1
   if(imp_bf.eq.1) then
-     if(jadv.eq.0 .and. i3d.eq.1) then
+     if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.eq.1)) then
         ieq(maxk-1) = bf_i
         ieq(maxk)   = e_i
      else
         ieq(maxk) = bf_i
      endif
   else
-     if(jadv.eq.0 .and. i3d.eq.1) then
+     if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.eq.1)) then
         ieq(maxk) = e_i
      endif
   endif
@@ -4443,18 +4473,22 @@ subroutine ludefphi_n(itri)
      q_ni = 0.
      r_bf = 0.
      q_bf = 0.
-     r_e = 0.
-     q_e = 0.
      q4 = 0.
 
      if     (ieq(k).eq.psi_i) then
         call get_flux_mask(itri, imask)
-     else if(ieq(k).eq.bz_i) then
+     else if(ieq(k).eq.bz_i .and. numvar.ge.2) then
         call get_bz_mask(itri, imask)
      else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
         call get_pres_mask(itri, imask)
      else if(ieq(k).eq.bf_i) then
         call get_bf_mask(itri, imask)
+     else if(ieq(k).eq.e_i) then
+        if(jadv.eq.0) then
+           call get_esp_mask(itri, imask)
+        else
+           call get_j_mask(itri, imask)
+        endif
      else
         if(myrank.eq.0) print *, 'error in ludefphi_n', k, ieq(k)
         call safestop(31)
@@ -4468,8 +4502,6 @@ subroutine ludefphi_n(itri)
            q_ni(i,:,:) = 0.
            r_bf(i,:) = 0.
            q_bf(i,:) = 0.
-           r_e(i,:) = 0.
-           q_e(i,:) = 0.
            q4(i) = 0.
            cycle
         endif
@@ -4478,10 +4510,9 @@ subroutine ludefphi_n(itri)
            if     (ieq(k).eq.psi_i) then
               if(.not.surface_int) then
                  call flux_lin(mu79(:,:,i),nu79(:,:,j), &
-                      ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
-                      r_e(i,j),q_e(i,j),izone)
+                      ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j),izone)
               end if
-           else if(ieq(k).eq.bz_i) then
+           else if(ieq(k).eq.bz_i .and. numvar.ge.2) then
               call axial_field_lin(mu79(:,:,i),nu79(:,:,j), &
                    ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
                    izone)
@@ -4496,9 +4527,13 @@ subroutine ludefphi_n(itri)
                    ss(i,j,:),dd(i,j,:),r_bf(i,j),q_bf(i,j))
 
            else if(ieq(k).eq.e_i) then
-              call potential_lin(mu79(:,:,i),nu79(:,:,j), &
-                   ss(i,j,:),dd(i,j,:),q_ni(i,j,1),r_bf(i,j),q_bf(i,j), &
-                   r_e(i,j))
+              if(jadv.eq.0) then
+                 call potential_lin(mu79(:,:,i),nu79(:,:,j), &
+                      ss(i,j,:),dd(i,j,:),q_ni(i,j,1),r_bf(i,j),q_bf(i,j))
+              else   !jadv.eq.1
+                 call j_equation_lin(mu79(:,:,i),nu79(:,:,j), &
+                      ss(i,j,:),dd(i,j,:))
+              endif
               
            else
               print *, 'error!'
@@ -4510,7 +4545,7 @@ subroutine ludefphi_n(itri)
         if(izone.eq.1) then
            if(ieq(k).eq.psi_i) then
               call flux_nolin(mu79(:,:,i),q4(i))
-           else if(ieq(k).eq.bz_i) then
+           else if(ieq(k).eq.bz_i .and. numvar.ge.2) then
               call axial_field_nolin(mu79(:,:,i),q4(i))
            else if(ieq(k).eq.pe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
               call pressure_nolin(mu79(:,:,i),q4(i),ipres.eq.0)
@@ -4533,6 +4568,11 @@ subroutine ludefphi_n(itri)
      call insert_block(bb0,itri,ieq(k),psi_i,dd(:,:,psi_g),MAT_ADD)
      call insert_block(bv1,itri,ieq(k),  u_i,ss(:,:,  u_g),MAT_ADD)
      call insert_block(bv0,itri,ieq(k),  u_i,dd(:,:,  u_g),MAT_ADD)
+     if((jadv.eq.0 .and. i3d.eq.1) .or. (jadv.eq.1 .and. imp_hyper.eq.1)) then
+        if(idiff .gt. 0) dd(:,:,e_g)  = dd(:,:,e_g)  - ss(:,:,e_g)
+        call insert_block(bb1,itri,ieq(k),e_i,ss(:,:,e_g),MAT_ADD)
+        call insert_block(bb0,itri,ieq(k),e_i,dd(:,:,e_g),MAT_ADD)     
+     endif
      if(numvar.ge.2) then
         if(idiff .gt. 0) dd(:,:,bz_g) = dd(:,:,bz_g) - ss(:,:,bz_g)
         call insert_block(bb1,itri,ieq(k), bz_i,ss(:,:,bz_g),MAT_ADD)
@@ -4596,7 +4636,7 @@ subroutine ludefpres_n(itri)
   integer :: i, j, k, izone
   
   vectype, dimension(dofs_per_element,dofs_per_element,num_fields) :: ss, dd
-  vectype, dimension(dofs_per_element,dofs_per_element) :: r_bf, q_bf, r_e, q_e
+  vectype, dimension(dofs_per_element,dofs_per_element) :: r_bf, q_bf
   vectype, dimension(dofs_per_element) :: q4
   vectype, dimension(dofs_per_element,dofs_per_element,2) :: q_ni
 
@@ -4661,8 +4701,6 @@ subroutine ludefpres_n(itri)
      q_ni = 0.
      r_bf = 0.
      q_bf = 0.
-     r_e = 0.
-     q_e = 0.
      q4 = 0.
 
      imask = 1

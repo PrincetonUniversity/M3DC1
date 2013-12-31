@@ -1011,15 +1011,15 @@ subroutine interpolate_size_field(itri)
   double precision, dimension(3) :: node_sz
   real :: k,l,m,h
 
-  if(ihypdx.eq.0) then
      sz79(:,OP_1  ) = 1.
      sz79(:,OP_DR ) = 0.
      sz79(:,OP_DZ ) = 0.
      sz79(:,OP_DRR) = 0.
      sz79(:,OP_DRZ) = 0.
      sz79(:,OP_DZZ) = 0.
+!
+!...this coding is redundant as hyper has already been scaled by deex**ihypdx
      return
-  end if
 
   call get_element_data(itri, d)
   h = d%b / (d%a + d%b)
