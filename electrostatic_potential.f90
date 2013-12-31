@@ -40,7 +40,7 @@ vectype function b4psieta(e,f,g)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then 
      temp = &
           - int5(ri4_79,e(:,OP_1),norm79(:,1),f(:,OP_DRP),g(:,OP_1)) &
@@ -69,30 +69,45 @@ vectype function b4psietahyp(e,f,g,h)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-#ifdef USECOMPLEX
-  if(surface_int) then 
+
+#if defined(USE3D) || defined(USECOMPLEX)
+!  modified 12/26/2013  SCJ
+!  if(surface_int) then 
+!     temp = 0.
+!  else
+!     if(ihypeta.eq.0) then
+!        temp79a = e(:,OP_DZZ)
+!        if(itor.eq.1) temp79a = temp79a -    ri_79*e(:,OP_DR)
+!        temp79b = e(:,OP_DRR)
+!        if(itor.eq.1) temp79b = temp79b - 3.*ri_79*e(:,OP_DR)
+!        temp79c = e(:,OP_DRZ)
+!        if(itor.eq.1) temp79c = temp79c -    ri_79*e(:,OP_DZ)             
+!        
+!        temp = 2.*int4(ri4_79,temp79a,f(:,OP_DZZP),h(:,OP_1)) &
+!             + 2.*int4(ri4_79,temp79b,f(:,OP_DRRP),h(:,OP_1)) &
+!             + 4.*int4(ri4_79,temp79c,f(:,OP_DRZP),h(:,OP_1)) &
+!             -    int4(ri4_79,e(:,OP_GS),f(:,OP_GSP),h(:,OP_1))
+!        
+!        if(itor.eq.1) then
+!           temp = temp &
+!                - 4.*int4(ri5_79,temp79b,f(:,OP_DRP),h(:,OP_1)) &
+!                - 4.*int4(ri5_79,temp79c,f(:,OP_DZP),h(:,OP_1))
+!        endif
+!     else
+!        temp = 0.
+!     endif
+!  endif
+
+if(surface_int) then 
      temp = 0.
   else
-     if(ihypeta.eq.0) then
-        temp79a = e(:,OP_DZZ)
-        if(itor.eq.1) temp79a = temp79a -    ri_79*e(:,OP_DR)
-        temp79b = e(:,OP_DRR)
-        if(itor.eq.1) temp79b = temp79b - 3.*ri_79*e(:,OP_DR)
-        temp79c = e(:,OP_DRZ)
-        if(itor.eq.1) temp79c = temp79c -    ri_79*e(:,OP_DZ)             
-        
-        temp = 2.*int4(ri4_79,temp79a,f(:,OP_DZZP),h(:,OP_1)) &
-             + 2.*int4(ri4_79,temp79b,f(:,OP_DRRP),h(:,OP_1)) &
-             + 4.*int4(ri4_79,temp79c,f(:,OP_DRZP),h(:,OP_1)) &
-             -    int4(ri4_79,e(:,OP_GS),f(:,OP_GSP),h(:,OP_1))
-        
-        if(itor.eq.1) then
-           temp = temp &
-                - 4.*int4(ri5_79,temp79b,f(:,OP_DRP),h(:,OP_1)) &
-                - 4.*int4(ri5_79,temp79c,f(:,OP_DZP),h(:,OP_1))
-        endif
+     if(ihypeta.eq.0) then           
+        temp = int4(ri4_79,e(:,OP_GS),f(:,OP_GSP),h(:,OP_1))
      else
-        temp = 0.
+        temp =  int5(ri4_79,e(:,OP_GS),f(:,OP_GSP),g(:,OP_1),h(:,OP_1)) &
+             +  int5(ri4_79,e(:,OP_DR),f(:,OP_GSP),g(:,OP_DR),h(:,OP_1)) &
+             +  int5(ri4_79,e(:,OP_DZ),f(:,OP_GSP),g(:,OP_DZ),h(:,OP_1))
+
      endif
   endif
 #else
@@ -140,33 +155,39 @@ vectype function b4betahyp(e,f,g,h)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
+
   if(surface_int) then 
      temp = 0.
   else
-     if(ihypeta.eq.0) then
-        temp79a = e(:,OP_DZZ)
-        if(itor.eq.1) temp79a = temp79a -    ri_79*e(:,OP_DR)
-        temp79b = e(:,OP_DRR)
-        if(itor.eq.1) temp79b = temp79b - 3.*ri_79*e(:,OP_DR)
-        temp79c = e(:,OP_DRZ)
-        if(itor.eq.1) temp79c = temp79c -    ri_79*e(:,OP_DZ)             
+!     modified 12/29/13  scj
+!     if(ihypeta.eq.0) then
+!        temp79a = e(:,OP_DZZ)
+!        if(itor.eq.1) temp79a = temp79a -    ri_79*e(:,OP_DR)
+!        temp79b = e(:,OP_DRR)
+!        if(itor.eq.1) temp79b = temp79b - 3.*ri_79*e(:,OP_DR)
+!        temp79c = e(:,OP_DRZ)
+!        if(itor.eq.1) temp79c = temp79c -    ri_79*e(:,OP_DZ)             
         
-        temp = 2.*int4(ri3_79,temp79a,f(:,OP_DRZ),h(:,OP_1)) &
-             - 2.*int4(ri3_79,temp79b,f(:,OP_DRZ),h(:,OP_1)) &
-             - 2.*int4(ri3_79,temp79c,f(:,OP_DZZ),h(:,OP_1)) &
-             + 2.*int4(ri3_79,temp79c,f(:,OP_DRR),h(:,OP_1)) 
+!        temp = 2.*int4(ri3_79,temp79a,f(:,OP_DRZ),h(:,OP_1)) &
+!             - 2.*int4(ri3_79,temp79b,f(:,OP_DRZ),h(:,OP_1)) &
+!             - 2.*int4(ri3_79,temp79c,f(:,OP_DZZ),h(:,OP_1)) &
+!             + 2.*int4(ri3_79,temp79c,f(:,OP_DRR),h(:,OP_1)) 
+!        
+!        if(itor.eq.1) then 
+!           temp = temp &
+!                + 2.*int4(ri4_79,temp79b,f(:,OP_DZ),h(:,OP_1)) &
+!                - 2.*int4(ri4_79,temp79c,f(:,OP_DR),h(:,OP_1))
+!        endif
         
-        if(itor.eq.1) then 
-           temp = temp &
-                + 2.*int4(ri4_79,temp79b,f(:,OP_DZ),h(:,OP_1)) &
-                - 2.*int4(ri4_79,temp79c,f(:,OP_DR),h(:,OP_1))
-        endif
-        
-#ifdef USECOMPLEX
-        temp = temp &
-             + 4.*int4(ri5_79,e(:,OP_DR),f(:,OP_DZPP),h(:,OP_1)) &
-             - 4.*int4(ri5_79,e(:,OP_DZ),f(:,OP_DRPP),h(:,OP_1))
+#if defined(USE3D) || defined(USECOMPLEX)
+!        temp = temp &
+!             + 4.*int4(ri5_79,e(:,OP_DR),f(:,OP_DZPP),h(:,OP_1)) &
+!             - 4.*int4(ri5_79,e(:,OP_DZ),f(:,OP_DRPP),h(:,OP_1))
 #endif
+     if(ihypeta.eq.1) then
+        temp79a = (e(:,OP_DZ)*g(:,OP_DR) - e(:,OP_DR)*g(:,OP_DZ))*h(:,OP_1)
+        temp = int3(ri3_79,f(:,OP_LP),temp79a)   &
+             + int3(ri5_79,f(:,OP_DPP),temp79a)
      else
         temp = 0.
      endif
@@ -188,7 +209,7 @@ vectype function b4feta(e,f,g)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then 
      temp = int5(ri3_79,e(:,OP_1),norm79(:,1),f(:,OP_DZPP),g(:,OP_1)) &
           - int5(ri3_79,e(:,OP_1),norm79(:,2),f(:,OP_DRPP),g(:,OP_1))
@@ -216,36 +237,37 @@ vectype function b4fetahyp(e,f,g,h)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then 
      temp = 0.
   else
-     if(ihypeta.eq.0) then
-        temp79a = e(:,OP_DZZ)
-        if(itor.eq.1) temp79a = temp79a -    ri_79*e(:,OP_DR)
-        temp79b = e(:,OP_DRR)
-        if(itor.eq.1) temp79b = temp79b - 3.*ri_79*e(:,OP_DR)
-        temp79c = e(:,OP_DRZ)
-        if(itor.eq.1) temp79c = temp79c -    ri_79*e(:,OP_DZ)             
+!     if(ihypeta.eq.0) then
+!        temp79a = e(:,OP_DZZ)
+!        if(itor.eq.1) temp79a = temp79a -    ri_79*e(:,OP_DR)
+!        temp79b = e(:,OP_DRR)
+!        if(itor.eq.1) temp79b = temp79b - 3.*ri_79*e(:,OP_DR)
+!        temp79c = e(:,OP_DRZ)
+!        if(itor.eq.1) temp79c = temp79c -    ri_79*e(:,OP_DZ)             
         
-        temp = 2.*int4(ri3_79,temp79a,f(:,OP_DRZPP),h(:,OP_1)) &
-             - 2.*int4(ri3_79,temp79b,f(:,OP_DRZPP),h(:,OP_1)) &
-             - 2.*int4(ri3_79,temp79c,f(:,OP_DZZPP),h(:,OP_1)) &
-             + 2.*int4(ri3_79,temp79c,f(:,OP_DRRPP),h(:,OP_1)) 
-        
-        if(itor.eq.1) then 
-           temp = temp &
-                + 2.*int4(ri4_79,temp79b,f(:,OP_DZPP),h(:,OP_1)) &
-                - 2.*int4(ri4_79,temp79c,f(:,OP_DRPP),h(:,OP_1))
-        endif
-     else
-        temp = 0.
-     endif
-  endif
+!        temp = 2.*int4(ri3_79,temp79a,f(:,OP_DRZPP),h(:,OP_1)) &
+!             - 2.*int4(ri3_79,temp79b,f(:,OP_DRZPP),h(:,OP_1)) &
+!             - 2.*int4(ri3_79,temp79c,f(:,OP_DZZPP),h(:,OP_1)) &
+!             + 2.*int4(ri3_79,temp79c,f(:,OP_DRRPP),h(:,OP_1)) 
+!        
+!        if(itor.eq.1) then 
+!           temp = temp &
+!                + 2.*int4(ri4_79,temp79b,f(:,OP_DZPP),h(:,OP_1)) &
+!                - 2.*int4(ri4_79,temp79c,f(:,OP_DRPP),h(:,OP_1))
+!        endif
+!     else
+!        temp = 0.
+!     endif
+!  endif
 #else
-  temp = 0.
+!  temp = 0.
 #endif
-  
+     temp = 0
+   endif  
   b4fetahyp = temp
 end function b4fetahyp
 
@@ -352,7 +374,7 @@ vectype function b4fv(e,f,g)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
      ! not yet implemented
@@ -422,7 +444,7 @@ vectype function b4psibd(e,f,g,h)
      return
   endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      temp79a = ri5_79*e(:,OP_1)*g(:,OP_1)*h(:,OP_1)
      temp = int3(temp79a,norm79(:,1),f(:,OP_DZP)) &
@@ -456,7 +478,7 @@ vectype function b4psifd(e,f,g,h)
      return
   endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      temp79a = ri3_79*e(:,OP_1)*f(:,OP_GS)*h(:,OP_1)
      temp = int3(temp79a,norm79(:,2),g(:,OP_DRP)) &
@@ -521,7 +543,7 @@ vectype function b4bfd(e,f,g,h)
      return
   endif
 
-#ifdef USECOMPLEX
+#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      temp79a = ri4_79*e(:,OP_1)*f(:,OP_1)*h(:,OP_1)
      temp = int3(temp79a,norm79(:,1),g(:,OP_DRPP)) &
@@ -573,7 +595,7 @@ end function b4ped
 !======================================================================
 ! Electrostatic Potential Equation
 !======================================================================
-subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e)
+subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
 
   use basic
   use arrays
@@ -584,7 +606,6 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e)
 
   vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: trial, lin 
   vectype, dimension(num_fields), intent(out) :: ssterm, ddterm
-  vectype, intent(out) :: r_e
   vectype, intent(out) :: q_ni, q_bf, r_bf
   vectype :: temp
   real :: thimp_e, thimpb_e, thimpf_e
@@ -608,7 +629,7 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, r_e)
   r_bf = 0.
   q_bf = 0.
 
-  r_e = b4e(trial,lin)
+  ssterm(e_g) = b4e(trial,lin)
 
   temp = b4psieta   (trial,lin,eta79) &
        + b4psietahyp(trial,lin,eta79,hf)

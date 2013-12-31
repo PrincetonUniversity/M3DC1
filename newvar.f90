@@ -138,7 +138,7 @@ contains
 #endif 
     endif
 
-    if(jadv.eq.1 .and. hyper.ne.0.) then
+    if(jadv.eq.1 .and. hyper.ne.0. .and. imp_hyper.eq.0) then
        call create_newvar_matrix(s10_mat, NV_SJBOUND, NV_SJ_MATRIX, .true.)
        call create_newvar_matrix(d10_mat, NV_SJBOUND, NV_SJ_MATRIX, .false.)
 #ifdef CJ_MATRIX_DUMP

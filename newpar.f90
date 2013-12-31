@@ -92,6 +92,8 @@ Program Reducedquintic
 
   ! allocate arrays
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Allocating arrays'
+
+
   call space(1)
 
   sparse_initialized = .true.
@@ -497,7 +499,7 @@ subroutine smooth_fields(psiin)
   type(field_type) :: j_new, psi_new
   real :: tstart, tend
 
-  if(jadv.eq.0 .or. hyper.eq.0.) return
+  if(jadv.eq.0 .or. hyper.eq.0. .or. (jadv.eq.1 .and. imp_hyper.eq.1)) return
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' smoothing fields...'
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)

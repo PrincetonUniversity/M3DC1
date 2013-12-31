@@ -258,6 +258,32 @@ subroutine get_bf_mask(itri, imask)
   call get_boundary_mask(itri, ibound, imask)
 end subroutine get_bf_mask
 
+subroutine get_esp_mask(itri, imask)
+  use element
+  use basic
+  use boundary_conditions
+  implicit none
+  integer, intent(in) :: itri
+  integer, intent(out), dimension(dofs_per_element) :: imask
+  integer :: ibound
+
+  ibound = BOUNDARY_DIRICHLET
+  call get_boundary_mask(itri, ibound, imask)
+end subroutine get_esp_mask
+
+subroutine get_j_mask(itri, imask)
+  use element
+  use basic
+  use boundary_conditions
+  implicit none
+  integer, intent(in) :: itri
+  integer, intent(out), dimension(dofs_per_element) :: imask
+  integer :: ibound
+
+  ibound = BOUNDARY_DIRICHLET
+  call get_boundary_mask(itri, ibound, imask)
+end subroutine get_j_mask
+
 subroutine get_vor_mask(itri, imask)
   use element
   use basic
@@ -514,7 +540,7 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
      i_psi = node_index(psi_v, i)
      if(numvar.ge.2) i_bz = node_index(bz_v, i)
 !     if(numvar.ge.3 .and. ipressplit.eq.0) i_pe = node_index(pe_v, i)
-     if(jadv.eq.0 .and. i3d.eq.1) i_e = node_index(e_v, i)
+     if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.eq.1)) i_e = node_index(e_v, i)
      if(imp_bf.eq.1) i_bf = node_index(bf_v, i)
 
      ! constant normal field = -n.grad(psi)/R - n.grad(f')
@@ -563,8 +589,8 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
         call set_dirichlet_bc(i_bz,rhs,temp,normal,curv,izonedim,mat)
      endif
 
-     if(jadv.eq.0 .and. i3d.eq.1) then
-        ! electrostatic potential
+     if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.eq.1)) then
+        ! electrostatic potential or del_star_psi
         temp = 0.
         call set_dirichlet_bc(i_e,rhs,temp,normal,curv,izonedim,mat)
      endif

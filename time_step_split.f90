@@ -71,11 +71,13 @@ contains
     endif
     vecsize_t = vecsize_p
 
-    ! add electrostatic potential equation
-    if(jadv.eq.0 .and. i3d.eq.1) vecsize_phi = vecsize_phi + 1
-  
     ! add bf equation
     if(imp_bf.eq.1) vecsize_phi = vecsize_phi + 1
+
+    ! add electrostatic potential equation OR implicit hyper-resistivity
+    if((jadv.eq.0 .and. i3d.eq.1) .or. (jadv.eq.1 .and. imp_hyper.eq.1)) &
+                    vecsize_phi = vecsize_phi + 1
+  
 
     ! Vectors
     call create_vector(phi_vec,      vecsize_phi)
@@ -293,20 +295,20 @@ contains
     chi_i = 3
     den_i = 1
     if(imp_bf.eq.1) then
-       if(jadv.eq.0 .and. i3d.eq.1) then
+       if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.eq.1)) then
          bf_i = vecsize_phi - 1
          e_i =  vecsize_phi
        else
          bf_i = vecsize_phi
-         e_i = 1
+         e_i = vecsize_phi + 1
        endif
     else
-       if(jadv.eq.0 .and. i3d.eq.1) then
-         bf_i = 1
+       if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.eq.1)) then
+         bf_i = vecsize_phi + 1
          e_i = vecsize_phi
        else
-         bf_i = 1
-         e_i = 1
+         bf_i = vecsize_phi + 1
+         e_i = vecsize_phi + 1
        endif
     end if
     if(ipressplit.eq.1) then
@@ -357,7 +359,7 @@ contains
     
     call associate_field(den_v,  den_vec,    den_i)
     
-    if(jadv.eq.0 .and. i3d.eq.1) then
+    if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.eq.1)) then
        call associate_field(e_v, phi_vec, e_i)
     end if
     

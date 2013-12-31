@@ -5509,13 +5509,14 @@ vectype function b1psieta(e,f,g,h)
      else
         temp = int3(e(:,OP_1),f(:,OP_GS),g(:,OP_1))
 
-        if(hypf.ne.0.) then
+         if(hypf.ne.0) then
            if(ihypeta.eq.1) then
               temp79a = e(:,OP_1)*g(:,OP_LP) + e(:,OP_LP)*g(:,OP_1) &
                    + 2.*(e(:,OP_DZ)*g(:,OP_DZ) + e(:,OP_DR)*g(:,OP_DR))
               temp = temp - int3(temp79a,f(:,OP_GS),h(:,OP_1))
-              if(itor.eq.1) temp = temp + &
-                   2.*int4(ri_79,temp79a,f(:,OP_DR),h(:,OP_1))
+              if(itor.eq.1) temp = temp  &
+                  - 2.*int5(ri_79 ,e(:,OP_1) ,f(:,OP_GS),g(:,OP_DR),h(:,OP_1)) &
+                  - 2.*int5(ri_79 ,e(:,OP_DR),f(:,OP_GS),g(:,OP_1) ,h(:,OP_1))
            else
               temp = temp - int3(e(:,OP_LP),f(:,OP_GS),h(:,OP_1))
 
@@ -5523,14 +5524,15 @@ vectype function b1psieta(e,f,g,h)
                  temp = temp - 2.*int4(ri_79,e(:,OP_DR),f(:,OP_GS),h(:,OP_1))
               endif
 
+!removed 12/16/2013 (scj)
 #if defined(USE3D) || defined(USECOMPLEX)
-              temp = temp &
-                   - 2.*int4(ri2_79,e(:,OP_1),f(:,OP_GSPP),h(:,OP_1)) &
-                   - int4(ri2_79,e(:,OP_DZ),f(:,OP_DZPP),h(:,OP_1)) &
-                   - int4(ri2_79,e(:,OP_DR),f(:,OP_DRPP),h(:,OP_1))
-              if(itor.eq.1) then
-                 temp = temp + 2.*int4(ri3_79,e(:,OP_1),f(:,OP_DRPP),h(:,OP_1))
-              endif
+!              temp = temp &
+!                   - 2.*int4(ri2_79,e(:,OP_1),f(:,OP_GSPP),h(:,OP_1)) &
+!                   - int4(ri2_79,e(:,OP_DZ),f(:,OP_DZPP),h(:,OP_1)) &
+!                   - int4(ri2_79,e(:,OP_DR),f(:,OP_DRPP),h(:,OP_1))
+!              if(itor.eq.1) then
+!                 temp = temp + 2.*int4(ri3_79,e(:,OP_1),f(:,OP_DRPP),h(:,OP_1))
+!              endif
 #endif
            end if
         end if
@@ -5574,6 +5576,63 @@ vectype function b1psieta(e,f,g,h)
 end function b1psieta
 
 
+! B1jeta
+! ========
+vectype function b1jeta(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype :: temp
+
+     if(surface_int) then
+        if(inocurrent_norm.eq.1 .and. imulti_region.eq.0) then
+           temp = 0.
+        else
+           temp = 0.
+        endif
+
+#if defined(USE3D) || defined(USECOMPLEX)
+        if(inocurrent_norm.eq.1 .and. imulti_region.eq.0) then
+           temp = temp
+        else
+!           temp = temp &
+!                - int5(ri4_79,e(:,OP_1),norm79(:,1),f(:,OP_DRPP),g(:,OP_1)) &
+!                - int5(ri4_79,e(:,OP_1),norm79(:,2),f(:,OP_DZPP),g(:,OP_1))
+           temp = temp
+        endif
+#endif
+     else
+
+        if(ihypeta.eq.1) then
+
+           temp = -int5(ri2_79,e(:,OP_GS),f(:,OP_GS) ,g(:,OP_1) ,h(:,OP_1))
+
+#if defined(USE3D) || defined(USECOMPLEX)
+           temp = temp - &
+                  (int5(ri4_79,e(:,OP_GS),f(:,OP_DP) ,g(:,OP_DP),h(:,OP_1)) &
+                  +int5(ri4_79,e(:,OP_GS),f(:,OP_DPP),g(:,OP_1) ,h(:,OP_1)))
+#endif
+
+        else
+           temp = -int4(ri2_79,e(:,OP_GS),f(:,OP_GS)            ,h(:,OP_1))
+
+#if defined(USE3D) || defined(USECOMPLEX)
+           temp = temp - &
+                   int4(ri4_79,e(:,OP_GS),f(:,OP_DPP)           ,h(:,OP_1))
+#endif
+
+        endif
+     end if
+
+  b1jeta = temp
+  return
+end function b1jeta
+
+
 ! B1beta
 ! ======
 vectype function b1beta(e,f,g,h)
@@ -5602,11 +5661,27 @@ vectype function b1beta(e,f,g,h)
              - int4(ri3_79,e(:,OP_DZ),f(:,OP_DRP),g(:,OP_1 )) &
              + int4(ri3_79,e(:,OP_DR),f(:,OP_DZ ),g(:,OP_DP)) &
              - int4(ri3_79,e(:,OP_DZ),f(:,OP_DR ),g(:,OP_DP))
+        if(hyper.gt.0) then
+           if(ihypeta.eq.0) then
+              temp = temp - int4(ri5_79,h(:,OP_1),e(:,OP_DZP),f(:,OP_DRPP))   &
+                          + int4(ri5_79,h(:,OP_1),e(:,OP_DRP),f(:,OP_DZPP))
+              if(itor.eq.1) then
+                 temp = temp + 4.*int4(ri6_79,h(:,OP_1),f(:,OP_DPP),e(:,OP_DZP))
+              endif
+           else
+              temp = temp - int5(ri5_79,g(:,OP_1),h(:,OP_1),e(:,OP_DZP),f(:,OP_DRPP))   &
+                          + int5(ri5_79,g(:,OP_1),h(:,OP_1),e(:,OP_DRP),f(:,OP_DZPP))   &
+                          - int5(ri3_79,g(:,OP_DRP),h(:,OP_1),e(:,OP_DZ),f(:,OP_GS))   &
+                          + int5(ri3_79,g(:,OP_DZP),h(:,OP_1),e(:,OP_DR),f(:,OP_GS))   &
+                          - int5(ri3_79,g(:,OP_DR),h(:,OP_1),e(:,OP_DZ),f(:,OP_GSP))   &
+                          + int5(ri3_79,g(:,OP_DZ),h(:,OP_1),e(:,OP_DR),f(:,OP_GSP))
+              if(itor.eq.1) then
+                 temp = temp + 4.*int5(ri6_79,g(:,OP_1),h(:,OP_1),f(:,OP_DPP),e(:,OP_DZP))
+              endif
 
-        if(ihypeta.eq.0) then
-           temp = temp - 2.*int4(ri2_79,e(:,OP_1),f(:,OP_DZP),h(:,OP_1))
+           endif
         endif
-     end if
+     endif
   endif
 #else
   temp = 0.

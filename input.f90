@@ -455,10 +455,12 @@ subroutine set_defaults
   call add_var_double("hyperi", hyperi, 0., "", hyper_grp)
   call add_var_double("hyperp", hyperp, 0., "", hyper_grp)
   call add_var_double("hyperv", hyperv, 0., "", hyper_grp)
-  call add_var_int("ihypdx", ihypdx, 2, "", hyper_grp)
+  call add_var_int("ihypdx", ihypdx, 0, "", hyper_grp)
   call add_var_int("ihypeta", ihypeta, 1, "", hyper_grp)
   call add_var_int("ihypamu", ihypamu, 1, "", hyper_grp)
   call add_var_int("ihypkappa", ihypkappa, 1, "", hyper_grp)
+  call add_var_int("imp_hyper", imp_hyper, 0,     &
+        "1: implicit hyper-resistivity in psi equation", hyper_grp)
 
 
   ! Boundary conditions
@@ -732,6 +734,11 @@ subroutine validate_input
      if(myrank.eq.0) print *, "itemp=1 not allowed with ipressplit=0"
      call safestop(1)
   endif
+
+  if(isplitstep.eq.0 .and. idiff.eq.1) then
+     if(myrank.eq.0) print *, "idiff=1 not allowed with isplitstep=0"
+     call safestop(1)
+  endif
   
   ! calculate pfac (pe*pfac = electron pressure)
   if(p0.gt.0.) then
@@ -770,11 +777,6 @@ subroutine validate_input
      if(jadv.eq.1 .and. hyper.ne.0) &
           print *, 'WARNING: poloidal flux smoothing not available with isplitstep=0 and jadv=1'
   end if
-  
-! if(isplitstep.ge.1 .and. imp_bf.ge.1) then
-!    print *, 'Error: imp_bf.ge.1 is not implemented with isplitstep.ge.1'
-!    call safestop(1)
-! end if
 
   if(i3d.eq.0 .and. imp_bf.ne.0) then
      imp_bf = 0
