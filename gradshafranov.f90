@@ -580,6 +580,16 @@ subroutine define_profiles
         xvals = xvals / xvals(nvals) ! normalize rho
         call rho_to_psi(nvals, xvals, xvals)
 
+     case(5)    ! added 1/1/2014 to read J.Menard files   (scj)
+        ! Read in rad/sec
+        nvals = 0
+        call read_ascii_column('profile_omega', xvals, nvals, 1, icol=1)
+! Question:  do we need to square this to get normalized poloidal flux?
+        call read_ascii_column('profile_omega', yvals, nvals, 1, icol=2)
+        if(nvals.eq.0) call safestop(5)
+        yvals = yvals / &
+             (b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm)/l0_norm)
+
      case(20)
         ! Read from iterdb text file (rad/s vs Psi)
         nvals = idb_nj

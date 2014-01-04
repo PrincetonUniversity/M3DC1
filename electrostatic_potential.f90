@@ -186,8 +186,10 @@ vectype function b4betahyp(e,f,g,h)
 #endif
      if(ihypeta.eq.1) then
         temp79a = (e(:,OP_DZ)*g(:,OP_DR) - e(:,OP_DR)*g(:,OP_DZ))*h(:,OP_1)
-        temp = int3(ri3_79,f(:,OP_LP),temp79a)   &
-             + int3(ri5_79,f(:,OP_DPP),temp79a)
+        temp = int3(ri3_79,f(:,OP_LP),temp79a)
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp = temp + int3(ri5_79,f(:,OP_DPP),temp79a)
+#endif
      else
         temp = 0.
      endif
@@ -237,10 +239,10 @@ vectype function b4fetahyp(e,f,g,h)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then 
      temp = 0.
   else
+#if defined(USE3D) || defined(USECOMPLEX)
 !     if(ihypeta.eq.0) then
 !        temp79a = e(:,OP_DZZ)
 !        if(itor.eq.1) temp79a = temp79a -    ri_79*e(:,OP_DR)
