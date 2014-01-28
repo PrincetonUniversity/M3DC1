@@ -560,7 +560,8 @@ module sparse
   integer, parameter :: d12_mat_index = 56
   integer, parameter :: vpol_mat_index = 57
   integer, parameter :: o3_mat_index = 58
-  integer, parameter :: num_matrices = 58
+  integer, parameter :: psi_mat_index = 59
+  integer, parameter :: num_matrices = 59
 
   type(matrix_type) :: rwpsi_mat, rwbf_mat, ecpsi_mat, ecbf_mat
   type(matrix_type), save :: rw_rhs_mat, rw_lhs_mat

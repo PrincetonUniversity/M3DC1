@@ -3337,6 +3337,7 @@ subroutine int_kink_init()
 
      call set_local_vals(l)
   enddo
+  call finalize(field_vec)
 
 end subroutine int_kink_init
 
@@ -3526,7 +3527,6 @@ subroutine int_kink_per(x, phi, z)
      call random_per(x,phi,z,vmask)
 
 
-  call finalize(field_vec)
 
 
 
@@ -3826,6 +3826,8 @@ subroutine initial_conditions()
            call eigen_init()
         case(19)
            call int_kink_init()
+        case(20)
+           call kstar_profiles()
         end select
      else
         ! toroidal equilibria
@@ -3876,3 +3878,340 @@ subroutine initial_conditions()
   if(iflip_v.eq.1) call mult(vz_field(0), -1.)
   if(iflip_v.eq.-1) call mult(vz_field(0), 0.)
 end subroutine initial_conditions
+                                                                     
+
+subroutine kstar_profiles()
+
+use basic
+use math
+use mesh_mod
+use sparse
+use arrays
+use m3dc1_nint
+use newvar_mod
+use boundary_conditions
+use model
+use gradshafranov
+use int_kink
+
+vectype, dimension (dofs_per_node) :: vec_l
+vectype, dimension (dofs_per_element,dofs_per_element) :: temp
+vectype, dimension (dofs_per_element) :: temp2
+vectype, dimension (MAX_PTS, OP_NUM) :: dpt79
+vectype, dimension (MAX_PTS) :: co, sn, rrad
+real, dimension(MAX_PTS) :: theta 
+real :: x, phi, z, feedfac
+  real :: r
+  real, parameter :: e=2.7183
+  real :: a, r1, r2, u, fa, ra
+  real :: b0,r0,th
+  integer :: m,n
+integer :: numnodes, nelms, l, itri, i, j, ier
+integer :: imask(dofs_per_element)
+type (field_type) :: dpsi_dr, psi_vec
+type(matrix_type) :: psi_mat
+
+call create_field(dpsi_dr)
+call create_field(psi_vec)
+
+call set_matrix_index(psi_mat, psi_mat_index)
+call create_mat(psi_mat,1,1,icomplex,.true.)
+
+ !input variables: B0,fA,r1,r2,q0,R0,m,n,u,rA
+  b0 = bzero
+  r0 = rzero
+  m = mpol
+  n = igs
+  a = alpha0
+  r1 = alpha1
+  r2 = alpha2
+  u = alpha3
+  fa = p1
+  ra = p2
+  
+  if(myrank.eq.0 .and. iprint.ge.1) write(*,*)   &
+                                    'b0,r0,m,n,e,a,r1,r2,u,fa,ra'   &
+                                    ,b0,r0,m,n,e,a,r1,r2,u,fa,ra
+
+numnodes = owned_nodes()
+
+do l=1,numnodes
+   call get_node_pos(l,x,phi,z)
+
+   call constant_field(den0_l,1.)
+   call constant_field(bz0_l,bzero)
+   call constant_field(p0_l,p0)
+   call constant_field(pe0_l,p0/2.)
+   call int_kink_per(x,phi,z)
+
+   call set_node_data(den_field(0),l,den0_l)
+   call set_node_data(bz_field(0),l,bz0_l)
+   call set_node_data(p_field(0),l,p0_l)
+   call set_node_data(pe_field(0),l,pe0_l)
+   call set_node_data(u_field(1),l,u1_l)
+enddo
+
+
+do l=1,numnodes
+
+   call get_node_pos(l,x,phi,z)
+
+   r=sqrt((x-xmag)**2 + (z-zmag)**2)
+   th = atan2(z-zmag,x-xmag)
+
+  !
+  !vec_l(1): r*d(psi)/dr
+  !vec_l(2): d(vec_l)/dx, where vec_l= r*d(psi)/dr
+  !vec_l(3): d(vec_l)/dz
+  !vec_l(4): d^2(vec_l)/dx^2
+  !vec_l(5): d^2(vec_l)/dxdz
+  !vec_l(6): d^2(vec_l)/dz^2
+  
+ vec_l(1)=(B0*r**2)/ &
+          ((1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0* &
+          (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u))
+
+ vec_l(2)=(-2*B0*x*r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u))* &
+          ((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(-1+2*u)* &
+          (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(-1-1/u))/ &
+          (a*(1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0*rA)+ &
+          (2*B0*x)/((1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0* &
+          (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u))+ &
+          (2*B0*fA*x*r*(-r1+r/a))/ &
+          (a*E**((-r1+r/a)**2/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**2*q0*R0*r2**2* &
+          (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u))
+
+ vec_l(3)=(-2*B0*z*r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u))* &
+          ((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(-1+2*u)* &
+          (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(-1-1/u))/ &
+          (a*(1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0*rA)+ &
+          (2*B0*z)/((1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0* &
+          (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u))+ &
+          (2*B0*fA*z*r*(-r1+r/a))/ &
+          (a*E**((-r1+r/a)**2/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**2*q0*R0*r2**2* &
+          (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u))
+
+ vec_l(4)=(-4*B0*(-1-1/u)*u*x**2*Abs(-1+(m/(n*q0))**u)**(1/u)* &
+          ((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(-2+4*u)* &
+          (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(-2-1/u))/ &
+          (a**2*(1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0*rA**2) &
+
+         -(2*B0*(-1+2*u)*x**2*Abs(-1+(m/(n*q0))**u)**(1/u)* &
+          ((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(-2+2*u)* &
+          (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(-1-1/u))/ &
+          (a**2*(1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0*rA**2) &
+
+!          -(6*B0*x**2*Abs(-1+(m/(n*q0))**u)**(1/(2.*u))* &
+!          ((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(-1+2*u)* &
+!          (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(-1-1/u))/ &
+!          (a*(1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0*rA*r) &                             
+
+          -(6*B0*x*cos(th)*Abs(-1+(m/(n*q0))**u)**(1/(2.*u))* &
+          ((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(-1+2*u)* &
+          (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(-1-1/u))/ &
+          (a*(1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0*rA) &                            
+
+         -(2*B0*r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u))* &
+          ((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(-1+2*u)* &
+          (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(-1-1/u))/ &
+          (a*(1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0*rA) &
+
+         -(8*B0*fA*x**2*(-r1+r/a)*Abs(-1+(m/(n*q0))**u)**(1/(2.*u))* &
+          ((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(-1+2*u)* &
+          (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(-1-1/u))/ &
+          (a**2*E**((-r1+r/a)**2/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**2*q0*R0*r2**2*rA) &
+
+         +(2*B0)/((1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0* &
+          (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u)) &
+
+         + (2*B0*fA*x**2)/(a**2*E**((-r1+r/a)**2/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**2*q0*R0* & 
+          r2**2*(1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u))  &
+
+!         +(6*B0*fA*x**2*(-r1+r/a))/ &
+!          (a*E**((-r1+r/a)**2/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**2*q0*R0*r2**2* &
+!          r*(1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u)) &       
+
+         +(6*B0*fA*x*cos(th)*(-r1+r/a))/ &
+          (a*E**((-r1+r/a)**2/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**2*q0*R0*r2**2* &
+          (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u)) &       
+
+         +(2*B0*fA*r*(-r1+r/a))/ &
+          (a*E**((-r1+r/a)**2/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**2*q0*R0*r2**2* &
+          (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u)) &
+          
+         +(8*B0*fA**2*x**2*(-r1+r/a)**2)/ &
+          (a**2*E**((2*(-r1+r/a)**2)/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**3*q0*R0*r2**4* &
+          (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u))&
+
+         -(4*B0*fA*x**2*(-r1+r/a)**2)/ &
+          (a**2*E**((-r1+r/a)**2/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**2*q0*R0*r2**4* &
+          (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u)) 
+
+
+
+
+
+  vec_l(5)=(-4*B0*(-1-1/u)*u*x*z*Abs(-1+(m/(n*q0))**u)**(1/u)* &
+           ((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(-2+4*u)* &
+           (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(-2-1/u))/ &
+           (a**2*(1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0*rA**2)- &
+
+           (2*B0*(-1+2*u)*x*z*Abs(-1+(m/(n*q0))**u)**(1/u)* &
+           ((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(-2+2*u)* &
+           (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(-1-1/u))/ &
+           (a**2*(1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0*rA**2)- &
+
+!           (6*B0*x*z*Abs(-1+(m/(n*q0))**u)**(1/(2.*u))*((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(-1+2*u)* &
+!           (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(-1-1/u))/ &
+!           (a*(1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0*rA*r)- &                            
+
+           (6*B0*cos(th)*z*Abs(-1+(m/(n*q0))**u)**(1/(2.*u))*((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(-1+2*u)* &
+           (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(-1-1/u))/ &
+           (a*(1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0*rA)- &                           
+
+           (8*B0*fA*x*z*(-r1+r/a)*Abs(-1+(m/(n*q0))**u)**(1/(2.*u))* &
+           ((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(-1+2*u)* &
+           (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(-1-1/u))/ &
+           (a**2*E**((-r1+r/a)**2/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**2*q0*R0*r2**2*rA)+ &
+
+           (2*B0*fA*x*z)/(a**2*E**((-r1+r/a)**2/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**2*q0*R0* &
+           r2**2*(1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u))+ &
+
+!           (6*B0*fA*x*z*(-r1+r/a))/ &
+!           (a*E**((-r1+r/a)**2/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**2*q0*R0*r2**2* &
+!           r*(1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u))+ &        
+
+           (6*B0*fA*cos(th)*z*(-r1+r/a))/ &
+           (a*E**((-r1+r/a)**2/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**2*q0*R0*r2**2* &
+           (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u))+ &          
+
+           (8*B0*fA**2*x*z*(-r1+r/a)**2)/ &
+           (a**2*E**((2*(-r1+r/a)**2)/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**3*q0*R0*r2**4* &
+           (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u))- &
+
+           (4*B0*fA*x*z*(-r1+r/a)**2)/ &
+           (a**2*E**((-r1+r/a)**2/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**2*q0*R0*r2**4* &
+           (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u))
+
+  vec_l(6)=(-4*B0*(-1-1/u)*u*z**2*Abs(-1+(m/(n*q0))**u)**(1/u)* &
+           ((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(-2+4*u)* &
+           (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(-2-1/u))/ &
+           (a**2*(1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0*rA**2)- &
+
+           (2*B0*(-1+2*u)*z**2*Abs(-1+(m/(n*q0))**u)**(1/u)* &
+           ((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(-2+2*u)* &
+           (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(-1-1/u))/ &
+           (a**2*(1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0*rA**2)- &
+
+!           (6*B0*z**2*Abs(-1+(m/(n*q0))**u)**(1/(2.*u))* &
+!           ((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(-1+2*u)* &
+!           (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(-1-1/u))/ &
+!           (a*(1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0*rA*r)- &                            
+
+           (6*B0*z*sin(th)*Abs(-1+(m/(n*q0))**u)**(1/(2.*u))* &
+           ((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(-1+2*u)* &
+           (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(-1-1/u))/ &
+           (a*(1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0*rA)- &                            
+
+           (2*B0*r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u))* &
+           ((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(-1+2*u)* &
+           (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(-1-1/u))/ &
+           (a*(1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0*rA)- &
+
+           (8*B0*fA*z**2*(-r1+r/a)*Abs(-1+(m/(n*q0))**u)**(1/(2.*u))* &
+           ((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(-1+2*u)* &                
+           (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(-1-1/u))/ &
+           (a**2*E**((-r1+r/a)**2/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**2*q0*R0*r2**2*rA)+ &
+
+           (2*B0)/((1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0* &
+           (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u))+ &
+           (2*B0*fA*z**2)/(a**2*E**((-r1+r/a)**2/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**2*q0*R0* &
+           r2**2*(1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u))+ &
+
+!           (6*B0*fA*z**2*(-r1+r/a))/ &
+!           (a*E**((-r1+r/a)**2/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**2*q0*R0*r2**2* &
+!           *r*(1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u))+ &   
+
+           (6*B0*fA*z*sin(th)*(-r1+r/a))/ &
+           (a*E**((-r1+r/a)**2/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**2*q0*R0*r2**2* &
+           (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u))+ &  
+
+           (2*B0*fA*r*(-r1+r/a))/ &
+           (a*E**((-r1+r/a)**2/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**2*q0*R0*r2**2* &
+           (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u))+ &
+
+           (8*B0*fA**2*z**2*(-r1+r/a)**2)/ &
+           (a**2*E**((2*(-r1+r/a)**2)/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**3*q0*R0*r2**4* &
+           (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u))- &
+
+           (4*B0*fA*z**2*(-r1+r/a)**2)/ &
+           (a**2*E**((-r1+r/a)**2/r2**2)*(1+fA/E**((-r1+r/a)**2/r2**2))**2*q0*R0*r2**4* &
+           (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u))
+
+#if defined(USE3D)
+   vec_l(7:12) = 0.
+#endif
+   call set_node_data(dpsi_dr,l,vec_l)
+
+enddo
+
+call finalize(dpsi_dr%vec)
+
+nelms = local_elements()
+do itri=1,nelms
+
+   call define_element_quadrature(itri,int_pts_diag, int_pts_tor)
+   call define_fields(itri,0,1,0) ! defines x_79,z_79,mu,nu
+   call eval_ops(itri,dpsi_dr,dpt79)
+
+   do i=1,MAX_PTS
+     theta(i) = atan2(z_79(i)-zmag, x_79(i)-xmag) 
+     co(i) = cos(theta(i))
+     sn(i) = sin(theta(i))
+     rrad(i) = sqrt((z_79(i)-zmag)**2+(x_79(i)-xmag)**2)
+   enddo
+
+    call get_flux_mask(itri,imask)
+!  assemble matrix
+
+   do i=1,dofs_per_element
+        if(imask(i).eq.0) then
+          temp(i,:) = 0.
+         temp2(i) = 0.
+          cycle
+         endif
+      do j=1,dofs_per_element
+         temp(i,j) = int3(mu79(:,OP_1,i),nu79(:,OP_GS,j),rrad(:))
+      enddo
+!  assemble rhs
+      temp2(i) = int3(mu79(:,OP_1,i),dpt79(:,OP_DR),co(:))   &
+               + int3(mu79(:,OP_1,i),dpt79(:,OP_DZ),sn(:))
+   enddo
+
+   call insert_block(psi_mat, itri, 1,1, temp(:,:), MAT_ADD)
+
+   call vector_insert_block(psi_vec%vec, itri, 1, temp2(:), MAT_ADD)
+enddo
+
+call sum_shared(psi_vec%vec)
+feedfac = 0
+call flush(psi_mat)
+call boundary_gs(psi_vec%vec,feedfac,psi_mat)
+call finalize(psi_mat)
+
+
+! solve for psi
+ if(myrank.eq.0 .and. iprint.ge.1) print *, "solving psi"
+ 
+   call newsolve(psi_mat,psi_vec%vec,ier)
+ if(eqsubtract.eq.1) then
+   psi_field(0) = psi_vec
+ else
+   psi_field(1) = psi_vec
+ endif
+
+ call destroy_mat(psi_mat)
+ call destroy_field(psi_vec)
+ call destroy_field(dpsi_dr)
+
+end subroutine kstar_profiles

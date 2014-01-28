@@ -1511,7 +1511,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
   ! implicit hyperresistivity
   if(jadv.eq.1 .and. imp_hyper.eq.1) then
-     temp = b1jeta(trial,lin,eta79,hf)
+       temp = b1jeta(trial,lin,eta79,hf)
      ssterm(e_g) = ssterm(e_g) -       thimp     *dt*temp
      ddterm(e_g) = ddterm(e_g) +   (1.-thimp*bdf)*dt*temp
   endif
@@ -1696,12 +1696,14 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
      end if
   end if
 
-
+  if(jadv.eq.0) then
   ! electrostatic potential
   ! ~~~~~~~~~~~~~~~~~~~~~~~
-  temp = b1e(trial,lin)
-  ssterm(e_g) = ssterm(e_g)       - thimpe     *dt*temp
-  ddterm(e_g) = ddterm(e_g) + (1. - thimpe*bdf)*dt*temp
+    temp = b1e(trial,lin)
+    ssterm(e_g) = ssterm(e_g)       - thimpe     *dt*temp
+    ddterm(e_g) = ddterm(e_g) + (1. - thimpe*bdf)*dt*temp
+  endif
+
   select case (itwofluid)
 
   case(-1)
