@@ -2,6 +2,7 @@ module gradshafranov
 
   use field
   use spline
+  use coils
 
   implicit none
 
@@ -33,6 +34,16 @@ module gradshafranov
 
   ! if use_norm_psi==1, pprime and ffprime are derivs wrt normalized flux
   integer, private :: use_norm_psi = 1
+
+  real, dimension(maxfilaments), private :: xc_vac, zc_vac
+  complex, dimension(maxfilaments), private :: ic_vac, ic_out
+  integer, private :: numcoils_vac
+  integer, dimension(maxfilaments), private :: coil_mask
+
+  real, dimension(maxcoils) :: gs_vertical_feedback
+  real, dimension(maxcoils) :: gs_radial_feedback
+  real, private :: xmag0, zmag0
+
 contains
 
 subroutine gradshafranov_init()
@@ -118,6 +129,79 @@ subroutine gradshafranov_per()
 
 end subroutine gradshafranov_per
 
+subroutine coil_feedback()
+  use basic
+  use arrays
+  use coils
+
+  implicit none
+
+  include 'mpif.h'
+
+  integer :: i, ierr
+  
+  if(myrank.eq.0 .and. iprint.ge.1) then 
+     print *, 'Doing feedback', xmag-xmag0, zmag-zmag0
+  end if
+
+  if(myrank.eq.0) then
+     do i=1, numcoils_vac
+        ic_out(i) = ic_vac(i)*&
+             (1. &
+             + gs_vertical_feedback(coil_mask(i))*(zmag-zmag0) &
+             + gs_radial_feedback(coil_mask(i))*(xmag-xmag0))
+     end do
+  end if
+  call mpi_bcast(ic_out, numcoils_vac, &
+       MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD, ierr)
+
+  ! Field due to coil currents
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, "Calculating fields due to coils"
+  psi_coil_field = 0.
+  call field_from_coils(xc_vac,zc_vac,ic_out,numcoils_vac, &
+       psi_coil_field,0,ierr)
+  if(ierr.ne.0) call safestop(5)
+ 
+end subroutine coil_feedback
+
+subroutine write_feedback(filename)
+  use basic
+  use math
+
+  implicit none
+
+  character(len=*), intent(in) :: filename
+  integer :: ic, i, subcoils
+  integer, parameter :: ifile = 123
+  integer :: out
+  
+  if(myrank.ne.0) return
+
+  open(unit=ifile,file=filename,action='write',status='replace')
+
+  ic = coil_mask(1)
+  subcoils = 0
+  do i=1, numcoils_vac
+     subcoils = subcoils + 1
+     if(i.eq.numcoils_vac) then
+        out = i
+     else if(coil_mask(i).ne.ic) then
+        out = i-1
+        subcoils = subcoils - 1
+     else 
+        cycle
+     end if
+
+     write(ifile, '(2F12.4)') &
+          real(ic_out(out))*twopi/(1000.*amu0)*subcoils, 0.0
+     ic = coil_mask(i)
+     subcoils = 1
+  end do
+
+  close(ifile)
+end subroutine write_feedback
+
 !==========================================================
 ! vacuum_field
 ! ~~~~~~~~~~~~
@@ -133,8 +217,8 @@ subroutine vacuum_field()
   implicit none
 
   real, dimension(6) :: g1, g2
-  real, dimension(maxcoils) :: xp, zp, xc, zc
-  complex, dimension(maxcoils) :: ic
+  real, dimension(maxfilaments) :: xp, zp, xc, zc
+  complex, dimension(maxfilaments) :: ic
   real :: aminor, bv, rnorm, fac
   integer :: ierr, ipole, numcoils
   
@@ -175,7 +259,11 @@ subroutine vacuum_field()
   ipole = 0
   select case(idevice)
   case(-1)
-     call load_coils(xc,zc,ic,numcoils,'coil.dat','current.dat',0)
+     call load_coils(xc,zc,ic,numcoils,'coil.dat','current.dat',0,coil_mask)
+     xc_vac = xc
+     zc_vac = zc
+     ic_vac = ic
+     numcoils_vac = numcoils
      
   case(1) ! CDX-U
      if(myrank.eq.0) print *, "Using standard CDX-U configuration"
@@ -275,6 +363,39 @@ subroutine define_profiles
   real :: fval, fpval
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining profiles'
+
+  ! define pressure profile
+  ! ~~~~~~~~~~~~~~~~~~~~~~~
+  ierr = 0
+  select case(iread_p)
+     
+  case(1)
+     ! Read in J/m^3
+     nvals = 0
+     call read_ascii_column('profile_p', xvals, nvals, icol=1)
+     call read_ascii_column('profile_p', yvals, nvals, icol=2)
+     if(nvals.eq.0) call safestop(5)
+     yvals = yvals * 10. / (b0_norm**2/(4.*pi))
+
+  case default
+
+  end select
+
+  if(allocated(yvals)) then
+     call destroy_spline(p0_spline)
+     call create_spline(p0_spline, nvals, xvals, yvals)
+     deallocate(xvals, yvals)
+
+     call destroy_spline(pprime_spline)
+     call copy_spline(pprime_spline, p0_spline)
+     do i=0, p0_spline%n
+        call evaluate_spline(p0_spline, p0_spline%x(i), pval, ppval)
+        pprime_spline%y(i) = ppval
+        if(myrank.eq.0) then 
+           print *, pprime_spline%x(i), pval, ppval
+        end if
+     end do
+  end if
 
   ! If p' and ff' profiles are not yet defined, define them
   if(.not.allocated(p0_spline%x)) then
@@ -691,6 +812,7 @@ subroutine gradshafranov_solve
   integer :: itri,i,j,ier, itnum, ibound, izone
   integer :: numelms, numnodes
   real :: feedfac
+  logical :: do_feedback
 
   real :: x, phi, z, error, error2, error3 
 
@@ -798,6 +920,21 @@ subroutine gradshafranov_solve
 
   call define_profiles
 
+  ! determine if feedback will be used
+  do_feedback = .false.
+  if(idevice .eq. -1) then
+     do i=0, maxcoils
+        if((gs_vertical_feedback(i) .ne. 0) .or. &
+             (gs_radial_feedback(i) .ne. 0)) then
+           do_feedback = .true.
+           xmag0 = xmag
+           zmag0 = zmag
+           exit
+        end if
+     end do
+  end if
+
+
   if(igs.ne.0) call lcfs(psi_vec, imulti_region.eq.0)
 
   error2 = 0.
@@ -864,8 +1001,8 @@ subroutine gradshafranov_solve
 
      ! Find new magnetic axis and lcfs
      call lcfs(psi_vec,imulti_region.eq.0)
-     if(psilim.eq.psimin) then
-        if(myrank.eq.0) print *, 'ERROR: psimin = psilim = ', psilim
+     if(psibound.eq.psimin) then
+        if(myrank.eq.0) print *, 'ERROR: psimin = psilim = ', psibound
         call safestop(4)
      end if
 
@@ -896,6 +1033,9 @@ subroutine gradshafranov_solve
      if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating gammas'
      call calculate_gamma(gamma2,gamma3,gamma4)
 
+     ! do feedback
+     if(do_feedback) call coil_feedback
+
      ! Define RHS vector
      b2vecini_vec = fun1_vec
      if(gamma2.ne.0.) then
@@ -918,6 +1058,10 @@ subroutine gradshafranov_solve
     
   end do mainloop
 
+  ! do feedback
+  if(do_feedback) call write_feedback('current.dat.out')
+
+
   if(myrank.eq.0 .and. iprint.ge.1) then
      print *, "Converged GS error =",error2
      print *, "initial and final(effective) libetap", libetap, libetapeff
@@ -927,6 +1071,8 @@ subroutine gradshafranov_solve
   ! continue for igs negative
 !  if(itnum.eq.igs) call safestop(3)
 
+  ! recalculate lcfs
+  if(igs.ne.0) call lcfs(psi_vec, imulti_region.eq.0)
 
   ! Define equilibrium fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1486,7 +1632,7 @@ subroutine fundef
 
   vectype, dimension(dofs_per_node) :: temp, temp2
 
-  dpsii = 1./(psilim - psimin)
+  dpsii = 1./(psibound - psimin)
 
   numnodes = owned_nodes()
   do inode=1,numnodes
@@ -1696,7 +1842,7 @@ subroutine fundef2(error)
   integer :: magnetic_region, izone
   real :: temp(5)
 
-  dpsii = 1./(psilim - psimin)
+  dpsii = 1./(psibound - psimin)
   fun1_vec = 0.
   fun2_vec = 0.
   fun3_vec = 0.
@@ -1723,9 +1869,10 @@ subroutine fundef2(error)
      do i=1, npoints
         
         pso = (ps079(i,OP_1)-psimin)*dpsii
-!        if(magnetic_region(ps079(i,:),x_79(i),z_79(i)).ne.0) pso = 1.
-        if(magnetic_region(ps079(i,:),x_79(i),z_79(i)).ne.0 &
-           .or. izone.ne.1) then
+!!$        if(magnetic_region(ps079(i,:),x_79(i),z_79(i)).ne.0) pso = 1.
+!!$        if(magnetic_region(ps079(i,:),x_79(i),z_79(i)).ne.0 &
+!!$           .or. izone.ne.1) then
+        if(izone.ne.1) then
            temp79a(i) = 0.
            temp79b(i) = 0.
            temp79c(i) = 0.
@@ -2167,8 +2314,8 @@ subroutine calc_toroidal_field(psi0,tf,x,z,izone)
      g0 = bzero*rzero
      call constant_field(tf,real(g0))
   else
-     psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
-     psii(2:6) = real(psi0(2:6))/(psilim - psimin)
+     psii(1) = (real(psi0(1)) - psimin)/(psibound - psimin)
+     psii(2:6) = real(psi0(2:6))/(psibound - psimin)
 
      if(.not.constraint) then
         g2(1) = psii(1) - 10.*psii(1)**3 + 20.*psii(1)**4       &
@@ -2255,10 +2402,11 @@ subroutine calc_pressure(psi0, pres, x, z, izone)
 
   integer :: magnetic_region
 
-  psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
-  psii(2:6) = real(psi0(2:6))/(psilim - psimin)
+  psii(1) = (real(psi0(1)) - psimin)/(psibound - psimin)
+  psii(2:6) = real(psi0(2:6))/(psibound - psimin)
 
-  if(magnetic_region(psi0,x,z).ne.0 .or. izone.ne.1) psii(1) = 1.
+!  if(magnetic_region(psi0,x,z).ne.0 .or. izone.ne.1) psii(1) = 1.
+!  if(izone.ne.1) psii(1) = 1.
 
   pspx = real(psi0(2))
   pspy = real(psi0(3))
@@ -2270,7 +2418,7 @@ subroutine calc_pressure(psi0, pres, x, z, izone)
   fbig = fbig*dpsii
   fbigp = fbigp*dpsii**2
 
-  if(irot.eq.1) then
+  if(irot.eq.1 .and. izone.eq.1) then
      r0m = 1./rzero**2
      r1 = (x**2 - rzero**2)/rzero**2
      r1m= x**2/rzero**2
@@ -2316,7 +2464,9 @@ subroutine calc_pressure(psi0, pres, x, z, izone)
      pres(4) = fbig*pspxx + fbigp*pspx**2
      pres(5) = fbig*pspxy + fbigp*pspx*pspy
      pres(6) = fbig*pspyy + fbigp*pspy**2
-  endif     !....end of branch on irot            
+  endif     !....end of branch on irot
+
+  if(izone.ne.1) pres(2:6) = 0.
 end subroutine calc_pressure
 
 
@@ -2352,21 +2502,26 @@ subroutine calc_density(psi0, dens, x, z, izone)
   pspxy= real(psi0(5))
   pspyy= real(psi0(6))
 
-  psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
-  psii(2:6) = real(psi0(2:6))/(psilim - psimin)
+  psii(1) = (real(psi0(1)) - psimin)/(psibound - psimin)
+  psii(2:6) = real(psi0(2:6))/(psibound - psimin)
 
   ! if we are in private flux region, make sure Psi > 1
   if(magnetic_region(psi0,x,z).eq.2) psii(1) = 2. - psii(1)
-  if(izone.ne.1) psii(1) = 1.
 
-  call evaluate_spline(n0_spline, psii(1), rbig0, rbig, rbigp)
-  rbig = rbig/(psilim-psimin)
-  rbigp = rbigp/(psilim-psimin)**2
+  if(izone.eq.1) then
+     call evaluate_spline(n0_spline, psii(1), rbig0, rbig, rbigp)
+     rbig = rbig/(psibound-psimin)
+     rbigp = rbigp/(psibound-psimin)**2
+  else
+     rbig0 = n0_spline%y(n0_spline%n)
+     rbig = 0.
+     rbigp = 0.
+  endif
 
-  if(irot.eq.1) then     
+  if(irot.eq.1 .and. izone.eq.1) then
      call evaluate_spline(alpha_spline,psii(1),alphap0,alphap,alphapp)
-     alphap = alphap/(psilim-psimin)
-     alphapp = alphapp/(psilim-psimin)**2
+     alphap = alphap/(psibound-psimin)
+     alphapp = alphapp/(psibound-psimin)**2
 
      r0m = 1./rzero**2
      r1 = (x**2-rzero**2)/rzero**2
@@ -2435,14 +2590,20 @@ subroutine calc_electron_pressure(psi0, pe, x, z, izone)
 
   integer :: magnetic_region
 
-  psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
-  psii(2:6) = real(psi0(2:6))/(psilim - psimin)
+  psii(1) = (real(psi0(1)) - psimin)/(psibound - psimin)
+  psii(2:6) = real(psi0(2:6))/(psibound - psimin)
 
   if(allocated(te_spline%y)) then
 !     if(magnetic_region(psi0,x,z).ne.0) psii(1) = 1.
      if(magnetic_region(psi0,x,z).eq.2) psii(1) = 2. - psii(1)
 
-     call evaluate_spline(te_spline, psii(1),te0,tep,tepp)
+     if(izone.eq.1) then 
+        call evaluate_spline(te_spline, psii(1),te0,tep,tepp)
+     else
+        te0 = te_spline%y(te_spline%n)
+        tep = 0.
+        tepp = 0.
+     end if
      call calc_density(psi0, n0, x, z, izone)
      n0 = n0*zeff ! convert ion density to electron density
 
@@ -2489,8 +2650,8 @@ subroutine calc_rotation(psi0,omega, x, z, izone)
      return
   endif
 
-  psii(1) = (real(psi0(1)) - psimin)/(psilim - psimin)
-  psii(2:6) = real(psi0(2:6))/(psilim - psimin)
+  psii(1) = (real(psi0(1)) - psimin)/(psibound - psimin)
+  psii(2:6) = real(psi0(2:6))/(psibound - psimin)
 
   if(magnetic_region(psi0,x,z).ne.0 .or. izone.ne.1) psii(1) = 1.
 

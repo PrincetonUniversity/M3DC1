@@ -2174,7 +2174,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        endif else r = 1.
 
        b2 = (s_bracket(psi,conj(psi),x,y) + I*conj(I))/r^2
-       if(ntor > 0) then begin
+       if(icomplex eq 1) then begin
+           ; if the fields are ~exp(i n phi), then
+           ; this is the toroidally-averaged value of |B| !
+
            f = read_field('f', x, y, t, slices=time, mesh=mesh, $
                           filename=filename, points=pts, linear=linear, $
                           rrange=xrange, zrange=yrange, complex=complex)
@@ -2182,8 +2185,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            b2 = b2 + s_bracket(fp,conj(fp),x,y) $
              - a_bracket(fp, conj(psi),x,y)/r $
              - a_bracket(conj(fp), psi,x,y)/r
+
+           b2 = b2 / 2. ; this comes from the cos^2 dependence of the field
+           b2 = real_part(b2)
        endif
-       b2 = real_part(b2)
 
        data = sqrt(b2)
        symbol = '!3|!5B!3|!X'
@@ -4075,7 +4080,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
          + (i_z*conj(psi_r) - i_r*conj(psi_z))/r $
          - (i_r*conj(rfac*f_r) + i_z*conj(rfac*f_z))
 
-       data = data / 2.
+       data = data / 2. ; factor of 2 is from toroidal average
        
        d = dimensions(/p0)
        symbol = '!6Magnetic Torque!X'

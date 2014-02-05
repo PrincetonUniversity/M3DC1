@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ERROR=1
+
 if [ -e "$1" ]; then   
 if [[ "$1" == m3dc1_profiles_*.txt ]]; then
     echo "Reading Shafer profiles."
@@ -9,7 +9,12 @@ if [[ "$1" == m3dc1_profiles_*.txt ]]; then
     tail -n +2 $1 | awk '{print $1 " " $3*0.1}' > profile_ne
     tail -n +2 $1 | awk '{print $1 " " $4}' > profile_omega
 
-    ERROR=0
+    echo "In C1input set"
+    echo " iread_ne = 1"
+    echo " iread_te = 1"
+    echo " iread_omega_ExB = 1"
+
+    exit 0
 
 elif [[ "$1" == *.tgz  ]]; then
 
@@ -28,7 +33,12 @@ elif [[ "$1" == *.tgz  ]]; then
     tail -n +2 profiles/tetanh*psi_*.dat > profile_te
     tail -n +2 profiles/omgebspl*psi_*.dat > profile_omega
 
-    ERROR=0
+    echo "In C1input set"
+    echo " iread_ne = 1"
+    echo " iread_te = 1"
+    echo " iread_omega_ExB = 1"
+
+    exit 0
 
 elif [[ "$1" == p*.* ]]; then
     echo "Reading p-eqdsk file"
@@ -37,20 +47,49 @@ elif [[ "$1" == p*.* ]]; then
     sed -n '/psinorm te/,/psinorm/{/psinorm/!p}' $1 > profile_te
     sed -n '/psinorm omgeb/,/psinorm/{/psinorm/!p}' $1 > profile_omega
 
-    ERROR=0
-fi
-fi
-
-if [ $ERROR != 0 ]; then
-    echo "Usage: ./extract_profiles <profile_file>"
-    echo "  where <profile_file> is one of: "
-    echo "  * a m3dc1_profiles_*.txt from Shafer"
-    echo "  * a .tgz file from Osborne's phython tools"
-    echo "  * a p-eqdsk file"
-    exit $ERROR
-else
     echo "In C1input set"
     echo " iread_ne = 1"
     echo " iread_te = 1"
     echo " iread_omega_ExB = 1"
+
+    exit 0
+
+elif [[ "$1" == *_ntvin.dat ]]; then
+    echo "Reading NTVIN file"
+
+    tail -n +11 $1 | awk '{print $2 " " $3*1e-3}' > profile_omega
+    tail -n +11 $1 | awk '{print $2 " " $5*1e-20}' > profile_ne
+    tail -n +11 $1 | awk '{print $2 " " $9*1e-3}' > profile_te
+
+    echo "In C1input set"
+    echo " iread_ne = 1"
+    echo " iread_te = 1"
+    echo " iread_omega = 1"
+
+    exit 0
+
+elif [[ "$1" == NSTX*_profiles.dat ]]; then
+    echo "Reading NSTX profiles file"
+
+    tail -n +7 $1 | awk '{print $1*$1 " " $6}' > profile_omega
+    tail -n +7 $1 | awk '{print $1*$1 " " $2*1e-20}' > profile_ne
+    tail -n +7 $1 | awk '{print $1*$1 " " $3*1e-3}' > profile_te
+
+    echo "In C1input set"
+    echo " iread_ne = 1"
+    echo " iread_te = 1"
+    echo " iread_omega = 1"
+
+    exit 0
 fi
+fi
+
+echo "Usage: ./extract_profiles <profile_file>"
+echo "  where <profile_file> is one of: "
+echo "  * a m3dc1_profiles_*.txt from Shafer"
+echo "  * a .tgz file from Osborne's phython tools"
+echo "  * a p-eqdsk file"
+echo "  * a ntvin.dat file"
+echo "  * a NSTX_profiles.dat file"
+
+exit 1

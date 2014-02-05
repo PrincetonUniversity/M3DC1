@@ -89,6 +89,9 @@
         jper = 0	! 1 = periodic in z
 !
 	vloop = -0.06
+
+	jadv = 0
+	ivform = 0
 !
 !
 ! EQUILIBRIUM OPTIONS

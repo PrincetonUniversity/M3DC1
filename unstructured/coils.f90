@@ -1,7 +1,8 @@
 module coils
   implicit none
 
-  integer, parameter :: maxcoils = 10000
+  integer, parameter :: maxfilaments = 10000
+  integer, parameter :: maxcoils = 100
 
 contains
 
@@ -12,18 +13,19 @@ contains
   ! reads coil and current data from file
   !======================================================
  subroutine load_coils(xc, zc, ic, numcoils, coil_filename, current_filename, &
-      ntor)
+      ntor, coil_mask)
    use math
 
    implicit none
 
    include 'mpif.h'
 
-   real, intent(out), dimension(maxcoils) :: xc, zc  ! coordinates of each coil
-   complex, intent(out), dimension(maxcoils) :: ic   ! current in each coil
+   real, intent(out), dimension(maxfilaments) :: xc, zc  ! coordinates of each coil
+   complex, intent(out), dimension(maxfilaments) :: ic   ! current in each coil
    integer, intent(out) :: numcoils                  ! number of coils read
    character*(*) :: coil_filename, current_filename  ! input files
    integer, intent(in) :: ntor                       ! toroidal mode number
+   integer, intent(out), dimension(maxfilaments), optional :: coil_mask
 
    real :: x, z, w, h, a1, a2, c, phase
 
@@ -65,14 +67,13 @@ contains
          a2 = tan(a2)
 
          c = amu0 * 1000. * c / (subx*suby) / twopi
-!         c = amu0 * 1000. * c / (subx*suby)
          
          ! divide coils into sub-coils
          do j=1, subx
             do k=1, suby
                s = s + 1
-               if(s.gt.maxcoils) then
-                  print *, 'Too many coils.', s, maxcoils
+               if(s.gt.maxfilaments) then
+                  print *, 'Too many filaments.', s, maxfilaments
                   ierr = 1
                   goto 300
                end if
@@ -92,9 +93,16 @@ contains
                
                ic(s) = c*(cos(pi*phase/180.) &
                     - (0.,1.)*sin(pi*phase/180.))
+
+               if(present(coil_mask)) coil_mask(s) = i+1
             end do
          end do
          i = i + 1
+         if(i.gt.maxcoils) then 
+            print *, 'Too many coils.', i, maxcoils
+            ierr = 1
+            goto 300
+         end if
       end do
 
 
@@ -141,7 +149,7 @@ contains
    integer :: i, numnodes, k, ier, itmp
    real :: x, phi, z
    real, dimension(nc) :: xp, zp
-   real, dimension(dofs_per_node,maxcoils) :: g
+   real, dimension(dofs_per_node,maxfilaments) :: g
    vectype, dimension(dofs_per_node) :: data
 
    numnodes = owned_nodes()

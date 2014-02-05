@@ -102,6 +102,7 @@ subroutine set_defaults
   use element
   use pellet
   use mesh_mod
+  use gradshafranov
 
   implicit none
 
@@ -162,6 +163,7 @@ subroutine set_defaults
        "Read ExB rotation (same options as iread_omega)", input_grp)
   call add_var_int("iread_ne", iread_ne, 0, "", input_grp)
   call add_var_int("iread_te", iread_te, 0, "", input_grp)
+  call add_var_int("iread_p", iread_p, 0, "", input_grp)
   call add_var_int("iread_neo", iread_neo, 0, &
        "Read velocity data from NEO output", input_grp)
   call add_var_int("ineo_subtract_diamag", ineo_subtract_diamag, 0, &
@@ -261,8 +263,9 @@ subroutine set_defaults
        "1: Do not advance magnetic fields", model_grp)
   call add_var_double("chiiner", chiiner, 1., "", model_grp)
   call add_var_int("ieq_bdotgradt", ieq_bdotgradt, 1, "", model_grp)
+  call add_var_int("iwall_is_limiter", iwall_is_limiter, 1, &
+       "1 = Wall acts as limiter", model_grp)
     
-
   ! Time step options
   call add_var_int("ntimemax", ntimemax, 20, &
        "Total number of timesteps", time_grp)
@@ -417,6 +420,12 @@ subroutine set_defaults
        "1: read profile_pscale for factor to scale p and p'", gs_grp)
   call add_var_double("vscale", vscale, 1., &
        "Factor multiplying toroidal rotation profile", gs_grp)
+  call add_var_double_array("gs_vertical_feedback", gs_vertical_feedback, &
+       maxcoils, 0., &
+       "Proportional feedback of each coil to vertical displacements", gs_grp)
+  call add_var_double_array("gs_radial_feedback", gs_radial_feedback, &
+       maxcoils, 0., &
+       "Proportional feedback of each coil to radial displacements", gs_grp)
 
   call add_var_int("irot", irot, 0, &
        "Include toroidal rotation", gs_grp)
@@ -754,12 +763,18 @@ subroutine validate_input
   i3d = 0
 #endif
 
+  if(iadapt.gt.0) then
 #if defined(USECOMPLEX)
-    if(iadapt.gt.0) then
       if(myrank.eq.0) print *, "ERROR:  must use real version of code for iadapt.gt.0"
       call safestop(1)
-    endif
 #endif
+      if(maxrank.ne.1)  then
+         if(myrank.eq.0) &
+              print *, 'ERROR: mesh adapt only implemented for 1 process.'
+         call safestop(1)
+      end if
+   endif
+
   if(ifout.eq.-1) ifout = i3d
   if(ibform.ne.-1) then
      if(myrank.eq.0) print *, 'WARNING: ibform input parameter deprecated'
