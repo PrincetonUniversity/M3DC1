@@ -676,7 +676,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   do i=1, nelms
      call calcavector(i, psi_field(ilin), dum(:,i))
   end do
-  if(icsubtract.eq.1) then
+  if(icsubtract.eq.1 .and. (ilin.eq.0 .or. eqsubtract.eq.0)) then
      allocate(dum2(coeffs_per_element,nelms))
      do i=1, nelms
         call calcavector(i, psi_coil_field, dum2(:,i))

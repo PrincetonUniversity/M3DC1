@@ -1286,7 +1286,7 @@ subroutine lcfs(psi, test_wall)
   ! (as in a private flux region)
   first_point = .true.
   numnodes = owned_nodes()
-  if(tw) then
+  if(tw .and. (iwall_is_limiter.eq.1)) then
      do inode=1, numnodes
         call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z, &
              inner_wall)

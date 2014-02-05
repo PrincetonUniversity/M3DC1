@@ -32,7 +32,7 @@
 	int_pts_main = 25
 	int_pts_aux = 25
 
-	isurface = 1
+	isurface = 0
 
 
 ! MODEL OPTIONS

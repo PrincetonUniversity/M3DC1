@@ -1,8 +1,12 @@
 pro plot_omega, filename=filename, slice=time, points=pts, $
                 yrange=yrange, q_val=q_val, $
-                mtop=mtop, mslope=mslope, _EXTRA=extra
+                mtop=mtop, mslope=mslope, _EXTRA=extra, $
+                plot_wstar=plot_wstar, plot_wi=plot_wi, plot_we=plot_we
 
   if(n_elements(pts) eq 0) then pts=200
+  if(n_elements(plot_wi) eq 0) then plot_wi=1
+  if(n_elements(plot_wstar) eq 0) then plot_wstar=1
+  if(n_elements(plot_we) eq 0) then plot_we=1
 
   db = read_parameter('db', filename=filename)
   itor = read_parameter('itor', filename=filename)
@@ -63,14 +67,26 @@ pro plot_omega, filename=filename, slice=time, points=pts, $
   ct3
   plot, nflux, omega_ExB_fa, yrange=yrange, xtitle=xtitle, ytitle=ytitle, $
     _EXTRA=extra
-  oplot, nflux, v_omega_fa, color=color(1)
-  oplot, nflux, ve_omega_fa, color=color(2)
-  oplot, nflux, w_star_i_fa, color=color(3)
+  names = '!7x!6!DE!9X!6B!N!X'
+  col = color(0)
+  if(keyword_set(plot_wi)) then begin
+      oplot, nflux, v_omega_fa, color=color(1)
+      names = [names, '!7x!X']
+      col = [col, color(1)]
+  end
+  if(keyword_set(plot_we)) then begin
+      oplot, nflux, ve_omega_fa, color=color(2)
+      names = [names, '!7x!D!8e!N!X']
+      col = [col, color(2)]
+  end
+  if(keyword_set(plot_wstar)) then begin
+      oplot, nflux, w_star_i_fa, color=color(3)
+      names = [names, '!7x!6!D*!8i!N!X']
+      col = [col, color(3)]
+  end
   oplot, !x.crange, [0,0], linestyle=2
 
-  names = ['!7x!6!DE!9X!6B!N!X', '!7x!X', '!7x!D!8e!N!X', '!7x!6!D*!8i!N!X']
-
-  plot_legend, names, color=colors(), _EXTRA=extra
+  plot_legend, names, color=col, _EXTRA=extra
 
   if(n_elements(q_val) ne 0) then begin
       ntor = read_parameter('ntor', filename=filename)

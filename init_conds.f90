@@ -329,8 +329,8 @@ subroutine calculate_external_fields(sf)
   real, dimension(MAX_PTS) :: gr, gphi, gz
 #endif
 
-  real, dimension(maxcoils) :: xc_na, zc_na
-  complex, dimension(maxcoils) :: ic_na
+  real, dimension(maxfilaments) :: xc_na, zc_na
+  complex, dimension(maxfilaments) :: ic_na
   integer :: nc_na
 
   vectype, dimension(dofs_per_element,dofs_per_element) :: temp, temp_bf

@@ -452,7 +452,6 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     ; ***
     !p.position = [region[0]+width+lgap+cgap,        region[1]+bgap, $
                    region[0]+width+lgap+cgap+width1, region[1]+bgap+top]
-    print, '!p.position = ', !p.position
     
     xx = indgen(2)
     yy = lev
