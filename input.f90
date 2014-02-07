@@ -233,7 +233,7 @@ subroutine set_defaults
        "1: Subtract fields from non-axisymmetric coils", model_grp)
   call add_var_int("icsubtract", icsubtract, 0, &
        "1: Subtract fields from poloidal field coils", model_grp)
-  call add_var_int("idens", idens, 1, &
+  call add_var_int("idens", idens, 0, &
        "1: Include density equation", model_grp)
   call add_var_int("ipres", ipres, 0, &
        "1: Include total pressure equation", model_grp)

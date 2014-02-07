@@ -130,7 +130,7 @@ subroutine onestep
        maxiter = max(maxiter,int(kspits(icount)))
     enddo
     if(myrank.eq.0) write(*,'(A,2i5)') 'ksp_max, maxiter =', ksp_max, maxiter
-    if(maxiter .lt. ksp_max) exit
+    if((maxiter .lt. ksp_max) .or. dtkecrit .le. 0) exit
 
     dt = dt/2.
     if(myrank.eq.0) write(*,'(A,e12.4)') 'Time step reduced by 2:  dt =', dt
