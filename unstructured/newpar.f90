@@ -739,9 +739,11 @@ end subroutine flip_handedness
 integer function magnetic_region(psi, x, z)
   use basic
 
+  implicit none
+
   vectype, intent(in), dimension(dofs_per_node) :: psi
   real, intent(in) :: x, z 
-  real :: dpsii
+  real :: dpsii, pl, rl, al
 
   magnetic_region = 0
 
@@ -752,9 +754,16 @@ integer function magnetic_region(psi, x, z)
      magnetic_region = 1
   else
      ! if Psi < 1, but flux is increasing, we are in private flux region
-     if((real(psi(2))*(x-xmag) + real(psi(3))*(z-zmag))*dpsii .lt. 0.) then
+
+     pl = sqrt(real(psi(2))**2 + real(psi(3))**2)
+     rl = sqrt((x-xmag)**2 + (z-zmag)**2)
+     if(pl.eq.0. .or. rl.eq.0.) return
+
+     al = (real(psi(2))*(x-xmag) + real(psi(3))*(z-zmag))/(pl*rl)
+     if(al*dpsii/abs(dpsii) .lt. 0.3) then
         magnetic_region = 2
      endif
+     
   endif
 end function magnetic_region
 

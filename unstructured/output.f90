@@ -1074,6 +1074,14 @@ subroutine output_fields(time_group_id, equilibrium, error)
             nelms, error)
        nfields = nfields + 1
     end if
+
+    ! magnetic region
+    do i=1, nelms
+       call calcavector(i, mag_reg, dum(:,i))
+    end do
+    call output_field(group_id, "magnetic_region", real(dum), &
+         coeffs_per_element, nelms, error)
+    nfields = nfields + 1
  endif
 
 !!$  if(equilibrium.eq.1) then

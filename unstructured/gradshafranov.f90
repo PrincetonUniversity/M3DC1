@@ -1007,7 +1007,7 @@ subroutine gradshafranov_solve
      end if
 
      ! define the pressure and toroidal field functions
-     if(constraint .and. igs_method.ne.1) then
+     if(constraint) then
         if(myrank.eq.0 .and. iprint.ge.1) print *, '  calling fundef2'
         call fundef2(error3)
      else
@@ -1018,7 +1018,7 @@ subroutine gradshafranov_solve
      ! Calculate error in new solution
      if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating error'
      call calculate_error(error,error2,b1vecini_vec)
-     if(constraint .and. igs_method.ne.1) error = error3
+     if(constraint) error = error3
 
      if(myrank.eq.0 .and. iprint.ge.1) then
         write(*,'(A,1p2e12.4)') ' Error in GS solution: ', error, error2
@@ -1077,116 +1077,78 @@ subroutine gradshafranov_solve
   ! Define equilibrium fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' defining equilibrium fields'
-  if(igs_method.eq.3) then
-     if(myrank.eq.0 .and. iprint.ge.2) print *, '  creating solution matrix'
-     call set_matrix_index(dp_mat_lhs%mat, dp_mat_lhs_index)
-     call create_newvar_matrix(dp_mat_lhs, NV_DCBOUND, NV_DP_MATRIX, .true.)
-#ifdef CJ_MATRIX_DUMP
-     print *, "create_mat gradshafranov dp_mat_lhs", dp_mat_lhs%mat%imatrix     
-#endif 
-  endif
-  if(igs_method.eq.2 .or. igs_method.eq.3) then
-     ! solve for p and f fields which best approximate gs solution
-     b1vecini_vec = 0.
-     b2vecini_vec = 0.
+  ! solve for p and f fields which best approximate gs solution
+  b1vecini_vec = 0.
+  b2vecini_vec = 0.
 
-     call create_field(b3vecini_vec)
-     if(irot.ne.0) call create_field(b4vecini_vec)
+  call create_field(b3vecini_vec)
+  if(irot.ne.0) call create_field(b4vecini_vec)
 
-     if(myrank.eq.0 .and. iprint.ge.2) print *, '  populating'
-     do itri=1,numelms
-        call define_element_quadrature(itri, int_pts_main, int_tor)
-        call define_fields(itri, 0, 1, 0)
-
-        call eval_ops(itri, psi_vec, ps079)
-        if(icsubtract.eq.1) then 
-           call eval_ops(itri, psi_coil_field, psc79)
-           ps079 = ps079 + psc79
-        end if
-
-        call get_zone(itri, izone)
-
-        if(igs_method.eq.2) then 
-           do i=1, npoints       
-              call calc_toroidal_field(ps079(i,:),tf,x_79(i),z_79(i),izone)
-              temp79b(i) = tf(1)
-              call calc_pressure(ps079(i,:),tf,x_79(i),z_79(i),izone)
-              temp79a(i) = tf(1)
-              call calc_density(ps079(i,:),tf,x_79(i),z_79(i),izone)
-              temp79c(i) = tf(1)
-              if(irot.ne.0) then
-                 call calc_rotation(ps079(i,:),tf,x_79(i),z_79(i),izone)
-                 temp79d(i) = tf(1)
-              endif
-           end do
-              
-           do i=1,dofs_per_element
-              temp(i,1) = int2(mu79(:,OP_1,i),temp79a)
-              temp(i,2) = int2(mu79(:,OP_1,i),temp79b)
-              temp(i,3) = int2(mu79(:,OP_1,i),temp79c)
-              if(irot.ne.0) temp(i,4) = int2(mu79(:,OP_1,i),temp79d)
-           end do
-           call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
-           call vector_insert_block(b2vecini_vec%vec,itri,1,temp(:,2),VEC_ADD)
-           call vector_insert_block(b3vecini_vec%vec,itri,1,temp(:,3),VEC_ADD)
-           if(irot.ne.0) then
-              call vector_insert_block(b4vecini_vec%vec,itri,1,temp(:,4),VEC_ADD)
-           endif
-        else if(igs_method.eq.3) then
-
-           call eval_ops(itri, fun1_vec, ph079)
-           call eval_ops(itri, fun4_vec, vz079)
-
-           do i=1, dofs_per_element
-              temp(i,1) = &
-                   int4(ri_79,ph079(:,OP_1),mu79(:,OP_DR,i),ps079(:,OP_DR)) + &
-                   int4(ri_79,ph079(:,OP_1),mu79(:,OP_DZ,i),ps079(:,OP_DZ))
-              temp(i,2) = 2.*gamma4* &
-                   (int4(r_79,vz079(:,OP_1),mu79(:,OP_DR,i),ps079(:,OP_DR)) &
-                   +int4(r_79,vz079(:,OP_1),mu79(:,OP_DZ,i),ps079(:,OP_DZ)))
-           end do
-           call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
-           call vector_insert_block(b2vecini_vec%vec,itri,1,temp(:,2),VEC_ADD)
+  if(myrank.eq.0 .and. iprint.ge.2) print *, '  populating'
+  do itri=1,numelms
+     call define_element_quadrature(itri, int_pts_main, int_tor)
+     call define_fields(itri, 0, 1, 0)
+     
+     call eval_ops(itri, psi_vec, ps079)
+     if(icsubtract.eq.1) then 
+        call eval_ops(itri, psi_coil_field, psc79)
+        ps079 = ps079 + psc79
+     end if
+     
+     call get_zone(itri, izone)
+     
+     do i=1, npoints       
+        call calc_toroidal_field(ps079(i,:),tf,x_79(i),z_79(i),izone)
+        temp79b(i) = tf(1)
+        call calc_pressure(ps079(i,:),tf,x_79(i),z_79(i),izone)
+        temp79a(i) = tf(1)
+        call calc_density(ps079(i,:),tf,x_79(i),z_79(i),izone)
+        temp79c(i) = tf(1)
+        if(irot.ne.0) then
+           call calc_rotation(ps079(i,:),tf,x_79(i),z_79(i),izone)
+           temp79d(i) = tf(1)
         endif
      end do
-
-     if(myrank.eq.0 .and. iprint.ge.2) print *, '  solving...'
-     if(igs_method.eq.2) then
-        call newvar_solve(b1vecini_vec%vec,mass_mat_lhs)
-        p_field(0) = b1vecini_vec
-
-        call newvar_solve(b2vecini_vec%vec,mass_mat_lhs)
-        bz_field(0) = b2vecini_vec
-
-        call newvar_solve(b3vecini_vec%vec,mass_mat_lhs)
-        den_field(0) = b3vecini_vec
-
-        if(irot.ne.0) then
-           call newvar_solve(b4vecini_vec%vec,mass_mat_lhs)
-           vz_field(0) = b4vecini_vec
-        endif
-
-     else if(igs_method.eq.3) then
-        call newvar_solve(b1vecini_vec%vec,dp_mat_lhs)
-        call add(b1vecini_vec, pedge)
-        p_field(0) = b1vecini_vec
-
-        b1vecini_vec = (bzero*rzero)**2
-        call newvar_solve(b2vecini_vec%vec,dp_mat_lhs,b1vecini_vec%vec)
-
-        call pow(b2vecini_vec, 0.5)
-        if(bzero*rzero .lt. 0.) call mult(b2vecini_vec, -1.)
-        bz_field(0) = b2vecini_vec
-     endif
-
-     call destroy_field(b3vecini_vec)
-     if(irot.ne.0) call destroy_field(b4vecini_vec)
-  endif
-  if(igs_method.eq.3) call destroy_mat(dp_mat_lhs%mat)
      
-  ! calculate density profile for igs_method.eq.3
-  if(igs_method.eq.3) then
-     if(myrank.eq.0 .and. iprint.ge.2) print *, 'calculating density...'
+     do i=1,dofs_per_element
+        temp(i,1) = int2(mu79(:,OP_1,i),temp79a)
+        temp(i,2) = int2(mu79(:,OP_1,i),temp79b)
+        temp(i,3) = int2(mu79(:,OP_1,i),temp79c)
+        if(irot.ne.0) temp(i,4) = int2(mu79(:,OP_1,i),temp79d)
+     end do
+     call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
+     call vector_insert_block(b2vecini_vec%vec,itri,1,temp(:,2),VEC_ADD)
+     call vector_insert_block(b3vecini_vec%vec,itri,1,temp(:,3),VEC_ADD)
+     if(irot.ne.0) then
+        call vector_insert_block(b4vecini_vec%vec,itri,1,temp(:,4),VEC_ADD)
+     endif
+  end do
+
+  if(myrank.eq.0 .and. iprint.ge.2) print *, '  solving...'
+
+  call newvar_solve(b1vecini_vec%vec,mass_mat_lhs)
+  p_field(0) = b1vecini_vec
+
+  call newvar_solve(b2vecini_vec%vec,mass_mat_lhs)
+  bz_field(0) = b2vecini_vec
+
+  call newvar_solve(b3vecini_vec%vec,mass_mat_lhs)
+  den_field(0) = b3vecini_vec
+
+  if(irot.ne.0) then
+     call newvar_solve(b4vecini_vec%vec,mass_mat_lhs)
+     vz_field(0) = b4vecini_vec
+  endif
+
+  call destroy_field(b3vecini_vec)
+  if(irot.ne.0) call destroy_field(b4vecini_vec)
+     
+  psi_field(0) = psi_vec
+  psi_field(1) = 0.
+
+  ! Define pe field
+  if(allocated(te_spline%y)) then
+     if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating pe...'
      b1vecini_vec = 0.
      do itri=1,numelms
         call define_element_quadrature(itri, int_pts_main, int_tor)
@@ -1197,127 +1159,75 @@ subroutine gradshafranov_solve
            call eval_ops(itri, psi_coil_field, psc79)
            ps079 = ps079 + psc79
         end if
-
+        
         call get_zone(itri, izone)
-
-        do i=1, npoints       
-           call calc_density(ps079(i,:),tf,x_79(i),z_79(i),izone)
-           temp79c(i) = tf(1)
+        
+        do i=1, npoints 
+           call calc_electron_pressure(ps079(i,:),tf,x_79(i),z_79(i),izone)
+           temp79a(i) = tf(1)
         end do
-
+        
         do i=1, dofs_per_element
-           temp(i,1) =  int2(mu79(:,OP_1,i),temp79c)
+           temp(i,1) = int2(mu79(:,OP_1,i),temp79a)
         end do
         call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
      end do
-
+     
      call newvar_solve(b1vecini_vec%vec,mass_mat_lhs)
-     den_field(0) = b1vecini_vec
-  endif
-
-
-  psi_field(0) = psi_vec
-  psi_field(1) = 0.
-
-  if(igs_method.eq.1) then
-     do i=1,numnodes
-        call get_node_pos(i, x, phi, z)
-        call get_local_vals(i)
-        call calc_toroidal_field(psi0_l, bz0_l, x, z, 1)
-        call calc_pressure(psi0_l, p0_l, x, z, 1)
-        call calc_density(psi0_l,den0_l,x,z, 1)
-        call calc_rotation(psi0_l,vz0_l,x,z, 1)
-        call calc_electron_pressure(psi0_l, pe0_l, x, z, 1)
-        call calc_electron_temperature(te0_l, pe0_l, den0_l)
-        call calc_ion_temperature(ti0_l, p0_l, pe0_l, den0_l)
-        call set_local_vals(i)
-     end do
+     pe_field(0) = b1vecini_vec
+  else
+     pe_field(0) = p_field(0)
+     call mult(pe_field(0), pefac)
   end if
-
-  if(igs_method.ne.1) then
-  ! Define pe field
-     if(allocated(te_spline%y)) then
-        if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating pe...'
-        b1vecini_vec = 0.
-        do itri=1,numelms
-           call define_element_quadrature(itri, int_pts_main, int_tor)
-           call define_fields(itri, 0, 1, 0)
-           
-           call eval_ops(itri, psi_field(0), ps079)
-           if(icsubtract.eq.1) then 
-              call eval_ops(itri, psi_coil_field, psc79)
-              ps079 = ps079 + psc79
-           end if
-
-           call get_zone(itri, izone)
-
-           do i=1, npoints 
-              call calc_electron_pressure(ps079(i,:),tf,x_79(i),z_79(i),izone)
-              temp79a(i) = tf(1)
-           end do
-
-           do i=1, dofs_per_element
-              temp(i,1) = int2(mu79(:,OP_1,i),temp79a)
-           end do
-           call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
-        end do
-
-        call newvar_solve(b1vecini_vec%vec,mass_mat_lhs)
-        pe_field(0) = b1vecini_vec
-     else
-        pe_field(0) = p_field(0)
-        call mult(pe_field(0), pefac)
-     end if
 
   ! Define te field
-        if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating Te...'
-        b1vecini_vec = 0.
-        do itri=1,numelms
-           call define_element_quadrature(itri, int_pts_main, int_tor)
-           call define_fields(itri, 0, 1, 0)
-           
-           call eval_ops(itri, pe_field(0), pe079)
-           call eval_ops(itri, den_field(0), n079)
-
-           do i=1, npoints 
-              call calc_electron_temperature(tf,pe079(i,:), n079(i,:))
-              temp79a(i) = tf(1)
-           end do
-
-           do i=1, dofs_per_element
-              temp(i,1) = int2(mu79(:,OP_1,i),temp79a)
-           end do
-           call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
-        end do
-
-        call newvar_solve(b1vecini_vec%vec,mass_mat_lhs)
-        te_field(0) = b1vecini_vec
+  if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating Te...'
+  b1vecini_vec = 0.
+  do itri=1,numelms
+     call define_element_quadrature(itri, int_pts_main, int_tor)
+     call define_fields(itri, 0, 1, 0)
+     
+     call eval_ops(itri, pe_field(0), pe079)
+     call eval_ops(itri, den_field(0), n079)
+     
+     do i=1, npoints 
+        call calc_electron_temperature(tf,pe079(i,:), n079(i,:))
+        temp79a(i) = tf(1)
+     end do
+     
+     do i=1, dofs_per_element
+        temp(i,1) = int2(mu79(:,OP_1,i),temp79a)
+     end do
+     call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
+  end do
+  
+  call newvar_solve(b1vecini_vec%vec,mass_mat_lhs)
+  te_field(0) = b1vecini_vec
 
   ! Define ti field
-        if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating Ti...'
-        b1vecini_vec = 0.
-        do itri=1,numelms
-           call define_element_quadrature(itri, int_pts_main, int_tor)
-           call define_fields(itri, 0, 1, 0)
-           
-           call eval_ops(itri, p_field(0), p079)
-           call eval_ops(itri, pe_field(0), pe079)
-           call eval_ops(itri, den_field(0), n079)
-
-           do i=1, npoints 
-              call calc_ion_temperature(tf,p079(i,:),pe079(i,:),n079(i,:))
-              temp79a(i) = tf(1)
-           end do
-
-           do i=1, dofs_per_element
-              temp(i,1) = int2(mu79(:,OP_1,i),temp79a)
-           end do
-           call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
-        end do
-
-        call newvar_solve(b1vecini_vec%vec,mass_mat_lhs)
-        ti_field(0) = b1vecini_vec
-  end if
+  if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating Ti...'
+  b1vecini_vec = 0.
+  do itri=1,numelms
+     call define_element_quadrature(itri, int_pts_main, int_tor)
+     call define_fields(itri, 0, 1, 0)
+     
+     call eval_ops(itri, p_field(0), p079)
+     call eval_ops(itri, pe_field(0), pe079)
+     call eval_ops(itri, den_field(0), n079)
+     
+     do i=1, npoints 
+        call calc_ion_temperature(tf,p079(i,:),pe079(i,:),n079(i,:))
+        temp79a(i) = tf(1)
+     end do
+     
+     do i=1, dofs_per_element
+        temp(i,1) = int2(mu79(:,OP_1,i),temp79a)
+     end do
+     call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
+  end do
+  
+  call newvar_solve(b1vecini_vec%vec,mass_mat_lhs)
+  ti_field(0) = b1vecini_vec
 
   call finalize(field0_vec)
 
@@ -1869,6 +1779,9 @@ subroutine fundef2(error)
      do i=1, npoints
         
         pso = (ps079(i,OP_1)-psimin)*dpsii
+        ! if we are in private flux region, make sure Psi > 1
+        if(magnetic_region(ps079(i,:),x_79(i),z_79(i)).eq.2) pso = 2. - pso
+
 !!$        if(magnetic_region(ps079(i,:),x_79(i),z_79(i)).ne.0) pso = 1.
 !!$        if(magnetic_region(ps079(i,:),x_79(i),z_79(i)).ne.0 &
 !!$           .or. izone.ne.1) then
@@ -2413,6 +2326,9 @@ subroutine calc_pressure(psi0, pres, x, z, izone)
   pspxx= real(psi0(4))
   pspxy= real(psi0(5))
   pspyy= real(psi0(6))
+
+  ! if we are in private flux region, make sure Psi > 1
+  if(magnetic_region(psi0,x,z).eq.2) psii(1) = 2. - psii(1)
 
   call evaluate_spline(p0_spline, psii(1), fbig0, fbig, fbigp)
   fbig = fbig*dpsii
