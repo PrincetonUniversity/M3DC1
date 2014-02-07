@@ -14,6 +14,7 @@ module auxiliary_fields
   type(field_type) :: torque_density_em
   type(field_type) :: torque_density_ntv
   type(field_type) :: chord_mask
+  type(field_type) :: mag_reg
 
   logical, private :: initialized = .false.
 
@@ -27,6 +28,7 @@ subroutine create_auxiliary_fields
   call create_field(torque_density_em)
   call create_field(torque_density_ntv)
   call create_field(chord_mask)
+  call create_field(mag_reg)
   initialized = .true.
 end subroutine create_auxiliary_fields
 
@@ -39,6 +41,7 @@ subroutine destroy_auxiliary_fields
   call destroy_field(torque_density_em)
   call destroy_field(torque_density_ntv)
   call destroy_field(chord_mask)
+  call destroy_field(mag_reg)
 end subroutine destroy_auxiliary_fields
   
 subroutine calculate_temperatures(ilin, te, ti)
@@ -138,7 +141,8 @@ subroutine calculate_auxiliary_fields(ilin)
 
   integer :: def_fields
   integer :: numelms
-  integer :: i, itri
+  integer :: i, itri, j
+  integer :: magnetic_region
 
   vectype, dimension(dofs_per_element) :: dofs
 
@@ -380,6 +384,15 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
         call vector_insert_block(chord_mask%vec,itri,1,dofs,VEC_ADD)
      end if
 
+     ! magnetic_region
+     do i=1, dofs_per_element
+        do j=1, npoints
+           temp79a(j) = magnetic_region(ps079(j,:),x_79(j),z_79(j))
+        end do
+        dofs(i) = int2(mu79(:,OP_1,i),temp79a)
+     end do
+     call vector_insert_block(mag_reg%vec,itri,1,dofs,VEC_ADD)
+
   end do
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' before bdotgradp solve'
@@ -393,6 +406,8 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
   if(xray_detector_enabled.eq.1) then
      call newvar_solve(chord_mask%vec, mass_mat_lhs)
   end if
+
+  call newvar_solve(mag_reg%vec, mass_mat_lhs)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Done calculating diagnostic fields'
   

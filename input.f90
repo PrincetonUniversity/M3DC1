@@ -370,7 +370,6 @@ subroutine set_defaults
   ! Grad-Shafranov
   call add_var_int("inumgs", inumgs, 0, "", gs_grp)
   call add_var_int("igs", igs, 80, "", gs_grp)
-  call add_var_int("igs_method", igs_method, 2, "", gs_grp)
   call add_var_int("igs_pp_ffp_rescale", igs_pp_ffp_rescale, 0, &
        "Rescale p' and FF' to match p and F", gs_grp)
   call add_var_int("nv1equ", nv1equ, 0, "", gs_grp)
@@ -677,6 +676,7 @@ subroutine set_defaults
   
   ! Deprecated
   call add_var_int("ibform", ibform, -1, "", deprec_grp)
+  call add_var_int("igs_method", igs_method, -1, "", gs_grp)
 end subroutine set_defaults
 
 
@@ -699,6 +699,12 @@ subroutine validate_input
 #endif
   integer :: ier
 
+  if(myrank.eq.0) then
+     print *, "============================================="
+     print *, " VALIDATING INPUT"
+     print *, " ----------------"
+  end if
+  
 !...check if correct code version is being used
 #if defined(USE3D)
     if(linear.eq.1 .or. nplanes.le.1) then
@@ -748,6 +754,10 @@ subroutine validate_input
      if(myrank.eq.0) print *, "idiff=1 not allowed with isplitstep=0"
      call safestop(1)
   endif
+
+  if(igs_method.ne.-1) then 
+     if(myrank.eq.0) print *, "WARNING: igs_method is now deprecated"
+  end if
   
   ! calculate pfac (pe*pfac = electron pressure)
   if(p0.gt.0.) then
@@ -951,6 +961,10 @@ subroutine validate_input
   
   if(ibeam.ge.1) call neutral_beam_init
   if(ipellet.ge.1) call pellet_init
+
+  if(myrank.eq.0) then
+     print *, "============================================="
+  end if
 
 end subroutine validate_input
 
