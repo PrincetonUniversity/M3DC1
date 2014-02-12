@@ -13,7 +13,7 @@ contains
   ! reads coil and current data from file
   !======================================================
  subroutine load_coils(xc, zc, ic, numcoils, coil_filename, current_filename, &
-      ntor, coil_mask)
+      ntor, coil_mask, filaments)
    use math
 
    implicit none
@@ -26,6 +26,7 @@ contains
    character*(*) :: coil_filename, current_filename  ! input files
    integer, intent(in) :: ntor                       ! toroidal mode number
    integer, intent(out), dimension(maxfilaments), optional :: coil_mask
+   integer, intent(out), dimension(maxfilaments), optional :: filaments
 
    real :: x, z, w, h, a1, a2, c, phase
 
@@ -48,7 +49,6 @@ contains
       open(unit=fcoil,file=coil_filename,status="old",err=200,action='read')
       fcurr = 20
       open(unit=fcurr,file=current_filename,status="old",err=201,action='read')
-
 
       s = 0
       i = 0
@@ -95,6 +95,7 @@ contains
                     - (0.,1.)*sin(pi*phase/180.))
 
                if(present(coil_mask)) coil_mask(s) = i+1
+               if(present(filaments)) filaments(s) = subx*suby
             end do
          end do
          i = i + 1

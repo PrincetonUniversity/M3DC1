@@ -154,7 +154,7 @@ contains
 
   end subroutine get_hermite_coeffs
 
-  subroutine evaluate_spline(s, x, y, yp, ypp, yppp, extrapolate)
+  subroutine evaluate_spline(s, x, y, yp, ypp, yppp, iout, extrapolate)
     implicit none
 
     type(spline1d), intent(in) :: s
@@ -162,10 +162,21 @@ contains
     real, intent(out) :: y
     real, intent(out), optional :: yp, ypp, yppp
     integer, intent(in), optional :: extrapolate
+    integer, intent(out), optional :: iout
 
     real, dimension(4) :: a
     real :: dx
     integer :: i
+
+    if(present(iout)) then 
+       if(x .gt. s%x(s%n)) then
+          iout = 1
+       elseif(x .lt. s%x(1)) then
+          iout = -1
+       else
+          iout = 0
+       end if
+    end if
 
     call which_domain(s, x, i, dx)
     call get_hermite_coeffs(s, i, a, extrapolate)

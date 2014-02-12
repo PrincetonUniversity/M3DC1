@@ -372,6 +372,8 @@ subroutine set_defaults
   call add_var_int("igs", igs, 80, "", gs_grp)
   call add_var_int("igs_pp_ffp_rescale", igs_pp_ffp_rescale, 0, &
        "Rescale p' and FF' to match p and F", gs_grp)
+  call add_var_int("igs_extend_p", igs_extend_p, 0, &
+       "Extend p past Psi=1 using ne and Te profiles", gs_grp)
   call add_var_int("nv1equ", nv1equ, 0, "", gs_grp)
   call add_var_double("tcuro", tcuro, 1., &
        "Total current in initial current filament", gs_grp)
