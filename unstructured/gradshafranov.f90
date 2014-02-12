@@ -2413,9 +2413,6 @@ subroutine calc_pressure(psi0, pres, x, z, izone)
   psii(1) = (real(psi0(1)) - psimin)/(psibound - psimin)
   psii(2:6) = real(psi0(2:6))/(psibound - psimin)
 
-!  if(magnetic_region(psi0,x,z).ne.0 .or. izone.ne.1) psii(1) = 1.
-!  if(izone.ne.1) psii(1) = 1.
-
   pspx = real(psi0(2))
   pspy = real(psi0(3))
   pspxx= real(psi0(4))
@@ -2425,13 +2422,19 @@ subroutine calc_pressure(psi0, pres, x, z, izone)
   ! if we are in private flux region, make sure Psi > 1
   if(magnetic_region(psi0,x,z).eq.2) psii(1) = 2. - psii(1)
 
-  call evaluate_spline(p0_spline, psii(1), fbig0, fbig, fbigp, iout=iout)
-  if(iout.eq.1) then
+  if(izone.eq.1) then
+     call evaluate_spline(p0_spline, psii(1), fbig0, fbig, fbigp, iout=iout)
+     if(iout.eq.1) then
+        fbig = 0.
+        fbigp = 0.
+     else
+        fbig = fbig*dpsii
+        fbigp = fbigp*dpsii**2
+     end if
+  else
+     fbig0 = p0_spline%y(p0_spline%n)
      fbig = 0.
      fbigp = 0.
-  else
-     fbig = fbig*dpsii
-     fbigp = fbigp*dpsii**2
   end if
 
   if(irot.eq.1 .and. izone.eq.1) then
