@@ -1221,7 +1221,7 @@ end subroutine te_max
 !
 ! locates the magnetic axis and the value of psi there
 !=====================================================
-subroutine lcfs(psi, test_wall)
+subroutine lcfs(psi, test_wall, findx)
   use arrays
   use basic
   use mesh_mod
@@ -1235,6 +1235,7 @@ subroutine lcfs(psi, test_wall)
 
   type(field_type), intent(in) :: psi
   logical, intent(in), optional :: test_wall
+  logical, intent(in), optional :: findx
 
   type(field_type) :: temp_field
   real :: psix, psib, psim
@@ -1243,7 +1244,7 @@ subroutine lcfs(psi, test_wall)
   logical :: is_boundary, first_point
   real, dimension(2) :: normal
   real :: curv
-  logical :: tw
+  logical :: tw, fx
   vectype, dimension(dofs_per_node) :: data
 
   if(present(test_wall)) then 
@@ -1251,6 +1252,11 @@ subroutine lcfs(psi, test_wall)
   else
      tw = .true.
   endif
+  if(present(findx)) then 
+     fx = findx
+  else
+     fx = .true.
+  end if
 
   call create_field(temp_field)
   temp_field = psi
@@ -1327,8 +1333,13 @@ subroutine lcfs(psi, test_wall)
 
   ! Calculate psi at the x-point
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Finding X-point'
-  call magaxis(xnull,znull,temp_field,psix,1,ier)
+  if(fx) then 
+     if(myrank.eq.0 .and. iprint.ge.1) print *, ' Finding X-point'
+     call magaxis(xnull,znull,temp_field,psix,1,ier)
+  else
+     itri = 0.
+     call evaluate(xnull,0.,znull,psix,ajlim,temp_field,itri,ier)     
+  end if
   if(ier.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) then
         write(*,'(A,2E12.4)') '  X-point found at ', xnull, znull
@@ -1340,7 +1351,6 @@ subroutine lcfs(psi, test_wall)
         write(*,'(A,2E12.4)') '  no X-point found near ', xnull, znull
      end if
   endif
-
 
   if(abs(psix - psimin).lt.abs(psib - psimin)) then
      is_diverted = .true.

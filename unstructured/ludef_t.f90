@@ -58,6 +58,16 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      return
   endif
 
+  if(izone.ne.1) then
+     temp = v1un(trial,lin,nt79)
+     ssterm(u_g) = ssterm(u_g) + temp
+     if(numvar.ge.3) then
+        temp = v1chin(trial,lin,nt79)*chiiner
+        ssterm(chi_g) = ssterm(chi_g) + temp
+     end if
+     return
+  end if
+
   ! Regularization term
   ! ~~~~~~~~~~~~~~~~~~~
   if(inonormalflow.eq.0 .and. (.not.surface_int)) then
@@ -583,6 +593,12 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      return
   endif
 
+  if(izone.ne.1) then 
+     temp = v2vn(trial,lin,nt79)
+     ssterm(vz_g) = ssterm(vz_g) + temp
+     return
+  end if
+
   ! Time Derivative
   ! ~~~~~~~~~~~~~~~
   if(itime_independent.eq.0) then
@@ -1017,16 +1033,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      endif
      return
   endif
-
-
-  ! Regularization term
-  ! ~~~~~~~~~~~~~~~~~~~
-  if(inoslip_pol.eq.0 .and. (.not.surface_int)) then
-     temp = -regular*int2(trial(:,OP_1),lin(:,OP_1))
-     ssterm(chi_g) = ssterm(chi_g) + temp
-     ddterm(chi_g) = ddterm(chi_g) + temp*bdf
-  end if
-         
+        
   if(istatic.eq.3) then    !   zero out chi only
      if(.not.surface_int) then
         temp = int2(trial,lin)
@@ -1036,9 +1043,26 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      return
   endif
 
+  ! Regularization term
+  ! ~~~~~~~~~~~~~~~~~~~
+  if(inoslip_pol.eq.0 .and. (.not.surface_int)) then
+     temp = -regular*int2(trial(:,OP_1),lin(:,OP_1))
+     ssterm(chi_g) = ssterm(chi_g) + temp
+     ddterm(chi_g) = ddterm(chi_g) + temp*bdf
+  end if
+
+  if(izone.ne.1) then 
+     temp = v3un(trial,lin,nt79)
+     ssterm(u_g) = ssterm(u_g) + temp
+     
+     temp = v3chin(trial,lin,nt79)
+     ssterm(chi_g) = ssterm(chi_g) + temp
+     return
+  end if
+
   ! Time Derivatives
   ! ~~~~~~~~~~~~~~~~
-  if(itime_independent.eq.0) then
+  if(itime_independent.eq.0 .or. izone.ne.1) then
      temp = v3un(trial,lin,nt79)
      ssterm(u_g) = ssterm(u_g) + temp
      ddterm(u_g) = ddterm(u_g) + temp*bdf
@@ -2766,10 +2790,9 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   r_bf = 0.
   q_bf = 0.
 
-
   ! Time Derivative
   ! ~~~~~~~~~~~~~~~
-  if(itime_independent.eq.0) then
+  if(itime_independent.eq.0 .or. izone.ne.1) then
      temp = b3pe(trial,lin)
      ssterm(pp_g) = ssterm(pp_g) + temp
      ddterm(pp_g) = ddterm(pp_g) + temp*bdf
@@ -4928,7 +4951,7 @@ subroutine ludefden_n(itri)
 
         ! NUMVAR = 1
         ! ~~~~~~~~~~
-        if(itime_independent.eq.0) then
+        if(itime_independent.eq.0 .or. izone.ne.1) then
            temp = n1n(mu79(:,:,i),nu79(:,:,j))
            ssterm(i,j) = ssterm(i,j) + temp    
            ddterm(i,j) = ddterm(i,j) + temp*bdf
