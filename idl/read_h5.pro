@@ -2193,7 +2193,46 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        data = sqrt(b2)
        symbol = '!3|!5B!3|!X'
        d = dimensions(/b0, _EXTRA=extra)
-            
+
+   ;===========================================
+   ; Field energy
+   ;===========================================
+   endif else if( (strcmp('field energy', name, /fold_case) eq 1) $
+                  or (strcmp('b2', name, /fold_case) eq 1)) $
+     then begin
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, linear=linear, $
+                        rrange=xrange, zrange=yrange, complex=complex)
+
+       I = read_field('I', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, linear=linear, $
+                      rrange=xrange, zrange=yrange, complex=complex)
+
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+
+       b2 = (s_bracket(psi,conj(psi),x,y) + I*conj(I))/r^2
+       if(icomplex eq 1) then begin
+           ; if the fields are ~exp(i n phi), then
+           ; this is the toroidally-averaged value of |B| !
+
+           f = read_field('f', x, y, t, slices=time, mesh=mesh, $
+                          filename=filename, points=pts, linear=linear, $
+                          rrange=xrange, zrange=yrange, complex=complex)
+           fp = complex(0., ntor)*f
+           b2 = b2 + s_bracket(fp,conj(fp),x,y) $
+             - a_bracket(fp, conj(psi),x,y)/r $
+             - a_bracket(conj(fp), psi,x,y)/r
+
+           b2 = b2 / 2. ; this comes from the cos^2 dependence of the field
+           b2 = real_part(b2)
+       endif
+
+       data = b2/(8.*!pi)
+       symbol = '!3|!5B!3|!U!62!N!X'
+       d = dimensions(p0=1, _EXTRA=extra)
+
    ;===========================================
    ; Poloidal Field strength
    ;===========================================
@@ -2968,22 +3007,23 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('xbdotgradt', name, /fold_case) eq 1) then begin
 
+       Te0 = read_field('Te', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, /equilibrium, $
+                        rrange=xrange, zrange=yrange)
+       psi0 = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                         filename=filename, points=pts, /equilibrium, $
+                         rrange=xrange, zrange=yrange)
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+
        if(ilin eq 1) then begin
            Te1 = read_field('Te', x, y, t, slices=time, mesh=mesh, $
                             filename=filename, points=pts, linear=linear, $
                             rrange=xrange, zrange=yrange)
-           Te0 = read_field('Te', x, y, t, slices=time, mesh=mesh, $
-                            filename=filename, points=pts, /equilibrium, $
-                            rrange=xrange, zrange=yrange)
            psi1 = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                            filename=filename, points=pts, linear=linear, $
                            rrange=xrange, zrange=yrange)
-           psi0 = read_field('psi', x, y, t, slices=time, mesh=mesh, $
-                           filename=filename, points=pts, /equilibrium, $
-                           rrange=xrange, zrange=yrange)
-           if(itor eq 1) then begin
-               r = radius_matrix(x,y,t)
-           endif else r = 1.
        
            data = a_bracket(Te1, psi0, x, y)/r + a_bracket(Te0, psi1, x, y)/r
 
@@ -3001,6 +3041,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                data = data + complex(0.,ntor)* $
                  (Te0*i1 + Te1*i0 - s_bracket(Te0, f1, x, y))
            end
+       end else begin
+           data = a_bracket(Te0, psi0, x, y)/r + a_bracket(Te0, psi0, x, y)/r           
        end
 
 ;       data = te0

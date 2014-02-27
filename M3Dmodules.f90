@@ -4,7 +4,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 6
+  integer, parameter :: version = 7
 
   integer :: i3d
 #ifdef USECOMPLEX
@@ -385,9 +385,6 @@ module arrays
 
   type(field_type) :: temporary_field
   
-  type(vector_type) :: external_field
-  type(field_type) :: external_psi_field, external_bf_field, external_bz_field
-
   type(field_type) :: psi_coil_field
 
   ! the indicies of the named fields within the field vector

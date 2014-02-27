@@ -2,7 +2,7 @@ FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DPETSC_31 $(OPTS)
 CCOPTS  = -c -O -DPetscDEV -DPETSC_31 #-DCJ_MATRIX_DUMP -DUSEHYBRID 
 
 ifeq ($(OPT), 1)
-  FOPTS  := $(FOPTS) -fast -vec-report=0
+  FOPTS  := $(FOPTS) -O2 -vec-report=0
   CCOPTS := $(CCOPTS) -O -vec-report=0
 else
   FOPTS := $(FOPTS) -g -check all -check noarg_temp_created -debug all -ftrapuv

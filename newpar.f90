@@ -1092,12 +1092,6 @@ subroutine space(ifirstcall)
      call create_field(bf_field(1))
      if(ibootstrap.gt.0) call create_field(visc_e_field)
 
-     ! External fields
-     call create_vector(external_field, 3)
-     call associate_field(external_psi_field, external_field, 1)
-     call associate_field(external_bz_field,  external_field, 2)
-     call associate_field(external_bf_field,  external_field, 3)
-
      call create_field(psi_coil_field)
 
      call create_auxiliary_fields

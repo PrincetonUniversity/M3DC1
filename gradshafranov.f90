@@ -45,6 +45,8 @@ module gradshafranov
   real, dimension(maxcoils) :: gs_radial_feedback
   real, private :: xmag0, zmag0
 
+  integer :: igs_start_xpoint_search
+
 contains
 
 subroutine gradshafranov_init()
@@ -1014,7 +1016,8 @@ subroutine gradshafranov_solve
   end if
 
 
-  if(igs.ne.0) call lcfs(psi_vec, imulti_region.eq.0)
+  if(igs.ne.0) call lcfs(psi_vec, imulti_region.eq.0, &
+       igs_start_xpoint_search.eq.0)
 
   error2 = 0.
   !-------------------------------------------------------------------
@@ -1079,7 +1082,8 @@ subroutine gradshafranov_solve
      endif
 
      ! Find new magnetic axis and lcfs
-     call lcfs(psi_vec,imulti_region.eq.0)
+     call lcfs(psi_vec,imulti_region.eq.0, &
+          itnum.ge.igs_start_xpoint_search)
      if(psibound.eq.psimin) then
         if(myrank.eq.0) print *, 'ERROR: psimin = psilim = ', psibound
         call safestop(4)

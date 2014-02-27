@@ -61,6 +61,12 @@ subroutine wrrestart
   write(56) pellet_x, pellet_phi, pellet_z, &
        pellet_velx, pellet_velphi, pellet_velz, pellet_var
   write(56) version
+  write(56) icsubtract
+  if(icsubtract.eq.1) then
+     do j1=1,ndofs 
+        write(56) psi_coil_field%vec%data(j1)
+     enddo
+  end if
 
   close(56)
 
@@ -168,6 +174,15 @@ subroutine rdrestart
        pellet_velx, pellet_velphi, pellet_velz, pellet_var
 
   read(56, END=1199) iversion
+
+  if(version.ge.7) then
+     read(56, END=1199) icsubtract
+     if(icsubtract.eq.1) then
+        do j1=1,ndofs 
+           read(56,END=1199) psi_coil_field%vec%data(j1)
+        enddo
+     end if
+  end if
 
   goto 1200
 1199 if(myrank.eq.0) &
