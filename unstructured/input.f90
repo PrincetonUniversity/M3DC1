@@ -376,6 +376,8 @@ subroutine set_defaults
        "Extend p past Psi=1 using ne and Te profiles", gs_grp)
   call add_var_int("igs_start_xpoint_search", igs_start_xpoint_search, 0, &
        "Number of GS its. before searching for xpoint", gs_grp)
+  call add_var_int("igs_forcefree_lcfs", igs_forcefree_lcfs, 0, &
+       "Ensure that GS solution is force-free at LCFS", gs_grp)
   call add_var_int("nv1equ", nv1equ, 0, "", gs_grp)
   call add_var_double("tcuro", tcuro, 1., &
        "Total current in initial current filament", gs_grp)
