@@ -40,20 +40,6 @@ elif [[ "$1" == *.tgz  ]]; then
 
     exit 0
 
-elif [[ "$1" == p*.* ]]; then
-    echo "Reading p-eqdsk file"
-
-    sed -n '/psinorm ne/,/psinorm/{/psinorm/!p}' $1 > profile_ne
-    sed -n '/psinorm te/,/psinorm/{/psinorm/!p}' $1 > profile_te
-    sed -n '/psinorm omgeb/,/psinorm/{/psinorm/!p}' $1 > profile_omega
-
-    echo "In C1input set"
-    echo " iread_ne = 1"
-    echo " iread_te = 1"
-    echo " iread_omega_ExB = 1"
-
-    exit 0
-
 elif [[ "$1" == *_ntvin.dat ]]; then
     echo "Reading NTVIN file"
 
@@ -81,6 +67,44 @@ elif [[ "$1" == NSTX*_profiles.dat ]]; then
     echo " iread_omega = 1"
 
     exit 0
+
+elif [[ "$1" == pdbne*.dat ]]; then
+    echo "Reading pdbne file"
+
+    tail -n +2 $1 | awk '{print $1 " " $2*1e-6}' > profile_ne_rho_0
+    echo "In C1input set"
+    echo " iread_ne = 4"
+    exit 0
+
+elif [[ "$1" == pdbte*.dat ]]; then
+    echo "Reading pdbte file"
+
+    tail -n +2 $1 | awk '{print $1 " " $2}' > profile_te_rho_3
+    echo "In C1input set"
+    echo " iread_te = 4"
+    exit 0
+
+elif [[ "$1" == pdbomgeb*.dat ]]; then
+    echo "Reading pdbomgeb file"
+
+    tail -n +2 $1 | awk '{print $1 " " $2*1e3}' > profile_omega_rho_0
+    echo "In C1input set"
+    echo " iread_omega_ExB = 4"
+    exit 0
+
+elif [[ "$1" == p*.* ]]; then
+    echo "Reading p-eqdsk file"
+
+    sed -n '/psinorm ne/,/psinorm/{/psinorm/!p}' $1 > profile_ne
+    sed -n '/psinorm te/,/psinorm/{/psinorm/!p}' $1 > profile_te
+    sed -n '/psinorm omgeb/,/psinorm/{/psinorm/!p}' $1 > profile_omega
+
+    echo "In C1input set"
+    echo " iread_ne = 1"
+    echo " iread_te = 1"
+    echo " iread_omega_ExB = 1"
+
+    exit 0
 fi
 fi
 
@@ -91,5 +115,6 @@ echo "  * a .tgz file from Osborne's phython tools"
 echo "  * a p-eqdsk file"
 echo "  * a ntvin.dat file"
 echo "  * a NSTX_profiles.dat file"
+echo "  * a pdbne*.dat, pdbte*.dat, or pdbomgeb*.dat file"
 
 exit 1
