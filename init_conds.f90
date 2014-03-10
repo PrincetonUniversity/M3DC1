@@ -3828,6 +3828,8 @@ subroutine initial_conditions()
            call int_kink_init()
         case(20)
            call kstar_profiles()
+        case(21)
+           call fixed_q_profiles()
         end select
      else
         ! toroidal equilibria
@@ -4215,3 +4217,279 @@ call finalize(psi_mat)
  call destroy_field(dpsi_dr)
 
 end subroutine kstar_profiles
+
+module basicq
+implicit none
+real :: q0_qp, q1_qp, p0_qp, bz_qp, r0_qp
+integer :: myrank_qp, iprint_qp
+end module basicq
+
+subroutine fixed_q_profiles()
+
+use basic
+use math
+use mesh_mod
+use sparse
+use arrays
+use m3dc1_nint
+use newvar_mod
+use boundary_conditions
+use model
+use gradshafranov
+use int_kink
+use basicq
+
+
+vectype, dimension (dofs_per_node) :: vec_l
+vectype, dimension (dofs_per_element) :: dofsps, dofsbz, dofspr
+real , dimension(npoints) :: rtemp79a, rtemp79b, rtemp79c
+real :: x, phi, z, r
+integer :: numnodes, nelms, l, itri, i, j, ier
+type (field_type) :: psi_vec, bz_vec, p_vec
+
+call create_field(psi_vec)
+call create_field(bz_vec)
+call create_field(p_vec)
+
+
+ !input variables:
+  bz_qp = bzero
+  r0_qp = alpha0
+  q0_qp = q0
+  q1_qp = alpha1
+  p0_qp = p0
+  iprint_qp = iprint
+  myrank_qp = myrank
+if(myrank.eq.0 .and. iprint.ge.1) write (*,*) "bz,r0,q0,q1,p0",   &
+                bz_qp, r0_qp, q0_qp, q1_qp, p0_qp
+
+numnodes = owned_nodes()
+
+do l=1,numnodes
+   call get_node_pos(l,x,phi,z)
+
+   call constant_field(den0_l,1.)
+!   call constant_field(bz0_l,bzero)
+!   call constant_field(p0_l,p0)
+
+   call set_node_data(den_field(0),l,den0_l)
+!   call set_node_data(bz_field(0),l,bz0_l)
+!   call set_node_data(p_field(0),l,p0_l)
+   
+   call constant_field(u1_l,0.)
+   call int_kink_per(x, phi, z)
+   call set_node_data(u_field(1),l,u1_l)
+enddo
+
+nelms = local_elements()
+do itri=1,nelms
+
+   call define_element_quadrature(itri,int_pts_diag, int_pts_tor)
+   call define_fields(itri,0,1,0) ! defines x_79,z_79,mu,nu
+
+!  assemble matrix
+
+   do i=1,dofs_per_element
+      do j=1,npoints
+         r = (sqrt((x_79(j)-xmag)**2 + (z_79(j)-zmag)**2))/r0_qp  ! normalized radius
+         call getvals_qsolver(r,rtemp79a(j),rtemp79b(j),rtemp79c(j))
+      enddo
+#ifdef USECOMPLEX
+      temp79a = cmplx(rtemp79a)
+      temp79b = cmplx(rtemp79b)
+      temp79c = cmplx(rtemp79c)
+#else
+      temp79a = rtemp79a
+      temp79b = rtemp79b
+      temp79c = rtemp79c
+#endif
+      dofsps(i) = int2(mu79(:,OP_1,i),temp79a)
+      dofsbz(i) = int2(mu79(:,OP_1,i),temp79b)
+      dofspr(i) = int2(mu79(:,OP_1,i),temp79c)
+   enddo
+   call vector_insert_block(psi_vec%vec,itri,1,dofsps,VEC_ADD)
+   call vector_insert_block(bz_vec%vec ,itri,1,dofsbz,VEC_ADD)
+   call vector_insert_block(p_vec%vec  ,itri,1,dofspr,VEC_ADD)
+enddo
+
+! solve for psi
+ if(myrank.eq.0 .and. iprint.ge.1) print *, "solving psi"
+ 
+  call newvar_solve(psi_vec%vec,mass_mat_lhs)
+  call newvar_solve(bz_vec%vec ,mass_mat_lhs)
+  call newvar_solve(p_vec%vec  ,mass_mat_lhs)
+ if(eqsubtract.eq.1) then
+   psi_field(0) = psi_vec
+   bz_field(0)  = bz_vec
+   p_field(0)   = p_vec
+ else
+   psi_field(1) = psi_vec
+   bz_field(1)  = bz_vec
+   p_field(1)   = p_vec
+ endif
+   pe_field(0) = p_field(0)
+   pe_field(1) = p_field(1)
+   call mult(pe_field(0),pefac)
+   call mult(pe_field(1),pefac)
+
+ call destroy_field(psi_vec)
+ call destroy_field(bz_vec)
+ call destroy_field(p_vec)
+
+  call finalize(field_vec)
+end subroutine fixed_q_profiles
+
+subroutine getvals_qsolver(rval,bpsival,ival,pval)
+use basicq
+
+integer, parameter :: N=100  !  (number of intervals)
+integer :: ifirstq = 1
+real :: dpsi,rval,psival,bpsival,ival,pval,cubicinterp,qfunc, qpfunc, pfunc, ppfunc
+real :: psimid, qmid, qpmid, ppmid, denom,fterm,gterm,aquad,bquad,cquad,disc 
+integer :: j
+real, dimension (0:N) :: bpsi, btor, bpolor, psi, jphi, jthor, gradpor, equor, pary
+
+if(ifirstq.eq.1) then
+   ifirstq = 0
+
+!           small psi is normalized r**2
+   dpsi = 1./N
+   do j=0,N
+      psi(j) = j*dpsi
+   enddo
+
+!  boundary condition at edge
+   btor(N) = bz_qp 
+   bpsi(N) = 0.
+   bpolor(N) = btor(N)/(2.*qfunc(psi(N)))
+!  integrate first order ode from boundary in
+   do j=N,1,-1
+      psimid = (j-.5)*dpsi
+      qmid = qfunc(psimid)
+      qpmid= qpfunc(psimid)
+      ppmid= ppfunc(psimid)
+      denom = psimid + qmid**2
+      fterm = -(1 -psimid*qpmid/qmid)/denom
+      gterm = -ppmid*qmid**2/denom
+
+      aquad = 1. + .5*dpsi*fterm
+      bquad = dpsi*fterm*btor(j)
+      cquad = -btor(j)**2*(1.-.5*dpsi*fterm) + 2.*dpsi*gterm
+
+      disc = bquad**2 - 4.*aquad*cquad
+      btor(j-1) = (-bquad + sqrt(disc))/(2.*aquad)
+      bpolor(j-1) = btor(j-1)/(2.*qfunc(psi(j-1)))
+      bpsi(j-1)   = bpsi(j) - .5*dpsi*(bpolor(j)+bpolor(j-1)) 
+   enddo
+  
+!  calculate poloidal and toroidal fields in cell centers
+   do j=1,N-1
+     jphi(j) = 4.*((j+.5)*(bpsi(j+1)-bpsi(j))-(j-.5)*(bpsi(j)-bpsi(j-1)))/dpsi 
+     jthor(j) =  2*((bpsi(j+1)-bpsi(j))*qfunc((j+0.5)*dpsi) &
+                  - (bpsi(j)-bpsi(j-1))*qfunc((j-0.5)*dpsi))/dpsi**2
+     gradpor(j) =  ppfunc(j*dpsi)
+     pary(j) = pfunc(psi(j))
+!    error in equilibrium equation
+     equor(j) = (jphi(j)*bpolor(j)+jthor(j)*btor(j)+gradpor(j))*sqrt(j*dpsi)
+   enddo
+     pary(0) =  pfunc(psi(0))
+     pary(N) =  pfunc(psi(N))
+!
+if(myrank_qp .eq. 0 .and. iprint_qp .ge. 1) then
+   write(6,1001)
+ 1001 format(" j       r**2       bpsi        btor         p          equil")
+   do j=0,N
+     write(6,1000) j,psi(j),bpsi(j),btor(j),pary(j),equor(j)
+   enddo
+1000 format(i3,1p7e12.4)
+endif
+
+endif !   end of initialization
+
+psival = rval*rval
+bpsival = cubicinterp(psival,psi,bpsi,N)
+   ival = cubicinterp(psival,psi,btor,N)
+   pval = cubicinterp(psival,psi,pary,N)
+
+end subroutine getvals_qsolver
+
+function cubicinterp(x,xary,yary,N)
+implicit none
+real :: x,xt,del,m1,m2,a,b,c,d,cubicinterp
+real, dimension(0:N) :: xary, yary
+integer :: i,N
+  xt = 0
+  a = 0
+  b = 0
+  c = 0
+  d = 0
+if      (x .le. xary(0))   then
+  a = yary(0)
+else if (x .ge. xary(N))   then
+  a = yary(N)
+else if (x .le. xary(1))   then
+  xt = x - xary(0)
+  del = xary(1) - xary(0)
+  m2 =  (yary(2)-yary(0))/(xary(2)-xary(0))
+  a = yary(0)
+  b = 2.*(yary(1) - yary(0))/del    - m2
+  c =   -(yary(1) - yary(0))/del**2 + m2/del
+else if (x .ge. xary(N-1)) then
+  xt = x - xary(N-1)
+  del = xary(N) - xary(N-1)
+  m1 =  (yary(N)-yary(N-2))/(xary(N)-xary(N-2))
+  a = yary(N-1)
+  b = m1
+  c = (yary(N) - yary(N-1) - m1*del)/del**2
+else
+
+  do i=1,N-2
+     if(x.ge.xary(i) .and. x.le.xary(i+1)) then
+       xt = x - xary(i)
+       del = xary(i+1) - xary(i)
+       m1 = (yary(i+1)-yary(i-1))/(xary(i+1)-xary(i-1))
+       m2 = (yary(i+2)-yary(i  ))/(xary(i+2)-xary(i  ))
+       a = yary(i)
+       b = m1
+       c =  3.*(yary(i+1) - yary(i) - m1*del)/del**2 - (m2 - m1)/del
+       d = -2.*(yary(i+1) - yary(i) - m1*del)/del**3 + (m2 - m1)/del**2
+       exit
+    endif
+  enddo
+
+endif
+cubicinterp = a + b*xt + c*xt**2 + d*xt**3
+return
+end function cubicinterp
+
+function qfunc(psi)    !   q  (safety factor)
+use basicq
+real :: psi,qfunc   !  note:  psi=r^2
+qfunc = q0_qp + psi*(q1_qp - q0_qp)
+return
+end function qfunc
+
+function qpfunc(psi)   !   derivative of q wrt psi
+use basicq
+real :: psi,qpfunc   !  note:  psi=r^2
+qpfunc = (q1_qp - q0_qp)
+return
+end function qpfunc
+
+function pfunc(psi)    !   p  (pressure)
+use basicq
+real :: psi,pfunc   !  note:  psi=r^2
+pfunc = p0_qp*(1. - psi)
+return
+end function pfunc
+
+function ppfunc(psi)    !  derivative of p wrt psi
+use basicq
+real :: psi,ppfunc   !  note:  psi=r^2
+ppfunc = -p0_qp
+return
+end
+
+
+
+
