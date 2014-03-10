@@ -456,6 +456,14 @@ vectype function kappa_func(i)
      else
         temp79a = kappa0*sqrt(1./(nt79(:,OP_1)*pt79(:,OP_1)))      
      end if
+
+  case(4)
+     !....added 3/4/2014      scj
+        temp79a = kappa0*(1. + kappadelt*(tet79(:,OP_DR)*tet79(:,OP_DR) &
+                                     + tet79(:,OP_DZ)*tet79(:,OP_DZ)))
+#if defined(USE3D) || defined(USECOMPLEX)
+        if(itor.eq.1) temp79a = temp79a + kappa0*kappadelt*tet79(:,OP_DP)*tet79(:,OP_DP)*ri2_79
+#endif
      
   case(10,11)
      if(.not.allocated(kappa_spline%x)) then

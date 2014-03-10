@@ -113,6 +113,13 @@ subroutine gradshafranov_per()
      
      ! initial parallel rotation
      u1_l = phizero*vmask
+     ! initial vertical motion
+     u1_l(1) = u1_l(1) + x*verzero*vmask(1)
+     u1_l(2) = u1_l(2) + x*verzero*vmask(2)+verzero*vmask(1)
+     u1_l(3) = u1_l(3) + x*verzero*vmask(3)
+     u1_l(4) = u1_l(4) + x*verzero*vmask(4)+2.*verzero*vmask(2)
+     u1_l(5) = u1_l(5) + x*verzero*vmask(5)+   verzero*vmask(3)
+     u1_l(6) = u1_l(6) + x*verzero*vmask(6)
 
      ! allow for initial toroidal rotation
      vz1_l = 0.

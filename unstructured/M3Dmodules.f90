@@ -134,6 +134,7 @@ module basic
   real :: bx0         ! initial field in x-direction
   real :: vzero       ! initial toroidal velocity
   real :: phizero     ! initial poloidal velocity
+  real :: verzero     ! initial vertical velocity
   real :: p0, pi0     ! total, ion pressures
   real :: pscale      ! factor by which to scale equilibrium pressure
   real :: bscale      ! factor by which to scale equilibrium toroidal field
