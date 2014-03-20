@@ -4465,28 +4465,32 @@ end function cubicinterp
 function qfunc(psi)    !   q  (safety factor)
 use basicq
 real :: psi,qfunc   !  note:  psi=r^2
-qfunc = q0_qp + psi*(q1_qp - q0_qp)
+!qfunc = q0_qp + psi*(q1_qp - q0_qp)
+qfunc = (0.3/0.6579) * 1./(1./2. - psi/2. + psi**2/6.)
 return
 end function qfunc
 
 function qpfunc(psi)   !   derivative of q wrt psi
 use basicq
 real :: psi,qpfunc   !  note:  psi=r^2
-qpfunc = (q1_qp - q0_qp)
+!qpfunc = (q1_qp - q0_qp)
+qpfunc = (0.3/0.6579) * (1./2. - psi/3.)/(1./2. - psi/2. + psi**2/6.)**2
 return
 end function qpfunc
 
 function pfunc(psi)    !   p  (pressure)
 use basicq
 real :: psi,pfunc   !  note:  psi=r^2
-pfunc = p0_qp*(1. - psi)
+!pfunc = p0_qp*(1. - psi)
+pfunc = p0_qp * (1. - 3.2*psi + 4.16*psi**2 - 2.56*psi**3 + 0.64*psi**4)
 return
 end function pfunc
 
 function ppfunc(psi)    !  derivative of p wrt psi
 use basicq
 real :: psi,ppfunc   !  note:  psi=r^2
-ppfunc = -p0_qp
+!ppfunc = -p0_qp
+ppfunc = p0_qp * (-3.2 + 8.32*psi - 7.68*psi**2 + 2.56*psi**3)
 return
 end
 
