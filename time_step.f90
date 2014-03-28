@@ -17,6 +17,19 @@ contains
        call initialize_timestep_split
        call assign_variables_split
     end select
+
+    if(myrank.eq.0 .and. iprint.ge.1) then
+       print *, 'Index of U: ', u_i
+       print *, 'Index of V: ', vz_i
+       print *, 'Index of Chi: ', chi_i
+       print *, 'Index of Psi: ', psi_i
+       print *, 'Index of Bz: ', bz_i
+       print *, 'Index of P: ', p_i
+       print *, 'Index of n: ', den_i
+       print *, 'Index of Pe: ', pe_i
+       print *, 'Index of f: ', bf_i
+       print *, 'Index of E: ', e_i
+    end if
   end subroutine initialize_timestep
 
   subroutine finalize_timestep

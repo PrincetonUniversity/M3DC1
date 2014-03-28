@@ -24,13 +24,6 @@ module model
   integer :: bf_i, e_i
   integer :: te_i, ti_i
 
-  ! the offset (relative to the node offset) of the named field within
-  ! their respective vectors
-  integer :: u_off, vz_off, chi_off
-  integer :: psi_off, bz_off, pe_off
-  integer :: den_off, p_off
-  integer :: bf_off, e_off
-
 contains
 
 subroutine calc_ni(ni_field, n0_field, n1_field)
