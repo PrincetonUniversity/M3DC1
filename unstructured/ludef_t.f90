@@ -4506,7 +4506,7 @@ subroutine ludefphi_n(itri)
         call get_bz_mask(itri, imask)
      else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
         call get_pres_mask(itri, imask)
-     else if(ieq(k).eq.bf_i) then
+     else if(ieq(k).eq.bf_i .and. imp_bf.eq.1) then
         call get_bf_mask(itri, imask)
      else if(ieq(k).eq.e_i) then
         if(jadv.eq.0) then
@@ -4547,7 +4547,7 @@ subroutine ludefphi_n(itri)
                    ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
                    ipres.eq.0, thimp,itri, izone)
 
-           else if(ieq(k).eq.bf_i) then
+           else if(ieq(k).eq.bf_i .and. imp_bf.eq.1) then
               call bf_equation_lin(mu79(:,:,i),nu79(:,:,j), &
                    ss(i,j,:),dd(i,j,:),r_bf(i,j),q_bf(i,j))
 
@@ -4574,7 +4574,7 @@ subroutine ludefphi_n(itri)
               call axial_field_nolin(mu79(:,:,i),q4(i))
            else if(ieq(k).eq.pe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
               call pressure_nolin(mu79(:,:,i),q4(i),ipres.eq.0)
-           else if(ieq(k).eq.bf_i) then
+           else if(ieq(k).eq.bf_i .and. imp_bf.eq.1) then
               call bf_equation_nolin(mu79(:,:,i),q4(i))
            end if
         end if

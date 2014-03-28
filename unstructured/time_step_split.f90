@@ -307,7 +307,7 @@ contains
          bf_i = vecsize_phi + 1
          e_i = vecsize_phi
        else
-         bf_i = vecsize_phi + 1
+         bf_i = 1
          e_i = vecsize_phi + 1
        endif
     end if
@@ -366,18 +366,6 @@ contains
     if(imp_bf.eq.1) then
        call associate_field(bf_v, phi_vec, bf_i)
     end if
-         
-    u_off = (u_i-1)*dofs_per_node
-    psi_off = (psi_i-1)*dofs_per_node
-    vz_off = (vz_i-1)*dofs_per_node
-    bz_off = (bz_i-1)*dofs_per_node
-    chi_off = (chi_i-1)*dofs_per_node
-    pe_off = (pe_i-1)*dofs_per_node
-    den_off = (den_i-1)*dofs_per_node
-    p_off = (p_i-1)*dofs_per_node
-    bf_off = (bf_i-1)*dofs_per_node
-    e_off = (e_i-1)*dofs_per_node
-
   end subroutine assign_variables_split
 
   subroutine clear_matrices_split

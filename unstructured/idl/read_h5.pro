@@ -1482,6 +1482,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        if(isnl eq 1) then begin
           data = data1
        endif else begin
+          t1 = t
           data0 = read_field(name,x,y,t, slices=-1, mesh=mesh, $
                              filename=filename, points=pts, fac=fac, $
                              rrange=xrange, zrange=yrange, complex=0, $
@@ -1491,6 +1492,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                              units=units, dimensions=d, $
                              rvector=rvector, zvector=zvector)
           data = data0 + data1
+          t = t1
        endelse
        return, data
    endif
@@ -2174,22 +2176,27 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            r = radius_matrix(x,y,t)
        endif else r = 1.
 
-       b2 = (s_bracket(psi,conj(psi),x,y) + I*conj(I))/r^2
        if(icomplex eq 1) then begin
-           ; if the fields are ~exp(i n phi), then
-           ; this is the toroidally-averaged value of |B| !
-
-           f = read_field('f', x, y, t, slices=time, mesh=mesh, $
-                          filename=filename, points=pts, linear=linear, $
-                          rrange=xrange, zrange=yrange, complex=complex)
-           fp = complex(0., ntor)*f
-           b2 = b2 + s_bracket(fp,conj(fp),x,y) $
-             - a_bracket(fp, conj(psi),x,y)/r $
-             - a_bracket(conj(fp), psi,x,y)/r
-
-           b2 = b2 / 2. ; this comes from the cos^2 dependence of the field
-           b2 = real_part(b2)
-       endif
+          b2 = (s_bracket(psi,conj(psi),x,y) + I*conj(I))/r^2
+          f = read_field('f', x, y, t, slices=time, mesh=mesh, $
+                         filename=filename, points=pts, linear=linear, $
+                         rrange=xrange, zrange=yrange, complex=complex)
+          fp = complex(0., ntor)*f
+          b2 = b2 + s_bracket(fp,conj(fp),x,y) $
+               - a_bracket(fp, conj(psi),x,y)/r $
+               - a_bracket(conj(fp), psi,x,y)/r
+          b2 = real_part(b2)
+          b2 = b2 / 2. ; this comes from the cos^2 dependence of the field
+       endif else begin 
+          b2 = s_bracket(psi,psi,x,y) + I^2/r^2
+          if(i3d eq 1) then begin
+             fp = read_field('f', x, y, t, slices=time, mesh=mesh, $
+                             filename=filename, points=pts, linear=linear, $
+                             rrange=xrange, zrange=yrange, complex=complex, op=11)
+             b2 = b2 + s_bracket(fp,fp,x,y) $
+                  - 2.*a_bracket(fp, psi,x,y)/r
+          endif
+       endelse
 
        data = sqrt(b2)
        symbol = '!3|!5B!3|!X'
@@ -7029,7 +7036,8 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
            ls = indgen(nt)
            colors = replicate(color(0,1), nt)
        endif else begin
-           if(n_elements(colors) eq 0) then colors = shift(colors(nt),-1)
+           if(n_elements(colors) eq 0) then colors = colors()
+           if(time[0] gt 0) then colors = shift(colors,-1)
            ls = replicate(0,nt)
        endelse       
        if(n_elements(linfac) eq 1) then linfac=replicate(linfac, nt)
@@ -7042,7 +7050,8 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              t=t, rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, fac=fac,$
              linear=linear, multiply_flux=multiply_flux, mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, asb=aba, phase=phase, $
-             stotal=total, rho=rho, nolegend=nolegend, linfac=linfac[i]
+             stotal=total, rho=rho, nolegend=nolegend, linfac=linfac[i], $
+             q_contours=q_contours
            lab = parse_units(dimensions(/t0), cgs=cgs, mks=mks)
            get_normalizations, b0=b0, n0=n0, l0=l0, $
                         zeff=zeff, ion_mass=mi, filename=filename

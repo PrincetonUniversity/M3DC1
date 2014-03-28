@@ -74,7 +74,7 @@ ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -fastsse -Mipa=fast,inline
   CCOPTS := $(CCOPTS) -O
 else
-  FOPTS := $(FOPTS) -g -Mbounds
+  FOPTS := $(FOPTS) -g -Mbounds -Mchkptr -traceback
   CCOPTS := $(CCOPTS)  
 endif
 

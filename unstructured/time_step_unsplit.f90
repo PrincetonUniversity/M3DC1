@@ -145,30 +145,7 @@ contains
     
     if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.eq.1)) then
        call associate_field(e_v, phi_vec, e_i)
-    end if
-    
-    u_off = (u_i-1)*dofs_per_node
-    psi_off = (psi_i-1)*dofs_per_node
-    vz_off = (vz_i-1)*dofs_per_node
-    bz_off = (bz_i-1)*dofs_per_node
-    chi_off = (chi_i-1)*dofs_per_node
-    pe_off = (pe_i-1)*dofs_per_node
-    den_off = (den_i-1)*dofs_per_node
-    p_off = (p_i-1)*dofs_per_node
-    bf_off = (bf_i-1)*dofs_per_node
-    e_off = (e_i-1)*dofs_per_node
-
-    if(myrank.eq.0 .and. iprint.ge.1) then
-       print *, 'Index of U: ', u_i
-       print *, 'Index of V: ', vz_i
-       print *, 'Index of Chi: ', chi_i
-       print *, 'Index of Psi: ', psi_i
-       print *, 'Index of Bz: ', bz_i
-       print *, 'Index of P: ', p_i
-       print *, 'Index of n: ', den_i
-       print *, 'Index of Pe: ', pe_i
-    end if
-       
+    end if       
   end subroutine assign_variables_unsplit
 
   subroutine clear_matrices_unsplit
