@@ -345,21 +345,8 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
            bx = bx - bx0
            by = by - by0
        end
-   endif else begin
-;        if(extsubtract eq 1) then begin
-;            psi1_r = read_field('psi_ext',x,z,t,slice=slice, $
-;                                /linear,/complex,_EXTRA=extra,op=2)
-;            psi1_z = read_field('psi_ext',x,z,t,slice=slice, $
-;                                /linear,/complex,_EXTRA=extra,op=3)
-;            f1_r = read_field('f_ext',x,z,t,slice=slice, $
-;                              /linear,/complex,_EXTRA=extra,op=2)
-;            f1_z = read_field('f_ext',x,z,t,slice=slice, $
-;                              /linear,/complex,_EXTRA=extra,op=3)
-;            r = radius_matrix(x,z,t)
-;            bx = bx - psi1_z/r - complex(0,ntor)*f1_r
-;            by = by + psi1_r/r - complex(0,ntor)*f1_z
-;        end
-   endelse
+   endif
+
 
    r = radius_matrix(x,z,t)
    y = z_matrix(x,z,t)

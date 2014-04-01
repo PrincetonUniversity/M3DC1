@@ -754,17 +754,15 @@ integer function magnetic_region(psi, x, z)
      magnetic_region = 1
   else
      ! if Psi < 1, but flux is increasing, we are in private flux region
-
      pl = sqrt(real(psi(2))**2 + real(psi(3))**2)
      rl = sqrt((x-xmag)**2 + (z-zmag)**2)
      if(pl.eq.0. .or. rl.eq.0.) return
-
+     
      al = (real(psi(2))*(x-xmag) + real(psi(3))*(z-zmag))/(pl*rl)
      if(al*dpsii/abs(dpsii) .lt. 0.3) then
         magnetic_region = 2
-     endif
-     
-  endif
+     end if
+  end if
 end function magnetic_region
 
 

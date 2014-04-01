@@ -4,7 +4,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 7
+  integer, parameter :: version = 8
 
   integer :: i3d
 #ifdef USECOMPLEX
@@ -350,6 +350,7 @@ module basic
   real :: psibound          ! flux at the lcfs
   logical :: is_diverted    ! whether plasma is diverted or not
   real :: xnull, znull      ! coordinates of the limiting x-point
+  real :: xnull2, znull2    ! coordinates of the limiting x-point
   real :: temax            ! maximum temperature
 
   ! PID controllers

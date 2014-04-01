@@ -462,6 +462,11 @@ subroutine set_defaults
        "Guess for R-coordinate of active x-point", gs_grp)
   call add_var_double("znull", znull, 0., &
        "Guess for Z-coordinate of axtive x-point", gs_grp)
+  call add_var_double("xnull2", xnull2, 0., &
+       "Guess for R-coordinate of inactive x-point", gs_grp)
+  call add_var_double("znull2", znull2, 0., &
+       "Guess for Z-coordinate of inaxtive x-point", gs_grp)
+
 
   ! Hyper diffusion
   call add_var_double("deex", deex, 1., "", hyper_grp)

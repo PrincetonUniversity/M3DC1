@@ -853,13 +853,9 @@ contains
 #endif
            end where
 
-!!$        if(iresfunc.eq.0) then 
-!!$           eta79 = eta0*eta79
-!!$        else if(iresfunc.eq.4) then
            eta79 = eta79 * &
                 3.4e-22*n0_norm**2/(b0_norm**4*l0_norm) &
                 *zeff*lambda_coulomb*sqrt(ion_mass)
-!!$        end if
         else
            call eval_ops(itri, resistivity_field, eta79)
         end if
