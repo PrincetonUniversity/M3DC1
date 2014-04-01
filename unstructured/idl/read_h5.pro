@@ -1630,6 +1630,13 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                       points=pts, rrange=xrange, zrange=yrange, $
                       linear=linear, complex=complex, phi=phi0)
 
+       if(extsubtract eq 1 and version lt 8) then begin
+           I = I + read_field('I_ext', x, y, t, mesh=mesh, $
+                              filename=filename, points=pts, slices=time, $
+                              rrange=xrange, zrange=yrange, complex=complex, $
+                              linear=linear, mask=mask, phi=phi0)
+       end
+
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
        endif else r = 1.
@@ -2167,10 +2174,20 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, linear=linear, $
                         rrange=xrange, zrange=yrange, complex=complex)
+       if(extsubtract eq 1 and version lt 8) then begin
+           psi = psi + read_field('psi_ext', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, linear=linear, $
+                        rrange=xrange, zrange=yrange, complex=complex)
+       end
 
        I = read_field('I', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, linear=linear, $
                       rrange=xrange, zrange=yrange, complex=complex)
+       if(extsubtract eq 1 and version lt 8) then begin
+           I = I + read_field('I_ext', x, y, t, slices=time, mesh=mesh, $
+                          filename=filename, points=pts, linear=linear, $
+                          rrange=xrange, zrange=yrange, complex=complex)
+       end
 
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
@@ -2197,6 +2214,23 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                   - 2.*a_bracket(fp, psi,x,y)/r
           endif
        endelse
+
+           f = read_field('f', x, y, t, slices=time, mesh=mesh, $
+                          filename=filename, points=pts, linear=linear, $
+                          rrange=xrange, zrange=yrange, complex=complex)
+           if(extsubtract eq 1 and version lt 8) then begin
+               f = f + read_field('f_ext', x, y, t, slices=time, mesh=mesh, $
+                                 filename=filename, points=pts, linear=linear, $
+                                 rrange=xrange, zrange=yrange, complex=complex)
+           end
+           fp = complex(0., ntor)*f
+           b2 = b2 + s_bracket(fp,conj(fp),x,y) $
+             - a_bracket(fp, conj(psi),x,y)/r $
+             - a_bracket(conj(fp), psi,x,y)/r
+
+           b2 = b2 / 2. ; this comes from the cos^2 dependence of the field
+           b2 = real_part(b2)
+       endif
 
        data = sqrt(b2)
        symbol = '!3|!5B!3|!X'
@@ -3396,7 +3430,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         rrange=xrange, zrange=yrange, complex=complex, $
                         linear=linear, mask=mask, phi=phi0)
 
-       if(extsubtract eq 1) then begin
+       if(extsubtract eq 1 and version lt 8) then begin
            psi_z = psi_z + read_field('psi_ext', x, y, t, mesh=mesh, operation=3, $
                                       filename=filename, points=pts, slices=time, $
                                       rrange=xrange, zrange=yrange, complex=complex, $
@@ -3408,7 +3442,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                             filename=filename, points=pts, slices=time, $
                             rrange=xrange, zrange=yrange, complex=complex, $
                             linear=linear, phi=phi0)
-           if(extsubtract eq 1) then begin
+           if(extsubtract eq 1 and version lt 8) then begin
                f_rp = f_rp + read_field('f_ext', x, y, t, mesh=mesh, operation=12, $
                                         filename=filename, points=pts, slices=time, $
                                         rrange=xrange, zrange=yrange, complex=complex, $
@@ -3420,7 +3454,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                             filename=filename, points=pts, slices=time, $
                             rrange=xrange, zrange=yrange, complex=complex, $
                             linear=linear, phi=phi0)
-           if(extsubtract eq 1) then begin
+           if(extsubtract eq 1 and version lt 8) then begin
                f_r = f_r + read_field('f_ext', x, y, t, mesh=mesh, operation=2, $
                                       filename=filename, points=pts, slices=time, $
                                       rrange=xrange, zrange=yrange, complex=complex, $
@@ -3448,7 +3482,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         rrange=xrange, zrange=yrange, complex=complex, $
                         linear=linear, mask=mask, phi=phi0)
 
-       if(extsubtract eq 1) then begin
+       if(extsubtract eq 1 and version lt 8) then begin
            psi_r = psi_r + read_field('psi_ext', x, y, t, mesh=mesh, operation=2, $
                                       filename=filename, points=pts, slices=time, $
                                       rrange=xrange, zrange=yrange, complex=complex, $
@@ -3460,7 +3494,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                             filename=filename, points=pts, slices=time, $
                             rrange=xrange, zrange=yrange, complex=complex, $
                             linear=linear, phi=phi0)
-           if(extsubtract eq 1) then begin
+           if(extsubtract eq 1 and version lt 8) then begin
                f_zp = f_zp + read_field('f_ext', x, y, t, mesh=mesh, operation=13, $
                                  filename=filename, points=pts, slices=time, $
                                  rrange=xrange, zrange=yrange, complex=complex, $
@@ -3472,7 +3506,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                             filename=filename, points=pts, slices=time, $
                             rrange=xrange, zrange=yrange, complex=complex, $
                             linear=linear, phi=phi0)
-           if(extsubtract eq 1) then begin
+           if(extsubtract eq 1 and version lt 8) then begin
                f_z = f_z + read_field('f_ext', x, y, t, mesh=mesh, operation=3, $
                                  filename=filename, points=pts, slices=time, $
                                  rrange=xrange, zrange=yrange, complex=complex, $
@@ -6782,7 +6816,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
 
    ; open mpeg object
    if(n_elements(mpeg) ne 0) then begin
-       mpegid = mpeg_open([640,480],bitrate=104857200, iframe_gap=4)
+       mpegid = mpeg_open([640,480],quality=100)
 
        for i=time[0],time[1] do begin
            plot_field, name, i, x, y, points=p, mesh=plotmesh, $

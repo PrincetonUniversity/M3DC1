@@ -3,7 +3,7 @@ import sys
 f1 = open("C1ke.base", "r")
 f2 = open("C1ke", "r")
 exitval = 0
-tol = 1e-6
+tol = 1e-3
 
 cols = ["ntime", "time", "ekin", "gamma_gr", \
         "ekinp", "ekint", "ekin3", \

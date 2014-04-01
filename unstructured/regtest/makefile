@@ -1,4 +1,4 @@
-dirs = nstx1 nstx2 nstx3 nstx4 kink1
+dirs = nstx1 nstx2 nstx3 nstx4 kink1 kink2
 
 ifeq ($(strip $(ARCH)),)
   ARCH = $(shell echo $(HOST) | awk '{ sub(/[0-9]+/,""); print }')

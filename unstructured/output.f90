@@ -684,6 +684,14 @@ subroutine output_fields(time_group_id, equilibrium, error)
      dum = dum + dum2
      deallocate(dum2)
   endif
+  if(extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract.eq.0)) then 
+     allocate(dum2(coeffs_per_element,nelms))
+     do i=1, nelms
+        call calcavector(i, psi_ext, dum2(:,i))
+     end do
+     dum = dum + dum2
+     deallocate(dum2)
+  end if
   call output_field(group_id, "psi", real(dum), coeffs_per_element, &
        nelms, error)
   nfields = nfields + 1
@@ -719,11 +727,18 @@ subroutine output_fields(time_group_id, equilibrium, error)
 !!$     nfields = nfields + 1
 !!$  endif
 
-  ! skip for NUMVAR=1
   ! I
   do i=1, nelms
      call calcavector(i, bz_field(ilin), dum(:,i))
   end do
+  if(extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract.eq.0)) then 
+     allocate(dum2(coeffs_per_element,nelms))
+     do i=1, nelms
+        call calcavector(i, bz_ext, dum2(:,i))
+     end do
+     dum = dum + dum2
+     deallocate(dum2)
+  end if
   call output_field(group_id, "I", real(dum), coeffs_per_element, &
        nelms, error)
   nfields = nfields + 1
@@ -733,12 +748,21 @@ subroutine output_fields(time_group_id, equilibrium, error)
   nfields = nfields + 1
 #endif
   if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after i in output_fields'
+
     
     ! BF
   if(ifout.eq.1) then
      do i=1, nelms
         call calcavector(i, bf_field(ilin), dum(:,i))
      end do
+     if(extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract.eq.0)) then 
+        allocate(dum2(coeffs_per_element,nelms))
+        do i=1, nelms
+           call calcavector(i, bf_ext, dum2(:,i))
+        end do
+        dum = dum + dum2
+        deallocate(dum2)
+     end if
      call output_field(group_id, "f", real(dum), coeffs_per_element, &
           nelms, error)
      nfields = nfields + 1
@@ -854,46 +878,46 @@ subroutine output_fields(time_group_id, equilibrium, error)
      nfields = nfields + 1
   end if
   
-  if(use_external_fields) then 
-     ! psi_ext
-     do i=1, nelms
-        call calcavector(i, psi_ext, dum(:,i))
-     end do
-     call output_field(group_id, "psi_ext", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
-#ifdef USECOMPLEX
-     call output_field(group_id, "psi_ext_i",aimag(dum),coeffs_per_element,&
-          nelms, error)
-     nfields = nfields + 1
-#endif
-     
-     ! bz_ext
-     do i=1, nelms
-        call calcavector(i, bz_ext, dum(:,i))
-     end do
-     call output_field(group_id, "I_ext", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
-#ifdef USECOMPLEX
-     call output_field(group_id, "I_ext_i",aimag(dum),coeffs_per_element,&
-          nelms, error)
-     nfields = nfields + 1
-#endif
-     
-     ! bf_ext
-     do i=1, nelms
-        call calcavector(i, bf_ext, dum(:,i))
-     end do
-     call output_field(group_id, "f_ext", real(dum), coeffs_per_element, &
-          nelms, error)
-     nfields = nfields + 1
-#ifdef USECOMPLEX
-     call output_field(group_id, "f_ext_i",aimag(dum),coeffs_per_element,&
-          nelms, error)
-     nfields = nfields + 1
-#endif
-  endif
+!!$  if(use_external_fields) then 
+!!$     ! psi_ext
+!!$     do i=1, nelms
+!!$        call calcavector(i, psi_ext, dum(:,i))
+!!$     end do
+!!$     call output_field(group_id, "psi_ext", real(dum), coeffs_per_element, &
+!!$          nelms, error)
+!!$     nfields = nfields + 1
+!!$#ifdef USECOMPLEX
+!!$     call output_field(group_id, "psi_ext_i",aimag(dum),coeffs_per_element,&
+!!$          nelms, error)
+!!$     nfields = nfields + 1
+!!$#endif
+!!$     
+!!$     ! bz_ext
+!!$     do i=1, nelms
+!!$        call calcavector(i, bz_ext, dum(:,i))
+!!$     end do
+!!$     call output_field(group_id, "I_ext", real(dum), coeffs_per_element, &
+!!$          nelms, error)
+!!$     nfields = nfields + 1
+!!$#ifdef USECOMPLEX
+!!$     call output_field(group_id, "I_ext_i",aimag(dum),coeffs_per_element,&
+!!$          nelms, error)
+!!$     nfields = nfields + 1
+!!$#endif
+!!$     
+!!$     ! bf_ext
+!!$     do i=1, nelms
+!!$        call calcavector(i, bf_ext, dum(:,i))
+!!$     end do
+!!$     call output_field(group_id, "f_ext", real(dum), coeffs_per_element, &
+!!$          nelms, error)
+!!$     nfields = nfields + 1
+!!$#ifdef USECOMPLEX
+!!$     call output_field(group_id, "f_ext_i",aimag(dum),coeffs_per_element,&
+!!$          nelms, error)
+!!$     nfields = nfields + 1
+!!$#endif
+!!$  endif
   
   if(iwrite_transport_coeffs.eq.1) then
      ! eta

@@ -152,7 +152,7 @@ subroutine coil_feedback()
 
   integer :: i, ierr
   
-  if(myrank.eq.0 .and. iprint.ge.1) then 
+  if(myrank.eq.0 .and. iprint.ge.2) then 
      print *, 'Doing feedback', xmag-xmag0, zmag-zmag0
   end if
 
@@ -452,12 +452,6 @@ subroutine define_profiles
      call destroy_spline(pscale_spline)
   end if
 
-  ! ensure that derivatives at LCFS are zero
-  if(igs_forcefree_lcfs.eq.1) then 
-     pprime_spline%y(pprime_spline%n) = 0.
-     ffprime_spline%y(ffprime_spline%n) = 0.
-  end if
-
   if(bzero.gt.0) then 
      ffprime_spline%y(:) = ffprime_spline%y(:)* &
           (bpscale**2 + &
@@ -739,6 +733,9 @@ subroutine define_profiles
      if(allocated(yvals)) then
         call create_spline(omega_spline, nvals, xvals, yvals)
         deallocate(xvals, yvals)
+     else
+        if(myrank.eq.0) print *, 'Error creating rotation profile.'
+        call safestop(32)
      end if
 
      ! scale rotation
@@ -792,6 +789,15 @@ subroutine define_profiles
      end if
 
      ! calculate alpha from omega
+     ! ensure that derivatives at LCFS are zero
+     if(igs_forcefree_lcfs.eq.1) then 
+        where(omega_spline%x .ge. 1.) omega_spline%y = 0.
+     else if(igs_forcefree_lcfs.eq.2) then
+        call evaluate_spline(omega_spline, 1., te0, iout=iout)
+        if(iout.eq.1) te0 = 0.
+        where(omega_spline%x .ge. 1.) omega_spline%y = te0
+     end if
+
      call calculate_alpha
   end if
 
@@ -799,6 +805,15 @@ subroutine define_profiles
 
   ! output profiles
   if(myrank.eq.0) call write_profile
+
+  if(myrank.eq.0) then
+     print *, 'pprime at max psi: ', &
+          pprime_spline%x(pprime_spline%n), &
+          pprime_spline%y(pprime_spline%n)
+     print *, 'ffprime at max psi: ', &
+          ffprime_spline%x(ffprime_spline%n), &
+          ffprime_spline%y(ffprime_spline%n)
+  end if
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, 'Done defining profiles'
 
@@ -1856,8 +1871,8 @@ subroutine fundef2(error)
   real :: pso, psm, dpsii, norm, temp1(2), temp2(2)
   vectype, dimension(dofs_per_element) :: temp3, temp4
       
-  integer :: magnetic_region, izone
-  real :: pp0, a0, ap, p, ffp0
+  integer :: magnetic_region, izone, mr
+  real :: pp0, a0, ap, p, ffp0, w0, wp, n0, np
 
   dpsii = 1./(psibound - psimin)
   fun1_vec = 0.
@@ -1895,22 +1910,40 @@ subroutine fundef2(error)
            pso = (ps079(i,OP_1)-psimin)*dpsii
            psm = pso
            ! if we are in private flux region, make sure Psi > 1
-           if(magnetic_region(ps079(i,:),x_79(i),z_79(i)).eq.2) then
-              psm = 1.
-              pso = 2. - pso
-           end if
+           mr = magnetic_region(ps079(i,:),x_79(i),z_79(i))
 
-           call evaluate_spline(pprime_spline,pso,pp0, iout=iout)
-           if(iout.eq.1) pp0 = 0.
-           call evaluate_spline(ffprime_spline,psm,ffp0, iout=iout)
-           if(iout.eq.1) ffp0 = 0.
+           if(igs_forcefree_lcfs.ge.1 .and. mr.ne.0) then
+              ffp0 = 0.
+              pp0 = 0.
+              a0 = 0.
+              ap = 0.
+              p = 0.
+           else
+              if(mr.eq.2) then
+                 psm = 1.
+                 pso = 2. - pso
+              end if
+
+              call evaluate_spline(ffprime_spline,psm,ffp0, iout=iout)
+              if(iout.eq.1) ffp0 = 0.
+              call evaluate_spline(pprime_spline,pso,pp0, iout=iout)
+              if(iout.eq.1) pp0 = 0.
+              if(irot.eq.1) then
+                 call evaluate_spline(alpha_spline,pso,a0,ap,iout=iout)
+                 if(iout.eq.1) ap = 0.
+                 call evaluate_spline(p0_spline,pso,p)
+
+!!$                 call evaluate_spline(omega_spline,pso,w0,wp,iout=iout)
+!!$                 if(iout.eq.1) wp = 0.
+!!$                 call evaluate_spline(n0_spline,pso,n0,np,iout=iout)
+!!$                 if(iout.eq.1) np = 0.
+!!$                 a0 = 0.5*rzero**2*w0*w0*n0/p
+!!$                 ap = 0.5*rzero**2*w0*(2.*wp*n0 + w0*np - w0*n0*pp0/p)/p
+              end if
+           end if
            temp79a(i) = pp0
            temp79b(i) = ffp0
-
            if(irot.eq.1) then
-              call evaluate_spline(alpha_spline,pso,a0,ap,iout=iout)
-              if(iout.eq.1) ap = 0.
-              call evaluate_spline(p0_spline,pso,p)
               temp79c(i) = a0
               temp79d(i) = ap
               temp79e(i) = p
@@ -1922,6 +1955,10 @@ subroutine fundef2(error)
      temp79a = temp79a*dpsii**use_norm_psi
      temp79b = temp79b*dpsii**use_norm_psi
      if(irot.eq.1) temp79d = temp79d*dpsii
+
+     ! p(R, psi) = p0(psi)*Exp[ alpha(psi) * (R^2-R0^2)/R0^2 ]
+
+     ! dp/dpsi = [ p0' + p0*alpha'*(R^2-R0^2)/R0^2 ] * Exp[ ... ]  
 
      if(irot.eq.1) then
         temp79a = exp(temp79c*(x_79**2 - rzero**2)/rzero**2)* &
@@ -1935,6 +1972,7 @@ subroutine fundef2(error)
      call vector_insert_block(fun1_vec%vec,itri,1,temp3,VEC_ADD)
      call vector_insert_block(fun4_vec%vec,itri,1,temp4,VEC_ADD)
      
+     ! Del*[psi] + R^2 dp/dpsi + FF' = 0 
      temp79c = ps079(:,OP_GS) + r2_79*temp79a + temp79b
 
      norm = norm + abs(int2(ri_79,ps079(:,OP_GS)))
@@ -2285,6 +2323,8 @@ end subroutine readpgfiles
 
       if(izone.ne.1) cycle
 
+      ! Del*[psi]<psi,psi> = -F<F,psi> - R^2<p,psi> + R^3 rho w^2 <R,psi>
+
       temp79a = ps079(:,OP_GS)*(ps079(:,OP_DR)**2 + ps079(:,OP_DZ)**2)
       temp79b = -r2_79* &
            (p079(:,OP_DR)*ps079(:,OP_DR) + p079(:,OP_DZ)*ps079(:,OP_DZ))
@@ -2386,28 +2426,39 @@ subroutine calc_pressure(psi0, pres, x, z, izone)
   real, intent(in) :: x, z
   integer, intent(in) :: izone
 
-  real :: fbig0
+  real :: p, n0, w0
   real :: alpha
   real :: psii     ! normalized flux
 
-  integer :: magnetic_region
+  integer :: magnetic_region, mr
 
   psii = (real(psi0(1)) - psimin)/(psibound - psimin)
 
+  mr = magnetic_region(psi0,x,z)
+
+  if(igs_forcefree_lcfs.ge.1 .and. mr.ne.0) then
+     call evaluate_spline(p0_spline, 1., p)
+     pres = p
+     return
+  end if
+
   ! if we are in private flux region, make sure Psi > 1
-  if(magnetic_region(psi0,x,z).eq.2) psii = 2. - psii
+  if(mr.eq.2) psii = 2. - psii
 
   if(izone.eq.1) then
-     call evaluate_spline(p0_spline, psii, fbig0)
+     call evaluate_spline(p0_spline, psii, p)
   else
-     fbig0 = p0_spline%y(p0_spline%n)
+     p = p0_spline%y(p0_spline%n)
   end if
 
   if(irot.eq.1 .and. izone.eq.1) then
      call evaluate_spline(alpha_spline, psii, alpha)
-     pres = fbig0*exp(alpha*(x**2 - rzero**2)/rzero**2)
+     pres = p*exp(alpha*(x**2 - rzero**2)/rzero**2)
+!!$     call evaluate_spline(omega_spline,psii,w0)
+!!$     call evaluate_spline(p0_spline,psii,p)
+!!$     pres = p*exp(0.5*(x**2 - rzero**2)*w0**2*n0/p)
   else
-     pres = fbig0
+     pres = p
   endif
 end subroutine calc_pressure
 
@@ -2430,28 +2481,33 @@ subroutine calc_density(psi0, dens, x, z, izone)
   real, intent(in) :: x, z
   integer, intent(in) :: izone
 
-  real :: rbig0
+  real :: n0, p, w0
   real :: alpha
   real :: psii     ! normalized flux
 
-  integer :: magnetic_region
+  integer :: magnetic_region, mr
+
+  mr = magnetic_region(psi0,x,z)
 
   psii = (real(psi0(1)) - psimin)/(psibound - psimin)
 
   ! if we are in private flux region, make sure Psi > 1
-  if(magnetic_region(psi0,x,z).eq.2) psii = 2. - psii
+  if(mr.eq.2) psii = 2. - psii
 
   if(izone.eq.1) then
-     call evaluate_spline(n0_spline, psii, rbig0)
+     call evaluate_spline(n0_spline, psii, n0)
   else
-     rbig0 = n0_spline%y(n0_spline%n)
+     n0 = n0_spline%y(n0_spline%n)
   endif
 
   if(irot.eq.1 .and. izone.eq.1) then
      call evaluate_spline(alpha_spline,psii,alpha)
-     dens = rbig0*exp(alpha*(x**2 - rzero**2)/rzero**2)
+     dens = n0*exp(alpha*(x**2 - rzero**2)/rzero**2)
+!!$     call evaluate_spline(omega_spline,psii,w0)
+!!$     call evaluate_spline(p0_spline,psii,p)
+!!$     dens = n0*exp(0.5*(x**2 - rzero**2)*w0**2*n0/p)
   else
-     dens = rbig0
+     dens = n0
   endif
 end subroutine calc_density
 
@@ -2514,15 +2570,22 @@ subroutine calc_rotation(psi0,omega, x, z, izone)
 
   real :: psii     ! normalized flux
   real :: w0
-  integer :: magnetic_region
+  integer :: magnetic_region, mr
 
   if(irot.eq.0 .or. izone.ne.1) then
      omega = 0.
      return
   endif
+ 
+  mr = magnetic_region(psi0,x,z)
+
+  if(igs_forcefree_lcfs.eq.1 .and. mr.ne.0) then
+     omega = 0.
+     return
+  end if    
 
   psii = (real(psi0(1)) - psimin)/(psibound - psimin)
-  if(magnetic_region(psi0,x,z).eq.2) psii = 2. - psii
+  if(mr.eq.2) psii = 2. - psii
 
   call evaluate_spline(omega_spline,psii,w0)
 

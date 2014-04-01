@@ -827,7 +827,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
   integer, intent(in) :: imethod
   real, intent(out) :: psim
 
-  integer, parameter :: iterations = 20  !  max number of Newton iterations
+  integer, parameter :: iterations = 50  !  max number of Newton iterations
   real, parameter :: bfac = 0.1  !max zone fraction for movement each iteration
   real, parameter :: tol = 1e-3   ! convergence tolorance (fraction of h)
 
@@ -946,10 +946,6 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
         endif
 
         in_domain = 1
-        if(iprint.ge.2) then
-           write(*,'(A,4E12.4)') &
-                '  magaxis: rdiff/h, tol, xnew,znew', rdiff/h, tol, xnew, znew
-        end if
         if(rdiff/h .lt. tol) converged = 1
      else
         xnew = 0.
@@ -1238,9 +1234,9 @@ subroutine lcfs(psi, test_wall, findx)
   logical, intent(in), optional :: findx
 
   type(field_type) :: temp_field
-  real :: psix, psib, psim
+  real :: psix, psix2, psib, psim
   real :: x, z, temp1, temp2, temp_min, temp_max, ajlim
-  integer :: ier, numnodes, inode, izone, izonedim, itri
+  integer :: ier, ier2, numnodes, inode, izone, izonedim, itri
   logical :: is_boundary, first_point
   real, dimension(2) :: normal
   real :: curv
@@ -1333,12 +1329,18 @@ subroutine lcfs(psi, test_wall, findx)
 
   ! Calculate psi at the x-point
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  psix = psib
+  psix2 = psib
   if(fx) then 
      if(myrank.eq.0 .and. iprint.ge.1) print *, ' Finding X-point'
-     call magaxis(xnull,znull,temp_field,psix,1,ier)
+     if(xnull .gt. 0.) call magaxis(xnull,znull,temp_field,psix,1,ier)
+     if(xnull2 .gt. 0.) call magaxis(xnull2,znull2,temp_field,psix2,1,ier2)
   else
      itri = 0.
-     call evaluate(xnull,0.,znull,psix,ajlim,temp_field,itri,ier)     
+     if(xnull.gt.0.) &
+          call evaluate(xnull,0.,znull,psix,ajlim,temp_field,itri,ier)
+     if(xnull2.gt.0.) &
+          call evaluate(xnull2,0.,znull2,psix,ajlim,temp_field,itri,ier2)
   end if
   if(ier.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) then
@@ -1346,11 +1348,22 @@ subroutine lcfs(psi, test_wall, findx)
      end if
   else 
      psix = psib
-
      if(myrank.eq.0 .and. iprint.ge.1) then 
         write(*,'(A,2E12.4)') '  no X-point found near ', xnull, znull
      end if
   endif
+  if(ier2.eq.0) then
+     if(myrank.eq.0 .and. iprint.ge.1) then
+        write(*,'(A,2E12.4)') '  X-point found at ', xnull2, znull2
+     end if
+  else 
+     psix2 = psib
+     if(myrank.eq.0 .and. iprint.ge.1) then 
+        write(*,'(A,2E12.4)') '  no X-point found near ', xnull2, znull2
+     end if
+  endif
+
+  if(abs(psix2 - psimin).lt.abs(psix - psimin)) psix = psix2
 
   if(abs(psix - psimin).lt.abs(psib - psimin)) then
      is_diverted = .true.
@@ -2213,10 +2226,6 @@ subroutine te_max_dev(xguess,zguess,te,tem,imethod,ier)
         ztry = z1 + d%sn*(d%b+sinew) + d%co*etanew
         rdiff = sqrt((x-xtry)**2 + (z-ztry)**2)
 
-        if(myrank.eq.0 .and. iprint.ge.2) then
-           write(*,'(A,4E12.4)') &
-                '  te_max_dev: rdiff/h, tol, xnew,znew', rdiff/h, tol, xnew, znew
-        end if
         if(rdiff/h .lt. tol) converged = 1
         x = xtry
         z = ztry
