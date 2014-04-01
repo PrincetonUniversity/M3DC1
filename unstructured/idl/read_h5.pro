@@ -2194,43 +2194,39 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        endif else r = 1.
 
        if(icomplex eq 1) then begin
-          b2 = (s_bracket(psi,conj(psi),x,y) + I*conj(I))/r^2
-          f = read_field('f', x, y, t, slices=time, mesh=mesh, $
-                         filename=filename, points=pts, linear=linear, $
-                         rrange=xrange, zrange=yrange, complex=complex)
-          fp = complex(0., ntor)*f
-          b2 = b2 + s_bracket(fp,conj(fp),x,y) $
-               - a_bracket(fp, conj(psi),x,y)/r $
-               - a_bracket(conj(fp), psi,x,y)/r
-          b2 = real_part(b2)
-          b2 = b2 / 2. ; this comes from the cos^2 dependence of the field
-       endif else begin 
-          b2 = s_bracket(psi,psi,x,y) + I^2/r^2
-          if(i3d eq 1) then begin
-             fp = read_field('f', x, y, t, slices=time, mesh=mesh, $
-                             filename=filename, points=pts, linear=linear, $
-                             rrange=xrange, zrange=yrange, complex=complex, op=11)
-             b2 = b2 + s_bracket(fp,fp,x,y) $
-                  - 2.*a_bracket(fp, psi,x,y)/r
-          endif
-       endelse
-
+           b2 = (s_bracket(psi,conj(psi),x,y) + I*conj(I))/r^2
            f = read_field('f', x, y, t, slices=time, mesh=mesh, $
                           filename=filename, points=pts, linear=linear, $
                           rrange=xrange, zrange=yrange, complex=complex)
            if(extsubtract eq 1 and version lt 8) then begin
-               f = f + read_field('f_ext', x, y, t, slices=time, mesh=mesh, $
-                                 filename=filename, points=pts, linear=linear, $
-                                 rrange=xrange, zrange=yrange, complex=complex)
+               f = f + $
+                 read_field('f_ext', x, y, t, slices=time, mesh=mesh, $
+                            filename=filename, points=pts, linear=linear, $
+                            rrange=xrange, zrange=yrange, complex=complex)
            end
            fp = complex(0., ntor)*f
            b2 = b2 + s_bracket(fp,conj(fp),x,y) $
              - a_bracket(fp, conj(psi),x,y)/r $
              - a_bracket(conj(fp), psi,x,y)/r
-
-           b2 = b2 / 2. ; this comes from the cos^2 dependence of the field
            b2 = real_part(b2)
-       endif
+           b2 = b2 / 2. ; this comes from the cos^2 dependence of the field
+       endif else begin 
+           b2 = s_bracket(psi,psi,x,y) + I^2/r^2
+           if(i3d eq 1) then begin
+               fp = read_field('f', x, y, t, slices=time, mesh=mesh, $
+                               filename=filename, points=pts, linear=linear, $
+                               rrange=xrange, zrange=yrange, op=11)
+               if(extsubtract eq 1 and version lt 8) then begin
+                   fp = fp + $
+                     read_field('f_ext', x, y, t, slices=time, mesh=mesh, $
+                                filename=filename, points=pts, linear=linear, $
+                                rrange=xrange, zrange=yrange, op=11)
+               end
+
+               b2 = b2 + s_bracket(fp,fp,x,y) $
+                 - 2.*a_bracket(fp,psi,x,y)/r
+           end           
+       endelse
 
        data = sqrt(b2)
        symbol = '!3|!5B!3|!X'
