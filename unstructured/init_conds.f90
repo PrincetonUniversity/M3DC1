@@ -3828,7 +3828,7 @@ subroutine initial_conditions()
            call int_kink_init()
         case(20)
            call kstar_profiles()
-        case(21)
+        case(21,22)
            call fixed_q_profiles()
         end select
      else
@@ -4220,9 +4220,36 @@ end subroutine kstar_profiles
 
 module basicq
 implicit none
-real :: q0_qp, q1_qp, p0_qp, bz_qp, r0_qp
-integer :: myrank_qp, iprint_qp
+real :: q0_qp, rzero_qp, p0_qp, bz_qp, r0_qp
+integer :: myrank_qp, iprint_qp, itaylor_qp
 end module basicq
+module LZeqbm
+  IMPLICIT NONE
+
+  !Parameters
+  REAL, PARAMETER :: aspect_ratio = 18.0  ! R_major / r_wall_b
+  REAL, PARAMETER :: B0 = 1.0             ! Toroidal field at r=0
+  REAL, PARAMETER :: dfrac = 0.1          ! Bndry layer width / r_plas_a
+  REAL, PARAMETER :: Trat = 100.0         ! Ratio of plas to vac temperature
+  REAL, PARAMETER :: nrat = 1.0           ! Ratio of plas to vac density
+  REAL, PARAMETER :: q_interior = 1.0     ! Safety factor across bulk plasma
+  REAL, PARAMETER :: q_a = 0.75           ! Safety factor on plasma surface
+  REAL, PARAMETER :: r_plas_a = 0.6       ! Plasma minor radius
+  REAL, PARAMETER :: r_wall_b = 1.0       ! Minor radius of ideal wall
+  REAL, PARAMETER :: r_tile_c = 0.7       ! Minor radius of tile surface
+
+  !Derived quantities
+  REAL R_major                            ! Major radius of magnetic axis
+  REAL delta                              ! Width of boundary layer
+  REAL r_interior                         ! Radius to interior of bndry layer
+  REAL prat                               ! Ratio pf plas to vac pressure
+  REAL p_interior                         ! Pressure in bulk plasma
+  REAL p_vacuum                           ! Pressure in vacuum region
+  REAL q0R0                               ! Central safety factor * major radius
+  REAL Jdenom                             ! Intermediate derived quantity
+  REAL Bbz                                ! Toroidal field in bndry layer
+  REAL gamma                              ! Pressure gradient in bndry layer
+end module LZeqbm
 
 subroutine fixed_q_profiles()
 
@@ -4238,6 +4265,7 @@ use model
 use gradshafranov
 use int_kink
 use basicq
+implicit none
 
 
 vectype, dimension (dofs_per_node) :: vec_l
@@ -4256,12 +4284,14 @@ call create_field(p_vec)
   bz_qp = bzero
   r0_qp = alpha0
   q0_qp = q0
-  q1_qp = alpha1
+  rzero_qp = rzero
   p0_qp = p0
   iprint_qp = iprint
   myrank_qp = myrank
-if(myrank.eq.0 .and. iprint.ge.1) write (*,*) "bz,r0,q0,q1,p0",   &
-                bz_qp, r0_qp, q0_qp, q1_qp, p0_qp
+  itaylor_qp = itaylor
+if(myrank.eq.0 .and. iprint.ge.1) write (*,*) "bz,r0,q0,rzero,p0",   &
+                bz_qp, r0_qp, q0_qp, rzero_qp, p0_qp
+if(itaylor.eq.22) call setupLZeqbm
 
 numnodes = owned_nodes()
 
@@ -4341,8 +4371,9 @@ end subroutine fixed_q_profiles
 
 subroutine getvals_qsolver(rval,bpsival,ival,pval)
 use basicq
+implicit none
 
-integer, parameter :: N=100  !  (number of intervals)
+integer, parameter :: N=1000  !  (number of intervals)
 integer :: ifirstq = 1
 real :: dpsi,rval,psival,bpsival,ival,pval,cubicinterp,qfunc, qpfunc, pfunc, ppfunc
 real :: psimid, qmid, qpmid, ppmid, denom,fterm,gterm,aquad,bquad,cquad,disc 
@@ -4359,14 +4390,15 @@ if(ifirstq.eq.1) then
    enddo
 
 !  boundary condition at edge
-   btor(N) = bz_qp 
+   btor(N) = bz_qp
    bpsi(N) = 0.
-   bpolor(N) = btor(N)/(2.*qfunc(psi(N)))
+   bpolor(N) = btor(N)/(2.*rzero_qp*qfunc(psi(N)))
+   if(myrank_qp.eq.0 .and. iprint_qp.ge.1) write(*,*) "diagnostics to follow"
 !  integrate first order ode from boundary in
    do j=N,1,-1
       psimid = (j-.5)*dpsi
-      qmid = qfunc(psimid)
-      qpmid= qpfunc(psimid)
+      qmid = rzero_qp*qfunc(psimid)
+      qpmid= rzero_qp*qpfunc(psimid)
       ppmid= ppfunc(psimid)
       denom = psimid + qmid**2
       fterm = -(1 -psimid*qpmid/qmid)/denom
@@ -4378,15 +4410,18 @@ if(ifirstq.eq.1) then
 
       disc = bquad**2 - 4.*aquad*cquad
       btor(j-1) = (-bquad + sqrt(disc))/(2.*aquad)
-      bpolor(j-1) = btor(j-1)/(2.*qfunc(psi(j-1)))
+      bpolor(j-1) = btor(j-1)/(2.*rzero_qp*qfunc(psi(j-1)))
       bpsi(j-1)   = bpsi(j) - .5*dpsi*(bpolor(j)+bpolor(j-1)) 
+      if(myrank_qp.eq.0 .and. iprint_qp.ge.1) &
+      write(*,1002) qmid,denom,fterm,gterm,aquad,bquad,cquad,disc,btor(j-1)
    enddo
+ 1002 format(1p9e9.1)
   
 !  calculate poloidal and toroidal fields in cell centers
    do j=1,N-1
      jphi(j) = 4.*((j+.5)*(bpsi(j+1)-bpsi(j))-(j-.5)*(bpsi(j)-bpsi(j-1)))/dpsi 
-     jthor(j) =  2*((bpsi(j+1)-bpsi(j))*qfunc((j+0.5)*dpsi) &
-                  - (bpsi(j)-bpsi(j-1))*qfunc((j-0.5)*dpsi))/dpsi**2
+     jthor(j) =  2*((bpsi(j+1)-bpsi(j))*rzero_qp*qfunc((j+0.5)*dpsi) &
+                  - (bpsi(j)-bpsi(j-1))*rzero_qp*qfunc((j-0.5)*dpsi))/dpsi**2
      gradpor(j) =  ppfunc(j*dpsi)
      pary(j) = pfunc(psi(j))
 !    error in equilibrium equation
@@ -4464,36 +4499,171 @@ end function cubicinterp
 
 function qfunc(psi)    !   q  (safety factor)
 use basicq
-real :: psi,qfunc   !  note:  psi=r^2
-!qfunc = q0_qp + psi*(q1_qp - q0_qp)
+real :: psi,qfunc,q_LZ   !  note:  psi=r^2
+
+if(itaylor_qp .eq. 22) then
+  qfunc = q_LZ(psi)
+  return
+endif
+
 qfunc = (0.3/0.6579) * 1./(1./2. - psi/2. + psi**2/6.)
 return
 end function qfunc
 
 function qpfunc(psi)   !   derivative of q wrt psi
 use basicq
-real :: psi,qpfunc   !  note:  psi=r^2
-!qpfunc = (q1_qp - q0_qp)
+real :: psi,qpfunc,qprime_LZ   !  note:  psi=r^2
+
+if(itaylor_qp .eq. 22) then
+  qpfunc = qprime_LZ(psi)
+  return
+endif
+
 qpfunc = (0.3/0.6579) * (1./2. - psi/3.)/(1./2. - psi/2. + psi**2/6.)**2
 return
 end function qpfunc
 
 function pfunc(psi)    !   p  (pressure)
 use basicq
-real :: psi,pfunc   !  note:  psi=r^2
-!pfunc = p0_qp*(1. - psi)
+real :: psi,pfunc,p_LZ   !  note:  psi=r^2
+
+if(itaylor_qp .eq. 22) then
+  pfunc = p_LZ(psi)
+  return
+endif
+
 pfunc = p0_qp * (1. - 3.2*psi + 4.16*psi**2 - 2.56*psi**3 + 0.64*psi**4)
 return
 end function pfunc
 
 function ppfunc(psi)    !  derivative of p wrt psi
 use basicq
-real :: psi,ppfunc   !  note:  psi=r^2
-!ppfunc = -p0_qp
+real :: psi,ppfunc,pprime_LZ   !  note:  psi=r^2
+
+if(itaylor_qp .eq. 22) then
+  ppfunc = pprime_LZ(psi)
+  return
+endif
+
 ppfunc = p0_qp * (-3.2 + 8.32*psi - 7.68*psi**2 + 2.56*psi**3)
 return
-end
+end function ppfunc
 
 
 
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! Profiles for a pseudo-VMEC equilibrium structure resembling L. Zakharov's    !
+! circular cross-section, straight-cylinder, flat q, ideal equilibrium with a  !
+! surface current.                                                             !
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  subroutine setupLZeqbm
+    use lzeqbm
+    IMPLICIT NONE
+
+    delta = dfrac * r_plas_a
+    r_interior = r_plas_a - delta
+    R_major = aspect_ratio * r_wall_b
+    q0R0 = q_interior * R_major
+    Jdenom = q0R0**2 + r_interior**2
+    Bbz = q0R0**2 * B0 / Jdenom
+    gamma = (1.5 * (q0R0**2 * B0**2 * r_interior**4 / Jdenom**2 - &
+         r_plas_a**4 * Bbz**2 / (q_a**2 * R_major**2)) / &
+         (r_interior**3 - r_plas_a**3)) ! /aspect_ratio
+    prat = nrat * Trat
+    p_vacuum = gamma*delta/(prat - 1.0)
+    p_interior = p_vacuum + gamma*delta
+  end subroutine setupLZeqbm
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  function p_LZ(psi)
+    use lzeqbm
+    implicit none
+    REAL p_LZ
+    REAL, INTENT(IN) :: psi  ! square of minor radius
+    REAL rmin
+
+    rmin = SQRT(psi)
+
+    IF (rmin <= r_interior) THEN
+       p_LZ = p_interior
+    ELSE IF (rmin < r_plas_a) THEN
+       p_LZ = p_interior - gamma*(rmin - r_interior)
+    ELSE
+       p_LZ = p_vacuum
+    endIF
+  end function p_LZ
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  function pprime_LZ(psi)
+    use lzeqbm
+    implicit none
+    REAL pprime_LZ
+    REAL, INTENT(IN) :: psi  ! square of minor radius
+    REAL rmin, dpdr
+
+    rmin = SQRT(psi)
+
+    IF (rmin <= r_interior) THEN
+       pprime_LZ = 0.0
+       RETURN
+    endIF
+
+    IF (rmin < r_plas_a) THEN
+       dpdr = -gamma
+    ELSE
+       dpdr = 0.0
+    endIF
+
+    pprime_LZ = 0.5*dpdr/rmin
+  end function pprime_LZ
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  function q_LZ(psi)
+    use lzeqbm
+    implicit none
+    intrinsic sqrt
+    REAL q_LZ
+    REAL, INTENT(IN) :: psi  ! square of minor radius
+    REAL rmin, Btheta
+
+
+    rmin = SQRT(psi)
+
+    IF (rmin <= r_interior) THEN
+       q_LZ = q_interior
+    ELSE IF (rmin < r_plas_a) THEN
+       Btheta = SQRT(2.0*gamma*(rmin**3 - r_plas_a**3)/3.0 + &
+            r_plas_a**4 * Bbz**2 / (q_a**2 * R_major**2)) / rmin
+       q_LZ = rmin * Bbz / (R_major * Btheta)
+    ELSE
+       q_LZ = q_a * (rmin/r_plas_a)**2
+    endIF
+  end function q_LZ
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  function qprime_LZ(psi)
+    use lzeqbm
+    implicit none
+    REAL qprime_LZ
+    REAL, INTENT(IN) :: psi  ! square of minor radius
+    REAL rmin, Btheta, Bthetaprime, dqdr
+
+    rmin = SQRT(psi)
+
+    IF (rmin <= r_interior) THEN
+       qprime_LZ = 0.0
+       RETURN
+    endIF
+
+    IF (rmin < r_plas_a) THEN
+       Btheta = SQRT(2.0*gamma*(rmin**3 - r_plas_a**3)/3.0 + &
+            r_plas_a**4 * Bbz**2 / (q_a**2 * R_major**2)) / rmin
+       dqdr = Bbz * (2.0 - gamma*rmin/Btheta**2) / (R_major * Btheta)
+    ELSE
+       dqdr = 2.0*rmin*q_a / r_plas_a**2
+    endIF
+
+    qprime_LZ = 0.5*dqdr/rmin
+  end function qprime_LZ
