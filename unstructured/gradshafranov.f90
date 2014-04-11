@@ -62,11 +62,19 @@ subroutine gradshafranov_init()
 
   ! Define initial values of psi
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(myrank.eq.0 .and. iprint.gt.0) print *, "before call to vacuum field"
   if(ifixedb.eq.0) call vacuum_field
+  if(myrank.eq.0 .and. iprint.gt.0) print *, "after call to vacuum field"
      
-  ! define initial field associated with delta-function source
+  ! define initial field associated with delta-function or gaussian source
   !     corresponding to current tcuro at location (xmag,zmag)
-  call deltafun(xmag,zmag,tcuro,jphi_field)
+  if(myrank.eq.0 .and. iprint.gt.0) write(*,1001) xmag,zmag,tcuro,sigma0
+1001 format(' in gradshafranov_init',/,'   xmag,zmag,tcuro,sigma0',1p4e12.4)
+  if(sigma0 .eq.0) then
+     call deltafun(xmag,zmag,tcuro,jphi_field)
+  else
+     call gaussianfun(xmag,zmag,tcuro,sigma0,jphi_field)
+  endif
 
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   if(igs.ne.0) call gradshafranov_solve()
@@ -235,7 +243,7 @@ subroutine vacuum_field()
   integer :: ierr, ipole, numcoils
   
   if(myrank.eq.0 .and. iprint.gt.0) &
-       print *, " calculating vacuum field..."
+       print *, " calculating vacuum field...."
 
   ! based on filiment with current tcuro
   ! and vertical field of strength bv given by shafranov formula
@@ -1131,7 +1139,7 @@ subroutine gradshafranov_solve
      if(constraint) error = error3
 
      if(myrank.eq.0 .and. iprint.ge.1) then
-        write(*,'(A,1p2e12.4)') ' Error in GS solution: ', error, error2
+        write(*,'(A,1p4e12.4)') ' Error in GS solution: ', error, error2, xmag, zmag
      endif
      ! if error is NaN, quit
      if(error.ne.error) call safestop(11)
@@ -1623,6 +1631,59 @@ subroutine deltafun(x,z,val,jout)
   call sum_shared(jout%vec)
 
 end subroutine deltafun
+
+! ===========================================================
+subroutine gaussianfun(x,z,val,denom,jout)
+
+  use mesh_mod
+  use basic
+  use arrays
+  use field
+  use m3dc1_nint
+  use math
+
+  implicit none
+
+  include 'mpif.h'
+
+  type(element_data) :: d
+  real, intent(in) :: x, z, val, denom
+  real :: val2
+  type(field_type), intent(inout) :: jout
+
+  integer :: itri, i, j, nelms, ier
+  real :: befo, rsq
+  vectype, dimension(npoints) :: temp
+  vectype, dimension(dofs_per_element) :: dofs
+  real, dimension(npoints) ::   rtemp
+  befo =-val/(pi*denom**2)
+  
+  nelms = local_elements()
+  if (myrank.eq.0 .and. iprint .ge.1) write(*,1001) x,z,val,denom,befo,nelms
+1001 format('Gaussian Called:',/,'    x,z,val,denom,befo,nelms',1p5e12.4,i5)
+  do itri=1,nelms
+      call define_element_quadrature(itri,int_pts_diag, int_pts_tor)
+      call define_fields(itri,0,1,0)  !  defines x_79,z_79,mu,nu
+
+!     assemble matrix
+      do i=1,dofs_per_element
+         do j=1,npoints
+            rsq = (x_79(j)-x)**2 + (z_79(j)-z)**2
+            rtemp(j) = befo*exp(-rsq/denom**2)
+         enddo
+#ifdef USECOMPLEX
+         temp = cmplx(rtemp)
+#else
+         temp = rtemp
+#endif
+      dofs(i) = int2(mu79(:,OP_1,i),temp)
+      enddo
+      ! call vector_insert_block(jout%vec, itri, jout%index, dofs, VEC_ADD)
+      call vector_insert_block(jout%vec, itri, 1, dofs, VEC_ADD)
+  enddo
+  call sum_shared(jout%vec)
+
+end subroutine gaussianfun
 
 
 !============================================================

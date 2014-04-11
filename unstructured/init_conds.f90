@@ -2022,9 +2022,16 @@ subroutine eqdsk_init()
   if(iread_eqdsk.eq.3) then 
      if(ifixedb.eq.0) call vacuum_field
      
-     ! define initial field associated with delta-function source
-     !     corresponding to current tcuro at location (xmag,zmag)
-     call deltafun(xmag,zmag,tcuro,jphi_field)
+ ! define initial field associated with delta-function or gaussian source
+  !     corresponding to current tcuro at location (xmag,zmag)
+     if(myrank.eq.0 .and. iprint.gt.0) write(*,1001) xmag,zmag,tcuro,sigma0
+1001 format(' in gradshafranov_init',/,'   xmag,zmag,tcuro,sigma0',1p4e12.4)
+     if(sigma0 .eq.0) then
+        call deltafun(xmag,zmag,tcuro,jphi_field)
+     else
+        call gaussianfun(xmag,zmag,tcuro,sigma0,jphi_field)
+     endif
+   
   else
      do l=1, numnodes
         call get_node_pos(l, x, phi, z)
