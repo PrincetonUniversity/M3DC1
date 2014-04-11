@@ -407,6 +407,7 @@ subroutine set_defaults
   call add_var_double("expn", expn, 0., &
        "Density profile = p^expn", gs_grp)
   call add_var_double("q0", q0, 1., "", gs_grp)
+  call add_var_double("sigma0", sigma0, 0., "", gs_grp)
   call add_var_double("djdpsi", djdpsi, 0., "", gs_grp)
   call add_var_double("th_gs", th_gs, 0.8, &
        "Implicitness of GS Picard iterations", gs_grp)
