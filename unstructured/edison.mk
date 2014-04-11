@@ -24,44 +24,21 @@ endif
 
 ifeq ($(USESCOREC), 1)
     ifndef SCORECDIR
-      SCORECDIR = /global/project/projectdirs/mp288/edison/scorec/install-Opt/
+      SCORECDIR = /global/project/projectdirs/mp288/edison/cray/
     endif
 
-#SCOREC_LIBS =-L$(SCORECDIR)/lib -Wl,--start-group -lPPPLFusion -lMeshAdapt -lFMDB -lGMI -lGMIMeshModel -lSCORECUtil -lipcomman -Wl,--end-group -lzoltan 
-
-SCOREC_LIBS =  \
-        $(SCORECDIR)/lib/libFUSIONAPP.a \
-        $(SCORECDIR)/lib/libSOLVER.a \
-        $(SCORECDIR)/lib/libMESHADAPTMAP.a \
-        $(SCORECDIR)/lib/libSOLTRANSFER.a \
-        $(SCORECDIR)/lib/libSOLVER.a \
-        $(SCORECDIR)/lib/libFEMANALYSIS.a \
-        $(SCORECDIR)/lib/libASSEMBLER.a \
-        $(SCORECDIR)/lib/libMeshAdapt.a \
-        $(SCORECDIR)/lib/libDISCERRORESTIM.a \
-        $(SCORECDIR)/lib/libASF.a \
-        $(SCORECDIR)/lib/libSCORECModel.a \
-        $(SCORECDIR)/lib/libmeshModel.a \
-        $(SCORECDIR)/lib/libFMDB.a \
-        $(SCORECDIR)/lib/libSCORECUtil.a \
-        $(SCORECDIR)/lib/libipcomman.a \
-        $(SCORECDIR)/lib/libzoltan.a \
-        $(SCORECDIR)/lib/libSPARSKIT.a \
-        $(SCORECDIR)/lib/libSCORECModel.a \
-        $(SCORECDIR)/lib/libmeshModel.a \
-        $(SCORECDIR)/lib/libSCORECUtil.a
-
+    SCORECLIB=-lapf -lapf_pumi -lpumi_util -lpumi_geom -lpcu -lpumi_geom_meshmodel -lpumi_mesh -lmeshadapt
+    SCOREC_LIBS =-L$(SCORECDIR)/lib -Wl,--start-group -lPPPLFusion $(SCORECLIB) -Wl,--end-group -lzoltan
+     PETSC_EXTERNAL_LIB_BASIC =-Wl,-rpath,/global/project/projectdirs/mp288/jinchen/HZhang/petsc-3.4.3_edison/arch-xe6-opt/lib -L/global/project/projectdirs/mp288/jinchen/HZhang/petsc-3.4.3_edison/arch-xe6-opt/lib -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu_dist_3.3 -lsuperlu_4.3 -lparmetis -lmetis -lpthread -ldl
+  INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
   INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
   LIBS := $(LIBS) \
-        -L$(SCORECDIR)/lib $(SCOREC_LIBS) \
-	-L/opt/cray/cce/8.1.4/CC/x86-64/lib/x86-64 -lcray-c++-rts -lcraystdc++\
+        -L$(SCORECDIR)/lib $(SCOREC_LIBS) -lpetsc $(PETSC_EXTERNAL_LIB_BASIC)  \
+	-L/opt/cray/cce/8.2.2/CC/x86-64/lib/x86-64 -lcray-c++-rts -lcraystdc++\
 	-lmpichcxx_cray
-
 #PARMETIS = -lparmetis_cray -lmetis_cray
 
 #PARMETIS = -L/global/project/projectdirs/mp288/edison/scorec/parmetis/ParMetis-3.1.1/lib -lparmetis -lmetis
-
-PARMETIS = -lparmetis -lmetis
 
 else
 #  OPTS := $(OPTS) -DPetscDEV
@@ -69,7 +46,7 @@ endif   # on USESCOREC
 
 AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
 
-OPTS := $(OPTS) -DPetscDEV -DKSPITS -DUSEADIOS #-DUSEHYBRID -DCJ_MATRIX_DUMP
+OPTS := $(OPTS) -DPetscDEV -DKSPITS # -DUSEADIOS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 #PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev-SUPERLU-HYPRE-MUMPS/petsc-dev-060711/petsc-dev
 #PETSC_ARCH = arch-cray-xt6-pkgs-opt
 #SUPERLU_DIST = -lsuperlu_dist_2.5
@@ -80,21 +57,17 @@ OPTS := $(OPTS) -DPetscDEV -DKSPITS -DUSEADIOS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 #ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
 #ADIOS_DIR=/global/homes/p/pnorbert/adios/1.3.1/hopper/pgi/
 #ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf -L/global/homes/p/pnorbert/mxml/mxml.hopper/lib -lm -lmxml -llustreapi -pgcpplibs
-ADIOS_DIR=/usr/common/usg/adios/1.4.1
-ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
-             -L/usr/common/usg/minixml/2.7/lib -lm -lmxml \
-             -L/usr/lib64/ -llustreapi -pgcpplibs
 
 INCLUDE := $(INCLUDE) -I$(HDF5_DIR)/include $(FFTW_INCLUDE_OPTS) \
 	-I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
 	-I$(GSL_DIR)/include # \
 #        -I$(HYBRID_HOME)/include
 
-LIBS := $(LIBS) -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5 \
+LIBS := $(LIBS) -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5 -lz \
 	$(FFTW_POST_LINK_OPTS) -lfftw3 \
 	$(HYPRE) $(MUMPS) $(PARMETIS) -ldl \
-	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
-	$(ADIOS_FLIB)
+	-L$(GSL_DIR)/lib -lgsl # \
+#	$(ADIOSREAD_LIB) $(ADIOS_LIB) -ladiosf_v1 -lxml
 #        $(HYBRID_LIBS) \
 
 
