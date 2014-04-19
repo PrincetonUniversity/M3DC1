@@ -684,6 +684,9 @@ subroutine set_defaults
        "", mesh_grp)
   call add_var_string("mesh_model", mesh_model, 256, "struct.dmg", &
        "", mesh_grp)
+  call add_var_int("ipartitioned",ipartitioned,0,&
+       "1 = the input mesh is partitioned", mesh_grp)
+
   call add_var_int("imulti_region", imulti_region, 0, &
        "1 = Mesh has multiple physical regions", mesh_grp)
   
