@@ -23,6 +23,7 @@ module scorec_mesh_mod
 
   character(len=256) mesh_model
   character(len=256) mesh_filename
+  integer :: ipartitioned
   
   integer :: imulti_region
 
@@ -94,10 +95,10 @@ contains
     if(myrank.eq.0) print *, 'loading partitioned mesh...'
     if(is_rectilinear) then
        if(myrank.eq.0) print *, 'loading rectilinear mesh model...'
-       call loadPtnMesh('struct.dmg')
+       call loadPtnMesh(trim(mesh_model))
     else
        if(myrank.eq.0) print *, 'loading curved mesh model...'
-       call loadPtnMesh('AnalyticModel')
+       call loadPtnMesh(trim(mesh_model))
     endif
 
     if(myrank.eq.0) print *, 'setting up 3D mesh...'
@@ -114,7 +115,19 @@ contains
     call MPI_Comm_create(MPI_COMM_WORLD, plane_group, plane_comm, ier)
     deallocate(ranks)
 #else 
-    call loadmesh(trim(mesh_model), trim(mesh_filename))
+    ! there are two ways to use 2D mesh
+    ! the first way: loadmesh, it loads the whole mesh and distributes to other processes
+    ! the second way: loadPtnMesh, it loads the partitioned mesh
+    ! to use the second way: first run PTNMESH/main to partition the mesh
+    ! at hopper, use loadPtnMesh; we get some trouble in loadmesh
+    ! first run 
+    ! aprun -n # /global/project/projectdirs/mp288/meshtools/PTNMESH yourMesh
+    ! set ipartitioned =1 in C1input
+    if(.not. ipartitioned) then
+      call loadmesh(trim(mesh_model), trim(mesh_filename))
+    else 
+      call loadptnmesh(trim(mesh_model))
+    end if
 #endif
 
     initialized = .true.
