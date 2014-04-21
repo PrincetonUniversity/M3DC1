@@ -6765,9 +6765,9 @@ end
 
 
 function flux_at_q, qval, normalized_flux=norm, points=pts, $
-                    q=q, flux=flux, _EXTRA=extra
+                    q=q, flux=flux, psi=psi, x=x, z=z, t=t, _EXTRA=extra
    q = flux_average('q', flux=flux, nflux=nflux, /equilibrium, points=pts, $
-                    _EXTRA=extra)
+                    _EXTRA=extra, psi=psi, x=x, z=z, t=t)
 
    if(keyword_set(norm)) then flux=nflux
 
@@ -7857,7 +7857,8 @@ pro test_mesh, filename, nplanes=nplanes, _EXTRA=extra
 end
 
 pro plot_perturbed_surface, q, scalefac=scalefac, points=pts, $
-                            filename=filename, phi=phi0, _EXTRA=extra
+                            filename=filename, phi=phi0, _EXTRA=extra, $
+                            out=out
    icomp =read_parameter('icomplex', filename=filename)
    if(n_elements(scalefac) eq 0) then scalefac=1.
    if(n_elements(scalefac) eq 1) then $
@@ -7910,5 +7911,23 @@ pro plot_perturbed_surface, q, scalefac=scalefac, points=pts, $
        oplot, xy_new[0,*], xy_new[1,*], color=c[k+1]
        oplot, [xy_new[0,n_elements(xy[0,*])-1], xy_new[0,0]], $
          [xy_new[1,n_elements(xy[0,*])-1], xy_new[1,0]], color=c[k+1]
+   end
+
+   if(n_elements(out) ne 0) then begin
+       for k=0, n_elements(fvals)-1 do begin
+           ; write equilibrium
+           out0 = string(format='(A,"_q=",F0.3,"_scale=0.txt")',out,q[k])
+
+           openw, ifile, out0, /get_lun
+           printf, ifile, format='(2F15.5)', xy
+           free_lun, ifile
+
+           ; write perturbed surface
+           out1 = string(format='(A,"_q=",F0.3,"_scale=",F0.3,".txt")',out, $
+                         q[k], scalefac)
+           openw, ifile, out1, /get_lun
+           printf, ifile, format='(2F15.5)', xy_new
+           free_lun, ifile
+       end
    end
 end

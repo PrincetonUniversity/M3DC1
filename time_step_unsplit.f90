@@ -36,14 +36,12 @@ contains
     use basic
     implicit none
 
-    vecsize_phi  = numvar*2 + idens + ipres
+    vecsize_phi  = numvar*2 + idens + ipres + imp_bf
     
     ! add electrostatic potential equation
-    if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.eq.1)) vecsize_phi = vecsize_phi + 1
+    if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.eq.1)) &
+         vecsize_phi = vecsize_phi + 1
     
-    ! add bf equation
-    if(imp_bf.eq.1) vecsize_phi = vecsize_phi + 1
-
     ! Vectors
     call create_vector(phi_vec,      vecsize_phi)
     call create_vector(phip_vec,     vecsize_phi)
