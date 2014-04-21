@@ -2877,7 +2877,7 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
  if((.not. total_pressure) .and. ipres.eq.1 .and. ipressplit.eq.1) then
     if(linear.eq.0 .and. eqsubtract.eq.0) then
        temp = dt*coefeq*b3peeta(trial,lin,eta79)
-       ssterm(pp_g) = ssterm(pp_g) +  2.*temp        !*thimpf
+       ssterm(pe_g) = ssterm(pe_g) +  2.*temp        !*thimpf
 !       ddterm(pp_g) = ddterm(pp_g) +  2.*(1.-thimpf)*temp
        ssterm(p_g)  = ssterm(p_g)  -     temp        !*thimpf
 !       ddterm(p_g)  = ddterm(p_g)  -  (1.-thimpf)*temp
@@ -4422,6 +4422,9 @@ subroutine ludefphi_n(itri)
 
   call get_zone(itri, izone)
 
+  ! pp_i is the column multiplying p
+  ! ppe_i is the column multiplying pe
+
   if(isplitstep.ge.1) then
      bb1 => s2_mat
      bb0 => d2_mat
@@ -4464,9 +4467,9 @@ subroutine ludefphi_n(itri)
      end if
      maxk = numvar
      if(imp_bf.eq.1 .and. numvar.ge.2) maxk = maxk + 1
-     if(ipressplit.ne.0 .and. numvar.ge.3) maxk = maxk - 1   !  is this generally valid?
+!!$     if(ipressplit.ne.0 .and. numvar.ge.3) maxk = maxk - 1   !  is this generally valid?
      if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.eq.1)) &
-                                           maxk = maxk + 1
+          maxk = maxk + 1
   endif
 
   ieq(1) = psi_i
@@ -4543,6 +4546,8 @@ subroutine ludefphi_n(itri)
                    izone)
 
            else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
+              ! if ipres==0, this is the total pressure equation
+              ! if ipres==1, this is the electron pressure equation
               call pressure_lin(mu79(:,:,i),nu79(:,:,j), &
                    ss(i,j,:),dd(i,j,:),q_ni(i,j,:),r_bf(i,j),q_bf(i,j), &
                    ipres.eq.0, thimp,itri, izone)
@@ -4572,7 +4577,7 @@ subroutine ludefphi_n(itri)
               call flux_nolin(mu79(:,:,i),q4(i))
            else if(ieq(k).eq.bz_i .and. numvar.ge.2) then
               call axial_field_nolin(mu79(:,:,i),q4(i))
-           else if(ieq(k).eq.pe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
+           else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
               call pressure_nolin(mu79(:,:,i),q4(i),ipres.eq.0)
            else if(ieq(k).eq.bf_i .and. imp_bf.eq.1) then
               call bf_equation_nolin(mu79(:,:,i),q4(i))
@@ -4608,11 +4613,11 @@ subroutine ludefphi_n(itri)
      if(numvar.ge.3) then
         ! if ipres==0, total pressure equation is in pe_i slot
         if(ipressplit.eq.0) then
-           if(ipres.eq.0) then
+!           if(ipres.eq.0) then
               if(idiff .gt. 0) dd(:,:,p_g) = dd(:,:,p_g) - ss(:,:,p_g)
               call insert_block(bb1,itri,ieq(k), pp_i,ss(:,:,  p_g),MAT_ADD)
               call insert_block(bb0,itri,ieq(k), pp_i,dd(:,:,  p_g),MAT_ADD)
-           end if
+!           end if
            if(idiff .gt. 0) dd(:,:,pe_g) = dd(:,:,pe_g) - ss(:,:,pe_g)
            call insert_block(bb1,itri,ieq(k), ppe_i,ss(:,:, pe_g),MAT_ADD)
            call insert_block(bb0,itri,ieq(k), ppe_i,dd(:,:, pe_g),MAT_ADD)
@@ -4681,9 +4686,9 @@ subroutine ludefpres_n(itri)
      pv0 => q9_mat
      pb0 => o9_mat
      if(imp_bf.eq.1) then
-       bf0 => o9_mat
+        bf0 => o9_mat
      else
-       bf0 => o3_mat
+        bf0 => o3_mat
      endif
      psource => qp4_vec
      thimpf = 0.
@@ -4694,30 +4699,35 @@ subroutine ludefpres_n(itri)
      pv0 => d1_mat
      pb1 => s1_mat
      pb0 => d1_mat
+     if(imp_bf.eq.1) then
+        bf0 => d1_mat
+     else
+        bf0 => o1_mat
+     endif
      psource => q4_vec
      thimpf = thimp
   endif
   select case(ipressplit)
-     case(0)
-        ieq(1) = p_i
-        maxk = 1
+  case(0)
+     ieq(1) = p_i
+     maxk = 1
+  case(1)
+     select case(imode)
      case(1)
-        select case(imode)
-           case(1)
-              maxk = 1
-              ieq(1) = p_i
-           case(2)
-              maxk = 1
-              ieq(1) = te_i
-           case(3)
-              maxk = 2
-              ieq(1) = p_i
-              ieq(2) = pe_i
-           case(4)
-              maxk = 2
-              ieq(1) = te_i
-              ieq(2) = ti_i
-        end select       
+        maxk = 1
+        ieq(1) = p_i
+     case(2)
+        maxk = 1
+        ieq(1) = te_i
+     case(3)
+        maxk = 2
+        ieq(1) = p_i
+        ieq(2) = pe_i
+     case(4)
+        maxk = 2
+        ieq(1) = te_i
+        ieq(2) = ti_i
+     end select
   end select
 
   do k=1,maxk

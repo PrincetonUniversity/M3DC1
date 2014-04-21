@@ -43,6 +43,7 @@ module basic
   integer :: ikappafunc ! if 1, use new resistivity function
   integer :: ikappar_ni
   real :: etar, eta0  ! iresfunc=0:  resistivity = etar + eta0/T^(3/2)
+  real :: eta_fac
   real :: etaoff, etadelt !iresfunc=1: = etar + .5 eta0 (1+tanh(psi-psilim(1+etaoff*DP)/etadelt*DP))
   !                                                      DP = psilim - psimin
   real :: amuoff, amudelt, amuoff2, amudelt2

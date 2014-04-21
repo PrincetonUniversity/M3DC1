@@ -271,13 +271,13 @@ vectype function resistivity_func(i)
   case(0)  ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)
      if(eta0.ne.0.) then
         if(linear.eq.1) then
-           temp79a = eta0*sqrt((ne079(:,OP_1)/pe079(:,OP_1))**3)
+           temp79a = eta_fac*eta0*sqrt((ne079(:,OP_1)/pe079(:,OP_1))**3)
         else
            if(itemp.eq.1) then
-              temp79a = eta0*tet79(:,OP_1)**(-1.5)
+              temp79a = eta_fac*eta0*tet79(:,OP_1)**(-1.5)
            else
               temp79b = max(pedge*pefac,real(pet79(:,OP_1)))
-              temp79a = eta0*sqrt((net79(:,OP_1)/temp79b)**3)
+              temp79a = eta_fac*eta0*sqrt((net79(:,OP_1)/temp79b)**3)
            endif
         endif
      else
@@ -286,12 +286,12 @@ vectype function resistivity_func(i)
 
   case(1)      ! added 08/05/08 for stability benchmarking
      if(linear.eq.1) then
-       temp79a = eta0*.5* &
+       temp79a = eta_fac*eta0*.5* &
           (1. + &
           tanh((real(ps079(:,OP_1))-(psilim+etaoff*(psilim-psimin)))&
           /(etadelt*(psilim-psimin))))
      else
-       temp79a = eta0*.5* &
+       temp79a = eta_fac*eta0*.5* &
           (1. + &
           tanh((real(pst79(:,OP_1))-(psilim+etaoff*(psilim-psimin)))&
           /(etadelt*(psilim-psimin))))
@@ -299,18 +299,18 @@ vectype function resistivity_func(i)
   case(2)
      if(linear.eq.1) then
        temp79b = (ps079(:,OP_1)-psimin)/(psibound-psimin)
-       temp79a = eta0*.5* &
+       temp79a = eta_fac*eta0*.5* &
           (1. + tanh((real(temp79b) - etaoff)/etadelt))
      else
        temp79b = (pst79(:,OP_1)-psimin)/(psibound-psimin)
-       temp79a = eta0*.5* &
+       temp79a = eta_fac*eta0*.5* &
           (1. + tanh((real(temp79b) - etaoff)/etadelt))
      endif
   case(3)
-     temp79a = eta79(:,OP_1) - etar
+     temp79a = eta79(:,OP_1) - etar*eta_fac
 
   case(4)
-     temp79a = eta79(:,OP_1) - etar
+     temp79a = eta79(:,OP_1) - etar*eta_fac
 
   case default
      temp79a = 0.
@@ -759,7 +759,7 @@ subroutine define_transport_coefficients()
   
   ! add in constant components
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
-  call add(resistivity_field, etar)
+  call add(resistivity_field, etar*eta_fac)
   call add(visc_field, amu)
   call add(visc_c_field, amuc)
   call add(kappa_field, kappat)

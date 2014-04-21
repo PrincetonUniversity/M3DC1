@@ -803,6 +803,7 @@ contains
            elsewhere
               eta79(:,OP_1) = eta0
            end where
+           eta79 = eta79*eta_fac
            !     else if(iresfunc.eq.0 .or. iresfunc.eq.4) then
         else if(iresfunc.eq.4) then
            eta79 = 0.
@@ -853,7 +854,7 @@ contains
 #endif
            end where
 
-           eta79 = eta79 * &
+           eta79 = eta79 * eta_fac * &
                 3.4e-22*n0_norm**2/(b0_norm**4*l0_norm) &
                 *zeff*lambda_coulomb*sqrt(ion_mass)
         else

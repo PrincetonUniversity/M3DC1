@@ -191,6 +191,8 @@ subroutine set_defaults
   call add_var_double("etar", etar, 0., &
        "Isotropic resistivity", transp_grp)
   call add_var_double("eta0", eta0, 0., "", transp_grp)
+  call add_var_double("eta_fac", eta_fac, 1., &
+       "Uniform resistivity multiplier", transp_grp)
 
   call add_var_int("ikappafunc", ikappafunc, 0, "", transp_grp)
   call add_var_int("ikapscale", ikapscale, 0, "", transp_grp)
