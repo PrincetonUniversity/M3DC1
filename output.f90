@@ -64,6 +64,7 @@ contains
     call hdf5_write_scalars(ier)
 #ifdef USE3D
     if(ike_harmonics .gt. 0) call hdf5_write_keharmonics(ier)
+    if(ibh_harmonics .gt. 0) call hdf5_write_bharmonics(ier)
     call hdf5_write_kspits(ier)
 #endif
     if(myrank.eq.0 .and. itimer.eq.1) then
@@ -1219,6 +1220,49 @@ subroutine hdf5_write_keharmonics(error)
   deallocate(dum)
 
 end subroutine hdf5_write_keharmonics
+
+
+! hdf5_write_bharmonics
+! ==================
+subroutine hdf5_write_bharmonics(error)
+  use basic
+  use diagnostics
+  use hdf5_output
+
+  implicit none
+
+  integer, intent(out) :: error
+
+  integer(HID_T) :: root_id, bharmonics_group_id
+  real, allocatable :: dum(:)
+  integer :: i
+
+  if(.not.allocated(bharmonic)) return
+
+  allocate(dum(BNMAX+1))
+  call h5gopen_f(file_id, "/", root_id, error)
+
+  if(ntime.eq.0) then
+     call h5gcreate_f(root_id, "bharmonics", bharmonics_group_id, error)
+  else
+     call h5gopen_f(root_id, "bharmonics", bharmonics_group_id, error)
+  endif
+  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'before output_1dextendarr'
+
+  ! bharmonic
+  do i = 0, BNMAX
+     dum(i+1) = bharmonic(i)
+  enddo
+  
+  call output_1dextendarr(bharmonics_group_id, "bharmonics" , dum, BNMAX+1, ntime, error)
+  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after output_1dextendarr', error
+  
+  call h5gclose_f(bharmonics_group_id, error)
+  call h5gclose_f(root_id, error)
+
+  deallocate(dum)
+
+end subroutine hdf5_write_bharmonics
 
 
 ! hdf5_write_kspits

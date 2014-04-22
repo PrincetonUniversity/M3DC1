@@ -641,6 +641,8 @@ subroutine set_defaults
        "1: Only calculate ke scalar diagnostic", output_grp)
   call add_var_int("ike_harmonics", ike_harmonics, 0, &
        "Number of Fourier harmonics of ke to be calculated and output", output_grp)
+  call add_var_int("ibh_harmonics", ibh_harmonics, 0, &
+       "Number of Fourier harmonics of magnetic perturbation to be calculated and output", output_grp)
   call add_var_int("irestart", irestart, 0, "", output_grp)
   call add_var_int("itimer", itimer, 0, &
        "1: Output internal timer data", output_grp)

@@ -309,6 +309,7 @@ module basic
   integer :: icalc_scalars ! 1 = calculate scalars
   integer :: ike_only      ! 1 = only calculate kinetic energy
   integer :: ike_harmonics  ! number of Fourier harmonics of ke to be calculated and output
+  integer :: ibh_harmonics  ! number of Fourier harmonics of magnetic field perturbation to be calculated and output
   integer :: ifout         ! 1 = output f field
   integer :: iread_eqdsk   ! 1 = read geqdsk input
                            ! 2 = read geqdsk for psi, but use default profiles
@@ -419,6 +420,7 @@ module arrays
   vectype, dimension(dofs_per_node) :: chi1_l, chi0_l
   vectype, dimension(dofs_per_node) :: psi1_l, psi0_l
   vectype, dimension(dofs_per_node) ::  bz1_l,  bz0_l
+  vectype, dimension(dofs_per_node) ::  bf1_l,  bf0_l
   vectype, dimension(dofs_per_node) ::  pe1_l,  pe0_l
   vectype, dimension(dofs_per_node) :: den1_l, den0_l
   vectype, dimension(dofs_per_node) ::   p1_l,   p0_l
