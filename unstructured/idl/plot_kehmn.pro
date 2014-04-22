@@ -232,3 +232,101 @@ pro plot_kspits, filename=filename, yrange=yrange
 end
 
 
+pro plot_bhmn, filename=filename, xrange=xrange, yrange=yrange, maxn=maxn, ylog=ylog, growth=growth, outfile=outfile
+   if(n_elements(filename) eq 0) then filename = 'C1.h5'
+   if(hdf5_file_test(filename) eq 0) then return
+
+   ; read harmonics [N, ntimes]
+   file_id = h5f_open(filename)
+   root_id = h5g_open(file_id, "/")
+   data = h5_parse(root_id, "bharmonics", /read_data)
+   h5g_close, root_id
+   h5f_close, file_id
+   bhmn = data.BHARMONICS._DATA
+   dimn = size(bhmn, /dim)
+   print, 'total number of Fourier bharmonics and timesteps = ', dimn
+
+   ; read times, timestep [ntimes]
+   s = read_scalars(filename=filename)
+   time = s.time._data
+   dt = s.dt._data
+
+   ; write harmonics [N, ntimes] into "outfile"
+      if(keyword_set(outfile)) then begin
+         ;format=string(39B)+'(' + STRTRIM(1+dimn[0], 2) + 'E16.6)'+string(39B)
+         format='(' + STRTRIM(1+dimn[0], 2) + 'E16.6)'
+         print, format
+         openw,ifile,outfile,/get_lun
+         printf,ifile,format=format,[transpose(time),bhmn]
+         free_lun, ifile
+      endif
+
+   ; get the maximum number of fourier harmonics to be plotted, default to dim[0]
+   if(n_elements(maxn) eq 0) then begin
+   maxn = dimn[0]
+   end
+   ntimes = dimn[1]
+   print, 'max number of Fourier bharmonics to be plotted = ', maxn, ntimes
+   
+   ; if growth rate to be plotted
+   grate=fltarr( maxn , (ntimes-1) )
+   for n=0, maxn-1 do begin
+      for t=0, ntimes-2 do begin
+         ind = n + t*dimn[0]
+         ind1 = n + (t+1)*dimn[0]
+         ;print, n, t, ind, ind1, bhmn[ind] , bhmn[ind1]
+         grate[n,t] = 2. / (bhmn[ind1] + bhmn[ind]) * (bhmn[ind1] - bhmn[ind]) / dt[t+1]
+      endfor
+   endfor
+
+   ; get plot's yrange, default to minmax(...)
+   if(n_elements(yrange) eq 0) then begin
+      if(keyword_set(growth)) then begin
+         grate_minmax = minmax(grate)
+         yrange=[grate_minmax[0], grate_minmax[1]]
+      endif else begin
+         bhmn_minmax = minmax(bhmn)
+         yrange=[bhmn_minmax[0], bhmn_minmax[1]]
+      endelse
+   end
+   ;print, 'plot yrange = ', yrange[0], yrange[1]
+   ; get plot's xrange, default to [time[1],time[ntimes]]
+   if(n_elements(xrange) eq 0) then begin
+         xrange=[time[1], time[dimn[1]-1]]
+   end
+   ;print, 'plot xrange = ', xrange[0], xrange[1]
+
+   ; plot range 1:ntimes
+   x = fltarr(ntimes-1)
+   tmp = fltarr(ntimes-1)
+
+   for n=0, maxn-1 do begin
+      for t=0, ntimes-2 do begin
+         if(keyword_set(growth)) then begin
+            ind = n + t*maxn
+            tmp[t] = grate[ind]
+            title='growth rate for each bharmonics'
+         endif else begin
+            ind = n + (t+1)*dimn[0]
+            tmp[t] = bhmn[ind]
+            title='kinetic energy for each bharmonics'
+         endelse
+            x[t] = time[t+1]
+      endfor
+
+      if(n lt 1) then begin
+         if(keyword_set(ylog)) then begin
+         plot, x, tmp, xrange=xrange, yrange=yrange, /ylog, TITLE=title, linestyle=0
+         endif else begin
+         plot, x, tmp, xrange=xrange, yrange=yrange, TITLE=title, linestyle=0
+         endelse
+      endif else begin
+         oplot, x, tmp, linestyle=0
+      endelse
+
+      numberAsString = STRTRIM(n, 2)
+      xyouts, x[ntimes/2], tmp[ntimes/2], numberAsString
+   endfor
+
+end
+

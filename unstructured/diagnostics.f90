@@ -35,6 +35,10 @@ module diagnostics
   real, allocatable:: keharmonic(:)
   integer :: NMAX
 
+  ! in subroutine calculate_keB()
+  real, allocatable:: bharmonic(:)
+  integer :: BNMAX
+
   ! momentum diagnostics
   real :: tau_em, tau_sol, tau_com, tau_visc, tau_gyro, tau_parvisc
 
@@ -788,6 +792,7 @@ subroutine calculate_scalars()
 !
 #ifdef USE3D
   if(ike_harmonics .gt. 0) call calculate_ke()
+  if(ibh_harmonics .gt. 0) call calculate_bh()
 #endif
 
   if(myrank.eq.0 .and. iprint.ge.1) then 
@@ -1758,6 +1763,244 @@ subroutine calculate_ke()
 !    call destroy_vector(transform_field)
 
 end subroutine calculate_ke
+
+
+
+!======================================================================
+! calculate_bh
+! ~~~~~~~~~~~~~~
+! calculates each Fourer harmonics for kinetic energy
+!======================================================================
+subroutine calculate_bh()
+
+  use basic
+  use mesh_mod
+  use arrays
+  use m3dc1_nint
+  use newvar_mod
+  use sparse
+  use metricterms_new
+  use boundary_conditions
+  use math
+  implicit none
+  include 'mpif.h'
+  integer :: itri, numelms, def_fields
+  real:: bh_N, bhtotal, fac, delta_phi
+  integer :: ier, k, l, numnodes, N
+  vectype, dimension(dofs_per_node) :: vec_l
+
+  real, allocatable :: i1ck(:,:), i1sk(:,:)
+  real, allocatable :: i2ck(:,:), i2sk(:,:)
+
+  type(field_type) :: psi_transformc, F_transformc, fp_transformc
+  type(field_type) :: psi_transforms, F_transforms, fp_transforms
+
+
+     BNMAX = ibh_harmonics
+     numnodes = owned_nodes()
+     if(.not.allocated(bharmonic)) allocate(bharmonic(0:BNMAX))
+     allocate(i1ck(nplanes,0:BNMAX))
+     allocate(i1sk(nplanes,0:BNMAX))
+     allocate(i2ck(nplanes,0:BNMAX))
+     allocate(i2sk(nplanes,0:BNMAX))
+
+!    create the sin and cos arrays
+     do N = 0, BNMAX
+        do k = 1, nplanes
+       call ke_I1(nplanes, BNMAX, k, N, i1ck(k,N), i1sk(k,N))
+       call ke_I2(nplanes, BNMAX, k, N, i2ck(k,N), i2sk(k,N))
+        enddo
+     enddo
+
+    if(myrank.eq.0 .and. iprint.eq.1) then
+       write(*,900) ntime, numnodes, BNMAX
+       900 format("calculate_bh called-1,   ntime  numnodes  BNMAX=",3i6)
+     endif
+
+     call create_field(psi_transformc)
+     call create_field(psi_transforms)
+     call create_field(F_transformc)
+     call create_field(F_transforms)
+     call create_field(fp_transformc)
+     call create_field(fp_transforms)
+
+     if(myrank.eq.0 .and. iprint.eq.1) then
+       write(*,901) ntime
+       901 format("calculate_bh called-2,   ntime=",i6)
+     endif
+
+
+! for each Fourier mode
+  do N=0,BNMAX
+
+  fac = 2.
+  If (N.eq.0) fac = 1.
+
+        k = local_plane() + 1
+
+        !eq 12: psi cos
+        do l =1,numnodes
+           call get_node_data(psi_field(1), l, psi1_l) ! psi1_1 is ψ (dimension 12)
+
+           vec_l(1)= fac*(psi1_l(1) * i1ck(k,N) + psi1_l( 7)*i2ck(k,N))
+           vec_l(2)= fac*(psi1_l(2) * i1ck(k,N) + psi1_l( 8)*i2ck(k,N))
+           vec_l(3)= fac*(psi1_l(3) * i1ck(k,N) + psi1_l( 9)*i2ck(k,N))
+           vec_l(4)= fac*(psi1_l(4) * i1ck(k,N) + psi1_l(10)*i2ck(k,N))
+           vec_l(5)= fac*(psi1_l(5) * i1ck(k,N) + psi1_l(11)*i2ck(k,N))
+           vec_l(6)= fac*(psi1_l(6) * i1ck(k,N) + psi1_l(12)*i2ck(k,N))
+           vec_l(7:12) = 0. ! pad with zeros
+
+           call set_node_data(psi_transformc,l,vec_l)
+        enddo
+        call finalize(psi_transformc%vec)
+        call sum_vec_planes(psi_transformc%vec%data) ! sum vec%datator at each (R,Z) node over k
+
+        !eq 12: psi sin
+        do l =1,numnodes
+           call get_node_data(psi_field(1), l, psi1_l) ! psi1_1 is ψ (dimension 12)
+
+           fac = 2.
+           If (N.eq.0) fac = 1.
+           vec_l(1)= fac*(psi1_l(1) * i1sk(k,N) + psi1_l( 7)*i2sk(k,N))
+           vec_l(2)= fac*(psi1_l(2) * i1sk(k,N) + psi1_l( 8)*i2sk(k,N))
+           vec_l(3)= fac*(psi1_l(3) * i1sk(k,N) + psi1_l( 9)*i2sk(k,N))
+           vec_l(4)= fac*(psi1_l(4) * i1sk(k,N) + psi1_l(10)*i2sk(k,N))
+           vec_l(5)= fac*(psi1_l(5) * i1sk(k,N) + psi1_l(11)*i2sk(k,N))
+           vec_l(6)= fac*(psi1_l(6) * i1sk(k,N) + psi1_l(12)*i2sk(k,N))
+           vec_l(7:12) = 0. ! pad with zeros
+           call set_node_data(psi_transforms,l,vec_l)
+        enddo
+        call finalize(psi_transforms%vec)
+        call sum_vec_planes(psi_transforms%vec%data) ! sum vec%datator at each (R,Z) node over k
+
+        !eq 12: F cos
+        do l =1,numnodes
+           call get_node_data(bz_field(1), l, bz1_l) ! bz1_l is F (dimension 12)
+
+           vec_l(1)= fac*(bz1_l(1) * i1ck(k,N) + bz1_l( 7)*i2ck(k,N))
+           vec_l(2)= fac*(bz1_l(2) * i1ck(k,N) + bz1_l( 8)*i2ck(k,N))
+           vec_l(3)= fac*(bz1_l(3) * i1ck(k,N) + bz1_l( 9)*i2ck(k,N))
+           vec_l(4)= fac*(bz1_l(4) * i1ck(k,N) + bz1_l(10)*i2ck(k,N))
+           vec_l(5)= fac*(bz1_l(5) * i1ck(k,N) + bz1_l(11)*i2ck(k,N))
+           vec_l(6)= fac*(bz1_l(6) * i1ck(k,N) + bz1_l(12)*i2ck(k,N))
+           vec_l(7:12) = 0. ! pad with zeros
+          call set_node_data(F_transformc,l,vec_l)
+        enddo
+        call finalize(F_transformc%vec)
+        call sum_vec_planes(F_transformc%vec%data) ! sum vec%datator at each (R,Z) node over k
+
+
+        !eq 12: F sin
+        do l =1,numnodes
+           call get_node_data(bz_field(1), l, bz1_l) ! bz1_l is F (dimension 12)
+
+           vec_l(1)= fac*(bz1_l(1) * i1sk(k,N) + bz1_l( 7)*i2sk(k,N))
+           vec_l(2)= fac*(bz1_l(2) * i1sk(k,N) + bz1_l( 8)*i2sk(k,N))
+           vec_l(3)= fac*(bz1_l(3) * i1sk(k,N) + bz1_l( 9)*i2sk(k,N))
+           vec_l(4)= fac*(bz1_l(4) * i1sk(k,N) + bz1_l(10)*i2sk(k,N))
+           vec_l(5)= fac*(bz1_l(5) * i1sk(k,N) + bz1_l(11)*i2sk(k,N))
+           vec_l(6)= fac*(bz1_l(6) * i1sk(k,N) + bz1_l(12)*i2sk(k,N))
+           vec_l(7:12) = 0. ! pad with zeros
+           call set_node_data(F_transforms,l,vec_l)
+        enddo
+        call finalize(F_transforms%vec)
+        call sum_vec_planes(F_transforms%vec%data) ! sum vec%datator at each (R,Z) node over k
+
+        !eq 12: f' cos
+        do l =1,numnodes
+           call get_node_data(bf_field(1), l, bf1_l) ! bf1_l is f (dimension 12)
+
+           fac = 2.
+           If (N.eq.0) fac = 1.
+           vec_l(1)= fac*(bf1_l(1) * i1ck(k,N) + bf1_l( 7)*i2ck(k,N))
+           vec_l(2)= fac*(bf1_l(2) * i1ck(k,N) + bf1_l( 8)*i2ck(k,N))
+           vec_l(3)= fac*(bf1_l(3) * i1ck(k,N) + bf1_l( 9)*i2ck(k,N))
+           vec_l(4)= fac*(bf1_l(4) * i1ck(k,N) + bf1_l(10)*i2ck(k,N))
+           vec_l(5)= fac*(bf1_l(5) * i1ck(k,N) + bf1_l(11)*i2ck(k,N))
+           vec_l(6)= fac*(bf1_l(6) * i1ck(k,N) + bf1_l(12)*i2ck(k,N))
+           vec_l(7:12) = 0. ! pad with zeros
+           call set_node_data(fp_transformc,l,vec_l)
+        enddo
+        call finalize(fp_transformc%vec)
+        call sum_vec_planes(fp_transformc%vec%data) ! sum vec%datator of size 6 at each (R,Z) node over k
+
+        ! eq 12: f' sin
+        do l =1,numnodes
+           call get_node_data(bf_field(1), l, bf1_l) ! bf1_l is f (dimension 12)
+
+           vec_l(1)= fac*(bf1_l(1) * i1sk(k,N) + bf1_l( 7)*i2sk(k,N))
+           vec_l(2)= fac*(bf1_l(2) * i1sk(k,N) + bf1_l( 8)*i2sk(k,N))
+           vec_l(3)= fac*(bf1_l(3) * i1sk(k,N) + bf1_l( 9)*i2sk(k,N))
+           vec_l(4)= fac*(bf1_l(4) * i1sk(k,N) + bf1_l(10)*i2sk(k,N))
+           vec_l(5)= fac*(bf1_l(5) * i1sk(k,N) + bf1_l(11)*i2sk(k,N))
+           vec_l(6)= fac*(bf1_l(6) * i1sk(k,N) + bf1_l(12)*i2sk(k,N))
+           vec_l(7:12) = 0. ! pad with zeros
+           call set_node_data(fp_transforms,l,vec_l)
+        enddo
+        call finalize(fp_transforms%vec)
+        call sum_vec_planes(fp_transforms%vec%data) ! sum vec%datator at each (R,Z) node over k
+
+
+!eq 4b: Calculate energy for each Fourier Harminics N
+   
+  bh_N = 0.
+  def_fields = 0
+     numelms = local_elements()
+     do itri=1,numelms
+
+        call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
+        call define_fields(itri, def_fields, 1, 0)
+
+!       cosine harmonics
+        call eval_ops(itri,psi_transformc,ps179)
+        call eval_ops(itri,F_transformc,bz179)
+        call eval_ops(itri,fp_transformc,bf179)
+
+        bh_N = bh_N + int3(ri2_79, ps179(:,OP_DR), ps179(:,OP_DR))   &
+                    + int3(ri2_79, ps179(:,OP_DZ), ps179(:,OP_DZ))
+
+        bh_N = bh_N + int3(ri2_79, bz179(:,OP_1), bz179(:,OP_1))
+
+        bh_N = bh_N + int2(bf179(:,OP_DRP), bf179(:,OP_DRP))   &
+                    + int2(bf179(:,OP_DZP), bf179(:,OP_DZP))
+
+!       sine harmonics
+        call eval_ops(itri,psi_transforms,ps179)
+        call eval_ops(itri,F_transforms,bz179)
+        call eval_ops(itri,fp_transforms,bf179)
+
+        bh_N = bh_N + int3(ri2_79,  ps179(:,OP_DR), ps179(:,OP_DR))   &
+                    + int3(ri2_79,  ps179(:,OP_DZ), ps179(:,OP_DZ))
+
+        bh_N = bh_N + int3(ri2_79,  bz179(:,OP_1), bz179(:,OP_1))
+
+        bh_N = bh_N + int2(bf179(:,OP_DRP), bf179(:,OP_DRP))   &
+                    + int2(bf179(:,OP_DZP), bf179(:,OP_DZP))
+     end do
+
+     call mpi_allreduce(bh_N, bhtotal, 1, MPI_DOUBLE_PRECISION, &
+                        MPI_SUM, mpi_comm_world, ier)
+
+     bharmonic(N) = bhtotal / 4.
+  end do
+
+  if(myrank.eq.0 .and. iprint.ge.1) then
+      write(*,1001) ntime
+      write(*,1002) (bharmonic(N),N=0,BNMAX)
+ 1001 format(" calculate_bh called-2,   bharmonics at cycle",i6)
+ 1002 format(1p5e12.4)
+  endif
+
+  deallocate(i1ck, i1sk, i2ck, i2sk)
+
+     call destroy_field(psi_transformc)
+     call destroy_field(psi_transforms)
+     call destroy_field(F_transformc)
+     call destroy_field(F_transforms)
+     call destroy_field(fp_transformc)
+     call destroy_field(fp_transforms)
+
+end subroutine calculate_bh
 
 
 
