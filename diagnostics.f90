@@ -1961,8 +1961,10 @@ subroutine calculate_bh()
 
         bh_N = bh_N + int3(ri2_79, bz179(:,OP_1), bz179(:,OP_1))
 
+#if defined(USE3D) || defined(USECOMPLEX)
         bh_N = bh_N + int2(bf179(:,OP_DRP), bf179(:,OP_DRP))   &
                     + int2(bf179(:,OP_DZP), bf179(:,OP_DZP))
+#endif
 
 !       sine harmonics
         call eval_ops(itri,psi_transforms,ps179)
@@ -1974,8 +1976,10 @@ subroutine calculate_bh()
 
         bh_N = bh_N + int3(ri2_79,  bz179(:,OP_1), bz179(:,OP_1))
 
+#if defined(USE3D) || defined(USECOMPLEX)
         bh_N = bh_N + int2(bf179(:,OP_DRP), bf179(:,OP_DRP))   &
                     + int2(bf179(:,OP_DZP), bf179(:,OP_DZP))
+#endif
      end do
 
      call mpi_allreduce(bh_N, bhtotal, 1, MPI_DOUBLE_PRECISION, &
