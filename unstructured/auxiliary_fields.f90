@@ -401,12 +401,14 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
   call newvar_solve(bdotgradt%vec, mass_mat_lhs)
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' before torque_density solve'
   call newvar_solve(torque_density_em%vec, mass_mat_lhs)
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' before torque_density_ntv solve'
   call newvar_solve(torque_density_ntv%vec, mass_mat_lhs)
 
   if(xray_detector_enabled.eq.1) then
      call newvar_solve(chord_mask%vec, mass_mat_lhs)
   end if
 
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' before mag_reg solve'
   call newvar_solve(mag_reg%vec, mass_mat_lhs)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Done calculating diagnostic fields'

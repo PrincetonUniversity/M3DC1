@@ -115,7 +115,7 @@ subroutine random_per(x,phi,z,fac)
   vectype, intent(in), dimension(dofs_per_node) :: fac
   integer, allocatable :: seed(:)
   integer :: i, j, n
-  real :: alx, alz, kx, kp, kz, xx, zz, random
+  real :: alx, alz, kx, kp, kz, xx, zz, random, rsq, r,ri,roundoff,ri3,rexp,co,sn
   vectype, dimension(dofs_per_node) :: temp
 
   call get_bounding_box_size(alx, alz)
@@ -128,9 +128,17 @@ subroutine random_per(x,phi,z,fac)
   deallocate(seed)
 
   temp = 0.
+  roundoff = 1.e-12
 
   xx = x - xzero
   zz = z - zzero
+  rsq = xx**2 + zz**2 + roundoff
+  r = sqrt(rsq)
+  ri = 1./sqrt(rsq + roundoff)
+  ri3 = ri/rsq
+  rexp = exp(-rsq/ln)
+  co = cos(phi)
+  sn = sin(phi)
 
   do i=1,maxn
      kx = pi*i/alx
@@ -169,6 +177,48 @@ subroutine random_per(x,phi,z,fac)
              0.,0.,0.)
         call add_product(u1_l,fac,temp)
      end do
+
+     case (3)  !   NOT RANDOM....start in (1,1) eigenfunction
+     temp(1) = eps* r * rexp*(zz*co - xx*sn)
+     temp(2) = eps* ri * rexp*(zz*xx*co - xx*xx*sn)   &
+             - eps*(2./ln)* r * rexp*(zz*xx*co - xx*xx*sn)    &
+             - eps* r * rexp*sn 
+     temp(3) = eps* ri * rexp*(zz*zz*co - xx*zz*sn)   &
+             - eps*(2./ln)* r * rexp*(zz*zz*co - xx*zz*sn)    &
+             + eps* r * rexp*co
+     temp(4) = -eps* ri3 * rexp*(zz*xx*xx*co - xx*xx*xx*sn)   &
+             + eps*(2./ln)* r * rexp*((2.*zz*xx*xx/ln - zz)*co - (2*xx*xx*xx/ln - 3.*xx)*sn)    &
+             + eps* ri * rexp*((zz - 4.*zz*xx*xx/ln)*co - (3*xx-4*xx**3/ln)*sn)               
+          
+     temp(5) = -eps* ri3 * rexp*(zz*zz*xx*co - zz*xx*xx*sn)   &
+             + eps*(2./ln)* r * rexp*((2.*zz*zz*xx/ln - xx)*co - (2*zz*xx*xx/ln - zz)*sn)    &
+             + eps* ri * rexp*((xx - 4.*zz*zz*xx/ln)*co - (zz-4*zz*xx**2/ln)*sn)               
+         
+     temp(6) = -eps* ri3 * rexp*(zz*zz*zz*co - xx*zz*zz*sn)   &
+             + eps*(2./ln)* r * rexp*((2.*zz*zz*zz/ln - 3*zz)*co - (2*xx*zz*zz/ln - xx)*sn)    &
+             + eps* ri * rexp*((3*zz - 4.*zz*zz*zz/ln)*co - (xx-4*xx*zz*zz/ln)*sn)   
+#ifdef USE3D
+     temp(7) = eps* r * rexp*(-zz*sn - xx*co)
+     temp(8) = eps* ri * rexp*(-zz*xx*sn - xx*xx*co)   &
+             - eps*(2./ln)* r * rexp*(-zz*xx*sn - xx*xx*co)    &
+             - eps* r * rexp*co 
+     temp(9) = eps* ri * rexp*(-zz*zz*sn - xx*zz*co)   &
+             - eps*(2./ln)* r * rexp*(-zz*zz*sn - xx*zz*co)    &
+             - eps* r * rexp*sn
+     temp(10) = -eps* ri3 * rexp*(-zz*xx*xx*sn - xx*xx*xx*co)   &
+             + eps*(2./ln)* r * rexp*(-(2.*zz*xx*xx/ln - zz)*sn - (2*xx*xx*xx/ln - 3.*xx)*co)    &
+             + eps* ri * rexp*(-(zz - 4.*zz*xx*xx/ln)*sn - (3*xx-4*xx**3/ln)*co)               
+          
+     temp(11) = -eps* ri3 * rexp*(-zz*zz*xx*sn - zz*xx*xx*co)   &
+             + eps*(2./ln)* r * rexp*(-(2.*zz*zz*xx/ln - xx)*sn - (2*zz*xx*xx/ln - zz)*co)    &
+             + eps* ri * rexp*(-(xx - 4.*zz*zz*xx/ln)*sn - (zz-4*zz*xx**2/ln)*co)               
+         
+     temp(12) = -eps* ri3 * rexp*(-zz*zz*zz*sn - xx*zz*zz*co)   &
+             + eps*(2./ln)* r * rexp*(-(2.*zz*zz*zz/ln - 3*zz)*sn - (2*xx*zz*zz/ln - xx)*co)    &
+             + eps* ri * rexp*(-(3*zz - 4.*zz*zz*zz/ln)*sn - (xx-4*xx*zz*zz/ln)*co)   
+#endif               
+ 
+     call add_product(u1_l,fac,temp)
 
      end select
   end do
