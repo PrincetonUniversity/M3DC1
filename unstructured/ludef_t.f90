@@ -4670,7 +4670,7 @@ subroutine ludefpres_n(itri)
   vectype, dimension(dofs_per_element) :: q4
   vectype, dimension(dofs_per_element,dofs_per_element,2) :: q_ni
 
-  type(matrix_type), pointer :: pp1, pp0, pv1, pv0, pb0, pb1, bf0
+  type(matrix_type), pointer :: pp1, pp0, pv1, pv0, pb0, pb1, pf0, pn1, pn0
   type(vector_type), pointer :: psource
   integer :: imask(dofs_per_element)
   integer :: ieq(2)
@@ -4685,10 +4685,12 @@ subroutine ludefpres_n(itri)
      pv1 => r9_mat
      pv0 => q9_mat
      pb0 => o9_mat
+     pn1 => rp42_mat
+     pn0 => qp42_mat
      if(imp_bf.eq.1) then
-        bf0 => o9_mat
+        pf0 => o9_mat
      else
-        bf0 => o3_mat
+        pf0 => o3_mat
      endif
      psource => qp4_vec
      thimpf = 0.
@@ -4699,10 +4701,12 @@ subroutine ludefpres_n(itri)
      pv0 => d1_mat
      pb1 => s1_mat
      pb0 => d1_mat
+     pn1 => s1_mat
+     pn0 => d1_mat
      if(imp_bf.eq.1) then
-        bf0 => d1_mat
+        pf0 => d1_mat
      else
-        bf0 => o1_mat
+        pf0 => o1_mat
      endif
      psource => q4_vec
      thimpf = thimp
@@ -4865,14 +4869,15 @@ subroutine ludefpres_n(itri)
         call insert_block(pv0,itri,ieq(k),chi_i,dd(:,:,chi_g),MAT_ADD)
      endif  ! on ipressplit
 
-     ! TODO:
-     ! include q_ni, term
-
      call vector_insert_block(psource,itri,ieq(k),q4,VEC_ADD)
 
+     if(idens.eq.1) then
+        call insert_block(pn1,itri,ieq(k),den_i,ss(:,:,den_g),MAT_ADD)
+        call insert_block(pn0,itri,ieq(k),den_i,dd(:,:,den_g),MAT_ADD)
+     endif
      if(i3d.eq.1 .and. numvar.ge.2) then
-        call insert_block(bf0,itri,ieq(k),bf_i, q_bf(:,:),MAT_ADD)
-        call insert_block(bf0,itri,ieq(k),bf_i,-r_bf(:,:),MAT_ADD)
+        call insert_block(pf0,itri,ieq(k),bf_i, q_bf(:,:),MAT_ADD)
+        call insert_block(pf0,itri,ieq(k),bf_i,-r_bf(:,:),MAT_ADD)
      endif
 
   enddo ! on k

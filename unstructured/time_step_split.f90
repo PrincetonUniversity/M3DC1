@@ -105,7 +105,7 @@ contains
 
     call create_vector(pret_vec,    vecsize_t)
 
-    ! Matrices
+    ! Matrices associated with velocity advance
     call set_matrix_index(s1_mat, s1_mat_index)
     call set_matrix_index(d1_mat, d1_mat_index)
     call set_matrix_index(q1_mat, q1_mat_index)
@@ -129,11 +129,13 @@ contains
        print *, "create_mat time_step o1_mat", o1_mat%imatrix     
 #endif 
     endif
+
     if((ipres.eq.1 .and. numvar.lt.3) .or. ipressplit.gt.0) then
        call set_matrix_index(p1_mat, p1_mat_index)
        call create_mat(p1_mat, vecsize_vel, vecsize_p, icomplex, .false.)
     end if
 
+    ! Matrices associated with magnetic field advance
     call set_matrix_index(s2_mat, s2_mat_index)
     call set_matrix_index(d2_mat, d2_mat_index)
     call set_matrix_index(r2_mat, r2_mat_index)
@@ -173,7 +175,8 @@ contains
        print *, "create_mat time_step o2_mat", o2_mat%imatrix     
 #endif 
     endif
-       
+
+    ! Matrices associated with density advance
     if(idens.eq.1) then
        call set_matrix_index(s8_mat, s8_mat_index)
        call set_matrix_index(d8_mat, d8_mat_index)
@@ -191,6 +194,7 @@ contains
 #endif 
     endif
 
+    ! Matrices associated with separate pressure advance
     if(ipres.eq.1 .or. ipressplit.eq.1) then
        call set_matrix_index(s9_mat, s9_mat_index)
        call set_matrix_index(d9_mat, d9_mat_index)
@@ -202,6 +206,16 @@ contains
        call create_mat(r9_mat, vecsize_p, vecsize_vel, icomplex, .false.)
        call create_mat(q9_mat, vecsize_p, vecsize_vel, icomplex, .false.)
        call create_mat(o9_mat, vecsize_p, vecsize_phi, icomplex, .false.)
+       if(idens.eq.1) then
+          call set_matrix_index(rp42_mat, rp42_mat_index)
+          call set_matrix_index(qp42_mat, qp42_mat_index)
+          call create_mat(rp42_mat, vecsize_p, 1, icomplex, .false.)
+          call create_mat(qp42_mat, vecsize_p, 1, icomplex, .false.)
+#ifdef CJ_MATRIX_DUMP
+          print *, "create_mat time_step rp42_mat", rp42_mat%imatrix
+          print *, "create_mat time_step qp42_mat", qp42_mat%imatrix
+#endif 
+       endif
 #ifdef CJ_MATRIX_DUMP
        print *, "create_mat time_step s9_mat", s9_mat%imatrix
        print *, "create_mat time_step d9_mat", d9_mat%imatrix
@@ -257,7 +271,9 @@ contains
       call destroy_mat(o2_mat)
       if(ipres.eq.1 .or. ipressplit.gt.0) call destroy_mat(o3_mat)
     endif
-    if((ipres.eq.1 .and. numvar.lt.3) .or. ipressplit.gt.0) call destroy_mat(p1_mat)
+    if((ipres.eq.1 .and. numvar.lt.3) .or. ipressplit.gt.0) then        
+       call destroy_mat(p1_mat)
+    end if
        
     if(idens.eq.1) then
        call destroy_mat(s8_mat)
@@ -272,6 +288,10 @@ contains
        call destroy_mat(r9_mat)
        call destroy_mat(q9_mat)
        call destroy_mat(o9_mat)
+       if(idens.eq.1) then
+          call destroy_mat(rp42_mat)
+          call destroy_mat(qp42_mat)
+       end if
     endif
        
 !      if(ipressplit.eq.1) then
@@ -377,8 +397,10 @@ contains
     call clear_mat(q1_mat)
     call clear_mat(r14_mat)
     if(i3d.eq.1) call clear_mat(o1_mat)
-    if((ipres.eq.1 .and. numvar.lt.3) .or. ipressplit.eq.1) &
-         call clear_mat(p1_mat)
+    if((ipres.eq.1 .and. numvar.lt.3) .or. ipressplit.eq.1) then 
+       call clear_mat(p1_mat)
+    end if
+
     r4_vec = 0.
 
     
@@ -410,6 +432,10 @@ contains
        call clear_mat(r9_mat)
        call clear_mat(q9_mat)
        call clear_mat(o9_mat)
+       if(idens.eq.1) then
+          call clear_mat(rp42_mat)
+          call clear_mat(qp42_mat)
+       end if
        qp4_vec = 0.
     end if
   end subroutine clear_matrices_split
@@ -423,8 +449,9 @@ contains
     call finalize(q1_mat)
     call finalize(r14_mat)
     if(i3d.eq.1) call finalize(o1_mat)
-    if((ipres.eq.1 .and. numvar.lt.3) .or. ipressplit.eq.1) &
-         call finalize(p1_mat)
+    if((ipres.eq.1 .and. numvar.lt.3) .or. ipressplit.eq.1) then
+       call finalize(p1_mat)
+    end if
     call sum_shared(r4_vec)
 
     if(myrank.eq.0 .and. iprint.ge.1) &
@@ -462,6 +489,11 @@ contains
        call finalize(r9_mat)
        if(myrank.eq.0 .and. iprint.ge.1) print *, 'before call to finalize(o9_mat)'
        call finalize(o9_mat)
+       if(idens.eq.1) then
+          call finalize(rp42_mat)
+          call finalize(qp42_mat)
+       end if
+
        if(myrank.eq.0 .and. iprint.ge.1) print *, 'before call to sum_shared'
        call sum_shared(qp4_vec)
     end if
@@ -823,6 +855,14 @@ subroutine step_split(calc_matrices)
      call matvecmult(q9_mat,veln_vec,temp2)
      call add(temp, temp2)
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Pressure -- before o9matrix"
+
+     ! Inculde density terms
+     if(idens.eq.1) then
+        call matvecmult(rp42_mat,den_vec,temp2)
+        call add(temp, temp2)
+        call matvecmult(qp42_mat,denold_vec,temp2)
+        call add(temp, temp2)
+     end if
 
      ! o9matrix_sm * phi(n)
      call matvecmult(o9_mat,phi_vec,temp2)
