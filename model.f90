@@ -15,6 +15,7 @@ module model
   type(matrix_type), target :: s2_mat, d2_mat, r2_mat, q2_mat, o2_mat, o3_mat
   type(matrix_type), target :: s8_mat, d8_mat, r8_mat, q8_mat
   type(matrix_type), target :: s9_mat, d9_mat, r9_mat, q9_mat, o9_mat
+  type(matrix_type), target :: qp42_mat, rp42_mat
   type(matrix_type), target :: s11_mat, d11_mat, s12_mat, d12_mat
 
   ! positions

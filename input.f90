@@ -379,7 +379,7 @@ subroutine set_defaults
        "Extend p past Psi=1 using ne and Te profiles", gs_grp)
   call add_var_int("igs_start_xpoint_search", igs_start_xpoint_search, 0, &
        "Number of GS its. before searching for xpoint", gs_grp)
-  call add_var_int("igs_forcefree_lcfs", igs_forcefree_lcfs, 0, &
+  call add_var_int("igs_forcefree_lcfs", igs_forcefree_lcfs, -1, &
        "Ensure that GS solution is force-free at LCFS", gs_grp)
   call add_var_int("nv1equ", nv1equ, 0, "", gs_grp)
   call add_var_double("tcuro", tcuro, 1., &
@@ -708,6 +708,7 @@ subroutine validate_input
   use neutral_beam
   use pellet
   use math
+  use gradshafranov
 
   implicit none
 
@@ -893,6 +894,14 @@ subroutine validate_input
      vloop = -vloop
      tcur = -tcur
   endif
+
+  if(igs_forcefree_lcfs.eq.-1) then
+     if(iread_eqdsk.ne.0 .and. igs_extend_p.eq.0 .and. irot.le.0) then
+        igs_forcefree_lcfs = 2
+     else
+        igs_forcefree_lcfs = 0
+     end if
+  end if
 
 !!$  if(eta_wall.ne.0 .and. iconst_bn.eq.1) then
 !!$     if(myrank.eq.0) &
