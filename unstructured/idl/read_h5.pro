@@ -413,6 +413,7 @@ pro convert_units, x, d, b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
        temp0 = b0^2/(fp*n0) * 1./(1.6022e-12)
        i0 = c0*b0*l0/fp
        e0 = b0^2*l0^3/fp
+       pot0 = v0*b0/(l0*c0)
 
        val = fp^d[0] $
          * c0^d[1] $
@@ -423,7 +424,8 @@ pro convert_units, x, d, b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
          * l0^d[9] $
          * temp0^d[5] $
          * i0^d[6] $
-         * e0^d[7]
+         * e0^d[7] $
+         * pot0^d[10]
        
    endif else if(keyword_set(mks)) then begin
        convert_units, x, d, b0, n0, l0, zeff, mi, /cgs
@@ -434,7 +436,8 @@ pro convert_units, x, d, b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
          * (1.e-4)^d[4] $
          * (1.e-2)^d[9] $
          * (3.e9)^(-d[6]) $
-         * (1.e-7)^d[7]
+         * (1.e-7)^d[7] $
+         * (3.e2)^d[10]
    end
 
    x = x*val
@@ -447,21 +450,22 @@ end
 ; returs a vector with specified dimensions
 ;=====================================================================
 function dimensions, energy=ener, eta=eta, j0=j, $
-                     p0=pres, temperature=temp, e0=elec, $
+                     p0=pres, temperature=temp, potential=pot, $
                      l0=len, light=c, fourpi=fourpi, n0=den, $
                      v0=vel, t0=time, b0=mag, mu0=visc
-  d = intarr(10)
+  d = intarr(11)
 
-  fp =    [1,0,0,0,0,0,0,0,0,0]
-  c0 =    [0,1,0,0,0,0,0,0,0,0]
-  n0 =    [0,0,1,0,0,0,0,0,0,0]
-  v0 =    [0,0,0,1,0,0,0,0,0,0]
-  b0 =    [0,0,0,0,1,0,0,0,0,0]
-  temp0 = [0,0,0,0,0,1,0,0,0,0]
-  i0 =    [0,0,0,0,0,0,1,0,0,0]
-  e0 =    [0,0,0,0,0,0,0,1,0,0]
-  t0 =    [0,0,0,0,0,0,0,0,1,0]
-  l0 =    [0,0,0,0,0,0,0,0,0,1]
+  fp =    [1,0,0,0,0,0,0,0,0,0,0]
+  c0 =    [0,1,0,0,0,0,0,0,0,0,0]
+  n0 =    [0,0,1,0,0,0,0,0,0,0,0]
+  v0 =    [0,0,0,1,0,0,0,0,0,0,0]
+  b0 =    [0,0,0,0,1,0,0,0,0,0,0]
+  temp0 = [0,0,0,0,0,1,0,0,0,0,0]
+  i0 =    [0,0,0,0,0,0,1,0,0,0,0]
+  e0 =    [0,0,0,0,0,0,0,1,0,0,0]
+  t0 =    [0,0,0,0,0,0,0,0,1,0,0]
+  l0 =    [0,0,0,0,0,0,0,0,0,1,0]
+  pot0 =  [0,0,0,0,0,0,0,0,0,0,1]
   p0 = e0 - 3*l0
   
   if(keyword_set(fourpi)) then d = d + fp*fourpi
@@ -475,7 +479,7 @@ function dimensions, energy=ener, eta=eta, j0=j, $
   if(keyword_set(j))      then d = d + i0*j - 2*l0
   if(keyword_set(ener))   then d = d + ener*e0
 
-  if(keyword_set(elec)) then d = d + elec*(b0+v0-c0)
+  if(keyword_set(pot))  then d = d + pot*pot0
   if(keyword_set(eta))  then d = d +  eta*(2*l0-t0+fp-2*c0)
   if(keyword_set(pres)) then d = d + pres*(p0)
   if(keyword_set(visc)) then d = d + visc*(p0+t0)
@@ -489,8 +493,8 @@ end
 ; ~~~~~~~~~~~
 ;
 ; x is a vector containing the dimensions of
-; [4pi, c, n0, vA0, B0, T0, i0, e0, tA0, L0]
-; [  0, 1,  2,   3,  4,  5,  6,  7,   8,  9]
+; [4pi, c, n0, vA0, B0, T0, i0, e0, tA0, L0, ePot]
+; [  0, 1,  2,   3,  4,  5,  6,  7,   8,  9,   10]
 ; 
 ; output is a string containing units
 ;=====================================================================
@@ -503,7 +507,8 @@ function parse_units, x, cgs=cgs, mks=mks
        x[2] = 0
        x[3] = 0
        u = ['!64!7p', '!8c', '!6cm', '!8v!DA!60!N', $
-            '!6G', '!6eV', '!6statamps', '!6erg', '!6s', '!6cm'] + '!X'
+            '!6G', '!6eV', '!6statamps', '!6erg', '!6s', '!6cm', $
+            '!6statvolts'] + '!X'
    endif else if(keyword_set(mks)) then begin
        x[9] = x[9] - 3*x[2] + x[3] + x[1]
        x[8] = x[8]          - x[3] - x[1]
@@ -512,7 +517,8 @@ function parse_units, x, cgs=cgs, mks=mks
        x[2] = 0
        x[3] = 0
        u = ['!64!7p', '!8c', '!6cm', '!8v!DA!60!N', $
-            '!6T', '!6eV', '!6A', '!6J', '!6s', '!6m'] + '!X'
+            '!6T', '!6eV', '!6A', '!6J', '!6s', '!6m', $
+            '!6V'] + '!X'
    endif else begin
        x[0] = x[0]   - x[5] - x[6] -   x[7]
        x[1] = x[1]          + x[6]
@@ -522,10 +528,10 @@ function parse_units, x, cgs=cgs, mks=mks
        x[6] = 0
        x[7] = 0
 
-
        u = ['!64!7p', '!8c', '!8n!D!60!N', '!8v!DA!60!N', $
             '!8B!D!60!N', '!6temp', '!6curr', $
-            '!6energy', '!7s!DA!60!N', '!8L!D!60!N'] + '!X'
+            '!6energy', '!7s!DA!60!N', '!8L!D!60!N', $
+            '!6potential'] + '!X'
    endelse
    units = ''
 
@@ -686,6 +692,18 @@ function translate, name, units=units, itor=itor
                  strcmp(name, 'torque_em_i', /fold_case) eq 1) then begin
        units = dimensions(/p0)
        return, "!7s!D!8EM!N!X"
+   endif else if(strcmp(name, 'e_r', /fold_case) eq 1  or $
+                 strcmp(name, 'e_r_i', /fold_case) eq 1) then begin
+       units = dimensions(/pot,l0=-1)
+       return, "!8E!DR!N!X"
+   endif else if(strcmp(name, 'e_phi', /fold_case) eq 1  or $
+                 strcmp(name, 'e_phi_i', /fold_case) eq 1) then begin
+       units = dimensions(/pot,l0=-1)
+       return, "!8E!D!9P!N!X"
+   endif else if(strcmp(name, 'e_z', /fold_case) eq 1  or $
+                 strcmp(name, 'e_z_i', /fold_case) eq 1) then begin
+       units = dimensions(/pot,l0=-1)
+       return, "!8E!DZ!N!X"
    endif  
 
    return, '!8' + name + '!X'
@@ -1339,7 +1357,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                      real=real, imaginary=imag, edge_val=edge_val, phi=phi0, $
                      time=realtime, abs=abs, phase=phase, dimensions=d, $
                      flux_average=flux_av, rvector=rvector, zvector=zvector, $
-                     taverage=taverage, is_nonlinear=is_nonlinear
+                     yvector=yvector, taverage=taverage, $
+                     is_nonlinear=is_nonlinear
 
    if(n_elements(slices) ne 0) then time=slices else time=0
    is_nonlinear = 0
@@ -1356,8 +1375,9 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                         diff=diff, operation=op, dimensions=d, $
                         linear=linear, last=last,symbol=symbol,units=units, $
-                       cgs=cgs, mks=mks, time=realtime, $
-                       rvector=rvector, zvector=zvector, phi=phi[i])
+                        cgs=cgs, mks=mks, time=realtime, $
+                        rvector=rvector, zvector=zvector, yvector=yvector,$
+                        phi=phi[i])
        end
        data = data/taverage
        return, data
@@ -1382,7 +1402,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         diff=diff, operation=op, dimensions=d, $
                         linear=linear, last=last,symbol=symbol,units=units, $
                        cgs=cgs, mks=mks, phi=phi0, time=realtime, $
-                       rvector=rvector, zvector=zvector)
+                       rvector=rvector, zvector=zvector, yvector=yvector)
        end
        data = data/n
        return, data
@@ -1407,7 +1427,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         operation=op, complex=complex, dimensions=d, $
                         linear=linear, last=last,symbol=symbol,units=units, $
                        cgs=cgs, mks=mks, phi=phi0, time=realtime, $
-                       rvector=rvector, zvector=zvector) $
+                       rvector=rvector, zvector=zvector, yvector=yvector) $
              *((-1)^i)
        end
 
@@ -1478,7 +1498,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                           diff=diff, operation=op, linfac=linfac, $
                           /linear, last=last,symbol=symbol, $
                           units=units, dimensions=d, phi=phi0, $
-                         rvector=rvector, zvector=zvector, is_nonlinear=isnl)
+                          rvector=rvector, zvector=zvector, $
+                          yvector=yvector, is_nonlinear=isnl)
        if(isnl eq 1) then begin
           data = data1
        endif else begin
@@ -1490,7 +1511,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                              diff=diff, operation=op, mask=mask, $
                              symbol=symbol, mks=mks, cgs=cgs, $
                              units=units, dimensions=d, $
-                             rvector=rvector, zvector=zvector)
+                             rvector=rvector, zvector=zvector, $
+                             yvector=yvector)
           data = data0 + data1
           t = t1
        endelse
@@ -1915,7 +1937,107 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        symbol = '!3|!7n!D!8r!N!3|!6/!8L!Dp!N!X'
        d = dimensions(_EXTRA=extra)
 
+   ;===========================================
+   ; curl(E)
+   ;===========================================
+   endif else if(strcmp('curl_E', name, /fold_case) eq 1) then begin
 
+       if(not keyword_set(zvector) and not keyword_set(yvector)) then begin
+           ephi_z = read_field('E_PHI', x, y, t, slices=time, mesh=mesh, $
+                               filename=filename, points=pts, $
+                               rrange=xrange, zrange=yrange, linear=linear, $
+                               complex=complex, phi=phi0, op=3)
+           if(icomplex eq 1) then begin 
+               ez_phi = complex(0,ntor) * $
+                 read_field('E_R', x, y, t, slices=time, mesh=mesh, $
+                            filename=filename, points=pts, $
+                            rrange=xrange, zrange=yrange, linear=linear, $
+                            complex=complex, phi=phi0)
+           endif else begin
+               ez_phi = read_field('E_R', x, y, t, slices=time, mesh=mesh, $
+                                   filename=filename, points=pts, $
+                                   rrange=xrange,zrange=yrange,linear=linear, $
+                                   complex=complex, phi=phi0, op=11)
+           end
+       end
+       if(not keyword_set(rvector) and not keyword_set(yvector)) then begin
+           ephi_r = read_field('E_PHI', x, y, t, slices=time, mesh=mesh, $
+                               filename=filename, points=pts, $
+                               rrange=xrange, zrange=yrange, linear=linear, $
+                               complex=complex, phi=phi0, op=2)
+           if(icomplex eq 1) then begin 
+               er_phi = complex(0,ntor) * $
+                 read_field('E_R', x, y, t, slices=time, mesh=mesh, $
+                            filename=filename, points=pts, $
+                            rrange=xrange, zrange=yrange, linear=linear, $
+                            complex=complex, phi=phi0)
+           endif else begin
+               er_phi = read_field('E_R', x, y, t, slices=time, mesh=mesh, $
+                                   filename=filename, points=pts, $
+                                   rrange=xrange,zrange=yrange,linear=linear, $
+                                   complex=complex, phi=phi0, op=11)           
+           end
+       end
+       if(not keyword_set(rvector) and not keyword_set(zvector)) then begin
+           ez_r = read_field('E_Z', x, y, t, slices=time, mesh=mesh, $
+                             filename=filename, points=pts, $
+                             rrange=xrange, zrange=yrange, linear=linear, $
+                             complex=complex, phi=phi0, op=2)
+           er_z = read_field('E_R', x, y, t, slices=time, mesh=mesh, $
+                             filename=filename, points=pts, $
+                             rrange=xrange, zrange=yrange, linear=linear, $
+                             complex=complex, phi=phi0,op=3)
+       end
+       
+       symbol = '!9GX!6E!X'
+       if(keyword_set(rvector)) then begin
+           data = ephi_z - ez_phi
+           symbol = symbol + '!9.G!8R!X'
+       endif else if(keyword_set(zvector)) then begin
+           data = er_phi - ephi_r
+           symbol = symbol + '!9.G!8Z!X'
+       endif else if(keyword_set(yvector)) then begin
+           data = ez_r - er_z
+           symbol = symbol + '!9.!6(!8R!9GP!6)!X'
+       endif else begin
+           data = sqrt((ephi_z - ez_phi)^2 + $
+                       (ez_r - er_z)^2 + $
+                       (er_phi - ephi_r)^2)
+           symbol = '!3|!X'+symbol+'!3|!X'
+       endelse
+       
+       d = dimensions(/potential, l0=-2, _EXTRA=extra)
+
+   ;===========================================
+   ; div(E)
+   ;===========================================
+   endif else if(strcmp('div_E', name, /fold_case) eq 1) then begin
+
+       er_r = read_field('E_R', x, y, t, slices=time, mesh=mesh, $
+                               filename=filename, points=pts, $
+                               rrange=xrange, zrange=yrange, linear=linear, $
+                               complex=complex, phi=phi0, op=2)
+       if(icomplex eq 1) then begin 
+           ephi_phi = complex(0,ntor) * $
+             read_field('E_PHI', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, linear=linear, $
+                        complex=complex, phi=phi0)
+       endif else begin
+           ephi_phi = read_field('E_PHI', x, y, t, slices=time, mesh=mesh, $
+                               filename=filename, points=pts, $
+                               rrange=xrange,zrange=yrange,linear=linear, $
+                               complex=complex, phi=phi0, op=11)           
+       end
+       ez_z = read_field('E_Z', x, y, t, slices=time, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange, linear=linear, $
+                         complex=complex, phi=phi0, op=3)
+       
+       data = er_r + ephi_phi + ez_z
+       symbol = '!9G.!6E!X'
+       d = dimensions(/potential, l0=-2, _EXTRA=extra)
+       
    ;===========================================
    ; psi_norm
    ;===========================================
