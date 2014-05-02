@@ -1107,6 +1107,28 @@ subroutine output_fields(time_group_id, equilibrium, error)
     call output_field(group_id, "magnetic_region", real(dum), &
          coeffs_per_element, nelms, error)
     nfields = nfields + 1
+
+    ! electric_field
+    do i=1, nelms
+       call calcavector(i, ef_r, dum(:,i))
+    end do
+    call output_field(group_id, "E_R", real(dum), &
+         coeffs_per_element, nelms, error)
+    nfields = nfields + 1
+
+    do i=1, nelms
+       call calcavector(i, ef_phi, dum(:,i))
+    end do
+    call output_field(group_id, "E_PHI", real(dum), &
+         coeffs_per_element, nelms, error)
+    nfields = nfields + 1
+
+    do i=1, nelms
+       call calcavector(i, ef_z, dum(:,i))
+    end do
+    call output_field(group_id, "E_Z", real(dum), &
+         coeffs_per_element, nelms, error)
+    nfields = nfields + 1
  endif
 
 !!$  if(equilibrium.eq.1) then

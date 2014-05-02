@@ -15,6 +15,7 @@ module auxiliary_fields
   type(field_type) :: torque_density_ntv
   type(field_type) :: chord_mask
   type(field_type) :: mag_reg
+  type(field_type) :: ef_r, ef_phi, ef_z
 
   logical, private :: initialized = .false.
 
@@ -29,6 +30,9 @@ subroutine create_auxiliary_fields
   call create_field(torque_density_ntv)
   call create_field(chord_mask)
   call create_field(mag_reg)
+  call create_field(ef_r)
+  call create_field(ef_phi)
+  call create_field(ef_z)
   initialized = .true.
 end subroutine create_auxiliary_fields
 
@@ -42,6 +46,9 @@ subroutine destroy_auxiliary_fields
   call destroy_field(torque_density_ntv)
   call destroy_field(chord_mask)
   call destroy_field(mag_reg)
+  call destroy_field(ef_r)
+  call destroy_field(ef_phi)
+  call destroy_field(ef_z)
 end subroutine destroy_auxiliary_fields
   
 subroutine calculate_temperatures(ilin, te, ti)
@@ -134,6 +141,7 @@ subroutine calculate_auxiliary_fields(ilin)
   use newvar_mod
   use diagnostics
   use metricterms_new
+  use electric_field
 
   implicit none
 
@@ -153,12 +161,16 @@ subroutine calculate_auxiliary_fields(ilin)
   torque_density_em = 0.
   torque_density_ntv = 0.
   chord_mask = 0.
+  ef_r = 0.
+  ef_phi = 0.
+  ef_z = 0.
 
   ! specify which primitive fields are to be evalulated
   def_fields = FIELD_N + FIELD_NI + FIELD_P + FIELD_PSI + FIELD_I
+  def_fields = def_fields + FIELD_PHI + FIELD_V + FIELD_CHI
+  def_fields = def_fields + FIELD_ETA
   if(amupar.ne.0) then
      def_fields = def_fields + FIELD_MU + FIELD_B2I
-     def_fields = def_fields + FIELD_PHI + FIELD_V + FIELD_CHI
   end if
 
   numelms = local_elements()
@@ -393,6 +405,24 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
      end do
      call vector_insert_block(mag_reg%vec,itri,1,dofs,VEC_ADD)
 
+     ! electric_field
+     do i=1, dofs_per_element
+        call electric_field_r(ilin,temp79a)
+        dofs(i) = int2(mu79(:,OP_1,i),temp79a)
+     end do
+     call vector_insert_block(ef_r%vec,itri,1,dofs,VEC_ADD)
+     do i=1, dofs_per_element
+        call electric_field_phi(ilin,temp79a)
+        dofs(i) = int2(mu79(:,OP_1,i),temp79a)
+     end do
+     call vector_insert_block(ef_phi%vec,itri,1,dofs,VEC_ADD)
+     do i=1, dofs_per_element
+        call electric_field_z(ilin,temp79a)
+        dofs(i) = int2(mu79(:,OP_1,i),temp79a)
+     end do
+     call vector_insert_block(ef_z%vec,itri,1,dofs,VEC_ADD)
+
+
   end do
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' before bdotgradp solve'
@@ -410,6 +440,11 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' before mag_reg solve'
   call newvar_solve(mag_reg%vec, mass_mat_lhs)
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' before ef solve'
+  call newvar_solve(ef_r%vec, mass_mat_lhs)
+  call newvar_solve(ef_phi%vec, mass_mat_lhs)
+  call newvar_solve(ef_z%vec, mass_mat_lhs)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Done calculating diagnostic fields'
   

@@ -1,0 +1,318 @@
+module electric_field
+
+contains
+
+subroutine electric_field_R(ilin,o)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: ilin
+  vectype, dimension(MAX_PTS), intent(out) :: o
+
+  ! -VxB
+  ! ~~~~
+  if(ivform.eq.0) then
+     o = 0.
+  else
+     if(ilin.eq.1) then
+        o = bz079(:,OP_1)*ph179(:,OP_DR) &
+             + bz179(:,OP_1)*ph079(:,OP_DR) &
+             - vz079(:,OP_1)*ps179(:,OP_DR) &
+             - vz179(:,OP_1)*ps079(:,OP_DR) &
+             + ri3_79*bz079(:,OP_1)*ch179(:,OP_DZ) &
+             + ri3_79*bz179(:,OP_1)*ch079(:,OP_DZ)
+        if(use_external_fields) then
+           o = o + bzx79(:,OP_1)*ph079(:,OP_DR) &
+                - vz079(:,OP_1)*psx79(:,OP_DR) &
+                + ri3_79*bzx79(:,OP_1)*ch079(:,OP_DZ)
+        end if
+#if defined(USE3D) || defined(USECOMPLEX)
+        o = o + vz079(:,OP_1)*r_79*bf179(:,OP_DZP) &
+             + vz179(:,OP_1)*r_79*bf079(:,OP_DZP)
+        if(use_external_fields) then
+           o = o + vz079(:,OP_1)*r_79*bfx79(:,OP_DZP)
+        end if
+#endif
+     else
+        o = bztx79(:,OP_1)*pht79(:,OP_DR) &
+             - vzt79(:,OP_1)*pstx79(:,OP_DR) &
+             + ri3_79*bztx79(:,OP_1)*cht79(:,OP_DZ)
+#if defined(USE3D) || defined(USECOMPLEX)
+        o = o + vzt79(:,OP_1)*r_79*bftx79(:,OP_DZP)
+#endif
+     end if
+  end if
+
+  ! eta J
+  ! ~~~~~
+  if(ilin.eq.1) then
+     o = o - eta79(:,OP_1)*bz179(:,OP_DZ)
+#if defined(USE3D) || defined(USECOMPLEX)
+     o = o + eta79(:,OP_1)* &
+          (ri2_79*ps179(:,OP_DRP) - ri_79*bf179(:,OP_DZPP))
+#endif
+  else
+     o = o - eta79(:,OP_1)*bzt79(:,OP_DZ)
+#if defined(USE3D) || defined(USECOMPLEX)
+     o = o + eta79(:,OP_1)* &
+          (ri2_79*pst79(:,OP_DRP) - ri_79*bft79(:,OP_DZPP))
+#endif
+  end if
+
+  ! JxB
+  ! ~~~
+  if(dbf .ne. 0.) then
+     if(ilin.eq.1) then 
+        o = o - dbf*ni79(:,OP_1)*ri2_79* &
+             (bz079(:,OP_1)*bz179(:,OP_DR) + ps079(:,OP_GS)*ps179(:,OP_DR) &
+             +bz179(:,OP_1)*bz079(:,OP_DR) + ps179(:,OP_GS)*ps079(:,OP_DR))
+#if defined(USE3D) || defined(USECOMPLEX)
+        o = o + dbf*ni79(:,OP_1)* &
+             (ri_79*ps079(:,OP_GS)*bf179(:,OP_DZP) &
+             +ri_79*ps179(:,OP_GS)*bf079(:,OP_DZP) &
+             -ri2_79*bz079(:,OP_1)*bf179(:,OP_DRPP) &
+             -ri2_79*bz179(:,OP_1)*bf079(:,OP_DRPP) &
+             -ri3_79*bz079(:,OP_1)*ps179(:,OP_DZP) &
+             -ri3_79*bz179(:,OP_1)*ps079(:,OP_DZP))
+#endif
+     else
+        o = o - dbf*ni79(:,OP_1)*ri2_79* &
+             (bzt79(:,OP_1)*bzt79(:,OP_DR) + pst79(:,OP_GS)*pst79(:,OP_DR))
+#if defined(USE3D) || defined(USECOMPLEX)
+        o = o + dbf*ni79(:,OP_1)* &
+             (ri_79*pst79(:,OP_GS)*bft79(:,OP_DZP) &
+             -ri2_79*bzt79(:,OP_1)*bft79(:,OP_DRPP) &
+             -ri3_79*bzt79(:,OP_1)*pst79(:,OP_DZP))
+#endif
+     end if
+  end if
+
+  ! Grad(Pe)
+  ! ~~~~~~~~
+  if(dbf .ne. 0.) then 
+     if(ilin.eq.1) then
+        o = o - dbf*ni79(:,OP_1)*pe179(:,OP_DR)
+     else
+        o = o - dbf*ni79(:,OP_1)*pet79(:,OP_DR)
+     endif
+  end if
+
+end subroutine electric_field_R
+
+subroutine electric_field_Z(ilin,o)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: ilin
+  vectype, dimension(MAX_PTS), intent(out) :: o
+
+  ! -VxB
+  ! ~~~~
+  if(ivform.eq.0) then
+     o = 0.
+  else
+     if(ilin.eq.1) then 
+        o = bz079(:,OP_1)*ph179(:,OP_DZ) &
+             + bz179(:,OP_1)*ph079(:,OP_DZ) &
+             - vz079(:,OP_1)*ps179(:,OP_DZ) &
+             - vz179(:,OP_1)*ps079(:,OP_DZ) &
+             - ri3_79*bz079(:,OP_1)*ch179(:,OP_DR) &
+             - ri3_79*bz179(:,OP_1)*ch079(:,OP_DR)
+        if(use_external_fields) then
+           o = o + bzx79(:,OP_1)*ph079(:,OP_DZ) &
+                - vz079(:,OP_1)*psx79(:,OP_DZ) &
+                - ri3_79*bzx79(:,OP_1)*ch079(:,OP_DR)
+        end if
+#if defined(USE3D) || defined(USECOMPLEX)
+        o = o &
+             - vz079(:,OP_1)*r_79*bf179(:,OP_DRP) &
+             - vz179(:,OP_1)*r_79*bf079(:,OP_DRP)
+        if(use_external_fields) then
+           o = o - vz079(:,OP_1)*r_79*bfx79(:,OP_DRP)
+        end if
+#endif
+     else
+        o = bztx79(:,OP_1)*pht79(:,OP_DZ) &
+             - vzt79(:,OP_1)*pstx79(:,OP_DZ) &
+             - ri3_79*bztx79(:,OP_1)*cht79(:,OP_DR)
+#if defined(USE3D) || defined(USECOMPLEX)
+        o = o - vzt79(:,OP_1)*r_79*bftx79(:,OP_DRP)
+#endif
+     end if
+  end if
+
+  ! eta J
+  ! ~~~~~
+  if(ilin.eq.1) then 
+     o = o + eta79(:,OP_1)*bz179(:,OP_DR)
+#if defined(USE3D) || defined(USECOMPLEX)
+     o = o + eta79(:,OP_1)* &
+          (ri2_79*ps179(:,OP_DZP) + ri_79*bf179(:,OP_DRPP))
+#endif
+  else
+     o = o + eta79(:,OP_1)*bzt79(:,OP_DR)
+#if defined(USE3D) || defined(USECOMPLEX)
+     o = o + eta79(:,OP_1)* &
+          (ri2_79*pst79(:,OP_DZP) + ri_79*bft79(:,OP_DRPP))
+#endif
+  end if
+
+  ! JxB
+  ! ~~~
+  if(dbf .ne. 0.) then
+     if(ilin.eq.1) then 
+        o = o - dbf*ni79(:,OP_1)*ri2_79* &
+             (bz079(:,OP_1)*bz179(:,OP_DZ) + ps079(:,OP_GS)*ps079(:,OP_DZ) &
+             +bz179(:,OP_1)*bz079(:,OP_DZ) + ps179(:,OP_GS)*ps179(:,OP_DZ))
+#if defined(USE3D) || defined(USECOMPLEX)
+        o = o - dbf*ni79(:,OP_1)* &
+             (ri_79*ps079(:,OP_GS)*bf179(:,OP_DRP) &
+             +ri_79*ps179(:,OP_GS)*bf079(:,OP_DRP) &
+             +ri2_79*bz079(:,OP_1)*bf179(:,OP_DZPP) &
+             +ri2_79*bz179(:,OP_1)*bf079(:,OP_DZPP) &
+             -ri3_79*bz079(:,OP_1)*ps179(:,OP_DRP) &
+             -ri3_79*bz179(:,OP_1)*ps079(:,OP_DRP))
+#endif
+     else
+        o = o - dbf*ni79(:,OP_1)*ri2_79* &
+             (bzt79(:,OP_1)*bzt79(:,OP_DZ) + pst79(:,OP_GS)*pst79(:,OP_DZ))
+#if defined(USE3D) || defined(USECOMPLEX)
+        o = o - dbf*ni79(:,OP_1)* &
+             (ri_79*pst79(:,OP_GS)*bft79(:,OP_DRP) &
+             +ri2_79*bzt79(:,OP_1)*bft79(:,OP_DZPP) &
+             -ri3_79*bzt79(:,OP_1)*pst79(:,OP_DRP))
+#endif
+     end if
+  end if
+
+  ! Grad(Pe)
+  ! ~~~~~~~~
+  if(dbf .ne. 0.) then 
+     if(ilin.eq.1) then
+        o = o - dbf*ni79(:,OP_1)*pe179(:,OP_DZ)
+     else
+        o = o - dbf*ni79(:,OP_1)*pet79(:,OP_DZ)
+     end if
+  end if
+
+end subroutine electric_field_Z
+
+subroutine electric_field_phi(ilin,o)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: ilin
+  vectype, dimension(MAX_PTS), intent(out) :: o
+
+  ! VxB
+  ! ~~~
+  if(ivform.eq.0) then
+     o = 0.
+  else
+     if(ilin.eq.1) then
+        o =   ps079(:,OP_DZ)*ph179(:,OP_DR)-ps079(:,OP_DR)*ph179(:,OP_DZ) &
+             +ps179(:,OP_DZ)*ph079(:,OP_DR)-ps179(:,OP_DR)*ph079(:,OP_DZ) &
+             + ri3_79* &
+             (ps079(:,OP_DZ)*ch179(:,OP_DZ)+ps079(:,OP_DR)*ch179(:,OP_DR) &
+             +ps179(:,OP_DZ)*ch079(:,OP_DZ)+ps179(:,OP_DR)*ch079(:,OP_DR))
+        if(use_external_fields) then
+           o =  o + &
+                psx79(:,OP_DZ)*ph079(:,OP_DR)-psx79(:,OP_DR)*ph079(:,OP_DZ) &
+                + ri3_79* &
+                (psx79(:,OP_DZ)*ch079(:,OP_DZ)+psx79(:,OP_DR)*ch079(:,OP_DR))
+        end if
+#if defined(USE3D) || defined(USECOMPLEX) 
+        o = o + r_79* &
+             (ph079(:,OP_DZ)*bf179(:,OP_DZP)+ph079(:,OP_DR)*bf179(:,OP_DRP))+&
+             (ch179(:,OP_DZ)*bf079(:,OP_DRP)-ch179(:,OP_DR)*bf079(:,OP_DZP))
+        if(use_external_fields) then
+           o = o + r_79* &
+                (ph079(:,OP_DZ)*bfx79(:,OP_DZP) &
+                +ph079(:,OP_DR)*bfx79(:,OP_DRP))
+        end if
+#endif
+     else
+        o =   pstx79(:,OP_DZ)*pht79(:,OP_DR)-pstx79(:,OP_DR)*pht79(:,OP_DZ) &
+             + ri3_79* &
+             (pstx79(:,OP_DZ)*cht79(:,OP_DZ)+pstx79(:,OP_DR)*cht79(:,OP_DR))
+#if defined(USE3D) || defined(USECOMPLEX) 
+        o = o + r_79* &
+             (pht79(:,OP_DZ)*bftx79(:,OP_DZP) &
+             +pht79(:,OP_DR)*bftx79(:,OP_DRP))+ &
+             (cht79(:,OP_DZ)*bftx79(:,OP_DRP) &
+             -cht79(:,OP_DR)*bftx79(:,OP_DZP))
+#endif
+     end if
+  end if
+
+  ! eta J
+  ! ~~~~~
+  if(ilin.eq.1) then
+     o = o - ri_79*eta79(:,OP_1)*ps179(:,OP_GS)
+  else
+     o = o - ri_79*eta79(:,OP_1)*pst79(:,OP_GS)
+  end if
+
+  ! JxB
+  ! ~~~
+  if(dbf .ne. 0.) then
+     if(ilin.eq.1) then
+        o = o + dbf*ni79(:,OP_1)*ri2_79* &
+             (bz079(:,OP_DZ)*ps179(:,OP_DR) - bz079(:,OP_DR)*ps179(:,OP_DZ) &
+             +bz179(:,OP_DZ)*ps079(:,OP_DR) - bz179(:,OP_DR)*ps079(:,OP_DZ))
+#if defined(USE3D) || defined(USECOMPLEX)
+        o = o + dbf*ni79(:,OP_1)* &
+             (ri2_79*(bf079(:,OP_DZPP)*ps179(:,OP_DR) &
+                     +bf179(:,OP_DZPP)*ps079(:,OP_DR) &
+                     -bf079(:,OP_DRPP)*ps179(:,OP_DZ) &
+                     -bf179(:,OP_DRPP)*ps079(:,OP_DZ)) &
+             -ri_79*((bz079(:,OP_DZ)+bf079(:,OP_DZPP))*bf179(:,OP_DZP) &
+                    +(bz179(:,OP_DZ)+bf179(:,OP_DZPP))*bf079(:,OP_DZP) &
+                    +(bz079(:,OP_DR)+bf079(:,OP_DRPP))*bf179(:,OP_DRP) &
+                    +(bz179(:,OP_DR)+bf179(:,OP_DRPP))*bf079(:,OP_DRP)) &
+             -ri3_79*(ps079(:,OP_DZP)*ps179(:,OP_DZ) &
+                     +ps179(:,OP_DZP)*ps079(:,OP_DZ) &
+                     +ps079(:,OP_DRP)*ps179(:,OP_DR) &
+                     +ps179(:,OP_DRP)*ps079(:,OP_DR)) &
+             -ri_79*(ps079(:,OP_DZP)*bf179(:,OP_DRP) &
+                    +ps179(:,OP_DZP)*bf079(:,OP_DRP) &
+                    -ps079(:,OP_DRP)*bf179(:,OP_DZP) &
+                    -ps179(:,OP_DRP)*bf079(:,OP_DZP)))
+#endif
+     else
+        o = o + dbf*ni79(:,OP_1)*ri2_79* &
+             (bzt79(:,OP_DZ)*pst79(:,OP_DR) - bzt79(:,OP_DR)*pst79(:,OP_DZ))
+#if defined(USE3D) || defined(USECOMPLEX)
+        o = o + dbf*ni79(:,OP_1)* &
+             (ri2_79*(bft79(:,OP_DZPP)*pst79(:,OP_DR) &
+                     -bft79(:,OP_DRPP)*pst79(:,OP_DZ)) &
+             -ri_79*((bzt79(:,OP_DZ)+bft79(:,OP_DZPP))*bft79(:,OP_DZP) &
+                    +(bzt79(:,OP_DR)+bft79(:,OP_DRPP))*bft79(:,OP_DRP)) &
+             -ri3_79*(pst79(:,OP_DZP)*pst79(:,OP_DZ) &
+                     +pst79(:,OP_DRP)*pst79(:,OP_DR)) &
+             -ri_79*(pst79(:,OP_DZP)*bft79(:,OP_DRP) &
+                    -pst79(:,OP_DRP)*bft79(:,OP_DZP)))
+#endif
+     end if
+  end if
+
+  ! grad(Pe)
+  ! ~~~~~~~~
+#if defined(USE3D) || defined(USECOMPLEX)
+  if(dbf .ne. 0.) then
+     if(ilin.eq.1) then
+        o = o - dbf*ni79(:,OP_1)*ri_79*pe179(:,OP_DP)
+     else
+        o = o - dbf*ni79(:,OP_1)*ri_79*pet79(:,OP_DP)
+     end if
+  end if
+#endif
+end subroutine electric_field_phi
+
+end module electric_field
