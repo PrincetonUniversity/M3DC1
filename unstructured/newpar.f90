@@ -92,8 +92,6 @@ Program Reducedquintic
 
   ! allocate arrays
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Allocating arrays'
-
-
   call space(1)
 
   sparse_initialized = .true.
@@ -189,7 +187,9 @@ Program Reducedquintic
         call derived_quantities(0)
      end if
 
-     call calculate_auxiliary_fields(0)
+     if(iwrite_aux_vars.eq.1) then
+        call calculate_auxiliary_fields(0)
+     end if
 
      ! Output the equilibrium
      call hdf5_write_time_slice(1,ier)

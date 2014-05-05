@@ -78,7 +78,9 @@ contains
     ! only write timeslice and restart files evey ntimepr timesteps
     if(mod(ntime-ntime0,ntimepr).eq.0) then
        if(myrank.eq.0 .and. iprint.ge.2) print *, "  calculating aux fields"
-       call calculate_auxiliary_fields(eqsubtract)
+       if(iwrite_aux_vars.eq.1) then
+          call calculate_auxiliary_fields(eqsubtract)
+       end if
 
        if(myrank.eq.0 .and. iprint.ge.2) print *, "  writing timeslice"
        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
