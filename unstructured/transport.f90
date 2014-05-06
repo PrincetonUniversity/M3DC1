@@ -563,7 +563,7 @@ subroutine define_transport_coefficients()
   first_time = .false.
 
   if(myrank.eq.0 .and. iprint.ge.1) &
-       print *, "Calculating auxiliary variables"
+       print *, "Calculating transport coefficients"
 
   ! which transport coefficients need matrix solve
   solve_resistivity = .false.

@@ -77,8 +77,8 @@ contains
 
     ! only write timeslice and restart files evey ntimepr timesteps
     if(mod(ntime-ntime0,ntimepr).eq.0) then
-       if(myrank.eq.0 .and. iprint.ge.2) print *, "  calculating aux fields"
        if(iwrite_aux_vars.eq.1) then
+          if(myrank.eq.0 .and. iprint.ge.2) print *, "  calculating aux fields"
           call calculate_auxiliary_fields(eqsubtract)
        end if
 
