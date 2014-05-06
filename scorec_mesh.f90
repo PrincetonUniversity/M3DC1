@@ -123,10 +123,10 @@ contains
     ! first run 
     ! aprun -n # /global/project/projectdirs/mp288/meshtools/PTNMESH yourMesh
     ! set ipartitioned =1 in C1input
-    if(.not. ipartitioned) then
-      call loadmesh(trim(mesh_model), trim(mesh_filename))
+    if(ipartitioned.eq.0) then
+       call loadmesh(trim(mesh_model), trim(mesh_filename))
     else 
-      call loadptnmesh(trim(mesh_model))
+       call loadptnmesh(trim(mesh_model))
     end if
 #endif
 
