@@ -126,6 +126,7 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	get_pc_skip_count.o
 
 S2V_OBJS = subp.o math.o element.o scorec_mesh.o struct2vac.o
+A2CC_OBJS = readaeqdsk.o a2cc.o
 
 all : $(BIN)
 
@@ -143,5 +144,8 @@ read_jsolver_exec.o : read_jsolver.f90
 
 struct2vac : $(S2V_OBJS)
 	$(LOADER) -Wl,--warn-unresolved-symbols $(S2V_OBJS) $(LIBS) -o $@
+
+a2cc : $(A2CC_OBJS)
+	$(LOADER) $(A2CC_OBJS) -o $@
 
 endif
