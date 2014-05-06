@@ -741,9 +741,6 @@ subroutine define_profiles
      if(allocated(yvals)) then
         call create_spline(omega_spline, nvals, xvals, yvals)
         deallocate(xvals, yvals)
-     else
-        if(myrank.eq.0) print *, 'Error creating rotation profile.'
-        call safestop(32)
      end if
 
      ! scale rotation
