@@ -219,6 +219,7 @@ module basic
   integer :: ihypkappa   ! 1 = scale hyper-diffusivity with kappa
   integer :: ihypdx      ! scale hyper-resistivity with dx**ihypdx
   integer :: imp_hyper   ! 1 = include hyper-resistivity implicitly in psi equation
+                         ! 2 = implicit hyper-resistivity is of the Boozer form
   integer :: ikapscale   ! 1 = scale kappar with kappa
   integer :: inertia     ! 1 = include ion inertial terms (v.grad(v))
   integer :: itwofluid   ! 1 = include two-fluid terms in ohm's law (electron form)
@@ -410,7 +411,7 @@ module arrays
   type(field_type) :: u_field(0:1), vz_field(0:1), chi_field(0:1)
   type(field_type) :: psi_field(0:1), bz_field(0:1), pe_field(0:1)
   type(field_type) :: den_field(0:1), p_field(0:1)
-  type(field_type) :: bf_field(0:1)
+  type(field_type) :: bf_field(0:1), e_field(0:1)
   type(field_type) :: te_field(0:1), ti_field(0:1)
 
   ! the following pointers point to the locations of the named field within
@@ -421,6 +422,7 @@ module arrays
   vectype, dimension(dofs_per_node) :: psi1_l, psi0_l
   vectype, dimension(dofs_per_node) ::  bz1_l,  bz0_l
   vectype, dimension(dofs_per_node) ::  bf1_l,  bf0_l
+  vectype, dimension(dofs_per_node) ::  e1_l,  e0_l
   vectype, dimension(dofs_per_node) ::  pe1_l,  pe0_l
   vectype, dimension(dofs_per_node) :: den1_l, den0_l
   vectype, dimension(dofs_per_node) ::   p1_l,   p0_l

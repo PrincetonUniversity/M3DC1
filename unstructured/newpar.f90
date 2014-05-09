@@ -499,7 +499,7 @@ subroutine smooth_fields(psiin)
   type(field_type) :: j_new, psi_new
   real :: tstart, tend
 
-  if(jadv.eq.0 .or. hyper.eq.0. .or. (jadv.eq.1 .and. imp_hyper.eq.1)) return
+  if(jadv.eq.0 .or. hyper.eq.0. .or. (jadv.eq.1 .and. imp_hyper.ge.1)) return
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' smoothing fields...'
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -1121,6 +1121,7 @@ subroutine space(ifirstcall)
   call associate_field(p_field(1),   field_vec, p_g)
   call associate_field(te_field(1),  field_vec, te_g)
   call associate_field(ti_field(1),  field_vec, ti_g)
+  call associate_field(e_field(1),  field_vec, e_g)
 
   call associate_field(u_field(0),   field0_vec, u_g)
   call associate_field(vz_field(0),  field0_vec, vz_g)
