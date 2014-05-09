@@ -39,7 +39,7 @@ contains
     vecsize_phi  = numvar*2 + idens + ipres + imp_bf
     
     ! add electrostatic potential equation
-    if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.eq.1)) &
+    if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.ge.1)) &
          vecsize_phi = vecsize_phi + 1
     
     ! Vectors
@@ -141,7 +141,7 @@ contains
        call associate_field(bf_v, phi_vec, bf_i)
     end if
     
-    if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.eq.1)) then
+    if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
        call associate_field(e_v, phi_vec, e_i)
     end if       
   end subroutine assign_variables_unsplit

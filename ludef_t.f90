@@ -1527,8 +1527,8 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
      return
   end if
 
-  ! Resistive Terms
-  ! ~~~~~~~~~~~~~~~
+  ! Resistive and Hyper Terms
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~
   temp = b1psieta(trial,lin,eta79,hf)
   ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
   ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
@@ -1536,19 +1536,29 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
   ! implicit hyperresistivity
   if(jadv.eq.1 .and. imp_hyper.eq.1) then
      temp = b1jeta(trial,lin,eta79,hf)
-     ssterm(e_g) = ssterm(e_g) -       thimp     *dt*temp
-     ddterm(e_g) = ddterm(e_g) +   (1.-thimp*bdf)*dt*temp
+     ssterm(e_g) = ssterm(e_g) - dt*temp
   endif
+
 
   if(numvar.ge.2) then
      temp = b1beta(trial,lin,eta79,hf)
      ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
+     ! implicit hyperresistivity
+     if(jadv.eq.1 .and. imp_hyper.eq.2) then
+        temp = b1bj(trial,bzt79,lin)
+        ssterm(e_g) = ssterm(e_g) - dt*temp
+     endif
 
      if(i3d.eq.1) then
-        temp = b1feta(trial,lin,eta79,hf)
+        temp = b1feta(trial,lin,eta79)
         r_bf = r_bf -     thimp_bf     *dt*temp
         q_bf = q_bf + (1.-thimp_bf*bdf)*dt*temp
+        ! implicit hyperrestivity
+        if(jadv.eq.1 .and. imp_hyper.eq.2) then
+           temp = b1psij(trial,pst79,lin) + b1fj(trial,bft79,lin)
+           ssterm(e_g) = ssterm(e_g) - dt*temp
+        endif
      end if
   endif
 
@@ -2229,8 +2239,8 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
 
   if(numvar.lt.2) return
 
-  ! Resistive Terms
-  ! ~~~~~~~~~~~~~~~
+  ! Resistive and Hyper Terms
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~
   temp = b2psieta(trial,lin,eta79,hi)
   ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
   ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
@@ -2243,7 +2253,17 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
      temp = b2feta(trial,lin,eta79,hi)
      r_bf = r_bf -     thimp_bf     *dt*temp
      q_bf = q_bf + (1.-thimp_bf*bdf)*dt*temp
+
+     if(imp_hyper.eq.2) then
+        temp = b2fj(trial,bft79,lin)
+        ssterm(e_g) = ssterm(e_g) - dt*temp
+     endif
   end if
+
+  if(imp_hyper.eq.2) then
+     temp = b2psij(trial,pst79,lin)
+     ssterm(e_g) = ssterm(e_g) - dt*temp
+  endif
 
   if(izone.eq.3) return
 
@@ -4002,7 +4022,7 @@ end subroutine bf_equation_nolin
 !======================================================================
 ! j_equation
 !======================================================================
-subroutine j_equation_lin(trial, lin, ssterm, ddterm)
+subroutine j_equation_lin(trial, lin, ssterm, ddterm, r_bf, q_bf)
   
   use basic
   use arrays
@@ -4013,12 +4033,43 @@ subroutine j_equation_lin(trial, lin, ssterm, ddterm)
 
   vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: trial, lin 
   vectype, dimension(num_fields), intent(out) :: ssterm, ddterm
+  vectype, intent(out) :: r_bf, q_bf
+
+  vectype :: temp
 
   ssterm = 0.
   ddterm = 0.
+  r_bf = 0
+  q_bf = 0
 
   ssterm(e_g) =     int2(trial(:,OP_1),lin(:,OP_1 ))
-  ssterm(psi_g) =  -int2(trial(:,OP_1),lin(:,OP_GS))
+  select case(imp_hyper)
+  case(1)  ! note e_g = - delstar(psi)
+
+    ssterm(psi_g) =   int2(trial(:,OP_1),lin(:,OP_GS))
+  
+  case(2)  ! note e_g = J dot B / B**2
+
+    temp = j1b2ipsib(trial,b2i79,lin,bzt79)
+    ssterm(psi_g) = ssterm(psi_g) - temp
+
+#if defined(USE3D) || defined(USECOMPLEX)
+
+    temp = j1b2ipsif(trial,b2i79,pst79,lin)
+    r_bf = r_bf - temp
+
+    temp = j1b2ifb(trial,b2i79,lin,bzt79)
+    r_bf = r_bf - temp
+
+    temp = j1b2iff(trial,b2i79,bft79,lin)
+    r_bf = r_bf - temp
+
+    temp = j1b2ipsipsi(trial,b2i79,lin,pst79)
+    ssterm(psi_g) = ssterm(psi_g) - temp
+
+#endif
+
+  end select
 end subroutine j_equation_lin
 
 
@@ -4468,7 +4519,7 @@ subroutine ludefphi_n(itri)
      maxk = numvar
      if(imp_bf.eq.1 .and. numvar.ge.2) maxk = maxk + 1
 !!$     if(ipressplit.ne.0 .and. numvar.ge.3) maxk = maxk - 1   !  is this generally valid?
-     if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.eq.1)) &
+     if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.ge.1)) &
           maxk = maxk + 1
   endif
 
@@ -4481,14 +4532,14 @@ subroutine ludefphi_n(itri)
   ! add bf equation and e equations:
   ! NOTE:  e=electrostatic potential for jadv=0, del_star_psi for jadv=1
   if(imp_bf.eq.1) then
-     if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.eq.1)) then
+     if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
         ieq(maxk-1) = bf_i
         ieq(maxk)   = e_i
      else
         ieq(maxk) = bf_i
      endif
   else
-     if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.eq.1)) then
+     if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
         ieq(maxk) = e_i
      endif
   endif
@@ -4562,7 +4613,7 @@ subroutine ludefphi_n(itri)
                       ss(i,j,:),dd(i,j,:),q_ni(i,j,1),r_bf(i,j),q_bf(i,j))
               else   !jadv.eq.1
                  call j_equation_lin(mu79(:,:,i),nu79(:,:,j), &
-                      ss(i,j,:),dd(i,j,:))
+                      ss(i,j,:),dd(i,j,:),r_bf(i,j),q_bf(i,j))   
               endif
               
            else
@@ -4598,7 +4649,7 @@ subroutine ludefphi_n(itri)
      call insert_block(bb0,itri,ieq(k),psi_i,dd(:,:,psi_g),MAT_ADD)
      call insert_block(bv1,itri,ieq(k),  u_i,ss(:,:,  u_g),MAT_ADD)
      call insert_block(bv0,itri,ieq(k),  u_i,dd(:,:,  u_g),MAT_ADD)
-     if((jadv.eq.0 .and. i3d.eq.1) .or. (jadv.eq.1 .and. imp_hyper.eq.1)) then
+     if((jadv.eq.0 .and. i3d.eq.1) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) then
         if(idiff .gt. 0) dd(:,:,e_g)  = dd(:,:,e_g)  - ss(:,:,e_g)
         call insert_block(bb1,itri,ieq(k),e_i,ss(:,:,e_g),MAT_ADD)
         call insert_block(bb0,itri,ieq(k),e_i,dd(:,:,e_g),MAT_ADD)     
