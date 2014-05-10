@@ -7177,6 +7177,47 @@ vectype function b1chidot(e,f)
 end function b1chidot
 
 
+vectype function b1psibfpe(e,f,g,h,i)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i
+  vectype :: temp
+  temp = 0.
+
+  temp79a = ri_79*(i(:,OP_DZ)*f(:,OP_DR) - i(:,OP_DR)*f(:,OP_DZ))
+#if defined(USE3D) || defined(USECOMPLEX)
+  temp79a = temp79a - (i(:,OP_DR)*h(:,OP_DRP) + i(:,OP_DZ)*h(:,OP_DZP))   &
+                    + ri2_79*g(:,OP_1)*i(:,OP_DP)
+#endif
+  temp79a = temp79a*b2i79(:,OP_1)*ri2_79*ni79(:,OP_1)
+
+
+  if(surface_int) then
+        temp = 0.
+  else
+     if(jadv.eq.0) then
+        temp = 0.
+     else
+        temp = int3(temp79a,e(:,OP_GS),g(:,OP_1))     
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp = temp - int4(ri_79,temp79a,e(:,OP_DZP),f(:,OP_DR))   &
+                    + int4(ri_79,temp79a,e(:,OP_DRP),f(:,OP_DZ))   &
+                    + int3(temp79a,e(:,OP_DRP),h(:,OP_DRP))        &
+                    + int3(temp79a,e(:,OP_DZP),h(:,OP_DZP))        
+#endif
+     endif
+
+  end if
+
+  b1psibfpe = temp
+  return
+end function b1psibfpe
+
+
 !==============================================================================
 ! B2 TERMS
 !==============================================================================
@@ -8218,6 +8259,40 @@ vectype function b2chidot(e,f)
   b2chidot = temp
   return
 end function b2chidot
+vectype function b2psibfpe(e,f,g,h,i)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i
+  vectype :: temp
+  temp = 0.
+
+  temp79a = ri_79*(i(:,OP_DZ)*f(:,OP_DR) - i(:,OP_DR)*f(:,OP_DZ))
+#if defined(USE3D) || defined(USECOMPLEX)
+  temp79a = temp79a - (i(:,OP_DR)*h(:,OP_DRP) + i(:,OP_DZ)*h(:,OP_DZP))   &
+                    + ri2_79*g(:,OP_1)*i(:,OP_DP)
+#endif
+  temp79a = temp79a*b2i79(:,OP_1)*ni79(:,OP_1)
+
+
+  if(surface_int) then
+        temp = 0.
+  else
+        temp = int4(ri2_79,temp79a,e(:,OP_DR),f(:,OP_DR))    &  
+             + int4(ri2_79,temp79a,e(:,OP_DZ),f(:,OP_DZ))
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp = temp + int4(ri_79,temp79a,e(:,OP_DZ),h(:,OP_DRP))   &
+                    - int4(ri_79,temp79a,e(:,OP_DR),f(:,OP_DZP))        
+#endif
+
+  end if
+
+  b2psibfpe = temp
+  return
+end function b2psibfpe
 !=============================================================================
 ! B3 TERMS
 !=============================================================================

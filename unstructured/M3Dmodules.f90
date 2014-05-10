@@ -224,6 +224,7 @@ module basic
   integer :: inertia     ! 1 = include ion inertial terms (v.grad(v))
   integer :: itwofluid   ! 1 = include two-fluid terms in ohm's law (electron form)
                          ! 2 = ion form of 2F equations
+                         ! 3 = parallel electron pressure gradient only
   integer :: ibootstrap  ! bootstrap current model
   integer :: iflip       ! 1 = flip handedness
   integer :: iflip_b     ! 1 = flip equilibrium toroidal field
