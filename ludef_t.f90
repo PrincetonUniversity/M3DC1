@@ -222,7 +222,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
      ! two-fluid contribution
-     if(dbf .gt. 0 .and. itwofluid.gt.1) then
+     if(dbf .gt. 0 .and. itwofluid.eq.2) then
         temp = v1hupsi(trial,lin,pst79) & 
              + v1hub  (trial,lin,bzt79)
         if(i3d.eq.1) temp = temp + v1huf(trial,lin,bf179)
@@ -237,7 +237,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
         ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
 
        ! two-fluid contribution
-       if(dbf .gt. 0 .and. itwofluid.gt.1) then
+       if(dbf .gt. 0 .and. itwofluid.eq.2) then
           temp = v1hvpsi(trial,lin,pst79) & 
                + v1hvb  (trial,lin,bzt79)
           if(i3d.eq.1) temp = temp + v1hvf(trial,lin,bf179)
@@ -254,7 +254,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
        ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
 
        ! two-fluid contribution
-       if(dbf .gt. 0 .and. itwofluid.gt.1) then
+       if(dbf .gt. 0 .and. itwofluid.eq.2) then
           temp = v1hchipsi(trial,lin,pst79) & 
                + v1hchib  (trial,lin,bzt79)
           if(i3d.eq.1) temp = temp + v1hchif(trial,lin,bf179)
@@ -706,7 +706,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
      ! two-fluid contribution
-     if(dbf .gt. 0 .and. itwofluid.gt.1) then
+     if(dbf .gt. 0 .and. itwofluid.eq.2) then
         temp = v2hupsi(trial,lin,pst79) & 
              + v2hub  (trial,lin,bzt79)
         if(i3d.eq.1) temp = temp + v2huf(trial,lin,bf179)
@@ -720,7 +720,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
 
      ! two-fluid contribution
-     if(dbf .gt. 0 .and. itwofluid.gt.1) then
+     if(dbf .gt. 0 .and. itwofluid.eq.2) then
         temp = v2hvpsi(trial,lin,pst79) & 
              + v2hvb  (trial,lin,bzt79)
         if(i3d.eq.1) temp = temp + v2hvf(trial,lin,bf179)
@@ -736,7 +736,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
         ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
 
         ! two-fluid contribution
-        if(dbf .gt. 0 .and. itwofluid.gt.1) then
+        if(dbf .gt. 0 .and. itwofluid.eq.2) then
            temp = v2hchipsi(trial,lin,pst79) & 
                 + v2hchib  (trial,lin,bzt79)
            if(i3d.eq.1) temp = temp + v2hchif(trial,lin,bf179)
@@ -1740,7 +1740,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
   select case (itwofluid)
 
-  case(-1)
+  case(-1) !  electron form with extra density linearization
   ! JxB
   ! ~~~
   if(dbf.ne.0.) then
@@ -2050,7 +2050,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
      ddterm(bz_g) = ddterm(bz_g) - thimpf**2*dt*dt*temp2
   endif
 
-  case(2,3,4)  ! ion form
+  case(2)  ! ion form
 !
 
   !  velocity time derivatives
@@ -2085,7 +2085,6 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
      endif
   end if  
 
-  if(itwofluid.eq.4) return
   ! Convective derivative terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(dbf.ne.0) then
@@ -2107,7 +2106,6 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
         ddterm(chi_g) = ddterm(chi_g) + (1.-thimpf*bdf)*dt*temp
      endif
   endif
-  if(itwofluid.eq.3) return
 
 ! Viscosity terms
 ! ~~~~~~~~~~~~~~~
@@ -2117,6 +2115,16 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
      ddterm(vz_g) = ddterm(vz_g) + (1.-thimpf*bdf)*dt*temp
   endif
 !
+  case(3)  !  only include parallel electron gradient
+  ! Grad(p_e)
+  ! ~~~~~~~~~
+  if(dbf.ne.0.) then
+     if(numvar.ge.3) then
+        temp = b1psibfpe(trial,pst79,bzt79,bft79,lin)*dbf
+        ssterm(pe_g) = ssterm(pe_g) -     thimpf     *dt*temp
+        ddterm(pe_g) = ddterm(pe_g) + (1.-thimpf*bdf)*dt*temp
+     end if
+  end if  
 
   end select        
 end subroutine flux_lin
@@ -2624,7 +2632,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
   ssterm(bz_g) = ssterm(bz_g) - thimpf**2*dt*dt*temp2
   ddterm(bz_g) = ddterm(bz_g) - thimpf**2*dt*dt*temp2
 
-  case(2,3,4)  ! ion form
+  case(2)  ! ion form
 
 !
 
@@ -2658,7 +2666,6 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
      end if
   endif
 
-  if(itwofluid.eq.4) return
   ! convective derivative terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(dbf.ne.0) then
@@ -2676,7 +2683,6 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
 
      endif
   endif
-  if(itwofluid.eq.3) return
 
   ! Viscosity terms
   ! ~~~~~~~~~~~~~~~
@@ -2692,7 +2698,17 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
      endif
 
   endif
-
+!
+  case(3)  !  only include parallel electron gradient
+  ! Grad(p_e)
+  ! ~~~~~~~~~
+  if(dbf.ne.0.) then
+     if(numvar.ge.3) then
+        temp = b2psibfpe(trial,pst79,bzt79,bft79,lin)*dbf
+        ssterm(pe_g) = ssterm(pe_g) -     thimpf     *dt*temp
+        ddterm(pe_g) = ddterm(pe_g) + (1.-thimpf*bdf)*dt*temp
+     end if
+  end if  
   end select
 end subroutine axial_field_lin
 
