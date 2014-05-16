@@ -652,9 +652,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
   allocate(dum(coeffs_per_element,nelms))
 
   ! Create the fields group
-      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'before h5gcreate_f in output_fields'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'before h5gcreate_f in output_fields', ilin
   call h5gcreate_f(time_group_id, "fields", group_id, error)
-      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after h5gcreate_f in output_fields', error
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'after h5gcreate_f in output_fields', error
 
   ! Output the fields
   ! ~~~~~~~~~~~~~~~~~

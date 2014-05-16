@@ -1036,7 +1036,7 @@ subroutine gradshafranov_solve
   ! determine if feedback will be used
   do_feedback = .false.
   if(idevice .eq. -1) then
-     do i=0, maxcoils
+     do i=1, maxcoils
         if((gs_vertical_feedback(i) .ne. 0) .or. &
              (gs_radial_feedback(i) .ne. 0)) then
            do_feedback = .true.
@@ -2450,6 +2450,9 @@ subroutine calc_toroidal_field(psi0,tf,x,z,izone)
      
         g3 = psii**2 - 4.*psii**3 + 6.*psii**4      &
              - 4.*psii**5 + psii**6
+     else
+        g2 = 0.
+        g3 = 0.
      end if
      
      call evaluate_spline(g0_spline, psii, g4)

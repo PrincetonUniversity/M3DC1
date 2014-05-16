@@ -266,7 +266,7 @@ contains
     global_dims(2) = global_elms
     off(1) = 0
     off(2) = offset
-    
+
     ! Create global dataset
     call h5screate_simple_f(rank, global_dims, filespace, error)
          if(error.ne.0) then
