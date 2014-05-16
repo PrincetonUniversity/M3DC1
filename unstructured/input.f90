@@ -983,6 +983,13 @@ subroutine validate_input
 
   if(den_edge .eq.0) den_edge = den0*(pedge/p0)**expn
 
+  if(irmp.eq.0 .and. iread_ext_field.eq.0) then
+     if(extsubtract.ne.0) then
+        print *, 'Error: with no external fields, set extsubtract=0'
+        call safestop(1)
+     end if
+  end if
+
   v0_norm = b0_norm / sqrt(4.*pi*ion_mass*m_p*n0_norm)
   t0_norm = l0_norm / v0_norm
   p0_norm = b0_norm**2/(4.*pi)

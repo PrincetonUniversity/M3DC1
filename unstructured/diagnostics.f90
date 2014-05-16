@@ -1357,16 +1357,18 @@ subroutine lcfs(psi, test_wall, findx)
         write(*,'(A,2E12.4)') '  no X-point found near ', xnull, znull
      end if
   endif
-  if(ier2.eq.0) then
-     if(myrank.eq.0 .and. iprint.ge.1) then
-        write(*,'(A,2E12.4)') '  X-point found at ', xnull2, znull2
-     end if
-  else 
-     psix2 = psib
-     if(myrank.eq.0 .and. iprint.ge.1) then 
-        write(*,'(A,2E12.4)') '  no X-point found near ', xnull2, znull2
-     end if
-  endif
+  if(xnull2 .gt. 0) then
+     if(ier2.eq.0) then
+        if(myrank.eq.0 .and. iprint.ge.1) then
+           write(*,'(A,2E12.4)') '  X-point found at ', xnull2, znull2
+        end if
+     else 
+        psix2 = psib
+        if(myrank.eq.0 .and. iprint.ge.1) then 
+           write(*,'(A,2E12.4)') '  no X-point found near ', xnull2, znull2
+        end if
+     endif
+  end if
 
   if(abs(psix2 - psimin).lt.abs(psix - psimin)) psix = psix2
 
