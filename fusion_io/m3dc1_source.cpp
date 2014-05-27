@@ -19,6 +19,7 @@ int m3dc1_source::open(const char* filename)
   file.read_parameter("n0_norm", &n0);
   file.read_parameter("l0_norm", &L0);
   file.read_parameter("b0_norm", &B0);
+  file.read_parameter("version", &version);
 
   const double c = 3.e10;
   const double m_p = 1.6726e-24;
@@ -27,6 +28,7 @@ int m3dc1_source::open(const char* filename)
   p0 = B0*B0/(4.*M_PI);
   J0 = B0*c/(4.*M_PI*L0);
   v0 = B0/sqrt(4.*M_PI*ion_mass*m_p*n0);
+  Phi0 = v0*B0/c;
 
   // convert normalization quantities to mks
   n0 /= 1.e-6;
@@ -35,6 +37,7 @@ int m3dc1_source::open(const char* filename)
   p0 /= 10.;
   J0 /= (c*1e-5);
   v0 /= 100.;
+  Phi0 /= (1.e8/c);
 
  // determine ion species (assume one proton and no electrons)
   ion_species = fio_species(ion_mass, 1, 0);
@@ -168,3 +171,35 @@ int m3dc1_source::get_field(const field_type t,fio_field** f,
   }
   return result;
 }
+
+int m3dc1_source::get_series(const series_type t,fio_series** s)
+{
+  m3dc1_fio_series* ms;
+  int result;
+
+  *s = 0;
+
+  result = FIO_SUCCESS;
+
+  switch(t) {
+  case(FIO_MAGAXIS_PSI):
+    ms = new m3dc1_fio_series(this, "psimin", B0*L0*L0);
+    break;
+
+  case(FIO_LCFS_PSI):
+    ms = new m3dc1_fio_series(this, "psi_lcfs", B0*L0*L0);
+    break;
+
+  default:
+    return FIO_UNSUPPORTED;
+  };
+
+  result = ms->load();
+  if(result == FIO_SUCCESS) {
+    *s = ms;
+  } else {
+    delete(ms);
+  }
+  return result;
+}
+

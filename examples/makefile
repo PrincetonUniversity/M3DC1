@@ -18,7 +18,7 @@ include $(M3DC1_ROOT)/install/make.inc.$(M3DC1_ARCH)
 
 LIBS := -L$(M3DC1_ROOT)/fusion_io/_$(M3DC1_ARCH) -lfusionio \
 	-L$(M3DC1_ROOT)/m3dc1_lib/_$(M3DC1_ARCH) -lm3dc1 \
-	$(HDF5_LIBS) $(LIBS) 
+	$(HDF5_LIBS) $(LIBS)
 
 INCLUDE := -I$(M3DC1_ROOT)/fusion_io -I$(M3DC1_ROOT)/fusion_io/_$(M3DC1_ARCH) \
 	-I$(M3DC1_ROOT)/m3dc1_lib \
@@ -34,10 +34,15 @@ F90FLAGS := $(F90FLAGS) -DFORTRAN
 
 all : examples
 
-examples: $(EXAMPLE_BIN) $(EXAMPLE_FORTRAN_BIN) $(EXAMPLE_PUSH_BIN)
+push : $(EXAMPLE_PUSH_BIN)
+
+examples: $(EXAMPLE_BIN) $(EXAMPLE_FORTRAN_BIN) example_c
 
 $(EXAMPLE_BIN) : $(EXAMPLE_OBJS)
 	$(LD) $(LDFLAGS) $< $(LIBS) -o $@
+
+example_c : example_c.o
+	$(CC) $(LDFLAGS) $< $(LIBS) -o $@
 
 $(EXAMPLE_FORTRAN_BIN) : $(EXAMPLE_FORTRAN_OBJS)
 	$(F90) $(LDFLAGS) $< $(LIBS) -o $@

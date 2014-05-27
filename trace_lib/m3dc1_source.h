@@ -12,7 +12,7 @@ class m3dc1_source : public trace_field_source {
   m3dc1_field *psi_x, *f_x, *g_x;
 
   bool use_f, use_g;
-  int extsubtract, eqsubtract;
+  int extsubtract, eqsubtract, version;
   double bzero, rzero;
   double R_axis, Z_axis;
   double psi_axis, psi_lcfs;

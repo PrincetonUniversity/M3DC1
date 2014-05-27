@@ -26,7 +26,7 @@ subroutine bicubic_interpolation_coeffs(x,m,n,i0,j0,a,ierr)
   if(i.gt.m-2) ierr = 1
   if(j.gt.n-2) ierr = 1
   if(ierr.ne.0) then
-     print *, 'Out of bounds ', i, j, m, n
+!     print *, 'Out of bounds ', i, j, m, n
      return
   end if
 
@@ -197,7 +197,7 @@ subroutine cubic_interpolation(m, p, p0, f, f0)
      return
   end if
 
-  if(p(m).eq.p(1)) print *, 'ERROR 1!!!', p(1), p(m) 
+!  if(p(m).eq.p(1)) print *, 'ERROR 1!!!', p(1), p(m) 
   iguess = (m-1)*(p0-p(1))/(p(m)-p(1)) + 1
 
   if(p(iguess).lt.p0) goto 90
@@ -227,7 +227,7 @@ subroutine cubic_interpolation(m, p, p0, f, f0)
   if(i.ge.m) then
      f0 = a(1)
   else
-     if(p(i+1).eq.p(i)) print *, 'ERROR 2!!!', p(i+1), p(i) 
+!     if(p(i+1).eq.p(i)) print *, 'ERROR 2!!!', p(i+1), p(i) 
      dp = (p0-p(i))/(p(i+1)-p(i))
      f0 = a(1) + a(2)*dp + a(3)*dp**2 + a(4)*dp**3
   endif

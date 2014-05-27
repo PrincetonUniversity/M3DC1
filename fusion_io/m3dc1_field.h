@@ -8,6 +8,22 @@
 #include "m3dc1_source.h"
 #include "options.h"
 
+class m3dc1_fio_series : public fio_series {
+  m3dc1_scalar_list* data;
+  m3dc1_scalar_list* time;
+  std::string name;
+  m3dc1_source* source;
+  double factor;
+
+ public:
+  m3dc1_fio_series(m3dc1_source *s, const char* n, const double f)
+    { source = s; name = n; factor = f; }
+  int load();
+  int eval(const double*, double*);
+};
+
+
+
 class m3dc1_fio_field : public fio_field {
  protected:
   int time;
@@ -33,8 +49,7 @@ class m3dc1_scalar_field : public m3dc1_fio_field {
   m3dc1_scalar_field* clone() const { return new m3dc1_scalar_field(*this); }
   int load(const fio_option_list*);
   int dimension() const { return 1; }
-  int eval(const double*, double*);
-  
+  int eval(const double*, double*); 
 };
 
 // ALPHA
@@ -78,13 +93,15 @@ class m3dc1_pi_field : public m3dc1_fio_field {
 
 // ELECTRIC FIELD
 class m3dc1_electric_field : public m3dc1_fio_field {
+  m3dc1_field *E0[3];
+  m3dc1_field *E1[3];
  public:
   m3dc1_electric_field(m3dc1_source* s) 
     : m3dc1_fio_field(s) { }
   m3dc1_electric_field* clone() const 
   { return new m3dc1_electric_field(*this); }
   int load(const fio_option_list*);
-  int dimension() const { return 1; }
+  int dimension() const { return 3; }
   virtual int eval(const double*, double*);
 };
 
@@ -132,6 +149,7 @@ class m3dc1_magnetic_field : public m3dc1_fio_field {
   int load(const fio_option_list*);
   int dimension() const { return 3; }
   int eval(const double*, double*);
+  int eval_deriv(const double*, double*);
 };
 
 // J

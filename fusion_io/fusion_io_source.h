@@ -8,6 +8,7 @@
 #include <vector>
 
 typedef int field_type;
+typedef int series_type;
 
 class fio_source {
  public:
@@ -21,6 +22,8 @@ class fio_source {
   virtual int get_field_options(fio_option_list*) const = 0;
   virtual int get_field(const field_type, fio_field**, const fio_option_list*)
     = 0;
+  virtual int get_series(const series_type, fio_series**)
+  { return FIO_UNSUPPORTED; }
   virtual int get_available_fields(fio_field_list*) const = 0;
 };
 

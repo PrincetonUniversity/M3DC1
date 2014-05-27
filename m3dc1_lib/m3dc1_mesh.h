@@ -3,7 +3,7 @@
 
 #include <math.h>
 
-#define TOL 1e-3
+#define TOL 1e-4
 
 class m3dc1_mesh {
  private:

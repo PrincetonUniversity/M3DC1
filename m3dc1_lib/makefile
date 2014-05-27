@@ -41,7 +41,7 @@ m3dc1_fortran_test : test.o libm3dc1_fortran.a libm3dc1.a
 install : 
 	mkdir -p $(M3DC1_INSTALL_DIR)/bin/_$(M3DC1_ARCH)
 	mkdir -p $(M3DC1_INSTALL_DIR)/lib/_$(M3DC1_ARCH)
-	cp libm3dc1.a libm3dc1.so libm3dc1_fortran.a \
+	-cp libm3dc1.a libm3dc1.so libm3dc1_fortran.a \
 	 $(M3DC1_INSTALL_DIR)/lib/_$(M3DC1_ARCH)
 
 include $(M3DC1_ROOT)/install/common_footer.mk

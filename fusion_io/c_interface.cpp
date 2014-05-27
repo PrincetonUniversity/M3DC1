@@ -5,6 +5,7 @@
 
 static std::deque<fio_source*> source_list;
 static std::deque<fio_field*> field_list;
+static std::deque<fio_series*> series_list;
 static fio_option_list options;
 static fio_source::fio_field_list fields;
 
@@ -30,6 +31,16 @@ int fio_close_field(const int ifield)
   return FIO_SUCCESS;
 }
 
+int fio_close_series(const int iseries)
+{
+  if(series_list[iseries])
+    delete(series_list[iseries]);
+
+  series_list[iseries] = (fio_series*)0;
+
+  return FIO_SUCCESS;
+}
+
 int fio_close_source(const int ifield)
 {
   return fio_close_source(&(source_list[ifield]));
@@ -47,6 +58,16 @@ int fio_create_compound_field(int* ifield)
 int fio_eval_field(const int ifield, const double* x, double* v)
 {
   return field_list[ifield]->eval(x, v);
+}
+
+int fio_eval_field_deriv(const int ifield, const double* x, double* v)
+{
+  return field_list[ifield]->eval_deriv(x, v);
+}
+
+int fio_eval_series(const int iseries, const double* x, double* v)
+{
+  return series_list[iseries]->eval(x, v);
 }
 
 int fio_get_available_fields(const int isrc, int* n, field_type** f)
@@ -79,6 +100,21 @@ int fio_get_options(const int isrc)
 {
   return source_list[isrc]->get_field_options(&options);
 }
+
+int fio_get_series(const int isrc, const int type, int* handle)
+{
+  fio_series* s;
+  int ierr;
+
+  ierr = source_list[isrc]->get_series(type, &s);
+
+  if(ierr == FIO_SUCCESS) {
+    *handle = series_list.size();
+    series_list.push_back(s);
+  }
+  return ierr;
+}
+
 
 int fio_open_source(const int itype, const char* filename, int* handle)
 {

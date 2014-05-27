@@ -19,6 +19,12 @@ contains
     call fio_close_field(ifield, ierr)
   end subroutine fio_close_field_f
 
+  subroutine fio_close_series_f(iseries, ierr)
+    integer, intent(in) :: iseries
+    integer, intent(out) :: ierr
+    call fio_close_series(iseries, ierr)
+  end subroutine fio_close_series_f
+
   subroutine fio_close_source_f(isrc, ierr)
     integer, intent(in) :: isrc
     integer, intent(out) :: ierr
@@ -39,6 +45,22 @@ contains
     call fio_eval_field(ifield, x, v, ierr)
   end subroutine fio_eval_field_f
 
+  subroutine fio_eval_field_deriv_f(ifield, x, v, ierr)
+    integer, intent(in) :: ifield
+    real, intent(in), dimension(*) :: x
+    real, intent(out), dimension(*) :: v
+    integer, intent(out) :: ierr
+    call fio_eval_field_deriv(ifield, x, v, ierr)
+  end subroutine fio_eval_field_deriv_f
+
+  subroutine fio_eval_series_f(iseries, x, v, ierr)
+    integer, intent(in) :: iseries
+    real, intent(in), dimension(*) :: x
+    real, intent(out), dimension(*) :: v
+    integer, intent(out) :: ierr
+    call fio_eval_series(iseries, x, v, ierr)
+  end subroutine fio_eval_series_f
+
   subroutine fio_get_field_f(isrc, itype, ifield, ierr)
     integer, intent(in) :: isrc, itype
     integer, intent(out) :: ifield, ierr
@@ -50,6 +72,12 @@ contains
     integer, intent(out) :: ierr
     call fio_get_options(isrc, ierr)
   end subroutine fio_get_options_f
+
+  subroutine fio_get_series_f(isrc, itype, iseries, ierr)
+    integer, intent(in) :: isrc, itype
+    integer, intent(out) :: iseries, ierr
+    call fio_get_series(isrc, itype, iseries, ierr)
+  end subroutine fio_get_series_f
   
   subroutine fio_open_source_f(type, filename, isrc, ierr)
     integer, intent(in) :: type

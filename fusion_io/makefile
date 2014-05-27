@@ -69,11 +69,11 @@ python : fio_setup.py python_interface.cpp
 .PHONY: install
 install :
 	mkdir -p $(M3DC1_INSTALL_DIR)/lib/_$(M3DC1_ARCH)
-	cp $(LIB) $(DLIB) $(M3DC1_INSTALL_DIR)/lib/_$(M3DC1_ARCH)
+	-cp $(LIB) $(DLIB) $(M3DC1_INSTALL_DIR)/lib/_$(M3DC1_ARCH)
 	mkdir -p $(M3DC1_INSTALL_DIR)/include/
-	cp $(SRCDIR)/fusion_io.h $(SRCDIR)/fusion_io_defs.h $(M3DC1_INSTALL_DIR)/include/
+	-cp $(SRCDIR)/fusion_io.h $(SRCDIR)/fusion_io_defs.h $(M3DC1_INSTALL_DIR)/include/
 	mkdir -p $(M3DC1_INSTALL_DIR)/include/_$(M3DC1_ARCH)
-	cp fusion_io.mod fio_push.mod $(M3DC1_INSTALL_DIR)/include/_$(M3DC1_ARCH)
+	-cp fusion_io.mod FUSION_IO.mod fio_push.mod FIO_PUSH.mod $(M3DC1_INSTALL_DIR)/include/_$(M3DC1_ARCH)
 #	CFLAGS='$(CFLAGS)' ARCHFLAGS='$(LIBS)' \
 #	$(PYTHON) $(SRCDIR)/fio_setup.py install
 

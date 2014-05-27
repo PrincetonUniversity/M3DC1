@@ -38,6 +38,7 @@ bool m3dc1_source::load()
   file.read_parameter("eqsubtract", &eqsubtract);
   file.read_parameter("icomplex", &icomplex);
   file.read_parameter("3d", &i3d);
+  file.read_parameter("version", &version);
 
   use_f = ((icomplex==1) || (i3d==1));
 
@@ -46,7 +47,7 @@ bool m3dc1_source::load()
   std::cerr << "bzero = " << bzero << std::endl;
   std::cerr << "rzero = " << rzero << std::endl;
   std::cerr << "extsubtract = " << extsubtract << std::endl;
-  std::cerr << "extsubtract = " << eqsubtract << std::endl;
+  std::cerr << "eqsubtract = " << eqsubtract << std::endl;
   std::cerr << "icomplex = " << icomplex << std::endl;
   std::cerr << "i3d = " << i3d << std::endl;
 
@@ -56,16 +57,6 @@ bool m3dc1_source::load()
   m3dc1_scalar_list* psi1 = file.read_scalar("psi_lcfs");
   if(!xmag || !zmag || !psi0 || !psi1)
     return false;
-
-  R_axis = xmag->at(0);
-  Z_axis = zmag->at(0);
-  psi_axis = psi0->at(0);
-  psi_lcfs = psi1->at(0);
-
-  std::cerr << "Magnetic axis = ( " << R_axis << ", " << Z_axis << " )"
-	    << std::endl;
-  std::cerr << "Psi at axis, lcfs = " << psi_axis << ", " << psi_lcfs
-	    << std::endl;
 
   std::cerr << "reading fields at time " << time << std::endl;
   psi = file.load_field("psi", time);
@@ -85,7 +76,7 @@ bool m3dc1_source::load()
     if(!f) return false;
   }
 
-  if(time >= 0 && extsubtract==1) {
+  if(time >= 0 && extsubtract==1  && version<8) {
     std::cerr << "reading external fields" << std::endl;
     psi_x = file.load_field("psi_ext", time);
     if(!psi_x) return false;
@@ -100,6 +91,36 @@ bool m3dc1_source::load()
       if(!f_x) return false;
     }
   } else extsubtract = 0;
+
+
+  int index;
+  if(eqsubtract) {
+    index = 0;
+  } else {
+    index = -1;
+    m3dc1_scalar_list* time = file.read_scalar("time");
+    for(int i=0; i<time->size(); i++) 
+      if(psi->time == time->at(i)) {
+	index = i;
+	break;
+      }
+    if(index==-1) {
+      std::cerr << "ERROR: can't find scalar index for time = " << psi->time
+		<< std::endl;
+      return false;
+    }
+  }
+
+  R_axis = xmag->at(index);
+  Z_axis = zmag->at(index);
+  psi_axis = psi0->at(index);
+  psi_lcfs = psi1->at(index);
+
+  std::cerr << "Magnetic axis = ( " << R_axis << ", " << Z_axis << " )"
+	    << std::endl;
+  std::cerr << "Psi at axis, lcfs = " << psi_axis << ", " << psi_lcfs
+	    << std::endl;
+
   
   if(!file.close())
     return false;
