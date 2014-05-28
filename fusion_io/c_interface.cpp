@@ -70,7 +70,7 @@ int fio_eval_series(const int iseries, const double x, double* v)
   return series_list[iseries]->eval(x, v);
 }
 
-int fio_get_available_fields(const int isrc, int* n, field_type** f)
+int fio_get_available_fields(const int isrc, int* n, int** f)
 {
   int ierr = source_list[isrc]->get_available_fields(&fields);
   if(ierr != FIO_SUCCESS)

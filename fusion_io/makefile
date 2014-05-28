@@ -71,7 +71,7 @@ install :
 	mkdir -p $(M3DC1_INSTALL_DIR)/lib/_$(M3DC1_ARCH)
 	-cp $(LIB) $(DLIB) $(M3DC1_INSTALL_DIR)/lib/_$(M3DC1_ARCH)
 	mkdir -p $(M3DC1_INSTALL_DIR)/include/
-	-cp $(SRCDIR)/fusion_io.h $(SRCDIR)/fusion_io_defs.h $(M3DC1_INSTALL_DIR)/include/
+	-cp $(SRCDIR)/fusion_io.h $(SRCDIR)/fusion_io_defs.h $(SRCDIR)/fusion_io_c.h $(M3DC1_INSTALL_DIR)/include/
 	mkdir -p $(M3DC1_INSTALL_DIR)/include/_$(M3DC1_ARCH)
 	-cp fusion_io.mod FUSION_IO.mod fio_push.mod FIO_PUSH.mod $(M3DC1_INSTALL_DIR)/include/_$(M3DC1_ARCH)
 #	CFLAGS='$(CFLAGS)' ARCHFLAGS='$(LIBS)' \

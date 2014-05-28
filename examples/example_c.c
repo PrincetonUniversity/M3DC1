@@ -6,7 +6,10 @@
 //==========================================================================
 
 #include <fusion_io_defs.h>
+#include <fusion_io_c.h>
+
 #include <stdio.h>
+#include <string.h>
 
 //const int nfiles = 4;
 const int nfiles = 1;
@@ -83,13 +86,13 @@ int main()
   printf("ipsi_axis: %d\n", ipsi_axis);
   printf("ipsi_lcfs: %d\n", ipsi_lcfs);
 
-  ierr = fio_eval_series(ipsi_axis, 0.d, &psi_axis);
-  ierr = fio_eval_series(ipsi_lcfs, 0.d, &psi_lcfs);
+  ierr = fio_eval_series(ipsi_axis, 0., &psi_axis);
+  ierr = fio_eval_series(ipsi_lcfs, 0., &psi_lcfs);
   printf("Psi at magnetic axis: %g\n", psi_axis);
   printf("Psi at lcfs: %g\n", psi_lcfs);
     
   ierr = fio_close_series(ipsi_axis);
-  ierr = fio_close_series(ipsi_lcfs, ierr);
+  ierr = fio_close_series(ipsi_lcfs);
 
   R0 = 1.6;
   R1 = 2.1;

@@ -13,7 +13,7 @@
 #include "geqdsk_field.h"
 #include "gato_source.h"
 #include "gato_field.h"
-#include "c_interface.h"
+#include "fusion_io_c.h"
 
 #include <string>
 
