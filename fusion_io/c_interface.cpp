@@ -65,7 +65,7 @@ int fio_eval_field_deriv(const int ifield, const double* x, double* v)
   return field_list[ifield]->eval_deriv(x, v);
 }
 
-int fio_eval_series(const int iseries, const double* x, double* v)
+int fio_eval_series(const int iseries, const double x, double* v)
 {
   return series_list[iseries]->eval(x, v);
 }

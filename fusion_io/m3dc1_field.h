@@ -19,7 +19,7 @@ class m3dc1_fio_series : public fio_series {
   m3dc1_fio_series(m3dc1_source *s, const char* n, const double f)
     { source = s; name = n; factor = f; }
   int load();
-  int eval(const double*, double*);
+  int eval(const double, double*);
 };
 
 

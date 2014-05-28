@@ -57,7 +57,7 @@ void fio_eval_field_deriv_(const int* ifield, const double* x, double* v,
 
 void fio_eval_series_(const int* iseries, const double* x, double* v, int* ierr)
 {
-  *ierr = fio_eval_series(*iseries, x, v);
+  *ierr = fio_eval_series(*iseries, *x, v);
 }
 
 void fio_get_field_(const int* isrc, const int* itype,

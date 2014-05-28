@@ -74,13 +74,13 @@ program fio_example
   call fio_get_series_f(isrc(1), FIO_MAGAXIS_PSI, ipsi_axis, ierr)
   call fio_get_series_f(isrc(1), FIO_LCFS_PSI, ipsi_lcfs, ierr)
 
-  call fio_eval_series(ipsi_axis, 0., psi_axis, ierr)
-  call fio_eval_series(ipsi_lcfs, 0., psi_lcfs, ierr)
+  call fio_eval_series_f(ipsi_axis, 0., psi_axis, ierr)
+  call fio_eval_series_f(ipsi_lcfs, 0., psi_lcfs, ierr)
   print *, 'Psi at magnetic axis: ', psi_axis
   print *, 'Psi at lcfs: ', psi_lcfs
 
-  call fio_close_series(ipsi_axis, ierr)
-  call fio_close_series(ipsi_lcfs, ierr)
+  call fio_close_series_f(ipsi_axis, ierr)
+  call fio_close_series_f(ipsi_lcfs, ierr)
 
   
   ! open efit file

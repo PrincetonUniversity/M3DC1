@@ -55,8 +55,8 @@ contains
 
   subroutine fio_eval_series_f(iseries, x, v, ierr)
     integer, intent(in) :: iseries
-    real, intent(in), dimension(*) :: x
-    real, intent(out), dimension(*) :: v
+    real, intent(in) :: x
+    real, intent(out) :: v
     integer, intent(out) :: ierr
     call fio_eval_series(iseries, x, v, ierr)
   end subroutine fio_eval_series_f

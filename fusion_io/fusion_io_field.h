@@ -11,7 +11,7 @@ class fio_series {
   virtual ~fio_series()
     { }
 
-  virtual int eval(const double*, double*) = 0;
+  virtual int eval(const double, double*) = 0;
 };
 
 class fio_field {

@@ -9,7 +9,7 @@ extern "C" {
   int fio_create_compound_field(int*);
   int fio_eval_field(const int, const double*, double*);
   int fio_eval_field_deriv(const int, const double*, double*);
-  int fio_eval_series(const int, const double*, double*);
+  int fio_eval_series(const int, const double, double*);
   int fio_get_options(const int);
   int fio_get_available_fields(const int, int*, field_type**);
   int fio_get_field(const int, const int, int*);

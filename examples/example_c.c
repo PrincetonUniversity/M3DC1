@@ -34,6 +34,9 @@ int main()
   double R0, R1, Z0, Z1, phi0, phi1;
   int i, j, ierr;
 
+  double psi_axis, psi_lcfs;
+  int ipsi_axis, ipsi_lcfs;
+
   strcpy(filename[0], "/p/tsc/nferraro/data/DIII-D/146626/2250/mesh22aa_kap6_amu6_d0_extsub/C1.h5");
 /*
   strcpy(filename[0], "/p/tsc/nferraro/data/DIII-D/126006/3600_efit06/orlov/mesh21a_kap6_amu6_n=1/C1.h5");
@@ -74,6 +77,19 @@ int main()
     ierr = fio_set_int_option(FIO_SPECIES, FIO_MAIN_ION);
     ierr = fio_get_field(isrc[i], FIO_DENSITY, &(ini[i]));
   }
+ 
+  ierr = fio_get_series(isrc[0], FIO_MAGAXIS_PSI, &ipsi_axis);
+  ierr = fio_get_series(isrc[0], FIO_LCFS_PSI, &ipsi_lcfs);
+  printf("ipsi_axis: %d\n", ipsi_axis);
+  printf("ipsi_lcfs: %d\n", ipsi_lcfs);
+
+  ierr = fio_eval_series(ipsi_axis, 0.d, &psi_axis);
+  ierr = fio_eval_series(ipsi_lcfs, 0.d, &psi_lcfs);
+  printf("Psi at magnetic axis: %g\n", psi_axis);
+  printf("Psi at lcfs: %g\n", psi_lcfs);
+    
+  ierr = fio_close_series(ipsi_axis);
+  ierr = fio_close_series(ipsi_lcfs, ierr);
 
   R0 = 1.6;
   R1 = 2.1;
