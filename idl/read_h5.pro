@@ -1278,8 +1278,8 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
 
 ;  determine 'edge' value
    if(max(mask) eq 1) then begin
-       num_edge_vals = 0
        edge_val = 0
+       num_edge_vals = 0
        for i=0,p-1 do begin
            for j=0,p-1 do begin
                if(mask[i,j] eq 0) then begin 
@@ -1358,7 +1358,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                      time=realtime, abs=abs, phase=phase, dimensions=d, $
                      flux_average=flux_av, rvector=rvector, zvector=zvector, $
                      yvector=yvector, taverage=taverage, $
-                     is_nonlinear=is_nonlinear
+                     is_nonlinear=is_nonlinear, outval=mask_val
 
    if(n_elements(slices) ne 0) then time=slices else time=0
    is_nonlinear = 0
@@ -2566,6 +2566,36 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        d = dimensions(/j0,_EXTRA=extra)
 
    ;===========================================
+   ; (major) radial current density
+   ;===========================================
+   endif else if(strcmp('jr_plasma', name, /fold_case) eq 1) then begin
+       
+       i_z = read_field('I_plasma', x, y, t, slices=time, mesh=mesh, op=3, $
+                      filename=filename, points=pts, linear=linear, $
+                      rrange=xrange, zrange=yrange, complex=complex)
+
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+
+       data = -i_z / r
+
+       if(ntor ne 0) then begin
+           psi_r = read_field('psi_plasma', x, y, t, slices=time, mesh=mesh, op=2, $
+                            filename=filename, points=pts, linear=linear, $
+                            rrange=xrange, zrange=yrange, complex=complex)
+
+           f_z = read_field('f_plasma', x, y, t, slices=time, mesh=mesh, op=3, $
+                          filename=filename, points=pts, linear=linear, $
+                          rrange=xrange, zrange=yrange, complex=complex)
+
+           data = data + ntor^2 * f_z / r + complex(0., ntor)*psi_r/r^2
+       endif
+       
+       symbol = '!8J!DR!N!X'
+       d = dimensions(/j0,_EXTRA=extra)
+
+   ;===========================================
    ; vertical current density
    ;===========================================
    endif else if(strcmp('jz', name, /fold_case) eq 1) then begin
@@ -2595,6 +2625,35 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        symbol = '!8J!DZ!N!X'
        d = dimensions(/j0,_EXTRA=extra)
 
+   ;===========================================
+   ; vertical current density
+   ;===========================================
+   endif else if(strcmp('jz_plasma', name, /fold_case) eq 1) then begin
+       
+       i_r = read_field('I_plasma', x, y, t, slices=time, mesh=mesh, op=2, $
+                      filename=filename, points=pts, linear=linear, $
+                      rrange=xrange, zrange=yrange, complex=complex)
+
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+
+       data = i_r / r
+
+       if(ntor ne 0) then begin
+           psi_z = read_field('psi_plasma', x, y, t, slices=time, mesh=mesh, op=3, $
+                            filename=filename, points=pts, linear=linear, $
+                            rrange=xrange, zrange=yrange, complex=complex)
+
+           f_r = read_field('f_plasma', x, y, t, slices=time, mesh=mesh, op=2, $
+                          filename=filename, points=pts, linear=linear, $
+                          rrange=xrange, zrange=yrange, complex=complex)
+
+           data = data - ntor^2 * f_r / r + complex(0., ntor)*psi_z/r^2
+       endif
+       
+       symbol = '!8J!DZ!N!X'
+       d = dimensions(/j0,_EXTRA=extra)
 
    ;===========================================
    ; poloidal current density
@@ -4699,7 +4758,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                                 ; Normalize field
        data = -data/sqrt(s_bracket(psi,psi,x,y))
        symbol = '!8E!Dr!N!X'
-       d = dimensions(/e0, _EXTRA=extra)
+       d = dimensions(/pot,l0=-1, _EXTRA=extra)
 
        
    endif else begin
@@ -5906,7 +5965,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
        data = s.loop_voltage._data
        title = 'Loop Voltage'
        symbol = '!8V!DL!N!X'
-       d = dimensions(/e0,/l0, _EXTRA=extra)
+       d = dimensions(/pot, _EXTRA=extra)
    endif else $
      if (strcmp("pellet rate", scalarname, /fold_case) eq 1) or $
      (strcmp("pelr", scalarname, /fold_case) eq 1) then begin
