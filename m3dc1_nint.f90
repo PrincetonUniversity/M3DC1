@@ -440,7 +440,6 @@ contains
        
        if(eqsubtract.eq.1) then
           call eval_ops(itri, psi_field(0), ps079)
-          ps079 = ps079
        else
           ps079 = 0.
        endif

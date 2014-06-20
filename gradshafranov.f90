@@ -1192,7 +1192,7 @@ subroutine gradshafranov_solve
   ! Define equilibrium fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' defining equilibrium fields'
-  ! solve for p and f fields which best approximate gs solution
+  ! solve for p and f fields that best approximate gs solution
   b1vecini_vec = 0.
   b2vecini_vec = 0.
 
@@ -1212,7 +1212,7 @@ subroutine gradshafranov_solve
      
      call get_zone(itri, izone)
      
-     do i=1, npoints       
+     do i=1, npoints
         call calc_toroidal_field(ps079(i,:),tf,x_79(i),z_79(i),izone)
         temp79b(i) = tf
         call calc_pressure(ps079(i,:),tf,x_79(i),z_79(i),izone)
@@ -1503,7 +1503,7 @@ subroutine calculate_gamma(g2, g3, g4)
 
      call eval_ops(itri, psi_vec, psi_n)
      if(icsubtract.eq.1) then
-        call eval_ops(itri, psi_vec, psic_n)
+        call eval_ops(itri, psi_coil_field, psic_n)
         psi_n = psi_n + psic_n
      end if
      call eval_ops(itri, fun1_vec, fun1_n)
@@ -1945,6 +1945,16 @@ subroutine fundef2(error)
   numelms = local_elements()
   do itri=1,numelms
 
+     call get_zone(itri, izone)
+
+     if(izone.ne.1) then
+        temp3 = 0.
+        temp4 = 0.
+        call vector_insert_block(fun1_vec%vec,itri,1,temp3,VEC_ADD)
+        call vector_insert_block(fun4_vec%vec,itri,1,temp4,VEC_ADD)
+        cycle
+     end if
+
      call define_element_quadrature(itri, int_pts_main, int_tor)
      call define_fields(itri, 0, 1, 0)
 
@@ -1953,86 +1963,82 @@ subroutine fundef2(error)
         call eval_ops(itri, psi_coil_field, psc79)
         ps079 = ps079 + psc79
      end if
-
-     call get_zone(itri, izone)
-
+     
      do i=1, npoints
         
-        if(izone.ne.1) then
-           temp79a(i) = 0.
-           temp79b(i) = 0.
-           temp79c(i) = 0.
-           temp79d(i) = 0.
-           temp79e(i) = 0.
+        pso = (ps079(i,OP_1)-psimin)*dpsii
+        psm = pso
+        ! if we are in private flux region, make sure Psi > 1
+        mr = magnetic_region(ps079(i,:),x_79(i),z_79(i))
+        
+        if(igs_forcefree_lcfs.ge.1 .and. mr.ne.0) then
+           ffp0 = 0.
+           pp0 = 0.
+           a0 = 0.
+           ap = 0.
+           p = 0.
         else
-           pso = (ps079(i,OP_1)-psimin)*dpsii
-           psm = pso
-           ! if we are in private flux region, make sure Psi > 1
-           mr = magnetic_region(ps079(i,:),x_79(i),z_79(i))
+           if(mr.eq.2) then
+              psm = 1.
+              pso = 2. - pso              
+           end if
 
-           if(igs_forcefree_lcfs.ge.1 .and. mr.ne.0) then
-              ffp0 = 0.
-              pp0 = 0.
-              a0 = 0.
-              ap = 0.
-              p = 0.
-           else
-              if(mr.eq.2) then
-                 psm = 1.
-                 pso = 2. - pso
-              end if
-
+           if(mr.eq.0) then
               call evaluate_spline(ffprime_spline,psm,ffp0, iout=iout)
               if(iout.eq.1) ffp0 = 0.
-              call evaluate_spline(pprime_spline,pso,pp0, iout=iout)
-              if(iout.eq.1) pp0 = 0.
-              if(irot.eq.1) then
-                 call evaluate_spline(alpha_spline,pso,a0,ap,iout=iout)
-                 if(iout.eq.1) ap = 0.
-                 call evaluate_spline(p0_spline,pso,p)
-
+           else
+              ffp0 = 0.
+           end if
+           
+           call evaluate_spline(pprime_spline,pso,pp0, iout=iout)
+           if(iout.eq.1) pp0 = 0.
+           if(irot.eq.1) then
+              call evaluate_spline(alpha_spline,pso,a0,ap,iout=iout)
+              if(iout.eq.1) ap = 0.
+              call evaluate_spline(p0_spline,pso,p)
+              
 !!$                 call evaluate_spline(omega_spline,pso,w0,wp,iout=iout)
 !!$                 if(iout.eq.1) wp = 0.
 !!$                 call evaluate_spline(n0_spline,pso,n0,np,iout=iout)
 !!$                 if(iout.eq.1) np = 0.
 !!$                 a0 = 0.5*rzero**2*w0*w0*n0/p
 !!$                 ap = 0.5*rzero**2*w0*(2.*wp*n0 + w0*np - w0*n0*pp0/p)/p
-              end if
            end if
-           temp79a(i) = pp0
-           temp79b(i) = ffp0
-           if(irot.eq.1) then
-              temp79c(i) = a0
-              temp79d(i) = ap
-              temp79e(i) = p
-           end if
-        endif
+        end if
+        temp79a(i) = pp0
+        temp79b(i) = ffp0
+        if(irot.eq.1) then
+           temp79c(i) = a0
+           temp79d(i) = ap
+           temp79e(i) = p
+        end if
      end do
      
      ! convert from normalized to real flux
      temp79a = temp79a*dpsii**use_norm_psi
      temp79b = temp79b*dpsii**use_norm_psi
      if(irot.eq.1) temp79d = temp79d*dpsii
-
+     
      ! p(R, psi) = p0(psi)*Exp[ alpha(psi) * (R^2-R0^2)/R0^2 ]
-
+     
      ! dp/dpsi = [ p0' + p0*alpha'*(R^2-R0^2)/R0^2 ] * Exp[ ... ]  
-
+     
      if(irot.eq.1) then
         temp79a = exp(temp79c*(x_79**2 - rzero**2)/rzero**2)* &
              (temp79a + temp79e*temp79d*(x_79**2 - rzero**2)/rzero**2)
      endif
-
+     
      do i=1,dofs_per_element
         temp3(i) = int3(r_79, mu79(:,OP_1,i),temp79a)
         temp4(i) = int3(ri_79,mu79(:,OP_1,i),temp79b)
      end do
+     
      call vector_insert_block(fun1_vec%vec,itri,1,temp3,VEC_ADD)
      call vector_insert_block(fun4_vec%vec,itri,1,temp4,VEC_ADD)
      
      ! Del*[psi] + R^2 dp/dpsi + FF' = 0 
      temp79c = ps079(:,OP_GS) + r2_79*temp79a + temp79b
-
+     
      norm = norm + abs(int2(ri_79,ps079(:,OP_GS)))
      error = error + abs(int2(ri_79,temp79c))
   end do
@@ -2493,6 +2499,11 @@ subroutine calc_pressure(psi0, pres, x, z, izone)
 
   integer :: magnetic_region, mr
 
+  if(izone.ne.1) then 
+     pres = p0_spline%y(p0_spline%n)
+     return
+  end if
+
   psii = (real(psi0(1)) - psimin)/(psibound - psimin)
 
   mr = magnetic_region(psi0,x,z)
@@ -2506,13 +2517,9 @@ subroutine calc_pressure(psi0, pres, x, z, izone)
   ! if we are in private flux region, make sure Psi > 1
   if(mr.eq.2) psii = 2. - psii
 
-  if(izone.eq.1) then
-     call evaluate_spline(p0_spline, psii, p)
-  else
-     p = p0_spline%y(p0_spline%n)
-  end if
+  call evaluate_spline(p0_spline, psii, p)
 
-  if(irot.eq.1 .and. izone.eq.1) then
+  if(irot.eq.1) then
      call evaluate_spline(alpha_spline, psii, alpha)
      pres = p*exp(alpha*(x**2 - rzero**2)/rzero**2)
 !!$     call evaluate_spline(omega_spline,psii,w0)
@@ -2548,6 +2555,11 @@ subroutine calc_density(psi0, dens, x, z, izone)
 
   integer :: magnetic_region, mr
 
+  if(izone.ne.1) then
+     dens = n0_spline%y(n0_spline%n)
+     return
+  end if
+
   mr = magnetic_region(psi0,x,z)
 
   psii = (real(psi0(1)) - psimin)/(psibound - psimin)
@@ -2555,13 +2567,9 @@ subroutine calc_density(psi0, dens, x, z, izone)
   ! if we are in private flux region, make sure Psi > 1
   if(mr.eq.2) psii = 2. - psii
 
-  if(izone.eq.1) then
-     call evaluate_spline(n0_spline, psii, n0)
-  else
-     n0 = n0_spline%y(n0_spline%n)
-  endif
+  call evaluate_spline(n0_spline, psii, n0)
 
-  if(irot.eq.1 .and. izone.eq.1) then
+  if(irot.eq.1) then
      call evaluate_spline(alpha_spline,psii,alpha)
      dens = n0*exp(alpha*(x**2 - rzero**2)/rzero**2)
 !!$     call evaluate_spline(omega_spline,psii,w0)
@@ -2596,10 +2604,9 @@ subroutine calc_electron_pressure(psi0, pe, x, z, izone)
   integer :: magnetic_region
 
   if(allocated(te_spline%y)) then
-     psii = (real(psi0(1)) - psimin)/(psibound - psimin)
-     if(magnetic_region(psi0,x,z).eq.2) psii = 2. - psii
-
-     if(izone.eq.1) then 
+     if(izone.eq.1) then
+        psii = (real(psi0(1)) - psimin)/(psibound - psimin)
+        if(magnetic_region(psi0,x,z).eq.2) psii = 2. - psii
         call evaluate_spline(te_spline,psii,te0)
      else
         te0 = te_spline%y(te_spline%n)

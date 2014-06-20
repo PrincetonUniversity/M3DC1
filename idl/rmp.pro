@@ -329,21 +329,21 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
    if(threed eq 1) then begin
       bx = read_field_3d('bx',phi,x,z,t,last=last,slice=slice, $
                       /linear,_EXTRA=extra, ntor=ntor)
-      by = read_field_3d('by',phi,x,z,t,last=last,slice=slice, $
+      bz = read_field_3d('bz',phi,x,z,t,last=last,slice=slice, $
                       /linear,_EXTRA=extra, ntor=ntor)
    endif else begin
       bx = read_field('bx',x,z,t,last=last,slice=slice, $
                       /linear,_EXTRA=extra,/complex)
-      by = read_field('by',x,z,t,last=last,slice=slice, $
+      bz = read_field('bz',x,z,t,last=last,slice=slice, $
                       /linear,_EXTRA=extra,/complex)
    endelse
 
    if(keyword_set(subtract_vacuum)) then begin
        if(extsubtract eq 0) then begin
            bx0 = read_field('bx',x,z,t,slice=0,/linear,_EXTRA=extra)
-           by0 = read_field('by',x,z,t,slice=0,/linear,_EXTRA=extra)
+           bz0 = read_field('bz',x,z,t,slice=0,/linear,_EXTRA=extra)
            bx = bx - bx0
-           by = by - by0
+           bz = bz - bz0
        end
    endif
 
@@ -351,7 +351,7 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
    r = radius_matrix(x,z,t)
    y = z_matrix(x,z,t)
 
-   br = -(bx*psi0_r + by*psi0_z) / sqrt(psi0_r^2 + psi0_z^2)
+   br = -(bx*psi0_r + bz*psi0_z) / sqrt(psi0_r^2 + psi0_z^2)
 
    ; convert to cgs
    get_normalizations, b0=b0_norm, n0=n0_norm, l0=l0_norm, _EXTRA=extra

@@ -622,7 +622,11 @@ contains
     integer, intent(out) :: izone
     integer :: izonedim
 
+#ifdef USE3D
+    call zonwed(itri, izone, izonedim)
+#else
     call zonfac(itri, izone, izonedim)
+#endif
   end subroutine get_zone
 
 end module scorec_mesh_mod

@@ -1645,10 +1645,11 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    ; toroidal field
    ;===========================================
-   endif else if(strcmp('toroidal field', name, /fold_case) eq 1) or $
-     (strcmp('bz', name, /fold_case) eq 1) then begin
+   endif else if(strcmp('toroidal field', name, /fold_case) eq 1 or $
+                 strcmp('by', name, /fold_case) eq 1) then begin
        
-       I = read_field('I',x,y,t,slices=time, mesh=mesh, filename=filename, $
+       
+       I = read_field('I',x,y,t,slices=time,mesh=mesh,filename=filename,$
                       points=pts, rrange=xrange, zrange=yrange, $
                       linear=linear, complex=complex, phi=phi0)
 
@@ -3652,7 +3653,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    ; Vertical field
    ;===========================================
-   endif else if(strcmp('by', name, /fold_case) eq 1) then begin
+   endif else if(strcmp('bz', name, /fold_case) eq 1) then begin
 
        psi_r = read_field('psi', x, y, t, mesh=mesh, operation=2, $
                         filename=filename, points=pts, slices=time, $
@@ -4906,7 +4907,7 @@ function in_plasma, xy, psi, x, z, axis, psilim
    return, ((psinx*dx + psinz*dz) gt 0.)
 end
 
-function path_at_flux, psi,x,z,t,flux,breaks=breaks,refine=refine,$
+function path_at_flux, psi,x,z,t,flux,refine=refine,$
                        interval=interval, axis=axis, psilim=psilim, $
                        contiguous=contiguous, path_points=pts
 
@@ -4931,43 +4932,17 @@ function path_at_flux, psi,x,z,t,flux,breaks=breaks,refine=refine,$
        xy[1,*] = xy[1,*] + l*fz
    endif
 
-   ; remove points in private flux region
-   if(n_elements(axis) gt 0 and n_elements(psilim) gt 0) then begin
-       ip = in_plasma(xy,psi,x,z,axis,psilim)
-       n_new = fix(total(ip))
-       n_old = n_elements(xy[0,*])
-       if(n_new gt 0) then begin
-           xy_new = fltarr(2,n_new)
-           j = 0
-           for i=0, n_elements(xy[0,*])-1 do begin
-               if(ip[i]) then begin
-                   xy_new[*,j] = xy[*,i]
-                   j = j + 1
-               endif
+   ; find the biggest closed path
+   if(n_elements(info) gt 1 and keyword_set(contiguous)) then begin
+       ibig = 0
+       nbig = 0
+       for k=0, n_elements(info)-1 do begin
+           if(info[k].n gt nbig) then begin
+               ibig = k
+               nbig = info[k].n
            end
-           xy = xy_new
-       endif else begin
-           print, 'excluding all points!'
-           print, 'axis = ', axis
-           print, 'psilim = ', psilim
-       endelse
-   endif
-  
-   ; find breaks
-   n = n_elements(xy[0,*])
-   dx = fltarr(n)
-   for i=0, n-2 do begin
-       dx[i] = sqrt((xy[0,i+1]-xy[0,i])^2 + (xy[1,i+1]-xy[1,i])^2)
-   end
-   dx[n-1] = sqrt((xy[0,0]-xy[0,n-1])^2 + (xy[1,0]-xy[1,n-1])^2)
-   minforbreak = 5.*median(dx)
-
-   breaks = where(dx gt minforbreak,count)
-
-   if(count gt 0) then begin
-       if(breaks[0] ge 0 and keyword_set(contiguous)) then begin
-           xy = xy[*,0:breaks[0]-1]
        end
+       xy = xy[*,info[ibig].offset:info[ibig].offset+info[ibig].n-1]
    end
 
    if(n_elements(interval) ne 0) then begin
@@ -5724,20 +5699,9 @@ pro plot_lcfs, psi, x, z, psival=psival, _EXTRA=extra
 
     ; plot contour
     loadct, 12
-;    contour, psi, x, z, /overplot, nlevels=1, levels=psival, $
-;      thick=!p.charthick*2., color=color(6,10)
-    xy = path_at_flux(psi, x, z, t, psival, breaks=breaks)
+    xy = path_at_flux(psi, x, z, t, psival, /contiguous)
 
-    if(n_elements(breaks) eq 0) then begin
-        oplot, xy[0,*], xy[1,*], thick=!p.thick, color=color(6,10)
-    endif else begin
-        breaks = [-1,breaks]
-
-        for i=0, n_elements(breaks)-2 do begin
-            oplot, xy[0,breaks[i]+1:breaks[i+1]], xy[1,breaks[i]+1:breaks[i+1]], $
-              thick=!p.thick, color=color(6,10)
-        end
-    endelse
+    oplot, xy[0,*], xy[1,*], thick=!p.thick, color=color(6,10)
 end
 
 
@@ -6611,6 +6575,7 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
                                x, z, t, xp=xp, zp=zp, flux[k,p], /contiguous)
            bpf = field_at_flux(bp[k,*,*], psi[k,*,*], $
                                x, z, t, xp=xp, zp=zp, flux[k,p], /contiguous)
+
            if(dpsi gt 0.) then bpf = -bpf
 
            if(n_elements(bpf) lt 3) then continue
@@ -7112,7 +7077,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
          label=units, levels=levels, $
          xtitle=make_label('!8R!X', /l0, _EXTRA=ex), $
          ytitle=make_label('!8Z!X', /l0, _EXTRA=ex), $
-         range=range, _EXTRA=ex
+         range=range, overplot=overplot, _EXTRA=ex
 
        if(n_elements(q_contours) ne 0) then begin
            fval = flux_at_q(q_contours,points=p,_EXTRA=ex)
@@ -8039,8 +8004,24 @@ end
 
 pro plot_perturbed_surface, q, scalefac=scalefac, points=pts, $
                             filename=filename, phi=phi0, _EXTRA=extra, $
-                            out=out
-   icomp =read_parameter('icomplex', filename=filename)
+                            out=out, color=color, names=names, $
+                            overplot=overplot
+
+   n = n_elements(filename)
+
+   if(n gt 1) then begin
+       c = shift(colors(), -1)
+       for i=0, n-1 do begin
+           plot_perturbed_surface, q, scalefac=scalefac, poinst=pts, $
+             filename=filename[i], phi=phi0, color=c[i], overplot=(i ne 0), $
+             _EXTRA=extra
+       end
+       if(n_elements(names) eq 0) then names = filename
+       plot_legend, names, color=c
+       return
+   end
+
+   icomp = read_parameter('icomplex', filename=filename)
    if(n_elements(scalefac) eq 0) then scalefac=1.
    if(n_elements(scalefac) eq 1) then $
      scalefac=replicate(scalefac, n_elements(q))
@@ -8063,8 +8044,10 @@ pro plot_perturbed_surface, q, scalefac=scalefac, points=pts, $
    xhat = psi0_r/sqrt(psi0_r^2 + psi0_z^2)
    zhat = psi0_z/sqrt(psi0_r^2 + psi0_z^2)
 
-   plot, x, z, /nodata, /iso, _EXTRA=extra, $
-     xtitle='!8R!6 (m)!X', ytitle='!8Z!6 (m)!X'
+   if(not keyword_set(overplot)) then begin
+       plot, x, z, /nodata, /iso, _EXTRA=extra, $
+         xtitle='!8R!6 (m)!X', ytitle='!8Z!6 (m)!X'
+   end
    c = colors()
    c0 = c
    if(n_elements(fvals) eq 1) then begin
@@ -8074,6 +8057,13 @@ pro plot_perturbed_surface, q, scalefac=scalefac, points=pts, $
        l0 = 1
    endelse
    for k=0, n_elements(fvals)-1 do begin
+       if(n_elements(color) ne 0) then begin
+           cc = color
+           cc0 = c[0]
+       endif else begin
+           cc = c[k+1]
+           cc0 = c0[k+1]
+       endelse
        xy = path_at_flux(psi0, x, z, t, fvals[k], /contiguous)
        xy_new = xy
 
@@ -8085,13 +8075,13 @@ pro plot_perturbed_surface, q, scalefac=scalefac, points=pts, $
            xy_new[1,j] = xy[1,j] + dr*dz*scalefac[k]
        end
 
-       oplot, xy[0,*], xy[1,*], linestyle=l0, color=c0[k+1]
+       oplot, xy[0,*], xy[1,*], linestyle=l0, color=cc0
        oplot, [xy[0,n_elements(xy[0,*])-1], xy[0,0]],  $
-         [xy[1,n_elements(xy[0,*])-1], xy[1,0]], linestyle=l0, color=c0[k+1]
+         [xy[1,n_elements(xy[0,*])-1], xy[1,0]], linestyle=l0, color=cc0
 
-       oplot, xy_new[0,*], xy_new[1,*], color=c[k+1]
+       oplot, xy_new[0,*], xy_new[1,*], color=cc
        oplot, [xy_new[0,n_elements(xy[0,*])-1], xy_new[0,0]], $
-         [xy_new[1,n_elements(xy[0,*])-1], xy_new[1,0]], color=c[k+1]
+         [xy_new[1,n_elements(xy[0,*])-1], xy_new[1,0]], color=cc
    end
 
    if(n_elements(out) ne 0) then begin
@@ -8112,3 +8102,4 @@ pro plot_perturbed_surface, q, scalefac=scalefac, points=pts, $
        end
    end
 end
+

@@ -226,7 +226,8 @@ end
 
 pro contour_and_legend, z, x, y, label=label, range=range, levels=levels, $
                           title=title, _EXTRA=ex, jpeg=jpeg, lines=lines, $
-                        nlevels=nlevels, zlog=zlog, xsize=xsize, ysize=ysize
+                        nlevels=nlevels, zlog=zlog, xsize=xsize, ysize=ysize, $
+                        overplot=overplot
 
     if(n_elements(z) eq 0) then begin
         print, "contour_and_legend error:  nothing to plot"
@@ -284,11 +285,13 @@ pro contour_and_legend, z, x, y, label=label, range=range, levels=levels, $
             if(n_elements(nlevels) eq 0) then begin
                 contour_and_legend_single, zz, x, y, $
                   label=label[k], title=title[k], range=range, $
-                  lines=lines[k], zlog=zlog[k], levels=levels, _EXTRA=ex
+                  lines=lines[k], zlog=zlog[k], levels=levels, $
+                  overplot=overplot, _EXTRA=ex
             endif else begin
                 contour_and_legend_single, zz, x, y, levels=levels, $
                   label=label[k], title=title[k], range=range, $
-                  lines=lines[k], nlevels=nlevels[k], zlog=zlog[k], _EXTRA=ex
+                  lines=lines[k], nlevels=nlevels[k], zlog=zlog[k], $
+                  overplot=overplot, _EXTRA=ex
             endelse
             !p.noerase = 1
             k = k + 1
@@ -335,7 +338,8 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
                                nofill=nofill, noautoct=noautoct, $
                                nolegend=nolegend, color=color, levels=levels, $
                                clevels=clevels, ccolor=ccolor, $
-                               reverse_ct=reverse_ct, _EXTRA = ex
+                               reverse_ct=reverse_ct, overplot=overplot, $
+                               _EXTRA = ex
 
     zed = reform(z)
    
@@ -349,8 +353,10 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
           clevels = 10
     endif else lines = 0
 
-    if n_elements(nlevels) eq 0 then nlevels=100
+    if(fill eq 0 and n_elements(levels) ne 0) $
+      then nlevels=n_elements(levels)-1
 
+    if n_elements(nlevels) eq 0 then nlevels=100
 
     if n_elements(x) eq 0 then x = findgen(n_elements(zed[*,0]))
     if n_elements(y) eq 0 then y = findgen(n_elements(zed[0,*]))
@@ -418,7 +424,10 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     print, "maxval, minval, fracdiff = ", maxval, minval, fracdiff
     if(fracdiff le 1e-5) then nolegend = 1
 
-    if(keyword_set(zlog)) then begin
+    if(fill eq 0 and n_elements(levels) ne 0) then begin
+        lev = levels
+        if(lev[0] gt lev[nlevels]) then lev = reverse(lev)
+    endif else if(keyword_set(zlog)) then begin
         lev = 10^(alog10(maxval/minval)*findgen(nlevels+1)/(float(nlevels))$
                      + alog10(minval))
     endif else begin
@@ -465,7 +474,7 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
       ytitle=label, xtitle='', charsize=charsize, $
       xticks=1, xtickname=[' ',' '], levels=lev, title='', $
       xrange=xrange, yrange=yrange, xstyle=1, ystyle=1, ylog=zlog, $
-      color=color    
+      color=color
 ;    contour, zz, xx, yy, /overplot, nlevels=nlevels, levels=levels
     ; ***
 

@@ -161,6 +161,7 @@ subroutine calculate_auxiliary_fields(ilin)
   torque_density_em = 0.
   torque_density_ntv = 0.
   chord_mask = 0.
+  mag_reg = 0.
   ef_r = 0.
   ef_phi = 0.
   ef_z = 0.
@@ -399,7 +400,7 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
      ! magnetic_region
      do i=1, dofs_per_element
         do j=1, npoints
-           temp79a(j) = magnetic_region(ps079(j,:),x_79(j),z_79(j))
+           temp79a(j) = magnetic_region(pst79(j,:),x_79(j),z_79(j))
         end do
         dofs(i) = int2(mu79(:,OP_1,i),temp79a)
      end do
