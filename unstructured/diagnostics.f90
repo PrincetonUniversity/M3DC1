@@ -1362,6 +1362,7 @@ subroutine lcfs(psi, test_wall, findx)
         if(myrank.eq.0 .and. iprint.ge.1) then
            write(*,'(A,2E12.4)') '  X-point found at ', xnull2, znull2
         end if
+        if(abs(psix2 - psimin).lt.abs(psix - psimin)) psix = psix2
      else 
         psix2 = psib
         if(myrank.eq.0 .and. iprint.ge.1) then 
@@ -1369,8 +1370,6 @@ subroutine lcfs(psi, test_wall, findx)
         end if
      endif
   end if
-
-  if(abs(psix2 - psimin).lt.abs(psix - psimin)) psix = psix2
 
   if(abs(psix - psimin).lt.abs(psib - psimin)) then
      is_diverted = .true.
@@ -1412,15 +1411,18 @@ subroutine lcfs(psi, test_wall, findx)
      endif
   endif
 
+!!$  call MPI_BARRIER(MPI_COMM_WORLD, ier)
+!!$  if(iprint.ge.1) then
+!!$     write(*,'(1A10,6A11)') 'psi at:', &
+!!$          'axis', 'wall', 'divertor', 'lim1', 'lim2', 'lcfs'
+!!$     write(*,'(1I10,1p6e11.4)') myrank,  &
+!!$          psimin, psib, psix, psilim, psilim2, psibound
+!!$  endif
+!!$  call MPI_BARRIER(MPI_COMM_WORLD, ier)
+
+
   ! daignostic output
   if(myrank.eq.0 .and. iprint.ge.1) then
-     if(iprint.ge.1) then
-        write(*,'(1A10,6A11)') 'psi at:', &
-             'axis', 'wall', 'divertor', 'lim1', 'lim2', 'lcfs'
-        write(*,'(1A10,1p6e11.3)') '',  &
-             psimin, psib, psix, psilim, psilim2, psibound
-     endif
-
      if(psibound.eq.psib) then
         print *, ' Plasma is limited by wall'
      else if(psibound.eq.psix) then

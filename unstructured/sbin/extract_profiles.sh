@@ -16,6 +16,20 @@ if [[ "$1" == m3dc1_profiles_*.txt ]]; then
 
     exit 0
 
+elif [[ "$1" == *_ipec_profs.dat ]]; then
+    echo "Reading IPEC profiles."
+
+    tail -n +7 $1 | awk '{print $1 " " $5*1e-3}' > profile_te
+    tail -n +7 $1 | awk '{print $1 " " $3*1e-20}' > profile_ne
+    tail -n +7 $1 | awk '{print $1 " " $6}' > profile_omega
+
+    echo "In C1input set"
+    echo " iread_ne = 1"
+    echo " iread_te = 1"
+    echo " iread_omega_ExB = 1"
+
+    exit 0
+
 elif [[ "$1" == *.tgz  ]]; then
 
     echo "Reading tarball from Osborne's tools."

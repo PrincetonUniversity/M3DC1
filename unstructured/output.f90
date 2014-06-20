@@ -735,6 +735,15 @@ subroutine output_fields(time_group_id, equilibrium, error)
      call calcavector(i, bz_field(ilin), dum(:,i))
   end do
   if(extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract.eq.0)) then 
+     call output_field(group_id, "I_plasma", real(dum), coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id,"I_plasma_i",aimag(dum),coeffs_per_element, &
+          nelms,error)
+     nfields = nfields + 1
+#endif
+
      allocate(dum2(coeffs_per_element,nelms))
      do i=1, nelms
         call calcavector(i, bz_ext, dum2(:,i))
@@ -759,6 +768,15 @@ subroutine output_fields(time_group_id, equilibrium, error)
         call calcavector(i, bf_field(ilin), dum(:,i))
      end do
      if(extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract.eq.0)) then 
+        call output_field(group_id, "f_plasma", real(dum), coeffs_per_element, &
+             nelms, error)
+        nfields = nfields + 1
+#ifdef USECOMPLEX
+        call output_field(group_id,"f_plasma_i",aimag(dum),coeffs_per_element, &
+             nelms,error)
+        nfields = nfields + 1
+#endif
+
         allocate(dum2(coeffs_per_element,nelms))
         do i=1, nelms
            call calcavector(i, bf_ext, dum2(:,i))
