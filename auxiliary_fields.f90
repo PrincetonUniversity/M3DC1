@@ -15,13 +15,18 @@ module auxiliary_fields
   type(field_type) :: torque_density_ntv
   type(field_type) :: chord_mask
   type(field_type) :: mag_reg
-  type(field_type) :: ef_r, ef_phi, ef_z
+  type(field_type) :: ef_r, ef_phi, ef_z, eta_j, psidot
+  type(field_type) :: vdotgradt
+  type(field_type) :: deldotq_perp
+  type(field_type) :: deldotq_par
+  type(field_type) :: eta_jsq
 
   logical, private :: initialized = .false.
 
 contains
 
 subroutine create_auxiliary_fields
+  use basic
   implicit none
 
   call create_field(bdotgradp)
@@ -33,10 +38,21 @@ subroutine create_auxiliary_fields
   call create_field(ef_r)
   call create_field(ef_phi)
   call create_field(ef_z)
+  call create_field(eta_j)
+  if(jadv.eq.0 .and. i3d.eq.1) then
+     call create_field(psidot)
+  endif
+  if(itemp_plot.eq.1) then
+     call create_field(vdotgradt)
+     call create_field(deldotq_perp)
+     call create_field(deldotq_par)
+     call create_field(eta_jsq)
+  endif
   initialized = .true.
 end subroutine create_auxiliary_fields
 
 subroutine destroy_auxiliary_fields
+  use basic
   implicit none
 
   if(.not.initialized) return
@@ -49,6 +65,16 @@ subroutine destroy_auxiliary_fields
   call destroy_field(ef_r)
   call destroy_field(ef_phi)
   call destroy_field(ef_z)
+  call destroy_field(eta_j)
+  if(jadv.eq.0 .and. i3d.eq.1) then
+     call destroy_field(psidot)
+  endif
+  if(itemp_plot.eq.1) then
+     call destroy_field(vdotgradt)
+     call destroy_field(deldotq_perp)
+     call destroy_field(deldotq_par)
+     call destroy_field(eta_jsq)
+  endif
 end subroutine destroy_auxiliary_fields
   
 subroutine calculate_temperatures(ilin, te, ti)
@@ -142,6 +168,7 @@ subroutine calculate_auxiliary_fields(ilin)
   use diagnostics
   use metricterms_new
   use electric_field
+  use temperature_plots
 
   implicit none
 
@@ -165,14 +192,23 @@ subroutine calculate_auxiliary_fields(ilin)
   ef_r = 0.
   ef_phi = 0.
   ef_z = 0.
+  eta_j = 0.
+  if(jadv.eq.0 .and. i3d.eq.1) then
+     psidot = 0.
+  endif
+  if(itemp_plot.eq.1) then
+     vdotgradt = 0.
+     deldotq_perp = 0.
+     deldotq_par = 0.
+     eta_jsq = 0.
+  endif
 
   ! specify which primitive fields are to be evalulated
   def_fields = FIELD_N + FIELD_NI + FIELD_P + FIELD_PSI + FIELD_I
   def_fields = def_fields + FIELD_PHI + FIELD_V + FIELD_CHI
-  def_fields = def_fields + FIELD_ETA
-  if(amupar.ne.0) then
-     def_fields = def_fields + FIELD_MU + FIELD_B2I
-  end if
+  def_fields = def_fields + FIELD_ETA + FIELD_TE + FIELD_KAP
+  def_fields = def_fields + FIELD_MU + FIELD_B2I
+  if(jadv.eq.0 .and. i3d.eq.1) def_fields = def_fields + FIELD_ES
 
   numelms = local_elements()
 if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
@@ -423,6 +459,47 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
      end do
      call vector_insert_block(ef_z%vec,itri,1,dofs,VEC_ADD)
 
+     call electric_field_eta_j(ilin,temp79a)
+     do i=1, dofs_per_element
+        dofs(i) = int2(mu79(:,OP_1,i),temp79a)
+     end do
+     call vector_insert_block(eta_j%vec,itri,1,dofs,VEC_ADD)
+     
+     if(jadv.eq.0 .and. i3d.eq.1) then
+        call electric_field_psidot(ilin,temp79a)
+        do i=1, dofs_per_element
+           dofs(i) = int2(mu79(:,OP_1,i),temp79a)
+        end do
+        call vector_insert_block(psidot%vec,itri,1,dofs,VEC_ADD)
+     endif
+
+     if(itemp_plot.eq.1) then
+        call advection(temp79a)
+        do i=1, dofs_per_element
+           dofs(i) = int2(mu79(:,OP_1,i),temp79a)
+        end do
+        call vector_insert_block(vdotgradt%vec,itri,1,dofs,VEC_ADD)
+
+  
+        do i=1, dofs_per_element
+           call hf_perp(i,temp79a)
+           dofs(i) = int1(temp79a)
+        end do
+        call vector_insert_block(deldotq_perp%vec,itri,1,dofs,VEC_ADD)
+
+     
+        do i=1, dofs_per_element
+           call hf_par(i,temp79a)
+           dofs(i) = int1(temp79a)
+        end do
+        call vector_insert_block(deldotq_par%vec,itri,1,dofs,VEC_ADD)
+
+        call ohmic(temp79a)
+        do i=1, dofs_per_element
+           dofs(i) = int2(mu79(:,OP_1,i),temp79a)
+        end do
+        call vector_insert_block(eta_jsq%vec,itri,1,dofs,VEC_ADD)
+     end if  ! on itemp_plot.eq.1
 
   end do
 
@@ -446,6 +523,16 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
   call newvar_solve(ef_r%vec, mass_mat_lhs)
   call newvar_solve(ef_phi%vec, mass_mat_lhs)
   call newvar_solve(ef_z%vec, mass_mat_lhs)
+  call newvar_solve(eta_j%vec, mass_mat_lhs)
+  if(jadv.eq.0 .and. i3d.eq.1) then
+     call newvar_solve(psidot%vec, mass_mat_lhs)
+  endif
+  if(itemp_plot.eq.1) then
+     call newvar_solve(vdotgradt%vec, mass_mat_lhs)
+     call newvar_solve(deldotq_perp%vec, mass_mat_lhs)
+     call newvar_solve(deldotq_par%vec, mass_mat_lhs)
+     call newvar_solve(eta_jsq%vec, mass_mat_lhs)
+  endif
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Done calculating diagnostic fields'
   

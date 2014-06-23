@@ -7177,21 +7177,21 @@ vectype function b1chidot(e,f)
 end function b1chidot
 
 
-vectype function b1psibfpe(e,f,g,h,i)
+vectype function b1psi2bfpe(e,f,g,h,i,j)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
   vectype :: temp
   temp = 0.
 
-  temp79a = ri_79*(i(:,OP_DZ)*f(:,OP_DR) - i(:,OP_DR)*f(:,OP_DZ))
+  temp79a = ri_79*(j(:,OP_DZ)*f(:,OP_DR) - j(:,OP_DR)*f(:,OP_DZ))
 #if defined(USE3D) || defined(USECOMPLEX)
-  temp79a = temp79a - (i(:,OP_DR)*h(:,OP_DRP) + i(:,OP_DZ)*h(:,OP_DZP))   &
-                    + ri2_79*g(:,OP_1)*i(:,OP_DP)
+  temp79a = temp79a - (j(:,OP_DR)*i(:,OP_DRP) + j(:,OP_DZ)*i(:,OP_DZP))   &
+                    + ri2_79*h(:,OP_1)*j(:,OP_DP)
 #endif
   temp79a = temp79a*b2i79(:,OP_1)*ri2_79*ni79(:,OP_1)
 
@@ -7202,20 +7202,20 @@ vectype function b1psibfpe(e,f,g,h,i)
      if(jadv.eq.0) then
         temp = 0.
      else
-        temp = int3(temp79a,e(:,OP_GS),g(:,OP_1))     
+        temp = int3(temp79a,e(:,OP_GS),h(:,OP_1))
 #if defined(USE3D) || defined(USECOMPLEX)
-        temp = temp - int4(ri_79,temp79a,e(:,OP_DZP),f(:,OP_DR))   &
-                    + int4(ri_79,temp79a,e(:,OP_DRP),f(:,OP_DZ))   &
-                    + int3(temp79a,e(:,OP_DRP),h(:,OP_DRP))        &
-                    + int3(temp79a,e(:,OP_DZP),h(:,OP_DZP))        
+        temp = temp - int4(ri_79,temp79a,e(:,OP_DZP),g(:,OP_DR))   &
+                    + int4(ri_79,temp79a,e(:,OP_DRP),g(:,OP_DZ))   &
+                    + int3(temp79a,e(:,OP_DRP),i(:,OP_DRP))        &
+                    + int3(temp79a,e(:,OP_DZP),i(:,OP_DZP))
 #endif
      endif
 
   end if
 
-  b1psibfpe = temp
+  b1psi2bfpe = temp
   return
-end function b1psibfpe
+end function b1psi2bfpe
 
 
 !==============================================================================
@@ -8259,21 +8259,21 @@ vectype function b2chidot(e,f)
   b2chidot = temp
   return
 end function b2chidot
-vectype function b2psibfpe(e,f,g,h,i)
+vectype function b2psi2bfpe(e,f,g,h,i,j)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
   vectype :: temp
   temp = 0.
 
-  temp79a = ri_79*(i(:,OP_DZ)*f(:,OP_DR) - i(:,OP_DR)*f(:,OP_DZ))
+  temp79a = ri_79*(j(:,OP_DZ)*f(:,OP_DR) - j(:,OP_DR)*f(:,OP_DZ))
 #if defined(USE3D) || defined(USECOMPLEX)
-  temp79a = temp79a - (i(:,OP_DR)*h(:,OP_DRP) + i(:,OP_DZ)*h(:,OP_DZP))   &
-                    + ri2_79*g(:,OP_1)*i(:,OP_DP)
+  temp79a = temp79a - (j(:,OP_DR)*i(:,OP_DRP) + j(:,OP_DZ)*i(:,OP_DZP))   &
+                    + ri2_79*h(:,OP_1)*j(:,OP_DP)
 #endif
   temp79a = temp79a*b2i79(:,OP_1)*ni79(:,OP_1)
 
@@ -8281,18 +8281,18 @@ vectype function b2psibfpe(e,f,g,h,i)
   if(surface_int) then
         temp = 0.
   else
-        temp = int4(ri2_79,temp79a,e(:,OP_DR),f(:,OP_DR))    &  
-             + int4(ri2_79,temp79a,e(:,OP_DZ),f(:,OP_DZ))
+        temp = int4(ri2_79,temp79a,e(:,OP_DR),g(:,OP_DR))    &
+             + int4(ri2_79,temp79a,e(:,OP_DZ),g(:,OP_DZ))
 #if defined(USE3D) || defined(USECOMPLEX)
-        temp = temp + int4(ri_79,temp79a,e(:,OP_DZ),h(:,OP_DRP))   &
-                    - int4(ri_79,temp79a,e(:,OP_DR),f(:,OP_DZP))        
+        temp = temp + int4(ri_79,temp79a,e(:,OP_DZ),i(:,OP_DRP))   &
+                    - int4(ri_79,temp79a,e(:,OP_DR),i(:,OP_DZP))
 #endif
 
   end if
 
-  b2psibfpe = temp
+  b2psi2bfpe = temp
   return
-end function b2psibfpe
+end function b2psi2bfpe
 !=============================================================================
 ! B3 TERMS
 !=============================================================================
@@ -8668,6 +8668,52 @@ vectype function b3pedkappa(e,f,g,h,i)
   b3pedkappa = (gam-1.)*temp  
   return
 end function b3pedkappa
+
+! B3tekappa
+! ==========
+vectype function b3tekappa(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype :: temp
+
+  if(gam.le.1.) then
+     b3tekappa = 0.
+     return
+  end if
+
+  if(surface_int) then
+     temp = int4(e(:,OP_1),norm79(:,1),f(:,OP_DR),g(:,OP_1)) &
+          + int4(e(:,OP_1),norm79(:,2),f(:,OP_DZ),g(:,OP_1))
+  else
+     temp = &
+          - int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1)) &
+          - int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_1))
+  
+#if defined(USE3D) || defined(USECOMPLEX)
+     temp = temp +                       &
+          int4(ri2_79,e(:,OP_1),f(:,OP_DPP),g(:,OP_1))
+#endif
+     if(hypp.ne.0.) then
+
+        if(ihypkappa.eq.1) then        
+           temp = temp - &
+                (int4(f(:,OP_LP),e(:,OP_LP),g(:,OP_1 ),h(:,OP_1)) &
+                +int4(f(:,OP_LP),e(:,OP_DZ),g(:,OP_DZ),h(:,OP_1)) &
+                +int4(f(:,OP_LP),e(:,OP_DR),g(:,OP_DR),h(:,OP_1)))
+        else
+           temp = temp - int3(f(:,OP_LP),e(:,OP_LP),h(:,OP_1))
+        endif
+     endif
+  end if
+
+  b3tekappa = (gam-1.)*temp
+  return
+end function b3tekappa
 
 
 
