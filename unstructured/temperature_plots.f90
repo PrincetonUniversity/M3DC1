@@ -1,0 +1,218 @@
+module temperature_plots
+
+contains
+
+subroutine advection(o)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(MAX_PTS), intent(out) :: o
+ ! Advection
+  ! ~~~~~~~~~~~~~~~~~~
+     o =  - r_79*tet79(:,OP_DZ)*nt79(:,OP_1)*pht79(:,OP_DR) &
+                + r_79*tet79(:,OP_DR)*nt79(:,OP_1)*pht79(:,OP_DZ)    
+         
+     if(itor.eq.1) then
+        o = o + &
+        2.*(gam-1.)*tet79(:,OP_1)*nt79(:,OP_1)*pht79(:,OP_DZ)
+     endif
+
+#if defined(USE3D) || defined(USECOMPLEX)
+     if(numvar.ge.2) then
+        o = o + tet79(:,OP_DP)*nt79(:,OP_1)*vzt79(:,OP_1) &
+         - (gam-1.)*tet79(:,OP_1)*nt79(:,OP_1)*vzt79(:,OP_DP)
+     end if
+#endif
+
+     if(numvar.ge.3) then
+        temp79b = -(tet79(:,OP_DR)*cht79(:,OP_DR) &
+                  + tet79(:,OP_DZ)*cht79(:,OP_DZ))  &
+                  - (gam-1.)*tet79(:,OP_1)*cht79(:,OP_GS)
+     
+        o = o + ri2_79*temp79b*nt79(:,OP_1)
+     end if
+
+  ! Electron Temp Advection
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(dbf.ne.0.) then
+#if defined(USE3D) || defined(USECOMPLEX)
+  temp79b = ri2_79*tet79(:,OP_DZ)*pst79(:,OP_DZP)*ni79(:,OP_1) &
+       + ri2_79*tet79(:,OP_DR)*pst79(:,OP_DRP)*ni79(:,OP_1) &
+       - ri2_79*tet79(:,OP_DP)*pst79(:,OP_GS)*ni79(:,OP_1) &
+       + gam* &
+       (ri2_79*tet79(:,OP_1)*pst79(:,OP_DZP)*ni79(:,OP_DZ) &
+       +ri2_79*tet79(:,OP_1)*pst79(:,OP_DRP)*ni79(:,OP_DR) &
+       -ri2_79*tet79(:,OP_1)*pst79(:,OP_GS)*ni79(:,OP_DP))
+  o = o + temp79b*dbf
+#endif
+        if(numvar.ge.2) then
+           temp79b =  ri_79*pet79(:,OP_DZ)*bzt79(:,OP_DR)*ni79(:,OP_1) &
+                 - ri_79*pet79(:,OP_DR)*bzt79(:,OP_DZ)*ni79(:,OP_1) &
+                 + gam* &
+                  (ri_79*pet79(:,OP_1)*bzt79(:,OP_DR)*ni79(:,OP_DZ) &
+                 - ri_79*pet79(:,OP_1)*bzt79(:,OP_DZ)*ni79(:,OP_DR))
+           o = o + temp79b*dbf
+        end if
+ 
+        if(i3d.eq.1) then
+           if(numvar.ge.3) then
+#if defined(USE3D) || defined(USECOMPLEX)
+              o = o +  ri_79*pet79(:,OP_DZ)*bf179(:,OP_DRPP)*ni79(:,OP_1) &
+                    - ri_79*pet79(:,OP_DR)*bf179(:,OP_DZPP)*ni79(:,OP_1) &
+                  + gam* &
+                    ( ri_79*pet79(:,OP_1)*bf179(:,OP_DRPP)*ni79(:,OP_DZ) &
+                    - ri_79*pet79(:,OP_1)*bf179(:,OP_DZPP)*ni79(:,OP_DR))
+#endif
+             
+           end if
+       end if
+  endif
+end subroutine advection
+
+subroutine hf_perp(i,o)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: i
+  vectype, dimension(MAX_PTS), intent(out) :: o
+
+
+     ! Perpendicular Heat Flux
+     ! ~~~~~~~~~~~~~~~~~~~~~~~
+     o =   -(gam-1)*    &
+          ( mu79(:,OP_DZ,i)*tet79(:,OP_DZ)*kap79(:,OP_1) &
+          + mu79(:,OP_DR,i)*tet79(:,OP_DR)*kap79(:,OP_1) )
+#if defined(USE3D) || defined(USECOMPLEX)
+     o = o + (gam-1)*ri2_79*mu79(:,OP_1,i)*tet79(:,OP_DPP)*kap79(:,OP_1)
+#endif
+
+end subroutine hf_perp
+
+subroutine hf_par(i,o)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: i
+  vectype, dimension(MAX_PTS), intent(out) :: o
+!
+          temp79b = kar79(:,OP_1)*ri2_79*        &
+                  (mu79(:,OP_DZ,i)*pstx79(:,OP_DR) &
+                 - mu79(:,OP_DR,i)*pstx79(:,OP_DZ))*b2i79(:,OP_1)
+
+          o = (gam-1.)*(temp79b*pstx79(:,OP_DZ)*tet79(:,OP_DR) &
+                         - temp79b*pstx79(:,OP_DR)*tet79(:,OP_DZ))
+
+#if defined(USE3D) || defined(USECOMPLEX)
+          temp79b = -kar79(:,OP_1)*ri3_79*bztx79(:,OP_1)* &
+                    (mu79(:,OP_DZ,i)*pstx79(:,OP_DR) &
+                   - mu79(:,OP_DR,i)*pstx79(:,OP_DZ))*b2i79(:,OP_1)
+          temp79c = pstx79(:,OP_DR)*tet79(:,OP_DZ) &
+                  - pstx79(:,OP_DZ)*tet79(:,OP_DR)
+          temp79d = temp79c*bztx79(:,OP_1 )*b2i79(:,OP_1 )*kar79(:,OP_1)
+          o = o + (gam - 1.)* (temp79b*tet79(:,OP_DP) &
+                                - ri3_79*mu79(:,OP_DP,i)*temp79d)
+
+          temp79b = bztx79(:,OP_1)*bztx79(:,OP_1 )   &
+                                *tet79(:,OP_DP)*b2i79(:,OP_1 )*kar79(:,OP_1 )
+          o = o -(gam-1)*(ri4_79*mu79(:,OP_DP,i)*temp79b)
+
+
+          if(i3d.eq.1 .and. numvar.ge.2) then
+             temp79b = kar79(:,OP_1)*ri_79* &
+                     (mu79(:,OP_DZ,i)*pstx79(:,OP_DR) &
+                    - mu79(:,OP_DR,i)*pstx79(:,OP_DZ))*b2i79(:,OP_1)
+             temp79c = kar79(:,OP_1)*ri_79* &
+                     (mu79(:,OP_DZ,i)*bftx79(:,OP_DZP) &
+                    + mu79(:,OP_DR,i)*bftx79(:,OP_DRP))*b2i79(:,OP_1)
+
+             o = o + (gam -1.)*(temp79b*bftx79(:,OP_DZP)*tet79(:,OP_DZ) &
+                             + temp79b*bftx79(:,OP_DRP)*tet79(:,OP_DR) &
+                             + temp79c*pstx79(:,OP_DR )*tet79(:,OP_DZ) &
+                             - temp79c*pstx79(:,OP_DZ )*tet79(:,OP_DR))
+       
+              temp79b = kar79(:,OP_1)*ri2_79*bztx79(:,OP_1)* &
+                    (mu79(:,OP_DZ,i)*bftx79(:,OP_DZP) &
+                   + mu79(:,OP_DR,i)*bftx79(:,OP_DRP))*b2i79(:,OP_1)
+
+              temp79c = bftx79(:,OP_DZP)*tet79(:,OP_DZ) &
+                      + bftx79(:,OP_DRP)*tet79(:,OP_DR)
+
+              temp79d = temp79c*bztx79(:,OP_1 )*b2i79(:,OP_1 )*kar79(:,OP_1 )
+
+              o = o + (gam - 1.)*(temp79b*tet79(:,OP_DP) &
+                                   + ri2_79*mu79(:,OP_DP,i)*temp79d)
+           
+              temp79b = - kar79(:,OP_1)*              &
+                    (mu79(:,OP_DZ,i)*bftx79(:,OP_DZP) &
+                   + mu79(:,OP_DR,i)*bftx79(:,OP_DRP))*b2i79(:,OP_1)
+
+              o = o + (gam - 1.)*(temp79b*bftx79(:,OP_DZP)*tet79(:,OP_DZ) &
+                            + temp79b*bftx79(:,OP_DRP)*tet79(:,OP_DR))
+          endif
+
+#endif
+
+end subroutine hf_par
+
+subroutine ohmic(o)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(MAX_PTS), intent(out) :: o
+  real :: ohfac
+  ohfac = 1.
+  if(ipres.eq.0) ohfac = 0.5
+
+  ! Ohmic Heating
+  ! ~~~~~~~~~~~~~
+      o = (gam-1.)*ohfac* &
+              ri2_79*pst79(:,OP_GS)* pst79(:,OP_GS)* eta79(:,OP_1)   
+#if defined(USE3D) || defined(USECOMPLEX)
+       o = o + (gam-1)*ohfac*   &
+           (ri4_79*pst79(:,OP_DRP)*pst79(:,OP_DRP)*eta79(:,OP_1)   &
+         +  ri4_79*pst79(:,OP_DZP)*pst79(:,OP_DZP)*eta79(:,OP_1))
+#endif
+
+       if(numvar.ge.2) then
+         
+         o = o + (gam-1.)*ohfac* &
+              (ri2_79*bzt79(:,OP_DZ)*bzt79(:,OP_DZ)*eta79(:,OP_1) &
+              +ri2_79*bzt79(:,OP_DR)*bzt79(:,OP_DR)*eta79(:,OP_1))
+
+#if defined(USE3D) || defined(USECOMPLEX)
+         o = o + 2.*(gam-1.)*ohfac* &
+              (ri3_79*pst79(:,OP_DZP)*bzt79(:,OP_DR)*eta79(:,OP_1)  &
+              -ri3_79*pst79(:,OP_DRP)*bzt79(:,OP_DZ)*eta79(:,OP_1))
+
+          if(i3d .eq. 1) then
+
+             o = o +  2.*(gam-1.)*ohfac* &
+             (ri3_79*pst79(:,OP_DZP)*bft79(:,OP_DRPP)*eta79(:,OP_1)  &
+             -ri3_79*pst79(:,OP_DRP)*bft79(:,OP_DZPP)*eta79(:,OP_1))
+
+             o = o + (gam-1.)*ohfac* &
+             (ri2_79*bzt79(:,OP_DZ)*bft79(:,OP_DZPP)*eta79(:,OP_1) &
+             +ri2_79*bzt79(:,OP_DR)*bft79(:,OP_DRPP)*eta79(:,OP_1))
+
+             o = o + (gam-1.)*ohfac* &
+               (ri2_79*bft79(:,OP_DZPP)*bft79(:,OP_DZPP)*eta79(:,OP_1) &
+             +  ri2_79*bft79(:,OP_DRPP)*bft79(:,OP_DRPP)*eta79(:,OP_1))      
+          endif
+#endif
+       end if
+
+end subroutine ohmic
+
+end module temperature_plots
+
+
+ 
+

@@ -720,15 +720,15 @@ subroutine output_fields(time_group_id, equilibrium, error)
 #endif
   if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after u in output_fields'
 
-!!$  ! electrostatic potential
-!!$  if(jadv.eq.0 .and. i3d.eq.1) then 
-!!$     do i=1, nelms
-!!$        call calcavector(i, e_v, dum(:,i))
-!!$     end do
-!!$     call output_field(group_id, "potential", real(dum), coeffs_per_element, &
-!!$          nelms, error)
-!!$     nfields = nfields + 1
-!!$  endif
+  ! electrostatic potential
+  if(jadv.eq.0 .and. i3d.eq.1) then
+     do i=1, nelms
+        call calcavector(i, e_field(1), dum(:,i))
+     end do
+     call output_field(group_id, "potential", real(dum), coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+  endif
 
   ! I
   do i=1, nelms
@@ -1078,6 +1078,44 @@ subroutine output_fields(time_group_id, equilibrium, error)
          nelms, error)
     nfields = nfields + 1
 #endif
+    if(itemp_plot .eq. 1) then
+       ! vdotgradt
+       do i=1, nelms
+          call calcavector(i, vdotgradt, dum(:,i))
+       end do
+       call output_field(group_id, "vdotgradt", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
+#ifdef USECOMPLEX
+       call output_field(group_id, "vdotgradt_i",aimag(dum),&
+            coeffs_per_element,nelms, error)
+       nfields = nfields + 1
+#endif
+
+       ! deldotq_perp
+       do i=1, nelms
+          call calcavector(i, deldotq_perp, dum(:,i))
+       end do
+       call output_field(group_id, "deldotq_perp", real(dum), &
+            coeffs_per_element, nelms, error)
+       nfields = nfields + 1
+
+    ! deldotq_par
+       do i=1, nelms
+          call calcavector(i, deldotq_par, dum(:,i))
+       end do
+       call output_field(group_id, "deldotq_par", real(dum), &
+            coeffs_per_element,nelms, error)
+       nfields = nfields + 1
+
+    ! eta_jsq
+       do i=1, nelms
+          call calcavector(i, eta_jsq, dum(:,i))
+       end do
+       call output_field(group_id, "eta_jsq", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
+    endif    ! on itemp_plot .eq. 1
     
     ! sigma
     if(density_source) then
@@ -1142,6 +1180,22 @@ subroutine output_fields(time_group_id, equilibrium, error)
     call output_field(group_id, "E_PHI", real(dum), &
          coeffs_per_element, nelms, error)
     nfields = nfields + 1
+
+    do i=1, nelms
+       call calcavector(i, eta_j, dum(:,i))
+    end do
+    call output_field(group_id, "eta_J", real(dum), &
+         coeffs_per_element, nelms, error)
+    nfields = nfields + 1
+
+    if(jadv.eq.0 .and. i3d.eq.1) then
+       do i=1, nelms
+          call calcavector(i, psidot, dum(:,i))
+       end do
+       call output_field(group_id, "psidot", real(dum), &
+            coeffs_per_element, nelms, error)
+       nfields = nfields + 1
+    endif
 
     do i=1, nelms
        call calcavector(i, ef_z, dum(:,i))

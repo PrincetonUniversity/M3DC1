@@ -2115,14 +2115,20 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
      ddterm(vz_g) = ddterm(vz_g) + (1.-thimpf*bdf)*dt*temp
   endif
 !
-  case(3)  !  only include parallel electron gradient
+  case(3)  !  only include parallel electron pressure gradient
   ! Grad(p_e)
   ! ~~~~~~~~~
   if(dbf.ne.0.) then
      if(numvar.ge.3) then
-        temp = b1psibfpe(trial,pst79,bzt79,bft79,lin)*dbf
+        temp = b1psi2bfpe(trial,pst79,pst79,bzt79,bft79,lin)*dbf
         ssterm(pe_g) = ssterm(pe_g) -     thimpf     *dt*temp
         ddterm(pe_g) = ddterm(pe_g) + (1.-thimpf*bdf)*dt*temp
+
+        if(eqsubtract.eq.1) then
+          temp = b1psi2bfpe(trial,lin,pst79,bzt79,bft79,pe079)*dbf
+          ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
+          ddterm(psi_g) = ddterm(psi_g) + (1.-thimpf*bdf)*dt*temp
+        endif
      end if
   end if  
 
@@ -2704,9 +2710,14 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
   ! ~~~~~~~~~
   if(dbf.ne.0.) then
      if(numvar.ge.3) then
-        temp = b2psibfpe(trial,pst79,bzt79,bft79,lin)*dbf
+        temp = b2psi2bfpe(trial,pst79,pst79,bzt79,bft79,lin)*dbf
         ssterm(pe_g) = ssterm(pe_g) -     thimpf     *dt*temp
         ddterm(pe_g) = ddterm(pe_g) + (1.-thimpf*bdf)*dt*temp
+        if(eqsubtract.eq.1) then
+           temp = b2psi2bfpe(trial,lin,pst79,bzt79,bft79,pe079)*dbf
+           ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
+           ddterm(psi_g) = ddterm(psi_g) + (1.-thimpf*bdf)*dt*temp
+        endif
      end if
   end if  
   end select
@@ -3722,15 +3733,9 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
      ! Perpendicular Heat Flux
      ! ~~~~~~~~~~~~~~~~~~~~~~~
-     temp = b3pedkappa(trial,lin,ni79,kap79,hp)
+     temp = b3tekappa(trial,lin,kap79,hp)
      ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
      ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
-     if(eqsubtract.eq.1) then
-        if(idens.eq.1) then
-           q_ni(1) = q_ni(1) + dt* &
-                (b3pedkappa(trial,pp079,lin,kap79,hp))
-        end if
-     end if
 
   ! Parallel Heat Flux
   ! ~~~~~~~~~~~~~~~~~~
@@ -4585,7 +4590,7 @@ subroutine ludefphi_n(itri)
            call get_j_mask(itri, imask)
         endif
      else
-        if(myrank.eq.0) print *, 'error in ludefphi_n', k, ieq(k)
+        if(myrank.eq.0) print *, 'error in ludefphi_n', k, ieq(k), maxk
         call safestop(31)
         imask = 1
      end if

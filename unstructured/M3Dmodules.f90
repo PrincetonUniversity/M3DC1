@@ -313,6 +313,7 @@ module basic
   integer :: ike_harmonics  ! number of Fourier harmonics of ke to be calculated and output
   integer :: ibh_harmonics  ! number of Fourier harmonics of magnetic field perturbation to be calculated and output
   integer :: ifout         ! 1 = output f field
+  integer :: itemp_plot    ! 1 =output vdotgradt, deldotq_perp, deldotq_par,eta_jsq
   integer :: iread_eqdsk   ! 1 = read geqdsk input
                            ! 2 = read geqdsk for psi, but use default profiles
   integer :: iread_dskbal  ! 1 = read dskbal input

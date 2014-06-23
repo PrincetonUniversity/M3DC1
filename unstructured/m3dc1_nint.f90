@@ -68,7 +68,8 @@ module m3dc1_nint
   integer, parameter :: FIELD_TI  =262144
   integer, parameter :: FIELD_Q   =524288
   integer, parameter :: FIELD_F   =1048576
-  integer, parameter :: FIELD_PF =2097152
+  integer, parameter :: FIELD_PF  =2097152
+  integer, parameter :: FIELD_ES  =4194304
 
   vectype, dimension(MAX_PTS, OP_NUM, dofs_per_element) :: mu79, nu79
   vectype, dimension(MAX_PTS) :: r_79, r2_79, r3_79, &
@@ -81,7 +82,7 @@ module m3dc1_nint
        ph179, vz179, ch179, p179, ne179, pi179
   vectype, dimension(MAX_PTS, OP_NUM) :: pst79, bzt79, pet79, nt79, &
        pht79, vzt79, cht79, pt79, net79
-  vectype, dimension(MAX_PTS, OP_NUM) :: vis79, vic79, vip79, for79
+  vectype, dimension(MAX_PTS, OP_NUM) :: vis79, vic79, vip79, for79, es179
   vectype, dimension(MAX_PTS, OP_NUM) :: jt79, cot79, vot79, pit79, &
        eta79, sig79, fy79, q79
   vectype, dimension(MAX_PTS, OP_NUM) :: bf079, bf179, bft79
@@ -992,6 +993,15 @@ contains
           tit79 = ti179
        endif
     endif
+    ! Electrostatic Potential
+    ! ~~~
+    if((iand(fields, FIELD_ES).eq.FIELD_ES)   &
+        .and. jadv.eq.0 .and. i3d .eq.1 ) then
+       if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   potential..."
+       
+        call eval_ops(itri, e_field(1), es179)
+    endif
+
 end subroutine define_fields
 
 subroutine interpolate_size_field(itri)
