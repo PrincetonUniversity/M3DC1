@@ -413,7 +413,7 @@ pro convert_units, x, d, b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
        temp0 = b0^2/(fp*n0) * 1./(1.6022e-12)
        i0 = c0*b0*l0/fp
        e0 = b0^2*l0^3/fp
-       pot0 = v0*b0/(l0*c0)
+       pot0 = l0*v0*b0/c0
 
        val = fp^d[0] $
          * c0^d[1] $
@@ -6435,7 +6435,7 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
                              
                ; calculate dt
                dt = ds*g
-               if(dpsi lt 0) then dt = -dt
+               if(not left_handed) then dt = -dt
 
                pest_angle = fltarr(n_elements(dt))
                pest_angle[0] = 0.
@@ -7207,7 +7207,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
 
    nt = n_elements(time)
    if(nt gt 1) then begin
-       if(n_elements(names) eq 0) then names=strarr(nt)
+       nn=strarr(nt)
        if(keyword_set(bw)) then begin
            ls = indgen(nt)
            colors = replicate(color(0,1), nt)
@@ -7215,7 +7215,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
            if(n_elements(colors) eq 0) then colors = colors()
            if(time[0] gt 0) then colors = shift(colors,-1)
            ls = replicate(0,nt)
-       endelse       
+       endelse
        if(n_elements(linfac) eq 1) then linfac=replicate(linfac, nt)
        for i=0, n_elements(time)-1 do begin
            newfield = field
@@ -7232,9 +7232,10 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
            get_normalizations, b0=b0, n0=n0, l0=l0, $
                         zeff=zeff, ion_mass=mi, filename=filename
            convert_units, t, dimensions(/t0), b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
-           names[i] = string(format='(%"!8t!6 = %g ",A,"!X")', t, lab)
+           nn[i] = string(format='(%"!8t!6 = %g ",A,"!X")', t, lab)
        end
 
+       if(n_elements(names) eq 0) then names=nn
        if(n_elements(names) gt 0) then begin
            plot_legend, names, color=colors, ylog=ylog, xlog=xlog, $
              linestyle=ls, _EXTRA=extra
