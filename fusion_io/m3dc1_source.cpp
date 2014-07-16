@@ -28,7 +28,7 @@ int m3dc1_source::open(const char* filename)
   p0 = B0*B0/(4.*M_PI);
   J0 = B0*c/(4.*M_PI*L0);
   v0 = B0/sqrt(4.*M_PI*ion_mass*m_p*n0);
-  Phi0 = v0*B0/c;
+  Phi0 = L0*v0*B0/c;
 
   // convert normalization quantities to mks
   n0 /= 1.e-6;
