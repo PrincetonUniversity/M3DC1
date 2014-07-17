@@ -9,6 +9,7 @@
 #include <math.h>
 #include <time.h>
 #include <mpi.h>
+#include <stdlib.h>
 
 trace_integrator tracer;
 int transits = 100;
