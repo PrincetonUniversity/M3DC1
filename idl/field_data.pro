@@ -1,0 +1,111 @@
+;======================================================================
+; field_data
+; ~~~~~~~~~~
+;
+; provides the associated symbol and units for fields defined in C1.h5
+;======================================================================
+function field_data, name, units=units, itor=itor
+   units = dimensions()
+
+   if(strcmp(name, 'psi', /fold_case) eq 1 or $
+      strcmp(name, 'psi_i', /fold_case) eq 1) then begin
+       units = dimensions(/b0, l0=1+itor)
+       return, "!7w!X"
+   endif else if(strcmp(name, 'I', /fold_case) eq 1 or $
+                 strcmp(name, 'I_i', /fold_case) eq 1) then begin
+       units = dimensions(/b0, l0=itor)
+       return, "!8I!X"
+   endif else if(strcmp(name, 'phi', /fold_case) eq 1 or $
+                 strcmp(name, 'phi_i', /fold_case) eq 1) then begin
+       units = dimensions(/v0, l0=1+itor)
+       return, "!8U!X"
+   endif else if(strcmp(name, 'V', /fold_case) eq 1 or $
+                 strcmp(name, 'V_i', /fold_case) eq 1) then begin
+       units = dimensions(/v0, l0=itor)
+       return, "!8V!X"
+   endif else if(strcmp(name, 'chi', /fold_case) eq 1 or $
+                 strcmp(name, 'chi_i', /fold_case) eq 1) then begin
+       units = dimensions(/v0, l0=1)
+       return, "!7v!X"
+   endif else if(strcmp(name, 'eta', /fold_case) eq 1 or $
+                 strcmp(name, 'eta_i', /fold_case) eq 1) then begin
+       units = dimensions(/eta)
+       return, "!7g!X"
+   endif else if(strcmp(name, 'den', /fold_case) eq 1 or $
+                 strcmp(name, 'den_i', /fold_case) eq 1) then begin
+       units = dimensions(/n0)
+       return, "!8n!Di!N!X"
+   endif else if(strcmp(name, 'p', /fold_case) eq 1 or $
+                 strcmp(name, 'p_i', /fold_case) eq 1) then begin
+       units = dimensions(/p0)
+       return, "!8p!X"
+   endif else if(strcmp(name, 'pe', /fold_case) eq 1 or $
+                 strcmp(name, 'pe_i', /fold_case) eq 1) then begin
+       units = dimensions(/p0)
+       return, "!8p!De!N!X"
+   endif else if(strcmp(name, 'te', /fold_case) eq 1 or $
+                 strcmp(name, 'te_i', /fold_case) eq 1) then begin
+       units = dimensions(/temperature)
+       return, "!8T!De!N!X"
+   endif else if(strcmp(name, 'ti', /fold_case) eq 1 or $
+                 strcmp(name, 'ti_i', /fold_case) eq 1) then begin
+       units = dimensions(/temperature)
+       return, "!8T!Di!N!X"
+   endif else if(strcmp(name, 'sigma', /fold_case) eq 1 or $
+                 strcmp(name, 'sigma_i', /fold_case) eq 1) then begin
+       units = dimensions(/n0,t0=-1)
+       return, "!7r!X"
+   endif else if(strcmp(name, 'force_phi', /fold_case) eq 1 or $
+                 strcmp(name, 'force_phi_i', /fold_case) eq 1) then begin
+       units = dimensions(/p0, l0=-1)
+       return, "!8F!D!9p!N!X"
+   endif else if(strcmp(name, 'pforce', /fold_case) eq 1 or $
+                 strcmp(name, 'pforce_i', /fold_case) eq 1) then begin
+       units = dimensions(/p0, l0=-1)
+       return, "!8F!D!9p!N!X"
+   endif else if(strcmp(name, 'heat_source', /fold_case) eq 1 or $
+                 strcmp(name, 'heat_source_i', /fold_case) eq 1) then begin
+       units = dimensions(/p0, t0=-1)
+       return, "!8Q!X"
+   endif else if(strcmp(name, 'kappa', /fold_case) eq 1 or $
+                 strcmp(name, 'kappa_i', /fold_case) eq 1) then begin
+       units = dimensions(/n0, l0=2, t0=-1)
+       return, "!7j!X"
+   endif else if((strcmp(name, 'visc', /fold_case) eq 1) or $
+     (strcmp(name, 'visc_c', /fold_case) eq 1) or $
+                 strcmp(name, 'visc_i', /fold_case) eq 1 or $
+                 strcmp(name, 'visc_c_i', /fold_case) eq 1) then begin
+       units = dimensions(/p0, /t0)
+       return, "!7l!X"
+   endif else if(strcmp(name, 'jphi', /fold_case) eq 1  or $
+                 strcmp(name, 'jphi_i', /fold_case) eq 1) then begin
+       units = dimensions(/b0, l0=itor-1)
+       return, "!7D!6!U*!N!7w!X"
+   endif else if(strcmp(name, 'vor', /fold_case) eq 1 or $
+                 strcmp(name, 'vor_i', /fold_case) eq 1) then begin
+       units = dimensions(/v0, l0=itor-1)
+       return, "!7D!6!U*!N!8U!X"
+   endif else if(strcmp(name, 'com', /fold_case) eq 1 or $
+                 strcmp(name, 'com_i', /fold_case) eq 1) then begin
+       units = dimensions(/v0, l0=-1)
+       return, "!9G.!17v!X"
+   endif else if(strcmp(name, 'torque_em', /fold_case) eq 1  or $
+                 strcmp(name, 'torque_em_i', /fold_case) eq 1) then begin
+       units = dimensions(/p0)
+       return, "!7s!D!8EM!N!X"
+   endif else if(strcmp(name, 'e_r', /fold_case) eq 1  or $
+                 strcmp(name, 'e_r_i', /fold_case) eq 1) then begin
+       units = dimensions(/pot,l0=-1)
+       return, "!8E!DR!N!X"
+   endif else if(strcmp(name, 'e_phi', /fold_case) eq 1  or $
+                 strcmp(name, 'e_phi_i', /fold_case) eq 1) then begin
+       units = dimensions(/pot,l0=-1)
+       return, "!8E!D!9P!N!X"
+   endif else if(strcmp(name, 'e_z', /fold_case) eq 1  or $
+                 strcmp(name, 'e_z_i', /fold_case) eq 1) then begin
+       units = dimensions(/pot,l0=-1)
+       return, "!8E!DZ!N!X"
+   endif  
+
+   return, '!8' + name + '!X'
+end

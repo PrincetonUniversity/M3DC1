@@ -181,7 +181,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        for i=0, n_elements(m_val)-1 do begin
            dum = min(m-m_val[i], j, /abs)
 
-           c = colors()
+           c = get_colors()
 
            if(keyword_set(phase)) then begin
                data = atan(imaginary(d[0,j,*]), real_part(d[0,j,*]))
@@ -234,7 +234,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        endelse
 
        col = fltarr(n_elements(indices))
-       c = colors()
+       c = get_colors()
        for i=0, n_elements(col)-1 do begin
            col[i] = c[i mod n_elements(c)]
        end
@@ -665,7 +665,7 @@ pro plot_lambda, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
 end
 
 
-pro read_bmncdf, file=filename, _EXTRA=extra
+pro read_bmncdf, file=filename, _EXTRA=extra, bmn=bmn, psi=psi, m=m, q=q
        id = ncdf_open(filename)
        bmnr_id = ncdf_varid(id, "bmn_real")
        bmni_id = ncdf_varid(id, "bmn_imag")
@@ -681,25 +681,27 @@ pro read_bmncdf, file=filename, _EXTRA=extra
        ncdf_varget, id, q_id, q
 
        ncdf_close, id
+
+       bmn = complex(bmnr, bmni)
        
-       for i=0, n_elements(psi)-1 do begin
-           bmni[*,i] = bmni[*,i]*(-1)^abs(m)
-           bmnr[*,i] = bmnr[*,i]*(-1)^abs(m)
-       end
+;       for i=0, n_elements(psi)-1 do begin
+;           bmni[*,i] = bmni[*,i]*(-1)^abs(m)
+;           bmnr[*,i] = bmnr[*,i]*(-1)^abs(m)
+;       end
            
-       angle = atan(bmni, bmnr) + !pi
-       k = where(angle lt 0.)
-       angle[k] = angle[k] + 2.*!pi
+;       angle = atan(bmni, bmnr) + !pi
+;       k = where(angle lt 0.)
+;       angle[k] = angle[k] + 2.*!pi
 
-       bmn = fltarr(1, n_elements(m), n_elements(psi))
-       bmn[0,*,*] = sqrt(bmnr^2 + bmni^2)
+;       bmn = fltarr(1, n_elements(m), n_elements(psi))
+;       bmn[0,*,*] = sqrt(bmnr^2 + bmni^2)
 
-       dum = min(psi-0.89,i,/abs)
-       print, i
+;       dum = min(psi-0.89,i,/abs)
+;       print, i
 
 
 
-       plot, m, angle[*,i], _EXTRA=extra
+;       plot, m, angle[*,i], _EXTRA=extra
 ;       plot, m, bmnr[*,i], _EXTRA=extra
 ;       oplot, m, bmni[*,i], linestyle=1, _EXTRA=extra
 
