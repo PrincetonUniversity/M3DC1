@@ -46,6 +46,7 @@ contains
           read(ifile, '(A)', err=200, end=200) dummy
           if(dummy.eq.'             phi_tor') goto 90
           if(dummy.eq.'            %phi_tor') goto 90
+          if(dummy.eq.'       %phi_tor(deg)') goto 90
        end do
        goto 200
 90     continue
@@ -135,6 +136,7 @@ contains
           read(ifile, '(A)', err=2000, end=2000) dummy
           if(dummy.eq.'             phi_tor') goto 900
           if(dummy.eq.'            %phi_tor') goto 900
+          if(dummy.eq.'       %phi_tor(deg)') goto 900
        end do
        goto 2000
 900    continue

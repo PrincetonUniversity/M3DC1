@@ -5276,7 +5276,7 @@ vectype function b1psid(e,f,g)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-  if(mass_ratio.eq.0. .or. dbf.eq.0.) then
+  if(mass_ratio.eq.0. .or. db.eq.0.) then
      b1psid = 0.
      return
   endif
@@ -5287,7 +5287,7 @@ vectype function b1psid(e,f,g)
      temp = int3(e(:,OP_1),f(:,OP_GS),g(:,OP_1))
   endif
 
-  b1psid = temp*me_mi*mass_ratio*dbf**2
+  b1psid = temp*me_mi*mass_ratio*db**2
   return
 end function b1psid
 
@@ -7642,7 +7642,7 @@ vectype function b2bd(e,f,g)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-  if(mass_ratio.eq.0. .or. dbf.eq.0.) then
+  if(mass_ratio.eq.0. .or. db.eq.0.) then
      b2bd = 0.
      return
   endif
@@ -7655,7 +7655,7 @@ vectype function b2bd(e,f,g)
           +int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1)))
   end if
 
-  b2bd = temp*me_mi*mass_ratio*dbf**2
+  b2bd = temp*me_mi*mass_ratio*db**2
   return
 end function b2bd
 
@@ -11929,8 +11929,8 @@ real function flux_pressure()
 
   end select
 
-  if(dbf .ne. 0.) then
-     temp = temp + dbf* &
+  if(db .ne. 0.) then
+     temp = temp + db* &
           (int5(ri_79,pet79(:,OP_1),ni79(:,OP_1),norm79(:,1),bzt79(:,OP_DZ)) &
           -int5(ri_79,pet79(:,OP_1),ni79(:,OP_1),norm79(:,2),bzt79(:,OP_DR)))
   endif
@@ -12215,7 +12215,7 @@ vectype function torque_gyro()
      return
   endif
 
-  temp79a = 0.25*dbf*b2i79(:,OP_1)
+  temp79a = 0.25*db*b2i79(:,OP_1)
   temp79b = temp79a*(1. - 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2)
 
   select case(ivform)

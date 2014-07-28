@@ -15,12 +15,12 @@ subroutine b1harnedmikic(trial,lin,psiterm,bterm)
   psiterm = 0.
 
   if(itwofluid.ne.1 .or. surface_int .or. &
-       dbf.eq.0. .or. harned_mikic.eq.0.) then
+       db.eq.0. .or. harned_mikic.eq.0.) then
      return
   end if
   if(jadv.eq.1) then
     bterm = 0.
-    psiterm = -dbf**2*harned_mikic*b1hm(trial,lin,ni79,bzt79,bzt79)
+    psiterm = -db**2*harned_mikic*b1hm(trial,lin,ni79,bzt79,bzt79)
     return
   endif    
 
@@ -87,8 +87,8 @@ subroutine b1harnedmikic(trial,lin,psiterm,bterm)
 #endif
 
 
-  bterm = bterm*dbf**2*harned_mikic
-  psiterm = psiterm*dbf**2*harned_mikic
+  bterm = bterm*db**2*harned_mikic
+  psiterm = psiterm*db**2*harned_mikic
  
 end subroutine b1harnedmikic
 
@@ -105,12 +105,12 @@ subroutine b2harnedmikic(trial,lin,psiterm,bterm)
   psiterm = 0.
 
   if(itwofluid.ne.1 .or. surface_int .or. &
-       dbf.eq.0. .or. harned_mikic.eq.0.) then
+       db.eq.0. .or. harned_mikic.eq.0.) then
      return
   end if
   if(jadv.eq.1) then
     psiterm = 0.
-    bterm = -dbf**2*harned_mikic*b2hm(trial,lin,ni79,bzt79,bzt79)
+    bterm = -db**2*harned_mikic*b2hm(trial,lin,ni79,bzt79,bzt79)
     return
   endif
 
@@ -242,8 +242,8 @@ subroutine b2harnedmikic(trial,lin,psiterm,bterm)
   bterm = bterm + int5(ri6_79,bzt79(:,OP_1),bzt79(:,OP_1),temp79d,temp79e)
 #endif
 
-  bterm = bterm*dbf**2*harned_mikic
-  psiterm = psiterm*dbf**2*harned_mikic
+  bterm = bterm*db**2*harned_mikic
+  psiterm = psiterm*db**2*harned_mikic
 
 end subroutine b2harnedmikic
 

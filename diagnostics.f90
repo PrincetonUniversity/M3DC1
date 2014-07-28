@@ -599,8 +599,6 @@ subroutine calculate_scalars()
   numelms = local_elements()
   do itri=1,numelms
 
-     dbf = db
-     
      call zonfac(itri, izone, izonedim)
      if(izone.ne.1) continue
 

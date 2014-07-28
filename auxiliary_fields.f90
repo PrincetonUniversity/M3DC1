@@ -176,7 +176,7 @@ subroutine calculate_auxiliary_fields(ilin)
 
   integer :: def_fields
   integer :: numelms
-  integer :: i, itri, j
+  integer :: i, itri, j, izone
   integer :: magnetic_region
 
   vectype, dimension(dofs_per_element) :: dofs
@@ -203,7 +203,7 @@ subroutine calculate_auxiliary_fields(ilin)
      eta_jsq = 0.
   endif
 
-  ! specify which primitive fields are to be evalulated
+  ! specify which fields are to be evalulated
   def_fields = FIELD_N + FIELD_NI + FIELD_P + FIELD_PSI + FIELD_I
   def_fields = def_fields + FIELD_PHI + FIELD_V + FIELD_CHI
   def_fields = def_fields + FIELD_ETA + FIELD_TE + FIELD_KAP
@@ -216,6 +216,8 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
   do itri=1,numelms
      call define_element_quadrature(itri, int_pts_aux, 5)
      call define_fields(itri, def_fields, 1, 0)
+
+     call get_zone(itri, izone)
 
      ! magnetic torque_density (ignoring toroidal magnetic pressure gradient)
 #ifdef USECOMPLEX
@@ -444,17 +446,17 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
 
      ! electric_field
      do i=1, dofs_per_element
-        call electric_field_r(ilin,temp79a)
+        call electric_field_r(ilin,temp79a,izone)
         dofs(i) = int2(mu79(:,OP_1,i),temp79a)
      end do
      call vector_insert_block(ef_r%vec,itri,1,dofs,VEC_ADD)
      do i=1, dofs_per_element
-        call electric_field_phi(ilin,temp79a)
+        call electric_field_phi(ilin,temp79a,izone)
         dofs(i) = int2(mu79(:,OP_1,i),temp79a)
      end do
      call vector_insert_block(ef_phi%vec,itri,1,dofs,VEC_ADD)
      do i=1, dofs_per_element
-        call electric_field_z(ilin,temp79a)
+        call electric_field_z(ilin,temp79a,izone)
         dofs(i) = int2(mu79(:,OP_1,i),temp79a)
      end do
      call vector_insert_block(ef_z%vec,itri,1,dofs,VEC_ADD)

@@ -36,7 +36,7 @@ subroutine advection(o)
 
   ! Electron Temp Advection
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(dbf.ne.0.) then
+  if(db.ne.0.) then
 #if defined(USE3D) || defined(USECOMPLEX)
   temp79b = ri2_79*tet79(:,OP_DZ)*pst79(:,OP_DZP)*ni79(:,OP_1) &
        + ri2_79*tet79(:,OP_DR)*pst79(:,OP_DRP)*ni79(:,OP_1) &
@@ -45,7 +45,7 @@ subroutine advection(o)
        (ri2_79*tet79(:,OP_1)*pst79(:,OP_DZP)*ni79(:,OP_DZ) &
        +ri2_79*tet79(:,OP_1)*pst79(:,OP_DRP)*ni79(:,OP_DR) &
        -ri2_79*tet79(:,OP_1)*pst79(:,OP_GS)*ni79(:,OP_DP))
-  o = o + temp79b*dbf
+  o = o + temp79b*db
 #endif
         if(numvar.ge.2) then
            temp79b =  ri_79*pet79(:,OP_DZ)*bzt79(:,OP_DR)*ni79(:,OP_1) &
@@ -53,7 +53,7 @@ subroutine advection(o)
                  + gam* &
                   (ri_79*pet79(:,OP_1)*bzt79(:,OP_DR)*ni79(:,OP_DZ) &
                  - ri_79*pet79(:,OP_1)*bzt79(:,OP_DZ)*ni79(:,OP_DR))
-           o = o + temp79b*dbf
+           o = o + temp79b*db
         end if
  
         if(i3d.eq.1) then

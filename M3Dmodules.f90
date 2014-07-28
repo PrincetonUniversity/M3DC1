@@ -344,7 +344,7 @@ module basic
   complex :: rfac
 
   !     derived quantities
-  real :: dbf,bdf,hypv,hypc,hypf,hypi,hypp,   &
+  real :: bdf,hypv,hypc,hypf,hypi,hypp,   &
        time,                                     &
        gbound
 
