@@ -222,12 +222,12 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
      ! two-fluid contribution
-     if(dbf .gt. 0 .and. itwofluid.eq.2) then
+     if(db .gt. 0 .and. itwofluid.eq.2) then
         temp = v1hupsi(trial,lin,pst79) & 
              + v1hub  (trial,lin,bzt79)
         if(i3d.eq.1) temp = temp + v1huf(trial,lin,bf179)
-        ssterm(u_g) = ssterm(u_g) + dbf*thimp*dt*temp
-        ddterm(u_g) = ddterm(u_g) + dbf*thimp*dt*temp
+        ssterm(u_g) = ssterm(u_g) + db*thimp*dt*temp
+        ddterm(u_g) = ddterm(u_g) + db*thimp*dt*temp
      endif
 
      if(numvar.ge.2) then
@@ -237,12 +237,12 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
         ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
 
        ! two-fluid contribution
-       if(dbf .gt. 0 .and. itwofluid.eq.2) then
+       if(db .gt. 0 .and. itwofluid.eq.2) then
           temp = v1hvpsi(trial,lin,pst79) & 
                + v1hvb  (trial,lin,bzt79)
           if(i3d.eq.1) temp = temp + v1hvf(trial,lin,bf179)
-          ssterm(vz_g) = ssterm(vz_g) + dbf*thimp*dt*temp
-          ddterm(vz_g) = ddterm(vz_g) + dbf*thimp*dt*temp
+          ssterm(vz_g) = ssterm(vz_g) + db*thimp*dt*temp
+          ddterm(vz_g) = ddterm(vz_g) + db*thimp*dt*temp
        endif
      endif
 
@@ -254,12 +254,12 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
        ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
 
        ! two-fluid contribution
-       if(dbf .gt. 0 .and. itwofluid.eq.2) then
+       if(db .gt. 0 .and. itwofluid.eq.2) then
           temp = v1hchipsi(trial,lin,pst79) & 
                + v1hchib  (trial,lin,bzt79)
           if(i3d.eq.1) temp = temp + v1hchif(trial,lin,bf179)
-          ssterm(chi_g) = ssterm(chi_g) + dbf*thimp*dt*temp
-          ddterm(chi_g) = ddterm(chi_g) + dbf*thimp*dt*temp
+          ssterm(chi_g) = ssterm(chi_g) + db*thimp*dt*temp
+          ddterm(chi_g) = ddterm(chi_g) + db*thimp*dt*temp
        endif
 
      endif
@@ -392,19 +392,19 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   ! Gyroviscosity  
   ! ~~~~~~~~~~~~~
-  if(gyro.eq.1 .and. dbf.ne.0.) then
-     temp = g1u(trial,lin)*dbf
+  if(gyro.eq.1 .and. db.ne.0.) then
+     temp = g1u(trial,lin)*db
      ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
      ddterm(u_g) = ddterm(u_g) + (1.-thimp*bdf)*dt*temp
 
      if(numvar.ge.2) then
-        temp = g1v(trial,lin)*dbf
+        temp = g1v(trial,lin)*db
         ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
         ddterm(vz_g) = ddterm(vz_g) + (1.-thimp*bdf)*dt*temp
      end if
 
      if(numvar.ge.3) then
-        temp = g1chi(trial,lin)*dbf
+        temp = g1chi(trial,lin)*db
         ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
         ddterm(chi_g) = ddterm(chi_g) + (1.-thimp*bdf)*dt*temp
      end if
@@ -706,12 +706,12 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
      ! two-fluid contribution
-     if(dbf .gt. 0 .and. itwofluid.eq.2) then
+     if(db .gt. 0 .and. itwofluid.eq.2) then
         temp = v2hupsi(trial,lin,pst79) & 
              + v2hub  (trial,lin,bzt79)
         if(i3d.eq.1) temp = temp + v2huf(trial,lin,bf179)
-        ssterm(u_g) = ssterm(u_g) + dbf*thimp*dt*temp
-        ddterm(u_g) = ddterm(u_g) + dbf*thimp*dt*temp
+        ssterm(u_g) = ssterm(u_g) + db*thimp*dt*temp
+        ddterm(u_g) = ddterm(u_g) + db*thimp*dt*temp
      endif
 
      temp = v2vpsipsi(trial,lin,pst79,pst79) &
@@ -720,12 +720,12 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
 
      ! two-fluid contribution
-     if(dbf .gt. 0 .and. itwofluid.eq.2) then
+     if(db .gt. 0 .and. itwofluid.eq.2) then
         temp = v2hvpsi(trial,lin,pst79) & 
              + v2hvb  (trial,lin,bzt79)
         if(i3d.eq.1) temp = temp + v2hvf(trial,lin,bf179)
-        ssterm(vz_g) = ssterm(vz_g) + dbf*thimp*dt*temp
-        ddterm(vz_g) = ddterm(vz_g) + dbf*thimp*dt*temp
+        ssterm(vz_g) = ssterm(vz_g) + db*thimp*dt*temp
+        ddterm(vz_g) = ddterm(vz_g) + db*thimp*dt*temp
      endif
 
      if(numvar.ge.3) then
@@ -736,12 +736,12 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
         ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
 
         ! two-fluid contribution
-        if(dbf .gt. 0 .and. itwofluid.eq.2) then
+        if(db .gt. 0 .and. itwofluid.eq.2) then
            temp = v2hchipsi(trial,lin,pst79) & 
                 + v2hchib  (trial,lin,bzt79)
            if(i3d.eq.1) temp = temp + v2hchif(trial,lin,bf179)
-           ssterm(chi_g) = ssterm(chi_g) + dbf*thimp*dt*temp
-           ddterm(chi_g) = ddterm(chi_g) + dbf*thimp*dt*temp
+           ssterm(chi_g) = ssterm(chi_g) + db*thimp*dt*temp
+           ddterm(chi_g) = ddterm(chi_g) + db*thimp*dt*temp
         endif
      end if
 
@@ -872,17 +872,17 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   ! Gyroviscosity
   ! ~~~~~~~~~~~~~
-  if(gyro.eq.1 .and. dbf.ne.0.) then
-     temp = g2u(trial,lin)*dbf
+  if(gyro.eq.1 .and. db.ne.0.) then
+     temp = g2u(trial,lin)*db
      ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
      ddterm(u_g) = ddterm(u_g) + (1.-thimp*bdf)*dt*temp
      
-     temp = g2v(trial,lin)*dbf
+     temp = g2v(trial,lin)*db
      ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
      ddterm(vz_g) = ddterm(vz_g) + (1.-thimp*bdf)*dt*temp
 
      if(numvar.ge.3) then
-        temp = g2chi(trial,lin)*dbf
+        temp = g2chi(trial,lin)*db
         ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
         ddterm(chi_g) = ddterm(chi_g) + (1.-thimp*bdf)*dt*temp
      end if
@@ -1181,12 +1181,12 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ddterm(u_g) = ddterm(u_g) +       ththm*dt*dt*temp
 
      ! two-fluid contribution
-     if(dbf .gt. 0 .and. itwofluid.gt.1) then
+     if(db .gt. 0 .and. itwofluid.gt.1) then
         temp = v3hupsi(trial,lin,pst79) & 
              + v3hub  (trial,lin,bzt79)
         if(i3d.eq.1) temp = temp + v3huf(trial,lin,bf179)
-        ssterm(u_g) = ssterm(u_g) + dbf*thimp*dt*temp
-        ddterm(u_g) = ddterm(u_g) + dbf*thimp*dt*temp
+        ssterm(u_g) = ssterm(u_g) + db*thimp*dt*temp
+        ddterm(u_g) = ddterm(u_g) + db*thimp*dt*temp
      endif
 
      temp = v3vpsipsi(trial,lin,pst79,pst79) &
@@ -1196,12 +1196,12 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ddterm(vz_g) = ddterm(vz_g) +       ththm*dt*dt*temp
 
      ! two-fluid contribution
-     if(dbf .gt. 0 .and. itwofluid.gt.1) then
+     if(db .gt. 0 .and. itwofluid.gt.1) then
         temp = v3hvpsi(trial,lin,pst79) & 
              + v3hvb  (trial,lin,bzt79)
         if(i3d.eq.1) temp = temp + v3hvf(trial,lin,bf179)
-        ssterm(vz_g) = ssterm(vz_g) + dbf*thimp*dt*temp
-        ddterm(vz_g) = ddterm(vz_g) + dbf*thimp*dt*temp
+        ssterm(vz_g) = ssterm(vz_g) + db*thimp*dt*temp
+        ddterm(vz_g) = ddterm(vz_g) + db*thimp*dt*temp
      endif
 
 
@@ -1212,12 +1212,12 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ddterm(chi_g) = ddterm(chi_g) +       ththm*dt*dt*temp
 
      ! two-fluid contribution
-     if(dbf .gt. 0 .and. itwofluid.gt.1) then
+     if(db .gt. 0 .and. itwofluid.gt.1) then
         temp = v3hchipsi(trial,lin,pst79) & 
              + v3hchib  (trial,lin,bzt79)
         if(i3d.eq.1) temp = temp + v3hchif(trial,lin,bf179)
-        ssterm(chi_g) = ssterm(chi_g) + dbf*thimp*dt*temp
-        ddterm(chi_g) = ddterm(chi_g) + dbf*thimp*dt*temp
+        ssterm(chi_g) = ssterm(chi_g) + db*thimp*dt*temp
+        ddterm(chi_g) = ddterm(chi_g) + db*thimp*dt*temp
      endif
 
 
@@ -1335,16 +1335,16 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   ! Gyroviscisity
   ! ~~~~~~~~~~~~~
-  if(gyro.eq.1 .and. dbf.ne.0.) then    
-     temp = g3u(trial,lin)*dbf
+  if(gyro.eq.1 .and. db.ne.0.) then    
+     temp = g3u(trial,lin)*db
      ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
      ddterm(u_g) = ddterm(u_g) + (1.-thimp*bdf)*dt*temp
      
-     temp = g3v(trial,lin)*dbf
+     temp = g3v(trial,lin)*db
      ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
      ddterm(vz_g) = ddterm(vz_g) + (1.-thimp*bdf)*dt*temp
      
-     temp = g3chi(trial,lin)*dbf
+     temp = g3chi(trial,lin)*db
      ssterm(chi_g) = ssterm(chi_g) -     thimp     *dt*temp
      ddterm(chi_g) = ddterm(chi_g) + (1.-thimp*bdf)*dt*temp
   endif
@@ -1743,55 +1743,55 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
   case(-1) !  electron form with extra density linearization
   ! JxB
   ! ~~~
-  if(dbf.ne.0.) then
+  if(db.ne.0.) then
      if(linear.eq.0) then
-        temp = b1psipsin(trial,lin,ps179,nt79)*dbf &
-             + b1psipsin(trial,ps179,lin,nt79)*dbf
+        temp = b1psipsin(trial,lin,ps179,nt79)*db &
+             + b1psipsin(trial,ps179,lin,nt79)*db
         ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (.5-thimpf*bdf)*dt*temp
         
-        temp = b1psibn1(trial,lin,bz179,nt79)*dbf &
-             + b1psibn2(trial,lin,bz179,nt79)*dbf
+        temp = b1psibn1(trial,lin,bz179,nt79)*db &
+             + b1psibn2(trial,lin,bz179,nt79)*db
         ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (.5-thimpf*bdf)*dt*temp
 
         if(numvar.ge.2) then
-           temp = b1psibn1(trial,ps179,lin,nt79)*dbf &
-                + b1psibn2(trial,ps179,lin,nt79)*dbf &
-                + b1bbn   (trial,bz179,lin,nt79)*dbf &
-                + b1bbn   (trial,lin,bz179,nt79)*dbf
+           temp = b1psibn1(trial,ps179,lin,nt79)*db &
+                + b1psibn2(trial,ps179,lin,nt79)*db &
+                + b1bbn   (trial,bz179,lin,nt79)*db &
+                + b1bbn   (trial,lin,bz179,nt79)*db
            ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (.5-thimpf*bdf)*dt*temp
         end if
      end if
 
      if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
-        temp = b1psipsin(trial,lin,ps079,nt79)*dbf &
-             + b1psipsin(trial,ps079,lin,nt79)*dbf &
-             + b1psibn1 (trial,lin,bz079,nt79)*dbf &
-             + b1psibn2 (trial,lin,bz079,nt79)*dbf 
+        temp = b1psipsin(trial,lin,ps079,nt79)*db &
+             + b1psipsin(trial,ps079,lin,nt79)*db &
+             + b1psibn1 (trial,lin,bz079,nt79)*db &
+             + b1psibn2 (trial,lin,bz079,nt79)*db 
         ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (1.-thimpf*bdf)*dt*temp
 
         if(numvar.ge.2) then
-           temp = b1psibn1(trial,ps079,lin,nt79)*dbf &
-                + b1psibn2(trial,ps079,lin,nt79)*dbf &
-                + b1bbn   (trial,bz079,lin,nt79)*dbf & 
-                + b1bbn   (trial,lin,bz079,nt79)*dbf   
+           temp = b1psibn1(trial,ps079,lin,nt79)*db &
+                + b1psibn2(trial,ps079,lin,nt79)*db &
+                + b1bbn   (trial,bz079,lin,nt79)*db & 
+                + b1bbn   (trial,lin,bz079,nt79)*db   
            ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (1.-thimpf*bdf)*dt*temp
         end if
      end if
 
      if(use_external_fields .and. linear.eq.0) then
-        temp = b1psipsin(trial,psx79,lin,nt79)*dbf &
-             + b1psibn2 (trial,lin,bzx79,nt79)*dbf 
+        temp = b1psipsin(trial,psx79,lin,nt79)*db &
+             + b1psibn2 (trial,lin,bzx79,nt79)*db 
         ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (1.-thimpf*bdf)*dt*temp
 
         if(numvar.ge.2) then
-           temp = b1psibn1(trial,psx79,lin,nt79)*dbf &
-                + b1bbn   (trial,lin,bzx79,nt79)*dbf
+           temp = b1psibn1(trial,psx79,lin,nt79)*db &
+                + b1bbn   (trial,lin,bzx79,nt79)*db
            ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (1.-thimpf*bdf)*dt*temp
         end if
@@ -1799,83 +1799,83 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
      if(i3d.eq.1 .and. numvar.ge.2) then
         if(linear.eq.0) then
-           temp = b1psifn1(trial,lin,bf179,nt79)*dbf &
-                + b1psifn2(trial,lin,bf179,nt79)*dbf
+           temp = b1psifn1(trial,lin,bf179,nt79)*db &
+                + b1psifn2(trial,lin,bf179,nt79)*db
            ssterm(psi_g) = ssterm(psi_g) -     thimp_bf     *dt*temp
            ddterm(psi_g) = ddterm(psi_g) + (.5-thimp_bf*bdf)*dt*temp
 
-           temp = b1bfn1  (trial,lin,bf179,nt79)*dbf &
-                + b1bfn2  (trial,lin,bf179,nt79)*dbf
+           temp = b1bfn1  (trial,lin,bf179,nt79)*db &
+                + b1bfn2  (trial,lin,bf179,nt79)*db
            ssterm(bz_g) = ssterm(bz_g) -     thimp_bf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (.5-thimp_bf*bdf)*dt*temp
 
-           temp = b1psifn1(trial,ps179,lin,nt79)*dbf &
-                + b1psifn2(trial,ps179,lin,nt79)*dbf &
-                + b1bfn1  (trial,bz179,lin,nt79)*dbf &
-                + b1bfn2  (trial,bz179,lin,nt79)*dbf
+           temp = b1psifn1(trial,ps179,lin,nt79)*db &
+                + b1psifn2(trial,ps179,lin,nt79)*db &
+                + b1bfn1  (trial,bz179,lin,nt79)*db &
+                + b1bfn2  (trial,bz179,lin,nt79)*db
            r_bf = r_bf -     thimp_bf     *dt*temp
            q_bf = q_bf + (.5-thimp_bf*bdf)*dt*temp
         end if
         if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
-           temp = b1psifn1(trial,lin,bf079,nt79)*dbf &
-                + b1psifn2(trial,lin,bf079,nt79)*dbf
+           temp = b1psifn1(trial,lin,bf079,nt79)*db &
+                + b1psifn2(trial,lin,bf079,nt79)*db
            ssterm(psi_g) = ssterm(psi_g) -     thimp_bf     *dt*temp
            ddterm(psi_g) = ddterm(psi_g) + (1.-thimp_bf*bdf)*dt*temp
 
-           temp = b1bfn1  (trial,lin,bf079,nt79)*dbf &
-                + b1bfn2  (trial,lin,bf079,nt79)*dbf
+           temp = b1bfn1  (trial,lin,bf079,nt79)*db &
+                + b1bfn2  (trial,lin,bf079,nt79)*db
            ssterm(bz_g) = ssterm(bz_g) -     thimp_bf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (1.-thimp_bf*bdf)*dt*temp
 
-           temp = b1psifn1(trial,ps079,lin,nt79)*dbf &
-                + b1psifn2(trial,ps079,lin,nt79)*dbf &
-                + b1bfn1  (trial,bz079,lin,nt79)*dbf &
-                + b1bfn2  (trial,bz079,lin,nt79)*dbf
+           temp = b1psifn1(trial,ps079,lin,nt79)*db &
+                + b1psifn2(trial,ps079,lin,nt79)*db &
+                + b1bfn1  (trial,bz079,lin,nt79)*db &
+                + b1bfn2  (trial,bz079,lin,nt79)*db
            r_bf = r_bf -     thimp_bf     *dt*temp
            q_bf = q_bf + (1.-thimp_bf*bdf)*dt*temp
         end if
         if(use_external_fields .and. linear.eq.0) then
-           temp = b1psifn1(trial,lin,bfx79,nt79)*dbf
+           temp = b1psifn1(trial,lin,bfx79,nt79)*db
            ssterm(psi_g) = ssterm(psi_g) -     thimp_bf     *dt*temp
            ddterm(psi_g) = ddterm(psi_g) + (1.-thimp_bf*bdf)*dt*temp
 
-           temp = b1bfn1  (trial,lin,bfx79,nt79)*dbf
+           temp = b1bfn1  (trial,lin,bfx79,nt79)*db
            ssterm(bz_g) = ssterm(bz_g) -     thimp_bf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (1.-thimp_bf*bdf)*dt*temp
 
-           temp = b1psifn2(trial,psx79,lin,nt79)*dbf &
-                + b1bfn2  (trial,bzx79,lin,nt79)*dbf
+           temp = b1psifn2(trial,psx79,lin,nt79)*db &
+                + b1bfn2  (trial,bzx79,lin,nt79)*db
            r_bf = r_bf -     thimp_bf     *dt*temp
            q_bf = q_bf + (1.-thimp_bf*bdf)*dt*temp
         end if
      end if
 
      if(idens.eq.1) then
-        temp = b1psipsin(trial,pstx79,pst79,lin)*dbf &
-             + b1psibn1 (trial,pstx79,bzt79,lin)*dbf &
-             + b1psibn2 (trial,pst79,bztx79,lin)*dbf &
-             + b1bbn    (trial,bzt79,bztx79,lin)*dbf
+        temp = b1psipsin(trial,pstx79,pst79,lin)*db &
+             + b1psibn1 (trial,pstx79,bzt79,lin)*db &
+             + b1psibn2 (trial,pst79,bztx79,lin)*db &
+             + b1bbn    (trial,bzt79,bztx79,lin)*db
         if(i3d.eq.1 .and. numvar.ge.2) then 
            temp = temp &
-                +b1psifn1(trial,pst79,bftx79,lin)*dbf &
-                +b1psifn2(trial,pstx79,bft79,lin)*dbf &
-                +b1bfn1  (trial,bzt79,bftx79,lin)*dbf &
-                +b1bfn2  (trial,bztx79,bft79,lin)*dbf
+                +b1psifn1(trial,pst79,bftx79,lin)*db &
+                +b1psifn2(trial,pstx79,bft79,lin)*db &
+                +b1bfn1  (trial,bzt79,bftx79,lin)*db &
+                +b1bfn2  (trial,bztx79,bft79,lin)*db
         end if
         ssterm(den_g) = ssterm(den_g) + thimpf*dt*temp
         ddterm(den_g) = ddterm(den_g) + thimpf*dt*temp
 
         if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
-           temp = b1psipsin(trial,ps079,ps079,lin)*dbf &
-                + b1psibn1 (trial,ps079,bz079,lin)*dbf &
-                + b1psibn2 (trial,ps079,bz079,lin)*dbf &
-                + b1bbn    (trial,bz079,bz079,lin)*dbf
+           temp = b1psipsin(trial,ps079,ps079,lin)*db &
+                + b1psibn1 (trial,ps079,bz079,lin)*db &
+                + b1psibn2 (trial,ps079,bz079,lin)*db &
+                + b1bbn    (trial,bz079,bz079,lin)*db
            if(i3d.eq.1 .and. numvar.ge.2) then 
               temp = temp &
-                   +b1psifn1(trial,ps079,bf079,lin)*dbf &
-                   +b1psifn2(trial,ps079,bf079,lin)*dbf &
-                   +b1bfn1  (trial,bz079,bf079,lin)*dbf &
-                   +b1bfn2  (trial,bz079,bf079,lin)*dbf
+                   +b1psifn1(trial,ps079,bf079,lin)*db &
+                   +b1psifn2(trial,ps079,bf079,lin)*db &
+                   +b1bfn1  (trial,bz079,bf079,lin)*db &
+                   +b1bfn2  (trial,bz079,bf079,lin)*db
            end if
            if(linear.eq.1) temp = -temp
            ddterm(den_g) = ddterm(den_g) + dt*temp
@@ -1885,20 +1885,20 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
   ! Grad(p_e)
   ! ~~~~~~~~~
-  if(dbf.ne.0.) then
+  if(db.ne.0.) then
      if(numvar.ge.3) then
-        temp = b1pen(trial,lin,nt79)*dbf
+        temp = b1pen(trial,lin,nt79)*db
         ssterm(pe_g) = ssterm(pe_g) -     thimpf     *dt*temp
         ddterm(pe_g) = ddterm(pe_g) + (1.-thimpf*bdf)*dt*temp
      end if
 
      if(idens.eq.1) then
-        temp = b1pen(trial,pet79,lin)*dbf
+        temp = b1pen(trial,pet79,lin)*db
         ssterm(den_g) = ssterm(den_g) + thimpf*dt*temp
         ddterm(den_g) = ddterm(den_g) + thimpf*dt*temp
 
         if(eqsubtract.eq.1) then 
-           temp = b1pen(trial,pe079,lin)*dbf
+           temp = b1pen(trial,pe079,lin)*db
            if(linear.eq.1) temp = -temp
            ddterm(den_g) = ddterm(den_g) + dt*temp
         end if
@@ -1909,55 +1909,55 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
   case(1)     ! electron form
   ! JxB
   ! ~~~
-  if(dbf.ne.0.) then
+  if(db.ne.0.) then
      if(linear.eq.0) then
-        temp = b1psipsid(trial,lin,ps179,ni79)*dbf &
-             + b1psipsid(trial,ps179,lin,ni79)*dbf
+        temp = b1psipsid(trial,lin,ps179,ni79)*db &
+             + b1psipsid(trial,ps179,lin,ni79)*db
         ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (.5-thimpf*bdf)*dt*temp
         
-        temp = b1psibd1(trial,lin,bz179,ni79)*dbf &
-             + b1psibd2(trial,lin,bz179,ni79)*dbf
+        temp = b1psibd1(trial,lin,bz179,ni79)*db &
+             + b1psibd2(trial,lin,bz179,ni79)*db
         ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (.5-thimpf*bdf)*dt*temp
 
         if(numvar.ge.2) then
-           temp = b1psibd1(trial,ps179,lin,ni79)*dbf &
-                + b1psibd2(trial,ps179,lin,ni79)*dbf &
-                + b1bbd   (trial,bz179,lin,ni79)*dbf &
-                + b1bbd   (trial,lin,bz179,ni79)*dbf
+           temp = b1psibd1(trial,ps179,lin,ni79)*db &
+                + b1psibd2(trial,ps179,lin,ni79)*db &
+                + b1bbd   (trial,bz179,lin,ni79)*db &
+                + b1bbd   (trial,lin,bz179,ni79)*db
            ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (.5-thimpf*bdf)*dt*temp
         end if
      end if
 
      if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
-        temp = b1psipsid(trial,lin,ps079,ni79)*dbf &
-             + b1psipsid(trial,ps079,lin,ni79)*dbf &
-             + b1psibd1 (trial,lin,bz079,ni79)*dbf &
-             + b1psibd2 (trial,lin,bz079,ni79)*dbf 
+        temp = b1psipsid(trial,lin,ps079,ni79)*db &
+             + b1psipsid(trial,ps079,lin,ni79)*db &
+             + b1psibd1 (trial,lin,bz079,ni79)*db &
+             + b1psibd2 (trial,lin,bz079,ni79)*db 
         ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (1.-thimpf*bdf)*dt*temp
 
         if(numvar.ge.2) then
-           temp = b1psibd1(trial,ps079,lin,ni79)*dbf &
-                + b1psibd2(trial,ps079,lin,ni79)*dbf &
-                + b1bbd   (trial,bz079,lin,ni79)*dbf & 
-                + b1bbd   (trial,lin,bz079,ni79)*dbf   
+           temp = b1psibd1(trial,ps079,lin,ni79)*db &
+                + b1psibd2(trial,ps079,lin,ni79)*db &
+                + b1bbd   (trial,bz079,lin,ni79)*db & 
+                + b1bbd   (trial,lin,bz079,ni79)*db   
            ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (1.-thimpf*bdf)*dt*temp
         end if
      end if
 
      if(use_external_fields .and. linear.eq.0) then
-        temp = b1psipsid(trial,psx79,lin,ni79)*dbf &
-             + b1psibd2 (trial,lin,bzx79,ni79)*dbf 
+        temp = b1psipsid(trial,psx79,lin,ni79)*db &
+             + b1psibd2 (trial,lin,bzx79,ni79)*db 
         ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (1.-thimpf*bdf)*dt*temp
 
         if(numvar.ge.2) then
-           temp = b1psibd1(trial,psx79,lin,ni79)*dbf &
-                + b1bbd   (trial,lin,bzx79,ni79)*dbf
+           temp = b1psibd1(trial,psx79,lin,ni79)*db &
+                + b1bbd   (trial,lin,bzx79,ni79)*db
            ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (1.-thimpf*bdf)*dt*temp
         end if
@@ -1965,59 +1965,59 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
      if(i3d.eq.1 .and. numvar.ge.2) then
         if(linear.eq.0) then
-           temp = b1psifd1(trial,lin,bf179,ni79)*dbf &
-                + b1psifd2(trial,lin,bf179,ni79)*dbf
+           temp = b1psifd1(trial,lin,bf179,ni79)*db &
+                + b1psifd2(trial,lin,bf179,ni79)*db
            ssterm(psi_g) = ssterm(psi_g) -     thimp_bf     *dt*temp
            ddterm(psi_g) = ddterm(psi_g) + (.5-thimp_bf*bdf)*dt*temp
 
-           temp = b1bfd1  (trial,lin,bf179,ni79)*dbf &
-                + b1bfd2  (trial,lin,bf179,ni79)*dbf
+           temp = b1bfd1  (trial,lin,bf179,ni79)*db &
+                + b1bfd2  (trial,lin,bf179,ni79)*db
            ssterm(bz_g) = ssterm(bz_g) -     thimp_bf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (.5-thimp_bf*bdf)*dt*temp
 
-           temp = b1psifd1(trial,ps179,lin,ni79)*dbf &
-                + b1psifd2(trial,ps179,lin,ni79)*dbf &
-                + b1bfd1  (trial,bz179,lin,ni79)*dbf &
-                + b1bfd2  (trial,bz179,lin,ni79)*dbf
+           temp = b1psifd1(trial,ps179,lin,ni79)*db &
+                + b1psifd2(trial,ps179,lin,ni79)*db &
+                + b1bfd1  (trial,bz179,lin,ni79)*db &
+                + b1bfd2  (trial,bz179,lin,ni79)*db
            r_bf = r_bf -     thimp_bf     *dt*temp
            q_bf = q_bf + (.5-thimp_bf*bdf)*dt*temp
         end if
         if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
-           temp = b1psifd1(trial,lin,bf079,ni79)*dbf &
-                + b1psifd2(trial,lin,bf079,ni79)*dbf
+           temp = b1psifd1(trial,lin,bf079,ni79)*db &
+                + b1psifd2(trial,lin,bf079,ni79)*db
            ssterm(psi_g) = ssterm(psi_g) -     thimp_bf     *dt*temp
            ddterm(psi_g) = ddterm(psi_g) + (1.-thimp_bf*bdf)*dt*temp
 
-           temp = b1bfd1  (trial,lin,bf079,ni79)*dbf &
-                + b1bfd2  (trial,lin,bf079,ni79)*dbf
+           temp = b1bfd1  (trial,lin,bf079,ni79)*db &
+                + b1bfd2  (trial,lin,bf079,ni79)*db
            ssterm(bz_g) = ssterm(bz_g) -     thimp_bf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (1.-thimp_bf*bdf)*dt*temp
 
-           temp = b1psifd1(trial,ps079,lin,ni79)*dbf &
-                + b1psifd2(trial,ps079,lin,ni79)*dbf &
-                + b1bfd1  (trial,bz079,lin,ni79)*dbf &
-                + b1bfd2  (trial,bz079,lin,ni79)*dbf
+           temp = b1psifd1(trial,ps079,lin,ni79)*db &
+                + b1psifd2(trial,ps079,lin,ni79)*db &
+                + b1bfd1  (trial,bz079,lin,ni79)*db &
+                + b1bfd2  (trial,bz079,lin,ni79)*db
            r_bf = r_bf -     thimp_bf     *dt*temp
            q_bf = q_bf + (1.-thimp_bf*bdf)*dt*temp
         end if
         if(use_external_fields .and. linear.eq.0) then
-           temp = b1psifd1(trial,lin,bfx79,ni79)*dbf
+           temp = b1psifd1(trial,lin,bfx79,ni79)*db
            ssterm(psi_g) = ssterm(psi_g) -     thimp_bf     *dt*temp
            ddterm(psi_g) = ddterm(psi_g) + (1.-thimp_bf*bdf)*dt*temp
 
-           temp = b1bfd1  (trial,lin,bfx79,ni79)*dbf
+           temp = b1bfd1  (trial,lin,bfx79,ni79)*db
            ssterm(bz_g) = ssterm(bz_g) -     thimp_bf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (1.-thimp_bf*bdf)*dt*temp
 
-           temp = b1psifd2(trial,psx79,lin,ni79)*dbf &
-                + b1bfd2  (trial,bzx79,lin,ni79)*dbf
+           temp = b1psifd2(trial,psx79,lin,ni79)*db &
+                + b1bfd2  (trial,bzx79,lin,ni79)*db
            r_bf = r_bf -     thimp_bf     *dt*temp
            q_bf = q_bf + (1.-thimp_bf*bdf)*dt*temp
         end if
      end if
 
      if(idens.eq.1 .and. (eqsubtract.eq.1 .or. icsubtract.eq.1)) then
-        q_ni(1) = q_ni(1) + dbf*dt* &
+        q_ni(1) = q_ni(1) + db*dt* &
              (b1psipsid (trial,ps079,ps079,lin) &
              +b1psibd1  (trial,ps079,bz079,lin) &
              +b1psibd2  (trial,ps079,bz079,lin) &
@@ -2027,15 +2027,15 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
   ! Grad(p_e)
   ! ~~~~~~~~~
-  if(dbf.ne.0.) then
+  if(db.ne.0.) then
      if(numvar.ge.3) then
-        temp = b1ped(trial,lin,ni79)*dbf
+        temp = b1ped(trial,lin,ni79)*db
         ssterm(pe_g) = ssterm(pe_g) -     thimpf     *dt*temp
         ddterm(pe_g) = ddterm(pe_g) + (1.-thimpf*bdf)*dt*temp
      end if
 
      if(idens.eq.1 .and. eqsubtract.eq.1) then
-        q_ni(1) = q_ni(1) + dbf*dt* &
+        q_ni(1) = q_ni(1) + db*dt* &
              (b1ped(trial,pe079,lin))
      endif
   end if  
@@ -2055,24 +2055,24 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
   !  velocity time derivatives
   !  ~~~~~~~~~~~~~~~~~~~~~~~~
-  if(dbf.ne.0.) then
+  if(db.ne.0.) then
      temp = b1vzdot(trial,lin)
-     ssterm(vz_g) = ssterm(vz_g) + dbf*temp
-     ddterm(vz_g) = ddterm(vz_g) + dbf*temp*bdf
+     ssterm(vz_g) = ssterm(vz_g) + db*temp
+     ddterm(vz_g) = ddterm(vz_g) + db*temp*bdf
 
      if(numvar.ge.3) then
         temp = b1chidot(trial,lin)
-        ssterm(chi_g) = ssterm(chi_g) + dbf*temp
-        ddterm(chi_g) = ddterm(chi_g) + dbf*temp*bdf
+        ssterm(chi_g) = ssterm(chi_g) + db*temp
+        ddterm(chi_g) = ddterm(chi_g) + db*temp*bdf
      endif
  
   endif
 
   ! -Grad(p_i)
   ! ~~~~~~~~~
-  if(dbf.ne.0.) then
+  if(db.ne.0.) then
      if(numvar.ge.3) then
-        temp = b1ped(trial,lin,ni79)*dbf
+        temp = b1ped(trial,lin,ni79)*db
         ssterm(p_g)  = ssterm(p_g)  +     thimpf     *dt*temp
         ddterm(p_g)  = ddterm(p_g)  - (1.-thimpf*bdf)*dt*temp
         ssterm(pe_g) = ssterm(pe_g) -     thimpf     *dt*temp
@@ -2080,28 +2080,28 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
      end if
 
      if(idens.eq.1 .and. eqsubtract.eq.1) then
-        q_ni(1) = q_ni(1) - dbf*dt* &
+        q_ni(1) = q_ni(1) - db*dt* &
              (b1ped(trial,p079,lin) - b1ped(trial,pe079,lin))
      endif
   end if  
 
   ! Convective derivative terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(dbf.ne.0) then
-     temp = .5*b1vphi(trial,lin,pht79)*dbf
+  if(db.ne.0) then
+     temp = .5*b1vphi(trial,lin,pht79)*db
      ssterm(vz_g) = ssterm(vz_g) -     thimpf     *dt*temp
      ddterm(vz_g) = ddterm(vz_g) + (1.-thimpf*bdf)*dt*temp
 
-     temp = .5*b1vphi(trial,vzt79,lin)*dbf
+     temp = .5*b1vphi(trial,vzt79,lin)*db
      ssterm(u_g) = ssterm(u_g) -     thimpf     *dt*temp
      ddterm(u_g) = ddterm(u_g) + (1.-thimpf*bdf)*dt*temp
 
      if(numvar.ge.3) then
-        temp = .5*b1vchi(trial,lin,cht79)*dbf
+        temp = .5*b1vchi(trial,lin,cht79)*db
         ssterm(vz_g) = ssterm(vz_g) -     thimpf     *dt*temp
         ddterm(vz_g) = ddterm(vz_g) + (1.-thimpf*bdf)*dt*temp
 
-        temp = .5*b1vchi(trial,vzt79,lin)*dbf
+        temp = .5*b1vchi(trial,vzt79,lin)*db
         ssterm(chi_g) = ssterm(chi_g) -     thimpf     *dt*temp
         ddterm(chi_g) = ddterm(chi_g) + (1.-thimpf*bdf)*dt*temp
      endif
@@ -2109,8 +2109,8 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
 ! Viscosity terms
 ! ~~~~~~~~~~~~~~~
-  if(dbf.ne.0) then
-     temp = b1vmun(trial,lin,vis79,ni79)*dbf
+  if(db.ne.0) then
+     temp = b1vmun(trial,lin,vis79,ni79)*db
      ssterm(vz_g) = ssterm(vz_g) -     thimpf     *dt*temp
      ddterm(vz_g) = ddterm(vz_g) + (1.-thimpf*bdf)*dt*temp
   endif
@@ -2118,14 +2118,14 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
   case(3)  !  only include parallel electron pressure gradient
   ! Grad(p_e)
   ! ~~~~~~~~~
-  if(dbf.ne.0.) then
+  if(db.ne.0.) then
      if(numvar.ge.3) then
-        temp = b1psi2bfpe(trial,pst79,pst79,bzt79,bft79,lin)*dbf
+        temp = b1psi2bfpe(trial,pst79,pst79,bzt79,bft79,lin)*db
         ssterm(pe_g) = ssterm(pe_g) -     thimpf     *dt*temp
         ddterm(pe_g) = ddterm(pe_g) + (1.-thimpf*bdf)*dt*temp
 
         if(eqsubtract.eq.1) then
-          temp = b1psi2bfpe(trial,lin,pst79,bzt79,bft79,pe079)*dbf
+          temp = b1psi2bfpe(trial,lin,pst79,bzt79,bft79,pe079)*db
           ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
           ddterm(psi_g) = ddterm(psi_g) + (1.-thimpf*bdf)*dt*temp
         endif
@@ -2175,15 +2175,15 @@ subroutine flux_nolin(trial, r4term)
   
      ! JxB
      ! ~~~
-     if(dbf.ne.0.) then
-        r4term = r4term + dbf*dt* &
+     if(db.ne.0.) then
+        r4term = r4term + db*dt* &
              (b1psipsid(trial,psx79,ps079,ni79) &
              +b1psibd1 (trial,psx79,bz079,ni79) &
              +b1psibd2 (trial,ps079,bzx79,ni79) &
              +b1bbd    (trial,bz079,bzx79,ni79))
 
         if(i3d.eq.1 .and. numvar.ge.2) then
-           r4term = r4term + dbf*dt* &
+           r4term = r4term + db*dt* &
                 (b1psifd1(trial,ps079,bfx79,ni79) &
                 +b1psifd2(trial,psx79,bf079,ni79) &
                 +b1bfd1  (trial,bz079,bfx79,ni79) &
@@ -2391,104 +2391,104 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
   case(-1)
   ! JxB
   ! ~~~
-  if(dbf.ne.0.) then
+  if(db.ne.0.) then
      if(linear.eq.0) then
-        temp = b2psipsin(trial,lin,ps179,nt79)*dbf &
-             + b2psipsin(trial,ps179,lin,nt79)*dbf &
-             + b2psibn  (trial,lin,bz179,nt79)*dbf
+        temp = b2psipsin(trial,lin,ps179,nt79)*db &
+             + b2psipsin(trial,ps179,lin,nt79)*db &
+             + b2psibn  (trial,lin,bz179,nt79)*db
         ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (.5-thimpf*bdf)*dt*temp
 
-        temp = b2psibn(trial,ps179,lin,nt79)*dbf &
-             + b2bbn  (trial,lin,bz179,nt79)*dbf &
-             + b2bbn  (trial,bz179,lin,nt79)*dbf
+        temp = b2psibn(trial,ps179,lin,nt79)*db &
+             + b2bbn  (trial,lin,bz179,nt79)*db &
+             + b2bbn  (trial,bz179,lin,nt79)*db
         ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
         ddterm(bz_g) = ddterm(bz_g) + (.5-thimpf*bdf)*dt*temp
      end if
      if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
-        temp = b2psipsin(trial,lin,ps079,nt79)*dbf &
-             + b2psipsin(trial,ps079,lin,nt79)*dbf &
-             + b2psibn  (trial,lin,bz079,nt79)*dbf
+        temp = b2psipsin(trial,lin,ps079,nt79)*db &
+             + b2psipsin(trial,ps079,lin,nt79)*db &
+             + b2psibn  (trial,lin,bz079,nt79)*db
         ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (1.-thimpf*bdf)*dt*temp
 
-        temp = b2psibn(trial,ps079,lin,nt79)*dbf &
-             + b2bbn  (trial,lin,bz079,nt79)*dbf &
-             + b2bbn  (trial,bz079,lin,nt79)*dbf
+        temp = b2psibn(trial,ps079,lin,nt79)*db &
+             + b2bbn  (trial,lin,bz079,nt79)*db &
+             + b2bbn  (trial,bz079,lin,nt79)*db
         ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
         ddterm(bz_g) = ddterm(bz_g) + (1.-thimpf*bdf)*dt*temp
      end if
      if(use_external_fields .and. linear.eq.0) then
-        temp = b2psipsin(trial,lin,psx79,nt79)*dbf &
-             + b2psibn  (trial,lin,bzx79,nt79)*dbf
+        temp = b2psipsin(trial,lin,psx79,nt79)*db &
+             + b2psibn  (trial,lin,bzx79,nt79)*db
         ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (1.-thimpf*bdf)*dt*temp
 
-        temp = b2bbn  (trial,lin,bzx79,nt79)*dbf
+        temp = b2bbn  (trial,lin,bzx79,nt79)*db
         ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
         ddterm(bz_g) = ddterm(bz_g) + (1.-thimpf*bdf)*dt*temp
      end if
 
      if(i3d.eq.1) then
         if(linear.eq.0) then
-           temp = b2psifn(trial,lin,bf179,nt79)*dbf
+           temp = b2psifn(trial,lin,bf179,nt79)*db
            ssterm(psi_g) = ssterm(psi_g) -     thimp_bf     *dt*temp
            ddterm(psi_g) = ddterm(psi_g) + (.5-thimp_bf*bdf)*dt*temp
         
-           temp = b2bfn  (trial,lin,bf179,nt79)*dbf
+           temp = b2bfn  (trial,lin,bf179,nt79)*db
            ssterm(bz_g) = ssterm(bz_g) -     thimp_bf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (.5-thimp_bf*bdf)*dt*temp
         
-           temp = b2psifn(trial,ps179,lin,nt79)*dbf &
-                + b2bfn  (trial,bz179,lin,nt79)*dbf
+           temp = b2psifn(trial,ps179,lin,nt79)*db &
+                + b2bfn  (trial,bz179,lin,nt79)*db
            r_bf = r_bf -     thimp_bf     *dt*temp
            q_bf = q_bf + (.5-thimp_bf*bdf)*dt*temp
         end if
         if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
-           temp = b2psifn(trial,lin,bf079,nt79)*dbf
+           temp = b2psifn(trial,lin,bf079,nt79)*db
            ssterm(psi_g) = ssterm(psi_g) -     thimp_bf     *dt*temp
            ddterm(psi_g) = ddterm(psi_g) + (1.-thimp_bf*bdf)*dt*temp
         
-           temp = b2bfn  (trial,lin,bf079,nt79)*dbf
+           temp = b2bfn  (trial,lin,bf079,nt79)*db
            ssterm(bz_g) = ssterm(bz_g) -     thimp_bf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (1.-thimp_bf*bdf)*dt*temp
         
-           temp = b2psifn(trial,ps079,lin,nt79)*dbf &
-                + b2bfn  (trial,bz079,lin,nt79)*dbf
+           temp = b2psifn(trial,ps079,lin,nt79)*db &
+                + b2bfn  (trial,bz079,lin,nt79)*db
            r_bf = r_bf -     thimp_bf     *dt*temp
            q_bf = q_bf + (1.-thimp_bf*bdf)*dt*temp
         end if
         if(use_external_fields .and. linear.eq.0) then
-           temp = b2psifn(trial,lin,bfx79,nt79)*dbf
+           temp = b2psifn(trial,lin,bfx79,nt79)*db
            ssterm(psi_g) = ssterm(psi_g) -     thimp_bf     *dt*temp
            ddterm(psi_g) = ddterm(psi_g) + (1.-thimp_bf*bdf)*dt*temp
         
-           temp = b2bfn  (trial,bzx79,lin,nt79)*dbf
+           temp = b2bfn  (trial,bzx79,lin,nt79)*db
            r_bf = r_bf -     thimp_bf     *dt*temp
            q_bf = q_bf + (1.-thimp_bf*bdf)*dt*temp
         end if
      end if
 
      if(idens.eq.1) then
-        temp = b2psipsin(trial,pst79,pstx79,lin)*dbf &
-             + b2psibn  (trial,pst79,bztx79,lin)*dbf &
-             + b2bbn    (trial,bzt79,bztx79,lin)*dbf
+        temp = b2psipsin(trial,pst79,pstx79,lin)*db &
+             + b2psibn  (trial,pst79,bztx79,lin)*db &
+             + b2bbn    (trial,bzt79,bztx79,lin)*db
         if(i3d.eq.1 .and. numvar.ge.2) then 
            temp = temp &
-                + b2psifn(trial,pst79,bftx79,lin)*dbf &
-                + b2bfn  (trial,bztx79,bft79,lin)*dbf
+                + b2psifn(trial,pst79,bftx79,lin)*db &
+                + b2bfn  (trial,bztx79,bft79,lin)*db
         end if
         ssterm(den_g) = ssterm(den_g) + thimpf*dt*temp
         ddterm(den_g) = ddterm(den_g) + thimpf*dt*temp
 
         if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
-           temp = b2psipsin(trial,ps079,ps079,lin)*dbf &
-                + b2psibn  (trial,ps079,bz079,lin)*dbf &
-                + b2bbn    (trial,bz079,bz079,lin)*dbf
+           temp = b2psipsin(trial,ps079,ps079,lin)*db &
+                + b2psibn  (trial,ps079,bz079,lin)*db &
+                + b2bbn    (trial,bz079,bz079,lin)*db
            if(i3d.eq.1 .and. numvar.ge.2) then 
               temp = temp &
-                   +b2psifn(trial,ps079,bf079,lin)*dbf &
-                   +b2bfn  (trial,bz079,bf079,lin)*dbf
+                   +b2psifn(trial,ps079,bf079,lin)*db &
+                   +b2bfn  (trial,bz079,bf079,lin)*db
            end if
            if(linear.eq.1) temp = -temp
            ddterm(den_g) = ddterm(den_g) + dt*temp
@@ -2498,18 +2498,18 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
 
   ! Grad(pe)
   ! ~~~~~~~~
-  if(dbf.ne.0 .and. numvar.ge.3) then
-     temp = b2pen(trial,lin,nt79)*dbf
+  if(db.ne.0 .and. numvar.ge.3) then
+     temp = b2pen(trial,lin,nt79)*db
      ssterm(pe_g) = ssterm(pe_g) -     thimpf     *dt*temp
      ddterm(pe_g) = ddterm(pe_g) + (1.-thimpf*bdf)*dt*temp
 
      if(idens.eq.1) then
-        temp = b2pen(trial,pet79,lin)*dbf
+        temp = b2pen(trial,pet79,lin)*db
         ssterm(den_g) = ssterm(den_g) + thimpf*dt*temp
         ddterm(den_g) = ddterm(den_g) + thimpf*dt*temp
 
         if(eqsubtract.eq.1) then 
-           temp = b2pen(trial,pe079,lin)*dbf
+           temp = b2pen(trial,pe079,lin)*db
            if(linear.eq.1) temp = -temp
            ddterm(den_g) = ddterm(den_g) + dt*temp
         end if
@@ -2517,7 +2517,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
   end if
 
 !  if(ibootstrap.gt.0) then
-!     temp = b2psimue(trial,lin,)*dbf
+!     temp = b2psimue(trial,lin,)*db
 !     ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
 !     ddterm(psi_g) = ddterm(psi_g) + (1.-thimpf*bdf)*dt*temp
 !  endif
@@ -2526,85 +2526,85 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
   case(1)  ! electron form
   ! JxB
   ! ~~~
-  if(dbf.ne.0.) then
+  if(db.ne.0.) then
      if(linear.eq.0) then
-        temp = b2psipsid(trial,lin,ps179,ni79)*dbf &
-             + b2psipsid(trial,ps179,lin,ni79)*dbf &
-             + b2psibd  (trial,lin,bz179,ni79)*dbf
+        temp = b2psipsid(trial,lin,ps179,ni79)*db &
+             + b2psipsid(trial,ps179,lin,ni79)*db &
+             + b2psibd  (trial,lin,bz179,ni79)*db
         ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (.5-thimpf*bdf)*dt*temp
 
-        temp = b2psibd(trial,ps179,lin,ni79)*dbf &
-             + b2bbd  (trial,lin,bz179,ni79)*dbf &
-             + b2bbd  (trial,bz179,lin,ni79)*dbf
+        temp = b2psibd(trial,ps179,lin,ni79)*db &
+             + b2bbd  (trial,lin,bz179,ni79)*db &
+             + b2bbd  (trial,bz179,lin,ni79)*db
         ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
         ddterm(bz_g) = ddterm(bz_g) + (.5-thimpf*bdf)*dt*temp
      end if
      if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
-        temp = b2psipsid(trial,lin,ps079,ni79)*dbf &
-             + b2psipsid(trial,ps079,lin,ni79)*dbf &
-             + b2psibd  (trial,lin,bz079,ni79)*dbf
+        temp = b2psipsid(trial,lin,ps079,ni79)*db &
+             + b2psipsid(trial,ps079,lin,ni79)*db &
+             + b2psibd  (trial,lin,bz079,ni79)*db
         ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (1.-thimpf*bdf)*dt*temp
 
-        temp = b2psibd(trial,ps079,lin,ni79)*dbf &
-             + b2bbd  (trial,lin,bz079,ni79)*dbf &
-             + b2bbd  (trial,bz079,lin,ni79)*dbf
+        temp = b2psibd(trial,ps079,lin,ni79)*db &
+             + b2bbd  (trial,lin,bz079,ni79)*db &
+             + b2bbd  (trial,bz079,lin,ni79)*db
         ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
         ddterm(bz_g) = ddterm(bz_g) + (1.-thimpf*bdf)*dt*temp
      end if
      if(use_external_fields .and. linear.eq.0) then
-        temp = b2psipsid(trial,lin,psx79,ni79)*dbf &
-             + b2psibd  (trial,lin,bzx79,ni79)*dbf
+        temp = b2psipsid(trial,lin,psx79,ni79)*db &
+             + b2psibd  (trial,lin,bzx79,ni79)*db
         ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (1.-thimpf*bdf)*dt*temp
 
-        temp = b2bbd  (trial,lin,bzx79,ni79)*dbf
+        temp = b2bbd  (trial,lin,bzx79,ni79)*db
         ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
         ddterm(bz_g) = ddterm(bz_g) + (1.-thimpf*bdf)*dt*temp
      end if
 
      if(i3d.eq.1) then
         if(linear.eq.0) then
-           temp = b2psifd(trial,lin,bf179,ni79)*dbf
+           temp = b2psifd(trial,lin,bf179,ni79)*db
            ssterm(psi_g) = ssterm(psi_g) -     thimp_bf     *dt*temp
            ddterm(psi_g) = ddterm(psi_g) + (.5-thimp_bf*bdf)*dt*temp
         
-           temp = b2bfd  (trial,lin,bf179,ni79)*dbf
+           temp = b2bfd  (trial,lin,bf179,ni79)*db
            ssterm(bz_g) = ssterm(bz_g) -     thimp_bf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (.5-thimp_bf*bdf)*dt*temp
         
-           temp = b2psifd(trial,ps179,lin,ni79)*dbf &
-                + b2bfd  (trial,bz179,lin,ni79)*dbf
+           temp = b2psifd(trial,ps179,lin,ni79)*db &
+                + b2bfd  (trial,bz179,lin,ni79)*db
            r_bf = r_bf -     thimp_bf     *dt*temp
            q_bf = q_bf + (.5-thimp_bf*bdf)*dt*temp
         end if
         if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
-           temp = b2psifd(trial,lin,bf079,ni79)*dbf
+           temp = b2psifd(trial,lin,bf079,ni79)*db
            ssterm(psi_g) = ssterm(psi_g) -     thimp_bf     *dt*temp
            ddterm(psi_g) = ddterm(psi_g) + (1.-thimp_bf*bdf)*dt*temp
         
-           temp = b2bfd  (trial,lin,bf079,ni79)*dbf
+           temp = b2bfd  (trial,lin,bf079,ni79)*db
            ssterm(bz_g) = ssterm(bz_g) -     thimp_bf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (1.-thimp_bf*bdf)*dt*temp
         
-           temp = b2psifd(trial,ps079,lin,ni79)*dbf &
-                + b2bfd  (trial,bz079,lin,ni79)*dbf
+           temp = b2psifd(trial,ps079,lin,ni79)*db &
+                + b2bfd  (trial,bz079,lin,ni79)*db
            r_bf = r_bf -     thimp_bf     *dt*temp
            q_bf = q_bf + (1.-thimp_bf*bdf)*dt*temp
         end if
         if(use_external_fields .and. linear.eq.0) then
-           temp = b2psifd(trial,lin,bfx79,ni79)*dbf
+           temp = b2psifd(trial,lin,bfx79,ni79)*db
            ssterm(psi_g) = ssterm(psi_g) -     thimp_bf     *dt*temp
            ddterm(psi_g) = ddterm(psi_g) + (1.-thimp_bf*bdf)*dt*temp
         
-           temp = b2bfd  (trial,bzx79,lin,ni79)*dbf
+           temp = b2bfd  (trial,bzx79,lin,ni79)*db
            r_bf = r_bf -     thimp_bf     *dt*temp
            q_bf = q_bf + (1.-thimp_bf*bdf)*dt*temp
         end if
      end if
      if(idens.eq.1 .and. (eqsubtract.eq.1 .or. icsubtract.eq.1)) then
-        q_ni(1) = q_ni(1) + dbf*dt* &
+        q_ni(1) = q_ni(1) + db*dt* &
              (b2psipsid(trial,ps079,ps079,lin) &
              +b2psibd  (trial,ps079,bz079,lin) &
              +b2bbd    (trial,bz079,bz079,lin))
@@ -2614,19 +2614,19 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
 
   ! Grad(pe)
   ! ~~~~~~~~
-  if(dbf.ne.0 .and. numvar.ge.3) then
-     temp = b2ped(trial,lin,ni79)*dbf
+  if(db.ne.0 .and. numvar.ge.3) then
+     temp = b2ped(trial,lin,ni79)*db
      ssterm(pe_g) = ssterm(pe_g) -     thimpf     *dt*temp
      ddterm(pe_g) = ddterm(pe_g) + (1.-thimpf*bdf)*dt*temp
 
      if(idens.eq.1 .and. eqsubtract.eq.1) then
-        q_ni(1) = q_ni(1) + dbf*dt* &
+        q_ni(1) = q_ni(1) + db*dt* &
              (b2ped(trial,pe079,lin))
      end if
   end if
 
 !  if(ibootstrap.gt.0) then
-!     temp = b2psimue(trial,lin,)*dbf
+!     temp = b2psimue(trial,lin,)*db
 !     ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
 !     ddterm(psi_g) = ddterm(psi_g) + (1.-thimpf*bdf)*dt*temp
 !  endif
@@ -2644,46 +2644,46 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
 
   !  velocity time derivatives
   !  ~~~~~~~~~~~~~~~~~~~~~~~~
-  if(dbf.ne.0.) then
+  if(db.ne.0.) then
      temp = b2phidot(trial,lin)
-     ssterm(u_g) = ssterm(u_g) + dbf*temp
-     ddterm(u_g) = ddterm(u_g) + dbf*temp*bdf
+     ssterm(u_g) = ssterm(u_g) + db*temp
+     ddterm(u_g) = ddterm(u_g) + db*temp*bdf
 
      if(numvar.ge.3) then
         temp = b2chidot(trial,lin)
-        ssterm(chi_g) = ssterm(chi_g) + dbf*temp
-        ddterm(chi_g) = ddterm(chi_g) + dbf*temp*bdf
+        ssterm(chi_g) = ssterm(chi_g) + db*temp
+        ddterm(chi_g) = ddterm(chi_g) + db*temp*bdf
      endif
  
   endif
 
   ! -Grad(pi)
   ! ~~~~~~~~
-  if(dbf.ne.0 .and. numvar.ge.3) then
-     temp = b2ped(trial,lin,ni79)*dbf
+  if(db.ne.0 .and. numvar.ge.3) then
+     temp = b2ped(trial,lin,ni79)*db
      ssterm(p_g)  = ssterm(p_g)  +     thimpf     *dt*temp
      ddterm(p_g)  = ddterm(p_g)  - (1.-thimpf*bdf)*dt*temp
      ssterm(pe_g) = ssterm(pe_g) -     thimpf     *dt*temp
      ddterm(pe_g) = ddterm(pe_g) + (1.-thimpf*bdf)*dt*temp
 
      if(idens.eq.1 .and. eqsubtract.eq.1) then
-        q_ni(1) = q_ni(1) - dbf*dt* &
+        q_ni(1) = q_ni(1) - db*dt* &
              (b2ped(trial,p079,lin) - b2ped(trial,pe079,lin))
      end if
   endif
 
   ! convective derivative terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(dbf.ne.0) then
-     temp = 0.5*(b2uu(trial,lin,pht79) + b2uu(trial,pht79,lin))*dbf
+  if(db.ne.0) then
+     temp = 0.5*(b2uu(trial,lin,pht79) + b2uu(trial,pht79,lin))*db
      ssterm(u_g) = ssterm(u_g) - thimpf*dt*temp
      ddterm(u_g) = ddterm(u_g) + (1.-thimpf*bdf)*dt*temp
      if(numvar.ge.3) then
-        temp = b2uchi(trial,lin,cht79)*dbf
+        temp = b2uchi(trial,lin,cht79)*db
         ssterm(u_g) = ssterm(u_g) - thimpf*dt*temp
         ddterm(u_g) = ddterm(u_g) + (1.-thimpf*bdf)*dt*temp
 
-        temp = b2uchi(trial,pht79,lin)*dbf
+        temp = b2uchi(trial,pht79,lin)*db
         ssterm(chi_g) = ssterm(chi_g) - thimpf*dt*temp
         ddterm(chi_g) = ddterm(chi_g) + (1.-thimpf*bdf)*dt*temp
 
@@ -2692,13 +2692,13 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
 
   ! Viscosity terms
   ! ~~~~~~~~~~~~~~~
-  if(dbf.ne.0) then
+  if(db.ne.0) then
 
-     temp = b2phimun(trial,lin,vis79,ni79)*dbf
+     temp = b2phimun(trial,lin,vis79,ni79)*db
      ssterm(u_g) = ssterm(u_g) - thimpf*dt*temp
      ddterm(u_g) = ddterm(u_g) + (1.-thimpf*bdf)*dt*temp
      if(numvar.ge.3) then
-        temp = b2chimun(trial,lin,vis79,ni79)*dbf
+        temp = b2chimun(trial,lin,vis79,ni79)*db
         ssterm(chi_g) = ssterm(chi_g) - thimpf*dt*temp
         ddterm(chi_g) = ddterm(chi_g) + (1.-thimpf*bdf)*dt*temp
      endif
@@ -2708,13 +2708,13 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
   case(3)  !  only include parallel electron gradient
   ! Grad(p_e)
   ! ~~~~~~~~~
-  if(dbf.ne.0.) then
+  if(db.ne.0.) then
      if(numvar.ge.3) then
-        temp = b2psi2bfpe(trial,pst79,pst79,bzt79,bft79,lin)*dbf
+        temp = b2psi2bfpe(trial,pst79,pst79,bzt79,bft79,lin)*db
         ssterm(pe_g) = ssterm(pe_g) -     thimpf     *dt*temp
         ddterm(pe_g) = ddterm(pe_g) + (1.-thimpf*bdf)*dt*temp
         if(eqsubtract.eq.1) then
-           temp = b2psi2bfpe(trial,lin,pst79,bzt79,bft79,pe079)*dbf
+           temp = b2psi2bfpe(trial,lin,pst79,bzt79,bft79,pe079)*db
            ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
            ddterm(psi_g) = ddterm(psi_g) + (1.-thimpf*bdf)*dt*temp
         endif
@@ -2753,14 +2753,14 @@ subroutine axial_field_nolin(trial, r4term)
 
      ! JxB
      ! ~~~
-     if(dbf.ne.0.) then
-        r4term = r4term + dbf*dt* &
+     if(db.ne.0.) then
+        r4term = r4term + db*dt* &
              (b2psipsid(trial,ps079,psx79,ni79) &
              +b2psibd  (trial,ps079,bzx79,ni79) &
              +b2bbd    (trial,bz079,bzx79,ni79))
         
         if(i3d.eq.1) then
-           r4term = r4term + dbf*dt* &
+           r4term = r4term + db*dt* &
                 (b2psifd(trial,ps079,bfx79,ni79) &
                 +b2bfd  (trial,bzx79,bf079,ni79))
         end if
@@ -3007,39 +3007,39 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   
   ! Electron Pressure Advection
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(dbf.ne.0.) then
+  if(db.ne.0.) then
      if(linear.eq.0) then
-        temp = b3pepsid(trial,pe179,lin,ni79)*dbf
+        temp = b3pepsid(trial,pe179,lin,ni79)*db
         ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (.5-thimpf*bdf)*dt*temp
         
         if(numvar.ge.2) then
-           temp = b3pebd(trial,pe179,lin,ni79)*dbf
+           temp = b3pebd(trial,pe179,lin,ni79)*db
            ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (.5-thimpf*bdf)*dt*temp
         end if
 
         if(numvar.ge.3) then
-           temp = b3pepsid(trial,lin,ps179,ni79)*dbf & 
-                + b3pebd  (trial,lin,bz179,ni79)*dbf
+           temp = b3pepsid(trial,lin,ps179,ni79)*db & 
+                + b3pebd  (trial,lin,bz179,ni79)*db
            ssterm(pe_g) = ssterm(pe_g) -     thimpf     *dt*temp
            ddterm(pe_g) = ddterm(pe_g) + (.5-thimpf*bdf)*dt*temp
         end if
      end if
      if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
-        temp = b3pepsid(trial,pe079,lin,ni79)*dbf
+        temp = b3pepsid(trial,pe079,lin,ni79)*db
         ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (1.-thimpf*bdf)*dt*temp
 
         if(numvar.ge.2) then
-           temp = b3pebd(trial,pe079,lin,ni79)*dbf
+           temp = b3pebd(trial,pe079,lin,ni79)*db
            ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (1.-thimpf*bdf)*dt*temp
         end if
 
         if(numvar.ge.3) then
-           temp = b3pepsid(trial,lin,ps079,ni79)*dbf &
-                + b3pebd  (trial,lin,bz079,ni79)*dbf
+           temp = b3pepsid(trial,lin,ps079,ni79)*db &
+                + b3pebd  (trial,lin,bz079,ni79)*db
            ssterm(pe_g) = ssterm(pe_g) -     thimpf     *dt*temp
            ddterm(pe_g) = ddterm(pe_g) + (1.-thimpf*bdf)*dt*temp
         end if
@@ -3047,29 +3047,29 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      if(i3d.eq.1 .and. numvar.ge.2) then
         if(linear.eq.0) then
            if(numvar.ge.3) then
-              temp = b3pefd(trial,lin,bf179,ni79)*dbf
+              temp = b3pefd(trial,lin,bf179,ni79)*db
               ssterm(pe_g) = ssterm(pe_g) -     thimp_bf     *dt*temp
               ddterm(pe_g) = ddterm(pe_g) + (.5-thimp_bf*bdf)*dt*temp
            end if
 
-           temp = b3pefd(trial,pe179,lin,ni79)*dbf
+           temp = b3pefd(trial,pe179,lin,ni79)*db
            r_bf = r_bf -     thimp_bf     *dt*temp
            q_bf = q_bf + (.5-thimp_bf*bdf)*dt*temp
         end if
         if(eqsubtract.eq.1) then
            if(numvar.ge.3) then
-              temp = b3pefd(trial,lin,bf079,ni79)*dbf
+              temp = b3pefd(trial,lin,bf079,ni79)*db
               ssterm(pe_g) = ssterm(pe_g) -     thimp_bf     *dt*temp
               ddterm(pe_g) = ddterm(pe_g) + (1.-thimp_bf*bdf)*dt*temp
            end if
 
-           temp = b3pefd(trial,pe079,lin,ni79)*dbf
+           temp = b3pefd(trial,pe079,lin,ni79)*db
            r_bf = r_bf -     thimp_bf     *dt*temp
            q_bf = q_bf + (1.-thimp_bf*bdf)*dt*temp
         end if
      end if
      if(idens.eq.1 .and. (eqsubtract.eq.1 .or. icsubtract.eq.1)) then
-        q_ni(1) = q_ni(1) + dbf*dt* &
+        q_ni(1) = q_ni(1) + db*dt* &
              (b3pepsid(trial,pe079,ps079,lin) &
              +b3pebd  (trial,pe079,bz079,lin))
      end if
@@ -3660,39 +3660,39 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   
   ! Electron Pressure Advection
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(dbf.ne.0.) then
+  if(db.ne.0.) then
      if(linear.eq.0) then
-        temp = b3pepsid(trial,pe179,lin,ni79)*dbf
+        temp = b3pepsid(trial,pe179,lin,ni79)*db
         ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (.5-thimpf*bdf)*dt*temp
         
         if(numvar.ge.2) then
-           temp = b3pebd(trial,pe179,lin,ni79)*dbf
+           temp = b3pebd(trial,pe179,lin,ni79)*db
            ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (.5-thimpf*bdf)*dt*temp
         end if
 
         if(numvar.ge.3) then
-           temp = b3pepsid(trial,lin,ps179,ni79)*dbf & 
-                + b3pebd  (trial,lin,bz179,ni79)*dbf
+           temp = b3pepsid(trial,lin,ps179,ni79)*db & 
+                + b3pebd  (trial,lin,bz179,ni79)*db
            ssterm(pe_g) = ssterm(pe_g) -     thimpf     *dt*temp
            ddterm(pe_g) = ddterm(pe_g) + (.5-thimpf*bdf)*dt*temp
         end if
      end if
      if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
-        temp = b3pepsid(trial,pe079,lin,ni79)*dbf
+        temp = b3pepsid(trial,pe079,lin,ni79)*db
         ssterm(psi_g) = ssterm(psi_g) -     thimpf     *dt*temp
         ddterm(psi_g) = ddterm(psi_g) + (1.-thimpf*bdf)*dt*temp
 
         if(numvar.ge.2) then
-           temp = b3pebd(trial,pe079,lin,ni79)*dbf
+           temp = b3pebd(trial,pe079,lin,ni79)*db
            ssterm(bz_g) = ssterm(bz_g) -     thimpf     *dt*temp
            ddterm(bz_g) = ddterm(bz_g) + (1.-thimpf*bdf)*dt*temp
         end if
 
         if(numvar.ge.3) then
-           temp = b3pepsid(trial,lin,ps079,ni79)*dbf &
-                + b3pebd  (trial,lin,bz079,ni79)*dbf
+           temp = b3pepsid(trial,lin,ps079,ni79)*db &
+                + b3pebd  (trial,lin,bz079,ni79)*db
            ssterm(pe_g) = ssterm(pe_g) -     thimpf     *dt*temp
            ddterm(pe_g) = ddterm(pe_g) + (1.-thimpf*bdf)*dt*temp
         end if
@@ -3700,29 +3700,29 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      if(i3d.eq.1 .and. numvar.ge.2) then
         if(linear.eq.0) then
            if(numvar.ge.3) then
-              temp = b3pefd(trial,lin,bf179,ni79)*dbf
+              temp = b3pefd(trial,lin,bf179,ni79)*db
               ssterm(pe_g) = ssterm(pe_g) -     thimp_bf     *dt*temp
               ddterm(pe_g) = ddterm(pe_g) + (.5-thimp_bf*bdf)*dt*temp
            end if
 
-           temp = b3pefd(trial,pe179,lin,ni79)*dbf
+           temp = b3pefd(trial,pe179,lin,ni79)*db
            r_bf = r_bf -     thimp_bf     *dt*temp
            q_bf = q_bf + (.5-thimp_bf*bdf)*dt*temp
         end if
         if(eqsubtract.eq.1) then
            if(numvar.ge.3) then
-              temp = b3pefd(trial,lin,bf079,ni79)*dbf
+              temp = b3pefd(trial,lin,bf079,ni79)*db
               ssterm(pe_g) = ssterm(pe_g) -     thimp_bf     *dt*temp
               ddterm(pe_g) = ddterm(pe_g) + (1.-thimp_bf*bdf)*dt*temp
            end if
 
-           temp = b3pefd(trial,pe079,lin,ni79)*dbf
+           temp = b3pefd(trial,pe079,lin,ni79)*db
            r_bf = r_bf -     thimp_bf     *dt*temp
            q_bf = q_bf + (1.-thimp_bf*bdf)*dt*temp
         end if
      end if
      if(idens.eq.1 .and. (eqsubtract.eq.1 .or. icsubtract.eq.1)) then
-        q_ni(1) = q_ni(1) + dbf*dt* &
+        q_ni(1) = q_ni(1) + db*dt* &
              (b3pepsid(trial,pe079,ps079,lin) &
              +b3pebd  (trial,pe079,bz079,lin))
      end if
@@ -3943,8 +3943,8 @@ subroutine pressure_nolin(trial, r4term, total_pressure)
      r4term = r4term + dt*(gam-1.)*b3q(trial,q79)
 
      ! hyper-ohmic heating
-     if(dbf.ne.0.) then 
-        r4term = r4term + dbf*dt*(gam-1.)* &
+     if(db.ne.0.) then 
+        r4term = r4term + db*dt*(gam-1.)* &
              (qpsipsieta(trial) &
              +qbbeta    (trial))
      endif

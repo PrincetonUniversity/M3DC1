@@ -648,11 +648,11 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
      ddterm(u_g) = ddterm(u_g) - thimpb_e*temp*bdf
 
      temp = (b4psipsid(trial,lin,ps179,ni79) &
-            +b4psipsid(trial,ps179,lin,ni79))*dbf
+            +b4psipsid(trial,ps179,lin,ni79))*db
      ssterm(psi_g) = ssterm(psi_g) -     thimpf_e     *dt*temp
      ddterm(psi_g) = ddterm(psi_g) + (.5-thimpf_e*bdf)*dt*temp
 
-     temp = b4psibd(trial,lin,bz179,ni79)*dbf
+     temp = b4psibd(trial,lin,bz179,ni79)*db
      ssterm(psi_g) = ssterm(psi_g) -     thimpf_e     *dt*temp
      ddterm(psi_g) = ddterm(psi_g) + (.5-thimpf_e*bdf)*dt*temp
   endif
@@ -663,11 +663,11 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
      ddterm(u_g) = ddterm(u_g) + (1.-thimpb_e*bdf)*temp
 
      temp = (b4psipsid(trial,lin,ps079,ni79) &
-            +b4psipsid(trial,ps079,lin,ni79))*dbf
+            +b4psipsid(trial,ps079,lin,ni79))*db
      ssterm(psi_g) = ssterm(psi_g) -     thimpf_e     *dt*temp
      ddterm(psi_g) = ddterm(psi_g) + (1.-thimpf_e*bdf)*dt*temp
 
-     temp = b4psibd(trial,lin,bz079,ni79)*dbf
+     temp = b4psibd(trial,lin,bz079,ni79)*db
      ssterm(psi_g) = ssterm(psi_g) -     thimpf_e     *dt*temp
      ddterm(psi_g) = ddterm(psi_g) + (1.-thimpf_e*bdf)*dt*temp
   endif
@@ -692,9 +692,9 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
         ssterm(vz_g) = ssterm(vz_g) - thimpb_e*temp
         ddterm(vz_g) = ddterm(vz_g) - thimpb_e*temp*bdf
 
-        temp = b4psibd(trial,ps179,lin,ni79)*dbf &
-             + b4bbd  (trial,bz179,lin,ni79)*dbf &
-             + b4bbd  (trial,lin,bz179,ni79)*dbf
+        temp = b4psibd(trial,ps179,lin,ni79)*db &
+             + b4bbd  (trial,bz179,lin,ni79)*db &
+             + b4bbd  (trial,lin,bz179,ni79)*db
         ssterm(bz_g) = ssterm(bz_g) -     thimpf_e     *dt*temp
         ddterm(bz_g) = ddterm(bz_g) + (.5-thimpf_e*bdf)*dt*temp
      endif
@@ -704,9 +704,9 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
         ssterm(vz_g) = ssterm(vz_g) -     thimpb_e     *temp
         ddterm(vz_g) = ddterm(vz_g) + (1.-thimpb_e*bdf)*temp
 
-        temp = b4psibd(trial,ps079,lin,ni79)*dbf &
-             + b4bbd  (trial,bz079,lin,ni79)*dbf &
-             + b4bbd  (trial,lin,bz079,ni79)*dbf
+        temp = b4psibd(trial,ps079,lin,ni79)*db &
+             + b4bbd  (trial,bz079,lin,ni79)*db &
+             + b4bbd  (trial,lin,bz079,ni79)*db
         ssterm(bz_g) = ssterm(bz_g) -     thimpf_e     *dt*temp
         ddterm(bz_g) = ddterm(bz_g) + (1.-thimpf_e*bdf)*dt*temp
      endif
@@ -714,7 +714,7 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
 
 
   if(numvar.ge.3) then 
-     temp = b4ped(trial,lin,ni79)*dbf
+     temp = b4ped(trial,lin,ni79)*db
      ssterm(pe_g) = ssterm(pe_g) -     thimpf_e     *dt*temp
      ddterm(pe_g) = ddterm(pe_g) + (1.-thimpf_e*bdf)*dt*temp
 
@@ -734,10 +734,10 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
 
   if(idens.eq.1 .and. eqsubtract.eq.1) then
      q_ni = q_ni + dt* &
-          (b4psipsid(trial,ps079,ps079,lin)*dbf &
-          +b4psibd  (trial,ps079,bz079,lin)*dbf &
-          +b4bbd    (trial,bz079,bz079,lin)*dbf &
-          +b4ped    (trial,pe079,lin)*dbf)
+          (b4psipsid(trial,ps079,ps079,lin)*db &
+          +b4psibd  (trial,ps079,bz079,lin)*db &
+          +b4bbd    (trial,bz079,bz079,lin)*db &
+          +b4ped    (trial,pe079,lin)*db)
   endif
 
 
@@ -746,19 +746,19 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
      ssterm(vz_g) = ssterm(vz_g) -     thimpb_e *temp
      ddterm(vz_g) = ddterm(vz_g) + (1.-thimpb_e)*temp*bdf
 
-     temp = b4psifd(trial,lin,bft79,ni79)*dbf
+     temp = b4psifd(trial,lin,bft79,ni79)*db
      ssterm(psi_g) = ssterm(psi_g) -     thimpf_e     *dt*temp
      ddterm(psi_g) = ddterm(psi_g) + (1.-thimpf_e*bdf)*dt*temp
 
-     temp = b4bfd(trial,lin,bft79,ni79)*dbf
+     temp = b4bfd(trial,lin,bft79,ni79)*db
      ssterm(bz_g) = ssterm(bz_g) -     thimpf_e     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimpf_e*bdf)*dt*temp
 
      if(eqsubtract.eq.1) then
         q_bf = q_bf + dt* &
              (b4fv   (trial,lin,vz079)          &
-             +b4psifd(trial,ps079,lin,ni79)*dbf &
-             +b4bfd  (trial,bz079,lin,ni79)*dbf)
+             +b4psifd(trial,ps079,lin,ni79)*db &
+             +b4bfd  (trial,bz079,lin,ni79)*db)
      endif
 
      q_bf = q_bf + &
