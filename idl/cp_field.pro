@@ -8,7 +8,7 @@ pro plot_cp_field, field, filename=filename, _EXTRA=extra, names=names, $
    if(not (keyword_set(abs) or keyword_set(phase))) then begin
        filename=filename[0]
    end
-   
+
 ; from ntor=1
 ;   fac = 0.95493
 
