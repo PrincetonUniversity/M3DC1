@@ -88,7 +88,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
 
        rpath = fltarr(n_elements(m), n_elements(nflux))
        zpath = fltarr(n_elements(m), n_elements(nflux))
-       read_nulls, axis=axis, _EXTRA=extra
+       nulls, axis=axis, _EXTRA=extra
 
        for i=0, n_elements(nflux)-1 do begin
            xy = path_at_flux(psi0,x,z,t,flux[i],/contiguous,$
