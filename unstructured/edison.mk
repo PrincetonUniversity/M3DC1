@@ -29,7 +29,9 @@ ifeq ($(USESCOREC), 1)
 
     SCORECLIB=-lapf -lapf_pumi -lpumi_util -lpumi_geom -lpcu -lpumi_geom_meshmodel -lpumi_mesh -lmeshadapt
     SCOREC_LIBS =-L$(SCORECDIR)/lib -Wl,--start-group -lPPPLFusion $(SCORECLIB) -Wl,--end-group -lzoltan
-     PETSC_EXTERNAL_LIB_BASIC =-Wl,-rpath,/global/project/projectdirs/mp288/jinchen/HZhang/petsc-3.4.3_edison/arch-xe6-opt/lib -L/global/project/projectdirs/mp288/jinchen/HZhang/petsc-3.4.3_edison/arch-xe6-opt/lib -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu_dist_3.3 -lsuperlu_4.3 -lparmetis -lmetis -lpthread -ldl
+    PETSC_DIR =/global/project/projectdirs/mp288/jinchen/HZhang/petsc-3.4.3_edison_new/
+    PETSC_ARCH =arch-xe6-opt
+     PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,/global/project/projectdirs/mp288/jinchen/HZhang/petsc-3.4.3_edison_new/arch-xe6-opt/lib -L/global/project/projectdirs/mp288/jinchen/HZhang/petsc-3.4.3_edison_new/arch-xe6-opt/lib -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu_dist_3.3 -lsuperlu_4.3 -lparmetis -lmetis -lpthread -ldl
   INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
   INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
   LIBS := $(LIBS) \
