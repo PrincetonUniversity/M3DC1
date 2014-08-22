@@ -17,9 +17,9 @@ function read_b_at_points, r0, z0, a0, slice=slice, filename=filename, $
    psi_z = read_field('psi',x,z,t,_EXTRA=extra,slice=slice,complex=complex,$
                       op=3,linear=linear,filename=filename)
    if(complex eq 1) then begin
-       f_r = read_field('psi',x,z,t,_EXTRA=extra,slice=slice,complex=complex,$
+       f_r = read_field('f',x,z,t,_EXTRA=extra,slice=slice,complex=complex,$
                         op=2,linear=linear,filename=filename)
-       f_z = read_field('psi',x,z,t,_EXTRA=extra,slice=slice,complex=complex,$
+       f_z = read_field('f',x,z,t,_EXTRA=extra,slice=slice,complex=complex,$
                         op=3,linear=linear,filename=filename)
        f_rp = complex(0,ntor)*f_r
        f_zp = complex(0,ntor)*f_z
@@ -33,9 +33,9 @@ function read_b_at_points, r0, z0, a0, slice=slice, filename=filename, $
          read_field('psi',x,z,t,_EXTRA=extra,slice=0,complex=complex,$
                           op=3,linear=linear,filename=filename)
        if(complex eq 1) then begin
-           f_r = read_field('psi',x,z,t,_EXTRA=extra,slice=0,complex=complex,$
+           f_r = read_field('f',x,z,t,_EXTRA=extra,slice=0,complex=complex,$
                             op=2,linear=linear,filename=filename)
-           f_z = read_field('psi',x,z,t,_EXTRA=extra,slice=0,complex=complex,$
+           f_z = read_field('f',x,z,t,_EXTRA=extra,slice=0,complex=complex,$
                             op=3,linear=linear,filename=filename)
            f_rp = f_rp - complex(0,ntor)*f_r
            f_zp = f_zp - complex(0,ntor)*f_z

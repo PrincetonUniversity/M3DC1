@@ -1,4 +1,4 @@
-function island_overlap, filename, current=cur, sum_files=sum_files
+function island_overlap, filename, psin=psin, current=cur, sum_files=sum_files
    width = island_widths(filename, psin=psin,current=cur,sum_files=sum_files,$
                         q=q)
 
@@ -6,7 +6,7 @@ function island_overlap, filename, current=cur, sum_files=sum_files
    overlap = fltarr(n)
 
    for j=0, n-1 do begin
-       lpl = 1.
+       lpl = max(psin[j,*])
        for i=n_elements(psin[j,*])-1, 0, -1 do begin
            pr = psin[j,i] + width[j,i]/2.
            pl = psin[j,i] - width[j,i]/2.

@@ -159,7 +159,7 @@ pro min_torque, file1, file2, modb=modb, maxamp=maxamp, overlap=overlap, $
 
        if(keyword_set(q0)) then begin
            psi0 = interpol(psi1, q1, q0)
-           print, psi0
+           print, 'psi0 = ', psi0
        end
 
    endif else if(keyword_set(modb)) then begin
