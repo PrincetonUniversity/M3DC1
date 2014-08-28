@@ -23,12 +23,9 @@ endif
 #HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lpdslin
 
 ifeq ($(USESCOREC), 1)
-    ifndef SCORECDIR
-      #SCORECDIR = /project/projectdirs/mp288/lib/hopper2/scorec/install-Opt
-      SCORECDIR = /global/project/projectdirs/mp288/hopper/install
-    endif
-
-SCOREC_LIBS =-L$(SCORECDIR)/lib -Wl,--start-group -lPPPLFusion -lMeshAdapt -lFMDB -lGMI -lGMIMeshModel -lSCORECUtil -lipcomman -Wl,--end-group -lzoltan 
+    SCORECDIR = /global/project/projectdirs/mp288/hopper/installCray
+    SCORECLIB=-lapf -lapf_pumi -lpumi_util -lpumi_geom -lpcu -lpumi_geom_meshmodel -lpumi_mesh -lmeshadapt
+    SCOREC_LIBS =-L$(SCORECDIR)/lib -Wl,--start-group -lPPPLFusion $(SCORECLIB) -Wl,--end-group -lzoltan
 
   INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
   LIBS := $(LIBS) $(SCOREC_LIBS) -lC -lstd
