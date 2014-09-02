@@ -16,7 +16,7 @@ module auxiliary_fields
   type(field_type) :: chord_mask
   type(field_type) :: mag_reg
   type(field_type) :: ef_r, ef_phi, ef_z, eta_j, psidot
-  type(field_type) :: vdotgradt
+  type(field_type) :: vdotgradt, adv1, adv2, adv3
   type(field_type) :: deldotq_perp
   type(field_type) :: deldotq_par
   type(field_type) :: eta_jsq
@@ -44,6 +44,9 @@ subroutine create_auxiliary_fields
   endif
   if(itemp_plot.eq.1) then
      call create_field(vdotgradt)
+     call create_field(adv1)
+     call create_field(adv2)
+     call create_field(adv3)
      call create_field(deldotq_perp)
      call create_field(deldotq_par)
      call create_field(eta_jsq)
@@ -71,6 +74,9 @@ subroutine destroy_auxiliary_fields
   endif
   if(itemp_plot.eq.1) then
      call destroy_field(vdotgradt)
+     call destroy_field(adv1)
+     call destroy_field(adv2)
+     call destroy_field(adv3)
      call destroy_field(deldotq_perp)
      call destroy_field(deldotq_par)
      call destroy_field(eta_jsq)
@@ -198,6 +204,9 @@ subroutine calculate_auxiliary_fields(ilin)
   endif
   if(itemp_plot.eq.1) then
      vdotgradt = 0.
+     adv1 = 0.
+     adv2 = 0.
+     adv3 = 0.
      deldotq_perp = 0.
      deldotq_par = 0.
      eta_jsq = 0.
@@ -209,6 +218,7 @@ subroutine calculate_auxiliary_fields(ilin)
   def_fields = def_fields + FIELD_ETA + FIELD_TE + FIELD_KAP
   def_fields = def_fields + FIELD_MU + FIELD_B2I
   if(jadv.eq.0 .and. i3d.eq.1) def_fields = def_fields + FIELD_ES
+  if(heat_source .and. itemp_plot.eq.1) def_fields = def_fields + FIELD_Q
 
   numelms = local_elements()
 if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
@@ -482,6 +492,24 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
         end do
         call vector_insert_block(vdotgradt%vec,itri,1,dofs,VEC_ADD)
 
+        call advection1(temp79a)
+        do i=1, dofs_per_element
+           dofs(i) = int2(mu79(:,OP_1,i),temp79a)
+        end do
+        call vector_insert_block(adv1%vec,itri,1,dofs,VEC_ADD)
+
+        call advection2(temp79a)
+        do i=1, dofs_per_element
+           dofs(i) = int2(mu79(:,OP_1,i),temp79a)
+        end do
+        call vector_insert_block(adv2%vec,itri,1,dofs,VEC_ADD)
+
+        call advection3(temp79a)
+        do i=1, dofs_per_element
+           dofs(i) = int2(mu79(:,OP_1,i),temp79a)
+        end do
+        call vector_insert_block(adv3%vec,itri,1,dofs,VEC_ADD)
+
   
         do i=1, dofs_per_element
            call hf_perp(i,temp79a)
@@ -531,6 +559,9 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
   endif
   if(itemp_plot.eq.1) then
      call newvar_solve(vdotgradt%vec, mass_mat_lhs)
+     call newvar_solve(adv1%vec, mass_mat_lhs)
+     call newvar_solve(adv2%vec, mass_mat_lhs)
+     call newvar_solve(adv3%vec, mass_mat_lhs)
      call newvar_solve(deldotq_perp%vec, mass_mat_lhs)
      call newvar_solve(deldotq_par%vec, mass_mat_lhs)
      call newvar_solve(eta_jsq%vec, mass_mat_lhs)

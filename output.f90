@@ -1092,6 +1092,45 @@ subroutine output_fields(time_group_id, equilibrium, error)
        nfields = nfields + 1
 #endif
 
+       ! adv1
+       do i=1, nelms
+          call calcavector(i, adv1, dum(:,i))
+       end do
+       call output_field(group_id, "adv1", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
+#ifdef USECOMPLEX
+       call output_field(group_id, "adv1_i",aimag(dum),&
+            coeffs_per_element,nelms, error)
+       nfields = nfields + 1
+#endif
+
+       ! adv2
+       do i=1, nelms
+          call calcavector(i, adv2, dum(:,i))
+       end do
+       call output_field(group_id, "adv2", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
+#ifdef USECOMPLEX
+       call output_field(group_id, "adv2_i",aimag(dum),&
+            coeffs_per_element,nelms, error)
+       nfields = nfields + 1
+#endif
+
+       ! adv3
+       do i=1, nelms
+          call calcavector(i, adv3, dum(:,i))
+       end do
+       call output_field(group_id, "adv3", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
+#ifdef USECOMPLEX
+       call output_field(group_id, "adv3_i",aimag(dum),&
+            coeffs_per_element,nelms, error)
+       nfields = nfields + 1
+#endif
+
        ! deldotq_perp
        do i=1, nelms
           call calcavector(i, deldotq_perp, dum(:,i))
