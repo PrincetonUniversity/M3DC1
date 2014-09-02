@@ -15,13 +15,12 @@ subroutine advection(o)
                 + r_79*tet79(:,OP_DR)*nt79(:,OP_1)*pht79(:,OP_DZ)    
          
      if(itor.eq.1) then
-        o = o + &
-        2.*(gam-1.)*tet79(:,OP_1)*nt79(:,OP_1)*pht79(:,OP_DZ)
+        o = o + 2.*(gam-1.)*tet79(:,OP_1)*nt79(:,OP_1)*pht79(:,OP_DZ)
      endif
 
 #if defined(USE3D) || defined(USECOMPLEX)
      if(numvar.ge.2) then
-        o = o + tet79(:,OP_DP)*nt79(:,OP_1)*vzt79(:,OP_1) &
+        o = o - tet79(:,OP_DP)*nt79(:,OP_1)*vzt79(:,OP_1) &
          - (gam-1.)*tet79(:,OP_1)*nt79(:,OP_1)*vzt79(:,OP_DP)
      end if
 #endif
@@ -70,6 +69,68 @@ subroutine advection(o)
        end if
   endif
 end subroutine advection
+subroutine advection1(o)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(MAX_PTS), intent(out) :: o
+ ! Advection
+  ! ~~~~~~~~~~~~~~~~~~
+     o = 0.
+     o =  o - r_79*tet79(:,OP_DZ)*nt79(:,OP_1)*pht79(:,OP_DR) &
+                + r_79*tet79(:,OP_DR)*nt79(:,OP_1)*pht79(:,OP_DZ)    
+         
+     if(itor.eq.1) then
+        o = o + 2.*(gam-1.)*tet79(:,OP_1)*nt79(:,OP_1)*pht79(:,OP_DZ)
+     endif
+
+
+end subroutine advection1
+
+subroutine advection2(o)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(MAX_PTS), intent(out) :: o
+ ! Advection
+  ! ~~~~~~~~~~~~~~~~~~
+     o = 0.
+
+#if defined(USE3D) || defined(USECOMPLEX)
+     if(numvar.ge.2) then
+        o = o - tet79(:,OP_DP)*nt79(:,OP_1)*vzt79(:,OP_1) &
+         - (gam-1.)*tet79(:,OP_1)*nt79(:,OP_1)*vzt79(:,OP_DP)
+     end if
+#endif
+
+
+
+end subroutine advection2
+
+subroutine advection3(o)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(MAX_PTS), intent(out) :: o
+ ! Advection
+  ! ~~~~~~~~~~~~~~~~~~
+     o = 0.
+
+     if(numvar.ge.3) then
+        temp79b = -(tet79(:,OP_DR)*cht79(:,OP_DR) &
+                  + tet79(:,OP_DZ)*cht79(:,OP_DZ))  &
+                  - (gam-1.)*tet79(:,OP_1)*cht79(:,OP_GS)
+     
+        o = o + ri2_79*temp79b*nt79(:,OP_1)
+     end if
+
+end subroutine advection3
 
 subroutine hf_perp(i,o)
   use basic
@@ -208,6 +269,9 @@ subroutine ohmic(o)
           endif
 #endif
        end if
+
+! ADD heat source if present
+  if(heat_source) o = o + (gam-1.)*q79(:,OP_1)
 
 end subroutine ohmic
 

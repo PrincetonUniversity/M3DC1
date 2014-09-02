@@ -3061,6 +3061,80 @@ subroutine frs_equ(x, z)
                         - 3.*(2.*z/r0**2)**2/(1.+(r/r0)**2)**4  )+2.*p0))
 
 end subroutine frs_equ
+subroutine frs1_init()
+  use basic
+  use arrays
+  use mesh_mod
+
+  implicit none
+
+  integer :: l, numnodes,m
+  real :: x, phi, z, alx, alz, Bp0,r0,rs,Bz_edge
+
+
+  numnodes = owned_nodes()
+  do l=1, numnodes
+     call get_node_pos(l, x, phi, z)
+
+!     z = z - alz*.5
+
+     call get_local_vals(l)
+
+     call frs1_equ(x-rzero, z)
+     call frs_per(x-rzero, phi, z)
+
+     call set_local_vals(l)
+  enddo
+
+end subroutine frs1_init
+
+
+!========================================================
+! equ
+!========================================================
+subroutine frs1_equ(x, z)
+  use basic
+  use arrays
+
+  implicit none
+
+  real, intent(in) :: x, z
+  real :: r,Bp0,dpsidr,d2psidr,integral,rs, Bz_edge,Bz,dBzdx,dBzdz,beta0,r0
+  integer :: m,n
+
+  Bz_edge=rzero
+
+  call constant_field(den0_l, 1.)
+
+  r=sqrt(x**2 + z**2)
+
+  
+  call constant_field(p0_l,p0)
+
+  psi0_l(1) = -.5/q0*(1.-.5*r**2)**2
+  psi0_l(2) =   x/q0*(1.-.5*r**2)
+  psi0_l(3) =   z/q0*(1.-.5*r**2)
+  psi0_l(4) =  1./q0*(1.-.5*r**2-x**2)
+  psi0_l(5) = -1./q0*x*z
+  psi0_l(6) =  1./q0*(1.-.5*r**2-z**2)
+  
+
+
+  Bz=sqrt(Bz_edge**2+4./q0**2*(5./24. - r**2/2. + 3.*r**4/8. - r**6/12))
+
+  bz0_l(1)= Bz
+  bz0_l(2)= 2*x/(bz*q0**2)*(-1+3*r**2/2 -r**4/2.)
+  bz0_l(3)= 2*z/(bz*q0**2)*(-1+3*r**2/2 -r**4/2.)
+  bz0_l(4)= -4*x**2/(bz**3*q0**4)*(-1+3*r**2/2 -r**4/2.)**2   &
+          + 2/(bz*q0**2)*(-1+3*r**2/2 -r**4/2.)   &
+          + 2*x**2/(bz*q0**2)*(3-2*r)
+  bz0_l(5)=  -4*x*z/(bz**3*q0**4)*(-1+3*r**2/2 -r**4/2.)**2   &
+          + 2*x*z/(bz*q0**2)*(3-2*r)
+  bz0_l(6)= -4*z**2/(bz**3*q0**4)*(-1+3*r**2/2 -r**4/2.)**2   &
+          + 2/(bz*q0**2)*(-1+3*r**2/2 -r**4/2.)   &
+          + 2*z**2/(bz*q0**2)*(3-2*r)
+
+end subroutine frs1_equ
 
 
 !========================================================
@@ -3887,6 +3961,8 @@ subroutine initial_conditions()
            call kstar_profiles()
         case(21,22)
            call fixed_q_profiles()
+        case(23)
+           call frs1_init()
         end select
      else
         ! toroidal equilibria

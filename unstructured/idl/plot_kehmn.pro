@@ -309,7 +309,7 @@ pro plot_bhmn, filename=filename, xrange=xrange, yrange=yrange, maxn=maxn, ylog=
          endif else begin
             ind = n + (t+1)*dimn[0]
             tmp[t] = bhmn[ind]
-            title='kinetic energy for each bharmonics'
+            title='magnetic energy for each bharmonics'
          endelse
             x[t] = time[t+1]
       endfor

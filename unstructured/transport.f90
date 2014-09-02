@@ -48,7 +48,7 @@ vectype function sigma_func(i)
      temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
 
-  if(ibeam.ge.1) then
+  if(ibeam.eq.1 .or. ibeam.eq.2) then
      temp79a = neutral_beam_deposition(x_79,z_79)
      temp = temp + int2(mu79(:,OP_1,i),temp79a)
   end if
@@ -72,13 +72,13 @@ vectype function sigma_func(i)
   ! Enforce density floor
   if(idenfloor.ge.1) then
 
-  endif
-
   do j=1, npoints
      temp79a(j) = 0.
      iregion = magnetic_region(pst79(j,:), x_79(j), z_79(j))
      if(iregion.ge.1) temp79a(j) = alphadenfloor*( den_edge - nt79(j,OP_1))
   end do
+  endif
+
   temp = temp + int2(mu79(:,OP_1,i),temp79a)
 
   sigma_func = temp
