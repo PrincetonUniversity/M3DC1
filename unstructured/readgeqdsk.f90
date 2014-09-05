@@ -23,7 +23,7 @@ subroutine load_eqdsk
 
   integer, parameter :: neqdsk = 20
   integer :: idum, i, j, ierr
-  real :: xdum
+  real :: xdum, ffp2, pp2, dpsi
   integer :: ibuff(2)
   real :: rbuff(20)
 
@@ -83,7 +83,7 @@ subroutine load_eqdsk
      write(*,'(A,4e12.4)') " Bounding box:", rleft, zmid-zdim/2., rdim, zdim
 
 !  call read_out1(neqdsk)
- 
+
      close(neqdsk)
 
      if(current.lt.0) then
@@ -125,6 +125,27 @@ subroutine load_eqdsk
   call mpi_bcast(pprime, nw, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierr)
   call mpi_bcast(psirz,  nw*nh, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierr)
   call mpi_bcast(qpsi,   nw, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierr)
+
+         if(rank.eq.0) then
+           open(unit=78,file="eqdsk-out",status="unknown")
+           write(78,2010) sibry,simag,current
+2010       format("sibry,simag,current =",1p3e12.4,/,  &
+                "  l   press       pprime      fpol        ffprim      ffp2        pprime2     qpsi")
+                                                                                                        
+           dpsi = (sibry-simag)/(nw-1.)
+           do i=1,nw
+              if(i.gt.1 .and. i.lt.nw)  then
+                ffp2 = fpol(i)*(fpol(i+1)-fpol(i-1))/(2*dpsi)
+                pp2 = (press(i+1) - press(i-1))/(2*dpsi)
+              else
+                ffp2 = 0
+                pp2 = 0
+              endif
+              write(78,2011) i,press(i),pprime(i),fpol(i),ffprim(i),ffp2,pp2,qpsi(i)
+           enddo
+2011       format(i3,1p7e12.4)
+           close(78)
+        endif
 
   if(rank.eq.0) then
      print *, 'Done reading EQDSK g-file.'

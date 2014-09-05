@@ -2036,7 +2036,7 @@ subroutine eqdsk_init()
   implicit none
 
   integer :: l, ll, numnodes
-  real :: x, phi, z , dpsi
+  real :: x, phi, z , dpsi, ffp2, pp2
   vectype, parameter ::  negone = -1
 
   real, allocatable :: flux(:)
@@ -2098,7 +2098,7 @@ subroutine eqdsk_init()
   end if
 !
 ! Bateman scaling parameter reintroduced
-  fpol(nw) = fpol(nw)*batemanscale
+  if(igs_pp_ffp_rescale.ne.1) fpol(nw) = fpol(nw)*batemanscale
 !
   bzero = fpol(nw)/rzero
 
@@ -2112,7 +2112,7 @@ subroutine eqdsk_init()
         do l=1,nw
            flux(l) = (l-1)*dpsi
            ll = nw - l
-           if(batemanscale.eq.1.0) cycle
+           if(batemanscale.eq.1.0 .or. igs_pp_ffp_rescale.eq.1) cycle
 ! ...Apply Bateman scaling --- redefine fpol keeping ffprim fixed
            if(ll.gt.0) fpol(ll) = sign(1.0,fpol(nw)) &
                 *sqrt(fpol(ll+1)**2 - dpsi*(ffprim(ll)+ffprim(ll+1)))
@@ -2122,13 +2122,20 @@ subroutine eqdsk_init()
 
         if(myrank.eq.0 .and. iprint.ge.1) then
            open(unit=77,file="debug-out",status="unknown")
-           write(77,2010) xmag,zmag,tcuro
-2010       format("xmag,zmag,tcuro =",1p3e12.4,/,  &
-                "l   press       pprime      fpol        ffprim      flux")
+           write(77,2010) sibry,simag,tcuro,xmag,zmag
+2010       format("sibry,simag,tcuro,xmag,zmag =",1p5e12.4,/,  &
+                "  l   press       pprime      fpol        ffprim      ffp2        pp2         flux")
            do l=1,nw
-              write(77,2011) l,press(l),pprime(l),fpol(l),ffprim(l),flux(l)
+              if(l.gt.1 .and. l.lt.nw)  then
+                ffp2 = fpol(l)*(fpol(l+1)-fpol(l-1))/(2*dpsi)
+                pp2 = (press(l+1)-press(l-1))/(2*dpsi)
+              else
+                ffp2 = 0
+                pp2 = 0
+              endif
+              write(77,2011) l,press(l),pprime(l),fpol(l),ffprim(l),ffp2,pp2,flux(l)
            enddo
-2011       format(i3,1p5e12.4)
+2011       format(i3,1p7e12.4)
            close(77)
         endif
         deallocate(flux)
