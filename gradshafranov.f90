@@ -2298,6 +2298,14 @@ end subroutine readpgfiles
      scale = (f(1)**2/2.-f(n)**2/2.) / (temp-f(n)**2/2.)
      if(myrank.eq.0) print *, "Scaling FF' by", scale
      ffn = ffn*scale
+     
+! reinroduce bateman scale for igs_pp_ffp_rescale.eq.1
+     bzero = bzero*batemanscale
+!     g0(n) = 0.
+!     do i=n,2,-1
+!        g0(i-1) = g0(i) - psinorm(i)*.5*(ffn(i)+ffn(i+1))
+!     enddo
+
    end if
 
    call create_spline(p0_spline, n, psinorm, pres0)

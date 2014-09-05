@@ -274,9 +274,42 @@ subroutine ohmic(o)
   if(heat_source) o = o + (gam-1.)*q79(:,OP_1)
 
 end subroutine ohmic
+subroutine vpar_get(o)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(MAX_PTS), intent(out) :: o
+
+
+!      bsquared
+  temp79c = (pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2)*ri2_79    &
+          + bzt79(:,OP_1)**2*ri2_79      
+#if defined(USE3D) || defined(USECOMPLEX)
+  temp79c = temp79c     &
+         + 2.*ri_79*(bft79(:,OP_DRP)*pst79(:,OP_DZ) - bft79(:,OP_DZP)*pst79(:,OP_DR))  &
+         + bft79(:,OP_DRP)**2 + bft79(:,OP_DZP)**2
+#endif
+
+!      v dot b
+  temp79b = pht79(:,OP_DR)*pst79(:,OP_DR) +  pht79(:,OP_DZ)*pst79(:,OP_DZ)   &
+          + bzt79(:,OP_1)*vzt79(:,OP_1)   &
+          + ri3_79*(pst79(:,OP_DR)*cht79(:,OP_DZ) - pst79(:,OP_DZ)*cht79(:,OP_DR))  
+ 
+#if defined(USE3D) || defined(USECOMPLEX)
+  temp79b = temp79b     &
+          + r_79*(bft79(:,OP_DRP)*pht79(:,OP_DZ) - bft79(:,OP_DZP)*pht79(:,OP_DR))  &
+          - ri2_79*( cht79(:,OP_DR)*bft79(:,OP_DRP) +  cht79(:,OP_DZ)*bft79(:,OP_DZP))
+#endif
+  
+  o = temp79b/sqrt(temp79c)
+
+end subroutine vpar_get
 
 end module temperature_plots
 
 
  
 
+ 

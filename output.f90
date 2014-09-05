@@ -1154,6 +1154,15 @@ subroutine output_fields(time_group_id, equilibrium, error)
        call output_field(group_id, "eta_jsq", real(dum), coeffs_per_element, &
             nelms, error)
        nfields = nfields + 1
+
+    ! vpar
+       do i=1, nelms
+          call calcavector(i, vpar_field, dum(:,i))
+       end do
+       call output_field(group_id, "vpar", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
+
     endif    ! on itemp_plot .eq. 1
     
     ! sigma
