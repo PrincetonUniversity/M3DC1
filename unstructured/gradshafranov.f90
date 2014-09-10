@@ -915,6 +915,7 @@ subroutine gradshafranov_solve
   use model
 
   implicit none
+  include 'mpif.h'
 
   type(field_type) :: b1vecini_vec, b2vecini_vec
   type(field_type) :: b3vecini_vec, b4vecini_vec
@@ -1176,7 +1177,6 @@ subroutine gradshafranov_solve
   ! do feedback
   if(do_feedback) call write_feedback('current.dat.out')
 
-
   if(myrank.eq.0 .and. iprint.ge.1) then
      print *, "Converged GS error =",error2
      print *, "initial and final(effective) libetap", libetap, libetapeff
@@ -1192,6 +1192,13 @@ subroutine gradshafranov_solve
   ! Define equilibrium fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' defining equilibrium fields'
+
+! bateman scale for igs_pp_ffp_rescale .ne. 0
+  if(igs_pp_ffp_rescale.ne.0 .and. batemanscale.ne.1.) then
+     if(myrank.eq.0) bzero = bzero*batemanscale
+     call mpi_bcast(bzero,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
+  endif
+
   ! solve for p and f fields that best approximate gs solution
   b1vecini_vec = 0.
   b2vecini_vec = 0.
@@ -2299,12 +2306,6 @@ end subroutine readpgfiles
      if(myrank.eq.0) print *, "Scaling FF' by", scale
      ffn = ffn*scale
      
-! reinroduce bateman scale for igs_pp_ffp_rescale.eq.1
-     bzero = bzero*batemanscale
-!     g0(n) = 0.
-!     do i=n,2,-1
-!        g0(i-1) = g0(i) - psinorm(i)*.5*(ffn(i)+ffn(i+1))
-!     enddo
 
    end if
 

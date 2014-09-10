@@ -16,7 +16,6 @@ module eqdsk
 contains
 
 subroutine load_eqdsk
-
   implicit none
 
   include 'mpif.h'
