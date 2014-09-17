@@ -25,9 +25,13 @@ pro plot_b_at_wall, filename=filename, _EXTRA=extra, $
                     diiid_hfs=diiid_hfs, diiid_lfs=diiid_lfs, $
                     names=names, abs=ab, phase=phase, scale=scale, $
                     scan_phase=scan_phase, sum_fields=sum_fields, $
-                    cutz=cutz
+                    cutz=cutz, overplot=overplot,color=col
 
-   c = shift(get_colors(),-1)
+   if(n_elements(col) eq 0) then begin
+       c = shift(get_colors(),-1)
+   endif else begin
+       c = col
+   end
    if(n_elements(scale) eq 0) then scale = 1.
    if(n_elements(scale) eq 1 and n_elements(filename) gt 1) then $
        scale = replicate(scale, n_elements(filename))
@@ -127,15 +131,21 @@ pro plot_b_at_wall, filename=filename, _EXTRA=extra, $
            return
        end
            
-       plot, p[ii,*], b[0,*], /nodata, _EXTRA=extra, $
-         ytitle=ytitle, xtitle=xtitle
+       if(not keyword_set(overplot)) then begin
+           plot, p[ii,*], b[0,*], /nodata, _EXTRA=extra, $
+             ytitle=ytitle, xtitle=xtitle
+       end
        
        for i=0, n_elements(filename)-1 do begin
            oplot, p[ii,*], b[i,*], color=c[i]
            if(keyword_set(sum_fields)) then break
        end
        
-       if(n_elements(names) eq 0) then names = filename
-       plot_legend, names, color=c, _EXTRA=extra
+       if(not keyword_set(sum_fields)) then begin
+           if(n_elements(names) eq 0) then names = filename
+       end
+       if(n_elements(names) gt 0) then begin
+           plot_legend, names, color=c, _EXTRA=extra
+       end
    end
 end

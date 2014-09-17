@@ -127,10 +127,12 @@ end
 
 pro min_torque, file1, file2, modb=modb, maxamp=maxamp, overlap=overlap, $
                 sigma=sigma, mpol=mpol, psi0=psi0, q0=q0, bmntot=bmntot, $
-                _EXTRA=extra
+                scale=scale, _EXTRA=extra
 
    if(n_elements(maxamp) eq 0) then maxamp=2.
    if(n_elements(psi0) eq 0) then psi0=0.95
+   if(n_elements(scale) eq 0) then scale = 1.
+   if(n_elements(scale) eq 1) then scale = [scale, scale]
 
    if(not keyword_set(overlap) and $
       not keyword_set(sigma) and $
@@ -156,6 +158,8 @@ pro min_torque, file1, file2, modb=modb, maxamp=maxamp, overlap=overlap, $
    endif else if(keyword_set(mpol) or keyword_set(bmntot)) then begin
        read_bmncdf, file=file1, bmn=bmn1, psi=psi1, m=m1, q=q1
        read_bmncdf, file=file2, bmn=bmn2, psi=psi2, m=m2, q=q2
+       bmn1 = bmn1*scale[0]
+       bmn2 = bmn2*scale[1]
 
        if(keyword_set(q0)) then begin
            psi0 = interpol(psi1, q1, q0)
@@ -165,48 +169,48 @@ pro min_torque, file1, file2, modb=modb, maxamp=maxamp, overlap=overlap, $
    endif else if(keyword_set(modb)) then begin
        slice=1
        br1 = read_field('bx',x,z,t,file=file1,slice=slice,/linear, $
-                        /complex,/mks,edge_val=0.,_EXTRA=extra)
+                        /complex,/mks,edge_val=0.,_EXTRA=extra)*scale[0]
        br2 = read_field('bx',x,z,t,file=file2,slice=slice,/linear, $
-                        /complex,/mks,edge_val=0.,_EXTRA=extra)
+                        /complex,/mks,edge_val=0.,_EXTRA=extra)*scale[1]
        bz1 = read_field('bz',x,z,t,file=file1,slice=slice,/linear, $
-                        /complex,/mks,edge_val=0.,_EXTRA=extra)
+                        /complex,/mks,edge_val=0.,_EXTRA=extra)*scale[0]
        bz2 = read_field('bz',x,z,t,file=file2,slice=slice,/linear, $
-                        /complex,/mks,edge_val=0.,_EXTRA=extra)
+                        /complex,/mks,edge_val=0.,_EXTRA=extra)*scale[1]
        bphi1 = read_field('by',x,z,t,file=file1,slice=slice,/linear, $
-                          /complex,/mks,edge_val=0.,_EXTRA=extra)
+                          /complex,/mks,edge_val=0.,_EXTRA=extra)*scale[0]
        bphi2 = read_field('by',x,z,t,file=file2,slice=slice,/linear, $
-                          /complex,/mks,edge_val=0.,_EXTRA=extra)
+                          /complex,/mks,edge_val=0.,_EXTRA=extra)*scale[1]
 
    endif else begin
        ; read fields from coils
        coil_br1 = read_field('bx',x,z,t,file=file1,slice=0,/linear, $
-                             /complex,/mks,edge_val=0.,_EXTRA=extra)
+                             /complex,/mks,edge_val=0.,_EXTRA=extra)*scale[0]
        coil_br2 = read_field('bx',x,z,t,file=file2,slice=0,/linear, $
-                             /complex,/mks,edge_val=0.,_EXTRA=extra)
+                             /complex,/mks,edge_val=0.,_EXTRA=extra)*scale[1]
        coil_bz1 = read_field('bz',x,z,t,file=file1,slice=0,/linear, $
-                             /complex,/mks,edge_val=0.,_EXTRA=extra)
+                             /complex,/mks,edge_val=0.,_EXTRA=extra)*scale[0]
        coil_bz2 = read_field('bz',x,z,t,file=file2,slice=0,/linear, $
-                             /complex,/mks,edge_val=0.,_EXTRA=extra)
+                             /complex,/mks,edge_val=0.,_EXTRA=extra)*scale[1]
        
        ; read currents from plasma
        plasma_jr1 = read_field('jr'+suf1,x,z,t,file=file1,slice=1,/linear, $
-                               /complex,/mks,edge_val=0.,_EXTRA=extra)
+                               /complex,/mks,edge_val=0.,_EXTRA=extra)*scale[0]
        plasma_jr2 = read_field('jr'+suf2,x,z,t,file=file2,slice=1,/linear, $
-                               /complex,/mks,edge_val=0.,_EXTRA=extra)
+                               /complex,/mks,edge_val=0.,_EXTRA=extra)*scale[1]
        plasma_jz1 = read_field('jz'+suf1,x,z,t,file=file1,slice=1,/linear, $
-                               /complex,/mks,edge_val=0.,_EXTRA=extra)
+                               /complex,/mks,edge_val=0.,_EXTRA=extra)*scale[0]
        plasma_jz2 = read_field('jz'+suf2,x,z,t,file=file2,slice=1,/linear, $
-                               /complex,/mks,edge_val=0.,_EXTRA=extra)   
+                               /complex,/mks,edge_val=0.,_EXTRA=extra)*scale[1]
    end
 
    namp = 100
    fac = 2.*maxamp*findgen(namp)/(namp - 1) - maxamp
 
    if(keyword_set(overlap)) then begin
-       val = get_overlap(file1, file2, fac)
+       val = get_overlap(file1, file2, fac*scale[0])
        label = 'Island Overlap Width (!7W!X))'
    endif else if(keyword_set(sigma)) then begin
-       val = get_sigma(file1, file2, fac, psi0)
+       val = get_sigma(file1, file2, fac*scale[0], psi0)
        label = string(format='("Local Chirikov at !7W!X = ",G0)', psi0)
    endif else if(keyword_set(mpol)) then begin
        val = get_bmn(bmn1, bmn2, psi1, m1, psi0, mpol, fac)
@@ -238,24 +242,30 @@ pro min_torque, file1, file2, modb=modb, maxamp=maxamp, overlap=overlap, $
    subtitle = string(format='("Optimum: ",F0.2," kA at ",F0.1,"!9%!X")', $
                      opt_amp, opt_ang)
 
-   window, 0
-   contour_and_legend, plt, fac, fac, label=label, subtitle=subtitle, $
-     /lines, _EXTRA=extra
-   oplot, [0,0], !y.crange
-   oplot, !x.crange, [0,0]
-   ct3
-   oplot, [fac[j], fac[j]], [fac[k], fac[k]], psym=7
+   if(1 eq strcmp('X', !d.name)) then begin
+       window, 0
+       contour_and_legend, plt, fac, fac, label=label, subtitle=subtitle, $
+         /lines, _EXTRA=extra
+       oplot, [0,0], !y.crange
+       oplot, !x.crange, [0,0]
+       ct3
+       oplot, [fac[j], fac[j]], [fac[k], fac[k]], psym=7
+   end
 
    print, minval, val[j,k]
 
    ; find all points where |fac|=1
+
    theta = 2.*!pi*findgen(namp)/namp
    xi = (cos(theta) - min(fac))/(max(fac) - min(fac))*n_elements(fac)
    zi = (sin(theta) - min(fac))/(max(fac) - min(fac))*n_elements(fac)
-   oplot, interpolate(fac,xi), interpolate(fac,zi)
+   if(1 eq strcmp('X', !d.name)) then $
+     oplot, interpolate(fac,xi), interpolate(fac,zi)
 
    vint = interpolate(val, xi, zi)
-   window, 1
+   if(1 eq strcmp('X', !d.name)) then window, 1
+   if(1 eq strcmp('X', !d.name)) then print, 'Using X'
+
    plot, 180.*theta/!pi, vint, xrange=[0, 360], xstyle=1, $
-     xtitle='Phase (deg)', ytitle=label
+     xtitle='Phase (deg)', ytitle=label, _EXTRA=extra
 end
