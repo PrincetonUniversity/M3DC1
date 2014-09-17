@@ -334,6 +334,7 @@ module basic
   real :: adapt_hmin
   real :: adapt_hmax  
   real :: adapt_smooth  ! value which controls smoothing of size field
+  real :: adapt_psin_vacuum ! value of psin in vacuum region for adaptation
 
   real :: beta
   real :: pefac

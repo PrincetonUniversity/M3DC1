@@ -71,7 +71,7 @@ BIN_POSTFIX := $(BIN_POSTFIX)-$(MAX_PTS)
 OPTS := $(OPTS) -DPETSC_FORTRAN_PETSCTRUTH_INT #-DCJ_MATRIX_DUMP
 
 # add date stamp
-OPTS := $(OPTS) -DDATE_BUILT="`date`"
+OPTS := $(OPTS) -DDATE_BUILT="'$(shell date)'" -DBUILD_INFO="'$(shell svn info)'"
 
 export OPT
 export OPTS
