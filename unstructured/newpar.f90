@@ -25,6 +25,9 @@ Program Reducedquintic
   character*10 :: datec, timec
   character*256 :: arg
 
+  integer :: izone, izonedim, inode(nodes_per_element), numelms, itri
+  vectype, dimension(dofs_per_node) :: dat
+
   ! Initialize MPI
   call MPI_Init(ier)
   if (ier /= 0) then
@@ -50,11 +53,14 @@ Program Reducedquintic
 
   ! Write version information
   if(myrank.eq.0) then
-     print *, 'Code build date: ', 'DATE_BUILT'
+     print *, '=============================================================='
+     print *, 'BUILD INFO:'
+     print *, BUILD_INFO
+     print *, 'BUILD DATE: ', DATE_BUILT
      call date_and_time( datec, timec)
      write(*,1001) datec(1:4),datec(5:6),datec(7:8), &
           timec(1:2),timec(3:4),timec(5:8)
-1001 format("M3D-C1 DATE: ", a4,1x,a2,1x,a2,3x,"TIME: ",a2,":",a2,":",a4,/)
+1001 format("RUN DATE: ", a4,1x,a2,1x,a2,3x,"TIME: ",a2,":",a2,":",a4,/)
 #ifdef USECOMPLEX
      print *, 'COMPLEX VERSION'
 #else
@@ -65,6 +71,7 @@ Program Reducedquintic
 #else
      print *, '2D VERSION'
 #endif
+     print *, '=============================================================='
   endif
 
 #ifdef USESCOREC
@@ -220,6 +227,23 @@ Program Reducedquintic
     end if
     if(icsubtract.eq.1) call add(temporary_field, psi_coil_field)
     call straighten_field(temporary_field)
+
+    if(imulti_region.eq.1 .and. adapt_psin_vacuum.ne.0.) then
+       dat = 0.
+       dat(1) = (psibound - psimin)*adapt_psin_vacuum + psimin
+       numelms = local_elements()
+       do itri=1, numelms
+          call zonfac(itri,izone,izonedim)
+          if(izone.ge.3) then
+             call nodfac(itri,inode)
+             do i=1,3
+                call set_node_data(temporary_field,inode(i),dat)
+             end do
+          end if
+       end do
+       call sum_shared(temporary_field%vec)
+    end if
+
     if (iprint.ge.2) then
     write(25,1003) temporary_field%vec%data
 1003 format(1p10E12.4)
