@@ -111,7 +111,10 @@ elif [[ "$1" == p*.* ]]; then
 
     sed -n '/psinorm ne/,/psinorm/{/psinorm/!p}' $1 > profile_ne
     sed -n '/psinorm te/,/psinorm/{/psinorm/!p}' $1 > profile_te
-    sed -n '/psinorm omgeb/,/psinorm/{/psinorm/!p}' $1 > profile_omega
+    sed -n '/psinorm omgeb/,/psinorm/{/psinorm/!p}' $1 > profile_omega.ExB
+    sed -n '/psinorm omgvb/,/psinorm/{/psinorm/!p}' $1 > profile_omega.ion
+    sed -n '/psinorm omevb/,/psinorm/{/psinorm/!p}' $1 > profile_omega.electron
+    cp profile_omega.ExB profile_omega
 
     echo "In C1input set"
     echo " iread_ne = 1"
