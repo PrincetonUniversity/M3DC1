@@ -1480,7 +1480,7 @@ subroutine calculate_gamma(g2, g3, g4)
 
   ! start of loop over triangles to compute integrals needed to keep
   !     total current and q_0 constant using gamma4, gamma2, gamma3
-  if(nv1equ.eq.1) then
+  if(nv1equ.eq.1 .or. numvar.eq.1) then
      g2 = 0.
      g3 = 0.
      g4 = 0.
