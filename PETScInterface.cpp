@@ -99,11 +99,40 @@ extern "C" int setPETScMat(int matrixid, Mat * A) {
 extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A) {
   PetscErrorCode ierr;
   ierr = KSPCreate(MPI_COMM_WORLD, ksp);CHKERRQ(ierr);
+#ifdef PetscOLD
   ierr = KSPSetOperators(*ksp, *A, *A, SAME_PRECONDITIONER /*DIFFERENT_NONZERO_PATTERN*/);CHKERRQ(ierr);
+#else
+  ierr = KSPSetOperators(*ksp, *A, *A/*, SAME_PRECONDITIONER DIFFERENT_NONZERO_PATTERN*/);CHKERRQ(ierr);
+#endif
   ierr = KSPSetTolerances(*ksp, .000001, .000000001, 
 			  PETSC_DEFAULT, PETSC_DEFAULT);CHKERRQ(ierr);
   ierr = KSPSetFromOptions(*ksp);CHKERRQ(ierr);
   PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScKSP for %d\n", matrixid); 
+
+  PetscInt m, n;
+  ierr = MatGetSize(*A, &m, &n);CHKERRQ(ierr);
+  PetscPrintf(PETSC_COMM_WORLD, "\tMatGetSize for %d: %d %d\n", matrixid, m, n); 
+
+/*
+  PetscPrintf(PETSC_COMM_WORLD, "\tMy own Ax=b\n");
+  Vec b, x, x0;
+  PetscReal      norm;
+  ierr = MatGetVecs(*A, &b, &x);CHKERRQ(ierr);
+  ierr = VecSet(x, 0.);CHKERRQ(ierr);
+  ierr = VecDuplicate(x, &x0);CHKERRQ(ierr);
+  ierr = VecSet(x0, 1.);CHKERRQ(ierr);
+  ierr = MatMult(*A, x0, b);CHKERRQ(ierr);
+  ierr = KSPSolve(*ksp,b,x);CHKERRQ(ierr);
+  ierr = VecNorm(x,NORM_1,&norm);CHKERRQ(ierr);
+  ierr = PetscPrintf(PETSC_COMM_WORLD,"Ax=b: %e\n",norm/PetscReal(m));CHKERRQ(ierr);
+
+  PetscViewer    fd;
+  PetscViewerBinaryOpen(PETSC_COMM_WORLD,"A22.dat",FILE_MODE_WRITE,&fd);
+  MatView(*A, fd);
+  VecView(b, fd);
+  PetscViewerDestroy(&fd);
+  exit(1);
+*/
 
   return 0;
 }
