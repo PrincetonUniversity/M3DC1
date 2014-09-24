@@ -2043,6 +2043,7 @@ subroutine eqdsk_init()
 
   numnodes = owned_nodes()
 
+ if(myrank.eq.0 .and. iprint.gt.0) print *, "before load_eqdsk", iread_eqdsk
   call load_eqdsk
   press = press*amu0
   pprime = pprime*amu0

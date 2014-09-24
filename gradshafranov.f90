@@ -1947,8 +1947,8 @@ subroutine fundef2(error)
   norm = 0.
   error = 0.
 
-  if(myrank.eq.0 .and. iprint.ge.2) print *, '  In fundef2'
-  if(myrank.eq.0 .and. iprint.ge.2) print *, '   populating...'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, '  In fundef2'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, '   populating...'
   numelms = local_elements()
   do itri=1,numelms
 
@@ -2050,7 +2050,7 @@ subroutine fundef2(error)
      error = error + abs(int2(ri_79,temp79c))
   end do
 
-  if(myrank.eq.0 .and. iprint.ge.2) print *, '    solving...'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, '    solving...'
   call newvar_solve(fun1_vec%vec, mass_mat_lhs)
   call newvar_solve(fun4_vec%vec, mass_mat_lhs)
 
@@ -2064,7 +2064,7 @@ subroutine fundef2(error)
   end if
   error = error / norm
 
-  if(myrank.eq.0 .and. iprint.ge.2) print *, '   Done fundef2'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, '   Done fundef2'
 end subroutine fundef2
 
 subroutine readpgfiles

@@ -625,7 +625,7 @@ subroutine derived_quantities(ilin)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
   call define_transport_coefficients
 
-  if(itemp.eq.0) then
+  if(itemp.eq.0 .and. (numvar.eq.3 .or. ipres.gt.0)) then
      if(myrank.eq.0 .and. iprint.ge.2) print *, "  temperatures"
      call calculate_temperatures(ilin, te_field(ilin), ti_field(ilin))
   end if
