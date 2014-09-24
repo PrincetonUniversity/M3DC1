@@ -1,0 +1,12 @@
+if ($NERSC_HOST == "edison") then
+
+setenv PETSC_DIR /global/homes/h/hzhang/petsc
+setenv PETSC_ARCH arch-xc30-opt
+module load cray-netcdf-hdf5parallel/4.3.2
+module load fftw
+module load gsl/1.16
+module load idl 
+module load adios/1.4.1
+setenv CRAY_ROOFTS DSL
+
+endif
