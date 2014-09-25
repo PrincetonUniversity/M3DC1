@@ -38,7 +38,7 @@ else
 #  OPTS := $(OPTS) -DPetscDEV
 endif   # on USESCOREC
 
-OPTS := $(OPTS) -DPetscDEV -DUSEADIOS -DKSPITS -DNO_STOP_MESSAGE=1 #-DUSEHYBRID -DCJ_MATRIX_DUMP
+OPTS := $(OPTS) -DPetscDEV -DUSEADIOS -DKSPITS -DNO_STOP_MESSAGE=1 -DPetscOLD #-DUSEHYBRID -DCJ_MATRIX_DUMP
 #PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev-SUPERLU-HYPRE-MUMPS/petsc-dev-060711/petsc-dev
 #PETSC_ARCH = arch-cray-xt6-pkgs-opt
 #SUPERLU_DIST = -lsuperlu_dist_2.5
