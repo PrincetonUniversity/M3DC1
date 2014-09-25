@@ -1454,8 +1454,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            ; it is okay to do this here since complex cases are always linear
            if(n_elements(phi0) ne 0) then begin
                print, 'evaluating at angle ', phi0, ' with ntor = ', ntor
-               data = data* $
-                 complex(cos(ntor*phi0*!pi/180.), sin(ntor*phi0*!pi/180.))
+               data = data*exp(complex(0,ntor)*phi0*!pi/180.)
            end
        endif else begin
            print, '  reading real field'
