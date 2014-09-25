@@ -12,10 +12,10 @@ module diagnostics
   real :: tflux0, totcur0
 
   ! scalars integrated over entire computational domain
-  real :: tflux, area, volume, totcur, totden, tmom, tvor, bwb2
+  real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2
 
   ! scalars integrated within lcfs
-  real :: pflux, parea, pcur, pden, pmom, pvor
+  real :: pflux, parea, pcur, pden, pmom, pvol
 
   real :: chierror
 
@@ -165,6 +165,7 @@ contains
     area = 0.
     volume = 0.
     totcur = 0.
+    wallcur = 0.
     tflux = 0.
     totden = 0.
     tmom = 0.
@@ -174,7 +175,7 @@ contains
     pflux = 0.
     pden = 0.
     pmom = 0.
-    pvor = 0.
+    pvol = 0.
 
     tau_em = 0.
     tau_sol = 0.
@@ -205,7 +206,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 47
+    integer, parameter :: num_scalars = 48
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -245,7 +246,7 @@ contains
        temp(32) = pflux
        temp(33) = pden
        temp(34) = pmom
-       temp(35) = pvor
+       temp(35) = pvol
        temp(36) = nfluxd
        temp(37) = nfluxv
        temp(38) = nsource
@@ -258,6 +259,7 @@ contains
        temp(45) = bwb2
        temp(46) = volume
        temp(47) = xray_signal
+       temp(48) = wallcur
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -297,7 +299,7 @@ contains
        pflux =  temp2(32)
        pden =   temp2(33)
        pmom =   temp2(34)
-       pvor =   temp2(35)
+       pvol =   temp2(35)
        nfluxd = temp2(36)
        nfluxv = temp2(37)
        nsource= temp2(38)
@@ -310,6 +312,7 @@ contains
        bwb2    =temp2(45)
        volume  =temp2(46)
        xray_signal=temp2(47)
+       wallcur = temp2(48)
 
     endif !if maxrank .gt. 1
 
@@ -530,8 +533,10 @@ subroutine calculate_scalars()
   integer :: itri, numelms, def_fields
   integer :: is_edge(3)  ! is inode on boundary
   real :: n(2,3),tpifac
-  integer :: iedge, idim(3), izone, izonedim
+  integer :: iedge, idim(3), izone, izonedim, i
   real :: delta_t
+  integer :: magnetic_region
+  vectype, dimension(MAX_PTS) :: mr
 
   tpifac = 1.
   if(nplanes.gt.1) tpifac = twopi
@@ -592,6 +597,7 @@ subroutine calculate_scalars()
 
   tm79 = 0.
   tm79(:,OP_1) = 1.
+  mr = 0.
 
   call finalize(field0_vec)
   call finalize(field_vec)
@@ -600,11 +606,32 @@ subroutine calculate_scalars()
   do itri=1,numelms
 
      call zonfac(itri, izone, izonedim)
-     if(izone.ne.1) continue
 
      call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
      call define_fields(itri, def_fields, 0, 0)
      if(gyro.eq.1) call gyro_common
+
+     if(imulti_region.eq.1 .and. izone.eq.2) then
+        wallcur = wallcur - int2(ri2_79,pst79(:,OP_GS))/tpifac
+     end if
+
+     if(izone.ne.1) cycle
+
+     do i=1, npoints
+        if(linear.eq.1) then
+           if(magnetic_region(ps079(i,:),x_79(i),z_79(i)).eq.0) then
+              mr(i) = 1.
+           else
+              mr(i) = 0.
+           end if
+        else
+           if(magnetic_region(pst79(i,:),x_79(i),z_79(i)).eq.0) then
+              mr(i) = 1.
+           else
+              mr(i) = 0.
+           end if
+        endif
+     end do
 
      ! Calculate energy
      ! ~~~~~~~~~~~~~~~~
@@ -637,12 +664,15 @@ subroutine calculate_scalars()
      ! ~~~~~~~~~~~~~~~~~
      ! extra factor of 1/r comes from delta function in toroidal coordinate)
      area   = area   + int1(ri_79)/tpifac
+     parea  = parea  + int2(ri_79,mr)/tpifac
 
      ! toroidal current
      totcur = totcur - int2(ri2_79,pst79(:,OP_GS))/tpifac
+     pcur   = pcur   - int3(ri2_79,pst79(:,OP_GS),mr)/tpifac
 
      ! toroidal flux
-     tflux = tflux + int2(ri2_79,bzt79(:,OP_1 ))/tpifac
+     tflux = tflux + int2(ri2_79,bzt79(:,OP_1))/tpifac
+     pflux = pflux + int3(ri2_79,bzt79(:,OP_1),mr)/tpifac
      
      ! enstrophy
      select case(ivform)
@@ -655,14 +685,16 @@ subroutine calculate_scalars()
      end select
 
      ! volume
-     volume = volume + int0()/tpifac
+     volume = volume + twopi*int0()/tpifac
+     pvol = pvol + twopi*int1(mr)/tpifac
 
      ! particle number
-     totden = totden + int1(nt79(:,OP_1))/tpifac
+     totden = totden + twopi*int1(nt79(:,OP_1))/tpifac
+     pden = pden + twopi*int2(nt79(:,OP_1),mr)/tpifac
 
      ! particle source
      if(idens.eq.1) then        
-        nsource = nsource - int1(sig79)/tpifac
+        nsource = nsource - twopi*int1(sig79)/tpifac
      endif
 
      ! gravitational potential energy
@@ -674,13 +706,13 @@ subroutine calculate_scalars()
         case(0)
            tmom = tmom &
                 + int2(vzt79(:,OP_1),nt79(:,OP_1))
-!           pmom = pmom &
-!                + int3(vzt79(:,OP_1),nt79(:,OP_1),temp79a)
+           pmom = pmom &
+                + int3(vzt79(:,OP_1),nt79(:,OP_1),mr)
         case(1)
            tmom = tmom &
                 + int3(r2_79,vzt79(:,OP_1),nt79(:,OP_1))
-!           pmom = pmom &
-!                + int4(r2_79,vzt79(:,OP_1),nt79(:,OP_1),temp79a)
+           pmom = pmom &
+                + int4(r2_79,vzt79(:,OP_1),nt79(:,OP_1),mr)
         end select
      endif
 
