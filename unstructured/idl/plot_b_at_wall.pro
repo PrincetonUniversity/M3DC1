@@ -38,7 +38,7 @@ pro plot_b_at_wall, filename=filename, _EXTRA=extra, $
 
    pts = 100
    if(keyword_set(diiid_hfs)) then begin
-       xi = [0.98, 0.98]
+       xi = [0.9877, 0.9877]
        yi = [-1., 1.]
        ai = 90.
        ii = 1  ; use Z as X-axis

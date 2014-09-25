@@ -28,15 +28,34 @@ function read_scalar, scalarname, filename=filename, title=title, $
    d = dimensions()
 
    if(strcmp("toroidal current", scalarname, /fold_case) eq 1) or $
-     (strcmp("it", scalarname, /fold_case) eq 1) or $
-     (strcmp("ip", scalarname, /fold_case) eq 1) then begin
+     (strcmp("it", scalarname, /fold_case) eq 1) then begin
        data = s.toroidal_current._data
        title = 'Toroidal Current'
+       symbol = '!8I!D!9P!N!X'
+       d = dimensions(/j0, l0=2, _EXTRA=extra)
+   endif else $
+     if(strcmp("plasma current", scalarname, /fold_case) eq 1) or $
+       (strcmp("ip", scalarname, /fold_case) eq 1) then begin
+       data = s.toroidal_current_p._data
+       title = 'Plasma Current'
        symbol = '!8I!DP!N!X'
        d = dimensions(/j0, l0=2, _EXTRA=extra)
    endif else $
+     if(strcmp("wall current", scalarname, /fold_case) eq 1) or $
+       (strcmp("iw", scalarname, /fold_case) eq 1) then begin
+       data = s.toroidal_current_w._data
+       title = 'Wall Current'
+       symbol = '!8I!DW!N!X'
+       d = dimensions(/j0, l0=2, _EXTRA=extra)
+   endif else $
+     if(strcmp("volume", scalarname, /fold_case) eq 1) then begin
+       data = s.volume_p._data
+       title = 'Plasma Volume'
+       symbol = '!8V!X'
+       d = dimensions(l0=3, _EXTRA=extra)
+   endif else $
      if (strcmp("toroidal flux", scalarname, /fold_case) eq 1) then begin
-       data = s.toroidal_flux._data
+       data = s.toroidal_flux_p._data
        title = 'Toroidal Flux'
        symbol = 'Flux'
        d = dimensions(/b0, l0=2, _EXTRA=extra)
