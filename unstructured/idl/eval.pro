@@ -56,6 +56,18 @@ function eval, field, localpos, theta, elm, operation=op
             if(mi[p] ge 1 and ni[p] ge 1) then $
               temp = temp $
               -2.*co*sn*ni[p]*mi[p]*localpos[0]^(mi[p]-1)*localpos[1]^(ni[p]-1)
+        end
+        5: begin
+            if(mi[p] ge 2) then $
+              temp = temp $
+              + co*sn*mi[p]*(mi[p]-1)*localpos[0]^(mi[p]-2)*localpos[1]^ni[p]
+            if(ni[p] ge 2) then $
+              temp = temp $
+              - co*sn*ni[p]*(ni[p]-1)*localpos[0]^mi[p]*localpos[1]^(ni[p]-2)
+            if(mi[p] ge 1 and ni[p] ge 1) then $
+              temp = temp $
+              +(co*co-sn*sn) $
+              *ni[p]*mi[p]*localpos[0]^(mi[p]-1)*localpos[1]^(ni[p]-1)
            end
         6: begin
             if(mi[p] ge 2) then $
