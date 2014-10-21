@@ -9,7 +9,7 @@
 function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
                              area=area, volume=volume, dV=dV, psirange=range, $
                              integrate=integrate, r0=r0, surface_weight=sw, $
-                             nflux=nflux, _EXTRA=extra
+                             nflux=nflux, elongation=elongation, _EXTRA=extra
 
    sz = size(field)
 
@@ -28,6 +28,7 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
    flux = fltarr(sz[1], bins)
    dV = fltarr(sz[1], bins)
    area = fltarr(sz[1], bins)
+   elongation = fltarr(sz[1], bins)
 
    psival = lcfs(psi, x, z, axis=axis, xpoint=xpoint, flux0=flux0,_EXTRA=extra)
    r0 = axis[0]
@@ -95,6 +96,10 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
                    result[k,p] = total(faf*xp*dl/bpf)/total(xp*dl/bpf)
                end
            endelse
+           width = max(xp) - min(xp)
+           height = max(zp) - min(zp)
+           
+           elongation[k,p] = height / width
        endfor
        if(keyword_set(integrate)) then begin
            val = reform(result[k,*])
