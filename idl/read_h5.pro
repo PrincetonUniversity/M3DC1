@@ -1244,7 +1244,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                      real=real, imaginary=imag, edge_val=edge_val, phi=phi0, $
                      time=realtime, abs=abs, phase=phase, dimensions=d, $
                      flux_average=flux_av, rvector=rvector, zvector=zvector, $
-                     yvector=yvector, taverage=taverage, $
+                     yvector=yvector, taverage=taverage,sum=sum, $
                      is_nonlinear=is_nonlinear, outval=mask_val
 
    if(n_elements(slices) ne 0) then time=slices else time=0
@@ -1264,13 +1264,13 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         linear=linear, last=last,symbol=symbol,units=units, $
                         cgs=cgs, mks=mks, time=realtime, $
                         rvector=rvector, zvector=zvector, yvector=yvector,$
-                        phi=phi[i])
+                        phi=phi[i],sum=sum)
        end
        data = data/taverage
        return, data
    end
 
-   if(keyword_set(average)) then begin
+   if(keyword_set(average) or keyword_set(sum)) then begin
        if(n_elements(filename) gt 1) then begin
            n = n_elements(filename)
            if(n_elements(time) eq 1) then time=replicate(time,n)
@@ -1291,7 +1291,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                        cgs=cgs, mks=mks, phi=phi0, time=realtime, $
                        rvector=rvector, zvector=zvector, yvector=yvector)
        end
-       data = data/n
+       if(keyword_set(average)) then data = data/n
        return, data
    end
    if(keyword_set(diff)) then begin

@@ -33,8 +33,10 @@ contains
     integer, parameter :: catch = 100
     character(len=20) :: dummy
     integer :: file_nr, file_nz, file_nphi
+    integer :: lines_read
+    logical :: wingen_style
 
-
+    wingen_style = .false.
     call MPI_Comm_rank(MPI_COMM_WORLD, rank, ier)
 
     ! First, let rank zero parse the file to determine the size of the data
@@ -47,9 +49,18 @@ contains
           if(dummy.eq.'             phi_tor') goto 90
           if(dummy.eq.'            %phi_tor') goto 90
           if(dummy.eq.'       %phi_tor(deg)') goto 90
+          if(dummy.eq.'# R[m]              ') then
+             wingen_style = .true.
+             goto 90
+          end if
        end do
        goto 200
 90     continue
+       if(wingen_style) then 
+          print *, 'External field format is Wingen style'
+       else
+          print *, 'External field format is PROBE_g style'
+       end if
        do i=1, header_lines-1
           read(ifile,*) dummy
        end do
@@ -59,11 +70,20 @@ contains
        file_nz = 1
        file_nr = 1
        file_nphi = 1
-       read(ifile,'(3F20.11)') phi0, r0, z0 
+       if(wingen_style) then
+          read(ifile,*) r0, phi0, z0 
+       else
+          read(ifile,'(3F20.11)') phi0, r0, z0 
+       end if
        print *, 'phi0, r0, z0: ', phi0, r0, z0
        do
           ! read line
-          read(ifile,'(3F20.11)',err=100,end=100) phi1, r1, z1 
+          if(wingen_style) then
+             read(ifile,*,err=100,end=100) r1, phi1, z1 
+             phi1 = phi1*180./pi
+          else
+             read(ifile,'(3F20.11)',err=100,end=100) phi1, r1, z1 
+          end if
           
           ! skip empty lines
           if(phi1.eq.0. .and. r1.eq.0. .and. z1.eq.0.) cycle
@@ -88,6 +108,7 @@ contains
 100    continue
        file_nr = file_nr-1
        file_nz = file_nz-1
+       if(wingen_style) file_nphi = file_nphi-1
 
        write(*, '(A,3I5)') &
             'Reading external fields with nr, nz, nphi =', &
@@ -130,18 +151,22 @@ contains
     ! Now read in the data
     if(rank.eq.0) then
        ! position read at start of file again
+       lines_read = 0
        rewind(ifile,err=2000)
 
        do
           read(ifile, '(A)', err=2000, end=2000) dummy
+          lines_read = lines_read + 1
           if(dummy.eq.'             phi_tor') goto 900
           if(dummy.eq.'            %phi_tor') goto 900
           if(dummy.eq.'       %phi_tor(deg)') goto 900
+          if(dummy.eq.'# R[m]              ') goto 900
        end do
        goto 2000
 900    continue
        do i=1, header_lines-1
           read(ifile,*) dummy
+          lines_read = lines_read + 1
        end do
        print *, 'last line = ', dummy
 
@@ -149,8 +174,15 @@ contains
           do j=1, file_nz
              do i=1, file_nr
                 ! read line
-999             read(ifile,'(6F20.11)',err=1000,end=1000) &
-                     phi1, r1, z1, bphi1, br1, bz1
+999             if(wingen_style) then
+                   read(ifile,*,err=1000,end=1000) &
+                        r1, phi1, z1, br1, bphi1, bz1
+                   phi1 = phi1*180./pi
+                else
+                   read(ifile,'(6F20.11)',err=1000,end=1000) &
+                        phi1, r1, z1, bphi1, br1, bz1
+                end if
+                lines_read = lines_read + 1
 
                 ! skip empty lines
                 if(phi1.eq.0. .and. r1.eq.0. .and. z1.eq.0.) goto 999
@@ -184,6 +216,12 @@ contains
 1000   continue
        print *, "Shouldn't be here!!!", i, j, k
 1100   close(ifile)
+       if(wingen_style) sf%phi = sf%phi - sf%phi(1)
+       print *, 'Number of lines read: ', lines_read
+       write(*, '(A,3I)') 'NR, NZ, NPHI', sf%nr, sf%nz, sf%nphi
+       write(*, '(A,F12.4," -- ",F12.4)') 'R:   ', sf%r(1), sf%r(sf%nr)
+       write(*, '(A,F12.4," -- ",F12.4)') 'Z:   ', sf%z(1), sf%z(sf%nz)
+       write(*, '(A,F12.4," -- ",F12.4)') 'Phi: ', sf%phi(1), sf%phi(sf%nphi)
     end if
 
     goto 3000
@@ -331,6 +369,7 @@ contains
     real :: f(3,4), g(3,4), h(3,4)
 
     logical :: out_of_bounds = .false.
+    real :: obr, obz
 
     do k=1, npts
        x(1) = (sf%nr   - 1)*(r1(k) - sf%r(1))/(sf%r(sf%nr) - sf%r(1)) + 1
@@ -344,6 +383,8 @@ contains
        ! if the index is out of bounds, set flag
        if(i(1).lt.1 .or. i(1).gt.sf%nr .or. i(3).lt.1 .or. i(3).gt.sf%nz) then
           out_of_bounds = .true.
+          obr = r1(k)
+          obz = z1(k)
        end if
 
        ! if the index is out of bounds, extrapolate
@@ -362,7 +403,8 @@ contains
              if(j.gt.sf%nphi) j = j-sf%nphi
 
              do n=1, 4
-                if(j.lt.1 .or. j.gt.sf%nphi) print *, 'Error! j=', j
+                if(j.lt.1 .or. j.gt.sf%nphi) &
+                     print *, 'Error! j=', j, sf%nphi
                 if(i(1)+n-2.lt.1 .or. i(1)+n-2.gt.sf%nr) &
                      print *, 'Error! i(1)=', i(1)
                 if(i(3)+l-2.lt.1 .or. i(3)+l-2.gt.sf%nz) &
@@ -405,7 +447,8 @@ contains
     if(out_of_bounds) then
        call mpi_comm_rank(MPI_COMM_WORLD, rank, ierr)
        if(rank.eq.0) &
-            print *, 'Warning: some external field values extrapolated.'
+            print *, 'Warning: some external field values extrapolated. ', &
+            obr, obz
     endif
   end subroutine get_external_field
 

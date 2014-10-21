@@ -5,7 +5,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                 mask_val=mask_val, boundary=boundary, q_contours=q_contours, $
                 overplot=overplot, phi=phi0, time=realtime, levels=levels, $
                 phase=phase, abs=abs, operation=op, magcoord=magcoord, $
-                outfile=outfile, fac=fac, _EXTRA=ex
+                outfile=outfile, fac=fac, filename=filename, _EXTRA=ex
 
    ; open mpeg object
    if(n_elements(mpeg) ne 0) then begin
@@ -17,7 +17,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
              range=range, rrange=rrange, zrange=zrange, linear=linear, $
              xlim=xlim, cutx=cutx, cutz=cutz, linfac=linfac, levels=levels, $
              mask_val=mask_val, boundary=boundary, q_contours=q_contours, $
-             overplot=overplot, phi=phi0, time=realtime, $
+             overplot=overplot, phi=phi0, time=realtime,filename=filename, $
              phase=phase, abs=abs, operation=op, _EXTRA=ex
 
            image = tvrd(true=1)
@@ -47,7 +47,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                           points=p, rrange=rrange, zrange=zrange, $
                           symbol=fieldname, units=u, linear=linear, $
                           mask=mask, phi=phi0, time=realtime, $
-                          complex=complex, operation=op, $
+                          complex=complex, operation=op,filename=filename, $
                           linfac=linfac, fac=fac,_EXTRA=ex)
        if(n_elements(field) le 1) then return
        if(n_elements(units) eq 0) then units=u       
@@ -133,19 +133,19 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
        if(n_elements(q_contours) ne 0) then begin
            fval = flux_at_q(q_contours,points=p,_EXTRA=ex)
            plot_flux_contour, fval, points=p, closed=0, /overplot, $
-             thick=!p.thick/2., _EXTRA=ex
+             thick=!p.thick/2., filename=filename[0], _EXTRA=ex
        endif
 
        if(keyword_set(lcfs)) then begin
            print, 'passing slice = ', time[0]
            plot_lcfs, points=p, slice=time[0], $
-             last=last, _EXTRA=ex
+             last=last, filename=filename[0], _EXTRA=ex
        endif
 
        if(keyword_set(boundary)) then plotmesh=1
        if(keyword_set(plotmesh)) then begin
            plot_mesh, mesh=mesh, /oplot, $
-             boundary=boundary, _EXTRA=ex
+             boundary=boundary, filename=filename[0], _EXTRA=ex
        endif
    endelse
 end

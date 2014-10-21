@@ -27,6 +27,7 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
                        points=points, name=name, symbol=symbol, units=units, $
                        integrate=integrate, complex=complex, abs=abs, $
                        phase=phase, stotal=total, fac=fac, $
+                       elongation=elongation, $
                        _EXTRA=extra
 
    type = size(field, /type)
@@ -100,6 +101,19 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
            symbol = '!8s!X'
 
            return, 2.*V*dqdV
+       endif else $
+         if(strcmp(field, 'elongation', /fold_case) eq 1) then begin
+
+           psi = flux_average('psi', psi=psi, x=x, z=z, t=t, $
+             r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
+             points=points, last=last, elongation=elongation, _EXTRA=extra)
+
+           units = ''
+           name = '!6Elongation!X'
+           symbol = '!7j!X'
+
+           help, elongation
+           return, elongation
 
        endif else $
          if(strcmp(field, 'dqdrho', /fold_case) eq 1) then begin
@@ -283,6 +297,7 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
    fa = flux_average_field(field, psi, x, z, t, r0=r0, flux=flux, $
                            nflux=nflux, area=area, dV=dV, bins=bins, $
                            integrate=integrate, surface_weight=total, $
+                           elongation=elongation, $
                            _EXTRA=extra)
 
    if(keyword_set(total)) then begin
