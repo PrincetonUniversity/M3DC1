@@ -1255,6 +1255,12 @@ subroutine output_fields(time_group_id, equilibrium, error)
        call output_field(group_id, "psidot", real(dum), &
             coeffs_per_element, nelms, error)
        nfields = nfields + 1
+       do i=1, nelms
+          call calcavector(i, veldif, dum(:,i))
+       end do
+       call output_field(group_id, "veldif", real(dum), &
+            coeffs_per_element, nelms, error)
+       nfields = nfields + 1
     endif
 
     do i=1, nelms

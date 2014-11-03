@@ -1,6 +1,6 @@
 #FOPTS = -c -r8 -implicitnone -fpp -warn all -DxPetscDEV -DPETSC_31 $(OPTS)
 FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DKSPITS -DxCJ_MATRIX_DUMP $(OPTS)
-CCOPTS  = -c -O -DPetscDEV -DKSPITS -DxCJ_MATRIX_DUMP -DxUSEHYBRID #-DPETSC_31 
+CCOPTS  = -c -O -DPetscDEV -DKSPITS -DPetscOLD -DxCJ_MATRIX_DUMP -DxUSEHYBRID #-DPETSC_31 
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -fast
