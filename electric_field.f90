@@ -509,4 +509,62 @@ subroutine electric_field_psidot(ilin,o)
   endif
 #endif
 end subroutine electric_field_psidot
+subroutine electric_field_veldif(ilin,o)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: ilin
+  vectype, dimension(MAX_PTS), intent(out) :: o
+
+  ! VxB
+  ! ~~~
+  if(ivform.eq.0) then
+     o = 0.
+  else
+     if(ilin.eq.1) then
+        o =   ps079(:,OP_DZ)*ph179(:,OP_DR)-ps079(:,OP_DR)*ph179(:,OP_DZ) &
+             +ps179(:,OP_DZ)*ph079(:,OP_DR)-ps179(:,OP_DR)*ph079(:,OP_DZ) &
+             + ri3_79* &
+             (ps079(:,OP_DZ)*ch179(:,OP_DZ)+ps079(:,OP_DR)*ch179(:,OP_DR) &
+             +ps179(:,OP_DZ)*ch079(:,OP_DZ)+ps179(:,OP_DR)*ch079(:,OP_DR))
+        if(use_external_fields) then
+           o =  o + &
+                psx79(:,OP_DZ)*ph079(:,OP_DR)-psx79(:,OP_DR)*ph079(:,OP_DZ) &
+                + ri3_79* &
+                (psx79(:,OP_DZ)*ch079(:,OP_DZ)+psx79(:,OP_DR)*ch079(:,OP_DR))
+        end if
+#if defined(USE3D) || defined(USECOMPLEX) 
+        o = o + r_79* &
+             (ph079(:,OP_DZ)*bf179(:,OP_DZP)+ph079(:,OP_DR)*bf179(:,OP_DRP))+&
+             (ch179(:,OP_DZ)*bf079(:,OP_DRP)-ch179(:,OP_DR)*bf079(:,OP_DZP))
+        if(use_external_fields) then
+           o = o + r_79* &
+                (ph079(:,OP_DZ)*bfx79(:,OP_DZP) &
+                +ph079(:,OP_DR)*bfx79(:,OP_DRP))
+        end if
+#endif
+     else
+        o =   pstx79(:,OP_DZ)*pht79(:,OP_DR)-pstx79(:,OP_DR)*pht79(:,OP_DZ) &
+             + ri3_79* &
+             (pstx79(:,OP_DZ)*cht79(:,OP_DZ)+pstx79(:,OP_DR)*cht79(:,OP_DR))
+#if defined(USE3D) || defined(USECOMPLEX) 
+        o = o + r_79* &
+             (pht79(:,OP_DZ)*bftx79(:,OP_DZP) &
+             +pht79(:,OP_DR)*bftx79(:,OP_DRP))+ &
+             (cht79(:,OP_DZ)*bftx79(:,OP_DRP) &
+             -cht79(:,OP_DR)*bftx79(:,OP_DZP))
+#endif
+     end if
+  end if
+
+  ! electric potential
+  ! ~~~~~~~~~~~~~~~~~~
+#if defined(USE3D) || defined(USECOMPLEX) 
+  if(jadv.eq.0 .and. i3d.eq.1) then
+     o = o + ri_79*es179(:,OP_DP)
+  endif
+#endif
+end subroutine electric_field_veldif
 end module electric_field
