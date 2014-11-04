@@ -541,7 +541,7 @@ subroutine wrrestart_adios
 #endif
 end subroutine wrrestart_adios
 
-============================================================
+!============================================================
 subroutine rdrestart_adios
   use mesh_mod
   use basic
@@ -691,13 +691,13 @@ subroutine rdrestart_adios
      cur_ndofs1 .ne. prev_ndofs1 .or. cur_ndofs2.ne. prev_ndofs2) then
      write(*,*) 'Restart file information does not match!'
 
-     if(prev_nnodes.ne.cur_nnodes) write(*,*) '(P ' myrank,') #nodes: prev-',prev_nnodes,', cur-',cur_nnodes
-     if(prev_nelms .ne. cur_nelms) write(*,*) '(P ' myrank,') #elms: prev-',prev_nelms,', cur-',cur_nelms
-     if(prev_iper .ne. iper) write(*,*) '(P ' myrank,') iper: prev-',prev_iper,', cur-', iper
-     if(prev_jper .ne. jper) write(*,*) '(P ' myrank,') jper: prev-',prev_jper,', cur-', jper
-     if(prev_myrank .ne. myrank) write(*,*) '(P ' myrank,') prev rank -',perv_rank
-     if(cur_ndofs1 .ne. prev_ndofs1) write(*,*) '(P ' myrank,') ndofs1: prev-',prev_ndofs1,', cur-', cur_ndofs1
-     if(cur_ndofs2 .ne. prev_ndofs2) write(*,*) '(P ' myrank,') ndofs2: prev-',prev_ndofs2,', cur-', cur_ndofs2
+     if(prev_nnodes.ne.cur_nnodes) write(*,*) '(P ', myrank,') #nodes: prev-',prev_nnodes,', cur-',cur_nnodes
+     if(prev_nelms .ne. cur_nelms) write(*,*) '(P ', myrank,') #elms: prev-',prev_nelms,', cur-',cur_nelms
+     if(prev_iper .ne. iper) write(*,*) '(P ', myrank,') iper: prev-',prev_iper,', cur-', iper
+     if(prev_jper .ne. jper) write(*,*) '(P ', myrank,') jper: prev-',prev_jper,', cur-', jper
+     if(prev_myrank .ne. myrank) write(*,*) '(P ', myrank,') prev rank -',prev_myrank
+     if(cur_ndofs1 .ne. prev_ndofs1) write(*,*) '(P ', myrank,') ndofs1: prev-',prev_ndofs1,', cur-', cur_ndofs1
+     if(cur_ndofs2 .ne. prev_ndofs2) write(*,*) '(P ', myrank,') ndofs2: prev-',prev_ndofs2,', cur-', cur_ndofs2
      ierr = 1
   else
      ierr = 0
@@ -756,7 +756,7 @@ subroutine rdrestart_adios
     endif
     
     call adios_read_local_var (gh, "tmp_bf_field_0", myrank, start, readsize, tmp_bf_field_0, read_bytes)
-    if (read_bytes .ne. elemsize*prev_ndofs) then 
+    if (read_bytes .ne. elemsize*prev_ndofs2) then 
          write(*,*) 'Size mismatch at reading tmp_bf_field_1!', read_bytes, elemsize*prev_ndofs2
          call safestop(2)
     endif
