@@ -541,7 +541,7 @@ subroutine wrrestart_adios
 #endif
 end subroutine wrrestart_adios
 
-!============================================================
+============================================================
 subroutine rdrestart_adios
   use mesh_mod
   use basic
@@ -556,11 +556,11 @@ subroutine rdrestart_adios
 !cj aug05-2011 #ifdef USESCOREC
 #ifdef USEADIOS
 
-  integer :: j1, numnodes, inumnodes
-  integer :: inumelms, immnn18, inumvar, iiper, ijper, imyrank
-  integer :: imaxrank, numelms, ieqsubtract, ilinear, icomp
+  integer :: j1, cur_nnodes, prev_nnodes
+  integer :: prev_nelms, prev_mmnn18, prev_numvar, prev_iper, prev_jper, prev_myrank
+  integer :: prev_maxrank, cur_nelms, prev_eqsubtract, prev_linear, prev_comp
   character (len=30) :: fname, oldfname
-  integer :: ndofs1, ndofs2, ndofs_1, ndofs_2
+  integer :: cur_ndofs1, cur_ndofs2, prev_ndofs1, prev_ndofs2
   real :: vloopsave
 
   ! ADIOS variables declarations for matching gread_restart_c11.fh &  gread_restart_c12.fh
@@ -584,16 +584,16 @@ subroutine rdrestart_adios
   integer                      :: vartype, ndim, timedim ! adios_inq_var()
   integer*8, dimension(2)      :: dims                   ! adios_inq_var()
   integer                      :: elemsize               ! double complex or double
-  integer :: iuseext
-  integer :: iversion
+  integer :: prev_useext
+  integer :: prev_version
 
 
   fname="restart.bp"
   oldfname="restarto.bp"
-  numnodes = local_nodes()
-  numelms = local_elements() 
-  call numdofs(num_fields, ndofs1)
-  call numdofs(1, ndofs2)
+  cur_nnodes = local_nodes()
+  cur_nelms = local_elements() 
+  call numdofs(num_fields, cur_ndofs1)
+  call numdofs(1, cur_ndofs2)
 
     call MPI_Comm_dup (MPI_COMM_WORLD, comm, ierr)
 !#ifdef USECOMPLEX
@@ -641,18 +641,18 @@ subroutine rdrestart_adios
 
     ! These scalars are varying over processors so we use adios_read_local_var() to 
     !  read the myrank'th value of the scalar from the file
-    call adios_read_local_var (gh, "numnodes",   myrank, start, readsize, inumnodes, read_bytes)
-    call adios_read_local_var (gh, "numelms",    myrank, start, readsize, inumelms, read_bytes)
-    call adios_read_local_var (gh, "mmnn18",     myrank, start, readsize, immnn18, read_bytes)
-    call adios_read_local_var (gh, "numvar",     myrank, start, readsize, inumvar, read_bytes)
-    call adios_read_local_var (gh, "iper",       myrank, start, readsize, iiper, read_bytes)
-    call adios_read_local_var (gh, "jper",       myrank, start, readsize, ijper, read_bytes)
-    call adios_read_local_var (gh, "myrank",     myrank, start, readsize, imyrank, read_bytes)
-    call adios_read_local_var (gh, "maxrank",    myrank, start, readsize, imaxrank, read_bytes)
-    call adios_read_local_var (gh, "eqsubtract", myrank, start, readsize, ieqsubtract, read_bytes)
-    call adios_read_local_var (gh, "useext",     myrank, start, readsize, iuseext, read_bytes)
-    call adios_read_local_var (gh, "linear",     myrank, start, readsize, ilinear, read_bytes)
-    call adios_read_local_var (gh, "icomplex",   myrank, start, readsize, icomp, read_bytes)
+    call adios_read_local_var (gh, "numnodes",   myrank, start, readsize, prev_nnodes, read_bytes)
+    call adios_read_local_var (gh, "numelms",    myrank, start, readsize, prev_nelms, read_bytes)
+    call adios_read_local_var (gh, "mmnn18",     myrank, start, readsize, prev_mmnn18, read_bytes)
+    call adios_read_local_var (gh, "numvar",     myrank, start, readsize, prev_numvar, read_bytes)
+    call adios_read_local_var (gh, "iper",       myrank, start, readsize, prev_iper, read_bytes)
+    call adios_read_local_var (gh, "jper",       myrank, start, readsize, prev_jper, read_bytes)
+    call adios_read_local_var (gh, "myrank",     myrank, start, readsize, prev_myrank, read_bytes)
+    call adios_read_local_var (gh, "maxrank",    myrank, start, readsize, prev_maxrank, read_bytes)
+    call adios_read_local_var (gh, "eqsubtract", myrank, start, readsize, prev_eqsubtract, read_bytes)
+    call adios_read_local_var (gh, "useext",     myrank, start, readsize, prev_useext, read_bytes)
+    call adios_read_local_var (gh, "linear",     myrank, start, readsize, prev_linear, read_bytes)
+    call adios_read_local_var (gh, "icomplex",   myrank, start, readsize, prev_comp, read_bytes)
     call adios_read_local_var (gh, "ntime",      myrank, start, readsize, ntime, read_bytes)
     call adios_read_local_var (gh, "time",       myrank, start, readsize, time, read_bytes)
     call adios_read_local_var (gh, "dt",       myrank, start, readsize, dt, read_bytes)
@@ -672,8 +672,8 @@ subroutine rdrestart_adios
     call adios_read_local_var (gh, "znull",      myrank, start, readsize, znull, read_bytes)
     call adios_read_local_var (gh, "xmag",       myrank, start, readsize, xmag, read_bytes)
     call adios_read_local_var (gh, "zmag",       myrank, start, readsize, zmag, read_bytes)
-    call adios_read_local_var (gh, "ndofs_1",    myrank, start, readsize, ndofs_1, read_bytes)
-    call adios_read_local_var (gh, "ndofs_2",    myrank, start, readsize, ndofs_2, read_bytes)
+    call adios_read_local_var (gh, "ndofs_1",    myrank, start, readsize, prev_ndofs1, read_bytes)
+    call adios_read_local_var (gh, "ndofs_2",    myrank, start, readsize, prev_ndofs2, read_bytes)
     call adios_read_local_var (gh, "pellet_x",    myrank, start, readsize, pellet_x, read_bytes)
     call adios_read_local_var (gh, "pellet_phi",    myrank, start, readsize, pellet_phi, read_bytes)
     call adios_read_local_var (gh, "pellet_z",    myrank, start, readsize, pellet_z, read_bytes)
@@ -681,23 +681,23 @@ subroutine rdrestart_adios
     call adios_read_local_var (gh, "pellet_velphi",    myrank, start, readsize, pellet_velphi, read_bytes)
     call adios_read_local_var (gh, "pellet_velz",    myrank, start, readsize, pellet_velz, read_bytes)
     call adios_read_local_var (gh, "pellet_var",    myrank, start, readsize, pellet_var, read_bytes)
-    call adios_read_local_var (gh, "version",    myrank, start, readsize, iversion, read_bytes)
+    call adios_read_local_var (gh, "version",    myrank, start, readsize, prev_version, read_bytes)
     if(control_type .eq. -1) vloop = vloopsave  !  vloop from input if no I control
 
-  if(inumnodes .ne. numnodes .or. inumelms .ne. numelms .or. &
-     numvar .ne. inumvar .or. &
-     iiper .ne. iper .or. ijper .ne. jper .or. &
-     imyrank .ne. myrank .or. imaxrank .ne. maxrank .or. &
-     ndofs1 .ne. ndofs_1 .or. ndofs2.ne. ndofs_2) then
+  if(prev_nnodes .ne. cur_nnodes .or. prev_nelms .ne. cur_nelms .or. &
+     numvar .ne. prev_numvar .or. &
+     prev_iper .ne. iper .or. prev_jper .ne. jper .or. &
+     prev_myrank .ne. myrank .or. prev_maxrank .ne. maxrank .or. &
+     cur_ndofs1 .ne. prev_ndofs1 .or. cur_ndofs2.ne. prev_ndofs2) then
      write(*,*) 'Restart file information does not match!'
 
-     if(inumnodes.ne.numnodes) print *, 'numnodes ',inumnodes,numnodes,myrank 
-     if(inumelms .ne. numelms) print *, 'numelms ',inumelms,numelms,myrank 
-     if(iiper .ne. iper) write(*,*) 'iper',iiper, iper, myrank
-     if(ijper .ne. jper) write(*,*) 'jper',ijper, jper, myrank
-     if(imyrank .ne. myrank) write(*,*) 'myrank',imyrank,myrank
-     if(ndofs1 .ne. ndofs_1) write(*,*) 'ndofs 1',myrank, ndofs1, ndofs_1
-     if(ndofs2 .ne. ndofs_2) write(*,*) 'ndofs 2',myrank, ndofs2, ndofs_2
+     if(prev_nnodes.ne.cur_nnodes) write(*,*) '(P ' myrank,') #nodes: prev-',prev_nnodes,', cur-',cur_nnodes
+     if(prev_nelms .ne. cur_nelms) write(*,*) '(P ' myrank,') #elms: prev-',prev_nelms,', cur-',cur_nelms
+     if(prev_iper .ne. iper) write(*,*) '(P ' myrank,') iper: prev-',prev_iper,', cur-', iper
+     if(prev_jper .ne. jper) write(*,*) '(P ' myrank,') jper: prev-',prev_jper,', cur-', jper
+     if(prev_myrank .ne. myrank) write(*,*) '(P ' myrank,') prev rank -',perv_rank
+     if(cur_ndofs1 .ne. prev_ndofs1) write(*,*) '(P ' myrank,') ndofs1: prev-',prev_ndofs1,', cur-', cur_ndofs1
+     if(cur_ndofs2 .ne. prev_ndofs2) write(*,*) '(P ' myrank,') ndofs2: prev-',prev_ndofs2,', cur-', cur_ndofs2
      ierr = 1
   else
      ierr = 0
@@ -708,13 +708,13 @@ subroutine rdrestart_adios
   if(itmp.ne.0) call safestop(6)
 
     ! Allocate space for the arrays tmp_
-  allocate(tmp_field_vec(ndofs_1))
-  allocate(tmp_field0_vec(ndofs_1)) 
-  allocate(tmp_bf_field_1(ndofs_2))
-  allocate(tmp_bf_field_0(ndofs_2)) 
-  allocate(tmp_psi_ext(ndofs_2))
-  allocate(tmp_bz_ext(ndofs_2))
-  allocate(tmp_bf_ext(ndofs_2))
+  allocate(tmp_field_vec(prev_ndofs1))
+  allocate(tmp_field0_vec(prev_ndofs1)) 
+  allocate(tmp_bf_field_1(prev_ndofs2))
+  allocate(tmp_bf_field_0(prev_ndofs2)) 
+  allocate(tmp_psi_ext(prev_ndofs2))
+  allocate(tmp_bz_ext(prev_ndofs2))
+  allocate(tmp_bf_ext(prev_ndofs2))
 
     ! Check types of the array variables
     call adios_inq_var (gh, "tmp_field_vec", vartype, ndim, dims, timedim, adios_err)
@@ -729,55 +729,53 @@ subroutine rdrestart_adios
          call safestop(2)
     endif
 
-    
-
     ! Read in arrays organized as a global array: offset = (0, rank), read size = (*,1)
     start    = 0
 !   vstart(2)    = myrank
-    readsize = ndofs_1 ! number of elements of a type, not bytes!
+    readsize = prev_ndofs1 ! number of elements of a type, not bytes!
 !   vreadsize(2) = 1
     
     call adios_read_local_var (gh, "tmp_field_vec", myrank, start, readsize, tmp_field_vec, read_bytes)
-    if (read_bytes .ne. elemsize*ndofs_1) then
-         write(*,*) 'Size mismatch at reading tmp_field_vec!', read_bytes, elemsize*ndofs_1
+    if (read_bytes .ne. elemsize*prev_ndofs1) then
+         write(*,*) 'Size mismatch at reading tmp_field_vec!', read_bytes, elemsize*prev_ndofs1
          call safestop(2)
     endif
     
     call adios_read_local_var (gh, "tmp_field0_vec", myrank, start, readsize, tmp_field0_vec, read_bytes)
-    if (read_bytes .ne. elemsize*ndofs_1) then 
-         write(*,*) 'Size mismatch at reading tmp_field0_vec!', read_bytes, elemsize*ndofs_1
+    if (read_bytes .ne. elemsize*prev_ndofs1) then 
+         write(*,*) 'Size mismatch at reading tmp_field0_vec!', read_bytes, elemsize*prev_ndofs1
          call safestop(2)
     endif
     
-    readsize = ndofs_2 ! number of elements of a type, not bytes!
+    readsize = prev_ndofs2 ! number of elements of a type, not bytes!
     
     call adios_read_local_var (gh, "tmp_bf_field_1", myrank, start, readsize, tmp_bf_field_1, read_bytes)
-    if (read_bytes .ne. elemsize*ndofs_2) then  
-         write(*,*) 'Size mismatch at reading tmp_bf_field_1!', read_bytes, elemsize*ndofs_2
+    if (read_bytes .ne. elemsize*prev_ndofs2) then  
+         write(*,*) 'Size mismatch at reading tmp_bf_field_1!', read_bytes, elemsize*prev_ndofs2
          call safestop(2)
     endif
     
     call adios_read_local_var (gh, "tmp_bf_field_0", myrank, start, readsize, tmp_bf_field_0, read_bytes)
-    if (read_bytes .ne. elemsize*ndofs_2) then 
-         write(*,*) 'Size mismatch at reading tmp_bf_field_1!', read_bytes, elemsize*ndofs_2
+    if (read_bytes .ne. elemsize*prev_ndofs) then 
+         write(*,*) 'Size mismatch at reading tmp_bf_field_1!', read_bytes, elemsize*prev_ndofs2
          call safestop(2)
     endif
 
     call adios_read_local_var (gh, "tmp_psi_ext", myrank, start, readsize, tmp_psi_ext, read_bytes)
-    if (read_bytes .ne. elemsize*ndofs_2) then 
-         write(*,*) 'Size mismatch at reading tmp_psi_ext!', read_bytes, elemsize*ndofs_2
+    if (read_bytes .ne. elemsize*prev_ndofs2) then 
+         write(*,*) 'Size mismatch at reading tmp_psi_ext!', read_bytes, elemsize*prev_ndofs2
          call safestop(2)
     endif
 
     call adios_read_local_var (gh, "tmp_bz_ext", myrank, start, readsize, tmp_bz_ext, read_bytes)
-    if (read_bytes .ne. elemsize*ndofs_2) then 
-         write(*,*) 'Size mismatch at reading tmp_bz_ext!', read_bytes, elemsize*ndofs_2
+    if (read_bytes .ne. elemsize*prev_ndofs2) then 
+         write(*,*) 'Size mismatch at reading tmp_bz_ext!', read_bytes, elemsize*prev_ndofs2
          call safestop(2)
     endif
 
     call adios_read_local_var (gh, "tmp_bf_ext", myrank, start, readsize, tmp_bf_ext, read_bytes)
-    if (read_bytes .ne. elemsize*ndofs_2) then 
-         write(*,*) 'Size mismatch at reading tmp_bf_ext!', read_bytes, elemsize*ndofs_2
+    if (read_bytes .ne. elemsize*prev_ndofs2) then 
+         write(*,*) 'Size mismatch at reading tmp_bf_ext!', read_bytes, elemsize*prev_ndofs2
          call safestop(2)
     endif
     
@@ -797,27 +795,27 @@ subroutine rdrestart_adios
 !    call MPI_Barrier (comm, ierr) 
 !    call adios_finalize (myrank, adios_err)
 
-      field_vec%data(1:ndofs_1) = tmp_field_vec(1:ndofs_1)
-      field0_vec%data(1:ndofs_1) = tmp_field0_vec(1:ndofs_1)
+      field_vec%data(1:prev_ndofs1) = tmp_field_vec(1:prev_ndofs1)
+      field0_vec%data(1:prev_ndofs1) = tmp_field0_vec(1:prev_ndofs1)
 
   ! If we are running a linear simulation, but the restart file was
   ! a nonlinear simulation, make the restart data be the equilibrium
-  if(linear.eq.1 .and. ilinear.eq.0) then
+  if(linear.eq.1 .and. prev_linear.eq.0) then
      field0_vec%data = field0_vec%data + field_vec%data
      field_vec%data = 0.
   endif 
 
-  bf_field(1)%vec%data(1:ndofs_2) = tmp_bf_field_1(1:ndofs_2)
-  bf_field(0)%vec%data(1:ndofs_2) = tmp_bf_field_0(1:ndofs_2) 
+  bf_field(1)%vec%data(1:prev_ndofs2) = tmp_bf_field_1(1:prev_ndofs2)
+  bf_field(0)%vec%data(1:prev_ndofs2) = tmp_bf_field_0(1:prev_ndofs2) 
 
-  if(iuseext.eq.1) then 
+  if(prev_useext.eq.1) then 
      use_external_fields = .true.
      call create_field(psi_ext)
      call create_field(bz_ext)
      call create_field(bf_ext)
-     psi_ext%vec%data(1:ndofs_2) = tmp_psi_ext(1:ndofs_2)
-     bz_ext%vec%data(1:ndofs_2) = tmp_bz_ext(1:ndofs_2)
-     bf_ext%vec%data(1:ndofs_2) = tmp_bf_ext(1:ndofs_2)
+     psi_ext%vec%data(1:prev_ndofs2) = tmp_psi_ext(1:prev_ndofs2)
+     bz_ext%vec%data(1:prev_ndofs2) = tmp_bz_ext(1:prev_ndofs2)
+     bf_ext%vec%data(1:prev_ndofs2) = tmp_bf_ext(1:prev_ndofs2)
   end if
 
 
