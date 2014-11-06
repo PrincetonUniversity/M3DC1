@@ -477,7 +477,6 @@ subroutine wrrestart_adios
 
   integer :: useext
 
-  if(ntime.lt.2) return
   fname="restart.bp"
   oldfname="restarto.bp"
   numnodes = local_nodes()
