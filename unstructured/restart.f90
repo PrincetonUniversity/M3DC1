@@ -945,6 +945,7 @@ subroutine rdrestart_adios
 #endif
 end subroutine rdrestart_adios
 
+#ifdef USEADIOS
 subroutine check_vec_nan(info, vec, len, num_comp)
   implicit none
   include 'mpif.h'
@@ -976,3 +977,4 @@ subroutine check_vec_nan(info, vec, len, num_comp)
   call MPI_comm_size(MPI_COMM_WORLD,psize,ier)
   if(myrank .eq. psize-1) print *, "norm of vec ",info,sqrt(norm)
 end subroutine check_vec_nan
+#endif
