@@ -5,7 +5,8 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                 mask_val=mask_val, boundary=boundary, q_contours=q_contours, $
                 overplot=overplot, phi=phi0, time=realtime, levels=levels, $
                 phase=phase, abs=abs, operation=op, magcoord=magcoord, $
-                outfile=outfile, fac=fac, filename=filename, _EXTRA=ex
+                outfile=outfile, fac=fac, filename=filename, $
+                psin=psin, _EXTRA=ex
 
    ; open mpeg object
    if(n_elements(mpeg) ne 0) then begin
@@ -90,23 +91,33 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
    if(n_elements(cutx) gt 0) then begin
        dum = min(x-cutx,i,/absolute)
        data = reform(field[0,i,*])
+       if(keyword_set(psin)) then begin
+           psi = read_field('psi_norm',x,y,t,points=p,/equilibrium,$
+                            filename=filename,_EXTRA=ex)
+           yy = reform(psi[0,i,*])
+       endif else yy = y
        if(keyword_set(overplot)) then begin
-           oplot, y, data, _EXTRA=ex
-       endif else plot, y, field[0,i,*], title=title, _EXTRA=ex
+           oplot, yy, data, _EXTRA=ex
+       endif else plot, yy, field[0,i,*], title=title, _EXTRA=ex
        if(n_elements(outfile) eq 1) then begin
            openw, ifile, outfile, /get_lun
-           printf, ifile, format='(2E16.6)', transpose([[y], [data]])
+           printf, ifile, format='(2E16.6)', transpose([[yy], [data]])
            free_lun, ifile
        endif
    endif else if(n_elements(cutz) gt 0) then begin
        dum = min(y-cutz,i,/absolute)
        data = reform(field[0,*,i])
+       if(keyword_set(psin)) then begin
+           psi = read_field('psi_norm',x,y,t,points=p,/equilibrium,$
+                            filename=filename,_EXTRA=ex)
+           xx = reform(psi[0,*,i])
+       endif else xx = x
        if(keyword_set(overplot)) then begin
-           oplot, x, data, _EXTRA=ex
-       endif else plot, x, data, title=title, _EXTRA=ex
+           oplot, xx, data, _EXTRA=ex
+       endif else plot, xx, data, title=title, _EXTRA=ex
        if(n_elements(outfile) eq 1) then begin
            openw, ifile, outfile, /get_lun
-           printf, ifile, format='(2E16.6)', transpose([[x], [data]])
+           printf, ifile, format='(2E16.6)', transpose([[xx], [data]])
            free_lun, ifile
        endif
    endif else if(keyword_set(magcoord)) then begin
@@ -131,7 +142,8 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
          range=range, overplot=overplot, _EXTRA=ex
 
        if(n_elements(q_contours) ne 0) then begin
-           fval = flux_at_q(q_contours,points=p,_EXTRA=ex)
+           fval = flux_at_q(q_contours,points=p,_EXTRA=ex,$
+                           filename=filename[0])
            plot_flux_contour, fval, points=p, closed=0, /overplot, $
              thick=!p.thick/2., filename=filename[0], _EXTRA=ex
        endif
