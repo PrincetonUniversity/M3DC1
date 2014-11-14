@@ -122,6 +122,31 @@ elif [[ "$1" == p*.* ]]; then
     echo " iread_omega_ExB = 1"
 
     exit 0
+
+elif [[ "$1" == neprof_*.asc ]]; then
+    echo "Reading neprof.asc file"
+
+    sed 's/D/E/g' $1 | awk '{print $1*$1 " " $2*1e-20}' > profile_ne
+    echo "In C1input set"
+    echo " iread_ne = 1"
+    exit 0
+
+elif [[ "$1" == Teprof_*.asc ]]; then
+    echo "Reading Teprof.asc file"
+
+    sed 's/D/E/g' $1 | awk '{print $1*$1 " " $2*1e-3}' > profile_te
+    echo "In C1input set"
+    echo " iread_te = 1"
+    exit 0
+
+elif [[ "$1" == vtprof_*.asc ]]; then
+    echo "Reading vtprof.asc file"
+
+    sed 's/D/E/g' $1 | awk '{print $1*$1 " " $2}' > profile_vphi
+    echo "In C1input set"
+    echo " iread_omega = 3"
+    exit 0
+
 fi
 fi
 
