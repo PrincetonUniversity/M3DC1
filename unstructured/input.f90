@@ -267,6 +267,8 @@ subroutine set_defaults
   call add_var_int("ieq_bdotgradt", ieq_bdotgradt, 1, "", model_grp)
   call add_var_int("iwall_is_limiter", iwall_is_limiter, 1, &
        "1 = Wall acts as limiter", model_grp)
+  call add_var_int("no_vdg_T", no_vdg_T,0, &
+       "1: do not include V dot grad T in Temp equation (debug)",model_grp)
     
   ! Time step options
   call add_var_int("ntimemax", ntimemax, 20, &

@@ -225,6 +225,7 @@ module basic
   integer :: itwofluid   ! 1 = include two-fluid terms in ohm's law (electron form)
                          ! 2 = ion form of 2F equations
                          ! 3 = parallel electron pressure gradient only
+  integer :: no_vdg_T    ! 1 = do not include the V dot Grad(T) terms in temperature equation (for debug) 
   integer :: ibootstrap  ! bootstrap current model
   integer :: iflip       ! 1 = flip handedness
   integer :: iflip_b     ! 1 = flip equilibrium toroidal field

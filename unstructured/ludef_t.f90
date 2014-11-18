@@ -3584,78 +3584,80 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      endif       
   endif
 
-  ! Pressure Advection
+  ! Temperature Advection
   ! ~~~~~~~~~~~~~~~~~~
-  if(linear.eq.0) then
-     temp = t3tnu(trial,pp179,nt79,lin)
-     ssterm(u_g) = ssterm(u_g) -     thimpb     *dt*temp
-     ddterm(u_g) = ddterm(u_g) + (.5-thimpb*bdf)*dt*temp
+  if(no_vdg_T .eq. 0) then   ! debug
+     if(linear.eq.0) then
+        temp = t3tnu(trial,pp179,nt79,lin)
+        ssterm(u_g) = ssterm(u_g) -     thimpb     *dt*temp
+        ddterm(u_g) = ddterm(u_g) + (.5-thimpb*bdf)*dt*temp
 
-     if(numvar.ge.2) then
-        temp = t3tnv(trial,pp179,nt79,lin)
-        ssterm(vz_g) = ssterm(vz_g) -     thimpb     *dt*temp
-        ddterm(vz_g) = ddterm(vz_g) + (.5-thimpb*bdf)*dt*temp
-     end if
+        if(numvar.ge.2) then
+           temp = t3tnv(trial,pp179,nt79,lin)
+           ssterm(vz_g) = ssterm(vz_g) -     thimpb     *dt*temp
+           ddterm(vz_g) = ddterm(vz_g) + (.5-thimpb*bdf)*dt*temp
+        end if
 
-     if(numvar.ge.3) then
-        temp = t3tnchi(trial,pp179,nt79,lin)
-        ssterm(chi_g) = ssterm(chi_g) -     thimpb     *dt*temp
-        ddterm(chi_g) = ddterm(chi_g) + (.5-thimpb*bdf)*dt*temp
-     end if
+        if(numvar.ge.3) then
+           temp = t3tnchi(trial,pp179,nt79,lin)
+           ssterm(chi_g) = ssterm(chi_g) -     thimpb     *dt*temp
+           ddterm(chi_g) = ddterm(chi_g) + (.5-thimpb*bdf)*dt*temp
+        end if
 
-     temp = t3tnu  (trial,lin,nt79,ph179) &
-          + t3tnv  (trial,lin,nt79,vz179) &
-          + t3tnchi(trial,lin,nt79,ch179)
-     ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
-     ddterm(pp_g) = ddterm(pp_g) + (.5-thimp*bdf)*dt*temp
+        temp = t3tnu  (trial,lin,nt79,ph179) &
+             + t3tnv  (trial,lin,nt79,vz179) &
+             + t3tnchi(trial,lin,nt79,ch179)
+        ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
+        ddterm(pp_g) = ddterm(pp_g) + (.5-thimp*bdf)*dt*temp
 !
 !....upstream differencing
-     if(iupstream.eq.1) then
-       call get_element_data(itri,d)
-       h = (d%a + d%b + d%c)/3.
+        if(iupstream.eq.1) then
+          call get_element_data(itri,d)
+          h = (d%a + d%b + d%c)/3.
 !
-       temp = .5*h*p1uspu(trial,lin,ph179) &
-            + .5*h*p1uspchi(trial,lin,ch179) &
-            + .5*(twopi/nplanes)*p1uspv(trial,lin,vz179)
-       ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
-       ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
+          temp = .5*h*p1uspu(trial,lin,ph179) &
+               + .5*h*p1uspchi(trial,lin,ch179) &
+               + .5*(twopi/nplanes)*p1uspv(trial,lin,vz179)
+          ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
+          ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
+        endif
      endif
-  endif
-  if(eqsubtract.eq.1) then
-     temp = t3tnu(trial,pp079,nt79,lin)
-     ssterm(u_g) = ssterm(u_g) -     thimpb     *dt*temp
-     ddterm(u_g) = ddterm(u_g) + (1.-thimpb*bdf)*dt*temp
+     if(eqsubtract.eq.1) then
+        temp = t3tnu(trial,pp079,nt79,lin)
+        ssterm(u_g) = ssterm(u_g) -     thimpb     *dt*temp
+        ddterm(u_g) = ddterm(u_g) + (1.-thimpb*bdf)*dt*temp
      
-     if(numvar.ge.2) then
-        temp = t3tnv(trial,pp079,nt79,lin)
-        ssterm(vz_g) = ssterm(vz_g) -     thimpb     *dt*temp
-        ddterm(vz_g) = ddterm(vz_g) + (1.-thimpb*bdf)*dt*temp
-     end if
+        if(numvar.ge.2) then
+           temp = t3tnv(trial,pp079,nt79,lin)
+           ssterm(vz_g) = ssterm(vz_g) -     thimpb     *dt*temp
+           ddterm(vz_g) = ddterm(vz_g) + (1.-thimpb*bdf)*dt*temp
+        end if
      
-     if(numvar.ge.3) then
-        temp = t3tnchi(trial,pp079,nt79,lin)
-        ssterm(chi_g) = ssterm(chi_g) -     thimpb     *dt*temp
-        ddterm(chi_g) = ddterm(chi_g) + (1.-thimpb*bdf)*dt*temp
-     end if
+        if(numvar.ge.3) then
+           temp = t3tnchi(trial,pp079,nt79,lin)
+           ssterm(chi_g) = ssterm(chi_g) -     thimpb     *dt*temp
+           ddterm(chi_g) = ddterm(chi_g) + (1.-thimpb*bdf)*dt*temp
+        end if
 
-     temp = t3tnu  (trial,lin,nt79,ph079) &
-          + t3tnv  (trial,lin,nt79,vz079) &
-          + t3tnchi(trial,lin,nt79,ch079)
-     ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
-     ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
+        temp = t3tnu  (trial,lin,nt79,ph079) &
+             + t3tnv  (trial,lin,nt79,vz079) &
+             + t3tnchi(trial,lin,nt79,ch079)
+        ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
+        ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
 !
 !....upstream differencing
-     if(iupstream.eq.1) then
-       call get_element_data(itri,d)
-       h = (d%a + d%b + d%c)/3.
+        if(iupstream.eq.1) then
+          call get_element_data(itri,d)
+          h = (d%a + d%b + d%c)/3.
 !
-       temp = .5*h*p1uspu(trial,lin,ph079) &
-            + .5*h*p1uspchi(trial,lin,ch079) &
-            + .5*(twopi/nplanes)*p1uspv(trial,lin,vz079)
-       ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
-       ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
+          temp = .5*h*p1uspu(trial,lin,ph079) &
+               + .5*h*p1uspchi(trial,lin,ch079) &
+               + .5*(twopi/nplanes)*p1uspv(trial,lin,vz079)
+          ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
+          ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
+        endif
      endif
-  endif
+  endif  ! on no_vdg_T .eq. 0
 
   
   ! Electron Pressure Advection
