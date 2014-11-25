@@ -8,7 +8,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
                        color=colors, names=names, bins=bins, linear=linear, $
                        xlog=xlog, ylog=ylog, overplot=overplot, fac=fac, $
                        lcfs=lcfs, normalized_flux=norm, points=pts, $
-                       linestyle=ls, linfac=linfac, $
+                       linestyle=ls, linfac=linfac, sum=sum, $
                        minor_radius=minor_radius, smooth=sm, t=t, rms=rms, $
                        bw=bw, srnorm=srnorm, last=last, mks=mks, cgs=cgs, $
                        q_contours=q_contours, rho=rho, integrate=integrate, $
@@ -55,7 +55,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
    end
 
    nfiles = n_elements(filename)
-   if(nfiles gt 1) then begin
+   if(nfiles gt 1 and not keyword_set(sum)) then begin
        if(n_elements(names) eq 0) then names=filename
        if(keyword_set(bw)) then begin
            if(n_elements(ls) eq 0) then ls = indgen(nfiles)
@@ -134,8 +134,9 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
    fa = flux_average(field,slice=time,flux=flux,points=pts,filename=filename, $
                      name=title, symbol=symbol, units=units, bins=bins, $
                      psi=psi,x=x,z=z,t=t,nflux=nflux,linear=linear, fac=fac, $
-                     mks=mks, cgs=cgs, area=area, integrate=integrate, linfac=linfac, $
-                    complex=complex, abs=abs, phase=phase, stotal=total)
+                     mks=mks, cgs=cgs, area=area, integrate=integrate, $
+                     linfac=linfac, sum=sum, $
+                     complex=complex, abs=abs, phase=phase, stotal=total)
 
    if(n_elements(fa) le 1) then begin
        print, 'Error in flux_average. returning.'

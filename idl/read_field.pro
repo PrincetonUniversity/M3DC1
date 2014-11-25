@@ -42,18 +42,23 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            n = n_elements(time)
            if(n_elements(filename) eq 1) then filename=replicate(filename,n)
        endif else n = 1
+       if(n_elements(fac) eq 0) then fac=1.
+       if(n_elements(fac) lt n) then fac=replicate(fac,n)
+       if(n_elements(linfac) eq 0) then linfac=1.
+       if(n_elements(linfac) lt n) then linfac=replicate(linfac,n)
 
        data = 0
        for i=0, n-1 do begin
            data = data + $
              read_field(name, x, y, t, slices=time[i], mesh=mesh, $
                         filename=filename[i], points=pts, $
+                        equilibrium=equilibrium, linfac=linfac[i], $
                         rrange=xrange, zrange=yrange, complex=complex, $
                         h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
-                        operation=op, dimensions=d, $
+                        operation=op, dimensions=d, fac=fac[i], $
                         linear=linear, last=last,symbol=symbol,units=units, $
-                       cgs=cgs, mks=mks, phi=phi0, time=realtime, $
-                       rvector=rvector, zvector=zvector, yvector=yvector)
+                        cgs=cgs, mks=mks, phi=phi0, time=realtime, $
+                        rvector=rvector, zvector=zvector, yvector=yvector)
        end
        if(keyword_set(average)) then data = data/n
        return, data
@@ -133,8 +138,12 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    d = dimensions()
    symbol=name
  
-   print, 'Reading field ', name, ' at timeslice ', time
+   print, '**********************************************************'
+   print, 'Reading ', name, ' at timeslice ', time
+   print, 'From file ', filename
    print, 'Eqsubtract? ', isubeq
+   print, 'sum = ', keyword_set(sum)
+   if(n_elements(fac) ne 0) then print, 'fac = ', fac
    print, string(form='(" linear=",I0,"; pts=",I0,";' + $
                  'equilibrium=",I0,"; complex=",I0,"; op=",I0)', $
                  keyword_set(linear), pts, keyword_set(equilibrium), $
@@ -166,8 +175,9 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                              yvector=yvector)
           data = data0 + data1
           t = t1
-       endelse
-       return, data
+      endelse
+      print, '**********************************************************'
+      return, data
    endif
    
    ; check if this is a primitive field
@@ -1014,11 +1024,13 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
      then begin
        psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, linear=linear, $
-                        rrange=xrange, zrange=yrange, complex=complex)
+                        rrange=xrange, zrange=yrange, complex=complex, $
+                       linfac=linfac)
 
        I = read_field('I', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, linear=linear, $
-                      rrange=xrange, zrange=yrange, complex=complex)
+                      rrange=xrange, zrange=yrange, complex=complex, $
+                     linfac=linfac)
 
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
@@ -1031,7 +1043,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
            f = read_field('f', x, y, t, slices=time, mesh=mesh, $
                           filename=filename, points=pts, linear=linear, $
-                          rrange=xrange, zrange=yrange, complex=complex)
+                          rrange=xrange, zrange=yrange, complex=complex, $
+                         linfac=linfac)
            fp = complex(0., ntor)*f
            b2 = b2 + s_bracket(fp,conj(fp),x,y) $
              - a_bracket(fp, conj(psi),x,y)/r $
@@ -1041,6 +1054,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            b2 = real_part(b2)
        endif
 
+       nolf = 1
        data = b2/(8.*!pi)
        symbol = '!3|!5B!3|!U!62!N!X'
        d = dimensions(p0=1, _EXTRA=extra)
@@ -3420,7 +3434,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    endelse
 
    ; scale by linfac
-   if((ilin eq 1) and (n_elements(linfac) ne 0) and (time ne -1) and keyword_set(linear)) $
+   if((ilin eq 1) and (n_elements(linfac) ne 0) $
+      and (time ne -1) and keyword_set(linear) and not keyword_set(nolf)) $
      then begin
        print, 'scaling data by ', linfac
        data = data*linfac
@@ -3476,6 +3491,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    end
 
    print, 'Done reading field'
+   print, '**********************************************************'
+
 
    return, data
 end
