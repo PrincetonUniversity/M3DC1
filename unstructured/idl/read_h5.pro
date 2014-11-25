@@ -1762,9 +1762,9 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        psis = read_lcfs(filename=filename, flux0=flux0, _EXTRA=extra)
        if(psis lt flux0) then begin
-           data(where(abs(tprime) lt 1e-6 or psi0 lt psis)) = 0.
+           data(where(abs(tprime) lt 1e-4 or psi0 lt psis)) = 0.
        endif else begin
-           data(where(abs(tprime) lt 1e-6 or psi0 gt psis)) = 0.
+           data(where(abs(tprime) lt 1e-4 or psi0 gt psis)) = 0.
        endelse
   
        symbol = '!7n!N!X'
@@ -5897,7 +5897,7 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
           if(n_elements(co) eq 0) then co = replicate(color(0,1),nfiles)
       endif else begin
           if(n_elements(ls) eq 0) then ls = replicate(0, nfiles)
-          if(n_elements(co) eq 0) then co = shift(colors(),-1)
+          if(n_elements(co) eq 0) then co = shift(get_colors(),-1)
       endelse
       if(n_elements(x) eq 1) then x = replicate(x, nfiles)
 

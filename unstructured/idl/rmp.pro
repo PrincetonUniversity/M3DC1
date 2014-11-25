@@ -8,11 +8,11 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
 
    if(n_elements(psi0) eq 0) then begin
 ;       psi0 = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra)
-       psi0 = read_field('psi',x,z,t,slice=-1,_EXTRA=extra)
+       psi0 = read_field('psi',x,z,t,slice=-1,sum=0,_EXTRA=extra)
    endif
    if(n_elements(i0) eq 0) then begin
 ;       i0   = read_field('i'  ,x,z,t,/equilibrium,_EXTRA=extra)
-       i0   = read_field('i'  ,x,z,t,slice=-1,_EXTRA=extra)
+       i0   = read_field('i'  ,x,z,t,slice=-1,sum=0,_EXTRA=extra)
    endif
    if(n_elements(ntor) eq 0) then begin
        ntor = read_parameter('ntor',_EXTRA=extra)

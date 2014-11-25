@@ -4,17 +4,19 @@
 ;
 ; returns the flux value of the last closed flux surface
 ; ========================================================
-function lcfs, psi, x, z, axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra
+function lcfs, psi, x, z, filename=filename, $
+               axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra
 
-    version = read_parameter('version', _EXTRA=extra)
-    if(version ge 3) then begin
-        psilim = read_lcfs(axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra)
+    version = read_parameter('version', filename=filename[0], _EXTRA=extra)
+    if(version[0] ge 3) then begin
+        psilim = read_lcfs(axis=axis, xpoint=xpoint, flux0=flux0, $
+                           filename=filename[0], _EXTRA=extra)
     endif else begin
         psilim = find_lcfs(psi, x, z,axis=axis, xpoint=xpoint, flux0=flux0, $
-                           _EXTRA=extra)
+                           filename=filename[0], _EXTRA=extra)
     endelse 
 
-    ifixedb = read_parameter('ifixedb', _EXTRA=extra)
+    ifixedb = read_parameter('ifixedb', filename=filename[0], _EXTRA=extra)
     if(ifixedb eq 1) then psilim = 0.
 
     print, 'LCFS: '
