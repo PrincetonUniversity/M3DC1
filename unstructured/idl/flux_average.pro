@@ -313,7 +313,7 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
            b2_fa = flux_average_field(b2, psi, x, z, t, r0=r0, flux=flux, $
                                       nflux=nflux, area=area, dV=dV, $
                                       bins=bins, filename=filename, $
-                                      _EXTRA=extra)
+                                      _EXTRA=extra, integrate=integrate)
 
            symbol = '!3|!6B!3|!6!U2!N!X'
            d = dimensions(b0 = 2)
