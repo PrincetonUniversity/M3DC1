@@ -2,6 +2,7 @@ module transport_coefficients
   use spline
 
   type(spline1d), private :: kappa_spline
+  type(spline1d), private :: amu_spline
 
 contains
 
@@ -98,7 +99,6 @@ vectype function force_func(i)
   implicit none
 
   integer, intent(in) :: i
-  integer :: j
   vectype :: temp
 
   temp = 0.
@@ -185,7 +185,7 @@ vectype function pmach_func(i)
   implicit none
 
   integer, intent(in) :: i
-  integer :: j
+!  integer :: j
 
 ! calculate the poloidal mach number
 !  do j=1,npoints
@@ -222,7 +222,6 @@ vectype function q_func(i)
   implicit none
 
   integer, intent(in) :: i
-  integer :: j
   vectype :: temp
 
   temp = 0.
@@ -265,7 +264,6 @@ vectype function resistivity_func(i)
   implicit none
 
   integer, intent(in) :: i
-  integer :: ii
 
   select case (iresfunc)
   case(0)  ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)
@@ -326,12 +324,15 @@ vectype function viscosity_func(i)
   use basic
   use m3dc1_nint
   use diagnostics
+  use read_ascii
 
   implicit none
 
   integer, intent(in) :: i
   vectype :: temp
-  integer :: iregion, j
+  integer :: iregion, j, nvals
+  real :: val, valp, valpp, pso
+  real, allocatable :: xvals(:), yvals(:)
   integer :: magnetic_region
   vectype, dimension(MAX_PTS,OP_NUM) :: psi
 
@@ -379,6 +380,32 @@ vectype function viscosity_func(i)
 
      case(3)
         temp79a = vis79(:,OP_1) - amu
+
+  case(10,11)
+     if(.not.allocated(amu_spline%x)) then
+        ! Read in m^2/s (10) or normalized units (11)
+        nvals = 0
+        call read_ascii_column('profile_amu', xvals, nvals, icol=1)
+        call read_ascii_column('profile_amu', yvals, nvals, icol=2)
+        if(nvals.eq.0) call safestop(6)
+        if(ivisfunc.eq.10) then
+           yvals = yvals / (p0_norm * t0_norm)
+        end if
+        call create_spline(amu_spline, nvals, xvals, yvals)
+        deallocate(xvals, yvals)
+     end if
+     
+     do j=1, npoints
+        if(magnetic_region(pst79(j,:),x_79(j),z_79(j)).ne.0) &
+             then
+           pso = 1.
+        else
+           pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+        end if
+        call evaluate_spline(amu_spline,pso,val,valp,valpp)
+        temp79a(j) = val
+     end do
+
      end select
      temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
@@ -399,7 +426,7 @@ vectype function kappa_func(i)
   implicit none
   
   integer, intent(in) :: i
-  integer :: nvals, j, ierr, iregion
+  integer :: nvals, j, iregion
   real :: val, valp, valpp, pso
   real, allocatable :: xvals(:), yvals(:)
   vectype :: temp
@@ -480,12 +507,12 @@ vectype function kappa_func(i)
         deallocate(xvals, yvals)
      end if
      
-     do j=0, npoints
+     do j=1, npoints
         if(magnetic_region(pst79(j,:),x_79(j),z_79(j)).ne.0) &
              then
            pso = 1.
         else
-           pso = (real(pst79(j,OP_1)) - psimin)/(psilim-psimin)
+           pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
         end if
         call evaluate_spline(kappa_spline,pso,val,valp,valpp)
         temp79a(j) = val
