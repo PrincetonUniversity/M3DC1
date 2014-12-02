@@ -307,6 +307,174 @@ subroutine vpar_get(o)
 
 end subroutine vpar_get
 
+subroutine f1vplot_sub(i,term)
+  use basic
+  use m3dc1_nint
+  use metricterms_new
+  
+  implicit none
+  vectype, intent(out) :: term
+  integer, intent(in) :: i
+  vectype :: temp
+
+     temp = b2psiv(mu79(:,:,i),pst79,vzt79)
+     term = temp
+
+     temp = b2bu  (mu79(:,:,i),bzt79,pht79)  &
+          + b2bchi(mu79(:,:,i),bzt79,cht79)
+     term = term + temp
+
+end subroutine f1vplot_sub
+
+subroutine f1eplot_sub(i,term)
+  use basic
+  use m3dc1_nint
+  use metricterms_new
+  
+  implicit none
+  vectype, intent(out) :: term
+  vectype :: temp
+  vectype, dimension(MAX_PTS, OP_NUM) :: hf
+  integer, intent(in) :: i
+
+  ! Resistive and Hyper Terms
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~
+  hf = hypi*sz79
+  temp = b2psieta(mu79(:,:,i),pst79,eta79,hf)
+  term = temp
+  
+  temp = b2beta(mu79(:,:,i),bzt79,eta79,hf)
+  term = term + temp
+
+  if(i3d.eq.1) then
+     temp = b2feta(mu79(:,:,i),bft79,eta79,hf)
+     term = term + temp
+  end if
+
+end subroutine f1eplot_sub
+
+subroutine f2vplot_sub(i,term)
+  use basic
+  use m3dc1_nint
+  use metricterms_new
+  
+  implicit none
+  vectype, intent(out) :: term
+  integer, intent(in) :: i
+  vectype :: temp
+
+     temp = b1psiu  (mu79(:,:,i),pst79,pht79) &
+          + b1psiv  (mu79(:,:,i),pst79,vzt79) &
+          + b1psichi(mu79(:,:,i),pst79,cht79)
+     term = temp
+
+     temp =  b1bu  (mu79(:,:,i),bzt79,pht79) &
+           + b1bv  (mu79(:,:,i),bzt79,vzt79) &
+           + b1bchi(mu79(:,:,i),bzt79,cht79)
+     term = term + temp
+
+ if(i3d.eq.1 .and. numvar.ge.2) then
+        temp = b1fu  (mu79(:,:,i),bft79,pht79)  &
+             + b1fv  (mu79(:,:,i),bft79,vzt79)  &
+             + b1fchi(mu79(:,:,i),bft79,cht79)
+        term = term + temp
+ end if
+
+end subroutine f2vplot_sub
+
+subroutine f2eplot_sub(i,term)
+  use basic
+  use m3dc1_nint
+  use metricterms_new
+  
+  implicit none
+  vectype, intent(out) :: term
+  integer, intent(in) :: i
+  vectype, dimension(MAX_PTS, OP_NUM) :: hf
+  vectype :: temp
+
+      ! Resistive and Hyper Terms
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~
+  hf = hypf*sz79
+  temp = b1psieta(mu79(:,:,i),pst79,eta79,hf)
+
+  term = temp
+
+end subroutine f2eplot_sub
+
+subroutine f3vplot_sub(i,term)
+  use basic
+  use m3dc1_nint
+  use metricterms_new
+  
+  implicit none
+  vectype, intent(out) :: term
+  integer, intent(in) :: i
+  vectype :: temp
+
+
+        temp = t3tnu  (mu79(:,:,i),tet79,nt79,pht79) &
+             + t3tnv  (mu79(:,:,i),tet79,nt79,vzt79) &
+             + t3tnchi(mu79(:,:,i),tet79,nt79,cht79)
+        term = temp
+!
+
+end subroutine f3vplot_sub
+
+subroutine f3eplot_sub(i,term)
+  use basic
+  use m3dc1_nint
+  use metricterms_new
+  
+  implicit none
+  vectype, intent(out) :: term
+  integer, intent(in) :: i
+  vectype :: temp, ohfac
+  vectype, dimension(MAX_PTS, OP_NUM) :: hf
+
+  ohfac = 1.
+  if(ipres.eq.0) ohfac = 0.5
+
+ ! Ohmic Heating
+       temp = b3psipsieta(mu79(:,:,i),pst79,pst79,eta79) &
+            + b3bbeta    (mu79(:,:,i),bzt79,bzt79,eta79) &
+            + b3psibeta  (mu79(:,:,i),pst79,bzt79,eta79) 
+       term = temp*ohfac
+          if(i3d .eq. 1) then
+             temp = b3psifeta(mu79(:,:,i),pst79,bft79,eta79) &
+                  + b3bfeta  (mu79(:,:,i),bzt79,bft79,eta79) &
+                  + b3ffeta(mu79(:,:,i),bft79,bft79,eta79)   
+             term = temp*ohfac
+          endif
+
+! Perpendicular Heat Flux
+! ~~~~~~~~~~~~~~~~~~~~~~~
+       hf = hypp*sz79
+       temp = b3tekappa(mu79(:,:,i),tet79,kap79,hf)
+       term = term + temp
+
+! Parallel Heat Flux
+! ~~~~~~~~~~~~~~~~~~
+  if(kappar.ne.0.) then
+        
+          temp = tepsipsikappar(mu79(:,:,i),pstx79,pstx79,tet79,b2i79,kar79) &
+               + tepsibkappar  (mu79(:,:,i),pstx79,bztx79,tet79,b2i79,kar79) &
+               + tebbkappar    (mu79(:,:,i),bztx79,bztx79,tet79,b2i79,kar79)
+          term = term + temp
+          if(i3d.eq.1 .and. numvar.ge.2) then
+             temp = tepsifkappar(mu79(:,:,i),pstx79,bftx79,tet79,b2i79,kar79) &
+                  + tebfkappar  (mu79(:,:,i),bztx79,bftx79,tet79,b2i79,kar79) &
+                  + teffkappar  (mu79(:,:,i),bftx79,bftx79,tet79,b2i79,kar79)
+             term = term + temp
+!source terms
+             temp = (gam-1.)*b3q(mu79(:,:,i),q79)
+             term = term + temp
+
+          endif
+  endif
+end subroutine f3eplot_sub
+
+
 end module temperature_plots
 
 
