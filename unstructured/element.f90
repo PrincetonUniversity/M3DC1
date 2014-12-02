@@ -163,15 +163,17 @@ contains
     real :: f, xi, zi, eta
     logical :: np
 
+    real, parameter :: tol = 1e-4
+
     call global_to_local(d, R, Phi, Z, xi, zi, eta)
 
     is_in_element = .false.
-    if(eta.lt.0.) return
-    if(eta.gt.d%c) return
+    if(eta.lt.-d%c*tol) return
+    if(eta.gt.d%c*(1.+tol)) return
 
     f = 1. - eta/d%c
-    if(xi.lt.-f*d%b) return
-    if(xi.gt. f*d%a) return
+    if(xi.lt.-f*d%b*(1.+tol)) return
+    if(xi.gt. f*d%a*(1.+tol)) return
     
 #ifdef USE3D
     if(present(nophi)) then
@@ -181,8 +183,8 @@ contains
     endif
 
     if(.not.np) then 
-       if(zi.lt.0.) return
-       if(zi.ge.d%d) return
+       if(zi.lt.-d%d*tol) return
+       if(zi.ge.d%d*(1.+tol)) return
     end if
 #endif
 
