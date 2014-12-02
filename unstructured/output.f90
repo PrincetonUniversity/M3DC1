@@ -1165,6 +1165,85 @@ subroutine output_fields(time_group_id, equilibrium, error)
             nelms, error)
        nfields = nfields + 1
 
+       ! f1vplot
+       do i=1, nelms
+          call calcavector(i, f1vplot, dum(:,i))
+       end do
+       call output_field(group_id, "f1vplot", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
+#ifdef USECOMPLEX
+       call output_field(group_id, "f1vplot_i",aimag(dum),&
+            coeffs_per_element,nelms, error)
+       nfields = nfields + 1
+#endif
+
+       ! f1eplot
+       do i=1, nelms
+          call calcavector(i, f1eplot, dum(:,i))
+       end do
+       call output_field(group_id, "f1eplot", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
+#ifdef USECOMPLEX
+       call output_field(group_id, "f1eplot_i",aimag(dum),&
+            coeffs_per_element,nelms, error)
+       nfields = nfields + 1
+#endif
+
+       ! f2vplot
+       do i=1, nelms
+          call calcavector(i, f2vplot, dum(:,i))
+       end do
+       call output_field(group_id, "f2vplot", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
+#ifdef USECOMPLEX
+       call output_field(group_id, "f2vplot_i",aimag(dum),&
+            coeffs_per_element,nelms, error)
+       nfields = nfields + 1
+#endif
+
+       ! f2eplot
+       do i=1, nelms
+          call calcavector(i, f2eplot, dum(:,i))
+       end do
+       call output_field(group_id, "f2eplot", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
+#ifdef USECOMPLEX
+       call output_field(group_id, "f2eplot_i",aimag(dum),&
+            coeffs_per_element,nelms, error)
+       nfields = nfields + 1
+#endif
+
+       ! f3vplot
+       do i=1, nelms
+          call calcavector(i, f3vplot, dum(:,i))
+       end do
+       call output_field(group_id, "f3vplot", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
+#ifdef USECOMPLEX
+       call output_field(group_id, "f3vplot_i",aimag(dum),&
+            coeffs_per_element,nelms, error)
+       nfields = nfields + 1
+#endif
+
+       ! f3eplot
+       do i=1, nelms
+          call calcavector(i, f3eplot, dum(:,i))
+       end do
+       call output_field(group_id, "f3eplot", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
+#ifdef USECOMPLEX
+       call output_field(group_id, "f3eplot_i",aimag(dum),&
+            coeffs_per_element,nelms, error)
+       nfields = nfields + 1
+#endif
+
+
     endif    ! on itemp_plot .eq. 1
     
     ! sigma
@@ -1255,10 +1334,32 @@ subroutine output_fields(time_group_id, equilibrium, error)
        call output_field(group_id, "psidot", real(dum), &
             coeffs_per_element, nelms, error)
        nfields = nfields + 1
+
        do i=1, nelms
           call calcavector(i, veldif, dum(:,i))
        end do
        call output_field(group_id, "veldif", real(dum), &
+            coeffs_per_element, nelms, error)
+       nfields = nfields + 1
+
+       do i=1, nelms
+          call calcavector(i, eta_jdb, dum(:,i))
+       end do
+       call output_field(group_id, "eta_jdb", real(dum), &
+            coeffs_per_element, nelms, error)
+       nfields = nfields + 1
+
+       do i=1, nelms
+          call calcavector(i, bdgp, dum(:,i))
+       end do
+       call output_field(group_id, "bdgp", real(dum), &
+            coeffs_per_element, nelms, error)
+       nfields = nfields + 1
+
+       do i=1, nelms
+          call calcavector(i, vlbdgp, dum(:,i))
+       end do
+       call output_field(group_id, "vlbdgp", real(dum), &
             coeffs_per_element, nelms, error)
        nfields = nfields + 1
     endif

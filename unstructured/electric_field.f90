@@ -567,4 +567,71 @@ subroutine electric_field_veldif(ilin,o)
   endif
 #endif
 end subroutine electric_field_veldif
+subroutine ef_eta_jdb(ilin,o)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: ilin
+  vectype, dimension(MAX_PTS), intent(out) :: o
+
+  o = ri2_79*bzt79(:,OP_DR)*pst79(:,OP_DR)   &
+    + ri2_79*bzt79(:,OP_DZ)*pst79(:,OP_DZ)   &
+    - ri2_79*bzt79(:,OP_1)*pst79(:,OP_GS)
+
+  ! ~~~~~~~~~~~~~~~~~~
+#if defined(USE3D) || defined(USECOMPLEX) 
+  if(jadv.eq.0 .and. i3d.eq.1) then
+
+  o = o + ri2_79*bft79(:,OP_DRPP)*pst79(:,OP_DR)  &
+        + ri2_79*bft79(:,OP_DZPP)*pst79(:,OP_DZ)  &
+        - ri_79 *bft79(:,OP_DZP)*bzt79(:,OP_DR)   &
+        + ri_79 *bft79(:,OP_DRP)*bzt79(:,OP_DZ)   &
+        - ri_79 *bft79(:,OP_DZP)*bft79(:,OP_DRPP) &
+        + ri_79 *bft79(:,OP_DRP)*bft79(:,OP_DZPP) &
+        + ri3_79*pst79(:,OP_DZP)*pst79(:,OP_DR)   &
+        - ri3_79*pst79(:,OP_DRP)*pst79(:,OP_DZ)   &
+        - ri2_79*pst79(:,OP_DRP)*bft79(:,OP_DRP)  &
+        - ri2_79*pst79(:,OP_DZP)*bft79(:,OP_DZP) 
+
+  endif
+#endif
+     o = o*eta79(:,OP_1)
+end subroutine ef_eta_jdb
+subroutine ef_bdgp(ilin,o)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: ilin
+  vectype, dimension(MAX_PTS), intent(out) :: o
+
+  o = - ri_79*es179(:,OP_DZ)*pst79(:,OP_DR)  &
+   +  ri_79*es179(:,OP_DR)*pst79(:,OP_DZ)
+
+#if defined(USE3D) || defined(USECOMPLEX) 
+  if(jadv.eq.0 .and. i3d.eq.1) then
+     o = o + es179(:,OP_DR)*bft79(:,OP_DRP)  &
+           + es179(:,OP_DZ)*bft79(:,OP_DZP)
+     o = o - ri2_79*bzt79(:,OP_1)*es179(:,OP_DP)
+  endif
+#endif
+end subroutine ef_bdgp
+subroutine ef_vlbdgp(ilin,o)
+  use basic
+  use m3dc1_nint
+  use math
+
+  implicit none
+
+  integer, intent(in) :: ilin
+  vectype, dimension(MAX_PTS), intent(out) :: o
+
+
+ o =  -vloop*ri2_79*bzt79(:,OP_1)/twopi
+
+
+end subroutine ef_vlbdgp
 end module electric_field
