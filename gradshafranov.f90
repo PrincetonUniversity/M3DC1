@@ -2201,7 +2201,10 @@ end subroutine readpgfiles
       call evaluate_spline(p0_spline, psii, pres)
       call evaluate_spline(n0_spline, psii, dens)
       if(iscale_rot_by_p.eq.0) alpha = alpha * dens/pres
-      
+      if (iscale_rot_by_p.eq.2) then
+	alpha = alpha0 + alpha1*exp(-((psii-alpha2)/alpha3)**2)
+	alpha = alpha * dens/pres
+      end if
       omega(j) = sqrt(2./rzero**2 * alpha * pres/dens)
    end do
 

@@ -442,7 +442,8 @@ subroutine set_defaults
        "Include toroidal rotation", gs_grp)
   call add_var_int("iscale_rot_by_p", iscale_rot_by_p, 1, &
        "0: omega^2 = 2.*p0*(alphai * Psi^i)/n0|&
-       &1: omega^2 = 2.*(alphai * Psi^i)/n0", gs_grp)
+       &1: omega^2 = 2.*(alphai * Psi^i)/n0,&
+       &2: omega^2 = 2.*(alphai * Psi^i), alphai = a0 + a1*exp(-((psii-a2)/a3)**2) ", gs_grp)
   call add_var_double("alpha0", alpha0, 0., &
        "Constant term in analytic rotation profile", gs_grp)
   call add_var_double("alpha1", alpha1, 0., &
