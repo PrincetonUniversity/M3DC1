@@ -3909,6 +3909,8 @@ subroutine initial_conditions()
   use eigen
   use neo
   use int_kink
+  use rwm
+  use solovev
 
   implicit none
 
@@ -3971,6 +3973,8 @@ subroutine initial_conditions()
            call fixed_q_profiles()
         case(23)
            call frs1_init()
+        case(24)
+           call rwm_init()
         end select
      else
         ! toroidal equilibria
@@ -4003,6 +4007,8 @@ subroutine initial_conditions()
            call ftz_init()
         case(18)
            call eigen_init()
+        case(19)
+           call solovev_init()
         end select
      endif
   end if
@@ -4010,8 +4016,8 @@ subroutine initial_conditions()
   if(iread_neo.eq.1) then
      call set_neo_vel
      call unload_neo
-  end if
-     
+  end if    
+
   call den_eq()
 
   if(irmp.ge.1 .or. iread_ext_field.ge.1) call rmp_per()

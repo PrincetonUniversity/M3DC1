@@ -370,7 +370,7 @@ subroutine set_defaults
        "Toroidal shift (in deg) of external fields", eq_grp)
   call add_var_double("beta", beta, 0., "", eq_grp)
   call add_var_double("ln", ln, 0., "", eq_grp)
-
+  call add_var_double("elongation", elongation, 1., "", eq_grp)
   
   ! Grad-Shafranov
   call add_var_int("inumgs", inumgs, 0, "", gs_grp)
