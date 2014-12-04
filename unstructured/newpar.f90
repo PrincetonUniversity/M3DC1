@@ -25,9 +25,6 @@ Program Reducedquintic
   character*10 :: datec, timec
   character*256 :: arg
 
-  integer :: izone, izonedim, inode(nodes_per_element), numelms, itri
-  vectype, dimension(dofs_per_node) :: dat
-
   ! Initialize MPI
   call MPI_Init(ier)
   if (ier /= 0) then
@@ -208,58 +205,7 @@ Program Reducedquintic
 
   ! Adapt the mesh
   ! ~~~~~~~~~~~~~~
-#ifdef USESCOREC
-  select case(iadapt)
-  case(1)
-     print *, 'adapting mesh...'
-     call hessianadapt(resistivity_field%vec%data,1, 0, ntime, &
-          adapt_factor, adapt_hmin, adapt_hmax)
-     print *, 'done adapting.'
-     call safestop(0)
-     
-  case(2)
-    call create_field(temporary_field)
-    if(eqsubtract.eq.1) then
-       temporary_field = psi_field(0)
-    else
-       temporary_field = psi_field(1)
-    end if
-    if(icsubtract.eq.1) call add(temporary_field, psi_coil_field)
-    call straighten_field(temporary_field)
-
-    if(imulti_region.eq.1 .and. adapt_psin_vacuum.ne.0.) then
-       dat = 0.
-       dat(1) = (psibound - psimin)*adapt_psin_vacuum + psimin
-       numelms = local_elements()
-       do itri=1, numelms
-          call zonfac(itri,izone,izonedim)
-          if(izone.ge.3) then
-             call nodfac(itri,inode)
-             do i=1,3
-                call set_node_data(temporary_field,inode(i),dat)
-             end do
-          end if
-       end do
-       call sum_shared(temporary_field%vec)
-    end if
-
-    if (iprint.ge.2) then
-    write(25,1003) temporary_field%vec%data
-1003 format(1p10E12.4)
-    end if
-
-    print *, 'initializing solution transfer...'
-    call initsolutiontransfer(0)
-    print *, 'setting smoothing factor...', adapt_smooth
-    call setsmoothfact(adapt_smooth)
-    print *, 'adapting mesh...', psimin, psibound
-    call adapt(temporary_field%vec%data,psimin,psibound)
-    print *, 'done adapting.'
-    call destroy_field(temporary_field)
-    call safestop(0)
-
-  end select
-#endif
+  call adapt_mesh
 
   if(irestart.eq.0  .or. iadapt.gt.0) then
      tflux0 = tflux
@@ -664,7 +610,11 @@ subroutine derived_quantities(ilin)
      if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
         if(myrank.eq.0 .and. iprint.ge.2) print *, "  f"
         if(ilin.eq.0 .and. eqsubtract.eq.1) then
-           temp = bzero*rzero
+           if(itor.eq.0) then
+              temp = bzero
+           else
+              temp = bzero*rzero
+           end if
            call add(bz_field(ilin),-temp)
         endif
         call solve_newvar1(bf_mat_lhs,bf_field(ilin),mass_mat_rhs_bf, &
@@ -1492,3 +1442,84 @@ end subroutine resizevec
 !!$
 !!$end subroutine arrayresizevec
 #endif
+
+subroutine adapt_mesh
+  use basic
+  use arrays
+  use mesh_mod
+
+  implicit none
+
+  integer :: izone, izonedim, inode(nodes_per_element), numelms, itri, i
+  integer :: numnodes
+  real :: x, phi, z
+  vectype, dimension(dofs_per_node) :: dat
+  integer :: magnetic_region
+
+#ifdef USESCOREC
+  select case(iadapt)
+  case(1)
+     print *, 'adapting mesh...'
+     call hessianadapt(resistivity_field%vec%data,1, 0, ntime, &
+          adapt_factor, adapt_hmin, adapt_hmax)
+     print *, 'done adapting.'
+     call safestop(0)
+     
+  case(2)
+    call create_field(temporary_field)
+    if(eqsubtract.eq.1) then
+       temporary_field = psi_field(0)
+    else
+       temporary_field = psi_field(1)
+    end if
+    if(icsubtract.eq.1) call add(temporary_field, psi_coil_field)
+    call straighten_field(temporary_field)
+
+    numnodes = local_nodes()
+    do i=1, numnodes
+       call get_node_pos(i, x, phi, z)
+       call get_node_data(temporary_field, i, dat)
+
+       if(magnetic_region(dat,x,z).eq.2) then
+          dat = 2. - (dat - psimin) / (psibound - psimin)
+          dat = (psibound - psimin)*dat + psimin          
+       end if
+       
+       call set_node_data(temporary_field,i,dat)
+    end do
+    call sum_shared(temporary_field%vec)
+
+    if(adapt_psin_vacuum.ne.0 .and. imulti_region.eq.1) then
+       dat = 0.
+       dat(1) = (psibound - psimin)*adapt_psin_vacuum + psimin
+       numelms = local_elements()
+       do itri=1, numelms
+          call zonfac(itri,izone,izonedim)
+          if(izone.ge.3) then
+             call nodfac(itri,inode)
+             do i=1,3
+                call set_node_data(temporary_field,inode(i),dat)
+             end do
+          end if
+       end do
+       call sum_shared(temporary_field%vec)
+    end if
+
+    if (iprint.ge.2) then
+    write(25,1003) temporary_field%vec%data
+1003 format(1p10E12.4)
+    end if
+
+    print *, 'initializing solution transfer...'
+    call initsolutiontransfer(0)
+    print *, 'setting smoothing factor...', adapt_smooth
+    call setsmoothfact(adapt_smooth)
+    print *, 'adapting mesh...', psimin, psibound
+    call adapt(temporary_field%vec%data,psimin,psibound)
+    print *, 'done adapting.'
+    call destroy_field(temporary_field)
+    call safestop(0)
+
+  end select
+#endif
+end subroutine adapt_mesh
