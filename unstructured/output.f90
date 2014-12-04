@@ -355,6 +355,8 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "pellet_phi", pellet_phi, ntime, error)
   call output_scalar(scalar_group_id, "pellet_z",   pellet_z,   ntime, error)
 
+  call output_scalar(scalar_group_id, "psi0", psi0, ntime, error)
+
   if(xray_detector_enabled.eq.1) then
      call output_scalar(scalar_group_id,"xray_signal",xray_signal,ntime,error)
   end if

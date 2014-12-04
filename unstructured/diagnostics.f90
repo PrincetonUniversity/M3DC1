@@ -17,7 +17,7 @@ module diagnostics
   ! scalars integrated within lcfs
   real :: pflux, parea, pcur, pden, pmom, pvol
 
-  real :: chierror
+  real :: chierror, psi0
 
   ! density diagnostics
   real :: nfluxd, nfluxv, nsource
@@ -191,6 +191,8 @@ contains
     bwb2 = 0.
 
     xray_signal = 0.
+
+    psi0 = 0.
   end subroutine reset_scalars
 
 
@@ -349,8 +351,8 @@ subroutine evaluate(x,phi,z,ans,ans2,fin,itri,ierr)
   real :: x1, phi1, z1
   vectype, dimension(coeffs_per_element) :: avector
   real :: ri, si, zi, eta
-  real :: term1, term2
-  real, dimension(2) :: temp1, temp2
+  vectype :: term1, term2
+  vectype, dimension(2) :: temp1, temp2
   integer :: hasval, tothasval
 
   ! evaluate the solution to get the value [ans] at one point (x,z)
@@ -444,10 +446,18 @@ subroutine evaluate(x,phi,z,ans,ans2,fin,itri,ierr)
      ! the point.  (Each value should be identical.)
      temp1(1) = ans
      temp1(2) = ans2
+#ifdef USECOMPLEX
+     call mpi_allreduce(temp1, temp2, 2, MPI_DOUBLE_COMPLEX, MPI_SUM, &
+          MPI_COMM_WORLD, ier)
+     ans = real(temp2(1)*exp(rfac*phi1))/tothasval
+     ans2 = real(temp2(2)*exp(rfac*phi1))/tothasval
+#else
      call mpi_allreduce(temp1, temp2, 2, MPI_DOUBLE_PRECISION, MPI_SUM, &
           MPI_COMM_WORLD, ier)
      ans = temp2(1)/tothasval
      ans2 = temp2(2)/tothasval
+
+#endif
   endif
 
   ierr = 0
@@ -530,12 +540,12 @@ subroutine calculate_scalars()
  
   include 'mpif.h'
 
-  integer :: itri, numelms, def_fields
+  integer :: itri, numelms, def_fields, ier
   integer :: is_edge(3)  ! is inode on boundary
   real :: n(2,3),tpifac
   integer :: iedge, idim(3), izone, izonedim, i
-  real :: delta_t
   integer :: magnetic_region
+  real :: dum1, dum2
   vectype, dimension(MAX_PTS) :: mr
 
   tpifac = 1.
@@ -716,7 +726,6 @@ subroutine calculate_scalars()
         end select
      endif
 
-
      if(amupar.ne.0.) then
         call PVS1(pht79,temp79a)
 
@@ -820,6 +829,12 @@ subroutine calculate_scalars()
 !   volume averaged pressure for beta calculation
     avep = (gam - 1.)*(emag3 / (volume*tpifac))
 !
+
+    ! psi on axis
+    itri = 0
+    call evaluate(xmag,0.,zmag,dum1,dum2,psi_field(1),itri,ier)
+    psi0 = dum1
+
 #ifdef USE3D
   if(ike_harmonics .gt. 0) call calculate_ke()
   if(ibh_harmonics .gt. 0) call calculate_bh()
