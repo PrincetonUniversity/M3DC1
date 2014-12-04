@@ -1,5 +1,5 @@
 FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DPETSC_31 $(OPTS)
-CCOPTS  = -c -O -DPetscDEV -DPETSC_31 #-DCJ_MATRIX_DUMP -DUSEHYBRID 
+CCOPTS  = -c -O -DPetscDEV -DPETSC_31 -DPetscOLD #-DCJ_MATRIX_DUMP -DUSEHYBRID 
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 -vec-report=0

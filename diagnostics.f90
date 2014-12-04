@@ -1442,12 +1442,12 @@ subroutine lcfs(psi, test_wall, findx)
   endif
 
 !!$  call MPI_BARRIER(MPI_COMM_WORLD, ier)
-!!$  if(iprint.ge.1) then
-!!$     write(*,'(1A10,6A11)') 'psi at:', &
-!!$          'axis', 'wall', 'divertor', 'lim1', 'lim2', 'lcfs'
-!!$     write(*,'(1I10,1p6e11.4)') myrank,  &
-!!$          psimin, psib, psix, psilim, psilim2, psibound
-!!$  endif
+  if(myrank.eq.0 .and. iprint.ge.1) then
+     write(*,'(1A10,6A11)') 'psi at:', &
+          'axis', 'wall', 'divertor', 'lim1', 'lim2', 'lcfs'
+     write(*,'(1I10,1p6e11.3)') myrank,  &
+          psimin, psib, psix, psilim, psilim2, psibound
+  endif
 !!$  call MPI_BARRIER(MPI_COMM_WORLD, ier)
 
 
