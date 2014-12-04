@@ -4037,7 +4037,11 @@ subroutine bf_equation_nolin(trial, r4term)
      return
   end if
 
-  temp79a = bzero*rzero
+  if(itor.eq.0) then 
+     temp79a = bzero
+  else
+     temp79a = bzero*rzero
+  end if
   r4term = int2(trial(:,OP_1),temp79a)
 end subroutine bf_equation_nolin
 
