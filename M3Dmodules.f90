@@ -182,6 +182,7 @@ module basic
   real :: tol_gs      ! error tolorance for GS solver
   real :: psiscale    ! profile scale-factor (psiscale < 1 throws out edge pts)
   real :: sigma0      ! minor radius of initial current distribution to initialize GS
+  real :: elongation  ! elongation of solovev equilibrium
 
   integer :: idenfunc ! specifies a specific form for equilibrium density
   real :: den_edge
