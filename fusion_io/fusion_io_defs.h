@@ -14,69 +14,70 @@
 #define FIO_IS_REAL_OPT(x)   ((x)>FIO_REAL_OPT_START && (x)<FIO_REAL_OPT_END)
 #define INDEX_OFFSET 0
 #endif
+#define COMMENT(x) 
 
-/* sources */
+COMMENT(     sources     )
 FIO_DEFINE_INT(FIO_GATO_SOURCE,       1)
 FIO_DEFINE_INT(FIO_GEQDSK_SOURCE,     2)
 FIO_DEFINE_INT(FIO_M3DC1_SOURCE,      3)
 FIO_DEFINE_INT(FIO_MARS_SOURCE,       4)
 FIO_DEFINE_INT(FIO_NIMROD_SOURCE,     5)
 
-/* scalar fields */
+COMMENT(      scalar fields      )
 FIO_DEFINE_INT(FIO_ALPHA,             1)
 FIO_DEFINE_INT(FIO_SCALAR_POTENTIAL,  2)
 FIO_DEFINE_INT(FIO_TOTAL_PRESSURE,    3)
 
-/* species-dependent scalar fields */
+COMMENT(      species-dependent scalar fields      )
 FIO_DEFINE_INT(FIO_PRESSURE,          101)
 FIO_DEFINE_INT(FIO_DENSITY,           102)
 
-/* vector fields */
+COMMENT(      vector fields      )
 FIO_DEFINE_INT(FIO_ELECTRIC_FIELD,    1001)
 FIO_DEFINE_INT(FIO_VECTOR_POTENTIAL,  1002)
 FIO_DEFINE_INT(FIO_MAGNETIC_FIELD,    1003)
 FIO_DEFINE_INT(FIO_CURRENT_DENSITY,   1004)
 FIO_DEFINE_INT(FIO_FLUID_VELOCITY,    1005)
 
-/* species-dependent vector fields */
+COMMENT(      species-dependent vector fields      )
 FIO_DEFINE_INT(FIO_VELOCITY,          1101)
 
-/* tensor fields */
+COMMENT(      tensor fields      )
 FIO_DEFINE_INT(FIO_GRAD_VECTOR_POTENTIAL, 2001)
 
 /* series */
 FIO_DEFINE_INT(FIO_MAGAXIS_PSI,       3001)
 FIO_DEFINE_INT(FIO_LCFS_PSI,          3002)
 
-/* field options (integers) */
+COMMENT(      field options (integers)      )
 FIO_DEFINE_INT(FIO_INT_OPT_START,     0)
 FIO_DEFINE_INT(FIO_TIMESLICE,         1)
 FIO_DEFINE_INT(FIO_PART,              2)
 FIO_DEFINE_INT(FIO_SPECIES,           3)
 FIO_DEFINE_INT(FIO_INT_OPT_END,       4)
 
-/* possible options for FIO_PART */
+COMMENT(      possible options for FIO_PART      )
 FIO_DEFINE_INT(FIO_TOTAL,             0)
 FIO_DEFINE_INT(FIO_PERTURBED_ONLY,    1)
 FIO_DEFINE_INT(FIO_EQUILIBRIUM_ONLY,  2)
 
-/* field options (reals) */
+COMMENT(      field options (reals)      )
 FIO_DEFINE_INT(FIO_REAL_OPT_START,    100)
 FIO_DEFINE_INT(FIO_LINEAR_SCALE,      101)
 FIO_DEFINE_INT(FIO_PHASE,             102)
 FIO_DEFINE_INT(FIO_REAL_OPT_END,      103)
 
-/* field options (strings) */
+COMMENT(      field options (strings)      )
 FIO_DEFINE_INT(FIO_STR_OPT_START,     10000)
 FIO_DEFINE_INT(FIO_STR_OPT_END,       10000)
 
-/* field operations */
+COMMENT(      field operations      )
 FIO_DEFINE_INT(FIO_ADD,               1)
 FIO_DEFINE_INT(FIO_MULTIPLY,          2)
 FIO_DEFINE_INT(FIO_DIVIDE,            3)
 FIO_DEFINE_INT(FIO_DOT_PRODUCT,       4)
 
-/* error messages */
+COMMENT(      error messages      )
 FIO_DEFINE_INT(FIO_SUCCESS,           0)
 FIO_DEFINE_INT(FIO_UNSUPPORTED,       10001)
 FIO_DEFINE_INT(FIO_OUT_OF_BOUNDS,     10002)
@@ -84,7 +85,7 @@ FIO_DEFINE_INT(FIO_FILE_ERROR,        10003)
 FIO_DEFINE_INT(FIO_BAD_DIMENSIONS,    10004)
 FIO_DEFINE_INT(FIO_BAD_SPECIES,       10005)
 
-/* vector components */
+COMMENT(      vector components      )
 FIO_DEFINE_INT(FIO_R, 0+INDEX_OFFSET)
 FIO_DEFINE_INT(FIO_PHI, 1+INDEX_OFFSET)
 FIO_DEFINE_INT(FIO_Z, 2+INDEX_OFFSET)
@@ -103,7 +104,8 @@ FIO_DEFINE_INT(FIO_DZ_R, 6+INDEX_OFFSET)
 FIO_DEFINE_INT(FIO_DZ_PHI, 7+INDEX_OFFSET)
 FIO_DEFINE_INT(FIO_DZ_Z, 8+INDEX_OFFSET)
 
-/* species */
+COMMENT(      species      )
+
 #define FIO_MAKE_SPECIES(m, p, e)     e + p*256 + (m-p)*65536
 #ifdef FORTRAN
 #define FIO_GET_N(x)                 iand(x, 16711680)
