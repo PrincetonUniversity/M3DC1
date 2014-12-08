@@ -601,7 +601,7 @@ contains
     if(.not. sparse_initialized) return
 
     do i=1, num_matrices
-       call deletematrix(i)
+       call m3dc1_matrix_delete(i)
     end do
 #endif
   end subroutine delete_matrices

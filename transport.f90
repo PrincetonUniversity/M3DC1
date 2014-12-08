@@ -73,13 +73,12 @@ vectype function sigma_func(i)
   ! Enforce density floor
   if(idenfloor.ge.1) then
 
-  do j=1, npoints
-     temp79a(j) = 0.
-     iregion = magnetic_region(pst79(j,:), x_79(j), z_79(j))
-     if(iregion.ge.1) temp79a(j) = alphadenfloor*( den_edge - nt79(j,OP_1))
-  end do
+    do j=1, npoints
+       temp79a(j) = 0.
+       iregion = magnetic_region(pst79(j,:), x_79(j), z_79(j))
+       if(iregion.ge.1) temp79a(j) = alphadenfloor*( den_edge - nt79(j,OP_1))
+    end do
   endif
-
   temp = temp + int2(mu79(:,OP_1,i),temp79a)
 
   sigma_func = temp
@@ -185,7 +184,6 @@ vectype function pmach_func(i)
   implicit none
 
   integer, intent(in) :: i
-!  integer :: j
 
 ! calculate the poloidal mach number
 !  do j=1,npoints
@@ -438,7 +436,7 @@ vectype function viscosity_func(i)
         call create_spline(amu_spline, nvals, xvals, yvals)
         deallocate(xvals, yvals)
      end if
-     
+
      do j=1, npoints
         if(magnetic_region(pst79(j,:),x_79(j),z_79(j)).ne.0) &
              then
@@ -744,7 +742,7 @@ subroutine define_transport_coefficients()
              call vector_insert_block(q_field%vec,itri,1,dofs,VEC_ADD)
      end if
 
-    if(icd_source .gt. 0) then
+     if(icd_source .gt. 0) then
         do i=1, dofs_per_element
            dofs(i) = cd_func(i)
            if(.not.solve_cd) solve_cd = dofs(i).ne.0

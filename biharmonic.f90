@@ -68,7 +68,7 @@ contains
     implicit none
     
     integer, intent(in) :: bi
-    integer :: itri, i, ii, j, numnodes, numelms, ier
+    integer :: itri, i, ii, j, numnodes, numelms, ier, inode_t
     integer :: is_edge(3)  ! is inode on boundary
     real :: n(2,3), sum, sum2, x, z
     integer :: idim(3), izone, izonedim
@@ -86,7 +86,7 @@ contains
     biharmonic_operator = bi
 
     call set_matrix_index(biharmonic_mat, biharmonic_mat_index)
-    call create_mat(biharmonic_mat, 1, 1, icomplex, .true.)
+    call create_mat(biharmonic_mat, 1, 1, icomplex, 1)
 #ifdef CJ_MATRIX_DUMP
     print *, "create_mat biharmonic biharmonic_mat", biharmonic_mat%imatrix 
 #endif
@@ -163,7 +163,8 @@ contains
 
     ! define boundary conditions
     do i=1, numnodes
-       call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+       inode_t = nodes_owned(i)
+       call boundary_node(inode_t,is_boundary,izone,izonedim,normal,curv,x,z)
 
        if(.not.is_boundary) cycle
 
@@ -183,7 +184,7 @@ contains
 !!$
 !!$
        call analytic_solution(solution_order,x,z,soln(1:dofs_per_node))
-       call set_node_data(bcs, i, soln(1:dofs_per_node))
+       call set_node_data(bcs, inode_t, soln(1:dofs_per_node))
     end do
    
     call boundary_biharmonic(rhs, bcs, biharmonic_mat)
@@ -315,7 +316,7 @@ contains
     type(field_type), intent(in) :: bvec
     type(matrix_type), intent(inout), optional :: mat
     
-    integer :: i, izone, izonedim, index
+    integer :: i, inode_t, izone, izonedim, index
     integer :: numnodes
     real :: normal(2), curv
     real :: x, z
@@ -327,12 +328,13 @@ contains
     
     numnodes = owned_nodes()
     do i=1, numnodes
-       call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+       inode_t = nodes_owned(i)
+       call boundary_node(inode_t,is_boundary,izone,izonedim,normal,curv,x,z)
        if(.not.is_boundary) cycle
        
-       index = node_index(rhs, i)
+       index = node_index(rhs, inode_t)
        
-       call get_node_data(bvec, i, temp)
+       call get_node_data(bvec, inode_t, temp)
        call set_dirichlet_bc(index,rhs%vec,temp,normal,curv,izonedim,mat)
 
        if(biharmonic_operator.eq.1) then

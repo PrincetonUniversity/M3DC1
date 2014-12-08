@@ -95,8 +95,19 @@ else
 VPATH=$(SRCDIR)
 
 include $(SRCDIR)/$(ARCH).mk
-
 BIN = m3dc1
+
+ifeq ($(3D), 1)
+  BIN := $(BIN)_3d
+else
+  BIN := $(BIN)_2d
+endif
+ifeq ($(COM), 1)
+  BIN := $(BIN)_complex
+endif
+ifeq ($(USEADIOS), 1)
+  BIN := $(BIN)_adios
+endif
 
 READGATO_OBJS = polar.o readgato.o
 READJSOLVER_OBJS = polar.o read_jsolver_exec.o
@@ -119,12 +130,12 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	auxiliary_fields.o  \
 	time_step_split.o time_step_unsplit.o \
 	time_step.o hdf5_output.o output.o \
-	newpar.o input.o ludef_t.o \
+	adapt.o newpar.o input.o ludef_t.o \
 	restart.o readgeqdsk.o read_dskbal.o \
 	read_jsolver.o \
-	init_common.o \
-	ic_resistive_wall.o \
-	rwm.o solovev.o \
+        init_common.o \
+        ic_resistive_wall.o \
+        rwm.o solovev.o \
 	init_conds.o \
 	get_pc_skip_count.o
 

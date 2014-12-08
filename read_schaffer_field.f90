@@ -218,7 +218,7 @@ contains
 1100   close(ifile)
        if(wingen_style) sf%phi = sf%phi - sf%phi(1)
        print *, 'Number of lines read: ', lines_read
-       write(*, '(A,3I)') 'NR, NZ, NPHI', sf%nr, sf%nz, sf%nphi
+       write(*, '(A,3I0)') 'NR, NZ, NPHI', sf%nr, sf%nz, sf%nphi
        write(*, '(A,F12.4," -- ",F12.4)') 'R:   ', sf%r(1), sf%r(sf%nr)
        write(*, '(A,F12.4," -- ",F12.4)') 'Z:   ', sf%z(1), sf%z(sf%nz)
        write(*, '(A,F12.4," -- ",F12.4)') 'Phi: ', sf%phi(1), sf%phi(sf%nphi)

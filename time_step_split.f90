@@ -111,10 +111,10 @@ contains
     call set_matrix_index(q1_mat, q1_mat_index)
     call set_matrix_index(r14_mat, r14_mat_index)
        
-    call create_mat(s1_mat, vecsize_vel, vecsize_vel, icomplex, .true.)
-    call create_mat(d1_mat, vecsize_vel, vecsize_vel, icomplex, .false.)
-    call create_mat(q1_mat, vecsize_vel, vecsize_phi, icomplex, .false.)
-    call create_mat(r14_mat, vecsize_vel, vecsize_n, icomplex, .false.)
+    call create_mat(s1_mat, vecsize_vel, vecsize_vel, icomplex, 1)
+    call create_mat(d1_mat, vecsize_vel, vecsize_vel, icomplex, 0)
+    call create_mat(q1_mat, vecsize_vel, vecsize_phi, icomplex, 0)
+    call create_mat(r14_mat, vecsize_vel, vecsize_n, icomplex, 0)
 
 #ifdef CJ_MATRIX_DUMP
     print *, "create_mat time_step s1_mat", s1_mat%imatrix     
@@ -124,7 +124,7 @@ contains
 #endif 
     if(i3d.eq.1) then
        call set_matrix_index(o1_mat, o1_mat_index)
-       call create_mat(o1_mat, vecsize_vel, 1, icomplex, .false.)
+       call create_mat(o1_mat, vecsize_vel, 1, icomplex, 0)
 #ifdef CJ_MATRIX_DUMP
        print *, "create_mat time_step o1_mat", o1_mat%imatrix     
 #endif 
@@ -132,7 +132,7 @@ contains
 
     if((ipres.eq.1 .and. numvar.lt.3) .or. ipressplit.gt.0) then
        call set_matrix_index(p1_mat, p1_mat_index)
-       call create_mat(p1_mat, vecsize_vel, vecsize_p, icomplex, .false.)
+       call create_mat(p1_mat, vecsize_vel, vecsize_p, icomplex, 0)
     end if
 
     ! Matrices associated with magnetic field advance
@@ -140,10 +140,10 @@ contains
     call set_matrix_index(d2_mat, d2_mat_index)
     call set_matrix_index(r2_mat, r2_mat_index)
     call set_matrix_index(q2_mat, q2_mat_index)
-    call create_mat(s2_mat, vecsize_phi, vecsize_phi, icomplex, .true.)
-    call create_mat(d2_mat, vecsize_phi, vecsize_phi, icomplex, .false.)
-    call create_mat(r2_mat, vecsize_phi, vecsize_vel, icomplex, .false.)
-    call create_mat(q2_mat, vecsize_phi, vecsize_vel, icomplex, .false.)
+    call create_mat(s2_mat, vecsize_phi, vecsize_phi, icomplex, 1)
+    call create_mat(d2_mat, vecsize_phi, vecsize_phi, icomplex, 0)
+    call create_mat(r2_mat, vecsize_phi, vecsize_vel, icomplex, 0)
+    call create_mat(q2_mat, vecsize_phi, vecsize_vel, icomplex, 0)
 
 #ifdef CJ_MATRIX_DUMP
     print *, "create_mat time_step s2_mat", s2_mat%imatrix     
@@ -155,8 +155,8 @@ contains
     if(idens.eq.1) then
        call set_matrix_index(r42_mat, r42_mat_index)
        call set_matrix_index(q42_mat, q42_mat_index)
-       call create_mat(r42_mat, vecsize_phi, 1, icomplex, .false.)
-       call create_mat(q42_mat, vecsize_phi, 1, icomplex, .false.)
+       call create_mat(r42_mat, vecsize_phi, 1, icomplex, 0)
+       call create_mat(q42_mat, vecsize_phi, 1, icomplex, 0)
 #ifdef CJ_MATRIX_DUMP
        print *, "create_mat time_step r42_mat", r42_mat%imatrix
        print *, "create_mat time_step q42_mat", q42_mat%imatrix
@@ -165,10 +165,10 @@ contains
     
     if(i3d.eq.1) then
        call set_matrix_index(o2_mat, o2_mat_index)
-       call create_mat(o2_mat, vecsize_phi, 1, icomplex, .false.)
+       call create_mat(o2_mat, vecsize_phi, 1, icomplex, 0)
        if(ipressplit.eq.1 .or. ipres.eq.1) then
           call set_matrix_index(o3_mat, o3_mat_index)
-          call create_mat(o3_mat, vecsize_p, 1, icomplex, .false.)
+          call create_mat(o3_mat, vecsize_p, 1, icomplex, 0)
        endif
          
 #ifdef CJ_MATRIX_DUMP
@@ -182,10 +182,10 @@ contains
        call set_matrix_index(d8_mat, d8_mat_index)
        call set_matrix_index(r8_mat, r8_mat_index)
        call set_matrix_index(q8_mat, q8_mat_index)
-       call create_mat(s8_mat, vecsize_n, vecsize_n, icomplex, .true.)
-       call create_mat(d8_mat, vecsize_n, vecsize_n, icomplex, .false.)
-       call create_mat(r8_mat, vecsize_n, vecsize_vel, icomplex, .false.)
-       call create_mat(q8_mat, vecsize_n, vecsize_vel, icomplex, .false.)
+       call create_mat(s8_mat, vecsize_n, vecsize_n, icomplex, 1)
+       call create_mat(d8_mat, vecsize_n, vecsize_n, icomplex, 0)
+       call create_mat(r8_mat, vecsize_n, vecsize_vel, icomplex, 0)
+       call create_mat(q8_mat, vecsize_n, vecsize_vel, icomplex, 0)
 #ifdef CJ_MATRIX_DUMP
        print *, "create_mat time_step s8_mat", s8_mat%imatrix     
        print *, "create_mat time_step d8_mat", d8_mat%imatrix     
@@ -201,16 +201,16 @@ contains
        call set_matrix_index(r9_mat, r9_mat_index)
        call set_matrix_index(q9_mat, q9_mat_index)
        call set_matrix_index(o9_mat, o9_mat_index)
-       call create_mat(s9_mat, vecsize_p, vecsize_p, icomplex, .true.)
-       call create_mat(d9_mat, vecsize_p, vecsize_p, icomplex, .false.)
-       call create_mat(r9_mat, vecsize_p, vecsize_vel, icomplex, .false.)
-       call create_mat(q9_mat, vecsize_p, vecsize_vel, icomplex, .false.)
-       call create_mat(o9_mat, vecsize_p, vecsize_phi, icomplex, .false.)
+       call create_mat(s9_mat, vecsize_p, vecsize_p, icomplex, 1)
+       call create_mat(d9_mat, vecsize_p, vecsize_p, icomplex, 0)
+       call create_mat(r9_mat, vecsize_p, vecsize_vel, icomplex, 0)
+       call create_mat(q9_mat, vecsize_p, vecsize_vel, icomplex, 0)
+       call create_mat(o9_mat, vecsize_p, vecsize_phi, icomplex, 0)
        if(idens.eq.1) then
           call set_matrix_index(rp42_mat, rp42_mat_index)
           call set_matrix_index(qp42_mat, qp42_mat_index)
-          call create_mat(rp42_mat, vecsize_p, 1, icomplex, .false.)
-          call create_mat(qp42_mat, vecsize_p, 1, icomplex, .false.)
+          call create_mat(rp42_mat, vecsize_p, 1, icomplex, 0)
+          call create_mat(qp42_mat, vecsize_p, 1, icomplex, 0)
 #ifdef CJ_MATRIX_DUMP
           print *, "create_mat time_step rp42_mat", rp42_mat%imatrix
           print *, "create_mat time_step qp42_mat", qp42_mat%imatrix
@@ -444,10 +444,11 @@ contains
     use basic
     implicit none
 
-    call flush(s1_mat)
     call finalize(d1_mat)
     call finalize(q1_mat)
     call finalize(r14_mat)
+    call flush(s1_mat)
+
     if(i3d.eq.1) call finalize(o1_mat)
     if((ipres.eq.1 .and. numvar.lt.3) .or. ipressplit.eq.1) then
        call finalize(p1_mat)
@@ -457,10 +458,10 @@ contains
     if(myrank.eq.0 .and. iprint.ge.1) &
          print *, " before field finalize..."
     
-    call flush(s2_mat)
     call finalize(d2_mat)
     call finalize(r2_mat)
     call finalize(q2_mat)
+    call flush(s2_mat)
     if(i3d.eq.1) then
       call finalize(o2_mat)
       if(ipres.eq.1 .or. ipressplit.eq.1) call finalize(o3_mat)
@@ -472,10 +473,10 @@ contains
     call sum_shared(q4_vec)
     
     if(idens.eq.1) then
-       call flush(s8_mat)
        call finalize(d8_mat)
        call finalize(q8_mat)
        call finalize(r8_mat)
+       call flush(s8_mat)
        call sum_shared(qn4_vec)
        
        if(myrank.eq.0 .and. iprint.ge.1) &
@@ -483,10 +484,10 @@ contains
     end if
        
     if(ipres.eq.1 .or. ipressplit.eq.1) then
-       call flush(s9_mat)
        call finalize(d9_mat)
        call finalize(q9_mat)
        call finalize(r9_mat)
+       call flush(s9_mat)
        if(myrank.eq.0 .and. iprint.ge.1) print *, 'before call to finalize(o9_mat)'
        call finalize(o9_mat)
        if(idens.eq.1) then
@@ -1271,22 +1272,24 @@ subroutine subtract_axi
     use mesh_mod
     use arrays
     implicit none
-    integer:: l,numnodes
+    integer:: l,numnodes, icounter_t
     vectype, dimension (dofs_per_node) :: vec_l, axi_l
     type(field_type) :: axi
 
     call create_field(axi)
     numnodes = owned_nodes()
 
-    do l=1,numnodes
+    do  icounter_t=1,numnodes
+        l = nodes_owned(icounter_t)
         call get_node_data(u_v,l,vec_l)
         call set_node_data(axi,l,vec_l)
     enddo
 
     call finalize(axi%vec)
-    call sum_vec_planes(axi%vec%data)
+    call m3dc1_field_sum_plane(axi%vec%id)
 
-    do l=1,numnodes
+    do  icounter_t=1,numnodes
+        l = nodes_owned(icounter_t)
         call get_node_data(axi,l,axi_l)
         call get_node_data(u_v,l,vec_l)
         vec_l = vec_l - axi_l/nplanes
@@ -1295,15 +1298,17 @@ subroutine subtract_axi
     call finalize(u_v%vec)
     if(numvar.lt.2) return
     
-    do l=1,numnodes
+    do  icounter_t=1,numnodes
+        l = nodes_owned(icounter_t)
         call get_node_data(vz_v,l,vec_l)
         call set_node_data(axi,l,vec_l)
     enddo
 
     call finalize(axi%vec)
-    call sum_vec_planes(axi%vec%data)
+    call m3dc1_field_sum_plane(axi%vec%id)
 
-    do l=1,numnodes
+    do  icounter_t=1,numnodes
+        l = nodes_owned(icounter_t)
         call get_node_data(axi,l,axi_l)
         call get_node_data(vz_v,l,vec_l)
         vec_l = vec_l - axi_l/nplanes
@@ -1312,15 +1317,17 @@ subroutine subtract_axi
     call finalize(vz_v%vec)
     if(numvar.lt.3) return
 
-    do l=1,numnodes
+    do  icounter_t=1,numnodes
+        l = nodes_owned(icounter_t)
         call get_node_data(chi_v,l,vec_l)
         call set_node_data(axi,l,vec_l)
     enddo
 
     call finalize(axi%vec)
-    call sum_vec_planes(axi%vec%data)
+    call m3dc1_field_sum_plane(axi%vec%id)
 
-    do l=1,numnodes
+    do  icounter_t=1,numnodes
+        l = nodes_owned(icounter_t)
         call get_node_data(axi,l,axi_l)
         call get_node_data(chi_v,l,vec_l)
         vec_l = vec_l - axi_l/nplanes

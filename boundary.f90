@@ -408,7 +408,7 @@ subroutine set_laplacian_bc(ibegin,rhs,bv,normal,curv,izonedim,radius,mat)
      vals(2) = 1.
   endif
 
-  if(izonedim.eq.1) then
+  if(izonedim.lt.2) then
      ! edge points
      ! ~~~~~~~~~~~
      irow = ibegin + 3
@@ -532,7 +532,7 @@ subroutine boundary_dc(rhs, bvec, mat)
   type(vector_type), intent(in) :: bvec
   type(matrix_type), optional :: mat
   
-  integer :: i, izone, izonedim
+  integer :: i, izone, izonedim, icounter_t
   integer :: ibegin, numnodes
   real :: normal(2), curv
   real :: x, z
@@ -543,7 +543,9 @@ subroutine boundary_dc(rhs, bvec, mat)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_dc called"
 
   numnodes = owned_nodes()
-  do i=1, numnodes
+  do icounter_t=1,numnodes
+     i = nodes_owned(icounter_t)
+
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
      if(.not.is_boundary) cycle
 
@@ -575,7 +577,7 @@ subroutine boundary_nm(rhs, bvec, mat)
   type(vector_type), intent(in) :: bvec
   type(matrix_type), optional :: mat
   
-  integer :: i, izone, izonedim
+  integer :: i, izone, izonedim, icounter_t
   integer :: ibegin, numnodes
   real :: normal(2), curv
   real :: x, z
@@ -586,7 +588,8 @@ subroutine boundary_nm(rhs, bvec, mat)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_nm called"
 
   numnodes = owned_nodes()
-  do i=1, numnodes
+  do icounter_t=1,numnodes
+     i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
      if(.not.is_boundary) cycle
 
@@ -615,7 +618,7 @@ subroutine boundary_cy(rhs, mat)
   type(vector_type) :: rhs
   type(matrix_type), optional :: mat
   
-  integer :: i, izone, izonedim, ind, numnodes
+  integer :: i, izone, izonedim, ind, numnodes, icounter_t
   real :: normal(2), curv, x, z
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
@@ -624,7 +627,8 @@ subroutine boundary_cy(rhs, mat)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_cy called"
 
   numnodes = owned_nodes()
-  do i=1, numnodes
+  do icounter_t=1,numnodes
+     i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
      if(.not.is_boundary) cycle
 
@@ -658,7 +662,7 @@ subroutine boundary_vor(rhs, mat)
   type(matrix_type), optional :: mat
   
   integer, parameter :: numvarsm = 2
-  integer :: i, izone, izonedim, i_u, i_vor, numnodes
+  integer :: i, izone, izonedim, i_u, i_vor, numnodes, icounter_t
   real :: normal(2), curv
   real :: x, z
   logical :: is_boundary
@@ -670,7 +674,8 @@ subroutine boundary_vor(rhs, mat)
   temp = 0.
 
   numnodes = owned_nodes()
-  do i=1, numnodes
+  do icounter_t=1,numnodes
+     i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
      if(.not.is_boundary) cycle
 
@@ -716,7 +721,7 @@ subroutine boundary_jphi(rhs, mat)
   type(matrix_type), optional :: mat
   
   integer, parameter :: numvarsm = 2
-  integer :: i, izone, izonedim, i_psi, i_jphi, numnodes
+  integer :: i, izone, izonedim, i_psi, i_jphi, numnodes, icounter_t
   real :: normal(2), curv
   real :: x, z
   logical :: is_boundary
@@ -726,7 +731,8 @@ subroutine boundary_jphi(rhs, mat)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_jphi called"
 
   numnodes = owned_nodes()
-  do i=1, numnodes
+  do icounter_t=1,numnodes
+     i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
      if(.not.is_boundary) cycle
 
@@ -761,7 +767,7 @@ subroutine boundary_com(rhs, mat)
   type(matrix_type), optional :: mat
   
   integer, parameter :: numvarsm = 2
-  integer :: i, izone, izonedim, i_com, i_chi, numnodes
+  integer :: i, izone, izonedim, i_com, i_chi, numnodes, icounter_t
   real :: normal(2), curv
   real :: x, z
   logical :: is_boundary
@@ -773,7 +779,8 @@ subroutine boundary_com(rhs, mat)
   temp = 0.
 
   numnodes = owned_nodes()
-  do i=1, numnodes
+  do icounter_t=1,numnodes
+     i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
      if(.not.is_boundary) cycle
 

@@ -24,6 +24,8 @@ module model
   integer :: den_i, p_i
   integer :: bf_i, e_i
   integer :: te_i, ti_i
+  
+  integer :: icounter_t
 
 contains
 
@@ -45,7 +47,8 @@ subroutine calc_ni(ni_field, n0_field, n1_field)
 
   numnodes = owned_nodes()
 
-  do inode=1,numnodes
+  do icounter_t=1,numnodes
+     inode = nodes_owned(icounter_t)
      call get_node_data(n0_field, inode, n0)
      call get_node_data(n1_field, inode, n1)
 
@@ -94,7 +97,8 @@ subroutine calc_b2i(b2i_field, psi0_field, psi1_field, b0_field, b1_field)
 
   numnodes = owned_nodes()
 
-  do inode=1,numnodes
+  do icounter_t=1,numnodes
+     inode = nodes_owned(icounter_t)
      call get_node_data(psi0_field, inode, psi0)
      call get_node_data(psi1_field, inode, psi1)
      call get_node_data(b0_field, inode, b0)
@@ -357,8 +361,8 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_vel called"
 
   numnodes = owned_nodes()
-  do i=1, numnodes
-
+  do icounter_t=1,numnodes
+     i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
           all_boundaries)
      if(.not.is_boundary) cycle
@@ -448,7 +452,8 @@ subroutine boundary_vpol(rhs, u_v, chi_v, mat)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_vpol called"
 
   numnodes = owned_nodes()
-  do i=1, numnodes
+  do icounter_t=1,numnodes
+     i = nodes_owned(icounter_t)
 
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
           all_boundaries)
@@ -526,8 +531,8 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_mag called"
 
   numnodes = owned_nodes()
-  do i=1, numnodes
-
+  do icounter_t=1,numnodes
+     i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
      if(.not.is_boundary) cycle
 
@@ -627,7 +632,8 @@ subroutine boundary_den(rhs, den_v, mat)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_den called"
 
   numnodes = owned_nodes()
-  do i=1, numnodes
+  do icounter_t=1,numnodes
+     i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
           all_boundaries)
      if(.not.is_boundary) cycle
@@ -677,7 +683,8 @@ subroutine boundary_te(rhs, te_v, mat)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_te called"
 
   numnodes = owned_nodes()
-  do i=1, numnodes
+  do icounter_t=1,numnodes
+     i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
           all_boundaries)
      if(.not.is_boundary) cycle
@@ -724,7 +731,8 @@ subroutine boundary_ti(rhs, ti_v, mat)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_ti called"
 
   numnodes = owned_nodes()
-  do i=1, numnodes
+  do icounter_t=1,numnodes
+     i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
           all_boundaries)
      if(.not.is_boundary) cycle
@@ -777,7 +785,8 @@ subroutine boundary_p(rhs, p_v, mat)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_p called"
 
   numnodes = owned_nodes()
-  do i=1, numnodes
+  do icounter_t=1,numnodes
+     i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
           all_boundaries)
      if(.not.is_boundary) cycle
@@ -828,7 +837,8 @@ subroutine boundary_pe(rhs, pe_v, mat)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_pe called"
 
   numnodes = owned_nodes()
-  do i=1, numnodes
+  do icounter_t=1,numnodes
+     i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
           all_boundaries)
      if(.not.is_boundary) cycle
@@ -863,7 +873,8 @@ end subroutine boundary_pe
    if(numvar.lt.3 .and. ipres.eq.0) return
 
    numnodes = owned_nodes()
-   do i=1,numnodes
+   do icounter_t=1,numnodes
+     i = nodes_owned(icounter_t)
 
      if(idens.eq.1) then
         call get_node_data(den_v,i,den1_l)
@@ -932,7 +943,8 @@ end subroutine boundary_pe
    if(numvar.lt.3 .and. ipres.eq.0) return
 
    numnodes = owned_nodes()
-   do i=1,numnodes
+   do icounter_t=1,numnodes
+     i = nodes_owned(icounter_t)
 
      call get_node_data(den_v,i,den1_l)
      call get_node_data(den_field(0),i,den0_l)
@@ -1483,14 +1495,7 @@ subroutine calcnorm(temp, nsize, l2norm)
   numnodes = owned_nodes()
 
   sum = 0.
-  do i = 1,numnodes*nsize
-    ii = 1 + (i-1)*dofs_per_node
-#ifdef USECOMPLEX
-    sum = sum + temp%data(ii)*conjg(temp%data(ii))
-#else
-    sum = sum + temp%data(ii)**2
-#endif
-  enddo
+  call m3dc1_field_sumsq (temp%id, sum)
   l2norm = sqrt(sum)
   return
   

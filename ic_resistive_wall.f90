@@ -75,7 +75,7 @@ subroutine resistive_wall_test_init()
 
   implicit none
 
-  integer :: i,j, numnodes
+  integer :: i,j, numnodes, icounter_t
   real :: x, phi, z, Km_ka, Imp_ka, Kmp_ka
   real :: bessi, bessk, bessip, besskp
 
@@ -105,7 +105,8 @@ subroutine resistive_wall_test_init()
 
 
   numnodes = owned_nodes()
-  do i=1, numnodes
+  do icounter_t=1,numnodes
+     i = nodes_owned(icounter_t)
      call get_node_pos(i, x, phi, z)
 
      call get_local_vals(i)
@@ -267,7 +268,7 @@ contains
     
     implicit none
     
-    integer :: i,j, numnodes
+    integer :: i,j, numnodes, icounter_t
     real :: x, phi, z
     
 !!$    open(unit=97,file="response_matrix",status="unknown")
@@ -279,7 +280,8 @@ contains
 !!$    close(97)
     
     numnodes = owned_nodes()
-    do i=1, numnodes
+    do icounter_t=1,numnodes
+       i = nodes_owned(icounter_t)
        call get_node_pos(i, x, phi, z)
        
        call get_local_vals(i)

@@ -111,9 +111,9 @@ subroutine gradshafranov_per()
 
   do i=1, numnodes
 
-     call get_node_pos(i, x, phi, z)
+     call get_node_pos(nodes_owned(i), x, phi, z)
 
-     call get_local_vals(i)
+     call get_local_vals(nodes_owned(i))
 
      vmask = 1.
      vmask(1:6) = p0_l(1:6)/p0
@@ -140,7 +140,7 @@ subroutine gradshafranov_per()
      endif
      call random_per(x,phi,z,vmask)
 
-     call set_local_vals(i)
+     call set_local_vals(nodes_owned(i))
   enddo
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, 'end of gradshafranov_per'
@@ -964,7 +964,7 @@ subroutine gradshafranov_solve
        print *, " forming the GS matrix..."
 
   call set_matrix_index(gs_matrix, gsmatrix_sm)
-  call create_mat(gs_matrix, numvargs, numvargs, icomplex, .true.)
+  call create_mat(gs_matrix, numvargs, numvargs, icomplex, 1)
 #ifdef CJ_MATRIX_DUMP
   print *, "create_mat gradshafranov gs_matrix", gs_matrix%imatrix     
 #endif 
@@ -1105,12 +1105,18 @@ subroutine gradshafranov_solve
         ! combine solve result with old solution to get new solution
         if(itnum.eq.1) then
            psi_vec = b1vecini_vec
+           !call m3dc1_field_display(psi_vec%vec%id)
         else
            ! psi_vec = th_gs*b1vecini_vec + (1.-th_gs)*psi_vec
            b2vecini_vec = b1vecini_vec
+           !call m3dc1_field_display(b2vecini_vec%vec%id)
            call mult(b2vecini_vec,th_gs)
+           !call m3dc1_field_display(b2vecini_vec%vec%id)
            call mult(psi_vec,1.-th_gs)
+           !call m3dc1_field_display(b2vecini_vec%vec%id)
            call add(psi_vec,b2vecini_vec)
+           !call m3dc1_field_display(b2vecini_vec%vec%id)
+           !print *, "finish"
         endif
      endif
 
@@ -1148,7 +1154,7 @@ subroutine gradshafranov_solve
      ! calculate gammas to constrain current, etc.
      if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating gammas'
      call calculate_gamma(gamma2,gamma3,gamma4)
-
+     !print *, "gamma2,gamma3,gamma4", gamma2,gamma3,gamma4
      ! do feedback
      if(do_feedback) call coil_feedback
 
@@ -1176,6 +1182,7 @@ subroutine gradshafranov_solve
 
   ! do feedback
   if(do_feedback) call write_feedback('current.dat.out')
+
 
   if(myrank.eq.0 .and. iprint.ge.1) then
      print *, "Converged GS error =",error2
@@ -1400,7 +1407,7 @@ subroutine calculate_error(error, error2, psinew)
   real, intent(out) :: error, error2
   type(field_type), intent(in) :: psinew
 
-  integer :: i, numnodes, izone, izonedim, ier
+  integer :: i,inode, numnodes, izone, izonedim, ier
   real :: sum, sum2, norm, norm2, normal(2), curv, x, phi, z, lhs, rhs
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: psi0, psi1, f1, f2, f3, f4
@@ -1413,19 +1420,19 @@ subroutine calculate_error(error, error2, psinew)
 
   numnodes = owned_nodes()
   do i=1,numnodes
-
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z,&
+     inode = nodes_owned(i)
+     call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z,&
           domain_boundary)
      if(is_boundary) cycle
 
-     call get_node_pos(i,x,phi,z)
+     call get_node_pos(inode,x,phi,z)
 
-     call get_node_data(psi_vec, i, psi0)
-     call get_node_data(psinew, i, psi1)
-     call get_node_data(fun1_vec, i, f1)
-     call get_node_data(fun2_vec, i, f2)
-     call get_node_data(fun3_vec, i, f3)
-     call get_node_data(fun4_vec, i, f4)
+     call get_node_data(psi_vec, inode, psi0)
+     call get_node_data(psinew, inode, psi1)
+     call get_node_data(fun1_vec, inode, f1)
+     call get_node_data(fun2_vec, inode, f2)
+     call get_node_data(fun3_vec, inode, f3)
+     call get_node_data(fun4_vec, inode, f4)
 
      lhs = (psi0(4) + psi0(6) - psi0(2)/x)/x
      rhs =  -(f1(1) + gamma2*f2(1) + gamma3*f3(1) + gamma4*f4(1))
@@ -1480,7 +1487,7 @@ subroutine calculate_gamma(g2, g3, g4)
 
   ! start of loop over triangles to compute integrals needed to keep
   !     total current and q_0 constant using gamma4, gamma2, gamma3
-  if(nv1equ.eq.1 .or. numvar.eq.1) then
+  if(nv1equ.eq.1) then
      g2 = 0.
      g3 = 0.
      g4 = 0.
@@ -1705,7 +1712,7 @@ subroutine fundef
   use mesh_mod
   
   implicit none 
-  integer :: inode, numnodes
+  integer :: inode,ii, numnodes
   real :: x, phi, z, pso, pspx, pspy, pspxx, pspxy, pspyy
   real :: fbig0, fbig, fbigp, fbigpp
   real :: g2big, g2bigp, g2bigpp
@@ -1721,24 +1728,23 @@ subroutine fundef
 
   numnodes = owned_nodes()
   do inode=1,numnodes
+     ii=nodes_owned(inode) 
+     call get_node_pos(ii, x, phi, z)
      
-     call get_node_pos(inode, x, phi, z)
-     
-     call get_node_data(psi_vec, inode, temp)
+     call get_node_data(psi_vec, ii, temp)
      if(icsubtract.eq.1) then
-        call get_node_data(psi_coil_field, inode, temp2)
+        call get_node_data(psi_coil_field, ii, temp2)
         temp = temp + temp2
      end if
      pso =  (temp(1) - psimin)*dpsii
 
-     call zonenod(inode, izone, izonedim)
-     
+     call m3dc1_ent_getgeomclass(0,ii-1,izonedim,izone) 
      if(magnetic_region(temp,x,z).ne.0 .or. izone.ne.1) then
         temp = 0.
-        call set_node_data(fun1_vec, inode, temp)
-        call set_node_data(fun2_vec, inode, temp)
-        call set_node_data(fun3_vec, inode, temp)
-        call set_node_data(fun4_vec, inode, temp)
+        call set_node_data(fun1_vec, ii, temp)
+        call set_node_data(fun2_vec, ii, temp)
+        call set_node_data(fun3_vec, ii, temp)
+        call set_node_data(fun4_vec, ii, temp)
      else
         ! derivatives of real flux
         pspx  = temp(2)
@@ -1852,7 +1858,7 @@ subroutine fundef
            temp(6) = x*(fbigpp*pspy**2 + fbigp*pspyy)
         endif   !...end of branch on irot
 
-        call set_node_data(fun1_vec, inode, temp)
+        call set_node_data(fun1_vec, ii, temp)
         
         call evaluate_spline(ffprime_spline, pso, g4big, g4bigp, g4bigpp, iout=iout)
         if(iout.eq.1) then
@@ -1874,7 +1880,7 @@ subroutine fundef
         temp(5) = (g4bigpp*pspx*pspy+g4bigp*pspxy)/x                  &
              - g4bigp*pspy/x**2
         temp(6) = (g4bigpp*pspy**2 + g4bigp*pspyy)/x
-        call set_node_data(fun4_vec, inode, temp)
+        call set_node_data(fun4_vec, ii, temp)
 
         if(.not.constraint) then
            call evaluate_spline(g2_spline, pso, g2big, g2bigp, g2bigpp)
@@ -1895,7 +1901,7 @@ subroutine fundef
            temp(5) = (g2bigpp*pspx*pspy+g2bigp*pspxy)/x                  &
                 - g2bigp*pspy/x**2
            temp(6) = (g2bigpp*pspy**2 + g2bigp*pspyy)/x
-           call set_node_data(fun2_vec, inode, temp)
+           call set_node_data(fun2_vec, ii, temp)
            
            temp(1) = g3big/x
            temp(2) = g3bigp*pspx/x - g3big/x**2
@@ -1905,7 +1911,7 @@ subroutine fundef
            temp(5) = (g3bigpp*pspx*pspy+g3bigp*pspxy)/x                  &
                 - g3bigp*pspy/x**2
            temp(6) = (g3bigpp*pspy**2 + g3bigp*pspyy)/x
-           call set_node_data(fun3_vec, inode, temp)
+           call set_node_data(fun3_vec, ii, temp)
         end if
      end if
   end do
@@ -2202,9 +2208,9 @@ end subroutine readpgfiles
       call evaluate_spline(n0_spline, psii, dens)
       if(iscale_rot_by_p.eq.0) alpha = alpha * dens/pres
       if (iscale_rot_by_p.eq.2) then
-	alpha = alpha0 + alpha1*exp(-((psii-alpha2)/alpha3)**2)
-	alpha = alpha * dens/pres
-      end if
+        alpha = alpha0 + alpha1*exp(-((psii-alpha2)/alpha3)**2)
+        alpha = alpha * dens/pres
+      end if   
       omega(j) = sqrt(2./rzero**2 * alpha * pres/dens)
    end do
 
@@ -2308,7 +2314,7 @@ end subroutine readpgfiles
      scale = (f(1)**2/2.-f(n)**2/2.) / (temp-f(n)**2/2.)
      if(myrank.eq.0) print *, "Scaling FF' by", scale
      ffn = ffn*scale
-     
+
 
    end if
 
@@ -2481,7 +2487,6 @@ subroutine calc_toroidal_field(psi0,tf,x,z,izone)
      g4 = 2.*g4
 
      tf = sqrt((bzero*rzero)**2 + gamma2*g2 + gamma3*g3 + gamma4*g4)
-  
      if(bzero.lt.0) tf = -tf
   endif
 end subroutine calc_toroidal_field
@@ -2698,7 +2703,7 @@ subroutine boundary_gs(rhs, feedfac, mat)
   type(vector_type), intent(inout) :: rhs
   type(matrix_type), intent(inout), optional :: mat
     
-  integer :: i, izone, izonedim, index
+  integer :: i, inode, izone, izonedim, index
   integer :: numnodes, ineg
   real :: normal(2), curv
   real :: x, z
@@ -2709,7 +2714,7 @@ subroutine boundary_gs(rhs, feedfac, mat)
 
 #ifdef USE3D
   integer :: iplane, itri, nelms, nvals, j
-  integer, dimension(nodes_per_element) :: inode
+  integer, dimension(nodes_per_element) :: inodes
   integer, dimension(2) :: icol
   vectype, dimension(2) :: val
 #endif
@@ -2719,10 +2724,10 @@ subroutine boundary_gs(rhs, feedfac, mat)
 
   numnodes = owned_nodes()
   do i=1, numnodes
+     inode = nodes_owned(i)
+     index = node_index(rhs, inode, 1)
 
-     index = node_index(rhs, i, 1)
-
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
+     call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z, &
           domain_boundary)
      if(is_boundary) then
 
@@ -2734,13 +2739,13 @@ subroutine boundary_gs(rhs, feedfac, mat)
            zc(1) = 10.
            call gvect(xp,zp,xc,zc,1,g,1,ineg)
            temp(1:6) = g*feedfac
-           call add(psi_field(0), i, temp)
+           call add(psi_field(0), inode, temp)
         endif
         
         if(ifixedb.ge.1) then
            temp = 0.
         else
-           call get_node_data(psi_field(0), i, temp)
+           call get_node_data(psi_field(0), inode, temp)
         endif
        
         call set_dirichlet_bc(index,rhs,temp,normal,curv,izonedim,mat)

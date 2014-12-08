@@ -246,12 +246,14 @@ subroutine cartesian_to_cylindrical_all()
 
   implicit none
 
-  integer :: inode, numnodes
+  integer :: inode, numnodes, icounter_tt
   real :: x, phi, z
 
   numnodes = owned_nodes()
 
-  do inode=1, numnodes
+   do icounter_tt=1,numnodes
+     inode = nodes_owned(icounter_tt)
+
      call get_node_pos(inode, x, phi, z)
 
      call get_local_vals(inode)
@@ -279,7 +281,7 @@ subroutine den_eq
   use math
   use mesh_mod
 
-  integer :: numnodes, inode
+  integer :: numnodes, inode, icounter_tt
   real :: temp(6), k, kx, x, phi, z
   
   if(idenfunc.eq.0) return
@@ -289,7 +291,8 @@ subroutine den_eq
   select case(idenfunc)
   case(1)      ! added 08/05/08 for stability benchmarking
 
-     do inode=1, numnodes 
+     do icounter_tt=1,numnodes
+        inode = nodes_owned(icounter_tt)
         call get_local_vals(inode)
 
         den0_l(1) = den0*.5* &
@@ -301,7 +304,8 @@ subroutine den_eq
      end do
         
   case(2)
-     do inode=1, numnodes 
+     do icounter_tt=1,numnodes
+        inode = nodes_owned(icounter_tt)
         call get_local_vals(inode)
         
         temp(1) = real((psi0_l(1)-psimin)/(psibound-psimin))
@@ -327,7 +331,8 @@ subroutine den_eq
      end do
      
   case(3)
-     do inode=1, numnodes 
+     do icounter_tt=1,numnodes
+        inode = nodes_owned(icounter_tt)
         call get_local_vals(inode)
         call get_node_pos(inode, x, phi, z)
         
@@ -408,13 +413,13 @@ subroutine calculate_external_fields(sf)
   call associate_field(bz_f,bz_vec,1)
 
   call set_matrix_index(br_mat, br_mat_index)
-  call create_mat(br_mat, 1, 1, icomplex, .true.)
+  call create_mat(br_mat, 1, 1, icomplex, 1)
 #ifdef CJ_MATRIX_DUMP
   print *, "create_mat coils br_mat", br_mat%imatrix 
 #endif
 
   call set_matrix_index(bf_mat, bf_mat_index)
-  call create_mat(bf_mat, 1, 1, icomplex, .false.)
+  call create_mat(bf_mat, 1, 1, icomplex, 0)
 #ifdef CJ_MATRIX_DUMP
   print *, "create_mat coils br_mat", br_mat%imatrix 
 #endif
@@ -584,7 +589,7 @@ subroutine rmp_per
   implicit none
 
   logical :: is_boundary
-  integer :: izone, izonedim, numnodes, l, ierr
+  integer :: izone, izonedim, numnodes, l, ierr, icounter_tt
   real :: normal(2), curv, x, z, r2, dx, dz
   character(len=13) :: ext_field_name
   type(schaffer_field), allocatable :: sf(:)
@@ -594,7 +599,9 @@ subroutine rmp_per
 
   if(irmp.eq.3) then
      numnodes = owned_nodes()
-     do l=1, numnodes
+     do icounter_tt=1,numnodes
+        l = nodes_owned(icounter_tt)
+
         call boundary_node(l,is_boundary,izone,izonedim,normal,curv,x,z)
         if(.not.is_boundary) cycle
 
@@ -669,7 +676,8 @@ subroutine rmp_per
   ! leave perturbation only on the boundary
   if(irmp.eq.2) then
      numnodes = owned_nodes()
-     do l=1, numnodes
+     do icounter_tt=1,numnodes
+        l = nodes_owned(icounter_tt)
         call boundary_node(l,is_boundary,izone,izonedim,normal,curv,x,z)
         if(.not.is_boundary) then
            call get_local_vals(l)
@@ -698,13 +706,14 @@ subroutine tilting_cylinder_init()
 
   implicit none
 
-  integer :: l, numnodes
+  integer :: l, numnodes, icounter_tt
   real :: x, phi, z, alx, alz
 
   call get_bounding_box_size(alx, alz)
 
   numnodes = owned_nodes()
-  do l=1, numnodes
+  do icounter_tt=1,numnodes
+     l = nodes_owned(icounter_tt)
      call get_node_pos(l, x, phi, z)
 
      x = x - alx*.5 - xzero
@@ -874,13 +883,14 @@ subroutine taylor_reconnection_init()
 
   implicit none
 
-  integer :: l, numnodes
+  integer :: l, numnodes, icounter_tt
   real :: x, phi, z, alx, alz
 
   call get_bounding_box_size(alx, alz)
 
   numnodes = owned_nodes()
-  do l=1, numnodes
+  do icounter_tt=1,numnodes
+     l = nodes_owned(icounter_tt)
      call get_node_pos(l, x, phi, z)
 
      x = x - alx*.5 - xzero
@@ -960,13 +970,15 @@ subroutine force_free_init()
 
   implicit none
 
-  integer :: l, numnodes
+  integer :: l, numnodes, icounter_tt
   real :: x, phi, z, alx, alz
 
   call get_bounding_box_size(alx, alz)
 
   numnodes = owned_nodes()
-  do l=1, numnodes
+  do icounter_tt=1,numnodes
+     l = nodes_owned(icounter_tt)
+
      call get_node_pos(l, x, phi, z)
 
      x = x - alx*.5 - xzero
@@ -1060,7 +1072,7 @@ subroutine gem_reconnection_init()
 
   implicit none
 
-  integer :: l, numnodes
+  integer :: l, numnodes, icounter_tt
   real :: x, phi, z, alx, alz
 
   call get_bounding_box_size(alx, alz)
@@ -1069,7 +1081,8 @@ subroutine gem_reconnection_init()
   akz = pi/alz
 
   numnodes = owned_nodes()
-  do l=1, numnodes
+  do icounter_tt=1,numnodes
+     l = nodes_owned(icounter_tt)
      call get_node_pos(l, x, phi, z)
 
      call get_local_vals(l)
@@ -1210,7 +1223,7 @@ subroutine wave_init()
 
   implicit none
 
-  integer :: l, numnodes
+  integer :: l, numnodes, icounter_tt
   real :: x, phi, z
   real :: b2,a2
   real :: kp,km,t1,t2,t3
@@ -1329,7 +1342,8 @@ subroutine wave_init()
 1 continue
 
   numnodes = owned_nodes()
-  do l=1, numnodes
+  do icounter_tt=1,numnodes
+     l = nodes_owned(icounter_tt)
      call get_node_pos(l, x, phi, z)
 
      x = x - alx*.5 - xzero
@@ -1415,11 +1429,12 @@ subroutine grav_init()
 
   implicit none
 
-  integer :: l, numnodes
+  integer :: l, numnodes, icounter_tt
   real :: x, phi, z
 
   numnodes = owned_nodes()
-  do l=1, numnodes
+  do icounter_tt=1,numnodes
+     l = nodes_owned(icounter_tt)
      call get_local_vals(l)
 
      call get_node_pos(l, x, phi, z)
@@ -1544,13 +1559,14 @@ subroutine strauss_init()
 
   implicit none
 
-  integer :: l, numnodes
+  integer :: l, numnodes, icounter_tt
   real :: x, phi, z
 
   call get_bounding_box_size(alx, alz)
 
   numnodes = owned_nodes()
-  do l=1, numnodes
+  do icounter_tt=1,numnodes
+     l = nodes_owned(icounter_tt)
      call get_node_pos(l, x, phi, z)
 
      x = x - alx/2.
@@ -1651,7 +1667,7 @@ subroutine circular_field_init()
 
   implicit none
 
-  integer :: l, numnodes
+  integer :: l, numnodes, icounter_tt
   real :: x, phi, z
 
   call get_bounding_box_size(alx, alz)
@@ -1660,7 +1676,8 @@ subroutine circular_field_init()
   z0 = 0.
 
   numnodes = owned_nodes()
-  do l=1, numnodes
+  do icounter_tt=1,numnodes
+     l = nodes_owned(icounter_tt)
      call get_node_pos(l, x, phi, z)
      x = x - xmag
      z = z - zmag
@@ -1809,7 +1826,7 @@ subroutine mri_init()
 
   implicit none
 
-  integer :: l, numnodes
+  integer :: l, numnodes, icounter_tt
   real :: x, phi, z, alx, alz
 
   call get_bounding_box_size(alx, alz)
@@ -1818,7 +1835,8 @@ subroutine mri_init()
   kz = twopi/alz
 
   numnodes = owned_nodes()
-  do l=1, numnodes
+  do icounter_tt=1,numnodes
+     l = nodes_owned(icounter_tt)
      call get_node_pos(l, x, phi, z)
 
      z = z - alz*.5
@@ -1933,13 +1951,14 @@ subroutine rotate_init()
 
   implicit none
 
-  integer :: l, numnodes
+  integer :: l, numnodes, icounter_tt
   real :: x, phi, z, alx, alz
 
   call get_bounding_box_size(alx, alz)
 
   numnodes = owned_nodes()
-  do l=1, numnodes
+  do icounter_tt=1,numnodes
+     l = nodes_owned(icounter_tt)
      call get_node_pos(l, x, phi, z)
 
      z = z - alz*.5
@@ -2035,7 +2054,7 @@ subroutine eqdsk_init()
 
   implicit none
 
-  integer :: l, ll, numnodes
+  integer :: l, ll, numnodes, icounter_tt
   real :: x, phi, z , dpsi, ffp2, pp2
   vectype, parameter ::  negone = -1
 
@@ -2084,7 +2103,8 @@ subroutine eqdsk_init()
      endif
    
   else
-     do l=1, numnodes
+     do icounter_tt=1,numnodes
+        l = nodes_owned(icounter_tt)
         call get_node_pos(l, x, phi, z)
         
         if(iflip_z.eq.1) z = -z
@@ -2357,7 +2377,7 @@ subroutine dskbal_init()
 
   implicit none
 
-  integer :: i, inode, numnodes
+  integer :: i, inode, numnodes, icounter_tt
   real :: dp, a(4), minden, minte, minti
 
   print *, "dskbal_init called"
@@ -2406,7 +2426,8 @@ subroutine dskbal_init()
 
   ! set density profile
   numnodes = owned_nodes()
-  do inode=1, numnodes
+  do icounter_tt=1,numnodes
+     inode = nodes_owned(icounter_tt)
      call get_local_vals(inode)
      do i=1, npsi_bal-1
         if((psi_bal(i+1)-psi_bal(1))/(psi_bal(npsi_bal)-psi_bal(1)) &
@@ -2459,7 +2480,7 @@ subroutine jsolver_init()
 
   implicit none
 
-  integer :: l, numnodes
+  integer :: l, numnodes, icounter_tt
   real :: x, phi, z, pzero_jsv, gzero_jsv
   real, allocatable :: ffprime(:),ppxx_jsv2(:),gpx_jsv2(:)
 
@@ -2468,7 +2489,8 @@ subroutine jsolver_init()
   call load_jsolver
 
   numnodes = owned_nodes()
-  do l=1, numnodes
+  do icounter_tt=1,numnodes
+     l = nodes_owned(icounter_tt)
      call get_node_pos(l, x, phi, z)
 
      call get_local_vals(l)
@@ -2639,7 +2661,7 @@ subroutine threed_wave_test_init()
 
   implicit none
 
-  integer :: l, numnodes
+  integer :: l, numnodes, icounter_tt
   real :: x, phi, z, x1, x2, z1, z2
 
   call get_bounding_box(x1, z1, x2, z2)
@@ -2739,7 +2761,8 @@ subroutine threed_wave_test_init()
   end if
 
   numnodes = owned_nodes()
-  do l=1, numnodes
+  do icounter_tt=1,numnodes
+     l = nodes_owned(icounter_tt)
      call get_node_pos(l, x, phi, z)
 
      x = x - x1
@@ -2864,7 +2887,7 @@ subroutine threed_diffusion_test_init()
 
   implicit none
 
-  integer :: l, numnodes
+  integer :: l, numnodes, icounter_tt
   real :: x, phi, z, x1, x2, z1, z2
   real :: phi0, x0, z0
 
@@ -2881,7 +2904,8 @@ subroutine threed_diffusion_test_init()
   x0 = (x1 + 2.*x2)/3.
 
   numnodes = owned_nodes()
-  do l=1, numnodes
+  do icounter_tt=1,numnodes
+     l = nodes_owned(icounter_tt)
      call get_node_pos(l, x, phi, z)
 
      call get_local_vals(l)
@@ -2966,12 +2990,13 @@ subroutine frs_init()
 
   implicit none
 
-  integer :: l, numnodes,m
+  integer :: l, numnodes,m, icounter_tt
   real :: x, phi, z, alx, alz, Bp0,r0,rs,Bz_edge
 
 
   numnodes = owned_nodes()
-  do l=1, numnodes
+  do icounter_tt=1,numnodes
+     l = nodes_owned(icounter_tt)
      call get_node_pos(l, x, phi, z)
 
 !     z = z - alz*.5
@@ -3069,6 +3094,7 @@ subroutine frs_equ(x, z)
                         - 3.*(2.*z/r0**2)**2/(1.+(r/r0)**2)**4  )+2.*p0))
 
 end subroutine frs_equ
+
 subroutine frs1_init()
   use basic
   use arrays
@@ -3095,7 +3121,6 @@ subroutine frs1_init()
   enddo
 
 end subroutine frs1_init
-
 
 !========================================================
 ! equ
@@ -3143,7 +3168,6 @@ subroutine frs1_equ(x, z)
           + 2*z**2/(bz*q0**2)*(3-2*r)
 
 end subroutine frs1_equ
-
 
 !========================================================
 ! per
@@ -3208,13 +3232,14 @@ subroutine ftz_init()
 
   implicit none
 
-  integer :: l, numnodes,m
+  integer :: l, numnodes,m, icounter_tt
   real :: x, phi, z, alx, alz, Bp0,r0,rs,Bz_edge
 
 
 
   numnodes = owned_nodes()
-  do l=1, numnodes
+  do icounter_tt=1,numnodes
+     l = nodes_owned(icounter_tt)
      call get_node_pos(l, x, phi, z)
 
 !     z = z - alz*.5
@@ -3354,12 +3379,13 @@ subroutine eigen_init()
 
   implicit none
 
-  integer :: l, numnodes,m
+  integer :: l, numnodes,m, icounter_tt
   real :: x, phi, z, alx, alz, Bp0,r0,rs,Bz_edge
 
 
   numnodes = owned_nodes()
-  do l=1, numnodes
+  do icounter_tt=1,numnodes
+     l = nodes_owned(icounter_tt)
      call get_node_pos(l, x, phi, z)
 
 !     z = z - alz*.5
@@ -3461,12 +3487,14 @@ subroutine int_kink_init()
 
   implicit none
 
-  integer :: l, numnodes,m
+  integer :: l, numnodes,m, icounter_tt
   real :: x, phi, z, alx, alz, Bp0,r0,rs,Bz_edge
 
 
   numnodes = owned_nodes()
-  do l=1, numnodes
+  do icounter_tt=1,numnodes
+     l = nodes_owned(icounter_tt)
+
      call get_node_pos(l, x, phi, z)
 
      call get_local_vals(l)
@@ -3714,7 +3742,7 @@ subroutine set_neo_vel
   call associate_field(chi_f, vp_vec, 2)
 
   call set_matrix_index(vpol_mat, vpol_mat_index)
-  call create_mat(vpol_mat, 2, 2, icomplex, .true.)
+  call create_mat(vpol_mat, 2, 2, icomplex, 1)
 
   nelms = local_elements()
   do itri=1,nelms
@@ -4016,8 +4044,8 @@ subroutine initial_conditions()
   if(iread_neo.eq.1) then
      call set_neo_vel
      call unload_neo
-  end if    
-
+  end if
+     
   call den_eq()
 
   if(irmp.ge.1 .or. iread_ext_field.ge.1) call rmp_per()
@@ -4055,7 +4083,7 @@ real :: x, phi, z, feedfac
   real :: a, r1, r2, u, fa, ra
   real :: b0,r0,th
   integer :: m,n
-integer :: numnodes, nelms, l, itri, i, j, ier
+integer :: numnodes, nelms, l, itri, i, j, ier, icounter_tt
 integer :: imask(dofs_per_element)
 type (field_type) :: dpsi_dr, psi_vec
 type(matrix_type) :: psi_mat
@@ -4064,7 +4092,7 @@ call create_field(dpsi_dr)
 call create_field(psi_vec)
 
 call set_matrix_index(psi_mat, psi_mat_index)
-call create_mat(psi_mat,1,1,icomplex,.true.)
+call create_mat(psi_mat,1,1,icomplex, 1)
 
  !input variables: B0,fA,r1,r2,q0,R0,m,n,u,rA
   b0 = bzero
@@ -4084,7 +4112,8 @@ call create_mat(psi_mat,1,1,icomplex,.true.)
 
 numnodes = owned_nodes()
 
-do l=1,numnodes
+do icounter_tt=1,numnodes
+   l = nodes_owned(icounter_tt)
    call get_node_pos(l,x,phi,z)
 
    call constant_field(den0_l,1.)
@@ -4419,7 +4448,7 @@ vectype, dimension (dofs_per_node) :: vec_l
 vectype, dimension (dofs_per_element) :: dofsps, dofsbz, dofspr
 real , dimension(npoints) :: rtemp79a, rtemp79b, rtemp79c
 real :: x, phi, z, r
-integer :: numnodes, nelms, l, itri, i, j, ier
+integer :: numnodes, nelms, l, itri, i, j, ier, icounter_tt
 type (field_type) :: psi_vec, bz_vec, p_vec
 
 call create_field(psi_vec)
@@ -4442,7 +4471,9 @@ if(itaylor.eq.22) call setupLZeqbm
 
 numnodes = owned_nodes()
 
-do l=1,numnodes
+do icounter_tt=1,numnodes
+   l = nodes_owned(icounter_tt)
+
    call get_node_pos(l,x,phi,z)
 
    call constant_field(den0_l,1.)

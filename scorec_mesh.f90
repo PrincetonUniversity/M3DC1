@@ -23,25 +23,26 @@ module scorec_mesh_mod
 
   character(len=256) mesh_model
   character(len=256) mesh_filename
+  character(len=256) name_buff
   integer :: ipartitioned
-  
+  integer :: imatassemble  
   integer :: imulti_region
 
+  integer, dimension (:), allocatable :: nodes_owned
 contains
 
   subroutine load_mesh()
     use math
     implicit none
-
-#ifdef USE3D
+    integer :: inode, inode2, numnodes, own_process, myrank, maxrank, ier
     include 'mpif.h'
+#ifdef USE3D
     real :: minphi, maxphi
-    integer :: i,procs_per_plane, myrank, maxrank, ier, full_group, plane_group
+    integer :: i,procs_per_plane, full_group, plane_group
     integer, allocatable :: ranks(:)
 #endif
 
     ! initialize scorec solvers
-    call initsolvers
 
     if(imulti_region.eq.1) then
        call create_tag_list(inner_wall, 2)
@@ -75,34 +76,30 @@ contains
     end if
 
     ! load mesh
-#ifdef USE3D 
     call MPI_Comm_size(MPI_COMM_WORLD,maxrank,ier)
     call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ier)
-
+#ifdef USE3D
     if(myrank.eq.0) print *, 'setting number of planes = ', nplanes
-    call setTotNbPlane(nplanes)
+    call m3dc1_model_setnumplane(nplanes)
 
     procs_per_plane = maxrank/nplanes
     if(myrank.eq.0) &
-         print *, 'setting number of processes per plane = ', procs_per_plane
-    call setNbProcPlane(procs_per_plane)
-
-    minphi = 0.
-    maxphi = twopi/nplanes * (nplanes-1)
-    if(myrank.eq.0) print *, 'setting phi range', minphi, maxphi
-    call setPhiRange(minphi, maxphi)
+         print *, 'number of processes per plane = ', procs_per_plane
 
     if(myrank.eq.0) print *, 'loading partitioned mesh...'
     if(is_rectilinear) then
-       if(myrank.eq.0) print *, 'loading rectilinear mesh model...'
-       call loadPtnMesh(trim(mesh_model))
+       if(myrank.eq.0) print *, 'rectilinear mesh model...'
     else
-       if(myrank.eq.0) print *, 'loading curved mesh model...'
-       call loadPtnMesh(trim(mesh_model))
+       if(myrank.eq.0) print *, 'curved mesh model...'
     endif
+    write(name_buff,"(A,A)"),mesh_model(1:len_trim(mesh_model)),0
+    call m3dc1_model_load(name_buff)
+    write(name_buff,"(A,A)"), mesh_filename(1:len_trim(mesh_filename)),0
+    ! ipartition must be 1 for 3D
+    call m3dc1_mesh_load (name_buff, 1)
 
     if(myrank.eq.0) print *, 'setting up 3D mesh...'
-    call threeDMeshSetup(0)
+    call m3dc1_mesh_build3d(0,0,0)
 
     ! set up communications groups
     allocate(ranks(procs_per_plane))
@@ -123,23 +120,36 @@ contains
     ! first run 
     ! aprun -n # /global/project/projectdirs/mp288/meshtools/PTNMESH yourMesh
     ! set ipartitioned =1 in C1input
-    if(ipartitioned.eq.0) then
-       call loadmesh(trim(mesh_model), trim(mesh_filename))
-    else 
-       call loadptnmesh(trim(mesh_model))
-    end if
+    write(name_buff,"(A,A)"), mesh_model(1:len_trim(mesh_model)),0
+    call m3dc1_model_load(name_buff)
+    write(name_buff,"(A,A)"), mesh_filename(1:len_trim(mesh_filename)),0
+    call m3dc1_mesh_load (name_buff, ipartitioned)
 #endif
-
+    call update_nodes_owned
     initialized = .true.
   end subroutine load_mesh
 
+  subroutine update_nodes_owned
+    integer :: numnodes, inode2, inode, ier, myrank, own_process
+    include 'mpif.h'
+    call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ier)
+    if(allocated(nodes_owned)) deallocate(nodes_owned)
+       allocate(nodes_owned(owned_nodes()))
+    numnodes =  local_nodes()
+    inode2=1;
+    do inode=1, numnodes
+       call m3dc1_ent_getownpartid(0, inode-1, own_process)
+       if (own_process .eq. myrank) then
+          nodes_owned(inode2) = inode
+          inode2 = inode2 +1;
+       end if
+    end do
+    if(inode2-1 .ne. owned_nodes()) call abort()
+  end subroutine update_nodes_owned
   subroutine unload_mesh
     if(.not. initialized) return
-
-    call deletesearchstructure
-    call clearscorecdata
-!    call scorecfinalize
-    call finalizesolvers
+    deallocate(nodes_owned)
+    call m3dc1_domain_finalize
   end subroutine unload_mesh
 
   subroutine print_node_data()
@@ -165,7 +175,7 @@ contains
   !======================================================================
   integer function local_plane()
     implicit none
-    call getplaneid(local_plane)
+    call m3dc1_model_getplaneid(local_plane)
   end function local_plane
 
   !==============================================================
@@ -175,11 +185,12 @@ contains
   !==============================================================
   integer function local_elements()
     implicit none
+    integer :: elem_dim
+    elem_dim = 2
 #ifdef USE3D
-    call numwed(local_elements)
-#else
-    call numfac(local_elements)
+    elem_dim = 3
 #endif
+    call m3dc1_mesh_getnument(elem_dim, local_elements)
   end function local_elements
 
   !==============================================================
@@ -189,7 +200,7 @@ contains
   !==============================================================
   integer function owned_nodes()
     implicit none
-    call numnod(owned_nodes)
+    call m3dc1_mesh_getnumownent (0, owned_nodes)
   end function owned_nodes
 
 
@@ -200,7 +211,7 @@ contains
   !==============================================================
   integer function local_nodes()
     implicit none
-    call numnod(local_nodes)
+    call m3dc1_mesh_getnument(0, local_nodes)
   end function local_nodes
 
 
@@ -211,7 +222,8 @@ contains
   integer function global_node_id(inode)
     implicit none
     integer, intent(in) :: inode
-    call entglobalid(inode, 0, global_node_id)
+    print *, 'global_node_id to be implemented'
+    call safestop(1)
   end function global_node_id
 
   !==============================================================
@@ -223,19 +235,17 @@ contains
     implicit none
     integer, intent(in) :: ielm
     integer, intent(out), dimension(nodes_per_element) :: n
-
+    integer :: elem_dim, nodes_per_element_get
+    elem_dim = 2
 #ifdef USE3D
-    integer :: nelms
-    call numwed(nelms)
-    if(ielm.gt.nelms) then
-       print *, 'error!', ielm, nelms
-       return
-    end if
-
-    call nodwed(ielm, n)
-#else
-    call nodfac(ielm, n)
+    elem_dim = 3
 #endif
+    call m3dc1_ent_getadj (elem_dim, ielm-1, 0, n, nodes_per_element, nodes_per_element_get)
+    if (nodes_per_element_get .ne. nodes_per_element) then
+      print *, "error get_element_nodes: nodes_per_element_get",nodes_per_element_get
+      call abort 
+    end if
+    n(:)=n(:)+1
   end subroutine get_element_nodes
 
 
@@ -250,8 +260,8 @@ contains
     real, intent(out) :: x1, z1, x2, z2
     
     if(.not.has_bounding_box) then
-       call getmincoord2(bb(1), bb(2))
-       call getmaxcoord2(bb(3), bb(4))
+       call m3dc1_model_getmincoord(bb(1), bb(2))
+       call m3dc1_model_getmaxcoord(bb(3), bb(4))
        if(is_rectilinear) then
           bb(3) = bb(3) - bb(1) + xzero
           bb(4) = bb(4) - bb(2) + zzero
@@ -298,12 +308,12 @@ contains
     real :: coords(3)
     real :: x1, z1
     
-    call xyznod(inode,coords)
+    call m3dc1_node_getcoord(inode-1,coords)
     x = coords(1)
     z = coords(2)
 
     if(is_rectilinear) then
-       call getmincoord2(x1, z1)
+       call m3dc1_model_getmincoord(x1, z1)
        x = x + xzero - x1
        z = z + zzero - z1
     endif
@@ -355,6 +365,7 @@ contains
     d%c = z3p
     if(d%c .le. 0.) then
        print *, 'ERROR: clockwise node ordering for element',itri
+       call abort()
     endif
 
 #ifdef USE3D
@@ -454,7 +465,7 @@ contains
 
     curv = 0.
 
-    call zonenod(inode,izone,izonedim)
+    call m3dc1_ent_getgeomclass(0,inode-1,izonedim,izone)
 
     if(is_rectilinear) then
        if(izonedim.ge.2) then
@@ -462,8 +473,7 @@ contains
           return
        end if
        
-       call getmodeltags(ibottom, iright, itop, ileft)
-
+       call m3dc1_model_getedge(ileft, iright, ibottom, itop)
        ! for periodic bc's
        ! skip if on a periodic boundary
        ! and convert corner to an edge when one edge is periodic
@@ -516,17 +526,15 @@ contains
        end if
        
     else 
-       call nodNormalVec(inode, norm, ib)
-       normal = norm(1:2)
+       call m3dc1_node_isongeombdry(inode-1,ib)
        is_boundary = ib.eq.1
        if(.not.is_boundary) return
-
+       call m3dc1_node_getnormvec(inode-1, norm)
+       normal = norm(1:2)
        if(icurv.eq.0) then
           curv = 0.
        else
-          call nodcurvature2(inode, curv, ib)
-          is_boundary = ib.eq.1
-          if(.not.is_boundary) return
+          call m3dc1_node_getcurv(inode-1, curv)
        end if
 
        if(present(tags)) then
@@ -535,8 +543,8 @@ contains
           is_boundary = in_tag_list(domain_boundary, izone)
        end if
     end if
-
     call get_node_pos(inode,x,phi,z)
+
   end subroutine boundary_node
 
   subroutine boundary_edge(itrin, is_edge, normal, idim)
@@ -553,28 +561,25 @@ contains
     logical :: is_bound(3), found_edge
 
     integer :: iedge(3), izonedim, itri, ifaczone,ifaczonedim
-
+    integer :: num_adj_ent
 #ifdef USE3D
     integer :: ifac(5), iplane
-    call facregion(itrin,ifac)
-    itri = 0
-    do i=1, 5
-       call locationplane(ifac(i), 2, iplane)
-       if(iplane.eq.1) then
-          itri = ifac(i)
-          if(i.ne.1) print *, 'first face is not on plane.'
-          exit
-       end if
-    end do
-    if(itri.eq.0) print *, 'Error: no face found on plane!!!'
+    !call facregion(itrin,ifac)
+    ! the first face must be on the original plane
+    call m3dc1_region_getoriginalface (itrin-1, itri)
+    itri = itri+1
 #else
     itri = itrin
 #endif
 
-    call nodfac(itri,inode)
-    call edgfac(itri,iedge)
-    call zonfac(itri,ifaczone,ifaczonedim)
-
+    !call nodfac(itri,inode)
+    !call edgfac(itri,iedge)
+    !call zonfac(itri,ifaczone,ifaczonedim)
+    call m3dc1_ent_getadj (2, itri-1, 0, inode, 3, num_adj_ent)
+    inode = inode+1
+    call m3dc1_ent_getadj (2, itri-1, 1, iedge, 3, num_adj_ent)
+    iedge = iedge+1
+    call m3dc1_ent_getgeomclass(2, itri-1, ifaczonedim, ifaczone)
     do i=1,3
        call boundary_node(inode(i),is_bound(i),izone,idim(i), &
             normal(:,i),c(i),x,z,all_boundaries)
@@ -582,11 +587,13 @@ contains
 
     is_edge = 0
     do i=1,3
-       call zonedg(iedge(i),izone,izonedim)
+       !call zonedg(iedge(i),izone,izonedim)
+       call m3dc1_ent_getgeomclass(1, iedge(i)-1, izonedim, izone)
        if(izonedim.gt.1) cycle
 
-       call nodedg(iedge(i), in)
-
+       !call nodedg(iedge(i), in)
+       call m3dc1_ent_getadj (1, iedge(i)-1, 0, in, 2, num_adj_ent)
+       in = in + 1
        ! check nodes to see which one is the first node of iedge(i)
        found_edge = .false.
        do j=1, 3
@@ -621,12 +628,12 @@ contains
     integer, intent(in) :: itri
     integer, intent(out) :: izone
     integer :: izonedim
-
+    integer :: elem_dim
+    elem_dim = 2
 #ifdef USE3D
-    call zonwed(itri, izone, izonedim)
-#else
-    call zonfac(itri, izone, izonedim)
+    elem_dim = 3
 #endif
+    call m3dc1_ent_getgeomclass(elem_dim, itri-1,izonedim,izone)
   end subroutine get_zone
 
 end module scorec_mesh_mod
