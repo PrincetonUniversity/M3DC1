@@ -361,7 +361,10 @@ subroutine f2vplot_sub(i,term)
   implicit none
   vectype, intent(out) :: term
   integer, intent(in) :: i
+  integer :: jadvs
   vectype :: temp
+     jadvs = jadv
+     jadv = 1  ! only for evaluation of these functions
 
      temp = b1psiu  (mu79(:,:,i),pst79,pht79) &
           + b1psiv  (mu79(:,:,i),pst79,vzt79) &
@@ -379,6 +382,7 @@ subroutine f2vplot_sub(i,term)
              + b1fchi(mu79(:,:,i),bft79,cht79)
         term = term + temp
  end if
+     jadv = jadvs
 
 end subroutine f2vplot_sub
 
@@ -390,13 +394,17 @@ subroutine f2eplot_sub(i,term)
   implicit none
   vectype, intent(out) :: term
   integer, intent(in) :: i
+  integer :: jadvs
   vectype, dimension(MAX_PTS, OP_NUM) :: hf
   vectype :: temp
 
       ! Resistive and Hyper Terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
+  jadvs = jadv
+  jadv = 1   ! only for evaluation of this function
   hf = hypf*sz79
   temp = b1psieta(mu79(:,:,i),pst79,eta79,hf)
+  jadv = jadvs
 
   term = temp
 

@@ -1277,6 +1277,16 @@ subroutine output_fields(time_group_id, equilibrium, error)
             coeffs_per_element, nelms, error)
        nfields = nfields + 1
     endif
+
+    ! current drive source
+    if(icd_source.gt.0) then
+       do i=1, nelms
+          call calcavector(i, cd_field, dum(:,i))
+       end do
+       call output_field(group_id, "cd_source", real(dum), &
+            coeffs_per_element, nelms, error)
+       nfields = nfields + 1
+    endif
     
     
     if(xray_detector_enabled.eq.1) then 

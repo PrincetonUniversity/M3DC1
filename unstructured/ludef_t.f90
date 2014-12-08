@@ -2155,6 +2155,14 @@ subroutine flux_nolin(trial, r4term)
           vloop*int1(trial)/twopi
   endif
 
+  if(icd_source.gt.0) then
+     if(jadv.eq.0) then
+        r4term = r4term - dt*int3(trial(:,OP_1),eta79(:,OP_1),cd79(:,OP_1))
+     else
+        r4term = r4term - dt*int4(ri2_79,trial(:,OP_GS),eta79(:,OP_1),cd79(:,OP_1))
+     endif
+  endif
+
   if(use_external_fields .and. (eqsubtract.eq.1 .or. icsubtract.eq.1)) then
      ! VxB
      ! ~~~
@@ -4184,6 +4192,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
 !...poloidal momentum source
   if(ipforce.gt.0) def_fields = def_fields + FIELD_PF
   if(heat_source) def_fields = def_fields + FIELD_Q
+  if(icd_source.gt.0) def_fields = def_fields + FIELD_CD
 
   if(gyro.eq.1 .or. amupar.ne.0 .or. kappar.ne.0) then
      def_fields = def_fields + FIELD_B2I

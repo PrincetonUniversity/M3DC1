@@ -253,6 +253,31 @@ vectype function q_func(i)
   return
 end function q_func
 
+! Current Drive sources
+! ~~~~~~~~~~~~~~~~~~
+vectype function cd_func(i)
+  use math
+  use basic
+  use m3dc1_nint
+  use diagnostics
+  use neutral_beam
+
+  implicit none
+
+  integer, intent(in) :: i
+  vectype :: temp
+
+  temp = 0.
+
+  ! Gaussian source
+  if(icd_source.eq.1) then
+    temp79a = J_0cd * exp( -(x_79-R_0cd)**2/w_cd**2 - (z_79-Z_0cd)**2/w_cd**2 ) - delta_cd
+    temp = temp + int2(mu79(:,OP_1,i),temp79a)
+  endif
+
+  cd_func = temp
+  return
+end function cd_func
 
 ! Resistivity
 ! ~~~~~~~~~~~
@@ -309,6 +334,25 @@ vectype function resistivity_func(i)
 
   case(4)
      temp79a = eta79(:,OP_1) - etar*eta_fac
+
+  case(5)  ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)/(1 - 2 sqrt(eps))
+           ! neoclassical:  Park, et al NF 30 2413 (1990)
+     if(eta0.ne.0.) then
+        if(linear.eq.1) then
+           temp79c = eta_fac*eta0*sqrt((ne079(:,OP_1)/pe079(:,OP_1))**3)
+        else
+           if(itemp.eq.1) then
+              temp79c = eta_fac*eta0*tet79(:,OP_1)**(-1.5)
+           else
+              temp79b = max(pedge*pefac,real(pet79(:,OP_1)))
+              temp79c = eta_fac*eta0*sqrt((net79(:,OP_1)/temp79b)**3)
+           endif
+        endif
+     else
+        temp79c = 0.
+     endif
+        temp79b = sqrt(((x_79 - xmag)**2 + (z_79 - zmag)**2)/rzero**2)
+        temp79a = temp79c/(1. - 1.46*sqrt(temp79b))
 
   case default
      temp79a = 0.
@@ -580,9 +624,9 @@ subroutine define_transport_coefficients()
 
   logical, save :: first_time = .true.
   logical :: solve_sigma, solve_kappa, solve_visc, solve_resistivity, &
-       solve_visc_e, solve_q, solve_f, solve_fp
+       solve_visc_e, solve_q, solve_cd, solve_f, solve_fp
 
-  integer, dimension(8) :: temp, temp2
+  integer, dimension(9) :: temp, temp2
   vectype, dimension(dofs_per_element) :: dofs
 
   ! transport coefficients are only calculated once in linear mode
@@ -600,6 +644,7 @@ subroutine define_transport_coefficients()
   solve_visc_e = .false.
   solve_f = .false.
   solve_q = .false.
+  solve_cd = .false.
   solve_fp = .false.
 
   ! clear variables
@@ -610,6 +655,7 @@ subroutine define_transport_coefficients()
   if(density_source) sigma_field = 0.  
   if(momentum_source) Fphi_field = 0.
   if(heat_source) q_field = 0.
+  if(icd_source .gt. 0) cd_field = 0.
   if(ibootstrap.ne.0) visc_e_field = 0.
   if(ipforce.gt.0) pforce_field = 0.
   if(ipforce.gt.0) pmach_field = 0.
@@ -698,6 +744,15 @@ subroutine define_transport_coefficients()
              call vector_insert_block(q_field%vec,itri,1,dofs,VEC_ADD)
      end if
 
+    if(icd_source .gt. 0) then
+        do i=1, dofs_per_element
+           dofs(i) = cd_func(i)
+           if(.not.solve_cd) solve_cd = dofs(i).ne.0
+        end do
+        if(solve_cd) &
+             call vector_insert_block(cd_field%vec,itri,1,dofs,VEC_ADD)
+     end if
+
      if(ibootstrap.ne.0) then
         do i=1, dofs_per_element
            dofs(i) = electron_viscosity_func(i)
@@ -722,7 +777,8 @@ subroutine define_transport_coefficients()
      if(solve_f)           temp(6) = 1
      if(solve_q)           temp(7) = 1
      if(solve_fp)          temp(8) = 1
-     call mpi_allreduce(temp,temp2,8,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ier)
+     if(solve_cd)          temp(9) = 1
+     call mpi_allreduce(temp,temp2,9,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ier)
      solve_resistivity = temp2(1).eq.1
      solve_kappa       = temp2(2).eq.1
      solve_sigma       = temp2(3).eq.1
@@ -731,6 +787,7 @@ subroutine define_transport_coefficients()
      solve_f           = temp2(6).eq.1
      solve_q           = temp2(7).eq.1
      solve_fp          = temp2(8).eq.1
+     solve_cd          = temp2(9).eq.1
   end if
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' solving...'
@@ -768,6 +825,11 @@ subroutine define_transport_coefficients()
   if(solve_q) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  Q'
      call newvar_solve(q_field%vec, mass_mat_lhs)
+  endif
+
+  if(solve_cd) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, ' cd'
+     call newvar_solve(cd_field%vec, mass_mat_lhs)
   endif
 
   if(solve_fp) then
