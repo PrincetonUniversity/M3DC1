@@ -282,6 +282,14 @@ module basic
   real :: xforce         !  location of peak (0 to 1(edge))
   real :: aforce         !  magnitude
 
+  ! curent drive source
+  integer :: icd_source  ! 1 = include current drive in flux equation
+  real :: j_0cd          ! amplitude of Gaussian
+  real :: r_0cd          ! r coordinate of peak
+  real :: z_0cd          ! z coordinate of peak
+  real :: w_cd           ! width of Gaussian
+  real :: delta_cd       ! shift of Gaussian
+
   ! xray diagnostic parameters
   integer :: xray_detector_enabled ! 1 = enable xray diagnostic
   real :: xray_r0        ! R coordinate of xray detector
@@ -391,7 +399,7 @@ module arrays
   ! Arrays containing auxiliary variables
   type(field_type) :: jphi_field, vor_field, com_field
   type(field_type) :: resistivity_field, kappa_field
-  type(field_type) :: sigma_field, Fphi_field, Q_field
+  type(field_type) :: sigma_field, Fphi_field, Q_field, cd_field
   type(field_type) :: visc_field, visc_c_field, visc_e_field, pforce_field, pmach_field
 
   type(field_type) :: temporary_field

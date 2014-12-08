@@ -579,6 +579,20 @@ subroutine set_defaults
   call add_var_double("beam_fracpar", beam_fracpar, 1.0, &
        "Cosine of beam angle relative to parallel", source_grp)
 
+  ! current drive source
+  call add_var_int("icd_source",icd_source,0, &
+       "1: Include current drive source",source_grp)
+  call add_var_double("J_0cd", j_0cd, 0., &
+       "amplitude of current drive", source_grp)
+  call add_var_double("R_0cd", r_0cd, 0., &
+       "R-coordinate of cd maximum", source_grp)
+  call add_var_double("Z_0cd", z_0cd, 0., &
+       "Z-coordinate of cd maximum", source_grp)
+  call add_var_double("W_cd", w_cd, 0., &
+       "width of cd gaussian", source_grp)
+  call add_var_double("delta_cd", delta_cd, 0., &
+       "shift of cd gaussian", source_grp)
+
   ! poloidal momentum source
   call add_var_int("ipforce", ipforce, 0, &
        "1: Include Poloidal momentum source", source_grp)
@@ -775,6 +789,11 @@ subroutine validate_input
 
   if(ipressplit.eq.0 .and. itemp.eq.1) then
      if(myrank.eq.0) print *, "itemp=1 not allowed with ipressplit=0"
+     call safestop(1)
+  endif
+
+  if(isplitstep.eq.0 .and. ipressplit.eq.1) then
+     if(myrank.eq.0) print *, "ipressplit=1 not allowed with isplitstep=0"
      call safestop(1)
   endif
 

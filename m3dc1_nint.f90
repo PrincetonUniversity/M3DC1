@@ -70,6 +70,7 @@ module m3dc1_nint
   integer, parameter :: FIELD_F   =1048576
   integer, parameter :: FIELD_PF  =2097152
   integer, parameter :: FIELD_ES  =4194304
+  integer, parameter :: FIELD_CD  =8388608
 
   vectype, dimension(MAX_PTS, OP_NUM, dofs_per_element) :: mu79, nu79
   vectype, dimension(MAX_PTS) :: r_79, r2_79, r3_79, &
@@ -84,7 +85,7 @@ module m3dc1_nint
        pht79, vzt79, cht79, pt79, net79
   vectype, dimension(MAX_PTS, OP_NUM) :: vis79, vic79, vip79, for79, es179
   vectype, dimension(MAX_PTS, OP_NUM) :: jt79, cot79, vot79, pit79, &
-       eta79, sig79, fy79, q79
+       eta79, sig79, fy79, q79, cd79
   vectype, dimension(MAX_PTS, OP_NUM) :: bf079, bf179, bft79
   vectype, dimension(MAX_PTS, OP_NUM) :: kap79, kar79, kax79
   vectype, dimension(MAX_PTS, OP_NUM) :: ps079, bz079, pe079, n079, &
@@ -899,7 +900,7 @@ contains
 
      call eval_ops(itri, Fphi_field, fy79)
   else
-     q79 = 0.
+     fy79 = 0.
   end if
 
   ! Q
@@ -911,6 +912,17 @@ contains
      call eval_ops(itri, Q_field, q79)
   else
      q79 = 0.
+  end if
+
+  ! cd
+  ! ~
+  if((iand(fields, FIELD_CD).eq.FIELD_CD) &
+       .and. icd_source.gt.0) then
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   cd..."
+
+     call eval_ops(itri, cd_field, cd79)
+  else
+     cd79 = 0.
   end if
 
 
