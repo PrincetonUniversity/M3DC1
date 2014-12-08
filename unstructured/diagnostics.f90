@@ -456,7 +456,6 @@ subroutine evaluate(x,phi,z,ans,ans2,fin,itri,ierr)
           MPI_COMM_WORLD, ier)
      ans = temp2(1)/tothasval
      ans2 = temp2(2)/tothasval
-
 #endif
   endif
 
@@ -615,7 +614,8 @@ subroutine calculate_scalars()
   numelms = local_elements()
   do itri=1,numelms
 
-     call zonfac(itri, izone, izonedim)
+     !call zonfac(itri, izone, izonedim)
+     call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone)
 
      call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
      call define_fields(itri, def_fields, 0, 0)
@@ -828,7 +828,6 @@ subroutine calculate_scalars()
 !
 !   volume averaged pressure for beta calculation
     avep = (gam - 1.)*(emag3 / (volume*tpifac))
-!
 
     ! psi on axis
     itri = 0
@@ -1286,7 +1285,7 @@ subroutine lcfs(psi, test_wall, findx)
   type(field_type) :: temp_field
   real :: psix, psix2, psib, psim
   real :: x, z, temp1, temp2, temp_min, temp_max, ajlim
-  integer :: ier, ier2, numnodes, inode, izone, izonedim, itri
+  integer :: ier, ier2, numnodes, inode, izone, izonedim, itri, icounter_t
   logical :: is_boundary, first_point
   real, dimension(2) :: normal
   real :: curv
@@ -1339,7 +1338,8 @@ subroutine lcfs(psi, test_wall, findx)
   first_point = .true.
   numnodes = owned_nodes()
   if(tw .and. (iwall_is_limiter.eq.1)) then
-     do inode=1, numnodes
+     do icounter_t=1,numnodes
+        inode = nodes_owned(icounter_t) 
         call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z, &
              inner_wall)
         if(.not.is_boundary) cycle
@@ -1557,7 +1557,7 @@ subroutine calculate_ke()
   include 'mpif.h'
   integer :: itri, numelms, def_fields
   real:: ke_N, ketotal, fac, delta_phi
-  integer :: ier, k, l, numnodes, N
+  integer :: ier, k, l, numnodes, N, icounter_t
   vectype, dimension(dofs_per_node) :: vec_l
 
   real, allocatable :: i1ck(:,:), i1sk(:,:)
@@ -1624,7 +1624,8 @@ subroutine calculate_ke()
 !test2  u_field(1)= cos(2. * k * delta_phi)
 !test3  u_field(1)= sin(2. * k * delta_phi)
         !eq 12: U cos
-        do l =1,numnodes
+        do icounter_t=1,numnodes
+           l = nodes_owned(icounter_t)
            call get_node_data(u_field(1), l , u1_l ) ! u1_l is “U” (dimension 12)
 
            vec_l(1)= fac*(u1_l(1) * i1ck(k,N) + u1_l( 7)*i2ck(k,N))
@@ -1638,14 +1639,15 @@ subroutine calculate_ke()
            call set_node_data(u_transformc,l,vec_l)
         enddo
         call finalize(u_transformc%vec)
-        call sum_vec_planes(u_transformc%vec%data) ! sum vec%datator at each (R,Z) node over k
+        call m3dc1_field_sum_plane(u_transformc%vec%id) ! sum vec%datator at each (R,Z) node over k
 
 !
 !test1  u_field(1)=10.
 !test2  u_field(1)= cos(2. * k * delta_phi)
 !test3  u_field(1)= sin(2. * k * delta_phi)
         !eq 12: U sin
-        do l =1,numnodes
+        do icounter_t=1,numnodes
+           l = nodes_owned(icounter_t)
            call get_node_data(u_field(1), l , u1_l ) ! u1_l is “U” (dimension 12)
 
            fac = 2.
@@ -1660,14 +1662,15 @@ subroutine calculate_ke()
            call set_node_data(u_transforms,l,vec_l)
         enddo
         call finalize(u_transforms%vec)
-        call sum_vec_planes(u_transforms%vec%data) ! sum vec%datator at each (R,Z) node over k
+        call m3dc1_field_sum_plane(u_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
 
 !
 !test1  vz_field(1)=10.
 !test2  vz_field(1)= cos(2. * k * delta_phi)
 !test3  vz_field(1)= sin(2. * k * delta_phi)
         !eq 12: omega cos
-        do l =1,numnodes
+       do icounter_t=1,numnodes
+           l = nodes_owned(icounter_t)
            call get_node_data(vz_field(1), l , vz1_l) ! vz1_l is “ω” ( dimension 12)
 
            vec_l(1)= fac*(vz1_l(1) * i1ck(k,N) + vz1_l( 7)*i2ck(k,N))
@@ -1680,14 +1683,15 @@ subroutine calculate_ke()
           call set_node_data(vz_transformc,l,vec_l)
         enddo
         call finalize(vz_transformc%vec)
-        call sum_vec_planes(vz_transformc%vec%data) ! sum vec%datator at each (R,Z) node over k
+        call m3dc1_field_sum_plane(vz_transformc%vec%id) ! sum vec%datator at each (R,Z) node over k
 
 !
 !test1  vz_field(1)=10.
 !test2  vz_field(1)= cos(2. * k * delta_phi)
 !test3  vz_field(1)= sin(2. * k * delta_phi)
         !eq 12: omega sin
-        do l =1,numnodes
+       do icounter_t=1,numnodes
+           l = nodes_owned(icounter_t)
            call get_node_data(vz_field(1), l , vz1_l) ! vz1_l is “ω” ( dimension 12)
 
            vec_l(1)= fac*(vz1_l(1) * i1sk(k,N) + vz1_l( 7)*i2sk(k,N))
@@ -1700,14 +1704,15 @@ subroutine calculate_ke()
            call set_node_data(vz_transforms,l,vec_l)
         enddo
         call finalize(vz_transforms%vec)
-        call sum_vec_planes(vz_transforms%vec%data) ! sum vec%datator at each (R,Z) node over k
+        call m3dc1_field_sum_plane(vz_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
 
 !
 !test1  chi_field(1)=10.
 !test2  chi_field(1)= cos(2. * k * delta_phi)
 !test3  chi_field(1)= sin(2. * k * delta_phi)
         !eq 12: chi cos
-        do l =1,numnodes
+       do icounter_t=1,numnodes
+           l = nodes_owned(icounter_t)
            call get_node_data(chi_field(1), l , chi1_l ) ! chi1_l is “χ” (dimension 12)
 
            fac = 2.
@@ -1722,14 +1727,15 @@ subroutine calculate_ke()
            call set_node_data(chi_transformc,l,vec_l)
         enddo
         call finalize(chi_transformc%vec)
-        call sum_vec_planes(chi_transformc%vec%data) ! sum vec%datator of size 6 at each (R,Z) node over k
+        call m3dc1_field_sum_plane(chi_transformc%vec%id) ! sum vec%datator of size 6 at each (R,Z) node over k
 
 !
 !test1  chi_field(1)=10.
 !test2  chi_field(1)= cos(2. * k * delta_phi)
 !test3  chi_field(1)= sin(2. * k * delta_phi)
         ! eq 12: chi sin
-        do l =1,numnodes
+       do icounter_t=1,numnodes
+           l = nodes_owned(icounter_t)
            call get_node_data(chi_field(1), l , chi1_l ) ! chi1_l is “χ” (dimension 12)
 
            vec_l(1)= fac*(chi1_l(1) * i1sk(k,N) + chi1_l( 7)*i2sk(k,N))
@@ -1742,7 +1748,7 @@ subroutine calculate_ke()
            call set_node_data(chi_transforms,l,vec_l)
         enddo
         call finalize(chi_transforms%vec)
-        call sum_vec_planes(chi_transforms%vec%data) ! sum vec%datator at each (R,Z) node over k
+        call m3dc1_field_sum_plane(chi_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
 
 !    enddo
 !    call finalize(transform_field)
@@ -1835,7 +1841,7 @@ subroutine calculate_bh()
   include 'mpif.h'
   integer :: itri, numelms, def_fields
   real:: bh_N, bhtotal, fac, delta_phi
-  integer :: ier, k, l, numnodes, N
+  integer :: ier, k, l, numnodes, N, icounter_t
   vectype, dimension(dofs_per_node) :: vec_l
 
   real, allocatable :: i1ck(:,:), i1sk(:,:)
@@ -1888,7 +1894,8 @@ subroutine calculate_bh()
         k = local_plane() + 1
 
         !eq 12: psi cos
-        do l =1,numnodes
+       do icounter_t=1,numnodes
+           l = nodes_owned(icounter_t)
            call get_node_data(psi_field(1), l, psi1_l) ! psi1_1 is ψ (dimension 12)
 
            vec_l(1)= fac*(psi1_l(1) * i1ck(k,N) + psi1_l( 7)*i2ck(k,N))
@@ -1902,10 +1909,11 @@ subroutine calculate_bh()
            call set_node_data(psi_transformc,l,vec_l)
         enddo
         call finalize(psi_transformc%vec)
-        call sum_vec_planes(psi_transformc%vec%data) ! sum vec%datator at each (R,Z) node over k
+        call m3dc1_field_sum_plane(psi_transformc%vec%id) ! sum vec%datator at each (R,Z) node over k
 
         !eq 12: psi sin
-        do l =1,numnodes
+       do icounter_t=1,numnodes
+           l = nodes_owned(icounter_t)
            call get_node_data(psi_field(1), l, psi1_l) ! psi1_1 is ψ (dimension 12)
 
            fac = 2.
@@ -1920,10 +1928,11 @@ subroutine calculate_bh()
            call set_node_data(psi_transforms,l,vec_l)
         enddo
         call finalize(psi_transforms%vec)
-        call sum_vec_planes(psi_transforms%vec%data) ! sum vec%datator at each (R,Z) node over k
+        call m3dc1_field_sum_plane(psi_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
 
         !eq 12: F cos
-        do l =1,numnodes
+       do icounter_t=1,numnodes
+           l = nodes_owned(icounter_t)
            call get_node_data(bz_field(1), l, bz1_l) ! bz1_l is F (dimension 12)
 
            vec_l(1)= fac*(bz1_l(1) * i1ck(k,N) + bz1_l( 7)*i2ck(k,N))
@@ -1936,11 +1945,12 @@ subroutine calculate_bh()
           call set_node_data(F_transformc,l,vec_l)
         enddo
         call finalize(F_transformc%vec)
-        call sum_vec_planes(F_transformc%vec%data) ! sum vec%datator at each (R,Z) node over k
+        call m3dc1_field_sum_plane(F_transformc%vec%id) ! sum vec%datator at each (R,Z) node over k
 
 
         !eq 12: F sin
-        do l =1,numnodes
+       do icounter_t=1,numnodes
+           l = nodes_owned(icounter_t)
            call get_node_data(bz_field(1), l, bz1_l) ! bz1_l is F (dimension 12)
 
            vec_l(1)= fac*(bz1_l(1) * i1sk(k,N) + bz1_l( 7)*i2sk(k,N))
@@ -1953,10 +1963,11 @@ subroutine calculate_bh()
            call set_node_data(F_transforms,l,vec_l)
         enddo
         call finalize(F_transforms%vec)
-        call sum_vec_planes(F_transforms%vec%data) ! sum vec%datator at each (R,Z) node over k
+        call m3dc1_field_sum_plane(F_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
 
         !eq 12: f' cos
-        do l =1,numnodes
+       do icounter_t=1,numnodes
+           l = nodes_owned(icounter_t)
            call get_node_data(bf_field(1), l, bf1_l) ! bf1_l is f (dimension 12)
 
            fac = 2.
@@ -1971,10 +1982,11 @@ subroutine calculate_bh()
            call set_node_data(fp_transformc,l,vec_l)
         enddo
         call finalize(fp_transformc%vec)
-        call sum_vec_planes(fp_transformc%vec%data) ! sum vec%datator of size 6 at each (R,Z) node over k
+        call m3dc1_field_sum_plane(fp_transformc%vec%id) ! sum vec%datator of size 6 at each (R,Z) node over k
 
         ! eq 12: f' sin
-        do l =1,numnodes
+       do icounter_t=1,numnodes
+           l = nodes_owned(icounter_t)
            call get_node_data(bf_field(1), l, bf1_l) ! bf1_l is f (dimension 12)
 
            vec_l(1)= fac*(bf1_l(1) * i1sk(k,N) + bf1_l( 7)*i2sk(k,N))
@@ -1987,7 +1999,7 @@ subroutine calculate_bh()
            call set_node_data(fp_transforms,l,vec_l)
         enddo
         call finalize(fp_transforms%vec)
-        call sum_vec_planes(fp_transforms%vec%data) ! sum vec%datator at each (R,Z) node over k
+        call m3dc1_field_sum_plane(fp_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
 
 
 !eq 4b: Calculate energy for each Fourier Harminics N

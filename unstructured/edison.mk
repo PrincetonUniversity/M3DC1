@@ -22,32 +22,33 @@ endif
 #HYBRID_HOME =  /scratch2/scratchdirs/xyuan/Software_Hopper/pdslin_0.0
 #HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lpdslin
 
-ifeq ($(USESCOREC), 1)
-    ifndef SCORECDIR
-     #SCORECDIR = /global/project/projectdirs/mp288/edison/cray/
-      SCORECDIR = /global/project/projectdirs/mp288/edison/intel
-    endif
+ifeq ($(COM), 1)
+      SCORECDIR = /global/project/projectdirs/mp288/edison/scorec/complex
+      PETSC_DIR = /global/project/projectdirs/mp288/edison/petsc-complex/petsc-3.5.2
+      PETSC_ARCH = arch-xc30-opt
+      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,/global/project/projectdirs/mp288/edison/petsc-complex/petsc-3.5.2/arch-xc30-opt/lib -L/global/project/projectdirs/mp288/edison/petsc-complex/petsc-3.5.2/arch-xc30-opt/lib -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu_4.3 -lsuperlu_dist_3.3 -lparmetis -lmetis -lpthread -lssl -lcrypto -Wl,-rpath,/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -L/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -ldl -lstdc++
+else
+      SCORECDIR = /global/project/projectdirs/mp288/edison/scorec/real
+      PETSC_DIR =/global/homes/h/hzhang/petsc/
+      PETSC_ARCH =arch-xc30-opt
+      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,/global/u2/h/hzhang/petsc/arch-xc30-opt/lib -L/global/u2/h/hzhang/petsc/arch-xc30-opt/lib -lHYPRE -lsuperlu_4.3 -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lml -lsuperlu_dist_3.3 -lparmetis -lmetis -lpthread -lssl -lcrypto -Wl,-rpath,/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -L/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -ldl -lstdc++
+endif
 
-    SCORECLIB=-lapf -lapf_pumi -lpumi_util -lpumi_geom -lpcu -lpumi_geom_meshmodel -lpumi_mesh -lmeshadapt
-    SCOREC_LIBS =-L$(SCORECDIR)/lib -Wl,--start-group -lPPPLFusion $(SCORECLIB) -Wl,--end-group -lzoltan
-    PETSC_DIR =/global/homes/h/hzhang/petsc/
-    PETSC_ARCH =arch-xc30-opt
-    PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,/global/u2/h/hzhang/petsc/arch-xc30-opt/lib -L/global/u2/h/hzhang/petsc/arch-xc30-opt/lib -lHYPRE -lsuperlu_4.3 -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lml -lsuperlu_dist_3.3 -lparmetis -lmetis -lpthread -lssl -lcrypto -Wl,-rpath,/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -L/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -ldl -lstdc++
-#include $(PETSC_DIR)/$(PETSC_ARCH)/conf/petscvariables
-  INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
-  INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
-  LIBS := $(LIBS) \
+SCORECLIB="-lapf -lgmi -lm3dc1_scorec -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr"
+SCOREC_LIBS =-L$(SCORECDIR)/lib -Wl,--start-group -lm3dc1_scorec $(SCORECLIB) -Wl,--end-group -lzoltan
+INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
+LIBS := $(LIBS) \
         -L$(SCORECDIR)/lib $(SCOREC_LIBS) \
         -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc $(PETSC_EXTERNAL_LIB_BASIC)  \
         -lstdc++
 
-else
-#  OPTS := $(OPTS) -DPetscDEV
-endif   # on USESCOREC
+ifeq ($(USEADIOS), 1)
+  OPTS := $(OPTS) -DUSEADIOS
+endif
 
 AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
 
-OPTS := $(OPTS) -DPetscDEV -DKSPITS -DUSEADIOS #-DUSEHYBRID -DCJ_MATRIX_DUMP
+OPTS := $(OPTS) -DPetscDEV -DKSPITS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 
 #only define them if adios-1.3 is used; otherwise use hopper default
 #ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper

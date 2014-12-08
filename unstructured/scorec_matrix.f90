@@ -8,9 +8,8 @@ module scorec_matrix_mod
      integer :: imatrix
      integer :: icomplex
      integer :: isize, m, n
-     logical :: lhs
+     integer :: lhs
   end type scorec_matrix
-
   integer, parameter :: MAT_SET = 0
   integer, parameter :: MAT_ADD = 1
 
@@ -113,7 +112,7 @@ contains
 
     type(scorec_matrix) :: mat
     integer, intent(in) :: m, n, icomplex
-    logical, intent(in) :: lhs
+    integer, intent(in) :: lhs
 
 #include "finclude/petsc.h"
 
@@ -135,19 +134,12 @@ contains
     mat%icomplex = icomplex
     mat%lhs = lhs
 
-    if(lhs) then
+    if(lhs .eq. 1) then
        call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc',flg_petsc,ierr)
        call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ierr)
        if(flg_solve2.eq.PETSC_TRUE) flg_petsc=PETSC_TRUE
-
-       if(flg_petsc.eq.PETSC_TRUE) then
-          call zeropetscmatrix(mat%imatrix, mat%icomplex, mat%isize)
-       else
-          call zerosuperlumatrix(mat%imatrix, mat%icomplex, mat%isize)
-       endif
-    else
-       call zeromultiplymatrix(mat%imatrix, mat%icomplex, mat%isize)
     endif
+    call m3dc1_matrix_create(mat%imatrix, lhs, mat%icomplex, mat%isize)
   end subroutine scorec_matrix_create
 
 
@@ -160,7 +152,7 @@ contains
     implicit none
 
     type(scorec_matrix), intent(inout) :: mat
-
+    call m3dc1_matrix_delete (mat%imatrix)
     call create_mat(mat,mat%m,mat%n,mat%icomplex,mat%lhs)
   end subroutine scorec_matrix_clear
 
@@ -174,8 +166,7 @@ contains
     implicit none
     
     type(scorec_matrix) :: mat
-    call clear_mat(mat)
-    call deletematrix(mat%imatrix)
+    call m3dc1_matrix_delete (mat%imatrix)
   end subroutine scorec_matrix_destroy
 
 
@@ -223,7 +214,7 @@ contains
        vout_ptr => temp_out
     endif
 
-    call matrixvectormult(mat%imatrix,vin_ptr%data,vout_ptr%data)
+    call m3dc1_matrix_multiply(mat%imatrix,vin_ptr%id,vout_ptr%id)
 
     nullify(vin_ptr, vout_ptr)
 
@@ -248,10 +239,8 @@ contains
     real, intent(in) :: val
     integer, intent(in) :: i, j, iop
 
-    if(val.eq.0.) then
-       if(i.ne.j) return
-    endif
-    call insertval(mat%imatrix, val, 0, i, j, iop)
+    print *, "not implement scorec_matrix_insert_real"
+    call abort() 
   end subroutine scorec_matrix_insert_real
 
 
@@ -271,7 +260,8 @@ contains
     if(val.eq.0.) then
        if(i.ne.j) return
     endif
-    call insertval(mat%imatrix, val, 1, i, j, iop)
+    print *, "not implement scorec_matrix_insert_complex"
+    call abort()
   end subroutine scorec_matrix_insert_complex
 #endif
 
@@ -289,7 +279,7 @@ contains
     real, intent(in) :: val
     integer, intent(in) :: i, j, iop
 
-    call globalinsertval(mat%imatrix, val, 0, i, j, iop)
+    call m3dc1_matrix_insert(mat%imatrix, val, i-1, j-1, 0,val, iop)
   end subroutine scorec_matrix_insert_global_real
 
 
@@ -308,7 +298,7 @@ contains
     complex, intent(in) :: val
     integer, intent(in) :: i, j, iop
 
-    call globalinsertval(mat%imatrix, val, 1, i, j, iop)
+    call m3dc1_matrix_insert(mat%imatrix, val, i-1, j-1, 1,val, iop)
   end subroutine scorec_matrix_insert_global_complex
 #endif
 
@@ -335,42 +325,20 @@ contains
 #else
     PetscTruth :: flg_petsc, flg_solve2, flg_pdslin
 #endif
-
-    call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc ,ierr)
-    call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ierr)
-    call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-pdslin', flg_pdslin,ierr)
-
-    if(flg_solve2.eq.PETSC_TRUE .and. &
-       (mat%imatrix.eq.5 .or. mat%imatrix.eq.6)) then  ! use pppl petsc
-       call solve2(mat%imatrix,v%data,mat%icomplex,ierr)
-
-    else if(flg_pdslin.eq.PETSC_TRUE) then  ! use pdslin
-#ifdef USEHYBRID
-       if(mat%imatrix .eq. 6) then
-       print *, 'OK: Using pdslin solve,', mat%imatrix
-       call hybridsolve(mat%imatrix,v%data,mat%icomplex,ierr)
-!#else
-       else
-       print *, 'Er: Using default solve,', mat%imatrix
-       call solve(mat%imatrix,v%data,ierr)
-       endif
-#endif
-
-    else  ! use scorec superlu or petsc (-ipetsc)
-       call solve(mat%imatrix,v%data,ierr)
+    call m3dc1_matrix_solve(mat%imatrix,v%id)
+    ierr = 0
 
 #ifdef KSPITS
        !2013-jan-17 only for hopper
-       call get_iter_num( num_iter )
+       call m3dc1_matrix_getiternum( mat%imatrix, num_iter )
 #else
        !2013-jan-17 fake numbers on other systems
        num_iter=mat%imatrix
 #endif
-       if(mat%imatrix== 5) kspits(1)=num_iter
-       if(mat%imatrix== 1) kspits(2)=num_iter
-       if(mat%imatrix==17) kspits(3)=num_iter
-       if(mat%imatrix== 6) kspits(4)=num_iter
-    endif
+   if(mat%imatrix== 5) kspits(1)=num_iter
+   if(mat%imatrix== 1) kspits(2)=num_iter
+   if(mat%imatrix==17) kspits(3)=num_iter
+   if(mat%imatrix== 6) kspits(4)=num_iter
   end subroutine scorec_matrix_solve
 
   !====================================================================
@@ -382,7 +350,7 @@ contains
     implicit none
     type(scorec_matrix) :: mat   
 
-    call finalizematrix(mat%imatrix)
+    call m3dc1_matrix_freeze(mat%imatrix)
   end subroutine scorec_matrix_finalize
 
 
@@ -394,6 +362,7 @@ contains
   subroutine scorec_matrix_flush(mat)
     implicit none
     type(scorec_matrix) :: mat
+    !call m3dc1_matrix_flush(mat%imatrix)
   end subroutine scorec_matrix_flush
 
   !======================================================================
@@ -492,13 +461,13 @@ contains
     integer, dimension(mat%n,dofs_per_element) :: icol
     integer :: i, j
 
+    if (iop .ne. MAT_ADD) then
+       print *, " mat block insert only supports MAT_ADD"
+       call abort()
+    end if
     call get_element_indices(mat, itri, irow, icol)
+    call m3dc1_matrix_insertblock(mat%imatrix, itri-1, m-1, n-1, TRANSPOSE(val));
 
-    do i=1, dofs_per_element
-       do j=1, dofs_per_element
-          call insert(mat,val(i,j),irow(m,i),icol(n,j),iop)
-       end do
-    end do
   end subroutine scorec_matrix_insert_block
 
   subroutine identity_row(mat, irow)
@@ -506,7 +475,7 @@ contains
     type(scorec_matrix) :: mat
     integer, intent(in) :: irow
 
-    call setdiribc(mat%imatrix, irow)
+    call m3dc1_matrix_setbc (mat%imatrix, irow-1)
     
   end subroutine identity_row
 
@@ -517,19 +486,14 @@ contains
     integer, intent(in) :: irow, ncols
     integer, intent(in), dimension(ncols) :: icols
     vectype, intent(in), dimension(ncols) :: vals
-
-#ifdef USECOMPLEX
-    call setgeneralbc(mat%imatrix, irow, ncols, icols, vals, 1)
-#else
-    call setgeneralbc(mat%imatrix, irow, ncols, icols, vals, 0)
-#endif
+    call m3dc1_matrix_setlaplacebc(mat%imatrix, irow-1, ncols, icols-1, vals)
   end subroutine set_row_vals
 
   subroutine scorec_matrix_write(mat, file)
     type(scorec_matrix), intent(in) :: mat
     character(len=*) :: file
-
-    call writematrixtofile(mat%imatrix, mat%imatrix)
+    print *, "scorec_matrix_write not support"
+    call abort() 
   end subroutine scorec_matrix_write
 
   subroutine scorec_allocate_kspits

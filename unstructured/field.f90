@@ -239,14 +239,15 @@ contains
     type(field_type), intent(inout) :: f
     real, intent(in) :: val
 
-    integer :: inode, numnodes
+    integer :: inode, numnodes, icounter_t 
     real, dimension(dofs_per_node) :: d
 
     d = 0.
     d(1) = val
     
     numnodes = owned_nodes()
-    do inode=1,numnodes
+    do icounter_t=1,numnodes
+       inode = nodes_owned(icounter_t)
        call add(f, inode, d)
     enddo
     call finalize(f%vec)
@@ -262,14 +263,15 @@ contains
     type(field_type), intent(inout) :: f
     complex, intent(in) :: val
 
-    integer :: inode, numnodes
+    integer :: inode, numnodes, icounter_t
     complex, dimension(dofs_per_node) :: d
 
     d = 0.
     d(1) = val
 
     numnodes = owned_nodes()
-    do inode=1,numnodes
+    do icounter_t=1,numnodes
+       inode = nodes_owned(icounter_t)
        call add(f, inode, d)
     enddo
     call finalize(f%vec)
@@ -290,12 +292,13 @@ contains
     type(field_type), intent(in) :: fin
     real, optional :: factor
 
-    integer :: inode, numnodes
+    integer :: inode, numnodes, icounter_t
     vectype, dimension(dofs_per_node) :: datain, dataout
 
 
     numnodes = owned_nodes()
-    do inode=1,numnodes
+    do icounter_t=1,numnodes
+       inode = nodes_owned(icounter_t)
        call get_node_data(fout, inode, dataout)
        call get_node_data(fin, inode, datain)
        if(present(factor)) datain = datain*factor
@@ -318,11 +321,12 @@ contains
     type(field_type), intent(inout) :: f
     real, intent(in) :: val
 
-    integer :: inode, numnodes
+    integer :: inode, numnodes, icounter_t
     vectype, dimension(dofs_per_node) :: data
 
     numnodes = owned_nodes()
-    do inode=1,numnodes
+    do icounter_t=1,numnodes
+       inode = nodes_owned(icounter_t)
        call get_node_data(f, inode, data)
        data = data*val
        call set_node_data(f, inode, data)
@@ -339,11 +343,12 @@ contains
     type(field_type), intent(inout) :: f
     complex, intent(in) :: val
 
-    integer :: inode, numnodes
+    integer :: inode, numnodes, icounter_t
     vectype, dimension(dofs_per_node) :: data
 
     numnodes = owned_nodes()
-    do inode=1,numnodes
+    do icounter_t=1,numnodes
+       inode = nodes_owned(icounter_t)
        call get_node_data(f, inode, data)
        data = data*val
        call set_node_data(f, inode, data)
@@ -361,10 +366,11 @@ contains
     real, intent(in) :: val
     vectype, dimension(dofs_per_node) :: data, new_data
 
-    integer :: inode, numnodes
+    integer :: inode, numnodes, icounter_t
 
     numnodes = owned_nodes()
-    do inode=1,numnodes
+    do icounter_t=1,numnodes
+       inode = nodes_owned(icounter_t)
        call get_node_data(f, inode, data)
        
        if(data(1).eq.0.) cycle
@@ -404,14 +410,15 @@ contains
     type(field_type), intent(inout) :: fout
     real, intent(in) :: val
 
-    integer :: inode, numnodes
+    integer :: inode, numnodes, icounter_t
     vectype, dimension(dofs_per_node) :: data
 
     data(1) = val
     data(2:dofs_per_node) = 0.
 
     numnodes = owned_nodes()
-    do inode=1,numnodes
+    do icounter_t=1,numnodes
+       inode = nodes_owned(icounter_t)
        call set_node_data(fout, inode, data)
     enddo
     call finalize(fout%vec)
@@ -427,15 +434,15 @@ contains
     type(field_type), intent(inout) :: fout
     complex, intent(in) :: val
 
-    integer :: inode, numnodes
+    integer :: inode, numnodes,icounter_t
     vectype, dimension(dofs_per_node) :: data
 
     data(1) = val
     data(2:dofs_per_node-1) = 0.
 
     numnodes = owned_nodes()
-    
-    do inode=1,numnodes
+    do icounter_t=1,numnodes
+       inode = nodes_owned(icounter_t) 
        call set_node_data(fout, inode, data)
     enddo
     call finalize(fout%vec)
@@ -457,15 +464,15 @@ contains
     type(field_type), intent(inout) :: fout
     type(field_type), intent(in) :: fin
 
-    integer :: inode, numnodes
+    integer :: inode, numnodes, icounter_t
     vectype, dimension(dofs_per_node) :: data
 
     if(fin%vec%isize.eq.1 .and. fout%vec%isize.eq.1) then
        fout%vec = fin%vec
     else 
        numnodes = owned_nodes()
-    
-       do inode=1,numnodes
+       do icounter_t=1,numnodes
+          inode = nodes_owned(icounter_t) 
           call get_node_data(fin,inode,data)
           call set_node_data(fout,inode,data)
        enddo
@@ -624,11 +631,13 @@ contains
 
     type(field_type), intent(inout) :: f
 
-    integer :: inode, numnodes
+    integer :: inode, numnodes, icounter_t
     vectype, dimension(dofs_per_node) :: data
 
     numnodes = owned_nodes()
-    do inode=1,numnodes
+    do icounter_t=1,numnodes
+       inode = nodes_owned(icounter_t)
+
        call get_node_data(f, inode, data, .true.)   ! rotate to R,Z
        call set_node_data(f, inode, data, .false.)  ! don't rotate back to n,t
     enddo

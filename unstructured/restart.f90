@@ -14,12 +14,14 @@ subroutine wrrestart
   integer :: ndofs
   integer, save :: ifirstrs = 1
   character (len=30) :: fname, oldfname
+  vectype, allocatable :: data_buff(:)
 
   call createfilename(fname, oldfname)
   numnodes = local_nodes()
   numelms = local_elements()
   mmnn18 = 0
-  call numdofs(num_fields, ndofs)
+  call m3dc1_field_getnumlocaldof(num_fields, ndofs)
+  allocate (data_buff(ndofs))
   
   if(ifirstrs .ne. 1) call rename(fname, oldfname)
   ifirstrs = 0
@@ -37,12 +39,14 @@ subroutine wrrestart
   write(56) eqsubtract
   write(56) linear
   write(56) icomplex
-  
+ 
+  call m3dc1_field_retrieve (field_vec%id, data_buff, ndofs) 
   do j1=1,ndofs 
-     write(56) field_vec%data(j1)
+     write(56) data_buff(j1)
   enddo
+  call m3dc1_field_retrieve (field0_vec%id, data_buff, ndofs)
   do j1=1,ndofs 
-     write(56) field0_vec%data(j1)
+     write(56) data_buff(j1)
   enddo
 
   write(56) ntime,time,dt
@@ -51,23 +55,28 @@ subroutine wrrestart
   write(56) psimin,psilim,psibound
   write(56) xnull, znull
   write(56) xmag, zmag
-  call numdofs(1, ndofs)
+  deallocate (data_buff)
+  call m3dc1_field_getnumlocaldof(1, ndofs)
+  allocate (data_buff(ndofs))
+  call m3dc1_field_retrieve (bf_field(1)%vec%id, data_buff, ndofs)
   do j1=1,ndofs 
-     write(56) bf_field(1)%vec%data(j1)
+     write(56) data_buff(j1)
   enddo
+  call m3dc1_field_retrieve (bf_field(0)%vec%id, data_buff, ndofs)
   do j1=1,ndofs 
-     write(56) bf_field(0)%vec%data(j1)
+     write(56) data_buff(j1)
   enddo
   write(56) pellet_x, pellet_phi, pellet_z, &
        pellet_velx, pellet_velphi, pellet_velz, pellet_var
   write(56) version
   write(56) icsubtract
   if(icsubtract.eq.1) then
+     call m3dc1_field_retrieve (psi_coil_field%vec%id, data_buff, ndofs)
      do j1=1,ndofs 
-        write(56) psi_coil_field%vec%data(j1)
+        write(56) data_buff(j1)
      enddo
   end if
-
+  deallocate(data_buff)
   close(56)
 
 #endif
@@ -94,9 +103,10 @@ subroutine rdrestart
   integer :: ndofs
   integer :: iversion
   real :: vloopsave
+  vectype, allocatable :: data_buff(:)
 
   call createfilename(fname, oldfname)
-  call numdofs(num_fields, ndofs)
+  call m3dc1_field_getnumlocaldof(num_fields, ndofs)
   numnodes = local_nodes()
   numelms = local_elements()
 
@@ -139,18 +149,22 @@ subroutine rdrestart
      call safestop(2)
   endif
 
+  allocate (data_buff(ndofs))
+
   do j1=1,ndofs 
-     read(56) field_vec%data(j1)
+     read(56) data_buff(j1)
   enddo
+  call m3dc1_field_set(field_vec%id, data_buff, ndofs)
   do j1=1,ndofs 
-     read(56) field0_vec%data(j1)
+     read(56) data_buff(j1)
   enddo
+  call m3dc1_field_set(field0_vec%id, data_buff,ndofs)
                          
   ! If we are running a linear simulation, but the restart file was
   ! a nonlinear simulation, make the restart data be the equilibrium
   if(linear.eq.1 .and. ilinear.eq.0) then
-     field0_vec%data = field0_vec%data + field_vec%data
-     field_vec%data = 0.
+     call m3dc1_field_add(field0_vec%id, field_vec%id)
+     call m3dc1_field_assign (field_vec%id, 0., 0)
   endif
 
   vloopsave = vloop
@@ -162,13 +176,17 @@ subroutine rdrestart
   read(56,END=1199) xmag,zmag
   if(control_type .eq. -1) vloop = vloopsave  ! use vloop from input if no control on I
 
-  call numdofs(1, ndofs)
+  deallocate (data_buff)
+  call m3dc1_field_getnumlocaldof(1, ndofs)
+  allocate (data_buff(ndofs))
   do j1=1,ndofs 
-     read(56,END=1199) bf_field(1)%vec%data(j1)
+     read(56,END=1199) data_buff(j1)
   enddo
+  call m3dc1_field_set(bf_field(1)%vec%id, data_buff,ndofs)
   do j1=1,ndofs 
-     read(56,END=1199) bf_field(0)%vec%data(j1)
+     read(56,END=1199) data_buff(j1)
   enddo
+  call m3dc1_field_set(bf_field(0)%vec%id, data_buff, ndofs)
 
   read(56, END=1199) pellet_x, pellet_phi, pellet_z, &
        pellet_velx, pellet_velphi, pellet_velz, pellet_var
@@ -179,11 +197,12 @@ subroutine rdrestart
      read(56, END=1199) icsubtract
      if(icsubtract.eq.1) then
         do j1=1,ndofs 
-           read(56,END=1199) psi_coil_field%vec%data(j1)
+           read(56,END=1199) data_buff(j1)
         enddo
+        call m3dc1_field_set(psi_coil_field%vec%id, data_buff, ndofs)
      end if
   end if
-
+  deallocate (data_buff)
   goto 1200
 1199 if(myrank.eq.0) &
           print *, 'Warning: reading from a previous restart version'
@@ -249,10 +268,11 @@ subroutine wrrestartglobal
 #ifdef USESCOREC
   include 'mpif.h'
   integer :: ifirstrs2, numdofsglobal, mpitag
-  integer :: ierr, numentsglobal(4), i, numnodes, j, globalid
+  integer :: ierr, numentsglobal(4), i, numnodes, j, globalid, ndofs
   integer :: begindofnumber, enddofnumberplusone
   integer :: recvinfo(1)
   integer :: status(MPI_STATUS_SIZE)
+  vectype, allocatable :: data_buff(:) ,data_buff2(:)
   data ifirstrs2/1/
 
   if(ifirstrs2 .ne. 1 .and. myrank .eq. 0) then
@@ -288,9 +308,10 @@ subroutine wrrestartglobal
      open(56,file='C1restart',form='unformatted',status='replace', &
           action='write')
      ! first put in information to check on run information
-     call numglobaldofs(num_fields, numdofsglobal)
-     call numglobalents(numentsglobal(1),numentsglobal(2), &
-          numentsglobal(3), numentsglobal(4))
+     call m3dc1_field_getnumglobaldof(num_fields, numdofsglobal)
+     do i=0,3
+        call m3dc1_mesh_getnumglobalent (i, numentsglobal(i+1))
+     end do
      write(56) numentsglobal(1)
      write(56) numentsglobal(2)
      write(56) numentsglobal(3)
@@ -304,17 +325,25 @@ subroutine wrrestartglobal
      write(56) icomplex
   endif
 
+  call m3dc1_field_getnumlocaldof(field_vec%id, ndofs)
+  allocate (data_buff(ndofs))
+  call m3dc1_field_retrieve (field_vec%id, data_buff, ndofs)
+
+  call m3dc1_field_getnumlocaldof(field0_vec%id, ndofs)
+  allocate (data_buff2(ndofs))
+  call m3dc1_field_retrieve (field0_vec%id, data_buff2, ndofs)
+
   numnodes = local_nodes()
   do j=1,numnodes
-     call entglobalid(j, 0, globalid)
+     call m3dc1_node_getglobalid(0, j, globalid)
      write(56) globalid
-     call entdofs(num_fields, j, 0, begindofnumber, &
+     call m3dc1_ent_getlocaldofid(0, j, num_fields, j, begindofnumber, &
           enddofnumberplusone)
      do i=begindofnumber,enddofnumberplusone-1
-        write(56) field_vec%data(i)
+        write(56) data_buff(i)
      enddo
      do i=begindofnumber,enddofnumberplusone-1
-        write(56) field0_vec%data(i)
+        write(56) data_buff2(i)
      enddo
   enddo
   i = -1
@@ -337,7 +366,8 @@ subroutine wrrestartglobal
      write(56) xmag,zmag
   endif
   close(56)
-      
+  deallocate (data_buff)
+  deallocate (data_buff2) 
 1201 format("* * * restart file written at cycle,time = ",i5,1pe12.4,    &
           "  * * *")
 #endif
@@ -355,19 +385,19 @@ subroutine rdrestartglobal
 
   include 'mpif.h'
 
-  integer :: numdofsglobal, numentsglobal(4), i, numnodes, globalid
-  integer :: begindofnumber, enddofnumberplusone, in1, in2, in3, nodeid
+  integer :: numdofsglobal, numentsglobal(4), i, numnodes, globalid, ndofs
+  integer :: in1, in2, in3
   integer :: icomp
-  vectype :: tempvariable
-  real :: realtemp
   real :: vloopsave
-
+  vectype, allocatable :: data_buff(:) ,data_buff2(:)
   open(56,file='C1restart',form='unformatted',status='old')
       
   ! first put in information to check on run information
-  call numglobaldofs(num_fields, numdofsglobal)
-  call numglobalents(numentsglobal(1),numentsglobal(2), &
-       numentsglobal(3), numentsglobal(4))
+  call m3dc1_field_getnumglobaldof(num_fields, numdofsglobal)
+  do i=0,3
+     call m3dc1_mesh_getnumglobalent (i, numentsglobal(i+1))
+  end do
+
   read(56) in1!, in2, in3
   read(56) in2
   read(56) in3
@@ -390,47 +420,57 @@ subroutine rdrestartglobal
   read(56) icomp
   if(control_type .eq. -1) vloop = vloopsave  ! vloop from input if no I control
   write(*,*) 'in restartglobal time, dts are ', ntime, time, dt
+
+  call m3dc1_field_getnumlocaldof(field_vec%id, ndofs)
+  allocate (data_buff(ndofs))
+
+  call m3dc1_field_getnumlocaldof(field0_vec%id, ndofs)
+  allocate (data_buff2(ndofs))
+
   numnodes = local_nodes()
   read(56) globalid
   do while(globalid .ne. -1)
-     call globalidnod(globalid, nodeid)
-     if(nodeid .ne. -1) then ! this node exists on this proc
-        
-        if(icomp.eq.0 .and. icomplex.eq.1) then
-           call entdofs(num_fields, nodeid, 0, begindofnumber, &
-                enddofnumberplusone)
-           do i=begindofnumber,enddofnumberplusone-1
-              read(56) realtemp
-              field_vec%data(i) = realtemp
-           enddo
-           do i=begindofnumber,enddofnumberplusone-1
-              read(56) realtemp
-              field0_vec%data(i) = realtemp
-           enddo
-        else
-           call entdofs(num_fields, nodeid, 0, begindofnumber, &
-                enddofnumberplusone)
-           do i=begindofnumber,enddofnumberplusone-1
-              read(56) field_vec%data(i)
-           enddo
-           do i=begindofnumber,enddofnumberplusone-1
-              read(56) field0_vec%data(i)
-           enddo
-        endif
-     else ! node is not on this proc
-        if(icomp.eq.0 .and. icomplex.eq.1) then
+     print *, "does not support globalidnod"
+     call abort();
+!     if(nodeid .ne. -1) then ! this node exists on this proc
+!     write(56) globalid
+!     call m3dc1_ent_getlocaldofid(0, j, num_fields, j, begindofnumber, &
+!          enddofnumberplusone)
+!
+!           call entdofs(num_fields, nodeid, 0, begindofnumber, &
+!                enddofnumberplusone)
+!           do i=begindofnumber,enddofnumberplusone-1
+!              read(56) realtemp
+!              field_vec%data(i) = realtemp
+!           enddo
+!           do i=begindofnumber,enddofnumberplusone-1
+!              read(56) realtemp
+!              field0_vec%data(i) = realtemp
+!           enddo
+!        else
+!           call entdofs(num_fields, nodeid, 0, begindofnumber, &
+!                enddofnumberplusone)
+!          do i=begindofnumber,enddofnumberplusone-1
+!              read(56) field_vec%data(i)
+!           enddo
+!           do i=begindofnumber,enddofnumberplusone-1
+!              read(56) field0_vec%data(i)
+!           enddo
+!        endif
+!     else ! node is not on this proc
+!      if(icomp.eq.0 .and. icomplex.eq.1) then
+!          ! the number of dof values at this node
+!           do i=1,num_fields*6*3 
+!              read(56) realtemp
+!           enddo
+!        else
            ! the number of dof values at this node
-           do i=1,num_fields*6*3 
-              read(56) realtemp
-           enddo
-        else
-           ! the number of dof values at this node
-           do i=1,num_fields*6*3 
-              read(56) tempvariable
-           enddo
-        endif
-     endif
-     read(56) globalid
+!           do i=1,num_fields*6*3 
+!              read(56) tempvariable
+!           enddo
+!        endif
+!     endif
+!     read(56) globalid
   enddo
   
   read(56,END=1199) psimin,psilim,psibound
@@ -441,7 +481,8 @@ subroutine rdrestartglobal
 1199 if(myrank.eq.0) &
           print *, 'Warning: reading from a previous restart version'
 1200 close(56)
-
+  deallocate (data_buff)
+  deallocate (data_buff2)
 #endif
 end subroutine rdrestartglobal
 
@@ -484,21 +525,27 @@ subroutine wrrestart_adios
 
   if(ifirstrs .ne. 1) call rename(fname, oldfname)
 
-  call numdofs(num_fields, ndofs_1)
+  !call numdofs(num_fields, ndofs_1)
+  call m3dc1_field_getnumlocaldof(num_fields, ndofs_1)
   allocate(tmp_field_vec(ndofs_1))
   tmp_field_vec=0.
   allocate(tmp_field0_vec(ndofs_1))
   tmp_field0_vec=0.
-  tmp_field_vec(1:ndofs_1) = field_vec%data(1:ndofs_1)
-  tmp_field0_vec(1:ndofs_1) = field0_vec%data(1:ndofs_1)
+  !tmp_field_vec(1:ndofs_1) = field_vec%data(1:ndofs_1)
+  call m3dc1_field_retrieve (field_vec%id, tmp_field_vec, ndofs_1)
+  !tmp_field0_vec(1:ndofs_1) = field0_vec%data(1:ndofs_1)
+  call m3dc1_field_retrieve (field0_vec%id, tmp_field0_vec, ndofs_1)
 
-  call numdofs(1, ndofs_2)
+  !call numdofs(1, ndofs_2)
+  call m3dc1_field_getnumlocaldof(1, ndofs_2)
   allocate(tmp_bf_field_1(ndofs_2))
   tmp_bf_field_1=0.
   allocate(tmp_bf_field_0(ndofs_2))
   tmp_bf_field_0=0.
-  tmp_bf_field_1(1:ndofs_2)= bf_field(1)%vec%data(1:ndofs_2)
-  tmp_bf_field_0(1:ndofs_2) = bf_field(0)%vec%data(1:ndofs_2)
+  !tmp_bf_field_1(1:ndofs_2)= bf_field(1)%vec%data(1:ndofs_2)
+  call m3dc1_field_retrieve (bf_field(1)%vec%id, tmp_bf_field_1, ndofs_2)
+  !tmp_bf_field_0(1:ndofs_2) = bf_field(0)%vec%data(1:ndofs_2)
+  call m3dc1_field_retrieve (bf_field(0)%vec%id, tmp_bf_field_0, ndofs_2)
 
   allocate(tmp_psi_ext(ndofs_2))
   allocate(tmp_bz_ext(ndofs_2))
@@ -507,9 +554,12 @@ subroutine wrrestart_adios
   tmp_bz_ext=0
   tmp_bf_ext=0
   if(use_external_fields) then
-     tmp_psi_ext(1:ndofs_2)= psi_ext%vec%data(1:ndofs_2)
-     tmp_bz_ext(1:ndofs_2) = bz_ext%vec%data(1:ndofs_2)
-     tmp_bf_ext(1:ndofs_2) = bf_ext%vec%data(1:ndofs_2)
+     !tmp_psi_ext(1:ndofs_2)= psi_ext%vec%data(1:ndofs_2)
+     call m3dc1_field_retrieve (psi_ext%vec%id, tmp_psi_ext, ndofs_2)
+     !tmp_bz_ext(1:ndofs_2) = bz_ext%vec%data(1:ndofs_2)
+     call m3dc1_field_retrieve (bz_ext%vec%id, tmp_bz_ext, ndofs_2)
+     !tmp_bf_ext(1:ndofs_2) = bf_ext%vec%data(1:ndofs_2)
+     call m3dc1_field_retrieve (bf_ext%vec%id, tmp_bf_ext, ndofs_2)
      useext = 1
   else
      useext = 0
@@ -519,9 +569,9 @@ subroutine wrrestart_adios
     call MPI_Comm_dup (MPI_COMM_WORLD, comm, ierr) 
     if( ifirstrs .eq. 1 ) then
 #ifdef USECOMPLEX
-    call adios_init ("m3dc1_cplx.xml", adios_err)
+    call adios_init ("m3dc1_cplx.xml"//char(0), adios_err)
 #else
-    call adios_init ("m3dc1.xml", adios_err)
+    call adios_init ("m3dc1.xml"//char(0), adios_err)
 #endif
     endif
     call adios_open (adios_handle, "restart", fname, "w", comm, adios_err)
@@ -589,9 +639,7 @@ subroutine rdrestart_adios
   integer :: prev_ndofs1_pernode, prev_ndofs2_pernode, cur_ndofs1_pernode, cur_ndofs2_pernode
   integer :: vec_created
  
-  call checkppplveccreated(field_vec%data, vec_created)
-  if(vec_created .eq. 0) print*, "field_vec not created"
-
+  real, dimension(num_fields*12*2):: dofs_node1, dofs_node2, dofs_node3 ! buffer for dofs per node
   group_size = maxrank/nplanes
   local_planeid = myrank/group_size
   group_rank = modulo(myrank, group_size)
@@ -600,8 +648,10 @@ subroutine rdrestart_adios
   oldfname="restarto.bp"
   cur_nnodes = local_nodes()
   cur_nelms = local_elements() 
-  call numdofs(num_fields, cur_ndofs1)
-  call numdofs(1, cur_ndofs2)
+  !call numdofs(num_fields, cur_ndofs1)
+  call m3dc1_field_getnumlocaldof(num_fields, cur_ndofs1)
+  !call numdofs(1, cur_ndofs2)
+  call m3dc1_field_getnumlocaldof(1, cur_ndofs2)
 
   call MPI_Comm_dup (MPI_COMM_WORLD, comm, ierr)
 
@@ -729,7 +779,6 @@ subroutine rdrestart_adios
     readsize = prev_ndofs1 ! number of elements of a type, not bytes!
     
     call adios_read_local_var (gh, "tmp_field_vec", group_rank, start, readsize, tmp_field_vec, read_bytes)
-    call check_vec_nan ("tmp_field_vec",tmp_field_vec,readsize,11)
 
     if (read_bytes .ne. elemsize*prev_ndofs1) then
          write(*,*) '[M3DC1 ERROR] rdrestart_adios: Size mismatch at reading tmp_field_vec! read_bytes-', &
@@ -739,7 +788,6 @@ subroutine rdrestart_adios
     
     call adios_read_local_var (gh, "tmp_field0_vec", group_rank, start, readsize, tmp_field0_vec, read_bytes)
 
-    call check_vec_nan ("tmp_field_vec",tmp_field0_vec,readsize,11)
 
     if (read_bytes .ne. elemsize*prev_ndofs1) then 
          write(*,*) '[M3DC1 ERROR] rdrestart_adios: Size mismatch at reading tmp_field0_vec! read_bytes-', &
@@ -750,7 +798,6 @@ subroutine rdrestart_adios
     readsize = prev_ndofs2 ! number of elements of a type, not bytes!
     
     call adios_read_local_var (gh, "tmp_bf_field_1", group_rank, start, readsize, tmp_bf_field_1, read_bytes)
-    call check_vec_nan ("tmp_field_vec",tmp_bf_field_1,readsize, 1)
 
     if (read_bytes .ne. elemsize*prev_ndofs2) then  
          write(*,*) '[M3DC1 ERROR] rdrestart_adios: Size mismatch at reading tmp_bf_field_1! read_bytes-', &
@@ -759,7 +806,6 @@ subroutine rdrestart_adios
     endif
     
     call adios_read_local_var (gh, "tmp_bf_field_0", group_rank, start, readsize, tmp_bf_field_0, read_bytes)
-    call check_vec_nan ("tmp_bf_field_0",tmp_bf_field_0,readsize, 1)
 
     if (read_bytes .ne. elemsize*prev_ndofs2) then 
          write(*,*) '[M3DC1 ERROR] rdrestart_adios: Size mismatch at reading tmp_bf_field_0! read_bytes-', &
@@ -768,7 +814,6 @@ subroutine rdrestart_adios
     endif
 
     call adios_read_local_var (gh, "tmp_psi_ext", group_rank, start, readsize, tmp_psi_ext, read_bytes)
-    call check_vec_nan ("tmp_psi_ext",tmp_psi_ext,readsize,1)
 
     if (read_bytes .ne. elemsize*prev_ndofs2) then 
          write(*,*) '[M3DC1 ERROR] rdrestart_adios: Size mismatch at reading tmp_psi_ext! read_bytes-', &
@@ -777,7 +822,6 @@ subroutine rdrestart_adios
     endif
 
     call adios_read_local_var (gh, "tmp_bz_ext", group_rank, start, readsize, tmp_bz_ext, read_bytes)
-    call check_vec_nan ("tmp_bz_ext",tmp_bz_ext,readsize,1)
 
     if (read_bytes .ne. elemsize*prev_ndofs2) then 
          write(*,*) '[M3DC1 ERROR] rdrestart_adios: Size mismatch at reading tmp_bz_ext! read_bytes-', &
@@ -786,7 +830,6 @@ subroutine rdrestart_adios
     endif
 
     call adios_read_local_var (gh, "tmp_bf_ext", group_rank, start, readsize, tmp_bf_ext, read_bytes)
-    call check_vec_nan ("tmp_bf_ext", tmp_bf_ext,readsize, 1)
 
     if (read_bytes .ne. elemsize*prev_ndofs2) then 
          write(*,*) '[M3DC1 ERROR] rdrestart_adios: Size mismatch at reading tmp_bf_ext! read_bytes-', &
@@ -803,88 +846,67 @@ subroutine rdrestart_adios
       write(*,*) '[M3DC1 INFO] rdrestart_adios: reading ', fname
 
   if (prev_ndofs1==cur_ndofs1) then
-    field_vec%data(1:prev_ndofs1) = tmp_field_vec(1:prev_ndofs1)
-    field0_vec%data(1:prev_ndofs1) = tmp_field0_vec(1:prev_ndofs1)
+    !field_vec%data(1:prev_ndofs1) = tmp_field_vec(1:prev_ndofs1)
+    call m3dc1_field_set(field_vec%id, tmp_field_vec, prev_ndofs1)
+    !field0_vec%data(1:prev_ndofs1) = tmp_field0_vec(1:prev_ndofs1)
+    call m3dc1_field_set(field0_vec%id, tmp_field0_vec, prev_ndofs1)
   else
-    field_vec%data=0
-    field0_vec%data=0
+    !field_vec%data=0
+    call m3dc1_field_assign(field_vec%id, 0., 0)
+    !field0_vec%data=0
+    call m3dc1_field_assign(field0_vec%id, 0., 0)
     do i=1,prev_nnodes
+       dofs_node1 =0.
+       dofs_node2 =0.
        do j=0, prev_ndofs1_pernode/6-1
           !field_vec
-          field_vec%data((i-1)*cur_ndofs1_pernode+1+j*12:(i-1)*cur_ndofs1_pernode+j*12+6) & 
+          dofs_node1(1+j*12:j*12+6) & 
             = tmp_field_vec((i-1)*prev_ndofs1_pernode+1+j*6:(i-1)*prev_ndofs1_pernode+j*6+6)
-      !field0_vec
-          field0_vec%data((i-1)*cur_ndofs1_pernode+1+j*12:(i-1)*cur_ndofs1_pernode+j*12+6) & 
+          !field0_vec
+          dofs_node2(1+j*12:j*12+6)  & 
             = tmp_field0_vec((i-1)*prev_ndofs1_pernode+1+j*6:(i-1)*prev_ndofs1_pernode+j*6+6)
        end do
+       call m3dc1_ent_setdofdata (0, i-1, field_vec%id, cur_ndofs1_pernode, dofs_node1(1:cur_ndofs1_pernode))
+       call m3dc1_ent_setdofdata (0, i-1, field0_vec%id, cur_ndofs1_pernode, dofs_node2(1:cur_ndofs1_pernode))
     enddo
-   ! do i=prev_nnodes+1, cur_nnodes
-      !field_vec
-   !   field_vec%data((i-1)*cur_ndofs1_pernode+1:(i-1)*cur_ndofs1_pernode+prev_ndofs1_pernode) &
-    !    = 0. !tmp_field_vec((i-prev_nnodes-1)*prev_ndofs1_pernode+1: &
-             !            (i-prev_nnodes-1)*prev_ndofs1_pernode+prev_ndofs1_pernode)
-    !  field_vec%data((i-1)*cur_ndofs1_pernode+prev_ndofs1_pernode+1:(i-1)*cur_ndofs1_pernode+cur_ndofs1_pernode) = 0.
-      !field0_vec
-    !  field0_vec%data((i-1)*cur_ndofs1_pernode+1:(i-1)*cur_ndofs1_pernode+prev_ndofs1_pernode) &
-    !    = 0!tmp_field0_vec((i-prev_nnodes-1)*prev_ndofs1_pernode+1: &
-           !              (i-prev_nnodes-1)*prev_ndofs1_pernode+prev_ndofs1_pernode)
-    !  field0_vec%data((i-1)*cur_ndofs1_pernode+prev_ndofs1_pernode+1:(i-1)*cur_ndofs1_pernode+cur_ndofs1_pernode) = 0.
-   ! enddo
+    call m3dc1_field_printcompnorm(field_vec%id, "field_vec before sync "//char(0))
+    call m3dc1_field_sync (field_vec%id)
+    call m3dc1_field_printcompnorm(field_vec%id, "field_vec after sync "//char(0))
+    call m3dc1_field_printcompnorm(field0_vec%id, "field0_vec before sync "//char(0))
+    call m3dc1_field_sync (field0_vec%id)
+    call m3dc1_field_printcompnorm(field0_vec%id, "field0_vec after sync "//char(0))
   endif
-  if(myrank .eq. 0) print *, "check field_vec"
-  call check_vec_nan ("field_vec",field_vec%data,cur_ndofs1*prev_ndofs1_pernode/cur_ndofs1_pernode, 11*cur_ndofs1_pernode/prev_ndofs1_pernode)
-  call updatesharedppplvecvals (field_vec%data)
-  if(myrank .eq. 0) print *, "check field_vec after updatesharedppplvecvals"
-  call check_vec_nan ("field_vec",field_vec%data,cur_ndofs1, 11*cur_ndofs1_pernode/prev_ndofs1_pernode)
-  if(myrank .eq. 0) print *, "check field0_vec"
-  call check_vec_nan ("field0_vec",field0_vec%data,cur_ndofs1*prev_ndofs1_pernode/cur_ndofs1_pernode, 11*cur_ndofs1_pernode/prev_ndofs1_pernode)
-  call updatesharedppplvecvals (field0_vec%data)
-  if(myrank .eq. 0) print *, "check field0_vec after updatesharedppplvecvals"
-  call check_vec_nan ("field0_vec",field0_vec%data,cur_ndofs1, 11*cur_ndofs1_pernode/prev_ndofs1_pernode)
 
   ! If we are running a linear simulation, but the restart file was
   ! a nonlinear simulation, make the restart data be the equilibrium
   if(linear.eq.1 .and. prev_linear.eq.0) then
-     field0_vec%data = field0_vec%data + field_vec%data
-     field_vec%data = 0.
+     !field0_vec%data = field0_vec%data + field_vec%data
+     call m3dc1_field_add(field0_vec%id, field_vec%id)
+     !field_vec%data = 0.
+     call m3dc1_field_assign (field_vec%id, 0., 0)
   endif 
 
   if (prev_ndofs2==cur_ndofs2) then
-    bf_field(1)%vec%data(1:prev_ndofs2) = tmp_bf_field_1(1:prev_ndofs2)
-    bf_field(0)%vec%data(1:prev_ndofs2) = tmp_bf_field_0(1:prev_ndofs2) 
+    !bf_field(1)%vec%data(1:prev_ndofs2) = tmp_bf_field_1(1:prev_ndofs2)
+    call m3dc1_field_set(bf_field(1)%vec%id, tmp_bf_field_1, prev_ndofs2)
+    !bf_field(0)%vec%data(1:prev_ndofs2) = tmp_bf_field_0(1:prev_ndofs2) 
+    call m3dc1_field_set(bf_field(0)%vec%id, tmp_bf_field_0, prev_ndofs2)
   else
     do i=1,prev_nnodes
+      dofs_node1 =0.
+      dofs_node2 =0.
       !bf_field(1)%vec
-      bf_field(1)%vec%data((i-1)*cur_ndofs2_pernode+1:(i-1)*cur_ndofs2_pernode+prev_ndofs2_pernode) & 
+      dofs_node1(1:prev_ndofs2_pernode)& 
         = tmp_bf_field_1((i-1)*prev_ndofs2_pernode+1:(i-1)*prev_ndofs2_pernode+prev_ndofs2_pernode)
-      bf_field(1)%vec%data((i-1)*cur_ndofs2_pernode+prev_ndofs2_pernode+1:(i-1)*cur_ndofs2_pernode+cur_ndofs2_pernode) = 0.
       !bf_field(0)%vec
-      bf_field(0)%vec%data((i-1)*cur_ndofs2_pernode+1:(i-1)*cur_ndofs2_pernode+prev_ndofs2_pernode) & 
+      dofs_node2(1:prev_ndofs2_pernode)&                                                                     
         = tmp_bf_field_0((i-1)*prev_ndofs2_pernode+1:(i-1)*prev_ndofs2_pernode+prev_ndofs2_pernode)
-      bf_field(0)%vec%data((i-1)*cur_ndofs2_pernode+prev_ndofs2_pernode+1:(i-1)*cur_ndofs2_pernode+cur_ndofs2_pernode) = 0.
+      call m3dc1_ent_setdofdata (0, i-1, bf_field(1)%vec%id, cur_ndofs2_pernode, dofs_node1(1:cur_ndofs2_pernode))
+      call m3dc1_ent_setdofdata (0, i-1, bf_field(0)%vec%id, cur_ndofs2_pernode, dofs_node2(1:cur_ndofs2_pernode))
     enddo
-    !do i=prev_nnodes+1, cur_nnodes
-      !bf_field(1)%vec
-     ! bf_field(1)%vec%data((i-1)*cur_ndofs2_pernode+1:(i-1)*cur_ndofs2_pernode+prev_ndofs2_pernode) &
-      !  = 0. !tmp_bf_field_1((i-prev_nnodes-1)*prev_ndofs2_pernode+1: &
-             !            (i-prev_nnodes-1)*prev_ndofs2_pernode+prev_ndofs2_pernode)
-      !bf_field(1)%vec%data((i-1)*cur_ndofs2_pernode+prev_ndofs2_pernode+1:(i-1)*cur_ndofs2_pernode+cur_ndofs2_pernode) = 0.
-      !bf_field(0)%vec
-      !bf_field(0)%vec%data((i-1)*cur_ndofs2_pernode+1:(i-1)*cur_ndofs2_pernode+prev_ndofs2_pernode) &
-       ! = 0. !tmp_bf_field_0((i-prev_nnodes-1)*prev_ndofs2_pernode+1: &
-             !            (i-prev_nnodes-1)*prev_ndofs2_pernode+prev_ndofs2_pernode)
-      !bf_field(0)%vec%data((i-1)*cur_ndofs2_pernode+prev_ndofs2_pernode+1:(i-1)*cur_ndofs2_pernode+cur_ndofs2_pernode) = 0.
-    !enddo
+    call m3dc1_field_sync (bf_field(0)%vec%id)
+    call m3dc1_field_sync (bf_field(1)%vec%id)
   endif
-  if(myrank .eq. 0) print *, "check bf_field"
-  call check_vec_nan ("bf_field(0)",bf_field(0)%vec%data,cur_ndofs2, cur_ndofs1_pernode/prev_ndofs1_pernode)
-  if(myrank .eq. 0) print *, "check bf_vec after updatesharedppplvecvals"
-  call updatesharedppplvecvals (bf_field(0)%vec%data)
-  call check_vec_nan ("bf_field(0)",bf_field(0)%vec%data,cur_ndofs2, cur_ndofs1_pernode/prev_ndofs1_pernode)
-  if(myrank .eq. 0) print *, "check bf_field(1)"
-  call check_vec_nan ("bf_field(1)",bf_field(1)%vec%data,cur_ndofs2, cur_ndofs1_pernode/prev_ndofs1_pernode)
-  call updatesharedppplvecvals (bf_field(1)%vec%data)
-  call check_vec_nan ("bf_field(1)",bf_field(1)%vec%data,cur_ndofs2, cur_ndofs1_pernode/prev_ndofs1_pernode)
 
   if (prev_useext.eq.1) then 
     use_external_fields = .true.
@@ -892,51 +914,33 @@ subroutine rdrestart_adios
     call create_field(bz_ext)
     call create_field(bf_ext)
     if (prev_ndofs2==cur_ndofs2) then
-      psi_ext%vec%data(1:prev_ndofs2) = tmp_psi_ext(1:prev_ndofs2)
-      bz_ext%vec%data(1:prev_ndofs2) = tmp_bz_ext(1:prev_ndofs2)
-      bf_ext%vec%data(1:prev_ndofs2) = tmp_bf_ext(1:prev_ndofs2)
+      !psi_ext%vec%data(1:prev_ndofs2) = tmp_psi_ext(1:prev_ndofs2)
+      call m3dc1_field_set(psi_ext%vec%id, tmp_psi_ext, prev_ndofs2)
+      !bz_ext%vec%data(1:prev_ndofs2) = tmp_bz_ext(1:prev_ndofs2)
+      call m3dc1_field_set(bz_ext%vec%id, tmp_bz_ext, prev_ndofs2)
+      !bf_ext%vec%data(1:prev_ndofs2) = tmp_bf_ext(1:prev_ndofs2)
+      call m3dc1_field_set(bf_ext%vec%id, tmp_bf_ext, prev_ndofs2)
     else !(prev_ndofs2!=cur_ndofs2)
       do i=1,prev_nnodes
+        dofs_node1 =0.
+        dofs_node2 =0.
+        dofs_node3 =0.
         !psi_ext%vec
-        psi_ext%vec%data((i-1)*cur_ndofs2_pernode+1:(i-1)*cur_ndofs2_pernode+prev_ndofs2_pernode) & 
+        dofs_node1(1:prev_ndofs2_pernode) & 
           = tmp_psi_ext((i-1)*prev_ndofs2_pernode+1:(i-1)*prev_ndofs2_pernode+prev_ndofs2_pernode)
-        psi_ext%vec%data((i-1)*cur_ndofs2_pernode+prev_ndofs2_pernode+1:(i-1)*cur_ndofs2_pernode+cur_ndofs2_pernode) = 0.
         !bz_ext%vec
-        bz_ext%vec%data((i-1)*cur_ndofs2_pernode+1:(i-1)*cur_ndofs2_pernode+prev_ndofs2_pernode) & 
+        dofs_node2(1:prev_ndofs2_pernode) & 
           = tmp_bz_ext((i-1)*prev_ndofs2_pernode+1:(i-1)*prev_ndofs2_pernode+prev_ndofs2_pernode)
-        bz_ext%vec%data((i-1)*cur_ndofs2_pernode+prev_ndofs2_pernode+1:(i-1)*cur_ndofs2_pernode+cur_ndofs2_pernode) = 0.
         !bf_ext%vec
-        bf_ext%vec%data((i-1)*cur_ndofs2_pernode+1:(i-1)*cur_ndofs2_pernode+prev_ndofs2_pernode) & 
+        dofs_node3(1:prev_ndofs2_pernode) &
           = tmp_bf_ext((i-1)*prev_ndofs2_pernode+1:(i-1)*prev_ndofs2_pernode+prev_ndofs2_pernode)
-        bf_ext%vec%data((i-1)*cur_ndofs2_pernode+prev_ndofs2_pernode+1:(i-1)*cur_ndofs2_pernode+cur_ndofs2_pernode) = 0.
+        call m3dc1_ent_setdofdata (0, i-1, psi_ext%vec%id, cur_ndofs2_pernode, dofs_node1(1:cur_ndofs2_pernode))
+        call m3dc1_ent_setdofdata (0, i-1, bz_ext%vec%id, cur_ndofs2_pernode, dofs_node2(1:cur_ndofs2_pernode))
+        call m3dc1_ent_setdofdata (0, i-1, bf_ext%vec%id, cur_ndofs2_pernode, dofs_node3(1:cur_ndofs2_pernode))
       enddo
-      do i=prev_nnodes+1, cur_nnodes
-        !psi_ext%vec
-        psi_ext%vec%data((i-1)*cur_ndofs2_pernode+1:(i-1)*cur_ndofs2_pernode+prev_ndofs2_pernode) &
-          = 0. !tmp_psi_ext((i-prev_nnodes-1)*prev_ndofs2_pernode+1: &
-              !          (i-prev_nnodes-1)*prev_ndofs2_pernode+prev_ndofs2_pernode)
-        psi_ext%vec%data((i-1)*cur_ndofs2_pernode+prev_ndofs2_pernode+1:(i-1)*cur_ndofs2_pernode+cur_ndofs2_pernode) = 0.
-        !bz_ext%vec
-        bz_ext%vec%data((i-1)*cur_ndofs2_pernode+1:(i-1)*cur_ndofs2_pernode+prev_ndofs2_pernode) &
-          = 0. !tmp_bz_ext((i-prev_nnodes-1)*prev_ndofs2_pernode+1: &
-               !         (i-prev_nnodes-1)*prev_ndofs2_pernode+prev_ndofs2_pernode)
-        bz_ext%vec%data((i-1)*cur_ndofs2_pernode+prev_ndofs2_pernode+1:(i-1)*cur_ndofs2_pernode+cur_ndofs2_pernode) = 0.
-        !bf_ext%vec
-        bf_ext%vec%data((i-1)*cur_ndofs2_pernode+1:(i-1)*cur_ndofs2_pernode+prev_ndofs2_pernode) &
-          = 0.!tmp_bf_ext((i-prev_nnodes-1)*prev_ndofs2_pernode+1: &
-              !          (i-prev_nnodes-1)*prev_ndofs2_pernode+prev_ndofs2_pernode)
-        bf_ext%vec%data((i-1)*cur_ndofs2_pernode+prev_ndofs2_pernode+1:(i-1)*cur_ndofs2_pernode+cur_ndofs2_pernode) = 0.
-      enddo
-      if(myrank .eq. 0) print *, "check psi_ext"
-      call check_vec_nan ("psi_ext",psi_ext%vec%data,cur_ndofs2,cur_ndofs1_pernode/prev_ndofs1_pernode)
-      if(myrank .eq. 0) print *, "check psi_ext after updatesharedppplvecvals"
-      call updatesharedppplvecvals (psi_ext%vec%data)
-      call check_vec_nan("psi_ext",psi_ext%vec%data,cur_ndofs2,cur_ndofs1_pernode/prev_ndofs1_pernode)
-      if(myrank .eq. 0) print *, "check bf_ext"
-      call check_vec_nan ("bf_ext",bf_ext%vec%data,cur_ndofs2, cur_ndofs1_pernode/prev_ndofs1_pernode)
-      if(myrank .eq. 0) print *, "check bf_ext after updatesharedppplvecvals"
-      call updatesharedppplvecvals (bf_ext%vec%data)
-      call check_vec_nan("bf_ext",bf_ext%vec%data,cur_ndofs2,cur_ndofs1_pernode/prev_ndofs1_pernode)
+      call m3dc1_field_sync (psi_ext%vec%id)
+      call m3dc1_field_sync (bz_ext%vec%id)
+      call m3dc1_field_sync (bf_ext%vec%id)
     endif !if (prev_ndofs2==cur_ndofs2) then
   end if !if (prev_useext.eq.1) 
 
@@ -944,37 +948,3 @@ subroutine rdrestart_adios
        tmp_psi_ext, tmp_bz_ext, tmp_bf_ext) 
 #endif
 end subroutine rdrestart_adios
-
-#ifdef USEADIOS
-subroutine check_vec_nan(info, vec, len, num_comp)
-  implicit none
-  include 'mpif.h'
-  integer :: len, num_comp
-  real, dimension(len) :: vec
-  integer :: i, j, k
-  character, dimension(20) :: info 
-  integer :: myrank, ier, psize
-  real, dimension(num_comp) :: norm, buff
-  norm =0
-  call MPI_Comm_rank(MPI_COMM_WORLD, myrank, ier)
-  do i=1, len
-     if(vec(i) .ne. vec(i)) then
-       print *, "Warning! NaN in vec ",info, i,vec(i), myrank 
-!      call safestop(2)
-     end if
-  end do
-
-  j=1
-  do i=1, len/6
-     do k=1,6
-        norm(j)=norm(j)+vec((i-1)*6+k)**2
-     end do
-     j=j+1
-     if(j.gt.num_comp) j=j-num_comp
-  end do
-  buff=norm
-  call mpi_allreduce(buff,norm, num_comp,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD,ier)
-  call MPI_comm_size(MPI_COMM_WORLD,psize,ier)
-  if(myrank .eq. psize-1) print *, "norm of vec ",info,sqrt(norm)
-end subroutine check_vec_nan
-#endif

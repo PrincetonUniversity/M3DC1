@@ -711,6 +711,8 @@ subroutine set_defaults
        "", mesh_grp)
   call add_var_int("ipartitioned",ipartitioned,0,&
        "1 = the input mesh is partitioned", mesh_grp)
+  call add_var_int("imatassemble", imatassemble, 0, &
+       "0: use scorec matrix parallel assembly; 1 use petsc", mesh_grp)
 
   call add_var_int("imulti_region", imulti_region, 0, &
        "1 = Mesh has multiple physical regions", mesh_grp)
@@ -825,11 +827,6 @@ subroutine validate_input
       if(myrank.eq.0) print *, "ERROR:  must use real version of code for iadapt.gt.0"
       call safestop(1)
 #endif
-      if(maxrank.ne.1)  then
-         if(myrank.eq.0) &
-              print *, 'ERROR: mesh adapt only implemented for 1 process.'
-         call safestop(1)
-      end if
    endif
 
   if(ifout.eq.-1) ifout = i3d

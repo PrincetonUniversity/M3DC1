@@ -85,9 +85,9 @@ contains
     ! assign the proper reference indicies to each matrix
     call set_newvar_indices
 
-    call create_newvar_matrix(mass_mat_lhs_dc, NV_DCBOUND,NV_I_MATRIX, .true.)
-    call create_newvar_matrix(mass_mat_lhs,    NV_NOBOUND,NV_I_MATRIX, .true.)
-    call create_newvar_matrix(gs_mat_rhs_dc,   NV_DCBOUND,NV_GS_MATRIX,.false.)
+    call create_newvar_matrix(mass_mat_lhs_dc, NV_DCBOUND,NV_I_MATRIX, 1)
+    call create_newvar_matrix(mass_mat_lhs,    NV_NOBOUND,NV_I_MATRIX, 1)
+    call create_newvar_matrix(gs_mat_rhs_dc,   NV_DCBOUND,NV_GS_MATRIX, 0)
 #ifdef CJ_MATRIX_DUMP
     print *, "create_mat newvar mass_mat_lhs_dc", mass_mat_lhs_dc%mat%imatrix
     print *, "create_mat newvar mass_mat_lhs",    mass_mat_lhs%mat%imatrix     
@@ -95,19 +95,19 @@ contains
 #endif 
 
     if(inocurrent_tor.eq.0) then 
-       call create_newvar_matrix(gs_mat_rhs,  NV_NOBOUND,NV_GS_MATRIX,.false.)
+       call create_newvar_matrix(gs_mat_rhs,  NV_NOBOUND,NV_GS_MATRIX, 0)
     endif
 
     if(hyperc.ne.0) then
-       call create_newvar_matrix(s5_mat, NV_SVBOUND, NV_SV_MATRIX, .true.)
-       call create_newvar_matrix(d5_mat, NV_SVBOUND, NV_SV_MATRIX, .false.)
+       call create_newvar_matrix(s5_mat, NV_SVBOUND, NV_SV_MATRIX, 1)
+       call create_newvar_matrix(d5_mat, NV_SVBOUND, NV_SV_MATRIX, 0)
 #ifdef CJ_MATRIX_DUMP
        print *, "create_mat newvar s5_mat", s5_mat%mat%imatrix     
        print *, "create_mat newvar d5_mat", d5_mat%mat%imatrix     
 #endif 
        if(numvar.ge.3) then
-          call create_newvar_matrix(s7_mat, NV_SCBOUND, NV_SC_MATRIX, .true.)
-          call create_newvar_matrix(d7_mat, NV_SCBOUND, NV_SC_MATRIX, .false.)
+          call create_newvar_matrix(s7_mat, NV_SCBOUND, NV_SC_MATRIX, 1)
+          call create_newvar_matrix(d7_mat, NV_SCBOUND, NV_SC_MATRIX, 0)
 #ifdef CJ_MATRIX_DUMP
           print *, "create_mat newvar s7_mat", s7_mat%mat%imatrix     
           print *, "create_mat newvar d7_mat", d7_mat%mat%imatrix     
@@ -115,12 +115,12 @@ contains
        endif
 
        if(numvar.ge.3 .and. com_bc.eq.0) then
-          call create_newvar_matrix(lp_mat_rhs,NV_NOBOUND,NV_LP_MATRIX,.false.)
+          call create_newvar_matrix(lp_mat_rhs,NV_NOBOUND,NV_LP_MATRIX, 0)
 #ifdef CJ_MATRIX_DUMP
           print *, "create_mat newvar lp_mat_rhs", lp_mat_rhs%mat%imatrix     
 #endif 
        else
-          call create_newvar_matrix(lp_mat_rhs_dc,NV_DCBOUND,NV_LP_MATRIX,.false.)
+          call create_newvar_matrix(lp_mat_rhs_dc,NV_DCBOUND,NV_LP_MATRIX,0)
 #ifdef CJ_MATRIX_DUMP
           print *, "create_mat newvar lp_mat_rhs_dc", lp_mat_rhs_dc%mat%imatrix     
 #endif 
@@ -129,9 +129,9 @@ contains
 
     if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
        call create_newvar_matrix(bf_mat_lhs, &
-            NV_DCBOUND, NV_BF_MATRIX, .true.)
+            NV_DCBOUND, NV_BF_MATRIX, 1)
        call create_newvar_matrix(mass_mat_rhs_bf, NV_DCBOUND, &
-            NV_I_MATRIX,  .false.)
+            NV_I_MATRIX,  0)
 #ifdef CJ_MATRIX_DUMP
        print *, "create_mat newvar bf_mat_lhs", bf_mat_lhs%mat%imatrix     
        print *, "create_mat newvar mass_mat_rhs_bf", mass_mat_rhs_bf%mat%imatrix     
@@ -139,8 +139,8 @@ contains
     endif
 
     if(jadv.eq.1 .and. hyper.ne.0. .and. imp_hyper.eq.0) then
-       call create_newvar_matrix(s10_mat, NV_SJBOUND, NV_SJ_MATRIX, .true.)
-       call create_newvar_matrix(d10_mat, NV_SJBOUND, NV_SJ_MATRIX, .false.)
+       call create_newvar_matrix(s10_mat, NV_SJBOUND, NV_SJ_MATRIX, 1)
+       call create_newvar_matrix(d10_mat, NV_SJBOUND, NV_SJ_MATRIX, 0)
 #ifdef CJ_MATRIX_DUMP
        print *, "create_mat newvar s10_mat", s10_mat%mat%imatrix     
        print *, "create_mat newvar d10_mat", d10_mat%mat%imatrix     
@@ -148,7 +148,7 @@ contains
     endif
 
     if(igs.ne.0) then
-       call create_newvar_matrix(mass_mat_rhs,NV_NOBOUND,NV_I_MATRIX, .false.)
+       call create_newvar_matrix(mass_mat_rhs,NV_NOBOUND,NV_I_MATRIX, 0)
 #ifdef CJ_MATRIX_DUMP
        print *, "create_mat newvar mass_mat_rhs", mass_mat_rhs%mat%imatrix     
 #endif 
@@ -207,7 +207,7 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs)
   type(newvar_matrix), intent(out) :: mat
   integer, intent(in) :: ibound
   integer, intent(in) :: itype
-  logical, intent(in) :: is_lhs
+  integer, intent(in) :: is_lhs
 
   integer :: numelms, itri, i, j, m, n, isize
   vectype, allocatable :: temp(:,:,:,:)
@@ -262,7 +262,7 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs)
               temp(i,j,1,1) = int3(r2_79,mu79(:,OP_1,i),nu79(:,OP_LP,j))
 
            case(NV_SJ_MATRIX)
-              if(is_lhs) then
+              if(is_lhs .eq. 1) then
                  temp(i,j,1,1) = int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
                  temp(i,j,1,2) = -thimpsm*int2(mu79(:,OP_1,i),nu79(:,OP_GS,j))
                  temp(i,j,2,1) = dt*hypf*int2(mu79(:,OP_1,i),nu79(:,OP_GS,j))
@@ -274,7 +274,7 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs)
               end if
 
            case(NV_SV_MATRIX)
-              if(is_lhs) then
+              if(is_lhs .eq. 1) then
                  temp(i,j,1,1) =  int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
                  temp(i,j,1,2) = -int2(mu79(:,OP_1,i),nu79(:,OP_GS,j))
                  temp(i,j,2,1) = dt*hyp*thimpsm* &
@@ -288,7 +288,7 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs)
               end if
 
            case(NV_SC_MATRIX)
-              if(is_lhs) then
+              if(is_lhs .eq. 1) then
                  temp(i,j,1,1) =  int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
                  temp(i,j,1,2) = -int2(mu79(:,OP_1,i),nu79(:,OP_LP,j))
                  temp(i,j,2,1) = dt*hyp*thimpsm* &
@@ -338,7 +338,7 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs)
   deallocate(temp)
 
   ! apply boundary conditions
-  if(is_lhs .and. ibound.ne.NV_NOBOUND) then
+  if(is_lhs .eq. 1 .and. ibound.ne.NV_NOBOUND) then
      if(myrank.eq.0 .and. iprint.ge.2) print *, ' applying bcs...'
      call flush(mat%mat)
      call create_vector(rhs2, isize)

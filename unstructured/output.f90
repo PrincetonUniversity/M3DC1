@@ -1244,8 +1244,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
             coeffs_per_element,nelms, error)
        nfields = nfields + 1
 #endif
-
-
     endif    ! on itemp_plot .eq. 1
     
     ! sigma
@@ -1277,7 +1275,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
             coeffs_per_element, nelms, error)
        nfields = nfields + 1
     endif
-
+    
     ! current drive source
     if(icd_source.gt.0) then
        do i=1, nelms
@@ -1287,7 +1285,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
             coeffs_per_element, nelms, error)
        nfields = nfields + 1
     endif
-    
     
     if(xray_detector_enabled.eq.1) then 
        ! chord_mask

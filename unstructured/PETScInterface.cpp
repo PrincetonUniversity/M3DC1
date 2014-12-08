@@ -1,7 +1,6 @@
 //#include "/p/tsc/m3dc1/lib/develop.newCompiler.constraint/mctk/Examples/PPPL/PPPL/Matrix.h"
 //#include "/p/tsc/m3dc1/lib/develop.newCompiler.constraint/mctk/Examples/PPPL/PPPL/MatrixInterface.h"
 //#include "/p/tsc/m3dc1/lib/develop.newCompiler.petscDev/mctk/Examples/PPPL/PPPL/MatrixInterface.h"
-#include <MatrixInterface.h>
 #include <petsc.h>
 #include <petscmat.h>
 #include <petscksp.h>
@@ -56,7 +55,9 @@ enum FortranMatrixID {
   q10matrix_sm = 26,
   r10matrix_sm = 27
 };
-
+// remove later
+extern "C" int setPETScMat(int matrixid, Mat * A) {}
+extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A){}
 /* 
    below sets the Superlu_Dist Solver options May 02, 2011
 */
@@ -65,78 +66,6 @@ int setSuperluOptions(int matrixid, superlu_options_t * options) {
 //    PetscPrintf(PETSC_COMM_WORLD, "\tsetSuperluOptions to ConditionNumber = YES\n");
   return 0;
 }
-
-/* 
-   below sets the PETSc matrix type for the matrix with id "matrixid"
-   PETSc documentation is available at 
-   http://www-unix.mcs.anl.gov/petsc/petsc-as/documentation/index.html
-*/
-extern "C" int setPETScMat(int matrixid, Mat * A) {
-  PetscErrorCode ierr;
-//PetscInt ipetscmpiaij =1;
-//PetscInt ipetscsuperlu=0;
-
-//PetscOptionsGetInt(PETSC_NULL,"-ipetscsuperlu",&ipetscsuperlu,PETSC_NULL);
-//if(ipetscsuperlu) ipetscmpiaij=0;
-
-//if(ipetscmpiaij) {  /* create default distributed matrix type  */
-    ierr = MatSetType(*A, MATMPIAIJ);CHKERRQ(ierr);
-    PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScMat %d to MATMPIAIJ\n", matrixid); 
-//}
-//else {  /* create specialized matrix for SuperLU/SuperLU_DIST */
-//  ierr = MatSetType(*A, MATSUPERLU_DIST);CHKERRQ(ierr);
-//  PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScMat %d to MATSUPERLU_DIST\n", matrixid); 
-//}
-    ierr = MatSetFromOptions(*A);CHKERRQ(ierr); 
-  return 0;
-}
-
-/* 
-   below sets the PETSc options for the solver for matrix with id "matrixid"
-   PETSc documentation is available at 
-   http://www-unix.mcs.anl.gov/petsc/petsc-as/documentation/index.html
-*/
-extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A) {
-  PetscErrorCode ierr;
-  ierr = KSPCreate(MPI_COMM_WORLD, ksp);CHKERRQ(ierr);
-#ifdef PetscOLD
-  ierr = KSPSetOperators(*ksp, *A, *A, SAME_PRECONDITIONER /*DIFFERENT_NONZERO_PATTERN*/);CHKERRQ(ierr);
-#else
-  ierr = KSPSetOperators(*ksp, *A, *A/*, SAME_PRECONDITIONER DIFFERENT_NONZERO_PATTERN*/);CHKERRQ(ierr);
-#endif
-  ierr = KSPSetTolerances(*ksp, .000001, .000000001, 
-			  PETSC_DEFAULT, PETSC_DEFAULT);CHKERRQ(ierr);
-  ierr = KSPSetFromOptions(*ksp);CHKERRQ(ierr);
-  PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScKSP for %d\n", matrixid); 
-
-  PetscInt m, n;
-  ierr = MatGetSize(*A, &m, &n);CHKERRQ(ierr);
-  PetscPrintf(PETSC_COMM_WORLD, "\tMatGetSize for %d: %d %d\n", matrixid, m, n); 
-
-/*
-  PetscPrintf(PETSC_COMM_WORLD, "\tMy own Ax=b\n");
-  Vec b, x, x0;
-  PetscReal      norm;
-  ierr = MatGetVecs(*A, &b, &x);CHKERRQ(ierr);
-  ierr = VecSet(x, 0.);CHKERRQ(ierr);
-  ierr = VecDuplicate(x, &x0);CHKERRQ(ierr);
-  ierr = VecSet(x0, 1.);CHKERRQ(ierr);
-  ierr = MatMult(*A, x0, b);CHKERRQ(ierr);
-  ierr = KSPSolve(*ksp,b,x);CHKERRQ(ierr);
-  ierr = VecNorm(x,NORM_1,&norm);CHKERRQ(ierr);
-  ierr = PetscPrintf(PETSC_COMM_WORLD,"Ax=b: %e\n",norm/PetscReal(m));CHKERRQ(ierr);
-
-  PetscViewer    fd;
-  PetscViewerBinaryOpen(PETSC_COMM_WORLD,"A22.dat",FILE_MODE_WRITE,&fd);
-  MatView(*A, fd);
-  VecView(b, fd);
-  PetscViewerDestroy(&fd);
-  exit(1);
-*/
-
-  return 0;
-}
-
 
 /*
    dec 1, 2010 cj
@@ -728,7 +657,7 @@ int hybridsolve_(int *matrixId, double *rhs_sol, int *valType, int *ier)
 
 
 
-
+#ifdef CJPRINT
 int cjprint_(int *matrixId)
 { // local variables
   static int start=0, myrank, mysize;
@@ -823,3 +752,4 @@ int cjprint_(int *matrixId)
                         exit(1);
   return 0;
 }
+#endif

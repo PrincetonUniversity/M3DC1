@@ -2,8 +2,8 @@ module scorec_vector_mod
   use element
 
   type scorec_vector
-     vectype, allocatable :: data(:)
      integer :: isize
+     integer :: id
   end type scorec_vector
 
   integer, parameter :: VEC_SET = 0
@@ -130,7 +130,8 @@ contains
     integer, intent(out) :: ind
 
     integer :: ibegin, iendplusone
-    call entdofs(isize, inode, 0, ibegin, iendplusone)
+    call m3dc1_ent_getlocaldofid(0, inode-1, isize, ibegin,iendplusone)
+    ibegin = ibegin + 1
     ind = ibegin + (iplace-1)*dofs_per_node
   end subroutine scorec_vector_get_node_index
 
@@ -147,7 +148,7 @@ contains
     integer, intent(out) :: ind
 
     integer :: ibegin, iendplusone
-    call globalentdofs(isize, inode, 0, ibegin, iendplusone)
+    call m3dc1_ent_getglobaldofid(0, inode-1, isize, ibegin,iendplusone)
     ind = ibegin + (iplace-1)*dofs_per_node
   end subroutine scorec_vector_get_global_node_index
 
@@ -165,7 +166,8 @@ contains
     integer, intent(out), dimension(isize,dofs_per_node) :: ind
 
     integer :: ibegin, iendplusone, i, j
-    call entdofs(isize, inode, 0, ibegin, iendplusone)
+    call m3dc1_ent_getlocaldofid(0, inode-1, isize, ibegin,iendplusone)
+    ibegin = ibegin +1
     do i=1, isize
        do j=1, dofs_per_node
           ind(i,j) = ibegin + (i-1)*dofs_per_node + j - 1
@@ -187,7 +189,8 @@ contains
     integer, intent(out), dimension(isize,dofs_per_node) :: ind
 
     integer :: ibegin, iendplusone, i, j
-    call globalentdofs(isize, inode, 0, ibegin, iendplusone)
+    call m3dc1_ent_getglobaldofid(0, inode-1, isize, ibegin,iendplusone)
+    ibegin = ibegin + 1
     do i=1, isize
        do j=1, dofs_per_node
           ind(i,j) = ibegin + (i-1)*dofs_per_node + j - 1
@@ -208,24 +211,7 @@ contains
 
     type(scorec_vector), intent(inout) :: v1
     type(scorec_vector), intent(in) :: v2
-
-    integer :: numnodes, i1, i2, dofs, i
-
-    if(.not.allocated(v1%data)) print *, 'Error: vector not allocated'
-    if(.not.allocated(v2%data)) print *, 'Error: vector not allocated'
-
-    if(v1%isize.eq.v2%isize) then
-       v1%data = v1%data + v2%data
-    else
-       numnodes = local_nodes()
-       dofs = min(v1%isize, v2%isize)*dofs_per_node
-
-       do i=1, numnodes
-          i1 = node_index(v2, i, 1)
-          i2 = node_index(v2, i, 1)
-          v1%data(i1:i1+dofs-1) = v1%data(i1:i1+dofs-1) + v2%data(i2:i2+dofs-1)
-       end do
-    endif
+    call m3dc1_field_add (v1%id, v2%id)
   end subroutine scorec_vector_add
 
   subroutine scorec_vector_multiply_real(v, s)
@@ -233,9 +219,7 @@ contains
 
     type(scorec_vector), intent(inout) :: v
     real :: s
-
-    if(.not.allocated(v%data)) print *, 'Error: vector not allocated'
-    v%data = v%data * s
+    call m3dc1_field_mult(v%id, s, 0)
   end subroutine scorec_vector_multiply_real
 
 #ifdef USECOMPLEX
@@ -244,9 +228,7 @@ contains
 
     type(scorec_vector), intent(inout) :: v
     complex :: s
-
-    if(.not.allocated(v%data)) print *, 'Error: vector not allocated'
-    v%data = v%data * s
+    call m3dc1_field_mult(v%id, s, 1)
   end subroutine scorec_vector_multiply_complex
 #endif
 
@@ -261,9 +243,7 @@ contains
 
     type(scorec_vector), intent(inout) :: v
     real, intent(in) :: s
-
-    if(.not.allocated(v%data)) print *, 'Error: vector not allocated'
-    v%data = s
+    call m3dc1_field_assign(v%id, s, 0)
   end subroutine scorec_vector_const_real
 
 
@@ -279,7 +259,8 @@ contains
     integer :: izone, izonedim
     real :: normal(2), curv, x, z
     vectype, dimension(dofs_per_node) :: temp1, temp2
-    integer :: index
+    vectype, dimension(v%isize*dofs_per_node) :: dofs
+    integer :: index, numDofs
     logical :: r
 
     if(present(rotate)) then 
@@ -287,11 +268,15 @@ contains
     else 
        r = .true.
     end if
-
-    call get_node_index(inode, iplace, v%isize, index)
+    call m3dc1_ent_getdofdata ( 0, inode-1, v%id, numDofs, dofs)
+    if(numDofs .ne. v%isize*dofs_per_node) then
+       print *, "Error scorec_vector_get_node_data_real"
+       call safestop(1)
+    end if
+    index = 1+(iplace-1)*dofs_per_node
 
     if(r) then
-       temp1 = v%data(index:index+dofs_per_node-1)
+       temp1 = dofs(index:index+dofs_per_node-1)
 
        ! if node is on boundary, rotate data from n,t to R,Z
        call boundary_node(inode, is_boundary, izone, izonedim, &
@@ -303,7 +288,7 @@ contains
           data = temp1
        end if
     else
-       data = v%data(index:index+dofs_per_node-1)
+       data = dofs(index:index+dofs_per_node-1)
     endif
 
   end subroutine scorec_vector_get_node_data_real
@@ -323,7 +308,8 @@ contains
     integer :: izone, izonedim
     real :: normal(2), curv, x, z
     vectype, dimension(dofs_per_node) :: temp1, temp2   
-    integer :: index
+    vectype, dimension(v%isize*dofs_per_node) :: dofs
+    integer :: index, numDofs
     logical :: r
 
     if(present(rotate)) then 
@@ -332,10 +318,11 @@ contains
        r = .true.
     end if
 
-    call get_node_index(inode, iplace, v%isize, index)
+    call m3dc1_ent_getdofdata ( 0, inode-1, v%id, numDofs, dofs)
+    index = 1+(iplace-1)*dofs_per_node
 
     if(r) then
-       temp1 = v%data(index:index+dofs_per_node-1)
+       temp1 = dofs(index:index+dofs_per_node-1)
 
        ! if node is on boundary, rotate data from n,t to R,Z
        call boundary_node(inode, is_boundary, izone, izonedim, &
@@ -347,7 +334,7 @@ contains
           data = temp1
        end if
     else
-       data = v%data(index:index+dofs_per_node-1)
+       data = dofs(index:index+dofs_per_node-1) 
     endif
   end subroutine scorec_vector_get_node_data_complex
 #endif
@@ -364,17 +351,19 @@ contains
     integer :: izone, izonedim
     real :: normal(2), curv, x, z
     vectype, dimension(dofs_per_node) :: temp1, temp2
-    integer :: index
+
+    vectype, dimension(v%isize*dofs_per_node) :: dofs
+    integer :: index, numDofs
     logical :: r
 
-    if(present(rotate)) then 
+    numDofs = v%isize*dofs_per_node
+    if(present(rotate)) then
        r = rotate
-    else 
+    else
        r = .true.
     end if
-
-    call get_node_index(inode, iplace, v%isize, index)
-
+    index = 1+(iplace-1)*dofs_per_node
+    call m3dc1_ent_getdofdata ( 0, inode-1, v%id, numDofs, dofs)
     ! if node is on boundary, rotate data from R,Z to n,t
     if(r) then
        call boundary_node(inode, is_boundary, izone, izonedim, &
@@ -382,13 +371,15 @@ contains
        if(is_boundary) then
           temp1 = data
           call rotate_dofs(temp1, temp2, normal, curv, 1)
-          v%data(index:index+dofs_per_node-1) = temp2
+          dofs(index:index+dofs_per_node-1) = temp2
+          !call m3dc1_ent_setdofdata ( 0, inode-1, v%id, numDofs, dofs)
        else
-          v%data(index:index+dofs_per_node-1) = data
+          dofs(index:index+dofs_per_node-1) = data
        endif
     else
-       v%data(index:index+dofs_per_node-1) = data
+       dofs(index:index+dofs_per_node-1) = data
     endif
+    call m3dc1_ent_setdofdata ( 0, inode-1, v%id, numDofs, dofs)
   end subroutine scorec_vector_set_node_data_real
 
 #ifdef USECOMPLEX
@@ -404,7 +395,8 @@ contains
     integer :: izone, izonedim
     real :: normal(2), curv, x, z
     vectype, dimension(dofs_per_node) :: temp1, temp2    
-    integer :: index
+    vectype, dimension(v%isize*dofs_per_node) :: dofs
+    integer :: index, numDofs
     logical :: r
 
     if(present(rotate)) then 
@@ -412,9 +404,9 @@ contains
     else 
        r = .true.
     end if
-
-    call get_node_index(inode, iplace, v%isize, index)
-
+    numDofs = v%isize*dofs_per_node
+    index = 1+(iplace-1)*dofs_per_node
+    call m3dc1_ent_getdofdata ( 0, inode-1, v%id, numDofs, dofs)
     if(r) then
        ! if node is on boundary, rotate data from R,Z to n,t
        call boundary_node(inode, is_boundary, izone, izonedim, &
@@ -422,13 +414,14 @@ contains
        if(is_boundary) then
           temp1 = data
           call rotate_dofs(temp1, temp2, normal, curv, 1)
-          v%data(index:index+dofs_per_node-1) = temp2
+          dofs(index:index+dofs_per_node-1) = temp2
        else
-          v%data(index:index+dofs_per_node-1) = data
+          dofs(index:index+dofs_per_node-1) = data
        endif
     else
-       v%data(index:index+dofs_per_node-1) = data
+       dofs(index:index+dofs_per_node-1) = data
     end if
+    call m3dc1_ent_setdofdata ( 0, inode-1, v%id, numDofs, dofs)
   end subroutine scorec_vector_set_node_data_complex
 #endif
 
@@ -446,22 +439,7 @@ contains
 
     type(scorec_vector), intent(inout) :: vout    
     type(scorec_vector), intent(in) :: vin
-    
-    integer :: numnodes, dofs, iin, iout, i
-
-    if(vin%isize .ne. vout%isize) then
-       numnodes = local_nodes()
-       dofs = min(vin%isize, vout%isize)*dofs_per_node
-
-       do i=1, numnodes
-          iin = node_index(vin, i, 1)
-          iout = node_index(vout, i, 1)
-          vout%data(iout:iout+dofs-1) = vin%data(iin:iin+dofs-1)
-       end do
-    else
-       vout%data = vin%data
-    endif
-
+    call m3dc1_field_copy(vout%id, vin%id)  
   end subroutine scorec_vector_copy
 
   !======================================================================
@@ -475,16 +453,7 @@ contains
     type(scorec_vector), intent(inout) :: v
     real, intent(in) :: s
     integer, intent(in) :: i, iop
-
-    if(.not.allocated(v%data)) print *, 'Error: vector not allocated'
-    select case(iop)
-    case(VEC_SET)
-       v%data(i) = s
-    case(VEC_ADD)
-       v%data(i) = v%data(i) + s
-    case default
-       print *, 'Error: invalid vector operation'
-    end select
+    call m3dc1_field_insert (v%id, i-1, 1, s, 0, iop) 
   end subroutine scorec_vector_insert_real
 
 #ifdef USECOMPLEX
@@ -494,16 +463,7 @@ contains
     type(scorec_vector), intent(inout) :: v
     complex, intent(in) :: s
     integer, intent(in) :: i, iop
-
-    if(.not.allocated(v%data)) print *, 'Error: vector not allocated'
-    select case(iop)
-    case(VEC_SET)
-       v%data(i) = s
-    case(VEC_ADD)
-       v%data(i) = v%data(i) + s
-    case default
-       print *, 'Error: invalid vector operation'
-    end select
+    call m3dc1_field_insert (v%id, i-1, 1, s, 1,iop)
   end subroutine scorec_vector_insert_complex
 
 #endif 
@@ -519,16 +479,15 @@ contains
     type(scorec_vector), intent(inout) :: f
     integer, intent(in) :: n
     integer :: ndof
-
-    call numdofs(n, ndof)
-    allocate(f%data(ndof))
-
+    integer :: dataType
+    character(len=32) :: field_name
+    call m3dc1_field_genid (f%id)
+    write(field_name,"(I0,A)") f%id, 0
+    dataType = 0
 #ifdef USECOMPLEX
-    call createppplvec(f%data, n, 1)
-#else
-    call createppplvec(f%data, n, 0)
+    dataType = 1
 #endif
-    f%data = 0.
+    call m3dc1_field_create (f%id, trim(field_name), n, dataType, dofs_per_node);
     f%isize = n
   end subroutine scorec_vector_create
 
@@ -543,10 +502,9 @@ contains
     type(scorec_vector), intent(inout) :: f
     integer :: i
 
-    call checkppplveccreated(f%data, i)
+    call m3dc1_field_exist(f%id, i)
     if(i .ne. 0) then
-       call deleteppplvec(f%data)
-       deallocate(f%data)
+       call m3dc1_field_delete(f%id)
     endif
   end subroutine scorec_vector_destroy
 
@@ -590,13 +548,16 @@ contains
   logical function scorec_vector_is_nan(v)
     implicit none
     type(scorec_vector) :: v
-
-    scorec_vector_is_nan = v%data(1).ne.v%data(1)
+    integer :: isnan
+    call m3dc1_field_isnan(v%id, isnan)
+    scorec_vector_is_nan = isnan 
+    if(isnan .ne. 0) scorec_vector_is_nan = .true. 
   end function scorec_vector_is_nan
 
   subroutine scorec_vector_finalize(v)
     implicit none
     type(scorec_vector) :: v
+    call m3dc1_field_sync (v%id)
   end subroutine scorec_vector_finalize
 
 
@@ -604,7 +565,7 @@ contains
     implicit none
     type(scorec_vector) :: v
 
-    call sumsharedppplvecvals(v%data)
+    call m3dc1_field_sum(v%id)
   end subroutine scorec_vector_sum_shared
 
 
@@ -612,11 +573,8 @@ contains
     implicit none
     type(scorec_vector), intent(in) :: v
     character(len=*) :: file    
-
-    open(unit=29, file=file, status='unknown')
-    write(29, '(1e20.10)') v%data
-    close(29)
-
+    print *, "not implement scorec_vector_write"
+    call safestop(1)
   end subroutine scorec_vector_write
 
 

@@ -147,7 +147,7 @@ contains
    integer, intent(in) :: ipole                ! type of field to add
    integer, intent(out) :: ierr
 
-   integer :: i, numnodes, k, ier, itmp
+   integer :: i, numnodes, k, ier, itmp, icounter_t
    real :: x, phi, z
    real, dimension(nc) :: xp, zp
    real, dimension(dofs_per_node,maxfilaments) :: g
@@ -155,8 +155,8 @@ contains
 
    numnodes = owned_nodes()
    g = 0.
-   do i=1,numnodes
-     
+   do icounter_t=1,numnodes
+      i = nodes_owned(icounter_t) 
       call get_node_pos(i,x,phi,z)
       xp = x
       zp = z

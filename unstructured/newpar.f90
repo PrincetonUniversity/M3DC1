@@ -15,6 +15,8 @@ Program Reducedquintic
   use m3dc1_output
   use auxiliary_fields
   use pellet
+  use scorec_mesh_mod
+  use adapt
 
   implicit none
 
@@ -67,11 +69,10 @@ Program Reducedquintic
 #else
      print *, '2D VERSION'
 #endif
-     print *, '=============================================================='
   endif
 
 #ifdef USESCOREC
-!  call scorecinit
+  call m3dc1_domain_init()
 #endif
 
   ! Initialize PETSc
@@ -88,6 +89,7 @@ Program Reducedquintic
 
   ! load mesh
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh'
+  call m3dc1_matrix_setassembleoption(imatassemble)
   call load_mesh
 
 !  call print_node_data
@@ -205,7 +207,11 @@ Program Reducedquintic
 
   ! Adapt the mesh
   ! ~~~~~~~~~~~~~~
-  call adapt_mesh
+#ifdef USESCOREC
+  if (iadapt .ne. 0) then
+    call adapt_by_psi
+  end if
+#endif
 
   if(irestart.eq.0  .or. iadapt.gt.0) then
      tflux0 = tflux
@@ -270,7 +276,7 @@ Program Reducedquintic
      if(myrank.eq.0 .and. iprint.ge.1) print *, " Writing output."
      call output
 !
-
+     if(run_adapt() .eq. 1 .and. linear.eq.0 .and. iadapt .ne. 0) call adapt_by_psi
   enddo ! ntime
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done time loop."
@@ -976,7 +982,8 @@ end subroutine rotation
        temp_vec = 0.
        do itri=1, numelms
 #ifdef USESCOREC
-          call getelmsizes(itri, node_sz)
+          !call getelmsizes(itri, node_sz)
+          node_sz = 1.
 #else
           node_sz = 1.
 #endif
@@ -1021,6 +1028,7 @@ subroutine space(ifirstcall)
 
 #ifdef USESCOREC
   integer :: i, maxdofs
+  character(len=32) :: field_name
 #endif
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, " Entering space..."
@@ -1029,8 +1037,12 @@ subroutine space(ifirstcall)
 #ifdef USESCOREC
   if(ifirstcall .eq. 1) then
      do i=1, num_fields
-        call createdofnumbering(i, iper, jper, i*dofs_per_node, &
-             0, 0, 0, maxdofs)
+       write(field_name,"(I2,A)"), i,0
+#ifdef USECOMPLEX
+       call m3dc1_field_create (i, trim(field_name), i, 1, dofs_per_node)
+#else
+       call m3dc1_field_create (i, trim(field_name), i, 0, dofs_per_node)
+#endif
      end do
   endif ! on firstcall
 #endif
@@ -1059,7 +1071,6 @@ subroutine space(ifirstcall)
      if(density_source) call create_field(sigma_field)
      if(momentum_source) call create_field(Fphi_field)
      if(heat_source) call create_field(Q_field)
-     if(icd_source .gt. 0) call create_field(cd_field)
      call create_field(bf_field(0))
      call create_field(bf_field(1))
      if(ibootstrap.gt.0) call create_field(visc_e_field)
@@ -1115,412 +1126,3 @@ subroutine space(ifirstcall)
   return
 end subroutine space
 
-
-#ifdef USESCOREC
-subroutine resizevec(vec, ivecsize)
-  use arrays
-  implicit none
-
-  integer :: ivecsize
-  double precision :: vec
-
-!!$  call arrayresizevec(vec, ivecsize)
-
-  return
-end subroutine resizevec
-
-!!$subroutine arrayresizevec(vec, ivecsize)
-!!$  use arrays
-!!$  use time_step
-!!$
-!!$  implicit none
-!!$  integer :: ivecsize, i
-!!$  double precision :: vec
-!!$
-!!$  print *, "In arrayresizevec!", ivecsize
-!!$
-!!$  call checkppplveccreated(vec, i)
-!!$  if(i .eq. 0) then
-!!$     write(*,*) 'trying to resize a vector that has not been created'
-!!$     call printfpointer(vec)
-!!$     call safestop(8844)
-!!$  endif
-!!$
-!!$
-!!$  call checksameppplvec(field_vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "field"
-!!$     if(allocated(field_vec%data)) deallocate(field_vec%data, STAT=i)
-!!$     allocate(field_vec%data(ivecsize))
-!!$     field_vec%data = 0.
-!!$     call updateids(vec, field_vec%data)
-!!$     print *, 'done'
-!!$     return
-!!$  endif
-!!$
-!!$  call checksameppplvec(field0_vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "field0"
-!!$     if(allocated(field0_vec%data)) deallocate(field0_vec%data, STAT=i)
-!!$     allocate(field0_vec%data(ivecsize))
-!!$     field0_vec%data = 0.
-!!$     call updateids(vec, field0_vec%data)
-!!$     return
-!!$  endif
-!!$
-!!$  call checksameppplvec(jphi_field%vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "jphi"
-!!$     if(allocated(jphi_field%vec%data)) deallocate(jphi_field%vec%data, STAT=i)
-!!$     allocate(jphi_field%vec%data(ivecsize))
-!!$     jphi_field%vec%data = 0.
-!!$     call updateids(vec, jphi_field%vec%data)
-!!$     return
-!!$  endif
-!!$  
-!!$  call checksameppplvec(vor_field%vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "vor"
-!!$     if(allocated(vor_field%vec%data)) deallocate(vor_field%vec%data, STAT=i)
-!!$     allocate(vor_field%vec%data(ivecsize))
-!!$     vor_field%vec%data = 0.
-!!$     call updateids(vec, vor_field%vec%data)
-!!$     return
-!!$  endif
-!!$  
-!!$  call checksameppplvec(com_field%vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "com"
-!!$     if(allocated(com_field%vec%data)) deallocate(com_field%vec%data, STAT=i)
-!!$     allocate(com_field%vec%data(ivecsize))
-!!$     com_field%vec%data = 0.
-!!$     call updateids(vec, com_field%vec%data)
-!!$     return
-!!$  endif
-!!$  
-!!$  call checksameppplvec(resistivity_field%vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "resistivity_field%vec%data"
-!!$     if(allocated(resistivity_field%vec%data)) deallocate(resistivity_field%vec%data, STAT=i)
-!!$     allocate(resistivity_field%vec%data(ivecsize))
-!!$     resistivity_field%vec%data = 0.
-!!$     call updateids(vec, resistivity_field%vec%data)
-!!$     return
-!!$  endif
-!!$   
-!!$  call checksameppplvec(kappa_field%vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "kappa_field%vec%data"
-!!$     if(allocated(kappa_field%vec%data)) deallocate(kappa_field%vec%data, STAT=i)
-!!$     allocate(kappa_field%vec%data(ivecsize))
-!!$     kappa_field%vec%data = 0.
-!!$     call updateids(vec, kappa_field%vec%data)
-!!$     return
-!!$  endif
-!!$
-!!$  call checksameppplvec(sigma_field%vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "sigma_field%vec%data"
-!!$     if(allocated(sigma_field%vec%data)) deallocate(sigma_field%vec%data, STAT=i)
-!!$     allocate(sigma_field%vec%data(ivecsize))
-!!$     sigma_field%vec%data = 0.
-!!$     call updateids(vec, sigma_field%vec%data)
-!!$     return
-!!$  endif
-!!$        
-!!$  call checksameppplvec(visc_field%vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "visc_field%vec%data"
-!!$     if(allocated(visc_field%vec%data)) deallocate(visc_field%vec%data, STAT=i)
-!!$     allocate(visc_field%vec%data(ivecsize))
-!!$     visc_field%vec%data = 0.
-!!$     call updateids(vec, visc_field%vec%data)
-!!$     return
-!!$  endif
-!!$  
-!!$  call checksameppplvec(visc_c_field%vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "visc_c"
-!!$     if(allocated(visc_c_field%vec%data)) deallocate(visc_c_field%vec%data, STAT=i)
-!!$     allocate(visc_c_field%vec%data(ivecsize))
-!!$     visc_c_field%vec%data = 0.
-!!$     call updateids(vec, visc_c_field%vec%data)
-!!$     return
-!!$  endif
-!!$
-!!$  call checksameppplvec(bf_field(1)%vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "bf"
-!!$     if(allocated(bf_field(1)%vec%data)) deallocate(bf_field(1)%vec%data, STAT=i)
-!!$     allocate(bf_field(1)%vec%data(ivecsize))
-!!$     bf_field(1)%vec%data = 0.
-!!$     call updateids(vec, bf_field(1)%vec%data)
-!!$     return
-!!$  endif
-!!$
-!!$  call checksameppplvec(bf_field(0)%vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "bf"
-!!$     if(allocated(bf_field(0)%vec%data)) deallocate(bf_field(0)%vec%data, STAT=i)
-!!$     allocate(bf_field(0)%vec%data(ivecsize))
-!!$     bf_field(0)%vec%data = 0.
-!!$     call updateids(vec, bf_field(0)%vec%data)
-!!$     return
-!!$  endif
-!!$
-!!$
-!!$  call checksameppplvec(phi_vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "phi"
-!!$     if(allocated(phi_vec%data)) deallocate(phi_vec%data, STAT=i)
-!!$     allocate(phi_vec%data(ivecsize))
-!!$     phi_vec%data = 0.
-!!$     call updateids(vec, phi_vec%data)
-!!$     return
-!!$  endif
-!!$     
-!!$  call checksameppplvec(vel_vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "vel"
-!!$     if(allocated(vel_vec%data)) deallocate(vel_vec%data, STAT=i)
-!!$     allocate(vel_vec%data(ivecsize))
-!!$     vel_vec%data = 0.
-!!$     call updateids(vec, vel_vec%data)
-!!$     return
-!!$  endif  
-!!$     
-!!$  call checksameppplvec(den_vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "den"
-!!$     if(allocated(den_vec%data)) deallocate(den_vec%data, STAT=i)
-!!$     allocate(den_vec%data(ivecsize))
-!!$     den_vec%data = 0.
-!!$     call updateids(vec, den_vec%data)
-!!$     return
-!!$  endif
-!!$       
-!!$  call checksameppplvec(pret_vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "temp"
-!!$     if(allocated(pret_vec%data)) deallocate(pret_vec%data, STAT=i)
-!!$     allocate(pret_vec%data(ivecsize))
-!!$     pret_vec%data = 0.
-!!$     call updateids(vec, pret_vec%data)
-!!$     return
-!!$  endif
-!!$    
-!!$  call checksameppplvec(pres_vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "pres"
-!!$     if(allocated(pres_vec%data)) deallocate(pres_vec%data, STAT=i)
-!!$     allocate(pres_vec%data(ivecsize))
-!!$     pres_vec%data = 0.
-!!$     call updateids(vec, pres_vec%data)
-!!$     return
-!!$  endif
-!!$       
-!!$  call checksameppplvec(q4_vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "q4"
-!!$     if(allocated(q4_vec%data)) deallocate(q4_vec%data, STAT=i)
-!!$     allocate(q4_vec%data(ivecsize))
-!!$     q4_vec%data = 0.
-!!$     call updateids(vec, q4_vec%data)
-!!$     return
-!!$  endif
-!!$
-!!$  call checksameppplvec(r4_vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "r4"
-!!$     if(allocated(r4_vec%data)) deallocate(r4_vec%data, STAT=i)
-!!$     allocate(r4_vec%data(ivecsize))
-!!$     r4_vec%data = 0.
-!!$     call updateids(vec, r4_vec%data)
-!!$     return
-!!$  endif
-!!$
-!!$  call checksameppplvec(qn4_vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "qn4"
-!!$     if(allocated(qn4_vec%data)) deallocate(qn4_vec%data, STAT=i)
-!!$     allocate(qn4_vec%data(ivecsize))
-!!$     qn4_vec%data = 0.
-!!$     call updateids(vec, qn4_vec%data)
-!!$     return
-!!$  endif
-!!$  
-!!$  call checksameppplvec(qp4_vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "qp4"
-!!$     if(allocated(qp4_vec%data)) deallocate(qp4_vec%data, STAT=i)
-!!$     allocate(qp4_vec%data(ivecsize))
-!!$     qp4_vec%data = 0.
-!!$     call updateids(vec, qp4_vec%data)
-!!$     return
-!!$  endif
-!!$
-!!$  call checksameppplvec(veln_vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "veln"
-!!$     if(allocated(veln_vec%data)) deallocate(veln_vec%data, STAT=i)
-!!$     allocate(veln_vec%data(ivecsize))
-!!$     veln_vec%data = 0.
-!!$     call updateids(vec, veln_vec%data)
-!!$     return
-!!$  endif
-!!$      
-!!$  call checksameppplvec(veloldn_vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "veloldn"
-!!$     if(allocated(veloldn_vec%data)) deallocate(veloldn_vec%data, STAT=i)
-!!$     allocate(veloldn_vec%data(ivecsize))
-!!$     veloldn_vec%data = 0.
-!!$     call updateids(vec, veloldn_vec%data)
-!!$     return
-!!$  endif
-!!$
-!!$  call checksameppplvec(phip_vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "phip"
-!!$     if(allocated(phip_vec%data)) deallocate(phip_vec%data, STAT=i)
-!!$     allocate(phip_vec%data(ivecsize))
-!!$     phip_vec%data = 0.
-!!$     call updateids(vec, phip_vec%data)
-!!$     return
-!!$  endif
-!!$  
-!!$  call checksameppplvec(b1_phi%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "b1_phi"
-!!$     if(allocated(b1_phi%data)) deallocate(b1_phi%data, STAT=i)
-!!$     allocate(b1_phi%data(ivecsize))
-!!$     b1_phi%data = 0.
-!!$     call updateids(vec, b1_phi%data)
-!!$     return
-!!$  endif
-!!$  
-!!$  call checksameppplvec(b2_phi%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "b2_phi"
-!!$     if(allocated(b2_phi%data)) deallocate(b2_phi%data, STAT=i)
-!!$     allocate(b2_phi%data(ivecsize))
-!!$     b2_phi%data = 0.
-!!$     call updateids(vec, b2_phi%data)
-!!$     return
-!!$  endif
-!!$  
-!!$  call checksameppplvec(b1_vel%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "b1_vel"
-!!$     if(allocated(b1_vel%data)) deallocate(b1_vel%data, STAT=i)
-!!$     allocate(b1_vel%data(ivecsize))
-!!$     b1_vel%data = 0.
-!!$     call updateids(vec, b1_vel%data)
-!!$     return
-!!$  endif
-!!$  
-!!$  call checksameppplvec(b2_vel%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "b2_vel"
-!!$     if(allocated(b2_vel%data)) deallocate(b2_vel%data, STAT=i)
-!!$     allocate(b2_vel%data(ivecsize))
-!!$     b2_vel%data = 0.
-!!$     call updateids(vec, b2_vel%data)
-!!$     return
-!!$  endif
-!!$    
-!!$  call checksameppplvec(temporary_field%vec%data, vec, i)
-!!$  if(i .eq. 1) then
-!!$     print *, "temporary_vector"
-!!$     if(allocated(temporary_field%vec%data)) deallocate(temporary_field%vec%data, STAT=i)
-!!$     allocate(temporary_field%vec%data(ivecsize))
-!!$     temporary_field%vec%data = 0.
-!!$     call updateids(vec, temporary_field%vec%data)
-!!$     return
-!!$  endif
-!!$
-!!$  print *, "Error: unknown vector"
-!!$
-!!$end subroutine arrayresizevec
-#endif
-
-subroutine adapt_mesh
-  use basic
-  use arrays
-  use mesh_mod
-
-  implicit none
-
-  integer :: izone, izonedim, inode(nodes_per_element), numelms, itri, i
-  integer :: numnodes
-  real :: x, phi, z
-  vectype, dimension(dofs_per_node) :: dat
-  integer :: magnetic_region
-
-#ifdef USESCOREC
-  select case(iadapt)
-  case(1)
-     print *, 'adapting mesh...'
-     call hessianadapt(resistivity_field%vec%data,1, 0, ntime, &
-          adapt_factor, adapt_hmin, adapt_hmax)
-     print *, 'done adapting.'
-     call safestop(0)
-     
-  case(2)
-    call create_field(temporary_field)
-    if(eqsubtract.eq.1) then
-       temporary_field = psi_field(0)
-    else
-       temporary_field = psi_field(1)
-    end if
-    if(icsubtract.eq.1) call add(temporary_field, psi_coil_field)
-    call straighten_field(temporary_field)
-
-    numnodes = local_nodes()
-    do i=1, numnodes
-       call get_node_pos(i, x, phi, z)
-       call get_node_data(temporary_field, i, dat)
-
-       if(magnetic_region(dat,x,z).eq.2) then
-          dat = 2. - (dat - psimin) / (psibound - psimin)
-          dat = (psibound - psimin)*dat + psimin          
-       end if
-       
-       call set_node_data(temporary_field,i,dat)
-    end do
-    call sum_shared(temporary_field%vec)
-
-    if(adapt_psin_vacuum.ne.0 .and. imulti_region.eq.1) then
-       dat = 0.
-       dat(1) = (psibound - psimin)*adapt_psin_vacuum + psimin
-       numelms = local_elements()
-       do itri=1, numelms
-          call zonfac(itri,izone,izonedim)
-          if(izone.ge.3) then
-             call nodfac(itri,inode)
-             do i=1,3
-                call set_node_data(temporary_field,inode(i),dat)
-             end do
-          end if
-       end do
-       call sum_shared(temporary_field%vec)
-    end if
-
-    if (iprint.ge.2) then
-    write(25,1003) temporary_field%vec%data
-1003 format(1p10E12.4)
-    end if
-
-    print *, 'initializing solution transfer...'
-    call initsolutiontransfer(0)
-    print *, 'setting smoothing factor...', adapt_smooth
-    call setsmoothfact(adapt_smooth)
-    print *, 'adapting mesh...', psimin, psibound
-    call adapt(temporary_field%vec%data,psimin,psibound)
-    print *, 'done adapting.'
-    call destroy_field(temporary_field)
-    call safestop(0)
-
-  end select
-#endif
-end subroutine adapt_mesh
