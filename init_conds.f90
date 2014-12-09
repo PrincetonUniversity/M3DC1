@@ -376,22 +376,23 @@ subroutine calculate_external_fields(sf)
 
   type(schaffer_field), dimension(*) :: sf
   type(matrix_type) :: br_mat, bf_mat
-  type(vector_type) :: psi_vec, bz_vec
+  type(vector_type) :: psi_vec, bz_vec, p_vec
   integer :: i, j, itri, nelms, ier
 
   complex, dimension(int_pts_main) :: fr, fphi, fz
 #ifdef USE3D
-  real, dimension(MAX_PTS) :: gr, gphi, gz
+  real, dimension(MAX_PTS) :: gr, gphi, gz, p
 #endif
 
   real, dimension(maxfilaments) :: xc_na, zc_na
   complex, dimension(maxfilaments) :: ic_na
   integer :: nc_na
+  logical :: read_p
 
   vectype, dimension(dofs_per_element,dofs_per_element) :: temp, temp_bf
-  vectype, dimension(dofs_per_element) :: temp2, temp3
+  vectype, dimension(dofs_per_element) :: temp2, temp3, temp4
 
-  type(field_type) :: psi_f, bz_f
+  type(field_type) :: psi_f, bz_f, p_f
 
 #ifdef USECOMPLEX
   complex :: sfac
@@ -405,6 +406,9 @@ subroutine calculate_external_fields(sf)
      call load_coils(xc_na, zc_na, ic_na, nc_na, &
           'rmp_coil.dat', 'rmp_current.dat', ntor)
   end if
+
+  call create_vector(p_vec,1)
+  call associate_field(p_f,p_vec,1)
 
   call create_vector(psi_vec,1)
   call associate_field(psi_f,psi_vec,1)
@@ -424,6 +428,13 @@ subroutine calculate_external_fields(sf)
   print *, "create_mat coils br_mat", br_mat%imatrix 
 #endif
 
+  read_p = .false.
+  if(iread_ext_field.ne.0) then
+     do i=1, iread_ext_field 
+        if(sf(i)%vmec) read_p = .true.
+     end do
+  end if
+
   if(myrank.eq.0 .and. iprint.ge.2) print *, 'calculating field values...'
   nelms = local_elements()
   do itri=1,nelms
@@ -439,6 +450,7 @@ subroutine calculate_external_fields(sf)
         temp79a = 0.
         temp79b = 0.
         temp79c = 0.
+        temp79d = 0.
      else
         do i=1, nc_na, 2
            call pane(ic_na(i),xc_na(i),xc_na(i+1),zc_na(i),zc_na(i+1), &
@@ -449,6 +461,7 @@ subroutine calculate_external_fields(sf)
         temp79a = fr
         temp79b = fphi
         temp79c = fz
+        temp79d = 0.
 #else
         do i=1, npoints_tor
            co(1:npoints_pol) = &
@@ -483,10 +496,13 @@ subroutine calculate_external_fields(sf)
 #elif defined(USE3D)
            call get_external_field(sf(i),&
                 x_79,phi_79-shift_ext_field(i)*pi/180.,z_79,&
-                gr,gphi,gz,npoints)
+                gr,gphi,gz,p,npoints)
            temp79a = temp79a + (1e4/b0_norm)*gr  *scale_ext_field
            temp79b = temp79b + (1e4/b0_norm)*gphi*scale_ext_field
            temp79c = temp79c + (1e4/b0_norm)*gz  *scale_ext_field
+           if(sf(i)%vmec) then
+              temp79d = temp79d + p/p0_norm
+           end if
 #endif
         end do
      end if
@@ -510,6 +526,8 @@ subroutine calculate_external_fields(sf)
              - int3(ri_79,mu79(:,OP_DZ,i),temp79a)
 
         temp3(i) = int3(r_79,mu79(:,OP_1,i),temp79b)
+
+        if(read_p) temp4(i) = int2(mu79(:,OP_1,i),temp79d)
      end do
 
      call insert_block(br_mat, itri, 1, 1, temp(:,:), MAT_ADD)
@@ -517,11 +535,16 @@ subroutine calculate_external_fields(sf)
 
      call vector_insert_block(psi_vec, itri, 1, temp2(:), MAT_ADD)
      call vector_insert_block(bz_vec, itri, 1, temp3(:), MAT_ADD)
+     if(read_p) call vector_insert_block(p_vec, itri, 1, temp4(:), MAT_ADD)
   end do
+
+  if(myrank.eq.0 .and. iprint.ge.2) print *, 'Finalizing...'
   call finalize(br_mat)
   call finalize(bf_mat)
   call sum_shared(psi_vec)
   call sum_shared(bz_vec)
+  if(read_p) call sum_shared(p_vec)
+ 
 
   ! create external fields
   if(extsubtract.eq.1) then
@@ -529,6 +552,14 @@ subroutine calculate_external_fields(sf)
      call create_field(bz_ext)
      call create_field(bf_ext)
      use_external_fields = .true.
+  end if
+
+  !solve p
+  if(read_p) then
+     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving p..."
+
+     call newsolve(mass_mat_lhs%mat,p_vec,ier)
+     p_field(1) = p_f
   end if
 
   ! solve bz
@@ -571,6 +602,7 @@ subroutine calculate_external_fields(sf)
 
   call destroy_vector(psi_vec)
   call destroy_vector(bz_vec)
+  call destroy_vector(p_vec)
   call destroy_mat(br_mat)
   call destroy_mat(bf_mat)
 
