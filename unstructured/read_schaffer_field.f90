@@ -4,11 +4,12 @@ module read_schaffer_field
   type schaffer_field
      integer :: nr, nz, nphi
 
-     real, allocatable :: br(:,:,:), bphi(:,:,:), bz(:,:,:)
+     real, allocatable :: br(:,:,:), bphi(:,:,:), bz(:,:,:), p(:,:,:)
      real, allocatable :: r(:), phi(:), z(:)
      complex, allocatable :: br_ft(:,:), bphi_ft(:,:), bz_ft(:,:)
 
      logical :: initialized = .false.
+     logical :: vmec
   end type schaffer_field
 
 contains
@@ -28,15 +29,14 @@ contains
     integer, parameter :: ifile = 37
     integer :: i, j, k, l, m, n, ier
     integer :: rank
-    real :: phi1, r1, z1, br1, bz1, bphi1
+    real :: phi1, r1, z1, br1, bz1, bphi1, p1
     real :: phi0, r0, z0
     integer, parameter :: catch = 100
     character(len=20) :: dummy
     integer :: file_nr, file_nz, file_nphi
     integer :: lines_read
-    logical :: wingen_style
 
-    wingen_style = .false.
+    sf%vmec = .false.
     call MPI_Comm_rank(MPI_COMM_WORLD, rank, ier)
 
     ! First, let rank zero parse the file to determine the size of the data
@@ -50,14 +50,14 @@ contains
           if(dummy.eq.'            %phi_tor') goto 90
           if(dummy.eq.'       %phi_tor(deg)') goto 90
           if(dummy.eq.'# R[m]              ') then
-             wingen_style = .true.
+             sf%vmec = .true.
              goto 90
           end if
        end do
        goto 200
 90     continue
-       if(wingen_style) then 
-          print *, 'External field format is Wingen style'
+       if(sf%vmec) then 
+          print *, 'External field format is VMEC style'
        else
           print *, 'External field format is PROBE_g style'
        end if
@@ -70,7 +70,7 @@ contains
        file_nz = 1
        file_nr = 1
        file_nphi = 1
-       if(wingen_style) then
+       if(sf%vmec) then
           read(ifile,*) r0, phi0, z0 
        else
           read(ifile,'(3F20.11)') phi0, r0, z0 
@@ -78,7 +78,7 @@ contains
        print *, 'phi0, r0, z0: ', phi0, r0, z0
        do
           ! read line
-          if(wingen_style) then
+          if(sf%vmec) then
              read(ifile,*,err=100,end=100) r1, phi1, z1 
              phi1 = phi1*180./pi
           else
@@ -108,7 +108,7 @@ contains
 100    continue
        file_nr = file_nr-1
        file_nz = file_nz-1
-       if(wingen_style) file_nphi = file_nphi-1
+       if(sf%vmec) file_nphi = file_nphi-1
 
        write(*, '(A,3I5)') &
             'Reading external fields with nr, nz, nphi =', &
@@ -137,6 +137,7 @@ contains
     call MPI_Bcast(sf%nr,  1,MPI_INTEGER,0,MPI_COMM_WORLD,ier)
     call MPI_Bcast(sf%nz,  1,MPI_INTEGER,0,MPI_COMM_WORLD,ier)
     call MPI_Bcast(sf%nphi,1,MPI_INTEGER,0,MPI_COMM_WORLD,ier)
+    call MPI_Bcast(sf%vmec, 1, MPI_LOGICAL, 0, MPI_COMM_WORLD, ier)
 
     ! Allocate space for data
     if(.not. sf%initialized) then
@@ -146,6 +147,11 @@ contains
        sf%br = 0.
        sf%bphi = 0.
        sf%bz = 0.
+
+       if(sf%vmec) then
+          allocate(sf%p(sf%nphi,sf%nr,sf%nz))
+          sf%p = 0.
+       end if
     endif
 
     ! Now read in the data
@@ -174,9 +180,9 @@ contains
           do j=1, file_nz
              do i=1, file_nr
                 ! read line
-999             if(wingen_style) then
+999             if(sf%vmec) then
                    read(ifile,*,err=1000,end=1000) &
-                        r1, phi1, z1, br1, bphi1, bz1
+                        r1, phi1, z1, br1, bphi1, bz1, p1
                    phi1 = phi1*180./pi
                 else
                    read(ifile,'(6F20.11)',err=1000,end=1000) &
@@ -198,6 +204,7 @@ contains
                    sf%br(l,m,n) = sf%br(l,m,n) + br1
                    sf%bphi(l,m,n) = sf%bphi(l,m,n) + bphi1
                    sf%bz(l,m,n) = sf%bz(l,m,n) + bz1
+                   if(sf%vmec) sf%p(l,m,n) = sf%p(l,m,n) + p1
                    sf%r(m) = r1
                 end if
              end do
@@ -216,7 +223,7 @@ contains
 1000   continue
        print *, "Shouldn't be here!!!", i, j, k
 1100   close(ifile)
-       if(wingen_style) sf%phi = sf%phi - sf%phi(1)
+       if(sf%vmec) sf%phi = sf%phi - sf%phi(1)
        print *, 'Number of lines read: ', lines_read
        write(*, '(A,3I0)') 'NR, NZ, NPHI', sf%nr, sf%nz, sf%nphi
        write(*, '(A,F12.4," -- ",F12.4)') 'R:   ', sf%r(1), sf%r(sf%nr)
@@ -244,6 +251,10 @@ contains
          MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
     call MPI_Bcast(sf%bphi, sf%nr*sf%nz*sf%nphi, &
          MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
+    if(sf%vmec) then
+       call MPI_Bcast(sf%p,   sf%nr*sf%nz*sf%nphi, &
+            MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
+    end if
 
     sf%initialized = .true.
     if(rank.eq.0) print *, 'Done reading fields.'
@@ -260,6 +271,7 @@ contains
     if(allocated(sf%br_ft)) deallocate(sf%br_ft)
     if(allocated(sf%bz_ft)) deallocate(sf%bz_ft)
     if(allocated(sf%bphi_ft)) deallocate(sf%bphi_ft)
+    if(allocated(sf%p)) deallocate(sf%p)
 
     sf%initialized = .false.
   end subroutine unload_schaffer_field
@@ -353,7 +365,8 @@ contains
     end do
   end subroutine get_external_field_ft
 
-  subroutine get_external_field(sf,r1,phi1,z1, br_out, bphi_out, bz_out, npts)
+  subroutine get_external_field(sf,r1,phi1,z1,br_out,bphi_out,bz_out,p_out, &
+       npts)
     implicit none
 
     include 'mpif.h'
@@ -361,12 +374,12 @@ contains
     type(schaffer_field), intent(in) :: sf
     integer, intent(in) :: npts
     real, intent(in), dimension(npts) :: r1, phi1, z1
-    real, intent(out), dimension(npts) :: br_out, bphi_out, bz_out
+    real, intent(out), dimension(npts) :: br_out, bphi_out, bz_out, p_out
 
     integer :: j, k, l, m, n, ierr, rank
     integer :: i(3)
     real :: x(3), dx(3)
-    real :: f(3,4), g(3,4), h(3,4)
+    real :: f(4,4), g(4,4), h(4,4)
 
     logical :: out_of_bounds = .false.
     real :: obr, obz
@@ -412,6 +425,7 @@ contains
                 f(1,n) = sf%br  (j,i(1)+n-2,i(3)+l-2)
                 f(2,n) = sf%bphi(j,i(1)+n-2,i(3)+l-2)
                 f(3,n) = sf%bz  (j,i(1)+n-2,i(3)+l-2)
+                if(sf%vmec) f(4,n) = sf%p(j,i(1)+n-2,i(3)+l-2)
              end do
 !             g(:,m) = (1.-dx(1))*f(:,2) + dx(1)*f(:,3)
              g(:,m) = f(:,2) &
@@ -442,6 +456,11 @@ contains
        br_out(k)   = f(1,1)
        bphi_out(k) = f(2,1)
        bz_out(k)   = f(3,1)
+       if(sf%vmec) then
+          p_out(k) = f(4,1)
+       else
+          p_out(k) = 0
+       end if
     end do
 
     if(out_of_bounds) then
