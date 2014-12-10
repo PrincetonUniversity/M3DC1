@@ -608,6 +608,10 @@ subroutine ef_bdgp(ilin,o)
   integer, intent(in) :: ilin
   vectype, dimension(MAX_PTS), intent(out) :: o
 
+  o = 0.
+  select case(ibdgp)
+  case(0)   !  full evaluation
+
   o = - ri_79*es179(:,OP_DZ)*pst79(:,OP_DR)  &
    +  ri_79*es179(:,OP_DR)*pst79(:,OP_DZ)
 
@@ -618,6 +622,37 @@ subroutine ef_bdgp(ilin,o)
      o = o - ri2_79*bzt79(:,OP_1)*es179(:,OP_DP)
   endif
 #endif
+
+  case(1)  ! only psi term
+
+  o = - ri_79*es179(:,OP_DZ)*pst79(:,OP_DR)  &
+   +  ri_79*es179(:,OP_DR)*pst79(:,OP_DZ)
+
+  case(2)  ! only f term
+
+#if defined(USE3D) || defined(USECOMPLEX) 
+  if(jadv.eq.0 .and. i3d.eq.1) then
+     o = o + es179(:,OP_DR)*bft79(:,OP_DRP)  &
+           + es179(:,OP_DZ)*bft79(:,OP_DZP)
+  endif
+#endif
+  case(3)  ! only F (bz) term
+
+#if defined(USE3D) || defined(USECOMPLEX) 
+  if(jadv.eq.0 .and. i3d.eq.1) then
+     o = o - ri2_79*bzt79(:,OP_1)*es179(:,OP_DP)
+  endif
+#endif
+
+
+
+
+
+
+
+
+
+  end select
 end subroutine ef_bdgp
 subroutine ef_vlbdgp(ilin,o)
   use basic
