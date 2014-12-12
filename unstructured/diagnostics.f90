@@ -449,8 +449,8 @@ subroutine evaluate(x,phi,z,ans,ans2,fin,itri,ierr)
 #ifdef USECOMPLEX
      call mpi_allreduce(temp1, temp2, 2, MPI_DOUBLE_COMPLEX, MPI_SUM, &
           MPI_COMM_WORLD, ier)
-     ans = real(temp2(1)*exp(rfac*phi1))/tothasval
-     ans2 = real(temp2(2)*exp(rfac*phi1))/tothasval
+     ans = real(temp2(1)*exp(rfac*phi))/tothasval
+     ans2 = real(temp2(2)*exp(rfac*phi))/tothasval
 #else
      call mpi_allreduce(temp1, temp2, 2, MPI_DOUBLE_PRECISION, MPI_SUM, &
           MPI_COMM_WORLD, ier)

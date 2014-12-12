@@ -30,7 +30,7 @@ module gradshafranov
 
   real, private :: gnorm, libetapeff, fac2
 
-  integer, private, parameter :: int_tor = 0
+  integer, private :: int_tor
 
   ! if use_norm_psi==1, pprime and ffprime are derivs wrt normalized flux
   integer, private :: use_norm_psi = 1
@@ -942,6 +942,12 @@ subroutine gradshafranov_solve
   if(myrank.eq.0 .and. iprint.gt.0) &
        print *, "Calculating Grad-Shafranov Equilibrium"
 
+  if(imulti_region.eq.1) then
+     int_tor = 5
+  else
+     int_tor = 0
+  end if
+
   numnodes = owned_nodes()
   numelms = local_elements()
 
@@ -988,6 +994,10 @@ subroutine gradshafranov_solve
         else
            do j=1,dofs_per_element
               temp(i,j) = int3(ri_79,mu79(:,OP_1,i),nu79(:,OP_GS,j))
+#ifdef USE3D
+              temp(i,j) = temp(i,j) - &
+                   eta_gs*int3(ri3_79,mu79(:,OP_DP,i),nu79(:,OP_DP,j))
+#endif
 !!$              temp(i,j) = &
 !!$                   -int3(ri_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j)) &
 !!$                   -int3(ri_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j))

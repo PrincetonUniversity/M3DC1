@@ -8,35 +8,6 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                 outfile=outfile, fac=fac, filename=filename, $
                 psin=psin, _EXTRA=ex
 
-   ; open mpeg object
-   if(n_elements(mpeg) ne 0) then begin
-       mpegid = mpeg_open([640,480],quality=100)
-
-       for i=time[0],time[1] do begin
-           plot_field, name, i, x, y, points=p, mesh=plotmesh, $
-             mcolor=mc, lcfs=lcfs, title=title, units=units, $
-             range=range, rrange=rrange, zrange=zrange, linear=linear, $
-             xlim=xlim, cutx=cutx, cutz=cutz, linfac=linfac, levels=levels, $
-             mask_val=mask_val, boundary=boundary, q_contours=q_contours, $
-             overplot=overplot, phi=phi0, time=realtime,filename=filename, $
-             phase=phase, abs=abs, operation=op, _EXTRA=ex
-
-           image = tvrd(true=1)
-               
-           image[0,*,*] = rotate(reform(image[0,*,*]), 7)
-           image[1,*,*] = rotate(reform(image[1,*,*]), 7)
-           image[2,*,*] = rotate(reform(image[2,*,*]), 7)
-               
-           mpeg_put, mpegid, image=image, frame=(i-time[0])
-       end
-
-       print, 'Writing mpeg...'
-       mpeg_save, mpegid, filename=mpeg
-       mpeg_close, mpegid
-       return
-   end
-
-
    if(n_elements(time) eq 0) then time = 0
    if(n_elements(p) eq 0) then p = 200
    if(n_elements(title) eq 0) then notitle = 1 else notitle = 0

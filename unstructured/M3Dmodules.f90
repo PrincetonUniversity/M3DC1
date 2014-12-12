@@ -159,6 +159,7 @@ module basic
   ! grad-shafranov options
   integer :: divertors! number of divertors
   integer :: igs      ! number of grad-shafranov iterations
+  real    :: eta_gs   ! factor for smoothing nonaxisymmetric psi in GS solve
   integer :: igs_pp_ffp_rescale ! rescale p' and FF' based on p and F
   integer :: igs_extend_p ! extend p past psi=1 using te and ne profiles
   integer :: nv1equ   ! if set to 1, use numvar equilibrium for numvar > 1
