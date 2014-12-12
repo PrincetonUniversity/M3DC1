@@ -384,6 +384,8 @@ subroutine set_defaults
   call add_var_int("igs_forcefree_lcfs", igs_forcefree_lcfs, -1, &
        "Ensure that GS solution is force-free at LCFS", gs_grp)
   call add_var_int("nv1equ", nv1equ, 0, "", gs_grp)
+  call add_var_double("eta_gs", eta_gs, 1e3, &
+       "Factor for smoothing nonaxisymmetries in psi in GS solve", gs_grp)
   call add_var_double("tcuro", tcuro, 1., &
        "Total current in initial current filament", gs_grp)
   call add_var_double("xmag", xmag, 1., &

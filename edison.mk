@@ -82,7 +82,7 @@ ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS)  -O0
   CCOPTS := $(CCOPTS)
 else
-  FOPTS := $(FOPTS) -g -Mbounds
+  FOPTS := $(FOPTS) -g -Mbounds -check all -fpe0 -warn -traceback -debug extended
   CCOPTS := $(CCOPTS)  
 endif
 
