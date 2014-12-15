@@ -1,0 +1,21 @@
+CC = cc
+CXX = CC
+
+CFLAGS = -O2 -fPIC
+
+F90 = ftn
+#F90FLAGS = -fastsse -Mipa=fast,inline -Mr8 -Minform=warn
+F90FLAGS = -O -r8 -vec_report0 -fPIC
+
+ARCH = ar cr
+
+LD = $(CC)
+LDFLAGS = 
+
+LDD = $(CC) --shared
+
+LIBS = -lstdc++
+
+HDF5_LIBS = -L${HDF5_DIR}/lib -lhdf5
+HDF5_INCLUDE = -I${HDF5_DIR}/include
+
