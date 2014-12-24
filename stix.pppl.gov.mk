@@ -56,10 +56,16 @@ SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu_4.1 \
 PARMETIS_LIBS = -L$(PARMETIS_HOME)/lib \
 	-Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis
 
+SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/stix/latest
+INCLUDE := -I$(SCORECDIR)/include $(INCLUDE)
+
+SCOREC_LIBS = -Wl,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib \
+              -lapf -lgmi -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr -lm3dc1_scorec
 
 LIBS = 	$(PETSC_LIBS) \
 	$(SUPERLU_LIBS) \
 	$(PARMETIS_LIBS) \
+        $(SCOREC_LIBS) \
 	-L$(Zoltan_HOME)/lib -lzoltan \
 	-L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5 \
 	-L$(FFTWHOME)/lib -lfftw3 \
@@ -70,40 +76,6 @@ LIBS = 	$(PETSC_LIBS) \
 	-L$(ZLIB_HOME) -lz \
 	-L$(GSLHOME)/lib -lgsl \
 	-L/usr/X11R6/lib -lX11
-
-ifeq ($(USESCOREC), 1)
-
-#  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/latest/
-  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/04082013/
-  INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/093011 \
-        $(INCLUDE)
-
-
-  SCOREC_ARCH=x86_64_linux-icc
-  SCOREC_LIBS = \
-	-L$(SCORECDIR) \
-	-Wl,-rpath,$(SCORECDIR) \
-        -lPPPLFusion \
-        -lMeshAdapt -lFMDB -lGMI -lGMIMeshModel -lSCORECUtil -lipcomman   
-
-#  SCOREC_LIBS = \
-#	-L$(SCORECDIR) \
-#	-Wl,-rpath,$(SCORECDIR) \
-#	-lFMDB-mpich2$(SCORECOPT) \
-#	-lSCORECModel-mpich2$(SCORECOPT) \
-#	-lSCORECUtil-mpich2$(SCORECOPT) \
-#	-lField-mpich2$(SCORECOPT) \
-#	-lCore-mpich2$(SCORECOPT) \
-#	-lmeshAdapt-mpich2$(SCORECOPT) \
-#	-lmeshTools-mpich2$(SCORECOPT) \
-#	-lSolver-mpich2$(SCORECOPT) \
-#	-lPPPL-mpich2$(SCORECOPT) \
-#	-lipcomman-mpich2$(SCORECOPT)
-##	-lPPPLPetscDEV-mpich2$(SCORECOPT) \
-
-  LIBS := $(SCOREC_LIBS) $(LIBS)
-
-endif   # on USESCOREC
 
 %.o : %.c
 	$(CC)  $(CCOPTS) $(INCLUDE) $< -o $@
