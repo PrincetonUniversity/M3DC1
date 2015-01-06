@@ -212,6 +212,161 @@ subroutine rdrestart
 end subroutine rdrestart
 
 !============================================================
+subroutine rdrestart_cplx
+  use mesh_mod
+  use basic
+  use arrays
+  use diagnostics
+  use time_step
+  use pellet
+
+  implicit none
+  
+#ifdef USESCOREC
+
+  integer :: j1, numnodes, inumnodes
+  integer :: inumelms, immnn18, inumvar, iiper, ijper, imyrank
+  integer :: imaxrank, numelms, ieqsubtract, ilinear, icomp
+  character (len=30) :: fname, oldfname
+  integer :: ndofs
+  integer :: iversion
+  real :: vloopsave
+  vectype, allocatable :: data_buff(:)
+  real :: tmprestart
+
+  call createfilename(fname, oldfname)
+  call m3dc1_field_getnumlocaldof(num_fields, ndofs)
+  numnodes = local_nodes()
+  numelms = local_elements()
+
+  open(56,file=fname,form='unformatted',status='unknown')
+  read(56) inumnodes
+  read(56) inumelms
+  read(56) immnn18
+  read(56) inumvar
+  read(56) iiper
+  read(56) ijper 
+  read(56) imyrank
+  read(56) imaxrank
+  read(56) ieqsubtract
+  read(56) ilinear
+  read(56) icomp
+
+  if(inumnodes .ne. numnodes .or. inumelms .ne. numelms .or. &
+       iiper .ne. iper .or. ijper .ne. jper .or. &
+       imyrank .ne. myrank .or. imaxrank .ne. maxrank) then
+     write(*,*) 'Restart file information does not match!'
+     close(56)
+     if(inumnodes .ne. numnodes) then
+        write(*,*) 'numnodes ',inumnodes, numnodes, myrank 
+     endif
+     if(inumelms .ne. numelms) then
+        write(*,*) 'numelms ',inumnodes, numnodes, myrank 
+     endif
+     if(iiper .ne. iper) then
+        write(*,*) 'iper',iiper, iper, myrank
+     endif
+     if(ijper .ne. jper) then
+        write(*,*) 'jper',ijper, jper, myrank
+     endif
+     if(imyrank .ne. myrank) then
+        write(*,*) 'myrank',imyrank,myrank
+     endif
+     if(imaxrank .ne. maxrank) then
+        write(*,*) 'maxrank',imaxrank, maxrank, myrank
+     endif
+     call safestop(2)
+  endif
+
+  allocate(data_buff(ndofs))
+
+  do j1=1,ndofs 
+     read(56) tmprestart
+#ifdef USECOMPLEX
+     data_buff(j1)=cmplx(tmprestart, 0.)
+#else
+     data_buff(j1)=tmprestart
+#endif
+  enddo
+  call m3dc1_field_set(field_vec%id, data_buff, ndofs)
+  do j1=1,ndofs 
+     read(56) tmprestart
+#ifdef USECOMPLEX
+     data_buff(j1)=cmplx(tmprestart, 0.)
+#else
+     data_buff(j1)=tmprestart
+#endif
+  enddo
+  call m3dc1_field_set(field0_vec%id, data_buff,ndofs)
+
+                         
+  ! If we are running a linear simulation, but the restart file was
+  ! a nonlinear simulation, make the restart data be the equilibrium
+  if(linear.eq.1 .and. ilinear.eq.0) then
+     call m3dc1_field_add(field0_vec%id, field_vec%id)
+     call m3dc1_field_assign (field_vec%id, 0., 0)
+  endif
+
+  vloopsave = vloop
+  read(56) ntime,time,dt
+  read(56) totcur0,tflux0,gbound,ptot,vloop,   &
+          i_control%err_i, i_control%err_p_old, n_control%err_i, n_control%err_p_old
+  read(56,END=1199) psimin,psilim,psibound
+  read(56,END=1199) xnull,znull
+  read(56,END=1199) xmag,zmag
+  if(control_type .eq. -1) vloop = vloopsave  ! use vloop from input if no control on I
+
+  deallocate (data_buff)
+  call m3dc1_field_getnumlocaldof(1, ndofs)
+  allocate (data_buff(ndofs))
+  do j1=1,ndofs 
+     read(56,END=1199) tmprestart
+#ifdef USECOMPLEX
+     data_buff(j1)=cmplx(tmprestart, 0.)
+#else
+     data_buff(j1)=tmprestart
+#endif
+  enddo
+  call m3dc1_field_set(bf_field(1)%vec%id, data_buff,ndofs)
+  do j1=1,ndofs 
+     read(56,END=1199) tmprestart
+#ifdef USECOMPLEX
+     data_buff(j1)=cmplx(tmprestart, 0.)
+#else
+     data_buff(j1)=tmprestart
+#endif
+  enddo
+  call m3dc1_field_set(bf_field(0)%vec%id, data_buff, ndofs)
+
+  read(56, END=1199) pellet_x, pellet_phi, pellet_z, &
+       pellet_velx, pellet_velphi, pellet_velz, pellet_var
+
+  read(56, END=1199) iversion
+
+  if(version.ge.7) then
+     read(56, END=1199) icsubtract
+     if(icsubtract.eq.1) then
+        do j1=1,ndofs 
+           read(56,END=1199) tmprestart
+#ifdef USECOMPLEX
+           data_buff(j1)=cmplx(tmprestart, 0.)
+#else
+           data_buff(j1)=tmprestart
+#endif
+        enddo
+        call m3dc1_field_set(psi_coil_field%vec%id, data_buff, ndofs)
+     end if
+  end if
+  deallocate(data_buff)
+  goto 1200
+1199 if(myrank.eq.0) &
+          print *, 'Warning: reading from a previous restart version'
+1200 close(56)
+
+#endif
+end subroutine rdrestart_cplx
+
+!============================================================
 subroutine createfilename(filename, oldfilename)
   implicit none
 

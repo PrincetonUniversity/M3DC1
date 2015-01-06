@@ -168,7 +168,11 @@ Program Reducedquintic
 !
 !....use timestep from input file if not a variable timestep run
     if(dtkecrit.eq.0) dt = dtsave
-!
+
+  case(3)
+!....read 2D real RL=1 restart file to start 2D complex COM=1 run
+        call rdrestart_cplx
+
   end select                     !  end of the branch on restart/no restart
 
   ntime0 = ntime
