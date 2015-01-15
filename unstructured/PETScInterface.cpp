@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "superlu_defs.h"
 
 #ifdef USEHYBRID
 #ifdef USECOMPLEX
@@ -21,7 +22,6 @@
 #endif 
 
 #else
-#include "superlu_defs.h"
 #endif
 
 /* the matrix id's need to correspond to the same id's in
