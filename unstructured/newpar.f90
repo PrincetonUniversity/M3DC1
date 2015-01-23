@@ -58,7 +58,7 @@ Program Reducedquintic
      call date_and_time( datec, timec)
      write(*,1001) datec(1:4),datec(5:6),datec(7:8), &
           timec(1:2),timec(3:4),timec(5:8)
-1001 format("RUN DATE: ", a4,1x,a2,1x,a2,3x,"TIME: ",a2,":",a2,":",a4,/)
+1001 format("START DATE: ", a4,1x,a2,1x,a2,3x,"TIME: ",a2,":",a2,":",a4,/)
 #ifdef USECOMPLEX
      print *, 'COMPLEX VERSION'
 #else
@@ -373,6 +373,7 @@ subroutine safestop(iarg)
       
   integer, intent(in) :: iarg
   integer :: ier
+  character*10 :: datec, timec
 
   call destroy_auxiliary_fields
 
@@ -391,6 +392,15 @@ subroutine safestop(iarg)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "  finalizing PETSC..."
   call PetscFinalize(ier)
   if(ier.ne.0) print *, 'Error finalizing PETSC:', ier
+
+ ! Write time information
+  if(myrank.eq.0) then
+     print *, '=============================================================='
+     call date_and_time( datec, timec)
+     write(*,1002) datec(1:4),datec(5:6),datec(7:8), &
+          timec(1:2),timec(3:4),timec(5:8)
+1002 format(" END DATE: ", a4,1x,a2,1x,a2,3x,"TIME: ",a2,":",a2,":",a4,/)
+  endif
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, "  finalizing MPI..."
   call MPI_Finalize(ier)
