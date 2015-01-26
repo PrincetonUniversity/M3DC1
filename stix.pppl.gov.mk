@@ -34,39 +34,51 @@ HYBRID_HOME = /p/swim/jchen/pdslin_0.0
 #HYBRID_HOME = /u/iyamazak/release/v2/hybrid.test
 HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lhsolver
 
-INCLUDE = -I$(MPIHOME)/include \
+INCLUDE = \
+        -I$(MPIHOME)/include \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
+	-I$(SUPERLU_HOME)/include -I$(SUPERLU_DIST_HOME)/include \
+	-I$(SCALAPACK_HOME)/include -I$(BLACS_HOME)/include \
 	-I$(HDF5_HOME)/include -I$(HDF5_HOME)/lib \
+	-I$(FFTWHOME)/include \
 	-I$(HYBRID_HOME)/include \
 	-I$(GSLHOME)/include
 
-PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
-	-lpetsc \
-	-lpromfei -lprometheus \
-	-lHYPRE \
-	-L$(MUMPS_HOME)/lib -ldmumps -lmumps_common -lpord \
+#        -L$(PETSC_DIR)/lib -lpetsc -ldmumps -lmumps_common -lcmumps -lpord \
+
+ifeq ($(COM), 1)
+PETSC_DIR= /usr/pppl/intel/11-pkgs/vSMPICH2-pkgs/petsc-3.4.5/
+PETSC_ARCH = intel-vsmp2-complex
+PETSC_LIBS = \
+        -Wl,--start-group,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcmumps -ldmumps -lmetis -lmumps_common -lparmetis -lpetsc -lpord lsmumps -lzmumps -Wl,--end-group \
 	-L$(SCALAPACK_HOME) -lscalapack \
 	-L$(BLACS_HOME)/lib -lmpiblacsF77init -lmpiblacs -lmpiblacsCinit -lmpiblacs
+else
+PETSC_DIR= /usr/pppl/intel/11-pkgs/vSMPICH2-pkgs/petsc-3.4.5-real/
+PETSC_ARCH= intel-vsmp2-real
+PETSC_LIBS = \
+        -Wl,--start-group,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcmumps -ldmumps -lmetis -lmumps_common -lparmetis -lpetsc -lpord lsmumps -lzmumps -Wl,--end-group \
+	-L$(SCALAPACK_HOME) -lscalapack \
+	-L$(BLACS_HOME)/lib -lmpiblacsF77init -lmpiblacs -lmpiblacsCinit -lmpiblacs
+endif
 
-SUPERLU_HOME = $(PETSC_DIR)/$(PETSC_ARCH)
-SUPERLU_DIST_HOME = $(PETSC_DIR)/$(PETSC_ARCH)
-SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu_4.1 \
-	-L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist_2.5 \
-
-PARMETIS_LIBS = -L$(PARMETIS_HOME)/lib \
-	-Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis
+#SUPERLU_HOME = $(PETSC_DIR)/$(PETSC_ARCH)
+#SUPERLU_DIST_HOME = $(PETSC_DIR)/$(PETSC_ARCH)
+SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu_4.3 \
+	-L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist_3.3 \
 
 SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/stix/latest
 INCLUDE := -I$(SCORECDIR)/include $(INCLUDE)
 
-SCOREC_LIBS = -Wl,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib \
-              -lapf -lgmi -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr -lm3dc1_scorec
+SCOREC_LIBS = -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib \
+              -lapf -lgmi -lma -lparma -lph -lmds -lpcu -lspr -lm3dc1_scorec \
+              -lapf_zoltan -lzoltan \
+              -lparmetis -lmetis \
+              -Wl,--start-group
 
 LIBS = 	$(PETSC_LIBS) \
 	$(SUPERLU_LIBS) \
-	$(PARMETIS_LIBS) \
         $(SCOREC_LIBS) \
-	-L$(Zoltan_HOME)/lib -lzoltan \
 	-L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5 \
 	-L$(FFTWHOME)/lib -lfftw3 \
 	-L$(CCHOME)/mkl/lib/em64t -lmkl -lmkl_lapack \
