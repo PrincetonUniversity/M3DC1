@@ -997,8 +997,9 @@ subroutine validate_input
   is_rectilinear = (nonrect.eq.0)
 
   density_source = idens.eq.1 .and. &
-       (ipellet.ge.1 .or. ionization.ge.1 .or. isink.gt.0 .or. idenfloor.gt.0 .or. ibeam.eq.1 .or. ibeam.eq.2)
-  momentum_source = ibeam.eq.1
+       (ipellet.ge.1 .or. ionization.ge.1 .or. isink.gt.0 &
+                           .or. idenfloor.gt.0 .or. ibeam.eq.1 .or. ibeam.eq.2)
+  momentum_source = (ibeam.eq.1 .or. ibeam.eq.4)
   heat_source = (numvar.ge.3 .or. ipres.eq.1) .and. &
        (igaussian_heat_source.eq.1 .or. ibeam.ge.1)
 

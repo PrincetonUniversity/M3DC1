@@ -4,8 +4,10 @@ module neutral_beam
 
   integer :: ibeam  ! 1 = include neutral beam source with torque
                     ! 2 = include beam source but no torque
-  real :: beam_x    ! x coordinate of pellet injection
-  real :: beam_z    ! z coordinate of pellet injection
+                    ! 3 = include beam energy only (no torque or particles)
+                    ! 4 = include beam energy and torque only (no particles)
+  real :: beam_x    ! x coordinate of beam center
+  real :: beam_z    ! z coordinate of beam center
   real :: beam_v    ! beam voltage (in volts)
   real :: beam_rate ! amplitude of beam density source
   real :: beam_dr   ! spatial dispersion of beam source
