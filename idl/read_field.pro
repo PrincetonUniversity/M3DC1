@@ -705,7 +705,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('psi_norm', name, /fold_case) eq 1) then begin
 
-       psi = read_field('psi', x, y, t, mesh=mesh, $
+       psi = read_field('psi', x, y, t, mesh=mesh, phi=phi0, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, slice=time)
 
@@ -1068,13 +1068,34 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        psi = read_field('psi', x, y, t, slices=time, mesh=mesh, linear=linear,$
                         filename=filename, points=pts, mask=mask, $
+                        complex=complex, phi=phi0, $
                         rrange=xrange, zrange=yrange)
 
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
        endif else r = 1.
 
-       data = sqrt(s_bracket(psi,psi,x,y)/r^2)
+       data = s_bracket(psi,psi,x,y)/r^2
+
+       if((i3d eq 1 or icomplex eq 1) and $
+          not (time eq -1 and ilin eq 1)) then begin
+           if(icomplex eq 1) then begin
+               fp = read_field('f', x, y, t, slices=time, mesh=mesh, $
+                              filename=filename, points=pts, mask=mask, $
+                              complex=complex, phi=phi0, linear=linear, $
+                              rrange=xrange, zrange=yrange)
+               fp = fp*complex(0., ntor)
+           endif else begin
+               fp = read_field('f', x, y, t, slices=time, mesh=mesh, $
+                              filename=filename, points=pts, mask=mask, $
+                              complex=complex, phi=phi0, linear=linear, $
+                              rrange=xrange, zrange=yrange, op=11)
+           end
+
+           data = data - 2.*a_bracket(fp,psi,x,y)/r + s_bracket(fp,fp,x,y)
+       end
+
+       data = sqrt(data)
        symbol = '!3|!5B!D!8p!N!3|!X'
        d = dimensions(/b0, _EXTRA=extra)
 
