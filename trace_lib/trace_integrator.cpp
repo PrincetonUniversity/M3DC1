@@ -6,7 +6,10 @@
 
 trace_integrator::trace_integrator()
 {
+  toroidal = true;
+  period = 2.*M_PI;
   plane = 0.;
+  nplanes = 1;
 }
 
 trace_integrator::~trace_integrator()
@@ -58,6 +61,11 @@ bool trace_integrator::load()
     if(!interp_source.load())
       return false;
   }
+
+  if(sources.size() == 0) return false;
+
+  toroidal = sources[0]->toroidal;
+  period = sources[0]->period;
 
   return true;
 }
@@ -170,7 +178,7 @@ bool trace_integrator::extent(double* r0, double* r1, double* z0, double* z1)
 double trace_integrator::find_min_bn(const double r, const double z)
 {
   const int steps = 100;
-  double dphi = 2.*M_PI/(double)steps;
+  double dphi = period/(double)steps;
   double br, bphi, bz, bnorm, bpar, br0 = 0., bphi0=0., bz0 = 0.;
   double theta2, min_theta2;
   int min_i = 0;
@@ -237,20 +245,31 @@ bool trace_integrator::integrate(int transits, int steps_per_transit,
   bool use_psinorm = psibound(&psi_axis, &psi_lcfs);
 
   for(i=0; i<steps; i++) {
-    dphi = 2.*M_PI/(double)steps_per_transit;
+    dphi = period/(double)steps_per_transit;
     double next_Phi = Phi + dphi;
-    if(next_Phi >= 2.*M_PI) {
-      next_Phi -= 2.*M_PI;
-      Phi -= 2.*M_PI;
+    if(next_Phi >= period) {
+      next_Phi -= period;
+      Phi -= period;
     }
 
     double last_R = R;
     double last_Phi = Phi;
     double last_Z = Z;
+    double pl;
 
     // if Phi will pass through the plotting plane on this step, plot intercept
-    plot = (Phi < plane && next_Phi >= plane);
+    if(nplanes <=1) {
+      plot = (Phi < plane && next_Phi >= plane);
+      pl = plane;
+    } else {
+      for(int j=0; j<nplanes; j++) {
+	pl = period*(double)j/(double)nplanes + plane;
+	plot = (Phi < pl && next_Phi >= pl);
+	if(plot) break;
+      }
+    }
 
+      
     // shift derivatives at previous timesteps for predictor-correctors
     for(int j=3; j>0; j--) {
       dr[j] = dr[j-1];
@@ -266,9 +285,15 @@ bool trace_integrator::integrate(int transits, int steps_per_transit,
     if(!result) return false;
 
     if(data) {
-      data->distance += 
-	sqrt((R-last_R)*(R-last_R) + (Z-last_Z)*(Z-last_Z)
-	     + R*last_R*dphi*dphi);
+      if(toroidal) {
+	data->distance += 
+	  sqrt((R-last_R)*(R-last_R) + (Z-last_Z)*(Z-last_Z)
+	       + R*last_R*dphi*dphi);
+      } else {
+	data->distance += 
+	  sqrt((R-last_R)*(R-last_R) + (Z-last_Z)*(Z-last_Z)
+	       + dphi*dphi);
+      }
 
       // count toroidal transits
       k++;
@@ -297,11 +322,11 @@ bool trace_integrator::integrate(int transits, int steps_per_transit,
       }
     }
     if(plot) {
-      double f = (plane - last_Phi)/dphi;
+      double f = (pl - last_Phi)/dphi;
 
       double R_plot = R*f + last_R*(1.-f);
       double Z_plot = Z*f + last_Z*(1.-f);
-      double phi_plot = atan2(Z_plot - Z0, R_plot - R0)*180./M_PI;
+      double theta_plot = atan2(Z_plot - Z0, R_plot - R0)*180./M_PI;
       double psi_plot;
       if(!sources[0]->eval_psi(R_plot, Z_plot, &psi_plot))
 	psi_plot = 0;
@@ -312,13 +337,16 @@ bool trace_integrator::integrate(int transits, int steps_per_transit,
 
       file << std::setiosflags(std::ios::scientific)
 	   << std::setw(20) << std::setprecision(12) 
+	   << pl*180./M_PI
+	   << std::setiosflags(std::ios::scientific)
+	   << std::setw(20) << std::setprecision(12) 
 	   << R_plot 
 	   << std::setiosflags(std::ios::scientific) 
 	   << std::setw(20) << std::setprecision(12)
 	   << Z_plot
 	   << std::setiosflags(std::ios::scientific)
 	   << std::setw(20) << std::setprecision(12)
-	   << phi_plot
+	   << theta_plot
 	   << std::setiosflags(std::ios::scientific) 
 	   << std::setw(20) << std::setprecision(12)
 	   << psi_plot << std::endl;
@@ -393,33 +421,37 @@ bool trace_integrator::step_rk3(double dphi)
 bool trace_integrator::step_rk4(double dphi)
 {
   double b_r, b_phi, b_z, dR, dZ;
+  double RR = toroidal ? R : 1.;
 
   if(!eval(R,Phi,Z,&b_r,&b_phi,&b_z))
     return false;
 
   Phi += dphi/2.;
 
-  double k1_R = R*dphi*b_r/b_phi;
-  double k1_Z = R*dphi*b_z/b_phi;
+  double k1_R = RR*dphi*b_r/b_phi;
+  double k1_Z = RR*dphi*b_z/b_phi;
    
   if(!eval(R + k1_R/2.,Phi,Z + k1_Z/2.,&b_r,&b_phi,&b_z))
     return false;
 
-  double k2_R = (R+k1_R/2.)*dphi*b_r/b_phi;
-  double k2_Z = (R+k1_R/2.)*dphi*b_z/b_phi;
+  RR = toroidal ? (R+k1_R/2.) : 1.;
+  double k2_R = RR*dphi*b_r/b_phi;
+  double k2_Z = RR*dphi*b_z/b_phi;
 
   if(!eval(R + k2_R/2.,Phi,Z + k2_Z/2.,&b_r,&b_phi,&b_z))
     return false;
 
   Phi += dphi/2.;
-  double k3_R = (R+k2_R/2.)*dphi*b_r/b_phi;
-  double k3_Z = (R+k2_R/2.)*dphi*b_z/b_phi;
+  RR = toroidal ? (R+k2_R/2.) : 1.;
+  double k3_R = RR*dphi*b_r/b_phi;
+  double k3_Z = RR*dphi*b_z/b_phi;
   
   if(!eval(R + k3_R,Phi,Z + k3_Z,&b_r,&b_phi,&b_z))
     return false;
 
-  double k4_R = (R+k3_R)*dphi*b_r/b_phi;
-  double k4_Z = (R+k3_R)*dphi*b_z/b_phi;
+  RR = toroidal ? (R+k3_R) : 1.;
+  double k4_R = RR*dphi*b_r/b_phi;
+  double k4_Z = RR*dphi*b_z/b_phi;
 
   dR = k1_R/6. + k2_R/3. + k3_R/3. + k4_R/6.;
   dZ = k1_Z/6. + k2_Z/3. + k3_Z/3. + k4_Z/6.;

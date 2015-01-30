@@ -39,8 +39,11 @@ bool m3dc1_source::load()
   file.read_parameter("icomplex", &icomplex);
   file.read_parameter("3d", &i3d);
   file.read_parameter("version", &version);
+  file.read_parameter("itor", &itor);
 
   use_f = ((icomplex==1) || (i3d==1));
+  toroidal = (itor == 1);
+  period = toroidal ? 2.*M_PI : 2.*M_PI*rzero;
 
   if(time >= 0 && eqsubtract==1) bzero = 0.;
 
@@ -168,6 +171,8 @@ bool m3dc1_source::eval(const double r, const double phi0, const double z,
   double val[m3dc1_field::OP_NUM];
 
   double phi = phi0 - shift;
+  double rr = (itor==1) ? r : 1.;
+  double r0 = (itor==0) ? rzero : 1.;
 
   // B_R   = -(dpsi/dZ)/R - (d2f/dRdphi)
   // B_Z   =  (dpsi/dR)/R - (d2f/dZdphi)
@@ -176,13 +181,13 @@ bool m3dc1_source::eval(const double r, const double phi0, const double z,
   if(!psi->eval(r, phi, z, psiget, val))
     return false;
 
-  *b_r -= factor*val[m3dc1_field::OP_DZ]/r;
-  *b_z += factor*val[m3dc1_field::OP_DR]/r;
+  *b_r -= factor*val[m3dc1_field::OP_DZ]/rr;
+  *b_z += factor*val[m3dc1_field::OP_DR]/rr;
 
   if(use_g) {
     if(!g->eval(r, phi, z, gget, val))
       return false;
-    *b_phi += factor*val[m3dc1_field::OP_1]/r;
+    *b_phi += factor*val[m3dc1_field::OP_1]/rr;
   } else {
     *b_phi += factor*bzero;
   }
@@ -191,29 +196,29 @@ bool m3dc1_source::eval(const double r, const double phi0, const double z,
     if(!f->eval(r, phi, z, fget, val))
       return false;
 
-    *b_r -= factor*val[m3dc1_field::OP_DRP];
-    *b_z -= factor*val[m3dc1_field::OP_DZP];
+    *b_r -= factor*val[m3dc1_field::OP_DRP]/r0;
+    *b_z -= factor*val[m3dc1_field::OP_DZP]/r0;
   }
 
   if(extsubtract==1) {
     if(!psi_x->eval(r, phi, z, psiget, val))
       return false;
 
-    *b_r -= factor*val[m3dc1_field::OP_DZ]/r;
-    *b_z += factor*val[m3dc1_field::OP_DR]/r;
+    *b_r -= factor*val[m3dc1_field::OP_DZ]/rr;
+    *b_z += factor*val[m3dc1_field::OP_DR]/rr;
 
     if(use_g) {
       if(!g_x->eval(r, phi, z, gget, val))
 	return false;
-      *b_phi += factor*val[m3dc1_field::OP_1]/r;
+      *b_phi += factor*val[m3dc1_field::OP_1]/rr;
     }
 
     if(use_f) {
       if(!f_x->eval(r, phi, z, fget, val))
 	return false;
 
-      *b_r -= factor*val[m3dc1_field::OP_DRP];
-      *b_z -= factor*val[m3dc1_field::OP_DZP];
+      *b_r -= factor*val[m3dc1_field::OP_DRP]/r0;
+      *b_z -= factor*val[m3dc1_field::OP_DZP]/r0;
     }
   }
 

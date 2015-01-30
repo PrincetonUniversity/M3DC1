@@ -2,12 +2,15 @@
 #define TRACE_H
 
 #include <deque>
+#include <math.h>
 
 class trace_field_source {
  public:
   bool interpolate;
+  bool toroidal;
+  double period;
 
-  trace_field_source() { interpolate = false; }
+  trace_field_source() { interpolate = false; toroidal=true; period=2.*M_PI; }
   virtual ~trace_field_source() { }
 
   virtual bool load() = 0;

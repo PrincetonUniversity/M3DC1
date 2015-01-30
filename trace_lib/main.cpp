@@ -27,6 +27,7 @@ double angle = 0.;
 bool qout = true;
 bool pout = true;
 double ds = 0.;
+int nplanes = 1;
 
 bool R0_set = false;
 bool Z0_set = false;
@@ -57,6 +58,7 @@ int main(int argc, char* argv[])
   }
 
   tracer.plane = angle;
+  tracer.nplanes = nplanes;
 
   if(tracer.sources.size() == 0) {
     std::cerr << "No sources specified.  Returning." << std::endl;
@@ -82,7 +84,7 @@ int main(int argc, char* argv[])
 
   print_parameters();
 
-  std::fstream plotfile, plotfile2;
+  std::fstream plotfile;
   char outfile[256];
 
   if(pout) {
@@ -91,30 +93,54 @@ int main(int argc, char* argv[])
 	     << "set xlabel 'R'" << '\n'
 	     << "set ylabel 'Z'" << '\n'
 	     << "set pointsize 0.1" << '\n'
+	     << "set mapping cartesian" << '\n'
 	     << "plot ";
 
     for(int j=0; j<surfaces; j++) {
       sprintf(outfile, "out%d", j);     
       if(j>0) plotfile << ",\\\n";
-      plotfile << "'" << outfile << "'" << " title ''";
+      plotfile << "'" << outfile << "'" << " using 2:3 title ''";
     }
     plotfile << std::endl;
     plotfile.close();
 
-    plotfile2.open("gplotpsi", std::fstream::out | std::fstream::trunc);
-    plotfile2 << "set size ratio 1" << '\n'
+    plotfile.open("gplotpsi", std::fstream::out | std::fstream::trunc);
+    plotfile << "set size ratio 1" << '\n'
 	      << "set xlabel 'theta'" << '\n'
 	      << "set ylabel 'psi'" << '\n'
 	      << "set pointsize 0.1" << '\n'
+	      << "set mapping cartesian" << '\n'
 	      << "plot [-180:180] ";
 
     for(int j=0; j<surfaces; j++) {
       sprintf(outfile, "out%d", j);     
-      if(j>0) plotfile2 << ",\\\n";
-      plotfile2 << "'" << outfile << "'" << " using 3:4 title ''";
+      if(j>0) plotfile << ",\\\n";
+      plotfile << "'" << outfile << "'" << " using 4:5 title ''";
     }
-    plotfile2 << std::endl;
-    plotfile2.close();
+    plotfile << std::endl;
+    plotfile.close();
+
+    plotfile.open("gplot3D", std::fstream::out | std::fstream::trunc);
+    plotfile << "set size ratio 1" << '\n'
+	      << "set xlabel 'X'" << '\n'
+	      << "set ylabel 'Y'" << '\n'
+	      << "set zlabel 'Z'" << '\n'
+	      << "set pointsize 0.1" << '\n'
+	      << "set mapping cylindrical" << '\n'
+	      << "set angles degrees" << '\n'
+	      << "splot ";
+
+    for(int j=0; j<surfaces; j++) {
+      sprintf(outfile, "out%d", j);     
+      if(j>0) plotfile << ",\\\n";
+      if(nplanes > 12) {
+	plotfile << "'" << outfile << "'" << " u 1:3:2 w lines title ''";
+      } else {
+	plotfile << "'" << outfile << "'" << " u 1:3:2 title ''";
+      }
+    }
+    plotfile << std::endl;
+    plotfile.close();
   }
 
   int* offsets = new int[size];
@@ -312,12 +338,12 @@ void delete_sources()
 bool process_command_line(int argc, char* argv[])
 {
   const int max_args = 4;
-  const int num_opts = 15;
+  const int num_opts = 16;
   std::string arg_list[num_opts] = 
     { "-geqdsk", "-m3dc1", "-diiid-i",
       "-dR", "-dZ", "-dR0", "-dZ0", 
       "-ds", "-p", "-t", "-s", "-a",
-      "-pout", "-qout", "-phi0" };
+      "-pout", "-qout", "-phi0", "-n" };
   std::string opt = "";
   std::string arg[max_args];
   int args = 0;
@@ -427,6 +453,9 @@ bool process_line(const std::string& opt, const int argc, const std::string argv
       Phi0 = atof(argv[0].c_str())*M_PI/180.;
       phase_set = true;
     } else argc_err = true;
+  } else if(opt=="-n") {
+    if(argc==1) nplanes = atoi(argv[0].c_str());
+    else argc_err = true;
   } else if(opt=="-pout") {
     if(argc==1) pout = (atoi(argv[0].c_str()) == 1);
     else argc_err = true;
@@ -455,7 +484,7 @@ void print_help()
     << "Usage:\n"
     << "\ttrace <sources> -dR <dR> -dZ <dZ> -dR0 <dR0> -dZ0 <dZ0> /\n"
     << "\t   -p <pts> -t <trans> -s <steps> -a <angle> -phi0 <phi0> \n"
-    << "\t   -pplot <pplot> -qplot <qplot>\n\n"
+    << "\t   -pplot <pplot> -qplot <qplot> -n <nplanes>\n\n"
     << " <angle>   The toroidal angle of the plane in degrees (default = 0)\n"
     << " <dR>      R-spacing of seed points (default = major radius/(2*pts))\n"
     << " <dR0>     R-distance of first seed point from axis (default = dR)\n"
@@ -467,6 +496,7 @@ void print_help()
     << " <pplot>   If 1, Generate poincare plot data (default = 1)\n"
     << " <qplot>   If 1, Generate q-profile data (default = 1)\n"
     << " <trans>   Toroidal transits per seed point (default = 100)\n"
+    << " <nplanes> Number of toroidal planes for output (default = 1)\n"
     << " <sources> May be one or more of the following:\n"
     << "\n  -m3dc1 <c1_file> <ts> <factor> <shift>\n"
     << "   * Loads field information from M3D-C1 data file\n"
