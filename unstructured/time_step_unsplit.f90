@@ -197,6 +197,10 @@ subroutine import_time_advance_vectors_unsplit
      pe_v = pe_field(1)
   end if
 
+  if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
+     e_v = e_field(1)
+  end if
+
   if(idens.eq.1) den_v = den_field(1)
   if(imp_bf.eq.1) bf_v = bf_field(1)
 end subroutine import_time_advance_vectors_unsplit
@@ -234,6 +238,10 @@ subroutine export_time_advance_vectors_unsplit
         pe_field(1) = p_v
         call mult(pe_field(1), pefac)
      end if
+  end if
+
+  if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
+     e_field(1) = e_v
   end if
 
   if(idens.eq.1) den_field(1) = den_v
