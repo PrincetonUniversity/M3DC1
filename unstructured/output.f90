@@ -732,6 +732,11 @@ subroutine output_fields(time_group_id, equilibrium, error)
      call output_field(group_id, "potential", real(dum), coeffs_per_element, &
           nelms, error)
      nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id, "potential_i", aimag(dum), coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+#endif
   endif
 
   ! I
