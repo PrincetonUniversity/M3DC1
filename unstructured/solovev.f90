@@ -14,7 +14,7 @@ contains
     implicit none
 
     type(field_type) :: psi_vec, bz_vec, den_vec, p_vec
-    integer :: itri, numelms, i
+    integer :: itri, numelms, i, k
     vectype, dimension(dofs_per_element) :: dofs
 
     if(myrank.eq.0 .and. iprint.ge.1) print *, "Defining Solov'ev Equilibrium"
@@ -28,60 +28,68 @@ contains
     call create_field(p_vec)
     call create_field(den_vec)
 
-    psi_vec = 0.
-    bz_vec = 0.
-    p_vec = 0.
-    den_vec = 0.
-
     numelms = local_elements()
-    do itri=1,numelms
-       call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-       call define_fields(itri,0,1,0)
 
-       ! calculate equilibrium fields
-       call solovev_equ
+    do k=0,1
+       psi_vec = 0.
+       bz_vec = 0.
+       p_vec = 0.
+       den_vec = 0.
+       
+       do itri=1,numelms
+          call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+          call define_fields(itri,0,1,0)
 
-       ! populate vectors for solves
+          if(k.eq.0) then 
+             ! calculate equilibrium fields
+             call solovev_equ
+          else
+             ! calculate perturbed fields
+             call solovev_per
+          end if
 
-       ! psi
-       do i=1, dofs_per_element
-          dofs(i) = int2(mu79(:,OP_1,i),ps079(:,OP_1))
-       end do       
-       call vector_insert_block(psi_vec%vec,itri,1,dofs,VEC_ADD)
+          ! populate vectors for solves
 
-       ! bz
-       do i=1, dofs_per_element
-          dofs(i) = int2(mu79(:,OP_1,i),bz079(:,OP_1))
-       end do       
-       call vector_insert_block(bz_vec%vec,itri,1,dofs,VEC_ADD)
+          ! psi
+          do i=1, dofs_per_element
+             dofs(i) = int2(mu79(:,OP_1,i),ps079(:,OP_1))
+          end do
+          call vector_insert_block(psi_vec%vec,itri,1,dofs,VEC_ADD)
+          
+          ! bz
+          do i=1, dofs_per_element
+             dofs(i) = int2(mu79(:,OP_1,i),bz079(:,OP_1))
+          end do
+          call vector_insert_block(bz_vec%vec,itri,1,dofs,VEC_ADD)
+          
+          ! p
+          do i=1, dofs_per_element
+             dofs(i) = int2(mu79(:,OP_1,i),p079(:,OP_1))
+          end do
+          call vector_insert_block(p_vec%vec,itri,1,dofs,VEC_ADD)
+          
+          ! den
+          do i=1, dofs_per_element
+             dofs(i) = int2(mu79(:,OP_1,i),n079(:,OP_1))
+          end do
+          call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+       end do
 
-       ! p
-       do i=1, dofs_per_element
-          dofs(i) = int2(mu79(:,OP_1,i),p079(:,OP_1))
-       end do       
-       call vector_insert_block(p_vec%vec,itri,1,dofs,VEC_ADD)
-
-       ! den
-       do i=1, dofs_per_element
-          dofs(i) = int2(mu79(:,OP_1,i),n079(:,OP_1))
-       end do       
-       call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+       ! do solves
+       call newvar_solve(psi_vec%vec,mass_mat_lhs)
+       psi_field(k) = psi_vec
+       
+       call newvar_solve(bz_vec%vec,mass_mat_lhs)
+       bz_field(k) = bz_vec
+       
+       call newvar_solve(p_vec%vec,mass_mat_lhs)
+       p_field(k) = p_vec
+       pe_field(k) = p_vec
+       call mult(pe_field(k), pefac)
+       
+       call newvar_solve(den_vec%vec,mass_mat_lhs)
+       den_field(k) = den_vec
     end do
-
-    ! do solves
-    call newvar_solve(psi_vec%vec,mass_mat_lhs)
-    psi_field(0) = psi_vec
-
-    call newvar_solve(bz_vec%vec,mass_mat_lhs)
-    bz_field(0) = bz_vec
-
-    call newvar_solve(p_vec%vec,mass_mat_lhs)
-    p_field(0) = p_vec
-    pe_field(0) = p_vec
-    call mult(pe_field(0), pefac)
-
-    call newvar_solve(den_vec%vec,mass_mat_lhs)
-    den_field(0) = den_vec
 
     call destroy_field(psi_vec)
     call destroy_field(bz_vec)
@@ -115,8 +123,16 @@ contains
   end subroutine solovev_equ
 
   subroutine solovev_per()
+    use basic
+    use m3dc1_nint
+    use init_common
+
     implicit none
 
+    bz079(:,OP_1) = 0.
+    n079(:,OP_1) = 0.
+    p079(:,OP_1) = 0.
+    call init_random(x_79-rzero, phi_79, z_79, ps079(:,OP_1))
     
   end subroutine solovev_per
 
