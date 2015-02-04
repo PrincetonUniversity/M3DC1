@@ -43,7 +43,7 @@ contains
   ! ~~~~
   ! returns sech(x)
   !================
-  real function sech(x)
+  elemental real function sech(x)
     implicit none
     real, intent(in) :: x
     
