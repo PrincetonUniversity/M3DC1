@@ -53,15 +53,15 @@ contains
     ! Matrices
     call set_matrix_index(s1_mat, s1_mat_index)
     call set_matrix_index(d1_mat, d1_mat_index)
-    call create_mat(s1_mat, vecsize_phi, vecsize_phi, icomplex, 1)
-    call create_mat(d1_mat, vecsize_phi, vecsize_phi, icomplex, 0)
+    call create_mat(s1_mat, vecsize_phi, vecsize_phi, icomplex, .true.)
+    call create_mat(d1_mat, vecsize_phi, vecsize_phi, icomplex, .false.)
 #ifdef CJ_MATRIX_DUMP
     print *, "create_mat time_step s1_mat", s1_mat%imatrix     
     print *, "create_mat time_step d1_mat", d1_mat%imatrix     
 #endif 
     if(i3d.eq.1) then
        call set_matrix_index(o1_mat, o1_mat_index)
-       call create_mat(o1_mat, vecsize_phi, 1, icomplex, 0)
+       call create_mat(o1_mat, vecsize_phi, 1, icomplex, .false.)
 #ifdef CJ_MATRIX_DUMP
        print *, "create_mat time_step o1_mat", o1_mat%imatrix     
 #endif 
