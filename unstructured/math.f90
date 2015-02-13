@@ -141,5 +141,21 @@ real function bessel_I(n, x)
   call gsl_bessel_i(n,x,bessel_I)
 end function bessel_I
 
+real function bessel_J(n, x)
+  implicit none
+  integer, intent(in) :: n
+  real, intent(in) :: x
+
+  call gsl_bessel_j(n,x,bessel_J)
+end function bessel_J
+
+real function bessel_Y(n, x)
+  implicit none
+  integer, intent(in) :: n
+  real, intent(in) :: x
+
+  call gsl_bessel_y(n,x,bessel_Y)
+end function bessel_Y
+
   
 end module math
