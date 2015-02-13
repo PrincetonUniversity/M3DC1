@@ -117,7 +117,6 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	math.o read_ascii.o interpolate.o control.o \
 	iterdb.o read_gyro.o read_neo.o \
 	element.o $(V_OBJ) field.o nintegrate_mod.o \
-	fit_magnetics.o \
 	M3Dmodules.o \
 	m3dc1_nint.o boundary.o gyroviscosity.o \
 	metricterms_new.o two_fluid.o harned_mikic.o biharmonic.o \
@@ -126,6 +125,7 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	electrostatic_potential.o newvar.o diagnostics.o \
 	read_schaffer_field.o pellet.o neutral_beam.o \
 	coils.o coil_sets.o model.o \
+	fit_magnetics.o \
 	gradshafranov.o transport.o \
 	auxiliary_fields.o  \
 	time_step_split.o time_step_unsplit.o \
@@ -142,10 +142,13 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 S2V_OBJS = subp.o math.o element.o scorec_mesh.o struct2vac.o
 A2CC_OBJS = readaeqdsk.o a2cc.o
 
-all : $(BIN)
+all : $(BIN) m3dc1
 
 $(BIN): $(OBJS)
 	$(LOADER) $(LDOPTS) $(OBJS) $(LIBS) -o $@
+
+m3dc1 : $(BIN)
+	ln -s $< $@
 
 readgato :  $(READGATO_OBJS)
 	$(F90) $(READGATO_OBJS) -L$(NTCCHOME)/lib -lpspline -o $@
