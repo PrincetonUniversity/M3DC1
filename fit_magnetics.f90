@@ -1,119 +1,184 @@
-module fit_magnetic
+module fit_magnetics
   implicit none
 
-  ! Maximum radial and vertical modes to keep
-  integer, private :: n_max, m_max
-
-  ! Total number of degrees of freedom
-  integer, private :: ntot
-
-  ! Number of measurements
-  integer, private :: num_points
-
-  ! (R, phi, Z) location of each measurement
-  real, private, allocatable :: point(:,:)
-
-  ! Direction of each measurement
-  real, private, allocatable :: norm(:,:)
-
-  ! Value of each measurement
-  real, private, allocatable :: value(:)
-
-  ! Largest vertical scale-length allowed
-  real, private :: Lz
-
-  complex, private, allocatable :: mat(:,:)
+  integer, private :: nk
+  real, private, allocatable :: x(:)
+  real, private :: dk
 
 contains
 
-  subroutine fit_read_data(filename)
-    implicit none
-
-    character(len=*), intent(in) :: filename
-
-    integer, parameter :: ifile = 15
-    integer :: n, i
-
-    open(unit=ifile, file=filename, action='read', status='old')    
-
-    ! count lines
-    n = 0
-    do
-       read(ifile, *, end=100, err=100)
-       n = n + 1
-    end do
-    
-100 continue
-    print *, 'Read ', n, ' lines'
-
-    num_points = n
-
-    ! allocate data
-    allocate(point(3,num_points), norm(3,num_points), value(num_points))
-
-    rewind(ifile)
-
-    ! read data
-    do i=1, n
-       
-    end do
-
-    close(ifile)
-  end subroutine fit_read_data
-
-  subroutine fit_finalize
-    implicit none
-
-    deallocate(point, norm, value, mat)
-  end subroutine fit_finalize
-
-  subroutine mat_element(n, m, pt, norm, val)
+  subroutine solve_bessel_fields_2D(n, r, z, rn, zn, b,ierr)
     use math
-    implicit none
-    
-    integer, intent(in) :: n, m
-    real, intent(in), dimension(3) :: pt, norm
-    complex, intent(out) :: val
 
+    implicit none
+
+    integer, intent(in) :: n                 ! number of measurements
+    real, intent(in), dimension(n) :: r, z   ! position of measurements
+    real, intent(in), dimension(n) :: rn, zn ! direction of measurements
+    real, intent(in), dimension(n) :: b      ! value of measurements
+    integer, intent(out) :: ierr
+    real, allocatable :: matrix(:,:), work(:), s(:)
+    integer :: i,j,m, lwork, rank
     real :: k
+    real :: rcond = -1
 
-    k = 2.*pi*m/Lz
-    val = exp(cmplx(0.,1.)*(n*pt(2) + k*pt(3))) * &
-         (0.5*norm(1)*k*(Bessel_I(n-1, k*pt(1)) + Bessel_I(n+1, k*pt(1))) &
-         + (norm(2)*n/pt(1) + norm(3)*k)*cmplx(0.,1.)*Bessel_I(n, k*pt(1)))
-  end subroutine mat_element
+    ! define the matrix
+    nk = 3   ! number of modes to include
+    m = 4*nk
+    dk = pi  ! spacing of modes
 
-  subroutine mat_row(pt, norm, val)
-    implicit none
+    if(m.gt.n) then
+       print *, 'Error: underdetrmined matrix'
+       ierr = 1
+       return
+    end if
 
-    real, intent(in), dimension(3) :: pt, norm
-    complex, intent(out), dimension(ntot) :: val
+    allocate(matrix(n,m))
 
-    integer :: n, m, i
-
-    i = 1
-    do n=-n_max, n_max
-       do m=-m_max, m_max
-          call mat_element(n, m, pt, norm, val(i))
-          i = i + 1 
+    do i=1, n
+       do j=1, nk
+          k = j*dk
+          matrix(i,j     ) =  k*exp( k*z(i))* &
+               (zn(i)*Bessel_J(0,k*r(i)) - rn(i)*Bessel_J(1,k*r(i)))
+          matrix(i,j+  nk) =  k*exp( k*z(i))* &
+               (zn(i)*Bessel_Y(0,k*r(i)) - rn(i)*Bessel_Y(1,k*r(i)))
+          matrix(i,j+2*nk) = -k*exp(-k*z(i))* &
+               (zn(i)*Bessel_J(0,k*r(i)) + rn(i)*Bessel_J(1,k*r(i)))
+          matrix(i,j+3*nk) = -k*exp(-k*z(i))* &
+               (zn(i)*Bessel_Y(0,k*r(i)) + rn(i)*Bessel_Y(1,k*r(i)))
        end do
     end do
-  end subroutine mat_row
 
-  subroutine mat_create(pt, norm)
+    ! get least-squares solution
+    lwork = 3*m+1*(m+n)
+    allocate(s(m),work(lwork))
+    call dgelss(n,m,1,matrix,n,b,n,s,rcond,rank,work,lwork,ierr)
+    print *, ' dgelss returned with info = ', ierr
+!    print *, ' Singular values = ', s
+!    print *, ' rank = ', rank
+    
+    deallocate(work,s,matrix)
+
+    allocate(x(m))
+    x = 0.
+    x = b(1:m)
+  end subroutine solve_bessel_fields_2D
+
+
+  subroutine evaluate_bessel_fields_2D(n, r, z, psi)
+    use math
+
     implicit none
-    
-    real, intent(in), dimension(3, num_points) :: pt, norm
-    integer :: i
 
-    ntot = (2.*n_max + 1)*(2.*m_max + 1)
-    allocate(mat(ntot,num_points)) 
+    integer, intent(in) :: n
+    real, intent(in), dimension(*) :: r, z
+    vectype, intent(out), dimension(*) :: psi
 
-    do i=1, num_points
-       call mat_row(pt(:,i), norm(:,i), mat(:,i))
+    integer :: i, j
+    real :: k, bj, by
+
+    psi(1:n) = 0.
+    do j=1, n
+       do i=1, nk
+          k = i*dk
+          bj = Bessel_J(1,k*r(j))
+          by = Bessel_Y(1,k*r(j))
+          psi(j) = psi(j) &
+               + r(j)*exp( k*z(j))*(x(i     )*bj + x(i+  nk)*by) &
+               - r(j)*exp(-k*z(j))*(x(i+2*nk)*bj + x(i+3*nk)*by)
+       end do
+    end do    
+  end subroutine evaluate_bessel_fields_2D
+
+  subroutine clear_bessel_fields()
+    implicit none
+
+    if(allocated(x)) deallocate(x)
+  end subroutine clear_bessel_fields
+
+
+  subroutine solve_multipole_fields_2D(n, r, z, rn, zn, b,ierr)
+    use math
+    use coils
+
+    implicit none
+
+    integer, intent(in) :: n                 ! number of measurements
+    real, intent(in), dimension(n) :: r, z   ! position of measurements
+    real, intent(in), dimension(n) :: rn, zn ! direction of measurements
+    real, intent(in), dimension(n) :: b      ! value of measurements
+    integer, intent(out) :: ierr
+    real, allocatable :: matrix(:,:), work(:), s(:)
+    integer :: i,j,m, lwork, rank
+    real :: rcond = -1
+    real, dimension(6,n) :: g
+    real, dimension(n) :: xi, zi
+
+    ! define the matrix
+    nk = 4   ! number of modes to include
+    m = nk   ! columns of matrix
+
+    if(m.gt.n) then
+       print *, 'Error: underdetrmined matrix'
+       ierr = 1
+       return
+    end if
+
+    if(nk.gt.8) then
+       print *, 'Error: can only use up to 8 multipole fields'
+       ierr = 1
+       return
+    end if
+
+    allocate(matrix(n,m))
+
+    do j=1, nk
+       xi = 101.+j
+       zi = 10.
+       call gvect(r,z,xi,zi,n,g,1,ierr)
+
+       matrix(:,j) = -rn*g(3,:)/r + zn*g(2,:)/r
     end do
+
+    ! get least-squares solution
+    lwork = 3*m+1*(m+n)
+    allocate(s(m),work(lwork))
+    call dgelss(n,m,1,matrix,n,b,n,s,rcond,rank,work,lwork,ierr)
+    print *, ' dgelss returned with info = ', ierr
+!    print *, ' Singular values = ', s
+!    print *, ' rank = ', rank
     
-  end subroutine mat_create
+    deallocate(work,s,matrix)
 
+    allocate(x(m))
+    x = 0.
+    x = b(1:m)
+  end subroutine solve_multipole_fields_2D
 
-end module fit_magnetic
+  subroutine evaluate_multipole_fields_2D(n, r, z, psi)
+    use math
+    use coils
+
+    implicit none
+
+    integer, intent(in) :: n
+    real, intent(in), dimension(n) :: r, z
+    vectype, intent(out), dimension(n) :: psi
+
+    integer :: i, j, ierr
+    real, dimension(6,n) :: g
+    real, dimension(n) :: xi, zi
+
+    psi = 0.
+    do j=1, nk
+
+       xi = 101.+j
+       zi = 10.
+
+       call gvect(r,z,xi,zi,n,g,1,ierr)
+
+       psi = psi + x(j)*g(1,:)
+    end do    
+  end subroutine evaluate_multipole_fields_2D
+
+end module fit_magnetics
