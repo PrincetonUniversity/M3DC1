@@ -6,7 +6,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                 overplot=overplot, phi=phi0, time=realtime, levels=levels, $
                 phase=phase, abs=abs, operation=op, magcoord=magcoord, $
                 outfile=outfile, fac=fac, filename=filename, $
-                psin=psin, _EXTRA=ex
+                psin=psin, coils=coils, _EXTRA=ex
 
    if(n_elements(time) eq 0) then time = 0
    if(n_elements(p) eq 0) then p = 200
@@ -130,5 +130,9 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
            plot_mesh, mesh=mesh, /oplot, $
              boundary=boundary, filename=filename[0], _EXTRA=ex
        endif
+
+       if(keyword_set(coils)) then begin
+           plot_coils, _EXTRA=extra, filename=filename[0], /overplot
+       end
    endelse
 end

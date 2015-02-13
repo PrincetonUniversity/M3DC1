@@ -1022,11 +1022,14 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    endif else if( (strcmp('field energy', name, /fold_case) eq 1) $
                   or (strcmp('b2', name, /fold_case) eq 1)) $
      then begin
-       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+       psi_r = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, linear=linear, $
                         rrange=xrange, zrange=yrange, complex=complex, $
-                       linfac=linfac)
-
+                       linfac=linfac,op=2)
+       psi_z = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, linear=linear, $
+                        rrange=xrange, zrange=yrange, complex=complex, $
+                       linfac=linfac,op=3)
        I = read_field('I', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, linear=linear, $
                       rrange=xrange, zrange=yrange, complex=complex, $
@@ -1036,26 +1039,32 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            r = radius_matrix(x,y,t)
        endif else r = 1.
 
-       b2 = (s_bracket(psi,conj(psi),x,y) + I*conj(I))/r^2
+       b2 = (psi_r*conj(psi_r) + psi_z*conj(psi_z) + I*conj(I))/r^2
        if(icomplex eq 1) then begin
            ; if the fields are ~exp(i n phi), then
            ; this is the toroidally-averaged value of |B| !
 
-           f = read_field('f', x, y, t, slices=time, mesh=mesh, $
+           f_r = read_field('f_r', x, y, t, slices=time, mesh=mesh, $
                           filename=filename, points=pts, linear=linear, $
                           rrange=xrange, zrange=yrange, complex=complex, $
-                         linfac=linfac)
-           fp = complex(0., ntor)*f
-           b2 = b2 + s_bracket(fp,conj(fp),x,y) $
-             - a_bracket(fp, conj(psi),x,y)/r $
-             - a_bracket(conj(fp), psi,x,y)/r
+                         linfac=linfac, op=2)
+           f_z = read_field('f_z', x, y, t, slices=time, mesh=mesh, $
+                          filename=filename, points=pts, linear=linear, $
+                          rrange=xrange, zrange=yrange, complex=complex, $
+                         linfac=linfac, op=3)
+
+           fpr = complex(0., ntor)*f_r
+           fpz = complex(0., ntor)*f_z
+           b2 = b2 + fpr*conj(fpr) + fpz*conj(fpz) $
+             + (fpr*conj(psi_z) - fpz*conj(psi_r))/r $
+             + (conj(fpr)*psi_z - conj(fpz)*psi_r)/r
 
            b2 = b2 / 2. ; this comes from the cos^2 dependence of the field
            b2 = real_part(b2)
        endif
 
        nolf = 1
-       data = b2/(8.*!pi)
+       data = b2/2.  ; W = |B|^2 / 2
        symbol = '!3|!5B!3|!U!62!N!X'
        d = dimensions(p0=1, _EXTRA=extra)
 

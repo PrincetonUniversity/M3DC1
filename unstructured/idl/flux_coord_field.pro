@@ -101,52 +101,12 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
            thimp = 0.
            if(keyword_set(pest)) then begin
                g = interpolate(reform(db[k,*,*]),ix,iz)
-
-               ; determine position where angle changes sign
-               if(p eq 0) then begin
-                   ; if this is the first point, 
-                   ; minimize the geometric angle
-                   func = a
-                   dum = min(func, i, /abs)
-               endif else begin
-                   ; otherwise, minimize the distance to the
-                   ; point normal to the last surface
-                   dp = [interpolate(reform(dpsidr[k,*,*]),ix,iz), $
-                         interpolate(reform(dpsidz[k,*,*]),ix,iz)] $
-                     / (xp*h) * (-dpsi*thimp)
-                   func = (xp-dp[0]-p1[0])^2 + (zp-dp[1]-p1[1])^2
-                   dum = min(func, i, /abs)
-                   func = deriv(func)
-               endelse
-               da = deriv(func)
-               if(da[i] eq 0) then print, 'DA ERROR!'
-               index = i
-               di = func[i]/da[i]
-               if(abs(di) lt 0.5) then begin
-                   index = index - di
-               endif else begin
-                   print, 'index correction too large: ', di, func[i], da[i]
-               endelse
-                   
-               if(index lt 0 or index ge n_elements(xp)) then begin
-                   print, 'Interpolation error ', index, p
-                   index = i
-               end
-
-               p0 = [interpolate(xp,index), interpolate(zp,index)]
-               ix0 = n_elements(x)*(p0[0] - min(x))/(max(x) - min(x))
-               iz0 = n_elements(z)*(p0[1] - min(z))/(max(z) - min(z))
-
-               dp = [interpolate(reform(dpsidr[k,*,*]),ix0,iz0), $
-                     interpolate(reform(dpsidz[k,*,*]),ix0,iz0)] $
-                 / (p0[0]*interpolate(reform(bp[k,*,*]),ix0,iz0))
-               p1 = p0 + (-dpsi*(1.-thimp))*dp
-;               print, 'p0, p1', p0, p1
                              
                ; calculate dt
                dt = ds*g
                if(not left_handed) then dt = -dt
 
+               ; caculate pest angle on range [0,2*pi)
                pest_angle = fltarr(n_elements(dt))
                pest_angle[0] = 0.
                for j=1, n_elements(dt)-1 do begin
@@ -154,6 +114,11 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
                end
              
                ; center pest_angle to change sign where a changes sign
+;               if(p eq fbins / 2) then begin
+;                   print, 'a'
+;                   print, reform(a)
+;               end
+               index = interpol(findgen(n_elements(a)),a,0.)
                pest_angle = pest_angle - interpolate(pest_angle,index)
 
                ; rescale pest_angle
@@ -161,33 +126,19 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
                  /(2.*!pi)
                if(left_handed) then q[k,p] = -q[k,p]
                pest_angle = pest_angle/abs(q[k,p])
-;               qval = interpol(q, qflux, flux[k,p])
-;               pest_angle = pest_angle/qval
-               ; constrain pest angle to +/- pi
-               pest_angle = clamp_and_shift(pest_angle, shift=count)
-               f = shift(f,-count)
 
-               tol = 0.0001
-               while(abs(pest_angle[0]-pest_angle[1]) lt tol) do begin
-                   pest_angle = pest_angle[1:n_elements(pest_angle)-1]
-                   f = f[1:n_elements(f)-1]
-               end
-               while(abs(pest_angle[n_elements(pest_angle)-2] - $
-                      pest_angle[n_elements(pest_angle)-1]) lt tol) do begin
-                   pest_angle = pest_angle[0:n_elements(pest_angle)-2]
-                   f = f[0:n_elements(f)-2]
-               end
+               ; constrain angle to limits of pest_angle
+               c = where(angle[k,*] lt min(pest_angle), count)
+               if(count gt 0) then angle[k,c] = angle[k,c] + 2.*!pi
+               c = where(angle[k,*] gt max(pest_angle), count)
+               if(count gt 0) then angle[k,c] = angle[k,c] - 2.*!pi
+
+               c = where(angle[k,*] lt min(pest_angle), count)
+               if(count gt 0) then print, 'angle below bound', count
+               c = where(angle[k,*] gt max(pest_angle), count)
+               if(count gt 0) then print, 'angle above bound', count
 
                result[k,p,*] = interpol(f,pest_angle,angle[k,*])
-
-;                problems = where(result[k,p,*] eq 1./0., count)
-;                if(count gt 0) then begin
-;                    print, "result = ", reform(result[k,p,*])
-;                    print, "f = ", reform(f)
-;                    print, "pest_angle = ", reform(pest_angle)
-;                    stop
-;                end
-
            endif else begin
                result[k,p,*] = interpol(f,a,angle[k,*])
            endelse 

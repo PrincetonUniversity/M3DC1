@@ -105,6 +105,10 @@ function field_data, name, units=units, itor=itor
                  strcmp(name, 'e_z_i', /fold_case) eq 1) then begin
        units = dimensions(/pot,l0=-1)
        return, "!8E!DZ!N!X"
+   endif else if(strcmp(name, 'potential', /fold_case) eq 1  or $
+                 strcmp(name, 'potential_i', /fold_case) eq 1) then begin
+       units = dimensions(/pot)
+       return, "!7U!X"
    endif  
 
    return, '!8' + name + '!X'
