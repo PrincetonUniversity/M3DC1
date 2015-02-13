@@ -28,8 +28,8 @@ pro write_geqdsk, eqfile=eqfile, $
   dx = (max(x)-min(x))/(n_elements(x) - 1.)
   dz = (max(z)-min(z))/(n_elements(z) - 1.)
   jphi = psi_lp - psi_r/r
-  tcur = total(jphi*dx*dz/r)
-  print, 'current = ', tcur
+  tcur = read_scalar('ip',_EXTRA=extra,/mks)
+  print, 'current = ', tcur[0]
 
   ; calculate magnetic axis and xpoint
   lcfs_psi = lcfs(psi,x,z, axis=axis, xpoint=xpoint, $
@@ -152,7 +152,7 @@ pro write_geqdsk, eqfile=eqfile, $
   ffprim = ffprim/(b0*l0^2)     * 1e8
   bzero = bzero*b0              / 1e4
   b2 = b2*b0^2                  / (1e4)^2
-  tcur = tcur*b0*c*l0/(4.*!pi)  / 3e9
+;  tcur = tcur*b0*c*l0/(4.*!pi)  / 3e9
   r = r*l0                      / 100.
   x = x*l0                      / 100.
   z = z*l0                      / 100.
@@ -188,7 +188,7 @@ pro write_geqdsk, eqfile=eqfile, $
   zmid = (max(z) + min(z))/2.
   rmag = axis[0]
   zmag = axis[1]
-  zip = tcur
+  zip = tcur[0]
   bcentr = bzero*rzero/rmag
   beta0 = beta0
   beta_n = 100.*(bzero*rzero/rmag)*beta0/(zip/1e6)

@@ -248,6 +248,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
 
            print, 'q, Psi = ', interpolate(abs(q),indices[i]), $
              interpolate(nflux, indices[i])
+
            print, 'Resonant field: m (mag, phase) = ', m[j], abs(d[j,i]), $
              atan(imaginary(d[j,i]),real_part(d[j,i]))
            print, 'Resonant field: m (mag, phase) = ', m[k], abs(d[k,i]), $
