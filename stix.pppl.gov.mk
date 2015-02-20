@@ -50,16 +50,18 @@ ifeq ($(COM), 1)
 PETSC_DIR= /usr/pppl/intel/11-pkgs/vSMPICH2-pkgs/petsc-3.4.5/
 PETSC_ARCH = intel-vsmp2-complex
 PETSC_LIBS = \
-        -Wl,--start-group,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcmumps -ldmumps -lmetis -lmumps_common -lparmetis -lpetsc -lpord lsmumps -lzmumps -Wl,--end-group \
+        -Wl,--start-group,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcmumps -ldmumps -lmumps_common -lpetsc -lpord lsmumps -lzmumps -Wl,--end-group \
 	-L$(SCALAPACK_HOME) -lscalapack \
 	-L$(BLACS_HOME)/lib -lmpiblacsF77init -lmpiblacs -lmpiblacsCinit -lmpiblacs
+SCORECLIBS = -lapf -lgmi -lma -lparma -lph -lmds -lpcu -lspr -lm3dc1_scorec_complex -lapf_zoltan 
 else
 PETSC_DIR= /usr/pppl/intel/11-pkgs/vSMPICH2-pkgs/petsc-3.4.5-real/
 PETSC_ARCH= intel-vsmp2-real
 PETSC_LIBS = \
-        -Wl,--start-group,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcmumps -ldmumps -lmetis -lmumps_common -lparmetis -lpetsc -lpord lsmumps -lzmumps -Wl,--end-group \
+        -Wl,--start-group,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcmumps -ldmumps -lmumps_common -lpetsc -lpord lsmumps -lzmumps -Wl,--end-group \
 	-L$(SCALAPACK_HOME) -lscalapack \
 	-L$(BLACS_HOME)/lib -lmpiblacsF77init -lmpiblacs -lmpiblacsCinit -lmpiblacs
+SCORECLIBS = -lapf -lgmi -lma -lparma -lph -lmds -lpcu -lspr -lm3dc1_scorec -lapf_zoltan
 endif
 
 #SUPERLU_HOME = $(PETSC_DIR)/$(PETSC_ARCH)
@@ -71,14 +73,13 @@ SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/stix/latest
 INCLUDE := -I$(SCORECDIR)/include $(INCLUDE)
 
 SCOREC_LIBS = -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib \
-              -lapf -lgmi -lma -lparma -lph -lmds -lpcu -lspr -lm3dc1_scorec \
-              -lapf_zoltan -lzoltan \
-              -lparmetis -lmetis \
-              -Wl,--start-group
+              $(SCORECLIBS) -Wl,--start-group
 
 LIBS = 	$(PETSC_LIBS) \
 	$(SUPERLU_LIBS) \
         $(SCOREC_LIBS) \
+        -L/usr/pppl/intel/11-pkgs/vSMPICH2-pkgs/ParMetis-4.0.3/lib -lmetis -lparmetis \
+        -L/usr/pppl/intel/11-pkgs/vSMPICH2-pkgs/zoltan-3.81/lib -lzoltan \
 	-L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5 \
 	-L$(FFTWHOME)/lib -lfftw3 \
 	-L$(CCHOME)/mkl/lib/em64t -lmkl -lmkl_lapack \
