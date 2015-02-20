@@ -3040,6 +3040,7 @@ subroutine frs_init()
 
      call set_local_vals(l)
   enddo
+  call finalize(field_vec)
 
 end subroutine frs_init
 
@@ -3234,12 +3235,6 @@ subroutine frs_per(x, phi, z)
         vmask(2:6) = 0.
      endif
      call random_per(x,phi,z,vmask)
-
-
-  call finalize(field_vec)
-
-
-
 end subroutine frs_per
 
 end module frs
@@ -3283,7 +3278,7 @@ subroutine ftz_init()
 
      call set_local_vals(l)
   enddo
-
+  call finalize(field_vec)
 end subroutine ftz_init
 
 
@@ -3382,11 +3377,6 @@ subroutine ftz_per(x, phi, z)
         vmask(2:6) = 0.
      endif
      call random_per(x,phi,z,vmask)
-
-
-  call finalize(field_vec)
-
-
 end subroutine ftz_per
 
 end module ftz
@@ -3429,7 +3419,7 @@ subroutine eigen_init()
 
      call set_local_vals(l)
   enddo
-
+  call finalize(field_vec)
 end subroutine eigen_init
 
 
@@ -3493,9 +3483,6 @@ subroutine eigen_per(x, phi, z)
         vmask(2:6) = 0.
      endif
      call random_per(x,phi,z,vmask)
-
-
-  call finalize(field_vec)
 end subroutine eigen_per
 
 end module eigen
