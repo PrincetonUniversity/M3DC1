@@ -105,4 +105,5 @@ pro delta_W, filename=filename, _EXTRA=extra
   print, 'gamma = ', gamma
   print, 'gamma from dW / K = ', sqrt(-dW / K)
   print, 'gamma from (dW_F + dW_V_b2) / K = ', sqrt(-(dW_F + dW_V_b2) / K)
+  print, 'dW from -K*gamma^2 = ', -K*gamma^2
 end
