@@ -237,7 +237,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        c = get_colors()
        for i=0, n_elements(col)-1 do begin
            col[i] = c[i mod n_elements(c)]
-       end
+        end
        if(n_elements(outfile) ne 0) then begin
            openw, ifile, outfile, /get_lun
        end
@@ -254,11 +254,11 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
            print, 'Resonant field: m (mag, phase) = ', m[k], abs(d[k,i]), $
              atan(imaginary(d[k,i]),real_part(d[k,i]))
 
-           if(i eq 0) then begin
-               plot, m, abs(d[*,i]), xrange=[-20,20], yrange=[0, max(abs(d))]
-           endif else begin
-               oplot, m, abs(d[*,i]), color=col[i]
-           end
+;           if(i eq 0) then begin
+;               plot, m, abs(d[*,i]), xrange=[-20,20], yrange=[0, max(abs(d))]
+;           endif else begin
+;               oplot, m, abs(d[*,i]), color=col[i]
+;           end
            
            if(n_elements(outfile) ne 0) then begin
                print, 'q[0] = ', q[0]
@@ -275,8 +275,8 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        end
        if(n_elements(outfile) ne 0) then begin
            free_lun, ifile
-       end
-       return
+        end
+       d = dold
    endif
 
    if(1 eq strcmp(!d.name, 'PS', /fold_case)) then begin
