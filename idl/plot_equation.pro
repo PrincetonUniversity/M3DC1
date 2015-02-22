@@ -28,16 +28,22 @@ pro plot_equation, equation, cutz=cutz, _EXTRA=extra, $
      xdat = x
   endelse
 
-  plot, [min(xdat),max(xdat)], [min(term), max(term)], /nodata, $
+  f = fltarr(nterms+1,n_elements(xdat))
+  for i=0, nterms-1 do begin
+     f[i,*] = field_at_point(term[i,*,*],x,z,x0,z0)
+  end
+  f[nterms,*] = field_at_point(total,x,z,x0,z0)
+
+  plot, [min(xdat),max(xdat)], [min(f), max(f)], /nodata, $
         title=title, xtitle=xtitle, _EXTRA=extra
 
   ct3
   c = get_colors()
   for i=0, nterms-1 do begin
-     f = field_at_point(term[i,*,*],x,z,x0,z0)
-     oplot, xdat, f,color=c[i+1]
+     oplot, xdat, f[i,*],color=c[i+1]
   end
-  oplot, xdat, field_at_point(total,x,z,x0,z0), linestyle=2
+  oplot, xdat, f[nterms,*],color=c[0], linestyle=2
+
   names = ['Total',names]
   plot_legend, names, color=c, _EXTRA=extra
   
