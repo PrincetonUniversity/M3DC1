@@ -333,7 +333,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ; toroidal velocity
    ;===========================================
    endif else if(strcmp('toroidal velocity', name, /fold_case) eq 1) or $
-     (strcmp('vz', name, /fold_case) eq 1) then begin
+     (strcmp('vy', name, /fold_case) eq 1) then begin
        
        v = read_field('V',x,y,t,slices=time, mesh=mesh, filename=filename, $
                         points=pts,rrange=xrange,zrange=yrange, $
@@ -511,6 +511,164 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
   
        symbol = '!8n!De!N!X'
        d = dimensions(/n0, _EXTRA=extra)
+
+   ;===========================================
+   ; delta_W
+   ;===========================================
+   endif else if(strcmp('delta_W', name, /fold_case) eq 1) then begin
+
+      jr0 = read_field('jx',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                       slice=-1, rrange=xrange, zrange=yrange, mask=mask)
+      jphi0 = read_field('jy',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                       slice=-1, rrange=xrange, zrange=yrange, mask=mask)
+      jz0 = read_field('jz',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                       slice=-1, rrange=xrange, zrange=yrange, mask=mask)
+      jr1 = read_field('jx',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                       slice=time, rrange=xrange, zrange=yrange, $
+                       complex=complex, linear=linear, phi=phi0)
+      jphi1 = read_field('jy',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                         slice=time, rrange=xrange, zrange=yrange, $
+                         complex=complex, linear=linear, phi=phi0)
+      jz1 = read_field('jz',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                       slice=time, rrange=xrange, zrange=yrange, $
+                       complex=complex, linear=linear, phi=phi0)
+      br0 = read_field('bx',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                       slice=-1, rrange=xrange, zrange=yrange)
+      bphi0 = read_field('by',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                       slice=-1, rrange=xrange, zrange=yrange)
+      bz0 = read_field('bz',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                       slice=-1, rrange=xrange, zrange=yrange)
+      br1 = read_field('bx',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                       slice=time, rrange=xrange, zrange=yrange, $
+                       complex=complex, linear=linear, phi=phi0)
+      bphi1 = read_field('by',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                         slice=time, rrange=xrange, zrange=yrange, $
+                         complex=complex, linear=linear, phi=phi0)
+      bz1 = read_field('bz',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                       slice=time, rrange=xrange, zrange=yrange, $
+                       complex=complex, linear=linear, phi=phi0)
+      p1 = read_field('p',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                      slice=time, rrange=xrange, zrange=yrange, $
+                      complex=complex, linear=linear, phi=phi0)
+      pr1 = read_field('p',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                       slice=time, rrange=xrange, zrange=yrange, $
+                       complex=complex, linear=linear, phi=phi0,op=2)
+      pz1 = read_field('p',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                       slice=time, rrange=xrange, zrange=yrange, $
+                       complex=complex, linear=linear, phi=phi0,op=3)
+
+      xir = read_field('xi_x',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                       slice=time, rrange=xrange, zrange=yrange, $
+                       complex=complex, linear=linear, phi=phi0)
+      xiphi = read_field('xi_y',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                         slice=time, rrange=xrange, zrange=yrange, $
+                         complex=complex, linear=linear, phi=phi0)
+      xiz = read_field('xi_z',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                       slice=time, rrange=xrange, zrange=yrange, $
+                       complex=complex, linear=linear, phi=phi0)
+
+      pphi1 = complex(0,ntor)*p1
+
+      r = radius_matrix(x,y,t)
+
+      fr   = (jphi0*bz1 - jz0*bphi1 + jphi1*bz0 - jz1*bphi0 - pr1)
+      fphi = (jz0*br1 - jr0*bz1 + jz1*br0 - jr1*bz0         - pphi1/r)
+      fz   = (jr0*bphi1 - jphi0*br1 + jr1*bphi0 - jphi1*br0 - pz1)
+
+      data = -0.5*(conj(xir)*fr + conj(xiphi)*fphi + conj(xiz)*fz)
+  
+      symbol = '!7d!8w!X'
+      d = dimensions(/p0, _EXTRA=extra)
+
+   ;===========================================
+   ;  K (kinetic part of delta W)
+   ;===========================================
+   endif else if(strcmp('K', name, /fold_case) eq 1) then begin
+
+      den0 = read_field('den',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                        slice=-1, rrange=xrange, zrange=yrange)
+      xir = read_field('xi_x',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                       slice=time, rrange=xrange, zrange=yrange, $
+                       complex=complex, linear=linear, phi=phi0)
+      xiphi = read_field('xi_y',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                         slice=time, rrange=xrange, zrange=yrange, $
+                         complex=complex, linear=linear, phi=phi0)
+      xiz = read_field('xi_z',x,y,t,mesh=mesh,filename=filename,points=pts,$
+                       slice=time, rrange=xrange, zrange=yrange, $
+                       complex=complex, linear=linear, phi=phi0)
+
+      r = radius_matrix(x,y,t)
+
+      data = 0.5*den0*(abs(xir)^2 + abs(xiphi)^2 + abs(xiz)^2)
+  
+      symbol = '!8K!X'
+      d = dimensions(/p0, _EXTRA=extra)
+
+   ;===========================================
+   ; xi_n
+   ;===========================================
+   endif else if(strcmp('xi_n', name, /fold_case) eq 1) then begin
+      
+      g = read_gamma(filename=filename)
+      if(g eq 0.) then begin
+         data = read_field('vn', x, y, t, mesh=mesh, phi=phi0, slice=time, $
+                           filename=filename, points=pts, complex=complex, $
+                           rrange=xrange, zrange=yrange, linear=linear)
+      endif else begin
+         print, 'xi_n = normal displacement using xi = int(v dt) method'
+         vn = read_field('vn', x, y, t, mesh=mesh, phi=phi0, slice=time, $
+                         filename=filename, points=pts, complex=complex, $
+                         rrange=xrange, zrange=yrange, linear=linear)
+         data = vn / g[0]
+      end
+
+      symbol = '!7n!D!8n!N!X'
+      d = dimensions(/l0, _EXTRA=extra)
+
+   ;===========================================
+   ; xi_x
+   ;===========================================
+   endif else if(strcmp('xi_x', name, /fold_case) eq 1) then begin
+
+      print, 'xi_x = normal displacement using xi = int(v dt) method'
+      vx = read_field('vx', x, y, t, mesh=mesh, phi=phi0, slice=time, $
+                      filename=filename, points=pts, complex=complex, $
+                      rrange=xrange, zrange=yrange, linear=linear)
+      g = read_gamma(filename=filename)
+      data = vx / g[0]     
+
+      symbol = '!7n!D!8R!N!X'
+      d = dimensions(/l0, _EXTRA=extra)
+
+   ;===========================================
+   ; xi_y
+   ;===========================================
+   endif else if(strcmp('xi_y', name, /fold_case) eq 1) then begin
+
+      print, 'xi_y = toroidal displacement using xi = int(v dt) method'
+      vy = read_field('vy', x, y, t, mesh=mesh, phi=phi0, slice=time, $
+                      filename=filename, points=pts, complex=complex, $
+                      rrange=xrange, zrange=yrange, linear=linear)
+      g = read_gamma(filename=filename)
+      data = vy / g[0]     
+
+      symbol = '!7n!D!9P!N!X'
+      d = dimensions(/l0, _EXTRA=extra)
+
+   ;===========================================
+   ; xi_z
+   ;===========================================
+   endif else if(strcmp('xi_z', name, /fold_case) eq 1) then begin
+
+      print, 'xi_Z = verical displacement using xi = int(v dt) method'
+      vz = read_field('vz', x, y, t, mesh=mesh, phi=phi0, slice=time, $
+                      filename=filename, points=pts, complex=complex, $
+                      rrange=xrange, zrange=yrange, linear=linear)
+      g = read_gamma(filename=filename)
+      data = vz / g[0]     
+
+      symbol = '!7n!D!8Z!N!X'
+      d = dimensions(/l0, _EXTRA=extra)
 
    ;===========================================
    ; displacement
@@ -1065,7 +1223,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        nolf = 1
        data = b2/2.  ; W = |B|^2 / 2
-       symbol = '!3|!5B!3|!U!62!N!X'
+       symbol = '!3|!5B!3|!U!62!N!3/!62!X'
        d = dimensions(p0=1, _EXTRA=extra)
 
    ;===========================================
@@ -1234,7 +1392,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    ; (major) radial current density
    ;===========================================
-   endif else if(strcmp('jr', name, /fold_case) eq 1) then begin
+   endif else if(strcmp('jx', name, /fold_case) eq 1) then begin
        
        i_z = read_field('i', x, y, t, slices=time, mesh=mesh, op=3, $
                       filename=filename, points=pts, linear=linear, $
@@ -1264,7 +1422,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    ; (major) radial current density
    ;===========================================
-   endif else if(strcmp('jr_plasma', name, /fold_case) eq 1) then begin
+   endif else if(strcmp('jx_plasma', name, /fold_case) eq 1) then begin
        
        i_z = read_field('I_plasma', x, y, t, slices=time, mesh=mesh, op=3, $
                       filename=filename, points=pts, linear=linear, $
@@ -2139,7 +2297,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    ; radial flow
    ;===========================================
-   endif else if(strcmp('vr', name, /fold_case) eq 1) then begin
+   endif else if(strcmp('vn', name, /fold_case) eq 1) then begin
 
        phi = read_field('phi', x, y, t, slices=time, mesh=mesh, linear=linear,$
                         filename=filename, points=pts, mask=mask, $
@@ -2156,13 +2314,13 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        endif else r = 1.
 
        if(ivform eq 0) then begin
-           data = -(a_bracket(psi,phi,x,y)/r + s_bracket(psi,chi,x,y)) / $
+           data = (a_bracket(psi,phi,x,y)/r + s_bracket(psi,chi,x,y)) / $
              sqrt(s_bracket(psi,psi,x,y))
        endif else if (ivform eq 1) then begin
-           data = -(a_bracket(psi,phi,x,y)*r + s_bracket(psi,chi,x,y)/r^2) / $
+           data = (a_bracket(psi,phi,x,y)*r + s_bracket(psi,chi,x,y)/r^2) / $
              sqrt(s_bracket(psi,psi,x,y))
        endif
-       symbol = '!8u!Dr!N!X'
+       symbol = '!8u!Dn!N!X'
        d = dimensions(/v0, _EXTRA=extra)
 
 
@@ -2170,10 +2328,12 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        chi_r = read_field('chi', x, y, t, slices=time,mesh=mesh,linear=linear,$
                         filename=filename, points=pts, mask=mask, op=2, $
-                        rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange, complex=complex, $
+                          phi=phi0)
        phi_z = read_field('phi', x, y, t, slices=time,mesh=mesh,linear=linear,$
                         filename=filename, points=pts, mask=mask, op=3, $
-                        rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange, complex=complex, $
+                         phi=phi0)
        
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
@@ -2187,14 +2347,16 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        symbol = '!8u!DR!N!X'
        d = dimensions(/v0, _EXTRA=extra)
 
-   endif else if(strcmp('vy', name, /fold_case) eq 1) then begin
+   endif else if(strcmp('vz', name, /fold_case) eq 1) then begin
 
        chi_z = read_field('chi', x, y, t, slices=time,mesh=mesh,linear=linear,$
                         filename=filename, points=pts, mask=mask, op=3, $
-                        rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange, complex=complex, $
+                         phi=phi0)
        phi_r = read_field('phi', x, y, t, slices=time,mesh=mesh,linear=linear,$
                         filename=filename, points=pts, mask=mask, op=2, $
-                        rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange, complex=complex, $
+                         phi=phi0)
        
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
