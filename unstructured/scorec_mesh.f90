@@ -95,8 +95,7 @@ contains
     write(name_buff,"(A,A)"),mesh_model(1:len_trim(mesh_model)),0
     call m3dc1_model_load(name_buff)
     write(name_buff,"(A,A)"), mesh_filename(1:len_trim(mesh_filename)),0
-    ! ipartition must be 1 for 3D
-    call m3dc1_mesh_load (name_buff, 1)
+    call m3dc1_mesh_load (name_buff)
 
     if(myrank.eq.0) print *, 'setting up 3D mesh...'
     call m3dc1_mesh_build3d(0,0,0)
@@ -113,17 +112,13 @@ contains
     deallocate(ranks)
 #else 
     ! there are two ways to use 2D mesh
-    ! the first way: loadmesh, it loads the whole mesh and distributes to other processes
-    ! the second way: loadPtnMesh, it loads the partitioned mesh
-    ! to use the second way: first run PTNMESH/main to partition the mesh
-    ! at hopper, use loadPtnMesh; we get some trouble in loadmesh
-    ! first run 
-    ! aprun -n # /global/project/projectdirs/mp288/meshtools/PTNMESH yourMesh
-    ! set ipartitioned =1 in C1input
+    ! in serial, it loads the whole mesh
+    ! in parallel, it loads N-part distributed mesh.
+    ! to get N-part distributed mesh, run split_smb provided as mesh utilities
     write(name_buff,"(A,A)"), mesh_model(1:len_trim(mesh_model)),0
     call m3dc1_model_load(name_buff)
     write(name_buff,"(A,A)"), mesh_filename(1:len_trim(mesh_filename)),0
-    call m3dc1_mesh_load (name_buff, ipartitioned)
+    call m3dc1_mesh_load (name_buff)
 #endif
     call update_nodes_owned
     initialized = .true.
