@@ -760,6 +760,7 @@ subroutine rdrestart_adios
   use diagnostics
   use time_step
   use pellet
+  use gradshafranov
   implicit none
   
  include 'mpif.h'
@@ -1101,5 +1102,9 @@ subroutine rdrestart_adios
 
   deallocate(tmp_field_vec, tmp_field0_vec, tmp_bf_field_1, tmp_bf_field_0, &
        tmp_psi_ext, tmp_bz_ext, tmp_bf_ext) 
+  if (prev_ndofs1 .ne. cur_ndofs1 .and. itaylor .eq. 1 .and. itor .eq. 1) then
+     if(myrank .eq. 0) print *, "call gradshafranov_per after restart"
+     call gradshafranov_per()
+  end if
 #endif
 end subroutine rdrestart_adios
