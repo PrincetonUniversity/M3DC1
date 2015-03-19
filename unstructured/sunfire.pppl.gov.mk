@@ -34,72 +34,63 @@ HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lhsolver
 
 INCLUDE = -I$(MPIHOME)/include \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
+	-I$(SUPERLU_DIST_HOME)/include -I$(SUPERLU_HOME)/include \
 	-I$(HDF5_HOME)/include -I$(HDF5_HOME)/lib \
 	-I$(HYBRID_HOME)/include \
 	-I$(GSLHOME)/include
 
-PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
-	-lpetsc \
-	-lpromfei -lprometheus \
-	-lHYPRE \
-	-lscalapack -lfblas -lflapack \
-	-L$(MUMPS_HOME)/lib -ldmumps -lmumps_common -lpord
+PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -ldmumps -lmumps_common -lpord \
 
-SUPERLU_HOME = $(PETSC_DIR)/$(PETSC_ARCH)
-SUPERLU_DIST_HOME = $(PETSC_DIR)/$(PETSC_ARCH)
-SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu_4.1 \
-	-L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist_2.5 \
-	-L$(BLACS_HOME)/lib -lmpiblacsF77init -lmpiblacsCinit -lmpiblacs
+#	-lfblas -lflapack \
+#	-lpromfei -lprometheus \
+#	-lHYPRE \
+
+#SUPERLU_HOME = $(PETSC_DIR)/$(PETSC_ARCH)
+#SUPERLU_DIST_HOME = $(PETSC_DIR)/$(PETSC_ARCH)
+SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu_4.3 \
+	-L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist_3.3 \
+
+#	-L$(BLACS_HOME)/lib -lmpiblacsF77init -lmpiblacsCinit -lmpiblacs
 
 PARMETIS_LIBS = -L$(PARMETIS_HOME)/lib \
 	-Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis
 
+BLASLAPACKLIBS = -L$(MKLROOT)/lib/intel64 -Wl,--start-group -lmkl_blacs_openmpi_lp64 -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_intel_lp64 -lmkl_cdft_core -lmkl_scalapack_lp64 -lmkl_sequential -lmkl_core -Wl,--end-group
 
-LIBS = 	$(PETSC_LIBS) \
+
+
+#        -L$(LAPACKHOME) -llapack -lblas -ltmg \
+#	-L$(SCALAPACK_HOME)/lib -lscalapack \
+#	-L$(CCHOME)/mkl/lib/intel64 -lmkl -lmkl_lapack \
+#	-L$(CCHOME)/lib/intel64 -lguide \
+
+SCORECDIR=/p/tsc/m3dc1/lib/SCORECLib/sunfire/latest
+ifeq ($(COM), 1)
+  SCORECLIB= -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib \
+             -lapf -lgmi -lma -lparma -lph -lmds -lpcu -lspr -lapf_zoltan -lm3dc1_scorec_complex \
+             -Wl,--end-group
+else
+  SCORECLIB= -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib \
+             -lapf -lgmi -lma -lparma -lph -lmds -lpcu -lspr -lapf_zoltan -lm3dc1_scorec \
+             -Wl,--end-group
+endif
+
+LIBS = 	\
+	$(SCORECLIB) \
+        $(BLASLAPACKLIBS) \
+        $(PETSC_LIBS) \
 	$(SUPERLU_LIBS) \
-	$(PARMETIS_LIBS) \
 	-L$(Zoltan_HOME)/lib -lzoltan \
+	$(PARMETIS_LIBS) \
 	-L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5 \
 	-L$(FFTWHOME)/lib -lfftw3 \
-	-L$(CCHOME)/mkl/lib/em64t -lmkl -lmkl_lapack \
-	-L$(CCHOME)/lib/intel64 -lguide \
+	-L$(ACML_HOME)/ifort64/lib -lacml \
 	-L$(NCARG_ROOT)/lib -lncarg -lncarg_gks -lncarg_c \
 	-Wl,-rpath -Wl,$(HDF5_HOME)/lib \
 	-L$(ZLIB_HOME) -lz \
-	-L$(GSLHOME)/lib -lgsl \
-	-L/usr/X11R6/lib64 -lX11
-
-ifeq ($(USESCOREC), 1)
-#  INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/latest $(INCLUDE)
-#  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/112111
-#  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/latest/
-  INCLUDE := -I/p/tsc/m3dc1/lib/SCORECLib/include/Stix/093011 \
-        $(INCLUDE)
-  SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/lib/Stix/04082013/
-
-  SCOREC_ARCH=x86_64_linux-icc
-  SCOREC_LIBS = \
-	-L$(SCORECDIR) \
-	-Wl,-rpath,$(SCORECDIR) \
-        -lPPPLFusion \
-        -lMeshAdapt -lFMDB -lGMI -lGMIMeshModel -lSCORECUtil -lipcomman   
-
-#	-lFMDB-mpich2$(SCORECOPT) \
-#	-lSCORECModel-mpich2$(SCORECOPT) \
-#	-lSCORECUtil-mpich2$(SCORECOPT) \
-#	-lField-mpich2$(SCORECOPT) \
-#	-lCore-mpich2$(SCORECOPT) \
-#	-lmeshAdapt-mpich2$(SCORECOPT) \
-#	-lmeshTools-mpich2$(SCORECOPT) \
-#	-lSolver-mpich2$(SCORECOPT) \
-#	-lPPPL-mpich2$(SCORECOPT) \
-#	-lipcomman-mpich2$(SCORECOPT)
-
-
-  LIBS := $(SCOREC_LIBS) $(LIBS)
-
-endif   # on USESCOREC
-
+	-L$(GSLHOME)/lib -lgsl -lgslcblas \
+	-L/usr/lib -lX11
+  INCLUDE := -I$(SCORECDIR)/include  $(INCLUDE)
 
 %.o : %.c
 	$(CC)  $(CCOPTS) $(INCLUDE) $< -o $@
