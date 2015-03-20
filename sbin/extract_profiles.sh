@@ -45,8 +45,10 @@ elif [[ "$1" == *.tgz  ]]; then
     echo "Extracting profiles"
     tail -n +2 profiles/netanh*psi_*.dat > profile_ne
     tail -n +2 profiles/tetanh*psi_*.dat > profile_te
-    tail -n +2 profiles/omgebspl*psi_*.dat > profile_omega
-
+    tail -n +2 profiles/omgebspl*psi_*.dat > profile_omega.ExB
+    tail -n +2 profiles/ommvbspl*psi_*.dat > profile_omega.ion
+    cp profile_omega.ExB profile_omega
+    
     echo "In C1input set"
     echo " iread_ne = 1"
     echo " iread_te = 1"
@@ -60,6 +62,20 @@ elif [[ "$1" == *_ntvin.dat ]]; then
     tail -n +11 $1 | awk '{print $2 " " $3*1e-3}' > profile_omega
     tail -n +11 $1 | awk '{print $2 " " $5*1e-20}' > profile_ne
     tail -n +11 $1 | awk '{print $2 " " $9*1e-3}' > profile_te
+
+    echo "In C1input set"
+    echo " iread_ne = 1"
+    echo " iread_te = 1"
+    echo " iread_omega = 1"
+
+    exit 0
+
+elif [[ "$1" == k.* ]]; then
+    echo "Reading k. file"
+
+    tail -n +11 $1 | awk '{print $1 " " $8*1e-3}' > profile_omega
+    tail -n +11 $1 | awk '{print $1 " " $4*1e-20}' > profile_ne
+    tail -n +11 $1 | awk '{print $1 " " $6*1e-3}' > profile_te
 
     echo "In C1input set"
     echo " iread_ne = 1"
@@ -112,7 +128,8 @@ elif [[ "$1" == p*.* ]]; then
     sed -n '/psinorm ne/,/psinorm/{/psinorm/!p}' $1 > profile_ne
     sed -n '/psinorm te/,/psinorm/{/psinorm/!p}' $1 > profile_te
     sed -n '/psinorm omgeb/,/psinorm/{/psinorm/!p}' $1 > profile_omega.ExB
-    sed -n '/psinorm omgvb/,/psinorm/{/psinorm/!p}' $1 > profile_omega.ion
+    sed -n '/psinorm omgvb/,/psinorm/{/psinorm/!p}' $1 > profile_omega.C
+    sed -n '/psinorm ommvb/,/psinorm/{/psinorm/!p}' $1 > profile_omega.ion
     sed -n '/psinorm omevb/,/psinorm/{/psinorm/!p}' $1 > profile_omega.electron
     cp profile_omega.ExB profile_omega
 
