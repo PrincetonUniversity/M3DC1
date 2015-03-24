@@ -1,10 +1,12 @@
 function flux_at_q, qval, normalized_flux=norm, points=pts, $
                     q=q, flux=flux, psi=psi, x=x, z=z, t=t, _EXTRA=extra
-   q = flux_average('q', flux=flux, nflux=nflux, /equilibrium, points=pts, $
-                    _EXTRA=extra, psi=psi, x=x, z=z, t=t)
 
-   if(keyword_set(norm)) then flux=nflux
-
+  if(n_elements(q) eq 0 or n_elements(flux) eq 0) then begin
+     q = flux_average('q', flux=flux, nflux=nflux, /equilibrium, points=pts, $
+                      _EXTRA=extra, psi=psi, x=x, z=z, t=t)
+     if(keyword_set(norm)) then flux=nflux
+  end
+  
    dq_dpsi = deriv(flux,q)
 
    n = n_elements(qval)

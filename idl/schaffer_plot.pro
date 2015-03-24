@@ -2,9 +2,12 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
                    psi_val=psi_val, ntor=ntor, label=label, psi0=psi0, i0=i0, $
                    m_val=m_val, phase=phase, overplot=overplot, $
                    linestyle=linestyle, outfile=outfile, bmnfile=bmnfile, $
-                   bmncdf=bmncdf, rhs=rhs, reverse_q=reverse_q
+                   bmncdf=bmncdf, rhs=rhs, reverse_q=reverse_q, $
+                   sqrtpsin=sqrtpsin
 
    print, 'Drawing schaffer plot'
+
+   if(n_elements(sqrtpsin) eq 0) then sqrtpsin=1
 
    if(n_elements(psi0) eq 0) then begin
 ;       psi0 = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra)
@@ -286,10 +289,15 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    endelse
 
    xtitle='!8m!X'
-   ytitle='!9r!7W!X'
 
-   y = sqrt(nflux)
-;   y = nflux
+
+   if(keyword_set(sqrtpsin)) then begin
+      y = sqrt(nflux)
+      ytitle='!9r!7W!X'
+   endif else begin
+      y = nflux
+      ytitle='!7W!X'
+   end
 
    contour_and_legend, abs(d), m, y,  $
      table=39, xtitle=xtitle, ytitle=ytitle, $
