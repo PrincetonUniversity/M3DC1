@@ -231,6 +231,28 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                data = data* $
                  complex(cos(ntor*phi0*!pi/180.), sin(ntor*phi0*!pi/180.))
            end
+       endif else if (keyword_set(linear) and isubeq eq 0) then begin
+           h5g_close, field_group_id
+           h5g_close, time_group_id
+           h5f_close, file_id
+           print, '  calculating perturbed part of eqsubtract=0 field.', ntor
+
+           data0 = read_field(name,x,y,t, slices=-1, mesh=mesh, $
+                               filename=filename, points=pts, $
+                               rrange=xrange, zrange=yrange, $
+                               h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
+                               diff=diff, operation=op, mask=mask, $
+                               symbol=symbol, $
+                               units=units, dimensions=d)
+           data1 = read_field(name,x,y,t, slices=time, mesh=mesh, $
+                               filename=filename, points=pts, $
+                               rrange=xrange, zrange=yrange, $
+                               h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
+                               diff=diff, operation=op, $
+                               last=last,symbol=symbol, $
+                               units=units, dimensions=d, $
+                               equilibrium=equilibrium)
+           data = data1 - data0
        endif else begin
            print, '  reading real field'
 

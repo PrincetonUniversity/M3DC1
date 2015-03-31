@@ -22,11 +22,11 @@ pro plot_perturbed_surface, q, scalefac=scalefac, points=pts, $
    if(n_elements(scalefac) eq 1) then $
      scalefac=replicate(scalefac, n_elements(q))
 
-   psi0 = read_field('psi',x,z,t,filename=filename, /equilibrium, $
+   psi0 = read_field('psi',x,z,t,filename=filename, slice=-1, $
                      points=pts, _EXTRA=extra)
-   psi0_r = read_field('psi',x,z,t,filename=filename, /equilibrium, $
+   psi0_r = read_field('psi',x,z,t,filename=filename, slice=-1, $
                        points=pts, _EXTRA=extra, op=2)
-   psi0_z = read_field('psi',x,z,t, filename=filename, /equilibrium,$
+   psi0_z = read_field('psi',x,z,t, filename=filename, slice=-1, $
                        points=pts, _EXTRA=extra, op=3)
    zi = read_field('displacement',x,z,t,filename=filename, /linear, $
                    points=pts, slice=slice, complex=icomp, $

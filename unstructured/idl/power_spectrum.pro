@@ -5,6 +5,7 @@
 ; Returns the power spectrum of signal "f".
 ; The frequency of each returned element is stored in "frequency".
 ; The total time interval may be specified with "t"
+; If "t" is in s, then "frequency" is in Hz
 ;==================================================================
 function power_spectrum, f, frequency=frequency, t=t
   
@@ -26,11 +27,11 @@ function power_spectrum, f, frequency=frequency, t=t
 
   for i=1, left do begin
       phi[left-i] = phi_old[n-i]
-      frequency[left-i] = -2.*!pi*i/float(t)
+      frequency[left-i] = -i/float(t)
   endfor
   for i=1, right do begin
       phi[mid+i] = phi_old[i]
-      frequency[mid+i] = 2.*!pi*i/float(t)
+      frequency[mid+i] = i/float(t)
   endfor
 
   return, phi
