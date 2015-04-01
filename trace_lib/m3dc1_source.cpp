@@ -102,16 +102,22 @@ bool m3dc1_source::load()
   } else {
     index = -1;
     m3dc1_scalar_list* time = file.read_scalar("time");
-    for(int i=0; i<time->size(); i++) 
-      if(psi->time == time->at(i)) {
-	index = i;
-	break;
+    double diff;
+    for(int i=0; i<time->size(); i++)
+      if(i == 0) {
+	diff = abs(psi->time - time->at(i));
+	index = 0;
+      }	else {
+	if(abs(psi->time - time->at(i)) < diff) {
+	  diff = abs(psi->time - time->at(i));
+	  index = i;
+	}
       }
-    if(index==-1) {
-      std::cerr << "ERROR: can't find scalar index for time = " << psi->time
+    if(diff > 0.) {
+      std::cerr << "Warning: can't find scalar index for time = " << psi->time
 		<< std::endl;
-      return false;
     }
+    std::cerr << "Using time = " << time->at(index) << std::endl;
   }
 
   R_axis = xmag->at(index);
