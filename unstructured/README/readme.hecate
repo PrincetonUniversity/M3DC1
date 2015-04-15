@@ -1,0 +1,45 @@
+Sun Apr 12 20:41:20 EDT 2015
+
+1. login
+	ssh -l jinchen hecate.princeton.edu
+
+2. code
+	svn co svn+ssh://username@portal.pppl.gov/p/tsc/C1/svn
+
+3. module load
+	module load mpt/intel
+	module load intel/13.1/64/13.1.3.163
+	module load hdf5/intel-12.1/mpt/1.8.5
+	setenv PETSC_DIR /home/jinchen/lib/petsc-3.5.3
+
+	#real version
+	setenv PETSC_ARCH hecate-intel-mt
+
+	#cplx version
+	setenv PETSC_ARCH hecate-intel-mt-complex
+
+4. compile code
+	make OPT=1 RL=1 MAX_PTS=25
+	make OPT=1 COM=1 MAX_PTS=25
+	make 3D=1 OPT=1 MAX_PTS=60
+
+5. mesh utility
+	/home/seegyoung.seol/scorec/utilities/split_smb
+
+6. run jobscript
+	#!/bin/bash
+	#SBATCH --ntasks=12
+	#SBATCH --ntasks-per-socket=6
+	#SBATCH -t 00:10:00
+
+	module load mpt/intel
+
+	#2D complex
+	srun -n 8 m3dc1.x -pc_factor_mat_solver_package mumps
+
+	#2D real
+	srun -n 8 m3dc1.x
+
+	#3D real
+	srun -n 32 ./m3dc1_3d -ipetsc -options_file options_bjacobi
+
