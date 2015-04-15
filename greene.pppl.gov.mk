@@ -1,10 +1,9 @@
-#FOPTS = -c -r8 -implicitnone -fpp -warn all -DxPetscDEV -DPETSC_31 $(OPTS)
-FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DKSPITS -DxCJ_MATRIX_DUMP  $(OPTS) #-pg
-CCOPTS  = -c -O -DPetscDEV -DKSPITS -DxCJ_MATRIX_DUMP -DxUSEHYBRID #-DPETSC_31 -pg
+FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DPETSC_31 $(OPTS)
+CCOPTS  = -c -O -DPetscDEV -DPETSC_31 -DPetscOLD #-DCJ_MATRIX_DUMP -DUSEHYBRID 
 
 ifeq ($(OPT), 1)
-  FOPTS  := $(FOPTS) -fast
-  CCOPTS := $(CCOPTS) -O
+  FOPTS  := $(FOPTS) -O2 -vec-report=0
+  CCOPTS := $(CCOPTS) -O -vec-report=0
 else
   FOPTS := $(FOPTS) -g -check all -check noarg_temp_created -debug all -ftrapuv
 endif
@@ -21,7 +20,7 @@ else
   CPP = mpicxx
   F90 = mpif90
   F77 = mpif90
-  LOADER = mpif90 -cxxlib #-pg
+  LOADER = mpif90 -cxxlib
   FOPTS := $(FOPTS)
 endif
 F90OPTS = $(F90FLAGS) $(FOPTS) -gen-interfaces
@@ -29,60 +28,105 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 
 
 # define where you want to locate the mesh adapt libraries
-HYBRID_HOME = /p/swim/jchen/pdslin_0.0
 #HYBRID_HOME = /p/swim/jchen/hybrid.test
 #HYBRID_HOME = /u/iyamazak/release/v2/hybrid.test
-HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lhsolver
+#HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lhsolver
 
-INCLUDE = -I$(MPIHOME)/include \
-	  -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
-	  -I$(PARMETIS_HOME)/include \
-	  -I$(FFTWHOME)/include \
-	  -I$(SUPERLU_DIST_HOME)/include -I$(SUPERLUHOME)/include \
-	  -I$(BLACS_HOME)/include \
-	  -I$(Zoltan_HOME)/include \
-	  -I$(GSLHOME)/include \
-	  -I$(HDF5_HOME)/include \
-	  -I$(NCARG_ROOT)/include
-
-#	-L$(MUMPS_HOME)/lib -ldmumps -lmumps_common -lpord \
-#	-L$(SCALAPACK_HOME) -lscalapack \
-#	-L$(BLACS_HOME)/lib -lmpiblacsF77init -lmpiblacs -lmpiblacsCinit -lmpiblacs
-
-LIBS = 	-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lmumps_common -ldmumps -lcmumps -lzmumps -lsmumps -lpord -lpetsc \
-        -L$(PARMETIS_HOME)/lib -lparmetis -lmetis \
-	-L$(FFTWHOME)/lib -lfftw3 -lfftw3_mpi -lfftw3_threads \
-	-L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist_3.3 -L$(SUPERLUHOME)/lib -lsuperlu_4.3 \
-	-L$(SCALAPACK_HOME)/lib -lscalapack -L$(BLACS_HOME)/lib -lmpiblacs -lmpiblacsCinit -lmpiblacsF77init \
-        -L$(Zoltan_HOME)/lib -lzoltan \
-	-L$(GSLHOME)/lib -lgsl \
-        -L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5_hl -lhdf5 \
-	-L$(NCARG_ROOT)/lib -lncarg -lncarg_gks -lncarg_c \
-        -L$(CCHOME)/mkl/lib/em64t -lmkl -lmkl_lapack \
-	-L$(CCHOME)/lib/intel64 -lguide \
-	-L/usr/X11R6/lib -lX11
-
-  SCORECDIR=/p/tsc/m3dc1/lib/SCORECLib/greene/latest
+PETSC_DIR = /p/swim/jchen/PETSC/petsc-3.4.5/
 ifeq ($(COM), 1)
-  SCORECLIB= -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib \
-             -lapf -lgmi -lma -lparma -lph -lmds -lpcu -lspr -lapf_zoltan -lm3dc1_scorec_complex \
-             -Wl,--start-group
+PETSC_ARCH = greene-intel-complex
 else
-  SCORECLIB= -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib \
-             -lapf -lgmi -lma -lparma -lph -lmds -lpcu -lspr -lapf_zoltan -lm3dc1_scorec \
-             -Wl,--start-group
+PETSC_ARCH = greene-intel-real
+endif
+INCLUDE = -I$(MPIHOME)/include \
+	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
+	-I$(HDF5_HOME)/include -I$(HDF5_HOME)/lib \
+	-I$(GSLHOME)/include
+
+#	-I$(SUPERLU_DIST_HOME)/include -I$(SUPERLU_HOME)/include \
+#	-I$(HYBRID_HOME)/include \
+#
+ifeq ($(COM), 1)
+PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,--start-group \
+        -lpetsc \
+	-ldmumps -lmumps_common -lpord -lcmumps -lsmumps -lzmumps \
+	-lfftw3 -lfftw3_mpi \
+	-lparmetis -lmetis \
+	-lscalapack \
+	-lsuperlu_dist_3.3 -lsuperlu_4.3 \
+	-Wl,--end-group
+else
+PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,--start-group \
+        -lpetsc \
+	-ldmumps -lmumps_common -lpord -lcmumps -lsmumps -lzmumps \
+	-lfftw3 -lfftw3_mpi \
+	-lHYPRE \
+	-lparmetis -lmetis \
+	-lscalapack \
+	-lsuperlu_dist_3.3 -lsuperlu_4.3 \
+	-Wl,--end-group
 endif
 
-  LIBS := $(SCORECLIB) \
-	$(LIBS) 
-  INCLUDE := -I$(SCORECDIR)/include \
-        $(INCLUDE)
+
+#	-lfblas -lflapack \
+#	-lpromfei -lprometheus \
+#	-lHYPRE \
+
+#SUPERLU_HOME = $(PETSC_DIR)/$(PETSC_ARCH)
+#SUPERLU_DIST_HOME = $(PETSC_DIR)/$(PETSC_ARCH)
+#SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu_4.3 \
+#	-L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist_3.3 \
+
+#	-L$(BLACS_HOME)/lib -lmpiblacsF77init -lmpiblacsCinit -lmpiblacs
+
+#PARMETIS_LIBS = -L$(PARMETIS_HOME)/lib \
+#	-Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis
+
+BLASLAPACKLIBS = -L$(MKLHOME)/lib/em64t -Wl,--start-group \
+	-lmkl_blacs_intelmpi20_lp64 -lmkl_lapack -lmkl_scalapack_lp64 -lmkl_intel_lp64 -lmkl_cdft_core -lmkl_sequential -lmkl_em64t -lmkl_core  -lmkl_solver_lp64 \
+	-Wl,--end-group
+
+#	-lmkl_blacs_openmpi_lp64 -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_intel_lp64 -lmkl_cdft_core -lmkl_scalapack_lp64 -lmkl_sequential -lmkl_core \
+
+#        -L$(LAPACKHOME) -llapack -lblas -ltmg \
+#	-L$(SCALAPACK_HOME)/lib -lscalapack \
+#	-L$(CCHOME)/mkl/lib/intel64 -lmkl -lmkl_lapack \
+#	-L$(CCHOME)/lib/intel64 -lguide \
+
+SCORECDIR=/p/tsc/m3dc1/lib/SCORECLib/greene/latest
+ifeq ($(COM), 1)
+  SCORECLIB= -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib \
+             -lapf -lgmi -lma -lparma -lph -lmds -lpcu -lspr -lapf_zoltan -lzoltan -lm3dc1_scorec_complex \
+             -Wl,--end-group
+else
+  SCORECLIB= -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib \
+             -lapf -lgmi -lma -lparma -lph -lmds -lpcu -lspr -lapf_zoltan -lzoltan -lm3dc1_scorec \
+             -Wl,--end-group
+endif
+
+LIBS = 	\
+	$(SCORECLIB) \
+        $(BLASLAPACKLIBS) \
+        $(PETSC_LIBS) \
+	-L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5 -lhdf5_hl \
+	-Wl,-rpath -Wl,$(HDF5_HOME)/lib \
+	-L$(ZLIB_HOME) -lz \
+	-L$(GSLHOME)/lib -lgsl -lgslcblas \
+	-L/usr/lib -lX11
+
+#	$(SUPERLU_LIBS) \
+#	-L$(Zoltan_HOME)/lib -lzoltan \
+#	$(PARMETIS_LIBS) \
+#	-L$(FFTWHOME)/lib -lfftw3 \
+#	-L$(ACML_HOME)/ifort64/lib -lacml \
+#	-L$(NCARG_ROOT)/lib -lncarg -lncarg_gks -lncarg_c \
+  INCLUDE := -I$(SCORECDIR)/include  $(INCLUDE)
 
 %.o : %.c
 	$(CC)  $(CCOPTS) $(INCLUDE) $< -o $@
 
 %.o : %.cpp
-	$(CPP)  $(CCOPTS) $(INCLUDE) $< -o $@
+	$(CPP) $(CCOPTS) $(INCLUDE) $< -o $@
 
 %.o: %.f
 	$(F77) $(F77OPTS) $(INCLUDE) $< -o $@
