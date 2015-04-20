@@ -90,7 +90,7 @@ BLASLAPACKLIBS = -L$(MKLROOT)/lib/intel64 -Wl,--start-group \
 #	-L$(CCHOME)/lib/intel64 -lguide \
 
 #SCORECDIR=/p/tsc/m3dc1/lib/SCORECLib/sunfire/latest
-SCORECDIR= /p/tsc/m3dc1/lib/SCORECLib/sunfire/jchen
+SCORECDIR= /p/tsc/m3dc1/lib/SCORECLib/sunfire/Mar2015-jin
 ifeq ($(COM), 1)
   SCORECLIB= -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib \
              -lapf -lgmi -lma -lparma -lph -lmds -lpcu -lspr -lapf_zoltan -lzoltan -lm3dc1_scorec_complex \
