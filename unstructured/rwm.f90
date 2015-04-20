@@ -120,26 +120,33 @@ contains
     n079(:,OP_1) = den0
     
     where(r2.lt.r02)
-       ps079(:,OP_1) = bzero *r2 / (2.*xmag*q0)
-       p079(:,OP_1) = pedge + (r02 - r2)*(bzero/(xmag*q0))**2
+       ps079(:,OP_1) = bzero * r2 / (2.*rzero*q0)
+       p079(:,OP_1) = pedge + (r02 - r2)*(bzero/(rzero*q0))**2
     elsewhere
-       ps079(:,OP_1) = bzero * r02 / (2.*xmag*q0) &
+       ps079(:,OP_1) = bzero * r02 / (2.*rzero*q0) &
             * (1. + alog(r2/r02))
        p079(:,OP_1) = pedge
     end where
+
+    if(itor.eq.1) then
+       ps079(:,OP_1) = ps079(:,OP_1)*rzero   ! Bphi ~ Grad(psi)/R
+       bz079(:,OP_1) = bz079(:,OP_1)*rzero   ! F = R*Bphi
+    end if
 
   end subroutine rwm_equ
 
   subroutine rwm_per()
     use basic
+    use math
     use m3dc1_nint
     use init_common
 
     implicit none
 
-    real, dimension(MAX_PTS) :: r2
+    real, dimension(MAX_PTS) :: r2, theta
 
     r2 = (x_79 - xmag)**2 + (z_79 - zmag)**2
+    theta = atan2(z_79 - zmag, x_79 - xmag)
 
     bz079(:,OP_1) = 0.
     n079(:,OP_1) = 0.
@@ -148,6 +155,14 @@ contains
     call init_random(x_79-xmag, phi_79, z_79, ps079(:,OP_1))
 !!$    call init_random(-(x_79-xmag), phi_79, z_79, ps179(:,OP_1))
 !!$    ps079(:,OP_1) = (ps079(:,OP_1) + ps179(:,OP_1))/2.
+
+!!$#ifdef USECOMPLEX
+!!$    ps079(:,OP_1) = exp((0.,1.)*(mpol*theta+pi/2.))
+!!$#elif
+!!$    ps079(:,OP_1) = real(exp((0.,1.)*(mpol*theta+pi/2.)+rfac*phi))
+!!$#endif
+!!$
+!!$    ps079(:,OP_1) = ps079(:,OP_1)*eps*r2*(r02 - r2)**2
 
     where(r2.ge.r02)
        ps079(:,OP_1) = 0.
