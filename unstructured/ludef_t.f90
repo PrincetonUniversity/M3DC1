@@ -4555,7 +4555,7 @@ subroutine ludefphi_n(itri)
      maxk = numvar
      if(imp_bf.eq.1 .and. numvar.ge.2) maxk = maxk + 1
 !!$     if(ipressplit.ne.0 .and. numvar.ge.3) maxk = maxk - 1   !  is this generally valid?
-     if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.ge.1)) &
+     if((jadv.eq.0).or.(jadv.eq.1 .and. imp_hyper.ge.1)) &
           maxk = maxk + 1
   endif
 
@@ -4568,14 +4568,14 @@ subroutine ludefphi_n(itri)
   ! add bf equation and e equations:
   ! NOTE:  e=electrostatic potential for jadv=0, del_star_psi for jadv=1
   if(imp_bf.eq.1) then
-     if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
+     if((jadv.eq.0).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
         ieq(maxk-1) = bf_i
         ieq(maxk)   = e_i
      else
         ieq(maxk) = bf_i
      endif
   else
-     if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
+     if((jadv.eq.0).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
         ieq(maxk) = e_i
      endif
   endif
@@ -4685,7 +4685,7 @@ subroutine ludefphi_n(itri)
      call insert_block(bb0,itri,ieq(k),psi_i,dd(:,:,psi_g),MAT_ADD)
      call insert_block(bv1,itri,ieq(k),  u_i,ss(:,:,  u_g),MAT_ADD)
      call insert_block(bv0,itri,ieq(k),  u_i,dd(:,:,  u_g),MAT_ADD)
-     if((jadv.eq.0 .and. i3d.eq.1) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) then
+     if((jadv.eq.0) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) then
         if(idiff .gt. 0) dd(:,:,e_g)  = dd(:,:,e_g)  - ss(:,:,e_g)
         call insert_block(bb1,itri,ieq(k),e_i,ss(:,:,e_g),MAT_ADD)
         call insert_block(bb0,itri,ieq(k),e_i,dd(:,:,e_g),MAT_ADD)     

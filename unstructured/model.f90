@@ -539,7 +539,7 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
      i_psi = node_index(psi_v, i)
      if(numvar.ge.2) i_bz = node_index(bz_v, i)
 !     if(numvar.ge.3 .and. ipressplit.eq.0) i_pe = node_index(pe_v, i)
-     if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.ge.1)) i_e = node_index(e_v, i)
+     if((jadv.eq.0).or.(jadv.eq.1 .and. imp_hyper.ge.1)) i_e = node_index(e_v, i)
      if(imp_bf.eq.1) i_bf = node_index(bf_v, i)
 
      ! constant normal field = -n.grad(psi)/R - n.grad(f')
@@ -588,7 +588,7 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
         call set_dirichlet_bc(i_bz,rhs,temp,normal,curv,izonedim,mat)
      endif
 
-     if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
+     if((jadv.eq.0).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
         ! electrostatic potential or del_star_psi
         temp = 0.
         call set_dirichlet_bc(i_e,rhs,temp,normal,curv,izonedim,mat)

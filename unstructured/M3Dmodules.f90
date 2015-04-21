@@ -327,6 +327,7 @@ module basic
   integer :: ifout         ! 1 = output f field
   integer :: itemp_plot    ! 1 =output vdotgradt, deldotq_perp, deldotq_par,eta_jsq
   integer :: ibdgp         ! option to make partial plots of b dot grad potential
+  integer :: iveldif         ! option to make partial plots of V x B - grad(potential)
   integer :: iread_eqdsk   ! 1 = read geqdsk input
                            ! 2 = read geqdsk for psi, but use default profiles
   integer :: iread_dskbal  ! 1 = read dskbal input

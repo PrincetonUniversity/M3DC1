@@ -1008,7 +1008,7 @@ contains
     ! Electrostatic Potential
     ! ~~~
     if((iand(fields, FIELD_ES).eq.FIELD_ES)   &
-        .and. jadv.eq.0 .and. i3d .eq.1 ) then
+        .and. jadv.eq.0) then
        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   potential..."
        
         call eval_ops(itri, e_field(1), es179)
