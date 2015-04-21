@@ -726,7 +726,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after u in output_fields'
 
   ! electrostatic potential
-  if(jadv.eq.0 .and. i3d.eq.1) then
+  if(jadv.eq.0) then
      do i=1, nelms
         call calcavector(i, e_field(1), dum(:,i))
      end do
@@ -1347,7 +1347,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
          coeffs_per_element, nelms, error)
     nfields = nfields + 1
 
-    if(jadv.eq.0 .and. i3d.eq.1) then
+    if(jadv.eq.0) then
        do i=1, nelms
           call calcavector(i, psidot, dum(:,i))
        end do

@@ -41,7 +41,7 @@ subroutine create_auxiliary_fields
   call create_field(ef_phi)
   call create_field(ef_z)
   call create_field(eta_j)
-  if(jadv.eq.0 .and. i3d.eq.1) then
+  if(jadv.eq.0) then
      call create_field(psidot)
      call create_field(veldif)
      call create_field(eta_jdb)
@@ -82,7 +82,7 @@ subroutine destroy_auxiliary_fields
   call destroy_field(ef_phi)
   call destroy_field(ef_z)
   call destroy_field(eta_j)
-  if(jadv.eq.0 .and. i3d.eq.1) then
+  if(jadv.eq.0) then
      call destroy_field(psidot)
      call destroy_field(veldif)
      call destroy_field(eta_jdb)
@@ -223,7 +223,7 @@ subroutine calculate_auxiliary_fields(ilin)
   ef_phi = 0.
   ef_z = 0.
   eta_j = 0.
-  if(jadv.eq.0 .and. i3d.eq.1) then
+  if(jadv.eq.0) then
      psidot = 0.
      veldif = 0.
      eta_jdb = 0.
@@ -252,7 +252,7 @@ subroutine calculate_auxiliary_fields(ilin)
   def_fields = def_fields + FIELD_PHI + FIELD_V + FIELD_CHI
   def_fields = def_fields + FIELD_ETA + FIELD_TE + FIELD_KAP
   def_fields = def_fields + FIELD_MU + FIELD_B2I
-  if(jadv.eq.0 .and. i3d.eq.1) def_fields = def_fields + FIELD_ES
+  if(jadv.eq.0) def_fields = def_fields + FIELD_ES
   if(heat_source .and. itemp_plot.eq.1) def_fields = def_fields + FIELD_Q
 
   numelms = local_elements()
@@ -512,7 +512,7 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
      end do
      call vector_insert_block(eta_j%vec,itri,1,dofs,VEC_ADD)
      
-     if(jadv.eq.0 .and. i3d.eq.1) then
+     if(jadv.eq.0) then
         call electric_field_psidot(ilin,temp79a)
         do i=1, dofs_per_element
            dofs(i) = int2(mu79(:,OP_1,i),temp79a)
@@ -650,7 +650,7 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
   call newvar_solve(ef_phi%vec, mass_mat_lhs)
   call newvar_solve(ef_z%vec, mass_mat_lhs)
   call newvar_solve(eta_j%vec, mass_mat_lhs)
-  if(jadv.eq.0 .and. i3d.eq.1) then
+  if(jadv.eq.0) then
      call newvar_solve(psidot%vec, mass_mat_lhs)
      call newvar_solve(veldif%vec, mass_mat_lhs)
      call newvar_solve(eta_jdb%vec, mass_mat_lhs)

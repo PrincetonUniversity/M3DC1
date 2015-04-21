@@ -518,6 +518,8 @@ subroutine electric_field_veldif(ilin,o)
   integer, intent(in) :: ilin
   vectype, dimension(MAX_PTS), intent(out) :: o
 
+  select case(iveldif)
+  case(0)   !default
   ! VxB
   ! ~~~
   if(ivform.eq.0) then
@@ -553,7 +555,7 @@ subroutine electric_field_veldif(ilin,o)
         o = o + r_79* &
              (pht79(:,OP_DZ)*bftx79(:,OP_DZP) &
              +pht79(:,OP_DR)*bftx79(:,OP_DRP))+ &
-             (cht79(:,OP_DZ)*bftx79(:,OP_DRP) &
+      ri2_79*(cht79(:,OP_DZ)*bftx79(:,OP_DRP) &
              -cht79(:,OP_DR)*bftx79(:,OP_DZP))
 #endif
      end if
@@ -566,6 +568,55 @@ subroutine electric_field_veldif(ilin,o)
      o = o + ri_79*es179(:,OP_DP)
   endif
 #endif
+  case(1)   ! pht79 only
+   o =   pstx79(:,OP_DZ)*pht79(:,OP_DR)-pstx79(:,OP_DR)*pht79(:,OP_DZ) 
+            
+#if defined(USE3D) || defined(USECOMPLEX) 
+        o = o + r_79* &
+             (pht79(:,OP_DZ)*bftx79(:,OP_DZP) &
+             +pht79(:,OP_DR)*bftx79(:,OP_DRP))
+#endif
+  
+  case(2)  ! cht79 onl
+   o =   ri3_79*(pstx79(:,OP_DZ)*cht79(:,OP_DZ)+pstx79(:,OP_DR)*cht79(:,OP_DR))
+#if defined(USE3D) || defined(USECOMPLEX) 
+        o = o + ri2_79*(cht79(:,OP_DZ)*bftx79(:,OP_DRP) &
+                       -cht79(:,OP_DR)*bftx79(:,OP_DZP))
+#endif
+ 
+  case(3)  ! elecric potential only
+    o = 0.
+  ! electric potential
+  ! ~~~~~~~~~~~~~~~~~~
+#if defined(USE3D) || defined(USECOMPLEX) 
+  if(jadv.eq.0 .and. i3d.eq.1) then
+     o = ri_79*es179(:,OP_DP)
+  endif
+#endif
+  case(4)
+#if defined(USE3D) || defined(USECOMPLEX) 
+  o = ri_79*bztx79(:,OP_1)*pht79(:,OP_DP)
+  if(jadv.eq.0 .and. i3d.eq.1) then
+     o = o + ri_79*es179(:,OP_DP)
+  endif
+#endif
+  case(5)
+   o =   pstx79(:,OP_DZ)*pht79(:,OP_DR)-pstx79(:,OP_DR)*pht79(:,OP_DZ) 
+            
+#if defined(USE3D) || defined(USECOMPLEX) 
+   o = o + r_79* &
+             (pht79(:,OP_DZ)*bftx79(:,OP_DZP) &
+             +pht79(:,OP_DR)*bftx79(:,OP_DRP))
+   o = o - ri_79*bztx79(:,OP_1)*pht79(:,OP_DP)
+#endif
+
+  case(6)
+  o = 0
+#if defined(USE3D) || defined(USECOMPLEX) 
+        o = o + ri2_79*(cht79(:,OP_DZ)*bftx79(:,OP_DRP) &
+                       -cht79(:,OP_DR)*bftx79(:,OP_DZP))
+#endif
+  end select
 end subroutine electric_field_veldif
 subroutine ef_eta_jdb(ilin,o)
   use basic

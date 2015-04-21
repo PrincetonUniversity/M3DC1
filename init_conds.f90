@@ -4573,12 +4573,13 @@ implicit none
 integer, parameter :: N=1000  !  (number of intervals)
 integer :: ifirstq = 1
 real :: dpsi,rval,psival,bpsival,ival,pval,cubicinterp,qfunc, qpfunc, pfunc, ppfunc
-real :: psimid, qmid, qpmid, ppmid, denom,fterm,gterm,aquad,bquad,cquad,disc 
+real :: psimid, qmid, qpmid, ppmid, denom,fterm,gterm,aquad,bquad,cquad,disc,A_qp
 integer :: j
 real, dimension (0:N) :: bpsi, btor, bpolor, psi, jphi, jthor, gradpor, equor, pary
 
 if(ifirstq.eq.1) then
    ifirstq = 0
+   A_qp = rzero_qp/r0_qp
 
 !           small psi is normalized r**2
    dpsi = 1./N
@@ -4589,13 +4590,13 @@ if(ifirstq.eq.1) then
 !  boundary condition at edge
    btor(N) = bz_qp
    bpsi(N) = 0.
-   bpolor(N) = btor(N)/(2.*rzero_qp*qfunc(psi(N)))
+   bpolor(N) = btor(N)/(2.*A_qp*qfunc(psi(N)))
    if(myrank_qp.eq.0 .and. iprint_qp.ge.1) write(*,*) "diagnostics to follow"
 !  integrate first order ode from boundary in
    do j=N,1,-1
       psimid = (j-.5)*dpsi
-      qmid = rzero_qp*qfunc(psimid)
-      qpmid= rzero_qp*qpfunc(psimid)
+      qmid = A_qp*qfunc(psimid)
+      qpmid= A_qp*qpfunc(psimid)
       ppmid= ppfunc(psimid)
       denom = psimid + qmid**2
       fterm = -(1 -psimid*qpmid/qmid)/denom
@@ -4607,7 +4608,7 @@ if(ifirstq.eq.1) then
 
       disc = bquad**2 - 4.*aquad*cquad
       btor(j-1) = (-bquad + sqrt(disc))/(2.*aquad)
-      bpolor(j-1) = btor(j-1)/(2.*rzero_qp*qfunc(psi(j-1)))
+      bpolor(j-1) =btor(j-1)*r0_qp**2/(2.*rzero_qp*qfunc(psi(j-1)))
       bpsi(j-1)   = bpsi(j) - .5*dpsi*(bpolor(j)+bpolor(j-1)) 
       if(myrank_qp.eq.0 .and. iprint_qp.ge.1) &
       write(*,1002) qmid,denom,fterm,gterm,aquad,bquad,cquad,disc,btor(j-1)
@@ -4616,9 +4617,9 @@ if(ifirstq.eq.1) then
   
 !  calculate poloidal and toroidal fields in cell centers
    do j=1,N-1
-     jphi(j) = 4.*((j+.5)*(bpsi(j+1)-bpsi(j))-(j-.5)*(bpsi(j)-bpsi(j-1)))/dpsi 
+     jphi(j) = 4.*((j+.5)*(bpsi(j+1)-bpsi(j))-(j-.5)*(bpsi(j)-bpsi(j-1)))/(dpsi*r0_qp**2) 
      jthor(j) =  2*((bpsi(j+1)-bpsi(j))*rzero_qp*qfunc((j+0.5)*dpsi) &
-                  - (bpsi(j)-bpsi(j-1))*rzero_qp*qfunc((j-0.5)*dpsi))/dpsi**2
+                  - (bpsi(j)-bpsi(j-1))*rzero_qp*qfunc((j-0.5)*dpsi))/(dpsi**2*r0_qp**2)
      gradpor(j) =  ppfunc(j*dpsi)
      pary(j) = pfunc(psi(j))
 !    error in equilibrium equation
@@ -4696,27 +4697,41 @@ end function cubicinterp
 
 function qfunc(psi)    !   q  (safety factor)
 use basicq
-real :: psi,qfunc,q_LZ   !  note:  psi=r^2
+real :: psi,qfunc,q_LZ  !  note:  psi = r**2
+real :: c0,c1,c2,c3,c4   
+c0 = 4.179343
+c1 = -0.080417
+c2=-8.659146
+c3 = 10.668674
+c4 = -4.108323
+qfunc = (q0_qp) + psi**2*(c0+c1*psi+c2*psi**2+c3*psi**3+c4*psi**4)
+
 
 if(itaylor_qp .eq. 22) then
   qfunc = q_LZ(psi)
   return
 endif
 
-qfunc = (0.3/0.6579) * 1./(1./2. - psi/2. + psi**2/6.)
 return
 end function qfunc
 
 function qpfunc(psi)   !   derivative of q wrt psi
 use basicq
 real :: psi,qpfunc,qprime_LZ   !  note:  psi=r^2
+real :: c0,c1,c2,c3,c4   
+c0 = 4.179343
+c1 = -0.080417
+c2=-8.659146
+c3 = 10.668674
+c4 = -4.108323
+qpfunc =  psi*(2.*c0+3.*c1*psi+4.*c2*psi**2+5.*c3*psi**3+6.*c4*psi**4)
+
 
 if(itaylor_qp .eq. 22) then
   qpfunc = qprime_LZ(psi)
   return
 endif
 
-qpfunc = (0.3/0.6579) * (1./2. - psi/3.)/(1./2. - psi/2. + psi**2/6.)**2
 return
 end function qpfunc
 

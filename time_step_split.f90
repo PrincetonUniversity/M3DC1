@@ -75,7 +75,7 @@ contains
     if(imp_bf.eq.1) vecsize_phi = vecsize_phi + 1
 
     ! add electrostatic potential equation OR implicit hyper-resistivity
-    if((jadv.eq.0 .and. i3d.eq.1) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) &
+    if((jadv.eq.0) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) &
                     vecsize_phi = vecsize_phi + 1
   
 
@@ -315,7 +315,7 @@ contains
     chi_i = 3
     den_i = 1
     if(imp_bf.eq.1) then
-       if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
+       if((jadv.eq.0).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
          bf_i = vecsize_phi - 1
          e_i =  vecsize_phi
        else
@@ -323,7 +323,7 @@ contains
          e_i = vecsize_phi + 1
        endif
     else
-       if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
+       if((jadv.eq.0).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
          bf_i = vecsize_phi + 1
          e_i = vecsize_phi
        else
@@ -379,7 +379,7 @@ contains
     
     call associate_field(den_v,  den_vec,    den_i)
     
-    if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
+    if((jadv.eq.0).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
        call associate_field(e_v, phi_vec, e_i)
     end if
     
@@ -548,7 +548,7 @@ subroutine import_time_advance_vectors_split
 
   den_v = den_field(1)
   if(imp_bf.eq.1) bf_v = bf_field(1)
-  if((jadv.eq.0 .and. i3d.eq.1) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) e_v = e_field(1)
+  if((jadv.eq.0) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) e_v = e_field(1)
 
 end subroutine import_time_advance_vectors_split
 
@@ -614,7 +614,7 @@ subroutine export_time_advance_vectors_split
 
   if(idens.eq.1) den_field(1) = den_v
   if(imp_bf.eq.1) bf_field(1) = bf_v
-  if((jadv.eq.0 .and. i3d.eq.1) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) e_field(1) = e_v
+  if((jadv.eq.0) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) e_field(1) = e_v
 
 end subroutine export_time_advance_vectors_split
 

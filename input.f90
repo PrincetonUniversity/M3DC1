@@ -674,6 +674,8 @@ subroutine set_defaults
   call add_var_int("ibdgp", ibdgp, 0, &
        "ne.0: bdgp plot contains only partial results ", output_grp)
 
+  call add_var_int("iveldif", iveldif, 0, &
+       "ne.0: veldif plot contains only partial results ", output_grp)
   ! diagnostics
   call add_var_int("xray_detector_enabled", xray_detector_enabled, 0, &
        "1: enable xray detector", diagnostic_grp)
