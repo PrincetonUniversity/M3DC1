@@ -21,26 +21,33 @@ endif
 # define where you want to locate the mesh adapt libraries
 #HYBRID_HOME =  /scratch2/scratchdirs/xyuan/Software_Hopper/pdslin_0.0
 #HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lpdslin
+SCORECDIR = /global/project/projectdirs/mp288/edison/scorec/Apr2015
 
 ifeq ($(COM), 1)
-      SCORECDIR = /global/project/projectdirs/mp288/edison/scorec/complex
-      PETSC_DIR = /global/project/projectdirs/mp288/edison/petsc-complex/petsc-3.5.2
-      PETSC_ARCH = arch-xc30-opt
-      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,/global/project/projectdirs/mp288/edison/petsc-complex/petsc-3.5.2/arch-xc30-opt/lib -L/global/project/projectdirs/mp288/edison/petsc-complex/petsc-3.5.2/arch-xc30-opt/lib -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu_4.3 -lsuperlu_dist_3.3 -lparmetis -lmetis -lpthread -lssl -lcrypto -Wl,-rpath,/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -L/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -ldl -lstdc++
+      SCORECLIB=-lapf -lgmi -lm3dc1_scorec_complex -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr
+      PETSC_DIR =/opt/cray/petsc/3.5.2.1/complex/INTEL/140/sandybridge
+      PETSC_ARCH =
+      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L/opt/cray/tpsl/1.4.3/INTEL/140/sandybridge/lib -lsuperlu -lcmumps -ldmumps -lesmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu_dist -lparmetis -lmetis -lptscotch -lscotch -lptscotcherr -lscotcherr -lsci_intel_mpi_mp -lsci_intel_mp -liomp5 -lpthread -lssl -lcrypto -Wl,-rpath,/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -L/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -ldl -lstdc++
 else
-      SCORECDIR = /global/project/projectdirs/mp288/edison/scorec/real
-      PETSC_DIR =/global/homes/h/hzhang/petsc/
-      PETSC_ARCH =arch-xc30-opt
-      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,/global/u2/h/hzhang/petsc/arch-xc30-opt/lib -L/global/u2/h/hzhang/petsc/arch-xc30-opt/lib -lHYPRE -lsuperlu_4.3 -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lml -lsuperlu_dist_3.3 -lparmetis -lmetis -lpthread -lssl -lcrypto -Wl,-rpath,/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -L/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -ldl -lstdc++
+      SCORECLIB=-lapf -lgmi -lm3dc1_scorec -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr
+      PETSC_DIR =/opt/cray/petsc/3.5.2.1/real/INTEL/140/sandybridge
+      PETSC_ARCH =
+      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L/opt/cray/tpsl/1.4.3/INTEL/140/sandybridge/lib -lHYPRE -lsuperlu -lcmumps -ldmumps -lesmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu_dist -lparmetis -lmetis -lptscotch -lscotch -lptscotcherr -lscotcherr -lsci_intel_mpi_mp -lsci_intel_mp -liomp5 -lsundials_cvode -lsundials_cvodes -lsundials_ida -lsundials_idas -lsundials_kinsol -lsundials_nvecparallel -lsundials_nvecserial -lpthread -lssl -lcrypto -Wl,-rpath,/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -L/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -ldl -lstdc++
 endif
 
-SCORECLIB="-lapf -lgmi -lm3dc1_scorec -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr"
-SCOREC_LIBS =-L$(SCORECDIR)/lib -Wl,--start-group -lm3dc1_scorec $(SCORECLIB) -Wl,--end-group -lzoltan
-INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
+SCOREC_LIBS =-L$(SCORECDIR)/lib -Wl,--start-group $(SCORECLIB) -Wl,--end-group 
+INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include -I/opt/cray/tpsl/1.4.3/INTEL/140/sandybridge/include
+ifeq ($(COM), 1)
 LIBS := $(LIBS) \
         -L$(SCORECDIR)/lib $(SCOREC_LIBS) \
-        -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc $(PETSC_EXTERNAL_LIB_BASIC)  \
+        -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcraypetsc_intel_complex $(PETSC_EXTERNAL_LIB_BASIC)  $(SCOREC_LIBS) \
         -lstdc++
+else
+LIBS := $(LIBS) \
+        -L$(SCORECDIR)/lib $(SCOREC_LIBS) \
+        -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcraypetsc_intel_real $(PETSC_EXTERNAL_LIB_BASIC)  $(SCOREC_LIBS) \
+        -lstdc++
+endif
 
 ifeq ($(USEADIOS), 1)
   OPTS := $(OPTS) -DUSEADIOS
@@ -65,6 +72,7 @@ INCLUDE := $(INCLUDE) -I$(HDF5_DIR)/include $(FFTW_INCLUDE_OPTS) \
 #        -I$(HYBRID_HOME)/include
 
 LIBS := $(LIBS) -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5 -lz \
+        -L$(CRAY_TRILINOS_PREFIX)/lib -lzoltan \
 	$(FFTW_POST_LINK_OPTS) -lfftw3 \
 	$(HYPRE) $(MUMPS) $(PARMETIS) -ldl \
 	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
