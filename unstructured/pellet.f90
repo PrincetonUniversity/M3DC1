@@ -31,7 +31,7 @@ contains
     implicit none
     real, intent(in) :: r, phi, z, pres, den
 
-    select case(ipellet)
+    select case(abs(ipellet))
 
     ! gaussian pellet source
     case(1)

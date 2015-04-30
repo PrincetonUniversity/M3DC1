@@ -357,6 +357,51 @@ subroutine den_eq
   
 end subroutine den_eq
 
+subroutine den_per
+  use basic
+  use arrays
+  use pellet
+  use field
+  use m3dc1_nint
+  use newvar_mod
+  implicit none
+
+  type(field_type) :: den_vec
+  integer :: numelms, itri, i
+  vectype, dimension(dofs_per_element) :: dofs
+  real, dimension(MAX_PTS) :: n, p
+
+  if(ipellet.ge.0) return
+
+  call create_field(den_vec)
+  den_vec = 0.
+
+  numelms = local_elements()
+  do itri=1,numelms
+     call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+     call define_fields(itri,0,1,0)
+
+     n179(:,OP_1) = 0.
+     if(ipellet.lt.0) then
+        n = 0.
+        p = 0.
+        n179(:,OP_1) = n179(:,OP_1) + &
+             pellet_deposition(x_79, phi_79, z_79, p, n)
+     end if
+
+     do i=1, dofs_per_element
+        dofs(i) = int2(mu79(:,OP_1,i),n179(:,OP_1))
+     end do
+     call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+  end do
+
+  call newvar_solve(den_vec%vec,mass_mat_lhs)
+  den_field(1) = den_vec
+
+  call destroy_field(den_vec)
+
+end subroutine den_per
+
 !=========================================================================
 subroutine calculate_external_fields(sf)
   use basic
@@ -2154,6 +2199,9 @@ subroutine eqdsk_init()
   if(igs_pp_ffp_rescale.ne.1) fpol(nw) = fpol(nw)*batemanscale
 !
   bzero = fpol(nw)/rzero
+  if(iprint.ge.1 .and. myrank.eq.0) then 
+     write(*,'(A,2F12.4)') 'Setting bzero, rzero = ', bzero, rzero
+  end if
 
   if(igs.gt.0) then
      if(iread_eqdsk.eq.2) then
@@ -4066,6 +4114,7 @@ subroutine initial_conditions()
   end if
      
   call den_eq()
+  call den_per()
 
   if(irmp.ge.1 .or. iread_ext_field.ge.1) call rmp_per()
 
