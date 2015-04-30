@@ -1026,7 +1026,7 @@ subroutine validate_input
   e0_norm = v0_norm*b0_norm / c_light
   
   if(ibeam.ge.1) call neutral_beam_init
-  if(ipellet.ge.1) call pellet_init
+  if(ipellet.ne.0) call pellet_init
 
   if(myrank.eq.0) then
      print *, "============================================="
