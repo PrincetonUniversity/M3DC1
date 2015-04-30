@@ -20,13 +20,13 @@ endif
 
     SCORECDIR = /chos/global/project/projectdirs/mp288/babbage/scorec
 ifeq ($(COM), 1)
-    SCORECLIB= -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib -lm3dc1_scorec_complex -lpcu -lgmi -lapf -lmds -lspr -lapf_zoltan -lzoltan -lparma -lma -lph -Wl,--end-group 
+    SCORECLIB= -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib -lm3dc1_scorec_complex -lpcu -lgmi -lapf -lmds -lspr -lapf_zoltan -lparma -lma -lph -Wl,--end-group 
     PETSC_DIR= /usr/common/usg/petsc/3.5.2-fee0b69/complex
     PETSC_ARCH= knc_201501
     PETSCLIB= -Wl,--start-group,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcmumps -ldmumps -lmumps_common -lpetsc -lpord -lscalapack -lsmumps -lsuperlu_4.3 -lsuperlu_dist_3.3 -lzmumps -lparmetis -lmetis -Wl,--end-group
 
 else
-    SCORECLIB= -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib -lm3dc1_scorec -lpcu -lgmi -lapf -lmds -lspr -lapf_zoltan -lzoltan -lparma -lma -lph -Wl,--end-group
+    SCORECLIB= -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib -lm3dc1_scorec -lpcu -lgmi -lapf -lmds -lspr -lapf_zoltan -lparma -lma -lph -Wl,--end-group
     PETSC_DIR= /usr/common/usg/petsc/3.5.2-fee0b69/real
     PETSC_ARCH= knc_201501
     PETSCLIB = -Wl,--start-group,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcmumps -ldmumps -lmumps_common -lpetsc -lpord -lscalapack -lsmumps -lsuperlu_4.3 -lsuperlu_dist_3.3 -lzmumps -lparmetis -lmetis -Wl,--end-group
@@ -35,6 +35,7 @@ endif
   INCLUDE := -I$(SCORECDIR)/include
   LIBS := $(LIBS) \
 	$(SCORECLIB) \
+        -L$(ZOLTAN_DIR)/lib -lzoltan \
 	$(PETSCLIB) \
         -L$(MKLROOT)/lib/mic/ -lmkl_blacs_intelmpi_lp64 -lmkl_blas95_lp64 -lmkl_cdft_core -lmkl_core -lmkl_intel_lp64 -lmkl_lapack95_lp64 -lmkl_scalapack_lp64 -lmkl_sequential \
         -lstdc++
