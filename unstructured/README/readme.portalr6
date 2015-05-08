@@ -1,4 +1,4 @@
-Sun Apr 12 22:41:24 EDT 2015
+Updated
 
 1. login from pppl portal
 	ssh portalr6
@@ -26,15 +26,18 @@ Sun Apr 12 22:41:24 EDT 2015
 5. mesh utility
 	/p/tsc/m3dc1/lib/SCORECLib/sunfire/utilities/
 
-x6. run jobscript
+6. prepare jobscript
 	#!/bin/bash -vx
-	#SBATCH --partition kruskal_r6
+	#SBATCH --partition=mque_r6
+        #SBATCH --nodes=1
 	#SBATCH --ntasks 8
 	#SBATCH -J m3dc1_2d
 	#SBATCH -t 10:05:00
+        #SBATCH --mail-type=END
+        #SBATCH --mail-user=<username>@pppl.gov
 
 	#2D complex
-	mpiexec -np 8 m3dc1.x -pc_factor_mat_solver_package mumps >& m3dc1_2d.out_complex_re
+	mpiexec -np 8 m3dc1_2d_complex -pc_factor_mat_solver_package mumps >& m3dc1_2d.out_complex_re
 
 	#2D real
 	mpiexec -np 8 m3dc1.x
@@ -44,4 +47,18 @@ x6. run jobscript
 	srun -n 32 ./m3dc1_3d >& m3dc1_3d.out
 	mpiexec -np 32  ./m3dc1_3d -ipetsc -options_file options_bjacobi
 
+7. submit job
+        sbatch jobscript
+	
+	or:   sbatch --dependency=afterok:123 jobscript
+
+8. list all curent jobs for a user
+        squeue -u <username>
+
+9. delete a job
+        scancel <jobid>
+
+NOTE:  To enable subsequent jobs to run on separate processes, use:
+       mpiexec --bind-to none -np 16 .....
+       DO NOT include #SBATCH --exclusive
 
