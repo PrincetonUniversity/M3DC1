@@ -130,7 +130,7 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	auxiliary_fields.o  \
 	time_step_split.o time_step_unsplit.o \
 	time_step.o hdf5_output.o output.o \
-	adapt.o newpar.o input.o ludef_t.o \
+	error_estimate.o adapt.o newpar.o input.o ludef_t.o \
 	restart.o readgeqdsk.o read_dskbal.o \
 	read_jsolver.o \
         init_common.o \
