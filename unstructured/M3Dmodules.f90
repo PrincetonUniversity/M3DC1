@@ -396,6 +396,7 @@ module arrays
 
   ! Arrays containing physical fields
   type(vector_type), target :: field_vec, field0_vec
+  type(vector_type), target :: field_vec_pre
 
   ! Arrays containing external fields
   type(field_type) :: psi_ext, bz_ext, bf_ext
@@ -430,6 +431,7 @@ module arrays
   type(field_type) :: den_field(0:1), p_field(0:1)
   type(field_type) :: bf_field(0:1), e_field(0:1)
   type(field_type) :: te_field(0:1), ti_field(0:1)
+  type(field_type) :: u_field_pre, psi_field_pre
 
   ! the following pointers point to the locations of the named field within
   ! the respective vector.  set by assign_local_pointers()

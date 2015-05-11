@@ -644,5 +644,22 @@ contains
     call finalize(f%vec)
   end subroutine straighten_field
 
+  subroutine unstraighten_field(f)
+   use mesh_mod
+    implicit none
 
+    type(field_type), intent(inout) :: f
+
+    integer :: inode, numnodes, icounter_t
+    vectype, dimension(dofs_per_node) :: data
+
+    numnodes = owned_nodes()
+    do icounter_t=1,numnodes
+       inode = nodes_owned(icounter_t)
+
+       call get_node_data(f, inode, data, .false.)   ! rotate to R,Z
+       call set_node_data(f, inode, data, .true.)  ! don't rotate back to n,t
+    enddo
+    call finalize(f%vec)
+  end subroutine unstraighten_field
 end module field
