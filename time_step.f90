@@ -3,6 +3,9 @@ module time_step
   use time_step_unsplit
   implicit none
 
+  integer :: meshAdapted
+  data meshAdapted /0/
+
 contains
 
   subroutine initialize_timestep
@@ -91,7 +94,7 @@ subroutine onestep
   ! Determine whether matrices should be re-calculated
   if(first_time &
        .or. (linear.eq.0 .and. mod(ntime,nskip).eq.0) &
-       .or. (integrator.eq.1 .and. ntime.eq.1)) then
+       .or. (integrator.eq.1 .and. ntime.eq.1) .or. meshAdapted .eq. 1) then
      calc_matrices = 1
   else
      calc_matrices = 0
@@ -178,7 +181,7 @@ subroutine onestep
 
 
   first_time = .false.
-
+  meshAdapted = 0
 end subroutine onestep
 
 !======================================================================
