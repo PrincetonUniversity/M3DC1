@@ -80,7 +80,7 @@ elif [[ "$1" == k.* ]]; then
     echo "In C1input set"
     echo " iread_ne = 1"
     echo " iread_te = 1"
-    echo " iread_omega = 1"
+    echo " iread_omega_ExB = 1"
 
     exit 0
 
@@ -163,6 +163,22 @@ elif [[ "$1" == vtprof_*.asc ]]; then
     echo "In C1input set"
     echo " iread_omega = 3"
     exit 0
+
+elif [[ "$1" == *_profiles.dat ]]; then
+    echo "Reading AUG profile file"
+    tail -n +2 $1 | awk '{printf "%10g\t%10g\n", $1*$1, $8*1e-4}' > profile_ne
+    tail -n +2 $1 | awk '{printf "%10g\t%10g\n", $1*$1, $10*1e-3}' > profile_te
+    echo "In C1input set"
+    echo " iread_te = 1"
+    echo " iread_ne = 1"
+    exit
+
+elif [[ "$1" == *_vtor_*.dat ]]; then
+    echo "Reading AUG rotation profile file"
+    tail -n +2 $1 | awk '{printf "%10g\t%10g\n", $3, $4*1e-3/$1}' > profile_omega
+    echo "In C1input set"
+    echo " iread_omega = 1"
+    exit
 
 fi
 fi
