@@ -103,6 +103,7 @@ subroutine set_defaults
   use pellet
   use mesh_mod
   use gradshafranov
+  use adapt
 
   implicit none
 
@@ -698,6 +699,7 @@ subroutine set_defaults
 
   ! Mesh adaptation
   call add_var_int("iadapt", iadapt, 0, "", adapt_grp)
+  call add_var_double("target_error", target_error, 0.0001,"", adapt_grp)
   call add_var_double("adapt_factor", adapt_factor, 1., "", adapt_grp)
   call add_var_double("adapt_hmin", adapt_hmin, 0.001, "", adapt_grp)
   call add_var_double("adapt_hmax", adapt_hmax, 0.1, "", adapt_grp)
@@ -830,8 +832,8 @@ subroutine validate_input
 
   if(iadapt.gt.0) then
 #if defined(USECOMPLEX)
-      if(myrank.eq.0) print *, "ERROR:  must use real version of code for iadapt.gt.0"
-      call safestop(1)
+!      if(myrank.eq.0) print *, "ERROR:  must use real version of code for iadapt.gt.0"
+!      call safestop(1)
 #endif
    endif
 
