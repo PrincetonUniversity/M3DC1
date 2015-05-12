@@ -112,6 +112,12 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
          ytitle=make_label('!8Z!X', /l0, _EXTRA=ex), $
          range=range, overplot=overplot, _EXTRA=ex
 
+       if(keyword_set(boundary)) then plotmesh=1
+       if(keyword_set(plotmesh)) then begin
+           plot_mesh, mesh=mesh, /oplot, $
+             boundary=boundary, filename=filename[0], _EXTRA=ex
+       endif
+
        if(n_elements(q_contours) ne 0) then begin
            fval = flux_at_q(q_contours,points=p,_EXTRA=ex,$
                            filename=filename[0])
@@ -123,12 +129,6 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
            print, 'passing slice = ', time[0]
            plot_lcfs, points=p, slice=time[0], $
              last=last, filename=filename[0], _EXTRA=ex
-       endif
-
-       if(keyword_set(boundary)) then plotmesh=1
-       if(keyword_set(plotmesh)) then begin
-           plot_mesh, mesh=mesh, /oplot, $
-             boundary=boundary, filename=filename[0], _EXTRA=ex
        endif
 
        if(keyword_set(coils)) then begin

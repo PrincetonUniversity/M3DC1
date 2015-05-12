@@ -59,8 +59,9 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
 
   if(keyword_set(pspec)) then begin
 ;      xtitle = '!7x!6 (!7s!D!8A!N!6!U-1!N)!X'
-      xtitle = make_label('!7x!X', t0=-1, cgs=cgs, mks=mks, _EXTRA=extra)
-      data = power_spectrum(data, frequency=tdata, t=max(time)) 
+      xtitle = make_label('!6Frequency!X', t0=-1, cgs=cgs, mks=mks, _EXTRA=extra)
+      data = power_spectrum(data, frequency=tdata, t=max(time))
+      print, 'T = ', max(time)
   endif else begin
       xtitle = make_label('!8t!X', /t0, cgs=cgs, mks=mks, _EXTRA=extra)
       tdata = time
