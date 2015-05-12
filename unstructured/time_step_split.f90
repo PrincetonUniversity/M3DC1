@@ -564,6 +564,10 @@ subroutine export_time_advance_vectors_split
 
   implicit none
 
+  if(iadapt .ne. 0) then
+    u_field_pre = u_field(1)
+    psi_field_pre = psi_field(1)
+  end if
   u_field(1) = u_v
   psi_field(1) = psi_v
   if(numvar.ge.2) then
