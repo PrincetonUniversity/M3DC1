@@ -69,7 +69,7 @@ endif
 SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu_4.3 \
 	-L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist_3.3 \
 
-SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/stix/latest
+SCORECDIR = /p/tsc/m3dc1/lib/SCORECLib/stix/May2015
 INCLUDE := -I$(SCORECDIR)/include $(INCLUDE)
 
 SCOREC_LIBS = -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib \
