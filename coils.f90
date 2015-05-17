@@ -222,10 +222,11 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ierr)
         rk=sqrt(rksq)
         sqrxi=sqrt(rxi)
         x=1.-rksq
-        if(x.eq.0) then
+        if(x.eq.0.) then
            print *, 'Error: current is precisely on node'
+           g(:,i) = 0.
            ierr = 1
-           return
+           cycle
         end if
 
         ce=1.+x*(c1+x*(c2+x*(c3+x*c4)))+                                  &

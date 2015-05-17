@@ -209,6 +209,7 @@ subroutine get_flux_mask(itri, imask)
         ibound = ior(ibound, BOUNDARY_NEUMANNP)
      endif
   endif
+  if(iconst_bn.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
 
   call get_boundary_mask(itri, ibound, imask)
 end subroutine get_flux_mask

@@ -3,7 +3,7 @@ FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DKSPITS -DxCJ_MATRIX_DUM
 CCOPTS  = -c -O -DPetscDEV -DKSPITS -DxCJ_MATRIX_DUMP -DxUSEHYBRID #-DPETSC_31 -pg
 
 ifeq ($(OPT), 1)
-  FOPTS  := $(FOPTS) -fast
+  FOPTS  := $(FOPTS) -O2 -vec-report=0 #-fast
   CCOPTS := $(CCOPTS) -O
 else
   FOPTS := $(FOPTS) -g -check all -check noarg_temp_created -debug all -ftrapuv
@@ -56,7 +56,7 @@ LIBS = 	-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lmumps_common -ldmumps -lcmumps -lzmum
 	-L$(SCALAPACK_HOME)/lib -lscalapack -L$(BLACS_HOME)/lib -lmpiblacs -lmpiblacsCinit -lmpiblacsF77init \
         -L$(Zoltan_HOME)/lib -lzoltan \
 	-L$(GSLHOME)/lib -lgsl \
-        -L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5_hl -lhdf5 \
+        -L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5_hl -lhdf5 -lz \
 	-L$(NCARG_ROOT)/lib -lncarg -lncarg_gks -lncarg_c \
         -L$(CCHOME)/mkl/lib/em64t -lmkl -lmkl_lapack \
 	-L$(CCHOME)/lib/intel64 -lguide \

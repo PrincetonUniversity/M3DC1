@@ -332,15 +332,17 @@ vectype function resistivity_func(i)
           /(etadelt*(psilim-psimin))))
      endif
   case(2)
-     if(linear.eq.1) then
-       temp79b = (ps079(:,OP_1)-psimin)/(psibound-psimin)
-       temp79a = eta_fac*eta0*.5* &
-          (1. + tanh((real(temp79b) - etaoff)/etadelt))
-     else
-       temp79b = (pst79(:,OP_1)-psimin)/(psibound-psimin)
-       temp79a = eta_fac*eta0*.5* &
-          (1. + tanh((real(temp79b) - etaoff)/etadelt))
-     endif
+!!$     if(linear.eq.1) then
+!!$       temp79b = (ps079(:,OP_1)-psimin)/(psibound-psimin)
+!!$       temp79a = eta_fac*eta0*.5* &
+!!$          (1. + tanh((real(temp79b) - etaoff)/etadelt))
+!!$     else
+!!$       temp79b = (pst79(:,OP_1)-psimin)/(psibound-psimin)
+!!$       temp79a = eta_fac*eta0*.5* &
+!!$          (1. + tanh((real(temp79b) - etaoff)/etadelt))
+!!$     endif
+     temp79a = eta79(:,OP_1) - etar*eta_fac
+
   case(3)
      temp79a = eta79(:,OP_1) - etar*eta_fac
 
@@ -678,7 +680,8 @@ subroutine define_transport_coefficients()
   ! specify which primitive fields are to be evalulated
   def_fields = FIELD_N + FIELD_PE + FIELD_P + FIELD_PSI + FIELD_I + FIELD_B2I
   if(itemp.ge.1) def_fields = def_fields + FIELD_TE
-  if(iresfunc.eq.3 .or. iresfunc.eq.4) def_fields = def_fields + FIELD_ETA
+  if(iresfunc.eq.2 .or. iresfunc.eq.3 .or. iresfunc.eq.4) &
+       def_fields = def_fields + FIELD_ETA
   if(ivisfunc.eq.3) def_fields = def_fields + FIELD_MU
   if(ibeam.ge.1) def_fields = def_fields + FIELD_V
   if(ipforce.gt.0) def_fields = def_fields + FIELD_PHI + FIELD_CHI + FIELD_NI

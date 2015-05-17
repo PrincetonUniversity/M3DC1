@@ -352,6 +352,7 @@ contains
     use basic
     use mesh_mod
     use arrays
+    use math
 
     implicit none
   
@@ -788,13 +789,32 @@ contains
 
      if(izone.eq.3) then 
         eta79 = 0.
-        eta79(:,OP_1) = 1.
-!        eta79(:,OP_1) = eta_wall
+        eta79(:,OP_1) = eta_vac
      else if(izone.eq.2) then
         eta79 = 0.
         eta79(:,OP_1) = eta_wall
      else 
-        if(iresfunc.eq.3) then
+        if(iresfunc.eq.2) then
+           if(linear.eq.1) then
+              tm79 = ((ps079-psimin)/(psibound-psimin) - etaoff) / etadelt
+           else
+              tm79 = ((pst79-psimin)/(psibound-psimin) - etaoff) / etadelt
+           endif
+           eta79(:,OP_1 )  = 1. + tanh(real(tm79(:,OP_1)))
+           eta79(:,OP_DR)  = sech(real(tm79(:,OP_1)))**2 * tm79(:,OP_DR)
+           eta79(:,OP_DZ)  = sech(real(tm79(:,OP_1)))**2 * tm79(:,OP_DZ)
+           eta79(:,OP_DRR) = sech(real(tm79(:,OP_1)))**2 * tm79(:,OP_DRR) &
+                - 2.*tanh(real(tm79(:,OP_1)))*sech(real(tm79(:,OP_1)))**2 &
+                * tm79(:,OP_DR)**2
+           eta79(:,OP_DRZ) = sech(real(tm79(:,OP_1)))**2 * tm79(:,OP_DRZ) &
+                - 2.*tanh(real(tm79(:,OP_1)))*sech(real(tm79(:,OP_1)))**2 &
+                * tm79(:,OP_DR)*tm79(:,OP_DZ)
+           eta79(:,OP_DZZ) = sech(real(tm79(:,OP_1)))**2 * tm79(:,OP_DRR) &
+                - 2.*tanh(real(tm79(:,OP_1)))*sech(real(tm79(:,OP_1)))**2 &
+                * tm79(:,OP_DZ)**2
+
+           eta79 = 0.5*eta79*eta0*eta_fac
+        else if(iresfunc.eq.3) then
            temp79a = (pst79(:,OP_1) - psimin)/(psibound - psimin)
            temp79b = (pst79(:,OP_DR)*(x_79 - xmag) &
                 +     pst79(:,OP_DZ)*(z_79 - zmag))*(psibound-psimin)

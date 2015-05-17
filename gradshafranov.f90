@@ -9,6 +9,7 @@ module gradshafranov
   integer, parameter :: numvargs = 1
 
   type(spline1d), private :: omega_spline   ! ion toroidal angular frequency 
+  type(spline1d), private :: omega_spline_0 ! profile read from profile_omega
   type(spline1d), private :: alpha_spline   ! 0.5*rzero**2 * omega**2 / Ti 
   type(spline1d), private :: n0_spline      ! Ion density
   type(spline1d), private :: g0_spline      ! 0.5*(F**2 - F1**2)
@@ -35,6 +36,8 @@ module gradshafranov
   ! if use_norm_psi==1, pprime and ffprime are derivs wrt normalized flux
   integer, private :: use_norm_psi = 1
 
+  integer :: igs_feedfac
+
   real, dimension(maxfilaments), private :: xc_vac, zc_vac
   complex, dimension(maxfilaments), private :: ic_vac, ic_out
   integer, private :: numcoils_vac
@@ -47,6 +50,9 @@ module gradshafranov
 
   integer :: igs_start_xpoint_search
   integer :: igs_forcefree_lcfs
+
+  logical :: igs_calculate_pf_fields = .false.
+  logical :: igs_calculate_ip_fields = .false.
 
 contains
 
@@ -63,7 +69,11 @@ subroutine gradshafranov_init()
   ! Define initial values of psi
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. iprint.gt.0) print *, "before call to vacuum field"
-  if(ifixedb.eq.0) call vacuum_field
+  if(ifixedb.eq.0) then
+     igs_calculate_pf_fields = .true.
+     igs_calculate_ip_fields = .true.
+     call vacuum_field
+  end if
   if(myrank.eq.0 .and. iprint.gt.0) print *, "after call to vacuum field"
      
   ! define initial field associated with delta-function or gaussian source
@@ -222,29 +232,24 @@ subroutine write_feedback(filename)
   close(ifile)
 end subroutine write_feedback
 
-!==========================================================
-! vacuum_field
-! ~~~~~~~~~~~~
-! Calculate the field due to external coils
-!==========================================================
-subroutine vacuum_field()
-  use math
+subroutine pf_coil_field(ierr)
   use basic
-  use arrays
   use coils
+  use math
   use coil_sets
+  use arrays
 
   implicit none
 
-  real, dimension(6) :: g1, g2
+  integer, intent(out) :: ierr
+
   real, dimension(maxfilaments) :: xp, zp, xc, zc
   complex, dimension(maxfilaments) :: ic
+  integer :: ipole, numcoils
   real :: aminor, bv, rnorm, fac
-  integer :: ierr, ipole, numcoils
-  
-  if(myrank.eq.0 .and. iprint.gt.0) &
-       print *, " calculating vacuum field...."
 
+  ierr = 0
+  rnorm = 10.
   ! based on filiment with current tcuro
   ! and vertical field of strength bv given by shafranov formula
   ! NOTE:  This formula assumes (li/2 + beta_P) = libetap
@@ -258,24 +263,7 @@ subroutine vacuum_field()
   else
      bv = 0.
   endif
-
-  rnorm = 10.
-  if(myrank.eq.0 .and. iprint.ge.1) &
-       print *, "gradshafranov_solve xmag zmag ", xmag, zmag
   
-  !......define feedback parameters needed for normalization
-  if(idevice .eq. 0) then
-     xc(1) = 102.
-     zc(1) = rnorm
-     xp = xlim
-     zp = zlim
-     call gvect(xp,zp,xc,zc,1,g1,1,ierr)
-     xp = xlim2
-     zp = zlim2
-     call gvect(xp,zp,xc,zc,1,g2,1,ierr)
-     gnorm = g1(1) - g2(1)
-  endif
-
   ipole = 0
   select case(idevice)
   case(-1)
@@ -331,13 +319,12 @@ subroutine vacuum_field()
      ic = bv*fac2
   end select
 
-
   ! Field due to coil currents
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, "Calculating fields due to coils"
   call field_from_coils(xc,zc,ic,numcoils,psi_coil_field,ipole,ierr)
   if(ierr.ne.0) call safestop(5)
- 
+
   ! Field due to extra divertor currents
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, "Calculating fields due to divertors"
@@ -350,14 +337,60 @@ subroutine vacuum_field()
      if(ierr.ne.0) call safestop(5)
   endif
 
-  ! Field due to plasma current
-  if(myrank.eq.0 .and. iprint.ge.1) &
-       print *, "Calculating fields due to plasma"
-  xc(1) = xmag
-  zc(1) = zmag
-  ic(1) = tcuro/(2.*pi)
-  call field_from_coils(xc,zc,ic,1,psi_field(0),0,ierr)
-  if(ierr.ne.0) call safestop(5)
+
+end subroutine pf_coil_field
+
+!==========================================================
+! vacuum_field
+! ~~~~~~~~~~~~
+! Calculate the field due to external coils
+!==========================================================
+subroutine vacuum_field()
+  use math
+  use basic
+  use arrays
+  use coils
+
+  implicit none
+
+  real, dimension(maxfilaments) :: xp, zp, xc, zc
+  complex, dimension(maxfilaments) :: ic
+  integer :: ierr
+  real, dimension(6) :: g1, g2
+  integer, parameter :: rnorm = 10.
+  
+  if(myrank.eq.0 .and. iprint.gt.0) &
+       print *, " calculating vacuum field...."
+
+  !......define feedback parameters needed for normalization
+  if(idevice .eq. 0) then
+     xc(1) = 102.
+     zc(1) = rnorm
+     xp = xlim
+     zp = zlim
+     call gvect(xp,zp,xc,zc,1,g1,1,ierr)
+     xp = xlim2
+     zp = zlim2
+     call gvect(xp,zp,xc,zc,1,g2,1,ierr)
+     gnorm = g1(1) - g2(1)
+  endif
+
+  if(igs_calculate_pf_fields) then 
+     if(myrank.eq.0 .and. iprint.ge.1) &
+          print *, "Calculating fields due to poloidal field coils"
+     call pf_coil_field(ierr)
+  end if
+ 
+  if(igs_calculate_ip_fields) then 
+     ! Field due to plasma current
+     if(myrank.eq.0 .and. iprint.ge.1) &
+          print *, "Calculating fields due to plasma"
+     xc(1) = xmag
+     zc(1) = zmag
+     ic(1) = tcuro/(2.*pi)
+     call field_from_coils(xc,zc,ic,1,psi_field(0),0,ierr)
+     if(ierr.ne.0) call safestop(5)
+  end if
 
   if(icsubtract.eq.0) call add(psi_field(0),psi_coil_field)
 
@@ -739,72 +772,17 @@ subroutine define_profiles
      end select
 
      if(allocated(yvals)) then
-        call create_spline(omega_spline, nvals, xvals, yvals)
+        call create_spline(omega_spline_0, nvals, xvals, yvals)
         deallocate(xvals, yvals)
      end if
 
      ! scale rotation
-     omega_spline%y = omega_spline%y*vscale
+     omega_spline_0%y = omega_spline_0%y*vscale
 
      ! If we've read in electron rotation,
      ! add in diamagnetic term to get ion rotation
-     if((iread_omega_e.ne.0 .or. iread_omega_ExB.ne.0) .and. db.ne.0.) then 
-        if(use_norm_psi.eq.1 .and. dpsii.eq.0.) then
-           if(myrank.eq.0) then
-              print *, 'Error: psi bounds are required when reading omega_e'
-           end if
-           call safestop(14)
-        endif
-
-        do i=1, omega_spline%n
-           if(omega_spline%x(i) .ge. 1.) cycle
-
-           call evaluate_spline(pprime_spline, omega_spline%x(i), ppval, &
-                iout=iout)
-           if(iout.eq.1) ppval = 0.
-           call evaluate_spline(n0_spline, omega_spline%x(i), nval, np, &
-                iout=iout)
-           if(iout.eq.1) np = 0.
-
-           if(iread_omega_e.ne.0) then 
-              ! we're reading in electron rotation; 
-              ! add full diamagnetic term
-              dia = db*ppval/nval
-
-           else if(iread_omega_ExB.ne.0) then 
-              ! we're reading in ExB rotation; add ion diamagnetic term
-              if(allocated(te_spline%y)) then
-                 call evaluate_spline(te_spline, omega_spline%x(i), &
-                      te0,tep,iout=iout)
-                 if(iout.eq.1) tep = 0.
-                 dia = db*(ppval/nval - zeff*tep - zeff*te0*np/nval)
-              else
-                 dia = db*(1.-pefac)*ppval/nval
-              endif
-           endif
-           if(iflip_j.eq.1) dia = -dia
-           if(iflip_v.eq.1) dia = -dia
-
-           if(use_norm_psi.eq.1) then 
-              omega_spline%y(i) = omega_spline%y(i) - dpsii*dia
-           else
-              omega_spline%y(i) = omega_spline%y(i) - dia
-           endif
-        end do
-     end if
-
-     ! calculate alpha from omega
-     ! ensure that derivatives at LCFS are zero
-     if(igs_forcefree_lcfs.eq.1) then 
-        where(omega_spline%x .ge. 1.) omega_spline%y = 0.
-     else if(igs_forcefree_lcfs.eq.2) then
-        call evaluate_spline(omega_spline, 1., te0, iout=iout)
-        if(iout.eq.1) te0 = 0.
-        where(omega_spline%x .ge. 1.) omega_spline%y = te0
-     end if
-
-     call calculate_alpha
-  end if
+     call calc_omega_profile
+  endif
 
   call unload_iterdb
 
@@ -823,6 +801,76 @@ subroutine define_profiles
   if(myrank.eq.0 .and. iprint.ge.1) print *, 'Done defining profiles'
 
 end subroutine define_profiles
+
+subroutine calc_omega_profile
+  use basic
+  implicit none
+
+  real :: ppval, nval, np, dia, te0, tep
+  integer :: i, iout
+
+  call copy_spline(omega_spline, omega_spline_0)
+
+  if((iread_omega_e.ne.0 .or. iread_omega_ExB.ne.0) .and. db.ne.0.) then 
+     if(use_norm_psi.eq.1 .and. dpsii.eq.0.) then
+        if(myrank.eq.0) then
+           print *, 'Error: psi bounds are required when reading omega_e'
+        end if
+        call safestop(14)
+     endif
+     
+     do i=1, omega_spline%n
+        if(omega_spline%x(i) .ge. 1.) cycle
+           
+        call evaluate_spline(pprime_spline, omega_spline%x(i), ppval, &
+             iout=iout)
+        if(iout.eq.1) ppval = 0.
+        call evaluate_spline(n0_spline, omega_spline%x(i), nval, np, &
+             iout=iout)
+        if(iout.eq.1) np = 0.
+        
+        if(iread_omega_e.ne.0) then 
+           ! we're reading in electron rotation; 
+           ! add full diamagnetic term
+           dia = db*ppval/nval
+           
+        else if(iread_omega_ExB.ne.0) then 
+           ! we're reading in ExB rotation; add ion diamagnetic term
+           if(allocated(te_spline%y)) then
+              call evaluate_spline(te_spline, omega_spline%x(i), &
+                   te0,tep,iout=iout)
+              if(iout.eq.1) tep = 0.
+              dia = db*(ppval/nval - zeff*(1.+thermal_force_coeff)*tep &
+                   - zeff*te0*np/nval)
+           else
+              dia = db*(1.-pefac)*ppval/nval
+           endif
+        endif
+        if(iflip_j.eq.1) dia = -dia
+        if(iflip_v.eq.1) dia = -dia
+        
+        if(use_norm_psi.eq.1) then 
+           omega_spline%y(i) = omega_spline_0%y(i) - dpsii*dia
+        else
+           omega_spline%y(i) = omega_spline_0%y(i) - dia
+        endif
+     end do
+  end if
+  
+  ! calculate alpha from omega
+  ! ensure that derivatives at LCFS are zero
+  if(igs_forcefree_lcfs.eq.1) then 
+     where(omega_spline%x .ge. 1.) omega_spline%y = 0.
+  else if(igs_forcefree_lcfs.eq.2) then
+     call evaluate_spline(omega_spline_0, 1., te0, iout=iout)
+     if(iout.eq.1) te0 = 0.
+     where(omega_spline%x .ge. 1.) omega_spline%y = te0
+  end if
+  
+  call calculate_alpha
+
+end subroutine calc_omega_profile
+
 
 subroutine extend_pressure
   use basic
@@ -1057,6 +1105,8 @@ subroutine gradshafranov_solve
         end if
      end do
   end if
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, 'Coil feedback = ', do_feedback
 
 
   if(igs.ne.0) call lcfs(psi_vec, imulti_region.eq.0, &
@@ -1072,7 +1122,7 @@ subroutine gradshafranov_solve
      ! apply boundary conditions
      if(iread_eqdsk.ne.1 .or. itnum.gt.1) then
         feedfac = 0.
-        if(itnum.gt.1 .and. gnorm.ne.0 .and. xlim2.ne.0) then
+        if(itnum.gt.1 .and. gnorm.ne.0 .and. xlim2.ne.0 .and. igs_feedfac.eq.1) then
            feedfac = -0.25*(psilim - psilim2)/gnorm
            !......as a diagnostic, calculate the effective value of libetap (including feedback term)
            libetapeff =  libetapeff + feedfac/fac2
@@ -1222,6 +1272,9 @@ subroutine gradshafranov_solve
 
   call create_field(b3vecini_vec)
   if(irot.ne.0) call create_field(b4vecini_vec)
+
+  !recalculate omega
+!  if(irot.eq.-1) call calc_omega_profile
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, '  populating'
   do itri=1,numelms
@@ -2368,10 +2421,17 @@ end subroutine readpgfiles
    
    open(unit=77,file="profilesdb-g",status="unknown")
    do j=1, g0_spline%n
-      call evaluate_spline(g0_spline, p0_spline%x(j), y, yp, ypp, yppp)
+      call evaluate_spline(g0_spline, g0_spline%x(j), y, yp, ypp, yppp)
       write(77,802) j, g0_spline%x(j), y, yp, ypp, yppp
    enddo
    close(77)
+
+   open(unit=78,file="profilesdb-w",status="unknown")
+   do j=1, omega_spline%n
+      call evaluate_spline(omega_spline, omega_spline%x(j), y, yp, ypp, yppp)
+      write(78,802) j, omega_spline%x(j), y, yp, ypp, yppp
+   enddo
+   close(78)
 
 802 format(i5,1p6e18.9)   
  end subroutine write_profile
@@ -2742,7 +2802,7 @@ subroutine boundary_gs(rhs, feedfac, mat)
      if(is_boundary) then
 
         ! add feedback field
-        if(idevice .eq. 0 .and. ifixedb .eq. 0) then
+        if(idevice .eq. 0 .and. ifixedb .eq. 0 .and. feedfac.ne.0.) then
            xp(1) = x
            zp(1) = z
            xc(1) = 102.

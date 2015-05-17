@@ -44,6 +44,7 @@ module basic
   integer :: ikappar_ni
   real :: etar, eta0  ! iresfunc=0:  resistivity = etar + eta0/T^(3/2)
   real :: eta_fac
+  integer :: eta_mod
   real :: etaoff, etadelt !iresfunc=1: = etar + .5 eta0 (1+tanh(psi-psilim(1+etaoff*DP)/etadelt*DP))
   !                                                      DP = psilim - psimin
   real :: amuoff, amudelt, amuoff2, amudelt2
@@ -69,6 +70,7 @@ module basic
   real :: zeff        ! Effective Z of ion fluid
   real :: ion_mass    ! Effective mass of ions (in proton mass/particle)
   real :: lambda_coulomb ! coulomb logarithm
+  real :: thermal_force_coeff
 
   ! domain parameters
   real :: rzero    ! nominal major radius of the device
@@ -101,6 +103,7 @@ module basic
   real :: amu_edge    ! factor by which to increase viscosity at boundaries
 
   real :: eta_wall    ! resistivity of boundary
+  real :: eta_vac     ! resistivity of vacuum region
   real :: delta_wall  ! thickness of boundary
 
   ! density sources
@@ -349,6 +352,7 @@ module basic
   real :: adapt_hmax  
   real :: adapt_smooth  ! value which controls smoothing of size field
   real :: adapt_psin_vacuum ! value of psin in vacuum region for adaptation
+  real :: adapt_psin_wall   ! value of psin in wall region for adaptation
 
   real :: beta
   real :: pefac

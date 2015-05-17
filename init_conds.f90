@@ -611,6 +611,7 @@ subroutine calculate_external_fields(sf)
   if(numvar.ge.2) then
      if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving bz..."
      call newsolve(mass_mat_lhs%mat,bz_vec,ier)
+     print *, 'after solve'
      if(extsubtract.eq.1) then
         bz_ext = bz_f     
      else
@@ -2139,7 +2140,7 @@ subroutine eqdsk_init()
 
   numnodes = owned_nodes()
 
- if(myrank.eq.0 .and. iprint.gt.0) print *, "before load_eqdsk", iread_eqdsk
+  if(myrank.eq.0 .and. iprint.gt.0) print *, "before load_eqdsk", iread_eqdsk
   call load_eqdsk
   press = press*amu0
   pprime = pprime*amu0
@@ -2166,8 +2167,17 @@ subroutine eqdsk_init()
   zmag = zmaxis
   rzero = rmaxis
 
+  if(ifixedb.eq.0) then 
+     if(iread_eqdsk.eq.3 .and. ifixedb.eq.0) then
+        igs_calculate_ip_fields = .true.
+     end if
+     if(iread_eqdsk.eq.3 .or. idevice.eq.-1 .or. imulti_region.eq.1) then
+        igs_calculate_pf_fields = .true.
+     end if
+     call vacuum_field
+  end if
+
   if(iread_eqdsk.eq.3) then 
-     if(ifixedb.eq.0) call vacuum_field
      
  ! define initial field associated with delta-function or gaussian source
   !     corresponding to current tcuro at location (xmag,zmag)
@@ -4104,6 +4114,8 @@ subroutine initial_conditions()
            call eigen_init()
         case(19)
            call solovev_init()
+        case(24)
+           call rwm_init()
         end select
      endif
   end if
