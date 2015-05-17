@@ -22,6 +22,7 @@ module auxiliary_fields
   type(field_type) :: deldotq_perp
   type(field_type) :: deldotq_par
   type(field_type) :: eta_jsq
+  type(field_type) :: mesh_zone
 
   logical, private :: initialized = .false.
 
@@ -41,6 +42,7 @@ subroutine create_auxiliary_fields
   call create_field(ef_phi)
   call create_field(ef_z)
   call create_field(eta_j)
+  call create_field(mesh_zone)
   if(jadv.eq.0) then
      call create_field(psidot)
      call create_field(veldif)
@@ -82,6 +84,7 @@ subroutine destroy_auxiliary_fields
   call destroy_field(ef_phi)
   call destroy_field(ef_z)
   call destroy_field(eta_j)
+  call destroy_field(mesh_zone)
   if(jadv.eq.0) then
      call destroy_field(psidot)
      call destroy_field(veldif)
@@ -223,6 +226,7 @@ subroutine calculate_auxiliary_fields(ilin)
   ef_phi = 0.
   ef_z = 0.
   eta_j = 0.
+  mesh_zone = 0.
   if(jadv.eq.0) then
      psidot = 0.
      veldif = 0.
@@ -263,6 +267,12 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
      call define_fields(itri, def_fields, 1, 0)
 
      call get_zone(itri, izone)
+
+     do i=1, dofs_per_element
+        temp79a = izone
+        dofs(i) = int2(mu79(:,OP_1,i),temp79a)
+     end do
+     call vector_insert_block(mesh_zone%vec,itri,1,dofs,VEC_ADD)
 
      ! magnetic torque_density (ignoring toroidal magnetic pressure gradient)
 #ifdef USECOMPLEX
@@ -650,6 +660,7 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
   call newvar_solve(ef_phi%vec, mass_mat_lhs)
   call newvar_solve(ef_z%vec, mass_mat_lhs)
   call newvar_solve(eta_j%vec, mass_mat_lhs)
+  call newvar_solve(mesh_zone%vec, mass_mat_lhs)
   if(jadv.eq.0) then
      call newvar_solve(psidot%vec, mass_mat_lhs)
      call newvar_solve(veldif%vec, mass_mat_lhs)

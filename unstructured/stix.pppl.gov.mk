@@ -2,7 +2,7 @@ FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DKSPITS $(OPTS)
 CCOPTS  = -c -O -DPetscDEV -DKSPITS -DPetscOLD #-DCJ_MATRIX_DUMP -DUSEHYBRID 
 
 ifeq ($(OPT), 1)
-  FOPTS  := $(FOPTS) -vec-report0 # -fast
+  FOPTS  := $(FOPTS) -vec-report0 -fast
 #  FOPTS  := $(FOPTS) -g -check all -check noarg_temp_created -debug all -ftrapuv
   CCOPTS := $(CCOPTS) -O
 else
@@ -84,7 +84,6 @@ LIBS = 	$(PETSC_LIBS) \
 	-L$(FFTWHOME)/lib -lfftw3 \
 	-L$(CCHOME)/mkl/lib/em64t -lmkl -lmkl_lapack \
 	-L$(CCHOME)/lib/intel64 -lguide \
-	-L$(NCARG_ROOT)/lib -lncarg -lncarg_gks -lncarg_c \
 	-Wl,-rpath -Wl,$(HDF5_HOME)/lib \
 	-L$(ZLIB_HOME) -lz \
 	-L$(GSLHOME)/lib -lgsl \

@@ -194,6 +194,8 @@ subroutine set_defaults
   call add_var_double("eta0", eta0, 0., "", transp_grp)
   call add_var_double("eta_fac", eta_fac, 1., &
        "Uniform resistivity multiplier", transp_grp)
+  call add_var_int("eta_mod", eta_mod, 0, &
+       "1 = remove d/dphi terms in resistivity", transp_grp)
 
   call add_var_int("ikappafunc", ikappafunc, 0, "", transp_grp)
   call add_var_int("ikapscale", ikapscale, 0, "", transp_grp)
@@ -223,6 +225,8 @@ subroutine set_defaults
        "Ion mass (in units of m_p)", misc_grp)
   call add_var_double("lambda_coulomb", lambda_coulomb, 17., &
        "Coulomb logarithm", misc_grp)
+  call add_var_double("thermal_force_coeff", thermal_force_coeff, 0., &
+       "Coefficient of thermal force", misc_grp)
 
 
   ! Model options
@@ -385,6 +389,7 @@ subroutine set_defaults
   call add_var_int("igs_forcefree_lcfs", igs_forcefree_lcfs, -1, &
        "Ensure that GS solution is force-free at LCFS", gs_grp)
   call add_var_int("nv1equ", nv1equ, 0, "", gs_grp)
+  call add_var_int("igs_feedfac", igs_feedfac, 1, "", gs_grp)
   call add_var_double("eta_gs", eta_gs, 1e3, &
        "Factor for smoothing nonaxisymmetries in psi in GS solve", gs_grp)
   call add_var_double("tcuro", tcuro, 1., &
@@ -534,6 +539,8 @@ subroutine set_defaults
   ! resistive wall
   call add_var_double("eta_wall", eta_wall, 1e-3, &
        "Resistivity of conducting wall region", misc_grp)
+  call add_var_double("eta_vac", eta_vac, 1., &
+       "Resistivity of vacuum region", misc_grp)
   call add_var_double("delta_wall", delta_wall, 1., "", misc_grp)
 
 
@@ -705,6 +712,8 @@ subroutine set_defaults
   call add_var_double("adapt_hmax", adapt_hmax, 0.1, "", adapt_grp)
   call add_var_double("adapt_smooth", adapt_smooth, 2./3., "", adapt_grp)
   call add_var_double("adapt_psin_vacuum", adapt_psin_vacuum, 0., &
+       "", adapt_grp)
+  call add_var_double("adapt_psin_wall", adapt_psin_wall, 0., &
        "", adapt_grp)
 
   ! Mesh

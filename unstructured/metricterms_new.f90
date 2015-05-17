@@ -1741,7 +1741,7 @@ vectype function v1us(e,f,g)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = g(:,OP_1) + denm*nt79(:,OP_LP)
+  temp79a = g(:,OP_1) ! + denm*nt79(:,OP_LP)
 
   select case(ivform)
   case(0)
@@ -1795,7 +1795,7 @@ vectype function v1chis(e,f,g)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = g(:,OP_1) + denm*nt79(:,OP_LP)
+  temp79a = g(:,OP_1) ! + denm*nt79(:,OP_LP)
 
 
   select case(ivform)
@@ -1944,8 +1944,13 @@ vectype function v1p(e,f)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f
 
   vectype :: temp
-  temp = 0.
 
+  if(itor.eq.0) then
+     v1p = 0.
+     return
+  end if
+
+  temp = 0.
   select case(ivform)
   case(0)
      if(surface_int) then
@@ -3069,7 +3074,7 @@ vectype function v2vs(e,f,g)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = g(:,OP_1) + denm*nt79(:,OP_LP)
+  temp79a = g(:,OP_1) ! + denm*nt79(:,OP_LP)
 
   select case(ivform)
   case(0)
@@ -5002,7 +5007,7 @@ vectype function v3us(e,f,g)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = g(:,OP_1) + denm*nt79(:,OP_LP)
+  temp79a = g(:,OP_1) ! + denm*nt79(:,OP_LP)
 
   if(surface_int) then
      temp = 0.
@@ -5034,7 +5039,7 @@ vectype function v3chis(e,f,g)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = g(:,OP_1) + denm*nt79(:,OP_LP)
+  temp79a = g(:,OP_1) ! + denm*nt79(:,OP_LP)
 
   select case(ivform)
   case(0) 
@@ -5493,7 +5498,7 @@ end function b1bchi
 
 ! B1psieta
 ! ========
-vectype function b1psieta(e,f,g,h)
+vectype function b1psieta(e,f,g,h,imod)
 
   use basic
   use m3dc1_nint
@@ -5502,6 +5507,7 @@ vectype function b1psieta(e,f,g,h)
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
+  logical, intent(in) :: imod
 
   if(jadv.eq.0) then
 
@@ -5543,11 +5549,11 @@ vectype function b1psieta(e,f,g,h)
         if(inocurrent_norm.eq.1 .and. imulti_region.eq.0) then
            temp = 0.
         else
-!!$           temp = int5(ri2_79,e(:,OP_1),f(:,OP_GS),norm79(:,1),g(:,OP_DR)) &
-!!$                + int5(ri2_79,e(:,OP_1),f(:,OP_GS),norm79(:,2),g(:,OP_DZ)) &
-!!$                - int5(ri2_79,g(:,OP_1),f(:,OP_GS),norm79(:,1),e(:,OP_DR)) &
-!!$                - int5(ri2_79,g(:,OP_1),f(:,OP_GS),norm79(:,2),e(:,OP_DZ))
-           temp = 0.
+           temp = int5(ri2_79,e(:,OP_1),f(:,OP_GS),norm79(:,1),g(:,OP_DR)) &
+                + int5(ri2_79,e(:,OP_1),f(:,OP_GS),norm79(:,2),g(:,OP_DZ)) &
+                - int5(ri2_79,g(:,OP_1),f(:,OP_GS),norm79(:,1),e(:,OP_DR)) &
+                - int5(ri2_79,g(:,OP_1),f(:,OP_GS),norm79(:,2),e(:,OP_DZ))
+!!$           temp = 0.
         endif
 
 #if defined(USE3D) || defined(USECOMPLEX)
@@ -5563,11 +5569,13 @@ vectype function b1psieta(e,f,g,h)
         temp = int4(ri2_79,g(:,OP_1),e(:,OP_GS),f(:,OP_GS))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-        temp = temp - &
-             (int4(ri4_79,e(:,OP_DZ),f(:,OP_DZPP),g(:,OP_1)) &
-             +int4(ri4_79,e(:,OP_DR),f(:,OP_DRPP),g(:,OP_1)) &
-             +int4(ri4_79,e(:,OP_DZ),f(:,OP_DZP),g(:,OP_DP)) &
-             +int4(ri4_79,e(:,OP_DR),f(:,OP_DRP),g(:,OP_DP)))
+        if(.not.imod) then
+           temp = temp - &
+                (int4(ri4_79,e(:,OP_DZ),f(:,OP_DZPP),g(:,OP_1)) &
+                +int4(ri4_79,e(:,OP_DR),f(:,OP_DRPP),g(:,OP_1)) &
+                +int4(ri4_79,e(:,OP_DZ),f(:,OP_DZP),g(:,OP_DP)) &
+                +int4(ri4_79,e(:,OP_DR),f(:,OP_DRP),g(:,OP_DP)))
+        end if
 #endif
      end if
   endif
@@ -6843,7 +6851,12 @@ vectype function b1feta(e,f,g)
      temp = 0.
   else
      if(surface_int) then
-        temp = 0.
+        if(inocurrent_norm.eq.1 .and. imulti_region.eq.0) then
+           temp = 0.
+        else
+           temp = -int5(ri3_79,e(:,OP_1),norm79(:,1),f(:,OP_DZPP),g(:,OP_1)) &
+                  +int5(ri3_79,e(:,OP_1),norm79(:,2),f(:,OP_DRPP),g(:,OP_1))
+        end if
      else
 #ifdef USECOMPLEX
         temp = rfac*int4(ri3_79,e(:,OP_DR),f(:,OP_DZPP),g(:,OP_1)) &
@@ -7343,9 +7356,9 @@ vectype function b2beta(e,f,g,h)
         temp = 0.
      else
         ! better to exclude this term
-        temp = 0.
-!!$        temp = int5(ri2_79,e(:,OP_1),norm79(:,1),f(:,OP_DR),g(:,OP_1)) &
-!!$             + int5(ri2_79,e(:,OP_1),norm79(:,2),f(:,OP_DZ),g(:,OP_1))
+!!$        temp = 0.
+        temp = int5(ri2_79,e(:,OP_1),norm79(:,1),f(:,OP_DR),g(:,OP_1)) &
+             + int5(ri2_79,e(:,OP_1),norm79(:,2),f(:,OP_DZ),g(:,OP_1))
      end if
   else
      temp = &
@@ -9887,7 +9900,7 @@ vectype function p1uus(e,f,g,h)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = h(:,OP_1) + denm*nt79(:,OP_LP)
+  temp79a = h(:,OP_1) ! + denm*nt79(:,OP_LP)
 
   select case(ivform)
   case(0)
@@ -9923,7 +9936,7 @@ vectype function p1vvs(e,f,g,h)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = h(:,OP_1) + denm*nt79(:,OP_LP)
+  temp79a = h(:,OP_1) ! + denm*nt79(:,OP_LP)
 
   select case(ivform)
   case(0)
@@ -9957,7 +9970,7 @@ vectype function p1chichis(e,f,g,h)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = h(:,OP_1) + denm*nt79(:,OP_LP)
+  temp79a = h(:,OP_1) ! + denm*nt79(:,OP_LP)
 
   select case(ivform)
   case(0)
@@ -9994,7 +10007,7 @@ vectype function p1uchis(e,f,g,h)
   endif
 
   ! add in density diffusion explicitly
-  temp79a = h(:,OP_1) + denm*nt79(:,OP_LP)
+  temp79a = h(:,OP_1) ! + denm*nt79(:,OP_LP)
 
   temp = -(gam-1.)* & 
        (int5(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),temp79a) &

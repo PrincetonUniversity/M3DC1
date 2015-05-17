@@ -1062,7 +1062,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   ! Time Derivatives
   ! ~~~~~~~~~~~~~~~~
-  if(itime_independent.eq.0 .or. izone.ne.1) then
+  if(itime_independent.eq.0) then
      temp = v3un(trial,lin,nt79)
      ssterm(u_g) = ssterm(u_g) + temp
      ddterm(u_g) = ddterm(u_g) + temp*bdf
@@ -1529,7 +1529,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
   ! Resistive and Hyper Terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-  temp = b1psieta(trial,lin,eta79,hf)
+  temp = b1psieta(trial,lin,eta79,hf,eta_mod.eq.1)
   ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
   ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
 
@@ -4166,13 +4166,9 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
     
   ! Specify which fields will be used in matrix population
   def_fields = FIELD_PSI + FIELD_I + FIELD_P &
-       + FIELD_PHI + FIELD_V &
+       + FIELD_PHI + FIELD_V + FIELD_CHI &
        + FIELD_ETA + FIELD_MU &
        + FIELD_N + FIELD_NI
-
-  if(numvar.ge.3) then
-     def_fields = def_fields + FIELD_CHI
-  end if
 
   if(numvar.ge.3 .or. ipres.eq.1) then
      def_fields = def_fields + FIELD_KAP

@@ -403,7 +403,7 @@ subroutine f2eplot_sub(i,term)
   jadvs = jadv
   jadv = 1   ! only for evaluation of this function
   hf = hypf*sz79
-  temp = b1psieta(mu79(:,:,i),pst79,eta79,hf)
+  temp = b1psieta(mu79(:,:,i),pst79,eta79,hf,eta_mod.eq.1)
   jadv = jadvs
 
   term = temp
