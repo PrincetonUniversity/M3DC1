@@ -2230,7 +2230,6 @@ subroutine eqdsk_init()
         end do
         call create_profile(nw,press,pprime,fpol,ffprim,flux)
         call create_rho_from_q(nw,flux,qpsi)
-
         if(myrank.eq.0 .and. iprint.ge.1) then
            open(unit=77,file="debug-out",status="unknown")
            write(77,2010) sibry,simag,tcuro,xmag,zmag
