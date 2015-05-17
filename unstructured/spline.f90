@@ -36,6 +36,9 @@ contains
 
     integer :: i
 
+    if(allocated(s%x)) deallocate(s%x)
+    if(allocated(s%y)) deallocate(s%y)
+
     allocate(s%x(n), s%y(n))
     s%n = n
 

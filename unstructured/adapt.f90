@@ -58,7 +58,7 @@ module adapt
     write(mesh_file_name,"(A7,I0,A)"),'meshOrg', ntime,0
     call m3dc1_mesh_write (mesh_file_name, 0)
     call adapt_by_field(temporary_field%vec%id,psimin,psibound)
-    write(mesh_file_name,"(A9,I0,A)"),'meshAdapt', ntime,0
+    write(mesh_file_name,"(A7,A)"),'adapted', 0
     call m3dc1_mesh_write (mesh_file_name,0)
     call m3dc1_mesh_write (mesh_file_name,1)
 
@@ -69,8 +69,15 @@ module adapt
     call unstraighten_fields()
 
     call create_newvar_matrices
+    if(irestart .ne. 0) return
     print *, "re-calculate equlibrium after adapt .."
     call initial_conditions
+    ! combine the equilibrium and perturbed fields of linear=0
+    ! unless eqsubtract = 1
+    if(eqsubtract.eq.0) then
+       call add(field_vec, field0_vec)
+       field0_vec = 0.
+    endif
     call derived_quantities(1)
     ke_previous = ekin
   end subroutine adapt_by_psi
