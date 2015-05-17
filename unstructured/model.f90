@@ -253,7 +253,7 @@ subroutine get_bf_mask(itri, imask)
   integer, intent(out), dimension(dofs_per_element) :: imask
   integer :: ibound
 
-  ibound = BOUNDARY_DIRICHLET
+  ibound = BOUNDARY_NEUMANN
   call get_boundary_mask(itri, ibound, imask)
 end subroutine get_bf_mask
 
@@ -597,7 +597,7 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
 
      if(imp_bf.eq.1) then
         temp = 0.
-        call set_dirichlet_bc(i_bf,rhs,temp,normal,curv,izonedim,mat)
+        call set_normal_bc(i_bf,rhs,temp,normal,curv,izonedim,mat)
      end if
   end do
 
