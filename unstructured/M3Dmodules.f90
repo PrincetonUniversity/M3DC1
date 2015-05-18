@@ -1,6 +1,7 @@
 module basic
   use mesh_mod
   use pid_controller
+  use spline
 
   integer, parameter :: ijacobian = 1
 
@@ -353,6 +354,8 @@ module basic
   real :: adapt_smooth  ! value which controls smoothing of size field
   real :: adapt_psin_vacuum ! value of psin in vacuum region for adaptation
   real :: adapt_psin_wall   ! value of psin in wall region for adaptation
+  integer :: iadapt_pack_rationals
+  real :: adapt_pack_factor
 
   real :: beta
   real :: pefac
@@ -385,6 +388,8 @@ module basic
 
   ! MPI variable(s)
   integer myrank, maxrank
+
+  type(spline1d) :: q_spline
 
 end module basic
 

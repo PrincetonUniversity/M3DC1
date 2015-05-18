@@ -2136,7 +2136,7 @@ subroutine eqdsk_init()
   real :: x, phi, z , dpsi, ffp2, pp2
   vectype, parameter ::  negone = -1
 
-  real, allocatable :: flux(:)
+  real, allocatable :: flux(:), nflux(:)
 
   numnodes = owned_nodes()
 
@@ -2149,6 +2149,14 @@ subroutine eqdsk_init()
   if(myrank.eq.0 .and. iprint.ge.1) then
      print *, 'normalized current ', current
   end if
+
+  ! create spline containing q profile as function of psi_N
+  allocate(nflux(nw))
+  do l=1, nw
+     nflux(l) = l / (nw-1.)
+  end do
+  call create_spline(q_spline,nw,nflux,qpsi)
+  deallocate(nflux)
 
   if(current.lt.0 .and. iflip_j.eq.1) then
      if(myrank.eq.0) then 
