@@ -18,7 +18,7 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-    SCORECDIR = /chos/global/project/projectdirs/mp288/babbage/scorec
+    SCORECDIR = /chos/global/project/projectdirs/mp288/babbage/scorec/May2015
 ifeq ($(COM), 1)
     SCORECLIB= -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib -lm3dc1_scorec_complex -lpcu -lgmi -lapf -lmds -lspr -lapf_zoltan -lparma -lma -lph -Wl,--end-group 
     PETSC_DIR= /usr/common/usg/petsc/3.5.2-fee0b69/complex

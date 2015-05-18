@@ -6,7 +6,7 @@ Sun Apr 12 22:41:24 EDT 2015
 
 2. code
 
-3. module load
+3. load modules
 
 module load cmake
 module load subversion
@@ -59,3 +59,9 @@ setenv LD_LIBRARY_PATH $LD_LIBRARY_PATH\:/u/system/SLES11/soft/intel1/14.0/mkl/l
  
         #3D real
         poe m3dc1_3d -ipetsc -options_file options_bjacobi
+
+7. submit job
+
+8. list all curent jobs for a user
+
+9. delete a job
