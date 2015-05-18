@@ -6,7 +6,7 @@ Sun Apr 12 20:41:20 EDT 2015
 2. code
 	svn co svn+ssh://username@portal.pppl.gov/p/tsc/C1/svn
 
-3. module load
+3. load modules 
 	module load mpt/intel
 	module load intel/13.1/64/13.1.3.163
 	module load hdf5/intel-12.1/mpt/1.8.5
@@ -24,7 +24,7 @@ Sun Apr 12 20:41:20 EDT 2015
 	make 3D=1 OPT=1 MAX_PTS=60
 
 5. mesh utility
-	/home/seegyoung.seol/scorec/utilities/split_smb
+	/home/jinchen/lib/scorec/utilities
 
 6. run jobscript
 	#!/bin/bash
@@ -42,4 +42,10 @@ Sun Apr 12 20:41:20 EDT 2015
 
 	#3D real
 	srun -n 32 ./m3dc1_3d -ipetsc -options_file options_bjacobi
+
+7. submit job
+
+8. list all curent jobs for a user
+
+9. delete a job
 
