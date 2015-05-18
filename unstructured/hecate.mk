@@ -63,7 +63,7 @@ BLASLAPACKLIBS = -L$(MKLROOT)/lib/intel64 -Wl,--start-group -lmkl_blacs_sgimpt_l
 
 PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,--start-group $(PETSCLIBS) -Wl,--end-group
 
-SCORECDIR = /home/jinchen/lib/scorec/latest
+SCORECDIR = /home/jinchen/lib/scorec/May2015
 INCLUDE := -I$(SCORECDIR)/include $(INCLUDE)
 ifeq ($(COM), 1)
   SCORECLIB=-lapf -lgmi -lm3dc1_scorec_complex -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr

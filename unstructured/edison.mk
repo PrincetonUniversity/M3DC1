@@ -21,7 +21,7 @@ endif
 # define where you want to locate the mesh adapt libraries
 #HYBRID_HOME =  /scratch2/scratchdirs/xyuan/Software_Hopper/pdslin_0.0
 #HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lpdslin
-SCORECDIR = /global/project/projectdirs/mp288/edison/scorec/Apr2015
+SCORECDIR = /global/project/projectdirs/mp288/edison/scorec/May2015
 
 ifeq ($(COM), 1)
       SCORECLIB=-lapf -lgmi -lm3dc1_scorec_complex -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr
