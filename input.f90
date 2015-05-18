@@ -715,6 +715,11 @@ subroutine set_defaults
        "", adapt_grp)
   call add_var_double("adapt_psin_wall", adapt_psin_wall, 0., &
        "", adapt_grp)
+  call add_var_int("iadapt_pack_rationals", iadapt_pack_rationals, 0, &
+       "Number of mode-rational surfaces to pack mesh around", adapt_grp)
+  call add_var_double("adapt_pack_factor", adapt_pack_factor, 0.02, &
+       "Width of Lorentzian (in psi_N) for rational mesh packing", adapt_grp)
+
 
   ! Mesh
   call add_var_int("nplanes", nplanes, 1, &

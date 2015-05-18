@@ -21,38 +21,98 @@ module adapt
     use auxiliary_fields
     use pellet
     use scorec_mesh_mod
+    use m3dc1_nint
 
     vectype, dimension(dofs_per_node) :: dat
-    integer :: izone, izonedim, inode(nodes_per_element)
+    integer :: izone, izonedim, inode(nodes_per_element), i, j
     integer :: numelms, itri, num_adj_ent, ier
     character(len=32) :: mesh_file_name
+    real :: x, phi, z, q, tmp
+    integer :: magnetic_region
+    integer, dimension(MAX_PTS) :: mr
+    vectype, dimension(dofs_per_element) :: dofs
+
 
     call create_field(temporary_field)
-    if(eqsubtract.eq.1) then
-       temporary_field = psi_field(0)
-       call add(temporary_field, psi_field(1))
-    else
-       temporary_field = psi_field(1)
-    end if
-    if(icsubtract.eq.1) call add(temporary_field, psi_coil_field)
-    if(imulti_region.eq.1 .and. adapt_psin_vacuum.ne.0.) then
-       dat = 0.
-       dat(1) = (psibound - psimin)*adapt_psin_vacuum + psimin
-       numelms = local_elements()
-       do itri=1, numelms
-          !call zonfac(itri,izone,izonedim)
-          call m3dc1_ent_getgeomclass(2, itri-1, izonedim, izone)
-          if(izone.ge.3) then
-             !call nodfac(itri,inode)
-             call m3dc1_ent_getadj (2, itri-1, 0, inode, 3, num_adj_ent)
-             inode = inode+1
-             do i=1,3
-                call set_node_data(temporary_field,inode(i),dat)
-             end do
-         end if
+    temporary_field = 0.
+
+    numelms = local_elements()
+    do itri=1,numelms
+!       call zonfac(itri,izone,izonedim)
+       call m3dc1_ent_getgeomclass(2, itri-1, izonedim, izone)
+
+       call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+       call define_fields(itri,0,1,0)
+
+       if(eqsubtract.eq.1) then 
+          call eval_ops(itri, psi_field(0), ps079)
+       else
+          call eval_ops(itri, psi_field(1), ps079)
+       end if
+       if(icsubtract.eq.1) then 
+          call eval_ops(itri, psi_coil_field, ps179)
+          ps079 = ps079 + ps179
+       end if
+
+       ! store psi_N in temp79a
+       temp79a = (ps079(:,OP_1) - psimin) / (psibound - psimin)
+
+       ! let temp79b store the "modified" psi_N
+       temp79b = temp79a
+       
+       ! determine magnetic region of each point
+       do i=1, npoints
+          mr(i) = magnetic_region(ps079(i,:),x_79(i),z_79(i))
+         
+          ! if point is in private flux region, set psi_N -> 2 - psi_N
+          if(mr(i).eq.2) then 
+             temp79b(i) = 2. - temp79a(i)
+          end if
        end do
-       call sum_shared(temporary_field%vec)
-    end if
+
+       ! if adapt_psin_wall or adapt_psin_vacuum is set in multi-region mesh,
+       ! set psin in the wall or vacuum region to the appropriate value
+       if(imulti_region.eq.1) then
+          if(izone.eq.2 .and. adapt_psin_wall.ne.0) then
+             temp79b = adapt_psin_wall
+          end if
+          if(izone.ge.3 .and. adapt_psin_vacuum.ne.0) then
+             temp79b = adapt_psin_vacuum
+          end if
+       end if
+
+       ! change psi_N inside plasma to be sum of Lorentzians around
+       ! rational surfaces
+       if(iadapt_pack_rationals.gt.0 .and. ntor.ne.0) then
+          if(.not.allocated(q_spline%y)) then
+             print *, 'Error, iadapt_pack_rationals > 0, but q profile not set'
+             call safestop(6)
+          end if
+          do i=1, npoints
+             
+             if(mr(i).ne.0) cycle
+
+             call evaluate_spline(q_spline, real(temp79a(i)), q)
+
+             temp79b(i) = 0.
+             do j=1, iadapt_pack_rationals
+                tmp = (q*ntor - j) / (q*ntor*adapt_pack_factor)
+                temp79b(i) = temp79b(i) + 1./(tmp**2 + 1.)
+                if(real(temp79b(i)).gt.1.) temp79b(i) = 1.
+             end do
+          end do
+       end if
+
+       ! convert back to un-normalized psi
+       temp79b = (psibound - psimin)*temp79b + psimin
+
+       do i=1, dofs_per_element
+          dofs(i) = int2(mu79(:,OP_1,i),temp79b)
+       end do
+       call vector_insert_block(temporary_field%vec,itri,1,dofs,VEC_ADD)
+    end do
+
+    call newvar_solve(temporary_field%vec,mass_mat_lhs)
 
     call straighten_fields()
     write(mesh_file_name,"(A7,I0,A)"),'meshOrg', ntime,0
