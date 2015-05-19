@@ -108,7 +108,7 @@ pro plot_b_at_wall, filename=filename, _EXTRA=extra, $
        end
 
        if(keyword_set(ab)) then begin
-           ytitle = '!6Amplitude (G)!X'
+           ytitle = '!6Amplitude (G/kA)!X'
            b = abs(b)
        endif else if(keyword_set(phase)) then begin 
            ytitle = '!6Phase (deg)!X'
@@ -142,7 +142,8 @@ pro plot_b_at_wall, filename=filename, _EXTRA=extra, $
        end
        
        if(not keyword_set(sum_fields)) then begin
-           if(n_elements(names) eq 0) then names = filename
+           if(n_elements(names) eq 0 and n_elements(filename) gt 1) then $
+              names = filename
        end
        if(n_elements(names) gt 0) then begin
            plot_legend, names, color=c, _EXTRA=extra
