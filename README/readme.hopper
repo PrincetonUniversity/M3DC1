@@ -1,0 +1,58 @@
+Sun Apr 12 22:41:24 EDT 2015
+
+1. login 
+	ssh your_id@hopper.nersc.gov
+
+2. code
+
+3. module load
+
+	module swap PrgEnv-pgi PrgEnv-cray
+	module load cmake
+	module load cray-hdf5-parallel
+	module load fftw
+	module load gsl
+	module load acml
+	module load idl
+	module load adios
+	module load cray-tpsl
+	module load cray-trilinos
+	module load cray-petsc # or module load cray-petsc-complex
+
+4. compile code
+	make OPT=1 RL=1 MAX_PTS=25 (USEADIOS=1 to use adios)
+	make OPT=1 COM=1 MAX_PTS=25 (USEADIOS=1 to use adios)
+	make 3D=1 OPT=1 MAX_PTS=60 (USEADIOS=1 to use adios)
+
+5. mesh utility
+        /global/project/projectdirs/mp288/hopper/scorec/utilities
+
+6. run jobscript
+
+        #PBS -q debug
+        #PBS -l mppwidth=256
+        #PBS -l walltime=00:30:00
+        #PBS -N m3dc1_3d
+        #PBS -e $PBS_JOBID.err
+        #PBS -o $PBS_JOBID.out
+        #PBS -V
+
+        cd $PBS_O_WORKDIR
+      
+        #2D complex
+        (for regular i/o) aprun -n 8 m3dc1_2d_complex -pc_factor_mat_solver_package mumps
+        (for adios i/o)   prun -n 8 m3dc1_2d_complex_adios -pc_factor_mat_solver_package mumps 
+
+        #2D real
+        (for regular i/o) aprun -n 8 m3dc1_2d
+        (for adios i/o)   prun -n 8 m3dc1_2d_adios
+ 
+        #3D real
+        (for regular i/o) aprun -n 256 m3dc1_3d -ipetsc -options_file options_bjacobi
+        (for adios i/o)   aprun -n 256 m3dc1_3d_adios -ipetsc -options_file options_bjacobi
+
+7. submit job
+
+8. list all curent jobs for a user
+
+9. delete a job
