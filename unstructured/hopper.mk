@@ -22,21 +22,15 @@ endif
 #HYBRID_HOME =  /scratch2/scratchdirs/xyuan/Software_Hopper/pdslin_0.0
 #HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lpdslin
 
-ifeq ($(USESCOREC), 1)
-    SCORECDIR = /global/project/projectdirs/mp288/hopper/installCray
-    SCORECLIB=-lapf -lapf_pumi -lpumi_util -lpumi_geom -lpcu -lpumi_geom_meshmodel -lpumi_mesh -lmeshadapt
-    SCOREC_LIBS =-L$(SCORECDIR)/lib -Wl,--start-group -lPPPLFusion $(SCORECLIB) -Wl,--end-group -lzoltan
-
-  INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
-  LIBS := $(LIBS) $(SCOREC_LIBS) -lC -lstd
-
-#  PARMETIS = -lparmetis -lmetis
-#ichi  PARMETIS = -L/global/u2/y/yamazaki/libs/scotch_5.1/lib -lptscotchparmetis -lptscotch -lptscotcherr -lptscotcherrexit \
-             -lparmetis -lmetis
-
+SCORECDIR = /global/project/projectdirs/mp288/hopper/scorec/May2015
+ifeq ($(COM),1)
+  SCORECLIB=-lapf -lgmi -lm3dc1_scorec_complex -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr
 else
-#  OPTS := $(OPTS) -DPetscDEV
-endif   # on USESCOREC
+  SCORECLIB=-lapf -lgmi -lm3dc1_scorec -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr
+endif
+SCOREC_LIBS =-L$(SCORECDIR)/lib -Wl,--start-group $(SCORECLIB) -Wl,--end-group
+INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
+LIBS := $(LIBS) $(SCOREC_LIBS) -lC -lstd
 
 OPTS := $(OPTS) -DPetscDEV -DUSEADIOS -DKSPITS -DNO_STOP_MESSAGE=1 -DPetscOLD #-DUSEHYBRID -DCJ_MATRIX_DUMP
 #PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev-SUPERLU-HYPRE-MUMPS/petsc-dev-060711/petsc-dev
