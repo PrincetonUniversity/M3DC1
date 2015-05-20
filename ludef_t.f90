@@ -59,11 +59,17 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   endif
 
   if(izone.ne.1) then
-     temp = v1un(trial,lin,nt79)
+     if(inonormalflow.eq.1 .and. .not.surface_int) then
+        temp = int2(trial(:,OP_1),lin(:,OP_1))
+     else
+        temp = v1un(trial,lin,nt79)
+     end if
      ssterm(u_g) = ssterm(u_g) + temp
      if(numvar.ge.3) then
-        temp = v1chin(trial,lin,nt79)*chiiner
-        ssterm(chi_g) = ssterm(chi_g) + temp
+        if(inoslip_pol.eq.0) then
+           temp = v1chin(trial,lin,nt79)*chiiner
+           ssterm(chi_g) = ssterm(chi_g) + temp
+        end if
      end if
      return
   end if
@@ -89,8 +95,6 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
         ddterm(chi_g) = ddterm(chi_g) + temp*bdf
      end if
   end if
-
-  if(izone.ne.1) return
 
   ! Viscosity
   ! ~~~~~~~~~
@@ -1052,10 +1056,16 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   end if
 
   if(izone.ne.1) then 
-     temp = v3un(trial,lin,nt79)
-     ssterm(u_g) = ssterm(u_g) + temp
+     if(inonormalflow.eq.0) then
+        temp = v3un(trial,lin,nt79)
+        ssterm(u_g) = ssterm(u_g) + temp
+     end if
      
-     temp = v3chin(trial,lin,nt79)
+     if(inoslip_pol.eq.1 .and. .not.surface_int) then
+        temp = int2(trial(:,OP_1),lin(:,OP_1))
+     else
+        temp = v3chin(trial,lin,nt79)
+     end if
      ssterm(chi_g) = ssterm(chi_g) + temp
      return
   end if
@@ -1071,8 +1081,6 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ssterm(chi_g) = ssterm(chi_g) + temp
      ddterm(chi_g) = ddterm(chi_g) + temp*bdf
   end if
-
-  if(izone.ne.1) return
 
   ! Viscosity
   ! ~~~~~~~~~
@@ -4021,8 +4029,9 @@ subroutine bf_equation_lin(trial, lin, ssterm, ddterm, r_bf, q_bf)
   r_bf = 0.
   q_bf = 0.
 
-  r_bf =          -int3(r2_79,trial(:,OP_1),lin(:,OP_LP))
-  ssterm(bz_g) =   int2(      trial(:,OP_1),lin(:,OP_1 ))
+  r_bf = - int3(r2_79,trial(:,OP_1),lin(:,OP_LP)) &
+       - regular*int3(r2_79,trial(:,OP_1),lin(:,OP_1))
+  ssterm(bz_g) = int2(trial(:,OP_1),lin(:,OP_1 ))
 end subroutine bf_equation_lin
 
 !======================================================================

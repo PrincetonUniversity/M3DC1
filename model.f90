@@ -153,7 +153,7 @@ subroutine get_den_mask(itri, imask)
   if(inograd_n.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
   if(iconst_n.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
   
-  call get_boundary_mask(itri, ibound, imask)
+  call get_boundary_mask(itri, ibound, imask, all_boundaries)
 end subroutine get_den_mask
 
 subroutine get_temp_mask(itri, imask)
@@ -169,7 +169,7 @@ subroutine get_temp_mask(itri, imask)
   if(inograd_t.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
   if(iconst_t.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
   
-  call get_boundary_mask(itri, ibound, imask)
+  call get_boundary_mask(itri, ibound, imask, all_boundaries)
 end subroutine get_temp_mask
 
 subroutine get_pres_mask(itri, imask)
@@ -185,7 +185,7 @@ subroutine get_pres_mask(itri, imask)
   if(inograd_p.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
   if(iconst_p.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
   
-  call get_boundary_mask(itri, ibound, imask)
+  call get_boundary_mask(itri, ibound, imask, all_boundaries)
 end subroutine get_pres_mask
 
 
@@ -296,7 +296,7 @@ subroutine get_vor_mask(itri, imask)
   if(inonormalflow.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
   if(inoslip_pol.eq.1)   ibound = ior(ibound, BOUNDARY_NEUMANN)
   if(vor_bc.eq.1)        ibound = ior(ibound, BOUNDARY_LAPLACIAN)
-  call get_boundary_mask(itri, ibound, imask)
+  call get_boundary_mask(itri, ibound, imask, all_boundaries)
 end subroutine get_vor_mask
 
 subroutine get_vz_mask(itri, imask)
@@ -311,7 +311,7 @@ subroutine get_vz_mask(itri, imask)
   ibound = 0
   if(inoslip_tor.eq.1)   ibound = ior(ibound, BOUNDARY_DIRICHLET)
   if(inostress_tor.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
-  call get_boundary_mask(itri, ibound, imask)
+  call get_boundary_mask(itri, ibound, imask, all_boundaries)
 end subroutine get_vz_mask
 
 subroutine get_chi_mask(itri, imask)
@@ -327,7 +327,7 @@ subroutine get_chi_mask(itri, imask)
   if(inonormalflow.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
   if(inoslip_pol.eq.1)   ibound = ior(ibound, BOUNDARY_DIRICHLET)
   if(com_bc.eq.1)        ibound = ior(ibound, BOUNDARY_LAPLACIAN)
-  call get_boundary_mask(itri, ibound, imask)
+  call get_boundary_mask(itri, ibound, imask, all_boundaries)
 end subroutine get_chi_mask
 
 
