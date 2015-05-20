@@ -115,7 +115,7 @@ module adapt
     call newvar_solve(temporary_field%vec,mass_mat_lhs)
 
     call straighten_fields()
-    write(mesh_file_name,"(A7,I0,A)"),'meshOrg', ntime,0
+    write(mesh_file_name,"(A7,I0,A)"),'initial', ntime,0
     call m3dc1_mesh_write (mesh_file_name, 0)
     call adapt_by_field(temporary_field%vec%id,psimin,psibound)
     write(mesh_file_name,"(A7,A)"),'adapted', 0
@@ -173,7 +173,7 @@ module adapt
     vectype, dimension(dofs_per_node*num_fields) :: max_val, min_val
     vectype :: maxPhi, maxPs
 
-    write(mesh_file_name,"(A5,I0,A)"),'adapt', ntime,0 
+    write(mesh_file_name,"(A7,I0,A)"),'adapted', ntime,0 
     write(file_name1, "(A9,I0,A)"),'errorJump', ntime,0
     write(file_name2, "(A8,I0,A)"),'errorElm', ntime,0
     write(file_name3,"(A8,I0,A)"),'errorSum', ntime,0
