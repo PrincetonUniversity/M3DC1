@@ -513,7 +513,7 @@ subroutine set_defaults
        "1: Hold temperature constant on boundary", bc_grp)
   call add_var_int("iconst_bn", iconst_bn, 1, &
        "1: Hold normal field constant on boundary", bc_grp)
-  call add_var_int("iconst_bz", iconst_bz, 1, &
+  call add_var_int("iconst_bz", iconst_bz, 0, &
        "1: Hold toroidal field constant on boundary", bc_grp)
   call add_var_int("inograd_p", inograd_p, 0, "", bc_grp)
   call add_var_int("inograd_t", inograd_t, 0, "", bc_grp)
@@ -525,7 +525,7 @@ subroutine set_defaults
   call add_var_int("inoslip_tor", inoslip_tor, 1, &
        "1: No-slip boundary condition on tor. velocity", bc_grp)
   call add_var_int("inostress_tor", inostress_tor, 0, "", bc_grp)
-  call add_var_int("inocurrent_pol", inocurrent_pol, 0, "", bc_grp)
+  call add_var_int("inocurrent_pol", inocurrent_pol, 1, "", bc_grp)
   call add_var_int("inocurrent_tor", inocurrent_tor, 0, "", bc_grp)
   call add_var_int("inocurrent_norm", inocurrent_norm, 0, "", bc_grp)
   call add_var_int("ifbound", ifbound, 1, "", bc_grp)
