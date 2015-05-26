@@ -4081,7 +4081,7 @@ subroutine initial_conditions()
            call int_kink_init()
         case(20)
            call kstar_profiles()
-        case(21,22)
+        case(21,22,25)
            call fixed_q_profiles()
         case(23)
            call frs1_init()
@@ -4483,7 +4483,7 @@ end subroutine kstar_profiles
 
 module basicq
 implicit none
-real :: q0_qp, rzero_qp, p0_qp, bz_qp, r0_qp
+real :: q0_qp, rzero_qp, p0_qp, bz_qp, r0_qp, q2_qp, q4_qp
 integer :: myrank_qp, iprint_qp, itaylor_qp
 end module basicq
 module LZeqbm
@@ -4547,6 +4547,8 @@ call create_field(p_vec)
   bz_qp = bzero
   r0_qp = alpha0
   q0_qp = q0
+  q2_qp = alpha1
+  q4_qp = alpha2
   rzero_qp = rzero
   p0_qp = p0
   iprint_qp = iprint
@@ -4767,17 +4769,25 @@ function qfunc(psi)    !   q  (safety factor)
 use basicq
 real :: psi,qfunc,q_LZ  !  note:  psi = r**2
 real :: c0,c1,c2,c3,c4   
-c0 = 4.179343
-c1 = -0.080417
-c2=-8.659146
-c3 = 10.668674
-c4 = -4.108323
-qfunc = (q0_qp) + psi**2*(c0+c1*psi+c2*psi**2+c3*psi**3+c4*psi**4)
 
+if(itaylor_qp .eq.21) then
+   c0 = 4.179343
+   c1 = -0.080417
+   c2=-8.659146
+   c3 = 10.668674
+   c4 = -4.108323
+   qfunc = (q0_qp) + psi**2*(c0+c1*psi+c2*psi**2+c3*psi**3+c4*psi**4)
+   return
+endif
 
 if(itaylor_qp .eq. 22) then
   qfunc = q_LZ(psi)
   return
+endif
+
+if(itaylor_qp .eq.25) then
+   qfunc = (q0_qp) + psi*(q2_qp + q4_qp*psi)
+   return
 endif
 
 return
@@ -4787,17 +4797,25 @@ function qpfunc(psi)   !   derivative of q wrt psi
 use basicq
 real :: psi,qpfunc,qprime_LZ   !  note:  psi=r^2
 real :: c0,c1,c2,c3,c4   
-c0 = 4.179343
-c1 = -0.080417
-c2=-8.659146
-c3 = 10.668674
-c4 = -4.108323
-qpfunc =  psi*(2.*c0+3.*c1*psi+4.*c2*psi**2+5.*c3*psi**3+6.*c4*psi**4)
 
+if(itaylor_qp .eq. 21) then
+   c0 = 4.179343
+   c1 = -0.080417
+   c2=-8.659146
+   c3 = 10.668674
+   c4 = -4.108323
+   qpfunc =  psi*(2.*c0+3.*c1*psi+4.*c2*psi**2+5.*c3*psi**3+6.*c4*psi**4)
+   return
+endif
 
 if(itaylor_qp .eq. 22) then
   qpfunc = qprime_LZ(psi)
   return
+endif
+
+if(itaylor_qp .eq.25) then
+   qpfunc = (q0_qp) + (q2_qp + 2.*q4_qp*psi)
+   return
 endif
 
 return
