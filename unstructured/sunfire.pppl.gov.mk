@@ -83,14 +83,7 @@ BLASLAPACKLIBS = -L$(MKLROOT)/lib/intel64 -Wl,--start-group \
 	-lmkl_blacs_openmpi_lp64 -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_intel_lp64 -lmkl_cdft_core -lmkl_scalapack_lp64 -lmkl_sequential -lmkl_core \
 	-Wl,--end-group
 
-
-#        -L$(LAPACKHOME) -llapack -lblas -ltmg \
-#	-L$(SCALAPACK_HOME)/lib -lscalapack \
-#	-L$(CCHOME)/mkl/lib/intel64 -lmkl -lmkl_lapack \
-#	-L$(CCHOME)/lib/intel64 -lguide \
-
-#SCORECDIR=/p/tsc/m3dc1/lib/SCORECLib/sunfire/latest
-SCORECDIR= /p/tsc/m3dc1/lib/SCORECLib/sunfire/May2015
+SCORECDIR= /p/tsc/m3dc1/lib/SCORECLib/rhel6/May2015
 ifeq ($(COM), 1)
   SCORECLIB= -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib \
              -lapf -lgmi -lma -lparma -lph -lmds -lpcu -lspr -lapf_zoltan -lzoltan -lm3dc1_scorec_complex \
