@@ -5,7 +5,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 8
+  integer, parameter :: version = 9
 
   integer :: i3d
 #ifdef USECOMPLEX
