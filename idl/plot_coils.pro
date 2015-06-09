@@ -1,8 +1,13 @@
-function read_coil_data, directory=dir
+function read_coil_data, directory=dir, rmp=rmp
    if(n_elements(dir) eq 0) then dir='.'
 
-   coil = read_ascii(dir+'/coil.dat')
-   curr = read_ascii(dir+'/current.dat')
+   if(keyword_set(rmp)) then begin
+      coil = read_ascii(dir+'/rmp_coil.dat')
+      curr = read_ascii(dir+'/rmp_current.dat')
+   endif else begin
+      coil = read_ascii(dir+'/coil.dat')
+      curr = read_ascii(dir+'/current.dat')
+   end
 
    n = n_elements(coil.field1[0,*])
    m = n_elements(size(curr.field1, /dim))
@@ -22,7 +27,8 @@ function read_coil_data, directory=dir
    return, f
 end
 
-pro plot_coils, filename=file, directory=dir, overplot=overplot, _EXTRA=extra
+pro plot_coils, filename=file, directory=dir, overplot=overplot, rmp=rmp, $
+                _EXTRA=extra
    ct3
    
    if(n_elements(file) eq 1 and n_elements(dir) eq 0) then begin
@@ -35,7 +41,7 @@ pro plot_coils, filename=file, directory=dir, overplot=overplot, _EXTRA=extra
    end
    if(n_elements(dir) eq 0) then dir = '.'
 
-   dat = read_coil_data(directory=dir)
+   dat = read_coil_data(directory=dir, rmp=rmp)
    n = n_elements(dat[0,*])
 
 
@@ -63,7 +69,7 @@ pro plot_coils, filename=file, directory=dir, overplot=overplot, _EXTRA=extra
              dat[3,i]+(dat[5,i]+dat[4,i]*a1)/2., $
              dat[3,i]+(dat[5,i]-dat[4,i]*a1)/2.]
 
-       oplot, [xp, xp[0]], [zp, zp[0]], color=color(3)
+       oplot, [xp, xp[0]], [zp, zp[0]], color=color(7)
 ;       continue
        
        if(m gt 1) then begin
@@ -90,7 +96,10 @@ pro plot_coils, filename=file, directory=dir, overplot=overplot, _EXTRA=extra
                end
            end
            oplot, xc, zc, psym=3, color=color(6)
-       end
+        endif else begin
+           oplot, [xp, xp[0]], [zp, zp[0]], color=color(7), psym=6, $
+                  thick=3
+        end
    end
 
 end
