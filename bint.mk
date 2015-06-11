@@ -6,11 +6,17 @@ ifeq ($(TAU), 1)
   F77    = tau_f90.sh $(TAU_OPTIONS)
   LOADER = tau_f90.sh $(TAU_OPTIONS)
 else
-  CPP = mpiicpc -DMPICH_IGNORE_CXX_SEEK -mmic
-  CC = mpiicc -mmic
-  F90 = mpiifort -mmic -align array64byte
-  F77 = mpiifort -mmic -align array64byte
-  LOADER = mpiifort -mmic -align array64byte
+  CPP = mpiicpc -DMPICH_IGNORE_CXX_SEEK -mmic -O3 -g -opt-assume-safe-padding -opt-streaming-stores always -opt-streaming-cache-evict=0
+  CC = mpiicc -mmic -O3 -g -opt-assume-safe-padding -opt-streaming-stores always -opt-streaming-cache-evict=0
+  F90 = mpiifort -fpic -mmic -O3 -g -v -w -align array64byte -implicitnone -fpp -warn all
+  F77 = mpiifort -fpic -mmic -O3 -g -v -w -align array64byte -implicitnone -fpp -warn all
+  LOADER = mpiifort -mmic -align array64byte -implicitnone -fpp -warn all
+#  ORIGINAL
+#  CPP = mpiicpc -DMPICH_IGNORE_CXX_SEEK -mmic
+#  CC = mpiicc -mmic
+#  F90 = mpiifort -mmic -align array64byte
+#  F77 = mpiifort -mmic -align array64byte
+#  LOADER = mpiifort -mmic -align array64byte
 endif
 
 ifeq ($(HPCTK), 1)
@@ -18,7 +24,7 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-    SCORECDIR = /chos/global/project/projectdirs/mp288/babbage/scorec/May2015
+    SCORECDIR = /chos/global/project/projectdirs/mp288/babbage/scorec/Jun2015
 ifeq ($(COM), 1)
     SCORECLIB= -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib -lm3dc1_scorec_complex -lpcu -lgmi -lapf -lmds -lspr -lapf_zoltan -lparma -lma -lph -Wl,--end-group 
     PETSC_DIR= /usr/common/usg/petsc/3.5.2-fee0b69/complex
@@ -61,13 +67,13 @@ LIBS := $(LIBS) \
 
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) \
 	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs
-CCOPTS  = -c -O $(OPTS)
+CCOPTS  = -c $(OPTS)
 
 # Optimization flags
 ifeq ($(OPT), 1)
   LDOPTS := $(LDOPTS)
-  FOPTS  := $(FOPTS)  -O0
-  CCOPTS := $(CCOPTS)
+  FOPTS  := $(FOPTS)  -O3
+  CCOPTS := $(CCOPTS) -O3
 else
   FOPTS := $(FOPTS) -g -Mbounds
   CCOPTS := $(CCOPTS)  
