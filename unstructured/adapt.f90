@@ -140,6 +140,14 @@ module adapt
        call add(field_vec, field0_vec)
        field0_vec = 0.
     endif
+    i_control%err_i = 0.
+    i_control%err_p_old = 0.
+    n_control%err_i = 0.
+    n_control%err_p_old = 0.
+    i_control%err_i = 0.
+    i_control%err_p_old = 0.
+    n_control%err_i = 0.
+    n_control%err_p_old = 0.
     call derived_quantities(1)
     ke_previous = ekin
   end subroutine adapt_by_psi
