@@ -130,6 +130,8 @@ module adapt
 
     call create_newvar_matrices
     if(irestart .ne. 0) return
+    field_vec = 0.
+    field0_vec = 0.
     print *, "re-calculate equlibrium after adapt .."
     call initial_conditions
     ! combine the equilibrium and perturbed fields of linear=0
