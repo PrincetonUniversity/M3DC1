@@ -2261,7 +2261,7 @@ subroutine eqdsk_init()
 
      psibound = sibry
      psimin = simag
-
+      print *, "calling  gradshafranov_solve from init_conds.f90 L2248"
      call gradshafranov_solve
      call gradshafranov_per
   else
@@ -2517,7 +2517,7 @@ subroutine dskbal_init()
   
   ! initial plasma current filament
   call deltafun(xmag,zmag,tcuro,jphi_field)
-
+  print *, "calling  gradshafranov_solve from init_conds.f90 L2503"
   call gradshafranov_solve
   call gradshafranov_per  
 
@@ -2651,7 +2651,7 @@ subroutine jsolver_init()
      end if
 
      call deltafun(xmag,zmag,tcuro,jphi_field)
-
+       print *, "calling  gradshafranov_solve from init_conds.f90 L2637" 
      call gradshafranov_solve
      call gradshafranov_per
   else

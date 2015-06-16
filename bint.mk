@@ -6,17 +6,11 @@ ifeq ($(TAU), 1)
   F77    = tau_f90.sh $(TAU_OPTIONS)
   LOADER = tau_f90.sh $(TAU_OPTIONS)
 else
-  CPP = mpiicpc -DMPICH_IGNORE_CXX_SEEK -mmic -O3 -g -opt-assume-safe-padding -opt-streaming-stores always -opt-streaming-cache-evict=0
-  CC = mpiicc -mmic -O3 -g -opt-assume-safe-padding -opt-streaming-stores always -opt-streaming-cache-evict=0
-  F90 = mpiifort -fpic -mmic -O3 -g -v -w -align array64byte -implicitnone -fpp -warn all
-  F77 = mpiifort -fpic -mmic -O3 -g -v -w -align array64byte -implicitnone -fpp -warn all
+  CPP = mpiicpc -DMPICH_IGNORE_CXX_SEEK -mmic -g -opt-assume-safe-padding -opt-streaming-stores always -opt-streaming-cache-evict=0
+  CC = mpiicc -mmic -g -opt-assume-safe-padding -opt-streaming-stores always -opt-streaming-cache-evict=0
+  F90 = mpiifort -fpic -mmic -g -align array64byte -implicitnone -fpp -warn all
+  F77 = mpiifort -fpic -mmic -g -align array64byte -implicitnone -fpp -warn all
   LOADER = mpiifort -mmic -align array64byte -implicitnone -fpp -warn all
-#  ORIGINAL
-#  CPP = mpiicpc -DMPICH_IGNORE_CXX_SEEK -mmic
-#  CC = mpiicc -mmic
-#  F90 = mpiifort -mmic -align array64byte
-#  F77 = mpiifort -mmic -align array64byte
-#  LOADER = mpiifort -mmic -align array64byte
 endif
 
 ifeq ($(HPCTK), 1)
