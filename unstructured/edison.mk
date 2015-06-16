@@ -21,7 +21,7 @@ endif
 # define where you want to locate the mesh adapt libraries
 #HYBRID_HOME =  /scratch2/scratchdirs/xyuan/Software_Hopper/pdslin_0.0
 #HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lpdslin
-SCORECDIR = /global/project/projectdirs/mp288/edison/scorec/May2015
+SCORECDIR = /global/project/projectdirs/mp288/edison/scorec/Jun2015
 
 ifeq ($(COM), 1)
       SCORECLIB=-lapf -lgmi -lm3dc1_scorec_complex -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr
@@ -82,13 +82,13 @@ LIBS := $(LIBS) -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5 -lz \
 
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) \
 	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs
-CCOPTS  = -c -O $(OPTS)
+CCOPTS  = -c $(OPTS)
 
 # Optimization flags
 ifeq ($(OPT), 1)
   LDOPTS := $(LDOPTS)
-  FOPTS  := $(FOPTS)  -O0
-  CCOPTS := $(CCOPTS)
+  FOPTS  := $(FOPTS)  -O3
+  CCOPTS := $(CCOPTS) -O3
 else
   FOPTS := $(FOPTS) -g -Mbounds -check all -fpe0 -warn -traceback -debug extended
   CCOPTS := $(CCOPTS)  
