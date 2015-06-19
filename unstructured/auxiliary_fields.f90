@@ -110,7 +110,7 @@ subroutine destroy_auxiliary_fields
   endif
 end subroutine destroy_auxiliary_fields
   
-subroutine calculate_temperatures(ilin, te, ti)
+subroutine calculate_temperatures(ilin, te, ti, ieqsub)
   use math
   use basic
   use m3dc1_nint
@@ -122,7 +122,7 @@ subroutine calculate_temperatures(ilin, te, ti)
   implicit none
 
   type(field_type) :: te, ti
-  integer, intent(in) :: ilin
+  integer, intent(in) :: ilin, ieqsub
 
   integer :: def_fields
   integer :: numelms
@@ -146,7 +146,7 @@ subroutine calculate_temperatures(ilin, te, ti)
   numelms = local_elements()
   do itri=1,numelms
      call define_element_quadrature(itri, int_pts_aux, 5)
-     call define_fields(itri, def_fields, 1, 0)
+     call define_fields(itri, def_fields, 1, 0, ieqsub)
 
      ! electron temperature
      do i=1, dofs_per_element
@@ -154,9 +154,13 @@ subroutine calculate_temperatures(ilin, te, ti)
            temp79a = pe179(:,OP_1)/ne079(:,OP_1) &
                 - ne179(:,OP_1)*pe079(:,OP_1)/ne079(:,OP_1)**2
         else
-           temp79a = pet79(:,OP_1)/net79(:,OP_1)
-           if(eqsubtract.eq.1 .and. ilin.eq.1) then
-              temp79a = temp79a - pe079(:,OP_1)/ne079(:,OP_1)
+           if(ilin.eq.1) then
+              temp79a = pet79(:,OP_1)/net79(:,OP_1)
+              if(ieqsub.eq.1) then
+                 temp79a = temp79a - pe079(:,OP_1)/ne079(:,OP_1)
+              end if
+           else
+              temp79a = pe079(:,OP_1)/ne079(:,OP_1)
            end if
         end if
         dofs(i) = int2(mu79(:,OP_1,i),temp79a)
@@ -169,9 +173,13 @@ subroutine calculate_temperatures(ilin, te, ti)
            temp79a = pi179(:,OP_1)/n079(:,OP_1) &
                 - n179(:,OP_1)*pi079(:,OP_1)/n079(:,OP_1)**2
         else
-           temp79a = pit79(:,OP_1)/nt79(:,OP_1)
-           if(eqsubtract.eq.1 .and. ilin.eq.1) then
-              temp79a = temp79a - pi079(:,OP_1)/n079(:,OP_1)
+           if(ilin.eq.1) then
+              temp79a = pit79(:,OP_1)/nt79(:,OP_1)
+              if(ieqsub.eq.1) then
+                 temp79a = temp79a - pi079(:,OP_1)/n079(:,OP_1)
+              end if
+           else
+              temp79a = pi079(:,OP_1)/n079(:,OP_1)
            end if
         end if
         dofs(i) = int2(mu79(:,OP_1,i),temp79a)
