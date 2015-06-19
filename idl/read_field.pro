@@ -242,14 +242,14 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                                rrange=xrange, zrange=yrange, $
                                h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                                diff=diff, operation=op, mask=mask, $
-                               symbol=symbol, $
+                               symbol=symbol, phi=phi0, $
                                units=units, dimensions=d)
            data1 = read_field(name,x,y,t, slices=time, mesh=mesh, $
                                filename=filename, points=pts, $
                                rrange=xrange, zrange=yrange, $
                                h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                                diff=diff, operation=op, $
-                               last=last,symbol=symbol, $
+                               last=last,symbol=symbol, phi=phi0, $
                                units=units, dimensions=d, $
                                equilibrium=equilibrium)
            data = data1 - data0

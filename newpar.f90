@@ -593,7 +593,8 @@ subroutine derived_quantities(ilin)
 
   if(itemp.eq.0 .and. (numvar.eq.3 .or. ipres.gt.0)) then
      if(myrank.eq.0 .and. iprint.ge.2) print *, "  temperatures"
-     call calculate_temperatures(ilin, te_field(ilin), ti_field(ilin))
+     call calculate_temperatures(ilin, te_field(ilin), ti_field(ilin), &
+          eqsubtract)
   end if
 
   !   toroidal current

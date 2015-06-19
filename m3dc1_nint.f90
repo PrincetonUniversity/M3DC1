@@ -348,7 +348,7 @@ contains
   !=====================================================
   ! define_fields
   !=====================================================
-  subroutine define_fields(itri, fields, gdef, ilin)
+  subroutine define_fields(itri, fields, gdef, ilin, ieqs)
     use basic
     use mesh_mod
     use arrays
@@ -357,11 +357,18 @@ contains
     implicit none
   
     integer, intent(in) :: itri, fields, gdef, ilin
+    integer, intent(in), optional :: ieqs
 
     real :: fac
-    integer :: i, izone
+    integer :: i, izone, ieqsub
     type(element_data) :: d
     vectype, dimension(dofs_per_element,coeffs_per_element) :: cl
+
+    if(present(ieqs)) then
+       ieqsub = ieqs
+    else
+       ieqsub = eqsubtract
+    end if
 
     ! calculate the hyperviscosity coefficients and
     ! the size field for this element.
@@ -415,7 +422,7 @@ contains
           ph179 = 0.
        endif
        
-       if(eqsubtract.eq.1) then
+       if(ieqsub.eq.1) then
           call eval_ops(itri, u_field(0), ph079)
           pht79 = ph079 + ph179
        else
@@ -441,7 +448,7 @@ contains
           ps179 = 0.
        end if
        
-       if(eqsubtract.eq.1) then
+       if(ieqsub.eq.1) then
           call eval_ops(itri, psi_field(0), ps079)
        else
           ps079 = 0.
@@ -470,7 +477,7 @@ contains
           vz179 = 0.
        end if
        
-       if(eqsubtract.eq.1) then
+       if(ieqsub.eq.1) then
           call eval_ops(itri, vz_field(0), vz079)
           vzt79 = vz079 + vz179
        else
@@ -505,7 +512,7 @@ contains
           bf179 = 0.
        endif
        
-       if(eqsubtract.eq.1) then
+       if(ieqsub.eq.1) then
           call eval_ops(itri, bz_field(0), bz079)
           bzt79 = bz079 + bz179
           bzs79 = bz079 + bz179/2.
@@ -544,7 +551,7 @@ contains
           ch179 = 0.
        end if
        
-       if(eqsubtract.eq.1) then
+       if(ieqsub.eq.1) then
           call eval_ops(itri, chi_field(0), ch079)
           cht79 = ch079 + ch179
        else
@@ -567,7 +574,7 @@ contains
           pe179 = 0.
        end if
        
-       if(eqsubtract.eq.1) then
+       if(ieqsub.eq.1) then
           call eval_ops(itri, p_field(0), p079)
           call eval_ops(itri, pe_field(0), pe079)
 
@@ -613,7 +620,7 @@ contains
           n179 = 0.
        end if
 
-       if(eqsubtract.eq.1) then
+       if(ieqsub.eq.1) then
           if(idenfunc.eq.3) then
              temp79a = (pst79(:,OP_1) - psimin)/(psibound - psimin)
              temp79b = (pst79(:,OP_DR)*(x_79 - xmag) &
@@ -997,7 +1004,7 @@ contains
           te179 = 0.
        endif
        
-       if(eqsubtract.eq.1) then
+       if(ieqsub.eq.1) then
           call eval_ops(itri, te_field(0), te079)
           tet79 = te079 + te179
        else
@@ -1017,7 +1024,7 @@ contains
           ti179 = 0.
        endif
        
-       if(eqsubtract.eq.1) then
+       if(ieqsub.eq.1) then
           call eval_ops(itri, ti_field(0), ti079)
           tit79 = ti079 + ti179
        else

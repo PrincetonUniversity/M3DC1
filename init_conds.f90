@@ -611,7 +611,6 @@ subroutine calculate_external_fields(sf)
   if(numvar.ge.2) then
      if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving bz..."
      call newsolve(mass_mat_lhs%mat,bz_vec,ier)
-     print *, 'after solve'
      if(extsubtract.eq.1) then
         bz_ext = bz_f     
      else
@@ -4023,6 +4022,7 @@ subroutine initial_conditions()
   use int_kink
   use rwm
   use solovev
+  use auxiliary_fields
 
   implicit none
 
@@ -4136,6 +4136,10 @@ subroutine initial_conditions()
   call den_per()
 
   if(irmp.ge.1 .or. iread_ext_field.ge.1) call rmp_per()
+
+  ! calculate equilibrium and perturbed temperature profiles
+  call calculate_temperatures(0, te_field(0),ti_field(0), 1)
+  call calculate_temperatures(1, te_field(1),ti_field(1), 1)
 
   if(iflip_b.eq.1) call mult(bz_field(0), -1.)
   if(iflip_j.gt.0) call mult(psi_field(0), -1.)
