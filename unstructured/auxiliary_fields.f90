@@ -18,7 +18,7 @@ module auxiliary_fields
   type(field_type) :: ef_r, ef_phi, ef_z, eta_j, psidot, veldif
   type(field_type) :: eta_jdb, bdgp, vlbdgp
   type(field_type) :: vdotgradt, adv1, adv2, adv3, vpar_field
-  type(field_type) :: f1vplot,f1eplot,f2vplot,f2eplot,f3vplot,f3eplot
+  type(field_type) :: f1vplot,f1eplot,f2vplot,f2eplot,f3vplot,f3eplot,jdbobs
   type(field_type) :: deldotq_perp
   type(field_type) :: deldotq_par
   type(field_type) :: eta_jsq
@@ -65,6 +65,7 @@ subroutine create_auxiliary_fields
      call create_field(f2eplot)
      call create_field(f3vplot)
      call create_field(f3eplot)
+     call create_field(jdbobs)
   endif
   initialized = .true.
 end subroutine create_auxiliary_fields
@@ -107,6 +108,7 @@ subroutine destroy_auxiliary_fields
      call destroy_field(f2eplot)
      call destroy_field(f3vplot)
      call destroy_field(f3eplot)
+     call destroy_field(jdbobs)
   endif
 end subroutine destroy_auxiliary_fields
   
@@ -257,6 +259,7 @@ subroutine calculate_auxiliary_fields(ilin)
      f2eplot = 0.
      f3vplot = 0.
      f3eplot = 0.
+     jdbobs  = 0.
   endif
 
   ! specify which fields are to be evalulated
@@ -643,6 +646,12 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
         end do
         call vector_insert_block(f3eplot%vec,itri,1,dofs,VEC_ADD)
 
+        call jdbobs_sub(temp79a)
+        do i=1, dofs_per_element
+          dofs(i) = int2(mu79(:,OP_1,i),temp79a)
+        end do
+        call vector_insert_block(jdbobs%vec,itri,1,dofs,VEC_ADD)
+
      end if  ! on itemp_plot.eq.1
 
   end do
@@ -691,6 +700,7 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
      call newvar_solve(f2eplot%vec, mass_mat_lhs)
      call newvar_solve(f3vplot%vec, mass_mat_lhs)
      call newvar_solve(f3eplot%vec, mass_mat_lhs)
+     call newvar_solve(jdbobs%vec , mass_mat_lhs)
 
   endif
 

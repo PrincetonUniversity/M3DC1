@@ -1255,6 +1255,19 @@ subroutine output_fields(time_group_id, equilibrium, error)
             coeffs_per_element,nelms, error)
        nfields = nfields + 1
 #endif
+
+       ! jdbobs
+       do i=1, nelms
+          call calcavector(i, jdbobs, dum(:,i))
+       end do
+       call output_field(group_id, "jdbobs", real(dum), coeffs_per_element, &
+            nelms, error)
+       nfields = nfields + 1
+#ifdef USECOMPLEX
+       call output_field(group_id, "jdbobs_i",aimag(dum),&
+            coeffs_per_element,nelms, error)
+       nfields = nfields + 1
+#endif
     endif    ! on itemp_plot .eq. 1
     
     ! sigma
