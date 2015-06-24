@@ -2727,10 +2727,14 @@ subroutine calc_rotation(psi0,omega, x, z, izone)
   real :: w0
   integer :: magnetic_region, mr
 
-  if(irot.eq.0 .or. izone.ne.1) then
+  if(irot.eq.0) then
      omega = 0.
      return
   endif
+  if(izone.ne.1) then
+     omega = omega_spline%y(omega_spline%n)
+     return
+  end if
  
   mr = magnetic_region(psi0,x,z)
 

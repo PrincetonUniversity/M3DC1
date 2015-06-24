@@ -1,5 +1,6 @@
 #include "m3dc1_source.h"
 #include <iostream>
+#include <stdlib.h>
 
 m3dc1_source::m3dc1_source()
   : psi(0), f(0), g(0), psi_x(0), f_x(0), g_x(0)

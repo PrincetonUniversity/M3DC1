@@ -4029,8 +4029,10 @@ subroutine bf_equation_lin(trial, lin, ssterm, ddterm, r_bf, q_bf)
   r_bf = 0.
   q_bf = 0.
 
-  r_bf = - int3(r2_79,trial(:,OP_1),lin(:,OP_LP)) &
-       - regular*int3(r2_79,trial(:,OP_1),lin(:,OP_1))
+  r_bf = - int3(r2_79,trial(:,OP_1),lin(:,OP_LP))
+  if(ifbound.eq.2) then 
+     r_bf = r_bf - regular*int3(r2_79,trial(:,OP_1),lin(:,OP_1))
+  end if
   ssterm(bz_g) = int2(trial(:,OP_1),lin(:,OP_1 ))
 end subroutine bf_equation_lin
 
