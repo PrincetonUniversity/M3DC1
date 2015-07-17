@@ -18,6 +18,8 @@ include $(M3DC1_ROOT)/install/make.inc.$(M3DC1_ARCH)
 
 LIBS := -L$(M3DC1_ROOT)/fusion_io/_$(M3DC1_ARCH) -lfusionio \
 	-L$(M3DC1_ROOT)/m3dc1_lib/_$(M3DC1_ARCH) -lm3dc1 \
+	-Wl,-rpath,$(M3DC1_ROOT)/fusion_io/_$(M3DC1_ARCH) \
+	-Wl,-rpath,$(M3DC1_ROOT)/m3dc1_lib/_$(M3DC1_ARCH) \
 	$(HDF5_LIBS) $(LIBS)
 
 INCLUDE := -I$(M3DC1_ROOT)/fusion_io -I$(M3DC1_ROOT)/fusion_io/_$(M3DC1_ARCH) \

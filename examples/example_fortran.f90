@@ -15,7 +15,7 @@ program fio_example
   ! time slice to read
   integer, parameter :: timeslice = 1
 
-  integer, parameter :: nfiles = 4
+  integer, parameter :: nfiles = 1
   character(len=256) :: filename(nfiles), filename_efit, filename_gato
   integer, dimension(nfiles) :: isrc, ipres, ine, ini, imag, ij
   integer :: isrc_efit, imag_efit, ipres_efit, ij_efit
@@ -30,17 +30,20 @@ program fio_example
   real :: R0, R1, Z0, Z1, phi0, phi1
   integer :: i, j, ierr
 
+!  filename(1) = '/home/ferraro/data/meshrw2_n=3_even_2f/C1.h5'
+  filename(1) = '/home/wingen/c++/d3d/155623/resistive_wall/even_2f/C1.h5'
+
 !!$  filename(1) = '/Users/ferraro/data/DIII-D/126006/mesh21a_kap6_amu6_n=1/C1.h5'
 !!$  filename(2) = '/Users/ferraro/data/DIII-D/126006/mesh21a_kap6_amu6_n=2/C1.h5'
 !!$  filename(3) = '/Users/ferraro/data/DIII-D/126006/mesh21a_kap6_amu6_n=3/C1.h5'
 !!$  filename(4) = '/Users/ferraro/data/DIII-D/126006/mesh21a_kap6_amu6_n=4/C1.h5'
-  filename(1) = '/p/tsc/nferraro/data/DIII-D/126006/3600_efit06/orlov/mesh21a_kap6_amu6_n=1/C1.h5'
-  filename(2) = '/p/tsc/nferraro/data/DIII-D/126006/3600_efit06/orlov/mesh21a_kap6_amu6_n=2/C1.h5'
-  filename(3) = '/p/tsc/nferraro/data/DIII-D/126006/3600_efit06/orlov/mesh21a_kap6_amu6_n=3/C1.h5'
-  filename(4) = '/p/tsc/nferraro/data/DIII-D/126006/3600_efit06/orlov/mesh21a_kap6_amu6_n=4/C1.h5'
+!  filename(1) = '/p/tsc/nferraro/data/DIII-D/126006/3600_efit06/orlov/mesh21a_kap6_amu6_n=1/C1.h5'
+!  filename(2) = '/p/tsc/nferraro/data/DIII-D/126006/3600_efit06/orlov/mesh21a_kap6_amu6_n=2/C1.h5'
+!  filename(3) = '/p/tsc/nferraro/data/DIII-D/126006/3600_efit06/orlov/mesh21a_kap6_amu6_n=3/C1.h5'
+!  filename(4) = '/p/tsc/nferraro/data/DIII-D/126006/3600_efit06/orlov/mesh21a_kap6_amu6_n=4/C1.h5'
 
-  filename_efit = &
-       '/p/tsc/nferraro/data/DIII-D/126006/3600_efit06/orlov/mesh21a_kap6_amu6_n=3/geqdsk'
+!  filename_efit = &
+!       '/p/tsc/nferraro/data/DIII-D/126006/3600_efit06/orlov/mesh21a_kap6_amu6_n=3/geqdsk'
 
   ! read files and fields
   do i=1, nfiles
@@ -83,14 +86,14 @@ program fio_example
   call fio_close_series_f(ipsi_lcfs, ierr)
 
   
-  ! open efit file
-  call fio_open_source_f(FIO_GEQDSK_SOURCE,trim(filename_efit),isrc_efit,ierr)
-  if(ierr.ne.0) goto 100
+!  ! open efit file
+!  call fio_open_source_f(FIO_GEQDSK_SOURCE,trim(filename_efit),isrc_efit,ierr)
+!  if(ierr.ne.0) goto 100
 
-  call fio_get_options_f(isrc_efit, ierr)
-  call fio_get_field_f(isrc_efit, FIO_MAGNETIC_FIELD, imag_efit, ierr);
-  call fio_get_field_f(isrc_efit, FIO_TOTAL_PRESSURE, ipres_efit, ierr);
-  call fio_get_field_f(isrc_efit, FIO_CURRENT_DENSITY, ij_efit, ierr);
+!  call fio_get_options_f(isrc_efit, ierr)
+!  call fio_get_field_f(isrc_efit, FIO_MAGNETIC_FIELD, imag_efit, ierr);
+!  call fio_get_field_f(isrc_efit, FIO_TOTAL_PRESSURE, ipres_efit, ierr);
+!  call fio_get_field_f(isrc_efit, FIO_CURRENT_DENSITY, ij_efit, ierr);
 
 !!$  ! open gato file
 !!$  filename_gato = '/Users/ferraro/data/GATO/diagnostics.dat'
@@ -148,15 +151,15 @@ program fio_example
      write(*, '("        dB/dZ = ",1p3E12.4)') &
           db(FIO_DZ_R), db(FIO_DZ_PHI), db(FIO_DZ_Z)
 
-     b = 0.
-     p = 0.
-     curr2 = 0.
-     call fio_eval_field_f(ipres_efit, x, p, ierr)
-     call fio_eval_field_f(imag_efit, x, b, ierr)
-     call fio_eval_field_f(ij_efit, x, curr2, ierr)
-     write(*, '("        efit press = ", 1pE12.4)') p
-     write(*, '("        efit b = ", 1p3E12.4)') b
-     write(*, '("        efit j = ", 1p3E12.4)') curr2
+!     b = 0.
+!     p = 0.
+!     curr2 = 0.
+!     call fio_eval_field_f(ipres_efit, x, p, ierr)
+!     call fio_eval_field_f(imag_efit, x, b, ierr)
+!     call fio_eval_field_f(ij_efit, x, curr2, ierr)
+!     write(*, '("        efit press = ", 1pE12.4)') p
+!     write(*, '("        efit b = ", 1p3E12.4)') b
+!     write(*, '("        efit j = ", 1p3E12.4)') curr2
 
 !!$     call fio_eval_field_f(ipres_gato, x, p, ierr)
 !!$     call fio_eval_field_f(imag_gato, x, b, ierr)
@@ -174,10 +177,10 @@ program fio_example
      call fio_close_source_f(isrc(i), ierr)
   end do
 
-  call fio_close_field_f(imag_efit, ierr)
-  call fio_close_field_f(ipres_efit, ierr)
-  call fio_close_field_f(ij_efit, ierr)
-  call fio_close_source_f(isrc_efit, ierr)
+!  call fio_close_field_f(imag_efit, ierr)
+!  call fio_close_field_f(ipres_efit, ierr)
+!  call fio_close_field_f(ij_efit, ierr)
+!  call fio_close_source_f(isrc_efit, ierr)
 
 !!$  call fio_close_field_f(imag_gato, ierr)
 !!$  call fio_close_field_f(ipres_gato, ierr)

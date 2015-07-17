@@ -15,7 +15,7 @@
 const int nfiles = 1;
 int isrc[nfiles];
 int ipres[nfiles], ine[nfiles], ini[nfiles];
-int imag[nfiles], ij[nfiles];
+int imag[nfiles], ij[nfiles], ia[nfiles];
 
 void free_sources();
 
@@ -25,11 +25,11 @@ int main()
   const double factor = 1.;
 
   // time slice to read
-  const int timeslice = 1;
+  const int timeslice = 0;
 
   char filename[nfiles][256];
 
-  double p, ne, ni, b[3], x[3], x2[3], curr[3], db[9], db_n[9];
+  double p, ne, ni, b[3], x[3], x2[3], curr[3], db[9], db_n[9], a[3];
   double t1, t3[3], t32[3], t9[9];
   const double epsilon = 1e-6;
 
@@ -37,10 +37,11 @@ int main()
   double R0, R1, Z0, Z1, phi0, phi1;
   int i, j, ierr;
 
-  double psi_axis, psi_lcfs;
-  int ipsi_axis, ipsi_lcfs;
+  double psi_axis, psi_lcfs, r0, z0;
+  int ipsi_axis, ipsi_lcfs, ir0, iz0;
 
-  strcpy(filename[0], "/p/tsc/nferraro/data/DIII-D/146626/2250/mesh22aa_kap6_amu6_d0_extsub/C1.h5");
+  strcpy(filename[0], "/home/ferraro/data/148712/medres_restart6_dt/C1.h5");
+  //  strcpy(filename[0], "/home/ferraro/data/meshrw2_n=3_even_2f/C1.h5");
 /*
   strcpy(filename[0], "/p/tsc/nferraro/data/DIII-D/126006/3600_efit06/orlov/mesh21a_kap6_amu6_n=1/C1.h5");
   strcpy(filename[1], "/p/tsc/nferraro/data/DIII-D/126006/3600_efit06/orlov/mesh21a_kap6_amu6_n=2/C1.h5");
@@ -72,6 +73,7 @@ int main()
     ierr = fio_get_field(isrc[i], FIO_TOTAL_PRESSURE, &(ipres[i]));
     ierr = fio_get_field(isrc[i], FIO_MAGNETIC_FIELD, &(imag[i]));
     ierr = fio_get_field(isrc[i], FIO_CURRENT_DENSITY, &(ij[i]));
+    ierr = fio_get_field(isrc[i], FIO_VECTOR_POTENTIAL, &(ia[i]));
 
      // density is species dependent; specify electrons
     ierr = fio_set_int_option(FIO_SPECIES, FIO_ELECTRON);
@@ -83,23 +85,32 @@ int main()
  
   ierr = fio_get_series(isrc[0], FIO_MAGAXIS_PSI, &ipsi_axis);
   ierr = fio_get_series(isrc[0], FIO_LCFS_PSI, &ipsi_lcfs);
+  ierr = fio_get_series(isrc[0], FIO_MAGAXIS_R, &ir0);
+  ierr = fio_get_series(isrc[0], FIO_MAGAXIS_Z, &iz0);
   printf("ipsi_axis: %d\n", ipsi_axis);
   printf("ipsi_lcfs: %d\n", ipsi_lcfs);
 
   ierr = fio_eval_series(ipsi_axis, 0., &psi_axis);
   ierr = fio_eval_series(ipsi_lcfs, 0., &psi_lcfs);
+  ierr = fio_eval_series(ir0, 0., &r0);
+  ierr = fio_eval_series(iz0, 0., &z0);
   printf("Psi at magnetic axis: %g\n", psi_axis);
   printf("Psi at lcfs: %g\n", psi_lcfs);
-    
+  printf("R at magnetic axis: %g\n", r0);
+  printf("Z at magnetic axis: %g\n", z0);
+
   ierr = fio_close_series(ipsi_axis);
   ierr = fio_close_series(ipsi_lcfs);
+  ierr = fio_close_series(ir0);
+  ierr = fio_close_series(iz0);
+
 
   R0 = 1.6;
-  R1 = 2.1;
+  R1 = 1.6;
   Z0 = 0.4;
   Z1 = 0.4;
   phi0 = 0.;
-  phi1 = 0.;
+  phi1 = 350.;
 
   for(i=0; i<npts; i++) {
     x[0] = R0 + (R1-R0)*(double)i/(double)(npts-1);
@@ -112,6 +123,7 @@ int main()
     ne = 0.;
     ni = 0.;
     for(j=0; j<3; j++) {
+      a[j] = 0.;
       b[j] = 0.;
       curr[j] = 0.;
     }
@@ -131,6 +143,10 @@ int main()
       b[0] += t3[0];
       b[1] += t3[1];
       b[2] += t3[2];
+      ierr = fio_eval_field(ia[j], x, t3);
+      a[0] += t3[0];
+      a[1] += t3[1];
+      a[2] += t3[2];
 
       // calculate numerical derivatives of B
       // dR
@@ -168,7 +184,8 @@ int main()
     printf("\tion density = %g\n", ni);
     printf("\ttotal B = (%g, %g, %g)\n", b[0], b[1], b[2]);
     printf("\ttotal J = (%g, %g, %g)\n", curr[0], curr[1], curr[2]);
-
+    printf("\ttotal A = (%g, %g, %g)\n", a[0], a[1], a[2]);
+    /*
     printf("Interpolated derivatives: \n");
     printf("\tdB/dR = (%g, %g, %g)\n", 
 	   db[FIO_DR_R], db[FIO_DR_PHI], db[FIO_DR_Z]);
@@ -184,6 +201,7 @@ int main()
 	   db_n[FIO_DPHI_R], db_n[FIO_DPHI_PHI], db_n[FIO_DPHI_Z]);
     printf("\tdB/dZ = (%g, %g, %g)\n", 
 	   db_n[FIO_DZ_R], db_n[FIO_DZ_PHI], db_n[FIO_DZ_Z]);
+    */
   }
 
   free_sources();
@@ -200,6 +218,7 @@ void free_sources()
     ierr = fio_close_field(ipres[i]);
     ierr = fio_close_field(imag[i]);
     ierr = fio_close_field(ij[i]);
+    ierr = fio_close_field(ia[i]);
     ierr = fio_close_source(isrc[i]);
   }
 }

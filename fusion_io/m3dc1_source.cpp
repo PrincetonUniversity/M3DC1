@@ -190,6 +190,14 @@ int m3dc1_source::get_series(const series_type t,fio_series** s)
     ms = new m3dc1_fio_series(this, "psi_lcfs", B0*L0*L0);
     break;
 
+  case(FIO_MAGAXIS_R):
+    ms = new m3dc1_fio_series(this, "xmag", L0);
+    break;
+
+  case(FIO_MAGAXIS_Z):
+    ms = new m3dc1_fio_series(this, "zmag", L0);
+    break;
+
   default:
     return FIO_UNSUPPORTED;
   };
