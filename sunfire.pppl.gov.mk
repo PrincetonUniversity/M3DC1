@@ -1,4 +1,4 @@
-FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DPETSC_31 $(OPTS)
+FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DPETSC_31 -DKSPITS $(OPTS)
 CCOPTS  = -c -O -DPetscDEV -DPETSC_31 -DPetscOLD #-DCJ_MATRIX_DUMP -DUSEHYBRID 
 
 ifeq ($(OPT), 1)
