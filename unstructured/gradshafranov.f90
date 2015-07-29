@@ -1286,9 +1286,9 @@ subroutine gradshafranov_solve
         call eval_ops(itri, psi_coil_field, psc79)
         ps079 = ps079 + psc79
      end if
-     
+
      call get_zone(itri, izone)
-     
+
      do i=1, npoints
         call calc_toroidal_field(ps079(i,:),tf,x_79(i),z_79(i),izone)
         temp79b(i) = tf
@@ -2006,7 +2006,7 @@ subroutine fundef2(error)
   vectype, dimension(dofs_per_element) :: temp3, temp4
       
   integer :: magnetic_region, izone, mr
-  real :: pp0, a0, ap, p, ffp0, w0, wp, n0, np
+  real :: pp0, a0, ap, p, ffp0, w0, wp, n0, np, f
 
   dpsii = 1./(psibound - psimin)
   fun1_vec = 0.
@@ -2023,7 +2023,8 @@ subroutine fundef2(error)
 
      call get_zone(itri, izone)
 
-     if(izone.ne.1) then
+!     if(izone.ne.1) then
+     if(izone.gt.2) then
         temp3 = 0.
         temp4 = 0.
         call vector_insert_block(fun1_vec%vec,itri,1,temp3,VEC_ADD)
@@ -2056,7 +2057,10 @@ subroutine fundef2(error)
         else
            if(mr.eq.2) then
               psm = 1.
-              pso = 2. - pso              
+              pso = 2. - pso
+              f = -1.
+           else
+              f = 1.
            end if
 
            if(mr.eq.0) then
@@ -2081,11 +2085,11 @@ subroutine fundef2(error)
 !!$                 ap = 0.5*rzero**2*w0*(2.*wp*n0 + w0*np - w0*n0*pp0/p)/p
            end if
         end if
-        temp79a(i) = pp0
-        temp79b(i) = ffp0
+        temp79a(i) = pp0*f
+        temp79b(i) = ffp0*f
         if(irot.eq.1) then
            temp79c(i) = a0
-           temp79d(i) = ap
+           temp79d(i) = ap*f
            temp79e(i) = p
         end if
      end do
@@ -2586,7 +2590,8 @@ subroutine calc_pressure(psi0, pres, x, z, izone)
 
   integer :: magnetic_region, mr
 
-  if(izone.ne.1) then 
+!  if(izone.ne.1) then 
+  if(izone.gt.2) then 
      pres = p0_spline%y(p0_spline%n)
      return
   end if
@@ -2642,7 +2647,8 @@ subroutine calc_density(psi0, dens, x, z, izone)
 
   integer :: magnetic_region, mr
 
-  if(izone.ne.1) then
+!  if(izone.ne.1) then
+  if(izone.gt.2) then
      dens = n0_spline%y(n0_spline%n)
      return
   end if
@@ -2691,12 +2697,13 @@ subroutine calc_electron_pressure(psi0, pe, x, z, izone)
   integer :: magnetic_region
 
   if(allocated(te_spline%y)) then
-     if(izone.eq.1) then
+!     if(izone.ne.1) then 
+     if(izone.gt.2) then 
+        te0 = te_spline%y(te_spline%n)
+     else
         psii = (real(psi0(1)) - psimin)/(psibound - psimin)
         if(magnetic_region(psi0,x,z).eq.2) psii = 2. - psii
         call evaluate_spline(te_spline,psii,te0)
-     else
-        te0 = te_spline%y(te_spline%n)
      end if
      call calc_density(psi0, n0, x, z, izone)
      pe = zeff*n0*te0    ! (ni = n0; ne = ni*Zeff)

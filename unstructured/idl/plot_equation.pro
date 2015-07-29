@@ -34,6 +34,8 @@ pro plot_equation, equation, cutz=cutz, _EXTRA=extra, $
   end
   f[nterms,*] = field_at_point(total,x,z,x0,z0)
 
+  
+  window, 1
   plot, [min(xdat),max(xdat)], [min(f), max(f)], /nodata, $
         title=title, xtitle=xtitle, _EXTRA=extra
 
@@ -47,4 +49,8 @@ pro plot_equation, equation, cutz=cutz, _EXTRA=extra, $
   names = ['Total',names]
   plot_legend, names, color=c, _EXTRA=extra
   
+  window, 0
+  contour_and_legend, abs(total), x, z, /zlog
+  oplot, !x.crange, [cutz, cutz]
+
 end

@@ -196,7 +196,7 @@ end subroutine apply_bc
 !   NV_NMBOUND: Neumann boundary conditions
 ! itype: operator (NV_I_MATRIX, etc..)
 !============================================
-subroutine create_newvar_matrix(mat, ibound, itype, is_lhs)
+subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags)
   use vector_mod
   use basic
   use m3dc1_nint
@@ -208,6 +208,7 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs)
   integer, intent(in) :: ibound
   integer, intent(in) :: itype
   integer, intent(in) :: is_lhs
+  type(tag_list), intent(in), optional :: tags
 
   integer :: numelms, itri, i, j, m, n, isize
   vectype, allocatable :: temp(:,:,:,:)
@@ -247,7 +248,7 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs)
               
            case(NV_I_MATRIX)
               temp(i,j,1,1) = int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
-             
+
            case(NV_LP_MATRIX)
               temp(i,j,1,1) = int2(mu79(:,OP_1,i),nu79(:,OP_LP,j))
               if(ibound.eq.NV_NMBOUND) then
@@ -311,21 +312,21 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs)
 
      select case(ibound)
      case(NV_DCBOUND)
-        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,1,1))
+        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,1,1), tags=tags)
      case(NV_NMBOUND)
-        call apply_boundary_mask(itri, BOUNDARY_NEUMANN, temp(:,:,1,1))
+        call apply_boundary_mask(itri, BOUNDARY_NEUMANN, temp(:,:,1,1), tags=tags)
      case(NV_SJBOUND)
-        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,1,1))
-        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,1,2))
-        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,2,1))
-        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,2,2))
+        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,1,1), tags=tags)
+        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,1,2), tags=tags)
+        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,2,1), tags=tags)
+        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,2,2), tags=tags)
      case(NV_SVBOUND)
 
      case(NV_SCBOUND)
 
      case(NV_CYBOUND)
         call apply_boundary_mask(itri, & 
-             BOUNDARY_DIRICHLET + BOUNDARY_NEUMANN, temp(:,:,1,1))
+             BOUNDARY_DIRICHLET + BOUNDARY_NEUMANN, temp(:,:,1,1), tags=tags)
      end select
 
      do m=1,isize

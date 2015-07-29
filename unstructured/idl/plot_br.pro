@@ -26,27 +26,35 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
    threed = read_parameter('3d', _EXTRA=extra, filename=filename[0])
    print, '3D = ', threed
 
-   psi0 = read_field('psi',x,z,t,slice=-1,_EXTRA=extra, $
-                    filename=filename[0])
-   psi0_r = read_field('psi',x,z,t,slice=-1,_EXTRA=extra,op=2, $
-                      filename=filename[0])
-   psi0_z = read_field('psi',x,z,t,slice=-1,_EXTRA=extra,op=3, $
-                      filename=filename[0])
-   i0   = read_field('i'  ,x,z,t,slice=-1,_EXTRA=extra, $
-                    filename=filename[0])
-   help, psi0
-
    if(n_elements(filename) gt 1 and n_elements(linfac) eq 0 and $
       n_elements(scale) gt 0) then linfac=scale
 
    if(threed eq 1) then begin
-       bx = read_field_3d('bx',phi,x,z,t,last=last,slice=slice, $
-                          /linear,_EXTRA=extra, ntor=ntor, $
-                          filename=filename,sum=sum)
-       bz = read_field_3d('bz',phi,x,z,t,last=last,slice=slice, $
-                          /linear,_EXTRA=extra, ntor=ntor, $
-                          filename=filename,sum=sum)
+      psi0 = read_field_3d('psi',x,z,t,slice=-1,_EXTRA=extra, $
+                           filename=filename[0], ntor=0)
+      psi0_r = read_field_3d('psi',x,z,t,slice=-1,_EXTRA=extra,op=2, $
+                             filename=filename[0], ntor=0)
+      psi0_z = read_field_3d('psi',x,z,t,slice=-1,_EXTRA=extra,op=3, $
+                             filename=filename[0], ntor=0)
+      i0   = read_field_3d('i'  ,x,z,t,slice=-1,_EXTRA=extra, $
+                           filename=filename[0], ntor=0)
+
+      bx = read_field_3d('bx',phi,x,z,t,last=last,slice=slice, $
+                         /linear,_EXTRA=extra, ntor=ntor, $
+                         filename=filename,sum=sum)
+      bz = read_field_3d('bz',phi,x,z,t,last=last,slice=slice, $
+                         /linear,_EXTRA=extra, ntor=ntor, $
+                         filename=filename,sum=sum)
    endif else begin
+      psi0 = read_field('psi',x,z,t,slice=-1,_EXTRA=extra, $
+                        filename=filename[0])
+      psi0_r = read_field('psi',x,z,t,slice=-1,_EXTRA=extra,op=2, $
+                          filename=filename[0])
+      psi0_z = read_field('psi',x,z,t,slice=-1,_EXTRA=extra,op=3, $
+                          filename=filename[0])
+      i0   = read_field('i'  ,x,z,t,slice=-1,_EXTRA=extra, $
+                        filename=filename[0])
+
        bx = read_field('bx',x,z,t,last=last,slice=slice, $
                        /linear,_EXTRA=extra,/complex, $
                        filename=filename,linfac=linfac,sum=sum)
