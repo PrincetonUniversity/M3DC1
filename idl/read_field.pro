@@ -2582,6 +2582,38 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
 
    ;===========================================
+   ; Vertical field from plasma response
+   ;===========================================
+   endif else if(strcmp('bz_plasma', name, /fold_case) eq 1) then begin
+
+       psi_r = read_field('psi_plasma', x, y, t, mesh=mesh, operation=2, $
+                        filename=filename, points=pts, slices=time, $
+                        rrange=xrange, zrange=yrange, complex=complex, $
+                        linear=linear, mask=mask, phi=phi0)
+
+       if(i3d eq 1) then begin
+           f_zp = read_field('f_plasma', x, y, t, mesh=mesh, operation=13, $
+                            filename=filename, points=pts, slices=time, $
+                            rrange=xrange, zrange=yrange, complex=complex, $
+                            linear=linear, phi=phi0)
+       endif else if(icomplex eq 1) then begin
+           f_z = read_field('f_plasma', x, y, t, mesh=mesh, operation=3, $
+                            filename=filename, points=pts, slices=time, $
+                            rrange=xrange, zrange=yrange, complex=complex, $
+                            linear=linear, phi=phi0)
+           f_zp = complex(0.,ntor)*f_z
+       endif else f_zp = 0.
+       
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+
+       data = psi_r/r - f_zp
+       symbol = '!8B!DZ!N!X'
+       d = dimensions(/b0, _EXTRA=extra)
+
+
+   ;===========================================
    ; poloidal flow
    ;===========================================
    endif else if(strcmp('vp', name, /fold_case) eq 1) then begin

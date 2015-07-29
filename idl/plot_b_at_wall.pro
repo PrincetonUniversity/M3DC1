@@ -95,10 +95,14 @@ pro plot_b_at_wall, filename=filename, _EXTRA=extra, $
            b1 = fltarr(pts)
            for i=0, pts-1 do begin
                b1[i] = interpolate(reform(b0[0,i,*]), iz)
-           end
-           plot, dphi*180./!pi, b1, $
-             xtitle='!7D!7u!6 (deg)!X', ytitle=ytitle, $
-             xrange=[0,360.], xstyle=1, _EXTRA=extra
+            end
+           if(not keyword_set(overplot)) then begin
+              plot, dphi*180./!pi, b1, /nodata, $
+                    xtitle='!7D!7u!6 (deg)!X', ytitle=ytitle, $
+                    xrange=[0,360.], xstyle=1, _EXTRA=extra
+           endif
+
+           oplot, dphi*180./!pi, b1, color=c, _EXTRA=extra
        endelse
    endif else begin
        if(keyword_set(sum_fields)) then begin

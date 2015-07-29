@@ -136,7 +136,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        bpval = field_at_point(bp, x, z, rpath, zpath)
        
        id = ncdf_create(bmncdf, /clobber)
-       ncdf_attput, id, 'ntor', ntor, /short, /global
+       ncdf_attput, id, 'ntor', fix(ntor), /short, /global
        n_id = ncdf_dimdef(id, 'npsi', n_elements(nflux))
        m_id = ncdf_dimdef(id, 'mpol', n_elements(m))
        psi_var = ncdf_vardef(id, 'psi', [n_id], /float)
