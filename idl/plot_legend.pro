@@ -13,7 +13,10 @@ pro plot_legend, names, linestyles=ls, colors=cs, left=l, top=t, psyms=p, $
     if n_elements(cs) eq 0 then begin
         cs = intarr(N)
         cs[*] = color(0,N)
-    endif
+     endif
+    while(n_elements(p) lt n_elements(names)) do begin
+       p = [p,p]
+    end
     if n_elements(l) eq 0 then l=0
     if n_elements(t) eq 0 then t=0
 
@@ -45,7 +48,7 @@ pro plot_legend, names, linestyles=ls, colors=cs, left=l, top=t, psyms=p, $
 
         if (n_elements(p) ne 0) then begin
             if (p[i] gt 0) then begin
-                oplot, [d(1)], [z], color=cs(i), psym=p(i)
+                oplot, [d(1)], [z], color=cs(i), psym=p[i]
             endif
         endif
 

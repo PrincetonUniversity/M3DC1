@@ -1202,6 +1202,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    endif else if( (strcmp('field energy', name, /fold_case) eq 1) $
                   or (strcmp('b2', name, /fold_case) eq 1)) $
      then begin
+
        psi_r = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, linear=linear, $
                         rrange=xrange, zrange=yrange, complex=complex, $
@@ -2719,6 +2720,143 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        data = sqrt(bp)/(sqrt(bp + i^2))
        symbol = '!3|!5B!D!8p!N!3|/|!8B!3|!X'
        d = dimensions(_EXTRA=extra)
+
+
+   ;===========================================
+   ; normal curvature
+   ;===========================================
+   endif else if( (strcmp('normal curvature', name, /fold_case) eq 1) $
+                  or (strcmp('kn', name, /fold_case) eq 1)) $
+     then begin
+
+       psi0 = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, /equilibrium)
+       I0 = read_field('I', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange, /equilibrium)
+       p0 = read_field('p', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange, /equilibrium)
+
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+
+       B02 = s_bracket(psi0,psi0,x,y)/r^2 + I0*I0/r^2
+       p02 = s_bracket(p0,p0,x,y)
+
+       if(not keyword_set(linear)) then begin
+          data = (p02 + s_bracket(p0,B02,x,y))/(B02*sqrt(p02))
+       endif else begin
+          psi1 = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                            filename=filename, points=pts, linear=linear, $
+                            rrange=xrange, zrange=yrange, complex=icomplex)
+          I1 = read_field('I', x, y, t, slices=time, mesh=mesh, $
+                          filename=filename, points=pts, linear=linear, $
+                          rrange=xrange, zrange=yrange, complex=icomplex)
+          p1 = read_field('p', x, y, t, slices=time, mesh=mesh, $
+                          filename=filename, points=pts, linear=linear, $
+                          rrange=xrange, zrange=yrange, /complex)
+
+          if(icomplex eq 1) then begin
+             f1 = read_field('f', x, y, t, slices=time, mesh=mesh, $
+                             filename=filename, points=pts, linear=linear, $
+                             rrange=xrange, zrange=yrange, complex=icomplex)
+             f1p = complex(0,ntor)*f1
+          endif else begin
+             f1p = read_field('f', x, y, t, slices=time, mesh=mesh, $
+                             filename=filename, points=pts, linear=linear, $
+                             rrange=xrange, zrange=yrange, op=21)
+          endelse
+          
+          bb = s_bracket(psi1,psi0,x,y)/r^2 + I1*I0/r^2 + $
+                 a_bracket(psi0,f1p,x,y)/r
+          pp = s_bracket(p0,p1,x,y)
+
+          data = (pp + s_bracket(p0,bb,x,y) $
+                  + .5*s_bracket(p1,B02,x,y) $
+                  - (.5*pp/p02 + bb/B02)*s_bracket(p0,B02,x,y) $
+                  - 2.*p02*bb/B02) $
+                 / (B02*sqrt(p02))
+       endelse
+
+       data = -data ;*(abs(p0) gt 6e-4)
+
+       symbol = '!7j!D!8n!N!X'
+       d = dimensions(l0=-1,_EXTRA=extra)
+
+   ;===========================================
+   ; geodesic curvature
+   ;===========================================
+   endif else if( (strcmp('geodesic curvature', name, /fold_case) eq 1) $
+                  or (strcmp('kg', name, /fold_case) eq 1)) $
+     then begin
+
+       psi0 = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, /equilibrium)
+       I0 = read_field('I', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange, /equilibrium)
+       p0 = read_field('p', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange, /equilibrium)
+
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+
+       B02 = s_bracket(psi0,psi0,x,y)/r^2 + I0*I0/r^2
+       p02 = s_bracket(p0,p0,x,y)
+
+       if(not keyword_set(linear)) then begin
+          data = I0*a_bracket(B02,p0,x,y)/r
+       endif else begin
+          psi1 = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                            filename=filename, points=pts, linear=linear, $
+                            rrange=xrange, zrange=yrange, complex=icomplex)
+          I1 = read_field('I', x, y, t, slices=time, mesh=mesh, $
+                          filename=filename, points=pts, linear=linear, $
+                          rrange=xrange, zrange=yrange, complex=icomplex)
+          p1 = read_field('p', x, y, t, slices=time, mesh=mesh, $
+                          filename=filename, points=pts, linear=linear, $
+                          rrange=xrange, zrange=yrange, /complex)
+
+          if(icomplex eq 1) then begin
+             f1 = read_field('f', x, y, t, slices=time, mesh=mesh, $
+                             filename=filename, points=pts, linear=linear, $
+                             rrange=xrange, zrange=yrange, complex=icomplex)
+             f1p = complex(0,ntor)*f1
+             p1p = complex(0,ntor)*p1
+          endif else begin
+             f1p = read_field('f', x, y, t, slices=time, mesh=mesh, $
+                             filename=filename, points=pts, linear=linear, $
+                             rrange=xrange, zrange=yrange, op=21)
+          endelse
+          
+          bb = s_bracket(psi1,psi0,x,y)/r^2 + I1*I0/r^2 + $
+               a_bracket(psi0,f1p,x,y)/r
+          pp = s_bracket(p0,p1,x,y)
+          bbp = complex(0,ntor)*bb
+
+          
+          data = I1*a_bracket(B02,p0,x,y)/r + $
+                 2.*(I0*a_bracket(bb,p0,x,y)/r - $
+                     bbp*s_bracket(psi0,p0,x,y)/r^2) $
+                 + (I0*a_bracket(B02,p1,x,y)/r + $
+                    p1p*s_bracket(psi0,p0,x,y)/r^2) $
+                 - I0*a_bracket(B02,p0,x,y)/r * (pp/p02 + 3.*bb/B02)
+       endelse
+
+       data = data / (2.*B02*sqrt(p02*B02))
+
+       data = data ;*(abs(p0) gt 6e-4)
+
+       symbol = '!7j!D!8g!N!X'
+       d = dimensions(l0=-1,_EXTRA=extra)
+
+
 
    ;===========================================
    ; ideal_k
