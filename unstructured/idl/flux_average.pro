@@ -293,34 +293,34 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
 
            return, -Q/(dV*GradW)
 
-       endif else $
-          if(strcmp(field, 'b2', /fold_case) eq 1) then begin
+       ;; endif else $
+          ;; if(strcmp(field, 'b2', /fold_case) eq 1) then begin
 
-           bx = read_field('bx', x, z, t, points=points, complex=complex, $
-                           symbol=symbol, units=units,dimensions=d,$
-                           abs=abs, phase=phase, filename=filename, $
-                           _EXTRA=extra)
-           by = read_field('by', x, z, t, points=points, complex=complex, $
-                           symbol=symbol, units=units,dimensions=d,$
-                           abs=abs, phase=phase, filename=filename, $
-                           _EXTRA=extra)
-           bz = read_field('bz', x, z, t, points=points, complex=complex, $
-                           symbol=symbol, units=units,dimensions=d,$
-                           abs=abs, phase=phase, filename=filename, $
-                           _EXTRA=extra)
-           b2 = bx*conj(bx) + by*conj(by) + bz*conj(bz)
+          ;;  bx = read_field('bx', x, z, t, points=points, complex=complex, $
+          ;;                  symbol=symbol, units=units,dimensions=d,$
+          ;;                  abs=abs, phase=phase, filename=filename, $
+          ;;                  _EXTRA=extra)
+          ;;  by = read_field('by', x, z, t, points=points, complex=complex, $
+          ;;                  symbol=symbol, units=units,dimensions=d,$
+          ;;                  abs=abs, phase=phase, filename=filename, $
+          ;;                  _EXTRA=extra)
+          ;;  bz = read_field('bz', x, z, t, points=points, complex=complex, $
+          ;;                  symbol=symbol, units=units,dimensions=d,$
+          ;;                  abs=abs, phase=phase, filename=filename, $
+          ;;                  _EXTRA=extra)
+          ;;  b2 = bx*conj(bx) + by*conj(by) + bz*conj(bz)
 
-           b2_fa = flux_average_field(b2, psi, x, z, t, r0=r0, flux=flux, $
-                                      nflux=nflux, area=area, dV=dV, $
-                                      bins=bins, filename=filename, $
-                                      _EXTRA=extra, integrate=integrate)
+          ;;  b2_fa = flux_average_field(b2, psi, x, z, t, r0=r0, flux=flux, $
+          ;;                             nflux=nflux, area=area, dV=dV, $
+          ;;                             bins=bins, filename=filename, $
+          ;;                             _EXTRA=extra, integrate=integrate)
 
-           symbol = '!3|!6B!3|!6!U2!N!X'
-           d = dimensions(b0 = 2)
-           units = parse_units(d, _EXTRA=extra)
-           name = '!3|!6B!3|!6!U2!N!X'
+          ;;  symbol = '!3|!6B!3|!6!U2!N!X'
+          ;;  d = dimensions(b0 = 2)
+          ;;  units = parse_units(d, _EXTRA=extra)
+          ;;  name = '!3|!6B!3|!6!U2!N!X'
 
-           return, b2_fa
+          ;;  return, b2_fa
 
        endif else begin
            field = read_field(field, x, z, t, points=points, complex=complex, $
