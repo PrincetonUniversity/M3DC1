@@ -549,8 +549,9 @@ contains
     implicit none
     type(scorec_vector) :: v
     integer :: isnan
+    scorec_vector_is_nan = .false.
     call m3dc1_field_isnan(v%id, isnan)
-    scorec_vector_is_nan = isnan 
+    !scorec_vector_is_nan = isnan 
     if(isnan .ne. 0) scorec_vector_is_nan = .true. 
   end function scorec_vector_is_nan
 

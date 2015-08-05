@@ -175,7 +175,10 @@ module error_estimate
                                                        + edge_jump(1:npoint_int,edges(iedge)+1, LPPSPST)
           ! R3
           if(isplitstep .eq. 1) then
-            fn_eval(1:npoint_int) = (U_tild(1:npoint_int,EOP_DXX) + U_tild(1:npoint_int,EOP_DYY)) * (eps179_pre(1:npoint_int,EOP_DX)*normal(2,iedge)-eps179_pre(1:npoint_int,EOP_DY)*normal(1,iedge)) + (eps179_pre(1:npoint_int,EOP_DXX) + eps179_pre(1:npoint_int,EOP_DYY)) * (U_tild(1:npoint_int,EOP_DX)*normal(2,iedge)-U_tild(1:npoint_int,EOP_DY)*normal(1,iedge)) 
+            fn_eval(1:npoint_int) = (U_tild(1:npoint_int,EOP_DXX) + U_tild(1:npoint_int,EOP_DYY)) * &
+                                    (eps179_pre(1:npoint_int,EOP_DX)*normal(2,iedge)-eps179_pre(1:npoint_int,EOP_DY)*normal(1,iedge)) + &
+                                    (eps179_pre(1:npoint_int,EOP_DXX) + eps179_pre(1:npoint_int,EOP_DYY)) * &
+                                    (U_tild(1:npoint_int,EOP_DX)*normal(2,iedge)-U_tild(1:npoint_int,EOP_DY)*normal(1,iedge)) 
             if (edge_dir(iedge) .eq. 0) then
                call reverse_fn(fn_eval(1:npoint_int),npoint_int)
             end if
