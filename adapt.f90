@@ -115,10 +115,10 @@ module adapt
     call newvar_solve(temporary_field%vec,mass_mat_lhs)
 
     call straighten_fields()
-    write(mesh_file_name,"(A7,I0,A)"),'initial', ntime,0
+    write(mesh_file_name,"(A7,I0,A)") 'initial', ntime,0
     call m3dc1_mesh_write (mesh_file_name, 0)
     call adapt_by_field(temporary_field%vec%id,psimin,psibound)
-    write(mesh_file_name,"(A7,A)"),'adapted', 0
+    write(mesh_file_name,"(A7,A)") 'adapted', 0
     call m3dc1_mesh_write (mesh_file_name,0)
     call m3dc1_mesh_write (mesh_file_name,1)
 

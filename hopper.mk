@@ -30,9 +30,11 @@ else
 endif
 SCOREC_LIBS =-L$(SCORECDIR)/lib -Wl,--start-group $(SCORECLIB) -Wl,--end-group
 INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
-LIBS := $(LIBS) $(SCOREC_LIBS) -lC -lstd
+LIBS := $(LIBS) $(SCOREC_LIBS) #-lC -lstd
 
-OPTS := $(OPTS) -DPetscDEV -DUSEADIOS -DKSPITS -DNO_STOP_MESSAGE=1 -DPetscOLD #-DUSEHYBRID -DCJ_MATRIX_DUMP
+AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
+
+OPTS := $(OPTS) -DPetscDEV -DxUSEADIOS -DKSPITS -DNO_STOP_MESSAGE=1 -DPetscOLD #-DUSEHYBRID -DCJ_MATRIX_DUMP
 #PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev-SUPERLU-HYPRE-MUMPS/petsc-dev-060711/petsc-dev
 #PETSC_ARCH = arch-cray-xt6-pkgs-opt
 #SUPERLU_DIST = -lsuperlu_dist_2.5
@@ -55,14 +57,18 @@ LIBS := $(LIBS) $(HDF5_POST_LINK_OPTS) -lhdf5_fortran -lhdf5 \
         $(ADIOS_FLIB) \
 	-L$(GSL_DIR)/lib -lgsl
 
-FOPTS = -c -Mr8 -Mpreprocess -Minform=warn $(OPTS) \
+#FOPTS = -c -Mr8 -Mpreprocess -Minform=warn $(OPTS) \
+
+FOPTS = -c -s real64 -e Fm -rm $(OPTS) \
 	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs
 CCOPTS  = -c -O $(OPTS)
 
 # Optimization flags
 ifeq ($(OPT), 1)
-  LDOPTS := $(LDOPTS) -fastsse -Mipa=fast,inline
-  FOPTS  := $(FOPTS) -fastsse -Mipa=fast,inline
+#  LDOPTS := $(LDOPTS) -fastsse -Mipa=fast,inline
+#  FOPTS  := $(FOPTS) -fastsse -Mipa=fast,inline
+  LDOPTS := $(LDOPTS) 
+  FOPTS  := $(FOPTS) 
   CCOPTS := $(CCOPTS) -O
 else
   FOPTS := $(FOPTS) -g -Mbounds -Mchkptr -traceback

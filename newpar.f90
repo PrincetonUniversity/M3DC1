@@ -1053,7 +1053,7 @@ subroutine space(ifirstcall)
 #ifdef USESCOREC
   if(ifirstcall .eq. 1) then
      do i=1, num_fields
-       write(field_name,"(I2,A)"), i,0
+       write(field_name,"(I2,A)")  i,0
 #ifdef USECOMPLEX
        call m3dc1_field_create (i, trim(field_name), i, 1, dofs_per_node)
 #else

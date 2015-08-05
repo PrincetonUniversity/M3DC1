@@ -92,9 +92,9 @@ contains
     else
        if(myrank.eq.0) print *, 'curved mesh model...'
     endif
-    write(name_buff,"(A,A)"),mesh_model(1:len_trim(mesh_model)),0
+    write(name_buff,"(A,A)") mesh_model(1:len_trim(mesh_model)),0
     call m3dc1_model_load(name_buff)
-    write(name_buff,"(A,A)"), mesh_filename(1:len_trim(mesh_filename)),0
+    write(name_buff,"(A,A)")  mesh_filename(1:len_trim(mesh_filename)),0
     call m3dc1_mesh_load (name_buff)
 
     if(myrank.eq.0) print *, 'setting up 3D mesh...'
@@ -115,9 +115,9 @@ contains
     ! in serial, it loads the whole mesh
     ! in parallel, it loads N-part distributed mesh.
     ! to get N-part distributed mesh, run split_smb provided as mesh utilities
-    write(name_buff,"(A,A)"), mesh_model(1:len_trim(mesh_model)),0
+    write(name_buff,"(A,A)")  mesh_model(1:len_trim(mesh_model)),0
     call m3dc1_model_load(name_buff)
-    write(name_buff,"(A,A)"), mesh_filename(1:len_trim(mesh_filename)),0
+    write(name_buff,"(A,A)")  mesh_filename(1:len_trim(mesh_filename)),0
     call m3dc1_mesh_load (name_buff)
 #endif
     call update_nodes_owned
