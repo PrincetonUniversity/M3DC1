@@ -1,5 +1,4 @@
-pro write_geqdsk, eqfile=eqfile, $
-                  psilim=psilim, points=pts, _EXTRA=extra
+pro write_geqdsk, eqfile=eqfile, psilim=psilim, _EXTRA=extra
   
   if(n_elements(slice) eq 0) then begin
       slice = read_parameter('ntime', _EXTRA=extra) - 1
@@ -68,7 +67,7 @@ pro write_geqdsk, eqfile=eqfile, $
       print, 'psilim = ', psilim
       
       window, 0
-      lcfs_xy = path_at_flux(psi,x,z,t,psilim)
+      lcfs_xy = path_at_flux(psi,x,z,t,psilim,/contiguous)
 
       ; count only points on separatrix above the xpoint
       if(n_elements(xpoint) gt 1) then begin

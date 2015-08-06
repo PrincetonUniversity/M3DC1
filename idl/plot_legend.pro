@@ -14,6 +14,7 @@ pro plot_legend, names, linestyles=ls, colors=cs, left=l, top=t, psyms=p, $
         cs = intarr(N)
         cs[*] = color(0,N)
      endif
+    if(n_elements(p) eq 0) then p=-1
     while(n_elements(p) lt n_elements(names)) do begin
        p = [p,p]
     end

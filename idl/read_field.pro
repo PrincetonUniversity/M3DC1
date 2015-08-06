@@ -2774,11 +2774,25 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                  a_bracket(psi0,f1p,x,y)/r
           pp = s_bracket(p0,p1,x,y)
 
-          data = (pp + s_bracket(p0,bb,x,y) $
-                  + .5*s_bracket(p1,B02,x,y) $
-                  - (.5*pp/p02 + bb/B02)*s_bracket(p0,B02,x,y) $
-                  - 2.*p02*bb/B02) $
+          ;; data = (pp +  $
+          ;;         s_bracket(p0,bb,x,y) - $
+          ;;         bb/B02*(2.*p02+s_bracket(p0,B02,x,y))) $
+          ;;        / (B02*sqrt(p02))
+
+          data = (pp +  $
+                  s_bracket(p0,bb,x,y) + $
+                  .5*s_bracket(p1,B02,x,y) - $
+                  (.5*pp/p02 + bb/B02)*s_bracket(p0,B02,x,y) - $
+                  2.*p02*bb/B02) $
                  / (B02*sqrt(p02))
+
+          ;; bp0 = p0 + B02/2.
+          ;; data = data - (s_bracket(p0,bb,x,y) - $
+          ;;         (.5*pp/p02)*s_bracket(p0,B02,x,y) - $
+          ;;         2.*bb*s_bracket(p0,bp0,x,y)/B02 + $
+          ;;         s_bracket(p1,bp0,x,y)) $
+          ;;        / (B02*sqrt(p02))
+
        endelse
 
        data = -data ;*(abs(p0) gt 6e-4)
