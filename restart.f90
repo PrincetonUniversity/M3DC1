@@ -708,6 +708,7 @@ subroutine wrrestart_adios
   real, allocatable :: tmp_field_vec(:), tmp_field0_vec(:)
   real, allocatable :: tmp_bf_field_1(:), tmp_bf_field_0(:)
   real, allocatable :: tmp_psi_ext(:), tmp_bz_ext(:), tmp_bf_ext(:)
+  real, allocatable :: tmp_psi_coil_field(:)
 
   integer :: useext
 
@@ -758,6 +759,12 @@ subroutine wrrestart_adios
      useext = 0
   end if
 
+  allocate(tmp_psi_coil_field(ndofs_2))
+  !ndofs_2=0
+  if(icsubtract.eq.1) then
+     call m3dc1_field_retrieve (psi_coil_field%vec%id,tmp_psi_coil_field, ndofs_2)
+     call m3dc1_field_printcompnorm(psi_coil_field%vec%id, "psi_coil_field in wrrestart_adios"//char(0))
+  end if
 
     call MPI_Comm_dup (MPI_COMM_WORLD, comm, ierr) 
     if( ifirstrs .eq. 1 ) then
@@ -784,7 +791,7 @@ subroutine wrrestart_adios
                   adios_groupsize, adios_totalsize
 
   deallocate(tmp_field_vec, tmp_field0_vec, tmp_bf_field_1, tmp_bf_field_0, &
-       tmp_psi_ext, tmp_bz_ext, tmp_bf_ext)
+       tmp_psi_ext, tmp_bz_ext, tmp_bf_ext, tmp_psi_coil_field)
 
   ifirstrs = 0
 #endif
@@ -817,6 +824,7 @@ subroutine rdrestart_adios
   real, allocatable :: tmp_field_vec(:), tmp_field0_vec(:)
   real, allocatable :: tmp_bf_field_1(:), tmp_bf_field_0(:)
   real, allocatable :: tmp_psi_ext(:), tmp_bz_ext(:), tmp_bf_ext(:)
+  real, allocatable :: tmp_psi_coil_field(:)
 
   !!! ADIOS variables for reading 
   integer*8                    :: fh, gh          ! file handler and group handler
@@ -954,6 +962,7 @@ subroutine rdrestart_adios
   allocate(tmp_psi_ext(prev_ndofs2))
   allocate(tmp_bz_ext(prev_ndofs2))
   allocate(tmp_bf_ext(prev_ndofs2))
+  allocate(tmp_psi_coil_field(prev_ndofs2))
 
     ! Check types of the array variables
   call adios_inq_var (gh, "tmp_field_vec", vartype, ndim, dims, timedim, adios_err)
@@ -1030,7 +1039,18 @@ subroutine rdrestart_adios
                      read_bytes, ', elemsize*prev_ndofs2-', elemsize*prev_ndofs2
          call safestop(2)
     endif
-    
+   
+    if (icsubtract.eq.1) then
+      if(myrank .eq. 0)  print*, "read psi_coil_field data"
+      call adios_read_local_var (gh, "tmp_psi_coil_field", group_rank, start, readsize, tmp_psi_coil_field, read_bytes)
+
+      if (read_bytes .ne. elemsize*prev_ndofs2) then
+           write(*,*) '[M3DC1 ERROR] rdrestart_adios: Size mismatch at reading psi_coil_field! read_bytes-', &
+                       read_bytes, ', elemsize*prev_ndofs2-', elemsize*prev_ndofs2
+           call safestop(2)
+      endif
+    end if
+ 
     !! Close group and file
     call MPI_Barrier (comm, ierr)
     call adios_gclose(gh, ierr)
@@ -1138,8 +1158,26 @@ subroutine rdrestart_adios
     endif !if (prev_ndofs2==cur_ndofs2) then
   end if !if (prev_useext.eq.1) 
 
+  if (icsubtract.eq.1) then
+    if (prev_ndofs2==cur_ndofs2) then
+      call m3dc1_field_set(psi_coil_field%vec%id, tmp_psi_coil_field, prev_ndofs2)
+    else
+      do i=1,prev_nnodes
+        dofs_node1 =0.
+        dofs_node2 =0.
+        dofs_node3 =0.
+        !psi_ext%vec
+        dofs_node1(1:prev_ndofs2_pernode) &
+          = tmp_psi_coil_field((i-1)*prev_ndofs2_pernode+1:(i-1)*prev_ndofs2_pernode+prev_ndofs2_pernode)
+        call m3dc1_ent_setdofdata (0, i-1, psi_coil_field%vec%id, cur_ndofs2_pernode, dofs_node1(1:cur_ndofs2_pernode))
+      end do
+      call m3dc1_field_printcompnorm(psi_coil_field%vec%id, "psi_coil_field before sync "//char(0))
+      call m3dc1_field_sync (psi_coil_field%vec%id)
+      call m3dc1_field_printcompnorm(psi_coil_field%vec%id, "psi_coil_field after sync "//char(0))
+    end if
+  end if
   deallocate(tmp_field_vec, tmp_field0_vec, tmp_bf_field_1, tmp_bf_field_0, &
-       tmp_psi_ext, tmp_bz_ext, tmp_bf_ext) 
+       tmp_psi_ext, tmp_bz_ext, tmp_bf_ext, tmp_psi_coil_field) 
   if (prev_ndofs1 .ne. cur_ndofs1 .and. itaylor .eq. 1 .and. itor .eq. 1) then
      if(myrank .eq. 0) print *, "call gradshafranov_per after restart"
      call gradshafranov_per()

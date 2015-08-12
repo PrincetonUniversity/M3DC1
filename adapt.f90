@@ -151,7 +151,6 @@ module adapt
     call derived_quantities(1)
     ke_previous = ekin
   end subroutine adapt_by_psi
-#ifdef USEADAPTBYERROR   
   subroutine adapt_by_error
     use diagnostics
     use basic
@@ -258,7 +257,6 @@ module adapt
     end if
     deallocate(node_error)
   end subroutine adapt_by_error
-#endif
   integer function run_adapt ()
     use diagnostics
     use basic

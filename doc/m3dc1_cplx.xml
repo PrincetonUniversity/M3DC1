@@ -42,6 +42,9 @@
 
        <var name="tmp_bf_field_1"  type="double complex" dimensions="ndofs_2"/>
        <var name="tmp_bf_field_0"  type="double complex" dimensions="ndofs_2"/>
+
+       <var name="tmp_psi_coil_field"  type="double" dimensions="ndofs_2"/>
+
    </adios-group>
 
 <method group="restart"  method="MPI_AMR"/>
