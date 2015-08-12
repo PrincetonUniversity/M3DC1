@@ -279,9 +279,7 @@ Program Reducedquintic
      ! Write output
      if(myrank.eq.0 .and. iprint.ge.1) print *, " Writing output."
      call output
-#ifdef USEADAPTBYERROR   
      if(run_adapt() .eq. 1 .and. iadapt .ne. 0) call adapt_by_error
-#endif
   enddo ! ntime
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done time loop."

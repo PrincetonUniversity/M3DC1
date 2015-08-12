@@ -20,9 +20,6 @@ MAKETARGET = $(MAKE) --no-print-directory -C $@ -f $(CURDIR)/makefile \
 	$(MAKECMDGOALS) 
 
 .PHONY: $(OBJDIR)
-ifdef USEADIOS
-  OBJDIR := $(OBJDIR)-adios
-endif
 
 $(OBJDIR):
 	+@[ -d $@ ] || mkdir -p $@

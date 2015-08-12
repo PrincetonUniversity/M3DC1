@@ -6,6 +6,7 @@ adios_groupsize = 33*8 &
                 + 8 * (ndofs_2) &
                 + 8 * (ndofs_2) &
                 + 8 * (ndofs_2) &
+                + 8 * (ndofs_2) &
 		+ 8*8
 
 call adios_group_size (adios_handle, adios_groupsize, adios_totalsize, adios_err)
@@ -50,6 +51,7 @@ call adios_write (adios_handle, "tmp_bf_field_0", tmp_bf_field_0, adios_err)
 call adios_write (adios_handle, "tmp_psi_ext", tmp_psi_ext, adios_err)
 call adios_write (adios_handle, "tmp_bz_ext", tmp_bz_ext, adios_err)
 call adios_write (adios_handle, "tmp_bf_ext", tmp_bf_ext, adios_err)
+call adios_write (adios_handle, "tmp_psi_coil_field",tmp_psi_coil_field, adios_err)
 call adios_write (adios_handle, "pellet_x", pellet_x, adios_err)
 call adios_write (adios_handle, "pellet_phi", pellet_phi, adios_err)
 call adios_write (adios_handle, "pellet_z", pellet_z, adios_err)

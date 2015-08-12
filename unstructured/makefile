@@ -68,6 +68,9 @@ endif
 OPTS := $(OPTS) -DMAX_PTS=$(MAX_PTS)
 BIN_POSTFIX := $(BIN_POSTFIX)-$(MAX_PTS)
 
+ifeq ($(USEADIOS), 1)
+  BIN_POSTFIX := $(BIN_POSTFIX)-adios
+endif
 OPTS := $(OPTS) -DPETSC_FORTRAN_PETSCTRUTH_INT #-DCJ_MATRIX_DUMP
 
 # add date stamp

@@ -58,6 +58,9 @@
        <var name="tmp_bz_ext"  type="double" dimensions="ndofs_2"/>
 
        <var name="tmp_bf_ext"  type="double" dimensions="ndofs_2"/>
+
+       <var name="tmp_psi_coil_field"  type="double" dimensions="ndofs_2"/>
+
    </adios-group>
 
 <method group="restart"  method="MPI_AMR">num_aggregators=32;num_ost=64</method>
