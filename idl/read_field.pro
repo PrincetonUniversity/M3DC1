@@ -1157,7 +1157,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            r = radius_matrix(x,y,t)
        endif else r = 1.
 
-       if(icomplex eq 1) then begin
+       if(icomplex eq 1 and time ne -1) then begin
            b2 = (s_bracket(psi,conj(psi),x,y) + I*conj(I))/r^2
            f = read_field('f', x, y, t, slices=time, mesh=mesh, $
                           filename=filename, points=pts, linear=linear, $
@@ -1221,7 +1221,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        endif else r = 1.
 
        b2 = (psi_r*conj(psi_r) + psi_z*conj(psi_z) + I*conj(I))/r^2
-       if(icomplex eq 1) then begin
+       if(icomplex eq 1 and time ne -1) then begin
            ; if the fields are ~exp(i n phi), then
            ; this is the toroidally-averaged value of |B| !
 
