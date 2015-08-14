@@ -1175,7 +1175,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            b2 = real_part(b2)
            b2 = b2 / 2. ; this comes from the cos^2 dependence of the field
        endif else begin 
-           b2 = s_bracket(psi,psi,x,y) + I^2/r^2
+           b2 = s_bracket(psi,psi,x,y)/r^2 + I^2/r^2
            if(i3d eq 1) then begin
                fp = read_field('f', x, y, t, slices=time, mesh=mesh, $
                                filename=filename, points=pts, linear=linear, $
