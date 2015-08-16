@@ -937,7 +937,7 @@ subroutine rdrestart_adios
   cur_ndofs2_pernode = cur_ndofs2/cur_nnodes
 
   if(prev_ndofs1_pernode .ne. cur_ndofs1_pernode) then
-    if(myrank .eq. 0) print *, "Retarting 3d from 2d. Setting ntime = 0"
+    if(myrank .eq. 0) print *, "Restarting 3d from 2d. Setting ntime = 0"
     ntime = 0
   end if
   if (prev_nnodes .ne. cur_nnodes .and. prev_nnodes*2 .ne. cur_nnodes) then
