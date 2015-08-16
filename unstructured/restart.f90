@@ -936,6 +936,10 @@ subroutine rdrestart_adios
   cur_ndofs1_pernode = cur_ndofs1/cur_nnodes
   cur_ndofs2_pernode = cur_ndofs2/cur_nnodes
 
+  if(prev_ndofs1_pernode .ne. cur_ndofs1_pernode) then
+    if(myrank .eq. 0) print *, "Retarting 3d from 2d. Setting ntime = 0"
+    ntime = 0
+  end if
   if (prev_nnodes .ne. cur_nnodes .and. prev_nnodes*2 .ne. cur_nnodes) then
       write(*,*) '[M3DC1 ERROR] rdrestart_adios: #nodes mismatch. prev-',prev_nnodes,', cur-',cur_nnodes
       call safestop(2)
