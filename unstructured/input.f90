@@ -816,6 +816,11 @@ subroutine validate_input
      call safestop(1)
   endif
 
+  if(zeff .ne. 1.0 .and. itemp.eq.1) then
+     if(myrank.eq.0) print *, "itemp=1 not allowed with zeff .gt. 1"
+     call safestop(1)
+  endif
+
   if(isplitstep.eq.0 .and. ipressplit.eq.1) then
      if(myrank.eq.0) print *, "ipressplit=1 not allowed with isplitstep=0"
      call safestop(1)
@@ -1040,6 +1045,9 @@ subroutine validate_input
   t0_norm = l0_norm / v0_norm
   p0_norm = b0_norm**2/(4.*pi)
   e0_norm = v0_norm*b0_norm / c_light
+
+  xmag_input = xmag
+  zmag_input = zmag
   
   if(ibeam.ge.1) call neutral_beam_init
   if(ipellet.ne.0) call pellet_init
