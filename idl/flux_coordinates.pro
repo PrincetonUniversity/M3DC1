@@ -1,5 +1,5 @@
 pro flux_coordinates, _EXTRA=extra, pest=pest, points=pts, rpath=rpath, zpath=zpath, $
-                      psi=psi, theta=theta, psi_norm=psi_norm, q=q, jacobian=jac, $
+                      flux=psi, theta=theta, nflux=psi_norm, q=q, jacobian=jac, $
                       plot=makeplot
 
   if(keyword_set(pest)) then begin
@@ -135,10 +135,19 @@ pro flux_coordinates, _EXTRA=extra, pest=pest, points=pts, rpath=rpath, zpath=zp
   if(keyword_set(makeplot)) then begin
 
      window, 1
+     ; plot jacobian
+;     contour, alog10(abs(jac)), theta, psi_norm, $
+;              xtitle='!7h!X', ytitle='!7W!X', $
+;              xrange=[0,2*!pi], xstyle=1, /follow
+     contour_and_legend, jac, theta, psi_norm, table=39, $
+              xtitle='!7h!X', ytitle='!7W!X', /lines
+
+     window, 0
      !p.multi = [0,2,1]
 
      ; plot coordinates
-     plot, [min(rpath), max(rpath)], [min(zpath), max(zpath)], /nodata, /iso
+     plot, [min(rpath), max(rpath)], [min(zpath), max(zpath)], $
+           /nodata, /iso, xtitle='!8R!X', ytitle='!8Z!X'
      for j=0, n-1, 10 do begin
         oplot, [rpath[*,j],rpath[0,j]], [zpath[*,j],zpath[0,j]]
      end
@@ -151,14 +160,5 @@ pro flux_coordinates, _EXTRA=extra, pest=pest, points=pts, rpath=rpath, zpath=zp
      plot, psi_norm, abs(q), xtitle='!7W!X', ytitle='!8q!X'
      
      !p.multi=0
-
-     window, 0
-     ; plot jacobian
-;     contour, alog10(abs(jac)), theta, psi_norm, $
-;              xtitle='!7h!X', ytitle='!7W!X', $
-;              xrange=[0,2*!pi], xstyle=1, /follow
-     contour_and_legend, theta, psi_norm, $
-              xtitle='!7h!X', ytitle='!7W!X'
-
   end
 end
