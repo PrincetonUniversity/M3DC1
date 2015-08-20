@@ -21,33 +21,58 @@ endif
 # define where you want to locate the mesh adapt libraries
 #HYBRID_HOME =  /scratch2/scratchdirs/xyuan/Software_Hopper/pdslin_0.0
 #HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lpdslin
+CORE_LIBS = -lapf -lgmi -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr
+
+ifeq ($(TRILINOS), 1)
+  SCORECDIR = /global/project/projectdirs/mp288/seol/trilinos_dev
+  SCORECLIB = $(CORE_LIBS) -lm3dc1_scorec_trilinos
+  TRILINOS_LIBS = -lamesos -ltpetra -lkokkosnodeapi -ltpi -laztecoo -lepetra -lsacado -lteuchosparameterlist -lteuchoscomm -lteuchoscore -lteuchosnumerics -lteuchosremainder
+else
 SCORECDIR = /global/project/projectdirs/mp288/edison/scorec/Jun2015
+endif
 
 ifeq ($(COM), 1)
-      SCORECLIB=-lapf -lgmi -lm3dc1_scorec_complex -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr
-      PETSC_DIR =/opt/cray/petsc/3.5.2.1/complex/INTEL/140/sandybridge
-      PETSC_ARCH =
-      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L/opt/cray/tpsl/1.4.3/INTEL/140/sandybridge/lib -lsuperlu -lcmumps -ldmumps -lesmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu_dist -lparmetis -lmetis -lptscotch -lscotch -lptscotcherr -lscotcherr -lsci_intel_mpi_mp -lsci_intel_mp -liomp5 -lpthread -lssl -lcrypto -Wl,-rpath,/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -L/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -ldl -lstdc++
+  ifeq ($(TRILINOS), 1)
+    SCORECLIB = $(CORE_LIBS) -lm3dc1_scorec_trilinos_complex
+  else
+    SCORECLIB = $(CORE_LIBS) -lm3dc1_scorec_complex
+  endif
+  PETSC_DIR =/opt/cray/petsc/3.5.2.1/complex/INTEL/140/sandybridge
+  PETSC_ARCH =
+  PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L/opt/cray/tpsl/1.4.3/INTEL/140/sandybridge/lib -lsuperlu -lcmumps -ldmumps -lesmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu_dist -lparmetis -lmetis -lptscotch -lscotch -lptscotcherr -lscotcherr -lsci_intel_mpi_mp -lsci_intel_mp -liomp5 -lpthread -lssl -lcrypto -Wl,-rpath,/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -L/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -ldl -lstdc++
 else
-      SCORECLIB=-lapf -lgmi -lm3dc1_scorec -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr
-      PETSC_DIR =/opt/cray/petsc/3.5.2.1/real/INTEL/140/sandybridge
-      PETSC_ARCH =
-      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L/opt/cray/tpsl/1.4.3/INTEL/140/sandybridge/lib -lHYPRE -lsuperlu -lcmumps -ldmumps -lesmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu_dist -lparmetis -lmetis -lptscotch -lscotch -lptscotcherr -lscotcherr -lsci_intel_mpi_mp -lsci_intel_mp -liomp5 -lsundials_cvode -lsundials_cvodes -lsundials_ida -lsundials_idas -lsundials_kinsol -lsundials_nvecparallel -lsundials_nvecserial -lpthread -lssl -lcrypto -Wl,-rpath,/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -L/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -ldl -lstdc++
+  ifeq ($(TRILINOS), 1)
+    SCORECLIB = $(CORE_LIBS) -lm3dc1_scorec_trilinos
+  else
+    SCORECLIB = $(CORE_LIBS) -lm3dc1_scorec
+  endif
+  PETSC_DIR =/opt/cray/petsc/3.5.2.1/real/INTEL/140/sandybridge
+  PETSC_ARCH =
+  PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L/opt/cray/tpsl/1.4.3/INTEL/140/sandybridge/lib -lHYPRE -lsuperlu -lcmumps -ldmumps -lesmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu_dist -lparmetis -lmetis -lptscotch -lscotch -lptscotcherr -lscotcherr -lsci_intel_mpi_mp -lsci_intel_mp -liomp5 -lsundials_cvode -lsundials_cvodes -lsundials_ida -lsundials_idas -lsundials_kinsol -lsundials_nvecparallel -lsundials_nvecserial -lpthread -lssl -lcrypto -Wl,-rpath,/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -L/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -ldl -lstdc++
 endif
 
 SCOREC_LIBS =-L$(SCORECDIR)/lib -Wl,--start-group $(SCORECLIB) -Wl,--end-group 
 INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include -I/opt/cray/tpsl/1.4.3/INTEL/140/sandybridge/include
+LIBS := $(LIBS) -L$(SCORECDIR)/lib $(SCOREC_LIBS)
+
 ifeq ($(COM), 1)
 LIBS := $(LIBS) \
-        -L$(SCORECDIR)/lib $(SCOREC_LIBS) \
-        -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcraypetsc_intel_complex $(PETSC_EXTERNAL_LIB_BASIC)  $(SCOREC_LIBS) \
-        -lstdc++
+        -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcraypetsc_intel_complex $(PETSC_EXTERNAL_LIB_BASIC)  
 else
 LIBS := $(LIBS) \
-        -L$(SCORECDIR)/lib $(SCOREC_LIBS) \
-        -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcraypetsc_intel_real $(PETSC_EXTERNAL_LIB_BASIC)  $(SCOREC_LIBS) \
-        -lstdc++
+        -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcraypetsc_intel_real $(PETSC_EXTERNAL_LIB_BASIC)
 endif
+
+ifeq ($(TRILINOS), 1)
+INCLUDE := $(INCLUDE) -I$(CRAY_TRILINOS_PREFIX_DIR)/include
+LIBS := $(LIBS) \
+        -L$(CRAY_TRILINOS_PREFIX_DIR)/lib $(TRILINOS_LIBS) \
+        -L$(PARALLEL_NETSDF_DIR/lib) -lpnetcdf \
+        -L$(MKL_LIBDIR) -lmkl_lapack95_lp64 -lmkl_blas95_lp64 \
+        -L$(BOOST_LIB) -lboost_mpi -lboost_exception
+endif
+
+LIBS := $(LIBS) -lstdc++
 
 ifeq ($(USEADIOS), 1)
   OPTS := $(OPTS) -DUSEADIOS

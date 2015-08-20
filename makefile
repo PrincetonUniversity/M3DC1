@@ -26,6 +26,10 @@ else
 endif
 
 # determine whether 2d, 3d, or 2d-complex
+ifeq ($(TRILINOS), 1)
+  BIN_POSTFIX := $(BIN_POSTFIX)-trilinos
+endif
+
 ifeq ($(3D), 1)
   OPTS := $(OPTS) -DUSE3D -Dvectype=real
   BIN_POSTFIX := $(BIN_POSTFIX)-3d
