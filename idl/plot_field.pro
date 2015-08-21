@@ -93,17 +93,19 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
        endif
    endif else if(keyword_set(magcoord)) then begin
 
-       psi = read_field('psi',x,y,t,points=p,/equilibrium,_EXTRA=ex)
-       field = flux_coord_field(field, psi, x, y, t, fbins=p, tbins=p, $
-                                nflux=nflux, angle=angle, bins=p)
+      psi = read_field('psi',x,y,t,points=p,/equilibrium,_EXTRA=ex)
+      field = flux_coord_field(field, psi, x, y, t, fbins=p, tbins=p, $
+                               nflux=nflux, angle=angle, bins=p)
+      ;; field[0,*,*] = $
+      ;;    flux_coord_field_new(field,x,y,/fast,filename=filename,points=p, $
+      ;;                         fc=fc,_EXTRA=extra)
        
-       contour_and_legend, transpose(field[0,*,*], [0,2,1]),$
-         angle*180./!pi, nflux, title=title, $
-         label=units, levels=levels, $
-         xtitle='!6Angle (Degrees)!X', $
-         ytitle='!7W!X', $
-         range=range, _EXTRA=ex
-
+      contour_and_legend, transpose(field[0,*,*],[0,2,1]), $
+                          angle*180./!pi, nflux, title=title, $
+                          label=units, levels=levels, $
+                          xtitle='!6Angle (Degrees)!X', $
+                          ytitle='!7W!X', $
+                          range=range, _EXTRA=ex
        
    endif else begin          
        contour_and_legend, field[0,*,*], x, y, title=title, $
