@@ -17,7 +17,8 @@
 
 function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
                            plot=makeplot, fast=fast0, psi0=psi0, $
-                           i0=i0, x=x, z=z, t=t
+                           i0=i0, x=x, z=z, fbins=fbins, $
+                           tbins=tbins
 
   if(n_elements(fast0) eq 0) then fast0 = 0
   fast = fast0
@@ -29,6 +30,8 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
         pts=sqrt(n_elements(x)*n_elements(z))
      endelse
   end
+  if(n_elements(fbins) eq 0) then fbins=200
+  if(n_elements(tbins) eq 0) then tbins=200
 
   if(keyword_set(pest)) then begin
      print, 'Creating flux coordinates using PEST angle'
@@ -37,8 +40,11 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
      print, 'Creating flux coordinates using GEOMETRIC angle'
   end
   print, 'FAST MODE: ', keyword_set(fast)
+  print, 'Using FC resolution ', tbins, fbins
 
   if(n_elements(psi0) eq 0 or n_elements(x) eq 0 or n_elements(z) eq 0) then begin
+     print, 'READING PSI IN FLUX_COORDINATES'
+     help, psi0, x, z
      psi0 = read_field('psi',x,z,t,points=pts,/equilibrium,_EXTRA=extra)
   end
 
@@ -56,8 +62,8 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
   psi_s = lcfs(psi0, x, z, $
           axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra)
 
-  m = pts  ; number of poloidal points
-  n = pts  ; number of radial points
+  m = tbins  ; number of poloidal points
+  n = fbins  ; number of radial points
   
   psi = (psi_s - flux0)*(findgen(n)+.5)/n + flux0
   psi_norm = (psi - flux0)/(psi_s - flux0)

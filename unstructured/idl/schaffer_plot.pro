@@ -3,7 +3,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
                    m_val=m_val, phase=phase, overplot=overplot, $
                    linestyle=linestyle, outfile=outfile, bmnfile=bmnfile, $
                    bmncdf=bmncdf, rhs=rhs, reverse_q=reverse_q, $
-                   sqrtpsin=sqrtpsin
+                   sqrtpsin=sqrtpsin, profdata=profdata
 
    print, 'Drawing schaffer plot'
 
@@ -11,6 +11,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
 
    if(n_elements(psi0) eq 0) then begin
 ;       psi0 = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra)
+      print, 'READING PSI IN SCHAFFER_PLOT'
        psi0 = read_field('psi',x,z,t,slice=-1,_EXTRA=extra)
    endif
    if(n_elements(i0) eq 0) then begin
@@ -30,35 +31,19 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    jac = r^3*bp/abs(i0)
 
    if(size(field, /type) eq 7) then begin
-       field = read_field(field,x,z,t,/complex,_EXTRA=extra)
+       field = read_field(field*jac,x,z,t,/complex,_EXTRA=extra)
    endif
 
-   a_r = flux_coord_field(real_part(field)*jac,psi0,x,z,t, $
-                          flux=flux,angle=angle,qval=q, $
-                          area=area,nflux=nflux,tbins=bins,fbins=bins, $
-                          /pest,i0=i0, _EXTRA=extra)
-   a_i = flux_coord_field(imaginary(field)*jac,psi0,x,z,t, $
-                          flux=flux,angle=angle, qval=q, $
-                          area=area,nflux=nflux,tbins=bins,fbins=bins, $
-                          /pest,i0=i0, _EXTRA=extra)
-
-   if(keyword_set(reverse_q)) then q = -q
-
-   for i=0, n_elements(angle)-1 do begin
-       a_r[0,*,i] = (2.*!pi)^2*a_r[0,*,i]*q/area
-       a_i[0,*,i] = (2.*!pi)^2*a_i[0,*,i]*q/area
+   d = field_spectrum(field,x,z,psi0=psi0,i0=i0,fc=fc,tbins=bins,fbins=bins,m=m)
+   flux =fc.psi
+   nflux=fc.psi_norm
+   angle=fc.theta
+   q=fc.q
+   area = fc.area
+      
+   for i=0, fc.m-1 do begin
+      d[0,i,*] = d[0,i,*]/fc.area
    end 
-
-   a = complex(a_r, a_i)
-   b = transpose(a,[0,2,1])
-   c = fft(b, -1, dimension=2)
-
-   ; shift frequency values so that most negative frequency comes first
-   n = n_elements(angle)
-   f = indgen(n)
-   f[n/2+1] = n/2 + 1 - n + findgen((n-1)/2)
-   m = shift(f,-(n/2+1))
-   d = shift(c,0,-(n/2+1),0)
 
    if(n_elements(bmnfile) ne 0) then begin
        openw, ifile, /get_lun, bmnfile
@@ -76,103 +61,71 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    end
 
    if(n_elements(bmncdf) ne 0) then begin
-        omega_i = flux_average('v_omega',flux=qflux,psi=psi0,x=x,z=z,t=t,$
-                               bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
-        omega_e = flux_average('ve_omega',flux=qflux,psi=psi0,x=x,z=z,t=t,$
-                               bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
-        F = flux_average('I',flux=qflux,psi=psi0,x=x,z=z,t=t,$
-                               bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
-        p = flux_average('p',flux=qflux,psi=psi0,x=x,z=z,t=t,$
-                               bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
-        pe = flux_average('pe',flux=qflux,psi=psi0,x=x,z=z,t=t,$
-                               bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
-        den_e = flux_average('ne',flux=qflux,psi=psi0,x=x,z=z,t=t,$
-                             bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
-
-       rpath = fltarr(n_elements(m), n_elements(nflux))
-       zpath = fltarr(n_elements(m), n_elements(nflux))
-       nulls, axis=axis, _EXTRA=extra
-
-       for i=0, n_elements(nflux)-1 do begin
-           xy = path_at_flux(psi0,x,z,t,flux[i],/contiguous,$
-                             path_points=n_elements(m))
-           rpath[i,*] = xy[0,*]
-           zpath[i,*] = xy[1,*]
-
-                                ; do 3 Newton iterations
-           for j=0, 3 do begin
-               theta_geom = reform(atan(zpath[i,*]-axis[1],rpath[i,*]-axis[0]))
-               dum = min(theta_geom, ind, /abs)
-               if(dum eq 0 and ind eq 0) then break
-               im = ind-1 mod n_elements(m)
-               ip = ind+1 mod n_elements(m)
-               if((dum lt 0 and theta_geom(ip) gt 0) or $
-                  (dum gt 0 and theta_geom(ip) lt 0)) then begin
-                   dtheta = theta_geom(ip) - dum
-               endif else if((dum lt 0 and theta_geom(im) gt 0) or $
-                             (dum gt 0 and theta_geom(im) lt 0)) then begin
-                   dtheta = dum - theta_geom(im)
-               endif else begin
-                   print, 'Error!', theta_geom(im), dum, theta_geom(ip)
-               endelse
-               dind = -dum/dtheta
-               index = findgen(n_elements(m)) + ind + dind
-               wg = where(index ge n_elements(m), c)
-               if(c gt 0) then index[wg] = index[wg] - n_elements(m)
-               wg = where(index lt 0, c)
-               if(c gt 0) then index[wg] = index[wg] + n_elements(m)
-               rpath[i,*] = interpolate(rpath[i,*], index)
-               zpath[i,*] = interpolate(zpath[i,*], index)
-           end
-       end
+      if(keyword_set(profdata)) then begin
+         omega_i = flux_average('v_omega',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+                                bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
+         omega_e = flux_average('ve_omega',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+                                bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
+         F = flux_average('I',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+                          bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
+         p = flux_average('p',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+                          bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
+         pe = flux_average('pe',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+                           bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
+         den_e = flux_average('ne',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+                              bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
+      end
        
-       plot, [1.0, 2.3], [-1.5, 1.5], /nodata
-       for i=0, n_elements(nflux) - 1, 10 do begin
-           oplot, rpath[*, i], zpath[*,i]
-       end
-;       stop
+      plot, [1.0, 2.3], [-1.5, 1.5], /nodata
+      for i=0, n_elements(nflux) - 1, 10 do begin
+         oplot, fc.r[i,*], fc.z[i,*]
+      end
+      wait, 1
 
-       bpval = fltarr(n_elements(m), n_elements(nflux))
-       bpval = field_at_point(bp, x, z, rpath, zpath)
+      bpval = fltarr(n_elements(m), n_elements(nflux))
+      bpval = field_at_point(bp, x, z, fc.r, fc.z)
        
-       id = ncdf_create(bmncdf, /clobber)
-       ncdf_attput, id, 'ntor', fix(ntor), /short, /global
-       n_id = ncdf_dimdef(id, 'npsi', n_elements(nflux))
-       m_id = ncdf_dimdef(id, 'mpol', n_elements(m))
-       psi_var = ncdf_vardef(id, 'psi', [n_id], /float)
-       flux_pol_var = ncdf_vardef(id, 'flux_pol', [n_id], /float)
-       q_var = ncdf_vardef(id, 'q', [n_id], /float)
-       p_var = ncdf_vardef(id, 'p', [n_id], /float)
-       F_var = ncdf_vardef(id, 'F', [n_id], /float)
-       pe_var = ncdf_vardef(id, 'pe', [n_id], /float)
-       ne_var = ncdf_vardef(id, 'ne', [n_id], /float)
-       omega_i_var = ncdf_vardef(id, 'omega_i', [n_id], /float)
-       omega_e_var = ncdf_vardef(id, 'omega_e', [n_id], /float)
-       m_var = ncdf_vardef(id, 'm', [m_id], /short)
-       bmn_real_var = ncdf_vardef(id, 'bmn_real', [m_id,n_id], /float)
-       bmn_imag_var = ncdf_vardef(id, 'bmn_imag', [m_id,n_id], /float)
-       rpath_var = ncdf_vardef(id, 'rpath', [m_id,n_id], /float)
-       zpath_var = ncdf_vardef(id, 'zpath', [m_id,n_id], /float)
-       bp_var = ncdf_vardef(id, 'Bp', [m_id,n_id], /float)
-       ncdf_control, id, /endef
-       ncdf_varput, id, 'psi', reform(nflux[0,*])
-       ncdf_varput, id, 'flux_pol', reform(flux[0,*])
-       ncdf_varput, id, 'm', m
-       ncdf_varput, id, 'q', abs(reform(q))
-       ncdf_varput, id, 'p', reform(p)
-       ncdf_varput, id, 'F', reform(F)
-       ncdf_varput, id, 'pe', reform(pe)
-       ncdf_varput, id, 'ne', reform(den_e)
-       ncdf_varput, id, 'omega_e', reform(omega_e)
-       ncdf_varput, id, 'omega_i', reform(omega_i)
-       ncdf_varput, id, 'bmn_real', real_part(reform(d[0,*,*]))
-       ncdf_varput, id, 'bmn_imag', imaginary(reform(d[0,*,*]))
-       ncdf_varput, id, 'rpath', rpath
-       ncdf_varput, id, 'zpath', zpath
-       ncdf_varput, id, 'Bp', bpval
-       ncdf_close, id
+      id = ncdf_create(bmncdf, /clobber)
+      ncdf_attput, id, 'ntor', fix(ntor), /short, /global
+      n_id = ncdf_dimdef(id, 'npsi', n_elements(nflux))
+      m_id = ncdf_dimdef(id, 'mpol', n_elements(m))
+      psi_var = ncdf_vardef(id, 'psi', [n_id], /float)
+      flux_pol_var = ncdf_vardef(id, 'flux_pol', [n_id], /float)
+      q_var = ncdf_vardef(id, 'q', [n_id], /float)
+      if(keyword_set(profdata)) then begin
+         p_var = ncdf_vardef(id, 'p', [n_id], /float)
+         F_var = ncdf_vardef(id, 'F', [n_id], /float)
+         pe_var = ncdf_vardef(id, 'pe', [n_id], /float)
+         ne_var = ncdf_vardef(id, 'ne', [n_id], /float)
+         omega_i_var = ncdf_vardef(id, 'omega_i', [n_id], /float)
+         omega_e_var = ncdf_vardef(id, 'omega_e', [n_id], /float)
+      end
+      m_var = ncdf_vardef(id, 'm', [m_id], /short)
+      bmn_real_var = ncdf_vardef(id, 'bmn_real', [m_id,n_id], /float)
+      bmn_imag_var = ncdf_vardef(id, 'bmn_imag', [m_id,n_id], /float)
+      rpath_var = ncdf_vardef(id, 'rpath', [m_id,n_id], /float)
+      zpath_var = ncdf_vardef(id, 'zpath', [m_id,n_id], /float)
+      bp_var = ncdf_vardef(id, 'Bp', [m_id,n_id], /float)
+      ncdf_control, id, /endef
+      ncdf_varput, id, 'psi', nflux
+      ncdf_varput, id, 'flux_pol', flux
+      ncdf_varput, id, 'm', m
+      ncdf_varput, id, 'q', q
+      if(keyword_set(profdata)) then begin
+         ncdf_varput, id, 'p', reform(p)
+         ncdf_varput, id, 'F', reform(F)
+         ncdf_varput, id, 'pe', reform(pe)
+         ncdf_varput, id, 'ne', reform(den_e)
+         ncdf_varput, id, 'omega_e', reform(omega_e)
+         ncdf_varput, id, 'omega_i', reform(omega_i)
+      end
+      ncdf_varput, id, 'bmn_real', real_part(reform(d[0,*,*]))
+      ncdf_varput, id, 'bmn_imag', imaginary(reform(d[0,*,*]))
+      ncdf_varput, id, 'rpath', fc.r
+      ncdf_varput, id, 'zpath', fc.z
+      ncdf_varput, id, 'Bp', bpval
+      ncdf_close, id
    end
-
    
    if(n_elements(m_val) ne 0) then begin
 
@@ -222,27 +175,27 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        print, abs(q[fix(indices)])
        print, abs(q[fix(indices+1)])
 
-       b = complexarr(n_elements(angle), n_elements(indices))
-       for i=0, n_elements(angle)-1 do begin
-           b[i,*] = interpolate(reform(a[0,*,i]), indices)
-       end
-;       b = interpolate(reform(a[0,*,*]), indices)
+;;        b = complexarr(n_elements(angle), n_elements(indices))
+;;        for i=0, n_elements(angle)-1 do begin
+;;            b[i,*] = interpolate(reform(a[0,*,i]), indices)
+;;        end
+;; ;       b = interpolate(reform(a[0,*,*]), indices)
        
-       c = fft(b, -1, dimension=1)
-       dold = d
-       if(n_elements(indices) eq 1) then begin
-           d = shift(c,-(n/2+1))
-       endif else begin
-           d = shift(c,-(n/2+1),0)
-       endelse
+;;        c = fft(b, -1, dimension=1)
+;;        dold = d
+;;        if(n_elements(indices) eq 1) then begin
+;;            d = shift(c,-(n/2+1))
+;;        endif else begin
+;;            d = shift(c,-(n/2+1),0)
+;;        endelse
 
        col = fltarr(n_elements(indices))
        c = get_colors()
        for i=0, n_elements(col)-1 do begin
-           col[i] = c[i mod n_elements(c)]
-        end
+          col[i] = c[i mod n_elements(c)]
+       end
        if(n_elements(outfile) ne 0) then begin
-           openw, ifile, outfile, /get_lun
+          openw, ifile, outfile, /get_lun
        end
 
        for i=0, n_elements(indices)-1 do begin
@@ -252,10 +205,12 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
            print, 'q, Psi = ', interpolate(abs(q),indices[i]), $
              interpolate(nflux, indices[i])
 
-           print, 'Resonant field: m (mag, phase) = ', m[j], abs(d[j,i]), $
-             atan(imaginary(d[j,i]),real_part(d[j,i]))
-           print, 'Resonant field: m (mag, phase) = ', m[k], abs(d[k,i]), $
-             atan(imaginary(d[k,i]),real_part(d[k,i]))
+           dj = interpolate(reform(d[0,j,*]), indices[i])
+           dk = interpolate(reform(d[0,k,*]), indices[i])
+           print, 'Resonant field: m (mag, phase) = ', m[j], abs(dj), $
+             atan(imaginary(dj),real_part(dj))
+           print, 'Resonant field: m (mag, phase) = ', m[k], abs(dk), $
+             atan(imaginary(dk),real_part(dk))
 
 ;           if(i eq 0) then begin
 ;               plot, m, abs(d[*,i]), xrange=[-20,20], yrange=[0, max(abs(d))]
@@ -265,10 +220,16 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
            
            if(n_elements(outfile) ne 0) then begin
                print, 'q[0] = ', q[0]
-               if(q[0] gt 0) then mi = j else mi = k
+               if(q[0] gt 0) then begin
+                  dd = dj
+                  mi = j 
+               endif else begin
+                  dd = dk
+                  mi = k
+               end
                print, 'm[mi] = ', m[mi]
-               printf, ifile, format='(I5,7F12.6)', m[mi], abs(d[mi,i]), $
-                 atan(imaginary(d[mi,i]),real_part(d[mi,i])), $
+               printf, ifile, format='(I5,7F12.6)', m[mi], abs(dd), $
+                 atan(imaginary(dd),real_part(dd)), $
                  interpolate(nflux, indices[i]), $
                  interpolate(abs(q), indices[i]), $
                  interpolate(deriv(nflux, abs(q)), indices[i]), $
@@ -279,7 +240,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        if(n_elements(outfile) ne 0) then begin
            free_lun, ifile
         end
-       d = dold
+;       d = dold
    endif
 
    if(1 eq strcmp(!d.name, 'PS', /fold_case)) then begin

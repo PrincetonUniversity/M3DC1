@@ -80,7 +80,8 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
    r = radius_matrix(x,z,t)
    y = z_matrix(x,z,t)
 
-   br = -(bx*psi0_r + bz*psi0_z) / sqrt(psi0_r^2 + psi0_z^2)
+   ; calculate B.grad(psi)
+   br = (bx*psi0_r + bz*psi0_z)
    
    ; convert to cgs
    get_normalizations, b0=b0_norm, n0=n0_norm, l0=l0_norm, _EXTRA=extra, $
