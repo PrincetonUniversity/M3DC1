@@ -9,7 +9,8 @@
 function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
                              area=area, volume=volume, dV=dV, psirange=range, $
                              integrate=integrate, r0=r0, surface_weight=sw, $
-                             nflux=nflux, elongation=elongation, _EXTRA=extra
+                             nflux=nflux, elongation=elongation, _EXTRA=extra, $
+                             fc=fc
 
    sz = size(field)
 
@@ -24,7 +25,36 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
        result = complexarr(sz[1], bins)
    endif else begin
        result = fltarr(sz[1], bins)
-   endelse
+    endelse
+
+  ; if flux coordinates structure is provided, use it
+  if(isa(fc)) then begin
+     print, 'FLUX_AVERAGE_FIELD using provided fc'
+     
+     f = field_at_point(field, x, z, fc.r, fc.z)
+     
+     for j=0, fc.n-1 do begin
+        result[0, j] = total(f[*,j]*fc.j[*,j])/total(fc.j[*,j])
+     end
+
+     if(keyword_set(integrate)) then begin
+        val = reform(result[0,*])
+        result[0,0] = val[0]*fc.dV[0]*(fc.psi[0] - fc.psi0)/2.
+        for j=1, fc.n-1 do begin
+           result[0,j] = result[0,j-1] + $
+                         (val[j]*fc.dV[j]+val[j-1]*fc.dV[j-1])*(fc.psi[j]-fc.psi[j-1])/2.
+        end
+     endif
+
+     flux = fc.psi
+     nflux = fc.psi_norm
+     dV = fc.dV
+     area = fc.area
+     volume = fc.v
+     return, result
+  endif
+
+
    flux = fltarr(sz[1], bins)
    dV = fltarr(sz[1], bins)
    area = fltarr(sz[1], bins)

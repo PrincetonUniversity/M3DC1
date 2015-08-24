@@ -44,7 +44,6 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
 
   if(n_elements(psi0) eq 0 or n_elements(x) eq 0 or n_elements(z) eq 0) then begin
      print, 'READING PSI IN FLUX_COORDINATES'
-     help, psi0, x, z
      psi0 = read_field('psi',x,z,t,points=pts,/equilibrium,_EXTRA=extra)
   end
 
@@ -253,7 +252,8 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
   endelse
 
   ; define flux coordinates structure
-  fc = { m:m, n:n, r:rpath, z:zpath, psi:psi, psi_norm:psi_norm, theta:theta, $
+  fc = { m:m, n:n, r:rpath, z:zpath, r0:axis[0], z0:axis[1], $
+         psi1:psi_s, psi0:flux0, psi:psi, psi_norm:psi_norm, theta:theta, $
          j:jac, q:q, area:area, dV:dV, pest:keyword_set(pest), $
          V:V, phi:phi, phi_norm:phi/phi[n-1], rho:sqrt(phi/phi[n-1]) }
 
