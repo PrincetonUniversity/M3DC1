@@ -26,31 +26,20 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
                        flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
                        points=points, name=name, symbol=symbol, units=units, $
                        integrate=integrate, complex=complex, abs=abs, $
-                       phase=phase, stotal=total, fac=fac, $
+                       phase=phase, stotal=total, fac=fac, fc=fc, $
                        elongation=elongation, filename=filename, $
                        _EXTRA=extra
 
    type = size(field, /type)
-
    sz = size(field)
 
    if(n_elements(points) eq 0) then begin
        if(type ne 7) then points = sz[2] else points=200
    endif
 
-   if((n_elements(psi) le 1) $
-      or (n_elements(x) eq 0) or (n_elements(z) eq 0) $
-      or (n_elements(t) eq 0)) then begin
-
-       print, 'DBG: flux average reading field'
-       psi = read_field('psi', x, z, t, points=points, $
-                        mask=mask, /equilibrium, _EXTRA=extra, $
-                       linear=0, filename=filename[0])
-
-       print, 'min, max', min(psi), max(psi)
-       sz = size(psi)
-       if(n_elements(psi) le 1) then return, 0
-   endif
+   if(not isa(fc)) then begin
+      fc = flux_coordinates(/fast,filename=filename,tbins=bins,fbins=bins,_EXTRA=extra)
+   end
 
    if(type eq 7) then begin ; named field
        if (strcmp(field, 'Safety Factor', /fold_case) eq 1) or $
@@ -58,7 +47,7 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
 
            flux_t = flux_average('flux_t', psi=psi, i0=i0, x=x, z=z, t=t, $
              r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
-             points=points, last=last, filename=filename, _EXTRA=extra)
+             points=points, last=last, filename=filename, fc=fc, _EXTRA=extra)
            
            units = ''
            name = '!6Safety Factor!X'
@@ -71,49 +60,42 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
 
            p = flux_average('p', psi=psi, x=x, z=z, t=t, $
              r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
-             points=points, last=last, filename=filename, _EXTRA=extra)
+             points=points, last=last, filename=filename, fc=fc, _EXTRA=extra)
 
-           V = fltarr(n_elements(flux))
-           for i=1, n_elements(flux)-1 do $
-             V[i] = V[i-1] + (dV[i]+dV[i-1])/2. * (flux[i] - flux[i-1])
-           pp = deriv(flux, p)
+           pp = deriv(fc.psi, p)
 
            units = ''
            name = '!8Ballooning Parameter!X'
            symbol = '!7a!X'
 
-           return, -2.*dV/(2.*!pi)^2 * sqrt(abs(V)/(2.*!pi^2*R0)) * pp
+           return, -2.*fc.dV/(2.*!pi)^2 * sqrt(abs(fc.V)/(2.*!pi^2*fc.r0)) * pp
 
        endif else $
          if(strcmp(field, 'shear', /fold_case) eq 1) then begin
 
            q = flux_average('q', psi=psi, x=x, z=z, t=t, $
              r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
-             points=points, last=last, filename=filename, _EXTRA=extra)
-
-           V = fltarr(n_elements(flux))
-           for i=1, n_elements(flux)-1 do $
-             V[i] = V[i-1] + (dV[i]+dV[i-1])/2. * (flux[i] - flux[i-1])
+             points=points, last=last, filename=filename, fc=fc, _EXTRA=extra)
            
-           dqdV = deriv(V, q)
+           dqdV = deriv(fc.V, q)
 
            units = ''
            name = '!6Magnetic Shear!X'
            symbol = '!8s!X'
 
-           return, 2.*V*dqdV
+           return, 2.*fc.V*dqdV
        endif else $
          if(strcmp(field, 'elongation', /fold_case) eq 1) then begin
 
            psi = flux_average('psi', psi=psi, x=x, z=z, t=t, $
-             r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
-             points=points, last=last, elongation=elongation, filename=filename, _EXTRA=extra)
+                              r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
+                              points=points, last=last, elongation=elongation, filename=filename, $
+                              fc=fc, _EXTRA=extra)
 
            units = ''
            name = '!6Elongation!X'
            symbol = '!7j!X'
 
-           help, elongation
            return, elongation
 
        endif else $
@@ -121,10 +103,10 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
 
            q = flux_average('q', psi=psi, x=x, z=z, t=t, $
              r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
-             points=points, last=last, filename=filename, _EXTRA=extra)
+             points=points, last=last, filename=filename, fc=fc, _EXTRA=extra)
            rho = flux_average('rho', psi=psi, x=x, z=z, t=t, $
              r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
-             points=points, last=last, filename=filename, _EXTRA=extra)
+             points=points, last=last, filename=filename, fc=fc, _EXTRA=extra)
            
            units = make_units(l0=-1, filename=filename, _EXTRA=extra)
            name = '!8dq!3/!8d!7q!X'
@@ -143,7 +125,7 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
            sp = s_bracket(psi,sigma,x,z)/s_bracket(psi,psi,x,z)
            r = radius_matrix(x,z,t)
 
-           q = flux_average('q', psi=psi, i0=i, x=x, z=z, t=t, $
+           q = flux_average('q', psi=psi, i0=i, x=x, z=z, t=t, fc=fc, $
              r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
              points=points, /equilibrium, filename=filename, _EXTRA=extra)
 
@@ -157,16 +139,16 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
 
            gpsi = flux_average(dpsi/jac, psi=psi, i0=i, x=x, z=z, t=t, $
              r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
-             points=points, filename=filename, _EXTRA=extra)
+             points=points, filename=filename, fc=fc, _EXTRA=extra)
            gchi = flux_average(dtheta/jac, psi=psi, i0=i, x=x, z=z, t=t, $
              r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
-             points=points, filename=filename, _EXTRA=extra)
+             points=points, filename=filename, fc=fc, _EXTRA=extra)
            gsp = flux_average(sp/jac, psi=psi, i0=i, x=x, z=z, t=t, $
              r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
-             points=points, filename=filename, _EXTRA=extra)
+             points=points, filename=filename, fc=fc, _EXTRA=extra)
            gi = flux_average(I, psi=psi, i0=i, x=x, z=z, t=t, $
              r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
-             points=points, filename=filename, _EXTRA=extra)
+             points=points, filename=filename, fc=fc, _EXTRA=extra)
            
            units = ''
            name = '!8m!7k!X'
@@ -179,9 +161,9 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
 
            flux_t = flux_average('flux_t', psi=psi, x=x, z=z, t=t, $
              r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
-             points=points, last=last, filename=filename, _EXTRA=extra)
+             points=points, last=last, filename=filename, fc=fc, _EXTRA=extra)
            bzero = read_parameter('bzero', filename=filename, _EXTRA=extra)
-           print, 'bzero = ', bzero
+           print, 'bzero = ', bzero          
 
            units = make_units(/l0, filename=filename, _EXTRA=extra)
            name = '!7q!X'
@@ -220,11 +202,14 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
            bpol2 = s_bracket(psi,psi,x,z)/r^2
 
            ii = flux_average_field(izero^2-i^2,psi,x,z,t, r0=r0, $
-             flux=flux, area=area, dV=dV, bins=bins, filename=filename, _EXTRA=extra)
+             flux=flux, area=area, dV=dV, bins=bins, filename=filename, $
+                                   fc=fc, _EXTRA=extra)
            rr = flux_average_field(r,psi,x,z,t, r0=r0, $
-             flux=flux, area=area, dV=dV, bins=bins, filename=filename, _EXTRA=extra)
+             flux=flux, area=area, dV=dV, bins=bins, filename=filename, $
+                                   fc=fc, _EXTRA=extra)
            bb = flux_average_field(bpol2,psi,x,z,t, r0=r0, $
-             flux=flux, area=area, dV=dV, bins=bins, filename=filename, _EXTRA=extra)
+             flux=flux, area=area, dV=dV, bins=bins, filename=filename, $
+                                   fc=fc, _EXTRA=extra)
          
            symbol = '!7b!6!Dpol!N!X'
            units = ''
@@ -235,7 +220,7 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
        endif else $
          if(strcmp(field, 'alpha', /fold_case) eq 1) then begin
            q = flux_average('q',psi=psi,x=x,z=z,nflux=nflux, $
-                            flux=flux, bins=bins, r0=r0, $
+                            flux=flux, bins=bins, r0=r0, fc=fc, $
                             points=points, last=last, filename=filename, _EXTRA=extra)
  
            beta = read_field('beta',x,z,t,points=points,last=last,filename=filename, _EXTRA=extra)
@@ -243,7 +228,7 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
 
            betap = s_bracket(beta,r,x,z)
            alpha = $
-             flux_average_field(betap, psi, x, z, t, r0=r0, flux=flux, $
+             flux_average_field(betap, psi, x, z, t, r0=r0, flux=flux, fc=fc, $
                               nflux=nflux, area=area, dV=dV, bins=bins, $
                               integrate=integrate, filename=filename, _EXTRA=extra)
 
@@ -257,14 +242,14 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
          if(strcmp(field, 'kappa_implied', /fold_case) eq 1) then begin
            Q =  flux_average('heat_source', psi=psi, i0=i, x=x, z=z, t=t, $
              r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
-             points=points, filename=filename, _EXTRA=extra, /integrate)
+             points=points, filename=filename, _EXTRA=extra, fc=fc, /integrate)
            p = read_field('p',x,z,t,points=points,last=last,filename=filename, _EXTRA=extra)
            n = read_field('den',x,z,t,points=points,last=last,filename=filename, _EXTRA=extra)
            temp = p/n
 
            pprime = s_bracket(temp,psi,x,z)
            GradP = flux_average_field(pprime, psi, x, z, t, r0=r0, flux=flux, $
-                                      nflux=nflux, area=area, dV=dV, $
+                                      nflux=nflux, area=area, dV=dV, fc=fc, $
                                       bins=bins, filename=filename, _EXTRA=extra)
 
            symbol = '!7j!X'
@@ -278,12 +263,12 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
           if(strcmp(field, 'amu_implied', /fold_case) eq 1) then begin
            Q =  flux_average('torque', psi=psi, i0=i, x=x, z=z, t=t, $
              r0=r0, flux=flux, nflux=nflux, area=area, dV=dV, bins=bins, $
-             points=points, filename=filename, _EXTRA=extra, /integrate)
+             points=points, filename=filename, fc=fc, _EXTRA=extra, /integrate)
            w= read_field('omega',x,z,t,points=points,last=last,filename=filename, _EXTRA=extra)
            r = radius_matrix(x,z,t)
            wprime = s_bracket(w*r,psi,x,z)
            GradW = flux_average_field(wprime, psi, x, z, t, r0=r0, flux=flux, $
-                                      nflux=nflux, area=area, dV=dV, $
+                                      nflux=nflux, area=area, dV=dV, fc=fc, $
                                       bins=bins, filename=filename, _EXTRA=extra)
 
            symbol = '!7l!X'
@@ -347,7 +332,7 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
    fa = flux_average_field(field, psi, x, z, t, r0=r0, flux=flux, $
                            nflux=nflux, area=area, dV=dV, bins=bins, $
                            integrate=integrate, surface_weight=total, $
-                           elongation=elongation, $
+                           elongation=elongation, fc=fc, $
                            filename=filename, _EXTRA=extra)
 
    if(keyword_set(total)) then begin
