@@ -104,6 +104,7 @@ subroutine set_defaults
   use mesh_mod
   use gradshafranov
   use adapt
+  use error_estimate
 
   implicit none
 
@@ -706,7 +707,17 @@ subroutine set_defaults
 
   ! Mesh adaptation
   call add_var_int("iadapt", iadapt, 0, "", adapt_grp)
-  call add_var_double("target_error", target_error, 0.0001,"", adapt_grp)
+  call add_var_int("iadapt_writevtk", iadapt_writevtk, 0, "", adapt_grp)
+  call add_var_int("iadapt_writesmb", iadapt_writesmb, 1, "", adapt_grp)
+  call add_var_int("iadapt_useH1", iadapt_useH1, 0, "",adapt_grp)
+  call add_var_int("iadapt_removeEquiv",iadapt_removeEquiv, 0, "",adapt_grp)
+  call add_var_double("adapt_target_error", adapt_target_error, 0.0001,"", adapt_grp)
+  call add_var_double("adapt_ke",adapt_ke, 0.0,"", adapt_grp)
+  call add_var_int("iadapt_ntime", iadapt_ntime, 0, "", adapt_grp)
+  call add_var_int("iadapt_max_node", iadapt_max_node, 10000,"",adapt_grp)
+  call add_var_int("adapt_control", adapt_control, 1, "",adapt_grp)
+  call add_var_double("iadapt_order_p", iadapt_order_p, 3.0, "",adapt_grp) ! convergence rate in H2 space 
+
   call add_var_double("adapt_factor", adapt_factor, 1., "", adapt_grp)
   call add_var_double("adapt_hmin", adapt_hmin, 0.001, "", adapt_grp)
   call add_var_double("adapt_hmax", adapt_hmax, 0.1, "", adapt_grp)

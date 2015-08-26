@@ -1,11 +1,19 @@
 module adapt
   use vector_mod
-  real :: ke_previous
-  real :: target_error
-  real :: error_tol = 4.
+  implicit none
+  real :: adapt_ke
+  integer :: iadapt_ntime
+  real :: adapt_target_error
+  integer :: iadapt_max_node
+  integer :: adapt_control
+  real :: iadapt_order_p
+  data iadapt_order_p /3/
+  data iadapt_max_node /100/
+  real :: error_tol = 1.
   real , dimension(2) :: abs_size, rel_size
-  data rel_size /0.3,1.5/
-  !type(vector_type), private :: error_vec 
+  data rel_size /0.3, 3.0/
+  integer :: iadapt_writevtk, iadapt_writesmb
+  !type(vector_type), private :: error_vec
   contains
   subroutine adapt_by_psi
     use basic
@@ -115,12 +123,12 @@ module adapt
     call newvar_solve(temporary_field%vec,mass_mat_lhs)
 
     call straighten_fields()
-    write(mesh_file_name,"(A7,I0,A)") 'initial', ntime,0
-    call m3dc1_mesh_write (mesh_file_name, 0)
+    !write(mesh_file_name,"(A7,I0,A)") 'initial', ntime,0
+    !call m3dc1_mesh_write (mesh_file_name, 0)
     call adapt_by_field(temporary_field%vec%id,psimin,psibound)
     write(mesh_file_name,"(A7,A)") 'adapted', 0
-    call m3dc1_mesh_write (mesh_file_name,0)
-    call m3dc1_mesh_write (mesh_file_name,1)
+    if(iadapt_writevtk .eq. 1) call m3dc1_mesh_write (mesh_file_name,0)
+    if(iadapt_writesmb .eq. 1) call m3dc1_mesh_write (mesh_file_name,1)
 
     call destroy_field(temporary_field)
     call space(0)
@@ -149,7 +157,7 @@ module adapt
     n_control%err_i = 0.
     n_control%err_p_old = 0.
     call derived_quantities(1)
-    ke_previous = ekin
+    !ke_previous = ekin
   end subroutine adapt_by_psi
   subroutine adapt_by_error
     use diagnostics
@@ -166,9 +174,9 @@ module adapt
     use scorec_mesh_mod
 !#include "mpif.h"
     vectype, allocatable :: edge_error(:,:)
-    vectype, allocatable :: elm_error(:,:), elm_error_res(:), elm_error_res_psi(:), elm_error_sum(:)
-    real, allocatable :: node_error(:)
-    integer :: num_edge, ii, jj,kk, num_get, num_get2, num_elm, num_node
+    vectype, allocatable :: elm_error(:,:), elm_error_res(:,:), elm_error_sum(:,:)
+    real, allocatable :: node_error(:,:)
+    integer :: num_edge, ii, jj,kk, num_get, num_get2, num_elm, num_node, ier
     integer, dimension(3) :: nodes
     integer, dimension(256) :: elms 
     type(element_data) :: d
@@ -176,13 +184,14 @@ module adapt
     integer, parameter :: vecsize=1 
     integer :: ndofs, num_node_total
     vectype, dimension(vecsize*dofs_per_node) :: dofData
-    real :: facarea, facarea_tol, max_error, buff
+    real, dimension(2):: max_error, buff
     character(len=32) :: mesh_file_name, file_name1, file_name2, file_name3
 
     vectype, dimension(dofs_per_node*num_fields) :: max_val, min_val
     vectype :: maxPhi, maxPs
+    vectype, dimension(NUMTERM) :: jump_sum
 
-    write(mesh_file_name,"(A7,I0,A)"),'adapted', ntime,0 
+    write(mesh_file_name,"(A5,I0,A)"),'adapt', ntime,0 
     write(file_name1, "(A9,I0,A)"),'errorJump', ntime,0
     write(file_name2, "(A8,I0,A)"),'errorElm', ntime,0
     write(file_name3,"(A8,I0,A)"),'errorSum', ntime,0
@@ -199,17 +208,19 @@ module adapt
     allocate(edge_error(num_edge, NUMTERM))
     call m3dc1_mesh_getnument(2, num_elm)
     allocate(elm_error(num_elm, NUMTERM))
-    allocate(elm_error_sum(num_elm))
-    allocate(elm_error_res(num_elm))
-    allocate(elm_error_res_psi(num_elm))
+    allocate(elm_error_sum(2,num_elm))
+    allocate(elm_error_res(2,num_elm))
     elm_error_res = 0
-    elm_error_res_psi = 0
     call  m3dc1_mesh_getnument(0, num_node)
-    allocate(node_error(num_node))
+    allocate(node_error(2,num_node))
     node_error=0.
     edge_error=0.
     elm_error=0.
     call jump_discontinuity(edge_error)
+    do ii=1, NUMTERM
+       jump_sum(ii) =sum(edge_error(:,ii))
+    end do
+    print *, "jump_sum", jump_sum
     do ii=1, num_edge
        call m3dc1_ent_getadj (1, ii-1, 2, elms, 2, num_get)
        do jj=1, num_get 
@@ -217,15 +228,19 @@ module adapt
        end do
     end do
 
-    if(itor .eq. 0 .and. numvar .eq. 1 .and. linear .eq. 0 .and. ivform .eq. 0) call elem_residule (elm_error_res, elm_error_res_psi)
+    ! implementated for numvar .eq. 1  
+    if(numvar .eq. 1 ) call elem_residule (elm_error_res(1,:), elm_error_res(2,:))
 
-    elm_error_sum (:) = elm_error(:,NUMTERM) + elm_error_res (:) + elm_error_res_psi(:)
+    elm_error_sum (1,:) = elm_error(:,JUMPU) + elm_error_res (1,:) 
+    elm_error_sum (2,:) = elm_error(:,JUMPPSI) + elm_error_res(2,:)
     !if(isplitstep .eq. 1) elm_error_sum (:) = elm_error_sum (:) + elm_error(:,TSQ) 
-    call output_face_data (NUMTERM, sqrt(real(elm_error)), file_name1);
-    call output_face_data (1, sqrt(real(elm_error_res)), file_name2);
-    call output_face_data (1, sqrt(real(elm_error_sum)), file_name3);
+    !call output_face_data (NUMTERM, sqrt(real(elm_error)), file_name1);
+    !call output_face_data (2, TRANSPOSE(sqrt(real(elm_error_res))), file_name2);
+    !call output_face_data (2, TRANSPOSE(sqrt(real(elm_error_sum))), file_name3);
 
-    call get_node_error_from_elm (real(elm_error_sum), 1, node_error);
+    call get_node_error_from_elm (real(elm_error_sum(1,:)), 1, node_error(1,:));
+    call get_node_error_from_elm (real(elm_error_sum(2,:)), 1, node_error(2,:));
+
        
     node_error = sqrt(node_error)
     !print *, edge_error
@@ -234,41 +249,92 @@ module adapt
     deallocate(elm_error_sum)
     deallocate(elm_error_res)
 
-    max_error= maxval(node_error(:))
-    buff = max_error
-    call mpi_allreduce (buff, max_error, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ier )
-    if (myrank .eq. 0) print *, "max extimated error ", max_error
-    if (iadapt .eq. 2 .and. max_error .gt. error_tol * target_error) then
+    if(adapt_control .eq. 0) then
+      max_error(1)= maxval(node_error(1,:))
+      max_error(2)= maxval(node_error(2,:))
+      buff = max_error
+      call mpi_allreduce (buff, max_error, 2, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ier )
+    else
+      max_error(1) = sum (node_error(1,:))
+      max_error(2) = sum (node_error(2,:))
+      !max_error= maxval(node_error(:,:))
+      buff = max_error
+      call mpi_allreduce (buff, max_error, 2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier )
+      if (myrank .eq. 0) print *, "estimated error in engergy norm, solution in energy norm", max_error, solutionH2Norm
+    end if
+    if (myrank .eq. 0) print *, "estimated error in engergy norm, solution in energy norm", max_error, solutionH2Norm
+    if (iadapt .eq. 2 .and. (max_error(1) .gt. error_tol * adapt_target_error .or. max_error(2) .gt. error_tol * adapt_target_error)) then
        if (myrank .eq. 0) print *, " error exceeds tolerance, start adapting mesh"
        call straighten_fields()
        abs_size(1) = adapt_hmin
        abs_size(2) = adapt_hmax
        call set_mesh_size_bound (abs_size, rel_size)
-       call adapt_by_error_field(node_error, target_error);
-       call m3dc1_mesh_write (mesh_file_name,0)
+       !call set_adapt_p(iadapt_order_p)
+       call adapt_by_error_field(sqrt(node_error(1,:)**2+node_error(2,:)**2), adapt_target_error, iadapt_max_node, adapt_control);
+       call m3dc1_mesh_write (mesh_file_name, 0)
+       call m3dc1_mesh_write (mesh_file_name, 1)
        call space(0)
        call update_nodes_owned()
        call tridef
        call unstraighten_fields()
 
        call create_newvar_matrices
+       if(irestart .ne. 0 .or. linear .eq. 0) return
+       print *, "reset simulation after adapt .."
+       field_vec = 0.
+       field0_vec = 0.
+       jphi_field = 0.
+       vor_field = 0.
+       com_field = 0.
+       resistivity_field = 0.
+       kappa_field = 0.
+       visc_field = 0.
+       visc_c_field = 0.
+       if(ipforce.gt.0) pforce_field = 0.
+       if(ipforce.gt.0) pmach_field = 0.
+       if(momentum_source) Fphi_field = 0.
+       if(heat_source) Q_field = 0.
+       if(icd_source.gt.0) cd_field = 0.
+       bf_field(0) = 0.
+       bf_field(1) = 0.
+       if(ibootstrap.gt.0) visc_e_field = 0.
+       psi_coil_field = 0.
+       call destroy_auxiliary_fields
+       call create_auxiliary_fields
+
+       call initial_conditions
+       ! combine the equilibrium and perturbed fields of linear=0
+       ! unless eqsubtract = 1
+       if(eqsubtract.eq.0) then
+         call add(field_vec, field0_vec)
+         field0_vec = 0.
+       endif
+       i_control%err_i = 0.
+       i_control%err_p_old = 0.
+       n_control%err_i = 0.
+       n_control%err_p_old = 0.
+       call reset_scalars
        call derived_quantities(1)
        meshAdapted =1
     end if
     deallocate(node_error)
   end subroutine adapt_by_error
-  integer function run_adapt ()
+ 
+  subroutine run_adapt ( flag)
     use diagnostics
     use basic
+    integer :: flag
     !print *, "check run_adaptA: ke_previous, ekin, ntime",ke_previous,ekin,ntime
-    run_adapt = 0
+    flag = 0
     !if(mod(ntime,1) .eq. 0) then
      ! run_adapt=1
       !ke_previous = ekin;
     !end if
-    if(linear .eq. 0 .and. mod(ntime,1) .eq. 0) run_adapt=1
-    !if(linear .eq. 1 .and. mod(ntime,50) .eq. 0) run_adapt=1
-  end function
+    if(iadapt_ntime .gt. 0 .and. mod(ntime,iadapt_ntime) .eq. 0) flag=1
+    if(iadapt_ntime .eq. 0 .and. linear .eq. 0 .and. mod(ntime,1) .eq. 0) flag=1
+    if(adapt_ke .gt. 0. .and. linear .eq. 1 .and. ekin .gt. adapt_ke) flag=1
+    if(iadapt_ntime .gt. 0 .and. linear .eq. 1 .and. ntime .eq. iadapt_ntime) flag=1
+  end subroutine run_adapt
 
   subroutine straighten_fields ()
     use diagnostics
@@ -333,5 +399,6 @@ module adapt
        call unstraighten_field(ti_field(ifield))
     end do
   end subroutine unstraighten_fields
-end module adapt
 
+
+end module adapt
