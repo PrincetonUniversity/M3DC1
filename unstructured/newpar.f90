@@ -22,7 +22,7 @@ Program Reducedquintic
 
 #include "finclude/petsc.h"
 
-  integer :: ier, i
+  integer :: ier, i, adapt_flag
   real :: tstart, tend, dtsave
   character*10 :: datec, timec
   character*256 :: arg
@@ -281,7 +281,8 @@ Program Reducedquintic
      ! Write output
      if(myrank.eq.0 .and. iprint.ge.1) print *, " Writing output."
      call output
-     if(run_adapt() .eq. 1 .and. iadapt .ne. 0) call adapt_by_error
+     call run_adapt(adapt_flag)
+     if(adapt_flag .eq. 1 .and. iadapt .gt. 1) call adapt_by_error
   enddo ! ntime
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done time loop."
@@ -1073,7 +1074,9 @@ subroutine space(ifirstcall)
      ! Physical Variables
      call create_vector(field_vec , num_fields)
      call create_vector(field0_vec, num_fields)
-     if(iadapt .ne. 0) call create_vector(field_vec_pre, 2)
+     !if(iadapt .ne. 0) then
+        call create_vector(field_vec_pre, 2)
+     !end if
 
      ! Auxiliary Variables
      call create_field(jphi_field)
@@ -1139,10 +1142,10 @@ subroutine space(ifirstcall)
 
   call allocate_kspits
 
-  if (iadapt .ne. 0)  then
+  !if (iadapt .ne. 0)  then
      call associate_field(u_field_pre,   field_vec_pre, u_g)
      call associate_field(psi_field_pre, field_vec_pre, psi_g)
-  end if
+  !end if
 
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, " Exiting space."

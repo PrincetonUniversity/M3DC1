@@ -468,7 +468,12 @@ contains
           return
        end if
        
-       call m3dc1_model_getedge(ileft, iright, ibottom, itop)
+       !call m3dc1_model_getedge(ileft, iright, ibottom, itop)
+       !for rect domain, always use the following order of model edges
+       ileft=4
+       iright=2
+       ibottom=1
+       itop=3
        ! for periodic bc's
        ! skip if on a periodic boundary
        ! and convert corner to an edge when one edge is periodic
