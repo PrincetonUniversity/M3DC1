@@ -28,7 +28,8 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 
 SUPERLU_DIST_HOME = $(PETSC_DIR)
 INCLUDE = -I$(MPIHOME)/include \
-        -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(SUPERLU_DIST_HOME)/include \
+        -I$(PETSC_DIR)/include -I$(PETSC_DIR)/include/petsc \
+        -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
         -I$(HDF5_HOME)/include -I$(HDF5_HOME)/lib \
         -I$(GSL_HOME)/include \
         -I$(FFTW_HOME)/include
@@ -37,7 +38,7 @@ PETSC_LIBS = -L$(PETSC_DIR)/lib \
    -lpetsc \
 
 SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu_4.3 \
-        -L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist_3.3 \
+        -L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist_4.0 \
 
 PARMETIS_HOME=$(PETSC_DIR)
 PARMETIS_LIBS = -L$(PARMETIS_HOME)/lib \
@@ -54,8 +55,8 @@ LIBS =  $(PETSC_LIBS) \
         -L$(GSL_HOME)/lib -lgsl \
         -L/usr/X11R6/lib -lX11
 
-SCORECDIR = /hydra/u/m3dc1/scorec/May2015/lib
-INCLUDE := -I/hydra/u/m3dc1/scorec/May2015/include \
+SCORECDIR = /hydra/u/m3dc1/scorec/Sep2015/lib
+INCLUDE := -I/hydra/u/m3dc1/scorec/Sep2015/include \
         $(INCLUDE)
 
 ifeq ($(COM), 1)
@@ -70,16 +71,16 @@ else
 endif
 
 %.o : %.c
-        $(CC)  $(CCOPTS) $(INCLUDE) $< -o $@
+	$(CC)  $(CCOPTS) $(INCLUDE) $< -o $@
 
 %.o : %.cpp
-        $(CPP)  $(CCOPTS) $(INCLUDE) $< -o $@
+	$(CPP)  $(CCOPTS) $(INCLUDE) $< -o $@
 
 %.o: %.f
-        $(F77) $(F77OPTS) $(INCLUDE) $< -o $@
+	$(F77) $(F77OPTS) $(INCLUDE) $< -o $@
 
 %.o: %.F
-        $(F77) $(F77OPTS) $(INCLUDE) $< -o $@
+	$(F77) $(F77OPTS) $(INCLUDE) $< -o $@
 
 %.o: %.f90
-        $(F90) $(F90OPTS) $(INCLUDE) -fpic $< -o $@
+	$(F90) $(F90OPTS) $(INCLUDE) -fpic $< -o $@
