@@ -1,4 +1,4 @@
-FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DPETSC_31 -DKSPITS $(OPTS)
+FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DPETSC_31 -DKSPITS $(OPTS) -DLATESTSCOREC
 CCOPTS  = -c -O -DPetscDEV -DPETSC_31 -DPetscOLD #-DCJ_MATRIX_DUMP -DUSEHYBRID 
 
 ifeq ($(OPT), 1)
@@ -83,7 +83,7 @@ BLASLAPACKLIBS = -L$(MKLROOT)/lib/intel64 -Wl,--start-group \
 	-lmkl_blacs_openmpi_lp64 -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_intel_lp64 -lmkl_cdft_core -lmkl_scalapack_lp64 -lmkl_sequential -lmkl_core \
 	-Wl,--end-group
 
-SCORECDIR= /p/tsc/m3dc1/lib/SCORECLib/rhel6/May2015
+SCORECDIR= /p/tsc/m3dc1/lib/SCORECLib/rhel6/Sep2015
 ifeq ($(COM), 1)
   SCORECLIB= -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib \
              -lapf -lgmi -lma -lparma -lph -lmds -lpcu -lspr -lapf_zoltan -lzoltan -lm3dc1_scorec_complex \

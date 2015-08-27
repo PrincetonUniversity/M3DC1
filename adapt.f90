@@ -11,7 +11,8 @@ module adapt
   data iadapt_max_node /100/
   real :: error_tol = 1.
   real , dimension(2) :: abs_size, rel_size
-  data rel_size /0.3, 3.0/
+  real :: adapt_hmin_rel, adapt_hmax_rel
+  data rel_size /0.5, 2.0/
   integer :: iadapt_writevtk, iadapt_writesmb
   !type(vector_type), private :: error_vec
   contains
@@ -268,8 +269,13 @@ module adapt
        call straighten_fields()
        abs_size(1) = adapt_hmin
        abs_size(2) = adapt_hmax
+       rel_size(1) = adapt_hmin_rel 
+       rel_size(2) = adapt_hmax_rel
+
        call set_mesh_size_bound (abs_size, rel_size)
-       !call set_adapt_p(iadapt_order_p)
+#ifdef LATESTSCOREC
+       call set_adapt_p(iadapt_order_p)
+#endif
        call adapt_by_error_field(sqrt(node_error(1,:)**2+node_error(2,:)**2), adapt_target_error, iadapt_max_node, adapt_control);
        call m3dc1_mesh_write (mesh_file_name, 0)
        call m3dc1_mesh_write (mesh_file_name, 1)
@@ -283,24 +289,24 @@ module adapt
        print *, "reset simulation after adapt .."
        field_vec = 0.
        field0_vec = 0.
-       jphi_field = 0.
-       vor_field = 0.
-       com_field = 0.
-       resistivity_field = 0.
-       kappa_field = 0.
-       visc_field = 0.
-       visc_c_field = 0.
-       if(ipforce.gt.0) pforce_field = 0.
-       if(ipforce.gt.0) pmach_field = 0.
-       if(momentum_source) Fphi_field = 0.
-       if(heat_source) Q_field = 0.
-       if(icd_source.gt.0) cd_field = 0.
-       bf_field(0) = 0.
-       bf_field(1) = 0.
-       if(ibootstrap.gt.0) visc_e_field = 0.
+       !jphi_field = 0.
+       !vor_field = 0.
+       !com_field = 0.
+       !resistivity_field = 0.
+       !kappa_field = 0.
+       !visc_field = 0.
+       !visc_c_field = 0.
+       !if(ipforce.gt.0) pforce_field = 0.
+       !if(ipforce.gt.0) pmach_field = 0.
+       !if(momentum_source) Fphi_field = 0.
+       !if(heat_source) Q_field = 0.
+       !if(icd_source.gt.0) cd_field = 0.
+       !bf_field(0) = 0.
+       !bf_field(1) = 0.
+       !if(ibootstrap.gt.0) visc_e_field = 0.
        psi_coil_field = 0.
-       call destroy_auxiliary_fields
-       call create_auxiliary_fields
+       !call destroy_auxiliary_fields
+       !call create_auxiliary_fields
 
        call initial_conditions
        ! combine the equilibrium and perturbed fields of linear=0
