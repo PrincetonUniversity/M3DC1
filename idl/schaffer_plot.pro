@@ -34,7 +34,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        field = read_field(field*jac,x,z,t,/complex,_EXTRA=extra)
    endif
 
-   d = field_spectrum(field,x,z,psi0=psi0,i0=i0,fc=fc,tbins=bins,fbins=bins,m=m)
+   d = field_spectrum(field,x,z,psi0=psi0,i0=i0,fc=fc,tbins=bins,fbins=bins,m=m,_EXTRA=extra)
    flux =fc.psi
    nflux=fc.psi_norm
    angle=fc.theta
