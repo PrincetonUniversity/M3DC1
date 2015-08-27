@@ -2757,7 +2757,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                           rrange=xrange, zrange=yrange, complex=icomplex)
           p1 = read_field('p', x, y, t, slices=time, mesh=mesh, $
                           filename=filename, points=pts, linear=linear, $
-                          rrange=xrange, zrange=yrange, /complex)
+                          rrange=xrange, zrange=yrange, complex=icomplex)
 
           if(icomplex eq 1) then begin
              f1 = read_field('f', x, y, t, slices=time, mesh=mesh, $

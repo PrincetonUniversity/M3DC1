@@ -65,10 +65,10 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
            pp = deriv(fc.psi, p)
 
            units = ''
-           name = '!8Ballooning Parameter!X'
+           name = '!6Ballooning Parameter!X'
            symbol = '!7a!X'
 
-           return, -2.*fc.dV/(2.*!pi)^2 * sqrt(abs(fc.V)/(2.*!pi^2*fc.r0)) * pp
+           return, -fc.dV/(2.*!pi^2) * sqrt(abs(fc.V)/(2.*!pi^2*fc.r0)) * pp
 
        endif else $
          if(strcmp(field, 'shear', /fold_case) eq 1) then begin
@@ -83,7 +83,7 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
            name = '!6Magnetic Shear!X'
            symbol = '!8s!X'
 
-           return, 2.*fc.V*dqdV
+           return, 2.*fc.V*dqdV/q
        endif else $
          if(strcmp(field, 'elongation', /fold_case) eq 1) then begin
 
@@ -218,7 +218,7 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
            return, 1.+0.5*ii/(bb*rr^2)
            
        endif else $
-         if(strcmp(field, 'alpha', /fold_case) eq 1) then begin
+         if(strcmp(field, 'alpha2', /fold_case) eq 1) then begin
            q = flux_average('q',psi=psi,x=x,z=z,nflux=nflux, $
                             flux=flux, bins=bins, r0=r0, fc=fc, $
                             points=points, last=last, filename=filename, _EXTRA=extra)
@@ -236,7 +236,7 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
            units = ''
            name = '!7a!X'
 
-           return, -q^2*r0*alpha
+           return, -q^2*fc.r0*alpha
 
        endif else $
          if(strcmp(field, 'kappa_implied', /fold_case) eq 1) then begin
