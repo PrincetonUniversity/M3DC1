@@ -12,6 +12,7 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
      print, 'FLUX_COORD_FIELD reusing flux coordinate info'
   endif else begin
      fc = flux_coordinates(slice=slice,_EXTRA=extra, $
+                           tbins=tbins, fbins=fbins, $
                            psi0=psi,i0=i0,/fast,x=x,z=z,pest=pest)
   end
 
