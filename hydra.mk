@@ -37,15 +37,19 @@ INCLUDE = -I$(MPIHOME)/include \
 PETSC_LIBS = -L$(PETSC_DIR)/lib \
    -lpetsc \
 
-SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu_4.3 \
-        -L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist_4.0 \
+SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu_4.3
+ifeq ($(COM), 1)
+  SUPERLU_DIST_LIBS = -L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist_4.0
+else
+  SUPERLU_DIST_LIBS = -L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist_3.3
+endif
 
 PARMETIS_HOME=$(PETSC_DIR)
 PARMETIS_LIBS = -L$(PARMETIS_HOME)/lib \
         -Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis
 
 LIBS =  $(PETSC_LIBS) \
-        $(SUPERLU_LIBS) \
+        $(SUPERLU_LIBS) $(SUPERLU_DIST_LIBS) \
         $(PARMETIS_LIBS) \
         -L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5 \
         -L$(FFTW_HOME)/lib -lfftw3 -lfftw3_mpi -lfftw3_threads \
