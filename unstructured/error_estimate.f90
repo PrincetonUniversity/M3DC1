@@ -163,8 +163,8 @@ module error_estimate
              psi_tmp2 = eps079
              U_tmp = eph079
           else
-             psi_tmp2 = eps179 !eps179_pre
-             U_tmp = eph179 !eph179_pre
+             psi_tmp2 = eps179_pre
+             U_tmp = eph179_pre
           end if
 
           !lp_U_n

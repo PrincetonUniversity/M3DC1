@@ -129,7 +129,7 @@ contains
     include 'mpif.h'
     call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ier)
     if(allocated(nodes_owned)) deallocate(nodes_owned)
-       allocate(nodes_owned(owned_nodes()))
+    allocate(nodes_owned(owned_nodes()))
     numnodes =  local_nodes()
     inode2=1;
     do inode=1, numnodes
