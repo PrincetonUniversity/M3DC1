@@ -232,8 +232,9 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
                         [reform(real_part(fa[0,*]))], $
                         [reform(imaginary(fa[0,*]))]])
        endif else begin
-           printf, ifile, format='(2E16.6)', $
-             transpose([[reform(flux[0,*])], [reform(fa[0,*])]])
+          for i=0, n_elements(flux)-1 do begin
+             printf, ifile, format='(2E16.6)', flux[i], fa[i]
+          end
        endelse
        free_lun, ifile
    endif

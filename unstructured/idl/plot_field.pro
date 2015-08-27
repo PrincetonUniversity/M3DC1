@@ -95,7 +95,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
 
       psi = read_field('psi',x,y,t,points=p,/equilibrium,_EXTRA=ex)
       field = flux_coord_field(field, psi, x, y, t, fbins=p, tbins=p, $
-                               nflux=nflux, angle=angle, bins=p)
+                               nflux=nflux, angle=angle, bins=p, _EXTRA=ex)
       ;; field[0,*,*] = $
       ;;    flux_coord_field_new(field,x,y,/fast,filename=filename,points=p, $
       ;;                         fc=fc,_EXTRA=extra)
