@@ -192,10 +192,10 @@ module adapt
     vectype :: maxPhi, maxPs
     vectype, dimension(NUMTERM) :: jump_sum
 
-    write(mesh_file_name,"(A5,I0,A)"),'adapt', ntime,0 
-    write(file_name1, "(A9,I0,A)"),'errorJump', ntime,0
-    write(file_name2, "(A8,I0,A)"),'errorElm', ntime,0
-    write(file_name3,"(A8,I0,A)"),'errorSum', ntime,0
+    write(mesh_file_name,"(A5,I0,A)") 'adapt', ntime,0 
+    write(file_name1, "(A9,I0,A)") 'errorJump', ntime,0
+    write(file_name2, "(A8,I0,A)") 'errorElm', ntime,0
+    write(file_name3,"(A8,I0,A)") 'errorSum', ntime,0
 
     !call m3dc1_field_max(jphi_field%vec%id, max_val, min_val)
     call m3dc1_mesh_getnumglobalent (0, num_node_total)
