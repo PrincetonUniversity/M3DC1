@@ -46,7 +46,7 @@
 	itime_independent = 0
 	imp_bf = 1
 
-	regular = 1e-6
+	regular = 1e-8
 
 	iset_pe_floor = 1
 	pe_floor = 1e-10
