@@ -2,7 +2,7 @@
 
 ! I/O Options
 ! ===========
-	ntimemax = 0	! number of time steps
+	ntimemax = 1	! number of time steps
 	ntimepr = 1	! number of time steps per output
 	iprint = 0	! 1 = print detailed debug info
 	itimer = 0	! 1 = print timing info
@@ -10,8 +10,8 @@
 	iread_eqdsk = 1
 	iwrite_restart = 0
 
-	iadapt = 1
-	adapt_smooth = 0.01
+	irmp = 1
+	extsubtract = 1
 
 
 ! Numerical Method Options
@@ -80,11 +80,11 @@
 
 	eps = 0.
 
-	irot = 0
-	iread_omega_ExB = 0
+	irot = -1
+	iread_omega_ExB = 1
 
-	iread_ne = 0
-	iread_te = 0
+	iread_ne = 1
+	iread_te = 1
 
 
 ! Transport Parameters
@@ -125,8 +125,8 @@
 	iconst_n = 1
 	iconst_p = 1
 
-	mesh_filename = 'AnalyticModel.smb'
-	mesh_model = 'AnalyticModel
+	mesh_filename = 'part.smb'
+	mesh_model = 'AnalyticModel'
 
 
 ! Grad-Shafranov Options
@@ -139,12 +139,12 @@
 	zmag =  -0.05	! z-coordinate of magnetic axis
 	tcuro = 0.7	! initial toroidal current
 	th_gs = 0.8
-	igs = 30	! number of grad-shafranov iterations
+	igs = 50	! number of grad-shafranov iterations
 	djdpsi = 0.
 	q0 = 0.9	! saftey factor near the magnetic axis
 	p1 = 0
 	p2 = 0
-	pedge = 1e-4
+	pedge = 5e-4
 	expn = 0.
 	divertors = 0
 	xnull = 0.5

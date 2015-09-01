@@ -2,7 +2,7 @@
 
 ! I/O Options
 ! ===========
-	ntimemax = 0	! number of time steps
+	ntimemax = 1	! number of time steps
 	ntimepr = 1	! number of time steps per output
 	iprint = 0	! 1 = print detailed debug info
 	itimer = 0	! 1 = print timing info
@@ -10,8 +10,8 @@
 	iread_eqdsk = 1
 	iwrite_restart = 0
 
-	iadapt = 1
-	adapt_smooth = 0.01
+	irmp = 1
+	extsubtract = 1
 
 
 ! Numerical Method Options
@@ -66,7 +66,7 @@
 			! 2: Force-free Taylor state
 			! 3: GEM-reconnection
 			! 4: Wave propagation
-	idevice = 2	! when itor=1 and itaylor=1
+	idevice = 4	! when itor=1 and itaylor=1
 			! 0: vertical field
 			! 1: CDX-U
 			! 2: NSTX
@@ -80,11 +80,11 @@
 
 	eps = 0.
 
-	irot = 0
-	iread_omega_ExB = 0
+	irot = -1
+	iread_omega_ExB = 1
 
-	iread_ne = 0
-	iread_te = 0
+	iread_ne = 1
+	iread_te = 1
 
 
 ! Transport Parameters
@@ -125,33 +125,33 @@
 	iconst_n = 1
 	iconst_p = 1
 
-	mesh_filename = 'AnalyticModel.smb'
-	mesh_model = 'AnalyticModel
+	mesh_filename = 'part.smb'
+	mesh_model = 'AnalyticModel'
 
 
 ! Grad-Shafranov Options
 ! ======================
-	xlim = 0.	! limiting value of x
+	xlim = 1.018	! limiting value of x
 	zlim = 0.	! limiting value of z
-	xlim2 = 0.	! limiting value of x
+	xlim2 = 2.365	! limiting value of x
 	zlim2 = 0.	! limiting value of z
 	xmag = 1.71	! x-coordinate of magnetic axis
 	zmag =  -0.05	! z-coordinate of magnetic axis
 	tcuro = 0.7	! initial toroidal current
 	th_gs = 0.8
-	igs = 30	! number of grad-shafranov iterations
+	igs = 50	! number of grad-shafranov iterations
 	djdpsi = 0.
 	q0 = 0.9	! saftey factor near the magnetic axis
 	p1 = 0
 	p2 = 0
-	pedge = 1e-4
+	pedge = 5e-4
 	expn = 0.
 	divertors = 0
-	xnull = 0.5
-	znull = -1.4
-	xnull2 = 0.5
-	znull2 = 1.4
-	sigma0 = 0.2
+	xnull = 1.4
+	znull = -0.7
+	xnull2 = 1.4
+	znull2 = 0.7
+	sigma0 = 0.4
 
 	igs_extend_p = 1
 

@@ -35,7 +35,7 @@
 	itime_independent = 1
 	imp_bf = 1
 
-	regular = 1e-6
+	regular = 1e-8
 
 	iset_pe_floor = 1
 	pe_floor = 1e-10
@@ -80,16 +80,15 @@
 
 	eps = 0.
 
-	irot = -1
-	iread_omega_ExB = 1
+	irot = 0
+	iread_omega_ExB = 0
 
-	iread_ne = 1
-	iread_te = 1
+	iread_ne = 0
+	iread_te = 0
 
 
 ! Transport Parameters
 ! ====================
-	eta_wall = 100.
 	iresfunc = 4
 	eta0 = 1e-4
 	etar = 1e-8	! resistivity = etar + eta0/T^(3/2)
@@ -127,7 +126,7 @@
 	iconst_p = 1
 
 	mesh_filename = 'AnalyticModel.smb'
-	mesh_model = 'AnalyticModel
+	mesh_model = 'AnalyticModel'
 
 
 ! Grad-Shafranov Options
