@@ -1,0 +1,46 @@
+!model type: 0: interpoltate AnalyticModel; 1: piece-wise linear; 2: three-region; 3: piece-wise polynomial
+modelType 2
+
+!output model name; if 2, the output file is "modelName+thickness.txt"
+!similar name for vtk, smb mesh files
+modelName aug
+
+!file contain data that describes the geometry, e.g. AnalyticModel or a sequence of counter-clockwise points on the wall
+pointFile first_wall.pts
+
+!!!the following paras used only when modelType=0
+
+! if useOriginal=1, mesh is snapped to use AnalyticModel 
+useOriginal 1
+
+! number of points to interpolate the AnalyticModel
+numInterPts 20
+
+!!!the following paras used only when modelType=2
+
+! wall thickness;
+thickness 0.02
+
+! vacuum region width
+width 1.8
+
+! vacuum region height
+height 2.2 
+
+! offset in x direction
+offsetX 0.
+
+! offset in y direction
+offsetY 0.0
+
+! License file for Simmetrix software
+SimLic /net/common/meshSim/license/license.txt
+
+! mesh size at three faces
+meshSizes 0.03 0.01 0.1
+
+! if use analytic mesh size function defined in wallMeshSizeFn.h
+useAnalyticSize 0
+
+!mesh gradation rate
+meshGradationRate 0.3
