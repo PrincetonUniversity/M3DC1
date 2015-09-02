@@ -70,8 +70,6 @@
 			! 3: ITER
 			! 4: DIII-D
 
-	bzero = 1.9	! toroidal field strength
-	rzero = 1.7
 	p0 = 1.		! total pressure
 	pi0 = 0.5	! ion pressure
 
@@ -135,18 +133,10 @@
 	zlim = 0.	! limiting value of z
 	xlim2 = 2.365	! limiting value of x
 	zlim2 = 0.	! limiting value of z
-	xmag = 1.71	! x-coordinate of magnetic axis
-	zmag =  -0.05	! z-coordinate of magnetic axis
-	tcuro = 0.7	! initial toroidal current
 	th_gs = 0.5
 	igs = 100	! number of grad-shafranov iterations
-	djdpsi = 0.
-	q0 = 0.9	! saftey factor near the magnetic axis
-	p1 = 0
-	p2 = 0
 	pedge = 5e-4
 	expn = 0.
-	divertors = 0
 	xnull = 0.5
 	znull = -0.7
 	xnull2 = 0.5

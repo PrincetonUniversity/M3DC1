@@ -1,0 +1,14 @@
+#!/bin/bash -vx
+#SBATCH --partition=mque_r6
+#SBATCH --nodes=1
+#SBATCH --ntasks=16
+#SBATCH -J m3dc1_2d
+#SBATCH -t 2:00:00
+#SBATCH --mem 120000
+
+# Partition mesh
+part_mesh.sh adapted.smb $SLURM_NTASKS
+
+# Run M3D-C1
+rm -f C1stdout
+mpiexec --bind-to none -np $SLURM_NTASKS m3dc1_2d_complex -pc_factor_mat_solver_package mumps >& C1stdout
