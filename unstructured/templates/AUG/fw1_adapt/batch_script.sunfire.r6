@@ -1,0 +1,11 @@
+#!/bin/bash -vx
+#SBATCH --partition=mque_r6
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH -J m3dc1_2d
+#SBATCH -t 4:00:00
+#SBATCH --mem 60000
+
+# Run M3D-C1
+rm -f C1stdout
+mpiexec --bind-to none -np $SLURM_NTASKS m3dc1_2d >& C1stdout

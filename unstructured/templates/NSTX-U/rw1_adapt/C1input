@@ -126,8 +126,8 @@
 	iconst_n = 1
 	iconst_p = 1
 
-	mesh_filename = 'AnalyticModel.smb'
-	mesh_model = 'AnalyticModel
+	mesh_filename = 'nstxu0.02.smb'
+	mesh_model = 'nstxu0.02.txt'
 
 	icsubtract = 1
 	imulti_region = 1

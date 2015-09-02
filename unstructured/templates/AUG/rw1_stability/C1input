@@ -2,25 +2,36 @@
 
 ! I/O Options
 ! ===========
-	ntimemax = 0	! number of time steps
-	ntimepr = 1	! number of time steps per output
+	ntimemax = 100	! number of time steps
+	ntimepr = 100	! number of time steps per output
 	iprint = 0	! 1 = print detailed debug info
 	itimer = 0	! 1 = print timing info
 
+	irestart = 0	! 1 = read restart
+
 	iread_eqdsk = 3
 	iwrite_restart = 0
-
-	iadapt = 1
-	adapt_smooth = 0.02
+	iwrite_aux_vars = 0
+	iwrite_transport_coeffs = 0
 
 
 ! Numerical Method Options
 ! ========================
 	dt = 1.		! time step
 
+	integrator = 0	! 0 = Crank-Nicholson, 1 = BDF2
 	thimp = 0.6	! implicitness parameter for CN
 	imp_mod = 0
 	isplitstep = 0
+
+	deex = 1.
+	hyper  = 0.0	! hyper-resistivity (applied to psi)
+	hyperi = 0.0	! hyper-resistivity (applied to Bz )
+	hyperv = 0.0	! hyper-viscosity   (applied to vz )
+	hyperc = 0.0	! hyper-viscosity   (applied to chi)
+	hyperp = 0.0    ! hyper-pressure-diffusion
+	ihypdx = 0
+	ihypeta = 0
 
 	int_pts_main = 25
 	int_pts_aux = 25
@@ -30,9 +41,9 @@
 	jadv = 1
 	isurface = 0
 
-	max_ke = 0.
+	max_ke = 1.
 
-	itime_independent = 1
+	itime_independent = 0
 	imp_bf = 1
 
 	regular = 1e-8
@@ -78,13 +89,13 @@
 	p0 = 1.		! total pressure
 	pi0 = 0.5	! ion pressure
 
-	eps = 0.
+	eps = 1e-8
 
-	irot = 0
-	iread_omega_ExB = 0
+	irot = -1
+	iread_omega_ExB = 1
 
-	iread_ne = 0
-	iread_te = 0
+	iread_ne = 1
+	iread_te = 1
 
 
 ! Transport Parameters
@@ -126,23 +137,24 @@
 	iconst_n = 1
 	iconst_p = 1
 
-	mesh_filename = 'diiid0.02.smb'
-	mesh_model = 'diiid0.02.txt'
+	mesh_filename = 'part.smb'
+	mesh_model = 'aug0.02.txt'
 
 	icsubtract = 1
 	imulti_region = 1
 
+
 ! Grad-Shafranov Options
 ! ======================
-	xlim = 1.018	! limiting value of x
+	xlim = 0.	! limiting value of x
 	zlim = 0.	! limiting value of z
-	xlim2 = 2.365	! limiting value of x
+	xlim2 = 0.	! limiting value of x
 	zlim2 = 0.	! limiting value of z
 	xmag = 1.71	! x-coordinate of magnetic axis
 	zmag =  -0.05	! z-coordinate of magnetic axis
 	tcuro = 0.7	! initial toroidal current
 	th_gs = 0.5
-	igs = 50	! number of grad-shafranov iterations
+	igs = 100	! number of grad-shafranov iterations
 	djdpsi = 0.
 	q0 = 0.9	! saftey factor near the magnetic axis
 	p1 = 0
@@ -151,23 +163,12 @@
 	expn = 0.
 	divertors = 0
 	xnull = 1.4
-	znull = -0.7
+	znull = -0.9
 	xnull2 = 1.4
-	znull2 = 0.7
+	znull2 = 0.9
 	sigma0 = 0.4
 
 	igs_extend_p = 1
-
-	gs_vertical_feedback(9)  = -500.
-	gs_vertical_feedback(10) =  500.
-	gs_vertical_feedback(11) = -500.
-	gs_vertical_feedback(12) =  500.
-	gs_vertical_feedback(13) = -500.
-	gs_vertical_feedback(14) =  500.
-	gs_radial_feedback(15) = -500.
-	gs_radial_feedback(16) = -500.
-	gs_radial_feedback(17) = -500.
-	gs_radial_feedback(18) = -500.
 
 	ntor = 1
 

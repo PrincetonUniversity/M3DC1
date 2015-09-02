@@ -126,17 +126,17 @@
 	iconst_n = 1
 	iconst_p = 1
 
-	mesh_filename = 'diiid0.02.smb'
-	mesh_model = 'diiid0.02.txt'
+	mesh_filename = 'aug0.02.smb'
+	mesh_model = 'aug0.02.txt'
 
 	icsubtract = 1
 	imulti_region = 1
 
 ! Grad-Shafranov Options
 ! ======================
-	xlim = 1.018	! limiting value of x
+	xlim = 0.	! limiting value of x
 	zlim = 0.	! limiting value of z
-	xlim2 = 2.365	! limiting value of x
+	xlim2 = 0.	! limiting value of x
 	zlim2 = 0.	! limiting value of z
 	xmag = 1.71	! x-coordinate of magnetic axis
 	zmag =  -0.05	! z-coordinate of magnetic axis
@@ -151,23 +151,12 @@
 	expn = 0.
 	divertors = 0
 	xnull = 1.4
-	znull = -0.7
+	znull = -0.9
 	xnull2 = 1.4
-	znull2 = 0.7
+	znull2 = 0.9
 	sigma0 = 0.4
 
 	igs_extend_p = 1
-
-	gs_vertical_feedback(9)  = -500.
-	gs_vertical_feedback(10) =  500.
-	gs_vertical_feedback(11) = -500.
-	gs_vertical_feedback(12) =  500.
-	gs_vertical_feedback(13) = -500.
-	gs_vertical_feedback(14) =  500.
-	gs_radial_feedback(15) = -500.
-	gs_radial_feedback(16) = -500.
-	gs_radial_feedback(17) = -500.
-	gs_radial_feedback(18) = -500.
 
 	ntor = 1
 
