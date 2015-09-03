@@ -399,6 +399,10 @@ subroutine set_defaults
        "R-coordinate of initial current filament", gs_grp)
   call add_var_double("zmag", zmag, 0., &
        "Z-coordinate of initial current filament", gs_grp)
+  call add_var_double("xmag0", xmag0, 0., &
+       "Target R-coordinate of magnetic axis for feedback", gs_grp)
+  call add_var_double("zmag0", zmag0, 0., &
+       "Target Z-coordinate of magnetic axis for feedback", gs_grp)
   call add_var_double("xlim", xlim, 0., &
        "R-coordinate of limiter #1", gs_grp)
   call add_var_double("zlim", zlim, 0., &
@@ -1058,9 +1062,6 @@ subroutine validate_input
   t0_norm = l0_norm / v0_norm
   p0_norm = b0_norm**2/(4.*pi)
   e0_norm = v0_norm*b0_norm / c_light
-
-  xmag_input = xmag
-  zmag_input = zmag
   
   if(ibeam.ge.1) call neutral_beam_init
   if(ipellet.ne.0) call pellet_init

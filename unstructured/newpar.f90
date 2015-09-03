@@ -53,6 +53,7 @@ Program Reducedquintic
   ! Write version information
   if(myrank.eq.0) then
      print *, '=============================================================='
+     print *, 'RELEASE VERSION: ', RELEASE_VERSION
      print *, 'BUILD DATE: ', DATE_BUILT
      print *, BUILD_INFO
      call date_and_time( datec, timec)

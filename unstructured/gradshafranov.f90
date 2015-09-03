@@ -46,7 +46,7 @@ module gradshafranov
 
   real, dimension(maxcoils) :: gs_vertical_feedback
   real, dimension(maxcoils) :: gs_radial_feedback
-  real, private :: xmag0, zmag0
+  real :: xmag0, zmag0
 
   integer :: igs_start_xpoint_search
   integer :: igs_forcefree_lcfs
@@ -1099,15 +1099,17 @@ subroutine gradshafranov_solve
         if((gs_vertical_feedback(i) .ne. 0) .or. &
              (gs_radial_feedback(i) .ne. 0)) then
            do_feedback = .true.
-           xmag0 = xmag_input
-           zmag0 = zmag_input
            exit
         end if
      end do
   end if
+  if(do_feedback .and. xmag0.eq.0.) then 
+     xmag0 = xmag
+     zmag0 = zmag
+  end if
+
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, 'Coil feedback, xmag0, zmag0= ', do_feedback, xmag0, zmag0
-
 
   if(igs.ne.0) call lcfs(psi_vec, imulti_region.eq.0, &
        igs_start_xpoint_search.eq.0)

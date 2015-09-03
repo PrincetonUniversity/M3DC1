@@ -734,6 +734,9 @@ subroutine rmp_per
         if(ierr.ne.0) call safestop(6)
 
 #ifdef USECOMPLEX
+        if(myrank.eq.0 .and. iprint.gt.2) then
+           print *, 'Calculating field FT'
+        end if
         call calculate_external_field_ft(sf(l), ntor)
 #endif
      end do
@@ -2172,6 +2175,10 @@ subroutine eqdsk_init()
   tcuro = current
   xmag = rmaxis
   zmag = zmaxis
+  if(xmag0.eq.0.) then
+     xmag0 = rmaxis
+     zmag0 = zmaxis
+  end if
   rzero = rmaxis
 
   if(ifixedb.eq.0) then 
