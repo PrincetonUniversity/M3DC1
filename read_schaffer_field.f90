@@ -225,7 +225,7 @@ contains
 1100   close(ifile)
        if(sf%vmec) sf%phi = sf%phi - sf%phi(1)
        print *, 'Number of lines read: ', lines_read
-       write(*, '(A,3I0)') 'NR, NZ, NPHI', sf%nr, sf%nz, sf%nphi
+       write(*, '(A,3I5)') 'NR, NZ, NPHI', sf%nr, sf%nz, sf%nphi
        write(*, '(A,F12.4," -- ",F12.4)') 'R:   ', sf%r(1), sf%r(sf%nr)
        write(*, '(A,F12.4," -- ",F12.4)') 'Z:   ', sf%z(1), sf%z(sf%nz)
        write(*, '(A,F12.4," -- ",F12.4)') 'Phi: ', sf%phi(1), sf%phi(sf%nphi)
@@ -296,19 +296,21 @@ contains
     allocate(sf%bz_ft(sf%nr,sf%nz))
     allocate(sf%bphi_ft(sf%nr,sf%nz))
 
+    call fftw_init(in, out, sf%nphi)
     do i=1, sf%nr
        do j=1, sf%nz
           in = sf%br(:,i,j)
-          call fftw(in, out, sf%nphi)
+          call fftw_run
           sf%br_ft(i,j) = out(abs(ntor)+1)/sf%nphi
           in = sf%bz(:,i,j)
-          call fftw(in, out, sf%nphi)
+          call fftw_run
           sf%bz_ft(i,j) = out(abs(ntor)+1)/sf%nphi
           in = sf%bphi(:,i,j)
-          call fftw(in, out, sf%nphi)
+          call fftw_run
           sf%bphi_ft(i,j) = out(abs(ntor)+1)/sf%nphi
        end do
     end do
+!    call fftw_destroy
 
     if(ntor .lt. 0) then
        sf%br_ft = conjg(sf%br_ft)

@@ -74,7 +74,7 @@ endif
 OPTS := $(OPTS) -DPETSC_FORTRAN_PETSCTRUTH_INT #-DCJ_MATRIX_DUMP
 
 # add date stamp
-OPTS := $(OPTS) -DDATE_BUILT="'$(shell date)'" -DBUILD_INFO="'$(shell svn info)'"
+OPTS := $(OPTS) -DDATE_BUILT="'$(shell date)'" -DBUILD_INFO="'$(shell svn info)'" -DRELEASE_VERSION="'$(shell cat release_version)'"
 
 export OPT
 export OPTS
@@ -167,6 +167,5 @@ struct2vac : $(S2V_OBJS)
 
 a2cc : $(A2CC_OBJS)
 	$(LOADER) $(A2CC_OBJS) -o $@
-
 
 endif
