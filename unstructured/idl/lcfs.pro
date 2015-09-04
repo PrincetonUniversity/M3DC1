@@ -18,9 +18,6 @@ function lcfs, psi, x, z, filename=filename, $
                            filename=filename[0], _EXTRA=extra)
     endelse 
 
-    ifixedb = read_parameter('ifixedb', filename=filename[0], _EXTRA=extra)
-    if(ifixedb eq 1) then psilim = 0.
-
     print, 'LCFS: '
     print, ' Magnetic axis found at ', axis
     print, ' Active x-point at ', xpoint
