@@ -813,6 +813,13 @@ subroutine calculate_scalars()
 
   call distribute_scalars
 
+  emagp = emagp*twopi/tpifac
+  emagt = emagt*twopi/tpifac
+  emag3 = emag3*twopi/tpifac
+  ekinp = ekinp*twopi/tpifac
+  ekint = ekint*twopi/tpifac
+  ekin3 = ekin3*twopi/tpifac
+
   ekin = ekinp + ekint + ekin3
   emag = emagp + emagt + emag3
   ekind = ekinpd + ekintd + ekin3d
@@ -827,7 +834,7 @@ subroutine calculate_scalars()
   etot = ekin + emag - ptoto
 !
 !   volume averaged pressure for beta calculation
-    avep = (gam - 1.)*(emag3 / (volume*tpifac))
+    avep = (gam - 1.)*(emag3 / (volume))
 
     ! psi on axis
     itri = 0
