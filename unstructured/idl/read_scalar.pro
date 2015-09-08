@@ -70,20 +70,20 @@ function read_scalar, scalarname, filename=filename, title=title, $
         (strcmp("dt",scalarname, /fold_case) eq 1) then begin
        data = abs(s.dt._data)
        title = 'Time Step'
-       symbol = translate('dt')
+       symbol = '!7d!8t!X'
        d = dimensions(t0=1, _EXTRA=extra)
    endif else $
      if (strcmp("psimin", scalarname, /fold_case) eq 1) then begin
        data = s.psimin._data
        title = 'Psimin'
-       symbol = translate('psim')
+       symbol = '!7w!D!60!N!X'
        d = dimensions(/b0, l0=2, _EXTRA=extra)
    endif else $
      if (strcmp("psibound", scalarname, /fold_case) eq 1) or $
         (strcmp("psilim",scalarname, /fold_case) eq 1) then begin
        data = s.psi_lcfs._data
        title = 'Psilim'
-       symbol = translate('psil')
+       symbol = '!7w!D!8b!N!X'
        d = dimensions(/b0, l0=2, _EXTRA=extra)
    endif else $
      if (strcmp("loop voltage", scalarname, /fold_case) eq 1) or $
