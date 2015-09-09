@@ -1,0 +1,32 @@
+module load intel/11.0.081 
+module load openmpi/1.4.3-qlogic
+#module load petsc/3.4.5-complex    
+module load petsc/3.4.5-real
+module load parmetis/4.0.3 
+module load metis/5.1.0  
+#module load fftw/3.3
+module load fftw/3.3.2 
+module load superlu_dist/3.3
+module load superlu/4.3-20141222
+module load scalapack/2.0.2
+module load blacs/1.1p3
+module load acml/4.3.0 
+module load zoltan/3.8
+module load gsl
+module load hdf5-parallel/1.8.6
+module load ncarg
+
+netcdf/3.6.3
+
+
+
+
+
+      module load tv80
+      module load ntcc
+      module load nag
+      module load globus
+      module load mdsplus
+      module unload idl
+      module load idl/8.1
+
