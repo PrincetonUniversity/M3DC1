@@ -89,7 +89,7 @@ pro plot_bmn, filename, vac=vac, names=names, nolegend=nolegend, $
            bmn_vac = chirikov(vac,cur=cur,psimid=psin_vac)           
        endif else begin
            result = read_bmn(vac, m_vac, bmn_vac, phase_vac, psin=psin_vac, $
-                            sum_files=sum_files)
+                            sum_files=sum_files, factor=cur)
        endelse
        if(n_elements(bmn_vac[*,0]) eq 1) then begin
            oplot, psin_vac[0,*], bmn_vac[0,*], linestyle=1

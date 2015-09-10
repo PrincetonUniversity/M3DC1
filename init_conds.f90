@@ -2134,7 +2134,7 @@ subroutine eqdsk_init()
 
   implicit none
 
-  integer :: l, ll, numnodes, icounter_tt
+  integer :: l, ll, numnodes, icounter_tt, ierr
   real :: x, phi, z , dpsi, ffp2, pp2
   vectype, parameter ::  negone = -1
 
@@ -2143,7 +2143,9 @@ subroutine eqdsk_init()
   numnodes = owned_nodes()
 
   if(myrank.eq.0 .and. iprint.gt.0) print *, "before load_eqdsk", iread_eqdsk
-  call load_eqdsk
+  call load_eqdsk(ierr)
+  if(ierr.ne.0) call safestop(1)
+
   press = press*amu0
   pprime = pprime*amu0
   current = current*amu0
