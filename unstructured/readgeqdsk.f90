@@ -15,13 +15,15 @@ module eqdsk
 
 contains
 
-subroutine load_eqdsk
+subroutine load_eqdsk(ierr)
   implicit none
 
   include 'mpif.h'
 
+  integer, intent(out) :: ierr
+
   integer, parameter :: neqdsk = 20
-  integer :: idum, i, j, ierr
+  integer :: idum, i, j
   real :: xdum, ffp2, pp2, dpsi
   integer :: ibuff(2)
   real :: rbuff(20)
@@ -31,22 +33,35 @@ subroutine load_eqdsk
 
   if(rank.eq.0) then
      print *, 'Reading EQDSK g-file'
-     open(unit=neqdsk,file='geqdsk',status='old')
+     open(unit=neqdsk,file='geqdsk',status='old',err=5000)
+
 
 2000 format (6a8,3i4)
 2020 format (5e16.9)
 2022 format (2i5)
 
+     
      read (neqdsk,2000) (name(i),i=1,6),idum,nw,nh
 
      print *, ' Resolution: ', nw, nh
      ibuff(1) = nw
      ibuff(2) = nh
+     goto 5001
+
+5000 print *, 'Error reading geqdsk file'
+     ibuff = 0
+
+5001 continue
   endif
 
   call mpi_bcast(ibuff, 2, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
   nw = ibuff(1)
   nh = ibuff(2)
+
+  if(nw .lt. 2 .or. nh.lt.2) then
+     ierr = 1
+     return
+  end if
 
   allocate(psirz(nw,nh),fpol(nw),press(nw),ffprim(nw),pprime(nw),qpsi(nw))
 

@@ -4556,7 +4556,7 @@ subroutine ludefphi_n(itri)
      else
         ! If electron pressure equation is not included,
         ! terms that should multiply pe will instead multiply p
-        ! (we add a fector of pefac to these terms below)
+        ! (we add a factor of pefac to these terms below)
         ppe_i = p_i
      end if
      maxk = numvar
