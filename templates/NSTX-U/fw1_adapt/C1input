@@ -124,7 +124,7 @@
 	iconst_p = 1
 
 	mesh_filename = 'AnalyticModel.smb'
-	mesh_model = 'AnalyticModel
+	mesh_model = 'AnalyticModel'
 
 
 ! Grad-Shafranov Options
@@ -138,9 +138,9 @@
 	pedge = 1e-4
 	expn = 0.
 	divertors = 0
-	xnull = 0.5
+	xnull = 0.6
 	znull = -1.4
-	xnull2 = 0.5
+	xnull2 = 0.6
 	znull2 = 1.4
 	sigma0 = 0.2
 
