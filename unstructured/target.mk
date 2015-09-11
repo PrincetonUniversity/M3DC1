@@ -50,7 +50,10 @@ install : templates
 	mkdir -p $(INSTALL_DIR)/idl
 	cp idl/*.pro $(INSTALL_DIR)/idl
 	mkdir -p $(INSTALL_DIR)/bin
-	cp sbin/* $(INSTALL_DIR)/bin
+	cp sbin/extract_profiles.sh $(INSTALL_DIR)/bin
+	cp sbin/part_mesh.$(M3DC1_ARCH).sh $(INSTALL_DIR)/bin
+	cp sbin/create_fixed_mesh.$(M3DC1_ARCH).sh $(INSTALL_DIR)/bin
+	cp sbin/create_mesh.$(M3DC1_ARCH).sh $(INSTALL_DIR)/bin
 	cp _$(ARCH)-opt-25/m3dc1_2d $(INSTALL_DIR)/bin
 	cp _$(ARCH)-complex-opt-25/m3dc1_2d_complex $(INSTALL_DIR)/bin
 	cp _$(ARCH)-3d-opt-60/m3dc1_3d $(INSTALL_DIR)/bin
