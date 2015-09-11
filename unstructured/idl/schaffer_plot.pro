@@ -63,16 +63,18 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    if(n_elements(bmncdf) ne 0) then begin
       if(keyword_set(profdata)) then begin
          omega_i = flux_average('v_omega',flux=qflux,psi=psi0,x=x,z=z,t=t,$
-                                bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
+                                bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra,$
+                               fc=fc)
          omega_e = flux_average('ve_omega',flux=qflux,psi=psi0,x=x,z=z,t=t,$
-                                bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
-         F = flux_average('I',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+                                bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra,$
+                               fc=fc)
+         F = flux_average('I',flux=qflux,psi=psi0,x=x,z=z,t=t,fc=fc,$
                           bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
-         p = flux_average('p',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+         p = flux_average('p',flux=qflux,psi=psi0,x=x,z=z,t=t,fc=fc,$
                           bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
-         pe = flux_average('pe',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+         pe = flux_average('pe',flux=qflux,psi=psi0,x=x,z=z,t=t,fc=fc,$
                            bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
-         den_e = flux_average('ne',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+         den_e = flux_average('ne',flux=qflux,psi=psi0,x=x,z=z,t=t,fc=fc,$
                               bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
       end
        
