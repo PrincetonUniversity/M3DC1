@@ -20,7 +20,7 @@ pro plot_m_vs_r, filename, mrange=mrange, ylog=ylog, factor=factor, $
 
   n = mrange[1]-mrange[0]+1
   mm = indgen(n) + mrange[0]
-  qq = abs(float(mm)/float(ntor))
+  qq = float(mm)/float(ntor)
 
   psin = flux_at_q(qq,q=q,flux=psi)
 
