@@ -3,9 +3,12 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
                    m_val=m_val, phase=phase, overplot=overplot, $
                    linestyle=linestyle, outfile=outfile, bmnfile=bmnfile, $
                    bmncdf=bmncdf, rhs=rhs, reverse_q=reverse_q, $
-                   sqrtpsin=sqrtpsin, profdata=profdata
+                   sqrtpsin=sqrtpsin, profdata=profdata, $
+                   boozer=boozer, pest=pest, hamada=hamada, geo=geo
 
    print, 'Drawing schaffer plot'
+   if(not keyword_set(boozer) and not keyword_set(hamada) and $
+      not keyword_set(geo)) then pest=1
 
    if(n_elements(sqrtpsin) eq 0) then sqrtpsin=1
 
@@ -26,15 +29,14 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
 
    ; From Schaffer 2008
    ; Br_mn = [(2*pi)^2/S] * [J Br]_mn
-   ; J = B_theta*q*R^3/(R_0*B_0)
    bp = sqrt(s_bracket(psi0,psi0,x,z))/r
-   jac = r^3*bp/abs(i0)
 
    if(size(field, /type) eq 7) then begin
-       field = read_field(field*jac,x,z,t,/complex,_EXTRA=extra)
+       field = read_field(field,x,z,t,/complex,_EXTRA=extra)
    endif
 
-   d = field_spectrum(field,x,z,psi0=psi0,i0=i0,fc=fc,tbins=bins,fbins=bins,m=m,_EXTRA=extra)
+   d = field_spectrum(field,x,z,psi0=psi0,i0=i0,fc=fc,tbins=bins,fbins=bins, $
+                      m=m,pest=pest,boozer=boozer,hamada=hamada,_EXTRA=extra)
    flux =fc.psi
    nflux=fc.psi_norm
    angle=fc.theta
@@ -176,20 +178,6 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    if(n_elements(indices) ne 0) then begin
        print, abs(q[fix(indices)])
        print, abs(q[fix(indices+1)])
-
-;;        b = complexarr(n_elements(angle), n_elements(indices))
-;;        for i=0, n_elements(angle)-1 do begin
-;;            b[i,*] = interpolate(reform(a[0,*,i]), indices)
-;;        end
-;; ;       b = interpolate(reform(a[0,*,*]), indices)
-       
-;;        c = fft(b, -1, dimension=1)
-;;        dold = d
-;;        if(n_elements(indices) eq 1) then begin
-;;            d = shift(c,-(n/2+1))
-;;        endif else begin
-;;            d = shift(c,-(n/2+1),0)
-;;        endelse
 
        col = fltarr(n_elements(indices))
        c = get_colors()
