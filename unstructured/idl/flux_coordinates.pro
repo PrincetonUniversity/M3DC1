@@ -18,7 +18,8 @@
 function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
                            plot=makeplot, fast=fast0, psi0=psi0, $
                            i0=i0, x=x, z=z, fbins=fbins, $
-                           tbins=tbins
+                           tbins=tbins, boozer=boozer, hamada=hamada, $
+                           njac=njac
 
   if(n_elements(fast0) eq 0) then fast0 = 0
   fast = fast0
@@ -33,11 +34,19 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
   if(n_elements(fbins) eq 0) then fbins=200
   if(n_elements(tbins) eq 0) then tbins=200
 
+  geo = 0
   if(keyword_set(pest)) then begin
      print, 'Creating flux coordinates using PEST angle'
      fast = 0
+  endif else if(keyword_set(boozer)) then begin
+     print, 'Creating flux coordinates using BOOZER angle'
+     fast = 0
+  endif else if(keyword_set(hamada)) then begin
+     print, 'Creating flux coordinates using HAMADA angle'
+     fast = 0
   endif else begin
      print, 'Creating flux coordinates using GEOMETRIC angle'
+     geo = 1
   end
   print, 'FAST MODE: ', keyword_set(fast)
   print, 'Using FC resolution ', tbins, fbins
@@ -71,6 +80,7 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
   rpath = fltarr(m,n)
   zpath = fltarr(m,n)
   jac = fltarr(m,n)
+  omega = fltarr(m,n)
   q = fltarr(n)
   dV = fltarr(n)
   V = fltarr(n)
@@ -153,8 +163,10 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
   endif else begin
      fac = 1.
   endelse
-  theta_pest = fltarr(m,n)
-  integrand = fltarr(m)
+  theta_sfl = fltarr(m,n)
+  f = fltarr(n)
+  fjr2 = fltarr(m)
+  dthetadl = fltarr(m)
   bp = fltarr(m)
   gradpsi = sqrt(psi0_r^2 + psi0_z^2)
   for j=0, n-1 do begin
@@ -169,14 +181,22 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
 
         if(not keyword_set(fast)) then begin
            ix = field_at_point(i0,x,z,rpath[i,j],zpath[i,j])
-           integrand[i] = -ix/(rpath[i,j]^2*bp[i])
+           ; dtheta/dl = -1./(Bp*Jac)
+           if(keyword_set(pest)) then begin
+              dthetadl[i] = -ix/(rpath[i,j]^2*bp[i])
+           endif else if(keyword_set(boozer)) then begin
+              dthetadl[i] = -(bp[i]^2 + (ix/rpath[i,j])^2) / bp[i]
+           endif else if(keyword_set(hamada)) then begin
+              dthetadl[i] = -1./bp[i]
+           endif
+           fjr2[i] = -ix/(rpath[i,j]^2*bp[i])
            
            if(i eq 0) then begin
-              theta_pest[i,j] = 0.
+              theta_sfl[i,j] = 0.
            endif else begin
-              theta_pest[i,j] = theta_pest[i-1,j] $
-                                +dl[i]*integrand[i]/2. $
-                                +dl[i-1]*integrand[i-1]/2.
+              theta_sfl[i,j] = theta_sfl[i-1,j] $
+                                +dl[i]*dthetadl[i]/2. $
+                                +dl[i-1]*dthetadl[i-1]/2.
            end
         end
      end
@@ -189,9 +209,16 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
         V[j] = V[j-1] + (dV[j]+dV[j-1])*(psi[j]-psi[j-1])/2.
      endelse
 
+     ; calculate q
      if(not keyword_set(fast)) then begin
-        q[j] = total(integrand*dl)/(2.*!pi)
-        theta_pest[*,j] = theta_pest[*,j]/q[j]
+        ; normalize theta to 2 pi
+        if(geo eq 0) then begin
+           f[j] = total(dthetadl*dl)/(2.*!pi)
+           theta_sfl[*,j] = theta_sfl[*,j]/f[j]
+        end
+        q[j] = total(fjr2*dl)/(2.*!pi)
+           
+        ; calculate toroidal flux
         if(j eq 0) then begin
            phi[j] = -2.*!pi*q[j]*(psi[j]-flux0)
         endif else begin
@@ -205,8 +232,8 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
         return, 0
      end
      if(not keyword_set(fast)) then begin
-        if(theta_pest[0,j] gt theta_pest[m-1,j]) then begin
-           print, 'ERROR, theta_pest is clockwise'
+        if(theta_sfl[0,j] gt theta_sfl[m-1,j]) then begin
+           print, 'ERROR, theta_sfl is clockwise'
            return, 0
         end
         if(fac*q[j]*ix gt 0.) then begin
@@ -220,21 +247,35 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
      end
   end
      
-  if(keyword_set(pest)) then begin
+  if(geo eq 0) then begin
      for j=0, n-1 do begin
         ; interpolate fields to be evenly spaced in PEST angle
-        newm = interpol(findgen(m),theta_pest[*,j],theta)
+        newm = interpol(findgen(m),theta_sfl[*,j],theta)
         rpath[*,j] = interpolate(rpath[*,j],newm)
         zpath[*,j] = interpolate(zpath[*,j],newm)
         
-        ; we have analytic expression for PEST Jacobian
-        for i=0,m-1 do begin
-           jac[i,j] = rpath[i,j]^2*q[j] / $
-                      field_at_point(i0,x,z,rpath[i,j],zpath[i,j])
+        ; use analytic expression for Jacobian
+        if(keyword_set(pest)) then begin
+           for i=0,m-1 do begin
+              jac[i,j] = rpath[i,j]^2*q[j] / $
+                         field_at_point(i0,x,z,rpath[i,j],zpath[i,j])
+           end
+        endif else if(keyword_set(boozer)) then begin
+           b2r2 = i0^2 + psi0_r^2 + psi0_z^2
+           for i=0,m-1 do begin
+              jac[i,j] = f[j]*rpath[i,j]^2 / $
+                         field_at_point(b2r2,x,z,rpath[i,j],zpath[i,j])
+           end
+        endif else if(keyword_set(hamada)) then begin
+           jac[*,j] = f[j]
         end
      end
      
-  endif else begin
+  endif 
+
+  ; Calculate Jacobian if requested (or if analytic expression isn't available)
+  if(geo eq 1 or keyword_set(njac)) then begin
+     print, 'Calculating Jacobian numerically'
      ; calculate jacobian
      dr_dpsi = rpath
      dz_dpsi = zpath
@@ -249,10 +290,31 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
         dz_dtheta[*,j] = deriv(theta, zpath[*,j])
      end
      jac = rpath*(dr_dtheta*dz_dpsi - dr_dpsi*dz_dtheta)
-  endelse
+  end
+
+  ; calculate deviation of toroidal angle from geometric toroidal angle
+  if(not keyword_set(pest) and not keyword_set(geo) $
+     and not keyword_set(fast)) then begin
+     for j=0, n-1 do begin
+        for i=0, m-1 do begin
+           jac_pest = rpath[i,j]^2*q[j] / $
+                      field_at_point(i0,x,z,rpath[i,j],zpath[i,j])
+           if(i eq 0) then begin
+              omega[i,j] = 0.
+           endif else begin
+              dtheta = theta[i] - theta[i-1]
+              omega[i,j] = omega[i-1,j] + dtheta* $
+                                ((1. - jac[i  ,j]/jac_pest    )/2. $
+                                +(1. - jac[i-1,j]/jac_pest_old)/2.)
+           end
+           jac_pest_old = jac_pest
+        end
+        omega[*,j] = omega[*,j]*q[j]
+     end
+  end
 
   ; define flux coordinates structure
-  fc = { m:m, n:n, r:rpath, z:zpath, r0:axis[0], z0:axis[1], $
+  fc = { m:m, n:n, r:rpath, z:zpath, r0:axis[0], z0:axis[1], omega:omega, $
          psi1:psi_s, psi0:flux0, psi:psi, psi_norm:psi_norm, theta:theta, $
          j:jac, q:q, area:area, dV:dV, pest:keyword_set(pest), $
          V:V, phi:phi, phi_norm:phi/phi[n-1], rho:sqrt(phi/phi[n-1]) }
@@ -284,7 +346,8 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
      !p.multi = [0,2,2]
      plot, psi_norm, q, xtitle='!7W!X', ytitle='!8q!X'
      plot, psi_norm, V, xtitle='!7W!X', ytitle='!8V!X'
-     plot, psi_norm, area, xtitle='!7W!X', ytitle='!8A!X'
+;     plot, psi_norm, area, xtitle='!7W!X', ytitle='!8A!X'
+     plot, psi_norm, omega, xtitle='!7W!X', ytitle='!7x!X'
      plot, psi_norm, phi, xtitle='!7W!X', ytitle='!7u!D!8T!N!X'
      !p.multi=0
   end

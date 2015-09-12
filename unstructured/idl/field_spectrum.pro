@@ -1,8 +1,7 @@
 ;===========================================================================
 ; FIELD_SPECTRUM
 ; ~~~~~~~~~~~~~~
-; Calculates the poloidal Fourier components of field in PEST
-; coordinates
+; Calculates the poloidal Fourier components of field
 ;
 ; Input:
 ;  field:         field to be decomposed
@@ -14,14 +13,19 @@
 ;  fc:  flux coordinate structure
 ;  m:   poloidal mode numbers
 ;===========================================================================
-function field_spectrum, field, x, z, psi0=psi0, i0=i0, fc=fc, m=m, _EXTRA=extra
+function field_spectrum, field, x, z, psi0=psi0, i0=i0, fc=fc, m=m, $
+                         _EXTRA=extra
 
 ;  b = flux_coord_field_new(field, x, z, fc=fc, /pest, _EXTRA=extra)
 
-  a = flux_coord_field(field, psi0, x, z, i0=i0, fc=fc, /pest, _EXTRA=extra)
+  a = flux_coord_field(field, psi0, x, z, i0=i0, fc=fc, _EXTRA=extra)
   b = transpose(a,[0,2,1])
 
-  b[0,*,*] = b[0,*,*]*(2.*!pi)^2*fc.j
+  ntor = read_parameter('ntor', _EXTRA=extra)
+  print, 'NTOR = ', ntor
+
+  b[0,*,*] = b[0,*,*]*(2.*!pi)^2*fc.j $
+             * exp(complex(0,ntor)*fc.omega)
 
   c = fft(b, -1, dimension=2)
 
