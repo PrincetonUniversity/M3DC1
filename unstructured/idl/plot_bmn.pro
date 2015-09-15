@@ -66,7 +66,7 @@ pro plot_bmn, filename, vac=vac, names=names, nolegend=nolegend, $
    if(n_elements(c) eq 0) then begin
        if(n_elements(filename) gt 1) then begin
            c = shift(get_colors(n_elements(filename)),-1)
-           c = shift(get_colors(),-1)
+;           c = shift(get_colors(),-1)
        endif else begin
            c = get_colors()
         endelse
