@@ -7,7 +7,7 @@
 	iprint = 0	! 1 = print detailed debug info
 	itimer = 0	! 1 = print timing info
 
-	iread_eqdsk = 3
+	iread_eqdsk = 1
 	iwrite_restart = 0
 
 	iadapt = 1

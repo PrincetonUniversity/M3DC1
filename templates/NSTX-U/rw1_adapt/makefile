@@ -1,4 +1,4 @@
-nstxu0.020.smb :
+nstxu0.020.smb : input
 	create_mesh.sh
 
 .PHONY : clean
