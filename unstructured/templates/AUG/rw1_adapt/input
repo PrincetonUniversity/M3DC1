@@ -22,13 +22,13 @@ numInterPts 20
 thickness 0.02
 
 ! vacuum region width
-width 1.8
+width 1.7
 
 ! vacuum region height
 height 2.2 
 
 ! offset in x direction
-offsetX 0.
+offsetX 0.1
 
 ! offset in y direction
 offsetY 0.0
@@ -37,7 +37,7 @@ offsetY 0.0
 SimLic /net/common/meshSim/license/license.txt
 
 ! mesh size at three faces
-meshSizes 0.03 0.01 0.1
+meshSizes 0.03 0.03 0.1
 
 ! if use analytic mesh size function defined in wallMeshSizeFn.h
 useAnalyticSize 0

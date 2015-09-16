@@ -9,7 +9,7 @@
 
 	irestart = 0	! 1 = read restart
 
-	iread_eqdsk = 3
+	iread_eqdsk = 1
 	iwrite_restart = 0
 	iwrite_aux_vars = 0
 	iwrite_transport_coeffs = 0
