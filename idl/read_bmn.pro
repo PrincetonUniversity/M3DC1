@@ -48,7 +48,8 @@ function read_bmn, filename, m, bmn, phase, $
    if(arg_present(qprime)) then qprime = fltarr(n, n_elements(m))
    if(arg_present(area)) then area = fltarr(n, n_elements(m))
    if(arg_present(psiprime)) then psiprime = fltarr(n, n_elements(m))
-   if(n_elements(factor) eq 0) then factor=replicate(1., n)
+   if(n_elements(factor) eq 0) then factor = 1.
+   if(n_elements(factor) lt n) then factor=replicate(factor[0],n)
 
    for i=0, n-1 do begin
        if(file_test(filename[i]) eq 0) then begin

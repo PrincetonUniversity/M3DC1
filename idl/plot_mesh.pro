@@ -68,7 +68,7 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
        if((pp and 1) eq 1) then begin
            if((bound and 1) eq 1) then begin
                izone = (bound and 120)/2^3 + 1
-               c = color(czone[izone])
+               c = color(czone[izone mod n_elements(czone)])
                oplot, [q1[0],q2[0]]+xzero, [q1[1],q2[1]]+zzero, $
                  color=c, thick=!p.thick*3
            end else begin
@@ -79,7 +79,7 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
        if((pp and 2) eq 2) then begin
            if((bound and 2) eq 2) then begin
                izone = (bound and 1920)/2^7 + 1
-               c = color(czone[izone])
+               c = color(czone[izone mod n_elements(czone)])
                oplot, [q2[0],q3[0]]+xzero, [q2[1],q3[1]]+zzero, $
                  color=c, thick=!p.thick*3
            end else begin
@@ -91,7 +91,7 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
        if((pp and 4) eq 4) then begin
            if((bound and 4) eq 4) then begin
                izone = (bound and 30720)/2^11 + 1
-               c = color(czone[izone])
+               c = color(czone[izone mod n_elements(czone)])
                oplot, [q3[0],q1[0]]+xzero, [q3[1],q1[1]]+zzero, $
                  color=c, thick=!p.thick*3
            end else begin
