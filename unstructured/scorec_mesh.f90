@@ -537,11 +537,14 @@ contains
           call m3dc1_node_getcurv(inode-1, curv)
        end if
 
-       if(present(tags)) then
-          is_boundary = in_tag_list(tags, izone)         
-       else
-          is_boundary = in_tag_list(domain_boundary, izone)
+       if(imulti_region.eq.1) then
+          if(present(tags)) then
+             is_boundary = in_tag_list(tags, izone)         
+          else
+             is_boundary = in_tag_list(domain_boundary, izone)
+          end if
        end if
+
     end if
     call get_node_pos(inode,x,phi,z)
 
