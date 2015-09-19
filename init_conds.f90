@@ -2589,7 +2589,7 @@ subroutine jsolver_init()
   real :: x, phi, z, pzero_jsv, gzero_jsv
   real, allocatable :: ffprime(:),ppxx_jsv2(:),gpx_jsv2(:)
 
-  print *, "jsolver_init called"
+  if(myrank.eq.0 .and. iprint .ge. 1) print *, "jsolver_init called"
 
   call load_jsolver
 
@@ -2608,6 +2608,8 @@ subroutine jsolver_init()
 
   xmag = x_jsv(1,1)
   zmag = z_jsv(1,1)
+
+if(myrank.eq.0 .and. iprint .ge. 1) print *, "xmag,zmag=",xmag,zmag
 
   ! remove factor of 1/xzero_jsv in definition of g
   gxx_jsv = gxx_jsv*xzero_jsv
@@ -2633,6 +2635,7 @@ subroutine jsolver_init()
 !...Adopt JSOLVER convention that R*B_T = xzero_jsv
   rzero = xzero_jsv
   bzero = 1.0
+  if(myrank.eq.0 .and. iprint .ge. 1) print *, "rzero,bzero=",rzero,bzero
 
   if(igs.gt.0) then
      if(iread_jsolver.eq.2) then
@@ -2657,8 +2660,13 @@ subroutine jsolver_init()
 !
         deallocate(ffprime)
      end if
-
-     call deltafun(xmag,zmag,tcuro,jphi_field)
+     if(sigma0.eq.0) then
+        call deltafun(xmag,zmag,tcuro,jphi_field)
+     else
+        call gaussianfun(xmag,zmag,tcuro,sigma0,jphi_field)
+     endif
+     psibound = psival_jsv(npsi_jsv)
+     psimin = psival_jsv(1)
 
      call gradshafranov_solve
      call gradshafranov_per
@@ -4090,7 +4098,7 @@ subroutine initial_conditions()
            call int_kink_init()
         case(20)
            call kstar_profiles()
-        case(21,22,25)
+        case(21,22,25,26)
            call fixed_q_profiles()
         case(23)
            call frs1_init()
@@ -4801,6 +4809,11 @@ endif
 if(itaylor_qp .eq.25) then
    qfunc = (q0_qp) + psi*(q2_qp + q4_qp*psi)
    return
+if(itaylor_qp .eq. 26) then
+   qfunc = q0_qp*(1. + (psi/q2_qp)**q4_qp )**(1./q4_qp)
+   return
+endif
+
 endif
 
 return
@@ -4831,7 +4844,12 @@ if(itaylor_qp .eq.25) then
    return
 endif
 
-return
+if(itaylor_qp .eq. 26) then
+   qpfunc = q0_qp*(1. + (psi/q2_qp)**q4_qp )**((1.-q4_qp)/q4_qp)       &
+                *(1./q2_qp)**q4_qp*psi**(q4_qp-1)
+   return
+endif
+
 end function qpfunc
 
 function pfunc(psi)    !   p  (pressure)

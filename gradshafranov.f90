@@ -2803,7 +2803,7 @@ subroutine boundary_gs(rhs, feedfac, mat)
 #endif
 
   if(iper.eq.1 .and. jper.eq.1) return
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_gs called"
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "boundary_gs called"
 
   numnodes = owned_nodes()
   do i=1, numnodes
